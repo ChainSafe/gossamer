@@ -731,7 +731,7 @@ func (ps *PeerSet) start(ctx context.Context, actionQueue chan action) {
 	go ps.listenActionAllocSlots(ctx)
 }
 
-// listenActionAllocSlots listens to PeerSet.actionQueue channel.
+// listenActionAllocSlots listens to actionQueue channel all the messages there are written by peerset.Handler
 func (ps *PeerSet) listenActionAllocSlots(ctx context.Context) {
 	ticker := time.NewTicker(ps.nextPeriodicAllocSlots)
 

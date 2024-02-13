@@ -130,6 +130,7 @@ func (cm *ConnManager) Disconnected(_ network.Network, c network.Conn) {
 
 // CheckLimit will return an error if the connection manager's internal
 // connection limit exceeds the provided system limit.
+// is unimplemented
 func (c *ConnManager) CheckLimit(l connmgr.GetConnLimiter) error {
 	//if l.GetConnLimit() <= c.maxPeers {
 	//	return fmt.Errorf(

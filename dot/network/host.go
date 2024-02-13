@@ -6,6 +6,7 @@ package network
 import (
 	"context"
 	"fmt"
+	"github.com/libp2p/go-libp2p/p2p/security/noise"
 	"log"
 	"net"
 	"path"
@@ -207,7 +208,8 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		libp2p.Identity(cfg.privateKey),
 		libp2p.NATPortMap(),
 		libp2p.Peerstore(ps),
-		libp2p.ConnectionManager(cm),
+		//libp2p.ConnectionManager(cm),
+		//libp2p.Security(noise.ID, noise.New),
 		libp2p.AddrsFactory(func(as []ma.Multiaddr) []ma.Multiaddr {
 			var addrs []ma.Multiaddr
 			for _, addr := range as {
@@ -221,6 +223,8 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 			return append(addrs, externalAddr)
 		}),
 	}
+
+	opts = append(opts, libp2p.Security(noise.ID, noise.New))
 
 	// create libp2p host instance
 	h, err := libp2p.New(opts...)

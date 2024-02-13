@@ -701,7 +701,7 @@ func (s *Service) processMessage(msg peerset.Message) {
 	}
 	switch msg.Status {
 	case peerset.Connect:
-		logger.Infof("PROCESS MESSGE CONNECT %+v", msg)
+		logger.Infof("PROCESS MESSAGE CONNECT %+v", msg)
 		// TODO: Some bug also happens here, no error happens althoug node is not getting connected to or atleast connection is not stored in store.
 		addrInfo := s.host.p2pHost.Peerstore().PeerInfo(peerID)
 		if len(addrInfo.Addrs) == 0 {
@@ -717,7 +717,6 @@ func (s *Service) processMessage(msg peerset.Message) {
 		if err != nil {
 			// TODO: if error happens here outgoing (?) slot is occupied but no peer is really connected
 			logger.Warnf("failed to open connection for peer %s: %s", peerID, err)
-
 			return
 		}
 		logger.Infof("connection successful with peer %s", peerID)

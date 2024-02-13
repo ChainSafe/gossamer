@@ -61,6 +61,14 @@ func newDiscovery(ctx context.Context, h libp2phost.Host,
 
 // start initiates DHT structure with bootnodes if they are provided. Starts nodes discovery with bootstrap process
 func (d *discovery) start() error {
+	//if len(d.bootnodes) == 0 {
+	//	peers, err := d.waitForPeers()
+	//	if err != nil {
+	//		return fmt.Errorf("failed while waiting for peers: %w", err)
+	//	}
+	//
+	//	d.bootnodes = peers
+	//}
 	logger.Infof("starting DHT with bootnodes %v...", d.bootnodes)
 	logger.Infof("V1ProtocolOverride %v...", d.pid+"/kad")
 
@@ -87,8 +95,7 @@ func (d *discovery) start() error {
 		return err
 	}
 	d.dht = dht
-	go d.discoverAndAdvertise()
-	return nil
+	return d.discoverAndAdvertise()
 }
 
 func (d *discovery) stop() error {
@@ -120,7 +127,7 @@ func (d *discovery) stop() error {
 //}
 
 // discoverAndAdvertise
-func (d *discovery) discoverAndAdvertise() {
+func (d *discovery) discoverAndAdvertise() error {
 	d.rd = routing.NewRoutingDiscovery(d.dht)
 	bootstrapTimer := time.NewTimer(initialAdvertisementTimeout)
 	advertismentTimer := time.NewTimer(initialAdvertisementTimeout)
@@ -132,7 +139,7 @@ func (d *discovery) discoverAndAdvertise() {
 		case <-d.ctx.Done():
 			bootstrapTimer.Stop()
 			advertismentTimer.Stop()
-			return
+			return nil
 		case <-bootstrapTimer.C:
 			err := d.dht.Bootstrap(d.ctx)
 			bootstrapTimer = time.NewTimer(retryAdvertiseTimeout)
@@ -224,6 +231,5 @@ func (d *discovery) waitForPeers() (peers []peer.AddrInfo, err error) {
 	for idx, peer := range currentPeers {
 		peers[idx] = d.h.Peerstore().PeerInfo(peer)
 	}
-
 	return peers, nil
 }
