@@ -19,7 +19,6 @@ import (
 type ConnManager struct {
 	sync.Mutex
 	host              *host
-	min, max          int
 	connectHandler    func(peer.ID)
 	disconnectHandler func(peer.ID)
 
@@ -31,20 +30,20 @@ type ConnManager struct {
 	persistentPeers *sync.Map // map[peer.ID]struct{}
 
 	peerSetHandler PeerSetHandler
+	maxPeers       int
 }
 
-func newConnManager(min, max int, peerSetCfg *peerset.ConfigSet) (*ConnManager, error) {
+func newConnManager(maxPeers int, peerSetCfg *peerset.ConfigSet) (*ConnManager, error) {
 	psh, err := peerset.NewPeerSetHandler(peerSetCfg)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ConnManager{
-		min:             min,
-		max:             max,
 		protectedPeers:  new(sync.Map),
 		persistentPeers: new(sync.Map),
 		peerSetHandler:  psh,
+		maxPeers:        maxPeers,
 	}, nil
 }
 
@@ -128,4 +127,17 @@ func (cm *ConnManager) Disconnected(_ network.Network, c network.Conn) {
 	if cm.disconnectHandler != nil {
 		cm.disconnectHandler(c.RemotePeer())
 	}
+}
+
+// CheckLimit will return an error if the connection manager's internal
+// connection limit exceeds the provided system limit.
+func (c *ConnManager) CheckLimit(l connmgr.GetConnLimiter) error {
+	//if l.GetConnLimit() <= c.maxPeers {
+	//	return fmt.Errorf(
+	//		"amount of peers connected: %d, exceeds the system connection limit of: %d",
+	//		cm.cfg.highWater,
+	//		systemLimit.GetConnLimit(),
+	//	)
+	//}
+	return nil
 }

@@ -131,7 +131,6 @@ type Service struct {
 
 	// Configuration options
 	noBootstrap bool
-	noDiscover  bool
 	noMDNS      bool
 	noGossip    bool // internal option
 
@@ -287,6 +286,8 @@ func (s *Service) Start() error {
 
 	// this handles all new connections (incoming and outgoing)
 	// it creates a per-protocol mutex for sending outbound handshakes to the peer
+	// connectHandler is a part of libp2p.Notifiee interface implementation and getting called in the very end
+	//after or Incoming or Outgoing node is connected
 	s.host.cm.connectHandler = func(peerID peer.ID) {
 		for _, prtl := range s.notificationsProtocols {
 			prtl.peersData.setMutex(peerID)
@@ -398,7 +399,7 @@ func (s *Service) logPeerCount() {
 	for {
 		select {
 		case <-ticker.C:
-			logger.Infof("peer count %d, min=%d and max=%d", s.host.peerCount(), s.cfg.MinPeers, s.cfg.MaxPeers)
+			logger.Infof("peer count %d", s.host.peerCount())
 		case <-s.ctx.Done():
 			return
 		}
@@ -688,15 +689,20 @@ func (s *Service) startPeerSetHandler() {
 	go s.startProcessingMsg()
 }
 
+// processMessage process messages from PeerSetHandler. Responsible for Connecting and Drop connection with peers.
+// When Connect message received function looking for a PeerAddr in Peerstore. If address is not found in peerstore we are looking
+// for a peer with DHT
 func (s *Service) processMessage(msg peerset.Message) {
+	logger.Infof("PROCESS NEW MESSAGE %+v", msg)
 	peerID := msg.PeerID
 	if peerID == "" {
-		logger.Errorf("found empty peer id in peerset message")
+		logger.Warn("found empty peer id in peerset message")
 		return
 	}
 	switch msg.Status {
 	case peerset.Connect:
 		logger.Infof("PROCESS MESSGE CONNECT %+v", msg)
+		// TODO: Some bug also happens here, no error happens althoug node is not getting connected to or atleast connection is not stored in store.
 		addrInfo := s.host.p2pHost.Peerstore().PeerInfo(peerID)
 		if len(addrInfo.Addrs) == 0 {
 			var err error
@@ -709,10 +715,14 @@ func (s *Service) processMessage(msg peerset.Message) {
 
 		err := s.host.connect(addrInfo)
 		if err != nil {
+			// TODO: if error happens here outgoing (?) slot is occupied but no peer is really connected
 			logger.Warnf("failed to open connection for peer %s: %s", peerID, err)
+
 			return
 		}
 		logger.Infof("connection successful with peer %s", peerID)
+		logger.Infof("Amount of peers %v", s.host.peerCount())
+
 	case peerset.Drop, peerset.Reject:
 		logger.Infof("!!!!!PROCESS MESSGE DROP %+v", msg)
 		err := s.host.closePeer(peerID)
@@ -724,6 +734,8 @@ func (s *Service) processMessage(msg peerset.Message) {
 	}
 }
 
+// startProcessingMsg function that listens to messages from the channel that belongs to PeerSet PeerSetHandler.
+// Messages are gettin
 func (s *Service) startProcessingMsg() {
 	msgCh := s.host.cm.peerSetHandler.Messages()
 	for {
@@ -732,6 +744,7 @@ func (s *Service) startProcessingMsg() {
 			return
 		case msg, ok := <-msgCh:
 			if !ok {
+				logger.Warn("startProcessingMsg is quit")
 				return
 			}
 

@@ -178,7 +178,9 @@ type PeerSet struct {
 	// TODO: this will be useful for reserved only mode
 	// this is for future purpose if reserved-only flag is enabled (#1888).
 	isReservedOnly bool
-	resultMsgCh    chan Message
+
+	// resultMsgCh is read by network.Service
+	resultMsgCh chan Message
 	// time when the PeerSet was created.
 	created time.Time
 	// last time when we updated the reputations of connected nodes.
@@ -368,21 +370,24 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 	return nil
 }
 
-// allocSlots tries to fill available outgoing slots of nodes for the given set.
+// allocSlots tries to fill available outgoing slots of nodes for the given set with notConnected nodes from peerstate.
+// By default this getting called every X seconds according to nextPeriodicAllocSlots ticker
 func (ps *PeerSet) allocSlots(setIdx int) error {
+	logger.Infof("Allocating slots for %v", setIdx)
 	err := ps.updateTime()
 	if err != nil {
 		return fmt.Errorf("cannot update time: %w", err)
 	}
 
 	peerState := ps.peerState
+
 	for reservePeer := range ps.reservedNode {
 		status := peerState.peerStatus(setIdx, reservePeer)
 		switch status {
 		case connectedPeer:
 			continue
 		case unknownPeer:
-			peerState.discover(setIdx, reservePeer)
+			peerState.insertPeer(setIdx, reservePeer)
 		}
 
 		node, err := ps.peerState.getNode(reservePeer)
@@ -400,6 +405,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 			return fmt.Errorf("cannot set as outgoing: %w", err)
 		}
 
+		logger.Infof("Wiriting to resultMsgCh %s", reservePeer.String())
 		ps.resultMsgCh <- Message{
 			Status: Connect,
 			setID:  uint64(setIdx),
@@ -410,6 +416,9 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 	// nothing more to do if we're in reserved mode.
 	if ps.isReservedOnly {
 		return nil
+	}
+	if !peerState.hasFreeOutgoingSlot(setIdx) {
+		logger.Infof("NO FREE OUTGOING SLOTS")
 	}
 
 	for peerState.hasFreeOutgoingSlot(setIdx) {
@@ -425,17 +434,17 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 		}
 
 		if err = peerState.tryOutgoing(setIdx, peerID); err != nil {
-			logger.Errorf("could not set peer %s as outgoing connection: %s", peerID.Pretty(), err)
+			logger.Errorf("could not set peer %s as outgoing connection: %s", peerID.String(), err)
 			break
 		}
 
+		logger.Infof("Sent connect message to peer %s", peerID)
 		ps.resultMsgCh <- Message{
 			Status: Connect,
 			setID:  uint64(setIdx),
 			PeerID: peerID,
 		}
 
-		logger.Debugf("Sent connect message to peer %s", peerID)
 	}
 	return nil
 }
@@ -450,7 +459,7 @@ func (ps *PeerSet) addReservedPeers(setID int, peers ...peer.ID) error {
 			return nil
 		}
 
-		ps.peerState.discover(setID, peerID)
+		ps.peerState.insertPeer(setID, peerID)
 
 		ps.reservedNode[peerID] = struct{}{}
 		if err := ps.peerState.addNoSlotNode(setID, peerID); err != nil {
@@ -537,13 +546,16 @@ func (ps *PeerSet) setReservedPeer(setID int, peers ...peer.ID) error {
 	return nil
 }
 
+// addPeer checks peer existance in peerSet and if it does not insert the peer in to peerstate with
+// default reputation and notConnected status. Afterwards runs allocSlots that checks availability of outgoing slots
+// and put notConnected peers in to them
 func (ps *PeerSet) addPeer(setID int, peers peer.IDSlice) error {
 	for _, pid := range peers {
 		if ps.peerState.peerStatus(setID, pid) != unknownPeer {
 			return nil
 		}
 		logger.Infof("PESRSET ADD PEER %v", pid)
-		ps.peerState.discover(setID, pid)
+		ps.peerState.insertPeer(setID, pid)
 		if err := ps.allocSlots(setID); err != nil {
 			return fmt.Errorf("could not allocate slots: %w", err)
 		}
@@ -583,10 +595,12 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 	return nil
 }
 
+// TODO: this getting called even though, according to logs, we have increased outgoing slots already when node have been found with mDNS
 // incoming indicates that we have received an incoming connection. Must be answered
 // either with a corresponding `Accept` or `Reject`, except if we were already
 // connected to this peer.
 func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
+	logger.Infof("Incoming node %+v", peers)
 	err := ps.updateTime()
 	if err != nil {
 		return fmt.Errorf("cannot update time: %w", err)
@@ -608,11 +622,14 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		status := ps.peerState.peerStatus(setID, pid)
 		switch status {
 		case connectedPeer:
+			logger.Infof("Already connected peer %s", pid)
 			continue
 		case notConnectedPeer:
+			logger.Infof("Not connected peer %s", pid)
 			ps.peerState.nodes[pid].lastConnected[setID] = time.Now()
 		case unknownPeer:
-			ps.peerState.discover(setID, pid)
+			logger.Infof("Unknown peer %s", pid)
+			ps.peerState.insertPeer(setID, pid)
 		}
 
 		state := ps.peerState
@@ -637,13 +654,13 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 			err := state.tryAcceptIncoming(setID, pid)
 			if err != nil {
 				if errors.Is(err, ErrIncomingSlotsUnavailable) {
-					logger.Debugf("cannot accept incoming peer %s: %s", pid, err)
+					logger.Infof("cannot accept incoming peer %s: %s", pid, err)
 				} else {
 					logger.Errorf("cannot accept incoming peer %s: %s", pid, err)
 				}
 				message.Status = Reject
 			} else {
-				logger.Debugf("incoming connection accepted from peer %s", pid)
+				logger.Infof("incoming connection accepted from peer %s", pid)
 				message.Status = Accept
 			}
 		}
@@ -714,6 +731,7 @@ func (ps *PeerSet) start(ctx context.Context, actionQueue chan action) {
 	go ps.listenActionAllocSlots(ctx)
 }
 
+// listenActionAllocSlots listens to PeerSet.actionQueue channel.
 func (ps *PeerSet) listenActionAllocSlots(ctx context.Context) {
 	ticker := time.NewTicker(ps.nextPeriodicAllocSlots)
 

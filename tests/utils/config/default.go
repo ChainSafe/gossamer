@@ -50,7 +50,7 @@ func Default() cfg.Config {
 			NoBootstrap:       false,
 			NoMDNS:            false,
 			MinPeers:          1,
-			MaxPeers:          3,
+			MaxPeers:          8,
 			DiscoveryInterval: time.Second * 1,
 		},
 		RPC: &cfg.RPCConfig{

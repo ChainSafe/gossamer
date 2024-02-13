@@ -34,27 +34,26 @@ var (
 
 // discovery handles discovery of new peers via the kademlia DHT
 type discovery struct {
-	ctx                context.Context
-	dht                *dual.DHT
-	rd                 *routing.RoutingDiscovery
-	h                  libp2phost.Host
-	bootnodes          []peer.AddrInfo
-	ds                 *badger.Datastore
-	pid                protocol.ID
-	minPeers, maxPeers int
-	handler            PeerSetHandler
+	ctx       context.Context
+	dht       *dual.DHT
+	rd        *routing.RoutingDiscovery
+	h         libp2phost.Host
+	bootnodes []peer.AddrInfo
+	ds        *badger.Datastore
+	pid       protocol.ID
+	maxPeers  int
+	handler   PeerSetHandler
 }
 
 func newDiscovery(ctx context.Context, h libp2phost.Host,
 	bootnodes []peer.AddrInfo, ds *badger.Datastore,
-	pid protocol.ID, min, max int, handler PeerSetHandler) *discovery {
+	pid protocol.ID, max int, handler PeerSetHandler) *discovery {
 	return &discovery{
 		ctx:       ctx,
 		h:         h,
 		bootnodes: bootnodes,
 		ds:        ds,
 		pid:       pid,
-		minPeers:  min,
 		maxPeers:  max,
 		handler:   handler,
 	}
@@ -80,10 +79,6 @@ func (d *discovery) start() error {
 
 			return append(addrs, d.h.Addrs()...)
 		})),
-	}
-
-	if len(d.bootnodes) == 0 {
-		dhtOpts = append(dhtOpts, dual.DHTOption(kaddht.Mode(kaddht.ModeServer)))
 	}
 
 	// create DHT service
@@ -159,6 +154,7 @@ func (d *discovery) discoverAndAdvertise() {
 	}
 }
 
+// checkPeerCount find peers if amount of connected peers is less then maximum amount allowed by configuration
 func (d *discovery) checkPeerCount() {
 	ticker := time.NewTicker(connectToPeersTimeout)
 	defer ticker.Stop()

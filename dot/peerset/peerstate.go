@@ -270,14 +270,20 @@ func (ps *PeersState) highestNotConnectedPeer(set int) (highestPeerID peer.ID) {
 	return highestPeerID
 }
 
+// hasFreeOutgoingSlot check does number of connected out peers is less then max amount allowed connected peers.
+// numOut
+// maxOut is defined as config param as
 func (ps *PeersState) hasFreeOutgoingSlot(set int) bool {
+	logger.Infof("hasFreeOutgoingSlot %v, numout %v  maxout %v", set, ps.sets[set].numOut, ps.sets[set].maxOut)
 	return ps.sets[set].numOut < ps.sets[set].maxOut
 }
 
 // Note: that it is possible for numIn to be strictly superior to the max, in case we were
 // connected to reserved node then marked them as not reserved.
+// maxIn is defined as config param
 func (ps *PeersState) hasFreeIncomingSlot(set int) bool {
-	return ps.sets[set].numIn >= ps.sets[set].maxIn
+	logger.Infof("hasFreeIncomingSlot %v, numin %v  maxin %v", set, ps.sets[set].numIn, ps.sets[set].maxIn)
+	return ps.sets[set].numIn < ps.sets[set].maxIn
 }
 
 // addNoSlotNode adds a node to the list of nodes that don't occupy slots.
@@ -301,8 +307,10 @@ func (ps *PeersState) addNoSlotNode(idx int, peerID peer.ID) error {
 
 	switch node.state[idx] {
 	case ingoing:
+		logger.Infof("addNoSlotNode ingoing")
 		ps.sets[idx].numIn--
 	case outgoing:
+		logger.Infof("addNoSlotNode outgoing")
 		ps.sets[idx].numOut--
 	}
 
@@ -327,8 +335,10 @@ func (ps *PeersState) removeNoSlotNode(idx int, peerID peer.ID) error {
 
 	switch node.state[idx] {
 	case ingoing:
+		logger.Infof("removeNoSlotNode ingoing")
 		ps.sets[idx].numIn++
 	case outgoing:
+		logger.Infof("removeNoSlotNode outgoing")
 		ps.sets[idx].numOut++
 	}
 
@@ -351,8 +361,10 @@ func (ps *PeersState) disconnect(idx int, peerID peer.ID) error {
 	if !has {
 		switch node.state[idx] {
 		case ingoing:
+			logger.Infof("disconnect ingoing")
 			info.numIn--
 		case outgoing:
+			logger.Infof("disconnect outgoing")
 			info.numOut--
 		default:
 			return ErrPeerDisconnected
@@ -367,17 +379,16 @@ func (ps *PeersState) disconnect(idx int, peerID peer.ID) error {
 	return nil
 }
 
-// discover takes input for set id and create a node and insert in the list.
-// the initial Reputation of the peer will be 0 and ingoing notMember state.
-func (ps *PeersState) discover(set int, peerID peer.ID) {
+// insertPeer takes input for set id and create a node and insert in the list.
+// the initial Reputation of the peer will be 0 and ingoing notConnected state.
+func (ps *PeersState) insertPeer(set int, peerID peer.ID) {
 	ps.Lock()
 	defer ps.Unlock()
 
-	numSet := len(ps.sets)
-
 	_, has := ps.nodes[peerID]
 	if !has {
-		n := newNode(numSet)
+		logger.Infof("Inserting peer %s", peerID.String())
+		n := newNode(len(ps.sets))
 		n.state[set] = notConnected
 		ps.nodes[peerID] = n
 	}
@@ -455,6 +466,7 @@ func (ps *PeersState) tryOutgoing(setID int, peerID peer.ID) error {
 	node.state[setID] = outgoing
 
 	if !isNoSlotNode {
+		logger.Infof("tryOutgoing outgoing slot increase for %s", peerID)
 		ps.sets[setID].numOut++
 	}
 
@@ -472,7 +484,7 @@ func (ps *PeersState) tryAcceptIncoming(setID int, peerID peer.ID) error {
 	_, isNoSlotOccupied := ps.sets[setID].noSlotNodes[peerID]
 
 	// if slot is not available and the node is not a reserved node then error
-	if ps.hasFreeIncomingSlot(setID) && !isNoSlotOccupied {
+	if !ps.hasFreeIncomingSlot(setID) && !isNoSlotOccupied {
 		return ErrIncomingSlotsUnavailable
 	}
 

@@ -35,9 +35,9 @@ type NotifeeTracker struct {
 	peerAdder    PeerAdder
 }
 
-// HandlePeerFound tracks the address info from the peer found.
+// HandlePeerFound is a libp2p.mdns.Notifee interface implementation for mDNS in libp2p.
 func (n *NotifeeTracker) HandlePeerFound(p peer.AddrInfo) {
-	logger.Infof("HANDLE PEER FOUND %v", p)
+	logger.Infof("HANDLE PEER FOUND BY MDNS %v", p)
 	n.addressAdder.AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 	n.peerAdder.AddPeer(0, p.ID)
 }

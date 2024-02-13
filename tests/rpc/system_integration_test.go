@@ -35,7 +35,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	con.Core.Role = common.FullNodeRole
 	con.RPC.Modules = []string{"system", "author", "chain"}
 	con.Network.MinPeers = 1
-	con.Network.MaxPeers = 2
+	con.Network.MaxPeers = 20
 	con.Core.BabeAuthority = true
 	con.Log.Sync = "trace"
 

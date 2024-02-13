@@ -268,9 +268,6 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	srvc, err := NewService(cfg)
 	require.NoError(t, err)
 
-	// TODO: Replaced with MOCK and removed.
-	srvc.noDiscover = true
-
 	err = srvc.Start()
 	require.NoError(t, err)
 
