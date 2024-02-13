@@ -86,7 +86,6 @@ type CandidateBacking struct {
 type activeLeafState struct {
 	prospectiveParachainsMode parachaintypes.ProspectiveParachainsMode
 	secondedAtDepth           map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]
-	perCandidate              map[parachaintypes.CandidateHash]*perCandidateState //nolint:unused
 }
 
 // perCandidateState represents the state information for a candidate in the subsystem.
@@ -242,17 +241,13 @@ func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan
 	case StatementMessage:
 		return cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand)
 	case parachaintypes.ActiveLeavesUpdateSignal:
-		cb.ProcessActiveLeavesUpdateSignal()
+		cb.ProcessActiveLeavesUpdateSignal(msg)
 	case parachaintypes.BlockFinalizedSignal:
 		cb.ProcessBlockFinalizedSignal()
 	default:
 		return fmt.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
 	}
 	return nil
-}
-
-func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal() {
-	// TODO #3503
 }
 
 func (cb *CandidateBacking) ProcessBlockFinalizedSignal() {

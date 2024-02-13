@@ -14,4 +14,7 @@ import (
 // parachains at those leaves
 type ImplicitView interface {
 	knownAllowedRelayParentsUnder(blockHash common.Hash, paraID parachaintypes.ParaID) []common.Hash
+	activeLeaf(leafHash common.Hash) ([]parachaintypes.ParaID, error)
+	deactivateLeaf(leafHash common.Hash) []common.Hash
+	allAllowedRelayParents() []common.Hash
 }
