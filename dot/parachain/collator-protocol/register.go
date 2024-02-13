@@ -7,16 +7,17 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
-func Register(net Network, protocolID protocol.ID, overseerChan chan<- any) (*CollatorProtocolValidatorSide, error) {
+func Register(net Network, protocolID protocol.ID, o overseer.OverseerI) (*CollatorProtocolValidatorSide, error) {
 	collationFetchingReqResProtocol := net.GetRequestResponseProtocol(
 		string(protocolID), collationFetchingRequestTimeout, collationFetchingMaxResponseSize)
 
 	cpvs := CollatorProtocolValidatorSide{
 		net:                             net,
-		SubSystemToOverseer:             overseerChan,
+		overseer:                        o,
 		collationFetchingReqResProtocol: collationFetchingReqResProtocol,
 	}
 

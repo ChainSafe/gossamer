@@ -100,6 +100,10 @@ func (o *Overseer) Start() error {
 	return nil
 }
 
+func (o *Overseer) Send(v any) {
+	o.SubsystemsToOverseer <- v
+}
+
 func (o *Overseer) processMessages() {
 	for {
 		select {
@@ -260,4 +264,11 @@ func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) (timeouted bool) {
 	case <-timeoutTimer.C:
 		return true // timed out
 	}
+}
+
+type OverseerI interface {
+	RegisterSubsystem(subsystem Subsystem) chan any
+	Start() error
+	Stop() error
+	Send(v any)
 }

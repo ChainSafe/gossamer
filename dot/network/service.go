@@ -19,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/mdns"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
+	libp2phost "github.com/libp2p/go-libp2p/core/host"
 	libp2pnetwork "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
@@ -492,6 +493,18 @@ mainloop:
 	}
 
 	return nil
+}
+
+func (s *Service) Connect(p peer.AddrInfo) (err error) {
+	return s.host.connect(p)
+}
+
+func (s *Service) GetP2PHost() libp2phost.Host {
+	return s.host.p2pHost
+}
+
+func (s *Service) ProtocolID() protocol.ID {
+	return s.host.protocolID
 }
 
 // RegisterNotificationsProtocol registers a protocol with the network service with the given handler

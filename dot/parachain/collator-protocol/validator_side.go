@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -312,7 +313,8 @@ type CollatorProtocolValidatorSide struct {
 
 	net Network
 
-	SubSystemToOverseer chan<- any
+	// SubSystemToOverseer chan<- any
+	overseer            overseer.OverseerI
 	OverseerToSubSystem <-chan any
 
 	unfetchedCollation chan UnfetchedCollation
@@ -576,10 +578,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 
 // requestUnblockedCollations Checks whether any of the advertisements are unblocked and attempts to fetch them.
 func (cpvs CollatorProtocolValidatorSide) requestUnblockedCollations(backed collatorprotocolmessages.Backed) error {
-	fmt.Println("78")
-
 	for _, blockedAdvertisements := range cpvs.BlockedAdvertisements {
-		fmt.Println("580")
 		newBlockedAdvertisements := []BlockedAdvertisement{}
 
 		for _, blockedAdvertisement := range blockedAdvertisements {
@@ -588,19 +587,16 @@ func (cpvs CollatorProtocolValidatorSide) requestUnblockedCollations(backed coll
 			if err != nil {
 				return fmt.Errorf("checking if seconding is allowed: %w", err)
 			}
-			fmt.Println("586")
 
 			if !isSecondingAllowed {
 				newBlockedAdvertisements = append(newBlockedAdvertisements, blockedAdvertisement)
 				continue
 			}
-			fmt.Println("591")
 
 			perRelayParent, ok := cpvs.perRelayParent[blockedAdvertisement.candidateRelayParent]
 			if !ok {
 				return ErrRelayParentUnknown
 			}
-			fmt.Println("597")
 
 			err = cpvs.enqueueCollation(
 				perRelayParent.collations,

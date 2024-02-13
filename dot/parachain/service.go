@@ -85,7 +85,7 @@ func NewService(net Network, forkID string, st *state.Service) (*Service, error)
 		CollationProtocolName, forkID, genesisHash, CollationProtocolVersion)
 
 	// register collation protocol
-	cpvs, err := collatorprotocol.Register(net, protocol.ID(collationProtocolID), overseer.SubsystemsToOverseer)
+	cpvs, err := collatorprotocol.Register(net, protocol.ID(collationProtocolID), overseer)
 	if err != nil {
 		return nil, err
 	}
