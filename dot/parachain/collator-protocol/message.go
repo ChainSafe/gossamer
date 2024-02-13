@@ -207,7 +207,7 @@ func (cpvs CollatorProtocolValidatorSide) canSecond(
 	}
 
 	cpvs.SubSystemToOverseer <- canSecondRequest
-
+	// we never reach this line. Nothing happens after this channel.
 	select {
 	case canSecondResponse := <-canSecondRequest.ResponseCh:
 		return canSecondResponse, nil

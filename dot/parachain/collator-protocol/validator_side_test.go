@@ -287,7 +287,8 @@ func TestProcessOverseerMessage(t *testing.T) {
 		t.Run(c.description, func(t *testing.T) {
 			t.Parallel()
 			cpvs := CollatorProtocolValidatorSide{
-				net: c.net,
+				net:                 c.net,
+				SubSystemToOverseer: make(chan<- any),
 				// perRelayParent: c.perRelayParent,
 				fetchedCandidates:     c.fetchedCandidates,
 				peerData:              c.peerData,
@@ -312,3 +313,5 @@ func TestProcessOverseerMessage(t *testing.T) {
 		})
 	}
 }
+
+// TODO: Just Write those black box tests.
