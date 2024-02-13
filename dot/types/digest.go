@@ -5,24 +5,123 @@ package types
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // DigestItem is a varying date type that holds type identifier and a scaled encoded message payload.
-type DigestItem struct {
+type digestItem struct {
 	ConsensusEngineID ConsensusEngineID
 	Data              []byte
 }
 
+type DigestItem struct {
+	inner any
+}
+
+type DigestItemValues interface {
+	PreRuntimeDigest | ConsensusDigest | SealDigest | RuntimeEnvironmentUpdated
+}
+
+func newDigestItem[Value DigestItemValues](value Value) DigestItem {
+	item := DigestItem{}
+	setDigestItem[Value](&item, value)
+	return item
+}
+
+func setDigestItem[Value DigestItemValues](mvdt *DigestItem, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *DigestItem) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case PreRuntimeDigest:
+		setDigestItem(mvdt, value)
+		return
+	case ConsensusDigest:
+		setDigestItem(mvdt, value)
+		return
+	case SealDigest:
+		setDigestItem(mvdt, value)
+		return
+	case RuntimeEnvironmentUpdated:
+		setDigestItem(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt DigestItem) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case PreRuntimeDigest:
+		return 6, mvdt.inner, nil
+	case ConsensusDigest:
+		return 4, mvdt.inner, nil
+	case SealDigest:
+		return 5, mvdt.inner, nil
+	case RuntimeEnvironmentUpdated:
+		return 8, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt DigestItem) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt DigestItem) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 6:
+		return PreRuntimeDigest{}, nil
+	case 4:
+		return ConsensusDigest{}, nil
+	case 5:
+		return SealDigest{}, nil
+	case 8:
+		return RuntimeEnvironmentUpdated{}, nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
+
+func (mvdt DigestItem) String() string {
+	return fmt.Sprintf("%s", mvdt.inner)
+}
+
 // NewDigestItem returns a new VaryingDataType to represent a DigestItem
-func NewDigestItem() scale.VaryingDataType {
-	return scale.MustNewVaryingDataType(PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{}, RuntimeEnvironmentUpdated{})
+func NewDigestItem() DigestItem {
+	return DigestItem{}
+}
+
+// Digest is slice of DigestItem
+type Digest []DigestItem
+
+func (d *Digest) Add(values ...any) (err error) {
+	for _, value := range values {
+		item := DigestItem{}
+		err := item.SetValue(value)
+		if err != nil {
+			return err
+		}
+		appended := append(*d, item)
+		*d = appended
+	}
+	return nil
+}
+
+func (d *Digest) String() string {
+	stringTypes := make([]string, len(*d))
+	for i, vdt := range *d {
+		stringTypes[i] = vdt.String()
+	}
+	return "[" + strings.Join(stringTypes, ", ") + "]"
 }
 
 // NewDigest returns a new Digest as a varying data type slice.
-func NewDigest() scale.VaryingDataTypeSlice {
-	return scale.NewVaryingDataTypeSlice(NewDigestItem())
+func NewDigest() Digest {
+	return []DigestItem{}
 }
 
 // ConsensusEngineID is a 4-character identifier of the consensus engine that produced the digest.
@@ -45,10 +144,7 @@ var BabeEngineID = ConsensusEngineID{'B', 'A', 'B', 'E'}
 var GrandpaEngineID = ConsensusEngineID{'F', 'R', 'N', 'K'}
 
 // PreRuntimeDigest contains messages from the consensus engine to the runtime.
-type PreRuntimeDigest DigestItem
-
-// Index returns VDT index
-func (PreRuntimeDigest) Index() uint { return 6 }
+type PreRuntimeDigest digestItem
 
 // NewBABEPreRuntimeDigest returns a PreRuntimeDigest with the BABE consensus ID
 func NewBABEPreRuntimeDigest(data []byte) *PreRuntimeDigest {
@@ -64,10 +160,7 @@ func (d PreRuntimeDigest) String() string {
 }
 
 // ConsensusDigest contains messages from the runtime to the consensus engine.
-type ConsensusDigest DigestItem
-
-// Index returns VDT index
-func (ConsensusDigest) Index() uint { return 4 }
+type ConsensusDigest digestItem
 
 // String returns the digest as a string
 func (d ConsensusDigest) String() string {
@@ -75,10 +168,7 @@ func (d ConsensusDigest) String() string {
 }
 
 // SealDigest contains the seal or signature. This is only used by native code.
-type SealDigest DigestItem
-
-// Index returns VDT index
-func (SealDigest) Index() uint { return 5 }
+type SealDigest digestItem
 
 // String returns the digest as a string
 func (d SealDigest) String() string {
@@ -87,9 +177,6 @@ func (d SealDigest) String() string {
 
 // RuntimeEnvironmentUpdated contains is an indicator for the light clients that the runtime environment is updated
 type RuntimeEnvironmentUpdated struct{}
-
-// Index returns VDT index
-func (RuntimeEnvironmentUpdated) Index() uint { return 8 }
 
 // String returns the digest as a string
 func (RuntimeEnvironmentUpdated) String() string {

@@ -103,7 +103,7 @@ jobs:
       - name: Generate coverage report
         run: |
           go test ./... -coverprofile=coverage.out -covermode=atomic -timeout=20m
-      - uses: codecov/codecov-action@v3.1.4
+      - uses: codecov/codecov-action@v4.0.1
         with:
           files: ./coverage.out
           flags: unit-tests

@@ -8,113 +8,153 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/assert"
 )
 
-type parentVDT VaryingDataType
+type ParentVDT struct {
+	inner any
+}
 
-func (pvdt *parentVDT) Set(val VaryingDataTypeValue) (err error) {
-	vdt := VaryingDataType(*pvdt)
-	err = vdt.Set(val)
-	if err != nil {
-		return
+type ParentVDTValues interface {
+	ChildVDT | ChildVDT1
+}
+
+func NewParentVDT[Value ParentVDTValues](value ...Value) *ParentVDT {
+	if len(value) == 0 {
+		return &ParentVDT{}
 	}
-	*pvdt = parentVDT(vdt)
+	return &ParentVDT{
+		inner: value[0],
+	}
+}
+
+func setParentVDT[Value ParentVDTValues](mvdt *ParentVDT, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *ParentVDT) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case ChildVDT:
+		setParentVDT[ChildVDT](mvdt, value)
+		return
+	case ChildVDT1:
+		setParentVDT[ChildVDT1](mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt ParentVDT) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case ChildVDT:
+		return 1, mvdt.inner, nil
+	case ChildVDT1:
+		return 2, mvdt.inner, nil
+	}
+	return 0, nil, ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt ParentVDT) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
 	return
 }
 
-func mustNewParentVDT() parentVDT {
-	vdt, err := NewVaryingDataType(mustNewChildVDT(), mustNewChildVDT1())
-	if err != nil {
-		panic(err)
+func (mvdt ParentVDT) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 1:
+		return ChildVDT{}, nil
+	case 2:
+		return ChildVDT1{}, nil
 	}
-	return parentVDT(vdt)
+	return nil, ErrUnknownVaryingDataTypeValue
 }
 
-type childVDT VaryingDataType
-
-func (childVDT) Index() uint {
-	return 1
+type ChildVDT struct {
+	MyVaryingDataType
 }
 
-func (c childVDT) String() string {
-	if c.value == nil {
-		return "childVDT(nil)"
-	}
-	return fmt.Sprintf("childVDT(%s)", c.value)
+type ChildVDTValues interface {
+	VDTValue | VDTValue1 | VDTValue2 | VDTValue3
 }
 
-func mustNewChildVDT() childVDT {
-	vdt, err := NewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0))
-	if err != nil {
-		panic(err)
+func NewChildVDT[Value ChildVDTValues](value ...Value) *ChildVDT {
+	if len(value) == 0 {
+		return &ChildVDT{}
 	}
-	return childVDT(vdt)
+	return &ChildVDT{
+		MyVaryingDataType: *NewMyVaringDataType[Value](value...),
+	}
 }
 
-func mustNewChildVDTAndSet(vdtv VaryingDataTypeValue) childVDT {
-	vdt, err := NewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0))
-	if err != nil {
-		panic(err)
-	}
-	err = vdt.Set(vdtv)
-	if err != nil {
-		panic(err)
-	}
-	return childVDT(vdt)
+func (cvdt *ChildVDT) SetValue(value any) (err error) {
+	return cvdt.MyVaryingDataType.SetValue(value)
 }
 
-type childVDT1 VaryingDataType
-
-func (childVDT1) Index() uint {
-	return 2
+func (cvdt ChildVDT) IndexValue() (index uint, value any, err error) {
+	return cvdt.MyVaryingDataType.IndexValue()
 }
 
-func (c childVDT1) String() string {
-	if c.value == nil {
-		return "childVDT1(nil)"
-	}
-	return fmt.Sprintf("childVDT1(%s)", c.value)
+func (cvdt ChildVDT) Value() (value any, err error) {
+	return cvdt.MyVaryingDataType.Value()
 }
 
-func mustNewChildVDT1() childVDT1 {
-	vdt, err := NewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{})
-	if err != nil {
-		panic(err)
-	}
-	return childVDT1(vdt)
+func (cvdt ChildVDT) ValueAt(index uint) (value any, err error) {
+	return cvdt.MyVaryingDataType.ValueAt(index)
 }
 
-func mustNewChildVDT1AndSet(vdtv VaryingDataTypeValue) childVDT1 {
-	vdt, err := NewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{})
-	if err != nil {
-		panic(err)
-	}
-	err = vdt.Set(vdtv)
-	if err != nil {
-		panic(err)
-	}
-	return childVDT1(vdt)
+type ChildVDT1 struct {
+	MyVaryingDataType
 }
+
+type ChildVDT1Values interface {
+	VDTValue | VDTValue1 | VDTValue2 | VDTValue3
+}
+
+func NewChildVDT1[Value ChildVDT1Values](value ...Value) *ChildVDT1 {
+	if len(value) == 0 {
+		return &ChildVDT1{}
+	}
+	return &ChildVDT1{
+		MyVaryingDataType: *NewMyVaringDataType[Value](value...),
+	}
+}
+
+func (cvdt *ChildVDT1) SetValue(value any) (err error) {
+	return cvdt.MyVaryingDataType.SetValue(value)
+}
+
+func (cvdt ChildVDT1) IndexValue() (index uint, value any, err error) {
+	return cvdt.MyVaryingDataType.IndexValue()
+}
+
+func (cvdt ChildVDT1) Value() (value any, err error) {
+	return cvdt.MyVaryingDataType.Value()
+}
+
+func (cvdt ChildVDT1) ValueAt(index uint) (value any, err error) {
+	return cvdt.MyVaryingDataType.ValueAt(index)
+}
+
+var (
+	_ = VaryingDataType(&ParentVDT{})
+	_ = VaryingDataType(&ChildVDT{})
+	_ = VaryingDataType(&ChildVDT1{})
+)
 
 type constructorTest struct {
-	name    string
-	newIn   func(t *testing.T) interface{}
-	want    []byte
-	wantErr bool
+	name  string
+	newIn func(t *testing.T) interface{}
+	want  []byte
 }
 
 var nestedVaryingDataTypeTests = []constructorTest{
 	{
 		name: "ParentVDT_with_ChildVDT",
 		newIn: func(t *testing.T) interface{} {
-			pvdt := mustNewParentVDT()
-			err := pvdt.Set(mustNewChildVDTAndSet(VDTValue3(16383)))
-			if err != nil {
-				t.Fatalf("%v", err)
-			}
-			return pvdt
+			child := NewChildVDT(VDTValue3(16383))
+			parent := NewParentVDT(*child)
+			return parent
 		},
 		want: newWant(
 			// index of childVDT
@@ -128,29 +168,24 @@ var nestedVaryingDataTypeTests = []constructorTest{
 	{
 		name: "ParentVDT_with_ChildVDT1",
 		newIn: func(t *testing.T) interface{} {
-			pvdt := mustNewParentVDT()
-			err := pvdt.Set(mustNewChildVDT1AndSet(
-				VDTValue{
-					A: big.NewInt(1073741823),
-					B: int(1073741823),
-					C: uint(1073741823),
-					D: int8(1),
-					E: uint8(1),
-					F: int16(16383),
-					G: uint16(16383),
-					H: int32(1073741823),
-					I: uint32(1073741823),
-					J: int64(9223372036854775807),
-					K: uint64(9223372036854775807),
-					L: byteArray(64),
-					M: testStrings[1],
-					N: true,
-				},
-			))
-			if err != nil {
-				t.Fatalf("%v", err)
-			}
-			return pvdt
+			child1 := NewChildVDT1(VDTValue{
+				A: big.NewInt(1073741823),
+				B: int(1073741823),
+				C: uint(1073741823),
+				D: int8(1),
+				E: uint8(1),
+				F: int16(16383),
+				G: uint16(16383),
+				H: int32(1073741823),
+				I: uint32(1073741823),
+				J: int64(9223372036854775807),
+				K: uint64(9223372036854775807),
+				L: byteArray(64),
+				M: testStrings[1],
+				N: true,
+			})
+			parent := NewParentVDT(*child1)
+			return parent
 		},
 		want: newWant(
 			// index of childVDT1
@@ -178,37 +213,27 @@ var nestedVaryingDataTypeTests = []constructorTest{
 	},
 }
 
-func Test_encodeState_encodeCustomVaryingDataType_nested(t *testing.T) {
+func TestVaryingDataType_EncodeNested(t *testing.T) {
 	for _, tt := range nestedVaryingDataTypeTests {
 		t.Run(tt.name, func(t *testing.T) {
-			b, err := Marshal(tt.newIn(t))
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Marshal() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if diff := cmp.Diff(b, tt.want); diff != "" {
-				t.Errorf("Marshal() diff: %s", diff)
-			}
+			vdt := tt.newIn(t).(*ParentVDT)
+			b, err := Marshal(*vdt)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, b)
 		})
 	}
 }
 
-func Test_decodeState_decodeCustomVaryingDataType_nested(t *testing.T) {
+func TestVaryingDataType_DecodeNested(t *testing.T) {
 	for _, tt := range nestedVaryingDataTypeTests {
 		t.Run(tt.name, func(t *testing.T) {
-			dst := mustNewParentVDT()
-			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
-				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			expected := tt.newIn(t)
+			dst := NewParentVDT[ChildVDT]()
+			err := Unmarshal(tt.want, dst)
+			assert.NoError(t, err)
 
-			diff := cmp.Diff(dst, expected,
-				cmp.AllowUnexported(parentVDT{}, childVDT{}, childVDT1{}),
-				cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}),
-			)
-			if diff != "" {
-				t.Errorf("decodeState.unmarshal() = %s", diff)
-			}
+			expected := tt.newIn(t).(*ParentVDT)
+			assert.Equal(t, expected.inner, dst.inner)
+
 		})
 	}
 }

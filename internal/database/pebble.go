@@ -61,12 +61,13 @@ func (p *PebbleDB) Get(key []byte) (value []byte, err error) {
 		return nil, err
 	}
 
+	valueCpy := make([]byte, len(value))
+	copy(valueCpy, value)
+
 	if err := closer.Close(); err != nil {
 		return nil, fmt.Errorf("closing after get: %w", err)
 	}
 
-	valueCpy := make([]byte, len(value))
-	copy(valueCpy, value)
 	return valueCpy, err
 }
 

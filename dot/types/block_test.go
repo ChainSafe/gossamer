@@ -56,7 +56,7 @@ func TestEncodeAndDecodeBlock(t *testing.T) {
 	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 	require.NoError(t, err)
 
-	header := NewHeader(parentHash, stateRoot, extrinsicsRoot, 1, NewDigest())
+	header := NewHeader(parentHash, stateRoot, extrinsicsRoot, 1, nil)
 
 	block := NewBlock(*header, *NewBody([]Extrinsic{[]byte{4, 1}}))
 
@@ -130,4 +130,15 @@ func TestMustEncodeBlock(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestScaleUnmarshal(t *testing.T) {
+	block := NewBlock(*NewEmptyHeader(), Body{})
+	err := scale.Unmarshal(
+		[]byte{48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 4, 48, 48, 48, 48, 19, 48, 48, 48, 48, 48, 48, 48, 48}, //nolint
+		&block,
+	)
+
+	require.EqualError(t, err,
+		"decoding struct: unmarshalling field at index 0: decoding struct: unmarshalling field at index 4: decoding struct: unmarshalling field at index 1: byte array length 3472328296227680304 exceeds max value of uint32") //nolint
 }

@@ -30,7 +30,7 @@ var testHeader = &types.Header{
 
 var testHash = testHeader.Hash()
 
-func newTestDigest() scale.VaryingDataTypeSlice {
+func newTestDigest() types.Digest {
 	digest := types.NewDigest()
 	prd, _ := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	digest.Add(*prd)

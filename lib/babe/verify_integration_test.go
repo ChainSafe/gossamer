@@ -145,7 +145,9 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	secondaryDigest := createSecondaryVRFPreDigest(t, keyring.Alice().(*sr25519.Keypair),
 		0, uint64(0), uint64(0), Randomness{})
 	babeDigest := types.NewBabeDigest()
-	err = babeDigest.Set(secondaryDigest)
+	// NOTE: I think this was get encoded incorrectly before the VDT interface change.
+	// *types.BabeSecondaryVRFPreDigest was being passed in and encoded later
+	err = babeDigest.SetValue(*secondaryDigest)
 	require.NoError(t, err)
 
 	encodedBabeDigest, err := scale.Marshal(babeDigest)
@@ -179,7 +181,7 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 		Body:   nil,
 	}
 	err = vm.VerifyBlock(&block.Header)
-	require.EqualError(t, err, "failed to verify pre-runtime digest: block producer is not in authority set")
+	require.EqualError(t, err, "invalid signature length")
 }
 
 func TestVerificationManager_VerifyBlock_CurrentEpoch(t *testing.T) {
@@ -737,14 +739,14 @@ func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.He
 	require.NoError(t, err)
 
 	babeConsensusDigestNextEpoch := types.NewBabeConsensusDigest()
-	require.NoError(t, babeConsensusDigestNextEpoch.Set(nextEpoch))
+	require.NoError(t, babeConsensusDigestNextEpoch.SetValue(nextEpoch))
 
 	babeConsensusDigestNextConfigData := types.NewBabeConsensusDigest()
 
 	versionedNextConfigData := types.NewVersionedNextConfigData()
-	versionedNextConfigData.Set(nextConfig)
+	versionedNextConfigData.SetValue(nextConfig)
 
-	require.NoError(t, babeConsensusDigestNextConfigData.Set(versionedNextConfigData))
+	require.NoError(t, babeConsensusDigestNextConfigData.SetValue(versionedNextConfigData))
 
 	nextEpochData, err := scale.Marshal(babeConsensusDigestNextEpoch)
 	require.NoError(t, err)
@@ -800,8 +802,7 @@ func issueNewBlockFrom(t *testing.T, parentHeader *types.Header,
 	preRuntimeDigest, err := babePrimaryPreDigest.ToPreRuntimeDigest()
 	require.NoError(t, err)
 
-	digest := scale.NewVaryingDataTypeSlice(scale.MustNewVaryingDataType(
-		types.PreRuntimeDigest{}))
+	digest := types.NewDigest()
 
 	require.NoError(t, digest.Add(*preRuntimeDigest))
 
