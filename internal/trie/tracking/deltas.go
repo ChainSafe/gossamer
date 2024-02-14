@@ -4,8 +4,6 @@
 package tracking
 
 import (
-	"fmt"
-
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -33,10 +31,6 @@ func (d *Deltas) RecordDeleted(nodeHash common.Hash) {
 }
 
 func (d *Deltas) RecordUpdated(key, value []byte) {
-	if len(value) > 32 {
-		fmt.Println("recording key with value larger than 32")
-	}
-
 	entryKey := make([]byte, len(key))
 	copy(entryKey[:], key[:])
 

@@ -233,8 +233,9 @@ func (t *Trie) Hash() (rootHash common.Hash, err error) {
 
 		t.applyOver(modifiedKeys, func(n *Node) {
 			if len(n.StorageValue) > V1MaxInlineValueSize {
-				fmt.Println("must be updated")
+				fmt.Println("must be hashed")
 				n.MustBeHashed = true
+				n.SetDirty()
 			}
 		})
 	}
