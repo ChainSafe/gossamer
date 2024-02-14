@@ -41,9 +41,9 @@ var parallelEncodingRateLimit = make(chan struct{}, parallelLimit)
 
 // encodeChildrenOpportunisticParallel encodes children in parallel eventually.
 // Leaves are encoded in a blocking way, and branches are encoded in separate
-// goroutines IF they are less than the parallelLimit number of goroutines al.y
-// running. This is designed to limit the total number of goroutines in order to
-// avoid using too much memory on the stack.
+// goroutines IF they are less than the parallelLimit number of goroutines
+// already running. This is designed to limit the total number of goroutines in
+// order to avoid using too much memory on the stack.
 func encodeChildrenOpportunisticParallel(children []*Node, maxInlineValue int, buffer io.Writer) (err error) {
 	// Buffered channels since children might be encoded in this
 	// goroutine or another one.
