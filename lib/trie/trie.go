@@ -409,7 +409,7 @@ func (t *Trie) Put(keyLE, value []byte) (err error) {
 		t.handleTrackedDeltas(success, pendingDeltas)
 	}()
 
-	t.deltas.RecordUpdated(keyLE, value)
+	pendingDeltas.RecordUpdated(keyLE, value)
 	err = t.insertKeyLE(keyLE, value, pendingDeltas)
 	if err != nil {
 		return err
