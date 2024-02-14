@@ -7,8 +7,8 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/spf13/cobra"
 )
 
