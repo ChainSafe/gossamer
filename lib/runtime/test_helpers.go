@@ -264,7 +264,7 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHeader *type
 	currentSlot := timestamp / slotDuration
 
 	babeDigest := types.NewBabeDigest()
-	err = babeDigest.Set(*types.NewBabePrimaryPreDigest(0, currentSlot, [32]byte{}, [64]byte{}))
+	err = babeDigest.SetValue(*types.NewBabePrimaryPreDigest(0, currentSlot, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 
 	encodedBabeDigest, err := scale.Marshal(babeDigest)

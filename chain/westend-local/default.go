@@ -5,18 +5,19 @@ package westendlocal
 
 import (
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/adrg/xdg"
 )
 
-const (
+var (
 	// defaultChainSpec is the default chain spec for the westend local node
 	defaultChainSpec = "./chain/westend-local/westend-local-spec-raw.json"
 
-	// DefaultBasePathAlice is the default basepath for the westend local alice node
-	DefaultBasePathAlice = "~/.gossamer/westend-local-alice"
-	// DefaultBasePathBob is the default basepath for the westend local bob node
-	DefaultBasePathBob = "~/.gossamer/westend-local-bob"
-	// DefaultBasePathCharlie is the default basepath for the westend local charlie node
-	DefaultBasePathCharlie = "~/.gossamer/westend-local-charlie"
+	// defaultBasePathAlice is the default basepath for the westend local alice node
+	defaultBasePathAlice = xdg.DataHome + "/gossamer/westend-local/alice"
+	// defaultBasePathBob is the default basepath for the westend local bob node
+	defaultBasePathBob = xdg.DataHome + "/gossamer/westend-local/bob"
+	// defaultBasePathCharlie is the default basepath for the westend local charlie node
+	defaultBasePathCharlie = xdg.DataHome + "/gossamer/westend-local/charlie"
 )
 
 // DefaultConfig returns a westend local node configuration
@@ -35,7 +36,7 @@ func DefaultConfig() *cfg.Config {
 // DefaultAliceConfig returns a westend local node configuration
 func DefaultAliceConfig() *cfg.Config {
 	config := DefaultConfig()
-	config.BasePath = DefaultBasePathAlice
+	config.BasePath = defaultBasePathAlice
 	config.PrometheusPort = uint32(9856)
 	config.Network.Port = 7001
 	config.RPC.Port = 8545
@@ -48,7 +49,7 @@ func DefaultAliceConfig() *cfg.Config {
 // DefaultBobConfig returns a westend local node configuration with bob as the authority
 func DefaultBobConfig() *cfg.Config {
 	config := DefaultConfig()
-	config.BasePath = DefaultBasePathBob
+	config.BasePath = defaultBasePathBob
 	config.PrometheusPort = uint32(9866)
 	config.Network.Port = 7011
 	config.RPC.Port = 8555
@@ -61,7 +62,7 @@ func DefaultBobConfig() *cfg.Config {
 // DefaultCharlieConfig returns a westend local node configuration with charlie as the authority
 func DefaultCharlieConfig() *cfg.Config {
 	config := DefaultConfig()
-	config.BasePath = DefaultBasePathCharlie
+	config.BasePath = defaultBasePathCharlie
 	config.PrometheusPort = uint32(9876)
 	config.Network.Port = 7021
 	config.RPC.Port = 8565

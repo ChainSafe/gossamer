@@ -604,7 +604,7 @@ func TestInstance_ExecuteBlock_WestendRuntime(t *testing.T) {
 	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
-	parentState := storage.NewTrieState(nil)
+	parentState := storage.NewTrieState(trie.NewEmptyTrie())
 	instance.SetContextStorage(parentState)
 
 	_, err := instance.ExecuteBlock(block)
@@ -661,7 +661,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
-	parentState := storage.NewTrieState(nil)
+	parentState := storage.NewTrieState(trie.NewEmptyTrie())
 	instance.SetContextStorage(parentState)
 
 	_, err := instance.ExecuteBlock(block)
@@ -842,7 +842,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 	digest := types.NewDigest()
 	err = scale.Unmarshal(digestBytes, &digest)
 	require.NoError(t, err)
-	require.Equal(t, 2, len(digest.Types))
+	require.Equal(t, 2, len(digest))
 
 	// kusama block 901442, from polkadot.js
 	block := &types.Block{
@@ -888,7 +888,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 	digest := types.NewDigest()
 	err = scale.Unmarshal(digestBytes, &digest)
 	require.NoError(t, err)
-	require.Equal(t, 2, len(digest.Types))
+	require.Equal(t, 2, len(digest))
 
 	// kusama block 1377831, from polkadot.js
 	block := &types.Block{
@@ -935,7 +935,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 	err = scale.Unmarshal(digestBytes, &digest)
 	require.NoError(t, err)
 
-	require.Equal(t, 4, len(digest.Types))
+	require.Equal(t, 4, len(digest))
 
 	// kusama block 1482003, from polkadot.js
 	block := &types.Block{
@@ -981,7 +981,7 @@ func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 	digest := types.NewDigest()
 	err = scale.Unmarshal(digestBytes, &digest)
 	require.NoError(t, err)
-	require.Equal(t, 2, len(digest.Types))
+	require.Equal(t, 2, len(digest))
 
 	block := &types.Block{
 		Header: types.Header{
@@ -1266,7 +1266,7 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T)
 	}
 	preVoteEquivocation := types.PreVote(grandpaEquivocation)
 	equivocationVote := types.NewGrandpaEquivocation()
-	err = equivocationVote.Set(preVoteEquivocation)
+	err = equivocationVote.SetValue(preVoteEquivocation)
 	require.NoError(t, err)
 
 	equivocationProof := types.GrandpaEquivocationProof{

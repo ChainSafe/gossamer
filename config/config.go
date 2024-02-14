@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/os"
 	wazero "github.com/ChainSafe/gossamer/lib/runtime/wazero"
+	"github.com/adrg/xdg"
 )
 
 const (
@@ -20,14 +21,12 @@ const (
 	uint32Max = ^uint32(0)
 	// defaultChainSpecFile is the default genesis file
 	defaultChainSpecFile = "chain-spec-raw.json"
-	// defaultBasePath is the default base path
-	defaultBasePath = "~/.gossamer/gssmr"
 	// DefaultLogLevel is the default log level
 	DefaultLogLevel = "info"
 	// DefaultPrometheusPort is the default prometheus port
 	DefaultPrometheusPort = uint32(9876)
 	// DefaultRetainBlocks is the default number of blocks to retain
-	DefaultRetainBlocks = 512
+	DefaultRetainBlocks = uint32(512)
 	// DefaultPruning is the default pruning strategy
 	DefaultPruning = pruner.Archive
 
@@ -40,7 +39,7 @@ const (
 	DefaultWasmInterpreter = wazero.Name
 
 	// DefaultNetworkPort is the default network port
-	DefaultNetworkPort = 7001
+	DefaultNetworkPort = uint16(7001)
 	// DefaultDiscoveryInterval is the default discovery interval
 	DefaultDiscoveryInterval = 10 * time.Second
 	// DefaultMinPeers is the default minimum number of peers
@@ -49,11 +48,11 @@ const (
 	DefaultMaxPeers = 50
 
 	// DefaultRPCPort is the default RPC port
-	DefaultRPCPort = 8545
+	DefaultRPCPort = uint32(8545)
 	// DefaultRPCHost is the default RPC host
 	DefaultRPCHost = "localhost"
 	// DefaultWSPort is the default WS port
-	DefaultWSPort = 8546
+	DefaultWSPort = uint32(8546)
 
 	// DefaultPprofListenAddress is the default pprof listen address
 	DefaultPprofListenAddress = "localhost:6060"
@@ -61,7 +60,7 @@ const (
 	// DefaultSystemName is the default system name
 	DefaultSystemName = "Gossamer"
 	// DefaultSystemVersion is the default system version
-	DefaultSystemVersion = "0.9.0"
+	DefaultSystemVersion = "0.0.0"
 )
 
 // DefaultRPCModules the default RPC modules
@@ -332,7 +331,7 @@ func DefaultConfig() *Config {
 		BaseConfig: BaseConfig{
 			Name:               "Gossamer",
 			ID:                 "gssmr",
-			BasePath:           defaultBasePath,
+			BasePath:           xdg.DataHome + "gossamer",
 			ChainSpec:          "",
 			LogLevel:           DefaultLogLevel,
 			PrometheusPort:     DefaultPrometheusPort,
@@ -402,7 +401,7 @@ func DefaultConfig() *Config {
 		},
 		System: &SystemConfig{
 			SystemName:    DefaultSystemName,
-			SystemVersion: DefaultSystemVersion,
+			SystemVersion: GetFullVersion(),
 		},
 	}
 }
@@ -413,7 +412,7 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 		BaseConfig: BaseConfig{
 			Name:               nodeSpec.Name,
 			ID:                 nodeSpec.ID,
-			BasePath:           defaultBasePath,
+			BasePath:           xdg.DataHome + "gossamer",
 			ChainSpec:          "",
 			LogLevel:           DefaultLogLevel,
 			PrometheusPort:     uint32(9876),
@@ -483,7 +482,7 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 		},
 		System: &SystemConfig{
 			SystemName:    DefaultSystemName,
-			SystemVersion: DefaultSystemVersion,
+			SystemVersion: GetFullVersion(),
 		},
 	}
 }
@@ -596,6 +595,8 @@ const (
 	WestendDevChain Chain = "westend-dev"
 	// WestendLocalChain is the Westend local chain
 	WestendLocalChain Chain = "westend-local"
+	// PaseoChain is the Paseo chain
+	PaseoChain Chain = "paseo"
 )
 
 // String returns the string representation of the chain

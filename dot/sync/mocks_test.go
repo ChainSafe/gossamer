@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mocks_test.go -package=sync . BlockState,StorageState,TransactionState,BabeVerifier,FinalityGadget,BlockImportHandler,Network
 //
+
 // Package sync is a generated GoMock package.
 package sync
 
@@ -595,6 +596,20 @@ func (m *MockNetwork) AllConnectedPeersIDs() []peer.ID {
 func (mr *MockNetworkMockRecorder) AllConnectedPeersIDs() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllConnectedPeersIDs", reflect.TypeOf((*MockNetwork)(nil).AllConnectedPeersIDs))
+}
+
+// BlockAnnounceHandshake mocks base method.
+func (m *MockNetwork) BlockAnnounceHandshake(arg0 *types.Header) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BlockAnnounceHandshake", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BlockAnnounceHandshake indicates an expected call of BlockAnnounceHandshake.
+func (mr *MockNetworkMockRecorder) BlockAnnounceHandshake(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BlockAnnounceHandshake", reflect.TypeOf((*MockNetwork)(nil).BlockAnnounceHandshake), arg0)
 }
 
 // Peers mocks base method.

@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mock_grandpa_test.go -package digest . GrandpaState
 //
+
 // Package digest is a generated GoMock package.
 package digest
 
@@ -12,7 +13,6 @@ import (
 	reflect "reflect"
 
 	types "github.com/ChainSafe/gossamer/dot/types"
-	scale "github.com/ChainSafe/gossamer/pkg/scale"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -54,7 +54,7 @@ func (mr *MockGrandpaStateMockRecorder) ApplyScheduledChanges(arg0 any) *gomock.
 }
 
 // HandleGRANDPADigest mocks base method.
-func (m *MockGrandpaState) HandleGRANDPADigest(arg0 *types.Header, arg1 scale.VaryingDataType) error {
+func (m *MockGrandpaState) HandleGRANDPADigest(arg0 *types.Header, arg1 types.GrandpaConsensusDigest) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HandleGRANDPADigest", arg0, arg1)
 	ret0, _ := ret[0].(error)

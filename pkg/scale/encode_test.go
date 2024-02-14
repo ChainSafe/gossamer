@@ -686,6 +686,11 @@ var (
 				priv1: []byte{0x00},
 			},
 			want: []byte{0x04, 0x01, 0x02, 0, 0, 0, 0x01},
+			out: MyStructWithPrivate{
+				Foo: []byte{0x01},
+				Bar: 2,
+				Baz: true,
+			},
 		},
 		{
 			name: "struct_{[]byte,_int32,_bool}_with_ignored_attributes",

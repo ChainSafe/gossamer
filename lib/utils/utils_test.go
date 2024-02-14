@@ -34,9 +34,9 @@ func TestHomeDir(t *testing.T) {
 func TestExpandDir(t *testing.T) {
 	homeDir := HomeDir()
 
-	const tildePath = "~/.gossamer-test"
+	const tildePath = "~/.local/share/gossamer/test"
 	expandedTildePath := ExpandDir(tildePath)
-	assert.Equal(t, homeDir+"/.gossamer-test", expandedTildePath)
+	assert.Equal(t, homeDir+"/.local/share/gossamer/test", expandedTildePath)
 
 	const absPath = "/tmp/absolute"
 	expandedAbsPath := ExpandDir(absPath)

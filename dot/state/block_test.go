@@ -54,7 +54,7 @@ func TestSetAndGetHeader(t *testing.T) {
 	header := &types.Header{
 		Number:    0,
 		StateRoot: trie.EmptyHash,
-		Digest:    types.NewDigest(),
+		Digest:    nil,
 	}
 
 	err := bs.SetHeader(header)
@@ -71,7 +71,7 @@ func TestHasHeader(t *testing.T) {
 	header := &types.Header{
 		Number:    0,
 		StateRoot: trie.EmptyHash,
-		Digest:    types.NewDigest(),
+		Digest:    nil,
 	}
 
 	err := bs.SetHeader(header)
@@ -172,7 +172,7 @@ func TestGetSlotForBlock(t *testing.T) {
 	expectedSlot := uint64(77)
 
 	babeHeader := types.NewBabeDigest()
-	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, expectedSlot, [32]byte{}, [64]byte{}))
+	err := babeHeader.SetValue(*types.NewBabePrimaryPreDigest(0, expectedSlot, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 	data, err := scale.Marshal(babeHeader)
 	require.NoError(t, err)
@@ -207,7 +207,7 @@ func TestGetHashesByNumber(t *testing.T) {
 	slot := uint64(77)
 
 	babeHeader := types.NewBabeDigest()
-	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, slot, [32]byte{}, [64]byte{}))
+	err := babeHeader.SetValue(*types.NewBabePrimaryPreDigest(0, slot, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 	data, err := scale.Marshal(babeHeader)
 	require.NoError(t, err)
@@ -229,7 +229,7 @@ func TestGetHashesByNumber(t *testing.T) {
 	require.NoError(t, err)
 
 	babeHeader2 := types.NewBabeDigest()
-	err = babeHeader2.Set(*types.NewBabePrimaryPreDigest(1, slot+1, [32]byte{}, [64]byte{}))
+	err = babeHeader2.SetValue(*types.NewBabePrimaryPreDigest(1, slot+1, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 	data2, err := scale.Marshal(babeHeader2)
 	require.NoError(t, err)
@@ -261,7 +261,7 @@ func TestGetAllDescendants(t *testing.T) {
 	slot := uint64(77)
 
 	babeHeader := types.NewBabeDigest()
-	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, slot, [32]byte{}, [64]byte{}))
+	err := babeHeader.SetValue(*types.NewBabePrimaryPreDigest(0, slot, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 	data, err := scale.Marshal(babeHeader)
 	require.NoError(t, err)
@@ -283,7 +283,7 @@ func TestGetAllDescendants(t *testing.T) {
 	require.NoError(t, err)
 
 	babeHeader2 := types.NewBabeDigest()
-	err = babeHeader2.Set(*types.NewBabePrimaryPreDigest(1, slot+1, [32]byte{}, [64]byte{}))
+	err = babeHeader2.SetValue(*types.NewBabePrimaryPreDigest(1, slot+1, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 	data2, err := scale.Marshal(babeHeader2)
 	require.NoError(t, err)
@@ -326,7 +326,7 @@ func TestGetBlockHashesBySlot(t *testing.T) {
 	slot := uint64(77)
 
 	babeHeader := types.NewBabeDigest()
-	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, slot, [32]byte{}, [64]byte{}))
+	err := babeHeader.SetValue(*types.NewBabePrimaryPreDigest(0, slot, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 	data, err := scale.Marshal(babeHeader)
 	require.NoError(t, err)
@@ -348,7 +348,7 @@ func TestGetBlockHashesBySlot(t *testing.T) {
 	require.NoError(t, err)
 
 	babeHeader2 := types.NewBabeDigest()
-	err = babeHeader2.Set(*types.NewBabePrimaryPreDigest(1, slot, [32]byte{}, [64]byte{}))
+	err = babeHeader2.SetValue(*types.NewBabePrimaryPreDigest(1, slot, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 	data2, err := scale.Marshal(babeHeader2)
 	require.NoError(t, err)
@@ -1098,4 +1098,36 @@ func Test_GetRuntime_StoreRuntime(t *testing.T) {
 	sameRuntimeOnDiffHash, err := blockState.GetRuntime(lastElementOnChain.Hash())
 	require.NoError(t, err)
 	require.Equal(t, runtimeInstance, sameRuntimeOnDiffHash)
+}
+
+const headerHex = "0x276bfa91f70859348285599321ea96afd3ae681f0be47d36196bac8075ea32e804496b5fbd26d7014ba2ef84b588859428e334549d374726263ea894691ff78a0d34aea7c0b7cdadce2f44389a28d4200e522cec26d4eae828183ce40bd57ebeee0c0642414245b50103000000002792f1100000000068ab0948ad2f3194f94c4a584bb8dc118d354316c10a51e04ce4ca7aed4a971c046b5dc4704d9fa43daad797291efa00a1070970f979d4593888dbcb7a628b08667ca7a2850eed67f908d9fce9ec45e6e688341d054d3f074ec102ae3844ca0f044241424529010104d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01000000000000000000000000000000000000000000000000000000000000000000000000000000054241424501016425bfe39b70f23a0de6b4e8159cf513c25cb7e18f52c6ba889f426211bb787dbe0f0a237cc93052f9fa8a68386722299b6c8ba0d8060ad6a1cbdb9688e9a982" //nolint:lll
+//nolint:lll
+// This decodes to next Header -> ParentHash=0x276bfa91f70859348285599321ea96afd3ae681f0be47d36196bac8075ea32e8 Number=1 StateRoot=0x496b5fbd26d7014ba2ef84b588859428e334549d374726263ea894691ff78a0d ExtrinsicsRoot=0x34aea7c0b7cdadce2f44389a28d4200e522cec26d4eae828183ce40bd57ebeee Digest=[PreRuntimeDigest ConsensusEngineID=BABE Data=0x03000000002792f1100000000068ab0948ad2f3194f94c4a584bb8dc118d354316c10a51e04ce4ca7aed4a971c046b5dc4704d9fa43daad797291efa00a1070970f979d4593888dbcb7a628b08667ca7a2850eed67f908d9fce9ec45e6e688341d054d3f074ec102ae3844ca0f, ConsensusDigest ConsensusEngineID=BABE Data=0x0104d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01000000000000000000000000000000000000000000000000000000000000000000000000000000, SealDigest ConsensusEngineID=BABE Data=0x6425bfe39b70f23a0de6b4e8159cf513c25cb7e18f52c6ba889f426211bb787dbe0f0a237cc93052f9fa8a68386722299b6c8ba0d8060ad6a1cbdb9688e9a982] Hash=0x885d464b8c8753f88973cfa457d385c8fe9c9d90a6a2f62e013cf81de3666812 //nolint:lll
+
+func Test_retrieveRangeFromDatabaseWithOneBlock(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+	db := NewInMemoryDB(t)
+	genesisHeader := &types.Header{
+		Number:    0,
+		StateRoot: trie.EmptyHash,
+		Digest:    types.NewDigest(),
+	}
+	bs, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+	require.NoError(t, err)
+
+	headerBytes, err := common.HexToBytes(headerHex)
+	require.NoError(t, err)
+
+	headerType := types.NewEmptyHeader()
+	err = scale.Unmarshal(headerBytes, headerType)
+	require.NoError(t, err)
+	err = bs.SetHeader(headerType)
+	require.NoError(t, err)
+
+	hashes, err := bs.retrieveRangeFromDatabase(headerType.Hash(), headerType)
+	require.NoError(t, err)
+	require.Equal(t, len(hashes), 1)
 }

@@ -5,6 +5,7 @@
 //
 //	mockgen -destination=mock_telemetry_test.go -package rpc . Telemetry
 //
+
 // Package rpc is a generated GoMock package.
 package rpc
 
