@@ -246,7 +246,7 @@ func HeaderToJSON(header types.Header) (ChainBlockHeaderResponse, error) {
 		res.Number = common.UintToHex(header.Number)
 	}
 
-	for _, item := range header.Digest.Types {
+	for _, item := range header.Digest {
 		enc, err := scale.Marshal(item)
 		if err != nil {
 			return ChainBlockHeaderResponse{}, err

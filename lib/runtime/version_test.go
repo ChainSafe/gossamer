@@ -39,7 +39,7 @@ func Test_DecodeVersion(t *testing.T) {
 				{255, 255}, // error
 			}),
 			errWrapped: ErrDecodingVersionField,
-			errMessage: "decoding version field impl name: unknown prefix for compact uint: 255",
+			errMessage: "decoding version field impl name: decoding uint: unknown prefix for compact uint: 255",
 		},
 		// TODO add transaction version decode error once
 		// https://github.com/ChainSafe/gossamer/pull/2683

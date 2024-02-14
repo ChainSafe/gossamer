@@ -111,7 +111,11 @@ func (s *StorageState) notifyObserver(root common.Hash, o Observer) error {
 	} else {
 		// filter result to include only interested keys
 		for k, cachedValue := range o.GetFilter() {
-			value := t.Get(common.MustHexToBytes(k))
+			bytes, err := common.HexToBytes(k)
+			if err != nil {
+				return fmt.Errorf("failed to convert hex to bytes: %s", err)
+			}
+			value := t.Get(bytes)
 			if !reflect.DeepEqual(cachedValue, value) {
 				kv := &KeyValue{
 					Key:   common.MustHexToBytes(k),

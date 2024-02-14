@@ -68,8 +68,10 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	err := retry.UntilOK(peerTimeout, 10*time.Second, func() (bool, error) {
 		for _, node := range nodes {
 			endpoint := rpc.NewEndpoint(node.RPCPort())
+			t.Logf("starting node %s with port %s", node.String(), endpoint)
 			var response modules.SystemHealthResponse
 			fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", &response)
+			t.Logf("Response: %+v", response)
 			if response.Peers != len(nodes)-1 {
 				return false, nil
 			}
@@ -162,8 +164,8 @@ func fetchWithTimeoutFromEndpoint(t *testing.T, endpoint, method string, target 
 	t.Helper()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 	body, err := rpc.Post(ctx, endpoint, method, "{}")
-	cancel()
 	require.NoError(t, err)
 
 	err = rpc.Decode(body, target)

@@ -191,8 +191,8 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 func createBlockAnnounce(block *types.Block, isBestBlock bool) (
 	blockAnnounce *network.BlockAnnounceMessage, err error) {
 	digest := types.NewDigest()
-	for i := range block.Header.Digest.Types {
-		digestValue, err := block.Header.Digest.Types[i].Value()
+	for i := range block.Header.Digest {
+		digestValue, err := block.Header.Digest[i].Value()
 		if err != nil {
 			return nil, fmt.Errorf("getting value of digest type at index %d: %w", i, err)
 		}

@@ -211,7 +211,7 @@ func Test_decodeBranch(t *testing.T) {
 			nodeVariant:      branchVariant,
 			partialKeyLength: 1,
 			errWrapped:       ErrDecodeChildHash,
-			errMessage:       "cannot decode child hash: at index 10: reading byte: EOF",
+			errMessage:       "cannot decode child hash: at index 10: decoding uint: reading byte: EOF",
 		},
 		"success_for_branch_variant": {
 			reader: bytes.NewBuffer(
@@ -246,7 +246,7 @@ func Test_decodeBranch(t *testing.T) {
 			nodeVariant:      branchWithValueVariant,
 			partialKeyLength: 1,
 			errWrapped:       ErrDecodeStorageValue,
-			errMessage:       "cannot decode storage value: reading byte: EOF",
+			errMessage:       "cannot decode storage value: decoding uint: reading byte: EOF",
 		},
 		"success_for_branch_with_value": {
 			reader: bytes.NewBuffer(concatByteSlices([][]byte{
@@ -372,7 +372,7 @@ func Test_decodeLeaf(t *testing.T) {
 			variant:          leafVariant,
 			partialKeyLength: 1,
 			errWrapped:       ErrDecodeStorageValue,
-			errMessage:       "cannot decode storage value: unknown prefix for compact uint: 255",
+			errMessage:       "cannot decode storage value: decoding uint: unknown prefix for compact uint: 255",
 		},
 		"missing_storage_value_data": {
 			reader: bytes.NewBuffer([]byte{
@@ -382,7 +382,7 @@ func Test_decodeLeaf(t *testing.T) {
 			variant:          leafVariant,
 			partialKeyLength: 1,
 			errWrapped:       ErrDecodeStorageValue,
-			errMessage:       "cannot decode storage value: reading byte: EOF",
+			errMessage:       "cannot decode storage value: decoding uint: reading byte: EOF",
 		},
 		"empty_storage_value_data": {
 			reader: bytes.NewBuffer(concatByteSlices([][]byte{

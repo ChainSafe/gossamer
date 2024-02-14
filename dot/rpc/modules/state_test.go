@@ -340,7 +340,7 @@ func TestStateTrie(t *testing.T) {
 
 				fakeStateRoot := common.Hash([32]byte{5, 5, 5, 5, 5})
 				fakeBlockHeader := types.NewHeader(common.EmptyHash, fakeStateRoot,
-					common.EmptyHash, 1, scale.VaryingDataTypeSlice{})
+					common.EmptyHash, 1, nil)
 
 				blockAPIMock.EXPECT().GetHeader(bestBlockHash).Return(fakeBlockHeader, nil)
 
@@ -365,7 +365,7 @@ func TestStateTrie(t *testing.T) {
 
 				fakeStateRoot := common.Hash([32]byte{5, 5, 5, 5, 5})
 				fakeBlockHeader := types.NewHeader(common.EmptyHash, fakeStateRoot,
-					common.EmptyHash, 1, scale.VaryingDataTypeSlice{})
+					common.EmptyHash, 1, nil)
 
 				blockAPIMock.EXPECT().GetHeader(expecificBlockHash).
 					Return(fakeBlockHeader, nil)

@@ -41,7 +41,7 @@ func TestChainGetHeader_Genesis(t *testing.T) {
 	di := types.NewDigestItem()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	require.NoError(t, err)
-	err = di.Set(*prd)
+	err = di.SetValue(*prd)
 	require.NoError(t, err)
 
 	d, err := scale.Marshal(di)
@@ -77,7 +77,7 @@ func TestChainGetHeader_Latest(t *testing.T) {
 	di := types.NewDigestItem()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	require.NoError(t, err)
-	err = di.Set(*prd)
+	err = di.SetValue(*prd)
 	require.NoError(t, err)
 
 	d, err := scale.Marshal(di)
@@ -125,7 +125,7 @@ func TestChainGetBlock_Genesis(t *testing.T) {
 	di := types.NewDigestItem()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	require.NoError(t, err)
-	err = di.Set(*prd)
+	err = di.SetValue(*prd)
 	require.NoError(t, err)
 
 	d, err := scale.Marshal(di)
@@ -169,7 +169,7 @@ func TestChainGetBlock_Latest(t *testing.T) {
 	di := types.NewDigestItem()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	require.NoError(t, err)
-	err = di.Set(*prd)
+	err = di.SetValue(*prd)
 	require.NoError(t, err)
 
 	d, err := scale.Marshal(di)

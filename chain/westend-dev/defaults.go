@@ -5,11 +5,12 @@ package westenddev
 
 import (
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/adrg/xdg"
 )
 
-const (
+var (
 	// defaultBasePath is the default basepath for the westend dev node
-	defaultBasePath = "~/.gossamer/westend-dev"
+	defaultBasePath = xdg.DataHome + "/gossamer/westend-dev"
 	// defaultChainSpec is the default chain spec for the westend dev node
 	defaultChainSpec = "./chain/westend-dev/westend-dev-spec-raw.json"
 )

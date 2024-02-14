@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math/big"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -70,13 +69,6 @@ var (
 	})
 )
 
-// peerView tracks our peers's best reported blocks
-type peerView struct {
-	who    peer.ID
-	hash   common.Hash
-	number uint
-}
-
 // ChainSync contains the methods used by the high-level service into the `chainSync` module
 type ChainSync interface {
 	start()
@@ -98,7 +90,6 @@ type announcedBlock struct {
 	who    peer.ID
 	header *types.Header
 }
-
 type chainSync struct {
 	wg     sync.WaitGroup
 	stopCh chan struct{}
@@ -110,8 +101,7 @@ type chainSync struct {
 
 	// tracks the latest state we know of from our peers,
 	// ie. their best block hash and number
-	peerViewLock sync.RWMutex
-	peerView     map[peer.ID]peerView
+	peerViewSet *peerViewSet
 
 	// disjoint set of blocks which are known but not ready to be processed
 	// ie. we only know the hash, number, or the parent block is unknown, or the body is unknown
@@ -166,7 +156,7 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 		telemetry:          cfg.telemetry,
 		blockState:         cfg.bs,
 		network:            cfg.net,
-		peerView:           make(map[peer.ID]peerView),
+		peerViewSet:        newPeerViewSet(cfg.maxPeers),
 		pendingBlocks:      cfg.pendingBlocks,
 		syncMode:           atomicState,
 		finalisedCh:        cfg.bs.GetFinalisedNotifierChannel(),
@@ -179,21 +169,32 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 	}
 }
 
-func (cs *chainSync) waitEnoughPeersAndTarget() {
+func (cs *chainSync) waitWorkersAndTarget() {
 	waitPeersTimer := time.NewTimer(cs.waitPeersDuration)
+
+	highestFinalizedHeader, err := cs.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		panic(fmt.Sprintf("failed to get highest finalised header: %v", err))
+	}
 
 	for {
 		cs.workerPool.useConnectedPeers()
-		_, err := cs.getTarget()
-
 		totalAvailable := cs.workerPool.totalWorkers()
-		if totalAvailable >= uint(cs.minPeers) && err == nil {
+
+		if totalAvailable >= uint(cs.minPeers) &&
+			cs.peerViewSet.getTarget() > 0 {
 			return
+		}
+
+		err := cs.network.BlockAnnounceHandshake(highestFinalizedHeader)
+		if err != nil && !errors.Is(err, network.ErrNoPeersConnected) {
+			logger.Errorf("retrieving target info from peers: %v", err)
 		}
 
 		select {
 		case <-waitPeersTimer.C:
 			waitPeersTimer.Reset(cs.waitPeersDuration)
+
 		case <-cs.stopCh:
 			return
 		}
@@ -208,7 +209,7 @@ func (cs *chainSync) start() {
 	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh, &cs.wg)
 
 	// wait until we have a minimal workers in the sync worker pool
-	cs.waitEnoughPeersAndTarget()
+	cs.waitWorkersAndTarget()
 }
 
 func (cs *chainSync) stop() error {
@@ -237,25 +238,17 @@ func (cs *chainSync) stop() error {
 	}
 }
 
-func (cs *chainSync) isBootstrap() (bestBlockHeader *types.Header, syncTarget uint,
-	isBootstrap bool, err error) {
-	syncTarget, err = cs.getTarget()
-	if err != nil {
-		return nil, syncTarget, false, fmt.Errorf("getting target: %w", err)
-	}
-
-	bestBlockHeader, err = cs.blockState.BestBlockHeader()
-	if err != nil {
-		return nil, syncTarget, false, fmt.Errorf("getting best block header: %w", err)
-	}
-
-	bestBlockNumber := bestBlockHeader.Number
-	isBootstrap = bestBlockNumber+network.MaxBlocksInResponse < syncTarget
-	return bestBlockHeader, syncTarget, isBootstrap, nil
+func (cs *chainSync) isBootstrapSync(currentBlockNumber uint) bool {
+	syncTarget := cs.peerViewSet.getTarget()
+	return currentBlockNumber+network.MaxBlocksInResponse < syncTarget
 }
 
 func (cs *chainSync) bootstrapSync() {
 	defer cs.wg.Done()
+	currentBlock, err := cs.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		panic("cannot find highest finalised header")
+	}
 
 	for {
 		select {
@@ -265,38 +258,23 @@ func (cs *chainSync) bootstrapSync() {
 		default:
 		}
 
-		bestBlockHeader, syncTarget, isFarFromTarget, err := cs.isBootstrap()
-		if err != nil && !errors.Is(err, errNoPeerViews) {
-			logger.Criticalf("ending bootstrap sync, checking target distance: %s", err)
-			return
-		}
-
-		finalisedHeader, err := cs.blockState.GetHighestFinalisedHeader()
-		if err != nil {
-			logger.Criticalf("getting highest finalized header: %w", err)
-			return
-		}
-
-		logger.Infof(
-			"🚣 currently syncing, %d peers connected, "+
-				"%d available workers, "+
-				"target block number %d, "+
-				"finalised block number %d with hash %s",
-			len(cs.network.Peers()),
-			cs.workerPool.totalWorkers(),
-			syncTarget, finalisedHeader.Number, finalisedHeader.Hash())
-
-		if isFarFromTarget {
+		isBootstrap := cs.isBootstrapSync(currentBlock.Number)
+		if isBootstrap {
 			cs.workerPool.useConnectedPeers()
-			err = cs.requestMaxBlocksFrom(bestBlockHeader, networkInitialSync)
+			err = cs.requestMaxBlocksFrom(currentBlock, networkInitialSync)
 			if err != nil {
 				logger.Errorf("requesting max blocks from best block header: %s", err)
+			}
+
+			currentBlock, err = cs.blockState.BestBlockHeader()
+			if err != nil {
+				logger.Errorf("getting best block header: %v", err)
 			}
 		} else {
 			// we are less than 128 blocks behind the target we can use tip sync
 			cs.syncMode.Store(tip)
 			isSyncedGauge.Set(1)
-			logger.Debugf("switched sync mode to %s", tip.String())
+			logger.Infof("🔁 switched sync mode to %s", tip.String())
 			return
 		}
 	}
@@ -309,32 +287,26 @@ func (cs *chainSync) getSyncMode() chainSyncState {
 // onBlockAnnounceHandshake sets a peer's best known block
 func (cs *chainSync) onBlockAnnounceHandshake(who peer.ID, bestHash common.Hash, bestNumber uint) error {
 	cs.workerPool.fromBlockAnnounce(who)
-
-	cs.peerViewLock.Lock()
-	cs.peerView[who] = peerView{
-		who:    who,
-		hash:   bestHash,
-		number: bestNumber,
-	}
-	cs.peerViewLock.Unlock()
+	cs.peerViewSet.update(who, bestHash, bestNumber)
 
 	if cs.getSyncMode() == bootstrap {
 		return nil
 	}
 
-	_, _, isFarFromTarget, err := cs.isBootstrap()
-	if err != nil && !errors.Is(err, errNoPeerViews) {
-		return fmt.Errorf("checking target distance: %w", err)
+	bestBlockHeader, err := cs.blockState.BestBlockHeader()
+	if err != nil {
+		return err
 	}
 
-	if !isFarFromTarget {
+	isBootstrap := cs.isBootstrapSync(bestBlockHeader.Number)
+	if !isBootstrap {
 		return nil
 	}
 
 	// we are more than 128 blocks behind the head, switch to bootstrap
 	cs.syncMode.Store(bootstrap)
 	isSyncedGauge.Set(0)
-	logger.Debugf("switched sync mode to %s", bootstrap.String())
+	logger.Infof("🔁 switched sync mode to %s", bootstrap.String())
 
 	cs.wg.Add(1)
 	go cs.bootstrapSync()
@@ -343,11 +315,9 @@ func (cs *chainSync) onBlockAnnounceHandshake(who peer.ID, bestHash common.Hash,
 
 func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 	// TODO: https://github.com/ChainSafe/gossamer/issues/3432
-	cs.workerPool.fromBlockAnnounce(announced.who)
-
 	if cs.pendingBlocks.hasBlock(announced.header.Hash()) {
-		return fmt.Errorf("%w: block %s (#%d)",
-			errAlreadyInDisjointSet, announced.header.Hash(), announced.header.Number)
+		return fmt.Errorf("%w: block #%d (%s)",
+			errAlreadyInDisjointSet, announced.header.Number, announced.header.Hash())
 	}
 
 	err := cs.pendingBlocks.addHeader(announced.header)
@@ -359,19 +329,20 @@ func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 		return nil
 	}
 
-	_, _, isFarFromTarget, err := cs.isBootstrap()
-	if err != nil && !errors.Is(err, errNoPeerViews) {
-		return fmt.Errorf("checking target distance: %w", err)
+	bestBlockHeader, err := cs.blockState.BestBlockHeader()
+	if err != nil {
+		return fmt.Errorf("getting best block header: %w", err)
 	}
 
-	if !isFarFromTarget {
-		return cs.requestAnnouncedBlock(announced)
+	isBootstrap := cs.isBootstrapSync(bestBlockHeader.Number)
+	if !isBootstrap {
+		return cs.requestAnnouncedBlock(bestBlockHeader, announced)
 	}
 
 	return nil
 }
 
-func (cs *chainSync) requestAnnouncedBlock(announce announcedBlock) error {
+func (cs *chainSync) requestAnnouncedBlock(bestBlockHeader *types.Header, announce announcedBlock) error {
 	peerWhoAnnounced := announce.who
 	announcedHash := announce.header.Hash()
 	announcedNumber := announce.header.Number
@@ -383,11 +354,6 @@ func (cs *chainSync) requestAnnouncedBlock(announce announcedBlock) error {
 
 	if has {
 		return nil
-	}
-
-	bestBlockHeader, err := cs.blockState.BestBlockHeader()
-	if err != nil {
-		return fmt.Errorf("getting best block header: %w", err)
 	}
 
 	highestFinalizedHeader, err := cs.blockState.GetHighestFinalisedHeader()
@@ -437,12 +403,12 @@ func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.
 		startAtBlock = announcedHeader.Number - uint(*request.Max) + 1
 		totalBlocks = *request.Max
 
-		logger.Debugf("received a block announce from %s, requesting %d blocks, descending request from %s (#%d)",
-			peerWhoAnnounced, gapLength, announcedHeader.Hash(), announcedHeader.Number)
+		logger.Infof("requesting %d blocks, descending request from #%d (%s)",
+			peerWhoAnnounced, gapLength, announcedHeader.Number, announcedHeader.Hash().Short())
 	} else {
 		request = network.NewBlockRequest(startingBlock, 1, network.BootstrapRequestData, network.Descending)
-		logger.Debugf("received a block announce from %s, requesting a single block %s (#%d)",
-			peerWhoAnnounced, announcedHeader.Hash(), announcedHeader.Number)
+		logger.Infof("requesting a single block #%d (%s)",
+			peerWhoAnnounced, announcedHeader.Number, announcedHeader.Hash().Short())
 	}
 
 	resultsQueue := make(chan *syncTaskResult)
@@ -457,8 +423,9 @@ func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.
 
 func (cs *chainSync) requestForkBlocks(bestBlockHeader, highestFinalizedHeader, announcedHeader *types.Header,
 	peerWhoAnnounced peer.ID) error {
-	logger.Debugf("block announce lower than best block %s (#%d) and greater highest finalized %s (#%d)",
-		bestBlockHeader.Hash(), bestBlockHeader.Number, highestFinalizedHeader.Hash(), highestFinalizedHeader.Number)
+	logger.Infof("block announce lower than best block #%d  (%s) and greater highest finalized #%d (%s)",
+		bestBlockHeader.Number, bestBlockHeader.Hash().Short(),
+		highestFinalizedHeader.Number, highestFinalizedHeader.Hash().Short())
 
 	parentExists, err := cs.blockState.HasHeader(announcedHeader.ParentHash)
 	if err != nil && !errors.Is(err, database.ErrNotFound) {
@@ -479,8 +446,8 @@ func (cs *chainSync) requestForkBlocks(bestBlockHeader, highestFinalizedHeader, 
 		request = network.NewBlockRequest(startingBlock, gapLength, network.BootstrapRequestData, network.Descending)
 	}
 
-	logger.Debugf("requesting %d fork blocks, starting at %s (#%d)",
-		peerWhoAnnounced, gapLength, announcedHash, announcedHeader.Number)
+	logger.Infof("requesting %d fork blocks, starting at #%d (%s)",
+		peerWhoAnnounced, gapLength, announcedHeader.Number, announcedHash.Short())
 
 	resultsQueue := make(chan *syncTaskResult)
 	cs.workerPool.submitRequest(request, &peerWhoAnnounced, resultsQueue)
@@ -554,10 +521,7 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header, origin 
 	// we should bound it to the real target which is collected through
 	// block announces received from other peers
 	targetBlockNumber := startRequestAt + maxRequestsAllowed*128
-	realTarget, err := cs.getTarget()
-	if err != nil {
-		return fmt.Errorf("while getting target: %w", err)
-	}
+	realTarget := cs.peerViewSet.getTarget()
 
 	if targetBlockNumber > realTarget {
 		targetBlockNumber = realTarget
@@ -574,7 +538,7 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header, origin 
 	}
 
 	resultsQueue := cs.workerPool.submitRequests(requests)
-	err = cs.handleWorkersResults(resultsQueue, origin, startRequestAt, expectedAmountOfBlocks)
+	err := cs.handleWorkersResults(resultsQueue, origin, startRequestAt, expectedAmountOfBlocks)
 	if err != nil {
 		return fmt.Errorf("while handling workers results: %w", err)
 	}
@@ -582,28 +546,32 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header, origin 
 	return nil
 }
 
-// getTarget takes the average of all peer heads
-// TODO: should we just return the highest? could be an attack vector potentially, if a peer reports some very large
-// head block number, it would leave us in bootstrap mode forever
-// it would be better to have some sort of standard deviation calculation and discard any outliers (#1861)
-func (cs *chainSync) getTarget() (uint, error) {
-	cs.peerViewLock.RLock()
-	defer cs.peerViewLock.RUnlock()
-
-	// in practice, this shouldn't happen, as we only start the module once we have some peer states
-	if len(cs.peerView) == 0 {
-		return 0, errNoPeerViews
+func (cs *chainSync) showSyncStats(syncBegin time.Time, syncedBlocks int) {
+	finalisedHeader, err := cs.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		logger.Criticalf("getting highest finalized header: %w", err)
+		return
 	}
 
-	// we are going to sort the data and remove the outliers then we will return the avg of all the valid elements
-	uintArr := make([]uint, 0, len(cs.peerView))
-	for _, ps := range cs.peerView {
-		uintArr = append(uintArr, ps.number)
-	}
+	totalSyncAndImportSeconds := time.Since(syncBegin).Seconds()
+	bps := float64(syncedBlocks) / totalSyncAndImportSeconds
+	logger.Infof("⛓️ synced %d blocks, "+
+		"took: %.2f seconds, bps: %.2f blocks/second",
+		syncedBlocks, totalSyncAndImportSeconds, bps)
 
-	sum, count := nonOutliersSumCount(uintArr)
-	quotientBigInt := big.NewInt(0).Div(sum, big.NewInt(int64(count)))
-	return uint(quotientBigInt.Uint64()), nil
+	logger.Infof(
+		"🚣 currently syncing, %d peers connected, "+
+			"%d available workers, "+
+			"target block number %d, "+
+			"finalised #%d (%s) "+
+			"sync mode: %s",
+		len(cs.network.Peers()),
+		cs.workerPool.totalWorkers(),
+		cs.peerViewSet.getTarget(),
+		finalisedHeader.Number,
+		finalisedHeader.Hash().Short(),
+		cs.getSyncMode().String(),
+	)
 }
 
 // handleWorkersResults, every time we submit requests to workers they results should be computed here
@@ -613,15 +581,7 @@ func (cs *chainSync) getTarget() (uint, error) {
 // TODO: handle only justification requests
 func (cs *chainSync) handleWorkersResults(
 	workersResults chan *syncTaskResult, origin blockOrigin, startAtBlock uint, expectedSyncedBlocks uint32) error {
-
 	startTime := time.Now()
-	defer func() {
-		totalSyncAndImportSeconds := time.Since(startTime).Seconds()
-		bps := float64(expectedSyncedBlocks) / totalSyncAndImportSeconds
-		logger.Debugf("⛓️ synced %d blocks, "+
-			"took: %.2f seconds, bps: %.2f blocks/second",
-			expectedSyncedBlocks, totalSyncAndImportSeconds, bps)
-	}()
 
 	syncingChain := make([]*types.BlockData, expectedSyncedBlocks)
 	// the total numbers of blocks is missing in the syncing chain
@@ -655,10 +615,10 @@ taskResultLoop:
 				taskResult.who, taskResult.err != nil, taskResult.response != nil)
 
 			if taskResult.err != nil {
-				logger.Errorf("task result: peer(%s) error: %s",
-					taskResult.who, taskResult.err)
-
 				if !errors.Is(taskResult.err, network.ErrReceivedEmptyMessage) {
+					logger.Errorf("task result: peer(%s) error: %s",
+						taskResult.who, taskResult.err)
+
 					if strings.Contains(taskResult.err.Error(), "protocols not supported") {
 						cs.network.ReportPeer(peerset.ReputationChange{
 							Value:  peerset.BadProtocolValue,
@@ -756,7 +716,7 @@ taskResultLoop:
 	}
 
 	retreiveBlocksSeconds := time.Since(startTime).Seconds()
-	logger.Debugf("🔽 retrieved %d blocks, took: %.2f seconds, starting process...",
+	logger.Infof("🔽 retrieved %d blocks, took: %.2f seconds, starting process...",
 		expectedSyncedBlocks, retreiveBlocksSeconds)
 
 	// response was validated! place into ready block queue
@@ -767,6 +727,7 @@ taskResultLoop:
 		}
 	}
 
+	cs.showSyncStats(startTime, len(syncingChain))
 	return nil
 }
 
@@ -830,7 +791,6 @@ func (cs *chainSync) processBlockData(blockData types.BlockData, origin blockOri
 		}
 
 		if blockData.Justification != nil && len(*blockData.Justification) > 0 {
-			logger.Infof("handling justification for block %s (#%d)", blockData.Hash.Short(), blockData.Number())
 			err := cs.handleJustification(blockData.Header, *blockData.Justification)
 			if err != nil {
 				return fmt.Errorf("handling justification: %w", err)
@@ -883,8 +843,6 @@ func (cs *chainSync) handleBody(body *types.Body) {
 }
 
 func (cs *chainSync) handleJustification(header *types.Header, justification []byte) (err error) {
-	logger.Debugf("handling justification for block %d...", header.Number)
-
 	headerHash := header.Hash()
 	err = cs.finalityGadget.VerifyBlockJustification(headerHash, justification)
 	if err != nil {
@@ -896,7 +854,6 @@ func (cs *chainSync) handleJustification(header *types.Header, justification []b
 		return fmt.Errorf("setting justification for block number %d: %w", header.Number, err)
 	}
 
-	logger.Infof("🔨 finalised block number %d with hash %s", header.Number, headerHash)
 	return nil
 }
 
@@ -1049,14 +1006,11 @@ func doResponseGrowsTheChain(response, ongoingChain []*types.BlockData, startAtB
 }
 
 func (cs *chainSync) getHighestBlock() (highestBlock uint, err error) {
-	cs.peerViewLock.RLock()
-	defer cs.peerViewLock.RUnlock()
-
-	if len(cs.peerView) == 0 {
+	if cs.peerViewSet.size() == 0 {
 		return 0, errNoPeers
 	}
 
-	for _, ps := range cs.peerView {
+	for _, ps := range cs.peerViewSet.values() {
 		if ps.number < highestBlock {
 			continue
 		}

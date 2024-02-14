@@ -76,7 +76,7 @@ func TestNewHeaderFromFile(t *testing.T) {
 	digest := types.NewDigest()
 	err = scale.Unmarshal(digestBytes, &digest)
 	require.NoError(t, err)
-	require.Len(t, digest.Types, 2)
+	require.Len(t, digest, 2)
 
 	expected := &types.Header{
 		ParentHash:     common.MustHexToHash("0x3b45c9c22dcece75a30acc9c2968cb311e6b0557350f83b430f47559db786975"),

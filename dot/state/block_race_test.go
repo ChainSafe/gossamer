@@ -41,7 +41,7 @@ func TestConcurrencySetHeader(t *testing.T) {
 			header := &types.Header{
 				Number:    1,
 				StateRoot: trie.EmptyHash,
-				Digest:    types.NewDigest(),
+				Digest:    nil,
 			}
 
 			err = bs.SetHeader(header)

@@ -249,15 +249,15 @@ func newVerifier(blockState BlockState, slotState SlotState,
 func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// header should have 2 digest items (possibly more in the future)
 	// first item should be pre-digest, second should be seal
-	if len(header.Digest.Types) < 2 {
+	if len(header.Digest) < 2 {
 		return errMissingDigestItems
 	}
 
 	logger.Tracef("beginning BABE authorship right verification for block %s", header.Hash())
 
 	// check for valid seal by verifying signature
-	preDigestItem := header.Digest.Types[0]
-	sealItem := header.Digest.Types[len(header.Digest.Types)-1]
+	preDigestItem := header.Digest[0]
+	sealItem := header.Digest[len(header.Digest)-1]
 
 	preDigestItemValue, err := preDigestItem.Value()
 	if err != nil {
@@ -302,7 +302,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 	// remove seal before verifying signature
 	h := types.NewDigest()
-	for _, val := range header.Digest.Types[:len(header.Digest.Types)-1] {
+	for _, val := range header.Digest[:len(header.Digest)-1] {
 		digestValue, err := val.Value()
 		if err != nil {
 			return fmt.Errorf("getting digest type value: %w", err)
@@ -419,7 +419,7 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 	return true, nil
 }
 
-func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale.VaryingDataTypeValue, error) {
+func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (any, error) {
 	babePreDigest, err := types.DecodeBabePreDigest(digest.Data)
 	if err != nil {
 		return nil, err
@@ -524,11 +524,11 @@ func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32,
 }
 
 func getAuthorityIndexAndSlot(header *types.Header) (authIdx uint32, slot uint64, err error) {
-	if len(header.Digest.Types) == 0 {
+	if len(header.Digest) == 0 {
 		return 0, 0, fmt.Errorf("for block hash %s: %w", header.Hash(), errNoDigest)
 	}
 
-	digestValue, err := header.Digest.Types[0].Value()
+	digestValue, err := header.Digest[0].Value()
 	if err != nil {
 		return 0, 0, fmt.Errorf("getting first digest type value: %w", err)
 	}

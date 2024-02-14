@@ -48,9 +48,8 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
-	digest := types.NewDigest()
 	genesisHeader = *types.NewHeader(parentHash,
-		stateRoot, extrinsicRoot, number, digest)
+		stateRoot, extrinsicRoot, number, nil)
 
 	return gen, genesisTrie, genesisHeader
 }
