@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/erasure"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 )
 
@@ -382,9 +383,13 @@ func branchesFromChunks(chunks [][]byte) (branches, error) {
 			return branches{}, fmt.Errorf("putting chunk %d in trie: %w", i, err)
 		}
 	}
+	branchHash, err := trie.V1.Hash(tr)
+	if err != nil {
+		return branches{}, fmt.Errorf("hashing trie: %w", err)
+	}
 	b := branches{
 		trieStorage: tr,
-		root:        tr.MustHash(),
+		root:        branchHash,
 		chunks:      chunks,
 		currentPos:  0,
 	}
