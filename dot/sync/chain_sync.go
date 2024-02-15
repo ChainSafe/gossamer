@@ -24,7 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
-	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 var _ ChainSync = (*chainSync)(nil)
@@ -875,7 +874,7 @@ func (cs *chainSync) handleBlock(block *types.Block, announceImportedBlock bool)
 		return err
 	}
 
-	root := ts.MustRoot(trie.NoMaxInlineValueSize)
+	root := ts.MustRoot()
 	if !bytes.Equal(parent.StateRoot[:], root[:]) {
 		panic("parent state root does not match snapshot state root")
 	}

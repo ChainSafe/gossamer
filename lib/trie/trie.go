@@ -56,8 +56,10 @@ func (t *Trie) SetVersion(v TrieLayout) {
 		panic("cannot regress trie version")
 	}
 
-	fmt.Printf("setting trie version to: %d\n", v)
+	fmt.Printf("setting trie version as: %d\n", v)
 	t.version = v
+
+	fmt.Printf("cleaning up deltas\n")
 	t.deltas = tracking.New()
 }
 

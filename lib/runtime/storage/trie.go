@@ -105,7 +105,7 @@ func (t *TrieState) Get(key []byte) []byte {
 }
 
 // MustRoot returns the trie's root hash. It panics if it fails to compute the root.
-func (t *TrieState) MustRoot(maxInlineValue int) common.Hash {
+func (t *TrieState) MustRoot() common.Hash {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 
@@ -113,7 +113,7 @@ func (t *TrieState) MustRoot(maxInlineValue int) common.Hash {
 }
 
 // Root returns the trie's root hash
-func (t *TrieState) Root(maxInlineValue int) (common.Hash, error) {
+func (t *TrieState) Root() (common.Hash, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 

@@ -2285,7 +2285,7 @@ func ext_storage_root_version_1(ctx context.Context, m api.Module) uint64 {
 	}
 	storage := rtCtx.Storage
 
-	root, err := storage.Root(trie.V0.MaxInlineValue())
+	root, err := storage.Root()
 	if err != nil {
 		logger.Errorf("failed to get storage root: %s", err)
 		panic(err)
@@ -2309,13 +2309,13 @@ func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint3
 	}
 	storage := rtCtx.Storage
 
-	stateVersion, err := trie.ParseVersion(version)
-	if err != nil {
-		logger.Errorf("failed parsing state version: %s", err)
-		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
-	}
+	// stateVersion, err := trie.ParseVersion(version)
+	// if err != nil {
+	// 	logger.Errorf("failed parsing state version: %s", err)
+	// 	return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
+	// }
 
-	root, err := storage.Root(stateVersion.MaxInlineValue())
+	root, err := storage.Root()
 	if err != nil {
 		logger.Errorf("failed to get storage root: %s", err)
 		panic(err)

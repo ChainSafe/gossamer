@@ -104,8 +104,8 @@ func TestTrieState_Root(t *testing.T) {
 			ts.Put([]byte(tc), []byte(tc))
 		}
 
-		expected := ts.MustRoot(trie.NoMaxInlineValueSize)
-		require.Equal(t, expected, ts.MustRoot(trie.NoMaxInlineValueSize))
+		expected := ts.MustRoot()
+		require.Equal(t, expected, ts.MustRoot())
 	}
 
 	ts := NewTrieState(trie.NewEmptyTrie())
