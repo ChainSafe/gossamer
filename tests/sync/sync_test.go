@@ -1,4 +1,5 @@
 // Copyright 2021 ChainSafe Systems (ON)
+
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package sync
@@ -145,34 +146,22 @@ func TestDebugWestendBlock14576855And14576856(t *testing.T) {
 		Header: *blockData.Header,
 		Body:   *blockData.Body,
 	}
+	parentBlockStateRoot := block.Header.StateRoot
 
-	fmt.Printf("Executing block number %d\n", block.Header.Number)
+	fmt.Printf("Executing block number %d (%s)\n", block.Header.Number, block.Header.Hash().String())
 	_, err = instance.ExecuteBlock(block)
 	require.NoError(t, err)
 
 	fmt.Printf("Storing the trie to the disk, regards block %d\n", block.Header.Number)
 
-	newTrieState := storage.NewTrieState(trieState.Trie().DeepCopy())
-	err = storageState.StoreTrie(newTrieState, &block.Header)
+	//newTrieState := storage.NewTrieState(trieState.Trie().DeepCopy())
+	err = storageState.StoreTrie(trieState, &block.Header)
 	require.NoError(t, err)
 
 	codeHash, err = trieState.LoadCodeHash()
 	require.NoError(t, err)
 
 	fmt.Printf("code hash from updated state: %s\n", codeHash.String())
-
-	// wnd14576855StateTrie := newTrieFromRPC(t, "../test_data/14576855trie_state_data.json")
-	// expectedStorageRootHash := common.MustHexToHash("0xe8c4636bd5f01d9f9a18fa96949787975c9c3b78a0624ae95e3078da20c33605")
-	// require.Equal(t, expectedStorageRootHash, trie.V0.MustHash(*wnd14576855StateTrie))
-
-	// state := storage.NewTrieState(wnd14576855StateTrie)
-	instance, err = wazero_runtime.NewInstanceFromTrie(trieState.Trie(), wazero_runtime.Config{
-		Storage: trieState,
-		LogLvl:  log.Critical,
-	})
-	require.NoError(t, err)
-	// instance.version()
-	// instance.SetContextStorage(state)
 
 	blockResponseBytes, err = common.HexToBytes("0x0ade0d0a20396e794b25deac6c25bc8b5e7b00892934fea53c87bb7128983c7921d72f758112a0020283b22f28a02825206b5cfd1668e117c4c1d3b49ec02a5b4731aff2c3ac1c4062b37903d1b4e4621243629a494fc62b91c92f2d8c378e2c3a0be552af2a05dc3d0dbd7b7ad6e998c94d604101a7e147cf401b041e0ce4996f609b3f5601c77c4922a529080642414245b50103000000008b22a6100000000054741a1a0fbb59012ce3b6c28a9e37487a49113964713cb85485ac24b0b46a5d18785ae8cca9a49ebc11657be3774bca3f93d8326af163290479a77be944370c6b3b763783d6bc086da473b2438389e0d6ae31abbc4a37441b27a6516e57920f05424142450101e2629d073bca188b537fd4715da7f0d3c0be8474a01935f7c25e1c5f374bde742e99423d97698db3975ebbd40819ea352f6d1d1f510dc761c9a623cf3a8975831a0b280402000bd099c93586011a890b1d16042d00400c040000000076b8399ace2a50d5b6fd5cbf464b048178c6fffa047702a416f3d8c8d264ad4a41a4853dc73e37dd91dfaec5d0d41dc01a542a13232cfc56b9372ffcbb83ef840c0401000000d2f839d7eaa667fc2e48a16d98807290e7c10a5ecd2583f8568fcc1bb7d5351e8656146d1365c8619f3202e966877e0f5870c90ecf910ef03f0f1a3dd87266830c0402000000fa36f6a59008ff66a4229c482e8a50315fd5251fc53cd9469b6543bc4930cd2528e827a4fcef270dc9722d37ae23ac04953c4fb08725e1e6bd5615babc42dd800c04030000009497e81b8089a8189918c58c2d5f80690d07f3e0353801e9378efc5a76912b41a8d34b1dd0d93b897441dff3b8c68544bceb9cf27c6e0c83be911ba6eb9574870c04040000006adb55ddc67509b0ddff38ce482fb437d96b0faae302e2b7cf5d5979f5ec45655fafc6045104d9b0d234f42c1ed8ec35c88fe420c8ea6123b780112cb92fa4890c0405000000b80a4c5a180e71a741110b020bacbffba9082d9b76c3e8ce79714be476f144626d6757c6e0efb878754e692c8be83bc2deacd5582f96ceb4f91d68b3e0acaa8a0c0406000000ce8b4daede74064db15bc9a924bc046bde7c9cce04cae4e543266aa691225f2dfc41119900287c9fa43965f82e0e48cc54fc31bf3a06e38a29730b996931e88c0c0407000000b68e00e032c1316faf1415e81501158eba96906b35281f1ff9862dc0b92881430c8d3ae74f16054ab24b313dd3a6e26ca0e57b5206f1a0ee46deb82946a231820c0408000000902e9429fb62ea6de61b0a0da1aae498fe28b27321540848d4ef86c52d684416d3262c3f03826a92dd26eedb5b1ccc220429277822ac0531350c31e43aae90830c04090000007cb92e3ce7438b34d56f5af43af0363520ebd4810c1b8ea8fe717ff1bbcea404528a1765ae3602d3975347ea17554d34613969cdc69718e7fdc47ea7cdc159800c040a0000005ecb6f76ac28e9c9596b46f2571a8380ad0742f7dfae673544b71e7000dbd0039cd13e10fe3e5d7ae14614c5f100f2c72373ea4d2df1f6a34be831db81f62a8a0c040b0000009ca60150ef177cb3168b28470364b611825ad2d86e3e38056b79903d4639205c2799926328d205c4cc66e0f2ca832e6ff8fa4ff9f05f1b57103d63ab465190860c040c00000020aa8c3c211ca39b7d1ae912ef2045064742eb1cb04e073bdb87814386f32a40547f8ba9029d3b830052011273dd6f6bcafdad40efd031bed27fca87747bdf8d0c040d0000006e7204ad9b80e56429c17d0de2aa231dd9b933bb7469bcd124d44aa9c0406b71bedb4a7037bebf8605afb3cf904ed60f359335d9ce2fe3884129f81f4f2e0e850c040e000000a869927414a693a1ff6794fcd975a737434556b1b6970c841657aa831bb1dc1910d9ce3c27d46e59cf4355077ce2b1e76964e0ba5907f2a57a522944e6c73b8b0c040f000000b858993e3b38f0cc7a70b226a40b9a49b11d75ddd0fbf7158d66127830ddca78f50277fe22d6f5b13bf98b82fedaca5fcee11868bbbe3afe2f25ff7d57584583000040a65a5bad9b346fc4d86fe33eadfa0cd49d0378910b0af5e73159ed503611e35eb37903e8c4636bd5f01d9f9a18fa96949787975c9c3b78a0624ae95e3078da20c33605cf34d6de3155b72a0818608103915619964369e8599482e246a4cdf43df1a7500c0642414245b501030f0000008a22a61000000000821ded3b100e3f68e3ae8109c028e91b0d084bfa6458d5a28203e35b2d01e87bf4f8ef774929e4522b451e3abf892dbbb5aaf21ba7870db5e0efa8d481268e0159463ac6be5114cb953e7bb5d070e785b3ace95680bc6040bab4aed1575bed0708054241424501014ea332ce7e94687b6103adaf88e0fd370879926e95834ca700852fdaff0e260857572d8c7798150b0ffdf60d85d90fc6c6bf10c974606307245d4d4683b64e8e")
 	require.NoError(t, err)
@@ -187,6 +176,22 @@ func TestDebugWestendBlock14576855And14576856(t *testing.T) {
 		Header: *blockData.Header,
 		Body:   *blockData.Body,
 	}
+
+	ts, err := storageState.TrieState(&parentBlockStateRoot)
+	require.NoError(t, err)
+
+	// wnd14576855StateTrie := newTrieFromRPC(t, "../test_data/14576855trie_state_data.json")
+	// expectedStorageRootHash := common.MustHexToHash("0xe8c4636bd5f01d9f9a18fa96949787975c9c3b78a0624ae95e3078da20c33605")
+	// require.Equal(t, expectedStorageRootHash, trie.V0.MustHash(*wnd14576855StateTrie))
+
+	// state := storage.NewTrieState(wnd14576855StateTrie)
+	instance, err = wazero_runtime.NewInstanceFromTrie(trieState.Trie(), wazero_runtime.Config{
+		Storage: ts,
+		LogLvl:  log.Critical,
+	})
+	require.NoError(t, err)
+	// instance.version()
+	// instance.SetContextStorage(state)
 
 	fmt.Printf("Executing block number %d\n", block.Header.Number)
 

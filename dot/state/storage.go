@@ -60,7 +60,6 @@ func NewStorageState(db database.Database, blockState *BlockState,
 // StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
 	root := ts.MustRoot()
-
 	s.tries.softSet(root, ts.Trie())
 
 	if header != nil {

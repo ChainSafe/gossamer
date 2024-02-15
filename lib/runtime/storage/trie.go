@@ -79,6 +79,9 @@ func (t *TrieState) SetVersion(v trie.TrieLayout) {
 
 // Trie returns the TrieState's underlying trie
 func (t *TrieState) Trie() *trie.Trie {
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+
 	return t.getCurrentTrie()
 }
 
@@ -86,6 +89,9 @@ func (t *TrieState) Trie() *trie.Trie {
 // can no longer be modified, all further changes are on a new "version" of the trie.
 // It returns the new version of the trie.
 func (t *TrieState) Snapshot() *trie.Trie {
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+
 	return t.getCurrentTrie().Snapshot()
 }
 
