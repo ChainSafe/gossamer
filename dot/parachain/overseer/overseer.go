@@ -59,7 +59,7 @@ func NewOverseer(blockState BlockState) *Overseer {
 		errChan:              make(chan error),
 		blockState:           blockState,
 		activeLeaves:         make(map[common.Hash]uint32),
-		SubsystemsToOverseer: make(chan any, 128),
+		SubsystemsToOverseer: make(chan any),
 		subsystems:           make(map[Subsystem]chan any),
 		nameToSubsystem:      make(map[parachaintypes.SubSystemName]Subsystem),
 	}
@@ -104,14 +104,10 @@ func (o *Overseer) processMessages() {
 	for {
 		select {
 		case msg := <-o.SubsystemsToOverseer:
-
-			fmt.Println("we come here")
 			var subsystem Subsystem
 
 			switch msg.(type) {
 			case backing.GetBackedCandidatesMessage, backing.CanSecondMessage, backing.SecondMessage, backing.StatementMessage:
-				fmt.Println("we come here too")
-
 				subsystem = o.nameToSubsystem[parachaintypes.CandidateBacking]
 
 			case collatorprotocolmessages.CollateOn, collatorprotocolmessages.DistributeCollation,

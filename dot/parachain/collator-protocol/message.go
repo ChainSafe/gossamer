@@ -207,7 +207,6 @@ func (cpvs CollatorProtocolValidatorSide) canSecond(
 	}
 
 	cpvs.SubSystemToOverseer <- canSecondRequest
-	// we never reach this line. Nothing happens after this channel.
 	select {
 	case canSecondResponse := <-canSecondRequest.ResponseCh:
 		return canSecondResponse, nil
@@ -225,8 +224,6 @@ func (cpvs CollatorProtocolValidatorSide) enqueueCollation(
 	peerID peer.ID,
 	collatorID parachaintypes.CollatorID,
 	prospectiveCandidate *ProspectiveCandidate) error {
-
-	fmt.Println("230")
 
 	// TODO: return errors
 	pendingCollation := PendingCollation{

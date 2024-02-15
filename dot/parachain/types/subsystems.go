@@ -16,5 +16,5 @@ const (
 	AvailabilityStore SubSystemName = "AvailabilityStore"
 )
 
-var SubsystemRequestTimeout = 400 * time.Millisecond
+var SubsystemRequestTimeout = 1 * time.Second
 var ErrSubsystemRequestTimeout = errors.New("subsystem request timed out")
