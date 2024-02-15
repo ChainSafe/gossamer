@@ -540,7 +540,7 @@ func (ps *PeerSet) setReservedPeer(setID int, peers ...peer.ID) error {
 	return nil
 }
 
-// addPeer checks peer existance in peerSet and if it does not insert the peer in to peerstate with
+// addPeer checks peer existence in peerSet and if it does not insert the peer in to peerstate with
 // default reputation and notConnected status. Afterwards runs allocSlots that checks availability of outgoing slots
 // and put notConnected peers in to them
 func (ps *PeerSet) addPeer(setID int, peers peer.IDSlice) error {

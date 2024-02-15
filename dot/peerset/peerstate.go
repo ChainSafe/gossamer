@@ -273,7 +273,6 @@ func (ps *PeersState) highestNotConnectedPeer(set int) (highestPeerID peer.ID) {
 // hasFreeOutgoingSlot check does number of connected out peers is less then max amount allowed connected peers.
 // maxOut is defined as config param as.
 func (ps *PeersState) hasFreeOutgoingSlot(set int) bool {
-	logger.Infof("hasFreeOutgoingSlot %v, numout %v maxout %v", set, ps.sets[set].numOut, ps.sets[set].maxOut)
 	return ps.sets[set].numOut < ps.sets[set].maxOut
 }
 

@@ -698,8 +698,8 @@ func (s *Service) startPeerSetHandler() {
 }
 
 // processMessage process messages from PeerSetHandler. Responsible for Connecting and Drop connection with peers.
-// When Connect message received function looking for a PeerAddr in Peerstore. If address is not found in peerstore we are looking
-// for a peer with DHT
+// When Connect message received function looking for a PeerAddr in Peerstore.
+// If address is not found in peerstore we are looking for a peer with DHT
 func (s *Service) processMessage(msg peerset.Message) {
 	peerID := msg.PeerID
 	if peerID == "" {

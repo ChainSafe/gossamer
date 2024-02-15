@@ -60,7 +60,7 @@ func newDiscovery(ctx context.Context, h libp2phost.Host,
 	}
 }
 
-// waitForPeers periodically checks kadDHT peers store for new peers adn returns them,
+// waitForPeers periodically checks kadDHT peers store for new peers and returns them,
 // this function used for local environments to prepopulate bootnodes from mDNS
 func (d *discovery) waitForPeers() (peers []peer.AddrInfo, err error) {
 	// get all currently connected peers and use them to bootstrap the DHT

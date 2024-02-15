@@ -136,19 +136,19 @@ func TestPeerSetIncoming(t *testing.T) {
 			pid:                 incomingPeer,
 			expectedStatus:      Accept,
 			expectedNumIn:       1,
-			hasFreeIncomingSlot: false,
+			hasFreeIncomingSlot: true,
 		},
 		{
 			pid:                 incoming2,
 			expectedStatus:      Accept,
 			expectedNumIn:       2,
-			hasFreeIncomingSlot: true,
+			hasFreeIncomingSlot: false, // since maxIn is 2, we will not have any free slots if 2 peers connected
 		},
 		{
 			pid:                 incoming3,
 			expectedStatus:      Reject,
 			expectedNumIn:       2,
-			hasFreeIncomingSlot: true,
+			hasFreeIncomingSlot: false, // since maxIn is 2, we will not have any free slots if 2 peers connected
 		},
 	}
 
