@@ -330,7 +330,7 @@ type CollatorProtocolValidatorSide struct {
 	currentAssignments map[parachaintypes.ParaID]uint
 
 	// state tracked per relay parent
-	perRelayParent map[common.Hash]PerRelayParent // map[replay parent]PerRelayParent
+	perRelayParent map[common.Hash]PerRelayParent // map[relay parent]PerRelayParent
 
 	// Advertisements that were accepted as valid by collator protocol but rejected by backing.
 	//
