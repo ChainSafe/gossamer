@@ -58,7 +58,7 @@ type Hash interface {
 
 	Bytes() []byte
 	String() string
-	scale.Marshaler
+	// scale.Marshaler
 	// scale.Unmarshaler
 }
 

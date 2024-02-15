@@ -13,8 +13,8 @@ type Changes[H any] interface {
 }
 type ChangeSet struct {
 	ColumnID
-	Key  []byte
-	Vaue []byte
+	Key   []byte
+	Value []byte
 }
 type ChangeRemove struct {
 	ColumnID
@@ -40,6 +40,11 @@ type ChangeRelease[H any] struct {
 // pub struct Transaction<H>(pub Vec<Change<H>>);
 type Transaction[H any] []Change[H]
 
+// / Set the value of `key` in `col` to `value`, replacing anything that is there currently.
+func (t *Transaction[H]) SetFromVec(col ColumnID, key []byte, value []byte) {
+	*t = append(*t, ChangeSet{col, key, value})
+}
+
 type Database[H runtime.Hash] interface {
 	/// Commit the `transaction` to the database atomically. Any further calls to `get` or `lookup`
 	/// will reflect the new state.
@@ -49,6 +54,7 @@ type Database[H runtime.Hash] interface {
 	/// Retrieve the value previously stored against `key` or `None` if
 	/// `key` is not currently in the database.
 	// fn get(&self, col: ColumnId, key: &[u8]) -> Option<Vec<u8>>;
+	Get(col ColumnID, key []byte) *[]byte
 
 	/// Check if the value exists in the database without retrieving it.
 	// fn contains(&self, col: ColumnId, key: &[u8]) -> bool {
