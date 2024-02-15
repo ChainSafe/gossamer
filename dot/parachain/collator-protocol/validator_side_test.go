@@ -387,8 +387,11 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 			collationProtocolID := "/6761727661676500000000000000000000000000000000000000000000000000/1/collations/1"
 
 			net := NewMockNetwork(ctrl)
-			net.EXPECT().RegisterNotificationsProtocol(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			net.EXPECT().GetRequestResponseProtocol(gomock.Any(), collationFetchingRequestTimeout, uint64(collationFetchingMaxResponseSize)).Return(&network.RequestResponseProtocol{})
+			net.EXPECT().RegisterNotificationsProtocol(
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+			net.EXPECT().GetRequestResponseProtocol(gomock.Any(), collationFetchingRequestTimeout,
+				uint64(collationFetchingMaxResponseSize)).Return(&network.RequestResponseProtocol{})
 			cpvs, err := Register(net, protocol.ID(collationProtocolID), overseer.SubsystemsToOverseer)
 			require.NoError(t, err)
 
