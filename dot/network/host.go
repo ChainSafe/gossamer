@@ -209,7 +209,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		libp2p.NATPortMap(),
 		libp2p.Peerstore(ps),
 		//libp2p.ConnectionManager(cm),
-		//libp2p.Security(noise.ID, noise.New),
+		libp2p.Security(noise.ID, noise.New),
 		libp2p.AddrsFactory(func(as []ma.Multiaddr) []ma.Multiaddr {
 			var addrs []ma.Multiaddr
 			for _, addr := range as {

@@ -290,6 +290,7 @@ func (s *Service) Start() error {
 	//after or Incoming or Outgoing node is connected
 	s.host.cm.connectHandler = func(peerID peer.ID) {
 		for _, prtl := range s.notificationsProtocols {
+			// TODO: we are not adding mutexes for the peers that are connected to mDNS
 			prtl.peersData.setMutex(peerID)
 		}
 		// TODO: currently we only have one set so setID is 0, change this once we have more set in peerSet
@@ -303,6 +304,7 @@ func (s *Service) Start() error {
 			prtl.peersData.deleteMutex(peerID)
 			prtl.peersData.deleteInboundHandshakeData(peerID)
 			prtl.peersData.deleteOutboundHandshakeData(peerID)
+			// TODO: apparently we are not cleaning the slot here
 		}
 	}
 

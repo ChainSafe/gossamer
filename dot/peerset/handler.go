@@ -90,6 +90,7 @@ func (h *Handler) ReportPeer(rep ReputationChange, peers ...peer.ID) {
 
 // Incoming calls when we have an incoming connection from peer.
 func (h *Handler) Incoming(setID int, peers ...peer.ID) {
+	logger.Infof("INCOMING CONNECTION %v", peers)
 	h.actionQueue <- action{
 		actionCall: incoming,
 		peers:      peers,
