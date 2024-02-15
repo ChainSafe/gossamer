@@ -315,7 +315,7 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 			canSecond:                   true,
 			deletesBlockedAdvertisement: true,
 			blockedAdvertisements: map[string][]BlockedAdvertisement{
-				"para id: 6, para head: 0x0000000000000000000000000000000000000000000000000000000000000000": {
+				"para_id:_6,_para_head:_0x0000000000000000000000000000000000000000000000000000000000000000": {
 					{
 						peerID:               peerID,
 						collatorID:           testCollatorID,
@@ -323,7 +323,7 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 						candidateHash:        parachaintypes.CandidateHash{},
 					},
 				},
-				"para id: 7, para head: 0x0000000000000000000000000000000000000000000000000000000000000001": {
+				"para_id:_7,_para_head:_0x0000000000000000000000000000000000000000000000000000000000000001": {
 					{
 						peerID:               peerID,
 						collatorID:           testCollatorID,
@@ -342,7 +342,7 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 			},
 			canSecond: false,
 			blockedAdvertisements: map[string][]BlockedAdvertisement{
-				"para id: 6, para head: 0x0000000000000000000000000000000000000000000000000000000000000000": {
+				"para_id:_6,_para_head:_0x0000000000000000000000000000000000000000000000000000000000000000": {
 					{
 						peerID:               peerID,
 						collatorID:           testCollatorID,
@@ -350,7 +350,7 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 						candidateHash:        parachaintypes.CandidateHash{},
 					},
 				},
-				"para id: 7, para head: 0x0000000000000000000000000000000000000000000000000000000000000001": {
+				"para_id:_7,_para_head:_0x0000000000000000000000000000000000000000000000000000000000000001": {
 					{
 						peerID:               peerID,
 						collatorID:           testCollatorID,

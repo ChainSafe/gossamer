@@ -38,7 +38,7 @@ type Backed struct {
 }
 
 func (b Backed) String() string {
-	return fmt.Sprintf("para id: %d, para head: %s", b.ParaID, b.ParaHead.String())
+	return fmt.Sprintf("para_id: %d,_para_head: %s", b.ParaID, b.ParaHead.String())
 }
 
 // Invalid represents an invalid candidata.
