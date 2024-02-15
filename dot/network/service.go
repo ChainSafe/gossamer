@@ -130,6 +130,7 @@ type Service struct {
 
 	// Configuration options
 	noBootstrap bool
+	noDiscover  bool
 	noMDNS      bool
 	noGossip    bool // internal option
 
@@ -323,13 +324,16 @@ func (s *Service) Start() error {
 			return fmt.Errorf("starting mDNS service: %w", err)
 		}
 	}
-
-	go func() {
-		err = s.host.discovery.start()
-		if err != nil {
-			logger.Errorf("failed to begin DHT discovery: %s", err)
-		}
-	}()
+	// TODO: this is basically a hack that is used only in unit tests to disable kademilia dht.
+	// Should be replaced with a mock instead.
+	if !s.noDiscover {
+		go func() {
+			err = s.host.discovery.start()
+			if err != nil {
+				logger.Errorf("failed to begin DHT discovery: %s", err)
+			}
+		}()
+	}
 
 	time.Sleep(time.Millisecond * 500)
 
