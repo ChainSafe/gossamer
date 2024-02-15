@@ -371,6 +371,7 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 }
 
 // allocSlots tries to fill available outgoing slots of nodes for the given set.
+// By default this getting called every X seconds according to nextPeriodicAllocSlots ticker
 func (ps *PeerSet) allocSlots(setIdx int) error {
 	err := ps.updateTime()
 	if err != nil {
@@ -427,7 +428,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 		}
 
 		if err = peerState.tryOutgoing(setIdx, peerID); err != nil {
-			logger.Errorf("could not set peer %s as outgoing connection: %s", peerID.Pretty(), err)
+			logger.Errorf("could not set peer %s as outgoing connection: %s", peerID.String(), err)
 			break
 		}
 
