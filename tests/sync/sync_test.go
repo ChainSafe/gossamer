@@ -151,7 +151,9 @@ func TestDebugWestendBlock14576855And14576856(t *testing.T) {
 	require.NoError(t, err)
 
 	fmt.Printf("Storing the trie to the disk, regards block %d\n", block.Header.Number)
-	err = storageState.StoreTrie(trieState, &block.Header)
+
+	newTrieState := storage.NewTrieState(trieState.Trie().DeepCopy())
+	err = storageState.StoreTrie(newTrieState, &block.Header)
 	require.NoError(t, err)
 
 	codeHash, err = trieState.LoadCodeHash()
