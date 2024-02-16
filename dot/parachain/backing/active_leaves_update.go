@@ -4,12 +4,14 @@
 package backing
 
 import (
+	"fmt"
+
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/tidwall/btree"
 )
 
-func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintypes.ActiveLeavesUpdateSignal) {
+func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintypes.ActiveLeavesUpdateSignal) error {
 	// TODO #3503
 	var leafHasProspectiveParachains bool
 	var implicitViewFetchError error
@@ -19,8 +21,7 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 	if activatedLeaf != nil {
 		mode, err := getProspectiveParachainsMode()
 		if err != nil {
-			logger.Errorf("getting prospective parachains mode: %s", err)
-			return
+			return fmt.Errorf("getting prospective parachains mode: %w", err)
 		}
 
 		if mode.IsEnabled {
@@ -43,13 +44,13 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 	cb.removeUnknownRelayParentsFromPerCandidate()
 
 	if activatedLeaf == nil {
-		return
+		return nil
 	}
 
 	switch {
 	case leafHasProspectiveParachains == false:
 		if _, ok := cb.perLeaf[activatedLeaf.Hash]; ok {
-			return
+			return nil
 		}
 
 		cb.perLeaf[activatedLeaf.Hash] = &activeLeafState{
@@ -62,6 +63,7 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 	case leafHasProspectiveParachains == true && implicitViewFetchError == nil:
 	case leafHasProspectiveParachains == true && implicitViewFetchError != nil:
 	}
+	return nil
 }
 
 // clean up perRelayParent according to ancestry of leaves.

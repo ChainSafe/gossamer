@@ -95,8 +95,9 @@ func (CollatorProtocolValidatorSide) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CollationProtocol
 }
 
-func (cpvs CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal() {
+func (cpvs CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(update parachaintypes.ActiveLeavesUpdateSignal) error {
 	// NOTE: nothing to do here
+	return nil
 }
 
 func (cpvs CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal() {
@@ -535,7 +536,10 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 		}, peerID)
 
 	case parachaintypes.ActiveLeavesUpdateSignal:
-		cpvs.ProcessActiveLeavesUpdateSignal()
+		err := cpvs.ProcessActiveLeavesUpdateSignal(msg)
+		if err != nil {
+			return fmt.Errorf("processing active leaves update signal: %w", err)
+		}
 	case parachaintypes.BlockFinalizedSignal:
 		cpvs.ProcessBlockFinalizedSignal()
 
