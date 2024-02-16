@@ -411,6 +411,8 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 		return false, nil
 	}
 
+	logger.Warnf("%v", equivocationProof)
+
 	err = b.submitAndReportEquivocation(equivocationProof)
 	if err != nil {
 		return false, fmt.Errorf("submiting equivocation: %w", err)

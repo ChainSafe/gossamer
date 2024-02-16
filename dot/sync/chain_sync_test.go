@@ -84,10 +84,11 @@ func Test_chainSync_onBlockAnnounce(t *testing.T) {
 				pendingBlocks := NewMockDisjointBlockSet(ctrl)
 				pendingBlocks.EXPECT().hasBlock(block2AnnounceHeader.Hash()).Return(true)
 				return &chainSync{
-					stopCh:        make(chan struct{}),
-					pendingBlocks: pendingBlocks,
-					peerViewSet:   newPeerViewSet(0),
-					workerPool:    newSyncWorkerPool(NewMockNetwork(nil), NewMockRequestMaker(nil)),
+					stopCh:         make(chan struct{}),
+					requestQueueCh: make(chan requestData, maxRequestsAllowed),
+					pendingBlocks:  pendingBlocks,
+					peerViewSet:    newPeerViewSet(0),
+					workerPool:     newSyncWorkerPool(NewMockNetwork(nil), NewMockRequestMaker(nil)),
 				}
 			},
 			peerID:              somePeer,
@@ -103,10 +104,11 @@ func Test_chainSync_onBlockAnnounce(t *testing.T) {
 				pendingBlocks.EXPECT().addHeader(block2AnnounceHeader).Return(errTest)
 
 				return &chainSync{
-					stopCh:        make(chan struct{}),
-					pendingBlocks: pendingBlocks,
-					peerViewSet:   newPeerViewSet(0),
-					workerPool:    newSyncWorkerPool(NewMockNetwork(nil), NewMockRequestMaker(nil)),
+					stopCh:         make(chan struct{}),
+					requestQueueCh: make(chan requestData, maxRequestsAllowed),
+					pendingBlocks:  pendingBlocks,
+					peerViewSet:    newPeerViewSet(0),
+					workerPool:     newSyncWorkerPool(NewMockNetwork(nil), NewMockRequestMaker(nil)),
 				}
 			},
 			peerID:              somePeer,
@@ -124,17 +126,19 @@ func Test_chainSync_onBlockAnnounce(t *testing.T) {
 				state.Store(bootstrap)
 
 				return &chainSync{
-					stopCh:        make(chan struct{}),
-					pendingBlocks: pendingBlocks,
-					syncMode:      state,
-					peerViewSet:   newPeerViewSet(0),
-					workerPool:    newSyncWorkerPool(NewMockNetwork(nil), NewMockRequestMaker(nil)),
+					stopCh:         make(chan struct{}),
+					requestQueueCh: make(chan requestData, maxRequestsAllowed),
+					pendingBlocks:  pendingBlocks,
+					syncMode:       state,
+					peerViewSet:    newPeerViewSet(0),
+					workerPool:     newSyncWorkerPool(NewMockNetwork(nil), NewMockRequestMaker(nil)),
 				}
 			},
 			peerID:              somePeer,
 			blockAnnounceHeader: block2AnnounceHeader,
 		},
 		"announced_block_while_in_tip_mode": {
+			// I think is returning before process is done
 			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
 				pendingBlocksMock := NewMockDisjointBlockSet(ctrl)
 				pendingBlocksMock.EXPECT().hasBlock(block2AnnounceHeader.Hash()).Return(false)
@@ -201,6 +205,7 @@ func Test_chainSync_onBlockAnnounce(t *testing.T) {
 
 				return &chainSync{
 					stopCh:             make(chan struct{}),
+					requestQueueCh:     make(chan requestData, maxRequestsAllowed),
 					pendingBlocks:      pendingBlocksMock,
 					syncMode:           state,
 					workerPool:         workerPool,
@@ -223,6 +228,10 @@ func Test_chainSync_onBlockAnnounce(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
+
+			if name == "announced_block_while_in_tip_mode" {
+				time.Sleep(20 * time.Second)
+			}
 
 			chainSync := tt.chainSyncBuilder(ctrl)
 			err := chainSync.onBlockAnnounce(announcedBlock{

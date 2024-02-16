@@ -157,13 +157,15 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 	// request it and sent through its queue otherwise send
 	// the request in the general queue where all worker are
 	// listening on
-	s.mtx.RLock()
-	defer s.mtx.RUnlock()
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 
 	if who != nil {
 		syncWorker := s.workers[*who]
-		syncWorker.queue <- task
-		return
+		if syncWorker != nil {
+			syncWorker.queue <- task
+			return
+		}
 	}
 
 	// if the exact peer is not specified then
@@ -185,8 +187,8 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage) (resultCh chan *syncTaskResult) {
 	resultCh = make(chan *syncTaskResult, maxRequestsAllowed+1)
 
-	s.mtx.RLock()
-	defer s.mtx.RUnlock()
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 
 	allWorkers := maps.Values(s.workers)
 	for idx, request := range requests {
@@ -216,8 +218,8 @@ func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) {
 
 // totalWorkers only returns available or busy workers
 func (s *syncWorkerPool) totalWorkers() (total uint) {
-	s.mtx.RLock()
-	defer s.mtx.RUnlock()
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 
 	for range s.workers {
 		total++

@@ -514,14 +514,16 @@ func (n *Node) Start() error {
 // Stop stops all dot node services
 func (n *Node) Stop() {
 	// stop all node services
-	n.ServiceRegistry.StopAll()
-	n.wg.Done()
-	if n.metricsServer != nil {
-		err := n.metricsServer.Stop()
-		if err != nil {
-			log.Errorf("cannot stop metrics server: %s", err)
-		}
-	}
+
+	panic("This is temp shutdown")
+	//n.ServiceRegistry.StopAll()
+	//n.wg.Done()
+	//if n.metricsServer != nil {
+	//	err := n.metricsServer.Stop()
+	//	if err != nil {
+	//		log.Errorf("cannot stop metrics server: %s", err)
+	//	}
+	//}
 }
 
 func (nodeBuilder) loadRuntime(config *cfg.Config, ns *runtime.NodeStorage,

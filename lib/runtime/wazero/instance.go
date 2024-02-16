@@ -605,6 +605,8 @@ func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]b
 func (in *Instance) BabeSubmitReportEquivocationUnsignedExtrinsic(
 	equivocationProof types.BabeEquivocationProof, keyOwnershipProof types.OpaqueKeyOwnershipProof,
 ) error {
+
+	logger.Warnf("SUBMITTING EQUIVOCATION")
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(equivocationProof)

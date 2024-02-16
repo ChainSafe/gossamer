@@ -110,7 +110,8 @@ type chainSync struct {
 
 	syncMode atomic.Value
 
-	finalisedCh <-chan *types.FinalisationInfo
+	finalisedCh    <-chan *types.FinalisationInfo
+	requestQueueCh chan requestData
 
 	minPeers     int
 	slotDuration time.Duration
@@ -148,6 +149,7 @@ func newChainSync(cfg chainSyncConfig) *chainSync {
 	atomicState.Store(tip)
 	return &chainSync{
 		stopCh:             make(chan struct{}),
+		requestQueueCh:     make(chan requestData, maxRequestsAllowed),
 		storageState:       cfg.storageState,
 		transactionState:   cfg.transactionState,
 		babeVerifier:       cfg.babeVerifier,
@@ -208,6 +210,12 @@ func (cs *chainSync) start() {
 	cs.wg.Add(1)
 	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh, &cs.wg)
 
+	// Is this the right number?
+	// Maybe use wait group here?
+	//cs.requestQueueCh = make(chan requestData, maxRequestsAllowed)
+	cs.wg.Add(1)
+	go cs.startRequestQueue(&cs.wg)
+
 	// wait until we have a minimal workers in the sync worker pool
 	cs.waitWorkersAndTarget()
 }
@@ -219,10 +227,12 @@ func (cs *chainSync) stop() error {
 	}
 
 	close(cs.stopCh)
+	//close(cs.requestQueueCh) //Do i need this?
 	allStopCh := make(chan struct{})
 	go func() {
 		defer close(allStopCh)
 		cs.wg.Wait()
+		close(cs.requestQueueCh)
 	}()
 
 	timeoutTimer := time.NewTimer(30 * time.Second)
@@ -320,13 +330,19 @@ func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 			errAlreadyInDisjointSet, announced.header.Number, announced.header.Hash())
 	}
 
-	err := cs.pendingBlocks.addHeader(announced.header)
-	if err != nil {
-		return fmt.Errorf("while adding pending block header: %w", err)
-	}
-
 	if cs.getSyncMode() == bootstrap {
 		return nil
+	}
+
+	parentExists, err := cs.blockState.HasHeader(announced.header.ParentHash)
+	if err != nil {
+		return fmt.Errorf("getting pending block parent header: %w", err)
+	}
+	if !parentExists {
+		err := cs.pendingBlocks.addHeader(announced.header)
+		if err != nil {
+			return fmt.Errorf("while adding pending block header: %w", err)
+		}
 	}
 
 	bestBlockHeader, err := cs.blockState.BestBlockHeader()
@@ -403,21 +419,28 @@ func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.
 		startAtBlock = announcedHeader.Number - uint(*request.Max) + 1
 		totalBlocks = *request.Max
 
-		logger.Infof("requesting %d blocks, descending request from #%d (%s)",
-			peerWhoAnnounced, gapLength, announcedHeader.Number, announcedHeader.Hash().Short())
+		logger.Infof("requesting %d blocks from peer: %v, descending request from #%d (%s)",
+			gapLength, peerWhoAnnounced, announcedHeader.Number, announcedHeader.Hash().Short())
 	} else {
 		request = network.NewBlockRequest(startingBlock, 1, network.BootstrapRequestData, network.Descending)
-		logger.Infof("requesting a single block #%d (%s)",
+		logger.Infof("requesting a single block from peer: %v with Number: #%d and Hash: (%s)",
 			peerWhoAnnounced, announcedHeader.Number, announcedHeader.Hash().Short())
 	}
 
 	resultsQueue := make(chan *syncTaskResult)
 	cs.workerPool.submitRequest(request, &peerWhoAnnounced, resultsQueue)
+
+	//data := requestData{
+	//	resultsQueue:           resultsQueue,
+	//	origin:                 networkBroadcast,
+	//	startRequestAt:         startAtBlock,
+	//	expectedAmountOfBlocks: totalBlocks,
+	//}
+	//cs.requestQueueCh <- data
 	err := cs.handleWorkersResults(resultsQueue, networkBroadcast, startAtBlock, totalBlocks)
 	if err != nil {
 		return fmt.Errorf("while handling workers results: %w", err)
 	}
-
 	return nil
 }
 
@@ -446,12 +469,19 @@ func (cs *chainSync) requestForkBlocks(bestBlockHeader, highestFinalizedHeader, 
 		request = network.NewBlockRequest(startingBlock, gapLength, network.BootstrapRequestData, network.Descending)
 	}
 
-	logger.Infof("requesting %d fork blocks, starting at #%d (%s)",
-		peerWhoAnnounced, gapLength, announcedHeader.Number, announcedHash.Short())
+	logger.Infof("requesting %d fork blocks from peer: %v starting at #%d (%s)",
+		gapLength, peerWhoAnnounced, announcedHeader.Number, announcedHash.Short())
 
 	resultsQueue := make(chan *syncTaskResult)
 	cs.workerPool.submitRequest(request, &peerWhoAnnounced, resultsQueue)
 
+	//data := requestData{
+	//	resultsQueue:           resultsQueue,
+	//	origin:                 networkBroadcast,
+	//	startRequestAt:         startAtBlock,
+	//	expectedAmountOfBlocks: gapLength,
+	//}
+	//cs.requestQueueCh <- data
 	err = cs.handleWorkersResults(resultsQueue, networkBroadcast, startAtBlock, gapLength)
 	if err != nil {
 		return fmt.Errorf("while handling workers results: %w", err)
@@ -502,6 +532,14 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 		resultsQueue := make(chan *syncTaskResult)
 		cs.workerPool.submitRequest(descendingGapRequest, nil, resultsQueue)
 
+		//data := requestData{
+		//	resultsQueue:           resultsQueue,
+		//	origin:                 networkBroadcast,
+		//	startRequestAt:         startAtBlock,
+		//	expectedAmountOfBlocks: *descendingGapRequest.Max,
+		//}
+		//cs.requestQueueCh <- data
+
 		// TODO: we should handle the requests concurrently
 		// a way of achieve that is by constructing a new `handleWorkersResults` for
 		// handling only tip sync requests
@@ -509,6 +547,7 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 		if err != nil {
 			return fmt.Errorf("while handling workers results: %w", err)
 		}
+
 	}
 
 	return nil
