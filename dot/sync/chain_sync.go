@@ -210,9 +210,6 @@ func (cs *chainSync) start() {
 	cs.wg.Add(1)
 	go cs.pendingBlocks.run(cs.finalisedCh, cs.stopCh, &cs.wg)
 
-	// Is this the right number?
-	// Maybe use wait group here?
-	//cs.requestQueueCh = make(chan requestData, maxRequestsAllowed)
 	cs.wg.Add(1)
 	go cs.startRequestQueue(&cs.wg)
 
@@ -227,7 +224,6 @@ func (cs *chainSync) stop() error {
 	}
 
 	close(cs.stopCh)
-	//close(cs.requestQueueCh) //Do i need this?
 	allStopCh := make(chan struct{})
 	go func() {
 		defer close(allStopCh)
