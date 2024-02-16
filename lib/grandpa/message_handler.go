@@ -80,26 +80,24 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 }
 
 func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1) error {
-	if h.grandpa.authority {
-		// TODO(#2931): this is a simple hack to ensure that the neighbour messages
-		// sent by gossamer are being received by substrate nodes
-		// not intended to be production code
-		h.grandpa.roundLock.Lock()
-		neighbourMessage := &NeighbourPacketV1{
-			Round:  h.grandpa.state.round,
-			SetID:  h.grandpa.state.setID,
-			Number: uint32(h.grandpa.head.Number),
-		}
-		h.grandpa.roundLock.Unlock()
-
-		cm, err := neighbourMessage.ToConsensusMessage()
-		if err != nil {
-			return fmt.Errorf("converting neighbour message to network message: %w", err)
-		}
-
-		logger.Debugf("sending neighbour message: %v", neighbourMessage)
-		h.grandpa.network.GossipMessage(cm)
+	// TODO(#2931): this is a simple hack to ensure that the neighbour messages
+	// sent by gossamer are being received by substrate nodes
+	// not intended to be production code
+	h.grandpa.roundLock.Lock()
+	neighbourMessage := &NeighbourPacketV1{
+		Round:  h.grandpa.state.round,
+		SetID:  h.grandpa.state.setID,
+		Number: uint32(h.grandpa.head.Number),
 	}
+	h.grandpa.roundLock.Unlock()
+
+	cm, err := neighbourMessage.ToConsensusMessage()
+	if err != nil {
+		return fmt.Errorf("converting neighbour message to network message: %w", err)
+	}
+
+	logger.Debugf("sending neighbour message: %v", neighbourMessage)
+	h.grandpa.network.GossipMessage(cm)
 
 	currFinalized, err := h.blockState.GetFinalisedHeader(0, 0)
 	if err != nil {

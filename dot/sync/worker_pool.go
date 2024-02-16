@@ -162,8 +162,10 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 
 	if who != nil {
 		syncWorker := s.workers[*who]
-		syncWorker.queue <- task
-		return
+		if syncWorker != nil {
+			syncWorker.queue <- task
+			return
+		}
 	}
 
 	// if the exact peer is not specified then
