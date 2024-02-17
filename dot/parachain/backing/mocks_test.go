@@ -9,7 +9,7 @@ import (
 
 	types "github.com/ChainSafe/gossamer/dot/parachain/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
-	gomock "go.uber.org/mock/gomock"
+	"go.uber.org/mock/gomock"
 )
 
 // MockTable is a mock of Table interface.
@@ -161,7 +161,7 @@ func (mr *MockImplicitViewMockRecorder) deactivateLeaf(arg0 interface{}) *gomock
 }
 
 // knownAllowedRelayParentsUnder mocks base method.
-func (m *MockImplicitView) knownAllowedRelayParentsUnder(arg0 common.Hash, arg1 types.ParaID) []common.Hash {
+func (m *MockImplicitView) knownAllowedRelayParentsUnder(arg0 common.Hash, arg1 *types.ParaID) []common.Hash {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "knownAllowedRelayParentsUnder", arg0, arg1)
 	ret0, _ := ret[0].([]common.Hash)

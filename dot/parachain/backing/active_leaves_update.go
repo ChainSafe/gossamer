@@ -47,6 +47,8 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 		return nil
 	}
 
+	// var freshRelayParents []common.Hash
+
 	switch {
 	case leafHasProspectiveParachains == false:
 		if _, ok := cb.perLeaf[activatedLeaf.Hash]; ok {
@@ -58,9 +60,10 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 			secondedAtDepth:           make(map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]),
 		}
 
-		// TODO: something returned in rust here
+		// freshRelayParents = []common.Hash{activatedLeaf.Hash}
 
 	case leafHasProspectiveParachains == true && implicitViewFetchError == nil:
+		cb.implicitView.knownAllowedRelayParentsUnder(activatedLeaf.Hash, nil)
 	case leafHasProspectiveParachains == true && implicitViewFetchError != nil:
 	}
 	return nil
