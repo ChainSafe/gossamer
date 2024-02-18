@@ -1,6 +1,8 @@
 package generic
 
 import (
+	"io"
+
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -90,6 +92,31 @@ func (h Header[N, H, Hasher]) MarshalSCALE() ([]byte, error) {
 	}
 	help := helper{h.parentHash, uint(h.number), h.stateRoot, h.extrinsicsRoot, h.digest}
 	return scale.Marshal(help)
+}
+
+func (h *Header[N, H, Hasher]) UnmarshalSCALE(r io.Reader) error {
+	type helper struct {
+		ParentHash H
+		// uses compact encoding so we need to cast to uint
+		// https://github.com/paritytech/substrate/blob/e374a33fe1d99d59eb24a08981090bdb4503e81b/primitives/runtime/src/generic/header.rs#L47
+		Number         uint
+		StateRoot      H
+		ExtrinsicsRoot H
+		Digest         runtime.Digest
+	}
+
+	var header helper
+	decoder := scale.NewDecoder(r)
+	err := decoder.Decode(&header)
+	if err != nil {
+		return err
+	}
+	h.parentHash = header.ParentHash
+	h.number = N(header.Number)
+	h.stateRoot = header.StateRoot
+	h.extrinsicsRoot = header.ExtrinsicsRoot
+	h.digest = header.Digest
+	return nil
 }
 
 // / Returns the hash of the header.

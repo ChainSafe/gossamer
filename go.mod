@@ -22,10 +22,12 @@ require (
 	github.com/gorilla/rpc v1.2.1
 	github.com/gorilla/websocket v1.5.1
 	github.com/gtank/merlin v0.1.1
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/ipfs/go-ds-badger2 v0.1.3
 	github.com/jpillora/backoff v1.0.0
 	github.com/jpillora/ipfilter v1.2.9
 	github.com/klauspost/compress v1.17.8
+	github.com/li1234yun/gods-generic v0.0.0-20230420031820-5b9f08f4846b
 	github.com/libp2p/go-libp2p v0.33.2
 	github.com/libp2p/go-libp2p-kad-dht v0.25.2
 	github.com/minio/sha256-simd v1.0.1
@@ -93,7 +95,7 @@ require (
 	github.com/gtank/ristretto255 v0.1.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/golang-lru v0.5.4 // indirect
+	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/holiman/uint256 v1.2.4 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
