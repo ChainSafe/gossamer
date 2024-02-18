@@ -2,8 +2,10 @@ package blockchain
 
 import (
 	"slices"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 // / Hash and number of a block.
@@ -150,6 +152,50 @@ type HeaderMetaData[H, N any] interface {
 	InsertHeaderMetadata(hash H, headerMetadata CachedHeaderMetadata[H, N])
 	// fn remove_header_metadata(&self, hash: Block::Hash);
 	RemoveHeaderMetadata(hash H)
+}
+
+// / Caches header metadata in an in-memory LRU cache.
+type HeaderMetadataCache[H comparable, N any] struct {
+	cache *lru.Cache[H, CachedHeaderMetadata[H, N]]
+	sync.RWMutex
+}
+
+func NewHeaderMetadataCache[H comparable, N any](capacity ...uint32) HeaderMetadataCache[H, N] {
+	var cap int = 5000
+	if len(capacity) > 0 && capacity[0] > 0 {
+		cap = int(capacity[0])
+	}
+	cache, err := lru.New[H, CachedHeaderMetadata[H, N]](cap)
+	if err != nil {
+		panic(err)
+	}
+	return HeaderMetadataCache[H, N]{
+		cache: cache,
+	}
+}
+
+func (hmc *HeaderMetadataCache[H, N]) HeaderMetadata(hash H) *CachedHeaderMetadata[H, N] {
+	hmc.RLock()
+	defer hmc.RUnlock()
+	val, ok := hmc.cache.Get(hash)
+	if !ok {
+		return nil
+	}
+	return &val
+}
+
+func (hmc *HeaderMetadataCache[H, N]) InsertHeaderMetadata(hash H, metadata CachedHeaderMetadata[H, N]) {
+	hmc.Lock()
+	defer hmc.Unlock()
+	hmc.cache.Add(hash, metadata)
+	return
+}
+
+func (hmc *HeaderMetadataCache[H, N]) RemoveHeaderMetadata(hash H) {
+	hmc.Lock()
+	defer hmc.Unlock()
+	hmc.cache.Remove(hash)
+	return
 }
 
 // / Cached header metadata. Used to efficiently traverse the tree.
