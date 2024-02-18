@@ -193,7 +193,7 @@ func (svss *SharedVoterSetState[H, N]) hasVoted(round uint64) (hasVoted[H, N], e
 	defer svss.Inner.Unlock()
 
 	hasNotVotedFunc := func(newHasVoted hasVoted[H, N]) (hasVoted[H, N], error) {
-		err := newHasVoted.Set(no{})
+		err := newHasVoted.SetValue(no{})
 		if err != nil {
 			return newHasVoted, err
 		}
@@ -201,8 +201,7 @@ func (svss *SharedVoterSetState[H, N]) hasVoted(round uint64) (hasVoted[H, N], e
 		return newHasVoted, nil
 	}
 
-	newHasVoted := hasVoted[H, N]{}
-	newHasVoted = newHasVoted.New()
+	var newHasVoted hasVoted[H, N]
 
 	vss, err := svss.Inner.Inner.Value()
 	if err != nil {
@@ -234,38 +233,54 @@ func (svss *SharedVoterSetState[H, N]) hasVoted(round uint64) (hasVoted[H, N], e
 // voting status is used when restarting the voter, i.e. it will re-use the
 // previous votes for a given round if appropriate (same round and same local
 // key).
-type voterSetState[H comparable, N constraints.Unsigned] scale.VaryingDataType
-
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (tve *voterSetState[H, N]) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
-	vdt := scale.VaryingDataType(*tve)
-	err = vdt.Set(val)
-	if err != nil {
-		return err
-	}
-	*tve = voterSetState[H, N](vdt)
-	return nil
+type voterSetState[H comparable, N constraints.Unsigned] struct {
+	inner any
 }
 
-// Value will return the value from the underlying VaryingDataType
-func (tve *voterSetState[H, N]) Value() (val scale.VaryingDataTypeValue, err error) { //skipcq: GO-W1029
-	vdt := scale.VaryingDataType(*tve)
-	return vdt.Value()
+type voterSetStateValues[H comparable, N constraints.Unsigned] interface {
+	voterSetStateLive[H, N] | voterSetStatePaused[H, N]
 }
 
-// New Creates a new voterSetState
-func (tve voterSetState[H, N]) New() voterSetState[H, N] {
-	vdt, err := scale.NewVaryingDataType(voterSetStateLive[H, N]{
-		CompletedRounds: completedRounds[H, N]{
-			Rounds: make([]completedRound[H, N], 0, numLastCompletedRounds),
-		},
-		CurrentRounds: make(map[uint64]hasVoted[H, N]), // init the map
-	}, voterSetStatePaused[H, N]{})
-	if err != nil {
-		panic(err)
+func setVoterSetState[H comparable, N constraints.Unsigned, Value voterSetStateValues[H, N]](mvdt *voterSetState[H, N], value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *voterSetState[H, N]) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case voterSetStateLive[H, N]:
+		setVoterSetState[H, N](mvdt, value)
+		return
+	case voterSetStatePaused[H, N]:
+		setVoterSetState[H, N](mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
 	}
-	vs := voterSetState[H, N](vdt)
-	return vs
+}
+
+func (mvdt voterSetState[H, N]) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case voterSetStateLive[H, N]:
+		return 0, mvdt.inner, nil
+	case voterSetStatePaused[H, N]:
+		return 1, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt voterSetState[H, N]) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt voterSetState[H, N]) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return *new(voterSetStateLive[H, N]), nil
+	case 1:
+		return *new(voterSetStatePaused[H, N]), nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
 // NewVoterSetState is constructor for voterSetState
@@ -273,17 +288,7 @@ func NewVoterSetState[
 	H comparable,
 	N constraints.Unsigned,
 ]() *voterSetState[H, N] {
-	vdt, err := scale.NewVaryingDataType(voterSetStateLive[H, N]{
-		CompletedRounds: completedRounds[H, N]{
-			Rounds: make([]completedRound[H, N], 0, numLastCompletedRounds),
-		},
-		CurrentRounds: make(map[uint64]hasVoted[H, N]), // init the map
-	}, voterSetStatePaused[H, N]{})
-	if err != nil {
-		panic(err)
-	}
-	tve := voterSetState[H, N](vdt)
-	return &tve
+	return &voterSetState[H, N]{}
 }
 
 // NewLiveVoterSetState Create a new live voterSetState with round 0 as a completed round using
@@ -306,9 +311,8 @@ func NewLiveVoterSetState[H comparable, N constraints.Unsigned](
 	currentRounds := CurrentRounds[H, N](
 		make(map[uint64]hasVoted[H, N]),
 	)
-	hasVoted := hasVoted[H, N]{}
-	hasVoted = hasVoted.New()
-	err := hasVoted.Set(no{})
+	var hasVoted hasVoted[H, N]
+	err := hasVoted.SetValue(no{})
 	if err != nil {
 		return voterSetState[H, N]{}, err
 	}
@@ -320,7 +324,7 @@ func NewLiveVoterSetState[H comparable, N constraints.Unsigned](
 	}
 
 	newVoterSetState := *NewVoterSetState[H, N]()
-	err = newVoterSetState.Set(liveState)
+	err = newVoterSetState.SetValue(liveState)
 
 	if err != nil {
 		return voterSetState[H, N]{}, err
@@ -394,67 +398,69 @@ type voterSetStateLive[H comparable, N constraints.Unsigned] struct {
 	CurrentRounds CurrentRounds[H, N]
 }
 
-// Index returns VDT index
-func (voterSetStateLive[H, N]) Index() uint { return 0 }
-
 // voterSetStatePaused The voter is paused, i.e. not casting or importing any votes.
 type voterSetStatePaused[H comparable, N constraints.Unsigned] struct {
 	// The previously completed rounds
 	CompletedRounds completedRounds[H, N]
 }
 
-// Index returns VDT index
-func (voterSetStatePaused[H, N]) Index() uint { return 1 }
-
 // hasVoted Whether we've voted already during a prior run of the program
-type hasVoted[H comparable, N constraints.Unsigned] scale.VaryingDataType
+type hasVoted[H comparable, N constraints.Unsigned] struct {
+	inner any
+}
 
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (hv *hasVoted[H, N]) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
-	vdt := scale.VaryingDataType(*hv)
-	err = vdt.Set(val)
-	if err != nil {
-		return err
+type hasVotedValues[H comparable, N constraints.Unsigned] interface {
+	no | yes[H, N]
+}
+
+func setHasVoted[H comparable, N constraints.Unsigned, Value hasVotedValues[H, N]](mvdt *hasVoted[H, N], value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *hasVoted[H, N]) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case no:
+		setHasVoted[H, N](mvdt, value)
+		return
+	case yes[H, N]:
+		setHasVoted[H, N](mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
 	}
-	*hv = hasVoted[H, N](vdt)
-	return nil
 }
 
-// Value will return the value from the underlying VaryingDataType
-func (hv *hasVoted[H, N]) Value() (val scale.VaryingDataTypeValue, err error) { //skipcq: GO-W1029
-	vdt := scale.VaryingDataType(*hv)
-	return vdt.Value()
+func (mvdt hasVoted[H, N]) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case no:
+		return 0, mvdt.inner, nil
+	case yes[H, N]:
+		return 1, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
-// New is constructor for hasVoted
-func (hv hasVoted[H, N]) New() hasVoted[H, N] {
-	vdt, _ := scale.NewVaryingDataType(no{}, yes[H, N]{})
+func (mvdt hasVoted[H, N]) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
 
-	newHv := hasVoted[H, N](vdt)
-	return newHv
+func (mvdt hasVoted[H, N]) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return *new(no), nil
+	case 1:
+		return *new(yes[H, N]), nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
 // no Has not voted already in this round
 type no struct{}
 
-// Index returns VDT index
-func (no) Index() uint { return 0 }
-
-// yes Has voted in this round
 type yes[H comparable, N constraints.Unsigned] struct {
 	AuthId pgrandpa.AuthorityID
 	Vote   vote[H, N]
-}
-
-// Index returns VDT index
-func (yes[H, N]) Index() uint { return 1 }
-
-func (yes[H, N]) New() yes[H, N] {
-	vote := vote[H, N]{}
-	vote = vote.New()
-	return yes[H, N]{
-		Vote: vote,
-	}
 }
 
 // propose Returns the proposal we should vote with (if any.)
@@ -542,33 +548,62 @@ func (hv *hasVoted[H, N]) CanPrecommit() bool {
 }
 
 // vote Whether we've voted already during a prior run of the program
-type vote[H comparable, N constraints.Unsigned] scale.VaryingDataType
-
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (v *vote[H, N]) Set(val scale.VaryingDataTypeValue) (err error) { //skipcq: GO-W1029
-	vdt := scale.VaryingDataType(*v)
-	err = vdt.Set(val)
-	if err != nil {
-		return err
-	}
-	*v = vote[H, N](vdt)
-	return nil
+// type vote[H comparable, N constraints.Unsigned] scale.VaryingDataType
+type vote[H comparable, N constraints.Unsigned] struct {
+	inner any
 }
 
-// Value will return the value from the underlying VaryingDataType
-func (v *vote[H, N]) Value() (val scale.VaryingDataTypeValue, err error) { //skipcq: GO-W1029
-	vdt := scale.VaryingDataType(*v)
-	return vdt.Value()
+type voteValues[H comparable, N constraints.Unsigned] interface {
+	propose[H, N] | prevote[H, N] | precommit[H, N]
 }
 
-// New is constructor for vote
-func (v vote[H, N]) New() vote[H, N] {
-	vdt, err := scale.NewVaryingDataType(propose[H, N]{}, prevote[H, N]{}, precommit[H, N]{})
-	if err != nil {
-		panic(err)
+func setVote[H comparable, N constraints.Unsigned, Value voteValues[H, N]](mvdt *vote[H, N], value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *vote[H, N]) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case propose[H, N]:
+		setVote[H, N](mvdt, value)
+		return
+	case prevote[H, N]:
+		setVote[H, N](mvdt, value)
+		return
+	case precommit[H, N]:
+		setVote[H, N](mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
 	}
-	newV := vote[H, N](vdt)
-	return newV
+}
+
+func (mvdt vote[H, N]) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case propose[H, N]:
+		return 0, mvdt.inner, nil
+	case prevote[H, N]:
+		return 1, mvdt.inner, nil
+	case precommit[H, N]:
+		return 2, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt vote[H, N]) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt vote[H, N]) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return *new(propose[H, N]), nil
+	case 1:
+		return *new(prevote[H, N]), nil
+	case 2:
+		return *new(precommit[H, N]), nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
 // propose Has cast a proposal
@@ -576,17 +611,11 @@ type propose[H comparable, N constraints.Unsigned] struct {
 	PrimaryPropose grandpa.PrimaryPropose[H, N]
 }
 
-// Index returns VDT index
-func (propose[H, N]) Index() uint { return 0 }
-
 // prevote Has cast a prevote
 type prevote[H comparable, N constraints.Unsigned] struct {
 	PrimaryPropose *grandpa.PrimaryPropose[H, N]
 	Vote           grandpa.Prevote[H, N]
 }
-
-// Index returns VDT index
-func (prevote[H, N]) Index() uint { return 1 }
 
 // precommit Has cast a precommit (implies prevote.)
 type precommit[H comparable, N constraints.Unsigned] struct {
@@ -594,9 +623,6 @@ type precommit[H comparable, N constraints.Unsigned] struct {
 	Vote           grandpa.Prevote[H, N]
 	Commit         grandpa.Precommit[H, N]
 }
-
-// Index returns VDT index
-func (precommit[H, N]) Index() uint { return 2 }
 
 // / Prometheus metrics for GRANDPA.
 // pub(crate) struct Metrics {

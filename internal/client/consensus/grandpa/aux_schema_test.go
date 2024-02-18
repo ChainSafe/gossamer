@@ -305,7 +305,7 @@ func TestWriteVoterSetState(t *testing.T) {
 	}
 
 	voterSetState := NewVoterSetState[string, uint]()
-	err := voterSetState.Set(liveState)
+	err := voterSetState.SetValue(liveState)
 	require.NoError(t, err)
 	require.NotNil(t, voterSetState)
 
@@ -356,7 +356,7 @@ func TestWriteConcludedRound(t *testing.T) {
 	}
 
 	voterSetState := NewVoterSetState[string, uint]()
-	err := voterSetState.Set(liveState)
+	err := voterSetState.SetValue(liveState)
 	require.NoError(t, err)
 	require.NotNil(t, voterSetState)
 

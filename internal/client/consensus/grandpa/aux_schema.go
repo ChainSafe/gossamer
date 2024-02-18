@@ -67,8 +67,8 @@ func loadPersistent[H comparable, N constraints.Unsigned](
 	}
 
 	if !errors.Is(err, errValueNotFound) {
-		setStateOld := voterSetState[H, N]{}
-		setState := setStateOld.New()
+		// setStateOld := voterSetState[H, N]{}
+		setState := voterSetState[H, N]{}
 		err = loadDecoded(store, setStateKey, &setState)
 		if err != nil && !errors.Is(err, errValueNotFound) {
 			return nil, err

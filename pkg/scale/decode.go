@@ -420,7 +420,9 @@ func (ds *decodeState) decodeMap(dstv reflect.Value) (err error) {
 		if err != nil {
 			return fmt.Errorf("decoding value %d of %d: %w", i+1, numberOfTuples, err)
 		}
-
+		if dstv.IsNil() {
+			dstv.Set(reflect.MakeMap(dstv.Type()))
+		}
 		dstv.SetMapIndex(tempKey, tempElem)
 	}
 

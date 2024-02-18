@@ -182,46 +182,65 @@ func (ct *ChangeTree[H, N]) FinalizesAnyWithDescendentIf(
 }
 
 // FinalizationResult Result of finalising a node (that could be a part of the roots or not).
-type FinalizationResult scale.VaryingDataType
+type FinalizationResult[H comparable, N constraints.Unsigned] struct {
+	inner any
+}
 
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (fr *FinalizationResult) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*fr)
-	err = vdt.Set(val)
-	if err != nil {
+type FinalizationResultValues[H comparable, N constraints.Unsigned] interface {
+	changed[H, N] | unchanged
+}
+
+func setFinalizationResult[H comparable, N constraints.Unsigned, Value FinalizationResultValues[H, N]](mvdt *FinalizationResult[H, N], value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *FinalizationResult[H, N]) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case changed[H, N]:
+		setFinalizationResult[H, N](mvdt, value)
 		return
+	case unchanged:
+		setFinalizationResult[H, N](mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
 	}
-	*fr = FinalizationResult(vdt)
+}
+
+func (mvdt FinalizationResult[H, N]) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case changed[H, N]:
+		return 0, mvdt.inner, nil
+	case unchanged:
+		return 1, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt FinalizationResult[H, N]) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
 	return
 }
 
-// Value will return value from underying VaryingDataType
-func (fr *FinalizationResult) Value() (val scale.VaryingDataTypeValue, err error) {
-	vdt := scale.VaryingDataType(*fr)
-	return vdt.Value()
+func (mvdt FinalizationResult[H, N]) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return *new(changed[H, N]), nil
+	case 1:
+		return *new(unchanged), nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
-func newFinalizationResult[H comparable, N constraints.Unsigned]() FinalizationResult {
-	vdt, err := scale.NewVaryingDataType(changed[H, N]{}, unchanged{})
-	if err != nil {
-		panic(err)
-	}
-	return FinalizationResult(vdt)
+func newFinalizationResult[H comparable, N constraints.Unsigned]() FinalizationResult[H, N] {
+	return FinalizationResult[H, N]{}
 }
 
 type changed[H comparable, N constraints.Unsigned] struct {
 	value *PendingChange[H, N]
 }
 
-func (changed[H, N]) Index() uint {
-	return 0
-}
-
 type unchanged struct{}
-
-func (unchanged) Index() uint {
-	return 1
-}
 
 // FinalizeWithDescendentIf Finalize a root in the roots by either finalising the node itself or a
 // node's descendent that's not in the roots, guaranteeing that the node
@@ -234,7 +253,7 @@ func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(
 	hash *H,
 	number N,
 	isDescendentOf IsDescendentOf[H],
-	predicate func(*PendingChange[H, N]) bool) (result FinalizationResult, err error) {
+	predicate func(*PendingChange[H, N]) bool) (result FinalizationResult[H, N], err error) {
 	if ct.BestFinalizedNumber != nil {
 		if number <= *ct.BestFinalizedNumber {
 			return result, errRevert
@@ -321,7 +340,7 @@ func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(
 	result = newFinalizationResult[H, N]()
 
 	if nodeData != nil {
-		err = result.Set(changed[H, N]{
+		err = result.SetValue(changed[H, N]{
 			value: nodeData,
 		})
 		if err != nil {
@@ -330,13 +349,13 @@ func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(
 		return result, nil
 	} else {
 		if didChange {
-			err = result.Set(changed[H, N]{})
+			err = result.SetValue(changed[H, N]{})
 			if err != nil {
 				return result, err
 			}
 			return result, nil
 		} else {
-			err = result.Set(unchanged{})
+			err = result.SetValue(unchanged{})
 			if err != nil {
 				return result, err
 			}
