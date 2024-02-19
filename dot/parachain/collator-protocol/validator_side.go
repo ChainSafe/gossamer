@@ -376,21 +376,6 @@ func (f fetchedCollationInfo) String() string {
 		f.relayParent.String(), f.paraID, f.candidateHash.Value.String(), f.collatorID)
 }
 
-// Prospective parachains mode of a relay parent. Defined by
-// the Runtime API version.
-//
-// Needed for the period of transition to asynchronous backing.
-type ProspectiveParachainsMode struct {
-	// if disabled, there are no prospective parachains. Runtime API does not have support for `async_backing_params`
-	isEnabled bool
-
-	// these values would be present only if `isEnabled` is true
-
-	// The maximum number of para blocks between the para head in a relay parent and a new candidate.
-	// Restricts nodes from building arbitrary long chains and spamming other validators.
-	maxCandidateDepth uint
-}
-
 type PerRelayParent struct {
 	prospectiveParachainMode parachaintypes.ProspectiveParachainsMode
 	assignment               *parachaintypes.ParaID
