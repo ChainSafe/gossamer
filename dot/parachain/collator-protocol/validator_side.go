@@ -338,7 +338,7 @@ type CollatorProtocolValidatorSide struct {
 	// of some fragment tree or have a parent node which represents backed candidate.
 	// Otherwise, a validator will keep such advertisement in the memory and re-trigger
 	// requests to backing on new backed candidates and activations.
-	BlockedAdvertisements map[string][]BlockedAdvertisement
+	BlockedAdvertisements map[string][]blockedAdvertisement
 
 	// Leaves that do support asynchronous backing along with
 	// implicit ancestry. Leaves from the implicit view are present in
@@ -562,7 +562,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 // requestUnblockedCollations Checks whether any of the advertisements are unblocked and attempts to fetch them.
 func (cpvs CollatorProtocolValidatorSide) requestUnblockedCollations(backed collatorprotocolmessages.Backed) error {
 	for _, blockedAdvertisements := range cpvs.BlockedAdvertisements {
-		newBlockedAdvertisements := []BlockedAdvertisement{}
+		newBlockedAdvertisements := []blockedAdvertisement{}
 
 		for _, blockedAdvertisement := range blockedAdvertisements {
 			isSecondingAllowed, err := cpvs.canSecond(

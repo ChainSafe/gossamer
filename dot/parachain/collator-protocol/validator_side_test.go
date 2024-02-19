@@ -302,7 +302,7 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 		description                 string
 		msg                         any
 		deletesBlockedAdvertisement bool
-		blockedAdvertisements       map[string][]BlockedAdvertisement
+		blockedAdvertisements       map[string][]blockedAdvertisement
 		canSecond                   bool
 		errString                   string
 	}{
@@ -314,7 +314,7 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 			},
 			canSecond:                   true,
 			deletesBlockedAdvertisement: true,
-			blockedAdvertisements: map[string][]BlockedAdvertisement{
+			blockedAdvertisements: map[string][]blockedAdvertisement{
 				"para_id:_6,_para_head:_0x0000000000000000000000000000000000000000000000000000000000000000": {
 					{
 						peerID:               peerID,
@@ -341,7 +341,7 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 				ParaHead: common.Hash{},
 			},
 			canSecond: false,
-			blockedAdvertisements: map[string][]BlockedAdvertisement{
+			blockedAdvertisements: map[string][]blockedAdvertisement{
 				"para_id:_6,_para_head:_0x0000000000000000000000000000000000000000000000000000000000000000": {
 					{
 						peerID:               peerID,

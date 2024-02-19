@@ -180,10 +180,10 @@ const (
 	Seconded
 )
 
-// BlockedAdvertisement is vstaging advertisement that was rejected by the backing
+// blockedAdvertisement is vstaging advertisement that was rejected by the backing
 // subsystem. Validator may fetch it later if its fragment
 // membership gets recognised before relay parent goes out of view.
-type BlockedAdvertisement struct {
+type blockedAdvertisement struct {
 	// peer that advertised the collation
 	peerID               peer.ID
 	collatorID           parachaintypes.CollatorID
@@ -386,13 +386,13 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 			ParaHead: prospectiveCandidate.ParentHeadDataHash,
 		}
 
-		blockedAdvertisement := BlockedAdvertisement{
+		blockedAd := blockedAdvertisement{
 			peerID:               sender,
 			collatorID:           peerData.state.CollatingPeerState.CollatorID,
 			candidateRelayParent: relayParent,
 			candidateHash:        prospectiveCandidate.CandidateHash,
 		}
-		cpvs.BlockedAdvertisements[backed.String()] = []BlockedAdvertisement{blockedAdvertisement}
+		cpvs.BlockedAdvertisements[backed.String()] = []blockedAdvertisement{blockedAd}
 		return nil
 	}
 	/*--------------------------------------------END----------------------------------------------------------*/
