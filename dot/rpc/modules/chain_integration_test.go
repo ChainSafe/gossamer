@@ -20,7 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"go.uber.org/mock/gomock"
 
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
 	"github.com/stretchr/testify/require"
 )
 
@@ -353,7 +353,7 @@ func newTestStateService(t *testing.T) *state.Service {
 
 	gen, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 
-	err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
+	err := stateSrvc.Initialise(&gen, &genesisHeader, genesisTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()
@@ -361,7 +361,7 @@ func newTestStateService(t *testing.T) *state.Service {
 
 	var rtCfg wazero_runtime.Config
 
-	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
+	rtCfg.Storage = inmemory_storage.NewTrieState(genesisTrie)
 
 	if stateSrvc != nil {
 		rtCfg.NodeStorage.BaseDB = stateSrvc.Base

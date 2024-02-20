@@ -18,7 +18,7 @@ import (
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
-	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	gomock "go.uber.org/mock/gomock"
@@ -136,7 +136,7 @@ func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 any) *gomock.Call {
 }
 
 // HandleRuntimeChanges mocks base method.
-func (m *MockBlockState) HandleRuntimeChanges(arg0 *storage.TrieState, arg1 runtime.Instance, arg2 common.Hash) error {
+func (m *MockBlockState) HandleRuntimeChanges(arg0 *storage.InMemoryTrieState, arg1 runtime.Instance, arg2 common.Hash) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HandleRuntimeChanges", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
@@ -257,7 +257,7 @@ func (mr *MockStorageStateMockRecorder) Lock() *gomock.Call {
 }
 
 // StoreTrie mocks base method.
-func (m *MockStorageState) StoreTrie(arg0 *storage.TrieState, arg1 *types.Header) error {
+func (m *MockStorageState) StoreTrie(arg0 *storage.InMemoryTrieState, arg1 *types.Header) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "StoreTrie", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -271,10 +271,10 @@ func (mr *MockStorageStateMockRecorder) StoreTrie(arg0, arg1 any) *gomock.Call {
 }
 
 // TrieState mocks base method.
-func (m *MockStorageState) TrieState(arg0 *common.Hash) (*storage.TrieState, error) {
+func (m *MockStorageState) TrieState(arg0 *common.Hash) (*storage.InMemoryTrieState, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TrieState", arg0)
-	ret0, _ := ret[0].(*storage.TrieState)
+	ret0, _ := ret[0].(*storage.InMemoryTrieState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

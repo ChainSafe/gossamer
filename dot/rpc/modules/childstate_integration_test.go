@@ -247,7 +247,7 @@ func setupChildStateStorage(t *testing.T) (*ChildStateModule, common.Hash) {
 	tr.Put([]byte(":first_key"), []byte(":value1"))
 	tr.Put([]byte(":second_key"), []byte(":second_value"))
 
-	childTr := trie.NewEmptyTrie()
+	childTr := trie.NewEmptyInmemoryTrie()
 	childTr.Put([]byte(":child_first"), []byte(":child_first_value"))
 	childTr.Put([]byte(":child_second"), []byte(":child_second_value"))
 	childTr.Put([]byte(":another_child"), []byte("value"))

@@ -353,7 +353,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 
 func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	// setup service
-	tt := trie.NewEmptyTrie()
+	tt := trie.NewEmptyInmemoryTrie()
 	rt := wazero_runtime.NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
 	ks := keystore.NewGlobalKeystore()
 	t.Cleanup(func() {

@@ -18,7 +18,7 @@ var ErrChildTrieDoesNotExist = errors.New("child trie does not exist")
 // SetChild inserts a child trie into the main trie at key :child_storage:[keyToChild]
 // A child trie is added as a node (K, V) in the main trie. K is the child storage key
 // associated to the child trie, and V is the root hash of the child trie.
-func (t *Trie) SetChild(keyToChild []byte, child *Trie) error {
+func (t *InMemoryTrie) SetChild(keyToChild []byte, child *InMemoryTrie) error {
 	childHash, err := child.Hash(NoMaxInlineValueSize)
 	if err != nil {
 		return err
@@ -37,8 +37,7 @@ func (t *Trie) SetChild(keyToChild []byte, child *Trie) error {
 	return nil
 }
 
-// GetChild returns the child trie at key :child_storage:[keyToChild]
-func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
+func (t *InMemoryTrie) getInternalChildTrie(keyToChild []byte) (*InMemoryTrie, error) {
 	key := make([]byte, len(ChildStorageKeyPrefix)+len(keyToChild))
 	copy(key, ChildStorageKeyPrefix)
 	copy(key[len(ChildStorageKeyPrefix):], keyToChild)
@@ -51,12 +50,35 @@ func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
 	return t.childTries[common.BytesToHash(childHash)], nil
 }
 
+// GetChild returns the child trie at key :child_storage:[keyToChild]
+func (t *InMemoryTrie) GetChild(keyToChild []byte) (Trie, error) {
+	key := make([]byte, len(ChildStorageKeyPrefix)+len(keyToChild))
+	copy(key, ChildStorageKeyPrefix)
+	copy(key[len(ChildStorageKeyPrefix):], keyToChild)
+
+	childHash := t.Get(key)
+	if childHash == nil {
+		return nil, fmt.Errorf("%w at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
+	}
+
+	return t.childTries[common.BytesToHash(childHash)], nil
+}
+
+// GetChildTries returns all child tries in this trie
+func (t *InMemoryTrie) GetChildTries() map[common.Hash]Trie {
+	children := make(map[common.Hash]Trie)
+	for k, v := range t.childTries {
+		children[k] = v
+	}
+	return children
+}
+
 // PutIntoChild puts a key-value pair into the child trie located in the main trie at key :child_storage:[keyToChild]
-func (t *Trie) PutIntoChild(keyToChild, key, value []byte) error {
-	child, err := t.GetChild(keyToChild)
+func (t *InMemoryTrie) PutIntoChild(keyToChild, key, value []byte) error {
+	child, err := t.getInternalChildTrie(keyToChild)
 	if err != nil {
 		if errors.Is(err, ErrChildTrieDoesNotExist) {
-			child = NewEmptyTrie()
+			child = NewEmptyInmemoryTrie()
 		} else {
 			return fmt.Errorf("getting child: %w", err)
 		}
@@ -78,7 +100,7 @@ func (t *Trie) PutIntoChild(keyToChild, key, value []byte) error {
 
 // GetFromChild retrieves a key-value pair from the child trie located
 // in the main trie at key :child_storage:[keyToChild]
-func (t *Trie) GetFromChild(keyToChild, key []byte) ([]byte, error) {
+func (t *InMemoryTrie) GetFromChild(keyToChild, key []byte) ([]byte, error) {
 	child, err := t.GetChild(keyToChild)
 	if err != nil {
 		return nil, err
@@ -93,7 +115,7 @@ func (t *Trie) GetFromChild(keyToChild, key []byte) ([]byte, error) {
 }
 
 // DeleteChild deletes the child storage trie
-func (t *Trie) DeleteChild(keyToChild []byte) (err error) {
+func (t *InMemoryTrie) DeleteChild(keyToChild []byte) (err error) {
 	key := make([]byte, len(ChildStorageKeyPrefix)+len(keyToChild))
 	copy(key, ChildStorageKeyPrefix)
 	copy(key[len(ChildStorageKeyPrefix):], keyToChild)
@@ -106,8 +128,8 @@ func (t *Trie) DeleteChild(keyToChild []byte) (err error) {
 }
 
 // ClearFromChild removes the child storage entry
-func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
-	child, err := t.GetChild(keyToChild)
+func (t *InMemoryTrie) ClearFromChild(keyToChild, key []byte) error {
+	child, err := t.getInternalChildTrie(keyToChild)
 	if err != nil {
 		return err
 	}

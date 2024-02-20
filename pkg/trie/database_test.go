@@ -24,13 +24,13 @@ func Test_Trie_Store_Load(t *testing.T) {
 	const size = 1000
 	trie, _ := makeSeededTrie(t, size)
 
-	rootHash := V0.MustHash(*trie)
+	rootHash := V0.MustHash(trie)
 
 	db := newTestDB(t)
 	err := trie.WriteDirty(db)
 	require.NoError(t, err)
 
-	trieFromDB := NewEmptyTrie()
+	trieFromDB := NewEmptyInmemoryTrie()
 	err = trieFromDB.Load(db, rootHash)
 	require.NoError(t, err)
 	assert.Equal(t, trie.String(), trieFromDB.String())
@@ -40,7 +40,7 @@ func Test_Trie_Load_EmptyHash(t *testing.T) {
 	t.Parallel()
 
 	db := newTestDB(t)
-	trieFromDB := NewEmptyTrie()
+	trieFromDB := NewEmptyInmemoryTrie()
 	err := trieFromDB.Load(db, EmptyHash)
 	require.NoError(t, err)
 }
@@ -52,7 +52,7 @@ func Test_Trie_WriteDirty_Put(t *testing.T) {
 	const size = 500
 	keyValues := generateKeyValues(t, generator, size)
 
-	trie := NewEmptyTrie()
+	trie := NewEmptyInmemoryTrie()
 
 	db := newTestDB(t)
 
@@ -65,7 +65,7 @@ func Test_Trie_WriteDirty_Put(t *testing.T) {
 		err := trie.WriteDirty(db)
 		require.NoError(t, err)
 
-		rootHash := V0.MustHash(*trie)
+		rootHash := V0.MustHash(trie)
 		valueFromDB, err := GetFromDB(db, rootHash, key)
 		require.NoError(t, err)
 		assert.Equalf(t, value, valueFromDB, "for key=%x", key)
@@ -85,10 +85,10 @@ func Test_Trie_WriteDirty_Put(t *testing.T) {
 	err = trie.WriteDirty(db)
 	require.NoError(t, err)
 
-	rootHash := V0.MustHash(*trie)
+	rootHash := V0.MustHash(trie)
 
 	// Verify the trie in database is also modified.
-	trieFromDB := NewEmptyTrie()
+	trieFromDB := NewEmptyInmemoryTrie()
 	err = trieFromDB.Load(db, rootHash)
 	require.NoError(t, err)
 	require.Equal(t, trie.String(), trieFromDB.String())
@@ -119,9 +119,9 @@ func Test_Trie_WriteDirty_Delete(t *testing.T) {
 		deletedKeys[string(keyToDelete)] = struct{}{}
 	}
 
-	rootHash := V0.MustHash(*trie)
+	rootHash := V0.MustHash(trie)
 
-	trieFromDB := NewEmptyTrie()
+	trieFromDB := NewEmptyInmemoryTrie()
 	err = trieFromDB.Load(db, rootHash)
 	require.NoError(t, err)
 	require.Equal(t, trie.String(), trieFromDB.String())
@@ -157,9 +157,9 @@ func Test_Trie_WriteDirty_ClearPrefix(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	rootHash := V0.MustHash(*trie)
+	rootHash := V0.MustHash(trie)
 
-	trieFromDB := NewEmptyTrie()
+	trieFromDB := NewEmptyInmemoryTrie()
 	err = trieFromDB.Load(db, rootHash)
 	require.NoError(t, err)
 	assert.Equal(t, trie.String(), trieFromDB.String())
@@ -277,7 +277,7 @@ func Test_GetFromDB(t *testing.T) {
 	err := trie.WriteDirty(db)
 	require.NoError(t, err)
 
-	root := V0.MustHash(*trie)
+	root := V0.MustHash(trie)
 
 	for keyString, expectedValue := range keyValues {
 		key := []byte(keyString)
@@ -324,8 +324,8 @@ func Test_Trie_PutChild_Store_Load(t *testing.T) {
 		err = trie.WriteDirty(db)
 		require.NoError(t, err)
 
-		trieFromDB := NewEmptyTrie()
-		err = trieFromDB.Load(db, V0.MustHash(*trie))
+		trieFromDB := NewEmptyInmemoryTrie()
+		err = trieFromDB.Load(db, V0.MustHash(trie))
 		require.NoError(t, err)
 
 		assert.Equal(t, trie.childTries, trieFromDB.childTries)

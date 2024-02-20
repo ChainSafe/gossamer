@@ -25,7 +25,7 @@ var testCases = []string{
 }
 
 func TestTrieState_SetGet(t *testing.T) {
-	testFunc := func(ts *TrieState) {
+	testFunc := func(ts *InMemoryTrieState) {
 		for _, tc := range testCases {
 			ts.Put([]byte(tc), []byte(tc))
 		}
@@ -36,15 +36,15 @@ func TestTrieState_SetGet(t *testing.T) {
 		}
 	}
 
-	ts := NewTrieState(trie.NewEmptyTrie())
+	ts := NewTrieState(trie.NewEmptyInmemoryTrie())
 	testFunc(ts)
 }
 
 func TestTrieState_SetGetChildStorage(t *testing.T) {
-	ts := NewTrieState(trie.NewEmptyTrie())
+	ts := NewTrieState(trie.NewEmptyInmemoryTrie())
 
 	for _, tc := range testCases {
-		childTrie := trie.NewEmptyTrie()
+		childTrie := trie.NewEmptyInmemoryTrie()
 		err := ts.SetChild([]byte(tc), childTrie)
 		require.NoError(t, err)
 
@@ -60,9 +60,9 @@ func TestTrieState_SetGetChildStorage(t *testing.T) {
 }
 
 func TestTrieState_SetAndClearFromChild(t *testing.T) {
-	testFunc := func(ts *TrieState) {
+	testFunc := func(ts *InMemoryTrieState) {
 		for _, tc := range testCases {
-			childTrie := trie.NewEmptyTrie()
+			childTrie := trie.NewEmptyInmemoryTrie()
 			err := ts.SetChild([]byte(tc), childTrie)
 			require.NoError(t, err)
 
@@ -79,12 +79,12 @@ func TestTrieState_SetAndClearFromChild(t *testing.T) {
 		}
 	}
 
-	ts := NewTrieState(trie.NewEmptyTrie())
+	ts := NewTrieState(trie.NewEmptyInmemoryTrie())
 	testFunc(ts)
 }
 
 func TestTrieState_Delete(t *testing.T) {
-	testFunc := func(ts *TrieState) {
+	testFunc := func(ts *InMemoryTrieState) {
 		for _, tc := range testCases {
 			ts.Put([]byte(tc), []byte(tc))
 		}
@@ -94,12 +94,12 @@ func TestTrieState_Delete(t *testing.T) {
 		require.False(t, has)
 	}
 
-	ts := NewTrieState(trie.NewEmptyTrie())
+	ts := NewTrieState(trie.NewEmptyInmemoryTrie())
 	testFunc(ts)
 }
 
 func TestTrieState_Root(t *testing.T) {
-	testFunc := func(ts *TrieState) {
+	testFunc := func(ts *InMemoryTrieState) {
 		for _, tc := range testCases {
 			ts.Put([]byte(tc), []byte(tc))
 		}
@@ -108,12 +108,12 @@ func TestTrieState_Root(t *testing.T) {
 		require.Equal(t, expected, ts.MustRoot(trie.NoMaxInlineValueSize))
 	}
 
-	ts := NewTrieState(trie.NewEmptyTrie())
+	ts := NewTrieState(trie.NewEmptyInmemoryTrie())
 	testFunc(ts)
 }
 
 func TestTrieState_ClearPrefix(t *testing.T) {
-	ts := NewTrieState(trie.NewEmptyTrie())
+	ts := NewTrieState(trie.NewEmptyInmemoryTrie())
 
 	keys := []string{
 		"noot",
@@ -138,8 +138,8 @@ func TestTrieState_ClearPrefix(t *testing.T) {
 }
 
 func TestTrieState_ClearPrefixInChild(t *testing.T) {
-	ts := NewTrieState(trie.NewEmptyTrie())
-	child := trie.NewEmptyTrie()
+	ts := NewTrieState(trie.NewEmptyInmemoryTrie())
+	child := trie.NewEmptyInmemoryTrie()
 
 	keys := []string{
 		"noot",
@@ -171,7 +171,7 @@ func TestTrieState_ClearPrefixInChild(t *testing.T) {
 }
 
 func TestTrieState_NextKey(t *testing.T) {
-	ts := NewTrieState(trie.NewEmptyTrie())
+	ts := NewTrieState(trie.NewEmptyInmemoryTrie())
 	for _, tc := range testCases {
 		ts.Put([]byte(tc), []byte(tc))
 	}
@@ -191,7 +191,7 @@ func TestTrieState_NextKey(t *testing.T) {
 }
 
 func TestTrieState_CommitStorageTransaction(t *testing.T) {
-	ts := NewTrieState(trie.NewEmptyTrie())
+	ts := NewTrieState(trie.NewEmptyInmemoryTrie())
 
 	for _, tc := range testCases {
 		ts.Put([]byte(tc), []byte(tc))
@@ -207,7 +207,7 @@ func TestTrieState_CommitStorageTransaction(t *testing.T) {
 }
 
 func TestTrieState_RollbackStorageTransaction(t *testing.T) {
-	ts := NewTrieState(trie.NewEmptyTrie())
+	ts := NewTrieState(trie.NewEmptyInmemoryTrie())
 
 	for _, tc := range testCases {
 		ts.Put([]byte(tc), []byte(tc))
@@ -224,12 +224,12 @@ func TestTrieState_RollbackStorageTransaction(t *testing.T) {
 
 func TestTrieState_NestedTransactions(t *testing.T) {
 	cases := map[string]struct {
-		createTrieState func() *TrieState
-		assert          func(*testing.T, *TrieState)
+		createTrieState func() *InMemoryTrieState
+		assert          func(*testing.T, *InMemoryTrieState)
 	}{
 		"committing_and_rollback_on_nested_transactions": {
-			createTrieState: func() *TrieState {
-				ts := NewTrieState(trie.NewEmptyTrie())
+			createTrieState: func() *InMemoryTrieState {
+				ts := NewTrieState(trie.NewEmptyInmemoryTrie())
 
 				ts.Put([]byte("key-1"), []byte("value-1"))
 				ts.Put([]byte("key-2"), []byte("value-2"))
@@ -252,7 +252,7 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 				}
 				return ts
 			},
-			assert: func(t *testing.T, ts *TrieState) {
+			assert: func(t *testing.T, ts *InMemoryTrieState) {
 				require.NotNil(t, ts.Get([]byte("key-1")))
 				require.NotNil(t, ts.Get([]byte("key-2")))
 				require.NotNil(t, ts.Get([]byte("key-3")))
@@ -262,8 +262,8 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 			},
 		},
 		"committing_all_nested_transactions": {
-			createTrieState: func() *TrieState {
-				ts := NewTrieState(trie.NewEmptyTrie())
+			createTrieState: func() *InMemoryTrieState {
+				ts := NewTrieState(trie.NewEmptyInmemoryTrie())
 				{
 					ts.StartTransaction()
 					ts.Put([]byte("key-1"), []byte("value-1"))
@@ -291,7 +291,7 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 				}
 				return ts
 			},
-			assert: func(t *testing.T, ts *TrieState) {
+			assert: func(t *testing.T, ts *InMemoryTrieState) {
 				require.NotNil(t, ts.Get([]byte("key-1")))
 				require.NotNil(t, ts.Get([]byte("key-2")))
 				require.NotNil(t, ts.Get([]byte("key-4")))
@@ -299,18 +299,18 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 			},
 		},
 		"rollback_without_transaction_should_panic": {
-			createTrieState: func() *TrieState {
-				return NewTrieState(trie.NewEmptyTrie())
+			createTrieState: func() *InMemoryTrieState {
+				return NewTrieState(trie.NewEmptyInmemoryTrie())
 			},
-			assert: func(t *testing.T, ts *TrieState) {
+			assert: func(t *testing.T, ts *InMemoryTrieState) {
 				require.PanicsWithValue(t, "no transactions to rollback", func() { ts.RollbackTransaction() })
 			},
 		},
 		"commit_without_transaction_should_panic": {
-			createTrieState: func() *TrieState {
-				return NewTrieState(trie.NewEmptyTrie())
+			createTrieState: func() *InMemoryTrieState {
+				return NewTrieState(trie.NewEmptyInmemoryTrie())
 			},
-			assert: func(t *testing.T, ts *TrieState) {
+			assert: func(t *testing.T, ts *InMemoryTrieState) {
 				require.PanicsWithValue(t, "no transactions to commit", func() { ts.CommitTransaction() })
 			},
 		},
@@ -326,8 +326,8 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 }
 
 func TestTrieState_DeleteChildLimit(t *testing.T) {
-	ts := NewTrieState(trie.NewEmptyTrie())
-	child := trie.NewEmptyTrie()
+	ts := NewTrieState(trie.NewEmptyInmemoryTrie())
+	child := trie.NewEmptyInmemoryTrie()
 
 	keys := []string{
 		"key3",

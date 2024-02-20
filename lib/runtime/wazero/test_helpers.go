@@ -15,7 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/mocks"
-	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -24,13 +24,14 @@ import (
 // NewTestInstance will create a new runtime instance using the given target runtime
 func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
 	t.Helper()
-	return NewTestInstanceWithTrie(t, targetRuntime, trie.NewEmptyTrie())
+	return NewTestInstanceWithTrie(t, targetRuntime, trie.NewEmptyInmemoryTrie())
 }
 
-func setupConfig(t *testing.T, ctrl *gomock.Controller, tt *trie.Trie, lvl log.Level, role common.NetworkRole) Config {
+func setupConfig(t *testing.T, ctrl *gomock.Controller, tt *trie.InMemoryTrie,
+	lvl log.Level, role common.NetworkRole) Config {
 	t.Helper()
 
-	s := storage.NewTrieState(tt)
+	s := inmemory_storage.NewTrieState(tt)
 
 	ns := runtime.NodeStorage{
 		LocalStorage:      runtime.NewInMemoryDB(t),
@@ -55,7 +56,7 @@ var DefaultTestLogLvl = log.Info
 // NewTestInstanceWithTrie returns an instance based on the target runtime string specified,
 // which can be a file path or a constant from the constants defined in `lib/runtime/constants.go`.
 // The instance uses the trie given as argument for its storage.
-func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) *Instance {
+func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.InMemoryTrie) *Instance {
 	t.Helper()
 
 	ctrl := gomock.NewController(t)

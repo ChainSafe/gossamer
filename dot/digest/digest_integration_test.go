@@ -38,7 +38,7 @@ func newTestHandler(t *testing.T) (*Handler, *BlockImportHandler, *state.Service
 	stateSrvc.UseMemDB()
 
 	gen, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
+	err := stateSrvc.Initialise(&gen, &genesisHeader, genesisTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.SetupBase()

@@ -12,7 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 )
@@ -21,7 +21,7 @@ import (
 // The trie should be loaded with the genesis storage state.
 // This only needs to be called during genesis initialisation of the node;
 // it is not called during normal startup.
-func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie.Trie) error {
+func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie.InMemoryTrie) error {
 	// get data directory from service
 	basepath, err := filepath.Abs(s.dbPath)
 	if err != nil {
@@ -123,7 +123,7 @@ func (s *Service) loadBabeConfigurationFromRuntime(r BabeConfigurer) (*types.Bab
 	return babeCfg, nil
 }
 
-func loadGrandpaAuthorities(t *trie.Trie) ([]types.GrandpaVoter, error) {
+func loadGrandpaAuthorities(t trie.Trie) ([]types.GrandpaVoter, error) {
 	key := common.MustHexToBytes(genesis.GrandpaAuthoritiesKeyHex)
 	authsRaw := t.Get(key)
 	if authsRaw == nil {
@@ -134,7 +134,7 @@ func loadGrandpaAuthorities(t *trie.Trie) ([]types.GrandpaVoter, error) {
 }
 
 // storeInitialValues writes initial genesis values to the state database
-func (s *Service) storeInitialValues(data *genesis.Data, t *trie.Trie) error {
+func (s *Service) storeInitialValues(data *genesis.Data, t trie.Trie) error {
 	// write genesis trie to database
 	if err := t.WriteDirty(database.NewTable(s.db, storagePrefix)); err != nil {
 		return fmt.Errorf("failed to write trie to database: %s", err)
@@ -149,9 +149,9 @@ func (s *Service) storeInitialValues(data *genesis.Data, t *trie.Trie) error {
 }
 
 // CreateGenesisRuntime creates runtime instance form genesis
-func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runtime.Instance, error) {
+func (s *Service) CreateGenesisRuntime(t *trie.InMemoryTrie, gen *genesis.Genesis) (runtime.Instance, error) {
 	// load genesis state into database
-	genTrie := rtstorage.NewTrieState(t)
+	genTrie := inmemory_storage.NewTrieState(t)
 
 	// create genesis runtime
 	rtCfg := wazero_runtime.Config{

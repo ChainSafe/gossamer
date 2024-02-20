@@ -18,7 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -48,7 +48,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	gen, err := genesis.NewGenesisFromJSONRaw(genesisFilePath)
 	require.NoError(t, err)
 
-	genesisTrie, err := runtime.NewTrieFromGenesis(*gen)
+	genesisTrie, err := runtime.NewInMemoryTrieFromGenesis(*gen)
 	require.NoError(t, err)
 
 	// Extrinsic and context related stuff
@@ -84,7 +84,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	stateSrvc = state.NewService(stateConfig)
 	stateSrvc.UseMemDB()
 
-	err = stateSrvc.Initialise(gen, genesisHeader, &genesisTrie)
+	err = stateSrvc.Initialise(gen, genesisHeader, genesisTrie)
 	require.NoError(t, err)
 
 	// Start state service
@@ -96,7 +96,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	cfgCodeSubstitutedState := stateSrvc.Base
 
 	var rtCfg wazero_runtime.Config
-	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
+	rtCfg.Storage = inmemory_storage.NewTrieState(genesisTrie)
 
 	rtCfg.CodeHash, err = cfgStorageState.LoadCodeHash(nil)
 	require.NoError(t, err)
@@ -189,7 +189,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		stateSrvc = state.NewService(config)
 		stateSrvc.UseMemDB()
 
-		err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
+		err := stateSrvc.Initialise(&gen, &genesisHeader, genesisTrie)
 		require.NoError(t, err)
 
 		err = stateSrvc.Start()
@@ -215,10 +215,10 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.Runtime == nil {
 		var rtCfg wazero_runtime.Config
 
-		rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
+		rtCfg.Storage = inmemory_storage.NewTrieState(genesisTrie)
 
 		var err error
-		rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
+		rtCfg.CodeHash, err = cfg.StorageState.(*state.InmemoryStorageState).LoadCodeHash(nil)
 		require.NoError(t, err)
 
 		nodeStorage := runtime.NodeStorage{}
@@ -259,7 +259,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 }
 
 func newWestendLocalWithTrieAndHeader(t *testing.T) (
-	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
+	gen genesis.Genesis, genesisTrie *trie.InMemoryTrie, genesisHeader types.Header) {
 	t.Helper()
 
 	genesisPath := utils.GetWestendLocalRawGenesisPath(t)
@@ -267,7 +267,7 @@ func newWestendLocalWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 	gen = *genPtr
 
-	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewInMemoryTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
@@ -288,10 +288,10 @@ func getWestendDevRuntimeCode(t *testing.T) (code []byte) {
 	westendDevGenesis, err := genesis.NewGenesisFromJSONRaw(path)
 	require.NoError(t, err)
 
-	genesisTrie, err := runtime.NewTrieFromGenesis(*westendDevGenesis)
+	genesisTrie, err := runtime.NewInMemoryTrieFromGenesis(*westendDevGenesis)
 	require.NoError(t, err)
 
-	trieState := rtstorage.NewTrieState(&genesisTrie)
+	trieState := inmemory_storage.NewTrieState(genesisTrie)
 
 	return trieState.LoadCode()
 }

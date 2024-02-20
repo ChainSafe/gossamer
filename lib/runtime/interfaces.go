@@ -14,7 +14,7 @@ type Storage interface {
 	Put(key []byte, value []byte) (err error)
 	Get(key []byte) []byte
 	Root(maxInlineValueSize int) (common.Hash, error)
-	SetChild(keyToChild []byte, child *trie.Trie) error
+	SetChild(keyToChild []byte, child trie.Trie) error
 	SetChildStorage(keyToChild, key, value []byte) error
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
 	Delete(key []byte) (err error)
@@ -26,7 +26,7 @@ type Storage interface {
 	ClearPrefixInChild(keyToChild, prefix []byte) error
 	ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit uint32) (uint32, bool, error)
 	GetChildNextKey(keyToChild, key []byte) ([]byte, error)
-	GetChild(keyToChild []byte) (*trie.Trie, error)
+	GetChild(keyToChild []byte) (trie.Trie, error)
 	ClearPrefix(prefix []byte) (err error)
 	ClearPrefixLimit(prefix []byte, limit uint32) (
 		deleted uint32, allDeleted bool, err error)

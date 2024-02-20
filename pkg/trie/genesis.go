@@ -11,8 +11,10 @@ import (
 )
 
 // GenesisBlock creates a genesis block from the trie.
-func (t *Trie) GenesisBlock() (genesisHeader types.Header, err error) {
-	rootHash, err := t.Hash(NoMaxInlineValueSize)
+func (t *InMemoryTrie) GenesisBlock() (genesisHeader types.Header, err error) {
+	//TODO: Usually genesis is using V0 but we could improve this
+	//to get the right version in case we are using a new runtime from V1
+	rootHash, err := V0.Hash(t)
 	if err != nil {
 		return genesisHeader, fmt.Errorf("root hashing trie: %w", err)
 	}

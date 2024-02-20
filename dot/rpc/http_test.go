@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/libp2p/go-libp2p/core/peer"
 
@@ -316,7 +316,7 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
-	err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
+	err := stateSrvc.Initialise(&gen, &genesisHeader, genesisTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.SetupBase()
@@ -342,9 +342,9 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 
 	var rtCfg wazero_runtime.Config
 
-	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
+	rtCfg.Storage = inmemory_storage.NewTrieState(genesisTrie)
 
-	rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
+	rtCfg.CodeHash, err = cfg.StorageState.(*state.InmemoryStorageState).LoadCodeHash(nil)
 	require.NoError(t, err)
 
 	nodeStorage := runtime.NodeStorage{

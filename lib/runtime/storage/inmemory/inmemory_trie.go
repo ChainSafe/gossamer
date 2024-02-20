@@ -15,32 +15,32 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-// TrieState is a wrapper around a transient trie that is used during the course of executing some runtime call.
+// InMemoryTrieState is a wrapper around a transient trie that is used during the course of executing some runtime call.
 // If the execution of the call is successful, the trie will be saved in the StorageState.
-type TrieState struct {
+type InMemoryTrieState struct {
 	mtx          sync.RWMutex
 	transactions *list.List
 }
 
-func NewTrieState(state *trie.Trie) *TrieState {
+func NewTrieState(state *trie.InMemoryTrie) *InMemoryTrieState {
 	transactions := list.New()
 	transactions.PushBack(state)
-	return &TrieState{
+	return &InMemoryTrieState{
 		transactions: transactions,
 	}
 }
 
-func (t *TrieState) getCurrentTrie() *trie.Trie {
-	return t.transactions.Back().Value.(*trie.Trie)
+func (t *InMemoryTrieState) getCurrentTrie() *trie.InMemoryTrie {
+	return t.transactions.Back().Value.(*trie.InMemoryTrie)
 }
 
-func (t *TrieState) updateCurrentTrie(new *trie.Trie) {
+func (t *InMemoryTrieState) updateCurrentTrie(new *trie.InMemoryTrie) {
 	t.transactions.Back().Value = new
 }
 
 // StartTransaction begins a new nested storage transaction
 // which will either be committed or rolled back at a later time.
-func (t *TrieState) StartTransaction() {
+func (t *InMemoryTrieState) StartTransaction() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
@@ -48,7 +48,7 @@ func (t *TrieState) StartTransaction() {
 }
 
 // Rollback rolls back all storage changes made since StartTransaction was called.
-func (t *TrieState) RollbackTransaction() {
+func (t *InMemoryTrieState) RollbackTransaction() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
@@ -60,7 +60,7 @@ func (t *TrieState) RollbackTransaction() {
 }
 
 // Commit commits all storage changes made since StartTransaction was called.
-func (t *TrieState) CommitTransaction() {
+func (t *InMemoryTrieState) CommitTransaction() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
@@ -72,19 +72,19 @@ func (t *TrieState) CommitTransaction() {
 }
 
 // Trie returns the TrieState's underlying trie
-func (t *TrieState) Trie() *trie.Trie {
+func (t *InMemoryTrieState) Trie() *trie.InMemoryTrie {
 	return t.getCurrentTrie()
 }
 
 // Snapshot creates a new "version" of the trie. The trie before Snapshot is called
 // can no longer be modified, all further changes are on a new "version" of the trie.
 // It returns the new version of the trie.
-func (t *TrieState) Snapshot() *trie.Trie {
+func (t *InMemoryTrieState) Snapshot() *trie.InMemoryTrie {
 	return t.getCurrentTrie().Snapshot()
 }
 
 // Put puts a key-value pair in the trie
-func (t *TrieState) Put(key, value []byte) (err error) {
+func (t *InMemoryTrieState) Put(key, value []byte) (err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
@@ -92,29 +92,29 @@ func (t *TrieState) Put(key, value []byte) (err error) {
 }
 
 // Get gets a value from the trie
-func (t *TrieState) Get(key []byte) []byte {
+func (t *InMemoryTrieState) Get(key []byte) []byte {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 	return t.getCurrentTrie().Get(key)
 }
 
 // MustRoot returns the trie's root hash. It panics if it fails to compute the root.
-func (t *TrieState) MustRoot(maxInlineValue int) common.Hash {
+func (t *InMemoryTrieState) MustRoot(maxInlineValue int) common.Hash {
 	return t.getCurrentTrie().MustHash(maxInlineValue)
 }
 
 // Root returns the trie's root hash
-func (t *TrieState) Root(maxInlineValue int) (common.Hash, error) {
+func (t *InMemoryTrieState) Root(maxInlineValue int) (common.Hash, error) {
 	return t.getCurrentTrie().Hash(maxInlineValue)
 }
 
 // Has returns whether or not a key exists
-func (t *TrieState) Has(key []byte) bool {
+func (t *InMemoryTrieState) Has(key []byte) bool {
 	return t.Get(key) != nil
 }
 
 // Delete deletes a key from the trie
-func (t *TrieState) Delete(key []byte) (err error) {
+func (t *InMemoryTrieState) Delete(key []byte) (err error) {
 	val := t.getCurrentTrie().Get(key)
 	if val == nil {
 		return nil
@@ -131,21 +131,21 @@ func (t *TrieState) Delete(key []byte) (err error) {
 }
 
 // NextKey returns the next key in the trie in lexicographical order. If it does not exist, it returns nil.
-func (t *TrieState) NextKey(key []byte) []byte {
+func (t *InMemoryTrieState) NextKey(key []byte) []byte {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 	return t.getCurrentTrie().NextKey(key)
 }
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
-func (t *TrieState) ClearPrefix(prefix []byte) (err error) {
+func (t *InMemoryTrieState) ClearPrefix(prefix []byte) (err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	return t.getCurrentTrie().ClearPrefix(prefix)
 }
 
 // ClearPrefixLimit deletes key-value pairs from the trie where the key starts with the given prefix till limit reached
-func (t *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
+func (t *InMemoryTrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
 	deleted uint32, allDeleted bool, err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
@@ -154,49 +154,49 @@ func (t *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
 }
 
 // TrieEntries returns every key-value pair in the trie
-func (t *TrieState) TrieEntries() map[string][]byte {
+func (t *InMemoryTrieState) TrieEntries() map[string][]byte {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 	return t.getCurrentTrie().Entries()
 }
 
 // SetChild sets the child trie at the given key
-func (t *TrieState) SetChild(keyToChild []byte, child *trie.Trie) error {
+func (t *InMemoryTrieState) SetChild(keyToChild []byte, child trie.Trie) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
-	return t.getCurrentTrie().SetChild(keyToChild, child)
+	return t.getCurrentTrie().SetChild(keyToChild, child.(*trie.InMemoryTrie))
 }
 
 // SetChildStorage sets a key-value pair in a child trie
-func (t *TrieState) SetChildStorage(keyToChild, key, value []byte) error {
+func (t *InMemoryTrieState) SetChildStorage(keyToChild, key, value []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	return t.getCurrentTrie().PutIntoChild(keyToChild, key, value)
 }
 
 // GetChild returns the child trie at the given key
-func (t *TrieState) GetChild(keyToChild []byte) (*trie.Trie, error) {
+func (t *InMemoryTrieState) GetChild(keyToChild []byte) (trie.Trie, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 	return t.getCurrentTrie().GetChild(keyToChild)
 }
 
 // GetChildStorage returns a value from a child trie
-func (t *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
+func (t *InMemoryTrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 	return t.getCurrentTrie().GetFromChild(keyToChild, key)
 }
 
 // DeleteChild deletes a child trie from the main trie
-func (t *TrieState) DeleteChild(key []byte) (err error) {
+func (t *InMemoryTrieState) DeleteChild(key []byte) (err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	return t.getCurrentTrie().DeleteChild(key)
 }
 
 // DeleteChildLimit deletes up to limit of database entries by lexicographic order.
-func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
+func (t *InMemoryTrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 	deleted uint32, allDeleted bool, err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
@@ -245,14 +245,14 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 }
 
 // ClearChildStorage removes the child storage entry from the trie
-func (t *TrieState) ClearChildStorage(keyToChild, key []byte) error {
+func (t *InMemoryTrieState) ClearChildStorage(keyToChild, key []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	return t.getCurrentTrie().ClearFromChild(keyToChild, key)
 }
 
 // ClearPrefixInChild clears all the keys from the child trie that have the given prefix
-func (t *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
+func (t *InMemoryTrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
@@ -272,7 +272,7 @@ func (t *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 	return nil
 }
 
-func (t *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit uint32) (uint32, bool, error) {
+func (t *InMemoryTrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit uint32) (uint32, bool, error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
@@ -285,7 +285,7 @@ func (t *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit
 }
 
 // GetChildNextKey returns the next lexicographical larger key from child storage. If it does not exist, it returns nil.
-func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
+func (t *InMemoryTrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 	child, err := t.getCurrentTrie().GetChild(keyToChild)
@@ -299,7 +299,7 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 }
 
 // GetKeysWithPrefixFromChild ...
-func (t *TrieState) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]byte, error) {
+func (t *InMemoryTrieState) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]byte, error) {
 	child, err := t.GetChild(keyToChild)
 	if err != nil {
 		return nil, err
@@ -311,19 +311,19 @@ func (t *TrieState) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]b
 }
 
 // LoadCode returns the runtime code (located at :code)
-func (t *TrieState) LoadCode() []byte {
+func (t *InMemoryTrieState) LoadCode() []byte {
 	return t.Get(common.CodeKey)
 }
 
 // LoadCodeHash returns the hash of the runtime code (located at :code)
-func (t *TrieState) LoadCodeHash() (common.Hash, error) {
+func (t *InMemoryTrieState) LoadCodeHash() (common.Hash, error) {
 	code := t.LoadCode()
 	return common.Blake2bHash(code)
 }
 
 // GetChangedNodeHashes returns the two sets of hashes for all nodes
 // inserted and deleted in the state trie since the last block produced (trie snapshot).
-func (t *TrieState) GetChangedNodeHashes() (inserted, deleted map[common.Hash]struct{}, err error) {
+func (t *InMemoryTrieState) GetChangedNodeHashes() (inserted, deleted map[common.Hash]struct{}, err error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 	return t.getCurrentTrie().GetChangedNodeHashes()

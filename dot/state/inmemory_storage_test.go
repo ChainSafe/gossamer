@@ -11,7 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
-	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	inmemory_storate "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"go.uber.org/mock/gomock"
@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestStorageState(t *testing.T) *StorageState {
+func newTestStorageState(t *testing.T) *InmemoryStorageState {
 	db := NewInMemoryDB(t)
 
 	tries := newTriesEmpty()
@@ -44,7 +44,7 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 
 	trie, err := storage.LoadFromDB(root)
 	require.NoError(t, err)
-	ts2 := runtime.NewTrieState(trie)
+	ts2 := inmemory_storate.NewTrieState(trie)
 	newSnapshot := ts2.Snapshot()
 
 	require.True(t, ts.Trie().Equal(newSnapshot))
@@ -188,7 +188,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 		StorageValue: []byte{3, 4},
 		Dirty:        true,
 	}
-	testChildTrie := trie.NewTrie(trieRoot, trieDB)
+	testChildTrie := trie.NewInMemoryTrie(trieRoot, trieDB)
 
 	testChildTrie.Put([]byte("keyInsidechild"), []byte("voila"))
 
@@ -203,7 +203,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	storage, err := NewStorageState(db, blockState, tries)
 	require.NoError(t, err)
 
-	trieState := runtime.NewTrieState(&genTrie)
+	trieState := inmemory_storate.NewTrieState(genTrie)
 
 	header := types.NewHeader(blockState.GenesisHash(), trieState.MustRoot(trie.NoMaxInlineValueSize),
 		common.Hash{}, 1, types.NewDigest())

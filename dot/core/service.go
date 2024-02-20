@@ -17,7 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/trie"
@@ -148,7 +148,8 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 }
 
 // HandleBlockImport handles a block that was imported via the network
-func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieState, announce bool) error {
+func (s *Service) HandleBlockImport(block *types.Block,
+	state *inmemory_storage.InMemoryTrieState, announce bool) error {
 	err := s.handleBlock(block, state)
 	if err != nil {
 		return fmt.Errorf("handling block: %w", err)
@@ -173,7 +174,7 @@ func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieSta
 // HandleBlockProduced handles a block that was produced by us
 // It is handled the same as an imported block in terms of state updates; the only difference
 // is we send a BlockAnnounceMessage to our peers.
-func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error {
+func (s *Service) HandleBlockProduced(block *types.Block, state *inmemory_storage.InMemoryTrieState) error {
 	err := s.handleBlock(block, state)
 	if err != nil {
 		return fmt.Errorf("handling block: %w", err)
@@ -212,7 +213,7 @@ func createBlockAnnounce(block *types.Block, isBestBlock bool) (
 	}, nil
 }
 
-func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) error {
+func (s *Service) handleBlock(block *types.Block, state *inmemory_storage.InMemoryTrieState) error {
 	if block == nil || state == nil {
 		return ErrNilBlockHandlerParameter
 	}
@@ -282,7 +283,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 }
 
 func (s *Service) handleCodeSubstitution(hash common.Hash,
-	state *rtstorage.TrieState) (err error) {
+	state *inmemory_storage.InMemoryTrieState) (err error) {
 	value := s.codeSubstitute[hash]
 	if value == "" {
 		return nil

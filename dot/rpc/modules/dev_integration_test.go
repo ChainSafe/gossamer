@@ -41,7 +41,7 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 
 	_, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	tries := state.NewTries()
-	tries.SetTrie(&genesisTrie)
+	tries.SetTrie(genesisTrie)
 	bs, err := state.NewBlockStateFromGenesis(db, tries, &genesisHeader, telemetryMock)
 	require.NoError(t, err)
 	es, err := state.NewEpochStateFromGenesis(db, bs, genesisBABEConfig)
@@ -56,7 +56,7 @@ func newBABEService(t *testing.T) *babe.Service {
 	require.NoError(t, err)
 
 	bs, es := newState(t)
-	tt := trie.NewEmptyTrie()
+	tt := trie.NewEmptyInmemoryTrie()
 	rt := wazero_runtime.NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
 	bs.StoreRuntime(bs.GenesisHash(), rt)
 	tt.Put(

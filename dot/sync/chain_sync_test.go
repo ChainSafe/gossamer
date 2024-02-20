@@ -16,7 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
-	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
@@ -63,7 +63,7 @@ func Test_chainSync_onBlockAnnounce(t *testing.T) {
 	const somePeer = peer.ID("abc")
 
 	errTest := errors.New("test error")
-	emptyTrieState := storage.NewTrieState(trie.NewEmptyTrie())
+	emptyTrieState := inmemory_storage.NewTrieState(trie.NewEmptyInmemoryTrie())
 	block1AnnounceHeader := types.NewHeader(common.Hash{}, emptyTrieState.MustRoot(trie.NoMaxInlineValueSize),
 		common.Hash{}, 1, nil)
 	block2AnnounceHeader := types.NewHeader(block1AnnounceHeader.Hash(),
@@ -248,7 +248,7 @@ func Test_chainSync_onBlockAnnounceHandshake_tipModeNeedToCatchup(t *testing.T) 
 	ctrl := gomock.NewController(t)
 	const somePeer = peer.ID("abc")
 
-	emptyTrieState := storage.NewTrieState(trie.NewEmptyTrie())
+	emptyTrieState := inmemory_storage.NewTrieState(trie.NewEmptyInmemoryTrie())
 	block1AnnounceHeader := types.NewHeader(common.Hash{}, emptyTrieState.MustRoot(trie.NoMaxInlineValueSize),
 		common.Hash{}, 1, nil)
 	block2AnnounceHeader := types.NewHeader(block1AnnounceHeader.Hash(),
@@ -1285,7 +1285,7 @@ func createSuccesfullBlockResponse(t *testing.T, parentHeader common.Hash,
 	response := new(network.BlockResponseMessage)
 	response.BlockData = make([]*types.BlockData, numBlocks)
 
-	emptyTrieState := storage.NewTrieState(trie.NewEmptyTrie())
+	emptyTrieState := inmemory_storage.NewTrieState(trie.NewEmptyInmemoryTrie())
 	tsRoot := emptyTrieState.MustRoot(trie.NoMaxInlineValueSize)
 
 	firstHeader := types.NewHeader(parentHeader, tsRoot, common.Hash{},
@@ -1338,7 +1338,7 @@ func ensureSuccessfulBlockImportFlow(t *testing.T, parentHeader *types.Header,
 		mockStorageState.EXPECT().Lock().AnyTimes()
 		mockStorageState.EXPECT().Unlock().AnyTimes()
 
-		emptyTrieState := storage.NewTrieState(trie.NewEmptyTrie())
+		emptyTrieState := inmemory_storage.NewTrieState(trie.NewEmptyInmemoryTrie())
 		parentStateRoot := previousHeader.StateRoot
 		mockStorageState.EXPECT().TrieState(&parentStateRoot).
 			Return(emptyTrieState, nil).AnyTimes()

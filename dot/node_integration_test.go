@@ -97,7 +97,7 @@ func TestNewNode(t *testing.T) {
 			return nil, fmt.Errorf("failed to load genesis from file: %w", err)
 		}
 		// create trie from genesis
-		trie, err := runtime.NewTrieFromGenesis(*gen)
+		trie, err := runtime.NewInMemoryTrieFromGenesis(*gen)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create trie from genesis: %w", err)
 		}
@@ -107,7 +107,7 @@ func TestNewNode(t *testing.T) {
 			return nil, fmt.Errorf("failed to create genesis block from trie: %w", err)
 		}
 		stateSrvc.Telemetry = mockTelemetryClient
-		err = stateSrvc.Initialise(gen, &header, &trie)
+		err = stateSrvc.Initialise(gen, &header, trie)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialise state service: %s", err)
 		}
@@ -388,7 +388,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	expected, err := trie.LoadFromMap(gen.GenesisFields().Raw["top"])
 	require.NoError(t, err)
 
-	expectedRoot, err := trie.V0.Hash(&expected) // Since we are using a runtime with state trie V0
+	expectedRoot, err := trie.V0.Hash(expected) // Since we are using a runtime with state trie V0
 	require.NoError(t, err)
 
 	coreServiceInterface := node.ServiceRegistry.Get(&core.Service{})

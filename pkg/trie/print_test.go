@@ -13,14 +13,14 @@ func Test_Trie_String(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trie Trie
+		trie InMemoryTrie
 		s    string
 	}{
 		"empty_trie": {
 			s: "empty",
 		},
 		"leaf_root": {
-			trie: Trie{
+			trie: InMemoryTrie{
 				root: &Node{
 					PartialKey:   []byte{1, 2, 3},
 					StorageValue: []byte{3, 4, 5},
@@ -36,7 +36,7 @@ func Test_Trie_String(t *testing.T) {
 └── Merkle value: nil`,
 		},
 		"branch_root": {
-			trie: Trie{
+			trie: InMemoryTrie{
 				root: &Node{
 					PartialKey:   nil,
 					StorageValue: []byte{1, 2},

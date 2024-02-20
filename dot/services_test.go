@@ -10,7 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -136,7 +136,7 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 	stateSrvc := state.NewService(stateConfig)
 	stateSrvc.UseMemDB()
 	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(&genData, &genesisHeader, &genTrie)
+	err := stateSrvc.Initialise(&genData, &genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.SetupBase()
@@ -158,7 +158,7 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 
 	var rtCfg wazero_runtime.Config
 
-	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
+	rtCfg.Storage = inmemory_storage.NewTrieState(genTrie)
 
 	rtCfg.CodeHash, err = stateSrvc.Storage.LoadCodeHash(nil)
 	require.NoError(t, err)

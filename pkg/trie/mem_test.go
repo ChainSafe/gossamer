@@ -21,8 +21,8 @@ func Test_Trie_MemoryUsage(t *testing.T) {
 		t.SkipNow()
 	}
 
-	triesMap := map[string]*Trie{
-		"first": NewEmptyTrie(),
+	triesMap := map[string]*InMemoryTrie{
+		"first": NewEmptyInmemoryTrie(),
 	}
 
 	generator := newGenerator()
@@ -88,7 +88,7 @@ func getHeapUsage() (heapAlloc uint64) {
 	return memStats.HeapAlloc
 }
 
-func populateTrieAtPrefix(trie *Trie,
+func populateTrieAtPrefix(trie Trie,
 	prefix []byte, kv map[string][]byte) {
 	for keyString, value := range kv {
 		key := append(prefix, []byte(keyString)...) //skipcq: CRT-D0001
@@ -97,7 +97,7 @@ func populateTrieAtPrefix(trie *Trie,
 	}
 }
 
-func mutateTrieLeavesAtPrefix(trie *Trie,
+func mutateTrieLeavesAtPrefix(trie Trie,
 	prefix []byte, originalKV map[string][]byte) {
 	for keyString, value := range originalKV {
 		key := append(prefix, []byte(keyString)...) //skipcq: CRT-D0001

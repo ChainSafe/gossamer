@@ -20,7 +20,7 @@ import (
 // - iterate the database, stream all the targeted keys to new DB
 type OfflinePruner struct {
 	inputDB        database.Database
-	storageState   *StorageState
+	storageState   *InmemoryStorageState
 	blockState     *BlockState
 	filterDatabase database.Database
 	bestBlockHash  common.Hash
@@ -121,7 +121,7 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 
 	// loop from latest to last `retainBlockNum` blocks
 	for blockNum := header.Number; blockNum > 0 && blockNum >= latestBlockNum-uint(p.retainBlockNum); {
-		var tr *trie.Trie
+		var tr trie.Trie
 		tr, err = p.storageState.LoadFromDB(header.StateRoot)
 		if err != nil {
 			return err
