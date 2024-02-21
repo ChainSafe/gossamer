@@ -44,6 +44,7 @@ func (t *TrieState) StartTransaction() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
+	fmt.Printf("STARTING TRANSACTION\n")
 	t.transactions.PushBack(t.getCurrentTrie().Snapshot())
 }
 
@@ -55,6 +56,7 @@ func (t *TrieState) RollbackTransaction() {
 	if t.transactions.Len() <= 1 {
 		panic("no transactions to rollback")
 	}
+	fmt.Printf("ROLLBACK TRANSACTION\n")
 
 	t.transactions.Remove(t.transactions.Back())
 }
@@ -68,6 +70,7 @@ func (t *TrieState) CommitTransaction() {
 		panic("no transactions to commit")
 	}
 
+	fmt.Printf("COMMITING TRANSACTION\n")
 	t.transactions.Back().Prev().Value = t.transactions.Remove(t.transactions.Back())
 }
 
@@ -100,6 +103,7 @@ func (t *TrieState) Put(key, value []byte) (err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
+	fmt.Printf("inserting value\nkey: 0x%x\nvalue: 0x%x\n", key, value)
 	return t.getCurrentTrie().Put(key, value)
 }
 
@@ -140,6 +144,9 @@ func (t *TrieState) Delete(key []byte) (err error) {
 
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
+
+	fmt.Printf("deleting key: 0x%x\n", key)
+
 	err = t.getCurrentTrie().Delete(key)
 	if err != nil {
 		return fmt.Errorf("deleting from trie: %w", err)
@@ -189,6 +196,8 @@ func (t *TrieState) SetChild(keyToChild []byte, child *trie.Trie) error {
 func (t *TrieState) SetChildStorage(keyToChild, key, value []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
+
+	fmt.Printf("setting child storage!")
 	return t.getCurrentTrie().PutIntoChild(keyToChild, key, value)
 }
 
@@ -196,6 +205,7 @@ func (t *TrieState) SetChildStorage(keyToChild, key, value []byte) error {
 func (t *TrieState) GetChild(keyToChild []byte) (*trie.Trie, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
+
 	return t.getCurrentTrie().GetChild(keyToChild)
 }
 
@@ -203,6 +213,8 @@ func (t *TrieState) GetChild(keyToChild []byte) (*trie.Trie, error) {
 func (t *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
+
+	fmt.Printf("getting child storage!")
 	return t.getCurrentTrie().GetFromChild(keyToChild, key)
 }
 
@@ -210,6 +222,7 @@ func (t *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 func (t *TrieState) DeleteChild(key []byte) (err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
+
 	return t.getCurrentTrie().DeleteChild(key)
 }
 

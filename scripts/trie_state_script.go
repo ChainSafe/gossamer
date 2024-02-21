@@ -79,7 +79,7 @@ func compareStateRoots(response modules.StateTrieResponse, expectedStateRoot com
 		entries[common.BytesToHex(entry.Key)] = common.BytesToHex(entry.Value)
 	}
 
-	newTrie, err := trie.LoadFromMap(entries)
+	newTrie, err := trie.LoadFromMap(entries, trieVersion)
 	if err != nil {
 		panic(fmt.Sprintf("loading trie from map %v", err))
 	}

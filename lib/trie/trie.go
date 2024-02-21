@@ -435,11 +435,10 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 
 	if bytes.Equal(parentLeaf.PartialKey, key) {
 		nodesCreated = 0
-		mutated = false
-
-		if parentLeaf.MustBeHashed != mustBeHashed(t.version, value) {
+		ok := mustBeHashed(t.version, value)
+		if parentLeaf.MustBeHashed != ok {
 			mutated = true
-			parentLeaf.MustBeHashed = mustBeHashed(t.version, value)
+			parentLeaf.MustBeHashed = ok
 			parentLeaf.SetDirty()
 		}
 
@@ -471,7 +470,6 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 	}
 
 	parentLeafKey := parentLeaf.PartialKey
-
 	if len(key) == commonPrefixLength {
 		// key is included in parent leaf key
 		newBranchParent.MustBeHashed = mustBeHashed(t.version, value)
@@ -499,6 +497,7 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 	if len(parentLeaf.PartialKey) == commonPrefixLength {
 		// the key of the parent leaf is at this new branch
 		newBranchParent.StorageValue = parentLeaf.StorageValue
+		newBranchParent.MustBeHashed = parentLeaf.MustBeHashed
 		newBranchParent.IsHashedValue = parentLeaf.IsHashedValue
 	} else {
 		// make the leaf a child of the new branch
@@ -537,10 +536,10 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 	copySettings := node.DefaultCopySettings
 
 	if bytes.Equal(key, parentBranch.PartialKey) {
-		mutated = false
-		if parentBranch.MustBeHashed != mustBeHashed(t.version, value) {
+		ok := mustBeHashed(t.version, value)
+		if parentBranch.MustBeHashed != ok {
 			mutated = true
-			parentBranch.MustBeHashed = mustBeHashed(t.version, value)
+			parentBranch.MustBeHashed = ok
 			parentBranch.SetDirty()
 		}
 
@@ -650,8 +649,9 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 // LoadFromMap loads the given data mapping of key to value into a new empty trie.
 // The keys are in hexadecimal little Endian encoding and the values
 // are hexadecimal encoded.
-func LoadFromMap(data map[string]string) (trie Trie, err error) {
+func LoadFromMap(data map[string]string, version TrieLayout) (trie Trie, err error) {
 	trie = *NewEmptyTrie()
+	trie.SetVersion(version)
 
 	pendingDeltas := tracking.New()
 	defer func() {
@@ -1279,6 +1279,10 @@ func (t *Trie) deleteLeaf(parent *Node, key []byte,
 		return parent, nil
 	}
 
+	if len(parent.StorageValue) > 32 {
+		fmt.Printf("removing a must be hashed storage value\n")
+	}
+
 	newParent = nil
 
 	err = t.registerDeletedNodeHash(parent, pendingDeltas)
@@ -1293,6 +1297,10 @@ func (t *Trie) deleteBranch(branch *Node, key []byte,
 	pendingDeltas DeltaRecorder) (
 	newParent *Node, deleted bool, nodesRemoved uint32, err error) {
 	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
+		if len(branch.StorageValue) > 32 {
+			fmt.Printf("removing a must be hashed storage value\n")
+		}
+
 		copySettings := node.DefaultCopySettings
 		copySettings.CopyStorageValue = false
 		branch, err = t.prepForMutation(branch, copySettings, pendingDeltas)
@@ -1392,6 +1400,7 @@ func (t *Trie) handleDeletion(branch *Node, key []byte,
 		return &Node{
 			PartialKey:   key[:commonPrefixLength],
 			StorageValue: branch.StorageValue,
+			MustBeHashed: branch.MustBeHashed,
 			Dirty:        true,
 			Generation:   branch.Generation,
 		}, branchChildMerged, nil
@@ -1415,6 +1424,7 @@ func (t *Trie) handleDeletion(branch *Node, key []byte,
 				IsHashedValue: child.IsHashedValue,
 				Dirty:         true,
 				Generation:    branch.Generation,
+				MustBeHashed:  child.MustBeHashed,
 			}, branchChildMerged, nil
 		}
 
@@ -1423,6 +1433,7 @@ func (t *Trie) handleDeletion(branch *Node, key []byte,
 		newBranch := &Node{
 			PartialKey:   newBranchKey,
 			StorageValue: childBranch.StorageValue,
+			MustBeHashed: childBranch.MustBeHashed,
 			Generation:   branch.Generation,
 			Children:     make([]*node.Node, node.ChildrenCapacity),
 			Dirty:        true,
@@ -1515,5 +1526,9 @@ func intToByteSlice(n int) (slice []byte) {
 }
 
 func mustBeHashed(trieVersion TrieLayout, storageValue []byte) bool {
-	return trieVersion == V1 && len(storageValue) > V1.MaxInlineValue()
+	ok := trieVersion == V1 && len(storageValue) > V1.MaxInlineValue()
+	if ok {
+		fmt.Printf("must be hashed\n")
+	}
+	return ok
 }
