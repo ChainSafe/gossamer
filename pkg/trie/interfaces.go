@@ -4,8 +4,8 @@
 package trie
 
 import (
-	"github.com/ChainSafe/gossamer/internal/trie/tracking"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/trie/tracking"
 )
 
 // Deltas is the interface for the trie local deltas since
