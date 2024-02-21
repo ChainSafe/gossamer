@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ChainSafe/gossamer/internal/trie/codec"
+	"github.com/ChainSafe/gossamer/pkg/trie/codec"
 )
 
 const maxPartialKeyLength = ^uint16(0)
