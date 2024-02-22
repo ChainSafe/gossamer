@@ -13,7 +13,7 @@ import (
 	reflect "reflect"
 
 	types "github.com/ChainSafe/gossamer/dot/types"
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -41,7 +41,7 @@ func (m *MockBlockImportHandler) EXPECT() *MockBlockImportHandlerMockRecorder {
 }
 
 // HandleBlockProduced mocks base method.
-func (m *MockBlockImportHandler) HandleBlockProduced(arg0 *types.Block, arg1 *inmemory_storage.InMemoryTrieState) error {
+func (m *MockBlockImportHandler) HandleBlockProduced(arg0 *types.Block, arg1 *storage.InMemoryTrieState) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HandleBlockProduced", arg0, arg1)
 	ret0, _ := ret[0].(error)
