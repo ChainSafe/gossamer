@@ -53,7 +53,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 			entries[common.BytesToHex(entry.Key)] = common.BytesToHex(entry.Value)
 		}
 
-		newTrie, err := trie.LoadFromMap(entries)
+		newTrie, err := trie.LoadFromMap(entries, trie.V0)
 		require.NoError(t, err)
 
 		trieHash := newTrie.MustHash()

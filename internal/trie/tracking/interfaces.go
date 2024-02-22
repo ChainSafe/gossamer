@@ -8,5 +8,4 @@ import "github.com/ChainSafe/gossamer/lib/common"
 // Getter gets deleted node hashes.
 type Getter interface {
 	Deleted() (nodeHashes map[common.Hash]struct{})
-	Updated() (entries []DeltaEntry)
 }

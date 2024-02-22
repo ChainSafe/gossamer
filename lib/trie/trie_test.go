@@ -1767,7 +1767,7 @@ func Test_LoadFromMap(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			trie, err := LoadFromMap(testCase.data)
+			trie, err := LoadFromMap(testCase.data, V0)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {

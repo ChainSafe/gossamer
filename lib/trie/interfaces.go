@@ -26,5 +26,4 @@ type DeltaMerger interface {
 // DeltaRecorder records deltas done in a ongoing trie operation.
 type DeltaRecorder interface {
 	RecordDeleted(nodeHash common.Hash)
-	RecordUpdated(key, value []byte)
 }

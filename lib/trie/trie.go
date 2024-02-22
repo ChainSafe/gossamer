@@ -365,7 +365,6 @@ func (t *Trie) Put(keyLE, value []byte) (err error) {
 		t.handleTrackedDeltas(success, pendingDeltas)
 	}()
 
-	//pendingDeltas.RecordUpdated(keyLE, value)
 	err = t.insertKeyLE(keyLE, value, pendingDeltas)
 	if err != nil {
 		return err
@@ -434,10 +433,10 @@ func (t *Trie) insertInLeaf(parentLeaf *Node, key, value []byte,
 
 	if bytes.Equal(parentLeaf.PartialKey, key) {
 		nodesCreated = 0
-		ok := mustBeHashed(t.version, value)
-		if parentLeaf.MustBeHashed != ok {
+		needsToBeHashed := mustBeHashed(t.version, value)
+		if parentLeaf.MustBeHashed != needsToBeHashed {
 			mutated = true
-			parentLeaf.MustBeHashed = ok
+			parentLeaf.MustBeHashed = needsToBeHashed
 			parentLeaf.SetDirty()
 		}
 
@@ -535,10 +534,10 @@ func (t *Trie) insertInBranch(parentBranch *Node, key, value []byte,
 	copySettings := node.DefaultCopySettings
 
 	if bytes.Equal(key, parentBranch.PartialKey) {
-		ok := mustBeHashed(t.version, value)
-		if parentBranch.MustBeHashed != ok {
+		needsToBeHashed := mustBeHashed(t.version, value)
+		if parentBranch.MustBeHashed != needsToBeHashed {
 			mutated = true
-			parentBranch.MustBeHashed = ok
+			parentBranch.MustBeHashed = needsToBeHashed
 			parentBranch.SetDirty()
 		}
 

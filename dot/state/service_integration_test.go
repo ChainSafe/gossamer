@@ -440,7 +440,7 @@ func generateBlockWithRandomTrie(t *testing.T, serv *Service,
 	err = trieState.Put(key, value)
 	require.NoError(t, err)
 
-	trieStateRoot, err := trieState.Root(trie.V0.MaxInlineValue())
+	trieStateRoot, err := trieState.Root()
 	require.NoError(t, err)
 
 	if parent == nil {
