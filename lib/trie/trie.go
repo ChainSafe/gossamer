@@ -56,7 +56,6 @@ func (t *Trie) SetVersion(v TrieLayout) {
 		panic("cannot regress trie version")
 	}
 
-	fmt.Printf("setting trie version as: %d\n", v)
 	t.version = v
 }
 
@@ -1279,10 +1278,6 @@ func (t *Trie) deleteLeaf(parent *Node, key []byte,
 		return parent, nil
 	}
 
-	if len(parent.StorageValue) > 32 {
-		fmt.Printf("removing a must be hashed storage value\n")
-	}
-
 	newParent = nil
 
 	err = t.registerDeletedNodeHash(parent, pendingDeltas)
@@ -1297,10 +1292,6 @@ func (t *Trie) deleteBranch(branch *Node, key []byte,
 	pendingDeltas DeltaRecorder) (
 	newParent *Node, deleted bool, nodesRemoved uint32, err error) {
 	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
-		if len(branch.StorageValue) > 32 {
-			fmt.Printf("removing a must be hashed storage value\n")
-		}
-
 		copySettings := node.DefaultCopySettings
 		copySettings.CopyStorageValue = false
 		branch, err = t.prepForMutation(branch, copySettings, pendingDeltas)
@@ -1526,9 +1517,5 @@ func intToByteSlice(n int) (slice []byte) {
 }
 
 func mustBeHashed(trieVersion TrieLayout, storageValue []byte) bool {
-	ok := trieVersion == V1 && len(storageValue) > V1.MaxInlineValue()
-	if ok {
-		fmt.Printf("must be hashed\n")
-	}
-	return ok
+	return trieVersion == V1 && len(storageValue) > V1.MaxInlineValue()
 }
