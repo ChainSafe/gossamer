@@ -111,8 +111,7 @@ func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, t
 }
 
 func ext_crypto_ecdsa_generate_version_1(ctx context.Context, m api.Module, _ uint32, _ uint64) uint32 {
-	// TODO See issue #3769
-	panic("impl")
+	panic("TODO impl: see https://github.com/ChainSafe/gossamer/issues/3769 ")
 }
 
 func ext_crypto_ed25519_generate_version_1(
