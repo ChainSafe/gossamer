@@ -328,7 +328,7 @@ func TestTrieDiff(t *testing.T) {
 	}
 
 	dbTrie := NewEmptyInmemoryTrie()
-	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.RootNode().MerkleValue))
+	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.MerkleValue))
 	require.NoError(t, err)
 }
 
@@ -520,7 +520,7 @@ func TestClearPrefix_Small(t *testing.T) {
 		Generation:   1,
 		Dirty:        true,
 	}
-	require.Equal(t, expectedRoot, ssTrie.RootNode())
+	require.Equal(t, expectedRoot, ssTrie.root)
 
 	// Get the updated root hash of all tries.
 	tHash, err = DefaultStateVersion.Hash(trie)
@@ -1043,7 +1043,7 @@ func Test_encodeRoot_fuzz(t *testing.T) {
 			assert.Equal(t, value, retrievedValue)
 		}
 		buffer := bytes.NewBuffer(nil)
-		err := trie.RootNode().Encode(buffer, DefaultStateVersion.MaxInlineValue())
+		err := trie.root.Encode(buffer, DefaultStateVersion.MaxInlineValue())
 		require.NoError(t, err)
 		require.NotEmpty(t, buffer.Bytes())
 	}
@@ -1095,20 +1095,20 @@ func Test_Trie_Descendants_Fuzz(t *testing.T) {
 		trie.Put(key, kv[string(key)])
 	}
 
-	testDescendants(t, trie.RootNode())
+	testDescendants(t, trie.root)
 
 	require.Greater(t, kvSize, 3)
 
 	trie.ClearPrefix(keys[0])
 
-	testDescendants(t, trie.RootNode())
+	testDescendants(t, trie.root)
 
 	trie.ClearPrefixLimit(keys[1], 100)
 
-	testDescendants(t, trie.RootNode())
+	testDescendants(t, trie.root)
 
 	trie.Delete(keys[2])
 	trie.Delete(keys[3])
 
-	testDescendants(t, trie.RootNode())
+	testDescendants(t, trie.root)
 }
