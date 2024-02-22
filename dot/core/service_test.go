@@ -6,7 +6,9 @@ package core
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"errors"
+	"io"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -205,7 +207,7 @@ func Test_Service_StorageRoot(t *testing.T) {
 func Test_Service_handleCodeSubstitution(t *testing.T) {
 	t.Parallel()
 
-	//errTest := errors.New("test error")
+	errTest := errors.New("test error")
 	validRuntimeCode := getWestendDevRuntimeCode(t)
 
 	testCases := map[string]struct {
@@ -215,7 +217,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 		errWrapped     error
 		errMessage     string
 	}{
-		/*"non_existent_block_hash_substitute": {
+		"non_existent_block_hash_substitute": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				return &Service{
 					codeSubstitute: map[common.Hash]string{
@@ -307,7 +309,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			blockHash:  common.Hash{0x01},
 			errWrapped: errTest,
 			errMessage: "storing code substituted block hash: test error",
-		},*/
+		},
 		"success": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				storedRuntime := NewMockInstance(ctrl)
