@@ -330,11 +330,15 @@ type CollatorProtocolValidatorSide struct {
 	currentAssignments map[parachaintypes.ParaID]uint
 
 	// state tracked per relay parent
-	perRelayParent map[common.Hash]PerRelayParent
+	perRelayParent map[common.Hash]PerRelayParent // map[relay parent]PerRelayParent
 
-	// TODO: In rust this is a map, let's see if we can get away with a map
-	// blocked_advertisements: HashMap<(ParaId, Hash), Vec<BlockedAdvertisement>>,
-	BlockedAdvertisements []BlockedAdvertisement
+	// Advertisements that were accepted as valid by collator protocol but rejected by backing.
+	//
+	// It's only legal to fetch collations that are either built on top of the root
+	// of some fragment tree or have a parent node which represents backed candidate.
+	// Otherwise, a validator will keep such advertisement in the memory and re-trigger
+	// requests to backing on new backed candidates and activations.
+	BlockedAdvertisements map[string][]blockedAdvertisement
 
 	// Leaves that do support asynchronous backing along with
 	// implicit ancestry. Leaves from the implicit view are present in
@@ -470,7 +474,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 			Reason: peerset.BenefitNotifyGoodReason,
 		}, peerID)
 
-		// notify collation seconded
+		// notify candidate seconded
 		_, ok = cpvs.peerData[peerID]
 		if ok {
 			collatorProtocolMessage := NewCollatorProtocolMessage()
@@ -504,7 +508,16 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 			// https://github.com/paritytech/polkadot-sdk/blob/7035034710ecb9c6a786284e5f771364c520598d/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1531-L1532
 		}
 	case collatorprotocolmessages.Backed:
-		// TODO: handle backed message https://github.com/ChainSafe/gossamer/issues/3517
+		backed := msg
+		_, ok := cpvs.BlockedAdvertisements[backed.String()]
+		if ok {
+			delete(cpvs.BlockedAdvertisements, backed.String())
+
+			err := cpvs.requestUnblockedCollations(backed)
+			if err != nil {
+				return fmt.Errorf("requesting unblocked collations: %w", err)
+			}
+		}
 	case collatorprotocolmessages.Invalid:
 		invalidOverseerMsg := msg
 
@@ -541,6 +554,51 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 
 	default:
 		return parachaintypes.ErrUnknownOverseerMessage
+	}
+
+	return nil
+}
+
+// requestUnblockedCollations Checks whether any of the advertisements are unblocked and attempts to fetch them.
+func (cpvs CollatorProtocolValidatorSide) requestUnblockedCollations(backed collatorprotocolmessages.Backed) error {
+	for _, blockedAdvertisements := range cpvs.BlockedAdvertisements {
+		newBlockedAdvertisements := []blockedAdvertisement{}
+
+		for _, blockedAdvertisement := range blockedAdvertisements {
+			isSecondingAllowed, err := cpvs.canSecond(
+				backed.ParaID, blockedAdvertisement.candidateRelayParent, blockedAdvertisement.candidateHash, backed.ParaHead)
+			if err != nil {
+				return fmt.Errorf("checking if seconding is allowed: %w", err)
+			}
+
+			if !isSecondingAllowed {
+				newBlockedAdvertisements = append(newBlockedAdvertisements, blockedAdvertisement)
+				continue
+			}
+
+			perRelayParent, ok := cpvs.perRelayParent[blockedAdvertisement.candidateRelayParent]
+			if !ok {
+				return ErrRelayParentUnknown
+			}
+
+			err = cpvs.enqueueCollation(
+				perRelayParent.collations,
+				blockedAdvertisement.candidateRelayParent,
+				backed.ParaID,
+				blockedAdvertisement.peerID,
+				blockedAdvertisement.collatorID,
+				nil, // nil for now until we have prospective parachain
+			)
+			if err != nil {
+				return fmt.Errorf("enqueueing collation: %w", err)
+			}
+		}
+
+		if len(newBlockedAdvertisements) == 0 {
+			return nil
+		}
+		cpvs.BlockedAdvertisements[backed.String()] = newBlockedAdvertisements
+
 	}
 
 	return nil
