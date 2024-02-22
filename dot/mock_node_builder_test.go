@@ -151,7 +151,7 @@ func (m *MocknodeBuilderIface) createParachainHostService(net *network.Service, 
 }
 
 // createParachainHostService indicates an expected call of createParachainHostService.
-func (mr *MocknodeBuilderIfaceMockRecorder) createParachainHostService(net, forkID, st interface{}) *gomock.Call {
+func (mr *MocknodeBuilderIfaceMockRecorder) createParachainHostService(net, forkID, st any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createParachainHostService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createParachainHostService), net, forkID, st)
 }
