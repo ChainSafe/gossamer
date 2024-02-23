@@ -103,7 +103,7 @@ func TestProtectUnprotectPeer(t *testing.T) {
 	)
 
 	peerCfgSet := peerset.NewConfigSet(uint32(max-min), uint32(max), false, slotAllocationTime)
-	cm, err := newConnManager(min, max, peerCfgSet)
+	cm, err := newConnManager(max, peerCfgSet)
 	require.NoError(t, err)
 
 	p1 := peer.ID("a")
