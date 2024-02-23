@@ -110,6 +110,10 @@ func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, t
 	}
 }
 
+func ext_crypto_ecdsa_generate_version_1(ctx context.Context, m api.Module, _ uint32, _ uint64) uint32 {
+	panic("TODO impl: see https://github.com/ChainSafe/gossamer/issues/3769 ")
+}
+
 func ext_crypto_ed25519_generate_version_1(
 	ctx context.Context, m api.Module, keyTypeID uint32, seedSpan uint64) uint32 {
 	id, ok := m.Memory().Read(keyTypeID, 4)
