@@ -17,7 +17,7 @@ import (
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
-	trie "github.com/ChainSafe/gossamer/lib/trie"
+	trie "github.com/ChainSafe/gossamer/pkg/trie"
 	gomock "go.uber.org/mock/gomock"
 )
 

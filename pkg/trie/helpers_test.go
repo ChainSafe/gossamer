@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/internal/trie/node"
-	"github.com/ChainSafe/gossamer/internal/trie/tracking"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/trie/node"
+	"github.com/ChainSafe/gossamer/pkg/trie/tracking"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/maps"
 )
