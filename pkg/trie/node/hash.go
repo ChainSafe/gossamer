@@ -9,7 +9,7 @@ import (
 	"hash"
 	"io"
 
-	"github.com/ChainSafe/gossamer/internal/trie/pools"
+	"github.com/ChainSafe/gossamer/pkg/trie/pools"
 )
 
 // MerkleValue writes the Merkle value from the encoding of a non-root

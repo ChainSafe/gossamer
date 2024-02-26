@@ -20,7 +20,7 @@ import (
 	genesis "github.com/ChainSafe/gossamer/lib/genesis"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
-	trie "github.com/ChainSafe/gossamer/lib/trie"
+	trie "github.com/ChainSafe/gossamer/pkg/trie"
 	gomock "go.uber.org/mock/gomock"
 )
 

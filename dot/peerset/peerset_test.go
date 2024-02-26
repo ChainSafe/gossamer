@@ -24,7 +24,7 @@ func TestBanRejectAcceptPeer(t *testing.T) {
 	peer1Status := ps.peerState.peerStatus(testSetID, peer1)
 	require.Equal(t, unknownPeer, peer1Status)
 
-	ps.peerState.discover(testSetID, peer1)
+	ps.peerState.insertPeer(testSetID, peer1)
 	// adding peer1 with incoming slot.
 	err := ps.peerState.tryAcceptIncoming(testSetID, peer1)
 	require.NoError(t, err)
@@ -136,19 +136,19 @@ func TestPeerSetIncoming(t *testing.T) {
 			pid:                 incomingPeer,
 			expectedStatus:      Accept,
 			expectedNumIn:       1,
-			hasFreeIncomingSlot: false,
+			hasFreeIncomingSlot: true,
 		},
 		{
 			pid:                 incoming2,
 			expectedStatus:      Accept,
 			expectedNumIn:       2,
-			hasFreeIncomingSlot: true,
+			hasFreeIncomingSlot: false, // since maxIn is 2, we will not have any free slots if 2 peers connected
 		},
 		{
 			pid:                 incoming3,
 			expectedStatus:      Reject,
 			expectedNumIn:       2,
-			hasFreeIncomingSlot: true,
+			hasFreeIncomingSlot: false, // since maxIn is 2, we will not have any free slots if 2 peers connected
 		},
 	}
 
@@ -217,7 +217,7 @@ func TestReAllocAfterBanned(t *testing.T) {
 	peer1Status := ps.peerState.peerStatus(testSetID, peer1)
 	require.Equal(t, unknownPeer, peer1Status)
 
-	ps.peerState.discover(testSetID, peer1)
+	ps.peerState.insertPeer(testSetID, peer1)
 	err := ps.peerState.tryAcceptIncoming(testSetID, peer1)
 	require.NoError(t, err)
 

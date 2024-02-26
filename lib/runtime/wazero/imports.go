@@ -21,9 +21,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/trie/proof"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie/proof"
 	"github.com/tetratelabs/wazero/api"
 )
 
@@ -108,6 +108,10 @@ func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, t
 	default:
 		logger.Errorf("level=%d target=%s message=%s", int(level), target, msg)
 	}
+}
+
+func ext_crypto_ecdsa_generate_version_1(ctx context.Context, m api.Module, _ uint32, _ uint64) uint32 {
+	panic("TODO impl: see https://github.com/ChainSafe/gossamer/issues/3769 ")
 }
 
 func ext_crypto_ed25519_generate_version_1(
