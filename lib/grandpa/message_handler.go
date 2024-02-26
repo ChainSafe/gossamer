@@ -83,13 +83,15 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1) error {
 	// TODO(#2931): this is a simple hack to ensure that the neighbour messages
 	// sent by gossamer are being received by substrate nodes
 	// not intended to be production code
-	h.grandpa.roundLock.Lock()
+	round := h.blockState.GetFinalisedRound()
+	setID := h.blockState.GetFinalisedSetID()
 	neighbourMessage := &NeighbourPacketV1{
-		Round:  h.grandpa.state.round,
-		SetID:  h.grandpa.state.setID,
+		Round:  round,
+		SetID:  setID,
 		Number: uint32(h.grandpa.head.Number),
 	}
-	h.grandpa.roundLock.Unlock()
+
+	logger.Infof("Handling neighbour message, round: %v, setID: %v", round, setID)
 
 	cm, err := neighbourMessage.ToConsensusMessage()
 	if err != nil {
@@ -99,7 +101,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1) error {
 	logger.Debugf("sending neighbour message: %v", neighbourMessage)
 	h.grandpa.network.GossipMessage(cm)
 
-	currFinalized, err := h.blockState.GetFinalisedHeader(0, 0)
+	currFinalized, err := h.blockState.GetFinalisedHeader(round, setID)
 	if err != nil {
 		return err
 	}
