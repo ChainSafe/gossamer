@@ -91,8 +91,6 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1) error {
 		Number: uint32(h.grandpa.head.Number),
 	}
 
-	logger.Infof("Handling neighbour message, round: %v, setID: %v", round, setID)
-
 	cm, err := neighbourMessage.ToConsensusMessage()
 	if err != nil {
 		return fmt.Errorf("converting neighbour message to network message: %w", err)

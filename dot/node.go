@@ -513,7 +513,6 @@ func (n *Node) Start() error {
 
 // Stop stops all dot node services
 func (n *Node) Stop() {
-	panic("temp")
 	// stop all node services
 	n.ServiceRegistry.StopAll()
 	n.wg.Done()
