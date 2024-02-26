@@ -152,6 +152,7 @@ func testCreateCollatorValidatorPair(t *testing.T) {
 		NoMDNS:      true,
 	}
 	validatorNode := createTestService(t, config)
+	addrInfoA := addrInfo(validatorNode.GetP2PHost())
 
 	configB := &network.Config{
 		BasePath:    t.TempDir(),
@@ -163,6 +164,9 @@ func testCreateCollatorValidatorPair(t *testing.T) {
 
 	addrInfoB := addrInfo(collatorNode.GetP2PHost())
 	err := validatorNode.Connect(addrInfoB)
+	require.NoError(t, err)
+
+	err = collatorNode.Connect(addrInfoA)
 	require.NoError(t, err)
 
 	collationProtocolID := "/6761727661676500000000000000000000000000000000000000000000000000/1/collations/1"
@@ -212,9 +216,13 @@ func testCreateCollatorValidatorPair(t *testing.T) {
 	err = collationMessage.Set(collatorProtocolMessage)
 	require.NoError(t, err)
 
+	err = collatorNode.Connect(addrInfoA)
+	require.NoError(t, err)
+
 	collatorNode.SendMessage(validatorNode.GetP2PHost().ID(), &collationMessage)
 	require.NoError(t, err)
 
+	time.Sleep(10 * time.Second)
 	// NOTE TO SELF : visit TestHandleLightMessage_Response
 }
 

@@ -495,7 +495,7 @@ mainloop:
 	return nil
 }
 
-func (s *Service) Connect(p peer.AddrInfo) (err error) {
+func (s *Service) Connect(p peer.AddrInfo) error {
 	return s.host.connect(p)
 }
 

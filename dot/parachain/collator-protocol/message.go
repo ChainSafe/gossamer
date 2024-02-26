@@ -455,6 +455,7 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 	switch collatorProtocolMessageV.Index() {
 	// TODO: Create an issue to cover v2 types. #3534
 	case 0: // Declare
+		fmt.Println("we do come here")
 		declareMessage, ok := collatorProtocolMessageV.(Declare)
 		if !ok {
 			return propagate, errors.New("expected message to be declare")
