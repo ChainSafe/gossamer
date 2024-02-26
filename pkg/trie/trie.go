@@ -225,7 +225,6 @@ func (t *Trie) Hash() (rootHash common.Hash, err error) {
 		return rootHash, err
 	}
 	copy(rootHash[:], merkleValue)
-	t.deltas = tracking.New()
 	return rootHash, nil
 }
 

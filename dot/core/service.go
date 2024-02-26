@@ -246,7 +246,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		return fmt.Errorf("applying forced changes: %w", err)
 	}
 
-	logger.Infof("imported block %s and stored state trie with root %s",
+	logger.Debugf("imported block %s and stored state trie with root %s",
 		block.Header.Hash(), state.MustRoot())
 
 	parentRuntimeInstance, err := s.blockState.GetRuntime(block.Header.ParentHash)

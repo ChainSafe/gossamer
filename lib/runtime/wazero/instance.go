@@ -866,7 +866,7 @@ func (in *Instance) SetContextStorage(s runtime.Storage) {
 	defer in.Unlock()
 
 	if in.Context.Version == nil {
-		panic("expected runtime version")
+		panic("expected runtime version got nil")
 	}
 
 	runtimeStateVersion, err := trie.ParseVersion(in.Context.Version.StateVersion)

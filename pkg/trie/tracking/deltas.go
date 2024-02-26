@@ -7,10 +7,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-type DeltaEntry struct {
-	Key, Value []byte
-}
-
 // Deltas tracks the trie deltas, for example deleted node hashes.
 type Deltas struct {
 	deletedNodeHashes map[common.Hash]struct{}
