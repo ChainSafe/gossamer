@@ -1,7 +1,7 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package mdns
+package network
 
 import (
 	"time"
@@ -35,7 +35,7 @@ type NotifeeTracker struct {
 	peerAdder    PeerAdder
 }
 
-// HandlePeerFound tracks the address info from the peer found.
+// HandlePeerFound is a libp2p.mdns.Notifee interface implementation for mDNS in libp2p.
 func (n *NotifeeTracker) HandlePeerFound(p peer.AddrInfo) {
 	n.addressAdder.AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 	n.peerAdder.AddPeer(0, p.ID)

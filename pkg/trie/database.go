@@ -8,10 +8,10 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/internal/database"
-	"github.com/ChainSafe/gossamer/internal/trie/codec"
-	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie/db"
+	"github.com/ChainSafe/gossamer/pkg/trie/codec"
+	"github.com/ChainSafe/gossamer/pkg/trie/db"
+	"github.com/ChainSafe/gossamer/pkg/trie/node"
 )
 
 // NewBatcher creates a new database batch.

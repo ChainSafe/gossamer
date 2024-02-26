@@ -11,7 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
 // OfflinePruner is a tool to prune the stale state with the help of
