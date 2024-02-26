@@ -521,8 +521,6 @@ func (in *Instance) version() error { //skipcq: RVV-B0001
 		return fmt.Errorf("decoding version: %w", err)
 	}
 
-	fmt.Println("state version", version.StateVersion)
-
 	in.Context.Version = &version
 	return nil
 }
