@@ -507,6 +507,10 @@ func (s *Service) ProtocolID() protocol.ID {
 	return s.host.protocolID
 }
 
+func (s *Service) Protocols() []string {
+	return s.host.protocols()
+}
+
 // RegisterNotificationsProtocol registers a protocol with the network service with the given handler
 // messageID is a user-defined message ID for the message passed over this protocol.
 func (s *Service) RegisterNotificationsProtocol(

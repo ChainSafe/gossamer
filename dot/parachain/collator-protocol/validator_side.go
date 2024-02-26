@@ -84,10 +84,10 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 				cpvs.fetchedCollations = append(cpvs.fetchedCollations, *collation)
 			}
 
-		case <-cpvs.ctx.Done():
-			if err := cpvs.ctx.Err(); err != nil {
-				logger.Errorf("ctx error: %v\n", err)
-			}
+			// case <-cpvs.ctx.Done():
+			// 	if err := cpvs.ctx.Err(); err != nil {
+			// 		logger.Errorf("ctx error: %v\n", err)
+			// 	}
 		}
 	}
 }

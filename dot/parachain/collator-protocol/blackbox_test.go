@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	mock_network "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/mock-network"
 	overseer "github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/common"
 	libp2phost "github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	protocol "github.com/libp2p/go-libp2p/core/protocol"
@@ -141,6 +143,7 @@ func addrInfo(p2pHost libp2phost.Host) peer.AddrInfo {
 func testCreateCollatorValidatorPair(t *testing.T) {
 	t.Parallel()
 
+	ctrl := gomock.NewController(t)
 	// create networks for collator and validator
 	config := &network.Config{
 		BasePath:    t.TempDir(),
@@ -162,13 +165,10 @@ func testCreateCollatorValidatorPair(t *testing.T) {
 	err := validatorNode.Connect(addrInfoB)
 	require.NoError(t, err)
 
-	ctx := context.Background()
 	collationProtocolID := "/6761727661676500000000000000000000000000000000000000000000000000/1/collations/1"
-	stream, err := validatorNode.GetP2PHost().NewStream(ctx, collatorNode.GetP2PHost().ID(), validatorNode.ProtocolID()+protocol.ID(collationProtocolID))
-	require.NoError(t, err)
 
 	// create overseer
-	ctrl := gomock.NewController(t)
+	// ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockBlockState := NewMockBlockState(ctrl)
 	finalizedNotifierChan := make(chan *types.FinalisationInfo)
@@ -180,12 +180,24 @@ func testCreateCollatorValidatorPair(t *testing.T) {
 	mockBlockState.EXPECT().FreeImportedBlockNotifierChannel(importedBlockNotiferChan)
 
 	overseer := overseer.NewOverseer(mockBlockState)
+
+	cpvs, err := Register(validatorNode, protocol.ID(collationProtocolID), overseer)
+	require.NoError(t, err)
+	overseer.RegisterSubsystem(cpvs)
+
 	err = overseer.Start()
 	require.NoError(t, err)
 
 	defer overseer.Stop()
 
-	cpvs, err := Register(validatorNode, protocol.ID(collationProtocolID), overseer)
+	_, err = RegisterCollatorSide(collatorNode, protocol.ID(collationProtocolID), nil)
+	require.NoError(t, err)
+
+	time.Sleep(1 * time.Second)
+	ctx := context.Background()
+	/*stream*/
+	_, err = validatorNode.GetP2PHost().NewStream(
+		ctx, collatorNode.GetP2PHost().ID(), protocol.ID(collationProtocolID))
 	require.NoError(t, err)
 
 	collatorProtocolMessage := NewCollatorProtocolMessage()
@@ -211,7 +223,7 @@ var TestProtocolID = "/gossamer/test/0"
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *network.Config) (srvc *network.Service) {
 	t.Helper()
-	// ctrl := gomock.NewController(t)
+	ctrl := gomock.NewController(t)
 
 	if cfg == nil {
 		cfg = &network.Config{
@@ -222,6 +234,61 @@ func createTestService(t *testing.T, cfg *network.Config) (srvc *network.Service
 			LogLvl:       log.Warn,
 			SlotDuration: time.Second,
 		}
+	}
+	if cfg.BlockState == nil {
+		header := &types.Header{
+			ParentHash:     common.Hash{},
+			Number:         1,
+			StateRoot:      common.Hash{},
+			ExtrinsicsRoot: common.Hash{},
+			Digest:         types.NewDigest(),
+		}
+
+		blockstate := mock_network.NewMockBlockState(ctrl)
+
+		blockstate.EXPECT().BestBlockHeader().Return(header, nil).AnyTimes()
+		blockstate.EXPECT().GetHighestFinalisedHeader().Return(header, nil).AnyTimes()
+		blockstate.EXPECT().GenesisHash().Return(common.NewHash([]byte{})).AnyTimes()
+
+		cfg.BlockState = blockstate
+	}
+
+	if cfg.TransactionHandler == nil {
+		th := mock_network.NewMockTransactionHandler(ctrl)
+		th.EXPECT().
+			HandleTransactionMessage(
+				gomock.AssignableToTypeOf(peer.ID("")),
+				gomock.Any()).
+			Return(true, nil).AnyTimes()
+
+		th.EXPECT().TransactionsCount().Return(0).AnyTimes()
+		cfg.TransactionHandler = th
+	}
+
+	if cfg.Syncer == nil {
+		syncer := mock_network.NewMockSyncer(ctrl)
+		syncer.EXPECT().
+			HandleBlockAnnounceHandshake(
+				gomock.AssignableToTypeOf(peer.ID("")), gomock.Any()).
+			Return(nil).AnyTimes()
+
+		syncer.EXPECT().
+			HandleBlockAnnounce(
+				gomock.AssignableToTypeOf(peer.ID("")), gomock.Any()).
+			Return(nil).AnyTimes()
+
+		// syncer.EXPECT().
+		// 	CreateBlockResponse(gomock.Any()).
+		// 	Return(newTestBlockResponseMessage(t), nil).AnyTimes()
+
+		syncer.EXPECT().IsSynced().Return(false).AnyTimes()
+		cfg.Syncer = syncer
+	}
+
+	if cfg.Telemetry == nil {
+		telemetryMock := mock_network.NewMockTelemetry(ctrl)
+		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+		cfg.Telemetry = telemetryMock
 	}
 
 	cfg.SlotDuration = time.Second
@@ -244,4 +311,8 @@ func createTestService(t *testing.T, cfg *network.Config) (srvc *network.Service
 		require.NoError(t, err)
 	})
 	return srvc
+}
+
+func TestSomething(t *testing.T) {
+	testCreateCollatorValidatorPair(t)
 }

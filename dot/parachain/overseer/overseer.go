@@ -62,6 +62,7 @@ func NewOverseer(blockState BlockState) *Overseer {
 		SubsystemsToOverseer: make(chan any, 128),
 		subsystems:           make(map[Subsystem]chan any),
 		nameToSubsystem:      make(map[parachaintypes.SubSystemName]Subsystem),
+		wg:                   sync.WaitGroup{},
 	}
 }
 
