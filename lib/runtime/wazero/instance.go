@@ -47,14 +47,15 @@ type Instance struct {
 
 // Config is the configuration used to create a Wasmer runtime instance.
 type Config struct {
-	Storage     runtime.Storage
-	Keystore    *keystore.GlobalKeystore
-	LogLvl      log.Level
-	Role        common.NetworkRole
-	NodeStorage runtime.NodeStorage
-	Network     runtime.BasicNetwork
-	Transaction runtime.TransactionState
-	CodeHash    common.Hash
+	Storage        runtime.Storage
+	Keystore       *keystore.GlobalKeystore
+	LogLvl         log.Level
+	Role           common.NetworkRole
+	NodeStorage    runtime.NodeStorage
+	Network        runtime.BasicNetwork
+	Transaction    runtime.TransactionState
+	CodeHash       common.Hash
+	DefaultVersion *runtime.Version
 }
 
 func decompressWasm(code []byte) ([]byte, error) {
@@ -437,9 +438,13 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		codeHash: cfg.CodeHash,
 	}
 
-	err = instance.version()
-	if err != nil {
-		return nil, fmt.Errorf("while getting runtime version: %w", err)
+	if cfg.DefaultVersion == nil {
+		err = instance.version()
+		if err != nil {
+			return nil, fmt.Errorf("while getting runtime version: %w", err)
+		}
+	} else {
+		instance.Context.Version = cfg.DefaultVersion
 	}
 
 	if cfg.Storage != nil {

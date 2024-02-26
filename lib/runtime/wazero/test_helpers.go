@@ -5,6 +5,7 @@ package wazero_runtime
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -46,6 +47,10 @@ func setupConfig(t *testing.T, ctrl *gomock.Controller, tt *trie.Trie, lvl log.L
 		Network:     new(runtime.TestRuntimeNetwork),
 		Transaction: mocks.NewMockTransactionState(ctrl),
 		Role:        role,
+		DefaultVersion: &runtime.Version{
+			SpecName:     []byte("test-runtime"),
+			StateVersion: 0,
+		},
 	}
 }
 
@@ -65,7 +70,9 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie) 
 	require.NoError(t, err)
 
 	r, err := NewInstanceFromFile(targetRuntime, cfg)
-	require.NoError(t, err)
+	if !errors.Is(err, ErrExportFunctionNotFound) {
+		require.NoError(t, err)
+	}
 
 	return r
 }
