@@ -5,7 +5,6 @@
 //
 //	mockgen -destination=mocks_test.go -package grandpa . BlockState,GrandpaState,Network
 //
-
 // Package grandpa is a generated GoMock package.
 package grandpa
 
@@ -168,6 +167,34 @@ func (m *MockBlockState) GetFinalisedNotifierChannel() chan *types.FinalisationI
 func (mr *MockBlockStateMockRecorder) GetFinalisedNotifierChannel() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFinalisedNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).GetFinalisedNotifierChannel))
+}
+
+// GetFinalisedRound mocks base method.
+func (m *MockBlockState) GetFinalisedRound() uint64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFinalisedRound")
+	ret0, _ := ret[0].(uint64)
+	return ret0
+}
+
+// GetFinalisedRound indicates an expected call of GetFinalisedRound.
+func (mr *MockBlockStateMockRecorder) GetFinalisedRound() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFinalisedRound", reflect.TypeOf((*MockBlockState)(nil).GetFinalisedRound))
+}
+
+// GetFinalisedSetID mocks base method.
+func (m *MockBlockState) GetFinalisedSetID() uint64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFinalisedSetID")
+	ret0, _ := ret[0].(uint64)
+	return ret0
+}
+
+// GetFinalisedSetID indicates an expected call of GetFinalisedSetID.
+func (mr *MockBlockStateMockRecorder) GetFinalisedSetID() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFinalisedSetID", reflect.TypeOf((*MockBlockState)(nil).GetFinalisedSetID))
 }
 
 // GetHeader mocks base method.

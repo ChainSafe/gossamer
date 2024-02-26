@@ -5,7 +5,6 @@
 //
 //	mockgen -source=finalisation.go -destination=mock_ephemeral_service_test.go -package grandpa . ephemeralService
 //
-
 // Package grandpa is a generated GoMock package.
 package grandpa
 
