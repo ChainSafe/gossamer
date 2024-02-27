@@ -6,7 +6,9 @@ package core
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"errors"
+	"io"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -203,7 +205,7 @@ func Test_Service_StorageRoot(t *testing.T) {
 func Test_Service_handleCodeSubstitution(t *testing.T) {
 	t.Parallel()
 
-	//errTest := errors.New("test error")
+	errTest := errors.New("test error")
 	validRuntimeCode := getWestendDevRuntimeCode(t)
 
 	testCases := map[string]struct {
@@ -213,99 +215,99 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 		errWrapped     error
 		errMessage     string
 	}{
-		// "non_existent_block_hash_substitute": {
-		// 	serviceBuilder: func(ctrl *gomock.Controller) *Service {
-		// 		return &Service{
-		// 			codeSubstitute: map[common.Hash]string{
-		// 				{0x02}: "0x02",
-		// 			},
-		// 		}
-		// 	},
-		// 	blockHash: common.Hash{0x01},
-		// },
-		// "empty_runtime_code_error": {
-		// 	serviceBuilder: func(ctrl *gomock.Controller) *Service {
-		// 		return &Service{
-		// 			codeSubstitute: map[common.Hash]string{
-		// 				{0x01}: "0x",
-		// 			},
-		// 		}
-		// 	},
-		// 	blockHash:  common.Hash{0x01},
-		// 	errWrapped: ErrEmptyRuntimeCode,
-		// 	errMessage: "new :code is empty: for hash " +
-		// 		"0x0100000000000000000000000000000000000000000000000000000000000000",
-		// },
-		// "block_state_get_runtime_error": {
-		// 	serviceBuilder: func(ctrl *gomock.Controller) *Service {
-		// 		blockState := NewMockBlockState(ctrl)
-		// 		blockState.EXPECT().GetRuntime(common.Hash{0x01}).
-		// 			Return(nil, errTest)
-		// 		return &Service{
-		// 			blockState: blockState,
-		// 			codeSubstitute: map[common.Hash]string{
-		// 				{0x01}: "0x00",
-		// 			},
-		// 		}
-		// 	},
-		// 	blockHash:  common.Hash{0x01},
-		// 	errWrapped: errTest,
-		// 	errMessage: "getting runtime from block state: test error",
-		// },
-		// "instance_creation_error": {
-		// 	serviceBuilder: func(ctrl *gomock.Controller) *Service {
-		// 		storedRuntime := NewMockInstance(ctrl)
-		// 		storedRuntime.EXPECT().Keystore().Return(nil)
-		// 		storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
-		// 		storedRuntime.EXPECT().NetworkService().Return(nil)
-		// 		storedRuntime.EXPECT().Validator().Return(false)
+		"non_existent_block_hash_substitute": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				return &Service{
+					codeSubstitute: map[common.Hash]string{
+						{0x02}: "0x02",
+					},
+				}
+			},
+			blockHash: common.Hash{0x01},
+		},
+		"empty_runtime_code_error": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				return &Service{
+					codeSubstitute: map[common.Hash]string{
+						{0x01}: "0x",
+					},
+				}
+			},
+			blockHash:  common.Hash{0x01},
+			errWrapped: ErrEmptyRuntimeCode,
+			errMessage: "new :code is empty: for hash " +
+				"0x0100000000000000000000000000000000000000000000000000000000000000",
+		},
+		"block_state_get_runtime_error": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().GetRuntime(common.Hash{0x01}).
+					Return(nil, errTest)
+				return &Service{
+					blockState: blockState,
+					codeSubstitute: map[common.Hash]string{
+						{0x01}: "0x00",
+					},
+				}
+			},
+			blockHash:  common.Hash{0x01},
+			errWrapped: errTest,
+			errMessage: "getting runtime from block state: test error",
+		},
+		"instance_creation_error": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				storedRuntime := NewMockInstance(ctrl)
+				storedRuntime.EXPECT().Keystore().Return(nil)
+				storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
+				storedRuntime.EXPECT().NetworkService().Return(nil)
+				storedRuntime.EXPECT().Validator().Return(false)
 
-		// 		blockState := NewMockBlockState(ctrl)
-		// 		blockState.EXPECT().GetRuntime(common.Hash{0x01}).
-		// 			Return(storedRuntime, nil)
+				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().GetRuntime(common.Hash{0x01}).
+					Return(storedRuntime, nil)
 
-		// 		return &Service{
-		// 			blockState: blockState,
-		// 			codeSubstitute: map[common.Hash]string{
-		// 				{0x01}: "0x" +
-		// 					// compression header
-		// 					hex.EncodeToString([]byte{82, 188, 83, 118, 70, 219, 142, 5}) +
-		// 					"01", // bad byte
-		// 			},
-		// 		}
-		// 	},
-		// 	blockHash:  common.Hash{0x01},
-		// 	errWrapped: io.ErrUnexpectedEOF,
-		// },
-		// "store_code_substitution_block_hash_error": {
-		// 	serviceBuilder: func(ctrl *gomock.Controller) *Service {
-		// 		storedRuntime := NewMockInstance(ctrl)
-		// 		storedRuntime.EXPECT().Keystore().Return(nil)
-		// 		storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
-		// 		storedRuntime.EXPECT().NetworkService().Return(nil)
-		// 		storedRuntime.EXPECT().Validator().Return(true)
+				return &Service{
+					blockState: blockState,
+					codeSubstitute: map[common.Hash]string{
+						{0x01}: "0x" +
+							// compression header
+							hex.EncodeToString([]byte{82, 188, 83, 118, 70, 219, 142, 5}) +
+							"01", // bad byte
+					},
+				}
+			},
+			blockHash:  common.Hash{0x01},
+			errWrapped: io.ErrUnexpectedEOF,
+		},
+		"store_code_substitution_block_hash_error": {
+			serviceBuilder: func(ctrl *gomock.Controller) *Service {
+				storedRuntime := NewMockInstance(ctrl)
+				storedRuntime.EXPECT().Keystore().Return(nil)
+				storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
+				storedRuntime.EXPECT().NetworkService().Return(nil)
+				storedRuntime.EXPECT().Validator().Return(true)
 
-		// 		blockState := NewMockBlockState(ctrl)
-		// 		blockState.EXPECT().GetRuntime(common.Hash{0x01}).
-		// 			Return(storedRuntime, nil)
+				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().GetRuntime(common.Hash{0x01}).
+					Return(storedRuntime, nil)
 
-		// 		codeSubstitutedState := NewMockCodeSubstitutedState(ctrl)
-		// 		codeSubstitutedState.EXPECT().
-		// 			StoreCodeSubstitutedBlockHash(common.Hash{0x01}).
-		// 			Return(errTest)
+				codeSubstitutedState := NewMockCodeSubstitutedState(ctrl)
+				codeSubstitutedState.EXPECT().
+					StoreCodeSubstitutedBlockHash(common.Hash{0x01}).
+					Return(errTest)
 
-		// 		return &Service{
-		// 			blockState: blockState,
-		// 			codeSubstitute: map[common.Hash]string{
-		// 				{0x01}: common.BytesToHex(validRuntimeCode),
-		// 			},
-		// 			codeSubstitutedState: codeSubstitutedState,
-		// 		}
-		// 	},
-		// 	blockHash:  common.Hash{0x01},
-		// 	errWrapped: errTest,
-		// 	errMessage: "storing code substituted block hash: test error",
-		// },
+				return &Service{
+					blockState: blockState,
+					codeSubstitute: map[common.Hash]string{
+						{0x01}: common.BytesToHex(validRuntimeCode),
+					},
+					codeSubstitutedState: codeSubstitutedState,
+				}
+			},
+			blockHash:  common.Hash{0x01},
+			errWrapped: errTest,
+			errMessage: "storing code substituted block hash: test error",
+		},
 		"success": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				storedRuntime := NewMockInstance(ctrl)
