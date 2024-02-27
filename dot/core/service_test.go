@@ -280,6 +280,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			errWrapped: io.ErrUnexpectedEOF,
 		},
 		"store_code_substitution_block_hash_error": {
+			trieState: rtstorage.NewTrieState(trie.NewEmptyTrie()),
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				storedRuntime := NewMockInstance(ctrl)
 				storedRuntime.EXPECT().Keystore().Return(nil)
