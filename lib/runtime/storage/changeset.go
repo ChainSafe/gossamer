@@ -7,7 +7,7 @@ import (
 	"maps"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
 type changeSet struct {

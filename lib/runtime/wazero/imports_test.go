@@ -1394,9 +1394,11 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_all(t *testing.
 	require.Equal(t, []byte{1, 0, 0, 0}, res)
 
 	value, err = inst.Context.Storage.GetChildStorage(testChildKey, []byte(`key1`))
+	require.NoError(t, err)
 	require.Nil(t, value)
 
 	value, err = inst.Context.Storage.GetChildStorage(testChildKey, []byte(`key2`))
+	require.NoError(t, err)
 	require.Nil(t, value)
 }
 
