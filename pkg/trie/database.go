@@ -52,8 +52,8 @@ func (t *Trie) Load(db db.DBGetter, rootHash common.Hash) error {
 	}
 
 	for _, key := range t.GetKeysWithPrefix(ChildStorageKeyPrefix) {
-		childTrie := NewEmptyTrie()
 		value := t.Get(key)
+		childTrie := NewEmptyTrie()
 		rootHash := common.BytesToHash(value)
 		err := childTrie.Load(db, rootHash)
 		if err != nil {

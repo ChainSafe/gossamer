@@ -28,7 +28,6 @@ func (t *Trie) SetChild(keyToChild []byte, child *Trie) error {
 	copy(key, ChildStorageKeyPrefix)
 	copy(key[len(ChildStorageKeyPrefix):], keyToChild)
 
-	child.childTriePartialKey = key
 	err = t.Put(key, childHash.ToBytes())
 	if err != nil {
 		return fmt.Errorf("putting child trie root hash %s in trie: %w", childHash, err)

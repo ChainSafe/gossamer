@@ -20,12 +20,11 @@ var EmptyHash = common.MustBlake2bHash([]byte{0})
 
 // Trie is a base 16 modified Merkle Patricia trie.
 type Trie struct {
-	childTriePartialKey []byte
-	generation          uint64
-	root                *Node
-	childTries          map[common.Hash]*Trie
-	db                  db.Database
-	version             TrieLayout
+	generation uint64
+	root       *Node
+	childTries map[common.Hash]*Trie
+	db         db.Database
+	version    TrieLayout
 	// deltas stores trie deltas since the last trie snapshot.
 	// For example node hashes that were deleted since
 	// the last snapshot. These are used by the online
