@@ -33,7 +33,7 @@ func TestWithLogLevel(lvl log.Level) TestInstanceOption {
 
 func TestWithTrie(tt *trie.Trie) TestInstanceOption {
 	return func(c *Config) {
-		c.Storage = storage.NewTrieState(trie.NewEmptyTrie())
+		c.Storage = storage.NewTrieState(tt)
 	}
 }
 
