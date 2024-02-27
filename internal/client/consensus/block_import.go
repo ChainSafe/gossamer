@@ -3,7 +3,6 @@ package consensus
 import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
-	overlayedchanges "github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayed-changes"
 )
 
 // / Block import result.
@@ -93,13 +92,12 @@ type BlockCheckParams[H, N any] struct {
 // / Precomputed storage.
 // pub enum StorageChanges<Block: BlockT, Transaction> {
 type StorageChanges any
-type StorageChangesValues[T, H any] interface {
-	StorageChangesChanges[T, H] | StorageChangesImport[H]
+type StorageChangesValues[H, Hasher any] interface {
+	StorageChangesChanges[H, Hasher] | StorageChangesImport[H]
 }
 
 // /// Changes coming from block execution.
-// Changes(sp_state_machine::StorageChanges<Transaction, HashFor<Block>>),
-type StorageChangesChanges[T, H any] overlayedchanges.StorageChanges[T, H]
+type StorageChangesChanges[H, Hasher any] statemachine.StorageChanges[H, Hasher]
 
 // /// Whole new state.
 // Import(ImportedState<Block>),

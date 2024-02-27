@@ -19,7 +19,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/exp/constraints"
@@ -112,17 +111,17 @@ type SharedVoterState[AuthorityID comparable] struct {
 //	Block: BlockT,
 //
 // {}
-type ClientForGrandpa[N runtime.Number, H runtime.Hash, T statemachine.Transaction] interface {
-	api.LockImportRun[N, H, T]
-	api.Finalizer[N, H, T]
+type ClientForGrandpa[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H]] interface {
+	api.LockImportRun[N, H, Hasher]
+	api.Finalizer[N, H, Hasher]
 	api.AuxStore
 	blockchain.HeaderMetaData[H, N]
 	blockchain.HeaderBackend[H, N]
-	api.BlockchainEvents[H, N, T]
-	papi.ProvideRuntimeAPI[H, N, T]
+	api.BlockchainEvents[H, N, Hasher]
+	papi.ProvideRuntimeAPI[H, N, Hasher]
 	api.ExecutorProvider[H, N]
 	consensus.BlockImport[H, N]
-	api.StorageProvider[H, N, T]
+	api.StorageProvider[H, N, Hasher]
 }
 
 // / Commands issued to the voter.
@@ -165,19 +164,19 @@ func (c Config) name() string {
 }
 
 // / Future that powers the voter.
-type voterWork[Hash runtime.Hash, Number runtime.Number, T statemachine.Transaction] struct {
+type voterWork[Hash runtime.Hash, Number runtime.Number, Hasher runtime.Hasher[Hash]] struct {
 	// use string for AuthorityID and AuthoritySignature
 	voter            *grandpa.Voter[Hash, Number, string, string]
 	sharedVoterState SharedVoterState[string]
-	env              environment[Number, Hash, T]
+	env              environment[Number, Hash, Hasher]
 	voterCommandsRx  <-chan voterCommand
 	network          communication.NetworkBridge[Hash, Number]
 	telemetry        *telemetry.TelemetryHandle
 	metrics          *metrics
 }
 
-func newVoterWork[Hash runtime.Hash, Number runtime.Number, T statemachine.Transaction](
-	client ClientForGrandpa[Number, Hash, T],
+func newVoterWork[Hash runtime.Hash, Number runtime.Number, Hasher runtime.Hasher[Hash]](
+	client ClientForGrandpa[Number, Hash, Hasher],
 	config Config,
 	network communication.NetworkBridge[Hash, Number],
 	selectChain consensus.SelectChain[Hash, Number],
@@ -188,11 +187,11 @@ func newVoterWork[Hash runtime.Hash, Number runtime.Number, T statemachine.Trans
 	sharedVoterState SharedVoterState[string],
 	justificationSender GrandpaJustificationSender[Hash, Number],
 	telemetry *telemetry.TelemetryHandle,
-) voterWork[Hash, Number, T] {
+) voterWork[Hash, Number, Hasher] {
 	// TODO: register to prometheus registry
 
 	voters := persistentData.authoritySet.CurrentAuthorities()
-	env := environment[Number, Hash, T]{
+	env := environment[Number, Hash, Hasher]{
 		Client:              client,
 		SelectChain:         selectChain,
 		VotingRule:          votingRule,
@@ -207,7 +206,7 @@ func newVoterWork[Hash runtime.Hash, Number runtime.Number, T statemachine.Trans
 		Telemetry:           telemetry,
 	}
 
-	work := voterWork[Hash, Number, T]{
+	work := voterWork[Hash, Number, Hasher]{
 		// `voter` is set to a temporary value and replaced below when
 		// calling `rebuild_voter`.
 		voter:            nil,

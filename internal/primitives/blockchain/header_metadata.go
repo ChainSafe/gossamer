@@ -215,5 +215,15 @@ type CachedHeaderMetadata[H, N any] struct {
 	StateRoot H
 	/// Hash of an ancestor header. Used to jump through the tree.
 	// ancestor: Block::Hash,
-	Ancestor H
+	ancestor H
+}
+
+func NewCachedHeaderMetadata[H runtime.Hash, N runtime.Number](header runtime.Header[N, H]) CachedHeaderMetadata[H, N] {
+	return CachedHeaderMetadata[H, N]{
+		Hash:      header.Hash(),
+		Number:    header.Number(),
+		Parent:    header.ParentHash(),
+		StateRoot: header.StateRoot(),
+		ancestor:  header.ParentHash(),
+	}
 }

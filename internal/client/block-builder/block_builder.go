@@ -7,10 +7,9 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/api"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
-	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 )
 
-type BlockBuilderProvider[H runtime.Hash, N runtime.Number, T statemachine.Transaction] interface {
+type BlockBuilderProvider[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] interface {
 	/// Create a new block, built on top of `parent`.
 	///
 	/// When proof recording is enabled, all accessed trie nodes are saved.
@@ -28,35 +27,35 @@ type BlockBuilderProvider[H runtime.Hash, N runtime.Number, T statemachine.Trans
 	// 	&self,
 	// 	inherent_digests: Digest,
 	// ) -> sp_blockchain::Result<BlockBuilder<Block, RA, B>>;
-	NewBlock(inherentDigests runtime.Digest) (BlockBuilder[H, N, T], error)
+	NewBlock(inherentDigests runtime.Digest) (BlockBuilder[H, N, Hasher], error)
 }
 
 // / Utility for building new (valid) blocks from a stream of extrinsics.
 // pub struct BlockBuilder<'a, Block: BlockT, A: ProvideRuntimeApi<Block>, B> {
-type BlockBuilder[H runtime.Hash, N runtime.Number, T statemachine.Transaction] struct {
+type BlockBuilder[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] struct {
 	// extrinsics: Vec<Block::Extrinsic>,
 	extrinsics []runtime.Extrinsic
 	// api: ApiRef<'a, A::Api>,
-	api api.APIExt[H, N, T]
+	api api.APIExt[H, N, Hasher]
 	// version: u32,
 	version uint32
 	// parent_hash: Block::Hash,
 	parentHash H
 	// backend: &'a B,
-	backend clientapi.Backend[H, N, T]
+	backend clientapi.Backend[H, N, Hasher]
 	/// The estimated size of the block header.
 	// estimated_header_size: usize,
 	estimatedHeaderSize uint
 }
 
-func NewBlockBuilder[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H], T statemachine.Transaction](
-	api api.ProvideRuntimeAPI[H, N, T],
+func NewBlockBuilder[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
+	api api.ProvideRuntimeAPI[H, N, Hasher],
 	parentHash H,
 	parentNumber N,
 	recordProof bool,
 	inherentDigests runtime.Digest,
-	backend clientapi.Backend[H, N, T],
-) (BlockBuilder[H, N, T], error) {
+	backend clientapi.Backend[H, N, Hasher],
+) (BlockBuilder[H, N, Hasher], error) {
 	var defaultHash H
 	header := generic.NewHeader[N, H, Hasher](
 		parentNumber+1,
@@ -68,7 +67,7 @@ func NewBlockBuilder[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H],
 
 	encodedHeader, err := header.MarshalSCALE()
 	if err != nil {
-		return BlockBuilder[H, N, T]{}, err
+		return BlockBuilder[H, N, Hasher]{}, err
 	}
 	estimatedHeaderSize := uint(len(encodedHeader))
 
@@ -80,18 +79,18 @@ func NewBlockBuilder[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H],
 
 	err = runtimeAPI.InitializeBlock(parentHash, &header)
 	if err != nil {
-		return BlockBuilder[H, N, T]{}, err
+		return BlockBuilder[H, N, Hasher]{}, err
 	}
 
 	version, err := runtimeAPI.APIVersion(parentHash)
 	if err != nil {
-		return BlockBuilder[H, N, T]{}, err
+		return BlockBuilder[H, N, Hasher]{}, err
 	}
 	if version == nil {
-		return BlockBuilder[H, N, T]{}, fmt.Errorf("VersionInvalid")
+		return BlockBuilder[H, N, Hasher]{}, fmt.Errorf("VersionInvalid")
 	}
 
-	return BlockBuilder[H, N, T]{
+	return BlockBuilder[H, N, Hasher]{
 		parentHash:          parentHash,
 		api:                 runtimeAPI,
 		version:             *version,

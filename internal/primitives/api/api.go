@@ -1,9 +1,9 @@
 package api
 
 import (
+	"github.com/ChainSafe/gossamer/internal/primitives/core"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
-	overlayedchanges "github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayed-changes"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie/recorder"
 )
 
@@ -12,34 +12,24 @@ import (
 // pub type ProofRecorder<B> = sp_trie::recorder::Recorder<HashFor<B>>;
 type ProofRecorder[H runtime.Hash] recorder.Recorder[H]
 
-// / A type that is used as cache for the storage transactions.
-// #[cfg(feature = "std")]
-// pub type StorageTransactionCache<Block, Backend> = sp_state_machine::StorageTransactionCache<
-//
-//	<Backend as StateBackend<HashFor<Block>>>::Transaction,
-//	HashFor<Block>,
-//
-// >;
-type StorageTransactionCache[H runtime.Hash] overlayedchanges.StorageTransactionCache[statemachine.Transaction, H]
-
 // pub type StorageChanges<SBackend, Block> = sp_state_machine::StorageChanges<
 //
 //	<SBackend as StateBackend<HashFor<Block>>>::Transaction,
 //	HashFor<Block>,
 //
 // >;
-type StorageChanges[T statemachine.Transaction, H runtime.Hash] overlayedchanges.StorageChanges[T, H]
+type StorageChanges[H runtime.Hash, Hasher runtime.Hasher[H]] statemachine.StorageChanges[H, Hasher]
 
 // / Something that can be constructed to a runtime api.
 // #[cfg(feature = "std")]
 // pub trait ConstructRuntimeApi<Block: BlockT, C: CallApiAt<Block>> {
-type ConstructRuntimeAPI[H runtime.Hash, N runtime.Number, T statemachine.Transaction] interface {
+type ConstructRuntimeAPI[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] interface {
 	// 	/// The actual runtime api that will be constructed.
 	// 	type RuntimeApi: ApiExt<Block>;
 
 	// /// Construct an instance of the runtime api.
 	// fn construct_runtime_api(call: &C) -> ApiRef<Self::RuntimeApi>;
-	ConstructRuntimeAPI(call CallAPIAt[H, N]) APIExt[H, N, T]
+	ConstructRuntimeAPI(call CallAPIAt[H, N]) APIExt[H, N, Hasher]
 }
 
 // / The `Core` runtime api that every Substrate runtime needs to implement.
@@ -62,7 +52,7 @@ type Core[H runtime.Hash, N runtime.Number] interface {
 
 // / Extends the runtime api implementation with some common functionality.
 // pub trait ApiExt<Block: BlockT> {
-type APIExt[H runtime.Hash, N runtime.Number, T statemachine.Transaction] interface {
+type APIExt[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] interface {
 	Core[H, N]
 	// 	/// The state backend that is used to store the block states.
 	// 	type StateBackend: StateBackend<HashFor<Block>>;
@@ -127,7 +117,7 @@ type APIExt[H runtime.Hash, N runtime.Number, T statemachine.Transaction] interf
 	// where
 	//
 	//	Self: Sized;
-	IntoStorageChanges(backend statemachine.Backend[H, T], parentHash H) (StorageChanges[T, H], error)
+	IntoStorageChanges(backend statemachine.Backend[H, Hasher], parentHash H) (StorageChanges[H, Hasher], error)
 }
 
 // /// Parameters for [`CallApiAt::call_api_at`].
@@ -145,15 +135,15 @@ type CallAPIAtParams[H runtime.Hash, N runtime.Number] struct {
 	Arguments []byte
 	// /// The overlayed changes that are on top of the state.
 	// pub overlayed_changes: &'a RefCell<OverlayedChanges>,
-	OverlayedChanges overlayedchanges.OverlayedChanges
-	// /// The cache for storage transactions.
-	// pub storage_transaction_cache: &'a RefCell<StorageTransactionCache<Block, Backend>>,
-	StorageTransactionCache StorageTransactionCache[H]
-	// /// The context this function is executed in.
-	// pub context: ExecutionContext,
+	OverlayedChanges statemachine.OverlayedChanges
+	// /// The call context of this call.
+	// pub call_context: CallContext,
+	CallContext core.CallContext
 	// /// The optional proof recorder for recording storage accesses.
 	// pub recorder: &'a Option<ProofRecorder<Block>>,
 	Recorder *ProofRecorder[H]
+	// /// The extensions that should be used for this call.
+	// pub extensions: &'a RefCell<Extensions>,
 }
 
 // /// Something that can call into the an api at a given block.
@@ -180,7 +170,7 @@ type CallAPIAt[H runtime.Hash, N runtime.Number] interface {
 
 // /// Something that provides a runtime api.
 // pub trait ProvideRuntimeApi<Block: BlockT> {
-type ProvideRuntimeAPI[H runtime.Hash, N runtime.Number, T statemachine.Transaction] interface {
+type ProvideRuntimeAPI[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] interface {
 	// 	/// The concrete type that provides the api.
 	// 	type Api: ApiExt<Block>;
 
@@ -190,5 +180,5 @@ type ProvideRuntimeAPI[H runtime.Hash, N runtime.Number, T statemachine.Transact
 	// /// the modifications will be `discarded`. The modifications will not be applied to the
 	// /// storage, even on a `commit`.
 	// fn runtime_api(&self) -> ApiRef<Self::Api>;
-	RuntimeAPI() APIExt[H, N, T]
+	RuntimeAPI() APIExt[H, N, Hasher]
 }

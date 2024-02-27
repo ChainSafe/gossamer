@@ -32,6 +32,14 @@ type FinalizationOutcome[H comparable, N runtime.Number] struct {
 	removed btree.Map[N, []H]
 }
 
+func (fo FinalizationOutcome[H, N]) Leaves() []H {
+	leaves := make([]H, 0)
+	for _, hashes := range fo.removed.Values() {
+		leaves = append(leaves, hashes...)
+	}
+	return leaves
+}
+
 // / list of leaf hashes ordered by number (descending).
 // / stored in memory for fast access.
 // / this allows very fast checking and modification of active leaves.

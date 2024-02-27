@@ -57,12 +57,12 @@ func TestFinalityProof_FailsIfNoMoreLastFinalizedBlocks(t *testing.T) {
 	mockBlockchain := mocks.NewBlockchainBackend[hash.H256, uint32](t)
 	mockBlockchain.EXPECT().Info().Return(dummyInfo).Once()
 
-	mockBackend := mocks.NewBackend[hash.H256, uint32, []byte](t)
+	mockBackend := mocks.NewBackend[hash.H256, uint32, runtime.BlakeTwo256](t)
 	mockBackend.EXPECT().Blockchain().Return(mockBlockchain).Once()
 
 	// The last finalized block is 4, so we cannot provide further justifications.
 	authoritySetChanges := AuthoritySetChanges[uint32]{}
-	_, err := proveFinality[hash.H256, uint32](
+	_, err := proveFinality[hash.H256, uint32, runtime.BlakeTwo256](
 		mockBackend,
 		authoritySetChanges,
 		5,
@@ -80,7 +80,7 @@ func TestFinalityProof_IsNoneIfNoJustificationKnown(t *testing.T) {
 	mockBlockchain.EXPECT().ExpectBlockHashFromID(uint32(4)).Return(dummyHash, nil).Once()
 	mockBlockchain.EXPECT().Justifications(dummyHash).Return(nil, nil).Once()
 
-	mockBackend := mocks.NewBackend[hash.H256, uint32, []byte](t)
+	mockBackend := mocks.NewBackend[hash.H256, uint32, runtime.BlakeTwo256](t)
 	mockBackend.EXPECT().Blockchain().Return(mockBlockchain).Times(3)
 
 	authoritySetChanges := AuthoritySetChanges[uint32]{}
@@ -88,7 +88,7 @@ func TestFinalityProof_IsNoneIfNoJustificationKnown(t *testing.T) {
 
 	// Block 4 is finalized without justification
 	// => we can't prove finality of 3
-	proofOf3, err := proveFinality[hash.H256, uint32](
+	proofOf3, err := proveFinality[hash.H256, uint32, runtime.BlakeTwo256](
 		mockBackend,
 		authoritySetChanges,
 		3,
@@ -250,7 +250,7 @@ func TestFinalityProof_UsingAuthoritySetChangesFailsWithUndefinedStart(t *testin
 	mockBlockchainBackend := mocks.NewBlockchainBackend[hash.H256, uint64](t)
 	mockBlockchainBackend.EXPECT().Info().Return(info).Once()
 
-	mockBackend := mocks.NewBackend[hash.H256, uint64, []byte](t)
+	mockBackend := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256](t)
 	mockBackend.EXPECT().Blockchain().Return(mockBlockchainBackend).Once()
 
 	// We are missing the block for the preceding set the start is not well-defined.

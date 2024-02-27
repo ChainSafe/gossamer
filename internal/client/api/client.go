@@ -4,12 +4,11 @@ import (
 	"github.com/ChainSafe/gossamer/internal/client/consensus"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 )
 
 // / Type that implements `futures::Stream` of block import events.
 // pub type ImportNotifications<Block> = TracingUnboundedReceiver<BlockImportNotification<Block>>;
-type ImportNofications[H runtime.Hash, N runtime.Number, T statemachine.Transaction] chan<- BlockImportOperation[N, H, T]
+type ImportNofications[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] chan<- BlockImportOperation[N, H, Hasher]
 
 // / A stream of block finality notifications.
 // pub type FinalityNotifications<Block> = TracingUnboundedReceiver<FinalityNotification<Block>>;
@@ -17,18 +16,18 @@ type FinalityNotifications[H runtime.Hash, N runtime.Number] chan<- FinalityNoti
 
 // / A source of blockchain events.
 // pub trait BlockchainEvents<Block: BlockT> {
-type BlockchainEvents[H runtime.Hash, N runtime.Number, T statemachine.Transaction] interface {
+type BlockchainEvents[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] interface {
 	/// Get block import event stream.
 	///
 	/// Not guaranteed to be fired for every imported block, only fired when the node
 	/// has synced to the tip or there is a re-org. Use `every_import_notification_stream()`
 	/// if you want a notification of every imported block regardless.
 	// fn import_notification_stream(&self) -> ImportNotifications<Block>;
-	ImportNotifications() ImportNofications[H, N, T]
+	ImportNotifications() ImportNofications[H, N, Hasher]
 
 	/// Get a stream of every imported block.
 	// fn every_import_notification_stream(&self) -> ImportNotifications<Block>;
-	EveryImportNotificationStream() ImportNofications[H, N, T]
+	EveryImportNotificationStream() ImportNofications[H, N, Hasher]
 
 	/// Get a stream of finality notifications. Not guaranteed to be fired for every
 	/// finalized block.

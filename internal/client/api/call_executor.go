@@ -4,8 +4,9 @@ import (
 	executionextensions "github.com/ChainSafe/gossamer/internal/client/api/execution-extensions"
 	"github.com/ChainSafe/gossamer/internal/client/executor"
 	"github.com/ChainSafe/gossamer/internal/primitives/api"
+	"github.com/ChainSafe/gossamer/internal/primitives/core"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	overlayedchanges "github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayed-changes"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 )
 
 // / Executor Provider
@@ -71,10 +72,10 @@ type CallExecutor[H runtime.Hash, N runtime.Number] interface {
 		atHash H,
 		method string,
 		callData []byte,
-		changes overlayedchanges.OverlayedChanges,
-		storageTransactionCache *api.StorageTransactionCache[H],
+		changes statemachine.OverlayedChanges,
 		proofRecorder *api.ProofRecorder[H],
-		// context ExecutionContext,
+		callContext core.CallContext,
+		// extensions: &RefCell<Extensions>,
 	) ([]byte, error)
 
 	// 	/// Extract RuntimeVersion of given block

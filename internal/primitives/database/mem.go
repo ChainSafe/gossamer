@@ -92,3 +92,7 @@ func (mdb *MemDB[H]) Get(col ColumnID, key []byte) *[]byte {
 	}
 	return nil
 }
+
+func (mdb *MemDB[H]) Contains(col ColumnID, key []byte) bool {
+	panic("unimplemented")
+}

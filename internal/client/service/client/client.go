@@ -14,7 +14,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
-	overlayedchanges "github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayed-changes"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 )
 
@@ -25,9 +24,9 @@ import (
 //	Block: BlockT,
 //
 // {
-type Client[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H], RA papi.ConstructRuntimeAPI[H, N, T], T statemachine.Transaction] struct {
+type Client[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H], RA papi.ConstructRuntimeAPI[H, N, Hasher]] struct {
 	// backend: Arc<B>,
-	backend api.Backend[H, N, T]
+	backend api.Backend[H, N, Hasher]
 	// executor: E,
 	executor api.CallExecutor[H, N]
 	// storage_notifications: StorageNotifications<Block>,
@@ -61,25 +60,25 @@ type Client[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H], RA papi.
 	// _phantom: PhantomData<RA>,
 }
 
-func NewClient[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H], RA papi.ConstructRuntimeAPI[H, N, T], T statemachine.Transaction](
+func NewClient[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H], RA papi.ConstructRuntimeAPI[H, N, Hasher]](
 	// backend: Arc<B>,
-	backend api.Backend[H, N, T],
+	backend api.Backend[H, N, Hasher],
 	// 	executor: E,
 	executor api.CallExecutor[H, N],
 	// 	spawn_handle: Box<dyn SpawnNamed>,
 	// genesis_block_builder: G,
-	genesisBlockBuilder genesis.BuildGenesisBlock[H, N, api.BlockImportOperation[N, H, T]],
+	genesisBlockBuilder genesis.BuildGenesisBlock[H, N, api.BlockImportOperation[N, H, Hasher]],
 	// 	fork_blocks: ForkBlocks<Block>,
 	// 	bad_blocks: BadBlocks<Block>,
 	// 	prometheus_registry: Option<Registry>,
 	// 	telemetry: Option<TelemetryHandle>,
 	// 	config: ClientConfig<Block>,
-) (Client[H, N, Hasher, RA, T], error) {
+) (Client[H, N, Hasher, RA], error) {
 	info := backend.Blockchain().Info()
 	if info.FinalizedState == nil {
 		genesisBlock, op, err := genesisBlockBuilder.BuildGenesisBlock()
 		if err != nil {
-			return Client[H, N, Hasher, RA, T]{}, err
+			return Client[H, N, Hasher, RA]{}, err
 		}
 		log.Printf("🔨 Initializing Genesis block/state (state: %v, header-hash: %v)",
 			genesisBlock.Header().StateRoot(), genesisBlock.Header().Hash())
@@ -94,11 +93,11 @@ func NewClient[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H], RA pa
 		header, body := genesisBlock.Deconstruct()
 		err = op.SetBlockData(header, &body, nil, nil, blockState)
 		if err != nil {
-			return Client[H, N, Hasher, RA, T]{}, err
+			return Client[H, N, Hasher, RA]{}, err
 		}
 		err = backend.CommitOperation(op)
 		if err != nil {
-			return Client[H, N, Hasher, RA, T]{}, err
+			return Client[H, N, Hasher, RA]{}, err
 		}
 	}
 
@@ -138,7 +137,7 @@ func NewClient[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H], RA pa
 	// 	unpin_worker_sender,
 	// 	_phantom: Default::default(),
 	// })
-	return Client[H, N, Hasher, RA, T]{
+	return Client[H, N, Hasher, RA]{
 		backend: backend,
 	}, nil
 }
@@ -156,7 +155,7 @@ func NewClient[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H], RA pa
 //			F: FnOnce(&mut ClientImportOperation<Block, B>) -> Result<R, Err>,
 //			Err: From<sp_blockchain::Error>,
 //		{
-func (c *Client[H, N, Hasher, RA, T]) LockImportAndRun(f func(*api.ClientImportOperation[N, H, T]) error) error {
+func (c *Client[H, N, Hasher, RA]) LockImportAndRun(f func(*api.ClientImportOperation[N, H, Hasher]) error) error {
 	var inner = func() error {
 		mtx := c.backend.GetImportLock()
 		mtx.Lock()
@@ -167,7 +166,7 @@ func (c *Client[H, N, Hasher, RA, T]) LockImportAndRun(f func(*api.ClientImportO
 			return err
 		}
 
-		clientImportOp := api.ClientImportOperation[N, H, T]{
+		clientImportOp := api.ClientImportOperation[N, H, Hasher]{
 			Op:               blockImportOp,
 			NotifyImported:   nil,
 			NotifiyFinalized: nil,
@@ -187,8 +186,8 @@ func (c *Client[H, N, Hasher, RA, T]) LockImportAndRun(f func(*api.ClientImportO
 
 		var importNotification *api.BlockImportNotification[H, N]
 		var storageChanges *struct {
-			overlayedchanges.StorageCollection
-			overlayedchanges.ChildStorageCollection
+			statemachine.StorageCollection
+			statemachine.ChildStorageCollection
 		}
 		var importNotificationAction api.ImportNotificationAction
 
@@ -318,9 +317,9 @@ func (pphd prePostHeaderDifferent[H]) Post() H {
 
 // / Apply a checked and validated block to an operation. If a justification is provided
 // / then `finalized` *must* be true.
-func (c *Client[H, N, Hasher, RA, T]) applyBlock(
+func (c *Client[H, N, Hasher, RA]) applyBlock(
 	// &mut ClientImportOperation<Block, B>,
-	operation *api.ClientImportOperation[N, H, T],
+	operation *api.ClientImportOperation[N, H, Hasher],
 	importBlock consensus.BlockImportParams[H, N],
 	storageChanges *consensus.StorageChanges,
 ) (consensus.ImportResult, error) {
@@ -393,8 +392,8 @@ func (c *Client[H, N, Hasher, RA, T]) applyBlock(
 	return importResult, err
 }
 
-func (c *Client[H, N, Hasher, RA, T]) executeAndImportBlock(
-	operation *api.ClientImportOperation[N, H, T],
+func (c *Client[H, N, Hasher, RA]) executeAndImportBlock(
+	operation *api.ClientImportOperation[N, H, Hasher],
 	origin consensus.BlockOrigin,
 	hash H,
 	importHeaders prePostHeader[runtime.Header[N, H]],
@@ -458,15 +457,15 @@ func (c *Client[H, N, Hasher, RA, T]) executeAndImportBlock(
 	}
 
 	var storageChangesOpt *struct {
-		overlayedchanges.StorageCollection
-		overlayedchanges.ChildStorageCollection
+		statemachine.StorageCollection
+		statemachine.ChildStorageCollection
 	}
-	// var mainStorageChanges *overlayedchanges.StorageCollection
-	// var childStorageChanges *overlayedchanges.ChildStorageCollection
+	// var mainStorageChanges *statemachine.StorageCollection
+	// var childStorageChanges *statemachine.ChildStorageCollection
 
 	if storageChanges != nil {
 		switch changes := (*storageChanges).(type) {
-		case consensus.StorageChangesChanges[T, H]:
+		case consensus.StorageChangesChanges[H, Hasher]:
 			err := c.backend.BeginStateOperation(&operation.Op, parentHash)
 			if err != nil {
 				return nil, err
@@ -496,8 +495,8 @@ func (c *Client[H, N, Hasher, RA, T]) executeAndImportBlock(
 			// mainStorageChanges = &mainSC
 			// childStorageChanges = &childSC
 			storageChangesOpt = &struct {
-				overlayedchanges.StorageCollection
-				overlayedchanges.ChildStorageCollection
+				statemachine.StorageCollection
+				statemachine.ChildStorageCollection
 			}{mainSC, childSC}
 		case consensus.StorageChangesImport[H]:
 			store := storage.Storage{}
@@ -690,7 +689,7 @@ func (c *Client[H, N, Hasher, RA, T]) executeAndImportBlock(
 //	fn have_state_at(&self, hash: Block::Hash, _number: NumberFor<Block>) -> bool {
 //		self.state_at(hash).is_ok()
 //	}
-func (c *Client[H, N, Hasher, RA, T]) HaveStateAt(hash H, number N) bool {
+func (c *Client[H, N, Hasher, RA]) HaveStateAt(hash H, number N) bool {
 	_, err := c.StateAt(hash)
 	if err != nil {
 		return false
@@ -703,12 +702,12 @@ func (c *Client[H, N, Hasher, RA, T]) HaveStateAt(hash H, number N) bool {
 //	pub fn state_at(&self, hash: Block::Hash) -> sp_blockchain::Result<B::State> {
 //		self.backend.state_at(hash)
 //	}
-func (c *Client[H, N, Hasher, RA, T]) StateAt(hash H) (statemachine.Backend[H, T], error) {
+func (c *Client[H, N, Hasher, RA]) StateAt(hash H) (statemachine.Backend[H, Hasher], error) {
 	return c.backend.StateAt(hash)
 }
 
 // / Get blockchain info.
-func (c *Client[H, N, Hasher, RA, T]) ChainInfo() blockchain.Info[H, N] {
+func (c *Client[H, N, Hasher, RA]) ChainInfo() blockchain.Info[H, N] {
 	return c.backend.Blockchain().Info()
 }
 
@@ -735,7 +734,7 @@ func (c *Client[H, N, Hasher, RA, T]) ChainInfo() blockchain.Info[H, N] {
 //			None => Ok(BlockStatus::Unknown),
 //		}
 //	}
-func (c *Client[H, N, Hasher, RA, T]) BlockStatus(hash H) (consensus.BlockStatus, error) {
+func (c *Client[H, N, Hasher, RA]) BlockStatus(hash H) (consensus.BlockStatus, error) {
 	c.importingBlockRWMutex.RLock()
 	defer c.importingBlockRWMutex.RUnlock()
 	if c.importingBlock != nil {
@@ -757,7 +756,7 @@ func (c *Client[H, N, Hasher, RA, T]) BlockStatus(hash H) (consensus.BlockStatus
 	}
 }
 
-func (c *Client[H, N, Hasher, RA, T]) NewBlock(inherentDigests runtime.Digest) (blockbuilder.BlockBuilder[H, N, T], error) {
+func (c *Client[H, N, Hasher, RA]) NewBlock(inherentDigests runtime.Digest) (blockbuilder.BlockBuilder[H, N, Hasher], error) {
 	info := c.ChainInfo()
 	return blockbuilder.NewBlockBuilder[H, N, Hasher](
 		c, info.BestHash, info.BestNumber, false, inherentDigests, c.backend,
@@ -777,7 +776,7 @@ func (c *Client[H, N, Hasher, RA, T]) NewBlock(inherentDigests runtime.Digest) (
 //			RA::construct_runtime_api(self)
 //		}
 //	}
-func (c *Client[H, N, Hasher, RA, T]) RuntimeAPI() papi.APIExt[H, N, T] {
+func (c *Client[H, N, Hasher, RA]) RuntimeAPI() papi.APIExt[H, N, Hasher] {
 	// RA::construct_runtime_api(self)
 	ra := *(new(RA))
 	return ra.ConstructRuntimeAPI(c)
@@ -817,14 +816,14 @@ func (c *Client[H, N, Hasher, RA, T]) RuntimeAPI() papi.APIExt[H, N, T] {
 //			self.state_at(at).map_err(Into::into)
 //		}
 //	}
-func (c *Client[H, N, Hasher, RA, T]) CallAPIAt(params papi.CallAPIAtParams[H, N]) ([]byte, error) {
+func (c *Client[H, N, Hasher, RA]) CallAPIAt(params papi.CallAPIAtParams[H, N]) ([]byte, error) {
 	return c.executor.ContextualCall(
 		params.At,
 		params.Function,
 		params.Arguments,
 		params.OverlayedChanges,
-		&params.StorageTransactionCache,
 		params.Recorder,
+		params.CallContext,
 	)
 }
 
@@ -857,7 +856,7 @@ type prepareStorageChangesResultImport *consensus.StorageChanges
 //		CoreApi<Block> + ApiExt<Block, StateBackend = B::State>,
 //
 // {
-func (c *Client[H, N, Hasher, RA, T]) prepareBlockStorageChanges(importBlock consensus.BlockImportParams[H, N]) (prepareStorageChangesResult, error) {
+func (c *Client[H, N, Hasher, RA]) prepareBlockStorageChanges(importBlock consensus.BlockImportParams[H, N]) (prepareStorageChangesResult, error) {
 	parentHash := importBlock.Header.ParentHash()
 	stateAction := importBlock.StateAction
 	importBlock.StateAction = consensus.StateActionSkip{}
@@ -936,7 +935,7 @@ func (c *Client[H, N, Hasher, RA, T]) prepareBlockStorageChanges(importBlock con
 			// return Err(Error::InvalidStateRoot)
 			return nil, fmt.Errorf("invalid state root")
 		}
-		sc := consensus.StorageChanges(consensus.StorageChangesChanges[T, H](genStorageChanges))
+		sc := consensus.StorageChanges(consensus.StorageChangesChanges[H, Hasher](genStorageChanges))
 		returnedStorageChanges = &sc
 	case enactState && storageChanges == nil && importBlock.Body == nil:
 		returnedStorageChanges = nil
@@ -949,8 +948,8 @@ func (c *Client[H, N, Hasher, RA, T]) prepareBlockStorageChanges(importBlock con
 	return prepareStorageChangesResultImport(returnedStorageChanges), nil
 }
 
-func (c *Client[H, N, Hasher, RA, T]) applyFinalityWithBlockHash(
-	operation *api.ClientImportOperation[N, H, T],
+func (c *Client[H, N, Hasher, RA]) applyFinalityWithBlockHash(
+	operation *api.ClientImportOperation[N, H, Hasher],
 	block H,
 	justification *runtime.Justification,
 	bestBlock H,
@@ -1066,7 +1065,7 @@ func (c *Client[H, N, Hasher, RA, T]) applyFinalityWithBlockHash(
 	return nil
 }
 
-func (c *Client[H, N, Hasher, RA, T]) notifyFinalized(notification *api.FinalityNotification[H, N]) error {
+func (c *Client[H, N, Hasher, RA]) notifyFinalized(notification *api.FinalityNotification[H, N]) error {
 	c.finalityNotificationSinksMutex.Lock()
 	defer c.finalityNotificationSinksMutex.Unlock()
 
@@ -1090,12 +1089,12 @@ func (c *Client[H, N, Hasher, RA, T]) notifyFinalized(notification *api.Finality
 	return nil
 }
 
-func (c *Client[H, N, Hasher, RA, T]) notifyImported(
+func (c *Client[H, N, Hasher, RA]) notifyImported(
 	notification *api.BlockImportNotification[H, N],
 	importNotificationAction api.ImportNotificationAction,
 	storageChanges *struct {
-		overlayedchanges.StorageCollection
-		overlayedchanges.ChildStorageCollection
+		statemachine.StorageCollection
+		statemachine.ChildStorageCollection
 	},
 ) error {
 	if notification != nil {
@@ -1241,7 +1240,7 @@ func (c *Client[H, N, Hasher, RA, T]) notifyImported(
 //	mut import_block: BlockImportParams<Block, backend::TransactionFor<B, Block>>,
 //
 // ) -> Result<ImportResult, Self::Error> {
-func (c *Client[H, N, Hasher, RA, T]) ImportBlock(importBlock consensus.BlockImportParams[H, N]) chan<- struct {
+func (c *Client[H, N, Hasher, RA]) ImportBlock(importBlock consensus.BlockImportParams[H, N]) chan<- struct {
 	consensus.ImportResult
 	Error error
 } {
@@ -1291,7 +1290,7 @@ func (c *Client[H, N, Hasher, RA, T]) ImportBlock(importBlock consensus.BlockImp
 		//		})
 		//	}
 		var importResult consensus.ImportResult
-		err = c.LockImportAndRun(func(op *api.ClientImportOperation[N, H, T]) error {
+		err = c.LockImportAndRun(func(op *api.ClientImportOperation[N, H, Hasher]) error {
 			var err error
 			importResult, err = c.applyBlock(op, importBlock, storageChanges)
 			return err

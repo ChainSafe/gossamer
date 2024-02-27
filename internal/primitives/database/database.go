@@ -45,6 +45,11 @@ func (t *Transaction[H]) SetFromVec(col ColumnID, key []byte, value []byte) {
 	*t = append(*t, ChangeSet{col, key, value})
 }
 
+// / Remove the value of `key` in `col`.
+func (t *Transaction[H]) Remove(col ColumnID, key []byte) {
+	*t = append(*t, ChangeRemove{col, key})
+}
+
 type Database[H runtime.Hash] interface {
 	/// Commit the `transaction` to the database atomically. Any further calls to `get` or `lookup`
 	/// will reflect the new state.
@@ -60,6 +65,7 @@ type Database[H runtime.Hash] interface {
 	// fn contains(&self, col: ColumnId, key: &[u8]) -> bool {
 	// 	self.get(col, key).is_some()
 	// }
+	Contains(col ColumnID, key []byte) bool
 
 	/// Check value size in the database possibly without retrieving it.
 	// fn value_size(&self, col: ColumnId, key: &[u8]) -> Option<usize> {

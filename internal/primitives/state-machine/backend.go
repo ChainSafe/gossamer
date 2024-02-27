@@ -1,35 +1,35 @@
 package statemachine
 
 import (
-	overlayedchanges "github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayed-changes"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/stats"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
+	"github.com/ChainSafe/gossamer/internal/primitives/trie"
 	"golang.org/x/exp/constraints"
 )
 
-// / Trait that allows consolidate two transactions together.
-type Consolidate interface {
-	Consolidate(other Consolidate)
-}
+// // / Trait that allows consolidate two transactions together.
+// type Consolidate interface {
+// 	Consolidate(other Consolidate)
+// }
 
-type Transaction interface {
-	// Consolidate
-}
+// type Transaction interface {
+// 	// Consolidate
+// }
 
-// / The output type of the `Hasher`
-//
-//	type Out: AsRef<[u8]>
-//		+ AsMut<[u8]>
-//		+ Default
-//		+ MaybeDebug
-//		+ core::cmp::Ord
-//		+ PartialEq
-//		+ Eq
-//		+ hash::Hash
-//		+ Send
-//		+ Sync
-//		+ Clone
-//		+ Copy;
+// // / The output type of the `Hasher`
+// //
+// //	type Out: AsRef<[u8]>
+// //		+ AsMut<[u8]>
+// //		+ Default
+// //		+ MaybeDebug
+// //		+ core::cmp::Ord
+// //		+ PartialEq
+// //		+ Eq
+// //		+ hash::Hash
+// //		+ Send
+// //		+ Sync
+// //		+ Clone
+// //		+ Copy;
 type HasherOut interface {
 	constraints.Ordered
 }
@@ -41,58 +41,53 @@ type Hasher[H HasherOut] interface {
 	Hash(x []byte) H
 }
 
-// pub trait Hasher: Sync + Send {
-//
-// 	/// What to use to build `HashMap`s with this `Hasher`.
-// 	type StdHasher: Sync + Send + Default + hash::Hasher;
-// 	/// The length in bytes of the `Hasher` output.
-// 	const LENGTH: usize;
+// // pub trait Hasher: Sync + Send {
+// //
+// // 	/// What to use to build `HashMap`s with this `Hasher`.
+// // 	type StdHasher: Sync + Send + Default + hash::Hasher;
+// // 	/// The length in bytes of the `Hasher` output.
+// // 	const LENGTH: usize;
 
-// 	/// Compute the hash of the provided slice of bytes returning the `Out` type of the `Hasher`.
-// 	fn hash(x: &[u8]) -> Self::Out;
+// // 	/// Compute the hash of the provided slice of bytes returning the `Out` type of the `Hasher`.
+// // 	fn hash(x: &[u8]) -> Self::Out;
+// // }
+
+// // / Trait modelling datastore keyed by a hash defined by the `Hasher`.
+// // pub trait HashDB<H: Hasher, T>: Send + Sync + AsHashDB<H, T> {
+// type HashDB[H HasherOut, T any] interface {
+// 	// 	/// Look up a given hash into the bytes that hash to it, returning None if the
+// 	// 	/// hash is not known.
+// 	// 	fn get(&self, key: &H::Out, prefix: Prefix) -> Option<T>;
+// 	Get(key H, prefix Prefix) *T
+// 	// 	/// Check for the existence of a hash-key.
+// 	// 	fn contains(&self, key: &H::Out, prefix: Prefix) -> bool;
+// 	Contains(key H, prefix Prefix) bool
+// 	// 	/// Insert a datum item into the DB and return the datum's hash for a later lookup. Insertions
+// 	// 	/// are counted and the equivalent number of `remove()`s must be performed before the data
+// 	// 	/// is considered dead.
+// 	// 	fn insert(&mut self, prefix: Prefix, value: &[u8]) -> H::Out;
+// 	Insert(prefix Prefix, value []byte) H
+// 	// 	/// Like `insert()`, except you provide the key and the data is all moved.
+// 	// 	fn emplace(&mut self, key: H::Out, prefix: Prefix, value: T);
+// 	Emplace(key H, prefix Prefix, value T)
+// 	// 	/// Remove a datum previously inserted. Insertions can be "owed" such that the same number of
+// 	// 	/// `insert()`s may happen without the data being eventually being inserted into the DB.
+// 	// 	/// It can be "owed" more than once.
+// 	// 	fn remove(&mut self, key: &H::Out, prefix: Prefix);
+// 	Remove(key H, prefix Prefix)
 // }
 
-// / Trait modelling datastore keyed by a hash defined by the `Hasher`.
-// pub trait HashDB<H: Hasher, T>: Send + Sync + AsHashDB<H, T> {
-type HashDB[H HasherOut, T any] interface {
-	// 	/// Look up a given hash into the bytes that hash to it, returning None if the
-	// 	/// hash is not known.
-	// 	fn get(&self, key: &H::Out, prefix: Prefix) -> Option<T>;
-	Get(key H, prefix Prefix) *T
-	// 	/// Check for the existence of a hash-key.
-	// 	fn contains(&self, key: &H::Out, prefix: Prefix) -> bool;
-	Contains(key H, prefix Prefix) bool
-	// 	/// Insert a datum item into the DB and return the datum's hash for a later lookup. Insertions
-	// 	/// are counted and the equivalent number of `remove()`s must be performed before the data
-	// 	/// is considered dead.
-	// 	fn insert(&mut self, prefix: Prefix, value: &[u8]) -> H::Out;
-	Insert(prefix Prefix, value []byte) H
-	// 	/// Like `insert()`, except you provide the key and the data is all moved.
-	// 	fn emplace(&mut self, key: H::Out, prefix: Prefix, value: T);
-	Emplace(key H, prefix Prefix, value T)
-	// 	/// Remove a datum previously inserted. Insertions can be "owed" such that the same number of
-	// 	/// `insert()`s may happen without the data being eventually being inserted into the DB.
-	// 	/// It can be "owed" more than once.
-	// 	fn remove(&mut self, key: &H::Out, prefix: Prefix);
-	Remove(key H, prefix Prefix)
-}
+// // / Type of in-memory overlay.
+// // type Overlay: HashDB<H, DBValue> + Default + Consolidate;
+// type Overlay[H HasherOut] interface {
+// 	HashDB[H, []byte]
+// 	Consolidate
+// }
 
-// / Type of in-memory overlay.
-// type Overlay: HashDB<H, DBValue> + Default + Consolidate;
-type Overlay[H HasherOut] interface {
-	HashDB[H, []byte]
-	Consolidate
-}
-
-type Prefix struct {
-	Key    []byte
-	Padded *byte
-}
-
-// / Key-value pairs storage that is used by trie backend essence.
-type TrieBackendStorage[H HasherOut] interface {
-	Get(key H, prefix Prefix) (*[]byte, error)
-}
+// type Prefix struct {
+// 	Key    []byte
+// 	Padded *byte
+// }
 
 // / A struct containing arguments for iterating over the storage.
 type IterArgs struct {
@@ -124,28 +119,28 @@ type IterArgs struct {
 }
 
 // / A trait for a raw storage iterator.
-type StorageIterator[H HasherOut, T Transaction] interface {
-	// 	/// Fetches the next key from the storage.
-	// 	fn next_key(
-	// 		&mut self,
-	// 		backend: &Self::Backend,
-	// 	) -> Option<core::result::Result<StorageKey, Self::Error>>;
-	NextKey(backend Backend[H, T]) (overlayedchanges.StorageKey, error)
+// type StorageIterator[H HasherOut, Backend any] interface {
+// 	// 	/// Fetches the next key from the storage.
+// 	// 	fn next_key(
+// 	// 		&mut self,
+// 	// 		backend: &Self::Backend,
+// 	// 	) -> Option<core::result::Result<StorageKey, Self::Error>>;
+// 	NextKey(backend Backend[H, T]) (overlayedchanges.StorageKey, error)
 
-	// 	/// Fetches the next key and value from the storage.
-	// 	fn next_pair(
-	// 		&mut self,
-	// 		backend: &Self::Backend,
-	// 	) -> Option<core::result::Result<(StorageKey, StorageValue), Self::Error>>;
-	NextPair(backend Backend[H, T]) (struct {
-		overlayedchanges.StorageKey
-		overlayedchanges.StorageValue
-	}, error)
+// 	// 	/// Fetches the next key and value from the storage.
+// 	// 	fn next_pair(
+// 	// 		&mut self,
+// 	// 		backend: &Self::Backend,
+// 	// 	) -> Option<core::result::Result<(StorageKey, StorageValue), Self::Error>>;
+// 	NextPair(backend Backend[H, T]) (struct {
+// 		overlayedchanges.StorageKey
+// 		overlayedchanges.StorageValue
+// 	}, error)
 
-	/// Returns whether the end of iteration was reached without an error.
-	// fn was_complete(&self) -> bool;
-	WasComplete() bool
-}
+// 	/// Returns whether the end of iteration was reached without an error.
+// 	// fn was_complete(&self) -> bool;
+// 	WasComplete() bool
+// }
 
 // / An iterator over storage keys and values.
 // pub struct PairsIter<'a, H, I>
@@ -159,10 +154,10 @@ type StorageIterator[H HasherOut, T Transaction] interface {
 //		raw_iter: I,
 //		_phantom: PhantomData<H>,
 //	}
-type PairsIter[H HasherOut, T Transaction] struct {
-	backend *Backend[H, T]
-	rawIter StorageIterator[H, T]
-}
+// type PairsIter[H HasherOut, T Transaction] struct {
+// 	backend *Backend[H, T]
+// 	rawIter StorageIterator[H, T]
+// }
 
 // / An iterator over storage keys.
 // pub struct KeysIter<'a, H, I>
@@ -176,23 +171,25 @@ type PairsIter[H HasherOut, T Transaction] struct {
 //		raw_iter: I,
 //		_phantom: PhantomData<H>,
 //	}
-type KeysIter[H HasherOut, T Transaction] struct {
-	backend *Backend[H, T]
-	rawIter StorageIterator[H, T]
-}
+// type KeysIter[H HasherOut, T Transaction] struct {
+// 	backend *Backend[H, T]
+// 	rawIter StorageIterator[H, T]
+// }
+
+type BackendTransaction[Hasher any] trie.PrefixedMemoryDB[Hasher]
 
 // / A state backend is used to read state data and can have changes committed
 // / to it.
 // /
 // / The clone operation (if implemented) should be cheap.
-type Backend[H HasherOut, T Transaction] interface {
+type Backend[Hash HasherOut, H Hasher[Hash]] interface {
 	/// Get keyed storage or None if there is nothing associated.
 	// fn storage(&self, key: &[u8]) -> Result<Option<StorageValue>, Self::Error>;
-	Storage(key []byte) (*overlayedchanges.StorageValue, error)
+	Storage(key []byte) (*StorageValue, error)
 
 	/// Get keyed storage value hash or None if there is nothing associated.
 	// fn storage_hash(&self, key: &[u8]) -> Result<Option<H::Out>, Self::Error>;
-	StorageHash(key []byte) (*H, error)
+	StorageHash(key []byte) (*Hash, error)
 
 	/// Get keyed child storage or None if there is nothing associated.
 	// fn child_storage(
@@ -200,7 +197,7 @@ type Backend[H HasherOut, T Transaction] interface {
 	// 	child_info: &ChildInfo,
 	// 	key: &[u8],
 	// ) -> Result<Option<StorageValue>, Self::Error>;
-	ChildStorage(childInfo storage.ChildInfo, key []byte) (*overlayedchanges.StorageValue, error)
+	ChildStorage(childInfo storage.ChildInfo, key []byte) (*StorageValue, error)
 
 	/// Get child keyed storage value hash or None if there is nothing associated.
 	// fn child_storage_hash(
@@ -208,7 +205,7 @@ type Backend[H HasherOut, T Transaction] interface {
 	// 	child_info: &ChildInfo,
 	// 	key: &[u8],
 	// ) -> Result<Option<H::Out>, Self::Error>;
-	ChildStorageHash(childInfo storage.ChildInfo, key []byte) (*H, error)
+	ChildStorageHash(childInfo storage.ChildInfo, key []byte) (*Hash, error)
 
 	/// true if a key exists in storage.
 	// fn exists_storage(&self, key: &[u8]) -> Result<bool, Self::Error> {
@@ -228,7 +225,7 @@ type Backend[H HasherOut, T Transaction] interface {
 
 	/// Return the next key in storage in lexicographic order or `None` if there is no value.
 	// fn next_storage_key(&self, key: &[u8]) -> Result<Option<StorageKey>, Self::Error>;
-	NextStorageKey(key []byte) (*overlayedchanges.StorageKey, error)
+	NextStorageKey(key []byte) (*StorageKey, error)
 
 	/// Return the next key in child storage in lexicographic order or `None` if there is no value.
 	// fn next_child_storage_key(
@@ -236,7 +233,7 @@ type Backend[H HasherOut, T Transaction] interface {
 	// 	child_info: &ChildInfo,
 	// 	key: &[u8],
 	// ) -> Result<Option<StorageKey>, Self::Error>;
-	NextChildStorageKey(childInfo storage.ChildInfo, key []byte) (*overlayedchanges.StorageKey, error)
+	NextChildStorageKey(childInfo storage.ChildInfo, key []byte) (*StorageKey, error)
 
 	/// Calculate the storage root, with given delta over what is already stored in
 	/// the backend, and produce a "transaction" that can be used to commit.
@@ -251,7 +248,7 @@ type Backend[H HasherOut, T Transaction] interface {
 	StorageRoot(delta []struct {
 		Key   []byte
 		Value []byte
-	}, stateVersion storage.StateVersion) (H, Transaction)
+	}, stateVersion storage.StateVersion) (Hash, BackendTransaction[H])
 
 	/// Calculate the child storage root, with given delta over what is already stored in
 	/// the backend, and produce a "transaction" that can be used to commit. The second argument
@@ -267,11 +264,11 @@ type Backend[H HasherOut, T Transaction] interface {
 	ChildStorageRoot(childInfo storage.ChildInfo, delta []struct {
 		Key   []byte
 		Value []byte
-	}, stateVersion storage.StateVersion) (H, bool, Transaction)
+	}, stateVersion storage.StateVersion) (H, bool, BackendTransaction[H])
 
 	// /// Returns a lifetimeless raw storage iterator.
 	// fn raw_iter(&self, args: IterArgs) -> Result<Self::RawIter, Self::Error>;
-	RawIter(args IterArgs) (StorageIterator[H, T], error)
+	// RawIter(args IterArgs) (StorageIterator[H, T], error)
 
 	// /// Get an iterator over key/value pairs.
 	// fn pairs<'a>(&'a self, args: IterArgs) -> Result<PairsIter<'a, H, Self::RawIter>, Self::Error> {
@@ -281,7 +278,7 @@ type Backend[H HasherOut, T Transaction] interface {
 	// 		_phantom: Default::default(),
 	// 	})
 	// }
-	Pairs(args IterArgs) (PairsIter[H, T], error)
+	// Pairs(args IterArgs) (PairsIter[H, T], error)
 
 	// /// Get an iterator over keys.
 	// fn keys<'a>(&'a self, args: IterArgs) -> Result<KeysIter<'a, H, Self::RawIter>, Self::Error> {
@@ -291,7 +288,7 @@ type Backend[H HasherOut, T Transaction] interface {
 	// 		_phantom: Default::default(),
 	// 	})
 	// }
-	Keys(args IterArgs) (KeysIter[H, T], error)
+	// Keys(args IterArgs) (KeysIter[H, T], error)
 
 	// /// Calculate the storage root, with given delta over what is already stored
 	// /// in the backend, and produce a "transaction" that can be used to commit.
@@ -315,7 +312,7 @@ type Backend[H HasherOut, T Transaction] interface {
 			Key   []byte
 			Value []byte
 		}
-	}, stateVersion storage.StateVersion) (H, Transaction)
+	}, stateVersion storage.StateVersion) (H, BackendTransaction[H])
 
 	/// Register stats from overlay of state machine.
 	///
@@ -346,7 +343,7 @@ type Backend[H HasherOut, T Transaction] interface {
 	// ) -> Result<(), Self::Error> {
 	// 	unimplemented!()
 	// }
-	Commit(H, Transaction, overlayedchanges.StorageCollection, overlayedchanges.ChildStorageCollection) error
+	Commit(H, BackendTransaction[H], StorageCollection, ChildStorageCollection) error
 
 	/// Get the read/write count of the db
 	// fn read_write_count(&self) -> (u32, u32, u32, u32) {

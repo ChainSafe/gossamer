@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"log"
 
 	"github.com/ChainSafe/gossamer/internal/client/db/metakeys"
@@ -74,6 +75,21 @@ func blockIDToLookupKey[H runtime.Hash, N runtime.Number](db database.Database[h
 	}
 }
 
+var (
+	errDoesNotExist = errors.New("Database does not exist at given location")
+)
+
+func openDatabase(dbSource DatabaseSource, create bool) (database.Database[hash.H256], error) {
+	// Maybe migrate (copy) the database to a type specific subdirectory to make it
+	// possible that light and full databases coexist
+	// NOTE: This function can be removed in a few releases
+	// maybe_migrate_to_type_subdir::<Block>(db_source, db_type)?;
+	if dbSource.RequireCreateFlag && !create {
+		return nil, errDoesNotExist
+	}
+	return dbSource.DB, nil
+}
+
 // / Read database column entry for the given block.
 func readDB[H runtime.Hash, N runtime.Number](db database.Database[hash.H256], colIndex uint32, col uint32, id generic.BlockID) (*[]byte, error) {
 	key, err := blockIDToLookupKey[H, N](db, colIndex, id)
@@ -86,7 +102,29 @@ func readDB[H runtime.Hash, N runtime.Number](db database.Database[hash.H256], c
 	return nil, nil
 }
 
-func readMeta[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](db database.Database[hash.H256], colHeader uint32) (meta[H, N], error) {
+// / Read a header from the database.
+func readHeader[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
+	db database.Database[hash.H256], colIndex uint32, col uint32, id generic.BlockID,
+) (*runtime.Header[N, H], error) {
+	headerBytes, err := readDB[H, N](db, colIndex, col, id)
+	if err != nil {
+		return nil, err
+	}
+	if headerBytes == nil {
+		return nil, nil
+	}
+	var header Header
+	err = scale.Unmarshal(*headerBytes, &header)
+	if err != nil {
+		return nil, err
+	}
+	ret := runtime.Header[N, H](header)
+	return &ret, nil
+}
+
+func readMeta[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
+	db database.Database[hash.H256], colHeader uint32,
+) (meta[H, N], error) {
 	genesisHash, err := readGenesisHash[H](db)
 	if err != nil {
 		return meta[H, N]{}, err
@@ -170,4 +208,17 @@ func readGenesisHash[H any](db database.Database[hash.H256]) (*H, error) {
 		return &h, nil
 	}
 	return nil, nil
+}
+
+type joinInput struct {
+	I1 []byte
+	I2 []byte
+}
+
+func (ji joinInput) Bytes() []byte {
+	return append(ji.I1, ji.I2...)
+}
+
+func newJoinInput(i1 []byte, i2 []byte) joinInput {
+	return joinInput{i1, i2}
 }

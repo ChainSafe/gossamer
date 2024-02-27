@@ -9,7 +9,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -47,9 +46,9 @@ const maxUnknownHeaders = 100_000
 type FinalityProofProvider[
 	Hash runtime.Hash,
 	N runtime.Number,
-	T statemachine.Transaction,
+	Hasher runtime.Hasher[Hash],
 ] struct {
-	backend            api.Backend[Hash, N, T]
+	backend            api.Backend[Hash, N, Hasher]
 	sharedAuthoritySet *SharedAuthoritySet[Hash, N]
 }
 
@@ -61,12 +60,12 @@ type FinalityProofProvider[
 func NewFinalityProofProvider[
 	Hash runtime.Hash,
 	N runtime.Number,
-	T statemachine.Transaction,
+	Hasher runtime.Hasher[Hash],
 ](
-	backend api.Backend[Hash, N, T],
+	backend api.Backend[Hash, N, Hasher],
 	sharedAuthSet *SharedAuthoritySet[Hash, N],
-) *FinalityProofProvider[Hash, N, T] {
-	return &FinalityProofProvider[Hash, N, T]{
+) *FinalityProofProvider[Hash, N, Hasher] {
+	return &FinalityProofProvider[Hash, N, Hasher]{
 		backend:            backend,
 		sharedAuthoritySet: sharedAuthSet,
 	}
@@ -132,9 +131,9 @@ type FinalityProof[Hash runtime.Hash, N runtime.Number] struct {
 func proveFinality[
 	Hash runtime.Hash,
 	N runtime.Number,
-	T statemachine.Transaction,
+	Hasher runtime.Hasher[Hash],
 ](
-	backend api.Backend[Hash, N, T],
+	backend api.Backend[Hash, N, Hasher],
 	authSetChanges AuthoritySetChanges[N],
 	block N,
 	collectUnknownHeaders bool,
