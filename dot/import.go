@@ -21,7 +21,7 @@ import (
 
 // ImportState imports the state in the given files to the database with the given path.
 func ImportState(basepath, stateFP, headerFP string, stateTrieVersion trie.TrieLayout, firstSlot uint64) error {
-	tr, err := newTrieFromPairs(stateFP)
+	tr, err := newTrieFromPairs(stateFP, trie.V0)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func ImportState(basepath, stateFP, headerFP string, stateTrieVersion trie.TrieL
 	return srv.Import(header, tr, stateTrieVersion, firstSlot)
 }
 
-func newTrieFromPairs(filename string) (*trie.Trie, error) {
+func newTrieFromPairs(filename string, version trie.TrieLayout) (*trie.Trie, error) {
 	data, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func newTrieFromPairs(filename string) (*trie.Trie, error) {
 		entries[pairArr[0].(string)] = pairArr[1].(string)
 	}
 
-	tr, err := trie.LoadFromMap(entries, trie.V0)
+	tr, err := trie.LoadFromMap(entries, version)
 	if err != nil {
 		return nil, err
 	}
