@@ -11,11 +11,6 @@ import (
 
 // encodeHeader writes the encoded header for the node.
 func encodeHeader(node *Node, isHashedValue bool, writer io.Writer) (err error) {
-	if node == nil {
-		_, err = writer.Write([]byte{emptyVariant.bits})
-		return err
-	}
-
 	partialKeyLength := len(node.PartialKey)
 	if partialKeyLength > int(maxPartialKeyLength) {
 		panic(fmt.Sprintf("partial key length is too big: %d", partialKeyLength))

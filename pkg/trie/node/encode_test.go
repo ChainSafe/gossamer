@@ -136,7 +136,7 @@ func Test_Node_Encode(t *testing.T) {
 				PartialKey:    []byte{1, 2, 3},
 				StorageValue:  largeValue,
 				IsHashedValue: true,
-				MustBeHashed:  false,
+				MustBeHashed:  true,
 			},
 			writes: []writeCall{
 				{
@@ -151,7 +151,7 @@ func Test_Node_Encode(t *testing.T) {
 				},
 			},
 			wrappedErr: errTest,
-			errMessage: "encoding hashed storage value: test error",
+			errMessage: "writing hashed storage value: test error",
 		},
 		"branch_header_encoding_error": {
 			node: &Node{

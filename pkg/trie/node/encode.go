@@ -16,14 +16,14 @@ import (
 // of this package, and specified in the Polkadot spec at
 // https://spec.polkadot.network/#sect-state-storage
 func (n *Node) Encode(buffer Buffer) (err error) {
+	if n == nil {
+		_, err = buffer.Write([]byte{emptyVariant.bits})
+		return err
+	}
+
 	err = encodeHeader(n, n.MustBeHashed, buffer)
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %w", err)
-	}
-
-	if n == nil {
-		// only encode the empty variant byte header
-		return nil
 	}
 
 	keyLE := codec.NibblesToKeyLE(n.PartialKey)
@@ -55,7 +55,7 @@ func (n *Node) Encode(buffer Buffer) (err error) {
 
 			_, err = buffer.Write(hashedValue.ToBytes())
 			if err != nil {
-				return fmt.Errorf("scale encoding storage value: %w", err)
+				return fmt.Errorf("writing hashed storage value: %w", err)
 			}
 		default:
 			encoder := scale.NewEncoder(buffer)
