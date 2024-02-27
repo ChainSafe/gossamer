@@ -24,7 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
 var _ ChainSync = (*chainSync)(nil)
@@ -238,21 +238,17 @@ func (cs *chainSync) stop() error {
 	}
 }
 
-func (cs *chainSync) currentSyncInformations() (bestBlockHeader *types.Header,
-	isBootstrap bool, err error) {
-	bestBlockHeader, err = cs.blockState.BestBlockHeader()
-	if err != nil {
-		return nil, false, fmt.Errorf("getting best block header: %w", err)
-	}
-
+func (cs *chainSync) isBootstrapSync(currentBlockNumber uint) bool {
 	syncTarget := cs.peerViewSet.getTarget()
-	bestBlockNumber := bestBlockHeader.Number
-	isBootstrap = bestBlockNumber+network.MaxBlocksInResponse < syncTarget
-	return bestBlockHeader, isBootstrap, nil
+	return currentBlockNumber+network.MaxBlocksInResponse < syncTarget
 }
 
 func (cs *chainSync) bootstrapSync() {
 	defer cs.wg.Done()
+	currentBlock, err := cs.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		panic("cannot find highest finalised header")
+	}
 
 	for {
 		select {
@@ -262,17 +258,17 @@ func (cs *chainSync) bootstrapSync() {
 		default:
 		}
 
-		bestBlockHeader, isBootstrap, err := cs.currentSyncInformations()
-		if err != nil {
-			logger.Criticalf("ending bootstrap sync, getting current sync info: %s", err)
-			return
-		}
-
+		isBootstrap := cs.isBootstrapSync(currentBlock.Number)
 		if isBootstrap {
 			cs.workerPool.useConnectedPeers()
-			err = cs.requestMaxBlocksFrom(bestBlockHeader, networkInitialSync)
+			err = cs.requestMaxBlocksFrom(currentBlock, networkInitialSync)
 			if err != nil {
 				logger.Errorf("requesting max blocks from best block header: %s", err)
+			}
+
+			currentBlock, err = cs.blockState.BestBlockHeader()
+			if err != nil {
+				logger.Errorf("getting best block header: %v", err)
 			}
 		} else {
 			// we are less than 128 blocks behind the target we can use tip sync
@@ -297,11 +293,12 @@ func (cs *chainSync) onBlockAnnounceHandshake(who peer.ID, bestHash common.Hash,
 		return nil
 	}
 
-	_, isBootstrap, err := cs.currentSyncInformations()
+	bestBlockHeader, err := cs.blockState.BestBlockHeader()
 	if err != nil {
-		return fmt.Errorf("getting current sync info: %w", err)
+		return err
 	}
 
+	isBootstrap := cs.isBootstrapSync(bestBlockHeader.Number)
 	if !isBootstrap {
 		return nil
 	}
@@ -318,7 +315,6 @@ func (cs *chainSync) onBlockAnnounceHandshake(who peer.ID, bestHash common.Hash,
 
 func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 	// TODO: https://github.com/ChainSafe/gossamer/issues/3432
-	cs.workerPool.fromBlockAnnounce(announced.who)
 	if cs.pendingBlocks.hasBlock(announced.header.Hash()) {
 		return fmt.Errorf("%w: block #%d (%s)",
 			errAlreadyInDisjointSet, announced.header.Number, announced.header.Hash())
@@ -333,12 +329,13 @@ func (cs *chainSync) onBlockAnnounce(announced announcedBlock) error {
 		return nil
 	}
 
-	bestBlockHeader, isFarFromTarget, err := cs.currentSyncInformations()
+	bestBlockHeader, err := cs.blockState.BestBlockHeader()
 	if err != nil {
-		return fmt.Errorf("getting current sync info: %w", err)
+		return fmt.Errorf("getting best block header: %w", err)
 	}
 
-	if !isFarFromTarget {
+	isBootstrap := cs.isBootstrapSync(bestBlockHeader.Number)
+	if !isBootstrap {
 		return cs.requestAnnouncedBlock(bestBlockHeader, announced)
 	}
 

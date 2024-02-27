@@ -20,8 +20,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/allocator"
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/klauspost/compress/zstd"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
@@ -387,6 +387,9 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		NewFunctionBuilder().
 		WithFunc(ext_storage_commit_transaction_version_1).
 		Export("ext_storage_commit_transaction_version_1").
+		NewFunctionBuilder().
+		WithFunc(ext_crypto_ecdsa_generate_version_1).
+		Export("ext_crypto_ecdsa_generate_version_1").
 		Instantiate(ctx)
 
 	if err != nil {

@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
 var (
