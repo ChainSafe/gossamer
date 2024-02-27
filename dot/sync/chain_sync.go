@@ -875,7 +875,7 @@ func (cs *chainSync) handleBlock(block *types.Block, announceImportedBlock bool)
 		return err
 	}
 
-	root := ts.MustRoot(trie.NoMaxInlineValueSize)
+	root := ts.MustRoot(trie.V0)
 	if !bytes.Equal(parent.StateRoot[:], root[:]) {
 		panic("parent state root does not match snapshot state root")
 	}

@@ -330,7 +330,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 		Header: types.Header{
 			Number:     3,
 			ParentHash: chain.Block.BestBlockHash(),
-			StateRoot:  ts.MustRoot(trie.NoMaxInlineValueSize),
+			StateRoot:  ts.MustRoot(trie.V0),
 			Digest:     digest,
 		},
 		Body: types.Body{},

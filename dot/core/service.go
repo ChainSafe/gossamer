@@ -247,7 +247,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	logger.Debugf("imported block %s and stored state trie with root %s",
-		block.Header.Hash(), state.MustRoot(trie.NoMaxInlineValueSize))
+		block.Header.Hash(), state.MustRoot(trie.V0))
 
 	parentRuntimeInstance, err := s.blockState.GetRuntime(block.Header.ParentHash)
 	if err != nil {

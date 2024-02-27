@@ -44,11 +44,7 @@ func TestTrieState_SetGetChildStorage(t *testing.T) {
 	ts := NewTrieState(trie.NewEmptyTrie())
 
 	for _, tc := range testCases {
-		childTrie := trie.NewEmptyTrie()
-		err := ts.SetChild([]byte(tc), childTrie)
-		require.NoError(t, err)
-
-		err = ts.SetChildStorage([]byte(tc), []byte(tc), []byte(tc))
+		err := ts.SetChildStorage([]byte(tc), []byte(tc), []byte(tc))
 		require.NoError(t, err)
 	}
 
@@ -62,11 +58,7 @@ func TestTrieState_SetGetChildStorage(t *testing.T) {
 func TestTrieState_SetAndClearFromChild(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
-			childTrie := trie.NewEmptyTrie()
-			err := ts.SetChild([]byte(tc), childTrie)
-			require.NoError(t, err)
-
-			err = ts.SetChildStorage([]byte(tc), []byte(tc), []byte(tc))
+			err := ts.SetChildStorage([]byte(tc), []byte(tc), []byte(tc))
 			require.NoError(t, err)
 		}
 
@@ -104,8 +96,8 @@ func TestTrieState_Root(t *testing.T) {
 			ts.Put([]byte(tc), []byte(tc))
 		}
 
-		expected := ts.MustRoot(trie.NoMaxInlineValueSize)
-		require.Equal(t, expected, ts.MustRoot(trie.NoMaxInlineValueSize))
+		expected := ts.MustRoot(trie.V0)
+		require.Equal(t, expected, ts.MustRoot(trie.V0))
 	}
 
 	ts := NewTrieState(trie.NewEmptyTrie())
@@ -141,26 +133,24 @@ func TestTrieState_ClearPrefixInChild(t *testing.T) {
 	ts := NewTrieState(trie.NewEmptyTrie())
 	child := trie.NewEmptyTrie()
 
-	keys := []string{
-		"noot",
-		"noodle",
-		"other",
-	}
-
-	for i, key := range keys {
-		child.Put([]byte(key), []byte{byte(i)})
+	keys := [][]byte{
+		[]byte("noot"),
+		[]byte("noodle"),
+		[]byte("other"),
 	}
 
 	keyToChild := []byte("keytochild")
 
-	err := ts.SetChild(keyToChild, child)
-	require.NoError(t, err)
+	for i, key := range keys {
+		ts.SetChildStorage(keyToChild, key, []byte{byte(i)})
+		child.Put(key, []byte{byte(i)})
+	}
 
-	err = ts.ClearPrefixInChild(keyToChild, []byte("noo"))
+	err := ts.ClearPrefixInChild(keyToChild, []byte("noo"))
 	require.NoError(t, err)
 
 	for i, key := range keys {
-		val, err := ts.GetChildStorage(keyToChild, []byte(key))
+		val, err := ts.GetChildStorage(keyToChild, key)
 		require.NoError(t, err)
 		if i < 2 {
 			require.Nil(t, val)
@@ -258,7 +248,7 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 				require.NotNil(t, ts.Get([]byte("key-3")))
 
 				require.Nil(t, ts.Get([]byte("key-4")))
-				require.Equal(t, 1, ts.transactions.Len())
+				require.Equal(t, 0, ts.transactions.Len())
 			},
 		},
 		"committing_all_nested_transactions": {
@@ -295,7 +285,7 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 				require.NotNil(t, ts.Get([]byte("key-1")))
 				require.NotNil(t, ts.Get([]byte("key-2")))
 				require.NotNil(t, ts.Get([]byte("key-4")))
-				require.Equal(t, 1, ts.transactions.Len())
+				require.Equal(t, 0, ts.transactions.Len())
 			},
 		},
 		"rollback_without_transaction_should_panic": {
@@ -327,22 +317,18 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 
 func TestTrieState_DeleteChildLimit(t *testing.T) {
 	ts := NewTrieState(trie.NewEmptyTrie())
-	child := trie.NewEmptyTrie()
 
-	keys := []string{
-		"key3",
-		"key1",
-		"key2",
-	}
-
-	for i, key := range keys {
-		child.Put([]byte(key), []byte{byte(i)})
+	keys := [][]byte{
+		[]byte("key3"),
+		[]byte("key1"),
+		[]byte("key2"),
 	}
 
 	keyToChild := []byte("keytochild")
 
-	err := ts.SetChild(keyToChild, child)
-	require.NoError(t, err)
+	for i, key := range keys {
+		ts.SetChildStorage(keyToChild, key, []byte{byte(i)})
+	}
 
 	testLimitBytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(testLimitBytes, uint32(2))

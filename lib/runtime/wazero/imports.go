@@ -1236,17 +1236,12 @@ func ext_default_child_storage_root_version_1(
 		panic("nil runtime context")
 	}
 	storage := rtCtx.Storage
-	child, err := storage.GetChild(read(m, childStorageKey))
-	if err != nil {
-		logger.Errorf("failed to retrieve child: %s", err)
-		return 0
-	}
-
-	childRoot, err := trie.V0.Hash(child)
+	childRoot, err := storage.GetChildRoot(read(m, childStorageKey), trie.V0)
 	if err != nil {
 		logger.Errorf("failed to encode child root: %s", err)
 		return 0
 	}
+
 	childRootSlice := childRoot[:]
 
 	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&childRootSlice))
@@ -1265,11 +1260,6 @@ func ext_default_child_storage_root_version_2(ctx context.Context, m api.Module,
 	}
 	storage := rtCtx.Storage
 	key := read(m, childStorageKey)
-	child, err := storage.GetChild(key)
-	if err != nil {
-		logger.Errorf("failed to retrieve child: %s", err)
-		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
-	}
 
 	stateVersion, err := trie.ParseVersion(version)
 	if err != nil {
@@ -1277,7 +1267,7 @@ func ext_default_child_storage_root_version_2(ctx context.Context, m api.Module,
 		return 0
 	}
 
-	childRoot, err := stateVersion.Hash(child)
+	childRoot, err := storage.GetChildRoot(key, stateVersion)
 	if err != nil {
 		logger.Errorf("failed to encode child root: %s", err)
 		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
@@ -2283,7 +2273,7 @@ func ext_storage_root_version_1(ctx context.Context, m api.Module) uint64 {
 	}
 	storage := rtCtx.Storage
 
-	root, err := storage.Root(trie.V0.MaxInlineValue())
+	root, err := storage.Root(trie.V0)
 	if err != nil {
 		logger.Errorf("failed to get storage root: %s", err)
 		panic(err)
@@ -2312,7 +2302,7 @@ func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint3
 		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
 	}
 
-	root, err := storage.Root(stateVersion.MaxInlineValue())
+	root, err := storage.Root(stateVersion)
 	if err != nil {
 		logger.Errorf("failed to get storage root: %s", err)
 		panic(err)

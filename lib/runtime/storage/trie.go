@@ -19,23 +19,24 @@ import (
 // If the execution of the call is successful, the trie will be saved in the StorageState.
 type TrieState struct {
 	mtx          sync.RWMutex
+	state        *trie.Trie
 	transactions *list.List
 }
 
-func NewTrieState(state *trie.Trie) *TrieState {
+func NewTrieState(initialState *trie.Trie) *TrieState {
 	transactions := list.New()
-	transactions.PushBack(state)
 	return &TrieState{
 		transactions: transactions,
+		state:        initialState,
 	}
 }
 
-func (t *TrieState) getCurrentTrie() *trie.Trie {
-	return t.transactions.Back().Value.(*trie.Trie)
-}
-
-func (t *TrieState) updateCurrentTrie(new *trie.Trie) {
-	t.transactions.Back().Value = new
+func (t *TrieState) getCurrentTransaction() *changeSet {
+	innerTransaction := t.transactions.Back()
+	if innerTransaction == nil {
+		return nil
+	}
+	return innerTransaction.Value.(*changeSet)
 }
 
 // StartTransaction begins a new nested storage transaction
@@ -44,7 +45,12 @@ func (t *TrieState) StartTransaction() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	t.transactions.PushBack(t.getCurrentTrie().Snapshot())
+	nextChangeSet := t.getCurrentTransaction()
+	if nextChangeSet == nil {
+		nextChangeSet = newChangeSet()
+	}
+
+	t.transactions.PushBack(nextChangeSet.snapshot())
 }
 
 // Rollback rolls back all storage changes made since StartTransaction was called.
@@ -52,7 +58,7 @@ func (t *TrieState) RollbackTransaction() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	if t.transactions.Len() <= 1 {
+	if t.transactions.Len() < 1 {
 		panic("no transactions to rollback")
 	}
 
@@ -64,23 +70,22 @@ func (t *TrieState) CommitTransaction() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	if t.transactions.Len() <= 1 {
+	if t.transactions.Len() == 0 {
 		panic("no transactions to commit")
 	}
 
-	t.transactions.Back().Prev().Value = t.transactions.Remove(t.transactions.Back())
+	if t.transactions.Len() > 1 {
+		// We merge this transaction with its parent transaction
+		t.transactions.Back().Prev().Value = t.transactions.Remove(t.transactions.Back())
+	} else {
+		// This is the last transaction so we apply all the changes to our state
+		t.transactions.Remove(t.transactions.Back()).(*changeSet).applyToTrie(t.state)
+	}
 }
 
 // Trie returns the TrieState's underlying trie
 func (t *TrieState) Trie() *trie.Trie {
-	return t.getCurrentTrie()
-}
-
-// Snapshot creates a new "version" of the trie. The trie before Snapshot is called
-// can no longer be modified, all further changes are on a new "version" of the trie.
-// It returns the new version of the trie.
-func (t *TrieState) Snapshot() *trie.Trie {
-	return t.getCurrentTrie().Snapshot()
+	return t.state
 }
 
 // Put puts a key-value pair in the trie
@@ -88,24 +93,46 @@ func (t *TrieState) Put(key, value []byte) (err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	return t.getCurrentTrie().Put(key, value)
+	// If we have running transactions we apply the change there,
+	// if not, we apply the changes directly on our state trie
+	if t.getCurrentTransaction() != nil {
+		t.getCurrentTransaction().upsert(string(key), value)
+		return nil
+	} else {
+		return t.state.Put(key, value)
+	}
 }
 
 // Get gets a value from the trie
 func (t *TrieState) Get(key []byte) []byte {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
-	return t.getCurrentTrie().Get(key)
+
+	// If we find the key or it is deleted return from latest transaction
+	val, deleted := t.getCurrentTransaction().get(string(key))
+	if val != nil || deleted {
+		return val
+	}
+
+	// If we didn't find the key in the latest transactions lookup from state
+	return t.state.Get(key)
 }
 
 // MustRoot returns the trie's root hash. It panics if it fails to compute the root.
-func (t *TrieState) MustRoot(maxInlineValue int) common.Hash {
-	return t.getCurrentTrie().MustHash(maxInlineValue)
+func (t *TrieState) MustRoot(version trie.TrieLayout) common.Hash {
+	hash, err := t.Root(version)
+	if err != nil {
+		panic(err)
+	}
+
+	return hash
 }
 
 // Root returns the trie's root hash
-func (t *TrieState) Root(maxInlineValue int) (common.Hash, error) {
-	return t.getCurrentTrie().Hash(maxInlineValue)
+func (t *TrieState) Root(version trie.TrieLayout) (common.Hash, error) {
+	entries := trie.NewEntriesFromMap(t.TrieEntries())
+
+	return version.Root(entries)
 }
 
 // Has returns whether or not a key exists
@@ -115,33 +142,49 @@ func (t *TrieState) Has(key []byte) bool {
 
 // Delete deletes a key from the trie
 func (t *TrieState) Delete(key []byte) (err error) {
-	val := t.getCurrentTrie().Get(key)
-	if val == nil {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		t.getCurrentTransaction().delete(string(key))
 		return nil
 	}
 
-	t.mtx.Lock()
-	defer t.mtx.Unlock()
-	err = t.getCurrentTrie().Delete(key)
-	if err != nil {
-		return fmt.Errorf("deleting from trie: %w", err)
-	}
-
-	return nil
+	return t.state.Delete(key)
 }
 
 // NextKey returns the next key in the trie in lexicographical order. If it does not exist, it returns nil.
 func (t *TrieState) NextKey(key []byte) []byte {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
-	return t.getCurrentTrie().NextKey(key)
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		allEntries := t.state.Entries()
+		maps.Copy(allEntries, currentTx.upserts)
+
+		keys := maps.Keys(allEntries)
+		sort.Strings(keys)
+
+		for _, k := range keys {
+			if k > string(key) && !currentTx.deletes[k] {
+				return allEntries[k]
+			}
+		}
+	}
+
+	return t.state.NextKey(key)
 }
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
 func (t *TrieState) ClearPrefix(prefix []byte) (err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
-	return t.getCurrentTrie().ClearPrefix(prefix)
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		panic("fix me")
+	}
+
+	return t.state.ClearPrefix(prefix)
 }
 
 // ClearPrefixLimit deletes key-value pairs from the trie where the key starts with the given prefix till limit reached
@@ -150,49 +193,108 @@ func (t *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	return t.getCurrentTrie().ClearPrefixLimit(prefix, limit)
+	return t.state.ClearPrefixLimit(prefix, limit)
 }
 
 // TrieEntries returns every key-value pair in the trie
 func (t *TrieState) TrieEntries() map[string][]byte {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
-	return t.getCurrentTrie().Entries()
+
+	entries := make(map[string][]byte)
+
+	// Get entries from original trie
+	maps.Copy(entries, t.state.Entries())
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		// Overwrite it with last changes
+		maps.Copy(entries, t.getCurrentTransaction().upserts)
+
+		// Remove deleted keys
+		for k := range t.getCurrentTransaction().deletes {
+			delete(entries, k)
+		}
+	}
+
+	return entries
 }
 
-// SetChild sets the child trie at the given key
-func (t *TrieState) SetChild(keyToChild []byte, child *trie.Trie) error {
-	t.mtx.Lock()
-	defer t.mtx.Unlock()
-	return t.getCurrentTrie().SetChild(keyToChild, child)
+// TrieEntries returns every key-value pair in the trie
+func (t *TrieState) childTrieEntries(keyToChild []byte) map[string][]byte {
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+
+	entries := make(map[string][]byte)
+
+	child, err := t.state.GetChild(keyToChild)
+	// err != nil means child not found and we don't have anything to add
+	if err == nil {
+		// Get entries from original child trie
+		maps.Copy(entries, child.Entries())
+	}
+
+	// Overwrite it with last changes
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		if chgs, ok := currentTx.childChangeSet[string(keyToChild)]; ok {
+			maps.Copy(entries, chgs.upserts)
+			// Remove deleted keys
+			for k := range chgs.deletes {
+				delete(entries, k)
+			}
+		}
+	}
+
+	return entries
 }
 
 // SetChildStorage sets a key-value pair in a child trie
 func (t *TrieState) SetChildStorage(keyToChild, key, value []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
-	return t.getCurrentTrie().PutIntoChild(keyToChild, key, value)
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		keyToChildStr := string(keyToChild)
+		keyString := string(key)
+		t.getCurrentTransaction().upsertChild(keyToChildStr, keyString, value)
+		return nil
+	}
+
+	return t.state.PutIntoChild(keyToChild, key, value)
 }
 
-// GetChild returns the child trie at the given key
-func (t *TrieState) GetChild(keyToChild []byte) (*trie.Trie, error) {
+func (t *TrieState) GetChildRoot(keyToChild []byte, version trie.TrieLayout) (common.Hash, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
-	return t.getCurrentTrie().GetChild(keyToChild)
+
+	entries := trie.NewEntriesFromMap(t.childTrieEntries(keyToChild))
+	return version.Root(entries)
 }
 
 // GetChildStorage returns a value from a child trie
 func (t *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
-	return t.getCurrentTrie().GetFromChild(keyToChild, key)
+
+	val, deleted := t.getCurrentTransaction().getFromChild(string(keyToChild), string(key))
+	if val != nil || deleted {
+		return val, nil
+	}
+
+	// If we didnt find the key in the latest transactions lookup from state
+	return t.state.GetFromChild(keyToChild, key)
 }
 
 // DeleteChild deletes a child trie from the main trie
-func (t *TrieState) DeleteChild(key []byte) (err error) {
+func (t *TrieState) DeleteChild(keyToChild []byte) (err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
-	return t.getCurrentTrie().DeleteChild(key)
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		currentTx.deleteChild(string(keyToChild))
+		return nil
+	}
+
+	return t.state.DeleteChild(keyToChild)
 }
 
 // DeleteChildLimit deletes up to limit of database entries by lexicographic order.
@@ -201,9 +303,11 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	trieSnapshot := t.getCurrentTrie().Snapshot()
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		panic("fix me")
+	}
 
-	tr, err := trieSnapshot.GetChild(key)
+	tr, err := t.state.GetChild(key)
 	if err != nil {
 		return 0, false, err
 	}
@@ -211,12 +315,11 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 	childTrieEntries := tr.Entries()
 	qtyEntries := uint32(len(childTrieEntries))
 	if limit == nil {
-		err = trieSnapshot.DeleteChild(key)
+		err = tr.DeleteChild(key)
 		if err != nil {
 			return 0, false, fmt.Errorf("deleting child trie: %w", err)
 		}
 
-		t.updateCurrentTrie(trieSnapshot)
 		return qtyEntries, true, nil
 	}
 	limitUint := binary.LittleEndian.Uint32(*limit)
@@ -239,7 +342,7 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 			break
 		}
 	}
-	t.updateCurrentTrie(trieSnapshot)
+
 	allDeleted = deleted == qtyEntries
 	return deleted, allDeleted, nil
 }
@@ -248,7 +351,15 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 func (t *TrieState) ClearChildStorage(keyToChild, key []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
-	return t.getCurrentTrie().ClearFromChild(keyToChild, key)
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		keyToChildStr := string(keyToChild)
+		keyStr := string(key)
+		t.getCurrentTransaction().deleteFromChild(keyToChildStr, keyStr)
+		return nil
+	}
+
+	return t.state.ClearFromChild(keyToChild, key)
 }
 
 // ClearPrefixInChild clears all the keys from the child trie that have the given prefix
@@ -256,7 +367,11 @@ func (t *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	child, err := t.getCurrentTrie().GetChild(keyToChild)
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		panic("fix me")
+	}
+
+	child, err := t.state.GetChild(keyToChild)
 	if err != nil {
 		return err
 	}
@@ -276,7 +391,7 @@ func (t *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	child, err := t.getCurrentTrie().GetChild(keyToChild)
+	child, err := t.state.GetChild(keyToChild)
 	if err != nil || child == nil {
 		return 0, false, err
 	}
@@ -288,7 +403,8 @@ func (t *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit
 func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
-	child, err := t.getCurrentTrie().GetChild(keyToChild)
+
+	child, err := t.state.GetChild(keyToChild)
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +416,7 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 
 // GetKeysWithPrefixFromChild ...
 func (t *TrieState) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]byte, error) {
-	child, err := t.GetChild(keyToChild)
+	child, err := t.state.GetChild(keyToChild)
 	if err != nil {
 		return nil, err
 	}
@@ -326,5 +442,6 @@ func (t *TrieState) LoadCodeHash() (common.Hash, error) {
 func (t *TrieState) GetChangedNodeHashes() (inserted, deleted map[common.Hash]struct{}, err error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
-	return t.getCurrentTrie().GetChangedNodeHashes()
+
+	return t.state.GetChangedNodeHashes()
 }
