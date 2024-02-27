@@ -90,7 +90,7 @@ func TestService_Initialise(t *testing.T) {
 	require.NoError(t, err)
 
 	genesisHeaderPtr := types.NewHeader(common.NewHash([]byte{77}),
-		genTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
+		genTrie.MustHash(), trie.EmptyHash, 0, nil)
 
 	err = state.Initialise(&genData, genesisHeaderPtr, genTrieCopy)
 	require.NoError(t, err)
