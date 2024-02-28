@@ -13,7 +13,7 @@ import (
 type Storage interface {
 	Put(key []byte, value []byte) (err error)
 	Get(key []byte) []byte
-	Root(maxInlineValueSize int) (common.Hash, error)
+	Root() (common.Hash, error)
 	SetChild(keyToChild []byte, child *trie.Trie) error
 	SetChildStorage(keyToChild, key, value []byte) error
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
@@ -34,6 +34,7 @@ type Storage interface {
 	CommitTransaction()
 	RollbackTransaction()
 	LoadCode() []byte
+	SetVersion(v trie.TrieLayout)
 }
 
 // BasicNetwork interface for functions used by runtime network state function

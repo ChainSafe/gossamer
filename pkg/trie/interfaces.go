@@ -12,18 +12,15 @@ import (
 // the last snapshot.
 type Deltas interface {
 	DeltaMerger
-	DeltaDeletedGetter
+	tracking.Getter
+	DeltaRecorder
+	DeepCopy() (deepCopy *tracking.Deltas)
 }
 
 // DeltaMerger merges the given deltas into the current
 // deltas.
 type DeltaMerger interface {
-	MergeWith(deltas tracking.DeletedGetter)
-}
-
-// DeltaDeletedGetter returns the deleted node hashes recorded so far.
-type DeltaDeletedGetter interface {
-	Deleted() (nodeHashes map[common.Hash]struct{})
+	MergeWith(deltas tracking.Getter)
 }
 
 // DeltaRecorder records deltas done in a ongoing trie operation.

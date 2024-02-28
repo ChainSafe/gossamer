@@ -2152,6 +2152,7 @@ func ext_storage_clear_prefix_version_2(ctx context.Context, m api.Module, prefi
 	}
 
 	limitUint := binary.LittleEndian.Uint32(limit)
+
 	numRemoved, all, err := storage.ClearPrefixLimit(prefix, limitUint)
 	if err != nil {
 		logger.Errorf("failed to clear prefix limit: %s", err)
@@ -2287,7 +2288,7 @@ func ext_storage_root_version_1(ctx context.Context, m api.Module) uint64 {
 	}
 	storage := rtCtx.Storage
 
-	root, err := storage.Root(trie.V0.MaxInlineValue())
+	root, err := storage.Root()
 	if err != nil {
 		logger.Errorf("failed to get storage root: %s", err)
 		panic(err)
@@ -2303,26 +2304,18 @@ func ext_storage_root_version_1(ctx context.Context, m api.Module) uint64 {
 	return rootSpan
 }
 
-func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint32) uint64 { //skipcq: RVV-B0012
+func ext_storage_root_version_2(ctx context.Context, m api.Module, _ uint32) uint64 { //skipcq: RVV-B0012
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
 	}
 	storage := rtCtx.Storage
 
-	stateVersion, err := trie.ParseVersion(version)
-	if err != nil {
-		logger.Errorf("failed parsing state version: %s", err)
-		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
-	}
-
-	root, err := storage.Root(stateVersion.MaxInlineValue())
+	root, err := storage.Root()
 	if err != nil {
 		logger.Errorf("failed to get storage root: %s", err)
 		panic(err)
 	}
-
-	logger.Debugf("root hash is: %s", root)
 
 	rootSpan, err := write(m, rtCtx.Allocator, root[:])
 	if err != nil {
