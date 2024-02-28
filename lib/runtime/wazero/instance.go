@@ -47,14 +47,15 @@ type Instance struct {
 
 // Config is the configuration used to create a Wasmer runtime instance.
 type Config struct {
-	Storage     runtime.Storage
-	Keystore    *keystore.GlobalKeystore
-	LogLvl      log.Level
-	Role        common.NetworkRole
-	NodeStorage runtime.NodeStorage
-	Network     runtime.BasicNetwork
-	Transaction runtime.TransactionState
-	CodeHash    common.Hash
+	Storage        runtime.Storage
+	Keystore       *keystore.GlobalKeystore
+	LogLvl         log.Level
+	Role           common.NetworkRole
+	NodeStorage    runtime.NodeStorage
+	Network        runtime.BasicNetwork
+	Transaction    runtime.TransactionState
+	CodeHash       common.Hash
+	DefaultVersion *runtime.Version
 }
 
 func decompressWasm(code []byte) ([]byte, error) {
@@ -100,6 +101,7 @@ func NewInstanceFromTrie(t *trie.Trie, cfg Config) (*Instance, error) {
 
 // NewInstance instantiates a runtime from raw wasm bytecode
 func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
+	logger.Info("instantiating a runtime!")
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
 	ctx := context.Background()
@@ -420,11 +422,9 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	}
 
 	allocator := allocator.NewFreeingBumpHeapAllocator(hb)
-
-	return &Instance{
+	instance = &Instance{
 		Runtime: rt,
 		Context: &runtime.Context{
-			Storage:         cfg.Storage,
 			Allocator:       allocator,
 			Keystore:        cfg.Keystore,
 			Validator:       cfg.Role == common.AuthorityRole,
@@ -436,7 +436,22 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		},
 		Module:   mod,
 		codeHash: cfg.CodeHash,
-	}, nil
+	}
+
+	if cfg.DefaultVersion == nil {
+		err = instance.version()
+		if err != nil {
+			return nil, fmt.Errorf("while getting runtime version: %w", err)
+		}
+	} else {
+		instance.Context.Version = cfg.DefaultVersion
+	}
+
+	if cfg.Storage != nil {
+		instance.SetContextStorage(cfg.Storage)
+	}
+
+	return instance, nil
 }
 
 var ErrExportFunctionNotFound = errors.New("export function not found")
@@ -515,7 +530,6 @@ func (in *Instance) version() error { //skipcq: RVV-B0001
 	}
 
 	in.Context.Version = &version
-
 	return nil
 }
 
@@ -855,6 +869,17 @@ func (in *Instance) Validator() bool {
 func (in *Instance) SetContextStorage(s runtime.Storage) {
 	in.Lock()
 	defer in.Unlock()
+
+	if in.Context.Version == nil {
+		panic("expected runtime version got nil")
+	}
+
+	runtimeStateVersion, err := trie.ParseVersion(in.Context.Version.StateVersion)
+	if err != nil {
+		panic(err)
+	}
+
+	s.SetVersion(runtimeStateVersion)
 	in.Context.Storage = s
 }
 

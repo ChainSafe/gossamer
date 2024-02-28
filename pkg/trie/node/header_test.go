@@ -240,7 +240,8 @@ func Test_encodeHeader(t *testing.T) {
 				previousCall = call
 			}
 
-			err := encodeHeader(testCase.node, testCase.maxInlineValueSize, writer)
+			isHashedValue := len(testCase.node.StorageValue) > testCase.maxInlineValueSize
+			err := encodeHeader(testCase.node, isHashedValue, writer)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {
@@ -258,7 +259,7 @@ func Test_encodeHeader(t *testing.T) {
 		}
 
 		assert.PanicsWithValue(t, "partial key length is too big: 65536", func() {
-			_ = encodeHeader(node, 0, io.Discard)
+			_ = encodeHeader(node, true, io.Discard)
 		})
 	})
 }
@@ -293,7 +294,7 @@ func Test_encodeHeader_At_Maximum(t *testing.T) {
 		PartialKey: make([]byte, keyLength),
 	}
 
-	err := encodeHeader(node, NoMaxInlineValueSize, buffer)
+	err := encodeHeader(node, false, buffer)
 
 	require.NoError(t, err)
 	assert.Equal(t, expectedBytes, buffer.Bytes())
