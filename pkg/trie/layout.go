@@ -109,12 +109,12 @@ func (v TrieLayout) MustHash(t Trie) common.Hash {
 }
 
 // ParseVersion parses a state trie version string.
-func ParseVersion[T string | uint32](v T) (version TrieLayout, err error) {
+func ParseVersion[T string | uint8](v T) (version TrieLayout, err error) {
 	var s string
 	switch value := any(v).(type) {
 	case string:
 		s = value
-	case uint32:
+	case uint8:
 		s = fmt.Sprintf("V%d", value)
 	}
 

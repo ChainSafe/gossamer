@@ -795,7 +795,7 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 		panic("nil runtime context")
 	}
 
-	stateVersion, err := trie.ParseVersion(version)
+	stateVersion, err := trie.ParseVersion(uint8(version))
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
@@ -841,7 +841,7 @@ func ext_trie_blake2_256_ordered_root_version_2(
 
 	data := read(m, dataSpan)
 
-	stateVersion, err := trie.ParseVersion(version)
+	stateVersion, err := trie.ParseVersion(uint8(version))
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
@@ -923,7 +923,7 @@ func ext_trie_blake2_256_verify_proof_version_2(
 		panic("nil runtime context")
 	}
 
-	_, err := trie.ParseVersion(version)
+	_, err := trie.ParseVersion(uint8(version))
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
