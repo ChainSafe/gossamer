@@ -35,7 +35,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
@@ -385,7 +385,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	node, err := NewNode(config, ks)
 	require.NoError(t, err)
 
-	expected, err := trie.LoadFromMap(gen.GenesisFields().Raw["top"])
+	expected, err := trie.LoadFromMap(gen.GenesisFields().Raw["top"], trie.V0)
 	require.NoError(t, err)
 
 	expectedRoot, err := trie.V0.Hash(&expected) // Since we are using a runtime with state trie V0

@@ -12,8 +12,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 )
 
@@ -79,7 +79,7 @@ func compareStateRoots(response modules.StateTrieResponse, expectedStateRoot com
 		entries[common.BytesToHex(entry.Key)] = common.BytesToHex(entry.Value)
 	}
 
-	newTrie, err := trie.LoadFromMap(entries)
+	newTrie, err := trie.LoadFromMap(entries, trieVersion)
 	if err != nil {
 		panic(fmt.Sprintf("loading trie from map %v", err))
 	}

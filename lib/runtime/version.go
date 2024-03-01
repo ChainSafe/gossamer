@@ -28,7 +28,7 @@ type Version struct {
 	ImplVersion        uint32
 	APIItems           []APIItem
 	TransactionVersion uint32
-	StateVersion       uint32
+	StateVersion       uint8
 }
 
 var (

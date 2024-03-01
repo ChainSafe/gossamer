@@ -21,9 +21,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/trie/proof"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie/proof"
 	"github.com/tetratelabs/wazero/api"
 )
 
@@ -108,6 +108,10 @@ func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, t
 	default:
 		logger.Errorf("level=%d target=%s message=%s", int(level), target, msg)
 	}
+}
+
+func ext_crypto_ecdsa_generate_version_1(ctx context.Context, m api.Module, _ uint32, _ uint64) uint32 {
+	panic("TODO impl: see https://github.com/ChainSafe/gossamer/issues/3769 ")
 }
 
 func ext_crypto_ed25519_generate_version_1(
@@ -791,7 +795,7 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 		panic("nil runtime context")
 	}
 
-	stateVersion, err := trie.ParseVersion(version)
+	stateVersion, err := trie.ParseVersion(uint8(version))
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
@@ -837,7 +841,7 @@ func ext_trie_blake2_256_ordered_root_version_2(
 
 	data := read(m, dataSpan)
 
-	stateVersion, err := trie.ParseVersion(version)
+	stateVersion, err := trie.ParseVersion(uint8(version))
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
@@ -919,7 +923,7 @@ func ext_trie_blake2_256_verify_proof_version_2(
 		panic("nil runtime context")
 	}
 
-	_, err := trie.ParseVersion(version)
+	_, err := trie.ParseVersion(uint8(version))
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
@@ -1271,7 +1275,7 @@ func ext_default_child_storage_root_version_2(ctx context.Context, m api.Module,
 		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
 	}
 
-	stateVersion, err := trie.ParseVersion(version)
+	stateVersion, err := trie.ParseVersion(uint8(version))
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
@@ -2148,6 +2152,7 @@ func ext_storage_clear_prefix_version_2(ctx context.Context, m api.Module, prefi
 	}
 
 	limitUint := binary.LittleEndian.Uint32(limit)
+
 	numRemoved, all, err := storage.ClearPrefixLimit(prefix, limitUint)
 	if err != nil {
 		logger.Errorf("failed to clear prefix limit: %s", err)
@@ -2283,7 +2288,7 @@ func ext_storage_root_version_1(ctx context.Context, m api.Module) uint64 {
 	}
 	storage := rtCtx.Storage
 
-	root, err := storage.Root(trie.V0.MaxInlineValue())
+	root, err := storage.Root()
 	if err != nil {
 		logger.Errorf("failed to get storage root: %s", err)
 		panic(err)
@@ -2299,26 +2304,18 @@ func ext_storage_root_version_1(ctx context.Context, m api.Module) uint64 {
 	return rootSpan
 }
 
-func ext_storage_root_version_2(ctx context.Context, m api.Module, version uint32) uint64 { //skipcq: RVV-B0012
+func ext_storage_root_version_2(ctx context.Context, m api.Module, _ uint32) uint64 { //skipcq: RVV-B0012
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
 	}
 	storage := rtCtx.Storage
 
-	stateVersion, err := trie.ParseVersion(version)
-	if err != nil {
-		logger.Errorf("failed parsing state version: %s", err)
-		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
-	}
-
-	root, err := storage.Root(stateVersion.MaxInlineValue())
+	root, err := storage.Root()
 	if err != nil {
 		logger.Errorf("failed to get storage root: %s", err)
 		panic(err)
 	}
-
-	logger.Debugf("root hash is: %s", root)
 
 	rootSpan, err := write(m, rtCtx.Allocator, root[:])
 	if err != nil {

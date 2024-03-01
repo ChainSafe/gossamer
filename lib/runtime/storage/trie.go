@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"golang.org/x/exp/maps"
 )
 
@@ -71,8 +71,17 @@ func (t *TrieState) CommitTransaction() {
 	t.transactions.Back().Prev().Value = t.transactions.Remove(t.transactions.Back())
 }
 
+func (t *TrieState) SetVersion(v trie.TrieLayout) {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+	t.getCurrentTrie().SetVersion(v)
+}
+
 // Trie returns the TrieState's underlying trie
 func (t *TrieState) Trie() *trie.Trie {
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+
 	return t.getCurrentTrie()
 }
 
@@ -80,6 +89,9 @@ func (t *TrieState) Trie() *trie.Trie {
 // can no longer be modified, all further changes are on a new "version" of the trie.
 // It returns the new version of the trie.
 func (t *TrieState) Snapshot() *trie.Trie {
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+
 	return t.getCurrentTrie().Snapshot()
 }
 
@@ -99,13 +111,19 @@ func (t *TrieState) Get(key []byte) []byte {
 }
 
 // MustRoot returns the trie's root hash. It panics if it fails to compute the root.
-func (t *TrieState) MustRoot(maxInlineValue int) common.Hash {
-	return t.getCurrentTrie().MustHash(maxInlineValue)
+func (t *TrieState) MustRoot() common.Hash {
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+
+	return t.getCurrentTrie().MustHash()
 }
 
 // Root returns the trie's root hash
-func (t *TrieState) Root(maxInlineValue int) (common.Hash, error) {
-	return t.getCurrentTrie().Hash(maxInlineValue)
+func (t *TrieState) Root() (common.Hash, error) {
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+
+	return t.getCurrentTrie().Hash()
 }
 
 // Has returns whether or not a key exists
@@ -122,6 +140,7 @@ func (t *TrieState) Delete(key []byte) (err error) {
 
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
+
 	err = t.getCurrentTrie().Delete(key)
 	if err != nil {
 		return fmt.Errorf("deleting from trie: %w", err)
@@ -171,6 +190,7 @@ func (t *TrieState) SetChild(keyToChild []byte, child *trie.Trie) error {
 func (t *TrieState) SetChildStorage(keyToChild, key, value []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
+
 	return t.getCurrentTrie().PutIntoChild(keyToChild, key, value)
 }
 
@@ -178,6 +198,7 @@ func (t *TrieState) SetChildStorage(keyToChild, key, value []byte) error {
 func (t *TrieState) GetChild(keyToChild []byte) (*trie.Trie, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
+
 	return t.getCurrentTrie().GetChild(keyToChild)
 }
 
@@ -185,6 +206,7 @@ func (t *TrieState) GetChild(keyToChild []byte) (*trie.Trie, error) {
 func (t *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
+
 	return t.getCurrentTrie().GetFromChild(keyToChild, key)
 }
 
@@ -192,6 +214,7 @@ func (t *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 func (t *TrieState) DeleteChild(key []byte) (err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
+
 	return t.getCurrentTrie().DeleteChild(key)
 }
 

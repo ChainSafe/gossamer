@@ -6,9 +6,9 @@ package state
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/internal/trie/node"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
@@ -59,7 +59,7 @@ func Test_Tries_SetTrie(t *testing.T) {
 
 	expectedTries := &Tries{
 		rootToTrie: map[common.Hash]*trie.Trie{
-			tr.MustHash(trie.NoMaxInlineValueSize): tr,
+			tr.MustHash(): tr,
 		},
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,

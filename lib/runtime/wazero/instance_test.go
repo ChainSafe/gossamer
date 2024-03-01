@@ -21,9 +21,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wazero/testdata"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 
 	"github.com/stretchr/testify/assert"
@@ -259,7 +259,7 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 	key := common.MustHexToBytes(genesis.GrandpaAuthoritiesKeyHex)
 	tt.Put(key, value)
 
-	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929, TestWithTrie(tt))
 
 	auths, err := rt.GrandpaAuthorities()
 	require.NoError(t, err)
@@ -287,7 +287,7 @@ func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 	key := common.MustHexToBytes(genesis.GrandpaAuthoritiesKeyHex)
 	tt.Put(key, value)
 
-	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME_v0929, tt)
+	rt := NewTestInstance(t, runtime.POLKADOT_RUNTIME_v0929, TestWithTrie(tt))
 
 	auths, err := rt.GrandpaAuthorities()
 	require.NoError(t, err)
@@ -336,7 +336,7 @@ func TestInstance_BabeGenerateKeyOwnershipProof(t *testing.T) {
 			key = common.MustHexToBytes(genesis.BABEAuthoritiesKeyHex)
 			tt.Put(key, authorityValue)
 
-			rt := NewTestInstanceWithTrie(t, testCase.targetRuntime, tt)
+			rt := NewTestInstance(t, testCase.targetRuntime, TestWithTrie(tt))
 
 			babeConfig, err := rt.BabeConfiguration()
 			require.NoError(t, err)
@@ -371,7 +371,7 @@ func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			tt := trie.NewEmptyTrie()
-			rt := NewTestInstanceWithTrie(t, testCase.targetRuntime, tt)
+			rt := NewTestInstance(t, testCase.targetRuntime, TestWithTrie(tt))
 			authorityID := types.AuthorityID{1}
 			const slot = uint64(1)
 
@@ -549,7 +549,7 @@ func TestInstance_BabeConfiguration_WestendRuntime_WithAuthorities(t *testing.T)
 	key = common.MustHexToBytes(genesis.BABEAuthoritiesKeyHex)
 	tt.Put(key, authorityValue)
 
-	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929, TestWithTrie(tt))
 
 	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
@@ -1094,7 +1094,7 @@ func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
 		entries[pairArr[0].(string)] = pairArr[1].(string)
 	}
 
-	tr, err := trie.LoadFromMap(entries)
+	tr, err := trie.LoadFromMap(entries, trie.V0)
 	require.NoError(t, err)
 	return &tr
 }

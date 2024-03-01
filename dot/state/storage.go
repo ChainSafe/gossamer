@@ -13,8 +13,8 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/trie/proof"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie/proof"
 )
 
 // storagePrefix storage key prefix.
@@ -59,8 +59,7 @@ func NewStorageState(db database.Database, blockState *BlockState,
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
-	root := ts.MustRoot(trie.NoMaxInlineValueSize)
-
+	root := ts.MustRoot()
 	s.tries.softSet(root, ts.Trie())
 
 	if header != nil {
@@ -92,7 +91,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("while getting best block state root: %w", err)
 		}
 		root = &sr
 	}
@@ -102,11 +101,11 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		var err error
 		t, err = s.LoadFromDB(*root)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("while loading from database: %w", err)
 		}
 
 		s.tries.softSet(*root, t)
-	} else if t.MustHash(trie.NoMaxInlineValueSize) != *root {
+	} else if t.MustHash() != *root {
 		panic("trie does not have expected root")
 	}
 
@@ -125,7 +124,7 @@ func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
 		return nil, err
 	}
 
-	s.tries.softSet(t.MustHash(trie.NoMaxInlineValueSize), t)
+	s.tries.softSet(t.MustHash(), t)
 	return t, nil
 }
 
