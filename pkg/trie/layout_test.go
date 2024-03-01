@@ -64,7 +64,7 @@ func Test_ParseVersion(t *testing.T) {
 			version: V0,
 		},
 		"0": {
-			v:       uint32(0),
+			v:       uint8(0),
 			version: V0,
 		},
 		"v1": {
@@ -76,7 +76,7 @@ func Test_ParseVersion(t *testing.T) {
 			version: V1,
 		},
 		"1": {
-			v:       uint32(1),
+			v:       uint8(1),
 			version: V1,
 		},
 		"invalid": {
@@ -84,10 +84,10 @@ func Test_ParseVersion(t *testing.T) {
 			errWrapped: ErrParseVersion,
 			errMessage: "parsing version failed: \"xyz\" must be one of [v0, v1]",
 		},
-		"invalid_uint32": {
-			v:          uint32(999),
+		"invalid_uint8": {
+			v:          uint8(99),
 			errWrapped: ErrParseVersion,
-			errMessage: "parsing version failed: \"V999\" must be one of [v0, v1]",
+			errMessage: "parsing version failed: \"V99\" must be one of [v0, v1]",
 		},
 	}
 
@@ -102,7 +102,7 @@ func Test_ParseVersion(t *testing.T) {
 			switch typed := testCase.v.(type) {
 			case string:
 				version, err = ParseVersion(typed)
-			case uint32:
+			case uint8:
 				version, err = ParseVersion(typed)
 			default:
 				t.Fail()
