@@ -31,8 +31,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var DefaultVersion = &runtime.Version{
+	SpecName:           []byte("goss-test-runtime"),
+	ImplName:           []byte("goss-test-impl"),
+	AuthoringVersion:   0,
+	SpecVersion:        0,
+	ImplVersion:        0,
+	APIItems:           nil,
+	TransactionVersion: 0,
+	StateVersion:       0,
+}
+
 func Test_ext_offchain_index_clear_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	err := inst.Context.NodeStorage.BaseDB.Put(testKey, testValue)
 	require.NoError(t, err)
@@ -52,7 +63,7 @@ func Test_ext_offchain_index_clear_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	idData := []byte(keystore.AccoName)
 	ks, _ := inst.Context.Keystore.GetKeystore(idData)
@@ -85,7 +96,7 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	idData := []byte(keystore.DumyName)
 	ks, _ := inst.Context.Keystore.GetKeystore(idData)
@@ -124,7 +135,7 @@ func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	kp, err := ed25519.GenerateKeypair()
 	require.NoError(t, err)
@@ -162,7 +173,7 @@ func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	kp, err := ed25519.GenerateKeypair()
 	require.NoError(t, err)
@@ -194,7 +205,7 @@ func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	msgData := []byte("Hello world!")
 	blakeHash, err := common.Blake2bHash(msgData)
@@ -239,7 +250,7 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	kp, err := secp256k1.GenerateKeypair()
 	require.NoError(t, err)
@@ -273,7 +284,7 @@ func Test_ext_crypto_ecdsa_verify_version_2(t *testing.T) {
 func Test_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(t *testing.T) {
 	// TODO: fix this
 	t.Skip("host API tester does not yet contain rtm_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1")
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	msgData := []byte("Hello world!")
 	blakeHash, err := common.Blake2bHash(msgData)
@@ -356,7 +367,7 @@ func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
 	for name, tc := range testCases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+			inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 			ret, err := inst.Exec("rtm_ext_crypto_ecdsa_verify_version_2", append(append(tc.sig, tc.msg...), tc.key...))
 			assert.Equal(t, tc.expected, ret)
@@ -370,7 +381,7 @@ func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
 }
 
 func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	idData := []byte(keystore.AccoName)
 	ks, _ := inst.Context.Keystore.GetKeystore(idData)
@@ -402,7 +413,7 @@ func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	idData := []byte(keystore.DumyName)
 	ks, _ := inst.Context.Keystore.GetKeystore(idData)
@@ -441,7 +452,7 @@ func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
@@ -481,7 +492,7 @@ func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_sr25519_verify_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
@@ -515,7 +526,7 @@ func Test_ext_crypto_sr25519_verify_version_1(t *testing.T) {
 func Test_ext_crypto_sr25519_verify_version_2(t *testing.T) {
 	// TODO: add to test runtime since this is required for Westend
 	t.Skip("host API tester does not yet contain rtm_ext_crypto_sr25519_verify_version_2")
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
@@ -547,7 +558,7 @@ func Test_ext_crypto_sr25519_verify_version_2(t *testing.T) {
 }
 
 func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	testinput := []string{"noot", "was", "here", "??"}
 	encInput, err := scale.Marshal(testinput)
@@ -567,12 +578,12 @@ func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 	tt.Put([]byte("noot"), []byte("was"))
 	tt.Put([]byte("here"), []byte("??"))
 
-	expected := tt.MustHash(trie.NoMaxInlineValueSize)
+	expected := tt.MustHash()
 	require.Equal(t, expected[:], hash)
 }
 
 func Test_ext_trie_blake2_256_root_version_2(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	testinput := []string{"dimartiro", "was", "here", "??"}
 	encInput, err := scale.Marshal(testinput)
@@ -599,12 +610,12 @@ func Test_ext_trie_blake2_256_root_version_2(t *testing.T) {
 	tt.Put([]byte("dimartiro"), []byte("was"))
 	tt.Put([]byte("here"), []byte("??"))
 
-	expected := tt.MustHash(stateVersion.MaxInlineValue())
+	expected := tt.MustHash()
 	require.Equal(t, expected[:], hash)
 }
 
 func Test_ext_trie_blake2_256_ordered_root_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	testvalues := []string{"static", "even-keeled", "Future-proofed"}
 	encValues, err := scale.Marshal(testvalues)
@@ -622,7 +633,7 @@ func Test_ext_trie_blake2_256_ordered_root_version_1(t *testing.T) {
 }
 
 func Test_ext_trie_blake2_256_ordered_root_version_2(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	testvalues := []string{"static", "even-keeled", "Future-proofed"}
 	encValues, err := scale.Marshal(testvalues)
@@ -708,7 +719,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 			root: root, key: []byte("do"), proof: [][]byte{}, value: nil, expect: false},
 	}
 
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	for name, testcase := range testcases {
 		testcase := testcase
@@ -806,7 +817,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_2(t *testing.T) {
 			root: root, key: []byte("do"), proof: [][]byte{}, value: nil, expect: false},
 	}
 
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	for name, testcase := range testcases {
 		testcase := testcase
@@ -842,7 +853,7 @@ func Test_ext_trie_blake2_256_verify_proof_version_2(t *testing.T) {
 }
 
 func Test_ext_misc_runtime_version_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	fp, err := runtime.GetRuntime(context.Background(), runtime.WESTEND_RUNTIME_v0929)
 	require.NoError(t, err)
@@ -911,14 +922,14 @@ func Test_ext_default_child_storage_read_version_1(t *testing.T) {
 	}{
 		"should_return_none_if_child_doesnt_exist": {
 			setupInstance: func(t *testing.T) *Instance {
-				return NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+				return NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 			},
 			expected: nil,
 		},
 
 		"child_exists_return_value": {
 			setupInstance: func(t *testing.T) *Instance {
-				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 				//err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
 				//require.NoError(t, err)
@@ -979,7 +990,7 @@ func Test_ext_default_child_storage_set_version_1(t *testing.T) {
 		"child_trie_exists_should_not_panic": {
 			existsBeforehand: true,
 			setupInstance: func(t *testing.T) *Instance {
-				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 				err := inst.Context.Storage.SetChildStorage(testChildKey, []byte("exists"), []byte("exists"))
 				require.NoError(t, err)
@@ -990,7 +1001,7 @@ func Test_ext_default_child_storage_set_version_1(t *testing.T) {
 		"child_trie_not_found_should_create_a_empty_one": {
 			existsBeforehand: false,
 			setupInstance: func(t *testing.T) *Instance {
-				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 				return inst
 			},
 		},
@@ -1058,7 +1069,7 @@ func Test_ext_default_child_storage_set_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	//err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
 	//require.NoError(t, err)
@@ -1087,7 +1098,7 @@ func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	prefix := []byte("key")
 
@@ -1125,10 +1136,7 @@ func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_exists_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-
-	//err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	//require.NoError(t, err)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	err := inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
 	require.NoError(t, err)
@@ -1155,9 +1163,7 @@ func Test_ext_default_child_storage_get_version_1(t *testing.T) {
 	}{
 		"value_exists_expected_value": {
 			setupInstance: func(t *testing.T) *Instance {
-				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-				//err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-				//require.NoError(t, err)
+				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 				err := inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
 				require.NoError(t, err)
@@ -1167,7 +1173,7 @@ func Test_ext_default_child_storage_get_version_1(t *testing.T) {
 		},
 		"value_not_found_expected_none": {
 			setupInstance: func(t *testing.T) *Instance {
-				return NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+				return NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 			},
 			expected: nil,
 		},
@@ -1212,7 +1218,7 @@ func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
 	}{
 		"next_key_exists": {
 			setupInstance: func(t *testing.T) *Instance {
-				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 				//err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
 				//require.NoError(t, err)
@@ -1228,13 +1234,13 @@ func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
 		},
 		"child_tree_not_exists": {
 			setupInstance: func(t *testing.T) *Instance {
-				return NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+				return NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 			},
 			expected: nil,
 		},
 		"with_only_one_key": {
 			setupInstance: func(t *testing.T) *Instance {
-				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 				//err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
 				//require.NoError(t, err)
@@ -1276,14 +1282,12 @@ func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_root_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	err := inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
 	require.NoError(t, err)
 
-	stateVersion := trie.V0
-
-	rootHash, err := inst.Context.Storage.GetChildRoot(testChildKey, stateVersion)
+	rootHash, err := inst.Context.Storage.GetChildRoot(testChildKey)
 	require.NoError(t, err)
 
 	encChildKey, err := scale.Marshal(testChildKey)
@@ -1304,17 +1308,14 @@ func Test_ext_default_child_storage_root_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_root_version_2(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	stateVersion := trie.V1
-
-	//err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	//require.NoError(t, err)
 
 	err := inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
 	require.NoError(t, err)
 
-	rootHash, err := inst.Context.Storage.GetChildRoot(testChildKey, stateVersion)
+	rootHash, err := inst.Context.Storage.GetChildRoot(testChildKey)
 	require.NoError(t, err)
 
 	encChildKey, err := scale.Marshal(testChildKey)
@@ -1340,7 +1341,7 @@ func Test_ext_default_child_storage_root_version_2(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	err := inst.Context.Storage.SetChildStorage(testChildKey, []byte("test"), []byte("test"))
 	require.NoError(t, err)
@@ -1362,7 +1363,7 @@ func Test_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_storage_kill_version_2_limit_all(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	err := inst.Context.Storage.SetChildStorage(testChildKey, []byte(`key2`), []byte(`value2`))
 	require.NoError(t, err)
@@ -1524,7 +1525,7 @@ func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
 }
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	data := []byte("helloworld")
 	enc, err := scale.Marshal(data)
@@ -1543,7 +1544,7 @@ func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
 }
 
 func Test_ext_hashing_blake2_256_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	data := []byte("helloworld")
 	enc, err := scale.Marshal(data)
@@ -1562,7 +1563,7 @@ func Test_ext_hashing_blake2_256_version_1(t *testing.T) {
 }
 
 func Test_ext_hashing_keccak_256_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	data := []byte("helloworld")
 	enc, err := scale.Marshal(data)
@@ -1581,7 +1582,7 @@ func Test_ext_hashing_keccak_256_version_1(t *testing.T) {
 }
 
 func Test_ext_hashing_twox_128_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	data := []byte("helloworld")
 	enc, err := scale.Marshal(data)
@@ -1600,7 +1601,7 @@ func Test_ext_hashing_twox_128_version_1(t *testing.T) {
 }
 
 func Test_ext_hashing_twox_64_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	data := []byte("helloworld")
 	enc, err := scale.Marshal(data)
@@ -1619,7 +1620,7 @@ func Test_ext_hashing_twox_64_version_1(t *testing.T) {
 }
 
 func Test_ext_hashing_sha2_256_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	data := []byte("helloworld")
 	enc, err := scale.Marshal(data)
@@ -1637,7 +1638,7 @@ func Test_ext_hashing_sha2_256_version_1(t *testing.T) {
 }
 
 func Test_ext_offchain_timestamp_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	ret, err := inst.Exec("rtm_ext_offchain_timestamp_version_1", []byte{})
 	require.NoError(t, err)
@@ -1651,7 +1652,7 @@ func Test_ext_offchain_timestamp_version_1(t *testing.T) {
 }
 
 func Test_ext_offchain_sleep_until_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	input := time.Now().UnixMilli()
 	enc, err := scale.Marshal(input)
@@ -1716,7 +1717,7 @@ func Test_ext_default_child_storage_clear_prefix_version_2(t *testing.T) {
 }
 
 func Test_ext_offchain_local_storage_clear_version_1_Persistent(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	testkey := []byte("key1")
 	err := inst.Context.NodeStorage.PersistentStorage.Put(testkey, []byte{1})
@@ -1738,7 +1739,7 @@ func Test_ext_offchain_local_storage_clear_version_1_Persistent(t *testing.T) {
 }
 
 func Test_ext_offchain_local_storage_clear_version_1_Local(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	testkey := []byte("key1")
 	err := inst.Context.NodeStorage.LocalStorage.Put(testkey, []byte{1})
@@ -1760,7 +1761,7 @@ func Test_ext_offchain_local_storage_clear_version_1_Local(t *testing.T) {
 }
 
 func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	encMethod, err := scale.Marshal([]byte("GET"))
 	require.NoError(t, err)
@@ -1816,7 +1817,7 @@ func Test_ext_offchain_http_request_start_version_1(t *testing.T) {
 }
 
 func Test_ext_offchain_http_request_add_header(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	cases := map[string]struct {
 		key, value  string
@@ -1878,7 +1879,7 @@ func Test_ext_offchain_http_request_add_header(t *testing.T) {
 }
 
 func Test_ext_storage_clear_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	testkey := []byte("noot")
 	inst.Context.Storage.Put(testkey, []byte{1})
@@ -1894,7 +1895,7 @@ func Test_ext_storage_clear_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	testkey := []byte("static")
 	inst.Context.Storage.Put(testkey, []byte("Inverse"))
@@ -1916,7 +1917,7 @@ func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
 }
 
 func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	testkey := []byte("noot")
 	inst.Context.Storage.Put(testkey, []byte{1})
@@ -1938,7 +1939,7 @@ func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_clear_prefix_version_2(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	testkey := []byte("noot")
 	inst.Context.Storage.Put(testkey, []byte{1})
@@ -2010,7 +2011,7 @@ func Test_ext_storage_clear_prefix_version_2(t *testing.T) {
 }
 
 func Test_ext_storage_get_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	testkey := []byte("noot")
 	testvalue := []byte{1, 2}
@@ -2054,7 +2055,7 @@ func Test_ext_storage_exists_version_1(t *testing.T) {
 	for name, testCase := range testCases {
 		testCase := testCase
 		t.Run(name, func(t *testing.T) {
-			instance := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+			instance := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 			if testCase.value != nil {
 				instance.Context.Storage.Put(testCase.key, testCase.value)
@@ -2076,7 +2077,7 @@ func Test_ext_storage_exists_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_next_key_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	testkey := []byte("noot")
 	inst.Context.Storage.Put(testkey, []byte{1})
@@ -2098,7 +2099,7 @@ func Test_ext_storage_next_key_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_read_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	testkey := []byte("noot")
 	testvalue := []byte("washere")
@@ -2126,7 +2127,7 @@ func Test_ext_storage_read_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_read_version_1_again(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	testkey := []byte("noot")
 	testvalue := []byte("_was_here_")
@@ -2155,7 +2156,7 @@ func Test_ext_storage_read_version_1_again(t *testing.T) {
 }
 
 func Test_ext_storage_read_version_1_OffsetLargerThanValue(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	testkey := []byte("noot")
 	testvalue := []byte("washere")
@@ -2183,7 +2184,7 @@ func Test_ext_storage_read_version_1_OffsetLargerThanValue(t *testing.T) {
 }
 
 func Test_ext_storage_root_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	ret, err := inst.Exec("rtm_ext_storage_root_version_1", []byte{})
 	require.NoError(t, err)
@@ -2197,7 +2198,7 @@ func Test_ext_storage_root_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_root_version_2(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	stateVersion := uint32(trie.V1)
 	encVersion, err := scale.Marshal(stateVersion)
@@ -2215,7 +2216,7 @@ func Test_ext_storage_root_version_2(t *testing.T) {
 }
 
 func Test_ext_storage_set_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	testkey := []byte("noot")
 	testvalue := []byte("washere")
@@ -2233,7 +2234,7 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_append_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	testkey := []byte("noot")
 	testvalue := []byte("was")
@@ -2282,7 +2283,7 @@ func Test_ext_storage_append_version_1(t *testing.T) {
 
 func Test_ext_storage_append_version_1_again(t *testing.T) {
 	DefaultTestLogLvl = 5
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	testkey := []byte("noot")
 	testvalue := []byte("abc")

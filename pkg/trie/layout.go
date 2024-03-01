@@ -84,6 +84,7 @@ func (v TrieLayout) MaxInlineValue() int {
 // Root returns the root hash of the trie built using the given entries
 func (v TrieLayout) Root(entries Entries) (common.Hash, error) {
 	t := NewEmptyTrie()
+	t.SetVersion(v)
 
 	for _, kv := range entries {
 		err := t.Put(kv.Key, kv.Value)
@@ -92,17 +93,19 @@ func (v TrieLayout) Root(entries Entries) (common.Hash, error) {
 		}
 	}
 
-	return t.Hash(v.MaxInlineValue())
+	return t.Hash()
 }
 
 // Hash returns the root hash of the trie built using the given entries
 func (v TrieLayout) Hash(t *Trie) (common.Hash, error) {
-	return t.Hash(v.MaxInlineValue())
+	t.SetVersion(v)
+	return t.Hash()
 }
 
 // MustHash returns the root hash of the trie built using the given entries or panics if it fails
 func (v TrieLayout) MustHash(t Trie) common.Hash {
-	return t.MustHash(v.MaxInlineValue())
+	t.SetVersion(v)
+	return t.MustHash()
 }
 
 // ParseVersion parses a state trie version string.

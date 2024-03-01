@@ -21,6 +21,7 @@ type TrieState struct {
 	mtx          sync.RWMutex
 	state        *trie.Trie
 	transactions *list.List
+	version      trie.TrieLayout
 }
 
 func NewTrieState(initialState *trie.Trie) *TrieState {
@@ -83,8 +84,18 @@ func (t *TrieState) CommitTransaction() {
 	}
 }
 
+func (t *TrieState) SetVersion(v trie.TrieLayout) {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+	t.version = v
+	t.state.SetVersion(v)
+}
+
 // Trie returns the TrieState's underlying trie
 func (t *TrieState) Trie() *trie.Trie {
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+
 	return t.state
 }
 
@@ -119,8 +130,8 @@ func (t *TrieState) Get(key []byte) []byte {
 }
 
 // MustRoot returns the trie's root hash. It panics if it fails to compute the root.
-func (t *TrieState) MustRoot(version trie.TrieLayout) common.Hash {
-	hash, err := t.Root(version)
+func (t *TrieState) MustRoot() common.Hash {
+	hash, err := t.Root()
 	if err != nil {
 		panic(err)
 	}
@@ -129,10 +140,9 @@ func (t *TrieState) MustRoot(version trie.TrieLayout) common.Hash {
 }
 
 // Root returns the trie's root hash
-func (t *TrieState) Root(version trie.TrieLayout) (common.Hash, error) {
+func (t *TrieState) Root() (common.Hash, error) {
 	entries := trie.NewEntriesFromMap(t.TrieEntries())
-
-	return version.Root(entries)
+	return t.version.Root(entries)
 }
 
 // Has returns whether or not a key exists
@@ -262,12 +272,12 @@ func (t *TrieState) SetChildStorage(keyToChild, key, value []byte) error {
 	return t.state.PutIntoChild(keyToChild, key, value)
 }
 
-func (t *TrieState) GetChildRoot(keyToChild []byte, version trie.TrieLayout) (common.Hash, error) {
+func (t *TrieState) GetChildRoot(keyToChild []byte) (common.Hash, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 
 	entries := trie.NewEntriesFromMap(t.childTrieEntries(keyToChild))
-	return version.Root(entries)
+	return t.version.Root(entries)
 }
 
 // GetChildStorage returns a value from a child trie

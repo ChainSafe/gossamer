@@ -3,7 +3,9 @@
 
 package tracking
 
-import "github.com/ChainSafe/gossamer/lib/common"
+import (
+	"github.com/ChainSafe/gossamer/lib/common"
+)
 
 // Deltas tracks the trie deltas, for example deleted node hashes.
 type Deltas struct {
@@ -31,7 +33,7 @@ func (d *Deltas) Deleted() (nodeHashes map[common.Hash]struct{}) {
 
 // MergeWith merges the deltas given as argument in the receiving
 // deltas struct.
-func (d *Deltas) MergeWith(deltas DeletedGetter) {
+func (d *Deltas) MergeWith(deltas Getter) {
 	for nodeHash := range deltas.Deleted() {
 		d.RecordDeleted(nodeHash)
 	}

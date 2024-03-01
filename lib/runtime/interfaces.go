@@ -12,7 +12,7 @@ import (
 // Storage runtime interface.
 type Storage interface {
 	// Main trie
-	Root(trie.TrieLayout) (common.Hash, error)
+	Root() (common.Hash, error)
 	Put(key []byte, value []byte) (err error)
 	Get(key []byte) []byte
 	Delete(key []byte) (err error)
@@ -22,7 +22,7 @@ type Storage interface {
 		deleted uint32, allDeleted bool, err error)
 
 	// Child tries
-	GetChildRoot(keyToChild []byte, version trie.TrieLayout) (common.Hash, error)
+	GetChildRoot(keyToChild []byte) (common.Hash, error)
 	SetChildStorage(keyToChild, key, value []byte) error
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
 	DeleteChild(keyToChild []byte) (err error)
@@ -40,6 +40,7 @@ type Storage interface {
 
 	// Runtime
 	LoadCode() []byte
+	SetVersion(v trie.TrieLayout)
 }
 
 // BasicNetwork interface for functions used by runtime network state function

@@ -325,7 +325,7 @@ func Test_Trie_PutChild_Store_Load(t *testing.T) {
 		require.NoError(t, err)
 
 		trieFromDB := NewEmptyTrie()
-		err = trieFromDB.Load(db, V0.MustHash(*trie))
+		err = trieFromDB.Load(db, trie.MustHash())
 		require.NoError(t, err)
 
 		assert.Equal(t, trie.childTries, trieFromDB.childTries)

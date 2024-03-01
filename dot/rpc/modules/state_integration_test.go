@@ -17,7 +17,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -575,7 +574,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	err = ts.SetChildStorage([]byte(`:child1`), []byte(`:key1`), []byte(`:childValue1`))
 	require.NoError(t, err)
 
-	sr1, err := ts.Root(trie.V0)
+	sr1, err := ts.Root()
 	require.NoError(t, err)
 	err = chain.Storage.StoreTrie(ts, nil)
 	require.NoError(t, err)

@@ -103,7 +103,7 @@ func Test_Deltas_MergeWith(t *testing.T) {
 
 	testCases := map[string]struct {
 		deltas         Deltas
-		deltasArg      DeletedGetter
+		deltasArg      Getter
 		expectedDeltas Deltas
 	}{
 		"merge_empty_deltas": {

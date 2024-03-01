@@ -96,8 +96,8 @@ func TestTrieState_Root(t *testing.T) {
 			ts.Put([]byte(tc), []byte(tc))
 		}
 
-		expected := ts.MustRoot(trie.V0)
-		require.Equal(t, expected, ts.MustRoot(trie.V0))
+		expected := ts.MustRoot()
+		require.Equal(t, expected, ts.MustRoot())
 	}
 
 	ts := NewTrieState(trie.NewEmptyTrie())

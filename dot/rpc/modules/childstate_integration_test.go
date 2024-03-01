@@ -256,7 +256,7 @@ func setupChildStateStorage(t *testing.T) (*ChildStateModule, common.Hash) {
 	err = tr.SetChildStorage(childStorageKey, []byte(":another_child"), []byte("value"))
 	require.NoError(t, err)
 
-	stateRoot, err := tr.Root(trie.V0)
+	stateRoot, err := tr.Root()
 	require.NoError(t, err)
 
 	bb, err := st.Block.BestBlock()

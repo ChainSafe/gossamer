@@ -1042,7 +1042,7 @@ func Test_encodeRoot_fuzz(t *testing.T) {
 			assert.Equal(t, value, retrievedValue)
 		}
 		buffer := bytes.NewBuffer(nil)
-		err := trie.root.Encode(buffer, DefaultStateVersion.MaxInlineValue())
+		err := trie.root.Encode(buffer)
 		require.NoError(t, err)
 		require.NotEmpty(t, buffer.Bytes())
 	}
