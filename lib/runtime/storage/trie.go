@@ -31,12 +31,12 @@ func NewTrieState(initialState *trie.Trie) *TrieState {
 	}
 }
 
-func (t *TrieState) getCurrentTransaction() *changeSet {
+func (t *TrieState) getCurrentTransaction() *storageDiff {
 	innerTransaction := t.transactions.Back()
 	if innerTransaction == nil {
 		return nil
 	}
-	return innerTransaction.Value.(*changeSet)
+	return innerTransaction.Value.(*storageDiff)
 }
 
 // StartTransaction begins a new nested storage transaction
@@ -79,7 +79,7 @@ func (t *TrieState) CommitTransaction() {
 		t.transactions.Back().Prev().Value = t.transactions.Remove(t.transactions.Back())
 	} else {
 		// This is the last transaction so we apply all the changes to our state
-		t.transactions.Remove(t.transactions.Back()).(*changeSet).applyToTrie(t.state)
+		t.transactions.Remove(t.transactions.Back()).(*storageDiff).applyToTrie(t.state)
 	}
 }
 
@@ -290,7 +290,7 @@ func (t *TrieState) DeleteChild(keyToChild []byte) (err error) {
 	defer t.mtx.Unlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-		currentTx.deleteChild(string(keyToChild))
+		currentTx.delete(string(keyToChild))
 		return nil
 	}
 

@@ -10,23 +10,23 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
-type changeSet struct {
+type storageDiff struct {
 	upserts        map[string][]byte
 	deletes        map[string]bool
-	childChangeSet map[string]*changeSet
+	childChangeSet map[string]*storageDiff
 	l              sync.RWMutex
 }
 
-func newChangeSet() *changeSet {
-	return &changeSet{
+func newChangeSet() *storageDiff {
+	return &storageDiff{
 		upserts:        make(map[string][]byte),
 		deletes:        make(map[string]bool),
-		childChangeSet: make(map[string]*changeSet),
+		childChangeSet: make(map[string]*storageDiff),
 		l:              sync.RWMutex{},
 	}
 }
 
-func (cs *changeSet) get(key string) ([]byte, bool) {
+func (cs *storageDiff) get(key string) ([]byte, bool) {
 	if cs == nil {
 		return nil, false
 	}
@@ -44,7 +44,7 @@ func (cs *changeSet) get(key string) ([]byte, bool) {
 	return nil, false
 }
 
-func (cs *changeSet) upsert(key string, value []byte) {
+func (cs *storageDiff) upsert(key string, value []byte) {
 	if cs == nil {
 		return
 	}
@@ -59,7 +59,7 @@ func (cs *changeSet) upsert(key string, value []byte) {
 	cs.upserts[key] = value
 }
 
-func (cs *changeSet) delete(key string) {
+func (cs *storageDiff) delete(key string) {
 	if cs == nil {
 		return
 	}
@@ -67,11 +67,12 @@ func (cs *changeSet) delete(key string) {
 	cs.l.Lock()
 	defer cs.l.Unlock()
 
+	delete(cs.childChangeSet, key)
 	delete(cs.upserts, key)
 	cs.deletes[key] = true
 }
 
-func (cs *changeSet) getFromChild(keyToChild, key string) ([]byte, bool) {
+func (cs *storageDiff) getFromChild(keyToChild, key string) ([]byte, bool) {
 	if cs == nil {
 		return nil, false
 	}
@@ -91,7 +92,7 @@ func (cs *changeSet) getFromChild(keyToChild, key string) ([]byte, bool) {
 	return nil, false
 }
 
-func (cs *changeSet) upsertChild(keyToChild, key string, value []byte) {
+func (cs *storageDiff) upsertChild(keyToChild, key string, value []byte) {
 	if cs == nil {
 		return
 	}
@@ -112,7 +113,7 @@ func (cs *changeSet) upsertChild(keyToChild, key string, value []byte) {
 	cs.childChangeSet[keyToChild] = childChanges
 }
 
-func (cs *changeSet) deleteFromChild(keyToChild, key string) {
+func (cs *storageDiff) deleteFromChild(keyToChild, key string) {
 	if cs == nil {
 		return
 	}
@@ -130,19 +131,7 @@ func (cs *changeSet) deleteFromChild(keyToChild, key string) {
 	childChanges.childChangeSet[keyToChild].deletes[key] = true
 }
 
-func (cs *changeSet) deleteChild(keyToChild string) {
-	if cs == nil {
-		return
-	}
-
-	cs.l.Lock()
-	defer cs.l.Unlock()
-
-	delete(cs.childChangeSet, keyToChild)
-	cs.deletes[keyToChild] = true
-}
-
-func (cs *changeSet) snapshot() *changeSet {
+func (cs *storageDiff) snapshot() *storageDiff {
 	if cs == nil {
 		panic("Trying to create snapshot from nil change set")
 	}
@@ -150,19 +139,19 @@ func (cs *changeSet) snapshot() *changeSet {
 	cs.l.RLock()
 	defer cs.l.RUnlock()
 
-	childChangeSetCopy := make(map[string]*changeSet)
+	childChangeSetCopy := make(map[string]*storageDiff)
 	for k, v := range cs.childChangeSet {
 		childChangeSetCopy[k] = v.snapshot()
 	}
 
-	return &changeSet{
+	return &storageDiff{
 		upserts:        maps.Clone(cs.upserts),
 		deletes:        maps.Clone(cs.deletes),
 		childChangeSet: childChangeSetCopy,
 	}
 }
 
-func (cs *changeSet) applyToTrie(t *trie.Trie) {
+func (cs *storageDiff) applyToTrie(t *trie.Trie) {
 	if cs == nil {
 		panic("trying to apply nil change set")
 	}
@@ -174,7 +163,7 @@ func (cs *changeSet) applyToTrie(t *trie.Trie) {
 	for k, v := range cs.upserts {
 		err := t.Put([]byte(k), v)
 		if err != nil {
-			panic("Error applying change set to trie")
+			panic("Error applying upserts changes to trie")
 		}
 	}
 
@@ -185,23 +174,33 @@ func (cs *changeSet) applyToTrie(t *trie.Trie) {
 		for k, v := range childChangeSet.upserts {
 			err := t.PutIntoChild(childKey, []byte(k), v)
 			if err != nil {
-				panic("Error applying change set to trie")
+				panic("Error applying child trie changes to trie")
 			}
 		}
 
 		for k := range childChangeSet.deletes {
 			err := t.ClearFromChild(childKey, []byte(k))
 			if err != nil {
-				panic("Error applying change set to trie")
+				panic("Error applying child trie keys deletion to trie")
 			}
 		}
 	}
 
 	// Apply trie deletions
 	for k := range cs.deletes {
-		err := t.Delete([]byte(k))
-		if err != nil {
-			panic("Error applying change set to trie")
+		key := []byte(k)
+		child, _ := t.GetChild(key)
+		if child != nil {
+			err := t.DeleteChild(key)
+			if err != nil {
+				panic("Error deleting child trie from trie")
+			}
+		} else {
+			err := t.Delete([]byte(k))
+			if err != nil {
+				panic("Error deleting key from trie")
+			}
 		}
+
 	}
 }
