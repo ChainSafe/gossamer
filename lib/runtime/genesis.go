@@ -25,7 +25,7 @@ func NewInMemoryTrieFromGenesis(gen genesis.Genesis) (tr *trie.InMemoryTrie, err
 			ErrGenesisTopNotFound, gen.Name)
 	}
 
-	tr, err = trie.LoadFromMap(keyValues)
+	tr, err = trie.LoadFromMap(keyValues, trie.V0)
 	if err != nil {
 		return tr, fmt.Errorf("loading genesis top key values into trie: %w", err)
 	}

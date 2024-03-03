@@ -3,7 +3,10 @@
 
 package network
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"io"
+)
 
 // Telemetry is the telemetry client to send telemetry messages.
 type Telemetry interface {
@@ -22,5 +25,5 @@ type Logger interface {
 // MDNS is the mDNS service interface.
 type MDNS interface {
 	Start() error
-	Stop() error
+	io.Closer
 }

@@ -27,7 +27,6 @@ func (t *InMemoryTrie) Load(db db.DBGetter, rootHash common.Hash) error {
 		return nil
 	}
 	rootHashBytes := rootHash.ToBytes()
-
 	encodedNode, err := db.Get(rootHashBytes)
 	if err != nil {
 		return fmt.Errorf("failed to find root key %s: %w", rootHash, err)
@@ -39,10 +38,36 @@ func (t *InMemoryTrie) Load(db db.DBGetter, rootHash common.Hash) error {
 		return fmt.Errorf("cannot decode root node: %w", err)
 	}
 
+	err = loadStorageValue(db, root)
+	if err != nil {
+		return fmt.Errorf("while decoding storage value for root: %w", err)
+	}
+
 	t.root = root
 	t.root.MerkleValue = rootHashBytes
 
-	return t.loadNode(db, t.root)
+	err = t.loadNode(db, t.root)
+	if err != nil {
+		return err
+	}
+
+	for _, key := range t.GetKeysWithPrefix(ChildStorageKeyPrefix) {
+		value := t.Get(key)
+		childTrie := NewEmptyInmemoryTrie()
+		rootHash := common.BytesToHash(value)
+		err := childTrie.Load(db, rootHash)
+		if err != nil {
+			return fmt.Errorf("failed to load child trie with root hash=%s: %w", rootHash, err)
+		}
+
+		hash, err := childTrie.Hash()
+		if err != nil {
+			return fmt.Errorf("cannot hash chilld trie at key 0x%x: %w", key, err)
+		}
+		t.childTries[hash] = childTrie
+	}
+
+	return nil
 }
 
 func (t *InMemoryTrie) loadNode(db db.DBGetter, n *Node) error {
@@ -61,7 +86,7 @@ func (t *InMemoryTrie) loadNode(db db.DBGetter, n *Node) error {
 		if len(merkleValue) < 32 {
 			// node has already been loaded inline
 			// just set its encoding
-			_, err := child.CalculateMerkleValue(NoMaxInlineValueSize)
+			_, err := child.CalculateMerkleValue()
 			if err != nil {
 				return fmt.Errorf("merkle value: %w", err)
 			}
@@ -78,6 +103,11 @@ func (t *InMemoryTrie) loadNode(db db.DBGetter, n *Node) error {
 		decodedNode, err := node.Decode(reader)
 		if err != nil {
 			return fmt.Errorf("decoding node with hash 0x%x: %w", nodeHash, err)
+		}
+
+		err = loadStorageValue(db, decodedNode)
+		if err != nil {
+			return fmt.Errorf("while decoding storage value: %w", err)
 		}
 
 		decodedNode.MerkleValue = nodeHash
@@ -99,23 +129,23 @@ func (t *InMemoryTrie) loadNode(db db.DBGetter, n *Node) error {
 			branch.Descendants += childBranchDescendants
 		}
 	}
+	return nil
+}
 
-	for _, key := range t.GetKeysWithPrefix(ChildStorageKeyPrefix) {
-		childTrie := NewEmptyInmemoryTrie()
-		value := t.Get(key)
-		rootHash := common.BytesToHash(value)
-		err := childTrie.Load(db, rootHash)
-		if err != nil {
-			return fmt.Errorf("failed to load child trie with root hash=%s: %w", rootHash, err)
-		}
-
-		hash, err := childTrie.Hash(NoMaxInlineValueSize)
-		if err != nil {
-			return fmt.Errorf("cannot hash chilld trie at key 0x%x: %w", key, err)
-		}
-		t.childTries[hash] = childTrie
+func loadStorageValue(db db.DBGetter, node *Node) error {
+	if !node.IsHashedValue {
+		return nil
 	}
 
+	prefixedKey := bytes.Join([][]byte{node.PartialKey, node.StorageValue[:]}, nil)
+	rawStorageValue, err := db.Get(prefixedKey)
+	if err != nil {
+		return err
+	}
+
+	node.IsHashedValue = false
+	node.MustBeHashed = true
+	node.StorageValue = rawStorageValue
 	return nil
 }
 
@@ -289,10 +319,21 @@ func (t *InMemoryTrie) writeDirtyNode(db db.DBPutter, n *Node) (err error) {
 	// TODO: I'm sure we don't need to store the encoded now, we can try storing the (key,value) only but it needs
 	// some refactor and testing. In the meantime we can store the encoded node using the v0 encoding
 	if n == t.root {
-		encoding, merkleValue, err = n.EncodeAndHashRoot(V0.MaxInlineValue())
+		encoding, merkleValue, err = n.EncodeAndHashRoot()
 	} else {
-		encoding, merkleValue, err = n.EncodeAndHash(V0.MaxInlineValue())
+		encoding, merkleValue, err = n.EncodeAndHash()
 	}
+
+	if n.MustBeHashed {
+		hashedValue := common.MustBlake2bHash(n.StorageValue)
+		if err != nil {
+			return err
+		}
+
+		prefixedKey := bytes.Join([][]byte{n.PartialKey, hashedValue[:]}, nil)
+		err = db.Put(prefixedKey, n.StorageValue)
+	}
+
 	if err != nil {
 		return fmt.Errorf(
 			"encoding and hashing node with Merkle value 0x%x: %w",
@@ -366,9 +407,9 @@ func (t *InMemoryTrie) getInsertedNodeHashesAtNode(n *Node, nodeHashes map[commo
 
 	var merkleValue []byte
 	if n == t.root {
-		merkleValue, err = n.CalculateRootMerkleValue(NoMaxInlineValueSize)
+		merkleValue, err = n.CalculateRootMerkleValue()
 	} else {
-		merkleValue, err = n.CalculateMerkleValue(NoMaxInlineValueSize)
+		merkleValue, err = n.CalculateMerkleValue()
 	}
 	if err != nil {
 		return fmt.Errorf("calculating Merkle value: %w", err)

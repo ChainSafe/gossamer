@@ -126,8 +126,6 @@ func generateExtrinsic(t *testing.T) (extrinsic, externalExtrinsic types.Extrins
 func Test_Service_StorageRoot(t *testing.T) {
 	t.Parallel()
 
-	ts := inmemory_storage.NewTrieState(trie.NewEmptyInmemoryTrie())
-
 	tests := []struct {
 		name          string
 		service       *Service
@@ -137,7 +135,7 @@ func Test_Service_StorageRoot(t *testing.T) {
 		retErr        error
 		expErr        error
 		expErrMsg     string
-		stateVersion  uint32
+		stateVersion  uint8
 	}{
 		{
 			name:          "storage trie state error",
@@ -152,7 +150,7 @@ func Test_Service_StorageRoot(t *testing.T) {
 			service: &Service{},
 			exp: common.Hash{0x3, 0x17, 0xa, 0x2e, 0x75, 0x97, 0xb7, 0xb7, 0xe3, 0xd8, 0x4c, 0x5, 0x39, 0x1d, 0x13, 0x9a,
 				0x62, 0xb1, 0x57, 0xe7, 0x87, 0x86, 0xd8, 0xc0, 0x82, 0xf2, 0x9d, 0xcf, 0x4c, 0x11, 0x13, 0x14},
-			retTrieState:  ts,
+			retTrieState:  inmemory_storage.NewTrieState(trie.NewEmptyInmemoryTrie()),
 			trieStateCall: true,
 			stateVersion:  0,
 		},
@@ -161,7 +159,7 @@ func Test_Service_StorageRoot(t *testing.T) {
 			service: &Service{},
 			exp: common.Hash{0x3, 0x17, 0xa, 0x2e, 0x75, 0x97, 0xb7, 0xb7, 0xe3, 0xd8, 0x4c, 0x5, 0x39, 0x1d, 0x13, 0x9a,
 				0x62, 0xb1, 0x57, 0xe7, 0x87, 0x86, 0xd8, 0xc0, 0x82, 0xf2, 0x9d, 0xcf, 0x4c, 0x11, 0x13, 0x14},
-			retTrieState:  ts,
+			retTrieState:  inmemory_storage.NewTrieState(trie.NewEmptyInmemoryTrie()),
 			trieStateCall: true,
 			stateVersion:  1,
 		},
@@ -282,6 +280,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			errWrapped: io.ErrUnexpectedEOF,
 		},
 		"store_code_substitution_block_hash_error": {
+			trieState: inmemory_storage.NewTrieState(trie.NewEmptyInmemoryTrie()),
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				storedRuntime := NewMockInstance(ctrl)
 				storedRuntime.EXPECT().Keystore().Return(nil)
@@ -339,6 +338,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 				}
 			},
 			blockHash: common.Hash{0x01},
+			trieState: inmemory_storage.NewTrieState(trie.NewEmptyInmemoryTrie()),
 		},
 	}
 

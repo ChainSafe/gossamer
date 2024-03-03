@@ -880,7 +880,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *inmemory_storage.InMemoryTr
 		return fmt.Errorf("failed to update code substituted block hash: %w", err)
 	}
 
-	newVersion, err := parentRuntimeInstance.Version()
+	newVersion, err := instance.Version()
 	if err != nil {
 		return err
 	}

@@ -178,7 +178,9 @@ type PeerSet struct {
 	// TODO: this will be useful for reserved only mode
 	// this is for future purpose if reserved-only flag is enabled (#1888).
 	isReservedOnly bool
-	resultMsgCh    chan Message
+
+	// resultMsgCh is read by network.Service.
+	resultMsgCh chan Message
 	// time when the PeerSet was created.
 	created time.Time
 	// last time when we updated the reputations of connected nodes.
@@ -369,6 +371,7 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 }
 
 // allocSlots tries to fill available outgoing slots of nodes for the given set.
+// By default this getting called every X seconds according to nextPeriodicAllocSlots ticker
 func (ps *PeerSet) allocSlots(setIdx int) error {
 	err := ps.updateTime()
 	if err != nil {
@@ -382,7 +385,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 		case connectedPeer:
 			continue
 		case unknownPeer:
-			peerState.discover(setIdx, reservePeer)
+			peerState.insertPeer(setIdx, reservePeer)
 		}
 
 		node, err := ps.peerState.getNode(reservePeer)
@@ -425,7 +428,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 		}
 
 		if err = peerState.tryOutgoing(setIdx, peerID); err != nil {
-			logger.Errorf("could not set peer %s as outgoing connection: %s", peerID.Pretty(), err)
+			logger.Errorf("could not set peer %s as outgoing connection: %s", peerID.String(), err)
 			break
 		}
 
@@ -450,7 +453,7 @@ func (ps *PeerSet) addReservedPeers(setID int, peers ...peer.ID) error {
 			return nil
 		}
 
-		ps.peerState.discover(setID, peerID)
+		ps.peerState.insertPeer(setID, peerID)
 
 		ps.reservedNode[peerID] = struct{}{}
 		if err := ps.peerState.addNoSlotNode(setID, peerID); err != nil {
@@ -537,13 +540,16 @@ func (ps *PeerSet) setReservedPeer(setID int, peers ...peer.ID) error {
 	return nil
 }
 
+// addPeer checks peer existence in peerSet and if it does not insert the peer in to peerstate with
+// default reputation and notConnected status. Afterwards runs allocSlots that checks availability of outgoing slots
+// and put notConnected peers in to them
 func (ps *PeerSet) addPeer(setID int, peers peer.IDSlice) error {
 	for _, pid := range peers {
 		if ps.peerState.peerStatus(setID, pid) != unknownPeer {
 			return nil
 		}
 
-		ps.peerState.discover(setID, pid)
+		ps.peerState.insertPeer(setID, pid)
 		if err := ps.allocSlots(setID); err != nil {
 			return fmt.Errorf("could not allocate slots: %w", err)
 		}
@@ -612,7 +618,7 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		case notConnectedPeer:
 			ps.peerState.nodes[pid].lastConnected[setID] = time.Now()
 		case unknownPeer:
-			ps.peerState.discover(setID, pid)
+			ps.peerState.insertPeer(setID, pid)
 		}
 
 		state := ps.peerState

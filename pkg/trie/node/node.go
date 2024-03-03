@@ -17,6 +17,7 @@ type Node struct {
 	// PartialKey is the partial key bytes in nibbles (0 to f in hexadecimal)
 	PartialKey   []byte
 	StorageValue []byte
+	MustBeHashed bool
 	// IsHashedValue is true when the StorageValue is a blake2b hash
 	IsHashedValue bool
 	// Generation is incremented on every trie Snapshot() call.

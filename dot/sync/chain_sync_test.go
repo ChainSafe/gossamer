@@ -64,10 +64,10 @@ func Test_chainSync_onBlockAnnounce(t *testing.T) {
 
 	errTest := errors.New("test error")
 	emptyTrieState := inmemory_storage.NewTrieState(trie.NewEmptyInmemoryTrie())
-	block1AnnounceHeader := types.NewHeader(common.Hash{}, emptyTrieState.MustRoot(trie.NoMaxInlineValueSize),
+	block1AnnounceHeader := types.NewHeader(common.Hash{}, emptyTrieState.MustRoot(),
 		common.Hash{}, 1, nil)
 	block2AnnounceHeader := types.NewHeader(block1AnnounceHeader.Hash(),
-		emptyTrieState.MustRoot(trie.NoMaxInlineValueSize),
+		emptyTrieState.MustRoot(),
 		common.Hash{}, 2, nil)
 
 	testCases := map[string]struct {
@@ -249,10 +249,10 @@ func Test_chainSync_onBlockAnnounceHandshake_tipModeNeedToCatchup(t *testing.T) 
 	const somePeer = peer.ID("abc")
 
 	emptyTrieState := inmemory_storage.NewTrieState(trie.NewEmptyInmemoryTrie())
-	block1AnnounceHeader := types.NewHeader(common.Hash{}, emptyTrieState.MustRoot(trie.NoMaxInlineValueSize),
+	block1AnnounceHeader := types.NewHeader(common.Hash{}, emptyTrieState.MustRoot(),
 		common.Hash{}, 1, nil)
 	block2AnnounceHeader := types.NewHeader(block1AnnounceHeader.Hash(),
-		emptyTrieState.MustRoot(trie.NoMaxInlineValueSize),
+		emptyTrieState.MustRoot(),
 		common.Hash{}, 130, nil)
 
 	blockStateMock := NewMockBlockState(ctrl)
@@ -1286,7 +1286,7 @@ func createSuccesfullBlockResponse(t *testing.T, parentHeader common.Hash,
 	response.BlockData = make([]*types.BlockData, numBlocks)
 
 	emptyTrieState := inmemory_storage.NewTrieState(trie.NewEmptyInmemoryTrie())
-	tsRoot := emptyTrieState.MustRoot(trie.NoMaxInlineValueSize)
+	tsRoot := emptyTrieState.MustRoot()
 
 	firstHeader := types.NewHeader(parentHeader, tsRoot, common.Hash{},
 		uint(startingAt), nil)

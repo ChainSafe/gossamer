@@ -60,7 +60,7 @@ func (t *Tries) SetEmptyTrie() {
 
 // SetTrie sets the trie at its root hash in the tries map.
 func (t *Tries) SetTrie(tr *trie.InMemoryTrie) {
-	t.softSet(tr.MustHash(trie.NoMaxInlineValueSize), tr)
+	t.softSet(tr.MustHash(), tr)
 }
 
 // softSet sets the given trie at the given root hash

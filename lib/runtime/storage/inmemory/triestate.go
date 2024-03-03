@@ -71,8 +71,17 @@ func (t *InMemoryTrieState) CommitTransaction() {
 	t.transactions.Back().Prev().Value = t.transactions.Remove(t.transactions.Back())
 }
 
+func (t *InMemoryTrieState) SetVersion(v trie.TrieLayout) {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+	t.getCurrentTrie().SetVersion(v)
+}
+
 // Trie returns the TrieState's underlying trie
 func (t *InMemoryTrieState) Trie() *trie.InMemoryTrie {
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+
 	return t.getCurrentTrie()
 }
 
@@ -80,6 +89,9 @@ func (t *InMemoryTrieState) Trie() *trie.InMemoryTrie {
 // can no longer be modified, all further changes are on a new "version" of the trie.
 // It returns the new version of the trie.
 func (t *InMemoryTrieState) Snapshot() *trie.InMemoryTrie {
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+
 	return t.getCurrentTrie().Snapshot()
 }
 
@@ -99,13 +111,19 @@ func (t *InMemoryTrieState) Get(key []byte) []byte {
 }
 
 // MustRoot returns the trie's root hash. It panics if it fails to compute the root.
-func (t *InMemoryTrieState) MustRoot(maxInlineValue int) common.Hash {
-	return t.getCurrentTrie().MustHash(maxInlineValue)
+func (t *InMemoryTrieState) MustRoot() common.Hash {
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+
+	return t.getCurrentTrie().MustHash()
 }
 
 // Root returns the trie's root hash
-func (t *InMemoryTrieState) Root(maxInlineValue int) (common.Hash, error) {
-	return t.getCurrentTrie().Hash(maxInlineValue)
+func (t *InMemoryTrieState) Root() (common.Hash, error) {
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+
+	return t.getCurrentTrie().Hash()
 }
 
 // Has returns whether or not a key exists
@@ -122,6 +140,7 @@ func (t *InMemoryTrieState) Delete(key []byte) (err error) {
 
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
+
 	err = t.getCurrentTrie().Delete(key)
 	if err != nil {
 		return fmt.Errorf("deleting from trie: %w", err)
@@ -171,6 +190,7 @@ func (t *InMemoryTrieState) SetChild(keyToChild []byte, child trie.Trie) error {
 func (t *InMemoryTrieState) SetChildStorage(keyToChild, key, value []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
+
 	return t.getCurrentTrie().PutIntoChild(keyToChild, key, value)
 }
 
@@ -178,6 +198,7 @@ func (t *InMemoryTrieState) SetChildStorage(keyToChild, key, value []byte) error
 func (t *InMemoryTrieState) GetChild(keyToChild []byte) (trie.Trie, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
+
 	return t.getCurrentTrie().GetChild(keyToChild)
 }
 
@@ -185,6 +206,7 @@ func (t *InMemoryTrieState) GetChild(keyToChild []byte) (trie.Trie, error) {
 func (t *InMemoryTrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
+
 	return t.getCurrentTrie().GetFromChild(keyToChild, key)
 }
 
@@ -192,6 +214,7 @@ func (t *InMemoryTrieState) GetChildStorage(keyToChild, key []byte) ([]byte, err
 func (t *InMemoryTrieState) DeleteChild(key []byte) (err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
+
 	return t.getCurrentTrie().DeleteChild(key)
 }
 

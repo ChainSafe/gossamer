@@ -7,6 +7,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
+	"github.com/ChainSafe/gossamer/pkg/trie/tracking"
 )
 
 type ChildTrieManager interface {
@@ -37,9 +38,8 @@ type PrefixTrie interface {
 }
 
 type TrieDeltas interface {
-	Deltas() Deltas
 	GetChangedNodeHashes() (inserted, deleted map[common.Hash]struct{}, err error)
-	handleTrackedDeltas(success bool, pendingDeltas DeltaDeletedGetter)
+	handleTrackedDeltas(success bool, pendingDeltas tracking.Getter)
 }
 
 type DBBackedTrie interface {
@@ -52,14 +52,14 @@ type Printable interface {
 	String() string
 }
 
-type Hashable interface {
-	MustHash(maxInlineValue int) common.Hash
-	Hash(maxInlineValue int) (common.Hash, error)
-	GenesisBlock() (genesisHeader types.Header, err error)
+type Versioned interface {
+	SetVersion(TrieLayout)
 }
 
-type Generational interface {
-	Generation() uint64
+type Hashable interface {
+	MustHash() common.Hash
+	Hash() (common.Hash, error)
+	GenesisBlock() (genesisHeader types.Header, err error)
 }
 
 type Trie interface {
@@ -71,7 +71,7 @@ type Trie interface {
 	TrieDeltas
 	PrefixTrie
 	DBBackedTrie
-	Generational
+	Versioned
 
 	RootNode() *Node
 

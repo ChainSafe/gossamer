@@ -46,7 +46,7 @@ func buildSmallTrie() *InMemoryTrie {
 	return trie
 }
 
-func runTests(t *testing.T, trie Trie, tests []keyValues) {
+func runTests(t *testing.T, trie *InMemoryTrie, tests []keyValues) {
 	for _, test := range tests {
 		switch test.op {
 		case put:
@@ -718,7 +718,7 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 	const workers = 4
 
 	testCases := make([][]keyValues, workers)
-	expectedTries := make([]Trie, workers)
+	expectedTries := make([]*InMemoryTrie, workers)
 
 	for i := 0; i < workers; i++ {
 		testCases[i] = make([]keyValues, size)
@@ -749,12 +749,12 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 	finishWg := new(sync.WaitGroup)
 	startWg.Add(workers)
 	finishWg.Add(workers)
-	snapshotedTries := make([]Trie, workers)
+	snapshotedTries := make([]*InMemoryTrie, workers)
 
 	for i := 0; i < workers; i++ {
 		snapshotedTries[i] = buildSmallTrie().Snapshot()
 
-		go func(trie Trie, operations []keyValues,
+		go func(trie *InMemoryTrie, operations []keyValues,
 			startWg, finishWg *sync.WaitGroup) {
 			defer finishWg.Done()
 			startWg.Done()
@@ -1043,7 +1043,7 @@ func Test_encodeRoot_fuzz(t *testing.T) {
 			assert.Equal(t, value, retrievedValue)
 		}
 		buffer := bytes.NewBuffer(nil)
-		err := trie.root.Encode(buffer, DefaultStateVersion.MaxInlineValue())
+		err := trie.root.Encode(buffer)
 		require.NoError(t, err)
 		require.NotEmpty(t, buffer.Bytes())
 	}

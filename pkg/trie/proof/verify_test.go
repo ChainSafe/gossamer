@@ -140,7 +140,7 @@ func Test_buildTrie(t *testing.T) {
 	type testCase struct {
 		encodedProofNodes [][]byte
 		rootHash          []byte
-		expectedTrie      trie.Trie
+		expectedTrie      *trie.InMemoryTrie
 		db                db.Database
 		errWrapped        error
 		errMessage        string

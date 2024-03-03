@@ -118,7 +118,7 @@ func Test_Branch_Encode_Decode(t *testing.T) {
 
 			buffer := bytes.NewBuffer(nil)
 
-			err := testCase.branchToEncode.Encode(buffer, NoMaxInlineValueSize)
+			err := testCase.branchToEncode.Encode(buffer)
 			require.NoError(t, err)
 
 			nodeVariant, partialKeyLength, err := decodeHeader(buffer)

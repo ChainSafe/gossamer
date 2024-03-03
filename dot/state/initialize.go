@@ -123,7 +123,7 @@ func (s *Service) loadBabeConfigurationFromRuntime(r BabeConfigurer) (*types.Bab
 	return babeCfg, nil
 }
 
-func loadGrandpaAuthorities(t trie.Trie) ([]types.GrandpaVoter, error) {
+func loadGrandpaAuthorities(t *trie.InMemoryTrie) ([]types.GrandpaVoter, error) {
 	key := common.MustHexToBytes(genesis.GrandpaAuthoritiesKeyHex)
 	authsRaw := t.Get(key)
 	if authsRaw == nil {
@@ -134,7 +134,7 @@ func loadGrandpaAuthorities(t trie.Trie) ([]types.GrandpaVoter, error) {
 }
 
 // storeInitialValues writes initial genesis values to the state database
-func (s *Service) storeInitialValues(data *genesis.Data, t trie.Trie) error {
+func (s *Service) storeInitialValues(data *genesis.Data, t *trie.InMemoryTrie) error {
 	// write genesis trie to database
 	if err := t.WriteDirty(database.NewTable(s.db, storagePrefix)); err != nil {
 		return fmt.Errorf("failed to write trie to database: %s", err)

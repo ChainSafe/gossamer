@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createTestTrieState(t *testing.T) (trie.Trie, common.Hash) {
+func createTestTrieState(t *testing.T) (*trie.InMemoryTrie, common.Hash) {
 	t.Helper()
 
 	_, genesisTrie, _ := newWestendLocalGenesisWithTrieAndHeader(t)
@@ -35,7 +35,7 @@ func createTestTrieState(t *testing.T) (trie.Trie, common.Hash) {
 	err := tr.SetChild([]byte(":child_storage_key"), childTr)
 	require.NoError(t, err)
 
-	stateRoot, err := tr.Root(trie.NoMaxInlineValueSize)
+	stateRoot, err := tr.Root()
 	require.NoError(t, err)
 
 	return tr.Trie(), stateRoot

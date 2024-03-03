@@ -385,7 +385,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	node, err := NewNode(config, ks)
 	require.NoError(t, err)
 
-	expected, err := trie.LoadFromMap(gen.GenesisFields().Raw["top"])
+	expected, err := trie.LoadFromMap(gen.GenesisFields().Raw["top"], trie.V0)
 	require.NoError(t, err)
 
 	expectedRoot, err := trie.V0.Hash(expected) // Since we are using a runtime with state trie V0
