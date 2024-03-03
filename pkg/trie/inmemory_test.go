@@ -1699,17 +1699,15 @@ func Test_LoadFromMap(t *testing.T) {
 			data: map[string]string{
 				"0xa": "0x01",
 			},
-			errWrapped:   hex.ErrLength,
-			errMessage:   "cannot convert key hex to bytes: encoding/hex: odd length hex string: 0xa",
-			expectedTrie: &InMemoryTrie{},
+			errWrapped: hex.ErrLength,
+			errMessage: "cannot convert key hex to bytes: encoding/hex: odd length hex string: 0xa",
 		},
 		"bad_value": {
 			data: map[string]string{
 				"0x01": "0xa",
 			},
-			errWrapped:   hex.ErrLength,
-			errMessage:   "cannot convert value hex to bytes: encoding/hex: odd length hex string: 0xa",
-			expectedTrie: &InMemoryTrie{},
+			errWrapped: hex.ErrLength,
+			errMessage: "cannot convert value hex to bytes: encoding/hex: odd length hex string: 0xa",
 		},
 		"load_large_key_value": {
 			data: map[string]string{
