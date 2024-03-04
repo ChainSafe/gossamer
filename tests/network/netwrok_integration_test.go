@@ -1,3 +1,6 @@
+// Copyright 2021 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package network
 
 import (
@@ -19,7 +22,7 @@ import (
 	"time"
 )
 
-func TestKadDHTNetworkDiscovery(t *testing.T) { //nolint:tparallel
+func TestKadDHTNetworkDiscovery(t *testing.T) {
 	if utils.MODE != "network" {
 		t.Skip("RPC tests are disabled, going to skip.")
 	}
@@ -35,7 +38,8 @@ func TestKadDHTNetworkDiscovery(t *testing.T) { //nolint:tparallel
 	con.Core.BabeAuthority = true
 	con.Log.Sync = "trace"
 	con.Network.Port = 7001
-	con.BasePath = xdg.DataHome + "/gossamer/westend-local/alice" // ID: 12D3KooWMHixgmjFYM4VyQNDTKMvN9BPw47Tyyb6LPZ43EavV68m
+	// ID: 12D3KooWMHixgmjFYM4VyQNDTKMvN9BPw47Tyyb6LPZ43EavV68m
+	con.BasePath = xdg.DataHome + "/gossamer/westend-local/alice"
 
 	peerConfigBoB := cfg.Copy(&con)
 	peerConfigBoB.Network.Bootnodes = []string{
@@ -43,11 +47,13 @@ func TestKadDHTNetworkDiscovery(t *testing.T) { //nolint:tparallel
 	}
 	peerConfigBoB.Core.BabeAuthority = false
 	peerConfigBoB.Network.Port = 7002
-	peerConfigBoB.BasePath = xdg.DataHome + "/gossamer/westend-local/bob" // ID: 12D3KooWPBa1zBhwtcfvXZdY5p8CyPmLLdPBJVFrZpRAhFXfzpzn
+	// ID: 12D3KooWPBa1zBhwtcfvXZdY5p8CyPmLLdPBJVFrZpRAhFXfzpzn
+	peerConfigBoB.BasePath = xdg.DataHome + "/gossamer/westend-local/bob"
 
 	peerConfigCharlie := cfg.Copy(&peerConfigBoB)
 	peerConfigCharlie.Network.Port = 7003
-	peerConfigCharlie.BasePath = xdg.DataHome + "/gossamer/westend-local/charlie" // ID: 12D3KooWMMyCYHmj2d7uVvYLGx98QfUf62arxXkTSugCpnKKfpxg
+	// ID: 12D3KooWMMyCYHmj2d7uVvYLGx98QfUf62arxXkTSugCpnKKfpxg
+	peerConfigCharlie.BasePath = xdg.DataHome + "/gossamer/westend-local/charlie"
 
 	alice := node.New(t, con, node.SetIndex(0), node.SetWriter(os.Stdout))
 	charlie := node.New(t, peerConfigCharlie, node.SetIndex(1), node.SetWriter(os.Stdout))
