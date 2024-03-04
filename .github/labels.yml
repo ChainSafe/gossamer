@@ -237,3 +237,8 @@
   color: "#1D76DB"
   aliases: []
   description: issues related to polkadot host disputes subsystem functionality.
+
+- name: S-infrastructure
+  color: "#1D76DB"
+  aliases: []
+  description: issues related to infrastructure and DevOps.
