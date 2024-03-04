@@ -169,34 +169,6 @@ func (mr *MockBlockStateMockRecorder) GetFinalisedNotifierChannel() *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFinalisedNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).GetFinalisedNotifierChannel))
 }
 
-// GetFinalisedRound mocks base method.
-func (m *MockBlockState) GetFinalisedRound() uint64 {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetFinalisedRound")
-	ret0, _ := ret[0].(uint64)
-	return ret0
-}
-
-// GetFinalisedRound indicates an expected call of GetFinalisedRound.
-func (mr *MockBlockStateMockRecorder) GetFinalisedRound() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFinalisedRound", reflect.TypeOf((*MockBlockState)(nil).GetFinalisedRound))
-}
-
-// GetFinalisedSetID mocks base method.
-func (m *MockBlockState) GetFinalisedSetID() uint64 {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetFinalisedSetID")
-	ret0, _ := ret[0].(uint64)
-	return ret0
-}
-
-// GetFinalisedSetID indicates an expected call of GetFinalisedSetID.
-func (mr *MockBlockStateMockRecorder) GetFinalisedSetID() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFinalisedSetID", reflect.TypeOf((*MockBlockState)(nil).GetFinalisedSetID))
-}
-
 // GetHeader mocks base method.
 func (m *MockBlockState) GetHeader(arg0 common.Hash) (*types.Header, error) {
 	m.ctrl.T.Helper()
@@ -272,6 +244,20 @@ func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).GetImportedBlockNotifierChannel))
 }
 
+// GetRound mocks base method.
+func (m *MockBlockState) GetRound() uint64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRound")
+	ret0, _ := ret[0].(uint64)
+	return ret0
+}
+
+// GetRound indicates an expected call of GetRound.
+func (mr *MockBlockStateMockRecorder) GetRound() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRound", reflect.TypeOf((*MockBlockState)(nil).GetRound))
+}
+
 // GetRuntime mocks base method.
 func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
 	m.ctrl.T.Helper()
@@ -285,6 +271,20 @@ func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) 
 func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), arg0)
+}
+
+// GetSetID mocks base method.
+func (m *MockBlockState) GetSetID() uint64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSetID")
+	ret0, _ := ret[0].(uint64)
+	return ret0
+}
+
+// GetSetID indicates an expected call of GetSetID.
+func (mr *MockBlockStateMockRecorder) GetSetID() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSetID", reflect.TypeOf((*MockBlockState)(nil).GetSetID))
 }
 
 // HasFinalisedBlock mocks base method.

@@ -54,20 +54,20 @@ func (bs *BlockState) GetFinalisedHeader(round, setID uint64) (*types.Header, er
 	return header, nil
 }
 
-// GetFinalisedRound returns the finalised round
-func (bs *BlockState) GetFinalisedRound() uint64 {
+// GetRound returns the finalised round
+func (bs *BlockState) GetRound() uint64 {
 	bs.lock.Lock()
 	defer bs.lock.Unlock()
 
-	return bs.lastFinalisedRound
+	return bs.lastRound
 }
 
-// GetFinalisedSetID returns the finalised setID
-func (bs *BlockState) GetFinalisedSetID() uint64 {
+// GetSetID returns the finalised setID
+func (bs *BlockState) GetSetID() uint64 {
 	bs.lock.Lock()
 	defer bs.lock.Unlock()
 
-	return bs.lastFinalisedSetID
+	return bs.lastSetID
 }
 
 // GetFinalisedHash gets the finalised block header by round and setID
@@ -198,8 +198,8 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	}
 
 	bs.lastFinalised = hash
-	bs.lastFinalisedRound = round
-	bs.lastFinalisedSetID = setID
+	bs.lastRound = round
+	bs.lastSetID = setID
 
 	logger.Infof(
 		"🔨 finalised block #%d (%s), round %d, set id %d", header.Number, hash, round, setID)

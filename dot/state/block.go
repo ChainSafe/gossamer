@@ -51,17 +51,17 @@ var (
 // BlockState contains the historical block data of the blockchain, including block headers and bodies.
 // It wraps the blocktree (which contains unfinalised blocks) and the database (which contains finalised blocks).
 type BlockState struct {
-	bt                 *blocktree.BlockTree
-	baseState          *BaseState
-	dbPath             string
-	db                 BlockStateDatabase
-	lock               sync.RWMutex
-	genesisHash        common.Hash
-	lastFinalised      common.Hash
-	lastFinalisedRound uint64
-	lastFinalisedSetID uint64
-	unfinalisedBlocks  *hashToBlockMap
-	tries              *Tries
+	bt                *blocktree.BlockTree
+	baseState         *BaseState
+	dbPath            string
+	db                BlockStateDatabase
+	lock              sync.RWMutex
+	genesisHash       common.Hash
+	lastFinalised     common.Hash
+	lastRound         uint64
+	lastSetID         uint64
+	unfinalisedBlocks *hashToBlockMap
+	tries             *Tries
 
 	// block notifiers
 	imported                       map[chan *types.Block]struct{}
