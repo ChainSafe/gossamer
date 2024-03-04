@@ -51,6 +51,10 @@ it-rpc: build
 	@echo "  >  \033[32mRunning Integration Tests RPC Specs mode...\033[0m "
 	MODE=rpc go test ./tests/rpc/... -timeout=10m -v
 
+it-network: build
+	@echo "  >  \033[32mRunning Integration Tests Kademlia...\033[0m "
+	MODE=network go test ./tests/network/... -timeout=10m -v
+
 it-sync: build
 	@echo "  >  \033[32mRunning Integration Tests sync mode...\033[0m "
 	MODE=sync go test ./tests/sync/... -timeout=5m -v

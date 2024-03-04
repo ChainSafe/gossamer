@@ -292,14 +292,11 @@ func (s *Service) Start() error {
 	// this handles all new connections (incoming and outgoing)
 	// it creates a per-protocol mutex for sending outbound handshakes to the peer
 	// connectHandler is a part of libp2p.Notifiee interface implementation and getting called in the very end
-	//after or Incoming or Outgoing node is connected
+	// after or Incoming or Outgoing node is connected.
 	s.host.cm.connectHandler = func(peerID peer.ID) {
 		for _, prtl := range s.notificationsProtocols {
 			prtl.peersData.setMutex(peerID)
 		}
-		// TODO: currently we only have one set so setID is 0, change this once we have more set in peerSet
-		const setID = 0
-		s.host.cm.peerSetHandler.Incoming(setID, peerID)
 	}
 
 	// when a peer gets disconnected, we should clear all handshake data we have for it.
@@ -711,7 +708,7 @@ func (s *Service) processMessage(msg peerset.Message) {
 		addrInfo := s.host.p2pHost.Peerstore().PeerInfo(peerID)
 		if len(addrInfo.Addrs) == 0 {
 			var err error
-			addrInfo, err = s.host.discovery.findPeer(peerID)
+			addrInfo, err = s.host.discovery.dht.FindPeer(s.host.discovery.ctx, peerID)
 			if err != nil {
 				logger.Warnf("failed to find peer id %s: %s", peerID, err)
 				return
