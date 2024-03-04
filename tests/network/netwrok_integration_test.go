@@ -15,9 +15,9 @@ import (
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
 	"github.com/adrg/xdg"
 	"github.com/stretchr/testify/require"
-	"os"
 
 	"context"
+	"os"
 	"testing"
 	"time"
 )
