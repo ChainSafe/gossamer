@@ -503,6 +503,7 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 }
 
 func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal() {
+	now := av.clock.Now()
 	logger.Infof("ProcessActiveLeavesUpdateSignal %s", av.currentMessage)
 	activeLeave := av.currentMessage.(parachaintypes.ActiveLeavesUpdateSignal)
 	// TODO: get block header from activated number
@@ -655,21 +656,18 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 	if meta == nil {
 		logger.Warnf("Candidate included without being backed %x", candidateHash)
 	}
-	switch meta.State.(type) {
-	// TODO: determine how to switch on State VDT type
-	case Unavailable:
-	// deletePruningKey
-	case Unfinalized:
-
-	case Finalized:
-		// This should never happen as a candidate would have to be included after
-		// finality.
-		return
-	}
+	//switch meta.State.(type) {
+	//// TODO: determine how to switch on State VDT type
+	//case Unavailable:
+	//// deletePruningKey
+	//case Unfinalized:
+	//
+	//case Finalized:
+	//	// This should never happen as a candidate would have to be included after
+	//	// finality.
+	//	return
+	//}
 	//write unfialized block contains
-
-	//let key = (UNFINALIZED_PREFIX, BEBlockNumber(n), h, ch).encode();
-	//tx.put(config.col_meta, &key, TOMBSTONE_VALUE);
 
 	key := append([]byte(unfinalizedPrefix), uint32ToBytes(uint32(blockNumber))...)
 	key = append(key, blockHash[:]...)

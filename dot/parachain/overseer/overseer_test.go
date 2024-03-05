@@ -371,7 +371,8 @@ func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 
 	inmemoryDB := setupTestDB(t)
 
-	availabilityStore, err := availability_store.CreateAndRegister(harness.overseer.GetSubsystemToOverseerChannel(), inmemoryDB)
+	availabilityStore, err := availability_store.CreateAndRegister(harness.overseer.GetSubsystemToOverseerChannel(),
+		inmemoryDB)
 	require.NoError(t, err)
 
 	availabilityStore.OverseerToSubSystem = harness.overseer.RegisterSubsystem(availabilityStore)
@@ -381,7 +382,7 @@ func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 			Hash:   common.Hash{},
 			Number: uint32(1),
 		},
-		Deactivated: []common.Hash{common.Hash{}},
+		Deactivated: []common.Hash{{}},
 	}
 
 	harness.broadcastMessages = append(harness.broadcastMessages, activeLeavesUpdate)
