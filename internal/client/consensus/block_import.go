@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 )
@@ -92,12 +93,12 @@ type BlockCheckParams[H, N any] struct {
 // / Precomputed storage.
 // pub enum StorageChanges<Block: BlockT, Transaction> {
 type StorageChanges any
-type StorageChangesValues[H, Hasher any] interface {
+type StorageChangesValues[H runtime.Hash, Hasher hashdb.Hasher[H]] interface {
 	StorageChangesChanges[H, Hasher] | StorageChangesImport[H]
 }
 
 // /// Changes coming from block execution.
-type StorageChangesChanges[H, Hasher any] statemachine.StorageChanges[H, Hasher]
+type StorageChangesChanges[H runtime.Hash, Hasher hashdb.Hasher[H]] statemachine.StorageChanges[H, Hasher]
 
 // /// Whole new state.
 // Import(ImportedState<Block>),

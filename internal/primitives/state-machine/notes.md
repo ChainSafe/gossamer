@@ -16,3 +16,10 @@ storage_hash
 storage
 raw_iter
 with_trie_db
+
+notes:
+copy pasta dot/state/tries.go instead of TreeDBBuilder and write wrapper to existing Trie
+
+Currently working on db.BlockImportOperation for tryCommitOperation
+complete memoryDB for PrefixedMemoryDB
+oldState is RefTrackingState for BlockImportOperation

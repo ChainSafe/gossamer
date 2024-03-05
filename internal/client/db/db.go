@@ -95,6 +95,7 @@ type DBState = statemachine.TrieBackend
 // pub struct RefTrackingState<Block: BlockT> {
 type RefTrackingState struct {
 	// state: DbState<Block>,
+	state DBState
 	// storage: Arc<StorageDb<Block>>,
 	// parent_hash: Option<Block::Hash>,
 }
@@ -691,6 +692,7 @@ func (bdb *BlockchainDB[H, N, E, Header]) RemoveHeaderMetadata(hash H) {
 // pub struct BlockImportOperation<Block: BlockT> {
 type BlockImportOperation struct {
 	// old_state: RecordStatsState<RefTrackingState<Block>, Block>,
+	oldState RefTrackingState // wip
 	// db_updates: PrefixedMemoryDB<HashingFor<Block>>,
 	// storage_updates: StorageCollection,
 	// child_storage_updates: ChildStorageCollection,
@@ -879,6 +881,7 @@ func (b *Backend[H, N, E, Header]) forceDelayedCanonicalize(transaction *databas
 }
 
 func (b *Backend[H, N, E, Header]) tryCommitOperation(operation *BlockImportOperation) error {
+	// NOTE: u are working on this, this will get called by CommitOperation when impl backend.Backend
 	panic("unimplemented")
 }
 

@@ -131,7 +131,7 @@ type BlockImportOperation[N runtime.Number, H runtime.Hash, Hasher runtime.Hashe
 	// 		&mut self,
 	// 		update: TransactionForSB<Self::State, Block>,
 	// 	) -> sp_blockchain::Result<()>;
-	UpdateDBStorage(update statemachine.BackendTransaction[Hasher]) error
+	UpdateDBStorage(update statemachine.BackendTransaction[H, Hasher]) error
 
 	/// Set genesis state. If `commit` is `false` the state is saved in memory, but is not written
 	/// to the database.

@@ -1,5 +1,10 @@
 package triedb
 
+import (
+	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
+	"golang.org/x/exp/constraints"
+)
+
 // / Database value
 type DBValue []byte
 
@@ -82,6 +87,60 @@ type Trie[Hash any] interface {
 	// 	TrieHash<L>,
 	// 	CError<L>,
 	// >;
+}
+
+type TrieMut[Hash any] interface {
+	/// Return the root of the trie.
+	// fn root(&mut self) -> &TrieHash<L>;
+
+	/// Is the trie empty?
+	// fn is_empty(&self) -> bool;
+
+	/// Does the trie contain a given key?
+	// fn contains(&self, key: &[u8]) -> Result<bool, TrieHash<L>, CError<L>> {
+	// 	self.get(key).map(|x| x.is_some())
+	// }
+
+	/// What is the value of the given key in this trie?
+	// fn get<'a, 'key>(&'a self, key: &'key [u8]) -> Result<Option<DBValue>, TrieHash<L>, CError<L>>
+	// where
+	// 	'a: 'key;
+
+	/// Insert a `key`/`value` pair into the trie. An empty value is equivalent to removing
+	/// `key` from the trie. Returns the old value associated with this key, if it existed.
+	// fn insert(
+	// 	&mut self,
+	// 	key: &[u8],
+	// 	value: &[u8],
+	// ) -> Result<Option<Value<L>>, TrieHash<L>, CError<L>>;
+	Insert(key []byte, value []byte) (*Value, error)
+
+	/// Remove a `key` from the trie. Equivalent to making it equal to the empty
+	/// value. Returns the old value associated with this key, if it existed.
+	// fn remove(&mut self, key: &[u8]) -> Result<Option<Value<L>>, TrieHash<L>, CError<L>>;
+	Remove(key []byte) (*Value, error)
+}
+
+// / Trait with definition of trie layout.
+// / Contains all associated trait needed for
+// / a trie definition or implementation.
+// pub trait TrieLayout {
+type TrieLayout[H constraints.Ordered, Hasher hashdb.Hasher[H]] struct {
+	/// If true, the trie will use extension nodes and
+	/// no partial in branch, if false the trie will only
+	/// use branch and node with partials in both.
+	UseExtension bool
+	/// If true, the trie will allow empty values into `TrieDBMut`
+	AllowEmpty bool
+	/// Threshold above which an external node should be
+	/// use to store a node value.
+	MaxInlineValue *uint32
+
+	/// Hasher to use for this trie.
+	// type Hash: Hasher;
+	/// Codec to use (needs to match hasher and nibble ops).
+	// type Codec: NodeCodec<HashOut = <Self::Hash as Hasher>::Out>;
+	Codec NodeCodec[H]
 }
 
 // / A cache that can be used to speed-up certain operations when accessing the trie.

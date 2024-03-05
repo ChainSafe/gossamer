@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hashing"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -66,6 +67,7 @@ type Hash interface {
 // Stupid bug in the Rust compiler believes derived
 // traits must be fulfilled by all type parameters.
 type Hasher[H Hash] interface {
+	hashdb.Hasher[H]
 	// /// Produce the hash of some byte-slice.
 	// fn hash(s: &[u8]) -> Self::Output {
 	// 	<Self as Hasher>::hash(s)

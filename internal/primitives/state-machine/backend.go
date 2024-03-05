@@ -1,10 +1,11 @@
 package statemachine
 
 import (
+	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/stats"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
-	"golang.org/x/exp/constraints"
 )
 
 // // / Trait that allows consolidate two transactions together.
@@ -30,16 +31,16 @@ import (
 // //		+ Sync
 // //		+ Clone
 // //		+ Copy;
-type HasherOut interface {
-	constraints.Ordered
-}
+// type HasherOut interface {
+// 	constraints.Ordered
+// }
 
 // / Trait describing an object that can hash a slice of bytes. Used to abstract
 // / other types over the hashing algorithm. Defines a single `hash` method and an
 // / `Out` associated type with the necessary bounds.
-type Hasher[H HasherOut] interface {
-	Hash(x []byte) H
-}
+// type Hasher[H HasherOut] interface {
+// 	Hash(x []byte) H
+// }
 
 // // pub trait Hasher: Sync + Send {
 // //
@@ -176,13 +177,13 @@ type IterArgs struct {
 // 	rawIter StorageIterator[H, T]
 // }
 
-type BackendTransaction[Hasher any] trie.PrefixedMemoryDB[Hasher]
+type BackendTransaction[Hash runtime.Hash, Hasher hashdb.Hasher[Hash]] trie.PrefixedMemoryDB[Hash, Hasher]
 
 // / A state backend is used to read state data and can have changes committed
 // / to it.
 // /
 // / The clone operation (if implemented) should be cheap.
-type Backend[Hash HasherOut, H Hasher[Hash]] interface {
+type Backend[Hash runtime.Hash, H hashdb.Hasher[Hash]] interface {
 	/// Get keyed storage or None if there is nothing associated.
 	// fn storage(&self, key: &[u8]) -> Result<Option<StorageValue>, Self::Error>;
 	Storage(key []byte) (*StorageValue, error)
@@ -248,7 +249,7 @@ type Backend[Hash HasherOut, H Hasher[Hash]] interface {
 	StorageRoot(delta []struct {
 		Key   []byte
 		Value []byte
-	}, stateVersion storage.StateVersion) (Hash, BackendTransaction[H])
+	}, stateVersion storage.StateVersion) (Hash, BackendTransaction[Hash, H])
 
 	/// Calculate the child storage root, with given delta over what is already stored in
 	/// the backend, and produce a "transaction" that can be used to commit. The second argument
@@ -264,7 +265,7 @@ type Backend[Hash HasherOut, H Hasher[Hash]] interface {
 	ChildStorageRoot(childInfo storage.ChildInfo, delta []struct {
 		Key   []byte
 		Value []byte
-	}, stateVersion storage.StateVersion) (H, bool, BackendTransaction[H])
+	}, stateVersion storage.StateVersion) (H, bool, BackendTransaction[Hash, H])
 
 	// /// Returns a lifetimeless raw storage iterator.
 	// fn raw_iter(&self, args: IterArgs) -> Result<Self::RawIter, Self::Error>;
@@ -312,7 +313,7 @@ type Backend[Hash HasherOut, H Hasher[Hash]] interface {
 			Key   []byte
 			Value []byte
 		}
-	}, stateVersion storage.StateVersion) (H, BackendTransaction[H])
+	}, stateVersion storage.StateVersion) (H, BackendTransaction[Hash, H])
 
 	/// Register stats from overlay of state machine.
 	///
@@ -343,7 +344,7 @@ type Backend[Hash HasherOut, H Hasher[Hash]] interface {
 	// ) -> Result<(), Self::Error> {
 	// 	unimplemented!()
 	// }
-	Commit(H, BackendTransaction[H], StorageCollection, ChildStorageCollection) error
+	Commit(H, BackendTransaction[Hash, H], StorageCollection, ChildStorageCollection) error
 
 	/// Get the read/write count of the db
 	// fn read_write_count(&self) -> (u32, u32, u32, u32) {

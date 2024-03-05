@@ -1,6 +1,7 @@
 package statemachine
 
 import (
+	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 )
@@ -88,7 +89,7 @@ type IndexOperationRenew struct {
 // / This contains all the changes to the storage and transactions to apply theses changes to the
 // / backend.
 // pub struct StorageChanges<Transaction, H: Hasher> {
-type StorageChanges[Hash, Hasher any] struct {
+type StorageChanges[Hash runtime.Hash, Hasher hashdb.Hasher[Hash]] struct {
 	/// All changes to the main storage.
 	///
 	/// A value of `None` means that it was deleted.
@@ -105,7 +106,7 @@ type StorageChanges[Hash, Hasher any] struct {
 	/// [`child_storage_changes`](StorageChanges::child_storage_changes).
 	/// [`offchain_storage_changes`](StorageChanges::offchain_storage_changes).
 	// pub transaction: Transaction,
-	Transaction BackendTransaction[Hasher]
+	Transaction BackendTransaction[Hash, Hasher]
 	/// The storage root after applying the transaction.
 	// pub transaction_storage_root: H::Out,
 	TransactionStorageRoot Hash

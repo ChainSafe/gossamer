@@ -1,12 +1,16 @@
 package statemachine
 
 import (
+	"log"
 	"sync"
 
 	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie/recorder"
 	triedb "github.com/ChainSafe/gossamer/internal/trie-db"
+	"golang.org/x/exp/constraints"
 )
 
 // / Local cache for child root.
@@ -17,7 +21,7 @@ type Cache[H any] struct {
 
 // / Patricia trie-based pairs storage essence.
 // pub struct TrieBackendEssence<S: TrieBackendStorage<H>, H: Hasher, C> {
-type TrieBackendEssence[H HasherOut] struct {
+type TrieBackendEssence[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	storage TrieBackendStorage[H]
 	// storage: S,
 	root H
@@ -35,13 +39,13 @@ type TrieBackendEssence[H HasherOut] struct {
 	recorder *recorder.Recorder[H]
 }
 
-func newTrieBackendEssence[H HasherOut](
+func newTrieBackendEssence[H runtime.Hash, Hasher runtime.Hasher[H]](
 	storage TrieBackendStorage[H],
 	root H,
 	cache TrieCacheProvider[H],
 	recorder *recorder.Recorder[H],
-) TrieBackendEssence[H] {
-	return TrieBackendEssence[H]{
+) TrieBackendEssence[H, Hasher] {
+	return TrieBackendEssence[H, Hasher]{
 		storage:       storage,
 		root:          root,
 		cache:         Cache[H]{ChildRoot: make(map[string]H)},
@@ -51,7 +55,7 @@ func newTrieBackendEssence[H HasherOut](
 }
 
 // / Get backend storage reference.
-func (tbe *TrieBackendEssence[H]) BackendStorage() TrieBackendStorage[H] {
+func (tbe *TrieBackendEssence[H, Hasher]) BackendStorage() TrieBackendStorage[H] {
 	return tbe.storage
 }
 
@@ -61,17 +65,17 @@ func (tbe *TrieBackendEssence[H]) BackendStorage() TrieBackendStorage[H] {
 // }
 
 // / Get trie root.
-func (tbe *TrieBackendEssence[H]) Root() H {
+func (tbe *TrieBackendEssence[H, Hasher]) Root() H {
 	return tbe.root
 }
 
 // / Set trie root. This is useful for testing.
-func (tbe *TrieBackendEssence[H]) SetRoot(root H) {
+func (tbe *TrieBackendEssence[H, Hasher]) SetRoot(root H) {
 	tbe.resetCache()
 	tbe.root = root
 }
 
-func (tbe *TrieBackendEssence[H]) resetCache() {
+func (tbe *TrieBackendEssence[H, Hasher]) resetCache() {
 	tbe.cache = Cache[H]{ChildRoot: make(map[string]H)}
 }
 
@@ -80,8 +84,8 @@ func (tbe *TrieBackendEssence[H]) resetCache() {
 // 	self.storage
 // }
 
-func withRecorderAndCache[H HasherOut, R any](
-	tbe *TrieBackendEssence[H],
+func withRecorderAndCache[H runtime.Hash, Hasher runtime.Hasher[H], R any](
+	tbe *TrieBackendEssence[H, Hasher],
 	storageRoot *H,
 	callback func(triedb.TrieRecorder, triedb.TrieCache) (R, error),
 ) (R, error) {
@@ -114,11 +118,11 @@ func withRecorderAndCache[H HasherOut, R any](
 // / the new storage root. This is required to register the changes in the cache
 // / for the correct storage root. The given `storage_root` corresponds to the root of the "old"
 // / trie. If the value is not given, `self.root` is used.
-func withRecorderAndCacheForStorageRoot[H HasherOut, R any](
-	tbe *TrieBackendEssence[H],
+func withRecorderAndCacheForStorageRoot[H runtime.Hash, Hasher runtime.Hasher[H], R any](
+	tbe *TrieBackendEssence[H, Hasher],
 	storageRoot *H,
-	callback func(triedb.TrieRecorder, triedb.TrieCache) (*H, R, error),
-) (R, error) {
+	callback func(triedb.TrieRecorder, triedb.TrieCache) (*H, R),
+) R {
 	// let storage_root = storage_root.unwrap_or_else(|| self.root);
 	// let mut recorder = self.recorder.as_ref().map(|r| r.as_trie_recorder(storage_root));
 	// let recorder = match recorder.as_mut() {
@@ -141,18 +145,20 @@ func withRecorderAndCacheForStorageRoot[H HasherOut, R any](
 	// };
 
 	// result
-	_, res, err := callback(nil, nil)
-	return res, err
+	_, res := callback(nil, nil)
+	return res
 }
 
-func (tbe *TrieBackendEssence[H]) StorageHash(key []byte) (*H, error) {
-	return withRecorderAndCache[H, *H](tbe, nil, func(recorder triedb.TrieRecorder, cache triedb.TrieCache) (*H, error) {
+// / Returns the hash value
+func (tbe *TrieBackendEssence[H, Hasher]) StorageHash(key []byte) (*H, error) {
+	return withRecorderAndCache[H, Hasher, *H](tbe, nil, func(recorder triedb.TrieRecorder, cache triedb.TrieCache) (*H, error) {
 		return triedb.NewTrieDBBuilder[H](tbe.root).Build().GetHash(key)
 	})
 }
 
-func (tbe *TrieBackendEssence[H]) Storage(key []byte) (*StorageValue, error) {
-	return withRecorderAndCache[H, *StorageValue](tbe, nil, func(recorder triedb.TrieRecorder, cache triedb.TrieCache) (*StorageValue, error) {
+// / Get the value of storage at given key.
+func (tbe *TrieBackendEssence[H, Hasher]) Storage(key []byte) (*StorageValue, error) {
+	return withRecorderAndCache[H, Hasher, *StorageValue](tbe, nil, func(recorder triedb.TrieRecorder, cache triedb.TrieCache) (*StorageValue, error) {
 		val, err := trie.ReadTrieValue[H](tbe, tbe.root, key, recorder, cache)
 		if val == nil {
 			return nil, err
@@ -162,24 +168,80 @@ func (tbe *TrieBackendEssence[H]) Storage(key []byte) (*StorageValue, error) {
 	})
 }
 
-// /// Get the value of storage at given key.
-// pub fn storage(&self, key: &[u8]) -> Result<Option<StorageValue>> {
-// 	let map_e = |e| format!("Trie lookup error: {}", e);
+func (tbe *TrieBackendEssence[H, Hasher]) StorageRoot(delta []struct {
+	Key   []byte
+	Value *[]byte
+}, stateVersion storage.StateVersion) (H, trie.PrefixedMemoryDB[H, Hasher]) {
+	writeOverlay := trie.NewPrefixedMemoryDB[H, Hasher]()
 
-// 	self.with_recorder_and_cache(None, |recorder, cache| {
-// 		read_trie_value::<Layout<H>, _>(self, &self.root, key, recorder, cache).map_err(map_e)
-// 	})
-// }
+	root := withRecorderAndCacheForStorageRoot[H, Hasher, H](tbe, nil, func(_ triedb.TrieRecorder, _ triedb.TrieCache) (*H, H) {
+		eph := newEphemeral[H, Hasher](tbe.BackendStorage(), writeOverlay)
+		var (
+			root H
+			err  error
+		)
+		switch stateVersion {
+		case storage.StateVersionV0:
+			root, err = trie.DeltaTrieRoot[H](eph, tbe.root, delta, nil, nil)
+		case storage.StateVersionV1:
+			root, err = trie.DeltaTrieRoot[H](eph, tbe.root, delta, nil, nil)
+		}
+		if err != nil {
+			log.Printf("WARN: failed to write to trie: %w", err)
+			return nil, tbe.root
+		}
+		return &root, root
+	})
 
-func (tbe *TrieBackendEssence[H]) Get(key H, prefix hashdb.Prefix) *triedb.DBValue {
+	return root, writeOverlay
+}
+
+func (tbe *TrieBackendEssence[H, Hasher]) Get(key H, prefix hashdb.Prefix) *triedb.DBValue {
 	panic("unimplemented")
 }
 
-func (tbe *TrieBackendEssence[H]) Contains(key H, prefix hashdb.Prefix) bool {
+func (tbe *TrieBackendEssence[H, Hasher]) Contains(key H, prefix hashdb.Prefix) bool {
 	panic("unimplemented")
+}
+
+// pub(crate) struct Ephemeral<'a, S: 'a + TrieBackendStorage<H>, H: 'a + Hasher> {
+type ephemeral[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
+	storage TrieBackendStorage[H]
+	// 	storage: &'a S,
+	overlay trie.PrefixedMemoryDB[H, Hasher]
+	// 	overlay: &'a mut PrefixedMemoryDB<H>,
+}
+
+func newEphemeral[H runtime.Hash, Hasher runtime.Hasher[H]](
+	storage TrieBackendStorage[H],
+	overlay trie.PrefixedMemoryDB[H, Hasher],
+) *ephemeral[H, Hasher] {
+	return &ephemeral[H, Hasher]{
+		storage, overlay,
+	}
+}
+
+func (e *ephemeral[H, Hasher]) Get(key H, prefix hashdb.Prefix) *triedb.DBValue {
+	panic("unimpl")
+}
+
+func (e *ephemeral[H, Hasher]) Contains(key H, prefix hashdb.Prefix) bool {
+	panic("unimpl")
+}
+
+func (e *ephemeral[H, Hasher]) Insert(prefix hashdb.Prefix, value []byte) H {
+	panic("unimpl")
+}
+
+func (e *ephemeral[H, Hasher]) Emplace(key H, prefix hashdb.Prefix, value triedb.DBValue) {
+	panic("unimpl")
+}
+
+func (e *ephemeral[H, Hasher]) Remove(key H, prefix hashdb.Prefix) {
+	panic("unimpl")
 }
 
 // // / Key-value pairs storage that is used by trie backend essence.
-type TrieBackendStorage[H HasherOut] interface {
+type TrieBackendStorage[H constraints.Ordered] interface {
 	Get(key H, prefix hashdb.Prefix) (*[]byte, error)
 }
