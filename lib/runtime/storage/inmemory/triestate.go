@@ -283,9 +283,6 @@ func (t *InMemoryTrieState) ClearPrefixInChild(keyToChild, prefix []byte) error 
 	if err != nil {
 		return err
 	}
-	if child == nil {
-		return nil
-	}
 
 	err = child.ClearPrefix(prefix)
 	if err != nil {
@@ -300,7 +297,7 @@ func (t *InMemoryTrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byt
 	defer t.mtx.Unlock()
 
 	child, err := t.getCurrentTrie().GetChild(keyToChild)
-	if err != nil || child == nil {
+	if err != nil {
 		return 0, false, err
 	}
 
@@ -315,9 +312,6 @@ func (t *InMemoryTrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, err
 	if err != nil {
 		return nil, err
 	}
-	if child == nil {
-		return nil, nil
-	}
 	return child.NextKey(key), nil
 }
 
@@ -326,9 +320,6 @@ func (t *InMemoryTrieState) GetKeysWithPrefixFromChild(keyToChild, prefix []byte
 	child, err := t.GetChild(keyToChild)
 	if err != nil {
 		return nil, err
-	}
-	if child == nil {
-		return nil, nil
 	}
 	return child.GetKeysWithPrefix(prefix), nil
 }

@@ -98,10 +98,6 @@ func (t *InMemoryTrie) GetFromChild(keyToChild, key []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	if child == nil {
-		return nil, fmt.Errorf("%w at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
-	}
-
 	val := child.Get(key)
 	return val, nil
 }
