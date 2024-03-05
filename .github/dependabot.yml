@@ -5,16 +5,16 @@ updates:
     schedule:
       interval: "weekly"
     labels:
-      - "dependencies"
+      - "S-dependencies"
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: "weekly"
     labels:
-      - "dependencies"
+      - "S-dependencies"
   - package-ecosystem: gomod
     directory: /
     schedule:
       interval: "weekly"
     labels:
-      - "dependencies"
+      - "S-dependencies"

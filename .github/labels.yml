@@ -242,3 +242,8 @@
   color: "#1D76DB"
   aliases: []
   description: issues related to infrastructure and DevOps.
+
+- name: S-dependencies
+  color: "#1D76DB"
+  aliases: []
+  description: issues related to dependencies changes. Used by dependabot.
