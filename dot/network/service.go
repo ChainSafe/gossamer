@@ -495,8 +495,8 @@ mainloop:
 	return nil
 }
 
-func (s *Service) Connect(p peer.AddrInfo) error {
-	return s.host.connect(p)
+func (s *Service) Connect(p peer.AddrInfo) {
+	s.host.cm.peerSetHandler.AddPeer(0, p.ID)
 }
 
 func (s *Service) GetP2PHost() libp2phost.Host {

@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	libp2phost "github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peerstore"
 	protocol "github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -150,6 +151,8 @@ func testCreateCollatorValidatorPair(t *testing.T) {
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
+		MinPeers:    1,
+		MaxPeers:    2,
 	}
 	validatorNode := createTestService(t, config)
 	addrInfoA := addrInfo(validatorNode.GetP2PHost())
@@ -159,15 +162,19 @@ func testCreateCollatorValidatorPair(t *testing.T) {
 		Port:        availablePort(t),
 		NoBootstrap: true,
 		NoMDNS:      true,
+		MinPeers:    1,
+		MaxPeers:    2,
 	}
 	collatorNode := createTestService(t, configB)
 
 	addrInfoB := addrInfo(collatorNode.GetP2PHost())
-	err := validatorNode.Connect(addrInfoB)
-	require.NoError(t, err)
+	validatorNode.GetP2PHost().Peerstore().AddAddrs(addrInfoB.ID, addrInfoB.Addrs, peerstore.PermanentAddrTTL)
+	validatorNode.Connect(addrInfoB)
 
-	err = collatorNode.Connect(addrInfoA)
-	require.NoError(t, err)
+	collatorNode.GetP2PHost().Peerstore().AddAddrs(addrInfoA.ID, addrInfoA.Addrs, peerstore.PermanentAddrTTL)
+	collatorNode.Connect(addrInfoA)
+
+	time.Sleep(100 * time.Millisecond)
 
 	collationProtocolID := "/6761727661676500000000000000000000000000000000000000000000000000/1/collations/1"
 
@@ -216,13 +223,10 @@ func testCreateCollatorValidatorPair(t *testing.T) {
 	err = collationMessage.Set(collatorProtocolMessage)
 	require.NoError(t, err)
 
-	err = collatorNode.Connect(addrInfoA)
+	err = collatorNode.SendMessage(validatorNode.GetP2PHost().ID(), &collationMessage)
 	require.NoError(t, err)
 
-	collatorNode.SendMessage(validatorNode.GetP2PHost().ID(), &collationMessage)
-	require.NoError(t, err)
-
-	time.Sleep(10 * time.Second)
+	// time.Sleep(10 * time.Second)
 	// NOTE TO SELF : visit TestHandleLightMessage_Response
 }
 
