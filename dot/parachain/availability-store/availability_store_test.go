@@ -209,20 +209,20 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedHeight(t *testing.T) {
 	hash6 := common.Hash{0x06}
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x03}}
 
-	key := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash[:]...)
+	key := append(uint32ToBytes(uint32(blockNumber)), hash[:]...)
 	key = append(key, candidateHash.Value[:]...)
 	err := batch.unfinalized.Put(key, nil)
 	require.NoError(t, err)
 
-	key = append(uint32ToBytesBigEndian(uint32(blockNumber)), hash6[:]...)
+	key = append(uint32ToBytes(uint32(blockNumber)), hash6[:]...)
 	key = append(key, candidateHash.Value[:]...)
 	err = batch.unfinalized.Put(key, nil)
 	require.NoError(t, err)
-	key = append(uint32ToBytesBigEndian(uint32(0)), hash[:]...)
+	key = append(uint32ToBytes(uint32(0)), hash[:]...)
 	key = append(key, candidateHash.Value[:]...)
 	err = batch.unfinalized.Put(key, nil)
 	require.NoError(t, err)
-	key = append(uint32ToBytesBigEndian(uint32(2)), hash[:]...)
+	key = append(uint32ToBytes(uint32(2)), hash[:]...)
 	key = append(key, candidateHash.Value[:]...)
 	err = batch.unfinalized.Put(key, nil)
 
@@ -232,14 +232,14 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedHeight(t *testing.T) {
 	require.NoError(t, err)
 
 	// check that the key is written
-	key12 := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash[:]...)
+	key12 := append(uint32ToBytes(uint32(blockNumber)), hash[:]...)
 	key12 = append(key12, candidateHash.Value[:]...)
 
 	got, err := as.unfinalized.Get(key12)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
 
-	key16 := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash6[:]...)
+	key16 := append(uint32ToBytes(uint32(blockNumber)), hash6[:]...)
 	key16 = append(key16, candidateHash.Value[:]...)
 
 	got, err = as.unfinalized.Get(key16)
@@ -248,8 +248,9 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedHeight(t *testing.T) {
 
 	// delete height, (block 1)
 	batch = newAvailabilityStoreBatch(as)
-	keyPrefix := append([]byte(unfinalizedPrefix), uint32ToBytesBigEndian(uint32(blockNumber))...)
-	itr := as.unfinalized.NewIterator()
+	keyPrefix := append([]byte(unfinalizedPrefix), uint32ToBytes(uint32(blockNumber))...)
+	itr, err := as.unfinalized.NewIterator()
+	require.NoError(t, err)
 	defer itr.Release()
 
 	for itr.First(); itr.Valid(); itr.Next() {
@@ -275,7 +276,7 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedHeight(t *testing.T) {
 	require.Equal(t, []byte(nil), got)
 
 	// check that the other keys are not deleted
-	key = append(uint32ToBytesBigEndian(uint32(0)), hash[:]...)
+	key = append(uint32ToBytes(uint32(0)), hash[:]...)
 	key = append(key, candidateHash.Value[:]...)
 	got, err = as.unfinalized.Get(key)
 	require.NoError(t, err)
@@ -290,19 +291,19 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedInclusion(t *testing.T) {
 	hash := common.Hash{0x02}
 	hash6 := common.Hash{0x06}
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x03}}
-	key := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash[:]...)
+	key := append(uint32ToBytes(uint32(blockNumber)), hash[:]...)
 	key = append(key, candidateHash.Value[:]...)
 	err := batch.unfinalized.Put(key, nil)
 	require.NoError(t, err)
-	key = append(uint32ToBytesBigEndian(uint32(blockNumber)), hash6[:]...)
+	key = append(uint32ToBytes(uint32(blockNumber)), hash6[:]...)
 	key = append(key, candidateHash.Value[:]...)
 	err = batch.unfinalized.Put(key, nil)
 	require.NoError(t, err)
-	key = append(uint32ToBytesBigEndian(uint32(0)), hash[:]...)
+	key = append(uint32ToBytes(uint32(0)), hash[:]...)
 	key = append(key, candidateHash.Value[:]...)
 	err = batch.unfinalized.Put(key, nil)
 	require.NoError(t, err)
-	key = append(uint32ToBytesBigEndian(uint32(2)), hash[:]...)
+	key = append(uint32ToBytes(uint32(2)), hash[:]...)
 	key = append(key, candidateHash.Value[:]...)
 	err = batch.unfinalized.Put(key, nil)
 	require.NoError(t, err)
@@ -311,14 +312,14 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedInclusion(t *testing.T) {
 	require.NoError(t, err)
 
 	// check that the key is written
-	key12 := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash[:]...)
+	key12 := append(uint32ToBytes(uint32(blockNumber)), hash[:]...)
 	key12 = append(key12, candidateHash.Value[:]...)
 
 	got, err := as.unfinalized.Get(key12)
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
 
-	key16 := append(uint32ToBytesBigEndian(uint32(blockNumber)), hash6[:]...)
+	key16 := append(uint32ToBytes(uint32(blockNumber)), hash6[:]...)
 	key16 = append(key16, candidateHash.Value[:]...)
 
 	got, err = as.unfinalized.Get(key16)
@@ -327,7 +328,7 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedInclusion(t *testing.T) {
 
 	// delete inclusion, (block 1, hash 2)
 	batch = newAvailabilityStoreBatch(as)
-	key = append(uint32ToBytesBigEndian(uint32(blockNumber)), hash[:]...)
+	key = append(uint32ToBytes(uint32(blockNumber)), hash[:]...)
 	key = append(key, candidateHash.Value[:]...)
 	err = batch.unfinalized.Del(key)
 	require.NoError(t, err)
@@ -345,7 +346,7 @@ func TestAvailabilityStore_WriteLoadDeleteUnfinalizedInclusion(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte{}, got)
 
-	key = append(uint32ToBytesBigEndian(uint32(0)), hash[:]...)
+	key = append(uint32ToBytes(uint32(0)), hash[:]...)
 	key = append(key, candidateHash.Value[:]...)
 	got, err = as.unfinalized.Get(key)
 	require.NoError(t, err)
@@ -719,75 +720,6 @@ func TestAvailabilityStore_handleStoreAvailableData(t *testing.T) {
 	}()
 	msgSenderChanResult := <-msg.Sender
 	require.Equal(t, nil, msgSenderChanResult)
-}
-
-func TestAvailabilityStore_storeAvailableData(t *testing.T) {
-	t.Parallel()
-	type args struct {
-		candidate           parachaintypes.CandidateHash
-		nValidators         uint
-		data                AvailableData
-		expectedErasureRoot common.Hash
-	}
-	tests := map[string]struct {
-		args args
-		want bool
-		err  error
-	}{
-		"empty_availableData": {
-			args: args{
-				candidate:           parachaintypes.CandidateHash{},
-				nValidators:         0,
-				data:                AvailableData{},
-				expectedErasureRoot: common.Hash{},
-			},
-			want: false,
-			err:  errors.New("obtaining chunks: expected at least 2 validators"),
-		},
-		"2_validators": {
-			args: args{
-				candidate:   parachaintypes.CandidateHash{},
-				nValidators: 2,
-				data: AvailableData{
-					PoV: parachaintypes.PoV{BlockData: []byte{2}},
-				},
-				expectedErasureRoot: common.MustHexToHash("0x513489282098e960bfd57ed52d62838ce9395f3f59257f1f40fadd02261a7991"),
-			},
-			want: true,
-			err:  nil,
-		},
-		"2_validators_error_erasure_root": {
-			args: args{
-				candidate:   parachaintypes.CandidateHash{},
-				nValidators: 2,
-				data: AvailableData{
-					PoV: parachaintypes.PoV{BlockData: []byte{2}},
-				},
-				expectedErasureRoot: common.Hash{},
-			},
-			want: false,
-			err:  errInvalidErasureRoot,
-		},
-	}
-	for name, tt := range tests {
-		tt := tt
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			inmemoryDB := setupTestDB(t)
-			as := NewAvailabilityStore(inmemoryDB)
-			asSub := &AvailabilityStoreSubsystem{
-				availabilityStore: *as,
-			}
-			got, err := as.storeAvailableData(asSub, tt.args.candidate, tt.args.nValidators,
-				tt.args.data, tt.args.expectedErasureRoot)
-			if tt.err == nil {
-				require.NoError(t, err)
-			} else {
-				require.EqualError(t, err, tt.err.Error())
-			}
-			require.Equal(t, tt.want, got)
-		})
-	}
 }
 
 func TestAvailabilityStore_storeAvailableData(t *testing.T) {
