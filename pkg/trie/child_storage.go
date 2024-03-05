@@ -52,16 +52,7 @@ func (t *InMemoryTrie) getInternalChildTrie(keyToChild []byte) (*InMemoryTrie, e
 
 // GetChild returns the child trie at key :child_storage:[keyToChild]
 func (t *InMemoryTrie) GetChild(keyToChild []byte) (Trie, error) {
-	key := make([]byte, len(ChildStorageKeyPrefix)+len(keyToChild))
-	copy(key, ChildStorageKeyPrefix)
-	copy(key[len(ChildStorageKeyPrefix):], keyToChild)
-
-	childHash := t.Get(key)
-	if childHash == nil {
-		return nil, fmt.Errorf("%w at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
-	}
-
-	return t.childTries[common.BytesToHash(childHash)], nil
+	return t.getInternalChildTrie(keyToChild)
 }
 
 // GetChildTries returns all child tries in this trie
