@@ -60,6 +60,39 @@ func (Valid) Index() uint {
 	return 2
 }
 
+func (s *StatementVDT) Sign(
+	keystore keystore.Keystore,
+	signingContext SigningContext,
+	key ValidatorID,
+) (*ValidatorSignature, error) {
+	encodedPayload, err := scale.Marshal(*s)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling payload: %w", err)
+	}
+
+	encodedSigningContext, err := scale.Marshal(signingContext)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling signing context: %w", err)
+	}
+
+	data := append(encodedPayload, encodedSigningContext...)
+
+	validatorPublicKey, err := sr25519.NewPublicKey(key[:])
+	if err != nil {
+		return nil, fmt.Errorf("getting public key: %w", err)
+	}
+
+	signatureBytes, err := keystore.GetKeypair(validatorPublicKey).Sign(data)
+	if err != nil {
+		return nil, fmt.Errorf("signing data: %w", err)
+	}
+
+	var signature Signature
+	copy(signature[:], signatureBytes)
+	valSign := ValidatorSignature(signature)
+	return &valSign, nil
+}
+
 // UncheckedSignedFullStatement is a Variant of `SignedFullStatement` where the signature has not yet been verified.
 type UncheckedSignedFullStatement struct {
 	// The payload is part of the signed data. The rest is the signing context,
@@ -75,50 +108,9 @@ type UncheckedSignedFullStatement struct {
 
 // SigningContext is a type returned by runtime with current session index and a parent hash.
 type SigningContext struct {
-	/// current session index.
+	// current session index.
 	sessionIndex SessionIndex //nolint:unused
-	/// hash of the parent.
-	parentHash common.Hash //nolint:unused
-}
-
-// Sign signs the Statement using the provided keystore, signing context, and validator key,
-// returning the unchecked signed full statement and any errors.
-func (u UncheckedSignedFullStatement) Sign(
-	keystore keystore.Keystore,
-	signingContext SigningContext,
-	key ValidatorID,
-) (UncheckedSignedFullStatement, error) {
-	encodedPayload, err := scale.Marshal(u.Payload)
-	if err != nil {
-		return UncheckedSignedFullStatement{}, fmt.Errorf("marshalling payload: %w", err)
-	}
-
-	encodedSigningContext, err := scale.Marshal(signingContext)
-	if err != nil {
-		return UncheckedSignedFullStatement{}, fmt.Errorf("marshalling signing context: %w", err)
-	}
-
-	data := append(encodedPayload, encodedSigningContext...)
-
-	validatorPublicKey, err := sr25519.NewPublicKey(key[:])
-	if err != nil {
-		return UncheckedSignedFullStatement{}, fmt.Errorf("getting public key: %w", err)
-	}
-
-	signatureBytes, err := keystore.GetKeypair(validatorPublicKey).Sign(data)
-	if err != nil {
-		return UncheckedSignedFullStatement{}, fmt.Errorf("signing data: %w", err)
-	}
-
-	var signature Signature
-	copy(signature[:], signatureBytes)
-	valSign := ValidatorSignature(signature)
-
-	return UncheckedSignedFullStatement{
-		Payload:        u.Payload,
-		ValidatorIndex: u.ValidatorIndex,
-		Signature:      valSign,
-	}, nil
+	parentHash   common.Hash  //nolint:unused
 }
 
 // SignedFullStatement represents a statement along with its corresponding signature
@@ -127,18 +119,6 @@ func (u UncheckedSignedFullStatement) Sign(
 // the candidate receipt. Only the compact `SignedStatement` is suitable for submission
 // to the chain.
 type SignedFullStatement UncheckedSignedFullStatement
-
-// Sign signs the Statement using the provided keystore, signing context, and validator key,
-// returning the signed full statement and any errors.
-func (u SignedFullStatement) Sign(
-	keystore keystore.Keystore,
-	signingContext SigningContext,
-	key ValidatorID,
-) (SignedFullStatement, error) {
-	uncheckedStatement := UncheckedSignedFullStatement{Payload: u.Payload}
-	uncheckedStatement, err := uncheckedStatement.Sign(keystore, signingContext, key)
-	return SignedFullStatement(uncheckedStatement), err
-}
 
 // SignedFullStatementWithPVD represents a signed full statement along with associated Persisted Validation Data (PVD).
 type SignedFullStatementWithPVD struct {

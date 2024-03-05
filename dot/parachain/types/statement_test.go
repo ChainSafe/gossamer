@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
@@ -142,4 +144,44 @@ func TestStatementVDT(t *testing.T) {
 			})
 		})
 	}
+}
+
+func TestStatementVDT_Sign(t *testing.T) {
+	statement := NewStatementVDT()
+	err := statement.Set(Seconded{})
+	require.NoError(t, err)
+
+	signingContext := SigningContext{
+		sessionIndex: 1,
+		parentHash:   getDummyHash(1),
+	}
+
+	ks := keystore.NewBasicKeystore("test", crypto.Sr25519Type)
+	keyring, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+
+	keyPair := keyring.Alice()
+	err = ks.Insert(keyPair)
+	require.NoError(t, err)
+
+	publicKeyBytes := keyPair.Public().Encode()
+	validatorID := ValidatorID(publicKeyBytes)
+
+	valSign, err := statement.Sign(ks, signingContext, validatorID)
+	require.NoError(t, err)
+
+	payloadBytes, err := scale.Marshal(statement)
+	require.NoError(t, err)
+
+	signingContextBytes, err := scale.Marshal(signingContext)
+	require.NoError(t, err)
+
+	ok, err := keyPair.Public().Verify(payloadBytes, valSign[:])
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	msg := append(payloadBytes, signingContextBytes...)
+	ok, err = keyPair.Public().Verify(msg, valSign[:])
+	require.NoError(t, err)
+	require.True(t, ok)
 }

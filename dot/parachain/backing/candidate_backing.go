@@ -128,12 +128,17 @@ type validator struct {
 
 // sign method signs a given payload with the validator and returns a SignedFullStatement.
 func (v validator) sign(keystore keystore.Keystore, payload parachaintypes.StatementVDT,
-) (parachaintypes.SignedFullStatement, error) {
-	statement := parachaintypes.SignedFullStatement{
+) (*parachaintypes.SignedFullStatement, error) {
+	valSign, err := payload.Sign(keystore, v.signingContext, v.key)
+	if err != nil {
+		return nil, fmt.Errorf("signing statement: %w", err)
+	}
+
+	return &parachaintypes.SignedFullStatement{
 		Payload:        payload,
 		ValidatorIndex: v.index,
-	}
-	return statement.Sign(keystore, v.signingContext, v.key)
+		Signature:      *valSign,
+	}, nil
 }
 
 // GetBackedCandidatesMessage is a message received from overseer that requests a set of backable
