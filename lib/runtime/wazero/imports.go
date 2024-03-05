@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"math"
 	"math/big"
 	"reflect"
 	"time"
@@ -2139,19 +2140,19 @@ func ext_storage_clear_prefix_version_2(ctx context.Context, m api.Module, prefi
 
 	limitBytes := read(m, lim)
 
-	var limit []byte
-	err := scale.Unmarshal(limitBytes, &limit)
-	if err != nil {
-		logger.Warnf("failed scale decoding limit: %s", err)
-		panic(err)
-	}
+	var limitUint uint32
 
-	if len(limit) == 0 {
-		// limit is None, set limit to max
-		limit = []byte{0xff, 0xff, 0xff, 0xff}
+	hasValue := limitBytes[0] == 1
+	if hasValue {
+		err := scale.Unmarshal(limitBytes[1:], &limitUint)
+		if err != nil {
+			logger.Warnf("failed scale decoding limit: %s", err)
+			panic(err)
+		}
+	} else {
+		// if no value is present set limit to max
+		limitUint = math.MaxUint32
 	}
-
-	limitUint := binary.LittleEndian.Uint32(limit)
 
 	numRemoved, all, err := storage.ClearPrefixLimit(prefix, limitUint)
 	if err != nil {
