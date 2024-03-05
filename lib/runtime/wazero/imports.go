@@ -2140,21 +2140,19 @@ func ext_storage_clear_prefix_version_2(ctx context.Context, m api.Module, prefi
 
 	limitBytes := read(m, lim)
 
-	var limitUint uint32
-
-	hasValue := limitBytes[0] == 1
-	if hasValue {
-		err := scale.Unmarshal(limitBytes[1:], &limitUint)
-		if err != nil {
-			logger.Warnf("failed scale decoding limit: %s", err)
-			panic(err)
-		}
-	} else {
-		// if no value is present set limit to max
-		limitUint = math.MaxUint32
+	var limitPtr *uint32
+	err := scale.Unmarshal(limitBytes, &limitPtr)
+	if err != nil {
+		logger.Warnf("failed scale decoding limit: %s", err)
+		panic(err)
 	}
 
-	numRemoved, all, err := storage.ClearPrefixLimit(prefix, limitUint)
+	if limitPtr == nil {
+		maxLimit := uint32(math.MaxUint32)
+		limitPtr = &maxLimit
+	}
+
+	numRemoved, all, err := storage.ClearPrefixLimit(prefix, *limitPtr)
 	if err != nil {
 		logger.Errorf("failed to clear prefix limit: %s", err)
 		panic(err)
