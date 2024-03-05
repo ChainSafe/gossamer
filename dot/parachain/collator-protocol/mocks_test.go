@@ -10,9 +10,9 @@ import (
 
 	network "github.com/ChainSafe/gossamer/dot/network"
 	peerset "github.com/ChainSafe/gossamer/dot/peerset"
-	gomock "go.uber.org/mock/gomock"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	protocol "github.com/libp2p/go-libp2p/core/protocol"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockNetwork is a mock of Network interface.

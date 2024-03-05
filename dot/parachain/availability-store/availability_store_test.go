@@ -710,7 +710,7 @@ func TestAvailabilityStore_handleStoreAvailableData(t *testing.T) {
 		CandidateHash:       parachaintypes.CandidateHash{Value: common.Hash{0x01}},
 		NumValidators:       2,
 		AvailableData:       AvailableData{},
-		ExpectedErasureRoot: common.MustHexToHash("0xc3d486f444a752cbf49857ceb2fce0a235268fb8b63e9e019eab619d192650bc"),
+		ExpectedErasureRoot: common.MustHexToHash("0xdf3484f071ceeda34e5464806bbca678dd1f1d6155a3af700044deee134ce400"),
 		Sender:              msgSenderChan,
 	}
 
@@ -752,7 +752,7 @@ func TestAvailabilityStore_storeAvailableData(t *testing.T) {
 				data: AvailableData{
 					PoV: parachaintypes.PoV{BlockData: []byte{2}},
 				},
-				expectedErasureRoot: common.MustHexToHash("0x513489282098e960bfd57ed52d62838ce9395f3f59257f1f40fadd02261a7991"),
+				expectedErasureRoot: common.MustHexToHash("0xaa4f3f9672310c0cb2e302118b8897cb3e3388ff818e8c0451c2edd403484dce"),
 			},
 			want: true,
 			err:  nil,
