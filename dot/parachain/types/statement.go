@@ -22,7 +22,7 @@ func NewStatementVDT() StatementVDT {
 }
 
 // New will enable scale to create new instance when needed
-func (StatementVDT) New() StatementVDT { //nolint
+func (StatementVDT) New() StatementVDT {
 	return NewStatementVDT()
 }
 
