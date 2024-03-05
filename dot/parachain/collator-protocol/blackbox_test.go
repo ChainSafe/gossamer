@@ -141,7 +141,7 @@ func addrInfo(p2pHost libp2phost.Host) peer.AddrInfo {
 	}
 }
 
-func testCreateCollatorValidatorPair(t *testing.T) {
+func testCreateCollatorValidatorPair(t *testing.T) (*network.Service, *network.Service, *CollatorProtocolValidatorSide) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -226,7 +226,7 @@ func testCreateCollatorValidatorPair(t *testing.T) {
 	err = collatorNode.SendMessage(validatorNode.GetP2PHost().ID(), &collationMessage)
 	require.NoError(t, err)
 
-	// time.Sleep(10 * time.Second)
+	return collatorNode, validatorNode, cpvs
 	// NOTE TO SELF : visit TestHandleLightMessage_Response
 }
 
@@ -327,4 +327,28 @@ func createTestService(t *testing.T, cfg *network.Config) (srvc *network.Service
 
 func TestSomething(t *testing.T) {
 	testCreateCollatorValidatorPair(t)
+}
+
+// TestCollatorDeclare tests the happy path on receiving a valid Declare message. The happy path
+// means that
+// 1) Declare message has a valid signature and
+// 2) it's para id is a value that we are assigned to.
+// In this case, not down the that collator's peer ID, collator ID and set it as collating.
+func TestCollatorDeclare(t *testing.T) {
+	collatorNode, validatorNode, cpvs := testCreateCollatorValidatorPair(t)
+
+	collatorProtocolMessage := NewCollatorProtocolMessage()
+	err := collatorProtocolMessage.Set(Declare{
+		// CollatorId: ,
+		ParaID: 69,
+		// CollatorSignature,
+	})
+	require.NoError(t, err)
+	collationMessage := NewCollationProtocol()
+
+	err = collationMessage.Set(collatorProtocolMessage)
+	require.NoError(t, err)
+
+	err = collatorNode.SendMessage(validatorNode.GetP2PHost().ID(), &collationMessage)
+	require.NoError(t, err)
 }
