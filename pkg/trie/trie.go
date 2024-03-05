@@ -12,13 +12,19 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/tracking"
 )
 
-type ChildTrieManager interface {
+type ChildTrieGetter interface {
 	GetChild(keyToChild []byte) (Trie, error)
 	GetFromChild(keyToChild, key []byte) ([]byte, error)
+	GetChildTries() map[common.Hash]Trie
+}
+
+type ChildTrieSetter interface {
 	PutIntoChild(keyToChild, key, value []byte) error
+}
+
+type ChildTrieDeleter interface {
 	DeleteChild(keyToChild []byte) (err error)
 	ClearFromChild(keyToChild, key []byte) error
-	GetChildTries() map[common.Hash]Trie
 }
 
 type KVStore interface {
@@ -63,7 +69,9 @@ type Hashable interface {
 type Trie interface {
 	KVStore
 	Hashable
-	ChildTrieManager
+	ChildTrieGetter
+	ChildTrieSetter
+	ChildTrieDeleter
 	TrieIterator
 	TrieDeltas
 	PrefixTrie
