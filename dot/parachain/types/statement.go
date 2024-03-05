@@ -22,7 +22,7 @@ func NewStatementVDT() StatementVDT {
 }
 
 // New will enable scale to create new instance when needed
-func (StatementVDT) New() StatementVDT {
+func (StatementVDT) New() StatementVDT { //nolint
 	return NewStatementVDT()
 }
 
@@ -65,7 +65,7 @@ func (s *StatementVDT) Sign(
 	signingContext SigningContext,
 	key ValidatorID,
 ) (*ValidatorSignature, error) {
-	encodedPayload, err := scale.Marshal(*s)
+	encodedData, err := scale.Marshal(*s)
 	if err != nil {
 		return nil, fmt.Errorf("marshalling payload: %w", err)
 	}
@@ -75,14 +75,14 @@ func (s *StatementVDT) Sign(
 		return nil, fmt.Errorf("marshalling signing context: %w", err)
 	}
 
-	data := append(encodedPayload, encodedSigningContext...)
+	encodedData = append(encodedData, encodedSigningContext...)
 
 	validatorPublicKey, err := sr25519.NewPublicKey(key[:])
 	if err != nil {
 		return nil, fmt.Errorf("getting public key: %w", err)
 	}
 
-	signatureBytes, err := keystore.GetKeypair(validatorPublicKey).Sign(data)
+	signatureBytes, err := keystore.GetKeypair(validatorPublicKey).Sign(encodedData)
 	if err != nil {
 		return nil, fmt.Errorf("signing data: %w", err)
 	}
