@@ -4,6 +4,8 @@
 package trie
 
 import (
+	"fmt"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
@@ -48,10 +50,6 @@ type DBBackedTrie interface {
 	writeDirtyNode(db db.DBPutter, n *Node) (err error)
 }
 
-type Printable interface {
-	String() string
-}
-
 type Versioned interface {
 	SetVersion(TrieLayout)
 }
@@ -64,7 +62,6 @@ type Hashable interface {
 
 type Trie interface {
 	KVStore
-	Printable
 	Hashable
 	ChildTrieManager
 	TrieIterator
@@ -72,6 +69,7 @@ type Trie interface {
 	PrefixTrie
 	DBBackedTrie
 	Versioned
+	fmt.Stringer
 
 	RootNode() *Node
 
