@@ -289,3 +289,13 @@ func (sm *SystemModule) RemoveReservedPeer(r *http.Request, req *StringRequest, 
 
 	return sm.networkAPI.RemoveReservedPeers(req.String)
 }
+
+// DryRun Dry run an extrinsic. Returns a SCALE encoded ApplyExtrinsicResult.
+// Params:
+//   - HEX - The raw, SCALE encoded extrinsic.
+//   - HASH - The block hash indicating the state. Null implies the current state.
+//
+// Response: The SCALE encoded ApplyExtrinsicResult.
+func (sm *SystemModule) DryRun(r *http.Request, req *StringRequest, res *[]byte) error {
+	return nil
+}

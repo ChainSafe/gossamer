@@ -27,6 +27,7 @@ var (
 		"chain_getHead":          "chain_getBlockHash",
 		"account_nextIndex":      "system_accountNextIndex",
 		"chain_getFinalisedHead": "chain_getFinalizedHead",
+		"system_dryRun":          "system_dryRun",
 	}
 )
 
