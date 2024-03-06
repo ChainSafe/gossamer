@@ -37,7 +37,7 @@ const (
 	MaxPossibleAllocations uint32 = 33554432
 
 	PageSize     = 65536
-	MaxWasmPages = (4 * 1024 * 1024 * 1024 / PageSize) - 1
+	MaxWasmPages = 4 * 1024 * 1024 * 1024 / PageSize
 )
 
 var (
@@ -332,7 +332,7 @@ type FreeingBumpHeapAllocator struct {
 	bumper                 uint32
 	freeLists              *FreeLists
 	poisoned               bool
-	lastObservedMemorySize uint32
+	lastObservedMemorySize uint64
 	stats                  AllocationStats
 }
 
@@ -508,11 +508,14 @@ func bump(bumper *uint32, size uint32, mem runtime.Memory) (uint32, error) {
 	if requiredSize > uint64(mem.Size()) {
 		requiredPages, ok := pagesFromSize(requiredSize)
 		if !ok {
-			return 0, fmt.Errorf("%w: required size %d dont fit uint32",
-				ErrAllocatorOutOfSpace, requiredSize)
+			panic(fmt.Sprintf("cannot calculate number of pages from size %d", requiredSize))
 		}
 
-		currentPages := mem.Size() / PageSize
+		currentPages, ok := pagesFromSize(mem.Size())
+		if !ok {
+			panic(fmt.Sprintf("cannot calculate current number of pages, current size: %d", mem.Size()))
+		}
+
 		if currentPages >= requiredPages {
 			panic(fmt.Sprintf("current pages %d >= required pages %d", currentPages, requiredPages))
 		}
@@ -539,7 +542,7 @@ func bump(bumper *uint32, size uint32, mem runtime.Memory) (uint32, error) {
 				ErrCannotGrowLinearMemory, currentPages, nextPages)
 		}
 
-		pagesIncrease := (mem.Size() / PageSize) == nextPages
+		pagesIncrease := (mem.Size() / PageSize) == uint64(nextPages)
 		if !pagesIncrease {
 			panic(fmt.Sprintf("number of pages should have increased! previous: %d, desired: %d", currentPages, nextPages))
 		}
