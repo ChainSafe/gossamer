@@ -83,8 +83,7 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1) error {
 	// TODO(#2931): this is a simple hack to ensure that the neighbour messages
 	// sent by gossamer are being received by substrate nodes
 	// not intended to be production code
-	round := h.blockState.GetRound()
-	setID := h.blockState.GetSetID()
+	round, setID := h.blockState.GetRoundAndSetID()
 	neighbourMessage := &NeighbourPacketV1{
 		Round:  round,
 		SetID:  setID,

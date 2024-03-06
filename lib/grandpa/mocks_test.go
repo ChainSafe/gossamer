@@ -244,18 +244,19 @@ func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).GetImportedBlockNotifierChannel))
 }
 
-// GetRound mocks base method.
-func (m *MockBlockState) GetRound() uint64 {
+// GetRoundAndSetID mocks base method.
+func (m *MockBlockState) GetRoundAndSetID() (uint64, uint64) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRound")
+	ret := m.ctrl.Call(m, "GetRoundAndSetID")
 	ret0, _ := ret[0].(uint64)
-	return ret0
+	ret1, _ := ret[1].(uint64)
+	return ret0, ret1
 }
 
-// GetRound indicates an expected call of GetRound.
-func (mr *MockBlockStateMockRecorder) GetRound() *gomock.Call {
+// GetRoundAndSetID indicates an expected call of GetRoundAndSetID.
+func (mr *MockBlockStateMockRecorder) GetRoundAndSetID() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRound", reflect.TypeOf((*MockBlockState)(nil).GetRound))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoundAndSetID", reflect.TypeOf((*MockBlockState)(nil).GetRoundAndSetID))
 }
 
 // GetRuntime mocks base method.
@@ -271,20 +272,6 @@ func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) 
 func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), arg0)
-}
-
-// GetSetID mocks base method.
-func (m *MockBlockState) GetSetID() uint64 {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSetID")
-	ret0, _ := ret[0].(uint64)
-	return ret0
-}
-
-// GetSetID indicates an expected call of GetSetID.
-func (mr *MockBlockStateMockRecorder) GetSetID() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSetID", reflect.TypeOf((*MockBlockState)(nil).GetSetID))
 }
 
 // HasFinalisedBlock mocks base method.

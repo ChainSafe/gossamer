@@ -4,9 +4,8 @@
 package sync
 
 import (
-	"fmt"
-
 	"crypto/rand"
+	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -161,10 +160,13 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 	defer s.mtx.RUnlock()
 
 	if who != nil {
-		syncWorker := s.workers[*who]
-		if syncWorker != nil {
-			syncWorker.queue <- task
-			return
+		syncWorker, inMap := s.workers[*who]
+		if inMap {
+			if syncWorker != nil {
+				syncWorker.queue <- task
+				return
+			}
+			panic("sync worker should not be nil")
 		}
 	}
 
