@@ -19,7 +19,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/erasure"
-	runtimewazero "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -556,7 +555,7 @@ func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal() {
 
 func (av *AvailabilityStoreSubsystem) processNewHead(tx *availabilityStoreBatch, hash common.Hash, now BETimestamp,
 	header types.Header) {
-	logger.Infof("processNewHead")
+	logger.Infof("processNewHead hash %s, now %v, header %v\n", hash, now, header)
 	// TODO: call requestValidators to determine number of validators
 	nValidators := uint(0)
 
@@ -568,7 +567,7 @@ func (av *AvailabilityStoreSubsystem) processNewHead(tx *availabilityStoreBatch,
 	if err != nil {
 		logger.Errorf("sending message to get block header: %w", err)
 	}
-	runtime := rtRes.(*runtimewazero.Instance)
+	runtime := rtRes.(parachain.RuntimeInstance)
 
 	candidateEvents, err := runtime.ParachainHostCandidateEvents()
 	if err != nil {

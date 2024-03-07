@@ -6,6 +6,8 @@ package overseer
 import (
 	"context"
 	"fmt"
+	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -325,16 +327,19 @@ func (to *testOverseer) broadcast(msg any) {
 
 type testHarness struct {
 	overseer          *testOverseer
+	t                 *testing.T
 	broadcastMessages []any
 	broadcastIndex    int
 	expectedMessages  []any
+	processes         []func(msg any)
 }
 
-func newTestHarness() *testHarness {
+func newTestHarness(t *testing.T) *testHarness {
 	overseer := NewTestOverseer()
 	return &testHarness{
 		overseer:       overseer,
 		broadcastIndex: 0,
+		t:              t,
 	}
 }
 
@@ -348,8 +353,12 @@ func (h *testHarness) processMessages() {
 	for {
 		select {
 		case msg := <-h.overseer.SubsystemsToOverseer:
+			h.processes[processIndex](msg)
 			fmt.Printf("harness received from subsystem %v\n", msg)
-			fmt.Printf("comparing messages: %v %v\n", msg, h.expectedMessages[processIndex])
+			//fmt.Printf("comparing messages: %v %v\n", msg, h.expectedMessages[processIndex])
+			//fmt.Printf("expected messages: %v\n", h.expectedMessages)
+			//require.Equal(h.t, h.expectedMessages[processIndex], msg)
+
 			processIndex++
 		case <-h.overseer.ctx.Done():
 			if err := h.overseer.ctx.Err(); err != nil {
@@ -362,7 +371,8 @@ func (h *testHarness) processMessages() {
 }
 
 func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
-	harness := newTestHarness()
+	ctrl := gomock.NewController(t)
+	harness := newTestHarness(t)
 
 	// TODO: add error to availability store to test this
 
@@ -387,14 +397,37 @@ func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 
 	harness.broadcastMessages = append(harness.broadcastMessages, activeLeavesUpdate)
 	harness.expectedMessages = append(harness.expectedMessages, activeLeavesUpdate)
+	harness.processes = append(harness.processes, func(msg any) {
+		msg2, _ := msg.(util.ChainAPIMessage[util.BlockHeader])
+		msg2.ResponseChannel <- types.Header{
+			Number: 3,
+		}
+	})
+	harness.processes = append(harness.processes, func(msg any) {
+		fmt.Printf("process 2 %T, %v\n", msg, msg)
+		msg2, _ := msg.(util.ChainAPIMessage[util.Ancestors])
+		msg2.ResponseChannel <- util.AncestorsResponse{
+			Ancestors: []common.Hash{{0x01}, {0x02}},
+		}
+	})
+	harness.processes = append(harness.processes, func(msg any) {
+		fmt.Printf("process 3 %T, %v\n", msg, msg)
+		msg2, _ := msg.(parachain.RuntimeAPIMessage)
+		// TODO: determine how to get runtime instance here
+		// we may need to setup blockState to instantiate the runtime
 
+		inst := NewMockRuntimeInstance(ctrl)
+		inst.EXPECT().ParachainHostCandidateEvents().Return(nil, nil)
+
+		msg2.Resp <- inst
+	})
 	err = harness.overseer.Start()
 	require.NoError(t, err)
 	go harness.processMessages()
 
 	harness.triggerBroadcast()
 
-	time.Sleep(1000 * time.Millisecond)
+	time.Sleep(11000 * time.Millisecond)
 
 	err = harness.overseer.Stop()
 	require.NoError(t, err)
