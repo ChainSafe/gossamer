@@ -36,7 +36,8 @@ const (
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
 
-	maxMessageSize = 1024 * 64 // 64kb for now
+	maxMessageSize       = 1024 * 64 // 64kb for now
+	findPeerQueryTimeout = 10 * time.Second
 )
 
 var (
@@ -710,7 +711,9 @@ func (s *Service) processMessage(msg peerset.Message) {
 		addrInfo := s.host.p2pHost.Peerstore().PeerInfo(peerID)
 		if len(addrInfo.Addrs) == 0 {
 			var err error
-			addrInfo, err = s.host.discovery.dht.FindPeer(s.host.discovery.ctx, peerID)
+			ctx, cancel := context.WithTimeout(s.host.discovery.ctx, findPeerQueryTimeout)
+			defer cancel()
+			addrInfo, err = s.host.discovery.dht.FindPeer(ctx, peerID)
 			if err != nil {
 				logger.Warnf("failed to find peer id %s: %s", peerID, err)
 				return
