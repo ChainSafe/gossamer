@@ -162,11 +162,11 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 	if who != nil {
 		syncWorker, inMap := s.workers[*who]
 		if inMap {
-			if syncWorker != nil {
-				syncWorker.queue <- task
-				return
+			if syncWorker == nil {
+				panic("sync worker should not be nil")
 			}
-			panic("sync worker should not be nil")
+			syncWorker.queue <- task
+			return
 		}
 	}
 
