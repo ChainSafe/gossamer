@@ -149,7 +149,7 @@ func (n *Node) Start(ctx context.Context, optArgs ...string) (runtimeError <-cha
 		"--role", config.ParseNetworkRole(n.tomlConfig.Core.Role),
 		"--no-telemetry"}
 	args = append(args, optArgs...)
-	cmd := exec.CommandContext(ctx, n.binPath, args...)
+	cmd := exec.CommandContext(ctx, n.binPath, args...) //nolint:gosec
 
 	if n.logsBuffer != nil {
 		n.logsBuffer.Reset()
