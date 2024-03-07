@@ -227,8 +227,6 @@ func (cpvs CollatorProtocolValidatorSide) enqueueCollation(
 	collatorID parachaintypes.CollatorID,
 	prospectiveCandidate *ProspectiveCandidate) error {
 
-	fmt.Println("230")
-
 	// TODO: return errors
 	pendingCollation := PendingCollation{
 		RelayParent:          relayParent,
@@ -455,12 +453,12 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 	switch collatorProtocolMessageV.Index() {
 	// TODO: Create an issue to cover v2 types. #3534
 	case 0: // Declare
-		fmt.Println("we do come here")
+		fmt.Printf("458\n")
 		declareMessage, ok := collatorProtocolMessageV.(Declare)
 		if !ok {
 			return propagate, errors.New("expected message to be declare")
 		}
-
+		fmt.Printf("463\n")
 		// check if we already have the collator id declared in this message. If so, punish the
 		// peer who sent us this message by reducing its reputation
 		_, ok = cpvs.getPeerIDFromCollatorID(declareMessage.CollatorId)
@@ -471,8 +469,9 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 			}, sender)
 			return propagate, nil
 		}
-
+		fmt.Printf("473\n")
 		// NOTE: peerData for sender will be filled when it gets connected to us
+		// NOTE: Looks like this peerData never gets filled.
 		peerData, ok := cpvs.peerData[sender]
 		if !ok {
 			cpvs.net.ReportPeer(peerset.ReputationChange{

@@ -335,7 +335,7 @@ func TestSomething(t *testing.T) {
 // 2) it's para id is a value that we are assigned to.
 // In this case, not down the that collator's peer ID, collator ID and set it as collating.
 func TestCollatorDeclare(t *testing.T) {
-	collatorNode, validatorNode, cpvs := testCreateCollatorValidatorPair(t)
+	collatorNode, validatorNode, _ := testCreateCollatorValidatorPair(t)
 
 	collatorProtocolMessage := NewCollatorProtocolMessage()
 	err := collatorProtocolMessage.Set(Declare{

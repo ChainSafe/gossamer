@@ -129,6 +129,10 @@ type Service struct {
 	syncer             Syncer
 	transactionHandler TransactionHandler
 
+	// networkEventInfo is a channel used to receive network event information,
+	// such as connected and disconnected peers
+	networkEventInfo chan NetworkEventInfo
+
 	// Configuration options
 	noBootstrap bool
 	noDiscover  bool
@@ -216,6 +220,7 @@ func NewService(cfg *Config) (*Service, error) {
 		syncer:                 cfg.Syncer,
 		notificationsProtocols: make(map[MessageType]*notificationsProtocol),
 		lightRequest:           make(map[peer.ID]struct{}),
+		networkEventInfo:       make(chan NetworkEventInfo),
 		telemetryInterval:      cfg.telemetryInterval,
 		closeCh:                make(chan struct{}),
 		bufPool:                bufPool,
@@ -496,7 +501,7 @@ mainloop:
 }
 
 func (s *Service) Connect(p peer.AddrInfo) {
-	s.host.cm.peerSetHandler.AddPeer(0, p.ID)
+	s.host.cm.peerSetHandler.Incoming(0, p.ID)
 }
 
 func (s *Service) GetP2PHost() libp2phost.Host {
@@ -595,6 +600,24 @@ func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 	}
 
 	return errors.New("message not supported by any notifications protocol")
+}
+
+func (s *Service) GetNetworkEventsChannel() <-chan NetworkEventInfo {
+	return s.networkEventInfo
+}
+
+type NetworkEvent bool
+
+const (
+	Connected    NetworkEvent = true
+	Disconnected NetworkEvent = false
+)
+
+type NetworkEventInfo struct {
+	PeerID         peer.ID
+	Event          NetworkEvent
+	Role           common.NetworkRole
+	MayBeAuthority *types.AuthorityID
 }
 
 func (s *Service) GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
@@ -735,6 +758,11 @@ func (s *Service) processMessage(msg peerset.Message) {
 			return
 		}
 		logger.Debugf("connection successful with peer %s", peerID)
+
+		s.networkEventInfo <- NetworkEventInfo{
+			PeerID: peerID,
+			Event:  Connected,
+		}
 	case peerset.Drop, peerset.Reject:
 		err := s.host.closePeer(peerID)
 		if err != nil {
@@ -742,6 +770,11 @@ func (s *Service) processMessage(msg peerset.Message) {
 			return
 		}
 		logger.Debugf("connection dropped successfully for peer %s", peerID)
+
+		s.networkEventInfo <- NetworkEventInfo{
+			PeerID: peerID,
+			Event:  Disconnected,
+		}
 	}
 }
 
