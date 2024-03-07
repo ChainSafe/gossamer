@@ -6,8 +6,6 @@ package overseer
 import (
 	"context"
 	"fmt"
-	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
-	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -16,7 +14,9 @@ import (
 
 	availability_store "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
+	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/dot/state"
 	types "github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
