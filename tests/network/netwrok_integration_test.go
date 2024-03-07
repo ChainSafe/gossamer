@@ -13,7 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/ChainSafe/gossamer/tests/utils/retry"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
-	"github.com/adrg/xdg"
 	"github.com/stretchr/testify/require"
 
 	"context"
@@ -38,33 +37,32 @@ func TestKadDHTNetworkDiscovery(t *testing.T) {
 	con.Core.BabeAuthority = true
 	con.Log.Sync = "trace"
 	con.Network.Port = 7001
-	// ID: 12D3KooWMHixgmjFYM4VyQNDTKMvN9BPw47Tyyb6LPZ43EavV68m
-	con.BasePath = xdg.DataHome + "/gossamer/westend-local/alice"
 
 	peerConfigBoB := cfg.Copy(&con)
 	peerConfigBoB.Network.Bootnodes = []string{
-		"/ip4/127.0.0.1/tcp/7001/p2p/12D3KooWMHixgmjFYM4VyQNDTKMvN9BPw47Tyyb6LPZ43EavV68m",
+		"/ip4/127.0.0.1/tcp/7001/p2p/12D3KooWARREmJv5sDF3TFsnUsRrwPUQaXC5BaGGACHLGutNSGeV",
 	}
 	peerConfigBoB.Core.BabeAuthority = false
 	peerConfigBoB.Network.Port = 7002
-	// ID: 12D3KooWPBa1zBhwtcfvXZdY5p8CyPmLLdPBJVFrZpRAhFXfzpzn
-	peerConfigBoB.BasePath = xdg.DataHome + "/gossamer/westend-local/bob"
 
 	peerConfigCharlie := cfg.Copy(&peerConfigBoB)
 	peerConfigCharlie.Network.Port = 7003
-	// ID: 12D3KooWMMyCYHmj2d7uVvYLGx98QfUf62arxXkTSugCpnKKfpxg
-	peerConfigCharlie.BasePath = xdg.DataHome + "/gossamer/westend-local/charlie"
 
 	alice := node.New(t, con, node.SetIndex(0), node.SetWriter(os.Stdout))
 	charlie := node.New(t, peerConfigCharlie, node.SetIndex(1), node.SetWriter(os.Stdout))
 	bob := node.New(t, peerConfigBoB, node.SetIndex(2), node.SetWriter(os.Stdout))
 	nodes := []*node.Node{&alice, &charlie, &bob}
+	nodeKeyMap := map[string]*node.Node{
+		"5260036532755806706566077008373229892172734656718221275791488860": &alice,
+		"5260036532755806706566077008373229892172734656718221275791488861": &bob,
+		"5260036532755806706566077008373229892172734656718221275791488862": &charlie,
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	for _, node := range nodes {
-		node.InitAndStartTest(ctx, t, cancel)
+	for key, node := range nodeKeyMap {
+		node.InitAndStartTest(ctx, t, cancel, "--node-key", key)
 		const timeBetweenStart = 0 * time.Second
 		timer := time.NewTimer(timeBetweenStart)
 		select {

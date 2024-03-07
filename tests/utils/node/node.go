@@ -142,12 +142,14 @@ func (n *Node) Init() (err error) {
 // be started, and runs the node until the context gets canceled.
 // When the node crashes or is stopped, an error (nil or not) is sent
 // in the waitErrCh.
-func (n *Node) Start(ctx context.Context) (runtimeError <-chan error, startErr error) {
-	cmd := exec.CommandContext(ctx, n.binPath, //nolint:gosec
+func (n *Node) Start(ctx context.Context, optArgs ...string) (runtimeError <-chan error, startErr error) {
+	args := []string{
 		"--base-path", n.tomlConfig.BasePath,
 		"--chain", n.tomlConfig.ChainSpec,
 		"--role", config.ParseNetworkRole(n.tomlConfig.Core.Role),
-		"--no-telemetry")
+		"--no-telemetry"}
+	args = append(args, optArgs...)
+	cmd := exec.CommandContext(ctx, n.binPath, args...)
 
 	if n.logsBuffer != nil {
 		n.logsBuffer.Reset()
@@ -177,9 +179,9 @@ func (n *Node) Start(ctx context.Context) (runtimeError <-chan error, startErr e
 // When the node crashes or is stopped, an error (nil or not) is sent
 // in the waitErrCh.
 // It waits for the node to respond to an RPC health call before returning.
-func (n *Node) StartAndWait(ctx context.Context) (
+func (n *Node) StartAndWait(ctx context.Context, args ...string) (
 	runtimeError <-chan error, startErr error) {
-	runtimeError, startErr = n.Start(ctx)
+	runtimeError, startErr = n.Start(ctx, args...)
 	if startErr != nil {
 		return nil, startErr
 	}
@@ -198,7 +200,7 @@ func (n *Node) StartAndWait(ctx context.Context) (
 // If the node crashes during runtime, the passed `signalTestToStop` argument is
 // called since the test cannot be failed from outside the main test goroutine.
 func (n Node) InitAndStartTest(ctx context.Context, t *testing.T,
-	signalTestToStop context.CancelFunc) {
+	signalTestToStop context.CancelFunc, args ...string) {
 	t.Helper()
 
 	err := n.Init()
@@ -206,7 +208,7 @@ func (n Node) InitAndStartTest(ctx context.Context, t *testing.T,
 
 	nodeCtx, nodeCancel := context.WithCancel(ctx)
 
-	waitErr, err := n.StartAndWait(nodeCtx)
+	waitErr, err := n.StartAndWait(nodeCtx, args...)
 	if err != nil {
 		t.Errorf("failed to start node %s: %s", n, err)
 		// Release resources and fail the test
