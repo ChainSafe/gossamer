@@ -95,7 +95,7 @@ type RuntimeInstance interface {
 	ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
 	) (*parachaintypes.ValidationCode, error)
 	ParachainHostCheckValidationOutputs(parachainID uint32, outputs parachaintypes.CandidateCommitments) (bool, error)
-	ParachainHostCandidateEvents() (*[]parachaintypes.CandidateEvent, error)
+	ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice, error)
 }
 
 type RuntimeAPIMessage struct {
