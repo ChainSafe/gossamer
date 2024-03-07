@@ -245,6 +245,21 @@ func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).GetImportedBlockNotifierChannel))
 }
 
+// GetRoundAndSetID mocks base method.
+func (m *MockBlockState) GetRoundAndSetID() (uint64, uint64) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRoundAndSetID")
+	ret0, _ := ret[0].(uint64)
+	ret1, _ := ret[1].(uint64)
+	return ret0, ret1
+}
+
+// GetRoundAndSetID indicates an expected call of GetRoundAndSetID.
+func (mr *MockBlockStateMockRecorder) GetRoundAndSetID() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRoundAndSetID", reflect.TypeOf((*MockBlockState)(nil).GetRoundAndSetID))
+}
+
 // GetRuntime mocks base method.
 func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
 	m.ctrl.T.Helper()
