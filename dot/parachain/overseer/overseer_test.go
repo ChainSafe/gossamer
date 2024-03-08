@@ -5,6 +5,7 @@ package overseer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -247,32 +248,6 @@ func TestRuntimeApiErrorDoesNotStopTheSubsystem(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// fn runtime_api_error_does_not_stop_the_subsystem()
-
-// fn store_chunk_works()
-
-// fn store_chunk_does_nothing_if_no_entry_already()
-
-// fn query_chunk_checks_meta()
-
-// fn store_available_data_erasure_mismatch()
-
-// fn store_block_works()
-
-// fn store_pov_and_query_chunk_works()
-
-// fn query_all_chunks_works()
-
-// fn stored_but_not_included_data_is_pruned()
-
-// fn stored_data_kept_until_finalized()
-
-// fn we_dont_miss_anything_if_import_notifications_are_missed()
-
-// fn forkfullness_works()
-
-// fn query_chunk_size_works()
-
 type testOverseer struct {
 	ctx context.Context
 
@@ -330,7 +305,6 @@ type testHarness struct {
 	t                 *testing.T
 	broadcastMessages []any
 	broadcastIndex    int
-	expectedMessages  []any
 	processes         []func(msg any)
 }
 
@@ -354,11 +328,6 @@ func (h *testHarness) processMessages() {
 		select {
 		case msg := <-h.overseer.SubsystemsToOverseer:
 			h.processes[processIndex](msg)
-			fmt.Printf("harness received from subsystem %v\n", msg)
-			//fmt.Printf("comparing messages: %v %v\n", msg, h.expectedMessages[processIndex])
-			//fmt.Printf("expected messages: %v\n", h.expectedMessages)
-			//require.Equal(h.t, h.expectedMessages[processIndex], msg)
-
 			processIndex++
 		case <-h.overseer.ctx.Done():
 			if err := h.overseer.ctx.Err(); err != nil {
@@ -373,8 +342,6 @@ func (h *testHarness) processMessages() {
 func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	harness := newTestHarness(t)
-
-	// TODO: add error to availability store to test this
 
 	stateService := state.NewService(state.Config{})
 	stateService.UseMemDB()
@@ -396,7 +363,6 @@ func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 	}
 
 	harness.broadcastMessages = append(harness.broadcastMessages, activeLeavesUpdate)
-	harness.expectedMessages = append(harness.expectedMessages, activeLeavesUpdate)
 	harness.processes = append(harness.processes, func(msg any) {
 		msg2, _ := msg.(util.ChainAPIMessage[util.BlockHeader])
 		msg2.ResponseChannel <- types.Header{
@@ -404,7 +370,6 @@ func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 		}
 	})
 	harness.processes = append(harness.processes, func(msg any) {
-		fmt.Printf("process 2 %T, %v\n", msg, msg)
 		msg2, _ := msg.(util.ChainAPIMessage[util.Ancestors])
 		msg2.ResponseChannel <- util.AncestorsResponse{
 			Ancestors: []common.Hash{{0x01}, {0x02}},
@@ -413,16 +378,17 @@ func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 	harness.processes = append(harness.processes, func(msg any) {
 		fmt.Printf("process 3 %T, %v\n", msg, msg)
 		msg2, _ := msg.(parachain.RuntimeAPIMessage)
-		// TODO: determine how to get runtime instance here
-		// we may need to setup blockState to instantiate the runtime
 
+		// return error from runtime call, and check that the subsystem continues to run
 		inst := NewMockRuntimeInstance(ctrl)
-		inst.EXPECT().ParachainHostCandidateEvents().Return(nil, nil)
+		inst.EXPECT().ParachainHostCandidateEvents().Return(nil, errors.New("error"))
 
 		msg2.Resp <- inst
 	})
+
 	err = harness.overseer.Start()
 	require.NoError(t, err)
+
 	go harness.processMessages()
 
 	harness.triggerBroadcast()

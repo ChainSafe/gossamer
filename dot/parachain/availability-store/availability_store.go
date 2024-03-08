@@ -572,6 +572,7 @@ func (av *AvailabilityStoreSubsystem) processNewHead(tx *availabilityStoreBatch,
 	candidateEvents, err := runtime.ParachainHostCandidateEvents()
 	if err != nil {
 		logger.Errorf("failed to get candidate events: %w", err)
+		return
 	}
 	logger.Infof("candidateEvents %v", candidateEvents)
 
