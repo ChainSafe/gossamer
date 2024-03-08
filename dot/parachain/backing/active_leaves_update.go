@@ -5,31 +5,28 @@ package backing
 
 import (
 	"fmt"
+	"sync"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/tidwall/btree"
 )
 
 func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintypes.ActiveLeavesUpdateSignal) error {
-	// TODO #3503
-	var leafHasProspectiveParachains bool
 	var implicitViewFetchError error
-	var prospectiveParachainMode parachaintypes.ProspectiveParachainsMode
+	var prospectiveParachainsMode parachaintypes.ProspectiveParachainsMode
 	activatedLeaf := update.Activated
 
 	if activatedLeaf != nil {
-		mode, err := getProspectiveParachainsMode()
+		var err error
+		prospectiveParachainsMode, err = getProspectiveParachainsMode()
 		if err != nil {
 			return fmt.Errorf("getting prospective parachains mode: %w", err)
 		}
 
-		if mode.IsEnabled {
-			leafHasProspectiveParachains = true
+		if prospectiveParachainsMode.IsEnabled {
 			_, implicitViewFetchError = cb.implicitView.activeLeaf(activatedLeaf.Hash)
-			if implicitViewFetchError == nil {
-				prospectiveParachainMode = mode
-			}
 		}
 	}
 
@@ -47,26 +44,119 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 		return nil
 	}
 
-	// var freshRelayParents []common.Hash
+	var freshRelayParents []common.Hash
 
-	switch {
-	case leafHasProspectiveParachains == false:
+	switch prospectiveParachainsMode.IsEnabled {
+	case false:
 		if _, ok := cb.perLeaf[activatedLeaf.Hash]; ok {
 			return nil
 		}
 
 		cb.perLeaf[activatedLeaf.Hash] = &activeLeafState{
-			prospectiveParachainsMode: prospectiveParachainMode,
+			prospectiveParachainsMode: prospectiveParachainsMode,
 			secondedAtDepth:           make(map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]),
 		}
 
-		// freshRelayParents = []common.Hash{activatedLeaf.Hash}
+		freshRelayParents = []common.Hash{activatedLeaf.Hash}
+	case true:
+		if implicitViewFetchError != nil {
+			return fmt.Errorf("failed to load implicit view for leaf %s: %w", activatedLeaf.Hash, implicitViewFetchError)
+		}
 
-	case leafHasProspectiveParachains == true && implicitViewFetchError == nil:
-		cb.implicitView.knownAllowedRelayParentsUnder(activatedLeaf.Hash, nil)
-	case leafHasProspectiveParachains == true && implicitViewFetchError != nil:
+		freshRelayParents = cb.implicitView.knownAllowedRelayParentsUnder(activatedLeaf.Hash, nil)
+
+		remainingSeconded := make(map[parachaintypes.CandidateHash]parachaintypes.ParaID)
+		for candidateHash, candidateState := range cb.perCandidate {
+			if candidateState.secondedLocally {
+				remainingSeconded[candidateHash] = candidateState.paraID
+			}
+		}
+
+		secondedAtDepth := processRemainingSeconded(cb, remainingSeconded, activatedLeaf.Hash)
+
+		cb.perLeaf[activatedLeaf.Hash] = &activeLeafState{
+			prospectiveParachainsMode: prospectiveParachainsMode,
+			secondedAtDepth:           secondedAtDepth,
+		}
+
+		if len(freshRelayParents) == 0 {
+			logger.Warnf("implicit view gave no relay-parents under leaf-hash %s", activatedLeaf.Hash)
+			freshRelayParents = []common.Hash{activatedLeaf.Hash}
+		}
+	}
+
+	for _, maybeNewRP := range freshRelayParents {
+		if _, ok := cb.perRelayParent[maybeNewRP]; ok {
+			continue
+		}
+
+		var mode parachaintypes.ProspectiveParachainsMode
+		leaf, ok := cb.perLeaf[maybeNewRP]
+		if !ok {
+			// If the relay-parent isn't a leaf itself,
+			// then it is guaranteed by the prospective parachains
+			// subsystem that it is an ancestor of a leaf which
+			// has prospective parachains enabled and that the
+			// block itself did.
+			mode = prospectiveParachainsMode
+		} else {
+			mode = leaf.prospectiveParachainsMode
+		}
+
+		rpState, err := constructPerRelayParentState(maybeNewRP, &cb.keystore, mode)
+		if err != nil {
+			return fmt.Errorf("constructing per relay parent state for relay-parent %s: %w", maybeNewRP, err)
+		}
+
+		if rpState != nil {
+			cb.perRelayParent[maybeNewRP] = rpState
+		}
 	}
 	return nil
+}
+
+func processRemainingSeconded(
+	cb *CandidateBacking,
+	remainingSeconded map[parachaintypes.CandidateHash]parachaintypes.ParaID,
+	leafHash common.Hash,
+) map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash] {
+	var wg sync.WaitGroup
+	var mut sync.Mutex
+	secondedAtDepth := make(map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash])
+
+	for candidateHash, parID := range remainingSeconded {
+		wg.Add(1)
+		go func(candidateHash parachaintypes.CandidateHash, parID parachaintypes.ParaID) {
+			defer wg.Done()
+
+			getTreeMembership := parachaintypes.ProspectiveParachainsMessageGetTreeMembership{
+				ParaID:        parID,
+				CandidateHash: candidateHash,
+				ResponseCh:    make(chan []parachaintypes.FragmentTreeMembership),
+			}
+
+			cb.SubSystemToOverseer <- getTreeMembership
+			membership := <-getTreeMembership.ResponseCh
+
+			for _, m := range membership {
+				if m.RelayParent == leafHash {
+					mut.Lock()
+
+					tree, ok := secondedAtDepth[parID]
+					if !ok {
+						tree = new(btree.Map[uint, parachaintypes.CandidateHash])
+					}
+
+					for _, depth := range m.Depths {
+						tree.Load(depth, candidateHash)
+					}
+					mut.Unlock()
+				}
+			}
+		}(candidateHash, parID)
+	}
+	wg.Wait()
+	return secondedAtDepth
 }
 
 // clean up perRelayParent according to ancestry of leaves.
@@ -122,4 +212,13 @@ func getProspectiveParachainsMode() (parachaintypes.ProspectiveParachainsMode, e
 	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/subsystem-util/src/runtime/mod.rs#L453-L456
 
 	return parachaintypes.ProspectiveParachainsMode{}, nil
+}
+
+func constructPerRelayParentState(
+	relayParent common.Hash,
+	keystore *keystore.Keystore,
+	mode parachaintypes.ProspectiveParachainsMode,
+) (*perRelayParentState, error) {
+	// TODO: implement this
+	return nil, nil
 }
