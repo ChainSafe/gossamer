@@ -4,10 +4,14 @@
 package storage
 
 import (
+	"bytes"
 	"maps"
 	"sync"
 
+	xmaps "golang.org/x/exp/maps"
+
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie/codec"
 )
 
 type storageDiff struct {
@@ -70,6 +74,26 @@ func (cs *storageDiff) delete(key string) {
 	delete(cs.childChangeSet, key)
 	delete(cs.upserts, key)
 	cs.deletes[key] = true
+}
+
+func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) (deleted uint32, allDeleted bool) {
+	// TODO: consider actual keys in trie
+	prefix = codec.KeyLEToNibbles(prefix)
+	prefix = bytes.TrimSuffix(prefix, []byte{0})
+	newKeys := xmaps.Keys(cs.upserts)
+	allKeys := append(newKeys, trieKeys...)
+	deleted = 0
+	for _, k := range allKeys {
+		if limit > -1 && deleted >= uint32(limit) {
+			break
+		}
+		keyBytes := []byte(k)
+		bytes.HasPrefix(keyBytes, prefix)
+		cs.delete(k)
+		deleted++
+	}
+
+	return deleted, deleted == uint32(limit)
 }
 
 func (cs *storageDiff) getFromChild(keyToChild, key string) ([]byte, bool) {

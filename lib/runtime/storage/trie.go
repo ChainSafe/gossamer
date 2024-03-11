@@ -191,7 +191,9 @@ func (t *TrieState) ClearPrefix(prefix []byte) (err error) {
 	defer t.mtx.Unlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-		panic("fix me")
+		trieKeys := t.state.Entries()
+		currentTx.clearPrefix(prefix, maps.Keys(trieKeys), -1)
+		return
 	}
 
 	return t.state.ClearPrefix(prefix)
@@ -202,6 +204,12 @@ func (t *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
 	deleted uint32, allDeleted bool, err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		trieKeys := t.state.Entries()
+		currentTx.clearPrefix(prefix, maps.Keys(trieKeys), int(limit))
+		return
+	}
 
 	return t.state.ClearPrefixLimit(prefix, limit)
 }
