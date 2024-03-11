@@ -50,3 +50,5 @@ Below is the list of labels and their descriptions used in Gossamer repository.
   - **S-subsystems-backing** -  issues related to polkadot host backing subsystem functionality.
   - **S-subsystems-availability** - issues related to polkadot host availability subsystem functionality.
   - **S-subsystems-disputes** - issues related to polkadot host disputes subsystem functionality.
+  - **S-infrastructure** - issues related to infrastructure and DevOps.
+  - **S-dependencies** - issues related to dependencies changes. Used by dependabot.

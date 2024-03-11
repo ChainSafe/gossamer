@@ -1972,8 +1972,7 @@ func Test_ext_storage_clear_prefix_version_2(t *testing.T) {
 	testLimitBytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(testLimitBytes, testLimit)
 
-	optLimit, err := scale.Marshal(&testLimitBytes)
-	require.NoError(t, err)
+	optLimit := append([]byte{1}, testLimitBytes...)
 
 	// clearing prefix for "noo" prefix with limit 2
 	encValue, err := inst.Exec("rtm_ext_storage_clear_prefix_version_2", append(enc, optLimit...))
