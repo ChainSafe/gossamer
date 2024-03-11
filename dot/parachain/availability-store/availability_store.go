@@ -434,7 +434,7 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 	for {
 		select {
 		case msg := <-av.OverseerToSubSystem:
-			logger.Debugf("received message %v", msg)
+			logger.Infof("received message %v", msg)
 			switch msg := msg.(type) {
 			case QueryAvailableData:
 				err := av.handleQueryAvailableData(msg)
