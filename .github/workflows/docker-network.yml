@@ -1,0 +1,38 @@
+on:
+  pull_request:
+  # Commented paths to avoid skipping required workflow
+  # See https://github.community/t/feature-request-conditional-required-checks/16761
+  # paths:
+  #   - .github/workflows/docker-grandpa.yml
+  #   - "**/*.go"
+  #   - "chain/**"
+  #   - "cmd/**"
+  #   - "dot/**"
+  #   - "internal/**"
+  #   - "lib/**"
+  #   - "pkg/**"
+  #   - "tests/stress/**"
+  #   - go.mod
+  #   - go.sum
+name: docker-network
+
+jobs:
+  docker-network-tests:
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_BUILDKIT: "1"
+    steps:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.12.1
+        with:
+          all_but_latest: true
+
+      - uses: docker/build-push-action@v5
+        with:
+          load: true
+          target: builder
+          tags: chainsafe/gossamer:test
+
+      - name: Run grandpa
+        run: |
+          docker run chainsafe/gossamer:test sh -c "make it-network"
