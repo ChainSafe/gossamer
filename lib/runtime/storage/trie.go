@@ -207,8 +207,8 @@ func (t *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		trieKeys := t.state.Entries()
-		currentTx.clearPrefix(prefix, maps.Keys(trieKeys), int(limit))
-		return
+		deleted, allDeleted = currentTx.clearPrefix(prefix, maps.Keys(trieKeys), int(limit))
+		return deleted, allDeleted, nil
 	}
 
 	return t.state.ClearPrefixLimit(prefix, limit)
