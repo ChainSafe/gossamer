@@ -141,8 +141,8 @@ func (t *TrieState) MustRoot() common.Hash {
 
 // Root returns the trie's root hash
 func (t *TrieState) Root() (common.Hash, error) {
-	entries := trie.NewEntriesFromMap(t.TrieEntries())
-	return t.version.Root(entries)
+	// Since the Root function is called without running transactions we can do:
+	return t.state.Hash()
 }
 
 // Has returns whether or not a key exists
