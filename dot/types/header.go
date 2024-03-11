@@ -4,11 +4,14 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
+
+var ErrNoPreRuntimeDigest = errors.New("header does not contain pre-runtime digest")
 
 // Header is a state block header
 type Header struct {
@@ -95,4 +98,33 @@ func (bh *Header) Hash() common.Hash {
 	}
 
 	return bh.hash
+}
+
+func (bh *Header) SlotNumber() (uint64, error) {
+	for _, d := range bh.Digest {
+		digestValue, err := d.Value()
+		if err != nil {
+			continue
+		}
+		predigest, ok := digestValue.(PreRuntimeDigest)
+		if !ok {
+			continue
+		}
+
+		digest, err := DecodeBabePreDigest(predigest.Data)
+		if err != nil {
+			return 0, fmt.Errorf("failed to decode babe header: %w", err)
+		}
+
+		switch d := digest.(type) {
+		case BabePrimaryPreDigest:
+			return d.SlotNumber, nil
+		case BabeSecondaryVRFPreDigest:
+			return d.SlotNumber, nil
+		case BabeSecondaryPlainPreDigest:
+			return d.SlotNumber, nil
+		}
+	}
+
+	return 0, ErrNoPreRuntimeDigest
 }
