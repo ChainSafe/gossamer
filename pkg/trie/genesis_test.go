@@ -9,8 +9,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie/node"
-
-	//"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"github.com/stretchr/testify/assert"
 )
 
