@@ -129,7 +129,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 
 	select {
 	case <-bs.pause:
-		return errors.New("service paused")
+		return errors.New("blockstate service is paused")
 	default:
 	}
 
