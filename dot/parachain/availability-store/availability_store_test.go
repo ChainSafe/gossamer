@@ -12,81 +12,19 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
-
-var (
-	testChunk1 = ErasureChunk{
-		Chunk: []byte("chunk1"),
-		Index: 0,
-		Proof: []byte("proof1"),
-	}
-	testChunk2 = ErasureChunk{
-		Chunk: []byte("chunk2"),
-		Index: 1,
-		Proof: []byte("proof2"),
-	}
-	testavailableData1 = AvailableData{
-		PoV: parachaintypes.PoV{BlockData: []byte("blockdata")},
-		ValidationData: parachaintypes.PersistedValidationData{
-			ParentHead: parachaintypes.HeadData{Data: []byte("parentHead")},
-		},
-	}
-
-	testCandidateHash = parachaintypes.CandidateHash{Value: common.Hash{0x01}}
-)
-
-func setupTestDB(t *testing.T) database.Database {
-	inmemoryDB := state.NewInMemoryDB(t)
-	as := NewAvailabilityStore(inmemoryDB)
-	batch := newAvailabilityStoreBatch(as)
-	metaState := NewStateVDT()
-	err := metaState.Set(Unavailable{})
-	require.NoError(t, err)
-	meta := CandidateMeta{
-		State:         metaState,
-		DataAvailable: false,
-		ChunksStored:  []bool{false, false, false},
-	}
-
-	dataBytes, err := scale.Marshal(meta)
-	require.NoError(t, err)
-	err = batch.meta.Put(testCandidateHash.Value[:], dataBytes)
-	require.NoError(t, err)
-
-	err = batch.flush()
-	require.NoError(t, err)
-
-	stored, err := as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testChunk1)
-	require.NoError(t, err)
-	require.Equal(t, true, stored)
-	stored, err = as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testChunk2)
-	require.NoError(t, err)
-	require.Equal(t, true, stored)
-
-	batch = newAvailabilityStoreBatch(as)
-	dataBytes, err = scale.Marshal(testavailableData1)
-	require.NoError(t, err)
-	err = batch.available.Put(testCandidateHash.Value[:], dataBytes)
-	require.NoError(t, err)
-
-	err = batch.flush()
-	require.NoError(t, err)
-
-	return inmemoryDB
-}
 
 func TestAvailabilityStore_WriteLoadDeleteAvailableData(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
 	batch := newAvailabilityStoreBatch(as)
 
-	dataBytes, err := scale.Marshal(testavailableData1)
+	dataBytes, err := scale.Marshal(TestavailableData1)
 	require.NoError(t, err)
-	err = batch.available.Put(testCandidateHash.Value[:], dataBytes)
+	err = batch.available.Put(TestCandidateHash.Value[:], dataBytes)
 	require.NoError(t, err)
 
 	err = batch.flush()
@@ -94,7 +32,7 @@ func TestAvailabilityStore_WriteLoadDeleteAvailableData(t *testing.T) {
 
 	got, err := as.loadAvailableData(parachaintypes.CandidateHash{Value: common.Hash{0x01}})
 	require.NoError(t, err)
-	require.Equal(t, &testavailableData1, got)
+	require.Equal(t, &TestavailableData1, got)
 
 	got, err = as.loadAvailableData(parachaintypes.CandidateHash{Value: common.Hash{0x02}})
 	require.EqualError(t, err, "getting candidate 0x0200000000000000000000000000000000000000000000000000000000000000"+
@@ -103,7 +41,7 @@ func TestAvailabilityStore_WriteLoadDeleteAvailableData(t *testing.T) {
 
 	batch = newAvailabilityStoreBatch(as)
 
-	err = batch.available.Del(testCandidateHash.Value[:])
+	err = batch.available.Del(TestCandidateHash.Value[:])
 	require.NoError(t, err)
 
 	err = batch.flush()
@@ -135,23 +73,23 @@ func TestAvailabilityStore_WriteLoadDeleteChuckData(t *testing.T) {
 	err = batch.flush()
 	require.NoError(t, err)
 
-	got, err := as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testChunk1)
+	got, err := as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, TestChunk1)
 	require.NoError(t, err)
 	require.Equal(t, true, got)
-	got, err = as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testChunk2)
+	got, err = as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, TestChunk2)
 	require.NoError(t, err)
 	require.Equal(t, true, got)
 
 	resultChunk, err := as.loadChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, 0)
 	require.NoError(t, err)
-	require.Equal(t, &testChunk1, resultChunk)
+	require.Equal(t, &TestChunk1, resultChunk)
 
 	resultChunk, err = as.loadChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, 1)
 	require.NoError(t, err)
-	require.Equal(t, &testChunk2, resultChunk)
+	require.Equal(t, &TestChunk2, resultChunk)
 
 	batch = newAvailabilityStoreBatch(as)
-	err = batch.chunk.Del(append(testCandidateHash.Value[:], uint32ToBytes(0)...))
+	err = batch.chunk.Del(append(TestCandidateHash.Value[:], uint32ToBytes(0)...))
 	require.NoError(t, err)
 
 	err = batch.flush()
@@ -176,7 +114,7 @@ func TestAvailabilityStore_WriteLoadDeleteMeta(t *testing.T) {
 
 	dataBytes, err := scale.Marshal(*meta)
 	require.NoError(t, err)
-	err = batch.meta.Put(testCandidateHash.Value[:], dataBytes)
+	err = batch.meta.Put(TestCandidateHash.Value[:], dataBytes)
 	require.NoError(t, err)
 
 	err = batch.flush()
@@ -188,7 +126,7 @@ func TestAvailabilityStore_WriteLoadDeleteMeta(t *testing.T) {
 
 	batch = newAvailabilityStoreBatch(as)
 
-	err = batch.meta.Del(testCandidateHash.Value[:])
+	err = batch.meta.Del(TestCandidateHash.Value[:])
 	require.NoError(t, err)
 
 	err = batch.flush()
@@ -404,7 +342,7 @@ func TestAvailabilityStore_WriteDeletePruningKey(t *testing.T) {
 
 func TestAvailabilityStoreSubsystem_handleQueryAvailableData(t *testing.T) {
 	t.Parallel()
-	inmemoryDB := setupTestDB(t)
+	inmemoryDB := SetupTestDB(t)
 	availabilityStore := NewAvailabilityStore(inmemoryDB)
 	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
 		availabilityStore: *availabilityStore,
@@ -421,7 +359,7 @@ func TestAvailabilityStoreSubsystem_handleQueryAvailableData(t *testing.T) {
 				CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
 			},
 			msgSenderChan:  make(chan AvailableData),
-			expectedResult: testavailableData1,
+			expectedResult: TestavailableData1,
 			err:            nil,
 		},
 		"available_data_not_found": {
@@ -459,7 +397,7 @@ func TestAvailabilityStoreSubsystem_handleQueryAvailableData(t *testing.T) {
 
 func TestAvailabilityStoreSubsystem_handleQueryDataAvailability(t *testing.T) {
 	t.Parallel()
-	inmemoryDB := setupTestDB(t)
+	inmemoryDB := SetupTestDB(t)
 	availabilityStore := NewAvailabilityStore(inmemoryDB)
 	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
 		availabilityStore: *availabilityStore,
@@ -509,7 +447,7 @@ func TestAvailabilityStoreSubsystem_handleQueryDataAvailability(t *testing.T) {
 
 func TestAvailabilityStoreSubsystem_handleQueryChunk(t *testing.T) {
 	t.Parallel()
-	inmemoryDB := setupTestDB(t)
+	inmemoryDB := SetupTestDB(t)
 	availabilityStore := NewAvailabilityStore(inmemoryDB)
 	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
 		availabilityStore: *availabilityStore,
@@ -526,7 +464,7 @@ func TestAvailabilityStoreSubsystem_handleQueryChunk(t *testing.T) {
 				CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
 			},
 			msgSenderChan:  make(chan ErasureChunk),
-			expectedResult: testChunk1,
+			expectedResult: TestChunk1,
 			err:            nil,
 		},
 		"query_chunk_not_found": {
@@ -564,7 +502,7 @@ func TestAvailabilityStoreSubsystem_handleQueryChunk(t *testing.T) {
 
 func TestAvailabilityStoreSubsystem_handleQueryAllChunks(t *testing.T) {
 	t.Parallel()
-	inmemoryDB := setupTestDB(t)
+	inmemoryDB := SetupTestDB(t)
 	availabilityStore := NewAvailabilityStore(inmemoryDB)
 	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
 		availabilityStore: *availabilityStore,
@@ -581,7 +519,7 @@ func TestAvailabilityStoreSubsystem_handleQueryAllChunks(t *testing.T) {
 				CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
 			},
 			msgSenderChan:  make(chan []ErasureChunk),
-			expectedResult: []ErasureChunk{testChunk1, testChunk2},
+			expectedResult: []ErasureChunk{TestChunk1, TestChunk2},
 			err:            nil,
 		},
 		"query_chunks_not_found": {
@@ -619,7 +557,7 @@ func TestAvailabilityStoreSubsystem_handleQueryAllChunks(t *testing.T) {
 
 func TestAvailabilityStoreSubsystem_handleQueryChunkAvailability(t *testing.T) {
 	t.Parallel()
-	inmemoryDB := setupTestDB(t)
+	inmemoryDB := SetupTestDB(t)
 	availabilityStore := NewAvailabilityStore(inmemoryDB)
 	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
 		availabilityStore: *availabilityStore,
@@ -682,7 +620,7 @@ func TestAvailabilityStoreSubsystem_handleQueryChunkAvailability(t *testing.T) {
 }
 
 func TestAvailabilityStore_handleStoreChunk(t *testing.T) {
-	inmemoryDB := setupTestDB(t)
+	inmemoryDB := SetupTestDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
 	asSub := AvailabilityStoreSubsystem{
 		availabilityStore: *as,
@@ -690,7 +628,7 @@ func TestAvailabilityStore_handleStoreChunk(t *testing.T) {
 	msgSenderChan := make(chan any)
 	msg := StoreChunk{
 		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
-		Chunk:         testChunk1,
+		Chunk:         TestChunk1,
 		Sender:        msgSenderChan,
 	}
 
@@ -700,7 +638,7 @@ func TestAvailabilityStore_handleStoreChunk(t *testing.T) {
 }
 
 func TestAvailabilityStore_handleStoreAvailableData(t *testing.T) {
-	inmemoryDB := setupTestDB(t)
+	inmemoryDB := SetupTestDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
 	asSub := AvailabilityStoreSubsystem{
 		availabilityStore: *as,
@@ -774,7 +712,7 @@ func TestAvailabilityStore_storeAvailableData(t *testing.T) {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			inmemoryDB := setupTestDB(t)
+			inmemoryDB := SetupTestDB(t)
 			as := NewAvailabilityStore(inmemoryDB)
 			asSub := &AvailabilityStoreSubsystem{
 				availabilityStore: *as,
@@ -792,7 +730,7 @@ func TestAvailabilityStore_storeAvailableData(t *testing.T) {
 }
 
 func TestAvailabilityStoreSubsystem_noteBlockBacked(t *testing.T) {
-	inmemoryDB := setupTestDB(t)
+	inmemoryDB := SetupTestDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
 	tx := newAvailabilityStoreBatch(as)
 
@@ -858,7 +796,7 @@ func TestAvailabilityStoreSubsystem_noteBlockBacked(t *testing.T) {
 }
 
 func TestAvailabilityStoreSubsystem_noteBlockIncluded(t *testing.T) {
-	inmemoryDB := setupTestDB(t)
+	inmemoryDB := SetupTestDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
 	tx := newAvailabilityStoreBatch(as)
 
@@ -924,7 +862,7 @@ func TestAvailabilityStoreSubsystem_noteBlockIncluded(t *testing.T) {
 }
 
 func TestAvailabilityStoreSubsystem_loadAllAtFinalizedHeight(t *testing.T) {
-	inmemoryDB := setupTestDB(t)
+	inmemoryDB := SetupTestDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
 
 	type fields struct {

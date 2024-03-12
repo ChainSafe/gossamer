@@ -9,11 +9,13 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"testing"
 	"time"
 
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -21,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/erasure"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/stretchr/testify/require"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-availability-store"))
@@ -183,6 +186,67 @@ func (asb *availabilityStoreBatch) reset() {
 	asb.meta.Reset()
 	asb.unfinalized.Reset()
 	asb.pruneByTime.Reset()
+}
+
+var (
+	TestChunk1 = ErasureChunk{
+		Chunk: []byte("chunk1"),
+		Index: 0,
+		Proof: []byte("proof1"),
+	}
+	TestChunk2 = ErasureChunk{
+		Chunk: []byte("chunk2"),
+		Index: 1,
+		Proof: []byte("proof2"),
+	}
+	TestavailableData1 = AvailableData{
+		PoV: parachaintypes.PoV{BlockData: []byte("blockdata")},
+		ValidationData: parachaintypes.PersistedValidationData{
+			ParentHead: parachaintypes.HeadData{Data: []byte("parentHead")},
+		},
+	}
+
+	TestCandidateHash = parachaintypes.CandidateHash{Value: common.Hash{0x01}}
+)
+
+func SetupTestDB(t *testing.T) database.Database {
+	inmemoryDB := state.NewInMemoryDB(t)
+	as := NewAvailabilityStore(inmemoryDB)
+	batch := newAvailabilityStoreBatch(as)
+	metaState := NewStateVDT()
+	err := metaState.Set(Unavailable{})
+	require.NoError(t, err)
+	meta := CandidateMeta{
+		State:         metaState,
+		DataAvailable: false,
+		ChunksStored:  []bool{false, false, false},
+	}
+
+	dataBytes, err := scale.Marshal(meta)
+	require.NoError(t, err)
+	err = batch.meta.Put(TestCandidateHash.Value[:], dataBytes)
+	require.NoError(t, err)
+
+	err = batch.flush()
+	require.NoError(t, err)
+
+	stored, err := as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, TestChunk1)
+	require.NoError(t, err)
+	require.Equal(t, true, stored)
+	stored, err = as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, TestChunk2)
+	require.NoError(t, err)
+	require.Equal(t, true, stored)
+
+	batch = newAvailabilityStoreBatch(as)
+	dataBytes, err = scale.Marshal(TestavailableData1)
+	require.NoError(t, err)
+	err = batch.available.Put(TestCandidateHash.Value[:], dataBytes)
+	require.NoError(t, err)
+
+	err = batch.flush()
+	require.NoError(t, err)
+
+	return inmemoryDB
 }
 
 // NewAvailabilityStore creates a new instance of AvailabilityStore
