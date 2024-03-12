@@ -28,6 +28,11 @@ type HTTPServer struct {
 	wsConns      []*subscription.WSConn
 }
 
+func (h *HTTPServer) Pause() error {
+	//TODO implement me
+	panic("implement me")
+}
+
 // HTTPServerConfig configures the HTTPServer
 type HTTPServerConfig struct {
 	LogLvl              log.Level

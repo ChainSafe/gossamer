@@ -58,6 +58,11 @@ type Service struct {
 	onBlockImport BlockImportDigestHandler
 }
 
+func (s *Service) Pause() error {
+	//TODO implement me
+	panic("implement me")
+}
+
 // Config holds the configuration for the core Service.
 type Config struct {
 	LogLvl log.Level
