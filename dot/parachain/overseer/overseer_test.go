@@ -22,8 +22,6 @@ import (
 	types "github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	wazero "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -151,6 +149,7 @@ func incrementCounters(t *testing.T, msg any, finalizedCounter *atomic.Int32, im
 	}
 }
 
+// TODO(ed): fix this test, not sure why it's returning wrong instance of runtime
 func TestSignalAvailabilityStore(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
@@ -163,7 +162,8 @@ func TestSignalAvailabilityStore(t *testing.T) {
 	blockState.EXPECT().GetImportedBlockNotifierChannel().Return(importedBlockNotiferChan)
 	blockState.EXPECT().FreeFinalisedNotifierChannel(finalizedNotifierChan)
 	blockState.EXPECT().FreeImportedBlockNotifierChannel(importedBlockNotiferChan)
-	blockState.EXPECT().GetRuntime(gomock.Any()).Return(wazero.NewTestInstance(t, runtime.WESTEND_RUNTIME_v0942), nil)
+	inst := NewMockRuntimeInstance(ctrl)
+	blockState.EXPECT().GetRuntime(gomock.Any()).Return(inst, nil)
 
 	overseer := NewOverseer(blockState)
 
@@ -172,7 +172,7 @@ func TestSignalAvailabilityStore(t *testing.T) {
 	stateService := state.NewService(state.Config{})
 	stateService.UseMemDB()
 
-	inmemoryDB := setupTestDB(t)
+	inmemoryDB := state.NewInMemoryDB(t)
 
 	availabilityStore, err := availability_store.CreateAndRegister(overseer.GetSubsystemToOverseerChannel(), inmemoryDB)
 	require.NoError(t, err)
@@ -204,10 +204,15 @@ func TestSignalAvailabilityStore(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func setupTestDB(t *testing.T) database.Database {
-	inmemoryDB := state.NewInMemoryDB(t)
-	return inmemoryDB
-}
+//func setupTestDB(t *testing.T) database.Database {
+//	inmemoryDB := state.NewInMemoryDB(t)
+//	as := availability_store.NewAvailabilityStore(inmemoryDB)
+//	stored, err := as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, testChunk1)
+//	require.NoError(t, err)
+//	require.Equal(t, true, stored)
+//
+//	return inmemoryDB
+//}
 
 // TODO: consider removing this test since and replacing with the test harness tests since there is more control over
 // the subsystems and the overseer
@@ -228,7 +233,7 @@ func TestRuntimeApiErrorDoesNotStopTheSubsystem(t *testing.T) {
 	stateService := state.NewService(state.Config{})
 	stateService.UseMemDB()
 
-	inmemoryDB := setupTestDB(t)
+	inmemoryDB := availability_store.SetupTestDB(t)
 
 	availabilityStore, err := availability_store.CreateAndRegister(overseer.GetSubsystemToOverseerChannel(), inmemoryDB)
 	require.NoError(t, err)
@@ -308,13 +313,27 @@ type testHarness struct {
 	processes         []func(msg any)
 }
 
-func newTestHarness(t *testing.T) *testHarness {
+func newTestHarness(t *testing.T, seedDB bool) *testHarness {
 	overseer := NewTestOverseer()
-	return &testHarness{
+	harness := &testHarness{
 		overseer:       overseer,
 		broadcastIndex: 0,
 		t:              t,
 	}
+	var inmemoryDB database.Database
+	if seedDB {
+		inmemoryDB = availability_store.SetupTestDB(t)
+	} else {
+		inmemoryDB = state.NewInMemoryDB(t)
+	}
+
+	availabilityStore, err := availability_store.CreateAndRegister(harness.overseer.GetSubsystemToOverseerChannel(),
+		inmemoryDB)
+	require.NoError(t, err)
+
+	availabilityStore.OverseerToSubSystem = harness.overseer.RegisterSubsystem(availabilityStore)
+
+	return harness
 }
 
 func (h *testHarness) triggerBroadcast() {
@@ -341,18 +360,7 @@ func (h *testHarness) processMessages() {
 
 func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	harness := newTestHarness(t)
-
-	stateService := state.NewService(state.Config{})
-	stateService.UseMemDB()
-
-	inmemoryDB := setupTestDB(t)
-
-	availabilityStore, err := availability_store.CreateAndRegister(harness.overseer.GetSubsystemToOverseerChannel(),
-		inmemoryDB)
-	require.NoError(t, err)
-
-	availabilityStore.OverseerToSubSystem = harness.overseer.RegisterSubsystem(availabilityStore)
+	harness := newTestHarness(t, false)
 
 	activeLeavesUpdate := parachaintypes.ActiveLeavesUpdateSignal{
 		Activated: &parachaintypes.ActivatedLeaf{
@@ -385,108 +393,40 @@ func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 		msg2.Resp <- inst
 	})
 
-	err = harness.overseer.Start()
+	err := harness.overseer.Start()
 	require.NoError(t, err)
 
 	go harness.processMessages()
 
 	harness.triggerBroadcast()
 
-	time.Sleep(11000 * time.Millisecond)
+	time.Sleep(1000 * time.Millisecond)
 
 	err = harness.overseer.Stop()
 	require.NoError(t, err)
 }
 
 func TestStoreChunkWorks(t *testing.T) {
-	//let store = test_store();
-	//
-	//test_harness(TestState::default(), store.clone(), |mut virtual_overseer| async move {
-	//let candidate_hash = CandidateHash(Hash::repeat_byte(33));
-	//let validator_index = ValidatorIndex(5);
-	//let n_validators = 10;
-	//
-	//let chunk = ErasureChunk {
-	//chunk: vec![1, 2, 3],
-	//index: validator_index,
-	//proof: Proof::try_from(vec![vec![3, 4, 5]]).unwrap(),
-	//};
-	//
-	//// Ensure an entry already exists. In reality this would come from watching
-	//// chain events.
-	//with_tx(&store, |tx| {
-	//super::write_meta(
-	//tx,
-	//&TEST_CONFIG,
-	//&candidate_hash,
-	//&CandidateMeta {
-	//data_available: false,
-	//chunks_stored: bitvec::bitvec![u8, BitOrderLsb0; 0; n_validators],
-	//state: State::Unavailable(BETimestamp(0)),
-	//},
-	//);
-	//});
-	//
-	//let (tx, rx) = oneshot::channel();
-	//
-	//let chunk_msg =
-	//AvailabilityStoreMessage::StoreChunk { candidate_hash, chunk: chunk.clone(), tx };
-	//
-	//overseer_send(&mut virtual_overseer, chunk_msg).await;
-	//assert_eq!(rx.await.unwrap(), Ok(()));
-	//
-	//let (tx, rx) = oneshot::channel();
-	//let query_chunk = AvailabilityStoreMessage::QueryChunk(candidate_hash, validator_index, tx);
-	//
-	//overseer_send(&mut virtual_overseer, query_chunk).await;
-	//
-	//assert_eq!(rx.await.unwrap().unwrap(), chunk);
-	//virtual_overseer
-	//});
-
-	//ctrl := gomock.NewController(t)
-	harness := newTestHarness(t)
-	//TODO(ed): setup db with seed data (so entry exists)
-	stateService := state.NewService(state.Config{})
-	stateService.UseMemDB()
-
-	inmemoryDB := setupTestDB(t)
-
-	availabilityStore, err := availability_store.CreateAndRegister(harness.overseer.GetSubsystemToOverseerChannel(),
-		inmemoryDB)
-	require.NoError(t, err)
-
-	availabilityStore.OverseerToSubSystem = harness.overseer.RegisterSubsystem(availabilityStore)
+	harness := newTestHarness(t, true)
 
 	msgSenderChan := make(chan any)
 
 	chunkMsg := availability_store.StoreChunk{
 		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
-		Chunk: availability_store.ErasureChunk{
-			Chunk: []byte{1, 2, 3},
-			Index: 5,
-			Proof: []byte{3, 4, 5},
-		},
-		Sender: msgSenderChan,
+		Chunk:         availability_store.TestChunk1,
+		Sender:        msgSenderChan,
 	}
 
 	harness.broadcastMessages = append(harness.broadcastMessages, chunkMsg)
-	harness.processes = append(harness.processes, func(msg any) {
-
-		fmt.Printf("msg: %v\n", msg)
-	})
 	msgSenderQueryChan := make(chan availability_store.ErasureChunk)
 
 	harness.broadcastMessages = append(harness.broadcastMessages, availability_store.QueryChunk{
 		CandidateHash:  parachaintypes.CandidateHash{Value: common.Hash{0x01}},
-		ValidatorIndex: 5,
+		ValidatorIndex: 0,
 		Sender:         msgSenderQueryChan,
 	})
-	harness.processes = append(harness.processes, func(msg any) {
-		fmt.Printf("msg: %v\n", msg)
-	})
 
-	err = harness.overseer.Start()
+	err := harness.overseer.Start()
 	require.NoError(t, err)
 
 	go harness.processMessages()
@@ -496,14 +436,98 @@ func TestStoreChunkWorks(t *testing.T) {
 
 	msgSenderChanResult := <-chunkMsg.Sender
 	fmt.Printf("msgSenderChanResult: %v\n", msgSenderChanResult)
+
 	harness.triggerBroadcast()
 
 	msgQueryChan := <-msgSenderQueryChan
 	fmt.Printf("msgSenderChanResult: %v\n", msgQueryChan)
-
-	time.Sleep(11000 * time.Millisecond)
+	require.Equal(t, availability_store.TestChunk1, msgQueryChan)
+	time.Sleep(1000 * time.Millisecond)
 
 	err = harness.overseer.Stop()
 	require.NoError(t, err)
+}
 
+func TestStoreChunkDoesNothingIfNoEntryAlready(t *testing.T) {
+	harness := newTestHarness(t, false)
+
+	msgSenderChan := make(chan any)
+
+	chunkMsg := availability_store.StoreChunk{
+		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
+		Chunk:         availability_store.TestChunk1,
+		Sender:        msgSenderChan,
+	}
+
+	harness.broadcastMessages = append(harness.broadcastMessages, chunkMsg)
+	msgSenderQueryChan := make(chan availability_store.ErasureChunk)
+
+	harness.broadcastMessages = append(harness.broadcastMessages, availability_store.QueryChunk{
+		CandidateHash:  parachaintypes.CandidateHash{Value: common.Hash{0x01}},
+		ValidatorIndex: 0,
+		Sender:         msgSenderQueryChan,
+	})
+
+	err := harness.overseer.Start()
+	require.NoError(t, err)
+
+	go harness.processMessages()
+
+	harness.triggerBroadcast()
+
+	msgSenderChanResult := <-chunkMsg.Sender
+	fmt.Printf("msgSenderChanResult: %v\n", msgSenderChanResult)
+	require.Equal(t, nil, msgSenderChanResult)
+
+	harness.triggerBroadcast()
+
+	msgQueryChan := <-msgSenderQueryChan
+	fmt.Printf("msgSenderChanResult: %v\n", msgQueryChan)
+	// TODO(ed): confirm this is correct
+	require.Equal(t, availability_store.ErasureChunk{}, msgQueryChan)
+
+	err = harness.overseer.Stop()
+	require.NoError(t, err)
+}
+
+func TestQueryChunkChecksMetadata(t *testing.T) {
+	harness := newTestHarness(t, true)
+
+	msgSenderChan := make(chan bool)
+
+	queryChunkMsg := availability_store.QueryChunkAvailability{
+		CandidateHash:  parachaintypes.CandidateHash{Value: common.Hash{0x01}},
+		ValidatorIndex: 0,
+		Sender:         msgSenderChan,
+	}
+
+	harness.broadcastMessages = append(harness.broadcastMessages, queryChunkMsg)
+	msgSender2Chan := make(chan bool)
+
+	queryChunk2Msg := availability_store.QueryChunkAvailability{
+		CandidateHash:  parachaintypes.CandidateHash{Value: common.Hash{0x01}},
+		ValidatorIndex: 2,
+		Sender:         msgSender2Chan,
+	}
+	harness.broadcastMessages = append(harness.broadcastMessages, queryChunk2Msg)
+
+	err := harness.overseer.Start()
+	require.NoError(t, err)
+
+	go harness.processMessages()
+
+	harness.triggerBroadcast()
+
+	msgSenderChanResult := <-queryChunkMsg.Sender
+	fmt.Printf("msgSenderChanResult: %v\n", msgSenderChanResult)
+	require.Equal(t, true, msgSenderChanResult)
+
+	harness.triggerBroadcast()
+
+	msgQueryChan := <-queryChunk2Msg.Sender
+	fmt.Printf("msgSenderChanResult: %v\n", msgQueryChan)
+	require.Equal(t, false, msgQueryChan)
+
+	err = harness.overseer.Stop()
+	require.NoError(t, err)
 }
