@@ -131,7 +131,6 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	case <-bs.pause:
 		return errors.New("service paused")
 	default:
-
 	}
 
 	has, err := bs.HasHeader(hash)
