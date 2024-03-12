@@ -58,9 +58,9 @@ type Service struct {
 	onBlockImport BlockImportDigestHandler
 }
 
+// Pause Not needed for core service but required for interface
 func (s *Service) Pause() error {
-	//TODO implement me
-	panic("implement me")
+	panic("only here for to adhere to interface")
 }
 
 // Config holds the configuration for the core Service.

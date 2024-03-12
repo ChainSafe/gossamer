@@ -26,16 +26,11 @@ type Service struct {
 	network    Network
 }
 
+// Pause Pauses the sync service
 func (s *Service) Pause() error {
-	//TODO implement me
-
 	if !s.blockState.IsPaused() {
-		logger.Warnf("sync pausing bs")
 		return s.blockState.Pause()
 	}
-
-	//logger.Warnf("sync bs isPaused: %v", s.blockState.IsPaused())
-	//panic("implement me")
 	return nil
 }
 
