@@ -57,31 +57,27 @@ func (s *ServiceRegistry) StartAll() {
 func (s *ServiceRegistry) StopAll() {
 	s.logger.Infof("Stopping services: %v", s.serviceTypes)
 
-	// sync 5 i think
+	// Pause the sync and state service to allow for graceful shutdown
 	syncService := s.serviceTypes[5]
-	s.logger.Warnf("Pausing service %s", syncService)
 	err := s.services[syncService].Pause()
 	if err != nil {
 		s.logger.Errorf("Error pausing service %s: %s", syncService, err)
 	}
 
-	// Try to pause state service
 	stateService := s.serviceTypes[len(s.serviceTypes)-1]
-	s.logger.Warnf("Pausing service %s", stateService)
-	// This might need to be in diff goroutine, idk
 	err = s.services[stateService].Pause()
 	if err != nil {
 		s.logger.Errorf("Error pausing service %s: %s", stateService, err)
 	}
 
 	for _, typ := range s.serviceTypes {
-		s.logger.Warnf("Stopping service %s", typ)
+		s.logger.Debugf("Stopping service %s", typ)
 		err := s.services[typ].Stop()
 		if err != nil {
 			s.logger.Errorf("Error stopping service %s: %s", typ, err)
 		}
 	}
-	s.logger.Warnf("All services stopped.")
+	s.logger.Debugf("All services stopped.")
 }
 
 // Get retrieves a service and stores a reference to it in the passed in `srvc`

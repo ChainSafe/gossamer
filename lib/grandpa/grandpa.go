@@ -82,9 +82,9 @@ type Service struct {
 	telemetry Telemetry
 }
 
+// Pause Not needed for grandpa service but required for interface
 func (s *Service) Pause() error {
-	//TODO implement me
-	panic("implement me")
+	panic("only here for to adhere to interface")
 }
 
 // Config represents a GRANDPA service configuration

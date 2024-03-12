@@ -32,9 +32,9 @@ type Handler struct {
 	finalised chan *types.FinalisationInfo
 }
 
+// Pause Not needed for Digest service but required for interface
 func (h *Handler) Pause() error {
-	//TODO implement me
-	panic("implement me")
+	panic("only here for to adhere to interface")
 }
 
 // NewHandler returns a new Handler

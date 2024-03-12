@@ -43,15 +43,12 @@ type Service struct {
 	BabeThresholdDenominator uint64
 }
 
+// Pause Pauses the state service
 func (s *Service) Pause() error {
-	//TODO implement me
 	if !s.Block.IsPaused() {
-		logger.Warnf("state pausing bs")
 		return s.Block.Pause()
 	}
-	logger.Warnf("state pause already paused")
 	return nil
-	//	panic("implement me")
 }
 
 // Config is the default configuration used by state service.

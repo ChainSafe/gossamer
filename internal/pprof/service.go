@@ -20,9 +20,9 @@ type Service struct {
 	done     chan error
 }
 
+// Pause Not needed for pprof service but required for interface
 func (s *Service) Pause() error {
-	//TODO implement me
-	panic("implement me")
+	panic("only here for to adhere to interface")
 }
 
 // NewService creates a pprof server service compatible with the

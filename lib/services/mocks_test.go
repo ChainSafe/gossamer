@@ -38,6 +38,20 @@ func (m *MockService) EXPECT() *MockServiceMockRecorder {
 	return m.recorder
 }
 
+// Pause mocks base method.
+func (m *MockService) Pause() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Pause")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Pause indicates an expected call of Pause.
+func (mr *MockServiceMockRecorder) Pause() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pause", reflect.TypeOf((*MockService)(nil).Pause))
+}
+
 // Start mocks base method.
 func (m *MockService) Start() error {
 	m.ctrl.T.Helper()
