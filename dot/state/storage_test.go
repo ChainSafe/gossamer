@@ -31,27 +31,23 @@ func newTestStorageState(t *testing.T) *StorageState {
 
 func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	t.Skip()
-	// FIX ME
 
-	/*
-		storage := newTestStorageState(t)
-		ts, err := storage.TrieState(&trie.EmptyHash)
-		require.NoError(t, err)
+	storage := newTestStorageState(t)
+	ts, err := storage.TrieState(&trie.EmptyHash)
+	require.NoError(t, err)
 
-		root, err := ts.Root(trie.NoMaxInlineValueSize)
-		require.NoError(t, err)
-		err = storage.StoreTrie(ts, nil)
-		require.NoError(t, err)
+	root, err := ts.Root()
+	require.NoError(t, err)
+	err = storage.StoreTrie(ts, nil)
+	require.NoError(t, err)
 
-		time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Millisecond * 100)
 
-		trie, err := storage.LoadFromDB(root)
-		require.NoError(t, err)
-		ts2 := runtime.NewTrieState(trie)
-		newSnapshot := ts2.Snapshot()
+	trie, err := storage.LoadFromDB(root)
+	require.NoError(t, err)
+	ts2 := runtime.NewTrieState(trie).Trie()
 
-		require.True(t, ts.Trie().Equal(newSnapshot))
-	*/
+	require.True(t, ts.Trie().Equal(ts2))
 }
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {

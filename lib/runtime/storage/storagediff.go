@@ -5,10 +5,11 @@ package storage
 
 import (
 	"bytes"
-	"maps"
+	"sort"
 	"sync"
 
-	xmaps "golang.org/x/exp/maps"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/codec"
@@ -76,21 +77,68 @@ func (cs *storageDiff) delete(key string) {
 	cs.deletes[key] = true
 }
 
+func (cs *storageDiff) deleteChildLimit(keyToChild string,
+	childKeys []string, limit int) (
+	deleted uint32, allDeleted bool) {
+	childChanges := cs.childChangeSet[keyToChild]
+	if childChanges == nil {
+		childChanges = newChangeSet()
+	}
+
+	if limit == -1 {
+		cs.delete(keyToChild)
+		deletedKeys := len(cs.childChangeSet[keyToChild].upserts) + len(childKeys)
+		return uint32(deletedKeys), true
+	}
+
+	newKeys := maps.Keys(cs.upserts)
+	allKeys := append(newKeys, childKeys...)
+	sort.Strings(allKeys)
+
+	for _, k := range allKeys {
+		if limit == 0 {
+			break
+		}
+		childChanges.delete(k)
+		deleted++
+		// Do not consider keys created during actual block execution
+		// https://spec.polkadot.network/chap-host-api#id-version-2-prototype-2
+		if !slices.Contains(newKeys, k) {
+			limit--
+		}
+	}
+	cs.childChangeSet[keyToChild] = childChanges
+
+	return deleted, deleted == uint32(len(allKeys))
+}
+
+func (cs *storageDiff) clearPrefixInChild(keyToChild string, prefix []byte, childKeys []string) {
+	childChanges := cs.childChangeSet[keyToChild]
+	if childChanges == nil {
+		childChanges = newChangeSet()
+	}
+	childChanges.clearPrefix(prefix, childKeys, -1)
+	cs.childChangeSet[keyToChild] = childChanges
+}
+
 func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) (deleted uint32, allDeleted bool) {
-	// TODO: consider actual keys in trie
 	prefix = codec.KeyLEToNibbles(prefix)
 	prefix = bytes.TrimSuffix(prefix, []byte{0})
-	newKeys := xmaps.Keys(cs.upserts)
+	newKeys := maps.Keys(cs.upserts)
 	allKeys := append(newKeys, trieKeys...)
 	deleted = 0
+	sort.Strings(allKeys)
 	for _, k := range allKeys {
-		if limit > -1 && deleted >= uint32(limit) {
+		if limit == 0 {
 			break
 		}
 		keyBytes := []byte(k)
 		bytes.HasPrefix(keyBytes, prefix)
 		cs.delete(k)
 		deleted++
+		if !slices.Contains(newKeys, k) {
+			limit--
+		}
 	}
 
 	return deleted, deleted == uint32(len(allKeys))

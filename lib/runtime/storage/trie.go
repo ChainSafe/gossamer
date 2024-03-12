@@ -321,19 +321,26 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-		panic("fix me")
-	}
-
-	tr, err := t.state.GetChild(key)
+	child, err := t.state.GetChild(key)
 	if err != nil {
 		return 0, false, err
 	}
 
-	childTrieEntries := tr.Entries()
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		deleteLimit := -1
+		if limit != nil {
+			deleteLimit = int(binary.LittleEndian.Uint32(*limit))
+		}
+
+		childEntriesKeys := maps.Keys(child.Entries())
+		deleted, allDeleted = currentTx.deleteChildLimit(string(key), childEntriesKeys, deleteLimit)
+		return deleted, allDeleted, nil
+	}
+
+	childTrieEntries := child.Entries()
 	qtyEntries := uint32(len(childTrieEntries))
 	if limit == nil {
-		err = tr.DeleteChild(key)
+		err = child.DeleteChild(key)
 		if err != nil {
 			return 0, false, fmt.Errorf("deleting child trie: %w", err)
 		}
@@ -350,7 +357,7 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 		// a bad intermediary state. Take also care of the caching of deleted Merkle
 		// values within the tries, which is used for online pruning.
 		// See https://github.com/ChainSafe/gossamer/issues/3032
-		err = tr.Delete([]byte(k))
+		err = child.Delete([]byte(k))
 		if err != nil {
 			return deleted, allDeleted, fmt.Errorf("deleting from child trie located at key 0x%x: %w", key, err)
 		}
@@ -386,7 +393,13 @@ func (t *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 	defer t.mtx.Unlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-		panic("fix me")
+		child, err := t.state.GetChild(keyToChild)
+		if err != nil {
+			return err
+		}
+
+		childKeys := maps.Keys(child.Entries())
+		currentTx.clearPrefixInChild(string(keyToChild), prefix, childKeys)
 	}
 
 	child, err := t.state.GetChild(keyToChild)
