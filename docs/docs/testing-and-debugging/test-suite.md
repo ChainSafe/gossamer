@@ -44,6 +44,13 @@ To run Gossamer **RPC** integration tests run the following command:
 make it-rpc
 ```
 
+
+To run Gossamer **Network** integration tests run the following command:
+
+```
+make it-network
+```
+
 To run Gossamer **Sync** integration tests run the following command:
 
 ```
