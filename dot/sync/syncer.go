@@ -110,7 +110,7 @@ func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMe
 		blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
 
 	if s.blockState.IsPaused() {
-		return errors.New("paused")
+		return errors.New("blockstate service is paused")
 	}
 
 	// if the peer reports a lower or equal best block number than us,

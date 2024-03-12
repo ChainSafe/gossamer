@@ -77,7 +77,7 @@ func (s *ServiceRegistry) StopAll() {
 			s.logger.Errorf("Error stopping service %s: %s", typ, err)
 		}
 	}
-	s.logger.Debugf("All services stopped.")
+	s.logger.Debug("All services stopped.")
 }
 
 // Get retrieves a service and stores a reference to it in the passed in `srvc`
