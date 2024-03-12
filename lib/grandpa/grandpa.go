@@ -82,6 +82,11 @@ type Service struct {
 	telemetry Telemetry
 }
 
+func (s *Service) Pause() error {
+	//TODO implement me
+	panic("implement me")
+}
+
 // Config represents a GRANDPA service configuration
 type Config struct {
 	LogLvl       log.Level
