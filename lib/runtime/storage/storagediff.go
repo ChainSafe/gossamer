@@ -93,7 +93,7 @@ func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) 
 		deleted++
 	}
 
-	return deleted, deleted == uint32(limit)
+	return deleted, deleted == uint32(len(allKeys))
 }
 
 func (cs *storageDiff) getFromChild(keyToChild, key string) ([]byte, bool) {
