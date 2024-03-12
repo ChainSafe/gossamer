@@ -14,6 +14,7 @@ import (
 type service interface {
 	Start() error
 	Stop() error
+	Pause() error
 }
 
 // ServiceRegisterer can register a service interface, start or stop all services,

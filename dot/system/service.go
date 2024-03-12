@@ -14,6 +14,11 @@ type Service struct {
 	genesisData *genesis.Data
 }
 
+func (s *Service) Pause() error {
+	//TODO implement me
+	panic("implement me")
+}
+
 // NewService create a new instance of Service
 func NewService(si *types.SystemInfo, gd *genesis.Data) *Service {
 	return &Service{

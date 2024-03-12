@@ -32,6 +32,11 @@ type Handler struct {
 	finalised chan *types.FinalisationInfo
 }
 
+func (h *Handler) Pause() error {
+	//TODO implement me
+	panic("implement me")
+}
+
 // NewHandler returns a new Handler
 func NewHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState) (*Handler, error) {
 	imported := blockState.GetImportedBlockNotifierChannel()

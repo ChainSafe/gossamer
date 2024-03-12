@@ -144,6 +144,11 @@ type Service struct {
 	telemetry Telemetry
 }
 
+func (s *Service) Pause() error {
+	//TODO implement me
+	panic("implement me")
+}
+
 // NewService creates a new network service from the configuration and message channels
 func NewService(cfg *Config) (*Service, error) {
 	ctx, cancel := context.WithCancel(context.Background())

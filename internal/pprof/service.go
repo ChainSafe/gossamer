@@ -20,6 +20,11 @@ type Service struct {
 	done     chan error
 }
 
+func (s *Service) Pause() error {
+	//TODO implement me
+	panic("implement me")
+}
+
 // NewService creates a pprof server service compatible with the
 // dot/service.go interface.
 func NewService(config cfg.PprofConfig, logger Logger) *Service {
