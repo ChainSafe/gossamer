@@ -15,6 +15,12 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/codec"
 )
 
+// storageDiff is a structure that stores the differences between consecutive
+// states of a trie, such as those occurring during the execution of a block.
+// It records updates (upserts), deletions, and changes to child tries.
+// This mechanism facilitates applying state transitions efficiently.
+// Changes accumulated in storageDiff can be applied to a trie using
+// the `applyToTrie` method
 type storageDiff struct {
 	upserts        map[string][]byte
 	deletes        map[string]bool
@@ -22,6 +28,7 @@ type storageDiff struct {
 	mtx            sync.RWMutex
 }
 
+// newChangeSet initializes and returns a new storageDiff instance
 func newChangeSet() *storageDiff {
 	return &storageDiff{
 		upserts:        make(map[string][]byte),
@@ -31,6 +38,8 @@ func newChangeSet() *storageDiff {
 	}
 }
 
+// get retrieves the value associated with the key if it's present in the
+// change set and returns a boolean indicating if the key is marked for deletion
 func (cs *storageDiff) get(key string) ([]byte, bool) {
 	if cs == nil {
 		return nil, false
@@ -49,6 +58,8 @@ func (cs *storageDiff) get(key string) ([]byte, bool) {
 	return nil, false
 }
 
+// upsert records a new value for the key, or updates an existing value.
+// If the key was previously marked for deletion, that deletion is undone
 func (cs *storageDiff) upsert(key string, value []byte) {
 	if cs == nil {
 		return
@@ -64,6 +75,8 @@ func (cs *storageDiff) upsert(key string, value []byte) {
 	cs.upserts[key] = value
 }
 
+// delete marks a key for deletion and removes it from upserts and
+// child changesets, if present.
 func (cs *storageDiff) delete(key string) {
 	if cs == nil {
 		return
@@ -77,6 +90,11 @@ func (cs *storageDiff) delete(key string) {
 	cs.deletes[key] = true
 }
 
+// deleteChildLimit deletes lexicographical sorted keys from a child trie with
+// a maximum limit, potentially marking the entire child trie for deletion
+// if the limit is exceeded.
+// This method will do not consider keys created during actual block execution
+// https://spec.polkadot.network/chap-host-api#id-version-2-prototype-2
 func (cs *storageDiff) deleteChildLimit(keyToChild string,
 	childKeys []string, limit int) (
 	deleted uint32, allDeleted bool) {
@@ -102,7 +120,6 @@ func (cs *storageDiff) deleteChildLimit(keyToChild string,
 		childChanges.delete(k)
 		deleted++
 		// Do not consider keys created during actual block execution
-		// https://spec.polkadot.network/chap-host-api#id-version-2-prototype-2
 		if !slices.Contains(newKeys, k) {
 			limit--
 		}
@@ -112,6 +129,7 @@ func (cs *storageDiff) deleteChildLimit(keyToChild string,
 	return deleted, deleted == uint32(len(allKeys))
 }
 
+// clearPrefixInChild clears keys with a specific prefix within a child trie.
 func (cs *storageDiff) clearPrefixInChild(keyToChild string, prefix []byte, childKeys []string) {
 	childChanges := cs.childChangeSet[keyToChild]
 	if childChanges == nil {
@@ -121,6 +139,9 @@ func (cs *storageDiff) clearPrefixInChild(keyToChild string, prefix []byte, chil
 	cs.childChangeSet[keyToChild] = childChanges
 }
 
+// clearPrefix removes all keys matching a specified prefix, within an
+// optional limit. It returns the number of keys deleted and a boolean
+// indicating if all keys with the prefix were removed.
 func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) (deleted uint32, allDeleted bool) {
 	prefix = codec.KeyLEToNibbles(prefix)
 	prefix = bytes.TrimSuffix(prefix, []byte{0})
@@ -144,6 +165,9 @@ func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) 
 	return deleted, deleted == uint32(len(allKeys))
 }
 
+// getFromChild attempts to retrieve a value associated with a specific key
+// from a child trie's change set identified by keyToChild.
+// It returns the value and a boolean indicating if it was marked for deletion.
 func (cs *storageDiff) getFromChild(keyToChild, key string) ([]byte, bool) {
 	if cs == nil {
 		return nil, false
@@ -154,16 +178,15 @@ func (cs *storageDiff) getFromChild(keyToChild, key string) ([]byte, bool) {
 
 	childTrieChanges := cs.childChangeSet[keyToChild]
 	if childTrieChanges != nil {
-		if val, ok := childTrieChanges.upserts[key]; ok {
-			return val, false
-		} else if deleted := childTrieChanges.deletes[key]; deleted {
-			return nil, true
-		}
+		return childTrieChanges.get(key)
 	}
 
 	return nil, false
 }
 
+// upsertChild inserts or updates a value associated with a key within a
+// specific child trie. If the child trie or the key was previously marked for
+// deletion, this marking is reversed, and the value is updated.
 func (cs *storageDiff) upsertChild(keyToChild, key string, value []byte) {
 	if cs == nil {
 		return
@@ -185,6 +208,7 @@ func (cs *storageDiff) upsertChild(keyToChild, key string, value []byte) {
 	cs.childChangeSet[keyToChild] = childChanges
 }
 
+// deleteFromChild marks a key for deletion within a specific child trie.
 func (cs *storageDiff) deleteFromChild(keyToChild, key string) {
 	if cs == nil {
 		return
@@ -203,6 +227,8 @@ func (cs *storageDiff) deleteFromChild(keyToChild, key string) {
 	childChanges.childChangeSet[keyToChild].deletes[key] = true
 }
 
+// snapshot creates a deep copy of the current change set, including all upserts,
+// deletions, and child trie change sets.
 func (cs *storageDiff) snapshot() *storageDiff {
 	if cs == nil {
 		panic("Trying to create snapshot from nil change set")
@@ -223,6 +249,10 @@ func (cs *storageDiff) snapshot() *storageDiff {
 	}
 }
 
+// applyToTrie applies all accumulated changes in the change set to the
+// provided trie. This includes insertions, deletions, and modifications in both
+// the main trie and child tries.
+// In case of errors during the application of changes, the method will panic
 func (cs *storageDiff) applyToTrie(t *trie.Trie) {
 	if cs == nil {
 		panic("trying to apply nil change set")
