@@ -5,6 +5,7 @@ package overseer
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -22,6 +23,8 @@ import (
 	types "github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/erasure"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -527,6 +530,200 @@ func TestQueryChunkChecksMetadata(t *testing.T) {
 	msgQueryChan := <-queryChunk2Msg.Sender
 	fmt.Printf("msgSenderChanResult: %v\n", msgQueryChan)
 	require.Equal(t, false, msgQueryChan)
+
+	err = harness.overseer.Stop()
+	require.NoError(t, err)
+}
+
+func TestStorePOVandQueryChunkWorks(t *testing.T) {
+	harness := newTestHarness(t, true)
+	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
+	nValidators := uint(10)
+
+	pov := parachaintypes.PoV{BlockData: parachaintypes.BlockData{4, 5, 6}}
+
+	availableData := availability_store.AvailableData{
+		PoV: pov,
+	}
+	availableDataEnc, err := scale.Marshal(availableData)
+	require.NoError(t, err)
+
+	chunksExpected, err := erasure.ObtainChunks(nValidators, availableDataEnc)
+	require.NoError(t, err)
+
+	tr := trie.NewEmptyTrie()
+
+	for i, chunk := range chunksExpected {
+		result := make([]byte, 4)
+		binary.BigEndian.PutUint32(result, uint32(i))
+		err := tr.Put(result, common.MustBlake2bHash(chunk).ToBytes())
+		require.NoError(t, err)
+	}
+	branchHash, err := trie.V1.Hash(tr)
+	require.NoError(t, err)
+
+	msgSenderChan := make(chan error)
+
+	blockMsg := availability_store.StoreAvailableData{
+		CandidateHash:       candidateHash,
+		NumValidators:       uint32(nValidators),
+		AvailableData:       availableData,
+		ExpectedErasureRoot: branchHash,
+		Sender:              msgSenderChan,
+	}
+
+	harness.broadcastMessages = append(harness.broadcastMessages, blockMsg)
+
+	err = harness.overseer.Start()
+	require.NoError(t, err)
+
+	go harness.processMessages()
+
+	harness.triggerBroadcast()
+
+	msgSenderChanResult := <-blockMsg.Sender
+	require.Equal(t, nil, msgSenderChanResult)
+
+	for i := uint(0); i < nValidators; i++ {
+		msgSenderQueryChan := make(chan availability_store.ErasureChunk)
+		harness.broadcastMessages = append(harness.broadcastMessages, availability_store.QueryChunk{
+			CandidateHash:  candidateHash,
+			ValidatorIndex: uint32(i),
+			Sender:         msgSenderQueryChan,
+		})
+		harness.triggerBroadcast()
+		msgQueryChan := <-msgSenderQueryChan
+		require.Equal(t, chunksExpected[i], msgQueryChan.Chunk)
+	}
+}
+
+func TestQueryAllChunksWorks(t *testing.T) {
+	//TODO(ed): confirm this test is correct
+
+	harness := newTestHarness(t, true)
+	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
+	candidateHash2 := parachaintypes.CandidateHash{Value: common.Hash{0x02}}
+	candidateHash3 := parachaintypes.CandidateHash{Value: common.Hash{0x03}}
+
+	nValidators := uint(10)
+	pov := parachaintypes.PoV{BlockData: parachaintypes.BlockData{4, 5, 6}}
+	availableData := availability_store.AvailableData{
+		PoV: pov,
+	}
+	availableDataEnc, err := scale.Marshal(availableData)
+	require.NoError(t, err)
+	chunksExpected, err := erasure.ObtainChunks(nValidators, availableDataEnc)
+	require.NoError(t, err)
+
+	tr := trie.NewEmptyTrie()
+
+	for i, chunk := range chunksExpected {
+		result := make([]byte, 4)
+		binary.BigEndian.PutUint32(result, uint32(i))
+		err := tr.Put(result, common.MustBlake2bHash(chunk).ToBytes())
+		require.NoError(t, err)
+	}
+	branchHash, err := trie.V1.Hash(tr)
+	require.NoError(t, err)
+
+	msgSenderChan := make(chan error)
+	blockMsg := availability_store.StoreAvailableData{
+		CandidateHash:       candidateHash,
+		NumValidators:       uint32(nValidators),
+		AvailableData:       availableData,
+		ExpectedErasureRoot: branchHash,
+		Sender:              msgSenderChan,
+	}
+
+	harness.broadcastMessages = append(harness.broadcastMessages, blockMsg)
+
+	msgChunkSenderChan := make(chan any)
+
+	chunk := availability_store.ErasureChunk{
+		Chunk: []byte{1, 2, 3},
+		Index: 1,
+		Proof: []byte{4, 5, 6},
+	}
+	chunkMsg := availability_store.StoreChunk{
+		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
+		Chunk:         chunk,
+		Sender:        msgChunkSenderChan,
+	}
+
+	harness.broadcastMessages = append(harness.broadcastMessages, chunkMsg)
+
+	msgSenderQueryChan := make(chan []availability_store.ErasureChunk)
+	harness.broadcastMessages = append(harness.broadcastMessages, availability_store.QueryAllChunks{
+		CandidateHash: candidateHash,
+		Sender:        msgSenderQueryChan,
+	})
+
+	harness.broadcastMessages = append(harness.broadcastMessages, availability_store.QueryAllChunks{
+		CandidateHash: candidateHash2,
+		Sender:        msgSenderQueryChan,
+	})
+
+	harness.broadcastMessages = append(harness.broadcastMessages, availability_store.QueryAllChunks{
+		CandidateHash: candidateHash3,
+		Sender:        msgSenderQueryChan,
+	})
+
+	err = harness.overseer.Start()
+	require.NoError(t, err)
+
+	go harness.processMessages()
+
+	harness.triggerBroadcast()
+	msgRx := <-msgSenderChan
+	fmt.Printf("msgSenderChanResult: %v\n", msgRx)
+
+	//TODO(ed): this is returning expected results, why?
+	harness.triggerBroadcast()
+	msgQueryChan := <-msgChunkSenderChan
+	fmt.Printf("msgChunkSenderChan: %v\n", msgQueryChan)
+	//require.Equal(t, chunksExpected, msgQueryChan)
+
+	harness.triggerBroadcast()
+	msgQueryChan = <-msgSenderQueryChan
+	fmt.Printf("msgSenderQueryChan: %v\n", msgQueryChan)
+	//require.Equal(t, chunksExpected, msgQueryChan)
+
+	harness.triggerBroadcast()
+	msgQueryChan = <-msgSenderQueryChan
+	fmt.Printf("msgSenderQueryChan2: %v\n", msgQueryChan)
+	//require.Equal(t, chunksExpected, msgQueryChan)
+
+	harness.triggerBroadcast()
+	msgQueryChan = <-msgSenderQueryChan
+	fmt.Printf("msgSenderQueryChan3: %v\n", msgQueryChan)
+	//require.Equal(t, chunksExpected, msgQueryChan)
+
+	err = harness.overseer.Stop()
+	require.NoError(t, err)
+}
+
+func TestQueryChunkSizeWorks(t *testing.T) {
+	harness := newTestHarness(t, true)
+
+	msgSenderChan := make(chan uint32)
+
+	queryChunkMsg := availability_store.QueryChunkSize{
+		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
+		Sender:        msgSenderChan,
+	}
+
+	harness.broadcastMessages = append(harness.broadcastMessages, queryChunkMsg)
+
+	err := harness.overseer.Start()
+	require.NoError(t, err)
+
+	go harness.processMessages()
+
+	harness.triggerBroadcast()
+
+	msgSenderChanResult := <-queryChunkMsg.Sender
+	fmt.Printf("msgSenderChanResult: %v\n", msgSenderChanResult)
+	require.Equal(t, uint32(6), msgSenderChanResult)
 
 	err = harness.overseer.Stop()
 	require.NoError(t, err)
