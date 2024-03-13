@@ -931,9 +931,6 @@ func Test_ext_default_child_storage_read_version_1(t *testing.T) {
 			setupInstance: func(t *testing.T) *Instance {
 				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
-				//err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-				//require.NoError(t, err)
-
 				err := inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
 				require.NoError(t, err)
 				return inst
@@ -1070,9 +1067,6 @@ func Test_ext_default_child_storage_set_version_1(t *testing.T) {
 
 func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
-
-	//err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	//require.NoError(t, err)
 
 	err := inst.Context.Storage.SetChildStorage(testChildKey, testKey, testValue)
 	require.NoError(t, err)
@@ -1220,9 +1214,6 @@ func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
 			setupInstance: func(t *testing.T) *Instance {
 				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
-				//err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-				//require.NoError(t, err)
-
 				for _, kv := range testKeyValuePair {
 					err := inst.Context.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
 					require.NoError(t, err)
@@ -1241,9 +1232,6 @@ func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
 		"with_only_one_key": {
 			setupInstance: func(t *testing.T) *Instance {
 				inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
-
-				//err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-				//require.NoError(t, err)
 
 				kv := testKeyValuePair[0]
 				err := inst.Context.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
