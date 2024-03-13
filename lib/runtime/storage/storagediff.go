@@ -19,7 +19,7 @@ type storageDiff struct {
 	upserts        map[string][]byte
 	deletes        map[string]bool
 	childChangeSet map[string]*storageDiff
-	l              sync.RWMutex
+	mtx            sync.RWMutex
 }
 
 func newChangeSet() *storageDiff {
@@ -27,7 +27,7 @@ func newChangeSet() *storageDiff {
 		upserts:        make(map[string][]byte),
 		deletes:        make(map[string]bool),
 		childChangeSet: make(map[string]*storageDiff),
-		l:              sync.RWMutex{},
+		mtx:            sync.RWMutex{},
 	}
 }
 
@@ -36,8 +36,8 @@ func (cs *storageDiff) get(key string) ([]byte, bool) {
 		return nil, false
 	}
 
-	cs.l.RLock()
-	defer cs.l.RUnlock()
+	cs.mtx.RLock()
+	defer cs.mtx.RUnlock()
 
 	// Check in recent upserts if not found check if we want to delete it
 	if val, ok := cs.upserts[key]; ok {
@@ -54,8 +54,8 @@ func (cs *storageDiff) upsert(key string, value []byte) {
 		return
 	}
 
-	cs.l.Lock()
-	defer cs.l.Unlock()
+	cs.mtx.Lock()
+	defer cs.mtx.Unlock()
 	// If we previously deleted this trie we have to undo that deletion
 	if cs.deletes[key] {
 		delete(cs.deletes, key)
@@ -69,8 +69,8 @@ func (cs *storageDiff) delete(key string) {
 		return
 	}
 
-	cs.l.Lock()
-	defer cs.l.Unlock()
+	cs.mtx.Lock()
+	defer cs.mtx.Unlock()
 
 	delete(cs.childChangeSet, key)
 	delete(cs.upserts, key)
@@ -149,8 +149,8 @@ func (cs *storageDiff) getFromChild(keyToChild, key string) ([]byte, bool) {
 		return nil, false
 	}
 
-	cs.l.RLock()
-	defer cs.l.RUnlock()
+	cs.mtx.RLock()
+	defer cs.mtx.RUnlock()
 
 	childTrieChanges := cs.childChangeSet[keyToChild]
 	if childTrieChanges != nil {
@@ -169,8 +169,8 @@ func (cs *storageDiff) upsertChild(keyToChild, key string, value []byte) {
 		return
 	}
 
-	cs.l.Lock()
-	defer cs.l.Unlock()
+	cs.mtx.Lock()
+	defer cs.mtx.Unlock()
 	// If we previously deleted this child trie we have to undo that deletion
 	if cs.deletes[keyToChild] {
 		delete(cs.deletes, keyToChild)
@@ -190,8 +190,8 @@ func (cs *storageDiff) deleteFromChild(keyToChild, key string) {
 		return
 	}
 
-	cs.l.Lock()
-	defer cs.l.Unlock()
+	cs.mtx.Lock()
+	defer cs.mtx.Unlock()
 
 	childChanges := cs.childChangeSet[keyToChild]
 	if childChanges == nil {
@@ -208,8 +208,8 @@ func (cs *storageDiff) snapshot() *storageDiff {
 		panic("Trying to create snapshot from nil change set")
 	}
 
-	cs.l.RLock()
-	defer cs.l.RUnlock()
+	cs.mtx.RLock()
+	defer cs.mtx.RUnlock()
 
 	childChangeSetCopy := make(map[string]*storageDiff)
 	for k, v := range cs.childChangeSet {
@@ -228,8 +228,8 @@ func (cs *storageDiff) applyToTrie(t *trie.Trie) {
 		panic("trying to apply nil change set")
 	}
 
-	cs.l.RLock()
-	defer cs.l.RUnlock()
+	cs.mtx.RLock()
+	defer cs.mtx.RUnlock()
 
 	// Apply trie upserts
 	for k, v := range cs.upserts {
