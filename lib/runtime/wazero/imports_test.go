@@ -1474,7 +1474,7 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 	require.Equal(t, []byte{1, 0, 0, 0}, res)
 
 	hash, err := inst.Context.Storage.GetChildRoot(testChildKey)
-	require.Error(t, trie.ErrChildTrieDoesNotExist)
+	require.Error(t, err, trie.ErrChildTrieDoesNotExist)
 	require.Equal(t, common.EmptyHash, hash)
 }
 

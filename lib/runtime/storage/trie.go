@@ -237,34 +237,6 @@ func (t *TrieState) TrieEntries() map[string][]byte {
 	return entries
 }
 
-// TrieEntries returns every key-value pair in the trie
-func (t *TrieState) childTrieEntries(keyToChild []byte) map[string][]byte {
-	t.mtx.RLock()
-	defer t.mtx.RUnlock()
-
-	entries := make(map[string][]byte)
-
-	child, err := t.state.GetChild(keyToChild)
-	// err != nil means child not found and we don't have anything to add
-	if err == nil {
-		// Get entries from original child trie
-		maps.Copy(entries, child.Entries())
-	}
-
-	// Overwrite it with last changes
-	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-		if chgs, ok := currentTx.childChangeSet[string(keyToChild)]; ok {
-			maps.Copy(entries, chgs.upserts)
-			// Remove deleted keys
-			for k := range chgs.deletes {
-				delete(entries, k)
-			}
-		}
-	}
-
-	return entries
-}
-
 // SetChildStorage sets a key-value pair in a child trie
 func (t *TrieState) SetChildStorage(keyToChild, key, value []byte) error {
 	t.mtx.Lock()
