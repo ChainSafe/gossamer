@@ -284,8 +284,12 @@ func (t *TrieState) GetChildRoot(keyToChild []byte) (common.Hash, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 
-	entries := trie.NewEntriesFromMap(t.childTrieEntries(keyToChild))
-	return t.version.Root(entries)
+	child, err := t.state.GetChild(keyToChild)
+	if err != nil {
+		return common.EmptyHash, err
+	}
+
+	return child.Hash()
 }
 
 // GetChildStorage returns a value from a child trie
@@ -340,7 +344,7 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 	childTrieEntries := child.Entries()
 	qtyEntries := uint32(len(childTrieEntries))
 	if limit == nil {
-		err = child.DeleteChild(key)
+		err = t.state.DeleteChild(key)
 		if err != nil {
 			return 0, false, fmt.Errorf("deleting child trie: %w", err)
 		}

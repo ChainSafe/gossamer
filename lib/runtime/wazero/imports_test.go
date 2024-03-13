@@ -1404,19 +1404,22 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_all(t *testing.
 }
 
 func Test_ext_default_child_storage_storage_kill_version_2_limit_1(t *testing.T) {
-	t.Skip("FIX ME")
-	/*inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
-	tr := trie.NewEmptyTrie()
-	tr.Put([]byte(`key2`), []byte(`value2`))
-	tr.Put([]byte(`key1`), []byte(`value1`))
-	err := inst.Context.Storage.SetChild(testChildKey, tr)
+	err := inst.Context.Storage.SetChildStorage(testChildKey, []byte(`key2`), []byte(`value2`))
+	require.NoError(t, err)
+
+	err = inst.Context.Storage.SetChildStorage(testChildKey, []byte(`key1`), []byte(`value1`))
 	require.NoError(t, err)
 
 	// Confirm if value is set
-	child, err := inst.Context.Storage.GetChild(testChildKey)
+	value, err := inst.Context.Storage.GetChildStorage(testChildKey, []byte(`key1`))
 	require.NoError(t, err)
-	require.NotNil(t, child)
+	require.NotNil(t, value)
+
+	value, err = inst.Context.Storage.GetChildStorage(testChildKey, []byte(`key2`))
+	require.NoError(t, err)
+	require.NotNil(t, value)
 
 	encChildKey, err := scale.Marshal(testChildKey)
 	require.NoError(t, err)
@@ -1432,26 +1435,32 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_1(t *testing.T)
 	require.NoError(t, err)
 	require.Equal(t, []byte{0, 0, 0, 0}, res)
 
-	child, err = inst.Context.Storage.GetChild(testChildKey)
+	value, err = inst.Context.Storage.GetChildStorage(testChildKey, []byte(`key1`))
 	require.NoError(t, err)
-	require.Equal(t, 1, len(child.Entries()))*/
+	require.Nil(t, value)
+
+	value, err = inst.Context.Storage.GetChildStorage(testChildKey, []byte(`key2`))
+	require.NoError(t, err)
+	require.NotNil(t, value)
 }
 
 func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing.T) {
-	t.Skip("FIX ME")
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
-	/*inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	err := inst.Context.Storage.SetChildStorage(testChildKey, []byte(`key2`), []byte(`value2`))
+	require.NoError(t, err)
 
-	tr := trie.NewEmptyTrie()
-	tr.Put([]byte(`key2`), []byte(`value2`))
-	tr.Put([]byte(`key1`), []byte(`value1`))
-	err := inst.Context.Storage.SetChild(testChildKey, tr)
+	err = inst.Context.Storage.SetChildStorage(testChildKey, []byte(`key1`), []byte(`value1`))
 	require.NoError(t, err)
 
 	// Confirm if value is set
-	child, err := inst.Context.Storage.GetChild(testChildKey)
+	value, err := inst.Context.Storage.GetChildStorage(testChildKey, []byte(`key1`))
 	require.NoError(t, err)
-	require.NotNil(t, child)
+	require.NotNil(t, value)
+
+	value, err = inst.Context.Storage.GetChildStorage(testChildKey, []byte(`key2`))
+	require.NoError(t, err)
+	require.NotNil(t, value)
 
 	encChildKey, err := scale.Marshal(testChildKey)
 	require.NoError(t, err)
@@ -1464,21 +1473,21 @@ func Test_ext_default_child_storage_storage_kill_version_2_limit_none(t *testing
 	require.NoError(t, err)
 	require.Equal(t, []byte{1, 0, 0, 0}, res)
 
-	child, err = inst.Context.Storage.GetChild(testChildKey)
-	require.Error(t, err)
-	require.Nil(t, child)*/
+	hash, err := inst.Context.Storage.GetChildRoot(testChildKey)
+	require.Error(t, trie.ErrChildTrieDoesNotExist)
+	require.Equal(t, common.EmptyHash, hash)
 }
 
 func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
-	t.Skip("FIX ME")
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
-	/*inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	err := inst.Context.Storage.SetChildStorage(testChildKey, []byte(`key2`), []byte(`value2`))
+	require.NoError(t, err)
 
-	tr := trie.NewEmptyTrie()
-	tr.Put([]byte(`key2`), []byte(`value2`))
-	tr.Put([]byte(`key1`), []byte(`value1`))
-	tr.Put([]byte(`key3`), []byte(`value3`))
-	err := inst.Context.Storage.SetChild(testChildKey, tr)
+	err = inst.Context.Storage.SetChildStorage(testChildKey, []byte(`key1`), []byte(`value1`))
+	require.NoError(t, err)
+
+	err = inst.Context.Storage.SetChildStorage(testChildKey, []byte(`key3`), []byte(`value3`))
 	require.NoError(t, err)
 
 	testLimitBytes := make([]byte, 4)
@@ -1521,7 +1530,7 @@ func Test_ext_default_child_storage_storage_kill_version_3(t *testing.T) {
 		} else {
 			require.Equal(t, test.expected, *read)
 		}
-	}*/
+	}
 }
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
@@ -1663,9 +1672,7 @@ func Test_ext_offchain_sleep_until_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_clear_prefix_version_2(t *testing.T) {
-	t.Skip("FIX ME")
-
-	/*inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 	prefix := []byte("key")
 
@@ -1678,11 +1685,8 @@ func Test_ext_default_child_storage_clear_prefix_version_2(t *testing.T) {
 		{[]byte("keyThree"), []byte("value3")},
 	}
 
-	err := inst.Context.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	require.NoError(t, err)
-
 	for _, kv := range testKeyValuePair {
-		err = inst.Context.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
+		err := inst.Context.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
 		require.NoError(t, err)
 	}
 
@@ -1713,7 +1717,7 @@ func Test_ext_default_child_storage_clear_prefix_version_2(t *testing.T) {
 	keys, err = inst.Context.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
 	require.NoError(t, err)
 	// since one key is removed, there will be two remaining.
-	require.Equal(t, 2, len(keys))*/
+	require.Equal(t, 2, len(keys))
 }
 
 func Test_ext_offchain_local_storage_clear_version_1_Persistent(t *testing.T) {
