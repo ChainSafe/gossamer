@@ -57,6 +57,8 @@ type BlockState struct {
 	lock              sync.RWMutex
 	genesisHash       common.Hash
 	lastFinalised     common.Hash
+	lastRound         uint64
+	lastSetID         uint64
 	unfinalisedBlocks *hashToBlockMap
 	tries             *Tries
 
