@@ -210,3 +210,24 @@ func (n *node) primaryAncestorCount(count int) int {
 
 	return n.parent.primaryAncestorCount(count)
 }
+
+func (n *node) hashesAtNumber(number uint, hashes []common.Hash) []common.Hash {
+	// there is no need to go furthen in the node's children
+	// since they have a greater number at least
+	if number == n.number {
+		hashes = append(hashes, n.hash)
+		return hashes
+	}
+
+	// if the number is greater than current node,
+	// then search among its children
+	if number > n.number {
+		for _, children := range n.children {
+			hashes = children.hashesAtNumber(number, hashes)
+		}
+
+		return hashes
+	}
+
+	return hashes
+}
