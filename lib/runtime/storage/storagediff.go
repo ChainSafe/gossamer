@@ -28,7 +28,7 @@ type storageDiff struct {
 	mtx            sync.RWMutex
 }
 
-// newChangeSet initializes and returns a new storageDiff instance
+// newChangeSet initialises and returns a new storageDiff instance
 func newChangeSet() *storageDiff {
 	return &storageDiff{
 		upserts:        make(map[string][]byte),

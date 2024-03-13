@@ -15,15 +15,17 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-// TrieState is a wrapper around a transient trie that is used during the course of executing some runtime call.
-// If the execution of the call is successful, the trie will be saved in the StorageState.
+// TrieState relies on `storageDiff` to perform changes over the current state.
+// It has support for transactions using "nested" storageDiff changes
+// If the execution of the call is successful, the changes will be applied to
+// the current `state`
 type TrieState struct {
 	mtx          sync.RWMutex
 	state        *trie.Trie
 	transactions *list.List
-	version      trie.TrieLayout
 }
 
+// NewTrieState initialises and returns a new TrieState instance
 func NewTrieState(initialState *trie.Trie) *TrieState {
 	transactions := list.New()
 	return &TrieState{
@@ -84,13 +86,6 @@ func (t *TrieState) CommitTransaction() {
 	}
 }
 
-func (t *TrieState) SetVersion(v trie.TrieLayout) {
-	t.mtx.Lock()
-	defer t.mtx.Unlock()
-	t.version = v
-	t.state.SetVersion(v)
-}
-
 // Trie returns the TrieState's underlying trie
 func (t *TrieState) Trie() *trie.Trie {
 	t.mtx.RLock()
@@ -141,7 +136,8 @@ func (t *TrieState) MustRoot() common.Hash {
 
 // Root returns the trie's root hash
 func (t *TrieState) Root() (common.Hash, error) {
-	// Since the Root function is called without running transactions we can do:
+	// Since the validation functions are called when all transactions finished
+	// we can just do:
 	return t.state.Hash()
 }
 
