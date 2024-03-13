@@ -42,6 +42,12 @@ func (t *TrieState) getCurrentTransaction() *storageDiff {
 	return innerTransaction.Value.(*storageDiff)
 }
 
+func (t *TrieState) SetVersion(v trie.TrieLayout) {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+	t.state.SetVersion(v)
+}
+
 // StartTransaction begins a new nested storage transaction
 // which will either be committed or rolled back at a later time.
 func (t *TrieState) StartTransaction() {
@@ -136,8 +142,7 @@ func (t *TrieState) MustRoot() common.Hash {
 
 // Root returns the trie's root hash
 func (t *TrieState) Root() (common.Hash, error) {
-	// Since the validation functions are called when all transactions finished
-	// we can just do:
+	// Since the Root function is called without running transactions we can do:
 	return t.state.Hash()
 }
 
