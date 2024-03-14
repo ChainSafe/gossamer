@@ -226,6 +226,8 @@ func SetupTestDB(t *testing.T) database.Database {
 	require.NoError(t, err)
 	err = batch.meta.Put(TestCandidateHash.Value[:], dataBytes)
 	require.NoError(t, err)
+	err = batch.meta.Put(common.Hash{0x02}.ToBytes(), dataBytes)
+	require.NoError(t, err)
 
 	err = batch.flush()
 	require.NoError(t, err)
