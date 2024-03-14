@@ -110,12 +110,12 @@ func (o *Overseer) processMessages() {
 		select {
 		case msg := <-o.SubsystemsToOverseer:
 
-			fmt.Println("we come here")
+			fmt.Printf("we come here\n\n")
 			var subsystem Subsystem
 
 			switch msg.(type) {
 			case backing.GetBackedCandidatesMessage, backing.CanSecondMessage, backing.SecondMessage, backing.StatementMessage:
-				fmt.Println("we come here too")
+				fmt.Printf("we come here too\n\n")
 
 				subsystem = o.nameToSubsystem[parachaintypes.CandidateBacking]
 
