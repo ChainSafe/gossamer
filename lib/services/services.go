@@ -58,14 +58,19 @@ func (s *ServiceRegistry) StopAll() {
 	s.logger.Infof("Stopping services: %v", s.serviceTypes)
 
 	// Pause the sync and state service to allow for graceful shutdown
-	syncService := s.serviceTypes[5]
-	err := s.services[syncService].Pause()
-	if err != nil {
-		s.logger.Errorf("Error pausing service %s: %s", syncService, err)
+	// TODO make this not rely on a specific index
+	if len(s.serviceTypes) > 5 {
+		syncService := s.serviceTypes[5]
+		err := s.services[syncService].Pause()
+		if err != nil {
+			s.logger.Errorf("Error pausing service %s: %s", syncService, err)
+		}
+	} else {
+		s.logger.Warnf("unable to pause sync service")
 	}
 
 	stateService := s.serviceTypes[len(s.serviceTypes)-1]
-	err = s.services[stateService].Pause()
+	err := s.services[stateService].Pause()
 	if err != nil {
 		s.logger.Errorf("Error pausing service %s: %s", stateService, err)
 	}
