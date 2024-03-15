@@ -26,6 +26,7 @@ func TestServiceRegistry_StartStopAll(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	m := NewMockService(ctrl)
 	m.EXPECT().Start().Return(nil)
+	m.EXPECT().Pause().Return(nil)
 	m.EXPECT().Stop().Return(nil)
 
 	r.RegisterService(m)
