@@ -4,9 +4,10 @@
 package services
 
 import (
+	"reflect"
+
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
-	"reflect"
 )
 
 // Service must be implemented by all services
