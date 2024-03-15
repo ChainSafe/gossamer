@@ -8,6 +8,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
@@ -19,6 +20,7 @@ func Register(net Network, protocolID protocol.ID, o overseer.OverseerI) (*Colla
 		net:                             net,
 		overseer:                        o,
 		collationFetchingReqResProtocol: collationFetchingReqResProtocol,
+		peerData:                        make(map[peer.ID]PeerData),
 	}
 
 	// register collation protocol

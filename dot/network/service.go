@@ -501,7 +501,9 @@ mainloop:
 }
 
 func (s *Service) Connect(p peer.AddrInfo) {
-	s.host.cm.peerSetHandler.Incoming(0, p.ID)
+	s.host.cm.peerSetHandler.AddPeer(0, p.ID)
+
+	// s.host.cm.peerSetHandler.Incoming(0, p.ID)
 }
 
 func (s *Service) GetP2PHost() libp2phost.Host {

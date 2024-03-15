@@ -298,6 +298,7 @@ func (cpvs *CollatorProtocolValidatorSide) fetchCollation(pendingCollation Pendi
 
 func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent common.Hash, sender peer.ID,
 	prospectiveCandidate *ProspectiveCandidate) error {
+	fmt.Printf("1\n\n")
 	perRelayParent, ok := cpvs.perRelayParent[relayParent]
 	if !ok {
 		cpvs.net.ReportPeer(peerset.ReputationChange{
@@ -453,12 +454,10 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 	switch collatorProtocolMessageV.Index() {
 	// TODO: Create an issue to cover v2 types. #3534
 	case 0: // Declare
-		fmt.Printf("458\n")
 		declareMessage, ok := collatorProtocolMessageV.(Declare)
 		if !ok {
 			return propagate, errors.New("expected message to be declare")
 		}
-		fmt.Printf("463\n")
 		// check if we already have the collator id declared in this message. If so, punish the
 		// peer who sent us this message by reducing its reputation
 		_, ok = cpvs.getPeerIDFromCollatorID(declareMessage.CollatorId)
@@ -469,7 +468,6 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 			}, sender)
 			return propagate, nil
 		}
-		fmt.Printf("473\n")
 		// NOTE: peerData for sender will be filled when it gets connected to us
 		// NOTE: Looks like this peerData never gets filled.
 		peerData, ok := cpvs.peerData[sender]
@@ -512,6 +510,8 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 			peerData.SetCollating(declareMessage.CollatorId, parachaintypes.ParaID(declareMessage.ParaID))
 			cpvs.peerData[sender] = peerData
 		} else {
+			// TODO: handle_our_view_change to not see this.
+			// update_our_view
 			logger.Errorf("declared as collator for unneeded para: %d", declareMessage.ParaID)
 			cpvs.net.ReportPeer(peerset.ReputationChange{
 				Value:  peerset.UnneededCollatorValue,
@@ -526,13 +526,16 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 	case 1: // AdvertiseCollation
 		advertiseCollationMessage, ok := collatorProtocolMessageV.(AdvertiseCollation)
 		if !ok {
+			fmt.Print("527")
 			return propagate, errors.New("expected message to be advertise collation")
 		}
+		fmt.Print("530")
 
 		err := cpvs.handleAdvertisement(common.Hash(advertiseCollationMessage), sender, nil)
 		if err != nil {
 			return propagate, fmt.Errorf("handling v1 advertisement: %w", err)
 		}
+		fmt.Printf("533\n\n")
 		// TODO:
 		// - tracks advertisements received and the source (peer id) of the advertisement
 		// - accept one advertisement per collator per source per relay-parent

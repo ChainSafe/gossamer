@@ -116,7 +116,7 @@ func (cpvs CollatorProtocolValidatorSide) handleNetworkEvents(event network.Netw
 }
 
 func (cpvs CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal() {
-	// NOTE: nothing to do here
+	// this active leaves are handled in bridge in rust, read the code of bridge properly
 }
 
 func (cpvs CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal() {

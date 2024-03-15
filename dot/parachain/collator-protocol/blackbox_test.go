@@ -8,9 +8,11 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	mock_network "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/mock-network"
 	overseer "github.com/ChainSafe/gossamer/dot/parachain/overseer"
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	libp2phost "github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
@@ -78,14 +80,6 @@ func testSetup(t *testing.T) *MockOverseerI {
 	o := NewMockOverseerI(ctrl)
 
 	return o
-}
-
-func testConnectAndDeclareCollator(t *testing.T) {
-
-}
-
-func testAdvertiseCollation(t *testing.T) {
-
 }
 
 // func TestBackedCandidateUnblocksAdvertisements(t *testing.T) {
@@ -337,11 +331,46 @@ func TestSomething(t *testing.T) {
 func TestCollatorDeclare(t *testing.T) {
 	collatorNode, validatorNode, _ := testCreateCollatorValidatorPair(t)
 
+	testDeclare(t, collatorNode, validatorNode)
+	testAdvertiseCollation(t, collatorNode, validatorNode)
+	// declare done
+
+}
+
+func testAdvertiseCollation(t *testing.T, collatorNode *network.Service, validatorNode *network.Service) {
+	testRelayParent := getDummyHash(5)
+
 	collatorProtocolMessage := NewCollatorProtocolMessage()
-	err := collatorProtocolMessage.Set(Declare{
-		// CollatorId: ,
-		ParaID: 69,
-		// CollatorSignature,
+	err := collatorProtocolMessage.Set(AdvertiseCollation(testRelayParent))
+	require.NoError(t, err)
+	collationMessage := NewCollationProtocol()
+
+	err = collationMessage.Set(collatorProtocolMessage)
+	require.NoError(t, err)
+
+	err = collatorNode.SendMessage(validatorNode.GetP2PHost().ID(), &collationMessage)
+	require.NoError(t, err)
+
+}
+
+func testDeclare(t *testing.T, collatorNode *network.Service, validatorNode *network.Service) {
+	collatorKeypair, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+	collatorID, err := sr25519.NewPublicKey(collatorKeypair.Public().Encode())
+	require.NoError(t, err)
+
+	payload := getDeclareSignaturePayload(collatorNode.GetP2PHost().ID())
+	signatureBytes, err := collatorKeypair.Sign(payload)
+	require.NoError(t, err)
+
+	signature := [sr25519.SignatureLength]byte{}
+	copy(signature[:], signatureBytes)
+
+	collatorProtocolMessage := NewCollatorProtocolMessage()
+	err = collatorProtocolMessage.Set(Declare{
+		CollatorId:        parachaintypes.CollatorID(collatorID.AsBytes()),
+		ParaID:            1000,
+		CollatorSignature: parachaintypes.CollatorSignature(signature),
 	})
 	require.NoError(t, err)
 	collationMessage := NewCollationProtocol()
