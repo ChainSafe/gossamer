@@ -4,6 +4,8 @@
 package services
 
 import (
+	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/sync"
 	"reflect"
 )
 
@@ -53,27 +55,26 @@ func (s *ServiceRegistry) StartAll() {
 	s.logger.Debug("All services started.")
 }
 
+// PauseServices pauses key services before shutdown to allow a graceful shutdown
+func (s *ServiceRegistry) PauseServices() {
+	s.logger.Infof("Pausing key services")
+	// Pause the sync and state service to allow for graceful shutdown
+	for _, typ := range s.serviceTypes {
+		if (reflect.TypeOf(&sync.Service{}) == typ) || (reflect.TypeOf(&state.Service{}) == typ) {
+			err := s.services[typ].Pause()
+			if err != nil {
+				s.logger.Errorf("Error pausing service %s: %s", typ, err)
+			}
+		}
+	}
+	s.logger.Infof("Paused key services")
+}
+
 // StopAll calls `Service.Stop()` for all registered services
 func (s *ServiceRegistry) StopAll() {
 	s.logger.Infof("Stopping services: %v", s.serviceTypes)
 
-	// Pause the sync and state service to allow for graceful shutdown
-	// TODO make this not rely on a specific index
-	if len(s.serviceTypes) > 5 {
-		syncService := s.serviceTypes[5]
-		err := s.services[syncService].Pause()
-		if err != nil {
-			s.logger.Errorf("Error pausing service %s: %s", syncService, err)
-		}
-	} else {
-		s.logger.Warnf("unable to pause sync service")
-	}
-
-	stateService := s.serviceTypes[len(s.serviceTypes)-1]
-	err := s.services[stateService].Pause()
-	if err != nil {
-		s.logger.Errorf("Error pausing service %s: %s", stateService, err)
-	}
+	s.PauseServices()
 
 	for _, typ := range s.serviceTypes {
 		s.logger.Debugf("Stopping service %s", typ)
