@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -115,12 +116,81 @@ func (cpvs CollatorProtocolValidatorSide) handleNetworkEvents(event network.Netw
 	}
 }
 
-func (cpvs CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal() {
+func (cpvs *CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) {
+	// I might need to seperate the collator protocol into two parts, one that deals with the
+	// network and other that deals with other subsystems.
+	// Make everythin less messing.
+	// https://github.com/paritytech/polkadot-sdk/blob/1b5f4243d159fbb7cf7067241aca8a37f3dbf7ed/polkadot/node/network/bridge/src/rx/mod.rs#L798
+
 	// this active leaves are handled in bridge in rust, read the code of bridge properly
+
+	// TODO update cpvs.activeLeaves by adding new active leaves and removing deactivated ones
+
+	// majorSyncing means you are 5 blocks behind the tip of the chain and thus more aggressively
+	// download blocks etc to reach the tip of the chain faster.
+	var majorSyncing bool
+
+	liveHeads := cpvs.liveHeads[:]
+	liveHeads = append(liveHeads, parachaintypes.ActivatedLeaf{
+		Hash:   signal.Activated.Hash,
+		Number: signal.Activated.Number,
+	})
+
+	newLiveHeads := []parachaintypes.ActivatedLeaf{}
+
+	for _, head := range liveHeads {
+		var sliceContains bool
+		for _, deactivated := range signal.Deactivated {
+			if head.Hash == deactivated {
+				sliceContains = true
+				break
+			}
+		}
+		if sliceContains {
+			newLiveHeads = append(newLiveHeads, head)
+		}
+	}
+
+	sort.Sort(SortableActivatedLeaves(newLiveHeads))
+	cpvs.liveHeads = newLiveHeads
+
+	if !majorSyncing {
+		// update our view
+		cpvs.updateOurView()
+	}
 }
 
-func (cpvs CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal() {
-	// NOTE: nothing to do here
+func (cpvs *CollatorProtocolValidatorSide) updateOurView() {
+	headHashes := []common.Hash{}
+	for _, head := range cpvs.liveHeads {
+		headHashes = append(headHashes, head.Hash)
+	}
+	newView := View{
+		heads:           headHashes,
+		finalizedNumber: cpvs.finalizedNumber,
+	}
+}
+
+type SortableActivatedLeaves []parachaintypes.ActivatedLeaf
+
+func (s SortableActivatedLeaves) Len() int {
+	return len(s)
+}
+
+func (s SortableActivatedLeaves) Less(i, j int) bool {
+	return s[i].Number > s[j].Number
+}
+
+func (s SortableActivatedLeaves) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+func (cpvs CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
+	if cpvs.finalizedNumber >= signal.BlockNumber {
+		// error
+		return
+	}
+	cpvs.finalizedNumber = signal.BlockNumber
 }
 
 func (cpvs CollatorProtocolValidatorSide) Stop() {
@@ -295,11 +365,31 @@ const (
 	Collating
 )
 
+// The maximum amount of heads a peer is allowed to have in their view at any time.
+// We use the same limit to compute the view sent to peers locally.
+const MAX_VIEW_HEADS uint8 = 5
+
+// A succinct representation of a peer's view. This consists of a bounded amount of chain heads
+// and the highest known finalized block number.
+//
+// Up to `N` (5?) chain heads.
 type View struct {
 	// a bounded amount of chain heads
 	heads []common.Hash
 	// the highest known finalized number
 	finalizedNumber uint32 //nolint
+}
+
+func ConstructView(liveHeads map[common.Hash]struct{}, finalizedNumber uint32) View {
+	heads := make([]common.Hash, 0, len(liveHeads))
+	for head := range liveHeads {
+		heads = append(heads, head)
+	}
+
+	return View{
+		heads:           heads[:5],
+		finalizedNumber: finalizedNumber,
+	}
 }
 
 // Network is the interface required by parachain service for the network
@@ -378,6 +468,10 @@ type CollatorProtocolValidatorSide struct {
 	/// to asynchronous backing is done.
 	activeLeaves map[common.Hash]parachaintypes.ProspectiveParachainsMode
 
+	// heads are sorted in descending order by block number
+	liveHeads []parachaintypes.ActivatedLeaf
+
+	finalizedNumber uint32
 	// Collations that we have successfully requested from peers and waiting
 	// on validation.
 	fetchedCandidates map[string]CollationEvent
@@ -585,9 +679,9 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 		}, peerID)
 
 	case parachaintypes.ActiveLeavesUpdateSignal:
-		cpvs.ProcessActiveLeavesUpdateSignal()
+		cpvs.ProcessActiveLeavesUpdateSignal(msg)
 	case parachaintypes.BlockFinalizedSignal:
-		cpvs.ProcessBlockFinalizedSignal()
+		cpvs.ProcessBlockFinalizedSignal(msg)
 
 	default:
 		return parachaintypes.ErrUnknownOverseerMessage
