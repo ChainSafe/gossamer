@@ -14,7 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-var errInvalidErasureRoot = errors.New("Invalid erasure root")
+var ErrInvalidErasureRoot = errors.New("Invalid erasure root")
 
 // QueryAvailableData query a AvailableData from the AV store
 type QueryAvailableData struct {

@@ -401,7 +401,7 @@ func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 		return false, fmt.Errorf("creating branches from chunks: %w", err)
 	}
 	if branches.root != expectedErasureRoot {
-		return false, errInvalidErasureRoot
+		return false, ErrInvalidErasureRoot
 	}
 
 	for i, chunk := range chunks {
@@ -878,7 +878,7 @@ func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailabl
 		msg.Sender <- nil
 		return nil
 	}
-	if err != nil && errors.Is(err, errInvalidErasureRoot) {
+	if err != nil && errors.Is(err, ErrInvalidErasureRoot) {
 		msg.Sender <- err
 		return fmt.Errorf("store available data: %w", err)
 	}

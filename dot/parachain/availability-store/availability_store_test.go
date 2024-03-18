@@ -705,7 +705,7 @@ func TestAvailabilityStore_storeAvailableData(t *testing.T) {
 				expectedErasureRoot: common.Hash{},
 			},
 			want: false,
-			err:  errInvalidErasureRoot,
+			err:  ErrInvalidErasureRoot,
 		},
 	}
 	for name, tt := range tests {
