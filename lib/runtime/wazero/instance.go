@@ -42,6 +42,7 @@ type Instance struct {
 	Module   api.Module
 	Context  *runtime.Context
 	codeHash common.Hash
+	heapBase uint32
 	sync.Mutex
 }
 
@@ -408,12 +409,12 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		return nil, err
 	}
 
-	global := mod.ExportedGlobal("__heap_base")
-	if global == nil {
+	encodedHeapBase := mod.ExportedGlobal("__heap_base")
+	if encodedHeapBase == nil {
 		return nil, fmt.Errorf("wazero error: nil global for __heap_base")
 	}
 
-	hb := api.DecodeU32(global.Get())
+	heapBase := api.DecodeU32(encodedHeapBase.Get())
 	// hb = runtime.DefaultHeapBase
 
 	mem := mod.Memory()
@@ -421,11 +422,10 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		return nil, fmt.Errorf("wazero error: nil memory for module")
 	}
 
-	allocator := allocator.NewFreeingBumpHeapAllocator(hb)
 	instance = &Instance{
-		Runtime: rt,
+		heapBase: heapBase,
+		Runtime:  rt,
 		Context: &runtime.Context{
-			Allocator:       allocator,
 			Keystore:        cfg.Keystore,
 			Validator:       cfg.Role == common.AuthorityRole,
 			NodeStorage:     cfg.NodeStorage,
@@ -460,8 +460,11 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	i.Lock()
 	defer i.Unlock()
 
+	// instantiate a new allocator on every execution func
+	allocator := allocator.NewFreeingBumpHeapAllocator(i.heapBase)
+
 	dataLength := uint32(len(data))
-	inputPtr, err := i.Context.Allocator.Allocate(i.Module.Memory(), dataLength)
+	inputPtr, err := allocator.Allocate(i.Module.Memory(), dataLength)
 	if err != nil {
 		return nil, fmt.Errorf("allocating input memory: %w", err)
 	}
@@ -471,10 +474,16 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	if mem == nil {
 		panic("nil memory")
 	}
+
 	ok := mem.Write(inputPtr, data)
 	if !ok {
 		panic("write overflow")
 	}
+
+	i.Context.Allocator = allocator
+	defer func() {
+		i.Context.Allocator = nil
+	}()
 
 	runtimeFunc := i.Module.ExportedFunction(function)
 	if runtimeFunc == nil {
@@ -482,7 +491,6 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	}
 
 	ctx := context.WithValue(context.Background(), runtimeContextKey, i.Context)
-
 	values, err := runtimeFunc.Call(ctx, api.EncodeU32(inputPtr), api.EncodeU32(dataLength))
 	if err != nil {
 		return nil, fmt.Errorf("running runtime function: %w", err)
@@ -497,6 +505,7 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	if !ok {
 		panic("write overflow")
 	}
+
 	return result, nil
 }
 

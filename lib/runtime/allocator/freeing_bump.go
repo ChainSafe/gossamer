@@ -393,7 +393,7 @@ func (f *FreeingBumpHeapAllocator) Allocate(mem runtime.Memory, size uint32) (pt
 	link := f.freeLists.heads[order]
 	switch value := link.(type) {
 	case Ptr:
-		if uint64(value.headerPtr)+uint64(order.size())+uint64(HeaderSize) > uint64(mem.Size()) {
+		if uint64(value.headerPtr)+uint64(order.size())+uint64(HeaderSize) > mem.Size() {
 			return 0, fmt.Errorf("%w: pointer: %d, order size: %d",
 				ErrInvalidHeaderPointerDetected, value.headerPtr, order.size())
 		}
@@ -505,7 +505,7 @@ func (f *FreeingBumpHeapAllocator) Deallocate(mem runtime.Memory, ptr uint32) (e
 func bump(bumper *uint32, size uint32, mem runtime.Memory) (uint32, error) {
 	requiredSize := uint64(*bumper) + uint64(size)
 
-	if requiredSize > uint64(mem.Size()) {
+	if requiredSize > mem.Size() {
 		requiredPages, ok := pagesFromSize(requiredSize)
 		if !ok {
 			panic(fmt.Sprintf("cannot calculate number of pages from size %d", requiredSize))
