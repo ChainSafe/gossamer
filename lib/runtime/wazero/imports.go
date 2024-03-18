@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"math"
 	"math/big"
 	"reflect"
 	"time"
@@ -795,7 +796,7 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 		panic("nil runtime context")
 	}
 
-	stateVersion, err := trie.ParseVersion(version)
+	stateVersion, err := trie.ParseVersion(uint8(version))
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
@@ -841,7 +842,7 @@ func ext_trie_blake2_256_ordered_root_version_2(
 
 	data := read(m, dataSpan)
 
-	stateVersion, err := trie.ParseVersion(version)
+	stateVersion, err := trie.ParseVersion(uint8(version))
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
@@ -923,7 +924,7 @@ func ext_trie_blake2_256_verify_proof_version_2(
 		panic("nil runtime context")
 	}
 
-	_, err := trie.ParseVersion(version)
+	_, err := trie.ParseVersion(uint8(version))
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
@@ -1275,7 +1276,7 @@ func ext_default_child_storage_root_version_2(ctx context.Context, m api.Module,
 		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
 	}
 
-	stateVersion, err := trie.ParseVersion(version)
+	stateVersion, err := trie.ParseVersion(uint8(version))
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
@@ -2139,21 +2140,19 @@ func ext_storage_clear_prefix_version_2(ctx context.Context, m api.Module, prefi
 
 	limitBytes := read(m, lim)
 
-	var limit []byte
-	err := scale.Unmarshal(limitBytes, &limit)
+	var limitPtr *uint32
+	err := scale.Unmarshal(limitBytes, &limitPtr)
 	if err != nil {
 		logger.Warnf("failed scale decoding limit: %s", err)
 		panic(err)
 	}
 
-	if len(limit) == 0 {
-		// limit is None, set limit to max
-		limit = []byte{0xff, 0xff, 0xff, 0xff}
+	if limitPtr == nil {
+		maxLimit := uint32(math.MaxUint32)
+		limitPtr = &maxLimit
 	}
 
-	limitUint := binary.LittleEndian.Uint32(limit)
-
-	numRemoved, all, err := storage.ClearPrefixLimit(prefix, limitUint)
+	numRemoved, all, err := storage.ClearPrefixLimit(prefix, *limitPtr)
 	if err != nil {
 		logger.Errorf("failed to clear prefix limit: %s", err)
 		panic(err)

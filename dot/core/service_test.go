@@ -135,7 +135,7 @@ func Test_Service_StorageRoot(t *testing.T) {
 		retErr        error
 		expErr        error
 		expErrMsg     string
-		stateVersion  uint32
+		stateVersion  uint8
 	}{
 		{
 			name:          "storage trie state error",
