@@ -12,7 +12,6 @@ import (
 	"golang.org/x/exp/slices"
 
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	"github.com/ChainSafe/gossamer/pkg/trie/codec"
 )
 
 // storageDiff is a structure that stores the differences between consecutive
@@ -143,8 +142,6 @@ func (cs *storageDiff) clearPrefixInChild(keyToChild string, prefix []byte, chil
 // optional limit. It returns the number of keys deleted and a boolean
 // indicating if all keys with the prefix were removed.
 func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) (deleted uint32, allDeleted bool) {
-	prefix = codec.KeyLEToNibbles(prefix)
-	prefix = bytes.TrimSuffix(prefix, []byte{0})
 	newKeys := maps.Keys(cs.upserts)
 	allKeys := append(newKeys, trieKeys...)
 	deleted = 0
@@ -154,11 +151,12 @@ func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) 
 			break
 		}
 		keyBytes := []byte(k)
-		bytes.HasPrefix(keyBytes, prefix)
-		cs.delete(k)
-		deleted++
-		if !slices.Contains(newKeys, k) {
-			limit--
+		if bytes.HasPrefix(keyBytes, prefix) {
+			cs.delete(k)
+			deleted++
+			if !slices.Contains(newKeys, k) {
+				limit--
+			}
 		}
 	}
 
