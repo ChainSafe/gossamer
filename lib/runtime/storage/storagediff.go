@@ -95,7 +95,7 @@ func (cs *storageDiff) delete(key string) {
 // This method will do not consider keys created during actual block execution
 // https://spec.polkadot.network/chap-host-api#id-version-2-prototype-2
 func (cs *storageDiff) deleteChildLimit(keyToChild string,
-	childKeys []string, limit int) (
+	currentChildKeys []string, limit int) (
 	deleted uint32, allDeleted bool) {
 	childChanges := cs.childChangeSet[keyToChild]
 	if childChanges == nil {
@@ -104,12 +104,12 @@ func (cs *storageDiff) deleteChildLimit(keyToChild string,
 
 	if limit == -1 {
 		cs.delete(keyToChild)
-		deletedKeys := len(cs.childChangeSet[keyToChild].upserts) + len(childKeys)
+		deletedKeys := len(childChanges.upserts) + len(currentChildKeys)
 		return uint32(deletedKeys), true
 	}
 
-	newKeys := maps.Keys(cs.upserts)
-	allKeys := append(newKeys, childKeys...)
+	newKeys := maps.Keys(childChanges.upserts)
+	allKeys := append(newKeys, currentChildKeys...)
 	sort.Strings(allKeys)
 
 	for _, k := range allKeys {

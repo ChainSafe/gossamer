@@ -267,4 +267,83 @@ func TestStorageDiff_ChildTrie(t *testing.T) {
 		require.True(t, deleted)
 		require.Nil(t, val)
 	})
+
+	t.Run("deleteChildLimit", func(t *testing.T) {
+		t.Parallel()
+
+		testEntries := map[string][]byte{
+			"key1": []byte("key1"),
+			"key2": []byte("key2"),
+			"key3": []byte("key3"),
+		}
+
+		cases := map[string]struct {
+			limit            int
+			currentChildKeys []string
+			deleted          uint32
+			allDelted        bool
+		}{
+			"empty_child_trie_limit_1": {
+				limit:     1,
+				deleted:   3, // Since keys during block exec does not count
+				allDelted: true,
+			},
+			"empty_child_trie_limit_2": {
+				limit:     2,
+				deleted:   3, // Since keys during block exec does not count
+				allDelted: true,
+			},
+			"empty_child_trie_same_limit_than_stored_keys": {
+				limit:     3,
+				deleted:   3,
+				allDelted: true,
+			},
+			"empty_child_trie_no_limit": {
+				limit:     -1,
+				deleted:   3,
+				allDelted: true,
+			},
+			"with_current_child_trie_1_entry_limit_1": {
+				limit:            1,
+				currentChildKeys: []string{"currentKey1"},
+				deleted:          1, // Deletes currentKey1 only
+				allDelted:        false,
+			},
+			"with_current_child_trie_1_entry_limit_2": {
+				limit:            2,
+				currentChildKeys: []string{"currentKey1"},
+				deleted:          4, // Since keys during block exec does not count
+				allDelted:        true,
+			},
+			"with_current_child_trie_1_entry_limit_3": {
+				limit:            3,
+				currentChildKeys: []string{"currentKey1"},
+				deleted:          4,
+				allDelted:        true,
+			},
+			"with_current_child_trie_with_no_limit": {
+				limit:            -1,
+				currentChildKeys: []string{"currentKey1"},
+				deleted:          4,
+				allDelted:        true,
+			},
+		}
+
+		for tname, tt := range cases {
+			tt := tt
+			t.Run(tname, func(t *testing.T) {
+				//t.Parallel()
+
+				changes := newStorageDiff()
+
+				for k, v := range testEntries {
+					changes.upsertChild(testKey, k, v)
+				}
+
+				deleted, allDeleted := changes.deleteChildLimit(testKey, tt.currentChildKeys, tt.limit)
+				require.Equal(t, tt.deleted, deleted)
+				require.Equal(t, tt.allDelted, allDeleted)
+			})
+		}
+	})
 }
