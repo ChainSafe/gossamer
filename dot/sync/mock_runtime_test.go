@@ -56,7 +56,7 @@ func (m *MockInstance) ApplyExtrinsic(arg0 types.Extrinsic) ([]byte, error) {
 }
 
 // ApplyExtrinsic indicates an expected call of ApplyExtrinsic.
-func (mr *MockInstanceMockRecorder) ApplyExtrinsic(arg0 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) ApplyExtrinsic(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyExtrinsic", reflect.TypeOf((*MockInstance)(nil).ApplyExtrinsic), arg0)
 }
@@ -86,7 +86,7 @@ func (m *MockInstance) BabeGenerateKeyOwnershipProof(arg0 uint64, arg1 [32]byte)
 }
 
 // BabeGenerateKeyOwnershipProof indicates an expected call of BabeGenerateKeyOwnershipProof.
-func (mr *MockInstanceMockRecorder) BabeGenerateKeyOwnershipProof(arg0, arg1 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) BabeGenerateKeyOwnershipProof(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BabeGenerateKeyOwnershipProof", reflect.TypeOf((*MockInstance)(nil).BabeGenerateKeyOwnershipProof), arg0, arg1)
 }
@@ -100,7 +100,7 @@ func (m *MockInstance) BabeSubmitReportEquivocationUnsignedExtrinsic(arg0 types.
 }
 
 // BabeSubmitReportEquivocationUnsignedExtrinsic indicates an expected call of BabeSubmitReportEquivocationUnsignedExtrinsic.
-func (mr *MockInstanceMockRecorder) BabeSubmitReportEquivocationUnsignedExtrinsic(arg0, arg1 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) BabeSubmitReportEquivocationUnsignedExtrinsic(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BabeSubmitReportEquivocationUnsignedExtrinsic", reflect.TypeOf((*MockInstance)(nil).BabeSubmitReportEquivocationUnsignedExtrinsic), arg0, arg1)
 }
@@ -127,7 +127,7 @@ func (m *MockInstance) DecodeSessionKeys(arg0 []byte) ([]byte, error) {
 }
 
 // DecodeSessionKeys indicates an expected call of DecodeSessionKeys.
-func (mr *MockInstanceMockRecorder) DecodeSessionKeys(arg0 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) DecodeSessionKeys(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DecodeSessionKeys", reflect.TypeOf((*MockInstance)(nil).DecodeSessionKeys), arg0)
 }
@@ -142,7 +142,7 @@ func (m *MockInstance) Exec(arg0 string, arg1 []byte) ([]byte, error) {
 }
 
 // Exec indicates an expected call of Exec.
-func (mr *MockInstanceMockRecorder) Exec(arg0, arg1 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) Exec(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exec", reflect.TypeOf((*MockInstance)(nil).Exec), arg0, arg1)
 }
@@ -157,7 +157,7 @@ func (m *MockInstance) ExecuteBlock(arg0 *types.Block) ([]byte, error) {
 }
 
 // ExecuteBlock indicates an expected call of ExecuteBlock.
-func (mr *MockInstanceMockRecorder) ExecuteBlock(arg0 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) ExecuteBlock(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteBlock", reflect.TypeOf((*MockInstance)(nil).ExecuteBlock), arg0)
 }
@@ -228,7 +228,7 @@ func (m *MockInstance) GrandpaGenerateKeyOwnershipProof(arg0 uint64, arg1 ed2551
 }
 
 // GrandpaGenerateKeyOwnershipProof indicates an expected call of GrandpaGenerateKeyOwnershipProof.
-func (mr *MockInstanceMockRecorder) GrandpaGenerateKeyOwnershipProof(arg0, arg1 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) GrandpaGenerateKeyOwnershipProof(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GrandpaGenerateKeyOwnershipProof", reflect.TypeOf((*MockInstance)(nil).GrandpaGenerateKeyOwnershipProof), arg0, arg1)
 }
@@ -242,7 +242,7 @@ func (m *MockInstance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(arg0 typ
 }
 
 // GrandpaSubmitReportEquivocationUnsignedExtrinsic indicates an expected call of GrandpaSubmitReportEquivocationUnsignedExtrinsic.
-func (mr *MockInstanceMockRecorder) GrandpaSubmitReportEquivocationUnsignedExtrinsic(arg0, arg1 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) GrandpaSubmitReportEquivocationUnsignedExtrinsic(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GrandpaSubmitReportEquivocationUnsignedExtrinsic", reflect.TypeOf((*MockInstance)(nil).GrandpaSubmitReportEquivocationUnsignedExtrinsic), arg0, arg1)
 }
@@ -257,7 +257,7 @@ func (m *MockInstance) InherentExtrinsics(arg0 []byte) ([]byte, error) {
 }
 
 // InherentExtrinsics indicates an expected call of InherentExtrinsics.
-func (mr *MockInstanceMockRecorder) InherentExtrinsics(arg0 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) InherentExtrinsics(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InherentExtrinsics", reflect.TypeOf((*MockInstance)(nil).InherentExtrinsics), arg0)
 }
@@ -271,7 +271,7 @@ func (m *MockInstance) InitializeBlock(arg0 *types.Header) error {
 }
 
 // InitializeBlock indicates an expected call of InitializeBlock.
-func (mr *MockInstanceMockRecorder) InitializeBlock(arg0 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) InitializeBlock(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InitializeBlock", reflect.TypeOf((*MockInstance)(nil).InitializeBlock), arg0)
 }
@@ -343,6 +343,21 @@ func (m *MockInstance) OffchainWorker() {
 func (mr *MockInstanceMockRecorder) OffchainWorker() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OffchainWorker", reflect.TypeOf((*MockInstance)(nil).OffchainWorker))
+}
+
+// ParachainHostAsyncBackingParams mocks base method.
+func (m *MockInstance) ParachainHostAsyncBackingParams() (*parachaintypes.AsyncBackingParams, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostAsyncBackingParams")
+	ret0, _ := ret[0].(*parachaintypes.AsyncBackingParams)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostAsyncBackingParams indicates an expected call of ParachainHostAsyncBackingParams.
+func (mr *MockInstanceMockRecorder) ParachainHostAsyncBackingParams() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostAsyncBackingParams", reflect.TypeOf((*MockInstance)(nil).ParachainHostAsyncBackingParams))
 }
 
 // ParachainHostAvailabilityCores mocks base method.
@@ -520,7 +535,7 @@ func (m *MockInstance) PaymentQueryInfo(arg0 []byte) (*types.RuntimeDispatchInfo
 }
 
 // PaymentQueryInfo indicates an expected call of PaymentQueryInfo.
-func (mr *MockInstanceMockRecorder) PaymentQueryInfo(arg0 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) PaymentQueryInfo(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PaymentQueryInfo", reflect.TypeOf((*MockInstance)(nil).PaymentQueryInfo), arg0)
 }
@@ -544,7 +559,7 @@ func (m *MockInstance) SetContextStorage(arg0 runtime.Storage) {
 }
 
 // SetContextStorage indicates an expected call of SetContextStorage.
-func (mr *MockInstanceMockRecorder) SetContextStorage(arg0 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) SetContextStorage(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetContextStorage", reflect.TypeOf((*MockInstance)(nil).SetContextStorage), arg0)
 }
@@ -571,7 +586,7 @@ func (m *MockInstance) ValidateTransaction(arg0 types.Extrinsic) (*transaction.V
 }
 
 // ValidateTransaction indicates an expected call of ValidateTransaction.
-func (mr *MockInstanceMockRecorder) ValidateTransaction(arg0 any) *gomock.Call {
+func (mr *MockInstanceMockRecorder) ValidateTransaction(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateTransaction", reflect.TypeOf((*MockInstance)(nil).ValidateTransaction), arg0)
 }

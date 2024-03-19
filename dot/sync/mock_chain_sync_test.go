@@ -78,7 +78,7 @@ func (m *MockChainSync) onBlockAnnounce(arg0 announcedBlock) error {
 }
 
 // onBlockAnnounce indicates an expected call of onBlockAnnounce.
-func (mr *MockChainSyncMockRecorder) onBlockAnnounce(arg0 any) *gomock.Call {
+func (mr *MockChainSyncMockRecorder) onBlockAnnounce(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "onBlockAnnounce", reflect.TypeOf((*MockChainSync)(nil).onBlockAnnounce), arg0)
 }
@@ -92,7 +92,7 @@ func (m *MockChainSync) onBlockAnnounceHandshake(p peer.ID, hash common.Hash, nu
 }
 
 // onBlockAnnounceHandshake indicates an expected call of onBlockAnnounceHandshake.
-func (mr *MockChainSyncMockRecorder) onBlockAnnounceHandshake(p, hash, number any) *gomock.Call {
+func (mr *MockChainSyncMockRecorder) onBlockAnnounceHandshake(p, hash, number interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "onBlockAnnounceHandshake", reflect.TypeOf((*MockChainSync)(nil).onBlockAnnounceHandshake), p, hash, number)
 }
