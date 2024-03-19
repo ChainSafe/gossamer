@@ -64,16 +64,16 @@ func (sc *subsystemClock) Now() BETimestamp {
 // pruningConfig Struct holding pruning timing configuration.
 // The only purpose of this structure is to use different timing
 // configurations in production and in testing.
-type pruningConfig struct {
-	keepUnavailableFor time.Duration
-	keepFinalizedFor   time.Duration
-	pruningInterval    time.Duration
+type PruningConfig struct {
+	KeepUnavailableFor time.Duration
+	KeepFinalizedFor   time.Duration
+	PruningInterval    time.Duration
 }
 
-var defaultPruningConfig = pruningConfig{
-	keepUnavailableFor: keepUnavilableFor,
-	keepFinalizedFor:   keepFinalizedFor,
-	pruningInterval:    pruningInterval,
+var defaultPruningConfig = PruningConfig{
+	KeepUnavailableFor: keepUnavilableFor,
+	KeepFinalizedFor:   keepFinalizedFor,
+	PruningInterval:    pruningInterval,
 }
 
 // AvailabilityStoreSubsystem is the struct that holds subsystem data for the availability store
@@ -88,7 +88,7 @@ type AvailabilityStoreSubsystem struct {
 	currentMessage      any
 	finalizedNumber     parachaintypes.BlockNumber
 	knownBlocks         KnownUnfinalizedBlock
-	pruningConfig       pruningConfig
+	pruningConfig       PruningConfig
 	clock               subsystemClock
 	//TODO: metrics       Metrics
 }
@@ -370,7 +370,7 @@ func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 	meta = &CandidateMeta{}
 
 	now := subsystem.clock.Now()
-	pruneAt := now + BETimestamp(subsystem.pruningConfig.keepUnavailableFor.Seconds())
+	pruneAt := now + BETimestamp(subsystem.pruningConfig.KeepUnavailableFor.Seconds())
 
 	pruneKey := append(pruneAt.ToBigEndianBytes(), candidate.Value[:]...)
 	err = batch.pruneByTime.Put(pruneKey, nil)
@@ -563,6 +563,10 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 			}
 			av.wg.Done()
 			return
+		case <-time.After(av.pruningConfig.PruningInterval):
+			fmt.Printf("from availability store subsystem\n")
+			av.pruneAll()
+
 		}
 	}
 }
@@ -696,7 +700,7 @@ func (av *AvailabilityStoreSubsystem) noteBlockBacked(tx *availabilityStoreBatch
 		logger.Infof("data %v", dataBytes)
 
 		// write pruning key
-		pruneAt := now + BETimestamp(av.pruningConfig.keepUnavailableFor.Seconds())
+		pruneAt := now + BETimestamp(av.pruningConfig.KeepUnavailableFor.Seconds())
 		pruneKey := append(candidateHash[:], uint32ToBytes(uint32(pruneAt))...)
 		err = tx.pruneByTime.Put(pruneKey, nil)
 		if err != nil {
@@ -891,6 +895,28 @@ func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailabl
 		return fmt.Errorf("store available data: %w", err)
 	}
 	return nil
+}
+
+func (av *AvailabilityStoreSubsystem) pruneAll() {
+	iter, err := av.availabilityStore.pruneByTime.NewIterator()
+	if err != nil {
+		logger.Errorf("creating iterator: %w", err)
+		return
+	}
+	defer iter.Release()
+	fmt.Printf("pruneAll\n")
+	for iter.Next() {
+		key := iter.Key()
+		if len(key) != 36 {
+			logger.Errorf("invalid key length %d", len(key))
+			continue
+		}
+		fmt.Printf("\tkey %s", key)
+		pruneAt := binary.BigEndian.Uint64(key[:8])
+		if pruneAt > uint64(av.clock.Now()) {
+			continue
+		}
+	}
 }
 
 func (av *AvailabilityStoreSubsystem) Stop() {

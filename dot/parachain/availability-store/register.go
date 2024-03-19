@@ -25,3 +25,22 @@ func CreateAndRegister(overseerChan chan<- any, db database.Database) (*Availabi
 
 	return &availabilityStoreSubsystem, nil
 }
+
+func CreateAndRegisterPruning(overseerChan chan<- any, db database.Database,
+	pruning PruningConfig) (*AvailabilityStoreSubsystem,
+	error) {
+	availabilityStore := NewAvailabilityStore(db)
+
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+
+	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
+		ctx:                 ctx,
+		cancel:              cancel,
+		pruningConfig:       pruning,
+		SubSystemToOverseer: overseerChan,
+		availabilityStore:   *availabilityStore,
+	}
+
+	return &availabilityStoreSubsystem, nil
+}
