@@ -513,7 +513,7 @@ func bump(bumper *uint32, size uint32, mem runtime.Memory) (uint32, error) {
 
 		currentPages, ok := pagesFromSize(mem.Size())
 		if !ok {
-			panic(fmt.Sprintf("cannot calculate current number of pages, current size: %d", mem.Size()))
+			panic(fmt.Sprintf("page size cannot fit into uint32, current memory size: %d", mem.Size()))
 		}
 
 		if currentPages >= requiredPages {
@@ -556,7 +556,7 @@ func bump(bumper *uint32, size uint32, mem runtime.Memory) (uint32, error) {
 // pagesFromSize convert the given `size` in bytes into the number of pages.
 // The returned number of pages is ensured to be big enough to hold memory
 // with the given `size`.
-// Returns false if the number of pages do not fit into `uint32`
+// Returns false if the number of pages does not fit into `uint32`
 func pagesFromSize(size uint64) (uint32, bool) {
 	value := (size + uint64(PageSize) - 1) / uint64(PageSize)
 
