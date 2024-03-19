@@ -53,7 +53,7 @@ func (m *MockBlockState) AddBlock(arg0 *types.Block) error {
 }
 
 // AddBlock indicates an expected call of AddBlock.
-func (mr *MockBlockStateMockRecorder) AddBlock(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) AddBlock(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddBlock", reflect.TypeOf((*MockBlockState)(nil).AddBlock), arg0)
 }
@@ -94,7 +94,7 @@ func (m *MockBlockState) FreeImportedBlockNotifierChannel(arg0 chan *types.Block
 }
 
 // FreeImportedBlockNotifierChannel indicates an expected call of FreeImportedBlockNotifierChannel.
-func (mr *MockBlockStateMockRecorder) FreeImportedBlockNotifierChannel(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) FreeImportedBlockNotifierChannel(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).FreeImportedBlockNotifierChannel), arg0)
 }
@@ -122,7 +122,7 @@ func (m *MockBlockState) GetAllBlocksAtDepth(arg0 common.Hash) []common.Hash {
 }
 
 // GetAllBlocksAtDepth indicates an expected call of GetAllBlocksAtDepth.
-func (mr *MockBlockStateMockRecorder) GetAllBlocksAtDepth(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) GetAllBlocksAtDepth(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllBlocksAtDepth", reflect.TypeOf((*MockBlockState)(nil).GetAllBlocksAtDepth), arg0)
 }
@@ -137,7 +137,7 @@ func (m *MockBlockState) GetBlockByNumber(arg0 uint) (*types.Block, error) {
 }
 
 // GetBlockByNumber indicates an expected call of GetBlockByNumber.
-func (mr *MockBlockStateMockRecorder) GetBlockByNumber(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) GetBlockByNumber(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockByNumber", reflect.TypeOf((*MockBlockState)(nil).GetBlockByNumber), arg0)
 }
@@ -152,7 +152,7 @@ func (m *MockBlockState) GetBlockHashesBySlot(arg0 uint64) ([]common.Hash, error
 }
 
 // GetBlockHashesBySlot indicates an expected call of GetBlockHashesBySlot.
-func (mr *MockBlockStateMockRecorder) GetBlockHashesBySlot(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) GetBlockHashesBySlot(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockHashesBySlot", reflect.TypeOf((*MockBlockState)(nil).GetBlockHashesBySlot), arg0)
 }
@@ -167,7 +167,7 @@ func (m *MockBlockState) GetHeader(arg0 common.Hash) (*types.Header, error) {
 }
 
 // GetHeader indicates an expected call of GetHeader.
-func (mr *MockBlockStateMockRecorder) GetHeader(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) GetHeader(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHeader", reflect.TypeOf((*MockBlockState)(nil).GetHeader), arg0)
 }
@@ -196,7 +196,7 @@ func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) 
 }
 
 // GetRuntime indicates an expected call of GetRuntime.
-func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), arg0)
 }
@@ -211,7 +211,7 @@ func (m *MockBlockState) GetSlotForBlock(arg0 common.Hash) (uint64, error) {
 }
 
 // GetSlotForBlock indicates an expected call of GetSlotForBlock.
-func (mr *MockBlockStateMockRecorder) GetSlotForBlock(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) GetSlotForBlock(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSlotForBlock", reflect.TypeOf((*MockBlockState)(nil).GetSlotForBlock), arg0)
 }
@@ -226,7 +226,7 @@ func (m *MockBlockState) IsDescendantOf(arg0, arg1 common.Hash) (bool, error) {
 }
 
 // IsDescendantOf indicates an expected call of IsDescendantOf.
-func (mr *MockBlockStateMockRecorder) IsDescendantOf(arg0, arg1 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) IsDescendantOf(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsDescendantOf", reflect.TypeOf((*MockBlockState)(nil).IsDescendantOf), arg0, arg1)
 }
@@ -241,7 +241,7 @@ func (m *MockBlockState) NumberIsFinalised(arg0 uint) (bool, error) {
 }
 
 // NumberIsFinalised indicates an expected call of NumberIsFinalised.
-func (mr *MockBlockStateMockRecorder) NumberIsFinalised(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) NumberIsFinalised(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NumberIsFinalised", reflect.TypeOf((*MockBlockState)(nil).NumberIsFinalised), arg0)
 }
@@ -253,7 +253,7 @@ func (m *MockBlockState) StoreRuntime(arg0 common.Hash, arg1 runtime.Instance) {
 }
 
 // StoreRuntime indicates an expected call of StoreRuntime.
-func (mr *MockBlockStateMockRecorder) StoreRuntime(arg0, arg1 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) StoreRuntime(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreRuntime", reflect.TypeOf((*MockBlockState)(nil).StoreRuntime), arg0, arg1)
 }
@@ -288,7 +288,7 @@ func (m *MockImportedBlockNotifierManager) FreeImportedBlockNotifierChannel(arg0
 }
 
 // FreeImportedBlockNotifierChannel indicates an expected call of FreeImportedBlockNotifierChannel.
-func (mr *MockImportedBlockNotifierManagerMockRecorder) FreeImportedBlockNotifierChannel(arg0 any) *gomock.Call {
+func (mr *MockImportedBlockNotifierManagerMockRecorder) FreeImportedBlockNotifierChannel(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeImportedBlockNotifierChannel", reflect.TypeOf((*MockImportedBlockNotifierManager)(nil).FreeImportedBlockNotifierChannel), arg0)
 }
@@ -352,7 +352,7 @@ func (m *MockStorageState) TrieState(arg0 *common.Hash) (*storage.TrieState, err
 }
 
 // TrieState indicates an expected call of TrieState.
-func (mr *MockStorageStateMockRecorder) TrieState(arg0 any) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) TrieState(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrieState", reflect.TypeOf((*MockStorageState)(nil).TrieState), arg0)
 }
@@ -401,7 +401,7 @@ func (m *MockTransactionState) PopWithTimer(arg0 <-chan time.Time) *transaction.
 }
 
 // PopWithTimer indicates an expected call of PopWithTimer.
-func (mr *MockTransactionStateMockRecorder) PopWithTimer(arg0 any) *gomock.Call {
+func (mr *MockTransactionStateMockRecorder) PopWithTimer(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PopWithTimer", reflect.TypeOf((*MockTransactionState)(nil).PopWithTimer), arg0)
 }
@@ -416,7 +416,7 @@ func (m *MockTransactionState) Push(arg0 *transaction.ValidTransaction) (common.
 }
 
 // Push indicates an expected call of Push.
-func (mr *MockTransactionStateMockRecorder) Push(arg0 any) *gomock.Call {
+func (mr *MockTransactionStateMockRecorder) Push(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Push", reflect.TypeOf((*MockTransactionState)(nil).Push), arg0)
 }
@@ -454,7 +454,7 @@ func (m *MockEpochState) GetConfigData(arg0 uint64, arg1 *types.Header) (*types.
 }
 
 // GetConfigData indicates an expected call of GetConfigData.
-func (mr *MockEpochStateMockRecorder) GetConfigData(arg0, arg1 any) *gomock.Call {
+func (mr *MockEpochStateMockRecorder) GetConfigData(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigData", reflect.TypeOf((*MockEpochState)(nil).GetConfigData), arg0, arg1)
 }
@@ -484,7 +484,7 @@ func (m *MockEpochState) GetEpochDataRaw(arg0 uint64, arg1 *types.Header) (*type
 }
 
 // GetEpochDataRaw indicates an expected call of GetEpochDataRaw.
-func (mr *MockEpochStateMockRecorder) GetEpochDataRaw(arg0, arg1 any) *gomock.Call {
+func (mr *MockEpochStateMockRecorder) GetEpochDataRaw(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpochDataRaw", reflect.TypeOf((*MockEpochState)(nil).GetEpochDataRaw), arg0, arg1)
 }
@@ -499,7 +499,7 @@ func (m *MockEpochState) GetEpochForBlock(arg0 *types.Header) (uint64, error) {
 }
 
 // GetEpochForBlock indicates an expected call of GetEpochForBlock.
-func (mr *MockEpochStateMockRecorder) GetEpochForBlock(arg0 any) *gomock.Call {
+func (mr *MockEpochStateMockRecorder) GetEpochForBlock(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpochForBlock", reflect.TypeOf((*MockEpochState)(nil).GetEpochForBlock), arg0)
 }
@@ -574,7 +574,7 @@ func (m *MockEpochState) GetStartSlotForEpoch(arg0 uint64) (uint64, error) {
 }
 
 // GetStartSlotForEpoch indicates an expected call of GetStartSlotForEpoch.
-func (mr *MockEpochStateMockRecorder) GetStartSlotForEpoch(arg0 any) *gomock.Call {
+func (mr *MockEpochStateMockRecorder) GetStartSlotForEpoch(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStartSlotForEpoch", reflect.TypeOf((*MockEpochState)(nil).GetStartSlotForEpoch), arg0)
 }
@@ -588,7 +588,7 @@ func (m *MockEpochState) SetCurrentEpoch(arg0 uint64) error {
 }
 
 // SetCurrentEpoch indicates an expected call of SetCurrentEpoch.
-func (mr *MockEpochStateMockRecorder) SetCurrentEpoch(arg0 any) *gomock.Call {
+func (mr *MockEpochStateMockRecorder) SetCurrentEpoch(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCurrentEpoch", reflect.TypeOf((*MockEpochState)(nil).SetCurrentEpoch), arg0)
 }
@@ -602,7 +602,7 @@ func (m *MockEpochState) SetFirstSlot(arg0 uint64) error {
 }
 
 // SetFirstSlot indicates an expected call of SetFirstSlot.
-func (mr *MockEpochStateMockRecorder) SetFirstSlot(arg0 any) *gomock.Call {
+func (mr *MockEpochStateMockRecorder) SetFirstSlot(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFirstSlot", reflect.TypeOf((*MockEpochState)(nil).SetFirstSlot), arg0)
 }
@@ -617,7 +617,7 @@ func (m *MockEpochState) SkipVerify(arg0 *types.Header) (bool, error) {
 }
 
 // SkipVerify indicates an expected call of SkipVerify.
-func (mr *MockEpochStateMockRecorder) SkipVerify(arg0 any) *gomock.Call {
+func (mr *MockEpochStateMockRecorder) SkipVerify(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SkipVerify", reflect.TypeOf((*MockEpochState)(nil).SkipVerify), arg0)
 }
@@ -654,7 +654,7 @@ func (m *MockBlockImportHandler) HandleBlockProduced(arg0 *types.Block, arg1 *st
 }
 
 // HandleBlockProduced indicates an expected call of HandleBlockProduced.
-func (mr *MockBlockImportHandlerMockRecorder) HandleBlockProduced(arg0, arg1 any) *gomock.Call {
+func (mr *MockBlockImportHandlerMockRecorder) HandleBlockProduced(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleBlockProduced", reflect.TypeOf((*MockBlockImportHandler)(nil).HandleBlockProduced), arg0, arg1)
 }
@@ -692,7 +692,7 @@ func (m *MockSlotState) CheckEquivocation(arg0, arg1 uint64, arg2 *types.Header,
 }
 
 // CheckEquivocation indicates an expected call of CheckEquivocation.
-func (mr *MockSlotStateMockRecorder) CheckEquivocation(arg0, arg1, arg2, arg3 any) *gomock.Call {
+func (mr *MockSlotStateMockRecorder) CheckEquivocation(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckEquivocation", reflect.TypeOf((*MockSlotState)(nil).CheckEquivocation), arg0, arg1, arg2, arg3)
 }
