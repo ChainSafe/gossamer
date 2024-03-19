@@ -143,7 +143,7 @@ func testBlockState(t *testing.T, db database.Database) *BlockState {
 	return bs
 }
 
-func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
+func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) { //nolint:tparallel
 	t.Parallel()
 
 	keyring, err := keystore.NewSr25519Keyring()
