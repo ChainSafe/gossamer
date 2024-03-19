@@ -218,11 +218,10 @@ func (cs *storageDiff) deleteFromChild(keyToChild, key string) {
 	childChanges := cs.childChangeSet[keyToChild]
 	if childChanges == nil {
 		childChanges = newStorageDiff()
-	} else {
-		delete(cs.childChangeSet, keyToChild)
 	}
 
-	childChanges.childChangeSet[keyToChild].deletes[key] = true
+	childChanges.delete(key)
+	cs.childChangeSet[keyToChild] = childChanges
 }
 
 // snapshot creates a deep copy of the current change set, including all upserts,

@@ -10,7 +10,45 @@ import (
 )
 
 func TestStorageDiff_MainTrie(t *testing.T) {
-	t.Run("Upsert", func(t *testing.T) {
+	t.Run("get", func(t *testing.T) {
+		t.Parallel()
+		t.Run("From empty", func(t *testing.T) {
+			t.Parallel()
+
+			changes := newStorageDiff()
+			val, deleted := changes.get("test")
+
+			require.False(t, deleted)
+			require.Nil(t, val)
+		})
+
+		t.Run("Found", func(t *testing.T) {
+			t.Parallel()
+
+			changes := newStorageDiff()
+			changes.upsert("test", []byte("test"))
+
+			val, deleted := changes.get("test")
+
+			require.False(t, deleted)
+			require.Equal(t, []byte("test"), val)
+		})
+
+		t.Run("Not Found", func(t *testing.T) {
+			t.Parallel()
+
+			changes := newStorageDiff()
+			changes.upsert("notfound", []byte("test"))
+
+			val, deleted := changes.get("test")
+
+			require.False(t, deleted)
+			require.Nil(t, val)
+		})
+	})
+	t.Run("upsert", func(t *testing.T) {
+		t.Parallel()
+
 		changes := newStorageDiff()
 
 		key := "key"
@@ -21,8 +59,9 @@ func TestStorageDiff_MainTrie(t *testing.T) {
 		require.False(t, deleted)
 		require.Equal(t, value, val)
 	})
+	t.Run("delete", func(t *testing.T) {
+		t.Parallel()
 
-	t.Run("Delete", func(t *testing.T) {
 		changes := newStorageDiff()
 
 		key := "key"
@@ -34,8 +73,9 @@ func TestStorageDiff_MainTrie(t *testing.T) {
 		require.True(t, deleted)
 		require.Nil(t, val)
 	})
-
 	t.Run("clearPrefix", func(t *testing.T) {
+		t.Parallel()
+
 		testEntries := map[string][]byte{
 			"pre":        []byte("pre"),
 			"predict":    []byte("predict"),
@@ -149,5 +189,85 @@ func TestStorageDiff_MainTrie(t *testing.T) {
 				require.Equal(t, tt.allDelted, allDeleted)
 			})
 		}
+	})
+}
+
+func TestStorageDiff_ChildTrie(t *testing.T) {
+	t.Run("getFromChild", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("Empty storage diff", func(t *testing.T) {
+			t.Parallel()
+
+			changes := newStorageDiff()
+			val, deleted := changes.getFromChild("notFound", "testChildKey")
+
+			require.False(t, deleted)
+			require.Nil(t, val)
+		})
+
+		t.Run("Non existent child", func(t *testing.T) {
+			t.Parallel()
+
+			changes := newStorageDiff()
+			changes.upsertChild("testChild", "testChildKey", []byte("test"))
+			val, deleted := changes.getFromChild("notFound", "testChildKey")
+
+			require.False(t, deleted)
+			require.Nil(t, val)
+		})
+
+		t.Run("Not Found in child", func(t *testing.T) {
+			t.Parallel()
+
+			changes := newStorageDiff()
+			changes.upsertChild("testChild", "testChildKey", []byte("test"))
+			val, deleted := changes.getFromChild("testChild", "notFound")
+
+			require.False(t, deleted)
+			require.Nil(t, val)
+		})
+
+		t.Run("Found in child", func(t *testing.T) {
+			t.Parallel()
+
+			changes := newStorageDiff()
+			changes.upsertChild("testChild", "testChildKey", []byte("test"))
+			val, deleted := changes.getFromChild("testChild", "testChildKey")
+
+			require.False(t, deleted)
+			require.Equal(t, []byte("test"), val)
+		})
+	})
+
+	t.Run("upsertChild", func(t *testing.T) {
+		t.Parallel()
+
+		changes := newStorageDiff()
+
+		childkey := "testChild"
+		key := "key"
+		value := []byte("value")
+		changes.upsertChild(childkey, key, value)
+
+		val, deleted := changes.getFromChild(childkey, key)
+		require.False(t, deleted)
+		require.Equal(t, value, val)
+	})
+
+	t.Run("deleteFromChild", func(t *testing.T) {
+		t.Parallel()
+
+		changes := newStorageDiff()
+
+		childkey := "testChild"
+		key := "key"
+		value := []byte("value")
+		changes.upsertChild(childkey, key, value)
+		changes.deleteFromChild(childkey, key)
+
+		val, deleted := changes.getFromChild(childkey, key)
+		require.True(t, deleted)
+		require.Nil(t, val)
 	})
 }
