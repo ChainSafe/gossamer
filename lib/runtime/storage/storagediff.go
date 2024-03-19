@@ -29,7 +29,7 @@ type storageDiff struct {
 }
 
 // newChangeSet initialises and returns a new storageDiff instance
-func newChangeSet() *storageDiff {
+func newStorageDiff() *storageDiff {
 	return &storageDiff{
 		upserts:        make(map[string][]byte),
 		deletes:        make(map[string]bool),
@@ -100,7 +100,7 @@ func (cs *storageDiff) deleteChildLimit(keyToChild string,
 	deleted uint32, allDeleted bool) {
 	childChanges := cs.childChangeSet[keyToChild]
 	if childChanges == nil {
-		childChanges = newChangeSet()
+		childChanges = newStorageDiff()
 	}
 
 	if limit == -1 {
@@ -133,7 +133,7 @@ func (cs *storageDiff) deleteChildLimit(keyToChild string,
 func (cs *storageDiff) clearPrefixInChild(keyToChild string, prefix []byte, childKeys []string) {
 	childChanges := cs.childChangeSet[keyToChild]
 	if childChanges == nil {
-		childChanges = newChangeSet()
+		childChanges = newStorageDiff()
 	}
 	childChanges.clearPrefix(prefix, childKeys, -1)
 	cs.childChangeSet[keyToChild] = childChanges
@@ -201,7 +201,7 @@ func (cs *storageDiff) upsertChild(keyToChild, key string, value []byte) {
 
 	childChanges := cs.childChangeSet[keyToChild]
 	if childChanges == nil {
-		childChanges = newChangeSet()
+		childChanges = newStorageDiff()
 	}
 
 	childChanges.upserts[key] = value
@@ -219,7 +219,7 @@ func (cs *storageDiff) deleteFromChild(keyToChild, key string) {
 
 	childChanges := cs.childChangeSet[keyToChild]
 	if childChanges == nil {
-		childChanges = newChangeSet()
+		childChanges = newStorageDiff()
 	} else {
 		delete(cs.childChangeSet, keyToChild)
 	}

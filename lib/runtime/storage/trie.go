@@ -56,7 +56,7 @@ func (t *TrieState) StartTransaction() {
 
 	nextChangeSet := t.getCurrentTransaction()
 	if nextChangeSet == nil {
-		nextChangeSet = newChangeSet()
+		nextChangeSet = newStorageDiff()
 	}
 
 	t.transactions.PushBack(nextChangeSet.snapshot())

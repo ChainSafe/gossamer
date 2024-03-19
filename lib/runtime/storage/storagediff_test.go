@@ -9,28 +9,29 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestChangeSet_InsertGet(t *testing.T) {
-	changes := newChangeSet()
+func TestStorageDiff_Get(t *testing.T) {
+	t.Run("Upsert", func(t *testing.T) {
+		changes := newStorageDiff()
 
-	key := "key"
-	value := []byte("value")
+		key := "key"
+		value := []byte("value")
+		changes.upsert(key, value)
 
-	changes.upsert(key, value)
-	val, deleted := changes.get(key)
-	require.False(t, deleted)
-	require.Equal(t, value, val)
-}
+		val, deleted := changes.get(key)
+		require.False(t, deleted)
+		require.Equal(t, value, val)
+	})
 
-func TestChangeSet_InsertDeleteGet(t *testing.T) {
-	changes := newChangeSet()
+	t.Run("Upsert then delete", func(t *testing.T) {
+		changes := newStorageDiff()
 
-	key := "key"
-	value := []byte("value")
+		key := "key"
+		value := []byte("value")
+		changes.upsert(key, value)
+		changes.delete(key)
 
-	changes.upsert(key, value)
-	changes.delete(key)
-
-	val, deleted := changes.get(key)
-	require.True(t, deleted)
-	require.Nil(t, val)
+		val, deleted := changes.get(key)
+		require.True(t, deleted)
+		require.Nil(t, val)
+	})
 }
