@@ -9,7 +9,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testKey = "key"
+
+var testValue = []byte("value")
+
 func TestStorageDiff_MainTrie(t *testing.T) {
+	t.Parallel()
 	t.Run("get", func(t *testing.T) {
 		t.Parallel()
 		t.Run("From empty", func(t *testing.T) {
@@ -51,25 +56,20 @@ func TestStorageDiff_MainTrie(t *testing.T) {
 
 		changes := newStorageDiff()
 
-		key := "key"
-		value := []byte("value")
-		changes.upsert(key, value)
+		changes.upsert(testKey, testValue)
 
-		val, deleted := changes.get(key)
+		val, deleted := changes.get(testKey)
 		require.False(t, deleted)
-		require.Equal(t, value, val)
+		require.Equal(t, testValue, val)
 	})
 	t.Run("delete", func(t *testing.T) {
 		t.Parallel()
 
 		changes := newStorageDiff()
+		changes.upsert(testKey, testValue)
+		changes.delete(testKey)
 
-		key := "key"
-		value := []byte("value")
-		changes.upsert(key, value)
-		changes.delete(key)
-
-		val, deleted := changes.get(key)
+		val, deleted := changes.get(testKey)
 		require.True(t, deleted)
 		require.Nil(t, val)
 	})
@@ -193,6 +193,7 @@ func TestStorageDiff_MainTrie(t *testing.T) {
 }
 
 func TestStorageDiff_ChildTrie(t *testing.T) {
+	t.Parallel()
 	t.Run("getFromChild", func(t *testing.T) {
 		t.Parallel()
 
@@ -246,13 +247,11 @@ func TestStorageDiff_ChildTrie(t *testing.T) {
 		changes := newStorageDiff()
 
 		childkey := "testChild"
-		key := "key"
-		value := []byte("value")
-		changes.upsertChild(childkey, key, value)
+		changes.upsertChild(childkey, testKey, testValue)
 
-		val, deleted := changes.getFromChild(childkey, key)
+		val, deleted := changes.getFromChild(childkey, testKey)
 		require.False(t, deleted)
-		require.Equal(t, value, val)
+		require.Equal(t, testValue, val)
 	})
 
 	t.Run("deleteFromChild", func(t *testing.T) {
@@ -261,12 +260,10 @@ func TestStorageDiff_ChildTrie(t *testing.T) {
 		changes := newStorageDiff()
 
 		childkey := "testChild"
-		key := "key"
-		value := []byte("value")
-		changes.upsertChild(childkey, key, value)
-		changes.deleteFromChild(childkey, key)
+		changes.upsertChild(childkey, testKey, testValue)
+		changes.deleteFromChild(childkey, testKey)
 
-		val, deleted := changes.getFromChild(childkey, key)
+		val, deleted := changes.getFromChild(childkey, testKey)
 		require.True(t, deleted)
 		require.Nil(t, val)
 	})
