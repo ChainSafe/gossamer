@@ -1593,6 +1593,16 @@ func TestInstance_ParachainHostSessionInfo(t *testing.T) {
 	require.Equal(t, expected, response)
 }
 
+func TestInstance_ParachainHostAsyncBackingParams(t *testing.T) {
+	t.Parallel()
+
+	tt := getParachainHostTrie(t)
+	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v180, tt)
+
+	_, err := rt.ParachainHostAsyncBackingParams()
+	require.NoError(t, err)
+}
+
 func getParachainHostTrie(t *testing.T) *trie.Trie {
 	tt := trie.NewEmptyTrie()
 

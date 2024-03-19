@@ -9,10 +9,14 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ChainSafe/go-schnorrkel"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	secp256k1 "github.com/ethereum/go-ethereum/crypto"
 )
+
+// PublicKeyLength is the fixed Public Key Length
+const PublicKeyLength int = 32
 
 // PrivateKeyLength is the fixed Private Key Length
 const PrivateKeyLength = 32
@@ -100,6 +104,44 @@ func NewKeypairFromPrivate(priv *PrivateKey) (*Keypair, error) {
 		public:  pub.(*PublicKey),
 		private: priv,
 	}, nil
+}
+
+// NewKeypairFromMnenomic returns a new Keypair using the given mnemonic and password.
+func NewKeypairFromMnenomic(mnemonic, password string) (*Keypair, error) {
+	seed, err := schnorrkel.SeedFromMnemonic(mnemonic, password)
+	if err != nil {
+		return nil, err
+	}
+	return NewKeypairFromSeed(seed[:32])
+}
+
+// NewKeypairFromSeed generates a new secp256k1 keypair from a 32 byte seed
+func NewKeypairFromSeed(seed []byte) (*Keypair, error) {
+	// reference:
+	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/substrate/primitives/core/src/ecdsa.rs#L375-L391
+
+	privateKey, err := NewPrivateKey(seed)
+	if err != nil {
+		return nil, fmt.Errorf("generating private key: %w", err)
+	}
+
+	return NewKeypair(privateKey.key), nil
+}
+
+// NewPublicKey returns an secp256k1 public key that consists of the input bytes
+// Input length must be 32 bytes
+func NewPublicKey(in []byte) (*PublicKey, error) {
+	if len(in) != PublicKeyLength {
+		return nil, fmt.Errorf("cannot create public key: input is not 32 bytes")
+	}
+
+	ecdsaPubKey, err := secp256k1.UnmarshalPubkey(in)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling public key: %w", err)
+	}
+
+	pubKey := PublicKey{key: *ecdsaPubKey}
+	return &pubKey, nil
 }
 
 // NewPrivateKey will return a PrivateKey for a []byte
