@@ -17,7 +17,7 @@ func TestStorageDiff_MainTrie(t *testing.T) {
 	t.Parallel()
 	t.Run("get", func(t *testing.T) {
 		t.Parallel()
-		t.Run("From empty", func(t *testing.T) {
+		t.Run("from_empty", func(t *testing.T) {
 			t.Parallel()
 
 			changes := newStorageDiff()
@@ -27,7 +27,7 @@ func TestStorageDiff_MainTrie(t *testing.T) {
 			require.Nil(t, val)
 		})
 
-		t.Run("Found", func(t *testing.T) {
+		t.Run("found", func(t *testing.T) {
 			t.Parallel()
 
 			changes := newStorageDiff()
@@ -39,7 +39,7 @@ func TestStorageDiff_MainTrie(t *testing.T) {
 			require.Equal(t, []byte("test"), val)
 		})
 
-		t.Run("Not Found", func(t *testing.T) {
+		t.Run("not_found", func(t *testing.T) {
 			t.Parallel()
 
 			changes := newStorageDiff()
@@ -197,7 +197,7 @@ func TestStorageDiff_ChildTrie(t *testing.T) {
 	t.Run("getFromChild", func(t *testing.T) {
 		t.Parallel()
 
-		t.Run("Empty storage diff", func(t *testing.T) {
+		t.Run("empty_storage_diff", func(t *testing.T) {
 			t.Parallel()
 
 			changes := newStorageDiff()
@@ -207,7 +207,7 @@ func TestStorageDiff_ChildTrie(t *testing.T) {
 			require.Nil(t, val)
 		})
 
-		t.Run("Non existent child", func(t *testing.T) {
+		t.Run("non_existent_child", func(t *testing.T) {
 			t.Parallel()
 
 			changes := newStorageDiff()
@@ -218,7 +218,7 @@ func TestStorageDiff_ChildTrie(t *testing.T) {
 			require.Nil(t, val)
 		})
 
-		t.Run("Not Found in child", func(t *testing.T) {
+		t.Run("not_found_in_child", func(t *testing.T) {
 			t.Parallel()
 
 			changes := newStorageDiff()
@@ -229,7 +229,7 @@ func TestStorageDiff_ChildTrie(t *testing.T) {
 			require.Nil(t, val)
 		})
 
-		t.Run("Found in child", func(t *testing.T) {
+		t.Run("found_in_child", func(t *testing.T) {
 			t.Parallel()
 
 			changes := newStorageDiff()
