@@ -486,13 +486,13 @@ func Test_Snapshot(t *testing.T) {
 func Test_ApplyToTrie(t *testing.T) {
 	t.Parallel()
 
+	const key = "key1"
+	var value = []byte("value1")
+
 	t.Run("add_entries_in_main_trie", func(t *testing.T) {
 		t.Parallel()
 
 		state := trie.NewEmptyTrie()
-
-		key := "key1"
-		value := []byte("value1")
 
 		diff := newStorageDiff()
 		diff.upsert(key, value)
@@ -508,10 +508,6 @@ func Test_ApplyToTrie(t *testing.T) {
 		t.Parallel()
 
 		state := trie.NewEmptyTrie()
-
-		key := "key1"
-		value := []byte("value1")
-
 		state.Put([]byte(key), value)
 
 		diff := newStorageDiff()
@@ -529,8 +525,6 @@ func Test_ApplyToTrie(t *testing.T) {
 		state := trie.NewEmptyTrie()
 
 		childKey := "child"
-		key := "key1"
-		value := []byte("value1")
 
 		diff := newStorageDiff()
 		diff.upsertChild(childKey, key, value)
@@ -546,8 +540,6 @@ func Test_ApplyToTrie(t *testing.T) {
 		t.Parallel()
 
 		childKey := "child"
-		key := "key1"
-		value := []byte("value1")
 
 		state := trie.NewEmptyTrie()
 		state.PutIntoChild([]byte(childKey), []byte(key), value)
