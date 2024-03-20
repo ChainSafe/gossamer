@@ -50,7 +50,7 @@ func (m *MockDisjointBlockSet) addBlock(arg0 *types.Block) error {
 }
 
 // addBlock indicates an expected call of addBlock.
-func (mr *MockDisjointBlockSetMockRecorder) addBlock(arg0 interface{}) *gomock.Call {
+func (mr *MockDisjointBlockSetMockRecorder) addBlock(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "addBlock", reflect.TypeOf((*MockDisjointBlockSet)(nil).addBlock), arg0)
 }
@@ -64,7 +64,7 @@ func (m *MockDisjointBlockSet) addHashAndNumber(arg0 common.Hash, arg1 uint) err
 }
 
 // addHashAndNumber indicates an expected call of addHashAndNumber.
-func (mr *MockDisjointBlockSetMockRecorder) addHashAndNumber(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockDisjointBlockSetMockRecorder) addHashAndNumber(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "addHashAndNumber", reflect.TypeOf((*MockDisjointBlockSet)(nil).addHashAndNumber), arg0, arg1)
 }
@@ -78,7 +78,7 @@ func (m *MockDisjointBlockSet) addHeader(arg0 *types.Header) error {
 }
 
 // addHeader indicates an expected call of addHeader.
-func (mr *MockDisjointBlockSetMockRecorder) addHeader(arg0 interface{}) *gomock.Call {
+func (mr *MockDisjointBlockSetMockRecorder) addHeader(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "addHeader", reflect.TypeOf((*MockDisjointBlockSet)(nil).addHeader), arg0)
 }
@@ -92,7 +92,7 @@ func (m *MockDisjointBlockSet) addJustification(arg0 common.Hash, arg1 []byte) e
 }
 
 // addJustification indicates an expected call of addJustification.
-func (mr *MockDisjointBlockSetMockRecorder) addJustification(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockDisjointBlockSetMockRecorder) addJustification(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "addJustification", reflect.TypeOf((*MockDisjointBlockSet)(nil).addJustification), arg0, arg1)
 }
@@ -106,7 +106,7 @@ func (m *MockDisjointBlockSet) getBlock(arg0 common.Hash) *pendingBlock {
 }
 
 // getBlock indicates an expected call of getBlock.
-func (mr *MockDisjointBlockSetMockRecorder) getBlock(arg0 interface{}) *gomock.Call {
+func (mr *MockDisjointBlockSetMockRecorder) getBlock(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getBlock", reflect.TypeOf((*MockDisjointBlockSet)(nil).getBlock), arg0)
 }
@@ -134,7 +134,7 @@ func (m *MockDisjointBlockSet) hasBlock(arg0 common.Hash) bool {
 }
 
 // hasBlock indicates an expected call of hasBlock.
-func (mr *MockDisjointBlockSetMockRecorder) hasBlock(arg0 interface{}) *gomock.Call {
+func (mr *MockDisjointBlockSetMockRecorder) hasBlock(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "hasBlock", reflect.TypeOf((*MockDisjointBlockSet)(nil).hasBlock), arg0)
 }
@@ -146,7 +146,7 @@ func (m *MockDisjointBlockSet) removeBlock(arg0 common.Hash) {
 }
 
 // removeBlock indicates an expected call of removeBlock.
-func (mr *MockDisjointBlockSetMockRecorder) removeBlock(arg0 interface{}) *gomock.Call {
+func (mr *MockDisjointBlockSetMockRecorder) removeBlock(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "removeBlock", reflect.TypeOf((*MockDisjointBlockSet)(nil).removeBlock), arg0)
 }
@@ -158,7 +158,7 @@ func (m *MockDisjointBlockSet) removeLowerBlocks(arg0 uint) {
 }
 
 // removeLowerBlocks indicates an expected call of removeLowerBlocks.
-func (mr *MockDisjointBlockSetMockRecorder) removeLowerBlocks(arg0 interface{}) *gomock.Call {
+func (mr *MockDisjointBlockSetMockRecorder) removeLowerBlocks(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "removeLowerBlocks", reflect.TypeOf((*MockDisjointBlockSet)(nil).removeLowerBlocks), arg0)
 }
@@ -170,7 +170,7 @@ func (m *MockDisjointBlockSet) run(arg0 <-chan *types.FinalisationInfo, arg1 <-c
 }
 
 // run indicates an expected call of run.
-func (mr *MockDisjointBlockSetMockRecorder) run(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockDisjointBlockSetMockRecorder) run(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "run", reflect.TypeOf((*MockDisjointBlockSet)(nil).run), arg0, arg1, arg2)
 }

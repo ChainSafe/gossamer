@@ -49,7 +49,7 @@ func (m *MockNetwork) GossipMessage(arg0 network.NotificationsMessage) {
 }
 
 // GossipMessage indicates an expected call of GossipMessage.
-func (mr *MockNetworkMockRecorder) GossipMessage(arg0 interface{}) *gomock.Call {
+func (mr *MockNetworkMockRecorder) GossipMessage(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GossipMessage", reflect.TypeOf((*MockNetwork)(nil).GossipMessage), arg0)
 }
@@ -75,7 +75,7 @@ func (m *MockNetwork) ReportPeer(arg0 peerset.ReputationChange, arg1 peer.ID) {
 }
 
 // ReportPeer indicates an expected call of ReportPeer.
-func (mr *MockNetworkMockRecorder) ReportPeer(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockNetworkMockRecorder) ReportPeer(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportPeer", reflect.TypeOf((*MockNetwork)(nil).ReportPeer), arg0, arg1)
 }
@@ -112,7 +112,7 @@ func (m *MockBlockImportDigestHandler) HandleDigests(arg0 *types.Header) error {
 }
 
 // HandleDigests indicates an expected call of HandleDigests.
-func (mr *MockBlockImportDigestHandlerMockRecorder) HandleDigests(arg0 interface{}) *gomock.Call {
+func (mr *MockBlockImportDigestHandlerMockRecorder) HandleDigests(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleDigests", reflect.TypeOf((*MockBlockImportDigestHandler)(nil).HandleDigests), arg0)
 }

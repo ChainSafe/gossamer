@@ -47,7 +47,7 @@ func (m *MockCounter) Add(arg0 float64) {
 }
 
 // Add indicates an expected call of Add.
-func (mr *MockCounterMockRecorder) Add(arg0 interface{}) *gomock.Call {
+func (mr *MockCounterMockRecorder) Add(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockCounter)(nil).Add), arg0)
 }
@@ -59,7 +59,7 @@ func (m *MockCounter) Collect(arg0 chan<- prometheus.Metric) {
 }
 
 // Collect indicates an expected call of Collect.
-func (mr *MockCounterMockRecorder) Collect(arg0 interface{}) *gomock.Call {
+func (mr *MockCounterMockRecorder) Collect(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Collect", reflect.TypeOf((*MockCounter)(nil).Collect), arg0)
 }
@@ -85,7 +85,7 @@ func (m *MockCounter) Describe(arg0 chan<- *prometheus.Desc) {
 }
 
 // Describe indicates an expected call of Describe.
-func (mr *MockCounterMockRecorder) Describe(arg0 interface{}) *gomock.Call {
+func (mr *MockCounterMockRecorder) Describe(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Describe", reflect.TypeOf((*MockCounter)(nil).Describe), arg0)
 }
@@ -111,7 +111,7 @@ func (m *MockCounter) Write(arg0 *io_prometheus_client.Metric) error {
 }
 
 // Write indicates an expected call of Write.
-func (mr *MockCounterMockRecorder) Write(arg0 interface{}) *gomock.Call {
+func (mr *MockCounterMockRecorder) Write(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Write", reflect.TypeOf((*MockCounter)(nil).Write), arg0)
 }

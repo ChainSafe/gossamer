@@ -49,7 +49,7 @@ func (m *MockRequestMaker) Do(arg0 peer.ID, arg1 network.Message, arg2 network.R
 }
 
 // Do indicates an expected call of Do.
-func (mr *MockRequestMakerMockRecorder) Do(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockRequestMakerMockRecorder) Do(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Do", reflect.TypeOf((*MockRequestMaker)(nil).Do), arg0, arg1, arg2)
 }
