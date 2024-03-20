@@ -701,7 +701,9 @@ func (av *AvailabilityStoreSubsystem) noteBlockBacked(tx *availabilityStoreBatch
 
 		// write pruning key
 		pruneAt := now + BETimestamp(av.pruningConfig.KeepUnavailableFor.Seconds())
-		pruneKey := append(candidateHash[:], uint32ToBytes(uint32(pruneAt))...)
+
+		pruneKey := append(uint32ToBytes(uint32(pruneAt)), candidateHash[:]...)
+		fmt.Printf("pruneKey %x\n", pruneKey)
 		err = tx.pruneByTime.Put(pruneKey, nil)
 		if err != nil {
 			logger.Errorf("writing pruning key: %w", err)
@@ -898,27 +900,37 @@ func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailabl
 }
 
 func (av *AvailabilityStoreSubsystem) pruneAll() {
+	now := av.clock.Now()
+	fmt.Printf("now %v\n", now)
+
 	iter, err := av.availabilityStore.pruneByTime.NewIterator()
 	if err != nil {
 		logger.Errorf("creating iterator: %w", err)
 		return
 	}
 	defer iter.Release()
-	fmt.Printf("pruneAll\n")
-	for iter.Next() {
+	fmt.Printf("pruneAll \n")
+	for iter.First(); iter.Valid(); iter.Next() {
 		key := iter.Key()
-		if len(key) != 36 {
-			logger.Errorf("invalid key length %d", len(key))
+		fmt.Printf("\tkey %x\n", key)
+		pruneAt := binary.BigEndian.Uint32(key[13:17])
+		fmt.Printf("\tpruneAt %v\n", pruneAt)
+		if pruneAt > uint32(now) {
 			continue
 		}
-		fmt.Printf("\tkey %s", key)
-		pruneAt := binary.BigEndian.Uint64(key[:8])
-		if pruneAt > uint64(av.clock.Now()) {
-			continue
-		}
+		av.processPruneKey(key)
 	}
 }
 
+func (av *AvailabilityStoreSubsystem) processPruneKey(key []byte) {
+	fmt.Printf("processPruneKey %x\n", key)
+	// TODO(ed): delete key from pruneByTime
+	// TODO: delete key from meta
+	// TODO: delete key from available
+	// TODO: delete key from chunk
+	// TODO: delete key from unfinalized
+
+}
 func (av *AvailabilityStoreSubsystem) Stop() {
 	av.cancel()
 	av.wg.Wait()
