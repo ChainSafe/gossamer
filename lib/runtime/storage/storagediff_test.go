@@ -522,4 +522,42 @@ func Test_ApplyToTrie(t *testing.T) {
 		diff.applyToTrie(state)
 		require.Equal(t, expected, state)
 	})
+
+	t.Run("create_new_child_trie", func(t *testing.T) {
+		t.Parallel()
+
+		state := trie.NewEmptyTrie()
+
+		childKey := "child"
+		key := "key1"
+		value := []byte("value1")
+
+		diff := newStorageDiff()
+		diff.upsertChild(childKey, key, value)
+
+		expected := trie.NewEmptyTrie()
+		expected.PutIntoChild([]byte(childKey), []byte(key), value)
+
+		diff.applyToTrie(state)
+		require.Equal(t, expected, state)
+	})
+
+	t.Run("remove_from_child_trie", func(t *testing.T) {
+		t.Parallel()
+
+		childKey := "child"
+		key := "key1"
+		value := []byte("value1")
+
+		state := trie.NewEmptyTrie()
+		state.PutIntoChild([]byte(childKey), []byte(key), value)
+
+		expected := trie.NewEmptyTrie()
+
+		diff := newStorageDiff()
+		diff.deleteFromChild(childKey, key)
+
+		diff.applyToTrie(state)
+		require.Equal(t, expected, state)
+	})
 }
