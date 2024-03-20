@@ -376,7 +376,7 @@ func (t *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 		}
 
 		childKeys := maps.Keys(child.Entries())
-		currentTx.clearPrefixInChild(string(keyToChild), prefix, childKeys)
+		currentTx.clearPrefixInChild(string(keyToChild), prefix, childKeys, -1)
 	}
 
 	child, err := t.state.GetChild(keyToChild)
@@ -398,6 +398,17 @@ func (t *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 func (t *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit uint32) (uint32, bool, error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		child, err := t.state.GetChild(keyToChild)
+		if err != nil {
+			return 0, false, err
+		}
+
+		childKeys := maps.Keys(child.Entries())
+		deleted, allDeleted := currentTx.clearPrefixInChild(string(keyToChild), prefix, childKeys, int(limit))
+		return deleted, allDeleted, nil
+	}
 
 	child, err := t.state.GetChild(keyToChild)
 	if err != nil || child == nil {

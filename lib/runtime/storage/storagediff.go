@@ -129,13 +129,16 @@ func (cs *storageDiff) deleteChildLimit(keyToChild string,
 }
 
 // clearPrefixInChild clears keys with a specific prefix within a child trie.
-func (cs *storageDiff) clearPrefixInChild(keyToChild string, prefix []byte, childKeys []string) {
+func (cs *storageDiff) clearPrefixInChild(keyToChild string, prefix []byte,
+	childKeys []string, limit int) (deleted uint32, allDeleted bool) {
 	childChanges := cs.childChangeSet[keyToChild]
 	if childChanges == nil {
 		childChanges = newStorageDiff()
 	}
-	childChanges.clearPrefix(prefix, childKeys, -1)
+	deleted, allDeleted = childChanges.clearPrefix(prefix, childKeys, limit)
 	cs.childChangeSet[keyToChild] = childChanges
+
+	return deleted, allDeleted
 }
 
 // clearPrefix removes all keys matching a specified prefix, within an

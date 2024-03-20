@@ -6,6 +6,7 @@ package storage
 import (
 	"testing"
 
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,7 +14,7 @@ const testKey = "key"
 
 var testValue = []byte("value")
 
-func TestStorageDiff_MainTrie(t *testing.T) {
+func Test_MainTrie(t *testing.T) {
 	t.Parallel()
 	t.Run("get", func(t *testing.T) {
 		t.Parallel()
@@ -192,7 +193,7 @@ func TestStorageDiff_MainTrie(t *testing.T) {
 	})
 }
 
-func TestStorageDiff_ChildTrie(t *testing.T) {
+func Test_ChildTrie(t *testing.T) {
 	t.Parallel()
 	t.Run("getFromChild", func(t *testing.T) {
 		t.Parallel()
@@ -345,5 +346,180 @@ func TestStorageDiff_ChildTrie(t *testing.T) {
 				require.Equal(t, tt.allDelted, allDeleted)
 			})
 		}
+	})
+
+	t.Run("clearPrefixInChild", func(t *testing.T) {
+		t.Parallel()
+
+		testEntries := map[string][]byte{
+			"pre":        []byte("pre"),
+			"predict":    []byte("predict"),
+			"prediction": []byte("prediction"),
+		}
+
+		commonPrefix := []byte("pre")
+
+		cases := map[string]struct {
+			prefix    []byte
+			limit     int
+			trieKeys  []string
+			deleted   uint32
+			allDelted bool
+		}{
+			"empty_trie_limit_1": {
+				prefix:    commonPrefix,
+				limit:     1,
+				deleted:   3, // Since keys during block exec does not count
+				allDelted: true,
+			},
+			"empty_trie_limit_2": {
+				prefix:    commonPrefix,
+				limit:     2,
+				deleted:   3, // Since keys during block exec does not count
+				allDelted: true,
+			},
+			"empty_trie_same_limit_than_stored_keys": {
+				prefix:    commonPrefix,
+				limit:     3,
+				deleted:   3,
+				allDelted: true,
+			},
+			"empty_trie_no_limit": {
+				prefix:    commonPrefix,
+				limit:     -1,
+				deleted:   3,
+				allDelted: true,
+			},
+			"with_previous_state_not_sharing_prefix_limit_1": {
+				prefix:    commonPrefix,
+				limit:     1,
+				trieKeys:  []string{"bio"},
+				deleted:   3, // Since keys during block exec does not count
+				allDelted: false,
+			},
+			"with_previous_state_not_sharing_prefix_limit_2": {
+				prefix:    commonPrefix,
+				limit:     2,
+				trieKeys:  []string{"bio"},
+				deleted:   3, // Since keys during block exec does not count
+				allDelted: false,
+			},
+			"with_previous_state_not_sharing_prefix_limit_3": {
+				prefix:    commonPrefix,
+				limit:     3,
+				trieKeys:  []string{"bio"},
+				deleted:   3,
+				allDelted: false,
+			},
+			"with_previous_state_not_sharing_prefix_with_no_limit": {
+				prefix:    commonPrefix,
+				limit:     -1,
+				trieKeys:  []string{"bio"},
+				deleted:   3,
+				allDelted: false,
+			},
+			"with_previous_state_sharing_prefix_limit_1": {
+				prefix:    []byte("p"),
+				limit:     1,
+				trieKeys:  []string{"p"},
+				deleted:   1, // the "p" key only
+				allDelted: false,
+			},
+			"with_previous_state_sharing_prefix_limit_2": {
+				prefix:    []byte("p"),
+				limit:     2,
+				trieKeys:  []string{"p"},
+				deleted:   4, // Since keys during block exec does not count
+				allDelted: true,
+			},
+			"with_previous_state_sharing_prefix_limit_3": {
+				prefix:    []byte("p"),
+				limit:     3,
+				trieKeys:  []string{"p"},
+				deleted:   4,
+				allDelted: true,
+			},
+			"with_previous_state_sharing_prefix_with_no_limit": {
+				prefix:    []byte("p"),
+				limit:     -1,
+				trieKeys:  []string{"p"},
+				deleted:   4,
+				allDelted: true,
+			},
+		}
+
+		for tname, tt := range cases {
+			tt := tt
+			t.Run(tname, func(t *testing.T) {
+				t.Parallel()
+
+				changes := newStorageDiff()
+
+				for k, v := range testEntries {
+					changes.upsertChild("child", k, v)
+				}
+
+				deleted, allDeleted := changes.clearPrefixInChild("child", tt.prefix, tt.trieKeys, tt.limit)
+				require.Equal(t, tt.deleted, deleted)
+				require.Equal(t, tt.allDelted, allDeleted)
+			})
+		}
+	})
+}
+
+func Test_Snapshot(t *testing.T) {
+	t.Parallel()
+
+	changes := newStorageDiff()
+
+	changes.upsert("key1", []byte("value1"))
+	changes.upsert("key2", []byte("value2"))
+	changes.delete("key2")
+	changes.upsertChild("childKey", "key1", []byte("value1"))
+	changes.upsertChild("childKey", "key2", []byte("value2"))
+
+	snapshot := changes.snapshot()
+
+	require.Equal(t, changes, snapshot)
+}
+
+func Test_ApplyToTrie(t *testing.T) {
+	t.Parallel()
+
+	t.Run("add_entries_in_main_trie", func(t *testing.T) {
+		t.Parallel()
+
+		state := trie.NewEmptyTrie()
+
+		key := "key1"
+		value := []byte("value1")
+
+		diff := newStorageDiff()
+		diff.upsert(key, value)
+
+		expected := trie.NewEmptyTrie()
+		expected.Put([]byte(key), value)
+
+		diff.applyToTrie(state)
+		require.Equal(t, expected, state)
+	})
+
+	t.Run("delete_entries_from_main_trie", func(t *testing.T) {
+		t.Parallel()
+
+		state := trie.NewEmptyTrie()
+
+		key := "key1"
+		value := []byte("value1")
+
+		state.Put([]byte(key), value)
+
+		diff := newStorageDiff()
+		diff.delete(key)
+
+		expected := trie.NewEmptyTrie()
+
+		diff.applyToTrie(state)
+		require.Equal(t, expected, state)
 	})
 }
