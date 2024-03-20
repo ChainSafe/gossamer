@@ -117,9 +117,6 @@ func NewKeypairFromMnenomic(mnemonic, password string) (*Keypair, error) {
 
 // NewKeypairFromSeed generates a new secp256k1 keypair from a 32 byte seed
 func NewKeypairFromSeed(seed []byte) (*Keypair, error) {
-	// reference:
-	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/substrate/primitives/core/src/ecdsa.rs#L375-L391
-
 	privateKey, err := NewPrivateKey(seed)
 	if err != nil {
 		return nil, fmt.Errorf("generating private key: %w", err)
