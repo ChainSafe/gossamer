@@ -121,9 +121,11 @@ func (t *TrieState) Get(key []byte) []byte {
 	defer t.mtx.RUnlock()
 
 	// If we find the key or it is deleted return from latest transaction
-	val, deleted := t.getCurrentTransaction().get(string(key))
-	if val != nil || deleted {
-		return val
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		val, deleted := currentTx.get(string(key))
+		if val != nil || deleted {
+			return val
+		}
 	}
 
 	// If we didn't find the key in the latest transactions lookup from state
