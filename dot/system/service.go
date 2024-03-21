@@ -14,11 +14,6 @@ type Service struct {
 	genesisData *genesis.Data
 }
 
-// Pause Not needed for system service but required for interface
-func (s *Service) Pause() error {
-	panic("only here for to adhere to interface")
-}
-
 // NewService create a new instance of Service
 func NewService(si *types.SystemInfo, gd *genesis.Data) *Service {
 	return &Service{

@@ -14,7 +14,6 @@ import (
 type Service interface {
 	Start() error
 	Stop() error
-	Pause() error
 }
 
 // ServiceRegistry is a structure to manage core system services
@@ -60,14 +59,26 @@ func (s *ServiceRegistry) StartAll() {
 func (s *ServiceRegistry) PauseServices() {
 	s.logger.Infof("Pausing key services")
 	// Pause the sync and state service to allow for graceful shutdown
-	for _, typ := range s.serviceTypes {
-		if (reflect.TypeOf(&sync.Service{}) == typ) || (reflect.TypeOf(&state.Service{}) == typ) {
-			err := s.services[typ].Pause()
-			if err != nil {
-				s.logger.Errorf("Error pausing service %s: %s", typ, err)
-			}
-		}
+	syncService, ok := s.services[(reflect.TypeOf(&sync.Service{}))].(*sync.Service)
+	if !ok {
+		s.logger.Errorf("Error getting sync service")
 	}
+
+	err := syncService.Pause()
+	if err != nil {
+		s.logger.Errorf("Error pausing sync service: %s", err)
+	}
+
+	stateService, ok := s.services[(reflect.TypeOf(&state.Service{}))].(*state.Service)
+	if !ok {
+		s.logger.Errorf("Error getting state service")
+	}
+
+	err = stateService.Pause()
+	if err != nil {
+		s.logger.Errorf("Error pausing state service: %s", err)
+	}
+
 	s.logger.Infof("Paused key services")
 }
 

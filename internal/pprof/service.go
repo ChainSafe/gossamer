@@ -20,11 +20,6 @@ type Service struct {
 	done     chan error
 }
 
-// Pause Not needed for pprof service but required for interface
-func (s *Service) Pause() error {
-	panic("only here for to adhere to interface")
-}
-
 // NewService creates a pprof server service compatible with the
 // dot/service.go interface.
 func NewService(config cfg.PprofConfig, logger Logger) *Service {
