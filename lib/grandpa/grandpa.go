@@ -82,11 +82,6 @@ type Service struct {
 	telemetry Telemetry
 }
 
-// Pause Not needed for grandpa service but required for interface
-func (s *Service) Pause() error {
-	panic("only here for to adhere to interface")
-}
-
 // Config represents a GRANDPA service configuration
 type Config struct {
 	LogLvl       log.Level

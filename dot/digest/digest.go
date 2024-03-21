@@ -32,11 +32,6 @@ type Handler struct {
 	finalised chan *types.FinalisationInfo
 }
 
-// Pause Not needed for Digest service but required for interface
-func (h *Handler) Pause() error {
-	panic("only here for to adhere to interface")
-}
-
 // NewHandler returns a new Handler
 func NewHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState) (*Handler, error) {
 	imported := blockState.GetImportedBlockNotifierChannel()

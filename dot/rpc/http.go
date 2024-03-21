@@ -28,11 +28,6 @@ type HTTPServer struct {
 	wsConns      []*subscription.WSConn
 }
 
-// Pause Not needed for HTTPServer service but required for interface
-func (h *HTTPServer) Pause() error {
-	panic("only here for to adhere to interface")
-}
-
 // HTTPServerConfig configures the HTTPServer
 type HTTPServerConfig struct {
 	LogLvl              log.Level

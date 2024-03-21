@@ -144,11 +144,6 @@ type Service struct {
 	telemetry Telemetry
 }
 
-// Pause Not needed for Network service but required for interface
-func (s *Service) Pause() error {
-	panic("only here for to adhere to interface")
-}
-
 // NewService creates a new network service from the configuration and message channels
 func NewService(cfg *Config) (*Service, error) {
 	ctx, cancel := context.WithCancel(context.Background())
