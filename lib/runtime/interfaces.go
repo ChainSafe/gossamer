@@ -9,9 +9,8 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
-// Storage runtime interface.
-type Storage interface {
-	// Main trie
+// Trie storage interface.
+type Trie interface {
 	Root() (common.Hash, error)
 	Put(key []byte, value []byte) (err error)
 	Get(key []byte) []byte
@@ -20,8 +19,10 @@ type Storage interface {
 	ClearPrefix(prefix []byte) (err error)
 	ClearPrefixLimit(prefix []byte, limit uint32) (
 		deleted uint32, allDeleted bool, err error)
+}
 
-	// Child tries
+// ChildTrie storage interface.S
+type ChildTrie interface {
 	GetChildRoot(keyToChild []byte) (common.Hash, error)
 	SetChildStorage(keyToChild, key, value []byte) error
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
@@ -32,15 +33,27 @@ type Storage interface {
 	ClearPrefixInChild(keyToChild, prefix []byte) error
 	ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit uint32) (uint32, bool, error)
 	GetChildNextKey(keyToChild, key []byte) ([]byte, error)
+}
 
-	// Transactions
+// Transactional storage interface.
+type Transactional interface {
 	StartTransaction()
 	CommitTransaction()
 	RollbackTransaction()
+}
 
-	// Runtime
+// Runtime storage interface.
+type Runtime interface {
 	LoadCode() []byte
 	SetVersion(v trie.TrieLayout)
+}
+
+// Storage runtime interface.
+type Storage interface {
+	Trie
+	ChildTrie
+	Transactional
+	Runtime
 }
 
 // BasicNetwork interface for functions used by runtime network state function
