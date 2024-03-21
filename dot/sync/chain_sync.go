@@ -260,6 +260,10 @@ func (cs *chainSync) bootstrapSync() {
 		isBootstrap := cs.isBootstrapSync(currentBlock.Number)
 		if isBootstrap {
 			cs.workerPool.useConnectedPeers()
+			if cs.blockState.IsPaused() {
+				logger.Errorf("blockstate is paused")
+				return
+			}
 			err = cs.requestMaxBlocksFrom(currentBlock, networkInitialSync)
 			if err != nil {
 				if errors.Is(err, errBlockStatePaused) {
@@ -268,6 +272,10 @@ func (cs *chainSync) bootstrapSync() {
 				logger.Errorf("requesting max blocks from best block header: %s", err)
 			}
 
+			if cs.blockState.IsPaused() {
+				logger.Errorf("blockstate is paused")
+				return
+			}
 			currentBlock, err = cs.blockState.BestBlockHeader()
 			if err != nil {
 				logger.Errorf("getting best block header: %v", err)
@@ -525,6 +533,10 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 
 func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header, origin blockOrigin) error { //nolint:unparam
 	startRequestAt := bestBlockHeader.Number + 1
+
+	//if cs.blockState.IsPaused() {
+	//	return errors.New("blockstate is paused")
+	//}
 
 	// targetBlockNumber is the virtual target we will request, however
 	// we should bound it to the real target which is collected through

@@ -63,6 +63,7 @@ func newDiscovery(ctx context.Context, h libp2phost.Host,
 // waitForPeers periodically checks kadDHT peers store for new peers and returns them,
 // this function used for local environments to prepopulate bootnodes from mDNS
 func (d *discovery) waitForPeers() (peers []peer.AddrInfo, err error) {
+	logger.Info("waiting for peers")
 	// get all currently connected peers and use them to bootstrap the DHT
 	currentPeers := d.h.Network().Peers()
 
@@ -131,7 +132,8 @@ func (d *discovery) start() error {
 	}
 
 	d.dht = dht
-	return d.discoverAndAdvertise()
+	return nil
+	//return d.discoverAndAdvertise()
 }
 
 func (d *discovery) discoverAndAdvertise() error {
@@ -162,6 +164,7 @@ func (d *discovery) advertise() {
 			timer.Stop()
 			return
 		case <-timer.C:
+			logger.Warn("advertising ourselves in the DHT...")
 			logger.Debug("advertising ourselves in the DHT...")
 			err := d.dht.Bootstrap(d.ctx)
 			if err != nil {
@@ -173,6 +176,8 @@ func (d *discovery) advertise() {
 			if err != nil {
 				logger.Warnf("failed to advertise in the DHT: %s", err)
 				ttl = tryAdvertiseTimeout
+			} else {
+				logger.Warnf("succesfully advertised in the DHT: %s", err)
 			}
 		}
 	}
@@ -197,6 +202,7 @@ func (d *discovery) checkPeerCount() {
 }
 
 func (d *discovery) findPeers() {
+	logger.Warn("Finding Peers")
 	logger.Debug("attempting to find DHT peers...")
 	peerCh, err := d.rd.FindPeers(d.ctx, string(d.pid))
 	if err != nil {
@@ -210,12 +216,14 @@ func (d *discovery) findPeers() {
 	for {
 		select {
 		case <-timer.C:
+			logger.Warn("timer but no peers found ")
 			return
 		case peer := <-peerCh:
 			if peer.ID == d.h.ID() || peer.ID == "" {
 				continue
 			}
 
+			logger.Warnf("found new peer %s via DHT", peer.ID)
 			logger.Tracef("found new peer %s via DHT", peer.ID)
 			d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
 			d.handler.AddPeer(0, peer.ID)
