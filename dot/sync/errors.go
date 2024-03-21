@@ -8,11 +8,7 @@ import (
 )
 
 var (
-	// ErrServiceStopped is returned when the service has been stopped
-	ErrServiceStopped = errors.New("service has been stopped")
-
-	// ErrInvalidBlock is returned when a block cannot be verified
-	ErrInvalidBlock = errors.New("could not verify block")
+	errBlockStatePaused = errors.New("blockstate service has been paused")
 
 	// ErrInvalidBlockRequest is returned when an invalid block request is received
 	ErrInvalidBlockRequest     = errors.New("invalid block request")
