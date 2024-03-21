@@ -12,9 +12,9 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
@@ -53,10 +53,10 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 			entries[common.BytesToHex(entry.Key)] = common.BytesToHex(entry.Value)
 		}
 
-		newTrie, err := trie.LoadFromMap(entries)
+		newTrie, err := trie.LoadFromMap(entries, trie.V0)
 		require.NoError(t, err)
 
-		trieHash := newTrie.MustHash(trie.V0.MaxInlineValue())
+		trieHash := newTrie.MustHash()
 		require.Equal(t, westendDevStateRoot, trieHash.String())
 	})
 

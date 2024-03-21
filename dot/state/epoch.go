@@ -22,7 +22,6 @@ var (
 	errHashNotInMemory    = errors.New("hash not found in memory map")
 	errEpochNotInDatabase = errors.New("epoch data not found in the database")
 	errHashNotPersisted   = errors.New("hash with next epoch not found in database")
-	errNoPreRuntimeDigest = errors.New("header does not contain pre-runtime digest")
 )
 
 var (
@@ -197,39 +196,12 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return 0, err
 	}
 
-	for _, d := range header.Digest.Types {
-		digestValue, err := d.Value()
-		if err != nil {
-			continue
-		}
-		predigest, ok := digestValue.(types.PreRuntimeDigest)
-		if !ok {
-			continue
-		}
-
-		digest, err := types.DecodeBabePreDigest(predigest.Data)
-		if err != nil {
-			return 0, fmt.Errorf("failed to decode babe header: %w", err)
-		}
-
-		var slotNumber uint64
-		switch d := digest.(type) {
-		case types.BabePrimaryPreDigest:
-			slotNumber = d.SlotNumber
-		case types.BabeSecondaryVRFPreDigest:
-			slotNumber = d.SlotNumber
-		case types.BabeSecondaryPlainPreDigest:
-			slotNumber = d.SlotNumber
-		}
-
-		if slotNumber < firstSlot {
-			return 0, nil
-		}
-
-		return (slotNumber - firstSlot) / s.epochLength, nil
+	slotNumber, err := header.SlotNumber()
+	if err != nil {
+		return 0, fmt.Errorf("getting slot number: %w", err)
 	}
 
-	return 0, errNoPreRuntimeDigest
+	return (slotNumber - firstSlot) / s.epochLength, nil
 }
 
 // SetEpochDataRaw sets the epoch data raw for a given epoch
@@ -373,7 +345,7 @@ func (s *EpochState) getConfigDataFromDatabase(epoch uint64) (*types.ConfigData,
 	return info, nil
 }
 
-func (s *EpochState) HandleBABEDigest(header *types.Header, digest scale.VaryingDataType) error {
+func (s *EpochState) HandleBABEDigest(header *types.Header, digest types.BabeConsensusDigest) error {
 	headerHash := header.Hash()
 
 	digestValue, err := digest.Value()

@@ -73,9 +73,9 @@ func Test_UnmarshalTransactionValidity(t *testing.T) {
 func Test_InvalidTransactionValidity(t *testing.T) {
 	transactionValidityErr := NewTransactionValidityError()
 	invalidTransaction := NewInvalidTransaction()
-	err := invalidTransaction.Set(Future{})
+	err := invalidTransaction.SetValue(Future{})
 	require.NoError(t, err)
-	err = transactionValidityErr.Set(invalidTransaction)
+	err = transactionValidityErr.SetValue(invalidTransaction)
 	require.NoError(t, err)
 
 	expErrMsg := "invalid transaction"
@@ -98,9 +98,9 @@ func Test_InvalidTransactionValidity(t *testing.T) {
 func Test_UnknownTransactionValidity(t *testing.T) {
 	transactionValidityErr := NewTransactionValidityError()
 	unknownTransaction := NewUnknownTransaction()
-	err := unknownTransaction.Set(NoUnsignedValidator{})
+	err := unknownTransaction.SetValue(NoUnsignedValidator{})
 	require.NoError(t, err)
-	err = transactionValidityErr.Set(unknownTransaction)
+	err = transactionValidityErr.SetValue(unknownTransaction)
 	require.NoError(t, err)
 
 	expErrMsg := "validator not found"
@@ -123,16 +123,16 @@ func Test_UnknownTransactionValidity(t *testing.T) {
 func Test_UnknownTransactionValidity_EncodingAndDecoding(t *testing.T) {
 	transactionValidityErr := NewTransactionValidityError()
 	unknownTransaction := NewUnknownTransaction()
-	err := unknownTransaction.Set(NoUnsignedValidator{})
+	err := unknownTransaction.SetValue(NoUnsignedValidator{})
 	require.NoError(t, err)
-	err = transactionValidityErr.Set(unknownTransaction)
+	err = transactionValidityErr.SetValue(unknownTransaction)
 	require.NoError(t, err)
 
-	enc, err := scale.Marshal(transactionValidityErr)
+	enc, err := scale.Marshal(*transactionValidityErr)
 	require.NoError(t, err)
 
 	decodedTransactionValidityErr := NewTransactionValidityError()
-	err = scale.Unmarshal(enc, &decodedTransactionValidityErr)
+	err = scale.Unmarshal(enc, decodedTransactionValidityErr)
 	require.NoError(t, err)
 	require.Equal(t, transactionValidityErr, decodedTransactionValidityErr)
 

@@ -13,7 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/stretchr/testify/require"
 )
 
@@ -255,7 +255,7 @@ func setupChildStateStorage(t *testing.T) (*ChildStateModule, common.Hash) {
 	err = tr.SetChild([]byte(":child_storage_key"), childTr)
 	require.NoError(t, err)
 
-	stateRoot, err := tr.Root(trie.NoMaxInlineValueSize)
+	stateRoot, err := tr.Root()
 	require.NoError(t, err)
 
 	bb, err := st.Block.BestBlock()

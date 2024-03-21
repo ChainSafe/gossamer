@@ -7,16 +7,16 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/spf13/cobra"
 )
 
 func init() {
 	ImportStateCmd.Flags().String("chain", "", "Chain id used to load default configuration for specified chain")
 	ImportStateCmd.Flags().String("state-file", "", "Path to JSON file consisting of key-value pairs")
-	ImportStateCmd.Flags().Uint32("state-version",
-		uint32(trie.DefaultStateVersion),
+	ImportStateCmd.Flags().Uint8("state-version",
+		uint8(trie.DefaultStateVersion),
 		"State version to use when importing state",
 	)
 	ImportStateCmd.Flags().String("header-file", "", "Path to JSON file of block header corresponding to the given state")
@@ -60,7 +60,7 @@ func execImportState(cmd *cobra.Command) error {
 		return fmt.Errorf("state-file must be specified")
 	}
 
-	stateVersion, err := cmd.Flags().GetUint32("state-version")
+	stateVersion, err := cmd.Flags().GetUint8("state-version")
 	if err != nil {
 		return fmt.Errorf("failed to get state-version: %s", err)
 	}

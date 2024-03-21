@@ -35,35 +35,35 @@ var (
 
 // discovery handles discovery of new peers via the kademlia DHT
 type discovery struct {
-	ctx                context.Context
-	dht                *dual.DHT
-	rd                 *routing.RoutingDiscovery
-	h                  libp2phost.Host
-	bootnodes          []peer.AddrInfo
-	ds                 *badger.Datastore
-	pid                protocol.ID
-	minPeers, maxPeers int
-	handler            PeerSetHandler
+	ctx       context.Context
+	dht       *dual.DHT
+	rd        *routing.RoutingDiscovery
+	h         libp2phost.Host
+	bootnodes []peer.AddrInfo
+	ds        *badger.Datastore
+	pid       protocol.ID
+	maxPeers  int
+	handler   PeerSetHandler
 }
 
 func newDiscovery(ctx context.Context, h libp2phost.Host,
 	bootnodes []peer.AddrInfo, ds *badger.Datastore,
-	pid protocol.ID, min, max int, handler PeerSetHandler) *discovery {
+	pid protocol.ID, max int, handler PeerSetHandler) *discovery {
 	return &discovery{
 		ctx:       ctx,
 		h:         h,
 		bootnodes: bootnodes,
 		ds:        ds,
 		pid:       pid,
-		minPeers:  min,
 		maxPeers:  max,
 		handler:   handler,
 	}
 }
 
+// waitForPeers periodically checks kadDHT peers store for new peers and returns them,
+// this function used for local environments to prepopulate bootnodes from mDNS
 func (d *discovery) waitForPeers() (peers []peer.AddrInfo, err error) {
 	// get all currently connected peers and use them to bootstrap the DHT
-
 	currentPeers := d.h.Network().Peers()
 
 	t := time.NewTicker(startDHTTimeout)
@@ -92,15 +92,18 @@ func (d *discovery) waitForPeers() (peers []peer.AddrInfo, err error) {
 
 // start creates the DHT.
 func (d *discovery) start() error {
+	// this basically only works with enabled mDNS which is used only for local test setups. Without bootnodes kademilia
+	// would not bee able to connect to any peers and mDNS is used to find peers in local network.
+	// TODO: should be refactored because this if is basically used for local integration test purpose.
+	// Instead of waiting for peers to connect to start kad we can upgrade the kad routing table on every connection,
+	// I think that using d.dht.{LAN/WAN}.RoutingTable().UsefulNewPeer(peerID) should be a good option
 	if len(d.bootnodes) == 0 {
 		peers, err := d.waitForPeers()
 		if err != nil {
 			return fmt.Errorf("failed while waiting for peers: %w", err)
 		}
-
 		d.bootnodes = peers
 	}
-
 	logger.Debugf("starting DHT with bootnodes %v...", d.bootnodes)
 	logger.Debugf("V1ProtocolOverride %v...", d.pid+"/kad")
 
@@ -129,17 +132,6 @@ func (d *discovery) start() error {
 
 	d.dht = dht
 	return d.discoverAndAdvertise()
-}
-
-func (d *discovery) stop() error {
-	if d.dht == nil {
-		return nil
-	}
-
-	ethmetrics.Unregister(checkPeerCountMetrics)
-	ethmetrics.Unregister(peersStoreMetrics)
-
-	return d.dht.Close()
 }
 
 func (d *discovery) discoverAndAdvertise() error {
@@ -231,6 +223,13 @@ func (d *discovery) findPeers() {
 	}
 }
 
-func (d *discovery) findPeer(peerID peer.ID) (peer.AddrInfo, error) {
-	return d.dht.FindPeer(d.ctx, peerID)
+func (d *discovery) stop() error {
+	if d.dht == nil {
+		return nil
+	}
+
+	ethmetrics.Unregister(checkPeerCountMetrics)
+	ethmetrics.Unregister(peersStoreMetrics)
+
+	return d.dht.Close()
 }

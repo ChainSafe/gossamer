@@ -20,8 +20,8 @@ import (
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/stretchr/testify/assert"
@@ -203,7 +203,7 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	assert.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
-	stateRoot := genesisTrie.MustHash(trie.NoMaxInlineValueSize)
+	stateRoot := genesisTrie.MustHash()
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()

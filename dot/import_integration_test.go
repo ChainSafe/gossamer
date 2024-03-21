@@ -13,8 +13,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -52,7 +52,7 @@ func Test_newTrieFromPairs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := newTrieFromPairs(tt.filename)
+			got, err := newTrieFromPairs(tt.filename, tt.stateVersion)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -76,7 +76,7 @@ func TestNewHeaderFromFile(t *testing.T) {
 	digest := types.NewDigest()
 	err = scale.Unmarshal(digestBytes, &digest)
 	require.NoError(t, err)
-	require.Len(t, digest.Types, 2)
+	require.Len(t, digest, 2)
 
 	expected := &types.Header{
 		ParentHash:     common.MustHexToHash("0x3b45c9c22dcece75a30acc9c2968cb311e6b0557350f83b430f47559db786975"),

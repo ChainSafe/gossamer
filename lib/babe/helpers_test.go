@@ -23,9 +23,9 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -375,7 +375,7 @@ func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 
 	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),
-		genesisTrie.MustHash(trie.NoMaxInlineValueSize), trie.EmptyHash, 0, types.NewDigest())
+		genesisTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
 
 	return gen, genesisTrie, genesisHeader
 }
@@ -394,7 +394,7 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 
 	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),
-		genesisTrie.MustHash(trie.NoMaxInlineValueSize), trie.EmptyHash, 0, types.NewDigest())
+		genesisTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
 
 	return gen, genesisTrie, genesisHeader
 }

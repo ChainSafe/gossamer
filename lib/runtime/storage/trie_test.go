@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/stretchr/testify/require"
 )
 
@@ -104,8 +104,8 @@ func TestTrieState_Root(t *testing.T) {
 			ts.Put([]byte(tc), []byte(tc))
 		}
 
-		expected := ts.MustRoot(trie.NoMaxInlineValueSize)
-		require.Equal(t, expected, ts.MustRoot(trie.NoMaxInlineValueSize))
+		expected := ts.MustRoot()
+		require.Equal(t, expected, ts.MustRoot())
 	}
 
 	ts := NewTrieState(trie.NewEmptyTrie())

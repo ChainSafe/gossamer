@@ -89,14 +89,17 @@ func (s *Service) Stop() error {
 // HandleBlockAnnounceHandshake notifies the `chainSync` module that
 // we have received a BlockAnnounceHandshake from the given peer.
 func (s *Service) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error {
+	logger.Debugf("received block announce handshake from: %s, #%d (%s)",
+		from, msg.BestBlockNumber, msg.BestBlockHash.Short())
 	return s.chainSync.onBlockAnnounceHandshake(from, msg.BestBlockHash, uint(msg.BestBlockNumber))
 }
 
 // HandleBlockAnnounce notifies the `chainSync` module that we have received a block announcement from the given peer.
 func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) error {
-	logger.Debug("received BlockAnnounceMessage")
 	blockAnnounceHeader := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
 	blockAnnounceHeaderHash := blockAnnounceHeader.Hash()
+	logger.Debugf("received block announce from: %s, #%d (%s)", from,
+		blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
 
 	// if the peer reports a lower or equal best block number than us,
 	// check if they are on a fork or not

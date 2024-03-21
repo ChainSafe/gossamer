@@ -303,12 +303,12 @@ func (s *Service) reportEquivocation(stage Subround, existingVote *SignedVote, c
 	equivocationVote := types.NewGrandpaEquivocation()
 	switch stage {
 	case prevote:
-		err = equivocationVote.Set(types.PreVote(grandpaEquivocation))
+		err = equivocationVote.SetValue(types.PreVote(grandpaEquivocation))
 		if err != nil {
 			return fmt.Errorf("setting grandpa equivocation VDT as prevote equivocation: %w", err)
 		}
 	case precommit:
-		err = equivocationVote.Set(types.PreCommit(grandpaEquivocation))
+		err = equivocationVote.SetValue(types.PreCommit(grandpaEquivocation))
 		if err != nil {
 			return fmt.Errorf("setting grandpa equivocation VDT as precommit equivocation: %w", err)
 		}

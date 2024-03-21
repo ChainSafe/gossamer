@@ -20,7 +20,7 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
@@ -191,8 +191,8 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 func createBlockAnnounce(block *types.Block, isBestBlock bool) (
 	blockAnnounce *network.BlockAnnounceMessage, err error) {
 	digest := types.NewDigest()
-	for i := range block.Header.Digest.Types {
-		digestValue, err := block.Header.Digest.Types[i].Value()
+	for i := range block.Header.Digest {
+		digestValue, err := block.Header.Digest[i].Value()
 		if err != nil {
 			return nil, fmt.Errorf("getting value of digest type at index %d: %w", i, err)
 		}
@@ -247,7 +247,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	logger.Debugf("imported block %s and stored state trie with root %s",
-		block.Header.Hash(), state.MustRoot(trie.NoMaxInlineValueSize))
+		block.Header.Hash(), state.MustRoot())
 
 	parentRuntimeInstance, err := s.blockState.GetRuntime(block.Header.ParentHash)
 	if err != nil {

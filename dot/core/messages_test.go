@@ -122,7 +122,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 	runtimeMock3 := NewMockInstance(ctrl)
 
 	invalidTransaction := runtime.NewInvalidTransaction()
-	err := invalidTransaction.Set(runtime.Future{})
+	err := invalidTransaction.SetValue(runtime.Future{})
 	require.NoError(t, err)
 
 	type args struct {

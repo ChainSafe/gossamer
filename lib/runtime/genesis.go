@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
 var (
@@ -26,7 +26,7 @@ func NewTrieFromGenesis(gen genesis.Genesis) (tr trie.Trie, err error) {
 			ErrGenesisTopNotFound, gen.Name)
 	}
 
-	tr, err = trie.LoadFromMap(keyValues)
+	tr, err = trie.LoadFromMap(keyValues, trie.V0)
 	if err != nil {
 		return tr, fmt.Errorf("loading genesis top key values into trie: %w", err)
 	}

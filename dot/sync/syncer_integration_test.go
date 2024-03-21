@@ -19,8 +19,8 @@ import (
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -99,7 +99,7 @@ func newTestSyncer(t *testing.T) *Service {
 
 			stateSrvc.Block.StoreRuntime(block.Header.Hash(), instance)
 			logger.Debugf("imported block %s and stored state trie with root %s",
-				block.Header.Hash(), ts.MustRoot(trie.NoMaxInlineValueSize))
+				block.Header.Hash(), ts.MustRoot())
 			return nil
 		}).AnyTimes()
 	cfg.BlockImportHandler = blockImportHandler
@@ -137,7 +137,7 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
-	stateRoot := genesisTrie.MustHash(trie.NoMaxInlineValueSize)
+	stateRoot := genesisTrie.MustHash()
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()
