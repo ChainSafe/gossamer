@@ -260,10 +260,10 @@ func (cs *chainSync) bootstrapSync() {
 		isBootstrap := cs.isBootstrapSync(currentBlock.Number)
 		if isBootstrap {
 			cs.workerPool.useConnectedPeers()
-			if cs.blockState.IsPaused() {
-				logger.Errorf("blockstate is paused")
-				return
-			}
+			//if cs.blockState.IsPaused() {
+			//	logger.Errorf("blockstate is paused")
+			//	return
+			//}
 			err = cs.requestMaxBlocksFrom(currentBlock, networkInitialSync)
 			if err != nil {
 				if errors.Is(err, errBlockStatePaused) {
@@ -272,10 +272,6 @@ func (cs *chainSync) bootstrapSync() {
 				logger.Errorf("requesting max blocks from best block header: %s", err)
 			}
 
-			if cs.blockState.IsPaused() {
-				logger.Errorf("blockstate is paused")
-				return
-			}
 			currentBlock, err = cs.blockState.BestBlockHeader()
 			if err != nil {
 				logger.Errorf("getting best block header: %v", err)

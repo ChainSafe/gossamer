@@ -132,8 +132,8 @@ func (d *discovery) start() error {
 	}
 
 	d.dht = dht
-	return nil
-	//return d.discoverAndAdvertise()
+	//return nil
+	return d.discoverAndAdvertise()
 }
 
 func (d *discovery) discoverAndAdvertise() error {
