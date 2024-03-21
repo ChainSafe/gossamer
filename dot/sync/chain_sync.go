@@ -562,7 +562,11 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header, origin 
 	return nil
 }
 
-func (cs *chainSync) submitRequest(request *network.BlockRequestMessage, who *peer.ID, resultCh chan<- *syncTaskResult) error {
+func (cs *chainSync) submitRequest(
+	request *network.BlockRequestMessage,
+	who *peer.ID,
+	resultCh chan<- *syncTaskResult,
+) error {
 	if !cs.blockState.IsPaused() {
 		cs.workerPool.submitRequest(request, who, resultCh)
 		return nil
@@ -570,7 +574,8 @@ func (cs *chainSync) submitRequest(request *network.BlockRequestMessage, who *pe
 	return errBlockStatePaused
 }
 
-func (cs *chainSync) submitRequests(requests []*network.BlockRequestMessage) (resultCh chan *syncTaskResult, err error) {
+func (cs *chainSync) submitRequests(requests []*network.BlockRequestMessage) (
+	resultCh chan *syncTaskResult, err error) {
 	if !cs.blockState.IsPaused() {
 		return cs.workerPool.submitRequests(requests), nil
 	}
