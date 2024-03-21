@@ -20,7 +20,7 @@ import (
 	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -125,7 +125,7 @@ func newTestSyncer(t *testing.T) *Service {
 }
 
 func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
-	gen genesis.Genesis, genesisTrie *trie.InMemoryTrie, genesisHeader types.Header) {
+	gen genesis.Genesis, genesisTrie *inmemory_trie.InMemoryTrie, genesisHeader types.Header) {
 	t.Helper()
 
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
@@ -138,7 +138,7 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 
 	parentHash := common.NewHash([]byte{0})
 	stateRoot := genesisTrie.MustHash()
-	extrinsicRoot := trie.EmptyHash
+	extrinsicRoot := inmemory_trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()
 	genesisHeaderPtr := types.NewHeader(parentHash,

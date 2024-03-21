@@ -17,7 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"go.uber.org/mock/gomock"
 
 	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
@@ -392,7 +392,7 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runti
 		Number:     1,
 		Digest:     digest,
 		ParentHash: gh,
-		StateRoot:  trie.EmptyHash,
+		StateRoot:  inmemory_trie.EmptyHash,
 	}
 
 	block1 := &types.Block{
@@ -408,7 +408,7 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runti
 		Number:     2,
 		Digest:     digest,
 		ParentHash: header1.Hash(),
-		StateRoot:  trie.EmptyHash,
+		StateRoot:  inmemory_trie.EmptyHash,
 	}
 
 	block2 := &types.Block{

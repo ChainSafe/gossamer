@@ -10,7 +10,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	in_memory "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,7 +24,7 @@ func makeChange(keyHex, valueHex string) [2]*string {
 }
 
 func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
-	gen genesis.Genesis, genesisTrie *trie.InMemoryTrie, genesisHeader types.Header) {
+	gen genesis.Genesis, genesisTrie *in_memory.InMemoryTrie, genesisHeader types.Header) {
 	t.Helper()
 
 	genesisPath := utils.GetWestendLocalRawGenesisPath(t)
@@ -36,7 +37,7 @@ func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
 
 	parentHash := common.NewHash([]byte{0})
 	stateRoot := genesisTrie.MustHash()
-	extrinsicRoot := trie.EmptyHash
+	extrinsicRoot := inmemory_trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()
 	genesisHeader = *types.NewHeader(parentHash,

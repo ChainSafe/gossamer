@@ -11,7 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 )
 
 // OfflinePruner is a tool to prune the stale state with the help of
@@ -121,13 +121,13 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 
 	// loop from latest to last `retainBlockNum` blocks
 	for blockNum := header.Number; blockNum > 0 && blockNum >= latestBlockNum-uint(p.retainBlockNum); {
-		var tr *trie.InMemoryTrie
+		var tr *inmemory_trie.InMemoryTrie
 		tr, err = p.storageState.LoadFromDB(header.StateRoot)
 		if err != nil {
 			return err
 		}
 
-		trie.PopulateNodeHashes(tr.RootNode(), nodeHashes)
+		inmemory_trie.PopulateNodeHashes(tr.RootNode(), nodeHashes)
 
 		// get parent header of current block
 		header, err = p.blockState.GetHeader(header.ParentHash)

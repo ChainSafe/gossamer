@@ -1,7 +1,7 @@
 // Copyright 2024 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package trie
+package inmemory
 
 import (
 	"bytes"
@@ -9,6 +9,7 @@ import (
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/node"
@@ -21,16 +22,16 @@ var EmptyHash = common.MustBlake2bHash([]byte{0})
 // InMemoryTrie is a base 16 modified Merkle Patricia trie.
 type InMemoryTrie struct {
 	generation uint64
-	root       *Node
+	root       *node.Node
 	childTries map[common.Hash]*InMemoryTrie
 	db         db.Database
-	version    TrieLayout
+	version    trie.TrieLayout
 	// deltas stores trie deltas since the last trie snapshot.
 	// For example node hashes that were deleted since
 	// the last snapshot. These are used by the online
 	// pruner to detect with database keys (trie node hashes) can
 	// be deleted.
-	deltas Deltas
+	deltas tracking.Delta
 }
 
 // NewEmptyInmemoryTrie creates a trie with a nil root
@@ -39,18 +40,18 @@ func NewEmptyInmemoryTrie() *InMemoryTrie {
 }
 
 // NewTrie creates a trie with an existing root node
-func NewInMemoryTrie(root *Node, db db.Database) *InMemoryTrie {
+func NewInMemoryTrie(root *node.Node, db db.Database) *InMemoryTrie {
 	return &InMemoryTrie{
 		root:       root,
 		childTries: make(map[common.Hash]*InMemoryTrie),
 		db:         db,
 		generation: 0, // Initially zero but increases after every snapshot.
 		deltas:     tracking.New(),
-		version:    V0,
+		version:    trie.V0,
 	}
 }
 
-func (t *InMemoryTrie) SetVersion(v TrieLayout) {
+func (t *InMemoryTrie) SetVersion(v trie.TrieLayout) {
 	if v < t.version {
 		panic("cannot regress trie version")
 	}
@@ -104,7 +105,7 @@ func (t *InMemoryTrie) Snapshot() (newTrie *InMemoryTrie) {
 
 // handleTrackedDeltas sets the pending deleted node hashes in
 // the trie deltas tracker if and only if success is true.
-func (t *InMemoryTrie) handleTrackedDeltas(success bool, pendingDeltas tracking.Getter) {
+func (t *InMemoryTrie) HandleTrackedDeltas(success bool, pendingDeltas tracking.Getter) {
 	if !success || t.generation == 0 {
 		// Do not persist tracked deleted node hashes if the operation failed or
 		// if the trie generation is zero (first block, no trie snapshot done yet).
@@ -113,10 +114,10 @@ func (t *InMemoryTrie) handleTrackedDeltas(success bool, pendingDeltas tracking.
 	t.deltas.MergeWith(pendingDeltas)
 }
 
-func (t *InMemoryTrie) prepForMutation(currentNode *Node,
+func (t *InMemoryTrie) prepForMutation(currentNode *node.Node,
 	copySettings node.CopySettings,
-	pendingDeltas DeltaRecorder) (
-	newNode *Node, err error) {
+	pendingDeltas tracking.DeltaRecorder) (
+	newNode *node.Node, err error) {
 	if currentNode.Generation == t.generation {
 		// no need to track deleted node, deep copy the node and
 		// update the node generation.
@@ -134,8 +135,8 @@ func (t *InMemoryTrie) prepForMutation(currentNode *Node,
 	return newNode, nil
 }
 
-func (t *InMemoryTrie) registerDeletedNodeHash(node *Node,
-	pendingDeltas DeltaRecorder) (err error) {
+func (t *InMemoryTrie) registerDeletedNodeHash(node *node.Node,
+	pendingDeltas tracking.DeltaRecorder) (err error) {
 	err = t.ensureMerkleValueIsCalculated(node)
 	if err != nil {
 		return fmt.Errorf("ensuring Merkle value is calculated: %w", err)
@@ -196,7 +197,7 @@ func (t *InMemoryTrie) DeepCopy() (trieCopy *InMemoryTrie) {
 }
 
 // RootNode returns a copy of the root node of the trie.
-func (t *InMemoryTrie) RootNode() *Node {
+func (t *InMemoryTrie) RootNode() *node.Node {
 	copySettings := node.DefaultCopySettings
 	copySettings.CopyMerkleValue = true
 	return t.root.Copy(copySettings)
@@ -235,7 +236,7 @@ func (t *InMemoryTrie) Entries() (keyValueMap map[string][]byte) {
 	return keyValueMap
 }
 
-func (t *InMemoryTrie) buildEntriesMap(currentNode *Node, prefix []byte, kv map[string][]byte) {
+func (t *InMemoryTrie) buildEntriesMap(currentNode *node.Node, prefix []byte, kv map[string][]byte) {
 	if currentNode == nil {
 		return
 	}
@@ -278,7 +279,7 @@ func (t *InMemoryTrie) NextKey(keyLE []byte) (nextKeyLE []byte) {
 	return nextKeyLE
 }
 
-func findNextKey(parent *Node, prefix, searchKey []byte) (nextKey []byte) {
+func findNextKey(parent *node.Node, prefix, searchKey []byte) (nextKey []byte) {
 	if parent == nil {
 		return nil
 	}
@@ -289,7 +290,7 @@ func findNextKey(parent *Node, prefix, searchKey []byte) (nextKey []byte) {
 	return findNextKeyBranch(parent, prefix, searchKey)
 }
 
-func findNextKeyLeaf(leaf *Node, prefix, searchKey []byte) (nextKey []byte) {
+func findNextKeyLeaf(leaf *node.Node, prefix, searchKey []byte) (nextKey []byte) {
 	parentLeafKey := leaf.PartialKey
 	fullKey := concatenateSlices(prefix, parentLeafKey)
 
@@ -300,7 +301,7 @@ func findNextKeyLeaf(leaf *Node, prefix, searchKey []byte) (nextKey []byte) {
 	return fullKey
 }
 
-func findNextKeyBranch(parentBranch *Node, prefix, searchKey []byte) (nextKey []byte) {
+func findNextKeyBranch(parentBranch *node.Node, prefix, searchKey []byte) (nextKey []byte) {
 	fullKey := concatenateSlices(prefix, parentBranch.PartialKey)
 
 	if bytes.Equal(searchKey, fullKey) {
@@ -336,7 +337,7 @@ func keyIsLexicographicallyBigger(key, key2 []byte) (bigger bool) {
 
 // findNextKeyChild searches for a next key in the children
 // given and returns a next key or nil if no next key is found.
-func findNextKeyChild(children []*Node, startIndex byte,
+func findNextKeyChild(children []*node.Node, startIndex byte,
 	fullKey, key []byte) (nextKey []byte) {
 	for i := startIndex; i < node.ChildrenCapacity; i++ {
 		child := children[i]
@@ -360,10 +361,10 @@ func (t *InMemoryTrie) Put(keyLE, value []byte) (err error) {
 	pendingDeltas := tracking.New()
 	defer func() {
 		const success = true
-		t.handleTrackedDeltas(success, pendingDeltas)
+		t.HandleTrackedDeltas(success, pendingDeltas)
 	}()
 
-	err = t.insertKeyLE(keyLE, value, pendingDeltas)
+	err = t.InsertKeyLE(keyLE, value, pendingDeltas)
 	if err != nil {
 		return err
 	}
@@ -371,8 +372,8 @@ func (t *InMemoryTrie) Put(keyLE, value []byte) (err error) {
 	return nil
 }
 
-func (t *InMemoryTrie) insertKeyLE(keyLE, value []byte,
-	pendingDeltas DeltaRecorder) (err error) {
+func (t *InMemoryTrie) InsertKeyLE(keyLE, value []byte,
+	pendingDeltas tracking.DeltaRecorder) (err error) {
 	nibblesKey := codec.KeyLEToNibbles(keyLE)
 	if value == nil {
 		// Force nil value to be inserted to []byte{} since `nil` means there
@@ -390,13 +391,14 @@ func (t *InMemoryTrie) insertKeyLE(keyLE, value []byte,
 
 // insert inserts a value in the trie at the key specified.
 // It may create one or more new nodes or update an existing node.
-func (t *InMemoryTrie) insert(parent *Node, key, value []byte, pendingDeltas DeltaRecorder) (newParent *Node,
+func (t *InMemoryTrie) insert(parent *node.Node, key, value []byte,
+	pendingDeltas tracking.DeltaRecorder) (newParent *node.Node,
 	mutated bool, nodesCreated uint32, err error) {
 	if parent == nil {
 		mutated = true
 		nodesCreated = 1
 
-		return &Node{
+		return &node.Node{
 			PartialKey:   key,
 			StorageValue: value,
 			MustBeHashed: mustBeHashed(t.version, value),
@@ -425,9 +427,9 @@ func (t *InMemoryTrie) insert(parent *Node, key, value []byte, pendingDeltas Del
 	return newParent, mutated, nodesCreated, nil
 }
 
-func (t *InMemoryTrie) insertInLeaf(parentLeaf *Node, key, value []byte,
-	pendingDeltas DeltaRecorder) (
-	newParent *Node, mutated bool, nodesCreated uint32, err error) {
+func (t *InMemoryTrie) insertInLeaf(parentLeaf *node.Node, key, value []byte,
+	pendingDeltas tracking.DeltaRecorder) (
+	newParent *node.Node, mutated bool, nodesCreated uint32, err error) {
 
 	if bytes.Equal(parentLeaf.PartialKey, key) {
 		nodesCreated = 0
@@ -458,7 +460,7 @@ func (t *InMemoryTrie) insertInLeaf(parentLeaf *Node, key, value []byte,
 
 	// Convert the current leaf parent into a branch parent
 	mutated = true
-	newBranchParent := &Node{
+	newBranchParent := &node.Node{
 		PartialKey: key[:commonPrefixLength],
 		Generation: t.generation,
 		Children:   make([]*node.Node, node.ChildrenCapacity),
@@ -512,7 +514,7 @@ func (t *InMemoryTrie) insertInLeaf(parentLeaf *Node, key, value []byte,
 		nodesCreated++
 	}
 	childIndex := key[commonPrefixLength]
-	newLeaf := &Node{
+	newLeaf := &node.Node{
 		PartialKey:   key[commonPrefixLength+1:],
 		StorageValue: value,
 		Generation:   t.generation,
@@ -526,9 +528,9 @@ func (t *InMemoryTrie) insertInLeaf(parentLeaf *Node, key, value []byte,
 	return newBranchParent, mutated, nodesCreated, nil
 }
 
-func (t *InMemoryTrie) insertInBranch(parentBranch *Node, key, value []byte,
-	pendingDeltas DeltaRecorder) (
-	newParent *Node, mutated bool, nodesCreated uint32, err error) {
+func (t *InMemoryTrie) insertInBranch(parentBranch *node.Node, key, value []byte,
+	pendingDeltas tracking.DeltaRecorder) (
+	newParent *node.Node, mutated bool, nodesCreated uint32, err error) {
 	copySettings := node.DefaultCopySettings
 
 	if bytes.Equal(key, parentBranch.PartialKey) {
@@ -560,7 +562,7 @@ func (t *InMemoryTrie) insertInBranch(parentBranch *Node, key, value []byte,
 		child := parentBranch.Children[childIndex]
 
 		if child == nil {
-			child = &Node{
+			child = &node.Node{
 				PartialKey:   remainingKey,
 				StorageValue: value,
 				Generation:   t.generation,
@@ -601,7 +603,7 @@ func (t *InMemoryTrie) insertInBranch(parentBranch *Node, key, value []byte,
 	mutated = true
 	nodesCreated = 1
 	commonPrefixLength := lenCommonPrefix(key, parentBranch.PartialKey)
-	newParentBranch := &Node{
+	newParentBranch := &node.Node{
 		PartialKey: key[:commonPrefixLength],
 		Generation: t.generation,
 		Children:   make([]*node.Node, node.ChildrenCapacity),
@@ -645,13 +647,13 @@ func (t *InMemoryTrie) insertInBranch(parentBranch *Node, key, value []byte,
 // LoadFromMap loads the given data mapping of key to value into a new empty trie.
 // The keys are in hexadecimal little Endian encoding and the values
 // are hexadecimal encoded.
-func LoadFromMap(data map[string]string, version TrieLayout) (trie *InMemoryTrie, err error) {
+func LoadFromMap(data map[string]string, version trie.TrieLayout) (trie *InMemoryTrie, err error) {
 	trie = NewEmptyInmemoryTrie()
 	trie.SetVersion(version)
 
 	pendingDeltas := tracking.New()
 	defer func() {
-		trie.handleTrackedDeltas(err == nil, pendingDeltas)
+		trie.HandleTrackedDeltas(err == nil, pendingDeltas)
 	}()
 
 	for key, value := range data {
@@ -665,7 +667,7 @@ func LoadFromMap(data map[string]string, version TrieLayout) (trie *InMemoryTrie
 			return nil, fmt.Errorf("cannot convert value hex to bytes: %w", err)
 		}
 
-		err = trie.insertKeyLE(keyLEBytes, valueBytes, pendingDeltas)
+		err = trie.InsertKeyLE(keyLEBytes, valueBytes, pendingDeltas)
 		if err != nil {
 			return nil, fmt.Errorf("inserting key value pair in trie: %w", err)
 		}
@@ -693,7 +695,7 @@ func (t *InMemoryTrie) GetKeysWithPrefix(prefixLE []byte) (keysLE [][]byte) {
 // prefix given. The prefix and key byte slices are in nibbles format.
 // TODO pass in map of keysLE if order is not needed.
 // TODO do all processing on nibbles keys and then convert to LE.
-func getKeysWithPrefix(parent *Node, prefix, key []byte,
+func getKeysWithPrefix(parent *node.Node, prefix, key []byte,
 	keysLE [][]byte) (newKeysLE [][]byte) {
 	if parent == nil {
 		return keysLE
@@ -706,7 +708,7 @@ func getKeysWithPrefix(parent *Node, prefix, key []byte,
 	return getKeysWithPrefixFromBranch(parent, prefix, key, keysLE)
 }
 
-func getKeysWithPrefixFromLeaf(parent *Node, prefix, key []byte,
+func getKeysWithPrefixFromLeaf(parent *node.Node, prefix, key []byte,
 	keysLE [][]byte) (newKeysLE [][]byte) {
 	if len(key) == 0 || bytes.HasPrefix(parent.PartialKey, key) {
 		fullKeyLE := makeFullKeyLE(prefix, parent.PartialKey)
@@ -715,7 +717,7 @@ func getKeysWithPrefixFromLeaf(parent *Node, prefix, key []byte,
 	return keysLE
 }
 
-func getKeysWithPrefixFromBranch(parent *Node, prefix, key []byte,
+func getKeysWithPrefixFromBranch(parent *node.Node, prefix, key []byte,
 	keysLE [][]byte) (newKeysLE [][]byte) {
 	if len(key) == 0 || bytes.HasPrefix(parent.PartialKey, key) {
 		return addAllKeys(parent, prefix, keysLE)
@@ -740,7 +742,7 @@ func getKeysWithPrefixFromBranch(parent *Node, prefix, key []byte,
 // to the slice of keys given and returns this slice.
 // It uses the prefix in nibbles format to determine the full key.
 // The slice of keys has its keys formatted in little Endian.
-func addAllKeys(parent *Node, prefix []byte, keysLE [][]byte) (newKeysLE [][]byte) {
+func addAllKeys(parent *node.Node, prefix []byte, keysLE [][]byte) (newKeysLE [][]byte) {
 	if parent == nil {
 		return keysLE
 	}
@@ -784,7 +786,7 @@ func (t *InMemoryTrie) Get(keyLE []byte) (value []byte) {
 	return retrieve(t.db, t.root, keyNibbles)
 }
 
-func retrieve(db db.DBGetter, parent *Node, key []byte) (value []byte) {
+func retrieve(db db.DBGetter, parent *node.Node, key []byte) (value []byte) {
 	if parent == nil {
 		return nil
 	}
@@ -795,7 +797,7 @@ func retrieve(db db.DBGetter, parent *Node, key []byte) (value []byte) {
 	return retrieveFromBranch(db, parent, key)
 }
 
-func retrieveFromLeaf(db db.DBGetter, leaf *Node, key []byte) (value []byte) {
+func retrieveFromLeaf(db db.DBGetter, leaf *node.Node, key []byte) (value []byte) {
 	if bytes.Equal(leaf.PartialKey, key) {
 		if leaf.IsHashedValue {
 			// We get the node
@@ -810,7 +812,7 @@ func retrieveFromLeaf(db db.DBGetter, leaf *Node, key []byte) (value []byte) {
 	return nil
 }
 
-func retrieveFromBranch(db db.DBGetter, branch *Node, key []byte) (value []byte) {
+func retrieveFromBranch(db db.DBGetter, branch *node.Node, key []byte) (value []byte) {
 	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
 		return branch.StorageValue
 	}
@@ -835,7 +837,7 @@ func (t *InMemoryTrie) ClearPrefixLimit(prefixLE []byte, limit uint32) (
 	pendingDeltas := tracking.New()
 	defer func() {
 		const success = true
-		t.handleTrackedDeltas(success, pendingDeltas)
+		t.HandleTrackedDeltas(success, pendingDeltas)
 	}()
 
 	if limit == 0 {
@@ -858,9 +860,9 @@ func (t *InMemoryTrie) ClearPrefixLimit(prefixLE []byte, limit uint32) (
 // clearPrefixLimitAtNode deletes the keys having the prefix until the value deletion limit is reached.
 // It returns the updated node newParent, the number of deleted values valuesDeleted and the
 // allDeleted boolean indicating if there is no key left with the prefix.
-func (t *InMemoryTrie) clearPrefixLimitAtNode(parent *Node, prefix []byte,
-	limit uint32, pendingDeltas DeltaRecorder) (
-	newParent *Node, valuesDeleted, nodesRemoved uint32, allDeleted bool, err error) {
+func (t *InMemoryTrie) clearPrefixLimitAtNode(parent *node.Node, prefix []byte,
+	limit uint32, pendingDeltas tracking.DeltaRecorder) (
+	newParent *node.Node, valuesDeleted, nodesRemoved uint32, allDeleted bool, err error) {
 	if parent == nil {
 		return nil, 0, 0, true, nil
 	}
@@ -887,9 +889,9 @@ func (t *InMemoryTrie) clearPrefixLimitAtNode(parent *Node, prefix []byte,
 	return t.clearPrefixLimitBranch(parent, prefix, limit, pendingDeltas)
 }
 
-func (t *InMemoryTrie) clearPrefixLimitBranch(branch *Node, prefix []byte, limit uint32,
-	pendingDeltas DeltaRecorder) (
-	newParent *Node, valuesDeleted, nodesRemoved uint32, allDeleted bool, err error) {
+func (t *InMemoryTrie) clearPrefixLimitBranch(branch *node.Node, prefix []byte, limit uint32,
+	pendingDeltas tracking.DeltaRecorder) (
+	newParent *node.Node, valuesDeleted, nodesRemoved uint32, allDeleted bool, err error) {
 	newParent = branch
 
 	if bytes.HasPrefix(branch.PartialKey, prefix) {
@@ -948,9 +950,9 @@ func (t *InMemoryTrie) clearPrefixLimitBranch(branch *Node, prefix []byte, limit
 	return newParent, valuesDeleted, nodesRemoved, allDeleted, nil
 }
 
-func (t *InMemoryTrie) clearPrefixLimitChild(branch *Node, prefix []byte, limit uint32,
-	pendingDeltas DeltaRecorder) (
-	newParent *Node, valuesDeleted, nodesRemoved uint32, allDeleted bool, err error) {
+func (t *InMemoryTrie) clearPrefixLimitChild(branch *node.Node, prefix []byte, limit uint32,
+	pendingDeltas tracking.DeltaRecorder) (
+	newParent *node.Node, valuesDeleted, nodesRemoved uint32, allDeleted bool, err error) {
 	newParent = branch
 
 	childIndex := prefix[len(branch.PartialKey)]
@@ -998,9 +1000,9 @@ func (t *InMemoryTrie) clearPrefixLimitChild(branch *Node, prefix []byte, limit 
 	return newParent, valuesDeleted, nodesRemoved, allDeleted, nil
 }
 
-func (t *InMemoryTrie) deleteNodesLimit(parent *Node, limit uint32,
-	pendingDeltas DeltaRecorder) (
-	newParent *Node, valuesDeleted, nodesRemoved uint32, err error) {
+func (t *InMemoryTrie) deleteNodesLimit(parent *node.Node, limit uint32,
+	pendingDeltas tracking.DeltaRecorder) (
+	newParent *node.Node, valuesDeleted, nodesRemoved uint32, err error) {
 	if limit == 0 {
 		valuesDeleted, nodesRemoved = 0, 0
 		return parent, valuesDeleted, nodesRemoved, nil
@@ -1090,7 +1092,7 @@ func (t *InMemoryTrie) ClearPrefix(prefixLE []byte) (err error) {
 	pendingDeltas := tracking.New()
 	defer func() {
 		const success = true
-		t.handleTrackedDeltas(success, pendingDeltas)
+		t.HandleTrackedDeltas(success, pendingDeltas)
 	}()
 
 	if len(prefixLE) == 0 {
@@ -1116,9 +1118,9 @@ func (t *InMemoryTrie) ClearPrefix(prefixLE []byte) (err error) {
 	return nil
 }
 
-func (t *InMemoryTrie) clearPrefixAtNode(parent *Node, prefix []byte,
-	pendingDeltas DeltaRecorder) (
-	newParent *Node, nodesRemoved uint32, err error) {
+func (t *InMemoryTrie) clearPrefixAtNode(parent *node.Node, prefix []byte,
+	pendingDeltas tracking.DeltaRecorder) (
+	newParent *node.Node, nodesRemoved uint32, err error) {
 	if parent == nil {
 		const nodesRemoved = 0
 		return nil, nodesRemoved, nil
@@ -1226,7 +1228,7 @@ func (t *InMemoryTrie) Delete(keyLE []byte) (err error) {
 	pendingDeltas := tracking.New()
 	defer func() {
 		const success = true
-		t.handleTrackedDeltas(success, pendingDeltas)
+		t.HandleTrackedDeltas(success, pendingDeltas)
 	}()
 
 	key := codec.KeyLEToNibbles(keyLE)
@@ -1238,9 +1240,9 @@ func (t *InMemoryTrie) Delete(keyLE []byte) (err error) {
 	return nil
 }
 
-func (t *InMemoryTrie) deleteAtNode(parent *Node, key []byte,
-	pendingDeltas DeltaRecorder) (
-	newParent *Node, deleted bool, nodesRemoved uint32, err error) {
+func (t *InMemoryTrie) deleteAtNode(parent *node.Node, key []byte,
+	pendingDeltas tracking.DeltaRecorder) (
+	newParent *node.Node, deleted bool, nodesRemoved uint32, err error) {
 	if parent == nil {
 		const nodesRemoved = 0
 		return nil, false, nodesRemoved, nil
@@ -1268,9 +1270,9 @@ func (t *InMemoryTrie) deleteAtNode(parent *Node, key []byte,
 	return newParent, deleted, nodesRemoved, nil
 }
 
-func (t *InMemoryTrie) deleteLeaf(parent *Node, key []byte,
-	pendingDeltas DeltaRecorder) (
-	newParent *Node, err error) {
+func (t *InMemoryTrie) deleteLeaf(parent *node.Node, key []byte,
+	pendingDeltas tracking.DeltaRecorder) (
+	newParent *node.Node, err error) {
 	if len(key) > 0 && !bytes.Equal(key, parent.PartialKey) {
 		return parent, nil
 	}
@@ -1285,9 +1287,9 @@ func (t *InMemoryTrie) deleteLeaf(parent *Node, key []byte,
 	return newParent, nil
 }
 
-func (t *InMemoryTrie) deleteBranch(branch *Node, key []byte,
-	pendingDeltas DeltaRecorder) (
-	newParent *Node, deleted bool, nodesRemoved uint32, err error) {
+func (t *InMemoryTrie) deleteBranch(branch *node.Node, key []byte,
+	pendingDeltas tracking.DeltaRecorder) (
+	newParent *node.Node, deleted bool, nodesRemoved uint32, err error) {
 	if len(key) == 0 || bytes.Equal(branch.PartialKey, key) {
 		copySettings := node.DefaultCopySettings
 		copySettings.CopyStorageValue = false
@@ -1360,9 +1362,9 @@ func (t *InMemoryTrie) deleteBranch(branch *Node, key []byte,
 // In this first case, branchChildMerged is returned as true to keep track of the removal
 // of one node in callers.
 // If the branch has a value and no child, it will be changed into a leaf.
-func (t *InMemoryTrie) handleDeletion(branch *Node, key []byte,
-	pendingDeltas DeltaRecorder) (
-	newNode *Node, branchChildMerged bool, err error) {
+func (t *InMemoryTrie) handleDeletion(branch *node.Node, key []byte,
+	pendingDeltas tracking.DeltaRecorder) (
+	newNode *node.Node, branchChildMerged bool, err error) {
 	childrenCount := 0
 	firstChildIndex := -1
 	for i, child := range branch.Children {
@@ -1385,7 +1387,7 @@ func (t *InMemoryTrie) handleDeletion(branch *Node, key []byte,
 		// pending deltas.
 		const branchChildMerged = false
 		commonPrefixLength := lenCommonPrefix(branch.PartialKey, key)
-		return &Node{
+		return &node.Node{
 			PartialKey:   key[:commonPrefixLength],
 			StorageValue: branch.StorageValue,
 			MustBeHashed: branch.MustBeHashed,
@@ -1406,7 +1408,7 @@ func (t *InMemoryTrie) handleDeletion(branch *Node, key []byte,
 
 		if child.Kind() == node.Leaf {
 			newLeafKey := concatenateSlices(branch.PartialKey, intToByteSlice(childIndex), child.PartialKey)
-			return &Node{
+			return &node.Node{
 				PartialKey:    newLeafKey,
 				StorageValue:  child.StorageValue,
 				IsHashedValue: child.IsHashedValue,
@@ -1418,7 +1420,7 @@ func (t *InMemoryTrie) handleDeletion(branch *Node, key []byte,
 
 		childBranch := child
 		newBranchKey := concatenateSlices(branch.PartialKey, intToByteSlice(childIndex), childBranch.PartialKey)
-		newBranch := &Node{
+		newBranch := &node.Node{
 			PartialKey:   newBranchKey,
 			StorageValue: childBranch.StorageValue,
 			MustBeHashed: childBranch.MustBeHashed,
@@ -1446,7 +1448,7 @@ func (t *InMemoryTrie) handleDeletion(branch *Node, key []byte,
 // to ensure the parent node and all its descendant nodes have their Merkle
 // value computed and ready to be used. This has a close to zero performance
 // impact if the parent node Merkle value is already computed.
-func (t *InMemoryTrie) ensureMerkleValueIsCalculated(parent *Node) (err error) {
+func (t *InMemoryTrie) ensureMerkleValueIsCalculated(parent *node.Node) (err error) {
 	if parent == nil {
 		return nil
 	}
@@ -1513,6 +1515,6 @@ func intToByteSlice(n int) (slice []byte) {
 	return []byte{byte(n)}
 }
 
-func mustBeHashed(trieVersion TrieLayout, storageValue []byte) bool {
-	return trieVersion == V1 && len(storageValue) > V1.MaxInlineValue()
+func mustBeHashed(trieVersion trie.TrieLayout, storageValue []byte) bool {
+	return trieVersion == trie.V1 && len(storageValue) > trie.V1.MaxInlineValue()
 }

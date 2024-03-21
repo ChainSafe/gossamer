@@ -1,13 +1,14 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package trie
+package inmemory
 
 import (
 	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
 // ChildStorageKeyPrefix is the prefix for all child storage keys
@@ -51,13 +52,13 @@ func (t *InMemoryTrie) getInternalChildTrie(keyToChild []byte) (*InMemoryTrie, e
 }
 
 // GetChild returns the child trie at key :child_storage:[keyToChild]
-func (t *InMemoryTrie) GetChild(keyToChild []byte) (Trie, error) {
+func (t *InMemoryTrie) GetChild(keyToChild []byte) (trie.Trie, error) {
 	return t.getInternalChildTrie(keyToChild)
 }
 
 // GetChildTries returns all child tries in this trie
-func (t *InMemoryTrie) GetChildTries() map[common.Hash]Trie {
-	children := make(map[common.Hash]Trie)
+func (t *InMemoryTrie) GetChildTries() map[common.Hash]trie.Trie {
+	children := make(map[common.Hash]trie.Trie)
 	for k, v := range t.childTries {
 		children[k] = v
 	}

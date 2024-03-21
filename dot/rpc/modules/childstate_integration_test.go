@@ -13,7 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/require"
 )
 
@@ -91,7 +91,8 @@ func TestChildStateGetStorageSize(t *testing.T) {
 			keyChild: []byte(":child_storage_key"),
 		},
 		{
-			err:      fmt.Errorf("child trie does not exist at key 0x%x%x", trie.ChildStorageKeyPrefix, []byte(":not_exist")),
+			err: fmt.Errorf("child trie does not exist at key 0x%x%x",
+				inmemory_trie.ChildStorageKeyPrefix, []byte(":not_exist")),
 			hash:     &blockHash,
 			entry:    []byte(":child_second"),
 			keyChild: []byte(":not_exist"),
@@ -149,7 +150,7 @@ func TestGetStorageHash(t *testing.T) {
 		},
 		{
 			err: fmt.Errorf("child trie does not exist at key 0x%x%x",
-				string(trie.ChildStorageKeyPrefix), []byte(":not_exist")),
+				string(inmemory_trie.ChildStorageKeyPrefix), []byte(":not_exist")),
 			hash:     &blockHash,
 			entry:    []byte(":child_second"),
 			keyChild: []byte(":not_exist"),
@@ -247,7 +248,7 @@ func setupChildStateStorage(t *testing.T) (*ChildStateModule, common.Hash) {
 	tr.Put([]byte(":first_key"), []byte(":value1"))
 	tr.Put([]byte(":second_key"), []byte(":second_value"))
 
-	childTr := trie.NewEmptyInmemoryTrie()
+	childTr := inmemory_trie.NewEmptyInmemoryTrie()
 	childTr.Put([]byte(":child_first"), []byte(":child_first_value"))
 	childTr.Put([]byte(":child_second"), []byte(":child_second_value"))
 	childTr.Put([]byte(":another_child"), []byte("value"))

@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -259,7 +260,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 }
 
 func newWestendLocalWithTrieAndHeader(t *testing.T) (
-	gen genesis.Genesis, genesisTrie *trie.InMemoryTrie, genesisHeader types.Header) {
+	gen genesis.Genesis, genesisTrie *inmemory_trie.InMemoryTrie, genesisHeader types.Header) {
 	t.Helper()
 
 	genesisPath := utils.GetWestendLocalRawGenesisPath(t)
@@ -272,7 +273,7 @@ func newWestendLocalWithTrieAndHeader(t *testing.T) (
 
 	parentHash := common.NewHash([]byte{0})
 	stateRoot := trie.V0.MustHash(genesisTrie)
-	extrinsicRoot := trie.EmptyHash
+	extrinsicRoot := inmemory_trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()
 	genesisHeader = *types.NewHeader(parentHash,

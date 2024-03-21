@@ -72,8 +72,8 @@ func (v TrieLayout) MaxInlineValue() int {
 }
 
 // Root returns the root hash of the trie built using the given entries
-func (v TrieLayout) Root(entries Entries) (common.Hash, error) {
-	t := NewEmptyInmemoryTrie()
+func (v TrieLayout) Root(t Trie, entries Entries) (common.Hash, error) {
+	// TODO: is there any way to calculate the hash without building a trie?
 	t.SetVersion(v)
 
 	for _, kv := range entries {

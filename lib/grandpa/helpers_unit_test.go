@@ -10,14 +10,14 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/require"
 )
 
 var (
 	testGenesisHeader = &types.Header{
 		Number:    0,
-		StateRoot: trie.EmptyHash,
+		StateRoot: inmemory_trie.EmptyHash,
 		Digest:    types.NewDigest(),
 	}
 	testVote = &Vote{

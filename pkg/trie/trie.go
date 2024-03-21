@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
+	"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"github.com/ChainSafe/gossamer/pkg/trie/tracking"
 )
 
@@ -47,13 +48,12 @@ type PrefixTrie interface {
 
 type TrieDeltas interface {
 	GetChangedNodeHashes() (inserted, deleted map[common.Hash]struct{}, err error)
-	handleTrackedDeltas(success bool, pendingDeltas tracking.Getter)
+	HandleTrackedDeltas(success bool, pendingDeltas tracking.Getter)
 }
 
 type DBBackedTrie interface {
 	Load(db db.DBGetter, rootHash common.Hash) error
-	WriteDirty(db NewBatcher) error
-	writeDirtyNode(db db.DBPutter, n *Node) (err error)
+	WriteDirty(db db.NewBatcher) error
 }
 
 type Versioned interface {
@@ -79,9 +79,9 @@ type Trie interface {
 	Versioned
 	fmt.Stringer
 
-	RootNode() *Node
+	RootNode() *node.Node
 
 	//TODO:this method should not be part of the API, find a way to remove it
-	insertKeyLE(key, value []byte,
-		pendingDeltas DeltaRecorder) (err error)
+	InsertKeyLE(key, value []byte,
+		pendingDeltas tracking.DeltaRecorder) (err error)
 }

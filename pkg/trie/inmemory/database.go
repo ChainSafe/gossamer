@@ -1,23 +1,18 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package trie
+package inmemory
 
 import (
 	"bytes"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/node"
+	"github.com/ChainSafe/gossamer/pkg/trie/tracking"
 )
-
-// NewBatcher creates a new database batch.
-type NewBatcher interface {
-	NewBatch() database.Batch
-}
 
 // Load reconstructs the trie from the database from the given root hash.
 // It is used when restarting the node to load the current state trie.
@@ -70,7 +65,7 @@ func (t *InMemoryTrie) Load(db db.DBGetter, rootHash common.Hash) error {
 	return nil
 }
 
-func (t *InMemoryTrie) loadNode(db db.DBGetter, n *Node) error {
+func (t *InMemoryTrie) loadNode(db db.DBGetter, n *node.Node) error {
 	if n.Kind() != node.Branch {
 		return nil
 	}
@@ -132,7 +127,7 @@ func (t *InMemoryTrie) loadNode(db db.DBGetter, n *Node) error {
 	return nil
 }
 
-func loadStorageValue(db db.DBGetter, node *Node) error {
+func loadStorageValue(db db.DBGetter, node *node.Node) error {
 	if !node.IsHashedValue {
 		return nil
 	}
@@ -153,7 +148,7 @@ func loadStorageValue(db db.DBGetter, node *Node) error {
 // all its descendant nodes as keys to the nodeHashes map.
 // It is assumed the node and its descendant nodes have their Merkle value already
 // computed.
-func PopulateNodeHashes(n *Node, nodeHashes map[common.Hash]struct{}) {
+func PopulateNodeHashes(n *node.Node, nodeHashes map[common.Hash]struct{}) {
 	if n == nil {
 		return
 	}
@@ -186,7 +181,7 @@ func PopulateNodeHashes(n *Node, nodeHashes map[common.Hash]struct{}) {
 // Note it does not record inlined nodes.
 // It is assumed the node and its descendant nodes have their Merkle value already
 // computed, or the function will panic.
-func recordAllDeleted(n *Node, recorder DeltaRecorder) {
+func recordAllDeleted(n *node.Node, recorder tracking.DeltaRecorder) {
 	if n == nil {
 		return
 	}
@@ -243,7 +238,7 @@ func GetFromDB(db db.DBGetter, rootHash common.Hash, key []byte) (
 // for the value corresponding to a key.
 // Note it does not copy the value so modifying the value bytes
 // slice will modify the value of the node in the trie.
-func getFromDBAtNode(db db.DBGetter, n *Node, key []byte) (
+func getFromDBAtNode(db db.DBGetter, n *node.Node, key []byte) (
 	value []byte, err error) {
 	if n.Kind() == node.Leaf {
 		if bytes.Equal(n.PartialKey, key) {
@@ -299,7 +294,7 @@ func getFromDBAtNode(db db.DBGetter, n *Node, key []byte) (
 }
 
 // WriteDirty writes all dirty nodes to the database and sets them to clean
-func (t *InMemoryTrie) WriteDirty(db NewBatcher) error {
+func (t *InMemoryTrie) WriteDirty(db db.NewBatcher) error {
 	batch := db.NewBatch()
 	err := t.writeDirtyNode(batch, t.root)
 	if err != nil {
@@ -310,7 +305,7 @@ func (t *InMemoryTrie) WriteDirty(db NewBatcher) error {
 	return batch.Flush()
 }
 
-func (t *InMemoryTrie) writeDirtyNode(db db.DBPutter, n *Node) (err error) {
+func (t *InMemoryTrie) writeDirtyNode(db db.DBPutter, n *node.Node) (err error) {
 	if n == nil || !n.Dirty {
 		return nil
 	}
@@ -400,7 +395,7 @@ func (t *InMemoryTrie) GetChangedNodeHashes() (inserted, deleted map[common.Hash
 	return inserted, deleted, nil
 }
 
-func (t *InMemoryTrie) getInsertedNodeHashesAtNode(n *Node, nodeHashes map[common.Hash]struct{}) (err error) {
+func (t *InMemoryTrie) getInsertedNodeHashesAtNode(n *node.Node, nodeHashes map[common.Hash]struct{}) (err error) {
 	if n == nil || !n.Dirty {
 		return nil
 	}

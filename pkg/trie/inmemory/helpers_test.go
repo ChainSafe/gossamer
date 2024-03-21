@@ -1,7 +1,7 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package trie
+package inmemory
 
 import (
 	"math/rand"
@@ -112,13 +112,13 @@ func pickKeys(keyValues map[string][]byte,
 	return keys
 }
 
-func padRightChildren(slice []*Node) (paddedSlice []*Node) {
-	paddedSlice = make([]*Node, node.ChildrenCapacity)
+func padRightChildren(slice []*node.Node) (paddedSlice []*node.Node) {
+	paddedSlice = make([]*node.Node, node.ChildrenCapacity)
 	copy(paddedSlice, slice)
 	return paddedSlice
 }
 
-func checkMerkleValuesAreSet(t *testing.T, n *Node) {
+func checkMerkleValuesAreSet(t *testing.T, n *node.Node) {
 	t.Helper()
 
 	if n == nil {

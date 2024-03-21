@@ -13,7 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 
 	"github.com/stretchr/testify/require"
 )
@@ -83,7 +83,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth uint,
 			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     i,
-				StateRoot:  trie.EmptyHash,
+				StateRoot:  inmemory_trie.EmptyHash,
 				Digest:     digest,
 			},
 			Body: types.Body{},
@@ -126,7 +126,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth uint,
 				Header: types.Header{
 					ParentHash: previousHash,
 					Number:     i + 1,
-					StateRoot:  trie.EmptyHash,
+					StateRoot:  inmemory_trie.EmptyHash,
 					Digest:     digest,
 				},
 				Body: types.Body{},
@@ -172,7 +172,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 			Header: types.Header{
 				ParentHash: bestBlockHash,
 				Number:     i,
-				StateRoot:  trie.EmptyHash,
+				StateRoot:  inmemory_trie.EmptyHash,
 				Digest:     digest,
 			},
 			Body: types.Body{},
@@ -214,7 +214,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 				Header: types.Header{
 					ParentHash: bestBlockHash,
 					Number:     i + 1,
-					StateRoot:  trie.EmptyHash,
+					StateRoot:  inmemory_trie.EmptyHash,
 					Digest:     digest,
 				},
 				Body: types.Body{},

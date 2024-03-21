@@ -18,6 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/require"
@@ -90,7 +91,7 @@ func TestService_Initialise(t *testing.T) {
 	require.NoError(t, err)
 
 	genesisHeaderPtr := types.NewHeader(common.NewHash([]byte{77}),
-		genTrie.MustHash(), trie.EmptyHash, 0, nil)
+		genTrie.MustHash(), inmemory_trie.EmptyHash, 0, nil)
 
 	err = state.Initialise(&genData, genesisHeaderPtr, genTrieCopy)
 	require.NoError(t, err)
@@ -380,7 +381,7 @@ func TestService_Import(t *testing.T) {
 	err := serv.Initialise(&genData, &genesisHeader, genTrie)
 	require.NoError(t, err)
 
-	tr := trie.NewEmptyInmemoryTrie()
+	tr := inmemory_trie.NewEmptyInmemoryTrie()
 	var testCases = []string{
 		"asdf",
 		"ghjk",

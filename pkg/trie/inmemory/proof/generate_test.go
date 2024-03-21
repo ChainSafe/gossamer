@@ -7,9 +7,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -829,7 +829,7 @@ func Test_lenCommonPrefix(t *testing.T) {
 // so the code is kept to this inefficient-looking append,
 // which is in the end quite performant still.
 func Benchmark_walkRoot(b *testing.B) {
-	trie := trie.NewEmptyInmemoryTrie()
+	trie := inmemory.NewEmptyInmemoryTrie()
 
 	// Build a deep trie.
 	const trieDepth = 1000

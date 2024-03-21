@@ -14,7 +14,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	"github.com/ChainSafe/gossamer/pkg/trie/proof"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory/proof"
 )
 
 // storagePrefix storage key prefix.
@@ -117,8 +118,8 @@ func (s *InmemoryStorageState) TrieState(root *common.Hash) (*inmemory_storage.I
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
-func (s *InmemoryStorageState) LoadFromDB(root common.Hash) (*trie.InMemoryTrie, error) {
-	t := trie.NewInMemoryTrie(nil, s.db)
+func (s *InmemoryStorageState) LoadFromDB(root common.Hash) (*inmemory_trie.InMemoryTrie, error) {
+	t := inmemory_trie.NewInMemoryTrie(nil, s.db)
 	err := t.Load(s.db, root)
 	if err != nil {
 		return nil, err
@@ -128,7 +129,7 @@ func (s *InmemoryStorageState) LoadFromDB(root common.Hash) (*trie.InMemoryTrie,
 	return t, nil
 }
 
-func (s *InmemoryStorageState) loadTrie(root *common.Hash) (*trie.InMemoryTrie, error) {
+func (s *InmemoryStorageState) loadTrie(root *common.Hash) (*inmemory_trie.InMemoryTrie, error) {
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
@@ -174,7 +175,7 @@ func (s *InmemoryStorageState) GetStorage(root *common.Hash, key []byte) ([]byte
 		return val, nil
 	}
 
-	return trie.GetFromDB(s.db, *root, key)
+	return inmemory_trie.GetFromDB(s.db, *root, key)
 }
 
 // GetStorageByBlockHash returns the value at the given key at the given block hash

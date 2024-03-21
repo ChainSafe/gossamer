@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -33,7 +33,7 @@ var (
 // Tries is a thread safe map of root hash
 // to trie.
 type Tries struct {
-	rootToTrie    map[common.Hash]*trie.InMemoryTrie
+	rootToTrie    map[common.Hash]*inmemory_trie.InMemoryTrie
 	mapMutex      sync.RWMutex
 	triesGauge    prometheus.Gauge
 	setCounter    prometheus.Counter
@@ -44,7 +44,7 @@ type Tries struct {
 // to trie.
 func NewTries() (tries *Tries) {
 	return &Tries{
-		rootToTrie:    make(map[common.Hash]*trie.InMemoryTrie),
+		rootToTrie:    make(map[common.Hash]*inmemory_trie.InMemoryTrie),
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
 		deleteCounter: deleteCounter,
@@ -55,17 +55,17 @@ func NewTries() (tries *Tries) {
 // Note the empty trie is the same for the v0 and the v1
 // state trie versions.
 func (t *Tries) SetEmptyTrie() {
-	t.softSet(trie.EmptyHash, trie.NewEmptyInmemoryTrie())
+	t.softSet(inmemory_trie.EmptyHash, inmemory_trie.NewEmptyInmemoryTrie())
 }
 
 // SetTrie sets the trie at its root hash in the tries map.
-func (t *Tries) SetTrie(tr *trie.InMemoryTrie) {
+func (t *Tries) SetTrie(tr *inmemory_trie.InMemoryTrie) {
 	t.softSet(tr.MustHash(), tr)
 }
 
 // softSet sets the given trie at the given root hash
 // in the memory map only if it is not already set.
-func (t *Tries) softSet(root common.Hash, trie *trie.InMemoryTrie) {
+func (t *Tries) softSet(root common.Hash, trie *inmemory_trie.InMemoryTrie) {
 	t.mapMutex.Lock()
 	defer t.mapMutex.Unlock()
 
@@ -91,7 +91,7 @@ func (t *Tries) delete(root common.Hash) {
 
 // get retrieves the trie corresponding to the root hash given
 // from the in-memory thread safe map.
-func (t *Tries) get(root common.Hash) (tr *trie.InMemoryTrie) {
+func (t *Tries) get(root common.Hash) (tr *inmemory_trie.InMemoryTrie) {
 	t.mapMutex.RLock()
 	defer t.mapMutex.RUnlock()
 	return t.rootToTrie[root]

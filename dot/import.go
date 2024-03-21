@@ -15,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 )
@@ -41,7 +42,7 @@ func ImportState(basepath, stateFP, headerFP string, stateTrieVersion trie.TrieL
 	return srv.Import(header, tr, stateTrieVersion, firstSlot)
 }
 
-func newTrieFromPairs(filename string, version trie.TrieLayout) (*trie.InMemoryTrie, error) {
+func newTrieFromPairs(filename string, version trie.TrieLayout) (*inmemory_trie.InMemoryTrie, error) {
 	data, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, err
@@ -62,7 +63,7 @@ func newTrieFromPairs(filename string, version trie.TrieLayout) (*trie.InMemoryT
 		entries[pairArr[0].(string)] = pairArr[1].(string)
 	}
 
-	tr, err := trie.LoadFromMap(entries, version)
+	tr, err := inmemory_trie.LoadFromMap(entries, version)
 	if err != nil {
 		return nil, err
 	}

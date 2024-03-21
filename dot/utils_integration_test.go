@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,7 +21,7 @@ func TestTrieSnapshot(t *testing.T) {
 	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile)
 	require.NoError(t, err)
 
-	tri := trie.NewEmptyInmemoryTrie()
+	tri := inmemory_trie.NewEmptyInmemoryTrie()
 	key := []byte("key")
 	value := []byte("value")
 

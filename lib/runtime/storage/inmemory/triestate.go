@@ -12,6 +12,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"golang.org/x/exp/maps"
 )
 
@@ -22,7 +23,7 @@ type InMemoryTrieState struct {
 	transactions *list.List
 }
 
-func NewTrieState(state *trie.InMemoryTrie) *InMemoryTrieState {
+func NewTrieState(state *inmemory.InMemoryTrie) *InMemoryTrieState {
 	transactions := list.New()
 	transactions.PushBack(state)
 	return &InMemoryTrieState{
@@ -30,11 +31,11 @@ func NewTrieState(state *trie.InMemoryTrie) *InMemoryTrieState {
 	}
 }
 
-func (t *InMemoryTrieState) getCurrentTrie() *trie.InMemoryTrie {
-	return t.transactions.Back().Value.(*trie.InMemoryTrie)
+func (t *InMemoryTrieState) getCurrentTrie() *inmemory.InMemoryTrie {
+	return t.transactions.Back().Value.(*inmemory.InMemoryTrie)
 }
 
-func (t *InMemoryTrieState) updateCurrentTrie(new *trie.InMemoryTrie) {
+func (t *InMemoryTrieState) updateCurrentTrie(new *inmemory.InMemoryTrie) {
 	t.transactions.Back().Value = new
 }
 
@@ -78,7 +79,7 @@ func (t *InMemoryTrieState) SetVersion(v trie.TrieLayout) {
 }
 
 // Trie returns the TrieState's underlying trie
-func (t *InMemoryTrieState) Trie() *trie.InMemoryTrie {
+func (t *InMemoryTrieState) Trie() *inmemory.InMemoryTrie {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 
@@ -88,7 +89,7 @@ func (t *InMemoryTrieState) Trie() *trie.InMemoryTrie {
 // Snapshot creates a new "version" of the trie. The trie before Snapshot is called
 // can no longer be modified, all further changes are on a new "version" of the trie.
 // It returns the new version of the trie.
-func (t *InMemoryTrieState) Snapshot() *trie.InMemoryTrie {
+func (t *InMemoryTrieState) Snapshot() *inmemory.InMemoryTrie {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 
@@ -183,7 +184,7 @@ func (t *InMemoryTrieState) TrieEntries() map[string][]byte {
 func (t *InMemoryTrieState) SetChild(keyToChild []byte, child trie.Trie) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
-	return t.getCurrentTrie().SetChild(keyToChild, child.(*trie.InMemoryTrie))
+	return t.getCurrentTrie().SetChild(keyToChild, child.(*inmemory.InMemoryTrie))
 }
 
 // SetChildStorage sets a key-value pair in a child trie

@@ -16,7 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
 	storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -32,7 +32,7 @@ func TestWithLogLevel(lvl log.Level) TestInstanceOption {
 	}
 }
 
-func TestWithTrie(tt *trie.InMemoryTrie) TestInstanceOption {
+func TestWithTrie(tt *inmemory.InMemoryTrie) TestInstanceOption {
 	return func(c *Config) {
 		c.Storage = inmemory_storage.NewTrieState(tt)
 	}
@@ -49,7 +49,7 @@ func NewTestInstance(t *testing.T, targetRuntime string, opts ...TestInstanceOpt
 
 	ctrl := gomock.NewController(t)
 	cfg := &Config{
-		Storage:  storage.NewTrieState(trie.NewEmptyInmemoryTrie()),
+		Storage:  storage.NewTrieState(inmemory.NewEmptyInmemoryTrie()),
 		Keystore: keystore.NewGlobalKeystore(),
 		LogLvl:   DefaultTestLogLvl,
 		NodeStorage: runtime.NodeStorage{

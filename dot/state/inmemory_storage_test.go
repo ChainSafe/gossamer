@@ -12,7 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	inmemory_storate "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"go.uber.org/mock/gomock"
 
@@ -32,7 +32,7 @@ func newTestStorageState(t *testing.T) *InmemoryStorageState {
 
 func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	storage := newTestStorageState(t)
-	ts, err := storage.TrieState(&trie.EmptyHash)
+	ts, err := storage.TrieState(&inmemory_trie.EmptyHash)
 	require.NoError(t, err)
 
 	root, err := ts.Root()
@@ -52,7 +52,7 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	storage := newTestStorageState(t)
-	ts, err := storage.TrieState(&trie.EmptyHash)
+	ts, err := storage.TrieState(&inmemory_trie.EmptyHash)
 	require.NoError(t, err)
 
 	key := []byte("testkey")
@@ -87,7 +87,7 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 
 func TestStorage_TrieState(t *testing.T) {
 	storage := newTestStorageState(t)
-	ts, err := storage.TrieState(&trie.EmptyHash)
+	ts, err := storage.TrieState(&inmemory_trie.EmptyHash)
 	require.NoError(t, err)
 	ts.Put([]byte("noot"), []byte("washere"))
 
@@ -107,7 +107,7 @@ func TestStorage_TrieState(t *testing.T) {
 
 func TestStorage_LoadFromDB(t *testing.T) {
 	storage := newTestStorageState(t)
-	ts, err := storage.TrieState(&trie.EmptyHash)
+	ts, err := storage.TrieState(&inmemory_trie.EmptyHash)
 	require.NoError(t, err)
 
 	trieKV := []struct {
@@ -154,7 +154,7 @@ func TestStorage_LoadFromDB(t *testing.T) {
 
 func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 	storage := newTestStorageState(t)
-	ts, err := storage.TrieState(&trie.EmptyHash)
+	ts, err := storage.TrieState(&inmemory_trie.EmptyHash)
 	require.NoError(t, err)
 
 	key := []byte("testkey")
@@ -188,7 +188,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 		StorageValue: []byte{3, 4},
 		Dirty:        true,
 	}
-	testChildTrie := trie.NewInMemoryTrie(trieRoot, trieDB)
+	testChildTrie := inmemory_trie.NewInMemoryTrie(trieRoot, trieDB)
 
 	testChildTrie.Put([]byte("keyInsidechild"), []byte("voila"))
 
