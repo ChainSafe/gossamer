@@ -92,7 +92,7 @@ func (cs *storageDiff) delete(key string) {
 // deleteChildLimit deletes lexicographical sorted keys from a child trie with
 // a maximum limit, potentially marking the entire child trie for deletion
 // if the limit is exceeded.
-// This method will do not consider keys created during actual block execution
+// Keys created during the current block execution do not count toward the limit
 // https://spec.polkadot.network/chap-host-api#id-version-2-prototype-2
 func (cs *storageDiff) deleteChildLimit(keyToChild string,
 	currentChildKeys []string, limit int) (
