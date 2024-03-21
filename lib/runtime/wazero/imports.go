@@ -519,19 +519,19 @@ func ext_crypto_ecdsa_generate_version_1(
 	}
 
 	if err != nil {
-		logger.Tracef("cannot generate key: %s", err)
+		logger.Errorf("cannot generate key: %s", err)
 		panic(err)
 	}
 
 	ks, err := rtCtx.Keystore.GetKeystore(id)
 	if err != nil {
-		logger.Warnf("error for id "+common.BytesToHex(id)+": %s", err)
+		logger.Errorf("error for id "+common.BytesToHex(id)+": %s", err)
 		return 0
 	}
 
 	err = ks.Insert(kp)
 	if err != nil {
-		logger.Warnf("failed to insert key: %s", err)
+		logger.Errorf("failed to insert key: %s", err)
 		return 0
 	}
 
