@@ -526,10 +526,6 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header, origin blockOrigin) error { //nolint:unparam
 	startRequestAt := bestBlockHeader.Number + 1
 
-	//if cs.blockState.IsPaused() {
-	//	return errors.New("blockstate is paused")
-	//}
-
 	// targetBlockNumber is the virtual target we will request, however
 	// we should bound it to the real target which is collected through
 	// block announces received from other peers
