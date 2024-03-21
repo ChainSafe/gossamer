@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"math/bits"
 
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -58,6 +59,10 @@ var (
 		Help: "the amount of address space (in bytes) used by the allocator this is calculated as " +
 			"the difference between the allocator's bumper and the heap base.",
 	})
+
+	logger = log.NewFromGlobal(
+		log.AddContext("pkg", "runtime-allocator"),
+	)
 )
 
 var (
@@ -508,16 +513,12 @@ func bump(bumper *uint32, size uint32, mem runtime.Memory) (uint32, error) {
 	if requiredSize > mem.Size() {
 		requiredPages, ok := pagesFromSize(requiredSize)
 		if !ok {
-			panic(fmt.Sprintf("cannot calculate number of pages from size %d", requiredSize))
+			return 0, fmt.Errorf("%w: cannot calculate number of pages from size %d", ErrAllocatorOutOfSpace, requiredSize)
 		}
 
 		currentPages, ok := pagesFromSize(mem.Size())
 		if !ok {
 			panic(fmt.Sprintf("page size cannot fit into uint32, current memory size: %d", mem.Size()))
-		}
-
-		if currentPages >= requiredPages {
-			panic(fmt.Sprintf("current pages %d >= required pages %d", currentPages, requiredPages))
 		}
 
 		if currentPages >= MaxWasmPages {
@@ -544,7 +545,7 @@ func bump(bumper *uint32, size uint32, mem runtime.Memory) (uint32, error) {
 
 		pagesIncrease := (mem.Size() / PageSize) == uint64(nextPages)
 		if !pagesIncrease {
-			panic(fmt.Sprintf("number of pages should have increased! previous: %d, desired: %d", currentPages, nextPages))
+			logger.Errorf("number of pages should have increased! previous: %d, desired: %d", currentPages, nextPages)
 		}
 	}
 
