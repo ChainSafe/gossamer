@@ -458,13 +458,16 @@ var ErrExportFunctionNotFound = errors.New("export function not found")
 
 func (i *Instance) Exec(function string, data []byte) (result []byte, err error) {
 	i.Lock()
-	defer i.Unlock()
+	i.Context.Allocator = allocator.NewFreeingBumpHeapAllocator(i.heapBase)
 
+	defer func() {
+		i.Context.Allocator = nil
+		i.Unlock()
+	}()
 	// instantiate a new allocator on every execution func
-	allocator := allocator.NewFreeingBumpHeapAllocator(i.heapBase)
 
 	dataLength := uint32(len(data))
-	inputPtr, err := allocator.Allocate(i.Module.Memory(), dataLength)
+	inputPtr, err := i.Context.Allocator.Allocate(i.Module.Memory(), dataLength)
 	if err != nil {
 		return nil, fmt.Errorf("allocating input memory: %w", err)
 	}
@@ -479,11 +482,6 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	if !ok {
 		panic("write overflow")
 	}
-
-	i.Context.Allocator = allocator
-	defer func() {
-		i.Context.Allocator = nil
-	}()
 
 	runtimeFunc := i.Module.ExportedFunction(function)
 	if runtimeFunc == nil {
