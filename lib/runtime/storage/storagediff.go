@@ -88,6 +88,7 @@ func (cs *storageDiff) delete(key string) {
 func (cs *storageDiff) deleteChildLimit(keyToChild string,
 	currentChildKeys []string, limit int) (
 	deleted uint32, allDeleted bool) {
+
 	childChanges := cs.childChangeSet[keyToChild]
 	if childChanges == nil {
 		childChanges = newStorageDiff()
@@ -160,18 +161,18 @@ func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) 
 // getFromChild attempts to retrieve a value associated with a specific key
 // from a child trie's change set identified by keyToChild.
 // It returns the value and a boolean indicating if it was marked for deletion.
-func (cs *storageDiff) getFromChild(keyToChild, key string) ([]byte, bool, error) {
+func (cs *storageDiff) getFromChild(keyToChild, key string) ([]byte, bool) {
 	if cs == nil {
-		return nil, false, nil
+		return nil, false
 	}
 
 	childTrieChanges := cs.childChangeSet[keyToChild]
 	if childTrieChanges != nil {
 		value, deleted := childTrieChanges.get(key)
-		return value, deleted, nil
+		return value, deleted
 	}
 
-	return nil, false, trie.ErrChildTrieDoesNotExist
+	return nil, false
 }
 
 // upsertChild inserts or updates a value associated with a key within a

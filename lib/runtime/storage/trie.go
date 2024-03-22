@@ -6,7 +6,6 @@ package storage
 import (
 	"container/list"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -249,7 +248,7 @@ func (t *TrieState) SetChildStorage(keyToChild, key, value []byte) error {
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		keyToChildStr := string(keyToChild)
 		keyString := string(key)
-		t.getCurrentTransaction().upsertChild(keyToChildStr, keyString, value)
+		currentTx.upsertChild(keyToChildStr, keyString, value)
 		return nil
 	}
 
@@ -274,13 +273,7 @@ func (t *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 	defer t.mtx.RUnlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-		val, deleted, err := currentTx.getFromChild(string(keyToChild), string(key))
-		if err != nil {
-			// If child trie is not present in current change lookup in state
-			if errors.Is(err, trie.ErrChildTrieDoesNotExist) {
-				return t.state.GetFromChild(keyToChild, key)
-			}
-		}
+		val, deleted := currentTx.getFromChild(string(keyToChild), string(key))
 		if val != nil || deleted {
 			return val, nil
 		}
@@ -309,20 +302,33 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	child, err := t.state.GetChild(key)
-	if err != nil {
-		return 0, false, err
-	}
-
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		deleteLimit := -1
 		if limit != nil {
 			deleteLimit = int(binary.LittleEndian.Uint32(*limit))
 		}
 
-		childEntriesKeys := maps.Keys(child.Entries())
-		deleted, allDeleted = currentTx.deleteChildLimit(string(key), childEntriesKeys, deleteLimit)
+		childKey := string(key)
+
+		child, err := t.state.GetChild(key)
+
+		childEntriesKeys := make([]string, 0)
+		if err != nil {
+			// If child trie does not exists and won't be created return err
+			if currentTx.childChangeSet[childKey] == nil {
+				return 0, false, err
+			}
+		} else {
+			childEntriesKeys = maps.Keys(child.Entries())
+		}
+
+		deleted, allDeleted = currentTx.deleteChildLimit(childKey, childEntriesKeys, deleteLimit)
 		return deleted, allDeleted, nil
+	}
+
+	child, err := t.state.GetChild(key)
+	if err != nil {
+		return 0, false, err
 	}
 
 	childTrieEntries := child.Entries()
@@ -382,12 +388,13 @@ func (t *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		child, err := t.state.GetChild(keyToChild)
-		if err != nil {
-			return err
+		childKeys := make([]string, 0)
+		if err == nil {
+			childKeys = maps.Keys(child.Entries())
 		}
 
-		childKeys := maps.Keys(child.Entries())
 		currentTx.clearPrefixInChild(string(keyToChild), prefix, childKeys, -1)
+		return nil
 	}
 
 	child, err := t.state.GetChild(keyToChild)
