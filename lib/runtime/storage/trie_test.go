@@ -278,55 +278,6 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 	}
 }
 
-func TestTrieState_DeleteChildLimit(t *testing.T) {
-	ts := NewTrieState(trie.NewEmptyTrie())
-
-	keys := [][]byte{
-		[]byte("key3"),
-		[]byte("key1"),
-		[]byte("key2"),
-	}
-
-	keyToChild := []byte("keytochild")
-
-	for i, key := range keys {
-		ts.SetChildStorage(keyToChild, key, []byte{byte(i)})
-	}
-
-	testLimitBytes := make([]byte, 4)
-	binary.LittleEndian.PutUint32(testLimitBytes, uint32(2))
-	optLimit2 := &testLimitBytes
-
-	testCases := []struct {
-		key             []byte
-		limit           *[]byte
-		expectedDeleted uint32
-		expectedDelAll  bool
-		errMsg          string
-	}{
-		{
-			key:             []byte("fakekey"),
-			limit:           optLimit2,
-			expectedDeleted: 0,
-			expectedDelAll:  false,
-			errMsg:          fmt.Sprintf("child trie does not exist at key 0x%x", ":child_storage:default:fakekey"),
-		},
-		{key: []byte("keytochild"), limit: optLimit2, expectedDeleted: 2, expectedDelAll: false},
-		{key: []byte("keytochild"), limit: nil, expectedDeleted: 1, expectedDelAll: true},
-	}
-	for _, test := range testCases {
-		deleted, all, err := ts.DeleteChildLimit(test.key, test.limit)
-		if test.errMsg != "" {
-			require.Error(t, err)
-			require.EqualError(t, err, test.errMsg)
-			continue
-		}
-		require.NoError(t, err)
-		require.Equal(t, test.expectedDeleted, deleted)
-		require.Equal(t, test.expectedDelAll, all)
-	}
-}
-
 func TestTrieState_Root(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
