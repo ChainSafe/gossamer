@@ -262,13 +262,8 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 				deleted, all, err := ts.DeleteChildLimit(keyToChild, nil)
 
 				require.Nil(t, err)
-				if isTransactionRunning {
-					require.Equal(t, uint32(3), deleted)
-					require.Equal(t, true, all)
-				} else {
-					require.Equal(t, uint32(3), deleted)
-					require.Equal(t, true, all)
-				}
+				require.Equal(t, uint32(3), deleted)
+				require.Equal(t, true, all)
 			},
 		},
 		"next_key": {

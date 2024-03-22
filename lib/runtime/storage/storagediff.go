@@ -100,8 +100,9 @@ func (cs *storageDiff) deleteChildLimit(keyToChild string,
 		return uint32(deletedKeys), true
 	}
 
+	allKeys := slices.Clone(currentChildKeys)
 	newKeys := maps.Keys(childChanges.upserts)
-	allKeys := append(newKeys, currentChildKeys...)
+	allKeys = append(allKeys, newKeys...)
 	sort.Strings(allKeys)
 
 	for _, k := range allKeys {
@@ -137,8 +138,10 @@ func (cs *storageDiff) clearPrefixInChild(keyToChild string, prefix []byte,
 // optional limit. It returns the number of keys deleted and a boolean
 // indicating if all keys with the prefix were removed.
 func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) (deleted uint32, allDeleted bool) {
+	allKeys := slices.Clone(trieKeys)
 	newKeys := maps.Keys(cs.upserts)
-	allKeys := append(newKeys, trieKeys...)
+	allKeys = append(allKeys, newKeys...)
+
 	deleted = 0
 	sort.Strings(allKeys)
 	for _, k := range allKeys {

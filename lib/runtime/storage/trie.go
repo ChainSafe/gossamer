@@ -63,7 +63,7 @@ func (t *TrieState) StartTransaction() {
 	t.transactions.PushBack(nextChangeSet.snapshot())
 }
 
-// Rollback rolls back all storage changes made since StartTransaction was called.
+// RollbackTransaction back all storage changes made since StartTransaction was called.
 func (t *TrieState) RollbackTransaction() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
@@ -75,7 +75,7 @@ func (t *TrieState) RollbackTransaction() {
 	t.transactions.Remove(t.transactions.Back())
 }
 
-// Commit commits all storage changes made since StartTransaction was called.
+// CommitTransaction all storage changes made since StartTransaction was called.
 func (t *TrieState) CommitTransaction() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()

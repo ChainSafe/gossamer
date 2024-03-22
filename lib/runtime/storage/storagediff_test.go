@@ -335,7 +335,7 @@ func Test_ChildTrie(t *testing.T) {
 		for tname, tt := range cases {
 			tt := tt
 			t.Run(tname, func(t *testing.T) {
-				//t.Parallel()
+				t.Parallel()
 
 				changes := newStorageDiff()
 
