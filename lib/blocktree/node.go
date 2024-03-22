@@ -59,20 +59,23 @@ func (n *node) getNode(h common.Hash) *node {
 	return nil
 }
 
-// getNodesWithNumber returns all descendent nodes with the desired number
-func (n *node) getNodesWithNumber(number uint, hashes []common.Hash) []common.Hash {
-	for _, child := range n.children {
-		// number matches
-		if child.number == number {
-			hashes = append(hashes, child.hash)
+// hashesAtNumber returns all nodes in the chain that contains the desired number
+func (n *node) hashesAtNumber(number uint, hashes []common.Hash) []common.Hash {
+	// there is no need to go furthen in the node's children
+	// since they have a greater number at least
+	if number == n.number {
+		hashes = append(hashes, n.hash)
+		return hashes
+	}
+
+	// if the number is greater than current node,
+	// then search among its children
+	if number > n.number {
+		for _, children := range n.children {
+			hashes = children.hashesAtNumber(number, hashes)
 		}
 
-		// are deeper than desired number, return
-		if child.number > number {
-			return hashes
-		}
-
-		hashes = child.getNodesWithNumber(number, hashes)
+		return hashes
 	}
 
 	return hashes
