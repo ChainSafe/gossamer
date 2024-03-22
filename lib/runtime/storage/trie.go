@@ -4,6 +4,7 @@
 package storage
 
 import (
+	"bytes"
 	"container/list"
 	"encoding/binary"
 	"fmt"
@@ -419,11 +420,11 @@ func (t *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		child, err := t.state.GetChild(keyToChild)
-		if err != nil {
-			return 0, false, err
+		childKeys := make([]string, 0)
+		if err == nil {
+			childKeys = maps.Keys(child.Entries())
 		}
 
-		childKeys := maps.Keys(child.Entries())
 		deleted, allDeleted := currentTx.clearPrefixInChild(string(keyToChild), prefix, childKeys, int(limit))
 		return deleted, allDeleted, nil
 	}
@@ -441,6 +442,37 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		// If we are going to delete this child we return error
+		if currentTx.deletes[string(keyToChild)] {
+			return nil, trie.ErrChildTrieDoesNotExist
+		}
+
+		if childChanges := currentTx.childChangeSet[string(keyToChild)]; childChanges != nil {
+			allEntries := make(map[string][]byte)
+
+			maps.Copy(allEntries, childChanges.upserts)
+			child, err := t.state.GetChild(keyToChild)
+			if err != nil {
+				// Child trie does not exists and won't exists in the future
+				if len(allEntries) == 0 {
+					return nil, err
+				}
+			} else {
+				allEntries = child.Entries()
+			}
+			keys := maps.Keys(allEntries)
+			sort.Strings(keys)
+
+			for _, k := range keys {
+				if k > string(key) && !childChanges.deletes[k] {
+					return allEntries[k], nil
+				}
+			}
+			return nil, nil
+		}
+	}
+
 	child, err := t.state.GetChild(keyToChild)
 	if err != nil {
 		return nil, err
@@ -448,11 +480,48 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 	if child == nil {
 		return nil, nil
 	}
+
 	return child.NextKey(key), nil
 }
 
 // GetKeysWithPrefixFromChild ...
 func (t *TrieState) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]byte, error) {
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		// If we are going to delete this child we return error
+		if currentTx.deletes[string(keyToChild)] {
+			return nil, trie.ErrChildTrieDoesNotExist
+		}
+
+		if childChanges := currentTx.childChangeSet[string(keyToChild)]; childChanges != nil {
+			allEntries := make(map[string][]byte)
+
+			maps.Copy(allEntries, childChanges.upserts)
+			child, err := t.state.GetChild(keyToChild)
+			if err != nil {
+				// Child trie does not exists and won't exists in the future
+				if len(allEntries) == 0 {
+					return nil, err
+				}
+			} else {
+				allEntries = child.Entries()
+			}
+			keys := maps.Keys(allEntries)
+
+			values := make([][]byte, 0)
+
+			for _, k := range keys {
+				if bytes.HasPrefix([]byte(k), prefix) {
+					values = append(values, allEntries[k])
+				}
+			}
+
+			return values, nil
+		}
+	}
+
 	child, err := t.state.GetChild(keyToChild)
 	if err != nil {
 		return nil, err

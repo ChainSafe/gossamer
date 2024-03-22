@@ -4,11 +4,8 @@
 package storage
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
-	"slices"
-	"sort"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -34,9 +31,9 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 		[]byte("other"),
 	}
 	sortedKeys := [][]byte{
-		[]byte("key3"),
 		[]byte("key1"),
 		[]byte("key2"),
+		[]byte("key3"),
 	}
 
 	keyToChild := []byte("keytochild")
@@ -110,17 +107,32 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 				require.False(t, has)
 			},
 		},
+		"delete_child": {
+			changes: func(t *testing.T, ts *TrieState) {
+				for _, tc := range prefixedKeys {
+					ts.SetChildStorage(keyToChild, tc, tc)
+				}
+			},
+			checks: func(t *testing.T, ts *TrieState, _ bool) {
+				err := ts.DeleteChild(keyToChild)
+				require.Nil(t, err)
+
+				root, err := ts.GetChildStorage(keyToChild, prefixedKeys[0])
+				require.NotNil(t, err)
+				require.Nil(t, root)
+			},
+		},
 		"clear_prefix": {
 			changes: func(t *testing.T, ts *TrieState) {
 				for i, key := range prefixedKeys {
 					err := ts.Put(key, []byte{byte(i)})
 					require.Nil(t, err)
 				}
-
-				err := ts.ClearPrefix([]byte("noo"))
-				require.Nil(t, err)
 			},
 			checks: func(t *testing.T, ts *TrieState, _ bool) {
+				err := ts.ClearPrefix([]byte("noo"))
+				require.Nil(t, err)
+
 				for i, key := range prefixedKeys {
 					val := ts.Get(key)
 					if i < 2 {
@@ -131,17 +143,38 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 				}
 			},
 		},
+		"clear_prefix_with_limit_1": {
+			changes: func(t *testing.T, ts *TrieState) {
+				for i, key := range prefixedKeys {
+					err := ts.Put(key, []byte{byte(i)})
+					require.Nil(t, err)
+				}
+			},
+			checks: func(t *testing.T, ts *TrieState, isTransactionRunning bool) {
+				deleted, allDeleted, err := ts.ClearPrefixLimit([]byte("noo"), uint32(1))
+				require.Nil(t, err)
+
+				if isTransactionRunning {
+					// New keys are not considered towards the limit
+					require.Equal(t, uint32(2), deleted)
+					require.False(t, allDeleted)
+				} else {
+					require.Equal(t, uint32(1), deleted)
+					require.False(t, allDeleted)
+				}
+			},
+		},
 		"clear_prefix_in_child": {
 			changes: func(t *testing.T, ts *TrieState) {
 				for i, key := range prefixedKeys {
 					err := ts.SetChildStorage(keyToChild, key, []byte{byte(i)})
 					require.NoError(t, err)
 				}
-
-				err := ts.ClearPrefixInChild(keyToChild, []byte("noo"))
-				require.NoError(t, err)
 			},
 			checks: func(t *testing.T, ts *TrieState, _ bool) {
+				err := ts.ClearPrefixInChild(keyToChild, []byte("noo"))
+				require.NoError(t, err)
+
 				for i, key := range prefixedKeys {
 					val, err := ts.GetChildStorage(keyToChild, key)
 					require.NoError(t, err)
@@ -150,6 +183,27 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 					} else {
 						require.NotNil(t, val)
 					}
+				}
+			},
+		},
+		"clear_prefix_in_child_with_limit_1": {
+			changes: func(t *testing.T, ts *TrieState) {
+				for i, key := range prefixedKeys {
+					err := ts.SetChildStorage(keyToChild, key, []byte{byte(i)})
+					require.NoError(t, err)
+				}
+
+			},
+			checks: func(t *testing.T, ts *TrieState, isTransactionRunning bool) {
+				deleted, allDeleted, err := ts.ClearPrefixInChildWithLimit(keyToChild, []byte("noo"), uint32(1))
+
+				require.NoError(t, err)
+				require.False(t, allDeleted)
+
+				if isTransactionRunning {
+					require.Equal(t, uint32(2), deleted)
+				} else {
+					require.Equal(t, uint32(1), deleted)
 				}
 			},
 		},
@@ -219,26 +273,72 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 		},
 		"next_key": {
 			changes: func(t *testing.T, ts *TrieState) {
+				for _, tc := range sortedKeys {
+					err := ts.Put(tc, tc)
+					require.Nil(t, err)
+				}
+			},
+			checks: func(t *testing.T, ts *TrieState, _ bool) {
+				for i, tc := range sortedKeys {
+					next := ts.NextKey(tc)
+					if i == len(sortedKeys)-1 {
+						require.Nil(t, next)
+					} else {
+						require.Equal(t, sortedKeys[i+1], next, common.BytesToHex(tc))
+					}
+				}
+			},
+		},
+		"child_next_key": {
+			changes: func(t *testing.T, ts *TrieState) {
+				for _, tc := range sortedKeys {
+					err := ts.SetChildStorage(keyToChild, tc, tc)
+					require.Nil(t, err)
+				}
+			},
+			checks: func(t *testing.T, ts *TrieState, _ bool) {
+				for i, tc := range sortedKeys {
+					next, err := ts.GetChildNextKey(keyToChild, tc)
+					require.Nil(t, err)
+
+					if i == len(sortedKeys)-1 {
+						require.Nil(t, next)
+					} else {
+						require.Equal(t, sortedKeys[i+1], next, common.BytesToHex(tc))
+					}
+				}
+			},
+		},
+		"entries": {
+			changes: func(t *testing.T, ts *TrieState) {
 				for _, tc := range testCases {
 					err := ts.Put([]byte(tc), []byte(tc))
 					require.Nil(t, err)
 				}
 			},
 			checks: func(t *testing.T, ts *TrieState, _ bool) {
-				testCasesCopy := slices.Clone(testCases)
+				entries := ts.TrieEntries()
+				require.Len(t, entries, len(testCases))
 
-				sort.Slice(testCasesCopy, func(i, j int) bool {
-					return bytes.Compare([]byte(testCasesCopy[i]), []byte(testCasesCopy[j])) == -1
-				})
-
-				for i, tc := range testCasesCopy {
-					next := ts.NextKey([]byte(tc))
-					if i == len(testCasesCopy)-1 {
-						require.Nil(t, next)
-					} else {
-						require.Equal(t, []byte(testCasesCopy[i+1]), next, common.BytesToHex([]byte(tc)))
-					}
+				for _, tc := range testCases {
+					require.Contains(t, entries, tc)
 				}
+			},
+		},
+		"get_keys_with_prefix_from_child": {
+			changes: func(t *testing.T, ts *TrieState) {
+				for _, tc := range prefixedKeys {
+					err := ts.SetChildStorage(keyToChild, tc, tc)
+					require.Nil(t, err)
+				}
+			},
+			checks: func(t *testing.T, ts *TrieState, _ bool) {
+				values, err := ts.GetKeysWithPrefixFromChild(keyToChild, []byte("noo"))
+
+				require.Nil(t, err)
+				require.Len(t, values, 2)
+				require.Contains(t, values, []byte("noot"))
+				require.Contains(t, values, []byte("noodle"))
 			},
 		},
 	}
@@ -279,17 +379,28 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 }
 
 func TestTrieState_Root(t *testing.T) {
-	testFunc := func(ts *TrieState) {
-		for _, tc := range testCases {
-			ts.Put([]byte(tc), []byte(tc))
-		}
+	ts := NewTrieState(trie.NewEmptyTrie())
 
-		expected := ts.MustRoot()
-		require.Equal(t, expected, ts.MustRoot())
+	for _, tc := range testCases {
+		ts.Put([]byte(tc), []byte(tc))
 	}
 
+	expected := ts.MustRoot()
+	require.Equal(t, expected, ts.MustRoot())
+}
+
+func TestTrieState_ChildRoot(t *testing.T) {
 	ts := NewTrieState(trie.NewEmptyTrie())
-	testFunc(ts)
+
+	keyToChild := []byte("child")
+
+	for _, tc := range testCases {
+		ts.SetChildStorage(keyToChild, []byte(tc), []byte(tc))
+	}
+
+	root, err := ts.GetChildRoot(keyToChild)
+	require.Nil(t, err)
+	require.NotNil(t, root)
 }
 
 func TestTrieState_NestedTransactions(t *testing.T) {
