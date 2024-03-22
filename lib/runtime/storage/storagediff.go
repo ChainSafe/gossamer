@@ -6,7 +6,6 @@ package storage
 import (
 	"bytes"
 	"sort"
-	"sync"
 
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -20,11 +19,11 @@ import (
 // This mechanism facilitates applying state transitions efficiently.
 // Changes accumulated in storageDiff can be applied to a trie using
 // the `applyToTrie` method
+// Note: this structure is not thread safe, be careful
 type storageDiff struct {
 	upserts        map[string][]byte
 	deletes        map[string]bool
 	childChangeSet map[string]*storageDiff
-	mtx            sync.RWMutex
 }
 
 // newChangeSet initialises and returns a new storageDiff instance
@@ -33,7 +32,6 @@ func newStorageDiff() *storageDiff {
 		upserts:        make(map[string][]byte),
 		deletes:        make(map[string]bool),
 		childChangeSet: make(map[string]*storageDiff),
-		mtx:            sync.RWMutex{},
 	}
 }
 
@@ -43,9 +41,6 @@ func (cs *storageDiff) get(key string) ([]byte, bool) {
 	if cs == nil {
 		return nil, false
 	}
-
-	cs.mtx.RLock()
-	defer cs.mtx.RUnlock()
 
 	// Check in recent upserts if not found check if we want to delete it
 	if val, ok := cs.upserts[key]; ok {
@@ -64,8 +59,6 @@ func (cs *storageDiff) upsert(key string, value []byte) {
 		return
 	}
 
-	cs.mtx.Lock()
-	defer cs.mtx.Unlock()
 	// If we previously deleted this trie we have to undo that deletion
 	if cs.deletes[key] {
 		delete(cs.deletes, key)
@@ -80,9 +73,6 @@ func (cs *storageDiff) delete(key string) {
 	if cs == nil {
 		return
 	}
-
-	cs.mtx.Lock()
-	defer cs.mtx.Unlock()
 
 	delete(cs.childChangeSet, key)
 	delete(cs.upserts, key)
@@ -174,9 +164,6 @@ func (cs *storageDiff) getFromChild(keyToChild, key string) ([]byte, bool) {
 		return nil, false
 	}
 
-	cs.mtx.RLock()
-	defer cs.mtx.RUnlock()
-
 	childTrieChanges := cs.childChangeSet[keyToChild]
 	if childTrieChanges != nil {
 		return childTrieChanges.get(key)
@@ -193,8 +180,6 @@ func (cs *storageDiff) upsertChild(keyToChild, key string, value []byte) {
 		return
 	}
 
-	cs.mtx.Lock()
-	defer cs.mtx.Unlock()
 	// If we previously deleted this child trie we have to undo that deletion
 	if cs.deletes[keyToChild] {
 		delete(cs.deletes, keyToChild)
@@ -215,9 +200,6 @@ func (cs *storageDiff) deleteFromChild(keyToChild, key string) {
 		return
 	}
 
-	cs.mtx.Lock()
-	defer cs.mtx.Unlock()
-
 	childChanges := cs.childChangeSet[keyToChild]
 	if childChanges == nil {
 		childChanges = newStorageDiff()
@@ -233,9 +215,6 @@ func (cs *storageDiff) snapshot() *storageDiff {
 	if cs == nil {
 		panic("Trying to create snapshot from nil change set")
 	}
-
-	cs.mtx.RLock()
-	defer cs.mtx.RUnlock()
 
 	childChangeSetCopy := make(map[string]*storageDiff)
 	for k, v := range cs.childChangeSet {
@@ -257,9 +236,6 @@ func (cs *storageDiff) applyToTrie(t *trie.Trie) {
 	if cs == nil {
 		panic("trying to apply nil change set")
 	}
-
-	cs.mtx.RLock()
-	defer cs.mtx.RUnlock()
 
 	// Apply trie upserts
 	for k, v := range cs.upserts {
