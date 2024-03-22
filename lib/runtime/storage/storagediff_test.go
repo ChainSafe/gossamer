@@ -202,8 +202,9 @@ func Test_ChildTrie(t *testing.T) {
 			t.Parallel()
 
 			changes := newStorageDiff()
-			val, deleted := changes.getFromChild("notFound", "testChildKey")
+			val, deleted, err := changes.getFromChild("notFound", "testChildKey")
 
+			require.ErrorIs(t, err, trie.ErrChildTrieDoesNotExist)
 			require.False(t, deleted)
 			require.Nil(t, val)
 		})
@@ -213,8 +214,9 @@ func Test_ChildTrie(t *testing.T) {
 
 			changes := newStorageDiff()
 			changes.upsertChild("testChild", "testChildKey", []byte("test"))
-			val, deleted := changes.getFromChild("notFound", "testChildKey")
+			val, deleted, err := changes.getFromChild("notFound", "testChildKey")
 
+			require.ErrorIs(t, err, trie.ErrChildTrieDoesNotExist)
 			require.False(t, deleted)
 			require.Nil(t, val)
 		})
@@ -224,8 +226,9 @@ func Test_ChildTrie(t *testing.T) {
 
 			changes := newStorageDiff()
 			changes.upsertChild("testChild", "testChildKey", []byte("test"))
-			val, deleted := changes.getFromChild("testChild", "notFound")
+			val, deleted, err := changes.getFromChild("testChild", "notFound")
 
+			require.Nil(t, err)
 			require.False(t, deleted)
 			require.Nil(t, val)
 		})
@@ -235,8 +238,9 @@ func Test_ChildTrie(t *testing.T) {
 
 			changes := newStorageDiff()
 			changes.upsertChild("testChild", "testChildKey", []byte("test"))
-			val, deleted := changes.getFromChild("testChild", "testChildKey")
+			val, deleted, err := changes.getFromChild("testChild", "testChildKey")
 
+			require.Nil(t, err)
 			require.False(t, deleted)
 			require.Equal(t, []byte("test"), val)
 		})
@@ -250,7 +254,9 @@ func Test_ChildTrie(t *testing.T) {
 		childkey := "testChild"
 		changes.upsertChild(childkey, testKey, testValue)
 
-		val, deleted := changes.getFromChild(childkey, testKey)
+		val, deleted, err := changes.getFromChild(childkey, testKey)
+
+		require.Nil(t, err)
 		require.False(t, deleted)
 		require.Equal(t, testValue, val)
 	})
@@ -264,7 +270,9 @@ func Test_ChildTrie(t *testing.T) {
 		changes.upsertChild(childkey, testKey, testValue)
 		changes.deleteFromChild(childkey, testKey)
 
-		val, deleted := changes.getFromChild(childkey, testKey)
+		val, deleted, err := changes.getFromChild(childkey, testKey)
+
+		require.Nil(t, err)
 		require.True(t, deleted)
 		require.Nil(t, val)
 	})

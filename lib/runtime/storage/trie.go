@@ -6,6 +6,7 @@ package storage
 import (
 	"container/list"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -272,9 +273,17 @@ func (t *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 
-	val, deleted := t.getCurrentTransaction().getFromChild(string(keyToChild), string(key))
-	if val != nil || deleted {
-		return val, nil
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		val, deleted, err := currentTx.getFromChild(string(keyToChild), string(key))
+		if err != nil {
+			// If child trie is not present in current change lookup in state
+			if errors.Is(err, trie.ErrChildTrieDoesNotExist) {
+				return t.state.GetFromChild(keyToChild, key)
+			}
+		}
+		if val != nil || deleted {
+			return val, nil
+		}
 	}
 
 	// If we didnt find the key in the latest transactions lookup from state
@@ -359,7 +368,7 @@ func (t *TrieState) ClearChildStorage(keyToChild, key []byte) error {
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		keyToChildStr := string(keyToChild)
 		keyStr := string(key)
-		t.getCurrentTransaction().deleteFromChild(keyToChildStr, keyStr)
+		currentTx.deleteFromChild(keyToChildStr, keyStr)
 		return nil
 	}
 

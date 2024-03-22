@@ -6,6 +6,7 @@ package storage
 import (
 	"bytes"
 	"sort"
+	"strings"
 
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -159,17 +160,18 @@ func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) 
 // getFromChild attempts to retrieve a value associated with a specific key
 // from a child trie's change set identified by keyToChild.
 // It returns the value and a boolean indicating if it was marked for deletion.
-func (cs *storageDiff) getFromChild(keyToChild, key string) ([]byte, bool) {
+func (cs *storageDiff) getFromChild(keyToChild, key string) ([]byte, bool, error) {
 	if cs == nil {
-		return nil, false
+		return nil, false, nil
 	}
 
 	childTrieChanges := cs.childChangeSet[keyToChild]
 	if childTrieChanges != nil {
-		return childTrieChanges.get(key)
+		value, deleted := childTrieChanges.get(key)
+		return value, deleted, nil
 	}
 
-	return nil, false
+	return nil, false, trie.ErrChildTrieDoesNotExist
 }
 
 // upsertChild inserts or updates a value associated with a key within a
@@ -259,7 +261,9 @@ func (cs *storageDiff) applyToTrie(t *trie.Trie) {
 		for k := range childChangeSet.deletes {
 			err := t.ClearFromChild(childKey, []byte(k))
 			if err != nil {
-				panic("Error applying child trie keys deletion to trie")
+				if !strings.Contains(err.Error(), trie.ErrChildTrieDoesNotExist.Error()) {
+					panic("Error applying child trie keys deletion to trie")
+				}
 			}
 		}
 	}
