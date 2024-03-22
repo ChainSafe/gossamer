@@ -26,8 +26,8 @@ func (m *MemoryInstance) pages() uint32 {
 	return pages
 }
 
-func (m *MemoryInstance) Size() uint32 {
-	return m.pages() * PageSize
+func (m *MemoryInstance) Size() uint64 {
+	return uint64(m.pages() * PageSize)
 }
 
 func (m *MemoryInstance) Grow(pages uint32) (uint32, bool) {
@@ -54,7 +54,7 @@ func (m *MemoryInstance) WriteUint64Le(offset uint32, v uint64) bool {
 	copy(m.data[offset:offset+8], encoded)
 	return true
 }
-func (*MemoryInstance) Read(_, _ uint32) ([]byte, bool) {
+func (*MemoryInstance) Read(_ uint32, _ uint64) ([]byte, bool) {
 	return nil, false
 }
 

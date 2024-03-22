@@ -51,8 +51,8 @@ func newPointerSize(ptr, size uint32) (pointerSize uint64) {
 
 // splitPointerSize converts a 64bit pointer size to an
 // uint32 pointer and a uint32 size.
-func splitPointerSize(pointerSize uint64) (ptr, size uint32) {
-	return uint32(pointerSize), uint32(pointerSize >> 32)
+func splitPointerSize(pointerSize uint64) (ptr uint32, size uint64) {
+	return uint32(pointerSize), pointerSize >> 32
 }
 
 // read will read from 64 bit pointer size and return a byte slice
@@ -2249,7 +2249,7 @@ func ext_storage_read_version_1(ctx context.Context, m api.Module, keySpan, valu
 
 	var written uint
 	valueOutPtr, valueOutSize := splitPointerSize(valueOut)
-	if uint32(len(data)) <= valueOutSize {
+	if uint64(len(data)) <= valueOutSize {
 		written = uint(len(data))
 	} else {
 		written = uint(valueOutSize)
