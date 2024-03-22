@@ -113,20 +113,6 @@ func (mr *MockBlockStateMockRecorder) GenesisHash() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenesisHash", reflect.TypeOf((*MockBlockState)(nil).GenesisHash))
 }
 
-// GetAllBlocksAtDepth mocks base method.
-func (m *MockBlockState) GetAllBlocksAtDepth(arg0 common.Hash) []common.Hash {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAllBlocksAtDepth", arg0)
-	ret0, _ := ret[0].([]common.Hash)
-	return ret0
-}
-
-// GetAllBlocksAtDepth indicates an expected call of GetAllBlocksAtDepth.
-func (mr *MockBlockStateMockRecorder) GetAllBlocksAtDepth(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllBlocksAtDepth", reflect.TypeOf((*MockBlockState)(nil).GetAllBlocksAtDepth), arg0)
-}
-
 // GetBlockByNumber mocks base method.
 func (m *MockBlockState) GetBlockByNumber(arg0 uint) (*types.Block, error) {
 	m.ctrl.T.Helper()
