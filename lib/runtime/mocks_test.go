@@ -54,7 +54,7 @@ func (mr *MockMemoryMockRecorder) Grow(arg0 any) *gomock.Call {
 }
 
 // Read mocks base method.
-func (m *MockMemory) Read(arg0, arg1 uint32) ([]byte, bool) {
+func (m *MockMemory) Read(arg0 uint32, arg1 uint64) ([]byte, bool) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Read", arg0, arg1)
 	ret0, _ := ret[0].([]byte)
@@ -99,10 +99,10 @@ func (mr *MockMemoryMockRecorder) ReadUint64Le(arg0 any) *gomock.Call {
 }
 
 // Size mocks base method.
-func (m *MockMemory) Size() uint32 {
+func (m *MockMemory) Size() uint64 {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Size")
-	ret0, _ := ret[0].(uint32)
+	ret0, _ := ret[0].(uint64)
 	return ret0
 }
 
