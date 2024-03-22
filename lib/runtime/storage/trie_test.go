@@ -25,6 +25,8 @@ var testCases = []string{
 }
 
 func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
+	t.Parallel()
+
 	cases := map[string]struct {
 		changes func(t *testing.T, ts *TrieState)
 		checks  func(t *testing.T, ts *TrieState)
@@ -111,7 +113,7 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 				ts.CommitTransaction()
 			})
 
-			t.Run("after_transaction_commited", func(t *testing.T) {
+			t.Run("after_transaction_committed", func(t *testing.T) {
 				t.Parallel()
 
 				ts := NewTrieState(trie.NewEmptyTrie())
