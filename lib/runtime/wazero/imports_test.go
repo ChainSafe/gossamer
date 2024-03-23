@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/allocator"
 	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
 	storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -874,8 +875,10 @@ func Test_ext_misc_runtime_version_version_1(t *testing.T) {
 		}
 	}
 
-	data := bytes
+	allocator := allocator.NewFreeingBumpHeapAllocator(0)
+	inst.Context.Allocator = allocator
 
+	data := bytes
 	dataLength := uint32(len(data))
 	inputPtr, err := inst.Context.Allocator.Allocate(inst.Module.Memory(), dataLength)
 	if err != nil {
