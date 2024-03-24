@@ -15,20 +15,22 @@ import (
 	secp256k1 "github.com/ethereum/go-ethereum/crypto"
 )
 
-// PublicKeyLength is the fixed Public Key Length
-const PublicKeyLength int = 32
+const (
+	// PublicKeyLength is the fixed Public Key Length
+	PublicKeyLength int = 32
 
-// PrivateKeyLength is the fixed Private Key Length
-const PrivateKeyLength = 32
+	// PrivateKeyLength is the fixed Private Key Length
+	PrivateKeyLength = 32
 
-// SignatureLength is the fixed Signature Length
-const SignatureLength = 64
+	// SignatureLength is the fixed Signature Length
+	SignatureLength = 64
 
-// SignatureLengthRecovery is the length of a secp256k1 signature with recovery byte (used for ecrecover)
-const SignatureLengthRecovery = 65
+	// SignatureLengthRecovery is the length of a secp256k1 signature with recovery byte (used for ecrecover)
+	SignatureLengthRecovery = 65
 
-// MessageLength is the fixed Message Length
-const MessageLength = 32
+	// MessageLength is the fixed Message Length
+	MessageLength = 32
+)
 
 // Keypair holds the pub,pk keys
 type Keypair struct {

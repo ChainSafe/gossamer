@@ -370,13 +370,11 @@ func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
 }
 
 func Test_ext_crypto_ecdsa_generate_version_1(t *testing.T) {
-	// TODO: fix this
-	t.Skip("host API tester does not yet contain rtm_ext_crypto_ecdsa_generate_version_1")
-
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	idData := []byte(keystore.AccoName)
-	ks, _ := inst.Context.Keystore.GetKeystore(idData)
+	ks, err := inst.Context.Keystore.GetKeystore(idData)
+	require.NoError(t, err)
 	require.Equal(t, 0, ks.Size())
 
 	mnemonic, err := crypto.NewBIP39Mnemonic()
@@ -389,14 +387,16 @@ func Test_ext_crypto_ecdsa_generate_version_1(t *testing.T) {
 
 	params := append(idData, seedData...) //skipcq: CRT-D0001
 
-	ret, err := inst.Exec("ext_crypto_ecdsa_generate_version_1", params)
+	ret, err := inst.Exec("rtm_ext_crypto_ecdsa_generate_version_1", params)
 	require.NoError(t, err)
 
 	var out []byte
 	err = scale.Unmarshal(ret, &out)
 	require.NoError(t, err)
+	require.Len(t, out, 33)
 
-	pubKey, err := secp256k1.NewPublicKey(out)
+	pubKey := new(secp256k1.PublicKey)
+	err = pubKey.Decode(out)
 	require.NoError(t, err)
 	require.Equal(t, 1, ks.Size())
 
