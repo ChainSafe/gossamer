@@ -30,8 +30,6 @@ func newTestStorageState(t *testing.T) *StorageState {
 }
 
 func TestStorage_StoreAndLoadTrie(t *testing.T) {
-	t.Skip()
-
 	storage := newTestStorageState(t)
 	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
