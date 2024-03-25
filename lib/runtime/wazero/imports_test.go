@@ -382,6 +382,41 @@ func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
 	}
 }
 
+func Test_ext_crypto_ecdsa_generate_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
+
+	idData := []byte(keystore.AccoName)
+	ks, err := inst.Context.Keystore.GetKeystore(idData)
+	require.NoError(t, err)
+	require.Equal(t, 0, ks.Size())
+
+	mnemonic, err := crypto.NewBIP39Mnemonic()
+	require.NoError(t, err)
+
+	mnemonicBytes := []byte(mnemonic)
+	var data = &mnemonicBytes
+	seedData, err := scale.Marshal(data)
+	require.NoError(t, err)
+
+	params := append(idData, seedData...) //skipcq: CRT-D0001
+
+	ret, err := inst.Exec("rtm_ext_crypto_ecdsa_generate_version_1", params)
+	require.NoError(t, err)
+
+	var out []byte
+	err = scale.Unmarshal(ret, &out)
+	require.NoError(t, err)
+	require.Len(t, out, 33)
+
+	pubKey := new(secp256k1.PublicKey)
+	err = pubKey.Decode(out)
+	require.NoError(t, err)
+	require.Equal(t, 1, ks.Size())
+
+	kp := ks.GetKeypair(pubKey)
+	require.NotNil(t, kp)
+}
+
 func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
