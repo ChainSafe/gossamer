@@ -1360,6 +1360,21 @@ func (in *Instance) ParachainHostValidationCodeByHash(validationCodeHash common.
 	return validationCode, nil
 }
 
+func (in *Instance) ParachainHostAsyncBackingParams() (*parachaintypes.AsyncBackingParams, error) {
+	encodedBackingParams, err := in.Exec(runtime.ParachainHostAsyncBackingParams, []byte{})
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	backingParams := new(parachaintypes.AsyncBackingParams)
+	err = scale.Unmarshal(encodedBackingParams, backingParams)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling async backing params: %w", err)
+	}
+
+	return backingParams, nil
+}
+
 func (*Instance) RandomSeed() {
 	panic("unimplemented")
 }
