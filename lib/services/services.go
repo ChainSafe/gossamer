@@ -60,23 +60,23 @@ func (s *ServiceRegistry) PauseServices() {
 	s.logger.Infof("Pausing key services")
 	// Pause the sync and state service to allow for graceful shutdown
 	syncService, ok := s.services[(reflect.TypeOf(&sync.Service{}))].(*sync.Service)
-	if !ok {
+	if ok && syncService != nil {
+		err := syncService.Pause()
+		if err != nil {
+			s.logger.Errorf("Error pausing sync service: %s", err)
+		}
+	} else {
 		s.logger.Errorf("Error getting sync service")
 	}
 
-	err := syncService.Pause()
-	if err != nil {
-		s.logger.Errorf("Error pausing sync service: %s", err)
-	}
-
 	stateService, ok := s.services[(reflect.TypeOf(&state.Service{}))].(*state.Service)
-	if !ok {
+	if ok && stateService != nil {
+		err := stateService.Pause()
+		if err != nil {
+			s.logger.Errorf("Error pausing state service: %s", err)
+		}
+	} else {
 		s.logger.Errorf("Error getting state service")
-	}
-
-	err = stateService.Pause()
-	if err != nil {
-		s.logger.Errorf("Error pausing state service: %s", err)
 	}
 
 	s.logger.Infof("Paused key services")
