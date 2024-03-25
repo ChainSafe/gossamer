@@ -1599,8 +1599,10 @@ func TestInstance_ParachainHostAsyncBackingParams(t *testing.T) {
 	tt := getParachainHostTrie(t)
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v180, tt)
 
-	_, err := rt.ParachainHostAsyncBackingParams()
+	params, err := rt.ParachainHostAsyncBackingParams()
 	require.NoError(t, err)
+	require.Equal(t, params.AllowedAncestryLen, uint32(0))
+	require.Equal(t, params.MaxCandidateDepth, uint32(0))
 }
 
 func getParachainHostTrie(t *testing.T) *trie.Trie {
