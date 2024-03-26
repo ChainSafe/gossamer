@@ -10,7 +10,7 @@ import (
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"go.uber.org/mock/gomock"
 
@@ -18,21 +18,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createTestTrieState(t *testing.T) (*trie.InMemoryTrie, common.Hash) {
+func createTestTrieState(t *testing.T) (trie.Trie, common.Hash) {
 	t.Helper()
 
 	_, genesisTrie, _ := newWestendLocalGenesisWithTrieAndHeader(t)
-	tr := inmemory_storage.NewTrieState(genesisTrie)
+	tr := storage.NewTrieState(genesisTrie)
 
 	tr.Put([]byte(":first_key"), []byte(":value1"))
 	tr.Put([]byte(":second_key"), []byte(":second_value"))
 
-	childTr := trie.NewEmptyInmemoryTrie()
-	childTr.Put([]byte(":child_first"), []byte(":child_first_value"))
-	childTr.Put([]byte(":child_second"), []byte(":child_second_value"))
-	childTr.Put([]byte(":another_child"), []byte("value"))
+	childStorageKey := []byte(":child_storage_key")
 
-	err := tr.SetChild([]byte(":child_storage_key"), childTr)
+	err := tr.SetChildStorage(childStorageKey, []byte(":child_first"), []byte(":child_first_value"))
+	require.NoError(t, err)
+	err = tr.SetChildStorage(childStorageKey, []byte(":child_second"), []byte(":child_second_value"))
+	require.NoError(t, err)
+	err = tr.SetChildStorage(childStorageKey, []byte(":another_child"), []byte("value"))
 	require.NoError(t, err)
 
 	stateRoot, err := tr.Root()

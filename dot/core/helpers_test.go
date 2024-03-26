@@ -18,7 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -96,7 +96,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	cfgCodeSubstitutedState := stateSrvc.Base
 
 	var rtCfg wazero_runtime.Config
-	rtCfg.Storage = inmemory_storage.NewTrieState(genesisTrie)
+	rtCfg.Storage = storage.NewTrieState(genesisTrie)
 
 	rtCfg.CodeHash, err = cfgStorageState.LoadCodeHash(nil)
 	require.NoError(t, err)
@@ -215,7 +215,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.Runtime == nil {
 		var rtCfg wazero_runtime.Config
 
-		rtCfg.Storage = inmemory_storage.NewTrieState(genesisTrie)
+		rtCfg.Storage = storage.NewTrieState(genesisTrie)
 
 		var err error
 		rtCfg.CodeHash, err = cfg.StorageState.(*state.InmemoryStorageState).LoadCodeHash(nil)
@@ -291,7 +291,7 @@ func getWestendDevRuntimeCode(t *testing.T) (code []byte) {
 	genesisTrie, err := runtime.NewInMemoryTrieFromGenesis(*westendDevGenesis)
 	require.NoError(t, err)
 
-	trieState := inmemory_storage.NewTrieState(genesisTrie)
+	trieState := storage.NewTrieState(genesisTrie)
 
 	return trieState.LoadCode()
 }

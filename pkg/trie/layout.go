@@ -47,6 +47,16 @@ type Entry struct{ Key, Value []byte }
 // Entries is a list of entry used to build a trie
 type Entries []Entry
 
+func NewEntriesFromMap(source map[string][]byte) Entries {
+	entries := Entries{}
+
+	for k, v := range source {
+		entries = append(entries, Entry{[]byte(k), v})
+	}
+
+	return entries
+}
+
 // String returns a string representation of trie version
 func (v TrieLayout) String() string {
 	switch v {
