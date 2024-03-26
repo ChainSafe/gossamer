@@ -37,7 +37,7 @@ func Test_NewEmptyTrie(t *testing.T) {
 		deltas:     tracking.New(),
 		db:         db.NewEmptyMemoryDB(),
 	}
-	trie := NewEmptyInmemoryTrie()
+	trie := NewEmptyTrie()
 	assert.Equal(t, expectedTrie, trie)
 }
 
@@ -54,7 +54,7 @@ func Test_NewTrie(t *testing.T) {
 		childTries: make(map[common.Hash]*InMemoryTrie),
 		deltas:     tracking.New(),
 	}
-	trie := NewInMemoryTrie(root, nil)
+	trie := NewTrie(root, nil)
 	assert.Equal(t, expectedTrie, trie)
 }
 
@@ -623,7 +623,7 @@ func Test_Trie_Entries(t *testing.T) {
 			}),
 		}
 
-		trie := NewInMemoryTrie(root, nil)
+		trie := NewTrie(root, nil)
 
 		entries := trie.Entries()
 
@@ -677,7 +677,7 @@ func Test_Trie_Entries(t *testing.T) {
 			}),
 		}
 
-		trie := NewInMemoryTrie(root, nil)
+		trie := NewTrie(root, nil)
 
 		entries := trie.Entries()
 
@@ -4374,7 +4374,7 @@ func Benchmark_concatSlices(b *testing.B) {
 }
 
 func TestTrieVersionAndMustHash(t *testing.T) {
-	newTrie := NewEmptyInmemoryTrie()
+	newTrie := NewEmptyTrie()
 
 	// setting trie version to 0
 	// no entry should be hashed (no matter its size)

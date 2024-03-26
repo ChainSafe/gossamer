@@ -55,7 +55,7 @@ func NewTries() (tries *Tries) {
 // Note the empty trie is the same for the v0 and the v1
 // state trie versions.
 func (t *Tries) SetEmptyTrie() {
-	t.softSet(trie.EmptyHash, trie.NewEmptyInmemoryTrie())
+	t.softSet(trie.EmptyHash, trie.NewEmptyTrie())
 }
 
 // SetTrie sets the trie at its root hash in the tries map.

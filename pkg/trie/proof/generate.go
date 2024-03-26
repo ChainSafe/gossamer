@@ -26,7 +26,7 @@ var (
 // is used to load the trie using the root hash given.
 func Generate(rootHash []byte, fullKeys [][]byte, database db.DBGetter) (
 	encodedProofNodes [][]byte, err error) {
-	trie := trie.NewEmptyInmemoryTrie()
+	trie := trie.NewEmptyTrie()
 	if err := trie.Load(database, common.BytesToHash(rootHash)); err != nil {
 		return nil, fmt.Errorf("loading trie: %w", err)
 	}

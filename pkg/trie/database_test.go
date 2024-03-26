@@ -30,7 +30,7 @@ func Test_Trie_Store_Load(t *testing.T) {
 	err := trie.WriteDirty(db)
 	require.NoError(t, err)
 
-	trieFromDB := NewEmptyInmemoryTrie()
+	trieFromDB := NewEmptyTrie()
 	err = trieFromDB.Load(db, rootHash)
 	require.NoError(t, err)
 	assert.Equal(t, trie.String(), trieFromDB.String())
@@ -40,7 +40,7 @@ func Test_Trie_Load_EmptyHash(t *testing.T) {
 	t.Parallel()
 
 	db := newTestDB(t)
-	trieFromDB := NewEmptyInmemoryTrie()
+	trieFromDB := NewEmptyTrie()
 	err := trieFromDB.Load(db, EmptyHash)
 	require.NoError(t, err)
 }
@@ -52,7 +52,7 @@ func Test_Trie_WriteDirty_Put(t *testing.T) {
 	const size = 500
 	keyValues := generateKeyValues(t, generator, size)
 
-	trie := NewEmptyInmemoryTrie()
+	trie := NewEmptyTrie()
 
 	db := newTestDB(t)
 
@@ -88,7 +88,7 @@ func Test_Trie_WriteDirty_Put(t *testing.T) {
 	rootHash := V0.MustHash(trie)
 
 	// Verify the trie in database is also modified.
-	trieFromDB := NewEmptyInmemoryTrie()
+	trieFromDB := NewEmptyTrie()
 	err = trieFromDB.Load(db, rootHash)
 	require.NoError(t, err)
 	require.Equal(t, trie.String(), trieFromDB.String())
@@ -121,7 +121,7 @@ func Test_Trie_WriteDirty_Delete(t *testing.T) {
 
 	rootHash := V0.MustHash(trie)
 
-	trieFromDB := NewEmptyInmemoryTrie()
+	trieFromDB := NewEmptyTrie()
 	err = trieFromDB.Load(db, rootHash)
 	require.NoError(t, err)
 	require.Equal(t, trie.String(), trieFromDB.String())
@@ -159,7 +159,7 @@ func Test_Trie_WriteDirty_ClearPrefix(t *testing.T) {
 
 	rootHash := V0.MustHash(trie)
 
-	trieFromDB := NewEmptyInmemoryTrie()
+	trieFromDB := NewEmptyTrie()
 	err = trieFromDB.Load(db, rootHash)
 	require.NoError(t, err)
 	assert.Equal(t, trie.String(), trieFromDB.String())
@@ -324,7 +324,7 @@ func Test_Trie_PutChild_Store_Load(t *testing.T) {
 		err = trie.WriteDirty(db)
 		require.NoError(t, err)
 
-		trieFromDB := NewEmptyInmemoryTrie()
+		trieFromDB := NewEmptyTrie()
 		err = trieFromDB.Load(db, trie.MustHash())
 		require.NoError(t, err)
 

@@ -89,7 +89,7 @@ func makeSeededTrie(t *testing.T, size int) (
 	generator := newGenerator()
 	keyValues = generateKeyValues(t, generator, size)
 
-	trie = NewEmptyInmemoryTrie()
+	trie = NewEmptyTrie()
 
 	for keyString, value := range keyValues {
 		key := []byte(keyString)

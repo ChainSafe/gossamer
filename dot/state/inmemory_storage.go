@@ -118,7 +118,7 @@ func (s *InmemoryStorageState) TrieState(root *common.Hash) (*storage.TrieState,
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
 func (s *InmemoryStorageState) LoadFromDB(root common.Hash) (*trie.InMemoryTrie, error) {
-	t := trie.NewInMemoryTrie(nil, s.db)
+	t := trie.NewTrie(nil, s.db)
 	err := t.Load(s.db, root)
 	if err != nil {
 		return nil, err

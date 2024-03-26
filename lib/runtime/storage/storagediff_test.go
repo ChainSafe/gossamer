@@ -494,12 +494,12 @@ func Test_ApplyToTrie(t *testing.T) {
 	t.Run("add_entries_in_main_trie", func(t *testing.T) {
 		t.Parallel()
 
-		state := trie.NewEmptyInmemoryTrie()
+		state := trie.NewEmptyTrie()
 
 		diff := newStorageDiff()
 		diff.upsert(key, value)
 
-		expected := trie.NewEmptyInmemoryTrie()
+		expected := trie.NewEmptyTrie()
 		expected.Put([]byte(key), value)
 
 		diff.applyToTrie(state)
@@ -509,13 +509,13 @@ func Test_ApplyToTrie(t *testing.T) {
 	t.Run("delete_entries_from_main_trie", func(t *testing.T) {
 		t.Parallel()
 
-		state := trie.NewEmptyInmemoryTrie()
+		state := trie.NewEmptyTrie()
 		state.Put([]byte(key), value)
 
 		diff := newStorageDiff()
 		diff.delete(key)
 
-		expected := trie.NewEmptyInmemoryTrie()
+		expected := trie.NewEmptyTrie()
 
 		diff.applyToTrie(state)
 		require.Equal(t, expected, state)
@@ -524,14 +524,14 @@ func Test_ApplyToTrie(t *testing.T) {
 	t.Run("create_new_child_trie", func(t *testing.T) {
 		t.Parallel()
 
-		state := trie.NewEmptyInmemoryTrie()
+		state := trie.NewEmptyTrie()
 
 		childKey := "child"
 
 		diff := newStorageDiff()
 		diff.upsertChild(childKey, key, value)
 
-		expected := trie.NewEmptyInmemoryTrie()
+		expected := trie.NewEmptyTrie()
 		expected.PutIntoChild([]byte(childKey), []byte(key), value)
 
 		diff.applyToTrie(state)
@@ -543,10 +543,10 @@ func Test_ApplyToTrie(t *testing.T) {
 
 		childKey := "child"
 
-		state := trie.NewEmptyInmemoryTrie()
+		state := trie.NewEmptyTrie()
 		state.PutIntoChild([]byte(childKey), []byte(key), value)
 
-		expected := trie.NewEmptyInmemoryTrie()
+		expected := trie.NewEmptyTrie()
 
 		diff := newStorageDiff()
 		diff.deleteFromChild(childKey, key)

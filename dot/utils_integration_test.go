@@ -21,7 +21,7 @@ func TestTrieSnapshot(t *testing.T) {
 	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile)
 	require.NoError(t, err)
 
-	tri := trie.NewEmptyInmemoryTrie()
+	tri := trie.NewEmptyTrie()
 	key := []byte("key")
 	value := []byte("value")
 

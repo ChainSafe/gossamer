@@ -36,7 +36,7 @@ func Test_Tries_SetEmptyTrie(t *testing.T) {
 
 	expectedTries := &Tries{
 		rootToTrie: map[common.Hash]*trie.InMemoryTrie{
-			trie.EmptyHash: trie.NewEmptyInmemoryTrie(),
+			trie.EmptyHash: trie.NewEmptyTrie(),
 		},
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
@@ -52,7 +52,7 @@ func Test_Tries_SetTrie(t *testing.T) {
 	db := NewMockDatabase(ctrl)
 	db.EXPECT().Get(gomock.Any()).Times(0)
 
-	tr := trie.NewInMemoryTrie(&node.Node{PartialKey: []byte{1}}, db)
+	tr := trie.NewTrie(&node.Node{PartialKey: []byte{1}}, db)
 
 	tries := NewTries()
 	tries.SetTrie(tr)
@@ -82,10 +82,10 @@ func Test_Tries_softSet(t *testing.T) {
 		"set_new_in_map": {
 			rootToTrie:    map[common.Hash]*trie.InMemoryTrie{},
 			root:          common.Hash{1, 2, 3},
-			trie:          trie.NewEmptyInmemoryTrie(),
+			trie:          trie.NewEmptyTrie(),
 			triesGaugeInc: true,
 			expectedRootToTrie: map[common.Hash]*trie.InMemoryTrie{
-				{1, 2, 3}: trie.NewEmptyInmemoryTrie(),
+				{1, 2, 3}: trie.NewEmptyTrie(),
 			},
 		},
 		"do_not_override_in_map": {
@@ -93,7 +93,7 @@ func Test_Tries_softSet(t *testing.T) {
 				{1, 2, 3}: {},
 			},
 			root: common.Hash{1, 2, 3},
-			trie: trie.NewEmptyInmemoryTrie(),
+			trie: trie.NewEmptyTrie(),
 			expectedRootToTrie: map[common.Hash]*trie.InMemoryTrie{
 				{1, 2, 3}: {},
 			},
@@ -203,14 +203,14 @@ func Test_Tries_get(t *testing.T) {
 		"found_in_map": {
 			tries: &Tries{
 				rootToTrie: map[common.Hash]*trie.InMemoryTrie{
-					{1, 2, 3}: trie.NewInMemoryTrie(&node.Node{
+					{1, 2, 3}: trie.NewTrie(&node.Node{
 						PartialKey:   []byte{1, 2, 3},
 						StorageValue: []byte{1},
 					}, db),
 				},
 			},
 			root: common.Hash{1, 2, 3},
-			trie: trie.NewInMemoryTrie(&node.Node{
+			trie: trie.NewTrie(&node.Node{
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{1},
 			}, db),

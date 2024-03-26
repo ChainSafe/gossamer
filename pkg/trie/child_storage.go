@@ -73,7 +73,7 @@ func (t *InMemoryTrie) PutIntoChild(keyToChild, key, value []byte) error {
 	child, err := t.getInternalChildTrie(keyToChild)
 	if err != nil {
 		if errors.Is(err, ErrChildTrieDoesNotExist) {
-			child = NewEmptyInmemoryTrie()
+			child = NewEmptyTrie()
 		} else {
 			return fmt.Errorf("getting child: %w", err)
 		}

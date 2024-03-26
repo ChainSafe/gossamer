@@ -97,7 +97,7 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 	require.NoError(t, err)
 
 	// set tries with some state root
-	bs.tries.softSet(someStateRoot, trie.NewEmptyInmemoryTrie())
+	bs.tries.softSet(someStateRoot, trie.NewEmptyTrie())
 
 	err = bs.SetFinalisedHash(testhash, 1, 1)
 	require.NoError(t, err)

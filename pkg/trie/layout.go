@@ -83,7 +83,7 @@ func (v TrieLayout) MaxInlineValue() int {
 
 // Root returns the root hash of the trie built using the given entries
 func (v TrieLayout) Root(entries Entries) (common.Hash, error) {
-	t := NewEmptyInmemoryTrie()
+	t := NewEmptyTrie()
 	t.SetVersion(v)
 
 	for _, kv := range entries {

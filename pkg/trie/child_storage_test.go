@@ -14,7 +14,7 @@ import (
 func TestPutAndGetChild(t *testing.T) {
 	childKey := []byte("default")
 	childTrie := buildSmallTrie()
-	parentTrie := NewEmptyInmemoryTrie()
+	parentTrie := NewEmptyTrie()
 
 	err := parentTrie.SetChild(childKey, childTrie)
 	assert.NoError(t, err)
@@ -28,7 +28,7 @@ func TestPutAndGetChild(t *testing.T) {
 func TestPutAndDeleteChild(t *testing.T) {
 	childKey := []byte("default")
 	childTrie := buildSmallTrie()
-	parentTrie := NewEmptyInmemoryTrie()
+	parentTrie := NewEmptyTrie()
 
 	err := parentTrie.SetChild(childKey, childTrie)
 	assert.NoError(t, err)
@@ -44,7 +44,7 @@ func TestPutAndClearFromChild(t *testing.T) {
 	childKey := []byte("default")
 	keyInChild := []byte{0x01, 0x35}
 	childTrie := buildSmallTrie()
-	parentTrie := NewEmptyInmemoryTrie()
+	parentTrie := NewEmptyTrie()
 
 	err := parentTrie.SetChild(childKey, childTrie)
 	assert.NoError(t, err)
@@ -62,7 +62,7 @@ func TestPutAndClearFromChild(t *testing.T) {
 func TestPutAndGetFromChild(t *testing.T) {
 	childKey := []byte("default")
 	childTrie := buildSmallTrie()
-	parentTrie := NewEmptyInmemoryTrie()
+	parentTrie := NewEmptyTrie()
 
 	err := parentTrie.SetChild(childKey, childTrie)
 	assert.NoError(t, err)
@@ -89,7 +89,7 @@ func TestPutAndGetFromChild(t *testing.T) {
 }
 
 func TestChildTrieHashAfterClear(t *testing.T) {
-	trieThatHoldsAChildTrie := NewEmptyInmemoryTrie()
+	trieThatHoldsAChildTrie := NewEmptyTrie()
 	originalEmptyHash := V0.MustHash(trieThatHoldsAChildTrie)
 
 	keyToChild := []byte("crowdloan")

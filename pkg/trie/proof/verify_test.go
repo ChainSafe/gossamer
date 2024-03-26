@@ -174,7 +174,7 @@ func Test_buildTrie(t *testing.T) {
 				encodedProofNodes: encodedProofNodes,
 				rootHash:          blake2bNode(t, leafAShort),
 				db:                proofDB,
-				expectedTrie: trie.NewInMemoryTrie(&node.Node{
+				expectedTrie: trie.NewTrie(&node.Node{
 					PartialKey:   leafAShort.PartialKey,
 					StorageValue: leafAShort.StorageValue,
 					Dirty:        true,
@@ -193,7 +193,7 @@ func Test_buildTrie(t *testing.T) {
 				encodedProofNodes: encodedProofNodes,
 				rootHash:          blake2bNode(t, leafBLarge),
 				db:                proofDB,
-				expectedTrie: trie.NewInMemoryTrie(&node.Node{
+				expectedTrie: trie.NewTrie(&node.Node{
 					PartialKey:   leafBLarge.PartialKey,
 					StorageValue: leafBLarge.StorageValue,
 					Dirty:        true,
@@ -213,7 +213,7 @@ func Test_buildTrie(t *testing.T) {
 				encodedProofNodes: encodedProofNodes,
 				rootHash:          blake2bNode(t, leafAShort),
 				db:                proofDB,
-				expectedTrie: trie.NewInMemoryTrie(&node.Node{
+				expectedTrie: trie.NewTrie(&node.Node{
 					PartialKey:   leafAShort.PartialKey,
 					StorageValue: leafAShort.StorageValue,
 					Dirty:        true,
@@ -250,7 +250,7 @@ func Test_buildTrie(t *testing.T) {
 					}),
 				}),
 				db: proofDB,
-				expectedTrie: trie.NewInMemoryTrie(&node.Node{
+				expectedTrie: trie.NewTrie(&node.Node{
 					PartialKey:  []byte{1},
 					Descendants: 4,
 					Dirty:       true,

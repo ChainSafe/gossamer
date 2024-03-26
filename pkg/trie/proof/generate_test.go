@@ -829,7 +829,7 @@ func Test_lenCommonPrefix(t *testing.T) {
 // so the code is kept to this inefficient-looking append,
 // which is in the end quite performant still.
 func Benchmark_walkRoot(b *testing.B) {
-	trie := trie.NewEmptyInmemoryTrie()
+	trie := trie.NewEmptyTrie()
 
 	// Build a deep trie.
 	const trieDepth = 1000

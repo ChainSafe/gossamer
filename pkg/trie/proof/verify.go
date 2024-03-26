@@ -129,7 +129,7 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte, db db.Database) (t t
 		return nil, fmt.Errorf("loading proof: %w", err)
 	}
 
-	return trie.NewInMemoryTrie(root, db), nil
+	return trie.NewTrie(root, db), nil
 }
 
 // loadProof is a recursive function that will create all the trie paths based

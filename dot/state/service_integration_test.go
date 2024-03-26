@@ -377,7 +377,7 @@ func TestService_Import(t *testing.T) {
 	err := serv.Initialise(&genData, &genesisHeader, genTrie)
 	require.NoError(t, err)
 
-	tr := trie.NewEmptyInmemoryTrie()
+	tr := trie.NewEmptyTrie()
 	var testCases = []string{
 		"asdf",
 		"ghjk",

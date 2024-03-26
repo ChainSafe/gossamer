@@ -33,13 +33,13 @@ type InMemoryTrie struct {
 	deltas Deltas
 }
 
-// NewEmptyInmemoryTrie creates a trie with a nil root
-func NewEmptyInmemoryTrie() *InMemoryTrie {
-	return NewInMemoryTrie(nil, db.NewEmptyMemoryDB())
+// NewEmptyTrie creates a trie with a nil root
+func NewEmptyTrie() *InMemoryTrie {
+	return NewTrie(nil, db.NewEmptyMemoryDB())
 }
 
 // NewTrie creates a trie with an existing root node
-func NewInMemoryTrie(root *Node, db db.Database) *InMemoryTrie {
+func NewTrie(root *Node, db db.Database) *InMemoryTrie {
 	return &InMemoryTrie{
 		root:       root,
 		childTries: make(map[common.Hash]*InMemoryTrie),
@@ -646,7 +646,7 @@ func (t *InMemoryTrie) insertInBranch(parentBranch *Node, key, value []byte,
 // The keys are in hexadecimal little Endian encoding and the values
 // are hexadecimal encoded.
 func LoadFromMap(data map[string]string, version TrieLayout) (trie *InMemoryTrie, err error) {
-	trie = NewEmptyInmemoryTrie()
+	trie = NewEmptyTrie()
 	trie.SetVersion(version)
 
 	pendingDeltas := tracking.New()

@@ -48,7 +48,7 @@ func NewTestInstance(t *testing.T, targetRuntime string, opts ...TestInstanceOpt
 
 	ctrl := gomock.NewController(t)
 	cfg := &Config{
-		Storage:  storage.NewTrieState(trie.NewEmptyInmemoryTrie()),
+		Storage:  storage.NewTrieState(trie.NewEmptyTrie()),
 		Keystore: keystore.NewGlobalKeystore(),
 		LogLvl:   DefaultTestLogLvl,
 		NodeStorage: runtime.NodeStorage{

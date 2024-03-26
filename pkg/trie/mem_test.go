@@ -22,7 +22,7 @@ func Test_Trie_MemoryUsage(t *testing.T) {
 	}
 
 	triesMap := map[string]*InMemoryTrie{
-		"first": NewEmptyInmemoryTrie(),
+		"first": NewEmptyTrie(),
 	}
 
 	generator := newGenerator()

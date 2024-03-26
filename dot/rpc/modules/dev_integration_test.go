@@ -56,7 +56,7 @@ func newBABEService(t *testing.T) *babe.Service {
 	require.NoError(t, err)
 
 	bs, es := newState(t)
-	tt := trie.NewEmptyInmemoryTrie()
+	tt := trie.NewEmptyTrie()
 	rt := wazero_runtime.NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929, wazero_runtime.TestWithTrie(tt))
 	bs.StoreRuntime(bs.GenesisHash(), rt)
 	tt.Put(

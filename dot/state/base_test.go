@@ -15,7 +15,7 @@ import (
 
 func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 	db := NewInMemoryDB(t)
-	tt := trie.NewEmptyInmemoryTrie()
+	tt := trie.NewEmptyTrie()
 
 	generator := newGenerator()
 	const size = 2
@@ -34,7 +34,7 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 
 	expected := tt.MustHash()
 
-	tt = trie.NewEmptyInmemoryTrie()
+	tt = trie.NewEmptyTrie()
 	err = tt.Load(db, encroot)
 	require.NoError(t, err)
 	require.Equal(t, expected, tt.MustHash())
