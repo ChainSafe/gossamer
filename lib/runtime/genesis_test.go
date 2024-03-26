@@ -66,7 +66,7 @@ func Test_NewTrieFromGenesis(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			tr, err := NewInMemoryTrieFromGenesis(testCase.genesis)
+			tr, err := NewTrieFromGenesis(testCase.genesis)
 
 			require.ErrorIs(t, err, testCase.errSentinel)
 			if testCase.errSentinel != nil {

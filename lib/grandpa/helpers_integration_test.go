@@ -199,7 +199,7 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	assert.NoError(t, err)
 	gen = *genesisPtr
 
-	genesisTrie, err = runtime.NewInMemoryTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
 	assert.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})

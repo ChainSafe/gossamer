@@ -23,7 +23,7 @@ func makeChange(keyHex, valueHex string) [2]*string {
 }
 
 func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
-	gen genesis.Genesis, genesisTrie *trie.InMemoryTrie, genesisHeader types.Header) {
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
 	genesisPath := utils.GetWestendLocalRawGenesisPath(t)
@@ -31,7 +31,7 @@ func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 	gen = *genesisPtr
 
-	genesisTrie, err = runtime.NewInMemoryTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})

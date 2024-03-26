@@ -257,7 +257,7 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 }
 
 func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
-	genesisTrie *trie.InMemoryTrie, genesisHeader types.Header) (*Service, *state.EpochState, *types.BabeConfiguration) {
+	genesisTrie trie.Trie, genesisHeader types.Header) (*Service, *state.EpochState, *types.BabeConfiguration) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
@@ -363,7 +363,7 @@ func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.H
 
 // newWestendLocalGenesisWithTrieAndHeader returns the westend genesis, genesis trie and genesis header
 func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
-	gen genesis.Genesis, genesisTrie *trie.InMemoryTrie, genesisHeader types.Header) {
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
 	genesisPath := utils.GetWestendLocalRawGenesisPath(t)
@@ -371,7 +371,7 @@ func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 	gen = *genesisPtr
 
-	genesisTrie, err = runtime.NewInMemoryTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),
@@ -390,7 +390,7 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 	gen = *genesisPtr
 
-	genesisTrie, err = runtime.NewInMemoryTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),

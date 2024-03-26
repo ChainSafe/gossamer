@@ -48,7 +48,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	gen, err := genesis.NewGenesisFromJSONRaw(genesisFilePath)
 	require.NoError(t, err)
 
-	genesisTrie, err := runtime.NewInMemoryTrieFromGenesis(*gen)
+	genesisTrie, err := runtime.NewTrieFromGenesis(*gen)
 	require.NoError(t, err)
 
 	// Extrinsic and context related stuff
@@ -259,7 +259,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 }
 
 func newWestendLocalWithTrieAndHeader(t *testing.T) (
-	gen genesis.Genesis, genesisTrie *trie.InMemoryTrie, genesisHeader types.Header) {
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
 	genesisPath := utils.GetWestendLocalRawGenesisPath(t)
@@ -267,7 +267,7 @@ func newWestendLocalWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 	gen = *genPtr
 
-	genesisTrie, err = runtime.NewInMemoryTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
@@ -288,7 +288,7 @@ func getWestendDevRuntimeCode(t *testing.T) (code []byte) {
 	westendDevGenesis, err := genesis.NewGenesisFromJSONRaw(path)
 	require.NoError(t, err)
 
-	genesisTrie, err := runtime.NewInMemoryTrieFromGenesis(*westendDevGenesis)
+	genesisTrie, err := runtime.NewTrieFromGenesis(*westendDevGenesis)
 	require.NoError(t, err)
 
 	trieState := rtstorage.NewTrieState(genesisTrie)
