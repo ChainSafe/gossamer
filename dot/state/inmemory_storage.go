@@ -12,7 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/proof"
 )
@@ -58,9 +58,9 @@ func NewStorageState(db database.Database, blockState *BlockState,
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
-func (s *InmemoryStorageState) StoreTrie(ts *inmemory_storage.InMemoryTrieState, header *types.Header) error {
+func (s *InmemoryStorageState) StoreTrie(ts *storage.TrieState, header *types.Header) error {
 	root := ts.MustRoot()
-	s.tries.softSet(root, ts.Trie())
+	s.tries.softSet(root, ts.Trie().(*trie.InMemoryTrie))
 
 	if header != nil {
 		insertedNodeHashes, deletedNodeHashes, err := ts.GetChangedNodeHashes()
@@ -87,7 +87,7 @@ func (s *InmemoryStorageState) StoreTrie(ts *inmemory_storage.InMemoryTrieState,
 
 // TrieState returns the TrieState for a given state root.
 // If no state root is provided, it returns the TrieState for the current chain head.
-func (s *InmemoryStorageState) TrieState(root *common.Hash) (*inmemory_storage.InMemoryTrieState, error) {
+func (s *InmemoryStorageState) TrieState(root *common.Hash) (*storage.TrieState, error) {
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
@@ -110,7 +110,7 @@ func (s *InmemoryStorageState) TrieState(root *common.Hash) (*inmemory_storage.I
 	}
 
 	nextTrie := t.Snapshot()
-	next := inmemory_storage.NewTrieState(nextTrie)
+	next := storage.NewTrieState(nextTrie)
 
 	logger.Tracef("returning trie with root %s to be modified", root)
 	return next, nil

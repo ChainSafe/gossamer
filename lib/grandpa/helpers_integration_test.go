@@ -18,7 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/trie"
@@ -150,7 +150,7 @@ func newTestState(t *testing.T) *state.Service {
 
 	var rtCfg wazero_runtime.Config
 
-	rtCfg.Storage = inmemory_storage.NewTrieState(genTrie)
+	rtCfg.Storage = storage.NewTrieState(genTrie)
 
 	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)

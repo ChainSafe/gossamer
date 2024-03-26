@@ -13,7 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -52,7 +52,7 @@ type mockBlockState struct {
 
 type mockStorageState struct {
 	input     *common.Hash
-	trieState *inmemory_storage.InMemoryTrieState
+	trieState *storage.TrieState
 	err       error
 }
 
@@ -62,7 +62,7 @@ type mockTxnState struct {
 }
 
 type mockSetContextStorage struct {
-	trieState *inmemory_storage.InMemoryTrieState
+	trieState *storage.TrieState
 }
 
 type mockValidateTxn struct {
@@ -258,11 +258,11 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 			},
 			mockStorageState: &mockStorageState{
 				input:     &common.Hash{},
-				trieState: &inmemory_storage.InMemoryTrieState{},
+				trieState: &storage.TrieState{},
 			},
 			mockRuntime: &mockRuntime{
 				runtime:           runtimeMock2,
-				setContextStorage: &mockSetContextStorage{trieState: &inmemory_storage.InMemoryTrieState{}},
+				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
 				validateTxn: &mockValidateTxn{
 					input: types.Extrinsic(bytes.Join([][]byte{
 						{byte(types.TxnExternal)},
@@ -302,7 +302,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 			},
 			mockStorageState: &mockStorageState{
 				input:     &common.Hash{},
-				trieState: &inmemory_storage.InMemoryTrieState{},
+				trieState: &storage.TrieState{},
 			},
 			mockTxnState: &mockTxnState{
 				input: transaction.NewValidTransaction(
@@ -314,7 +314,7 @@ func TestServiceHandleTransactionMessage(t *testing.T) {
 			},
 			mockRuntime: &mockRuntime{
 				runtime:           runtimeMock3,
-				setContextStorage: &mockSetContextStorage{trieState: &inmemory_storage.InMemoryTrieState{}},
+				setContextStorage: &mockSetContextStorage{trieState: &storage.TrieState{}},
 				validateTxn: &mockValidateTxn{
 					input: types.Extrinsic(bytes.Join([][]byte{
 						{byte(types.TxnExternal)},

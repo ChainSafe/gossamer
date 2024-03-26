@@ -16,7 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"go.uber.org/mock/gomock"
 
@@ -284,10 +284,7 @@ func TestService_PruneStorage(t *testing.T) {
 		require.NoError(t, err)
 
 		// Store the other blocks that will be pruned.
-		copiedTrie := trieState.Trie().DeepCopy()
-
-		var rootHash common.Hash
-		rootHash, err = copiedTrie.Hash()
+		rootHash, err := trieState.Trie().Hash()
 		require.NoError(t, err)
 
 		prunedArr = append(prunedArr, prunedBlock{hash: block.Header.StateRoot, dbKey: rootHash[:]})
@@ -429,7 +426,7 @@ func TestService_Import(t *testing.T) {
 }
 
 func generateBlockWithRandomTrie(t *testing.T, serv *Service,
-	parent *common.Hash, bNum uint) (*types.Block, *inmemory_storage.InMemoryTrieState) {
+	parent *common.Hash, bNum uint) (*types.Block, *storage.TrieState) {
 	trieState, err := serv.Storage.TrieState(nil)
 	require.NoError(t, err)
 

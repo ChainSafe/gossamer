@@ -16,7 +16,7 @@ import (
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
-	storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -329,10 +329,10 @@ func (mr *MockStorageStateMockRecorder) Lock() *gomock.Call {
 }
 
 // TrieState mocks base method.
-func (m *MockStorageState) TrieState(arg0 *common.Hash) (*storage.InMemoryTrieState, error) {
+func (m *MockStorageState) TrieState(arg0 *common.Hash) (*storage.TrieState, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TrieState", arg0)
-	ret0, _ := ret[0].(*storage.InMemoryTrieState)
+	ret0, _ := ret[0].(*storage.TrieState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -632,7 +632,7 @@ func (m *MockBlockImportHandler) EXPECT() *MockBlockImportHandlerMockRecorder {
 }
 
 // HandleBlockProduced mocks base method.
-func (m *MockBlockImportHandler) HandleBlockProduced(arg0 *types.Block, arg1 *storage.InMemoryTrieState) error {
+func (m *MockBlockImportHandler) HandleBlockProduced(arg0 *types.Block, arg1 *storage.TrieState) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HandleBlockProduced", arg0, arg1)
 	ret0, _ := ret[0].(error)

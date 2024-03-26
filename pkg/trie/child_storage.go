@@ -52,7 +52,11 @@ func (t *InMemoryTrie) getInternalChildTrie(keyToChild []byte) (*InMemoryTrie, e
 
 // GetChild returns the child trie at key :child_storage:[keyToChild]
 func (t *InMemoryTrie) GetChild(keyToChild []byte) (Trie, error) {
-	return t.getInternalChildTrie(keyToChild)
+	child, err := t.getInternalChildTrie(keyToChild)
+	if child == nil {
+		return nil, err
+	}
+	return child, err
 }
 
 // GetChildTries returns all child tries in this trie

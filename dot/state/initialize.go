@@ -12,7 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 )
@@ -151,7 +151,7 @@ func (s *Service) storeInitialValues(data *genesis.Data, t *trie.InMemoryTrie) e
 // CreateGenesisRuntime creates runtime instance form genesis
 func (s *Service) CreateGenesisRuntime(t *trie.InMemoryTrie, gen *genesis.Genesis) (runtime.Instance, error) {
 	// load genesis state into database
-	genTrie := inmemory_storage.NewTrieState(t)
+	genTrie := storage.NewTrieState(t)
 
 	// create genesis runtime
 	rtCfg := wazero_runtime.Config{
