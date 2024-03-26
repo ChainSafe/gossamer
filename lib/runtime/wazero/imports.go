@@ -1241,17 +1241,12 @@ func ext_default_child_storage_root_version_1(
 		panic("nil runtime context")
 	}
 	storage := rtCtx.Storage
-	child, err := storage.GetChild(read(m, childStorageKey))
-	if err != nil {
-		logger.Errorf("failed to retrieve child: %s", err)
-		return 0
-	}
-
-	childRoot, err := trie.V0.Hash(child)
+	childRoot, err := storage.GetChildRoot(read(m, childStorageKey))
 	if err != nil {
 		logger.Errorf("failed to encode child root: %s", err)
 		return 0
 	}
+
 	childRootSlice := childRoot[:]
 
 	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&childRootSlice))
@@ -1270,19 +1265,8 @@ func ext_default_child_storage_root_version_2(ctx context.Context, m api.Module,
 	}
 	storage := rtCtx.Storage
 	key := read(m, childStorageKey)
-	child, err := storage.GetChild(key)
-	if err != nil {
-		logger.Errorf("failed to retrieve child: %s", err)
-		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
-	}
 
-	stateVersion, err := trie.ParseVersion(uint8(version))
-	if err != nil {
-		logger.Errorf("failed parsing state version: %s", err)
-		return 0
-	}
-
-	childRoot, err := stateVersion.Hash(child)
+	childRoot, err := storage.GetChildRoot(key)
 	if err != nil {
 		logger.Errorf("failed to encode child root: %s", err)
 		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)

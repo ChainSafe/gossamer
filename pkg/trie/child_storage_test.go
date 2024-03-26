@@ -16,7 +16,7 @@ func TestPutAndGetChild(t *testing.T) {
 	childTrie := buildSmallTrie()
 	parentTrie := NewEmptyTrie()
 
-	err := parentTrie.SetChild(childKey, childTrie)
+	err := parentTrie.setChild(childKey, childTrie)
 	assert.NoError(t, err)
 
 	childTrieRes, err := parentTrie.GetChild(childKey)
@@ -30,7 +30,7 @@ func TestPutAndDeleteChild(t *testing.T) {
 	childTrie := buildSmallTrie()
 	parentTrie := NewEmptyTrie()
 
-	err := parentTrie.SetChild(childKey, childTrie)
+	err := parentTrie.setChild(childKey, childTrie)
 	assert.NoError(t, err)
 
 	err = parentTrie.DeleteChild(childKey)
@@ -46,7 +46,7 @@ func TestPutAndClearFromChild(t *testing.T) {
 	childTrie := buildSmallTrie()
 	parentTrie := NewEmptyTrie()
 
-	err := parentTrie.SetChild(childKey, childTrie)
+	err := parentTrie.setChild(childKey, childTrie)
 	assert.NoError(t, err)
 
 	err = parentTrie.ClearFromChild(childKey, keyInChild)
@@ -64,7 +64,7 @@ func TestPutAndGetFromChild(t *testing.T) {
 	childTrie := buildSmallTrie()
 	parentTrie := NewEmptyTrie()
 
-	err := parentTrie.SetChild(childKey, childTrie)
+	err := parentTrie.setChild(childKey, childTrie)
 	assert.NoError(t, err)
 
 	testKey := []byte("child_key")
