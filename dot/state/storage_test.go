@@ -13,7 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/require"
@@ -44,10 +43,9 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 
 	trie, err := storage.LoadFromDB(root)
 	require.NoError(t, err)
-	ts2 := runtime.NewTrieState(trie)
-	newSnapshot := ts2.Snapshot()
+	ts2 := runtime.NewTrieState(trie).Trie()
 
-	require.True(t, ts.Trie().Equal(newSnapshot))
+	require.True(t, trie.Equal(ts2))
 }
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {
@@ -183,16 +181,9 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	trieDB := NewMockDatabase(ctrl)
 	trieDB.EXPECT().Get(gomock.Any()).Times(0)
 
-	trieRoot := &node.Node{
-		PartialKey:   []byte{1, 2},
-		StorageValue: []byte{3, 4},
-		Dirty:        true,
-	}
-	testChildTrie := trie.NewTrie(trieRoot, trieDB)
+	genTrie.PutIntoChild([]byte("keyToChild"), []byte{1, 2}, []byte{3, 4})
+	genTrie.PutIntoChild([]byte("keyToChild"), []byte("keyInsidechild"), []byte("voila"))
 
-	testChildTrie.Put([]byte("keyInsidechild"), []byte("voila"))
-
-	err = genTrie.SetChild([]byte("keyToChild"), testChildTrie)
 	require.NoError(t, err)
 
 	tries := newTriesEmpty()

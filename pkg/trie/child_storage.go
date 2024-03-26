@@ -15,10 +15,10 @@ var ChildStorageKeyPrefix = []byte(":child_storage:default:")
 
 var ErrChildTrieDoesNotExist = errors.New("child trie does not exist")
 
-// SetChild inserts a child trie into the main trie at key :child_storage:[keyToChild]
+// setChild inserts a child trie into the main trie at key :child_storage:[keyToChild]
 // A child trie is added as a node (K, V) in the main trie. K is the child storage key
 // associated to the child trie, and V is the root hash of the child trie.
-func (t *Trie) SetChild(keyToChild []byte, child *Trie) error {
+func (t *Trie) setChild(keyToChild []byte, child *Trie) error {
 	childHash, err := child.Hash()
 	if err != nil {
 		return err
@@ -38,6 +38,7 @@ func (t *Trie) SetChild(keyToChild []byte, child *Trie) error {
 }
 
 // GetChild returns the child trie at key :child_storage:[keyToChild]
+// TODO: do we need to return an error when the child trie does not exist?
 func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
 	key := make([]byte, len(ChildStorageKeyPrefix)+len(keyToChild))
 	copy(key, ChildStorageKeyPrefix)
@@ -74,7 +75,7 @@ func (t *Trie) PutIntoChild(keyToChild, key, value []byte) error {
 	}
 
 	delete(t.childTries, origChildHash)
-	return t.SetChild(keyToChild, child)
+	return t.setChild(keyToChild, child)
 }
 
 // GetFromChild retrieves a key-value pair from the child trie located
@@ -132,5 +133,5 @@ func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
 		return t.DeleteChild(keyToChild)
 	}
 
-	return t.SetChild(keyToChild, child)
+	return t.setChild(keyToChild, child)
 }
