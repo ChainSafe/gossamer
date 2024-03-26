@@ -11,7 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"go.uber.org/mock/gomock"
 
@@ -30,20 +30,20 @@ func newTestStorageState(t *testing.T) *InmemoryStorageState {
 }
 
 func TestStorage_StoreAndLoadTrie(t *testing.T) {
-	inmemoryStorage := newTestStorageState(t)
-	ts, err := inmemoryStorage.TrieState(&trie.EmptyHash)
+	storage := newTestStorageState(t)
+	ts, err := storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 
 	root, err := ts.Root()
 	require.NoError(t, err)
-	err = inmemoryStorage.StoreTrie(ts, nil)
+	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 100)
 
-	trie, err := inmemoryStorage.LoadFromDB(root)
+	trie, err := storage.LoadFromDB(root)
 	require.NoError(t, err)
-	ts2 := storage.NewTrieState(trie).Trie()
+	ts2 := runtime.NewTrieState(trie).Trie()
 
 	require.Equal(t, trie.MustHash(), ts2.MustHash())
 }
@@ -191,30 +191,30 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	blockState, err := NewBlockStateFromGenesis(db, tries, &genHeader, telemetryMock)
 	require.NoError(t, err)
 
-	inmemoryStorage, err := NewStorageState(db, blockState, tries)
+	storage, err := NewStorageState(db, blockState, tries)
 	require.NoError(t, err)
 
-	trieState := storage.NewTrieState(genTrie)
+	trieState := runtime.NewTrieState(genTrie)
 
 	header := types.NewHeader(blockState.GenesisHash(), trieState.MustRoot(),
 		common.Hash{}, 1, types.NewDigest())
 
-	err = inmemoryStorage.StoreTrie(trieState, header)
+	err = storage.StoreTrie(trieState, header)
 	require.NoError(t, err)
 
 	rootHash, err := genTrie.Hash()
 	require.NoError(t, err)
 
-	_, err = inmemoryStorage.GetStorageChild(&rootHash, []byte("keyToChild"))
+	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
 	require.NoError(t, err)
 
 	// Clear trie from cache and fetch data from disk.
-	inmemoryStorage.blockState.tries.delete(rootHash)
+	storage.blockState.tries.delete(rootHash)
 
-	_, err = inmemoryStorage.GetStorageChild(&rootHash, []byte("keyToChild"))
+	_, err = storage.GetStorageChild(&rootHash, []byte("keyToChild"))
 	require.NoError(t, err)
 
-	value, err := inmemoryStorage.GetStorageFromChild(&rootHash, []byte("keyToChild"), []byte("keyInsidechild"))
+	value, err := storage.GetStorageFromChild(&rootHash, []byte("keyToChild"), []byte("keyInsidechild"))
 	require.NoError(t, err)
 
 	require.Equal(t, []byte("voila"), value)

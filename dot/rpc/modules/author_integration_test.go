@@ -63,8 +63,7 @@ func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instanc
 	return runtimeInstance
 }
 
-func useInstanceFromRuntimeV0929(t *testing.T,
-	rtStorage *storage.TrieState) (instance runtime.Instance) {
+func useInstanceFromRuntimeV0929(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
 	testRuntimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.WESTEND_RUNTIME_v0929)
 	require.NoError(t, err)
 	bytes, err := os.ReadFile(testRuntimeFilePath)
@@ -84,7 +83,7 @@ func useInstanceFromRuntimeV0929(t *testing.T,
 		},
 	}
 
-	runtimeInstance, err := wazero_runtime.NewInstanceFromTrie(rtStorage.Trie().(*trie.InMemoryTrie), cfg)
+	runtimeInstance, err := wazero_runtime.NewInstanceFromTrie(rtStorage.Trie(), cfg)
 	require.NoError(t, err)
 
 	return runtimeInstance
@@ -637,7 +636,7 @@ type coreStorageState interface {
 
 type integrationTestController struct {
 	genesis       *genesis.Genesis
-	genesisTrie   trie.Trie
+	genesisTrie   *trie.Trie
 	genesisHeader *types.Header
 	runtime       runtime.Instance
 	stateSrv      *state.Service
@@ -683,7 +682,7 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 	net2test := NewMockNetwork(nil)
 	integrationTestController := &integrationTestController{
 		genesis:       &gen,
-		genesisTrie:   genesisTrie,
+		genesisTrie:   &genesisTrie,
 		genesisHeader: &genesisHeader,
 		stateSrv:      state2test,
 		storageState:  state2test.Storage,
@@ -744,7 +743,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 	ks := keystore.NewGlobalKeystore()
 	integrationTestController := &integrationTestController{
 		genesis:       &gen,
-		genesisTrie:   genesisTrie,
+		genesisTrie:   &genesisTrie,
 		genesisHeader: &genesisHeader,
 		stateSrv:      state2test,
 		storageState:  state2test.Storage,

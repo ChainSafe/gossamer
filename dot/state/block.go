@@ -20,7 +20,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 )
 
@@ -800,7 +800,7 @@ func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime time.Time) er
 }
 
 // HandleRuntimeChanges handles the update in runtime.
-func (bs *BlockState) HandleRuntimeChanges(newState *storage.TrieState,
+func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 	parentRuntimeInstance runtime.Instance, bHash common.Hash) error {
 	currCodeHash, err := newState.LoadCodeHash()
 	if err != nil {

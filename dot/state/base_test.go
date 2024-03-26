@@ -18,7 +18,7 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 
 	generator := newGenerator()
-	const size = 2
+	const size = 500
 	kv := generateKeyValues(t, generator, size)
 
 	for keyString, value := range kv {

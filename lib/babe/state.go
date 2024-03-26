@@ -10,7 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
@@ -44,7 +44,7 @@ type ImportedBlockNotifierManager interface {
 
 // StorageState interface for storage state methods
 type StorageState interface {
-	TrieState(hash *common.Hash) (*storage.TrieState, error)
+	TrieState(hash *common.Hash) (*rtstorage.TrieState, error)
 	sync.Locker
 }
 
@@ -74,5 +74,5 @@ type EpochState interface {
 
 // BlockImportHandler is the interface for the handler of new blocks
 type BlockImportHandler interface {
-	HandleBlockProduced(block *types.Block, state *storage.TrieState) error
+	HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error
 }

@@ -17,7 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/trie"
@@ -61,7 +61,7 @@ func newTestSyncer(t *testing.T) *Service {
 	}
 
 	// initialise runtime
-	genState := storage.NewTrieState(genTrie)
+	genState := rtstorage.NewTrieState(genTrie)
 
 	rtCfg := wazero_runtime.Config{
 		Storage: genState,
@@ -85,8 +85,8 @@ func newTestSyncer(t *testing.T) *Service {
 	cfg.BlockState.(*state.BlockState).StoreRuntime(bestBlockHash, instance)
 	blockImportHandler := NewMockBlockImportHandler(ctrl)
 	blockImportHandler.EXPECT().HandleBlockImport(gomock.AssignableToTypeOf(&types.Block{}),
-		gomock.AssignableToTypeOf(&storage.TrieState{}), false).DoAndReturn(
-		func(block *types.Block, ts *storage.TrieState, _ bool) error {
+		gomock.AssignableToTypeOf(&rtstorage.TrieState{}), false).DoAndReturn(
+		func(block *types.Block, ts *rtstorage.TrieState, _ bool) error {
 			// store updates state trie nodes in database
 			if err = stateSrvc.Storage.StoreTrie(ts, &block.Header); err != nil {
 				logger.Warnf("failed to store state trie for imported block %s: %s", block.Header.Hash(), err)
