@@ -20,7 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -130,7 +130,7 @@ func Test_Service_StorageRoot(t *testing.T) {
 		name          string
 		service       *Service
 		exp           common.Hash
-		retTrieState  *storage.TrieState
+		retTrieState  *rtstorage.TrieState
 		trieStateCall bool
 		retErr        error
 		expErr        error
@@ -150,7 +150,7 @@ func Test_Service_StorageRoot(t *testing.T) {
 			service: &Service{},
 			exp: common.Hash{0x3, 0x17, 0xa, 0x2e, 0x75, 0x97, 0xb7, 0xb7, 0xe3, 0xd8, 0x4c, 0x5, 0x39, 0x1d, 0x13, 0x9a,
 				0x62, 0xb1, 0x57, 0xe7, 0x87, 0x86, 0xd8, 0xc0, 0x82, 0xf2, 0x9d, 0xcf, 0x4c, 0x11, 0x13, 0x14},
-			retTrieState:  storage.NewTrieState(trie.NewEmptyInmemoryTrie()),
+			retTrieState:  rtstorage.NewTrieState(trie.NewEmptyInmemoryTrie()),
 			trieStateCall: true,
 			stateVersion:  0,
 		},
@@ -159,7 +159,7 @@ func Test_Service_StorageRoot(t *testing.T) {
 			service: &Service{},
 			exp: common.Hash{0x3, 0x17, 0xa, 0x2e, 0x75, 0x97, 0xb7, 0xb7, 0xe3, 0xd8, 0x4c, 0x5, 0x39, 0x1d, 0x13, 0x9a,
 				0x62, 0xb1, 0x57, 0xe7, 0x87, 0x86, 0xd8, 0xc0, 0x82, 0xf2, 0x9d, 0xcf, 0x4c, 0x11, 0x13, 0x14},
-			retTrieState:  storage.NewTrieState(trie.NewEmptyInmemoryTrie()),
+			retTrieState:  rtstorage.NewTrieState(trie.NewEmptyInmemoryTrie()),
 			trieStateCall: true,
 			stateVersion:  1,
 		},
@@ -211,7 +211,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 	testCases := map[string]struct {
 		serviceBuilder func(ctrl *gomock.Controller) *Service
 		blockHash      common.Hash
-		trieState      *storage.TrieState
+		trieState      *rtstorage.TrieState
 		errWrapped     error
 		errMessage     string
 	}{
@@ -280,7 +280,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 			errWrapped: io.ErrUnexpectedEOF,
 		},
 		"store_code_substitution_block_hash_error": {
-			trieState: storage.NewTrieState(trie.NewEmptyInmemoryTrie()),
+			trieState: rtstorage.NewTrieState(trie.NewEmptyInmemoryTrie()),
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				storedRuntime := NewMockInstance(ctrl)
 				storedRuntime.EXPECT().Keystore().Return(nil)
@@ -338,7 +338,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 				}
 			},
 			blockHash: common.Hash{0x01},
-			trieState: storage.NewTrieState(trie.NewEmptyInmemoryTrie()),
+			trieState: rtstorage.NewTrieState(trie.NewEmptyInmemoryTrie()),
 		},
 	}
 
@@ -362,8 +362,7 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 func Test_Service_handleBlock(t *testing.T) {
 	t.Parallel()
 
-	execTest := func(t *testing.T, s *Service, block *types.Block,
-		trieState *storage.TrieState, expErr error) {
+	execTest := func(t *testing.T, s *Service, block *types.Block, trieState *rtstorage.TrieState, expErr error) {
 		err := s.handleBlock(block, trieState)
 		assert.ErrorIs(t, err, expErr)
 		if expErr != nil {
@@ -379,7 +378,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("storeTrie_error", func(t *testing.T) {
 		t.Parallel()
-		trieState := storage.NewTrieState(trie.NewEmptyInmemoryTrie())
+		trieState := rtstorage.NewTrieState(trie.NewEmptyInmemoryTrie())
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -395,7 +394,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("addBlock_quit_error", func(t *testing.T) {
 		t.Parallel()
-		trieState := storage.NewTrieState(trie.NewEmptyInmemoryTrie())
+		trieState := rtstorage.NewTrieState(trie.NewEmptyInmemoryTrie())
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -416,7 +415,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("addBlock_parent_not_found_error", func(t *testing.T) {
 		t.Parallel()
-		trieState := storage.NewTrieState(trie.NewEmptyInmemoryTrie())
+		trieState := rtstorage.NewTrieState(trie.NewEmptyInmemoryTrie())
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -437,7 +436,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("addBlock_error_continue", func(t *testing.T) {
 		t.Parallel()
-		trieState := storage.NewTrieState(trie.NewEmptyInmemoryTrie())
+		trieState := rtstorage.NewTrieState(trie.NewEmptyInmemoryTrie())
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -466,7 +465,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("handle_runtime_changes_error", func(t *testing.T) {
 		t.Parallel()
-		trieState := storage.NewTrieState(trie.NewEmptyInmemoryTrie())
+		trieState := rtstorage.NewTrieState(trie.NewEmptyInmemoryTrie())
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -498,7 +497,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 	t.Run("code_substitution_ok", func(t *testing.T) {
 		t.Parallel()
-		trieState := storage.NewTrieState(trie.NewEmptyInmemoryTrie())
+		trieState := rtstorage.NewTrieState(trie.NewEmptyInmemoryTrie())
 
 		testHeader := types.NewEmptyHeader()
 		block := types.NewBlock(*testHeader, *types.NewBody([]types.Extrinsic{[]byte{21}}))
@@ -530,8 +529,7 @@ func Test_Service_handleBlock(t *testing.T) {
 
 func Test_Service_HandleBlockProduced(t *testing.T) {
 	t.Parallel()
-	execTest := func(t *testing.T, s *Service, block *types.Block,
-		trieState *storage.TrieState, expErr error) {
+	execTest := func(t *testing.T, s *Service, block *types.Block, trieState *rtstorage.TrieState, expErr error) {
 		err := s.HandleBlockProduced(block, trieState)
 		require.ErrorIs(t, err, expErr)
 		if expErr != nil {
@@ -546,7 +544,7 @@ func Test_Service_HandleBlockProduced(t *testing.T) {
 
 	t.Run("happy_path", func(t *testing.T) {
 		t.Parallel()
-		trieState := storage.NewTrieState(trie.NewEmptyInmemoryTrie())
+		trieState := rtstorage.NewTrieState(trie.NewEmptyInmemoryTrie())
 
 		digest := types.NewDigest()
 		err := digest.Add(
@@ -638,7 +636,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
 		}, nil)
-		runtimeMock.EXPECT().SetContextStorage(&storage.TrieState{})
+		runtimeMock.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 
 		mockTxnState := NewMockTransactionState(ctrl)
 		mockTxnState.EXPECT().RemoveExtrinsic(types.Extrinsic{21}).Times(2)
@@ -651,7 +649,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			Return(common.Hash{}).After(runtimeBlockHashCall)
 
 		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().TrieState(&common.Hash{1}).Return(&storage.TrieState{}, nil)
+		mockStorageState.EXPECT().TrieState(&common.Hash{1}).Return(&rtstorage.TrieState{}, nil)
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{1}).Return(&common.Hash{1}, nil)
 		service := &Service{
 			transactionState: mockTxnState,
@@ -703,7 +701,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
 		}, nil)
-		runtimeMock.EXPECT().SetContextStorage(&storage.TrieState{})
+		runtimeMock.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 		mockTxnState := NewMockTransactionState(ctrl)
 		mockTxnState.EXPECT().RemoveExtrinsic(types.Extrinsic{21})
 		mockTxnState.EXPECT().PendingInPool().Return([]*transaction.ValidTransaction{vt})
@@ -718,7 +716,7 @@ func Test_Service_maintainTransactionPool(t *testing.T) {
 			Return(common.Hash{}).After(runtimeBlockHashCall)
 
 		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().TrieState(&common.Hash{1}).Return(&storage.TrieState{}, nil)
+		mockStorageState.EXPECT().TrieState(&common.Hash{1}).Return(&rtstorage.TrieState{}, nil)
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{1}).Return(&common.Hash{1}, nil)
 		service := &Service{
 			transactionState: mockTxnState,
@@ -1147,7 +1145,7 @@ func TestServiceGetRuntimeVersion(t *testing.T) {
 		TransactionVersion: transactionVersion,
 	}
 	emptyTrie := trie.NewEmptyInmemoryTrie()
-	ts := storage.NewTrieState(emptyTrie)
+	ts := rtstorage.NewTrieState(emptyTrie)
 
 	execTest := func(t *testing.T, s *Service, bhash *common.Hash, exp runtime.Version,
 		expErr error, expectedErrMessage string) {
@@ -1273,7 +1271,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		mockBlockState.EXPECT().GetRuntime(common.Hash{}).Return(nil, errDummyErr)
 
 		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&storage.TrieState{}, nil)
+		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 
 		mockTxnState := NewMockTransactionState(ctrl)
@@ -1297,7 +1295,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{})
 
 		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&storage.TrieState{}, nil)
+		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 
 		mockTxnState := NewMockTransactionState(ctrl)
@@ -1317,7 +1315,7 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
 		}, nil)
-		runtimeMockErr.EXPECT().SetContextStorage(&storage.TrieState{})
+		runtimeMockErr.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 		service := &Service{
 			storageState:     mockStorageState,
 			transactionState: mockTxnState,
@@ -1351,10 +1349,10 @@ func TestServiceHandleSubmittedExtrinsic(t *testing.T) {
 			TransactionVersion: transactionVersion,
 			StateVersion:       stateVersion,
 		}, nil)
-		runtimeMock.EXPECT().SetContextStorage(&storage.TrieState{})
+		runtimeMock.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 
 		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&storage.TrieState{}, nil)
+		mockStorageState.EXPECT().TrieState(&common.Hash{}).Return(&rtstorage.TrieState{}, nil)
 		mockStorageState.EXPECT().GetStateRootFromBlock(&common.Hash{}).Return(&common.Hash{}, nil)
 
 		mockTxnState := NewMockTransactionState(ctrl)
@@ -1412,7 +1410,7 @@ func TestServiceGetMetadata(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().TrieState(nil).Return(&storage.TrieState{}, nil)
+		mockStorageState.EXPECT().TrieState(nil).Return(&rtstorage.TrieState{}, nil)
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{1})
 		mockBlockState.EXPECT().GetRuntime(common.Hash{1}).Return(nil, errDummyErr)
@@ -1428,12 +1426,12 @@ func TestServiceGetMetadata(t *testing.T) {
 		t.Parallel()
 		ctrl := gomock.NewController(t)
 		mockStorageState := NewMockStorageState(ctrl)
-		mockStorageState.EXPECT().TrieState(nil).Return(&storage.TrieState{}, nil)
+		mockStorageState.EXPECT().TrieState(nil).Return(&rtstorage.TrieState{}, nil)
 		runtimeMockOk := NewMockInstance(ctrl)
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().BestBlockHash().Return(common.Hash{1})
 		mockBlockState.EXPECT().GetRuntime(common.Hash{1}).Return(runtimeMockOk, nil)
-		runtimeMockOk.EXPECT().SetContextStorage(&storage.TrieState{})
+		runtimeMockOk.EXPECT().SetContextStorage(&rtstorage.TrieState{})
 		runtimeMockOk.EXPECT().Metadata().Return([]byte{1, 2, 3}, nil)
 		service := &Service{
 			storageState: mockStorageState,
