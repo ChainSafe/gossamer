@@ -13,7 +13,7 @@ import (
 	reflect "reflect"
 
 	types "github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	gomock "go.uber.org/mock/gomock"
 )
 

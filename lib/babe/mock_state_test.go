@@ -16,7 +16,7 @@ import (
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/storage"
+	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
 	gomock "go.uber.org/mock/gomock"
 )
