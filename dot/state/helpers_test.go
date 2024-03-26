@@ -19,7 +19,7 @@ import (
 
 func newTriesEmpty() *Tries {
 	return &Tries{
-		rootToTrie:    make(map[common.Hash]*trie.InMemoryTrie),
+		rootToTrie:    make(map[common.Hash]trie.Trie),
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
 		deleteCounter: deleteCounter,

@@ -109,7 +109,9 @@ func (s *InmemoryStorageState) TrieState(root *common.Hash) (*storage.TrieState,
 		panic("trie does not have expected root")
 	}
 
-	nextTrie := t.Snapshot()
+	// TODO: do we really need to create an snapshot here if TrieState handles
+	// the modifications?
+	nextTrie := t.(*trie.InMemoryTrie).Snapshot()
 	next := storage.NewTrieState(nextTrie)
 
 	logger.Tracef("returning trie with root %s to be modified", root)
@@ -128,7 +130,7 @@ func (s *InmemoryStorageState) LoadFromDB(root common.Hash) (*trie.InMemoryTrie,
 	return t, nil
 }
 
-func (s *InmemoryStorageState) loadTrie(root *common.Hash) (*trie.InMemoryTrie, error) {
+func (s *InmemoryStorageState) loadTrie(root *common.Hash) (trie.Trie, error) {
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {

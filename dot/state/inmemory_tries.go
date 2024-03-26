@@ -31,9 +31,9 @@ var (
 )
 
 // Tries is a thread safe map of root hash
-// to trie.
+// to Trie. This structure is only used in combination with in-memory tries
 type Tries struct {
-	rootToTrie    map[common.Hash]*trie.InMemoryTrie
+	rootToTrie    map[common.Hash]trie.Trie
 	mapMutex      sync.RWMutex
 	triesGauge    prometheus.Gauge
 	setCounter    prometheus.Counter
@@ -44,7 +44,7 @@ type Tries struct {
 // to trie.
 func NewTries() (tries *Tries) {
 	return &Tries{
-		rootToTrie:    make(map[common.Hash]*trie.InMemoryTrie),
+		rootToTrie:    make(map[common.Hash]trie.Trie),
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
 		deleteCounter: deleteCounter,
@@ -59,13 +59,13 @@ func (t *Tries) SetEmptyTrie() {
 }
 
 // SetTrie sets the trie at its root hash in the tries map.
-func (t *Tries) SetTrie(tr *trie.InMemoryTrie) {
+func (t *Tries) SetTrie(tr trie.Trie) {
 	t.softSet(tr.MustHash(), tr)
 }
 
 // softSet sets the given trie at the given root hash
 // in the memory map only if it is not already set.
-func (t *Tries) softSet(root common.Hash, trie *trie.InMemoryTrie) {
+func (t *Tries) softSet(root common.Hash, trie trie.Trie) {
 	t.mapMutex.Lock()
 	defer t.mapMutex.Unlock()
 
@@ -91,7 +91,7 @@ func (t *Tries) delete(root common.Hash) {
 
 // get retrieves the trie corresponding to the root hash given
 // from the in-memory thread safe map.
-func (t *Tries) get(root common.Hash) (tr *trie.InMemoryTrie) {
+func (t *Tries) get(root common.Hash) (tr trie.Trie) {
 	t.mapMutex.RLock()
 	defer t.mapMutex.RUnlock()
 	return t.rootToTrie[root]
