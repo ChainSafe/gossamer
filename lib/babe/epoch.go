@@ -11,18 +11,24 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
+type EpochDescriptor struct {
+	epochData *epochData
+	startSlot uint64
+	endSlot   uint64
+}
+
 // initiateEpoch sets the epochData for the given epoch, runs the lottery for the slots in the epoch,
 // and stores updated EpochInfo in the database
-func (b *Service) initiateEpoch(epoch uint64) (*epochData, error) {
+func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
 	logger.Debugf("initiating epoch %d", epoch)
 
 	// if epoch == 1, check that first slot is still set correctly
 	// ie. that the start slot of the network is the same as the slot number of block 1
-	if epoch == 1 {
-		if err := b.checkAndSetFirstSlot(); err != nil {
-			return nil, fmt.Errorf("cannot check and set first slot: %w", err)
-		}
-	}
+	// if epoch == 1 {
+	// 	if err := b.checkAndSetFirstSlot(); err != nil {
+	// 		return nil, fmt.Errorf("cannot check and set first slot: %w", err)
+	// 	}
+	// }
 
 	bestBlockHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
@@ -34,7 +40,7 @@ func (b *Service) initiateEpoch(epoch uint64) (*epochData, error) {
 		return nil, fmt.Errorf("cannot get epoch data and start slot: %w", err)
 	}
 
-	startSlot, err := b.epochState.GetStartSlotForEpoch(epoch)
+	startSlot, err := b.epochState.GetStartSlotForEpoch(epoch, bestBlockHeader.Hash())
 	if err != nil {
 		return nil, fmt.Errorf("cannot get start slot for epoch %d: %w", epoch, err)
 	}
@@ -60,59 +66,50 @@ func (b *Service) initiateEpoch(epoch uint64) (*epochData, error) {
 	return epochData, nil
 }
 
-func (b *Service) checkAndSetFirstSlot() error {
-	firstSlot, err := b.epochState.GetStartSlotForEpoch(0)
-	if err != nil {
-		return fmt.Errorf("cannot set first slot: %w", err)
-	}
+// func (b *Service) checkAndSetFirstSlot() error {
+// 	firstSlot, err := b.epochState.GetStartSlotForEpoch(0)
+// 	if err != nil {
+// 		return fmt.Errorf("cannot set first slot: %w", err)
+// 	}
 
-	block, err := b.blockState.GetBlockByNumber(1)
-	if err != nil {
-		return fmt.Errorf("cannot get block with number 1: %w", err)
-	}
+// 	block, err := b.blockState.GetBlockByNumber(1)
+// 	if err != nil {
+// 		return fmt.Errorf("cannot get block with number 1: %w", err)
+// 	}
 
-	slot, err := types.GetSlotFromHeader(&block.Header)
-	if err != nil {
-		return fmt.Errorf("cannot get slot from header of block 1: %w", err)
-	}
+// 	slot, err := types.GetSlotFromHeader(&block.Header)
+// 	if err != nil {
+// 		return fmt.Errorf("cannot get slot from header of block 1: %w", err)
+// 	}
 
-	if slot != firstSlot {
-		if err := b.epochState.SetFirstSlot(slot); err != nil {
-			return fmt.Errorf("cannot set first slot for block 1: %w", err)
-		}
-	}
+// 	if slot != firstSlot {
+// 		if err := b.epochState.SetFirstSlot(slot); err != nil {
+// 			return fmt.Errorf("cannot set first slot for block 1: %w", err)
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+//}
 
 func (b *Service) getEpochData(epoch uint64, bestBlock *types.Header) (*epochData, error) {
-	if epoch == 0 {
-		epochData, err := b.getLatestEpochData()
-		if err != nil {
-			return nil, fmt.Errorf("cannot get latest epoch data: %w", err)
-		}
-
-		return epochData, nil
-	}
-
 	currEpochData, err := b.epochState.GetEpochDataRaw(epoch, bestBlock)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get epoch data for epoch %d: %w", epoch, err)
+		return nil, fmt.Errorf("getting epoch data for epoch %d: %w", epoch, err)
 	}
 
-	currentConfigData, err := b.epochState.GetConfigData(epoch, bestBlock)
+	currConfigData, err := b.epochState.GetConfigData(epoch, bestBlock)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get config data for epoch %d: %w", epoch, err)
+		return nil, fmt.Errorf("getting config data for epoch %d: %w", epoch, err)
 	}
 
-	threshold, err := CalculateThreshold(currentConfigData.C1, currentConfigData.C2, len(currEpochData.Authorities))
+	threshold, err := CalculateThreshold(currConfigData.C1, currConfigData.C2, len(currEpochData.Authorities))
 	if err != nil {
-		return nil, fmt.Errorf("cannot calculate threshold: %w", err)
+		return nil, fmt.Errorf("calculating threshold: %w", err)
 	}
 
 	idx, err := b.getAuthorityIndex(currEpochData.Authorities)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get authority index: %w", err)
+		return nil, fmt.Errorf("getting authority index: %w", err)
 	}
 
 	return &epochData{
@@ -120,43 +117,8 @@ func (b *Service) getEpochData(epoch uint64, bestBlock *types.Header) (*epochDat
 		authorities:    currEpochData.Authorities,
 		authorityIndex: idx,
 		threshold:      threshold,
-		allowedSlots:   types.AllowedSlots(currentConfigData.SecondarySlots),
+		allowedSlots:   types.AllowedSlots(currConfigData.SecondarySlots),
 	}, nil
-}
-
-func (b *Service) getLatestEpochData() (resEpochData *epochData, error error) {
-	resEpochData = &epochData{}
-
-	epochDataRaw, err := b.epochState.GetLatestEpochDataRaw()
-	if err != nil {
-		return nil, fmt.Errorf("cannot get latest epoch data: %w", err)
-	}
-
-	resEpochData.randomness = epochDataRaw.Randomness
-	resEpochData.authorities = epochDataRaw.Authorities
-
-	configData, err := b.epochState.GetLatestConfigData()
-	if err != nil {
-		return nil, fmt.Errorf("cannot get epoch state latest config data: %w", err)
-	}
-
-	resEpochData.allowedSlots = types.AllowedSlots(configData.SecondarySlots)
-
-	resEpochData.threshold, err = CalculateThreshold(configData.C1, configData.C2, len(resEpochData.authorities))
-	if err != nil {
-		return nil, fmt.Errorf("cannot calculate threshold: %w", err)
-	}
-
-	if !b.authority {
-		return resEpochData, nil
-	}
-
-	resEpochData.authorityIndex, err = b.getAuthorityIndex(resEpochData.authorities)
-	if err != nil {
-		return nil, fmt.Errorf("cannot get authority index: %w", err)
-	}
-
-	return resEpochData, nil
 }
 
 func (b *Service) getFirstAuthoringSlot(epoch uint64, epochData *epochData) (uint64, error) {

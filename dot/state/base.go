@@ -124,33 +124,3 @@ func (s *BaseState) loadFirstSlot() (uint64, error) {
 
 	return binary.LittleEndian.Uint64(data), nil
 }
-
-func (s *BaseState) storeEpochLength(l uint64) error {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, l)
-	return s.db.Put(epochLengthKey, buf)
-}
-
-func (s *BaseState) loadEpochLength() (uint64, error) {
-	data, err := s.db.Get(epochLengthKey)
-	if err != nil {
-		return 0, err
-	}
-
-	return binary.LittleEndian.Uint64(data), nil
-}
-
-func (s *BaseState) storeSlotDuration(duration uint64) error {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, duration)
-	return s.db.Put(slotDurationKey, buf)
-}
-
-func (s *BaseState) loadSlotDuration() (uint64, error) {
-	data, err := s.db.Get(slotDurationKey)
-	if err != nil {
-		return 0, err
-	}
-
-	return binary.LittleEndian.Uint64(data), nil
-}

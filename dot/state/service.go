@@ -144,8 +144,24 @@ func (s *Service) Start() (err error) {
 	// create transaction queue
 	s.Transaction = NewTransactionState(s.Telemetry)
 
-	// create epoch state
-	s.Epoch, err = NewEpochState(s.db, s.Block)
+	// create epoch and slot state
+	s.Slot = NewSlotState(s.db)
+
+	genesisHash := s.Block.GenesisHash()
+	trieState, err := s.Storage.TrieState(&genesisHash)
+
+	rt, err := s.CreateGenesisRuntime(trieState.Trie())
+	if err != nil {
+		return fmt.Errorf("creating runtime instance: %w", err)
+	}
+	defer rt.Stop()
+
+	babeCfg, err := s.loadBabeConfigurationFromRuntime(rt)
+	if err != nil {
+		return err
+	}
+
+	s.Epoch, err = NewEpochState(s.db, s.Block, babeCfg)
 	if err != nil {
 		return fmt.Errorf("failed to create epoch state: %w", err)
 	}
@@ -156,7 +172,6 @@ func (s *Service) Start() (err error) {
 		"created state service with head %s, highest number %d and genesis hash %s",
 		s.Block.BestBlockHash(), num, s.Block.genesisHash.String())
 
-	s.Slot = NewSlotState(s.db)
 	return nil
 }
 
@@ -274,7 +289,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, stateTrieVersion tr
 		db: database.NewTable(s.db, storagePrefix),
 	}
 
-	epoch, err := NewEpochState(s.db, block)
+	epoch, err := NewEpochState(s.db, block, nil)
 	if err != nil {
 		return err
 	}
