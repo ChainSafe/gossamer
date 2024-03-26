@@ -47,7 +47,7 @@ var (
 
 // newTestCoreService creates a new test core service
 func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
-	genesisTrie *trie.InMemoryTrie, genesisHeader types.Header) *core.Service {
+	genesisTrie trie.Trie, genesisHeader types.Header) *core.Service {
 	t.Helper()
 	ctrl := gomock.NewController(t)
 
@@ -154,7 +154,7 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 }
 
 func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
-	genesisTrie *trie.InMemoryTrie, genesisHeader types.Header, babeConfig *types.BabeConfiguration) *Service {
+	genesisTrie trie.Trie, genesisHeader types.Header, babeConfig *types.BabeConfiguration) *Service {
 	wazero_runtime.DefaultTestLogLvl = log.Error
 
 	if cfg.Keypair == nil {
@@ -382,7 +382,7 @@ func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
 
 // newWestendDevGenesisWithTrieAndHeader returns the westend genesis, genesis trie and genesis header
 func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
-	gen genesis.Genesis, genesisTrie *trie.InMemoryTrie, genesisHeader types.Header) {
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)

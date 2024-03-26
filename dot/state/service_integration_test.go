@@ -84,7 +84,7 @@ func TestService_Initialise(t *testing.T) {
 	// in-memory trie representation.
 	// If the same trie is re-used for the second call, the database is cleared
 	// and nothing is written to disk since all nodes are marked as clean.
-	genTrieCopy := genTrie.DeepCopy()
+	genTrieCopy := genTrie.(*trie.InMemoryTrie).DeepCopy()
 
 	err := state.Initialise(&genData, &genesisHeader, genTrie)
 	require.NoError(t, err)
