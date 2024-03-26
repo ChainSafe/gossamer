@@ -38,6 +38,7 @@ func (t *Trie) setChild(keyToChild []byte, child *Trie) error {
 }
 
 // GetChild returns the child trie at key :child_storage:[keyToChild]
+// TODO: do we need to return an error when the child trie does not exist?
 func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
 	key := make([]byte, len(ChildStorageKeyPrefix)+len(keyToChild))
 	copy(key, ChildStorageKeyPrefix)
