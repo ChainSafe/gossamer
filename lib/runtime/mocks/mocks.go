@@ -345,6 +345,21 @@ func (mr *MockInstanceMockRecorder) OffchainWorker() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OffchainWorker", reflect.TypeOf((*MockInstance)(nil).OffchainWorker))
 }
 
+// ParachainHostAsyncBackingParams mocks base method.
+func (m *MockInstance) ParachainHostAsyncBackingParams() (*parachaintypes.AsyncBackingParams, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostAsyncBackingParams")
+	ret0, _ := ret[0].(*parachaintypes.AsyncBackingParams)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostAsyncBackingParams indicates an expected call of ParachainHostAsyncBackingParams.
+func (mr *MockInstanceMockRecorder) ParachainHostAsyncBackingParams() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostAsyncBackingParams", reflect.TypeOf((*MockInstance)(nil).ParachainHostAsyncBackingParams))
+}
+
 // ParachainHostAvailabilityCores mocks base method.
 func (m *MockInstance) ParachainHostAvailabilityCores() (*scale.VaryingDataTypeSlice, error) {
 	m.ctrl.T.Helper()

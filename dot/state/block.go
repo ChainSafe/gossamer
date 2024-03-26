@@ -82,6 +82,7 @@ func NewBlockState(db database.Database, trs *Tries, telemetry Telemetry) (*Bloc
 		tries:                      trs,
 		imported:                   make(map[chan *types.Block]struct{}),
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
+		importedLock:               sync.RWMutex{},
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 		telemetry:                  telemetry,
 	}

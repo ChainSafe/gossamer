@@ -490,6 +490,63 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(
 	return ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(ctx, m, sig, msg)
 }
 
+func ext_crypto_ecdsa_generate_version_1(
+	ctx context.Context, m api.Module, keyTypeID uint32, seedSpan uint64) uint32 {
+	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
+	if rtCtx == nil {
+		panic("nil runtime context")
+	}
+
+	id, ok := m.Memory().Read(keyTypeID, 4)
+	if !ok {
+		panic("read overflow")
+	}
+
+	seedBytes := read(m, seedSpan)
+
+	var seed *[]byte
+	err := scale.Unmarshal(seedBytes, &seed)
+	if err != nil {
+		logger.Warnf("cannot generate key: %s", err)
+		return 0
+	}
+
+	var kp *secp256k1.Keypair
+	if seed != nil {
+		kp, err = secp256k1.NewKeypairFromMnenomic(string(*seed), "")
+	} else {
+		kp, err = secp256k1.GenerateKeypair()
+	}
+
+	if err != nil {
+		logger.Errorf("cannot generate key: %s", err)
+		panic(err)
+	}
+
+	ks, err := rtCtx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Errorf("error for id "+common.BytesToHex(id)+": %s", err)
+		return 0
+	}
+
+	err = ks.Insert(kp)
+	if err != nil {
+		logger.Errorf("failed to insert key: %s", err)
+		return 0
+	}
+
+	ret, err := write(m, rtCtx.Allocator, kp.Public().Encode())
+	if err != nil {
+		logger.Errorf("failed to allocate memory: %s", err)
+		return 0
+	}
+
+	logger.Debug("generated secp256k1 keypair with public key: " + kp.Public().Hex())
+
+	ptr, _ := splitPointerSize(ret)
+	return ptr
+}
+
 func ext_crypto_sr25519_generate_version_1(
 	ctx context.Context, m api.Module, keyTypeID uint32, seedSpan uint64) uint32 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)

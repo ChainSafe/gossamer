@@ -170,6 +170,9 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		WithFunc(ext_crypto_ed25519_verify_version_1).
 		Export("ext_crypto_ed25519_verify_version_1").
 		NewFunctionBuilder().
+		WithFunc(ext_crypto_ecdsa_generate_version_1).
+		Export("ext_crypto_ecdsa_generate_version_1").
+		NewFunctionBuilder().
 		WithFunc(ext_crypto_secp256k1_ecdsa_recover_version_1).
 		Export("ext_crypto_secp256k1_ecdsa_recover_version_1").
 		NewFunctionBuilder().
@@ -1063,6 +1066,21 @@ func (in *Instance) ParachainHostValidationCodeByHash(validationCodeHash common.
 	}
 
 	return validationCode, nil
+}
+
+func (in *Instance) ParachainHostAsyncBackingParams() (*parachaintypes.AsyncBackingParams, error) {
+	encodedBackingParams, err := in.Exec(runtime.ParachainHostAsyncBackingParams, []byte{})
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	backingParams := new(parachaintypes.AsyncBackingParams)
+	err = scale.Unmarshal(encodedBackingParams, backingParams)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling async backing params: %w", err)
+	}
+
+	return backingParams, nil
 }
 
 func (*Instance) RandomSeed() {

@@ -6,9 +6,11 @@ package collatorprotocol
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
+	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -178,10 +180,10 @@ const (
 	Seconded
 )
 
-// BlockedAdvertisement is vstaging advertisement that was rejected by the backing
+// blockedAdvertisement is vstaging advertisement that was rejected by the backing
 // subsystem. Validator may fetch it later if its fragment
 // membership gets recognised before relay parent goes out of view.
-type BlockedAdvertisement struct {
+type blockedAdvertisement struct {
 	// peer that advertised the collation
 	peerID               peer.ID
 	collatorID           parachaintypes.CollatorID
@@ -194,26 +196,23 @@ func (cpvs CollatorProtocolValidatorSide) canSecond(
 	candidateRelayParent common.Hash,
 	candidateHash parachaintypes.CandidateHash,
 	parentHeadDataHash common.Hash,
-) bool {
+) (bool, error) {
+
 	canSecondRequest := backing.CanSecondMessage{
 		CandidateParaID:      candidateParaID,
 		CandidateRelayParent: candidateRelayParent,
 		CandidateHash:        candidateHash,
 		ParentHeadDataHash:   parentHeadDataHash,
+		ResponseCh:           make(chan bool),
 	}
 
-	responseChan := make(chan bool)
-
-	cpvs.SubSystemToOverseer <- struct {
-		responseChan     chan bool
-		canSecondRequest backing.CanSecondMessage
-	}{
-		responseChan:     responseChan,
-		canSecondRequest: canSecondRequest,
+	cpvs.SubSystemToOverseer <- canSecondRequest
+	select {
+	case canSecondResponse := <-canSecondRequest.ResponseCh:
+		return canSecondResponse, nil
+	case <-time.After(parachaintypes.SubsystemRequestTimeout):
+		return false, parachaintypes.ErrSubsystemRequestTimeout
 	}
-
-	// TODO: Add timeout
-	return <-responseChan
 }
 
 // Enqueue collation for fetching. The advertisement is expected to be
@@ -297,10 +296,6 @@ func (cpvs *CollatorProtocolValidatorSide) fetchCollation(pendingCollation Pendi
 
 func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent common.Hash, sender peer.ID,
 	prospectiveCandidate *ProspectiveCandidate) error {
-	// TODO:
-	// - tracks advertisements received and the source (peer id) of the advertisement
-	// - accept one advertisement per collator per source per relay-parent
-
 	perRelayParent, ok := cpvs.perRelayParent[relayParent]
 	if !ok {
 		cpvs.net.ReportPeer(peerset.ReputationChange{
@@ -366,26 +361,38 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 	}
 
 	/*NOTE:---------------------------------------Matters only in V2----------------------------------------------*/
-	isSecondingAllowed := !perRelayParent.prospectiveParachainMode.IsEnabled || cpvs.canSecond(
-		collatorParaID,
-		relayParent,
-		prospectiveCandidate.CandidateHash,
-		prospectiveCandidate.ParentHeadDataHash,
-	)
+	var isSecondingAllowed bool
+	if !perRelayParent.prospectiveParachainMode.IsEnabled {
+		isSecondingAllowed = true
+	} else {
+		isSecondingAllowed, err = cpvs.canSecond(
+			collatorParaID,
+			relayParent,
+			prospectiveCandidate.CandidateHash,
+			prospectiveCandidate.ParentHeadDataHash,
+		)
+		if err != nil {
+			return fmt.Errorf("checking if seconding is allowed: %w", err)
+		}
+	}
 
 	if !isSecondingAllowed {
 		logger.Infof("Seconding is not allowed by backing, queueing advertisement,"+
 			" relay parent: %s, para id: %d, candidate hash: %s",
 			relayParent, collatorParaID, prospectiveCandidate.CandidateHash)
 
-		blockedAdvertisements := append(cpvs.BlockedAdvertisements, BlockedAdvertisement{
+		backed := collatorprotocolmessages.Backed{
+			ParaID:   collatorParaID,
+			ParaHead: prospectiveCandidate.ParentHeadDataHash,
+		}
+
+		blockedAd := blockedAdvertisement{
 			peerID:               sender,
 			collatorID:           peerData.state.CollatingPeerState.CollatorID,
 			candidateRelayParent: relayParent,
 			candidateHash:        prospectiveCandidate.CandidateHash,
-		})
-
-		cpvs.BlockedAdvertisements = blockedAdvertisements
+		}
+		cpvs.BlockedAdvertisements[backed.String()] = []blockedAdvertisement{blockedAd}
 		return nil
 	}
 	/*--------------------------------------------END----------------------------------------------------------*/
