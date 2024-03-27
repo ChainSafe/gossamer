@@ -6,7 +6,6 @@ package availabilitystore
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -42,7 +41,7 @@ type ErasureChunk struct {
 // QueryChunk query an `ErasureChunk` from the AV store by candidate hash and validator index
 type QueryChunk struct {
 	CandidateHash  parachaintypes.CandidateHash
-	ValidatorIndex uint32
+	ValidatorIndex uint
 	Sender         chan ErasureChunk
 }
 
@@ -82,7 +81,7 @@ type StoreAvailableData struct {
 	// A hash of the candidate this `ASMStoreAvailableData` belongs to.
 	CandidateHash parachaintypes.CandidateHash
 	// The number of validators in the session.
-	NumValidators uint32
+	NumValidators uint
 	// The `AvailableData` itself.
 	AvailableData AvailableData
 	// Erasure root we expect to get after chunking.
@@ -129,6 +128,12 @@ func (s *State) Set(val scale.VaryingDataTypeValue) (err error) {
 	return nil
 }
 
+// Value returns the value from the underlying varying data type
+func (s *State) Value() (val scale.VaryingDataTypeValue, err error) {
+	vdt := scale.VaryingDataType(*s)
+	return vdt.Value()
+}
+
 // Unavailable candidate data was first observed at the given time but in not available in any black
 type Unavailable struct {
 	Timestamp BETimestamp
@@ -145,7 +150,7 @@ func (Unavailable) Index() uint {
 // which case the same timestamp will be reused. Blocks are sorted ascending first by block
 // number and then hash. candidate data was first observed at the given time and is available in at least one block
 type Unfinalized struct {
-	Timestamp       time.Time
+	Timestamp       BETimestamp
 	BlockNumberHash []BlockNumberHash
 }
 
@@ -156,7 +161,7 @@ func (Unfinalized) Index() uint {
 
 // Finalized candidate data has appeared in a finalized block and did so at the given time
 type Finalized struct {
-	Timestamp time.Time
+	Timestamp BETimestamp
 }
 
 // Index returns the index of the varying data type
@@ -166,8 +171,8 @@ func (Finalized) Index() uint {
 
 // BlockNumberHash is a block number and hash
 type BlockNumberHash struct {
-	blockNumber parachaintypes.BlockNumber //nolint:unused,structcheck
-	blockHash   common.Hash                //nolint:unused,structcheck
+	blockNumber parachaintypes.BlockNumber //nolint:structcheck
+	blockHash   common.Hash                //nolint:structcheck
 }
 
 type branches struct {
