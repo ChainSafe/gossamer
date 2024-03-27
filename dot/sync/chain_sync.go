@@ -567,7 +567,7 @@ func (cs *chainSync) submitRequest(
 		cs.workerPool.submitRequest(request, who, resultCh)
 		return nil
 	}
-	return errBlockStatePaused
+	return fmt.Errorf("submitting request: %w", errBlockStatePaused)
 }
 
 func (cs *chainSync) submitRequests(requests []*network.BlockRequestMessage) (
@@ -575,7 +575,7 @@ func (cs *chainSync) submitRequests(requests []*network.BlockRequestMessage) (
 	if !cs.blockState.IsPaused() {
 		return cs.workerPool.submitRequests(requests), nil
 	}
-	return nil, errBlockStatePaused
+	return nil, fmt.Errorf("submitting requests: %w", errBlockStatePaused)
 }
 
 func (cs *chainSync) showSyncStats(syncBegin time.Time, syncedBlocks int) {
@@ -614,17 +614,12 @@ func (cs *chainSync) showSyncStats(syncBegin time.Time, syncedBlocks int) {
 func (cs *chainSync) handleWorkersResults(
 	workersResults chan *syncTaskResult, origin blockOrigin, startAtBlock uint, expectedSyncedBlocks uint32) error {
 	startTime := time.Now()
-
-	// TODO one idea is can refactor this to be a map (will be not as efficient tho, so prob not desired)
 	syncingChain := make([]*types.BlockData, expectedSyncedBlocks)
 	// the total numbers of blocks is missing in the syncing chain
 	waitingBlocks := expectedSyncedBlocks
 
 taskResultLoop:
 	for waitingBlocks > 0 {
-		//if cs.blockState.IsPaused() {
-		//	return errors.New("blockstate is paused")
-		//}
 		// in a case where we don't handle workers results we should check the pool
 		idleDuration := time.Minute
 		idleTimer := time.NewTimer(idleDuration)
