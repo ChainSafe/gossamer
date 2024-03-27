@@ -5,15 +5,17 @@ package services
 
 import (
 	"reflect"
-
-	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/sync"
 )
 
 // Service must be implemented by all services
 type Service interface {
 	Start() error
 	Stop() error
+}
+
+// Pausable must be implemented by services that must be paused before shutdown
+type Pausable interface {
+	Pause() error
 }
 
 // ServiceRegistry is a structure to manage core system services
@@ -58,25 +60,19 @@ func (s *ServiceRegistry) StartAll() {
 // PauseServices pauses key services before shutdown to allow a graceful shutdown
 func (s *ServiceRegistry) PauseServices() {
 	s.logger.Infof("Pausing key services")
-	// Pause the sync and state service to allow for graceful shutdown
-	syncService, ok := s.services[(reflect.TypeOf(&sync.Service{}))].(*sync.Service)
-	if ok && syncService != nil {
-		err := syncService.Pause()
-		if err != nil {
-			s.logger.Errorf("Error pausing sync service: %s", err)
-		}
-	} else {
-		s.logger.Errorf("Error getting sync service")
-	}
+	for _, typ := range s.serviceTypes {
+		// instead of casting to the concrete type
+		// you can cast to an interface that you concrete type implements
+		pausable, ok := s.services[typ].(Pausable)
 
-	stateService, ok := s.services[(reflect.TypeOf(&state.Service{}))].(*state.Service)
-	if ok && stateService != nil {
-		err := stateService.Pause()
-		if err != nil {
-			s.logger.Errorf("Error pausing state service: %s", err)
+		if ok && pausable != nil {
+			err := pausable.Pause()
+			if err != nil {
+				s.logger.Errorf("Error pausing %s service: %s", typ, err)
+			}
+		} else if ok {
+			s.logger.Errorf("Error pausing required services")
 		}
-	} else {
-		s.logger.Errorf("Error getting state service")
 	}
 
 	s.logger.Infof("Paused key services")
