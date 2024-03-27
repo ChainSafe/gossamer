@@ -84,6 +84,7 @@ func (v TrieLayout) MaxInlineValue() int {
 // Root returns the root hash of the trie built using the given entries
 func (v TrieLayout) Root(t Trie, entries Entries) (common.Hash, error) {
 	// TODO: is there any way to calculate the hash without building a trie?
+	// Eg: https://github.com/paritytech/trie/blob/542829a8195c12b67eef05e9020ec7a6d9313c3f/trie-root/src/lib.rs#L273-L388
 	t.SetVersion(v)
 
 	for _, kv := range entries {
