@@ -463,9 +463,7 @@ func Test_Trie_MustHash(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		var tr InMemoryTrie
-
-		hash := trie.V0.MustHash(&tr)
+		hash := trie.V0.MustHash(&InMemoryTrie{})
 
 		expectedHash := common.Hash{
 			0x3, 0x17, 0xa, 0x2e, 0x75, 0x97, 0xb7, 0xb7,
