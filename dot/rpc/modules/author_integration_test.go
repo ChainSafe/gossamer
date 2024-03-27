@@ -28,7 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -43,10 +43,10 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-type useRuntimeInstance func(*testing.T, *inmemory_storage.InMemoryTrieState) runtime.Instance
+type useRuntimeInstance func(*testing.T, *storage.TrieState) runtime.Instance
 
 // useInstanceFromGenesis creates a new runtime instance given a trie state
-func useInstanceFromGenesis(t *testing.T, rtStorage *inmemory_storage.InMemoryTrieState) (instance runtime.Instance) {
+func useInstanceFromGenesis(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
 	t.Helper()
 
 	cfg := wazero_runtime.Config{
@@ -63,8 +63,7 @@ func useInstanceFromGenesis(t *testing.T, rtStorage *inmemory_storage.InMemoryTr
 	return runtimeInstance
 }
 
-func useInstanceFromRuntimeV0929(t *testing.T,
-	rtStorage *inmemory_storage.InMemoryTrieState) (instance runtime.Instance) {
+func useInstanceFromRuntimeV0929(t *testing.T, rtStorage *storage.TrieState) (instance runtime.Instance) {
 	testRuntimeFilePath, err := runtime.GetRuntime(context.Background(), runtime.WESTEND_RUNTIME_v0929)
 	require.NoError(t, err)
 	bytes, err := os.ReadFile(testRuntimeFilePath)
@@ -628,8 +627,8 @@ type coreNetwork interface {
 }
 
 type coreStorageState interface {
-	TrieState(root *common.Hash) (*inmemory_storage.InMemoryTrieState, error)
-	StoreTrie(*inmemory_storage.InMemoryTrieState, *types.Header) error
+	TrieState(root *common.Hash) (*storage.TrieState, error)
+	StoreTrie(*storage.TrieState, *types.Header) error
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
 	sync.Locker
@@ -637,7 +636,7 @@ type coreStorageState interface {
 
 type integrationTestController struct {
 	genesis       *genesis.Genesis
-	genesisTrie   trie.Trie
+	genesisTrie   *trie.Trie
 	genesisHeader *types.Header
 	runtime       runtime.Instance
 	stateSrv      *state.Service
@@ -683,7 +682,7 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 	net2test := NewMockNetwork(nil)
 	integrationTestController := &integrationTestController{
 		genesis:       &gen,
-		genesisTrie:   genesisTrie,
+		genesisTrie:   &genesisTrie,
 		genesisHeader: &genesisHeader,
 		stateSrv:      state2test,
 		storageState:  state2test.Storage,
@@ -744,7 +743,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 	ks := keystore.NewGlobalKeystore()
 	integrationTestController := &integrationTestController{
 		genesis:       &gen,
-		genesisTrie:   genesisTrie,
+		genesisTrie:   &genesisTrie,
 		genesisHeader: &genesisHeader,
 		stateSrv:      state2test,
 		storageState:  state2test.Storage,

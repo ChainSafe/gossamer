@@ -30,7 +30,7 @@ const (
 )
 
 func buildSmallTrie() *InMemoryTrie {
-	trie := NewEmptyInmemoryTrie()
+	trie := NewEmptyTrie()
 
 	tests := []keyValues{
 		{key: []byte{0x01, 0x35}, value: []byte("pen")},
@@ -66,7 +66,7 @@ func runTests(t *testing.T, trie *InMemoryTrie, tests []keyValues) {
 }
 
 func TestPutAndGetBranch(t *testing.T) {
-	trie := NewEmptyInmemoryTrie()
+	trie := NewEmptyTrie()
 
 	tests := []keyValues{
 		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: put},
@@ -85,7 +85,7 @@ func TestPutAndGetBranch(t *testing.T) {
 }
 
 func TestPutAndGetOddKeyLengths(t *testing.T) {
-	trie := NewEmptyInmemoryTrie()
+	trie := NewEmptyTrie()
 
 	tests := []keyValues{
 		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: put},
@@ -105,7 +105,7 @@ func TestPutAndGetOddKeyLengths(t *testing.T) {
 
 func Fuzz_Trie_PutAndGet_Single(f *testing.F) {
 	f.Fuzz(func(t *testing.T, key, value []byte) {
-		trie := NewInMemoryTrie(nil, nil)
+		trie := NewTrie(nil, nil)
 		trie.Put(key, value)
 		retrievedValue := trie.Get(key)
 		assert.Equal(t, value, retrievedValue)
@@ -113,7 +113,7 @@ func Fuzz_Trie_PutAndGet_Single(f *testing.F) {
 }
 
 func Test_Trie_PutAndGet_Multiple(t *testing.T) {
-	trie := NewEmptyInmemoryTrie()
+	trie := NewEmptyTrie()
 
 	const numberOfKeyValuePairs = 60000
 
@@ -139,7 +139,7 @@ func Test_Trie_PutAndGet_Multiple(t *testing.T) {
 }
 
 func TestGetPartialKey(t *testing.T) {
-	trie := NewEmptyInmemoryTrie()
+	trie := NewEmptyTrie()
 
 	tests := []keyValues{
 		{key: []byte{0x01, 0x35}, value: []byte("pen"), op: put},
@@ -221,7 +221,7 @@ func TestDeleteCombineBranch(t *testing.T) {
 }
 
 func TestDeleteFromBranch(t *testing.T) {
-	trie := NewEmptyInmemoryTrie()
+	trie := NewEmptyTrie()
 
 	tests := []keyValues{
 		{key: []byte{0x06, 0x15, 0xfc}, value: []byte("noot"), op: put},
@@ -246,7 +246,7 @@ func TestDeleteFromBranch(t *testing.T) {
 }
 
 func TestDeleteOddKeyLengths(t *testing.T) {
-	trie := NewEmptyInmemoryTrie()
+	trie := NewEmptyTrie()
 
 	tests := []keyValues{
 		{key: []byte{0x43, 0xc1}, value: []byte("noot"), op: put},
@@ -278,7 +278,7 @@ func TestTrieDiff(t *testing.T) {
 	})
 
 	storageDB := database.NewTable(db, "storage")
-	trie := NewEmptyInmemoryTrie()
+	trie := NewEmptyTrie()
 
 	var testKey = []byte("testKey")
 
@@ -329,13 +329,13 @@ func TestTrieDiff(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	dbTrie := NewEmptyInmemoryTrie()
+	dbTrie := NewEmptyTrie()
 	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.MerkleValue))
 	require.NoError(t, err)
 }
 
 func TestDelete(t *testing.T) {
-	tr := NewEmptyInmemoryTrie()
+	tr := NewEmptyTrie()
 
 	generator := newGenerator()
 	const kvSize = 100
@@ -423,7 +423,7 @@ func TestClearPrefix(t *testing.T) {
 	}
 
 	for _, prefix := range testCases {
-		tr := NewEmptyInmemoryTrie()
+		tr := NewEmptyTrie()
 
 		for _, test := range tests {
 			tr.Put(test.key, test.value)
@@ -484,7 +484,7 @@ func TestClearPrefix(t *testing.T) {
 }
 
 func TestClearPrefix_Small(t *testing.T) {
-	tr := NewEmptyInmemoryTrie()
+	tr := NewEmptyTrie()
 
 	dcTrie := tr.DeepCopy()
 
@@ -588,8 +588,8 @@ func TestTrie_ClearPrefixVsDelete(t *testing.T) {
 
 	for _, testCase := range cases {
 		for _, prefix := range prefixes {
-			trieDelete := NewEmptyInmemoryTrie()
-			trieClearPrefix := NewEmptyInmemoryTrie()
+			trieDelete := NewEmptyTrie()
+			trieClearPrefix := NewEmptyTrie()
 
 			for _, test := range testCase {
 				trieDelete.Put(test.key, test.value)
@@ -622,13 +622,13 @@ func TestSnapshot(t *testing.T) {
 		{key: []byte{0xf2}, value: []byte("pho"), op: put},
 	}
 
-	expectedTrie := NewEmptyInmemoryTrie()
+	expectedTrie := NewEmptyTrie()
 	for _, test := range tests {
 		expectedTrie.Put(test.key, test.value)
 	}
 
 	// put all keys except first
-	parentTrie := NewEmptyInmemoryTrie()
+	parentTrie := NewEmptyTrie()
 	for i, test := range tests {
 		if i == 0 {
 			continue
@@ -650,7 +650,7 @@ func TestSnapshot(t *testing.T) {
 func Test_Trie_NextKey_Random(t *testing.T) {
 	generator := newGenerator()
 
-	trie := NewEmptyInmemoryTrie()
+	trie := NewEmptyTrie()
 
 	const minKVSize, maxKVSize = 1000, 10000
 	kvSize := minKVSize + generator.Intn(maxKVSize-minKVSize)
@@ -689,7 +689,7 @@ func Benchmark_Trie_Hash(b *testing.B) {
 	const kvSize = 1000000
 	kv := generateKeyValues(b, generator, kvSize)
 
-	tr := NewEmptyInmemoryTrie()
+	tr := NewEmptyTrie()
 	for keyString, value := range kv {
 		key := []byte(keyString)
 		tr.Put(key, value)
@@ -844,7 +844,7 @@ func TestTrie_ClearPrefixLimit(t *testing.T) {
 		}
 
 		for lim := 0; lim < len(testCase)+1; lim++ {
-			trieClearPrefix := NewEmptyInmemoryTrie()
+			trieClearPrefix := NewEmptyTrie()
 
 			for _, test := range testCase {
 				trieClearPrefix.Put(test.key, test.value)
@@ -950,7 +950,7 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 			}
 
 			for lim := 0; lim < len(testCase)+1; lim++ {
-				trieClearPrefix := NewEmptyInmemoryTrie()
+				trieClearPrefix := NewEmptyTrie()
 
 				for _, test := range testCase {
 					trieClearPrefix.Put(test.key, test.value)
@@ -1030,7 +1030,7 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 func Test_encodeRoot_fuzz(t *testing.T) {
 	generator := newGenerator()
 
-	trie := NewEmptyInmemoryTrie()
+	trie := NewEmptyTrie()
 
 	const randomBatches = 3
 
@@ -1083,7 +1083,7 @@ func Test_Trie_Descendants_Fuzz(t *testing.T) {
 	const kvSize = 5000
 	kv := generateKeyValues(t, generator, kvSize)
 
-	trie := NewEmptyInmemoryTrie()
+	trie := NewEmptyTrie()
 
 	keys := make([][]byte, 0, len(kv))
 	for key := range kv {

@@ -20,12 +20,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -36,7 +36,7 @@ const (
 )
 
 var (
-	emptyHash    = inmemory_trie.EmptyHash
+	emptyHash    = trie.EmptyHash
 	maxThreshold = scale.MaxUint128
 
 	emptyHeader = &types.Header{
@@ -47,7 +47,7 @@ var (
 
 // newTestCoreService creates a new test core service
 func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
-	genesisTrie *inmemory_trie.InMemoryTrie, genesisHeader types.Header) *core.Service {
+	genesisTrie trie.Trie, genesisHeader types.Header) *core.Service {
 	t.Helper()
 	ctrl := gomock.NewController(t)
 
@@ -110,7 +110,7 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 	if cfg.Runtime == nil {
 		var rtCfg wazero_runtime.Config
 
-		rtCfg.Storage = inmemory_storage.NewTrieState(genesisTrie)
+		rtCfg.Storage = rtstorage.NewTrieState(genesisTrie)
 
 		var err error
 		rtCfg.CodeHash, err = cfg.StorageState.(*state.InmemoryStorageState).LoadCodeHash(nil)
@@ -154,7 +154,7 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 }
 
 func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
-	genesisTrie *inmemory_trie.InMemoryTrie, genesisHeader types.Header, babeConfig *types.BabeConfiguration) *Service {
+	genesisTrie trie.Trie, genesisHeader types.Header, babeConfig *types.BabeConfiguration) *Service {
 	wazero_runtime.DefaultTestLogLvl = log.Error
 
 	if cfg.Keypair == nil {
@@ -208,7 +208,7 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	cfg.TransactionState = dbSrv.Transaction
 
 	var rtCfg wazero_runtime.Config
-	rtCfg.Storage = inmemory_storage.NewTrieState(genesisTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(genesisTrie)
 
 	storageState := cfg.StorageState.(*state.InmemoryStorageState)
 	rtCfg.CodeHash, err = storageState.LoadCodeHash(nil)
@@ -257,8 +257,7 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 }
 
 func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
-	genesisTrie *inmemory_trie.InMemoryTrie, genesisHeader types.Header) (
-	*Service, *state.EpochState, *types.BabeConfiguration) {
+	genesisTrie trie.Trie, genesisHeader types.Header) (*Service, *state.EpochState, *types.BabeConfiguration) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
@@ -284,7 +283,7 @@ func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
 	})
 
 	rtCfg := wazero_runtime.Config{
-		Storage: inmemory_storage.NewTrieState(genesisTrie),
+		Storage: rtstorage.NewTrieState(genesisTrie),
 	}
 
 	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
@@ -364,7 +363,7 @@ func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.H
 
 // newWestendLocalGenesisWithTrieAndHeader returns the westend genesis, genesis trie and genesis header
 func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
-	gen genesis.Genesis, genesisTrie *inmemory_trie.InMemoryTrie, genesisHeader types.Header) {
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
 	genesisPath := utils.GetWestendLocalRawGenesisPath(t)
@@ -372,18 +371,18 @@ func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 	gen = *genesisPtr
 
-	genesisTrie, err = runtime.NewInMemoryTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),
-		genesisTrie.MustHash(), inmemory_trie.EmptyHash, 0, types.NewDigest())
+		genesisTrie.MustHash(), emptyHash, 0, types.NewDigest())
 
 	return gen, genesisTrie, genesisHeader
 }
 
 // newWestendDevGenesisWithTrieAndHeader returns the westend genesis, genesis trie and genesis header
 func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
-	gen genesis.Genesis, genesisTrie *inmemory_trie.InMemoryTrie, genesisHeader types.Header) {
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
@@ -391,11 +390,11 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 	gen = *genesisPtr
 
-	genesisTrie, err = runtime.NewInMemoryTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),
-		genesisTrie.MustHash(), inmemory_trie.EmptyHash, 0, types.NewDigest())
+		genesisTrie.MustHash(), emptyHash, 0, types.NewDigest())
 
 	return gen, genesisTrie, genesisHeader
 }

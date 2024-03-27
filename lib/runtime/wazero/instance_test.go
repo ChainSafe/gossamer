@@ -19,7 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wazero/testdata"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -70,11 +70,11 @@ func Test_Instance_Version(t *testing.T) {
 			instanceBuilder: func(t *testing.T) instanceVersioner {
 				genesisPath := utils.GetKusamaGenesisPath(t)
 				kusamaGenesis := genesisFromRawJSON(t, genesisPath)
-				genesisTrie, err := runtime.NewInMemoryTrieFromGenesis(kusamaGenesis)
+				genesisTrie, err := runtime.NewTrieFromGenesis(kusamaGenesis)
 				require.NoError(t, err)
 
 				cfg := Config{
-					Storage: inmemory_storage.NewTrieState(genesisTrie),
+					Storage: storage.NewTrieState(genesisTrie),
 					LogLvl:  log.Critical,
 				}
 
@@ -192,11 +192,11 @@ func balanceKey(t *testing.T, pub []byte) []byte {
 func TestWestendRuntime_ValidateTransaction(t *testing.T) {
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := runtime.NewInMemoryTrieFromGenesis(gen)
+	genTrie, err := runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	// set state to genesis state
-	genState := inmemory_storage.NewTrieState(genTrie)
+	genState := storage.NewTrieState(genTrie)
 
 	cfg := Config{
 		Storage: genState,
@@ -253,7 +253,7 @@ func TestWestendRuntime_ValidateTransaction(t *testing.T) {
 }
 
 func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
-	tt := inmemory_trie.NewEmptyInmemoryTrie()
+	tt := inmemory_trie.NewEmptyTrie()
 
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
@@ -281,7 +281,7 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 }
 
 func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
-	tt := inmemory_trie.NewEmptyInmemoryTrie()
+	tt := inmemory_trie.NewEmptyTrie()
 
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
@@ -325,7 +325,7 @@ func TestInstance_BabeGenerateKeyOwnershipProof(t *testing.T) {
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
-			tt := inmemory_trie.NewEmptyInmemoryTrie()
+			tt := inmemory_trie.NewEmptyTrie()
 
 			randomnessValue, err := common.HexToHash("0x01")
 			require.NoError(t, err)
@@ -372,7 +372,7 @@ func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
-			tt := inmemory_trie.NewEmptyInmemoryTrie()
+			tt := inmemory_trie.NewEmptyTrie()
 			rt := NewTestInstance(t, testCase.targetRuntime, TestWithTrie(tt))
 			authorityID := types.AuthorityID{1}
 			const slot = uint64(1)
@@ -417,11 +417,11 @@ func TestInstance_BadSignature_WestendBlock8077850(t *testing.T) {
 			setupRuntime: func(t *testing.T) (*Instance, *types.Header) {
 				genesisPath := utils.GetWestendDevRawGenesisPath(t)
 				gen := genesisFromRawJSON(t, genesisPath)
-				genTrie, err := runtime.NewInMemoryTrieFromGenesis(gen)
+				genTrie, err := runtime.NewTrieFromGenesis(gen)
 				require.NoError(t, err)
 
 				// set state to genesis state
-				genState := inmemory_storage.NewTrieState(genTrie)
+				genState := storage.NewTrieState(genTrie)
 
 				cfg := Config{
 					Storage: genState,
@@ -432,7 +432,7 @@ func TestInstance_BadSignature_WestendBlock8077850(t *testing.T) {
 				require.NoError(t, err)
 
 				// reset state back to parent state before executing
-				parentState := inmemory_storage.NewTrieState(genTrie)
+				parentState := storage.NewTrieState(genTrie)
 				rt.SetContextStorage(parentState)
 
 				genesisHeader := &types.Header{
@@ -454,11 +454,11 @@ func TestInstance_BadSignature_WestendBlock8077850(t *testing.T) {
 			setupRuntime: func(t *testing.T) (*Instance, *types.Header) {
 				genesisPath := utils.GetWestendDevRawGenesisPath(t)
 				gen := genesisFromRawJSON(t, genesisPath)
-				genTrie, err := runtime.NewInMemoryTrieFromGenesis(gen)
+				genTrie, err := runtime.NewTrieFromGenesis(gen)
 				require.NoError(t, err)
 
 				rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0912)
-				parentState := inmemory_storage.NewTrieState(genTrie)
+				parentState := storage.NewTrieState(genTrie)
 				rt.SetContextStorage(parentState)
 
 				genesisHeader := &types.Header{
@@ -538,7 +538,7 @@ func TestInstance_BadSignature_WestendBlock8077850(t *testing.T) {
 }
 
 func TestInstance_BabeConfiguration_WestendRuntime_WithAuthorities(t *testing.T) {
-	tt := inmemory_trie.NewEmptyInmemoryTrie()
+	tt := inmemory_trie.NewEmptyTrie()
 
 	randomnessValue, err := common.HexToHash("0x01")
 	require.NoError(t, err)
@@ -606,7 +606,7 @@ func TestInstance_ExecuteBlock_WestendRuntime(t *testing.T) {
 	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
-	parentState := inmemory_storage.NewTrieState(inmemory_trie.NewEmptyInmemoryTrie())
+	parentState := storage.NewTrieState(inmemory_trie.NewEmptyTrie())
 	instance.SetContextStorage(parentState)
 
 	_, err := instance.ExecuteBlock(block)
@@ -616,11 +616,11 @@ func TestInstance_ExecuteBlock_WestendRuntime(t *testing.T) {
 func TestInstance_ApplyExtrinsic_WestendRuntime(t *testing.T) {
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := runtime.NewInMemoryTrieFromGenesis(gen)
+	genTrie, err := runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	// set state to genesis state
-	genState := inmemory_storage.NewTrieState(genTrie)
+	genState := storage.NewTrieState(genTrie)
 
 	cfg := Config{
 		Storage: genState,
@@ -631,7 +631,7 @@ func TestInstance_ApplyExtrinsic_WestendRuntime(t *testing.T) {
 	require.NoError(t, err)
 
 	// reset state back to parent state before executing
-	parentState := inmemory_storage.NewTrieState(genTrie)
+	parentState := storage.NewTrieState(genTrie)
 	instance.SetContextStorage(parentState)
 
 	genesisHeader := &types.Header{
@@ -663,7 +663,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
-	parentState := inmemory_storage.NewTrieState(inmemory_trie.NewEmptyInmemoryTrie())
+	parentState := storage.NewTrieState(inmemory_trie.NewEmptyTrie())
 	instance.SetContextStorage(parentState)
 
 	_, err := instance.ExecuteBlock(block)
@@ -673,14 +673,14 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	genesisPath := utils.GetPolkadotGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := runtime.NewInMemoryTrieFromGenesis(gen)
+	genTrie, err := runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0x29d0d972cd27cbc511e9589fcb7a4506d5eb6a9e8df205f00472e5ab354a4e17")
 	require.Equal(t, expectedGenesisRoot, trie.V0.MustHash(genTrie))
 
 	// set state to genesis state
-	genState := inmemory_storage.NewTrieState(genTrie)
+	genState := storage.NewTrieState(genTrie)
 
 	cfg := Config{
 		Storage: genState,
@@ -723,14 +723,14 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	genesisPath := utils.GetKusamaGenesisPath(t)
 	gen := genesisFromRawJSON(t, genesisPath)
-	genTrie, err := runtime.NewInMemoryTrieFromGenesis(gen)
+	genTrie, err := runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	expectedGenesisRoot := common.MustHexToHash("0xb0006203c3a6e6bd2c6a17b1d4ae8ca49a31da0f4579da950b127774b44aef6b")
 	require.Equal(t, expectedGenesisRoot, trie.V0.MustHash(genTrie))
 
 	// set state to genesis state
-	genState := inmemory_storage.NewTrieState(genTrie)
+	genState := storage.NewTrieState(genTrie)
 
 	cfg := Config{
 		Storage: genState,
@@ -771,12 +771,12 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
-	gossTrie3783 := newInMemoryTrieFromPairs(t, "../test_data/kusama/block3783.out")
+	gossTrie3783 := newTrieFromPairs(t, "../test_data/kusama/block3783.out")
 	expectedRoot := common.MustHexToHash("0x948338bc0976aee78879d559a1f42385407e5a481b05a91d2a9386aa7507e7a0")
 	require.Equal(t, expectedRoot, trie.V0.MustHash(gossTrie3783))
 
 	// set state to genesis state
-	state3783 := inmemory_storage.NewTrieState(gossTrie3783)
+	state3783 := storage.NewTrieState(gossTrie3783)
 
 	cfg := Config{
 		Storage: state3783,
@@ -817,12 +817,12 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
-	ksmTrie901441 := newInMemoryTrieFromPairs(t, "../test_data/kusama/block901441.out")
+	ksmTrie901441 := newTrieFromPairs(t, "../test_data/kusama/block901441.out")
 	expectedRoot := common.MustHexToHash("0x3a2ef7ee032f5810160bb8f3ffe3e3377bb6f2769ee9f79a5425973347acd504")
 	require.Equal(t, expectedRoot, trie.V0.MustHash(ksmTrie901441))
 
 	// set state to genesis state
-	state901441 := inmemory_storage.NewTrieState(ksmTrie901441)
+	state901441 := storage.NewTrieState(ksmTrie901441)
 
 	cfg := Config{
 		Storage: state901441,
@@ -863,12 +863,12 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
-	ksmTrie := newInMemoryTrieFromPairs(t, "../test_data/kusama/block1377830.out")
+	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1377830.out")
 	expectedRoot := common.MustHexToHash("0xe4de6fecda9e9e35f937d159665cf984bc1a68048b6c78912de0aeb6bd7f7e99")
 	require.Equal(t, expectedRoot, trie.V0.MustHash(ksmTrie))
 
 	// set state to genesis state
-	state := inmemory_storage.NewTrieState(ksmTrie)
+	state := storage.NewTrieState(ksmTrie)
 
 	cfg := Config{
 		Storage: state,
@@ -909,12 +909,12 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
-	ksmTrie := newInMemoryTrieFromPairs(t, "../test_data/kusama/block1482002.out")
+	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1482002.out")
 	expectedRoot := common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb")
 	require.Equal(t, expectedRoot, trie.V0.MustHash(ksmTrie))
 
 	// set state to genesis state
-	state := inmemory_storage.NewTrieState(ksmTrie)
+	state := storage.NewTrieState(ksmTrie)
 
 	cfg := Config{
 		Storage: state,
@@ -956,12 +956,12 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
-	dotTrie := newInMemoryTrieFromPairs(t, "../test_data/polkadot/block1089327.json")
+	dotTrie := newTrieFromPairs(t, "../test_data/polkadot/block1089327.json")
 	expectedRoot := common.MustHexToHash("0x87ed9ebe7fb645d3b5b0255cc16e78ed022d9fbb52486105436e15a74557535b")
 	require.Equal(t, expectedRoot, trie.V0.MustHash(dotTrie))
 
 	// set state to genesis state
-	state := inmemory_storage.NewTrieState(dotTrie)
+	state := storage.NewTrieState(dotTrie)
 
 	cfg := Config{
 		Storage: state,
@@ -1081,7 +1081,7 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 	}
 }
 
-func newInMemoryTrieFromPairs(t *testing.T, filename string) *inmemory.InMemoryTrie {
+func newTrieFromPairs(t *testing.T, filename string) trie.Trie {
 	data, err := os.ReadFile(filename)
 	require.NoError(t, err)
 

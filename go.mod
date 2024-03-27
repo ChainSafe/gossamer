@@ -157,7 +157,7 @@ require (
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
 	github.com/quic-go/qtls-go1-20 v0.3.3 // indirect
-	github.com/quic-go/quic-go v0.38.1 // indirect
+	github.com/quic-go/quic-go v0.38.2 // indirect
 	github.com/quic-go/webtransport-go v0.5.3 // indirect
 	github.com/raulk/go-watchdog v1.3.0 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
@@ -200,6 +200,6 @@ require (
 
 go 1.21
 
-replace github.com/tetratelabs/wazero => github.com/ChainSafe/wazero v0.0.0-20231114190045-1d874d099362
+replace github.com/tetratelabs/wazero => github.com/ChainSafe/wazero v0.0.0-20240319130522-78b21a59bd5f
 
 replace github.com/centrifuge/go-substrate-rpc-client/v4 => github.com/timwu20/go-substrate-rpc-client/v4 v4.0.0-20231110032757-3d8e441b7303

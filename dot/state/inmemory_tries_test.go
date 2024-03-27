@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"github.com/stretchr/testify/assert"
@@ -19,7 +20,7 @@ func Test_NewTries(t *testing.T) {
 	rootToTrie := NewTries()
 
 	expectedTries := &Tries{
-		rootToTrie:    map[common.Hash]*inmemory_trie.InMemoryTrie{},
+		rootToTrie:    map[common.Hash]trie.Trie{},
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
 		deleteCounter: deleteCounter,
@@ -35,8 +36,8 @@ func Test_Tries_SetEmptyTrie(t *testing.T) {
 	tries.SetEmptyTrie()
 
 	expectedTries := &Tries{
-		rootToTrie: map[common.Hash]*inmemory_trie.InMemoryTrie{
-			inmemory_trie.EmptyHash: inmemory_trie.NewEmptyInmemoryTrie(),
+		rootToTrie: map[common.Hash]trie.Trie{
+			trie.EmptyHash: inmemory_trie.NewEmptyTrie(),
 		},
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
@@ -52,13 +53,13 @@ func Test_Tries_SetTrie(t *testing.T) {
 	db := NewMockDatabase(ctrl)
 	db.EXPECT().Get(gomock.Any()).Times(0)
 
-	tr := inmemory_trie.NewInMemoryTrie(&node.Node{PartialKey: []byte{1}}, db)
+	tr := inmemory_trie.NewTrie(&node.Node{PartialKey: []byte{1}}, db)
 
 	tries := NewTries()
 	tries.SetTrie(tr)
 
 	expectedTries := &Tries{
-		rootToTrie: map[common.Hash]*inmemory_trie.InMemoryTrie{
+		rootToTrie: map[common.Hash]trie.Trie{
 			tr.MustHash(): tr,
 		},
 		triesGauge:    triesGauge,
@@ -73,29 +74,29 @@ func Test_Tries_softSet(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		rootToTrie         map[common.Hash]*inmemory_trie.InMemoryTrie
+		rootToTrie         map[common.Hash]trie.Trie
 		root               common.Hash
 		trie               *inmemory_trie.InMemoryTrie
 		triesGaugeInc      bool
-		expectedRootToTrie map[common.Hash]*inmemory_trie.InMemoryTrie
+		expectedRootToTrie map[common.Hash]trie.Trie
 	}{
 		"set_new_in_map": {
-			rootToTrie:    map[common.Hash]*inmemory_trie.InMemoryTrie{},
+			rootToTrie:    map[common.Hash]trie.Trie{},
 			root:          common.Hash{1, 2, 3},
-			trie:          inmemory_trie.NewEmptyInmemoryTrie(),
+			trie:          inmemory_trie.NewEmptyTrie(),
 			triesGaugeInc: true,
-			expectedRootToTrie: map[common.Hash]*inmemory_trie.InMemoryTrie{
-				{1, 2, 3}: inmemory_trie.NewEmptyInmemoryTrie(),
+			expectedRootToTrie: map[common.Hash]trie.Trie{
+				{1, 2, 3}: inmemory_trie.NewEmptyTrie(),
 			},
 		},
 		"do_not_override_in_map": {
-			rootToTrie: map[common.Hash]*inmemory_trie.InMemoryTrie{
-				{1, 2, 3}: {},
+			rootToTrie: map[common.Hash]trie.Trie{
+				{1, 2, 3}: &inmemory_trie.InMemoryTrie{},
 			},
 			root: common.Hash{1, 2, 3},
-			trie: inmemory_trie.NewEmptyInmemoryTrie(),
-			expectedRootToTrie: map[common.Hash]*inmemory_trie.InMemoryTrie{
-				{1, 2, 3}: {},
+			trie: inmemory_trie.NewEmptyTrie(),
+			expectedRootToTrie: map[common.Hash]trie.Trie{
+				{1, 2, 3}: &inmemory_trie.InMemoryTrie{},
 			},
 		},
 	}
@@ -133,32 +134,32 @@ func Test_Tries_delete(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		rootToTrie         map[common.Hash]*inmemory_trie.InMemoryTrie
+		rootToTrie         map[common.Hash]trie.Trie
 		root               common.Hash
 		deleteCounterInc   bool
-		expectedRootToTrie map[common.Hash]*inmemory_trie.InMemoryTrie
+		expectedRootToTrie map[common.Hash]trie.Trie
 		triesGaugeSet      float64
 	}{
 		"not_found": {
-			rootToTrie: map[common.Hash]*inmemory_trie.InMemoryTrie{
-				{3, 4, 5}: {},
+			rootToTrie: map[common.Hash]trie.Trie{
+				{3, 4, 5}: &inmemory_trie.InMemoryTrie{},
 			},
 			root:          common.Hash{1, 2, 3},
 			triesGaugeSet: 1,
-			expectedRootToTrie: map[common.Hash]*inmemory_trie.InMemoryTrie{
-				{3, 4, 5}: {},
+			expectedRootToTrie: map[common.Hash]trie.Trie{
+				{3, 4, 5}: &inmemory_trie.InMemoryTrie{},
 			},
 			deleteCounterInc: true,
 		},
 		"deleted": {
-			rootToTrie: map[common.Hash]*inmemory_trie.InMemoryTrie{
-				{1, 2, 3}: {},
-				{3, 4, 5}: {},
+			rootToTrie: map[common.Hash]trie.Trie{
+				{1, 2, 3}: &inmemory_trie.InMemoryTrie{},
+				{3, 4, 5}: &inmemory_trie.InMemoryTrie{},
 			},
 			root:          common.Hash{1, 2, 3},
 			triesGaugeSet: 1,
-			expectedRootToTrie: map[common.Hash]*inmemory_trie.InMemoryTrie{
-				{3, 4, 5}: {},
+			expectedRootToTrie: map[common.Hash]trie.Trie{
+				{3, 4, 5}: &inmemory_trie.InMemoryTrie{},
 			},
 			deleteCounterInc: true,
 		},
@@ -198,19 +199,19 @@ func Test_Tries_get(t *testing.T) {
 	testCases := map[string]struct {
 		tries *Tries
 		root  common.Hash
-		trie  *inmemory_trie.InMemoryTrie
+		trie  trie.Trie
 	}{
 		"found_in_map": {
 			tries: &Tries{
-				rootToTrie: map[common.Hash]*inmemory_trie.InMemoryTrie{
-					{1, 2, 3}: inmemory_trie.NewInMemoryTrie(&node.Node{
+				rootToTrie: map[common.Hash]trie.Trie{
+					{1, 2, 3}: inmemory_trie.NewTrie(&node.Node{
 						PartialKey:   []byte{1, 2, 3},
 						StorageValue: []byte{1},
 					}, db),
 				},
 			},
 			root: common.Hash{1, 2, 3},
-			trie: inmemory_trie.NewInMemoryTrie(&node.Node{
+			trie: inmemory_trie.NewTrie(&node.Node{
 				PartialKey:   []byte{1, 2, 3},
 				StorageValue: []byte{1},
 			}, db),
@@ -218,7 +219,7 @@ func Test_Tries_get(t *testing.T) {
 		"not_found_in_map": {
 			// similar to not found in database
 			tries: &Tries{
-				rootToTrie: map[common.Hash]*inmemory_trie.InMemoryTrie{},
+				rootToTrie: map[common.Hash]trie.Trie{},
 			},
 			root: common.Hash{1, 2, 3},
 		},
@@ -245,13 +246,13 @@ func Test_Tries_len(t *testing.T) {
 	}{
 		"empty_map": {
 			tries: &Tries{
-				rootToTrie: map[common.Hash]*inmemory_trie.InMemoryTrie{},
+				rootToTrie: map[common.Hash]trie.Trie{},
 			},
 		},
 		"non_empty_map": {
 			tries: &Tries{
-				rootToTrie: map[common.Hash]*inmemory_trie.InMemoryTrie{
-					{1, 2, 3}: {},
+				rootToTrie: map[common.Hash]trie.Trie{
+					{1, 2, 3}: &inmemory_trie.InMemoryTrie{},
 				},
 			},
 			length: 1,

@@ -32,7 +32,7 @@ func Test_Trie_Store_Load(t *testing.T) {
 	err := tr.WriteDirty(db)
 	require.NoError(t, err)
 
-	trieFromDB := NewEmptyInmemoryTrie()
+	trieFromDB := NewEmptyTrie()
 	err = trieFromDB.Load(db, rootHash)
 	require.NoError(t, err)
 	assert.Equal(t, tr.String(), trieFromDB.String())
@@ -42,8 +42,8 @@ func Test_Trie_Load_EmptyHash(t *testing.T) {
 	t.Parallel()
 
 	db := newTestDB(t)
-	trieFromDB := NewEmptyInmemoryTrie()
-	err := trieFromDB.Load(db, EmptyHash)
+	trieFromDB := NewEmptyTrie()
+	err := trieFromDB.Load(db, trie.EmptyHash)
 	require.NoError(t, err)
 }
 
@@ -54,8 +54,7 @@ func Test_Trie_WriteDirty_Put(t *testing.T) {
 	const size = 500
 	keyValues := generateKeyValues(t, generator, size)
 
-	tr := NewEmptyInmemoryTrie()
-
+	tr := NewEmptyTrie()
 	db := newTestDB(t)
 
 	// Put, write dirty and get from DB
@@ -90,7 +89,7 @@ func Test_Trie_WriteDirty_Put(t *testing.T) {
 	rootHash := trie.V0.MustHash(tr)
 
 	// Verify the trie in database is also modified.
-	trieFromDB := NewEmptyInmemoryTrie()
+	trieFromDB := NewEmptyTrie()
 	err = trieFromDB.Load(db, rootHash)
 	require.NoError(t, err)
 	require.Equal(t, tr.String(), trieFromDB.String())
@@ -123,7 +122,7 @@ func Test_Trie_WriteDirty_Delete(t *testing.T) {
 
 	rootHash := trie.V0.MustHash(tr)
 
-	trieFromDB := NewEmptyInmemoryTrie()
+	trieFromDB := NewEmptyTrie()
 	err = trieFromDB.Load(db, rootHash)
 	require.NoError(t, err)
 	require.Equal(t, tr.String(), trieFromDB.String())
@@ -161,7 +160,7 @@ func Test_Trie_WriteDirty_ClearPrefix(t *testing.T) {
 
 	rootHash := trie.V0.MustHash(tr)
 
-	trieFromDB := NewEmptyInmemoryTrie()
+	trieFromDB := NewEmptyTrie()
 	err = trieFromDB.Load(db, rootHash)
 	require.NoError(t, err)
 	assert.Equal(t, tr.String(), trieFromDB.String())
@@ -294,7 +293,7 @@ func Test_GetFromDB_EmptyHash(t *testing.T) {
 
 	db := newTestDB(t)
 
-	value, err := GetFromDB(db, EmptyHash, []byte("test"))
+	value, err := GetFromDB(db, trie.EmptyHash, []byte("test"))
 	assert.NoError(t, err)
 	assert.Nil(t, value)
 }
@@ -326,7 +325,7 @@ func Test_Trie_PutChild_Store_Load(t *testing.T) {
 		err = trie.WriteDirty(db)
 		require.NoError(t, err)
 
-		trieFromDB := NewEmptyInmemoryTrie()
+		trieFromDB := NewEmptyTrie()
 		err = trieFromDB.Load(db, trie.MustHash())
 		require.NoError(t, err)
 

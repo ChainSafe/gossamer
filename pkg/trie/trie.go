@@ -8,22 +8,17 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/trie/db"
-	"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"github.com/ChainSafe/gossamer/pkg/trie/tracking"
 )
 
-type ChildTrieGetter interface {
+// EmptyHash is the empty trie hash.
+var EmptyHash = common.MustBlake2bHash([]byte{0})
+
+type ChildTrieSupport interface {
 	GetChild(keyToChild []byte) (Trie, error)
 	GetFromChild(keyToChild, key []byte) ([]byte, error)
 	GetChildTries() map[common.Hash]Trie
-}
-
-type ChildTrieSetter interface {
 	PutIntoChild(keyToChild, key, value []byte) error
-}
-
-type ChildTrieDeleter interface {
 	DeleteChild(keyToChild []byte) (err error)
 	ClearFromChild(keyToChild, key []byte) error
 }
@@ -51,11 +46,6 @@ type TrieDeltas interface {
 	HandleTrackedDeltas(success bool, pendingDeltas tracking.Getter)
 }
 
-type DBBackedTrie interface {
-	Load(db db.DBGetter, rootHash common.Hash) error
-	WriteDirty(db db.NewBatcher) error
-}
-
 type Versioned interface {
 	SetVersion(TrieLayout)
 }
@@ -67,21 +57,12 @@ type Hashable interface {
 }
 
 type Trie interface {
+	PrefixTrie
 	KVStore
 	Hashable
-	ChildTrieGetter
-	ChildTrieSetter
-	ChildTrieDeleter
+	ChildTrieSupport
 	TrieIterator
 	TrieDeltas
-	PrefixTrie
-	DBBackedTrie
 	Versioned
 	fmt.Stringer
-
-	RootNode() *node.Node
-
-	//TODO:this method should not be part of the API, find a way to remove it
-	InsertKeyLE(key, value []byte,
-		pendingDeltas tracking.DeltaRecorder) (err error)
 }

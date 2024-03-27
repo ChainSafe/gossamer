@@ -16,7 +16,7 @@ import (
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
-	storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -111,20 +111,6 @@ func (m *MockBlockState) GenesisHash() common.Hash {
 func (mr *MockBlockStateMockRecorder) GenesisHash() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenesisHash", reflect.TypeOf((*MockBlockState)(nil).GenesisHash))
-}
-
-// GetAllBlocksAtDepth mocks base method.
-func (m *MockBlockState) GetAllBlocksAtDepth(arg0 common.Hash) []common.Hash {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAllBlocksAtDepth", arg0)
-	ret0, _ := ret[0].([]common.Hash)
-	return ret0
-}
-
-// GetAllBlocksAtDepth indicates an expected call of GetAllBlocksAtDepth.
-func (mr *MockBlockStateMockRecorder) GetAllBlocksAtDepth(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllBlocksAtDepth", reflect.TypeOf((*MockBlockState)(nil).GetAllBlocksAtDepth), arg0)
 }
 
 // GetBlockByNumber mocks base method.
@@ -343,10 +329,10 @@ func (mr *MockStorageStateMockRecorder) Lock() *gomock.Call {
 }
 
 // TrieState mocks base method.
-func (m *MockStorageState) TrieState(arg0 *common.Hash) (*storage.InMemoryTrieState, error) {
+func (m *MockStorageState) TrieState(arg0 *common.Hash) (*storage.TrieState, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TrieState", arg0)
-	ret0, _ := ret[0].(*storage.InMemoryTrieState)
+	ret0, _ := ret[0].(*storage.TrieState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -646,7 +632,7 @@ func (m *MockBlockImportHandler) EXPECT() *MockBlockImportHandlerMockRecorder {
 }
 
 // HandleBlockProduced mocks base method.
-func (m *MockBlockImportHandler) HandleBlockProduced(arg0 *types.Block, arg1 *storage.InMemoryTrieState) error {
+func (m *MockBlockImportHandler) HandleBlockProduced(arg0 *types.Block, arg1 *storage.TrieState) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HandleBlockProduced", arg0, arg1)
 	ret0, _ := ret[0].(error)

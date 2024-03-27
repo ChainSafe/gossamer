@@ -16,7 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 
 	"github.com/stretchr/testify/require"
 )
@@ -1194,7 +1194,7 @@ func addBlocksToState(t *testing.T, blockState *state.BlockState, depth uint) {
 			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     i,
-				StateRoot:  inmemory_trie.EmptyHash,
+				StateRoot:  trie.EmptyHash,
 				Digest:     digest,
 			},
 			Body: types.Body{},
@@ -1235,7 +1235,7 @@ func addBlocksAndReturnTheLastOne(
 		Header: types.Header{
 			ParentHash: previousHash,
 			Number:     bfcNumber,
-			StateRoot:  inmemory_trie.EmptyHash,
+			StateRoot:  trie.EmptyHash,
 			Digest:     digest,
 		},
 		Body: types.Body{},

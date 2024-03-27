@@ -12,8 +12,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 )
 
@@ -21,7 +22,7 @@ import (
 // The trie should be loaded with the genesis storage state.
 // This only needs to be called during genesis initialisation of the node;
 // it is not called during normal startup.
-func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *inmemory_trie.InMemoryTrie) error {
+func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t trie.Trie) error {
 	// get data directory from service
 	basepath, err := filepath.Abs(s.dbPath)
 	if err != nil {
@@ -40,8 +41,11 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *inme
 
 	s.db = db
 
-	if err = t.WriteDirty(database.NewTable(db, storagePrefix)); err != nil {
-		return fmt.Errorf("failed to write genesis trie to database: %w", err)
+	// TODO: all trie related db operations should be done in pkg/trie
+	if inmemoryTrie, ok := t.(*inmemory_trie.InMemoryTrie); ok {
+		if err = inmemoryTrie.WriteDirty(database.NewTable(db, storagePrefix)); err != nil {
+			return fmt.Errorf("failed to write genesis trie to database: %w", err)
+		}
 	}
 
 	s.Base = NewBaseState(db)
@@ -123,7 +127,7 @@ func (s *Service) loadBabeConfigurationFromRuntime(r BabeConfigurer) (*types.Bab
 	return babeCfg, nil
 }
 
-func loadGrandpaAuthorities(t *inmemory_trie.InMemoryTrie) ([]types.GrandpaVoter, error) {
+func loadGrandpaAuthorities(t trie.Trie) ([]types.GrandpaVoter, error) {
 	key := common.MustHexToBytes(genesis.GrandpaAuthoritiesKeyHex)
 	authsRaw := t.Get(key)
 	if authsRaw == nil {
@@ -134,10 +138,13 @@ func loadGrandpaAuthorities(t *inmemory_trie.InMemoryTrie) ([]types.GrandpaVoter
 }
 
 // storeInitialValues writes initial genesis values to the state database
-func (s *Service) storeInitialValues(data *genesis.Data, t *inmemory_trie.InMemoryTrie) error {
+func (s *Service) storeInitialValues(data *genesis.Data, t trie.Trie) error {
 	// write genesis trie to database
-	if err := t.WriteDirty(database.NewTable(s.db, storagePrefix)); err != nil {
-		return fmt.Errorf("failed to write trie to database: %s", err)
+	// TODO: all trie related db operations should be done in pkg/trie
+	if inmemoryTrie, ok := t.(*inmemory_trie.InMemoryTrie); ok {
+		if err := inmemoryTrie.WriteDirty(database.NewTable(s.db, storagePrefix)); err != nil {
+			return fmt.Errorf("failed to write genesis trie to database: %w", err)
+		}
 	}
 
 	// write genesis data to state database
@@ -149,9 +156,9 @@ func (s *Service) storeInitialValues(data *genesis.Data, t *inmemory_trie.InMemo
 }
 
 // CreateGenesisRuntime creates runtime instance form genesis
-func (s *Service) CreateGenesisRuntime(t *inmemory_trie.InMemoryTrie, gen *genesis.Genesis) (runtime.Instance, error) {
+func (s *Service) CreateGenesisRuntime(t trie.Trie, gen *genesis.Genesis) (runtime.Instance, error) {
 	// load genesis state into database
-	genTrie := inmemory_storage.NewTrieState(t)
+	genTrie := rtstorage.NewTrieState(t)
 
 	// create genesis runtime
 	rtCfg := wazero_runtime.Config{

@@ -8,6 +8,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,8 +30,8 @@ func Test_InMemoryTrie_GenesisBlock(t *testing.T) {
 		"empty_trie": {
 			genesisHeader: withHash(types.Header{
 				ParentHash:     common.Hash{0},
-				StateRoot:      EmptyHash,
-				ExtrinsicsRoot: EmptyHash,
+				StateRoot:      trie.EmptyHash,
+				ExtrinsicsRoot: trie.EmptyHash,
 				Digest:         types.NewDigest(),
 			}),
 		},
@@ -48,7 +49,7 @@ func Test_InMemoryTrie_GenesisBlock(t *testing.T) {
 					0xf5, 0xfd, 0x29, 0xd3, 0x29, 0x8a, 0xa3, 0x63,
 					0x83, 0xf3, 0x2d, 0x14, 0xa8, 0xbd, 0xde, 0xc9,
 					0x7b, 0x57, 0x92, 0x78, 0x67, 0xfc, 0x8a, 0xfa},
-				ExtrinsicsRoot: EmptyHash,
+				ExtrinsicsRoot: trie.EmptyHash,
 				Digest:         types.NewDigest(),
 			}),
 		},

@@ -18,10 +18,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/stretchr/testify/assert"
@@ -150,7 +150,7 @@ func newTestState(t *testing.T) *state.Service {
 
 	var rtCfg wazero_runtime.Config
 
-	rtCfg.Storage = inmemory_storage.NewTrieState(genTrie)
+	rtCfg.Storage = storage.NewTrieState(genTrie)
 
 	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
@@ -191,7 +191,7 @@ func newTestService(t *testing.T, keypair *ed25519.Keypair) (*Service, *state.Se
 }
 
 func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
-	gen genesis.Genesis, genesisTrie *inmemory_trie.InMemoryTrie, genesisHeader types.Header) {
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
@@ -199,12 +199,12 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	assert.NoError(t, err)
 	gen = *genesisPtr
 
-	genesisTrie, err = runtime.NewInMemoryTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
 	assert.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
 	stateRoot := genesisTrie.MustHash()
-	extrinsicRoot := inmemory_trie.EmptyHash
+	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()
 	genesisHeader = *types.NewHeader(parentHash,

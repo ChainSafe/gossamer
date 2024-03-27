@@ -15,7 +15,6 @@ import (
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,7 +30,7 @@ func writeGenesisToTestJSON(t *testing.T, genesis genesis.Genesis) (filename str
 }
 
 func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
-	gen genesis.Genesis, genesisTrie *inmemory_trie.InMemoryTrie, genesisHeader types.Header) {
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
@@ -39,7 +38,7 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 	gen = *genPtr
 
-	genesisTrie, err = runtime.NewInMemoryTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
@@ -47,7 +46,7 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	// We are using state trie V0 since we are using the genesis trie where v0 is used
 	stateRoot := trie.V0.MustHash(genesisTrie)
 
-	extrinsicRoot := inmemory_trie.EmptyHash
+	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	genesisHeader = *types.NewHeader(parentHash,
 		stateRoot, extrinsicRoot, number, nil)

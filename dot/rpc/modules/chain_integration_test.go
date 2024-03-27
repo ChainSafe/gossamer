@@ -17,10 +17,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"go.uber.org/mock/gomock"
 
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -361,7 +361,7 @@ func newTestStateService(t *testing.T) *state.Service {
 
 	var rtCfg wazero_runtime.Config
 
-	rtCfg.Storage = inmemory_storage.NewTrieState(genesisTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(genesisTrie)
 
 	if stateSrvc != nil {
 		rtCfg.NodeStorage.BaseDB = stateSrvc.Base
@@ -392,7 +392,7 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runti
 		Number:     1,
 		Digest:     digest,
 		ParentHash: gh,
-		StateRoot:  inmemory_trie.EmptyHash,
+		StateRoot:  trie.EmptyHash,
 	}
 
 	block1 := &types.Block{
@@ -408,7 +408,7 @@ func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runti
 		Number:     2,
 		Digest:     digest,
 		ParentHash: header1.Hash(),
-		StateRoot:  inmemory_trie.EmptyHash,
+		StateRoot:  trie.EmptyHash,
 	}
 
 	block2 := &types.Block{

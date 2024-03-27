@@ -12,7 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
-	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 
 	"github.com/stretchr/testify/require"
 )
@@ -33,7 +33,7 @@ func addTestBlocksToState(t *testing.T, depth uint, blockState BlockState) {
 			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     previousNum + i,
-				StateRoot:  inmemory_trie.EmptyHash,
+				StateRoot:  trie.EmptyHash,
 				Digest:     digest,
 			},
 			Body: types.Body{},

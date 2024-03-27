@@ -26,7 +26,7 @@ func Test_Generate_Verify(t *testing.T) {
 		"doguinho",
 	}
 
-	tr := inmemory.NewEmptyInmemoryTrie()
+	tr := inmemory.NewEmptyTrie()
 
 	for i, key := range keys {
 		value := fmt.Sprintf("%x-%d", key, i)

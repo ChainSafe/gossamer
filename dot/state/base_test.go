@@ -15,10 +15,10 @@ import (
 
 func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 	db := NewInMemoryDB(t)
-	tt := inmemory_trie.NewEmptyInmemoryTrie()
+	tt := inmemory_trie.NewEmptyTrie()
 
 	generator := newGenerator()
-	const size = 2
+	const size = 500
 	kv := generateKeyValues(t, generator, size)
 
 	for keyString, value := range kv {
@@ -34,7 +34,7 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 
 	expected := tt.MustHash()
 
-	tt = inmemory_trie.NewEmptyInmemoryTrie()
+	tt = inmemory_trie.NewEmptyTrie()
 	err = tt.Load(db, encroot)
 	require.NoError(t, err)
 	require.Equal(t, expected, tt.MustHash())

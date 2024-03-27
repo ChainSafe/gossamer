@@ -19,9 +19,8 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"golang.org/x/exp/slices"
 
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 )
 
@@ -255,19 +254,20 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 
 // GetHashesByNumber returns the block hashes with the given number
 func (bs *BlockState) GetHashesByNumber(blockNumber uint) ([]common.Hash, error) {
-	block, err := bs.GetBlockByNumber(blockNumber)
-	if err != nil {
-		return nil, fmt.Errorf("getting block by number: %w", err)
+	inMemoryBlockHashes := bs.bt.GetHashesAtNumber(blockNumber)
+	if len(inMemoryBlockHashes) == 0 {
+		bh, err := bs.db.Get(headerHashKey(uint64(blockNumber)))
+		if err != nil {
+			if errors.Is(err, database.ErrNotFound) {
+				return []common.Hash{}, nil
+			}
+			return []common.Hash{}, fmt.Errorf("cannot get block by its number %d: %w", blockNumber, err)
+		}
+
+		return []common.Hash{common.NewHash(bh)}, nil
 	}
 
-	blockHashes := bs.bt.GetAllBlocksAtNumber(block.Header.ParentHash)
-
-	hash := block.Header.Hash()
-	if !slices.Contains(blockHashes, hash) {
-		blockHashes = append(blockHashes, hash)
-	}
-
-	return blockHashes, nil
+	return inMemoryBlockHashes, nil
 }
 
 // GetAllDescendants gets all the descendants for a given block hash (including itself), by first checking in memory
@@ -496,17 +496,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 
 // GetAllBlocksAtNumber returns all unfinalised blocks with the given number
 func (bs *BlockState) GetAllBlocksAtNumber(num uint) ([]common.Hash, error) {
-	header, err := bs.GetHeaderByNumber(num)
-	if err != nil {
-		return nil, err
-	}
-
-	return bs.GetAllBlocksAtDepth(header.ParentHash), nil
-}
-
-// GetAllBlocksAtDepth returns all hashes with the depth of the given hash plus one
-func (bs *BlockState) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
-	return bs.bt.GetAllBlocksAtNumber(hash)
+	return bs.bt.GetHashesAtNumber(num), nil
 }
 
 func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) {
@@ -810,7 +800,7 @@ func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime time.Time) er
 }
 
 // HandleRuntimeChanges handles the update in runtime.
-func (bs *BlockState) HandleRuntimeChanges(newState *inmemory_storage.InMemoryTrieState,
+func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 	parentRuntimeInstance runtime.Instance, bHash common.Hash) error {
 	currCodeHash, err := newState.LoadCodeHash()
 	if err != nil {

@@ -42,7 +42,7 @@ func ImportState(basepath, stateFP, headerFP string, stateTrieVersion trie.TrieL
 	return srv.Import(header, tr, stateTrieVersion, firstSlot)
 }
 
-func newTrieFromPairs(filename string, version trie.TrieLayout) (*inmemory_trie.InMemoryTrie, error) {
+func newTrieFromPairs(filename string, version trie.TrieLayout) (trie.Trie, error) {
 	data, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, err

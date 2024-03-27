@@ -17,10 +17,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -61,7 +61,7 @@ func newTestSyncer(t *testing.T) *Service {
 	}
 
 	// initialise runtime
-	genState := inmemory_storage.NewTrieState(genTrie)
+	genState := rtstorage.NewTrieState(genTrie)
 
 	rtCfg := wazero_runtime.Config{
 		Storage: genState,
@@ -85,8 +85,8 @@ func newTestSyncer(t *testing.T) *Service {
 	cfg.BlockState.(*state.BlockState).StoreRuntime(bestBlockHash, instance)
 	blockImportHandler := NewMockBlockImportHandler(ctrl)
 	blockImportHandler.EXPECT().HandleBlockImport(gomock.AssignableToTypeOf(&types.Block{}),
-		gomock.AssignableToTypeOf(&inmemory_storage.InMemoryTrieState{}), false).DoAndReturn(
-		func(block *types.Block, ts *inmemory_storage.InMemoryTrieState, _ bool) error {
+		gomock.AssignableToTypeOf(&rtstorage.TrieState{}), false).DoAndReturn(
+		func(block *types.Block, ts *rtstorage.TrieState, _ bool) error {
 			// store updates state trie nodes in database
 			if err = stateSrvc.Storage.StoreTrie(ts, &block.Header); err != nil {
 				logger.Warnf("failed to store state trie for imported block %s: %s", block.Header.Hash(), err)
@@ -125,7 +125,7 @@ func newTestSyncer(t *testing.T) *Service {
 }
 
 func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
-	gen genesis.Genesis, genesisTrie *inmemory_trie.InMemoryTrie, genesisHeader types.Header) {
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
@@ -133,12 +133,12 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 	gen = *genesisPtr
 
-	genesisTrie, err = runtime.NewInMemoryTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
 	stateRoot := genesisTrie.MustHash()
-	extrinsicRoot := inmemory_trie.EmptyHash
+	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()
 	genesisHeaderPtr := types.NewHeader(parentHash,

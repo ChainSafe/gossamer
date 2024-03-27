@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/node"
@@ -17,7 +18,7 @@ import (
 // Load reconstructs the trie from the database from the given root hash.
 // It is used when restarting the node to load the current state trie.
 func (t *InMemoryTrie) Load(db db.DBGetter, rootHash common.Hash) error {
-	if rootHash == EmptyHash {
+	if rootHash == trie.EmptyHash {
 		t.root = nil
 		return nil
 	}
@@ -48,7 +49,7 @@ func (t *InMemoryTrie) Load(db db.DBGetter, rootHash common.Hash) error {
 
 	for _, key := range t.GetKeysWithPrefix(ChildStorageKeyPrefix) {
 		value := t.Get(key)
-		childTrie := NewEmptyInmemoryTrie()
+		childTrie := NewEmptyTrie()
 		rootHash := common.BytesToHash(value)
 		err := childTrie.Load(db, rootHash)
 		if err != nil {
@@ -214,7 +215,7 @@ func recordAllDeleted(n *node.Node, recorder tracking.DeltaRecorder) {
 // It then reads the value from the database.
 func GetFromDB(db db.DBGetter, rootHash common.Hash, key []byte) (
 	value []byte, err error) {
-	if rootHash == EmptyHash {
+	if rootHash == trie.EmptyHash {
 		return nil, nil
 	}
 

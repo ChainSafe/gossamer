@@ -94,7 +94,7 @@ func TestStringTest(t *testing.T) {
 
 func TestLargeStringTest(t *testing.T) {
    	if testing.Short() {
-  		t.Skip("\033[33mSkipping memory intesive test for <TEST NAME> in short mode\033[0m")
+  		t.Skip("\033[33mSkipping memory intensive test for <TEST NAME> in short mode\033[0m")
     } else {
         ...
     }

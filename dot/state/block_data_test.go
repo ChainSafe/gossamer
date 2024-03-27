@@ -8,7 +8,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +18,7 @@ func TestGetSet_ReceiptMessageQueue_Justification(t *testing.T) {
 
 	var genesisHeader = &types.Header{
 		Number:    0,
-		StateRoot: inmemory_trie.EmptyHash,
+		StateRoot: trie.EmptyHash,
 		Digest:    types.NewDigest(),
 	}
 

@@ -12,7 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/ChainSafe/gossamer/pkg/trie/inmemory/proof"
@@ -59,9 +59,9 @@ func NewStorageState(db database.Database, blockState *BlockState,
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
-func (s *InmemoryStorageState) StoreTrie(ts *inmemory_storage.InMemoryTrieState, header *types.Header) error {
+func (s *InmemoryStorageState) StoreTrie(ts *storage.TrieState, header *types.Header) error {
 	root := ts.MustRoot()
-	s.tries.softSet(root, ts.Trie())
+	s.tries.softSet(root, ts.Trie().(*inmemory_trie.InMemoryTrie))
 
 	if header != nil {
 		insertedNodeHashes, deletedNodeHashes, err := ts.GetChangedNodeHashes()
@@ -77,9 +77,12 @@ func (s *InmemoryStorageState) StoreTrie(ts *inmemory_storage.InMemoryTrieState,
 
 	logger.Tracef("cached trie in storage state: %s", root)
 
-	if err := ts.Trie().WriteDirty(s.db); err != nil {
-		logger.Warnf("failed to write trie with root %s to database: %s", root, err)
-		return err
+	// TODO: all trie related db operations should be done in pkg/trie
+	if inmemoryTrie, ok := ts.Trie().(*inmemory_trie.InMemoryTrie); ok {
+		if err := inmemoryTrie.WriteDirty(s.db); err != nil {
+			logger.Warnf("failed to write trie with root %s to database: %s", root, err)
+			return err
+		}
 	}
 
 	go s.notifyAll(root)
@@ -88,7 +91,7 @@ func (s *InmemoryStorageState) StoreTrie(ts *inmemory_storage.InMemoryTrieState,
 
 // TrieState returns the TrieState for a given state root.
 // If no state root is provided, it returns the TrieState for the current chain head.
-func (s *InmemoryStorageState) TrieState(root *common.Hash) (*inmemory_storage.InMemoryTrieState, error) {
+func (s *InmemoryStorageState) TrieState(root *common.Hash) (*storage.TrieState, error) {
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
@@ -110,16 +113,18 @@ func (s *InmemoryStorageState) TrieState(root *common.Hash) (*inmemory_storage.I
 		panic("trie does not have expected root")
 	}
 
-	nextTrie := t.Snapshot()
-	next := inmemory_storage.NewTrieState(nextTrie)
+	// TODO: do we really need to create an snapshot here if TrieState handles
+	// the modifications?
+	nextTrie := t.(*trie.InMemoryTrie).Snapshot()
+	next := storage.NewTrieState(nextTrie)
 
 	logger.Tracef("returning trie with root %s to be modified", root)
 	return next, nil
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
-func (s *InmemoryStorageState) LoadFromDB(root common.Hash) (*inmemory_trie.InMemoryTrie, error) {
-	t := inmemory_trie.NewInMemoryTrie(nil, s.db)
+func (s *InmemoryStorageState) LoadFromDB(root common.Hash) (trie.Trie, error) {
+	t := inmemory_trie.NewTrie(nil, s.db)
 	err := t.Load(s.db, root)
 	if err != nil {
 		return nil, err
@@ -129,7 +134,7 @@ func (s *InmemoryStorageState) LoadFromDB(root common.Hash) (*inmemory_trie.InMe
 	return t, nil
 }
 
-func (s *InmemoryStorageState) loadTrie(root *common.Hash) (*inmemory_trie.InMemoryTrie, error) {
+func (s *InmemoryStorageState) loadTrie(root *common.Hash) (trie.Trie, error) {
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {

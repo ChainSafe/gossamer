@@ -122,7 +122,9 @@ func (p *OfflinePruner) SetBloomFilter() (err error) {
 	// loop from latest to last `retainBlockNum` blocks
 	for blockNum := header.Number; blockNum > 0 && blockNum >= latestBlockNum-uint(p.retainBlockNum); {
 		var tr *inmemory_trie.InMemoryTrie
-		tr, err = p.storageState.LoadFromDB(header.StateRoot)
+		loadedTrie, err := p.storageState.LoadFromDB(header.StateRoot)
+
+		tr = loadedTrie.(*inmemory_trie.InMemoryTrie)
 		if err != nil {
 			return err
 		}

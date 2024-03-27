@@ -13,13 +13,13 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/stretchr/testify/require"
 )
 
 func newTriesEmpty() *Tries {
 	return &Tries{
-		rootToTrie:    make(map[common.Hash]*inmemory_trie.InMemoryTrie),
+		rootToTrie:    make(map[common.Hash]trie.Trie),
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
 		deleteCounter: deleteCounter,
@@ -90,7 +90,7 @@ func generateRandBytes(tb testing.TB, size int,
 }
 
 func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
-	gen genesis.Genesis, genesisTrie *inmemory_trie.InMemoryTrie, genesisHeader types.Header) {
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
 	t.Helper()
 
 	genesisPath := utils.GetWestendDevRawGenesisPath(t)
@@ -98,12 +98,12 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 	gen = *genesisPtr
 
-	genesisTrie, err = runtime.NewInMemoryTrieFromGenesis(gen)
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
 	stateRoot := genesisTrie.MustHash()
-	extrinsicRoot := inmemory_trie.EmptyHash
+	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()
 	genesisHeader = *types.NewHeader(parentHash,

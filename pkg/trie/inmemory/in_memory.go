@@ -16,9 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/tracking"
 )
 
-// EmptyHash is the empty trie hash.
-var EmptyHash = common.MustBlake2bHash([]byte{0})
-
 // InMemoryTrie is a base 16 modified Merkle Patricia trie.
 type InMemoryTrie struct {
 	generation uint64
@@ -34,13 +31,13 @@ type InMemoryTrie struct {
 	deltas tracking.Delta
 }
 
-// NewEmptyInmemoryTrie creates a trie with a nil root
-func NewEmptyInmemoryTrie() *InMemoryTrie {
-	return NewInMemoryTrie(nil, db.NewEmptyMemoryDB())
+// NewEmptyTrie creates a trie with a nil root
+func NewEmptyTrie() *InMemoryTrie {
+	return NewTrie(nil, db.NewEmptyMemoryDB())
 }
 
 // NewTrie creates a trie with an existing root node
-func NewInMemoryTrie(root *node.Node, db db.Database) *InMemoryTrie {
+func NewTrie(root *node.Node, db db.Database) *InMemoryTrie {
 	return &InMemoryTrie{
 		root:       root,
 		childTries: make(map[common.Hash]*InMemoryTrie),
@@ -217,7 +214,7 @@ func (t *InMemoryTrie) MustHash() common.Hash {
 // Hash returns the hashed root of the trie.
 func (t *InMemoryTrie) Hash() (rootHash common.Hash, err error) {
 	if t.root == nil {
-		return EmptyHash, nil
+		return trie.EmptyHash, nil
 	}
 
 	merkleValue, err := t.root.CalculateRootMerkleValue()
@@ -648,7 +645,7 @@ func (t *InMemoryTrie) insertInBranch(parentBranch *node.Node, key, value []byte
 // The keys are in hexadecimal little Endian encoding and the values
 // are hexadecimal encoded.
 func LoadFromMap(data map[string]string, version trie.TrieLayout) (trie *InMemoryTrie, err error) {
-	trie = NewEmptyInmemoryTrie()
+	trie = NewEmptyTrie()
 	trie.SetVersion(version)
 
 	pendingDeltas := tracking.New()

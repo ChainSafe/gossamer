@@ -48,7 +48,7 @@ func Test_Version_Root(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			maxInline, err := testCase.version.Root(NewEmptyInmemoryTrie(), testCase.entries)
+			maxInline, err := testCase.version.Root(NewEmptyTrie(), testCase.entries)
 			assert.NoError(t, err)
 			assert.Equal(t, testCase.expected, maxInline)
 		})

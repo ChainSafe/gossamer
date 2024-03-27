@@ -16,7 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"go.uber.org/mock/gomock"
@@ -85,13 +85,13 @@ func TestService_Initialise(t *testing.T) {
 	// in-memory trie representation.
 	// If the same trie is re-used for the second call, the database is cleared
 	// and nothing is written to disk since all nodes are marked as clean.
-	genTrieCopy := genTrie.DeepCopy()
+	genTrieCopy := genTrie.(*inmemory_trie.InMemoryTrie).DeepCopy()
 
 	err := state.Initialise(&genData, &genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	genesisHeaderPtr := types.NewHeader(common.NewHash([]byte{77}),
-		genTrie.MustHash(), inmemory_trie.EmptyHash, 0, nil)
+		genTrie.MustHash(), trie.EmptyHash, 0, nil)
 
 	err = state.Initialise(&genData, genesisHeaderPtr, genTrieCopy)
 	require.NoError(t, err)
@@ -285,7 +285,7 @@ func TestService_PruneStorage(t *testing.T) {
 		require.NoError(t, err)
 
 		// Store the other blocks that will be pruned.
-		copiedTrie := trieState.Trie().DeepCopy()
+		copiedTrie := trieState.Trie().(*inmemory_trie.InMemoryTrie).DeepCopy()
 
 		var rootHash common.Hash
 		rootHash, err = copiedTrie.Hash()
@@ -381,7 +381,7 @@ func TestService_Import(t *testing.T) {
 	err := serv.Initialise(&genData, &genesisHeader, genTrie)
 	require.NoError(t, err)
 
-	tr := inmemory_trie.NewEmptyInmemoryTrie()
+	tr := inmemory_trie.NewEmptyTrie()
 	var testCases = []string{
 		"asdf",
 		"ghjk",
@@ -430,7 +430,7 @@ func TestService_Import(t *testing.T) {
 }
 
 func generateBlockWithRandomTrie(t *testing.T, serv *Service,
-	parent *common.Hash, bNum uint) (*types.Block, *inmemory_storage.InMemoryTrieState) {
+	parent *common.Hash, bNum uint) (*types.Block, *runtime.TrieState) {
 	trieState, err := serv.Storage.TrieState(nil)
 	require.NoError(t, err)
 

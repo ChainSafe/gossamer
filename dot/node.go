@@ -159,7 +159,7 @@ func (nodeBuilder) initNode(config *cfg.Config) error {
 	}
 
 	// create trie from genesis
-	t, err := runtime.NewInMemoryTrieFromGenesis(*gen)
+	t, err := runtime.NewTrieFromGenesis(*gen)
 	if err != nil {
 		return fmt.Errorf("failed to create trie from genesis: %w", err)
 	}

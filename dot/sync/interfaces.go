@@ -11,7 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	inmemory_storage "github.com/ChainSafe/gossamer/lib/runtime/storage/inmemory"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
@@ -42,7 +42,7 @@ type BlockState interface {
 
 // StorageState is the interface for the storage state
 type StorageState interface {
-	TrieState(root *common.Hash) (*inmemory_storage.InMemoryTrieState, error)
+	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
 	sync.Locker
 }
 
@@ -63,7 +63,7 @@ type FinalityGadget interface {
 
 // BlockImportHandler is the interface for the handler of newly imported blocks
 type BlockImportHandler interface {
-	HandleBlockImport(block *types.Block, state *inmemory_storage.InMemoryTrieState, announce bool) error
+	HandleBlockImport(block *types.Block, state *rtstorage.TrieState, announce bool) error
 }
 
 // Network is the interface for the network

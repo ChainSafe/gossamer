@@ -135,7 +135,7 @@ func testBlockState(t *testing.T, db database.Database) *BlockState {
 
 	// loads in-memory tries with genesis state root, should be deleted
 	// after another block is finalised
-	tr := inmemory_trie.NewEmptyInmemoryTrie()
+	tr := inmemory_trie.NewEmptyTrie()
 	err = tr.Load(bs.db, header.StateRoot)
 	require.NoError(t, err)
 	bs.tries.softSet(header.StateRoot, tr)
@@ -143,7 +143,7 @@ func testBlockState(t *testing.T, db database.Database) *BlockState {
 	return bs
 }
 
-func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
+func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) { //nolint:tparallel
 	t.Parallel()
 
 	keyring, err := keystore.NewSr25519Keyring()
@@ -220,8 +220,6 @@ func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
 	for tname, tt := range tests {
 		tt := tt
 		t.Run(tname, func(t *testing.T) {
-			t.Parallel()
-
 			// clear the scheduledChangeRoots after the test ends
 			// this does not cause race condition because t.Run without
 			// t.Parallel() blocks until this function returns
