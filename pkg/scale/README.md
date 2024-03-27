@@ -210,7 +210,7 @@ func ExampleResult() {
 
 ### Varying Data Type
 
-A `VaryingDataType` is analogous to a Rust enum.  A `VaryingDataType` is an interface that needs to be implemented.  From the Polkadot spec there are values associated to a `VaryingDataType`, which is analagous to a rust enum variant.  Each value has an associated index integer value which is used to determine which value type go-scale should decode to. The following interface needs to be implemented for go-scale to be able to marshal from or unmarshal into.    
+A `VaryingDataType` is analogous to a Rust enum.  A `VaryingDataType` is an interface that needs to be implemented.  From the Polkadot spec there are values associated to a `VaryingDataType`, which is analogous to a rust enum variant.  Each value has an associated index integer value which is used to determine which value type go-scale should decode to. The following interface needs to be implemented for go-scale to be able to marshal from or unmarshal into.    
 ```go
 type EncodeVaryingDataType interface {
 	IndexValue() (index uint, value any, err error)
