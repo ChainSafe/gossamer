@@ -59,6 +59,7 @@ type Instance interface {
 	ParachainHostValidationCodeByHash(validationCodeHash common.Hash) (*parachaintypes.ValidationCode, error)
 	ParachainHostValidators() ([]parachaintypes.ValidatorID, error)
 	ParachainHostValidatorGroups() (*parachaintypes.ValidatorGroups, error)
+	// TODO: There might be a score to have more go friendly return values here
 	ParachainHostAvailabilityCores() (*scale.VaryingDataTypeSlice, error)
 	ParachainHostCheckValidationOutputs(
 		parachainID parachaintypes.ParaID,

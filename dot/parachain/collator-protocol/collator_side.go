@@ -40,9 +40,9 @@ func (cpcs CollatorProtocolCollatorSide) processMessage(msg any) error {
 	case collatorprotocolmessages.Invalid:
 		return fmt.Errorf("Invalid %w", ErrNotExpectedOnCollatorSide)
 	case parachaintypes.ActiveLeavesUpdateSignal:
-		cpcs.ProcessActiveLeavesUpdateSignal()
+		cpcs.ProcessActiveLeavesUpdateSignal(msg)
 	case parachaintypes.BlockFinalizedSignal:
-		cpcs.ProcessBlockFinalizedSignal()
+		cpcs.ProcessBlockFinalizedSignal(msg)
 
 	default:
 		return parachaintypes.ErrUnknownOverseerMessage
@@ -51,11 +51,11 @@ func (cpcs CollatorProtocolCollatorSide) processMessage(msg any) error {
 	return nil
 }
 
-func (cpcs CollatorProtocolCollatorSide) ProcessActiveLeavesUpdateSignal() {
+func (cpcs CollatorProtocolCollatorSide) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) {
 	// TODO: handle active leaves update signal
 }
 
-func (cpcs CollatorProtocolCollatorSide) ProcessBlockFinalizedSignal() {
+func (cpcs CollatorProtocolCollatorSide) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
 	// NOTE: nothing to do here
 }
 
