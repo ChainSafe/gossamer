@@ -61,10 +61,7 @@ func (s *ServiceRegistry) StartAll() {
 func (s *ServiceRegistry) PauseServices() {
 	s.logger.Infof("Pausing key services")
 	for _, typ := range s.serviceTypes {
-		// instead of casting to the concrete type
-		// you can cast to an interface that you concrete type implements
 		pausable, ok := s.services[typ].(Pausable)
-
 		if ok && pausable != nil {
 			err := pausable.Pause()
 			if err != nil {
