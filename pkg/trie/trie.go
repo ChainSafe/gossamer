@@ -64,8 +64,4 @@ type Trie interface {
 	fmt.Stringer
 
 	RootNode() *Node
-
-	//TODO:this method should not be part of the API, find a way to remove it
-	insertKeyLE(key, value []byte,
-		pendingDeltas DeltaRecorder) (err error)
 }
