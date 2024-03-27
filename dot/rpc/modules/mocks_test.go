@@ -120,10 +120,10 @@ func (mr *MockStorageAPIMockRecorder) GetStorageByBlockHash(arg0, arg1 any) *gom
 }
 
 // GetStorageChild mocks base method.
-func (m *MockStorageAPI) GetStorageChild(arg0 *common.Hash, arg1 []byte) (*trie.Trie, error) {
+func (m *MockStorageAPI) GetStorageChild(arg0 *common.Hash, arg1 []byte) (trie.Trie, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStorageChild", arg0, arg1)
-	ret0, _ := ret[0].(*trie.Trie)
+	ret0, _ := ret[0].(trie.Trie)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

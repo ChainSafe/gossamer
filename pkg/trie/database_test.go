@@ -24,7 +24,7 @@ func Test_Trie_Store_Load(t *testing.T) {
 	const size = 1000
 	trie, _ := makeSeededTrie(t, size)
 
-	rootHash := V0.MustHash(*trie)
+	rootHash := V0.MustHash(trie)
 
 	db := newTestDB(t)
 	err := trie.WriteDirty(db)
@@ -65,7 +65,7 @@ func Test_Trie_WriteDirty_Put(t *testing.T) {
 		err := trie.WriteDirty(db)
 		require.NoError(t, err)
 
-		rootHash := V0.MustHash(*trie)
+		rootHash := V0.MustHash(trie)
 		valueFromDB, err := GetFromDB(db, rootHash, key)
 		require.NoError(t, err)
 		assert.Equalf(t, value, valueFromDB, "for key=%x", key)
@@ -85,7 +85,7 @@ func Test_Trie_WriteDirty_Put(t *testing.T) {
 	err = trie.WriteDirty(db)
 	require.NoError(t, err)
 
-	rootHash := V0.MustHash(*trie)
+	rootHash := V0.MustHash(trie)
 
 	// Verify the trie in database is also modified.
 	trieFromDB := NewEmptyTrie()
@@ -119,7 +119,7 @@ func Test_Trie_WriteDirty_Delete(t *testing.T) {
 		deletedKeys[string(keyToDelete)] = struct{}{}
 	}
 
-	rootHash := V0.MustHash(*trie)
+	rootHash := V0.MustHash(trie)
 
 	trieFromDB := NewEmptyTrie()
 	err = trieFromDB.Load(db, rootHash)
@@ -157,7 +157,7 @@ func Test_Trie_WriteDirty_ClearPrefix(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	rootHash := V0.MustHash(*trie)
+	rootHash := V0.MustHash(trie)
 
 	trieFromDB := NewEmptyTrie()
 	err = trieFromDB.Load(db, rootHash)
@@ -277,7 +277,7 @@ func Test_GetFromDB(t *testing.T) {
 	err := trie.WriteDirty(db)
 	require.NoError(t, err)
 
-	root := V0.MustHash(*trie)
+	root := V0.MustHash(trie)
 
 	for keyString, expectedValue := range keyValues {
 		key := []byte(keyString)
@@ -318,7 +318,7 @@ func Test_Trie_PutChild_Store_Load(t *testing.T) {
 	}
 
 	for _, keyToChildTrie := range keysToChildTries {
-		err := trie.setChild(keyToChildTrie, childTrie)
+		err := trie.SetChild(keyToChildTrie, childTrie)
 		require.NoError(t, err)
 
 		err = trie.WriteDirty(db)

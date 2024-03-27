@@ -136,7 +136,7 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 	stateSrvc := state.NewService(stateConfig)
 	stateSrvc.UseMemDB()
 	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(&genData, &genesisHeader, &genTrie)
+	err := stateSrvc.Initialise(&genData, &genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.SetupBase()
@@ -158,7 +158,7 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 
 	var rtCfg wazero_runtime.Config
 
-	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
 
 	rtCfg.CodeHash, err = stateSrvc.Storage.LoadCodeHash(nil)
 	require.NoError(t, err)

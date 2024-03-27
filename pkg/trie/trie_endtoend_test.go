@@ -27,7 +27,7 @@ const (
 	getLeaf
 )
 
-func buildSmallTrie() *Trie {
+func buildSmallTrie() *InMemoryTrie {
 	trie := NewEmptyTrie()
 
 	tests := []keyValues{
@@ -46,7 +46,7 @@ func buildSmallTrie() *Trie {
 	return trie
 }
 
-func runTests(t *testing.T, trie *Trie, tests []keyValues) {
+func runTests(t *testing.T, trie *InMemoryTrie, tests []keyValues) {
 	for _, test := range tests {
 		switch test.op {
 		case put:
@@ -306,7 +306,8 @@ func TestTrieDiff(t *testing.T) {
 		newTrie.Put(test.key, test.value)
 	}
 
-	deletedNodeHashes := newTrie.deltas.Deleted()
+	_, deletedNodeHashes, err := newTrie.GetChangedNodeHashes()
+	assert.NoError(t, err)
 	expectedDeletedNodeHashes := map[common.Hash]struct{}{
 		// root branch hash which was modified (by its descendants).
 		// Other nodes result in an encoding of less than 32B so they are not
@@ -600,8 +601,8 @@ func TestTrie_ClearPrefixVsDelete(t *testing.T) {
 
 			trieClearPrefix.ClearPrefix(prefix)
 
-			trieClearPrefixHash := DefaultStateVersion.MustHash(*trieClearPrefix)
-			trieDeleteHash := DefaultStateVersion.MustHash(*trieDelete)
+			trieClearPrefixHash := DefaultStateVersion.MustHash(trieClearPrefix)
+			trieDeleteHash := DefaultStateVersion.MustHash(trieDelete)
 
 			require.Equal(t, trieClearPrefixHash, trieDeleteHash)
 		}
@@ -636,9 +637,9 @@ func TestSnapshot(t *testing.T) {
 	newTrie := parentTrie.Snapshot()
 	newTrie.Put(tests[0].key, tests[0].value)
 
-	expectedTrieHash := DefaultStateVersion.MustHash(*expectedTrie)
-	newTrieHash := DefaultStateVersion.MustHash(*newTrie)
-	parentTrieHash := DefaultStateVersion.MustHash(*parentTrie)
+	expectedTrieHash := DefaultStateVersion.MustHash(expectedTrie)
+	newTrieHash := DefaultStateVersion.MustHash(newTrie)
+	parentTrieHash := DefaultStateVersion.MustHash(parentTrie)
 
 	require.Equal(t, expectedTrieHash, newTrieHash)
 	require.NotEqual(t, parentTrieHash, newTrieHash)
@@ -717,7 +718,7 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 	const workers = 4
 
 	testCases := make([][]keyValues, workers)
-	expectedTries := make([]*Trie, workers)
+	expectedTries := make([]*InMemoryTrie, workers)
 
 	for i := 0; i < workers; i++ {
 		testCases[i] = make([]keyValues, size)
@@ -748,12 +749,12 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 	finishWg := new(sync.WaitGroup)
 	startWg.Add(workers)
 	finishWg.Add(workers)
-	snapshotedTries := make([]*Trie, workers)
+	snapshotedTries := make([]*InMemoryTrie, workers)
 
 	for i := 0; i < workers; i++ {
 		snapshotedTries[i] = buildSmallTrie().Snapshot()
 
-		go func(trie *Trie, operations []keyValues,
+		go func(trie *InMemoryTrie, operations []keyValues,
 			startWg, finishWg *sync.WaitGroup) {
 			defer finishWg.Done()
 			startWg.Done()
@@ -776,8 +777,8 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 	for i := 0; i < workers; i++ {
 		assert.Equal(
 			t,
-			DefaultStateVersion.MustHash(*expectedTries[i]),
-			DefaultStateVersion.MustHash(*snapshotedTries[i]),
+			DefaultStateVersion.MustHash(expectedTries[i]),
+			DefaultStateVersion.MustHash(snapshotedTries[i]),
 		)
 	}
 }

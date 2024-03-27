@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Trie_GenesisBlock(t *testing.T) {
+func Test_InMemoryTrie_GenesisBlock(t *testing.T) {
 	t.Parallel()
 
 	withHash := func(header types.Header) types.Header {
@@ -21,7 +21,7 @@ func Test_Trie_GenesisBlock(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		trie          Trie
+		trie          InMemoryTrie
 		genesisHeader types.Header
 		errSentinel   error
 		errMessage    string
@@ -35,7 +35,7 @@ func Test_Trie_GenesisBlock(t *testing.T) {
 			}),
 		},
 		"non_empty_trie": {
-			trie: Trie{
+			trie: InMemoryTrie{
 				root: &node.Node{
 					PartialKey:   []byte{1, 2, 3},
 					StorageValue: []byte{4, 5, 6},

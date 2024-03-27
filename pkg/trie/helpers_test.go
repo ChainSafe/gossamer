@@ -85,7 +85,7 @@ func generateRandBytes(tb testing.TB, size int,
 }
 
 func makeSeededTrie(t *testing.T, size int) (
-	trie *Trie, keyValues map[string][]byte) {
+	trie *InMemoryTrie, keyValues map[string][]byte) {
 	generator := newGenerator()
 	keyValues = generateKeyValues(t, generator, size)
 

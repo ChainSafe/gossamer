@@ -97,7 +97,7 @@ func (v TrieLayout) Root(entries Entries) (common.Hash, error) {
 }
 
 // Hash returns the root hash of the trie built using the given entries
-func (v TrieLayout) Hash(t *Trie) (common.Hash, error) {
+func (v TrieLayout) Hash(t Trie) (common.Hash, error) {
 	t.SetVersion(v)
 	return t.Hash()
 }

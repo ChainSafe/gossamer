@@ -21,7 +21,7 @@ type NewBatcher interface {
 
 // Load reconstructs the trie from the database from the given root hash.
 // It is used when restarting the node to load the current state trie.
-func (t *Trie) Load(db db.DBGetter, rootHash common.Hash) error {
+func (t *InMemoryTrie) Load(db db.DBGetter, rootHash common.Hash) error {
 	if rootHash == EmptyHash {
 		t.root = nil
 		return nil
@@ -70,7 +70,7 @@ func (t *Trie) Load(db db.DBGetter, rootHash common.Hash) error {
 	return nil
 }
 
-func (t *Trie) loadNode(db db.DBGetter, n *Node) error {
+func (t *InMemoryTrie) loadNode(db db.DBGetter, n *Node) error {
 	if n.Kind() != node.Branch {
 		return nil
 	}
@@ -299,7 +299,7 @@ func getFromDBAtNode(db db.DBGetter, n *Node, key []byte) (
 }
 
 // WriteDirty writes all dirty nodes to the database and sets them to clean
-func (t *Trie) WriteDirty(db NewBatcher) error {
+func (t *InMemoryTrie) WriteDirty(db NewBatcher) error {
 	batch := db.NewBatch()
 	err := t.writeDirtyNode(batch, t.root)
 	if err != nil {
@@ -310,7 +310,7 @@ func (t *Trie) WriteDirty(db NewBatcher) error {
 	return batch.Flush()
 }
 
-func (t *Trie) writeDirtyNode(db db.DBPutter, n *Node) (err error) {
+func (t *InMemoryTrie) writeDirtyNode(db db.DBPutter, n *Node) (err error) {
 	if n == nil || !n.Dirty {
 		return nil
 	}
@@ -388,7 +388,7 @@ func (t *Trie) writeDirtyNode(db db.DBPutter, n *Node) (err error) {
 // GetChangedNodeHashes returns the two sets of hashes for all nodes
 // inserted and deleted in the state trie since the last snapshot.
 // Returned inserted map is safe for mutation, but deleted is not safe for mutation.
-func (t *Trie) GetChangedNodeHashes() (inserted, deleted map[common.Hash]struct{}, err error) {
+func (t *InMemoryTrie) GetChangedNodeHashes() (inserted, deleted map[common.Hash]struct{}, err error) {
 	inserted = make(map[common.Hash]struct{})
 	err = t.getInsertedNodeHashesAtNode(t.root, inserted)
 	if err != nil {
@@ -400,7 +400,7 @@ func (t *Trie) GetChangedNodeHashes() (inserted, deleted map[common.Hash]struct{
 	return inserted, deleted, nil
 }
 
-func (t *Trie) getInsertedNodeHashesAtNode(n *Node, nodeHashes map[common.Hash]struct{}) (err error) {
+func (t *InMemoryTrie) getInsertedNodeHashesAtNode(n *Node, nodeHashes map[common.Hash]struct{}) (err error) {
 	if n == nil || !n.Dirty {
 		return nil
 	}

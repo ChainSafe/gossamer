@@ -84,7 +84,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	stateSrvc = state.NewService(stateConfig)
 	stateSrvc.UseMemDB()
 
-	err = stateSrvc.Initialise(gen, genesisHeader, &genesisTrie)
+	err = stateSrvc.Initialise(gen, genesisHeader, genesisTrie)
 	require.NoError(t, err)
 
 	// Start state service
@@ -96,7 +96,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	cfgCodeSubstitutedState := stateSrvc.Base
 
 	var rtCfg wazero_runtime.Config
-	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(genesisTrie)
 
 	rtCfg.CodeHash, err = cfgStorageState.LoadCodeHash(nil)
 	require.NoError(t, err)
@@ -189,7 +189,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		stateSrvc = state.NewService(config)
 		stateSrvc.UseMemDB()
 
-		err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
+		err := stateSrvc.Initialise(&gen, &genesisHeader, genesisTrie)
 		require.NoError(t, err)
 
 		err = stateSrvc.Start()
@@ -215,10 +215,10 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.Runtime == nil {
 		var rtCfg wazero_runtime.Config
 
-		rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
+		rtCfg.Storage = rtstorage.NewTrieState(genesisTrie)
 
 		var err error
-		rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
+		rtCfg.CodeHash, err = cfg.StorageState.(*state.InmemoryStorageState).LoadCodeHash(nil)
 		require.NoError(t, err)
 
 		nodeStorage := runtime.NodeStorage{}
@@ -291,7 +291,7 @@ func getWestendDevRuntimeCode(t *testing.T) (code []byte) {
 	genesisTrie, err := runtime.NewTrieFromGenesis(*westendDevGenesis)
 	require.NoError(t, err)
 
-	trieState := rtstorage.NewTrieState(&genesisTrie)
+	trieState := rtstorage.NewTrieState(genesisTrie)
 
 	return trieState.LoadCode()
 }

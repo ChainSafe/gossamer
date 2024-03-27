@@ -41,7 +41,7 @@ func ImportState(basepath, stateFP, headerFP string, stateTrieVersion trie.TrieL
 	return srv.Import(header, tr, stateTrieVersion, firstSlot)
 }
 
-func newTrieFromPairs(filename string, version trie.TrieLayout) (*trie.Trie, error) {
+func newTrieFromPairs(filename string, version trie.TrieLayout) (trie.Trie, error) {
 	data, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func newTrieFromPairs(filename string, version trie.TrieLayout) (*trie.Trie, err
 		return nil, err
 	}
 
-	return &tr, nil
+	return tr, nil
 }
 
 func newHeaderFromFile(filename string) (*types.Header, error) {
