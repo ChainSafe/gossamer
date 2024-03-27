@@ -7,7 +7,8 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -55,7 +56,7 @@ func NewTries() (tries *Tries) {
 // Note the empty trie is the same for the v0 and the v1
 // state trie versions.
 func (t *Tries) SetEmptyTrie() {
-	t.softSet(trie.EmptyHash, trie.NewEmptyTrie())
+	t.softSet(trie.EmptyHash, inmemory_trie.NewEmptyTrie())
 }
 
 // SetTrie sets the trie at its root hash in the tries map.

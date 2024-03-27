@@ -115,7 +115,7 @@ func (s *InmemoryStorageState) TrieState(root *common.Hash) (*storage.TrieState,
 
 	// TODO: do we really need to create an snapshot here if TrieState handles
 	// the modifications?
-	nextTrie := t.(*trie.InMemoryTrie).Snapshot()
+	nextTrie := t.(*inmemory_trie.InMemoryTrie).Snapshot()
 	next := storage.NewTrieState(nextTrie)
 
 	logger.Tracef("returning trie with root %s to be modified", root)
