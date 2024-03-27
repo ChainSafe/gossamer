@@ -18,7 +18,7 @@ type Writer interface {
 
 // NewBatcher creates a new database batch.
 type NewBatcher interface {
-	//TODO: to make this pkg standalone we need to get rid of thid database dep
+	//TODO: to make this pkg standalone we need to get rid of this database dep
 	NewBatch() database.Batch
 }
 
