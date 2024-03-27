@@ -182,7 +182,6 @@ type BlockHeader struct {
 func DetermineNewBlocks(subsystemToOverseer chan<- any, isKnown func(hash common.Hash) bool, head common.Hash,
 	header types.Header,
 	lowerBoundNumber parachaintypes.BlockNumber) ([]HashHeader, error) {
-	fmt.Printf("determineNewBlocks\n")
 
 	minBlockNeeded := uint(lowerBoundNumber + 1)
 
@@ -190,7 +189,6 @@ func DetermineNewBlocks(subsystemToOverseer chan<- any, isKnown func(hash common
 	alreadyKnown := isKnown(head)
 
 	beforeRelevant := header.Number < minBlockNeeded
-	fmt.Printf("beforeRelevant: %v\n", beforeRelevant)
 	if alreadyKnown || beforeRelevant {
 		return make([]HashHeader, 0), nil
 	}
@@ -212,14 +210,12 @@ func DetermineNewBlocks(subsystemToOverseer chan<- any, isKnown func(hash common
 	// This is always non-zero as determined by the loop invariant above.
 	ancestryStep := min(4, (lastHeader.Number - minBlockNeeded))
 
-	fmt.Printf("ancestryStep: %v\n", ancestryStep)
-
 	ancestors, err := GetBlockAncestors(subsystemToOverseer, head, uint32(ancestryStep))
 	if err != nil {
 		return nil, fmt.Errorf("getting block ancestors: %w", err)
 	}
 	fmt.Printf("ancestors: %v\n", ancestors)
-
+	// TODO(ed): finish this
 	// outer loop, build ancestry
 	//for {
 	// call ChainApiMessage::Ancestors to get batch hashes

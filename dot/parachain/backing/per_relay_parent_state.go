@@ -361,7 +361,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		chStoreAvailableDataError := make(chan error)
 		subSystemToOverseer <- availabilitystore.StoreAvailableData{
 			CandidateHash: candidateHash,
-			NumValidators: numValidator,
+			NumValidators: uint(numValidator),
 			AvailableData: availabilitystore.AvailableData{
 				PoV:            pov,
 				ValidationData: pvd,
