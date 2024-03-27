@@ -38,6 +38,9 @@ import (
 //go:embed testdata/parachain.yaml
 var parachainTestDataRaw string
 
+//go:embed testdata/parachain2.yaml
+var parachain2TestDataRaw string
+
 type Storage struct {
 	Name  string `yaml:"name"`
 	Key   string `yaml:"key"`
@@ -50,7 +53,7 @@ type Data struct {
 	Lookups  map[string]any    `yaml:"-"`
 }
 
-var parachainTestData Data
+var parachainTestData, parachain2TestData Data
 
 func init() {
 	err := yaml.Unmarshal([]byte(parachainTestDataRaw), &parachainTestData)
@@ -63,6 +66,19 @@ func init() {
 	for _, s := range parachainTestData.Storage {
 		if s.Name != "" {
 			parachainTestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
+		}
+	}
+
+	err = yaml.Unmarshal([]byte(parachain2TestDataRaw), &parachain2TestData)
+	if err != nil {
+		fmt.Println("Error unmarshalling test data:", err)
+		return
+	}
+	parachain2TestData.Lookups = make(map[string]any)
+
+	for _, s := range parachain2TestData.Storage {
+		if s.Name != "" {
+			parachain2TestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
 		}
 	}
 }
@@ -1596,19 +1612,32 @@ func TestInstance_ParachainHostSessionInfo(t *testing.T) {
 func TestInstance_ParachainHostAsyncBackingParams(t *testing.T) {
 	t.Parallel()
 
-	tt := getParachainHostTrie(t)
+	tt := getParachainHostTrie2(t)
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v180, tt)
 
 	params, err := rt.ParachainHostAsyncBackingParams()
 	require.NoError(t, err)
-	require.Equal(t, params.AllowedAncestryLen, uint32(0))
-	require.Equal(t, params.MaxCandidateDepth, uint32(0))
+	require.Equal(t, params.AllowedAncestryLen, uint32(2))
+	require.Equal(t, params.MaxCandidateDepth, uint32(3))
 }
 
 func getParachainHostTrie(t *testing.T) *trie.Trie {
 	tt := trie.NewEmptyTrie()
 
 	for _, s := range parachainTestData.Storage {
+		key := common.MustHexToBytes(s.Key)
+		value := common.MustHexToBytes(s.Value)
+		err := tt.Put(key, value)
+		require.NoError(t, err)
+	}
+
+	return tt
+}
+
+func getParachainHostTrie2(t *testing.T) *trie.Trie {
+	tt := trie.NewEmptyTrie()
+
+	for _, s := range parachain2TestData.Storage {
 		key := common.MustHexToBytes(s.Key)
 		value := common.MustHexToBytes(s.Value)
 		err := tt.Put(key, value)
