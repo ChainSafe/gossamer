@@ -40,8 +40,11 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t trie.
 
 	s.db = db
 
-	if err = t.WriteDirty(database.NewTable(db, storagePrefix)); err != nil {
-		return fmt.Errorf("failed to write genesis trie to database: %w", err)
+	// TODO: all trie related db operations should be done in pkg/trie
+	if inmemoryTrie, ok := t.(*trie.InMemoryTrie); ok {
+		if err = inmemoryTrie.WriteDirty(database.NewTable(db, storagePrefix)); err != nil {
+			return fmt.Errorf("failed to write genesis trie to database: %w", err)
+		}
 	}
 
 	s.Base = NewBaseState(db)
@@ -136,8 +139,11 @@ func loadGrandpaAuthorities(t trie.Trie) ([]types.GrandpaVoter, error) {
 // storeInitialValues writes initial genesis values to the state database
 func (s *Service) storeInitialValues(data *genesis.Data, t trie.Trie) error {
 	// write genesis trie to database
-	if err := t.WriteDirty(database.NewTable(s.db, storagePrefix)); err != nil {
-		return fmt.Errorf("failed to write trie to database: %s", err)
+	// TODO: all trie related db operations should be done in pkg/trie
+	if inmemoryTrie, ok := t.(*trie.InMemoryTrie); ok {
+		if err := inmemoryTrie.WriteDirty(database.NewTable(s.db, storagePrefix)); err != nil {
+			return fmt.Errorf("failed to write genesis trie to database: %w", err)
+		}
 	}
 
 	// write genesis data to state database

@@ -309,8 +309,11 @@ func (s *Service) Import(header *types.Header, t trie.Trie, stateTrieVersion tri
 	logger.Info("importing storage trie from base path " +
 		s.dbPath + " with root " + root.String() + "...")
 
-	if err := t.WriteDirty(storage.db); err != nil {
-		return err
+	// TODO: all trie related db operations should be done in pkg/trie
+	if inmemoryTrie, ok := t.(*trie.InMemoryTrie); ok {
+		if err := inmemoryTrie.WriteDirty(storage.db); err != nil {
+			return err
+		}
 	}
 
 	hash := header.Hash()

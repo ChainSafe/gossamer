@@ -76,9 +76,12 @@ func (s *InmemoryStorageState) StoreTrie(ts *storage.TrieState, header *types.He
 
 	logger.Tracef("cached trie in storage state: %s", root)
 
-	if err := ts.Trie().WriteDirty(s.db); err != nil {
-		logger.Warnf("failed to write trie with root %s to database: %s", root, err)
-		return err
+	// TODO: all trie related db operations should be done in pkg/trie
+	if inmemoryTrie, ok := ts.Trie().(*trie.InMemoryTrie); ok {
+		if err := inmemoryTrie.WriteDirty(s.db); err != nil {
+			logger.Warnf("failed to write trie with root %s to database: %s", root, err)
+			return err
+		}
 	}
 
 	go s.notifyAll(root)

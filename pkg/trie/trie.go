@@ -8,21 +8,14 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/tracking"
 )
 
-type ChildTrieGetter interface {
+type ChildTrieSupport interface {
 	GetChild(keyToChild []byte) (Trie, error)
 	GetFromChild(keyToChild, key []byte) ([]byte, error)
 	GetChildTries() map[common.Hash]Trie
-}
-
-type ChildTrieSetter interface {
 	PutIntoChild(keyToChild, key, value []byte) error
-}
-
-type ChildTrieDeleter interface {
 	DeleteChild(keyToChild []byte) (err error)
 	ClearFromChild(keyToChild, key []byte) error
 }
@@ -50,12 +43,6 @@ type TrieDeltas interface {
 	handleTrackedDeltas(success bool, pendingDeltas tracking.Getter)
 }
 
-type DBBackedTrie interface {
-	Load(db db.DBGetter, rootHash common.Hash) error
-	WriteDirty(db NewBatcher) error
-	writeDirtyNode(db db.DBPutter, n *Node) (err error)
-}
-
 type Versioned interface {
 	SetVersion(TrieLayout)
 }
@@ -67,15 +54,12 @@ type Hashable interface {
 }
 
 type Trie interface {
+	PrefixTrie
 	KVStore
 	Hashable
-	ChildTrieGetter
-	ChildTrieSetter
-	ChildTrieDeleter
+	ChildTrieSupport
 	TrieIterator
 	TrieDeltas
-	PrefixTrie
-	DBBackedTrie
 	Versioned
 	fmt.Stringer
 
