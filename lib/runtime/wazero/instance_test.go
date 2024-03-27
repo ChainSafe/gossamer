@@ -72,7 +72,7 @@ func Test_Instance_Version(t *testing.T) {
 				require.NoError(t, err)
 
 				cfg := Config{
-					Storage: storage.NewTrieState(&genesisTrie),
+					Storage: storage.NewTrieState(genesisTrie),
 					LogLvl:  log.Critical,
 				}
 
@@ -194,7 +194,7 @@ func TestWestendRuntime_ValidateTransaction(t *testing.T) {
 	require.NoError(t, err)
 
 	// set state to genesis state
-	genState := storage.NewTrieState(&genTrie)
+	genState := storage.NewTrieState(genTrie)
 
 	cfg := Config{
 		Storage: genState,
@@ -419,7 +419,7 @@ func TestInstance_BadSignature_WestendBlock8077850(t *testing.T) {
 				require.NoError(t, err)
 
 				// set state to genesis state
-				genState := storage.NewTrieState(&genTrie)
+				genState := storage.NewTrieState(genTrie)
 
 				cfg := Config{
 					Storage: genState,
@@ -430,7 +430,7 @@ func TestInstance_BadSignature_WestendBlock8077850(t *testing.T) {
 				require.NoError(t, err)
 
 				// reset state back to parent state before executing
-				parentState := storage.NewTrieState(&genTrie)
+				parentState := storage.NewTrieState(genTrie)
 				rt.SetContextStorage(parentState)
 
 				genesisHeader := &types.Header{
@@ -456,7 +456,7 @@ func TestInstance_BadSignature_WestendBlock8077850(t *testing.T) {
 				require.NoError(t, err)
 
 				rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0912)
-				parentState := storage.NewTrieState(&genTrie)
+				parentState := storage.NewTrieState(genTrie)
 				rt.SetContextStorage(parentState)
 
 				genesisHeader := &types.Header{
@@ -618,7 +618,7 @@ func TestInstance_ApplyExtrinsic_WestendRuntime(t *testing.T) {
 	require.NoError(t, err)
 
 	// set state to genesis state
-	genState := storage.NewTrieState(&genTrie)
+	genState := storage.NewTrieState(genTrie)
 
 	cfg := Config{
 		Storage: genState,
@@ -629,7 +629,7 @@ func TestInstance_ApplyExtrinsic_WestendRuntime(t *testing.T) {
 	require.NoError(t, err)
 
 	// reset state back to parent state before executing
-	parentState := storage.NewTrieState(&genTrie)
+	parentState := storage.NewTrieState(genTrie)
 	instance.SetContextStorage(parentState)
 
 	genesisHeader := &types.Header{
@@ -678,7 +678,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	require.Equal(t, expectedGenesisRoot, trie.V0.MustHash(genTrie))
 
 	// set state to genesis state
-	genState := storage.NewTrieState(&genTrie)
+	genState := storage.NewTrieState(genTrie)
 
 	cfg := Config{
 		Storage: genState,
@@ -728,7 +728,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	require.Equal(t, expectedGenesisRoot, trie.V0.MustHash(genTrie))
 
 	// set state to genesis state
-	genState := storage.NewTrieState(&genTrie)
+	genState := storage.NewTrieState(genTrie)
 
 	cfg := Config{
 		Storage: genState,
@@ -771,7 +771,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 	gossTrie3783 := newTrieFromPairs(t, "../test_data/kusama/block3783.out")
 	expectedRoot := common.MustHexToHash("0x948338bc0976aee78879d559a1f42385407e5a481b05a91d2a9386aa7507e7a0")
-	require.Equal(t, expectedRoot, trie.V0.MustHash(*gossTrie3783))
+	require.Equal(t, expectedRoot, trie.V0.MustHash(gossTrie3783))
 
 	// set state to genesis state
 	state3783 := storage.NewTrieState(gossTrie3783)
@@ -817,7 +817,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 	ksmTrie901441 := newTrieFromPairs(t, "../test_data/kusama/block901441.out")
 	expectedRoot := common.MustHexToHash("0x3a2ef7ee032f5810160bb8f3ffe3e3377bb6f2769ee9f79a5425973347acd504")
-	require.Equal(t, expectedRoot, trie.V0.MustHash(*ksmTrie901441))
+	require.Equal(t, expectedRoot, trie.V0.MustHash(ksmTrie901441))
 
 	// set state to genesis state
 	state901441 := storage.NewTrieState(ksmTrie901441)
@@ -863,7 +863,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1377830.out")
 	expectedRoot := common.MustHexToHash("0xe4de6fecda9e9e35f937d159665cf984bc1a68048b6c78912de0aeb6bd7f7e99")
-	require.Equal(t, expectedRoot, trie.V0.MustHash(*ksmTrie))
+	require.Equal(t, expectedRoot, trie.V0.MustHash(ksmTrie))
 
 	// set state to genesis state
 	state := storage.NewTrieState(ksmTrie)
@@ -909,7 +909,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1482002.out")
 	expectedRoot := common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb")
-	require.Equal(t, expectedRoot, trie.V0.MustHash(*ksmTrie))
+	require.Equal(t, expectedRoot, trie.V0.MustHash(ksmTrie))
 
 	// set state to genesis state
 	state := storage.NewTrieState(ksmTrie)
@@ -956,7 +956,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 	dotTrie := newTrieFromPairs(t, "../test_data/polkadot/block1089327.json")
 	expectedRoot := common.MustHexToHash("0x87ed9ebe7fb645d3b5b0255cc16e78ed022d9fbb52486105436e15a74557535b")
-	require.Equal(t, expectedRoot, trie.V0.MustHash(*dotTrie))
+	require.Equal(t, expectedRoot, trie.V0.MustHash(dotTrie))
 
 	// set state to genesis state
 	state := storage.NewTrieState(dotTrie)
@@ -1079,7 +1079,7 @@ func TestInstance_PaymentQueryInfo(t *testing.T) {
 	}
 }
 
-func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
+func newTrieFromPairs(t *testing.T, filename string) trie.Trie {
 	data, err := os.ReadFile(filename)
 	require.NoError(t, err)
 
@@ -1096,7 +1096,7 @@ func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
 
 	tr, err := trie.LoadFromMap(entries, trie.V0)
 	require.NoError(t, err)
-	return &tr
+	return tr
 }
 
 func TestInstance_TransactionPaymentCallApi_QueryCallInfo(t *testing.T) {

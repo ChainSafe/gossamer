@@ -4,7 +4,7 @@
 package trie
 
 // String returns the trie stringified through pre-order traversal
-func (t *Trie) String() string {
+func (t *InMemoryTrie) String() string {
 	if t.root == nil {
 		return "empty"
 	}

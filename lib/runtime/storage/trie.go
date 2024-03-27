@@ -22,12 +22,12 @@ import (
 // the current `state`
 type TrieState struct {
 	mtx          sync.RWMutex
-	state        *trie.Trie
+	state        trie.Trie
 	transactions *list.List
 }
 
 // NewTrieState initialises and returns a new TrieState instance
-func NewTrieState(initialState *trie.Trie) *TrieState {
+func NewTrieState(initialState trie.Trie) *TrieState {
 	transactions := list.New()
 	return &TrieState{
 		transactions: transactions,
@@ -94,7 +94,7 @@ func (t *TrieState) CommitTransaction() {
 }
 
 // Trie returns the TrieState's underlying trie
-func (t *TrieState) Trie() *trie.Trie {
+func (t *TrieState) Trie() trie.Trie {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 

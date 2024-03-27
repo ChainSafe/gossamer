@@ -1114,7 +1114,8 @@ func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
 	}
 
 	// Confirm if value is set
-	keys, err := inst.Context.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
+	keys, err := inst.Context.Storage.(*storage.TrieState).
+		GetKeysWithPrefixFromChild(testChildKey, prefix)
 	require.NoError(t, err)
 	require.Equal(t, 3, len(keys))
 

@@ -91,7 +91,7 @@ func NewRuntimeFromGenesis(cfg Config) (instance *Instance, err error) {
 }
 
 // NewInstanceFromTrie returns a new runtime instance with the code provided in the given trie
-func NewInstanceFromTrie(t *trie.Trie, cfg Config) (*Instance, error) {
+func NewInstanceFromTrie(t trie.Trie, cfg Config) (*Instance, error) {
 	code := t.Get(common.CodeKey)
 	if len(code) == 0 {
 		return nil, fmt.Errorf("cannot find :code in trie")

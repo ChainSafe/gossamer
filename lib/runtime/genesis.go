@@ -17,8 +17,7 @@ var (
 
 // NewTrieFromGenesis creates a new trie from the raw genesis data
 func NewTrieFromGenesis(gen genesis.Genesis) (tr trie.Trie, err error) {
-	triePtr := trie.NewEmptyTrie()
-	tr = *triePtr
+	tr = trie.NewEmptyTrie()
 	genesisFields := gen.GenesisFields()
 	keyValues, ok := genesisFields.Raw["top"]
 	if !ok {
