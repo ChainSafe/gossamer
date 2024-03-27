@@ -62,6 +62,4 @@ type Trie interface {
 	TrieDeltas
 	Versioned
 	fmt.Stringer
-
-	RootNode() *Node
 }
