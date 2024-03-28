@@ -7,7 +7,6 @@ import (
 	_ "embed"
 
 	"bytes"
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -38,6 +37,9 @@ import (
 //go:embed testdata/parachain.yaml
 var parachainTestDataRaw string
 
+//go:embed testdata/parachains_configuration_v180.yaml
+var parachainsConfigV180TestDataRaw string
+
 type Storage struct {
 	Name  string `yaml:"name"`
 	Key   string `yaml:"key"`
@@ -50,7 +52,7 @@ type Data struct {
 	Lookups  map[string]any    `yaml:"-"`
 }
 
-var parachainTestData Data
+var parachainTestData, parachainsConfigV180TestData Data
 
 func init() {
 	err := yaml.Unmarshal([]byte(parachainTestDataRaw), &parachainTestData)
@@ -63,6 +65,19 @@ func init() {
 	for _, s := range parachainTestData.Storage {
 		if s.Name != "" {
 			parachainTestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
+		}
+	}
+
+	err = yaml.Unmarshal([]byte(parachainsConfigV180TestDataRaw), &parachainsConfigV180TestData)
+	if err != nil {
+		fmt.Println("Error unmarshalling test data:", err)
+		return
+	}
+	parachainsConfigV180TestData.Lookups = make(map[string]any)
+
+	for _, s := range parachainsConfigV180TestData.Storage {
+		if s.Name != "" {
+			parachainsConfigV180TestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
 		}
 	}
 }
@@ -1316,7 +1331,7 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T)
 
 func TestInstance_ParachainHostPersistedValidationData(t *testing.T) {
 	t.Parallel()
-	tt := getParachainHostTrie(t)
+	tt := getParachainHostTrie(t, parachainTestData.Storage)
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0942, tt)
 
 	parachainID := uint32(1000)
@@ -1342,7 +1357,7 @@ func TestInstance_ParachainHostPersistedValidationData(t *testing.T) {
 
 func TestInstance_ParachainHostValidationCode(t *testing.T) {
 	t.Parallel()
-	tt := getParachainHostTrie(t)
+	tt := getParachainHostTrie(t, parachainTestData.Storage)
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0942, tt)
 
 	parachainID := uint32(1000)
@@ -1360,7 +1375,7 @@ func TestInstance_ParachainHostValidationCode(t *testing.T) {
 
 func TestInstance_ParachainHostValidationCodeByHash(t *testing.T) {
 	t.Parallel()
-	tt := getParachainHostTrie(t)
+	tt := getParachainHostTrie(t, parachainTestData.Storage)
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0942, tt)
 
 	codeHash := parachainTestData.Lookups["currentCodeHash"]
@@ -1377,7 +1392,7 @@ func TestInstance_ParachainHostValidationCodeByHash(t *testing.T) {
 func TestInstance_ParachainHostValidators(t *testing.T) {
 	t.Parallel()
 
-	tt := getParachainHostTrie(t)
+	tt := getParachainHostTrie(t, parachainTestData.Storage)
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0942, tt)
 
 	response, err := rt.ParachainHostValidators()
@@ -1408,7 +1423,7 @@ func TestInstance_ParachainHostValidators(t *testing.T) {
 func TestInstance_ParachainHostValidatorGroups(t *testing.T) {
 	t.Parallel()
 
-	tt := getParachainHostTrie(t)
+	tt := getParachainHostTrie(t, parachainTestData.Storage)
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0942, tt)
 
 	response, err := rt.ParachainHostValidatorGroups()
@@ -1433,7 +1448,7 @@ func TestInstance_ParachainHostValidatorGroups(t *testing.T) {
 func TestInstance_ParachainHostAvailabilityCores(t *testing.T) {
 	t.Parallel()
 
-	tt := getParachainHostTrie(t)
+	tt := getParachainHostTrie(t, parachainTestData.Storage)
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0942, tt)
 
 	response, err := rt.ParachainHostAvailabilityCores()
@@ -1452,7 +1467,7 @@ func TestInstance_ParachainHostAvailabilityCores(t *testing.T) {
 func TestInstance_ParachainHostSessionIndexForChild(t *testing.T) {
 	t.Parallel()
 
-	tt := getParachainHostTrie(t)
+	tt := getParachainHostTrie(t, parachainTestData.Storage)
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
 
 	response, err := rt.ParachainHostSessionIndexForChild()
@@ -1465,7 +1480,7 @@ func TestInstance_ParachainHostSessionIndexForChild(t *testing.T) {
 func TestInstance_ParachainHostCandidatePendingAvailability(t *testing.T) {
 	t.Parallel()
 
-	tt := getParachainHostTrie(t)
+	tt := getParachainHostTrie(t, parachainTestData.Storage)
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0942, tt)
 
 	response, err := rt.ParachainHostCandidatePendingAvailability(parachaintypes.ParaID(1000))
@@ -1486,7 +1501,7 @@ func TestInstance_ParachainHostCandidatePendingAvailability(t *testing.T) {
 func TestInstance_ParachainHostCandidateEvents(t *testing.T) {
 	t.Parallel()
 
-	tt := getParachainHostTrie(t)
+	tt := getParachainHostTrie(t, parachainTestData.Storage)
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0942, tt)
 
 	response, err := rt.ParachainHostCandidateEvents()
@@ -1505,7 +1520,7 @@ func TestInstance_ParachainHostCandidateEvents(t *testing.T) {
 func TestInstance_ParachainHostSessionInfo(t *testing.T) {
 	t.Parallel()
 
-	tt := getParachainHostTrie(t)
+	tt := getParachainHostTrie(t, parachainTestData.Storage)
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0942, tt)
 
 	response, err := rt.ParachainHostSessionInfo(parachaintypes.SessionIndex(27379))
@@ -1596,19 +1611,19 @@ func TestInstance_ParachainHostSessionInfo(t *testing.T) {
 func TestInstance_ParachainHostAsyncBackingParams(t *testing.T) {
 	t.Parallel()
 
-	tt := getParachainHostTrie(t)
+	tt := getParachainHostTrie(t, parachainsConfigV180TestData.Storage)
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v180, tt)
 
 	params, err := rt.ParachainHostAsyncBackingParams()
 	require.NoError(t, err)
-	require.Equal(t, params.AllowedAncestryLen, uint32(0))
-	require.Equal(t, params.MaxCandidateDepth, uint32(0))
+	require.Equal(t, params.AllowedAncestryLen, uint32(2))
+	require.Equal(t, params.MaxCandidateDepth, uint32(3))
 }
 
-func getParachainHostTrie(t *testing.T) *trie.Trie {
+func getParachainHostTrie(t *testing.T, testDataStorage []Storage) *trie.Trie {
 	tt := trie.NewEmptyTrie()
 
-	for _, s := range parachainTestData.Storage {
+	for _, s := range testDataStorage {
 		key := common.MustHexToBytes(s.Key)
 		value := common.MustHexToBytes(s.Value)
 		err := tt.Put(key, value)
