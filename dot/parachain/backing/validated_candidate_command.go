@@ -102,7 +102,7 @@ const (
 	attestNoPoV
 )
 
-// processValidatedCandidateCommand notes the result of a background validation of a candidate and reacts accordingly..
+// processValidatedCandidateCommand notes the result of a background validation of a candidate and reacts accordingly.
 func (cb *CandidateBacking) processValidatedCandidateCommand(
 	rpAndCmd relayParentAndCommand, chRelayParentAndCommand chan relayParentAndCommand,
 ) error {
