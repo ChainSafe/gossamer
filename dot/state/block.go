@@ -63,7 +63,7 @@ type BlockState struct {
 	tries             *Tries
 
 	// State variables
-	sync.RWMutex
+	mtx   sync.RWMutex
 	pause chan struct{}
 
 	// block notifiers
@@ -161,8 +161,8 @@ func NewBlockStateFromGenesis(db database.Database, trs *Tries, header *types.He
 
 // Pause pauses the service ie. halts block production
 func (bs *BlockState) Pause() error {
-	bs.Lock()
-	defer bs.Unlock()
+	bs.mtx.Lock()
+	defer bs.mtx.Unlock()
 
 	if bs.IsPaused() {
 		return nil
