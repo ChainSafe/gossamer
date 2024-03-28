@@ -127,10 +127,8 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	bs.lock.Lock()
 	defer bs.lock.Unlock()
 
-	select {
-	case <-bs.pause:
+	if bs.IsPaused() {
 		return errors.New("blockstate service is paused")
-	default:
 	}
 
 	has, err := bs.HasHeader(hash)

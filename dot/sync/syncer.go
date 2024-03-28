@@ -28,10 +28,7 @@ type Service struct {
 
 // Pause Pauses the sync service
 func (s *Service) Pause() error {
-	if !s.blockState.IsPaused() {
-		return s.blockState.Pause()
-	}
-	return nil
+	return s.blockState.Pause()
 }
 
 // Config is the configuration for the sync Service.

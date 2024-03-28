@@ -263,6 +263,7 @@ func (cs *chainSync) bootstrapSync() {
 			err = cs.requestMaxBlocksFrom(currentBlock, networkInitialSync)
 			if err != nil {
 				if errors.Is(err, errBlockStatePaused) {
+					logger.Debugf("exiting bootstrap sync: %s", err)
 					return
 				}
 				logger.Errorf("requesting max blocks from best block header: %s", err)

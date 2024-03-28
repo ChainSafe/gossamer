@@ -46,10 +46,7 @@ type Service struct {
 
 // Pause Pauses the state service
 func (s *Service) Pause() error {
-	if !s.Block.IsPaused() {
-		return s.Block.Pause()
-	}
-	return nil
+	return s.Block.Pause()
 }
 
 // Config is the default configuration used by state service.
