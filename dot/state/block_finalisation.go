@@ -127,6 +127,12 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	bs.lock.Lock()
 	defer bs.lock.Unlock()
 
+	select {
+	case <-bs.pause:
+		return errors.New("blockstate service is paused")
+	default:
+	}
+
 	has, err := bs.HasHeader(hash)
 	if err != nil {
 		return fmt.Errorf("could not check header for hash %s: %w", hash, err)
