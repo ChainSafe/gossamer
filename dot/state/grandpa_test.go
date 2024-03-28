@@ -143,9 +143,7 @@ func testBlockState(t *testing.T, db database.Database) *BlockState {
 	return bs
 }
 
-func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) { //nolint:tparallel
-	t.Parallel()
-
+func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
