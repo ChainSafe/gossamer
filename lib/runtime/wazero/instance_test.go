@@ -38,7 +38,7 @@ import (
 var parachainTestDataRaw string
 
 //go:embed testdata/parachains_configuration_v180.yaml
-var parachainTestData2Raw string
+var parachainsConfigV180TestDataRaw string
 
 type Storage struct {
 	Name  string `yaml:"name"`
@@ -52,7 +52,7 @@ type Data struct {
 	Lookups  map[string]any    `yaml:"-"`
 }
 
-var parachainTestData, parachainTestData2 Data
+var parachainTestData, parachainsConfigV180TestData Data
 
 func init() {
 	err := yaml.Unmarshal([]byte(parachainTestDataRaw), &parachainTestData)
@@ -68,16 +68,16 @@ func init() {
 		}
 	}
 
-	err = yaml.Unmarshal([]byte(parachainTestData2Raw), &parachainTestData2)
+	err = yaml.Unmarshal([]byte(parachainsConfigV180TestDataRaw), &parachainsConfigV180TestData)
 	if err != nil {
 		fmt.Println("Error unmarshalling test data:", err)
 		return
 	}
-	parachainTestData2.Lookups = make(map[string]any)
+	parachainsConfigV180TestData.Lookups = make(map[string]any)
 
-	for _, s := range parachainTestData2.Storage {
+	for _, s := range parachainsConfigV180TestData.Storage {
 		if s.Name != "" {
-			parachainTestData2.Lookups[s.Name] = common.MustHexToBytes(s.Value)
+			parachainsConfigV180TestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
 		}
 	}
 }
@@ -1611,7 +1611,7 @@ func TestInstance_ParachainHostSessionInfo(t *testing.T) {
 func TestInstance_ParachainHostAsyncBackingParams(t *testing.T) {
 	t.Parallel()
 
-	tt := getParachainHostTrie(t, parachainTestData2.Storage)
+	tt := getParachainHostTrie(t, parachainsConfigV180TestData.Storage)
 	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v180, tt)
 
 	params, err := rt.ParachainHostAsyncBackingParams()
