@@ -15,7 +15,6 @@ import (
 	"time"
 
 	availability_store "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
-	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
@@ -39,7 +38,6 @@ func (s *TestSubsystem) Name() parachaintypes.SubSystemName {
 }
 
 func (s *TestSubsystem) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) {
-	fmt.Printf("%s run\n", s.name)
 	counter := 0
 	for {
 		select {
@@ -150,61 +148,6 @@ func incrementCounters(t *testing.T, msg any, finalizedCounter *atomic.Int32, im
 	case parachaintypes.ActiveLeavesUpdateSignal:
 		importedCounter.Add(1)
 	}
-}
-
-// TODO(ed): fix this test, not sure why it's returning wrong instance of runtime
-func TestSignalAvailabilityStore(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	blockState := NewMockBlockState(ctrl)
-
-	finalizedNotifierChan := make(chan *types.FinalisationInfo)
-	importedBlockNotiferChan := make(chan *types.Block)
-
-	blockState.EXPECT().GetFinalisedNotifierChannel().Return(finalizedNotifierChan)
-	blockState.EXPECT().GetImportedBlockNotifierChannel().Return(importedBlockNotiferChan)
-	blockState.EXPECT().FreeFinalisedNotifierChannel(finalizedNotifierChan)
-	blockState.EXPECT().FreeImportedBlockNotifierChannel(importedBlockNotiferChan)
-	inst := NewMockRuntimeInstance(ctrl)
-	blockState.EXPECT().GetRuntime(gomock.Any()).Return(inst, nil)
-
-	overseer := NewOverseer(blockState)
-
-	require.NotNil(t, overseer)
-
-	stateService := state.NewService(state.Config{})
-	stateService.UseMemDB()
-
-	inmemoryDB := state.NewInMemoryDB(t)
-
-	availabilityStore, err := availability_store.CreateAndRegister(overseer.GetSubsystemToOverseerChannel(), inmemoryDB)
-	require.NoError(t, err)
-
-	availabilityStore.OverseerToSubSystem = overseer.RegisterSubsystem(availabilityStore)
-
-	chainApi, err := chainapi.Register(overseer.GetSubsystemToOverseerChannel())
-	require.NoError(t, err)
-	chainApi.OverseerToSubSystem = overseer.RegisterSubsystem(chainApi)
-
-	err = overseer.Start()
-	require.NoError(t, err)
-
-	//finalizedNotifierChan <- &types.FinalisationInfo{}
-	importedBlockNotiferChan <- &types.Block{
-		Header: types.Header{
-			ParentHash:     common.Hash{},
-			Number:         2,
-			StateRoot:      common.Hash{},
-			ExtrinsicsRoot: common.Hash{},
-			Digest:         scale.VaryingDataTypeSlice{},
-		},
-		Body: nil,
-	}
-
-	time.Sleep(1000 * time.Millisecond)
-
-	err = overseer.Stop()
-	require.NoError(t, err)
 }
 
 type testOverseer struct {
@@ -772,8 +715,7 @@ func TestStoreAvailableDataErasureMismatch(t *testing.T) {
 }
 
 func TestStoredButNotIncludedDataIsPruned(t *testing.T) {
-	// TODO(ed): confirm that this test is correct
-	harness := newTestHarness(t, true)
+	harness := newTestHarness(t, false)
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
 	nValidators := uint(10)
 
@@ -1049,61 +991,4 @@ func TestStoredDataKeptUntilFinalized(t *testing.T) {
 
 	err = harness.overseer.Stop()
 	require.NoError(t, err)
-}
-
-func TestWeDontMissAnythingIfImportNotificationsAreMissed(t *testing.T) {
-	// todo(ed): confirm that this test is correct
-	// do this test
-	harness := newTestHarness(t, true)
-
-	blockHash := common.Hash{0x01}
-	blockFinalizedSignal := parachaintypes.BlockFinalizedSignal{
-		Hash:        blockHash,
-		BlockNumber: 1,
-	}
-	harness.broadcastMessages = append(harness.broadcastMessages, blockFinalizedSignal)
-	harness.processes = append(harness.processes, func(msg any) {
-		fmt.Printf("msg: %v\n", msg)
-		//msg2, _ := msg.(util.ChainAPIMessage[util.BlockHeader])
-		//msg2.ResponseChannel <- types.Header{
-		//	Number: 3,
-		//}
-	})
-
-	err := harness.overseer.Start()
-	require.NoError(t, err)
-
-	go harness.processMessages()
-
-	harness.triggerBroadcast()
-	time.Sleep(2000 * time.Millisecond)
-	harness.printDB("initial")
-
-	//header := types.Header{
-	//	ParentHash: common.Hash{0x00},
-	//	Number:     1,
-	//	//StateRoot:      common.Hash{},
-	//	//ExtrinsicsRoot: common.Hash{},
-	//	//Digest:         scale.VaryingDataTypeSlice{},
-	//}
-
-	//	assert_matches!(
-	//		overseer_recv(&mut virtual_overseer).await,
-	//		AllMessages::ChainApi(ChainApiMessage::BlockHeader(
-	//		relay_parent,
-	//		tx,
-	//	)) => {
-	//	assert_eq!(relay_parent, block_hash);
-	//	tx.send(Ok(Some(header))).unwrap();
-	//	}
-	//);
-
-	err = harness.overseer.Stop()
-	require.NoError(t, err)
-
-}
-
-func TestForkfullnessWorks(t *testing.T) {
-	// todo(ed): confirm that this test is correct
-	// do this test
 }

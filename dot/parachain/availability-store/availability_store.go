@@ -209,15 +209,21 @@ var (
 
 	TestCandidateReceipt = parachaintypes.CandidateReceipt{
 		Descriptor: parachaintypes.CandidateDescriptor{
-			ParaID:                      0xd05,
-			RelayParent:                 common.MustHexToHash("0x2245952bd39fbc912d3bcf6ab6d9c191b5c9df70a4e1da6f670f4761bf96cc9f"),
-			Collator:                    parachaintypes.CollatorID{0x54, 0xde, 0x49, 0x5b, 0x57, 0xc7, 0xc3, 0x50, 0x5c, 0x62, 0x63, 0x3f, 0x1a, 0xc3, 0xa2, 0xf2, 0x2b, 0xe7, 0x4e, 0xd4, 0x97, 0xa5, 0x88, 0x43, 0x79, 0xe0, 0x82, 0x16, 0x7, 0xd9, 0x17, 0x3b},
-			PersistedValidationDataHash: common.MustHexToHash("0xeb5dd269e10d71dc754ce3fac591364afce61b007925730544bf530068087c7d"),
-			PovHash:                     common.MustHexToHash("0x38e3e2cd8bdf7fef72ad23b076e0620ab5d97d3c0a98207dd8b6af8c3becff69"),
-			ErasureRoot:                 common.MustHexToHash("0x6cd2c59aefd1a3bd654df00febe502e9f6ba788b8584c7278c47a2983fd8e87b"),
-			Signature:                   parachaintypes.CollatorSignature{206, 162, 242, 195, 253, 247, 207, 227, 40, 230, 149, 241, 161, 17, 239, 105, 151, 57, 197, 5, 74, 220, 253, 64, 150, 156, 103, 59, 57, 8, 14, 77, 250, 134, 152, 57, 117, 127, 171, 107, 249, 70, 207, 86, 149, 225, 160, 217, 51, 90, 217, 94, 68, 92, 213, 254, 153, 136, 161, 200, 47, 181, 60, 131},
-			ParaHead:                    common.MustHexToHash("0xfedc8cf6b2555199ecc95e7092742c5959f96bce04becaebfd9266f7642c23d7"),
-			ValidationCodeHash:          parachaintypes.ValidationCodeHash{110, 37, 119, 28, 37, 5, 245, 73, 181, 175, 119, 52, 200, 66, 19, 189, 31, 211, 146, 120, 250, 143, 7, 41, 139, 166, 157, 165, 90, 92, 112, 137},
+			ParaID:      0xd05,
+			RelayParent: common.MustHexToHash("0x2245952bd39fbc912d3bcf6ab6d9c191b5c9df70a4e1da6f670f4761bf96cc9f"),
+			Collator: parachaintypes.CollatorID{0x54, 0xde, 0x49, 0x5b, 0x57, 0xc7, 0xc3, 0x50,
+				0x5c, 0x62, 0x63, 0x3f, 0x1a, 0xc3, 0xa2, 0xf2, 0x2b, 0xe7, 0x4e, 0xd4, 0x97, 0xa5, 0x88, 0x43, 0x79,
+				0xe0, 0x82, 0x16, 0x7, 0xd9, 0x17, 0x3b},
+			PersistedValidationDataHash: common.MustHexToHash(
+				"0xeb5dd269e10d71dc754ce3fac591364afce61b007925730544bf530068087c7d"),
+			PovHash: common.MustHexToHash(
+				"0x38e3e2cd8bdf7fef72ad23b076e0620ab5d97d3c0a98207dd8b6af8c3becff69"),
+			ErasureRoot: common.MustHexToHash(
+				"0x6cd2c59aefd1a3bd654df00febe502e9f6ba788b8584c7278c47a2983fd8e87b"),
+			ParaHead: common.MustHexToHash(
+				"0xfedc8cf6b2555199ecc95e7092742c5959f96bce04becaebfd9266f7642c23d7"),
+			ValidationCodeHash: parachaintypes.ValidationCodeHash{110, 37, 119, 28, 37, 5, 245, 73, 181,
+				175, 119, 52, 200, 66, 19, 189, 31, 211, 146, 120, 250, 143, 7, 41, 139, 166, 157, 165, 90, 92, 112, 137},
 		},
 		CommitmentsHash: common.MustHexToHash("0x9ece96d300d33d733840cfd4035249b50618e4e81f1cd425bd304b0cffc13b8e"),
 	}
@@ -724,6 +730,7 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 
 	if meta == nil {
 		logger.Warnf("Candidate included without being backed %v", candidateHash)
+		return
 	}
 	beBlock := BlockNumberHash{
 		blockNumber: blockNumber,
@@ -739,16 +746,25 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 		pruneAt := val.Timestamp + BETimestamp(av.pruningConfig.KeepUnavailableFor.Seconds())
 
 		pruneKey := append(uint32ToBytes(uint32(pruneAt)), candidateHash[:]...)
-		tx.pruneByTime.Del(pruneKey)
-		meta.State.Set(Unfinalized{
+		err = tx.pruneByTime.Del(pruneKey)
+		if err != nil {
+			logger.Errorf("failed to delete pruning key: %w", err)
+		}
+		err = meta.State.Set(Unfinalized{
 			Timestamp:       val.Timestamp,
 			BlockNumberHash: []BlockNumberHash{beBlock},
 		})
+		if err != nil {
+			logger.Errorf("failed to set state to unfinalized: %w", err)
+		}
 	case Unfinalized:
-		meta.State.Set(Unfinalized{
+		err = meta.State.Set(Unfinalized{
 			Timestamp:       val.Timestamp,
 			BlockNumberHash: append(val.BlockNumberHash, beBlock),
 		})
+		if err != nil {
+			logger.Errorf("failed to set state to unfinalized: %w", err)
+		}
 	case Finalized:
 		// This should never happen as a candidate would have to be included after
 		// finality.
@@ -776,7 +792,6 @@ func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal() {
 	logger.Infof("ProcessBlockFinalizedSignal %T, %v", av.currentMessage, av.currentMessage)
 	finalizedBlock := av.currentMessage.(parachaintypes.BlockFinalizedSignal)
 	now := av.clock.Now()
-	nextPossibleBatch := uint32(0)
 	// TODO(ED): determine how to use this inerator so that more than one entry in unfinialzed can be handled
 	//for {
 	startPrefix, endPrefix := finalizedBlockRange(av.currentMessage.(parachaintypes.BlockFinalizedSignal).BlockNumber)
@@ -798,15 +813,6 @@ func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal() {
 		}
 	}
 
-	// TODO(ED): make (or simulate for now) ChainAPIMessage::FinaalizedBlockHash to get batch number
-	// and check if finalized number == batch number
-
-	if batchNum < nextPossibleBatch {
-		//continue
-		fmt.Printf("batchNum %v\n", batchNum)
-	} // santiy check
-	nextPossibleBatch = batchNum + 1
-
 	var batchFinalizedHash common.Hash
 	if batchNum == uint32(finalizedBlock.BlockNumber) {
 		batchFinalizedHash = finalizedBlock.Hash
@@ -816,7 +822,7 @@ func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal() {
 	}
 
 	// load all of finalized height
-	batch := av.loadAllAtFinalizedHeight(startPrefix, endPrefix, batchNum, batchFinalizedHash)
+	batch := av.loadAllAtFinalizedHeight(startPrefix, endPrefix, batchFinalizedHash)
 
 	// delete unfinalized height
 	// TODO(ED): fix this so that it iterates all unfinalised with matching batch number (not just the key)
@@ -936,7 +942,7 @@ func (av *AvailabilityStoreSubsystem) handleStoreChunk(msg StoreChunk) error {
 func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailableData) error {
 	// TODO: add to metric on_chunks_received
 
-	res, err := av.availabilityStore.storeAvailableData(av, msg.CandidateHash, uint(msg.NumValidators),
+	res, err := av.availabilityStore.storeAvailableData(av, msg.CandidateHash, msg.NumValidators,
 		msg.AvailableData,
 		msg.ExpectedErasureRoot)
 	if res {
@@ -1034,7 +1040,7 @@ func finalizedBlockRange(finalized parachaintypes.BlockNumber) (start, end []byt
 	return
 }
 
-func (av *AvailabilityStoreSubsystem) loadAllAtFinalizedHeight(startPrefix []byte, endPrefix []byte, blockNumber uint32,
+func (av *AvailabilityStoreSubsystem) loadAllAtFinalizedHeight(startPrefix []byte, endPrefix []byte,
 	finalizedHash common.Hash) map[parachaintypes.CandidateHash]bool {
 	result := make(map[parachaintypes.CandidateHash]bool)
 	iter, err := av.availabilityStore.unfinalized.NewIterator()
@@ -1106,7 +1112,10 @@ func (av *AvailabilityStoreSubsystem) updateBlockAtFinalizedHeight(tx *availabil
 				}
 			}
 
-			meta.State.Set(Finalized{Timestamp: now})
+			err = meta.State.Set(Finalized{Timestamp: now})
+			if err != nil {
+				logger.Errorf("failed to set state to finalized: %w", err)
+			}
 
 			// write meta
 			// TODO(ed): make write meta a function
@@ -1141,10 +1150,16 @@ func (av *AvailabilityStoreSubsystem) updateBlockAtFinalizedHeight(tx *availabil
 				// TODO(ed): do blocks ratain to change the blocks list
 				if len(val.BlockNumberHash) == 0 {
 					// write pruning key
-					meta.State.Set(Unavailable{Timestamp: val.Timestamp})
+					err = meta.State.Set(Unavailable{Timestamp: val.Timestamp})
+					if err != nil {
+						logger.Errorf("failed to set state to unavailable: %w", err)
+					}
 				} else {
 					// write pruning key
-					meta.State.Set(Unfinalized{Timestamp: val.Timestamp, BlockNumberHash: val.BlockNumberHash})
+					err = meta.State.Set(Unfinalized{Timestamp: val.Timestamp, BlockNumberHash: val.BlockNumberHash})
+					if err != nil {
+						logger.Errorf("failed to set state to unfinalized: %w", err)
+					}
 				}
 
 			}

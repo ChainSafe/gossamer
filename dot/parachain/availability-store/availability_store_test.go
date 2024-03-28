@@ -6,137 +6,137 @@ package availabilitystore
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
-//func TestAvailabilityStore_WriteLoadDeleteAvailableData(t *testing.T) {
-//	inmemoryDB := state.NewInMemoryDB(t)
-//	as := NewAvailabilityStore(inmemoryDB)
-//	batch := newAvailabilityStoreBatch(as)
-//
-//	dataBytes, err := scale.Marshal(TestavailableData1)
-//	require.NoError(t, err)
-//	err = batch.available.Put(TestCandidateHash.Value[:], dataBytes)
-//	require.NoError(t, err)
-//
-//	err = batch.flush()
-//	require.NoError(t, err)
-//
-//	got, err := as.loadAvailableData(parachaintypes.CandidateHash{Value: common.Hash{0x01}})
-//	require.NoError(t, err)
-//	require.Equal(t, &TestavailableData1, got)
-//
-//	got, err = as.loadAvailableData(parachaintypes.CandidateHash{Value: common.Hash{0x02}})
-//	require.EqualError(t, err, "getting candidate 0x0200000000000000000000000000000000000000000000000000000000000000"+
-//		" from available table: pebble: not found")
-//	require.Equal(t, (*AvailableData)(nil), got)
-//
-//	batch = newAvailabilityStoreBatch(as)
-//
-//	err = batch.available.Del(TestCandidateHash.Value[:])
-//	require.NoError(t, err)
-//
-//	err = batch.flush()
-//	require.NoError(t, err)
-//
-//	got, err = as.loadAvailableData(parachaintypes.CandidateHash{Value: common.Hash{0x01}})
-//	require.EqualError(t, err, "getting candidate 0x0100000000000000000000000000000000000000000000000000000000000000"+
-//		" from available table: pebble: not found")
-//	require.Equal(t, (*AvailableData)(nil), got)
-//}
-//
-//func TestAvailabilityStore_WriteLoadDeleteChuckData(t *testing.T) {
-//	inmemoryDB := state.NewInMemoryDB(t)
-//	as := NewAvailabilityStore(inmemoryDB)
-//	batch := newAvailabilityStoreBatch(as)
-//	metaState := NewStateVDT()
-//	err := metaState.Set(Unavailable{})
-//	require.NoError(t, err)
-//	meta := CandidateMeta{
-//		State:         metaState,
-//		DataAvailable: false,
-//		ChunksStored:  []bool{false, false},
-//	}
-//	dataBytes, err := scale.Marshal(meta)
-//	require.NoError(t, err)
-//	err = batch.meta.Put(parachaintypes.CandidateHash{Value: common.Hash{0x01}}.Value.ToBytes(), dataBytes)
-//	require.NoError(t, err)
-//
-//	err = batch.flush()
-//	require.NoError(t, err)
-//
-//	got, err := as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, TestChunk1)
-//	require.NoError(t, err)
-//	require.Equal(t, true, got)
-//	got, err = as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, TestChunk2)
-//	require.NoError(t, err)
-//	require.Equal(t, true, got)
-//
-//	resultChunk, err := as.loadChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, 0)
-//	require.NoError(t, err)
-//	require.Equal(t, &TestChunk1, resultChunk)
-//
-//	resultChunk, err = as.loadChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, 1)
-//	require.NoError(t, err)
-//	require.Equal(t, &TestChunk2, resultChunk)
-//
-//	batch = newAvailabilityStoreBatch(as)
-//	err = batch.chunk.Del(append(TestCandidateHash.Value[:], uint32ToBytes(0)...))
-//	require.NoError(t, err)
-//
-//	err = batch.flush()
-//	require.NoError(t, err)
-//
-//	resultChunk, err = as.loadChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, 0)
-//	require.EqualError(t, err, "getting candidate 0x0100000000000000000000000000000000000000000000000000000000000000,"+
-//		" index 0 from chunk table: pebble: not found")
-//	require.Equal(t, (*ErasureChunk)(nil), resultChunk)
-//}
-//
-//func TestAvailabilityStore_WriteLoadDeleteMeta(t *testing.T) {
-//	inmemoryDB := state.NewInMemoryDB(t)
-//	as := NewAvailabilityStore(inmemoryDB)
-//	batch := newAvailabilityStoreBatch(as)
-//	metaState := NewStateVDT()
-//	err := metaState.Set(Unavailable{BETimestamp(1711026139)})
-//	require.NoError(t, err)
-//	meta := &CandidateMeta{
-//		State:         metaState,
-//		DataAvailable: false,
-//		ChunksStored:  make([]bool, 10),
-//	}
-//
-//	dataBytes, err := scale.Marshal(*meta)
-//	require.NoError(t, err)
-//	err = batch.meta.Put(TestCandidateHash.Value[:], dataBytes)
-//	require.NoError(t, err)
-//
-//	err = batch.flush()
-//	require.NoError(t, err)
-//
-//	got, err := as.loadMeta(parachaintypes.CandidateHash{Value: TestCandidateHash.Value})
-//	require.NoError(t, err)
-//	require.Equal(t, meta, got)
-//
-//	batch = newAvailabilityStoreBatch(as)
-//
-//	err = batch.meta.Del(TestCandidateHash.Value[:])
-//	require.NoError(t, err)
-//
-//	err = batch.flush()
-//	require.NoError(t, err)
-//
-//	got, err = as.loadMeta(parachaintypes.CandidateHash{Value: common.Hash{0x01}})
-//	require.EqualError(t, err, "getting candidate 0x0100000000000000000000000000000000000000000000000000000000000000"+
-//		" from meta table: pebble: not found")
-//	require.Equal(t, (*CandidateMeta)(nil), got)
-//}
+func TestAvailabilityStore_WriteLoadDeleteAvailableData(t *testing.T) {
+	inmemoryDB := state.NewInMemoryDB(t)
+	as := NewAvailabilityStore(inmemoryDB)
+	batch := newAvailabilityStoreBatch(as)
+
+	dataBytes, err := scale.Marshal(TestavailableData1)
+	require.NoError(t, err)
+	err = batch.available.Put(TestCandidateReceiptHash.ToBytes(), dataBytes)
+	require.NoError(t, err)
+
+	err = batch.flush()
+	require.NoError(t, err)
+
+	got, err := as.loadAvailableData(parachaintypes.CandidateHash{Value: TestCandidateReceiptHash})
+	require.NoError(t, err)
+	require.Equal(t, &TestavailableData1, got)
+
+	got, err = as.loadAvailableData(parachaintypes.CandidateHash{Value: common.Hash{0x02}})
+	require.EqualError(t, err, "getting candidate 0x0200000000000000000000000000000000000000000000000000000000000000"+
+		" from available table: pebble: not found")
+	require.Equal(t, (*AvailableData)(nil), got)
+
+	batch = newAvailabilityStoreBatch(as)
+
+	err = batch.available.Del(TestCandidateReceiptHash.ToBytes())
+	require.NoError(t, err)
+
+	err = batch.flush()
+	require.NoError(t, err)
+
+	got, err = as.loadAvailableData(parachaintypes.CandidateHash{Value: common.Hash{0x01}})
+	require.EqualError(t, err, "getting candidate 0x0100000000000000000000000000000000000000000000000000000000000000"+
+		" from available table: pebble: not found")
+	require.Equal(t, (*AvailableData)(nil), got)
+}
+
+func TestAvailabilityStore_WriteLoadDeleteChuckData(t *testing.T) {
+	inmemoryDB := state.NewInMemoryDB(t)
+	as := NewAvailabilityStore(inmemoryDB)
+	batch := newAvailabilityStoreBatch(as)
+	metaState := NewStateVDT()
+	err := metaState.Set(Unavailable{})
+	require.NoError(t, err)
+	meta := CandidateMeta{
+		State:         metaState,
+		DataAvailable: false,
+		ChunksStored:  []bool{false, false},
+	}
+	dataBytes, err := scale.Marshal(meta)
+	require.NoError(t, err)
+	err = batch.meta.Put(parachaintypes.CandidateHash{Value: common.Hash{0x01}}.Value.ToBytes(), dataBytes)
+	require.NoError(t, err)
+
+	err = batch.flush()
+	require.NoError(t, err)
+
+	got, err := as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, TestChunk1)
+	require.NoError(t, err)
+	require.Equal(t, true, got)
+	got, err = as.storeChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, TestChunk2)
+	require.NoError(t, err)
+	require.Equal(t, true, got)
+
+	resultChunk, err := as.loadChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, 0)
+	require.NoError(t, err)
+	require.Equal(t, &TestChunk1, resultChunk)
+
+	resultChunk, err = as.loadChunk(parachaintypes.CandidateHash{Value: common.Hash{0x01}}, 1)
+	require.NoError(t, err)
+	require.Equal(t, &TestChunk2, resultChunk)
+
+	batch = newAvailabilityStoreBatch(as)
+	err = batch.chunk.Del(append(TestCandidateReceiptHash.ToBytes(), uint32ToBytes(0)...))
+	require.NoError(t, err)
+
+	err = batch.flush()
+	require.NoError(t, err)
+
+	resultChunk, err = as.loadChunk(parachaintypes.CandidateHash{Value: TestCandidateReceiptHash}, 0)
+	require.EqualError(t, err, "getting candidate 0xbe7d49d790273a96e6c0c3c16ed1ed6895ff57a57b573c7eb081e9aeda7835f5,"+
+		" index 0 from chunk table: pebble: not found")
+	require.Equal(t, (*ErasureChunk)(nil), resultChunk)
+}
+
+func TestAvailabilityStore_WriteLoadDeleteMeta(t *testing.T) {
+	inmemoryDB := state.NewInMemoryDB(t)
+	as := NewAvailabilityStore(inmemoryDB)
+	batch := newAvailabilityStoreBatch(as)
+	metaState := NewStateVDT()
+	err := metaState.Set(Unavailable{BETimestamp(1711026139)})
+	require.NoError(t, err)
+	meta := &CandidateMeta{
+		State:         metaState,
+		DataAvailable: false,
+		ChunksStored:  make([]bool, 10),
+	}
+
+	dataBytes, err := scale.Marshal(*meta)
+	require.NoError(t, err)
+	err = batch.meta.Put(TestCandidateReceiptHash.ToBytes(), dataBytes)
+	require.NoError(t, err)
+
+	err = batch.flush()
+	require.NoError(t, err)
+
+	got, err := as.loadMeta(parachaintypes.CandidateHash{Value: TestCandidateReceiptHash})
+	require.NoError(t, err)
+	require.Equal(t, meta, got)
+
+	batch = newAvailabilityStoreBatch(as)
+
+	err = batch.meta.Del(TestCandidateReceiptHash.ToBytes())
+	require.NoError(t, err)
+
+	err = batch.flush()
+	require.NoError(t, err)
+
+	got, err = as.loadMeta(parachaintypes.CandidateHash{Value: TestCandidateReceiptHash})
+	require.EqualError(t, err, "getting candidate 0xbe7d49d790273a96e6c0c3c16ed1ed6895ff57a57b573c7eb081e9aeda7835f5"+
+		" from meta table: pebble: not found")
+	require.Equal(t, (*CandidateMeta)(nil), got)
+}
 
 func TestAvailabilityStore_WriteLoadDeleteUnfinalizedHeight(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
@@ -356,7 +356,7 @@ func TestAvailabilityStoreSubsystem_handleQueryAvailableData(t *testing.T) {
 	}{
 		"available_data_found": {
 			msg: QueryAvailableData{
-				CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
+				CandidateHash: parachaintypes.CandidateHash{Value: TestCandidateReceiptHash},
 			},
 			msgSenderChan:  make(chan AvailableData),
 			expectedResult: TestavailableData1,
@@ -411,7 +411,7 @@ func TestAvailabilityStoreSubsystem_handleQueryDataAvailability(t *testing.T) {
 	}{
 		"data_available_true": {
 			msg: QueryDataAvailability{
-				CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
+				CandidateHash: parachaintypes.CandidateHash{Value: TestCandidateReceiptHash},
 			},
 			msgSenderChan:  make(chan bool),
 			expectedResult: true,
@@ -461,7 +461,7 @@ func TestAvailabilityStoreSubsystem_handleQueryChunk(t *testing.T) {
 	}{
 		"chunk_found": {
 			msg: QueryChunk{
-				CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
+				CandidateHash: parachaintypes.CandidateHash{Value: TestCandidateReceiptHash},
 			},
 			msgSenderChan:  make(chan ErasureChunk),
 			expectedResult: TestChunk1,
@@ -516,7 +516,7 @@ func TestAvailabilityStoreSubsystem_handleQueryAllChunks(t *testing.T) {
 	}{
 		"chunks_found": {
 			msg: QueryAllChunks{
-				CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
+				CandidateHash: parachaintypes.CandidateHash{Value: TestCandidateReceiptHash},
 			},
 			msgSenderChan:  make(chan []ErasureChunk),
 			expectedResult: []ErasureChunk{TestChunk1, TestChunk2},
@@ -571,7 +571,7 @@ func TestAvailabilityStoreSubsystem_handleQueryChunkAvailability(t *testing.T) {
 	}{
 		"query_chuck_availability_true": {
 			msg: QueryChunkAvailability{
-				CandidateHash:  parachaintypes.CandidateHash{Value: common.Hash{0x01}},
+				CandidateHash:  parachaintypes.CandidateHash{Value: TestCandidateReceiptHash},
 				ValidatorIndex: 0,
 			},
 			msgSenderChan:  make(chan bool),
@@ -579,7 +579,7 @@ func TestAvailabilityStoreSubsystem_handleQueryChunkAvailability(t *testing.T) {
 		},
 		"query_chuck_availability_false": {
 			msg: QueryChunkAvailability{
-				CandidateHash:  parachaintypes.CandidateHash{Value: common.Hash{0x01}},
+				CandidateHash:  parachaintypes.CandidateHash{Value: TestCandidateReceiptHash},
 				ValidatorIndex: 2,
 			},
 			msgSenderChan:  make(chan bool),
@@ -756,20 +756,24 @@ func TestAvailabilityStoreSubsystem_noteBlockBacked(t *testing.T) {
 				tx: tx,
 			},
 			expected: map[string][]byte{
-				string([]byte{99, 104, 117, 110, 107, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}): {24, 99, 104, 117, 110, 107, 49, 0, 0, 0, 0,
-					24, 112, 114, 111, 111, 102, 49},
-				string([]byte{99, 104, 117, 110, 107, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}): {24, 99, 104, 117, 110, 107, 50, 1, 0, 0, 0, 24,
+				string([]byte{99, 104, 117, 110, 107, 190, 125, 73, 215, 144, 39, 58, 150, 230, 192, 195, 193, 110,
+					209, 237, 104, 149, 255, 87, 165, 123, 87, 60, 126, 176, 129, 233, 174, 218, 120, 53, 245, 0, 0,
+					0, 0}): {24, 99, 104, 117, 110, 107, 49, 0, 0, 0, 0, 24, 112, 114, 111, 111, 102, 49},
+				string([]byte{99, 104, 117, 110, 107, 190, 125, 73, 215, 144, 39, 58, 150, 230, 192, 195, 193, 110,
+					209, 237, 104, 149, 255, 87, 165, 123, 87, 60, 126, 176, 129, 233, 174, 218, 120, 53, 245, 0, 0,
+					0, 1}): {24, 99, 104, 117, 110, 107, 50, 1, 0, 0, 0, 24,
 					112, 114, 111, 111, 102, 50},
-				string([]byte{109, 101, 116, 97, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-					0, 0, 0, 0, 0, 0, 0, 0, 0}): {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 1, 1, 0},
+				string([]byte{109, 101, 116, 97, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 0, 0, 0, 0, 0, 0}): {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0},
 				string([]byte{109, 101, 116, 97, 115, 137, 2, 67, 55, 164, 51, 156, 149, 98, 11, 193, 131, 84, 203,
-					139, 23, 220, 30, 2, 96, 246, 142, 145, 249, 127, 57, 9, 41, 1, 193, 202}): {1, 0, 0, 0, 0,
-					0, 0, 0, 0, 0, 0, 0},
-				string([]byte{112, 114, 117, 110, 101, 95, 98, 121, 95, 116, 105, 109, 101, 115, 137, 2, 67, 55, 164,
-					51, 156, 149, 98, 11, 193, 131, 84, 203, 139, 23, 220, 30, 2, 96, 246, 142, 145, 249, 127, 57, 9,
-					41, 1, 193, 202, 0, 0, 0, 0}): {},
+					139, 23, 220, 30, 2, 96, 246, 142, 145, 249, 127, 57, 9, 41, 1, 193, 202}): {0, 0, 0, 0, 0,
+					0, 0, 0, 0, 0, 0},
+				string([]byte{109, 101, 116, 97, 190, 125, 73, 215, 144, 39, 58, 150, 230, 192, 195, 193, 110, 209,
+					237, 104, 149, 255, 87, 165, 123, 87, 60, 126, 176, 129, 233, 174, 218, 120, 53, 245}): {0, 0, 0,
+					0, 0, 0, 0, 0, 0, 0, 12, 1, 1, 0},
+				string([]byte{112, 114, 117, 110, 101, 95, 98, 121, 95, 116, 105, 109, 101, 0, 0, 0, 0, 115, 137, 2,
+					67, 55, 164, 51, 156, 149, 98, 11, 193, 131, 84, 203, 139, 23, 220, 30, 2, 96, 246, 142, 145,
+					249, 127, 57, 9, 41, 1, 193, 202}): {},
 			},
 		},
 	}
@@ -788,7 +792,6 @@ func TestAvailabilityStoreSubsystem_noteBlockBacked(t *testing.T) {
 			for itr.Next() {
 				key := itr.Key()
 				value := itr.Value()
-				fmt.Printf("key %v, value %v\n", key, value)
 				require.Equal(t, tt.expected[string(key)], value)
 			}
 		})
@@ -822,20 +825,18 @@ func TestAvailabilityStoreSubsystem_noteBlockIncluded(t *testing.T) {
 				tx: tx,
 			},
 			expected: map[string][]byte{
-				string([]byte{99, 104, 117, 110, 107, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}): {24, 99, 104,
-					117, 110, 107, 49, 0, 0, 0, 0, 24, 112, 114, 111, 111, 102, 49},
-				string([]byte{99, 104, 117, 110, 107, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}): {24, 99, 104,
-					117, 110, 107, 50, 1, 0, 0, 0, 24, 112, 114, 111, 111, 102, 50},
-				string([]byte{109, 101, 116, 97, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-					0, 0, 0, 0, 0, 0, 0, 0, 0}): {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 1, 1, 0},
-				string([]byte{109, 101, 116, 97, 109, 101, 116, 97, 115, 137, 2, 67, 55, 164, 51, 156, 149, 98, 11,
-					193, 131, 84, 203, 139, 23, 220, 30, 2, 96, 246, 142, 145, 249, 127, 57, 9, 41, 1, 193, 202}): {},
-				string([]byte{117, 110, 102, 105, 110, 97, 108, 105, 122, 101, 100, 117, 110, 102, 105, 110, 97, 108,
-					105, 122, 101, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 115, 137, 2, 67, 55, 164, 51, 156, 149, 98, 11, 193, 131, 84, 203,
-					139, 23, 220, 30, 2, 96, 246, 142, 145, 249, 127, 57, 9, 41, 1, 193, 202}): {},
+				string([]byte{99, 104, 117, 110, 107, 190, 125, 73, 215, 144, 39, 58, 150, 230, 192, 195, 193, 110,
+					209, 237, 104, 149, 255, 87, 165, 123, 87, 60, 126, 176, 129, 233, 174, 218, 120, 53, 245, 0, 0,
+					0, 0}): {24, 99, 104, 117, 110, 107, 49, 0, 0, 0, 0, 24, 112, 114, 111, 111, 102, 49},
+				string([]byte{99, 104, 117, 110, 107, 190, 125, 73, 215, 144, 39, 58, 150, 230, 192, 195, 193, 110,
+					209, 237, 104, 149, 255, 87, 165, 123, 87, 60, 126, 176, 129, 233, 174, 218, 120, 53, 245, 0, 0,
+					0, 1}): {24, 99, 104, 117, 110, 107, 50, 1, 0, 0, 0, 24,
+					112, 114, 111, 111, 102, 50},
+				string([]byte{109, 101, 116, 97, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 0, 0, 0, 0, 0, 0}): {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0},
+				string([]byte{109, 101, 116, 97, 190, 125, 73, 215, 144, 39, 58, 150, 230, 192, 195, 193, 110, 209,
+					237, 104, 149, 255, 87, 165, 123, 87, 60, 126, 176, 129, 233, 174, 218, 120, 53, 245}): {0, 0, 0,
+					0, 0, 0, 0, 0, 0, 0, 12, 1, 1, 0},
 			},
 		},
 	}
@@ -854,56 +855,8 @@ func TestAvailabilityStoreSubsystem_noteBlockIncluded(t *testing.T) {
 			for itr.Next() {
 				key := itr.Key()
 				value := itr.Value()
-				fmt.Printf("key %v, value %v\n", key, value)
 				require.Equal(t, tt.expected[string(key)], value)
 			}
 		})
 	}
 }
-
-//func TestAvailabilityStoreSubsystem_loadAllAtFinalizedHeight(t *testing.T) {
-//	inmemoryDB := SetupTestDB(t)
-//	as := NewAvailabilityStore(inmemoryDB)
-//
-//	type fields struct {
-//		availabilityStore availabilityStore
-//	}
-//	type args struct {
-//		blockNumber   int
-//		finalizedHash common.Hash
-//	}
-//	tests := []struct {
-//		name    string
-//		fields  fields
-//		args    args
-//		want    map[parachaintypes.CandidateHash]bool
-//		wantErr bool
-//	}{
-//		{
-//			name: "baseCase",
-//			fields: fields{
-//				availabilityStore: *as,
-//			},
-//			args: args{
-//				blockNumber: 1,
-//			},
-//			want:    map[parachaintypes.CandidateHash]bool{},
-//			wantErr: false,
-//		},
-//	}
-//	for _, tt := range tests {
-//		t.Run(tt.name, func(t *testing.T) {
-//			av := &AvailabilityStoreSubsystem{
-//				availabilityStore: tt.fields.availabilityStore,
-//			}
-//			got, err := av.loadAllAtFinalizedHeight(tt.args.blockNumber, tt.args.finalizedHash)
-//			if (err != nil) != tt.wantErr {
-//				t.Errorf("loadAllAtFinalizedHeight() error = %v, wantErr %v", err, tt.wantErr)
-//				return
-//			}
-//			if !reflect.DeepEqual(got, tt.want) {
-//				t.Errorf("loadAllAtFinalizedHeight() got = %v, want %v", got, tt.want)
-//			}
-//		})
-//	}
-//}
