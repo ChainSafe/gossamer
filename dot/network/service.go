@@ -128,6 +128,10 @@ type Service struct {
 	syncer             Syncer
 	transactionHandler TransactionHandler
 
+	// networkEventInfo is a channel used to receive network event information,
+	// such as connected and disconnected peers
+	networkEventInfo chan NetworkEventInfo
+
 	// Configuration options
 	noBootstrap bool
 	noDiscover  bool
@@ -215,6 +219,7 @@ func NewService(cfg *Config) (*Service, error) {
 		syncer:                 cfg.Syncer,
 		notificationsProtocols: make(map[MessageType]*notificationsProtocol),
 		lightRequest:           make(map[peer.ID]struct{}),
+		networkEventInfo:       make(chan NetworkEventInfo),
 		telemetryInterval:      cfg.telemetryInterval,
 		closeCh:                make(chan struct{}),
 		bufPool:                bufPool,
@@ -595,6 +600,24 @@ func (s *Service) GetRequestResponseProtocol(subprotocol string, requestTimeout 
 	}
 }
 
+func (s *Service) GetNetworkEventsChannel() <-chan NetworkEventInfo {
+	return s.networkEventInfo
+}
+
+type NetworkEvent bool
+
+const (
+	Connected    NetworkEvent = true
+	Disconnected NetworkEvent = false
+)
+
+type NetworkEventInfo struct {
+	PeerID         peer.ID
+	Event          NetworkEvent
+	Role           common.NetworkRole
+	MayBeAuthority *types.AuthorityID
+}
+
 // Health returns information about host needed for the rpc server
 func (s *Service) Health() common.Health {
 	return common.Health{
@@ -718,6 +741,10 @@ func (s *Service) processMessage(msg peerset.Message) {
 			return
 		}
 		logger.Debugf("connection successful with peer %s", peerID)
+		s.networkEventInfo <- NetworkEventInfo{
+			PeerID: peerID,
+			Event:  Connected,
+		}
 	case peerset.Drop, peerset.Reject:
 		err := s.host.closePeer(peerID)
 		if err != nil {
@@ -725,6 +752,11 @@ func (s *Service) processMessage(msg peerset.Message) {
 			return
 		}
 		logger.Debugf("connection dropped successfully for peer %s", peerID)
+
+		s.networkEventInfo <- NetworkEventInfo{
+			PeerID: peerID,
+			Event:  Disconnected,
+		}
 	}
 }
 
