@@ -24,7 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
-	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
 var _ ChainSync = (*chainSync)(nil)
@@ -403,11 +402,11 @@ func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.
 		startAtBlock = announcedHeader.Number - uint(*request.Max) + 1
 		totalBlocks = *request.Max
 
-		logger.Infof("requesting %d blocks, descending request from #%d (%s)",
-			peerWhoAnnounced, gapLength, announcedHeader.Number, announcedHeader.Hash().Short())
+		logger.Infof("requesting %d blocks from peer: %v, descending request from #%d (%s)",
+			gapLength, peerWhoAnnounced, announcedHeader.Number, announcedHeader.Hash().Short())
 	} else {
 		request = network.NewBlockRequest(startingBlock, 1, network.BootstrapRequestData, network.Descending)
-		logger.Infof("requesting a single block #%d (%s)",
+		logger.Infof("requesting a single block from peer: %v with Number: #%d and Hash: (%s)",
 			peerWhoAnnounced, announcedHeader.Number, announcedHeader.Hash().Short())
 	}
 
@@ -446,8 +445,8 @@ func (cs *chainSync) requestForkBlocks(bestBlockHeader, highestFinalizedHeader, 
 		request = network.NewBlockRequest(startingBlock, gapLength, network.BootstrapRequestData, network.Descending)
 	}
 
-	logger.Infof("requesting %d fork blocks, starting at #%d (%s)",
-		peerWhoAnnounced, gapLength, announcedHeader.Number, announcedHash.Short())
+	logger.Infof("requesting %d fork blocks from peer: %v starting at #%d (%s)",
+		gapLength, peerWhoAnnounced, announcedHeader.Number, announcedHash.Short())
 
 	resultsQueue := make(chan *syncTaskResult)
 	cs.workerPool.submitRequest(request, &peerWhoAnnounced, resultsQueue)
@@ -872,7 +871,7 @@ func (cs *chainSync) handleBlock(block *types.Block, announceImportedBlock bool)
 		return err
 	}
 
-	root := ts.MustRoot(trie.NoMaxInlineValueSize)
+	root := ts.MustRoot()
 	if !bytes.Equal(parent.StateRoot[:], root[:]) {
 		panic("parent state root does not match snapshot state root")
 	}

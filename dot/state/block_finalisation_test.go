@@ -8,7 +8,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 
 	"github.com/stretchr/testify/require"
 )
@@ -97,7 +97,7 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 	require.NoError(t, err)
 
 	// set tries with some state root
-	bs.tries.softSet(someStateRoot, trie.NewEmptyTrie())
+	bs.tries.softSet(someStateRoot, inmemory_trie.NewEmptyTrie())
 
 	err = bs.SetFinalisedHash(testhash, 1, 1)
 	require.NoError(t, err)

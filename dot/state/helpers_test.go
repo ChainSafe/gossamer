@@ -19,7 +19,7 @@ import (
 
 func newTriesEmpty() *Tries {
 	return &Tries{
-		rootToTrie:    make(map[common.Hash]*trie.Trie),
+		rootToTrie:    make(map[common.Hash]trie.Trie),
 		triesGauge:    triesGauge,
 		setCounter:    setCounter,
 		deleteCounter: deleteCounter,
@@ -102,7 +102,7 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
-	stateRoot := genesisTrie.MustHash(trie.NoMaxInlineValueSize)
+	stateRoot := genesisTrie.MustHash()
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()

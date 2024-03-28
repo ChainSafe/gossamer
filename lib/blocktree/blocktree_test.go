@@ -139,9 +139,10 @@ func Test_BlockTree_GetNode(t *testing.T) {
 	require.NotNil(t, block)
 }
 
-func Test_BlockTree_GetAllBlocksAtNumber(t *testing.T) {
+func Test_BlockTree_GetHashesAtNumber(t *testing.T) {
 	bt, _ := createTestBlockTree(t, testHeader, 8)
-	hashes := bt.root.getNodesWithNumber(10, []common.Hash{})
+	hashes := make([]common.Hash, 0)
+	hashes = bt.root.hashesAtNumber(10, hashes)
 
 	require.Empty(t, hashes)
 
@@ -194,7 +195,8 @@ func Test_BlockTree_GetAllBlocksAtNumber(t *testing.T) {
 		}
 	}
 
-	hashes = bt.root.getNodesWithNumber(desiredNumber, []common.Hash{})
+	hashes = make([]common.Hash, 0, 100)
+	hashes = bt.root.hashesAtNumber(desiredNumber, hashes)
 	require.Equal(t, expected, hashes)
 }
 

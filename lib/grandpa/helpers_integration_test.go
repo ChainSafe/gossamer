@@ -144,13 +144,13 @@ func newTestState(t *testing.T) *state.Service {
 
 	_, genTrie, _ := newWestendDevGenesisWithTrieAndHeader(t)
 	tries := state.NewTries()
-	tries.SetTrie(&genTrie)
+	tries.SetTrie(genTrie)
 	block, err := state.NewBlockStateFromGenesis(db, tries, testGenesisHeader, telemetryMock)
 	require.NoError(t, err)
 
 	var rtCfg wazero_runtime.Config
 
-	rtCfg.Storage = storage.NewTrieState(&genTrie)
+	rtCfg.Storage = storage.NewTrieState(genTrie)
 
 	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
@@ -203,7 +203,7 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	assert.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
-	stateRoot := genesisTrie.MustHash(trie.NoMaxInlineValueSize)
+	stateRoot := genesisTrie.MustHash()
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()

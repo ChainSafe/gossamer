@@ -42,19 +42,21 @@ type Instance struct {
 	Module   api.Module
 	Context  *runtime.Context
 	codeHash common.Hash
+	heapBase uint32
 	sync.Mutex
 }
 
 // Config is the configuration used to create a Wasmer runtime instance.
 type Config struct {
-	Storage     runtime.Storage
-	Keystore    *keystore.GlobalKeystore
-	LogLvl      log.Level
-	Role        common.NetworkRole
-	NodeStorage runtime.NodeStorage
-	Network     runtime.BasicNetwork
-	Transaction runtime.TransactionState
-	CodeHash    common.Hash
+	Storage        runtime.Storage
+	Keystore       *keystore.GlobalKeystore
+	LogLvl         log.Level
+	Role           common.NetworkRole
+	NodeStorage    runtime.NodeStorage
+	Network        runtime.BasicNetwork
+	Transaction    runtime.TransactionState
+	CodeHash       common.Hash
+	DefaultVersion *runtime.Version
 }
 
 func decompressWasm(code []byte) ([]byte, error) {
@@ -89,7 +91,7 @@ func NewRuntimeFromGenesis(cfg Config) (instance *Instance, err error) {
 }
 
 // NewInstanceFromTrie returns a new runtime instance with the code provided in the given trie
-func NewInstanceFromTrie(t *trie.Trie, cfg Config) (*Instance, error) {
+func NewInstanceFromTrie(t trie.Trie, cfg Config) (*Instance, error) {
 	code := t.Get(common.CodeKey)
 	if len(code) == 0 {
 		return nil, fmt.Errorf("cannot find :code in trie")
@@ -100,6 +102,7 @@ func NewInstanceFromTrie(t *trie.Trie, cfg Config) (*Instance, error) {
 
 // NewInstance instantiates a runtime from raw wasm bytecode
 func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
+	logger.Info("instantiating a runtime!")
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
 	ctx := context.Background()
@@ -406,12 +409,12 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		return nil, err
 	}
 
-	global := mod.ExportedGlobal("__heap_base")
-	if global == nil {
+	encodedHeapBase := mod.ExportedGlobal("__heap_base")
+	if encodedHeapBase == nil {
 		return nil, fmt.Errorf("wazero error: nil global for __heap_base")
 	}
 
-	hb := api.DecodeU32(global.Get())
+	heapBase := api.DecodeU32(encodedHeapBase.Get())
 	// hb = runtime.DefaultHeapBase
 
 	mem := mod.Memory()
@@ -419,13 +422,10 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		return nil, fmt.Errorf("wazero error: nil memory for module")
 	}
 
-	allocator := allocator.NewFreeingBumpHeapAllocator(hb)
-
-	return &Instance{
-		Runtime: rt,
+	instance = &Instance{
+		heapBase: heapBase,
+		Runtime:  rt,
 		Context: &runtime.Context{
-			Storage:         cfg.Storage,
-			Allocator:       allocator,
 			Keystore:        cfg.Keystore,
 			Validator:       cfg.Role == common.AuthorityRole,
 			NodeStorage:     cfg.NodeStorage,
@@ -436,14 +436,35 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		},
 		Module:   mod,
 		codeHash: cfg.CodeHash,
-	}, nil
+	}
+
+	if cfg.DefaultVersion == nil {
+		err = instance.version()
+		if err != nil {
+			return nil, fmt.Errorf("while getting runtime version: %w", err)
+		}
+	} else {
+		instance.Context.Version = cfg.DefaultVersion
+	}
+
+	if cfg.Storage != nil {
+		instance.SetContextStorage(cfg.Storage)
+	}
+
+	return instance, nil
 }
 
 var ErrExportFunctionNotFound = errors.New("export function not found")
 
 func (i *Instance) Exec(function string, data []byte) (result []byte, err error) {
 	i.Lock()
-	defer i.Unlock()
+	i.Context.Allocator = allocator.NewFreeingBumpHeapAllocator(i.heapBase)
+
+	defer func() {
+		i.Context.Allocator = nil
+		i.Unlock()
+	}()
+	// instantiate a new allocator on every execution func
 
 	dataLength := uint32(len(data))
 	inputPtr, err := i.Context.Allocator.Allocate(i.Module.Memory(), dataLength)
@@ -456,6 +477,7 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	if mem == nil {
 		panic("nil memory")
 	}
+
 	ok := mem.Write(inputPtr, data)
 	if !ok {
 		panic("write overflow")
@@ -467,7 +489,6 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	}
 
 	ctx := context.WithValue(context.Background(), runtimeContextKey, i.Context)
-
 	values, err := runtimeFunc.Call(ctx, api.EncodeU32(inputPtr), api.EncodeU32(dataLength))
 	if err != nil {
 		return nil, fmt.Errorf("running runtime function: %w", err)
@@ -482,6 +503,7 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	if !ok {
 		panic("write overflow")
 	}
+
 	return result, nil
 }
 
@@ -515,7 +537,6 @@ func (in *Instance) version() error { //skipcq: RVV-B0001
 	}
 
 	in.Context.Version = &version
-
 	return nil
 }
 
@@ -855,6 +876,17 @@ func (in *Instance) Validator() bool {
 func (in *Instance) SetContextStorage(s runtime.Storage) {
 	in.Lock()
 	defer in.Unlock()
+
+	if in.Context.Version == nil {
+		panic("expected runtime version got nil")
+	}
+
+	runtimeStateVersion, err := trie.ParseVersion(in.Context.Version.StateVersion)
+	if err != nil {
+		panic(err)
+	}
+
+	s.SetVersion(runtimeStateVersion)
 	in.Context.Storage = s
 }
 

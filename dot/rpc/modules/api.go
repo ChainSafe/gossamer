@@ -19,7 +19,7 @@ import (
 // StorageAPI is the interface for the storage state
 type StorageAPI interface {
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
-	GetStorageChild(root *common.Hash, keyToChild []byte) (*trie.Trie, error)
+	GetStorageChild(root *common.Hash, keyToChild []byte) (trie.Trie, error)
 	GetStorageFromChild(root *common.Hash, keyToChild, key []byte) ([]byte, error)
 	GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]byte, error)
 	Entries(root *common.Hash) (map[string][]byte, error)

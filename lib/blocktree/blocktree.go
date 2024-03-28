@@ -120,24 +120,24 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime time.Time) (err 
 	return nil
 }
 
-// GetAllBlocksAtNumber will return all blocks hashes with the number of the given hash plus one.
+// GetHashesAtNumber will return all blocks hashes that contains the number of the given hash plus one.
 // To find all blocks at a number matching a certain block, pass in that block's parent hash
-func (bt *BlockTree) GetAllBlocksAtNumber(hash common.Hash) (hashes []common.Hash) {
+func (bt *BlockTree) GetHashesAtNumber(number uint) (hashes []common.Hash) {
 	bt.RLock()
 	defer bt.RUnlock()
 
-	if bt.getNode(hash) == nil {
-		return hashes
+	if number < bt.root.number {
+		return []common.Hash{}
 	}
 
-	number := bt.getNode(hash).number + 1
-
-	if bt.root.number == number {
-		hashes = append(hashes, bt.root.hash)
-		return hashes
+	bestLeave := bt.leaves.bestBlock()
+	if number > bestLeave.number {
+		return []common.Hash{}
 	}
 
-	return bt.root.getNodesWithNumber(number, hashes)
+	possibleNumOfBlocks := len(bt.leaves.nodes())
+	hashes = make([]common.Hash, 0, possibleNumOfBlocks)
+	return bt.root.hashesAtNumber(number, hashes)
 }
 
 var ErrStartGreaterThanEnd = errors.New("start greater than end")

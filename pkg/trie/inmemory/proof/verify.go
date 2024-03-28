@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"github.com/ChainSafe/gossamer/pkg/trie/pools"
 )
@@ -62,7 +63,7 @@ var (
 )
 
 // buildTrie sets a partial trie based on the proof slice of encoded nodes.
-func buildTrie(encodedProofNodes [][]byte, rootHash []byte, db db.Database) (t *trie.Trie, err error) {
+func buildTrie(encodedProofNodes [][]byte, rootHash []byte, db db.Database) (t trie.Trie, err error) {
 	if len(encodedProofNodes) == 0 {
 		return nil, fmt.Errorf("%w: for Merkle root hash 0x%x",
 			ErrEmptyProof, rootHash)
@@ -129,7 +130,7 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte, db db.Database) (t *
 		return nil, fmt.Errorf("loading proof: %w", err)
 	}
 
-	return trie.NewTrie(root, db), nil
+	return inmemory.NewTrie(root, db), nil
 }
 
 // loadProof is a recursive function that will create all the trie paths based

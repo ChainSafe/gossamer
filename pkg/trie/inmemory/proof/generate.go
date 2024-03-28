@@ -9,9 +9,9 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"github.com/ChainSafe/gossamer/pkg/trie/pools"
 )
@@ -26,7 +26,7 @@ var (
 // is used to load the trie using the root hash given.
 func Generate(rootHash []byte, fullKeys [][]byte, database db.DBGetter) (
 	encodedProofNodes [][]byte, err error) {
-	trie := trie.NewEmptyTrie()
+	trie := inmemory.NewEmptyTrie()
 	if err := trie.Load(database, common.BytesToHash(rootHash)); err != nil {
 		return nil, fmt.Errorf("loading trie: %w", err)
 	}
@@ -81,7 +81,7 @@ func walkRoot(root *node.Node, fullKey []byte) (
 	// Note we do not use sync.Pool buffers since we would have
 	// to copy it so it persists in encodedProofNodes.
 	encodingBuffer := bytes.NewBuffer(nil)
-	err = root.Encode(encodingBuffer, trie.NoMaxInlineValueSize)
+	err = root.Encode(encodingBuffer)
 	if err != nil {
 		return nil, fmt.Errorf("encode node: %w", err)
 	}
@@ -126,7 +126,7 @@ func walk(parent *node.Node, fullKey []byte) (
 	// Note we do not use sync.Pool buffers since we would have
 	// to copy it so it persists in encodedProofNodes.
 	encodingBuffer := bytes.NewBuffer(nil)
-	err = parent.Encode(encodingBuffer, trie.NoMaxInlineValueSize)
+	err = parent.Encode(encodingBuffer)
 	if err != nil {
 		return nil, fmt.Errorf("encode node: %w", err)
 	}

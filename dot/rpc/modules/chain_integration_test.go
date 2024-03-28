@@ -353,7 +353,7 @@ func newTestStateService(t *testing.T) *state.Service {
 
 	gen, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 
-	err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
+	err := stateSrvc.Initialise(&gen, &genesisHeader, genesisTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()
@@ -361,7 +361,7 @@ func newTestStateService(t *testing.T) *state.Service {
 
 	var rtCfg wazero_runtime.Config
 
-	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(genesisTrie)
 
 	if stateSrvc != nil {
 		rtCfg.NodeStorage.BaseDB = stateSrvc.Base
