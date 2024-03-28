@@ -354,7 +354,7 @@ func DefaultConfig() *Config {
 			Wasmer:  DefaultLogLevel,
 		},
 		Account: &AccountConfig{
-			Key:    defaultAccount,
+			Key:    "",
 			Unlock: "",
 		},
 		Core: &CoreConfig{
