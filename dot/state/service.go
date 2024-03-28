@@ -44,6 +44,11 @@ type Service struct {
 	BabeThresholdDenominator uint64
 }
 
+// Pause Pauses the state service
+func (s *Service) Pause() error {
+	return s.Block.Pause()
+}
+
 // Config is the default configuration used by state service.
 type Config struct {
 	Path      string
