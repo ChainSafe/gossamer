@@ -64,7 +64,7 @@ type nodeBuilderIface interface {
 	) (*core.Service, error)
 	createGRANDPAService(config *cfg.Config, st *state.Service, ks KeyStore,
 		net *network.Service, telemetryMailer Telemetry) (*grandpa.Service, error)
-	createParachainHostService(net *network.Service, forkID string, st *state.Service) (*parachain.Service, error)
+	createParachainHostService(net *network.Service, forkID string, st *state.Service, ks keystore.Keystore) (*parachain.Service, error)
 	newSyncService(config *cfg.Config, st *state.Service, finalityGadget BlockJustificationVerifier,
 		verifier *babe.VerificationManager, cs *core.Service, net *network.Service,
 		telemetryMailer Telemetry) (*dotsync.Service, error)
@@ -381,7 +381,7 @@ func newNode(config *cfg.Config,
 	}
 	nodeSrvcs = append(nodeSrvcs, fg)
 
-	phs, err := builder.createParachainHostService(networkSrvc, gd.ForkID, stateSrvc)
+	phs, err := builder.createParachainHostService(networkSrvc, gd.ForkID, stateSrvc, ks.Para)
 	if err != nil {
 		return nil, err
 	}
