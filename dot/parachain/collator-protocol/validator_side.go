@@ -286,7 +286,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view View) error 
 		}
 
 		// TODO
-		// Remove blocked advertisements that left the view.		cpvs.BlockedAdvertisements
+		// Remove blocked advertisements that left the view. cpvs.BlockedAdvertisements
 		// Re-trigger previously failed requests again. requestUnBlockedCollations
 		// prune old advertisements
 		// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1361-L1396
