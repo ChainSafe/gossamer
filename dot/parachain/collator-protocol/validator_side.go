@@ -95,7 +95,8 @@ func (CollatorProtocolValidatorSide) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CollationProtocol
 }
 
-func (cpvs CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(update parachaintypes.ActiveLeavesUpdateSignal) error {
+func (cpvs CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(
+	update parachaintypes.ActiveLeavesUpdateSignal) error {
 	// NOTE: nothing to do here
 	return nil
 }

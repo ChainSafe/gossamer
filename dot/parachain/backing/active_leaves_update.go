@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/tidwall/btree"
@@ -15,12 +16,12 @@ import (
 
 func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintypes.ActiveLeavesUpdateSignal) error {
 	var implicitViewFetchError error
-	var prospectiveParachainsMode parachaintypes.ProspectiveParachainsMode
+	var prospectiveParachainsMode *parachaintypes.ProspectiveParachainsMode
 	activatedLeaf := update.Activated
 
 	if activatedLeaf != nil {
 		var err error
-		prospectiveParachainsMode, err = getProspectiveParachainsMode()
+		prospectiveParachainsMode, err = getProspectiveParachainsMode(cb.BlockState, activatedLeaf.Hash)
 		if err != nil {
 			return fmt.Errorf("getting prospective parachains mode: %w", err)
 		}
@@ -53,7 +54,7 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 		}
 
 		cb.perLeaf[activatedLeaf.Hash] = &activeLeafState{
-			prospectiveParachainsMode: prospectiveParachainsMode,
+			prospectiveParachainsMode: *prospectiveParachainsMode,
 			secondedAtDepth:           make(map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]),
 		}
 
@@ -75,7 +76,7 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 		secondedAtDepth := processRemainingSeconded(cb, remainingSeconded, activatedLeaf.Hash)
 
 		cb.perLeaf[activatedLeaf.Hash] = &activeLeafState{
-			prospectiveParachainsMode: prospectiveParachainsMode,
+			prospectiveParachainsMode: *prospectiveParachainsMode,
 			secondedAtDepth:           secondedAtDepth,
 		}
 
@@ -98,7 +99,7 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 			// subsystem that it is an ancestor of a leaf which
 			// has prospective parachains enabled and that the
 			// block itself did.
-			mode = prospectiveParachainsMode
+			mode = *prospectiveParachainsMode
 		} else {
 			mode = leaf.prospectiveParachainsMode
 		}
@@ -162,7 +163,7 @@ func processRemainingSeconded(
 // clean up perRelayParent according to ancestry of leaves.
 //
 // when prospective parachains are disabled, the implicit view is empty,
-// which means we'll clean up everything that's not a leaf - the expected behavior
+// which means we'll clean up everything that's not a leaf - the expected behaviour
 // for pre-asynchronous backing.
 func (cb *CandidateBacking) cleanUpPerRelayParentByLeafAncestry() {
 	remaining := make(map[common.Hash]bool)
@@ -206,12 +207,51 @@ func (cb *CandidateBacking) removeUnknownRelayParentsFromPerCandidate() {
 	}
 }
 
-// Requests prospective parachains mode for a given relay parent based on the Runtime API version.
-func getProspectiveParachainsMode() (parachaintypes.ProspectiveParachainsMode, error) {
-	// TODO: implement
-	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/subsystem-util/src/runtime/mod.rs#L453-L456
+// getProspectiveParachainsMode requests prospective parachains mode
+// for a given relay parent based on the Runtime API version.
+func getProspectiveParachainsMode(blockstate *state.BlockState, relayParent common.Hash,
+) (*parachaintypes.ProspectiveParachainsMode, error) {
+	var isAsyncBackingSupported bool
+	// `ParachainHost` is the runtime api witch has the method to get the async backing params.
+	// and this api supports async backing from version 7.
+	apiNameHash := common.MustBlake2b8([]byte("ParachainHost"))
+	asyncBackingSupportVersion := uint32(7)
 
-	return parachaintypes.ProspectiveParachainsMode{}, nil
+	rt, err := blockstate.GetRuntime(relayParent)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
+	}
+
+	currentVersion, err := rt.Version()
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime version: %w", err)
+	}
+
+	// check if the current runtime api supports async backing
+	for _, api := range currentVersion.APIItems {
+		if api.Name == apiNameHash && api.Ver >= asyncBackingSupportVersion {
+			isAsyncBackingSupported = true
+			break
+		}
+	}
+
+	if !isAsyncBackingSupported {
+		logger.Tracef("async backing is not supported by the current Runtime API of the relay parent %s", relayParent)
+		return &parachaintypes.ProspectiveParachainsMode{IsEnabled: false}, nil
+	}
+
+	params, err := rt.ParachainHostAsyncBackingParams()
+	if err != nil {
+		return nil, fmt.Errorf("getting async backing params: %w", err)
+	}
+
+	enabled := parachaintypes.ProspectiveParachainsMode{
+		IsEnabled:          true,
+		MaxCandidateDepth:  uint(params.MaxCandidateDepth),
+		AllowedAncestryLen: uint(params.AllowedAncestryLen),
+	}
+
+	return &enabled, nil
 }
 
 func constructPerRelayParentState(

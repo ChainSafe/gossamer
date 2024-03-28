@@ -477,7 +477,8 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 	}
 }
 
-func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal(update parachaintypes.ActiveLeavesUpdateSignal) error {
+func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal(
+	update parachaintypes.ActiveLeavesUpdateSignal) error {
 	// TODO: #3630
 	return nil
 }

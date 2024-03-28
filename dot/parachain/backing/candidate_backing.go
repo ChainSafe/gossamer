@@ -28,6 +28,7 @@ import (
 	"sync"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -80,7 +81,8 @@ type CandidateBacking struct {
 	// We only feed leaves which have prospective parachains enabled to this view.
 	implicitView ImplicitView
 	// The handle to the keystore used for signing.
-	keystore keystore.Keystore
+	keystore   keystore.Keystore
+	BlockState *state.BlockState
 }
 
 type activeLeafState struct {

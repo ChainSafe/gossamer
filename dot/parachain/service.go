@@ -96,7 +96,7 @@ func NewService(net Network, forkID string, st *state.Service) (*Service, error)
 		overseer: overseer,
 	}
 
-	go parachainService.run()
+	go parachainService.run(st.Block)
 
 	return parachainService, nil
 }
@@ -112,10 +112,11 @@ func (Service) Stop() error {
 }
 
 // main loop of parachain service
-func (s Service) run() {
+func (s Service) run(blockState *state.BlockState) {
 	overseer := s.overseer
 
 	candidateBacking := backing.New(overseer.SubsystemsToOverseer)
+	candidateBacking.BlockState = blockState
 	candidateBacking.OverseerToSubSystem = overseer.RegisterSubsystem(candidateBacking)
 
 	// TODO: Add `Prospective Parachains` Subsystem. create an issue.
