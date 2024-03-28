@@ -24,6 +24,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 
 	"github.com/stretchr/testify/assert"
@@ -251,7 +253,7 @@ func TestWestendRuntime_ValidateTransaction(t *testing.T) {
 }
 
 func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
-	tt := trie.NewEmptyTrie()
+	tt := inmemory_trie.NewEmptyTrie()
 
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
@@ -279,7 +281,7 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 }
 
 func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
-	tt := trie.NewEmptyTrie()
+	tt := inmemory_trie.NewEmptyTrie()
 
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000") //nolint:lll
 	require.NoError(t, err)
@@ -323,7 +325,7 @@ func TestInstance_BabeGenerateKeyOwnershipProof(t *testing.T) {
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
-			tt := trie.NewEmptyTrie()
+			tt := inmemory_trie.NewEmptyTrie()
 
 			randomnessValue, err := common.HexToHash("0x01")
 			require.NoError(t, err)
@@ -370,7 +372,7 @@ func TestInstance_BabeSubmitReportEquivocationUnsignedExtrinsic(t *testing.T) {
 	for _, testCase := range testCases {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
-			tt := trie.NewEmptyTrie()
+			tt := inmemory_trie.NewEmptyTrie()
 			rt := NewTestInstance(t, testCase.targetRuntime, TestWithTrie(tt))
 			authorityID := types.AuthorityID{1}
 			const slot = uint64(1)
@@ -536,7 +538,7 @@ func TestInstance_BadSignature_WestendBlock8077850(t *testing.T) {
 }
 
 func TestInstance_BabeConfiguration_WestendRuntime_WithAuthorities(t *testing.T) {
-	tt := trie.NewEmptyTrie()
+	tt := inmemory_trie.NewEmptyTrie()
 
 	randomnessValue, err := common.HexToHash("0x01")
 	require.NoError(t, err)
@@ -604,7 +606,7 @@ func TestInstance_ExecuteBlock_WestendRuntime(t *testing.T) {
 	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
-	parentState := storage.NewTrieState(trie.NewEmptyTrie())
+	parentState := storage.NewTrieState(inmemory_trie.NewEmptyTrie())
 	instance.SetContextStorage(parentState)
 
 	_, err := instance.ExecuteBlock(block)
@@ -661,7 +663,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	block := runtime.InitializeRuntimeToTest(t, instance, &types.Header{})
 
 	// reset state back to parent state before executing
-	parentState := storage.NewTrieState(trie.NewEmptyTrie())
+	parentState := storage.NewTrieState(inmemory_trie.NewEmptyTrie())
 	instance.SetContextStorage(parentState)
 
 	_, err := instance.ExecuteBlock(block)
@@ -1094,7 +1096,7 @@ func newTrieFromPairs(t *testing.T, filename string) trie.Trie {
 		entries[pairArr[0].(string)] = pairArr[1].(string)
 	}
 
-	tr, err := trie.LoadFromMap(entries, trie.V0)
+	tr, err := inmemory.LoadFromMap(entries, trie.V0)
 	require.NoError(t, err)
 	return tr
 }

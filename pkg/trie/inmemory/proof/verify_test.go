@@ -8,6 +8,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -174,7 +175,7 @@ func Test_buildTrie(t *testing.T) {
 				encodedProofNodes: encodedProofNodes,
 				rootHash:          blake2bNode(t, leafAShort),
 				db:                proofDB,
-				expectedTrie: trie.NewTrie(&node.Node{
+				expectedTrie: inmemory.NewTrie(&node.Node{
 					PartialKey:   leafAShort.PartialKey,
 					StorageValue: leafAShort.StorageValue,
 					Dirty:        true,
@@ -193,7 +194,7 @@ func Test_buildTrie(t *testing.T) {
 				encodedProofNodes: encodedProofNodes,
 				rootHash:          blake2bNode(t, leafBLarge),
 				db:                proofDB,
-				expectedTrie: trie.NewTrie(&node.Node{
+				expectedTrie: inmemory.NewTrie(&node.Node{
 					PartialKey:   leafBLarge.PartialKey,
 					StorageValue: leafBLarge.StorageValue,
 					Dirty:        true,
@@ -213,7 +214,7 @@ func Test_buildTrie(t *testing.T) {
 				encodedProofNodes: encodedProofNodes,
 				rootHash:          blake2bNode(t, leafAShort),
 				db:                proofDB,
-				expectedTrie: trie.NewTrie(&node.Node{
+				expectedTrie: inmemory.NewTrie(&node.Node{
 					PartialKey:   leafAShort.PartialKey,
 					StorageValue: leafAShort.StorageValue,
 					Dirty:        true,
@@ -250,7 +251,7 @@ func Test_buildTrie(t *testing.T) {
 					}),
 				}),
 				db: proofDB,
-				expectedTrie: trie.NewTrie(&node.Node{
+				expectedTrie: inmemory.NewTrie(&node.Node{
 					PartialKey:  []byte{1},
 					Descendants: 4,
 					Dirty:       true,

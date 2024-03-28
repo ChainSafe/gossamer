@@ -11,6 +11,9 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/tracking"
 )
 
+// EmptyHash is the empty trie hash.
+var EmptyHash = common.MustBlake2bHash([]byte{0})
+
 type ChildTrieSupport interface {
 	GetChild(keyToChild []byte) (Trie, error)
 	GetFromChild(keyToChild, key []byte) ([]byte, error)
@@ -40,7 +43,7 @@ type PrefixTrie interface {
 
 type TrieDeltas interface {
 	GetChangedNodeHashes() (inserted, deleted map[common.Hash]struct{}, err error)
-	handleTrackedDeltas(success bool, pendingDeltas tracking.Getter)
+	HandleTrackedDeltas(success bool, pendingDeltas tracking.Getter)
 }
 
 type Versioned interface {

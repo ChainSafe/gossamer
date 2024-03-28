@@ -15,6 +15,7 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 )
 
 // Initialise initialises the genesis state of the DB using the given storage trie.
@@ -41,7 +42,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t trie.
 	s.db = db
 
 	// TODO: all trie related db operations should be done in pkg/trie
-	if inmemoryTrie, ok := t.(*trie.InMemoryTrie); ok {
+	if inmemoryTrie, ok := t.(*inmemory_trie.InMemoryTrie); ok {
 		if err = inmemoryTrie.WriteDirty(database.NewTable(db, storagePrefix)); err != nil {
 			return fmt.Errorf("failed to write genesis trie to database: %w", err)
 		}
@@ -140,7 +141,7 @@ func loadGrandpaAuthorities(t trie.Trie) ([]types.GrandpaVoter, error) {
 func (s *Service) storeInitialValues(data *genesis.Data, t trie.Trie) error {
 	// write genesis trie to database
 	// TODO: all trie related db operations should be done in pkg/trie
-	if inmemoryTrie, ok := t.(*trie.InMemoryTrie); ok {
+	if inmemoryTrie, ok := t.(*inmemory_trie.InMemoryTrie); ok {
 		if err := inmemoryTrie.WriteDirty(database.NewTable(s.db, storagePrefix)); err != nil {
 			return fmt.Errorf("failed to write genesis trie to database: %w", err)
 		}

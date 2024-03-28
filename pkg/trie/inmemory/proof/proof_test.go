@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,7 +26,7 @@ func Test_Generate_Verify(t *testing.T) {
 		"doguinho",
 	}
 
-	tr := trie.NewEmptyTrie()
+	tr := inmemory.NewEmptyTrie()
 
 	for i, key := range keys {
 		value := fmt.Sprintf("%x-%d", key, i)

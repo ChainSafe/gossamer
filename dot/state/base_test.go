@@ -8,14 +8,14 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 	db := NewInMemoryDB(t)
-	tt := trie.NewEmptyTrie()
+	tt := inmemory_trie.NewEmptyTrie()
 
 	generator := newGenerator()
 	const size = 500
@@ -34,7 +34,7 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 
 	expected := tt.MustHash()
 
-	tt = trie.NewEmptyTrie()
+	tt = inmemory_trie.NewEmptyTrie()
 	err = tt.Load(db, encroot)
 	require.NoError(t, err)
 	require.Equal(t, expected, tt.MustHash())
