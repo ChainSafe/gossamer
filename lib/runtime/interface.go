@@ -59,6 +59,8 @@ type Instance interface {
 	ParachainHostValidationCodeByHash(validationCodeHash common.Hash) (*parachaintypes.ValidationCode, error)
 	ParachainHostValidators() ([]parachaintypes.ValidatorID, error)
 	ParachainHostValidatorGroups() (*parachaintypes.ValidatorGroups, error)
+	// TODO: There might be a scope to have more go friendly return values here
+	// VaryingDataTypeSlice is not very nice to use.
 	ParachainHostAvailabilityCores() (*scale.VaryingDataTypeSlice, error)
 	ParachainHostCheckValidationOutputs(
 		parachainID parachaintypes.ParaID,
@@ -68,6 +70,8 @@ type Instance interface {
 	ParachainHostCandidatePendingAvailability(
 		parachainID parachaintypes.ParaID,
 	) (*parachaintypes.CommittedCandidateReceipt, error)
+	// TODO: There might be a scope to have more go friendly return values here
+	// VaryingDataTypeSlice is not very nice to use.
 	ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice, error)
 	ParachainHostSessionInfo(sessionIndex parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error)
 	ParachainHostAsyncBackingParams() (*parachaintypes.AsyncBackingParams, error)

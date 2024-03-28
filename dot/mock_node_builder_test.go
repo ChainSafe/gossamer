@@ -142,18 +142,18 @@ func (mr *MocknodeBuilderIfaceMockRecorder) createNetworkService(config, stateSr
 }
 
 // createParachainHostService mocks base method.
-func (m *MocknodeBuilderIface) createParachainHostService(net *network.Service, forkID string, st *state.Service) (*parachain.Service, error) {
+func (m *MocknodeBuilderIface) createParachainHostService(net *network.Service, forkID string, st *state.Service, ks keystore.Keystore) (*parachain.Service, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "createParachainHostService", net, forkID, st)
+	ret := m.ctrl.Call(m, "createParachainHostService", net, forkID, st, ks)
 	ret0, _ := ret[0].(*parachain.Service)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // createParachainHostService indicates an expected call of createParachainHostService.
-func (mr *MocknodeBuilderIfaceMockRecorder) createParachainHostService(net, forkID, st any) *gomock.Call {
+func (mr *MocknodeBuilderIfaceMockRecorder) createParachainHostService(net, forkID, st, ks any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createParachainHostService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createParachainHostService), net, forkID, st)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createParachainHostService", reflect.TypeOf((*MocknodeBuilderIface)(nil).createParachainHostService), net, forkID, st, ks)
 }
 
 // createRPCService mocks base method.

@@ -50,7 +50,8 @@ func (cpcs CollatorProtocolCollatorSide) processMessage(msg any) error {
 	return nil
 }
 
-func (cpcs CollatorProtocolCollatorSide) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) {
+func (cpcs CollatorProtocolCollatorSide) ProcessActiveLeavesUpdateSignal(
+	signal parachaintypes.ActiveLeavesUpdateSignal) {
 	// TODO: handle active leaves update signal #3824
 }
 

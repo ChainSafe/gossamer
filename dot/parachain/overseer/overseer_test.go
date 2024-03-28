@@ -49,11 +49,11 @@ func (s *TestSubsystem) Run(ctx context.Context, OverseerToSubSystem chan any, S
 	}
 }
 
-func (s *TestSubsystem) ProcessActiveLeavesUpdateSignal() {
+func (s *TestSubsystem) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) {
 	fmt.Printf("%s ProcessActiveLeavesUpdateSignal\n", s.name)
 }
 
-func (s *TestSubsystem) ProcessBlockFinalizedSignal() {
+func (s *TestSubsystem) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
 	fmt.Printf("%s ProcessActiveLeavesUpdateSignal\n", s.name)
 }
 
