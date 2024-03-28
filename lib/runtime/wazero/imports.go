@@ -24,7 +24,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	"github.com/ChainSafe/gossamer/pkg/trie/proof"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory/proof"
 	"github.com/tetratelabs/wazero/api"
 )
 
@@ -811,7 +812,7 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 		return 0
 	}
 
-	hash, err := stateVersion.Root(entries)
+	hash, err := stateVersion.Root(inmemory_trie.NewEmptyTrie(), entries)
 	if err != nil {
 		logger.Errorf("failed computing trie Merkle root hash: %s", err)
 		return 0
@@ -874,7 +875,7 @@ func ext_trie_blake2_256_ordered_root_version_2(
 		return 0
 	}
 
-	hash, err := stateVersion.Root(entries)
+	hash, err := stateVersion.Root(inmemory_trie.NewEmptyTrie(), entries)
 	if err != nil {
 		logger.Errorf("failed computing trie Merkle root hash: %s", err)
 		return 0

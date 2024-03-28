@@ -585,7 +585,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 
 	stateService.UseMemDB()
 
-	err := stateService.Initialise(&genesis, &genesisHeader, &trie)
+	err := stateService.Initialise(&genesis, &genesisHeader, trie)
 	require.NoError(t, err)
 
 	inMemoryDB, err := database.NewPebble(t.TempDir(), true)

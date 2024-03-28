@@ -13,7 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/require"
 )
 
@@ -91,7 +91,8 @@ func TestChildStateGetStorageSize(t *testing.T) {
 			keyChild: []byte(":child_storage_key"),
 		},
 		{
-			err:      fmt.Errorf("child trie does not exist at key 0x%x%x", trie.ChildStorageKeyPrefix, []byte(":not_exist")),
+			err: fmt.Errorf("child trie does not exist at key 0x%x%x",
+				inmemory_trie.ChildStorageKeyPrefix, []byte(":not_exist")),
 			hash:     &blockHash,
 			entry:    []byte(":child_second"),
 			keyChild: []byte(":not_exist"),
@@ -149,7 +150,7 @@ func TestGetStorageHash(t *testing.T) {
 		},
 		{
 			err: fmt.Errorf("child trie does not exist at key 0x%x%x",
-				string(trie.ChildStorageKeyPrefix), []byte(":not_exist")),
+				string(inmemory_trie.ChildStorageKeyPrefix), []byte(":not_exist")),
 			hash:     &blockHash,
 			entry:    []byte(":child_second"),
 			keyChild: []byte(":not_exist"),

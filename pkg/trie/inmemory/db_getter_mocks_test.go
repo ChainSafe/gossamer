@@ -7,7 +7,7 @@
 //
 
 // Package trie is a generated GoMock package.
-package trie
+package inmemory
 
 import (
 	reflect "reflect"

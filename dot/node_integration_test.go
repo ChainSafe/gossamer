@@ -36,6 +36,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
@@ -107,7 +108,7 @@ func TestNewNode(t *testing.T) {
 			return nil, fmt.Errorf("failed to create genesis block from trie: %w", err)
 		}
 		stateSrvc.Telemetry = mockTelemetryClient
-		err = stateSrvc.Initialise(gen, &header, &trie)
+		err = stateSrvc.Initialise(gen, &header, trie)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialise state service: %s", err)
 		}
@@ -385,10 +386,10 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	node, err := NewNode(config, ks)
 	require.NoError(t, err)
 
-	expected, err := trie.LoadFromMap(gen.GenesisFields().Raw["top"], trie.V0)
+	expected, err := inmemory_trie.LoadFromMap(gen.GenesisFields().Raw["top"], trie.V0)
 	require.NoError(t, err)
 
-	expectedRoot, err := trie.V0.Hash(&expected) // Since we are using a runtime with state trie V0
+	expectedRoot, err := trie.V0.Hash(expected) // Since we are using a runtime with state trie V0
 	require.NoError(t, err)
 
 	coreServiceInterface := node.ServiceRegistry.Get(&core.Service{})

@@ -6,8 +6,21 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
+
+type Writer interface {
+	Put(key, value []byte) error
+	Del(key []byte) error
+	Flush() error
+}
+
+// NewBatcher creates a new database batch.
+type NewBatcher interface {
+	//TODO: to make this pkg standalone we need to get rid of this database dep
+	NewBatch() database.Batch
+}
 
 type Database interface {
 	DBGetter

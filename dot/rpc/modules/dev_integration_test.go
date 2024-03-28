@@ -17,7 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -41,7 +41,7 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 
 	_, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	tries := state.NewTries()
-	tries.SetTrie(&genesisTrie)
+	tries.SetTrie(genesisTrie)
 	bs, err := state.NewBlockStateFromGenesis(db, tries, &genesisHeader, telemetryMock)
 	require.NoError(t, err)
 	es, err := state.NewEpochStateFromGenesis(db, bs, genesisBABEConfig)
@@ -56,7 +56,7 @@ func newBABEService(t *testing.T) *babe.Service {
 	require.NoError(t, err)
 
 	bs, es := newState(t)
-	tt := trie.NewEmptyTrie()
+	tt := inmemory_trie.NewEmptyTrie()
 	rt := wazero_runtime.NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929, wazero_runtime.TestWithTrie(tt))
 	bs.StoreRuntime(bs.GenesisHash(), rt)
 	tt.Put(

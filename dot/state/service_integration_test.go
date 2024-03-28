@@ -18,6 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/require"
@@ -58,7 +59,7 @@ func TestService_Start(t *testing.T) {
 	state := newTestService(t)
 
 	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	err := state.Initialise(&genData, &genesisHeader, &genTrie)
+	err := state.Initialise(&genData, &genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = state.SetupBase()
@@ -84,9 +85,9 @@ func TestService_Initialise(t *testing.T) {
 	// in-memory trie representation.
 	// If the same trie is re-used for the second call, the database is cleared
 	// and nothing is written to disk since all nodes are marked as clean.
-	genTrieCopy := genTrie.DeepCopy()
+	genTrieCopy := genTrie.(*inmemory_trie.InMemoryTrie).DeepCopy()
 
-	err := state.Initialise(&genData, &genesisHeader, &genTrie)
+	err := state.Initialise(&genData, &genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	genesisHeaderPtr := types.NewHeader(common.NewHash([]byte{77}),
@@ -110,7 +111,7 @@ func TestMemDB_Start(t *testing.T) {
 	state := newTestMemDBService(t)
 
 	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	err := state.Initialise(&genData, &genesisHeader, &genTrie)
+	err := state.Initialise(&genData, &genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = state.Start()
@@ -136,7 +137,7 @@ func TestService_BlockTree(t *testing.T) {
 	stateA := NewService(config)
 
 	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	err := stateA.Initialise(&genData, &genesisHeader, &genTrie)
+	err := stateA.Initialise(&genData, &genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = stateA.SetupBase()
@@ -189,7 +190,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 	serv.UseMemDB()
 
 	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
+	err := serv.Initialise(&genData, &genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = serv.Start()
@@ -238,7 +239,7 @@ func TestService_PruneStorage(t *testing.T) {
 	serv.UseMemDB()
 
 	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
+	err := serv.Initialise(&genData, &genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = serv.Start()
@@ -284,7 +285,7 @@ func TestService_PruneStorage(t *testing.T) {
 		require.NoError(t, err)
 
 		// Store the other blocks that will be pruned.
-		copiedTrie := trieState.Trie().DeepCopy()
+		copiedTrie := trieState.Trie().(*inmemory_trie.InMemoryTrie).DeepCopy()
 
 		var rootHash common.Hash
 		rootHash, err = copiedTrie.Hash()
@@ -319,7 +320,7 @@ func TestService_Rewind(t *testing.T) {
 	serv.UseMemDB()
 
 	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
+	err := serv.Initialise(&genData, &genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = serv.Start()
@@ -377,10 +378,10 @@ func TestService_Import(t *testing.T) {
 	serv.UseMemDB()
 
 	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	err := serv.Initialise(&genData, &genesisHeader, &genTrie)
+	err := serv.Initialise(&genData, &genesisHeader, genTrie)
 	require.NoError(t, err)
 
-	tr := trie.NewEmptyTrie()
+	tr := inmemory_trie.NewEmptyTrie()
 	var testCases = []string{
 		"asdf",
 		"ghjk",
