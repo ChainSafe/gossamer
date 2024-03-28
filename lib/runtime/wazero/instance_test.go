@@ -7,7 +7,6 @@ import (
 	_ "embed"
 
 	"bytes"
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"math/big"
