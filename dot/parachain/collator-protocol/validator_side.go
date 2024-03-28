@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -228,27 +230,81 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view View) error 
 		}
 	}
 
+	// handled newly added leaves
 	for _, leaf := range newlyAdded {
 		mode := perspectiveParchainMode(leaf)
 
-		perRelayParent := PerRelayParent{
+		perRelayParent := &PerRelayParent{
 			prospectiveParachainMode: mode,
 		}
 
-		err := cpvs.assignIncoming(leaf)
+		err := cpvs.assignIncoming(leaf, perRelayParent)
 		if err != nil {
 			return fmt.Errorf("assigning incoming: %w", err)
 		}
 		cpvs.activeLeaves[leaf] = mode
-		cpvs.perRelayParent[leaf] = perRelayParent
+		cpvs.perRelayParent[leaf] = *perRelayParent
 
 		if mode.IsEnabled {
 			// TODO: Add it when we have async backing
+			// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1303
 		}
+	}
+
+	// handle removed leaves
+	for _, leaf := range removed {
+		delete(cpvs.activeLeaves, leaf)
+
+		mode := perspectiveParchainMode(leaf)
+		pruned := []common.Hash{}
+		if mode.IsEnabled {
+			// TODO Do this when we have async backing
+			// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1340
+		} else {
+			pruned = append(pruned, leaf)
+		}
+
+		for _, prunedLeaf := range pruned {
+			perRelayParent, ok := cpvs.perRelayParent[prunedLeaf]
+			if ok {
+				cpvs.removeOngoing(perRelayParent)
+				delete(cpvs.perRelayParent, prunedLeaf)
+			}
+
+			for fetchedCandidateStr := range cpvs.fetchedCandidates {
+				fetchedCollation := fetchedCollationInfo{}
+				fetchedCollation.FromString(fetchedCandidateStr)
+
+				if fetchedCollation.relayParent == prunedLeaf {
+					delete(cpvs.fetchedCandidates, fetchedCandidateStr)
+				}
+			}
+		}
+
+		// TODO
+		// Remove blocked advertisements that left the view.		cpvs.BlockedAdvertisements
+		// Re-trigger previously failed requests again. requestUnBlockedCollations
+		// prune old advertisements
+		// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1361-L1396
+
+	}
+
+	return nil
+}
+
+func (cpvs *CollatorProtocolValidatorSide) removeOngoing(perRelayParent PerRelayParent) {
+	if perRelayParent.assignment != nil {
+		entry := cpvs.currentAssignments[*perRelayParent.assignment]
+		entry--
+		if entry == 0 {
+			logger.Infof("unassigned from parachain with ID %d", *perRelayParent.assignment)
+		}
+		cpvs.currentAssignments[*perRelayParent.assignment] = entry
+
 	}
 }
 
-func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Hash) error {
+func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Hash, perRelayParent *PerRelayParent) error {
 	// TODO: get this instance using relay parent
 	instance, err := cpvs.BlockState.GetRuntime(relayParent)
 	if err != nil {
@@ -282,8 +338,41 @@ func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Has
 		return nil
 	}
 
-	validatorGroups.GroupRotationInfo.CoreForGroup(groupIndex, uint8(len(availabilityCores.Types)))
+	coreIndexNow := validatorGroups.GroupRotationInfo.CoreForGroup(groupIndex, uint8(len(availabilityCores.Types)))
+	coreNow, err := availabilityCores.Types[coreIndexNow.Index].Value()
+	if err != nil {
+		return fmt.Errorf("getting core now: %w", err)
+	}
 
+	paraNow := new(parachaintypes.ParaID)
+	switch coreNow.Index() {
+	case 0:
+		// OccupiedCore
+		occupiedCore, ok := coreNow.(parachaintypes.OccupiedCore)
+		if !ok {
+			return fmt.Errorf("couldn't cast VDT value now to OccupiedCore")
+		}
+		*paraNow = parachaintypes.ParaID(occupiedCore.CandidateDescriptor.ParaID)
+	case 1:
+		// ScheduledCore
+		scheduledCore, ok := coreNow.(parachaintypes.ScheduledCore)
+		if !ok {
+			return fmt.Errorf("couldn't cast VDT value now to scheduledCore")
+		}
+		*paraNow = scheduledCore.ParaID
+	case 2:
+		// Free
+
+	}
+
+	entry := cpvs.currentAssignments[*paraNow]
+	entry++
+	cpvs.currentAssignments[*paraNow] = entry
+	if entry == 1 {
+		logger.Infof("got assigned to parachain with ID %d", *paraNow)
+	}
+
+	perRelayParent.assignment = paraNow
 	return nil
 }
 
@@ -682,6 +771,43 @@ type fetchedCollationInfo struct {
 func (f fetchedCollationInfo) String() string {
 	return fmt.Sprintf("relay parent: %s, para id: %d, candidate hash: %s, collator id: %+v",
 		f.relayParent.String(), f.paraID, f.candidateHash.Value.String(), f.collatorID)
+}
+
+func (f *fetchedCollationInfo) FromString(str string) error {
+	splits := strings.Split(str, ",")
+	if len(splits) != 4 {
+		return fmt.Errorf("invalid string format for fetched collation info")
+	}
+
+	relayParent, err := common.HexToHash(strings.TrimSpace(splits[0]))
+	if err != nil {
+		return fmt.Errorf("getting relay parent: %w", err)
+	}
+	f.relayParent = relayParent
+
+	paraID, err := strconv.ParseUint(strings.TrimSpace(splits[1]), 10, 64)
+	if err != nil {
+		return fmt.Errorf("getting para id: %w", err)
+	}
+	f.paraID = parachaintypes.ParaID(paraID)
+
+	candidateHashBytes := common.MustHexToBytes(strings.TrimSpace(splits[2]))
+
+	candidateHash := parachaintypes.CandidateHash{
+		Value: common.NewHash(candidateHashBytes),
+	}
+	if err != nil {
+		return fmt.Errorf("getting candidate hash: %w", err)
+	}
+	f.candidateHash = candidateHash
+
+	var collatorID parachaintypes.CollatorID
+	collatorIDBytes := common.MustHexToBytes(strings.TrimSpace(splits[3]))
+	copy(collatorID[:], collatorIDBytes)
+
+	f.collatorID = collatorID
+
+	return nil
 }
 
 // Prospective parachains mode of a relay parent. Defined by
