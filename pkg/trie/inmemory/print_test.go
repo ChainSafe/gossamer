@@ -1,11 +1,12 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package trie
+package inmemory
 
 import (
 	"testing"
 
+	"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +22,7 @@ func Test_Trie_String(t *testing.T) {
 		},
 		"leaf_root": {
 			trie: InMemoryTrie{
-				root: &Node{
+				root: &node.Node{
 					PartialKey:   []byte{1, 2, 3},
 					StorageValue: []byte{3, 4, 5},
 					Generation:   1,
@@ -37,11 +38,11 @@ func Test_Trie_String(t *testing.T) {
 		},
 		"branch_root": {
 			trie: InMemoryTrie{
-				root: &Node{
+				root: &node.Node{
 					PartialKey:   nil,
 					StorageValue: []byte{1, 2},
 					Descendants:  2,
-					Children: []*Node{
+					Children: []*node.Node{
 						{
 							PartialKey:   []byte{1, 2, 3},
 							StorageValue: []byte{3, 4, 5},

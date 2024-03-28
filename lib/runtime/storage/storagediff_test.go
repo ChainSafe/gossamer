@@ -6,7 +6,7 @@ package storage
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/require"
 )
 
@@ -494,12 +494,12 @@ func Test_ApplyToTrie(t *testing.T) {
 	t.Run("add_entries_in_main_trie", func(t *testing.T) {
 		t.Parallel()
 
-		state := trie.NewEmptyTrie()
+		state := inmemory_trie.NewEmptyTrie()
 
 		diff := newStorageDiff()
 		diff.upsert(key, value)
 
-		expected := trie.NewEmptyTrie()
+		expected := inmemory_trie.NewEmptyTrie()
 		expected.Put([]byte(key), value)
 
 		diff.applyToTrie(state)
@@ -509,13 +509,13 @@ func Test_ApplyToTrie(t *testing.T) {
 	t.Run("delete_entries_from_main_trie", func(t *testing.T) {
 		t.Parallel()
 
-		state := trie.NewEmptyTrie()
+		state := inmemory_trie.NewEmptyTrie()
 		state.Put([]byte(key), value)
 
 		diff := newStorageDiff()
 		diff.delete(key)
 
-		expected := trie.NewEmptyTrie()
+		expected := inmemory_trie.NewEmptyTrie()
 
 		diff.applyToTrie(state)
 		require.Equal(t, expected, state)
@@ -524,14 +524,14 @@ func Test_ApplyToTrie(t *testing.T) {
 	t.Run("create_new_child_trie", func(t *testing.T) {
 		t.Parallel()
 
-		state := trie.NewEmptyTrie()
+		state := inmemory_trie.NewEmptyTrie()
 
 		childKey := "child"
 
 		diff := newStorageDiff()
 		diff.upsertChild(childKey, key, value)
 
-		expected := trie.NewEmptyTrie()
+		expected := inmemory_trie.NewEmptyTrie()
 		expected.PutIntoChild([]byte(childKey), []byte(key), value)
 
 		diff.applyToTrie(state)
@@ -543,10 +543,10 @@ func Test_ApplyToTrie(t *testing.T) {
 
 		childKey := "child"
 
-		state := trie.NewEmptyTrie()
+		state := inmemory_trie.NewEmptyTrie()
 		state.PutIntoChild([]byte(childKey), []byte(key), value)
 
-		expected := trie.NewEmptyTrie()
+		expected := inmemory_trie.NewEmptyTrie()
 
 		diff := newStorageDiff()
 		diff.deleteFromChild(childKey, key)

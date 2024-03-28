@@ -14,7 +14,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	"github.com/ChainSafe/gossamer/pkg/trie/proof"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory/proof"
 )
 
 // storagePrefix storage key prefix.
@@ -60,7 +61,7 @@ func NewStorageState(db database.Database, blockState *BlockState,
 // StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *InmemoryStorageState) StoreTrie(ts *storage.TrieState, header *types.Header) error {
 	root := ts.MustRoot()
-	s.tries.softSet(root, ts.Trie().(*trie.InMemoryTrie))
+	s.tries.softSet(root, ts.Trie())
 
 	if header != nil {
 		insertedNodeHashes, deletedNodeHashes, err := ts.GetChangedNodeHashes()
@@ -77,7 +78,7 @@ func (s *InmemoryStorageState) StoreTrie(ts *storage.TrieState, header *types.He
 	logger.Tracef("cached trie in storage state: %s", root)
 
 	// TODO: all trie related db operations should be done in pkg/trie
-	if inmemoryTrie, ok := ts.Trie().(*trie.InMemoryTrie); ok {
+	if inmemoryTrie, ok := ts.Trie().(*inmemory_trie.InMemoryTrie); ok {
 		if err := inmemoryTrie.WriteDirty(s.db); err != nil {
 			logger.Warnf("failed to write trie with root %s to database: %s", root, err)
 			return err
@@ -114,7 +115,7 @@ func (s *InmemoryStorageState) TrieState(root *common.Hash) (*storage.TrieState,
 
 	// TODO: do we really need to create an snapshot here if TrieState handles
 	// the modifications?
-	nextTrie := t.(*trie.InMemoryTrie).Snapshot()
+	nextTrie := t.(*inmemory_trie.InMemoryTrie).Snapshot()
 	next := storage.NewTrieState(nextTrie)
 
 	logger.Tracef("returning trie with root %s to be modified", root)
@@ -122,8 +123,8 @@ func (s *InmemoryStorageState) TrieState(root *common.Hash) (*storage.TrieState,
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
-func (s *InmemoryStorageState) LoadFromDB(root common.Hash) (*trie.InMemoryTrie, error) {
-	t := trie.NewTrie(nil, s.db)
+func (s *InmemoryStorageState) LoadFromDB(root common.Hash) (trie.Trie, error) {
+	t := inmemory_trie.NewTrie(nil, s.db)
 	err := t.Load(s.db, root)
 	if err != nil {
 		return nil, err
@@ -179,7 +180,7 @@ func (s *InmemoryStorageState) GetStorage(root *common.Hash, key []byte) ([]byte
 		return val, nil
 	}
 
-	return trie.GetFromDB(s.db, *root, key)
+	return inmemory_trie.GetFromDB(s.db, *root, key)
 }
 
 // GetStorageByBlockHash returns the value at the given key at the given block hash

@@ -27,7 +27,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	"github.com/ChainSafe/gossamer/pkg/trie/proof"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory/proof"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -575,7 +576,7 @@ func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 	err = scale.Unmarshal(res, &hash)
 	require.NoError(t, err)
 
-	tt := trie.NewEmptyTrie()
+	tt := inmemory_trie.NewEmptyTrie()
 	tt.Put([]byte("noot"), []byte("was"))
 	tt.Put([]byte("here"), []byte("??"))
 
@@ -607,7 +608,7 @@ func Test_ext_trie_blake2_256_root_version_2(t *testing.T) {
 	err = scale.Unmarshal(res, &hash)
 	require.NoError(t, err)
 
-	tt := trie.NewEmptyTrie()
+	tt := inmemory_trie.NewEmptyTrie()
 	tt.Put([]byte("dimartiro"), []byte("was"))
 	tt.Put([]byte("here"), []byte("??"))
 
@@ -666,13 +667,13 @@ func Test_ext_trie_blake2_256_verify_proof_version_1(t *testing.T) {
 	// Since this is Test_ext_trie_blake2_256_verify_proof_version_1, we use trie.V0
 	stateVersion := trie.V0
 
-	otherTrie := trie.NewEmptyTrie()
+	otherTrie := inmemory_trie.NewEmptyTrie()
 	otherTrie.Put([]byte("simple"), []byte("cat"))
 
 	otherHash, err := stateVersion.Hash(otherTrie)
 	require.NoError(t, err)
 
-	tr := trie.NewEmptyTrie()
+	tr := inmemory_trie.NewEmptyTrie()
 	tr.Put([]byte("do"), []byte("verb"))
 	tr.Put([]byte("domain"), []byte("website"))
 	tr.Put([]byte("other"), []byte("random"))
@@ -764,13 +765,13 @@ func Test_ext_trie_blake2_256_verify_proof_version_2(t *testing.T) {
 	encVersion, err := scale.Marshal(stateVersionInt)
 	require.NoError(t, err)
 
-	otherTrie := trie.NewEmptyTrie()
+	otherTrie := inmemory_trie.NewEmptyTrie()
 	otherTrie.Put([]byte("simple"), []byte("cat"))
 
 	otherHash, err := stateVersion.Hash(otherTrie)
 	require.NoError(t, err)
 
-	tr := trie.NewEmptyTrie()
+	tr := inmemory_trie.NewEmptyTrie()
 	tr.Put([]byte("do"), []byte("verb"))
 	tr.Put([]byte("domain"), []byte("website"))
 	tr.Put([]byte("other"), []byte("random"))

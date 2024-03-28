@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"github.com/ChainSafe/gossamer/pkg/trie/pools"
 )
@@ -129,7 +130,7 @@ func buildTrie(encodedProofNodes [][]byte, rootHash []byte, db db.Database) (t t
 		return nil, fmt.Errorf("loading proof: %w", err)
 	}
 
-	return trie.NewTrie(root, db), nil
+	return inmemory.NewTrie(root, db), nil
 }
 
 // loadProof is a recursive function that will create all the trie paths based

@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/require"
@@ -40,7 +41,7 @@ func newTestBlockState(t *testing.T, tries *Tries) *BlockState {
 
 	// loads in-memory tries with genesis state root, should be deleted
 	// after another block is finalised
-	tr := trie.NewEmptyTrie()
+	tr := inmemory_trie.NewEmptyTrie()
 	err = tr.Load(bs.db, header.StateRoot)
 	require.NoError(t, err)
 	bs.tries.softSet(header.StateRoot, tr)

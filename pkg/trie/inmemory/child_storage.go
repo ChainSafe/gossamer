@@ -1,19 +1,18 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package trie
+package inmemory
 
 import (
 	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
 // ChildStorageKeyPrefix is the prefix for all child storage keys
 var ChildStorageKeyPrefix = []byte(":child_storage:default:")
-
-var ErrChildTrieDoesNotExist = errors.New("child trie does not exist")
 
 // setChild inserts a child trie into the main trie at key :child_storage:[keyToChild]
 // A child trie is added as a node (K, V) in the main trie. K is the child storage key
@@ -44,14 +43,14 @@ func (t *InMemoryTrie) getInternalChildTrie(keyToChild []byte) (*InMemoryTrie, e
 
 	childHash := t.Get(key)
 	if childHash == nil {
-		return nil, fmt.Errorf("%w at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
+		return nil, fmt.Errorf("%w at key 0x%x%x", trie.ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
 	}
 
 	return t.childTries[common.BytesToHash(childHash)], nil
 }
 
 // GetChild returns the child trie at key :child_storage:[keyToChild]
-func (t *InMemoryTrie) GetChild(keyToChild []byte) (Trie, error) {
+func (t *InMemoryTrie) GetChild(keyToChild []byte) (trie.Trie, error) {
 	child, err := t.getInternalChildTrie(keyToChild)
 	if child == nil {
 		return nil, err
@@ -60,8 +59,8 @@ func (t *InMemoryTrie) GetChild(keyToChild []byte) (Trie, error) {
 }
 
 // GetChildTries returns all child tries in this trie
-func (t *InMemoryTrie) GetChildTries() map[common.Hash]Trie {
-	children := make(map[common.Hash]Trie)
+func (t *InMemoryTrie) GetChildTries() map[common.Hash]trie.Trie {
+	children := make(map[common.Hash]trie.Trie)
 	for k, v := range t.childTries {
 		children[k] = v
 	}
@@ -72,7 +71,7 @@ func (t *InMemoryTrie) GetChildTries() map[common.Hash]Trie {
 func (t *InMemoryTrie) PutIntoChild(keyToChild, key, value []byte) error {
 	child, err := t.getInternalChildTrie(keyToChild)
 	if err != nil {
-		if errors.Is(err, ErrChildTrieDoesNotExist) {
+		if errors.Is(err, trie.ErrChildTrieDoesNotExist) {
 			child = NewEmptyTrie()
 		} else {
 			return fmt.Errorf("getting child: %w", err)
@@ -127,7 +126,7 @@ func (t *InMemoryTrie) ClearFromChild(keyToChild, key []byte) error {
 	}
 
 	if child == nil {
-		return fmt.Errorf("%w at key 0x%x%x", ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
+		return fmt.Errorf("%w at key 0x%x%x", trie.ErrChildTrieDoesNotExist, ChildStorageKeyPrefix, keyToChild)
 	}
 
 	origChildHash, err := child.Hash()

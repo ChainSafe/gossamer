@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/require"
 )
 
@@ -345,7 +345,7 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 			t.Run("without_transactions", func(t *testing.T) {
 				t.Parallel()
 
-				ts := NewTrieState(trie.NewEmptyTrie())
+				ts := NewTrieState(inmemory_trie.NewEmptyTrie())
 				tt.changes(t, ts)
 				tt.checks(t, ts, false)
 			})
@@ -353,7 +353,7 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 			t.Run("during_transaction", func(t *testing.T) {
 				t.Parallel()
 
-				ts := NewTrieState(trie.NewEmptyTrie())
+				ts := NewTrieState(inmemory_trie.NewEmptyTrie())
 				ts.StartTransaction()
 				tt.changes(t, ts)
 				tt.checks(t, ts, true)
@@ -363,7 +363,7 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 			t.Run("after_transaction_committed", func(t *testing.T) {
 				t.Parallel()
 
-				ts := NewTrieState(trie.NewEmptyTrie())
+				ts := NewTrieState(inmemory_trie.NewEmptyTrie())
 				ts.StartTransaction()
 				tt.changes(t, ts)
 				ts.CommitTransaction()
@@ -374,7 +374,7 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 }
 
 func TestTrieState_Root(t *testing.T) {
-	ts := NewTrieState(trie.NewEmptyTrie())
+	ts := NewTrieState(inmemory_trie.NewEmptyTrie())
 
 	for _, tc := range testCases {
 		ts.Put([]byte(tc), []byte(tc))
@@ -385,7 +385,7 @@ func TestTrieState_Root(t *testing.T) {
 }
 
 func TestTrieState_ChildRoot(t *testing.T) {
-	ts := NewTrieState(trie.NewEmptyTrie())
+	ts := NewTrieState(inmemory_trie.NewEmptyTrie())
 
 	keyToChild := []byte("child")
 
@@ -405,7 +405,7 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 	}{
 		"committing_and_rollback_on_nested_transactions": {
 			createTrieState: func() *TrieState {
-				ts := NewTrieState(trie.NewEmptyTrie())
+				ts := NewTrieState(inmemory_trie.NewEmptyTrie())
 
 				ts.Put([]byte("key-1"), []byte("value-1"))
 				ts.Put([]byte("key-2"), []byte("value-2"))
@@ -439,7 +439,7 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 		},
 		"committing_all_nested_transactions": {
 			createTrieState: func() *TrieState {
-				ts := NewTrieState(trie.NewEmptyTrie())
+				ts := NewTrieState(inmemory_trie.NewEmptyTrie())
 				{
 					ts.StartTransaction()
 					ts.Put([]byte("key-1"), []byte("value-1"))
@@ -476,7 +476,7 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 		},
 		"rollback_without_transaction_should_panic": {
 			createTrieState: func() *TrieState {
-				return NewTrieState(trie.NewEmptyTrie())
+				return NewTrieState(inmemory_trie.NewEmptyTrie())
 			},
 			assert: func(t *testing.T, ts *TrieState) {
 				require.PanicsWithValue(t, "no transactions to rollback", func() { ts.RollbackTransaction() })
@@ -484,7 +484,7 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 		},
 		"commit_without_transaction_should_panic": {
 			createTrieState: func() *TrieState {
-				return NewTrieState(trie.NewEmptyTrie())
+				return NewTrieState(inmemory_trie.NewEmptyTrie())
 			},
 			assert: func(t *testing.T, ts *TrieState) {
 				require.PanicsWithValue(t, "no transactions to commit", func() { ts.CommitTransaction() })
