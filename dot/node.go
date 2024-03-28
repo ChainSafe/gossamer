@@ -49,7 +49,6 @@ type Node struct {
 }
 
 type nodeBuilderIface interface {
-	isNodeInitialised(basepath string) (bool, error)
 	initNode(config *cfg.Config) error
 	createStateService(config *cfg.Config) (*state.Service, error)
 	createNetworkService(config *cfg.Config, stateSrvc *state.Service, telemetryMailer Telemetry) (*network.Service,
@@ -79,13 +78,6 @@ type nodeBuilder struct{}
 // IsNodeInitialised returns true if, within the configured data directory for the
 // node, the state database has been created and the genesis data can been loaded
 func IsNodeInitialised(basepath string) (bool, error) {
-	nodeInstance := nodeBuilder{}
-	return nodeInstance.isNodeInitialised(basepath)
-}
-
-// isNodeInitialised returns nil if the node is successfully initialised
-// and an error otherwise.
-func (nodeBuilder) isNodeInitialised(basepath string) (bool, error) {
 	// check if key registry exists
 	nodeDatabaseDir := filepath.Join(basepath, database.DefaultDatabaseDir)
 
@@ -253,7 +245,7 @@ func newNode(config *cfg.Config,
 		debug.SetGCPercent(prev)
 	}
 
-	isInitialised, err := builder.isNodeInitialised(config.BasePath)
+	isInitialised, err := IsNodeInitialised(config.BasePath)
 	if err != nil {
 		return nil, fmt.Errorf("checking if node is initialised: %w", err)
 	}
