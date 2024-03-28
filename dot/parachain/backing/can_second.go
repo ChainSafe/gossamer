@@ -17,7 +17,6 @@ var (
 	errProspectiveParachainsModeDisabled = errors.New("async backing is disabled")
 	errCandidateNotRecognised            = errors.New("candidate not recognised by any fragment tree")
 	errLeafOccupied                      = errors.New("can't second the candidate, leaf is already occupied")
-	errNoActiveLeaves                    = errors.New("no active leaves found for the candidate relay parent")
 	errDepthOccupied                     = errors.New("can't second the candidate, depth is already occupied")
 )
 
@@ -60,6 +59,8 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) error {
 			return nil
 		}
 	}
+
+	msg.ResponseCh <- false
 	return fmt.Errorf("%w; candidate hash: %s", errCandidateNotRecognised, msg.CandidateHash.Value)
 }
 
@@ -72,7 +73,7 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) error {
 // Returns error if the candidate cannot be seconded.
 func (cb *CandidateBacking) secondingSanityCheck(
 	hypotheticalCandidate parachaintypes.HypotheticalCandidate,
-	backedInPathOnly bool, //nolint:unparam
+	backedInPathOnly bool,
 ) (map[common.Hash][]uint, error) {
 	var (
 		candidateParaID      parachaintypes.ParaID
@@ -151,15 +152,11 @@ func (cb *CandidateBacking) secondingSanityCheck(
 		}
 	}
 
-	if len(membership) == 0 {
-		return nil, fmt.Errorf("%w: %s", errNoActiveLeaves, candidateRelayParent.String())
-	}
-
 	// At this point we've checked the depths of the candidate against all active leaves.
 	return membership, nil
 }
 
-func checkDepthsAgainstLeaftState(depths []uint, leafState activeLeafState, paraID parachaintypes.ParaID,
+func checkDepthsAgainstLeaftState(depths []uint, leafState *activeLeafState, paraID parachaintypes.ParaID,
 ) (bool, *uint) {
 	for _, depth := range depths {
 		if isSeconded := isSecondedAtDepth(depth, leafState, paraID); isSeconded {
@@ -169,7 +166,7 @@ func checkDepthsAgainstLeaftState(depths []uint, leafState activeLeafState, para
 	return false, nil
 }
 
-func isSecondedAtDepth(depth uint, leafState activeLeafState, candidateParaID parachaintypes.ParaID) bool {
+func isSecondedAtDepth(depth uint, leafState *activeLeafState, candidateParaID parachaintypes.ParaID) bool {
 	if bTreeMap, ok := leafState.secondedAtDepth[candidateParaID]; ok {
 		if _, ok := bTreeMap.Get(depth); ok {
 			return true
