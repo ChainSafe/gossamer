@@ -1,12 +1,13 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package trie
+package inmemory
 
 import (
 	"encoding/binary"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -52,7 +53,7 @@ func TestPutAndClearFromChild(t *testing.T) {
 	err = parentTrie.ClearFromChild(childKey, keyInChild)
 	assert.NoError(t, err)
 
-	childTrie, err = parentTrie.GetChild(childKey)
+	childTrie, err = parentTrie.getInternalChildTrie(childKey)
 	assert.NoError(t, err)
 
 	value := childTrie.Get(keyInChild)
@@ -90,7 +91,7 @@ func TestPutAndGetFromChild(t *testing.T) {
 
 func TestChildTrieHashAfterClear(t *testing.T) {
 	trieThatHoldsAChildTrie := NewEmptyTrie()
-	originalEmptyHash := V0.MustHash(*trieThatHoldsAChildTrie)
+	originalEmptyHash := trie.V0.MustHash(trieThatHoldsAChildTrie)
 
 	keyToChild := []byte("crowdloan")
 	keyInChild := []byte("account-alice")
@@ -103,7 +104,7 @@ func TestChildTrieHashAfterClear(t *testing.T) {
 
 	// the parent trie hash SHOULT NOT BE EQUAL to the original
 	// empty hash since it contains a value
-	require.NotEqual(t, originalEmptyHash, V0.MustHash(*trieThatHoldsAChildTrie))
+	require.NotEqual(t, originalEmptyHash, trie.V0.MustHash(trieThatHoldsAChildTrie))
 
 	// ensure the value is inside the child trie
 	valueStored, err := trieThatHoldsAChildTrie.GetFromChild(keyToChild, keyInChild)
@@ -116,6 +117,6 @@ func TestChildTrieHashAfterClear(t *testing.T) {
 
 	// the parent trie hash SHOULD BE EQUAL to the original
 	// empty hash since now it does not have any other value in it
-	require.Equal(t, originalEmptyHash, V0.MustHash(*trieThatHoldsAChildTrie))
+	require.Equal(t, originalEmptyHash, trie.V0.MustHash(trieThatHoldsAChildTrie))
 
 }

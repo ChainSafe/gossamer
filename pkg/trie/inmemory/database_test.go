@@ -1,13 +1,15 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package trie
+package inmemory
 
 import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,18 +24,18 @@ func Test_Trie_Store_Load(t *testing.T) {
 	t.Parallel()
 
 	const size = 1000
-	trie, _ := makeSeededTrie(t, size)
+	tr, _ := makeSeededTrie(t, size)
 
-	rootHash := V0.MustHash(*trie)
+	rootHash := trie.V0.MustHash(tr)
 
 	db := newTestDB(t)
-	err := trie.WriteDirty(db)
+	err := tr.WriteDirty(db)
 	require.NoError(t, err)
 
 	trieFromDB := NewEmptyTrie()
 	err = trieFromDB.Load(db, rootHash)
 	require.NoError(t, err)
-	assert.Equal(t, trie.String(), trieFromDB.String())
+	assert.Equal(t, tr.String(), trieFromDB.String())
 }
 
 func Test_Trie_Load_EmptyHash(t *testing.T) {
@@ -41,7 +43,7 @@ func Test_Trie_Load_EmptyHash(t *testing.T) {
 
 	db := newTestDB(t)
 	trieFromDB := NewEmptyTrie()
-	err := trieFromDB.Load(db, EmptyHash)
+	err := trieFromDB.Load(db, trie.EmptyHash)
 	require.NoError(t, err)
 }
 
@@ -52,26 +54,25 @@ func Test_Trie_WriteDirty_Put(t *testing.T) {
 	const size = 500
 	keyValues := generateKeyValues(t, generator, size)
 
-	trie := NewEmptyTrie()
-
+	tr := NewEmptyTrie()
 	db := newTestDB(t)
 
 	// Put, write dirty and get from DB
 	for keyString, value := range keyValues {
 		key := []byte(keyString)
 
-		trie.Put(key, value)
+		tr.Put(key, value)
 
-		err := trie.WriteDirty(db)
+		err := tr.WriteDirty(db)
 		require.NoError(t, err)
 
-		rootHash := V0.MustHash(*trie)
+		rootHash := trie.V0.MustHash(tr)
 		valueFromDB, err := GetFromDB(db, rootHash, key)
 		require.NoError(t, err)
 		assert.Equalf(t, value, valueFromDB, "for key=%x", key)
 	}
 
-	err := trie.WriteDirty(db)
+	err := tr.WriteDirty(db)
 	require.NoError(t, err)
 
 	// Pick an existing key and replace its value
@@ -81,17 +82,17 @@ func Test_Trie_WriteDirty_Put(t *testing.T) {
 	newValue := make([]byte, len(existingValue))
 	copy(newValue, existingValue)
 	newValue = append(newValue, 99)
-	trie.Put(existingKey, newValue)
-	err = trie.WriteDirty(db)
+	tr.Put(existingKey, newValue)
+	err = tr.WriteDirty(db)
 	require.NoError(t, err)
 
-	rootHash := V0.MustHash(*trie)
+	rootHash := trie.V0.MustHash(tr)
 
 	// Verify the trie in database is also modified.
 	trieFromDB := NewEmptyTrie()
 	err = trieFromDB.Load(db, rootHash)
 	require.NoError(t, err)
-	require.Equal(t, trie.String(), trieFromDB.String())
+	require.Equal(t, tr.String(), trieFromDB.String())
 	value, err := GetFromDB(db, rootHash, existingKey)
 	require.NoError(t, err)
 	assert.Equal(t, newValue, value)
@@ -101,30 +102,30 @@ func Test_Trie_WriteDirty_Delete(t *testing.T) {
 	t.Parallel()
 
 	const size = 1000
-	trie, keyValues := makeSeededTrie(t, size)
+	tr, keyValues := makeSeededTrie(t, size)
 
 	generator := newGenerator()
 	keysToDelete := pickKeys(keyValues, generator, size/50)
 
 	db := newTestDB(t)
-	err := trie.WriteDirty(db)
+	err := tr.WriteDirty(db)
 	require.NoError(t, err)
 
 	deletedKeys := make(map[string]struct{}, len(keysToDelete))
 	for _, keyToDelete := range keysToDelete {
-		trie.Delete(keyToDelete)
-		err = trie.WriteDirty(db)
+		tr.Delete(keyToDelete)
+		err = tr.WriteDirty(db)
 		require.NoError(t, err)
 
 		deletedKeys[string(keyToDelete)] = struct{}{}
 	}
 
-	rootHash := V0.MustHash(*trie)
+	rootHash := trie.V0.MustHash(tr)
 
 	trieFromDB := NewEmptyTrie()
 	err = trieFromDB.Load(db, rootHash)
 	require.NoError(t, err)
-	require.Equal(t, trie.String(), trieFromDB.String())
+	require.Equal(t, tr.String(), trieFromDB.String())
 
 	for keyString, expectedValue := range keyValues {
 		if _, deleted := deletedKeys[keyString]; deleted {
@@ -142,27 +143,27 @@ func Test_Trie_WriteDirty_ClearPrefix(t *testing.T) {
 	t.Parallel()
 
 	const size = 2000
-	trie, keyValues := makeSeededTrie(t, size)
+	tr, keyValues := makeSeededTrie(t, size)
 
 	generator := newGenerator()
 	keysToClearPrefix := pickKeys(keyValues, generator, size/50)
 
 	db := newTestDB(t)
-	err := trie.WriteDirty(db)
+	err := tr.WriteDirty(db)
 	require.NoError(t, err)
 
 	for _, keyToClearPrefix := range keysToClearPrefix {
-		trie.ClearPrefix(keyToClearPrefix)
-		err = trie.WriteDirty(db)
+		tr.ClearPrefix(keyToClearPrefix)
+		err = tr.WriteDirty(db)
 		require.NoError(t, err)
 	}
 
-	rootHash := V0.MustHash(*trie)
+	rootHash := trie.V0.MustHash(tr)
 
 	trieFromDB := NewEmptyTrie()
 	err = trieFromDB.Load(db, rootHash)
 	require.NoError(t, err)
-	assert.Equal(t, trie.String(), trieFromDB.String())
+	assert.Equal(t, tr.String(), trieFromDB.String())
 }
 
 func Test_PopulateNodeHashes(t *testing.T) {
@@ -182,7 +183,7 @@ func Test_PopulateNodeHashes(t *testing.T) {
 	)
 
 	testCases := map[string]struct {
-		node       *Node
+		node       *node.Node
 		nodeHashes map[common.Hash]struct{}
 		panicValue interface{}
 	}{
@@ -190,32 +191,32 @@ func Test_PopulateNodeHashes(t *testing.T) {
 			nodeHashes: map[common.Hash]struct{}{},
 		},
 		"inlined_leaf_node": {
-			node:       &Node{MerkleValue: []byte("a")},
+			node:       &node.Node{MerkleValue: []byte("a")},
 			nodeHashes: map[common.Hash]struct{}{},
 		},
 		"leaf_node": {
-			node: &Node{MerkleValue: merkleValue32Zeroes.ToBytes()},
+			node: &node.Node{MerkleValue: merkleValue32Zeroes.ToBytes()},
 			nodeHashes: map[common.Hash]struct{}{
 				merkleValue32Zeroes: {},
 			},
 		},
 		"leaf_node_without_Merkle_value": {
-			node:       &Node{PartialKey: []byte{1}, StorageValue: []byte{2}},
+			node:       &node.Node{PartialKey: []byte{1}, StorageValue: []byte{2}},
 			panicValue: "node with partial key 0x01 has no Merkle value computed",
 		},
 		"inlined_branch_node": {
-			node: &Node{
+			node: &node.Node{
 				MerkleValue: []byte("a"),
-				Children: padRightChildren([]*Node{
+				Children: padRightChildren([]*node.Node{
 					{MerkleValue: []byte("b")},
 				}),
 			},
 			nodeHashes: map[common.Hash]struct{}{},
 		},
 		"branch_node": {
-			node: &Node{
+			node: &node.Node{
 				MerkleValue: merkleValue32Zeroes.ToBytes(),
-				Children: padRightChildren([]*Node{
+				Children: padRightChildren([]*node.Node{
 					{MerkleValue: merkleValue32Ones.ToBytes()},
 				}),
 			},
@@ -225,13 +226,13 @@ func Test_PopulateNodeHashes(t *testing.T) {
 			},
 		},
 		"nested_branch_node": {
-			node: &Node{
+			node: &node.Node{
 				MerkleValue: merkleValue32Zeroes.ToBytes(),
-				Children: padRightChildren([]*Node{
+				Children: padRightChildren([]*node.Node{
 					{MerkleValue: merkleValue32Ones.ToBytes()},
 					{
 						MerkleValue: merkleValue32Twos.ToBytes(),
-						Children: padRightChildren([]*Node{
+						Children: padRightChildren([]*node.Node{
 							{MerkleValue: merkleValue32Threes.ToBytes()},
 						}),
 					},
@@ -271,13 +272,13 @@ func Test_GetFromDB(t *testing.T) {
 	t.Parallel()
 
 	const size = 1000
-	trie, keyValues := makeSeededTrie(t, size)
+	tr, keyValues := makeSeededTrie(t, size)
 
 	db := newTestDB(t)
-	err := trie.WriteDirty(db)
+	err := tr.WriteDirty(db)
 	require.NoError(t, err)
 
-	root := V0.MustHash(*trie)
+	root := trie.V0.MustHash(tr)
 
 	for keyString, expectedValue := range keyValues {
 		key := []byte(keyString)
@@ -292,7 +293,7 @@ func Test_GetFromDB_EmptyHash(t *testing.T) {
 
 	db := newTestDB(t)
 
-	value, err := GetFromDB(db, EmptyHash, []byte("test"))
+	value, err := GetFromDB(db, trie.EmptyHash, []byte("test"))
 	assert.NoError(t, err)
 	assert.Nil(t, value)
 }

@@ -24,7 +24,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	"github.com/ChainSafe/gossamer/pkg/trie/proof"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory/proof"
 	"github.com/tetratelabs/wazero/api"
 )
 
@@ -51,8 +52,8 @@ func newPointerSize(ptr, size uint32) (pointerSize uint64) {
 
 // splitPointerSize converts a 64bit pointer size to an
 // uint32 pointer and a uint32 size.
-func splitPointerSize(pointerSize uint64) (ptr, size uint32) {
-	return uint32(pointerSize), uint32(pointerSize >> 32)
+func splitPointerSize(pointerSize uint64) (ptr uint32, size uint64) {
+	return uint32(pointerSize), pointerSize >> 32
 }
 
 // read will read from 64 bit pointer size and return a byte slice
@@ -811,7 +812,7 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 		return 0
 	}
 
-	hash, err := stateVersion.Root(entries)
+	hash, err := stateVersion.Root(inmemory_trie.NewEmptyTrie(), entries)
 	if err != nil {
 		logger.Errorf("failed computing trie Merkle root hash: %s", err)
 		return 0
@@ -874,7 +875,7 @@ func ext_trie_blake2_256_ordered_root_version_2(
 		return 0
 	}
 
-	hash, err := stateVersion.Root(entries)
+	hash, err := stateVersion.Root(inmemory_trie.NewEmptyTrie(), entries)
 	if err != nil {
 		logger.Errorf("failed computing trie Merkle root hash: %s", err)
 		return 0
@@ -1241,17 +1242,12 @@ func ext_default_child_storage_root_version_1(
 		panic("nil runtime context")
 	}
 	storage := rtCtx.Storage
-	child, err := storage.GetChild(read(m, childStorageKey))
-	if err != nil {
-		logger.Errorf("failed to retrieve child: %s", err)
-		return 0
-	}
-
-	childRoot, err := trie.V0.Hash(child)
+	childRoot, err := storage.GetChildRoot(read(m, childStorageKey))
 	if err != nil {
 		logger.Errorf("failed to encode child root: %s", err)
 		return 0
 	}
+
 	childRootSlice := childRoot[:]
 
 	ret, err := write(m, rtCtx.Allocator, scale.MustMarshal(&childRootSlice))
@@ -1270,19 +1266,8 @@ func ext_default_child_storage_root_version_2(ctx context.Context, m api.Module,
 	}
 	storage := rtCtx.Storage
 	key := read(m, childStorageKey)
-	child, err := storage.GetChild(key)
-	if err != nil {
-		logger.Errorf("failed to retrieve child: %s", err)
-		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
-	}
 
-	stateVersion, err := trie.ParseVersion(uint8(version))
-	if err != nil {
-		logger.Errorf("failed parsing state version: %s", err)
-		return 0
-	}
-
-	childRoot, err := stateVersion.Hash(child)
+	childRoot, err := storage.GetChildRoot(key)
 	if err != nil {
 		logger.Errorf("failed to encode child root: %s", err)
 		return mustWrite(m, rtCtx.Allocator, emptyByteVectorEncoded)
@@ -2265,7 +2250,7 @@ func ext_storage_read_version_1(ctx context.Context, m api.Module, keySpan, valu
 
 	var written uint
 	valueOutPtr, valueOutSize := splitPointerSize(valueOut)
-	if uint32(len(data)) <= valueOutSize {
+	if uint64(len(data)) <= valueOutSize {
 		written = uint(len(data))
 	} else {
 		written = uint(valueOutSize)

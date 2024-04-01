@@ -668,7 +668,7 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 	state2test.UseMemDB()
 
 	state2test.Transaction = state.NewTransactionState(telemetryMock)
-	err := state2test.Initialise(&gen, &genesisHeader, &genesisTrie)
+	err := state2test.Initialise(&gen, &genesisHeader, genesisTrie)
 	require.NoError(t, err)
 
 	err = state2test.Start()
@@ -729,7 +729,7 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 
 	state2test.Transaction = state.NewTransactionState(telemetryMock)
 
-	err := state2test.Initialise(&gen, &genesisHeader, &genesisTrie)
+	err := state2test.Initialise(&gen, &genesisHeader, genesisTrie)
 	require.NoError(t, err)
 
 	err = state2test.Start()

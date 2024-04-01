@@ -12,9 +12,10 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	"github.com/ChainSafe/gossamer/pkg/trie/proof"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory/proof"
 )
 
 // storagePrefix storage key prefix.
@@ -28,8 +29,8 @@ func errTrieDoesNotExist(hash common.Hash) error {
 	return fmt.Errorf("%w: %s", ErrTrieDoesNotExist, hash)
 }
 
-// StorageState is the struct that holds the trie, db and lock
-type StorageState struct {
+// InmemoryStorageState is the struct that holds the trie, db and lock
+type InmemoryStorageState struct {
 	blockState *BlockState
 	tries      *Tries
 
@@ -45,10 +46,10 @@ type StorageState struct {
 // NewStorageState creates a new StorageState backed by the given block state
 // and database located at basePath.
 func NewStorageState(db database.Database, blockState *BlockState,
-	tries *Tries) (*StorageState, error) {
+	tries *Tries) (*InmemoryStorageState, error) {
 	storageTable := database.NewTable(db, storagePrefix)
 
-	return &StorageState{
+	return &InmemoryStorageState{
 		blockState:   blockState,
 		tries:        tries,
 		db:           storageTable,
@@ -58,7 +59,7 @@ func NewStorageState(db database.Database, blockState *BlockState,
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
-func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
+func (s *InmemoryStorageState) StoreTrie(ts *storage.TrieState, header *types.Header) error {
 	root := ts.MustRoot()
 	s.tries.softSet(root, ts.Trie())
 
@@ -76,9 +77,12 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 
 	logger.Tracef("cached trie in storage state: %s", root)
 
-	if err := ts.Trie().WriteDirty(s.db); err != nil {
-		logger.Warnf("failed to write trie with root %s to database: %s", root, err)
-		return err
+	// TODO: all trie related db operations should be done in pkg/trie
+	if inmemoryTrie, ok := ts.Trie().(*inmemory_trie.InMemoryTrie); ok {
+		if err := inmemoryTrie.WriteDirty(s.db); err != nil {
+			logger.Warnf("failed to write trie with root %s to database: %s", root, err)
+			return err
+		}
 	}
 
 	go s.notifyAll(root)
@@ -87,7 +91,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 
 // TrieState returns the TrieState for a given state root.
 // If no state root is provided, it returns the TrieState for the current chain head.
-func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error) {
+func (s *InmemoryStorageState) TrieState(root *common.Hash) (*storage.TrieState, error) {
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
@@ -109,16 +113,18 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		panic("trie does not have expected root")
 	}
 
-	nextTrie := t.Snapshot()
-	next := rtstorage.NewTrieState(nextTrie)
+	// TODO: do we really need to create an snapshot here if TrieState handles
+	// the modifications?
+	nextTrie := t.(*inmemory_trie.InMemoryTrie).Snapshot()
+	next := storage.NewTrieState(nextTrie)
 
 	logger.Tracef("returning trie with root %s to be modified", root)
 	return next, nil
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
-func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
-	t := trie.NewTrie(nil, s.db)
+func (s *InmemoryStorageState) LoadFromDB(root common.Hash) (trie.Trie, error) {
+	t := inmemory_trie.NewTrie(nil, s.db)
 	err := t.Load(s.db, root)
 	if err != nil {
 		return nil, err
@@ -128,7 +134,7 @@ func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
 	return t, nil
 }
 
-func (s *StorageState) loadTrie(root *common.Hash) (*trie.Trie, error) {
+func (s *InmemoryStorageState) loadTrie(root *common.Hash) (trie.Trie, error) {
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
@@ -152,14 +158,14 @@ func (s *StorageState) loadTrie(root *common.Hash) (*trie.Trie, error) {
 
 // ExistsStorage check if the key exists in the storage trie with the given storage hash
 // If no hash is provided, the current chain head is used
-func (s *StorageState) ExistsStorage(root *common.Hash, key []byte) (bool, error) {
+func (s *InmemoryStorageState) ExistsStorage(root *common.Hash, key []byte) (bool, error) {
 	val, err := s.GetStorage(root, key)
 	return val != nil, err
 }
 
 // GetStorage gets the object from the trie using the given key and storage hash
 // If no hash is provided, the current chain head is used
-func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error) {
+func (s *InmemoryStorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error) {
 	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
@@ -174,11 +180,11 @@ func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error)
 		return val, nil
 	}
 
-	return trie.GetFromDB(s.db, *root, key)
+	return inmemory_trie.GetFromDB(s.db, *root, key)
 }
 
 // GetStorageByBlockHash returns the value at the given key at the given block hash
-func (s *StorageState) GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]byte, error) {
+func (s *InmemoryStorageState) GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]byte, error) {
 	var (
 		root common.Hash
 		err  error
@@ -202,7 +208,7 @@ func (s *StorageState) GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]
 }
 
 // GetStateRootFromBlock returns the state root hash of a given block hash
-func (s *StorageState) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
+func (s *InmemoryStorageState) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
 	if bhash == nil {
 		b := s.blockState.BestBlockHash()
 		bhash = &b
@@ -217,12 +223,12 @@ func (s *StorageState) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, 
 }
 
 // StorageRoot returns the root hash of the current storage trie
-func (s *StorageState) StorageRoot() (common.Hash, error) {
+func (s *InmemoryStorageState) StorageRoot() (common.Hash, error) {
 	return s.blockState.BestBlockStateRoot()
 }
 
 // Entries returns Entries from the trie with the given state root
-func (s *StorageState) Entries(root *common.Hash) (map[string][]byte, error) {
+func (s *InmemoryStorageState) Entries(root *common.Hash) (map[string][]byte, error) {
 	tr, err := s.loadTrie(root)
 	if err != nil {
 		return nil, err
@@ -233,7 +239,7 @@ func (s *StorageState) Entries(root *common.Hash) (map[string][]byte, error) {
 
 // GetKeysWithPrefix returns all that match the given prefix for the given hash
 // (or best block state root if hash is nil) in lexicographic order
-func (s *StorageState) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error) {
+func (s *InmemoryStorageState) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error) {
 	tr, err := s.loadTrie(root)
 	if err != nil {
 		return nil, err
@@ -243,7 +249,7 @@ func (s *StorageState) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]
 }
 
 // GetStorageChild returns a child trie, if it exists
-func (s *StorageState) GetStorageChild(root *common.Hash, keyToChild []byte) (*trie.Trie, error) {
+func (s *InmemoryStorageState) GetStorageChild(root *common.Hash, keyToChild []byte) (trie.Trie, error) {
 	tr, err := s.loadTrie(root)
 	if err != nil {
 		return nil, err
@@ -253,7 +259,7 @@ func (s *StorageState) GetStorageChild(root *common.Hash, keyToChild []byte) (*t
 }
 
 // GetStorageFromChild get a value from a child trie
-func (s *StorageState) GetStorageFromChild(root *common.Hash, keyToChild, key []byte) ([]byte, error) {
+func (s *InmemoryStorageState) GetStorageFromChild(root *common.Hash, keyToChild, key []byte) ([]byte, error) {
 	tr, err := s.loadTrie(root)
 	if err != nil {
 		return nil, err
@@ -263,12 +269,12 @@ func (s *StorageState) GetStorageFromChild(root *common.Hash, keyToChild, key []
 }
 
 // LoadCode returns the runtime code (located at :code)
-func (s *StorageState) LoadCode(hash *common.Hash) ([]byte, error) {
+func (s *InmemoryStorageState) LoadCode(hash *common.Hash) ([]byte, error) {
 	return s.GetStorage(hash, codeKey)
 }
 
 // LoadCodeHash returns the hash of the runtime code (located at :code)
-func (s *StorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
+func (s *InmemoryStorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
 	code, err := s.LoadCode(hash)
 	if err != nil {
 		return common.NewHash([]byte{}), err
@@ -278,7 +284,7 @@ func (s *StorageState) LoadCodeHash(hash *common.Hash) (common.Hash, error) {
 }
 
 // GenerateTrieProof returns the proofs related to the keys on the state root trie
-func (s *StorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) (
+func (s *InmemoryStorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) (
 	encodedProofNodes [][]byte, err error) {
 	return proof.Generate(stateRoot[:], keys, s.db)
 }

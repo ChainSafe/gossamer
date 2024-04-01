@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"math/bits"
 
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -37,7 +38,7 @@ const (
 	MaxPossibleAllocations uint32 = 33554432
 
 	PageSize     = 65536
-	MaxWasmPages = (4 * 1024 * 1024 * 1024 / PageSize) - 1
+	MaxWasmPages = 4 * 1024 * 1024 * 1024 / PageSize
 )
 
 var (
@@ -58,6 +59,10 @@ var (
 		Help: "the amount of address space (in bytes) used by the allocator this is calculated as " +
 			"the difference between the allocator's bumper and the heap base.",
 	})
+
+	logger = log.NewFromGlobal(
+		log.AddContext("pkg", "runtime-allocator"),
+	)
 )
 
 var (
@@ -332,7 +337,7 @@ type FreeingBumpHeapAllocator struct {
 	bumper                 uint32
 	freeLists              *FreeLists
 	poisoned               bool
-	lastObservedMemorySize uint32
+	lastObservedMemorySize uint64
 	stats                  AllocationStats
 }
 
@@ -393,7 +398,7 @@ func (f *FreeingBumpHeapAllocator) Allocate(mem runtime.Memory, size uint32) (pt
 	link := f.freeLists.heads[order]
 	switch value := link.(type) {
 	case Ptr:
-		if uint64(value.headerPtr)+uint64(order.size())+uint64(HeaderSize) > uint64(mem.Size()) {
+		if uint64(value.headerPtr)+uint64(order.size())+uint64(HeaderSize) > mem.Size() {
 			return 0, fmt.Errorf("%w: pointer: %d, order size: %d",
 				ErrInvalidHeaderPointerDetected, value.headerPtr, order.size())
 		}
@@ -505,16 +510,15 @@ func (f *FreeingBumpHeapAllocator) Deallocate(mem runtime.Memory, ptr uint32) (e
 func bump(bumper *uint32, size uint32, mem runtime.Memory) (uint32, error) {
 	requiredSize := uint64(*bumper) + uint64(size)
 
-	if requiredSize > uint64(mem.Size()) {
+	if requiredSize > mem.Size() {
 		requiredPages, ok := pagesFromSize(requiredSize)
 		if !ok {
-			return 0, fmt.Errorf("%w: required size %d dont fit uint32",
-				ErrAllocatorOutOfSpace, requiredSize)
+			return 0, fmt.Errorf("%w: cannot calculate number of pages from size %d", ErrAllocatorOutOfSpace, requiredSize)
 		}
 
-		currentPages := mem.Size() / PageSize
-		if currentPages >= requiredPages {
-			panic(fmt.Sprintf("current pages %d >= required pages %d", currentPages, requiredPages))
+		currentPages, ok := pagesFromSize(mem.Size())
+		if !ok {
+			panic(fmt.Sprintf("page size cannot fit into uint32, current memory size: %d", mem.Size()))
 		}
 
 		if currentPages >= MaxWasmPages {
@@ -539,9 +543,9 @@ func bump(bumper *uint32, size uint32, mem runtime.Memory) (uint32, error) {
 				ErrCannotGrowLinearMemory, currentPages, nextPages)
 		}
 
-		pagesIncrease := (mem.Size() / PageSize) == nextPages
+		pagesIncrease := (mem.Size() / PageSize) == uint64(nextPages)
 		if !pagesIncrease {
-			panic(fmt.Sprintf("number of pages should have increased! previous: %d, desired: %d", currentPages, nextPages))
+			logger.Errorf("number of pages should have increased! previous: %d, desired: %d", currentPages, nextPages)
 		}
 	}
 
@@ -553,7 +557,7 @@ func bump(bumper *uint32, size uint32, mem runtime.Memory) (uint32, error) {
 // pagesFromSize convert the given `size` in bytes into the number of pages.
 // The returned number of pages is ensured to be big enough to hold memory
 // with the given `size`.
-// Returns false if the number of pages do not fit into `uint32`
+// Returns false if the number of pages does not fit into `uint32`
 func pagesFromSize(size uint64) (uint32, bool) {
 	value := (size + uint64(PageSize) - 1) / uint64(PageSize)
 
