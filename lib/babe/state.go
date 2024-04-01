@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -58,19 +57,18 @@ type TransactionState interface {
 
 // EpochState is the interface for epoch methods
 type EpochState interface {
-	GetEpochLength() (uint64, error)
+	GetEpochLength() uint64
 	GetSlotDuration() (time.Duration, error)
-	SetCurrentEpoch(epoch uint64) error
+	StoreCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
 
-	GetGenesisEpochDescriptor() *state.GenesisEpochDescriptor
 	GetEpochDataRaw(epoch uint64, header *types.Header) (*types.EpochDataRaw, error)
 	GetConfigData(epoch uint64, header *types.Header) (*types.ConfigData, error)
 
 	GetLatestConfigData() (*types.ConfigData, error)
+	GetEpochFromTime(t time.Time, blockHash common.Hash) (uint64, error)
 	GetStartSlotForEpoch(epoch uint64, bestBlockHash common.Hash) (uint64, error)
 	GetEpochForBlock(header *types.Header) (uint64, error)
-	SetFirstSlot(slot uint64) error
 	GetLatestEpochDataRaw() (*types.EpochDataRaw, error)
 	SkipVerify(*types.Header) (bool, error)
 }

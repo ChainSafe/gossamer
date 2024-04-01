@@ -21,29 +21,27 @@ var (
 
 type epochHandler struct {
 	slotHandler slotHandler
-	epochNumber uint64
-	firstSlot   uint64
-
-	constants constants
-	epochData *epochData
+	descriptor  *EpochDescriptor
+	constants   constants
 
 	slotToPreRuntimeDigest map[uint64]*types.PreRuntimeDigest
 
 	handleSlot handleSlotFunc
 }
 
-func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, constants constants,
+func newEpochHandler(epochDescriptor *EpochDescriptor, constants constants,
 	handleSlot handleSlotFunc, keypair *sr25519.Keypair) (*epochHandler, error) {
+
 	// determine which slots we'll be authoring in by pre-calculating VRF output
 	slotToPreRuntimeDigest := make(map[uint64]*types.PreRuntimeDigest, constants.epochLength)
-	for i := firstSlot; i < firstSlot+constants.epochLength; i++ {
-		preRuntimeDigest, err := claimSlot(epochNumber, i, epochData, keypair)
+	for i := epochDescriptor.startSlot; i < epochDescriptor.endSlot; i++ {
+		preRuntimeDigest, err := claimSlot(epochDescriptor.epoch, i, epochDescriptor.data, keypair)
 		if err == nil {
 			slotToPreRuntimeDigest[i] = preRuntimeDigest
 			continue
 		}
 
-		if errors.Is(err, errNotOurTurnToPropose) {
+		if errors.Is(err, errNotOurTurnToPropose) || errors.Is(err, errOverPrimarySlotThreshold) {
 			continue
 		}
 
@@ -51,11 +49,12 @@ func newEpochHandler(epochNumber, firstSlot uint64, epochData *epochData, consta
 	}
 
 	return &epochHandler{
+		// TODO: we should keep the last slot number from the previous epoch
+		// otherwise when calling newSlotHandler the lastSlot will be zero and
+		// not the last slot from the previous epoch
 		slotHandler:            newSlotHandler(constants.slotDuration),
-		epochNumber:            epochNumber,
-		firstSlot:              firstSlot,
+		descriptor:             epochDescriptor,
 		constants:              constants,
-		epochData:              epochData,
 		handleSlot:             handleSlot,
 		slotToPreRuntimeDigest: slotToPreRuntimeDigest,
 	}, nil
@@ -69,15 +68,15 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 
 	// if currSlot < h.firstSlot, it means we're at genesis and waiting for the first slot to arrive.
 	// we have to check it here to prevent int overflow.
-	if currSlot >= h.firstSlot && currSlot-h.firstSlot > h.constants.epochLength {
+	if currSlot >= h.descriptor.startSlot && currSlot-h.descriptor.startSlot > h.constants.epochLength {
 		logger.Warnf("attempted to start epoch that has passed: current slot=%d, start slot of epoch=%d",
-			currSlot, h.firstSlot,
+			currSlot, h.descriptor.startSlot,
 		)
 		errCh <- errEpochPast
 		return
 	}
 
-	logger.Debugf("authoring in %d slots in epoch %d", len(h.slotToPreRuntimeDigest), h.epochNumber)
+	logger.Debugf("authoring in %d slots in epoch %d", len(h.slotToPreRuntimeDigest), h.descriptor.epoch)
 
 	for {
 		currentSlot, err := h.slotHandler.waitForNextSlot(ctx)
@@ -92,7 +91,11 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 			continue
 		}
 
-		err = h.handleSlot(h.epochNumber, currentSlot, h.epochData.authorityIndex, preRuntimeDigest)
+		err = h.handleSlot(
+			h.descriptor.epoch,
+			currentSlot,
+			h.descriptor.data.authorityIndex,
+			preRuntimeDigest)
 		if err != nil {
 			logger.Warnf("failed to handle slot %d: %s", currentSlot.number, err)
 		}

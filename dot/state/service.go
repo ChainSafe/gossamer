@@ -22,18 +22,19 @@ var logger = log.NewFromGlobal(
 
 // Service is the struct that holds storage, block and network states
 type Service struct {
-	dbPath      string
-	logLvl      log.Level
-	db          database.Database
-	isMemDB     bool // set to true if using an in-memory database; only used for testing.
-	Base        *BaseState
-	Storage     *StorageState
-	Block       *BlockState
-	Transaction *TransactionState
-	Epoch       *EpochState
-	Grandpa     *GrandpaState
-	Slot        *SlotState
-	closeCh     chan interface{}
+	dbPath            string
+	logLvl            log.Level
+	db                database.Database
+	isMemDB           bool // set to true if using an in-memory database; only used for testing.
+	Base              *BaseState
+	Storage           *StorageState
+	Block             *BlockState
+	Transaction       *TransactionState
+	Epoch             *EpochState
+	Grandpa           *GrandpaState
+	Slot              *SlotState
+	closeCh           chan interface{}
+	genesisBABEConfig *types.BabeConfiguration
 
 	PrunerCfg pruner.Config
 	Telemetry Telemetry
@@ -45,11 +46,12 @@ type Service struct {
 
 // Config is the default configuration used by state service.
 type Config struct {
-	Path      string
-	LogLevel  log.Level
-	PrunerCfg pruner.Config
-	Telemetry Telemetry
-	Metrics   metrics.IntervalConfig
+	Path              string
+	LogLevel          log.Level
+	PrunerCfg         pruner.Config
+	Telemetry         Telemetry
+	Metrics           metrics.IntervalConfig
+	GenesisBABEConfig *types.BabeConfiguration
 }
 
 // NewService create a new instance of Service
@@ -57,15 +59,16 @@ func NewService(config Config) *Service {
 	logger.Patch(log.SetLevel(config.LogLevel))
 
 	return &Service{
-		dbPath:    config.Path,
-		logLvl:    config.LogLevel,
-		db:        nil,
-		isMemDB:   false,
-		Storage:   nil,
-		Block:     nil,
-		closeCh:   make(chan interface{}),
-		PrunerCfg: config.PrunerCfg,
-		Telemetry: config.Telemetry,
+		dbPath:            config.Path,
+		logLvl:            config.LogLevel,
+		db:                nil,
+		isMemDB:           false,
+		Storage:           nil,
+		Block:             nil,
+		closeCh:           make(chan interface{}),
+		PrunerCfg:         config.PrunerCfg,
+		Telemetry:         config.Telemetry,
+		genesisBABEConfig: config.GenesisBABEConfig,
 	}
 }
 
@@ -147,21 +150,7 @@ func (s *Service) Start() (err error) {
 	// create epoch and slot state
 	s.Slot = NewSlotState(s.db)
 
-	genesisHash := s.Block.GenesisHash()
-	trieState, err := s.Storage.TrieState(&genesisHash)
-
-	rt, err := s.CreateGenesisRuntime(trieState.Trie())
-	if err != nil {
-		return fmt.Errorf("creating runtime instance: %w", err)
-	}
-	defer rt.Stop()
-
-	babeCfg, err := s.loadBabeConfigurationFromRuntime(rt)
-	if err != nil {
-		return err
-	}
-
-	s.Epoch, err = NewEpochState(s.db, s.Block, babeCfg)
+	s.Epoch, err = NewEpochState(s.db, s.Block, s.genesisBABEConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create epoch state: %w", err)
 	}
@@ -209,7 +198,7 @@ func (s *Service) Rewind(toBlock uint) error {
 		return err
 	}
 
-	err = s.Epoch.SetCurrentEpoch(epoch)
+	err = s.Epoch.StoreCurrentEpoch(epoch)
 	if err != nil {
 		return err
 	}
@@ -312,7 +301,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, stateTrieVersion tr
 	}
 	logger.Debugf("skip BABE verification up to epoch %d", skipTo)
 
-	if err := epoch.SetCurrentEpoch(blockEpoch); err != nil {
+	if err := epoch.StoreCurrentEpoch(blockEpoch); err != nil {
 		return err
 	}
 

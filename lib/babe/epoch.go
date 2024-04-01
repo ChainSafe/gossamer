@@ -6,13 +6,15 @@ package babe
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
 type EpochDescriptor struct {
-	epochData *epochData
+	data      *epochData
+	epoch     uint64
 	startSlot uint64
 	endSlot   uint64
 }
@@ -21,14 +23,6 @@ type EpochDescriptor struct {
 // and stores updated EpochInfo in the database
 func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
 	logger.Debugf("initiating epoch %d", epoch)
-
-	// if epoch == 1, check that first slot is still set correctly
-	// ie. that the start slot of the network is the same as the slot number of block 1
-	// if epoch == 1 {
-	// 	if err := b.checkAndSetFirstSlot(); err != nil {
-	// 		return nil, fmt.Errorf("cannot check and set first slot: %w", err)
-	// 	}
-	// }
 
 	bestBlockHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
@@ -40,56 +34,63 @@ func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
 		return nil, fmt.Errorf("cannot get epoch data and start slot: %w", err)
 	}
 
-	startSlot, err := b.epochState.GetStartSlotForEpoch(epoch, bestBlockHeader.Hash())
+	skipped, diff, err := b.checkIfEpochSkipped(epoch, bestBlockHeader)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get start slot for epoch %d: %w", epoch, err)
+		return nil, fmt.Errorf("checking if epoch skipped: %w", err)
 	}
 
-	// if we're at genesis, we need to determine when the first slot of the network will be
-	// by checking when we will be able to produce block 1.
-	// note that this assumes there will only be one producer of block 1
-	if bestBlockHeader.Hash() == b.blockState.GenesisHash() {
-		startSlot, err = b.getFirstAuthoringSlot(epoch, epochData)
+	currentEpoch := epoch + diff
+	if skipped {
+		logger.Warnf("⏩ A total of %d epochs were skipped, from %d to %d",
+			diff, epoch, currentEpoch)
+	}
+
+	// if we're at genesis or epoch was skipped then we can estimate when the start
+	// slot of the epoch will start, the estimation is used to calculate the epoch end
+	if bestBlockHeader.Hash() == b.blockState.GenesisHash() || skipped {
+		startSlot, err := b.getFirstAuthoringSlot(epoch, epochData)
 		if err != nil {
 			return nil, fmt.Errorf("cannot get first authoring slot: %w", err)
 		}
 
-		logger.Debugf("estimated first slot as %d based on building block 1", startSlot)
+		logger.Debugf("estimated first slot as %d for epoch %d", startSlot, currentEpoch)
+		return &EpochDescriptor{
+			data:      epochData,
+			epoch:     currentEpoch,
+			startSlot: startSlot,
+			endSlot:   startSlot + b.constants.epochLength,
+		}, nil
+	}
 
-		// we are at genesis, set first slot by checking at which slot we will be able to produce block 1
-		if err = b.epochState.SetFirstSlot(startSlot); err != nil {
-			return nil, fmt.Errorf("cannot set first slot: %w", err)
-		}
+	startSlot, err := b.epochState.GetStartSlotForEpoch(currentEpoch, bestBlockHeader.Hash())
+	if err != nil {
+		return nil, fmt.Errorf("cannot get start slot for epoch %d: %w", epoch, err)
 	}
 
 	logger.Infof("initiating epoch %d with start slot %d", epoch, startSlot)
-	return epochData, nil
+	return &EpochDescriptor{
+		data:      epochData,
+		epoch:     currentEpoch,
+		startSlot: startSlot,
+		endSlot:   startSlot + b.constants.epochLength,
+	}, nil
 }
 
-// func (b *Service) checkAndSetFirstSlot() error {
-// 	firstSlot, err := b.epochState.GetStartSlotForEpoch(0)
-// 	if err != nil {
-// 		return fmt.Errorf("cannot set first slot: %w", err)
-// 	}
+var ErrEpochLowerThanExpected = errors.New("epoch lower than expected")
 
-// 	block, err := b.blockState.GetBlockByNumber(1)
-// 	if err != nil {
-// 		return fmt.Errorf("cannot get block with number 1: %w", err)
-// 	}
+func (b *Service) checkIfEpochSkipped(expectedCurrentEpoch uint64, bestBlock *types.Header) (skipped bool, diff uint64, err error) {
+	epochFromCurrentTime, err := b.epochState.GetEpochFromTime(time.Now(), bestBlock.Hash())
+	if err != nil {
+		return false, 0, fmt.Errorf("getting epoch from time: %w", err)
+	}
 
-// 	slot, err := types.GetSlotFromHeader(&block.Header)
-// 	if err != nil {
-// 		return fmt.Errorf("cannot get slot from header of block 1: %w", err)
-// 	}
+	if epochFromCurrentTime < expectedCurrentEpoch {
+		return false, 0, fmt.Errorf("%w: expected %d, got: %d",
+			ErrEpochLowerThanExpected, expectedCurrentEpoch, epochFromCurrentTime)
+	}
 
-// 	if slot != firstSlot {
-// 		if err := b.epochState.SetFirstSlot(slot); err != nil {
-// 			return fmt.Errorf("cannot set first slot for block 1: %w", err)
-// 		}
-// 	}
-
-// 	return nil
-//}
+	return epochFromCurrentTime > expectedCurrentEpoch, epochFromCurrentTime - expectedCurrentEpoch, nil
+}
 
 func (b *Service) getEpochData(epoch uint64, bestBlock *types.Header) (*epochData, error) {
 	currEpochData, err := b.epochState.GetEpochDataRaw(epoch, bestBlock)
@@ -146,7 +147,7 @@ func (b *Service) incrementEpoch() (uint64, error) {
 	}
 
 	next := epoch + 1
-	err = b.epochState.SetCurrentEpoch(next)
+	err = b.epochState.StoreCurrentEpoch(next)
 	if err != nil {
 		return 0, err
 	}
