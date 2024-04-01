@@ -15,9 +15,9 @@ Gossamer includes node implementations for major blockchains within the Polkadot
 
 ***Gossamer Docs*** is an evolving set of documents and resources to help you understand Gossamer, the Polkadot ecosystem, and how to build and run nodes using Gossamer. 
 
-- If you are new to Gossamer and the Polkadot ecosystem, we recommend starting with <a target="_blank" rel="noopener noreferrer" href="https://www.youtube.com/watch?v=nYkbYhM5Yfk">this video</a>  and then working your way through [General Resources](/getting-started/resources/general-resources/).
+- If you are new to Gossamer and the Polkadot ecosystem, we recommend starting with <a target="_blank" rel="noopener noreferrer" href="https://www.youtube.com/watch?v=nYkbYhM5Yfk">this video</a>  and then working your way through <a target="_blank">[General Resources](https://chainsafe.github.io/gossamer/getting-started/resources/general-resources/#welcome).
 
-- If you are already familiar with Gossamer and the Polkadot ecosystem, or you just want to dive in, head over to [Get Started](/getting-started/installation) to run your first node using Gossamer.
+- If you are already familiar with Gossamer and the Polkadot ecosystem, or you just want to dive in, head over to [Get Started](https://chainsafe.github.io/gossamer/getting-started/installation/) to run your first node using Gossamer.
 
 - If you are looking to build a node with Gossamer, learn how Gossamer can be used to build and run custom node implementations using Gossamer as a framework (keep reading).
 
@@ -25,9 +25,9 @@ Gossamer includes node implementations for major blockchains within the Polkadot
 
 Gossamer is a ***modular blockchain framework*** used to build and run nodes for different blockchain protocols within the Polkadot ecosystem.
 
-- The ***simplest*** way to use the framework is using the base node implementation with a custom configuration file (see [Configuration](/usage/configuration)).
+- The ***simplest*** way to use the framework is using the base node implementation with a custom configuration file (see [Configuration](https://chainsafe.github.io/gossamer/usage/configuration/)).
 
-- The ***more advanced***  way to use the framework is using the base node implementation with a compiled runtime and custom runtime imports (see [Import Runtime](/usage/import-runtime)). 
+- The ***more advanced***  way to use the framework is using the base node implementation with a compiled runtime and custom runtime imports (see [Import Runtime](https://chainsafe.github.io/gossamer/usage/import-runtime/)). 
 
 <!-- - The ***most advanced***  way to use the framework is building custom node services or a custom node implementation (see [Custom Services](./usage/custom-services)). -->
 
