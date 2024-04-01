@@ -46,7 +46,8 @@ func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
 	}
 
 	// if we're at genesis or epoch was skipped then we can estimate when the start
-	// slot of the epoch will start, the estimation is used to calculate the epoch end
+	// slot of the epoch will be, the estimation is used to calculate the epoch end
+	// TODO: check how substrate deals with these estimation
 	if bestBlockHeader.Hash() == b.blockState.GenesisHash() || skipped {
 		startSlot, err := b.getFirstAuthoringSlot(epoch, epochData)
 		if err != nil {
