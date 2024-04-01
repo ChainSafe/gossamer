@@ -24,7 +24,6 @@ type BlockState interface {
 	BestBlockHash() common.Hash
 	BestBlockHeader() (*types.Header, error)
 	AddBlock(*types.Block) error
-	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
 	GetHeader(common.Hash) (*types.Header, error)
 	GetBlockByNumber(blockNumber uint) (*types.Block, error)
 	GetBlockHashesBySlot(slot uint64) (blockHashes []common.Hash, err error)

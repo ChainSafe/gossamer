@@ -54,6 +54,14 @@ func (bs *BlockState) GetFinalisedHeader(round, setID uint64) (*types.Header, er
 	return header, nil
 }
 
+// GetRoundAndSetID returns the finalised round and setID
+func (bs *BlockState) GetRoundAndSetID() (uint64, uint64) {
+	bs.lock.Lock()
+	defer bs.lock.Unlock()
+
+	return bs.lastRound, bs.lastSetID
+}
+
 // GetFinalisedHash gets the finalised block header by round and setID
 func (bs *BlockState) GetFinalisedHash(round, setID uint64) (common.Hash, error) {
 	h, err := bs.db.Get(finalisedHashKey(round, setID))
@@ -119,6 +127,10 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	bs.lock.Lock()
 	defer bs.lock.Unlock()
 
+	if bs.IsPaused() {
+		return errors.New("blockstate service is paused")
+	}
+
 	has, err := bs.HasHeader(hash)
 	if err != nil {
 		return fmt.Errorf("could not check header for hash %s: %w", hash, err)
@@ -182,6 +194,8 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	}
 
 	bs.lastFinalised = hash
+	bs.lastRound = round
+	bs.lastSetID = setID
 
 	logger.Infof(
 		"🔨 finalised block #%d (%s), round %d, set id %d", header.Number, hash, round, setID)

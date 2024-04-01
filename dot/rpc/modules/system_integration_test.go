@@ -30,7 +30,7 @@ import (
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 )
 
 var (
@@ -330,7 +330,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 		Header: types.Header{
 			Number:     3,
 			ParentHash: chain.Block.BestBlockHash(),
-			StateRoot:  ts.MustRoot(trie.NoMaxInlineValueSize),
+			StateRoot:  ts.MustRoot(),
 			Digest:     digest,
 		},
 		Body: types.Body{},
@@ -353,8 +353,8 @@ func setupSystemModule(t *testing.T) *SystemModule {
 
 func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	// setup service
-	tt := trie.NewEmptyTrie()
-	rt := wazero_runtime.NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v0929, tt)
+	tt := inmemory_trie.NewEmptyTrie()
+	rt := wazero_runtime.NewTestInstance(t, runtime.WESTEND_RUNTIME_v0929, wazero_runtime.TestWithTrie(tt))
 	ks := keystore.NewGlobalKeystore()
 	t.Cleanup(func() {
 		rt.Stop()

@@ -46,7 +46,7 @@ func newTestSyncer(t *testing.T) *Service {
 	stateSrvc.UseMemDB()
 
 	gen, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(&gen, &genHeader, &genTrie)
+	err := stateSrvc.Initialise(&gen, &genHeader, genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()
@@ -61,7 +61,7 @@ func newTestSyncer(t *testing.T) *Service {
 	}
 
 	// initialise runtime
-	genState := rtstorage.NewTrieState(&genTrie)
+	genState := rtstorage.NewTrieState(genTrie)
 
 	rtCfg := wazero_runtime.Config{
 		Storage: genState,
@@ -75,7 +75,7 @@ func newTestSyncer(t *testing.T) *Service {
 		require.NoError(t, err)
 	}
 
-	rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
+	rtCfg.CodeHash, err = cfg.StorageState.(*state.InmemoryStorageState).LoadCodeHash(nil)
 	require.NoError(t, err)
 
 	instance, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
@@ -99,7 +99,7 @@ func newTestSyncer(t *testing.T) *Service {
 
 			stateSrvc.Block.StoreRuntime(block.Header.Hash(), instance)
 			logger.Debugf("imported block %s and stored state trie with root %s",
-				block.Header.Hash(), ts.MustRoot(trie.NoMaxInlineValueSize))
+				block.Header.Hash(), ts.MustRoot())
 			return nil
 		}).AnyTimes()
 	cfg.BlockImportHandler = blockImportHandler
@@ -137,7 +137,7 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 
 	parentHash := common.NewHash([]byte{0})
-	stateRoot := genesisTrie.MustHash(trie.NoMaxInlineValueSize)
+	stateRoot := genesisTrie.MustHash()
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
 	digest := types.NewDigest()

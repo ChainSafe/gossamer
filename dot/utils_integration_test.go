@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,7 +21,7 @@ func TestTrieSnapshot(t *testing.T) {
 	genRaw, err := genesis.NewGenesisFromJSONRaw(genRawFile)
 	require.NoError(t, err)
 
-	tri := trie.NewEmptyTrie()
+	tri := inmemory_trie.NewEmptyTrie()
 	key := []byte("key")
 	value := []byte("value")
 
@@ -36,13 +36,13 @@ func TestTrieSnapshot(t *testing.T) {
 	newTrie := tri.Snapshot()
 
 	// Get the Trie root hash for all the 3 tries.
-	tHash, err := tri.Hash(trie.NoMaxInlineValueSize)
+	tHash, err := tri.Hash()
 	require.NoError(t, err)
 
-	dcTrieHash, err := deepCopyTrie.Hash(trie.NoMaxInlineValueSize)
+	dcTrieHash, err := deepCopyTrie.Hash()
 	require.NoError(t, err)
 
-	newTrieHash, err := newTrie.Hash(trie.NoMaxInlineValueSize)
+	newTrieHash, err := newTrie.Hash()
 	require.NoError(t, err)
 
 	// Root hash for the 3 tries should be equal.
@@ -54,13 +54,13 @@ func TestTrieSnapshot(t *testing.T) {
 	newTrie.Put(key, value)
 
 	// Get the updated root hash of all tries.
-	tHash, err = tri.Hash(trie.NoMaxInlineValueSize)
+	tHash, err = tri.Hash()
 	require.NoError(t, err)
 
-	dcTrieHash, err = deepCopyTrie.Hash(trie.NoMaxInlineValueSize)
+	dcTrieHash, err = deepCopyTrie.Hash()
 	require.NoError(t, err)
 
-	newTrieHash, err = newTrie.Hash(trie.NoMaxInlineValueSize)
+	newTrieHash, err = newTrie.Hash()
 	require.NoError(t, err)
 
 	// Only the current trie should have a different root hash since it is updated.

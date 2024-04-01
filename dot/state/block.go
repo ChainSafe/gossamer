@@ -19,7 +19,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"golang.org/x/exp/slices"
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
@@ -58,8 +57,14 @@ type BlockState struct {
 	lock              sync.RWMutex
 	genesisHash       common.Hash
 	lastFinalised     common.Hash
+	lastRound         uint64
+	lastSetID         uint64
 	unfinalisedBlocks *hashToBlockMap
 	tries             *Tries
+
+	// State variables
+	pausedLock sync.RWMutex
+	pause      chan struct{}
 
 	// block notifiers
 	imported                       map[chan *types.Block]struct{}
@@ -84,6 +89,7 @@ func NewBlockState(db database.Database, trs *Tries, telemetry Telemetry) (*Bloc
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 		telemetry:                  telemetry,
+		pause:                      make(chan struct{}),
 	}
 
 	gh, err := bs.db.Get(headerHashKey(0))
@@ -119,6 +125,7 @@ func NewBlockStateFromGenesis(db database.Database, trs *Tries, header *types.He
 		genesisHash:                header.Hash(),
 		lastFinalised:              header.Hash(),
 		telemetry:                  telemetryMailer,
+		pause:                      make(chan struct{}),
 	}
 
 	if err := bs.setArrivalTime(header.Hash(), time.Now()); err != nil {
@@ -150,6 +157,29 @@ func NewBlockStateFromGenesis(db database.Database, trs *Tries, header *types.He
 	}
 
 	return bs, nil
+}
+
+// Pause pauses the service ie. halts block production
+func (bs *BlockState) Pause() error {
+	bs.pausedLock.Lock()
+	defer bs.pausedLock.Unlock()
+
+	if bs.IsPaused() {
+		return nil
+	}
+
+	close(bs.pause)
+	return nil
+}
+
+// IsPaused returns if the service is paused or not (ie. producing blocks)
+func (bs *BlockState) IsPaused() bool {
+	select {
+	case <-bs.pause:
+		return true
+	default:
+		return false
+	}
 }
 
 // encodeBlockNumber encodes a block number as big endian uint64
@@ -253,19 +283,20 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 
 // GetHashesByNumber returns the block hashes with the given number
 func (bs *BlockState) GetHashesByNumber(blockNumber uint) ([]common.Hash, error) {
-	block, err := bs.GetBlockByNumber(blockNumber)
-	if err != nil {
-		return nil, fmt.Errorf("getting block by number: %w", err)
+	inMemoryBlockHashes := bs.bt.GetHashesAtNumber(blockNumber)
+	if len(inMemoryBlockHashes) == 0 {
+		bh, err := bs.db.Get(headerHashKey(uint64(blockNumber)))
+		if err != nil {
+			if errors.Is(err, database.ErrNotFound) {
+				return []common.Hash{}, nil
+			}
+			return []common.Hash{}, fmt.Errorf("cannot get block by its number %d: %w", blockNumber, err)
+		}
+
+		return []common.Hash{common.NewHash(bh)}, nil
 	}
 
-	blockHashes := bs.bt.GetAllBlocksAtNumber(block.Header.ParentHash)
-
-	hash := block.Header.Hash()
-	if !slices.Contains(blockHashes, hash) {
-		blockHashes = append(blockHashes, hash)
-	}
-
-	return blockHashes, nil
+	return inMemoryBlockHashes, nil
 }
 
 // GetAllDescendants gets all the descendants for a given block hash (including itself), by first checking in memory
@@ -494,17 +525,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 
 // GetAllBlocksAtNumber returns all unfinalised blocks with the given number
 func (bs *BlockState) GetAllBlocksAtNumber(num uint) ([]common.Hash, error) {
-	header, err := bs.GetHeaderByNumber(num)
-	if err != nil {
-		return nil, err
-	}
-
-	return bs.GetAllBlocksAtDepth(header.ParentHash), nil
-}
-
-// GetAllBlocksAtDepth returns all hashes with the depth of the given hash plus one
-func (bs *BlockState) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
-	return bs.bt.GetAllBlocksAtNumber(hash)
+	return bs.bt.GetHashesAtNumber(num), nil
 }
 
 func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) {
@@ -880,7 +901,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		return fmt.Errorf("failed to update code substituted block hash: %w", err)
 	}
 
-	newVersion, err := parentRuntimeInstance.Version()
+	newVersion, err := instance.Version()
 	if err != nil {
 		return err
 	}

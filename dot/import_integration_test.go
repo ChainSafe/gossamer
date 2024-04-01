@@ -52,7 +52,7 @@ func Test_newTrieFromPairs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := newTrieFromPairs(tt.filename)
+			got, err := newTrieFromPairs(tt.filename, tt.stateVersion)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
@@ -61,7 +61,7 @@ func Test_newTrieFromPairs(t *testing.T) {
 			if tt.want.IsEmpty() {
 				assert.Nil(t, got)
 			} else {
-				assert.Equal(t, tt.want, tt.stateVersion.MustHash(*got))
+				assert.Equal(t, tt.want, tt.stateVersion.MustHash(got))
 			}
 		})
 	}

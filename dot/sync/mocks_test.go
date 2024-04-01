@@ -297,6 +297,34 @@ func (mr *MockBlockStateMockRecorder) IsDescendantOf(arg0, arg1 any) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsDescendantOf", reflect.TypeOf((*MockBlockState)(nil).IsDescendantOf), arg0, arg1)
 }
 
+// IsPaused mocks base method.
+func (m *MockBlockState) IsPaused() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsPaused")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsPaused indicates an expected call of IsPaused.
+func (mr *MockBlockStateMockRecorder) IsPaused() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsPaused", reflect.TypeOf((*MockBlockState)(nil).IsPaused))
+}
+
+// Pause mocks base method.
+func (m *MockBlockState) Pause() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Pause")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Pause indicates an expected call of Pause.
+func (mr *MockBlockStateMockRecorder) Pause() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pause", reflect.TypeOf((*MockBlockState)(nil).Pause))
+}
+
 // Range mocks base method.
 func (m *MockBlockState) Range(arg0, arg1 common.Hash) ([]common.Hash, error) {
 	m.ctrl.T.Helper()

@@ -16,12 +16,12 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/internal/mdns"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	libp2pnetwork "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -36,7 +36,8 @@ const (
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
 
-	maxMessageSize = 1024 * 64 // 64kb for now
+	maxMessageSize       = 1024 * 64 // 64kb for now
+	findPeerQueryTimeout = 10 * time.Second
 )
 
 var (
@@ -194,12 +195,12 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	serviceTag := string(host.protocolID)
-	notifee := mdns.NewNotifeeTracker(host.p2pHost.Peerstore(), host.cm.peerSetHandler)
+	notifee := NewNotifeeTracker(host.p2pHost.Peerstore(), host.cm.peerSetHandler)
 	mdnsLogger := log.NewFromGlobal(log.AddContext("module", "mdns"))
 	mdnsLogger.Debugf(
 		"Creating mDNS discovery service with host %s and protocol %s...",
 		host.id(), host.protocolID)
-	mdnsService := mdns.NewService(host.p2pHost, serviceTag, mdnsLogger, notifee)
+	mdnsService := mdns.NewMdnsService(host.p2pHost, serviceTag, notifee)
 
 	network := &Service{
 		ctx:                    ctx,
@@ -291,11 +292,12 @@ func (s *Service) Start() error {
 
 	// this handles all new connections (incoming and outgoing)
 	// it creates a per-protocol mutex for sending outbound handshakes to the peer
+	// connectHandler is a part of libp2p.Notifiee interface implementation and getting called in the very end
+	// after or Incoming or Outgoing node is connected.
 	s.host.cm.connectHandler = func(peerID peer.ID) {
 		for _, prtl := range s.notificationsProtocols {
 			prtl.peersData.setMutex(peerID)
 		}
-		// TODO: currently we only have one set so setID is 0, change this once we have more set in peerSet
 		const setID = 0
 		s.host.cm.peerSetHandler.Incoming(setID, peerID)
 	}
@@ -322,7 +324,8 @@ func (s *Service) Start() error {
 			return fmt.Errorf("starting mDNS service: %w", err)
 		}
 	}
-
+	// TODO: this is basically a hack that is used only in unit tests to disable kademilia dht.
+	// Should be replaced with a mock instead.
 	if !s.noDiscover {
 		go func() {
 			err = s.host.discovery.start()
@@ -467,7 +470,7 @@ func (s *Service) Stop() error {
 	s.cancel()
 
 	// close mDNS discovery service
-	err := s.mdns.Stop()
+	err := s.mdns.Close()
 	if err != nil {
 		logger.Errorf("Failed to close mDNS discovery service: %s", err)
 	}
@@ -694,6 +697,9 @@ func (s *Service) startPeerSetHandler() {
 	go s.startProcessingMsg()
 }
 
+// processMessage process messages from PeerSetHandler. Responsible for Connecting and Drop connection with peers.
+// When Connect message received function looking for a PeerAddr in Peerstore.
+// If address is not found in peerstore we are looking for a peer with DHT
 func (s *Service) processMessage(msg peerset.Message) {
 	peerID := msg.PeerID
 	if peerID == "" {
@@ -705,7 +711,9 @@ func (s *Service) processMessage(msg peerset.Message) {
 		addrInfo := s.host.p2pHost.Peerstore().PeerInfo(peerID)
 		if len(addrInfo.Addrs) == 0 {
 			var err error
-			addrInfo, err = s.host.discovery.findPeer(peerID)
+			ctx, cancel := context.WithTimeout(s.host.discovery.ctx, findPeerQueryTimeout)
+			defer cancel()
+			addrInfo, err = s.host.discovery.dht.FindPeer(ctx, peerID)
 			if err != nil {
 				logger.Warnf("failed to find peer id %s: %s", peerID, err)
 				return
@@ -714,6 +722,7 @@ func (s *Service) processMessage(msg peerset.Message) {
 
 		err := s.host.connect(addrInfo)
 		if err != nil {
+			// TODO: if error happens here outgoing (?) slot is occupied but no peer is really connected
 			logger.Warnf("failed to open connection for peer %s: %s", peerID, err)
 			return
 		}
@@ -728,6 +737,7 @@ func (s *Service) processMessage(msg peerset.Message) {
 	}
 }
 
+// startProcessingMsg function that listens to messages from the channel that belongs to PeerSet PeerSetHandler.
 func (s *Service) startProcessingMsg() {
 	msgCh := s.host.cm.peerSetHandler.Messages()
 	for {

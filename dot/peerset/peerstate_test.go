@@ -17,9 +17,9 @@ func TestFullSlotIn(t *testing.T) {
 
 	// initially peer1 state will be unknownPeer.
 	require.Equal(t, unknownPeer, state.peerStatus(0, peer1))
-	// discover peer1
-	state.discover(0, peer1)
-	// peer1 state will change from unknownPeer to notConnectedPeer, once we tried to discover it.
+	// insertPeer peer1
+	state.insertPeer(0, peer1)
+	// peer1 state will change from unknownPeer to notConnectedPeer, once we tried to insertPeer it.
 	require.Equal(t, notConnectedPeer, state.peerStatus(0, peer1))
 	// try to make peer1 as an incoming connection.
 	err := state.tryAcceptIncoming(0, peer1)
@@ -30,8 +30,8 @@ func TestFullSlotIn(t *testing.T) {
 
 	// initially peer2 state will be unknownPeer.
 	require.Equal(t, unknownPeer, state.peerStatus(0, peer2))
-	// discover peer2
-	state.discover(0, peer2)
+	// insertPeer peer2
+	state.insertPeer(0, peer2)
 	// try to make peer2 as an incoming connection.
 	err = state.tryAcceptIncoming(0, peer2)
 	// peer2 will not be accepted as incoming connection, as we only have one incoming connection slot ingoing peerState.
@@ -50,8 +50,8 @@ func TestNoSlotNodeDoesntOccupySlot(t *testing.T) {
 
 	// initially peer1 state will be unknownPeer.
 	require.Equal(t, unknownPeer, state.peerStatus(0, peer1))
-	// discover peer1
-	state.discover(0, peer1)
+	// insertPeer peer1
+	state.insertPeer(0, peer1)
 	// peer1 will become an incoming connection.
 	err = state.tryAcceptIncoming(0, peer1)
 	require.NoError(t, err)
@@ -63,9 +63,9 @@ func TestNoSlotNodeDoesntOccupySlot(t *testing.T) {
 
 	// initially peer2 state will be unknownPeer.
 	require.Equal(t, unknownPeer, state.peerStatus(0, peer2))
-	// discover peer2
-	state.discover(0, peer2)
-	// peer2 state will change from unknownPeer to notConnectedPeer, once we tried to discover it.
+	// insertPeer peer2
+	state.insertPeer(0, peer2)
+	// peer2 state will change from unknownPeer to notConnectedPeer, once we tried to insertPeer it.
 	require.Equal(t, notConnectedPeer, state.peerStatus(0, peer2))
 
 	// try to accept peer2 as an incoming connection.
@@ -86,8 +86,8 @@ func TestDisconnectingFreeSlot(t *testing.T) {
 
 	// initially peer1 state will be unknownPeer.
 	require.Equal(t, unknownPeer, state.peerStatus(0, peer1))
-	// discover peer1
-	state.discover(0, peer1)
+	// insertPeer peer1
+	state.insertPeer(0, peer1)
 	err := state.tryAcceptIncoming(0, peer1) // try to make peer1 as an incoming connection.
 	require.NoError(t, err)
 	// peer1 is connected
@@ -95,9 +95,9 @@ func TestDisconnectingFreeSlot(t *testing.T) {
 
 	// initially peer2 state will be unknownPeer.
 	require.Equal(t, unknownPeer, state.peerStatus(0, peer2))
-	// discover peer2
-	state.discover(0, peer2)
-	// peer2 state will change from unknownPeer to notConnectedPeer, once we tried to discover it.
+	// insertPeer peer2
+	state.insertPeer(0, peer2)
+	// peer2 state will change from unknownPeer to notConnectedPeer, once we tried to insertPeer it.
 	require.Equal(t, notConnectedPeer, state.peerStatus(0, peer2))
 	// try to make peer2 as an incoming connection.
 	err = state.tryAcceptIncoming(0, peer2)
@@ -125,7 +125,7 @@ func TestDisconnectNoSlotDoesntPanic(t *testing.T) {
 
 	require.Equal(t, unknownPeer, state.peerStatus(0, peer1))
 
-	state.discover(0, peer1)
+	state.insertPeer(0, peer1)
 	err = state.tryOutgoing(0, peer1)
 	require.NoError(t, err)
 
@@ -147,7 +147,7 @@ func TestHighestNotConnectedPeer(t *testing.T) {
 
 	require.Equal(t, unknownPeer, state.peerStatus(0, peer1))
 
-	state.discover(0, peer1)
+	state.insertPeer(0, peer1)
 	n, err := state.getNode(peer1)
 	require.NoError(t, err)
 
@@ -158,7 +158,7 @@ func TestHighestNotConnectedPeer(t *testing.T) {
 
 	require.Equal(t, unknownPeer, state.peerStatus(0, peer2))
 
-	state.discover(0, peer2)
+	state.insertPeer(0, peer2)
 	n, err = state.getNode(peer2)
 	require.NoError(t, err)
 	n.reputation = 25

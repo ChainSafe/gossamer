@@ -47,6 +47,16 @@ type Entry struct{ Key, Value []byte }
 // Entries is a list of entry used to build a trie
 type Entries []Entry
 
+func NewEntriesFromMap(source map[string][]byte) Entries {
+	entries := Entries{}
+
+	for k, v := range source {
+		entries = append(entries, Entry{[]byte(k), v})
+	}
+
+	return entries
+}
+
 // String returns a string representation of trie version
 func (v TrieLayout) String() string {
 	switch v {
@@ -72,8 +82,10 @@ func (v TrieLayout) MaxInlineValue() int {
 }
 
 // Root returns the root hash of the trie built using the given entries
-func (v TrieLayout) Root(entries Entries) (common.Hash, error) {
-	t := NewEmptyTrie()
+func (v TrieLayout) Root(t Trie, entries Entries) (common.Hash, error) {
+	// TODO: is there any way to calculate the hash without building a trie?
+	// Eg: https://github.com/paritytech/trie/blob/542829a8195c12b67eef05e9020ec7a6d9313c3f/trie-root/src/lib.rs#L273-L388
+	t.SetVersion(v)
 
 	for _, kv := range entries {
 		err := t.Put(kv.Key, kv.Value)
@@ -82,26 +94,28 @@ func (v TrieLayout) Root(entries Entries) (common.Hash, error) {
 		}
 	}
 
-	return t.Hash(v.MaxInlineValue())
+	return t.Hash()
 }
 
 // Hash returns the root hash of the trie built using the given entries
-func (v TrieLayout) Hash(t *Trie) (common.Hash, error) {
-	return t.Hash(v.MaxInlineValue())
+func (v TrieLayout) Hash(t Trie) (common.Hash, error) {
+	t.SetVersion(v)
+	return t.Hash()
 }
 
 // MustHash returns the root hash of the trie built using the given entries or panics if it fails
 func (v TrieLayout) MustHash(t Trie) common.Hash {
-	return t.MustHash(v.MaxInlineValue())
+	t.SetVersion(v)
+	return t.MustHash()
 }
 
 // ParseVersion parses a state trie version string.
-func ParseVersion[T string | uint32](v T) (version TrieLayout, err error) {
+func ParseVersion[T string | uint8](v T) (version TrieLayout, err error) {
 	var s string
 	switch value := any(v).(type) {
 	case string:
 		s = value
-	case uint32:
+	case uint8:
 		s = fmt.Sprintf("V%d", value)
 	}
 

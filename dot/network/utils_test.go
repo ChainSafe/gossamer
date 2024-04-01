@@ -65,7 +65,7 @@ func TestStringToAddrInfo(t *testing.T) {
 	for _, str := range TestPeers {
 		pi, err := stringToAddrInfo(str)
 		require.NoError(t, err)
-		require.Equal(t, pi.ID.Pretty(), str[len(str)-46:])
+		require.Equal(t, pi.ID.String(), str[len(str)-46:])
 	}
 }
 
@@ -74,7 +74,7 @@ func TestStringsToAddrInfos(t *testing.T) {
 	require.NoError(t, err)
 
 	for k, pi := range pi {
-		require.Equal(t, pi.ID.Pretty(), TestPeers[k][len(TestPeers[k])-46:])
+		require.Equal(t, pi.ID.String(), TestPeers[k][len(TestPeers[k])-46:])
 	}
 }
 
