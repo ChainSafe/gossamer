@@ -4,6 +4,8 @@
 package backing
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -11,6 +13,9 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/tidwall/btree"
 )
 
@@ -104,7 +109,8 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 			mode = leaf.prospectiveParachainsMode
 		}
 
-		rpState, err := constructPerRelayParentState(maybeNewRP, &cb.keystore, mode)
+		// construct a `PerRelayParent` from the runtime API and insert it.
+		rpState, err := constructPerRelayParentState(cb.BlockState, maybeNewRP, &cb.keystore, mode)
 		if err != nil {
 			return fmt.Errorf("constructing per relay parent state for relay-parent %s: %w", maybeNewRP, err)
 		}
@@ -211,37 +217,21 @@ func (cb *CandidateBacking) removeUnknownRelayParentsFromPerCandidate() {
 // for a given relay parent based on the Runtime API version.
 func getProspectiveParachainsMode(blockstate *state.BlockState, relayParent common.Hash,
 ) (*parachaintypes.ProspectiveParachainsMode, error) {
-	var isAsyncBackingSupported bool
-	// `ParachainHost` is the runtime api witch has the method to get the async backing params.
-	// and this api supports async backing from version 7.
-	apiNameHash := common.MustBlake2b8([]byte("ParachainHost"))
-	asyncBackingSupportVersion := uint32(7)
-
 	rt, err := blockstate.GetRuntime(relayParent)
 	if err != nil {
 		return nil, fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
 	}
 
-	currentVersion, err := rt.Version()
-	if err != nil {
-		return nil, fmt.Errorf("getting runtime version: %w", err)
-	}
-
-	// check if the current runtime api supports async backing
-	for _, api := range currentVersion.APIItems {
-		if api.Name == apiNameHash && api.Ver >= asyncBackingSupportVersion {
-			isAsyncBackingSupported = true
-			break
-		}
-	}
-
-	if !isAsyncBackingSupported {
-		logger.Tracef("async backing is not supported by the current Runtime API of the relay parent %s", relayParent)
-		return &parachaintypes.ProspectiveParachainsMode{IsEnabled: false}, nil
-	}
-
 	params, err := rt.ParachainHostAsyncBackingParams()
 	if err != nil {
+		if errors.Is(err, wazero_runtime.ErrExportFunctionNotFound) {
+			logger.Tracef(
+				"%s is not supported by the current Runtime API of the relay parent %s",
+				runtime.ParachainHostAsyncBackingParams, relayParent,
+			)
+
+			return &parachaintypes.ProspectiveParachainsMode{IsEnabled: false}, nil
+		}
 		return nil, fmt.Errorf("getting async backing params: %w", err)
 	}
 
@@ -254,11 +244,155 @@ func getProspectiveParachainsMode(blockstate *state.BlockState, relayParent comm
 	return &enabled, nil
 }
 
+// Load the data necessary to do backing work on top of a relay-parent.
 func constructPerRelayParentState(
+	blockstate *state.BlockState,
 	relayParent common.Hash,
 	keystore *keystore.Keystore,
 	mode parachaintypes.ProspectiveParachainsMode,
 ) (*perRelayParentState, error) {
 	// TODO: implement this
+
+	rt, err := blockstate.GetRuntime(relayParent)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
+	}
+
+	sessionIndex, validators, validatorGroups, cores, err := fetchParachainHostData(rt)
+	if err != nil {
+		return nil, fmt.Errorf("fetching parachain host data: %w", err)
+	}
+
 	return nil, nil
+}
+
+func fetchParachainHostData(rt runtime.Instance) (
+	*parachaintypes.SessionIndex,
+	[]parachaintypes.ValidatorID,
+	*parachaintypes.ValidatorGroups,
+	*scale.VaryingDataTypeSlice,
+	error,
+) {
+	var (
+		sessionIndex    parachaintypes.SessionIndex
+		validators      []parachaintypes.ValidatorID
+		validatorGroups *parachaintypes.ValidatorGroups
+		cores           *scale.VaryingDataTypeSlice
+	)
+
+	// Create a context with cancellation capability.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel() // Ensure cancellation happens when function returns.
+
+	// WaitGroup to wait for all goroutines to finish.
+	var wg sync.WaitGroup
+
+	// Error channel to receive errors from goroutines.
+	errCh := make(chan error)
+
+	// Start each goroutine with a separate function and wait for all of them to finish.
+	wg.Add(4)
+	go func() {
+		defer wg.Done()
+		select {
+		case <-ctx.Done(): // Check if context was canceled.
+			return
+		case sessionIndex = <-paraHostSessionIndexForChind(ctx, cancel, rt, errCh):
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		select {
+		case <-ctx.Done():
+			return
+		case validators = <-paraHostValidators(ctx, cancel, rt, errCh):
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		select {
+		case <-ctx.Done():
+			return
+		case validatorGroups = <-paraHostValidatorGroups(ctx, cancel, rt, errCh):
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		select {
+		case <-ctx.Done():
+			return
+		case cores = <-ParaHostAvailabilityCores(ctx, cancel, rt, errCh):
+		}
+	}()
+
+	// Wait for all goroutines to finish.
+	wg.Wait()
+
+	// If any goroutine encountered an error, return the error.
+	select {
+	case err := <-errCh:
+		return nil, nil, nil, nil, err
+	default:
+		return &sessionIndex, validators, validatorGroups, cores, nil
+	}
+}
+
+func paraHostSessionIndexForChind(ctx context.Context, cancel context.CancelFunc, rt runtime.Instance, errCh chan error) chan parachaintypes.SessionIndex {
+	sessionIndexCh := make(chan parachaintypes.SessionIndex)
+
+	go func() {
+		sessionIndex, err := rt.ParachainHostSessionIndexForChild()
+		if err != nil {
+			errCh <- fmt.Errorf("getting session index: %w", err)
+			cancel() // Cancel context to signal other goroutines to stop.
+			return
+		}
+		sessionIndexCh <- sessionIndex
+	}()
+	return sessionIndexCh
+}
+
+func paraHostValidators(ctx context.Context, cancel context.CancelFunc, rt runtime.Instance, errCh chan error) chan []parachaintypes.ValidatorID {
+	validatorsCh := make(chan []parachaintypes.ValidatorID)
+
+	go func() {
+		validators, err := rt.ParachainHostValidators()
+		if err != nil {
+			errCh <- fmt.Errorf("getting validators: %w", err)
+			cancel()
+			return
+		}
+		validatorsCh <- validators
+	}()
+	return validatorsCh
+}
+
+func paraHostValidatorGroups(ctx context.Context, cancel context.CancelFunc, rt runtime.Instance, errCh chan error) chan *parachaintypes.ValidatorGroups {
+	validatorGroupsCh := make(chan *parachaintypes.ValidatorGroups)
+
+	go func() {
+		validatorGroups, err := rt.ParachainHostValidatorGroups()
+		if err != nil {
+			errCh <- fmt.Errorf("getting validator groups: %w", err)
+			cancel()
+			return
+		}
+		validatorGroupsCh <- validatorGroups
+	}()
+	return validatorGroupsCh
+}
+
+func ParaHostAvailabilityCores(ctx context.Context, cancel context.CancelFunc, rt runtime.Instance, errCh chan error) chan *scale.VaryingDataTypeSlice {
+	coresCh := make(chan *scale.VaryingDataTypeSlice)
+
+	go func() {
+		cores, err := rt.ParachainHostAvailabilityCores()
+		if err != nil {
+			errCh <- fmt.Errorf("getting availability cores: %w", err)
+			cancel()
+			return
+		}
+		coresCh <- cores
+	}()
+	return coresCh
 }
