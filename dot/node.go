@@ -231,7 +231,21 @@ func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 // NewNode creates a node based on the given Config and key store.
 func NewNode(config *cfg.Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	serviceRegistryLogger := logger.New(log.AddContext("pkg", "services"))
-	return newNode(config, ks, &nodeBuilder{}, services.NewServiceRegistry(serviceRegistryLogger))
+
+	isInitialised, err := IsNodeInitialised(config.BasePath)
+	if err != nil {
+		return nil, fmt.Errorf("checking if node is initialised: %w", err)
+	}
+
+	builder := &nodeBuilder{}
+	if !isInitialised {
+		err := builder.initNode(config)
+		if err != nil {
+			return nil, fmt.Errorf("cannot initialise node: %w", err)
+		}
+	}
+
+	return newNode(config, ks, builder, services.NewServiceRegistry(serviceRegistryLogger))
 }
 
 func newNode(config *cfg.Config,
@@ -243,18 +257,6 @@ func newNode(config *cfg.Config,
 	prev := debug.SetGCPercent(10)
 	if prev != 100 {
 		debug.SetGCPercent(prev)
-	}
-
-	isInitialised, err := IsNodeInitialised(config.BasePath)
-	if err != nil {
-		return nil, fmt.Errorf("checking if node is initialised: %w", err)
-	}
-
-	if !isInitialised {
-		err := builder.initNode(config)
-		if err != nil {
-			return nil, fmt.Errorf("cannot initialise node: %w", err)
-		}
 	}
 
 	globalLogLevel, err := log.ParseLevel(config.LogLevel)
