@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	in_memory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 )
 
 var (
@@ -17,8 +18,7 @@ var (
 
 // NewTrieFromGenesis creates a new trie from the raw genesis data
 func NewTrieFromGenesis(gen genesis.Genesis) (tr trie.Trie, err error) {
-	triePtr := trie.NewEmptyTrie()
-	tr = *triePtr
+	tr = in_memory_trie.NewEmptyTrie()
 	genesisFields := gen.GenesisFields()
 	keyValues, ok := genesisFields.Raw["top"]
 	if !ok {
@@ -26,7 +26,7 @@ func NewTrieFromGenesis(gen genesis.Genesis) (tr trie.Trie, err error) {
 			ErrGenesisTopNotFound, gen.Name)
 	}
 
-	tr, err = trie.LoadFromMap(keyValues, trie.V0)
+	tr, err = in_memory_trie.LoadFromMap(keyValues, trie.V0)
 	if err != nil {
 		return tr, fmt.Errorf("loading genesis top key values into trie: %w", err)
 	}

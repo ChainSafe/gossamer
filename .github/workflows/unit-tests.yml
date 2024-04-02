@@ -82,14 +82,14 @@ jobs:
 
       - name: Trie memory test
         run: |
-          sed -i 's/const skip = true/const skip = false/g' ./pkg/trie/mem_test.go
+          sed -i 's/const skip = true/const skip = false/g' ./pkg/trie/inmemory/mem_test.go
           go test -run ^Test_Trie_MemoryUsage$ ./pkg/trie
-          sed -i 's/const skip = false/const skip = true/g' ./pkg/trie/mem_test.go
+          sed -i 's/const skip = false/const skip = true/g' ./pkg/trie/inmemory/mem_test.go
 
       - name: Test - Race
         run: make test-using-race-detector
 
-      - uses: codecov/codecov-action@v4.1.0
+      - uses: codecov/codecov-action@v4.1.1
         with:
           if_ci_failed: success
           informational: true

@@ -18,6 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,7 +64,7 @@ func Test_chainSync_onBlockAnnounce(t *testing.T) {
 	const somePeer = peer.ID("abc")
 
 	errTest := errors.New("test error")
-	emptyTrieState := storage.NewTrieState(trie.NewEmptyTrie())
+	emptyTrieState := storage.NewTrieState(inmemory_trie.NewEmptyTrie())
 	block1AnnounceHeader := types.NewHeader(common.Hash{}, emptyTrieState.MustRoot(),
 		common.Hash{}, 1, nil)
 	block2AnnounceHeader := types.NewHeader(block1AnnounceHeader.Hash(),
@@ -146,6 +147,7 @@ func Test_chainSync_onBlockAnnounce(t *testing.T) {
 				blockStateMock.EXPECT().
 					HasHeader(block2AnnounceHeader.Hash()).
 					Return(false, nil)
+				blockStateMock.EXPECT().IsPaused().Return(false)
 
 				blockStateMock.EXPECT().
 					BestBlockHeader().
@@ -248,7 +250,7 @@ func Test_chainSync_onBlockAnnounceHandshake_tipModeNeedToCatchup(t *testing.T) 
 	ctrl := gomock.NewController(t)
 	const somePeer = peer.ID("abc")
 
-	emptyTrieState := storage.NewTrieState(trie.NewEmptyTrie())
+	emptyTrieState := storage.NewTrieState(inmemory_trie.NewEmptyTrie())
 	block1AnnounceHeader := types.NewHeader(common.Hash{}, emptyTrieState.MustRoot(),
 		common.Hash{}, 1, nil)
 	block2AnnounceHeader := types.NewHeader(block1AnnounceHeader.Hash(),
@@ -270,6 +272,8 @@ func Test_chainSync_onBlockAnnounceHandshake_tipModeNeedToCatchup(t *testing.T) 
 		GetHighestFinalisedHeader().
 		Return(block1AnnounceHeader, nil).
 		Times(3)
+
+	blockStateMock.EXPECT().IsPaused().Return(false).Times(2)
 
 	expectedRequest := network.NewAscendingBlockRequests(
 		block1AnnounceHeader.Number+1,
@@ -531,6 +535,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 
 	mockedBlockState := NewMockBlockState(ctrl)
 	mockedBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+	mockedBlockState.EXPECT().IsPaused().Return(false)
 
 	mockBabeVerifier := NewMockBabeVerifier(ctrl)
 	mockStorageState := NewMockStorageState(ctrl)
@@ -587,6 +592,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	mockTelemetry := NewMockTelemetry(ctrl)
 
 	mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(types.NewEmptyHeader(), nil).Times(1)
+	mockBlockState.EXPECT().IsPaused().Return(false)
 	mockNetwork.EXPECT().Peers().Return([]common.PeerInfo{}).Times(1)
 
 	// this test expects two workers responding each request with 128 blocks which means
@@ -663,6 +669,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+	mockBlockState.EXPECT().IsPaused().Return(false).Times(2)
 	mockedGenesisHeader := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash,
 		trie.EmptyHash, 0, types.NewDigest())
 
@@ -675,6 +682,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 	mockTelemetry := NewMockTelemetry(ctrl)
 
 	mockBlockState.EXPECT().GetHighestFinalisedHeader().Return(types.NewEmptyHeader(), nil).Times(1)
+
 	mockNetwork.EXPECT().Peers().Return([]common.PeerInfo{}).Times(1)
 
 	// this test expects two workers responding each request with 128 blocks which means
@@ -759,6 +767,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+	mockBlockState.EXPECT().IsPaused().Return(false).Times(2)
 	mockBlockState.EXPECT().
 		GetHighestFinalisedHeader().
 		Return(types.NewEmptyHeader(), nil).
@@ -863,6 +872,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+	mockBlockState.EXPECT().IsPaused().Return(false).Times(2)
 	mockBlockState.EXPECT().
 		GetHighestFinalisedHeader().
 		Return(types.NewEmptyHeader(), nil).
@@ -969,6 +979,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+	mockBlockState.EXPECT().IsPaused().Return(false).Times(2)
 	mockBlockState.EXPECT().
 		GetHighestFinalisedHeader().
 		Return(types.NewEmptyHeader(), nil).
@@ -1072,6 +1083,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+	mockBlockState.EXPECT().IsPaused().Return(false).Times(2)
 	mockBlockState.EXPECT().
 		GetHighestFinalisedHeader().
 		Return(types.NewEmptyHeader(), nil).
@@ -1196,6 +1208,7 @@ func TestChainSync_BootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testi
 	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+	mockBlockState.EXPECT().IsPaused().Return(false).Times(2)
 	mockBlockState.EXPECT().
 		GetHighestFinalisedHeader().
 		Return(types.NewEmptyHeader(), nil).
@@ -1285,7 +1298,7 @@ func createSuccesfullBlockResponse(t *testing.T, parentHeader common.Hash,
 	response := new(network.BlockResponseMessage)
 	response.BlockData = make([]*types.BlockData, numBlocks)
 
-	emptyTrieState := storage.NewTrieState(trie.NewEmptyTrie())
+	emptyTrieState := storage.NewTrieState(inmemory_trie.NewEmptyTrie())
 	tsRoot := emptyTrieState.MustRoot()
 
 	firstHeader := types.NewHeader(parentHeader, tsRoot, common.Hash{},
@@ -1338,7 +1351,7 @@ func ensureSuccessfulBlockImportFlow(t *testing.T, parentHeader *types.Header,
 		mockStorageState.EXPECT().Lock().AnyTimes()
 		mockStorageState.EXPECT().Unlock().AnyTimes()
 
-		emptyTrieState := storage.NewTrieState(trie.NewEmptyTrie())
+		emptyTrieState := storage.NewTrieState(inmemory_trie.NewEmptyTrie())
 		parentStateRoot := previousHeader.StateRoot
 		mockStorageState.EXPECT().TrieState(&parentStateRoot).
 			Return(emptyTrieState, nil).AnyTimes()

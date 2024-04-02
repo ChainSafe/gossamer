@@ -84,7 +84,7 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 		stateSrvc = state.NewService(config)
 		stateSrvc.UseMemDB()
 
-		err := stateSrvc.Initialise(&genesis, &genesisHeader, &genesisTrie)
+		err := stateSrvc.Initialise(&genesis, &genesisHeader, genesisTrie)
 		require.NoError(t, err)
 
 		err = stateSrvc.Start()
@@ -110,10 +110,10 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 	if cfg.Runtime == nil {
 		var rtCfg wazero_runtime.Config
 
-		rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
+		rtCfg.Storage = rtstorage.NewTrieState(genesisTrie)
 
 		var err error
-		rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
+		rtCfg.CodeHash, err = cfg.StorageState.(*state.InmemoryStorageState).LoadCodeHash(nil)
 		require.NoError(t, err)
 
 		nodeStorage := runtime.NodeStorage{}
@@ -187,7 +187,7 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 
 	dbSrv.Transaction = state.NewTransactionState(telemetryMock)
 
-	err := dbSrv.Initialise(&genesis, &genesisHeader, &genesisTrie)
+	err := dbSrv.Initialise(&genesis, &genesisHeader, genesisTrie)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()
@@ -208,9 +208,9 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	cfg.TransactionState = dbSrv.Transaction
 
 	var rtCfg wazero_runtime.Config
-	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(genesisTrie)
 
-	storageState := cfg.StorageState.(*state.StorageState)
+	storageState := cfg.StorageState.(*state.InmemoryStorageState)
 	rtCfg.CodeHash, err = storageState.LoadCodeHash(nil)
 	require.NoError(t, err)
 
@@ -272,7 +272,7 @@ func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
 
-	err := dbSrv.Initialise(&genesis, &genesisHeader, &genesisTrie)
+	err := dbSrv.Initialise(&genesis, &genesisHeader, genesisTrie)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()
@@ -283,7 +283,7 @@ func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
 	})
 
 	rtCfg := wazero_runtime.Config{
-		Storage: rtstorage.NewTrieState(&genesisTrie),
+		Storage: rtstorage.NewTrieState(genesisTrie),
 	}
 
 	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
@@ -375,7 +375,7 @@ func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 
 	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),
-		genesisTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
+		genesisTrie.MustHash(), emptyHash, 0, types.NewDigest())
 
 	return gen, genesisTrie, genesisHeader
 }
@@ -394,7 +394,7 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 
 	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),
-		genesisTrie.MustHash(), trie.EmptyHash, 0, types.NewDigest())
+		genesisTrie.MustHash(), emptyHash, 0, types.NewDigest())
 
 	return gen, genesisTrie, genesisHeader
 }

@@ -9,9 +9,9 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"github.com/ChainSafe/gossamer/pkg/trie/pools"
 )
@@ -26,7 +26,7 @@ var (
 // is used to load the trie using the root hash given.
 func Generate(rootHash []byte, fullKeys [][]byte, database db.DBGetter) (
 	encodedProofNodes [][]byte, err error) {
-	trie := trie.NewEmptyTrie()
+	trie := inmemory.NewEmptyTrie()
 	if err := trie.Load(database, common.BytesToHash(rootHash)); err != nil {
 		return nil, fmt.Errorf("loading trie: %w", err)
 	}

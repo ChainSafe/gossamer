@@ -1,7 +1,7 @@
 // Copyright 2022 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package trie
+package inmemory
 
 import (
 	"math"
@@ -21,7 +21,7 @@ func Test_Trie_MemoryUsage(t *testing.T) {
 		t.SkipNow()
 	}
 
-	triesMap := map[string]*Trie{
+	triesMap := map[string]*InMemoryTrie{
 		"first": NewEmptyTrie(),
 	}
 
@@ -88,7 +88,7 @@ func getHeapUsage() (heapAlloc uint64) {
 	return memStats.HeapAlloc
 }
 
-func populateTrieAtPrefix(trie *Trie,
+func populateTrieAtPrefix(trie *InMemoryTrie,
 	prefix []byte, kv map[string][]byte) {
 	for keyString, value := range kv {
 		key := append(prefix, []byte(keyString)...) //skipcq: CRT-D0001
@@ -97,7 +97,7 @@ func populateTrieAtPrefix(trie *Trie,
 	}
 }
 
-func mutateTrieLeavesAtPrefix(trie *Trie,
+func mutateTrieLeavesAtPrefix(trie *InMemoryTrie,
 	prefix []byte, originalKV map[string][]byte) {
 	for keyString, value := range originalKV {
 		key := append(prefix, []byte(keyString)...) //skipcq: CRT-D0001

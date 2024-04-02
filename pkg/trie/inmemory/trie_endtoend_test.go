@@ -1,7 +1,7 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package trie
+package inmemory
 
 import (
 	"bytes"
@@ -16,7 +16,9 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/codec"
+	"github.com/ChainSafe/gossamer/pkg/trie/node"
 )
 
 const (
@@ -27,7 +29,7 @@ const (
 	getLeaf
 )
 
-func buildSmallTrie() *Trie {
+func buildSmallTrie() *InMemoryTrie {
 	trie := NewEmptyTrie()
 
 	tests := []keyValues{
@@ -46,7 +48,7 @@ func buildSmallTrie() *Trie {
 	return trie
 }
 
-func runTests(t *testing.T, trie *Trie, tests []keyValues) {
+func runTests(t *testing.T, trie *InMemoryTrie, tests []keyValues) {
 	for _, test := range tests {
 		switch test.op {
 		case put:
@@ -306,7 +308,8 @@ func TestTrieDiff(t *testing.T) {
 		newTrie.Put(test.key, test.value)
 	}
 
-	deletedNodeHashes := newTrie.deltas.Deleted()
+	_, deletedNodeHashes, err := newTrie.GetChangedNodeHashes()
+	assert.NoError(t, err)
 	expectedDeletedNodeHashes := map[common.Hash]struct{}{
 		// root branch hash which was modified (by its descendants).
 		// Other nodes result in an encoding of less than 32B so they are not
@@ -332,7 +335,7 @@ func TestTrieDiff(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	trie := NewEmptyTrie()
+	tr := NewEmptyTrie()
 
 	generator := newGenerator()
 	const kvSize = 100
@@ -340,22 +343,22 @@ func TestDelete(t *testing.T) {
 
 	for keyString, value := range kv {
 		key := []byte(keyString)
-		trie.Put(key, value)
+		tr.Put(key, value)
 	}
 
-	dcTrie := trie.DeepCopy()
+	dcTrie := tr.DeepCopy()
 
 	// Take Snapshot of the trie.
-	ssTrie := trie.Snapshot()
+	ssTrie := tr.Snapshot()
 
 	// Get the Trie root hash for all the 3 tries.
-	tHash, err := DefaultStateVersion.Hash(trie)
+	tHash, err := trie.DefaultStateVersion.Hash(tr)
 	require.NoError(t, err)
 
-	dcTrieHash, err := DefaultStateVersion.Hash(dcTrie)
+	dcTrieHash, err := trie.DefaultStateVersion.Hash(dcTrie)
 	require.NoError(t, err)
 
-	ssTrieHash, err := DefaultStateVersion.Hash(ssTrie)
+	ssTrieHash, err := trie.DefaultStateVersion.Hash(ssTrie)
 	require.NoError(t, err)
 
 	// Root hash for all the 3 tries should be equal.
@@ -376,13 +379,13 @@ func TestDelete(t *testing.T) {
 	}
 
 	// Get the updated root hash of all tries.
-	tHash, err = DefaultStateVersion.Hash(trie)
+	tHash, err = trie.DefaultStateVersion.Hash(tr)
 	require.NoError(t, err)
 
-	dcTrieHash, err = DefaultStateVersion.Hash(dcTrie)
+	dcTrieHash, err = trie.DefaultStateVersion.Hash(dcTrie)
 	require.NoError(t, err)
 
-	ssTrieHash, err = DefaultStateVersion.Hash(ssTrie)
+	ssTrieHash, err = trie.DefaultStateVersion.Hash(ssTrie)
 	require.NoError(t, err)
 
 	// Only the current trie should have a different root hash since it is updated.
@@ -420,25 +423,25 @@ func TestClearPrefix(t *testing.T) {
 	}
 
 	for _, prefix := range testCases {
-		trie := NewEmptyTrie()
+		tr := NewEmptyTrie()
 
 		for _, test := range tests {
-			trie.Put(test.key, test.value)
+			tr.Put(test.key, test.value)
 		}
 
-		dcTrie := trie.DeepCopy()
+		dcTrie := tr.DeepCopy()
 
 		// Take Snapshot of the trie.
-		ssTrie := trie.Snapshot()
+		ssTrie := tr.Snapshot()
 
 		// Get the Trie root hash for all the 3 tries.
-		tHash, err := DefaultStateVersion.Hash(trie)
+		tHash, err := trie.DefaultStateVersion.Hash(tr)
 		require.NoError(t, err)
 
-		dcTrieHash, err := DefaultStateVersion.Hash(dcTrie)
+		dcTrieHash, err := trie.DefaultStateVersion.Hash(dcTrie)
 		require.NoError(t, err)
 
-		ssTrieHash, err := DefaultStateVersion.Hash(ssTrie)
+		ssTrieHash, err := trie.DefaultStateVersion.Hash(ssTrie)
 		require.NoError(t, err)
 
 		// Root hash for all the 3 tries should be equal.
@@ -464,13 +467,13 @@ func TestClearPrefix(t *testing.T) {
 		}
 
 		// Get the updated root hash of all tries.
-		tHash, err = DefaultStateVersion.Hash(trie)
+		tHash, err = trie.DefaultStateVersion.Hash(tr)
 		require.NoError(t, err)
 
-		dcTrieHash, err = DefaultStateVersion.Hash(dcTrie)
+		dcTrieHash, err = trie.DefaultStateVersion.Hash(dcTrie)
 		require.NoError(t, err)
 
-		ssTrieHash, err = DefaultStateVersion.Hash(ssTrie)
+		ssTrieHash, err = trie.DefaultStateVersion.Hash(ssTrie)
 		require.NoError(t, err)
 
 		// Only the current trie should have a different root hash since it is updated.
@@ -481,21 +484,21 @@ func TestClearPrefix(t *testing.T) {
 }
 
 func TestClearPrefix_Small(t *testing.T) {
-	trie := NewEmptyTrie()
+	tr := NewEmptyTrie()
 
-	dcTrie := trie.DeepCopy()
+	dcTrie := tr.DeepCopy()
 
 	// Take Snapshot of the trie.
-	ssTrie := trie.Snapshot()
+	ssTrie := tr.Snapshot()
 
 	// Get the Trie root hash for all the 3 tries.
-	tHash, err := DefaultStateVersion.Hash(trie)
+	tHash, err := trie.DefaultStateVersion.Hash(tr)
 	require.NoError(t, err)
 
-	dcTrieHash, err := DefaultStateVersion.Hash(dcTrie)
+	dcTrieHash, err := trie.DefaultStateVersion.Hash(dcTrie)
 	require.NoError(t, err)
 
-	ssTrieHash, err := DefaultStateVersion.Hash(ssTrie)
+	ssTrieHash, err := trie.DefaultStateVersion.Hash(ssTrie)
 	require.NoError(t, err)
 
 	// Root hash for all the 3 tries should be equal.
@@ -513,7 +516,7 @@ func TestClearPrefix_Small(t *testing.T) {
 
 	ssTrie.ClearPrefix([]byte("noo"))
 
-	expectedRoot := &Node{
+	expectedRoot := &node.Node{
 		PartialKey:   codec.KeyLEToNibbles([]byte("other")),
 		StorageValue: []byte("other"),
 		Generation:   1,
@@ -522,13 +525,13 @@ func TestClearPrefix_Small(t *testing.T) {
 	require.Equal(t, expectedRoot, ssTrie.root)
 
 	// Get the updated root hash of all tries.
-	tHash, err = DefaultStateVersion.Hash(trie)
+	tHash, err = trie.DefaultStateVersion.Hash(tr)
 	require.NoError(t, err)
 
-	dcTrieHash, err = DefaultStateVersion.Hash(dcTrie)
+	dcTrieHash, err = trie.DefaultStateVersion.Hash(dcTrie)
 	require.NoError(t, err)
 
-	ssTrieHash, err = DefaultStateVersion.Hash(ssTrie)
+	ssTrieHash, err = trie.DefaultStateVersion.Hash(ssTrie)
 	require.NoError(t, err)
 
 	require.Equal(t, tHash, dcTrieHash)
@@ -600,8 +603,8 @@ func TestTrie_ClearPrefixVsDelete(t *testing.T) {
 
 			trieClearPrefix.ClearPrefix(prefix)
 
-			trieClearPrefixHash := DefaultStateVersion.MustHash(*trieClearPrefix)
-			trieDeleteHash := DefaultStateVersion.MustHash(*trieDelete)
+			trieClearPrefixHash := trie.DefaultStateVersion.MustHash(trieClearPrefix)
+			trieDeleteHash := trie.DefaultStateVersion.MustHash(trieDelete)
 
 			require.Equal(t, trieClearPrefixHash, trieDeleteHash)
 		}
@@ -636,9 +639,9 @@ func TestSnapshot(t *testing.T) {
 	newTrie := parentTrie.Snapshot()
 	newTrie.Put(tests[0].key, tests[0].value)
 
-	expectedTrieHash := DefaultStateVersion.MustHash(*expectedTrie)
-	newTrieHash := DefaultStateVersion.MustHash(*newTrie)
-	parentTrieHash := DefaultStateVersion.MustHash(*parentTrie)
+	expectedTrieHash := trie.DefaultStateVersion.MustHash(expectedTrie)
+	newTrieHash := trie.DefaultStateVersion.MustHash(newTrie)
+	parentTrieHash := trie.DefaultStateVersion.MustHash(parentTrie)
 
 	require.Equal(t, expectedTrieHash, newTrieHash)
 	require.NotEqual(t, parentTrieHash, newTrieHash)
@@ -686,14 +689,14 @@ func Benchmark_Trie_Hash(b *testing.B) {
 	const kvSize = 1000000
 	kv := generateKeyValues(b, generator, kvSize)
 
-	trie := NewEmptyTrie()
+	tr := NewEmptyTrie()
 	for keyString, value := range kv {
 		key := []byte(keyString)
-		trie.Put(key, value)
+		tr.Put(key, value)
 	}
 
 	b.StartTimer()
-	_, err := DefaultStateVersion.Hash(trie)
+	_, err := trie.DefaultStateVersion.Hash(tr)
 	b.StopTimer()
 
 	require.NoError(b, err)
@@ -717,7 +720,7 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 	const workers = 4
 
 	testCases := make([][]keyValues, workers)
-	expectedTries := make([]*Trie, workers)
+	expectedTries := make([]*InMemoryTrie, workers)
 
 	for i := 0; i < workers; i++ {
 		testCases[i] = make([]keyValues, size)
@@ -748,12 +751,12 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 	finishWg := new(sync.WaitGroup)
 	startWg.Add(workers)
 	finishWg.Add(workers)
-	snapshotedTries := make([]*Trie, workers)
+	snapshotedTries := make([]*InMemoryTrie, workers)
 
 	for i := 0; i < workers; i++ {
 		snapshotedTries[i] = buildSmallTrie().Snapshot()
 
-		go func(trie *Trie, operations []keyValues,
+		go func(trie *InMemoryTrie, operations []keyValues,
 			startWg, finishWg *sync.WaitGroup) {
 			defer finishWg.Done()
 			startWg.Done()
@@ -776,8 +779,8 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 	for i := 0; i < workers; i++ {
 		assert.Equal(
 			t,
-			DefaultStateVersion.MustHash(*expectedTries[i]),
-			DefaultStateVersion.MustHash(*snapshotedTries[i]),
+			trie.DefaultStateVersion.MustHash(expectedTries[i]),
+			trie.DefaultStateVersion.MustHash(snapshotedTries[i]),
 		)
 	}
 }
@@ -959,13 +962,13 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 				ssTrie := trieClearPrefix.Snapshot()
 
 				// Get the Trie root hash for all the 3 tries.
-				tHash, err := DefaultStateVersion.Hash(trieClearPrefix)
+				tHash, err := trie.DefaultStateVersion.Hash(trieClearPrefix)
 				require.NoError(t, err)
 
-				dcTrieHash, err := DefaultStateVersion.Hash(dcTrie)
+				dcTrieHash, err := trie.DefaultStateVersion.Hash(dcTrie)
 				require.NoError(t, err)
 
-				ssTrieHash, err := DefaultStateVersion.Hash(ssTrie)
+				ssTrieHash, err := trie.DefaultStateVersion.Hash(ssTrie)
 				require.NoError(t, err)
 
 				// Root hash for all the 3 tries should be equal.
@@ -1001,13 +1004,13 @@ func TestTrie_ClearPrefixLimitSnapshot(t *testing.T) {
 				}
 
 				// Get the updated root hash of all tries.
-				tHash, err = DefaultStateVersion.Hash(trieClearPrefix)
+				tHash, err = trie.DefaultStateVersion.Hash(trieClearPrefix)
 				require.NoError(t, err)
 
-				dcTrieHash, err = DefaultStateVersion.Hash(dcTrie)
+				dcTrieHash, err = trie.DefaultStateVersion.Hash(dcTrie)
 				require.NoError(t, err)
 
-				ssTrieHash, err = DefaultStateVersion.Hash(ssTrie)
+				ssTrieHash, err = trie.DefaultStateVersion.Hash(ssTrie)
 				require.NoError(t, err)
 
 				// If node got deleted then root hash must be updated else it has same root hash.
@@ -1048,7 +1051,7 @@ func Test_encodeRoot_fuzz(t *testing.T) {
 	}
 }
 
-func countNodesRecursively(root *Node) (nodesCount uint32) {
+func countNodesRecursively(root *node.Node) (nodesCount uint32) {
 	if root == nil {
 		return 0
 	}
@@ -1060,7 +1063,7 @@ func countNodesRecursively(root *Node) (nodesCount uint32) {
 	return nodesCount
 }
 
-func countNodesFromStats(root *Node) (nodesCount uint32) {
+func countNodesFromStats(root *node.Node) (nodesCount uint32) {
 	if root == nil {
 		return 0
 	}
@@ -1068,7 +1071,7 @@ func countNodesFromStats(root *Node) (nodesCount uint32) {
 	return 1 + root.Descendants
 }
 
-func testDescendants(t *testing.T, root *Node) {
+func testDescendants(t *testing.T, root *node.Node) {
 	t.Helper()
 	expectedCount := countNodesRecursively(root)
 	statsCount := countNodesFromStats(root)

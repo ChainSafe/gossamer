@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestStorageState(t *testing.T) *StorageState {
+func newTestStorageState(t *testing.T) *InmemoryStorageState {
 	db := NewInMemoryDB(t)
 
 	tries := newTriesEmpty()
@@ -45,7 +45,7 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	require.NoError(t, err)
 	ts2 := runtime.NewTrieState(trie).Trie()
 
-	require.True(t, trie.Equal(ts2))
+	require.Equal(t, trie.MustHash(), ts2.MustHash())
 }
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {
@@ -194,7 +194,7 @@ func TestGetStorageChildAndGetStorageFromChild(t *testing.T) {
 	storage, err := NewStorageState(db, blockState, tries)
 	require.NoError(t, err)
 
-	trieState := runtime.NewTrieState(&genTrie)
+	trieState := runtime.NewTrieState(genTrie)
 
 	header := types.NewHeader(blockState.GenesisHash(), trieState.MustRoot(),
 		common.Hash{}, 1, types.NewDigest())

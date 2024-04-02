@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 )
 
 var logger = log.NewFromGlobal(
@@ -27,7 +28,7 @@ type Service struct {
 	db          database.Database
 	isMemDB     bool // set to true if using an in-memory database; only used for testing.
 	Base        *BaseState
-	Storage     *StorageState
+	Storage     *InmemoryStorageState
 	Block       *BlockState
 	Transaction *TransactionState
 	Epoch       *EpochState
@@ -41,6 +42,11 @@ type Service struct {
 	// Below are for testing only.
 	BabeThresholdNumerator   uint64
 	BabeThresholdDenominator uint64
+}
+
+// Pause Pauses the state service
+func (s *Service) Pause() error {
+	return s.Block.Pause()
 }
 
 // Config is the default configuration used by state service.
@@ -256,7 +262,7 @@ func (s *Service) Stop() error {
 
 // Import imports the given state corresponding to the given header and sets the head of the chain
 // to it. Additionally, it uses the first slot to correctly set the epoch number of the block.
-func (s *Service) Import(header *types.Header, t *trie.Trie, stateTrieVersion trie.TrieLayout, firstSlot uint64) error {
+func (s *Service) Import(header *types.Header, t trie.Trie, stateTrieVersion trie.TrieLayout, firstSlot uint64) error {
 	var err error
 	// initialise database using data directory
 	if !s.isMemDB {
@@ -270,7 +276,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, stateTrieVersion tr
 		db: database.NewTable(s.db, blockPrefix),
 	}
 
-	storage := &StorageState{
+	storage := &InmemoryStorageState{
 		db: database.NewTable(s.db, storagePrefix),
 	}
 
@@ -301,7 +307,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, stateTrieVersion tr
 		return err
 	}
 
-	root := stateTrieVersion.MustHash(*t)
+	root := stateTrieVersion.MustHash(t)
 	if root != header.StateRoot {
 		return fmt.Errorf("trie state root does not equal header state root")
 	}
@@ -309,8 +315,11 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, stateTrieVersion tr
 	logger.Info("importing storage trie from base path " +
 		s.dbPath + " with root " + root.String() + "...")
 
-	if err := t.WriteDirty(storage.db); err != nil {
-		return err
+	// TODO: all trie related db operations should be done in pkg/trie
+	if inmemoryTrie, ok := t.(*inmemory_trie.InMemoryTrie); ok {
+		if err := inmemoryTrie.WriteDirty(storage.db); err != nil {
+			return err
+		}
 	}
 
 	hash := header.Hash()

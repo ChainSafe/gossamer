@@ -62,6 +62,10 @@ type BlockState struct {
 	unfinalisedBlocks *hashToBlockMap
 	tries             *Tries
 
+	// State variables
+	pausedLock sync.RWMutex
+	pause      chan struct{}
+
 	// block notifiers
 	imported                       map[chan *types.Block]struct{}
 	finalised                      map[chan *types.FinalisationInfo]struct{}
@@ -85,6 +89,7 @@ func NewBlockState(db database.Database, trs *Tries, telemetry Telemetry) (*Bloc
 		finalised:                  make(map[chan *types.FinalisationInfo]struct{}),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 		telemetry:                  telemetry,
+		pause:                      make(chan struct{}),
 	}
 
 	gh, err := bs.db.Get(headerHashKey(0))
@@ -120,6 +125,7 @@ func NewBlockStateFromGenesis(db database.Database, trs *Tries, header *types.He
 		genesisHash:                header.Hash(),
 		lastFinalised:              header.Hash(),
 		telemetry:                  telemetryMailer,
+		pause:                      make(chan struct{}),
 	}
 
 	if err := bs.setArrivalTime(header.Hash(), time.Now()); err != nil {
@@ -151,6 +157,29 @@ func NewBlockStateFromGenesis(db database.Database, trs *Tries, header *types.He
 	}
 
 	return bs, nil
+}
+
+// Pause pauses the service ie. halts block production
+func (bs *BlockState) Pause() error {
+	bs.pausedLock.Lock()
+	defer bs.pausedLock.Unlock()
+
+	if bs.IsPaused() {
+		return nil
+	}
+
+	close(bs.pause)
+	return nil
+}
+
+// IsPaused returns if the service is paused or not (ie. producing blocks)
+func (bs *BlockState) IsPaused() bool {
+	select {
+	case <-bs.pause:
+		return true
+	default:
+		return false
+	}
 }
 
 // encodeBlockNumber encodes a block number as big endian uint64

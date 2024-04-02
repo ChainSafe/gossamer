@@ -238,7 +238,7 @@ func (cs *storageDiff) snapshot() *storageDiff {
 // provided trie. This includes insertions, deletions, and modifications in both
 // the main trie and child tries.
 // In case of errors during the application of changes, the method will panic
-func (cs *storageDiff) applyToTrie(t *trie.Trie) {
+func (cs *storageDiff) applyToTrie(t trie.Trie) {
 	if cs == nil {
 		panic("trying to apply nil change set")
 	}
