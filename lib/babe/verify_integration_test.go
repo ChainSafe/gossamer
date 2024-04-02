@@ -62,19 +62,19 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	epochDescriptor, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
 	vm.epochInfo[testEpochIndex] = &verifierInfo{
-		authorities: epochData.authorities,
-		threshold:   epochData.threshold,
-		randomness:  epochData.randomness,
+		authorities: epochDescriptor.data.authorities,
+		threshold:   epochDescriptor.data.threshold,
+		randomness:  epochDescriptor.data.randomness,
 	}
 
 	parent, _ := babeService.blockState.BestBlockHeader()
 
 	slot := getSlot(t, runtime, time.Now())
-	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
+	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochDescriptor, slot)
 	err = vm.blockState.AddBlock(block)
 	require.NoError(t, err)
 
@@ -83,7 +83,7 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 
 	// create an OnDisabled change on a different branch
 	slot2 := getSlot(t, runtime, time.Now())
-	block = createTestBlockWithSlot(t, babeService, parent, [][]byte{}, testEpochIndex, epochData, slot2)
+	block = createTestBlockWithSlot(t, babeService, parent, [][]byte{}, testEpochIndex, epochDescriptor, slot2)
 	err = vm.blockState.AddBlock(block)
 	require.NoError(t, err)
 
@@ -99,7 +99,7 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	epochDescriptor, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
 	db, err := database.NewPebble(t.TempDir(), true)
@@ -108,13 +108,13 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 	vm := NewVerificationManager(babeService.blockState, slotState, babeService.epochState)
 
 	vm.epochInfo[testEpochIndex] = &verifierInfo{
-		authorities: epochData.authorities,
-		threshold:   epochData.threshold,
-		randomness:  epochData.randomness,
+		authorities: epochDescriptor.data.authorities,
+		threshold:   epochDescriptor.data.threshold,
+		randomness:  epochDescriptor.data.randomness,
 	}
 
 	slot := getSlot(t, runtime, time.Now())
-	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
+	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochDescriptor, slot)
 	err = vm.blockState.AddBlock(block)
 	require.NoError(t, err)
 
@@ -123,7 +123,7 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 
 	// create an OnDisabled change on a different branch
 	slot2 := getSlot(t, runtime, time.Now())
-	block2 := createTestBlockWithSlot(t, babeService, &block.Header, [][]byte{}, testEpochIndex, epochData, slot2)
+	block2 := createTestBlockWithSlot(t, babeService, &block.Header, [][]byte{}, testEpochIndex, epochDescriptor, slot2)
 	err = vm.blockState.AddBlock(block2)
 	require.NoError(t, err)
 
@@ -238,7 +238,7 @@ func TestVerificationManager_VerifyBlock_FutureEpoch(t *testing.T) {
 	require.NoError(t, err)
 
 	const futureEpoch = uint64(2)
-	err = babeService.epochState.(*state.EpochState).SetEpochDataRaw(futureEpoch, &types.EpochDataRaw{
+	err = babeService.epochState.(*state.EpochState).StoreEpochDataRaw(futureEpoch, &types.EpochDataRaw{
 		Authorities: []types.AuthorityRaw{{
 			Key: [32]byte(keyring.Alice().(*sr25519.Keypair).Public().Encode()),
 		}},
@@ -288,7 +288,7 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	require.NoError(t, err)
 
 	const futureEpoch = uint64(2)
-	err = babeService.epochState.(*state.EpochState).SetEpochDataRaw(futureEpoch, &types.EpochDataRaw{
+	err = babeService.epochState.(*state.EpochState).StoreEpochDataRaw(futureEpoch, &types.EpochDataRaw{
 		Authorities: []types.AuthorityRaw{{
 			Key: [32]byte(keyring.Alice().(*sr25519.Keypair).Public().Encode()),
 		}},
@@ -343,14 +343,14 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 
 	vm := NewVerificationManager(babeService.blockState, slotState, babeService.epochState)
 
-	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	epochDescriptor, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	epochData.threshold = maxThreshold
+	epochDescriptor.data.threshold = maxThreshold
 
 	// slots are 6 seconds on westend and using time.Now() allows us to create a block at any point in the slot.
 	// So we need to manually set time to produce consistent results. See here:
@@ -358,7 +358,7 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 	// https://github.com/paritytech/substrate/blob/09de7b41599add51cf27eca8f1bc4c50ed8e9453/frame/timestamp/src/lib.rs#L206
 	timestamp := time.Unix(6, 0)
 	slot := getSlot(t, runtime, timestamp)
-	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
+	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochDescriptor, slot)
 	block.Header.Hash()
 
 	err = babeService.blockState.AddBlock(block)
@@ -421,16 +421,16 @@ func TestVerifyPrimarySlotWinner(t *testing.T) {
 	}
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeConfig)
-	epochData, err := babeService.initiateEpoch(0)
+	epochDescriptor, err := babeService.initiateEpoch(0)
 	require.NoError(t, err)
 
 	// create proof that we can authorize this block
-	epochData.threshold = maxThreshold
-	epochData.authorityIndex = 0
+	epochDescriptor.data.threshold = maxThreshold
+	epochDescriptor.data.authorityIndex = 0
 
 	const slotNumber uint64 = 1
 
-	preRuntimeDigest, err := claimSlot(testEpochIndex, slotNumber, epochData, babeService.keypair)
+	preRuntimeDigest, err := claimSlot(testEpochIndex, slotNumber, epochDescriptor.data, babeService.keypair)
 	require.NoError(t, err)
 
 	babePreDigest, err := types.DecodeBabePreDigest(preRuntimeDigest.Data)
@@ -444,9 +444,9 @@ func TestVerifyPrimarySlotWinner(t *testing.T) {
 	slotState := state.NewSlotState(db)
 
 	verifier := newVerifier(babeService.blockState, slotState, testEpochIndex, &verifierInfo{
-		authorities: epochData.authorities,
-		threshold:   epochData.threshold,
-		randomness:  epochData.randomness,
+		authorities: epochDescriptor.data.authorities,
+		threshold:   epochDescriptor.data.threshold,
+		randomness:  epochDescriptor.data.randomness,
 	}, time.Second)
 
 	ok, err = verifier.verifyPrimarySlotWinner(digest.AuthorityIndex, slotNumber, digest.VRFOutput, digest.VRFProof)
@@ -465,21 +465,21 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	epochDescriptor, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
-	epochData.threshold = maxThreshold
+	epochDescriptor.data.threshold = maxThreshold
 
 	slot := getSlot(t, runtime, time.Now())
-	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochData, slot)
+	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, testEpochIndex, epochDescriptor, slot)
 
 	db, err := database.NewPebble(t.TempDir(), true)
 	require.NoError(t, err)
 	slotState := state.NewSlotState(db)
 
 	verifier := newVerifier(babeService.blockState, slotState, testEpochIndex, &verifierInfo{
-		authorities: epochData.authorities,
-		threshold:   epochData.threshold,
-		randomness:  epochData.randomness,
+		authorities: epochDescriptor.data.authorities,
+		threshold:   epochDescriptor.data.threshold,
+		randomness:  epochDescriptor.data.randomness,
 	}, time.Second)
 
 	err = verifier.verifyAuthorshipRight(&block.Header)

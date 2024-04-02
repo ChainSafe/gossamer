@@ -102,11 +102,12 @@ func TestApplyExtrinsicAfterFirstBlockFinalized(t *testing.T) {
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	epochDescriptor, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
 	slot := getSlot(t, rt, time.Now())
-	preRuntimeDigest, err := claimSlot(testEpochIndex, slot.number, epochData, babeService.keypair)
+	preRuntimeDigest, err := claimSlot(
+		testEpochIndex, slot.number, epochDescriptor.data, babeService.keypair)
 	require.NoError(t, err)
 
 	builder := NewBlockBuilder(
@@ -150,7 +151,7 @@ func TestApplyExtrinsicAfterFirstBlockFinalized(t *testing.T) {
 
 	// Add 7 seconds to allow slot to be claimed at appropriate time, Westend has 6 second slot times
 	slot2 := getSlot(t, rt, time.Now().Add(7*time.Second))
-	preRuntimeDigest2, err := claimSlot(testEpochIndex, slot2.number, epochData, babeService.keypair)
+	preRuntimeDigest2, err := claimSlot(testEpochIndex, slot2.number, epochDescriptor.data, babeService.keypair)
 	require.NoError(t, err)
 
 	digest2 := types.NewDigest()

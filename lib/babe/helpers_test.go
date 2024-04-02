@@ -340,7 +340,7 @@ func getSlot(t *testing.T, rt runtime.Instance, timestamp time.Time) Slot {
 }
 
 func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.Header,
-	exts [][]byte, epoch uint64, epochData *epochData, slot Slot) *types.Block {
+	exts [][]byte, epoch uint64, epochDescriptor *EpochDescriptor, slot Slot) *types.Block {
 	for _, ext := range exts {
 		validTransaction := transaction.NewValidTransaction(ext, &transaction.Validity{})
 		_, err := babeService.transactionState.Push(validTransaction)
@@ -351,10 +351,10 @@ func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.H
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	preRuntimeDigest, err := claimSlot(epoch, slot.number, epochData, babeService.keypair)
+	preRuntimeDigest, err := claimSlot(epoch, slot.number, epochDescriptor.data, babeService.keypair)
 	require.NoError(t, err)
 
-	block, err := babeService.buildBlock(parent, slot, rt, epochData.authorityIndex, preRuntimeDigest)
+	block, err := babeService.buildBlock(parent, slot, rt, epochDescriptor.data.authorityIndex, preRuntimeDigest)
 	require.NoError(t, err)
 
 	babeService.blockState.(*state.BlockState).StoreRuntime(block.Header.Hash(), rt)

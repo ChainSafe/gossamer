@@ -82,7 +82,7 @@ func (nodeBuilder) createStateService(config *cfg.Config) (*state.Service, error
 	// create genesis runtime
 	rtCfg := wazero_runtime.Config{
 		LogLvl:  log.Critical,
-		Storage: rtstorage.NewTrieState(&genTrie),
+		Storage: rtstorage.NewTrieState(genTrie),
 	}
 
 	genesisRuntime, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)

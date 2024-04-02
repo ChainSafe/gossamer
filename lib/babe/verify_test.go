@@ -1337,7 +1337,6 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 
 	mockBlockStateNotFinal2.EXPECT().NumberIsFinalised(uint(1)).Return(false, nil)
 	errTestSetFirstSlot := errors.New("test set first slot error")
-	mockEpochStateSetSlotErr.EXPECT().SetFirstSlot(uint64(1)).Return(errTestSetFirstSlot)
 
 	errTestGetEpoch := errors.New("test get epoch error")
 	mockEpochStateGetEpochErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).

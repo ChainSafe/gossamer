@@ -79,7 +79,8 @@ func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
 
 var ErrEpochLowerThanExpected = errors.New("epoch lower than expected")
 
-func (b *Service) checkIfEpochSkipped(expectedCurrentEpoch uint64, bestBlock *types.Header) (skipped bool, diff uint64, err error) {
+func (b *Service) checkIfEpochSkipped(expectedCurrentEpoch uint64, bestBlock *types.Header) (
+	skipped bool, diff uint64, err error) {
 	epochFromCurrentTime, err := b.epochState.GetEpochFromTime(time.Now(), bestBlock.Hash())
 	if err != nil {
 		return false, 0, fmt.Errorf("getting epoch from time: %w", err)

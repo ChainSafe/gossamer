@@ -291,10 +291,6 @@ func (s *Service) Import(header *types.Header, t trie.Trie, stateTrieVersion tri
 
 	s.Base = NewBaseState(s.db)
 
-	if err = s.Base.storeFirstSlot(firstSlot); err != nil {
-		return err
-	}
-
 	blockEpoch, err := epoch.GetEpochForBlock(header)
 	if err != nil {
 		return err

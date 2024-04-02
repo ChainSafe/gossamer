@@ -109,18 +109,3 @@ func (s *BaseState) loadSkipToEpoch() (uint64, error) {
 
 	return binary.LittleEndian.Uint64(data), nil
 }
-
-func (s *BaseState) storeFirstSlot(slot uint64) error {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, slot)
-	return s.db.Put(firstSlotKey, buf)
-}
-
-func (s *BaseState) loadFirstSlot() (uint64, error) {
-	data, err := s.db.Get(firstSlotKey)
-	if err != nil {
-		return 0, err
-	}
-
-	return binary.LittleEndian.Uint64(data), nil
-}

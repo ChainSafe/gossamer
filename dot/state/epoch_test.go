@@ -45,7 +45,7 @@ func TestEpochState_CurrentEpoch(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), epoch)
 
-	err = s.SetCurrentEpoch(1)
+	err = s.StoreCurrentEpoch(1)
 	require.NoError(t, err)
 	epoch, err = s.GetCurrentEpoch()
 	require.NoError(t, err)
@@ -68,7 +68,7 @@ func TestEpochState_EpochData(t *testing.T) {
 		Randomness:  [32]byte{77},
 	}
 
-	err = s.SetEpochDataRaw(1, info)
+	err = s.StoreEpochDataRaw(1, info)
 	require.NoError(t, err)
 	res, err := s.GetEpochDataRaw(1, nil)
 	require.NoError(t, err)
@@ -82,31 +82,44 @@ func TestEpochState_EpochData(t *testing.T) {
 func TestEpochState_GetStartSlotForEpoch(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
 
-	info := &types.EpochDataRaw{
-		Randomness: [32]byte{77},
-	}
+	// let's say first slot is 1 second after January 1, 1970 UTC
+	startAtTime := time.Unix(1, 0)
+	slotDuration := time.Millisecond * time.Duration(genesisBABEConfig.SlotDuration)
+	firstSlot := uint64(startAtTime.UnixNano()) / uint64(slotDuration.Nanoseconds())
 
-	err := s.SetEpochDataRaw(2, info)
+	digest := types.NewDigest()
+	di, err := types.NewBabeSecondaryPlainPreDigest(0, firstSlot).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	require.NotNil(t, di)
+	err = digest.Add(*di)
 	require.NoError(t, err)
 
-	info = &types.EpochDataRaw{
-		Randomness: [32]byte{77},
+	header1 := types.Header{
+		Number:     1,
+		Digest:     digest,
+		ParentHash: s.blockState.genesisHash,
 	}
 
-	err = s.SetEpochDataRaw(3, info)
+	err = s.blockState.AddBlock(&types.Block{
+		Header: header1,
+		Body:   types.Body{},
+	})
 	require.NoError(t, err)
 
-	start, err := s.GetStartSlotForEpoch(0)
+	start, err := s.GetStartSlotForEpoch(0, header1.Hash())
+	fmt.Println(start)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), start)
 
-	start, err = s.GetStartSlotForEpoch(1)
+	start, err = s.GetStartSlotForEpoch(1, header1.Hash())
+	fmt.Println(start)
 	require.NoError(t, err)
-	require.Equal(t, uint64(1)+s.epochLength, start)
+	require.Equal(t, uint64(201), start)
 
-	start, err = s.GetStartSlotForEpoch(2)
+	start, err = s.GetStartSlotForEpoch(2, header1.Hash())
+	fmt.Println(start)
 	require.NoError(t, err)
-	require.Equal(t, genesisBABEConfig.EpochLength*2+1, start)
+	require.Equal(t, uint64(401), start)
 }
 
 func TestEpochState_ConfigData(t *testing.T) {
@@ -118,7 +131,7 @@ func TestEpochState_ConfigData(t *testing.T) {
 		SecondarySlots: 1,
 	}
 
-	err := s.SetConfigData(1, data)
+	err := s.StoreConfigData(1, data)
 	require.NoError(t, err)
 
 	ret, err := s.GetConfigData(1, nil)
@@ -181,40 +194,58 @@ func TestEpochState_GetEpochFromTime(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
 	s.blockState = newTestBlockState(t, newTriesEmpty())
 
+	// let's say first slot is 1 second after January 1, 1970 UTC
+	start := time.Unix(1, 0)
+	slotDuration := time.Millisecond * time.Duration(genesisBABEConfig.SlotDuration)
+	firstSlot := uint64(start.UnixNano()) / uint64(slotDuration.Nanoseconds())
+
+	digest := types.NewDigest()
+	di, err := types.NewBabeSecondaryPlainPreDigest(0, firstSlot).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	require.NotNil(t, di)
+	err = digest.Add(*di)
+	require.NoError(t, err)
+
+	header1 := types.Header{
+		Number:     1,
+		Digest:     digest,
+		ParentHash: s.blockState.genesisHash,
+	}
+
+	err = s.blockState.AddBlock(&types.Block{
+		Header: header1,
+		Body:   types.Body{},
+	})
+	require.NoError(t, err)
+
 	epochDuration, err := time.ParseDuration(
 		fmt.Sprintf("%dms",
 			genesisBABEConfig.SlotDuration*genesisBABEConfig.EpochLength))
 	require.NoError(t, err)
 
-	slotDuration := time.Millisecond * time.Duration(genesisBABEConfig.SlotDuration)
-
-	start := time.Unix(1, 0) // let's say first slot is 1 second after January 1, 1970 UTC
-	slot := uint64(start.UnixNano()) / uint64(slotDuration.Nanoseconds())
-
-	err = s.SetFirstSlot(slot)
 	require.NoError(t, err)
 
-	epoch, err := s.GetEpochFromTime(start)
+	epoch, err := s.GetEpochFromTime(start, header1.Hash())
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), epoch)
 
-	epoch, err = s.GetEpochFromTime(start.Add(epochDuration))
+	epoch, err = s.GetEpochFromTime(start.Add(epochDuration), header1.Hash())
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), epoch)
 
-	epoch, err = s.GetEpochFromTime(start.Add(epochDuration / 2))
+	epoch, err = s.GetEpochFromTime(start.Add(epochDuration/2), header1.Hash())
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), epoch)
 
-	epoch, err = s.GetEpochFromTime(start.Add(epochDuration * 3 / 2))
+	epoch, err = s.GetEpochFromTime(start.Add(epochDuration*3/2), header1.Hash())
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), epoch)
 
-	epoch, err = s.GetEpochFromTime(start.Add(epochDuration*100 + 1))
+	epoch, err = s.GetEpochFromTime(start.Add(epochDuration*100+1), header1.Hash())
 	require.NoError(t, err)
 	require.Equal(t, uint64(100), epoch)
 
-	epoch, err = s.GetEpochFromTime(start.Add(epochDuration*100 - 1))
+	epoch, err = s.GetEpochFromTime(start.Add(epochDuration*100-1), header1.Hash())
 	require.NoError(t, err)
 	require.Equal(t, uint64(99), epoch)
 }

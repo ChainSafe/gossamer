@@ -154,7 +154,7 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	bestBlockHeader, err := babeService.blockState.GetHeader(bestBlockHash)
 	require.NoError(t, err)
 
-	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	epochDescriptor, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
 	timestamp := time.Unix(6, 0)
@@ -162,7 +162,7 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice,
 		"System.remark", []byte{0xab, 0xcd})
 	block := createTestBlockWithSlot(t, babeService, bestBlockHeader, [][]byte{common.MustHexToBytes(ext)},
-		testEpochIndex, epochData, slot)
+		testEpochIndex, epochDescriptor, slot)
 
 	err = babeService.blockState.AddBlock(block)
 	require.NoError(t, err)
@@ -194,9 +194,9 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 		number:   bestBlockSlotNum - 1,
 	}
 	err = babeService.handleSlot(
-		babeService.epochHandler.epochNumber,
+		babeService.epochHandler.descriptor.epoch,
 		slot,
-		babeService.epochHandler.epochData.authorityIndex,
+		babeService.epochHandler.descriptor.data.authorityIndex,
 		preRuntimeDigest)
 
 	require.ErrorIs(t, err, errLaggingSlot)
@@ -211,11 +211,12 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	epochDescriptor, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
 	slot := getSlot(t, runtime, time.Unix(6, 0))
-	preRuntimeDigest, err := claimSlot(testEpochIndex, slot.number, epochData, babeService.keypair)
+	preRuntimeDigest, err := claimSlot(
+		testEpochIndex, slot.number, epochDescriptor.data, babeService.keypair)
 	require.NoError(t, err)
 
 	builder := NewBlockBuilder(

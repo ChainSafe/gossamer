@@ -30,7 +30,6 @@ var (
 var (
 	epochPrefix         = "epoch"
 	currentEpochKey     = []byte("current")
-	firstSlotKey        = []byte("firstslot")
 	epochDataPrefix     = []byte("epochinfo")
 	configDataPrefix    = []byte("configinfo")
 	latestConfigDataKey = []byte("lcfginfo")
@@ -122,7 +121,8 @@ func NewEpochStateFromGenesis(db database.Database, blockState *BlockState,
 
 // TODO: remove NewEpochStateFromGenesis function
 // NewEpochState returns a new EpochState
-func NewEpochState(db database.Database, blockState *BlockState, genesisConfig *types.BabeConfiguration) (*EpochState, error) {
+func NewEpochState(db database.Database, blockState *BlockState,
+	genesisConfig *types.BabeConfiguration) (*EpochState, error) {
 	if genesisConfig.EpochLength == 0 {
 		return nil, ErrEpochLengthCannotBeZero
 	}
@@ -189,9 +189,9 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return 0, errors.New("header is nil")
 	}
 
-	firstSlot, err := s.baseState.loadFirstSlot()
+	veryFirstSlotNumber, err := s.retrieveFirstNonOriginBlockSlot(header.Hash())
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("retrieving very first slot number: %w", err)
 	}
 
 	slotNumber, err := header.SlotNumber()
@@ -199,11 +199,11 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return 0, fmt.Errorf("getting slot number: %w", err)
 	}
 
-	return (slotNumber - firstSlot) / s.epochLength, nil
+	return (slotNumber - veryFirstSlotNumber) / s.epochLength, nil
 }
 
-// storeEpochDataRaw sets the epoch data raw for a given epoch
-func (s *EpochState) storeEpochDataRaw(epoch uint64, raw *types.EpochDataRaw) error {
+// StoreEpochDataRaw sets the epoch data raw for a given epoch
+func (s *EpochState) StoreEpochDataRaw(epoch uint64, raw *types.EpochDataRaw) error {
 	enc, err := scale.Marshal(*raw)
 	if err != nil {
 		return err
@@ -270,8 +270,8 @@ func (s *EpochState) GetLatestEpochDataRaw() (*types.EpochDataRaw, error) {
 	return s.GetEpochDataRaw(curr, nil)
 }
 
-// storeConfigData sets the BABE config data for a given epoch
-func (s *EpochState) storeConfigData(epoch uint64, info *types.ConfigData) error {
+// StoreConfigData sets the BABE config data for a given epoch
+func (s *EpochState) StoreConfigData(epoch uint64, info *types.ConfigData) error {
 	enc, err := scale.Marshal(*info)
 	if err != nil {
 		return err
@@ -539,21 +539,6 @@ func (s *EpochState) GetEpochFromTime(t time.Time, blockHash common.Hash) (uint6
 	return (currentSlot - veryFirstSlotNumber) / s.epochLength, nil
 }
 
-// SetFirstSlot sets the first slot number of the network
-func (s *EpochState) SetFirstSlot(slot uint64) error {
-	// check if block 1 was finalised already; if it has, don't set first slot again
-	header, err := s.blockState.GetHighestFinalisedHeader()
-	if err != nil {
-		return err
-	}
-
-	if header.Number >= 1 {
-		return errors.New("first slot has already been set")
-	}
-
-	return s.baseState.storeFirstSlot(slot)
-}
-
 // SkipVerify returns whether verification for the given header should be skipped or not.
 // Only used in the case of imported state.
 func (s *EpochState) SkipVerify(header *types.Header) (bool, error) {
@@ -638,7 +623,7 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 		return fmt.Errorf("cannot find next epoch data: %w", err)
 	}
 
-	err = s.storeEpochDataRaw(nextEpoch, finalizedNextEpochData.ToEpochDataRaw())
+	err = s.StoreEpochDataRaw(nextEpoch, finalizedNextEpochData.ToEpochDataRaw())
 	if err != nil {
 		return fmt.Errorf("cannot set epoch data: %w", err)
 	}
@@ -699,7 +684,7 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 	}
 
 	cd := finalizedNextConfigData.ToConfigData()
-	err = s.storeConfigData(nextEpoch, cd)
+	err = s.StoreConfigData(nextEpoch, cd)
 	if err != nil {
 		return fmt.Errorf("cannot set config data: %w", err)
 	}
