@@ -26,6 +26,11 @@ type Service struct {
 	network    Network
 }
 
+// Pause Pauses the sync service
+func (s *Service) Pause() error {
+	return s.blockState.Pause()
+}
+
 // Config is the configuration for the sync Service.
 type Config struct {
 	LogLvl             log.Level
@@ -100,6 +105,10 @@ func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMe
 	blockAnnounceHeaderHash := blockAnnounceHeader.Hash()
 	logger.Debugf("received block announce from: %s, #%d (%s)", from,
 		blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
+
+	if s.blockState.IsPaused() {
+		return errors.New("blockstate service is paused")
+	}
 
 	// if the peer reports a lower or equal best block number than us,
 	// check if they are on a fork or not

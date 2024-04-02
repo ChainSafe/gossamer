@@ -262,6 +262,10 @@ func (cs *chainSync) bootstrapSync() {
 			cs.workerPool.useConnectedPeers()
 			err = cs.requestMaxBlocksFrom(currentBlock, networkInitialSync)
 			if err != nil {
+				if errors.Is(err, errBlockStatePaused) {
+					logger.Debugf("exiting bootstrap sync: %s", err)
+					return
+				}
 				logger.Errorf("requesting max blocks from best block header: %s", err)
 			}
 
@@ -411,8 +415,11 @@ func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.
 	}
 
 	resultsQueue := make(chan *syncTaskResult)
-	cs.workerPool.submitRequest(request, &peerWhoAnnounced, resultsQueue)
-	err := cs.handleWorkersResults(resultsQueue, networkBroadcast, startAtBlock, totalBlocks)
+	err := cs.submitRequest(request, &peerWhoAnnounced, resultsQueue)
+	if err != nil {
+		return err
+	}
+	err = cs.handleWorkersResults(resultsQueue, networkBroadcast, startAtBlock, totalBlocks)
 	if err != nil {
 		return fmt.Errorf("while handling workers results: %w", err)
 	}
@@ -449,8 +456,10 @@ func (cs *chainSync) requestForkBlocks(bestBlockHeader, highestFinalizedHeader, 
 		gapLength, peerWhoAnnounced, announcedHeader.Number, announcedHash.Short())
 
 	resultsQueue := make(chan *syncTaskResult)
-	cs.workerPool.submitRequest(request, &peerWhoAnnounced, resultsQueue)
-
+	err = cs.submitRequest(request, &peerWhoAnnounced, resultsQueue)
+	if err != nil {
+		return err
+	}
 	err = cs.handleWorkersResults(resultsQueue, networkBroadcast, startAtBlock, gapLength)
 	if err != nil {
 		return fmt.Errorf("while handling workers results: %w", err)
@@ -499,8 +508,10 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 		// the `requests` in the tip sync are not related necessarily
 		// this is why we need to treat them separately
 		resultsQueue := make(chan *syncTaskResult)
-		cs.workerPool.submitRequest(descendingGapRequest, nil, resultsQueue)
-
+		err = cs.submitRequest(descendingGapRequest, nil, resultsQueue)
+		if err != nil {
+			return err
+		}
 		// TODO: we should handle the requests concurrently
 		// a way of achieve that is by constructing a new `handleWorkersResults` for
 		// handling only tip sync requests
@@ -536,13 +547,36 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header, origin 
 		}
 	}
 
-	resultsQueue := cs.workerPool.submitRequests(requests)
-	err := cs.handleWorkersResults(resultsQueue, origin, startRequestAt, expectedAmountOfBlocks)
+	resultsQueue, err := cs.submitRequests(requests)
+	if err != nil {
+		return err
+	}
+	err = cs.handleWorkersResults(resultsQueue, origin, startRequestAt, expectedAmountOfBlocks)
 	if err != nil {
 		return fmt.Errorf("while handling workers results: %w", err)
 	}
 
 	return nil
+}
+
+func (cs *chainSync) submitRequest(
+	request *network.BlockRequestMessage,
+	who *peer.ID,
+	resultCh chan<- *syncTaskResult,
+) error {
+	if !cs.blockState.IsPaused() {
+		cs.workerPool.submitRequest(request, who, resultCh)
+		return nil
+	}
+	return fmt.Errorf("submitting request: %w", errBlockStatePaused)
+}
+
+func (cs *chainSync) submitRequests(requests []*network.BlockRequestMessage) (
+	resultCh chan *syncTaskResult, err error) {
+	if !cs.blockState.IsPaused() {
+		return cs.workerPool.submitRequests(requests), nil
+	}
+	return nil, fmt.Errorf("submitting requests: %w", errBlockStatePaused)
 }
 
 func (cs *chainSync) showSyncStats(syncBegin time.Time, syncedBlocks int) {
@@ -581,7 +615,6 @@ func (cs *chainSync) showSyncStats(syncBegin time.Time, syncedBlocks int) {
 func (cs *chainSync) handleWorkersResults(
 	workersResults chan *syncTaskResult, origin blockOrigin, startAtBlock uint, expectedSyncedBlocks uint32) error {
 	startTime := time.Now()
-
 	syncingChain := make([]*types.BlockData, expectedSyncedBlocks)
 	// the total numbers of blocks is missing in the syncing chain
 	waitingBlocks := expectedSyncedBlocks
@@ -627,7 +660,10 @@ taskResultLoop:
 				}
 
 				// TODO: avoid the same peer to get the same task
-				cs.workerPool.submitRequest(request, nil, workersResults)
+				err := cs.submitRequest(request, nil, workersResults)
+				if err != nil {
+					return err
+				}
 				continue
 			}
 
@@ -648,14 +684,20 @@ taskResultLoop:
 					}, who)
 				}
 
-				cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
+				err = cs.submitRequest(taskResult.request, nil, workersResults)
+				if err != nil {
+					return err
+				}
 				continue taskResultLoop
 			}
 
 			isChain := isResponseAChain(response.BlockData)
 			if !isChain {
 				logger.Criticalf("response from %s is not a chain", who)
-				cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
+				err = cs.submitRequest(taskResult.request, nil, workersResults)
+				if err != nil {
+					return err
+				}
 				continue taskResultLoop
 			}
 
@@ -663,7 +705,10 @@ taskResultLoop:
 				startAtBlock, expectedSyncedBlocks)
 			if !grows {
 				logger.Criticalf("response from %s does not grows the ongoing chain", who)
-				cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
+				err = cs.submitRequest(taskResult.request, nil, workersResults)
+				if err != nil {
+					return err
+				}
 				continue taskResultLoop
 			}
 
@@ -678,7 +723,10 @@ taskResultLoop:
 					}, who)
 
 					cs.workerPool.ignorePeerAsWorker(taskResult.who)
-					cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
+					err = cs.submitRequest(taskResult.request, nil, workersResults)
+					if err != nil {
+						return err
+					}
 					continue taskResultLoop
 				}
 
@@ -708,7 +756,10 @@ taskResultLoop:
 					Direction:     network.Ascending,
 					Max:           &difference,
 				}
-				cs.workerPool.submitRequest(taskResult.request, nil, workersResults)
+				err = cs.submitRequest(taskResult.request, nil, workersResults)
+				if err != nil {
+					return err
+				}
 				continue taskResultLoop
 			}
 		}
