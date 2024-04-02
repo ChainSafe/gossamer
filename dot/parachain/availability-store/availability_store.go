@@ -1010,7 +1010,7 @@ func (av *AvailabilityStoreSubsystem) processPruneKey(key []byte) error {
 	}
 
 	// delete chunks
-	for i, _ := range meta.ChunksStored {
+	for i := range meta.ChunksStored {
 		err = av.availabilityStore.chunk.Del(append(candidateHash, uint32ToBytes(uint32(i))...))
 		if err != nil {
 			logger.Errorf("failed to delete key: %w", err)
