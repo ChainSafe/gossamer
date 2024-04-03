@@ -157,7 +157,7 @@ func (nodeBuilder) initNode(config *cfg.Config) error {
 	}
 
 	// create genesis block from trie
-	header, err := t.GenesisBlock()
+	header, err := runtime.GenesisBlockFromTrie(t)
 	if err != nil {
 		return fmt.Errorf("failed to create genesis block from trie: %w", err)
 	}
