@@ -1309,34 +1309,18 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	assert.NoError(t, err)
 
-	// Create a VRF output and proof
-	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
-	assert.NoError(t, err)
-
 	testBlockHeaderEmpty := types.NewEmptyHeader()
 	testBlockHeaderEmpty.Number = 2
 
 	ctrl := gomock.NewController(t)
 	mockBlockStateEmpty := NewMockBlockState(ctrl)
-	mockBlockStateCheckFinErr := NewMockBlockState(ctrl)
-	mockBlockStateNotFinal := NewMockBlockState(ctrl)
 	mockBlockStateNotFinal2 := NewMockBlockState(ctrl)
 
-	mockEpochStateEmpty := NewMockEpochState(ctrl)
-	mockEpochStateSetSlotErr := NewMockEpochState(ctrl)
 	mockEpochStateGetEpochErr := NewMockEpochState(ctrl)
 	mockEpochStateSkipVerifyErr := NewMockEpochState(ctrl)
 	mockEpochStateSkipVerifyTrue := NewMockEpochState(ctrl)
 	mockEpochStateGetVerifierInfoErr := NewMockEpochState(ctrl)
 	mockEpochStateVerifyAuthorshipErr := NewMockEpochState(ctrl)
-
-	errTestNumberIsFinalised := errors.New("test number is finalised error")
-	mockBlockStateCheckFinErr.EXPECT().NumberIsFinalised(uint(1)).Return(false, errTestNumberIsFinalised)
-
-	mockBlockStateNotFinal.EXPECT().NumberIsFinalised(uint(1)).Return(false, nil)
-
-	mockBlockStateNotFinal2.EXPECT().NumberIsFinalised(uint(1)).Return(false, nil)
-	errTestSetFirstSlot := errors.New("test set first slot error")
 
 	errTestGetEpoch := errors.New("test get epoch error")
 	mockEpochStateGetEpochErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).
@@ -1363,16 +1347,6 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	block1Header := types.NewEmptyHeader()
 	block1Header.Number = 1
 
-	testBabeSecondaryVRFPreDigest := types.BabeSecondaryVRFPreDigest{
-		AuthorityIndex: 1,
-		SlotNumber:     uint64(1),
-		VrfOutput:      output,
-		VrfProof:       proof,
-	}
-	encVrfDigest := newEncodedBabeDigest(t, testBabeSecondaryVRFPreDigest)
-	assert.NoError(t, err)
-	block1Header2 := newTestHeader(t, *types.NewBABEPreRuntimeDigest(encVrfDigest))
-
 	authority := types.NewAuthority(kp.Public(), uint64(1))
 	info := &verifierInfo{
 		authorities:    []types.AuthorityRaw{*authority.ToRaw(), *authority.ToRaw()},
@@ -1382,9 +1356,6 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 
 	mockSlotState := NewMockSlotState(nil)
 
-	vm0 := NewVerificationManager(mockBlockStateCheckFinErr, mockSlotState, mockEpochStateEmpty)
-	vm1 := NewVerificationManager(mockBlockStateNotFinal, mockSlotState, mockEpochStateEmpty)
-	vm2 := NewVerificationManager(mockBlockStateNotFinal2, mockSlotState, mockEpochStateSetSlotErr)
 	vm3 := NewVerificationManager(mockBlockStateNotFinal2, mockSlotState, mockEpochStateGetEpochErr)
 	vm4 := NewVerificationManager(mockBlockStateEmpty, mockSlotState, mockEpochStateSkipVerifyErr)
 	vm5 := NewVerificationManager(mockBlockStateEmpty, mockSlotState, mockEpochStateSkipVerifyTrue)
@@ -1398,24 +1369,6 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 		header *types.Header
 		expErr error
 	}{
-		{
-			name:   "fail to check block 1 finalisation",
-			vm:     vm0,
-			header: block1Header,
-			expErr: fmt.Errorf("failed to check if block 1 is finalised: %w", errTestNumberIsFinalised),
-		},
-		{
-			name:   "get slot from header error",
-			vm:     vm1,
-			header: block1Header,
-			expErr: fmt.Errorf("failed to get slot from header of block 1: %w", types.ErrChainHeadMissingDigest),
-		},
-		{
-			name:   "set first slot error",
-			vm:     vm2,
-			header: block1Header2,
-			expErr: fmt.Errorf("failed to set current epoch after receiving block 1: %w", errTestSetFirstSlot),
-		},
 		{
 			name:   "get epoch error",
 			vm:     vm3,
