@@ -1,3 +1,6 @@
+// Copyright 2024 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package triedb
 
 // Entries returns all the key-value pairs in the trie as a map of keys to values
