@@ -38,6 +38,7 @@ var _ runtime.Instance = &Instance{}
 
 // Instance backed by wazero.Runtime
 type Instance struct {
+	code     []byte
 	Runtime  wazero.Runtime
 	Module   api.Module
 	Context  *runtime.Context
@@ -100,15 +101,10 @@ func NewInstanceFromTrie(t trie.Trie, cfg Config) (*Instance, error) {
 	return NewInstance(code, cfg)
 }
 
-// NewInstance instantiates a runtime from raw wasm bytecode
-func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
-	logger.Info("instantiating a runtime!")
-	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
-
-	ctx := context.Background()
+func newRuntimeInstance(ctx context.Context, code []byte) (api.Module, wazero.Runtime, error) {
 	rt := wazero.NewRuntime(ctx)
 
-	_, err = rt.NewHostModuleBuilder("env").
+	_, err := rt.NewHostModuleBuilder("env").
 		// values from newer kusama/polkadot runtimes
 		ExportMemory("memory", 23).
 		NewFunctionBuilder().
@@ -396,35 +392,36 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		Instantiate(ctx)
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	code, err = decompressWasm(code)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	mod, err := rt.Instantiate(ctx, code)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	encodedHeapBase := mod.ExportedGlobal("__heap_base")
-	if encodedHeapBase == nil {
-		return nil, fmt.Errorf("wazero error: nil global for __heap_base")
-	}
+	return mod, rt, nil
+}
 
-	heapBase := api.DecodeU32(encodedHeapBase.Get())
-	// hb = runtime.DefaultHeapBase
+// NewInstance instantiates a runtime from raw wasm bytecode
+func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
+	logger.Info("instantiating a runtime!")
+	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
-	mem := mod.Memory()
-	if mem == nil {
-		return nil, fmt.Errorf("wazero error: nil memory for module")
+	ctx := context.Background()
+	mod, rt, err := newRuntimeInstance(ctx, code)
+	if err != nil {
+		return nil, fmt.Errorf("creating runtime instance: %w", err)
 	}
 
 	instance = &Instance{
-		heapBase: heapBase,
-		Runtime:  rt,
+		code:    code,
+		Runtime: rt,
 		Context: &runtime.Context{
 			Keystore:        cfg.Keystore,
 			Validator:       cfg.Role == common.AuthorityRole,
@@ -458,32 +455,42 @@ var ErrExportFunctionNotFound = errors.New("export function not found")
 
 func (i *Instance) Exec(function string, data []byte) (result []byte, err error) {
 	i.Lock()
-	i.Context.Allocator = allocator.NewFreeingBumpHeapAllocator(i.heapBase)
+	defer i.Unlock()
 
+	mod, rt, err := newRuntimeInstance(context.Background(), i.code)
+	if err != nil {
+		return nil, fmt.Errorf("creating runtime instace: %w", err)
+	}
 	defer func() {
-		i.Context.Allocator = nil
-		i.Unlock()
+		mod.Close(context.Background())
+		rt.Close(context.Background())
 	}()
-	// instantiate a new allocator on every execution func
+
+	encodedHeapBase := mod.ExportedGlobal("__heap_base")
+	if encodedHeapBase == nil {
+		return nil, fmt.Errorf("wazero error: nil global for __heap_base")
+	}
+
+	heapBase := api.DecodeU32(encodedHeapBase.Get())
+	i.Context.Allocator = allocator.NewFreeingBumpHeapAllocator(heapBase)
+
+	memory := mod.Memory()
+	if memory == nil {
+		panic("nil memory")
+	}
 
 	dataLength := uint32(len(data))
-	inputPtr, err := i.Context.Allocator.Allocate(i.Module.Memory(), dataLength)
+	inputPtr, err := i.Context.Allocator.Allocate(memory, dataLength)
 	if err != nil {
 		return nil, fmt.Errorf("allocating input memory: %w", err)
 	}
 
-	// Store the data into memory
-	mem := i.Module.Memory()
-	if mem == nil {
-		panic("nil memory")
-	}
-
-	ok := mem.Write(inputPtr, data)
+	ok := memory.Write(inputPtr, data)
 	if !ok {
 		panic("write overflow")
 	}
 
-	runtimeFunc := i.Module.ExportedFunction(function)
+	runtimeFunc := mod.ExportedFunction(function)
 	if runtimeFunc == nil {
 		return nil, fmt.Errorf("%w: %s", ErrExportFunctionNotFound, function)
 	}
@@ -499,7 +506,7 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	wasmValue := values[0]
 
 	outputPtr, outputLength := splitPointerSize(wasmValue)
-	result, ok = mem.Read(outputPtr, outputLength)
+	result, ok = memory.Read(outputPtr, outputLength)
 	if !ok {
 		panic("write overflow")
 	}
