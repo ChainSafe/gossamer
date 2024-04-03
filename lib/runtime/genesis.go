@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	in_memory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
@@ -32,4 +34,18 @@ func NewTrieFromGenesis(gen genesis.Genesis) (tr trie.Trie, err error) {
 	}
 
 	return tr, nil
+}
+
+func GenesisBlockFromTrie(t trie.Trie) (genesisHeader types.Header, err error) {
+	rootHash, err := t.Hash()
+	if err != nil {
+		return genesisHeader, fmt.Errorf("root hashing trie: %w", err)
+	}
+
+	parentHash := common.Hash{0}
+	extrinsicRoot := trie.EmptyHash
+	const blockNumber = 0
+	digest := types.NewDigest()
+	genesisHeader = *types.NewHeader(parentHash, rootHash, extrinsicRoot, blockNumber, digest)
+	return genesisHeader, nil
 }
