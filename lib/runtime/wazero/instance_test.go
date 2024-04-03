@@ -24,7 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 
@@ -1096,7 +1095,7 @@ func newTrieFromPairs(t *testing.T, filename string) trie.Trie {
 		entries[pairArr[0].(string)] = pairArr[1].(string)
 	}
 
-	tr, err := inmemory.LoadFromMap(entries, trie.V0)
+	tr, err := inmemory_trie.LoadFromMap(entries, trie.V0)
 	require.NoError(t, err)
 	return tr
 }
