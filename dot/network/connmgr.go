@@ -78,7 +78,7 @@ func (*ConnManager) TrimOpenConns(context.Context) {}
 
 // CheckLimit is unimplemented
 func (*ConnManager) CheckLimit(connmgr.GetConnLimiter) error {
-	panic("CheckLimit is unimplemented")
+	return nil
 }
 
 // Protect peer will add the given peer to the protectedPeerMap which will
