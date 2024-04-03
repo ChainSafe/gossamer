@@ -143,11 +143,9 @@ func TestEpochState_ConfigData(t *testing.T) {
 	require.Equal(t, data, ret)
 }
 
-func TestEpochState_GetEpochForBlock(t *testing.T) {
-	s := newEpochStateFromGenesis(t)
-
+func createAndImportBlockOne(t *testing.T, slotNumber uint64, blockState *BlockState) (blockOneHeader *types.Header) {
 	babeHeader := types.NewBabeDigest()
-	err := babeHeader.SetValue(*types.NewBabePrimaryPreDigest(0, s.epochLength+2, [32]byte{}, [64]byte{}))
+	err := babeHeader.SetValue(*types.NewBabePrimaryPreDigest(0, slotNumber, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 	enc, err := scale.Marshal(babeHeader)
 	require.NoError(t, err)
@@ -155,16 +153,54 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 	digest := types.NewDigest()
 	digest.Add(*d)
 
-	header := &types.Header{
-		Digest: digest,
+	blockOneHeader = &types.Header{
+		Number:     1,
+		Digest:     digest,
+		ParentHash: blockState.genesisHash,
 	}
 
-	epoch, err := s.GetEpochForBlock(header)
+	err = blockState.AddBlock(&types.Block{
+		Header: *blockOneHeader,
+		Body:   *types.NewBody([]types.Extrinsic{}),
+	})
+	require.NoError(t, err)
+
+	return blockOneHeader
+}
+
+func TestEpochState_GetEpochForBlock(t *testing.T) {
+	s := newEpochStateFromGenesis(t)
+
+	firstSlot := uint64(1)
+	blockOneHeader := createAndImportBlockOne(t, firstSlot, s.blockState)
+
+	babeHeader := types.NewBabeDigest()
+	err := babeHeader.SetValue(*types.NewBabePrimaryPreDigest(0, s.epochLength*1+1, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+	enc, err := scale.Marshal(babeHeader)
+	require.NoError(t, err)
+	d := types.NewBABEPreRuntimeDigest(enc)
+	digest := types.NewDigest()
+	digest.Add(*d)
+
+	header2 := &types.Header{
+		Number:     2,
+		Digest:     digest,
+		ParentHash: blockOneHeader.Hash(),
+	}
+
+	err = s.blockState.AddBlock(&types.Block{
+		Header: *header2,
+		Body:   *types.NewBody([]types.Extrinsic{}),
+	})
+	require.NoError(t, err)
+
+	epoch, err := s.GetEpochForBlock(header2)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), epoch)
 
 	babeHeader = types.NewBabeDigest()
-	err = babeHeader.SetValue(*types.NewBabePrimaryPreDigest(0, s.epochLength*2+3, [32]byte{}, [64]byte{}))
+	err = babeHeader.SetValue(*types.NewBabePrimaryPreDigest(0, s.epochLength*2+1, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 	enc, err = scale.Marshal(babeHeader)
 	require.NoError(t, err)
@@ -172,11 +208,19 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 	digest2 := types.NewDigest()
 	digest2.Add(*d)
 
-	header = &types.Header{
-		Digest: digest2,
+	header3 := &types.Header{
+		Number:     3,
+		Digest:     digest2,
+		ParentHash: header2.Hash(),
 	}
 
-	epoch, err = s.GetEpochForBlock(header)
+	err = s.blockState.AddBlock(&types.Block{
+		Header: *header3,
+		Body:   *types.NewBody([]types.Extrinsic{}),
+	})
+	require.NoError(t, err)
+
+	epoch, err = s.GetEpochForBlock(header3)
 	require.NoError(t, err)
 	require.Equal(t, uint64(2), epoch)
 }
@@ -277,7 +321,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 	}
 
 	babePrimaryPreDigest := types.BabePrimaryPreDigest{
-		SlotNumber: 301, // block on epoch 1 with digest for epoch 2
+		SlotNumber: 301, // block on epoch 0 with digest for epoch 1
 		VRFOutput:  [32]byte{},
 		VRFProof:   [64]byte{},
 	}
@@ -306,8 +350,8 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 		shouldRemainInMemory int
 	}{
 		"store_and_finalize_successfully": {
-			shouldRemainInMemory: 1,
-			finalizeEpoch:        2,
+			shouldRemainInMemory: 2,
+			finalizeEpoch:        1,
 			finalizedHeader:      finalizedHeader,
 			inMemoryEpoch: []inMemoryBABEData[types.NextEpochData]{
 				{
@@ -315,7 +359,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 					hashes: []common.Hash{
 						common.MustHexToHash("0x9da3ce2785da743bfbc13449db7dcb7a69c07ca914276d839abe7bedc6ac8fed"),
 						common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
-						common.MustHexToHash("0xc0096358534ec8d21d01d34b836eed476a1c343f8724fa2153dc0725ad797a90"),
+						finalizedHeaderHash,
 					},
 					nextData: []types.NextEpochData{
 						{
@@ -337,7 +381,6 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 					hashes: []common.Hash{
 						common.MustHexToHash("0x5b940c7fc0a1c5a58e4d80c5091dd003303b8f18e90a989f010c1be6f392bed1"),
 						common.MustHexToHash("0xd380bee22de487a707cbda65dd9d4e2188f736908c42cf390c8919d4f7fc547c"),
-						finalizedHeaderHash,
 					},
 					nextData: []types.NextEpochData{
 						{
@@ -370,13 +413,13 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 		},
 		"cannot_finalize_hash_not_stored": {
 			shouldRemainInMemory: 1,
-			finalizeEpoch:        2,
+			finalizeEpoch:        1,
 			// this header hash is not in the database
 			finalizedHeader: finalizedHeader,
 			expectErr:       errHashNotPersisted,
 			inMemoryEpoch: []inMemoryBABEData[types.NextEpochData]{
 				{
-					epoch: 2,
+					epoch: 1,
 					hashes: []common.Hash{
 						common.MustHexToHash("0x9da3ce2785da743bfbc13449db7dcb7a69c07ca914276d839abe7bedc6ac8fed"),
 						common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
@@ -419,10 +462,9 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 			}
 
 			require.Len(t, epochState.nextEpochData, len(tt.inMemoryEpoch))
-
 			expectedNextEpochData := epochState.nextEpochData[tt.finalizeEpoch][tt.finalizedHeader.Hash()]
 
-			err := epochState.blockState.db.Put(headerKey(tt.finalizedHeader.Hash()), []byte{})
+			err := epochState.blockState.SetHeader(tt.finalizedHeader)
 			require.NoError(t, err)
 
 			err = epochState.FinalizeBABENextEpochData(tt.finalizedHeader)
@@ -432,6 +474,8 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 				require.NoError(t, err)
 
 				expected := expectedNextEpochData.ToEpochDataRaw()
+
+				fmt.Println("epoch being finalized", tt.finalizeEpoch)
 				gotNextEpochData, err := epochState.GetEpochDataRaw(tt.finalizeEpoch, nil)
 				require.NoError(t, err)
 

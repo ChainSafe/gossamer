@@ -59,8 +59,12 @@ func TestBabeService_getEpochDataAndStartSlot(t *testing.T) {
 			service: func(ctrl *gomock.Controller) *Service {
 				mockEpochState := NewMockEpochState(ctrl)
 
-				mockEpochState.EXPECT().GetLatestEpochDataRaw().Return(testEpochDataEpoch0, nil)
-				mockEpochState.EXPECT().GetLatestConfigData().Return(testConfigData, nil)
+				mockEpochState.EXPECT().
+					GetEpochDataRaw(uint64(0), nil).
+					Return(testEpochDataEpoch0, nil)
+				mockEpochState.EXPECT().
+					GetConfigData(uint64(0), nil).
+					Return(testConfigData, nil)
 
 				return &Service{
 					authority:  true,

@@ -35,9 +35,11 @@ func TestNewEpochHandler(t *testing.T) {
 
 	keypair := keyring.Alice().(*sr25519.Keypair)
 
+	startSlot := uint64(9999)
 	epochDescriptor := &EpochDescriptor{
 		data:      epochData,
-		startSlot: 9999,
+		startSlot: startSlot,
+		endSlot:   startSlot + testConstants.epochLength,
 		epoch:     1,
 	}
 

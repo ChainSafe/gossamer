@@ -475,6 +475,15 @@ func (s *EpochState) GetStartSlotForEpoch(epoch uint64, bestBlockHash common.Has
 // if there is more than one first non origin block then it uses the block hash to check ancestry
 // e.g to return the correct slot number for a specific fork
 func (s *EpochState) retrieveFirstNonOriginBlockSlot(blockHash common.Hash) (uint64, error) {
+	blockHeader, err := s.blockState.GetHeader(blockHash)
+	if err != nil {
+		return 0, fmt.Errorf("getting block by header: %w", err)
+	}
+
+	if blockHeader.Number == 1 {
+		return blockHeader.SlotNumber()
+	}
+
 	firstNonOriginHashes, err := s.blockState.GetHashesByNumber(1)
 	if err != nil {
 		return 0, fmt.Errorf("getting hashes using number 1: %w", err)
@@ -593,9 +602,6 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 	var nextEpoch uint64 = 1
 	if finalizedHeader.Number != 0 {
 		finalizedBlockEpoch, err := s.GetEpochForBlock(finalizedHeader)
-		if finalizedBlockEpoch == 0 {
-			return nil
-		}
 
 		if err != nil {
 			return fmt.Errorf("cannot get epoch for block %d (%s): %w",
