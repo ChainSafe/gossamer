@@ -89,7 +89,6 @@ func TestNewNode(t *testing.T) {
 	mockServiceRegistry.EXPECT().RegisterService(gomock.Any()).Times(8)
 
 	m := NewMocknodeBuilderIface(ctrl)
-	m.EXPECT().isNodeInitialised(initConfig.BasePath).Return(true, nil)
 	m.EXPECT().createStateService(initConfig).DoAndReturn(func(config *cfg.Config) (*state.Service, error) {
 		stateSrvc := state.NewService(stateConfig)
 		// create genesis from configuration file
@@ -103,7 +102,7 @@ func TestNewNode(t *testing.T) {
 			return nil, fmt.Errorf("failed to create trie from genesis: %w", err)
 		}
 		// create genesis block from trie
-		header, err := trie.GenesisBlock()
+		header, err := runtime.GenesisBlockFromTrie(trie)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create genesis block from trie: %w", err)
 		}

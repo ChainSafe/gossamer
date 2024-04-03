@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
@@ -30,10 +29,13 @@ func NewTrieDB(rootHash common.Hash, db db.DBGetter) *TrieDB {
 	}
 }
 
+// MustHash returns the hashed root of the trie.
 func (t *TrieDB) Hash() (common.Hash, error) {
 	return t.rootHash, nil
 }
 
+// MustHash returns the hashed root of the trie.
+// It panics if it fails to hash the root node.
 func (t *TrieDB) MustHash() common.Hash {
 	h, err := t.Hash()
 	if err != nil {
@@ -43,6 +45,9 @@ func (t *TrieDB) MustHash() common.Hash {
 	return h
 }
 
+// Get returns the value in the node of the trie
+// which matches its key with the key given.
+// Note the key argument is given in little Endian format.
 func (t *TrieDB) Get(key []byte) []byte {
 	val, err := t.lookup(key)
 	if err != nil {
@@ -53,24 +58,14 @@ func (t *TrieDB) Get(key []byte) []byte {
 	return val
 }
 
+// GetKeysWithPrefix returns all keys in little Endian
+// format from nodes in the trie that have the given little
+// Endian formatted prefix in their key.
 func (t *TrieDB) GetKeysWithPrefix(prefix []byte) (keysLE [][]byte) {
-	panic("implement me")
+	panic("not implemented yet")
 }
 
-// TODO: remove after merging https://github.com/ChainSafe/gossamer/pull/3844
-func (t *TrieDB) GenesisBlock() (genesisHeader types.Header, err error) {
-	rootHash, err := t.Hash()
-	if err != nil {
-		return genesisHeader, fmt.Errorf("root hashing trie: %w", err)
-	}
-
-	parentHash := common.Hash{0}
-	extrinsicRoot := trie.EmptyHash
-	const blockNumber = 0
-	digest := types.NewDigest()
-	genesisHeader = *types.NewHeader(parentHash, rootHash, extrinsicRoot, blockNumber, digest)
-	return genesisHeader, nil
-}
+// Internal methods
 
 func (l *TrieDB) lookup(nibbleKey []byte) ([]byte, error) {
 	return l.lookupWithoutCache(nibbleKey)

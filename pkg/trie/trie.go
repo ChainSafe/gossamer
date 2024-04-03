@@ -6,7 +6,6 @@ package trie
 import (
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie/tracking"
 )
@@ -62,8 +61,6 @@ type Versioned interface {
 type Hashable interface {
 	MustHash() common.Hash
 	Hash() (common.Hash, error)
-	// TODO: remove this method, it is not directly related with tries
-	GenesisBlock() (genesisHeader types.Header, err error)
 }
 
 type ReadOnlyTrie interface {

@@ -100,7 +100,7 @@ func (t *InMemoryTrie) Snapshot() (newTrie *InMemoryTrie) {
 	}
 }
 
-// handleTrackedDeltas sets the pending deleted node hashes in
+// HandleTrackedDeltas sets the pending deleted node hashes in
 // the trie deltas tracker if and only if success is true.
 func (t *InMemoryTrie) HandleTrackedDeltas(success bool, pendingDeltas tracking.Getter) {
 	if !success || t.generation == 0 {
