@@ -71,6 +71,8 @@ func (l *TrieDB) lookup(nibbleKey []byte) ([]byte, error) {
 	return l.lookupWithoutCache(nibbleKey)
 }
 
+// lookupWithoutCache traverse nodes loading then from DB until reach the one
+// we are looking for.
 func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 	partial := nibbleKey
 	hash := l.rootHash[:]
