@@ -19,8 +19,8 @@ import (
 	"github.com/tidwall/btree"
 )
 
-// / Backing votes threshold used from the host prior to runtime API version 6 and from the runtime
-// / prior to v9 configuration migration.
+// Backing votes threshold used from the host prior to runtime API version 6 and
+// from the runtime prior to v9 configuration migration.
 const LEGACY_MIN_BACKING_VOTES uint32 = 2
 
 func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintypes.ActiveLeavesUpdateSignal) error {
@@ -47,15 +47,26 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 		cb.implicitView.deactivateLeaf(deactivated)
 	}
 
+	// clean up `perRelayParent` according to ancestry of leaves.
 	// we do this so we can clean up candidates right after as a result.
-	cb.cleanUpPerRelayParentByLeafAncestry()
+	//
+	// when prospective parachains are disabled, the implicit view is empty,
+	// which means we'll clean up everything that's not a leaf - the expected behaviour
+	// for pre-asynchronous backing.
+	cleanUpPerRelayParentByLeafAncestry(cb)
 
-	cb.removeUnknownRelayParentsFromPerCandidate()
+	// clean up `perCandidate` according to which relay-parents are known.
+	//
+	// when prospective parachains are disabled, we clean up all candidates
+	// because we've cleaned up all relay parents. this is correct.
+	removeUnknownRelayParentsFromPerCandidate(cb)
 
 	if activatedLeaf == nil {
 		return nil
 	}
 
+	// Get relay parents which might be fresh but might be known already
+	// that are explicit or implicit from the new active leaf.
 	var freshRelayParents []common.Hash
 
 	switch prospectiveParachainsMode.IsEnabled {
@@ -66,7 +77,12 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 
 		cb.perLeaf[activatedLeaf.Hash] = &activeLeafState{
 			prospectiveParachainsMode: *prospectiveParachainsMode,
-			secondedAtDepth:           make(map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]),
+
+			// This is empty because the only allowed relay-parent and depth
+			// when prospective parachains are disabled is the leaf hash and 0,
+			// respectively. We've just learned about the leaf hash, so we cannot
+			// have any candidates seconded with it as a relay-parent yet.
+			secondedAtDepth: make(map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]),
 		}
 
 		freshRelayParents = []common.Hash{activatedLeaf.Hash}
@@ -76,6 +92,11 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 		}
 
 		freshRelayParents = cb.implicitView.knownAllowedRelayParentsUnder(activatedLeaf.Hash, nil)
+
+		// At this point, all candidates outside of the implicit view
+		// have been cleaned up. For all which remain, which we've seconded,
+		// we ask the prospective parachains subsystem where they land in the fragment
+		// tree for the given active leaf. This comprises our `secondedAtDepth`.
 
 		remainingSeconded := make(map[parachaintypes.CandidateHash]parachaintypes.ParaID)
 		for candidateHash, candidateState := range cb.perCandidate {
@@ -97,6 +118,7 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 		}
 	}
 
+	// add entries in `perRelayParent`. for all new relay-parents.
 	for _, maybeNewRP := range freshRelayParents {
 		if _, ok := cb.perRelayParent[maybeNewRP]; ok {
 			continue
@@ -172,12 +194,7 @@ func processRemainingSeconded(
 	return secondedAtDepth
 }
 
-// clean up perRelayParent according to ancestry of leaves.
-//
-// when prospective parachains are disabled, the implicit view is empty,
-// which means we'll clean up everything that's not a leaf - the expected behaviour
-// for pre-asynchronous backing.
-func (cb *CandidateBacking) cleanUpPerRelayParentByLeafAncestry() {
+func cleanUpPerRelayParentByLeafAncestry(cb *CandidateBacking) {
 	remaining := make(map[common.Hash]bool)
 
 	for hash := range cb.perLeaf {
@@ -201,11 +218,7 @@ func (cb *CandidateBacking) cleanUpPerRelayParentByLeafAncestry() {
 	}
 }
 
-// clean up `per_candidate` according to which relay-parents are known.
-//
-// when prospective parachains are disabled, we clean up all candidates
-// because we've cleaned up all relay parents. this is correct.
-func (cb *CandidateBacking) removeUnknownRelayParentsFromPerCandidate() {
+func removeUnknownRelayParentsFromPerCandidate(cb *CandidateBacking) {
 	keysToDelete := []parachaintypes.CandidateHash{}
 
 	for candidateHash, pc := range cb.perCandidate {
