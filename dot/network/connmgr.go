@@ -76,6 +76,11 @@ func (*ConnManager) GetTagInfo(peer.ID) *connmgr.TagInfo { return &connmgr.TagIn
 // TrimOpenConns is unimplemented
 func (*ConnManager) TrimOpenConns(context.Context) {}
 
+// CheckLimit is unimplemented
+func (*ConnManager) CheckLimit(connmgr.GetConnLimiter) error {
+	return nil
+}
+
 // Protect peer will add the given peer to the protectedPeerMap which will
 // protect the peer from pruning.
 func (cm *ConnManager) Protect(id peer.ID, _ string) {
