@@ -19,6 +19,10 @@ import (
 	"github.com/tidwall/btree"
 )
 
+// / Backing votes threshold used from the host prior to runtime API version 6 and from the runtime
+// / prior to v9 configuration migration.
+const LEGACY_MIN_BACKING_VOTES uint32 = 2
+
 func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintypes.ActiveLeavesUpdateSignal) error {
 	var implicitViewFetchError error
 	var prospectiveParachainsMode *parachaintypes.ProspectiveParachainsMode
@@ -263,7 +267,38 @@ func constructPerRelayParentState(
 		return nil, fmt.Errorf("fetching parachain host data: %w", err)
 	}
 
+	// TODO: call minBackingVotes function here ParachainHostMinimumBackingVotes test passed
+	minBackingVotes := LEGACY_MIN_BACKING_VOTES
+
+	signingContext := parachaintypes.SigningContext{
+		SessionIndex: *sessionIndex,
+		ParentHash:   relayParent,
+	}
+
 	return nil, nil
+}
+
+// From the given set of validators, find the first key we can sign with,
+// if any, and return it along with the validator index.
+func signingKeyAndIndex(
+	validators []parachaintypes.ValidatorID,
+	keystore keystore.Keystore,
+) (parachaintypes.ValidatorID, parachaintypes.ValidatorID, error) {
+	for i, v := range validators {
+		key := keystore.
+	}
+}
+
+func minBackingVotes(rt runtime.Instance) (uint32, error) {
+	votes, err := rt.ParachainHostMinimumBackingVotes()
+	if err != nil && errors.Is(err, wazero_runtime.ErrExportFunctionNotFound) {
+		logger.Tracef(
+			"%s is not supported by the current Runtime API",
+			runtime.ParachainHostMinimumBackingVotes,
+		)
+		return LEGACY_MIN_BACKING_VOTES, nil
+	}
+	return votes, err
 }
 
 func fetchParachainHostData(rt runtime.Instance) (
