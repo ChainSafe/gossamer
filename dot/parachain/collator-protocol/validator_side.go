@@ -52,6 +52,8 @@ var (
 	ErrDuplicateAdvertisement = errors.New("advertisement is already known")
 	ErrPeerLimitReached       = errors.New("limit for announcements per peer is reached")
 	ErrNotAdvertised          = errors.New("collation was not previously advertised")
+
+	ErrInvalidStringFormat = errors.New("invalid string format for fetched collation info")
 )
 
 func (cpvs CollatorProtocolValidatorSide) Run(
@@ -145,14 +147,7 @@ func (cpvs *CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(signa
 	newLiveHeads := []parachaintypes.ActivatedLeaf{}
 
 	for _, head := range liveHeads {
-		var sliceContains bool
-		for _, deactivated := range signal.Deactivated {
-			if head.Hash == deactivated {
-				sliceContains = true
-				break
-			}
-		}
-		if sliceContains {
+		if slices.Contains(signal.Deactivated, head.Hash) {
 			newLiveHeads = append(newLiveHeads, head)
 		}
 	}
@@ -232,7 +227,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view View) error 
 
 	// handled newly added leaves
 	for _, leaf := range newlyAdded {
-		mode := perspectiveParchainMode(leaf)
+		mode := prospectiveParachainMode(leaf)
 
 		perRelayParent := &PerRelayParent{
 			prospectiveParachainMode: mode,
@@ -255,7 +250,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view View) error 
 	for _, leaf := range removed {
 		delete(cpvs.activeLeaves, leaf)
 
-		mode := perspectiveParchainMode(leaf)
+		mode := prospectiveParachainMode(leaf)
 		pruned := []common.Hash{}
 		if mode.IsEnabled {
 			// TODO Do this when we have async backing
@@ -349,23 +344,14 @@ func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Has
 	}
 
 	paraNow := new(parachaintypes.ParaID)
-	switch coreNow.Index() {
-	case 0:
-		// OccupiedCore
-		occupiedCore, ok := coreNow.(parachaintypes.OccupiedCore)
-		if !ok {
-			return fmt.Errorf("couldn't cast VDT value now to OccupiedCore")
-		}
-		*paraNow = parachaintypes.ParaID(occupiedCore.CandidateDescriptor.ParaID)
-	case 1:
-		// ScheduledCore
-		scheduledCore, ok := coreNow.(parachaintypes.ScheduledCore)
-		if !ok {
-			return fmt.Errorf("couldn't cast VDT value now to scheduledCore")
-		}
-		*paraNow = scheduledCore.ParaID
-	case 2:
-		// Free
+
+	switch c := coreNow.(type) /*coreNow.Index()*/ {
+	case parachaintypes.OccupiedCore:
+		*paraNow = parachaintypes.ParaID(c.CandidateDescriptor.ParaID)
+	case parachaintypes.ScheduledCore:
+		*paraNow = c.ParaID
+	case parachaintypes.Free:
+		// Nothing to do in case of free
 
 	}
 
@@ -412,7 +398,7 @@ func signingKeyAndIndex(validators []parachaintypes.ValidatorID, ks keystore.Key
 	return nil, 0
 }
 
-func perspectiveParchainMode(relayParent common.Hash) parachaintypes.ProspectiveParachainsMode {
+func prospectiveParachainMode(relayParent common.Hash) parachaintypes.ProspectiveParachainsMode {
 	// NOTE: We will return false until we have support for async backing
 	return parachaintypes.ProspectiveParachainsMode{
 		IsEnabled: false,
@@ -616,7 +602,7 @@ const (
 
 // The maximum amount of heads a peer is allowed to have in their view at any time.
 // We use the same limit to compute the view sent to peers locally.
-const MAX_VIEW_HEADS uint8 = 5
+const MaxViewHeads uint8 = 5
 
 // A succinct representation of a peer's view. This consists of a bounded amount of chain heads
 // and the highest known finalized block number.
@@ -781,7 +767,7 @@ func (f fetchedCollationInfo) String() string {
 func (f *fetchedCollationInfo) FromString(str string) error {
 	splits := strings.Split(str, ",")
 	if len(splits) != 4 {
-		return fmt.Errorf("invalid string format for fetched collation info")
+		return fmt.Errorf("%w: %s", ErrInvalidStringFormat, str)
 	}
 
 	relayParent, err := common.HexToHash(strings.TrimSpace(splits[0]))
@@ -796,18 +782,23 @@ func (f *fetchedCollationInfo) FromString(str string) error {
 	}
 	f.paraID = parachaintypes.ParaID(paraID)
 
-	candidateHashBytes := common.MustHexToBytes(strings.TrimSpace(splits[2]))
+	candidateHashBytes, err := common.HexToBytes(strings.TrimSpace(splits[2]))
+	if err != nil {
+		return fmt.Errorf("getting candidate hash bytes: %w", err)
+	}
 
 	candidateHash := parachaintypes.CandidateHash{
 		Value: common.NewHash(candidateHashBytes),
 	}
-	if err != nil {
-		return fmt.Errorf("getting candidate hash: %w", err)
-	}
+
 	f.candidateHash = candidateHash
 
 	var collatorID parachaintypes.CollatorID
-	collatorIDBytes := common.MustHexToBytes(strings.TrimSpace(splits[3]))
+	collatorIDBytes, err := common.HexToBytes(strings.TrimSpace(splits[3]))
+	if err != nil {
+		return fmt.Errorf("getting collator id bytes: %w", err)
+	}
+
 	copy(collatorID[:], collatorIDBytes)
 
 	f.collatorID = collatorID
