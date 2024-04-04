@@ -28,6 +28,7 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 	var prospectiveParachainsMode *parachaintypes.ProspectiveParachainsMode
 	activatedLeaf := update.Activated
 
+	// activate in implicit view before deactivate, per the docs on ImplicitView, this is more efficient.
 	if activatedLeaf != nil {
 		var err error
 		prospectiveParachainsMode, err = getProspectiveParachainsMode(cb.BlockState, activatedLeaf.Hash)
@@ -35,6 +36,7 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 			return fmt.Errorf("getting prospective parachains mode: %w", err)
 		}
 
+		// activate in implicit view only if prospective parachains are enabled.
 		if prospectiveParachainsMode.IsEnabled {
 			_, implicitViewFetchError = cb.implicitView.activeLeaf(activatedLeaf.Hash)
 		}
@@ -256,27 +258,30 @@ func constructPerRelayParentState(
 	mode parachaintypes.ProspectiveParachainsMode,
 ) (*perRelayParentState, error) {
 	// TODO: implement this
+	/*
+		rt, err := blockstate.GetRuntime(relayParent)
+		if err != nil {
+			return nil, fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
+		}
 
-	rt, err := blockstate.GetRuntime(relayParent)
-	if err != nil {
-		return nil, fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
-	}
+		sessionIndex, validators, validatorGroups, cores, err := fetchParachainHostData(rt)
+		if err != nil {
+			return nil, fmt.Errorf("fetching parachain host data: %w", err)
+		}
 
-	sessionIndex, validators, validatorGroups, cores, err := fetchParachainHostData(rt)
-	if err != nil {
-		return nil, fmt.Errorf("fetching parachain host data: %w", err)
-	}
+		// TODO: call minBackingVotes function here ParachainHostMinimumBackingVotes test passed
+		minBackingVotes := LEGACY_MIN_BACKING_VOTES
 
-	// TODO: call minBackingVotes function here ParachainHostMinimumBackingVotes test passed
-	minBackingVotes := LEGACY_MIN_BACKING_VOTES
-
-	signingContext := parachaintypes.SigningContext{
-		SessionIndex: *sessionIndex,
-		ParentHash:   relayParent,
-	}
-
+		signingContext := parachaintypes.SigningContext{
+			SessionIndex: *sessionIndex,
+			ParentHash:   relayParent,
+		}
+	*/
 	return nil, nil
 }
+
+/*
+TODO: copy from kishan's PR, if possible
 
 // From the given set of validators, find the first key we can sign with,
 // if any, and return it along with the validator index.
@@ -288,18 +293,23 @@ func signingKeyAndIndex(
 		key := keystore.
 	}
 }
+*/
 
-func minBackingVotes(rt runtime.Instance) (uint32, error) {
-	votes, err := rt.ParachainHostMinimumBackingVotes()
-	if err != nil && errors.Is(err, wazero_runtime.ErrExportFunctionNotFound) {
-		logger.Tracef(
-			"%s is not supported by the current Runtime API",
-			runtime.ParachainHostMinimumBackingVotes,
-		)
-		return LEGACY_MIN_BACKING_VOTES, nil
+/*
+TODO: use this function once a PR to get the minBackingVotes is merged
+
+	func minBackingVotes(rt runtime.Instance) (uint32, error) {
+		votes, err := rt.ParachainHostMinimumBackingVotes()
+		if err != nil && errors.Is(err, wazero_runtime.ErrExportFunctionNotFound) {
+			logger.Tracef(
+				"%s is not supported by the current Runtime API",
+				runtime.ParachainHostMinimumBackingVotes,
+			)
+			return LEGACY_MIN_BACKING_VOTES, nil
+		}
+		return votes, err
 	}
-	return votes, err
-}
+*/
 
 func fetchParachainHostData(rt runtime.Instance) (
 	*parachaintypes.SessionIndex,
