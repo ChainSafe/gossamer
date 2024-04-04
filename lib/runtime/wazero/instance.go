@@ -491,7 +491,7 @@ func (i *Instance) Exec(function string, data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("instantiate guest module: %w", err)
 	}
 
-	mod, rt, err := newRuntimeInstance(context.Background(), i.code)
+	mod, rt, err := newRuntime(context.Background(), i.code)
 	if err != nil {
 		return nil, fmt.Errorf("creating runtime instace: %w", err)
 	}
