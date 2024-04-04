@@ -443,6 +443,15 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 		Path:      t.TempDir(),
 		LogLevel:  log.Error,
 		Telemetry: telemetry.NoopClient{},
+		GenesisBABEConfig: &types.BabeConfiguration{
+			SlotDuration:       1000,
+			EpochLength:        200,
+			C1:                 1,
+			C2:                 4,
+			GenesisAuthorities: []types.AuthorityRaw{},
+			Randomness:         [32]byte{},
+			SecondarySlots:     0,
+		},
 	}
 	stateSrvc := state.NewService(stateConfig)
 	stateSrvc.UseMemDB()

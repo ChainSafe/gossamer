@@ -664,6 +664,15 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 		LogLevel:  log.DoNotChange,
 		Path:      basepath,
 		Telemetry: telemetryMock,
+		GenesisBABEConfig: &types.BabeConfiguration{
+			SlotDuration:       1000,
+			EpochLength:        200,
+			C1:                 1,
+			C2:                 4,
+			GenesisAuthorities: []types.AuthorityRaw{},
+			Randomness:         [32]byte{},
+			SecondarySlots:     0,
+		},
 	})
 	state2test.UseMemDB()
 
@@ -724,6 +733,15 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 		LogLevel:  log.DoNotChange,
 		Path:      basepath,
 		Telemetry: telemetryMock,
+		GenesisBABEConfig: &types.BabeConfiguration{
+			SlotDuration:       1000,
+			EpochLength:        200,
+			C1:                 1,
+			C2:                 4,
+			GenesisAuthorities: []types.AuthorityRaw{},
+			Randomness:         [32]byte{},
+			SecondarySlots:     0,
+		},
 	})
 	state2test.UseMemDB()
 

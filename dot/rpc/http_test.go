@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -311,6 +312,15 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 		Path:      testDatadirPath,
 		LogLevel:  log.Debug,
 		Telemetry: telemetryMock,
+		GenesisBABEConfig: &types.BabeConfiguration{
+			SlotDuration:       1000,
+			EpochLength:        200,
+			C1:                 1,
+			C2:                 4,
+			GenesisAuthorities: []types.AuthorityRaw{},
+			Randomness:         [32]byte{},
+			SecondarySlots:     0,
+		},
 	}
 
 	stateSrvc := state.NewService(config)

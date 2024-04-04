@@ -108,6 +108,15 @@ func TestImportState_Integration(t *testing.T) {
 	stateConfig := state.Config{
 		Path:     config.BasePath,
 		LogLevel: log.Info,
+		GenesisBABEConfig: &types.BabeConfiguration{
+			SlotDuration:       1000,
+			EpochLength:        200,
+			C1:                 1,
+			C2:                 4,
+			GenesisAuthorities: []types.AuthorityRaw{},
+			Randomness:         [32]byte{},
+			SecondarySlots:     0,
+		},
 	}
 	srv := state.NewService(stateConfig)
 	srv.SetupBase()

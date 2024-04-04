@@ -41,6 +41,15 @@ func newTestSyncer(t *testing.T) *Service {
 		Path:      testDatadirPath,
 		LogLevel:  log.Info,
 		Telemetry: mockTelemetryClient,
+		GenesisBABEConfig: &types.BabeConfiguration{
+			SlotDuration:       1000,
+			EpochLength:        200,
+			C1:                 1,
+			C2:                 4,
+			GenesisAuthorities: []types.AuthorityRaw{},
+			Randomness:         [32]byte{},
+			SecondarySlots:     0,
+		},
 	}
 	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()

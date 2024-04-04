@@ -34,6 +34,15 @@ func newTestService(t *testing.T) (state *Service) {
 		Path:      t.TempDir(),
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
+		GenesisBABEConfig: &types.BabeConfiguration{
+			SlotDuration:       1000,
+			EpochLength:        200,
+			C1:                 1,
+			C2:                 4,
+			GenesisAuthorities: []types.AuthorityRaw{},
+			Randomness:         [32]byte{},
+			SecondarySlots:     0,
+		},
 	}
 	state = NewService(config)
 	return state
@@ -49,6 +58,15 @@ func newTestMemDBService(t *testing.T) *Service {
 		Path:      testDatadirPath,
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
+		GenesisBABEConfig: &types.BabeConfiguration{
+			SlotDuration:       1000,
+			EpochLength:        200,
+			C1:                 1,
+			C2:                 4,
+			GenesisAuthorities: []types.AuthorityRaw{},
+			Randomness:         [32]byte{},
+			SecondarySlots:     0,
+		},
 	}
 	state := NewService(config)
 	state.UseMemDB()
@@ -132,6 +150,15 @@ func TestService_BlockTree(t *testing.T) {
 		Path:      t.TempDir(),
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
+		GenesisBABEConfig: &types.BabeConfiguration{
+			SlotDuration:       1000,
+			EpochLength:        200,
+			C1:                 1,
+			C2:                 4,
+			GenesisAuthorities: []types.AuthorityRaw{},
+			Randomness:         [32]byte{},
+			SecondarySlots:     0,
+		},
 	}
 
 	stateA := NewService(config)
@@ -185,6 +212,15 @@ func TestService_StorageTriePruning(t *testing.T) {
 			RetainedBlocks: uint32(retainBlocks),
 		},
 		Telemetry: telemetryMock,
+		GenesisBABEConfig: &types.BabeConfiguration{
+			SlotDuration:       1000,
+			EpochLength:        200,
+			C1:                 1,
+			C2:                 4,
+			GenesisAuthorities: []types.AuthorityRaw{},
+			Randomness:         [32]byte{},
+			SecondarySlots:     0,
+		},
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -234,6 +270,15 @@ func TestService_PruneStorage(t *testing.T) {
 		Path:      t.TempDir(),
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
+		GenesisBABEConfig: &types.BabeConfiguration{
+			SlotDuration:       1000,
+			EpochLength:        200,
+			C1:                 1,
+			C2:                 4,
+			GenesisAuthorities: []types.AuthorityRaw{},
+			Randomness:         [32]byte{},
+			SecondarySlots:     0,
+		},
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -315,6 +360,15 @@ func TestService_Rewind(t *testing.T) {
 		Path:      t.TempDir(),
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
+		GenesisBABEConfig: &types.BabeConfiguration{
+			SlotDuration:       1000,
+			EpochLength:        200,
+			C1:                 1,
+			C2:                 4,
+			GenesisAuthorities: []types.AuthorityRaw{},
+			Randomness:         [32]byte{},
+			SecondarySlots:     0,
+		},
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -373,6 +427,15 @@ func TestService_Import(t *testing.T) {
 		Path:      t.TempDir(),
 		LogLevel:  log.Info,
 		Telemetry: telemetryMock,
+		GenesisBABEConfig: &types.BabeConfiguration{
+			SlotDuration:       1000,
+			EpochLength:        200,
+			C1:                 1,
+			C2:                 4,
+			GenesisAuthorities: []types.AuthorityRaw{},
+			Randomness:         [32]byte{},
+			SecondarySlots:     0,
+		},
 	}
 	serv := NewService(config)
 	serv.UseMemDB()

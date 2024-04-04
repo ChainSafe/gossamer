@@ -581,6 +581,15 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	stateService := state.NewService(state.Config{
 		Path:      t.TempDir(),
 		Telemetry: telemetryMock,
+		GenesisBABEConfig: &types.BabeConfiguration{
+			SlotDuration:       1000,
+			EpochLength:        200,
+			C1:                 1,
+			C2:                 4,
+			GenesisAuthorities: []types.AuthorityRaw{},
+			Randomness:         [32]byte{},
+			SecondarySlots:     0,
+		},
 	})
 
 	stateService.UseMemDB()

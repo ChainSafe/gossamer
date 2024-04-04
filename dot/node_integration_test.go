@@ -75,6 +75,15 @@ func TestNewNode(t *testing.T) {
 	stateConfig := state.Config{
 		Path:     initConfig.BasePath,
 		LogLevel: logLevel,
+		GenesisBABEConfig: &types.BabeConfiguration{
+			SlotDuration:       1000,
+			EpochLength:        200,
+			C1:                 1,
+			C2:                 4,
+			GenesisAuthorities: []types.AuthorityRaw{},
+			Randomness:         [32]byte{},
+			SecondarySlots:     0,
+		},
 	}
 
 	systemInfo := &types.SystemInfo{
