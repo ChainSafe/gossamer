@@ -104,4 +104,6 @@ const (
 	ParachainHostSessionInfo = "ParachainHost_session_info"
 	// ParachainHostAsyncBackingParams is the runtime API call ParachainHost_async_backing_params
 	ParachainHostAsyncBackingParams = "ParachainHost_async_backing_params"
+	// ParachainHostMinimumBackingVotes is the runtime API call ParachainHost_minimum_backing_votes
+	ParachainHostMinimumBackingVotes = "ParachainHost_minimum_backing_votes"
 )

@@ -1608,6 +1608,17 @@ func TestInstance_ParachainHostSessionInfo(t *testing.T) {
 	require.Equal(t, expected, response)
 }
 
+func TestInstance_ParachainHostMinimumBackingVotes(t *testing.T) {
+	t.Parallel()
+
+	tt := getParachainHostTrie(t, parachainsConfigV180TestData.Storage)
+	rt := NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v180, tt)
+
+	response, err := rt.ParachainHostMinimumBackingVotes()
+	require.NoError(t, err)
+	require.Equal(t, uint32(2), response)
+}
+
 func TestInstance_ParachainHostAsyncBackingParams(t *testing.T) {
 	t.Parallel()
 
@@ -1616,8 +1627,8 @@ func TestInstance_ParachainHostAsyncBackingParams(t *testing.T) {
 
 	params, err := rt.ParachainHostAsyncBackingParams()
 	require.NoError(t, err)
-	require.Equal(t, params.AllowedAncestryLen, uint32(2))
-	require.Equal(t, params.MaxCandidateDepth, uint32(3))
+	require.Equal(t, uint32(2), params.AllowedAncestryLen)
+	require.Equal(t, uint32(3), params.MaxCandidateDepth)
 }
 
 func getParachainHostTrie(t *testing.T, testDataStorage []Storage) *trie.Trie {
@@ -1632,3 +1643,126 @@ func getParachainHostTrie(t *testing.T, testDataStorage []Storage) *trie.Trie {
 
 	return tt
 }
+
+/*
+
+type AsyncBackingParams struct {
+	MaxCandidateDepth  uint32 `scale:"1"`
+	AllowedAncestryLen uint32 `scale:"2"`
+}
+
+type ApprovalVotingParams struct {
+	MaxApprovalCoalesceCount uint64 `scale:"1"`
+}
+
+type SchedulerParams struct {
+	GroupRotationFrequency         uint64 `scale:"1"`
+	ParasAvailabilityPeriod        uint64 `scale:"2"`
+	MaxValidatorsPerCore           uint64 `scale:"3"`
+	Lookahead                      uint64 `scale:"4"`
+	NumCores                       uint64 `scale:"5"`
+	MaxAvailabilityTimeouts        uint64 `scale:"6"`
+	OnDemandQueueMaxSize           uint64 `scale:"7"`
+	OnDemandTargetQueueUtilization string `scale:"8"`
+	OnDemandFeeVariability         string `scale:"9"`
+	OnDemandBaseFee                uint64 `scale:"10"`
+	TTL                            uint64 `scale:"11"`
+}
+
+type ConfigurationHostConfiguration struct {
+	MaxCodeSize                           uint32             `scale:"0"`
+	MaxHeadDataSize                       uint16             `scale:"1"`
+	MaxUpwardQueueCount                   uint32             `scale:"2"`
+	MaxUpwardQueueSize                    uint64             `scale:"3"`
+	MaxUpwardMessageSize                  uint64             `scale:"4"`
+	MaxUpwardMessageNumPerCandidate       uint64             `scale:"5"`
+	HrmpMaxMessageNumPerCandidate         uint64             `scale:"6"`
+	ValidationUpgradeCooldown             uint64             `scale:"7"`
+	ValidationUpgradeDelay                uint64             `scale:"8"`
+	AsyncBackingParams                    AsyncBackingParams `scale:"9"`
+	MaxPovSize                            uint64             `scale:"10"`
+	MaxDownwardMessageSize                uint64             `scale:"11"`
+	HrmpMaxParachainOutboundChannels      uint64             `scale:"12"`
+	HrmpSenderDeposit                     uint64             `scale:"13"`
+	HrmpRecipientDeposit                  uint64             `scale:"14"`
+	HrmpChannelMaxCapacity                uint64             `scale:"15"`
+	HrmpChannelMaxTotalSize               uint64             `scale:"16"`
+	HrmpMaxParachainInboundChannels       uint16             `scale:"17"`
+	HrmpChannelMaxMessageSize             string             `scale:"18"`
+	ExecutorParams                        []interface{}      `scale:"19"`
+	CodeRetentionPeriod                   uint64             `scale:"20"`
+	MaxValidators                         uint64             `scale:"21"`
+	DisputePeriod                         uint64             `scale:"22"`
+	DisputePostConclusionAcceptancePeriod uint64             `scale:"23"`
+	NoShowSlots                           uint64             `scale:"24"`
+	NDelayTranches                        uint64             `scale:"25"`
+	ZerothDelayTrancheWidth               bool               `scale:"26"`
+	NeededApprovals                       int                `scale:"27"`
+	RelayVrfModuloSamples                 int                `scale:"28"`
+	PvfVotingTtl                          uint16             `scale:"29"`
+	MinimumValidationUpgradeDelay         uint               `scale:"30"`
+	MinimumBackingVotes                   uint               `scale:"31"`
+	NodeFeatures                          uint64             `scale:"32"`
+	// ApprovalVotingParams                  ApprovalVotingParams `scale:"33"`
+	// SchedulerParams SchedulerParams `scale:"34"`
+}
+
+type HostConfiguration struct {
+	MaxCodeSize                      uint32                     `scale:"0"`
+	MaxHeadDataSize                  uint32                     `scale:"1"`
+	MaxUpwardQueueCount              uint32                     `scale:"2"`
+	MaxUpwardQueueSize               uint32                     `scale:"3"`
+	MaxUpwardMessageSize             uint32                     `scale:"4"`
+	MaxUpwardMessageNumPerCandidate  uint32                     `scale:"5"`
+	HRMPMaxMessageNumPerCandidate    uint32                     `scale:"6"`
+	ValidationUpgradeCooldown        parachaintypes.BlockNumber `scale:"7"`
+	ValidationUpgradeDelay           parachaintypes.BlockNumber `scale:"8"`
+	AsyncBackingParams               AsyncBackingParams         `scale:"9"`
+	MaxPOVSize                       uint32                     `scale:"10"`
+	MaxDownwardMessageSize           uint32                     `scale:"11"`
+	HRMPMaxParachainOutboundChannels uint32                     `scale:"12"`
+	HRMPSenderDeposit                scale.Uint128              `scale:"13"`
+	HRMPRecipientDeposit             scale.Uint128              `scale:"14"`
+	HRMPChannelMaxCapacity           uint32                     `scale:"15"`
+	HRMPChannelMaxTotalSize          uint32                     `scale:"16"`
+	HRMPMaxParachainInboundChannels  uint32                     `scale:"17"`
+	HRMPChannelMaxMessageSize        uint32                     `scale:"18"`
+	// ExecutorParams                        parachaintypes.ExecutorParams `scale:"19"`
+	CodeRetentionPeriod                   parachaintypes.BlockNumber  `scale:"20"`
+	OnDemandCores                         uint32                      `scale:"21"`
+	OnDemandRetries                       uint32                      `scale:"22"`
+	OnDemandQueueMaxSize                  uint32                      `scale:"23"`
+	OnDemandTargetQueueUtilization        uint32                      `scale:"24"`
+	OnDemandFeeVariability                uint32                      `scale:"25"`
+	OnDemandBaseFee                       scale.Uint128               `scale:"26"`
+	OnDemandTTL                           parachaintypes.BlockNumber  `scale:"27"`
+	GroupRotationFrequency                parachaintypes.BlockNumber  `scale:"28"`
+	ParasAvailabilityPeriod               parachaintypes.BlockNumber  `scale:"29"`
+	SchedulingLookahead                   uint32                      `scale:"30"`
+	MaxValidatorsPerCore                  *uint32                     `scale:"31"` // pointer to allow for None
+	MaxValidators                         *uint32                     `scale:"32"` // pointer to allow for None
+	DisputePeriod                         parachaintypes.SessionIndex `scale:"33"`
+	DisputePostConclusionAcceptancePeriod parachaintypes.BlockNumber  `scale:"34"`
+	NoShowSlots                           uint32                      `scale:"35"`
+	NDelayTranches                        uint32                      `scale:"36"`
+	ZerothDelayTrancheWidth               uint32                      `scale:"37"`
+	NeededApprovals                       uint32                      `scale:"38"`
+	RelayVRFModuloSamples                 uint32                      `scale:"39"`
+	PVFVotingTTL                          parachaintypes.SessionIndex `scale:"40"`
+	MinimumValidationUpgradeDelay         parachaintypes.BlockNumber  `scale:"41"`
+	MinimumBackingVotes                   uint32                      `scale:"42"`
+}
+
+func TestDecodeRawStorage(t *testing.T) {
+	rawStorage := "0x00003000005000005555150000008000fbff0100000200000a000000c80000006400000003000000020000000000500000c800000a00000000c0220fca950300000000000000000000c0220fca9503000000000000000000e8030000009001000a00000000900100008070000001c800000006000000580200000200000028000000000000000200000001000000020000000f0000000200000000010000000a0000000500000001050000000200000006000000000000001027000080b2e60e80c3c9018096980000000000000000000000000005000000"
+
+	rawStorageBytes, err := common.HexToBytes(rawStorage)
+	require.NoError(t, err)
+
+	var val HostConfiguration
+	err = scale.Unmarshal(rawStorageBytes, &val)
+	require.NoError(t, err)
+
+	fmt.Printf("Decoded raw storage: %+v\n", val)
+}
+*/

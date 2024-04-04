@@ -1068,6 +1068,23 @@ func (in *Instance) ParachainHostValidationCodeByHash(validationCodeHash common.
 	return validationCode, nil
 }
 
+func (in *Instance) ParachainHostMinimumBackingVotes() (uint32, error) {
+	encodedBackingVotes, err := in.Exec(runtime.ParachainHostMinimumBackingVotes, []byte{})
+	if err != nil {
+		return 0, fmt.Errorf("exec: %w", err)
+	}
+
+	fmt.Printf("encodedBackingVotes: 0x%x\n", encodedBackingVotes)
+
+	var backingVotes uint32
+	err = scale.Unmarshal(encodedBackingVotes, &backingVotes)
+	if err != nil {
+		return 0, fmt.Errorf("unmarshalling minimum backing votes: %w", err)
+	}
+
+	return backingVotes, nil
+}
+
 func (in *Instance) ParachainHostAsyncBackingParams() (*parachaintypes.AsyncBackingParams, error) {
 	encodedBackingParams, err := in.Exec(runtime.ParachainHostAsyncBackingParams, []byte{})
 	if err != nil {
