@@ -266,7 +266,7 @@ func (s *Service) Stop() error {
 
 // Import imports the given state corresponding to the given header and sets the head of the chain
 // to it. Additionally, it uses the first slot to correctly set the epoch number of the block.
-func (s *Service) Import(header *types.Header, t trie.Trie, stateTrieVersion trie.TrieLayout, firstSlot uint64) error {
+func (s *Service) Import(header *types.Header, t trie.Trie, stateTrieVersion trie.TrieLayout) error {
 	var err error
 	// initialise database using data directory
 	if !s.isMemDB {
@@ -277,14 +277,16 @@ func (s *Service) Import(header *types.Header, t trie.Trie, stateTrieVersion tri
 	}
 
 	block := &BlockState{
-		db: database.NewTable(s.db, blockPrefix),
+		bt:                blocktree.NewEmptyBlockTree(),
+		db:                database.NewTable(s.db, blockPrefix),
+		unfinalisedBlocks: newHashToBlockMap(),
 	}
 
 	storage := &InmemoryStorageState{
 		db: database.NewTable(s.db, storagePrefix),
 	}
 
-	epoch, err := NewEpochState(s.db, block, nil)
+	epoch, err := NewEpochState(s.db, block, s.genesisBABEConfig)
 	if err != nil {
 		return err
 	}

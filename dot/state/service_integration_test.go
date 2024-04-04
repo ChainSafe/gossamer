@@ -444,6 +444,36 @@ func TestService_Import(t *testing.T) {
 	err := serv.Initialise(&genData, &genesisHeader, genTrie)
 	require.NoError(t, err)
 
+	babePrimaryPreDigest := types.BabePrimaryPreDigest{
+		SlotNumber: 1, // block on epoch 0 with changes to epoch 1
+		VRFOutput:  [32]byte{},
+		VRFProof:   [64]byte{},
+	}
+
+	preRuntimeDigest, err := babePrimaryPreDigest.ToPreRuntimeDigest()
+	require.NoError(t, err)
+	digest := types.NewDigest()
+
+	require.NoError(t, digest.Add(*preRuntimeDigest))
+
+	blockNumber01 := &types.Header{
+		Digest:     digest,
+		ParentHash: common.Hash{},
+		Number:     1,
+	}
+
+	// mapping number #1 to the block hash
+	// then we can retrieve the slot number
+	// using the block number
+	err = serv.Block.db.Put(
+		headerHashKey(uint64(blockNumber01.Number)),
+		blockNumber01.Hash().ToBytes(),
+	)
+	require.NoError(t, err)
+
+	err = serv.Block.SetHeader(blockNumber01)
+	require.NoError(t, err)
+
 	tr := inmemory_trie.NewEmptyTrie()
 	var testCases = []string{
 		"asdf",
@@ -457,7 +487,7 @@ func TestService_Import(t *testing.T) {
 		tr.Put([]byte(tc), []byte(tc))
 	}
 
-	digest := types.NewDigest()
+	digest = types.NewDigest()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 177).ToPreRuntimeDigest()
 	require.NoError(t, err)
 	err = digest.Add(*prd)
@@ -468,9 +498,7 @@ func TestService_Import(t *testing.T) {
 		Digest:    digest,
 	}
 
-	firstSlot := uint64(100)
-
-	err = serv.Import(header, tr, trie.V0, firstSlot)
+	err = serv.Import(header, tr, trie.V0)
 	require.NoError(t, err)
 
 	err = serv.Start()

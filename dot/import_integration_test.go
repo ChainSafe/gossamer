@@ -101,8 +101,7 @@ func TestImportState_Integration(t *testing.T) {
 	stateFP := setupStateFile(t)
 	headerFP := setupHeaderFile(t)
 
-	const firstSlot = uint64(262493679)
-	err = ImportState(config.BasePath, stateFP, headerFP, trie.V0, firstSlot)
+	err = ImportState(config.BasePath, stateFP, headerFP, trie.V0)
 	require.NoError(t, err)
 	// confirm data is imported into db
 	stateConfig := state.Config{
@@ -146,7 +145,6 @@ func TestImportState(t *testing.T) {
 		stateFP      string
 		headerFP     string
 		stateVersion trie.TrieLayout
-		firstSlot    uint64
 	}
 	tests := []struct {
 		name string
@@ -164,7 +162,6 @@ func TestImportState(t *testing.T) {
 				stateFP:      stateFP,
 				headerFP:     headerFP,
 				stateVersion: trie.V0,
-				firstSlot:    262493679,
 			},
 		},
 	}
@@ -173,7 +170,7 @@ func TestImportState(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := ImportState(tt.args.basepath, tt.args.stateFP, tt.args.headerFP, tt.args.stateVersion, tt.args.firstSlot)
+			err := ImportState(tt.args.basepath, tt.args.stateFP, tt.args.headerFP, tt.args.stateVersion)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
