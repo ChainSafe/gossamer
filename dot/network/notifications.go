@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"runtime"
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/network"
@@ -235,6 +236,10 @@ func (s *Service) handleHandshake(info *notificationsProtocol, stream network.St
 }
 
 func closeOutboundStream(info *notificationsProtocol, peerID peer.ID, stream network.Stream) {
+	_, file, no, ok := runtime.Caller(1)
+	if ok {
+		logger.Debugf("called from %s#%d\n", file, no)
+	}
 	logger.Debugf(
 		"cleaning up outbound handshake data for protocol=%s, peer=%s",
 		stream.Protocol(),

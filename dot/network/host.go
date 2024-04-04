@@ -325,6 +325,12 @@ func (h *host) bootstrap() {
 		logger.Debugf("bootstrapping to peer %s", addrInfo.ID)
 		h.p2pHost.Peerstore().AddAddrs(addrInfo.ID, addrInfo.Addrs, peerstore.PermanentAddrTTL)
 		h.cm.peerSetHandler.AddPeer(0, addrInfo.ID)
+		ctx, cancel := context.WithTimeout(h.ctx, connectTimeout)
+		err := h.p2pHost.Connect(ctx, addrInfo)
+		if err != nil {
+			logger.Errorf("Failed to connect to peer %s: %s", addrInfo.ID, err)
+		}
+		cancel()
 	}
 }
 

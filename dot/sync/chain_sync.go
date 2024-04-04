@@ -179,12 +179,17 @@ func (cs *chainSync) waitWorkersAndTarget() {
 	for {
 		cs.workerPool.useConnectedPeers()
 		totalAvailable := cs.workerPool.totalWorkers()
-
+		//	logger.Errorf("totalAvailable %v", totalAvailable)
 		if totalAvailable >= uint(cs.minPeers) &&
 			cs.peerViewSet.getTarget() > 0 {
 			return
 		}
 
+		if totalAvailable == 0 {
+			logger.Errorf("No peers")
+			time.Sleep(2 * time.Second)
+			continue
+		}
 		err := cs.network.BlockAnnounceHandshake(highestFinalizedHeader)
 		if err != nil && !errors.Is(err, network.ErrNoPeersConnected) {
 			logger.Errorf("retrieving target info from peers: %v", err)

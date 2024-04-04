@@ -691,6 +691,7 @@ func (s *Service) startPeerSetHandler() {
 	s.host.cm.peerSetHandler.Start(s.ctx)
 	// wait for peerSetHandler to start.
 	if !s.noBootstrap {
+		logger.Debugf("Time to bootstrap")
 		s.host.bootstrap()
 	}
 
@@ -706,6 +707,7 @@ func (s *Service) processMessage(msg peerset.Message) {
 		logger.Errorf("found empty peer id in peerset message")
 		return
 	}
+
 	switch msg.Status {
 	case peerset.Connect:
 		addrInfo := s.host.p2pHost.Peerstore().PeerInfo(peerID)
@@ -739,6 +741,10 @@ func (s *Service) processMessage(msg peerset.Message) {
 
 // startProcessingMsg function that listens to messages from the channel that belongs to PeerSet PeerSetHandler.
 func (s *Service) startProcessingMsg() {
+	//_, file, no, ok := runtime.Caller(1)
+	//if ok {
+	//	logger.Debugf("called from %s#%d\n", file, no)
+	//}
 	msgCh := s.host.cm.peerSetHandler.Messages()
 	for {
 		select {
@@ -777,6 +783,11 @@ func (s *Service) BlockAnnounceHandshake(header *types.Header) error {
 
 		go func(p peer.ID) {
 			defer wg.Done()
+			//addrInfo := s.host.p2pHost.Peerstore().PeerInfo(p)
+			//if len(addrInfo.Addrs) == 0 {
+			//	logger.Debugf("no peer info found for peer %s", p.String())
+			//	return
+			//}
 			stream, err := s.sendHandshake(p, handshake, protocol)
 			if err != nil {
 				logger.Tracef("sending block announce handshake: %s", err)

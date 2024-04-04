@@ -106,7 +106,7 @@ func (s *syncWorkerPool) useConnectedPeers() {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	for _, connectedPeer := range connectedPeers {
-		s.newPeer(connectedPeer)
+		s.newPeer(peer.ID(connectedPeer))
 	}
 }
 
