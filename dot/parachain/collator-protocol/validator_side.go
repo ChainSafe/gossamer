@@ -658,10 +658,8 @@ func (v View) checkHeadsEqual(other View) bool {
 }
 
 func ConstructView(liveHeads map[common.Hash]struct{}, finalizedNumber uint32) View {
-	heads := make([]common.Hash, 0, len(liveHeads))
-	for head := range liveHeads {
-		heads = append(heads, head)
-	}
+	heads := make([]common.Hash, len(liveHeads))
+	copy(heads[:], liveHeads)
 
 	return View{
 		heads:           heads[:5],
