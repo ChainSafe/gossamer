@@ -461,8 +461,15 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 		return nil, fmt.Errorf("creating runtime instace: %w", err)
 	}
 	defer func() {
-		mod.Close(context.Background())
-		rt.Close(context.Background())
+		err := mod.Close(context.Background())
+		if err != nil {
+			logger.Criticalf("runtime moodule not closed: %w", err)
+		}
+
+		err = rt.Close(context.Background())
+		if err != nil {
+			logger.Criticalf("wazero runtime not closed: %w", err)
+		}
 	}()
 
 	encodedHeapBase := mod.ExportedGlobal("__heap_base")
