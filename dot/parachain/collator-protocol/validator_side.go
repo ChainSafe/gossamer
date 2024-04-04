@@ -171,10 +171,8 @@ func (cpvs *CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(signa
 }
 
 func (cpvs *CollatorProtocolValidatorSide) updateOurView(liveHeads []parachaintypes.ActivatedLeaf) error {
-	headHashes := []common.Hash{}
-	for _, head := range cpvs.liveHeads {
-		headHashes = append(headHashes, head.Hash)
-	}
+  headHashes := make([]common.Hash, len(cpvs.liveHeads))
+  copy(headHashes[:], cpvs.liveHeads)
 	newView := View{
 		heads:           headHashes,
 		finalizedNumber: cpvs.finalizedNumber,
