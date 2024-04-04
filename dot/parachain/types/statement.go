@@ -76,9 +76,9 @@ type UncheckedSignedFullStatement struct {
 // SigningContext is a type returned by runtime with current session index and a parent hash.
 type SigningContext struct {
 	/// current session index.
-	SessionIndex SessionIndex `scale:"1"` //nolint:unused
+	SessionIndex SessionIndex `scale:"1"`
 	/// hash of the parent.
-	ParentHash common.Hash `scale:"2"` //nolint:unused
+	ParentHash common.Hash `scale:"2"`
 }
 
 // Sign signs the Statement using the provided keystore, signing context, and validator key,

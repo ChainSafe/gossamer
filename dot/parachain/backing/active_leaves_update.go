@@ -324,7 +324,7 @@ TODO: use this function once a PR to get the minBackingVotes is merged
 	}
 */
 
-func fetchParachainHostData(rt runtime.Instance) (
+func fetchParachainHostData(rt runtime.Instance) ( //nolint:unused
 	*parachaintypes.SessionIndex,
 	[]parachaintypes.ValidatorID,
 	*parachaintypes.ValidatorGroups,
@@ -355,7 +355,7 @@ func fetchParachainHostData(rt runtime.Instance) (
 		select {
 		case <-ctx.Done(): // Check if context was canceled.
 			return
-		case sessionIndex = <-paraHostSessionIndexForChind(ctx, cancel, rt, errCh):
+		case sessionIndex = <-paraHostSessionIndexForChind(cancel, rt, errCh):
 		}
 	}()
 	go func() {
@@ -363,7 +363,7 @@ func fetchParachainHostData(rt runtime.Instance) (
 		select {
 		case <-ctx.Done():
 			return
-		case validators = <-paraHostValidators(ctx, cancel, rt, errCh):
+		case validators = <-paraHostValidators(cancel, rt, errCh):
 		}
 	}()
 	go func() {
@@ -371,7 +371,7 @@ func fetchParachainHostData(rt runtime.Instance) (
 		select {
 		case <-ctx.Done():
 			return
-		case validatorGroups = <-paraHostValidatorGroups(ctx, cancel, rt, errCh):
+		case validatorGroups = <-paraHostValidatorGroups(cancel, rt, errCh):
 		}
 	}()
 	go func() {
@@ -379,7 +379,7 @@ func fetchParachainHostData(rt runtime.Instance) (
 		select {
 		case <-ctx.Done():
 			return
-		case cores = <-ParaHostAvailabilityCores(ctx, cancel, rt, errCh):
+		case cores = <-paraHostAvailabilityCores(cancel, rt, errCh):
 		}
 	}()
 
@@ -395,7 +395,11 @@ func fetchParachainHostData(rt runtime.Instance) (
 	}
 }
 
-func paraHostSessionIndexForChind(ctx context.Context, cancel context.CancelFunc, rt runtime.Instance, errCh chan error) chan parachaintypes.SessionIndex {
+func paraHostSessionIndexForChind( //nolint:unused
+	cancel context.CancelFunc,
+	rt runtime.Instance,
+	errCh chan error,
+) chan parachaintypes.SessionIndex {
 	sessionIndexCh := make(chan parachaintypes.SessionIndex)
 
 	go func() {
@@ -410,7 +414,11 @@ func paraHostSessionIndexForChind(ctx context.Context, cancel context.CancelFunc
 	return sessionIndexCh
 }
 
-func paraHostValidators(ctx context.Context, cancel context.CancelFunc, rt runtime.Instance, errCh chan error) chan []parachaintypes.ValidatorID {
+func paraHostValidators( //nolint:unused
+	cancel context.CancelFunc,
+	rt runtime.Instance,
+	errCh chan error,
+) chan []parachaintypes.ValidatorID {
 	validatorsCh := make(chan []parachaintypes.ValidatorID)
 
 	go func() {
@@ -425,7 +433,11 @@ func paraHostValidators(ctx context.Context, cancel context.CancelFunc, rt runti
 	return validatorsCh
 }
 
-func paraHostValidatorGroups(ctx context.Context, cancel context.CancelFunc, rt runtime.Instance, errCh chan error) chan *parachaintypes.ValidatorGroups {
+func paraHostValidatorGroups( //nolint:unused
+	cancel context.CancelFunc,
+	rt runtime.Instance,
+	errCh chan error,
+) chan *parachaintypes.ValidatorGroups {
 	validatorGroupsCh := make(chan *parachaintypes.ValidatorGroups)
 
 	go func() {
@@ -440,7 +452,11 @@ func paraHostValidatorGroups(ctx context.Context, cancel context.CancelFunc, rt 
 	return validatorGroupsCh
 }
 
-func ParaHostAvailabilityCores(ctx context.Context, cancel context.CancelFunc, rt runtime.Instance, errCh chan error) chan *scale.VaryingDataTypeSlice {
+func paraHostAvailabilityCores( //nolint:unused
+	cancel context.CancelFunc,
+	rt runtime.Instance,
+	errCh chan error,
+) chan *scale.VaryingDataTypeSlice {
 	coresCh := make(chan *scale.VaryingDataTypeSlice)
 
 	go func() {
