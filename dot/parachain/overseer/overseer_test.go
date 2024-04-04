@@ -446,7 +446,7 @@ func TestQueryChunkChecksMetadata(t *testing.T) {
 func TestStorePOVandQueryChunkWorks(t *testing.T) {
 	harness := newTestHarness(t, true)
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
-	nValidators := uint(10)
+	nValidators := uint32(10)
 
 	pov := parachaintypes.PoV{BlockData: parachaintypes.BlockData{4, 5, 6}}
 
@@ -456,7 +456,7 @@ func TestStorePOVandQueryChunkWorks(t *testing.T) {
 	availableDataEnc, err := scale.Marshal(availableData)
 	require.NoError(t, err)
 
-	chunksExpected, err := erasure.ObtainChunks(nValidators, availableDataEnc)
+	chunksExpected, err := erasure.ObtainChunks(uint(nValidators), availableDataEnc)
 	require.NoError(t, err)
 
 	tr := trie.NewEmptyTrie()
@@ -492,7 +492,7 @@ func TestStorePOVandQueryChunkWorks(t *testing.T) {
 	msgSenderChanResult := <-blockMsg.Sender
 	require.Equal(t, nil, msgSenderChanResult)
 
-	for i := uint(0); i < nValidators; i++ {
+	for i := uint32(0); i < nValidators; i++ {
 		msgSenderQueryChan := make(chan availability_store.ErasureChunk)
 		harness.broadcastMessages = append(harness.broadcastMessages, availability_store.QueryChunk{
 			CandidateHash:  candidateHash,
@@ -596,7 +596,7 @@ func TestQueryChunkSizeWorks(t *testing.T) {
 func TestStoreBlockWorks(t *testing.T) {
 	harness := newTestHarness(t, true)
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
-	nValidators := uint(10)
+	nValidators := uint32(10)
 
 	pov := parachaintypes.PoV{BlockData: parachaintypes.BlockData{4, 5, 6}}
 
@@ -609,7 +609,7 @@ func TestStoreBlockWorks(t *testing.T) {
 	availableDataEnc, err := scale.Marshal(availableData)
 	require.NoError(t, err)
 
-	chunksExpected, err := erasure.ObtainChunks(nValidators, availableDataEnc)
+	chunksExpected, err := erasure.ObtainChunks(uint(nValidators), availableDataEnc)
 	require.NoError(t, err)
 
 	tr := trie.NewEmptyTrie()
@@ -680,7 +680,7 @@ func TestStoreBlockWorks(t *testing.T) {
 func TestStoreAvailableDataErasureMismatch(t *testing.T) {
 	harness := newTestHarness(t, true)
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
-	nValidators := uint(10)
+	nValidators := uint32(10)
 
 	pov := parachaintypes.PoV{BlockData: parachaintypes.BlockData{4, 5, 6}}
 
@@ -717,7 +717,7 @@ func TestStoreAvailableDataErasureMismatch(t *testing.T) {
 func TestStoredButNotIncludedDataIsPruned(t *testing.T) {
 	harness := newTestHarness(t, false)
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
-	nValidators := uint(10)
+	nValidators := uint32(10)
 
 	pov := parachaintypes.PoV{BlockData: parachaintypes.BlockData{4, 5, 6}}
 
@@ -730,7 +730,7 @@ func TestStoredButNotIncludedDataIsPruned(t *testing.T) {
 	availableDataEnc, err := scale.Marshal(availableData)
 	require.NoError(t, err)
 
-	chunksExpected, err := erasure.ObtainChunks(nValidators, availableDataEnc)
+	chunksExpected, err := erasure.ObtainChunks(uint(nValidators), availableDataEnc)
 	require.NoError(t, err)
 
 	tr := trie.NewEmptyTrie()
@@ -857,9 +857,9 @@ func importLeaf(t *testing.T, harness *testHarness, parentHash common.Hash,
 	return aLeaf
 }
 
-func hasAllChunks(harness *testHarness, candidateHash parachaintypes.CandidateHash, nValidators uint,
+func hasAllChunks(harness *testHarness, candidateHash parachaintypes.CandidateHash, nValidators uint32,
 	expectPresent bool) bool {
-	for i := uint(0); i < nValidators; i++ {
+	for i := uint32(0); i < nValidators; i++ {
 		msgQueryChan := make(chan availability_store.ErasureChunk)
 		queryChunk := availability_store.QueryChunk{
 			CandidateHash:  candidateHash,
@@ -880,7 +880,7 @@ func hasAllChunks(harness *testHarness, candidateHash parachaintypes.CandidateHa
 func TestStoredDataKeptUntilFinalized(t *testing.T) {
 	harness := newTestHarness(t, false)
 	candidateHash := parachaintypes.CandidateHash{Value: availability_store.TestCandidateReceiptHash}
-	nValidators := uint(10)
+	nValidators := uint32(10)
 
 	pov := parachaintypes.PoV{BlockData: parachaintypes.BlockData{4, 5, 6}}
 
@@ -896,7 +896,7 @@ func TestStoredDataKeptUntilFinalized(t *testing.T) {
 	availableDataEnc, err := scale.Marshal(availableData)
 	require.NoError(t, err)
 
-	chunksExpected, err := erasure.ObtainChunks(nValidators, availableDataEnc)
+	chunksExpected, err := erasure.ObtainChunks(uint(nValidators), availableDataEnc)
 	require.NoError(t, err)
 
 	tr := trie.NewEmptyTrie()

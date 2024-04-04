@@ -313,9 +313,9 @@ func (as *availabilityStore) loadMeta(candidate parachaintypes.CandidateHash) (*
 }
 
 // loadChunk loads a chunk from the availability store
-func (as *availabilityStore) loadChunk(candidate parachaintypes.CandidateHash, validatorIndex uint) (*ErasureChunk,
+func (as *availabilityStore) loadChunk(candidate parachaintypes.CandidateHash, validatorIndex uint32) (*ErasureChunk,
 	error) {
-	resultBytes, err := as.chunk.Get(append(candidate.Value[:], uint32ToBytes(uint32(validatorIndex))...))
+	resultBytes, err := as.chunk.Get(append(candidate.Value[:], uint32ToBytes(validatorIndex)...))
 	if err != nil {
 		return nil, fmt.Errorf("getting candidate %v, index %d from chunk table: %w", candidate.Value, validatorIndex, err)
 	}
@@ -378,7 +378,7 @@ func (as *availabilityStore) storeChunk(candidate parachaintypes.CandidateHash, 
 }
 
 func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubsystem,
-	candidate parachaintypes.CandidateHash, nValidators uint, data AvailableData,
+	candidate parachaintypes.CandidateHash, nValidators uint32, data AvailableData,
 	expectedErasureRoot common.Hash) (bool, error) {
 	batch := newAvailabilityStoreBatch(as)
 	meta, err := as.loadMeta(candidate)
@@ -413,7 +413,7 @@ func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 		return false, fmt.Errorf("encoding data: %w", err)
 	}
 
-	chunks, err := erasure.ObtainChunks(nValidators, dataEncoded)
+	chunks, err := erasure.ObtainChunks(uint(nValidators), dataEncoded)
 	if err != nil {
 		return false, fmt.Errorf("obtaining chunks: %w", err)
 	}
@@ -881,10 +881,10 @@ func (av *AvailabilityStoreSubsystem) handleQueryChunkSize(msg QueryChunkSize) e
 	if err != nil {
 		return fmt.Errorf("load metadata: %w", err)
 	}
-	var validatorIndex uint
+	var validatorIndex uint32
 	for i, v := range meta.ChunksStored {
 		if v {
-			validatorIndex = uint(i)
+			validatorIndex = uint32(i)
 			break
 		}
 	}
@@ -906,7 +906,7 @@ func (av *AvailabilityStoreSubsystem) handleQueryAllChunks(msg QueryAllChunks) e
 	chunks := []ErasureChunk{}
 	for i, v := range meta.ChunksStored {
 		if v {
-			chunk, err := av.availabilityStore.loadChunk(msg.CandidateHash, uint(i))
+			chunk, err := av.availabilityStore.loadChunk(msg.CandidateHash, uint32(i))
 			if err != nil {
 				logger.Errorf("load chunk: %w", err)
 			}

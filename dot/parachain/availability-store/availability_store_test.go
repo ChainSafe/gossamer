@@ -664,7 +664,7 @@ func TestAvailabilityStore_storeAvailableData(t *testing.T) {
 	t.Parallel()
 	type args struct {
 		candidate           parachaintypes.CandidateHash
-		nValidators         uint
+		nValidators         uint32
 		data                AvailableData
 		expectedErasureRoot common.Hash
 	}

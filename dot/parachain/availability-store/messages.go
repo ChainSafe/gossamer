@@ -41,7 +41,7 @@ type ErasureChunk struct {
 // QueryChunk query an `ErasureChunk` from the AV store by candidate hash and validator index
 type QueryChunk struct {
 	CandidateHash  parachaintypes.CandidateHash
-	ValidatorIndex uint
+	ValidatorIndex uint32
 	Sender         chan ErasureChunk
 }
 
@@ -81,7 +81,7 @@ type StoreAvailableData struct {
 	// A hash of the candidate this `ASMStoreAvailableData` belongs to.
 	CandidateHash parachaintypes.CandidateHash
 	// The number of validators in the session.
-	NumValidators uint
+	NumValidators uint32
 	// The `AvailableData` itself.
 	AvailableData AvailableData
 	// Erasure root we expect to get after chunking.
