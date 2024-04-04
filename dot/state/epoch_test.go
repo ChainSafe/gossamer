@@ -474,8 +474,6 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 				require.NoError(t, err)
 
 				expected := expectedNextEpochData.ToEpochDataRaw()
-
-				fmt.Println("epoch being finalized", tt.finalizeEpoch)
 				gotNextEpochData, err := epochState.GetEpochDataRaw(tt.finalizeEpoch, nil)
 				require.NoError(t, err)
 
@@ -488,9 +486,9 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 	}
 }
 
-func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
+func newBlockWithPrimaryDigest(t *testing.T, slotNumber uint64, blockNumber uint) *types.Header {
 	babePrimaryPreDigest := types.BabePrimaryPreDigest{
-		SlotNumber: 301, // block on epoch 1 with changes to epoch 2
+		SlotNumber: slotNumber, // block on epoch 0 with changes to epoch 1
 		VRFOutput:  [32]byte{},
 		VRFProof:   [64]byte{},
 	}
@@ -502,14 +500,21 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 
 	require.NoError(t, digest.Add(*preRuntimeDigest))
 
-	// finalized header for testing purposes
-	finalizedHeader := &types.Header{
+	return &types.Header{
 		ParentHash: common.Hash{},
-		Number:     1,
+		Number:     blockNumber,
 		Digest:     digest,
 	}
+}
 
-	finalizedHeaderHash := finalizedHeader.Hash()
+func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
+	veryFirstSlotNumber := uint64(1)
+	blockNumber1 := newBlockWithPrimaryDigest(t,
+		veryFirstSlotNumber, 1)
+	blockNumber2 := newBlockWithPrimaryDigest(t,
+		veryFirstSlotNumber+genesisBABEConfig.EpochLength, 2)
+
+	finalizedHeaders := []*types.Header{blockNumber1, blockNumber2}
 
 	tests := map[string]struct {
 		finalizedHeader      *types.Header
@@ -521,7 +526,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 		"store_and_finalize_successfully": {
 			shouldRemainInMemory: 1,
 			finalizedEpoch:       2,
-			finalizedHeader:      finalizedHeader,
+			finalizedHeader:      blockNumber2,
 			inMemoryEpoch: []inMemoryBABEData[types.NextConfigDataV1]{
 				{
 					epoch: 1,
@@ -553,7 +558,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 					hashes: []common.Hash{
 						common.MustHexToHash("0x5b940c7fc0a1c5a58e4d80c5091dd003303b8f18e90a989f010c1be6f392bed1"),
 						common.MustHexToHash("0xd380bee22de487a707cbda65dd9d4e2188f736908c42cf390c8919d4f7fc547c"),
-						finalizedHeaderHash,
+						blockNumber2.Hash(),
 					},
 					nextData: []types.NextConfigDataV1{
 						{
@@ -591,7 +596,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 		"cannot_finalize_hash_doesnt_exists": {
 			shouldRemainInMemory: 1,
 			finalizedEpoch:       2,
-			finalizedHeader:      finalizedHeader, // finalize when the hash does not exist
+			finalizedHeader:      blockNumber2, // finalize when the hash does not exist
 			expectErr:            errHashNotPersisted,
 			inMemoryEpoch: []inMemoryBABEData[types.NextConfigDataV1]{
 				{
@@ -624,7 +629,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 		"in_memory_config_not_found_shouldnt_return_error": {
 			shouldRemainInMemory: 0,
 			finalizedEpoch:       1, // try to finalize an epoch that does not exist
-			finalizedHeader:      finalizedHeader,
+			finalizedHeader:      blockNumber1,
 			inMemoryEpoch:        []inMemoryBABEData[types.NextConfigDataV1]{},
 		},
 	}
@@ -632,6 +637,20 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 	for testName, tt := range tests {
 		t.Run(testName, func(t *testing.T) {
 			epochState := newEpochStateFromGenesis(t)
+
+			for _, finalized := range finalizedHeaders {
+				// mapping number #1 to the block hash
+				// then we can retrieve the slot number
+				// using the block number
+				err := epochState.blockState.db.Put(
+					headerHashKey(uint64(finalized.Number)),
+					finalized.Hash().ToBytes(),
+				)
+				require.NoError(t, err)
+
+				err = epochState.blockState.SetHeader(finalized)
+				require.NoError(t, err)
+			}
 
 			for _, e := range tt.inMemoryEpoch {
 				for i, hash := range e.hashes {
@@ -644,17 +663,14 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 			// if there is no data in memory we try to finalize the next config data
 			// it should return nil since next epoch config data will not be in every epoch's first block
 			if len(tt.inMemoryEpoch) == 0 {
-				err = epochState.FinalizeBABENextConfigData(tt.finalizedHeader)
+				err := epochState.FinalizeBABENextConfigData(tt.finalizedHeader)
 				require.NoError(t, err)
 				return
 			}
 
 			expectedConfigData := epochState.nextConfigData[tt.finalizedEpoch][tt.finalizedHeader.Hash()]
 
-			err := epochState.blockState.db.Put(headerKey(tt.finalizedHeader.Hash()), []byte{})
-			require.NoError(t, err)
-
-			err = epochState.FinalizeBABENextConfigData(tt.finalizedHeader)
+			err := epochState.FinalizeBABENextConfigData(tt.finalizedHeader)
 			if tt.expectErr != nil {
 				require.ErrorIs(t, err, tt.expectErr)
 			} else {

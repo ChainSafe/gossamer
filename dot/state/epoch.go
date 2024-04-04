@@ -189,6 +189,10 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return 0, errors.New("header is nil")
 	}
 
+	if header.Number == 1 {
+		return 0, nil
+	}
+
 	veryFirstSlotNumber, err := s.retrieveFirstNonOriginBlockSlot(header.Hash())
 	if err != nil {
 		return 0, fmt.Errorf("retrieving very first slot number: %w", err)
@@ -510,12 +514,12 @@ func (s *EpochState) retrieveFirstNonOriginBlockSlot(blockHash common.Hash) (uin
 		}
 	}
 
-	firstNonGenesisBlock, err := s.blockState.GetBlockByHash(firstNonOriginBlockHash)
+	firstNonGenesisHeader, err := s.blockState.GetHeader(firstNonOriginBlockHash)
 	if err != nil {
 		return 0, fmt.Errorf("getting first non genesis block by hash: %w", err)
 	}
 
-	veryFirstSlotNumber, err := firstNonGenesisBlock.Header.SlotNumber()
+	veryFirstSlotNumber, err := firstNonGenesisHeader.SlotNumber()
 	if err != nil {
 		return 0, fmt.Errorf("getting slot number: %w", err)
 	}
