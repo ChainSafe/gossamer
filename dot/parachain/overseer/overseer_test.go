@@ -225,13 +225,13 @@ func newTestHarness(t *testing.T, seedDB bool) *testHarness {
 		harness.db = state.NewInMemoryDB(t)
 	}
 
-	testPruningConfig := availability_store.PruningConfig{
+	testPruningConfig := &availability_store.PruningConfig{
 		KeepUnavailableFor: time.Second * 2,
 		KeepFinalizedFor:   time.Second * 5,
 		PruningInterval:    time.Second * 1,
 	}
 
-	availabilityStore, err := availability_store.CreateAndRegisterPruning(harness.overseer.GetSubsystemToOverseerChannel(),
+	availabilityStore, err := availability_store.Register(harness.overseer.GetSubsystemToOverseerChannel(),
 		harness.db, testPruningConfig)
 
 	require.NoError(t, err)
