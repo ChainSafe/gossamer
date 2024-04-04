@@ -880,7 +880,7 @@ func hasAllChunks(harness *testHarness, candidateHash parachaintypes.CandidateHa
 func TestStoredDataKeptUntilFinalized(t *testing.T) {
 	harness := newTestHarness(t, false)
 	candidateHash := parachaintypes.CandidateHash{Value: availability_store.TestCandidateReceiptHash}
-	nValidators := uint(10) // TODO(ed): simulate nValidators call
+	nValidators := uint(10)
 
 	pov := parachaintypes.PoV{BlockData: parachaintypes.BlockData{4, 5, 6}}
 
