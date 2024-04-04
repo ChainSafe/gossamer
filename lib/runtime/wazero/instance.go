@@ -38,12 +38,11 @@ var _ runtime.Instance = &Instance{}
 
 // Instance backed by wazero.Runtime
 type Instance struct {
-	code     []byte
 	Runtime  wazero.Runtime
 	Module   api.Module
 	Context  *runtime.Context
+	code     []byte
 	codeHash common.Hash
-	heapBase uint32
 	sync.Mutex
 }
 
