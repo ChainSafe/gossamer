@@ -124,7 +124,8 @@ func (cpvs CollatorProtocolValidatorSide) handleNetworkEvents(event network.Netw
 	}
 }
 
-func (cpvs *CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) {
+func (cpvs *CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(
+	signal parachaintypes.ActiveLeavesUpdateSignal) {
 	// I might need to separate the collator protocol into two parts, one that deals with the
 	// network and other that deals with other subsystems.
 	// Make everythin less messing.
@@ -202,9 +203,6 @@ func (cpvs *CollatorProtocolValidatorSide) updateOurView(liveHeads []parachainty
 }
 
 func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view View) error {
-
-	// a lot is happenning here.
-
 	// 1. Find out removed leaves (hashes) and newly added leaves
 	// 2. Go over each new leaves,
 	// - check if perspective parachain mode is enabled
@@ -243,7 +241,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view View) error 
 
 		if mode.IsEnabled {
 			// TODO: Add it when we have async backing
-			// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1303
+			// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1303 //nolint
 		}
 	}
 
@@ -255,7 +253,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view View) error 
 		pruned := []common.Hash{}
 		if mode.IsEnabled {
 			// TODO Do this when we have async backing
-			// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1340
+			// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1340 //nolint
 		} else {
 			pruned = append(pruned, leaf)
 		}
@@ -306,7 +304,8 @@ func (cpvs *CollatorProtocolValidatorSide) removeOutgoing(perRelayParent PerRela
 	}
 }
 
-func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Hash, perRelayParent *PerRelayParent) error {
+func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Hash, perRelayParent *PerRelayParent,
+) error {
 	// TODO: get this instance using relay parent
 	instance, err := cpvs.BlockState.GetRuntime(relayParent)
 	if err != nil {
@@ -419,7 +418,7 @@ func (s SortableActivatedLeaves) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-func (cpvs CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
+func (cpvs *CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
 	if cpvs.finalizedNumber >= signal.BlockNumber {
 		// error
 		return
@@ -612,7 +611,7 @@ type View struct {
 	// a bounded amount of chain heads
 	heads []common.Hash
 	// the highest known finalized number
-	finalizedNumber uint32 //nolint
+	finalizedNumber uint32
 }
 
 type SortableHeads []common.Hash
