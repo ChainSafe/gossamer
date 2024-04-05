@@ -135,6 +135,7 @@ func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 					return nil, nil
 				}
 
+				// Advance the partial key consuming the part we already checked
 				partialKey = partialKey[len(nodePartialKey)+1:]
 			}
 
