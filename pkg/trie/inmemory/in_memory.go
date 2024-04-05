@@ -1492,7 +1492,7 @@ func concatenateSlices(sliceOne, sliceTwo []byte, otherSlices ...[]byte) (concat
 	}
 
 	if allNil {
-		// Return a nil slice instead of an an empty slice
+		// Return a nil slice instead of an empty slice
 		// if all slices are nil.
 		return nil
 	}
