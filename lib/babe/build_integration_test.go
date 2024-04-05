@@ -8,7 +8,6 @@ package babe
 import (
 	"bytes"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -56,21 +55,25 @@ func TestSeal(t *testing.T) {
 
 func TestBuildBlock_ok(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
 
 	parentHash := babeService.blockState.GenesisHash()
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	testEpochData, err := babeService.initiateEpoch(testEpochIndex)
+	epochDescriptor, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	slot := getSlot(t, rt, time.Now())
+	slot := Slot{
+		start:    getSlotStartTime(epochDescriptor.startSlot, babeService.constants.slotDuration),
+		duration: babeService.constants.slotDuration,
+		number:   epochDescriptor.startSlot,
+	}
 	extrinsic := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice,
 		"System.remark", []byte{0xab, 0xcd})
 	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(extrinsic)},
-		testEpochIndex, testEpochData, slot)
+		epochDescriptor, slot)
 
 	const expectedSecondExtrinsic = "0x042d000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" //nolint:lll
 	expectedBlockHeader := &types.Header{
@@ -95,7 +98,7 @@ func TestBuildBlock_ok(t *testing.T) {
 
 func TestApplyExtrinsicAfterFirstBlockFinalized(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
 	const authorityIndex = 0
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
@@ -105,7 +108,11 @@ func TestApplyExtrinsicAfterFirstBlockFinalized(t *testing.T) {
 	epochDescriptor, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	slot := getSlot(t, rt, time.Now())
+	slot := Slot{
+		start:    getSlotStartTime(epochDescriptor.startSlot, babeService.constants.slotDuration),
+		duration: babeService.constants.slotDuration,
+		number:   epochDescriptor.startSlot,
+	}
 	preRuntimeDigest, err := claimSlot(
 		testEpochIndex, slot.number, epochDescriptor.data, babeService.keypair)
 	require.NoError(t, err)
@@ -150,7 +157,11 @@ func TestApplyExtrinsicAfterFirstBlockFinalized(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add 7 seconds to allow slot to be claimed at appropriate time, Westend has 6 second slot times
-	slot2 := getSlot(t, rt, time.Now().Add(7*time.Second))
+	slot2 := Slot{
+		start:    getSlotStartTime(epochDescriptor.startSlot+1, babeService.constants.slotDuration),
+		duration: babeService.constants.slotDuration,
+		number:   epochDescriptor.startSlot + 1,
+	}
 	preRuntimeDigest2, err := claimSlot(testEpochIndex, slot2.number, epochDescriptor.data, babeService.keypair)
 	require.NoError(t, err)
 
@@ -177,7 +188,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
 
 	header := types.NewHeader(genesisHeader.Hash(), common.Hash{}, common.Hash{}, 1, types.NewDigest())
 	bestBlockHash := babeService.blockState.BestBlockHash()
@@ -254,7 +265,7 @@ func TestBuildAndApplyExtrinsic_InvalidPayment(t *testing.T) {
 	require.NoError(t, err)
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
 
 	header := types.NewHeader(genesisHeader.Hash(), common.Hash{}, common.Hash{}, 1, types.NewDigest())
 	bestBlockHash := babeService.blockState.BestBlockHash()
@@ -336,22 +347,23 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 	metrics.Unregister(buildBlockTimer)
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
 
 	parent, err := babeService.blockState.BestBlockHeader()
-	require.NoError(t, err)
-
-	runtime, err := babeService.blockState.GetRuntime(parent.Hash())
 	require.NoError(t, err)
 
 	timerMetrics := metrics.GetOrRegisterTimer(buildBlockTimer, nil)
 	timerMetrics.Stop()
 
-	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	epochDescriptor, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	slot := getSlot(t, runtime, time.Now())
-	createTestBlockWithSlot(t, babeService, parent, [][]byte{}, testEpochIndex, epochData, slot)
+	slot := Slot{
+		start:    getSlotStartTime(epochDescriptor.startSlot, babeService.constants.slotDuration),
+		duration: babeService.constants.slotDuration,
+		number:   epochDescriptor.startSlot,
+	}
+	createTestBlockWithSlot(t, babeService, parent, [][]byte{}, epochDescriptor, slot)
 	require.Equal(t, int64(1), timerMetrics.Snapshot().Count())
 
 	// TODO: there isn't an easy way to trigger an error in buildBlock from here

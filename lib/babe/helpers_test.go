@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -187,18 +186,10 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	testDatadirPath := t.TempDir()
 
 	config := state.Config{
-		Path:      testDatadirPath,
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
-		GenesisBABEConfig: &types.BabeConfiguration{
-			SlotDuration:       1000,
-			EpochLength:        200,
-			C1:                 1,
-			C2:                 4,
-			GenesisAuthorities: []types.AuthorityRaw{},
-			Randomness:         [32]byte{},
-			SecondarySlots:     0,
-		},
+		Path:              testDatadirPath,
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: babeConfig,
 	}
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
@@ -353,21 +344,8 @@ func buildLocalTransaction(t *testing.T, rt runtime.Instance, ext types.Extrinsi
 	return types.Extrinsic(bytes.Join(extrinsicParts, nil))
 }
 
-func getSlot(t *testing.T, rt runtime.Instance, timestamp time.Time) Slot {
-	t.Helper()
-	babeConfig, err := rt.BabeConfiguration()
-	require.NoError(t, err)
-
-	currentSlot := uint64(timestamp.UnixMilli()) / babeConfig.SlotDuration
-	return Slot{
-		start:    timestamp,
-		duration: time.Duration(babeConfig.SlotDuration) * time.Millisecond,
-		number:   currentSlot,
-	}
-}
-
 func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.Header,
-	exts [][]byte, epoch uint64, epochDescriptor *EpochDescriptor, slot Slot) *types.Block {
+	exts [][]byte, epochDescriptor *EpochDescriptor, slot Slot) *types.Block {
 	for _, ext := range exts {
 		validTransaction := transaction.NewValidTransaction(ext, &transaction.Validity{})
 		_, err := babeService.transactionState.Push(validTransaction)
@@ -378,7 +356,7 @@ func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.H
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	preRuntimeDigest, err := claimSlot(epoch, slot.number, epochDescriptor.data, babeService.keypair)
+	preRuntimeDigest, err := claimSlot(epochDescriptor.epoch, slot.number, epochDescriptor.data, babeService.keypair)
 	require.NoError(t, err)
 
 	block, err := babeService.buildBlock(parent, slot, rt, epochDescriptor.data.authorityIndex, preRuntimeDigest)

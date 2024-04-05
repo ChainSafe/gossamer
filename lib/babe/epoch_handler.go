@@ -85,11 +85,15 @@ func (h *epochHandler) run(ctx context.Context, errCh chan<- error) {
 			return
 		}
 
+		fmt.Printf("current slot issued: %s\n", currentSlot.String())
+
 		// check if the slot is an authoring slot otherwise wait for the next slot
 		preRuntimeDigest, has := h.slotToPreRuntimeDigest[currentSlot.number]
 		if !has {
 			continue
 		}
+
+		fmt.Printf("has primary digest: %s\n", preRuntimeDigest.String())
 
 		err = h.handleSlot(
 			h.descriptor.epoch,

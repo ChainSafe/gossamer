@@ -17,7 +17,7 @@ import (
 
 func TestInitiateEpoch_Epoch0(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
 	babeService.constants.epochLength = 20
 	//startSlot := uint64(1000)
 
@@ -37,7 +37,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 		Authority: true,
 	}
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil)
+	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
 	babeService.constants.epochLength = 10
 
 	state.AddBlocksToState(t, babeService.blockState.(*state.BlockState), 1, false)
@@ -130,7 +130,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 
 func TestIncrementEpoch(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	bs := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
+	bs := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
 
 	next, err := bs.incrementEpoch()
 	require.NoError(t, err)
