@@ -18,7 +18,6 @@ import (
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
-	"github.com/ChainSafe/gossamer/dot/state"
 	types "github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -211,7 +210,7 @@ type testHarness struct {
 	db                database.Database
 }
 
-func newTestHarness(t *testing.T, seedDB bool) *testHarness {
+func newTestHarness(t *testing.T) *testHarness {
 	overseer := NewTestOverseer()
 	harness := &testHarness{
 		overseer:       overseer,
@@ -219,11 +218,7 @@ func newTestHarness(t *testing.T, seedDB bool) *testHarness {
 		t:              t,
 	}
 
-	if seedDB {
-		harness.db = availability_store.SetupTestDB(t)
-	} else {
-		harness.db = state.NewInMemoryDB(t)
-	}
+	harness.db = availability_store.SetupTestDB(t)
 
 	testPruningConfig := &availability_store.PruningConfig{
 		KeepUnavailableFor: time.Second * 2,
@@ -275,9 +270,10 @@ func (h *testHarness) printDB(caption string) {
 	}
 
 }
+
 func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	harness := newTestHarness(t, false)
+	harness := newTestHarness(t)
 
 	activeLeavesUpdate := parachaintypes.ActiveLeavesUpdateSignal{
 		Activated: &parachaintypes.ActivatedLeaf{
@@ -324,7 +320,7 @@ func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 }
 
 func TestStoreChunkWorks(t *testing.T) {
-	harness := newTestHarness(t, true)
+	harness := newTestHarness(t)
 
 	msgSenderChan := make(chan any)
 
@@ -365,7 +361,7 @@ func TestStoreChunkWorks(t *testing.T) {
 }
 
 func TestStoreChunkDoesNothingIfNoEntryAlready(t *testing.T) {
-	harness := newTestHarness(t, false)
+	harness := newTestHarness(t)
 
 	msgSenderChan := make(chan any)
 
@@ -404,7 +400,7 @@ func TestStoreChunkDoesNothingIfNoEntryAlready(t *testing.T) {
 }
 
 func TestQueryChunkChecksMetadata(t *testing.T) {
-	harness := newTestHarness(t, true)
+	harness := newTestHarness(t)
 
 	msgSenderChan := make(chan bool)
 
@@ -444,7 +440,7 @@ func TestQueryChunkChecksMetadata(t *testing.T) {
 }
 
 func TestStorePOVandQueryChunkWorks(t *testing.T) {
-	harness := newTestHarness(t, true)
+	harness := newTestHarness(t)
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
 	nValidators := uint32(10)
 
@@ -506,7 +502,7 @@ func TestStorePOVandQueryChunkWorks(t *testing.T) {
 }
 
 func TestQueryAllChunksWorks(t *testing.T) {
-	harness := newTestHarness(t, true)
+	harness := newTestHarness(t)
 	candidateHash := parachaintypes.CandidateHash{Value: availability_store.TestCandidateReceiptHash}
 	candidateHash2 := parachaintypes.CandidateHash{Value: common.Hash{0x02}}
 	candidateHash3 := parachaintypes.CandidateHash{Value: common.Hash{0x03}}
@@ -568,7 +564,7 @@ func TestQueryAllChunksWorks(t *testing.T) {
 }
 
 func TestQueryChunkSizeWorks(t *testing.T) {
-	harness := newTestHarness(t, true)
+	harness := newTestHarness(t)
 
 	msgSenderChan := make(chan uint32)
 
@@ -594,7 +590,7 @@ func TestQueryChunkSizeWorks(t *testing.T) {
 }
 
 func TestStoreBlockWorks(t *testing.T) {
-	harness := newTestHarness(t, true)
+	harness := newTestHarness(t)
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
 	nValidators := uint32(10)
 
@@ -678,7 +674,7 @@ func TestStoreBlockWorks(t *testing.T) {
 }
 
 func TestStoreAvailableDataErasureMismatch(t *testing.T) {
-	harness := newTestHarness(t, true)
+	harness := newTestHarness(t)
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
 	nValidators := uint32(10)
 
@@ -715,7 +711,7 @@ func TestStoreAvailableDataErasureMismatch(t *testing.T) {
 }
 
 func TestStoredButNotIncludedDataIsPruned(t *testing.T) {
-	harness := newTestHarness(t, false)
+	harness := newTestHarness(t)
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
 	nValidators := uint32(10)
 
@@ -878,7 +874,7 @@ func hasAllChunks(harness *testHarness, candidateHash parachaintypes.CandidateHa
 }
 
 func TestStoredDataKeptUntilFinalized(t *testing.T) {
-	harness := newTestHarness(t, false)
+	harness := newTestHarness(t)
 	candidateHash := parachaintypes.CandidateHash{Value: availability_store.TestCandidateReceiptHash}
 	nValidators := uint32(10)
 

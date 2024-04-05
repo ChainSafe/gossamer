@@ -16,7 +16,6 @@ import (
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -232,11 +231,12 @@ var (
 )
 
 func SetupTestDB(t *testing.T) database.Database {
-	inmemoryDB := state.NewInMemoryDB(t)
+	inmemoryDB, err := database.NewPebble("", true)
+	require.NoError(t, err)
 	as := NewAvailabilityStore(inmemoryDB)
 	batch := newAvailabilityStoreBatch(as)
 	metaState := NewStateVDT()
-	err := metaState.Set(Unavailable{})
+	err = metaState.Set(Unavailable{})
 	require.NoError(t, err)
 	meta := &CandidateMeta{
 		State:         metaState,
