@@ -13,6 +13,10 @@ import (
 	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+<<<<<<< HEAD
+=======
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
+>>>>>>> c6c6fcad (change way test db is setup to fix CI tests failing---)
 	types "github.com/ChainSafe/gossamer/dot/types"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
