@@ -3,6 +3,8 @@
 
 package codec
 
+const ChildrenCapacity = 16
+
 // MerkleValue is a helper enum to differentiate between inline and hashed nodes
 // https://spec.polkadot.network/chap-state#defn-merkle-value
 type MerkleValue interface {
