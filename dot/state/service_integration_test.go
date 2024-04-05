@@ -498,7 +498,8 @@ func TestService_Import(t *testing.T) {
 		Digest:    digest,
 	}
 
-	err = serv.Import(header, tr, trie.V0)
+	firstSlot := uint64(1)
+	err = serv.Import(header, tr, trie.V0, firstSlot)
 	require.NoError(t, err)
 
 	err = serv.Start()

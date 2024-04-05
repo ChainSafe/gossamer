@@ -266,7 +266,8 @@ func (s *Service) Stop() error {
 
 // Import imports the given state corresponding to the given header and sets the head of the chain
 // to it. Additionally, it uses the first slot to correctly set the epoch number of the block.
-func (s *Service) Import(header *types.Header, t trie.Trie, stateTrieVersion trie.TrieLayout) error {
+func (s *Service) Import(header *types.Header, t trie.Trie,
+	stateTrieVersion trie.TrieLayout, firstSlot uint64) error {
 	var err error
 	// initialise database using data directory
 	if !s.isMemDB {
@@ -293,7 +294,7 @@ func (s *Service) Import(header *types.Header, t trie.Trie, stateTrieVersion tri
 
 	s.Base = NewBaseState(s.db)
 
-	blockEpoch, err := epoch.GetEpochForBlock(header)
+	blockEpoch, err := getEpochForBlockHeader(header, epoch.epochLength, firstSlot)
 	if err != nil {
 		return err
 	}
@@ -350,4 +351,13 @@ func (s *Service) Import(header *types.Header, t trie.Trie, stateTrieVersion tri
 	}
 
 	return s.db.Close()
+}
+
+func getEpochForBlockHeader(header *types.Header, epochLength, veryFirstSlotNumber uint64) (uint64, error) {
+	slotNumber, err := header.SlotNumber()
+	if err != nil {
+		return 0, fmt.Errorf("getting slot number: %w", err)
+	}
+
+	return (slotNumber - veryFirstSlotNumber) / epochLength, nil
 }

@@ -47,8 +47,7 @@ func execImportState(cmd *cobra.Command) error {
 		return fmt.Errorf("basepath must be specified")
 	}
 
-	// TODO: re-introduce first slot
-	_, err := cmd.Flags().GetUint64("first-slot")
+	firstSlot, err := cmd.Flags().GetUint64("first-slot")
 	if err != nil {
 		return fmt.Errorf("failed to get first-slot: %s", err)
 	}
@@ -80,5 +79,6 @@ func execImportState(cmd *cobra.Command) error {
 
 	basePath = utils.ExpandDir(basePath)
 
-	return dot.ImportState(basePath, stateFile, headerFile, stateTrieVersion)
+	return dot.ImportState(basePath, stateFile,
+		headerFile, stateTrieVersion, nil, firstSlot)
 }

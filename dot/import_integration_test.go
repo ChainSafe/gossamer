@@ -93,7 +93,6 @@ func TestImportState_Integration(t *testing.T) {
 	config := DefaultTestWestendDevConfig(t)
 
 	genFile := NewTestGenesisRawFile(t, config)
-
 	config.ChainSpec = genFile
 	err := InitNode(config)
 	require.NoError(t, err)
@@ -101,21 +100,24 @@ func TestImportState_Integration(t *testing.T) {
 	stateFP := setupStateFile(t)
 	headerFP := setupHeaderFile(t)
 
-	err = ImportState(config.BasePath, stateFP, headerFP, trie.V0)
+	genesisBABEConfig := &types.BabeConfiguration{
+		SlotDuration:       1000,
+		EpochLength:        200,
+		C1:                 1,
+		C2:                 4,
+		GenesisAuthorities: []types.AuthorityRaw{},
+		Randomness:         [32]byte{},
+		SecondarySlots:     0,
+	}
+
+	firstSlot := uint64(1)
+	err = ImportState(config.BasePath, stateFP, headerFP, trie.V0, genesisBABEConfig, firstSlot)
 	require.NoError(t, err)
 	// confirm data is imported into db
 	stateConfig := state.Config{
-		Path:     config.BasePath,
-		LogLevel: log.Info,
-		GenesisBABEConfig: &types.BabeConfiguration{
-			SlotDuration:       1000,
-			EpochLength:        200,
-			C1:                 1,
-			C2:                 4,
-			GenesisAuthorities: []types.AuthorityRaw{},
-			Randomness:         [32]byte{},
-			SecondarySlots:     0,
-		},
+		Path:              config.BasePath,
+		LogLevel:          log.Info,
+		GenesisBABEConfig: genesisBABEConfig,
 	}
 	srv := state.NewService(stateConfig)
 	srv.SetupBase()
@@ -137,6 +139,16 @@ func TestImportState(t *testing.T) {
 	err := nodeInstance.initNode(config)
 	require.NoError(t, err)
 
+	genesisBABEConfig := &types.BabeConfiguration{
+		SlotDuration:       1000,
+		EpochLength:        200,
+		C1:                 1,
+		C2:                 4,
+		GenesisAuthorities: []types.AuthorityRaw{},
+		Randomness:         [32]byte{},
+		SecondarySlots:     0,
+	}
+
 	stateFP := setupStateFile(t)
 	headerFP := setupHeaderFile(t)
 
@@ -145,6 +157,7 @@ func TestImportState(t *testing.T) {
 		stateFP      string
 		headerFP     string
 		stateVersion trie.TrieLayout
+		firstSlot    uint64
 	}
 	tests := []struct {
 		name string
@@ -162,6 +175,7 @@ func TestImportState(t *testing.T) {
 				stateFP:      stateFP,
 				headerFP:     headerFP,
 				stateVersion: trie.V0,
+				firstSlot:    262493679,
 			},
 		},
 	}
@@ -170,7 +184,8 @@ func TestImportState(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := ImportState(tt.args.basepath, tt.args.stateFP, tt.args.headerFP, tt.args.stateVersion)
+			err := ImportState(tt.args.basepath, tt.args.stateFP,
+				tt.args.headerFP, tt.args.stateVersion, genesisBABEConfig, tt.args.firstSlot)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {
