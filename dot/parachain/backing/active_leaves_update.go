@@ -7,9 +7,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	parachainutil "github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -270,43 +272,101 @@ func constructPerRelayParentState(
 	keystore *keystore.Keystore,
 	mode parachaintypes.ProspectiveParachainsMode,
 ) (*perRelayParentState, error) {
-	// TODO: implement this
-	/*
-		rt, err := blockstate.GetRuntime(relayParent)
-		if err != nil {
-			return nil, fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
-		}
-
-		sessionIndex, validators, validatorGroups, cores, err := fetchParachainHostData(rt)
-		if err != nil {
-			return nil, fmt.Errorf("fetching parachain host data: %w", err)
-		}
-
-		// TODO: call minBackingVotes function here ParachainHostMinimumBackingVotes test passed
-		minBackingVotes := LEGACY_MIN_BACKING_VOTES
-
-		signingContext := parachaintypes.SigningContext{
-			SessionIndex: *sessionIndex,
-			ParentHash:   relayParent,
-		}
-	*/
-	return nil, nil
-}
-
-/*
-TODO: copy from kishan's PR, if possible
-
-// From the given set of validators, find the first key we can sign with,
-// if any, and return it along with the validator index.
-func signingKeyAndIndex(
-	validators []parachaintypes.ValidatorID,
-	keystore keystore.Keystore,
-) (parachaintypes.ValidatorID, parachaintypes.ValidatorID, error) {
-	for i, v := range validators {
-		key := keystore.
+	rt, err := blockstate.GetRuntime(relayParent)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
 	}
+
+	sessionIndex, validators, validatorGroups, cores, err := fetchParachainHostData(rt)
+	if err != nil {
+		return nil, fmt.Errorf("fetching parachain host data: %w", err)
+	}
+
+	// TODO: call minBackingVotes function here once ParachainHostMinimumBackingVotes test passed
+	minBackingVotes := LEGACY_MIN_BACKING_VOTES
+
+	signingContext := parachaintypes.SigningContext{
+		SessionIndex: *sessionIndex,
+		ParentHash:   relayParent,
+	}
+
+	var localValidator *validator
+	validatorID, validatorIndex := parachainutil.SigningKeyAndIndex(validators, *keystore)
+	if validatorID != nil {
+		//  local node is a validator
+		localValidator = &validator{
+			signingContext: signingContext,
+			key:            *validatorID,
+			index:          validatorIndex,
+		}
+	}
+
+	var assignment parachaintypes.ParaID // should be pointer?
+
+	groups := make(map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex)
+
+	numOfCores := uint32(len(cores.Types))
+
+	for idx := uint32(0); idx < numOfCores; idx++ {
+		coreValue, err := cores.Types[idx].Value()
+		if err != nil {
+			return nil, fmt.Errorf("getting core value at index %d: %w", idx, err)
+		}
+
+		var coreParaID parachaintypes.ParaID
+		switch v := coreValue.(type) {
+		case parachaintypes.OccupiedCore:
+			if mode.IsEnabled {
+				// Async backing makes it legal to build on top of occupied core.
+				coreParaID = parachaintypes.ParaID(v.CandidateDescriptor.ParaID)
+			} else {
+				continue
+			}
+		case parachaintypes.ScheduledCore:
+			coreParaID = parachaintypes.ParaID(v.ParaID)
+		case parachaintypes.Free:
+			continue
+		}
+
+		coreIndex := parachaintypes.CoreIndex{Index: idx}
+		groupIndex := validatorGroups.GroupRotationInfo.GroupForCore(coreIndex, numOfCores)
+		validatorIndexes := validatorGroups.Validators[groupIndex]
+
+		if validatorIndexes != nil {
+			isIndexPresent := slices.Contains(validatorIndexes, localValidator.index)
+
+			if localValidator != nil && isIndexPresent {
+				assignment = coreParaID
+			}
+			groups[coreParaID] = validatorIndexes
+		}
+	}
+
+	tableContext := TableContext{
+		validator:  localValidator,
+		groups:     groups,
+		validators: validators,
+	}
+
+	tableConfig := Config{
+		AllowMultipleSeconded: mode.IsEnabled,
+	}
+
+	newPerRelayParentState := perRelayParentState{
+		prospectiveParachainsMode: mode,
+		relayParent:               relayParent,
+		assignment:                assignment,
+		table:                     newTable(tableConfig),
+		tableContext:              tableContext,
+		fallbacks:                 make(map[parachaintypes.CandidateHash]attestingData),
+		awaitingValidation:        make(map[parachaintypes.CandidateHash]bool),
+		issuedStatements:          make(map[parachaintypes.CandidateHash]bool),
+		backed:                    make(map[parachaintypes.CandidateHash]bool),
+		minBackingVotes:           minBackingVotes,
+	}
+
+	return &newPerRelayParentState, nil
 }
-*/
 
 /*
 TODO: use this function once a PR to get the minBackingVotes is merged

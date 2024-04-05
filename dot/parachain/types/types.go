@@ -36,6 +36,13 @@ type GroupRotationInfo struct {
 	Now BlockNumber `scale:"3"`
 }
 
+func (GroupRotationInfo) GroupForCore(coreIndex CoreIndex, numOfCores uint32) GroupIndex {
+	// TODO: implement this
+	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/primitives/src/v6/mod.rs#L855-L856
+
+	return 0
+}
+
 // ValidatorGroups represents the validator groups
 type ValidatorGroups struct {
 	// Validators is an array of validator set Ids

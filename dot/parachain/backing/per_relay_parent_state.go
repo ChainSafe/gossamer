@@ -34,6 +34,8 @@ type perRelayParentState struct {
 	issuedStatements map[parachaintypes.CandidateHash]bool
 	// The candidates that are backed by enough validators in their group, by hash.
 	backed map[parachaintypes.CandidateHash]bool
+	// The minimum backing votes threshold.
+	minBackingVotes uint32
 }
 
 // importStatement imports a statement into the statement table and returns the summary of the import.
