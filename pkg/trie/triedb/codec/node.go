@@ -1,3 +1,6 @@
+// Copyright 2024 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package codec
 
 // MerkleValue is a helper enum to differentiate between inline and hashed nodes
