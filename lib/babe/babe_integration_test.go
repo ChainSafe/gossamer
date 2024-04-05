@@ -24,7 +24,7 @@ var genesisBABEConfig = &types.BabeConfiguration{
 	SlotDuration: 6000,
 	EpochLength:  200,
 	C1:           1,
-	C2:           4,
+	C2:           1,
 	GenesisAuthorities: []types.AuthorityRaw{
 		{
 			Key:    keyring.Alice().Public().(*sr25519.PublicKey).AsBytes(),
@@ -252,8 +252,9 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	epochDescriptor, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
+	startTimestamp := getSlotStartTime(epochDescriptor.startSlot, babeService.constants.slotDuration)
 	slot := Slot{
-		start:    getSlotStartTime(epochDescriptor.startSlot, babeService.constants.slotDuration),
+		start:    startTimestamp,
 		duration: babeService.constants.slotDuration,
 		number:   epochDescriptor.startSlot,
 	}
@@ -286,14 +287,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 
 	// If the slot we are claiming is the same as the slot of the best block header, test that we can
 	// still claim the slot without error.
-	bestBlockSlotNum, err := babeServiceBob.blockState.GetSlotForBlock(block.Header.Hash())
-	require.NoError(t, err)
 
-	slot = Slot{
-		start:    time.Unix(6, 0),
-		duration: babeServiceBob.constants.slotDuration * time.Millisecond,
-		number:   bestBlockSlotNum,
-	}
 	preRuntimeDigest, err = types.NewBabePrimaryPreDigest(
 		0, slot.number,
 		[sr25519.VRFOutputLength]byte{},

@@ -19,17 +19,13 @@ func TestInitiateEpoch_Epoch0(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
 	babeService.constants.epochLength = 20
-	//startSlot := uint64(1000)
 
-	_, err := babeService.initiateEpoch(0)
+	epochDescriptor, err := babeService.initiateEpoch(0)
 	require.NoError(t, err)
 
-	// err := babeService.epochState.SetFirstSlot(startSlot)
-	// require.NoError(t, err)
-
-	// startSlot, err = babeService.epochState.GetStartSlotForEpoch(0)
-	// require.NoError(t, err)
-	// require.Greater(t, startSlot, uint64(1))
+	epochStartSlot, err := babeService.epochState.GetStartSlotForEpoch(0, genesisHeader.Hash())
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, epochStartSlot, epochDescriptor.startSlot)
 }
 
 func TestInitiateEpoch_Epoch1(t *testing.T) {
