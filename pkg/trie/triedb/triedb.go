@@ -32,8 +32,10 @@ func NewTrieDB(rootHash common.Hash, db db.DBGetter) *TrieDB {
 	}
 }
 
-// MustHash returns the hashed root of the trie.
+// Hash returns the hashed root of the trie.
 func (t *TrieDB) Hash() (common.Hash, error) {
+	// This is trivial since it is a read only trie, but will change when we
+	// support writes
 	return t.rootHash, nil
 }
 
