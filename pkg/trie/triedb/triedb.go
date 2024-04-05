@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/node"
 )
@@ -52,7 +53,8 @@ func (t *TrieDB) MustHash() common.Hash {
 // which matches its key with the key given.
 // Note the key argument is given in little Endian format.
 func (t *TrieDB) Get(key []byte) []byte {
-	val, err := t.lookup(key)
+	keyNibbles := codec.KeyLEToNibbles(key)
+	val, err := t.lookup(keyNibbles)
 	if err != nil {
 		// TODO: do we have to do anything else? maybe change the signature
 		// to return an error?
@@ -77,12 +79,12 @@ func (l *TrieDB) lookup(nibbleKey []byte) ([]byte, error) {
 // lookupWithoutCache traverse nodes loading then from DB until reach the one
 // we are looking for.
 func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
-	partial := nibbleKey
+	partialKey := nibbleKey
 	hash := l.rootHash[:]
-	keyNibbles := 0
 
 	depth := 0
 
+	// Iterates through non inlined nodes
 	for {
 		// Get node from DB
 		nodeData, err := l.db.Get(hash)
@@ -113,37 +115,39 @@ func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 			switch decodedNode.Kind() {
 			case node.Leaf:
 				// If leaf and matches return value
-				if bytes.Equal(partial, decodedNode.PartialKey) {
+				if bytes.Equal(partialKey, decodedNode.PartialKey) {
 					return l.loadValue(decodedNode.StorageValue)
 				}
 				return EmptyValue, nil
 			// Nibbled branch
 			case node.Branch:
 				// Get next node
-				slice := decodedNode.PartialKey
+				nodePartialKey := decodedNode.PartialKey
 
-				if !bytes.HasPrefix(partial, slice) {
+				if !bytes.HasPrefix(partialKey, nodePartialKey) {
 					return EmptyValue, nil
 				}
 
-				if len(partial) == len(slice) {
+				if bytes.Equal(partialKey, nodePartialKey) {
 					if decodedNode.StorageValue != nil {
 						return l.loadValue(decodedNode.StorageValue)
 					}
 				}
 
-				nextNode = decodedNode.Children[partial[len(slice)]]
+				childIdx := int(partialKey[len(nodePartialKey)])
+				nextNode = decodedNode.Children[childIdx]
 				if nextNode == nil {
 					return EmptyValue, nil
 				}
 
-				partial = partial[len(slice)+1:]
-				keyNibbles += len(slice) + 1
+				partialKey = partialKey[len(nodePartialKey)+1:]
 			}
 
+			// TODO: I'm sure we have to execute this code for any child,
+			// The value is not the hashed thing, it is the node
 			if nextNode.IsHashedValue {
 				hash = nextNode.StorageValue
-				break
+				break // Go and lookoup for this new hash
 			}
 
 			nodeData = nextNode.StorageValue
