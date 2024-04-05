@@ -330,7 +330,7 @@ func (h *host) bootstrap() {
 		if err != nil {
 			logger.Errorf("Failed to connect to peer %s: %s", addrInfo.ID, err)
 		}
-		cancel()
+		defer cancel()
 	}
 }
 
