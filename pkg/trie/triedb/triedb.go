@@ -17,8 +17,8 @@ import (
 
 var ErrIncompleteDB = errors.New("incomplete database")
 
-var EmptyValue = []byte{}
-
+// TrieDB is a DB-backed patricia merkle trie implementation
+// using lazy loading to fetch nodes
 type TrieDB struct {
 	rootHash common.Hash
 	db       db.DBGetter
