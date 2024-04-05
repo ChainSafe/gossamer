@@ -134,6 +134,7 @@ func (cpvs *CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(signa
 
 	// TODO update cpvs.activeLeaves by adding new active leaves and removing deactivated ones
 
+	// TODO: get the value for majorSyncing for syncing package
 	// majorSyncing means you are 5 blocks behind the tip of the chain and thus more aggressively
 	// download blocks etc to reach the tip of the chain faster.
 	var majorSyncing bool
@@ -262,7 +263,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view View) error 
 		for _, prunedLeaf := range pruned {
 			perRelayParent, ok := cpvs.perRelayParent[prunedLeaf]
 			if ok {
-				cpvs.removeOngoing(perRelayParent)
+				cpvs.removeOutgoing(perRelayParent)
 				delete(cpvs.perRelayParent, prunedLeaf)
 			}
 
@@ -291,15 +292,17 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view View) error 
 	return nil
 }
 
-func (cpvs *CollatorProtocolValidatorSide) removeOngoing(perRelayParent PerRelayParent) {
+func (cpvs *CollatorProtocolValidatorSide) removeOutgoing(perRelayParent PerRelayParent) {
 	if perRelayParent.assignment != nil {
 		entry := cpvs.currentAssignments[*perRelayParent.assignment]
 		entry--
 		if entry == 0 {
 			logger.Infof("unassigned from parachain with ID %d", *perRelayParent.assignment)
+			delete(cpvs.currentAssignments, *perRelayParent.assignment)
+			return
 		}
-		cpvs.currentAssignments[*perRelayParent.assignment] = entry
 
+		cpvs.currentAssignments[*perRelayParent.assignment] = entry
 	}
 }
 
@@ -343,7 +346,7 @@ func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Has
 		return fmt.Errorf("getting core now: %w", err)
 	}
 
-	paraNow := new(parachaintypes.ParaID)
+	var paraNow *parachaintypes.ParaID
 
 	switch c := coreNow.(type) /*coreNow.Index()*/ {
 	case parachaintypes.OccupiedCore:
@@ -355,11 +358,13 @@ func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Has
 
 	}
 
-	entry := cpvs.currentAssignments[*paraNow]
-	entry++
-	cpvs.currentAssignments[*paraNow] = entry
-	if entry == 1 {
-		logger.Infof("got assigned to parachain with ID %d", *paraNow)
+	if paraNow != nil {
+		entry := cpvs.currentAssignments[*paraNow]
+		entry++
+		cpvs.currentAssignments[*paraNow] = entry
+		if entry == 1 {
+			logger.Infof("got assigned to parachain with ID %d", *paraNow)
+		}
 	}
 
 	perRelayParent.assignment = paraNow
@@ -381,11 +386,6 @@ func findValidatorGroup(validatorIndex parachaintypes.ValidatorIndex, validatorG
 // signingKeyAndIndex finds the first key we can sign with from the given set of validators,
 // if any, and returns it along with the validator index.
 func signingKeyAndIndex(validators []parachaintypes.ValidatorID, ks keystore.Keystore) (*parachaintypes.ValidatorID, parachaintypes.ValidatorIndex) {
-	// TODO: I need a keystore that holds validator keys
-	// checkout here to figure out where do they find keystore from
-	//https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/service/src/overseer.rs#L292
-	// It looks like they are using local keystore from here https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/service/src/lib.rs#L779
-
 	for i, validator := range validators {
 		publicKey, _ := sr25519.NewPublicKey(validator[:])
 		keypair := ks.GetKeypair(publicKey)
@@ -649,8 +649,12 @@ func ConstructView(liveHeads map[common.Hash]struct{}, finalizedNumber uint32) V
 		heads = append(heads, head)
 	}
 
+	if len(heads) >= 5 {
+		heads = heads[:5]
+	}
+
 	return View{
-		heads:           heads[:5],
+		heads:           heads,
 		finalizedNumber: finalizedNumber,
 	}
 }
