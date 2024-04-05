@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/database"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,32 +17,41 @@ func newTestDB(t *testing.T) database.Table {
 }
 
 func TestTrieDB_Get(t *testing.T) {
-	db := newTestDB(t)
-
 	entries := map[string][]byte{
-		"no":           []byte("no"),
-		"not":          []byte("not"),
-		"nothing":      []byte("nothing"),
-		"notification": []byte("notification"),
-		"test":         []byte("test"),
+		"no":           make([]byte, 20),
+		"not":          make([]byte, 40),
+		"nothing":      make([]byte, 20),
+		"notification": make([]byte, 40),
+		"test":         make([]byte, 40),
 	}
 
-	inMemoryTrie := inmemory.NewEmptyTrie()
-
-	for k, v := range entries {
-		inMemoryTrie.Put([]byte(k), v)
+	cases := []trie.TrieLayout{
+		trie.V0,
+		trie.V1,
 	}
 
-	err := inMemoryTrie.WriteDirty(db)
-	assert.NoError(t, err)
+	for _, v := range cases {
+		t.Run(v.String(), func(t *testing.T) {
+			db := newTestDB(t)
+			inMemoryTrie := inmemory.NewEmptyTrie()
+			inMemoryTrie.SetVersion(v)
 
-	root, err := inMemoryTrie.Hash()
-	assert.NoError(t, err)
+			for k, v := range entries {
+				inMemoryTrie.Put([]byte(k), v)
+			}
 
-	trieDB := NewTrieDB(root, db)
+			err := inMemoryTrie.WriteDirty(db)
+			assert.NoError(t, err)
 
-	for k, v := range entries {
-		value := trieDB.Get([]byte(k))
-		assert.Equal(t, v, value)
+			root, err := inMemoryTrie.Hash()
+			assert.NoError(t, err)
+
+			trieDB := NewTrieDB(root, db)
+
+			for k, v := range entries {
+				value := trieDB.Get([]byte(k))
+				assert.Equal(t, v, value)
+			}
+		})
 	}
 }

@@ -117,7 +117,7 @@ func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 			case codec.Leaf:
 				// If leaf and matches return value
 				if bytes.Equal(partialKey, n.PartialKey) {
-					return l.loadValue(n.Value)
+					return l.loadValue(partialKey, n.Value)
 				}
 				return EmptyValue, nil
 			// Nibbled branch
@@ -131,7 +131,7 @@ func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 
 				if bytes.Equal(partialKey, nodePartialKey) {
 					if n.Value != nil {
-						return l.loadValue(n.Value)
+						return l.loadValue(partialKey, n.Value)
 					}
 				}
 
@@ -156,7 +156,7 @@ func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 	}
 }
 
-func (l *TrieDB) loadValue(value codec.NodeValue) ([]byte, error) {
+func (l *TrieDB) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error) {
 	if value == nil {
 		return nil, fmt.Errorf("trying to load value from nil node")
 	}
@@ -165,7 +165,8 @@ func (l *TrieDB) loadValue(value codec.NodeValue) ([]byte, error) {
 	case codec.InlineValue:
 		return v.Data, nil
 	case codec.HashedValue:
-		return l.db.Get(v.Data)
+		prefixedKey := bytes.Join([][]byte{prefix, v.Data}, nil)
+		return l.db.Get(prefixedKey)
 	default:
 		panic("unreachable")
 	}
