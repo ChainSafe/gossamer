@@ -20,7 +20,7 @@ func newTestDB(t *testing.T) database.Table {
 }
 
 func TestTrieDB_Get(t *testing.T) {
-	t.Run("Read successful from db created using v1 trie", func(t *testing.T) {
+	t.Run("read_successful_from_db_created_using_v1_trie", func(t *testing.T) {
 		db := newTestDB(t)
 		inMemoryTrie := inmemory.NewEmptyTrie()
 		inMemoryTrie.SetVersion(trie.V1)
@@ -55,7 +55,7 @@ func TestTrieDB_Get(t *testing.T) {
 }
 
 func TestTrieDB_Lookup(t *testing.T) {
-	t.Run("Root not exists in db", func(t *testing.T) {
+	t.Run("root_not_exists_in_db", func(t *testing.T) {
 		db := newTestDB(t)
 		trieDB := NewTrieDB(trie.EmptyHash, db)
 
