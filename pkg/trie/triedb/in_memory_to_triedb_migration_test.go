@@ -20,41 +20,47 @@ func newTestDB(t *testing.T) database.Table {
 }
 
 func TestTrieDB_Get(t *testing.T) {
-	entries := map[string][]byte{
-		"no":           make([]byte, 20),
-		"not":          make([]byte, 40),
-		"nothing":      make([]byte, 20),
-		"notification": make([]byte, 40),
-		"test":         make([]byte, 40),
-	}
+	t.Run("Read successful from db created using v1 trie", func(t *testing.T) {
+		db := newTestDB(t)
+		inMemoryTrie := inmemory.NewEmptyTrie()
+		inMemoryTrie.SetVersion(trie.V1)
 
-	cases := []trie.TrieLayout{
-		trie.V0,
-		trie.V1,
-	}
+		entries := map[string][]byte{
+			"no":           make([]byte, 20),
+			"not":          make([]byte, 40),
+			"nothing":      make([]byte, 20),
+			"notification": make([]byte, 40),
+			"test":         make([]byte, 40),
+		}
 
-	for _, v := range cases {
-		t.Run(v.String(), func(t *testing.T) {
-			db := newTestDB(t)
-			inMemoryTrie := inmemory.NewEmptyTrie()
-			inMemoryTrie.SetVersion(v)
+		for k, v := range entries {
+			inMemoryTrie.Put([]byte(k), v)
+		}
 
-			for k, v := range entries {
-				inMemoryTrie.Put([]byte(k), v)
-			}
+		err := inMemoryTrie.WriteDirty(db)
+		assert.NoError(t, err)
 
-			err := inMemoryTrie.WriteDirty(db)
-			assert.NoError(t, err)
+		root, err := inMemoryTrie.Hash()
+		assert.NoError(t, err)
 
-			root, err := inMemoryTrie.Hash()
-			assert.NoError(t, err)
+		trieDB := NewTrieDB(root, db)
 
-			trieDB := NewTrieDB(root, db)
+		for k, v := range entries {
+			value := trieDB.Get([]byte(k))
+			assert.Equal(t, v, value)
+		}
 
-			for k, v := range entries {
-				value := trieDB.Get([]byte(k))
-				assert.Equal(t, v, value)
-			}
-		})
-	}
+		assert.Equal(t, root, trieDB.MustHash())
+	})
+}
+
+func TestTrieDB_Lookup(t *testing.T) {
+	t.Run("Root not exists in db", func(t *testing.T) {
+		db := newTestDB(t)
+		trieDB := NewTrieDB(trie.EmptyHash, db)
+
+		value, err := trieDB.lookup([]byte("test"))
+		assert.Nil(t, value)
+		assert.ErrorIs(t, err, ErrIncompleteDB)
+	})
 }

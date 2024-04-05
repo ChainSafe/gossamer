@@ -6,7 +6,6 @@ package triedb
 import (
 	"bytes"
 	"errors"
-	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie"
@@ -16,7 +15,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 )
 
-var ErrInvalidStateRoot = errors.New("invalid state root")
 var ErrIncompleteDB = errors.New("incomplete database")
 
 var EmptyValue = []byte{}
@@ -54,8 +52,7 @@ func (t *TrieDB) MustHash() common.Hash {
 // which matches its key with the key given.
 // Note the key argument is given in little Endian format.
 func (t *TrieDB) Get(key []byte) []byte {
-	keyNibbles := nibbles.KeyLEToNibbles(key)
-	val, err := t.lookup(keyNibbles)
+	val, err := t.lookup(key)
 	if err != nil {
 		// TODO: do we have to do anything else? maybe change the signature
 		// to return an error?
@@ -73,17 +70,17 @@ func (t *TrieDB) GetKeysWithPrefix(prefix []byte) (keysLE [][]byte) {
 
 // Internal methods
 
-func (l *TrieDB) lookup(nibbleKey []byte) ([]byte, error) {
-	return l.lookupWithoutCache(nibbleKey)
+func (l *TrieDB) lookup(key []byte) ([]byte, error) {
+	keyNibbles := nibbles.KeyLEToNibbles(key)
+	return l.lookupWithoutCache(keyNibbles)
 }
 
 // lookupWithoutCache traverse nodes loading then from DB until reach the one
 // we are looking for.
 func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
+	// Start from root node and going downwards
 	partialKey := nibbleKey
 	hash := l.rootHash[:]
-
-	depth := 0
 
 	// Iterates through non inlined nodes
 	for {
@@ -91,76 +88,74 @@ func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 		nodeData, err := l.db.Get(hash)
 
 		if err != nil {
-			if depth == 0 {
-				return nil, ErrInvalidStateRoot
-			}
 			return nil, ErrIncompleteDB
 		}
 
-	childrenIterator:
+	InlinedChildrenIterator:
 		for {
 			// Decode node
 			reader := bytes.NewReader(nodeData)
 			decodedNode, err := codec.Decode(reader)
 			if err != nil {
-				return nil, fmt.Errorf("decoding node error %s", err.Error())
-			}
-
-			// Empty Node
-			if decodedNode == nil {
-				return EmptyValue, nil
+				return nil, err
 			}
 
 			var nextNode codec.MerkleValue
 
 			switch n := decodedNode.(type) {
 			case codec.Leaf:
-				// If leaf and matches return value
+				// We are in the node we were looking for
 				if bytes.Equal(partialKey, n.PartialKey) {
 					return l.loadValue(partialKey, n.Value)
 				}
-				return EmptyValue, nil
-			// Nibbled branch
+				return nil, nil
 			case codec.Branch:
-				// Get next node
 				nodePartialKey := n.PartialKey
 
+				// This is unusual but could happen if for some reason one
+				// branch has a hashed child node that points to a node that
+				// doesn't share the prefix we are expecting
 				if !bytes.HasPrefix(partialKey, nodePartialKey) {
-					return EmptyValue, nil
+					return nil, nil
 				}
 
+				// We are in the node we were looking for
 				if bytes.Equal(partialKey, nodePartialKey) {
 					if n.Value != nil {
 						return l.loadValue(partialKey, n.Value)
 					}
+					return nil, nil
 				}
 
+				// This is not the node we were looking for but it might be in
+				// one of its children
 				childIdx := int(partialKey[len(nodePartialKey)])
 				nextNode = n.Children[childIdx]
 				if nextNode == nil {
-					return EmptyValue, nil
+					return nil, nil
 				}
 
 				partialKey = partialKey[len(nodePartialKey)+1:]
 			}
 
+			// Next node could be inlined or hashed (pointer to a node)
+			// https://spec.polkadot.network/chap-state#defn-merkle-value
 			switch merkleValue := nextNode.(type) {
 			case codec.HashedNode:
+				// If it's hashed we set the hash to look for it in next loop
 				hash = merkleValue.Data
-				break childrenIterator
+				break InlinedChildrenIterator
 			case codec.InlineNode:
+				// If it is inlined we just need to decode it in the next loop
 				nodeData = merkleValue.Data
 			}
 		}
-		depth++
 	}
 }
 
+// loadValue gets the value from the node, if it is inlined we can return it
+// directly. But if it is hashed (V1) we have to look up for its value in the DB
 func (l *TrieDB) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error) {
-	if value == nil {
-		return nil, fmt.Errorf("trying to load value from nil node")
-	}
-
 	switch v := value.(type) {
 	case codec.InlineValue:
 		return v.Data, nil
