@@ -1,11 +1,10 @@
-package tests
+package triedb
 
 import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
-	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,17 +18,18 @@ func newTestDB(t *testing.T) database.Table {
 func TestTrieDB_Get(t *testing.T) {
 	db := newTestDB(t)
 
-	entries := map[string]string{
-		"no":  "no",
-		"not": "not",
-		//"nothing": "nothing",
-		//"test":    "test",
+	entries := map[string][]byte{
+		"no":           []byte("no"),
+		"not":          []byte("not"),
+		"nothing":      []byte("nothing"),
+		"notification": []byte("notification"),
+		"test":         []byte("test"),
 	}
 
 	inMemoryTrie := inmemory.NewEmptyTrie()
 
 	for k, v := range entries {
-		inMemoryTrie.Put([]byte(k), []byte(v))
+		inMemoryTrie.Put([]byte(k), v)
 	}
 
 	err := inMemoryTrie.WriteDirty(db)
@@ -38,12 +38,10 @@ func TestTrieDB_Get(t *testing.T) {
 	root, err := inMemoryTrie.Hash()
 	assert.NoError(t, err)
 
-	trieDB := triedb.NewTrieDB(root, db)
-
-	//t.Log("trie", inMemoryTrie.String())
+	trieDB := NewTrieDB(root, db)
 
 	for k, v := range entries {
 		value := trieDB.Get([]byte(k))
-		assert.Equal(t, []byte(v), value)
+		assert.Equal(t, v, value)
 	}
 }

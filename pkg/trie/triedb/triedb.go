@@ -10,9 +10,10 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	"github.com/ChainSafe/gossamer/pkg/trie/codec"
+	nibbles "github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
-	"github.com/ChainSafe/gossamer/pkg/trie/node"
+
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 )
 
 var ErrInvalidStateRoot = errors.New("invalid state root")
@@ -53,7 +54,7 @@ func (t *TrieDB) MustHash() common.Hash {
 // which matches its key with the key given.
 // Note the key argument is given in little Endian format.
 func (t *TrieDB) Get(key []byte) []byte {
-	keyNibbles := codec.KeyLEToNibbles(key)
+	keyNibbles := nibbles.KeyLEToNibbles(key)
 	val, err := t.lookup(keyNibbles)
 	if err != nil {
 		// TODO: do we have to do anything else? maybe change the signature
@@ -96,11 +97,11 @@ func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 			return nil, ErrIncompleteDB
 		}
 
-		// Iterates children
+	childrenIterator:
 		for {
 			// Decode node
 			reader := bytes.NewReader(nodeData)
-			decodedNode, err := node.Decode(reader)
+			decodedNode, err := codec.Decode(reader)
 			if err != nil {
 				return nil, fmt.Errorf("decoding node error %s", err.Error())
 			}
@@ -110,32 +111,32 @@ func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 				return EmptyValue, nil
 			}
 
-			var nextNode *node.Node
+			var nextNode codec.MerkleValue
 
-			switch decodedNode.Kind() {
-			case node.Leaf:
+			switch n := decodedNode.(type) {
+			case codec.Leaf:
 				// If leaf and matches return value
-				if bytes.Equal(partialKey, decodedNode.PartialKey) {
-					return l.loadValue(decodedNode.StorageValue)
+				if bytes.Equal(partialKey, n.PartialKey) {
+					return l.loadValue(n.Value)
 				}
 				return EmptyValue, nil
 			// Nibbled branch
-			case node.Branch:
+			case codec.Branch:
 				// Get next node
-				nodePartialKey := decodedNode.PartialKey
+				nodePartialKey := n.PartialKey
 
 				if !bytes.HasPrefix(partialKey, nodePartialKey) {
 					return EmptyValue, nil
 				}
 
 				if bytes.Equal(partialKey, nodePartialKey) {
-					if decodedNode.StorageValue != nil {
-						return l.loadValue(decodedNode.StorageValue)
+					if n.Value != nil {
+						return l.loadValue(n.Value)
 					}
 				}
 
 				childIdx := int(partialKey[len(nodePartialKey)])
-				nextNode = decodedNode.Children[childIdx]
+				nextNode = n.Children[childIdx]
 				if nextNode == nil {
 					return EmptyValue, nil
 				}
@@ -143,41 +144,31 @@ func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 				partialKey = partialKey[len(nodePartialKey)+1:]
 			}
 
-			// TODO: I'm sure we have to execute this code for any child,
-			// The value is not the hashed thing, it is the node
-			if nextNode.IsHashedValue {
-				hash = nextNode.StorageValue
-				break // Go and lookoup for this new hash
+			switch merkleValue := nextNode.(type) {
+			case codec.HashedNode:
+				hash = merkleValue.Data
+				break childrenIterator
+			case codec.InlineNode:
+				nodeData = merkleValue.Data
 			}
-
-			nodeData = nextNode.StorageValue
 		}
 		depth++
 	}
 }
 
-// TODO: change our nodes to use *NodeValue type instead of using []byte and
-// stop decoding the value in the Decode method if it is a hashed reference to
-// a different node
-func (l *TrieDB) loadValue(value []byte) ([]byte, error) {
-	// Since we are already decoding the node value when it is a reference this
-	// function is trivial
-	return value, nil
+func (l *TrieDB) loadValue(value codec.NodeValue) ([]byte, error) {
+	if value == nil {
+		return nil, fmt.Errorf("trying to load value from nil node")
+	}
 
-	// I'll leave the code below for reference regarding the right way to do it
-	// But we need to change the node struct to use *NodeValue instead of []byte
-	// And the node decode to not decode the value if it is a reference
-
-	/*
-		if value == nil {
-			return nil, fmt.Errorf("trying to load value from nil node")
-		}
-		if !value.Hashed {
-			return value.Data, nil
-		}
-
-		return l.db.Get(value.Data)
-	*/
+	switch v := value.(type) {
+	case codec.InlineValue:
+		return v.Data, nil
+	case codec.HashedValue:
+		return l.db.Get(v.Data)
+	default:
+		panic("unreachable")
+	}
 }
 
 var _ trie.ReadOnlyTrie = (*TrieDB)(nil)
