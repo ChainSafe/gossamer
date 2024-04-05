@@ -706,7 +706,6 @@ func (s *Service) processMessage(msg peerset.Message) {
 		logger.Errorf("found empty peer id in peerset message")
 		return
 	}
-
 	switch msg.Status {
 	case peerset.Connect:
 		addrInfo := s.host.p2pHost.Peerstore().PeerInfo(peerID)
