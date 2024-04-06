@@ -28,15 +28,12 @@ func TestInitiateEpoch_Epoch0(t *testing.T) {
 	require.GreaterOrEqual(t, epochStartSlot, epochDescriptor.startSlot)
 }
 
-func TestInitiateEpoch_Epoch1(t *testing.T) {
+func TestInitiateEpoch_Epoch1And2(t *testing.T) {
 	cfg := ServiceConfig{
 		Authority: true,
 	}
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
-	babeService.constants.epochLength = 10
-
-	state.AddBlocksToState(t, babeService.blockState.(*state.BlockState), 1, false)
 
 	// epoch 1, check that genesis EpochData and ConfigData was properly set
 	auth := types.AuthorityRaw{
@@ -46,22 +43,35 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 
 	data, err := babeService.epochState.GetEpochDataRaw(0, nil)
 	require.NoError(t, err)
+
 	data.Authorities = []types.AuthorityRaw{auth}
 	err = babeService.epochState.(*state.EpochState).StoreEpochDataRaw(1, data)
 	require.NoError(t, err)
 
-	ed, err := babeService.initiateEpoch(1)
+	const authorityIndex = 0
+	currentEpochNumber := uint64(0)
+	ed, err := babeService.initiateEpoch(currentEpochNumber)
 	require.NoError(t, err)
 
 	expected := &epochData{
 		randomness:     [32]byte{},
 		authorities:    []types.AuthorityRaw{auth},
-		authorityIndex: 0,
+		authorityIndex: authorityIndex,
 		threshold:      ed.data.threshold,
 	}
 	require.Equal(t, expected.randomness, ed.data.randomness)
 	require.Equal(t, expected.authorityIndex, ed.data.authorityIndex)
 	require.Equal(t, expected.threshold, ed.data.threshold)
+
+	preRuntimeDigest, err := claimSlot(ed.epoch, ed.startSlot, ed.data, babeService.keypair)
+	require.NoError(t, err)
+
+	digest := types.NewDigest()
+	err = digest.Add(*preRuntimeDigest)
+	require.NoError(t, err)
+
+	blockNumber1Header := state.AddBlockToState(t,
+		babeService.blockState.(*state.BlockState), 1, digest, genesisHeader.Hash())
 
 	for i, auth := range ed.data.authorities {
 		require.Equal(t, expected.authorities[i], auth)
@@ -73,25 +83,36 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 		Randomness:  [32]byte{9},
 	}
 
-	err = babeService.epochState.(*state.EpochState).StoreEpochDataRaw(2, edata)
+	err = babeService.epochState.(*state.EpochState).StoreEpochDataRaw(1, edata)
 	require.NoError(t, err)
 
-	expected = &epochData{
+	expectedEpoch1Data := &epochData{
 		randomness:     edata.Randomness,
 		authorities:    edata.Authorities,
 		authorityIndex: 0,
 		threshold:      ed.data.threshold,
 	}
 
-	ed, err = babeService.initiateEpoch(2)
+	currentEpochNumber = uint64(1)
+	ed, err = babeService.initiateEpoch(currentEpochNumber)
 	require.NoError(t, err)
-	require.Equal(t, expected.randomness, ed.data.randomness)
-	require.Equal(t, expected.authorityIndex, ed.data.authorityIndex)
-	require.Equal(t, expected.threshold, ed.data.threshold)
+	require.Equal(t, expectedEpoch1Data.randomness, ed.data.randomness)
+	require.Equal(t, expectedEpoch1Data.authorityIndex, ed.data.authorityIndex)
+	require.Equal(t, expectedEpoch1Data.threshold, ed.data.threshold)
 
 	for i, auth := range ed.data.authorities {
-		require.Equal(t, expected.authorities[i], auth)
+		require.Equal(t, expectedEpoch1Data.authorities[i], auth)
 	}
+
+	preRuntimeDigest, err = claimSlot(ed.epoch, ed.startSlot, ed.data, babeService.keypair)
+	require.NoError(t, err)
+
+	digest = types.NewDigest()
+	err = digest.Add(*preRuntimeDigest)
+	require.NoError(t, err)
+
+	state.AddBlockToState(t,
+		babeService.blockState.(*state.BlockState), 2, digest, blockNumber1Header.Hash())
 
 	// for epoch 3, set EpochData and ConfigData
 	edata = &types.EpochDataRaw{
@@ -99,7 +120,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 		Randomness:  [32]byte{9},
 	}
 
-	err = babeService.epochState.(*state.EpochState).StoreEpochDataRaw(3, edata)
+	err = babeService.epochState.(*state.EpochState).StoreEpochDataRaw(2, edata)
 	require.NoError(t, err)
 
 	cdata := &types.ConfigData{
@@ -107,21 +128,29 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 		C2: 99,
 	}
 
-	err = babeService.epochState.(*state.EpochState).StoreConfigData(3, cdata)
+	err = babeService.epochState.(*state.EpochState).StoreConfigData(2, cdata)
 	require.NoError(t, err)
 
 	threshold, err := CalculateThreshold(cdata.C1, cdata.C2, 1)
 	require.NoError(t, err)
 
-	expected = &epochData{
-		randomness:     edata.Randomness,
-		authorities:    edata.Authorities,
-		authorityIndex: 0,
-		threshold:      threshold,
+	expectedEpochDescriptor := &EpochDescriptor{
+		data: &epochData{
+			randomness:     edata.Randomness,
+			authorities:    edata.Authorities,
+			authorityIndex: 0,
+			threshold:      threshold,
+		},
+		epoch:     2,
+		startSlot: ed.endSlot,
+		endSlot:   ed.endSlot + babeService.constants.epochLength,
 	}
-	ed, err = babeService.initiateEpoch(3)
+
+	currentEpochNumber = uint64(2)
+	ed, err = babeService.initiateEpoch(currentEpochNumber)
+
 	require.NoError(t, err)
-	require.Equal(t, expected, ed)
+	require.Equal(t, expectedEpochDescriptor, ed)
 }
 
 func TestIncrementEpoch(t *testing.T) {

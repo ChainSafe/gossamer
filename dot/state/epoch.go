@@ -301,11 +301,11 @@ func (s *EpochState) setLatestConfigData(epoch uint64) error {
 // - The supplied configuration data are intended to be used from the next epoch onwards.
 // If the header params is nil then it will search only in the database.
 func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (configData *types.ConfigData, err error) {
-	if epoch == 0 {
-		return s.genesisEpochDescriptor.ConfigData, nil
-	}
-
 	for tryEpoch := int(epoch); tryEpoch >= 0; tryEpoch-- {
+		if tryEpoch == 0 {
+			return s.genesisEpochDescriptor.ConfigData, nil
+		}
+
 		configData, err = s.getConfigDataFromDatabase(uint64(tryEpoch))
 		if err != nil && !errors.Is(err, database.ErrNotFound) {
 			return nil, fmt.Errorf("failed to retrieve config epoch from database: %w", err)
@@ -471,7 +471,6 @@ func (s *EpochState) GetStartSlotForEpoch(epoch uint64, bestBlockHash common.Has
 			ErrNoFirstNonOriginBlock,
 			epoch)
 	}
-
 	return s.epochLength*epoch + veryFirstSlotNumber, nil
 }
 

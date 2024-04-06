@@ -6,7 +6,6 @@ package babe
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -22,16 +21,11 @@ type EpochDescriptor struct {
 // initiateEpoch sets the epochData for the given epoch, runs the lottery for the slots in the epoch,
 // and stores updated EpochInfo in the database
 func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
-	logger.Debugf("initiating epoch %d", epoch)
+	logger.Debugf("initiating epoch %d", epoch, b.constants.epochLength)
 
 	bestBlockHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
 		return nil, fmt.Errorf("cannot get the best block header: %w", err)
-	}
-
-	epochData, err := b.getEpochData(epoch, bestBlockHeader)
-	if err != nil {
-		return nil, fmt.Errorf("cannot get epoch data and start slot: %w", err)
 	}
 
 	skipped, diff, err := b.checkIfEpochSkipped(epoch, bestBlockHeader)
@@ -39,10 +33,16 @@ func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
 		return nil, fmt.Errorf("checking if epoch skipped: %w", err)
 	}
 
-	currentEpoch := epoch + diff
+	epochToFindData := epoch
 	if skipped {
 		logger.Warnf("⏩ A total of %d epochs were skipped, from %d to %d",
-			diff, epoch, currentEpoch)
+			diff, epoch-diff, epoch)
+		epochToFindData = epoch - diff
+	}
+
+	epochData, err := b.getEpochData(epochToFindData, bestBlockHeader)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get epoch data and start slot: %w", err)
 	}
 
 	// if we're at genesis or epoch was skipped then we can estimate when the start
@@ -54,16 +54,16 @@ func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
 			return nil, fmt.Errorf("cannot get first authoring slot: %w", err)
 		}
 
-		logger.Debugf("estimated first slot as %d for epoch %d", startSlot, currentEpoch)
+		logger.Debugf("estimated first slot as %d for epoch %d", startSlot, epoch)
 		return &EpochDescriptor{
 			data:      epochData,
-			epoch:     currentEpoch,
+			epoch:     epoch,
 			startSlot: startSlot,
 			endSlot:   startSlot + b.constants.epochLength,
 		}, nil
 	}
 
-	startSlot, err := b.epochState.GetStartSlotForEpoch(currentEpoch, bestBlockHeader.Hash())
+	startSlot, err := b.epochState.GetStartSlotForEpoch(epoch, bestBlockHeader.Hash())
 	if err != nil {
 		return nil, fmt.Errorf("cannot get start slot for epoch %d: %w", epoch, err)
 	}
@@ -71,7 +71,7 @@ func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
 	logger.Infof("initiating epoch %d with start slot %d", epoch, startSlot)
 	return &EpochDescriptor{
 		data:      epochData,
-		epoch:     currentEpoch,
+		epoch:     epoch,
 		startSlot: startSlot,
 		endSlot:   startSlot + b.constants.epochLength,
 	}, nil
@@ -79,19 +79,27 @@ func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
 
 var ErrEpochLowerThanExpected = errors.New("epoch lower than expected")
 
-func (b *Service) checkIfEpochSkipped(expectedCurrentEpoch uint64, bestBlock *types.Header) (
+func (b *Service) checkIfEpochSkipped(epochBeingInitialized uint64, bestBlock *types.Header) (
 	skipped bool, diff uint64, err error) {
-	epochFromCurrentTime, err := b.epochState.GetEpochFromTime(time.Now(), bestBlock.Hash())
+	if epochBeingInitialized == 0 {
+		return false, 0, nil
+	}
+
+	epochFromBestBlock, err := b.epochState.GetEpochForBlock(bestBlock)
 	if err != nil {
-		return false, 0, fmt.Errorf("getting epoch from time: %w", err)
+		return false, 0, fmt.Errorf("getting epoch for block: %w", err)
 	}
 
-	if epochFromCurrentTime < expectedCurrentEpoch {
+	if epochBeingInitialized < epochFromBestBlock {
 		return false, 0, fmt.Errorf("%w: expected %d, got: %d",
-			ErrEpochLowerThanExpected, expectedCurrentEpoch, epochFromCurrentTime)
+			ErrEpochLowerThanExpected, epochBeingInitialized, epochFromBestBlock)
 	}
 
-	return epochFromCurrentTime > expectedCurrentEpoch, epochFromCurrentTime - expectedCurrentEpoch, nil
+	if epochFromBestBlock+1 == epochBeingInitialized {
+		return false, 0, nil
+	}
+
+	return epochBeingInitialized > epochFromBestBlock, epochBeingInitialized - epochFromBestBlock, nil
 }
 
 func (b *Service) getEpochData(epoch uint64, bestBlock *types.Header) (*epochData, error) {
