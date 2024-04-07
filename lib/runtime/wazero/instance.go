@@ -1074,8 +1074,6 @@ func (in *Instance) ParachainHostMinimumBackingVotes() (uint32, error) {
 		return 0, fmt.Errorf("exec: %w", err)
 	}
 
-	fmt.Printf("encodedBackingVotes: 0x%x\n", encodedBackingVotes)
-
 	var backingVotes uint32
 	err = scale.Unmarshal(encodedBackingVotes, &backingVotes)
 	if err != nil {
