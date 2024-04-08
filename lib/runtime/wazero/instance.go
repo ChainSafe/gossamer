@@ -38,10 +38,11 @@ const runtimeContextKey = contextKey("runtime.Context")
 var _ runtime.Instance = &Instance{}
 
 // TODO need to close dir and cache
-type runtimeMetadata struct {
+type cacheMetadata struct {
 	config wazero.RuntimeConfig
 	dir    string
 	cache  wazero.CompilationCache
+	ctx    context.Context
 }
 
 // Instance backed by wazero.Runtime
@@ -51,7 +52,7 @@ type Instance struct {
 	Context  *runtime.Context
 	code     []byte
 	codeHash common.Hash
-	metadata runtimeMetadata
+	metadata cacheMetadata
 	sync.Mutex
 }
 
@@ -422,19 +423,17 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
 	// Prepare a cache directory.
-	cacheDir, err := os.MkdirTemp("", "example")
+	cacheDir, err := os.MkdirTemp("", "wazeroCache")
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("creating wazero cache dir: %w", err)
 	}
-	//defer os.RemoveAll(cacheDir)
 
 	ctx := context.Background()
-	//	cache := wazero.NewCompilationCache()
+	//cache := wazero.NewCompilationCache()
 	cache, err := wazero.NewCompilationCacheWithDir(cacheDir)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("creating wazero compilation cache: %w", err)
 	}
-	//	defer cache.Close(ctx)
 	config := wazero.NewRuntimeConfig().WithCompilationCache(cache)
 	mod, rt, err := newRuntimeInstance(ctx, code, config)
 	if err != nil {
@@ -455,10 +454,11 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		},
 		Module:   mod,
 		codeHash: cfg.CodeHash,
-		metadata: runtimeMetadata{
+		metadata: cacheMetadata{
 			config: config,
 			dir:    cacheDir,
 			cache:  cache,
+			ctx:    ctx,
 		},
 	}
 
@@ -479,6 +479,20 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 }
 
 var ErrExportFunctionNotFound = errors.New("export function not found")
+
+// CleanCache closes up the wazero compiler cache and removes its tempdir
+func (i *Instance) CleanCache() (err error) {
+	err = i.metadata.cache.Close(i.metadata.ctx)
+	if err != nil {
+		return err
+	}
+
+	err = os.RemoveAll(i.metadata.dir)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func (i *Instance) Exec(function string, data []byte) (result []byte, err error) {
 	i.Lock()
