@@ -35,9 +35,22 @@ func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
 
 	epochToFindData := epoch
 	if skipped {
+		// subtract 1 since we consider 0 as a valid epoch, then skipping from epoch
+		// 0 to epoch 2 we actually skipped only one epoch (epoch 1), however when
+		// searching for a data we should subtract the diff
+		lastKnownEpoch := epoch - diff
+		epochsSkipped := epoch - (diff - 1)
 		logger.Warnf("⏩ A total of %d epochs were skipped, from %d to %d",
-			diff, epoch-diff, epoch)
-		epochToFindData = epoch - diff
+			epochsSkipped, lastKnownEpoch, epoch)
+
+		// we should use the epoch data already setup for the
+		// last known epoch + 1, e.g we produced blocks in epoch
+		// 5, the first block in epoch 5 gives us the next epoch data
+		// that should be used to initiate epoch 6, however we skipt epoch
+		// 6 and we're now initializing epoch 7, so we should use the epoch
+		// data that were meant to be used by 6
+		epochToFindData = lastKnownEpoch + 1
+
 	}
 
 	epochData, err := b.getEpochData(epochToFindData, bestBlockHeader)
@@ -48,7 +61,7 @@ func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
 	// if we're at genesis or epoch was skipped then we can estimate when the start
 	// slot of the epoch will be, the estimation is used to calculate the epoch end
 	// TODO: check how substrate deals with these estimation
-	if bestBlockHeader.Hash() == b.blockState.GenesisHash() || skipped {
+	if bestBlockHeader.Hash() == b.blockState.GenesisHash() {
 		startSlot, err := b.getFirstAuthoringSlot(epoch, epochData)
 		if err != nil {
 			return nil, fmt.Errorf("cannot get first authoring slot: %w", err)

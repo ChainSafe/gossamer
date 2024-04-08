@@ -273,33 +273,6 @@ func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
 
 	testDatadirPath := t.TempDir()
 
-	config := state.Config{
-		Path:      testDatadirPath,
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
-		GenesisBABEConfig: &types.BabeConfiguration{
-			SlotDuration:       1000,
-			EpochLength:        200,
-			C1:                 1,
-			C2:                 4,
-			GenesisAuthorities: []types.AuthorityRaw{},
-			Randomness:         [32]byte{},
-			SecondarySlots:     0,
-		},
-	}
-	dbSrv := state.NewService(config)
-	dbSrv.UseMemDB()
-
-	err := dbSrv.Initialise(&genesis, &genesisHeader, genesisTrie)
-	require.NoError(t, err)
-
-	err = dbSrv.Start()
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		_ = dbSrv.Stop()
-	})
-
 	rtCfg := wazero_runtime.Config{
 		Storage: rtstorage.NewTrieState(genesisTrie),
 	}
@@ -309,6 +282,25 @@ func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
 
 	genCfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
+
+	config := state.Config{
+		Path:              testDatadirPath,
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: genCfg,
+	}
+	dbSrv := state.NewService(config)
+	dbSrv.UseMemDB()
+
+	err = dbSrv.Initialise(&genesis, &genesisHeader, genesisTrie)
+	require.NoError(t, err)
+
+	err = dbSrv.Start()
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = dbSrv.Stop()
+	})
 
 	s := &Service{
 		epochState: dbSrv.Epoch,

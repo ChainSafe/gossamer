@@ -174,6 +174,9 @@ func TestService_getLatestEpochData_genesis(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	service, _, genesisCfg := newTestServiceSetupParameters(t, genesis, genesisTrie, genesisHeader)
 
+	service.keypair = keyring.KeyAlice
+	service.authority = true
+
 	latestEpochData, err := service.getEpochData(0, &genesisHeader)
 	require.NoError(t, err)
 
@@ -188,6 +191,9 @@ func TestService_getLatestEpochData_genesis(t *testing.T) {
 func TestService_getLatestEpochData_epochData(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	service, epochState, genesisCfg := newTestServiceSetupParameters(t, genesis, genesisTrie, genesisHeader)
+
+	service.keypair = keyring.KeyAlice
+	service.authority = true
 
 	err := epochState.StoreCurrentEpoch(1)
 	require.NoError(t, err)
@@ -211,6 +217,9 @@ func TestService_getLatestEpochData_epochData(t *testing.T) {
 func TestService_getLatestEpochData_configData(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	service, epochState, genesisCfg := newTestServiceSetupParameters(t, genesis, genesisTrie, genesisHeader)
+
+	service.keypair = keyring.KeyAlice
+	service.authority = true
 
 	err := epochState.StoreCurrentEpoch(7)
 	require.NoError(t, err)

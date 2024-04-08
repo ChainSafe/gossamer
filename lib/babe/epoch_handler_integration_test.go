@@ -47,6 +47,7 @@ func TestEpochHandler_run_shouldReturnAfterContextCancel(t *testing.T) {
 	epochDescriptor := &EpochDescriptor{
 		data:      epochData,
 		startSlot: startSlot,
+		endSlot:   startSlot + epochLength,
 		epoch:     1,
 	}
 
@@ -98,6 +99,7 @@ func TestEpochHandler_run(t *testing.T) {
 	epochDescriptor := &EpochDescriptor{
 		data:      epochData,
 		startSlot: startSlot,
+		endSlot:   startSlot + epochLength,
 		epoch:     1,
 	}
 

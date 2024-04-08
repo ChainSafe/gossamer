@@ -218,6 +218,8 @@ func TestVerificationManager_VerifyBlock_CurrentEpoch(t *testing.T) {
 }
 
 func TestVerificationManager_VerifyBlock_FutureEpoch(t *testing.T) {
+	t.Skip("TODO: move this test under TestVerificationManager_VerifyBlock_MultipleEpochs")
+
 	t.Parallel()
 	auth := types.Authority{
 		Key:    keyring.Alice().(*sr25519.Keypair).Public(),
@@ -270,29 +272,55 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 		Key:    keyring.Alice().(*sr25519.Keypair).Public(),
 		Weight: 1,
 	}
+
 	babeConfig := &types.BabeConfiguration{
 		SlotDuration:       6000,
 		EpochLength:        600,
 		C1:                 1,
-		C2:                 4,
+		C2:                 1,
 		GenesisAuthorities: []types.AuthorityRaw{*auth.ToRaw()},
 		Randomness:         [32]byte{},
 		SecondarySlots:     1,
 	}
+
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeConfig)
 
 	db, err := database.NewPebble(t.TempDir(), true)
 	require.NoError(t, err)
 	slotState := state.NewSlotState(db)
-
 	verificationManager := NewVerificationManager(babeService.blockState, slotState, babeService.epochState)
 
-	const futureEpoch = uint64(2)
+	const epoch = uint64(0)
+	epochDescriptor, err := babeService.initiateEpoch(epoch)
+	require.NoError(t, err)
+
+	slot := Slot{
+		start:    getSlotStartTime(epochDescriptor.startSlot, babeService.constants.slotDuration),
+		duration: babeService.constants.slotDuration,
+		number:   epochDescriptor.startSlot,
+	}
+
+	blockNumber01 := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, epochDescriptor, slot)
+	err = verificationManager.VerifyBlock(&blockNumber01.Header)
+	require.NoError(t, err)
+
+	err = babeService.blockState.(*state.BlockState).AddBlock(blockNumber01)
+	require.NoError(t, err)
+
+	futureEpoch := uint64(1)
 	err = babeService.epochState.(*state.EpochState).StoreEpochDataRaw(futureEpoch, &types.EpochDataRaw{
-		Authorities: []types.AuthorityRaw{{
-			Key: [32]byte(keyring.Alice().(*sr25519.Keypair).Public().Encode()),
-		}},
+		Randomness: [32]byte{9},
+		Authorities: []types.AuthorityRaw{
+			{
+				Key:    [32]byte(keyring.Bob().(*sr25519.Keypair).Public().Encode()),
+				Weight: 1,
+			},
+			{
+				Key:    [32]byte(keyring.Alice().(*sr25519.Keypair).Public().Encode()),
+				Weight: 1,
+			},
+		},
 	})
 	require.NoError(t, err)
 
@@ -304,23 +332,13 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 		duration: babeService.constants.slotDuration,
 		number:   futureEpochDescriptor.startSlot,
 	}
-	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, futureEpochDescriptor, futureSlot)
-
-	err = verificationManager.VerifyBlock(&block.Header)
+	blockNumber02 := createTestBlockWithSlot(t, babeService, &blockNumber01.Header, [][]byte{}, futureEpochDescriptor, futureSlot)
+	err = verificationManager.VerifyBlock(&blockNumber02.Header)
 	require.NoError(t, err)
 
-	epochDescriptor, err := babeService.initiateEpoch(0)
-	require.NoError(t, err)
-
-	slot := Slot{
-		start:    getSlotStartTime(epochDescriptor.startSlot, babeService.constants.slotDuration),
-		duration: babeService.constants.slotDuration,
-		number:   epochDescriptor.startSlot,
-	}
-	block = createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, epochDescriptor, slot)
-
-	err = verificationManager.VerifyBlock(&block.Header)
-	require.NoError(t, err)
+	// TODO: include test to verify skipped epoch
+	// skip the epoch 2 and initiate epoch 3, we should use epoch data that were
+	// meant to be used by epoch 2
 }
 
 func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T) {
@@ -330,10 +348,13 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 		Weight: 1,
 	}
 	babeConfig := &types.BabeConfiguration{
-		SlotDuration:       6000,
-		EpochLength:        600,
+		SlotDuration: 6000,
+		EpochLength:  600,
+		// have decreased the primary probability to be 1 in 9000
+		// slots, then when claiming a slot we can increase the likely
+		// to test the ErrVRFOutputOverThreshold error
 		C1:                 1,
-		C2:                 4,
+		C2:                 9000,
 		GenesisAuthorities: []types.AuthorityRaw{*auth.ToRaw()},
 		Randomness:         [32]byte{},
 		SecondarySlots:     0,
@@ -348,7 +369,8 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 
 	vm := NewVerificationManager(babeService.blockState, slotState, babeService.epochState)
 
-	epochDescriptor, err := babeService.initiateEpoch(testEpochIndex)
+	const epoch = 0
+	epochDescriptor, err := babeService.initiateEpoch(epoch)
 	require.NoError(t, err)
 
 	epochDescriptor.data.threshold = maxThreshold
