@@ -110,7 +110,10 @@ func NewInstanceFromTrie(t trie.Trie, cfg Config) (*Instance, error) {
 	return NewInstance(code, cfg)
 }
 
-func newRuntimeInstance(ctx context.Context, code []byte, config wazero.RuntimeConfig) (api.Module, wazero.Runtime, error) {
+func newRuntimeInstance(ctx context.Context,
+	code []byte,
+	config wazero.RuntimeConfig,
+) (api.Module, wazero.Runtime, error) {
 	rt := wazero.NewRuntimeWithConfig(ctx, config)
 
 	_, err := rt.NewHostModuleBuilder("env").
