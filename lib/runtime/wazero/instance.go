@@ -37,7 +37,6 @@ const runtimeContextKey = contextKey("runtime.Context")
 
 var _ runtime.Instance = &Instance{}
 
-// TODO need to close dir and cache
 type cacheMetadata struct {
 	config wazero.RuntimeConfig
 	dir    string
@@ -432,7 +431,6 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	}
 
 	ctx := context.Background()
-	//cache := wazero.NewCompilationCache()
 	cache, err := wazero.NewCompilationCacheWithDir(cacheDir)
 	if err != nil {
 		return nil, fmt.Errorf("creating wazero compilation cache: %w", err)
