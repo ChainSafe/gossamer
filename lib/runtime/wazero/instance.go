@@ -472,7 +472,7 @@ var ErrExportFunctionNotFound = errors.New("export function not found")
 func (i *Instance) Exec(function string, data []byte) (result []byte, err error) {
 	i.Lock()
 	defer i.Unlock()
-
+	
 	mod, rt, err := newRuntimeInstance(context.Background(), i.wasmByteCode, i.metadata.config)
 	if err != nil {
 		return nil, fmt.Errorf("creating runtime instace: %w", err)
