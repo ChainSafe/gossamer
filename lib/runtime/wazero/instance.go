@@ -31,7 +31,7 @@ import (
 // Name represents the name of the interpreter
 const Name = "wazero"
 
-// This value is implementation specific. it is just to optimize the memory usage
+// This value is implementation specific. it is just to optimise the memory usage
 // If the instantiation fails, increase the value.
 const minMemoryPages uint32 = 24
 
