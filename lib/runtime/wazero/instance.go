@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -36,6 +37,13 @@ const runtimeContextKey = contextKey("runtime.Context")
 
 var _ runtime.Instance = &Instance{}
 
+// TODO need to close dir and cache
+type runtimeMetadata struct {
+	config wazero.RuntimeConfig
+	dir    string
+	cache  wazero.CompilationCache
+}
+
 // Instance backed by wazero.Runtime
 type Instance struct {
 	Runtime  wazero.Runtime
@@ -43,6 +51,7 @@ type Instance struct {
 	Context  *runtime.Context
 	code     []byte
 	codeHash common.Hash
+	metadata runtimeMetadata
 	sync.Mutex
 }
 
@@ -100,8 +109,8 @@ func NewInstanceFromTrie(t trie.Trie, cfg Config) (*Instance, error) {
 	return NewInstance(code, cfg)
 }
 
-func newRuntimeInstance(ctx context.Context, code []byte) (api.Module, wazero.Runtime, error) {
-	rt := wazero.NewRuntime(ctx)
+func newRuntimeInstance(ctx context.Context, code []byte, config wazero.RuntimeConfig) (api.Module, wazero.Runtime, error) {
+	rt := wazero.NewRuntimeWithConfig(ctx, config)
 
 	_, err := rt.NewHostModuleBuilder("env").
 		// values from newer kusama/polkadot runtimes
@@ -412,8 +421,22 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	logger.Info("instantiating a runtime!")
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
+	// Prepare a cache directory.
+	cacheDir, err := os.MkdirTemp("", "example")
+	if err != nil {
+		panic(err)
+	}
+	//defer os.RemoveAll(cacheDir)
+
 	ctx := context.Background()
-	mod, rt, err := newRuntimeInstance(ctx, code)
+	//	cache := wazero.NewCompilationCache()
+	cache, err := wazero.NewCompilationCacheWithDir(cacheDir)
+	if err != nil {
+		panic(err)
+	}
+	//	defer cache.Close(ctx)
+	config := wazero.NewRuntimeConfig().WithCompilationCache(cache)
+	mod, rt, err := newRuntimeInstance(ctx, code, config)
 	if err != nil {
 		return nil, fmt.Errorf("creating runtime instance: %w", err)
 	}
@@ -432,6 +455,11 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		},
 		Module:   mod,
 		codeHash: cfg.CodeHash,
+		metadata: runtimeMetadata{
+			config: config,
+			dir:    cacheDir,
+			cache:  cache,
+		},
 	}
 
 	if cfg.DefaultVersion == nil {
@@ -456,7 +484,7 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	i.Lock()
 	defer i.Unlock()
 
-	mod, rt, err := newRuntimeInstance(context.Background(), i.code)
+	mod, rt, err := newRuntimeInstance(context.Background(), i.code, i.metadata.config)
 	if err != nil {
 		return nil, fmt.Errorf("creating runtime instace: %w", err)
 	}
