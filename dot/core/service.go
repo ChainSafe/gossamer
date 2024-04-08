@@ -312,6 +312,12 @@ func (s *Service) handleCodeSubstitution(hash common.Hash,
 		cfg.Role = 4
 	}
 
+	err = rt.CleanCache()
+	if err != nil {
+		logger.Debugf("cleaning runtime compiler cache: %v", err)
+		return fmt.Errorf("cleaning runtime compiler cache: %w", err)
+	}
+
 	next, err := wazero_runtime.NewInstance(code, cfg)
 	if err != nil {
 		return fmt.Errorf("creating new runtime instance: %w", err)
