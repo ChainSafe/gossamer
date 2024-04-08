@@ -31,6 +31,10 @@ import (
 // Name represents the name of the interpreter
 const Name = "wazero"
 
+// This value is implementation specific. it is just to optimize the memory usage
+// If the instantiation fails, increase the value.
+const minMemoryPages uint32 = 24
+
 type contextKey string
 
 const runtimeContextKey = contextKey("runtime.Context")
@@ -108,7 +112,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 
 	_, err = rt.NewHostModuleBuilder("env").
 		// values from newer kusama/polkadot runtimes
-		ExportMemory("memory", 2070).
+		ExportMemory("memory", minMemoryPages).
 		NewFunctionBuilder().
 		WithFunc(ext_logging_log_version_1).
 		Export("ext_logging_log_version_1").
