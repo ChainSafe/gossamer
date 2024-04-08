@@ -478,10 +478,6 @@ func (i *Instance) CleanCache() (err error) {
 		return err
 	}
 
-	err = os.RemoveAll(i.metadata.dir)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
