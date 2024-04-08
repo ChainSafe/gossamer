@@ -39,6 +39,7 @@ var _ runtime.Instance = &Instance{}
 type cacheMetadata struct {
 	config wazero.RuntimeConfig
 	cache  wazero.CompilationCache
+	ctx    context.Context
 }
 
 // Instance backed by wazero.Runtime
@@ -448,6 +449,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		metadata: cacheMetadata{
 			config: config,
 			cache:  cache,
+			ctx:    ctx,
 		},
 	}
 
@@ -469,10 +471,24 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 
 var ErrExportFunctionNotFound = errors.New("export function not found")
 
+// CleanCache closes up the wazero compiler cache and removes its tempdir
+func (i *Instance) CleanCache() (err error) {
+	err = i.metadata.cache.Close(i.metadata.ctx)
+	if err != nil {
+		return err
+	}
+
+	err = os.RemoveAll(i.metadata.dir)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (i *Instance) Exec(function string, data []byte) (result []byte, err error) {
 	i.Lock()
 	defer i.Unlock()
-	
+
 	mod, rt, err := newRuntimeInstance(context.Background(), i.wasmByteCode, i.metadata.config)
 	if err != nil {
 		return nil, fmt.Errorf("creating runtime instace: %w", err)
