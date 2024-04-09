@@ -19,7 +19,7 @@ var ErrNotExpectedOnCollatorSide = errors.New("message is not expected on the co
 
 type CollatorProtocolCollatorSide struct {
 	net         Network
-	collatingOn parachaintypes.ParaID
+	collatingOn parachaintypes.ParaID //nolint:unused
 }
 
 func (cpcs CollatorProtocolCollatorSide) processMessage(msg any) error {
