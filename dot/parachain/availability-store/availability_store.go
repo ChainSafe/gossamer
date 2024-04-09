@@ -959,6 +959,7 @@ func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailabl
 		//
 		// We bubble up the specific error here so `av-store` logs still tell what
 		// happened.
+		msg.Sender <- fmt.Errorf("store available data: %w", err)
 		return fmt.Errorf("store available data: %w", err)
 	}
 	return nil
