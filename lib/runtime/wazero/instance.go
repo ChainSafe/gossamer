@@ -31,6 +31,10 @@ import (
 // Name represents the name of the interpreter
 const Name = "wazero"
 
+// This value is implementation specific. it is just to optimise the memory usage
+// If the instantiation fails, increase the value.
+const minMemoryPages uint32 = 2080
+
 type contextKey string
 
 const runtimeContextKey = contextKey("runtime.Context")
@@ -108,7 +112,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 
 	_, err = rt.NewHostModuleBuilder("env").
 		// values from newer kusama/polkadot runtimes
-		ExportMemory("memory", 23).
+		ExportMemory("memory", minMemoryPages).
 		NewFunctionBuilder().
 		WithFunc(ext_logging_log_version_1).
 		Export("ext_logging_log_version_1").
@@ -1066,6 +1070,21 @@ func (in *Instance) ParachainHostValidationCodeByHash(validationCodeHash common.
 	}
 
 	return validationCode, nil
+}
+
+func (in *Instance) ParachainHostMinimumBackingVotes() (uint32, error) {
+	encodedBackingVotes, err := in.Exec(runtime.ParachainHostMinimumBackingVotes, []byte{})
+	if err != nil {
+		return 0, fmt.Errorf("exec: %w", err)
+	}
+
+	var backingVotes uint32
+	err = scale.Unmarshal(encodedBackingVotes, &backingVotes)
+	if err != nil {
+		return 0, fmt.Errorf("unmarshalling minimum backing votes: %w", err)
+	}
+
+	return backingVotes, nil
 }
 
 func (in *Instance) ParachainHostAsyncBackingParams() (*parachaintypes.AsyncBackingParams, error) {
