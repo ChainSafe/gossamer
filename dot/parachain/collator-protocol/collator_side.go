@@ -77,11 +77,11 @@ func (cpcs CollatorProtocolCollatorSide) handleCollationMessage(
 			msg)
 	}
 
-	collatorProtocolV, err := collatorProtocol.Value()
+	collatorProtocolVal, err := collatorProtocol.Value()
 	if err != nil {
 		return propagate, fmt.Errorf("getting collator protocol value: %w", err)
 	}
-	collatorProtocolMessage, ok := collatorProtocolV.(CollatorProtocolMessage)
+	collatorProtocolMessage, ok := collatorProtocolVal.(CollatorProtocolMessage)
 	if !ok {
 		return propagate, errors.New("expected value to be collator protocol message")
 	}
