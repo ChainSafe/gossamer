@@ -71,6 +71,44 @@ func (t *TrieDB) GetKeysWithPrefix(prefix []byte) (keysLE [][]byte) {
 }
 
 // Internal methods
+func (l *TrieDB) getRootNode() (codec.Node, error) {
+	keyNibbles := nibbles.KeyLEToNibbles(l.rootHash[:])
+	nodeData, err := l.db.Get(keyNibbles)
+	if err != nil {
+		return nil, err
+	}
+
+	reader := bytes.NewReader(nodeData)
+	decodedNode, err := codec.Decode(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	return decodedNode, nil
+
+}
+
+func (l *TrieDB) getNode(
+	merkleValue codec.MerkleValue,
+	partialKey []byte,
+) (node codec.Node, err error) {
+	nodeData := []byte{}
+
+	switch n := merkleValue.(type) {
+	case codec.InlineNode:
+		nodeData = n.Data
+	case codec.HashedNode:
+		prefixedKey := bytes.Join([][]byte{partialKey, n.Data}, nil)
+		nodeData, err = l.db.Get(prefixedKey)
+		if err != nil {
+			return nil, ErrIncompleteDB
+		}
+	}
+
+	reader := bytes.NewReader(nodeData)
+	node, err = codec.Decode(reader)
+	return node, err
+}
 
 func (l *TrieDB) lookup(key []byte) ([]byte, error) {
 	keyNibbles := nibbles.KeyLEToNibbles(key)
