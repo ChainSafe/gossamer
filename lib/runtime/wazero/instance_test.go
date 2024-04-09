@@ -39,8 +39,8 @@ import (
 //go:embed testdata/parachain.yaml
 var parachainTestDataRaw string
 
-//go:embed testdata/parachains_configuration_v180.yaml
-var parachainsConfigV180TestDataRaw string
+//go:embed testdata/parachains_configuration_v190.yaml
+var parachainsConfigV190TestDataRaw string
 
 type Storage struct {
 	Name  string `yaml:"name"`
@@ -54,7 +54,7 @@ type Data struct {
 	Lookups  map[string]any    `yaml:"-"`
 }
 
-var parachainTestData, parachainsConfigV180TestData Data
+var parachainTestData, parachainsConfigV190TestData Data
 
 func init() {
 	err := yaml.Unmarshal([]byte(parachainTestDataRaw), &parachainTestData)
@@ -70,16 +70,16 @@ func init() {
 		}
 	}
 
-	err = yaml.Unmarshal([]byte(parachainsConfigV180TestDataRaw), &parachainsConfigV180TestData)
+	err = yaml.Unmarshal([]byte(parachainsConfigV190TestDataRaw), &parachainsConfigV190TestData)
 	if err != nil {
 		fmt.Println("Error unmarshalling test data:", err)
 		return
 	}
-	parachainsConfigV180TestData.Lookups = make(map[string]any)
+	parachainsConfigV190TestData.Lookups = make(map[string]any)
 
-	for _, s := range parachainsConfigV180TestData.Storage {
+	for _, s := range parachainsConfigV190TestData.Storage {
 		if s.Name != "" {
-			parachainsConfigV180TestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
+			parachainsConfigV190TestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
 		}
 	}
 }
@@ -1673,16 +1673,27 @@ func TestInstance_ParachainHostSessionInfo(t *testing.T) {
 	require.Equal(t, expected, response)
 }
 
+func TestInstance_ParachainHostMinimumBackingVotes(t *testing.T) {
+	t.Parallel()
+
+	tt := getParachainHostTrie(t, parachainsConfigV190TestData.Storage)
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v190, TestWithTrie(tt))
+
+	response, err := rt.ParachainHostMinimumBackingVotes()
+	require.NoError(t, err)
+	require.Equal(t, uint32(2), response)
+}
+
 func TestInstance_ParachainHostAsyncBackingParams(t *testing.T) {
 	t.Parallel()
 
-	tt := getParachainHostTrie(t, parachainsConfigV180TestData.Storage)
-	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v180, TestWithTrie(tt))
+	tt := getParachainHostTrie(t, parachainsConfigV190TestData.Storage)
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v190, TestWithTrie(tt))
 
 	params, err := rt.ParachainHostAsyncBackingParams()
 	require.NoError(t, err)
-	require.Equal(t, params.AllowedAncestryLen, uint32(2))
-	require.Equal(t, params.MaxCandidateDepth, uint32(3))
+	require.Equal(t, uint32(2), params.AllowedAncestryLen)
+	require.Equal(t, uint32(3), params.MaxCandidateDepth)
 }
 
 func getParachainHostTrie(t *testing.T, testDataStorage []Storage) *inmemory_trie.InMemoryTrie {
