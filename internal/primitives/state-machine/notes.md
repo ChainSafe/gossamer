@@ -17,6 +17,10 @@ storage
 raw_iter
 with_trie_db
 
+RawIter
+next_key
+prepare
+
 notes:
 copy pasta dot/state/tries.go instead of TreeDBBuilder and write wrapper to existing Trie
 

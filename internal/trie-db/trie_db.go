@@ -8,6 +8,16 @@ import (
 // / Database value
 type DBValue []byte
 
+/// Trie-Item type used for iterators over trie data.
+// pub type TrieItem<U, E> = Result<(Vec<u8>, DBValue), U, E>;
+
+// / Trie-Item type used for iterators over trie key only.
+// pub type TrieKeyItem<U, E> = Result<Vec<u8>, U, E>;
+type TrieKeyItem struct {
+	Key   []byte
+	Error error
+}
+
 // / A trie recorder that can be used to record all kind of [`TrieAccess`]'s.
 // /
 // / To build a trie proof a recorder is required that records all trie accesses. These recorded trie

@@ -1,5 +1,9 @@
 package triedb
 
+import (
+	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
+)
+
 // / A builder for creating a [`TrieDB`].
 // pub struct TrieDBBuilder<'db, 'cache, L: TrieLayout> {
 type TrieDBBuilder[Hash any] struct {
@@ -18,7 +22,7 @@ type TrieDBBuilder[Hash any] struct {
 //		pub fn new(db: &'db dyn HashDBRef<L::Hash, DBValue>, root: &'db TrieHash<L>) -> Self {
 //			Self { db, root, cache: None, recorder: None }
 //		}
-func NewTrieDBBuilder[Hash any](root Hash) TrieDBBuilder[Hash] {
+func NewTrieDBBuilder[Hash comparable](db hashdb.HashDBRef[Hash, DBValue], root Hash) TrieDBBuilder[Hash] {
 	return TrieDBBuilder[Hash]{}
 }
 
@@ -61,7 +65,7 @@ func NewTrieDBBuilder[Hash any](root Hash) TrieDBBuilder[Hash] {
 // /// Build the [`TrieDB`].
 // #[inline]
 // pub fn build(self) -> TrieDB<'db, 'cache, L> {
-func (tdbb TrieDBBuilder[Hash]) Build() Trie[Hash] {
+func (tdbb TrieDBBuilder[Hash]) Build() TrieDB[Hash] {
 	//			TrieDB {
 	//				db: self.db,
 	//				root: self.root,
@@ -72,5 +76,32 @@ func (tdbb TrieDBBuilder[Hash]) Build() Trie[Hash] {
 	//	}
 	// TODO: recreate dot/state/tries.go in here
 	panic("unimplemented")
-	return nil
+}
+
+// pub struct TrieDB<'db, 'cache, L>
+type TrieDB[Hash any] struct {
+	// where
+	//
+	//	L: TrieLayout,
+	//
+	//	{
+	//		db: &'db dyn HashDBRef<L::Hash, DBValue>,
+	//		root: &'db TrieHash<L>,
+	//		cache: Option<core::cell::RefCell<&'cache mut dyn TrieCache<L::Codec>>>,
+	//		recorder: Option<core::cell::RefCell<&'cache mut dyn TrieRecorder<TrieHash<L>>>>,
+}
+
+// / Returns the hash of the value for `key`.
+// fn get_hash(&self, key: &[u8]) -> Result<Option<TrieHash<L>>, TrieHash<L>, CError<L>>;
+func (tdb TrieDB[Hash]) GetHash(key []byte) (*Hash, error) {
+	panic("unimpl")
+}
+
+// / What is the value of the given key in this trie?
+//
+//	fn get(&self, key: &[u8]) -> Result<Option<DBValue>, TrieHash<L>, CError<L>> {
+//		self.get_with(key, |v: &[u8]| v.to_vec())
+//	}
+func (tdb TrieDB[Hash]) Get(key []byte) (*DBValue, error) {
+	panic("unimpl")
 }

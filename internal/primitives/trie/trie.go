@@ -19,6 +19,30 @@ func NewPrefixedMemoryDB[Hash runtime.Hash, Hasher hashdb.Hasher[Hash]]() Prefix
 	return PrefixedMemoryDB[Hash, Hasher](memorydb.NewMemoryDB[Hash, Hasher, Hash, memorydb.HashKey[Hash], triedb.DBValue]([]byte{0}))
 }
 
+func (pmdb *PrefixedMemoryDB[Hash, Hasher]) Get(key Hash, prefix hashdb.Prefix) *triedb.DBValue {
+	memdb := memorydb.MemoryDB[Hash, Hasher, Hash, memorydb.HashKey[Hash], triedb.DBValue](*pmdb)
+	return memdb.Get(key, prefix)
+}
+
+func (pmdb *PrefixedMemoryDB[Hash, Hasher]) Insert(prefix hashdb.Prefix, value []byte) Hash {
+	memdb := memorydb.MemoryDB[Hash, Hasher, Hash, memorydb.HashKey[Hash], triedb.DBValue](*pmdb)
+	h := memdb.Insert(prefix, value)
+	*pmdb = PrefixedMemoryDB[Hash, Hasher](memdb)
+	return h
+}
+
+func (pmdb *PrefixedMemoryDB[Hash, Hasher]) Emplace(key Hash, prefix hashdb.Prefix, value triedb.DBValue) {
+	memdb := memorydb.MemoryDB[Hash, Hasher, Hash, memorydb.HashKey[Hash], triedb.DBValue](*pmdb)
+	memdb.Emplace(key, prefix, value)
+	*pmdb = PrefixedMemoryDB[Hash, Hasher](memdb)
+}
+
+func (pmdb *PrefixedMemoryDB[Hash, Hasher]) Remove(key Hash, prefix hashdb.Prefix) {
+	memdb := memorydb.MemoryDB[Hash, Hasher, Hash, memorydb.HashKey[Hash], triedb.DBValue](*pmdb)
+	memdb.Remove(key, prefix)
+	*pmdb = PrefixedMemoryDB[Hash, Hasher](memdb)
+}
+
 // pub type TrieHash<L> = <<L as TrieLayout>::Hash as Hasher>::Out;
 
 // / Builder for creating a [`TrieDB`].
@@ -116,10 +140,42 @@ func ReadTrieValue[TrieHash comparable](
 	//			.build()
 	//			.get(key)
 	//	}
-	dbVal, err := triedb.NewTrieDBBuilder[TrieHash](root).Build().Get(key)
+	dbVal, err := triedb.NewTrieDBBuilder[TrieHash](db, root).Build().Get(key)
 	if dbVal == nil {
 		return nil, err
 	}
 	val := []byte(*dbVal)
 	return &val, err
+}
+
+type KeySpacedDB[Hash comparable, T any] struct {
+	DB     hashdb.HashDB[Hash, T]
+	Prefix []byte
+}
+
+func NewKeySpacedDB[Hash comparable, T any](db hashdb.HashDB[Hash, T], ks []byte) KeySpacedDB[Hash, T] {
+	return KeySpacedDB[Hash, T]{
+		DB:     db,
+		Prefix: ks,
+	}
+}
+
+func (tbe *KeySpacedDB[H, T]) Get(key H, prefix hashdb.Prefix) *T {
+	panic("unimpl")
+}
+
+func (tbe *KeySpacedDB[H, T]) Contains(key H, prefix hashdb.Prefix) bool {
+	return tbe.Get(key, prefix) != nil
+}
+
+func (tbe *KeySpacedDB[H, T]) Insert(prefix hashdb.Prefix, value []byte) H {
+	panic("unimplemented")
+}
+
+func (tbe *KeySpacedDB[H, T]) Emplace(key H, prefix hashdb.Prefix, value T) {
+	panic("unimplemented")
+}
+
+func (tbe *KeySpacedDB[H, T]) Remove(key H, prefix hashdb.Prefix) {
+	panic("unimplemented")
 }

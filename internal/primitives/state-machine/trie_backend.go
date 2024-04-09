@@ -1,6 +1,9 @@
 package statemachine
 
-import triedb "github.com/ChainSafe/gossamer/internal/trie-db"
+import (
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	triedb "github.com/ChainSafe/gossamer/internal/trie-db"
+)
 
 // pub trait TrieCacheProvider<H: Hasher> {
 type TrieCacheProvider[H any] interface {
@@ -33,7 +36,8 @@ type TrieCacheProvider[H any] interface {
 
 // / Patricia trie-based backend. Transaction type is an overlay of changes to commit.
 // pub struct TrieBackend<S: TrieBackendStorage<H>, H: Hasher, C = DefaultCache<H>> {
-type TrieBackend struct {
+type TrieBackend[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	// pub(crate) essence: TrieBackendEssence<S, H, C>,
+	Essence TrieBackendEssence[H, Hasher]
 	// next_storage_key_cache: CacheCell<Option<CachedIter<S, H, C>>>,
 }

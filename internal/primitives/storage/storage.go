@@ -44,13 +44,36 @@ type Storage struct {
 }
 
 // / Information related to a child state.
-type ChildInfo any
+type ChildInfo interface {
+	// / Returns byte sequence (keyspace) that can be use by underlying db to isolate keys.
+	// / This is a unique id of the child trie. The collision resistance of this value
+	// / depends on the type of child info use. For `ChildInfo::Default` it is and need to be.
+	Keyspace() []byte
+	// / Returns a reference to the location in the direct parent of
+	// / this trie but without the common prefix for this kind of
+	// / child trie.
+	StorageKey() []byte
+}
 type ChildInfos interface {
 	ChildInfoParentKeyID
 }
 
 // / This is the one used by default.
 type ChildInfoParentKeyID ChildTrieParentKeyID
+
+// / Returns byte sequence (keyspace) that can be use by underlying db to isolate keys.
+// / This is a unique id of the child trie. The collision resistance of this value
+// / depends on the type of child info use. For `ChildInfo::Default` it is and need to be.
+func (cipkid ChildInfoParentKeyID) Keyspace() []byte {
+	return cipkid.StorageKey()
+}
+
+// / Returns a reference to the location in the direct parent of
+// / this trie but without the common prefix for this kind of
+// / child trie.
+func (cipkid ChildInfoParentKeyID) StorageKey() []byte {
+	return ChildTrieParentKeyID(cipkid).data
+}
 
 // / Instantiates child information for a default child trie
 // / of kind `ChildType::ParentKeyId`, using an unprefixed parent
