@@ -11,7 +11,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func repeatBytes(n int, b byte) (slice []byte) {
+func repeatBytes(b byte, n int) (slice []byte) {
 	slice = make([]byte, n)
 	for i := range slice {
 		slice[i] = b
@@ -98,7 +98,7 @@ func Test_decodeKey(t *testing.T) {
 		},
 		"long_key_length": {
 			reads: []readCall{
-				{buffArgCap: 35, read: repeatBytes(35, 7), n: 35}, // key data
+				{buffArgCap: 35, read: repeatBytes(7, 35), n: 35}, // key data
 			},
 			partialKeyLength: 70,
 			b: []byte{
