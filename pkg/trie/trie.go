@@ -13,13 +13,13 @@ import (
 // EmptyHash is the empty trie hash.
 var EmptyHash = common.MustBlake2bHash([]byte{0})
 
-type ReadChildTries interface {
+type ChildTriesRead interface {
 	GetChild(keyToChild []byte) (Trie, error)
 	GetFromChild(keyToChild, key []byte) ([]byte, error)
 	GetChildTries() map[common.Hash]Trie
 }
 
-type WriteChildTries interface {
+type ChildTriesWrite interface {
 	PutIntoChild(keyToChild, key, value []byte) error
 	DeleteChild(keyToChild []byte) (err error)
 	ClearFromChild(keyToChild, key []byte) error
@@ -68,7 +68,7 @@ type ReadOnlyTrie interface {
 
 	KVSRead
 	Hashable
-	ReadChildTries
+	ChildTriesRead
 	PrefixTrieRead
 	TrieIterator
 	TrieDeltas
@@ -76,7 +76,7 @@ type ReadOnlyTrie interface {
 
 type Trie interface {
 	ReadOnlyTrie
-	WriteChildTries
+	ChildTriesWrite
 	PrefixTrieWrite
 	KVSWrite
 	Versioned
