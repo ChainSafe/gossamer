@@ -22,7 +22,7 @@ type CollatorProtocolCollatorSide struct {
 	collatingOn parachaintypes.ParaID //nolint:unused
 }
 
-func (cpcs CollatorProtocolCollatorSide) processMessage(msg any) error {
+func (cpcs CollatorProtocolCollatorSide) processMessage(msg any) error { //nolint:unused
 	// run this function as a goroutine, ideally
 
 	switch msg := msg.(type) {
