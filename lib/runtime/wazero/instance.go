@@ -33,7 +33,7 @@ const Name = "wazero"
 
 // This value is implementation specific. it is just to optimise the memory usage
 // If the instantiation fails, increase the value.
-const minMemoryPages uint32 = 24
+const minMemoryPages uint32 = 2080
 
 type contextKey string
 
