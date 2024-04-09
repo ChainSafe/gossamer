@@ -48,6 +48,8 @@ func configDataKey(epoch uint64) []byte {
 	return append(configDataPrefix, buf...)
 }
 
+// GenesisEpochDescriptor is the informations provided by calling
+// the genesis WASM runtime exported function `BabeAPIConfiguration`
 type GenesisEpochDescriptor struct {
 	EpochData  *types.EpochDataRaw
 	ConfigData *types.ConfigData
@@ -193,7 +195,7 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return 0, nil
 	}
 
-	veryFirstSlotNumber, err := s.retrieveFirstNonOriginBlockSlot(header.Hash())
+	chainFirstSlotNumber, err := s.retrieveFirstNonOriginBlockSlot(header.Hash())
 	if err != nil {
 		return 0, fmt.Errorf("retrieving very first slot number: %w", err)
 	}
@@ -203,7 +205,7 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return 0, fmt.Errorf("getting slot number: %w", err)
 	}
 
-	return (slotNumber - veryFirstSlotNumber) / s.epochLength, nil
+	return (slotNumber - chainFirstSlotNumber) / s.epochLength, nil
 }
 
 // StoreEpochDataRaw sets the epoch data raw for a given epoch
@@ -451,7 +453,7 @@ func (s *EpochState) GetLatestConfigData() (*types.ConfigData, error) {
 
 // GetStartSlotForEpoch returns the first slot in the given epoch.
 func (s *EpochState) GetStartSlotForEpoch(epoch uint64, bestBlockHash common.Hash) (uint64, error) {
-	veryFirstSlotNumber, err := s.retrieveFirstNonOriginBlockSlot(bestBlockHash)
+	chainFirstSlotNumber, err := s.retrieveFirstNonOriginBlockSlot(bestBlockHash)
 	if err != nil && !errors.Is(err, ErrNoFirstNonOriginBlock) {
 		return 0, fmt.Errorf("retrieving first non origin block slot: %w", err)
 	}
@@ -471,7 +473,7 @@ func (s *EpochState) GetStartSlotForEpoch(epoch uint64, bestBlockHash common.Has
 			ErrNoFirstNonOriginBlock,
 			epoch)
 	}
-	return s.epochLength*epoch + veryFirstSlotNumber, nil
+	return s.epochLength*epoch + chainFirstSlotNumber, nil
 }
 
 // retrieveFirstNonOriginBlockSlot returns the slot number of the very first non origin block
@@ -518,12 +520,12 @@ func (s *EpochState) retrieveFirstNonOriginBlockSlot(blockHash common.Hash) (uin
 		return 0, fmt.Errorf("getting first non genesis block by hash: %w", err)
 	}
 
-	veryFirstSlotNumber, err := firstNonGenesisHeader.SlotNumber()
+	chainFirstSlotNumber, err := firstNonGenesisHeader.SlotNumber()
 	if err != nil {
 		return 0, fmt.Errorf("getting slot number: %w", err)
 	}
 
-	return veryFirstSlotNumber, nil
+	return chainFirstSlotNumber, nil
 }
 
 // GetEpochFromTime returns the epoch for a given time
@@ -533,7 +535,7 @@ func (s *EpochState) GetEpochFromTime(t time.Time, blockHash common.Hash) (uint6
 		return 0, err
 	}
 
-	veryFirstSlotNumber, err := s.retrieveFirstNonOriginBlockSlot(blockHash)
+	chainFirstSlotNumber, err := s.retrieveFirstNonOriginBlockSlot(blockHash)
 	if err != nil {
 		if errors.Is(err, ErrNoFirstNonOriginBlock) && blockHash == s.blockState.genesisHash {
 			return 0, nil
@@ -544,11 +546,11 @@ func (s *EpochState) GetEpochFromTime(t time.Time, blockHash common.Hash) (uint6
 
 	currentSlot := uint64(t.UnixNano()) / uint64(slotDuration.Nanoseconds())
 
-	if currentSlot < veryFirstSlotNumber {
+	if currentSlot < chainFirstSlotNumber {
 		return 0, ErrGivenTimeBeforeNetworkStart
 	}
 
-	return (currentSlot - veryFirstSlotNumber) / s.epochLength, nil
+	return (currentSlot - chainFirstSlotNumber) / s.epochLength, nil
 }
 
 // SkipVerify returns whether verification for the given header should be skipped or not.

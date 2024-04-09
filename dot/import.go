@@ -23,7 +23,7 @@ import (
 // ImportState imports the state in the given files to the database with the given path.
 func ImportState(
 	basepath, stateFP, headerFP string, stateTrieVersion trie.TrieLayout,
-	genesisBABEConfig *types.BabeConfiguration, firstSot uint64) error {
+	genesisBABEConfig *types.BabeConfiguration, firstSlot uint64) error {
 	tr, err := newTrieFromPairs(stateFP, trie.V0)
 	if err != nil {
 		return err
@@ -42,7 +42,7 @@ func ImportState(
 		GenesisBABEConfig: genesisBABEConfig,
 	}
 	srv := state.NewService(config)
-	return srv.Import(header, tr, stateTrieVersion, firstSot)
+	return srv.Import(header, tr, stateTrieVersion, firstSlot)
 }
 
 func newTrieFromPairs(filename string, version trie.TrieLayout) (trie.Trie, error) {

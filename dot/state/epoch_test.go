@@ -508,11 +508,11 @@ func newBlockWithPrimaryDigest(t *testing.T, slotNumber uint64, blockNumber uint
 }
 
 func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
-	veryFirstSlotNumber := uint64(1)
+	chainFirstSlotNumber := uint64(1)
 	blockNumber1 := newBlockWithPrimaryDigest(t,
-		veryFirstSlotNumber, 1)
+		chainFirstSlotNumber, 1)
 	blockNumber2 := newBlockWithPrimaryDigest(t,
-		veryFirstSlotNumber+genesisBABEConfig.EpochLength, 2)
+		chainFirstSlotNumber+genesisBABEConfig.EpochLength, 2)
 
 	finalizedHeaders := []*types.Header{blockNumber1, blockNumber2}
 

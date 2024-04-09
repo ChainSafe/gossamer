@@ -353,11 +353,11 @@ func (s *Service) Import(header *types.Header, t trie.Trie,
 	return s.db.Close()
 }
 
-func getEpochForBlockHeader(header *types.Header, epochLength, veryFirstSlotNumber uint64) (uint64, error) {
+func getEpochForBlockHeader(header *types.Header, epochLength, chainFirstSlotNumber uint64) (uint64, error) {
 	slotNumber, err := header.SlotNumber()
 	if err != nil {
 		return 0, fmt.Errorf("getting slot number: %w", err)
 	}
 
-	return (slotNumber - veryFirstSlotNumber) / epochLength, nil
+	return (slotNumber - chainFirstSlotNumber) / epochLength, nil
 }

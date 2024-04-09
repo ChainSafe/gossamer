@@ -11,6 +11,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
+var ErrEpochLowerThanExpected = errors.New("epoch lower than expected")
+
 type EpochDescriptor struct {
 	data      *epochData
 	epoch     uint64
@@ -47,7 +49,7 @@ func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
 		// last known epoch + 1, e.g we produced blocks in epoch
 		// 5, the first block in epoch 5 gives us the next epoch data
 		// that should be used to initiate epoch 6, however we skipt epoch
-		// 6 and we're now initializing epoch 7, so we should use the epoch
+		// 6 and we're now initialising epoch 7, so we should use the epoch
 		// data that were meant to be used by 6
 		epochToFindData = lastKnownEpoch + 1
 
@@ -89,8 +91,6 @@ func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
 		endSlot:   startSlot + b.constants.epochLength,
 	}, nil
 }
-
-var ErrEpochLowerThanExpected = errors.New("epoch lower than expected")
 
 func (b *Service) checkIfEpochSkipped(epochBeingInitialized uint64, bestBlock *types.Header) (
 	skipped bool, diff uint64, err error) {

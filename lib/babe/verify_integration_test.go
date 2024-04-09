@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
@@ -139,10 +138,26 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 	require.Equal(t, ErrAuthorityAlreadyDisabled, err)
 }
 
-// TODO Rather than test error, test happy path #3060
 func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
+
+	var babeCfgWithSecondarySlots = &types.BabeConfiguration{
+		SlotDuration: 6000,
+		EpochLength:  200,
+		C1:           1,
+		C2:           9000,
+		GenesisAuthorities: []types.AuthorityRaw{
+			{
+				Key:    keyring.Alice().Public().(*sr25519.PublicKey).AsBytes(),
+				Weight: 1,
+			},
+		},
+		Randomness:     [32]byte{},
+		SecondarySlots: 1,
+	}
+
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeCfgWithSecondarySlots)
+	babeService.authority = true
 
 	db, err := database.NewPebble(t.TempDir(), true)
 	require.NoError(t, err)
@@ -150,9 +165,15 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 
 	vm := NewVerificationManager(babeService.blockState, slotState, babeService.epochState)
 
+	const epoch = 0
+	epochDescriptor, err := babeService.initiateEpoch(epoch)
+	require.NoError(t, err)
+
+	const authIndex = 0
 	secondaryDigest := createSecondaryVRFPreDigest(t, keyring.Alice().(*sr25519.Keypair),
-		0, uint64(0), uint64(0), Randomness{})
+		authIndex, epochDescriptor.startSlot, epochDescriptor.epoch, epochDescriptor.data.randomness)
 	babeDigest := types.NewBabeDigest()
+
 	// NOTE: I think this was get encoded incorrectly before the VDT interface change.
 	// *types.BabeSecondaryVRFPreDigest was being passed in and encoded later
 	err = babeDigest.SetValue(*secondaryDigest)
@@ -168,7 +189,6 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	}
 
 	// create new block header
-	const number uint = 1
 	digest := types.NewDigest()
 	err = digest.Add(*preDigest)
 	require.NoError(t, err)
@@ -179,14 +199,16 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 		Data:              []byte{0},
 	}
 	require.NoError(t, err)
-
 	err = digest.Add(*seal)
 	require.NoError(t, err)
 
-	header := types.NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, number, digest)
 	block := types.Block{
-		Header: *header,
-		Body:   nil,
+		Header: types.Header{
+			Number:     1,
+			ParentHash: genesisHeader.Hash(),
+			Digest:     digest,
+		},
+		Body: nil,
 	}
 	err = vm.VerifyBlock(&block.Header)
 	require.EqualError(t, err, "invalid signature length")
@@ -332,7 +354,8 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 		duration: babeService.constants.slotDuration,
 		number:   futureEpochDescriptor.startSlot,
 	}
-	blockNumber02 := createTestBlockWithSlot(t, babeService, &blockNumber01.Header, [][]byte{}, futureEpochDescriptor, futureSlot)
+	blockNumber02 := createTestBlockWithSlot(t, babeService,
+		&blockNumber01.Header, [][]byte{}, futureEpochDescriptor, futureSlot)
 	err = verificationManager.VerifyBlock(&blockNumber02.Header)
 	require.NoError(t, err)
 
