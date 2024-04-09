@@ -419,6 +419,21 @@ func (mr *MockInstanceMockRecorder) ParachainHostCheckValidationOutputs(arg0, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostCheckValidationOutputs", reflect.TypeOf((*MockInstance)(nil).ParachainHostCheckValidationOutputs), arg0, arg1)
 }
 
+// ParachainHostMinimumBackingVotes mocks base method.
+func (m *MockInstance) ParachainHostMinimumBackingVotes() (uint32, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostMinimumBackingVotes")
+	ret0, _ := ret[0].(uint32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostMinimumBackingVotes indicates an expected call of ParachainHostMinimumBackingVotes.
+func (mr *MockInstanceMockRecorder) ParachainHostMinimumBackingVotes() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostMinimumBackingVotes", reflect.TypeOf((*MockInstance)(nil).ParachainHostMinimumBackingVotes))
+}
+
 // ParachainHostPersistedValidationData mocks base method.
 func (m *MockInstance) ParachainHostPersistedValidationData(arg0 uint32, arg1 parachaintypes.OccupiedCoreAssumption) (*parachaintypes.PersistedValidationData, error) {
 	m.ctrl.T.Helper()
