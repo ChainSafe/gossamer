@@ -170,19 +170,14 @@ func TestStatementVDT_Sign(t *testing.T) {
 	valSign, err := statement.Sign(ks, signingContext, validatorID)
 	require.NoError(t, err)
 
-	// other nodes will have encoded message and signature to verify
 	encodedMsg, err := scale.Marshal(statement)
 	require.NoError(t, err)
-
-	ok, err := keyPair.Public().Verify(encodedMsg, valSign[:])
-	require.NoError(t, err)
-	require.True(t, ok)
 
 	signingContextBytes, err := scale.Marshal(signingContext)
 	require.NoError(t, err)
 
 	encodedMsg = append(encodedMsg, signingContextBytes...)
-	ok, err = keyPair.Public().Verify(encodedMsg, valSign[:])
+	ok, err := keyPair.Public().Verify(encodedMsg, valSign[:])
 	require.NoError(t, err)
 	require.True(t, ok)
 }
