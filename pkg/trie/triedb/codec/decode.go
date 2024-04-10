@@ -4,6 +4,7 @@
 package codec
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -72,8 +73,8 @@ func decodeBranch(reader io.Reader, variant variant, partialKey []byte) (
 		PartialKey: partialKey,
 	}
 
-	childrenBitmap := make([]byte, 2)
-	_, err = reader.Read(childrenBitmap)
+	var childrenBitmap uint16
+	err = binary.Read(reader, binary.LittleEndian, &childrenBitmap)
 	if err != nil {
 		return Branch{}, fmt.Errorf("%w: %s", ErrReadChildrenBitmap, err)
 	}
@@ -100,7 +101,7 @@ func decodeBranch(reader io.Reader, variant variant, partialKey []byte) (
 	}
 
 	for i := 0; i < ChildrenCapacity; i++ {
-		if (childrenBitmap[i/8]>>(i%8))&1 != 1 {
+		if (childrenBitmap>>i)&1 != 1 {
 			continue
 		}
 
