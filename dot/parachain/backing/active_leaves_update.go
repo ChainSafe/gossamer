@@ -282,8 +282,10 @@ func constructPerRelayParentState(
 		return nil, fmt.Errorf("fetching parachain host data: %w", err)
 	}
 
-	// TODO: call minBackingVotes function here once ParachainHostMinimumBackingVotes test passed
-	minBackingVotes := LEGACY_MIN_BACKING_VOTES
+	minBackingVotes, err := minBackingVotes(rt)
+	if err != nil {
+		return nil, fmt.Errorf("getting minimum backing votes: %w", err)
+	}
 
 	signingContext := parachaintypes.SigningContext{
 		SessionIndex: *sessionIndex,
@@ -366,21 +368,17 @@ func constructPerRelayParentState(
 	return &newPerRelayParentState, nil
 }
 
-/*
-TODO: use this function once a PR to get the minBackingVotes is merged
-
-	func minBackingVotes(rt runtime.Instance) (uint32, error) {
-		votes, err := rt.ParachainHostMinimumBackingVotes()
-		if err != nil && errors.Is(err, wazero_runtime.ErrExportFunctionNotFound) {
-			logger.Tracef(
-				"%s is not supported by the current Runtime API",
-				runtime.ParachainHostMinimumBackingVotes,
-			)
-			return LEGACY_MIN_BACKING_VOTES, nil
-		}
-		return votes, err
+func minBackingVotes(rt runtime.Instance) (uint32, error) {
+	votes, err := rt.ParachainHostMinimumBackingVotes()
+	if err != nil && errors.Is(err, wazero_runtime.ErrExportFunctionNotFound) {
+		logger.Tracef(
+			"%s is not supported by the current Runtime API",
+			runtime.ParachainHostMinimumBackingVotes,
+		)
+		return LEGACY_MIN_BACKING_VOTES, nil
 	}
-*/
+	return votes, err
+}
 
 func fetchParachainHostData(rt runtime.Instance) (
 	*parachaintypes.SessionIndex,
