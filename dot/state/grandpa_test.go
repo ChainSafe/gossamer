@@ -144,8 +144,6 @@ func testBlockState(t *testing.T, db database.Database) *BlockState {
 }
 
 func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
-	t.Parallel()
-
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
@@ -220,8 +218,6 @@ func TestAddScheduledChangesKeepTheRightForkTree(t *testing.T) {
 	for tname, tt := range tests {
 		tt := tt
 		t.Run(tname, func(t *testing.T) {
-			t.Parallel()
-
 			// clear the scheduledChangeRoots after the test ends
 			// this does not cause race condition because t.Run without
 			// t.Parallel() blocks until this function returns
