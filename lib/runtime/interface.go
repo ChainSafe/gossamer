@@ -71,4 +71,5 @@ type Instance interface {
 	ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice, error)
 	ParachainHostSessionInfo(sessionIndex parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error)
 	ParachainHostAsyncBackingParams() (*parachaintypes.AsyncBackingParams, error)
+	ParachainHostMinimumBackingVotes() (uint32, error)
 }
