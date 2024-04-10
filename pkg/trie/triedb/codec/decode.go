@@ -101,6 +101,7 @@ func decodeBranch(reader io.Reader, variant variant, partialKey []byte) (
 	}
 
 	for i := 0; i < ChildrenCapacity; i++ {
+		// Skip this index if we don't have a child here
 		if (childrenBitmap>>i)&1 != 1 {
 			continue
 		}
