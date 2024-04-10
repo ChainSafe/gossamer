@@ -102,7 +102,7 @@ const (
 	attestNoPoV
 )
 
-// processValidatedCandidateCommand notes the result of a background validation of a candidate and reacts accordingly..
+// processValidatedCandidateCommand notes the result of a background validation of a candidate and reacts accordingly.
 func (cb *CandidateBacking) processValidatedCandidateCommand(
 	rpAndCmd relayParentAndCommand, chRelayParentAndCommand chan relayParentAndCommand,
 ) error {
@@ -127,17 +127,17 @@ func (cb *CandidateBacking) processValidatedCandidateCommand(
 	case second:
 		err := cb.handleCommandSecond(*rpAndCmd.validationRes, candidateHash, rpState)
 		if err != nil {
-			return fmt.Errorf("second: %w", err)
+			return fmt.Errorf("handling second command: %w", err)
 		}
 	case attest:
 		err := cb.handleCommandAttest(*rpAndCmd.validationRes, candidateHash, rpState)
 		if err != nil {
-			return fmt.Errorf("attest: %w", err)
+			return fmt.Errorf("handling attest command: %w", err)
 		}
 	case attestNoPoV:
 		err := cb.handleCommandAttestNoPoV(candidateHash, rpState, chRelayParentAndCommand)
 		if err != nil {
-			return fmt.Errorf("attestNoPoV: %w", err)
+			return fmt.Errorf("handling attestNoPoV command: %w", err)
 		}
 	}
 	return nil
@@ -330,7 +330,7 @@ func signImportAndDistributeStatement(
 	}
 
 	signedStatementWithPVD := parachaintypes.SignedFullStatementWithPVD{
-		SignedFullStatement:     signedStatement,
+		SignedFullStatement:     *signedStatement,
 		PersistedValidationData: pvd,
 	}
 
