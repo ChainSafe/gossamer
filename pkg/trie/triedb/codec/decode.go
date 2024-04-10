@@ -84,11 +84,11 @@ func decodeBranch(reader io.Reader, variant variant, partialKey []byte) (
 	case branchWithValueVariant:
 		valueBytes := make([]byte, 0)
 		err := sd.Decode(&valueBytes)
-
-		node.Value = NewInlineValue(valueBytes)
 		if err != nil {
 			return Branch{}, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
 		}
+
+		node.Value = NewInlineValue(valueBytes)
 	case branchWithHashedValueVariant:
 		hashedValue, err := decodeHashedValue(reader)
 		if err != nil {
@@ -134,6 +134,7 @@ func decodeLeaf(reader io.Reader, variant variant, partialKey []byte) (node Leaf
 		if err != nil {
 			return Leaf{}, err
 		}
+
 		node.Value = NewHashedValue(hashedValue)
 		return node, nil
 	}
