@@ -189,7 +189,7 @@ func Test_decodeBranch(t *testing.T) {
 		},
 		"children_decoding_error": {
 			reader: bytes.NewBuffer([]byte{
-				0, 4, // children bitmap
+				0b0000_0000, 0b0000_0100, // children bitmap
 				// missing children scale encoded data
 			}),
 			nodeVariant: branchVariant,
@@ -200,7 +200,7 @@ func Test_decodeBranch(t *testing.T) {
 		"success_for_branch_variant": {
 			reader: bytes.NewBuffer(
 				concatByteSlices([][]byte{
-					{0, 4}, // children bitmap
+					{0b0000_0000, 0b0000_0100}, // children bitmap
 					scaleEncodedChildHash,
 				}),
 			),
@@ -220,7 +220,7 @@ func Test_decodeBranch(t *testing.T) {
 		"value_decoding_error_for_branch_with_value_variant": {
 			reader: bytes.NewBuffer(
 				concatByteSlices([][]byte{
-					{0, 4}, // children bitmap
+					{0b0000_0000, 0b0000_0100}, // children bitmap
 					// missing encoded branch storage value
 				}),
 			),
@@ -231,7 +231,7 @@ func Test_decodeBranch(t *testing.T) {
 		},
 		"success_for_branch_with_value": {
 			reader: bytes.NewBuffer(concatByteSlices([][]byte{
-				{0, 4},                       // children bitmap
+				{0b0000_0000, 0b0000_0100},   // children bitmap
 				scaleEncodeBytes(t, 7, 8, 9), // branch storage value
 				scaleEncodedChildHash,
 			})),
