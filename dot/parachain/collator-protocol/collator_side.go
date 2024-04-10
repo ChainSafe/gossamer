@@ -12,14 +12,17 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
+// we don't propagate collation messages, so it will always be false
+const propagate = false
+
 var ErrNotExpectedOnCollatorSide = errors.New("message is not expected on the collator side of the protocol")
 
 type CollatorProtocolCollatorSide struct {
 	net         Network
-	collatingOn parachaintypes.ParaID
+	collatingOn parachaintypes.ParaID //nolint:unused
 }
 
-func (cpcs CollatorProtocolCollatorSide) processMessage(msg any) error {
+func (cpcs CollatorProtocolCollatorSide) processMessage(msg any) error { //nolint:unused
 	// run this function as a goroutine, ideally
 
 	switch msg := msg.(type) {
@@ -50,7 +53,8 @@ func (cpcs CollatorProtocolCollatorSide) processMessage(msg any) error {
 	return nil
 }
 
-func (cpcs CollatorProtocolCollatorSide) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) {
+func (cpcs CollatorProtocolCollatorSide) ProcessActiveLeavesUpdateSignal(
+	signal parachaintypes.ActiveLeavesUpdateSignal) {
 	// TODO: handle active leaves update signal #3824
 }
 
@@ -60,9 +64,6 @@ func (cpcs CollatorProtocolCollatorSide) ProcessBlockFinalizedSignal(signal para
 
 func (cpcs CollatorProtocolCollatorSide) handleCollationMessage(
 	sender peer.ID, msg network.NotificationsMessage) (bool, error) {
-
-	// we don't propagate collation messages, so it will always be false
-	propagate := false
 
 	if msg.Type() != network.CollationMsgType {
 		return propagate, fmt.Errorf("%w, expected: %d, found:%d", ErrUnexpectedMessageOnCollationProtocol,
@@ -76,11 +77,11 @@ func (cpcs CollatorProtocolCollatorSide) handleCollationMessage(
 			msg)
 	}
 
-	collatorProtocolV, err := collatorProtocol.Value()
+	collatorProtocolVal, err := collatorProtocol.Value()
 	if err != nil {
 		return propagate, fmt.Errorf("getting collator protocol value: %w", err)
 	}
-	collatorProtocolMessage, ok := collatorProtocolV.(CollatorProtocolMessage)
+	collatorProtocolMessage, ok := collatorProtocolVal.(CollatorProtocolMessage)
 	if !ok {
 		return propagate, errors.New("expected value to be collator protocol message")
 	}
@@ -90,20 +91,20 @@ func (cpcs CollatorProtocolCollatorSide) handleCollationMessage(
 		return propagate, fmt.Errorf("getting collator protocol message value: %w", err)
 	}
 
-	switch collatorProtocolMessageV.Index() {
-	case 0: // Declare
+	switch collatorProtocolMessageV.(type) {
+	case Declare:
 		logger.Errorf("unexpected collation declare message from peer %s, decreasing its reputation", sender)
 		cpcs.net.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.UnexpectedMessageValue,
 			Reason: peerset.UnexpectedMessageReason,
 		}, sender)
-	case 1: // AdvertiseCollation
+	case AdvertiseCollation:
 		logger.Errorf("unexpected collation advertise collation message from peer %s, decreasing its reputation", sender)
 		cpcs.net.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.UnexpectedMessageValue,
 			Reason: peerset.UnexpectedMessageReason,
 		}, sender)
-	case 2: // CollationSeconded
+	case CollationSeconded:
 		// TODO: handle collation seconded message #3824
 	}
 
@@ -128,23 +129,9 @@ func RegisterCollatorSide(net Network, protocolID protocol.ID) (*CollatorProtoco
 		MaxCollationMessageSize,
 	)
 	if err != nil {
-		// try with legacy protocol id
-		err1 := net.RegisterNotificationsProtocol(
-			protocol.ID(legacyCollationProtocolV1),
-			network.CollationMsgType,
-			getCollatorHandshake,
-			decodeCollatorHandshake,
-			validateCollatorHandshake,
-			decodeCollationMessage,
-			cpcs.handleCollationMessage,
-			nil,
-			MaxCollationMessageSize,
-		)
-
-		if err1 != nil {
-			return nil, fmt.Errorf("registering collation protocol, new: %w, legacy:%w", err, err1)
-		}
+		return nil, fmt.Errorf("registering collation protocol, new: %w", err)
 	}
 
+	// TODO: support legacy protocol as well, legacyCollationProtocolV1
 	return &cpcs, nil
 }
