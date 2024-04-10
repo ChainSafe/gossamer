@@ -69,7 +69,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 
 		go ignoreChanVal(t, msg.ResponseCh)
 		err := cb.handleCanSecondMessage(msg)
-		require.ErrorIs(t, err, errNoActiveLeaves)
+		require.ErrorIs(t, err, errCandidateNotRecognised)
 	})
 
 	t.Run("candidate_recognised_by_at_least_one_fragment_tree", func(t *testing.T) {
@@ -94,14 +94,14 @@ func TestHandleCanSecondMessage(t *testing.T) {
 					},
 				},
 			},
-			perLeaf: map[common.Hash]activeLeafState{
+			perLeaf: map[common.Hash]*activeLeafState{
 				getDummyHash(t, 1): {
 					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
 						IsEnabled:          true,
 						MaxCandidateDepth:  4,
 						AllowedAncestryLen: 2,
 					},
-					secondedAtDepth: map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]{
+					secondedAtDepth: map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]{
 						msg.CandidateParaID: {},
 					},
 				},
@@ -147,14 +147,6 @@ func TestSecondingSanityCheck(t *testing.T) {
 		RelayParent:        getDummyHash(t, 5),
 	}
 
-	t.Run("empty_active_leaves", func(t *testing.T) {
-		cb := CandidateBacking{}
-
-		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
-		require.ErrorIs(t, err, errNoActiveLeaves)
-		require.Nil(t, membership)
-	})
-
 	t.Run("prospective_parachains_mode_enabled_and_candidate_relay_parent_not_allowed_for_parachain", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockImplicitView := NewMockImplicitView(ctrl)
@@ -168,7 +160,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 			perRelayParent: map[common.Hash]*perRelayParentState{
 				hypotheticalCandidate.RelayParent: {},
 			},
-			perLeaf: map[common.Hash]activeLeafState{
+			perLeaf: map[common.Hash]*activeLeafState{
 				getDummyHash(t, 1): {
 					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
 						IsEnabled:          true,
@@ -181,8 +173,9 @@ func TestSecondingSanityCheck(t *testing.T) {
 		}
 
 		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
-		require.ErrorIs(t, err, errNoActiveLeaves)
-		require.Nil(t, membership)
+
+		require.NoError(t, err)
+		require.Empty(t, membership)
 	})
 
 	t.Run("prospective_parachains_mode_enabled_and_depth_already_occupied", func(t *testing.T) {
@@ -201,18 +194,18 @@ func TestSecondingSanityCheck(t *testing.T) {
 			perRelayParent: map[common.Hash]*perRelayParentState{
 				hypotheticalCandidate.RelayParent: {},
 			},
-			perLeaf: map[common.Hash]activeLeafState{
+			perLeaf: map[common.Hash]*activeLeafState{
 				getDummyHash(t, 1): {
 					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
 						IsEnabled:          true,
 						MaxCandidateDepth:  4,
 						AllowedAncestryLen: 2,
 					},
-					secondedAtDepth: map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]{
-						hypotheticalCandidate.CandidateParaID: func() btree.Map[uint, parachaintypes.CandidateHash] {
+					secondedAtDepth: map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]{
+						hypotheticalCandidate.CandidateParaID: func() *btree.Map[uint, parachaintypes.CandidateHash] {
 							var btm btree.Map[uint, parachaintypes.CandidateHash]
 							btm.Set(1, hypotheticalCandidate.CandidateHash)
-							return btm
+							return &btm
 						}(),
 					},
 				},
@@ -236,7 +229,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 
 		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
 		require.ErrorIs(t, err, errDepthOccupied)
-		require.Nil(t, membership)
+		require.Empty(t, membership)
 	})
 
 	t.Run("prospective_parachains_mode_enabled_and_depth_not_occupied", func(t *testing.T) {
@@ -255,14 +248,14 @@ func TestSecondingSanityCheck(t *testing.T) {
 			perRelayParent: map[common.Hash]*perRelayParentState{
 				hypotheticalCandidate.RelayParent: {},
 			},
-			perLeaf: map[common.Hash]activeLeafState{
+			perLeaf: map[common.Hash]*activeLeafState{
 				getDummyHash(t, 1): {
 					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
 						IsEnabled:          true,
 						MaxCandidateDepth:  4,
 						AllowedAncestryLen: 2,
 					},
-					secondedAtDepth: map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]{
+					secondedAtDepth: map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]{
 						hypotheticalCandidate.CandidateParaID: {},
 					},
 				},
@@ -298,16 +291,16 @@ func TestSecondingSanityCheck(t *testing.T) {
 			perRelayParent: map[common.Hash]*perRelayParentState{
 				hypotheticalCandidate.RelayParent: {},
 			},
-			perLeaf: map[common.Hash]activeLeafState{
+			perLeaf: map[common.Hash]*activeLeafState{
 				hypotheticalCandidate.RelayParent: {
 					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
 						IsEnabled: false,
 					},
-					secondedAtDepth: map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]{
-						hypotheticalCandidate.CandidateParaID: func() btree.Map[uint, parachaintypes.CandidateHash] {
+					secondedAtDepth: map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]{
+						hypotheticalCandidate.CandidateParaID: func() *btree.Map[uint, parachaintypes.CandidateHash] {
 							var btm btree.Map[uint, parachaintypes.CandidateHash]
 							btm.Set(0, hypotheticalCandidate.CandidateHash)
-							return btm
+							return &btm
 						}(),
 					},
 				},
@@ -316,7 +309,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 
 		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
 		require.ErrorIs(t, err, errLeafOccupied)
-		require.Nil(t, membership)
+		require.Empty(t, membership)
 	})
 
 	t.Run("prospective_parachains_mode_disabled_and_leaf_is_not_occupied", func(t *testing.T) {
@@ -324,12 +317,12 @@ func TestSecondingSanityCheck(t *testing.T) {
 			perRelayParent: map[common.Hash]*perRelayParentState{
 				hypotheticalCandidate.RelayParent: {},
 			},
-			perLeaf: map[common.Hash]activeLeafState{
+			perLeaf: map[common.Hash]*activeLeafState{
 				hypotheticalCandidate.RelayParent: {
 					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
 						IsEnabled: false,
 					},
-					secondedAtDepth: map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]{
+					secondedAtDepth: map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]{
 						hypotheticalCandidate.CandidateParaID: {},
 					},
 				},
