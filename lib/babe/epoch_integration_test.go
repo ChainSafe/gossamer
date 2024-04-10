@@ -177,7 +177,7 @@ func TestService_getLatestEpochData_genesis(t *testing.T) {
 	service.keypair = keyring.KeyAlice
 	service.authority = true
 
-	latestEpochData, err := service.getEpochData(0, &genesisHeader)
+	latestEpochData, err := service.findEpochInformations(0, &genesisHeader)
 	require.NoError(t, err)
 
 	threshold, err := CalculateThreshold(genesisCfg.C1, genesisCfg.C2, len(genesisCfg.GenesisAuthorities))
@@ -205,7 +205,7 @@ func TestService_getLatestEpochData_epochData(t *testing.T) {
 	err = epochState.StoreEpochDataRaw(1, data)
 	require.NoError(t, err)
 
-	ed, err := service.getEpochData(1, &genesisHeader)
+	ed, err := service.findEpochInformations(1, &genesisHeader)
 	require.NoError(t, err)
 	threshold, err := CalculateThreshold(genesisCfg.C1, genesisCfg.C2, len(data.Authorities))
 	require.NoError(t, err)
@@ -239,7 +239,7 @@ func TestService_getLatestEpochData_configData(t *testing.T) {
 	err = epochState.StoreConfigData(1, cfgData)
 	require.NoError(t, err)
 
-	ed, err := service.getEpochData(7, &genesisHeader)
+	ed, err := service.findEpochInformations(7, &genesisHeader)
 	require.NoError(t, err)
 	threshold, err := CalculateThreshold(cfgData.C1, cfgData.C2, len(data.Authorities))
 	require.NoError(t, err)

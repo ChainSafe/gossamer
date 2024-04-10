@@ -362,6 +362,35 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	// TODO: include test to verify skipped epoch
 	// skip the epoch 2 and initiate epoch 3, we should use epoch data that were
 	// meant to be used by epoch 2
+	skippedEpoch := uint64(2)
+	err = babeService.epochState.(*state.EpochState).StoreEpochDataRaw(skippedEpoch, &types.EpochDataRaw{
+		Randomness: [32]byte{9},
+		Authorities: []types.AuthorityRaw{
+			{
+				Key:    [32]byte(keyring.Bob().(*sr25519.Keypair).Public().Encode()),
+				Weight: 1,
+			},
+			{
+				Key:    [32]byte(keyring.Alice().(*sr25519.Keypair).Public().Encode()),
+				Weight: 1,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	futureEpoch = uint64(3)
+	futureEpochDescriptor, err = babeService.initiateEpoch(futureEpoch)
+	require.NoError(t, err)
+
+	futureSlot = Slot{
+		start:    getSlotStartTime(futureEpochDescriptor.startSlot, babeService.constants.slotDuration),
+		duration: babeService.constants.slotDuration,
+		number:   futureEpochDescriptor.startSlot,
+	}
+	blockNumber03 := createTestBlockWithSlot(t, babeService,
+		&blockNumber01.Header, [][]byte{}, futureEpochDescriptor, futureSlot)
+	err = verificationManager.VerifyBlock(&blockNumber03.Header)
+	require.NoError(t, err)
 }
 
 func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T) {

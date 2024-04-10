@@ -57,7 +57,7 @@ type GenesisEpochDescriptor struct {
 
 // EpochState tracks information related to each epoch
 type EpochState struct {
-	db           GetPutter
+	db           GetPutDeleter
 	baseState    *BaseState
 	blockState   *BlockState
 	epochLength  uint64 // measured in slots
@@ -250,11 +250,68 @@ func (s *EpochState) GetEpochDataRaw(epoch uint64, header *types.Header) (*types
 	return inMemoryEpochData.ToEpochDataRaw(), nil
 }
 
+// FindSkippedEpochDataRaw returns the raw epoch data for a skipped epoch that is stored in advance
+// of the start of the given epoch, also this method will update the epoch number from the
+// skipped epoch to the current epoch
+func (s *EpochState) FindSkippedEpochDataRaw(skippedEpoch, currentEpoch uint64, header *types.Header) (*types.EpochDataRaw, error) {
+	if skippedEpoch == 0 {
+		return nil, fmt.Errorf("%w: epoch 0 is not stored", errEpochNotInDatabase)
+	}
+
+	skippedEpochDataRaw, err := s.getEpochDataRawAndUpdateEpochDataKey(skippedEpoch, currentEpoch)
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
+		return nil, fmt.Errorf("failed to retrieve epoch data from database: %w", err)
+	}
+
+	if skippedEpochDataRaw != nil {
+		return skippedEpochDataRaw, nil
+	}
+
+	if header == nil {
+		return nil, errEpochNotInDatabase
+	}
+
+	s.nextEpochDataLock.RLock()
+	defer s.nextEpochDataLock.RUnlock()
+
+	inMemoryEpochData, err := s.nextEpochData.RetrieveAndUpdate(s.blockState, skippedEpoch, currentEpoch, header)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
+	}
+
+	return inMemoryEpochData.ToEpochDataRaw(), nil
+}
+
 // getEpochDataRawFromDatabase returns the epoch data for a given epoch persisted in database
 func (s *EpochState) getEpochDataRawFromDatabase(epoch uint64) (*types.EpochDataRaw, error) {
 	enc, err := s.db.Get(epochDataKey(epoch))
 	if err != nil {
 		return nil, err
+	}
+
+	raw := new(types.EpochDataRaw)
+	err = scale.Unmarshal(enc, raw)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling into epoch data raw: %w", err)
+	}
+
+	return raw, nil
+}
+
+func (s *EpochState) getEpochDataRawAndUpdateEpochDataKey(oldEpoch, newEpoch uint64) (*types.EpochDataRaw, error) {
+	enc, err := s.db.Get(epochDataKey(oldEpoch))
+	if err != nil {
+		return nil, fmt.Errorf("getting epoch data: %w", err)
+	}
+
+	err = s.db.Del(epochDataKey(oldEpoch))
+	if err != nil {
+		return nil, fmt.Errorf("deleting old epoch key: %w", err)
+	}
+
+	err = s.db.Put(epochDataKey(newEpoch), enc)
+	if err != nil {
+		return nil, fmt.Errorf("storing new epoch key: %w", err)
 	}
 
 	raw := new(types.EpochDataRaw)
@@ -405,6 +462,18 @@ func (s *EpochState) HandleBABEDigest(header *types.Header, digest types.BabeCon
 }
 
 type nextEpochMap[T types.NextEpochData | types.NextConfigDataV1] map[uint64]map[common.Hash]T
+
+func (nem nextEpochMap[T]) RetrieveAndUpdate(blockState *BlockState,
+	oldEpoch, newEpoch uint64, header *types.Header) (*T, error) {
+	find, err := nem.Retrieve(blockState, oldEpoch, header)
+	if err != nil {
+		return nil, fmt.Errorf("retrieving next epoch data: %w", err)
+	}
+
+	nem[newEpoch] = nem[oldEpoch]
+	delete(nem, oldEpoch)
+	return find, nil
+}
 
 func (nem nextEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header *types.Header) (*T, error) {
 	atEpoch, has := nem[epoch]

@@ -445,6 +445,21 @@ func (m *MockEpochState) EXPECT() *MockEpochStateMockRecorder {
 	return m.recorder
 }
 
+// FindSkippedEpochDataRaw mocks base method.
+func (m *MockEpochState) FindSkippedEpochDataRaw(arg0, arg1 uint64, arg2 *types.Header) (*types.EpochDataRaw, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindSkippedEpochDataRaw", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*types.EpochDataRaw)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindSkippedEpochDataRaw indicates an expected call of FindSkippedEpochDataRaw.
+func (mr *MockEpochStateMockRecorder) FindSkippedEpochDataRaw(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindSkippedEpochDataRaw", reflect.TypeOf((*MockEpochState)(nil).FindSkippedEpochDataRaw), arg0, arg1, arg2)
+}
+
 // GetConfigData mocks base method.
 func (m *MockEpochState) GetConfigData(arg0 uint64, arg1 *types.Header) (*types.ConfigData, error) {
 	m.ctrl.T.Helper()

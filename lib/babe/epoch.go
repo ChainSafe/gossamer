@@ -35,11 +35,10 @@ func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
 		return nil, fmt.Errorf("checking if epoch skipped: %w", err)
 	}
 
-	epochToFindData := epoch
+	var epochData *epochData
 	if skipped {
 		// subtract 1 since we consider 0 as a valid epoch, then skipping from epoch
-		// 0 to epoch 2 we actually skipped only one epoch (epoch 1), however when
-		// searching for a data we should subtract the diff
+		// 0 to epoch 2 we, actually, skipped only one epoch (epoch 1),
 		lastKnownEpoch := epoch - diff
 		epochsSkipped := epoch - (diff - 1)
 		logger.Warnf("⏩ A total of %d epochs were skipped, from %d to %d",
@@ -48,16 +47,18 @@ func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
 		// we should use the epoch data already setup for the
 		// last known epoch + 1, e.g we produced blocks in epoch
 		// 5, the first block in epoch 5 gives us the next epoch data
-		// that should be used to initiate epoch 6, however we skipt epoch
+		// that should be used to initiate epoch 6, however we've skipt epoch
 		// 6 and we're now initialising epoch 7, so we should use the epoch
 		// data that were meant to be used by 6
-		epochToFindData = lastKnownEpoch + 1
-
-	}
-
-	epochData, err := b.getEpochData(epochToFindData, bestBlockHeader)
-	if err != nil {
-		return nil, fmt.Errorf("cannot get epoch data and start slot: %w", err)
+		epochData, err = b.findSkippedEpochInformations(lastKnownEpoch+1, epoch, bestBlockHeader)
+		if err != nil {
+			return nil, fmt.Errorf("finding data for skipped epoch")
+		}
+	} else {
+		epochData, err = b.findEpochInformations(epoch, bestBlockHeader)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get epoch data and start slot: %w", err)
+		}
 	}
 
 	// if we're at genesis or epoch was skipped then we can estimate when the start
@@ -115,16 +116,35 @@ func (b *Service) checkIfEpochSkipped(epochBeingInitialized uint64, bestBlock *t
 	return epochBeingInitialized > epochFromBestBlock, epochBeingInitialized - epochFromBestBlock, nil
 }
 
-func (b *Service) getEpochData(epoch uint64, bestBlock *types.Header) (*epochData, error) {
+func (b *Service) findSkippedEpochInformations(skippedEpoch, currentEpoch uint64, bestBlock *types.Header) (*epochData, error) {
+	currEpochData, err := b.epochState.FindSkippedEpochDataRaw(skippedEpoch, currentEpoch, bestBlock)
+	if err != nil {
+		return nil, fmt.Errorf("fiding skipped epoch data raw: %w", err)
+	}
+
+	currConfigData, err := b.epochState.GetConfigData(skippedEpoch, bestBlock)
+	if err != nil {
+		return nil, fmt.Errorf("getting config data: %w", err)
+	}
+
+	return b.buildEpochData(currEpochData, currConfigData)
+}
+
+func (b *Service) findEpochInformations(epoch uint64, bestBlock *types.Header) (*epochData, error) {
 	currEpochData, err := b.epochState.GetEpochDataRaw(epoch, bestBlock)
 	if err != nil {
-		return nil, fmt.Errorf("getting epoch data for epoch %d: %w", epoch, err)
+		return nil, fmt.Errorf("getting epoch data: %w", err)
 	}
 
 	currConfigData, err := b.epochState.GetConfigData(epoch, bestBlock)
 	if err != nil {
-		return nil, fmt.Errorf("getting config data for epoch %d: %w", epoch, err)
+		return nil, fmt.Errorf("getting config data: %w", err)
 	}
+
+	return b.buildEpochData(currEpochData, currConfigData)
+}
+
+func (b *Service) buildEpochData(currEpochData *types.EpochDataRaw, currConfigData *types.ConfigData) (*epochData, error) {
 
 	threshold, err := CalculateThreshold(currConfigData.C1, currConfigData.C2, len(currEpochData.Authorities))
 	if err != nil {

@@ -62,6 +62,7 @@ type EpochState interface {
 	StoreCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
 
+	FindSkippedEpochDataRaw(skippedEpoch, currentEpoch uint64, header *types.Header) (*types.EpochDataRaw, error)
 	GetEpochDataRaw(epoch uint64, header *types.Header) (*types.EpochDataRaw, error)
 	GetConfigData(epoch uint64, header *types.Header) (*types.ConfigData, error)
 
