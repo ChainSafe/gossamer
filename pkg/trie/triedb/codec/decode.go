@@ -36,17 +36,24 @@ func Decode(reader io.Reader) (n Node, err error) {
 		return nil, fmt.Errorf("decoding header: %w", err)
 	}
 
-	switch variant {
-	case emptyVariant:
+	if variant == emptyVariant {
 		return Empty{}, nil
+	}
+
+	partialKey, err := decodeKey(reader, partialKeyLength)
+	if err != nil {
+		return nil, fmt.Errorf("cannot decode key: %w", err)
+	}
+
+	switch variant {
 	case leafVariant, leafWithHashedValueVariant:
-		n, err = decodeLeaf(reader, variant, partialKeyLength)
+		n, err = decodeLeaf(reader, variant, partialKey)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode leaf: %w", err)
 		}
 		return n, nil
 	case branchVariant, branchWithValueVariant, branchWithHashedValueVariant:
-		n, err = decodeBranch(reader, variant, partialKeyLength)
+		n, err = decodeBranch(reader, variant, partialKey)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode branch: %w", err)
 		}
@@ -59,13 +66,10 @@ func Decode(reader io.Reader) (n Node, err error) {
 
 // decodeBranch reads from a reader and decodes to a node branch.
 // Note that we are not decoding the children nodes.
-func decodeBranch(reader io.Reader, variant variant, partialKeyLength uint16) (
+func decodeBranch(reader io.Reader, variant variant, partialKey []byte) (
 	node Branch, err error) {
-	node = Branch{}
-
-	node.PartialKey, err = decodeKey(reader, partialKeyLength)
-	if err != nil {
-		return Branch{}, fmt.Errorf("cannot decode key: %w", err)
+	node = Branch{
+		PartialKey: partialKey,
 	}
 
 	childrenBitmap := make([]byte, 2)
@@ -118,12 +122,9 @@ func decodeBranch(reader io.Reader, variant variant, partialKeyLength uint16) (
 }
 
 // decodeLeaf reads from a reader and decodes to a leaf node.
-func decodeLeaf(reader io.Reader, variant variant, partialKeyLength uint16) (node Leaf, err error) {
-	node = Leaf{}
-
-	node.PartialKey, err = decodeKey(reader, partialKeyLength)
-	if err != nil {
-		return Leaf{}, fmt.Errorf("cannot decode key: %w", err)
+func decodeLeaf(reader io.Reader, variant variant, partialKey []byte) (node Leaf, err error) {
+	node = Leaf{
+		PartialKey: partialKey,
 	}
 
 	sd := scale.NewDecoder(reader)
