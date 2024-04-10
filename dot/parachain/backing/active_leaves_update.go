@@ -323,7 +323,7 @@ func constructPerRelayParentState(
 				continue
 			}
 		case parachaintypes.ScheduledCore:
-			coreParaID = parachaintypes.ParaID(v.ParaID)
+			coreParaID = v.ParaID
 		case parachaintypes.Free:
 			continue
 		}
@@ -333,9 +333,7 @@ func constructPerRelayParentState(
 		validatorIndexes := validatorGroups.Validators[groupIndex]
 
 		if validatorIndexes != nil {
-			isIndexPresent := slices.Contains(validatorIndexes, localValidator.index)
-
-			if localValidator != nil && isIndexPresent {
+			if localValidator != nil && slices.Contains(validatorIndexes, localValidator.index) {
 				assignment = &coreParaID
 			}
 			groups[coreParaID] = validatorIndexes
@@ -384,7 +382,7 @@ TODO: use this function once a PR to get the minBackingVotes is merged
 	}
 */
 
-func fetchParachainHostData(rt runtime.Instance) ( //nolint:unused
+func fetchParachainHostData(rt runtime.Instance) (
 	*parachaintypes.SessionIndex,
 	[]parachaintypes.ValidatorID,
 	*parachaintypes.ValidatorGroups,
@@ -455,7 +453,7 @@ func fetchParachainHostData(rt runtime.Instance) ( //nolint:unused
 	}
 }
 
-func paraHostSessionIndexForChind( //nolint:unused
+func paraHostSessionIndexForChind(
 	cancel context.CancelFunc,
 	rt runtime.Instance,
 	errCh chan error,
@@ -474,7 +472,7 @@ func paraHostSessionIndexForChind( //nolint:unused
 	return sessionIndexCh
 }
 
-func paraHostValidators( //nolint:unused
+func paraHostValidators(
 	cancel context.CancelFunc,
 	rt runtime.Instance,
 	errCh chan error,
@@ -493,7 +491,7 @@ func paraHostValidators( //nolint:unused
 	return validatorsCh
 }
 
-func paraHostValidatorGroups( //nolint:unused
+func paraHostValidatorGroups(
 	cancel context.CancelFunc,
 	rt runtime.Instance,
 	errCh chan error,
@@ -512,7 +510,7 @@ func paraHostValidatorGroups( //nolint:unused
 	return validatorGroupsCh
 }
 
-func paraHostAvailabilityCores( //nolint:unused
+func paraHostAvailabilityCores(
 	cancel context.CancelFunc,
 	rt runtime.Instance,
 	errCh chan error,

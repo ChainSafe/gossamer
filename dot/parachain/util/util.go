@@ -8,7 +8,10 @@ import (
 
 // signingKeyAndIndex finds the first key we can sign with from the given set of validators,
 // if any, and returns it along with the validator index.
-func SigningKeyAndIndex(validators []parachaintypes.ValidatorID, ks keystore.Keystore) (*parachaintypes.ValidatorID, parachaintypes.ValidatorIndex) {
+func SigningKeyAndIndex(
+	validators []parachaintypes.ValidatorID,
+	ks keystore.Keystore,
+) (*parachaintypes.ValidatorID, parachaintypes.ValidatorIndex) {
 	for i, validator := range validators {
 		publicKey, _ := sr25519.NewPublicKey(validator[:])
 		keypair := ks.GetKeypair(publicKey)
