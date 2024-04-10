@@ -286,7 +286,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 		return nil
 	}
 
-	if summary.GroupID != rpState.assignment {
+	if summary.GroupID != *rpState.assignment {
 		logger.Debugf("The ParaId: %d is not assigned to the local validator at relay parent: %s",
 			summary.GroupID, relayParent)
 		return nil

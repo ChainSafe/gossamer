@@ -21,7 +21,7 @@ type perRelayParentState struct {
 	// The hash of the relay parent on top of which this job is doing it's work.
 	relayParent common.Hash
 	// The `ParaId` assigned to the local validator at this relay parent.
-	assignment parachaintypes.ParaID
+	assignment *parachaintypes.ParaID
 	// The table of candidates and statements under this relay-parent.
 	table Table
 	// The table context, including groups.

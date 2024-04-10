@@ -301,7 +301,7 @@ func constructPerRelayParentState(
 		}
 	}
 
-	var assignment parachaintypes.ParaID // should be pointer?
+	var assignment *parachaintypes.ParaID
 
 	groups := make(map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex)
 
@@ -336,7 +336,7 @@ func constructPerRelayParentState(
 			isIndexPresent := slices.Contains(validatorIndexes, localValidator.index)
 
 			if localValidator != nil && isIndexPresent {
-				assignment = coreParaID
+				assignment = &coreParaID
 			}
 			groups[coreParaID] = validatorIndexes
 		}

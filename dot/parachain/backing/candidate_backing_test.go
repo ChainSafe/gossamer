@@ -19,6 +19,12 @@ import (
 
 var tempSignature = common.MustHexToBytes("0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86") //nolint:lll
 
+func uint32ToParaIDPtr(t *testing.T, u uint32) *parachaintypes.ParaID {
+	t.Helper()
+	p := parachaintypes.ParaID(u)
+	return &p
+}
+
 func getDummyHash(t *testing.T, num byte) common.Hash {
 	t.Helper()
 	hash := common.Hash{}
@@ -772,6 +778,8 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 func TestHandleStatementMessage(t *testing.T) {
 	t.Parallel()
 
+	paraIDPtr4 := uint32ToParaIDPtr(t, 4)
+
 	relayParent := getDummyHash(t, 5)
 	chRelayParentAndCommand := make(chan relayParentAndCommand)
 
@@ -876,7 +884,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
 						table:      mockTable,
-						assignment: 5,
+						assignment: uint32ToParaIDPtr(t, 5),
 					},
 				}
 			},
@@ -911,7 +919,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
 						table:      mockTable,
-						assignment: 4,
+						assignment: paraIDPtr4,
 						backed:     map[parachaintypes.CandidateHash]bool{},
 						fallbacks:  map[parachaintypes.CandidateHash]attestingData{},
 					},
@@ -949,7 +957,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					relayParent: {
 						table:        mockTable,
 						tableContext: dummyTableContext(t),
-						assignment:   4,
+						assignment:   paraIDPtr4,
 						backed:       map[parachaintypes.CandidateHash]bool{},
 						fallbacks: map[parachaintypes.CandidateHash]attestingData{
 							candidateHash: {},
@@ -989,7 +997,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					relayParent: {
 						table:        mockTable,
 						tableContext: dummyTableContext(t),
-						assignment:   4,
+						assignment:   paraIDPtr4,
 						backed:       map[parachaintypes.CandidateHash]bool{},
 						fallbacks: map[parachaintypes.CandidateHash]attestingData{
 							candidateHash: {},
@@ -1032,7 +1040,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					relayParent: {
 						table:        mockTable,
 						tableContext: dummyTableContext(t),
-						assignment:   4,
+						assignment:   paraIDPtr4,
 						backed:       map[parachaintypes.CandidateHash]bool{},
 						fallbacks: map[parachaintypes.CandidateHash]attestingData{
 							candidateHash: {
@@ -1087,7 +1095,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
 						table:      mockTable,
-						assignment: 4,
+						assignment: paraIDPtr4,
 						backed: map[parachaintypes.CandidateHash]bool{
 							candidateHash: true,
 						},
@@ -1127,7 +1135,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
 						table:      mockTable,
-						assignment: 4,
+						assignment: paraIDPtr4,
 						backed: map[parachaintypes.CandidateHash]bool{
 							candidateHash: true,
 						},
