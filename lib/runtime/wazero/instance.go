@@ -39,7 +39,6 @@ var _ runtime.Instance = &Instance{}
 type cacheMetadata struct {
 	config wazero.RuntimeConfig
 	cache  wazero.CompilationCache
-	ctx    context.Context
 }
 
 // Instance backed by wazero.Runtime
