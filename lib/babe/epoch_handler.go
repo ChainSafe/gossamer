@@ -15,13 +15,11 @@ import (
 type handleSlotFunc = func(epoch uint64, slot Slot, authorityIndex uint32,
 	preRuntimeDigest *types.PreRuntimeDigest) error
 
-var (
-	errEpochPast = errors.New("cannot run epoch that has already passed")
-)
+var errEpochPast = errors.New("cannot run epoch that has already passed")
 
 type epochHandler struct {
 	slotHandler slotHandler
-	descriptor  *EpochDescriptor
+	descriptor  *epochDescriptor
 	constants   constants
 
 	slotToPreRuntimeDigest map[uint64]*types.PreRuntimeDigest
@@ -29,7 +27,7 @@ type epochHandler struct {
 	handleSlot handleSlotFunc
 }
 
-func newEpochHandler(epochDescriptor *EpochDescriptor, constants constants,
+func newEpochHandler(epochDescriptor *epochDescriptor, constants constants,
 	handleSlot handleSlotFunc, keypair *sr25519.Keypair) (*epochHandler, error) {
 
 	// determine which slots we'll be authoring in by pre-calculating VRF output

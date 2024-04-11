@@ -505,21 +505,6 @@ func (mr *MockEpochStateMockRecorder) GetEpochForBlock(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpochForBlock", reflect.TypeOf((*MockEpochState)(nil).GetEpochForBlock), arg0)
 }
 
-// GetEpochFromTime mocks base method.
-func (m *MockEpochState) GetEpochFromTime(arg0 time.Time, arg1 common.Hash) (uint64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetEpochFromTime", arg0, arg1)
-	ret0, _ := ret[0].(uint64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetEpochFromTime indicates an expected call of GetEpochFromTime.
-func (mr *MockEpochStateMockRecorder) GetEpochFromTime(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpochFromTime", reflect.TypeOf((*MockEpochState)(nil).GetEpochFromTime), arg0, arg1)
-}
-
 // GetEpochLength mocks base method.
 func (m *MockEpochState) GetEpochLength() uint64 {
 	m.ctrl.T.Helper()

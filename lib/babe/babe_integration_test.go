@@ -162,7 +162,6 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	require.NoError(t, err)
 
 	startTime := getSlotStartTime(epochDescriptor.startSlot, babeService.constants.slotDuration)
-	fmt.Println(startTime)
 
 	slot := Slot{
 		start:    startTime,

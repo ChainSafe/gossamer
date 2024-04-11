@@ -330,7 +330,7 @@ func buildLocalTransaction(t *testing.T, rt runtime.Instance, ext types.Extrinsi
 }
 
 func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.Header,
-	exts [][]byte, epochDescriptor *EpochDescriptor, slot Slot) *types.Block {
+	exts [][]byte, epochDescriptor *epochDescriptor, slot Slot) *types.Block {
 	for _, ext := range exts {
 		validTransaction := transaction.NewValidTransaction(ext, &transaction.Validity{})
 		_, err := babeService.transactionState.Push(validTransaction)

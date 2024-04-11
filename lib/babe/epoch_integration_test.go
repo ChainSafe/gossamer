@@ -134,7 +134,7 @@ func TestInitiateEpoch_Epoch1And2(t *testing.T) {
 	threshold, err := CalculateThreshold(cdata.C1, cdata.C2, 1)
 	require.NoError(t, err)
 
-	expectedEpochDescriptor := &EpochDescriptor{
+	expectedEpochDescriptor := &epochDescriptor{
 		data: &epochData{
 			randomness:     edata.Randomness,
 			authorities:    edata.Authorities,

@@ -11,9 +11,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
-var ErrEpochLowerThanExpected = errors.New("epoch lower than expected")
+var errEpochLowerThanExpected = errors.New("epoch lower than expected")
 
-type EpochDescriptor struct {
+type epochDescriptor struct {
 	data      *epochData
 	epoch     uint64
 	startSlot uint64
@@ -22,7 +22,7 @@ type EpochDescriptor struct {
 
 // initiateEpoch sets the epochData for the given epoch, runs the lottery for the slots in the epoch,
 // and stores updated EpochInfo in the database
-func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
+func (b *Service) initiateEpoch(epoch uint64) (*epochDescriptor, error) {
 	logger.Debugf("initiating epoch %d", epoch, b.constants.epochLength)
 
 	bestBlockHeader, err := b.blockState.BestBlockHeader()
@@ -70,7 +70,7 @@ func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
 		}
 
 		logger.Debugf("estimated first slot as %d for epoch %d", startSlot, epoch)
-		return &EpochDescriptor{
+		return &epochDescriptor{
 			data:      epochData,
 			epoch:     epoch,
 			startSlot: startSlot,
@@ -84,7 +84,7 @@ func (b *Service) initiateEpoch(epoch uint64) (*EpochDescriptor, error) {
 	}
 
 	logger.Infof("initiating epoch %d with start slot %d", epoch, startSlot)
-	return &EpochDescriptor{
+	return &epochDescriptor{
 		data:      epochData,
 		epoch:     epoch,
 		startSlot: startSlot,
@@ -105,7 +105,7 @@ func (b *Service) checkIfEpochSkipped(epochBeingInitialized uint64, bestBlock *t
 
 	if epochBeingInitialized < epochFromBestBlock {
 		return false, 0, fmt.Errorf("%w: expected %d, got: %d",
-			ErrEpochLowerThanExpected, epochBeingInitialized, epochFromBestBlock)
+			errEpochLowerThanExpected, epochBeingInitialized, epochFromBestBlock)
 	}
 
 	if epochFromBestBlock+1 == epochBeingInitialized {

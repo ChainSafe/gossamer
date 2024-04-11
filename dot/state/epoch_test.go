@@ -4,7 +4,6 @@
 package state
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -220,66 +219,6 @@ func TestEpochState_SetAndGetSlotDuration(t *testing.T) {
 	ret, err := s.GetSlotDuration()
 	require.NoError(t, err)
 	require.Equal(t, expected, ret)
-}
-
-func TestEpochState_GetEpochFromTime(t *testing.T) {
-	s := newEpochStateFromGenesis(t)
-	s.blockState = newTestBlockState(t, newTriesEmpty())
-
-	// let's say first slot is 1 second after January 1, 1970 UTC
-	start := time.Unix(1, 0)
-	slotDuration := time.Millisecond * time.Duration(config.BABEConfigurationTestDefault.SlotDuration)
-	firstSlot := uint64(start.UnixNano()) / uint64(slotDuration.Nanoseconds())
-
-	digest := types.NewDigest()
-	di, err := types.NewBabeSecondaryPlainPreDigest(0, firstSlot).ToPreRuntimeDigest()
-	require.NoError(t, err)
-	require.NotNil(t, di)
-	err = digest.Add(*di)
-	require.NoError(t, err)
-
-	header1 := types.Header{
-		Number:     1,
-		Digest:     digest,
-		ParentHash: s.blockState.genesisHash,
-	}
-
-	err = s.blockState.AddBlock(&types.Block{
-		Header: header1,
-		Body:   types.Body{},
-	})
-	require.NoError(t, err)
-
-	epochDuration, err := time.ParseDuration(
-		fmt.Sprintf("%dms",
-			config.BABEConfigurationTestDefault.SlotDuration*config.BABEConfigurationTestDefault.EpochLength))
-	require.NoError(t, err)
-
-	require.NoError(t, err)
-
-	epoch, err := s.GetEpochFromTime(start, header1.Hash())
-	require.NoError(t, err)
-	require.Equal(t, uint64(0), epoch)
-
-	epoch, err = s.GetEpochFromTime(start.Add(epochDuration), header1.Hash())
-	require.NoError(t, err)
-	require.Equal(t, uint64(1), epoch)
-
-	epoch, err = s.GetEpochFromTime(start.Add(epochDuration/2), header1.Hash())
-	require.NoError(t, err)
-	require.Equal(t, uint64(0), epoch)
-
-	epoch, err = s.GetEpochFromTime(start.Add(epochDuration*3/2), header1.Hash())
-	require.NoError(t, err)
-	require.Equal(t, uint64(1), epoch)
-
-	epoch, err = s.GetEpochFromTime(start.Add(epochDuration*100+1), header1.Hash())
-	require.NoError(t, err)
-	require.Equal(t, uint64(100), epoch)
-
-	epoch, err = s.GetEpochFromTime(start.Add(epochDuration*100-1), header1.Hash())
-	require.NoError(t, err)
-	require.Equal(t, uint64(99), epoch)
 }
 
 type inMemoryBABEData[T any] struct {
