@@ -190,6 +190,9 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return 0, errors.New("header is nil")
 	}
 
+	//  actually the epoch number for block number #1 is epoch 0,
+	// epochs start from 0 and are incremented (almost, given that epochs might be skipped)
+	// sequentially 0...1...2, so the block number #1 belongs to epoch 0
 	if header.Number == 1 {
 		return 0, nil
 	}
