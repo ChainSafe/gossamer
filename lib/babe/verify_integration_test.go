@@ -291,8 +291,15 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 		Key:    keyring.Alice().(*sr25519.Keypair).Public(),
 		Weight: 1,
 	}
-	babeConfig := config.BABEConfigurationTestDefault
-	babeConfig.GenesisAuthorities = []types.AuthorityRaw{*auth.ToRaw()}
+	babeConfig := &types.BabeConfiguration{
+		SlotDuration:       6000,
+		EpochLength:        600,
+		C1:                 1,
+		C2:                 1,
+		GenesisAuthorities: []types.AuthorityRaw{*auth.ToRaw()},
+		Randomness:         [32]byte{},
+		SecondarySlots:     1,
+	}
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie,
@@ -361,13 +368,15 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 		Weight: 1,
 	}
 
-	babeConfig := config.BABEConfigurationTestDefault
-	// have decreased the primary probability to be 1 in 9000
-	// slots, then when claiming a slot we can increase the likely
-	// to test the ErrVRFOutputOverThreshold error
-	babeConfig.C1 = 1
-	babeConfig.C2 = 9000
-	babeConfig.GenesisAuthorities = []types.AuthorityRaw{*auth.ToRaw()}
+	babeConfig := &types.BabeConfiguration{
+		SlotDuration:       6000,
+		EpochLength:        600,
+		C1:                 1,
+		C2:                 9000,
+		GenesisAuthorities: []types.AuthorityRaw{*auth.ToRaw()},
+		Randomness:         [32]byte{},
+		SecondarySlots:     0,
+	}
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeConfig)
@@ -403,9 +412,15 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 
-	babeConfig := config.BABEConfigurationTestDefault
-	babeConfig.C1 = 1
-	babeConfig.C2 = 1
+	babeConfig := &types.BabeConfiguration{
+		SlotDuration:       6000,
+		EpochLength:        600,
+		C1:                 1,
+		C2:                 1,
+		GenesisAuthorities: nil,
+		Randomness:         [32]byte{},
+		SecondarySlots:     0,
+	}
 
 	genesisBob, genesisTrieBob, genesisHeaderBob := newWestendDevGenesisWithTrieAndHeader(t)
 	babeServiceBob := createTestService(t, ServiceConfig{}, genesisBob, genesisTrieBob,
