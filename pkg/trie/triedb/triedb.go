@@ -17,6 +17,11 @@ import (
 
 var ErrIncompleteDB = errors.New("incomplete database")
 
+type Entry struct {
+	Key   []byte
+	Value []byte
+}
+
 // TrieDB is a DB-backed patricia merkle trie implementation
 // using lazy loading to fetch nodes
 type TrieDB struct {
@@ -71,9 +76,8 @@ func (t *TrieDB) GetKeysWithPrefix(prefix []byte) (keysLE [][]byte) {
 }
 
 // Internal methods
-func (l *TrieDB) getRootNode() (codec.Node, error) {
-	keyNibbles := nibbles.KeyLEToNibbles(l.rootHash[:])
-	nodeData, err := l.db.Get(keyNibbles)
+func (t *TrieDB) getRootNode() (codec.Node, error) {
+	nodeData, err := t.db.Get(t.rootHash[:])
 	if err != nil {
 		return nil, err
 	}
@@ -88,9 +92,8 @@ func (l *TrieDB) getRootNode() (codec.Node, error) {
 
 }
 
-func (l *TrieDB) getNode(
+func (t *TrieDB) getNode(
 	merkleValue codec.MerkleValue,
-	partialKey []byte,
 ) (node codec.Node, err error) {
 	nodeData := []byte{}
 
@@ -98,8 +101,7 @@ func (l *TrieDB) getNode(
 	case codec.InlineNode:
 		nodeData = n.Data
 	case codec.HashedNode:
-		prefixedKey := bytes.Join([][]byte{partialKey, n.Data}, nil)
-		nodeData, err = l.db.Get(prefixedKey)
+		nodeData, err = t.db.Get(n.Data)
 		if err != nil {
 			return nil, ErrIncompleteDB
 		}
@@ -107,12 +109,16 @@ func (l *TrieDB) getNode(
 
 	reader := bytes.NewReader(nodeData)
 	node, err = codec.Decode(reader)
+	if err != nil {
+		return nil, err
+	}
+
 	return node, err
 }
 
-func (l *TrieDB) lookup(key []byte) ([]byte, error) {
+func (t *TrieDB) lookup(key []byte) ([]byte, error) {
 	keyNibbles := nibbles.KeyLEToNibbles(key)
-	return l.lookupWithoutCache(keyNibbles)
+	return t.lookupWithoutCache(keyNibbles)
 }
 
 // lookupWithoutCache traverse nodes loading then from DB until reach the one
@@ -196,13 +202,13 @@ func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 
 // loadValue gets the value from the node, if it is inlined we can return it
 // directly. But if it is hashed (V1) we have to look up for its value in the DB
-func (l *TrieDB) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error) {
+func (t *TrieDB) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error) {
 	switch v := value.(type) {
 	case codec.InlineValue:
 		return v.Data, nil
 	case codec.HashedValue:
 		prefixedKey := bytes.Join([][]byte{prefix, v.Data}, nil)
-		return l.db.Get(prefixedKey)
+		return t.db.Get(prefixedKey)
 	default:
 		panic("unreachable")
 	}

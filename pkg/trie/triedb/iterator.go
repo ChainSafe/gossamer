@@ -12,5 +12,12 @@ func (tdb *TrieDB) Entries() (keyValueMap map[string][]byte) {
 // NextKey returns the next key in the trie in lexicographic order.
 // It returns nil if no next key is found.
 func (tdb *TrieDB) NextKey(key []byte) []byte {
-	panic("not implemented yet")
+	iter, err := NewTrieDBIterator(tdb)
+	if err != nil {
+		panic("Unexpected error creating trie iterator")
+	}
+
+	iter.Seek(key)
+	nextKey := iter.NextKey()
+	return nextKey
 }

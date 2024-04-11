@@ -66,6 +66,9 @@ func NewHashedValue(data []byte) NodeValue {
 // Node is the representation of a decoded node
 type Node interface {
 	isNode()
+	HasValue() bool
+	GetPartialKey() []byte
+	GetValue() NodeValue
 }
 
 type (
@@ -84,6 +87,15 @@ type (
 	}
 )
 
-func (Empty) isNode()  {}
-func (Leaf) isNode()   {}
-func (Branch) isNode() {}
+func (Empty) isNode()                  {}
+func (Empty) HasValue() bool           { return false }
+func (Empty) GetPartialKey() []byte    { return nil }
+func (Empty) GetValue() NodeValue      { return nil }
+func (Leaf) isNode()                   {}
+func (Leaf) HasValue() bool            { return true }
+func (l Leaf) GetPartialKey() []byte   { return l.PartialKey }
+func (l Leaf) GetValue() NodeValue     { return l.Value }
+func (Branch) isNode()                 {}
+func (b Branch) HasValue() bool        { return b.Value != nil }
+func (b Branch) GetPartialKey() []byte { return b.PartialKey }
+func (b Branch) GetValue() NodeValue   { return b.Value }

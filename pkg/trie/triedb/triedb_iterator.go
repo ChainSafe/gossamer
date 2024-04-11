@@ -1,72 +1,98 @@
 package triedb
 
 import (
-	"errors"
+	"bytes"
 
-	"github.com/ChainSafe/gossamer/lib/common"
+	nibbles "github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 )
 
-type IteratorState struct {
-	node     codec.Node // actual node
-	childIdx int        // index of the child node
+type iteratorState struct {
+	parentFullKey []byte     // key of the parent node of the actual node
+	node          codec.Node // actual node
+}
+
+// fullKeyNibbles return the full key of the node contained in this state
+// child is the child where the node is stored in the parent node
+func (s *iteratorState) fullKeyNibbles(child *int) []byte {
+	fullKey := bytes.Join([][]byte{s.parentFullKey, s.node.GetPartialKey()}, nil)
+	if child != nil {
+		return bytes.Join([][]byte{fullKey, {byte(*child)}}, nil)
+	}
+
+	return nibbles.NibblesToKeyLE(fullKey)
 }
 
 type TrieDBIterator struct {
-	db         *TrieDB // trie to iterate over
-	currentKey common.Hash
-	nodeStack  []IteratorState // Pending nodes to visit
-	finished   bool
+	db        *TrieDB          // trie to iterate over
+	nodeStack []*iteratorState // Pending nodes to visit
 }
 
-func NewTrieDBIterator(trie *TrieDB) *TrieDBIterator {
+func NewTrieDBIterator(trie *TrieDB) (*TrieDBIterator, error) {
+	rootNode, err := trie.getRootNode()
+	if err != nil {
+		return nil, err
+	}
 	return &TrieDBIterator{
-		db:         trie,
-		currentKey: trie.rootHash,
-		nodeStack:  make([]IteratorState, 0),
-	}
+		db: trie,
+		nodeStack: []*iteratorState{
+			{
+				node: rootNode,
+			},
+		},
+	}, nil
 }
 
-func (i *TrieDBIterator) HasNext() bool {
-	return !i.finished
+// nextToVisit sets the next node to visit in the iterator
+func (i *TrieDBIterator) nextToVisit(parentKey []byte, node codec.Node) {
+	i.nodeStack = append(i.nodeStack, &iteratorState{
+		parentFullKey: parentKey,
+		node:          node,
+	})
 }
 
-func (i *TrieDBIterator) Next() (codec.Node, error) {
-	if i.finished {
-		return nil, errors.New("iterator has finished")
-	}
+// nextState pops the next node to visit from the stack
+func (i *TrieDBIterator) nextState() *iteratorState {
+	currentState := i.nodeStack[len(i.nodeStack)-1]
+	i.nodeStack = i.nodeStack[:len(i.nodeStack)-1]
+	return currentState
+}
 
-	//Initial case
-	if len(i.nodeStack) == 0 {
-		rootNode, err := i.db.getRootNode()
-		if err != nil {
-			return nil, err
-		}
-		i.nodeStack = append(i.nodeStack, IteratorState{node: rootNode, childIdx: -1})
-	}
-
+// NextKey performs a depth-first search on the trie and returns the next key
+// based on the current state of the iterator.
+func (i *TrieDBIterator) NextKey() []byte {
 	for len(i.nodeStack) > 0 {
-		currentState := i.nodeStack[len(i.nodeStack)-1]
+		currentState := i.nextState()
 		currentNode := currentState.node
 
 		switch n := currentNode.(type) {
 		case codec.Leaf:
-			i.nodeStack = i.nodeStack[:len(i.nodeStack)-1]
-			return n, nil
+			return currentState.fullKeyNibbles(nil)
 		case codec.Branch:
-			if currentState.childIdx+1 < len(n.Children) {
-				currentState.childIdx++
-				childNode, err := i.db.getNode(n.Children[currentState.childIdx], n.PartialKey)
-				if err != nil {
-					return nil, err
+			// Reverse iterate over children because we are using a LIFO stack
+			// and we want to visit the leftmost child first
+			for idx := len(n.Children) - 1; idx >= 0; idx-- {
+				child := n.Children[idx]
+				if child != nil {
+					childNode, err := i.db.getNode(child)
+					if err != nil {
+						panic(err)
+					}
+					i.nextToVisit(currentState.fullKeyNibbles(&idx), childNode)
 				}
-				i.nodeStack = append(i.nodeStack, IteratorState{node: childNode, childIdx: -1})
-				continue
+			}
+			if n.HasValue() {
+				return currentState.fullKeyNibbles(nil)
 			}
 		}
-		i.nodeStack = i.nodeStack[:len(i.nodeStack)-1]
 	}
 
-	i.finished = true
-	return nil, errors.New("no more elements")
+	return nil
+}
+
+// Seek moves the iterator to the first key that is greater than or equal to the
+// one we are looking for
+func (i *TrieDBIterator) Seek(targetKey []byte) {
+	for key := i.NextKey(); bytes.Compare(key, targetKey) < 0; key = i.NextKey() {
+	}
 }

@@ -19,38 +19,51 @@ func newTestDB(t *testing.T) database.Table {
 	return database.NewTable(db, "trie")
 }
 
-func TestTrieDB_Get(t *testing.T) {
+func TestTrieDB_Migration(t *testing.T) {
+	db := newTestDB(t)
+	inMemoryTrie := inmemory.NewEmptyTrie()
+	inMemoryTrie.SetVersion(trie.V1)
+
+	entries := map[string][]byte{
+		"no":           make([]byte, 1),
+		"noot":         make([]byte, 2),
+		"not":          make([]byte, 3),
+		"notable":      make([]byte, 4),
+		"notification": make([]byte, 5),
+		"test":         make([]byte, 6),
+		"dimartiro":    make([]byte, 7),
+	}
+
+	for k, v := range entries {
+		inMemoryTrie.Put([]byte(k), v)
+	}
+
+	err := inMemoryTrie.WriteDirty(db)
+	assert.NoError(t, err)
+
+	root, err := inMemoryTrie.Hash()
+	assert.NoError(t, err)
+	trieDB := NewTrieDB(root, db)
+
 	t.Run("read_successful_from_db_created_using_v1_trie", func(t *testing.T) {
-		db := newTestDB(t)
-		inMemoryTrie := inmemory.NewEmptyTrie()
-		inMemoryTrie.SetVersion(trie.V1)
-
-		entries := map[string][]byte{
-			"no":           make([]byte, 20),
-			"not":          make([]byte, 40),
-			"nothing":      make([]byte, 20),
-			"notification": make([]byte, 40),
-			"test":         make([]byte, 40),
-		}
-
-		for k, v := range entries {
-			inMemoryTrie.Put([]byte(k), v)
-		}
-
-		err := inMemoryTrie.WriteDirty(db)
-		assert.NoError(t, err)
-
-		root, err := inMemoryTrie.Hash()
-		assert.NoError(t, err)
-
-		trieDB := NewTrieDB(root, db)
-
 		for k, v := range entries {
 			value := trieDB.Get([]byte(k))
 			assert.Equal(t, v, value)
 		}
 
 		assert.Equal(t, root, trieDB.MustHash())
+	})
+	t.Run("next_key", func(t *testing.T) {
+		key := []byte("no")
+
+		for key != nil {
+			expected := inMemoryTrie.NextKey(key)
+			actual := trieDB.NextKey(key)
+			assert.Equal(t, expected, actual)
+
+			key = actual
+		}
+
 	})
 }
 
