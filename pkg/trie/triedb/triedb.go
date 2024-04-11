@@ -68,13 +68,6 @@ func (t *TrieDB) Get(key []byte) []byte {
 	return val
 }
 
-// GetKeysWithPrefix returns all keys in little Endian
-// format from nodes in the trie that have the given little
-// Endian formatted prefix in their key.
-func (t *TrieDB) GetKeysWithPrefix(prefix []byte) (keysLE [][]byte) {
-	panic("not implemented yet")
-}
-
 // Internal methods
 func (t *TrieDB) getRootNode() (codec.Node, error) {
 	nodeData, err := t.db.Get(t.rootHash[:])
@@ -89,7 +82,6 @@ func (t *TrieDB) getRootNode() (codec.Node, error) {
 	}
 
 	return decodedNode, nil
-
 }
 
 func (t *TrieDB) getNode(

@@ -28,10 +28,10 @@ type TrieDBIterator struct {
 	nodeStack []*iteratorState // Pending nodes to visit
 }
 
-func NewTrieDBIterator(trie *TrieDB) (*TrieDBIterator, error) {
+func NewTrieDBIterator(trie *TrieDB) *TrieDBIterator {
 	rootNode, err := trie.getRootNode()
 	if err != nil {
-		return nil, err
+		panic("trying to create trie iterator with incomplete trie DB")
 	}
 	return &TrieDBIterator{
 		db: trie,
@@ -40,7 +40,7 @@ func NewTrieDBIterator(trie *TrieDB) (*TrieDBIterator, error) {
 				node: rootNode,
 			},
 		},
-	}, nil
+	}
 }
 
 // nextToVisit sets the next node to visit in the iterator
@@ -58,16 +58,19 @@ func (i *TrieDBIterator) nextState() *iteratorState {
 	return currentState
 }
 
-// NextKey performs a depth-first search on the trie and returns the next key
-// based on the current state of the iterator.
-func (i *TrieDBIterator) NextKey() []byte {
+func (i *TrieDBIterator) NextEntry() (key []byte, value []byte) {
 	for len(i.nodeStack) > 0 {
 		currentState := i.nextState()
 		currentNode := currentState.node
 
 		switch n := currentNode.(type) {
 		case codec.Leaf:
-			return currentState.fullKeyNibbles(nil)
+			key := currentState.fullKeyNibbles(nil)
+			value, err := i.db.loadValue(n.PartialKey, n.GetValue())
+			if err != nil {
+				panic("Error loading value")
+			}
+			return key, value
 		case codec.Branch:
 			// Reverse iterate over children because we are using a LIFO stack
 			// and we want to visit the leftmost child first
@@ -82,12 +85,24 @@ func (i *TrieDBIterator) NextKey() []byte {
 				}
 			}
 			if n.HasValue() {
-				return currentState.fullKeyNibbles(nil)
+				key := currentState.fullKeyNibbles(nil)
+				value, err := i.db.loadValue(n.PartialKey, n.GetValue())
+				if err != nil {
+					panic("Error loading value")
+				}
+				return key, value
 			}
 		}
 	}
 
-	return nil
+	return nil, nil
+}
+
+// NextKey performs a depth-first search on the trie and returns the next key
+// based on the current state of the iterator.
+func (i *TrieDBIterator) NextKey() []byte {
+	key, _ := i.NextEntry()
+	return key
 }
 
 // Seek moves the iterator to the first key that is greater than or equal to the

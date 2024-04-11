@@ -53,7 +53,7 @@ func TestTrieDB_Migration(t *testing.T) {
 
 		assert.Equal(t, root, trieDB.MustHash())
 	})
-	t.Run("next_key", func(t *testing.T) {
+	t.Run("next_key_are_the_same", func(t *testing.T) {
 		key := []byte("no")
 
 		for key != nil {
@@ -63,7 +63,22 @@ func TestTrieDB_Migration(t *testing.T) {
 
 			key = actual
 		}
+	})
 
+	t.Run("get_keys_with_prefix_are_the_same", func(t *testing.T) {
+		key := []byte("no")
+
+		expected := inMemoryTrie.GetKeysWithPrefix(key)
+		actual := trieDB.GetKeysWithPrefix(key)
+
+		assert.Equal(t, expected, actual)
+	})
+
+	t.Run("entries_are_the_same", func(t *testing.T) {
+		expected := inMemoryTrie.Entries()
+		actual := trieDB.Entries()
+
+		assert.Equal(t, expected, actual)
 	})
 }
 

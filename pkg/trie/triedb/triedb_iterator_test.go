@@ -35,8 +35,7 @@ func TestIterator(t *testing.T) {
 
 	trieDB := NewTrieDB(root, db)
 	t.Run("iterate_over_all_entries", func(t *testing.T) {
-		iter, err := NewTrieDBIterator(trieDB)
-		assert.NoError(t, err)
+		iter := NewTrieDBIterator(trieDB)
 
 		expected := inMemoryTrie.NextKey([]byte{})
 		i := 0
@@ -50,8 +49,7 @@ func TestIterator(t *testing.T) {
 	})
 
 	t.Run("iterate_from_given_key", func(t *testing.T) {
-		iter, err := NewTrieDBIterator(trieDB)
-		assert.NoError(t, err)
+		iter := NewTrieDBIterator(trieDB)
 
 		iter.Seek([]byte("not"))
 
