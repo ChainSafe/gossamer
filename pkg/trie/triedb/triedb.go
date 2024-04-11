@@ -72,7 +72,7 @@ func (t *TrieDB) Get(key []byte) []byte {
 func (t *TrieDB) getRootNode() (codec.Node, error) {
 	nodeData, err := t.db.Get(t.rootHash[:])
 	if err != nil {
-		return nil, err
+		return nil, ErrIncompleteDB
 	}
 
 	reader := bytes.NewReader(nodeData)
@@ -124,7 +124,6 @@ func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 	for {
 		// Get node from DB
 		nodeData, err := l.db.Get(hash)
-
 		if err != nil {
 			return nil, ErrIncompleteDB
 		}
