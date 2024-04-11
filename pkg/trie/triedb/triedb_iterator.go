@@ -84,7 +84,7 @@ func (i *TrieDBIterator) NextEntry() (key []byte, value []byte) {
 					i.nextToVisit(currentState.fullKeyNibbles(&idx), childNode)
 				}
 			}
-			if n.HasValue() {
+			if n.GetValue() != nil {
 				key := currentState.fullKeyNibbles(nil)
 				value, err := i.db.loadValue(n.PartialKey, n.GetValue())
 				if err != nil {
