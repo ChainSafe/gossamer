@@ -8,7 +8,7 @@ const ChildrenCapacity = 16
 // MerkleValue is a helper enum to differentiate between inline and hashed nodes
 // https://spec.polkadot.network/chap-state#defn-merkle-value
 type MerkleValue interface {
-	_isMerkleValue()
+	isMerkleValue()
 	IsHashed() bool
 }
 
@@ -23,10 +23,10 @@ type (
 	}
 )
 
-func (InlineNode) _isMerkleValue() {}
-func (InlineNode) IsHashed() bool  { return false }
-func (HashedNode) _isMerkleValue() {}
-func (HashedNode) IsHashed() bool  { return true }
+func (InlineNode) isMerkleValue() {}
+func (InlineNode) IsHashed() bool { return false }
+func (HashedNode) isMerkleValue() {}
+func (HashedNode) IsHashed() bool { return true }
 
 func NewInlineNode(data []byte) MerkleValue {
 	return InlineNode{Data: data}
@@ -38,7 +38,7 @@ func NewHashedNode(data []byte) MerkleValue {
 
 // NodeValue is a helper enum to differentiate between inline and hashed values
 type NodeValue interface {
-	_isNodeValue()
+	isNodeValue()
 }
 
 type (
@@ -52,8 +52,8 @@ type (
 	}
 )
 
-func (InlineValue) _isNodeValue() {}
-func (HashedValue) _isNodeValue() {}
+func (InlineValue) isNodeValue() {}
+func (HashedValue) isNodeValue() {}
 
 func NewInlineValue(data []byte) NodeValue {
 	return InlineValue{Data: data}
@@ -65,7 +65,7 @@ func NewHashedValue(data []byte) NodeValue {
 
 // Node is the representation of a decoded node
 type Node interface {
-	_isNode()
+	isNode()
 }
 
 type (
@@ -84,6 +84,6 @@ type (
 	}
 )
 
-func (Empty) _isNode()  {}
-func (Leaf) _isNode()   {}
-func (Branch) _isNode() {}
+func (Empty) isNode()  {}
+func (Leaf) isNode()   {}
+func (Branch) isNode() {}
