@@ -4,20 +4,13 @@
 package codec
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
-
-func repeatBytes(n int, b byte) (slice []byte) {
-	slice = make([]byte, n)
-	for i := range slice {
-		slice[i] = b
-	}
-	return slice
-}
 
 type readCall struct {
 	buffArgCap int
@@ -98,7 +91,7 @@ func Test_decodeKey(t *testing.T) {
 		},
 		"long_key_length": {
 			reads: []readCall{
-				{buffArgCap: 35, read: repeatBytes(35, 7), n: 35}, // key data
+				{buffArgCap: 35, read: bytes.Repeat([]byte{7}, 35), n: 35}, // key data
 			},
 			partialKeyLength: 70,
 			b: []byte{

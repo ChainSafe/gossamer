@@ -71,7 +71,6 @@ type ReadOnlyTrie interface {
 	ChildTriesRead
 	PrefixTrieRead
 	TrieIterator
-	TrieDeltas
 }
 
 type Trie interface {
@@ -80,4 +79,5 @@ type Trie interface {
 	PrefixTrieWrite
 	KVSWrite
 	Versioned
+	TrieDeltas
 }
