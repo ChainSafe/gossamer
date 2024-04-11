@@ -18,8 +18,8 @@ import (
 var ErrIncompleteDB = errors.New("incomplete database")
 
 type Entry struct {
-	Key   []byte
-	Value []byte
+	key   []byte
+	value []byte
 }
 
 // TrieDB is a DB-backed patricia merkle trie implementation

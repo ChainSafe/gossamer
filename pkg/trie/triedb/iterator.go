@@ -11,8 +11,8 @@ func (t *TrieDB) Entries() (keyValueMap map[string][]byte) {
 	entries := make(map[string][]byte)
 
 	iter := NewTrieDBIterator(t)
-	for key, value := iter.NextEntry(); key != nil; key, value = iter.NextEntry() {
-		entries[string(key)] = value
+	for entry := iter.NextEntry(); entry != nil; entry = iter.NextEntry() {
+		entries[string(entry.key)] = entry.value
 	}
 
 	return entries

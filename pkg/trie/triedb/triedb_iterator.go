@@ -58,7 +58,7 @@ func (i *TrieDBIterator) nextState() *iteratorState {
 	return currentState
 }
 
-func (i *TrieDBIterator) NextEntry() (key []byte, value []byte) {
+func (i *TrieDBIterator) NextEntry() *Entry {
 	for len(i.nodeStack) > 0 {
 		currentState := i.nextState()
 		currentNode := currentState.node
@@ -70,7 +70,7 @@ func (i *TrieDBIterator) NextEntry() (key []byte, value []byte) {
 			if err != nil {
 				panic("Error loading value")
 			}
-			return key, value
+			return &Entry{key: key, value: value}
 		case codec.Branch:
 			// Reverse iterate over children because we are using a LIFO stack
 			// and we want to visit the leftmost child first
@@ -90,19 +90,22 @@ func (i *TrieDBIterator) NextEntry() (key []byte, value []byte) {
 				if err != nil {
 					panic("Error loading value")
 				}
-				return key, value
+				return &Entry{key: key, value: value}
 			}
 		}
 	}
 
-	return nil, nil
+	return nil
 }
 
 // NextKey performs a depth-first search on the trie and returns the next key
 // based on the current state of the iterator.
 func (i *TrieDBIterator) NextKey() []byte {
-	key, _ := i.NextEntry()
-	return key
+	entry := i.NextEntry()
+	if entry != nil {
+		return entry.key
+	}
+	return nil
 }
 
 // Seek moves the iterator to the first key that is greater than the target key.
