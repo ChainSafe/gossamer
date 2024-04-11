@@ -102,7 +102,8 @@ func TestImportState_Integration(t *testing.T) {
 	headerFP := setupHeaderFile(t)
 
 	firstSlot := uint64(1)
-	err = ImportState(defaultWndDevConfig.BasePath, stateFP, headerFP, trie.V0, config.BABEConfigurationTestDefault, firstSlot)
+	err = ImportState(defaultWndDevConfig.BasePath, stateFP, headerFP,
+		trie.V0, config.BABEConfigurationTestDefault, firstSlot)
 	require.NoError(t, err)
 	// confirm data is imported into db
 	stateConfig := state.Config{
