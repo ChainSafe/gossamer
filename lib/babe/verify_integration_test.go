@@ -403,9 +403,13 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 
+	babeConfig := config.BABEConfigurationTestDefault
+	babeConfig.C1 = 1
+	babeConfig.C2 = 1
+
 	genesisBob, genesisTrieBob, genesisHeaderBob := newWestendDevGenesisWithTrieAndHeader(t)
 	babeServiceBob := createTestService(t, ServiceConfig{}, genesisBob, genesisTrieBob,
-		genesisHeaderBob, config.BABEConfigurationTestDefault)
+		genesisHeaderBob, babeConfig)
 
 	db, err := database.NewPebble(t.TempDir(), true)
 	require.NoError(t, err)
