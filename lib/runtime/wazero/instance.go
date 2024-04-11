@@ -39,9 +39,9 @@ var _ runtime.Instance = &Instance{}
 
 type cacheMetadata struct {
 	config wazero.RuntimeConfig
-	dir    string
-	cache  wazero.CompilationCache
-	ctx    context.Context
+	//dir    string
+	cache wazero.CompilationCache
+	//ctx   context.Context
 }
 
 // Instance backed by wazero.Runtime
@@ -457,9 +457,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		codeHash: cfg.CodeHash,
 		metadata: cacheMetadata{
 			config: config,
-			dir:    cacheDir,
 			cache:  cache,
-			ctx:    ctx,
 		},
 	}
 
@@ -481,19 +479,15 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 
 var ErrExportFunctionNotFound = errors.New("export function not found")
 
-// CleanCache closes up the wazero compiler cache and removes its tempdir
-func (i *Instance) CleanCache() (err error) {
-	err = i.metadata.cache.Close(i.metadata.ctx)
-	if err != nil {
-		return err
-	}
-
-	err = os.RemoveAll(i.metadata.dir)
-	if err != nil {
-		return err
-	}
-	return nil
-}
+//// CleanCache closes up the wazero compiler cache and removes its tempdir
+//func (i *Instance) CleanCache() (err error) {
+//	err = i.metadata.cache.Close(i.metadata.ctx)
+//	if err != nil {
+//		return err
+//	}
+//
+//	return nil
+//}
 
 func (i *Instance) Exec(function string, data []byte) (result []byte, err error) {
 	i.Lock()
@@ -954,5 +948,10 @@ func (in *Instance) Stop() {
 	err := in.Runtime.Close(context.Background())
 	if err != nil {
 		log.Errorf("runtime failed to close: %v", err)
+	}
+
+	err = in.metadata.cache.Close(context.Background())
+	if err != nil {
+		log.Errorf("closing the wazero compilation cache: %v", err)
 	}
 }
