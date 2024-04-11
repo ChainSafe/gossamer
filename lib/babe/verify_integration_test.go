@@ -263,7 +263,7 @@ func TestVerificationManager_VerifyBlock_FutureEpoch(t *testing.T) {
 	verificationManager := NewVerificationManager(babeService.blockState, slotState, babeService.epochState)
 
 	const futureEpoch = uint64(2)
-	err = babeService.epochState.(*state.EpochState).StoreEpochDataRaw(futureEpoch, &types.EpochDataRaw{
+	err = babeService.epochState.(*state.EpochState).SetEpochDataRaw(futureEpoch, &types.EpochDataRaw{
 		Authorities: []types.AuthorityRaw{{
 			Key: [32]byte(keyring.Alice().(*sr25519.Keypair).Public().Encode()),
 		}},
@@ -321,7 +321,7 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	require.NoError(t, err)
 
 	futureEpoch := uint64(1)
-	err = babeService.epochState.(*state.EpochState).StoreEpochDataRaw(futureEpoch, &types.EpochDataRaw{
+	err = babeService.epochState.(*state.EpochState).SetEpochDataRaw(futureEpoch, &types.EpochDataRaw{
 		Randomness: [32]byte{9},
 		Authorities: []types.AuthorityRaw{
 			{

@@ -208,8 +208,8 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 	return (slotNumber - chainFirstSlotNumber) / s.epochLength, nil
 }
 
-// StoreEpochDataRaw sets the epoch data raw for a given epoch
-func (s *EpochState) StoreEpochDataRaw(epoch uint64, raw *types.EpochDataRaw) error {
+// SetEpochDataRaw sets the epoch data raw for a given epoch
+func (s *EpochState) SetEpochDataRaw(epoch uint64, raw *types.EpochDataRaw) error {
 	enc, err := scale.Marshal(*raw)
 	if err != nil {
 		return err
@@ -634,7 +634,7 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 		return fmt.Errorf("cannot find next epoch data: %w", err)
 	}
 
-	err = s.StoreEpochDataRaw(nextEpoch, finalizedNextEpochData.ToEpochDataRaw())
+	err = s.SetEpochDataRaw(nextEpoch, finalizedNextEpochData.ToEpochDataRaw())
 	if err != nil {
 		return fmt.Errorf("cannot set epoch data: %w", err)
 	}

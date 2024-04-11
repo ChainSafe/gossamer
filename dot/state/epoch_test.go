@@ -59,7 +59,7 @@ func TestEpochState_EpochData(t *testing.T) {
 		Randomness:  [32]byte{77},
 	}
 
-	err = s.StoreEpochDataRaw(1, info)
+	err = s.SetEpochDataRaw(1, info)
 	require.NoError(t, err)
 	res, err := s.GetEpochDataRaw(1, nil)
 	require.NoError(t, err)
@@ -98,17 +98,14 @@ func TestEpochState_GetStartSlotForEpoch(t *testing.T) {
 	require.NoError(t, err)
 
 	start, err := s.GetStartSlotForEpoch(0, header1.Hash())
-	fmt.Println(start)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), start)
 
 	start, err = s.GetStartSlotForEpoch(1, header1.Hash())
-	fmt.Println(start)
 	require.NoError(t, err)
 	require.Equal(t, uint64(201), start)
 
 	start, err = s.GetStartSlotForEpoch(2, header1.Hash())
-	fmt.Println(start)
 	require.NoError(t, err)
 	require.Equal(t, uint64(401), start)
 }
