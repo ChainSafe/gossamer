@@ -233,8 +233,6 @@ func (*CandidateBacking) Name() parachaintypes.SubSystemName {
 
 // processMessage processes incoming messages from overseer
 func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan relayParentAndCommand) error {
-	// process these received messages by referencing
-	// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L741
 	switch msg := msg.(type) {
 	case GetBackedCandidatesMessage:
 		cb.handleGetBackedCandidatesMessage(msg)
@@ -261,7 +259,7 @@ func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan
 }
 
 func (cb *CandidateBacking) ProcessBlockFinalizedSignal() {
-	// TODO #3644
+	// Nothing to do here
 }
 
 // Import the statement and kick off validation work if it is a part of our assignment.
