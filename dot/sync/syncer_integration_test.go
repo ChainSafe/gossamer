@@ -21,6 +21,7 @@ import (
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -38,18 +39,10 @@ func newTestSyncer(t *testing.T) *Service {
 	testDatadirPath := t.TempDir()
 
 	scfg := state.Config{
-		Path:      testDatadirPath,
-		LogLevel:  log.Info,
-		Telemetry: mockTelemetryClient,
-		GenesisBABEConfig: &types.BabeConfiguration{
-			SlotDuration:       1000,
-			EpochLength:        200,
-			C1:                 1,
-			C2:                 4,
-			GenesisAuthorities: []types.AuthorityRaw{},
-			Randomness:         [32]byte{},
-			SecondarySlots:     0,
-		},
+		Path:              testDatadirPath,
+		LogLevel:          log.Info,
+		Telemetry:         mockTelemetryClient,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()

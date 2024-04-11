@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -129,18 +130,10 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	stateConfig := state.Config{
-		Path:      t.TempDir(),
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
-		GenesisBABEConfig: &types.BabeConfiguration{
-			SlotDuration:       1000,
-			EpochLength:        200,
-			C1:                 1,
-			C2:                 4,
-			GenesisAuthorities: []types.AuthorityRaw{},
-			Randomness:         [32]byte{},
-			SecondarySlots:     0,
-		},
+		Path:              t.TempDir(),
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	stateSrvc := state.NewService(stateConfig)
 	stateSrvc.UseMemDB()
@@ -150,17 +143,8 @@ func newStateService(t *testing.T, ctrl *gomock.Controller) *state.Service {
 
 	err = stateSrvc.SetupBase()
 	require.NoError(t, err)
-
-	genesisBABEConfig := &types.BabeConfiguration{
-		SlotDuration:       1000,
-		EpochLength:        200,
-		C1:                 1,
-		C2:                 4,
-		GenesisAuthorities: []types.AuthorityRaw{},
-		Randomness:         [32]byte{},
-		SecondarySlots:     0,
-	}
-	epochState, err := state.NewEpochStateFromGenesis(stateSrvc.DB(), stateSrvc.Block, genesisBABEConfig)
+	epochState, err := state.NewEpochStateFromGenesis(stateSrvc.DB(), stateSrvc.Block,
+		config.BABEConfigurationTestDefault)
 	require.NoError(t, err)
 
 	stateSrvc.Epoch = epochState

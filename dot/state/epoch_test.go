@@ -13,24 +13,15 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 
 	"github.com/stretchr/testify/require"
 )
 
-var genesisBABEConfig = &types.BabeConfiguration{
-	SlotDuration:       1000,
-	EpochLength:        200,
-	C1:                 1,
-	C2:                 4,
-	GenesisAuthorities: []types.AuthorityRaw{},
-	Randomness:         [32]byte{},
-	SecondarySlots:     0,
-}
-
 func newEpochStateFromGenesis(t *testing.T) *EpochState {
 	db := NewInMemoryDB(t)
 	blockState := newTestBlockState(t, newTriesEmpty())
-	s, err := NewEpochStateFromGenesis(db, blockState, genesisBABEConfig)
+	s, err := NewEpochStateFromGenesis(db, blockState, config.BABEConfigurationTestDefault)
 	require.NoError(t, err)
 	return s
 }
@@ -84,7 +75,7 @@ func TestEpochState_GetStartSlotForEpoch(t *testing.T) {
 
 	// let's say first slot is 1 second after January 1, 1970 UTC
 	startAtTime := time.Unix(1, 0)
-	slotDuration := time.Millisecond * time.Duration(genesisBABEConfig.SlotDuration)
+	slotDuration := time.Millisecond * time.Duration(config.BABEConfigurationTestDefault.SlotDuration)
 	firstSlot := uint64(startAtTime.UnixNano()) / uint64(slotDuration.Nanoseconds())
 
 	digest := types.NewDigest()
@@ -227,7 +218,7 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 
 func TestEpochState_SetAndGetSlotDuration(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
-	expected := time.Millisecond * time.Duration(genesisBABEConfig.SlotDuration)
+	expected := time.Millisecond * time.Duration(config.BABEConfigurationTestDefault.SlotDuration)
 
 	ret, err := s.GetSlotDuration()
 	require.NoError(t, err)
@@ -240,7 +231,7 @@ func TestEpochState_GetEpochFromTime(t *testing.T) {
 
 	// let's say first slot is 1 second after January 1, 1970 UTC
 	start := time.Unix(1, 0)
-	slotDuration := time.Millisecond * time.Duration(genesisBABEConfig.SlotDuration)
+	slotDuration := time.Millisecond * time.Duration(config.BABEConfigurationTestDefault.SlotDuration)
 	firstSlot := uint64(start.UnixNano()) / uint64(slotDuration.Nanoseconds())
 
 	digest := types.NewDigest()
@@ -264,7 +255,7 @@ func TestEpochState_GetEpochFromTime(t *testing.T) {
 
 	epochDuration, err := time.ParseDuration(
 		fmt.Sprintf("%dms",
-			genesisBABEConfig.SlotDuration*genesisBABEConfig.EpochLength))
+			config.BABEConfigurationTestDefault.SlotDuration*config.BABEConfigurationTestDefault.EpochLength))
 	require.NoError(t, err)
 
 	require.NoError(t, err)
@@ -512,7 +503,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 	blockNumber1 := newBlockWithPrimaryDigest(t,
 		chainFirstSlotNumber, 1)
 	blockNumber2 := newBlockWithPrimaryDigest(t,
-		chainFirstSlotNumber+genesisBABEConfig.EpochLength, 2)
+		chainFirstSlotNumber+config.BABEConfigurationTestDefault.EpochLength, 2)
 
 	finalizedHeaders := []*types.Header{blockNumber1, blockNumber2}
 

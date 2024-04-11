@@ -100,24 +100,14 @@ func TestImportState_Integration(t *testing.T) {
 	stateFP := setupStateFile(t)
 	headerFP := setupHeaderFile(t)
 
-	genesisBABEConfig := &types.BabeConfiguration{
-		SlotDuration:       1000,
-		EpochLength:        200,
-		C1:                 1,
-		C2:                 4,
-		GenesisAuthorities: []types.AuthorityRaw{},
-		Randomness:         [32]byte{},
-		SecondarySlots:     0,
-	}
-
 	firstSlot := uint64(1)
-	err = ImportState(config.BasePath, stateFP, headerFP, trie.V0, genesisBABEConfig, firstSlot)
+	err = ImportState(config.BasePath, stateFP, headerFP, trie.V0, BABEConfigurationTestDefault, firstSlot)
 	require.NoError(t, err)
 	// confirm data is imported into db
 	stateConfig := state.Config{
 		Path:              config.BasePath,
 		LogLevel:          log.Info,
-		GenesisBABEConfig: genesisBABEConfig,
+		GenesisBABEConfig: BABEConfigurationTestDefault,
 	}
 	srv := state.NewService(stateConfig)
 	srv.SetupBase()
@@ -138,16 +128,6 @@ func TestImportState(t *testing.T) {
 	nodeInstance := nodeBuilder{}
 	err := nodeInstance.initNode(config)
 	require.NoError(t, err)
-
-	genesisBABEConfig := &types.BabeConfiguration{
-		SlotDuration:       1000,
-		EpochLength:        200,
-		C1:                 1,
-		C2:                 4,
-		GenesisAuthorities: []types.AuthorityRaw{},
-		Randomness:         [32]byte{},
-		SecondarySlots:     0,
-	}
 
 	stateFP := setupStateFile(t)
 	headerFP := setupHeaderFile(t)
@@ -185,7 +165,7 @@ func TestImportState(t *testing.T) {
 			t.Parallel()
 
 			err := ImportState(tt.args.basepath, tt.args.stateFP,
-				tt.args.headerFP, tt.args.stateVersion, genesisBABEConfig, tt.args.firstSlot)
+				tt.args.headerFP, tt.args.stateVersion, BABEConfigurationTestDefault, tt.args.firstSlot)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {

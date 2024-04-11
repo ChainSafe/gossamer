@@ -17,7 +17,7 @@ import (
 
 func TestInitiateEpoch_Epoch0(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 	babeService.constants.epochLength = 20
 
 	epochDescriptor, err := babeService.initiateEpoch(0)
@@ -33,7 +33,7 @@ func TestInitiateEpoch_Epoch1And2(t *testing.T) {
 		Authority: true,
 	}
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
+	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 
 	// epoch 1, check that genesis EpochData and ConfigData was properly set
 	auth := types.AuthorityRaw{
@@ -155,7 +155,7 @@ func TestInitiateEpoch_Epoch1And2(t *testing.T) {
 
 func TestIncrementEpoch(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	bs := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
+	bs := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 
 	next, err := bs.incrementEpoch()
 	require.NoError(t, err)
