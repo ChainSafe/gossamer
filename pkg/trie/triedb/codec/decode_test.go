@@ -24,18 +24,6 @@ func scaleEncodeByteSlice(t *testing.T, b []byte) (encoded []byte) {
 	return encoded
 }
 
-func concatByteSlices(slices [][]byte) (concatenated []byte) {
-	length := 0
-	for i := range slices {
-		length += len(slices[i])
-	}
-	concatenated = make([]byte, 0, length)
-	for _, slice := range slices {
-		concatenated = append(concatenated, slice...)
-	}
-	return concatenated
-}
-
 func Test_Decode(t *testing.T) {
 	t.Parallel()
 
@@ -72,11 +60,11 @@ func Test_Decode(t *testing.T) {
 				"reading from reader: EOF",
 		},
 		"leaf_success": {
-			reader: bytes.NewReader(concatByteSlices([][]byte{
+			reader: bytes.NewReader(bytes.Join([][]byte{
 				{leafVariant.bits | 1}, // partial key length 1
 				{9},                    // key data
 				scaleEncodeBytes(t, 1, 2, 3),
-			})),
+			}, nil)),
 			n: Leaf{
 				PartialKey: []byte{9},
 				Value:      NewInlineValue([]byte{1, 2, 3}),
@@ -92,54 +80,54 @@ func Test_Decode(t *testing.T) {
 				"reading from reader: EOF",
 		},
 		"branch_success": {
-			reader: bytes.NewReader(concatByteSlices([][]byte{
+			reader: bytes.NewReader(bytes.Join([][]byte{
 				{branchVariant.bits | 1},   // partial key length 1
 				{9},                        // key data
 				{0b0000_0000, 0b0000_0000}, // no children bitmap
-			})),
+			}, nil)),
 			n: Branch{
 				PartialKey: []byte{9},
 			},
 		},
 		"leaf_with_hashed_value_success": {
-			reader: bytes.NewReader(concatByteSlices([][]byte{
+			reader: bytes.NewReader(bytes.Join([][]byte{
 				{leafWithHashedValueVariant.bits | 1}, // partial key length 1
 				{9},                                   // key data
 				hashedValue.ToBytes(),
-			})),
+			}, nil)),
 			n: Leaf{
 				PartialKey: []byte{9},
 				Value:      NewHashedValue(hashedValue.ToBytes()),
 			},
 		},
 		"leaf_with_hashed_value_fail_too_short": {
-			reader: bytes.NewReader(concatByteSlices([][]byte{
+			reader: bytes.NewReader(bytes.Join([][]byte{
 				{leafWithHashedValueVariant.bits | 1}, // partial key length 1
 				{9},                                   // key data
 				{0b0000_0000},                         // less than 32bytes
-			})),
+			}, nil)),
 			errWrapped: ErrDecodeHashedValueTooShort,
 			errMessage: "cannot decode leaf: hashed storage value too short: expected 32, got: 1",
 		},
 		"branch_with_hashed_value_success": {
-			reader: bytes.NewReader(concatByteSlices([][]byte{
+			reader: bytes.NewReader(bytes.Join([][]byte{
 				{branchWithHashedValueVariant.bits | 1}, // partial key length 1
 				{9},                                     // key data
 				{0b0000_0000, 0b0000_0000},              // no children bitmap
 				hashedValue.ToBytes(),
-			})),
+			}, nil)),
 			n: Branch{
 				PartialKey: []byte{9},
 				Value:      NewHashedValue(hashedValue.ToBytes()),
 			},
 		},
 		"branch_with_hashed_value_fail_too_short": {
-			reader: bytes.NewReader(concatByteSlices([][]byte{
+			reader: bytes.NewReader(bytes.Join([][]byte{
 				{branchWithHashedValueVariant.bits | 1}, // partial key length 1
 				{9},                                     // key data
 				{0b0000_0000, 0b0000_0000},              // no children bitmap
 				{0b0000_0000},
-			})),
+			}, nil)),
 			errWrapped: ErrDecodeHashedValueTooShort,
 			errMessage: "cannot decode branch: hashed storage value too short: expected 32, got: 1",
 		},
@@ -199,10 +187,10 @@ func Test_decodeBranch(t *testing.T) {
 		},
 		"success_for_branch_variant": {
 			reader: bytes.NewBuffer(
-				concatByteSlices([][]byte{
+				bytes.Join([][]byte{
 					{0b0000_0000, 0b0000_0100}, // children bitmap
 					scaleEncodedChildHash,
-				}),
+				}, nil),
 			),
 			nodeVariant: branchVariant,
 			partialKey:  []byte{1},
@@ -219,10 +207,10 @@ func Test_decodeBranch(t *testing.T) {
 		},
 		"value_decoding_error_for_branch_with_value_variant": {
 			reader: bytes.NewBuffer(
-				concatByteSlices([][]byte{
+				bytes.Join([][]byte{
 					{0b0000_0000, 0b0000_0100}, // children bitmap
 					// missing encoded branch storage value
-				}),
+				}, nil),
 			),
 			nodeVariant: branchWithValueVariant,
 			partialKey:  []byte{1},
@@ -230,11 +218,11 @@ func Test_decodeBranch(t *testing.T) {
 			errMessage:  "cannot decode storage value: decoding uint: reading byte: EOF",
 		},
 		"success_for_branch_with_value": {
-			reader: bytes.NewBuffer(concatByteSlices([][]byte{
+			reader: bytes.NewBuffer(bytes.Join([][]byte{
 				{0b0000_0000, 0b0000_0100},   // children bitmap
 				scaleEncodeBytes(t, 7, 8, 9), // branch storage value
 				scaleEncodedChildHash,
-			})),
+			}, nil)),
 			nodeVariant: branchWithValueVariant,
 			partialKey:  []byte{1},
 			branch: Branch{
@@ -250,11 +238,11 @@ func Test_decodeBranch(t *testing.T) {
 			},
 		},
 		"branch_with_inlined_node_decoding_error": {
-			reader: bytes.NewBuffer(concatByteSlices([][]byte{
+			reader: bytes.NewBuffer(bytes.Join([][]byte{
 				{0b0000_0001, 0b0000_0000}, // children bitmap
 				scaleEncodeBytes(t, 1),     // branch storage value
 				{0},                        // garbage inlined node
-			})),
+			}, nil)),
 			nodeVariant: branchWithValueVariant,
 			partialKey:  []byte{1},
 			branch: Branch{
@@ -268,53 +256,53 @@ func Test_decodeBranch(t *testing.T) {
 			},
 		},
 		"branch_with_inlined_branch_and_leaf": {
-			reader: bytes.NewBuffer(concatByteSlices([][]byte{
+			reader: bytes.NewBuffer(bytes.Join([][]byte{
 				{0b0000_0011, 0b0000_0000}, // children bitmap
 				// top level inlined leaf less than 32 bytes
-				scaleEncodeByteSlice(t, concatByteSlices([][]byte{
+				scaleEncodeByteSlice(t, bytes.Join([][]byte{
 					{leafVariant.bits | 1}, // partial key length of 1
 					{2},                    // key data
 					scaleEncodeBytes(t, 2), // storage value data
-				})),
+				}, nil)),
 				// top level inlined branch less than 32 bytes
-				scaleEncodeByteSlice(t, concatByteSlices([][]byte{
+				scaleEncodeByteSlice(t, bytes.Join([][]byte{
 					{branchWithValueVariant.bits | 1}, // partial key length of 1
 					{3},                               // key data
 					{0b0000_0001, 0b0000_0000},        // children bitmap
 					scaleEncodeBytes(t, 3),            // branch storage value
 					// bottom level leaf
-					scaleEncodeByteSlice(t, concatByteSlices([][]byte{
+					scaleEncodeByteSlice(t, bytes.Join([][]byte{
 						{leafVariant.bits | 1}, // partial key length of 1
 						{4},                    // key data
 						scaleEncodeBytes(t, 4), // storage value data
-					})),
-				})),
-			})),
+					}, nil)),
+				}, nil)),
+			}, nil)),
 			nodeVariant: branchVariant,
 			partialKey:  []byte{1},
 			branch: Branch{
 				PartialKey: []byte{1},
 				Children: [ChildrenCapacity]MerkleValue{
 					InlineNode{
-						Data: concatByteSlices([][]byte{
+						Data: bytes.Join([][]byte{
 							{leafVariant.bits | 1}, // partial key length of 1
 							{2},                    // key data
 							scaleEncodeBytes(t, 2), // storage value data
-						}),
+						}, nil),
 					},
 					InlineNode{
-						Data: concatByteSlices([][]byte{
+						Data: bytes.Join([][]byte{
 							{branchWithValueVariant.bits | 1}, // partial key length of 1
 							{3},                               // key data
 							{0b0000_0001, 0b0000_0000},        // children bitmap
 							scaleEncodeBytes(t, 3),            // branch storage value
 							// bottom level leaf
-							scaleEncodeByteSlice(t, concatByteSlices([][]byte{
+							scaleEncodeByteSlice(t, bytes.Join([][]byte{
 								{leafVariant.bits | 1}, // partial key length of 1
 								{4},                    // key data
 								scaleEncodeBytes(t, 4), // storage value data
-							})),
-						}),
+							}, nil)),
+						}, nil),
 					},
 				},
 			},
@@ -350,9 +338,9 @@ func Test_decodeLeaf(t *testing.T) {
 		errMessage string
 	}{
 		"value_decoding_error": {
-			reader: bytes.NewBuffer(concatByteSlices([][]byte{
+			reader: bytes.NewBuffer(bytes.Join([][]byte{
 				{255, 255}, // bad storage value data
-			})),
+			}, nil)),
 			variant:    leafVariant,
 			partialKey: []byte{9},
 			errWrapped: ErrDecodeStorageValue,
@@ -368,9 +356,9 @@ func Test_decodeLeaf(t *testing.T) {
 			errMessage: "cannot decode storage value: decoding uint: reading byte: EOF",
 		},
 		"empty_storage_value_data": {
-			reader: bytes.NewBuffer(concatByteSlices([][]byte{
+			reader: bytes.NewBuffer(bytes.Join([][]byte{
 				scaleEncodeByteSlice(t, []byte{}), // results to []byte{0}
-			})),
+			}, nil)),
 			variant:    leafVariant,
 			partialKey: []byte{9},
 			leaf: Leaf{
@@ -379,9 +367,9 @@ func Test_decodeLeaf(t *testing.T) {
 			},
 		},
 		"success": {
-			reader: bytes.NewBuffer(concatByteSlices([][]byte{
+			reader: bytes.NewBuffer(bytes.Join([][]byte{
 				scaleEncodeBytes(t, 1, 2, 3, 4, 5), // storage value data
-			})),
+			}, nil)),
 			variant:    leafVariant,
 			partialKey: []byte{9},
 			leaf: Leaf{
