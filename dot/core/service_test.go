@@ -262,7 +262,6 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 				storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
 				storedRuntime.EXPECT().NetworkService().Return(nil)
 				storedRuntime.EXPECT().Validator().Return(false)
-				storedRuntime.EXPECT().CleanCache().Return(nil)
 
 				blockState := NewMockBlockState(ctrl)
 				blockState.EXPECT().GetRuntime(common.Hash{0x01}).
@@ -289,7 +288,6 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 				storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
 				storedRuntime.EXPECT().NetworkService().Return(nil)
 				storedRuntime.EXPECT().Validator().Return(true)
-				storedRuntime.EXPECT().CleanCache().Return(nil)
 
 				blockState := NewMockBlockState(ctrl)
 				blockState.EXPECT().GetRuntime(common.Hash{0x01}).
@@ -319,7 +317,6 @@ func Test_Service_handleCodeSubstitution(t *testing.T) {
 				storedRuntime.EXPECT().NodeStorage().Return(runtime.NodeStorage{})
 				storedRuntime.EXPECT().NetworkService().Return(nil)
 				storedRuntime.EXPECT().Validator().Return(true)
-				storedRuntime.EXPECT().CleanCache().Return(nil)
 
 				blockState := NewMockBlockState(ctrl)
 				blockState.EXPECT().GetRuntime(common.Hash{0x01}).

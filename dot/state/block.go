@@ -889,12 +889,6 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		rtCfg.Role = 4
 	}
 
-	err = parentRuntimeInstance.CleanCache()
-	if err != nil {
-		logger.Debugf("cleaning runtime compiler cache: %v", err)
-		return fmt.Errorf("cleaning runtime compiler cache: %w", err)
-	}
-
 	instance, err := wazero_runtime.NewInstance(code, rtCfg)
 	if err != nil {
 		return err

@@ -115,20 +115,6 @@ func (mr *MockInstanceMockRecorder) CheckInherents() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckInherents", reflect.TypeOf((*MockInstance)(nil).CheckInherents))
 }
 
-// CleanCache mocks base method.
-func (m *MockInstance) CleanCache() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CleanCache")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CleanCache indicates an expected call of CleanCache.
-func (mr *MockInstanceMockRecorder) CleanCache() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanCache", reflect.TypeOf((*MockInstance)(nil).CleanCache))
-}
-
 // DecodeSessionKeys mocks base method.
 func (m *MockInstance) DecodeSessionKeys(arg0 []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
