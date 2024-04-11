@@ -449,7 +449,6 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		metadata: cacheMetadata{
 			config: config,
 			cache:  cache,
-			ctx:    ctx,
 		},
 	}
 
