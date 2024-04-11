@@ -30,5 +30,8 @@ func decodeKey(reader io.Reader, partialKeyLength uint16) (b []byte, err error) 
 			ErrReaderMismatchCount, n, len(key))
 	}
 
+	// if the partialKeyLength is an odd number means that when parsing the key
+	// to nibbles it will contains a useless 0 in the first index, otherwise
+	// we can use the entire nibbles
 	return codec.KeyLEToNibbles(key)[partialKeyLength%2:], nil
 }
