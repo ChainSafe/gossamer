@@ -291,8 +291,15 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 		Key:    keyring.Alice().(*sr25519.Keypair).Public(),
 		Weight: 1,
 	}
-	babeConfig := config.BABEConfigurationTestDefault
-	babeConfig.GenesisAuthorities = []types.AuthorityRaw{*auth.ToRaw()}
+	babeConfig := &types.BabeConfiguration{
+		SlotDuration:       6000,
+		EpochLength:        600,
+		C1:                 1,
+		C2:                 1,
+		GenesisAuthorities: []types.AuthorityRaw{*auth.ToRaw()},
+		Randomness:         [32]byte{},
+		SecondarySlots:     1,
+	}
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie,
