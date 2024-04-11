@@ -105,8 +105,7 @@ func (i *TrieDBIterator) NextKey() []byte {
 	return key
 }
 
-// Seek moves the iterator to the first key that is greater than or equal to the
-// one we are looking for
+// Seek moves the iterator to the first key that is greater than the target key.
 func (i *TrieDBIterator) Seek(targetKey []byte) {
 	for key := i.NextKey(); bytes.Compare(key, targetKey) < 0; key = i.NextKey() {
 	}

@@ -32,14 +32,15 @@ func (t *TrieDB) NextKey(key []byte) []byte {
 // format from nodes in the trie that have the given little
 // Endian formatted prefix in their key.
 func (t *TrieDB) GetKeysWithPrefix(prefix []byte) (keysLE [][]byte) {
-	keys := make([][]byte, 0)
-
+	
 	iter := NewTrieDBIterator(t)
-	// Find a way to not iterate over all keys
-	for key := iter.NextKey(); key != nil; key = iter.NextKey() {
-		if bytes.HasPrefix(key, prefix) {
-			keys = append(keys, key)
-		}
+	iter.Seek(prefix)
+
+	//Since seek consumes the prefix, we need to add it in the keys list
+	keys := [][]byte{prefix}
+
+	for key := iter.NextKey(); bytes.HasPrefix(key, prefix); key = iter.NextKey() {
+		keys = append(keys, key)
 	}
 
 	return keys
