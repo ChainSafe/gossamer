@@ -10,6 +10,8 @@ import (
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/state"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -265,7 +267,7 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 	pov := getPovFromValidator()
 
 	return rpState.validateAndMakeAvailable(
-		executorParamsAtRelayParent,
+		executorParamsAtRelayParent_temp,
 		subSystemToOverseer,
 		chRelayParentAndCommand,
 		attesting.candidate,
@@ -317,7 +319,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	// executorParamsAtRelayParent() should be called after it is implemented #3544
 	executorParams, err := executorParamsAtRelayParentFunc(relayParent, subSystemToOverseer)
 	if err != nil {
-		return fmt.Errorf("getting executor params at relay parent: %w", err)
+		return fmt.Errorf("getting executor params for relay parent %s: %w", relayParent, err)
 	}
 
 	pvfExecTimeoutKind := parachaintypes.NewPvfExecTimeoutKind()
@@ -411,10 +413,45 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	return nil
 }
 
-func executorParamsAtRelayParent(
+func executorParamsAtRelayParent_temp(
 	relayParent common.Hash, subSystemToOverseer chan<- any,
 ) (parachaintypes.ExecutorParams, error) {
 	// TODO: Implement this #3544
 	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/subsystem-util/src/lib.rs#L241-L242
 	return parachaintypes.ExecutorParams{}, nil
+}
+
+func executorParamsAtRelayParent(
+	blockstate *state.BlockState, relayParent common.Hash, subSystemToOverseer chan<- any,
+) (*parachaintypes.ExecutorParams, error) {
+	// TODO: Implement this #3544
+	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/subsystem-util/src/lib.rs#L241-L242
+
+	rt, err := blockstate.GetRuntime(relayParent)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
+	}
+
+	sessionIndex, err := rt.ParachainHostSessionIndexForChild()
+	if err != nil {
+		return nil, fmt.Errorf("getting session index for relay parent %s: %w", relayParent, err)
+	}
+
+	executorParams, err := rt.ParachainHostSessionExecutorParams(sessionIndex)
+	if err != nil {
+		if errors.Is(err, wazero_runtime.ErrExportFunctionNotFound) {
+			// Runtime doesn't yet support the api requested,
+			// should execute anyway with default set of parameters.
+			defaultExecutorParams := parachaintypes.ExecutorParams(parachaintypes.NewExecutorParams())
+			return &defaultExecutorParams, nil
+		}
+		return nil, err
+	}
+
+	if executorParams == nil {
+		// should never happen
+		return nil, fmt.Errorf("executor params for relay parent %s is nil", relayParent)
+	}
+
+	return executorParams, nil
 }

@@ -607,7 +607,7 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 			},
 			expectedErr:              "",
 			mockOverseer:             func(ch chan any) {},
-			mockExecutorParamsGetter: executorParamsAtRelayParent,
+			mockExecutorParamsGetter: executorParamsAtRelayParent_temp,
 		},
 		{
 			description: "unable_to_get_validation_code",
@@ -628,7 +628,7 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 					Err: errors.New("mock error getting validation code"),
 				}
 			},
-			mockExecutorParamsGetter: executorParamsAtRelayParent,
+			mockExecutorParamsGetter: executorParamsAtRelayParent_temp,
 		},
 		{
 			description: "unable_to_get_executor_params",
@@ -650,7 +650,8 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 				}
 			},
 			mockExecutorParamsGetter: func(h common.Hash, c chan<- any) (parachaintypes.ExecutorParams, error) {
-				return parachaintypes.NewExecutorParams(), errors.New("mock error getting executor params")
+				params := parachaintypes.ExecutorParams(parachaintypes.NewExecutorParams())
+				return params, errors.New("mock error getting executor params")
 			},
 		},
 		{
@@ -677,7 +678,7 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 					}
 				}
 			},
-			mockExecutorParamsGetter: executorParamsAtRelayParent,
+			mockExecutorParamsGetter: executorParamsAtRelayParent_temp,
 		},
 		{
 			description: "validation_result_is_invalid",
@@ -706,7 +707,7 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 					}
 				}
 			},
-			mockExecutorParamsGetter: executorParamsAtRelayParent,
+			mockExecutorParamsGetter: executorParamsAtRelayParent_temp,
 		},
 		{
 			description: "validation_result_is_valid",
@@ -736,7 +737,7 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 					}
 				}
 			},
-			mockExecutorParamsGetter: executorParamsAtRelayParent,
+			mockExecutorParamsGetter: executorParamsAtRelayParent_temp,
 		},
 	}
 
