@@ -2,13 +2,27 @@ package networkbridge
 
 import (
 	"context"
+	"fmt"
 
+	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-type NetworkBridgeSender struct{}
+type NetworkBridgeSender struct {
+	OverseerToSubSystem <-chan any
+}
 
-func (nbs *NetworkBridgeSender) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) {
+func (nbs *NetworkBridgeSender) Run(ctx context.Context, OverseerToSubSystem chan any,
+	SubSystemToOverseer chan any) {
+
+	for msg := range nbs.OverseerToSubSystem {
+		err := nbs.processMessage(msg)
+		if err != nil {
+			logger.Errorf("processing overseer message: %w", err)
+		}
+	}
 }
 
 func (nbs *NetworkBridgeSender) Name() parachaintypes.SubSystemName {
@@ -20,3 +34,65 @@ func (nbs *NetworkBridgeSender) ProcessActiveLeavesUpdateSignal() {}
 func (nbs *NetworkBridgeSender) ProcessBlockFinalizedSignal() {}
 
 func (nbs *NetworkBridgeSender) Stop() {}
+
+func (nbs *NetworkBridgeSender) processMessage(msg any) error {
+	// run this function as a goroutine, ideally
+
+	switch msg := msg.(type) {
+	case SendCollationMessage:
+		// TODO
+		fmt.Println(msg)
+	case SendValidationMessage:
+		// TODO: add SendValidationMessages and SendCollationMessages to send multiple messages at the same time
+		// TODO: add ConnectTOResolvedValidators, SendRequests
+	case ConnectToValidators:
+		// TODO
+	case ReportPeer:
+		// TODO
+	case DisconnectPeer:
+		// TODO
+	}
+
+	return nil
+}
+
+// NOTE: This is not same as corresponding rust structure
+// TODO: If need be, add ability to report multiple peers in batches
+type ReportPeer struct {
+	peerID           peer.ID
+	reputationChange peerset.ReputationChange
+}
+
+type DisconnectPeer struct {
+	peer    peer.ID
+	peerSet peerSetType
+}
+
+type SendCollationMessage struct {
+	to []peer.ID
+	// TODO: make this versioned
+	collationProtocolMessage collatorprotocol.CollationProtocol
+}
+
+type SendValidationMessage struct {
+	to []peer.ID
+	// TODO: move validation protocol to a new package to be able to be used here
+	// validationProtocolMessage
+}
+
+type peerSetType int
+
+const (
+	validationProtocol peerSetType = iota
+	collationProtocol
+)
+
+type ConnectToValidators struct {
+	// IDs of the validators to connect to.
+	validatorIDs []parachaintypes.AuthorityDiscoveryID
+	// The underlying protocol to use for this request.
+	peerSet peerSetType
+	// Sends back the number of `AuthorityDiscoveryId`s which
+	// authority discovery has failed to resolve.
+	failed chan<- uint
+}
