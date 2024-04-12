@@ -12,6 +12,7 @@ package overseer
 import (
 	reflect "reflect"
 
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
@@ -146,7 +147,7 @@ func (mr *MockOverseerSystemMockRecorder) GetSubsystemToOverseerChannel() *gomoc
 }
 
 // RegisterSubsystem mocks base method.
-func (m *MockOverseerSystem) RegisterSubsystem(arg0 Subsystem) chan interface{} {
+func (m *MockOverseerSystem) RegisterSubsystem(arg0 parachaintypes.Subsystem) chan interface{} {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterSubsystem", arg0)
 	ret0, _ := ret[0].(chan interface{})

@@ -27,7 +27,7 @@ var (
 
 type OverseerSystem interface {
 	Start() error
-	RegisterSubsystem(subsystem Subsystem) chan any
+	RegisterSubsystem(subsystem parachaintypes.Subsystem) chan any
 	Stop() error
 	GetSubsystemToOverseerChannel() chan any
 }
@@ -45,8 +45,8 @@ type Overseer struct {
 	finalised chan *types.FinalisationInfo
 
 	SubsystemsToOverseer chan any
-	subsystems           map[Subsystem]chan any // map[Subsystem]OverseerToSubSystem channel
-	nameToSubsystem      map[parachaintypes.SubSystemName]Subsystem
+	subsystems           map[parachaintypes.Subsystem]chan any // map[Subsystem]OverseerToSubSystem channel
+	nameToSubsystem      map[parachaintypes.SubSystemName]parachaintypes.Subsystem
 	wg                   sync.WaitGroup
 }
 
@@ -70,8 +70,8 @@ func NewOverseer(blockState BlockState) OverseerSystem {
 		blockState:           blockState,
 		activeLeaves:         make(map[common.Hash]uint32),
 		SubsystemsToOverseer: make(chan any),
-		subsystems:           make(map[Subsystem]chan any),
-		nameToSubsystem:      make(map[parachaintypes.SubSystemName]Subsystem),
+		subsystems:           make(map[parachaintypes.Subsystem]chan any),
+		nameToSubsystem:      make(map[parachaintypes.SubSystemName]parachaintypes.Subsystem),
 	}
 }
 
@@ -81,7 +81,7 @@ func (o *Overseer) GetSubsystemToOverseerChannel() chan any {
 
 // RegisterSubsystem registers a subsystem with the overseer,
 // Add OverseerToSubSystem channel to subsystem, which will be passed to subsystem's Run method.
-func (o *Overseer) RegisterSubsystem(subsystem Subsystem) chan any {
+func (o *Overseer) RegisterSubsystem(subsystem parachaintypes.Subsystem) chan any {
 	OverseerToSubSystem := make(chan any)
 	o.subsystems[subsystem] = OverseerToSubSystem
 	o.nameToSubsystem[subsystem.Name()] = subsystem
@@ -100,7 +100,7 @@ func (o *Overseer) Start() error {
 	// start subsystems
 	for subsystem, overseerToSubSystem := range o.subsystems {
 		o.wg.Add(1)
-		go func(sub Subsystem, overseerToSubSystem chan any) {
+		go func(sub parachaintypes.Subsystem, overseerToSubSystem chan any) {
 			sub.Run(o.ctx, overseerToSubSystem, o.SubsystemsToOverseer)
 			logger.Infof("subsystem %v stopped", sub)
 			o.wg.Done()
@@ -119,7 +119,7 @@ func (o *Overseer) processMessages() {
 	for {
 		select {
 		case msg := <-o.SubsystemsToOverseer:
-			var subsystem Subsystem
+			var subsystem parachaintypes.Subsystem
 
 			switch msg := msg.(type) {
 			case backing.GetBackedCandidatesMessage, backing.CanSecondMessage, backing.SecondMessage, backing.StatementMessage:
