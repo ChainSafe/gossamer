@@ -578,6 +578,8 @@ func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 			return err
 		}
 
+		prtl.peersData.setMutex(to)
+
 		s.sendData(to, hs, prtl, msg)
 		return nil
 	}

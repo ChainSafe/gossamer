@@ -270,7 +270,6 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		return
 	}
 
-	info.peersData.setMutex(peer)
 	stream, err := s.sendHandshake(peer, hs, info)
 	if err != nil {
 		logger.Debugf("failed to send handshake to peer %s on protocol %s: %s", peer, info.protocolID, err)
