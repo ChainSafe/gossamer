@@ -170,4 +170,4 @@ func (l *TrieDB) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error)
 	}
 }
 
-var _ trie.ReadOnlyTrie = (*TrieDB)(nil)
+var _ trie.TrieRead = (*TrieDB)(nil)
