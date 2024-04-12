@@ -56,8 +56,6 @@ func (t *TrieDB) MustHash() common.Hash {
 func (t *TrieDB) Get(key []byte) []byte {
 	val, err := t.lookup(key)
 	if err != nil {
-		// TODO: do we have to do anything else? maybe change the signature
-		// to return an error?
 		return nil
 	}
 	return val
