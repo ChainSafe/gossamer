@@ -91,23 +91,23 @@ func TestNewHeaderFromFile(t *testing.T) {
 }
 
 func TestImportState_Integration(t *testing.T) {
-	defaultWndDevConfig := DefaultTestWestendDevConfig(t)
+	defaultWestendDevConfig := DefaultTestWestendDevConfig(t)
 
-	genFile := NewTestGenesisRawFile(t, defaultWndDevConfig)
-	defaultWndDevConfig.ChainSpec = genFile
-	err := InitNode(defaultWndDevConfig)
+	genFile := NewTestGenesisRawFile(t, defaultWestendDevConfig)
+	defaultWestendDevConfig.ChainSpec = genFile
+	err := InitNode(defaultWestendDevConfig)
 	require.NoError(t, err)
 
 	stateFP := setupStateFile(t)
 	headerFP := setupHeaderFile(t)
 
 	firstSlot := uint64(1)
-	err = ImportState(defaultWndDevConfig.BasePath, stateFP, headerFP,
+	err = ImportState(defaultWestendDevConfig.BasePath, stateFP, headerFP,
 		trie.V0, config.BABEConfigurationTestDefault, firstSlot)
 	require.NoError(t, err)
 	// confirm data is imported into db
 	stateConfig := state.Config{
-		Path:              defaultWndDevConfig.BasePath,
+		Path:              defaultWestendDevConfig.BasePath,
 		LogLevel:          log.Info,
 		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
@@ -124,11 +124,11 @@ func TestImportState_Integration(t *testing.T) {
 func TestImportState(t *testing.T) {
 	t.Parallel()
 
-	defaultWndDevConfig := DefaultTestWestendDevConfig(t)
+	defaultWestendDevConfig := DefaultTestWestendDevConfig(t)
 
-	defaultWndDevConfig.ChainSpec = NewTestGenesisRawFile(t, defaultWndDevConfig)
+	defaultWestendDevConfig.ChainSpec = NewTestGenesisRawFile(t, defaultWestendDevConfig)
 	nodeInstance := nodeBuilder{}
-	err := nodeInstance.initNode(defaultWndDevConfig)
+	err := nodeInstance.initNode(defaultWestendDevConfig)
 	require.NoError(t, err)
 
 	stateFP := setupStateFile(t)
@@ -153,7 +153,7 @@ func TestImportState(t *testing.T) {
 		{
 			name: "working_example",
 			args: args{
-				basepath:     defaultWndDevConfig.BasePath,
+				basepath:     defaultWestendDevConfig.BasePath,
 				stateFP:      stateFP,
 				headerFP:     headerFP,
 				stateVersion: trie.V0,

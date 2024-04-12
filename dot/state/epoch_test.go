@@ -613,3 +613,123 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 		})
 	}
 }
+
+func currentSlot(ts, slotDuration uint64) uint64 {
+	return ts / slotDuration
+}
+
+func buildBlockPrimaryDigest(t *testing.T, primaryPreDigest types.BabePrimaryPreDigest) types.Digest {
+	babeDigest := types.NewBabeDigest()
+	err := babeDigest.SetValue(primaryPreDigest)
+	require.NoError(t, err)
+
+	bdEnc, err := scale.Marshal(babeDigest)
+	require.NoError(t, err)
+
+	digestPrimary := types.NewDigest()
+	err = digestPrimary.Add(types.PreRuntimeDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              bdEnc,
+	})
+
+	return digestPrimary
+}
+
+func TestRetrieveChainFirstSlot(t *testing.T) {
+	// test case: setup a chain that will have two blocks with number 1
+	// one created in slot X and the other created on slot Y
+	// slot Y is 1000 slots ahead of slot X, Gossamer should handle
+	// each chain correctly, blocks built on Y should have the correct
+	// epoch calculation, same for blocks on X
+	// when finalization happens Gossamer should retrieve the chain first
+	// slot for the finalized chain, given that the other chain will be pruned
+	singleEpochState := newEpochStateFromGenesis(t)
+
+	// calling without any block it must return error
+	_, err := singleEpochState.retrieveFirstNonOriginBlockSlot(common.Hash{})
+	require.ErrorIs(t, err, errNoFirstNonOriginBlock)
+
+	slotDuration, err := singleEpochState.GetSlotDuration()
+	require.NoError(t, err)
+
+	genesisHash := singleEpochState.blockState.genesisHash
+
+	slotX := currentSlot(uint64(time.Now().UnixNano()),
+		uint64(slotDuration.Nanoseconds()))
+
+	block01OnSlotX := types.NewEmptyHeader()
+	block01OnSlotX.ParentHash = genesisHash
+	block01OnSlotX.Number = 1
+	block01OnSlotX.Digest = buildBlockPrimaryDigest(t,
+		types.BabePrimaryPreDigest{AuthorityIndex: 0, SlotNumber: slotX})
+
+	err = singleEpochState.blockState.AddBlock(
+		&types.Block{Header: *block01OnSlotX, Body: *types.NewBody([]types.Extrinsic{})})
+	require.NoError(t, err)
+
+	slotY := slotX + 1000
+
+	block01OnSlotY := types.NewEmptyHeader()
+	block01OnSlotY.ParentHash = genesisHash
+	block01OnSlotY.Number = 1
+	block01OnSlotY.Digest = buildBlockPrimaryDigest(t,
+		types.BabePrimaryPreDigest{AuthorityIndex: 1, SlotNumber: slotY})
+
+	singleEpochState.blockState.AddBlock(
+		&types.Block{Header: *block01OnSlotY, Body: *types.NewBody([]types.Extrinsic{})})
+	require.NoError(t, err)
+
+	// creating another block on top of each fork
+	block02OnSlotX := types.NewEmptyHeader()
+	block02OnSlotX.ParentHash = block01OnSlotX.Hash()
+	block02OnSlotX.Number = 2
+	block02OnSlotX.Digest = buildBlockPrimaryDigest(t,
+		types.BabePrimaryPreDigest{AuthorityIndex: 0, SlotNumber: slotX + 1})
+
+	err = singleEpochState.blockState.AddBlock(
+		&types.Block{Header: *block02OnSlotX, Body: *types.NewBody([]types.Extrinsic{})})
+	require.NoError(t, err)
+
+	block02OnSlotY := types.NewEmptyHeader()
+	block02OnSlotY.ParentHash = block01OnSlotY.Hash()
+	block02OnSlotY.Number = 2
+	block02OnSlotY.Digest = buildBlockPrimaryDigest(t,
+		types.BabePrimaryPreDigest{AuthorityIndex: 0, SlotNumber: slotY + 1})
+
+	err = singleEpochState.blockState.AddBlock(
+		&types.Block{Header: *block02OnSlotY, Body: *types.NewBody([]types.Extrinsic{})})
+	require.NoError(t, err)
+
+	testcases := map[string]struct {
+		blockHeader            *types.Header
+		expectedChainFirstSlot uint64
+		expectedSlotNumber     uint64
+		expectedEpoch          uint64
+	}{
+		"block_2_on_X_fork": {
+			blockHeader:            block02OnSlotX,
+			expectedChainFirstSlot: slotX,
+			expectedEpoch:          0,
+		},
+		"block_2_on_Y_fork": {
+			blockHeader:            block02OnSlotY,
+			expectedChainFirstSlot: slotY,
+			expectedEpoch:          0,
+		},
+	}
+
+	for tname, tt := range testcases {
+		tt := tt
+
+		t.Run(tname, func(t *testing.T) {
+			chainFirstSlot, err := singleEpochState.retrieveFirstNonOriginBlockSlot(tt.blockHeader.Hash())
+			require.NoError(t, err)
+			require.Equal(t, tt.expectedChainFirstSlot, chainFirstSlot)
+
+			epoch, err := singleEpochState.GetEpochForBlock(tt.blockHeader)
+			require.NoError(t, err)
+			require.Equal(t, tt.expectedEpoch, epoch)
+		})
+	}
+
+}
