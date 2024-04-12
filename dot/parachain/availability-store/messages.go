@@ -150,8 +150,8 @@ func (Unavailable) Index() uint {
 // which case the same timestamp will be reused. Blocks are sorted ascending first by block
 // number and then hash. candidate data was first observed at the given time and is available in at least one block
 type Unfinalized struct {
-	Timestamp       BETimestamp
-	BlockNumberHash []BlockNumberHash
+	Timestamp  BETimestamp
+	BlockEntry []BlockEntry
 }
 
 // Index returns the index of the varying data type
@@ -161,7 +161,7 @@ func (Unfinalized) Index() uint {
 
 // Finalized candidate data has appeared in a finalized block and did so at the given time
 type Finalized struct {
-	Timestamp BETimestamp
+	Timestamp BETimestamp `scale:"1"`
 }
 
 // Index returns the index of the varying data type
@@ -169,10 +169,10 @@ func (Finalized) Index() uint {
 	return 2
 }
 
-// BlockNumberHash is a block number and hash
-type BlockNumberHash struct {
-	blockNumber parachaintypes.BlockNumber //nolint:structcheck
-	blockHash   common.Hash                //nolint:structcheck
+// BlockEntry is a block number and hash
+type BlockEntry struct {
+	BlockNumber parachaintypes.BlockNumber
+	BlockHash   common.Hash
 }
 
 type branches struct {

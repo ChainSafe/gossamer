@@ -4,7 +4,6 @@
 package availabilitystore
 
 import (
-	"bytes"
 	"context"
 	"encoding/binary"
 	"errors"
@@ -91,10 +90,6 @@ type AvailabilityStoreSubsystem struct {
 	pruningConfig       PruningConfig
 	clock               subsystemClock
 	//TODO: metrics       Metrics
-}
-type BlockEntry struct {
-	blockNumber parachaintypes.BlockNumber
-	hash        common.Hash
 }
 
 type KnownUnfinalizedBlock struct {
@@ -359,11 +354,7 @@ func (as *availabilityStore) storeChunk(candidate parachaintypes.CandidateHash, 
 
 	meta.ChunksStored[chunk.Index] = true
 
-	dataBytes, err = scale.Marshal(*meta)
-	if err != nil {
-		return false, fmt.Errorf("marshalling meta for candidate: %w", err)
-	}
-	err = batch.meta.Put(candidate.Value[:], dataBytes)
+	err = writeMeta(batch.meta, candidate, meta)
 	if err != nil {
 		return false, fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
 	}
@@ -393,9 +384,7 @@ func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 
 	now := subsystem.clock.Now()
 	pruneAt := now + BETimestamp(subsystem.pruningConfig.KeepUnavailableFor.Seconds())
-
-	pruneKey := append(pruneAt.ToBigEndianBytes(), candidate.Value[:]...)
-	err = batch.pruneByTime.Put(pruneKey, nil)
+	err = subsystem.writePruningKey(batch.pruneByTime, pruneAt, candidate)
 	if err != nil {
 		return false, fmt.Errorf("writing pruning key: %w", err)
 	}
@@ -450,16 +439,12 @@ func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 		meta.ChunksStored[i] = true
 	}
 
-	dataBytes, err := scale.Marshal(*meta)
-	if err != nil {
-		return false, fmt.Errorf("marshalling meta for candidate: %w", err)
-	}
-	err = batch.meta.Put(candidate.Value[:], dataBytes)
+	err = writeMeta(batch.meta, candidate, meta)
 	if err != nil {
 		return false, fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
 	}
 
-	dataBytes, err = scale.Marshal(data)
+	dataBytes, err := scale.Marshal(data)
 	if err != nil {
 		return false, fmt.Errorf("marshalling available data: %w", err)
 	}
@@ -573,7 +558,6 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 				av.ProcessBlockFinalizedSignal(msg)
 
 			default:
-				// TODO(ed): handle unknown message type (if necessary)
 				if msg != nil {
 					logger.Infof("unknown message type %T", msg)
 					logger.Error(parachaintypes.ErrUnknownOverseerMessage.Error())
@@ -672,13 +656,13 @@ func (av *AvailabilityStoreSubsystem) processNewHead(tx *availabilityStoreBatch,
 
 func (av *AvailabilityStoreSubsystem) noteBlockBacked(tx *availabilityStoreBatch, now BETimestamp, nValidators uint,
 	candidate parachaintypes.CandidateReceipt) {
-	candidateHash, err := candidate.Hash()
+	hash, err := candidate.Hash()
 	if err != nil {
 		logger.Errorf("failed to hash candidate: %w", err)
 		return
 	}
-	logger.Infof("Candidate backed %v", candidateHash)
-	meta, err := av.availabilityStore.loadMeta(parachaintypes.CandidateHash{Value: candidateHash})
+	candidateHash := parachaintypes.CandidateHash{Value: hash}
+	meta, err := av.availabilityStore.loadMeta(candidateHash)
 	if err != nil {
 		logger.Errorf("failed to load meta for candidate %v: %w", candidateHash, err)
 	}
@@ -693,21 +677,14 @@ func (av *AvailabilityStoreSubsystem) noteBlockBacked(tx *availabilityStoreBatch
 			DataAvailable: false,
 			ChunksStored:  make([]bool, nValidators),
 		}
-		// write meta
-		dataBytes, err := scale.Marshal(*meta)
-		if err != nil {
-			logger.Errorf("marshalling meta for candidate: %w", err)
-		}
-		err = tx.meta.Put(candidateHash[:], dataBytes)
+
+		err = writeMeta(tx.meta, candidateHash, meta)
 		if err != nil {
 			logger.Errorf("storing metadata for candidate %v: %w", candidate, err)
 		}
 
-		// write pruning key
 		pruneAt := now + BETimestamp(av.pruningConfig.KeepUnavailableFor.Seconds())
-
-		pruneKey := append(uint32ToBytes(uint32(pruneAt)), candidateHash[:]...)
-		err = tx.pruneByTime.Put(pruneKey, nil)
+		err = av.writePruningKey(tx.pruneByTime, pruneAt, candidateHash)
 		if err != nil {
 			logger.Errorf("writing pruning key: %w", err)
 		}
@@ -717,13 +694,13 @@ func (av *AvailabilityStoreSubsystem) noteBlockBacked(tx *availabilityStoreBatch
 func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBatch,
 	blockNumber parachaintypes.BlockNumber, blockHash common.Hash,
 	candidate parachaintypes.CandidateReceipt) {
-	candidateHash, err := candidate.Hash()
+	hash, err := candidate.Hash()
 	if err != nil {
 		logger.Errorf("failed to hash candidate: %w", err)
 		return
 	}
-	logger.Infof("noteBlockIncluded %v", candidateHash)
-	meta, err := av.availabilityStore.loadMeta(parachaintypes.CandidateHash{Value: candidateHash})
+	candidateHash := parachaintypes.CandidateHash{Value: hash}
+	meta, err := av.availabilityStore.loadMeta(candidateHash)
 	if err != nil {
 		logger.Errorf("failed to load meta for candidate %v: %w", candidateHash, err)
 	}
@@ -732,9 +709,9 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 		logger.Warnf("Candidate included without being backed %v", candidateHash)
 		return
 	}
-	beBlock := BlockNumberHash{
-		blockNumber: blockNumber,
-		blockHash:   blockHash,
+	beBlock := BlockEntry{
+		BlockNumber: blockNumber,
+		BlockHash:   blockHash,
 	}
 	stateValue, err := meta.State.Value()
 	if err != nil {
@@ -745,22 +722,22 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 	case Unavailable:
 		pruneAt := val.Timestamp + BETimestamp(av.pruningConfig.KeepUnavailableFor.Seconds())
 
-		pruneKey := append(uint32ToBytes(uint32(pruneAt)), candidateHash[:]...)
+		pruneKey := append(uint32ToBytes(uint32(pruneAt)), candidateHash.Value[:]...)
 		err = tx.pruneByTime.Del(pruneKey)
 		if err != nil {
 			logger.Errorf("failed to delete pruning key: %w", err)
 		}
 		err = meta.State.Set(Unfinalized{
-			Timestamp:       val.Timestamp,
-			BlockNumberHash: []BlockNumberHash{beBlock},
+			Timestamp:  val.Timestamp,
+			BlockEntry: []BlockEntry{beBlock},
 		})
 		if err != nil {
 			logger.Errorf("failed to set state to unfinalized: %w", err)
 		}
 	case Unfinalized:
 		err = meta.State.Set(Unfinalized{
-			Timestamp:       val.Timestamp,
-			BlockNumberHash: append(val.BlockNumberHash, beBlock),
+			Timestamp:  val.Timestamp,
+			BlockEntry: append(val.BlockEntry, beBlock),
 		})
 		if err != nil {
 			logger.Errorf("failed to set state to unfinalized: %w", err)
@@ -772,17 +749,13 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 
 	//write unfinalized block contains
 	key := append(uint32ToBytes(uint32(blockNumber)), blockHash[:]...)
-	key = append(key, candidateHash[:]...)
+	key = append(key, candidateHash.Value[:]...)
 	err = tx.unfinalized.Put(key, nil)
 	if err != nil {
 		logger.Errorf("failed to put unfinalized key: %w", err)
 	}
 
-	dataBytes, err := scale.Marshal(*meta)
-	if err != nil {
-		logger.Errorf("marshalling meta for candidate: %w", err)
-	}
-	err = tx.meta.Put(candidateHash[:], dataBytes)
+	err = writeMeta(tx.meta, candidateHash, meta)
 	if err != nil {
 		logger.Errorf("failed to put meta key: %w", err)
 	}
@@ -792,54 +765,21 @@ func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal() {
 	logger.Infof("ProcessBlockFinalizedSignal %T, %v", av.currentMessage, av.currentMessage)
 	finalizedBlock := av.currentMessage.(parachaintypes.BlockFinalizedSignal)
 	now := av.clock.Now()
-	// TODO(ED): determine how to use this inerator so that more than one entry in unfinialzed can be handled
-	//for {
-	startPrefix, endPrefix := finalizedBlockRange(av.currentMessage.(parachaintypes.BlockFinalizedSignal).BlockNumber)
-	//  iterate meta table (using start/end prefix)
-	iter, err := av.availabilityStore.unfinalized.NewIterator()
-	if err != nil {
-		logger.Errorf("creating iterator: %w", err)
-	}
-	defer iter.Release()
-
-	var batchNum uint32
-	unfinalizedKey := []byte{}
-	for iter.First(); iter.Valid(); iter.Next() {
-		key := iter.Key()
-		if bytes.Equal(startPrefix, key[:len(startPrefix)]) && bytes.Compare(endPrefix,
-			key[:len(endPrefix)]) == 1 {
-			unfinalizedKey = key
-			batchNum = binary.BigEndian.Uint32(key[len(startPrefix):len(endPrefix)])
-		}
-	}
-
-	var batchFinalizedHash common.Hash
-	if batchNum == uint32(finalizedBlock.BlockNumber) {
-		batchFinalizedHash = finalizedBlock.Hash
-	} else {
-		// TODO: get finalized hash from finalized block number
-		batchFinalizedHash = common.Hash{}
-	}
 
 	// load all of finalized height
-	batch := av.loadAllAtFinalizedHeight(startPrefix, endPrefix, batchFinalizedHash)
+	batch := av.loadAllAtFinalizedHeight(finalizedBlock.BlockNumber, finalizedBlock.Hash)
 
 	// delete unfinalized height
-	// TODO(ED): fix this so that it iterates all unfinalised with matching batch number (not just the key)
 	tx := newAvailabilityStoreBatch(&av.availabilityStore)
-	err = tx.unfinalized.Del(unfinalizedKey[11:])
-	if err != nil {
-		logger.Errorf("failed to delete unfinalized height: %w", err)
-	}
+	av.deleteUnfinalizedHeight(tx.unfinalized, finalizedBlock.BlockNumber)
 
 	// update blocks at finalized height
-	av.updateBlockAtFinalizedHeight(tx, batch, batchNum, now)
+	av.updateBlockAtFinalizedHeight(tx, batch, uint32(finalizedBlock.BlockNumber), now)
 
-	err = tx.flush()
+	err := tx.flush()
 	if err != nil {
 		logger.Errorf("failed to flush tx: %w", err)
 	}
-	//} // end for loop
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryAvailableData(msg QueryAvailableData) error {
@@ -941,7 +881,6 @@ func (av *AvailabilityStoreSubsystem) handleStoreChunk(msg StoreChunk) error {
 
 func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailableData) error {
 	// TODO: add to metric on_chunks_received
-
 	res, err := av.availabilityStore.storeAvailableData(av, msg.CandidateHash, msg.NumValidators,
 		msg.AvailableData,
 		msg.ExpectedErasureRoot)
@@ -967,7 +906,6 @@ func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailabl
 
 func (av *AvailabilityStoreSubsystem) pruneAll() {
 	now := av.clock.Now()
-
 	iter, err := av.availabilityStore.pruneByTime.NewIterator()
 	if err != nil {
 		logger.Errorf("creating iterator: %w", err)
@@ -981,6 +919,7 @@ func (av *AvailabilityStoreSubsystem) pruneAll() {
 		if pruneAt > uint32(now) {
 			continue
 		}
+
 		err := av.processPruneKey(key)
 		if err != nil {
 			logger.Errorf("failed to process prune key: %w", err)
@@ -988,9 +927,14 @@ func (av *AvailabilityStoreSubsystem) pruneAll() {
 	}
 }
 
+func (av *AvailabilityStoreSubsystem) writePruningKey(writer database.Writer, pruneTime BETimestamp,
+	hash parachaintypes.CandidateHash) error {
+	key := append((uint32ToBytes(uint32(pruneTime))), hash.Value[:]...)
+	return writer.Put(key, nil)
+}
+
 func (av *AvailabilityStoreSubsystem) processPruneKey(key []byte) error {
 	candidateHash := key[len(pruneByTimePrefix)+4:]
-	// delete key from pruneByTime
 	err := av.availabilityStore.pruneByTime.Del(key[len(pruneByTimePrefix):])
 	if err != nil {
 		logger.Errorf("failed to delete key: %w", err)
@@ -1024,24 +968,57 @@ func (av *AvailabilityStoreSubsystem) processPruneKey(key []byte) error {
 		logger.Errorf("failed to delete key: %w", err)
 	}
 
-	// TODO: delete key from unfinalized
-	//  build unfinalized key, (UNFINALIZED_PREFIX, BEBlockNumber(block_number), block_hash, candidate_hash).encode();
-	//unfinalizedKey := append(parachaintypes.BlockNumber(2), key[len(pruneByTimePrefix):]...)
-	//av.availabilityStore.unfinalized.Del(unfinalizedKey)
+	stateValue, err := meta.State.Value()
+	if err != nil {
+		logger.Errorf("failed to get state value: %w", err)
+	}
+
+	switch state := stateValue.(type) {
+	case Unfinalized:
+		for _, v := range state.BlockEntry {
+			key := append(uint32ToBytes(uint32(v.BlockNumber)), v.BlockHash[:]...)
+			key = append(key, candidateHash...)
+			err = av.availabilityStore.unfinalized.Del(key)
+			if err != nil {
+				logger.Errorf("failed to delete key: %w", err)
+			}
+		}
+	}
 	return nil
 }
+
 func (av *AvailabilityStoreSubsystem) Stop() {
 	av.cancel()
 	av.wg.Wait()
 }
 
-func finalizedBlockRange(finalized parachaintypes.BlockNumber) (start, end []byte) {
-	start = []byte(unfinalizedPrefix)
-	end = append([]byte(unfinalizedPrefix), uint32ToBytes(uint32(finalized+1))...)
-	return
+func (av *AvailabilityStoreSubsystem) deleteUnfinalizedHeight(writer database.Writer,
+	blockNumber parachaintypes.BlockNumber) {
+	iter, err := av.availabilityStore.unfinalized.NewIterator()
+	if err != nil {
+		logger.Errorf("creating iterator: %w", err)
+	}
+	defer iter.Release()
+
+	for iter.First(); iter.Valid(); iter.Next() {
+		key := iter.Key()
+		number, _, _ := decodeUnfinalizedKey(key)
+		if number < blockNumber {
+			continue
+		}
+		if number == blockNumber {
+			err := writer.Del(key[len(unfinalizedPrefix):])
+			if err != nil {
+				logger.Errorf("failed to delete unfinalized key: %w", err)
+			}
+		}
+		if number > blockNumber {
+			break
+		}
+	}
 }
 
-func (av *AvailabilityStoreSubsystem) loadAllAtFinalizedHeight(startPrefix []byte, endPrefix []byte,
+func (av *AvailabilityStoreSubsystem) loadAllAtFinalizedHeight(finalizedNumber parachaintypes.BlockNumber,
 	finalizedHash common.Hash) map[parachaintypes.CandidateHash]bool {
 	result := make(map[parachaintypes.CandidateHash]bool)
 	iter, err := av.availabilityStore.unfinalized.NewIterator()
@@ -1052,14 +1029,19 @@ func (av *AvailabilityStoreSubsystem) loadAllAtFinalizedHeight(startPrefix []byt
 
 	for iter.First(); iter.Valid(); iter.Next() {
 		key := iter.Key()
-		if bytes.Equal(startPrefix, key[:len(startPrefix)]) && bytes.Compare(endPrefix,
-			key[:len(endPrefix)]) == 1 {
-			_, blockHash, candidateHash := decodeUnfinalizedKey(key)
+		blockNum, blockHash, candidateHash := decodeUnfinalizedKey(key)
+		if blockNum < finalizedNumber {
+			continue
+		}
+		if blockNum == finalizedNumber {
 			if blockHash == finalizedHash {
 				result[candidateHash] = true
 			} else {
 				result[candidateHash] = false
 			}
+		}
+		if blockNum > finalizedNumber {
+			break
 		}
 	}
 
@@ -1073,6 +1055,18 @@ func decodeUnfinalizedKey(key []byte) (blockNumber parachaintypes.BlockNumber, b
 	blockHash = common.Hash(key[prefixLen+4 : prefixLen+36])
 	candidateHash = parachaintypes.CandidateHash{Value: common.Hash(key[prefixLen+36:])}
 	return
+}
+
+func writeMeta(writer database.Writer, hash parachaintypes.CandidateHash, meta *CandidateMeta) error {
+	dataBytes, err := scale.Marshal(*meta)
+	if err != nil {
+		return err
+	}
+	err = writer.Put(hash.Value[:], dataBytes)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (av *AvailabilityStoreSubsystem) updateBlockAtFinalizedHeight(tx *availabilityStoreBatch,
@@ -1095,19 +1089,19 @@ func (av *AvailabilityStoreSubsystem) updateBlockAtFinalizedHeight(tx *availabil
 				// This is also not going to happen; the very fact that we are
 				// iterating over the candidate here indicates that `State` should
 				// be `Unfinalized`.
-
-				// TODO(ED): delete pruning key
-
+				err = tx.pruneByTime.Del(append(uint32ToBytes(uint32(val.Timestamp)), candidateHash.Value[:]...))
+				if err != nil {
+					logger.Errorf("failed to delete pruning key: %w", err)
+				}
 			case Unfinalized:
-				for _, v := range val.BlockNumberHash {
-					if v.blockNumber != parachaintypes.BlockNumber(blockNumber) {
+				for _, v := range val.BlockEntry {
+					if v.BlockNumber != parachaintypes.BlockNumber(blockNumber) {
 						// deleteUnfinalizedInclusion
-						key := append(uint32ToBytes(uint32(v.blockNumber)), v.blockHash[:]...)
+						key := append(uint32ToBytes(uint32(v.BlockNumber)), v.BlockHash[:]...)
 						key = append(key, candidateHash.Value[:]...)
 						err = tx.unfinalized.Del(key)
 						if err != nil {
 							logger.Errorf("failed to delete unfinalized key: %w", err)
-
 						}
 					}
 				}
@@ -1119,20 +1113,14 @@ func (av *AvailabilityStoreSubsystem) updateBlockAtFinalizedHeight(tx *availabil
 			}
 
 			// write meta
-			// TODO(ed): make write meta a function
-			dataBytes, err := scale.Marshal(*meta)
-			if err != nil {
-				logger.Errorf("marshalling meta for candidate: %w", err)
-			}
-			err = tx.meta.Put(candidateHash.Value.ToBytes(), dataBytes)
+			err = writeMeta(tx.meta, candidateHash, meta)
 			if err != nil {
 				logger.Errorf("storing metadata for candidate %v: %w", candidateHash, err)
 			}
 
 			// write pruning key
-			// TODO(ed): make this a function
-			pKey := append(uint32ToBytes(uint32(now)), candidateHash.Value.ToBytes()...)
-			err = tx.pruneByTime.Put(pKey, nil)
+			pruneAt := now + BETimestamp(av.pruningConfig.KeepFinalizedFor.Seconds())
+			err = av.writePruningKey(tx.pruneByTime, pruneAt, candidateHash)
 			if err != nil {
 				logger.Errorf("writing pruning key: %w", err)
 			}
@@ -1148,25 +1136,37 @@ func (av *AvailabilityStoreSubsystem) updateBlockAtFinalizedHeight(tx *availabil
 			case Unavailable:
 				continue // sanity
 			case Unfinalized:
-				// TODO(ed): do blocks ratain to change the blocks list
-				if len(val.BlockNumberHash) == 0 {
+				retainedBlocks := []BlockEntry{}
+				for _, v := range val.BlockEntry {
+					if v.BlockNumber != parachaintypes.BlockNumber(blockNumber) {
+						retainedBlocks = append(retainedBlocks, v)
+					}
+				}
+				if len(retainedBlocks) == 0 {
 					// write pruning key
+					pruneAt := val.Timestamp + BETimestamp(av.pruningConfig.KeepUnavailableFor.Seconds())
+					err = av.writePruningKey(tx.pruneByTime, pruneAt, candidateHash)
+					if err != nil {
+						logger.Errorf("writing pruning key: %w", err)
+					}
+
 					err = meta.State.Set(Unavailable{Timestamp: val.Timestamp})
 					if err != nil {
 						logger.Errorf("failed to set state to unavailable: %w", err)
 					}
 				} else {
-					// write pruning key
-					err = meta.State.Set(Unfinalized{Timestamp: val.Timestamp, BlockNumberHash: val.BlockNumberHash})
+					err = meta.State.Set(Unfinalized{Timestamp: val.Timestamp, BlockEntry: retainedBlocks})
 					if err != nil {
 						logger.Errorf("failed to set state to unfinalized: %w", err)
 					}
 				}
-
 			}
 
 			// write meta
-			// TODO(ed): write meta
+			err = writeMeta(tx.meta, candidateHash, meta)
+			if err != nil {
+				logger.Errorf("failed to put meta: %w", err)
+			}
 		}
 	}
 }
