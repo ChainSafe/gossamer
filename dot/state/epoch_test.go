@@ -631,6 +631,7 @@ func buildBlockPrimaryDigest(t *testing.T, primaryPreDigest types.BabePrimaryPre
 		ConsensusEngineID: types.BabeEngineID,
 		Data:              bdEnc,
 	})
+	require.NoError(t, err)
 
 	return digestPrimary
 }
@@ -641,7 +642,7 @@ func TestRetrieveChainFirstSlot(t *testing.T) {
 	// slot Y is 1000 slots ahead of slot X, Gossamer should handle
 	// each chain correctly, blocks built on Y should have the correct
 	// epoch calculation, same for blocks on X
-	// when finalization happens Gossamer should retrieve the chain first
+	// when finalisation happens Gossamer should retrieve the chain first
 	// slot for the finalized chain, given that the other chain will be pruned
 	singleEpochState := newEpochStateFromGenesis(t)
 

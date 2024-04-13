@@ -47,9 +47,6 @@ func newEpochHandler(epochDescriptor *epochDescriptor, constants constants,
 	}
 
 	return &epochHandler{
-		// TODO: we should keep the last slot number from the previous epoch
-		// otherwise when calling newSlotHandler the lastSlot will be zero and
-		// not the last slot from the previous epoch
 		slotHandler:            newSlotHandler(constants.slotDuration),
 		descriptor:             epochDescriptor,
 		constants:              constants,

@@ -23,7 +23,7 @@ type epochDescriptor struct {
 // initiateEpoch sets the epochData for the given epoch, runs the lottery for the slots in the epoch,
 // and stores updated EpochInfo in the database
 func (b *Service) initiateEpoch(epoch uint64) (*epochDescriptor, error) {
-	logger.Debugf("initiating epoch %d", epoch, b.constants.epochLength)
+	logger.Debugf("initiating epoch %d with %d slots", epoch, b.constants.epochLength)
 
 	bestBlockHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
@@ -52,7 +52,6 @@ func (b *Service) initiateEpoch(epoch uint64) (*epochDescriptor, error) {
 		// 6 and we're now initialising epoch 7, so we should use the epoch
 		// data that were meant to be used by 6
 		epochToFindData = lastKnownEpoch + 1
-
 	}
 
 	epochData, err := b.getEpochData(epochToFindData, bestBlockHeader)
