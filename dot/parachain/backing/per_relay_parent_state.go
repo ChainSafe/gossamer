@@ -248,6 +248,7 @@ func attestedToBackedCandidate(
 
 // Kick off validation work and distribute the result as a signed statement.
 func (rpState *perRelayParentState) kickOffValidationWork(
+	blockState *state.BlockState,
 	subSystemToOverseer chan<- any,
 	chRelayParentAndCommand chan relayParentAndCommand,
 	pvd parachaintypes.PersistedValidationData,
@@ -267,6 +268,7 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 	pov := getPovFromValidator()
 
 	return rpState.validateAndMakeAvailable(
+		blockState,
 		executorParamsAtRelayParent_temp,
 		subSystemToOverseer,
 		chRelayParentAndCommand,
@@ -284,6 +286,7 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 type executorParamsGetter func(common.Hash, chan<- any) (parachaintypes.ExecutorParams, error)
 
 func (rpState *perRelayParentState) validateAndMakeAvailable(
+	blockState *state.BlockState,
 	executorParamsAtRelayParentFunc executorParamsGetter, // remove after executorParamsAtRelayParent is implemented #3544
 	subSystemToOverseer chan<- any,
 	chRelayParentAndCommand chan relayParentAndCommand,
@@ -317,7 +320,8 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	}
 
 	// executorParamsAtRelayParent() should be called after it is implemented #3544
-	executorParams, err := executorParamsAtRelayParentFunc(relayParent, subSystemToOverseer)
+	executorParams, err := executorParamsAtRelayParent(blockState, relayParent, subSystemToOverseer)
+	// executorParams, err := executorParamsAtRelayParentFunc(relayParent, subSystemToOverseer)
 	if err != nil {
 		return fmt.Errorf("getting executor params for relay parent %s: %w", relayParent, err)
 	}
@@ -334,7 +338,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		ValidationCode:          validationCodeByHashRes.Data,
 		CandidateReceipt:        candidateReceipt,
 		PoV:                     pov,
-		ExecutorParams:          executorParams,
+		ExecutorParams:          *executorParams,
 		PvfExecTimeoutKind:      pvfExecTimeoutKind,
 		Ch:                      chValidationResultRes,
 	}
@@ -424,9 +428,6 @@ func executorParamsAtRelayParent_temp(
 func executorParamsAtRelayParent(
 	blockstate *state.BlockState, relayParent common.Hash, subSystemToOverseer chan<- any,
 ) (*parachaintypes.ExecutorParams, error) {
-	// TODO: Implement this #3544
-	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/subsystem-util/src/lib.rs#L241-L242
-
 	rt, err := blockstate.GetRuntime(relayParent)
 	if err != nil {
 		return nil, fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)

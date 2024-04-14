@@ -345,6 +345,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 	}
 
 	return rpState.kickOffValidationWork(
+		cb.BlockState,
 		cb.SubSystemToOverseer,
 		chRelayParentAndCommand,
 		pc.persistedValidationData,

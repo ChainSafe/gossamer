@@ -10,6 +10,7 @@ import (
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -572,7 +573,7 @@ func TestKickOffValidationWork(t *testing.T) {
 			chRelayParentAndCommand := make(chan relayParentAndCommand)
 			pvd := parachaintypes.PersistedValidationData{}
 
-			err := c.rpState.kickOffValidationWork(subSystemToOverseer, chRelayParentAndCommand, pvd, attesting)
+			err := c.rpState.kickOffValidationWork(nil, subSystemToOverseer, chRelayParentAndCommand, pvd, attesting)
 			require.NoError(t, err)
 		})
 	}
@@ -580,6 +581,8 @@ func TestKickOffValidationWork(t *testing.T) {
 
 func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 	t.Parallel()
+
+	var blockState *state.BlockState
 
 	var pvd parachaintypes.PersistedValidationData
 	candidateReceipt := getDummyCommittedCandidateReceipt(t).ToPlain()
@@ -755,6 +758,7 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 			}(chRelayParentAndCommand)
 
 			err := c.rpState.validateAndMakeAvailable(
+				blockState,
 				c.mockExecutorParamsGetter,
 				subSystemToOverseer,
 				chRelayParentAndCommand,
