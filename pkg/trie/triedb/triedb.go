@@ -103,6 +103,8 @@ func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 			var nextNode codec.MerkleValue
 
 			switch n := decodedNode.(type) {
+			case codec.Empty:
+				return nil, nil
 			case codec.Leaf:
 				// We are in the node we were looking for
 				if bytes.Equal(partialKey, n.PartialKey) {
