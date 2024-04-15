@@ -423,7 +423,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 
 		n := peerState.nodes[peerID]
 		if n.reputation < BannedThresholdValue {
-			logger.Critical("highest rated peer is below bannedThresholdValue")
+			logger.Debug("highest rated peer is below bannedThresholdValue")
 			break
 		}
 

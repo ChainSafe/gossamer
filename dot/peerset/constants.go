@@ -54,7 +54,7 @@ const (
 	IncompleteHeaderReason = "Incomplete header"
 
 	// BannedThresholdValue used when we need to ban peer.
-	BannedThresholdValue Reputation = 82 * (math.MinInt32 / 100)
+	BannedThresholdValue Reputation = 71 * (math.MinInt32 / 100)
 	// BannedReason used when we need to ban peer.
 	BannedReason = "Banned"
 
