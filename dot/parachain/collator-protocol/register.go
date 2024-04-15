@@ -8,6 +8,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/libp2p/go-libp2p/core/protocol"
+
+	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 )
 
 func Register(net Network, protocolID protocol.ID, overseerChan chan<- any) (*CollatorProtocolValidatorSide, error) {
@@ -30,7 +32,7 @@ func Register(net Network, protocolID protocol.ID, overseerChan chan<- any) (*Co
 		decodeCollationMessage,
 		cpvs.handleCollationMessage,
 		nil,
-		MaxCollationMessageSize,
+		collatorprotocolmessages.MaxCollationMessageSize,
 	)
 	if err != nil {
 		// try with legacy protocol id
@@ -43,7 +45,7 @@ func Register(net Network, protocolID protocol.ID, overseerChan chan<- any) (*Co
 			decodeCollationMessage,
 			cpvs.handleCollationMessage,
 			nil,
-			MaxCollationMessageSize,
+			collatorprotocolmessages.MaxCollationMessageSize,
 		)
 
 		if err1 != nil {

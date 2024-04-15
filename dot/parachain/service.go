@@ -11,6 +11,9 @@ import (
 	availability_store "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
+	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
+
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -40,6 +43,9 @@ func NewService(net Network, forkID string, st *state.Service) (*Service, error)
 		return nil, fmt.Errorf("starting overseer: %w", err)
 	}
 	genesisHash := st.Block.GenesisHash()
+
+	networkBridge := networkbridge.Register(overseer.SubsystemsToOverseer, net)
+	overseer.RegisterSubsystem(networkBridge)
 
 	availabilityStore, err := availability_store.Register(overseer.SubsystemsToOverseer, st)
 	if err != nil {
@@ -124,10 +130,10 @@ func (s Service) run() {
 	//
 	time.Sleep(time.Second * 15)
 	// let's try sending a collation message  and validation message to a peer and see what happens
-	collatorProtocolMessage := collatorprotocol.NewCollatorProtocolMessage()
+	collatorProtocolMessage := collatorprotocolmessages.NewCollatorProtocolMessage()
 	// NOTE: This is just to test. We should not be sending declare messages, since we are not a collator, just a validator
-	_ = collatorProtocolMessage.Set(collatorprotocol.Declare{})
-	collationMessage := collatorprotocol.NewCollationProtocol()
+	_ = collatorProtocolMessage.Set(collatorprotocolmessages.Declare{})
+	collationMessage := collatorprotocolmessages.NewCollationProtocol()
 
 	_ = collationMessage.Set(collatorProtocolMessage)
 	s.Network.GossipMessage(&collationMessage)

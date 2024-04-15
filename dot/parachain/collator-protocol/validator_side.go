@@ -477,15 +477,15 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 		// notify candidate seconded
 		_, ok = cpvs.peerData[peerID]
 		if ok {
-			collatorProtocolMessage := NewCollatorProtocolMessage()
-			err = collatorProtocolMessage.Set(CollationSeconded{
+			collatorProtocolMessage := collatorprotocolmessages.NewCollatorProtocolMessage()
+			err = collatorProtocolMessage.Set(collatorprotocolmessages.CollationSeconded{
 				RelayParent: msg.Parent,
 				Statement:   msg.Stmt,
 			})
 			if err != nil {
 				return fmt.Errorf("setting collation seconded: %w", err)
 			}
-			collationMessage := NewCollationProtocol()
+			collationMessage := collatorprotocolmessages.NewCollationProtocol()
 
 			err = collationMessage.Set(collatorProtocolMessage)
 			if err != nil {

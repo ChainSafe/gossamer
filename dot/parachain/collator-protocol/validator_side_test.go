@@ -227,7 +227,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 					Reason: peerset.BenefitNotifyGoodReason,
 				}, peerID)
 
-				net.EXPECT().SendMessage(peerID, gomock.AssignableToTypeOf(&CollationProtocol{}))
+				net.EXPECT().SendMessage(peerID, gomock.AssignableToTypeOf(&collatorprotocolmessages.CollationProtocol{}))
 
 				return net
 			}(),
