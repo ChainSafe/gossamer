@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -76,9 +77,10 @@ func createTestService(t *testing.T, genesisFilePath string,
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	stateConfig := state.Config{
-		Path:      testDatadirPath,
-		LogLevel:  log.Critical,
-		Telemetry: telemetryMock,
+		Path:              testDatadirPath,
+		LogLevel:          log.Critical,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 
 	stateSrvc = state.NewService(stateConfig)
@@ -181,9 +183,10 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 		config := state.Config{
-			Path:      testDatadirPath,
-			LogLevel:  log.Info,
-			Telemetry: telemetryMock,
+			Path:              testDatadirPath,
+			LogLevel:          log.Info,
+			Telemetry:         telemetryMock,
+			GenesisBABEConfig: config.BABEConfigurationTestDefault,
 		}
 
 		stateSrvc = state.NewService(config)
