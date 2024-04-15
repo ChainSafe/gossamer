@@ -6,7 +6,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 )
 
-// signingKeyAndIndex finds the first key we can sign with from the given set of validators,
+// SigningKeyAndIndex finds the first key we can sign with from the given set of validators,
 // if any, and returns it along with the validator index.
 func SigningKeyAndIndex(
 	validators []parachaintypes.ValidatorID,
