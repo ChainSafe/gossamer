@@ -17,8 +17,8 @@ import (
 )
 
 var (
-	ErrConfigNotFound   = errors.New("config data not found")
-	ErrEpochNotInMemory = errors.New("epoch not found in memory map")
+	ErrConfigNotFound          = errors.New("config data not found")
+	ErrEpochNotInMemory        = errors.New("epoch not found in memory map")
 	errEpochLengthCannotBeZero = errors.New("epoch length cannot be zero")
 	errHashNotInMemory         = errors.New("hash not found in memory map")
 	errEpochNotInDatabase      = errors.New("epoch data not found in the database")
