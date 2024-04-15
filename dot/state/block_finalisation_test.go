@@ -107,7 +107,7 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 	require.Equal(t, testhash, h)
 }
 
-func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
+func TestSetFinalisedHash_retrieveBlockNumber1SlotNumber(t *testing.T) {
 	bs := newTestBlockState(t, newTriesEmpty())
 	firstSlot := uint64(42069)
 
@@ -152,7 +152,15 @@ func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, header2.Hash(), bs.lastFinalised)
 
-	res, err := bs.baseState.loadFirstSlot()
+	hashes, err := bs.GetHashesByNumber(1)
 	require.NoError(t, err)
-	require.Equal(t, firstSlot, res)
+	require.Len(t, hashes, 1)
+
+	blockNumber1Header, err := bs.GetHeader(hashes[0])
+	require.NoError(t, err)
+
+	veryFirstSlot, err := blockNumber1Header.SlotNumber()
+	require.NoError(t, err)
+
+	require.Equal(t, firstSlot, veryFirstSlot)
 }

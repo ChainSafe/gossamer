@@ -50,16 +50,16 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t trie.
 
 	s.Base = NewBaseState(db)
 
-	rt, err := s.CreateGenesisRuntime(t, gen)
+	rt, err := s.CreateGenesisRuntime(t)
 	if err != nil {
 		return err
 	}
+	defer rt.Stop()
 
 	babeCfg, err := s.loadBabeConfigurationFromRuntime(rt)
 	if err != nil {
 		return err
 	}
-	rt.Stop()
 
 	// write initial genesis values to database
 	if err = s.storeInitialValues(gen.GenesisData(), t); err != nil {
@@ -156,7 +156,7 @@ func (s *Service) storeInitialValues(data *genesis.Data, t trie.Trie) error {
 }
 
 // CreateGenesisRuntime creates runtime instance form genesis
-func (s *Service) CreateGenesisRuntime(t trie.Trie, gen *genesis.Genesis) (runtime.Instance, error) {
+func (s *Service) CreateGenesisRuntime(t trie.Trie) (runtime.Instance, error) {
 	// load genesis state into database
 	genTrie := rtstorage.NewTrieState(t)
 
