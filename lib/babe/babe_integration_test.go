@@ -6,18 +6,34 @@
 package babe
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
-	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/require"
 )
+
+var AuthorOnEverySlotBABEConfig = &types.BabeConfiguration{
+	// slots are 6 seconds on westend and using time.Now() allows us to create a block at any point in the slot.
+	// So we need to manually set time to produce consistent results. See here:
+	// https://github.com/paritytech/substrate/blob/09de7b41599add51cf27eca8f1bc4c50ed8e9453/frame/timestamp/src/lib.rs#L229
+	// https://github.com/paritytech/substrate/blob/09de7b41599add51cf27eca8f1bc4c50ed8e9453/frame/timestamp/src/lib.rs#L206
+	SlotDuration: 6000,
+	EpochLength:  200,
+	C1:           1,
+	C2:           1,
+	GenesisAuthorities: []types.AuthorityRaw{
+		{
+			Key:    keyring.Alice().Public().(*sr25519.PublicKey).AsBytes(),
+			Weight: 1,
+		},
+	},
+	Randomness:     [32]byte{},
+	SecondarySlots: 0,
+}
 
 func TestService_SlotDuration(t *testing.T) {
 	duration, err := time.ParseDuration("1000ms")
@@ -34,24 +50,22 @@ func TestService_SlotDuration(t *testing.T) {
 }
 
 func TestService_ProducesBlocks(t *testing.T) {
-	ctrl := gomock.NewController(t)
-
-	blockImportHandler := NewMockBlockImportHandler(ctrl)
-	blockImportHandler.EXPECT().HandleBlockProduced(gomock.Any(), gomock.Any()).
-		Return(nil).MinTimes(2)
 	cfg := ServiceConfig{
-		Authority:          true,
-		BlockImportHandler: blockImportHandler,
+		Authority: true,
 	}
 
 	gen, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, gen, genTrie, genHeader, nil)
+	babeService := createTestService(t, cfg, gen, genTrie, genHeader, AuthorOnEverySlotBABEConfig)
 
 	err := babeService.Start()
 	require.NoError(t, err)
 	time.Sleep(babeService.constants.slotDuration * 2)
 	err = babeService.Stop()
 	require.NoError(t, err)
+
+	bestHeader, err := babeService.blockState.BestBlockHeader()
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, bestHeader.Number, uint(2))
 }
 
 func TestService_GetAuthorityIndex(t *testing.T) {
@@ -91,7 +105,7 @@ func TestService_GetAuthorityIndex(t *testing.T) {
 func TestStartAndStop(t *testing.T) {
 	cfg := ServiceConfig{}
 	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	bs := createTestService(t, cfg, gen, genTrie, genHeader, nil)
+	bs := createTestService(t, cfg, gen, genTrie, genHeader, AuthorOnEverySlotBABEConfig)
 	err := bs.Start()
 	require.NoError(t, err)
 	err = bs.Stop()
@@ -104,7 +118,7 @@ func TestService_PauseAndResume(t *testing.T) {
 
 	cfg := ServiceConfig{}
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil)
+	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 	err := babeService.Start()
 	require.NoError(t, err)
 	time.Sleep(time.Second)
@@ -137,35 +151,45 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	}
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil)
 
-	err := babeService.Start()
-	require.NoError(t, err)
-	defer func() {
-		err = babeService.Stop()
-		require.NoError(t, err)
-	}()
+	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 
-	parentHash := babeService.blockState.GenesisHash()
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	bestBlockHeader, err := babeService.blockState.GetHeader(bestBlockHash)
+	epochDescriptor, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	startTime := getSlotStartTime(epochDescriptor.startSlot, babeService.constants.slotDuration)
+
+	slot := Slot{
+		start:    startTime,
+		duration: babeService.constants.slotDuration,
+		number:   epochDescriptor.startSlot,
+	}
+
+	preRuntimeDigest, err := claimSlot(
+		testEpochIndex, slot.number, epochDescriptor.data, babeService.keypair)
 	require.NoError(t, err)
 
-	timestamp := time.Unix(6, 0)
-	slot := getSlot(t, rt, timestamp)
-	ext := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice,
-		"System.remark", []byte{0xab, 0xcd})
-	block := createTestBlockWithSlot(t, babeService, bestBlockHeader, [][]byte{common.MustHexToBytes(ext)},
-		testEpochIndex, epochData, slot)
+	const authorityIndex = 0 // alice
+	builder := NewBlockBuilder(
+		babeService.keypair,
+		babeService.transactionState,
+		babeService.blockState,
+		authorityIndex,
+		preRuntimeDigest,
+	)
+
+	block, err := builder.buildBlock(&genesisHeader, slot, rt)
+	require.NoError(t, err)
+
+	fmt.Println(epochDescriptor.startSlot)
 
 	err = babeService.blockState.AddBlock(block)
 	require.NoError(t, err)
+
 	time.Sleep(babeService.constants.slotDuration)
 
 	header, err := babeService.blockState.BestBlockHeader()
@@ -180,12 +204,11 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 		duration: babeService.constants.slotDuration * time.Millisecond,
 		number:   slotnum,
 	}
-	preRuntimeDigest, err := types.NewBabePrimaryPreDigest(
+	preRuntimeDigest, err = types.NewBabePrimaryPreDigest(
 		0, slot.number,
 		[sr25519.VRFOutputLength]byte{},
 		[sr25519.VRFProofLength]byte{},
 	).ToPreRuntimeDigest()
-
 	require.NoError(t, err)
 
 	slot = Slot{
@@ -194,28 +217,34 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 		number:   bestBlockSlotNum - 1,
 	}
 	err = babeService.handleSlot(
-		babeService.epochHandler.epochNumber,
+		epochDescriptor.epoch,
 		slot,
-		babeService.epochHandler.epochData.authorityIndex,
+		epochDescriptor.data.authorityIndex,
 		preRuntimeDigest)
-
 	require.ErrorIs(t, err, errLaggingSlot)
 }
 
 func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 	const authorityIndex = 0
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	runtime, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	epochData, err := babeService.initiateEpoch(testEpochIndex)
+	epochDescriptor, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
 
-	slot := getSlot(t, runtime, time.Unix(6, 0))
-	preRuntimeDigest, err := claimSlot(testEpochIndex, slot.number, epochData, babeService.keypair)
+	startTimestamp := getSlotStartTime(epochDescriptor.startSlot, babeService.constants.slotDuration)
+	slot := Slot{
+		start:    startTimestamp,
+		duration: babeService.constants.slotDuration,
+		number:   epochDescriptor.startSlot,
+	}
+
+	preRuntimeDigest, err := claimSlot(
+		epochDescriptor.epoch, slot.number, epochDescriptor.data, babeService.keypair)
 	require.NoError(t, err)
 
 	builder := NewBlockBuilder(
@@ -234,7 +263,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		Keypair: keyring.Bob().(*sr25519.Keypair),
 	}
 	genBob, genTrieBob, genHeaderBob := newWestendDevGenesisWithTrieAndHeader(t)
-	babeServiceBob := createTestService(t, cfgBob, genBob, genTrieBob, genHeaderBob, nil)
+	babeServiceBob := createTestService(t, cfgBob, genBob, genTrieBob, genHeaderBob, AuthorOnEverySlotBABEConfig)
 
 	// Add block created by alice to bob
 	err = babeServiceBob.blockState.AddBlock(block)
@@ -242,14 +271,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 
 	// If the slot we are claiming is the same as the slot of the best block header, test that we can
 	// still claim the slot without error.
-	bestBlockSlotNum, err := babeServiceBob.blockState.GetSlotForBlock(block.Header.Hash())
-	require.NoError(t, err)
 
-	slot = Slot{
-		start:    time.Unix(6, 0),
-		duration: babeServiceBob.constants.slotDuration * time.Millisecond,
-		number:   bestBlockSlotNum,
-	}
 	preRuntimeDigest, err = types.NewBabePrimaryPreDigest(
 		0, slot.number,
 		[sr25519.VRFOutputLength]byte{},

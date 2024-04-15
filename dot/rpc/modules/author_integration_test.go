@@ -33,6 +33,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
@@ -661,9 +662,10 @@ func setupStateAndRuntime(t *testing.T, basepath string, useInstance useRuntimeI
 		)
 
 	state2test := state.NewService(state.Config{
-		LogLevel:  log.DoNotChange,
-		Path:      basepath,
-		Telemetry: telemetryMock,
+		LogLevel:          log.DoNotChange,
+		Path:              basepath,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	})
 	state2test.UseMemDB()
 
@@ -721,9 +723,10 @@ func setupStateAndPopulateTrieState(t *testing.T, basepath string,
 		)
 
 	state2test := state.NewService(state.Config{
-		LogLevel:  log.DoNotChange,
-		Path:      basepath,
-		Telemetry: telemetryMock,
+		LogLevel:          log.DoNotChange,
+		Path:              basepath,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	})
 	state2test.UseMemDB()
 
