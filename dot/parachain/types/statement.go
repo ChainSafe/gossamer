@@ -114,46 +114,6 @@ type SigningContext struct {
 	ParentHash common.Hash `scale:"2"`
 }
 
-// Sign signs the Statement using the provided keystore, signing context, and validator key,
-// returning the unchecked signed full statement and any errors.
-func (u UncheckedSignedFullStatement) Sign(
-	keystore keystore.Keystore,
-	signingContext SigningContext,
-	key ValidatorID,
-) (UncheckedSignedFullStatement, error) {
-	encodedPayload, err := scale.Marshal(u.Payload)
-	if err != nil {
-		return UncheckedSignedFullStatement{}, fmt.Errorf("marshalling payload: %w", err)
-	}
-
-	encodedSigningContext, err := scale.Marshal(signingContext)
-	if err != nil {
-		return UncheckedSignedFullStatement{}, fmt.Errorf("marshalling signing context: %w", err)
-	}
-
-	data := append(encodedPayload, encodedSigningContext...)
-
-	validatorPublicKey, err := sr25519.NewPublicKey(key[:])
-	if err != nil {
-		return UncheckedSignedFullStatement{}, fmt.Errorf("getting public key: %w", err)
-	}
-
-	signatureBytes, err := keystore.GetKeypair(validatorPublicKey).Sign(data)
-	if err != nil {
-		return UncheckedSignedFullStatement{}, fmt.Errorf("signing data: %w", err)
-	}
-
-	var signature Signature
-	copy(signature[:], signatureBytes)
-	valSign := ValidatorSignature(signature)
-
-	return UncheckedSignedFullStatement{
-		Payload:        u.Payload,
-		ValidatorIndex: u.ValidatorIndex,
-		Signature:      valSign,
-	}, nil
-}
-
 // SignedFullStatement represents a statement along with its corresponding signature
 // and the index of the sender. The signing context and validator set should be
 // apparent from context. This statement is "full" as the `Seconded` variant includes
