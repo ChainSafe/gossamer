@@ -675,6 +675,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 }
 
 func Test_verifyBlockEquivocation(t *testing.T) {
+	t.Parallel()
 	kp, err := sr25519.GenerateKeypair()
 	assert.NoError(t, err)
 
@@ -910,6 +911,7 @@ func Test_verifyBlockEquivocation(t *testing.T) {
 		tt := tt
 
 		t.Run(tname, func(t *testing.T) {
+			t.Parallel()
 			verifier := tt.buildVerifier(t)
 			out, err := verifier.verifyBlockEquivocation(tt.header)
 			require.ErrorIs(t, err, tt.wantErr)
