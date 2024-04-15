@@ -166,14 +166,6 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		logger.Tracef("pruned block number %d with hash %s", blockHeader.Number, hash)
 	}
 
-	// if nothing was previously finalised, set the first slot of the network to the
-	// slot number of block 1, which is now being set as final
-	if bs.lastFinalised == bs.genesisHash && hash != bs.genesisHash {
-		if err := bs.setFirstSlotOnFinalisation(); err != nil {
-			return fmt.Errorf("failed to set first slot on finalisation: %w", err)
-		}
-	}
-
 	header, err := bs.GetHeader(hash)
 	if err != nil {
 		return fmt.Errorf("failed to get finalised header, hash: %s, error: %s", hash, err)
@@ -279,18 +271,4 @@ func (bs *BlockState) handleFinalisedBlock(currentFinalizedHash common.Hash) err
 	}
 
 	return batch.Flush()
-}
-
-func (bs *BlockState) setFirstSlotOnFinalisation() error {
-	header, err := bs.GetHeaderByNumber(1)
-	if err != nil {
-		return err
-	}
-
-	slot, err := types.GetSlotFromHeader(header)
-	if err != nil {
-		return err
-	}
-
-	return bs.baseState.storeFirstSlot(slot)
 }

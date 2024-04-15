@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -26,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -76,9 +76,10 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 		config := state.Config{
-			Path:      testDatadirPath,
-			LogLevel:  log.Info,
-			Telemetry: telemetryMock,
+			Path:              testDatadirPath,
+			LogLevel:          log.Info,
+			Telemetry:         telemetryMock,
+			GenesisBABEConfig: config.BABEConfigurationTestDefault,
 		}
 
 		stateSrvc = state.NewService(config)
@@ -178,9 +179,10 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	testDatadirPath := t.TempDir()
 
 	config := state.Config{
-		Path:      testDatadirPath,
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
+		Path:              testDatadirPath,
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: babeConfig,
 	}
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
@@ -264,24 +266,6 @@ func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
 
 	testDatadirPath := t.TempDir()
 
-	config := state.Config{
-		Path:      testDatadirPath,
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
-	}
-	dbSrv := state.NewService(config)
-	dbSrv.UseMemDB()
-
-	err := dbSrv.Initialise(&genesis, &genesisHeader, genesisTrie)
-	require.NoError(t, err)
-
-	err = dbSrv.Start()
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		_ = dbSrv.Stop()
-	})
-
 	rtCfg := wazero_runtime.Config{
 		Storage: rtstorage.NewTrieState(genesisTrie),
 	}
@@ -291,6 +275,25 @@ func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
 
 	genCfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
+
+	config := state.Config{
+		Path:              testDatadirPath,
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: genCfg,
+	}
+	dbSrv := state.NewService(config)
+	dbSrv.UseMemDB()
+
+	err = dbSrv.Initialise(&genesis, &genesisHeader, genesisTrie)
+	require.NoError(t, err)
+
+	err = dbSrv.Start()
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = dbSrv.Stop()
+	})
 
 	s := &Service{
 		epochState: dbSrv.Epoch,
@@ -326,21 +329,8 @@ func buildLocalTransaction(t *testing.T, rt runtime.Instance, ext types.Extrinsi
 	return types.Extrinsic(bytes.Join(extrinsicParts, nil))
 }
 
-func getSlot(t *testing.T, rt runtime.Instance, timestamp time.Time) Slot {
-	t.Helper()
-	babeConfig, err := rt.BabeConfiguration()
-	require.NoError(t, err)
-
-	currentSlot := uint64(timestamp.UnixMilli()) / babeConfig.SlotDuration
-	return Slot{
-		start:    timestamp,
-		duration: time.Duration(babeConfig.SlotDuration) * time.Millisecond,
-		number:   currentSlot,
-	}
-}
-
 func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.Header,
-	exts [][]byte, epoch uint64, epochData *epochData, slot Slot) *types.Block {
+	exts [][]byte, epochDescriptor *epochDescriptor, slot Slot) *types.Block {
 	for _, ext := range exts {
 		validTransaction := transaction.NewValidTransaction(ext, &transaction.Validity{})
 		_, err := babeService.transactionState.Push(validTransaction)
@@ -351,10 +341,10 @@ func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.H
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	preRuntimeDigest, err := claimSlot(epoch, slot.number, epochData, babeService.keypair)
+	preRuntimeDigest, err := claimSlot(epochDescriptor.epoch, slot.number, epochDescriptor.data, babeService.keypair)
 	require.NoError(t, err)
 
-	block, err := babeService.buildBlock(parent, slot, rt, epochData.authorityIndex, preRuntimeDigest)
+	block, err := babeService.buildBlock(parent, slot, rt, epochDescriptor.data.authorityIndex, preRuntimeDigest)
 	require.NoError(t, err)
 
 	babeService.blockState.(*state.BlockState).StoreRuntime(block.Header.Hash(), rt)

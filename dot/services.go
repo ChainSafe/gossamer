@@ -29,9 +29,11 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 )
 
@@ -63,14 +65,47 @@ func newInMemoryDB() (database.Database, error) {
 func (nodeBuilder) createStateService(config *cfg.Config) (*state.Service, error) {
 	logger.Debug("creating state service...")
 
+	gen, err := genesis.NewGenesisFromJSONRaw(config.ChainSpec)
+	if err != nil {
+		return nil, fmt.Errorf("genesis from json raw: %w", err)
+	}
+
+	if !gen.IsRaw() {
+		return nil, fmt.Errorf("genesis should be raw")
+	}
+
+	genTrie, err := runtime.NewTrieFromGenesis(*gen)
+	if err != nil {
+		return nil, fmt.Errorf("creating trie from genesis: %w", err)
+	}
+
+	// create genesis runtime
+	rtCfg := wazero_runtime.Config{
+		LogLvl:  log.Critical,
+		Storage: rtstorage.NewTrieState(genTrie),
+	}
+
+	genesisRuntime, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
+	if err != nil {
+		return nil, fmt.Errorf("instantiating genesis runtime: %w", err)
+	}
+	defer genesisRuntime.Stop()
+
+	babeCfg, err := genesisRuntime.BabeConfiguration()
+	if err != nil {
+		return nil, fmt.Errorf("getting babe configuration: %w", err)
+	}
+
 	stateLogLevel, err := log.ParseLevel(config.Log.State)
 	if err != nil {
 		return nil, err
 	}
+
 	stateConfig := state.Config{
-		Path:     config.BasePath,
-		LogLevel: stateLogLevel,
-		Metrics:  metrics.NewIntervalConfig(config.PrometheusExternal),
+		Path:              config.BasePath,
+		LogLevel:          stateLogLevel,
+		Metrics:           metrics.NewIntervalConfig(config.PrometheusExternal),
+		GenesisBABEConfig: babeCfg,
 	}
 
 	stateSrvc := state.NewService(stateConfig)
