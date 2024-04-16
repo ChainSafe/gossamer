@@ -14,6 +14,7 @@ const (
 	CandidateBacking      SubSystemName = "CandidateBacking"
 	CollationProtocol     SubSystemName = "CollationProtocol"
 	AvailabilityStore     SubSystemName = "AvailabilityStore"
+
 	NetworkBridgeSender   SubSystemName = "NetworkBridgeSender"
 	NetworkBridgeReceiver SubSystemName = "NetworkBridgeReceiver"
 	ChainAPI          SubSystemName = "ChainAPI"
