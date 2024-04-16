@@ -4,3 +4,4 @@
 package backing
 
 //go:generate mockgen -destination=mocks_test.go -package=$GOPACKAGE . Table,ImplicitView
+//go:generate mockgen -destination=mocks_blockstate_test.go -package=$GOPACKAGE . Blockstate

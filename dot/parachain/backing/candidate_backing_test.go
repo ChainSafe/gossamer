@@ -4,19 +4,89 @@
 package backing
 
 import (
+	_ "embed"
+
 	"errors"
+	"fmt"
 	"testing"
 
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
+	"gopkg.in/yaml.v3"
 )
+
+// go:embed ../../../lib/runtime/wazero/testdata/parachains_configuration_v190.yaml
+var parachainsConfigV190TestDataRaw string
+
+type Storage struct {
+	Name  string `yaml:"name"`
+	Key   string `yaml:"key"`
+	Value string `yaml:"value"`
+}
+
+type Data struct {
+	Storage  []Storage         `yaml:"storage"`
+	Expected map[string]string `yaml:"expected"`
+	Lookups  map[string]any    `yaml:"-"`
+}
+
+var parachainsConfigV190TestData Data
+
+func init() {
+	err := yaml.Unmarshal([]byte(parachainsConfigV190TestDataRaw), &parachainsConfigV190TestData)
+	if err != nil {
+		fmt.Println("Error unmarshalling test data:", err)
+		return
+	}
+	parachainsConfigV190TestData.Lookups = make(map[string]any)
+
+	for _, s := range parachainsConfigV190TestData.Storage {
+		if s.Name != "" {
+			parachainsConfigV190TestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
+		}
+	}
+}
+
+func getParachainHostTrie(t *testing.T, testDataStorage []Storage) *trie.Trie {
+	t.Helper()
+
+	tt := trie.NewEmptyTrie()
+
+	for _, s := range testDataStorage {
+		key := common.MustHexToBytes(s.Key)
+		value := common.MustHexToBytes(s.Value)
+		err := tt.Put(key, value)
+		require.NoError(t, err)
+	}
+
+	return tt
+}
+
+func newTestBlockState(t *testing.T) *MockBlockstate {
+	t.Helper()
+
+	tt := getParachainHostTrie(t, parachainsConfigV190TestData.Storage)
+	rt := wazero_runtime.NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v190, tt)
+
+	ctrl := gomock.NewController(t)
+	mockBlockstate := NewMockBlockstate(ctrl)
+
+	hash, err := common.HexToHash("0x0505050505050505050505050505050505050505050505050505050505050505")
+	require.NoError(t, err)
+
+	mockBlockstate.EXPECT().GetRuntime(hash).Return(rt, nil).AnyTimes()
+
+	return mockBlockstate
+}
 
 var tempSignature = common.MustHexToBytes("0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86") //nolint:lll
 
@@ -579,10 +649,10 @@ func TestKickOffValidationWork(t *testing.T) {
 	}
 }
 
-func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
+func TestValidateAndMakeAvailable(t *testing.T) {
 	t.Parallel()
 
-	var blockState *state.BlockState
+	blockState := newTestBlockState(t)
 
 	var pvd parachaintypes.PersistedValidationData
 	candidateReceipt := getDummyCommittedCandidateReceipt(t).ToPlain()
@@ -594,11 +664,10 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 	relayParent := getDummyHash(t, 5)
 
 	testCases := []struct {
-		description              string
-		rpState                  perRelayParentState
-		expectedErr              string
-		mockOverseer             func(ch chan any)
-		mockExecutorParamsGetter executorParamsGetter
+		description  string
+		rpState      perRelayParentState
+		expectedErr  string
+		mockOverseer func(ch chan any)
 	}{
 		{
 			description: "validation_process_already_started_for_candidate",
@@ -608,9 +677,8 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 					candidateHash: true,
 				},
 			},
-			expectedErr:              "",
-			mockOverseer:             func(ch chan any) {},
-			mockExecutorParamsGetter: executorParamsAtRelayParent_temp,
+			expectedErr:  "",
+			mockOverseer: func(ch chan any) {},
 		},
 		{
 			description: "unable_to_get_validation_code",
@@ -630,31 +698,6 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 					Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
 					Err: errors.New("mock error getting validation code"),
 				}
-			},
-			mockExecutorParamsGetter: executorParamsAtRelayParent_temp,
-		},
-		{
-			description: "unable_to_get_executor_params",
-			rpState: perRelayParentState{
-				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
-				awaitingValidation: map[parachaintypes.CandidateHash]bool{},
-			},
-			expectedErr: "getting executor params at relay parent: ",
-			mockOverseer: func(ch chan any) {
-				data := <-ch
-				req, ok := data.(parachaintypes.RuntimeApiMessageRequest)
-				if !ok {
-					t.Errorf("invalid overseer message type: %T\n", data)
-				}
-
-				req.RuntimeApiRequest.(parachaintypes.RuntimeApiRequestValidationCodeByHash).
-					Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
-					Data: parachaintypes.ValidationCode{1, 2, 3},
-				}
-			},
-			mockExecutorParamsGetter: func(h common.Hash, c chan<- any) (parachaintypes.ExecutorParams, error) {
-				params := parachaintypes.ExecutorParams(parachaintypes.NewExecutorParams())
-				return params, errors.New("mock error getting executor params")
 			},
 		},
 		{
@@ -681,7 +724,6 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 					}
 				}
 			},
-			mockExecutorParamsGetter: executorParamsAtRelayParent_temp,
 		},
 		{
 			description: "validation_result_is_invalid",
@@ -710,7 +752,6 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 					}
 				}
 			},
-			mockExecutorParamsGetter: executorParamsAtRelayParent_temp,
 		},
 		{
 			description: "validation_result_is_valid",
@@ -740,7 +781,6 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 					}
 				}
 			},
-			mockExecutorParamsGetter: executorParamsAtRelayParent_temp,
 		},
 	}
 
@@ -759,7 +799,6 @@ func TestBackgroundValidateAndMakeAvailable(t *testing.T) {
 
 			err := c.rpState.validateAndMakeAvailable(
 				blockState,
-				c.mockExecutorParamsGetter,
 				subSystemToOverseer,
 				chRelayParentAndCommand,
 				candidateReceipt,

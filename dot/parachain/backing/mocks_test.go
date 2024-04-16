@@ -14,7 +14,7 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
-	"go.uber.org/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockTable is a mock of Table interface.
@@ -132,7 +132,7 @@ func (m *MockImplicitView) activeLeaf(arg0 common.Hash) ([]parachaintypes.ParaID
 }
 
 // activeLeaf indicates an expected call of activeLeaf.
-func (mr *MockImplicitViewMockRecorder) activeLeaf(arg0 interface{}) *gomock.Call {
+func (mr *MockImplicitViewMockRecorder) activeLeaf(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "activeLeaf", reflect.TypeOf((*MockImplicitView)(nil).activeLeaf), arg0)
 }
@@ -160,7 +160,7 @@ func (m *MockImplicitView) deactivateLeaf(arg0 common.Hash) []common.Hash {
 }
 
 // deactivateLeaf indicates an expected call of deactivateLeaf.
-func (mr *MockImplicitViewMockRecorder) deactivateLeaf(arg0 interface{}) *gomock.Call {
+func (mr *MockImplicitViewMockRecorder) deactivateLeaf(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deactivateLeaf", reflect.TypeOf((*MockImplicitView)(nil).deactivateLeaf), arg0)
 }

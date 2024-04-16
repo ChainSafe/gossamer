@@ -10,7 +10,6 @@ import (
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/dot/state"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -248,7 +247,7 @@ func attestedToBackedCandidate(
 
 // Kick off validation work and distribute the result as a signed statement.
 func (rpState *perRelayParentState) kickOffValidationWork(
-	blockState *state.BlockState,
+	blockState BlockState,
 	subSystemToOverseer chan<- any,
 	chRelayParentAndCommand chan relayParentAndCommand,
 	pvd parachaintypes.PersistedValidationData,
@@ -269,7 +268,6 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 
 	return rpState.validateAndMakeAvailable(
 		blockState,
-		executorParamsAtRelayParent_temp,
 		subSystemToOverseer,
 		chRelayParentAndCommand,
 		attesting.candidate,
@@ -282,12 +280,8 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 	)
 }
 
-// this is temporary until we implement executorParamsAtRelayParent #3544
-type executorParamsGetter func(common.Hash, chan<- any) (parachaintypes.ExecutorParams, error)
-
 func (rpState *perRelayParentState) validateAndMakeAvailable(
-	blockState *state.BlockState,
-	executorParamsAtRelayParentFunc executorParamsGetter, // remove after executorParamsAtRelayParent is implemented #3544
+	blockState BlockState,
 	subSystemToOverseer chan<- any,
 	chRelayParentAndCommand chan relayParentAndCommand,
 	candidateReceipt parachaintypes.CandidateReceipt,
@@ -319,9 +313,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		return fmt.Errorf("getting validation code by hash: %w", validationCodeByHashRes.Err)
 	}
 
-	// executorParamsAtRelayParent() should be called after it is implemented #3544
-	executorParams, err := executorParamsAtRelayParent(blockState, relayParent, subSystemToOverseer)
-	// executorParams, err := executorParamsAtRelayParentFunc(relayParent, subSystemToOverseer)
+	executorParams, err := executorParamsAtRelayParent(blockState, relayParent)
 	if err != nil {
 		return fmt.Errorf("getting executor params for relay parent %s: %w", relayParent, err)
 	}
@@ -417,18 +409,9 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	return nil
 }
 
-func executorParamsAtRelayParent_temp(
-	relayParent common.Hash, subSystemToOverseer chan<- any,
-) (parachaintypes.ExecutorParams, error) {
-	// TODO: Implement this #3544
-	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/subsystem-util/src/lib.rs#L241-L242
-	return parachaintypes.ExecutorParams{}, nil
-}
-
-func executorParamsAtRelayParent(
-	blockstate *state.BlockState, relayParent common.Hash, subSystemToOverseer chan<- any,
+func executorParamsAtRelayParent(blockState BlockState, relayParent common.Hash,
 ) (*parachaintypes.ExecutorParams, error) {
-	rt, err := blockstate.GetRuntime(relayParent)
+	rt, err := blockState.GetRuntime(relayParent)
 	if err != nil {
 		return nil, fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
 	}

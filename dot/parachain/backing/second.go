@@ -75,7 +75,6 @@ func (cb *CandidateBacking) handleSecondMessage(
 	logger.Debugf("validate and second candidate: %s", candidateHash)
 	return rpState.validateAndMakeAvailable(
 		cb.BlockState,
-		executorParamsAtRelayParent_temp,
 		cb.SubSystemToOverseer,
 		chRelayParentAndCommand,
 		candidateReceipt,

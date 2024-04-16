@@ -28,10 +28,10 @@ import (
 	"sync"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/tidwall/btree"
 )
 
@@ -82,7 +82,11 @@ type CandidateBacking struct {
 	implicitView ImplicitView
 	// The handle to the keystore used for signing.
 	keystore   keystore.Keystore
-	BlockState *state.BlockState
+	BlockState BlockState
+}
+
+type BlockState interface {
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 }
 
 type activeLeafState struct {
