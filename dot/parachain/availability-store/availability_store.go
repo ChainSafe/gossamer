@@ -45,17 +45,15 @@ const (
 // BETimestamp is a unix time wrapper with big-endian encoding
 type BETimestamp uint64
 
+func timeNow() BETimestamp {
+	return BETimestamp(time.Now().Unix())
+}
+
 // ToBigEndianBytes returns the big-endian encoding of the timestamp
 func (b BETimestamp) ToBigEndianBytes() []byte {
 	res := make([]byte, 8)
 	binary.BigEndian.PutUint64(res, uint64(b))
 	return res
-}
-
-type subsystemClock struct{}
-
-func (sc *subsystemClock) Now() BETimestamp {
-	return BETimestamp(time.Now().Unix())
 }
 
 // pruningConfig Struct holding pruning timing configuration.
@@ -86,7 +84,6 @@ type AvailabilityStoreSubsystem struct {
 	finalizedNumber     parachaintypes.BlockNumber
 	knownBlocks         KnownUnfinalizedBlock
 	pruningConfig       PruningConfig
-	clock               subsystemClock
 	//TODO: metrics       Metrics
 }
 
@@ -312,22 +309,22 @@ func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 		return true, nil // already stored
 	}
 
-	meta = &CandidateMeta{}
+	candidateMeta := CandidateMeta{}
 
-	now := subsystem.clock.Now()
+	now := timeNow()
 	pruneAt := now + BETimestamp(subsystem.pruningConfig.KeepUnavailableFor.Seconds())
 	err = subsystem.writePruningKey(batch.pruneByTime, pruneAt, candidate)
 	if err != nil {
 		return false, fmt.Errorf("writing pruning key: %w", err)
 	}
 
-	meta.State = NewStateVDT()
-	err = meta.State.Set(Unavailable{Timestamp: now})
+	candidateMeta.State = NewStateVDT()
+	err = candidateMeta.State.Set(Unavailable{Timestamp: now})
 	if err != nil {
 		return false, fmt.Errorf("setting state to unavailable: %w", err)
 	}
-	meta.DataAvailable = false
-	meta.ChunksStored = make([]bool, nValidators)
+	candidateMeta.DataAvailable = false
+	candidateMeta.ChunksStored = make([]bool, nValidators)
 
 	dataEncoded, err := scale.Marshal(data)
 	if err != nil {
@@ -362,16 +359,16 @@ func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 			return false, fmt.Errorf("writing chunk for candidate %v, index %d: %w", candidate, erasureChunk.Index, err)
 		}
 
-		meta.ChunksStored[i] = true
+		candidateMeta.ChunksStored[i] = true
 	}
 
-	meta.DataAvailable = true
-	meta.ChunksStored = make([]bool, nValidators)
-	for i := range meta.ChunksStored {
-		meta.ChunksStored[i] = true
+	candidateMeta.DataAvailable = true
+	candidateMeta.ChunksStored = make([]bool, nValidators)
+	for i := range candidateMeta.ChunksStored {
+		candidateMeta.ChunksStored[i] = true
 	}
 
-	err = writeMeta(batch.meta, candidate, meta)
+	err = writeMeta(batch.meta, candidate, &candidateMeta)
 	if err != nil {
 		return false, fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
 	}
@@ -508,7 +505,7 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 }
 
 func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal() {
-	now := av.clock.Now()
+	now := timeNow()
 	logger.Infof("ProcessActiveLeavesUpdateSignal %s", av.currentMessage)
 	activeLeave := av.currentMessage.(parachaintypes.ActiveLeavesUpdateSignal)
 
@@ -696,7 +693,7 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal() {
 	logger.Infof("ProcessBlockFinalizedSignal %T, %v", av.currentMessage, av.currentMessage)
 	finalizedBlock := av.currentMessage.(parachaintypes.BlockFinalizedSignal)
-	now := av.clock.Now()
+	now := timeNow()
 
 	// load all of finalized height
 	batch := av.loadAllAtFinalizedHeight(finalizedBlock.BlockNumber, finalizedBlock.Hash)
@@ -837,7 +834,7 @@ func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailabl
 }
 
 func (av *AvailabilityStoreSubsystem) pruneAll() {
-	now := av.clock.Now()
+	now := timeNow()
 	iter, err := av.availabilityStore.pruneByTime.NewIterator()
 	if err != nil {
 		logger.Errorf("creating iterator: %w", err)
