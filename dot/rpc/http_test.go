@@ -15,6 +15,7 @@ import (
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -308,9 +309,10 @@ func newCoreServiceTest(t *testing.T) *core.Service {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := state.Config{
-		Path:      testDatadirPath,
-		LogLevel:  log.Debug,
-		Telemetry: telemetryMock,
+		Path:              testDatadirPath,
+		LogLevel:          log.Debug,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 
 	stateSrvc := state.NewService(config)

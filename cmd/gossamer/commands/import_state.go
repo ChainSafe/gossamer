@@ -79,5 +79,6 @@ func execImportState(cmd *cobra.Command) error {
 
 	basePath = utils.ExpandDir(basePath)
 
-	return dot.ImportState(basePath, stateFile, headerFile, stateTrieVersion, firstSlot)
+	return dot.ImportState(basePath, stateFile,
+		headerFile, stateTrieVersion, nil, firstSlot)
 }

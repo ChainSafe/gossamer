@@ -18,6 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/require"
@@ -31,8 +32,9 @@ func newTestHandler(t *testing.T) (*Handler, *BlockImportHandler, *state.Service
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := state.Config{
-		Path:      testDatadirPath,
-		Telemetry: telemetryMock,
+		Path:              testDatadirPath,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()

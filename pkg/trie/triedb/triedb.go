@@ -61,8 +61,6 @@ func (t *TrieDB) MustHash() common.Hash {
 func (t *TrieDB) Get(key []byte) []byte {
 	val, err := t.lookup(key)
 	if err != nil {
-		// TODO: do we have to do anything else? maybe change the signature
-		// to return an error?
 		return nil
 	}
 	return val
@@ -115,15 +113,15 @@ func (t *TrieDB) lookup(key []byte) ([]byte, error) {
 
 // lookupWithoutCache traverse nodes loading then from DB until reach the one
 // we are looking for.
-func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
+func (t *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 	// Start from root node and going downwards
 	partialKey := nibbleKey
-	hash := l.rootHash[:]
+	hash := t.rootHash[:]
 
 	// Iterates through non inlined nodes
 	for {
 		// Get node from DB
-		nodeData, err := l.db.Get(hash)
+		nodeData, err := t.db.Get(hash)
 		if err != nil {
 			return nil, ErrIncompleteDB
 		}
@@ -140,10 +138,12 @@ func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 			var nextNode codec.MerkleValue
 
 			switch n := decodedNode.(type) {
+			case codec.Empty:
+				return nil, nil
 			case codec.Leaf:
 				// We are in the node we were looking for
 				if bytes.Equal(partialKey, n.PartialKey) {
-					return l.loadValue(partialKey, n.Value)
+					return t.loadValue(partialKey, n.Value)
 				}
 				return nil, nil
 			case codec.Branch:
@@ -159,7 +159,7 @@ func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 				// We are in the node we were looking for
 				if bytes.Equal(partialKey, nodePartialKey) {
 					if n.Value != nil {
-						return l.loadValue(partialKey, n.Value)
+						return t.loadValue(partialKey, n.Value)
 					}
 					return nil, nil
 				}
@@ -205,4 +205,4 @@ func (t *TrieDB) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error)
 	}
 }
 
-var _ trie.ReadOnlyTrie = (*TrieDB)(nil)
+var _ trie.TrieRead = (*TrieDB)(nil)

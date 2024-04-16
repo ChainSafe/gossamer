@@ -7,6 +7,7 @@ import (
 	"time"
 
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/dot/types"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 )
 
@@ -67,4 +68,14 @@ func Default() cfg.Config {
 		Pprof:  &cfg.PprofConfig{},
 		System: &cfg.SystemConfig{},
 	}
+}
+
+var BABEConfigurationTestDefault = &types.BabeConfiguration{
+	SlotDuration:       1000,
+	EpochLength:        200,
+	C1:                 1,
+	C2:                 4,
+	GenesisAuthorities: []types.AuthorityRaw{},
+	Randomness:         [32]byte{},
+	SecondarySlots:     0,
 }

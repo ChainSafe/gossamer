@@ -25,11 +25,11 @@ type ChildTriesWrite interface {
 	ClearFromChild(keyToChild, key []byte) error
 }
 
-type KVSRead interface {
+type KVStoreRead interface {
 	Get(key []byte) []byte
 }
 
-type KVSWrite interface {
+type KVStoreWrite interface {
 	Put(key, value []byte) error
 	Delete(key []byte) error
 }
@@ -60,20 +60,20 @@ type Hashable interface {
 	Hash() (common.Hash, error)
 }
 
-type ReadOnlyTrie interface {
+type TrieRead interface {
 	fmt.Stringer
 
-	KVSRead
+	KVStoreRead
 	Hashable
 	ChildTriesRead
 	TrieIterator
 }
 
 type Trie interface {
-	ReadOnlyTrie
+	TrieRead
 	ChildTriesWrite
 	PrefixTrieWrite
-	KVSWrite
+	KVStoreWrite
 	Versioned
 	TrieDeltas
 }
