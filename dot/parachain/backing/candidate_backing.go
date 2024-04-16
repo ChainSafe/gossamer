@@ -30,6 +30,7 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/tidwall/btree"
 )
 
@@ -41,7 +42,7 @@ var (
 	errStatementForUnknownRelayParent  = errors.New("received statement for unknown relay parent")
 	errNilRelayParentState             = errors.New("relay parent state is nil")
 	errCandidateStateNotFound          = errors.New("candidate state not found")
-	errAttestingDataNotFound           = errors.New("attesting data not found")
+	errFallbackNotAvailable            = errors.New("no fallback available for the candidate")
 )
 
 // CandidateBacking represents the state of the subsystem responsible for managing candidate backing.
@@ -74,15 +75,17 @@ type CandidateBacking struct {
 	// or explicit view for which a `Seconded` statement has been successfully imported.
 	perCandidate map[parachaintypes.CandidateHash]*perCandidateState
 	// State tracked for all active leaves, whether or not they have prospective parachains enabled.
-	perLeaf map[common.Hash]activeLeafState
+	perLeaf map[common.Hash]*activeLeafState
 	// The utility for managing the implicit and explicit views in a consistent way.
 	// We only feed leaves which have prospective parachains enabled to this view.
 	implicitView ImplicitView
+	// The handle to the keystore used for signing.
+	keystore keystore.Keystore
 }
 
 type activeLeafState struct {
 	prospectiveParachainsMode parachaintypes.ProspectiveParachainsMode
-	secondedAtDepth           map[parachaintypes.ParaID]btree.Map[uint, parachaintypes.CandidateHash]
+	secondedAtDepth           map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]
 	perCandidate              map[parachaintypes.CandidateHash]*perCandidateState //nolint:unused
 }
 
@@ -118,7 +121,24 @@ type TableContext struct {
 // validator represents local validator information.
 // It can be created if the local node is a validator in the context of a particular relay chain block.
 type validator struct {
-	index parachaintypes.ValidatorIndex
+	signingContext parachaintypes.SigningContext
+	key            parachaintypes.ValidatorID
+	index          parachaintypes.ValidatorIndex
+}
+
+// sign method signs a given payload with the validator and returns a SignedFullStatement.
+func (v validator) sign(keystore keystore.Keystore, payload parachaintypes.StatementVDT,
+) (*parachaintypes.SignedFullStatement, error) {
+	valSign, err := payload.Sign(keystore, v.signingContext, v.key)
+	if err != nil {
+		return nil, fmt.Errorf("signing statement: %w", err)
+	}
+
+	return &parachaintypes.SignedFullStatement{
+		Payload:        payload,
+		ValidatorIndex: v.index,
+		Signature:      *valSign,
+	}, nil
 }
 
 // GetBackedCandidatesMessage is a message received from overseer that requests a set of backable
@@ -160,13 +180,7 @@ type SecondMessage struct {
 // Meanwhile, agreements are straightforwardly counted until a quorum is achieved.
 type StatementMessage struct {
 	RelayParent         common.Hash
-	SignedFullStatement SignedFullStatementWithPVD
-}
-
-// SignedFullStatementWithPVD represents a signed full statement along with associated Persisted Validation Data (PVD).
-type SignedFullStatementWithPVD struct {
-	SignedFullStatement     parachaintypes.UncheckedSignedFullStatement
-	PersistedValidationData *parachaintypes.PersistedValidationData
+	SignedFullStatement parachaintypes.SignedFullStatementWithPVD
 }
 
 // New creates a new CandidateBacking instance and initialises it with the provided overseer channel.
@@ -189,12 +203,12 @@ func (cb *CandidateBacking) runUtil() {
 	for {
 		select {
 		case rpAndCmd := <-chRelayParentAndCommand:
-			if err := cb.processValidatedCandidateCommand(rpAndCmd); err != nil {
-				logger.Error(err.Error())
+			if err := cb.processValidatedCandidateCommand(rpAndCmd, chRelayParentAndCommand); err != nil {
+				logger.Errorf("processing validated candidated command: %s", err.Error())
 			}
 		case msg := <-cb.OverseerToSubSystem:
 			if err := cb.processMessage(msg, chRelayParentAndCommand); err != nil {
-				logger.Errorf("processing message %s", err.Error())
+				logger.Errorf("processing message: %s", err.Error())
 			}
 		case <-cb.ctx.Done():
 			close(chRelayParentAndCommand)
@@ -253,7 +267,7 @@ func (cb *CandidateBacking) ProcessBlockFinalizedSignal() {
 // Import the statement and kick off validation work if it is a part of our assignment.
 func (cb *CandidateBacking) handleStatementMessage(
 	relayParent common.Hash,
-	signedStatementWithPVD SignedFullStatementWithPVD,
+	signedStatementWithPVD parachaintypes.SignedFullStatementWithPVD,
 	chRelayParentAndCommand chan relayParentAndCommand,
 ) error {
 	rpState, ok := cb.perRelayParent[relayParent]
@@ -306,7 +320,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 		attesting, ok = rpState.fallbacks[candidateHash]
 		if !ok {
 			// polkadot-sdk returs nil error here
-			return errAttestingDataNotFound
+			return errFallbackNotAvailable
 		}
 
 		ourIndex := rpState.tableContext.validator.index
