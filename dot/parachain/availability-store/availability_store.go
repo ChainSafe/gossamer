@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"testing"
 	"time"
 
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
@@ -22,7 +21,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/erasure"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/stretchr/testify/require"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-availability-store"))
@@ -92,9 +90,34 @@ type AvailabilityStoreSubsystem struct {
 	//TODO: metrics       Metrics
 }
 
+// NewAvailabilityStoreSubsystem creates a new instance of AvailabilityStoreSubsystem
+func NewAvailabilityStoreSubsystem(db database.Database) *AvailabilityStoreSubsystem {
+	availabilityStore := NewAvailabilityStore(db)
+
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+
+	availabilityStoreSubsystem := &AvailabilityStoreSubsystem{
+		ctx:               ctx,
+		cancel:            cancel,
+		pruningConfig:     defaultPruningConfig,
+		availabilityStore: *availabilityStore,
+		knownBlocks:       *NewKnownUnfinalizedBlock(),
+	}
+
+	return availabilityStoreSubsystem
+}
+
 type KnownUnfinalizedBlock struct {
 	byHash   map[common.Hash]struct{}
 	byNumber map[BlockEntry]struct{}
+}
+
+func NewKnownUnfinalizedBlock() *KnownUnfinalizedBlock {
+	return &KnownUnfinalizedBlock{
+		byHash:   make(map[common.Hash]struct{}),
+		byNumber: make(map[BlockEntry]struct{}),
+	}
 }
 
 func (kud *KnownUnfinalizedBlock) isKnown(hash common.Hash) bool {
@@ -103,12 +126,6 @@ func (kud *KnownUnfinalizedBlock) isKnown(hash common.Hash) bool {
 }
 
 func (kud *KnownUnfinalizedBlock) insert(hash common.Hash, number parachaintypes.BlockNumber) {
-	if kud.byHash == nil {
-		kud.byHash = make(map[common.Hash]struct{})
-	}
-	if kud.byNumber == nil {
-		kud.byNumber = make(map[BlockEntry]struct{})
-	}
 	kud.byHash[hash] = struct{}{}
 	kud.byNumber[BlockEntry{number, hash}] = struct{}{}
 }
@@ -181,91 +198,6 @@ func (asb *availabilityStoreBatch) reset() {
 	asb.meta.Reset()
 	asb.unfinalized.Reset()
 	asb.pruneByTime.Reset()
-}
-
-var (
-	TestChunk1 = ErasureChunk{
-		Chunk: []byte("chunk1"),
-		Index: 0,
-		Proof: []byte("proof1"),
-	}
-	TestChunk2 = ErasureChunk{
-		Chunk: []byte("chunk2"),
-		Index: 1,
-		Proof: []byte("proof2"),
-	}
-	TestavailableData1 = AvailableData{
-		PoV: parachaintypes.PoV{BlockData: []byte("blockdata")},
-		ValidationData: parachaintypes.PersistedValidationData{
-			ParentHead: parachaintypes.HeadData{Data: []byte("parentHead")},
-		},
-	}
-
-	TestCandidateReceipt = parachaintypes.CandidateReceipt{
-		Descriptor: parachaintypes.CandidateDescriptor{
-			ParaID:      0xd05,
-			RelayParent: common.MustHexToHash("0x2245952bd39fbc912d3bcf6ab6d9c191b5c9df70a4e1da6f670f4761bf96cc9f"),
-			Collator: parachaintypes.CollatorID{0x54, 0xde, 0x49, 0x5b, 0x57, 0xc7, 0xc3, 0x50,
-				0x5c, 0x62, 0x63, 0x3f, 0x1a, 0xc3, 0xa2, 0xf2, 0x2b, 0xe7, 0x4e, 0xd4, 0x97, 0xa5, 0x88, 0x43, 0x79,
-				0xe0, 0x82, 0x16, 0x7, 0xd9, 0x17, 0x3b},
-			PersistedValidationDataHash: common.MustHexToHash(
-				"0xeb5dd269e10d71dc754ce3fac591364afce61b007925730544bf530068087c7d"),
-			PovHash: common.MustHexToHash(
-				"0x38e3e2cd8bdf7fef72ad23b076e0620ab5d97d3c0a98207dd8b6af8c3becff69"),
-			ErasureRoot: common.MustHexToHash(
-				"0x6cd2c59aefd1a3bd654df00febe502e9f6ba788b8584c7278c47a2983fd8e87b"),
-			ParaHead: common.MustHexToHash(
-				"0xfedc8cf6b2555199ecc95e7092742c5959f96bce04becaebfd9266f7642c23d7"),
-			ValidationCodeHash: parachaintypes.ValidationCodeHash{110, 37, 119, 28, 37, 5, 245, 73, 181,
-				175, 119, 52, 200, 66, 19, 189, 31, 211, 146, 120, 250, 143, 7, 41, 139, 166, 157, 165, 90, 92, 112, 137},
-		},
-		CommitmentsHash: common.MustHexToHash("0x9ece96d300d33d733840cfd4035249b50618e4e81f1cd425bd304b0cffc13b8e"),
-	}
-
-	TestCandidateReceiptHash, _ = TestCandidateReceipt.Hash()
-)
-
-func SetupTestDB(t *testing.T) database.Database {
-	inmemoryDB, err := database.NewPebble("", true)
-	require.NoError(t, err)
-	as := NewAvailabilityStore(inmemoryDB)
-	batch := newAvailabilityStoreBatch(as)
-	metaState := NewStateVDT()
-	err = metaState.Set(Unavailable{})
-	require.NoError(t, err)
-	meta := &CandidateMeta{
-		State:         metaState,
-		DataAvailable: false,
-		ChunksStored:  []bool{false, false, false},
-	}
-
-	dataBytes, err := scale.Marshal(*meta)
-	require.NoError(t, err)
-	err = batch.meta.Put(TestCandidateReceiptHash[:], dataBytes)
-	require.NoError(t, err)
-	err = batch.meta.Put(common.Hash{0x02}.ToBytes(), dataBytes)
-	require.NoError(t, err)
-
-	err = batch.flush()
-	require.NoError(t, err)
-
-	stored, err := as.storeChunk(parachaintypes.CandidateHash{Value: TestCandidateReceiptHash}, TestChunk1)
-	require.NoError(t, err)
-	require.Equal(t, true, stored)
-	stored, err = as.storeChunk(parachaintypes.CandidateHash{Value: TestCandidateReceiptHash}, TestChunk2)
-	require.NoError(t, err)
-	require.Equal(t, true, stored)
-
-	batch = newAvailabilityStoreBatch(as)
-	dataBytes, err = scale.Marshal(TestavailableData1)
-	require.NoError(t, err)
-	err = batch.available.Put(TestCandidateReceiptHash[:], dataBytes)
-	require.NoError(t, err)
-
-	err = batch.flush()
-	require.NoError(t, err)
-
-	return inmemoryDB
 }
 
 // NewAvailabilityStore creates a new instance of AvailabilityStore
