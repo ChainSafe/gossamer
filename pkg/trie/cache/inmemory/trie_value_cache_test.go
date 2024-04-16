@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSetAndGet(t *testing.T) {
+func Test_TrieValueCache_SetAndGet(t *testing.T) {
 	const maxCacheSize = 10
 	t.Run("set_and_get_value_successful", func(t *testing.T) {
 		cache := NewTrieValueCache(maxCacheSize)
