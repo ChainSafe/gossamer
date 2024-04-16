@@ -57,7 +57,8 @@ func (nbs *NetworkBridgeSender) processMessage(msg any) error {
 	case networkbridgemessages.ReportPeer:
 		nbs.net.ReportPeer(msg.ReputationChange, msg.PeerID)
 	case networkbridgemessages.DisconnectPeer:
-		// TODO
+		// We are using set ID 1 for validation protocol and 2 for collation protocol
+		nbs.net.DisconnectPeer(int(msg.PeerSet)+1, msg.Peer)
 	}
 
 	return nil
