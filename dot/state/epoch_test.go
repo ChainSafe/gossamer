@@ -58,7 +58,7 @@ func TestEpochState_EpochData(t *testing.T) {
 		Randomness:  [32]byte{77},
 	}
 
-	err = s.StoreEpochDataRaw(1, info)
+	err = s.SetEpochDataRaw(1, info)
 	require.NoError(t, err)
 	res, err := s.GetEpochDataRaw(1, nil)
 	require.NoError(t, err)

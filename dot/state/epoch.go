@@ -120,7 +120,6 @@ func NewEpochStateFromGenesis(db database.Database, blockState *BlockState,
 	return s, nil
 }
 
-// TODO: remove NewEpochStateFromGenesis function
 // NewEpochState returns a new EpochState
 func NewEpochState(db database.Database, blockState *BlockState,
 	genesisConfig *types.BabeConfiguration) (*EpochState, error) {
@@ -210,8 +209,8 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 	return (slotNumber - chainFirstSlotNumber) / s.epochLength, nil
 }
 
-// StoreEpochDataRaw sets the epoch data raw for a given epoch
-func (s *EpochState) StoreEpochDataRaw(epoch uint64, raw *types.EpochDataRaw) error {
+// SetEpochDataRaw sets the epoch data raw for a given epoch
+func (s *EpochState) SetEpochDataRaw(epoch uint64, raw *types.EpochDataRaw) error {
 	enc, err := scale.Marshal(*raw)
 	if err != nil {
 		return err
@@ -255,7 +254,8 @@ func (s *EpochState) GetEpochDataRaw(epoch uint64, header *types.Header) (*types
 // FindSkippedEpochDataRaw returns the raw epoch data for a skipped epoch that is stored in advance
 // of the start of the given epoch, also this method will update the epoch number from the
 // skipped epoch to the current epoch
-func (s *EpochState) FindSkippedEpochDataRaw(skippedEpoch, currentEpoch uint64, header *types.Header) (*types.EpochDataRaw, error) {
+func (s *EpochState) FindSkippedEpochDataRaw(skippedEpoch, currentEpoch uint64,
+	header *types.Header) (*types.EpochDataRaw, error) {
 	if skippedEpoch == 0 {
 		return nil, fmt.Errorf("%w: epoch 0 is not stored", errEpochNotInDatabase)
 	}
@@ -652,7 +652,6 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 	var nextEpoch uint64 = 1
 	if finalizedHeader.Number != 0 {
 		finalizedBlockEpoch, err := s.GetEpochForBlock(finalizedHeader)
-
 		if err != nil {
 			return fmt.Errorf("cannot get epoch for block %d (%s): %w",
 				finalizedHeader.Number, finalizedHeader.Hash(), err)
@@ -679,7 +678,7 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 		return fmt.Errorf("cannot find next epoch data: %w", err)
 	}
 
-	err = s.StoreEpochDataRaw(nextEpoch, finalizedNextEpochData.ToEpochDataRaw())
+	err = s.SetEpochDataRaw(nextEpoch, finalizedNextEpochData.ToEpochDataRaw())
 	if err != nil {
 		return fmt.Errorf("cannot set epoch data: %w", err)
 	}

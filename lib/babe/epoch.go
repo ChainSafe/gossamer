@@ -116,7 +116,8 @@ func (b *Service) checkIfEpochSkipped(epochBeingInitialized uint64, bestBlock *t
 	return epochBeingInitialized > epochFromBestBlock, epochBeingInitialized - epochFromBestBlock, nil
 }
 
-func (b *Service) findSkippedEpochInformations(skippedEpoch, currentEpoch uint64, bestBlock *types.Header) (*epochData, error) {
+func (b *Service) findSkippedEpochInformations(skippedEpoch, currentEpoch uint64,
+	bestBlock *types.Header) (*epochData, error) {
 	currEpochData, err := b.epochState.FindSkippedEpochDataRaw(skippedEpoch, currentEpoch, bestBlock)
 	if err != nil {
 		return nil, fmt.Errorf("fiding skipped epoch data raw: %w", err)
@@ -144,7 +145,8 @@ func (b *Service) findEpochInformations(epoch uint64, bestBlock *types.Header) (
 	return b.buildEpochData(currEpochData, currConfigData)
 }
 
-func (b *Service) buildEpochData(currEpochData *types.EpochDataRaw, currConfigData *types.ConfigData) (*epochData, error) {
+func (b *Service) buildEpochData(currEpochData *types.EpochDataRaw,
+	currConfigData *types.ConfigData) (*epochData, error) {
 	threshold, err := CalculateThreshold(currConfigData.C1, currConfigData.C2, len(currEpochData.Authorities))
 	if err != nil {
 		return nil, fmt.Errorf("calculating threshold: %w", err)

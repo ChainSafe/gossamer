@@ -45,7 +45,7 @@ func TestInitiateEpoch_Epoch1And2(t *testing.T) {
 	require.NoError(t, err)
 
 	data.Authorities = []types.AuthorityRaw{auth}
-	err = babeService.epochState.(*state.EpochState).StoreEpochDataRaw(1, data)
+	err = babeService.epochState.(*state.EpochState).SetEpochDataRaw(1, data)
 	require.NoError(t, err)
 
 	const authorityIndex = 0
@@ -83,7 +83,7 @@ func TestInitiateEpoch_Epoch1And2(t *testing.T) {
 		Randomness:  [32]byte{9},
 	}
 
-	err = babeService.epochState.(*state.EpochState).StoreEpochDataRaw(1, edata)
+	err = babeService.epochState.(*state.EpochState).SetEpochDataRaw(1, edata)
 	require.NoError(t, err)
 
 	expectedEpoch1Data := &epochData{
@@ -120,7 +120,7 @@ func TestInitiateEpoch_Epoch1And2(t *testing.T) {
 		Randomness:  [32]byte{9},
 	}
 
-	err = babeService.epochState.(*state.EpochState).StoreEpochDataRaw(1, edata)
+	err = babeService.epochState.(*state.EpochState).SetEpochDataRaw(1, edata)
 	require.NoError(t, err)
 
 	cdata := &types.ConfigData{
@@ -202,7 +202,7 @@ func TestService_getLatestEpochData_epochData(t *testing.T) {
 		Authorities: genesisCfg.GenesisAuthorities,
 		Randomness:  [types.RandomnessLength]byte{99, 88, 77},
 	}
-	err = epochState.StoreEpochDataRaw(1, data)
+	err = epochState.SetEpochDataRaw(1, data)
 	require.NoError(t, err)
 
 	ed, err := service.findEpochInformations(1, &genesisHeader)
@@ -228,7 +228,7 @@ func TestService_getLatestEpochData_configData(t *testing.T) {
 		Authorities: genesisCfg.GenesisAuthorities,
 		Randomness:  [types.RandomnessLength]byte{99, 88, 77},
 	}
-	err = epochState.StoreEpochDataRaw(7, data)
+	err = epochState.SetEpochDataRaw(7, data)
 	require.NoError(t, err)
 
 	cfgData := &types.ConfigData{
