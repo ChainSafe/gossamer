@@ -1663,7 +1663,8 @@ func TestStoredButNotIncludedDataIsPruned(t *testing.T) {
 	msgQueryChan := <-msgSenderQueryChan
 	require.Equal(t, availableData, msgQueryChan)
 
-	time.Sleep(10000 * time.Millisecond)
+	// wait for pruning to occur and check that the data is gone
+	time.Sleep(7000 * time.Millisecond)
 
 	harness.broadcastMessages = append(harness.broadcastMessages, queryData)
 	harness.triggerBroadcast()
@@ -1781,11 +1782,11 @@ func TestStoredDataKeptUntilFinalized(t *testing.T) {
 
 	harness.broadcastMessages = append(harness.broadcastMessages, queryData)
 
+	harness.printDB("queryData after pruning")
 	harness.triggerBroadcast()
 	msgQueryChan = <-msgSenderQueryChan
 	expectedResult := AvailableData{}
 	require.Equal(t, expectedResult, msgQueryChan)
-	harness.printDB("queryData after pruning")
 
 	// check that the chunks are gone
 	hasChunks = harness.hasAllChunks(candidateHash, nValidators, false)
@@ -1876,7 +1877,7 @@ func TestForkfullnessWorks(t *testing.T) {
 	require.Equal(t, availableData2, availableDataResult)
 	hasChunks := harness.hasAllChunks(parachaintypes.CandidateHash{Value: candidate1Hash}, nValidators, true)
 	require.True(t, hasChunks)
-	hasChunks = harness.hasAllChunks(parachaintypes.CandidateHash{Value: candidate1Hash}, nValidators, true)
+	hasChunks = harness.hasAllChunks(parachaintypes.CandidateHash{Value: candidate2Hash}, nValidators, true)
 	require.True(t, hasChunks)
 	harness.printDB("before import leaf")
 
@@ -1905,7 +1906,7 @@ func TestForkfullnessWorks(t *testing.T) {
 	require.Equal(t, availableData2, availableDataResult)
 	hasChunks = harness.hasAllChunks(parachaintypes.CandidateHash{Value: candidate1Hash}, nValidators, true)
 	require.True(t, hasChunks)
-	hasChunks = harness.hasAllChunks(parachaintypes.CandidateHash{Value: candidate1Hash}, nValidators, true)
+	hasChunks = harness.hasAllChunks(parachaintypes.CandidateHash{Value: candidate2Hash}, nValidators, true)
 	require.True(t, hasChunks)
 	harness.printDB("after block finalized")
 
