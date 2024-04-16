@@ -17,19 +17,18 @@ import (
 )
 
 var (
-	ErrConfigNotFound     = errors.New("config data not found")
-	ErrEpochNotInMemory   = errors.New("epoch not found in memory map")
-	errHashNotInMemory    = errors.New("hash not found in memory map")
-	errEpochNotInDatabase = errors.New("epoch data not found in the database")
-	errHashNotPersisted   = errors.New("hash with next epoch not found in database")
+	ErrConfigNotFound          = errors.New("config data not found")
+	ErrEpochNotInMemory        = errors.New("epoch not found in memory map")
+	errEpochLengthCannotBeZero = errors.New("epoch length cannot be zero")
+	errHashNotInMemory         = errors.New("hash not found in memory map")
+	errEpochNotInDatabase      = errors.New("epoch data not found in the database")
+	errHashNotPersisted        = errors.New("hash with next epoch not found in database")
+	errNoFirstNonOriginBlock   = errors.New("no first non origin block")
 )
 
 var (
 	epochPrefix         = "epoch"
-	epochLengthKey      = []byte("epochlength")
 	currentEpochKey     = []byte("current")
-	firstSlotKey        = []byte("firstslot")
-	slotDurationKey     = []byte("slotduration")
 	epochDataPrefix     = []byte("epochinfo")
 	configDataPrefix    = []byte("configinfo")
 	latestConfigDataKey = []byte("lcfginfo")
@@ -48,13 +47,21 @@ func configDataKey(epoch uint64) []byte {
 	return append(configDataPrefix, buf...)
 }
 
+// GenesisEpochDescriptor is the informations provided by calling
+// the genesis WASM runtime exported function `BabeAPIConfiguration`
+type GenesisEpochDescriptor struct {
+	EpochData  *types.EpochDataRaw
+	ConfigData *types.ConfigData
+}
+
 // EpochState tracks information related to each epoch
 type EpochState struct {
-	db          GetPutter
-	baseState   *BaseState
-	blockState  *BlockState
-	epochLength uint64 // measured in slots
-	skipToEpoch uint64
+	db           GetPutter
+	baseState    *BaseState
+	blockState   *BlockState
+	epochLength  uint64 // measured in slots
+	slotDuration uint64
+	skipToEpoch  uint64
 
 	nextEpochDataLock sync.RWMutex
 	// nextEpochData follows the format map[epoch]map[block hash]next epoch data
@@ -63,61 +70,46 @@ type EpochState struct {
 	nextConfigDataLock sync.RWMutex
 	// nextConfigData follows the format map[epoch]map[block hash]next config data
 	nextConfigData nextEpochMap[types.NextConfigDataV1]
+
+	genesisEpochDescriptor *GenesisEpochDescriptor
 }
 
 // NewEpochStateFromGenesis returns a new EpochState given information for the first epoch, fetched from the runtime
 func NewEpochStateFromGenesis(db database.Database, blockState *BlockState,
 	genesisConfig *types.BabeConfiguration) (*EpochState, error) {
-	baseState := NewBaseState(db)
-
-	err := baseState.storeFirstSlot(1) // this may change once the first block is imported
-	if err != nil {
-		return nil, err
-	}
-
-	epochDB := database.NewTable(db, epochPrefix)
-	err = epochDB.Put(currentEpochKey, []byte{0, 0, 0, 0, 0, 0, 0, 0})
-	if err != nil {
-		return nil, err
-	}
-
 	if genesisConfig.EpochLength == 0 {
-		return nil, errors.New("epoch length is 0")
+		return nil, errEpochLengthCannotBeZero
 	}
 
 	s := &EpochState{
 		baseState:      NewBaseState(db),
 		blockState:     blockState,
-		db:             epochDB,
+		db:             database.NewTable(db, epochPrefix),
 		epochLength:    genesisConfig.EpochLength,
+		slotDuration:   genesisConfig.SlotDuration,
 		nextEpochData:  make(nextEpochMap[types.NextEpochData]),
 		nextConfigData: make(nextEpochMap[types.NextConfigDataV1]),
+
+		genesisEpochDescriptor: &GenesisEpochDescriptor{
+			EpochData: &types.EpochDataRaw{
+				Authorities: genesisConfig.GenesisAuthorities,
+				Randomness:  genesisConfig.Randomness,
+			},
+			ConfigData: &types.ConfigData{
+				C1:             genesisConfig.C1,
+				C2:             genesisConfig.C2,
+				SecondarySlots: genesisConfig.SecondarySlots,
+			},
+		},
 	}
 
-	epochDataRaw := &types.EpochDataRaw{
-		Authorities: genesisConfig.GenesisAuthorities,
-		Randomness:  genesisConfig.Randomness,
-	}
-
-	err = s.SetEpochDataRaw(0, epochDataRaw)
+	err := s.StoreCurrentEpoch(0)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("storing current epoch")
 	}
 
-	err = s.SetConfigData(0, &types.ConfigData{
-		C1:             genesisConfig.C1,
-		C2:             genesisConfig.C2,
-		SecondarySlots: genesisConfig.SecondarySlots,
-	})
+	err = s.setLatestConfigData(0)
 	if err != nil {
-		return nil, err
-	}
-
-	if err = s.baseState.storeEpochLength(genesisConfig.EpochLength); err != nil {
-		return nil, err
-	}
-
-	if err = s.baseState.storeSlotDuration(genesisConfig.SlotDuration); err != nil {
 		return nil, err
 	}
 
@@ -129,14 +121,13 @@ func NewEpochStateFromGenesis(db database.Database, blockState *BlockState,
 }
 
 // NewEpochState returns a new EpochState
-func NewEpochState(db database.Database, blockState *BlockState) (*EpochState, error) {
-	baseState := NewBaseState(db)
-
-	epochLength, err := baseState.loadEpochLength()
-	if err != nil {
-		return nil, err
+func NewEpochState(db database.Database, blockState *BlockState,
+	genesisConfig *types.BabeConfiguration) (*EpochState, error) {
+	if genesisConfig.EpochLength == 0 {
+		return nil, errEpochLengthCannotBeZero
 	}
 
+	baseState := NewBaseState(db)
 	skipToEpoch, err := baseState.loadSkipToEpoch()
 	if err != nil {
 		return nil, err
@@ -146,30 +137,37 @@ func NewEpochState(db database.Database, blockState *BlockState) (*EpochState, e
 		baseState:      baseState,
 		blockState:     blockState,
 		db:             database.NewTable(db, epochPrefix),
-		epochLength:    epochLength,
+		epochLength:    genesisConfig.EpochLength,
+		slotDuration:   genesisConfig.SlotDuration,
 		skipToEpoch:    skipToEpoch,
 		nextEpochData:  make(nextEpochMap[types.NextEpochData]),
 		nextConfigData: make(nextEpochMap[types.NextConfigDataV1]),
+		genesisEpochDescriptor: &GenesisEpochDescriptor{
+			EpochData: &types.EpochDataRaw{
+				Authorities: genesisConfig.GenesisAuthorities,
+				Randomness:  genesisConfig.Randomness,
+			},
+			ConfigData: &types.ConfigData{
+				C1:             genesisConfig.C1,
+				C2:             genesisConfig.C2,
+				SecondarySlots: genesisConfig.SecondarySlots,
+			},
+		},
 	}, nil
 }
 
 // GetEpochLength returns the length of an epoch in slots
-func (s *EpochState) GetEpochLength() (uint64, error) {
-	return s.baseState.loadEpochLength()
+func (s *EpochState) GetEpochLength() uint64 {
+	return s.epochLength
 }
 
 // GetSlotDuration returns the duration of a slot
 func (s *EpochState) GetSlotDuration() (time.Duration, error) {
-	d, err := s.baseState.loadSlotDuration()
-	if err != nil {
-		return 0, err
-	}
-
-	return time.ParseDuration(fmt.Sprintf("%dms", d))
+	return time.ParseDuration(fmt.Sprintf("%dms", s.slotDuration))
 }
 
-// SetCurrentEpoch sets the current epoch
-func (s *EpochState) SetCurrentEpoch(epoch uint64) error {
+// StoreCurrentEpoch sets the current epoch
+func (s *EpochState) StoreCurrentEpoch(epoch uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, epoch)
 	return s.db.Put(currentEpochKey, buf)
@@ -191,9 +189,16 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return 0, errors.New("header is nil")
 	}
 
-	firstSlot, err := s.baseState.loadFirstSlot()
+	//  actually the epoch number for block number #1 is epoch 0,
+	// epochs start from 0 and are incremented (almost, given that epochs might be skipped)
+	// sequentially 0...1...2, so the block number #1 belongs to epoch 0
+	if header.Number == 1 {
+		return 0, nil
+	}
+
+	chainFirstSlotNumber, err := s.retrieveFirstNonOriginBlockSlot(header.Hash())
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("retrieving very first slot number: %w", err)
 	}
 
 	slotNumber, err := header.SlotNumber()
@@ -201,7 +206,7 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return 0, fmt.Errorf("getting slot number: %w", err)
 	}
 
-	return (slotNumber - firstSlot) / s.epochLength, nil
+	return (slotNumber - chainFirstSlotNumber) / s.epochLength, nil
 }
 
 // SetEpochDataRaw sets the epoch data raw for a given epoch
@@ -218,6 +223,10 @@ func (s *EpochState) SetEpochDataRaw(epoch uint64, raw *types.EpochDataRaw) erro
 // otherwise will try to get the data from the in-memory map using the header
 // if the header params is nil then it will search only in database
 func (s *EpochState) GetEpochDataRaw(epoch uint64, header *types.Header) (*types.EpochDataRaw, error) {
+	if epoch == 0 {
+		return s.genesisEpochDescriptor.EpochData, nil
+	}
+
 	epochDataRaw, err := s.getEpochDataRawFromDatabase(epoch)
 	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		return nil, fmt.Errorf("failed to retrieve epoch data from database: %w", err)
@@ -268,8 +277,8 @@ func (s *EpochState) GetLatestEpochDataRaw() (*types.EpochDataRaw, error) {
 	return s.GetEpochDataRaw(curr, nil)
 }
 
-// SetConfigData sets the BABE config data for a given epoch
-func (s *EpochState) SetConfigData(epoch uint64, info *types.ConfigData) error {
+// StoreConfigData sets the BABE config data for a given epoch
+func (s *EpochState) StoreConfigData(epoch uint64, info *types.ConfigData) error {
 	enc, err := scale.Marshal(*info)
 	if err != nil {
 		return err
@@ -296,6 +305,10 @@ func (s *EpochState) setLatestConfigData(epoch uint64) error {
 // If the header params is nil then it will search only in the database.
 func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (configData *types.ConfigData, err error) {
 	for tryEpoch := int(epoch); tryEpoch >= 0; tryEpoch-- {
+		if tryEpoch == 0 {
+			return s.genesisEpochDescriptor.ConfigData, nil
+		}
+
 		configData, err = s.getConfigDataFromDatabase(uint64(tryEpoch))
 		if err != nil && !errors.Is(err, database.ErrNotFound) {
 			return nil, fmt.Errorf("failed to retrieve config epoch from database: %w", err)
@@ -439,51 +452,80 @@ func (s *EpochState) GetLatestConfigData() (*types.ConfigData, error) {
 	return s.GetConfigData(epoch, nil)
 }
 
-// GetStartSlotForEpoch returns the first slot in the given epoch.
-// If 0 is passed as the epoch, it returns the start slot for the current epoch.
-func (s *EpochState) GetStartSlotForEpoch(epoch uint64) (uint64, error) {
-	firstSlot, err := s.baseState.loadFirstSlot()
+// GetStartSlotForEpoch returns the first slot in the given epoch, this method receives
+// the best block hash in order to discover the correct block
+func (s *EpochState) GetStartSlotForEpoch(epoch uint64, bestBlockHash common.Hash) (uint64, error) {
+	chainFirstSlotNumber, err := s.retrieveFirstNonOriginBlockSlot(bestBlockHash)
 	if err != nil {
-		return 0, err
-	}
+		if errors.Is(err, errNoFirstNonOriginBlock) {
+			if epoch == 0 {
+				slotDuration, err := s.GetSlotDuration()
+				if err != nil {
+					return 0, fmt.Errorf("getting slot duration: %w", err)
+				}
+				return uint64(time.Now().UnixNano()) / uint64(slotDuration.Nanoseconds()), nil
+			}
 
-	return s.epochLength*epoch + firstSlot, nil
+			return 0, fmt.Errorf(
+				"%w: first non origin block is needed for epoch %d",
+				errNoFirstNonOriginBlock,
+				epoch)
+		}
+		return 0, fmt.Errorf("retrieving first non origin block slot: %w", err)
+	}
+	return s.epochLength*epoch + chainFirstSlotNumber, nil
 }
 
-// GetEpochFromTime returns the epoch for a given time
-func (s *EpochState) GetEpochFromTime(t time.Time) (uint64, error) {
-	slotDuration, err := s.GetSlotDuration()
+// retrieveFirstNonOriginBlockSlot returns the slot number of the very first non origin block
+// if there is more than one first non origin block then it uses the block hash to check ancestry
+// e.g to return the correct slot number for a specific fork
+func (s *EpochState) retrieveFirstNonOriginBlockSlot(blockHash common.Hash) (uint64, error) {
+	firstNonOriginHashes, err := s.blockState.GetHashesByNumber(1)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("getting hashes using number 1: %w", err)
 	}
 
-	firstSlot, err := s.baseState.loadFirstSlot()
+	if len(firstNonOriginHashes) == 0 {
+		return 0, errNoFirstNonOriginBlock
+	}
+
+	var firstNonOriginBlockHash common.Hash
+	if len(firstNonOriginHashes) == 1 {
+		firstNonOriginBlockHash = firstNonOriginHashes[0]
+	} else {
+		blockHeader, err := s.blockState.GetHeader(blockHash)
+		if err != nil {
+			return 0, fmt.Errorf("getting block by header: %w", err)
+		}
+
+		if blockHeader.Number == 1 {
+			return blockHeader.SlotNumber()
+		}
+
+		for _, hash := range firstNonOriginHashes {
+			isDescendant, err := s.blockState.IsDescendantOf(hash, blockHash)
+			if err != nil {
+				return 0, fmt.Errorf("while checking ancestry: %w", err)
+			}
+
+			if isDescendant {
+				firstNonOriginBlockHash = hash
+				break
+			}
+		}
+	}
+
+	firstNonGenesisHeader, err := s.blockState.GetHeader(firstNonOriginBlockHash)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("getting first non genesis block by hash: %w", err)
 	}
 
-	slot := uint64(t.UnixNano()) / uint64(slotDuration.Nanoseconds())
-
-	if slot < firstSlot {
-		return 0, errors.New("given time is before network start")
-	}
-
-	return (slot - firstSlot) / s.epochLength, nil
-}
-
-// SetFirstSlot sets the first slot number of the network
-func (s *EpochState) SetFirstSlot(slot uint64) error {
-	// check if block 1 was finalised already; if it has, don't set first slot again
-	header, err := s.blockState.GetHighestFinalisedHeader()
+	chainFirstSlotNumber, err := firstNonGenesisHeader.SlotNumber()
 	if err != nil {
-		return err
+		return 0, fmt.Errorf("getting slot number: %w", err)
 	}
 
-	if header.Number >= 1 {
-		return errors.New("first slot has already been set")
-	}
-
-	return s.baseState.storeFirstSlot(slot)
+	return chainFirstSlotNumber, nil
 }
 
 // SkipVerify returns whether verification for the given header should be skipped or not.
@@ -627,7 +669,7 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 	}
 
 	cd := finalizedNextConfigData.ToConfigData()
-	err = s.SetConfigData(nextEpoch, cd)
+	err = s.StoreConfigData(nextEpoch, cd)
 	if err != nil {
 		return fmt.Errorf("cannot set config data: %w", err)
 	}

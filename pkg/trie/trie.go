@@ -13,17 +13,23 @@ import (
 // EmptyHash is the empty trie hash.
 var EmptyHash = common.MustBlake2bHash([]byte{0})
 
-type ChildTrieSupport interface {
+type ChildTriesRead interface {
 	GetChild(keyToChild []byte) (Trie, error)
 	GetFromChild(keyToChild, key []byte) ([]byte, error)
 	GetChildTries() map[common.Hash]Trie
+}
+
+type ChildTriesWrite interface {
 	PutIntoChild(keyToChild, key, value []byte) error
 	DeleteChild(keyToChild []byte) (err error)
 	ClearFromChild(keyToChild, key []byte) error
 }
 
-type KVStore interface {
+type KVStoreRead interface {
 	Get(key []byte) []byte
+}
+
+type KVStoreWrite interface {
 	Put(key, value []byte) error
 	Delete(key []byte) error
 }
@@ -33,8 +39,11 @@ type TrieIterator interface {
 	NextKey(key []byte) []byte
 }
 
-type PrefixTrie interface {
+type PrefixTrieRead interface {
 	GetKeysWithPrefix(prefix []byte) (keysLE [][]byte)
+}
+
+type PrefixTrieWrite interface {
 	ClearPrefix(prefix []byte) (err error)
 	ClearPrefixLimit(prefix []byte, limit uint32) (
 		deleted uint32, allDeleted bool, err error)
@@ -54,13 +63,21 @@ type Hashable interface {
 	Hash() (common.Hash, error)
 }
 
-type Trie interface {
-	PrefixTrie
-	KVStore
-	Hashable
-	ChildTrieSupport
-	TrieIterator
-	TrieDeltas
-	Versioned
+type TrieRead interface {
 	fmt.Stringer
+
+	KVStoreRead
+	Hashable
+	ChildTriesRead
+	PrefixTrieRead
+	TrieIterator
+}
+
+type Trie interface {
+	TrieRead
+	ChildTriesWrite
+	PrefixTrieWrite
+	KVStoreWrite
+	Versioned
+	TrieDeltas
 }

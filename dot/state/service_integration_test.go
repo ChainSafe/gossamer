@@ -19,6 +19,7 @@ import (
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/require"
@@ -31,9 +32,10 @@ func newTestService(t *testing.T) (state *Service) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
-		Path:      t.TempDir(),
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
+		Path:              t.TempDir(),
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	state = NewService(config)
 	return state
@@ -46,9 +48,10 @@ func newTestMemDBService(t *testing.T) *Service {
 
 	testDatadirPath := t.TempDir()
 	config := Config{
-		Path:      testDatadirPath,
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
+		Path:              testDatadirPath,
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	state := NewService(config)
 	state.UseMemDB()
@@ -129,9 +132,10 @@ func TestService_BlockTree(t *testing.T) {
 		MaxTimes(2)
 
 	config := Config{
-		Path:      t.TempDir(),
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
+		Path:              t.TempDir(),
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 
 	stateA := NewService(config)
@@ -184,7 +188,8 @@ func TestService_StorageTriePruning(t *testing.T) {
 			// Mode:           pruner.Full,
 			RetainedBlocks: uint32(retainBlocks),
 		},
-		Telemetry: telemetryMock,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -231,9 +236,10 @@ func TestService_PruneStorage(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
 	config := Config{
-		Path:      t.TempDir(),
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
+		Path:              t.TempDir(),
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -312,9 +318,10 @@ func TestService_Rewind(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(3)
 
 	config := Config{
-		Path:      t.TempDir(),
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
+		Path:              t.TempDir(),
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -370,15 +377,46 @@ func TestService_Import(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	config := Config{
-		Path:      t.TempDir(),
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
+		Path:              t.TempDir(),
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
 
 	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	err := serv.Initialise(&genData, &genesisHeader, genTrie)
+	require.NoError(t, err)
+
+	babePrimaryPreDigest := types.BabePrimaryPreDigest{
+		SlotNumber: 1, // block on epoch 0 with changes to epoch 1
+		VRFOutput:  [32]byte{},
+		VRFProof:   [64]byte{},
+	}
+
+	preRuntimeDigest, err := babePrimaryPreDigest.ToPreRuntimeDigest()
+	require.NoError(t, err)
+	digest := types.NewDigest()
+
+	require.NoError(t, digest.Add(*preRuntimeDigest))
+
+	blockNumber01 := &types.Header{
+		Digest:     digest,
+		ParentHash: common.Hash{},
+		Number:     1,
+	}
+
+	// mapping number #1 to the block hash
+	// then we can retrieve the slot number
+	// using the block number
+	err = serv.Block.db.Put(
+		headerHashKey(uint64(blockNumber01.Number)),
+		blockNumber01.Hash().ToBytes(),
+	)
+	require.NoError(t, err)
+
+	err = serv.Block.SetHeader(blockNumber01)
 	require.NoError(t, err)
 
 	tr := inmemory_trie.NewEmptyTrie()
@@ -394,7 +432,7 @@ func TestService_Import(t *testing.T) {
 		tr.Put([]byte(tc), []byte(tc))
 	}
 
-	digest := types.NewDigest()
+	digest = types.NewDigest()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 177).ToPreRuntimeDigest()
 	require.NoError(t, err)
 	err = digest.Add(*prd)
@@ -405,8 +443,7 @@ func TestService_Import(t *testing.T) {
 		Digest:    digest,
 	}
 
-	firstSlot := uint64(100)
-
+	firstSlot := uint64(1)
 	err = serv.Import(header, tr, trie.V0, firstSlot)
 	require.NoError(t, err)
 
