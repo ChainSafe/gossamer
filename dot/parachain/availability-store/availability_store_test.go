@@ -1561,19 +1561,11 @@ func TestStoredButNotIncludedDataIsPruned(t *testing.T) {
 	time.Sleep(10000 * time.Millisecond)
 
 	harness.broadcastMessages = append(harness.broadcastMessages, queryData)
-
 	harness.triggerBroadcast()
 	msgQueryChan = <-msgSenderQueryChan
-	fmt.Printf("msgQueryChan: %v\n", msgQueryChan)
-	// TODO: check that the data is pruned
-	// trigger pruning
-	//harness.triggerBroadcast()
-	//
-	//// check that the data is pruned
-	//harness.triggerBroadcast()
-	//msgQueryChan = <-msgSenderQueryChan
-	//require.Equal(t, availability_store.AvailableData{}, msgQueryChan)
+	require.Equal(t, AvailableData{}, msgQueryChan)
 	harness.printDB("after pruning")
+
 	err = harness.overseer.Stop()
 	require.NoError(t, err)
 }
@@ -1679,7 +1671,7 @@ func TestStoredDataKeptUntilFinalized(t *testing.T) {
 	harness.triggerBroadcast()
 
 	// wait for pruning to occur and check that the data is gone
-	time.Sleep(5000 * time.Millisecond)
+	time.Sleep(7000 * time.Millisecond)
 	harness.printDB("after block finalized")
 
 	harness.broadcastMessages = append(harness.broadcastMessages, queryData)
