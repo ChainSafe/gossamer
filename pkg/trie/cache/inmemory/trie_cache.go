@@ -15,16 +15,19 @@ type TrieInMemoryCache struct {
 	valueCache *TrieValueCache
 }
 
+// NewTrieInMemoryCache creates a new TrieInMemoryCache
 func NewTrieInMemoryCache() *TrieInMemoryCache {
 	return &TrieInMemoryCache{
-		valueCache: NewTrieValueCache(defaultValueCacheMaxSize),
+		valueCache: newTrieValueCache(defaultValueCacheMaxSize),
 	}
 }
 
+// GetValue returns the value for the given key
 func (tc *TrieInMemoryCache) GetValue(key []byte) []byte {
 	return tc.valueCache.getValue(key)
 }
 
+// SetValue sets the value for the given key
 func (tc *TrieInMemoryCache) SetValue(key []byte, value []byte) {
 	tc.valueCache.setValue(key, value)
 }

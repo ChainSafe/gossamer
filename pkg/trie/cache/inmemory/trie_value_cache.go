@@ -7,17 +7,26 @@ import (
 	"github.com/karlseguin/ccache/v3"
 )
 
+// cacheValue is a helper alias over []byte to implement ccache.Sized
 type cacheValue []byte
 
+// Size returns the size of the cacheValue + 350 bytes since ccache use it to
+// store each entry
 func (cv cacheValue) Size() int64 {
-	return int64(len(cv) + 350) // Since ccache use 350 bytes per entry
+	return int64(len(cv) + 350)
 }
 
+// TrieValueCache is an in-memory cache for trie values
+// consider that the values are deleted asyncronously so there is a change that
+// the maxSize can be exceeded
+// we can use lru.GC() to force the deletion of the items that should be deleted
 type TrieValueCache struct {
 	lru *ccache.Cache[cacheValue]
 }
 
-func NewTrieValueCache(maxSize int64) *TrieValueCache {
+// newTrieValueCache creates a new TrieValueCache
+// maxSize is the cache max size in bytes
+func newTrieValueCache(maxSize int64) *TrieValueCache {
 	cache := ccache.New(ccache.Configure[cacheValue]().MaxSize(maxSize))
 	return &TrieValueCache{
 		lru: cache,
