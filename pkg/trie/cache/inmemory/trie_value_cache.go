@@ -7,15 +7,15 @@ import (
 type cacheValue []byte
 
 func (cv cacheValue) Size() int64 {
-	return int64(len(cv))
+	return int64(len(cv) + 350) // Since ccache use 350 bytes per entry
 }
 
 type TrieValueCache struct {
-	lru *ccache.Cache[[]byte]
+	lru *ccache.Cache[cacheValue]
 }
 
 func NewTrieValueCache(maxSize int64) *TrieValueCache {
-	cache := ccache.New(ccache.Configure[[]byte]().MaxSize(maxSize))
+	cache := ccache.New(ccache.Configure[cacheValue]().MaxSize(maxSize))
 	return &TrieValueCache{
 		lru: cache,
 	}
