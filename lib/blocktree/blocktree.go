@@ -126,6 +126,10 @@ func (bt *BlockTree) GetHashesAtNumber(number uint) (hashes []common.Hash) {
 	bt.RLock()
 	defer bt.RUnlock()
 
+	if bt.root == nil {
+		return nil
+	}
+
 	if number < bt.root.number {
 		return []common.Hash{}
 	}

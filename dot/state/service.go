@@ -23,18 +23,19 @@ var logger = log.NewFromGlobal(
 
 // Service is the struct that holds storage, block and network states
 type Service struct {
-	dbPath      string
-	logLvl      log.Level
-	db          database.Database
-	isMemDB     bool // set to true if using an in-memory database; only used for testing.
-	Base        *BaseState
-	Storage     *InmemoryStorageState
-	Block       *BlockState
-	Transaction *TransactionState
-	Epoch       *EpochState
-	Grandpa     *GrandpaState
-	Slot        *SlotState
-	closeCh     chan interface{}
+	dbPath            string
+	logLvl            log.Level
+	db                database.Database
+	isMemDB           bool // set to true if using an in-memory database; only used for testing.
+	Base              *BaseState
+	Storage           *InmemoryStorageState
+	Block             *BlockState
+	Transaction       *TransactionState
+	Epoch             *EpochState
+	Grandpa           *GrandpaState
+	Slot              *SlotState
+	closeCh           chan interface{}
+	genesisBABEConfig *types.BabeConfiguration
 
 	PrunerCfg pruner.Config
 	Telemetry Telemetry
@@ -51,11 +52,12 @@ func (s *Service) Pause() error {
 
 // Config is the default configuration used by state service.
 type Config struct {
-	Path      string
-	LogLevel  log.Level
-	PrunerCfg pruner.Config
-	Telemetry Telemetry
-	Metrics   metrics.IntervalConfig
+	Path              string
+	LogLevel          log.Level
+	PrunerCfg         pruner.Config
+	Telemetry         Telemetry
+	Metrics           metrics.IntervalConfig
+	GenesisBABEConfig *types.BabeConfiguration
 }
 
 // NewService create a new instance of Service
@@ -63,15 +65,16 @@ func NewService(config Config) *Service {
 	logger.Patch(log.SetLevel(config.LogLevel))
 
 	return &Service{
-		dbPath:    config.Path,
-		logLvl:    config.LogLevel,
-		db:        nil,
-		isMemDB:   false,
-		Storage:   nil,
-		Block:     nil,
-		closeCh:   make(chan interface{}),
-		PrunerCfg: config.PrunerCfg,
-		Telemetry: config.Telemetry,
+		dbPath:            config.Path,
+		logLvl:            config.LogLevel,
+		db:                nil,
+		isMemDB:           false,
+		Storage:           nil,
+		Block:             nil,
+		closeCh:           make(chan interface{}),
+		PrunerCfg:         config.PrunerCfg,
+		Telemetry:         config.Telemetry,
+		genesisBABEConfig: config.GenesisBABEConfig,
 	}
 }
 
@@ -150,8 +153,10 @@ func (s *Service) Start() (err error) {
 	// create transaction queue
 	s.Transaction = NewTransactionState(s.Telemetry)
 
-	// create epoch state
-	s.Epoch, err = NewEpochState(s.db, s.Block)
+	// create epoch and slot state
+	s.Slot = NewSlotState(s.db)
+
+	s.Epoch, err = NewEpochState(s.db, s.Block, s.genesisBABEConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create epoch state: %w", err)
 	}
@@ -162,7 +167,6 @@ func (s *Service) Start() (err error) {
 		"created state service with head %s, highest number %d and genesis hash %s",
 		s.Block.BestBlockHash(), num, s.Block.genesisHash.String())
 
-	s.Slot = NewSlotState(s.db)
 	return nil
 }
 
@@ -200,7 +204,7 @@ func (s *Service) Rewind(toBlock uint) error {
 		return err
 	}
 
-	err = s.Epoch.SetCurrentEpoch(epoch)
+	err = s.Epoch.StoreCurrentEpoch(epoch)
 	if err != nil {
 		return err
 	}
@@ -262,7 +266,8 @@ func (s *Service) Stop() error {
 
 // Import imports the given state corresponding to the given header and sets the head of the chain
 // to it. Additionally, it uses the first slot to correctly set the epoch number of the block.
-func (s *Service) Import(header *types.Header, t trie.Trie, stateTrieVersion trie.TrieLayout, firstSlot uint64) error {
+func (s *Service) Import(header *types.Header, t trie.Trie,
+	stateTrieVersion trie.TrieLayout, firstSlot uint64) error {
 	var err error
 	// initialise database using data directory
 	if !s.isMemDB {
@@ -273,25 +278,23 @@ func (s *Service) Import(header *types.Header, t trie.Trie, stateTrieVersion tri
 	}
 
 	block := &BlockState{
-		db: database.NewTable(s.db, blockPrefix),
+		bt:                blocktree.NewEmptyBlockTree(),
+		db:                database.NewTable(s.db, blockPrefix),
+		unfinalisedBlocks: newHashToBlockMap(),
 	}
 
 	storage := &InmemoryStorageState{
 		db: database.NewTable(s.db, storagePrefix),
 	}
 
-	epoch, err := NewEpochState(s.db, block)
+	epoch, err := NewEpochState(s.db, block, s.genesisBABEConfig)
 	if err != nil {
 		return err
 	}
 
 	s.Base = NewBaseState(s.db)
 
-	if err = s.Base.storeFirstSlot(firstSlot); err != nil {
-		return err
-	}
-
-	blockEpoch, err := epoch.GetEpochForBlock(header)
+	blockEpoch, err := getEpochForBlockHeader(header, epoch.epochLength, firstSlot)
 	if err != nil {
 		return err
 	}
@@ -303,7 +306,7 @@ func (s *Service) Import(header *types.Header, t trie.Trie, stateTrieVersion tri
 	}
 	logger.Debugf("skip BABE verification up to epoch %d", skipTo)
 
-	if err := epoch.SetCurrentEpoch(blockEpoch); err != nil {
+	if err := epoch.StoreCurrentEpoch(blockEpoch); err != nil {
 		return err
 	}
 
@@ -348,4 +351,13 @@ func (s *Service) Import(header *types.Header, t trie.Trie, stateTrieVersion tri
 	}
 
 	return s.db.Close()
+}
+
+func getEpochForBlockHeader(header *types.Header, epochLength, chainFirstSlotNumber uint64) (uint64, error) {
+	slotNumber, err := header.SlotNumber()
+	if err != nil {
+		return 0, fmt.Errorf("getting slot number: %w", err)
+	}
+
+	return (slotNumber - chainFirstSlotNumber) / epochLength, nil
 }
