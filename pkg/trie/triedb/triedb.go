@@ -12,6 +12,7 @@ import (
 	nibbles "github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 
+	"github.com/ChainSafe/gossamer/pkg/trie/cache"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 )
 
@@ -22,13 +23,15 @@ var ErrIncompleteDB = errors.New("incomplete database")
 type TrieDB struct {
 	rootHash common.Hash
 	db       db.DBGetter
+	cache    cache.TrieCache
 }
 
 // NewTrieDB creates a new TrieDB using the given root and db
-func NewTrieDB(rootHash common.Hash, db db.DBGetter) *TrieDB {
+func NewTrieDB(rootHash common.Hash, db db.DBGetter, cache cache.TrieCache) *TrieDB {
 	return &TrieDB{
 		rootHash: rootHash,
 		db:       db,
+		cache:    cache,
 	}
 }
 
@@ -54,10 +57,16 @@ func (t *TrieDB) MustHash() common.Hash {
 // which matches its key with the key given.
 // Note the key argument is given in little Endian format.
 func (t *TrieDB) Get(key []byte) []byte {
-	val, err := t.lookup(key)
-	if err != nil {
-		return nil
+	val := t.getValueFromCache(key)
+	if val == nil {
+		var err error
+		val, err = t.lookup(key)
+		if err != nil {
+			return nil
+		}
+		t.setValueInCache(key, val)
 	}
+
 	return val
 }
 
@@ -69,15 +78,24 @@ func (t *TrieDB) GetKeysWithPrefix(prefix []byte) (keysLE [][]byte) {
 }
 
 // Internal methods
-
-func (t *TrieDB) lookup(key []byte) ([]byte, error) {
-	keyNibbles := nibbles.KeyLEToNibbles(key)
-	return t.lookupWithoutCache(keyNibbles)
+func (t *TrieDB) getValueFromCache(key []byte) []byte {
+	if t.cache != nil {
+		return t.cache.GetValue(key)
+	}
+	return nil
 }
 
-// lookupWithoutCache traverse nodes loading then from DB until reach the one
+func (t *TrieDB) setValueInCache(key []byte, value []byte) {
+	if t.cache != nil {
+		t.cache.SetValue(key, value)
+	}
+}
+
+// lookup traverse nodes loading then from DB until reach the one
 // we are looking for.
-func (t *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
+func (t *TrieDB) lookup(key []byte) ([]byte, error) {
+	nibbleKey := nibbles.KeyLEToNibbles(key)
+
 	// Start from root node and going downwards
 	partialKey := nibbleKey
 	hash := t.rootHash[:]
