@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var genesisBABEConfig = &types.BabeConfiguration{
+var AuthorOnEverySlotBABEConfig = &types.BabeConfiguration{
 	// slots are 6 seconds on westend and using time.Now() allows us to create a block at any point in the slot.
 	// So we need to manually set time to produce consistent results. See here:
 	// https://github.com/paritytech/substrate/blob/09de7b41599add51cf27eca8f1bc4c50ed8e9453/frame/timestamp/src/lib.rs#L229
@@ -54,23 +54,8 @@ func TestService_ProducesBlocks(t *testing.T) {
 		Authority: true,
 	}
 
-	var authorOnEverySlot = &types.BabeConfiguration{
-		SlotDuration: 6000,
-		EpochLength:  200,
-		C1:           1,
-		C2:           1,
-		GenesisAuthorities: []types.AuthorityRaw{
-			{
-				Key:    keyring.Alice().Public().(*sr25519.PublicKey).AsBytes(),
-				Weight: 1,
-			},
-		},
-		Randomness:     [32]byte{},
-		SecondarySlots: 0,
-	}
-
 	gen, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, gen, genTrie, genHeader, authorOnEverySlot)
+	babeService := createTestService(t, cfg, gen, genTrie, genHeader, AuthorOnEverySlotBABEConfig)
 
 	err := babeService.Start()
 	require.NoError(t, err)
@@ -120,7 +105,7 @@ func TestService_GetAuthorityIndex(t *testing.T) {
 func TestStartAndStop(t *testing.T) {
 	cfg := ServiceConfig{}
 	gen, genTrie, genHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	bs := createTestService(t, cfg, gen, genTrie, genHeader, genesisBABEConfig)
+	bs := createTestService(t, cfg, gen, genTrie, genHeader, AuthorOnEverySlotBABEConfig)
 	err := bs.Start()
 	require.NoError(t, err)
 	err = bs.Stop()
@@ -133,7 +118,7 @@ func TestService_PauseAndResume(t *testing.T) {
 
 	cfg := ServiceConfig{}
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
+	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 	err := babeService.Start()
 	require.NoError(t, err)
 	time.Sleep(time.Second)
@@ -167,7 +152,7 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 
-	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
+	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
@@ -177,7 +162,6 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 	require.NoError(t, err)
 
 	startTime := getSlotStartTime(epochDescriptor.startSlot, babeService.constants.slotDuration)
-	fmt.Println(startTime)
 
 	slot := Slot{
 		start:    startTime,
@@ -242,7 +226,7 @@ func TestService_HandleSlotWithLaggingSlot(t *testing.T) {
 
 func TestService_HandleSlotWithSameSlot(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 	const authorityIndex = 0
 
 	bestBlockHash := babeService.blockState.BestBlockHash()
@@ -279,7 +263,7 @@ func TestService_HandleSlotWithSameSlot(t *testing.T) {
 		Keypair: keyring.Bob().(*sr25519.Keypair),
 	}
 	genBob, genTrieBob, genHeaderBob := newWestendDevGenesisWithTrieAndHeader(t)
-	babeServiceBob := createTestService(t, cfgBob, genBob, genTrieBob, genHeaderBob, genesisBABEConfig)
+	babeServiceBob := createTestService(t, cfgBob, genBob, genTrieBob, genHeaderBob, AuthorOnEverySlotBABEConfig)
 
 	// Add block created by alice to bob
 	err = babeServiceBob.blockState.AddBlock(block)

@@ -17,7 +17,7 @@ import (
 
 func TestInitiateEpoch_Epoch0(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 	babeService.constants.epochLength = 20
 
 	epochDescriptor, err := babeService.initiateEpoch(0)
@@ -33,7 +33,7 @@ func TestInitiateEpoch_Epoch1And2(t *testing.T) {
 		Authority: true,
 	}
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
+	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 
 	// epoch 1, check that genesis EpochData and ConfigData was properly set
 	auth := types.AuthorityRaw{
@@ -120,7 +120,7 @@ func TestInitiateEpoch_Epoch1And2(t *testing.T) {
 		Randomness:  [32]byte{9},
 	}
 
-	err = babeService.epochState.(*state.EpochState).StoreEpochDataRaw(2, edata)
+	err = babeService.epochState.(*state.EpochState).StoreEpochDataRaw(1, edata)
 	require.NoError(t, err)
 
 	cdata := &types.ConfigData{
@@ -134,7 +134,7 @@ func TestInitiateEpoch_Epoch1And2(t *testing.T) {
 	threshold, err := CalculateThreshold(cdata.C1, cdata.C2, 1)
 	require.NoError(t, err)
 
-	expectedEpochDescriptor := &EpochDescriptor{
+	expectedEpochDescriptor := &epochDescriptor{
 		data: &epochData{
 			randomness:     edata.Randomness,
 			authorities:    edata.Authorities,
@@ -155,7 +155,7 @@ func TestInitiateEpoch_Epoch1And2(t *testing.T) {
 
 func TestIncrementEpoch(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	bs := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
+	bs := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 
 	next, err := bs.incrementEpoch()
 	require.NoError(t, err)

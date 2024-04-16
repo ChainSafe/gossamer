@@ -19,6 +19,7 @@ import (
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/require"
@@ -31,18 +32,10 @@ func newTestService(t *testing.T) (state *Service) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := Config{
-		Path:      t.TempDir(),
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
-		GenesisBABEConfig: &types.BabeConfiguration{
-			SlotDuration:       1000,
-			EpochLength:        200,
-			C1:                 1,
-			C2:                 4,
-			GenesisAuthorities: []types.AuthorityRaw{},
-			Randomness:         [32]byte{},
-			SecondarySlots:     0,
-		},
+		Path:              t.TempDir(),
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	state = NewService(config)
 	return state
@@ -55,18 +48,10 @@ func newTestMemDBService(t *testing.T) *Service {
 
 	testDatadirPath := t.TempDir()
 	config := Config{
-		Path:      testDatadirPath,
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
-		GenesisBABEConfig: &types.BabeConfiguration{
-			SlotDuration:       1000,
-			EpochLength:        200,
-			C1:                 1,
-			C2:                 4,
-			GenesisAuthorities: []types.AuthorityRaw{},
-			Randomness:         [32]byte{},
-			SecondarySlots:     0,
-		},
+		Path:              testDatadirPath,
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	state := NewService(config)
 	state.UseMemDB()
@@ -147,18 +132,10 @@ func TestService_BlockTree(t *testing.T) {
 		MaxTimes(2)
 
 	config := Config{
-		Path:      t.TempDir(),
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
-		GenesisBABEConfig: &types.BabeConfiguration{
-			SlotDuration:       1000,
-			EpochLength:        200,
-			C1:                 1,
-			C2:                 4,
-			GenesisAuthorities: []types.AuthorityRaw{},
-			Randomness:         [32]byte{},
-			SecondarySlots:     0,
-		},
+		Path:              t.TempDir(),
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 
 	stateA := NewService(config)
@@ -211,16 +188,8 @@ func TestService_StorageTriePruning(t *testing.T) {
 			// Mode:           pruner.Full,
 			RetainedBlocks: uint32(retainBlocks),
 		},
-		Telemetry: telemetryMock,
-		GenesisBABEConfig: &types.BabeConfiguration{
-			SlotDuration:       1000,
-			EpochLength:        200,
-			C1:                 1,
-			C2:                 4,
-			GenesisAuthorities: []types.AuthorityRaw{},
-			Randomness:         [32]byte{},
-			SecondarySlots:     0,
-		},
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -267,18 +236,10 @@ func TestService_PruneStorage(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
 	config := Config{
-		Path:      t.TempDir(),
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
-		GenesisBABEConfig: &types.BabeConfiguration{
-			SlotDuration:       1000,
-			EpochLength:        200,
-			C1:                 1,
-			C2:                 4,
-			GenesisAuthorities: []types.AuthorityRaw{},
-			Randomness:         [32]byte{},
-			SecondarySlots:     0,
-		},
+		Path:              t.TempDir(),
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -357,18 +318,10 @@ func TestService_Rewind(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(3)
 
 	config := Config{
-		Path:      t.TempDir(),
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
-		GenesisBABEConfig: &types.BabeConfiguration{
-			SlotDuration:       1000,
-			EpochLength:        200,
-			C1:                 1,
-			C2:                 4,
-			GenesisAuthorities: []types.AuthorityRaw{},
-			Randomness:         [32]byte{},
-			SecondarySlots:     0,
-		},
+		Path:              t.TempDir(),
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()
@@ -424,18 +377,10 @@ func TestService_Import(t *testing.T) {
 	telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 	config := Config{
-		Path:      t.TempDir(),
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
-		GenesisBABEConfig: &types.BabeConfiguration{
-			SlotDuration:       1000,
-			EpochLength:        200,
-			C1:                 1,
-			C2:                 4,
-			GenesisAuthorities: []types.AuthorityRaw{},
-			Randomness:         [32]byte{},
-			SecondarySlots:     0,
-		},
+		Path:              t.TempDir(),
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	serv := NewService(config)
 	serv.UseMemDB()

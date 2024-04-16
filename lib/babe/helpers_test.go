@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -75,18 +76,10 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 		config := state.Config{
-			Path:      testDatadirPath,
-			LogLevel:  log.Info,
-			Telemetry: telemetryMock,
-			GenesisBABEConfig: &types.BabeConfiguration{
-				SlotDuration:       1000,
-				EpochLength:        200,
-				C1:                 1,
-				C2:                 4,
-				GenesisAuthorities: []types.AuthorityRaw{},
-				Randomness:         [32]byte{},
-				SecondarySlots:     0,
-			},
+			Path:              testDatadirPath,
+			LogLevel:          log.Info,
+			Telemetry:         telemetryMock,
+			GenesisBABEConfig: config.BABEConfigurationTestDefault,
 		}
 
 		stateSrvc = state.NewService(config)
@@ -337,7 +330,7 @@ func buildLocalTransaction(t *testing.T, rt runtime.Instance, ext types.Extrinsi
 }
 
 func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.Header,
-	exts [][]byte, epochDescriptor *EpochDescriptor, slot Slot) *types.Block {
+	exts [][]byte, epochDescriptor *epochDescriptor, slot Slot) *types.Block {
 	for _, ext := range exts {
 		validTransaction := transaction.NewValidTransaction(ext, &transaction.Validity{})
 		_, err := babeService.transactionState.Push(validTransaction)

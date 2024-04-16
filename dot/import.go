@@ -21,8 +21,7 @@ import (
 )
 
 // ImportState imports the state in the given files to the database with the given path.
-func ImportState(
-	basepath, stateFP, headerFP string, stateTrieVersion trie.TrieLayout,
+func ImportState(basepath, stateFP, headerFP string, stateTrieVersion trie.TrieLayout,
 	genesisBABEConfig *types.BabeConfiguration, firstSlot uint64) error {
 	tr, err := newTrieFromPairs(stateFP, trie.V0)
 	if err != nil {

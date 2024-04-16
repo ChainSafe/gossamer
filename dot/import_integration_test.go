@@ -15,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -90,34 +91,25 @@ func TestNewHeaderFromFile(t *testing.T) {
 }
 
 func TestImportState_Integration(t *testing.T) {
-	config := DefaultTestWestendDevConfig(t)
+	defaultWestendDevConfig := DefaultTestWestendDevConfig(t)
 
-	genFile := NewTestGenesisRawFile(t, config)
-	config.ChainSpec = genFile
-	err := InitNode(config)
+	genFile := NewTestGenesisRawFile(t, defaultWestendDevConfig)
+	defaultWestendDevConfig.ChainSpec = genFile
+	err := InitNode(defaultWestendDevConfig)
 	require.NoError(t, err)
 
 	stateFP := setupStateFile(t)
 	headerFP := setupHeaderFile(t)
 
-	genesisBABEConfig := &types.BabeConfiguration{
-		SlotDuration:       1000,
-		EpochLength:        200,
-		C1:                 1,
-		C2:                 4,
-		GenesisAuthorities: []types.AuthorityRaw{},
-		Randomness:         [32]byte{},
-		SecondarySlots:     0,
-	}
-
 	firstSlot := uint64(1)
-	err = ImportState(config.BasePath, stateFP, headerFP, trie.V0, genesisBABEConfig, firstSlot)
+	err = ImportState(defaultWestendDevConfig.BasePath, stateFP, headerFP,
+		trie.V0, config.BABEConfigurationTestDefault, firstSlot)
 	require.NoError(t, err)
 	// confirm data is imported into db
 	stateConfig := state.Config{
-		Path:              config.BasePath,
+		Path:              defaultWestendDevConfig.BasePath,
 		LogLevel:          log.Info,
-		GenesisBABEConfig: genesisBABEConfig,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	srv := state.NewService(stateConfig)
 	srv.SetupBase()
@@ -132,22 +124,12 @@ func TestImportState_Integration(t *testing.T) {
 func TestImportState(t *testing.T) {
 	t.Parallel()
 
-	config := DefaultTestWestendDevConfig(t)
+	defaultWestendDevConfig := DefaultTestWestendDevConfig(t)
 
-	config.ChainSpec = NewTestGenesisRawFile(t, config)
+	defaultWestendDevConfig.ChainSpec = NewTestGenesisRawFile(t, defaultWestendDevConfig)
 	nodeInstance := nodeBuilder{}
-	err := nodeInstance.initNode(config)
+	err := nodeInstance.initNode(defaultWestendDevConfig)
 	require.NoError(t, err)
-
-	genesisBABEConfig := &types.BabeConfiguration{
-		SlotDuration:       1000,
-		EpochLength:        200,
-		C1:                 1,
-		C2:                 4,
-		GenesisAuthorities: []types.AuthorityRaw{},
-		Randomness:         [32]byte{},
-		SecondarySlots:     0,
-	}
 
 	stateFP := setupStateFile(t)
 	headerFP := setupHeaderFile(t)
@@ -171,7 +153,7 @@ func TestImportState(t *testing.T) {
 		{
 			name: "working_example",
 			args: args{
-				basepath:     config.BasePath,
+				basepath:     defaultWestendDevConfig.BasePath,
 				stateFP:      stateFP,
 				headerFP:     headerFP,
 				stateVersion: trie.V0,
@@ -185,7 +167,7 @@ func TestImportState(t *testing.T) {
 			t.Parallel()
 
 			err := ImportState(tt.args.basepath, tt.args.stateFP,
-				tt.args.headerFP, tt.args.stateVersion, genesisBABEConfig, tt.args.firstSlot)
+				tt.args.headerFP, tt.args.stateVersion, config.BABEConfigurationTestDefault, tt.args.firstSlot)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {

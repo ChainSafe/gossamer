@@ -135,7 +135,7 @@ func Test_getAuthorityIndex(t *testing.T) {
 	headerSecondary := types.NewEmptyHeader()
 	headerSecondary.Digest = digestSecondary
 
-	//BabeSecondaryPlainPreDigest case
+	// BabeSecondaryPlainPreDigest case
 	babeDigest3 := types.NewBabeDigest()
 	err = babeDigest3.SetValue(types.BabeSecondaryPlainPreDigest{AuthorityIndex: 21, SlotNumber: 100})
 	assert.NoError(t, err)
@@ -215,7 +215,7 @@ func Test_verifier_verifyPrimarySlotWinner(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
 
-	//Generate keys
+	// Generate keys
 	kp, err := sr25519.GenerateKeypair()
 	assert.NoError(t, err)
 
@@ -297,7 +297,7 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
 
-	//Generate keys
+	// Generate keys
 	kp, err := sr25519.GenerateKeypair()
 	assert.NoError(t, err)
 
@@ -362,7 +362,7 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 		secondarySlots: true,
 	}
 
-	//BabeSecondaryPlainPreDigest case
+	// BabeSecondaryPlainPreDigest case
 	secDigest := types.BabeSecondaryPlainPreDigest{AuthorityIndex: 0, SlotNumber: uint64(1)}
 	prd, err := secDigest.ToPreRuntimeDigest()
 	assert.NoError(t, err)
@@ -467,7 +467,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
 
-	//Generate keys
+	// Generate keys
 	kp, err := sr25519.GenerateKeypair()
 	assert.NoError(t, err)
 
@@ -675,7 +675,7 @@ func Test_verifier_verifyAuthorshipRight(t *testing.T) {
 }
 
 func Test_verifyBlockEquivocation(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 	kp, err := sr25519.GenerateKeypair()
 	assert.NoError(t, err)
 
@@ -911,8 +911,7 @@ func Test_verifyBlockEquivocation(t *testing.T) {
 		tt := tt
 
 		t.Run(tname, func(t *testing.T) {
-			//t.Parallel()
-
+			t.Parallel()
 			verifier := tt.buildVerifier(t)
 			out, err := verifier.verifyBlockEquivocation(tt.header)
 			require.ErrorIs(t, err, tt.wantErr)
@@ -1305,7 +1304,7 @@ func TestVerificationManager_getVerifierInfo(t *testing.T) {
 }
 
 func TestVerificationManager_VerifyBlock(t *testing.T) {
-	//Generate keys
+	// Generate keys
 	kp, err := sr25519.GenerateKeypair()
 	assert.NoError(t, err)
 
@@ -1414,7 +1413,7 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 }
 
 func TestVerificationManager_SetOnDisabled(t *testing.T) {
-	//Generate keys
+	// Generate keys
 	kp, err := sr25519.GenerateKeypair()
 	assert.NoError(t, err)
 

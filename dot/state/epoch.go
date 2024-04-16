@@ -17,14 +17,13 @@ import (
 )
 
 var (
-	ErrEpochLengthCannotBeZero     = errors.New("epoch length cannot be zero")
-	ErrConfigNotFound              = errors.New("config data not found")
-	ErrEpochNotInMemory            = errors.New("epoch not found in memory map")
-	errHashNotInMemory             = errors.New("hash not found in memory map")
-	errEpochNotInDatabase          = errors.New("epoch data not found in the database")
-	errHashNotPersisted            = errors.New("hash with next epoch not found in database")
-	ErrNoFirstNonOriginBlock       = errors.New("no first non origin block")
-	ErrGivenTimeBeforeNetworkStart = errors.New("given time is before network start")
+	ErrConfigNotFound          = errors.New("config data not found")
+	ErrEpochNotInMemory        = errors.New("epoch not found in memory map")
+	errEpochLengthCannotBeZero = errors.New("epoch length cannot be zero")
+	errHashNotInMemory         = errors.New("hash not found in memory map")
+	errEpochNotInDatabase      = errors.New("epoch data not found in the database")
+	errHashNotPersisted        = errors.New("hash with next epoch not found in database")
+	errNoFirstNonOriginBlock   = errors.New("no first non origin block")
 )
 
 var (
@@ -79,7 +78,7 @@ type EpochState struct {
 func NewEpochStateFromGenesis(db database.Database, blockState *BlockState,
 	genesisConfig *types.BabeConfiguration) (*EpochState, error) {
 	if genesisConfig.EpochLength == 0 {
-		return nil, ErrEpochLengthCannotBeZero
+		return nil, errEpochLengthCannotBeZero
 	}
 
 	s := &EpochState{
@@ -126,7 +125,7 @@ func NewEpochStateFromGenesis(db database.Database, blockState *BlockState,
 func NewEpochState(db database.Database, blockState *BlockState,
 	genesisConfig *types.BabeConfiguration) (*EpochState, error) {
 	if genesisConfig.EpochLength == 0 {
-		return nil, ErrEpochLengthCannotBeZero
+		return nil, errEpochLengthCannotBeZero
 	}
 
 	baseState := NewBaseState(db)
@@ -191,6 +190,9 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return 0, errors.New("header is nil")
 	}
 
+	//  actually the epoch number for block number #1 is epoch 0,
+	// epochs start from 0 and are incremented (almost, given that epochs might be skipped)
+	// sequentially 0...1...2, so the block number #1 belongs to epoch 0
 	if header.Number == 1 {
 		return 0, nil
 	}
@@ -520,27 +522,26 @@ func (s *EpochState) GetLatestConfigData() (*types.ConfigData, error) {
 	return s.GetConfigData(epoch, nil)
 }
 
-// GetStartSlotForEpoch returns the first slot in the given epoch.
+// GetStartSlotForEpoch returns the first slot in the given epoch, this method receives
+// the best block hash in order to discover the correct block
 func (s *EpochState) GetStartSlotForEpoch(epoch uint64, bestBlockHash common.Hash) (uint64, error) {
 	chainFirstSlotNumber, err := s.retrieveFirstNonOriginBlockSlot(bestBlockHash)
-	if err != nil && !errors.Is(err, ErrNoFirstNonOriginBlock) {
-		return 0, fmt.Errorf("retrieving first non origin block slot: %w", err)
-	}
+	if err != nil {
+		if errors.Is(err, errNoFirstNonOriginBlock) {
+			if epoch == 0 {
+				slotDuration, err := s.GetSlotDuration()
+				if err != nil {
+					return 0, fmt.Errorf("getting slot duration: %w", err)
+				}
+				return uint64(time.Now().UnixNano()) / uint64(slotDuration.Nanoseconds()), nil
+			}
 
-	if errors.Is(err, ErrNoFirstNonOriginBlock) && epoch == 0 {
-		slotDuration, err := s.GetSlotDuration()
-		if err != nil {
-			return 0, fmt.Errorf("getting slot duration: %w", err)
+			return 0, fmt.Errorf(
+				"%w: first non origin block is needed for epoch %d",
+				errNoFirstNonOriginBlock,
+				epoch)
 		}
-
-		return uint64(time.Now().UnixNano()) / uint64(slotDuration.Nanoseconds()), nil
-	}
-
-	if errors.Is(err, ErrNoFirstNonOriginBlock) && epoch != 0 {
-		return 0, fmt.Errorf(
-			"%w: first non origin block is needed for epoch %d",
-			ErrNoFirstNonOriginBlock,
-			epoch)
+		return 0, fmt.Errorf("retrieving first non origin block slot: %w", err)
 	}
 	return s.epochLength*epoch + chainFirstSlotNumber, nil
 }
@@ -555,7 +556,7 @@ func (s *EpochState) retrieveFirstNonOriginBlockSlot(blockHash common.Hash) (uin
 	}
 
 	if len(firstNonOriginHashes) == 0 {
-		return 0, ErrNoFirstNonOriginBlock
+		return 0, errNoFirstNonOriginBlock
 	}
 
 	var firstNonOriginBlockHash common.Hash
@@ -595,31 +596,6 @@ func (s *EpochState) retrieveFirstNonOriginBlockSlot(blockHash common.Hash) (uin
 	}
 
 	return chainFirstSlotNumber, nil
-}
-
-// GetEpochFromTime returns the epoch for a given time
-func (s *EpochState) GetEpochFromTime(t time.Time, blockHash common.Hash) (uint64, error) {
-	slotDuration, err := s.GetSlotDuration()
-	if err != nil {
-		return 0, err
-	}
-
-	chainFirstSlotNumber, err := s.retrieveFirstNonOriginBlockSlot(blockHash)
-	if err != nil {
-		if errors.Is(err, ErrNoFirstNonOriginBlock) && blockHash == s.blockState.genesisHash {
-			return 0, nil
-		}
-
-		return 0, fmt.Errorf("retrieving first non origin block slot: %w", err)
-	}
-
-	currentSlot := uint64(t.UnixNano()) / uint64(slotDuration.Nanoseconds())
-
-	if currentSlot < chainFirstSlotNumber {
-		return 0, ErrGivenTimeBeforeNetworkStart
-	}
-
-	return (currentSlot - chainFirstSlotNumber) / s.epochLength, nil
 }
 
 // SkipVerify returns whether verification for the given header should be skipped or not.

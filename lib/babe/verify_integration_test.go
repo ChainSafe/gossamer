@@ -18,6 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -25,7 +26,7 @@ import (
 
 func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 
 	db, err := database.NewPebble(t.TempDir(), true)
 	require.NoError(t, err)
@@ -49,7 +50,7 @@ func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 
 func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 
 	db, err := database.NewPebble(t.TempDir(), true)
 	require.NoError(t, err)
@@ -96,7 +97,7 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 
 func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 
 	epochDescriptor, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
@@ -141,22 +142,22 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 
-	var babeCfgWithSecondarySlots = &types.BabeConfiguration{
-		SlotDuration: 6000,
-		EpochLength:  200,
-		C1:           1,
-		C2:           9000,
-		GenesisAuthorities: []types.AuthorityRaw{
-			{
-				Key:    keyring.Alice().Public().(*sr25519.PublicKey).AsBytes(),
-				Weight: 1,
-			},
+	babeCfgWithSecondarySlots := config.BABEConfigurationTestDefault
+	// these parameters will decrease the probability
+	// of a primary author claiming which will makes us
+	// propose a secondary block
+	babeCfgWithSecondarySlots.C1 = 1
+	babeCfgWithSecondarySlots.C2 = 9000
+	babeCfgWithSecondarySlots.SecondarySlots = 1
+	babeCfgWithSecondarySlots.GenesisAuthorities = []types.AuthorityRaw{
+		{
+			Key:    keyring.Alice().Public().(*sr25519.PublicKey).AsBytes(),
+			Weight: 1,
 		},
-		Randomness:     [32]byte{},
-		SecondarySlots: 1,
 	}
 
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeCfgWithSecondarySlots)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie,
+		genesisHeader, babeCfgWithSecondarySlots)
 	babeService.authority = true
 
 	db, err := database.NewPebble(t.TempDir(), true)
@@ -217,7 +218,7 @@ func TestVerificationManager_VerifyBlock_Secondary(t *testing.T) {
 func TestVerificationManager_VerifyBlock_CurrentEpoch(t *testing.T) {
 	t.Parallel()
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 
 	db, err := database.NewPebble(t.TempDir(), true)
 	require.NoError(t, err)
@@ -247,17 +248,13 @@ func TestVerificationManager_VerifyBlock_FutureEpoch(t *testing.T) {
 		Key:    keyring.Alice().(*sr25519.Keypair).Public(),
 		Weight: 1,
 	}
-	babeConfig := &types.BabeConfiguration{
-		SlotDuration:       6000,
-		EpochLength:        600,
-		C1:                 1,
-		C2:                 4,
-		GenesisAuthorities: []types.AuthorityRaw{*auth.ToRaw()},
-		Randomness:         [32]byte{},
-		SecondarySlots:     1,
-	}
+	defaultBabeConfiguration := config.BABEConfigurationTestDefault
+	defaultBabeConfiguration.GenesisAuthorities = []types.AuthorityRaw{*auth.ToRaw()}
+	defaultBabeConfiguration.SecondarySlots = 1
+
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeConfig)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie,
+		genesisHeader, defaultBabeConfiguration)
 
 	db, err := database.NewPebble(t.TempDir(), true)
 	require.NoError(t, err)
@@ -306,7 +303,8 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	}
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeConfig)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie,
+		genesisHeader, babeConfig)
 
 	db, err := database.NewPebble(t.TempDir(), true)
 	require.NoError(t, err)
@@ -359,7 +357,6 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	err = verificationManager.VerifyBlock(&blockNumber02.Header)
 	require.NoError(t, err)
 
-	// TODO: include test to verify skipped epoch
 	// skip the epoch 2 and initiate epoch 3, we should use epoch data that were
 	// meant to be used by epoch 2
 	skippedEpoch := uint64(2)
@@ -399,6 +396,7 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 		Key:    keyring.Alice().(*sr25519.Keypair).Public(),
 		Weight: 1,
 	}
+
 	babeConfig := &types.BabeConfiguration{
 		SlotDuration: 6000,
 		EpochLength:  600,
@@ -444,9 +442,8 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 
 func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 
-	// Create service with no authorities
 	babeConfig := &types.BabeConfiguration{
 		SlotDuration:       6000,
 		EpochLength:        600,
@@ -456,8 +453,10 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 		Randomness:         [32]byte{},
 		SecondarySlots:     0,
 	}
+
 	genesisBob, genesisTrieBob, genesisHeaderBob := newWestendDevGenesisWithTrieAndHeader(t)
-	babeServiceBob := createTestService(t, ServiceConfig{}, genesisBob, genesisTrieBob, genesisHeaderBob, babeConfig)
+	babeServiceBob := createTestService(t, ServiceConfig{}, genesisBob, genesisTrieBob,
+		genesisHeaderBob, babeConfig)
 
 	db, err := database.NewPebble(t.TempDir(), true)
 	require.NoError(t, err)
@@ -484,15 +483,10 @@ func TestVerifyPrimarySlotWinner(t *testing.T) {
 		Key:    keyring.Alice().(*sr25519.Keypair).Public(),
 		Weight: 1,
 	}
-	babeConfig := &types.BabeConfiguration{
-		SlotDuration:       6000,
-		EpochLength:        600,
-		C1:                 1,
-		C2:                 4,
-		GenesisAuthorities: []types.AuthorityRaw{*auth.ToRaw()},
-		Randomness:         [32]byte{},
-		SecondarySlots:     1,
-	}
+	babeConfig := config.BABEConfigurationTestDefault
+	babeConfig.SecondarySlots = 1
+	babeConfig.GenesisAuthorities = []types.AuthorityRaw{*auth.ToRaw()}
+
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, babeConfig)
 	epochDescriptor, err := babeService.initiateEpoch(0)
@@ -533,7 +527,7 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 		Authority: true,
 	}
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, serviceConfig, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
+	babeService := createTestService(t, serviceConfig, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 
 	epochDescriptor, err := babeService.initiateEpoch(testEpochIndex)
 	require.NoError(t, err)
@@ -562,7 +556,7 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 
 func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, genesisBABEConfig)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 
 	db, err := database.NewPebble(t.TempDir(), true)
 	require.NoError(t, err)
@@ -653,17 +647,9 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	)
 
 	stateService := state.NewService(state.Config{
-		Path:      t.TempDir(),
-		Telemetry: telemetryMock,
-		GenesisBABEConfig: &types.BabeConfiguration{
-			SlotDuration:       1000,
-			EpochLength:        200,
-			C1:                 1,
-			C2:                 4,
-			GenesisAuthorities: []types.AuthorityRaw{},
-			Randomness:         [32]byte{},
-			SecondarySlots:     0,
-		},
+		Path:              t.TempDir(),
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	})
 
 	stateService.UseMemDB()

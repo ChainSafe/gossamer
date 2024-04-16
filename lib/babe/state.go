@@ -67,7 +67,6 @@ type EpochState interface {
 	GetConfigData(epoch uint64, header *types.Header) (*types.ConfigData, error)
 
 	GetLatestConfigData() (*types.ConfigData, error)
-	GetEpochFromTime(t time.Time, blockHash common.Hash) (uint64, error)
 	GetStartSlotForEpoch(epoch uint64, bestBlockHash common.Hash) (uint64, error)
 	GetEpochForBlock(header *types.Header) (uint64, error)
 	GetLatestEpochDataRaw() (*types.EpochDataRaw, error)

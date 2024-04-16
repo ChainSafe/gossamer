@@ -247,7 +247,7 @@ func (b *Service) Stop() error {
 	return nil
 }
 
-// Authorities returns the current BABE authorities
+// AuthoritiesRaw returns the current BABE authorities
 func (b *Service) AuthoritiesRaw() []types.AuthorityRaw {
 	return b.epochHandler.descriptor.data.authorities
 }
