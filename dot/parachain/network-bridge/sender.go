@@ -35,7 +35,7 @@ func (nbs *NetworkBridgeSender) ProcessBlockFinalizedSignal() {}
 
 func (nbs *NetworkBridgeSender) Stop() {}
 
-func (nbs *NetworkBridgeSender) processMessage(msg any) error {
+func (nbs *NetworkBridgeSender) processMessage(msg any) error { //nolint
 	// run this function as a goroutine, ideally
 
 	switch msg := msg.(type) {
@@ -59,40 +59,40 @@ func (nbs *NetworkBridgeSender) processMessage(msg any) error {
 // NOTE: This is not same as corresponding rust structure
 // TODO: If need be, add ability to report multiple peers in batches
 type ReportPeer struct {
-	peerID           peer.ID
-	reputationChange peerset.ReputationChange
+	peerID           peer.ID                  //nolint
+	reputationChange peerset.ReputationChange //nolint
 }
 
 type DisconnectPeer struct {
-	peer    peer.ID
-	peerSet peerSetType
+	peer    peer.ID     //nolint
+	peerSet peerSetType //nolint
 }
 
 type SendCollationMessage struct {
-	to []peer.ID
+	to []peer.ID //nolint
 	// TODO: make this versioned
-	collationProtocolMessage collatorprotocol.CollationProtocol
+	collationProtocolMessage collatorprotocol.CollationProtocol //nolint
 }
 
 type SendValidationMessage struct {
-	to []peer.ID
+	to []peer.ID //nolint
 	// TODO: move validation protocol to a new package to be able to be used here
 	// validationProtocolMessage
 }
 
-type peerSetType int
+type peerSetType int //nolint
 
 const (
-	validationProtocol peerSetType = iota
-	collationProtocol
+	validationProtocol peerSetType = iota //nolint
+	collationProtocol                     //nolint
 )
 
 type ConnectToValidators struct {
 	// IDs of the validators to connect to.
-	validatorIDs []parachaintypes.AuthorityDiscoveryID
+	validatorIDs []parachaintypes.AuthorityDiscoveryID //nolint
 	// The underlying protocol to use for this request.
-	peerSet peerSetType
+	peerSet peerSetType //nolint
 	// Sends back the number of `AuthorityDiscoveryId`s which
 	// authority discovery has failed to resolve.
-	failed chan<- uint
+	failed chan<- uint //nolint
 }

@@ -37,7 +37,7 @@ func (nbr *NetworkBridgeReceiver) ProcessBlockFinalizedSignal() {}
 
 func (nbr *NetworkBridgeReceiver) Stop() {}
 
-func (nbr *NetworkBridgeReceiver) processMessage(msg any) error {
+func (nbr *NetworkBridgeReceiver) processMessage(msg any) error { //nolint
 	// run this function as a goroutine, ideally
 
 	switch msg := msg.(type) {
@@ -59,17 +59,17 @@ func (nbr *NetworkBridgeReceiver) processMessage(msg any) error {
 // subsystem would make more sense.
 type NewGossipTopology struct {
 	// The session info this gossip topology is concerned with.
-	session parachaintypes.SessionIndex
+	session parachaintypes.SessionIndex //nolint
 	// Our validator index in the session, if any.
-	localIndex *parachaintypes.ValidatorIndex
+	localIndex *parachaintypes.ValidatorIndex //nolint
 	//  The canonical shuffling of validators for the session.
-	canonicalShuffling []canonicalShuffling
+	canonicalShuffling []canonicalShuffling //nolint
 	// The reverse mapping of `canonical_shuffling`: from validator index
 	// to the index in `canonical_shuffling`
-	shuffledIndices uint8
+	shuffledIndices uint8 //nolint
 }
 
-type canonicalShuffling struct {
+type canonicalShuffling struct { //nolint
 	authorityDiscoveryID parachaintypes.AuthorityDiscoveryID
 	validatorIndex       parachaintypes.ValidatorIndex
 }
@@ -77,7 +77,7 @@ type canonicalShuffling struct {
 // UpdateAuthorityIDs is used to inform the distribution subsystems about `AuthorityDiscoveryId` key rotations.
 type UpdateAuthorityIDs struct {
 	// The `PeerId` of the peer that updated its `AuthorityDiscoveryId`s.
-	peerID peer.ID
+	peerID peer.ID //nolint
 	// The updated authority discovery keys of the peer.
-	authorityIDs []parachaintypes.AuthorityDiscoveryID
+	authorityIDs []parachaintypes.AuthorityDiscoveryID //nolint
 }
