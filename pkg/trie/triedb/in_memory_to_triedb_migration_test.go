@@ -19,17 +19,19 @@ func newTestDB(t assert.TestingT) database.Table {
 	return database.NewTable(db, "trie")
 }
 
-func TestTrieDB_Get(t *testing.T) {
+func TestTrieDB_Migration(t *testing.T) {
 	db := newTestDB(t)
 	inMemoryTrie := inmemory_trie.NewEmptyTrie()
 	inMemoryTrie.SetVersion(trie.V1)
 
 	entries := map[string][]byte{
-		"no":           make([]byte, 20),
-		"not":          make([]byte, 40),
-		"nothing":      make([]byte, 20),
-		"notification": make([]byte, 40),
-		"test":         make([]byte, 40),
+		"no":           make([]byte, 1),
+		"noot":         make([]byte, 2),
+		"not":          make([]byte, 3),
+		"notable":      make([]byte, 4),
+		"notification": make([]byte, 5),
+		"test":         make([]byte, 6),
+		"dimartiro":    make([]byte, 7),
 	}
 
 	for k, v := range entries {
@@ -41,15 +43,43 @@ func TestTrieDB_Get(t *testing.T) {
 
 	root, err := inMemoryTrie.Hash()
 	assert.NoError(t, err)
-	t.Run("read_successful_from_db_created_using_v1_trie", func(t *testing.T) {
-		trieDB := NewTrieDB(root, db, nil)
+	trieDB := NewTrieDB(root, db, nil)
 
+	t.Run("read_successful_from_db_created_using_v1_trie", func(t *testing.T) {
 		for k, v := range entries {
 			value := trieDB.Get([]byte(k))
 			assert.Equal(t, v, value)
 		}
 
 		assert.Equal(t, root, trieDB.MustHash())
+	})
+
+	t.Run("next_key_are_the_same", func(t *testing.T) {
+		key := []byte("no")
+
+		for key != nil {
+			expected := inMemoryTrie.NextKey(key)
+			actual := trieDB.NextKey(key)
+			assert.Equal(t, expected, actual)
+
+			key = actual
+		}
+	})
+
+	t.Run("get_keys_with_prefix_are_the_same", func(t *testing.T) {
+		key := []byte("no")
+
+		expected := inMemoryTrie.GetKeysWithPrefix(key)
+		actual := trieDB.GetKeysWithPrefix(key)
+
+		assert.Equal(t, expected, actual)
+	})
+
+	t.Run("entries_are_the_same", func(t *testing.T) {
+		expected := inMemoryTrie.Entries()
+		actual := trieDB.Entries()
+
+		assert.Equal(t, expected, actual)
 	})
 
 	t.Run("cache_has_cache_value", func(t *testing.T) {
