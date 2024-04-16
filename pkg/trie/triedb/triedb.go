@@ -70,22 +70,22 @@ func (t *TrieDB) GetKeysWithPrefix(prefix []byte) (keysLE [][]byte) {
 
 // Internal methods
 
-func (l *TrieDB) lookup(key []byte) ([]byte, error) {
+func (t *TrieDB) lookup(key []byte) ([]byte, error) {
 	keyNibbles := nibbles.KeyLEToNibbles(key)
-	return l.lookupWithoutCache(keyNibbles)
+	return t.lookupWithoutCache(keyNibbles)
 }
 
 // lookupWithoutCache traverse nodes loading then from DB until reach the one
 // we are looking for.
-func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
+func (t *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 	// Start from root node and going downwards
 	partialKey := nibbleKey
-	hash := l.rootHash[:]
+	hash := t.rootHash[:]
 
 	// Iterates through non inlined nodes
 	for {
 		// Get node from DB
-		nodeData, err := l.db.Get(hash)
+		nodeData, err := t.db.Get(hash)
 
 		if err != nil {
 			return nil, ErrIncompleteDB
@@ -108,7 +108,7 @@ func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 			case codec.Leaf:
 				// We are in the node we were looking for
 				if bytes.Equal(partialKey, n.PartialKey) {
-					return l.loadValue(partialKey, n.Value)
+					return t.loadValue(partialKey, n.Value)
 				}
 				return nil, nil
 			case codec.Branch:
@@ -124,7 +124,7 @@ func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 				// We are in the node we were looking for
 				if bytes.Equal(partialKey, nodePartialKey) {
 					if n.Value != nil {
-						return l.loadValue(partialKey, n.Value)
+						return t.loadValue(partialKey, n.Value)
 					}
 					return nil, nil
 				}
@@ -158,13 +158,13 @@ func (l *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 
 // loadValue gets the value from the node, if it is inlined we can return it
 // directly. But if it is hashed (V1) we have to look up for its value in the DB
-func (l *TrieDB) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error) {
+func (t *TrieDB) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error) {
 	switch v := value.(type) {
 	case codec.InlineValue:
 		return v.Data, nil
 	case codec.HashedValue:
 		prefixedKey := bytes.Join([][]byte{prefix, v.Data}, nil)
-		return l.db.Get(prefixedKey)
+		return t.db.Get(prefixedKey)
 	default:
 		panic("unreachable")
 	}
