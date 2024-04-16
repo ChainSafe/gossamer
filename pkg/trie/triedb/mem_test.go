@@ -1,0 +1,104 @@
+package triedb
+
+import (
+	"testing"
+
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_cache "github.com/ChainSafe/gossamer/pkg/trie/cache/inmemory"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/stretchr/testify/assert"
+)
+
+func Benchmark_ValueCache(b *testing.B) {
+	db := newTestDB(b)
+	inMemoryTrie := inmemory_trie.NewEmptyTrie()
+	inMemoryTrie.SetVersion(trie.V1)
+
+	entries := map[string][]byte{
+		"no":           make([]byte, 100),
+		"noot":         make([]byte, 200),
+		"not":          make([]byte, 300),
+		"notable":      make([]byte, 400),
+		"notification": make([]byte, 500),
+		"test":         make([]byte, 600),
+		"dimartiro":    make([]byte, 700),
+	}
+
+	for k, v := range entries {
+		inMemoryTrie.Put([]byte(k), v)
+	}
+
+	err := inMemoryTrie.WriteDirty(db)
+	assert.NoError(b, err)
+
+	root, err := inMemoryTrie.Hash()
+	assert.NoError(b, err)
+
+	b.Run("get_key_without_cache", func(b *testing.B) {
+		trieDB := NewTrieDB(root, db, nil)
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			// Use the deepest key to ensure the trie is traversed fully
+			_ = trieDB.Get([]byte("notification"))
+		}
+	})
+
+	b.Run("get_key_with_cache", func(b *testing.B) {
+		cache := inmemory_cache.NewTrieInMemoryCache()
+		trieDB := NewTrieDB(root, db, cache)
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			// Use the deepest key to ensure the trie is traversed fully
+			_ = trieDB.Get([]byte("notification"))
+		}
+	})
+}
+
+func Benchmark_NodesCache(b *testing.B) {
+	db := newTestDB(b)
+	inMemoryTrie := inmemory_trie.NewEmptyTrie()
+	inMemoryTrie.SetVersion(trie.V1)
+
+	entries := map[string][]byte{
+		"no":           make([]byte, 100),
+		"noot":         make([]byte, 200),
+		"not":          make([]byte, 300),
+		"notable":      make([]byte, 400),
+		"notification": make([]byte, 500),
+		"test":         make([]byte, 600),
+		"dimartiro":    make([]byte, 700),
+	}
+
+	for k, v := range entries {
+		inMemoryTrie.Put([]byte(k), v)
+	}
+
+	err := inMemoryTrie.WriteDirty(db)
+	assert.NoError(b, err)
+
+	root, err := inMemoryTrie.Hash()
+	assert.NoError(b, err)
+
+	b.Run("iterate_all_entries_without_cache", func(b *testing.B) {
+		trieDB := NewTrieDB(root, db, nil)
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			// Iterate through all keys
+			iter := NewTrieDBIterator(trieDB)
+			for entry := iter.NextEntry(); entry != nil; entry = iter.NextEntry() {
+			}
+		}
+	})
+
+	b.Run("iterate_all_entries_with_cache", func(b *testing.B) {
+		cache := inmemory_cache.NewTrieInMemoryCache()
+		trieDB := NewTrieDB(root, db, cache)
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			// Iterate through all keys
+			iter := NewTrieDBIterator(trieDB)
+			for entry := iter.NextEntry(); entry != nil; entry = iter.NextEntry() {
+			}
+		}
+	})
+}

@@ -18,24 +18,24 @@ func (cv cacheValue) Size() int64 {
 	return int64(len(cv) + cacheValueOverheadSize)
 }
 
-// LRUCache is an in-memory lru cache
+// lruCache is an in-memory lru cache
 // consider that the values are deleted asyncronously so there is a chance that
 // the maxSize can be exceeded
 // we can use lru.GC() to force the deletion of the items that should be deleted
-type LRUCache struct {
+type lruCache struct {
 	lru *ccache.Cache[cacheValue]
 }
 
-// newLRUCache creates a new LRUCache
+// newlruCache creates a new lruCache
 // maxSize is the cache max size in bytes
-func newLRUCache(maxSize int64) *LRUCache {
+func newLruCache(maxSize int64) *lruCache {
 	cache := ccache.New(ccache.Configure[cacheValue]().MaxSize(maxSize))
-	return &LRUCache{
+	return &lruCache{
 		lru: cache,
 	}
 }
 
-func (cache *LRUCache) get(key string) []byte {
+func (cache *lruCache) get(key string) []byte {
 	item := cache.lru.Get(key)
 	if item != nil {
 		return item.Value()
@@ -44,6 +44,6 @@ func (cache *LRUCache) get(key string) []byte {
 	return nil
 }
 
-func (cache *LRUCache) set(key string, value []byte) {
+func (cache *lruCache) set(key string, value []byte) {
 	cache.lru.Set(key, cacheValue(value), 0)
 }

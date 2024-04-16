@@ -99,6 +99,25 @@ func (t *TrieDB) getValueFromCache(key []byte) []byte {
 	return nil
 }
 
+func (t *TrieDB) setValueInCache(key []byte, value []byte) {
+	if t.cache != nil {
+		t.cache.SetValue(key, value)
+	}
+}
+
+func (t *TrieDB) getNodeFromCache(key []byte) []byte {
+	if t.cache != nil {
+		return t.cache.GetNode(key)
+	}
+	return nil
+}
+
+func (t *TrieDB) setNodeInCache(key []byte, value []byte) {
+	if t.cache != nil {
+		t.cache.SetNode(key, value)
+	}
+}
+
 func (t *TrieDB) getNode(
 	merkleValue codec.MerkleValue,
 ) (node codec.Node, err error) {
@@ -108,9 +127,15 @@ func (t *TrieDB) getNode(
 	case codec.InlineNode:
 		nodeData = n.Data
 	case codec.HashedNode:
-		nodeData, err = t.db.Get(n.Data)
-		if err != nil {
-			return nil, ErrIncompleteDB
+		hash := n.Data
+		nodeData = t.getNodeFromCache(hash)
+
+		if nodeData == nil {
+			nodeData, err = t.db.Get(n.Data)
+			if err != nil {
+				return nil, ErrIncompleteDB
+			}
+			t.setNodeInCache(hash, nodeData)
 		}
 	}
 
@@ -121,12 +146,6 @@ func (t *TrieDB) getNode(
 	}
 
 	return node, err
-}
-
-func (t *TrieDB) setValueInCache(key []byte, value []byte) {
-	if t.cache != nil {
-		t.cache.SetValue(key, value)
-	}
 }
 
 // lookup traverse nodes loading then from DB until reach the one
@@ -219,7 +238,16 @@ func (t *TrieDB) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error)
 		return v.Data, nil
 	case codec.HashedValue:
 		prefixedKey := bytes.Join([][]byte{prefix, v.Data}, nil)
-		return t.db.Get(prefixedKey)
+		value := t.getValueFromCache(prefixedKey)
+		if value == nil {
+			var err error
+			value, err = t.db.Get(prefixedKey)
+			if err != nil {
+				return nil, err
+			}
+			t.setValueInCache(prefixedKey, value)
+		}
+		return value, nil
 	default:
 		panic("unreachable")
 	}

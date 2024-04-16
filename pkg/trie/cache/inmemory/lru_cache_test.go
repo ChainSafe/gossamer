@@ -12,7 +12,7 @@ import (
 func Test_TrieValueCache_SetAndGet(t *testing.T) {
 	const maxCacheSize = 10
 	t.Run("set_and_get_value_successful", func(t *testing.T) {
-		cache := newLRUCache(maxCacheSize)
+		cache := newLruCache(maxCacheSize)
 		key := "key"
 		value := []byte("value")
 
@@ -23,13 +23,13 @@ func Test_TrieValueCache_SetAndGet(t *testing.T) {
 	})
 
 	t.Run("get_value_not_found", func(t *testing.T) {
-		cache := newLRUCache(maxCacheSize)
+		cache := newLruCache(maxCacheSize)
 		valueFromCache := cache.get("missing")
 		assert.Nil(t, valueFromCache)
 	})
 
 	t.Run("replace_value_when_size_exceeded", func(t *testing.T) {
-		cache := newLRUCache(maxCacheSize)
+		cache := newLruCache(maxCacheSize)
 		key1 := "key1"
 		key2 := "key2"
 		value1 := make([]byte, maxCacheSize/2+1)
