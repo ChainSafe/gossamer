@@ -12,24 +12,24 @@ const defaultValueCacheMaxSize = 2 * 1024 * 1024 // 2MB
 
 // TrieInMemoryCache is an in-memory cache for trie nodes
 type TrieInMemoryCache struct {
-	valueCache *TrieValueCache
+	valueCache *LRUCache
 }
 
 // NewTrieInMemoryCache creates a new TrieInMemoryCache
 func NewTrieInMemoryCache() *TrieInMemoryCache {
 	return &TrieInMemoryCache{
-		valueCache: newTrieValueCache(defaultValueCacheMaxSize),
+		valueCache: newLRUCache(defaultValueCacheMaxSize),
 	}
 }
 
 // GetValue returns the value for the given key
 func (tc *TrieInMemoryCache) GetValue(key []byte) []byte {
-	return tc.valueCache.getValue(key)
+	return tc.valueCache.get(string(key))
 }
 
 // SetValue sets the value for the given key
 func (tc *TrieInMemoryCache) SetValue(key []byte, value []byte) {
-	tc.valueCache.setValue(key, value)
+	tc.valueCache.set(string(key), value)
 }
 
 var _ cache.TrieCache = (*TrieInMemoryCache)(nil)
