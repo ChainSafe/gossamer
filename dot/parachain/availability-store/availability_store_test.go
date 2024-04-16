@@ -1047,7 +1047,7 @@ func (h *testHarness) importLeaf(t *testing.T, parentHash common.Hash,
 	return aLeaf
 }
 
-func (h *testHarness) hasAllChunks(candidateHash parachaintypes.CandidateHash, nValidators uint32,
+func (h *testHarness) hasAllChunks(candidateHash parachaintypes.CandidateHash, nValidators uint32, //nolint
 	expectPresent bool) bool {
 
 	for i := uint32(0); i < nValidators; i++ {
