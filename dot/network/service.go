@@ -684,7 +684,7 @@ func (s *Service) ReportPeer(change peerset.ReputationChange, p peer.ID) {
 	s.host.cm.peerSetHandler.ReportPeer(change, p)
 }
 
-func (s *Service) Disconnect(setID int, p peer.ID) {
+func (s *Service) DisconnectPeer(setID int, p peer.ID) {
 	s.host.cm.peerSetHandler.DisconnectPeer(setID, p)
 }
 

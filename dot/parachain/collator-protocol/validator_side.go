@@ -480,7 +480,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 			collatorProtocolMessage := collatorprotocolmessages.NewCollatorProtocolMessage()
 			err = collatorProtocolMessage.Set(collatorprotocolmessages.CollationSeconded{
 				RelayParent: msg.Parent,
-				Statement:   msg.Stmt,
+				Statement:   parachaintypes.UncheckedSignedFullStatement(msg.Stmt),
 			})
 			if err != nil {
 				return fmt.Errorf("setting collation seconded: %w", err)
