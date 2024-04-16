@@ -105,7 +105,6 @@ func (t *TrieDB) getNode(
 
 	return node, err
 }
-
 func (t *TrieDB) lookup(key []byte) ([]byte, error) {
 	keyNibbles := nibbles.KeyLEToNibbles(key)
 	return t.lookupWithoutCache(keyNibbles)
