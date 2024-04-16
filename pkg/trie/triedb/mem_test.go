@@ -90,6 +90,9 @@ func Benchmark_NodesCache(b *testing.B) {
 		}
 	})
 
+	// TODO: we still have some room to improve here, we are caching the raw
+	// node data and we need to decode it every time we access it. We could
+	// cache the decoded node instead and avoid decoding it every time.
 	b.Run("iterate_all_entries_with_cache", func(b *testing.B) {
 		cache := inmemory_cache.NewTrieInMemoryCache()
 		trieDB := NewTrieDB(root, db, cache)
