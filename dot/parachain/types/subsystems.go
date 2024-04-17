@@ -11,9 +11,11 @@ import (
 type SubSystemName string
 
 const (
-	CandidateBacking  SubSystemName = "CandidateBacking"
-	CollationProtocol SubSystemName = "CollationProtocol"
-	AvailabilityStore SubSystemName = "AvailabilityStore"
+	CandidateBacking      SubSystemName = "CandidateBacking"
+	CollationProtocol     SubSystemName = "CollationProtocol"
+	AvailabilityStore     SubSystemName = "AvailabilityStore"
+	NetworkBridgeSender   SubSystemName = "NetworkBridgeSender"
+	NetworkBridgeReceiver SubSystemName = "NetworkBridgeReceiver"
 )
 
 var SubsystemRequestTimeout = 1 * time.Second
