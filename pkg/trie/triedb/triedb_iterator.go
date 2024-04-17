@@ -55,6 +55,8 @@ func (i *TrieDBIterator) nextToVisit(parentKey []byte, node codec.Node) {
 }
 
 // nextState pops the next node to visit from the stack
+// warn: this function does not check if the node stack is empty
+// this check should be made by the caller
 func (i *TrieDBIterator) nextState() *iteratorState {
 	currentState := i.nodeStack[len(i.nodeStack)-1]
 	i.nodeStack = i.nodeStack[:len(i.nodeStack)-1]

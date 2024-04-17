@@ -24,8 +24,7 @@ func (t *TrieDB) NextKey(key []byte) []byte {
 	iter := NewTrieDBIterator(t)
 
 	iter.Seek(key)
-	nextKey := iter.NextKey()
-	return nextKey
+	return iter.NextKey()
 }
 
 // GetKeysWithPrefix returns all keys in little Endian
