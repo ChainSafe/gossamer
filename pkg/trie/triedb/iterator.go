@@ -23,6 +23,8 @@ func (t *TrieDB) Entries() (keyValueMap map[string][]byte) {
 func (t *TrieDB) NextKey(key []byte) []byte {
 	iter := NewTrieDBIterator(t)
 
+	// TODO: Seek will potentially skip a lot of keys, we need to find a way to
+	// optimise it, maybe creating a lookupFor
 	iter.Seek(key)
 	return iter.NextKey()
 }
@@ -32,6 +34,10 @@ func (t *TrieDB) NextKey(key []byte) []byte {
 // Endian formatted prefix in their key.
 func (t *TrieDB) GetKeysWithPrefix(prefix []byte) (keysLE [][]byte) {
 	iter := NewTrieDBIterator(t)
+
+	// TODO: this method could be expensive if we have to skip a big amount of keys
+	// We could optimise it by traversing the trie following the targetKey path and
+	// going directly to the key we are looking for, then visiting its children
 	iter.Seek(prefix)
 
 	//Since seek consumes the prefix, we need to add it in the keys list
