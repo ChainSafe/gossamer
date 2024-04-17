@@ -71,14 +71,14 @@ func getParachainHostTrie(t *testing.T, testDataStorage []Storage) *trie.Trie {
 	return tt
 }
 
-func newTestBlockState(t *testing.T) *MockBlockstate {
+func newTestBlockState(t *testing.T) *MockBlockState {
 	t.Helper()
 
 	tt := getParachainHostTrie(t, parachainsConfigV190TestData.Storage)
 	rt := wazero_runtime.NewTestInstanceWithTrie(t, runtime.WESTEND_RUNTIME_v190, tt)
 
 	ctrl := gomock.NewController(t)
-	mockBlockstate := NewMockBlockstate(ctrl)
+	mockBlockstate := NewMockBlockState(ctrl)
 
 	hash, err := common.HexToHash("0x0505050505050505050505050505050505050505050505050505050505050505")
 	require.NoError(t, err)
