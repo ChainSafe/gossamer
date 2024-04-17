@@ -490,6 +490,8 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 				if msg != nil {
 					logger.Infof("unknown message type %T", msg)
 					logger.Error(parachaintypes.ErrUnknownOverseerMessage.Error())
+					// this error shouldn't happen, so we'll panic to catch it during development
+					panic(parachaintypes.ErrUnknownOverseerMessage.Error())
 				}
 			}
 		case <-av.ctx.Done():
@@ -532,13 +534,16 @@ func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal() {
 		// start db batch
 		tx := newAvailabilityStoreBatch(&av.availabilityStore)
 
-		av.processNewHead(tx, v.Hash, now, v.Header)
+		err := av.processNewHead(tx, v.Hash, now, v.Header)
+		if err != nil {
+			logger.Errorf("failed to process new head: %w", err)
+		}
 
 		// add to known blocks
 		av.knownBlocks.insert(v.Hash, parachaintypes.BlockNumber(v.Header.Number))
 
 		// end db batch
-		err := tx.flush()
+		err = tx.flush()
 		if err != nil {
 			logger.Errorf("failed to flush tx: %w", err)
 		}
@@ -546,7 +551,7 @@ func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal() {
 }
 
 func (av *AvailabilityStoreSubsystem) processNewHead(tx *availabilityStoreBatch, hash common.Hash, now BETimestamp,
-	header types.Header) {
+	header types.Header) error {
 	logger.Infof("processNewHead hash %s, now %v, header %v\n", hash, now, header)
 	// TODO: call requestValidators to determine number of validators
 	nValidators := uint(10)
@@ -557,49 +562,53 @@ func (av *AvailabilityStoreSubsystem) processNewHead(tx *availabilityStoreBatch,
 
 	rtRes, err := util.Call(av.SubSystemToOverseer, message, respChan)
 	if err != nil {
-		logger.Errorf("sending message to get block header: %w", err)
+		return fmt.Errorf("sending message to get block header: %w", err)
 	}
 	runtime := rtRes.(parachain.RuntimeInstance)
 
 	candidateEvents, err := runtime.ParachainHostCandidateEvents()
 	if err != nil {
-		logger.Errorf("failed to get candidate events: %w", err)
-		return
+		return fmt.Errorf("failed to get candidate events: %w", err)
 	}
 
 	for _, v := range candidateEvents.Types {
 		event, err := v.Value()
 		if err != nil {
-			logger.Errorf("failed to get candidate event value: %w", err)
+			return fmt.Errorf("failed to get candidate event value: %w", err)
 		}
 		switch event := event.(type) {
 		case parachaintypes.CandidateBacked:
-			av.noteBlockBacked(tx, now, nValidators, event.CandidateReceipt)
-
+			err := av.noteBlockBacked(tx, now, nValidators, event.CandidateReceipt)
+			if err != nil {
+				return fmt.Errorf("failed to note block backed: %w", err)
+			}
 		case parachaintypes.CandidateIncluded:
-			av.noteBlockIncluded(tx, parachaintypes.BlockNumber(header.Number), header.Hash(),
+			err := av.noteBlockIncluded(tx, parachaintypes.BlockNumber(header.Number), header.Hash(),
 				event.CandidateReceipt)
+			if err != nil {
+				return fmt.Errorf("failed to note block included: %w", err)
+			}
 		}
 	}
+	return nil
 }
 
 func (av *AvailabilityStoreSubsystem) noteBlockBacked(tx *availabilityStoreBatch, now BETimestamp, nValidators uint,
-	candidate parachaintypes.CandidateReceipt) {
+	candidate parachaintypes.CandidateReceipt) error {
 	hash, err := candidate.Hash()
 	if err != nil {
-		logger.Errorf("failed to hash candidate: %w", err)
-		return
+		return fmt.Errorf("failed to hash candidate: %w", err)
 	}
 	candidateHash := parachaintypes.CandidateHash{Value: hash}
 	meta, err := av.availabilityStore.loadMeta(candidateHash)
 	if err != nil {
-		logger.Errorf("failed to load meta for candidate %v: %w", candidateHash, err)
+		return fmt.Errorf("failed to load meta for candidate %v: %w", candidateHash, err)
 	}
 	if meta == nil {
 		state := NewStateVDT()
 		err := state.Set(Unavailable{now})
 		if err != nil {
-			logger.Errorf("failed to set state to unavailable: %w", err)
+			return fmt.Errorf("failed to set state to unavailable: %w", err)
 		}
 		meta = &CandidateMeta{
 			State:         state,
@@ -609,34 +618,33 @@ func (av *AvailabilityStoreSubsystem) noteBlockBacked(tx *availabilityStoreBatch
 
 		err = writeMeta(tx.meta, candidateHash, meta)
 		if err != nil {
-			logger.Errorf("storing metadata for candidate %v: %w", candidate, err)
+			return fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
 		}
 
 		pruneAt := now + BETimestamp(av.pruningConfig.KeepUnavailableFor.Seconds())
 		err = av.writePruningKey(tx.pruneByTime, pruneAt, candidateHash)
 		if err != nil {
-			logger.Errorf("writing pruning key: %w", err)
+			return fmt.Errorf("writing pruning key: %w", err)
 		}
 	}
+	return nil
 }
 
 func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBatch,
 	blockNumber parachaintypes.BlockNumber, blockHash common.Hash,
-	candidate parachaintypes.CandidateReceipt) {
+	candidate parachaintypes.CandidateReceipt) error {
 	hash, err := candidate.Hash()
 	if err != nil {
-		logger.Errorf("failed to hash candidate: %w", err)
-		return
+		return fmt.Errorf("failed to hash candidate: %w", err)
 	}
 	candidateHash := parachaintypes.CandidateHash{Value: hash}
 	meta, err := av.availabilityStore.loadMeta(candidateHash)
 	if err != nil {
-		logger.Errorf("failed to load meta for candidate %v: %w", candidateHash, err)
+		return fmt.Errorf("failed to load meta for candidate %v: %w", candidateHash, err)
 	}
 
 	if meta == nil {
-		logger.Warnf("Candidate included without being backed %v", candidateHash)
-		return
+		return fmt.Errorf("Candidate included without being backed %v", candidateHash)
 	}
 	beBlock := BlockEntry{
 		BlockNumber: blockNumber,
@@ -644,7 +652,7 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 	}
 	stateValue, err := meta.State.Value()
 	if err != nil {
-		logger.Errorf("failed to get state value: %w", err)
+		return fmt.Errorf("failed to get state value: %w", err)
 	}
 
 	switch val := stateValue.(type) {
@@ -654,14 +662,14 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 		pruneKey := append(uint32ToBytes(uint32(pruneAt)), candidateHash.Value[:]...)
 		err = tx.pruneByTime.Del(pruneKey)
 		if err != nil {
-			logger.Errorf("failed to delete pruning key: %w", err)
+			return fmt.Errorf("failed to delete pruning key: %w", err)
 		}
 		err = meta.State.Set(Unfinalized{
 			Timestamp:  val.Timestamp,
 			BlockEntry: []BlockEntry{beBlock},
 		})
 		if err != nil {
-			logger.Errorf("failed to set state to unfinalized: %w", err)
+			return fmt.Errorf("failed to set state to unfinalized: %w", err)
 		}
 	case Unfinalized:
 		err = meta.State.Set(Unfinalized{
@@ -669,7 +677,7 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 			BlockEntry: append(val.BlockEntry, beBlock),
 		})
 		if err != nil {
-			logger.Errorf("failed to set state to unfinalized: %w", err)
+			return fmt.Errorf("failed to set state to unfinalized: %w", err)
 		}
 	case Finalized:
 		// This should never happen as a candidate would have to be included after
@@ -681,13 +689,14 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 	key = append(key, candidateHash.Value[:]...)
 	err = tx.unfinalized.Put(key, nil)
 	if err != nil {
-		logger.Errorf("failed to put unfinalized key: %w", err)
+		return fmt.Errorf("failed to put unfinalized key: %w", err)
 	}
 
 	err = writeMeta(tx.meta, candidateHash, meta)
 	if err != nil {
-		logger.Errorf("failed to put meta key: %w", err)
+		return fmt.Errorf("failed to put meta key: %w", err)
 	}
+	return nil
 }
 
 func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal() {
