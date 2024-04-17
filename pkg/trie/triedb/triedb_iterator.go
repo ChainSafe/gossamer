@@ -114,6 +114,9 @@ func (i *TrieDBIterator) NextKey() []byte {
 }
 
 // Seek moves the iterator to the first key that is greater than the target key.
+// TODO: this method could be expensive if we have to skip a big amount of keys
+// We could optimize it by traversing the trie following the targetKey path and
+// going directly to the key we are looking for, then visiting its children
 func (i *TrieDBIterator) Seek(targetKey []byte) {
 	for key := i.NextKey(); bytes.Compare(key, targetKey) < 0; key = i.NextKey() {
 	}
