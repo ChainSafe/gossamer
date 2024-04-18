@@ -987,12 +987,9 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 		}, peerID)
 
 	case parachaintypes.ActiveLeavesUpdateSignal:
-		err := cpvs.ProcessActiveLeavesUpdateSignal(msg)
-		if err != nil {
-			return fmt.Errorf("processing active leaves update signal: %w", err)
-		}
+		return cpvs.ProcessActiveLeavesUpdateSignal(msg)
 	case parachaintypes.BlockFinalizedSignal:
-		cpvs.ProcessBlockFinalizedSignal(msg)
+		return cpvs.ProcessBlockFinalizedSignal(msg)
 
 	default:
 		return parachaintypes.ErrUnknownOverseerMessage

@@ -53,8 +53,9 @@ func (s *TestSubsystem) ProcessActiveLeavesUpdateSignal(update parachaintypes.Ac
 	return nil
 }
 
-func (s *TestSubsystem) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
+func (s *TestSubsystem) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
 	fmt.Printf("%s ProcessActiveLeavesUpdateSignal\n", s.name)
+	return nil
 }
 
 func (s *TestSubsystem) String() parachaintypes.SubSystemName {

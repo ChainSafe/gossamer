@@ -661,7 +661,7 @@ type Subsystem interface {
 	// Run runs the subsystem.
 	Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any)
 	Name() SubSystemName
-	ProcessActiveLeavesUpdateSignal()
-	ProcessBlockFinalizedSignal()
+	ProcessActiveLeavesUpdateSignal(ActiveLeavesUpdateSignal) error
+	ProcessBlockFinalizedSignal(BlockFinalizedSignal) error
 	Stop()
 }

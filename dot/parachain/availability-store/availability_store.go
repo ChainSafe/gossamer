@@ -80,7 +80,6 @@ type AvailabilityStoreSubsystem struct {
 	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any
 	availabilityStore   availabilityStore
-	currentMessage      any
 	finalizedNumber     parachaintypes.BlockNumber
 	knownBlocks         KnownUnfinalizedBlock
 	pruningConfig       PruningConfig
@@ -483,8 +482,12 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 				if err != nil {
 					logger.Errorf("failed to process active leaves update signal: %w", err)
 				}
+
 			case parachaintypes.BlockFinalizedSignal:
-				av.ProcessBlockFinalizedSignal(msg)
+				err := av.ProcessBlockFinalizedSignal(msg)
+				if err != nil {
+					logger.Errorf("failed to process block finalized signal: %w", err)
+				}
 
 			default:
 				if msg != nil {
@@ -506,28 +509,28 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 	}
 }
 
-func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal() {
+func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal(signal parachaintypes.
+	ActiveLeavesUpdateSignal) error {
 	now := timeNow()
-	logger.Infof("ProcessActiveLeavesUpdateSignal %s", av.currentMessage)
-	activeLeave := av.currentMessage.(parachaintypes.ActiveLeavesUpdateSignal)
+	logger.Infof("ProcessActiveLeavesUpdateSignal %s", signal)
 
 	respChan := make(chan any)
 	message := util.ChainAPIMessage[util.BlockHeader]{
 		Message: util.BlockHeader{
-			Hash: activeLeave.Activated.Hash,
+			Hash: signal.Activated.Hash,
 		},
 		ResponseChannel: respChan,
 	}
 	response, err := util.Call(av.SubSystemToOverseer, message, message.ResponseChannel)
 	if err != nil {
-		logger.Errorf("sending message to get block header: %w", err)
+		return fmt.Errorf("sending message to get block header: %w", err)
 	}
 
-	newBlocks, err := util.DetermineNewBlocks(av.SubSystemToOverseer, av.knownBlocks.isKnown, activeLeave.Activated.Hash,
+	newBlocks, err := util.DetermineNewBlocks(av.SubSystemToOverseer, av.knownBlocks.isKnown, signal.Activated.Hash,
 		response.(types.Header),
 		av.finalizedNumber)
 	if err != nil {
-		logger.Errorf("failed to determine new blocks: %w", err)
+		return fmt.Errorf("failed to determine new blocks: %w", err)
 	}
 
 	for _, v := range newBlocks {
@@ -536,7 +539,7 @@ func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal() {
 
 		err := av.processNewHead(tx, v.Hash, now, v.Header)
 		if err != nil {
-			logger.Errorf("failed to process new head: %w", err)
+			return fmt.Errorf("failed to process new head: %w", err)
 		}
 
 		// add to known blocks
@@ -545,9 +548,10 @@ func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal() {
 		// end db batch
 		err = tx.flush()
 		if err != nil {
-			logger.Errorf("failed to flush tx: %w", err)
+			return fmt.Errorf("failed to flush tx: %w", err)
 		}
 	}
+	return nil
 }
 
 func (av *AvailabilityStoreSubsystem) processNewHead(tx *availabilityStoreBatch, hash common.Hash, now BETimestamp,
@@ -699,25 +703,26 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 	return nil
 }
 
-func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal() {
-	logger.Infof("ProcessBlockFinalizedSignal %T, %v", av.currentMessage, av.currentMessage)
-	finalizedBlock := av.currentMessage.(parachaintypes.BlockFinalizedSignal)
+func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
+	logger.Infof("ProcessBlockFinalizedSignal %T, %v", signal, signal)
+	//finalizedBlock := av.currentMessage.(parachaintypes.BlockFinalizedSignal)
 	now := timeNow()
 
 	// load all of finalized height
-	batch := av.loadAllAtFinalizedHeight(finalizedBlock.BlockNumber, finalizedBlock.Hash)
+	batch := av.loadAllAtFinalizedHeight(signal.BlockNumber, signal.Hash)
 
 	// delete unfinalized height
 	tx := newAvailabilityStoreBatch(&av.availabilityStore)
-	av.deleteUnfinalizedHeight(tx.unfinalized, finalizedBlock.BlockNumber)
+	av.deleteUnfinalizedHeight(tx.unfinalized, signal.BlockNumber)
 
 	// update blocks at finalized height
-	av.updateBlockAtFinalizedHeight(tx, batch, uint32(finalizedBlock.BlockNumber), now)
+	av.updateBlockAtFinalizedHeight(tx, batch, uint32(signal.BlockNumber), now)
 
 	err := tx.flush()
 	if err != nil {
-		logger.Errorf("failed to flush tx: %w", err)
+		return fmt.Errorf("failed to flush tx: %w", err)
 	}
+	return nil
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryAvailableData(msg QueryAvailableData) error {
