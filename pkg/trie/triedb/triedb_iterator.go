@@ -63,7 +63,7 @@ func (i *TrieDBIterator) nextState() *iteratorState {
 	return currentState
 }
 
-func (i *TrieDBIterator) NextEntry() *Entry {
+func (i *TrieDBIterator) NextEntry() *entry {
 	for len(i.nodeStack) > 0 {
 		currentState := i.nextState()
 		currentNode := currentState.node
@@ -75,7 +75,7 @@ func (i *TrieDBIterator) NextEntry() *Entry {
 			if err != nil {
 				panic("Error loading value")
 			}
-			return &Entry{key: key, value: value}
+			return &entry{key: key, value: value}
 		case codec.Branch:
 			// Reverse iterate over children because we are using a LIFO stack
 			// and we want to visit the leftmost child first
@@ -95,7 +95,7 @@ func (i *TrieDBIterator) NextEntry() *Entry {
 				if err != nil {
 					panic("Error loading value")
 				}
-				return &Entry{key: key, value: value}
+				return &entry{key: key, value: value}
 			}
 		}
 	}

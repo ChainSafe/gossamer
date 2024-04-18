@@ -17,7 +17,7 @@ import (
 
 var ErrIncompleteDB = errors.New("incomplete database")
 
-type Entry struct {
+type entry struct {
 	key   []byte
 	value []byte
 }
