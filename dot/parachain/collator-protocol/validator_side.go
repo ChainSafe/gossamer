@@ -64,8 +64,8 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 				logger.Errorf("processing overseer message: %w", err)
 			}
 
-		case event := <-cpvs.net.GetNetworkEventsChannel():
-			cpvs.handleNetworkEvents(event)
+		case event := <-cpvs.networkEventInfoChan:
+			cpvs.handleNetworkEvents(*event)
 		case <-inactivityTicker.C:
 			// TODO: disconnect inactive peers
 			// https://github.com/paritytech/polkadot/blob/8f05479e4bd61341af69f0721e617f01cbad8bb2/node/network/collator-protocol/src/validator_side/mod.rs#L1301
@@ -125,6 +125,7 @@ func (cpvs CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal() {
 
 func (cpvs CollatorProtocolValidatorSide) Stop() {
 	cpvs.cancel()
+	cpvs.net.FreeNetworkEventsChannel(cpvs.networkEventInfoChan)
 }
 
 // requestCollation requests a collation from the network.
@@ -319,7 +320,8 @@ type Network interface {
 	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
 		maxResponseSize uint64) *network.RequestResponseProtocol
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
-	GetNetworkEventsChannel() <-chan network.NetworkEventInfo
+	GetNetworkEventsChannel() chan *network.NetworkEventInfo
+	FreeNetworkEventsChannel(ch chan *network.NetworkEventInfo)
 }
 
 type CollationEvent struct {
@@ -333,8 +335,9 @@ type CollatorProtocolValidatorSide struct {
 
 	net Network
 
-	SubSystemToOverseer chan<- any
-	OverseerToSubSystem <-chan any
+	SubSystemToOverseer  chan<- any
+	OverseerToSubSystem  <-chan any
+	networkEventInfoChan chan *network.NetworkEventInfo
 
 	unfetchedCollation chan UnfetchedCollation
 

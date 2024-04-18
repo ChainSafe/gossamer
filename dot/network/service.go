@@ -37,6 +37,8 @@ const (
 	transactionsID  = "/transactions/1"
 
 	maxMessageSize = 1024 * 64 // 64kb for now
+
+	defaultBufferSize = 128
 )
 
 var (
@@ -128,9 +130,9 @@ type Service struct {
 	syncer             Syncer
 	transactionHandler TransactionHandler
 
-	// networkEventInfo is a channel used to receive network event information,
+	// networkEventInfoChannels stores channels used to receive network event information,
 	// such as connected and disconnected peers
-	networkEventInfo chan NetworkEventInfo
+	networkEventInfoChannels map[chan *NetworkEventInfo]struct{}
 
 	// Configuration options
 	noBootstrap bool
@@ -206,26 +208,26 @@ func NewService(cfg *Config) (*Service, error) {
 	mdnsService := mdns.NewService(host.p2pHost, serviceTag, mdnsLogger, notifee)
 
 	network := &Service{
-		ctx:                    ctx,
-		cancel:                 cancel,
-		cfg:                    cfg,
-		host:                   host,
-		mdns:                   mdnsService,
-		gossip:                 newGossip(),
-		blockState:             cfg.BlockState,
-		transactionHandler:     cfg.TransactionHandler,
-		noBootstrap:            cfg.NoBootstrap,
-		noMDNS:                 cfg.NoMDNS,
-		syncer:                 cfg.Syncer,
-		notificationsProtocols: make(map[MessageType]*notificationsProtocol),
-		lightRequest:           make(map[peer.ID]struct{}),
-		networkEventInfo:       make(chan NetworkEventInfo),
-		telemetryInterval:      cfg.telemetryInterval,
-		closeCh:                make(chan struct{}),
-		bufPool:                bufPool,
-		streamManager:          newStreamManager(ctx),
-		telemetry:              cfg.Telemetry,
-		Metrics:                cfg.Metrics,
+		ctx:                      ctx,
+		cancel:                   cancel,
+		cfg:                      cfg,
+		host:                     host,
+		mdns:                     mdnsService,
+		gossip:                   newGossip(),
+		blockState:               cfg.BlockState,
+		transactionHandler:       cfg.TransactionHandler,
+		noBootstrap:              cfg.NoBootstrap,
+		noMDNS:                   cfg.NoMDNS,
+		syncer:                   cfg.Syncer,
+		notificationsProtocols:   make(map[MessageType]*notificationsProtocol),
+		lightRequest:             make(map[peer.ID]struct{}),
+		networkEventInfoChannels: make(map[chan *NetworkEventInfo]struct{}),
+		telemetryInterval:        cfg.telemetryInterval,
+		closeCh:                  make(chan struct{}),
+		bufPool:                  bufPool,
+		streamManager:            newStreamManager(ctx),
+		telemetry:                cfg.Telemetry,
+		Metrics:                  cfg.Metrics,
 	}
 
 	return network, nil
@@ -602,8 +604,14 @@ func (s *Service) GetRequestResponseProtocol(subprotocol string, requestTimeout 
 	}
 }
 
-func (s *Service) GetNetworkEventsChannel() <-chan NetworkEventInfo {
-	return s.networkEventInfo
+func (s *Service) GetNetworkEventsChannel() chan *NetworkEventInfo {
+	ch := make(chan *NetworkEventInfo, defaultBufferSize)
+	s.networkEventInfoChannels[ch] = struct{}{}
+	return ch
+}
+
+func (s *Service) FreeNetworkEventsChannel(ch chan *NetworkEventInfo) {
+	delete(s.networkEventInfoChannels, ch)
 }
 
 type NetworkEvent bool
@@ -743,10 +751,14 @@ func (s *Service) processMessage(msg peerset.Message) {
 			return
 		}
 		logger.Debugf("connection successful with peer %s", peerID)
-		s.networkEventInfo <- NetworkEventInfo{
-			PeerID: peerID,
-			Event:  Connected,
+
+		for ch := range s.networkEventInfoChannels {
+			ch <- &NetworkEventInfo{
+				PeerID: peerID,
+				Event:  Connected,
+			}
 		}
+
 	case peerset.Drop, peerset.Reject:
 		err := s.host.closePeer(peerID)
 		if err != nil {
@@ -755,10 +767,13 @@ func (s *Service) processMessage(msg peerset.Message) {
 		}
 		logger.Debugf("connection dropped successfully for peer %s", peerID)
 
-		s.networkEventInfo <- NetworkEventInfo{
-			PeerID: peerID,
-			Event:  Disconnected,
+		for ch := range s.networkEventInfoChannels {
+			ch <- &NetworkEventInfo{
+				PeerID: peerID,
+				Event:  Disconnected,
+			}
 		}
+
 	}
 }
 
