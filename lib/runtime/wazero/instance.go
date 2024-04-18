@@ -37,9 +37,10 @@ const runtimeContextKey = contextKey("runtime.Context")
 var _ runtime.Instance = &Instance{}
 
 type cacheMetadata struct {
-	config wazero.RuntimeConfig
-	cache  wazero.CompilationCache
-	ctx    context.Context
+	config      wazero.RuntimeConfig
+	cache       wazero.CompilationCache
+	hostModule  wazero.CompiledModule
+	guestModule wazero.CompiledModule
 }
 
 // Instance backed by wazero.Runtime
@@ -110,10 +111,10 @@ func NewInstanceFromTrie(t trie.Trie, cfg Config) (*Instance, error) {
 func newRuntimeInstance(ctx context.Context,
 	code []byte,
 	config wazero.RuntimeConfig,
-) (api.Module, wazero.Runtime, error) {
+) (api.Module, wazero.Runtime, wazero.CompiledModule, wazero.CompiledModule, error) {
 	rt := wazero.NewRuntimeWithConfig(ctx, config)
 
-	_, err := rt.NewHostModuleBuilder("env").
+	hostCompiledModule, err := rt.NewHostModuleBuilder("env").
 		// values from newer kusama/polkadot runtimes
 		ExportMemory("memory", 23).
 		NewFunctionBuilder().
@@ -398,23 +399,32 @@ func newRuntimeInstance(ctx context.Context,
 		NewFunctionBuilder().
 		WithFunc(ext_crypto_ecdsa_generate_version_1).
 		Export("ext_crypto_ecdsa_generate_version_1").
-		Instantiate(ctx)
+		Compile(ctx)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
+	}
+
+	_, err = rt.InstantiateModule(ctx, hostCompiledModule, wazero.NewModuleConfig())
+	if err != nil {
+		return nil, nil, nil, nil, err
 	}
 
 	code, err = decompressWasm(code)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
+	guestCompiledModule, err := rt.CompileModule(ctx, code)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
 	mod, err := rt.Instantiate(ctx, code)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
-	return mod, rt, nil
+	return mod, rt, hostCompiledModule, guestCompiledModule, nil
 }
 
 // NewInstance instantiates a runtime from raw wasm bytecode
@@ -426,8 +436,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	ctx := context.Background()
 	cache := wazero.NewCompilationCache()
 	config := wazero.NewRuntimeConfig().WithCompilationCache(cache)
-
-	mod, rt, err := newRuntimeInstance(ctx, code, config)
+	mod, rt, hostCompiledModule, guestCompiledModule, err := newRuntimeInstance(ctx, code, config)
 	if err != nil {
 		return nil, fmt.Errorf("creating runtime instance: %w", err)
 	}
@@ -447,8 +456,10 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		Module:   mod,
 		codeHash: cfg.CodeHash,
 		metadata: cacheMetadata{
-			config: config,
-			cache:  cache,
+			config:      config,
+			cache:       cache,
+			hostModule:  hostCompiledModule,
+			guestModule: guestCompiledModule,
 		},
 	}
 
@@ -474,14 +485,32 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	i.Lock()
 	defer i.Unlock()
 
-	mod, rt, err := newRuntimeInstance(context.Background(), i.wasmByteCode, i.metadata.config)
-	if err != nil {
-		return nil, fmt.Errorf("creating runtime instace: %w", err)
+	rt := wazero.NewRuntimeWithConfig(context.Background(), i.metadata.config)
+	hostModule, err := rt.InstantiateModule(context.Background(), i.metadata.hostModule, wazero.NewModuleConfig())
+	if hostModule == nil {
+		return nil, fmt.Errorf("instantiate host module: nil")
 	}
+	if err != nil {
+		return nil, fmt.Errorf("instantiate host module: %w", err)
+	}
+
+	mod, err := rt.InstantiateModule(context.Background(), i.metadata.guestModule, wazero.NewModuleConfig())
+	if mod == nil {
+		return nil, fmt.Errorf("instantiate guest module: nil")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("instantiate guest module: %w", err)
+	}
+
 	defer func() {
-		err := mod.Close(context.Background())
+		err := hostModule.Close(context.Background())
 		if err != nil {
-			logger.Criticalf("runtime moodule not closed: %w", err)
+			logger.Criticalf("host module not closed: %w", err)
+		}
+
+		err = mod.Close(context.Background())
+		if err != nil {
+			logger.Criticalf("guest module not closed: %w", err)
 		}
 
 		err = rt.Close(context.Background())
