@@ -27,12 +27,11 @@ var (
 )
 
 var (
-	epochPrefix         = "epoch"
-	currentEpochKey     = []byte("current")
-	epochDataPrefix     = []byte("epochinfo")
-	configDataPrefix    = []byte("configinfo")
-	latestConfigDataKey = []byte("lcfginfo")
-	skipToKey           = []byte("skipto")
+	epochPrefix      = "epoch"
+	currentEpochKey  = []byte("current")
+	epochDataPrefix  = []byte("epochinfo")
+	configDataPrefix = []byte("configinfo")
+	skipToKey        = []byte("skipto")
 )
 
 func epochDataKey(epoch uint64) []byte {
