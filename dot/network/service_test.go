@@ -8,12 +8,10 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	testPeerID         = peer.ID("kishan")
 	testMessageTimeout = time.Second * 3
 )
 
