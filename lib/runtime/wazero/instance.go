@@ -38,8 +38,10 @@ const runtimeContextKey = contextKey("runtime.Context")
 var _ runtime.Instance = &Instance{}
 
 type cacheMetadata struct {
-	config wazero.RuntimeConfig
-	cache  wazero.CompilationCache
+	config        wazero.RuntimeConfig
+	cache         wazero.CompilationCache
+	guestCompiled wazero.CompiledModule
+	hostCompiled  wazero.CompiledModule
 }
 
 // Instance backed by wazero.Runtime
@@ -110,10 +112,10 @@ func NewInstanceFromTrie(t trie.Trie, cfg Config) (*Instance, error) {
 func newRuntimeInstance(ctx context.Context,
 	code []byte,
 	config wazero.RuntimeConfig,
-) (api.Module, wazero.Runtime, error) {
+) (api.Module, wazero.Runtime, wazero.CompiledModule, wazero.CompiledModule, error) {
 	rt := wazero.NewRuntimeWithConfig(ctx, config)
 
-	_, err := rt.NewHostModuleBuilder("env").
+	hostCompiled, err := rt.NewHostModuleBuilder("env").
 		// values from newer kusama/polkadot runtimes
 		ExportMemory("memory", 23).
 		NewFunctionBuilder().
@@ -398,23 +400,31 @@ func newRuntimeInstance(ctx context.Context,
 		NewFunctionBuilder().
 		WithFunc(ext_crypto_ecdsa_generate_version_1).
 		Export("ext_crypto_ecdsa_generate_version_1").
-		Instantiate(ctx)
+		Compile(ctx)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	_, err = rt.InstantiateModule(ctx, hostCompiled, wazero.NewModuleConfig())
 
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	code, err = decompressWasm(code)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
-
-	mod, err := rt.Instantiate(ctx, code)
+	guestMod, err := rt.InstantiateWithConfig(ctx, code, wazero.NewModuleConfig().WithName("eee"))
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
-	return mod, rt, nil
+	guestCompiled, err := rt.CompileModule(ctx, code)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	return guestMod, rt, hostCompiled, guestCompiled, nil
 }
 
 // NewInstance instantiates a runtime from raw wasm bytecode
@@ -434,7 +444,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		return nil, fmt.Errorf("creating wazero compilation cache: %w", err)
 	}
 	config := wazero.NewRuntimeConfig().WithCompilationCache(cache)
-	mod, rt, err := newRuntimeInstance(ctx, code, config)
+	guestMod, rt, hostCompiled, guestCompiled, err := newRuntimeInstance(ctx, code, config)
 	if err != nil {
 		return nil, fmt.Errorf("creating runtime instance: %w", err)
 	}
@@ -451,11 +461,13 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 			SigVerifier:     crypto.NewSignatureVerifier(logger),
 			OffchainHTTPSet: offchain.NewHTTPSet(),
 		},
-		Module:   mod,
+		Module:   guestMod,
 		codeHash: cfg.CodeHash,
 		metadata: cacheMetadata{
-			config: config,
-			cache:  cache,
+			config:        config,
+			cache:         cache,
+			guestCompiled: guestCompiled,
+			hostCompiled:  hostCompiled,
 		},
 	}
 
@@ -480,15 +492,22 @@ var ErrExportFunctionNotFound = errors.New("export function not found")
 func (i *Instance) Exec(function string, data []byte) (result []byte, err error) {
 	i.Lock()
 	defer i.Unlock()
-
-	mod, rt, err := newRuntimeInstance(context.Background(), i.code, i.metadata.config)
+	rt := wazero.NewRuntimeWithConfig(context.Background(), i.metadata.config)
+	_, err = rt.InstantiateModule(context.Background(), i.metadata.hostCompiled, wazero.NewModuleConfig())
+	if err != nil {
+		return nil, fmt.Errorf("creating runtime instace: %w", err)
+	}
+	mod, err := rt.InstantiateModule(context.Background(), i.metadata.guestCompiled, wazero.NewModuleConfig())
+	if mod == nil {
+		return nil, fmt.Errorf("ERRPRPRPRPR MIL MODULER")
+	}
 	if err != nil {
 		return nil, fmt.Errorf("creating runtime instace: %w", err)
 	}
 	defer func() {
 		err := mod.Close(context.Background())
 		if err != nil {
-			logger.Criticalf("runtime moodule not closed: %w", err)
+			logger.Criticalf("runtime module not closed: %w", err)
 		}
 
 		err = rt.Close(context.Background())
