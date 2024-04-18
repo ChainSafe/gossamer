@@ -118,12 +118,13 @@ func (b *Service) checkIfEpochSkipped(epochBeingInitialized uint64, bestBlock *t
 
 func (b *Service) findSkippedEpochInformations(skippedEpoch, currentEpoch uint64,
 	bestBlock *types.Header) (*epochData, error) {
-	currEpochData, err := b.epochState.FindSkippedEpochDataRaw(skippedEpoch, currentEpoch, bestBlock)
+
+	currEpochData, err := b.epochState.GetSkippedEpochDataRaw(skippedEpoch, currentEpoch, bestBlock)
 	if err != nil {
-		return nil, fmt.Errorf("fiding skipped epoch data raw: %w", err)
+		return nil, fmt.Errorf("finding skipped epoch data raw: %w", err)
 	}
 
-	currConfigData, err := b.epochState.GetConfigData(skippedEpoch, bestBlock)
+	currConfigData, err := b.epochState.GetSkippedConfigData(skippedEpoch, currentEpoch, bestBlock)
 	if err != nil {
 		return nil, fmt.Errorf("getting config data: %w", err)
 	}

@@ -62,14 +62,16 @@ type EpochState interface {
 	StoreCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
 
-	FindSkippedEpochDataRaw(skippedEpoch, currentEpoch uint64, header *types.Header) (*types.EpochDataRaw, error)
+	GetSkippedEpochDataRaw(skippedEpoch, currentEpoch uint64, header *types.Header) (
+		*types.EpochDataRaw, error)
+	GetSkippedConfigData(skippedEpoch, currentEpoch uint64, header *types.Header) (
+		*types.ConfigData, error)
+
 	GetEpochDataRaw(epoch uint64, header *types.Header) (*types.EpochDataRaw, error)
 	GetConfigData(epoch uint64, header *types.Header) (*types.ConfigData, error)
 
-	GetLatestConfigData() (*types.ConfigData, error)
 	GetStartSlotForEpoch(epoch uint64, bestBlockHash common.Hash) (uint64, error)
 	GetEpochForBlock(header *types.Header) (uint64, error)
-	GetLatestEpochDataRaw() (*types.EpochDataRaw, error)
 	SkipVerify(*types.Header) (bool, error)
 }
 
