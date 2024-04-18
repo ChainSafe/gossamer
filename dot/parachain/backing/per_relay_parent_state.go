@@ -260,7 +260,14 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 		return nil
 	}
 
-	pov := getPovFromValidator()
+	pov, err := getPovFromValidator(subSystemToOverseer, chRelayParentAndCommand,
+		rpState.relayParent, candidateHash, &attesting)
+	if err != nil {
+		if errors.Is(err, parachaintypes.ErrFetchPoV) {
+			return nil
+		}
+		return err
+	}
 
 	return rpState.validateAndMakeAvailable(
 		executorParamsAtRelayParent,
@@ -269,7 +276,7 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 		attesting.candidate,
 		rpState.relayParent,
 		pvd,
-		pov,
+		*pov,
 		uint32(len(rpState.tableContext.validators)),
 		attest,
 		candidateHash,
@@ -415,4 +422,36 @@ func executorParamsAtRelayParent(
 	// TODO: Implement this #3544
 	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/subsystem-util/src/lib.rs#L241-L242
 	return parachaintypes.ExecutorParams{}, nil
+}
+
+func getPovFromValidator(
+	subSystemToOverseer chan<- any,
+	chRelayParentAndCommand chan relayParentAndCommand,
+	relayParent common.Hash,
+	candidateHash parachaintypes.CandidateHash,
+	attesting *attestingData,
+) (*parachaintypes.PoV, error) {
+	fetchPov := parachaintypes.AvailabilityDistributionMessageFetchPoV{
+		RelayParent:   relayParent,
+		FromValidator: attesting.fromValidator,
+		ParaID:        parachaintypes.ParaID(attesting.candidate.Descriptor.ParaID),
+		CandidateHash: candidateHash,
+		PovHash:       attesting.povHash,
+		PovCh:         make(chan parachaintypes.OverseerFuncRes[parachaintypes.PoV]),
+	}
+
+	subSystemToOverseer <- fetchPov
+	PovRes := <-fetchPov.PovCh
+
+	if PovRes.Err != nil {
+		if errors.Is(PovRes.Err, parachaintypes.ErrFetchPoV) {
+			chRelayParentAndCommand <- relayParentAndCommand{
+				relayParent:   relayParent,
+				command:       attestNoPoV,
+				candidateHash: &candidateHash,
+			}
+		}
+		return nil, PovRes.Err
+	}
+	return &PovRes.Data, nil
 }
