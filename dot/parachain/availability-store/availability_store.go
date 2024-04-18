@@ -705,7 +705,6 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 
 func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
 	logger.Infof("ProcessBlockFinalizedSignal %T, %v", signal, signal)
-	//finalizedBlock := av.currentMessage.(parachaintypes.BlockFinalizedSignal)
 	now := timeNow()
 
 	// load all of finalized height
