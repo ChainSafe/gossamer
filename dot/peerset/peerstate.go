@@ -219,6 +219,8 @@ func (ps *PeersState) updateReputationByTick(peerID peer.ID) (newReputation Repu
 	ps.Lock()
 	defer ps.Unlock()
 
+	logger.Infof("updating reputation by tick")
+
 	node, has := ps.nodes[peerID]
 	if !has {
 		return 0, fmt.Errorf("%w: for peer id %s", ErrPeerDoesNotExist, peerID)
@@ -237,6 +239,8 @@ func (ps *PeersState) addReputation(peerID peer.ID, change ReputationChange) (
 
 	ps.Lock()
 	defer ps.Unlock()
+
+	logger.Infof("adding reputation by %v", change.String())
 
 	node, has := ps.nodes[peerID]
 	if !has {

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -137,6 +138,7 @@ func (r Reputation) add(num Reputation) Reputation {
 	} else if r < math.MinInt32-num {
 		return math.MinInt32
 	}
+	logger.Infof("add rep r %v by: %v", r, num)
 	return r + num
 }
 
@@ -149,6 +151,7 @@ func (r Reputation) sub(num Reputation) Reputation {
 	} else if r < math.MinInt32+num {
 		return math.MinInt32
 	}
+	logger.Infof("sub rep r %v by: %v", r, num)
 	return r - num
 }
 
@@ -333,8 +336,10 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 	if err != nil {
 		return fmt.Errorf("cannot update time: %w", err)
 	}
-
+	_, file, line, _ := runtime.Caller(1)
+	logger.Errorf("reporting peer: caller %v on line %v", file, line)
 	for _, pid := range peers {
+		logger.Info("adding reputation in report peer")
 		rep, err := ps.peerState.addReputation(pid, change)
 		if err != nil {
 			return fmt.Errorf("cannot add reputation: %w", err)
@@ -345,15 +350,24 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 		}
 
 		setLen := ps.peerState.getSetLength()
+		logger.Infof("set length: %d", setLen)
 		for i := 0; i < setLen; i++ {
 			if ps.peerState.peerStatus(i, pid) != connectedPeer {
+				// Why dont we drop/remove in any case??
 				continue
 			}
 
+			logger.Info("time to disconnect")
+
 			// disconnect peer
-			err = ps.peerState.disconnect(i, pid)
+			//err = ps.peerState.disconnect(i, pid)
+			//if err != nil {
+			//	return fmt.Errorf("cannot disconnect: %w", err)
+			//}
+
+			err = ps.removePeer(i, pid)
 			if err != nil {
-				return fmt.Errorf("cannot disconnect: %w", err)
+				return fmt.Errorf("removing peer: %w", err)
 			}
 
 			ps.resultMsgCh <- Message{
@@ -361,6 +375,8 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 				setID:  uint64(i),
 				PeerID: pid,
 			}
+
+			logger.Info("disconnecting to disconnect")
 
 			if err = ps.allocSlots(i); err != nil {
 				return fmt.Errorf("could not allocate slots: %w", err)
@@ -415,6 +431,11 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 		return nil
 	}
 
+	logger.Infof("number of peers: %v for set: %v", len(ps.peerState.peers()), setIdx)
+	for _, id := range ps.peerState.peers() {
+		n := peerState.nodes[id]
+		logger.Infof("- peer %v with reputation: %v", id, n.reputation)
+	}
 	for peerState.hasFreeOutgoingSlot(setIdx) {
 		peerID := peerState.highestNotConnectedPeer(setIdx)
 		if peerID == "" {
@@ -423,7 +444,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 
 		n := peerState.nodes[peerID]
 		if n.reputation < BannedThresholdValue {
-			logger.Critical("highest rated peer is below bannedThresholdValue")
+			logger.Criticalf("highest rated peer is below bannedThresholdValue, peer: %v, rep: %v", peerID, n.reputation)
 			break
 		}
 
@@ -558,6 +579,7 @@ func (ps *PeerSet) addPeer(setID int, peers peer.IDSlice) error {
 }
 
 func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
+	logger.Info("In peerSet.RemovePeer()")
 	for _, pid := range peers {
 		if _, ok := ps.reservedNode[pid]; ok {
 			logger.Debugf("peer %s is reserved and cannot be removed", pid)
@@ -757,6 +779,7 @@ func (ps *PeerSet) listenActionAllocSlots(ctx context.Context) {
 				// TODO: not yet implemented (#1888)
 				err = fmt.Errorf("not implemented yet")
 			case reportPeer:
+				// This is where it is happening
 				err = ps.reportPeer(act.reputation, act.peers...)
 			case addToPeerSet:
 				err = ps.addPeer(act.setID, act.peers)

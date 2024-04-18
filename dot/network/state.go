@@ -60,6 +60,7 @@ type PeerAdd interface {
 // PeerRemove is the interface used by the PeerSetHandler to remove peers from peerSet.
 type PeerRemove interface {
 	RemoveReservedPeer(int, ...peer.ID)
+	RemovePeer(setID int, peers ...peer.ID)
 }
 
 // Peer is the interface used by the PeerSetHandler to get the peer data from peerSet.
