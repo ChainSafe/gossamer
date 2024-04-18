@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/adrg/xdg"
 	"github.com/klauspost/compress/zstd"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
@@ -44,12 +45,12 @@ type cacheMetadata struct {
 
 // Instance backed by wazero.Runtime
 type Instance struct {
-	Runtime  wazero.Runtime
-	Module   api.Module
-	Context  *runtime.Context
-	code     []byte
-	codeHash common.Hash
-	metadata cacheMetadata
+	Runtime      wazero.Runtime
+	Module       api.Module
+	Context      *runtime.Context
+	wasmByteCode []byte
+	codeHash     common.Hash
+	metadata     cacheMetadata
 	sync.Mutex
 }
 
@@ -419,11 +420,11 @@ func newRuntimeInstance(ctx context.Context,
 
 // NewInstance instantiates a runtime from raw wasm bytecode
 func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
-	logger.Info("instantiating a runtime!")
+	logger.Debug("instantiating a runtime!")
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
 	// Prepare a cache directory.
-	cacheDir, err := os.MkdirTemp("", "wazeroCache")
+	cacheDir, err := os.MkdirTemp(xdg.DataHome+"/gossamer", "wazeroCache")
 	if err != nil {
 		return nil, fmt.Errorf("creating wazero cache dir: %w", err)
 	}
@@ -440,8 +441,8 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	}
 
 	instance = &Instance{
-		code:    code,
-		Runtime: rt,
+		wasmByteCode: code,
+		Runtime:      rt,
 		Context: &runtime.Context{
 			Keystore:        cfg.Keystore,
 			Validator:       cfg.Role == common.AuthorityRole,
@@ -481,7 +482,7 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	i.Lock()
 	defer i.Unlock()
 
-	mod, rt, err := newRuntimeInstance(context.Background(), i.code, i.metadata.config)
+	mod, rt, err := newRuntimeInstance(context.Background(), i.wasmByteCode, i.metadata.config)
 	if err != nil {
 		return nil, fmt.Errorf("creating runtime instace: %w", err)
 	}
