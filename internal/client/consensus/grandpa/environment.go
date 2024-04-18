@@ -279,7 +279,7 @@ func (mvdt voterSetState[H, N]) ValueAt(index uint) (value any, err error) {
 	case 1:
 		return *new(voterSetStatePaused[H, N]), nil
 	}
-	return nil, scale.ErrUnknownVaryingDataTypeValue
+	return nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
 // NewVoterSetState is constructor for voterSetState
@@ -451,7 +451,7 @@ func (mvdt hasVoted[H, N]) ValueAt(index uint) (value any, err error) {
 	case 1:
 		return *new(yes[H, N]), nil
 	}
-	return nil, scale.ErrUnknownVaryingDataTypeValue
+	return nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
 // no Has not voted already in this round
@@ -602,7 +602,7 @@ func (mvdt vote[H, N]) ValueAt(index uint) (value any, err error) {
 	case 2:
 		return *new(precommit[H, N]), nil
 	}
-	return nil, scale.ErrUnknownVaryingDataTypeValue
+	return nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
 // propose Has cast a proposal

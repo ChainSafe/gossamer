@@ -229,7 +229,7 @@ func (mvdt FinalizationResult[H, N]) ValueAt(index uint) (value any, err error) 
 	case 1:
 		return *new(unchanged), nil
 	}
-	return nil, scale.ErrUnknownVaryingDataTypeValue
+	return nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
 func newFinalizationResult[H comparable, N constraints.Unsigned]() FinalizationResult[H, N] {

@@ -68,7 +68,7 @@ func (mvdt dbExtrinsic[E]) ValueAt(index uint) (value any, err error) {
 	case 1:
 		return *new(dbExtrinsicFull[E]), nil
 	}
-	return nil, scale.ErrUnknownVaryingDataTypeValue
+	return nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
 // / Extrinsic that contains indexed data.
