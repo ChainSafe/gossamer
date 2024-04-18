@@ -133,29 +133,6 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 		has  bool
 	)
 
-	// special case for block 1 - the network doesn't necessarily start in epoch 1.
-	// if this happens, the database will be missing info for epochs before the first block.
-	if header.Number == 1 {
-		block1IsFinal, err := v.blockState.NumberIsFinalised(header.Number)
-		if err != nil {
-			return fmt.Errorf("failed to check if block 1 is finalised: %w", err)
-		}
-
-		if !block1IsFinal {
-			firstSlot, err := types.GetSlotFromHeader(header)
-			if err != nil {
-				return fmt.Errorf("failed to get slot from header of block 1: %w", err)
-			}
-
-			logger.Debugf("syncing block 1, setting first slot as %d", firstSlot)
-
-			err = v.epochState.SetFirstSlot(firstSlot)
-			if err != nil {
-				return fmt.Errorf("failed to set current epoch after receiving block 1: %w", err)
-			}
-		}
-	}
-
 	epoch, err := v.epochState.GetEpochForBlock(header)
 	if err != nil {
 		return fmt.Errorf("failed to get epoch for block header: %w", err)

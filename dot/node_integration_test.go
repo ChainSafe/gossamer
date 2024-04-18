@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/chain/westend"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -73,8 +74,9 @@ func TestNewNode(t *testing.T) {
 	logLevel, err := log.ParseLevel(initConfig.Log.State)
 	require.NoError(t, err)
 	stateConfig := state.Config{
-		Path:     initConfig.BasePath,
-		LogLevel: logLevel,
+		Path:              initConfig.BasePath,
+		LogLevel:          logLevel,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 
 	systemInfo := &types.SystemInfo{
