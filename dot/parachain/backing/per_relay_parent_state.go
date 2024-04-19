@@ -6,6 +6,7 @@ package backing
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
@@ -276,7 +277,7 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 		attesting.candidate,
 		rpState.relayParent,
 		pvd,
-		*pov,
+		pov,
 		uint32(len(rpState.tableContext.validators)),
 		attest,
 		candidateHash,
@@ -430,7 +431,9 @@ func getPovFromValidator(
 	relayParent common.Hash,
 	candidateHash parachaintypes.CandidateHash,
 	attesting *attestingData,
-) (*parachaintypes.PoV, error) {
+) (parachaintypes.PoV, error) {
+	var PovRes parachaintypes.OverseerFuncRes[parachaintypes.PoV]
+
 	fetchPov := parachaintypes.AvailabilityDistributionMessageFetchPoV{
 		RelayParent:   relayParent,
 		FromValidator: attesting.fromValidator,
@@ -441,7 +444,11 @@ func getPovFromValidator(
 	}
 
 	subSystemToOverseer <- fetchPov
-	PovRes := <-fetchPov.PovCh
+	select {
+	case PovRes = <-fetchPov.PovCh:
+	case <-time.After(parachaintypes.SubsystemRequestTimeout):
+		return parachaintypes.PoV{}, parachaintypes.ErrSubsystemRequestTimeout
+	}
 
 	if PovRes.Err != nil {
 		if errors.Is(PovRes.Err, parachaintypes.ErrFetchPoV) {
@@ -451,7 +458,7 @@ func getPovFromValidator(
 				candidateHash: &candidateHash,
 			}
 		}
-		return nil, PovRes.Err
+		return parachaintypes.PoV{}, PovRes.Err
 	}
-	return &PovRes.Data, nil
+	return PovRes.Data, nil
 }
