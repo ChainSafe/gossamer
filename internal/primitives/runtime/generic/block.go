@@ -5,40 +5,23 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 )
 
-// / Something to identify a block.
-// #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug)]
-// pub enum BlockId<Block: BlockT> {
+// Something to identify a block.
 type BlockID any
 type BlockIDs[H, N any] interface {
 	BlockIDHash[H] | BlockIDNumber[N]
 }
 
-// / Identify by block header hash.
-//
-//	Hash(Block::Hash),
+// Identify by block header hash.
 type BlockIDHash[H any] struct {
 	Inner H
 }
 
-// / Identify by block number.
-//
-//	Number(NumberFor<Block>),
+// Identify by block number.
 type BlockIDNumber[N any] struct {
 	Inner N
 }
 
-// / Abstraction over a substrate block.
-// #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, scale_info::TypeInfo)]
-// #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-// #[cfg_attr(feature = "std", serde(rename_all = "camelCase"))]
-// #[cfg_attr(feature = "std", serde(deny_unknown_fields))]
-//
-//	pub struct Block<Header, Extrinsic: MaybeSerialize> {
-//		/// The block header.
-//		pub header: Header,
-//		/// The accompanying extrinsics.
-//		pub extrinsics: Vec<Extrinsic>,
-//	}
+// Abstraction over a substrate block.
 type Block[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	/// The block header.
 	header runtime.Header[N, H]

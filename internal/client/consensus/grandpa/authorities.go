@@ -56,13 +56,6 @@ type appliedChanges[H comparable, N constraints.Unsigned] struct {
 
 // / Get the current authorities and their weights (for the current set ID).
 func (sas *SharedAuthoritySet[H, N]) CurrentAuthorities() grandpa.VoterSet[string] {
-	//	pub fn current_authorities(&self) -> VoterSet<AuthorityId> {
-	//		VoterSet::new(self.inner().current_authorities.iter().cloned()).expect(
-	//			"current_authorities is non-empty and weights are non-zero; \
-	//			 constructor and all mutating operations on `AuthoritySet` ensure this; \
-	//			 qed.",
-	//		)
-	//	}
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	idWeights := make([]grandpa.IDWeight[string], len(sas.inner.CurrentAuthorities))

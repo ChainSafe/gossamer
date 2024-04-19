@@ -160,7 +160,7 @@ func createCommit[H runtime.Hash, N runtime.Number](
 	t *testing.T,
 	block runtime.Block[N, H],
 	round uint64,
-	setID SetID,
+	setID pgrandpa.SetID,
 	auth []ed25519.Keyring,
 ) pgrandpa.Commit[H, N] {
 	t.Helper()
@@ -211,7 +211,7 @@ func TestNewHeader(t *testing.T) {
 
 func TestFinalityProof_CheckWorksWithCorrectJustification(t *testing.T) {
 	alice := ed25519.Alice
-	var setID SetID = 1
+	var setID pgrandpa.SetID = 1
 	var round uint64 = 8
 	var block = generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(t, 7), nil)
 	commit := createCommit(t, block, round, setID, []ed25519.Keyring{alice})

@@ -618,27 +618,3 @@ type precommit[H comparable, N constraints.Unsigned] struct {
 	Vote           grandpa.Prevote[H, N]
 	Commit         grandpa.Precommit[H, N]
 }
-
-// / Prometheus metrics for GRANDPA.
-// pub(crate) struct Metrics {
-type metrics struct {
-	// 	finality_grandpa_round: Gauge<U64>,
-	// 	finality_grandpa_prevotes: Counter<U64>,
-	// 	finality_grandpa_precommits: Counter<U64>,
-}
-
-// // / The environment we run GRANDPA in.
-// type environment[N runtime.Number, H runtime.Hash, T runtime.Hasher[H]] struct {
-// 	Client              ClientForGrandpa[N, H, T]
-// 	SelectChain         consensus.SelectChain[H, N]
-// 	Voters              grandpa.VoterSet[string]
-// 	Config              Config
-// 	AuthoritySet        SharedAuthoritySet[H, N]
-// 	Network             communication.NetworkBridge[H, N]
-// 	SetID               SetID
-// 	VoterSetState       SharedVoterSetState[H, N]
-// 	VotingRule          VotingRule[H, N]
-// 	Metrics             *metrics
-// 	JustificationSender *GrandpaJustificationSender[H, N]
-// 	Telemetry           *telemetry.TelemetryHandle
-// }

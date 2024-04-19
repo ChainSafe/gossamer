@@ -8,26 +8,17 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// / Abstraction over a block header for a substrate chain.
+// Abstraction over a block header for a substrate chain.
 type Header[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H]] struct {
-	/// The parent hash.
-	// pub parent_hash: Hash::Output,
+	// The parent hash.
 	parentHash H
-	/// The block number.
-	// #[cfg_attr(
-	// 	feature = "std",
-	// 	serde(serialize_with = "serialize_number", deserialize_with = "deserialize_number")
-	// )]
-	// #[codec(compact)]
-	// pub number: Number,
+	// The block number.
 	number N
-	/// The state trie merkle root
-	// pub state_root: Hash::Output,
+	// The state trie merkle root
 	stateRoot H
-	/// The merkle root of the extrinsics.
-	// pub extrinsics_root: Hash::Output,
+	// The merkle root of the extrinsics.
 	extrinsicsRoot H
-	/// A chain-specific digest of data useful for light clients or referencing auxiliary data.
+	// A chain-specific digest of data useful for light clients or referencing auxiliary data.
 	digest runtime.Digest
 }
 
@@ -35,47 +26,47 @@ func (h Header[N, H, Hasher]) Number() N {
 	return h.number
 }
 
-// / Sets the header number.
+// Sets the header number.
 func (h *Header[N, H, Hasher]) SetNumber(number N) {
 	h.number = number
 }
 
-// / Returns a reference to the extrinsics root.
+// Returns a reference to the extrinsics root.
 func (h Header[N, H, Hasher]) ExtrinsicsRoot() H {
 	return h.extrinsicsRoot
 }
 
-// / Sets the extrinsic root.
+// Sets the extrinsic root.
 func (h *Header[N, H, Hasher]) SetExtrinsicsRoot(root H) {
 	h.extrinsicsRoot = root
 }
 
-// / Returns a reference to the state root.
+// Returns a reference to the state root.
 func (h Header[N, H, Hasher]) StateRoot() H {
 	return h.stateRoot
 }
 
-// / Sets the state root.
+// Sets the state root.
 func (h *Header[N, H, Hasher]) SetStateRoot(root H) {
 	h.stateRoot = root
 }
 
-// / Returns a reference to the parent hash.
+// Returns a reference to the parent hash.
 func (h Header[N, H, Hasher]) ParentHash() H {
 	return h.parentHash
 }
 
-// / Sets the parent hash.
+// Sets the parent hash.
 func (h *Header[N, H, Hasher]) SetParentHash(hash H) {
 	h.parentHash = hash
 }
 
-// / Returns a reference to the digest.
+// Returns a reference to the digest.
 func (h Header[N, H, Hasher]) Digest() runtime.Digest {
 	return h.digest
 }
 
-// / Get a mutable reference to the digest.
+// Get a mutable reference to the digest.
 func (h Header[N, H, Hasher]) DigestMut() *runtime.Digest {
 	return &h.digest
 }
@@ -119,7 +110,7 @@ func (h *Header[N, H, Hasher]) UnmarshalSCALE(r io.Reader) error {
 	return nil
 }
 
-// / Returns the hash of the header.
+// Returns the hash of the header.
 func (h Header[N, H, Hasher]) Hash() H {
 	hasher := *new(Hasher)
 	return hasher.HashOf(h)
