@@ -5,23 +5,10 @@ package grandpa
 
 import (
 	"sync"
-	"time"
 
-	"github.com/ChainSafe/gossamer/internal/client/api"
-	"github.com/ChainSafe/gossamer/internal/client/consensus"
-	"github.com/ChainSafe/gossamer/internal/client/consensus/grandpa/communication"
-	"github.com/ChainSafe/gossamer/internal/client/keystore"
-	"github.com/ChainSafe/gossamer/internal/client/network"
-	"github.com/ChainSafe/gossamer/internal/client/network/role"
-	"github.com/ChainSafe/gossamer/internal/client/telemetry"
 	"github.com/ChainSafe/gossamer/internal/log"
-	papi "github.com/ChainSafe/gossamer/internal/primitives/api"
-	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
-	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
-	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/exp/constraints"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("consensus", "grandpa"))
@@ -111,163 +98,163 @@ type SharedVoterState[AuthorityID comparable] struct {
 //	Block: BlockT,
 //
 // {}
-type ClientForGrandpa[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H]] interface {
-	api.LockImportRun[N, H, Hasher]
-	api.Finalizer[N, H, Hasher]
-	api.AuxStore
-	blockchain.HeaderMetaData[H, N]
-	blockchain.HeaderBackend[H, N]
-	api.BlockchainEvents[H, N, Hasher]
-	papi.ProvideRuntimeAPI[H, N, Hasher]
-	api.ExecutorProvider[H, N]
-	consensus.BlockImport[H, N]
-	api.StorageProvider[H, N, Hasher]
-}
+// type ClientForGrandpa[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H]] interface {
+// 	api.LockImportRun[N, H, Hasher]
+// 	api.Finalizer[N, H, Hasher]
+// 	api.AuxStore
+// 	blockchain.HeaderMetaData[H, N]
+// 	blockchain.HeaderBackend[H, N]
+// 	api.BlockchainEvents[H, N, Hasher]
+// 	papi.ProvideRuntimeAPI[H, N, Hasher]
+// 	api.ExecutorProvider[H, N]
+// 	consensus.BlockImport[H, N]
+// 	api.StorageProvider[H, N, Hasher]
+// }
 
 // / Commands issued to the voter.
-type voterCommand any
-type voterCommands[H comparable, N constraints.Unsigned] interface {
-	voterCommandPause | voterCommandChangeAuthorities[H, N]
-}
-type voterCommandPause string
-type voterCommandChangeAuthorities[H comparable, N constraints.Unsigned] newAuthoritySet[H, N]
+// type voterCommand any
+// type voterCommands[H comparable, N constraints.Unsigned] interface {
+// 	voterCommandPause | voterCommandChangeAuthorities[H, N]
+// }
+// type voterCommandPause string
+// type voterCommandChangeAuthorities[H comparable, N constraints.Unsigned] newAuthoritySet[H, N]
 
-type Config struct {
-	/// The expected duration for a message to be gossiped across the network.
-	GossipDuration time.Duration
-	/// Justification generation period (in blocks). GRANDPA will try to generate justifications
-	/// at least every justification_period blocks. There are some other events which might cause
-	/// justification generation.
-	JustificationPeriod uint32
-	/// Whether the GRANDPA observer protocol is live on the network and thereby
-	/// a full-node not running as a validator is running the GRANDPA observer
-	/// protocol (we will only issue catch-up requests to authorities when the
-	/// observer protocol is enabled).
-	ObserverEnabled bool
-	/// The role of the local node (i.e. authority, full-node or light).
-	LocalRole role.Role
-	/// Some local identifier of the voter.
-	Name *string
-	/// The keystore that manages the keys of this node.
-	KeyStore *keystore.KeyStore
-	/// TelemetryHandle instance.
-	Telemetry *telemetry.TelemetryHandle
-	/// Chain specific GRANDPA protocol name. See [`crate::protocol_standard_name`].
-	ProtocolName network.ProtocolName
-}
+// type Config struct {
+// 	/// The expected duration for a message to be gossiped across the network.
+// 	GossipDuration time.Duration
+// 	/// Justification generation period (in blocks). GRANDPA will try to generate justifications
+// 	/// at least every justification_period blocks. There are some other events which might cause
+// 	/// justification generation.
+// 	JustificationPeriod uint32
+// 	/// Whether the GRANDPA observer protocol is live on the network and thereby
+// 	/// a full-node not running as a validator is running the GRANDPA observer
+// 	/// protocol (we will only issue catch-up requests to authorities when the
+// 	/// observer protocol is enabled).
+// 	ObserverEnabled bool
+// 	/// The role of the local node (i.e. authority, full-node or light).
+// 	LocalRole role.Role
+// 	/// Some local identifier of the voter.
+// 	Name *string
+// 	/// The keystore that manages the keys of this node.
+// 	KeyStore *keystore.KeyStore
+// 	/// TelemetryHandle instance.
+// 	Telemetry *telemetry.TelemetryHandle
+// 	/// Chain specific GRANDPA protocol name. See [`crate::protocol_standard_name`].
+// 	ProtocolName network.ProtocolName
+// }
 
-func (c Config) name() string {
-	if c.Name == nil {
-		return "<unknown>"
-	}
-	return *c.Name
-}
+// func (c Config) name() string {
+// 	if c.Name == nil {
+// 		return "<unknown>"
+// 	}
+// 	return *c.Name
+// }
 
-// / Future that powers the voter.
-type voterWork[Hash runtime.Hash, Number runtime.Number, Hasher runtime.Hasher[Hash]] struct {
-	// use string for AuthorityID and AuthoritySignature
-	voter            *grandpa.Voter[Hash, Number, string, string]
-	sharedVoterState SharedVoterState[string]
-	env              environment[Number, Hash, Hasher]
-	voterCommandsRx  <-chan voterCommand
-	network          communication.NetworkBridge[Hash, Number]
-	telemetry        *telemetry.TelemetryHandle
-	metrics          *metrics
-}
+// // / Future that powers the voter.
+// type voterWork[Hash runtime.Hash, Number runtime.Number, Hasher runtime.Hasher[Hash]] struct {
+// 	// use string for AuthorityID and AuthoritySignature
+// 	voter            *grandpa.Voter[Hash, Number, string, string]
+// 	sharedVoterState SharedVoterState[string]
+// 	env              environment[Number, Hash, Hasher]
+// 	voterCommandsRx  <-chan voterCommand
+// 	network          communication.NetworkBridge[Hash, Number]
+// 	telemetry        *telemetry.TelemetryHandle
+// 	metrics          *metrics
+// }
 
-func newVoterWork[Hash runtime.Hash, Number runtime.Number, Hasher runtime.Hasher[Hash]](
-	client ClientForGrandpa[Number, Hash, Hasher],
-	config Config,
-	network communication.NetworkBridge[Hash, Number],
-	selectChain consensus.SelectChain[Hash, Number],
-	votingRule VotingRule[Hash, Number],
-	persistentData persistentData[Hash, Number],
-	voterCommandsRx <-chan voterCommand,
-	prometheusRegistry prometheus.Registry,
-	sharedVoterState SharedVoterState[string],
-	justificationSender GrandpaJustificationSender[Hash, Number],
-	telemetry *telemetry.TelemetryHandle,
-) voterWork[Hash, Number, Hasher] {
-	// TODO: register to prometheus registry
+// func newVoterWork[Hash runtime.Hash, Number runtime.Number, Hasher runtime.Hasher[Hash]](
+// 	client ClientForGrandpa[Number, Hash, Hasher],
+// 	config Config,
+// 	network communication.NetworkBridge[Hash, Number],
+// 	selectChain consensus.SelectChain[Hash, Number],
+// 	votingRule VotingRule[Hash, Number],
+// 	persistentData persistentData[Hash, Number],
+// 	voterCommandsRx <-chan voterCommand,
+// 	prometheusRegistry prometheus.Registry,
+// 	sharedVoterState SharedVoterState[string],
+// 	justificationSender GrandpaJustificationSender[Hash, Number],
+// 	telemetry *telemetry.TelemetryHandle,
+// ) voterWork[Hash, Number, Hasher] {
+// 	// TODO: register to prometheus registry
 
-	voters := persistentData.authoritySet.CurrentAuthorities()
-	env := environment[Number, Hash, Hasher]{
-		Client:              client,
-		SelectChain:         selectChain,
-		VotingRule:          votingRule,
-		Voters:              voters,
-		Config:              config,
-		Network:             network,
-		SetID:               SetID(persistentData.authoritySet.inner.SetID),
-		AuthoritySet:        persistentData.authoritySet,
-		VoterSetState:       persistentData.setState,
-		Metrics:             nil, // TOOD: use metrics
-		JustificationSender: &justificationSender,
-		Telemetry:           telemetry,
-	}
+// 	voters := persistentData.authoritySet.CurrentAuthorities()
+// 	env := environment[Number, Hash, Hasher]{
+// 		Client:              client,
+// 		SelectChain:         selectChain,
+// 		VotingRule:          votingRule,
+// 		Voters:              voters,
+// 		Config:              config,
+// 		Network:             network,
+// 		SetID:               SetID(persistentData.authoritySet.inner.SetID),
+// 		AuthoritySet:        persistentData.authoritySet,
+// 		VoterSetState:       persistentData.setState,
+// 		Metrics:             nil, // TOOD: use metrics
+// 		JustificationSender: &justificationSender,
+// 		Telemetry:           telemetry,
+// 	}
 
-	work := voterWork[Hash, Number, Hasher]{
-		// `voter` is set to a temporary value and replaced below when
-		// calling `rebuild_voter`.
-		voter:            nil,
-		sharedVoterState: sharedVoterState,
-		env:              env,
-		voterCommandsRx:  voterCommandsRx,
-		network:          network,
-		telemetry:        telemetry,
-		metrics:          nil,
-	}
-	work.rebuildVoter()
-	return work
-}
+// 	work := voterWork[Hash, Number, Hasher]{
+// 		// `voter` is set to a temporary value and replaced below when
+// 		// calling `rebuild_voter`.
+// 		voter:            nil,
+// 		sharedVoterState: sharedVoterState,
+// 		env:              env,
+// 		voterCommandsRx:  voterCommandsRx,
+// 		network:          network,
+// 		telemetry:        telemetry,
+// 		metrics:          nil,
+// 	}
+// 	work.rebuildVoter()
+// 	return work
+// }
 
-// / Rebuilds the `self.voter` field using the current authority set
-// / state. This method should be called when we know that the authority set
-// / has changed (e.g. as signalled by a voter command).
-func (vw *voterWork[Hash, Number, R]) rebuildVoter() {
-	// debug!(
-	// 	target: LOG_TARGET,
-	// 	"{}: Starting new voter with set ID {}",
-	// 	self.env.config.name(),
-	// 	self.env.set_id
-	// );
-	// logger.Debug()
-	logger.Debugf("%s: Starting new voter with set ID %v", vw.env.Config.name(), vw.env.SetID)
+// // / Rebuilds the `self.voter` field using the current authority set
+// // / state. This method should be called when we know that the authority set
+// // / has changed (e.g. as signalled by a voter command).
+// func (vw *voterWork[Hash, Number, R]) rebuildVoter() {
+// 	// debug!(
+// 	// 	target: LOG_TARGET,
+// 	// 	"{}: Starting new voter with set ID {}",
+// 	// 	self.env.config.name(),
+// 	// 	self.env.set_id
+// 	// );
+// 	// logger.Debug()
+// 	logger.Debugf("%s: Starting new voter with set ID %v", vw.env.Config.name(), vw.env.SetID)
 
-	// maybeAuthorityID := local
-}
+// 	// maybeAuthorityID := local
+// }
 
-// / Checks if this node has any available keys in the keystore for any authority id in the given
-// / voter set.  Returns the authority id for which keys are available, or `None` if no keys are
-// / available.
-// fn local_authority_id(
-//
-//	voters: &VoterSet<AuthorityId>,
-//	keystore: Option<&KeystorePtr>,
-//
-//	) -> Option<AuthorityId> {
-//		keystore.and_then(|keystore| {
-//			voters
-//				.iter()
-//				.find(|(p, _)| keystore.has_keys(&[(p.to_raw_vec(), AuthorityId::ID)]))
-//				.map(|(p, _)| p.clone())
-//		})
-//	}
-func localAuthorityID(voters grandpa.VoterSet[string], keystore *keystore.KeyStore) *pgrandpa.AuthorityID {
-	if keystore == nil {
-		return nil
-	}
-	// for _, idVoterInfo := range voters.Iter() {
-	// 	publicKeys := []struct {
-	// 		Key []byte
-	// 		crypto.KeyTypeID
-	// 	}{
-	// 		{
-	// 			Key:       []byte(idVoterInfo.ID.ToRawVec()),
-	// 			KeyTypeID: Authori,
-	// 		},
-	// 	}
-	// 	(*keystore).HasKeys(publicKeys)
-	// }
-	return nil
-}
+// // / Checks if this node has any available keys in the keystore for any authority id in the given
+// // / voter set.  Returns the authority id for which keys are available, or `None` if no keys are
+// // / available.
+// // fn local_authority_id(
+// //
+// //	voters: &VoterSet<AuthorityId>,
+// //	keystore: Option<&KeystorePtr>,
+// //
+// //	) -> Option<AuthorityId> {
+// //		keystore.and_then(|keystore| {
+// //			voters
+// //				.iter()
+// //				.find(|(p, _)| keystore.has_keys(&[(p.to_raw_vec(), AuthorityId::ID)]))
+// //				.map(|(p, _)| p.clone())
+// //		})
+// //	}
+// func localAuthorityID(voters grandpa.VoterSet[string], keystore *keystore.KeyStore) *pgrandpa.AuthorityID {
+// 	if keystore == nil {
+// 		return nil
+// 	}
+// 	// for _, idVoterInfo := range voters.Iter() {
+// 	// 	publicKeys := []struct {
+// 	// 		Key []byte
+// 	// 		crypto.KeyTypeID
+// 	// 	}{
+// 	// 		{
+// 	// 			Key:       []byte(idVoterInfo.ID.ToRawVec()),
+// 	// 			KeyTypeID: Authori,
+// 	// 		},
+// 	// 	}
+// 	// 	(*keystore).HasKeys(publicKeys)
+// 	// }
+// 	return nil
+// }

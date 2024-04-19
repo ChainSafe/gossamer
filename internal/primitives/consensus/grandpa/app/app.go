@@ -3,7 +3,6 @@ package app
 import (
 	"fmt"
 
-	applicationcrypto "github.com/ChainSafe/gossamer/internal/primitives/application-crypto"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/crypto"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/ed25519"
 )
@@ -14,8 +13,7 @@ import (
 type Public = ed25519.Public
 
 var (
-	_ crypto.Public[Signature]                   = Public{}
-	_ applicationcrypto.RuntimePublic[Signature] = Public{}
+	_ crypto.Public[Signature] = Public{}
 )
 
 // impl $crate::CryptoType for Public {

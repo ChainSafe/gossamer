@@ -256,7 +256,7 @@ func TestFinalityProof_UsingAuthoritySetChangesFailsWithUndefinedStart(t *testin
 	authoritySetChanges := AuthoritySetChanges[uint64]{}
 	authoritySetChanges.append(1, 8)
 
-	_, err := proveFinality(
+	_, err := proveFinality[hash.H256, uint64, runtime.BlakeTwo256](
 		mockBackend,
 		authoritySetChanges,
 		6,

@@ -73,7 +73,7 @@ func NewFinalityProofProvider[
 
 // ProveFinality Prove finality for the given block number by returning a Justification for the last block of
 // the authority set in bytes.
-func (provider FinalityProofProvider[Hash, N, T]) ProveFinality(block N) (*[]byte, error) {
+func (provider FinalityProofProvider[Hash, N, Hasher]) ProveFinality(block N) (*[]byte, error) {
 	proof, err := provider.proveFinalityProof(block, true)
 	if err != nil {
 		return nil, err
@@ -95,14 +95,14 @@ func (provider FinalityProofProvider[Hash, N, T]) ProveFinality(block N) (*[]byt
 //
 // If `collectUnknownHeaders` is true, the finality proof will include all headers from the
 // requested block until the block the justification refers to.
-func (provider FinalityProofProvider[Hash, N, T]) proveFinalityProof(
+func (provider FinalityProofProvider[Hash, N, Hasher]) proveFinalityProof(
 	block N,
 	collectUnknownHeaders bool) (*FinalityProof[Hash, N], error) {
 	if provider.sharedAuthoritySet == nil {
 		return nil, nil
 	}
 
-	return proveFinality[Hash, N](
+	return proveFinality[Hash, N, Hasher](
 		provider.backend,
 		provider.sharedAuthoritySet.inner.AuthoritySetChanges,
 		block,
