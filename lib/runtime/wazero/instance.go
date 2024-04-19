@@ -485,16 +485,7 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	i.Lock()
 	defer i.Unlock()
 
-	rt := wazero.NewRuntimeWithConfig(context.Background(), i.metadata.config)
-	hostModule, err := rt.InstantiateModule(context.Background(), i.metadata.hostModule, wazero.NewModuleConfig())
-	if hostModule == nil {
-		return nil, fmt.Errorf("instantiate host module: nil")
-	}
-	if err != nil {
-		return nil, fmt.Errorf("instantiate host module: %w", err)
-	}
-
-	mod, err := rt.InstantiateModule(context.Background(), i.metadata.guestModule, wazero.NewModuleConfig())
+	mod, err := i.Runtime.InstantiateModule(context.Background(), i.metadata.guestModule, wazero.NewModuleConfig())
 	if mod == nil {
 		return nil, fmt.Errorf("instantiate guest module: nil")
 	}
@@ -503,19 +494,9 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	}
 
 	defer func() {
-		err := hostModule.Close(context.Background())
-		if err != nil {
-			logger.Criticalf("host module not closed: %w", err)
-		}
-
 		err = mod.Close(context.Background())
 		if err != nil {
 			logger.Criticalf("guest module not closed: %w", err)
-		}
-
-		err = rt.Close(context.Background())
-		if err != nil {
-			logger.Criticalf("wazero runtime not closed: %w", err)
 		}
 	}()
 
