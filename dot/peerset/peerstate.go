@@ -414,12 +414,6 @@ func (ps *PeersState) forgetPeer(set int, peerID peer.ID) error {
 		node.state[set] = notMember
 	}
 
-	// What is this????
-	//if node.reputation != 0 {
-	//	logger.Info("WHAT THE F IS THIS BLIMEY")
-	//	return nil
-	//}
-
 	// remove the peer from peerSet nodes entirely if it isn't a member of any set.
 	remove := true
 	for _, state := range node.state {

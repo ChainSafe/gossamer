@@ -728,9 +728,6 @@ func (s *Service) processMessage(msg peerset.Message) {
 		}
 		logger.Debugf("connection successful with peer %s", peerID)
 	case peerset.Drop, peerset.Reject:
-		logger.Errorf("Dropping peer %s", peerID)
-		// we hit this case multiple times but nothing seems to change
-		s.host.cm.peerSetHandler.RemovePeer(0, peerID)
 		err := s.host.closePeer(peerID)
 		if err != nil {
 			logger.Warnf("failed to close connection with peer %s: %s", peerID, err)

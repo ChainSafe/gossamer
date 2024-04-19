@@ -362,8 +362,6 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 				PeerID: pid,
 			}
 
-			logger.Info("sent Drop message from report peer ps.resultsMsgCh")
-
 			if err = ps.allocSlots(i); err != nil {
 				return fmt.Errorf("could not allocate slots: %w", err)
 			}
