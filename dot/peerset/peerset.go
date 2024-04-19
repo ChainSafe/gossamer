@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -138,7 +137,6 @@ func (r Reputation) add(num Reputation) Reputation {
 	} else if r < math.MinInt32-num {
 		return math.MinInt32
 	}
-	logger.Infof("add rep r %v by: %v", r, num)
 	return r + num
 }
 
@@ -151,7 +149,6 @@ func (r Reputation) sub(num Reputation) Reputation {
 	} else if r < math.MinInt32+num {
 		return math.MinInt32
 	}
-	logger.Infof("sub rep r %v by: %v", r, num)
 	return r - num
 }
 
@@ -336,10 +333,9 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 	if err != nil {
 		return fmt.Errorf("cannot update time: %w", err)
 	}
-	_, file, line, _ := runtime.Caller(1)
-	logger.Errorf("reporting peer: caller %v on line %v", file, line)
+
+	logger.Info("in peerset reportPeer")
 	for _, pid := range peers {
-		logger.Info("adding reputation in report peer")
 		rep, err := ps.peerState.addReputation(pid, change)
 		if err != nil {
 			return fmt.Errorf("cannot add reputation: %w", err)
@@ -350,14 +346,11 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 		}
 
 		setLen := ps.peerState.getSetLength()
-		logger.Infof("set length: %d", setLen)
 		for i := 0; i < setLen; i++ {
 			if ps.peerState.peerStatus(i, pid) != connectedPeer {
 				// Why dont we drop/remove in any case??
 				continue
 			}
-
-			logger.Info("time to disconnect")
 
 			// disconnect peer
 			//err = ps.peerState.disconnect(i, pid)
@@ -376,7 +369,7 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 				PeerID: pid,
 			}
 
-			logger.Info("disconnecting to disconnect")
+			logger.Info("sent Drop message from report peer ps.resultsMsgCh")
 
 			if err = ps.allocSlots(i); err != nil {
 				return fmt.Errorf("could not allocate slots: %w", err)
@@ -587,6 +580,7 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 		}
 
 		if status := ps.peerState.peerStatus(setID, pid); status == connectedPeer {
+			logger.Info("sending drop message from ps.removePeer")
 			ps.resultMsgCh <- Message{
 				Status: Drop,
 				setID:  uint64(setID),
@@ -780,6 +774,7 @@ func (ps *PeerSet) listenActionAllocSlots(ctx context.Context) {
 				err = fmt.Errorf("not implemented yet")
 			case reportPeer:
 				// This is where it is happening
+				logger.Info("listenActionAllocSlots reporting peer")
 				err = ps.reportPeer(act.reputation, act.peers...)
 			case addToPeerSet:
 				err = ps.addPeer(act.setID, act.peers)

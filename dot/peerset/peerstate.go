@@ -219,8 +219,6 @@ func (ps *PeersState) updateReputationByTick(peerID peer.ID) (newReputation Repu
 	ps.Lock()
 	defer ps.Unlock()
 
-	logger.Infof("updating reputation by tick")
-
 	node, has := ps.nodes[peerID]
 	if !has {
 		return 0, fmt.Errorf("%w: for peer id %s", ErrPeerDoesNotExist, peerID)
@@ -239,8 +237,6 @@ func (ps *PeersState) addReputation(peerID peer.ID, change ReputationChange) (
 
 	ps.Lock()
 	defer ps.Unlock()
-
-	logger.Infof("adding reputation by %v", change.String())
 
 	node, has := ps.nodes[peerID]
 	if !has {
@@ -348,6 +344,8 @@ func (ps *PeersState) disconnect(idx int, peerID peer.ID) error {
 	ps.Lock()
 	defer ps.Unlock()
 
+	logger.Info("in peerState disconnect")
+
 	info := ps.sets[idx]
 	node, has := ps.nodes[peerID]
 	if !has {
@@ -409,6 +407,8 @@ func (ps *PeersState) forgetPeer(set int, peerID peer.ID) error {
 	ps.Lock()
 	defer ps.Unlock()
 
+	logger.Info("in PeersState forgetPeer")
+
 	node, has := ps.nodes[peerID]
 	if !has {
 		return fmt.Errorf("%w: for peer id %s", ErrPeerDoesNotExist, peerID)
@@ -418,6 +418,7 @@ func (ps *PeersState) forgetPeer(set int, peerID peer.ID) error {
 		node.state[set] = notMember
 	}
 
+	// What is this????
 	if node.reputation != 0 {
 		return nil
 	}
