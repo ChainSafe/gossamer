@@ -56,6 +56,23 @@ type testBranch struct {
 	depth uint
 }
 
+func AddBlockToState(t *testing.T, blockState *BlockState,
+	number uint, digest types.Digest, parentHash common.Hash) *types.Header {
+	block := &types.Block{
+		Header: types.Header{
+			ParentHash: parentHash,
+			Number:     number,
+			StateRoot:  trie.EmptyHash,
+			Digest:     digest,
+		},
+		Body: types.Body{},
+	}
+
+	err := blockState.AddBlock(block)
+	require.NoError(t, err)
+	return &block.Header
+}
+
 // AddBlocksToState adds `depth` number of blocks to the BlockState, optionally with random branches
 func AddBlocksToState(t *testing.T, blockState *BlockState, depth uint,
 	withBranches bool) ([]*types.Header, []*types.Header) {

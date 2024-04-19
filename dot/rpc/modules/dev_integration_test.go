@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -18,19 +17,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
-
-var genesisBABEConfig = &types.BabeConfiguration{
-	SlotDuration:       1000,
-	EpochLength:        200,
-	C1:                 1,
-	C2:                 4,
-	GenesisAuthorities: []types.AuthorityRaw{},
-	Randomness:         [32]byte{},
-	SecondarySlots:     0,
-}
 
 func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 	ctrl := gomock.NewController(t)
@@ -44,7 +34,7 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 	tries.SetTrie(genesisTrie)
 	bs, err := state.NewBlockStateFromGenesis(db, tries, &genesisHeader, telemetryMock)
 	require.NoError(t, err)
-	es, err := state.NewEpochStateFromGenesis(db, bs, genesisBABEConfig)
+	es, err := state.NewEpochStateFromGenesis(db, bs, config.BABEConfigurationTestDefault)
 	require.NoError(t, err)
 	return bs, es
 }
