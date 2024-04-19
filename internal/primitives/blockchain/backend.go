@@ -45,7 +45,7 @@ type HeaderBackend[Hash runtime.Hash, N runtime.Number] interface {
 // / Blockchain database backend. Does not perform any validation.
 type Backend[Hash runtime.Hash, N runtime.Number] interface {
 	HeaderBackend[Hash, N]
-	HeaderMetaData[Hash, N]
+	// HeaderMetaData[Hash, N]
 
 	/// Get block body. Returns `None` if block is not found.
 	Body(hash Hash) (*[]runtime.Extrinsic, error)

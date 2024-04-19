@@ -716,62 +716,6 @@ func (_c *BlockchainBackend_Header_Call[Hash, N]) RunAndReturn(run func(Hash) (*
 	return _c
 }
 
-// HeaderMetadata provides a mock function with given fields: hash
-func (_m *BlockchainBackend[Hash, N]) HeaderMetadata(hash Hash) (blockchain.CachedHeaderMetadata[Hash, N], error) {
-	ret := _m.Called(hash)
-
-	if len(ret) == 0 {
-		panic("no return value specified for HeaderMetadata")
-	}
-
-	var r0 blockchain.CachedHeaderMetadata[Hash, N]
-	var r1 error
-	if rf, ok := ret.Get(0).(func(Hash) (blockchain.CachedHeaderMetadata[Hash, N], error)); ok {
-		return rf(hash)
-	}
-	if rf, ok := ret.Get(0).(func(Hash) blockchain.CachedHeaderMetadata[Hash, N]); ok {
-		r0 = rf(hash)
-	} else {
-		r0 = ret.Get(0).(blockchain.CachedHeaderMetadata[Hash, N])
-	}
-
-	if rf, ok := ret.Get(1).(func(Hash) error); ok {
-		r1 = rf(hash)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// BlockchainBackend_HeaderMetadata_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HeaderMetadata'
-type BlockchainBackend_HeaderMetadata_Call[Hash runtime.Hash, N runtime.Number] struct {
-	*mock.Call
-}
-
-// HeaderMetadata is a helper method to define mock.On call
-//   - hash Hash
-func (_e *BlockchainBackend_Expecter[Hash, N]) HeaderMetadata(hash interface{}) *BlockchainBackend_HeaderMetadata_Call[Hash, N] {
-	return &BlockchainBackend_HeaderMetadata_Call[Hash, N]{Call: _e.mock.On("HeaderMetadata", hash)}
-}
-
-func (_c *BlockchainBackend_HeaderMetadata_Call[Hash, N]) Run(run func(hash Hash)) *BlockchainBackend_HeaderMetadata_Call[Hash, N] {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(Hash))
-	})
-	return _c
-}
-
-func (_c *BlockchainBackend_HeaderMetadata_Call[Hash, N]) Return(_a0 blockchain.CachedHeaderMetadata[Hash, N], _a1 error) *BlockchainBackend_HeaderMetadata_Call[Hash, N] {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *BlockchainBackend_HeaderMetadata_Call[Hash, N]) RunAndReturn(run func(Hash) (blockchain.CachedHeaderMetadata[Hash, N], error)) *BlockchainBackend_HeaderMetadata_Call[Hash, N] {
-	_c.Call.Return(run)
-	return _c
-}
-
 // IndexedTransaction provides a mock function with given fields: hash
 func (_m *BlockchainBackend[Hash, N]) IndexedTransaction(hash Hash) (*[]byte, error) {
 	ret := _m.Called(hash)
@@ -871,40 +815,6 @@ func (_c *BlockchainBackend_Info_Call[Hash, N]) Return(_a0 blockchain.Info[Hash,
 }
 
 func (_c *BlockchainBackend_Info_Call[Hash, N]) RunAndReturn(run func() blockchain.Info[Hash, N]) *BlockchainBackend_Info_Call[Hash, N] {
-	_c.Call.Return(run)
-	return _c
-}
-
-// InsertHeaderMetadata provides a mock function with given fields: hash, headerMetadata
-func (_m *BlockchainBackend[Hash, N]) InsertHeaderMetadata(hash Hash, headerMetadata blockchain.CachedHeaderMetadata[Hash, N]) {
-	_m.Called(hash, headerMetadata)
-}
-
-// BlockchainBackend_InsertHeaderMetadata_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InsertHeaderMetadata'
-type BlockchainBackend_InsertHeaderMetadata_Call[Hash runtime.Hash, N runtime.Number] struct {
-	*mock.Call
-}
-
-// InsertHeaderMetadata is a helper method to define mock.On call
-//   - hash Hash
-//   - headerMetadata blockchain.CachedHeaderMetadata[Hash,N]
-func (_e *BlockchainBackend_Expecter[Hash, N]) InsertHeaderMetadata(hash interface{}, headerMetadata interface{}) *BlockchainBackend_InsertHeaderMetadata_Call[Hash, N] {
-	return &BlockchainBackend_InsertHeaderMetadata_Call[Hash, N]{Call: _e.mock.On("InsertHeaderMetadata", hash, headerMetadata)}
-}
-
-func (_c *BlockchainBackend_InsertHeaderMetadata_Call[Hash, N]) Run(run func(hash Hash, headerMetadata blockchain.CachedHeaderMetadata[Hash, N])) *BlockchainBackend_InsertHeaderMetadata_Call[Hash, N] {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(Hash), args[1].(blockchain.CachedHeaderMetadata[Hash, N]))
-	})
-	return _c
-}
-
-func (_c *BlockchainBackend_InsertHeaderMetadata_Call[Hash, N]) Return() *BlockchainBackend_InsertHeaderMetadata_Call[Hash, N] {
-	_c.Call.Return()
-	return _c
-}
-
-func (_c *BlockchainBackend_InsertHeaderMetadata_Call[Hash, N]) RunAndReturn(run func(Hash, blockchain.CachedHeaderMetadata[Hash, N])) *BlockchainBackend_InsertHeaderMetadata_Call[Hash, N] {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1192,39 +1102,6 @@ func (_c *BlockchainBackend_Number_Call[Hash, N]) Return(_a0 *N, _a1 error) *Blo
 }
 
 func (_c *BlockchainBackend_Number_Call[Hash, N]) RunAndReturn(run func(Hash) (*N, error)) *BlockchainBackend_Number_Call[Hash, N] {
-	_c.Call.Return(run)
-	return _c
-}
-
-// RemoveHeaderMetadata provides a mock function with given fields: hash
-func (_m *BlockchainBackend[Hash, N]) RemoveHeaderMetadata(hash Hash) {
-	_m.Called(hash)
-}
-
-// BlockchainBackend_RemoveHeaderMetadata_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveHeaderMetadata'
-type BlockchainBackend_RemoveHeaderMetadata_Call[Hash runtime.Hash, N runtime.Number] struct {
-	*mock.Call
-}
-
-// RemoveHeaderMetadata is a helper method to define mock.On call
-//   - hash Hash
-func (_e *BlockchainBackend_Expecter[Hash, N]) RemoveHeaderMetadata(hash interface{}) *BlockchainBackend_RemoveHeaderMetadata_Call[Hash, N] {
-	return &BlockchainBackend_RemoveHeaderMetadata_Call[Hash, N]{Call: _e.mock.On("RemoveHeaderMetadata", hash)}
-}
-
-func (_c *BlockchainBackend_RemoveHeaderMetadata_Call[Hash, N]) Run(run func(hash Hash)) *BlockchainBackend_RemoveHeaderMetadata_Call[Hash, N] {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(Hash))
-	})
-	return _c
-}
-
-func (_c *BlockchainBackend_RemoveHeaderMetadata_Call[Hash, N]) Return() *BlockchainBackend_RemoveHeaderMetadata_Call[Hash, N] {
-	_c.Call.Return()
-	return _c
-}
-
-func (_c *BlockchainBackend_RemoveHeaderMetadata_Call[Hash, N]) RunAndReturn(run func(Hash)) *BlockchainBackend_RemoveHeaderMetadata_Call[Hash, N] {
 	_c.Call.Return(run)
 	return _c
 }
