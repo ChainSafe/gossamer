@@ -271,17 +271,14 @@ func (j *GrandpaJustification[Hash, N]) verifyWithVoterSet(
 	baseHash := minPrecommit.Precommit.TargetHash
 	visitedHashes := make(map[Hash]struct{})
 	for _, signed := range precommits {
-		mgs := grandpa.Message[Hash, N]{Value: signed.Precommit}
+		msg := grandpa.NewMessage(signed.Precommit)
 		isValidSignature := pgrandpa.CheckMessageSignature[Hash, N](
-			mgs,
+			msg,
 			signed.ID,
 			signed.Signature,
 			pgrandpa.RoundNumber(j.Justification.Round),
 			pgrandpa.SetID(setID),
 		)
-		// if err != nil {
-		// 	return err
-		// }
 
 		if !isValidSignature {
 			return fmt.Errorf("%w: invalid signature for precommit in grandpa justification",

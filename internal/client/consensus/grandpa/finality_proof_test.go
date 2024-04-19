@@ -8,8 +8,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/client/consensus/grandpa/mocks"
-	"github.com/stretchr/testify/require"
-
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	ced25519 "github.com/ChainSafe/gossamer/internal/primitives/core/ed25519"
@@ -19,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/stretchr/testify/require"
 )
 
 // Check GRANDPA proof-of-finality for the given block.
