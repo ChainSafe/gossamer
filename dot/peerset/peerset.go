@@ -347,7 +347,6 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 		setLen := ps.peerState.getSetLength()
 		for i := 0; i < setLen; i++ {
 			if ps.peerState.peerStatus(i, pid) != connectedPeer {
-				// Why dont we drop/remove in any case??
 				continue
 			}
 
@@ -415,7 +414,6 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 		return nil
 	}
 
-	logger.Infof("number of peers: %v for set: %v", len(ps.peerState.peers()), setIdx)
 	for peerState.hasFreeOutgoingSlot(setIdx) {
 		peerID := peerState.highestNotConnectedPeer(setIdx)
 		if peerID == "" {
