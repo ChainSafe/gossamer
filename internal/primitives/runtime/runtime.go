@@ -94,29 +94,8 @@ var _ Hasher[hash.H256] = BlakeTwo256{}
 type Header[N Number, H Hash] interface {
 	// Returns a reference to the header number.
 	Number() N
-	// Sets the header number.
-	SetNumber(number N)
-
-	// Returns a reference to the extrinsics root.
-	ExtrinsicsRoot() H
-	// Sets the extrinsic root.
-	SetExtrinsicsRoot(root H)
-
-	// Returns a reference to the state root.
-	StateRoot() H
-	// Sets the state root.
-	SetStateRoot(root H)
-
 	// Returns a reference to the parent hash.
 	ParentHash() H
-	// Sets the parent hash.
-	SetParentHash(hash H)
-
-	// Returns a reference to the digest.
-	Digest() Digest
-	// Get a mutable reference to the digest.
-	DigestMut() *Digest
-
 	// Returns the hash of the header.
 	Hash() H
 }

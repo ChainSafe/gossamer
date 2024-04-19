@@ -33,10 +33,8 @@ var (
 // #[derive(Clone, Encode, Decode, PartialEq, Eq, Debug)]
 // pub struct GrandpaJustification<Block: BlockT> {
 type GrandpaJustification[Hash runtime.Hash, N runtime.Number] struct {
-	/// The GRANDPA justification for block finality.
-	// pub justification: sp_consensus_grandpa::GrandpaJustification<Block::Header>,
+	// The GRANDPA justification for block finality.
 	Justification pgrandpa.GrandpaJustification[Hash, N]
-	// _block: PhantomData<Block>,
 }
 
 // Type used for decoding grandpa justifications (can pass in generic Header type)

@@ -22,53 +22,14 @@ type Header[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	digest runtime.Digest
 }
 
+// Returns a reference to the header number.
 func (h Header[N, H, Hasher]) Number() N {
 	return h.number
-}
-
-// Sets the header number.
-func (h *Header[N, H, Hasher]) SetNumber(number N) {
-	h.number = number
-}
-
-// Returns a reference to the extrinsics root.
-func (h Header[N, H, Hasher]) ExtrinsicsRoot() H {
-	return h.extrinsicsRoot
-}
-
-// Sets the extrinsic root.
-func (h *Header[N, H, Hasher]) SetExtrinsicsRoot(root H) {
-	h.extrinsicsRoot = root
-}
-
-// Returns a reference to the state root.
-func (h Header[N, H, Hasher]) StateRoot() H {
-	return h.stateRoot
-}
-
-// Sets the state root.
-func (h *Header[N, H, Hasher]) SetStateRoot(root H) {
-	h.stateRoot = root
 }
 
 // Returns a reference to the parent hash.
 func (h Header[N, H, Hasher]) ParentHash() H {
 	return h.parentHash
-}
-
-// Sets the parent hash.
-func (h *Header[N, H, Hasher]) SetParentHash(hash H) {
-	h.parentHash = hash
-}
-
-// Returns a reference to the digest.
-func (h Header[N, H, Hasher]) Digest() runtime.Digest {
-	return h.digest
-}
-
-// Get a mutable reference to the digest.
-func (h Header[N, H, Hasher]) DigestMut() *runtime.Digest {
-	return &h.digest
 }
 
 func (h Header[N, H, Hasher]) MarshalSCALE() ([]byte, error) {
