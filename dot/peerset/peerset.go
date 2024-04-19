@@ -334,7 +334,6 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 		return fmt.Errorf("cannot update time: %w", err)
 	}
 
-	logger.Info("in peerset reportPeer")
 	for _, pid := range peers {
 		rep, err := ps.peerState.addReputation(pid, change)
 		if err != nil {
@@ -351,12 +350,6 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 				// Why dont we drop/remove in any case??
 				continue
 			}
-
-			// disconnect peer
-			//err = ps.peerState.disconnect(i, pid)
-			//if err != nil {
-			//	return fmt.Errorf("cannot disconnect: %w", err)
-			//}
 
 			err = ps.removePeer(i, pid)
 			if err != nil {
@@ -425,10 +418,6 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 	}
 
 	logger.Infof("number of peers: %v for set: %v", len(ps.peerState.peers()), setIdx)
-	for _, id := range ps.peerState.peers() {
-		n := peerState.nodes[id]
-		logger.Infof("- peer %v with reputation: %v", id, n.reputation)
-	}
 	for peerState.hasFreeOutgoingSlot(setIdx) {
 		peerID := peerState.highestNotConnectedPeer(setIdx)
 		if peerID == "" {
@@ -572,7 +561,6 @@ func (ps *PeerSet) addPeer(setID int, peers peer.IDSlice) error {
 }
 
 func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
-	logger.Info("In peerSet.RemovePeer()")
 	for _, pid := range peers {
 		if _, ok := ps.reservedNode[pid]; ok {
 			logger.Debugf("peer %s is reserved and cannot be removed", pid)
@@ -580,7 +568,6 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 		}
 
 		if status := ps.peerState.peerStatus(setID, pid); status == connectedPeer {
-			logger.Info("sending drop message from ps.removePeer")
 			ps.resultMsgCh <- Message{
 				Status: Drop,
 				setID:  uint64(setID),
@@ -773,8 +760,6 @@ func (ps *PeerSet) listenActionAllocSlots(ctx context.Context) {
 				// TODO: not yet implemented (#1888)
 				err = fmt.Errorf("not implemented yet")
 			case reportPeer:
-				// This is where it is happening
-				logger.Info("listenActionAllocSlots reporting peer")
 				err = ps.reportPeer(act.reputation, act.peers...)
 			case addToPeerSet:
 				err = ps.addPeer(act.setID, act.peers)

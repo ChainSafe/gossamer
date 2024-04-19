@@ -344,8 +344,6 @@ func (ps *PeersState) disconnect(idx int, peerID peer.ID) error {
 	ps.Lock()
 	defer ps.Unlock()
 
-	logger.Info("in peerState disconnect")
-
 	info := ps.sets[idx]
 	node, has := ps.nodes[peerID]
 	if !has {
@@ -407,8 +405,6 @@ func (ps *PeersState) forgetPeer(set int, peerID peer.ID) error {
 	ps.Lock()
 	defer ps.Unlock()
 
-	logger.Info("in PeersState forgetPeer")
-
 	node, has := ps.nodes[peerID]
 	if !has {
 		return fmt.Errorf("%w: for peer id %s", ErrPeerDoesNotExist, peerID)
@@ -419,9 +415,10 @@ func (ps *PeersState) forgetPeer(set int, peerID peer.ID) error {
 	}
 
 	// What is this????
-	if node.reputation != 0 {
-		return nil
-	}
+	//if node.reputation != 0 {
+	//	logger.Info("WHAT THE F IS THIS BLIMEY")
+	//	return nil
+	//}
 
 	// remove the peer from peerSet nodes entirely if it isn't a member of any set.
 	remove := true
