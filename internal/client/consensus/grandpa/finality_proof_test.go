@@ -335,8 +335,8 @@ func TestFinalityProof_UsingAuthoritySetChangesWorks(t *testing.T) {
 	// 	*BlockchainBackendMock[string, uint, testHeader[string, uint]]](t)
 	// mockBackend.EXPECT().Blockchain().Return(mockBlockchain).Times(8)
 
-	// // Authority set change at block 8, so the justification stored there will be used in the
-	// // FinalityProof for block 6
+	// Authority set change at block 8, so the justification stored there will be used in the
+	// FinalityProof for block 6
 	// authoritySetChanges := AuthoritySetChanges[uint]{}
 	// authoritySetChanges.append(0, 5)
 	// authoritySetChanges.append(1, 8)

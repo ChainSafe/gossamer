@@ -54,7 +54,7 @@ type appliedChanges[H comparable, N constraints.Unsigned] struct {
 	set    AuthoritySet[H, N]
 }
 
-// / Get the current authorities and their weights (for the current set ID).
+// Get the current authorities and their weights (for the current set ID).
 func (sas *SharedAuthoritySet[H, N]) CurrentAuthorities() grandpa.VoterSet[string] {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()

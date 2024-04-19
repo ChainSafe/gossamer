@@ -1,8 +1,8 @@
 package telemetry
 
-// / Handle to a [`Telemetry`].
-// /
-// / Used to report telemetry messages.
+// Handle to a [`Telemetry`].
+//
+// Used to report telemetry messages.
 // pub struct TelemetryHandle {
 type TelemetryHandle struct {
 	//		message_sender: Arc<Mutex<mpsc::Sender<TelemetryMessage>>>,

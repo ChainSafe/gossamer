@@ -183,13 +183,12 @@ type Public[Signature any] interface {
 // assert!(suri.password.is_none());
 // ```
 type SecretURI struct {
-	/// The phrase to derive the private key.
-	///
-	/// This can either be a 64-bit hex string or a BIP-39 key phrase.
+	// The phrase to derive the private key.
+	// This can either be a 64-bit hex string or a BIP-39 key phrase.
 	Phrase string
-	/// Optional password as given as part of the uri.
+	// Optional password as given as part of the uri.
 	Password *string
-	/// The junctions as part of the uri.
+	// The junctions as part of the uri.
 	Junctions []DeriveJunction
 }
 
@@ -239,9 +238,9 @@ type Pair[Seed, Signature any] interface {
 	// Derive a child key from a series of given junctions.
 	Derive(path []DeriveJunction, seed *Seed) (Pair[Seed, Signature], Seed, error)
 
-	/// Sign a message.
+	// Sign a message.
 	Sign(message []byte) Signature
 
-	/// Get the public key.
+	// Get the public key.
 	Public() Public[Signature]
 }
