@@ -237,6 +237,16 @@ func (bs *BlockState) handleFinalisedBlock(currentFinalizedHash common.Hash) err
 			return err
 		}
 
+		if block.Header.Number == 1 {
+			slotNumber, err := block.Header.SlotNumber()
+			if err != nil {
+				return err
+			}
+
+			if err = bs.SetFirstNonOriginSlotNumber(subchainHash, slotNumber); err != nil {
+				return err
+			}
+		}
 		if err = bs.SetBlockBody(subchainHash, &block.Body); err != nil {
 			return err
 		}
