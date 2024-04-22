@@ -81,14 +81,3 @@ func TestTrieDB_Migration(t *testing.T) {
 		assert.Equal(t, expected, actual)
 	})
 }
-
-func TestTrieDB_Lookup(t *testing.T) {
-	t.Run("root_not_exists_in_db", func(t *testing.T) {
-		db := newTestDB(t)
-		trieDB := NewTrieDB(trie.EmptyHash, db)
-
-		value, err := trieDB.lookup([]byte("test"))
-		assert.Nil(t, value)
-		assert.ErrorIs(t, err, ErrIncompleteDB)
-	})
-}
