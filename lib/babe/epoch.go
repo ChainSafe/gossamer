@@ -50,12 +50,12 @@ func (b *Service) initiateEpoch(epoch uint64) (*epochDescriptor, error) {
 		// that should be used to initiate epoch 6, however we've skipt epoch
 		// 6 and we're now initialising epoch 7, so we should use the epoch
 		// data that were meant to be used by 6
-		epochData, err = b.findSkippedEpochInformations(lastKnownEpoch+1, epoch, bestBlockHeader)
+		epochData, err = b.getSkippedEpochInformations(lastKnownEpoch+1, epoch, bestBlockHeader)
 		if err != nil {
-			return nil, fmt.Errorf("finding data for skipped epoch")
+			return nil, fmt.Errorf("finding data for skipped epoch: %w", err)
 		}
 	} else {
-		epochData, err = b.findEpochInformations(epoch, bestBlockHeader)
+		epochData, err = b.getEpochData(epoch, bestBlockHeader)
 		if err != nil {
 			return nil, fmt.Errorf("cannot get epoch data and start slot: %w", err)
 		}
@@ -116,7 +116,7 @@ func (b *Service) checkIfEpochSkipped(epochBeingInitialized uint64, bestBlock *t
 	return epochBeingInitialized > epochFromBestBlock, epochBeingInitialized - epochFromBestBlock, nil
 }
 
-func (b *Service) findSkippedEpochInformations(skippedEpoch, currentEpoch uint64,
+func (b *Service) getSkippedEpochInformations(skippedEpoch, currentEpoch uint64,
 	bestBlock *types.Header) (*epochData, error) {
 
 	currEpochData, err := b.epochState.GetSkippedEpochDataRaw(skippedEpoch, currentEpoch, bestBlock)
@@ -132,7 +132,7 @@ func (b *Service) findSkippedEpochInformations(skippedEpoch, currentEpoch uint64
 	return b.buildEpochData(currEpochData, currConfigData)
 }
 
-func (b *Service) findEpochInformations(epoch uint64, bestBlock *types.Header) (*epochData, error) {
+func (b *Service) getEpochData(epoch uint64, bestBlock *types.Header) (*epochData, error) {
 	currEpochData, err := b.epochState.GetEpochDataRaw(epoch, bestBlock)
 	if err != nil {
 		return nil, fmt.Errorf("getting epoch data for epoch %d: %w", epoch, err)

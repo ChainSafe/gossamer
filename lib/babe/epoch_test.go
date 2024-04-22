@@ -135,7 +135,7 @@ func TestBabeService_getEpochDataAndStartSlot(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			service := tt.service(ctrl)
 
-			res, err := service.findEpochInformations(tt.epoch, nil)
+			res, err := service.getEpochData(tt.epoch, nil)
 			require.NoError(t, err)
 			require.Equal(t, tt.expected, res)
 		})
