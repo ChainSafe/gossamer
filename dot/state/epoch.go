@@ -476,8 +476,7 @@ func (s *EpochState) GetStartSlotForEpoch(epoch uint64, bestBlockHash common.Has
 	return s.epochLength*epoch + chainFirstSlotNumber, nil
 }
 
-// retrieveFirstNonOriginBlockSlot returns the slot number of the very first non origin block
-// if there is more than one first non origin block then it uses the block hash to check ancestry
+// retrieveFirstNonOriginBlockSlot returns the slot number of the first non origin block
 func (s *EpochState) retrieveFirstNonOriginBlockSlotFromDb(hash common.Hash) (uint64, error) {
 	slotVal, err := s.db.Get(prefixKey(hash, firstSlotNumberPrefix))
 	if err != nil {

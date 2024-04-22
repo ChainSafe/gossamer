@@ -448,8 +448,7 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 	return bs.db.Put(headerKey(header.Hash()), bh)
 }
 
-// SetFirstNonOriginSlotNumber saves the first non-origin slot number to the database
-// this way we don't need to calculate it every time
+// SetFirstNonOriginSlotNumber saves the first non-origin slot number into the DB
 func (bs *BlockState) SetFirstNonOriginSlotNumber(hash common.Hash, slotNumber uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, slotNumber)
