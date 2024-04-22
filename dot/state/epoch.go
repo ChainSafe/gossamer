@@ -304,7 +304,7 @@ func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (configDa
 			configData, err = getEpochDefinitionFromDatabase[types.ConfigData](
 				s.db, epoch, configDataKey)
 			if err != nil && !errors.Is(err, database.ErrNotFound) {
-				return nil, fmt.Errorf("failed to retrieve config epoch from database: %w", err)
+				return nil, err
 			}
 
 			return configData, nil
@@ -319,21 +319,25 @@ func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (configDa
 			defer s.nextConfigDataLock.RUnlock()
 			inMemoryConfigData, err := s.nextConfigData.Retrieve(s.blockState, epoch, header)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
+				return nil, err
 			}
 
 			return inMemoryConfigData.ToConfigData(), nil
 		}
 	}
 
-	for tryEpoch := int(epoch); tryEpoch > 0; tryEpoch-- {
+	for tryEpoch := int(epoch); tryEpoch >= 0; tryEpoch-- {
+		if tryEpoch == 0 {
+			return s.genesisEpochDescriptor.ConfigData, nil
+		}
+
 		configData, err := retrieveEpochDefinitions(
 			searchOnDatabase(uint64(tryEpoch)),
 			searchOnMemory(uint64(tryEpoch)),
 		)
 
 		if err != nil {
-			if errors.Is(errEpochNotInDatabase, err) || errors.Is(ErrEpochNotInMemory, err) {
+			if errors.Is(err, errEpochNotInDatabase) || errors.Is(err, ErrEpochNotInMemory) {
 				continue
 			}
 

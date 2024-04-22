@@ -207,6 +207,7 @@ func TestService_getLatestEpochData_epochData(t *testing.T) {
 
 	ed, err := service.getEpochData(1, &genesisHeader)
 	require.NoError(t, err)
+
 	threshold, err := CalculateThreshold(genesisCfg.C1, genesisCfg.C2, len(data.Authorities))
 	require.NoError(t, err)
 	require.Equal(t, data.Authorities, ed.authorities)
