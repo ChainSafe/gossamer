@@ -46,6 +46,23 @@ func NewTrieDBIterator(trie *TrieDB) *TrieDBIterator {
 	}
 }
 
+func NewPrefixedTrieDBIterator(trie *TrieDB, prefix []byte) *TrieDBIterator {
+	nodeAtPrefix, err := trie.getNodeAt(prefix)
+	if err != nil {
+		panic("trying to create trie iterator with incomplete trie DB")
+	}
+
+	return &TrieDBIterator{
+		db: trie,
+		nodeStack: []*iteratorState{
+			{
+				parentFullKey: prefix[:len(nodeAtPrefix.GetPartialKey())-1],
+				node:          nodeAtPrefix,
+			},
+		},
+	}
+}
+
 // nextToVisit sets the next node to visit in the iterator
 func (i *TrieDBIterator) nextToVisit(parentKey []byte, node codec.Node) {
 	i.nodeStack = append(i.nodeStack, &iteratorState{
@@ -55,13 +72,15 @@ func (i *TrieDBIterator) nextToVisit(parentKey []byte, node codec.Node) {
 }
 
 // nextState pops the next node to visit from the stack
+// warn: this function does not check if the node stack is empty
+// this check should be made by the caller
 func (i *TrieDBIterator) nextState() *iteratorState {
 	currentState := i.nodeStack[len(i.nodeStack)-1]
 	i.nodeStack = i.nodeStack[:len(i.nodeStack)-1]
 	return currentState
 }
 
-func (i *TrieDBIterator) NextEntry() *Entry {
+func (i *TrieDBIterator) NextEntry() *entry {
 	for len(i.nodeStack) > 0 {
 		currentState := i.nextState()
 		currentNode := currentState.node
@@ -73,7 +92,7 @@ func (i *TrieDBIterator) NextEntry() *Entry {
 			if err != nil {
 				panic("Error loading value")
 			}
-			return &Entry{key: key, value: value}
+			return &entry{key: key, value: value}
 		case codec.Branch:
 			// Reverse iterate over children because we are using a LIFO stack
 			// and we want to visit the leftmost child first
@@ -93,7 +112,7 @@ func (i *TrieDBIterator) NextEntry() *Entry {
 				if err != nil {
 					panic("Error loading value")
 				}
-				return &Entry{key: key, value: value}
+				return &entry{key: key, value: value}
 			}
 		}
 	}

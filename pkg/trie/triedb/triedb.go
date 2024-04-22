@@ -18,7 +18,7 @@ import (
 
 var ErrIncompleteDB = errors.New("incomplete database")
 
-type Entry struct {
+type entry struct {
 	key   []byte
 	value []byte
 }
@@ -28,6 +28,7 @@ type Entry struct {
 type TrieDB struct {
 	rootHash common.Hash
 	db       db.DBGetter
+	lookup   TrieLookup
 	cache    cache.TrieCache
 }
 
@@ -37,6 +38,7 @@ func NewTrieDB(rootHash common.Hash, db db.DBGetter, cache cache.TrieCache) *Tri
 		rootHash: rootHash,
 		db:       db,
 		cache:    cache,
+		lookup:   NewTrieLookup(db, rootHash),
 	}
 }
 
@@ -62,10 +64,12 @@ func (t *TrieDB) MustHash() common.Hash {
 // which matches its key with the key given.
 // Note the key argument is given in little Endian format.
 func (t *TrieDB) Get(key []byte) []byte {
+	keyNibbles := nibbles.KeyLEToNibbles(key)
+
 	val := t.getValueFromCache(key)
 	if val == nil {
 		var err error
-		val, err = t.lookup(key)
+		val, err = t.lookup.lookupValue(keyNibbles)
 		if err != nil {
 			return nil
 		}
@@ -76,6 +80,18 @@ func (t *TrieDB) Get(key []byte) []byte {
 }
 
 // Internal methods
+func (t *TrieDB) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error) {
+	valueBytes := t.getValueFromCache(prefix)
+	if valueBytes == nil {
+		var err error
+		valueBytes, err = t.lookup.loadValue(prefix, value)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return valueBytes, nil
+}
+
 func (t *TrieDB) getRootNode() (codec.Node, error) {
 	nodeData, err := t.db.Get(t.rootHash[:])
 	if err != nil {
@@ -118,6 +134,15 @@ func (t *TrieDB) setNodeInCache(key []byte, value []byte) {
 	}
 }
 
+func (t *TrieDB) getNodeAt(key []byte) (codec.Node, error) {
+	node, err := t.lookup.lookupNode(nibbles.KeyLEToNibbles(key))
+	if err != nil {
+		return nil, err
+	}
+
+	return node, nil
+}
+
 func (t *TrieDB) getNode(
 	merkleValue codec.MerkleValue,
 ) (node codec.Node, err error) {
@@ -146,111 +171,6 @@ func (t *TrieDB) getNode(
 	}
 
 	return node, err
-}
-
-// lookup traverse nodes loading then from DB until reach the one
-// we are looking for.
-func (t *TrieDB) lookup(key []byte) ([]byte, error) {
-	nibbleKey := nibbles.KeyLEToNibbles(key)
-
-	// Start from root node and going downwards
-	partialKey := nibbleKey
-	hash := t.rootHash[:]
-
-	// Iterates through non inlined nodes
-	for {
-		// Get node from DB
-		nodeData, err := t.db.Get(hash)
-		if err != nil {
-			return nil, ErrIncompleteDB
-		}
-
-	InlinedChildrenIterator:
-		for {
-			// Decode node
-			reader := bytes.NewReader(nodeData)
-			decodedNode, err := codec.Decode(reader)
-			if err != nil {
-				return nil, err
-			}
-
-			var nextNode codec.MerkleValue
-
-			switch n := decodedNode.(type) {
-			case codec.Empty:
-				return nil, nil
-			case codec.Leaf:
-				// We are in the node we were looking for
-				if bytes.Equal(partialKey, n.PartialKey) {
-					return t.loadValue(partialKey, n.Value)
-				}
-				return nil, nil
-			case codec.Branch:
-				nodePartialKey := n.PartialKey
-
-				// This is unusual but could happen if for some reason one
-				// branch has a hashed child node that points to a node that
-				// doesn't share the prefix we are expecting
-				if !bytes.HasPrefix(partialKey, nodePartialKey) {
-					return nil, nil
-				}
-
-				// We are in the node we were looking for
-				if bytes.Equal(partialKey, nodePartialKey) {
-					if n.Value != nil {
-						return t.loadValue(partialKey, n.Value)
-					}
-					return nil, nil
-				}
-
-				// This is not the node we were looking for but it might be in
-				// one of its children
-				childIdx := int(partialKey[len(nodePartialKey)])
-				nextNode = n.Children[childIdx]
-				if nextNode == nil {
-					return nil, nil
-				}
-
-				// Advance the partial key consuming the part we already checked
-				partialKey = partialKey[len(nodePartialKey)+1:]
-			}
-
-			// Next node could be inlined or hashed (pointer to a node)
-			// https://spec.polkadot.network/chap-state#defn-merkle-value
-			switch merkleValue := nextNode.(type) {
-			case codec.HashedNode:
-				// If it's hashed we set the hash to look for it in next loop
-				hash = merkleValue.Data
-				break InlinedChildrenIterator
-			case codec.InlineNode:
-				// If it is inlined we just need to decode it in the next loop
-				nodeData = merkleValue.Data
-			}
-		}
-	}
-}
-
-// loadValue gets the value from the node, if it is inlined we can return it
-// directly. But if it is hashed (V1) we have to look up for its value in the DB
-func (t *TrieDB) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error) {
-	switch v := value.(type) {
-	case codec.InlineValue:
-		return v.Data, nil
-	case codec.HashedValue:
-		prefixedKey := bytes.Join([][]byte{prefix, v.Data}, nil)
-		value := t.getValueFromCache(prefixedKey)
-		if value == nil {
-			var err error
-			value, err = t.db.Get(prefixedKey)
-			if err != nil {
-				return nil, err
-			}
-			t.setValueInCache(prefixedKey, value)
-		}
-		return value, nil
-	default:
-		panic("unreachable")
-	}
 }
 
 var _ trie.TrieRead = (*TrieDB)(nil)
