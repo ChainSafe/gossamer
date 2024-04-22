@@ -73,13 +73,8 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 				logger.Errorf("processing overseer message: %w", err)
 			}
 
-<<<<<<< HEAD
-		case event := <-cpvs.net.GetNetworkEventsChannel():
-			cpvs.handleNetworkEvents(event)
-=======
 		case event := <-cpvs.networkEventInfoChan:
 			cpvs.handleNetworkEvents(*event)
->>>>>>> feat/parachain
 		case <-inactivityTicker.C:
 			// TODO: disconnect inactive peers
 			// https://github.com/paritytech/polkadot/blob/8f05479e4bd61341af69f0721e617f01cbad8bb2/node/network/collator-protocol/src/validator_side/mod.rs#L1301
@@ -127,13 +122,6 @@ func (cpvs CollatorProtocolValidatorSide) handleNetworkEvents(event network.Netw
 	case network.Disconnected:
 		delete(cpvs.peerData, event.PeerID)
 	}
-<<<<<<< HEAD
-=======
-}
-
-func (cpvs CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal() {
-	// NOTE: nothing to do here
->>>>>>> feat/parachain
 }
 
 func (cpvs *CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(
@@ -688,12 +676,8 @@ type Network interface {
 	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
 		maxResponseSize uint64) *network.RequestResponseProtocol
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
-<<<<<<< HEAD
-	GetNetworkEventsChannel() <-chan network.NetworkEventInfo
-=======
 	GetNetworkEventsChannel() chan *network.NetworkEventInfo
 	FreeNetworkEventsChannel(ch chan *network.NetworkEventInfo)
->>>>>>> feat/parachain
 }
 
 type CollationEvent struct {
