@@ -52,6 +52,14 @@ func (ProvisionableDataMisbehaviorReport) IsProvisionableData() {}
 // full candidates before the `Backed` notification, even in groups of size 1.
 type StatementDistributionMessageBacked CandidateHash
 
+// StatementDistributionMessageShare is a statement distribution message.
+// It is a signed statement in the context of
+// given relay-parent hash and it should be distributed to other validators.
+type StatementDistributionMessageShare struct {
+	RelayParent                common.Hash
+	SignedFullStatementWithPVD SignedFullStatementWithPVD
+}
+
 // ProspectiveParachainsMessageCandidateBacked is a prospective parachains message.
 // it informs the Prospective Parachains Subsystem that
 // a previously introduced candidate has been successfully backed.
@@ -86,8 +94,9 @@ type ProspectiveParachainsMessageCandidateSeconded struct {
 	CandidateHash CandidateHash
 }
 
+// ProspectiveParachainsMessageGetHypotheticalFrontier is a prospective parachains message.
 // Get the hypothetical frontier membership of candidates with the given properties
-// under the specified active leaves' fragment trees.
+// under the specified active leaves fragment trees.
 //
 // For any candidate which is already known, this returns the depths the candidate
 // occupies.
@@ -96,9 +105,9 @@ type ProspectiveParachainsMessageGetHypotheticalFrontier struct {
 	ResponseCh                  chan HypotheticalFrontierResponses
 }
 
-// Request specifying which candidates are either already included
+// HypotheticalFrontierRequest specifies which candidates are either already included
 // or might be included in the hypothetical frontier of fragment trees
-// under a given active leaf
+// under a given active leaf.
 type HypotheticalFrontierRequest struct {
 	// Candidates, in arbitrary order, which should be checked for possible membership in fragment trees
 	Candidates []HypotheticalCandidate
@@ -108,15 +117,19 @@ type HypotheticalFrontierRequest struct {
 	BackedInPathOnly bool
 }
 
+// HypotheticalFrontierResponses contains information about the hypothetical frontier
+// membership of multiple candidates under active leaf fragment trees.
 type HypotheticalFrontierResponses []HypotheticalFrontierResponse
 
+// HypotheticalFrontierResponse contains information about the hypothetical frontier
+// membership of a specific candidate under active leaf fragment trees.
 type HypotheticalFrontierResponse struct {
 	HypotheticalCandidate HypotheticalCandidate
 	Memberships           []FragmentTreeMembership
 }
 
-// Indicates the relay-parents whose fragment tree a candidate
-// is present in and the depths of that tree the candidate is present in.
+// FragmentTreeMembership indicates the relay-parents whose fragment tree a candidate
+// is present in, along with the depths of that tree the candidate is present in.
 type FragmentTreeMembership struct {
 	RelayParent common.Hash
 	Depths      []uint
@@ -200,4 +213,23 @@ type ValidationResult struct {
 	CandidateCommitments    CandidateCommitments
 	PersistedValidationData PersistedValidationData
 	Err                     error
+}
+
+// AvailabilityDistributionMessageFetchPoV represents a message instructing
+// availability distribution to fetch a remote Proof of Validity (PoV).
+type AvailabilityDistributionMessageFetchPoV struct {
+	RelayParent common.Hash
+	// FromValidator is the validator to fetch the PoV from.
+	FromValidator ValidatorIndex
+	// ParaID is the ID of the parachain that produced this PoV.
+	// This field is only used to provide more context when logging errors
+	// from the AvailabilityDistribution subsystem.
+	ParaID ParaID
+	// CandidateHash is the candidate hash to fetch the PoV for.
+	CandidateHash CandidateHash
+	// PovHash is the expected hash of the PoV; a PoV not matching this hash will be rejected.
+	PovHash common.Hash
+	// PovCh is the channel for receiving the result of this fetch.
+	// The channel will be closed if the fetching fails for some reason.
+	PovCh chan OverseerFuncRes[PoV]
 }

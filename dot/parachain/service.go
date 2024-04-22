@@ -172,5 +172,6 @@ type Network interface {
 	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
 		maxResponseSize uint64) *network.RequestResponseProtocol
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
-	GetNetworkEventsChannel() <-chan network.NetworkEventInfo
+	GetNetworkEventsChannel() chan *network.NetworkEventInfo
+	FreeNetworkEventsChannel(ch chan *network.NetworkEventInfo)
 }

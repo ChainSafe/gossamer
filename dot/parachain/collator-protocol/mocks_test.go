@@ -43,11 +43,23 @@ func (m *MockNetwork) EXPECT() *MockNetworkMockRecorder {
 	return m.recorder
 }
 
+// FreeNetworkEventsChannel mocks base method.
+func (m *MockNetwork) FreeNetworkEventsChannel(arg0 chan *network.NetworkEventInfo) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "FreeNetworkEventsChannel", arg0)
+}
+
+// FreeNetworkEventsChannel indicates an expected call of FreeNetworkEventsChannel.
+func (mr *MockNetworkMockRecorder) FreeNetworkEventsChannel(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeNetworkEventsChannel", reflect.TypeOf((*MockNetwork)(nil).FreeNetworkEventsChannel), arg0)
+}
+
 // GetNetworkEventsChannel mocks base method.
-func (m *MockNetwork) GetNetworkEventsChannel() <-chan network.NetworkEventInfo {
+func (m *MockNetwork) GetNetworkEventsChannel() chan *network.NetworkEventInfo {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetNetworkEventsChannel")
-	ret0, _ := ret[0].(<-chan network.NetworkEventInfo)
+	ret0, _ := ret[0].(chan *network.NetworkEventInfo)
 	return ret0
 }
 

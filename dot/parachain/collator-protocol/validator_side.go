@@ -73,8 +73,13 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 				logger.Errorf("processing overseer message: %w", err)
 			}
 
+<<<<<<< HEAD
 		case event := <-cpvs.net.GetNetworkEventsChannel():
 			cpvs.handleNetworkEvents(event)
+=======
+		case event := <-cpvs.networkEventInfoChan:
+			cpvs.handleNetworkEvents(*event)
+>>>>>>> feat/parachain
 		case <-inactivityTicker.C:
 			// TODO: disconnect inactive peers
 			// https://github.com/paritytech/polkadot/blob/8f05479e4bd61341af69f0721e617f01cbad8bb2/node/network/collator-protocol/src/validator_side/mod.rs#L1301
@@ -122,6 +127,13 @@ func (cpvs CollatorProtocolValidatorSide) handleNetworkEvents(event network.Netw
 	case network.Disconnected:
 		delete(cpvs.peerData, event.PeerID)
 	}
+<<<<<<< HEAD
+=======
+}
+
+func (cpvs CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal() {
+	// NOTE: nothing to do here
+>>>>>>> feat/parachain
 }
 
 func (cpvs *CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(
@@ -428,6 +440,7 @@ func (cpvs *CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal(signal pa
 
 func (cpvs CollatorProtocolValidatorSide) Stop() {
 	cpvs.cancel()
+	cpvs.net.FreeNetworkEventsChannel(cpvs.networkEventInfoChan)
 }
 
 // requestCollation requests a collation from the network.
@@ -675,7 +688,12 @@ type Network interface {
 	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
 		maxResponseSize uint64) *network.RequestResponseProtocol
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
+<<<<<<< HEAD
 	GetNetworkEventsChannel() <-chan network.NetworkEventInfo
+=======
+	GetNetworkEventsChannel() chan *network.NetworkEventInfo
+	FreeNetworkEventsChannel(ch chan *network.NetworkEventInfo)
+>>>>>>> feat/parachain
 }
 
 type CollationEvent struct {
@@ -691,8 +709,9 @@ type CollatorProtocolValidatorSide struct {
 	net        Network
 	Keystore   keystore.Keystore
 
-	SubSystemToOverseer chan<- any
-	OverseerToSubSystem <-chan any
+	SubSystemToOverseer  chan<- any
+	OverseerToSubSystem  <-chan any
+	networkEventInfoChan chan *network.NetworkEventInfo
 
 	unfetchedCollation chan UnfetchedCollation
 
@@ -913,7 +932,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 			collatorProtocolMessage := NewCollatorProtocolMessage()
 			err = collatorProtocolMessage.Set(CollationSeconded{
 				RelayParent: msg.Parent,
-				Statement:   msg.Stmt,
+				Statement:   parachaintypes.UncheckedSignedFullStatement(msg.Stmt),
 			})
 			if err != nil {
 				return fmt.Errorf("setting collation seconded: %w", err)
