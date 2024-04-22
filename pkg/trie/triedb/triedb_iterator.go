@@ -88,10 +88,7 @@ func (i *TrieDBIterator) NextEntry() *entry {
 		switch n := currentNode.(type) {
 		case codec.Leaf:
 			key := currentState.fullKeyNibbles(nil)
-			value, err := i.db.loadValue(n.PartialKey, n.GetValue())
-			if err != nil {
-				panic("Error loading value")
-			}
+			value := i.db.Get(key)
 			return &entry{key: key, value: value}
 		case codec.Branch:
 			// Reverse iterate over children because we are using a LIFO stack
@@ -108,10 +105,7 @@ func (i *TrieDBIterator) NextEntry() *entry {
 			}
 			if n.GetValue() != nil {
 				key := currentState.fullKeyNibbles(nil)
-				value, err := i.db.loadValue(n.PartialKey, n.GetValue())
-				if err != nil {
-					panic("Error loading value")
-				}
+				value := i.db.Get(key)
 				return &entry{key: key, value: value}
 			}
 		}
