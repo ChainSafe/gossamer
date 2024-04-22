@@ -351,9 +351,3 @@ func (cb *CandidateBacking) handleStatementMessage(
 		attesting,
 	)
 }
-
-func getPovFromValidator() parachaintypes.PoV {
-	// TODO: Implement this #3545
-	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/core/backing/src/lib.rs#L1744 //nolint:lll
-	return parachaintypes.PoV{}
-}
