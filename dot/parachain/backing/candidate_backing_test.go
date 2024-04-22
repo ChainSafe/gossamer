@@ -612,8 +612,9 @@ func TestKickOffValidationWork(t *testing.T) {
 	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	testCases := []struct {
-		description string
-		rpState     perRelayParentState
+		description     string
+		rpState         perRelayParentState
+		processChannels func(chan any, chan relayParentAndCommand)
 	}{
 		{
 			description: "already_issued_statement_for_candidate",
@@ -622,6 +623,7 @@ func TestKickOffValidationWork(t *testing.T) {
 					candidateHash: true,
 				},
 			},
+			processChannels: func(chan any, chan relayParentAndCommand) {},
 		},
 		{
 			description: "not_issued_statement_but_waiting_for_validation",
@@ -630,6 +632,21 @@ func TestKickOffValidationWork(t *testing.T) {
 				awaitingValidation: map[parachaintypes.CandidateHash]bool{
 					candidateHash: true,
 				},
+			},
+			processChannels: func(subSystemToOverseer chan any, cmdCh chan relayParentAndCommand) {
+				for {
+					select {
+					case data := <-subSystemToOverseer:
+						val, ok := data.(parachaintypes.AvailabilityDistributionMessageFetchPoV)
+						if !ok {
+							t.Errorf("invalid overseer message type: %T\n", data)
+						}
+						val.PovCh <- parachaintypes.OverseerFuncRes[parachaintypes.PoV]{
+							Err: parachaintypes.ErrFetchPoV,
+						}
+					case <-cmdCh:
+					}
+				}
 			},
 		},
 	}
@@ -642,6 +659,8 @@ func TestKickOffValidationWork(t *testing.T) {
 			subSystemToOverseer := make(chan any)
 			chRelayParentAndCommand := make(chan relayParentAndCommand)
 			pvd := parachaintypes.PersistedValidationData{}
+
+			go c.processChannels(subSystemToOverseer, chRelayParentAndCommand)
 
 			err := c.rpState.kickOffValidationWork(nil, subSystemToOverseer, chRelayParentAndCommand, pvd, attesting)
 			require.NoError(t, err)

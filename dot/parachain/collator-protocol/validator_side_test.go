@@ -392,6 +392,7 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 				gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			net.EXPECT().GetRequestResponseProtocol(gomock.Any(), collationFetchingRequestTimeout,
 				uint64(collationFetchingMaxResponseSize)).Return(&network.RequestResponseProtocol{})
+			net.EXPECT().GetNetworkEventsChannel().Return(make(chan *network.NetworkEventInfo))
 			cpvs, err := Register(net, protocol.ID(collationProtocolID), overseer.SubsystemsToOverseer)
 			require.NoError(t, err)
 

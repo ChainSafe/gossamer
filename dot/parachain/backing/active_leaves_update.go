@@ -4,11 +4,11 @@
 package backing
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"slices"
 	"sync"
+	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	parachainutil "github.com/ChainSafe/gossamer/dot/parachain/util"
@@ -24,9 +24,14 @@ import (
 // from the runtime prior to v9 configuration migration.
 const LEGACY_MIN_BACKING_VOTES uint32 = 2
 
+// ProcessActiveLeavesUpdateSignal updates the state of the CandidateBacking struct based on the
+// provided ActiveLeavesUpdateSignal.
+// It manages the activation and deactivation of relay chain block, performs cleanup operations
+// on the perRelayParent and perCandidate maps, and adds entries to perRelayParent for
+// new relay-parents introduced by the update.
 func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintypes.ActiveLeavesUpdateSignal) error {
 	var implicitViewFetchError error
-	var prospectiveParachainsMode *parachaintypes.ProspectiveParachainsMode
+	var prospectiveParachainsMode parachaintypes.ProspectiveParachainsMode
 	activatedLeaf := update.Activated
 
 	// activate in implicit view before deactivate, per the docs on ImplicitView, this is more efficient.
@@ -54,13 +59,13 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 	// when prospective parachains are disabled, the implicit view is empty,
 	// which means we'll clean up everything that's not a leaf - the expected behaviour
 	// for pre-asynchronous backing.
-	cleanUpPerRelayParentByLeafAncestry(cb)
+	cb.cleanUpPerRelayParentByLeafAncestry()
 
 	// clean up `perCandidate` according to which relay-parents are known.
 	//
 	// when prospective parachains are disabled, we clean up all candidates
 	// because we've cleaned up all relay parents. this is correct.
-	removeUnknownRelayParentsFromPerCandidate(cb)
+	cb.removeUnknownRelayParentsFromPerCandidate()
 
 	if activatedLeaf == nil {
 		return nil
@@ -77,7 +82,7 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 		}
 
 		cb.perLeaf[activatedLeaf.Hash] = &activeLeafState{
-			prospectiveParachainsMode: *prospectiveParachainsMode,
+			prospectiveParachainsMode: prospectiveParachainsMode,
 
 			// This is empty because the only allowed relay-parent and depth
 			// when prospective parachains are disabled is the leaf hash and 0,
@@ -106,11 +111,24 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 			}
 		}
 
-		secondedAtDepth := processRemainingSeconded(cb, remainingSeconded, activatedLeaf.Hash)
+		// update the candidates seconded at various depths under new active leaves.
+		{
+			var wg sync.WaitGroup
+			var mut sync.Mutex
+			secondedAtDepth := make(map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash])
 
-		cb.perLeaf[activatedLeaf.Hash] = &activeLeafState{
-			prospectiveParachainsMode: *prospectiveParachainsMode,
-			secondedAtDepth:           secondedAtDepth,
+			for candidateHash, paraID := range remainingSeconded {
+				wg.Add(1)
+				go updateCandidateSecondedAtDepth(
+					&wg, &mut, cb.SubSystemToOverseer, candidateHash, paraID, activatedLeaf.Hash, secondedAtDepth,
+				)
+			}
+			wg.Wait()
+
+			cb.perLeaf[activatedLeaf.Hash] = &activeLeafState{
+				prospectiveParachainsMode: prospectiveParachainsMode,
+				secondedAtDepth:           secondedAtDepth,
+			}
 		}
 
 		if len(freshRelayParents) == 0 {
@@ -133,7 +151,7 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 			// subsystem that it is an ancestor of a leaf which
 			// has prospective parachains enabled and that the
 			// block itself did.
-			mode = *prospectiveParachainsMode
+			mode = prospectiveParachainsMode
 		} else {
 			mode = leaf.prospectiveParachainsMode
 		}
@@ -151,51 +169,50 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 	return nil
 }
 
-func processRemainingSeconded(
-	cb *CandidateBacking,
-	remainingSeconded map[parachaintypes.CandidateHash]parachaintypes.ParaID,
-	leafHash common.Hash,
-) map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash] {
-	var wg sync.WaitGroup
-	var mut sync.Mutex
-	secondedAtDepth := make(map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash])
+// updateCandidateSecondedAtDepth updates candidates seconded at depth under new active leaves.
+func updateCandidateSecondedAtDepth(
+	wg *sync.WaitGroup, mut *sync.Mutex, subSystemToOverseer chan<- any,
+	candidateHash parachaintypes.CandidateHash, paraID parachaintypes.ParaID,
+	leafHash common.Hash, secondedAtDepth map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash],
+) {
+	defer wg.Done()
 
-	for candidateHash, parID := range remainingSeconded {
-		wg.Add(1)
-		go func(candidateHash parachaintypes.CandidateHash, parID parachaintypes.ParaID) {
-			defer wg.Done()
-
-			getTreeMembership := parachaintypes.ProspectiveParachainsMessageGetTreeMembership{
-				ParaID:        parID,
-				CandidateHash: candidateHash,
-				ResponseCh:    make(chan []parachaintypes.FragmentTreeMembership),
-			}
-
-			cb.SubSystemToOverseer <- getTreeMembership
-			membership := <-getTreeMembership.ResponseCh
-
-			for _, m := range membership {
-				if m.RelayParent == leafHash {
-					mut.Lock()
-
-					tree, ok := secondedAtDepth[parID]
-					if !ok {
-						tree = new(btree.Map[uint, parachaintypes.CandidateHash])
-					}
-
-					for _, depth := range m.Depths {
-						tree.Load(depth, candidateHash)
-					}
-					mut.Unlock()
-				}
-			}
-		}(candidateHash, parID)
+	getTreeMembership := parachaintypes.ProspectiveParachainsMessageGetTreeMembership{
+		ParaID:        paraID,
+		CandidateHash: candidateHash,
+		ResponseCh:    make(chan []parachaintypes.FragmentTreeMembership),
 	}
-	wg.Wait()
-	return secondedAtDepth
+
+	var membership []parachaintypes.FragmentTreeMembership
+
+	subSystemToOverseer <- getTreeMembership
+	select {
+	case membership = <-getTreeMembership.ResponseCh:
+	case <-time.After(parachaintypes.SubsystemRequestTimeout):
+		logger.Errorf("getting fragment tree membership: %w; candidate: %s, para-id: %d",
+			parachaintypes.ErrSubsystemRequestTimeout, candidateHash, paraID)
+		return
+	}
+
+	for _, m := range membership {
+		if m.RelayParent == leafHash {
+			mut.Lock()
+
+			tree, ok := secondedAtDepth[paraID]
+			if !ok {
+				tree = new(btree.Map[uint, parachaintypes.CandidateHash])
+			}
+
+			for _, depth := range m.Depths {
+				tree.Load(depth, candidateHash)
+			}
+			mut.Unlock()
+		}
+	}
+
 }
 
-func cleanUpPerRelayParentByLeafAncestry(cb *CandidateBacking) {
+func (cb *CandidateBacking) cleanUpPerRelayParentByLeafAncestry() {
 	remaining := make(map[common.Hash]bool)
 
 	for hash := range cb.perLeaf {
@@ -219,7 +236,7 @@ func cleanUpPerRelayParentByLeafAncestry(cb *CandidateBacking) {
 	}
 }
 
-func removeUnknownRelayParentsFromPerCandidate(cb *CandidateBacking) {
+func (cb *CandidateBacking) removeUnknownRelayParentsFromPerCandidate() {
 	keysToDelete := []parachaintypes.CandidateHash{}
 
 	for candidateHash, pc := range cb.perCandidate {
@@ -236,23 +253,25 @@ func removeUnknownRelayParentsFromPerCandidate(cb *CandidateBacking) {
 // getProspectiveParachainsMode requests prospective parachains mode
 // for a given relay parent based on the Runtime API version.
 func getProspectiveParachainsMode(blockstate BlockState, relayParent common.Hash,
-) (*parachaintypes.ProspectiveParachainsMode, error) {
+) (parachaintypes.ProspectiveParachainsMode, error) {
+	var emptyMode parachaintypes.ProspectiveParachainsMode
+
 	rt, err := blockstate.GetRuntime(relayParent)
 	if err != nil {
-		return nil, fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
+		return emptyMode, fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
 	}
 
 	params, err := rt.ParachainHostAsyncBackingParams()
 	if err != nil {
 		if errors.Is(err, wazero_runtime.ErrExportFunctionNotFound) {
-			logger.Tracef(
+			logger.Debugf(
 				"%s is not supported by the current Runtime API of the relay parent %s",
 				runtime.ParachainHostAsyncBackingParams, relayParent,
 			)
 
-			return &parachaintypes.ProspectiveParachainsMode{IsEnabled: false}, nil
+			return parachaintypes.ProspectiveParachainsMode{IsEnabled: false}, nil
 		}
-		return nil, fmt.Errorf("getting async backing params: %w", err)
+		return emptyMode, fmt.Errorf("getting async backing params: %w", err)
 	}
 
 	enabled := parachaintypes.ProspectiveParachainsMode{
@@ -261,7 +280,7 @@ func getProspectiveParachainsMode(blockstate BlockState, relayParent common.Hash
 		AllowedAncestryLen: uint(params.AllowedAncestryLen),
 	}
 
-	return &enabled, nil
+	return enabled, nil
 }
 
 // Load the data necessary to do backing work on top of a relay-parent.
@@ -276,9 +295,9 @@ func constructPerRelayParentState(
 		return nil, fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
 	}
 
-	sessionIndex, validators, validatorGroups, cores, err := fetchParachainHostData(rt)
-	if err != nil {
-		return nil, fmt.Errorf("fetching parachain host data: %w", err)
+	sessionIndex, validators, validatorGroups, cores, isOk := fetchParachainHostData(rt)
+	if !isOk {
+		return nil, fmt.Errorf("could not fetch parachain host data for relay parent %s", relayParent)
 	}
 
 	minBackingVotes, err := minBackingVotes(rt)
@@ -287,7 +306,7 @@ func constructPerRelayParentState(
 	}
 
 	signingContext := parachaintypes.SigningContext{
-		SessionIndex: *sessionIndex,
+		SessionIndex: sessionIndex,
 		ParentHash:   relayParent,
 	}
 
@@ -380,11 +399,11 @@ func minBackingVotes(rt runtime.Instance) (uint32, error) {
 }
 
 func fetchParachainHostData(rt runtime.Instance) (
-	*parachaintypes.SessionIndex,
+	parachaintypes.SessionIndex,
 	[]parachaintypes.ValidatorID,
-	*parachaintypes.ValidatorGroups,
-	*scale.VaryingDataTypeSlice,
-	error,
+	parachaintypes.ValidatorGroups,
+	scale.VaryingDataTypeSlice,
+	bool, // bool is used to indicate if all data was fetched successfully.
 ) {
 	var (
 		sessionIndex    parachaintypes.SessionIndex
@@ -393,135 +412,66 @@ func fetchParachainHostData(rt runtime.Instance) (
 		cores           *scale.VaryingDataTypeSlice
 	)
 
-	// Create a context with cancellation capability.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel() // Ensure cancellation happens when function returns.
+	// Error channel to receive errors from goroutines.
+	errCh := make(chan error, 4)
 
 	// WaitGroup to wait for all goroutines to finish.
 	var wg sync.WaitGroup
 
-	// Error channel to receive errors from goroutines.
-	errCh := make(chan error)
-
-	// Start each goroutine with a separate function and wait for all of them to finish.
 	wg.Add(4)
-	go func() {
-		defer wg.Done()
-		select {
-		case <-ctx.Done(): // Check if context was canceled.
-			return
-		case sessionIndex = <-paraHostSessionIndexForChind(cancel, rt, errCh):
-		}
-	}()
-	go func() {
-		defer wg.Done()
-		select {
-		case <-ctx.Done():
-			return
-		case validators = <-paraHostValidators(cancel, rt, errCh):
-		}
-	}()
-	go func() {
-		defer wg.Done()
-		select {
-		case <-ctx.Done():
-			return
-		case validatorGroups = <-paraHostValidatorGroups(cancel, rt, errCh):
-		}
-	}()
-	go func() {
-		defer wg.Done()
-		select {
-		case <-ctx.Done():
-			return
-		case cores = <-paraHostAvailabilityCores(cancel, rt, errCh):
-		}
-	}()
-
-	// Wait for all goroutines to finish.
-	wg.Wait()
-
-	// If any goroutine encountered an error, return the error.
-	select {
-	case err := <-errCh:
-		return nil, nil, nil, nil, err
-	default:
-		return &sessionIndex, validators, validatorGroups, cores, nil
-	}
-}
-
-func paraHostSessionIndexForChind(
-	cancel context.CancelFunc,
-	rt runtime.Instance,
-	errCh chan error,
-) chan parachaintypes.SessionIndex {
-	sessionIndexCh := make(chan parachaintypes.SessionIndex)
 
 	go func() {
-		sessionIndex, err := rt.ParachainHostSessionIndexForChild()
+		defer wg.Done()
+
+		var err error
+		sessionIndex, err = rt.ParachainHostSessionIndexForChild()
 		if err != nil {
 			errCh <- fmt.Errorf("getting session index: %w", err)
-			cancel() // Cancel context to signal other goroutines to stop.
 			return
 		}
-		sessionIndexCh <- sessionIndex
 	}()
-	return sessionIndexCh
-}
-
-func paraHostValidators(
-	cancel context.CancelFunc,
-	rt runtime.Instance,
-	errCh chan error,
-) chan []parachaintypes.ValidatorID {
-	validatorsCh := make(chan []parachaintypes.ValidatorID)
 
 	go func() {
-		validators, err := rt.ParachainHostValidators()
+		defer wg.Done()
+
+		var err error
+		validators, err = rt.ParachainHostValidators()
 		if err != nil {
 			errCh <- fmt.Errorf("getting validators: %w", err)
-			cancel()
 			return
 		}
-		validatorsCh <- validators
 	}()
-	return validatorsCh
-}
-
-func paraHostValidatorGroups(
-	cancel context.CancelFunc,
-	rt runtime.Instance,
-	errCh chan error,
-) chan *parachaintypes.ValidatorGroups {
-	validatorGroupsCh := make(chan *parachaintypes.ValidatorGroups)
 
 	go func() {
-		validatorGroups, err := rt.ParachainHostValidatorGroups()
+		defer wg.Done()
+
+		var err error
+		validatorGroups, err = rt.ParachainHostValidatorGroups()
 		if err != nil {
 			errCh <- fmt.Errorf("getting validator groups: %w", err)
-			cancel()
 			return
 		}
-		validatorGroupsCh <- validatorGroups
 	}()
-	return validatorGroupsCh
-}
-
-func paraHostAvailabilityCores(
-	cancel context.CancelFunc,
-	rt runtime.Instance,
-	errCh chan error,
-) chan *scale.VaryingDataTypeSlice {
-	coresCh := make(chan *scale.VaryingDataTypeSlice)
 
 	go func() {
-		cores, err := rt.ParachainHostAvailabilityCores()
+		defer wg.Done()
+
+		var err error
+		cores, err = rt.ParachainHostAvailabilityCores()
 		if err != nil {
 			errCh <- fmt.Errorf("getting availability cores: %w", err)
-			cancel()
 			return
 		}
-		coresCh <- cores
 	}()
-	return coresCh
+
+	wg.Wait()
+
+	if len(errCh) > 0 {
+		for err := range errCh {
+			logger.Error(err.Error())
+		}
+		return parachaintypes.SessionIndex(0), nil, parachaintypes.ValidatorGroups{}, scale.VaryingDataTypeSlice{}, false
+	}
+
+	return sessionIndex, validators, *validatorGroups, *cores, true
 }
