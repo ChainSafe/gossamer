@@ -28,7 +28,6 @@ type entry struct {
 type TrieDB struct {
 	rootHash common.Hash
 	db       db.DBGetter
-	lookup   TrieLookup
 	cache    cache.TrieCache
 }
 
@@ -38,7 +37,6 @@ func NewTrieDB(rootHash common.Hash, db db.DBGetter, cache cache.TrieCache) *Tri
 		rootHash: rootHash,
 		cache:    cache,
 		db:       db,
-		lookup:   NewTrieLookup(db, rootHash, cache),
 	}
 }
 
@@ -66,7 +64,8 @@ func (t *TrieDB) MustHash() common.Hash {
 func (t *TrieDB) Get(key []byte) []byte {
 	keyNibbles := nibbles.KeyLEToNibbles(key)
 
-	val, err := t.lookup.lookupValue(keyNibbles)
+	lookup := NewTrieLookup(t.db, t.rootHash, t.cache)
+	val, err := lookup.lookupValue(keyNibbles)
 	if err != nil {
 		return nil
 	}
@@ -76,7 +75,8 @@ func (t *TrieDB) Get(key []byte) []byte {
 
 // Internal methods
 func (t *TrieDB) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error) {
-	return t.lookup.loadValue(prefix, value)
+	lookup := NewTrieLookup(t.db, t.rootHash, t.cache)
+	return lookup.loadValue(prefix, value)
 }
 
 func (t *TrieDB) getRootNode() (codec.Node, error) {
@@ -92,7 +92,8 @@ func (t *TrieDB) getRootNode() (codec.Node, error) {
 // Internal methods
 
 func (t *TrieDB) getNodeAt(key []byte) (codec.Node, error) {
-	node, err := t.lookup.lookupNode(nibbles.KeyLEToNibbles(key))
+	lookup := NewTrieLookup(t.db, t.rootHash, t.cache)
+	node, err := lookup.lookupNode(nibbles.KeyLEToNibbles(key))
 	if err != nil {
 		return nil, err
 	}
