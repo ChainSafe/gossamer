@@ -109,7 +109,7 @@ func (l *TrieLookup) lookupValue(keyNibbles []byte) ([]byte, error) {
 	}
 
 	if value := node.GetValue(); value != nil {
-		return l.loadValue(keyNibbles, value)
+		return l.loadValue(node.GetPartialKey(), value)
 	}
 
 	return nil, nil
