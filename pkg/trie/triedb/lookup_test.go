@@ -12,7 +12,7 @@ func TestTrieDB_Lookup(t *testing.T) {
 		db := newTestDB(t)
 		lookup := NewTrieLookup(db, trie.EmptyHash)
 
-		value, err := lookup.lookup([]byte("test"))
+		value, err := lookup.lookupValue([]byte("test"))
 		assert.Nil(t, value)
 		assert.ErrorIs(t, err, ErrIncompleteDB)
 	})

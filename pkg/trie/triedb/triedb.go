@@ -62,7 +62,7 @@ func (t *TrieDB) MustHash() common.Hash {
 // Note the key argument is given in little Endian format.
 func (t *TrieDB) Get(key []byte) []byte {
 	keyNibbles := nibbles.KeyLEToNibbles(key)
-	val, err := t.lookup.lookup(keyNibbles)
+	val, err := t.lookup.lookupValue(keyNibbles)
 	if err != nil {
 		return nil
 	}
@@ -87,6 +87,15 @@ func (t *TrieDB) getRootNode() (codec.Node, error) {
 	}
 
 	return decodedNode, nil
+}
+
+func (t *TrieDB) getNodeAt(key []byte) (codec.Node, error) {
+	node, err := t.lookup.lookupNode(nibbles.KeyLEToNibbles(key))
+	if err != nil {
+		return nil, err
+	}
+
+	return node, nil
 }
 
 func (t *TrieDB) getNode(

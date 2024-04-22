@@ -46,6 +46,23 @@ func NewTrieDBIterator(trie *TrieDB) *TrieDBIterator {
 	}
 }
 
+func NewPrefixedTrieDBIterator(trie *TrieDB, prefix []byte) *TrieDBIterator {
+	nodeAtPrefix, err := trie.getNodeAt(prefix)
+	if err != nil {
+		panic("trying to create trie iterator with incomplete trie DB")
+	}
+
+	return &TrieDBIterator{
+		db: trie,
+		nodeStack: []*iteratorState{
+			{
+				parentFullKey: prefix[:len(nodeAtPrefix.GetPartialKey())-1],
+				node:          nodeAtPrefix,
+			},
+		},
+	}
+}
+
 // nextToVisit sets the next node to visit in the iterator
 func (i *TrieDBIterator) nextToVisit(parentKey []byte, node codec.Node) {
 	i.nodeStack = append(i.nodeStack, &iteratorState{

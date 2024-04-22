@@ -22,15 +22,9 @@ func NewTrieLookup(db db.DBGetter, hash common.Hash) TrieLookup {
 	}
 }
 
-func (l *TrieLookup) lookup(keyNibbles []byte) ([]byte, error) {
-	return l.lookupWithoutCache(keyNibbles)
-}
-
-// lookupWithoutCache traverse nodes loading then from DB until reach the one
-// we are looking for.
-func (l *TrieLookup) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
+func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.Node, error) {
 	// Start from root node and going downwards
-	partialKey := nibbleKey
+	partialKey := keyNibbles
 	hash := l.hash[:]
 
 	// Iterates through non inlined nodes
@@ -58,7 +52,7 @@ func (l *TrieLookup) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 			case codec.Leaf:
 				// We are in the node we were looking for
 				if bytes.Equal(partialKey, n.PartialKey) {
-					return l.loadValue(partialKey, n.Value)
+					return n, nil
 				}
 				return nil, nil
 			case codec.Branch:
@@ -74,7 +68,7 @@ func (l *TrieLookup) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 				// We are in the node we were looking for
 				if bytes.Equal(partialKey, nodePartialKey) {
 					if n.Value != nil {
-						return l.loadValue(partialKey, n.Value)
+						return n, nil
 					}
 					return nil, nil
 				}
@@ -104,6 +98,19 @@ func (l *TrieLookup) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
 			}
 		}
 	}
+}
+
+func (l *TrieLookup) lookupValue(keyNibbles []byte) ([]byte, error) {
+	node, err := l.lookupNode(keyNibbles)
+	if err != nil {
+		return nil, err
+	}
+
+	if value := node.GetValue(); value != nil {
+		return l.loadValue(keyNibbles, value)
+	}
+
+	return nil, nil
 }
 
 // loadValue gets the value from the node, if it is inlined we can return it
