@@ -140,15 +140,14 @@ func (cpvs *CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(
 	// download blocks etc to reach the tip of the chain faster.
 	var majorSyncing bool
 
-	liveHeads := cpvs.liveHeads[:]
-	liveHeads = append(liveHeads, parachaintypes.ActivatedLeaf{
+	cpvs.liveHeads = append(cpvs.liveHeads, parachaintypes.ActivatedLeaf{
 		Hash:   signal.Activated.Hash,
 		Number: signal.Activated.Number,
 	})
 
 	newLiveHeads := []parachaintypes.ActivatedLeaf{}
 
-	for _, head := range liveHeads {
+	for _, head := range cpvs.liveHeads {
 		if slices.Contains(signal.Deactivated, head.Hash) {
 			newLiveHeads = append(newLiveHeads, head)
 		}
@@ -160,7 +159,7 @@ func (cpvs *CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(
 
 	if !majorSyncing {
 		// update our view
-		err := cpvs.updateOurView(liveHeads)
+		err := cpvs.updateOurView(cpvs.liveHeads)
 		if err != nil {
 			logger.Errorf("updating our view: %w", err)
 		}
