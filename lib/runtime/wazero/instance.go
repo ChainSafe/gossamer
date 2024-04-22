@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -23,7 +22,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	"github.com/adrg/xdg"
 	"github.com/klauspost/compress/zstd"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
@@ -435,16 +433,8 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
 	// Prepare a cache directory.
-	cacheDir, err := os.MkdirTemp(xdg.DataHome+"/gossamer", "wazeroCache")
-	if err != nil {
-		return nil, fmt.Errorf("creating wazero cache dir: %w", err)
-	}
-
 	ctx := context.Background()
-	cache, err := wazero.NewCompilationCacheWithDir(cacheDir)
-	if err != nil {
-		return nil, fmt.Errorf("creating wazero compilation cache: %w", err)
-	}
+	cache := wazero.NewCompilationCache()
 	config := wazero.NewRuntimeConfig().WithCompilationCache(cache)
 	mod, rt, hostCompiledModule, guestCompiledModule, err := newRuntimeInstance(ctx, code, config)
 	if err != nil {
