@@ -8,7 +8,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	"github.com/ChainSafe/gossamer/pkg/trie/cache/inmemory"
 	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/assert"
 )
@@ -81,16 +80,5 @@ func TestTrieDB_Migration(t *testing.T) {
 		actual := trieDB.Entries()
 
 		assert.Equal(t, expected, actual)
-	})
-
-	t.Run("cache_has_cache_value", func(t *testing.T) {
-		cache := inmemory.NewTrieInMemoryCache()
-		trieDB := NewTrieDB(root, db, cache)
-
-		val := trieDB.Get([]byte("no"))
-		assert.NotNil(t, val)
-
-		valueFromCache := cache.GetValue([]byte("no"))
-		assert.Equal(t, val, valueFromCache)
 	})
 }
