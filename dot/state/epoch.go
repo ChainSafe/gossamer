@@ -217,6 +217,10 @@ func (s *EpochState) SetEpochDataRaw(epoch uint64, raw *types.EpochDataRaw) erro
 // otherwise will try to get the data from the in-memory map using the header
 // if the header params is nil then it will search only in database
 func (s *EpochState) GetEpochDataRaw(epoch uint64, header *types.Header) (*types.EpochDataRaw, error) {
+	if epoch == 0 {
+		return s.genesisEpochDescriptor.EpochData, nil
+	}
+
 	searchOnDatabase := func() (*types.EpochDataRaw, error) {
 		epochDataRaw, err := getEpochDefinitionFromDatabase[types.EpochDataRaw](s.db, epoch, epochDataKey)
 		if err != nil && !errors.Is(err, database.ErrNotFound) {
