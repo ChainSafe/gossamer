@@ -734,3 +734,32 @@ func TestRetrieveChainFirstSlot(t *testing.T) {
 	}
 
 }
+
+func TestFirstSlotNumberFromDb(t *testing.T) {
+	// test case to check whether we have the correct first slot number in the database
+	epochState := newEpochStateFromGenesis(t)
+	slotDuration, err := epochState.GetSlotDuration()
+	require.NoError(t, err)
+
+	genesisHash := epochState.blockState.genesisHash
+
+	slotX := currentSlot(uint64(time.Now().UnixNano()),
+		uint64(slotDuration.Nanoseconds()))
+
+	firstNonOrirginBlock := types.NewEmptyHeader()
+	firstNonOrirginBlock.ParentHash = genesisHash
+	firstNonOrirginBlock.Number = 1
+	firstNonOrirginBlock.Digest = buildBlockPrimaryDigest(t,
+		types.BabePrimaryPreDigest{AuthorityIndex: 0, SlotNumber: slotX})
+
+	err = epochState.blockState.AddBlock(
+		&types.Block{Header: *firstNonOrirginBlock, Body: *types.NewBody([]types.Extrinsic{})})
+	require.NoError(t, err)
+
+	// getting first slot number from the database the
+	// hash should be empty to make sure that the
+	// first slot number is retrieved from the database
+	firstSlotNumber, err := epochState.retrieveFirstNonOriginBlockSlot(common.Hash{})
+	require.NoError(t, err)
+	t.Logf("first slot number in db: %d", firstSlotNumber)
+}
