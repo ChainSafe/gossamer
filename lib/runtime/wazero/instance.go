@@ -492,10 +492,10 @@ func (i *Instance) Exec(function string, data []byte) ([]byte, error) {
 	}
 
 	defer func() {
-		err = mod.Close(context.Background())
-		if err != nil {
-			logger.Criticalf("guest module not closed: %w", err)
-		}
+		//err = mod.Close(context.Background())
+		//if err != nil {
+		//	logger.Criticalf("guest module not closed: %w", err)
+		//}
 	}()
 
 	encodedHeapBase := mod.ExportedGlobal("__heap_base")
@@ -530,6 +530,7 @@ func (i *Instance) Exec(function string, data []byte) ([]byte, error) {
 	ctx := context.WithValue(context.Background(), runtimeContextKey, i.Context)
 	values, err := runtimeFunc.Call(ctx, api.EncodeU32(inputPtr), api.EncodeU32(dataLength))
 	if err != nil {
+		fmt.Println("aa")
 		return nil, fmt.Errorf("running runtime function: %w", err)
 	}
 	if len(values) == 0 {
