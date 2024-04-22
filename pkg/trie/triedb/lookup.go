@@ -7,20 +7,25 @@ import (
 	"bytes"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/trie/cache"
+	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 )
 
 type TrieLookup struct {
-	// Database to query from
-	db TrieBackendDB
-	// Hash to start at
+	// db to query from
+	db db.DBGetter
+	// hash to start at
 	hash common.Hash
+	// cache to speed up the db lookups
+	cache cache.TrieCache
 }
 
-func NewTrieLookup(db TrieBackendDB, hash common.Hash) TrieLookup {
+func NewTrieLookup(db db.DBGetter, hash common.Hash, cache cache.TrieCache) TrieLookup {
 	return TrieLookup{
-		db:   db,
-		hash: hash,
+		db:    db,
+		hash:  hash,
+		cache: cache,
 	}
 }
 
@@ -32,7 +37,7 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.Node, error) {
 	// Iterates through non inlined nodes
 	for {
 		// Get node from DB
-		nodeData, err := l.db.GetRawNode(hash)
+		nodeData, err := l.db.Get(hash)
 		if err != nil {
 			return nil, ErrIncompleteDB
 		}
@@ -102,14 +107,29 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.Node, error) {
 	}
 }
 
-func (l *TrieLookup) lookupValue(keyNibbles []byte) ([]byte, error) {
+func (l *TrieLookup) lookupValue(keyNibbles []byte) (value []byte, err error) {
+	if l.cache != nil {
+		if value = l.cache.GetValue(keyNibbles); value != nil {
+			return value, nil
+		}
+	}
+
 	node, err := l.lookupNode(keyNibbles)
 	if err != nil {
 		return nil, err
 	}
 
-	if value := node.GetValue(); value != nil {
-		return l.loadValue(node.GetPartialKey(), value)
+	if nodeValue := node.GetValue(); nodeValue != nil {
+		value, err = l.loadValue(node.GetPartialKey(), nodeValue)
+		if err != nil {
+			return nil, err
+		}
+
+		if l.cache != nil {
+			l.cache.SetValue(keyNibbles, value)
+		}
+
+		return value, nil
 	}
 
 	return nil, nil
@@ -123,7 +143,7 @@ func (l *TrieLookup) loadValue(prefix []byte, value codec.NodeValue) ([]byte, er
 		return v.Data, nil
 	case codec.HashedValue:
 		prefixedKey := bytes.Join([][]byte{prefix, v.Data}, nil)
-		return l.db.GetValue(prefixedKey)
+		return l.db.Get(prefixedKey)
 	default:
 		panic("unreachable")
 	}

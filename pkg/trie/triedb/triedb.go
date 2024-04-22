@@ -27,19 +27,18 @@ type entry struct {
 // using lazy loading to fetch nodes
 type TrieDB struct {
 	rootHash common.Hash
-	db       TrieBackendDB
+	db       db.DBGetter
 	lookup   TrieLookup
 	cache    cache.TrieCache
 }
 
 // NewTrieDB creates a new TrieDB using the given root and db
 func NewTrieDB(rootHash common.Hash, db db.DBGetter, cache cache.TrieCache) *TrieDB {
-	backendDB := NewTrieBackendDB(db, cache)
 	return &TrieDB{
 		rootHash: rootHash,
 		cache:    cache,
-		db:       backendDB,
-		lookup:   NewTrieLookup(backendDB, rootHash),
+		db:       db,
+		lookup:   NewTrieLookup(db, rootHash, cache),
 	}
 }
 
@@ -81,7 +80,13 @@ func (t *TrieDB) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error)
 }
 
 func (t *TrieDB) getRootNode() (codec.Node, error) {
-	return t.db.GetNode(t.rootHash[:])
+	encodedNode, err := t.db.Get(t.rootHash[:])
+	if err != nil {
+		return nil, err
+	}
+
+	reader := bytes.NewReader(encodedNode)
+	return codec.Decode(reader)
 }
 
 // Internal methods
@@ -103,7 +108,12 @@ func (t *TrieDB) getNode(
 		reader := bytes.NewReader(n.Data)
 		return codec.Decode(reader)
 	case codec.HashedNode:
-		return t.db.GetNode(n.Data)
+		encodedNode, err := t.db.Get(n.Data)
+		if err != nil {
+			return nil, err
+		}
+		reader := bytes.NewReader(encodedNode)
+		return codec.Decode(reader)
 	default: // should never happen
 		panic("unreachable")
 	}
