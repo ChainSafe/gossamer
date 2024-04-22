@@ -481,6 +481,9 @@ func (s *EpochState) GetStartSlotForEpoch(epoch uint64, bestBlockHash common.Has
 func (s *EpochState) retrieveFirstNonOriginBlockSlotFromDb(hash common.Hash) (uint64, error) {
 	slotVal, err := s.db.Get(prefixKey(hash, firstSlotNumberPrefix))
 	if err != nil {
+		if errors.Is(err, database.ErrNotFound) {
+			return 0, nil
+		}
 		return 0, err
 	}
 	val := binary.LittleEndian.Uint64(slotVal)
