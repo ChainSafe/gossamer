@@ -482,7 +482,7 @@ var ErrExportFunctionNotFound = errors.New("export function not found")
 func (i *Instance) Exec(function string, data []byte) ([]byte, error) {
 	i.Lock()
 	defer i.Unlock()
-	
+
 	mod, err := i.Runtime.InstantiateModule(context.Background(), i.metadata.guestModule, wazero.NewModuleConfig())
 	if mod == nil {
 		return nil, fmt.Errorf("instantiate guest module: nil")
