@@ -325,9 +325,6 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	err = verificationManager.VerifyBlock(&blockNumber01.Header)
 	require.NoError(t, err)
 
-	err = babeService.blockState.(*state.BlockState).AddBlock(blockNumber01)
-	require.NoError(t, err)
-
 	futureEpoch := uint64(1)
 	err = babeService.epochState.(*state.EpochState).SetEpochDataRaw(futureEpoch, &types.EpochDataRaw{
 		Randomness: [32]byte{9},
@@ -354,6 +351,7 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	}
 	blockNumber02 := createTestBlockWithSlot(t, babeService,
 		&blockNumber01.Header, [][]byte{}, futureEpochDescriptor, futureSlot)
+
 	err = verificationManager.VerifyBlock(&blockNumber02.Header)
 	require.NoError(t, err)
 

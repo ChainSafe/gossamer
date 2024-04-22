@@ -348,6 +348,9 @@ func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.H
 	require.NoError(t, err)
 
 	babeService.blockState.(*state.BlockState).StoreRuntime(block.Header.Hash(), rt)
+	err = babeService.blockState.AddBlock(block)
+	require.NoError(t, err)
+
 	return block
 }
 

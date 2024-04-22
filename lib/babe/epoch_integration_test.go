@@ -28,7 +28,7 @@ func TestInitiateEpoch_Epoch0(t *testing.T) {
 	require.GreaterOrEqual(t, epochStartSlot, epochDescriptor.startSlot)
 }
 
-func TestInitiateEpoch_Epoch1Epoch2(t *testing.T) {
+func TestInitiateEpoch_Epoch0_Epoch1WithoutConfigData_Epoch2WithConfigData(t *testing.T) {
 	cfg := ServiceConfig{
 		Authority: true,
 	}

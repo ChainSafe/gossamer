@@ -380,16 +380,16 @@ func (s *EpochState) GetSkippedConfigData(skippedEpoch, currentEpoch uint64,
 
 	skippedConfigData, err := retrieveEpochDefinitions(searchOnDatabase, searchOnMemory)
 	if err != nil {
+		if errors.Is(err, ErrEpochNotInMemory) || errors.Is(err, errEpochNotInDatabase) {
+			// if there is no config data for the skipped epoch them
+			// we keep searching using previous epochs
+			return s.GetConfigData(skippedEpoch-1, header)
+		}
+
 		return nil, fmt.Errorf("retrieving epoch definitions: %w", err)
 	}
 
-	if skippedConfigData != nil {
-		return skippedConfigData, nil
-	}
-
-	// if there is no config data for the skipped epoch them
-	// we keep searching using previous epochs
-	return s.GetConfigData(skippedEpoch-1, header)
+	return skippedConfigData, nil
 }
 
 // retrieveFrom type annotation makes it generic to query the database
