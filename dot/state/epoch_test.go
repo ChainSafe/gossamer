@@ -757,9 +757,7 @@ func TestFirstSlotNumberFromDb(t *testing.T) {
 	require.NoError(t, err)
 
 	// getting first slot number from the database
-	// hash should be empty to make sure that the
-	// first slot number is retrieved from the database
-	firstSlotNumber, err := epochState.retrieveFirstNonOriginBlockSlot(common.Hash{})
+	firstSlotNumber, err := epochState.retrieveFirstNonOriginBlockSlot(firstNonOrirginBlock.Hash())
 	require.NoError(t, err)
 	require.Greater(t, firstSlotNumber, uint64(0))
 }
