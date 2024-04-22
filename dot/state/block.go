@@ -36,7 +36,7 @@ var (
 	receiptPrefix         = []byte("rcp") // receiptPrefix + hash -> receipt
 	messageQueuePrefix    = []byte("mqp") // messageQueuePrefix + hash -> message queue
 	justificationPrefix   = []byte("jcp") // justificationPrefix + hash -> justification
-	firstSlotNumberPrefix = []byte("fsn") // firstSlotNumberPrefix -> slot number
+	firstSlotNumberPrefix = []byte("fsn") // firstSlotNumberPrefix + hash -> first slot number
 
 	errNilBlockTree = errors.New("blocktree is nil")
 	errNilBlockBody = errors.New("block body is nil")
