@@ -27,18 +27,19 @@ type entry struct {
 // using lazy loading to fetch nodes
 type TrieDB struct {
 	rootHash common.Hash
-	db       db.DBGetter
+	db       TrieBackendDB
 	lookup   TrieLookup
 	cache    cache.TrieCache
 }
 
 // NewTrieDB creates a new TrieDB using the given root and db
 func NewTrieDB(rootHash common.Hash, db db.DBGetter, cache cache.TrieCache) *TrieDB {
+	backendDB := NewTrieBackendDB(db, cache)
 	return &TrieDB{
 		rootHash: rootHash,
-		db:       db,
 		cache:    cache,
-		lookup:   NewTrieLookup(db, rootHash),
+		db:       backendDB,
+		lookup:   NewTrieLookup(backendDB, rootHash),
 	}
 }
 
@@ -66,14 +67,9 @@ func (t *TrieDB) MustHash() common.Hash {
 func (t *TrieDB) Get(key []byte) []byte {
 	keyNibbles := nibbles.KeyLEToNibbles(key)
 
-	val := t.getValueFromCache(key)
-	if val == nil {
-		var err error
-		val, err = t.lookup.lookupValue(keyNibbles)
-		if err != nil {
-			return nil
-		}
-		t.setValueInCache(key, val)
+	val, err := t.lookup.lookupValue(keyNibbles)
+	if err != nil {
+		return nil
 	}
 
 	return val
@@ -81,58 +77,14 @@ func (t *TrieDB) Get(key []byte) []byte {
 
 // Internal methods
 func (t *TrieDB) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error) {
-	valueBytes := t.getValueFromCache(prefix)
-	if valueBytes == nil {
-		var err error
-		valueBytes, err = t.lookup.loadValue(prefix, value)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return valueBytes, nil
+	return t.lookup.loadValue(prefix, value)
 }
 
 func (t *TrieDB) getRootNode() (codec.Node, error) {
-	nodeData, err := t.db.Get(t.rootHash[:])
-	if err != nil {
-		return nil, ErrIncompleteDB
-	}
-
-	reader := bytes.NewReader(nodeData)
-	decodedNode, err := codec.Decode(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	return decodedNode, nil
+	return t.db.GetNode(t.rootHash[:])
 }
 
 // Internal methods
-func (t *TrieDB) getValueFromCache(key []byte) []byte {
-	if t.cache != nil {
-		return t.cache.GetValue(key)
-	}
-	return nil
-}
-
-func (t *TrieDB) setValueInCache(key []byte, value []byte) {
-	if t.cache != nil {
-		t.cache.SetValue(key, value)
-	}
-}
-
-func (t *TrieDB) getNodeFromCache(key []byte) []byte {
-	if t.cache != nil {
-		return t.cache.GetNode(key)
-	}
-	return nil
-}
-
-func (t *TrieDB) setNodeInCache(key []byte, value []byte) {
-	if t.cache != nil {
-		t.cache.SetNode(key, value)
-	}
-}
 
 func (t *TrieDB) getNodeAt(key []byte) (codec.Node, error) {
 	node, err := t.lookup.lookupNode(nibbles.KeyLEToNibbles(key))
@@ -146,31 +98,15 @@ func (t *TrieDB) getNodeAt(key []byte) (codec.Node, error) {
 func (t *TrieDB) getNode(
 	merkleValue codec.MerkleValue,
 ) (node codec.Node, err error) {
-	nodeData := []byte{}
-
 	switch n := merkleValue.(type) {
 	case codec.InlineNode:
-		nodeData = n.Data
+		reader := bytes.NewReader(n.Data)
+		return codec.Decode(reader)
 	case codec.HashedNode:
-		hash := n.Data
-		nodeData = t.getNodeFromCache(hash)
-
-		if nodeData == nil {
-			nodeData, err = t.db.Get(n.Data)
-			if err != nil {
-				return nil, ErrIncompleteDB
-			}
-			t.setNodeInCache(hash, nodeData)
-		}
+		return t.db.GetNode(n.Data)
+	default: // should never happen
+		panic("unreachable")
 	}
-
-	reader := bytes.NewReader(nodeData)
-	node, err = codec.Decode(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	return node, err
 }
 
 var _ trie.TrieRead = (*TrieDB)(nil)

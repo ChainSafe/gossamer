@@ -7,18 +7,17 @@ import (
 	"bytes"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 )
 
 type TrieLookup struct {
 	// Database to query from
-	db db.DBGetter
+	db TrieBackendDB
 	// Hash to start at
 	hash common.Hash
 }
 
-func NewTrieLookup(db db.DBGetter, hash common.Hash) TrieLookup {
+func NewTrieLookup(db TrieBackendDB, hash common.Hash) TrieLookup {
 	return TrieLookup{
 		db:   db,
 		hash: hash,
@@ -33,7 +32,7 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.Node, error) {
 	// Iterates through non inlined nodes
 	for {
 		// Get node from DB
-		nodeData, err := l.db.Get(hash)
+		nodeData, err := l.db.GetRawNode(hash)
 		if err != nil {
 			return nil, ErrIncompleteDB
 		}
@@ -124,7 +123,7 @@ func (l *TrieLookup) loadValue(prefix []byte, value codec.NodeValue) ([]byte, er
 		return v.Data, nil
 	case codec.HashedValue:
 		prefixedKey := bytes.Join([][]byte{prefix, v.Data}, nil)
-		return l.db.Get(prefixedKey)
+		return l.db.GetValue(prefixedKey)
 	default:
 		panic("unreachable")
 	}

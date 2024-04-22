@@ -48,6 +48,7 @@ type (
 	}
 	// Containing a hash used to lookup in db for real value
 	HashedValue struct {
+		// TODO: use common.Hash
 		Data []byte
 	}
 )
