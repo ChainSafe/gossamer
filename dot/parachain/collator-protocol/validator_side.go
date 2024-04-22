@@ -239,6 +239,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view View) error 
 		cpvs.activeLeaves[leaf] = mode
 		cpvs.perRelayParent[leaf] = *perRelayParent
 
+		//nolint:staticcheck
 		if mode.IsEnabled {
 			// TODO: Add it when we have async backing
 			// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1303 //nolint
@@ -252,7 +253,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view View) error 
 		mode := prospectiveParachainMode(leaf)
 		pruned := []common.Hash{}
 		if mode.IsEnabled {
-			// TODO Do this when we have async backing
+			// TODO: Do this when we have async backing
 			// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1340 //nolint
 		} else {
 			pruned = append(pruned, leaf)
@@ -266,8 +267,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view View) error 
 			}
 
 			for fetchedCandidateStr := range cpvs.fetchedCandidates {
-				fetchedCollation := fetchedCollationInfo{}
-				err := fetchedCollation.FromString(fetchedCandidateStr)
+				fetchedCollation, err := fetchedCandidateFromString(fetchedCandidateStr)
 				if err != nil {
 					// this should never really happen
 					return fmt.Errorf("getting fetched collation from string: %w", err)
@@ -370,7 +370,8 @@ func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Has
 	return nil
 }
 
-func findValidatorGroup(validatorIndex parachaintypes.ValidatorIndex, validatorGroups parachaintypes.ValidatorGroups) (parachaintypes.GroupIndex, bool) {
+func findValidatorGroup(validatorIndex parachaintypes.ValidatorIndex, validatorGroups parachaintypes.ValidatorGroups,
+) (parachaintypes.GroupIndex, bool) {
 	for groupIndex, validatorGroup := range validatorGroups.Validators {
 		for _, i := range validatorGroup {
 			if i == validatorIndex {
@@ -384,7 +385,8 @@ func findValidatorGroup(validatorIndex parachaintypes.ValidatorIndex, validatorG
 
 // signingKeyAndIndex finds the first key we can sign with from the given set of validators,
 // if any, and returns it along with the validator index.
-func signingKeyAndIndex(validators []parachaintypes.ValidatorID, ks keystore.Keystore) (*parachaintypes.ValidatorID, parachaintypes.ValidatorIndex) {
+func signingKeyAndIndex(validators []parachaintypes.ValidatorID, ks keystore.Keystore,
+) (*parachaintypes.ValidatorID, parachaintypes.ValidatorIndex) {
 	for i, validator := range validators {
 		publicKey, _ := sr25519.NewPublicKey(validator[:])
 		keypair := ks.GetKeypair(publicKey)
@@ -708,7 +710,8 @@ type CollatorProtocolValidatorSide struct {
 	// TODO: Tech Debt
 	// In polkadot-sdk (rust) code, following fields are common between validation protocol and collator protocol.
 	// They are kept in network bridge. Network bridge has common logic for both validation and collator protocol.
-	// I have kept it here for ease, since we don't have network bridge. Make a decision on this. Create a network bridge if that seems appropriate.
+	// I have kept it here for ease, since we don't have network bridge. Make a decision on this. Create a network
+	// bridge if that seems appropriate.
 	// And move these fields and some common logic there.
 	localView *View
 	// validationPeers []peer.ID
@@ -770,46 +773,44 @@ func (f fetchedCollationInfo) String() string {
 		f.relayParent.String(), f.paraID, f.candidateHash.Value.String(), f.collatorID)
 }
 
-func (f *fetchedCollationInfo) FromString(str string) error {
+func fetchedCandidateFromString(str string) (fetchedCollationInfo, error) {
 	splits := strings.Split(str, ",")
 	if len(splits) != 4 {
-		return fmt.Errorf("%w: %s", ErrInvalidStringFormat, str)
+		return fetchedCollationInfo{}, fmt.Errorf("%w: %s", ErrInvalidStringFormat, str)
 	}
 
 	relayParent, err := common.HexToHash(strings.TrimSpace(splits[0]))
 	if err != nil {
-		return fmt.Errorf("getting relay parent: %w", err)
+		return fetchedCollationInfo{}, fmt.Errorf("getting relay parent: %w", err)
 	}
-	f.relayParent = relayParent
 
 	paraID, err := strconv.ParseUint(strings.TrimSpace(splits[1]), 10, 64)
 	if err != nil {
-		return fmt.Errorf("getting para id: %w", err)
+		return fetchedCollationInfo{}, fmt.Errorf("getting para id: %w", err)
 	}
-	f.paraID = parachaintypes.ParaID(paraID)
 
 	candidateHashBytes, err := common.HexToBytes(strings.TrimSpace(splits[2]))
 	if err != nil {
-		return fmt.Errorf("getting candidate hash bytes: %w", err)
+		return fetchedCollationInfo{}, fmt.Errorf("getting candidate hash bytes: %w", err)
 	}
 
 	candidateHash := parachaintypes.CandidateHash{
 		Value: common.NewHash(candidateHashBytes),
 	}
 
-	f.candidateHash = candidateHash
-
 	var collatorID parachaintypes.CollatorID
 	collatorIDBytes, err := common.HexToBytes(strings.TrimSpace(splits[3]))
 	if err != nil {
-		return fmt.Errorf("getting collator id bytes: %w", err)
+		return fetchedCollationInfo{}, fmt.Errorf("getting collator id bytes: %w", err)
 	}
-
 	copy(collatorID[:], collatorIDBytes)
 
-	f.collatorID = collatorID
-
-	return nil
+	return fetchedCollationInfo{
+		relayParent:   relayParent,
+		paraID:        parachaintypes.ParaID(paraID),
+		candidateHash: candidateHash,
+		collatorID:    collatorID,
+	}, nil
 }
 
 type PerRelayParent struct {
