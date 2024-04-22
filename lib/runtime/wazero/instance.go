@@ -481,7 +481,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 
 var ErrExportFunctionNotFound = errors.New("export function not found")
 
-func (i *Instance) Exec(function string, data []byte) (result []byte, err error) {
+func (i *Instance) Exec(function string, data []byte) ([]byte, error) {
 	i.Lock()
 	defer i.Unlock()
 
@@ -494,10 +494,10 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	}
 
 	defer func() {
-		//err = mod.Close(context.Background())
-		//if err != nil {
-		//	logger.Criticalf("guest module not closed: %w", err)
-		//}
+		err = mod.Close(context.Background())
+		if err != nil {
+			logger.Criticalf("guest module not closed: %w", err)
+		}
 	}()
 
 	encodedHeapBase := mod.ExportedGlobal("__heap_base")
@@ -532,7 +532,6 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	ctx := context.WithValue(context.Background(), runtimeContextKey, i.Context)
 	values, err := runtimeFunc.Call(ctx, api.EncodeU32(inputPtr), api.EncodeU32(dataLength))
 	if err != nil {
-		fmt.Println("aa")
 		return nil, fmt.Errorf("running runtime function: %w", err)
 	}
 	if len(values) == 0 {
@@ -540,7 +539,7 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 	}
 	wasmValue := values[0]
 	outputPtr, outputLength := splitPointerSize(wasmValue)
-	result, ok = memory.Read(outputPtr, outputLength)
+	result, ok := memory.Read(outputPtr, outputLength)
 	if !ok {
 		panic("read overflow")
 	}

@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"fmt"
 	"net/http"
 	"os"
 	"sort"
@@ -373,7 +372,6 @@ func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
 			inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
 			ret, err := inst.Exec("rtm_ext_crypto_ecdsa_verify_version_2", append(append(tc.sig, tc.msg...), tc.key...))
-			fmt.Println(err)
 			assert.Equal(t, tc.expected, ret)
 			if tc.err != "" {
 				assert.ErrorContains(t, err, tc.err)
