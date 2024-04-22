@@ -27,12 +27,10 @@ func TestFreeNetworkEventsChannel(t *testing.T) {
 
 	node := createTestService(t, config)
 	ch := node.GetNetworkEventsChannel()
-
 	require.Equal(t, 1, len(node.networkEventInfoChannels))
 
 	node.FreeNetworkEventsChannel(ch)
-	require.Equal(t, 1, len(node.networkEventInfoChannels))
-
+	require.Equal(t, 0, len(node.networkEventInfoChannels))
 }
 
 func TestGetNetworkEventsChannel(t *testing.T) {
