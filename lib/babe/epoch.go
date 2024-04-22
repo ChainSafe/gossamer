@@ -41,7 +41,7 @@ func (b *Service) initiateEpoch(epoch uint64) (*epochDescriptor, error) {
 		// 0 to epoch 2 we, actually, skipped only one epoch (epoch 1),
 		lastKnownEpoch := epoch - diff
 		logger.Warnf("⏩ A total of %d epochs were skipped, from %d to %d",
-			diff - 1, lastKnownEpoch, epoch)
+			diff-1, lastKnownEpoch, epoch)
 
 		// we should use the epoch data already setup for the
 		// last known epoch + 1, e.g we produced blocks in epoch
