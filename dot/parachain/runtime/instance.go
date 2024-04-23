@@ -42,7 +42,7 @@ type ValidationParameters struct {
 	// Previous head-data.
 	ParentHeadData parachaintypes.HeadData
 	// The collation body.
-	BlockData []byte //types.BlockData
+	BlockData []byte // types.BlockData
 	// The current relay-chain block number.
 	RelayParentNumber uint32
 	// The relay-chain block's storage root.
