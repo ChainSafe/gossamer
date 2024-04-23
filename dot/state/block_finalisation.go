@@ -225,8 +225,6 @@ func (bs *BlockState) deleteFromTries(lastFinalised common.Hash) error {
 func (bs *BlockState) handleFinalisedBlock(currentFinalizedHash common.Hash) error {
 	if currentFinalizedHash == bs.lastFinalised {
 		return nil
-
-		// return errors.New(fmt.Sprintf("las finalised block %s  and current finalised block %s are the same", bs.lastFinalised, currentFinalizedHash))
 	}
 
 	subchain, err := bs.RangeInMemory(bs.lastFinalised, currentFinalizedHash)
