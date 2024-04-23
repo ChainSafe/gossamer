@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -70,6 +71,19 @@ func (bs *BlockState) GetFinalisedHash(round, setID uint64) (common.Hash, error)
 	}
 
 	return common.NewHash(h), nil
+}
+
+// retrieveFirstNonOriginBlockSlot returns the slot number of the first non origin block
+func (s *BlockState) retrieveFirstNonOriginBlockSlotFromDb() (uint64, error) {
+	slotVal, err := s.db.Get(firstSlotNumberKey)
+	if err != nil {
+		if errors.Is(err, database.ErrNotFound) {
+			return 0, nil
+		}
+		return 0, err
+	}
+	val := binary.LittleEndian.Uint64(slotVal)
+	return val, nil
 }
 
 func (bs *BlockState) setHighestRoundAndSetID(round, setID uint64) error {
@@ -211,6 +225,8 @@ func (bs *BlockState) deleteFromTries(lastFinalised common.Hash) error {
 func (bs *BlockState) handleFinalisedBlock(currentFinalizedHash common.Hash) error {
 	if currentFinalizedHash == bs.lastFinalised {
 		return nil
+
+		// return errors.New(fmt.Sprintf("las finalised block %s  and current finalised block %s are the same", bs.lastFinalised, currentFinalizedHash))
 	}
 
 	subchain, err := bs.RangeInMemory(bs.lastFinalised, currentFinalizedHash)

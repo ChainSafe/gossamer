@@ -29,14 +29,14 @@ const (
 )
 
 var (
-	headerPrefix          = []byte("hdr") // headerPrefix + hash -> header
-	blockBodyPrefix       = []byte("blb") // blockBodyPrefix + hash -> body
-	headerHashPrefix      = []byte("hsh") // headerHashPrefix + encodedBlockNum -> hash
-	arrivalTimePrefix     = []byte("arr") // arrivalTimePrefix || hash -> arrivalTime
-	receiptPrefix         = []byte("rcp") // receiptPrefix + hash -> receipt
-	messageQueuePrefix    = []byte("mqp") // messageQueuePrefix + hash -> message queue
-	justificationPrefix   = []byte("jcp") // justificationPrefix + hash -> justification
-	firstSlotNumberPrefix = []byte("fsn") // firstSlotNumberPrefix + hash -> first slot number
+	headerPrefix        = []byte("hdr") // headerPrefix + hash -> header
+	blockBodyPrefix     = []byte("blb") // blockBodyPrefix + hash -> body
+	headerHashPrefix    = []byte("hsh") // headerHashPrefix + encodedBlockNum -> hash
+	arrivalTimePrefix   = []byte("arr") // arrivalTimePrefix || hash -> arrivalTime
+	receiptPrefix       = []byte("rcp") // receiptPrefix + hash -> receipt
+	messageQueuePrefix  = []byte("mqp") // messageQueuePrefix + hash -> message queue
+	justificationPrefix = []byte("jcp") // justificationPrefix + hash -> justification
+	firstSlotNumberKey  = []byte("fsn") // firstSlotNumberKey -> First slot number  no need of hash because this info is unique
 
 	errNilBlockTree = errors.New("blocktree is nil")
 	errNilBlockBody = errors.New("block body is nil")
@@ -193,11 +193,6 @@ func encodeBlockNumber(number uint64) []byte {
 // headerKey = headerPrefix + hash
 func headerKey(hash common.Hash) []byte {
 	return append(headerPrefix, hash.ToBytes()...)
-}
-
-// FirstSlotNumberkey = firstSlotNumberPrefix + hash
-func FirstSlotNumberKey(hash common.Hash) []byte {
-	return append(firstSlotNumberPrefix, hash.ToBytes()...)
 }
 
 // headerHashKey = headerHashPrefix + num (uint64 big endian)
@@ -448,13 +443,6 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 	return bs.db.Put(headerKey(header.Hash()), bh)
 }
 
-// SetFirstNonOriginSlotNumber saves the first non-origin slot number into the DB
-func (bs *BlockState) SetFirstNonOriginSlotNumber(hash common.Hash, slotNumber uint64) error {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, slotNumber)
-	return bs.db.Put(FirstSlotNumberKey(hash), buf)
-}
-
 // HasBlockBody returns true if the db contains the block body
 func (bs *BlockState) HasBlockBody(hash common.Hash) (bool, error) {
 	bs.lock.RLock()
@@ -490,6 +478,13 @@ func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 	}
 
 	return bs.db.Put(blockBodyKey(hash), encodedBody)
+}
+
+// SetFirstNonOriginSlotNumber saves the first non-origin slot number into the DB
+func (bs *BlockState) SetFirstNonOriginSlotNumber(hash common.Hash, slotNumber uint64) error {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, slotNumber)
+	return bs.db.Put(firstSlotNumberKey, buf)
 }
 
 // CompareAndSetBlockData will compare empty fields and set all elements in a block data to db

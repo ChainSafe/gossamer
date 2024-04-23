@@ -4,6 +4,7 @@
 package state
 
 import (
+	"encoding/binary"
 	"testing"
 	"time"
 
@@ -743,6 +744,13 @@ func TestFirstSlotNumberFromDb(t *testing.T) {
 
 	genesisHash := epochState.blockState.genesisHash
 
+	// setting a predefined slot number
+	predefinedSlotNumber := uint64(1000)
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, predefinedSlotNumber)
+	err = epochState.blockState.db.Put(firstSlotNumberKey, buf)
+	require.NoError(t, err)
+
 	slotNumber := currentSlot(uint64(time.Now().UnixNano()),
 		uint64(slotDuration.Nanoseconds()))
 
@@ -756,8 +764,8 @@ func TestFirstSlotNumberFromDb(t *testing.T) {
 		&types.Block{Header: *firstNonOrirginBlock, Body: *types.NewBody([]types.Extrinsic{})})
 	require.NoError(t, err)
 
-	// getting first slot number from the database
-	firstSlotNumber, err := epochState.retrieveFirstNonOriginBlockSlot(firstNonOrirginBlock.Hash())
+	h := firstNonOrirginBlock.Hash()
+	firstSlotNumber, err := epochState.retrieveFirstNonOriginBlockSlot(h)
 	require.NoError(t, err)
-	require.Greater(t, firstSlotNumber, uint64(0))
+	require.EqualValuesf(t, predefinedSlotNumber, firstSlotNumber, "expected: %d, got: %d", predefinedSlotNumber, firstSlotNumber)
 }
