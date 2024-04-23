@@ -42,6 +42,16 @@ func TestDefaultPhraseShouldBeUsed(t *testing.T) {
 	require.Equal(t, pair, pair1)
 }
 
+func TestNewPairFromString_DifferentAliases(t *testing.T) {
+	pair, err := ed25519.NewPairFromString("//Alice///password", nil)
+	require.NoError(t, err)
+
+	pair1, err := ed25519.NewPairFromString("//Bob///password", nil)
+	require.NoError(t, err)
+
+	require.NotEqual(t, pair, pair1)
+}
+
 func TestSeedAndDeriveShouldWork(t *testing.T) {
 	seed := mustHexDecodeString32(t, "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60")
 	pair := ed25519.NewPairFromSeed(seed)
@@ -126,36 +136,3 @@ func TestPasswordDoesSomething(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, pair1.Public(), pair2.Public())
 }
-
-// #[test]
-// fn ss58check_roundtrip_works() {
-// 	let pair = Pair::from_seed(b"12345678901234567890123456789012");
-// 	let public = pair.public();
-// 	let s = public.to_ss58check();
-// 	println!("Correct: {}", s);
-// 	let cmp = Public::from_ss58check(&s).unwrap();
-// 	assert_eq!(cmp, public);
-// }
-
-// #[test]
-// fn signature_serialization_works() {
-// 	let pair = Pair::from_seed(b"12345678901234567890123456789012");
-// 	let message = b"Something important";
-// 	let signature = pair.sign(&message[..]);
-// 	let serialized_signature = serde_json::to_string(&signature).unwrap();
-// 	// Signature is 64 bytes, so 128 chars + 2 quote chars
-// 	assert_eq!(serialized_signature.len(), 130);
-// 	let signature = serde_json::from_str(&serialized_signature).unwrap();
-// 	assert!(Pair::verify(&signature, &message[..], &pair.public()));
-// }
-
-// #[test]
-// fn signature_serialization_doesnt_panic() {
-// 	fn deserialize_signature(text: &str) -> Result<Signature, serde_json::error::Error> {
-// 		serde_json::from_str(text)
-// 	}
-// 	assert!(deserialize_signature("Not valid json.").is_err());
-// 	assert!(deserialize_signature("\"Not an actual signature.\"").is_err());
-// 	// Poorly-sized
-// 	assert!(deserialize_signature("\"abc123\"").is_err());
-// }

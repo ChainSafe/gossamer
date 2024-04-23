@@ -221,8 +221,9 @@ func updateBestJustification[
 func BestJustification[
 	Hash runtime.Hash,
 	N runtime.Number,
+	Hasher runtime.Hasher[Hash],
 ](store api.AuxStore) (*GrandpaJustification[Hash, N], error) {
-	justification := decodeGrandpaJustification[Hash, N]{}
+	justification := decodeGrandpaJustification[Hash, N, Hasher]{}
 	err := loadDecoded(store, bestJustification, &justification)
 	if err != nil {
 		return nil, err

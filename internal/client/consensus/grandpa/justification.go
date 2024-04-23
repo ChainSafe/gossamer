@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -41,13 +42,15 @@ type GrandpaJustification[Hash runtime.Hash, N runtime.Number] struct {
 type decodeGrandpaJustification[
 	Hash runtime.Hash,
 	N runtime.Number,
+	Hasher runtime.Hasher[Hash],
 ] GrandpaJustification[Hash, N]
 
 func decodeJustification[
 	Hash runtime.Hash,
 	N runtime.Number,
+	Hasher runtime.Hasher[Hash],
 ](encodedJustification []byte) (*GrandpaJustification[Hash, N], error) {
-	newJustificaiton := decodeGrandpaJustification[Hash, N]{}
+	newJustificaiton := decodeGrandpaJustification[Hash, N, Hasher]{}
 	err := scale.Unmarshal(encodedJustification, &newJustificaiton)
 	if err != nil {
 		return nil, err
@@ -55,11 +58,11 @@ func decodeJustification[
 	return newJustificaiton.GrandpaJustification(), nil
 }
 
-func (dgj *decodeGrandpaJustification[Ordered, N]) UnmarshalSCALE(reader io.Reader) (err error) {
+func (dgj *decodeGrandpaJustification[H, N, Hasher]) UnmarshalSCALE(reader io.Reader) (err error) {
 	type roundCommitHeader struct {
 		Round   uint64
-		Commit  pgrandpa.Commit[Ordered, N]
-		Headers []runtime.Header[N, Ordered]
+		Commit  pgrandpa.Commit[H, N]
+		Headers []generic.Header[N, H, Hasher]
 	}
 	rch := roundCommitHeader{}
 	decoder := scale.NewDecoder(reader)
@@ -70,14 +73,14 @@ func (dgj *decodeGrandpaJustification[Ordered, N]) UnmarshalSCALE(reader io.Read
 
 	dgj.Justification.Round = rch.Round
 	dgj.Justification.Commit = rch.Commit
-	dgj.Justification.VoteAncestries = make([]runtime.Header[N, Ordered], len(rch.Headers))
+	dgj.Justification.VoteAncestries = make([]runtime.Header[N, H], len(rch.Headers))
 	for i, header := range rch.Headers {
 		dgj.Justification.VoteAncestries[i] = header
 	}
 	return
 }
 
-func (dgj decodeGrandpaJustification[Hash, N]) GrandpaJustification() *GrandpaJustification[Hash, N] {
+func (dgj decodeGrandpaJustification[Hash, N, Hasher]) GrandpaJustification() *GrandpaJustification[Hash, N] {
 	return &GrandpaJustification[Hash, N]{
 		Justification: pgrandpa.GrandpaJustification[Hash, N]{
 			Round:          dgj.Justification.Round,
@@ -173,15 +176,14 @@ func NewJustificationFromCommit[
 func decodeAndVerifyFinalizes[
 	Hash runtime.Hash,
 	N runtime.Number,
-	S comparable,
-	ID pgrandpa.AuthorityID,
+	Hasher runtime.Hasher[Hash],
 ](
 	encoded []byte,
 	finalizedTarget hashNumber[Hash, N],
 	setID uint64,
 	voters grandpa.VoterSet[string],
 ) (GrandpaJustification[Hash, N], error) {
-	justification, err := decodeJustification[Hash, N](encoded)
+	justification, err := decodeJustification[Hash, N, Hasher](encoded)
 	if err != nil {
 		return GrandpaJustification[Hash, N]{}, fmt.Errorf("error decoding justification for header: %s", err)
 	}

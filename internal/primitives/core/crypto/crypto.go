@@ -71,7 +71,7 @@ func NewDeriveJunctionFromString(j string) DeriveJunction {
 
 	var res DeriveJunction
 	n, err := strconv.Atoi(code)
-	if err != nil {
+	if err == nil {
 		soft, err := NewDeriveJunctionSoft(n)
 		if err != nil {
 			panic(err)
@@ -108,7 +108,7 @@ var junctionRegex = regexp.MustCompile(`/(/?[^/]+)`)
 
 // Trait used for types that are really just a fixed-length array.
 type ByteArray interface {
-	/// Return a `Vec<u8>` filled with raw data.
+	// Return a `Vec<u8>` filled with raw data.
 	ToRawVec() []byte
 }
 

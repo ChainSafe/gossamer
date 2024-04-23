@@ -6,212 +6,256 @@ package grandpa
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa/app"
+	"github.com/ChainSafe/gossamer/internal/client/consensus/grandpa/mocks"
+	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	ced25519 "github.com/ChainSafe/gossamer/internal/primitives/core/ed25519"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
+	"github.com/ChainSafe/gossamer/internal/primitives/keyring/ed25519"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/stretchr/testify/require"
 )
 
 func makePrecommit(t *testing.T,
 	targetHash string,
-	targetNumber uint,
-	id app.Public,
-) grandpa.SignedPrecommit[string, uint, string, string] {
+	targetNumber uint64,
+	round uint64,
+	setID uint64,
+	voter ed25519.Keyring,
+) grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID] {
 	t.Helper()
-	return grandpa.SignedPrecommit[string, uint, string, string]{
-		Precommit: grandpa.Precommit[string, uint]{
-			TargetHash:   targetHash,
+
+	precommit := grandpa.Precommit[hash.H256, uint64]{
+		TargetHash:   hash.H256(targetHash),
+		TargetNumber: targetNumber,
+	}
+	msg := grandpa.NewMessage(precommit)
+	encoded := pgrandpa.LocalizedPayload(pgrandpa.RoundNumber(round), pgrandpa.SetID(setID), msg)
+	signature := voter.Sign(encoded)
+
+	return grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]{
+		Precommit: grandpa.Precommit[hash.H256, uint64]{
+			TargetHash:   hash.H256(targetHash),
 			TargetNumber: targetNumber,
 		},
-		ID: string(id.ToRawVec()),
+		Signature: signature,
+		ID:        voter.Pair().Public().(ced25519.Public),
 	}
 }
 
-// func TestJustificationEncoding(t *testing.T) {
-// 	var precommits []grandpa.SignedPrecommit[string, uint, string, dummyAuthID]
-// 	precommit := makePrecommit(t, "a", 1, 1)
-// 	precommits = append(precommits, precommit)
+func TestJustificationEncoding(t *testing.T) {
+	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
+	precommit := makePrecommit(t, "a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 1, 1, 1, ed25519.Alice)
+	precommits = append(precommits, precommit)
 
-// 	expAncestries := make([]Header[string, uint], 0)
-// 	expAncestries = append(expAncestries, testHeader[string, uint]{
-// 		NumberField:     100,
-// 		ParentHashField: "a",
-// 	})
+	expAncestries := make([]runtime.Header[uint64, hash.H256], 0)
+	expAncestries = append(expAncestries, generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		100,
+		hash.H256(""),
+		hash.H256(""),
+		"a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+		runtime.Digest{}),
+	)
 
-// 	justification := GrandpaJustification[string, uint, string, dummyAuthID]{
-// 		Round: 2,
-// 		Commit: grandpa.Commit[string, uint, string, dummyAuthID]{
-// 			TargetHash:   "a",
-// 			TargetNumber: 1,
-// 			Precommits:   precommits,
-// 		},
-// 		VotesAncestries: expAncestries,
-// 	}
+	expected := pgrandpa.GrandpaJustification[hash.H256, uint64]{
+		Round: 2,
+		Commit: pgrandpa.Commit[hash.H256, uint64]{
+			TargetHash:   hash.H256("b\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+			TargetNumber: 1,
+			Precommits:   precommits,
+		},
+		VoteAncestries: expAncestries,
+	}
 
-// 	encodedJustification, err := scale.Marshal(justification)
-// 	require.NoError(t, err)
+	encodedJustification, err := scale.Marshal(expected)
+	require.NoError(t, err)
 
-// 	newJustificaiton, err := decodeJustification[
-// 		string,
-// 		uint,
-// 		string,
-// 		dummyAuthID,
-// 		testHeader[string, uint],
-// 	](encodedJustification)
-// 	require.NoError(t, err)
-// 	require.Equal(t, justification, *newJustificaiton)
-// }
+	justification, err := decodeJustification[hash.H256, uint64, runtime.BlakeTwo256](encodedJustification)
+	require.NoError(t, err)
+	require.Equal(t, expected, justification.Justification)
+}
 
-// func TestJustification_fromCommit(t *testing.T) {
-// 	commit := grandpa.Commit[string, uint, string, dummyAuthID]{}
-// 	client := testHeaderBackend[string, uint]{}
-// 	_, err := NewJustificationFromCommit[string, uint, string, dummyAuthID](client, 2, commit)
-// 	require.NotNil(t, err)
-// 	require.ErrorIs(t, err, errBadJustification)
-// 	require.Equal(t, "bad justification for header: invalid precommits for target commit", err.Error())
+func TestJustification_fromCommit(t *testing.T) {
+	commit := pgrandpa.Commit[hash.H256, uint64]{}
+	client := mocks.NewHeaderBackend[hash.H256, uint64](t)
+	_, err := NewJustificationFromCommit[hash.H256, uint64](client, 2, commit)
+	require.NotNil(t, err)
+	require.ErrorIs(t, err, errBadJustification)
+	require.Equal(t, "bad justification for header: invalid precommits for target commit", err.Error())
 
-// 	// nil header
-// 	var precommits []grandpa.SignedPrecommit[string, uint, string, dummyAuthID]
-// 	precommit := makePrecommit(t, "a", 1, 1)
-// 	precommits = append(precommits, precommit)
+	// nil header
+	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
+	precommit := makePrecommit(t, "a", 1, 1, 1, ed25519.Alice)
+	precommits = append(precommits, precommit)
 
-// 	precommit = makePrecommit(t, "b", 2, 3)
-// 	precommits = append(precommits, precommit)
+	precommit = makePrecommit(t, "b", 2, 1, 1, ed25519.Alice)
+	precommits = append(precommits, precommit)
 
-// 	validCommit := grandpa.Commit[string, uint, string, dummyAuthID]{
-// 		TargetHash:   "a",
-// 		TargetNumber: 1,
-// 		Precommits:   precommits,
-// 	}
+	validCommit := pgrandpa.Commit[hash.H256, uint64]{
+		TargetHash:   "a",
+		TargetNumber: 1,
+		Precommits:   precommits,
+	}
 
-// 	clientNil := testHeaderBackend[string, uint]{}
+	clientNil := mocks.NewHeaderBackend[hash.H256, uint64](t)
+	clientNil.EXPECT().Header(hash.H256("b")).Return(nil, nil)
+	_, err = NewJustificationFromCommit[hash.H256, uint64](
+		clientNil,
+		2,
+		validCommit,
+	)
+	require.NotNil(t, err)
+	require.ErrorIs(t, err, errBadJustification)
+	require.Equal(t, "bad justification for header: invalid precommits for target commit", err.Error())
 
-// 	_, err = NewJustificationFromCommit[string, uint, string, dummyAuthID](
-// 		clientNil,
-// 		2,
-// 		validCommit,
-// 	)
-// 	require.NotNil(t, err)
-// 	require.ErrorIs(t, err, errBadJustification)
-// 	require.Equal(t, "bad justification for header: invalid precommits for target commit", err.Error())
+	// currentHeader.Number() <= baseNumber
+	var header runtime.Header[uint64, hash.H256] = generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		1,
+		hash.H256(""),
+		hash.H256(""),
+		"",
+		runtime.Digest{})
 
-// 	// currentHeader.Number() <= baseNumber
-// 	_, err = NewJustificationFromCommit[string, uint, string, dummyAuthID](
-// 		client,
-// 		2,
-// 		validCommit,
-// 	)
-// 	require.NotNil(t, err)
-// 	require.ErrorIs(t, err, errBadJustification)
-// 	require.Equal(t, "bad justification for header: invalid precommits for target commit", err.Error())
+	client.EXPECT().Header(hash.H256("b")).Return(&header, nil)
+	_, err = NewJustificationFromCommit[hash.H256, uint64](
+		client,
+		2,
+		validCommit,
+	)
+	require.NotNil(t, err)
+	require.ErrorIs(t, err, errBadJustification)
+	require.Equal(t, "bad justification for header: invalid precommits for target commit", err.Error())
 
-// 	// happy path
-// 	header := Header[string, uint](testHeader[string, uint]{
-// 		NumberField:     100,
-// 		ParentHashField: "a",
-// 	})
-// 	clientLargeNum := testHeaderBackend[string, uint]{
-// 		header: &header,
-// 	}
-// 	expAncestries := make([]Header[string, uint], 0)
-// 	expAncestries = append(expAncestries, testHeader[string, uint]{
-// 		NumberField:     100,
-// 		ParentHashField: "a",
-// 	})
-// 	expJustification := GrandpaJustification[string, uint, string, dummyAuthID]{
-// 		Round: 2,
-// 		Commit: grandpa.Commit[string, uint, string, dummyAuthID]{
-// 			TargetHash:   "a",
-// 			TargetNumber: 1,
-// 			Precommits:   precommits,
-// 		},
-// 		VotesAncestries: expAncestries,
-// 	}
-// 	justification, err := NewJustificationFromCommit[string, uint, string, dummyAuthID](
-// 		clientLargeNum,
-// 		2,
-// 		validCommit)
-// 	require.NoError(t, err)
-// 	require.Equal(t, expJustification, justification)
-// }
+	// happy path
+	header = generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		100,
+		hash.H256(""),
+		hash.H256(""),
+		hash.H256("a"),
+		runtime.Digest{})
 
-// func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
-// 	// Invalid Encoding
-// 	invalidEncoding := []byte{21}
-// 	_, err := decodeAndVerifyFinalizes[string, uint, string, dummyAuthID, testHeader[string, uint]](
-// 		invalidEncoding,
-// 		hashNumber[string, uint]{},
-// 		2,
-// 		grandpa.VoterSet[dummyAuthID]{})
-// 	require.NotNil(t, err)
+	client = mocks.NewHeaderBackend[hash.H256, uint64](t)
+	client.EXPECT().Header(hash.H256("b")).Return(&header, nil)
 
-// 	// Invalid target
-// 	justification := GrandpaJustification[string, uint, string, dummyAuthID]{
-// 		Commit: grandpa.Commit[string, uint, string, dummyAuthID]{
-// 			TargetHash:   "a",
-// 			TargetNumber: 1,
-// 		},
-// 	}
+	expAncestries := make([]runtime.Header[uint64, hash.H256], 0)
+	expAncestries = append(expAncestries, generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		100,
+		hash.H256(""),
+		hash.H256(""),
+		hash.H256("a"),
+		runtime.Digest{}),
+	)
+	expJustification := pgrandpa.GrandpaJustification[hash.H256, uint64]{
+		Round: 2,
+		Commit: pgrandpa.Commit[hash.H256, uint64]{
+			TargetHash:   "a",
+			TargetNumber: 1,
+			Precommits:   precommits,
+		},
+		VoteAncestries: expAncestries,
+	}
+	justification, err := NewJustificationFromCommit[hash.H256, uint64](
+		client,
+		2,
+		validCommit)
+	require.NoError(t, err)
+	require.Equal(t, expJustification, justification.Justification)
+}
 
-// 	encWrongTarget, err := scale.Marshal(justification)
-// 	require.NoError(t, err)
-// 	_, err = decodeAndVerifyFinalizes[string, uint, string, dummyAuthID, testHeader[string, uint]](
-// 		encWrongTarget,
-// 		hashNumber[string, uint]{},
-// 		2,
-// 		grandpa.VoterSet[dummyAuthID]{})
-// 	require.NotNil(t, err)
-// 	require.Equal(t, "invalid commit target in grandpa justification", err.Error())
+func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
+	var a hash.H256 = "a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 
-// 	// Happy path
-// 	headerB := Header[string, uint](testHeader[string, uint]{
-// 		HashField:       "b",
-// 		ParentHashField: "a",
-// 	})
+	// Invalid Encoding
+	invalidEncoding := []byte{21}
+	_, err := decodeAndVerifyFinalizes[hash.H256, uint64, runtime.BlakeTwo256](
+		invalidEncoding,
+		hashNumber[hash.H256, uint64]{},
+		2,
+		grandpa.VoterSet[string]{})
+	require.Error(t, err)
 
-// 	headerList := []Header[string, uint]{
-// 		headerB,
-// 	}
+	// Invalid target
+	justification := pgrandpa.GrandpaJustification[hash.H256, uint64]{
+		Commit: pgrandpa.Commit[hash.H256, uint64]{
+			TargetHash:   a,
+			TargetNumber: 1,
+		},
+	}
 
-// 	var precommits []grandpa.SignedPrecommit[string, uint, string, dummyAuthID]
-// 	precommit := makePrecommit(t, "a", 1, 1)
-// 	precommits = append(precommits, precommit)
+	encWrongTarget, err := scale.Marshal(justification)
+	require.NoError(t, err)
+	_, err = decodeAndVerifyFinalizes[hash.H256, uint64, runtime.BlakeTwo256](
+		encWrongTarget,
+		hashNumber[hash.H256, uint64]{},
+		2,
+		grandpa.VoterSet[string]{})
+	require.Error(t, err)
+	require.ErrorContains(t, err, "invalid commit target in grandpa justification")
 
-// 	precommit = makePrecommit(t, "a", 1, 2)
-// 	precommits = append(precommits, precommit)
+	headerB := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		2,
+		hash.H256(""),
+		hash.H256(""),
+		a,
+		runtime.Digest{})
 
-// 	precommit = makePrecommit(t, "b", 2, 3)
-// 	precommits = append(precommits, precommit)
+	hederList := []runtime.Header[uint64, hash.H256]{headerB}
 
-// 	validJustification := GrandpaJustification[string, uint, string, dummyAuthID]{
-// 		Commit: grandpa.Commit[string, uint, string, dummyAuthID]{
-// 			TargetHash:   "a",
-// 			TargetNumber: 1,
-// 			Precommits:   precommits,
-// 		},
-// 		VotesAncestries: headerList,
-// 	}
+	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
+	precommit := makePrecommit(t, string(a), 1, 1, 1, ed25519.Alice)
+	precommits = append(precommits, precommit)
+	precommit = makePrecommit(t, string(a), 1, 1, 1, ed25519.Bob)
+	precommits = append(precommits, precommit)
+	precommit = makePrecommit(t, string(headerB.Hash()), 2, 1, 1, ed25519.Charlie)
+	precommits = append(precommits, precommit)
 
-// 	encValid, err := scale.Marshal(validJustification)
-// 	require.NoError(t, err)
+	expectedJustification := pgrandpa.GrandpaJustification[hash.H256, uint64]{
+		Round: 1,
+		Commit: pgrandpa.Commit[hash.H256, uint64]{
+			TargetHash:   a,
+			TargetNumber: 1,
+			Precommits:   precommits,
+		},
+		VoteAncestries: hederList,
+	}
 
-// 	target := hashNumber[string, uint]{
-// 		hash:   "a",
-// 		number: 1,
-// 	}
+	encodedJustification, err := scale.Marshal(expectedJustification)
+	require.NoError(t, err)
 
-// 	IDWeights := make([]grandpa.IDWeight[dummyAuthID], 0)
-// 	for i := 1; i <= 4; i++ {
-// 		IDWeights = append(IDWeights, grandpa.IDWeight[dummyAuthID]{dummyAuthID(i), 1}) //nolint
-// 	}
-// 	voters := grandpa.NewVoterSet(IDWeights)
+	target := hashNumber[hash.H256, uint64]{
+		hash:   a,
+		number: 1,
+	}
 
-// 	newJustification, err := decodeAndVerifyFinalizes[string, uint, string, dummyAuthID, testHeader[string, uint]](
-// 		encValid,
-// 		target,
-// 		2,
-// 		*voters)
-// 	require.NoError(t, err)
-// 	require.Equal(t, validJustification, newJustification)
-// }
+	idWeights := make([]grandpa.IDWeight[string], 0)
+	for i := 1; i <= 3; i++ {
+		var id ced25519.Public
+		switch i {
+		case 1:
+			id = ed25519.Alice.Pair().Public().(ced25519.Public)
+		case 2:
+			id = ed25519.Bob.Pair().Public().(ced25519.Public)
+		case 3:
+			id = ed25519.Charlie.Pair().Public().(ced25519.Public)
+		case 4:
+			id = ed25519.Ferdie.Pair().Public().(ced25519.Public)
+		}
+		idWeights = append(idWeights, grandpa.IDWeight[string]{
+			ID: string(id[:]), Weight: 1,
+		})
+	}
+	voters := grandpa.NewVoterSet(idWeights)
+
+	newJustification, err := decodeAndVerifyFinalizes[hash.H256, uint64, runtime.BlakeTwo256](
+		encodedJustification,
+		target,
+		1,
+		*voters)
+	require.NoError(t, err)
+	require.Equal(t, expectedJustification, newJustification.Justification)
+}
 
 // func TestJustification_verify(t *testing.T) {
 // 	// Nil voter case
