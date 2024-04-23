@@ -197,8 +197,6 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID pgrandpa.Author
 func updateBestJustification[
 	Hash runtime.Hash,
 	N runtime.Number,
-	S comparable,
-	ID pgrandpa.AuthorityID,
 ](
 	justification GrandpaJustification[Hash, N],
 	write writeAux) error {

@@ -4,6 +4,7 @@
 package grandpa
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/client/consensus/grandpa/mocks"
@@ -15,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -204,12 +206,9 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 	hederList := []runtime.Header[uint64, hash.H256]{headerB}
 
 	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
-	precommit := makePrecommit(t, string(a), 1, 1, 1, ed25519.Alice)
-	precommits = append(precommits, precommit)
-	precommit = makePrecommit(t, string(a), 1, 1, 1, ed25519.Bob)
-	precommits = append(precommits, precommit)
-	precommit = makePrecommit(t, string(headerB.Hash()), 2, 1, 1, ed25519.Charlie)
-	precommits = append(precommits, precommit)
+	precommits = append(precommits, makePrecommit(t, string(a), 1, 1, 1, ed25519.Alice))
+	precommits = append(precommits, makePrecommit(t, string(a), 1, 1, 1, ed25519.Bob))
+	precommits = append(precommits, makePrecommit(t, string(headerB.Hash()), 2, 1, 1, ed25519.Charlie))
 
 	expectedJustification := pgrandpa.GrandpaJustification[hash.H256, uint64]{
 		Round: 1,
@@ -230,7 +229,7 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 	}
 
 	idWeights := make([]grandpa.IDWeight[string], 0)
-	for i := 1; i <= 3; i++ {
+	for i := 1; i <= 4; i++ {
 		var id ced25519.Public
 		switch i {
 		case 1:
@@ -257,337 +256,393 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 	require.Equal(t, expectedJustification, newJustification.Justification)
 }
 
-// func TestJustification_verify(t *testing.T) {
-// 	// Nil voter case
-// 	auths := make(AuthorityList[dummyAuthID], 0)
-// 	justification := GrandpaJustification[string, uint, string, dummyAuthID]{}
-// 	err := justification.Verify(2, auths)
-// 	require.ErrorIs(t, err, errInvalidAuthoritiesSet)
+func TestJustification_verify(t *testing.T) {
+	// Nil voter case
+	auths := make(pgrandpa.AuthorityList, 0)
+	justification := GrandpaJustification[hash.H256, uint64]{}
+	err := justification.Verify(2, auths)
+	require.ErrorIs(t, err, errInvalidAuthoritiesSet)
 
-// 	// happy path
-// 	for i := 1; i <= 4; i++ {
-// 		auths = append(auths, Authority[dummyAuthID]{
-// 			dummyAuthID(i),
-// 			1,
-// 		})
-// 	}
+	// happy path
+	for i := 1; i <= 4; i++ {
+		var id ced25519.Public
+		switch i {
+		case 1:
+			id = ed25519.Alice.Pair().Public().(ced25519.Public)
+		case 2:
+			id = ed25519.Bob.Pair().Public().(ced25519.Public)
+		case 3:
+			id = ed25519.Charlie.Pair().Public().(ced25519.Public)
+		case 4:
+			id = ed25519.Ferdie.Pair().Public().(ced25519.Public)
+		}
+		auths = append(auths, pgrandpa.AuthorityIDWeight{
+			AuthorityID:     id,
+			AuthorityWeight: 1,
+		})
+	}
 
-// 	headerB := Header[string, uint](testHeader[string, uint]{
-// 		HashField:       "b",
-// 		ParentHashField: "a",
-// 	})
+	var a hash.H256 = "a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+	headerB := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		2,
+		hash.H256(""),
+		hash.H256(""),
+		a,
+		runtime.Digest{})
 
-// 	headerList := []Header[string, uint]{
-// 		headerB,
-// 	}
+	headerList := []runtime.Header[uint64, hash.H256]{headerB}
 
-// 	var precommits []grandpa.SignedPrecommit[string, uint, string, dummyAuthID]
-// 	precommit := makePrecommit(t, "a", 1, 1)
-// 	precommits = append(precommits, precommit)
+	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
+	precommits = append(precommits, makePrecommit(t, string(a), 1, 1, 2, ed25519.Alice))
+	precommits = append(precommits, makePrecommit(t, string(a), 1, 1, 2, ed25519.Bob))
+	precommits = append(precommits, makePrecommit(t, string(headerB.Hash()), 2, 1, 2, ed25519.Charlie))
 
-// 	precommit = makePrecommit(t, "a", 1, 2)
-// 	precommits = append(precommits, precommit)
+	validJustification := GrandpaJustification[hash.H256, uint64]{
+		Justification: pgrandpa.GrandpaJustification[hash.H256, uint64]{
+			Round: 1,
+			Commit: pgrandpa.Commit[hash.H256, uint64]{
+				TargetHash:   a,
+				TargetNumber: 1,
+				Precommits:   precommits,
+			},
+			VoteAncestries: headerList,
+		},
+	}
 
-// 	precommit = makePrecommit(t, "b", 2, 3)
-// 	precommits = append(precommits, precommit)
+	err = validJustification.Verify(2, auths)
+	require.NoError(t, err)
+}
 
-// 	validJustification := GrandpaJustification[string, uint, string, dummyAuthID]{
-// 		Commit: grandpa.Commit[string, uint, string, dummyAuthID]{
-// 			TargetHash:   "a",
-// 			TargetNumber: 1,
-// 			Precommits:   precommits,
-// 		},
-// 		VotesAncestries: headerList,
-// 	}
+func TestJustification_verifyWithVoterSet(t *testing.T) {
+	// 1) invalid commit
+	idWeights := make([]grandpa.IDWeight[string], 0)
+	for i := 1; i <= 4; i++ {
+		var id ced25519.Public
+		switch i {
+		case 1:
+			id = ed25519.Alice.Pair().Public().(ced25519.Public)
+		case 2:
+			id = ed25519.Bob.Pair().Public().(ced25519.Public)
+		case 3:
+			id = ed25519.Charlie.Pair().Public().(ced25519.Public)
+		case 4:
+			id = ed25519.Ferdie.Pair().Public().(ced25519.Public)
+		}
+		idWeights = append(idWeights, grandpa.IDWeight[string]{
+			ID: string(id[:]), Weight: 1,
+		})
+	}
+	voters := grandpa.NewVoterSet(idWeights)
 
-// 	err = validJustification.Verify(2, auths)
-// 	require.NoError(t, err)
-// }
+	invalidJustification := GrandpaJustification[hash.H256, uint64]{
+		pgrandpa.GrandpaJustification[hash.H256, uint64]{
+			Commit: pgrandpa.Commit[hash.H256, uint64]{
+				TargetHash:   "B",
+				TargetNumber: 2,
+			},
+		},
+	}
 
-// func TestJustification_verifyWithVoterSet(t *testing.T) {
-// 	// 1) invalid commit
-// 	IDWeights := make([]grandpa.IDWeight[dummyAuthID], 0)
-// 	for i := 1; i <= 4; i++ {
-// 		IDWeights = append(IDWeights, grandpa.IDWeight[dummyAuthID]{dummyAuthID(i), 1}) //nolint
-// 	}
-// 	voters := grandpa.NewVoterSet(IDWeights)
+	err := invalidJustification.verifyWithVoterSet(2, *voters)
+	require.ErrorIs(t, err, errBadJustification)
+	require.Equal(t, err.Error(), "bad justification for header: invalid commit in grandpa justification")
 
-// 	invalidJustification := GrandpaJustification[string, uint, string, dummyAuthID]{
-// 		Commit: grandpa.Commit[string, uint, string, dummyAuthID]{
-// 			TargetHash:   "B",
-// 			TargetNumber: 2,
-// 			Precommits:   []grandpa.SignedPrecommit[string, uint, string, dummyAuthID]{},
-// 		},
-// 	}
+	// 2) visitedHashes != ancestryHashes
+	headerA := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		1,
+		hash.H256(""),
+		hash.H256(""),
+		hash.H256(""),
+		runtime.Digest{})
 
-// 	err := invalidJustification.verifyWithVoterSet(2, *voters)
-// 	require.ErrorIs(t, err, errBadJustification)
-// 	require.Equal(t, err.Error(), "bad justification for header: invalid commit in grandpa justification")
+	headerB := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		2,
+		hash.H256(""),
+		hash.H256(""),
+		headerA.Hash(),
+		runtime.Digest{})
 
-// 	// 2) visitedHashes != ancestryHashes
-// 	headerA := Header[string, uint](testHeader[string, uint]{
-// 		HashField: "a",
-// 	})
+	headerList := []runtime.Header[uint64, hash.H256]{
+		headerA,
+		headerB,
+	}
 
-// 	headerB := Header[string, uint](testHeader[string, uint]{
-// 		HashField:       "b",
-// 		ParentHashField: "a",
-// 	})
+	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
+	precommits = append(precommits, makePrecommit(t, string(headerA.Hash()), 1, 1, 2, ed25519.Alice))
+	precommits = append(precommits, makePrecommit(t, string(headerA.Hash()), 1, 1, 2, ed25519.Bob))
+	precommits = append(precommits, makePrecommit(t, string(headerB.Hash()), 2, 1, 2, ed25519.Charlie))
 
-// 	headerList := []Header[string, uint]{
-// 		headerA,
-// 		headerB,
-// 	}
+	validJustification := GrandpaJustification[hash.H256, uint64]{
+		pgrandpa.GrandpaJustification[hash.H256, uint64]{
+			Commit: pgrandpa.Commit[hash.H256, uint64]{
+				TargetHash:   headerA.Hash(),
+				TargetNumber: 1,
+				Precommits:   precommits,
+			},
+			VoteAncestries: headerList,
+			Round:          1,
+		},
+	}
 
-// 	var precommits []grandpa.SignedPrecommit[string, uint, string, dummyAuthID]
-// 	precommit := makePrecommit(t, "a", 1, 1)
-// 	precommits = append(precommits, precommit)
+	err = validJustification.verifyWithVoterSet(2, *voters)
+	require.ErrorIs(t, err, errBadJustification)
+	require.Equal(t, err.Error(), "bad justification for header: "+
+		"invalid precommit ancestries in grandpa justification with unused headers")
 
-// 	precommit = makePrecommit(t, "a", 1, 2)
-// 	precommits = append(precommits, precommit)
+	// Valid case
+	headerList = []runtime.Header[uint64, hash.H256]{
+		headerB,
+	}
 
-// 	precommit = makePrecommit(t, "b", 2, 3)
-// 	precommits = append(precommits, precommit)
+	validJustification = GrandpaJustification[hash.H256, uint64]{
+		pgrandpa.GrandpaJustification[hash.H256, uint64]{
+			Commit: pgrandpa.Commit[hash.H256, uint64]{
+				TargetHash:   headerA.Hash(),
+				TargetNumber: 1,
+				Precommits:   precommits,
+			},
+			VoteAncestries: headerList,
+			Round:          1,
+		},
+	}
 
-// 	validJustification := GrandpaJustification[string, uint, string, dummyAuthID]{
-// 		Commit: grandpa.Commit[string, uint, string, dummyAuthID]{
-// 			TargetHash:   "a",
-// 			TargetNumber: 1,
-// 			Precommits:   precommits,
-// 		},
-// 		VotesAncestries: headerList,
-// 	}
+	err = validJustification.verifyWithVoterSet(2, *voters)
+	require.NoError(t, err)
+}
 
-// 	err = validJustification.verifyWithVoterSet(2, *voters)
-// 	require.ErrorIs(t, err, errBadJustification)
-// 	require.Equal(t, err.Error(), "bad justification for header: "+
-// 		"invalid precommit ancestries in grandpa justification with unused headers")
+func Test_newAncestryChain(t *testing.T) {
+	dummyHeader := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		1,
+		hash.H256(""),
+		hash.H256(""),
+		hash.H256(""),
+		runtime.Digest{})
 
-// 	// Valid case
-// 	headerList = []Header[string, uint]{
-// 		headerB,
-// 	}
+	expAncestryMap := make(map[hash.H256]runtime.Header[uint64, hash.H256])
+	expAncestryMap[dummyHeader.Hash()] = dummyHeader
+	type testCase struct {
+		name    string
+		headers []runtime.Header[uint64, hash.H256]
+		want    ancestryChain[hash.H256, uint64]
+	}
+	tests := []testCase{
+		{
+			name:    "noInputHeaders",
+			headers: []runtime.Header[uint64, hash.H256]{},
+			want: ancestryChain[hash.H256, uint64]{
+				ancestry: make(map[hash.H256]runtime.Header[uint64, hash.H256]),
+			},
+		},
+		{
+			name: "validInput",
+			headers: []runtime.Header[uint64, hash.H256]{
+				dummyHeader,
+			},
+			want: ancestryChain[hash.H256, uint64]{
+				ancestry: expAncestryMap,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := newAncestryChain[hash.H256, uint64](tt.headers); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("newAncestryChain() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
-// 	validJustification = GrandpaJustification[string, uint, string, dummyAuthID]{
-// 		Commit: grandpa.Commit[string, uint, string, dummyAuthID]{
-// 			TargetHash:   "a",
-// 			TargetNumber: 1,
-// 			Precommits:   precommits,
-// 		},
-// 		VotesAncestries: headerList,
-// 	}
+func TestAncestryChain_Ancestry(t *testing.T) {
+	headerA := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		1,
+		hash.H256(""),
+		hash.H256(""),
+		hash.H256(""),
+		runtime.Digest{})
 
-// 	err = validJustification.verifyWithVoterSet(2, *voters)
-// 	require.NoError(t, err)
-// }
+	headerB := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		2,
+		hash.H256(""),
+		hash.H256(""),
+		headerA.Hash(),
+		runtime.Digest{})
 
-// func Test_newAncestryChain(t *testing.T) {
-// 	dummyHeader := testHeader[string, uint]{
-// 		HashField: "a",
-// 	}
-// 	expAncestryMap := make(map[string]testHeader[string, uint])
-// 	hash := dummyHeader.Hash()
-// 	expAncestryMap[hash] = dummyHeader
-// 	type testCase[H constraints.Ordered, N constraints.Unsigned] struct {
-// 		name    string
-// 		headers []testHeader[H, N]
-// 		want    ancestryChain[H, N, testHeader[H, N]]
-// 	}
-// 	tests := []testCase[string, uint]{
-// 		{
-// 			name:    "noInputHeaders",
-// 			headers: []testHeader[string, uint]{},
-// 			want: ancestryChain[string, uint, testHeader[string, uint]]{
-// 				ancestry: make(map[string]testHeader[string, uint]),
-// 			},
-// 		},
-// 		{
-// 			name: "validInput",
-// 			headers: []testHeader[string, uint]{
-// 				dummyHeader,
-// 			},
-// 			want: ancestryChain[string, uint, testHeader[string, uint]]{
-// 				ancestry: expAncestryMap,
-// 			},
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			if got := newAncestryChain[string, uint](tt.headers); !reflect.DeepEqual(got, tt.want) {
-// 				t.Errorf("newAncestryChain() = %v, want %v", got, tt.want)
-// 			}
-// 		})
-// 	}
-// }
+	headerC := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		3,
+		hash.H256(""),
+		hash.H256(""),
+		headerB.Hash(),
+		runtime.Digest{})
 
-// func TestAncestryChain_Ancestry(t *testing.T) {
-// 	headerA := testHeader[string, uint]{
-// 		HashField: "a",
-// 	}
+	invalidParentHeader := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		2,
+		hash.H256(""),
+		hash.H256(""),
+		hash.H256("invalid"),
+		runtime.Digest{})
 
-// 	headerB := testHeader[string, uint]{
-// 		HashField:       "b",
-// 		ParentHashField: "a",
-// 	}
+	headerList := []runtime.Header[uint64, hash.H256]{
+		headerA,
+		headerB,
+		headerC,
+	}
+	invalidHeaderList := []runtime.Header[uint64, hash.H256]{
+		invalidParentHeader,
+	}
+	validAncestryMap := newAncestryChain[hash.H256, uint64](headerList)
+	invalidAncestryMap := newAncestryChain[hash.H256, uint64](invalidHeaderList)
 
-// 	headerC := testHeader[string, uint]{
-// 		HashField:       "c",
-// 		ParentHashField: "b",
-// 	}
+	type testCase struct {
+		name   string
+		chain  ancestryChain[hash.H256, uint64]
+		base   hash.H256
+		block  hash.H256
+		want   []hash.H256
+		expErr error
+	}
+	tests := []testCase{
+		{
+			name:  "baseEqualsBlock",
+			chain: validAncestryMap,
+			base:  headerA.Hash(),
+			block: headerA.Hash(),
+			want:  []hash.H256{},
+		},
+		{
+			name:   "baseEqualsBlock",
+			chain:  validAncestryMap,
+			base:   headerA.Hash(),
+			block:  "notDescendant",
+			expErr: errBlockNotDescendentOfBase,
+		},
+		{
+			name:   "invalidParentHashField",
+			chain:  invalidAncestryMap,
+			base:   headerA.Hash(),
+			block:  "notDescendant",
+			expErr: errBlockNotDescendentOfBase,
+		},
+		{
+			name:  "validRoute",
+			chain: validAncestryMap,
+			base:  headerA.Hash(),
+			block: headerC.Hash(),
+			want:  []hash.H256{headerB.Hash()},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.chain.Ancestry(tt.base, tt.block)
+			assert.ErrorIs(t, err, tt.expErr)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
 
-// 	invalidParentHeader := testHeader[string, uint]{
-// 		HashField:       "b",
-// 		ParentHashField: "",
-// 	}
+func TestAncestryChain_IsEqualOrDescendantOf(t *testing.T) {
+	headerA := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		1,
+		hash.H256(""),
+		hash.H256(""),
+		hash.H256(""),
+		runtime.Digest{})
 
-// 	headerList := []testHeader[string, uint]{
-// 		headerA,
-// 		headerB,
-// 		headerC,
-// 	}
-// 	invalidHeaderList := []testHeader[string, uint]{
-// 		invalidParentHeader,
-// 	}
-// 	validAncestryMap := newAncestryChain[string, uint](headerList)
-// 	invalidAncestryMap := newAncestryChain[string, uint](invalidHeaderList)
-// 	type testCase[H constraints.Ordered, N constraints.Unsigned] struct {
-// 		name   string
-// 		chain  ancestryChain[H, N, testHeader[H, N]]
-// 		base   H
-// 		block  H
-// 		want   []H
-// 		expErr error
-// 	}
-// 	tests := []testCase[string, uint]{
-// 		{
-// 			name:  "baseEqualsBlock",
-// 			chain: validAncestryMap,
-// 			base:  "a",
-// 			block: "a",
-// 			want:  []string{},
-// 		},
-// 		{
-// 			name:   "baseEqualsBlock",
-// 			chain:  validAncestryMap,
-// 			base:   "a",
-// 			block:  "d",
-// 			expErr: errBlockNotDescendentOfBase,
-// 		},
-// 		{
-// 			name:   "invalidParentHashField",
-// 			chain:  invalidAncestryMap,
-// 			base:   "a",
-// 			block:  "b",
-// 			expErr: errBlockNotDescendentOfBase,
-// 		},
-// 		{
-// 			name:  "validRoute",
-// 			chain: validAncestryMap,
-// 			base:  "a",
-// 			block: "c",
-// 			want:  []string{"b"},
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			got, err := tt.chain.Ancestry(tt.base, tt.block)
-// 			assert.ErrorIs(t, err, tt.expErr)
-// 			assert.Equal(t, tt.want, got)
-// 		})
-// 	}
-// }
+	headerB := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		2,
+		hash.H256(""),
+		hash.H256(""),
+		headerA.Hash(),
+		runtime.Digest{})
 
-// func TestAncestryChain_IsEqualOrDescendantOf(t *testing.T) {
-// 	headerA := testHeader[string, uint]{
-// 		HashField: "a",
-// 	}
+	headerC := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		3,
+		hash.H256(""),
+		hash.H256(""),
+		headerB.Hash(),
+		runtime.Digest{})
 
-// 	headerB := testHeader[string, uint]{
-// 		HashField:       "b",
-// 		ParentHashField: "a",
-// 	}
+	headerList := []runtime.Header[uint64, hash.H256]{
+		headerA,
+		headerB,
+		headerC,
+	}
 
-// 	headerC := testHeader[string, uint]{
-// 		HashField:       "c",
-// 		ParentHashField: "b",
-// 	}
+	validAncestryMap := newAncestryChain[hash.H256, uint64](headerList)
 
-// 	headerList := []testHeader[string, uint]{
-// 		headerA,
-// 		headerB,
-// 		headerC,
-// 	}
+	type testCase struct {
+		name  string
+		chain ancestryChain[hash.H256, uint64]
+		base  hash.H256
+		block hash.H256
+		want  bool
+	}
+	tests := []testCase{
+		{
+			name:  "baseEqualsBlock",
+			chain: validAncestryMap,
+			base:  headerA.Hash(),
+			block: headerA.Hash(),
+			want:  true,
+		},
+		{
+			name:  "baseEqualsBlock",
+			chain: validAncestryMap,
+			base:  headerA.Hash(),
+			block: "someInvalidBLock",
+			want:  false,
+		},
+		{
+			name:  "validRoute",
+			chain: validAncestryMap,
+			base:  headerA.Hash(),
+			block: headerC.Hash(),
+			want:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.chain.IsEqualOrDescendantOf(tt.base, tt.block)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
 
-// 	validAncestryMap := newAncestryChain[string, uint](headerList)
-// 	type testCase[H constraints.Ordered, N constraints.Unsigned] struct {
-// 		name  string
-// 		chain ancestryChain[H, N, testHeader[H, N]]
-// 		base  H
-// 		block H
-// 		want  bool
-// 	}
-// 	tests := []testCase[string, uint]{
-// 		{
-// 			name:  "baseEqualsBlock",
-// 			chain: validAncestryMap,
-// 			base:  "a",
-// 			block: "a",
-// 			want:  true,
-// 		},
-// 		{
-// 			name:  "baseEqualsBlock",
-// 			chain: validAncestryMap,
-// 			base:  "a",
-// 			block: "d",
-// 			want:  false,
-// 		},
-// 		{
-// 			name:  "validRoute",
-// 			chain: validAncestryMap,
-// 			base:  "a",
-// 			block: "c",
-// 			want:  true,
-// 		},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			got := tt.chain.IsEqualOrDescendantOf(tt.base, tt.block)
-// 			assert.Equal(t, tt.want, got)
-// 		})
-// 	}
-// }
+func TestWriteJustification(t *testing.T) {
+	store := newDummyStore()
 
-// func TestWriteJustification(t *testing.T) {
-// 	store := newDummyStore()
+	headerA := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		1,
+		hash.H256(""),
+		hash.H256(""),
+		hash.H256(""),
+		runtime.Digest{})
 
-// 	var precommits []grandpa.SignedPrecommit[string, uint, string, dummyAuthID]
-// 	precommit := makePrecommit(t, "a", 1, 1)
-// 	precommits = append(precommits, precommit)
+	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
+	precommits = append(precommits, makePrecommit(t, string(headerA.Hash()), 1, 1, 1, ed25519.Alice))
 
-// 	expAncestries := make([]Header[string, uint], 0)
-// 	expAncestries = append(expAncestries, testHeader[string, uint]{
-// 		NumberField:     100,
-// 		ParentHashField: "a",
-// 	})
+	expAncestries := make([]runtime.Header[uint64, hash.H256], 0)
+	expAncestries = append(expAncestries, headerA)
 
-// 	justification := GrandpaJustification[string, uint, string, dummyAuthID]{
-// 		Round: 2,
-// 		Commit: grandpa.Commit[string, uint, string, dummyAuthID]{
-// 			TargetHash:   "a",
-// 			TargetNumber: 1,
-// 			Precommits:   precommits,
-// 		},
-// 		VotesAncestries: expAncestries,
-// 	}
+	justification := GrandpaJustification[hash.H256, uint64]{
+		pgrandpa.GrandpaJustification[hash.H256, uint64]{
+			Commit: pgrandpa.Commit[hash.H256, uint64]{
+				TargetHash:   headerA.Hash(),
+				TargetNumber: 1,
+				Precommits:   precommits,
+			},
+			VoteAncestries: expAncestries,
+			Round:          2,
+		},
+	}
 
-// 	_, err := BestJustification[string, uint, string, dummyAuthID, testHeader[string, uint]](store)
-// 	require.ErrorIs(t, err, errValueNotFound)
+	_, err := BestJustification[hash.H256, uint64, runtime.BlakeTwo256](store)
+	require.ErrorIs(t, err, errValueNotFound)
 
-// 	err = updateBestJustification[string, uint, string, dummyAuthID](justification, write(store))
-// 	require.NoError(t, err)
+	err = updateBestJustification[hash.H256, uint64](justification, write(store))
+	require.NoError(t, err)
 
-// 	bestJust, err := BestJustification[string, uint, string, dummyAuthID, testHeader[string, uint]](store)
-// 	require.NoError(t, err)
-// 	require.NotNil(t, bestJust)
-// 	require.Equal(t, justification, *bestJust)
-// }
+	bestJust, err := BestJustification[hash.H256, uint64, runtime.BlakeTwo256](store)
+	require.NoError(t, err)
+	require.NotNil(t, bestJust)
+	require.Equal(t, justification, *bestJust)
+}
