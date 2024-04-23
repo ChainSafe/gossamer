@@ -481,14 +481,14 @@ func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 }
 
 // SetFirstNonOriginSlotNumber saves the first non-origin slot number into the DB
-func (bs *BlockState) SetFirstNonOriginSlotNumber(hash common.Hash, slotNumber uint64) error {
+func (bs *BlockState) setFirstNonOriginSlotNumber(slotNumber uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, slotNumber)
 	return bs.db.Put(firstSlotNumberKey, buf)
 }
 
-// GetFirstNonOriginSlotNumber returns the slot number of the first non origin block
-func (s *BlockState) GetFirstNonOriginSlotNumber() (uint64, error) {
+// getFirstNonOriginSlotNumber returns the slot number of the first non origin block
+func (s *BlockState) getFirstNonOriginSlotNumber() (uint64, error) {
 	slotVal, err := s.db.Get(firstSlotNumberKey)
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
