@@ -487,6 +487,19 @@ func (bs *BlockState) SetFirstNonOriginSlotNumber(hash common.Hash, slotNumber u
 	return bs.db.Put(firstSlotNumberKey, buf)
 }
 
+// GetFirstNonOriginSlotNumber returns the slot number of the first non origin block
+func (s *BlockState) GetFirstNonOriginSlotNumber() (uint64, error) {
+	slotVal, err := s.db.Get(firstSlotNumberKey)
+	if err != nil {
+		if errors.Is(err, database.ErrNotFound) {
+			return 0, nil
+		}
+		return 0, err
+	}
+	val := binary.LittleEndian.Uint64(slotVal)
+	return val, nil
+}
+
 // CompareAndSetBlockData will compare empty fields and set all elements in a block data to db
 func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 	hasReceipt, _ := bs.HasReceipt(bd.Hash)
