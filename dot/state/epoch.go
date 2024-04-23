@@ -4,6 +4,7 @@
 package state
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -538,32 +539,39 @@ func (nem nextEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header
 		return nil, fmt.Errorf("%w: %d", ErrEpochNotInMemory, epoch)
 	}
 
-	headerHash := header.Hash()
-	for hash, value := range atEpoch {
-		isDescendant, err := blockState.IsDescendantOf(hash, headerHash)
+	currentHeader := header
+
+	for {
+		for hash, value := range atEpoch {
+			isDescendant, err := blockState.IsDescendantOf(hash, currentHeader.Hash())
+			if err != nil {
+				if errors.Is(err, database.ErrNotFound) {
+					continue
+				}
+
+				return nil, fmt.Errorf("cannot verify the ancestry: %w", err)
+			}
+
+			if isDescendant {
+				return &value, nil
+			}
+		}
+
+		// if there is no more ancestors then return
+		if bytes.Equal(currentHeader.ParentHash.ToBytes(), common.EmptyHash.ToBytes()) {
+			return nil, fmt.Errorf("%w: could not found config data for hash %s", errHashNotInMemory, currentHeader.Hash())
+		}
 
 		// sometimes while moving to the next epoch is possible the header
 		// is not fully imported by the blocktree, in this case we will use
 		// its parent header which migth be already imported.
-		if errors.Is(err, database.ErrNotFound) {
-			parentHeader, err := blockState.GetHeader(header.ParentHash)
-			if err != nil {
-				return nil, fmt.Errorf("cannot get parent header: %w", err)
-			}
-
-			return nem.Retrieve(blockState, epoch, parentHeader)
-		}
-
+		parentHeader, err := blockState.GetHeader(header.ParentHash)
 		if err != nil {
-			return nil, fmt.Errorf("cannot verify the ancestry: %w", err)
+			return nil, fmt.Errorf("cannot get parent header: %w", err)
 		}
 
-		if isDescendant {
-			return &value, nil
-		}
+		currentHeader = parentHeader
 	}
-
-	return nil, fmt.Errorf("%w: %s", errHashNotInMemory, headerHash)
 }
 
 // GetStartSlotForEpoch returns the first slot in the given epoch, this method receives
@@ -673,6 +681,8 @@ func (s *EpochState) storeBABENextEpochData(epoch uint64, hash common.Hash, next
 func (s *EpochState) storeBABENextConfigData(epoch uint64, hash common.Hash, nextConfigData types.NextConfigDataV1) {
 	s.nextConfigDataLock.Lock()
 	defer s.nextConfigDataLock.Unlock()
+
+	fmt.Printf("storing next config data for epoch %d, hash: %s\n", epoch, hash.String())
 
 	_, has := s.nextConfigData[epoch]
 	if !has {
