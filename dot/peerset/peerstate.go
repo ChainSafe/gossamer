@@ -424,7 +424,7 @@ func (ps *PeersState) forgetPeer(set int, peerID peer.ID) error {
 	}
 
 	if remove {
-		logger.Warnf("removing peer %v from peerset", peerID)
+		logger.Warnf("removing peer %v from peerset, %v remaining peers", peerID, len(ps.nodes))
 		delete(ps.nodes, peerID)
 	}
 
