@@ -125,10 +125,6 @@ func TestEpochState_ConfigData(t *testing.T) {
 	ret, err := s.GetConfigData(1, nil)
 	require.NoError(t, err)
 	require.Equal(t, data, ret)
-
-	ret, err = s.GetLatestConfigData()
-	require.NoError(t, err)
-	require.Equal(t, data, ret)
 }
 
 func createAndImportBlockOne(t *testing.T, slotNumber uint64, blockState *BlockState) (blockOneHeader *types.Header) {

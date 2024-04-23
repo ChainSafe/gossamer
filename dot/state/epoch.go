@@ -4,6 +4,7 @@
 package state
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -27,12 +28,11 @@ var (
 )
 
 var (
-	epochPrefix         = "epoch"
-	currentEpochKey     = []byte("current")
-	epochDataPrefix     = []byte("epochinfo")
-	configDataPrefix    = []byte("configinfo")
-	latestConfigDataKey = []byte("lcfginfo")
-	skipToKey           = []byte("skipto")
+	epochPrefix      = "epoch"
+	currentEpochKey  = []byte("current")
+	epochDataPrefix  = []byte("epochinfo")
+	configDataPrefix = []byte("configinfo")
+	skipToKey        = []byte("skipto")
 )
 
 func epochDataKey(epoch uint64) []byte {
@@ -56,7 +56,7 @@ type GenesisEpochDescriptor struct {
 
 // EpochState tracks information related to each epoch
 type EpochState struct {
-	db           GetPutter
+	db           GetterPutterNewBatcher
 	baseState    *BaseState
 	blockState   *BlockState
 	epochLength  uint64 // measured in slots
@@ -106,11 +106,6 @@ func NewEpochStateFromGenesis(db database.Database, blockState *BlockState,
 	err := s.StoreCurrentEpoch(0)
 	if err != nil {
 		return nil, fmt.Errorf("storing current epoch")
-	}
-
-	err = s.setLatestConfigData(0)
-	if err != nil {
-		return nil, err
 	}
 
 	if err := s.baseState.storeSkipToEpoch(0); err != nil {
@@ -227,54 +222,62 @@ func (s *EpochState) GetEpochDataRaw(epoch uint64, header *types.Header) (*types
 		return s.genesisEpochDescriptor.EpochData, nil
 	}
 
-	epochDataRaw, err := s.getEpochDataRawFromDatabase(epoch)
-	if err != nil && !errors.Is(err, database.ErrNotFound) {
-		return nil, fmt.Errorf("failed to retrieve epoch data from database: %w", err)
-	}
+	searchOnDatabase := func() (*types.EpochDataRaw, error) {
+		epochDataRaw, err := getEpochDefinitionFromDatabase[types.EpochDataRaw](s.db, epoch, epochDataKey)
+		if err != nil && !errors.Is(err, database.ErrNotFound) {
+			return nil, fmt.Errorf("failed to retrieve epoch data from database: %w", err)
+		}
 
-	if epochDataRaw != nil {
 		return epochDataRaw, nil
 	}
 
-	if header == nil {
-		return nil, errEpochNotInDatabase
+	searchOnMemory := func() (*types.EpochDataRaw, error) {
+		s.nextEpochDataLock.RLock()
+		defer s.nextEpochDataLock.RUnlock()
+
+		inMemoryEpochData, err := s.nextEpochData.Retrieve(s.blockState, epoch, header)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
+		}
+
+		return inMemoryEpochData.ToEpochDataRaw(), nil
 	}
 
-	s.nextEpochDataLock.RLock()
-	defer s.nextEpochDataLock.RUnlock()
-
-	inMemoryEpochData, err := s.nextEpochData.Retrieve(s.blockState, epoch, header)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
-	}
-
-	return inMemoryEpochData.ToEpochDataRaw(), nil
+	return retrieveEpochDefinitions(searchOnDatabase, searchOnMemory)
 }
 
-// getEpochDataRawFromDatabase returns the epoch data for a given epoch persisted in database
-func (s *EpochState) getEpochDataRawFromDatabase(epoch uint64) (*types.EpochDataRaw, error) {
-	enc, err := s.db.Get(epochDataKey(epoch))
-	if err != nil {
-		return nil, err
+// GetSkippedEpochDataRaw returns the raw epoch data for a skipped epoch that is stored in advance
+// of the start of the given epoch, also this method will update the epoch number from the
+// skipped epoch to the current epoch
+func (s *EpochState) GetSkippedEpochDataRaw(skippedEpoch, currentEpoch uint64,
+	header *types.Header) (*types.EpochDataRaw, error) {
+	if skippedEpoch == 0 {
+		return s.genesisEpochDescriptor.EpochData, nil
 	}
 
-	raw := new(types.EpochDataRaw)
-	err = scale.Unmarshal(enc, raw)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshaling into epoch data raw: %w", err)
+	searchOnDatabase := func() (*types.EpochDataRaw, error) {
+		epochDataRaw, err := getAndUpdateEpochDefinitionKey[types.EpochDataRaw](s.db, skippedEpoch, currentEpoch)
+		if err != nil && !errors.Is(err, database.ErrNotFound) {
+			return nil, fmt.Errorf("failed to retrieve epoch data from database: %w", err)
+		}
+
+		return epochDataRaw, nil
 	}
 
-	return raw, nil
-}
+	searchOnMemory := func() (*types.EpochDataRaw, error) {
+		s.nextEpochDataLock.RLock()
+		defer s.nextEpochDataLock.RUnlock()
 
-// GetLatestEpochDataRaw returns the EpochData for the current epoch
-func (s *EpochState) GetLatestEpochDataRaw() (*types.EpochDataRaw, error) {
-	curr, err := s.GetCurrentEpoch()
-	if err != nil {
-		return nil, err
+		inMemoryEpochData, err := s.nextEpochData.RetrieveAndUpdate(s.blockState,
+			skippedEpoch, currentEpoch, header)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get epoch data from memory: %w", err)
+		}
+
+		return inMemoryEpochData.ToEpochDataRaw(), nil
 	}
 
-	return s.GetEpochDataRaw(curr, nil)
+	return retrieveEpochDefinitions(searchOnDatabase, searchOnMemory)
 }
 
 // StoreConfigData sets the BABE config data for a given epoch
@@ -284,18 +287,7 @@ func (s *EpochState) StoreConfigData(epoch uint64, info *types.ConfigData) error
 		return err
 	}
 
-	// this assumes the most recently set config data is the highest on the chain
-	if err = s.setLatestConfigData(epoch); err != nil {
-		return err
-	}
-
 	return s.db.Put(configDataKey(epoch), enc)
-}
-
-func (s *EpochState) setLatestConfigData(epoch uint64) error {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, epoch)
-	return s.db.Put(latestConfigDataKey, buf)
 }
 
 // GetConfigData returns the newest config data for a given epoch persisted in database
@@ -304,53 +296,175 @@ func (s *EpochState) setLatestConfigData(epoch uint64) error {
 // - The supplied configuration data are intended to be used from the next epoch onwards.
 // If the header params is nil then it will search only in the database.
 func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (configData *types.ConfigData, err error) {
+	if epoch == 0 {
+		return s.genesisEpochDescriptor.ConfigData, nil
+	}
+
+	searchOnDatabase := func(epoch uint64) retrieveFrom[types.ConfigData] {
+		return func() (*types.ConfigData, error) {
+			configData, err = getEpochDefinitionFromDatabase[types.ConfigData](
+				s.db, epoch, configDataKey)
+			if err != nil && !errors.Is(err, database.ErrNotFound) {
+				return nil, err
+			}
+
+			return configData, nil
+		}
+	}
+
+	searchOnMemory := func(epoch uint64) retrieveFrom[types.ConfigData] {
+		return func() (*types.ConfigData, error) {
+			// we will check in the memory map and if we don't find the data
+			// then we continue searching through the previous epoch
+			s.nextConfigDataLock.RLock()
+			defer s.nextConfigDataLock.RUnlock()
+			inMemoryConfigData, err := s.nextConfigData.Retrieve(s.blockState, epoch, header)
+			if err != nil {
+				return nil, err
+			}
+
+			return inMemoryConfigData.ToConfigData(), nil
+		}
+	}
+
 	for tryEpoch := int(epoch); tryEpoch >= 0; tryEpoch-- {
 		if tryEpoch == 0 {
 			return s.genesisEpochDescriptor.ConfigData, nil
 		}
 
-		configData, err = s.getConfigDataFromDatabase(uint64(tryEpoch))
-		if err != nil && !errors.Is(err, database.ErrNotFound) {
-			return nil, fmt.Errorf("failed to retrieve config epoch from database: %w", err)
+		configData, err := retrieveEpochDefinitions(
+			searchOnDatabase(uint64(tryEpoch)),
+			searchOnMemory(uint64(tryEpoch)),
+		)
+
+		if err != nil {
+			if errors.Is(err, errEpochNotInDatabase) || errors.Is(err, ErrEpochNotInMemory) {
+				continue
+			}
+
+			return nil, fmt.Errorf("while iterating on epoch %d: %w", tryEpoch, err)
 		}
 
-		if configData != nil {
-			return configData, nil
-		}
-
-		// there is no config data for the `tryEpoch` on database and we don't have a
-		// header to lookup in the memory map, so let's go retrieve the previous epoch
-		if header == nil {
-			continue
-		}
-
-		// we will check in the memory map and if we don't find the data
-		// then we continue searching through the previous epoch
-		s.nextConfigDataLock.RLock()
-		inMemoryConfigData, err := s.nextConfigData.Retrieve(s.blockState, uint64(tryEpoch), header)
-		s.nextConfigDataLock.RUnlock()
-
-		if errors.Is(err, ErrEpochNotInMemory) {
-			continue
-		} else if err != nil {
-			return nil, fmt.Errorf("failed to get config data from memory: %w", err)
-		}
-
-		return inMemoryConfigData.ToConfigData(), err
+		return configData, err
 	}
 
 	return nil, fmt.Errorf("%w: epoch %d", ErrConfigNotFound, epoch)
 }
 
-// getConfigDataFromDatabase returns the BABE config data for a given epoch persisted in database
-func (s *EpochState) getConfigDataFromDatabase(epoch uint64) (*types.ConfigData, error) {
-	enc, err := s.db.Get(configDataKey(epoch))
+func (s *EpochState) GetSkippedConfigData(skippedEpoch, currentEpoch uint64,
+	header *types.Header) (*types.ConfigData, error) {
+	if skippedEpoch == 0 {
+		return s.genesisEpochDescriptor.ConfigData, nil
+	}
+
+	searchOnDatabase := func() (*types.ConfigData, error) {
+		configData, err := getAndUpdateEpochDefinitionKey[types.ConfigData](
+			s.db, skippedEpoch, currentEpoch)
+		if err != nil && !errors.Is(err, database.ErrNotFound) {
+			return nil, fmt.Errorf("getting and updating epoch definition key: %w", err)
+		}
+		return configData, nil
+	}
+
+	searchOnMemory := func() (*types.ConfigData, error) {
+		s.nextConfigDataLock.RLock()
+		defer s.nextConfigDataLock.RUnlock()
+
+		inMemoryConfigData, err := s.nextConfigData.RetrieveAndUpdate(s.blockState,
+			skippedEpoch, currentEpoch, header)
+		if err != nil {
+			return nil, fmt.Errorf("retrieving and updating in memory epoch definition: %w", err)
+		}
+
+		return inMemoryConfigData.ToConfigData(), nil
+	}
+
+	skippedConfigData, err := retrieveEpochDefinitions(searchOnDatabase, searchOnMemory)
+	if err != nil {
+		if errors.Is(err, ErrEpochNotInMemory) || errors.Is(err, errEpochNotInDatabase) {
+			// if there is no config data for the skipped epoch them
+			// we keep searching using previous epochs
+			return s.GetConfigData(skippedEpoch-1, header)
+		}
+
+		return nil, fmt.Errorf("retrieving epoch definitions: %w", err)
+	}
+
+	return skippedConfigData, nil
+}
+
+// retrieveFrom type annotation makes it generic to query the database
+// or memory in order to find some data
+type retrieveFrom[T types.EpochDataRaw | types.ConfigData] func() (*T, error)
+
+func retrieveEpochDefinitions[T types.EpochDataRaw | types.ConfigData](
+	fromDatabase retrieveFrom[T], fromMemory retrieveFrom[T]) (
+	epochDataRaw *T, err error) {
+
+	epochDataRaw, err = fromDatabase()
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve epoch data from database: %w", err)
+	}
+
+	if epochDataRaw != nil {
+		return epochDataRaw, nil
+	}
+
+	if fromMemory == nil {
+		return nil, errEpochNotInDatabase
+	}
+
+	return fromMemory()
+}
+
+type prefixedKeyBuilder func(epoch uint64) []byte
+
+func getAndUpdateEpochDefinitionKey[T types.ConfigData | types.EpochDataRaw](
+	db GetterPutterNewBatcher, oldEpoch, newEpoch uint64) (*T, error) {
+	rawBytes, err := db.Get(epochDataKey(oldEpoch))
+	if err != nil {
+		return nil, fmt.Errorf("getting epoch data: %w", err)
+	}
+
+	updateKeyBatcher := db.NewBatch()
+	defer func() {
+		if err := updateKeyBatcher.Close(); err != nil {
+			logger.Criticalf("cannot close epoch data raw batcher: %w", err)
+		}
+	}()
+
+	err = updateKeyBatcher.Del(epochDataKey(oldEpoch))
+	if err != nil {
+		return nil, fmt.Errorf("deleting old epoch key: %w", err)
+	}
+
+	err = updateKeyBatcher.Put(epochDataKey(newEpoch), rawBytes)
+	if err != nil {
+		return nil, fmt.Errorf("storing new epoch key: %w", err)
+	}
+
+	if err := updateKeyBatcher.Flush(); err != nil {
+		return nil, fmt.Errorf("flushing batcher: %w", err)
+	}
+
+	raw := new(T)
+	err = scale.Unmarshal(rawBytes, raw)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling into epoch data raw: %w", err)
+	}
+
+	return raw, nil
+}
+
+func getEpochDefinitionFromDatabase[T types.ConfigData | types.EpochDataRaw](
+	db Getter, epoch uint64, usePrefix prefixedKeyBuilder) (*T, error) {
+	rawBytes, err := db.Get(usePrefix(epoch))
 	if err != nil {
 		return nil, err
 	}
 
-	info := &types.ConfigData{}
-	err = scale.Unmarshal(enc, info)
+	info := new(T)
+	err = scale.Unmarshal(rawBytes, info)
 	if err != nil {
 		return nil, err
 	}
@@ -407,49 +521,57 @@ func (s *EpochState) HandleBABEDigest(header *types.Header, digest types.BabeCon
 
 type nextEpochMap[T types.NextEpochData | types.NextConfigDataV1] map[uint64]map[common.Hash]T
 
+func (nem nextEpochMap[T]) RetrieveAndUpdate(blockState *BlockState,
+	oldEpoch, newEpoch uint64, header *types.Header) (*T, error) {
+	find, err := nem.Retrieve(blockState, oldEpoch, header)
+	if err != nil {
+		return nil, fmt.Errorf("retrieving next epoch data: %w", err)
+	}
+
+	nem[newEpoch] = nem[oldEpoch]
+	delete(nem, oldEpoch)
+	return find, nil
+}
+
 func (nem nextEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header *types.Header) (*T, error) {
 	atEpoch, has := nem[epoch]
 	if !has {
 		return nil, fmt.Errorf("%w: %d", ErrEpochNotInMemory, epoch)
 	}
 
-	headerHash := header.Hash()
-	for hash, value := range atEpoch {
-		isDescendant, err := blockState.IsDescendantOf(hash, headerHash)
+	currentHeader := header
+
+	for {
+		for hash, value := range atEpoch {
+			isDescendant, err := blockState.IsDescendantOf(hash, currentHeader.Hash())
+			if err != nil {
+				if errors.Is(err, database.ErrNotFound) {
+					continue
+				}
+
+				return nil, fmt.Errorf("cannot verify the ancestry: %w", err)
+			}
+
+			if isDescendant {
+				return &value, nil
+			}
+		}
+
+		// if there is no more ancestors then return
+		if bytes.Equal(currentHeader.ParentHash.ToBytes(), common.EmptyHash.ToBytes()) {
+			return nil, fmt.Errorf("%w: could not found config data for hash %s", errHashNotInMemory, currentHeader.Hash())
+		}
 
 		// sometimes while moving to the next epoch is possible the header
 		// is not fully imported by the blocktree, in this case we will use
 		// its parent header which migth be already imported.
-		if errors.Is(err, database.ErrNotFound) {
-			parentHeader, err := blockState.GetHeader(header.ParentHash)
-			if err != nil {
-				return nil, fmt.Errorf("cannot get parent header: %w", err)
-			}
-
-			return nem.Retrieve(blockState, epoch, parentHeader)
-		}
-
+		parentHeader, err := blockState.GetHeader(header.ParentHash)
 		if err != nil {
-			return nil, fmt.Errorf("cannot verify the ancestry: %w", err)
+			return nil, fmt.Errorf("cannot get parent header: %w", err)
 		}
 
-		if isDescendant {
-			return &value, nil
-		}
+		currentHeader = parentHeader
 	}
-
-	return nil, fmt.Errorf("%w: %s", errHashNotInMemory, headerHash)
-}
-
-// GetLatestConfigData returns the most recently set ConfigData
-func (s *EpochState) GetLatestConfigData() (*types.ConfigData, error) {
-	b, err := s.db.Get(latestConfigDataKey)
-	if err != nil {
-		return nil, err
-	}
-
-	epoch := binary.LittleEndian.Uint64(b)
-	return s.GetConfigData(epoch, nil)
 }
 
 // GetStartSlotForEpoch returns the first slot in the given epoch, this method receives
@@ -572,6 +694,8 @@ func (s *EpochState) storeBABENextConfigData(epoch uint64, hash common.Hash, nex
 	s.nextConfigDataLock.Lock()
 	defer s.nextConfigDataLock.Unlock()
 
+	fmt.Printf("storing next config data for epoch %d, hash: %s\n", epoch, hash.String())
+
 	_, has := s.nextConfigData[epoch]
 	if !has {
 		s.nextConfigData[epoch] = make(map[common.Hash]types.NextConfigDataV1)
@@ -602,7 +726,8 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 		nextEpoch = finalizedBlockEpoch + 1
 	}
 
-	epochRawInDatabase, err := s.getEpochDataRawFromDatabase(nextEpoch)
+	epochRawInDatabase, err := getEpochDefinitionFromDatabase[types.EpochDataRaw](
+		s.db, nextEpoch, epochDataKey)
 
 	// if an error occurs and the error is database.ErrNotFound we ignore
 	// since this error is what we will handle in the next lines
@@ -658,7 +783,8 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 		nextEpoch = finalizedBlockEpoch + 1
 	}
 
-	configInDatabase, err := s.getConfigDataFromDatabase(nextEpoch)
+	configInDatabase, err := getEpochDefinitionFromDatabase[types.ConfigData](
+		s.db, nextEpoch, epochDataKey)
 
 	// if an error occurs and the error is database.ErrNotFound we ignore
 	// since this error is what we will handle in the next lines

@@ -57,12 +57,12 @@ func TestBuildBlock_ok(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
 	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 
-	parentHash := babeService.blockState.GenesisHash()
-	bestBlockHash := babeService.blockState.BestBlockHash()
-	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
+	parentHash := genesisHeader.Hash()
+	rt, err := babeService.blockState.GetRuntime(parentHash)
 	require.NoError(t, err)
 
-	epochDescriptor, err := babeService.initiateEpoch(testEpochIndex)
+	const epoch = 0
+	epochDescriptor, err := babeService.initiateEpoch(epoch)
 	require.NoError(t, err)
 
 	slot := Slot{
@@ -72,24 +72,19 @@ func TestBuildBlock_ok(t *testing.T) {
 	}
 	extrinsic := runtime.NewTestExtrinsic(t, rt, parentHash, parentHash, 0, signature.TestKeyringPairAlice,
 		"System.remark", []byte{0xab, 0xcd})
-	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{common.MustHexToBytes(extrinsic)},
+	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{common.MustHexToBytes(extrinsic)},
 		epochDescriptor, slot)
 
-	const expectedSecondExtrinsic = "0x042d000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" //nolint:lll
-	expectedBlockHeader := &types.Header{
-		ParentHash: emptyHeader.Hash(),
-		Number:     1,
-	}
-
-	require.Equal(t, expectedBlockHeader.ParentHash, block.Header.ParentHash)
-	require.Equal(t, expectedBlockHeader.Number, block.Header.Number)
+	const expectedSecondExtrinsic = "0x042d00000000000000000000000000000000000000000000000000000000000000000000000000953044ba4386a72ae434d2a2fbdfca77640a28ac3841a924674cbfe7a8b9a81c03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c11131400" //nolint:lll
+	require.Equal(t, parentHash, block.Header.ParentHash)
+	require.Equal(t, uint(1), block.Header.Number)
 	require.NotEqual(t, block.Header.StateRoot, emptyHash)
 	require.NotEqual(t, block.Header.ExtrinsicsRoot, emptyHash)
 	require.Equal(t, 3, len(block.Header.Digest))
 
 	// confirm block body is correct
 	extsBytes := types.ExtrinsicsArrayToBytesArray(block.Body)
-	require.Equal(t, 2, len(extsBytes))
+	require.Equal(t, 3, len(extsBytes))
 	// The first extrinsic is based on timestamp so is not consistent, but since the second is based on
 	// Parachn0 and Newheads inherents this can be asserted against. This works for now since we don't support real
 	// parachain data in these inherents currently, but when we do this will need to be updated
