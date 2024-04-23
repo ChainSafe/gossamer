@@ -22,10 +22,10 @@ var ErrNotExpectedOnCollatorSide = errors.New("message is not expected on the co
 
 type CollatorProtocolCollatorSide struct {
 	net         Network
-	collatingOn parachaintypes.ParaID
+	collatingOn parachaintypes.ParaID //nolint
 }
 
-func (cpcs CollatorProtocolCollatorSide) processMessage(msg any) error {
+func (cpcs CollatorProtocolCollatorSide) processMessage(msg any) error { //nolint
 	// run this function as a goroutine, ideally
 
 	switch msg := msg.(type) {

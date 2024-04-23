@@ -159,14 +159,14 @@ func (cpvs *CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(
 
 	if !majorSyncing {
 		// update our view
-		err := cpvs.updateOurView(cpvs.liveHeads)
+		err := cpvs.updateOurView()
 		if err != nil {
 			logger.Errorf("updating our view: %w", err)
 		}
 	}
 }
 
-func (cpvs *CollatorProtocolValidatorSide) updateOurView(liveHeads []parachaintypes.ActivatedLeaf) error {
+func (cpvs *CollatorProtocolValidatorSide) updateOurView() error {
 	headHashes := []common.Hash{}
 	for _, head := range cpvs.liveHeads {
 		headHashes = append(headHashes, head.Hash)
@@ -225,7 +225,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view View) error 
 
 	// handled newly added leaves
 	for _, leaf := range newlyAdded {
-		mode := prospectiveParachainMode(leaf)
+		mode := prospectiveParachainMode()
 
 		perRelayParent := &PerRelayParent{
 			prospectiveParachainMode: mode,
@@ -249,7 +249,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view View) error 
 	for _, leaf := range removed {
 		delete(cpvs.activeLeaves, leaf)
 
-		mode := prospectiveParachainMode(leaf)
+		mode := prospectiveParachainMode()
 		pruned := []common.Hash{}
 		if mode.IsEnabled {
 			// TODO: Do this when we have async backing
@@ -398,7 +398,9 @@ func signingKeyAndIndex(validators []parachaintypes.ValidatorID, ks keystore.Key
 	return nil, 0
 }
 
-func prospectiveParachainMode(relayParent common.Hash) parachaintypes.ProspectiveParachainsMode {
+func prospectiveParachainMode() parachaintypes.ProspectiveParachainsMode {
+	// TODO: complete this method by calling the runtime function
+	// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/subsystem-util/src/runtime/mod.rs#L496 //nolint
 	// NOTE: We will return false until we have support for async backing
 	return parachaintypes.ProspectiveParachainsMode{
 		IsEnabled: false,

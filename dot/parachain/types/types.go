@@ -37,7 +37,8 @@ type GroupRotationInfo struct {
 }
 
 func (gri GroupRotationInfo) CoreForGroup(groupIndex GroupIndex, cores uint8) CoreIndex {
-	// TODO https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/primitives/src/v6/mod.rs#L877
+	//nolint
+	// TODO: https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/primitives/src/v6/mod.rs#L877
 	return CoreIndex{}
 }
 
