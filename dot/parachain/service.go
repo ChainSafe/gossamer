@@ -10,7 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	availability_store "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
-	candidate_validation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
+	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -96,11 +96,11 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	cpvs.OverseerToSubSystem = overseer.RegisterSubsystem(cpvs)
 
 	// register candidate validation subsystem
-	candidateValidationSubsystem, err := candidate_validation.Register(overseer.SubsystemsToOverseer)
+	candidateValidationSubsystem, err := candidatevalidation.Register(overseer.SubsystemsToOverseer)
 	if err != nil {
 		return nil, err
 	}
-	candidateValidationSubsystem.OverseerToSubSystem = overseer.RegisterSubsystem(candidateValidationSubsystem)
+	candidateValidationSubsystem.OverseerToSubsystem = overseer.RegisterSubsystem(candidateValidationSubsystem)
 
 	parachainService := &Service{
 		Network:  net,
