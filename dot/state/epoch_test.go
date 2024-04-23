@@ -767,5 +767,6 @@ func TestFirstSlotNumberFromDb(t *testing.T) {
 	h := firstNonOrirginBlock.Hash()
 	firstSlotNumber, err := epochState.retrieveFirstNonOriginBlockSlot(h)
 	require.NoError(t, err)
-	require.EqualValuesf(t, predefinedSlotNumber, firstSlotNumber, "expected: %d, got: %d", predefinedSlotNumber, firstSlotNumber)
+	require.EqualValuesf(t, predefinedSlotNumber, firstSlotNumber,
+		"expected: %d, got: %d", predefinedSlotNumber, firstSlotNumber)
 }
