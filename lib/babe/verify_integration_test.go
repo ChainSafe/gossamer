@@ -42,7 +42,7 @@ func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 		duration: babeService.constants.slotDuration,
 		number:   epochDescriptor.startSlot,
 	}
-	block := createTestBlockWithSlot(t, babeService, emptyHeader, [][]byte{}, epochDescriptor, slot)
+	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, epochDescriptor, slot)
 
 	err = vm.SetOnDisabled(1, &block.Header)
 	require.Equal(t, ErrInvalidBlockProducerIndex, err)
@@ -67,15 +67,12 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 		randomness:  epochDescriptor.data.randomness,
 	}
 
-	parent, _ := babeService.blockState.BestBlockHeader()
-
 	slot := Slot{
 		start:    getSlotStartTime(epochDescriptor.startSlot, babeService.constants.slotDuration),
 		duration: babeService.constants.slotDuration,
 		number:   epochDescriptor.startSlot,
 	}
 	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, epochDescriptor, slot)
-	err = vm.blockState.AddBlock(block)
 	require.NoError(t, err)
 
 	err = vm.SetOnDisabled(0, &block.Header)
@@ -87,8 +84,7 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 		duration: babeService.constants.slotDuration,
 		number:   epochDescriptor.startSlot,
 	}
-	block = createTestBlockWithSlot(t, babeService, parent, [][]byte{}, epochDescriptor, slot2)
-	err = vm.blockState.AddBlock(block)
+	block = createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, epochDescriptor, slot2)
 	require.NoError(t, err)
 
 	err = vm.SetOnDisabled(0, &block.Header)
@@ -119,7 +115,6 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 		number:   epochDescriptor.startSlot,
 	}
 	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, epochDescriptor, slot)
-	err = vm.blockState.AddBlock(block)
 	require.NoError(t, err)
 
 	err = vm.SetOnDisabled(0, &block.Header)
@@ -132,7 +127,6 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 		number:   epochDescriptor.startSlot,
 	}
 	block2 := createTestBlockWithSlot(t, babeService, &block.Header, [][]byte{}, epochDescriptor, slot2)
-	err = vm.blockState.AddBlock(block2)
 	require.NoError(t, err)
 
 	err = vm.SetOnDisabled(0, &block2.Header)
@@ -431,9 +425,6 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 	block := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, epochDescriptor, slot)
 	block.Header.Hash()
 
-	err = babeService.blockState.AddBlock(block)
-	require.NoError(t, err)
-
 	err = vm.VerifyBlock(&block.Header)
 	require.Equal(t, ErrVRFOutputOverThreshold, errors.Unwrap(err))
 }
@@ -590,13 +581,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	block2 := createTestBlockWithSlot(t, babeService, &genesisHeader, [][]byte{}, epochData, *slot)
 	block2.Header.Hash()
 
-	err = babeService.blockState.AddBlock(block)
-	require.NoError(t, err)
-
 	err = verificationManager.VerifyBlock(&block.Header)
-	require.NoError(t, err)
-
-	err = babeService.blockState.AddBlock(block2)
 	require.NoError(t, err)
 
 	err = verificationManager.VerifyBlock(&block2.Header)
