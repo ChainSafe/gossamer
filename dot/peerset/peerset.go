@@ -191,6 +191,9 @@ type PeerSet struct {
 	nextPeriodicAllocSlots time.Duration
 	// chan for receiving action request.
 	actionQueue <-chan action
+
+	// Jail baby
+	jail []peer.ID
 }
 
 // config is configuration of a single set.
@@ -250,6 +253,7 @@ func newPeerSet(cfg *ConfigSet) (*PeerSet, error) {
 		created:                now,
 		latestTimeUpdate:       now,
 		nextPeriodicAllocSlots: cfgSet.periodicAllocTime,
+		jail:                   make([]peer.ID, 0),
 	}
 
 	return ps, nil
@@ -268,6 +272,22 @@ func reputationTick(reput Reputation) Reputation {
 		diff = 1
 	}
 	return reput.sub(diff)
+}
+
+func (ps *PeerSet) goToJail(peer peer.ID) {
+	ps.Lock()
+	defer ps.Unlock()
+
+	if !slices.Contains(ps.jail, peer) {
+		ps.jail = append(ps.jail, peer)
+		logger.Infof("⛓️🧑⛓️ peers in set: %v, peers in jail: %v", len(ps.peerState.peers()), len(ps.jail))
+	}
+}
+
+func (ps *PeerSet) isInJail(peer peer.ID) bool {
+	ps.Lock()
+	defer ps.Unlock()
+	return slices.Contains(ps.jail, peer)
 }
 
 // updateTime updates the value of latestTimeUpdate and performs all the updates that
@@ -543,7 +563,7 @@ func (ps *PeerSet) setReservedPeer(setID int, peers ...peer.ID) error {
 // and put notConnected peers in to them
 func (ps *PeerSet) addPeer(setID int, peers peer.IDSlice) error {
 	for _, pid := range peers {
-		if ps.peerState.peerStatus(setID, pid) != unknownPeer {
+		if ps.peerState.peerStatus(setID, pid) != unknownPeer || ps.isInJail(pid) {
 			return nil
 		}
 
@@ -561,6 +581,8 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 			logger.Debugf("peer %s is reserved and cannot be removed", pid)
 			return nil
 		}
+
+		ps.goToJail(pid)
 
 		if status := ps.peerState.peerStatus(setID, pid); status == connectedPeer {
 			ps.resultMsgCh <- Message{
