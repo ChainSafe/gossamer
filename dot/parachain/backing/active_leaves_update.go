@@ -296,9 +296,9 @@ func constructPerRelayParentState(
 		return nil, fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
 	}
 
-	sessionIndex, validators, validatorGroups, cores, isOk := fetchParachainHostData(rt)
-	if !isOk {
-		return nil, fmt.Errorf("could not fetch parachain host data for relay parent %s", relayParent)
+	sessionIndex, validators, validatorGroups, cores, err := fetchParachainHostData(rt)
+	if err != nil {
+		return nil, fmt.Errorf("fetching parachain host data: %w", err)
 	}
 
 	minBackingVotes, err := minBackingVotes(rt)
@@ -404,7 +404,7 @@ func fetchParachainHostData(rt runtime.Instance) (
 	[]parachaintypes.ValidatorID,
 	parachaintypes.ValidatorGroups,
 	scale.VaryingDataTypeSlice,
-	bool, // bool is used to indicate if all data was fetched successfully.
+	error,
 ) {
 	var (
 		sessionIndex    parachaintypes.SessionIndex
@@ -468,11 +468,14 @@ func fetchParachainHostData(rt runtime.Instance) (
 	wg.Wait()
 
 	if len(errCh) > 0 {
+		var joinedErrors error
 		for err := range errCh {
-			logger.Error(err.Error())
+			joinedErrors = errors.Join(joinedErrors, err)
 		}
-		return parachaintypes.SessionIndex(0), nil, parachaintypes.ValidatorGroups{}, scale.VaryingDataTypeSlice{}, false
+
+		return parachaintypes.SessionIndex(0), nil, parachaintypes.ValidatorGroups{}, scale.VaryingDataTypeSlice{},
+			joinedErrors
 	}
 
-	return sessionIndex, validators, *validatorGroups, *cores, true
+	return sessionIndex, validators, *validatorGroups, *cores, nil
 }
