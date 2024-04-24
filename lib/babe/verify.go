@@ -37,7 +37,7 @@ type onDisabledInfo struct {
 // VerificationManager deals with verification that a BABE block producer was authorized to produce a given block.
 // It tracks the BABE epoch data that is needed for verification.
 type VerificationManager struct {
-	lock       sync.RWMutex
+	lock       sync.Mutex
 	blockState BlockState
 	slotState  SlotState
 	epochState EpochState
@@ -128,43 +128,42 @@ func (v *VerificationManager) SetOnDisabled(index uint32, header *types.Header) 
 // It checks the next epoch and config data stored in memory only if it cannot retrieve the data from database
 // It returns an error if the block is invalid.
 func (v *VerificationManager) VerifyBlock(header *types.Header) error {
-	var (
-		info *verifierInfo
-		has  bool
-	)
+	parentHeader, err := v.blockState.GetHeader(header.ParentHash)
+	if err != nil {
+		return fmt.Errorf("getting header: %w", err)
+	}
 
 	epoch, err := v.epochState.GetEpochForBlock(header)
 	if err != nil {
-		return fmt.Errorf("failed to get epoch for block header: %w", err)
+		return fmt.Errorf("getting epoch for block header: %w", err)
 	}
 
-	v.lock.Lock()
+	verifierInfoEpoch := epoch
 
-	if info, has = v.epochInfo[epoch]; !has {
-		info, err = v.getVerifierInfo(epoch, header)
+	if parentHeader.Hash() != v.blockState.GenesisHash() {
+		parentEpoch, err := v.epochState.GetEpochForBlock(parentHeader)
 		if err != nil {
-			v.lock.Unlock()
-			// SkipVerify is set to true only in the case where we have imported a state at a given height,
-			// thus missing the epoch data for previous epochs.
-			skip, skipErr := v.epochState.SkipVerify(header)
-			if skipErr != nil {
-				return fmt.Errorf("failed to check if verification can be skipped: %w", skipErr)
-			}
-
-			if skip {
-				return nil
-			}
-
-			return fmt.Errorf("failed to get verifier info for block %d: %w", header.Number, err)
+			return fmt.Errorf("getting epoch for parent header: %w", err)
 		}
 
-		v.epochInfo[epoch] = info
+		if parentEpoch > epoch {
+			return fmt.Errorf("%w: expected epoch greater than parent block epoch %d, got: %d",
+				errEpochLowerThanExpected, parentEpoch, epoch)
+		}
+
+		if epoch > (parentEpoch + 1) {
+			verifierInfoEpoch = parentEpoch + 1
+		}
 	}
 
-	v.lock.Unlock()
 	slotDuration, err := v.epochState.GetSlotDuration()
 	if err != nil {
 		return fmt.Errorf("getting current slot duration: %w", err)
+	}
+
+	info, err := v.getVerifierInfo(verifierInfoEpoch, header)
+	if err != nil {
+		return fmt.Errorf("getting verifier info: %w", err)
 	}
 
 	verifier := newVerifier(v.blockState, v.slotState, epoch, info, slotDuration)
