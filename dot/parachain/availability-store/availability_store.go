@@ -460,7 +460,7 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 					logger.Errorf("failed to process active leaves update signal: %w", err)
 				}
 			case parachaintypes.BlockFinalizedSignal:
-				av.ProcessBlockFinalizedSignal()
+				av.ProcessBlockFinalizedSignal(msg)
 
 			default:
 				logger.Error(parachaintypes.ErrUnknownOverseerMessage.Error())
@@ -483,7 +483,7 @@ func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal(
 	return nil
 }
 
-func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal() {
+func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
 	// TODO: #3630
 }
 

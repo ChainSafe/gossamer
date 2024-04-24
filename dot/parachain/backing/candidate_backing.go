@@ -251,14 +251,14 @@ func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan
 			return fmt.Errorf("processing active leaves update signal: %w", err)
 		}
 	case parachaintypes.BlockFinalizedSignal:
-		cb.ProcessBlockFinalizedSignal()
+		cb.ProcessBlockFinalizedSignal(msg)
 	default:
 		return fmt.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
 	}
 	return nil
 }
 
-func (cb *CandidateBacking) ProcessBlockFinalizedSignal() {
+func (cb *CandidateBacking) ProcessBlockFinalizedSignal(parachaintypes.BlockFinalizedSignal) {
 	// Nothing to do here
 }
 

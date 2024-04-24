@@ -54,7 +54,7 @@ func (s *TestSubsystem) ProcessActiveLeavesUpdateSignal(update parachaintypes.Ac
 	return nil
 }
 
-func (s *TestSubsystem) ProcessBlockFinalizedSignal() {
+func (s *TestSubsystem) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
 	fmt.Printf("%s ProcessActiveLeavesUpdateSignal\n", s.name)
 }
 
