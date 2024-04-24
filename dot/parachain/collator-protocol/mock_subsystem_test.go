@@ -69,15 +69,15 @@ func (mr *MockSubsystemMockRecorder) ProcessActiveLeavesUpdateSignal(arg0 any) *
 }
 
 // ProcessBlockFinalizedSignal mocks base method.
-func (m *MockSubsystem) ProcessBlockFinalizedSignal() {
+func (m *MockSubsystem) ProcessBlockFinalizedSignal(arg0 parachaintypes.BlockFinalizedSignal) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ProcessBlockFinalizedSignal")
+	m.ctrl.Call(m, "ProcessBlockFinalizedSignal", arg0)
 }
 
 // ProcessBlockFinalizedSignal indicates an expected call of ProcessBlockFinalizedSignal.
-func (mr *MockSubsystemMockRecorder) ProcessBlockFinalizedSignal() *gomock.Call {
+func (mr *MockSubsystemMockRecorder) ProcessBlockFinalizedSignal(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessBlockFinalizedSignal", reflect.TypeOf((*MockSubsystem)(nil).ProcessBlockFinalizedSignal))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessBlockFinalizedSignal", reflect.TypeOf((*MockSubsystem)(nil).ProcessBlockFinalizedSignal), arg0)
 }
 
 // Run mocks base method.
