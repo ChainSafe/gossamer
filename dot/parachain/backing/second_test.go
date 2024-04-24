@@ -14,6 +14,8 @@ import (
 func TestHandleSecondMessage(t *testing.T) {
 	t.Parallel()
 
+	paraIDPtr1 := uint32ToParaIDPtr(t, 1)
+
 	testCases := []struct {
 		description      string
 		cb               *CandidateBacking
@@ -40,7 +42,7 @@ func TestHandleSecondMessage(t *testing.T) {
 			cb: &CandidateBacking{
 				perRelayParent: map[common.Hash]*perRelayParentState{
 					getDummyHash(t, 6): {
-						assignment: 10,
+						assignment: uint32ToParaIDPtr(t, 10),
 					},
 				},
 			},
@@ -53,7 +55,7 @@ func TestHandleSecondMessage(t *testing.T) {
 			cb: &CandidateBacking{
 				perRelayParent: map[common.Hash]*perRelayParentState{
 					getDummyHash(t, 6): {
-						assignment: 1,
+						assignment: paraIDPtr1,
 						issuedStatements: map[parachaintypes.CandidateHash]bool{
 							dummyCandidateHash(t): true,
 						},
@@ -69,7 +71,7 @@ func TestHandleSecondMessage(t *testing.T) {
 			cb: &CandidateBacking{
 				perRelayParent: map[common.Hash]*perRelayParentState{
 					getDummyHash(t, 6): {
-						assignment: 1,
+						assignment: paraIDPtr1,
 						awaitingValidation: map[parachaintypes.CandidateHash]bool{
 							dummyCandidateHash(t): true,
 						},

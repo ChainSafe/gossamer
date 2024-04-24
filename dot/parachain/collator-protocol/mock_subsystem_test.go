@@ -55,9 +55,11 @@ func (mr *MockSubsystemMockRecorder) Name() *gomock.Call {
 }
 
 // ProcessActiveLeavesUpdateSignal mocks base method.
-func (m *MockSubsystem) ProcessActiveLeavesUpdateSignal(arg0 parachaintypes.ActiveLeavesUpdateSignal) {
+func (m *MockSubsystem) ProcessActiveLeavesUpdateSignal(arg0 parachaintypes.ActiveLeavesUpdateSignal) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ProcessActiveLeavesUpdateSignal", arg0)
+	ret := m.ctrl.Call(m, "ProcessActiveLeavesUpdateSignal", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // ProcessActiveLeavesUpdateSignal indicates an expected call of ProcessActiveLeavesUpdateSignal.
