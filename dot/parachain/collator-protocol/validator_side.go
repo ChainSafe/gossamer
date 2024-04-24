@@ -422,12 +422,14 @@ func (s SortableActivatedLeaves) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-func (cpvs *CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
+func (cpvs *CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal(signal parachaintypes.
+	BlockFinalizedSignal) error {
 	if cpvs.finalizedNumber >= signal.BlockNumber {
 		// error
-		return
+		return fmt.Errorf("finalized number is greater than or equal to the block number")
 	}
 	cpvs.finalizedNumber = signal.BlockNumber
+	return nil
 }
 
 func (cpvs CollatorProtocolValidatorSide) Stop() {

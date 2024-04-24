@@ -259,8 +259,9 @@ func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan
 	return nil
 }
 
-func (cb *CandidateBacking) ProcessBlockFinalizedSignal(parachaintypes.BlockFinalizedSignal) {
+func (cb *CandidateBacking) ProcessBlockFinalizedSignal(parachaintypes.BlockFinalizedSignal) error {
 	// Nothing to do here
+	return nil
 }
 
 // Import the statement and kick off validation work if it is a part of our assignment.

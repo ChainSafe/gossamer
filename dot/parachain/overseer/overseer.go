@@ -228,7 +228,7 @@ func (o *Overseer) handleBlockEvents() {
 
 			o.broadcast(parachaintypes.BlockFinalizedSignal{
 				Hash:        finalised.Header.Hash(),
-				BlockNumber: parachaintypes.BlockNumber(finalised.Header.Number),
+				BlockNumber: uint32(finalised.Header.Number),
 			})
 
 			// If there are no leaves being deactivated, we don't need to send an update.

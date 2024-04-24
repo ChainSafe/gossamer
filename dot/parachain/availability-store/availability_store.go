@@ -715,7 +715,7 @@ func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal(signal paracha
 	av.deleteUnfinalizedHeight(tx.unfinalized, signal.BlockNumber)
 
 	// update blocks at finalized height
-	av.updateBlockAtFinalizedHeight(tx, batch, uint32(signal.BlockNumber), now)
+	av.updateBlockAtFinalizedHeight(tx, batch, signal.BlockNumber, now)
 
 	err := tx.flush()
 	if err != nil {
@@ -935,7 +935,7 @@ func (av *AvailabilityStoreSubsystem) Stop() {
 }
 
 func (av *AvailabilityStoreSubsystem) deleteUnfinalizedHeight(writer database.Writer,
-	blockNumber parachaintypes.BlockNumber) {
+	blockNumber uint32) {
 	iter, err := av.availabilityStore.unfinalized.NewIterator()
 	if err != nil {
 		logger.Errorf("creating iterator: %w", err)
@@ -960,7 +960,7 @@ func (av *AvailabilityStoreSubsystem) deleteUnfinalizedHeight(writer database.Wr
 	}
 }
 
-func (av *AvailabilityStoreSubsystem) loadAllAtFinalizedHeight(finalizedNumber parachaintypes.BlockNumber,
+func (av *AvailabilityStoreSubsystem) loadAllAtFinalizedHeight(finalizedNumber uint32,
 	finalizedHash common.Hash) map[parachaintypes.CandidateHash]bool {
 	result := make(map[parachaintypes.CandidateHash]bool)
 	iter, err := av.availabilityStore.unfinalized.NewIterator()
@@ -990,10 +990,10 @@ func (av *AvailabilityStoreSubsystem) loadAllAtFinalizedHeight(finalizedNumber p
 	return result
 }
 
-func decodeUnfinalizedKey(key []byte) (blockNumber parachaintypes.BlockNumber, blockHash common.Hash,
+func decodeUnfinalizedKey(key []byte) (blockNumber uint32, blockHash common.Hash,
 	candidateHash parachaintypes.CandidateHash) {
 	prefixLen := len(unfinalizedPrefix)
-	blockNumber = parachaintypes.BlockNumber(binary.BigEndian.Uint32(key[prefixLen : prefixLen+4]))
+	blockNumber = binary.BigEndian.Uint32(key[prefixLen : prefixLen+4])
 	blockHash = common.Hash(key[prefixLen+4 : prefixLen+36])
 	candidateHash = parachaintypes.CandidateHash{Value: common.Hash(key[prefixLen+36:])}
 	return

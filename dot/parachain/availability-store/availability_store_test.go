@@ -1005,7 +1005,7 @@ func (h *testHarness) printDB(caption string) {
 }
 
 func (h *testHarness) importLeaf(t *testing.T, parentHash common.Hash,
-	blockNumber parachaintypes.BlockNumber, candidateEvents scale.VaryingDataTypeSlice) common.Hash {
+	blockNumber uint32, candidateEvents scale.VaryingDataTypeSlice) common.Hash {
 	header := types.Header{
 		ParentHash: parentHash,
 		Number:     uint(blockNumber),
@@ -1647,7 +1647,7 @@ func TestStoredDataKeptUntilFinalized(t *testing.T) {
 		},
 	}
 	parent := common.Hash{0x02, 0x02, 0x02, 0x02}
-	blockNumber := parachaintypes.BlockNumber(3)
+	blockNumber := uint32(3)
 
 	availableDataEnc, err := scale.Marshal(availableData)
 	require.NoError(t, err)
