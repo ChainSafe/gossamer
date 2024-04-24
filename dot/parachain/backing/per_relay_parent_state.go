@@ -22,7 +22,7 @@ type perRelayParentState struct {
 	// The hash of the relay parent on top of which this job is doing it's work.
 	relayParent common.Hash
 	// The `ParaId` assigned to the local validator at this relay parent.
-	assignment parachaintypes.ParaID
+	assignment *parachaintypes.ParaID
 	// The table of candidates and statements under this relay-parent.
 	table Table
 	// The table context, including groups.
@@ -35,6 +35,8 @@ type perRelayParentState struct {
 	issuedStatements map[parachaintypes.CandidateHash]bool
 	// The candidates that are backed by enough validators in their group, by hash.
 	backed map[parachaintypes.CandidateHash]bool
+	// The minimum backing votes threshold.
+	minBackingVotes uint32
 }
 
 // importStatement imports a statement into the statement table and returns the summary of the import.

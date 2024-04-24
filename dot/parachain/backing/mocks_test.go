@@ -122,8 +122,51 @@ func (m *MockImplicitView) EXPECT() *MockImplicitViewMockRecorder {
 	return m.recorder
 }
 
+// activeLeaf mocks base method.
+func (m *MockImplicitView) activeLeaf(arg0 common.Hash) ([]parachaintypes.ParaID, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "activeLeaf", arg0)
+	ret0, _ := ret[0].([]parachaintypes.ParaID)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// activeLeaf indicates an expected call of activeLeaf.
+func (mr *MockImplicitViewMockRecorder) activeLeaf(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "activeLeaf", reflect.TypeOf((*MockImplicitView)(nil).activeLeaf), arg0)
+}
+
+// allAllowedRelayParents mocks base method.
+func (m *MockImplicitView) allAllowedRelayParents() []common.Hash {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "allAllowedRelayParents")
+	ret0, _ := ret[0].([]common.Hash)
+	return ret0
+}
+
+// allAllowedRelayParents indicates an expected call of allAllowedRelayParents.
+func (mr *MockImplicitViewMockRecorder) allAllowedRelayParents() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "allAllowedRelayParents", reflect.TypeOf((*MockImplicitView)(nil).allAllowedRelayParents))
+}
+
+// deactivateLeaf mocks base method.
+func (m *MockImplicitView) deactivateLeaf(arg0 common.Hash) []common.Hash {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "deactivateLeaf", arg0)
+	ret0, _ := ret[0].([]common.Hash)
+	return ret0
+}
+
+// deactivateLeaf indicates an expected call of deactivateLeaf.
+func (mr *MockImplicitViewMockRecorder) deactivateLeaf(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deactivateLeaf", reflect.TypeOf((*MockImplicitView)(nil).deactivateLeaf), arg0)
+}
+
 // knownAllowedRelayParentsUnder mocks base method.
-func (m *MockImplicitView) knownAllowedRelayParentsUnder(arg0 common.Hash, arg1 parachaintypes.ParaID) []common.Hash {
+func (m *MockImplicitView) knownAllowedRelayParentsUnder(arg0 common.Hash, arg1 *parachaintypes.ParaID) []common.Hash {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "knownAllowedRelayParentsUnder", arg0, arg1)
 	ret0, _ := ret[0].([]common.Hash)
