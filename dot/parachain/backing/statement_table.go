@@ -12,6 +12,11 @@ type Table interface {
 	drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport
 }
 
+func newTable(Config) Table {
+	// TODO: Implement this function
+	return nil
+}
+
 // Summary represents summary of import of a statement.
 type Summary struct {
 	// The digest of the candidate referenced.
@@ -36,4 +41,12 @@ type AttestedCandidate struct {
 type validityVote struct {
 	ValidatorIndex      parachaintypes.ValidatorIndex
 	ValidityAttestation parachaintypes.ValidityAttestation
+}
+
+// Table configuration.
+type Config struct {
+	// When this is true, the table will allow multiple seconded candidates
+	// per authority. This flag means that higher-level code is responsible for
+	// bounding the number of candidates.
+	AllowMultipleSeconded bool
 }

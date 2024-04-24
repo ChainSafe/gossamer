@@ -125,7 +125,7 @@ func (cpvs CollatorProtocolValidatorSide) handleNetworkEvents(event network.Netw
 }
 
 func (cpvs *CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(
-	signal parachaintypes.ActiveLeavesUpdateSignal) {
+	signal parachaintypes.ActiveLeavesUpdateSignal) error {
 	// I might need to separate the collator protocol into two parts, one that deals with the
 	// network and other that deals with other subsystems.
 	// Make everythin less messing.
@@ -161,9 +161,10 @@ func (cpvs *CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(
 		// update our view
 		err := cpvs.updateOurView()
 		if err != nil {
-			logger.Errorf("updating our view: %w", err)
+			return fmt.Errorf("updating our view: %w", err)
 		}
 	}
+	return nil
 }
 
 func (cpvs *CollatorProtocolValidatorSide) updateOurView() error {
@@ -986,7 +987,10 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 		}, peerID)
 
 	case parachaintypes.ActiveLeavesUpdateSignal:
-		cpvs.ProcessActiveLeavesUpdateSignal(msg)
+		err := cpvs.ProcessActiveLeavesUpdateSignal(msg)
+		if err != nil {
+			return fmt.Errorf("processing active leaves update signal: %w", err)
+		}
 	case parachaintypes.BlockFinalizedSignal:
 		cpvs.ProcessBlockFinalizedSignal(msg)
 
