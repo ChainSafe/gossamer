@@ -145,7 +145,7 @@ func TestNewNode(t *testing.T) {
 	mockStateService := &state.Service{
 		Block: mockBlockState,
 	}
-	phs, err := parachain.NewService(testNetworkService, "random_fork_id", mockStateService)
+	phs, err := parachain.NewService(testNetworkService, "random_fork_id", mockStateService, ks.Para)
 	require.NoError(t, err)
 
 	m.EXPECT().createRuntimeStorage(gomock.AssignableToTypeOf(&state.Service{})).Return(&runtime.
@@ -182,6 +182,7 @@ func TestNewNode(t *testing.T) {
 		gomock.AssignableToTypeOf(&network.Service{}),
 		gomock.AssignableToTypeOf("random_fork_id"),
 		gomock.AssignableToTypeOf(mockStateService),
+		gomock.AssignableToTypeOf(ks.Para),
 	).Return(phs, nil)
 
 	got, err := newNode(initConfig, ks, m, mockServiceRegistry)
