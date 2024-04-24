@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -266,242 +267,134 @@ func TestFinalityProof_UsingAuthoritySetChangesFailsWithUndefinedStart(t *testin
 }
 
 func TestFinalityProof_UsingAuthoritySetChangesWorks(t *testing.T) {
-	// let (client, backend, blocks) = test_blockchain(8, &[4, 5]);
-	// let block7 = &blocks[6];
-	// let block8 = &blocks[7];
-	block7 := generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(t, 6), nil)
-	block8 := generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(t, 6), nil)
+	var client blockchain.HeaderBackend[hash.H256, uint64]
 
-	// let round = 8;
-	// let commit = create_commit(block8.clone(), round, 1, &[Ed25519Keyring::Alice]);
-	// let grandpa_just8 = GrandpaJustification::from_commit(&client, round, commit).unwrap();
+	// let (client, backend, blocks) = test_blockchain(8, &[4, 5]);
+	block7 := generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(t, 7), nil)
+	block8 := generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(t, 8), nil)
+
 	round := uint64(8)
 	commit := createCommit(t, block8, round, 1, []ed25519.Keyring{ed25519.Alice})
-	var client blockchain.HeaderBackend[hash.H256, uint64]
 	grandpaJust8, err := NewJustificationFromCommit(client, round, commit)
 	require.NoError(t, err)
 
 	// client
 	// .finalize_block(block8.hash(), Some((ID, grandpa_just8.encode().clone())))
 	// .unwrap();
+	blockchainBackend := mocks.NewBlockchainBackend[hash.H256, uint64](t)
+	blockchainBackend.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{
+		FinalizedNumber: 8,
+	})
+	blockchainBackend.EXPECT().ExpectBlockHashFromID(uint64(8)).Return(block8.Hash(), nil)
+	blockchainBackend.EXPECT().ExpectHeader(block8.Hash()).Return(block8.Header(), nil)
 
+	justification := runtime.Justification{
+		ConsensusEngineID:    pgrandpa.GrandpaEngineID,
+		EncodedJustification: scale.MustMarshal(grandpaJust8),
+	}
+	blockchainBackend.EXPECT().Justifications(block8.Hash()).Return(&runtime.Justifications{justification}, nil)
+
+	blockchainBackend.EXPECT().ExpectBlockHashFromID(uint64(7)).Return(block7.Hash(), nil)
+	blockchainBackend.EXPECT().ExpectHeader(block7.Hash()).Return(block7.Header(), nil)
+
+	backend := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256](t)
+	backend.EXPECT().Blockchain().Return(blockchainBackend)
+
+	// Authority set change at block 8, so the justification stored there will be used in the
+	// FinalityProof for block 6
 	authoritySetChanges := AuthoritySetChanges[uint64]{}
 	authoritySetChanges.append(0, 5)
 	authoritySetChanges.append(1, 8)
 
-	// Authority set change at block 8, so the justification stored there will be used in the
-	// FinalityProof for block 6
-	fmt.Println(grandpaJust8, block7)
+	proofOf6, err := proveFinality[hash.H256, uint64, runtime.BlakeTwo256](backend, authoritySetChanges, 6, true)
+	require.NoError(t, err)
+	require.NotNil(t, proofOf6)
 
-	// ID := dummyAuthID(1)
-	// header7 := testHeader[string, uint]{
-	// 	NumberField: uint(7),
-	// 	HashField:   "hash7",
-	// }
-	// header8 := testHeader[string, uint]{
-	// 	NumberField:     uint(8),
-	// 	HashField:       "hash8",
-	// 	ParentHashField: "hash7",
-	// }
+	assert.Equal(t, FinalityProof[hash.H256, uint64]{
+		Block:          block8.Hash(),
+		Justification:  scale.MustMarshal(grandpaJust8),
+		UnknownHeaders: []runtime.Header[uint64, hash.H256]{block7.Header(), block8.Header()},
+	}, *proofOf6)
 
-	// dummyInfo := Info[uint]{
-	// 	FinalizedNumber: 8,
-	// }
+	proofOf6WithoutUnknown, err := proveFinality[hash.H256, uint64, runtime.BlakeTwo256](backend, authoritySetChanges, 6, false)
+	require.NoError(t, err)
+	require.NotNil(t, proofOf6WithoutUnknown)
 
-	// round := uint64(8)
-	// commit := createCommit(t, "hash8", uint(8), round, ID)
-	// grandpaJust := GrandpaJustification[string, uint, string, dummyAuthID]{
-	// 	Round:  round,
-	// 	Commit: commit,
-	// }
-
-	// encJust, err := scale.Marshal(grandpaJust)
-	// require.NoError(t, err)
-
-	// justifications := Justifications{Justification{
-	// 	EngineID:             GrandpaEngineID,
-	// 	EncodedJustification: encJust,
-	// }}
-
-	// mockBlockchain := NewBlockchainBackendMock[string, uint, testHeader[string, uint]](t)
-	// mockBlockchain.EXPECT().Info().Return(dummyInfo).Once()
-	// mockBlockchain.EXPECT().ExpectBlockHashFromID(uint(7)).Return("hash7", nil).Once()
-	// mockBlockchain.EXPECT().ExpectHeader("hash7").Return(header7, nil).Once()
-	// mockBlockchain.EXPECT().ExpectBlockHashFromID(uint(8)).Return("hash8", nil).Times(3)
-	// mockBlockchain.EXPECT().Justifications("hash8").Return(&justifications, nil).Times(1)
-	// mockBlockchain.EXPECT().ExpectHeader("hash8").Return(header8, nil).Once()
-
-	// mockBackend := NewBackendMock[string, uint, testHeader[string, uint],
-	// 	*BlockchainBackendMock[string, uint, testHeader[string, uint]]](t)
-	// mockBackend.EXPECT().Blockchain().Return(mockBlockchain).Times(8)
-
-	// Authority set change at block 8, so the justification stored there will be used in the
-	// FinalityProof for block 6
-	// authoritySetChanges := AuthoritySetChanges[uint]{}
-	// authoritySetChanges.append(0, 5)
-	// authoritySetChanges.append(1, 8)
-
-	// proofOf6, err := proveFinality[
-	// 	*BackendMock[string, uint, testHeader[string, uint],
-	// 		*BlockchainBackendMock[string, uint, testHeader[string, uint]]],
-	// 	string,
-	// 	uint,
-	// 	string,
-	// 	dummyAuthID,
-	// 	testHeader[string, uint],
-	// 	*BlockchainBackendMock[string, uint, testHeader[string, uint]],
-	// ](
-	// 	mockBackend,
-	// 	authoritySetChanges,
-	// 	6,
-	// 	true,
-	// )
-	// require.NoError(t, err)
-
-	// unknownHeaders := []testHeader[string, uint]{header7, header8}
-	// expFinalityProof := &FinalityProof[string, uint, testHeader[string, uint]]{
-	// 	Block:          "hash8",
-	// 	Justification:  encJust,
-	// 	UnknownHeaders: unknownHeaders,
-	// }
-	// require.Equal(t, expFinalityProof, proofOf6)
-
-	// mockBlockchain2 := NewBlockchainBackendMock[string, uint, testHeader[string, uint]](t)
-	// mockBlockchain2.EXPECT().Info().Return(dummyInfo).Once()
-	// mockBlockchain2.EXPECT().ExpectBlockHashFromID(uint(8)).Return("hash8", nil).Times(2)
-	// mockBlockchain2.EXPECT().Justifications("hash8").Return(&justifications, nil).Times(1)
-
-	// mockBackend2 := NewBackendMock[string, uint, testHeader[string, uint],
-	// 	*BlockchainBackendMock[string, uint, testHeader[string, uint]]](t)
-	// mockBackend2.EXPECT().Blockchain().Return(mockBlockchain2).Times(4)
-
-	// proofOf6WithoutUnknown, err := proveFinality[
-	// 	*BackendMock[string, uint, testHeader[string, uint],
-	// 		*BlockchainBackendMock[string, uint, testHeader[string, uint]]],
-	// 	string,
-	// 	uint,
-	// 	string,
-	// 	dummyAuthID,
-	// 	testHeader[string, uint],
-	// 	*BlockchainBackendMock[string, uint, testHeader[string, uint]],
-	// ](
-	// 	mockBackend2,
-	// 	authoritySetChanges,
-	// 	6,
-	// 	false,
-	// )
-	// require.NoError(t, err)
-
-	// expFinalityProof = &FinalityProof[string, uint, testHeader[string, uint]]{
-	// 	Block:         "hash8",
-	// 	Justification: encJust,
-	// }
-	// require.Equal(t, expFinalityProof, proofOf6WithoutUnknown)
+	assert.Equal(t, FinalityProof[hash.H256, uint64]{
+		Block:          block8.Hash(),
+		Justification:  scale.MustMarshal(grandpaJust8),
+		UnknownHeaders: nil,
+	}, *proofOf6WithoutUnknown)
 }
 
-// func TestFinalityProof_InLastSetFailsWithoutLatest(t *testing.T) {
-// 	dummyInfo := Info[uint]{
-// 		FinalizedNumber: 8,
-// 	}
-// 	mockBlockchain := NewBlockchainBackendMock[string, uint, testHeader[string, uint]](t)
-// 	mockBlockchain.EXPECT().Info().Return(dummyInfo).Once()
+func TestFinalityProof_InLastSetFailsWithoutLatest(t *testing.T) {
+	blockchainBackend := mocks.NewBlockchainBackend[hash.H256, uint64](t)
+	blockchainBackend.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{
+		FinalizedNumber: 8,
+	}).Once()
 
-// 	mockBackend := NewBackendMock[string, uint, testHeader[string, uint],
-// 		*BlockchainBackendMock[string, uint, testHeader[string, uint]]](t)
-// 	mockBackend.EXPECT().Blockchain().Return(mockBlockchain).Times(1)
-// 	mockBackend.EXPECT().Get(Key("grandpa_best_justification")).Return(nil, nil).Times(1)
+	backend := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256](t)
+	backend.EXPECT().Blockchain().Return(blockchainBackend).Once()
+	backend.EXPECT().GetAux(bestJustification).Return(nil, nil).Once()
 
-// 	// No recent authority set change, so we are in the authoritySetChangeIDLatest set, and we will try to pickup
-// 	// the best stored justification, for which there is none in this case.
-// 	authoritySetChanges := AuthoritySetChanges[uint]{}
-// 	authoritySetChanges.append(0, 5)
+	// No recent authority set change, so we are in the authoritySetChangeIDLatest set, and we will try to pickup
+	// the best stored justification, for which there is none in this case.
+	authoritySetChanges := AuthoritySetChanges[uint64]{}
+	authoritySetChanges.append(0, 5)
 
-// 	proof, err := proveFinality[
-// 		*BackendMock[string, uint, testHeader[string, uint],
-// 			*BlockchainBackendMock[string, uint, testHeader[string, uint]]],
-// 		string,
-// 		uint,
-// 		string,
-// 		dummyAuthID,
-// 		testHeader[string, uint],
-// 		*BlockchainBackendMock[string, uint, testHeader[string, uint]],
-// 	](
-// 		mockBackend,
-// 		authoritySetChanges,
-// 		6,
-// 		true,
-// 	)
-// 	// When justification is not stored in db, return nil
-// 	require.NoError(t, err)
-// 	require.Nil(t, proof)
-// }
+	proof, err := proveFinality[hash.H256, uint64, runtime.BlakeTwo256](
+		backend,
+		authoritySetChanges,
+		6,
+		true,
+	)
+	require.NoError(t, err)
+	require.Nil(t, proof)
+}
 
-// func TestFinalityProof_InLastSetUsingLatestJustificationWorks(t *testing.T) {
-// 	ID := dummyAuthID(1)
-// 	header7 := testHeader[string, uint]{
-// 		NumberField: uint(7),
-// 		HashField:   "hash7",
-// 	}
-// 	header8 := testHeader[string, uint]{
-// 		NumberField:     uint(8),
-// 		HashField:       "hash8",
-// 		ParentHashField: "hash7",
-// 	}
+func TestFinalityProof_InLastSetUsingLatestJustificationWorks(t *testing.T) {
+	// let (client, backend, blocks) = test_blockchain(8, &[4, 5]);
+	headerBackend := mocks.NewHeaderBackend[hash.H256, uint64](t)
+	backend := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256](t)
+	blockchainBackend := mocks.NewBlockchainBackend[hash.H256, uint64](t)
+	backend.EXPECT().Blockchain().Return(blockchainBackend)
+	blockchainBackend.EXPECT().Info().Return(blockchain.Info[hash.H256, uint64]{
+		FinalizedNumber: 8,
+	})
 
-// 	dummyInfo := Info[uint]{
-// 		FinalizedNumber: 8,
-// 	}
+	block7 := generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(t, 7), nil)
+	block8 := generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(t, 8), nil)
 
-// 	round := uint64(8)
-// 	commit := createCommit(t, "hash8", uint(8), round, ID)
-// 	grandpaJust := GrandpaJustification[string, uint, string, dummyAuthID]{
-// 		Round:  round,
-// 		Commit: commit,
-// 	}
+	blockchainBackend.EXPECT().ExpectBlockHashFromID(uint64(8)).Return(block8.Hash(), nil)
+	blockchainBackend.EXPECT().ExpectBlockHashFromID(uint64(7)).Return(block7.Hash(), nil)
 
-// 	encJust, err := scale.Marshal(grandpaJust)
-// 	require.NoError(t, err)
+	blockchainBackend.EXPECT().ExpectHeader(block7.Hash()).Return(block7.Header(), nil)
+	blockchainBackend.EXPECT().ExpectHeader(block8.Hash()).Return(block8.Header(), nil)
 
-// 	mockBlockchain := NewBlockchainBackendMock[string, uint, testHeader[string, uint]](t)
-// 	mockBlockchain.EXPECT().Info().Return(dummyInfo).Once()
-// 	mockBlockchain.EXPECT().ExpectBlockHashFromID(uint(7)).Return("hash7", nil).Once()
-// 	mockBlockchain.EXPECT().ExpectHeader("hash7").Return(header7, nil).Once()
-// 	mockBlockchain.EXPECT().ExpectBlockHashFromID(uint(8)).Return("hash8", nil).Times(2)
-// 	mockBlockchain.EXPECT().ExpectHeader("hash8").Return(header8, nil).Once()
+	round := uint64(8)
+	commit := createCommit(t, block8, round, 1, []ed25519.Keyring{ed25519.Alice})
+	grandpaJust8, err := NewJustificationFromCommit[hash.H256, uint64](headerBackend, round, commit)
+	require.NoError(t, err)
 
-// 	mockBackend := NewBackendMock[string, uint, testHeader[string, uint],
-// 		*BlockchainBackendMock[string, uint, testHeader[string, uint]]](t)
-// 	mockBackend.EXPECT().Blockchain().Return(mockBlockchain).Times(6)
-// 	mockBackend.EXPECT().Get(Key("grandpa_best_justification")).Return(&encJust, nil).Times(1)
+	encoded := scale.MustMarshal(grandpaJust8)
+	backend.EXPECT().GetAux(bestJustification).Return(&encoded, nil)
 
-// 	// No recent authority set change, so we are in the authoritySetChangeIDLatest set, and will pickup the best
-// 	// stored justification (via mock get call)
-// 	authoritySetChanges := AuthoritySetChanges[uint]{}
-// 	authoritySetChanges.append(0, 5)
+	// No recent authority set change, so we are in the authoritySetChangeIDLatest set, and will pickup the best
+	// stored justification (via mock get call)
+	authoritySetChanges := AuthoritySetChanges[uint64]{}
+	authoritySetChanges.append(0, 5)
 
-// 	proofOf6, err := proveFinality[
-// 		*BackendMock[string, uint, testHeader[string, uint],
-// 			*BlockchainBackendMock[string, uint, testHeader[string, uint]]],
-// 		string,
-// 		uint,
-// 		string,
-// 		dummyAuthID,
-// 		testHeader[string, uint],
-// 		*BlockchainBackendMock[string, uint, testHeader[string, uint]],
-// 	](
-// 		mockBackend,
-// 		authoritySetChanges,
-// 		6,
-// 		true,
-// 	)
-// 	require.NoError(t, err)
-
-// 	unknownHeaders := []testHeader[string, uint]{header7, header8}
-
-// 	expFinalityProof := &FinalityProof[string, uint, testHeader[string, uint]]{
-// 		Block:          "hash8",
-// 		Justification:  scale.MustMarshal(grandpaJust),
-// 		UnknownHeaders: unknownHeaders,
-// 	}
-// 	require.Equal(t, expFinalityProof, proofOf6)
-// }
+	proofOf6, err := proveFinality[hash.H256, uint64, runtime.BlakeTwo256](
+		backend,
+		authoritySetChanges,
+		6,
+		true,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, proofOf6)
+	assert.Equal(t, FinalityProof[hash.H256, uint64]{
+		Block:          block8.Hash(),
+		Justification:  scale.MustMarshal(grandpaJust8),
+		UnknownHeaders: []runtime.Header[uint64, hash.H256]{block7.Header(), block8.Header()},
+	}, *proofOf6)
+}
