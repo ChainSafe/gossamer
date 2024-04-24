@@ -457,9 +457,9 @@ func (nodeBuilder) createGRANDPAService(config *cfg.Config, st *state.Service, k
 	return grandpa.NewService(gsCfg)
 }
 
-func (nodeBuilder) createParachainHostService(net *network.Service, forkID string, st *state.Service) (
-	*parachain.Service, error) {
-	return parachain.NewService(net, forkID, st)
+func (nodeBuilder) createParachainHostService(net *network.Service, forkID string, st *state.Service,
+	ks keystore.Keystore) (*parachain.Service, error) {
+	return parachain.NewService(net, forkID, st, ks)
 }
 
 func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationManager {

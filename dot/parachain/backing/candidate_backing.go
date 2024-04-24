@@ -247,20 +247,20 @@ func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan
 	case StatementMessage:
 		return cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand)
 	case parachaintypes.ActiveLeavesUpdateSignal:
-		cb.ProcessActiveLeavesUpdateSignal()
+		cb.ProcessActiveLeavesUpdateSignal(msg)
 	case parachaintypes.BlockFinalizedSignal:
-		cb.ProcessBlockFinalizedSignal()
+		cb.ProcessBlockFinalizedSignal(msg)
 	default:
 		return fmt.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
 	}
 	return nil
 }
 
-func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal() {
+func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) {
 	// TODO #3503
 }
 
-func (cb *CandidateBacking) ProcessBlockFinalizedSignal() {
+func (cb *CandidateBacking) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
 	// TODO #3644
 }
 
