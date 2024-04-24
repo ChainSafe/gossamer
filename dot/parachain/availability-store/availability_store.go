@@ -457,10 +457,10 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 				}
 
 			case parachaintypes.ActiveLeavesUpdateSignal:
-				av.ProcessActiveLeavesUpdateSignal()
+				av.ProcessActiveLeavesUpdateSignal(msg)
 
 			case parachaintypes.BlockFinalizedSignal:
-				av.ProcessBlockFinalizedSignal()
+				av.ProcessBlockFinalizedSignal(msg)
 
 			default:
 				logger.Error(parachaintypes.ErrUnknownOverseerMessage.Error())
@@ -477,11 +477,11 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 	}
 }
 
-func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal() {
+func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) {
 	// TODO: #3630
 }
 
-func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal() {
+func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
 	// TODO: #3630
 }
 
