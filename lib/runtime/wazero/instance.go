@@ -36,13 +36,20 @@ const runtimeContextKey = contextKey("runtime.Context")
 
 var _ runtime.Instance = &Instance{}
 
+type wazeroMeta struct {
+	config      wazero.RuntimeConfig
+	cache       wazero.CompilationCache
+	guestModule wazero.CompiledModule
+}
+
 // Instance backed by wazero.Runtime
 type Instance struct {
-	Runtime  wazero.Runtime
-	Module   api.Module
-	Context  *runtime.Context
-	codeHash common.Hash
-	heapBase uint32
+	Runtime      wazero.Runtime
+	Module       api.Module
+	Context      *runtime.Context
+	wasmByteCode []byte
+	codeHash     common.Hash
+	metadata     wazeroMeta
 	sync.Mutex
 }
 
@@ -100,15 +107,13 @@ func NewInstanceFromTrie(t trie.Trie, cfg Config) (*Instance, error) {
 	return NewInstance(code, cfg)
 }
 
-// NewInstance instantiates a runtime from raw wasm bytecode
-func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
-	logger.Info("instantiating a runtime!")
-	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
+func newRuntime(ctx context.Context,
+	code []byte,
+	config wazero.RuntimeConfig,
+) (api.Module, wazero.Runtime, wazero.CompiledModule, error) {
+	rt := wazero.NewRuntimeWithConfig(ctx, config)
 
-	ctx := context.Background()
-	rt := wazero.NewRuntime(ctx)
-
-	_, err = rt.NewHostModuleBuilder("env").
+	hostCompiledModule, err := rt.NewHostModuleBuilder("env").
 		// values from newer kusama/polkadot runtimes
 		ExportMemory("memory", 23).
 		NewFunctionBuilder().
@@ -393,38 +398,51 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		NewFunctionBuilder().
 		WithFunc(ext_crypto_ecdsa_generate_version_1).
 		Export("ext_crypto_ecdsa_generate_version_1").
-		Instantiate(ctx)
+		Compile(ctx)
 
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
+	}
+
+	_, err = rt.InstantiateModule(ctx, hostCompiledModule, wazero.NewModuleConfig())
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
 	code, err = decompressWasm(code)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
+	guestCompiledModule, err := rt.CompileModule(ctx, code)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	mod, err := rt.Instantiate(ctx, code)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
-	encodedHeapBase := mod.ExportedGlobal("__heap_base")
-	if encodedHeapBase == nil {
-		return nil, fmt.Errorf("wazero error: nil global for __heap_base")
-	}
+	return mod, rt, guestCompiledModule, nil
+}
 
-	heapBase := api.DecodeU32(encodedHeapBase.Get())
-	// hb = runtime.DefaultHeapBase
+// NewInstance instantiates a runtime from raw wasm bytecode
+func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
+	logger.Debug("instantiating a runtime!")
+	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
-	mem := mod.Memory()
-	if mem == nil {
-		return nil, fmt.Errorf("wazero error: nil memory for module")
+	// Prepare a cache directory.
+	ctx := context.Background()
+	cache := wazero.NewCompilationCache()
+	config := wazero.NewRuntimeConfig().WithCompilationCache(cache)
+	mod, rt, guestCompiledModule, err := newRuntime(ctx, code, config)
+	if err != nil {
+		return nil, fmt.Errorf("creating runtime instance: %w", err)
 	}
 
 	instance = &Instance{
-		heapBase: heapBase,
-		Runtime:  rt,
+		wasmByteCode: code,
+		Runtime:      rt,
 		Context: &runtime.Context{
 			Keystore:        cfg.Keystore,
 			Validator:       cfg.Role == common.AuthorityRole,
@@ -436,6 +454,11 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		},
 		Module:   mod,
 		codeHash: cfg.CodeHash,
+		metadata: wazeroMeta{
+			config:      config,
+			cache:       cache,
+			guestModule: guestCompiledModule,
+		},
 	}
 
 	if cfg.DefaultVersion == nil {
@@ -456,34 +479,50 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 
 var ErrExportFunctionNotFound = errors.New("export function not found")
 
-func (i *Instance) Exec(function string, data []byte) (result []byte, err error) {
+func (i *Instance) Exec(function string, data []byte) ([]byte, error) {
 	i.Lock()
-	i.Context.Allocator = allocator.NewFreeingBumpHeapAllocator(i.heapBase)
+	defer i.Unlock()
+
+	mod, err := i.Runtime.InstantiateModule(context.Background(), i.metadata.guestModule, wazero.NewModuleConfig())
+	if mod == nil {
+		return nil, fmt.Errorf("instantiate guest module: nil")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("instantiate guest module: %w", err)
+	}
 
 	defer func() {
-		i.Context.Allocator = nil
-		i.Unlock()
+		err = mod.Close(context.Background())
+		if err != nil {
+			logger.Criticalf("guest module not closed: %w", err)
+		}
 	}()
-	// instantiate a new allocator on every execution func
+
+	encodedHeapBase := mod.ExportedGlobal("__heap_base")
+	if encodedHeapBase == nil {
+		return nil, fmt.Errorf("wazero error: nil global for __heap_base")
+	}
+
+	heapBase := api.DecodeU32(encodedHeapBase.Get())
+	i.Context.Allocator = allocator.NewFreeingBumpHeapAllocator(heapBase)
+
+	memory := mod.Memory()
+	if memory == nil {
+		panic("nil memory")
+	}
 
 	dataLength := uint32(len(data))
-	inputPtr, err := i.Context.Allocator.Allocate(i.Module.Memory(), dataLength)
+	inputPtr, err := i.Context.Allocator.Allocate(memory, dataLength)
 	if err != nil {
 		return nil, fmt.Errorf("allocating input memory: %w", err)
 	}
 
-	// Store the data into memory
-	mem := i.Module.Memory()
-	if mem == nil {
-		panic("nil memory")
-	}
-
-	ok := mem.Write(inputPtr, data)
+	ok := memory.Write(inputPtr, data)
 	if !ok {
 		panic("write overflow")
 	}
 
-	runtimeFunc := i.Module.ExportedFunction(function)
+	runtimeFunc := mod.ExportedFunction(function)
 	if runtimeFunc == nil {
 		return nil, fmt.Errorf("%w: %s", ErrExportFunctionNotFound, function)
 	}
@@ -497,11 +536,10 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 		return nil, fmt.Errorf("no returned values from runtime function: %s", function)
 	}
 	wasmValue := values[0]
-
 	outputPtr, outputLength := splitPointerSize(wasmValue)
-	result, ok = mem.Read(outputPtr, outputLength)
+	result, ok := memory.Read(outputPtr, outputLength)
 	if !ok {
-		panic("write overflow")
+		panic("read overflow")
 	}
 
 	return result, nil
@@ -898,5 +936,10 @@ func (in *Instance) Stop() {
 	err := in.Runtime.Close(context.Background())
 	if err != nil {
 		log.Errorf("runtime failed to close: %v", err)
+	}
+
+	err = in.metadata.cache.Close(context.Background())
+	if err != nil {
+		log.Errorf("closing the wazero compilation cache: %v", err)
 	}
 }
