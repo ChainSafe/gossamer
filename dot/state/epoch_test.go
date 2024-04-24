@@ -4,6 +4,7 @@
 package state
 
 import (
+	"encoding/binary"
 	"testing"
 	"time"
 
@@ -122,10 +123,6 @@ func TestEpochState_ConfigData(t *testing.T) {
 	require.NoError(t, err)
 
 	ret, err := s.GetConfigData(1, nil)
-	require.NoError(t, err)
-	require.Equal(t, data, ret)
-
-	ret, err = s.GetLatestConfigData()
 	require.NoError(t, err)
 	require.Equal(t, data, ret)
 }
@@ -733,4 +730,39 @@ func TestRetrieveChainFirstSlot(t *testing.T) {
 		})
 	}
 
+}
+
+func TestFirstSlotNumberFromDb(t *testing.T) {
+	// test case to check whether we have the correct first slot number in the database
+	epochState := newEpochStateFromGenesis(t)
+	slotDuration, err := epochState.GetSlotDuration()
+	require.NoError(t, err)
+
+	genesisHash := epochState.blockState.genesisHash
+
+	// setting a predefined slot number
+	predefinedSlotNumber := uint64(1000)
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, predefinedSlotNumber)
+	err = epochState.blockState.db.Put(firstSlotNumberKey, buf)
+	require.NoError(t, err)
+
+	slotNumber := currentSlot(uint64(time.Now().UnixNano()),
+		uint64(slotDuration.Nanoseconds()))
+
+	firstNonOrirginBlock := types.NewEmptyHeader()
+	firstNonOrirginBlock.ParentHash = genesisHash
+	firstNonOrirginBlock.Number = 1
+	firstNonOrirginBlock.Digest = buildBlockPrimaryDigest(t,
+		types.BabePrimaryPreDigest{AuthorityIndex: 0, SlotNumber: slotNumber})
+
+	err = epochState.blockState.AddBlock(
+		&types.Block{Header: *firstNonOrirginBlock, Body: *types.NewBody([]types.Extrinsic{})})
+	require.NoError(t, err)
+
+	h := firstNonOrirginBlock.Hash()
+	firstSlotNumber, err := epochState.retrieveFirstNonOriginBlockSlot(h)
+	require.NoError(t, err)
+	require.EqualValuesf(t, predefinedSlotNumber, firstSlotNumber,
+		"expected: %d, got: %d", predefinedSlotNumber, firstSlotNumber)
 }

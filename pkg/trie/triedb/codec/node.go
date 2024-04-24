@@ -42,11 +42,11 @@ type NodeValue interface {
 }
 
 type (
-	// Value bytes as stored in a trie node
+	// InlineValue contains bytes for the value in this node
 	InlineValue struct {
 		Data []byte
 	}
-	// Containing a hash used to lookup in db for real value
+	// HashedValue contains a hash used to lookup in db for real value
 	HashedValue struct {
 		// TODO: use common.Hash
 		Data []byte
