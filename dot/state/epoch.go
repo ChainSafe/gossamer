@@ -602,6 +602,18 @@ func (s *EpochState) GetStartSlotForEpoch(epoch uint64, bestBlockHash common.Has
 // if there is more than one first non origin block then it uses the block hash to check ancestry
 // e.g to return the correct slot number for a specific fork
 func (s *EpochState) retrieveFirstNonOriginBlockSlot(blockHash common.Hash) (uint64, error) {
+	chainFirstSlotNumber, err := s.blockState.getFirstNonOriginSlotNumber()
+	if err != nil {
+		return 0, fmt.Errorf("retrieving first non origin block slot: %w", err)
+
+	}
+	if chainFirstSlotNumber != 0 {
+		return chainFirstSlotNumber, nil
+	}
+
+	// if the chain first slot number is not set in the database then we will
+	// try to find the first non origin block by checking the ancestry
+	// of the block hash
 	firstNonOriginHashes, err := s.blockState.GetHashesByNumber(1)
 	if err != nil {
 		return 0, fmt.Errorf("getting hashes using number 1: %w", err)
@@ -642,7 +654,7 @@ func (s *EpochState) retrieveFirstNonOriginBlockSlot(blockHash common.Hash) (uin
 		return 0, fmt.Errorf("getting first non genesis block by hash: %w", err)
 	}
 
-	chainFirstSlotNumber, err := firstNonGenesisHeader.SlotNumber()
+	chainFirstSlotNumber, err = firstNonGenesisHeader.SlotNumber()
 	if err != nil {
 		return 0, fmt.Errorf("getting slot number: %w", err)
 	}
