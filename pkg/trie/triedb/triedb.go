@@ -103,7 +103,7 @@ func (t *TrieDB) getNodeAt(key []byte) (codec.Node, error) {
 func (t *TrieDB) getNode(
 	merkleValue codec.MerkleValue,
 ) (node codec.Node, err error) {
-	nodeData := []byte{}
+	var nodeData []byte
 
 	switch n := merkleValue.(type) {
 	case codec.InlineNode:
