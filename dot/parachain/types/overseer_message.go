@@ -60,6 +60,14 @@ type StatementDistributionMessageShare struct {
 	SignedFullStatementWithPVD SignedFullStatementWithPVD
 }
 
+// ProspectiveParachainsMessageGetTreeMembership is a prospective parachains message.
+// It is intended for retrieving the membership of a candidate in all fragment trees
+type ProspectiveParachainsMessageGetTreeMembership struct {
+	ParaID        ParaID
+	CandidateHash CandidateHash
+	ResponseCh    chan []FragmentTreeMembership
+}
+
 // ProspectiveParachainsMessageCandidateBacked is a prospective parachains message.
 // it informs the Prospective Parachains Subsystem that
 // a previously introduced candidate has been successfully backed.

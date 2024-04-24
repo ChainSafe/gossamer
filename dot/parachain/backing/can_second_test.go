@@ -78,7 +78,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 
 		mockImplicitView.EXPECT().knownAllowedRelayParentsUnder(
 			gomock.AssignableToTypeOf(common.Hash{}),
-			gomock.AssignableToTypeOf(parachaintypes.ParaID(0)),
+			gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
 		).Return([]common.Hash{msg.CandidateRelayParent})
 
 		subSystemToOverseer := make(chan any)
@@ -153,7 +153,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 
 		mockImplicitView.EXPECT().knownAllowedRelayParentsUnder(
 			gomock.AssignableToTypeOf(common.Hash{}),
-			gomock.AssignableToTypeOf(parachaintypes.ParaID(0)),
+			gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
 		).Return([]common.Hash{})
 
 		cb := CandidateBacking{
@@ -184,7 +184,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 
 		mockImplicitView.EXPECT().knownAllowedRelayParentsUnder(
 			gomock.AssignableToTypeOf(common.Hash{}),
-			gomock.AssignableToTypeOf(parachaintypes.ParaID(0)),
+			gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
 		).Return([]common.Hash{hypotheticalCandidate.RelayParent})
 
 		subSystemToOverseer := make(chan any)
@@ -238,7 +238,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 
 		mockImplicitView.EXPECT().knownAllowedRelayParentsUnder(
 			gomock.AssignableToTypeOf(common.Hash{}),
-			gomock.AssignableToTypeOf(parachaintypes.ParaID(0)),
+			gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
 		).Return([]common.Hash{hypotheticalCandidate.RelayParent})
 
 		subSystemToOverseer := make(chan any)
