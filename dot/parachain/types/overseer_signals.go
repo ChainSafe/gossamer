@@ -29,5 +29,5 @@ type ActiveLeavesUpdateSignal struct {
 // BlockFinalized signal is used to inform subsystems of a finalized block.
 type BlockFinalizedSignal struct {
 	Hash        common.Hash
-	BlockNumber BlockNumber
+	BlockNumber uint32
 }

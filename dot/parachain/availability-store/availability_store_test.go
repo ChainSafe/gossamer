@@ -1801,7 +1801,7 @@ func TestForkfullnessWorks(t *testing.T) {
 	nValidators := uint32(10)
 	msgSenderChan := make(chan error)
 
-	blockNumber1 := parachaintypes.BlockNumber(5)
+	blockNumber1 := uint32(5)
 	parent1 := common.Hash{0x03, 0x03, 0x03, 0x03}
 	pov1 := parachaintypes.PoV{BlockData: parachaintypes.BlockData{1, 2, 3}}
 	pov1Hash := common.MustBlake2bHash(scale.MustMarshal(pov1))
@@ -1826,7 +1826,7 @@ func TestForkfullnessWorks(t *testing.T) {
 	require.NoError(harness.t, err)
 	candidate1Events.Add(parachaintypes.CandidateIncluded{CandidateReceipt: candidate1})
 
-	blockNumber2 := parachaintypes.BlockNumber(5)
+	blockNumber2 := uint32(5)
 	parent2 := common.Hash{0x04, 0x04, 0x04, 0x04}
 	pov2 := parachaintypes.PoV{BlockData: parachaintypes.BlockData{4, 5, 6}}
 	pov2Hash := common.MustBlake2bHash(scale.MustMarshal(pov2))
