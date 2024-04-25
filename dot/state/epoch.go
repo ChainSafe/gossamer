@@ -545,7 +545,6 @@ func (nem nextEpochMap[T]) RetrieveAndUpdate(blockState *BlockState,
 
 	hashes[hashToMove] = *value
 	nem[newEpoch] = hashes
-
 	return value, nil
 }
 
@@ -566,6 +565,10 @@ func findAncestor[T types.NextEpochData | types.NextConfigDataV1](blockState *Bl
 
 	for {
 		for hash, value := range hashesAtEpoch {
+			if bytes.Equal(hash[:], currentHeader.Hash().ToBytes()) {
+				return hash, &value, nil
+			}
+
 			isDescendant, err := blockState.IsDescendantOf(hash, currentHeader.Hash())
 			if err != nil {
 				if errors.Is(err, database.ErrNotFound) {
