@@ -1,3 +1,6 @@
+// Copyright 2024 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package runtime
 
 // Digest item that is able to encode/decode 'system' digest items and
