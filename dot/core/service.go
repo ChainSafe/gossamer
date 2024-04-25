@@ -152,7 +152,6 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 
 // HandleBlockImport handles a block that was imported via the network
 func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieState, announce bool) error {
-	// need to check if
 	parentHash := block.Header.ParentHash
 	if parentHash != s.blockState.GenesisHash() {
 		parentHeader, err := s.blockState.GetHeader(parentHash)

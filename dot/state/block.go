@@ -36,6 +36,7 @@ var (
 	receiptPrefix       = []byte("rcp") // receiptPrefix + hash -> receipt
 	messageQueuePrefix  = []byte("mqp") // messageQueuePrefix + hash -> message queue
 	justificationPrefix = []byte("jcp") // justificationPrefix + hash -> justification
+	firstSlotNumberKey  = []byte("fsn") // firstSlotNumberKey -> First slot number
 
 	errNilBlockTree = errors.New("blocktree is nil")
 	errNilBlockBody = errors.New("block body is nil")
@@ -477,6 +478,26 @@ func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 	}
 
 	return bs.db.Put(blockBodyKey(hash), encodedBody)
+}
+
+// SetFirstNonOriginSlotNumber saves the first non-origin slot number into the DB
+func (bs *BlockState) setFirstNonOriginSlotNumber(slotNumber uint64) error {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, slotNumber)
+	return bs.db.Put(firstSlotNumberKey, buf)
+}
+
+// getFirstNonOriginSlotNumber returns the slot number of the first non origin block
+func (s *BlockState) getFirstNonOriginSlotNumber() (uint64, error) {
+	slotVal, err := s.db.Get(firstSlotNumberKey)
+	if err != nil {
+		if errors.Is(err, database.ErrNotFound) {
+			return 0, nil
+		}
+		return 0, err
+	}
+	val := binary.LittleEndian.Uint64(slotVal)
+	return val, nil
 }
 
 // CompareAndSetBlockData will compare empty fields and set all elements in a block data to db
