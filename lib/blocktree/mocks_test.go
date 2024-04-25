@@ -449,6 +449,21 @@ func (mr *MockInstanceMockRecorder) ParachainHostPersistedValidationData(arg0, a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostPersistedValidationData", reflect.TypeOf((*MockInstance)(nil).ParachainHostPersistedValidationData), arg0, arg1)
 }
 
+// ParachainHostSessionExecutorParams mocks base method.
+func (m *MockInstance) ParachainHostSessionExecutorParams(arg0 parachaintypes.SessionIndex) (*parachaintypes.ExecutorParams, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostSessionExecutorParams", arg0)
+	ret0, _ := ret[0].(*parachaintypes.ExecutorParams)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostSessionExecutorParams indicates an expected call of ParachainHostSessionExecutorParams.
+func (mr *MockInstanceMockRecorder) ParachainHostSessionExecutorParams(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostSessionExecutorParams", reflect.TypeOf((*MockInstance)(nil).ParachainHostSessionExecutorParams), arg0)
+}
+
 // ParachainHostSessionIndexForChild mocks base method.
 func (m *MockInstance) ParachainHostSessionIndexForChild() (parachaintypes.SessionIndex, error) {
 	m.ctrl.T.Helper()

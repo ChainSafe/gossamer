@@ -1696,6 +1696,20 @@ func TestInstance_ParachainHostAsyncBackingParams(t *testing.T) {
 	require.Equal(t, uint32(3), params.MaxCandidateDepth)
 }
 
+func TestInstance_ParachainHostSessionExecutorParams(t *testing.T) {
+	t.Parallel()
+
+	tt := getParachainHostTrie(t, parachainsConfigV190TestData.Storage)
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v190, TestWithTrie(tt))
+
+	index, err := rt.ParachainHostSessionIndexForChild()
+	require.NoError(t, err)
+
+	params, err := rt.ParachainHostSessionExecutorParams(index)
+	require.NoError(t, err)
+	require.Empty(t, params)
+}
+
 func getParachainHostTrie(t *testing.T, testDataStorage []Storage) *inmemory_trie.InMemoryTrie {
 	tt := inmemory_trie.NewEmptyTrie()
 

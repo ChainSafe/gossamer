@@ -311,7 +311,12 @@ func (cb *CandidateBacking) handleCommandAttestNoPoV(
 	candidateState, ok := cb.perCandidate[candidateHash]
 	if ok {
 		return rpState.kickOffValidationWork(
-			cb.SubSystemToOverseer, chRelayParentAndCommand, candidateState.persistedValidationData, attesting)
+			cb.BlockState,
+			cb.SubSystemToOverseer,
+			chRelayParentAndCommand,
+			candidateState.persistedValidationData,
+			attesting,
+		)
 	}
 	return nil
 }
