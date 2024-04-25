@@ -128,7 +128,6 @@ func (mvdt ExecutorParam) ValueAt(index uint) (value any, err error) {
 
 // NewExecutorParam returns a new ExecutorParam varying data type
 func NewExecutorParam() ExecutorParam {
-
 	return ExecutorParam{}
 }
 
