@@ -1,3 +1,6 @@
+// Copyright 2024 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package networkbridge
 
 import (
@@ -36,9 +39,12 @@ func (nbs *NetworkBridgeSender) Name() parachaintypes.SubSystemName {
 	return parachaintypes.NetworkBridgeSender
 }
 
-func (nbs *NetworkBridgeSender) ProcessActiveLeavesUpdateSignal() {}
+func (nbs *NetworkBridgeSender) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
+	return nil
+}
 
-func (nbs *NetworkBridgeSender) ProcessBlockFinalizedSignal() {}
+func (nbs *NetworkBridgeSender) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
+}
 
 func (nbs *NetworkBridgeSender) Stop() {}
 

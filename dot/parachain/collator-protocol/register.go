@@ -18,6 +18,7 @@ func Register(net Network, protocolID protocol.ID, overseerChan chan<- any) (*Co
 
 	cpvs := CollatorProtocolValidatorSide{
 		net:                             net,
+		networkEventInfoChan:            net.GetNetworkEventsChannel(),
 		SubSystemToOverseer:             overseerChan,
 		collationFetchingReqResProtocol: collationFetchingReqResProtocol,
 	}

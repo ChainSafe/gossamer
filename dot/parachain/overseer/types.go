@@ -14,7 +14,7 @@ type Subsystem interface {
 	// Run runs the subsystem.
 	Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any)
 	Name() parachaintypes.SubSystemName
-	ProcessActiveLeavesUpdateSignal()
-	ProcessBlockFinalizedSignal()
+	ProcessActiveLeavesUpdateSignal(parachaintypes.ActiveLeavesUpdateSignal) error
+	ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal)
 	Stop()
 }

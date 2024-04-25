@@ -454,12 +454,13 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 				if err != nil {
 					logger.Errorf("failed to handle store available data: %w", err)
 				}
-
 			case parachaintypes.ActiveLeavesUpdateSignal:
-				av.ProcessActiveLeavesUpdateSignal()
-
+				err := av.ProcessActiveLeavesUpdateSignal(msg)
+				if err != nil {
+					logger.Errorf("failed to process active leaves update signal: %w", err)
+				}
 			case parachaintypes.BlockFinalizedSignal:
-				av.ProcessBlockFinalizedSignal()
+				av.ProcessBlockFinalizedSignal(msg)
 
 			default:
 				logger.Error(parachaintypes.ErrUnknownOverseerMessage.Error())
@@ -476,11 +477,13 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 	}
 }
 
-func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal() {
+func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal(
+	update parachaintypes.ActiveLeavesUpdateSignal) error {
 	// TODO: #3630
+	return nil
 }
 
-func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal() {
+func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
 	// TODO: #3630
 }
 

@@ -6,6 +6,7 @@ package parachaintypes
 import (
 	"bytes"
 	"fmt"
+	"math"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -34,6 +35,38 @@ type GroupRotationInfo struct {
 	GroupRotationFrequency BlockNumber `scale:"2"`
 	// Now indicates the current block number.
 	Now BlockNumber `scale:"3"`
+}
+
+// GroupForCore returns the index of the group needed to validate the core at the given index,
+// assuming the given number of cores.
+//
+// `coreIndex` should be less than `numOfCores`, which is capped at `MaxUint32`.
+func (info GroupRotationInfo) GroupForCore(coreIndex CoreIndex, numOfCores uint) GroupIndex {
+	if info.GroupRotationFrequency == 0 {
+		return GroupIndex(coreIndex.Index)
+	}
+
+	if numOfCores == 0 {
+		return GroupIndex(0)
+	}
+
+	cores := min(numOfCores, math.MaxUint32)
+
+	var blocksSinceStart uint32
+	if info.Now > info.SessionStartBlock {
+		blocksSinceStart = uint32(info.Now - info.SessionStartBlock)
+	}
+
+	rotations := blocksSinceStart / uint32(info.GroupRotationFrequency)
+
+	idx := uint(coreIndex.Index+rotations) % cores
+	return GroupIndex(idx)
+}
+
+func (gri GroupRotationInfo) CoreForGroup(groupIndex GroupIndex, cores uint8) CoreIndex {
+	//nolint
+	// TODO: https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/primitives/src/v6/mod.rs#L877
+	return CoreIndex{}
 }
 
 // ValidatorGroups represents the validator groups

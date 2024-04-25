@@ -55,27 +55,29 @@ func (mr *MockSubsystemMockRecorder) Name() *gomock.Call {
 }
 
 // ProcessActiveLeavesUpdateSignal mocks base method.
-func (m *MockSubsystem) ProcessActiveLeavesUpdateSignal() {
+func (m *MockSubsystem) ProcessActiveLeavesUpdateSignal(arg0 parachaintypes.ActiveLeavesUpdateSignal) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ProcessActiveLeavesUpdateSignal")
+	ret := m.ctrl.Call(m, "ProcessActiveLeavesUpdateSignal", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // ProcessActiveLeavesUpdateSignal indicates an expected call of ProcessActiveLeavesUpdateSignal.
-func (mr *MockSubsystemMockRecorder) ProcessActiveLeavesUpdateSignal() *gomock.Call {
+func (mr *MockSubsystemMockRecorder) ProcessActiveLeavesUpdateSignal(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessActiveLeavesUpdateSignal", reflect.TypeOf((*MockSubsystem)(nil).ProcessActiveLeavesUpdateSignal))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessActiveLeavesUpdateSignal", reflect.TypeOf((*MockSubsystem)(nil).ProcessActiveLeavesUpdateSignal), arg0)
 }
 
 // ProcessBlockFinalizedSignal mocks base method.
-func (m *MockSubsystem) ProcessBlockFinalizedSignal() {
+func (m *MockSubsystem) ProcessBlockFinalizedSignal(arg0 parachaintypes.BlockFinalizedSignal) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ProcessBlockFinalizedSignal")
+	m.ctrl.Call(m, "ProcessBlockFinalizedSignal", arg0)
 }
 
 // ProcessBlockFinalizedSignal indicates an expected call of ProcessBlockFinalizedSignal.
-func (mr *MockSubsystemMockRecorder) ProcessBlockFinalizedSignal() *gomock.Call {
+func (mr *MockSubsystemMockRecorder) ProcessBlockFinalizedSignal(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessBlockFinalizedSignal", reflect.TypeOf((*MockSubsystem)(nil).ProcessBlockFinalizedSignal))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessBlockFinalizedSignal", reflect.TypeOf((*MockSubsystem)(nil).ProcessBlockFinalizedSignal), arg0)
 }
 
 // Run mocks base method.

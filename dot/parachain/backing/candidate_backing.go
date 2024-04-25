@@ -28,6 +28,7 @@ import (
 	"sync"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -80,13 +81,13 @@ type CandidateBacking struct {
 	// We only feed leaves which have prospective parachains enabled to this view.
 	implicitView ImplicitView
 	// The handle to the keystore used for signing.
-	keystore keystore.Keystore
+	keystore   keystore.Keystore
+	BlockState *state.BlockState
 }
 
 type activeLeafState struct {
 	prospectiveParachainsMode parachaintypes.ProspectiveParachainsMode
 	secondedAtDepth           map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]
-	perCandidate              map[parachaintypes.CandidateHash]*perCandidateState //nolint:unused
 }
 
 // perCandidateState represents the state information for a candidate in the subsystem.
@@ -232,8 +233,6 @@ func (*CandidateBacking) Name() parachaintypes.SubSystemName {
 
 // processMessage processes incoming messages from overseer
 func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan relayParentAndCommand) error {
-	// process these received messages by referencing
-	// https://github.com/paritytech/polkadot-sdk/blob/769bdd3ff33a291cbc70a800a3830638467e42a2/polkadot/node/core/backing/src/lib.rs#L741
 	switch msg := msg.(type) {
 	case GetBackedCandidatesMessage:
 		cb.handleGetBackedCandidatesMessage(msg)
@@ -247,21 +246,20 @@ func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan
 	case StatementMessage:
 		return cb.handleStatementMessage(msg.RelayParent, msg.SignedFullStatement, chRelayParentAndCommand)
 	case parachaintypes.ActiveLeavesUpdateSignal:
-		cb.ProcessActiveLeavesUpdateSignal()
+		err := cb.ProcessActiveLeavesUpdateSignal(msg)
+		if err != nil {
+			return fmt.Errorf("processing active leaves update signal: %w", err)
+		}
 	case parachaintypes.BlockFinalizedSignal:
-		cb.ProcessBlockFinalizedSignal()
+		cb.ProcessBlockFinalizedSignal(msg)
 	default:
 		return fmt.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
 	}
 	return nil
 }
 
-func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal() {
-	// TODO #3503
-}
-
-func (cb *CandidateBacking) ProcessBlockFinalizedSignal() {
-	// TODO #3644
+func (cb *CandidateBacking) ProcessBlockFinalizedSignal(parachaintypes.BlockFinalizedSignal) {
+	// Nothing to do here
 }
 
 // Import the statement and kick off validation work if it is a part of our assignment.
@@ -291,7 +289,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 		return nil
 	}
 
-	if summary.GroupID != rpState.assignment {
+	if summary.GroupID != *rpState.assignment {
 		logger.Debugf("The ParaId: %d is not assigned to the local validator at relay parent: %s",
 			summary.GroupID, relayParent)
 		return nil
@@ -352,10 +350,4 @@ func (cb *CandidateBacking) handleStatementMessage(
 		pc.persistedValidationData,
 		attesting,
 	)
-}
-
-func getPovFromValidator() parachaintypes.PoV {
-	// TODO: Implement this #3545
-	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/core/backing/src/lib.rs#L1744 //nolint:lll
-	return parachaintypes.PoV{}
 }

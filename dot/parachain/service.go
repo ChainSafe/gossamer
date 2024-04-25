@@ -20,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
@@ -36,7 +37,7 @@ type Service struct {
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain"))
 
-func NewService(net Network, forkID string, st *state.Service) (*Service, error) {
+func NewService(net Network, forkID string, st *state.Service, ks keystore.Keystore) (*Service, error) {
 	overseer := overseer.NewOverseer(st.Block)
 	err := overseer.Start()
 	if err != nil {
@@ -95,6 +96,8 @@ func NewService(net Network, forkID string, st *state.Service) (*Service, error)
 	if err != nil {
 		return nil, err
 	}
+	cpvs.BlockState = st.Block
+	cpvs.Keystore = ks
 	cpvs.OverseerToSubSystem = overseer.RegisterSubsystem(cpvs)
 
 	parachainService := &Service{
@@ -102,7 +105,7 @@ func NewService(net Network, forkID string, st *state.Service) (*Service, error)
 		overseer: overseer,
 	}
 
-	go parachainService.run()
+	go parachainService.run(st.Block)
 
 	return parachainService, nil
 }
@@ -118,10 +121,11 @@ func (Service) Stop() error {
 }
 
 // main loop of parachain service
-func (s Service) run() {
+func (s Service) run(blockState *state.BlockState) {
 	overseer := s.overseer
 
 	candidateBacking := backing.New(overseer.SubsystemsToOverseer)
+	candidateBacking.BlockState = blockState
 	candidateBacking.OverseerToSubSystem = overseer.RegisterSubsystem(candidateBacking)
 
 	// TODO: Add `Prospective Parachains` Subsystem. create an issue.
@@ -176,4 +180,6 @@ type Network interface {
 		maxResponseSize uint64) *network.RequestResponseProtocol
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
 	DisconnectPeer(setID int, p peer.ID)
+	GetNetworkEventsChannel() chan *network.NetworkEventInfo
+	FreeNetworkEventsChannel(ch chan *network.NetworkEventInfo)
 }

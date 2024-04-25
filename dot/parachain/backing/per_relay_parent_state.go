@@ -6,6 +6,7 @@ package backing
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
@@ -21,7 +22,7 @@ type perRelayParentState struct {
 	// The hash of the relay parent on top of which this job is doing it's work.
 	relayParent common.Hash
 	// The `ParaId` assigned to the local validator at this relay parent.
-	assignment parachaintypes.ParaID
+	assignment *parachaintypes.ParaID
 	// The table of candidates and statements under this relay-parent.
 	table Table
 	// The table context, including groups.
@@ -34,6 +35,8 @@ type perRelayParentState struct {
 	issuedStatements map[parachaintypes.CandidateHash]bool
 	// The candidates that are backed by enough validators in their group, by hash.
 	backed map[parachaintypes.CandidateHash]bool
+	// The minimum backing votes threshold.
+	minBackingVotes uint32
 }
 
 // importStatement imports a statement into the statement table and returns the summary of the import.
@@ -260,7 +263,14 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 		return nil
 	}
 
-	pov := getPovFromValidator()
+	pov, err := getPovFromValidator(subSystemToOverseer, chRelayParentAndCommand,
+		rpState.relayParent, candidateHash, &attesting)
+	if err != nil {
+		if errors.Is(err, parachaintypes.ErrFetchPoV) {
+			return nil
+		}
+		return err
+	}
 
 	return rpState.validateAndMakeAvailable(
 		executorParamsAtRelayParent,
@@ -415,4 +425,42 @@ func executorParamsAtRelayParent(
 	// TODO: Implement this #3544
 	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/subsystem-util/src/lib.rs#L241-L242
 	return parachaintypes.ExecutorParams{}, nil
+}
+
+func getPovFromValidator(
+	subSystemToOverseer chan<- any,
+	chRelayParentAndCommand chan relayParentAndCommand,
+	relayParent common.Hash,
+	candidateHash parachaintypes.CandidateHash,
+	attesting *attestingData,
+) (parachaintypes.PoV, error) {
+	var PovRes parachaintypes.OverseerFuncRes[parachaintypes.PoV]
+
+	fetchPov := parachaintypes.AvailabilityDistributionMessageFetchPoV{
+		RelayParent:   relayParent,
+		FromValidator: attesting.fromValidator,
+		ParaID:        parachaintypes.ParaID(attesting.candidate.Descriptor.ParaID),
+		CandidateHash: candidateHash,
+		PovHash:       attesting.povHash,
+		PovCh:         make(chan parachaintypes.OverseerFuncRes[parachaintypes.PoV]),
+	}
+
+	subSystemToOverseer <- fetchPov
+	select {
+	case PovRes = <-fetchPov.PovCh:
+	case <-time.After(parachaintypes.SubsystemRequestTimeout):
+		return parachaintypes.PoV{}, parachaintypes.ErrSubsystemRequestTimeout
+	}
+
+	if PovRes.Err != nil {
+		if errors.Is(PovRes.Err, parachaintypes.ErrFetchPoV) {
+			chRelayParentAndCommand <- relayParentAndCommand{
+				relayParent:   relayParent,
+				command:       attestNoPoV,
+				candidateHash: &candidateHash,
+			}
+		}
+		return parachaintypes.PoV{}, PovRes.Err
+	}
+	return PovRes.Data, nil
 }

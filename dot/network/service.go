@@ -37,6 +37,8 @@ const (
 	transactionsID  = "/transactions/1"
 
 	maxMessageSize = 1024 * 64 // 64kb for now
+
+	defaultBufferSize = 128
 )
 
 var (
@@ -128,6 +130,10 @@ type Service struct {
 	syncer             Syncer
 	transactionHandler TransactionHandler
 
+	// networkEventInfoChannels stores channels used to receive network event information,
+	// such as connected and disconnected peers
+	networkEventInfoChannels map[chan *NetworkEventInfo]struct{}
+
 	// Configuration options
 	noBootstrap bool
 	noDiscover  bool
@@ -202,25 +208,26 @@ func NewService(cfg *Config) (*Service, error) {
 	mdnsService := mdns.NewService(host.p2pHost, serviceTag, mdnsLogger, notifee)
 
 	network := &Service{
-		ctx:                    ctx,
-		cancel:                 cancel,
-		cfg:                    cfg,
-		host:                   host,
-		mdns:                   mdnsService,
-		gossip:                 newGossip(),
-		blockState:             cfg.BlockState,
-		transactionHandler:     cfg.TransactionHandler,
-		noBootstrap:            cfg.NoBootstrap,
-		noMDNS:                 cfg.NoMDNS,
-		syncer:                 cfg.Syncer,
-		notificationsProtocols: make(map[MessageType]*notificationsProtocol),
-		lightRequest:           make(map[peer.ID]struct{}),
-		telemetryInterval:      cfg.telemetryInterval,
-		closeCh:                make(chan struct{}),
-		bufPool:                bufPool,
-		streamManager:          newStreamManager(ctx),
-		telemetry:              cfg.Telemetry,
-		Metrics:                cfg.Metrics,
+		ctx:                      ctx,
+		cancel:                   cancel,
+		cfg:                      cfg,
+		host:                     host,
+		mdns:                     mdnsService,
+		gossip:                   newGossip(),
+		blockState:               cfg.BlockState,
+		transactionHandler:       cfg.TransactionHandler,
+		noBootstrap:              cfg.NoBootstrap,
+		noMDNS:                   cfg.NoMDNS,
+		syncer:                   cfg.Syncer,
+		notificationsProtocols:   make(map[MessageType]*notificationsProtocol),
+		lightRequest:             make(map[peer.ID]struct{}),
+		networkEventInfoChannels: make(map[chan *NetworkEventInfo]struct{}),
+		telemetryInterval:        cfg.telemetryInterval,
+		closeCh:                  make(chan struct{}),
+		bufPool:                  bufPool,
+		streamManager:            newStreamManager(ctx),
+		telemetry:                cfg.Telemetry,
+		Metrics:                  cfg.Metrics,
 	}
 
 	return network, nil
@@ -573,6 +580,8 @@ func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 			return err
 		}
 
+		prtl.peersData.setMutex(to)
+
 		s.sendData(to, hs, prtl, msg)
 		return nil
 	}
@@ -593,6 +602,30 @@ func (s *Service) GetRequestResponseProtocol(subprotocol string, requestTimeout 
 		responseBuf:     make([]byte, maxResponseSize),
 		responseBufMu:   sync.Mutex{},
 	}
+}
+
+func (s *Service) GetNetworkEventsChannel() chan *NetworkEventInfo {
+	ch := make(chan *NetworkEventInfo, defaultBufferSize)
+	s.networkEventInfoChannels[ch] = struct{}{}
+	return ch
+}
+
+func (s *Service) FreeNetworkEventsChannel(ch chan *NetworkEventInfo) {
+	delete(s.networkEventInfoChannels, ch)
+}
+
+type NetworkEvent bool
+
+const (
+	Connected    NetworkEvent = true
+	Disconnected NetworkEvent = false
+)
+
+type NetworkEventInfo struct {
+	PeerID         peer.ID
+	Event          NetworkEvent
+	Role           common.NetworkRole
+	MayBeAuthority *types.AuthorityID
 }
 
 // Health returns information about host needed for the rpc server
@@ -722,6 +755,14 @@ func (s *Service) processMessage(msg peerset.Message) {
 			return
 		}
 		logger.Debugf("connection successful with peer %s", peerID)
+
+		for ch := range s.networkEventInfoChannels {
+			ch <- &NetworkEventInfo{
+				PeerID: peerID,
+				Event:  Connected,
+			}
+		}
+
 	case peerset.Drop, peerset.Reject:
 		err := s.host.closePeer(peerID)
 		if err != nil {
@@ -729,6 +770,14 @@ func (s *Service) processMessage(msg peerset.Message) {
 			return
 		}
 		logger.Debugf("connection dropped successfully for peer %s", peerID)
+
+		for ch := range s.networkEventInfoChannels {
+			ch <- &NetworkEventInfo{
+				PeerID: peerID,
+				Event:  Disconnected,
+			}
+		}
+
 	}
 }
 

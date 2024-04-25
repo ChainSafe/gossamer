@@ -60,6 +60,14 @@ type StatementDistributionMessageShare struct {
 	SignedFullStatementWithPVD SignedFullStatementWithPVD
 }
 
+// ProspectiveParachainsMessageGetTreeMembership is a prospective parachains message.
+// It is intended for retrieving the membership of a candidate in all fragment trees
+type ProspectiveParachainsMessageGetTreeMembership struct {
+	ParaID        ParaID
+	CandidateHash CandidateHash
+	ResponseCh    chan []FragmentTreeMembership
+}
+
 // ProspectiveParachainsMessageCandidateBacked is a prospective parachains message.
 // it informs the Prospective Parachains Subsystem that
 // a previously introduced candidate has been successfully backed.
@@ -213,4 +221,23 @@ type ValidationResult struct {
 	CandidateCommitments    CandidateCommitments
 	PersistedValidationData PersistedValidationData
 	Err                     error
+}
+
+// AvailabilityDistributionMessageFetchPoV represents a message instructing
+// availability distribution to fetch a remote Proof of Validity (PoV).
+type AvailabilityDistributionMessageFetchPoV struct {
+	RelayParent common.Hash
+	// FromValidator is the validator to fetch the PoV from.
+	FromValidator ValidatorIndex
+	// ParaID is the ID of the parachain that produced this PoV.
+	// This field is only used to provide more context when logging errors
+	// from the AvailabilityDistribution subsystem.
+	ParaID ParaID
+	// CandidateHash is the candidate hash to fetch the PoV for.
+	CandidateHash CandidateHash
+	// PovHash is the expected hash of the PoV; a PoV not matching this hash will be rejected.
+	PovHash common.Hash
+	// PovCh is the channel for receiving the result of this fetch.
+	// The channel will be closed if the fetching fails for some reason.
+	PovCh chan OverseerFuncRes[PoV]
 }

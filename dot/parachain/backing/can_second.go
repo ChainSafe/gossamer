@@ -97,7 +97,7 @@ func (cb *CandidateBacking) secondingSanityCheck(
 		if leafState.prospectiveParachainsMode.IsEnabled {
 
 			// check that the candidate relay parent is allowed for parachain, skip the leaf otherwise.
-			allowedParentsForPara := cb.implicitView.knownAllowedRelayParentsUnder(head, candidateParaID)
+			allowedParentsForPara := cb.implicitView.knownAllowedRelayParentsUnder(head, &candidateParaID)
 			if !slices.Contains(allowedParentsForPara, candidateRelayParent) {
 				continue
 			}

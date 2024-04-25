@@ -56,12 +56,12 @@ func (cb *CandidateBacking) handleSecondMessage(
 	}
 
 	// Sanity check that candidate is from our assignment.
-	if candidateReceipt.Descriptor.ParaID != uint32(rpState.assignment) {
+	if candidateReceipt.Descriptor.ParaID != uint32(*rpState.assignment) {
 		return fmt.Errorf("%w: candidate hash: %s; candidate paraID: %d; assignment: %d",
 			errParaOutsideAssignmentForSeconding,
 			candidateHash,
 			candidateReceipt.Descriptor.ParaID,
-			rpState.assignment,
+			*rpState.assignment,
 		)
 	}
 
