@@ -15,22 +15,9 @@ import (
 type ExecutorParams scale.VaryingDataTypeSlice
 
 // NewExecutorParams returns a new ExecutorParams varying data type slice
-func NewExecutorParams() ExecutorParams {
+func NewExecutorParams() scale.VaryingDataTypeSlice {
 	vdt := NewExecutorParam()
-	vdts := scale.NewVaryingDataTypeSlice(scale.VaryingDataType(vdt))
-	return ExecutorParams(vdts)
-}
-
-// Add takes variadic parameter values to add VaryingDataTypeValue
-func (e *ExecutorParams) Add(val scale.VaryingDataTypeValue) (err error) {
-	slice := scale.VaryingDataTypeSlice(*e)
-	err = slice.Add(val)
-	if err != nil {
-		return fmt.Errorf("adding value to varying data type slice: %w", err)
-	}
-
-	*e = ExecutorParams(slice)
-	return nil
+	return scale.NewVaryingDataTypeSlice(scale.VaryingDataType(vdt))
 }
 
 // ExecutorParam represents the various parameters for modifying the semantics of the execution environment.
