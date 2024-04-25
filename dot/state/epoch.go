@@ -523,14 +523,30 @@ type nextEpochMap[T types.NextEpochData | types.NextConfigDataV1] map[uint64]map
 
 func (nem nextEpochMap[T]) RetrieveAndUpdate(blockState *BlockState,
 	oldEpoch, newEpoch uint64, header *types.Header) (*T, error) {
-	find, err := nem.Retrieve(blockState, oldEpoch, header)
-	if err != nil {
-		return nil, fmt.Errorf("retrieving next epoch data: %w", err)
+	oldEpochHashes, has := nem[oldEpoch]
+	if !has {
+		return nil, fmt.Errorf("%w: %d", ErrEpochNotInMemory, oldEpoch)
 	}
 
-	nem[newEpoch] = nem[oldEpoch]
-	delete(nem, oldEpoch)
-	return find, nil
+	hashToMove, value, err := findAncestor(blockState, oldEpochHashes, header)
+	if err != nil {
+		return nil, err
+	}
+
+	// just remove the HASH -> Next Epoch Data from the old epoch
+	// and introduce the HASH -> Next Epoch Data into the new epoch
+	delete(oldEpochHashes, hashToMove)
+	nem[oldEpoch] = oldEpochHashes
+
+	hashes, ok := nem[newEpoch]
+	if !ok {
+		hashes = make(map[common.Hash]T)
+	}
+
+	hashes[hashToMove] = *value
+	nem[newEpoch] = hashes
+
+	return value, nil
 }
 
 func (nem nextEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header *types.Header) (*T, error) {
@@ -539,27 +555,34 @@ func (nem nextEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header
 		return nil, fmt.Errorf("%w: %d", ErrEpochNotInMemory, epoch)
 	}
 
+	_, value, err := findAncestor(blockState, atEpoch, header)
+	return value, err
+}
+
+func findAncestor[T types.NextEpochData | types.NextConfigDataV1](blockState *BlockState,
+	hashesAtEpoch map[common.Hash]T, header *types.Header) (common.Hash, *T, error) {
+
 	currentHeader := header
 
 	for {
-		for hash, value := range atEpoch {
+		for hash, value := range hashesAtEpoch {
 			isDescendant, err := blockState.IsDescendantOf(hash, currentHeader.Hash())
 			if err != nil {
 				if errors.Is(err, database.ErrNotFound) {
 					continue
 				}
 
-				return nil, fmt.Errorf("cannot verify the ancestry: %w", err)
+				return common.Hash{}, nil, fmt.Errorf("cannot verify the ancestry: %w", err)
 			}
 
 			if isDescendant {
-				return &value, nil
+				return hash, &value, nil
 			}
 		}
 
 		// if there is no more ancestors then return
 		if bytes.Equal(currentHeader.ParentHash.ToBytes(), common.EmptyHash.ToBytes()) {
-			return nil, fmt.Errorf("%w: could not found config data for hash %s", errHashNotInMemory, currentHeader.Hash())
+			return common.Hash{}, nil, fmt.Errorf("%w: could not found config data for hash %s", errHashNotInMemory, currentHeader.Hash())
 		}
 
 		// sometimes while moving to the next epoch is possible the header
@@ -567,7 +590,7 @@ func (nem nextEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header
 		// its parent header which migth be already imported.
 		parentHeader, err := blockState.GetHeader(header.ParentHash)
 		if err != nil {
-			return nil, fmt.Errorf("cannot get parent header: %w", err)
+			return common.Hash{}, nil, fmt.Errorf("cannot get parent header: %w", err)
 		}
 
 		currentHeader = parentHeader

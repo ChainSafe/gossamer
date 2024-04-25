@@ -25,9 +25,11 @@ type BlockImportDigestHandler interface {
 
 // BlockState interface for block state methods
 type BlockState interface {
+	GenesisHash() common.Hash
 	BestBlockHash() common.Hash
 	BestBlockHeader() (*types.Header, error)
 	AddBlock(*types.Block) error
+	GetHeader(bhash common.Hash) (*types.Header, error)
 	GetBlockStateRoot(bhash common.Hash) (common.Hash, error)
 	RangeInMemory(start, end common.Hash) ([]common.Hash, error)
 	GetBlockBody(hash common.Hash) (*types.Body, error)
@@ -44,6 +46,23 @@ type StorageState interface {
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
 	sync.Locker
+}
+
+// EpochState is the interface for state.EpochState
+type EpochState interface {
+	GetEpochForBlock(header *types.Header) (uint64, error)
+
+	// GetSkippedEpochDataRaw returns the raw epoch data for a skipped epoch that is stored in advance
+	// of the start of the epoch, also this method will update the epoch number from the
+	// skipped epoch to the current epoch
+	GetSkippedEpochDataRaw(skippedEpoch, currentEpoch uint64,
+		header *types.Header) (*types.EpochDataRaw, error)
+
+	// GetSkippedConfigData returns the config data for a skipped epoch that is stored in advance
+	// of the start of the epoch, also this method will update the epoch number from the
+	// skipped epoch to the current epoch
+	GetSkippedConfigData(skippedEpoch, currentEpoch uint64,
+		header *types.Header) (*types.ConfigData, error)
 }
 
 // GrandpaState is the interface for the state.GrandpaState
