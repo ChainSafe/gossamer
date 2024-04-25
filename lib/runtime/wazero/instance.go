@@ -1396,6 +1396,30 @@ func (in *Instance) ParachainHostAsyncBackingParams() (*parachaintypes.AsyncBack
 	return backingParams, nil
 }
 
+func (in *Instance) ParachainHostSessionExecutorParams(index parachaintypes.SessionIndex) (
+	*parachaintypes.ExecutorParams, error) {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(index)
+	if err != nil {
+		return nil, fmt.Errorf("encoding session index: %w", err)
+	}
+
+	encodedExecutorParams, err := in.Exec(runtime.ParachainHostSessionExecutorParams, buffer.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	executorParams := parachaintypes.NewExecutorParams()
+	err = scale.Unmarshal(encodedExecutorParams, &executorParams)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling session executor params: %w", err)
+	}
+
+	params := parachaintypes.ExecutorParams(executorParams)
+	return &params, nil
+}
+
 func (*Instance) RandomSeed() {
 	panic("unimplemented")
 }
