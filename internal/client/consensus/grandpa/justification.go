@@ -31,8 +31,6 @@ var (
 //
 // This is meant to be stored in the db and passed around the network to other
 // nodes, and are used by syncing nodes to prove authority set handoffs.
-// #[derive(Clone, Encode, Decode, PartialEq, Eq, Debug)]
-// pub struct GrandpaJustification<Block: BlockT> {
 type GrandpaJustification[Hash runtime.Hash, N runtime.Number] struct {
 	// The GRANDPA justification for block finality.
 	Justification pgrandpa.GrandpaJustification[Hash, N]
