@@ -89,7 +89,7 @@ func (bt256 BlakeTwo256) HashOf(s any) hash.H256 {
 
 var _ Hasher[hash.H256] = BlakeTwo256{}
 
-// Something which fulfills the abstract idea of a Substrate header. It has types for a `Number`,
+// Something which fulfils the abstract idea of a Substrate header. It has types for a `Number`,
 // a `Hash` and a `Hashing`. It provides access to an `extrinsics_root`, `state_root` and
 // `parent_hash`, as well as a `digest` and a block `number`.
 //
@@ -103,7 +103,7 @@ type Header[N Number, H Hash] interface {
 	Hash() H
 }
 
-// Something which fulfills the abstract idea of a Substrate block. It has types for
+// Something which fulfils the abstract idea of a Substrate block. It has types for
 // `Extrinsic` pieces of information as well as a `Header`.
 //
 // You can get an iterator over each of the `extrinsics` and retrieve the `header`.

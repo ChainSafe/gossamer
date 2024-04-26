@@ -42,7 +42,6 @@ func (b Block[N, H, Hasher]) Extrinsics() []runtime.Extrinsic {
 
 func (b Block[N, H, Hasher]) Deconstruct() (header runtime.Header[N, H], extrinsics []runtime.Extrinsic) {
 	panic("unimplemented")
-	return nil, nil
 }
 
 func (b Block[N, H, Hasher]) Hash() H {

@@ -236,7 +236,9 @@ type voterSetStateValues[H comparable, N constraints.Unsigned] interface {
 	voterSetStateLive[H, N] | voterSetStatePaused[H, N]
 }
 
-func setVoterSetState[H comparable, N constraints.Unsigned, Value voterSetStateValues[H, N]](mvdt *voterSetState[H, N], value Value) {
+func setVoterSetState[
+	H comparable, N constraints.Unsigned, Value voterSetStateValues[H, N],
+](mvdt *voterSetState[H, N], value Value) {
 	mvdt.inner = value
 }
 

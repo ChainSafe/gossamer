@@ -52,6 +52,9 @@ func NewH256FromLowUint64BigEndian(v uint64) H256 {
 
 func NewRandomH256() H256 {
 	token := make([]byte, 32)
-	rand.Read(token)
+	_, err := rand.Read(token)
+	if err != nil {
+		panic(err)
+	}
 	return H256(token)
 }

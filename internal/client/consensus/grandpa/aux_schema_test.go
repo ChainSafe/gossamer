@@ -155,8 +155,8 @@ func TestLoadPersistentNotGenesis(t *testing.T) {
 	require.NoError(t, err)
 
 	insert := []api.KeyValue{
-		{authoritySetKey, scale.MustMarshal(*genesisSet)},
-		{setStateKey, scale.MustMarshal(genesisState)},
+		{Key: authoritySetKey, Value: scale.MustMarshal(*genesisSet)},
+		{Key: setStateKey, Value: scale.MustMarshal(genesisState)},
 	}
 
 	err = store.InsertAux(insert, nil)
@@ -179,7 +179,7 @@ func TestLoadPersistentNotGenesis(t *testing.T) {
 	// Auth set written but not set state
 	store = newDummyStore()
 	insert = []api.KeyValue{
-		{authoritySetKey, scale.MustMarshal(*genesisSet)},
+		{Key: authoritySetKey, Value: scale.MustMarshal(*genesisSet)},
 	}
 
 	err = store.InsertAux(insert, nil)

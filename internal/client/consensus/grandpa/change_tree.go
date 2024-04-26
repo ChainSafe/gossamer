@@ -190,7 +190,9 @@ type FinalizationResultValues[H comparable, N constraints.Unsigned] interface {
 	changed[H, N] | unchanged
 }
 
-func setFinalizationResult[H comparable, N constraints.Unsigned, Value FinalizationResultValues[H, N]](mvdt *FinalizationResult[H, N], value Value) {
+func setFinalizationResult[
+	H comparable, N constraints.Unsigned, Value FinalizationResultValues[H, N],
+](mvdt *FinalizationResult[H, N], value Value) {
 	mvdt.inner = value
 }
 

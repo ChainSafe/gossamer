@@ -46,7 +46,7 @@ func newTestPublic(t *testing.T, index uint8) app.Public {
 	t.Helper()
 	data := make([]byte, 32)
 	for i := range data {
-		data[i] = byte(index)
+		data[i] = index
 	}
 	pub, err := app.NewPublicFromSlice(data)
 	if err != nil {

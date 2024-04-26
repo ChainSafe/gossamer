@@ -179,7 +179,8 @@ type Public[Signature any] interface {
 // ```
 // # use sp_core::crypto::{SecretUri, DeriveJunction, DEV_PHRASE, ExposeSecret};
 // # use std::str::FromStr;
-// let suri = SecretUri::from_str("0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a//Alice").expect("Parse SURI");
+// let suri = SecretUri::from_str(
+// "0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a//Alice").expect("Parse SURI");
 //
 // assert_eq!(vec![DeriveJunction::from("Alice").harden()], suri.junctions);
 // assert_eq!("0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a", suri.phrase.expose_secret());

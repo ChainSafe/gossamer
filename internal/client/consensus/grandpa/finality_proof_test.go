@@ -174,7 +174,7 @@ func createCommit[H runtime.Hash, N runtime.Number](
 			TargetNumber: block.Header().Number(),
 		}
 		msg := grandpa.NewMessage(precommit)
-		encoded := pgrandpa.LocalizedPayload(pgrandpa.RoundNumber(round), pgrandpa.SetID(setID), msg)
+		encoded := pgrandpa.LocalizedPayload(pgrandpa.RoundNumber(round), setID, msg)
 		signature := voter.Sign(encoded)
 
 		signedPrecommit := grandpa.SignedPrecommit[H, N, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]{
@@ -192,29 +192,36 @@ func createCommit[H runtime.Hash, N runtime.Number](
 	}
 }
 
-func newHeader(t *testing.T, number uint64) *generic.Header[uint64, hash.H256, runtime.BlakeTwo256] {
+func newHeader(number uint64) *generic.Header[uint64, hash.H256, runtime.BlakeTwo256] {
 	// var defaultHash = [32]byte{}
 	var parentHash = hash.H256("")
 	switch number {
 	case 0:
 	default:
-		parentHash = newHeader(t, number-1).Hash()
+		parentHash = newHeader(number - 1).Hash()
 	}
-	header := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](number, hash.H256(""), hash.H256(""), parentHash, runtime.Digest{})
+	header := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		number, hash.H256(""), hash.H256(""), parentHash, runtime.Digest{})
 	return &header
 }
 
 func TestNewHeader(t *testing.T) {
-	header := newHeader(t, 2)
+	header := newHeader(2)
 	hash := header.Hash()
-	require.Equal(t, hash.Bytes(), []byte{26, 124, 34, 215, 232, 187, 104, 22, 29, 232, 40, 118, 219, 37, 121, 10, 210, 220, 188, 99, 242, 208, 233, 23, 243, 102, 164, 192, 220, 154, 183, 105})
+	require.Equal(
+		t, hash.Bytes(),
+		[]byte{
+			26, 124, 34, 215, 232, 187, 104, 22, 29, 232, 40, 118, 219, 37, 121, 10, 210,
+			220, 188, 99, 242, 208, 233, 23, 243, 102, 164, 192, 220, 154, 183, 105,
+		},
+	)
 }
 
 func TestFinalityProof_CheckWorksWithCorrectJustification(t *testing.T) {
 	alice := ed25519.Alice
 	var setID pgrandpa.SetID = 1
 	var round uint64 = 8
-	var block = generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(t, 7), nil)
+	var block = generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(7), nil)
 	commit := createCommit(t, block, round, setID, []ed25519.Keyring{alice})
 
 	var client blockchain.HeaderBackend[hash.H256, uint64]
@@ -223,7 +230,7 @@ func TestFinalityProof_CheckWorksWithCorrectJustification(t *testing.T) {
 	require.NoError(t, err)
 
 	finalityProof := FinalityProof[hash.H256, uint64]{
-		Block:          newHeader(t, 2).Hash(),
+		Block:          newHeader(2).Hash(),
 		Justification:  scale.MustMarshal(grandpaJust),
 		UnknownHeaders: nil,
 	}
@@ -270,8 +277,8 @@ func TestFinalityProof_UsingAuthoritySetChangesWorks(t *testing.T) {
 	var client blockchain.HeaderBackend[hash.H256, uint64]
 
 	// let (client, backend, blocks) = test_blockchain(8, &[4, 5]);
-	block7 := generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(t, 7), nil)
-	block8 := generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(t, 8), nil)
+	block7 := generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(7), nil)
+	block8 := generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(8), nil)
 
 	round := uint64(8)
 	commit := createCommit(t, block8, round, 1, []ed25519.Keyring{ed25519.Alice})
@@ -316,7 +323,8 @@ func TestFinalityProof_UsingAuthoritySetChangesWorks(t *testing.T) {
 		UnknownHeaders: []runtime.Header[uint64, hash.H256]{block7.Header(), block8.Header()},
 	}, *proofOf6)
 
-	proofOf6WithoutUnknown, err := proveFinality[hash.H256, uint64, runtime.BlakeTwo256](backend, authoritySetChanges, 6, false)
+	proofOf6WithoutUnknown, err := proveFinality[hash.H256, uint64, runtime.BlakeTwo256](
+		backend, authoritySetChanges, 6, false)
 	require.NoError(t, err)
 	require.NotNil(t, proofOf6WithoutUnknown)
 
@@ -362,8 +370,8 @@ func TestFinalityProof_InLastSetUsingLatestJustificationWorks(t *testing.T) {
 		FinalizedNumber: 8,
 	})
 
-	block7 := generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(t, 7), nil)
-	block8 := generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(t, 8), nil)
+	block7 := generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(7), nil)
+	block8 := generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(8), nil)
 
 	blockchainBackend.EXPECT().ExpectBlockHashFromID(uint64(8)).Return(block8.Hash(), nil)
 	blockchainBackend.EXPECT().ExpectBlockHashFromID(uint64(7)).Return(block7.Hash(), nil)

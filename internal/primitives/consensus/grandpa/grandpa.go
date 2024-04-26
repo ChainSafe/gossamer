@@ -67,7 +67,7 @@ type GrandpaJustification[Ordered runtime.Hash, N runtime.Number] struct {
 	VoteAncestries []runtime.Header[N, Ordered]
 }
 
-// Check a message signature by encoding the message as a localized payload and
+// Check a message signature by encoding the message as a localised payload and
 // verifying the provided signature using the expected authority id.
 func CheckMessageSignature[H comparable, N constraints.Unsigned](
 	message grandpa.Message[H, N],
@@ -85,7 +85,7 @@ func CheckMessageSignature[H comparable, N constraints.Unsigned](
 	return valid
 }
 
-// Encode round message localized to a given round and set id using the given
+// Encode round message localised to a given round and set id using the given
 // buffer.
 func LocalizedPayload(round RoundNumber, setID SetID, message any) []byte {
 	return scale.MustMarshal(struct {

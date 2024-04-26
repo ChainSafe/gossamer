@@ -220,7 +220,9 @@ func NewPairFromSeedSlice(seedSlice []byte) Pair {
 // generally be equivalent to no password at all.
 //
 // `None` is returned if no matches are found.
-func NewPairFromStringWithSeed(s string, passwordOverride *string) (pair crypto.Pair[[32]byte, Signature], seed [32]byte, err error) {
+func NewPairFromStringWithSeed(s string, passwordOverride *string) (
+	pair crypto.Pair[[32]byte, Signature], seed [32]byte, err error,
+) {
 	sURI, err := crypto.NewSecretURI(s)
 	if err != nil {
 		return Pair{}, [32]byte{}, err

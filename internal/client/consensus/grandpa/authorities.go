@@ -67,7 +67,9 @@ func (sas *SharedAuthoritySet[H, N]) CurrentAuthorities() grandpa.VoterSet[strin
 	}
 	voterSet := grandpa.NewVoterSet[string](idWeights)
 	if voterSet == nil {
-		panic(fmt.Errorf("current_authorities is non-empty and weights are non-zero; constructor and all mutating operations on `AuthoritySet` ensure this; qed."))
+		panic(fmt.Errorf(
+			"current_authorities is non-empty and weights are non-zero; constructor and all mutating operations on `AuthoritySet` ensure this; qed", //nolint: lll
+		))
 	}
 	return *voterSet
 }

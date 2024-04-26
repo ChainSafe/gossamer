@@ -23,7 +23,7 @@ import (
 func makePrecommit(t *testing.T,
 	targetHash string,
 	targetNumber uint64,
-	round uint64,
+	round uint64, //nolint:unparam
 	setID uint64,
 	voter ed25519.Keyring,
 ) grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID] {
@@ -48,8 +48,9 @@ func makePrecommit(t *testing.T,
 }
 
 func TestJustificationEncoding(t *testing.T) {
+	var hashA = "a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" //nolint:lll
 	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
-	precommit := makePrecommit(t, "a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", 1, 1, 1, ed25519.Alice)
+	precommit := makePrecommit(t, hashA, 1, 1, 1, ed25519.Alice)
 	precommits = append(precommits, precommit)
 
 	expAncestries := make([]runtime.Header[uint64, hash.H256], 0)
@@ -57,14 +58,16 @@ func TestJustificationEncoding(t *testing.T) {
 		100,
 		hash.H256(""),
 		hash.H256(""),
-		"a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+		hash.H256(hashA),
 		runtime.Digest{}),
 	)
 
 	expected := pgrandpa.GrandpaJustification[hash.H256, uint64]{
 		Round: 2,
 		Commit: pgrandpa.Commit[hash.H256, uint64]{
-			TargetHash:   hash.H256("b\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"),
+			TargetHash: hash.H256(
+				"b\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", //nolint:lll
+			),
 			TargetNumber: 1,
 			Precommits:   precommits,
 		},
@@ -167,7 +170,7 @@ func TestJustification_fromCommit(t *testing.T) {
 }
 
 func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
-	var a hash.H256 = "a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+	var a hash.H256 = "a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" //nolint:lll
 
 	// Invalid Encoding
 	invalidEncoding := []byte{21}
@@ -282,7 +285,7 @@ func TestJustification_verify(t *testing.T) {
 		})
 	}
 
-	var a hash.H256 = "a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+	var a hash.H256 = "a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" //nolint:lll
 	headerB := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
 		2,
 		hash.H256(""),

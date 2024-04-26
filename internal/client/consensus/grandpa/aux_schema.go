@@ -117,8 +117,8 @@ func loadPersistent[H comparable, N constraints.Unsigned](
 	}
 
 	insert := []api.KeyValue{
-		{authoritySetKey, scale.MustMarshal(*genesisSet)},
-		{setStateKey, scale.MustMarshal(genesisState)},
+		{Key: authoritySetKey, Value: scale.MustMarshal(*genesisSet)},
+		{Key: setStateKey, Value: scale.MustMarshal(genesisState)},
 	}
 
 	err = store.InsertAux(insert, nil)
@@ -167,8 +167,8 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID pgrandpa.Author
 		}
 
 		insert := []api.KeyValue{
-			{authoritySetKey, encodedAuthSet},
-			{setStateKey, encodedVoterSet},
+			{Key: authoritySetKey, Value: encodedAuthSet},
+			{Key: setStateKey, Value: encodedVoterSet},
 		}
 		err = write(insert)
 		if err != nil {
@@ -177,7 +177,7 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID pgrandpa.Author
 
 	} else {
 		insert := []api.KeyValue{
-			{authoritySetKey, encodedAuthSet},
+			{Key: authoritySetKey, Value: encodedAuthSet},
 		}
 
 		err = write(insert)
@@ -205,7 +205,7 @@ func updateBestJustification[
 	}
 
 	insert := []api.KeyValue{
-		{bestJustification, encodedJustificaiton},
+		{Key: bestJustification, Value: encodedJustificaiton},
 	}
 	err = write(insert)
 	if err != nil {
@@ -238,7 +238,7 @@ func WriteVoterSetState[H comparable, N constraints.Unsigned](
 		return err
 	}
 	insert := []api.KeyValue{
-		{setStateKey, encodedVoterSet},
+		{Key: setStateKey, Value: encodedVoterSet},
 	}
 	err = write(insert)
 	if err != nil {
@@ -265,7 +265,7 @@ func WriteConcludedRound[H comparable, N constraints.Unsigned](
 	}
 
 	insert := []api.KeyValue{
-		{key, encRoundData},
+		{Key: key, Value: encRoundData},
 	}
 	err = write(insert)
 	if err != nil {

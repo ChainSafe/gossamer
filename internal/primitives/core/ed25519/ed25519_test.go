@@ -32,13 +32,14 @@ func mustHexDecodeString64(t *testing.T, s string) [64]byte {
 	return seed
 }
 
+var password string = "password"
+
 func TestDefaultPhraseShouldBeUsed(t *testing.T) {
 	pair, err := ed25519.NewPairFromString("//Alice///password", nil)
 	require.NoError(t, err)
 
-	pass := "password"
 	pair1, err := ed25519.NewPairFromString(
-		fmt.Sprintf("%s//Alice", crypto.DevPhrase), &pass,
+		fmt.Sprintf("%s//Alice", crypto.DevPhrase), &password,
 	)
 	require.NoError(t, err)
 
@@ -76,7 +77,8 @@ func TestVectorShouldWork(t *testing.T) {
 	public := pair.Public()
 	require.Equal(t, public, ed25519.NewPublicFromRaw(expected))
 
-	signature := mustHexDecodeString64(t, "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b")
+	signature := mustHexDecodeString64(t,
+		"e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b") //nolint: lll
 	message := []byte("")
 	require.Equal(t, ed25519.NewSignatureFromRaw(signature), pair.Sign(message))
 	require.True(t, public.Verify(signature, message))
@@ -90,7 +92,8 @@ func TestVectorByStringShouldWork(t *testing.T) {
 		mustHexDecodeString32(t, "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"),
 	), public)
 
-	signature := mustHexDecodeString64(t, "e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b")
+	signature := mustHexDecodeString64(t,
+		"e5564300c360ac729086e2cc806e828a84877f1eb8e5d974d873e065224901555fb8821590a33bacc61e39701cf9b46bd25bf5f0595bbe24655141438e7a100b") //nolint: lll
 	message := []byte("")
 	require.Equal(t, ed25519.NewSignatureFromRaw(signature), pair.Sign(message))
 	require.True(t, public.Verify(signature, message))
