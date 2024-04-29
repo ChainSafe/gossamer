@@ -133,12 +133,10 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 		return fmt.Errorf("getting header: %w", err)
 	}
 
-	epoch, err := v.epochState.GetEpochForBlock(header)
+	verifierInfoEpoch, err := v.epochState.GetEpochForBlock(header)
 	if err != nil {
 		return fmt.Errorf("getting epoch for block header: %w", err)
 	}
-
-	verifierInfoEpoch := epoch
 
 	if parentHeader.Hash() != v.blockState.GenesisHash() {
 		parentEpoch, err := v.epochState.GetEpochForBlock(parentHeader)
@@ -146,12 +144,12 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 			return fmt.Errorf("getting epoch for parent header: %w", err)
 		}
 
-		if parentEpoch > epoch {
+		if parentEpoch > verifierInfoEpoch {
 			return fmt.Errorf("%w: expected epoch greater than parent block epoch %d, got: %d",
-				errEpochLowerThanExpected, parentEpoch, epoch)
+				errEpochLowerThanExpected, parentEpoch, verifierInfoEpoch)
 		}
 
-		if epoch > (parentEpoch + 1) {
+		if verifierInfoEpoch > (parentEpoch + 1) {
 			verifierInfoEpoch = parentEpoch + 1
 		}
 	}
@@ -166,7 +164,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 		return fmt.Errorf("getting verifier info: %w", err)
 	}
 
-	verifier := newVerifier(v.blockState, v.slotState, epoch, info, slotDuration)
+	verifier := newVerifier(v.blockState, v.slotState, verifierInfoEpoch, info, slotDuration)
 	return verifier.verifyAuthorshipRight(header)
 }
 
