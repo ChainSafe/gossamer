@@ -45,7 +45,7 @@ func (m *MockNetwork) FreeNetworkEventsChannel(arg0 chan *network.NetworkEventIn
 }
 
 // FreeNetworkEventsChannel indicates an expected call of FreeNetworkEventsChannel.
-func (mr *MockNetworkMockRecorder) FreeNetworkEventsChannel(arg0 any) *gomock.Call {
+func (mr *MockNetworkMockRecorder) FreeNetworkEventsChannel(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeNetworkEventsChannel", reflect.TypeOf((*MockNetwork)(nil).FreeNetworkEventsChannel), arg0)
 }
