@@ -52,17 +52,12 @@ type StorageState interface {
 type EpochState interface {
 	GetEpochForBlock(header *types.Header) (uint64, error)
 
-	// GetSkippedEpochDataRaw returns the raw epoch data for a skipped epoch that is stored in advance
-	// of the start of the epoch, also this method will update the epoch number from the
-	// skipped epoch to the current epoch
-	GetSkippedEpochDataRaw(skippedEpoch, currentEpoch uint64,
-		header *types.Header) (*types.EpochDataRaw, error)
-
-	// GetSkippedConfigData returns the config data for a skipped epoch that is stored in advance
-	// of the start of the epoch, also this method will update the epoch number from the
-	// skipped epoch to the current epoch
-	GetSkippedConfigData(skippedEpoch, currentEpoch uint64,
-		header *types.Header) (*types.ConfigData, error)
+	// UpdateSkippedEpochDefinitions updates the skipped epoch definitions by changing the
+	// changing the key from skipped epoch to current epoch on each epoch data raw storage
+	// and on config data storage, it returns an error if the skipped epoch number does not
+	// exists in the database.
+	UpdateSkippedEpochDefinitions(skippedEpoch, currentEpoch uint64,
+		header *types.Header) error
 }
 
 // GrandpaState is the interface for the state.GrandpaState

@@ -941,7 +941,7 @@ func TestVerifyBlockAfterSkippedEpochs(t *testing.T) {
 	}
 
 	// now lets create another block but on epoch 2, skipping epoch 1
-	// here is a littel scheme on how to find epoch 2 start slot number:
+	// here is a little scheme on how to find epoch 2 start slot number:
 	// | 0 ---- 199 | 200 ---- 399 | 400 --- 599 |
 	// |-- epoch 0 -|-- epoch 1 ---|-- epoch 2 --|
 	epoch2StartTime := int64(((6 * time.Second) * 200 * 2).Seconds())

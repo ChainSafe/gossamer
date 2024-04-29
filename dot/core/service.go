@@ -172,18 +172,12 @@ func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieSta
 		// if epoch was skipped then we should change the current
 		// epoch descriptor mapping to use the actual epoch,since
 		// was expected to have a block on `parentEpoch + 1` but
-		// the descendant is more than one epoch foward
+		// the descendant is more than one epoch forward
 		if currentBlockEpoch > (parentEpoch + 1) {
-			_, err := s.epochState.GetSkippedEpochDataRaw(parentEpoch+1,
+			err := s.epochState.UpdateSkippedEpochDefinitions(parentEpoch+1,
 				currentBlockEpoch, &block.Header)
 			if err != nil {
 				return fmt.Errorf("updating skipped epoch data raw: %w", err)
-			}
-
-			_, err = s.epochState.GetSkippedConfigData(parentEpoch+1,
-				currentBlockEpoch, &block.Header)
-			if err != nil {
-				return fmt.Errorf("updating skipped config data: %w", err)
 			}
 		}
 	}
