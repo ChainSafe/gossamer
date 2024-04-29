@@ -424,7 +424,7 @@ func rpStateWhenPpmDisabled(t *testing.T) perRelayParentState {
 	attestedToReturn := AttestedCandidate{
 		GroupID:   3,
 		Candidate: getDummyCommittedCandidateReceipt(t),
-		ValidityVotes: []validityVote{
+		ValidityAttestations: []validityAttestation{
 			{
 				ValidatorIndex:      7,
 				ValidityAttestation: dummyValidityAttestation(t, "implicit"),
@@ -1148,12 +1148,6 @@ func TestHandleStatementMessage(t *testing.T) {
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(new(AttestedCandidate), nil)
-				mockTable.EXPECT().getCandidate(
-					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
-				).Return(
-					new(parachaintypes.CommittedCandidateReceipt),
-					errors.New("could not get candidate from table"),
-				)
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
@@ -1170,7 +1164,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				}
 			},
 			signedStatementWithPVD: secondedSignedFullStatementWithPVD(t, statementVDTSeconded),
-			err:                    "could not get candidate from table",
+			err:                    errCandidateDataNotFound.Error(),
 		},
 		{
 			description: "statementVDT_set_to_seconded_and_successfully_get_candidate_from_table",
@@ -1191,13 +1185,15 @@ func TestHandleStatementMessage(t *testing.T) {
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 				).Return(new(AttestedCandidate), nil)
-				mockTable.EXPECT().getCandidate(
-					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
-				).Return(&dummyCCR, nil)
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
-						table:      mockTable,
+						table: mockTable,
+						table2: Table2{
+							candidateVotes: map[parachaintypes.CandidateHash]candidateData{
+								candidateHash: {candidate: dummyCCR},
+							},
+						},
 						assignment: paraIDPtr4,
 						backed: map[parachaintypes.CandidateHash]bool{
 							candidateHash: true,

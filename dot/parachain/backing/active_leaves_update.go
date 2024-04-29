@@ -366,8 +366,8 @@ func constructPerRelayParentState(
 		validators: validators,
 	}
 
-	tableConfig := Config{
-		AllowMultipleSeconded: mode.IsEnabled,
+	tableConfig := tableConfig{
+		allowMultipleSeconded: mode.IsEnabled,
 	}
 
 	newPerRelayParentState := perRelayParentState{

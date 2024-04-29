@@ -25,7 +25,8 @@ type perRelayParentState struct {
 	// The `ParaId` assigned to the local validator at this relay parent.
 	assignment *parachaintypes.ParaID
 	// The table of candidates and statements under this relay-parent.
-	table Table
+	table  Table
+	table2 Table2
 	// The table context, including groups.
 	tableContext TableContext
 	// Data needed for retrying in case of `ValidatedCandidateCommand::AttestNoPoV`.
@@ -226,7 +227,7 @@ func attestedToBackedCandidate(
 	// the order of bits set in the bitfield, which is not necessarily
 	// the order of the `validity_votes` we got from the table.
 	for positionInGroup, validatorIndex := range group {
-		for _, validityVote := range attested.ValidityVotes {
+		for _, validityVote := range attested.ValidityAttestations {
 			if validityVote.ValidatorIndex == validatorIndex {
 				validatorIndices[positionInGroup] = true
 				validityAttestations = append(validityAttestations, validityVote.ValidityAttestation)
