@@ -783,7 +783,7 @@ func TestAvailabilityStore_storeAvailableData(t *testing.T) {
 				expectedErasureRoot: common.Hash{},
 			},
 			want: false,
-			err:  ErrInvalidErasureRoot,
+			err:  errInvalidErasureRoot,
 		},
 	}
 	for name, tt := range tests {
@@ -1161,7 +1161,7 @@ func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 
 	harness.triggerBroadcast()
 
-	time.Sleep(1000 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 
 	err = harness.overseer.Stop()
 	require.NoError(t, err)
@@ -1551,7 +1551,7 @@ func TestStoreAvailableDataErasureMismatch(t *testing.T) {
 	harness.triggerBroadcast()
 
 	msgSenderChanResult := <-blockMsg.Sender
-	require.Equal(t, ErrInvalidErasureRoot, msgSenderChanResult)
+	require.Equal(t, errInvalidErasureRoot, msgSenderChanResult)
 
 	err = harness.overseer.Stop()
 	require.NoError(t, err)

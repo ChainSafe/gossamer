@@ -111,7 +111,6 @@ func (o *Overseer) Start() error {
 	go o.processMessages()
 	go o.handleBlockEvents()
 
-	// TODO: add logic to start listening for Block Imported events and Finalisation events
 	return nil
 }
 

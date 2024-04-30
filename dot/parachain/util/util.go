@@ -102,7 +102,7 @@ func DetermineNewBlocks(subsystemToOverseer chan<- any, isKnown func(hash common
 		return nil, fmt.Errorf("getting block ancestors: %w", err)
 	}
 	fmt.Printf("ancestors: %v\n", ancestors)
-	// TODO(ed): finish this
+	// TODO: finish this, see issue #3933
 
 	return ancestry, nil
 }

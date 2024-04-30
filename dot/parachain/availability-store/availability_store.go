@@ -340,7 +340,7 @@ func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 		return false, fmt.Errorf("creating branches from chunks: %w", err)
 	}
 	if branches.root != expectedErasureRoot {
-		return false, ErrInvalidErasureRoot
+		return false, errInvalidErasureRoot
 	}
 
 	for i, chunk := range chunks {
@@ -557,7 +557,7 @@ func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal(signal par
 func (av *AvailabilityStoreSubsystem) processNewHead(tx *availabilityStoreBatch, hash common.Hash, now BETimestamp,
 	header types.Header) error {
 	logger.Infof("processNewHead hash %s, now %v, header %v\n", hash, now, header)
-	// TODO: call requestValidators to determine number of validators
+	// TODO: call requestValidators to determine number of validators, see issue #3932
 	nValidators := uint(10)
 
 	// call to get runtime
@@ -688,7 +688,7 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 		// finality.
 	}
 
-	//write unfinalized block contains
+	// write unfinalized block contains
 	key := append(uint32ToBytes(uint32(blockNumber)), blockHash[:]...)
 	key = append(key, candidateHash.Value[:]...)
 	err = tx.unfinalized.Put(key, nil)
@@ -830,7 +830,7 @@ func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailabl
 		msg.Sender <- nil
 		return nil
 	}
-	if err != nil && errors.Is(err, ErrInvalidErasureRoot) {
+	if err != nil && errors.Is(err, errInvalidErasureRoot) {
 		msg.Sender <- err
 		return fmt.Errorf("store available data: %w", err)
 	}
