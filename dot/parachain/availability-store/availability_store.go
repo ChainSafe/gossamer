@@ -11,7 +11,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
+	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -307,7 +310,7 @@ func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 	candidateMeta := CandidateMeta{}
 
 	now := timeNow()
-	pruneAt := now + BETimestamp(subsystem.pruningConfig.KeepUnavailableFor.Seconds())
+	pruneAt := now + BETimestamp(subsystem.pruningConfig.keepUnavailableFor.Seconds())
 	err = subsystem.writePruningKey(batch.pruneByTime, pruneAt, candidate)
 	if err != nil {
 		return false, fmt.Errorf("writing pruning key: %w", err)
@@ -499,7 +502,7 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 			}
 			av.wg.Done()
 			return
-		case <-time.After(av.pruningConfig.PruningInterval):
+		case <-time.After(av.pruningConfig.pruningInterval):
 			av.pruneAll()
 		}
 	}
@@ -622,7 +625,7 @@ func (av *AvailabilityStoreSubsystem) noteBlockBacked(tx *availabilityStoreBatch
 			return fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
 		}
 
-		pruneAt := now + BETimestamp(av.pruningConfig.KeepUnavailableFor.Seconds())
+		pruneAt := now + BETimestamp(av.pruningConfig.keepUnavailableFor.Seconds())
 		err = av.writePruningKey(tx.pruneByTime, pruneAt, candidateHash)
 		if err != nil {
 			return fmt.Errorf("writing pruning key: %w", err)
@@ -658,7 +661,7 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 
 	switch val := stateValue.(type) {
 	case Unavailable:
-		pruneAt := val.Timestamp + BETimestamp(av.pruningConfig.KeepUnavailableFor.Seconds())
+		pruneAt := val.Timestamp + BETimestamp(av.pruningConfig.keepUnavailableFor.Seconds())
 
 		pruneKey := append(uint32ToBytes(uint32(pruneAt)), candidateHash.Value[:]...)
 		err = tx.pruneByTime.Del(pruneKey)
@@ -1058,7 +1061,7 @@ func (av *AvailabilityStoreSubsystem) updateBlockAtFinalizedHeight(tx *availabil
 			}
 
 			// write pruning key
-			pruneAt := now + BETimestamp(av.pruningConfig.KeepFinalizedFor.Seconds())
+			pruneAt := now + BETimestamp(av.pruningConfig.keepFinalizedFor.Seconds())
 			err = av.writePruningKey(tx.pruneByTime, pruneAt, candidateHash)
 			if err != nil {
 				logger.Errorf("writing pruning key: %w", err)
@@ -1083,7 +1086,7 @@ func (av *AvailabilityStoreSubsystem) updateBlockAtFinalizedHeight(tx *availabil
 				}
 				if len(retainedBlocks) == 0 {
 					// write pruning key
-					pruneAt := val.Timestamp + BETimestamp(av.pruningConfig.KeepUnavailableFor.Seconds())
+					pruneAt := val.Timestamp + BETimestamp(av.pruningConfig.keepUnavailableFor.Seconds())
 					err = av.writePruningKey(tx.pruneByTime, pruneAt, candidateHash)
 					if err != nil {
 						logger.Errorf("writing pruning key: %w", err)

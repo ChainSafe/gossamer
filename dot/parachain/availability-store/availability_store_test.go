@@ -946,10 +946,10 @@ func newTestHarness(t *testing.T) *testHarness {
 
 	harness.db = setupTestDB(t)
 
-	testPruningConfig := &PruningConfig{
-		KeepUnavailableFor: time.Second * 2,
-		KeepFinalizedFor:   time.Second * 5,
-		PruningInterval:    time.Second * 1,
+	testPruningConfig := &pruningConfig{
+		keepUnavailableFor: time.Second * 2,
+		keepFinalizedFor:   time.Second * 5,
+		pruningInterval:    time.Second * 1,
 	}
 
 	availabilityStore, err := Register(harness.overseer.GetSubsystemToOverseerChannel(),
