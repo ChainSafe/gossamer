@@ -3,16 +3,89 @@
 
 package backing
 
-import parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+import (
+	"errors"
+	"fmt"
+
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+)
+
+var errCandidateDataNotFound = errors.New("candidate data not found") //nolint:unused
+
+// statementTable implements the Table interface.
+type statementTable struct { //nolint:unused
+	authorityData  map[parachaintypes.ValidatorIndex]authorityData
+	candidateVotes map[parachaintypes.CandidateHash]candidateData
+	config         tableConfig
+
+	// TODO: Implement this
+	// detected_misbehaviour: HashMap<Ctx::AuthorityId, Vec<MisbehaviorFor<Ctx>>>,
+}
+
+type authorityData []proposal //nolint:unused
+
+type proposal struct { //nolint:unused
+	candidateHash parachaintypes.CandidateHash
+	signature     parachaintypes.Signature
+}
+
+type candidateData struct { //nolint:unused
+	groupID       parachaintypes.ParaID
+	candidate     parachaintypes.CommittedCandidateReceipt
+	validityVotes map[parachaintypes.ValidatorIndex]validityVoteWithSign
+}
+
+type validityVoteWithSign struct { //nolint:unused
+	validityVote validityVote
+	signature    parachaintypes.Signature
+}
+
+type validityVote byte //nolint:unused
+
+const (
+	// Implicit validity vote.
+	issued validityVote = iota //nolint:unused
+	// Direct validity vote.
+	valid //nolint:unused
+)
+
+// getCommittedCandidateReceipt returns the committed candidate receipt for the given candidate hash.
+func (table *statementTable) getCommittedCandidateReceipt(candidateHash parachaintypes.CandidateHash, //nolint:unused
+) (parachaintypes.CommittedCandidateReceipt, error) {
+	data, ok := table.candidateVotes[candidateHash]
+	if !ok {
+		return parachaintypes.CommittedCandidateReceipt{},
+			fmt.Errorf("%w for candidate-hash: %s", errCandidateDataNotFound, candidateHash)
+	}
+	return data.candidate, nil
+}
+
+func (statementTable) importStatement( //nolint:unused
+	ctx *TableContext, statement parachaintypes.SignedFullStatementWithPVD,
+) (*Summary, error) {
+	// TODO: Implement this method
+	return nil, nil
+}
+
+func (statementTable) attestedCandidate(candidateHash parachaintypes.CandidateHash, ctx *TableContext, //nolint:unused
+) (*AttestedCandidate, error) {
+	// TODO: Implement this method
+	return nil, nil
+}
+
+func (statementTable) drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport { //nolint:unused
+	// TODO: Implement this method
+	return nil
+}
 
 type Table interface {
-	getCandidate(parachaintypes.CandidateHash) (*parachaintypes.CommittedCandidateReceipt, error)
+	getCandidate(parachaintypes.CandidateHash) (parachaintypes.CommittedCandidateReceipt, error)
 	importStatement(*TableContext, parachaintypes.SignedFullStatementWithPVD) (*Summary, error)
 	attestedCandidate(parachaintypes.CandidateHash, *TableContext) (*AttestedCandidate, error)
 	drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport
 }
 
-func newTable(Config) Table {
+func newTable(tableConfig) Table {
 	// TODO: Implement this function
 	return nil
 }
@@ -30,23 +103,23 @@ type Summary struct {
 // AttestedCandidate represents an attested-to candidate.
 type AttestedCandidate struct {
 	// The group ID that the candidate is in.
-	GroupID parachaintypes.ParaID
+	GroupID parachaintypes.ParaID `scale:"1"`
 	// The candidate data.
-	Candidate parachaintypes.CommittedCandidateReceipt
+	Candidate parachaintypes.CommittedCandidateReceipt `scale:"2"`
 	// Validity attestations.
-	ValidityVotes []validityVote
+	ValidityAttestations []validityAttestation `scale:"3"`
 }
 
-// validityVote represents a vote on the validity of a candidate by a validator.
-type validityVote struct {
-	ValidatorIndex      parachaintypes.ValidatorIndex
-	ValidityAttestation parachaintypes.ValidityAttestation
+// validityAttestation represents a validity attestation for a candidate.
+type validityAttestation struct {
+	ValidatorIndex      parachaintypes.ValidatorIndex      `scale:"1"`
+	ValidityAttestation parachaintypes.ValidityAttestation `scale:"2"`
 }
 
 // Table configuration.
-type Config struct {
+type tableConfig struct {
 	// When this is true, the table will allow multiple seconded candidates
 	// per authority. This flag means that higher-level code is responsible for
 	// bounding the number of candidates.
-	AllowMultipleSeconded bool
+	allowMultipleSeconded bool
 }
