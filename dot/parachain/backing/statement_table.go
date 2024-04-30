@@ -62,13 +62,13 @@ type tableConfig struct {
 	allowMultipleSeconded bool
 }
 
-// after finishing inplementing statement table, we can remove Table interface,
+// after finishing implementing statement table, we can remove Table interface,
 // and rename Table2 to Table
 type Table2 struct {
 	// TODO: types of fields needs to be identified as we implement the methods
 
 	authorityData map[parachaintypes.ValidatorIndex]authorityData
-	// detected_misbehavior: HashMap<Ctx::AuthorityId, Vec<MisbehaviorFor<Ctx>>>,
+	// detected_misbehaviour: HashMap<Ctx::AuthorityId, Vec<MisbehaviorFor<Ctx>>>,
 	candidateVotes map[parachaintypes.CandidateHash]candidateData
 	config         tableConfig
 }
