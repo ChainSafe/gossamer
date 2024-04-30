@@ -49,8 +49,8 @@ const (
 	valid //nolint:unused
 )
 
-// getCandidate returns the committed candidate receipt for the given candidate hash.
-func (table *statementTable) getCandidate(candidateHash parachaintypes.CandidateHash, //nolint:unused
+// getCommittedCandidateReceipt returns the committed candidate receipt for the given candidate hash.
+func (table *statementTable) getCommittedCandidateReceipt(candidateHash parachaintypes.CandidateHash, //nolint:unused
 ) (parachaintypes.CommittedCandidateReceipt, error) {
 	data, ok := table.candidateVotes[candidateHash]
 	if !ok {
