@@ -306,7 +306,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 	var attesting attestingData
 	switch statementVDT := statementVDT.(type) {
 	case parachaintypes.Seconded:
-		commitedCandidateReceipt, err := rpState.table2.getCandidate(summary.Candidate)
+		commitedCandidateReceipt, err := rpState.table.getCandidate(summary.Candidate)
 		if err != nil {
 			return fmt.Errorf("getting candidate: %w", err)
 		}

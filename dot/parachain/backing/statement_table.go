@@ -63,8 +63,8 @@ type tableConfig struct {
 }
 
 // after finishing implementing statement table, we can remove Table interface,
-// and rename Table2 to Table
-type Table2 struct {
+// and rename StatementTable to Table
+type StatementTable struct {
 	// TODO: types of fields needs to be identified as we implement the methods
 
 	authorityData map[parachaintypes.ValidatorIndex]authorityData
@@ -73,7 +73,7 @@ type Table2 struct {
 	config         tableConfig
 }
 
-func (t *Table2) getCandidate(candidateHash parachaintypes.CandidateHash,
+func (t StatementTable) getCandidate(candidateHash parachaintypes.CandidateHash,
 ) (parachaintypes.CommittedCandidateReceipt, error) {
 	data, ok := t.candidateVotes[candidateHash]
 	if !ok {
@@ -83,7 +83,22 @@ func (t *Table2) getCandidate(candidateHash parachaintypes.CandidateHash,
 	return data.candidate, nil
 }
 
+func (StatementTable) importStatement(ctx *TableContext, statement parachaintypes.SignedFullStatementWithPVD,
+) (*Summary, error) {
+	return nil, nil
+}
+
+func (StatementTable) attestedCandidate(candidateHash parachaintypes.CandidateHash, ctx *TableContext,
+) (*AttestedCandidate, error) {
+	return nil, nil
+}
+
+func (StatementTable) drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport {
+	return nil
+}
+
 type Table interface {
+	getCandidate(parachaintypes.CandidateHash) (parachaintypes.CommittedCandidateReceipt, error)
 	importStatement(*TableContext, parachaintypes.SignedFullStatementWithPVD) (*Summary, error)
 	attestedCandidate(parachaintypes.CandidateHash, *TableContext) (*AttestedCandidate, error)
 	drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport

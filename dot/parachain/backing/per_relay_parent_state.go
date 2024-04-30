@@ -25,8 +25,7 @@ type perRelayParentState struct {
 	// The `ParaId` assigned to the local validator at this relay parent.
 	assignment *parachaintypes.ParaID
 	// The table of candidates and statements under this relay-parent.
-	table  Table
-	table2 Table2
+	table Table
 	// The table context, including groups.
 	tableContext TableContext
 	// Data needed for retrying in case of `ValidatedCandidateCommand::AttestNoPoV`.
