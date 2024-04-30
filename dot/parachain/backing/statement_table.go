@@ -10,10 +10,10 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
 
-var errCandidateDataNotFound = errors.New("candidate data not found")
+var errCandidateDataNotFound = errors.New("candidate data not found") //nolint:unused
 
 // statementTable implements the Table interface.
-type statementTable struct {
+type statementTable struct { //nolint:unused
 	authorityData  map[parachaintypes.ValidatorIndex]authorityData
 	candidateVotes map[parachaintypes.CandidateHash]candidateData
 	config         tableConfig
@@ -22,35 +22,35 @@ type statementTable struct {
 	// detected_misbehaviour: HashMap<Ctx::AuthorityId, Vec<MisbehaviorFor<Ctx>>>,
 }
 
-type authorityData []proposal
+type authorityData []proposal //nolint:unused
 
-type proposal struct {
+type proposal struct { //nolint:unused
 	candidateHash parachaintypes.CandidateHash
 	signature     parachaintypes.Signature
 }
 
-type candidateData struct {
+type candidateData struct { //nolint:unused
 	groupID       parachaintypes.ParaID
 	candidate     parachaintypes.CommittedCandidateReceipt
 	validityVotes map[parachaintypes.ValidatorIndex]validityVoteWithSign
 }
 
-type validityVoteWithSign struct {
+type validityVoteWithSign struct { //nolint:unused
 	validityVote validityVote
 	signature    parachaintypes.Signature
 }
 
-type validityVote byte
+type validityVote byte //nolint:unused
 
 const (
 	// Implicit validity vote.
-	issued validityVote = iota
+	issued validityVote = iota //nolint:unused
 	// Direct validity vote.
-	valid
+	valid //nolint:unused
 )
 
-// getCandidate returns the commited candidate receipt for the given candidate hash.
-func (table *statementTable) getCandidate(candidateHash parachaintypes.CandidateHash,
+// getCandidate returns the committed candidate receipt for the given candidate hash.
+func (table *statementTable) getCandidate(candidateHash parachaintypes.CandidateHash, //nolint:unused
 ) (parachaintypes.CommittedCandidateReceipt, error) {
 	data, ok := table.candidateVotes[candidateHash]
 	if !ok {
@@ -60,19 +60,20 @@ func (table *statementTable) getCandidate(candidateHash parachaintypes.Candidate
 	return data.candidate, nil
 }
 
-func (statementTable) importStatement(ctx *TableContext, statement parachaintypes.SignedFullStatementWithPVD,
+func (statementTable) importStatement( //nolint:unused
+	ctx *TableContext, statement parachaintypes.SignedFullStatementWithPVD,
 ) (*Summary, error) {
 	// TODO: Implement this method
 	return nil, nil
 }
 
-func (statementTable) attestedCandidate(candidateHash parachaintypes.CandidateHash, ctx *TableContext,
+func (statementTable) attestedCandidate(candidateHash parachaintypes.CandidateHash, ctx *TableContext, //nolint:unused
 ) (*AttestedCandidate, error) {
 	// TODO: Implement this method
 	return nil, nil
 }
 
-func (statementTable) drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport {
+func (statementTable) drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport { //nolint:unused
 	// TODO: Implement this method
 	return nil
 }
@@ -109,7 +110,7 @@ type AttestedCandidate struct {
 	ValidityAttestations []validityAttestation `scale:"3"`
 }
 
-// validityAttestation represents a vote on the validity of a candidate by a validator.
+// validityAttestation represents a validity attestation for a candidate.
 type validityAttestation struct {
 	ValidatorIndex      parachaintypes.ValidatorIndex      `scale:"1"`
 	ValidityAttestation parachaintypes.ValidityAttestation `scale:"2"`

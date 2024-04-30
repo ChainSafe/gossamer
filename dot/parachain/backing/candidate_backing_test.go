@@ -1151,7 +1151,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				mockTable.EXPECT().getCandidate(
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 				).Return(
-					new(parachaintypes.CommittedCandidateReceipt),
+					parachaintypes.CommittedCandidateReceipt{},
 					errors.New("could not get candidate from table"),
 				)
 
@@ -1193,7 +1193,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				).Return(new(AttestedCandidate), nil)
 				mockTable.EXPECT().getCandidate(
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
-				).Return(&dummyCCR, nil)
+				).Return(dummyCCR, nil)
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
