@@ -10,22 +10,17 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
 
-/*
-------------------------------------------
-*** Statement table implementation notes:
-------------------------------------------
-
-added table2 field of type Table2 in perRelayParentState, which is implementation of statement table.
-
-table field of type Table needs to be removed after implementing the methods in Table2.
-
-rename Table2 to Table after implementing the methods in Table2.
-
-
-=> At the end check for all the types in this file, if they should be exported or not.
-*/
-
 var errCandidateDataNotFound = errors.New("candidate data not found")
+
+// statementTable implements the Table interface.
+type statementTable struct {
+	authorityData  map[parachaintypes.ValidatorIndex]authorityData
+	candidateVotes map[parachaintypes.CandidateHash]candidateData
+	config         tableConfig
+
+	// TODO: Implement this
+	// detected_misbehaviour: HashMap<Ctx::AuthorityId, Vec<MisbehaviorFor<Ctx>>>,
+}
 
 type authorityData []proposal
 
@@ -54,28 +49,10 @@ const (
 	valid
 )
 
-// Table configuration.
-type tableConfig struct {
-	// When this is true, the table will allow multiple seconded candidates
-	// per authority. This flag means that higher-level code is responsible for
-	// bounding the number of candidates.
-	allowMultipleSeconded bool
-}
-
-// after finishing implementing statement table, we can remove Table interface,
-// and rename StatementTable to Table
-type StatementTable struct {
-	// TODO: types of fields needs to be identified as we implement the methods
-
-	authorityData map[parachaintypes.ValidatorIndex]authorityData
-	// detected_misbehaviour: HashMap<Ctx::AuthorityId, Vec<MisbehaviorFor<Ctx>>>,
-	candidateVotes map[parachaintypes.CandidateHash]candidateData
-	config         tableConfig
-}
-
-func (t StatementTable) getCandidate(candidateHash parachaintypes.CandidateHash,
+// getCandidate returns the commited candidate receipt for the given candidate hash.
+func (table *statementTable) getCandidate(candidateHash parachaintypes.CandidateHash,
 ) (parachaintypes.CommittedCandidateReceipt, error) {
-	data, ok := t.candidateVotes[candidateHash]
+	data, ok := table.candidateVotes[candidateHash]
 	if !ok {
 		return parachaintypes.CommittedCandidateReceipt{},
 			fmt.Errorf("%w for candidate-hash: %s", errCandidateDataNotFound, candidateHash)
@@ -83,17 +60,20 @@ func (t StatementTable) getCandidate(candidateHash parachaintypes.CandidateHash,
 	return data.candidate, nil
 }
 
-func (StatementTable) importStatement(ctx *TableContext, statement parachaintypes.SignedFullStatementWithPVD,
+func (statementTable) importStatement(ctx *TableContext, statement parachaintypes.SignedFullStatementWithPVD,
 ) (*Summary, error) {
+	// TODO: Implement this method
 	return nil, nil
 }
 
-func (StatementTable) attestedCandidate(candidateHash parachaintypes.CandidateHash, ctx *TableContext,
+func (statementTable) attestedCandidate(candidateHash parachaintypes.CandidateHash, ctx *TableContext,
 ) (*AttestedCandidate, error) {
+	// TODO: Implement this method
 	return nil, nil
 }
 
-func (StatementTable) drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport {
+func (statementTable) drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport {
+	// TODO: Implement this method
 	return nil
 }
 
@@ -133,4 +113,12 @@ type AttestedCandidate struct {
 type validityAttestation struct {
 	ValidatorIndex      parachaintypes.ValidatorIndex      `scale:"1"`
 	ValidityAttestation parachaintypes.ValidityAttestation `scale:"2"`
+}
+
+// Table configuration.
+type tableConfig struct {
+	// When this is true, the table will allow multiple seconded candidates
+	// per authority. This flag means that higher-level code is responsible for
+	// bounding the number of candidates.
+	allowMultipleSeconded bool
 }

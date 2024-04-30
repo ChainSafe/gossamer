@@ -1194,7 +1194,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				mockTable.EXPECT().getCandidate(
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 				).Return(&dummyCCR, nil)
-				
+
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
 						table:      mockTable,
