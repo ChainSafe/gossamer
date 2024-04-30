@@ -1047,10 +1047,10 @@ func (h *testHarness) importLeaf(t *testing.T, parentHash common.Hash,
 	return aLeaf
 }
 
-func (h *testHarness) hasAllChunks(candidateHash parachaintypes.CandidateHash, nValidators uint32, //nolint
+func (h *testHarness) hasAllChunks(candidateHash parachaintypes.CandidateHash, numValidators uint32, //nolint
 	expectPresent bool) bool {
 
-	for i := uint32(0); i < nValidators; i++ {
+	for i := uint32(0); i < numValidators; i++ {
 		msgQueryChan := make(chan ErasureChunk)
 		queryChunk := QueryChunk{
 			CandidateHash:  candidateHash,
@@ -1090,11 +1090,11 @@ func buildCandidateReceipt(povHash common.Hash) parachaintypes.CandidateReceipt 
 	return receipt
 }
 
-func buildAvailableDataBranchesRoot(t *testing.T, nValidators uint32, availableData AvailableData) common.Hash {
+func buildAvailableDataBranchesRoot(t *testing.T, numValidators uint32, availableData AvailableData) common.Hash {
 	availableDataEnc, err := scale.Marshal(availableData)
 	require.NoError(t, err)
 
-	chunksExpected, err := erasure.ObtainChunks(uint(nValidators), availableDataEnc)
+	chunksExpected, err := erasure.ObtainChunks(uint(numValidators), availableDataEnc)
 	require.NoError(t, err)
 
 	tr := trie.NewEmptyTrie()
