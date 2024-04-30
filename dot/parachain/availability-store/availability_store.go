@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -77,13 +77,12 @@ type AvailabilityStoreSubsystem struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
-	SubSystemToOverseer chan<- any
-	OverseerToSubSystem <-chan any
-	availabilityStore   availabilityStore
-	finalizedNumber     parachaintypes.BlockNumber
-	knownBlocks         KnownUnfinalizedBlock
-	pruningConfig       PruningConfig
-	//TODO: metrics       Metrics
+	SubSystemToOverseer    chan<- any
+	OverseerToSubSystem    <-chan any
+	availabilityStore      availabilityStore
+	finalizedBlockNumber   parachaintypes.BlockNumber
+	knownUnfinalizedBlocks knownUnfinalizedBlocks
+	pruningConfig          PruningConfig
 }
 
 // NewAvailabilityStoreSubsystem creates a new instance of AvailabilityStoreSubsystem
@@ -94,34 +93,34 @@ func NewAvailabilityStoreSubsystem(db database.Database) *AvailabilityStoreSubsy
 	ctx, cancel := context.WithCancel(ctx)
 
 	availabilityStoreSubsystem := &AvailabilityStoreSubsystem{
-		ctx:               ctx,
-		cancel:            cancel,
-		pruningConfig:     defaultPruningConfig,
-		availabilityStore: *availabilityStore,
-		knownBlocks:       *NewKnownUnfinalizedBlock(),
+		ctx:                    ctx,
+		cancel:                 cancel,
+		pruningConfig:          defaultPruningConfig,
+		availabilityStore:      *availabilityStore,
+		knownUnfinalizedBlocks: *newKnownUnfinalizedBlock(),
 	}
 
 	return availabilityStoreSubsystem
 }
 
-type KnownUnfinalizedBlock struct {
+type knownUnfinalizedBlocks struct {
 	byHash   map[common.Hash]struct{}
 	byNumber map[BlockEntry]struct{}
 }
 
-func NewKnownUnfinalizedBlock() *KnownUnfinalizedBlock {
-	return &KnownUnfinalizedBlock{
+func newKnownUnfinalizedBlock() *knownUnfinalizedBlocks {
+	return &knownUnfinalizedBlocks{
 		byHash:   make(map[common.Hash]struct{}),
 		byNumber: make(map[BlockEntry]struct{}),
 	}
 }
 
-func (kud *KnownUnfinalizedBlock) isKnown(hash common.Hash) bool {
+func (kud *knownUnfinalizedBlocks) isKnown(hash common.Hash) bool {
 	_, ok := kud.byHash[hash]
 	return ok
 }
 
-func (kud *KnownUnfinalizedBlock) insert(hash common.Hash, number parachaintypes.BlockNumber) {
+func (kud *knownUnfinalizedBlocks) insert(hash common.Hash, number parachaintypes.BlockNumber) {
 	kud.byHash[hash] = struct{}{}
 	kud.byNumber[BlockEntry{number, hash}] = struct{}{}
 }
@@ -515,20 +514,21 @@ func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal(signal par
 	logger.Infof("ProcessActiveLeavesUpdateSignal %s", signal)
 
 	respChan := make(chan any)
-	message := util.ChainAPIMessage[util.BlockHeader]{
-		Message: util.BlockHeader{
+	message := chainapi.ChainAPIMessage[chainapi.BlockHeader]{
+		Message: chainapi.BlockHeader{
 			Hash: signal.Activated.Hash,
 		},
 		ResponseChannel: respChan,
 	}
-	response, err := util.Call(av.SubSystemToOverseer, message, message.ResponseChannel)
+	response, err := chainapi.Call(av.SubSystemToOverseer, message, message.ResponseChannel)
 	if err != nil {
 		return fmt.Errorf("sending message to get block header: %w", err)
 	}
 
-	newBlocks, err := util.DetermineNewBlocks(av.SubSystemToOverseer, av.knownBlocks.isKnown, signal.Activated.Hash,
+	newBlocks, err := chainapi.DetermineNewBlocks(av.SubSystemToOverseer, av.knownUnfinalizedBlocks.isKnown,
+		signal.Activated.Hash,
 		response.(types.Header),
-		av.finalizedNumber)
+		av.finalizedBlockNumber)
 	if err != nil {
 		return fmt.Errorf("failed to determine new blocks: %w", err)
 	}
@@ -543,7 +543,7 @@ func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal(signal par
 		}
 
 		// add to known blocks
-		av.knownBlocks.insert(v.Hash, parachaintypes.BlockNumber(v.Header.Number))
+		av.knownUnfinalizedBlocks.insert(v.Hash, parachaintypes.BlockNumber(v.Header.Number))
 
 		// end db batch
 		err = tx.flush()
@@ -564,7 +564,7 @@ func (av *AvailabilityStoreSubsystem) processNewHead(tx *availabilityStoreBatch,
 	respChan := make(chan any)
 	message := parachain.RuntimeAPIMessage{Hash: hash, Resp: respChan}
 
-	rtRes, err := util.Call(av.SubSystemToOverseer, message, respChan)
+	rtRes, err := chainapi.Call(av.SubSystemToOverseer, message, respChan)
 	if err != nil {
 		return fmt.Errorf("sending message to get block header: %w", err)
 	}
