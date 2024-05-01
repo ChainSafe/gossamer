@@ -12,7 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-type HashHeader struct {
+type hashHeader struct {
 	Hash   common.Hash
 	Header types.Header
 }
@@ -32,9 +32,7 @@ type Ancestors struct {
 	numberOfAncestors uint32
 }
 
-type BlockHeader struct {
-	Hash common.Hash
-}
+type BlockHeader common.Hash
 
 // DetermineNewBlocks determines the hashes of all new blocks we should track metadata for, given this head.
 //
@@ -48,7 +46,7 @@ type BlockHeader struct {
 // This may be somewhat expensive when first recovering from major sync.
 func DetermineNewBlocks(subsystemToOverseer chan<- any, isKnown func(hash common.Hash) bool, head common.Hash,
 	header types.Header,
-	lowerBoundNumber parachaintypes.BlockNumber) ([]HashHeader, error) {
+	lowerBoundNumber parachaintypes.BlockNumber) ([]hashHeader, error) {
 	const maxNumberOfAncestors = 4
 	minBlockNeeded := uint(lowerBoundNumber + 1)
 
@@ -59,13 +57,13 @@ func DetermineNewBlocks(subsystemToOverseer chan<- any, isKnown func(hash common
 		return nil, nil
 	}
 
-	ancestry := make([]HashHeader, 0)
+	ancestry := make([]hashHeader, 0)
 	headerClone, err := header.DeepCopy()
 	if err != nil {
 		return nil, fmt.Errorf("failed to deep copy header: %w", err)
 	}
 
-	ancestry = append(ancestry, HashHeader{Hash: head, Header: *headerClone})
+	ancestry = append(ancestry, hashHeader{Hash: head, Header: *headerClone})
 
 	// Early exit if the parent hash is in the DB or no further blocks are needed.
 	if isKnown(header.ParentHash) || header.Number == minBlockNeeded {
@@ -128,3 +126,8 @@ func Call(channel chan<- any, message any, responseChan chan any) (any, error) {
 }
 
 const timeout = 10 * time.Second
+
+func GetNumberOfValidators() uint {
+	// TODO: implement this, currently it's just a stub that should be replaced, see issue #3932
+	return 10
+}
