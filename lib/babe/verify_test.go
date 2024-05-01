@@ -1308,100 +1308,160 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	assert.NoError(t, err)
 
+	defaultParentHeader := types.NewEmptyHeader()
+	const defaultEpoch = 1
+	const defaultSlotNumber = 0
+
+	defaultEpoch1Authorities := []types.AuthorityRaw{
+		{
+			Key:    [32]byte(kp.Public().Encode()),
+			Weight: 1,
+		},
+	}
+
+	defaultConfigData := &types.ConfigData{
+		C1:             1,
+		C2:             1,
+		SecondarySlots: 1,
+	}
+
+	threshold, err := CalculateThreshold(defaultConfigData.C1, defaultConfigData.C2, len(defaultEpoch1Authorities))
+	require.NoError(t, err)
+
+	defaultEpochData := &epochData{
+		randomness:     [32]byte{},
+		authorityIndex: 0,
+		authorities:    defaultEpoch1Authorities,
+		threshold:      threshold,
+	}
+
+	defaultPreRuntimeDigestForEpoch1, err := claimSlot(defaultEpoch, defaultSlotNumber, defaultEpochData, kp)
+	require.NoError(t, err)
+
+	digest := types.NewDigest()
+	err = digest.Add(*defaultPreRuntimeDigestForEpoch1)
+	require.NoError(t, err)
+
+	headerWithPreRuntimeDigest := types.NewHeader(defaultParentHeader.Hash(),
+		common.Hash{}, common.Hash{}, defaultParentHeader.Number+1, digest)
+
 	testBlockHeaderEmpty := types.NewEmptyHeader()
 	testBlockHeaderEmpty.Number = 2
 
-	ctrl := gomock.NewController(t)
-	mockBlockStateEmpty := NewMockBlockState(ctrl)
-	mockBlockStateNotFinal2 := NewMockBlockState(ctrl)
-
-	mockEpochStateGetEpochErr := NewMockEpochState(ctrl)
-	mockEpochStateSkipVerifyErr := NewMockEpochState(ctrl)
-	mockEpochStateSkipVerifyTrue := NewMockEpochState(ctrl)
-	mockEpochStateGetVerifierInfoErr := NewMockEpochState(ctrl)
-	mockEpochStateVerifyAuthorshipErr := NewMockEpochState(ctrl)
-
 	errTestGetEpoch := errors.New("test get epoch error")
-	mockEpochStateGetEpochErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).
-		Return(uint64(0), errTestGetEpoch)
-
-	mockEpochStateSkipVerifyErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
 	errTestGetEpochData := errors.New("test get epoch data error")
-	mockEpochStateSkipVerifyErr.EXPECT().GetEpochDataRaw(uint64(1), testBlockHeaderEmpty).Return(nil, errTestGetEpochData)
-	errTestSkipVerify := errors.New("test skip verify error")
-	mockEpochStateSkipVerifyErr.EXPECT().SkipVerify(testBlockHeaderEmpty).Return(false, errTestSkipVerify)
-
-	mockEpochStateSkipVerifyTrue.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
-	mockEpochStateSkipVerifyTrue.EXPECT().GetEpochDataRaw(uint64(1), testBlockHeaderEmpty).Return(nil, errTestGetEpochData)
-	mockEpochStateSkipVerifyTrue.EXPECT().SkipVerify(testBlockHeaderEmpty).Return(true, nil)
-
-	mockEpochStateGetVerifierInfoErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
-	mockEpochStateGetVerifierInfoErr.EXPECT().GetEpochDataRaw(uint64(1), testBlockHeaderEmpty).
-		Return(nil, errTestGetEpochData)
-	mockEpochStateGetVerifierInfoErr.EXPECT().SkipVerify(testBlockHeaderEmpty).Return(false, nil)
-
-	mockEpochStateVerifyAuthorshipErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
-	mockEpochStateVerifyAuthorshipErr.EXPECT().GetSlotDuration().Return(6*time.Second, nil)
-
-	block1Header := types.NewEmptyHeader()
-	block1Header.Number = 1
-
-	authority := types.NewAuthority(kp.Public(), uint64(1))
-	info := &verifierInfo{
-		authorities:    []types.AuthorityRaw{*authority.ToRaw(), *authority.ToRaw()},
-		threshold:      scale.MaxUint128,
-		secondarySlots: true,
-	}
-
-	mockSlotState := NewMockSlotState(nil)
-
-	vm3 := NewVerificationManager(mockBlockStateNotFinal2, mockSlotState, mockEpochStateGetEpochErr)
-	vm4 := NewVerificationManager(mockBlockStateEmpty, mockSlotState, mockEpochStateSkipVerifyErr)
-	vm5 := NewVerificationManager(mockBlockStateEmpty, mockSlotState, mockEpochStateSkipVerifyTrue)
-	vm6 := NewVerificationManager(mockBlockStateEmpty, mockSlotState, mockEpochStateGetVerifierInfoErr)
-	vm8 := NewVerificationManager(mockBlockStateEmpty, mockSlotState, mockEpochStateVerifyAuthorshipErr)
-	vm8.epochInfo[1] = info
-
 	tests := []struct {
-		name   string
-		vm     *VerificationManager
-		header *types.Header
-		expErr error
+		name                     string
+		header                   *types.Header
+		setupVerificationManager func(t *testing.T, ctrl *gomock.Controller) *VerificationManager
+		expErr                   error
 	}{
 		{
-			name:   "get epoch error",
-			vm:     vm3,
+			name:   "get_epoch_error",
 			header: testBlockHeaderEmpty,
-			expErr: fmt.Errorf("failed to get epoch for block header: %w", errTestGetEpoch),
+			setupVerificationManager: func(t *testing.T, ctrl *gomock.Controller) *VerificationManager {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.
+					EXPECT().
+					GetHeader(testBlockHeaderEmpty.ParentHash).
+					Return(defaultParentHeader, nil)
+
+				mockEpochStateGetEpochErr := NewMockEpochState(ctrl)
+				mockEpochStateGetEpochErr.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).
+					Return(uint64(0), errTestGetEpoch)
+
+				return NewVerificationManager(mockBlockState,
+					NewMockSlotState(nil), mockEpochStateGetEpochErr)
+			},
+			expErr: fmt.Errorf("getting epoch for block header: %w", errTestGetEpoch),
 		},
 		{
-			name:   "skip verify err",
-			vm:     vm4,
+			name: "failed_to_get_epoch_data_raw",
+			setupVerificationManager: func(t *testing.T, ctrl *gomock.Controller) *VerificationManager {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.
+					EXPECT().
+					GetHeader(testBlockHeaderEmpty.ParentHash).
+					Return(defaultParentHeader, nil)
+
+				mockBlockState.
+					EXPECT().
+					GenesisHash().
+					Return(defaultParentHeader.Hash())
+
+				mockEpochState := NewMockEpochState(ctrl)
+				mockEpochState.EXPECT().GetSlotDuration().Return(6*time.Second, nil)
+				mockEpochState.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
+				mockEpochState.EXPECT().GetEpochDataRaw(uint64(1), testBlockHeaderEmpty).
+					Return(nil, errTestGetEpochData)
+
+				return NewVerificationManager(mockBlockState, NewMockSlotState(nil), mockEpochState)
+			},
 			header: testBlockHeaderEmpty,
-			expErr: fmt.Errorf("failed to check if verification can be skipped: %w", errTestSkipVerify),
-		},
-		{
-			name:   "skip verify true",
-			vm:     vm5,
-			header: testBlockHeaderEmpty,
-		},
-		{
-			name:   "get verifierInfo err",
-			vm:     vm6,
-			header: testBlockHeaderEmpty,
-			expErr: fmt.Errorf("failed to get verifier info for block 2: "+
+			expErr: fmt.Errorf("getting verifier info: "+
 				"failed to get epoch data for epoch 1: %w", errTestGetEpochData),
 		},
 		{
-			name:   "verify block authorship err",
-			vm:     vm8,
+			name: "failed_to_get_epoch_config_data",
+			setupVerificationManager: func(t *testing.T, ctrl *gomock.Controller) *VerificationManager {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.
+					EXPECT().
+					GetHeader(testBlockHeaderEmpty.ParentHash).
+					Return(defaultParentHeader, nil)
+
+				mockBlockState.
+					EXPECT().
+					GenesisHash().
+					Return(defaultParentHeader.Hash())
+
+				mockEpochState := NewMockEpochState(ctrl)
+				mockEpochState.EXPECT().GetSlotDuration().Return(6*time.Second, nil)
+				mockEpochState.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
+				mockEpochState.EXPECT().GetEpochDataRaw(uint64(1), testBlockHeaderEmpty).
+					Return(&types.EpochDataRaw{}, nil)
+				mockEpochState.EXPECT().GetConfigData(uint64(1), testBlockHeaderEmpty).
+					Return(nil, errTestGetEpochData)
+
+				return NewVerificationManager(mockBlockState, NewMockSlotState(nil), mockEpochState)
+			},
 			header: testBlockHeaderEmpty,
-			expErr: errMissingDigestItems,
+			expErr: fmt.Errorf("getting verifier info: "+
+				"failed to get config data: %w", errTestGetEpochData),
+		},
+		{
+			name: "sucessfully_validate_block",
+			setupVerificationManager: func(t *testing.T, ctrl *gomock.Controller) *VerificationManager {
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.
+					EXPECT().
+					GetHeader(headerWithPreRuntimeDigest.ParentHash).
+					Return(defaultParentHeader, nil)
+
+				mockBlockState.
+					EXPECT().
+					GenesisHash().
+					Return(defaultParentHeader.Hash())
+
+				mockEpochState := NewMockEpochState(ctrl)
+				mockEpochState.EXPECT().GetSlotDuration().Return(6*time.Second, nil)
+				mockEpochState.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
+				mockEpochState.EXPECT().GetEpochDataRaw(uint64(1), testBlockHeaderEmpty).
+					Return(&types.EpochDataRaw{
+						Authorities: defaultEpoch1Authorities,
+						Randomness:  [32]byte{},
+					}, nil)
+				mockEpochState.EXPECT().GetConfigData(uint64(1), testBlockHeaderEmpty).
+					Return(defaultConfigData, nil)
+
+				return NewVerificationManager(mockBlockState, NewMockSlotState(nil), mockEpochState)
+			},
+			header: headerWithPreRuntimeDigest,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			v := tt.vm
+			v := tt.setupVerificationManager(t, gomock.NewController(t))
 			err := v.VerifyBlock(tt.header)
 			if tt.expErr != nil {
 				assert.EqualError(t, err, tt.expErr.Error())
