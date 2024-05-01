@@ -64,11 +64,11 @@ func (cv *CandidateValidation) processMessages() {
 			logger.Debugf("received message %v", msg)
 			switch msg := msg.(type) {
 			case ValidateFromChainState:
-				// TODO: implement functionality to handle ValidateFromChainState
+				// TODO: implement functionality to handle ValidateFromChainState, see issue #3919
 			case ValidateFromExhaustive:
-				// TODO: implement functionality to handle ValidateFromExhaustive
+				// TODO: implement functionality to handle ValidateFromExhaustive, see issue #3920
 			case PreCheck:
-				// TODO: implement functionality to handle PreCheck
+				// TODO: implement functionality to handle PreCheck, see issue #3921
 
 			case parachaintypes.ActiveLeavesUpdateSignal:
 				err := cv.ProcessActiveLeavesUpdateSignal(msg)
