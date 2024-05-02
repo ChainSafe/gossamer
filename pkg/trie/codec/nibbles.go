@@ -46,3 +46,12 @@ func KeyLEToNibbles(in []byte) (nibbles []byte) {
 
 	return nibbles
 }
+
+// CommonPrefixLength returns the length of the common prefix of a and b.
+func CommonPrefix(a, b []byte) int {
+	i := 0
+	for i < len(a) && i < len(b) && a[i] == b[i] {
+		i++
+	}
+	return i
+}
