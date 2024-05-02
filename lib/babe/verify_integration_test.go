@@ -919,10 +919,11 @@ func TestVerifyBlockAfterSkippedEpochs(t *testing.T) {
 
 	epoch1DataRaw := &types.EpochDataRaw{
 		Authorities: []types.AuthorityRaw{
-			{Key: [32]byte(keyring.KeyAlice.Public().Encode()), Weight: 1},
-			{Key: [32]byte(keyring.KeyBob.Public().Encode()), Weight: 1},
-			{Key: [32]byte(keyring.KeyCharlie.Public().Encode()), Weight: 1},
+			{Key: keyring.Alice().Public().(*sr25519.PublicKey).AsBytes(), Weight: 1},
+			{Key: keyring.Bob().Public().(*sr25519.PublicKey).AsBytes(), Weight: 1},
+			{Key: keyring.Charlie().Public().(*sr25519.PublicKey).AsBytes(), Weight: 1},
 		},
+		Randomness: currentBABEConfig.Randomness,
 	}
 
 	// setting epoch data raw for epoch 1 but the config remains the same
@@ -934,8 +935,8 @@ func TestVerifyBlockAfterSkippedEpochs(t *testing.T) {
 	require.NoError(t, err)
 
 	epochDataToBuildSecondBlock := testBuildEpochData(t, epoch1DataRaw, epoch0ConfigData)
-	epochData.authorityIndex = 3
-	ed = &epochDescriptor{
+	epochDataToBuildSecondBlock.authorityIndex = 0
+	epoch2Descriptor := &epochDescriptor{
 		data:  epochDataToBuildSecondBlock,
 		epoch: 2,
 	}
@@ -951,15 +952,14 @@ func TestVerifyBlockAfterSkippedEpochs(t *testing.T) {
 		number:   400,
 	}
 
-	secondBlock := createTestBlockToImport(t, babeService, &firstBlock.Header, ed, secondBlockSlot)
+	secondBlock := createTestBlockToImport(t, babeService, &firstBlock.Header, epoch2Descriptor, secondBlockSlot)
 	err = verificationManager.VerifyBlock(&secondBlock.Header)
 	require.NoError(t, err)
 }
 
 func createTestBlockToImport(t *testing.T, babeService *Service, parent *types.Header,
 	epochDescriptor *epochDescriptor, slot Slot) *types.Block {
-	bestBlockHash := babeService.blockState.BestBlockHash()
-	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
+	rt, err := babeService.blockState.GetRuntime(parent.Hash())
 	require.NoError(t, err)
 
 	preRuntimeDigest, err := claimSlot(epochDescriptor.epoch, slot.number, epochDescriptor.data, babeService.keypair)
