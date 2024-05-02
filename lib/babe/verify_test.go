@@ -1345,6 +1345,9 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 	headerWithPreRuntimeDigest := types.NewHeader(defaultParentHeader.Hash(),
 		common.Hash{}, common.Hash{}, defaultParentHeader.Number+1, digest)
 
+	seal := buildSealDigest(t, headerWithPreRuntimeDigest, kp)
+	headerWithPreRuntimeDigest.Digest.Add(*seal)
+
 	testBlockHeaderEmpty := types.NewEmptyHeader()
 	testBlockHeaderEmpty.Number = 2
 
@@ -1430,7 +1433,7 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 				"failed to get config data: %w", errTestGetEpochData),
 		},
 		{
-			name: "sucessfully_validate_block",
+			name: "successfully_validate_block",
 			setupVerificationManager: func(t *testing.T, ctrl *gomock.Controller) *VerificationManager {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.
@@ -1441,20 +1444,29 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 				mockBlockState.
 					EXPECT().
 					GenesisHash().
-					Return(defaultParentHeader.Hash())
+					Return(defaultParentHeader.Hash()).
+					Times(2)
 
 				mockEpochState := NewMockEpochState(ctrl)
 				mockEpochState.EXPECT().GetSlotDuration().Return(6*time.Second, nil)
-				mockEpochState.EXPECT().GetEpochForBlock(testBlockHeaderEmpty).Return(uint64(1), nil)
-				mockEpochState.EXPECT().GetEpochDataRaw(uint64(1), testBlockHeaderEmpty).
+				mockEpochState.EXPECT().GetEpochForBlock(headerWithPreRuntimeDigest).Return(uint64(1), nil)
+				mockEpochState.EXPECT().GetEpochDataRaw(uint64(1), headerWithPreRuntimeDigest).
 					Return(&types.EpochDataRaw{
 						Authorities: defaultEpoch1Authorities,
 						Randomness:  [32]byte{},
 					}, nil)
-				mockEpochState.EXPECT().GetConfigData(uint64(1), testBlockHeaderEmpty).
+				mockEpochState.EXPECT().GetConfigData(uint64(1), headerWithPreRuntimeDigest).
 					Return(defaultConfigData, nil)
 
-				return NewVerificationManager(mockBlockState, NewMockSlotState(nil), mockEpochState)
+				mockSlotState := NewMockSlotState(ctrl)
+				mockSlotState.EXPECT().
+					CheckEquivocation(
+						gomock.Any(), uint64(defaultSlotNumber),
+						headerWithPreRuntimeDigest,
+						[32]byte(kp.Public().Encode())).
+					Return(nil, nil)
+
+				return NewVerificationManager(mockBlockState, mockSlotState, mockEpochState)
 			},
 			header: headerWithPreRuntimeDigest,
 		},
@@ -1469,6 +1481,24 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 				assert.NoError(t, err)
 			}
 		})
+	}
+}
+
+func buildSealDigest(t *testing.T, header *types.Header, kp *sr25519.Keypair) *types.SealDigest {
+	t.Helper()
+
+	encHeader, err := scale.Marshal(*header)
+	require.NoError(t, err)
+
+	hash, err := common.Blake2bHash(encHeader)
+	require.NoError(t, err)
+
+	sig, err := kp.Sign(hash[:])
+	require.NoError(t, err)
+
+	return &types.SealDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              sig,
 	}
 }
 
