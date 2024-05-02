@@ -313,6 +313,7 @@ func (ps *PeerSet) updateTime() error {
 				return fmt.Errorf("cannot update reputation by tick: %w", err)
 			}
 
+			// Maybe this should also check if below banned threshold
 			if after != 0 {
 				continue
 			}
@@ -438,6 +439,24 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 		if peerID == "" {
 			break
 		}
+
+		/*
+			TBH, i am still unsure why this is a problem. If we have 10 peers, are connected to 8, and 2 diconnected
+			peers are below threshold I think this could be fine. We intentionally do not remove peers that are below the
+			thresold, so wouldnt ideal case be we are connected to all valid nodes and only diconnected from bad ones?
+
+			Maybe what we should do is log error if this is true AND we have no connected peers? something like
+
+			n := peerState.nodes[peerID]
+			if n.reputation < BannedThresholdValue {
+				if len(peerState.sortedPeers(setIdx)) == 0 {
+					logger.Criticalf("highest rated peer is below bannedThresholdValue, peer: %v, rep: %v", peerID, n.reputation)
+				}
+				break
+			}
+
+			However, its still a nice idea to figure out why this case was being hit
+		*/
 
 		n := peerState.nodes[peerID]
 		if n.reputation < BannedThresholdValue {
