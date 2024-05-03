@@ -255,7 +255,6 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		return
 	}
 
-
 	// Is there a chance we are acting prematurely here? Do we need to be connected, or at least be a certain
 	// amount into the handshake process to be able to check this info?
 	// I think the support protocol func is worth looking into potentially. Not sure what the
@@ -267,6 +266,19 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	}
 
 	if !support {
+		// Here could be a good place to check if we support the protocol
+		protocols := s.host.protocols()
+		found := false
+		for _, p := range protocols {
+			if p == string(info.protocolID) {
+				found = true
+			}
+		}
+
+		if !found {
+			logger.Criticalf("protocol %s is not supported US", info.protocolID)
+		}
+
 		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.BadProtocolValue,
 			Reason: peerset.BadProtocolReason,

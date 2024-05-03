@@ -274,21 +274,21 @@ func reputationTick(reput Reputation) Reputation {
 	return reput.sub(diff)
 }
 
-func (ps *PeerSet) goToJail(peer peer.ID) {
-	ps.Lock()
-	defer ps.Unlock()
+//func (ps *PeerSet) goToJail(peer peer.ID) {
+//	ps.Lock()
+//	defer ps.Unlock()
+//
+//	if !slices.Contains(ps.jail, peer) {
+//		ps.jail = append(ps.jail, peer)
+//		logger.Infof("⛓️🧑⛓️ peers in set: %v, peers in jail: %v", len(ps.peerState.peers()), len(ps.jail))
+//	}
+//}
 
-	if !slices.Contains(ps.jail, peer) {
-		ps.jail = append(ps.jail, peer)
-		logger.Infof("⛓️🧑⛓️ peers in set: %v, peers in jail: %v", len(ps.peerState.peers()), len(ps.jail))
-	}
-}
-
-func (ps *PeerSet) isInJail(peer peer.ID) bool {
-	ps.Lock()
-	defer ps.Unlock()
-	return slices.Contains(ps.jail, peer)
-}
+//func (ps *PeerSet) isInJail(peer peer.ID) bool {
+//	ps.Lock()
+//	defer ps.Unlock()
+//	return slices.Contains(ps.jail, peer)
+//}
 
 // updateTime updates the value of latestTimeUpdate and performs all the updates that
 // happen over time, such as Reputation increases for staying connected.
@@ -376,9 +376,21 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 				continue
 			}
 
-			err = ps.removePeer(i, pid)
+			//err = ps.removePeer(i, pid)
+			//if err != nil {
+			//	return fmt.Errorf("removing peer: %w", err)
+			//}
+
+			// disconnect peer
+			err = ps.peerState.disconnect(i, pid)
 			if err != nil {
-				return fmt.Errorf("removing peer: %w", err)
+				return fmt.Errorf("cannot disconnect: %w", err)
+			}
+
+			ps.resultMsgCh <- Message{
+				Status: Drop,
+				setID:  uint64(i),
+				PeerID: pid,
 			}
 
 			if err = ps.allocSlots(i); err != nil {
@@ -582,7 +594,8 @@ func (ps *PeerSet) setReservedPeer(setID int, peers ...peer.ID) error {
 // and put notConnected peers in to them
 func (ps *PeerSet) addPeer(setID int, peers peer.IDSlice) error {
 	for _, pid := range peers {
-		if ps.peerState.peerStatus(setID, pid) != unknownPeer || ps.isInJail(pid) {
+		//if ps.peerState.peerStatus(setID, pid) != unknownPeer || ps.isInJail(pid) {
+		if ps.peerState.peerStatus(setID, pid) != unknownPeer {
 			return nil
 		}
 
@@ -601,7 +614,7 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 			return nil
 		}
 
-		ps.goToJail(pid)
+		//ps.goToJail(pid)
 
 		if status := ps.peerState.peerStatus(setID, pid); status == connectedPeer {
 			ps.resultMsgCh <- Message{
