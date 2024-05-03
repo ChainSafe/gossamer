@@ -555,7 +555,6 @@ func (ps *PeerSet) setReservedPeer(setID int, peers ...peer.ID) error {
 // and put notConnected peers in to them
 func (ps *PeerSet) addPeer(setID int, peers peer.IDSlice) error {
 	for _, pid := range peers {
-		//if ps.peerState.peerStatus(setID, pid) != unknownPeer || ps.isInJail(pid) {
 		if ps.peerState.peerStatus(setID, pid) != unknownPeer {
 			return nil
 		}
@@ -574,8 +573,6 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 			logger.Debugf("peer %s is reserved and cannot be removed", pid)
 			return nil
 		}
-
-		//ps.goToJail(pid)
 
 		if status := ps.peerState.peerStatus(setID, pid); status == connectedPeer {
 			ps.resultMsgCh <- Message{
