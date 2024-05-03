@@ -9,7 +9,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-// Bro seriously wtf is this
 type peersData struct {
 	mutexesMu  sync.RWMutex
 	mutexes    map[peer.ID]*sync.Mutex

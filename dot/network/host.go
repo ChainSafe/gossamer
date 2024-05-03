@@ -449,8 +449,6 @@ func (h *host) multiaddrs() (multiaddrs []ma.Multiaddr) {
 
 // protocols returns all protocols currently supported by the node as strings.
 func (h *host) protocols() []string {
-	// For the protocol not supported error, maybe double check that it is them,
-	// not us, using this function
 	protocolIDs := h.p2pHost.Mux().Protocols()
 	protocols := make([]string, len(protocolIDs))
 	for i := range protocolIDs {

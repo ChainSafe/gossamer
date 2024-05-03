@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"golang.org/x/exp/slices"
 	"math"
 	"strings"
 	"sync"
@@ -337,10 +336,6 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 	}
 
 	for _, pid := range peers {
-		connected := slices.Contains(ps.peerState.peers(), pid)
-		if !connected {
-			continue
-		}
 		rep, err := ps.peerState.addReputation(pid, change)
 		if err != nil {
 			return fmt.Errorf("cannot add reputation: %w", err)

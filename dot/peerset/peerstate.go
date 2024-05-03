@@ -400,7 +400,7 @@ func (ps *PeersState) lastConnectedAndDiscovered(set int, peerID peer.ID) (time.
 	return time.Now(), nil
 }
 
-// forgetPeer removes the peer from the peerSet
+// forgetPeer removes the peer with reputation 0 from the peerSet
 func (ps *PeersState) forgetPeer(set int, peerID peer.ID) error {
 	ps.Lock()
 	defer ps.Unlock()
@@ -412,6 +412,10 @@ func (ps *PeersState) forgetPeer(set int, peerID peer.ID) error {
 
 	if node.state[set] != notMember {
 		node.state[set] = notMember
+	}
+
+	if node.reputation != 0 {
+		return nil
 	}
 
 	// remove the peer from peerSet nodes entirely if it isn't a member of any set.
