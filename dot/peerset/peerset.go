@@ -191,9 +191,6 @@ type PeerSet struct {
 	nextPeriodicAllocSlots time.Duration
 	// chan for receiving action request.
 	actionQueue <-chan action
-
-	// Jail baby
-	jail []peer.ID
 }
 
 // config is configuration of a single set.
@@ -253,7 +250,6 @@ func newPeerSet(cfg *ConfigSet) (*PeerSet, error) {
 		created:                now,
 		latestTimeUpdate:       now,
 		nextPeriodicAllocSlots: cfgSet.periodicAllocTime,
-		jail:                   make([]peer.ID, 0),
 	}
 
 	return ps, nil
@@ -273,22 +269,6 @@ func reputationTick(reput Reputation) Reputation {
 	}
 	return reput.sub(diff)
 }
-
-//func (ps *PeerSet) goToJail(peer peer.ID) {
-//	ps.Lock()
-//	defer ps.Unlock()
-//
-//	if !slices.Contains(ps.jail, peer) {
-//		ps.jail = append(ps.jail, peer)
-//		logger.Infof("⛓️🧑⛓️ peers in set: %v, peers in jail: %v", len(ps.peerState.peers()), len(ps.jail))
-//	}
-//}
-
-//func (ps *PeerSet) isInJail(peer peer.ID) bool {
-//	ps.Lock()
-//	defer ps.Unlock()
-//	return slices.Contains(ps.jail, peer)
-//}
 
 // updateTime updates the value of latestTimeUpdate and performs all the updates that
 // happen over time, such as Reputation increases for staying connected.
@@ -376,11 +356,6 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 				continue
 			}
 
-			//err = ps.removePeer(i, pid)
-			//if err != nil {
-			//	return fmt.Errorf("removing peer: %w", err)
-			//}
-
 			// disconnect peer
 			err = ps.peerState.disconnect(i, pid)
 			if err != nil {
@@ -452,27 +427,18 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 			break
 		}
 
-		/*
-			TBH, i am still unsure why this is a problem. If we have 10 peers, are connected to 8, and 2 diconnected
-			peers are below threshold I think this could be fine. We intentionally do not remove peers that are below the
-			thresold, so wouldnt ideal case be we are connected to all valid nodes and only diconnected from bad ones?
-
-			Maybe what we should do is log error if this is true AND we have no connected peers? something like
-
-			n := peerState.nodes[peerID]
-			if n.reputation < BannedThresholdValue {
-				if len(peerState.sortedPeers(setIdx)) == 0 {
-					logger.Criticalf("highest rated peer is below bannedThresholdValue, peer: %v, rep: %v", peerID, n.reputation)
-				}
-				break
-			}
-
-			However, its still a nice idea to figure out why this case was being hit
-		*/
-
 		n := peerState.nodes[peerID]
 		if n.reputation < BannedThresholdValue {
-			logger.Criticalf("highest rated peer is below bannedThresholdValue, peer: %v, rep: %v", peerID, n.reputation)
+			/*
+				If our highest not connect peer is below threshold and we have no connections this is a problem.
+				However, if we have peers we are still connected to then this is not a big deal. For example,
+				if we have 10 peers in our set and are connected to 9 while 1 we are not connected because
+				they are below threshold, then our highestNotConnectedPeer is this one peer, which is ok
+				and we should just break
+			*/
+			if len(peerState.sortedPeers(setIdx)) == 0 {
+				logger.Criticalf("highest rated peer is below bannedThresholdValue, peer: %v, rep: %v", peerID, n.reputation)
+			}
 			break
 		}
 
