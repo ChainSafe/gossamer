@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -515,12 +516,12 @@ func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal(signal par
 		Message:         chainapi.BlockHeader(signal.Activated.Hash),
 		ResponseChannel: respChan,
 	}
-	response, err := chainapi.Call(av.SubSystemToOverseer, message, message.ResponseChannel)
+	response, err := util.SendOverseerMessage(av.SubSystemToOverseer, message, message.ResponseChannel)
 	if err != nil {
 		return fmt.Errorf("sending message to get block header: %w", err)
 	}
 
-	newBlocks, err := chainapi.DetermineNewBlocks(av.SubSystemToOverseer, av.knownUnfinalizedBlocks.isKnown,
+	newBlocks, err := util.DetermineNewBlocks(av.SubSystemToOverseer, av.knownUnfinalizedBlocks.isKnown,
 		signal.Activated.Hash,
 		response.(types.Header),
 		av.finalizedBlockNumber)
@@ -559,7 +560,7 @@ func (av *AvailabilityStoreSubsystem) processNewHead(tx *availabilityStoreBatch,
 	respChan := make(chan any)
 	message := parachain.RuntimeAPIMessage{Hash: hash, Resp: respChan}
 
-	rtRes, err := chainapi.Call(av.SubSystemToOverseer, message, respChan)
+	rtRes, err := util.SendOverseerMessage(av.SubSystemToOverseer, message, respChan)
 	if err != nil {
 		return fmt.Errorf("sending message to get block header: %w", err)
 	}

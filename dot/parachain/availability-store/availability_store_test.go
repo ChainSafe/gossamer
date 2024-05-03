@@ -16,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
@@ -1026,8 +1027,8 @@ func (h *testHarness) importLeaf(t *testing.T, parentHash common.Hash,
 	})
 
 	h.processes = append(h.processes, func(msg any) {
-		msg2, _ := msg.(chainapi.ChainAPIMessage[chainapi.Ancestors])
-		msg2.ResponseChannel <- chainapi.AncestorsResponse{
+		msg2, _ := msg.(chainapi.ChainAPIMessage[util.Ancestors])
+		msg2.ResponseChannel <- util.AncestorsResponse{
 			Ancestors: []common.Hash{{0x01}, {0x02}},
 		}
 		require.Equal(t, aLeaf, msg2.Message.Hash)
@@ -1139,8 +1140,8 @@ func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 		}
 	})
 	harness.processes = append(harness.processes, func(msg any) {
-		msg2, _ := msg.(chainapi.ChainAPIMessage[chainapi.Ancestors])
-		msg2.ResponseChannel <- chainapi.AncestorsResponse{
+		msg2, _ := msg.(chainapi.ChainAPIMessage[util.Ancestors])
+		msg2.ResponseChannel <- util.AncestorsResponse{
 			Ancestors: []common.Hash{{0x01}, {0x02}},
 		}
 	})
