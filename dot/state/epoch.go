@@ -282,7 +282,7 @@ func (s *EpochState) GetSkippedEpochDataRaw(skippedEpoch, currentEpoch uint64,
 }
 
 // UpdateSkippedEpochDefinitions updates the skipped epoch definitions by changing the
-// changing the key from skipped epoch to current epoch on each epoch data raw storage
+// key from skipped epoch to current epoch on each epoch data raw storage
 // and on config data storage, it returns an error if the skipped epoch number does not
 // exists in the database.
 func (s *EpochState) UpdateSkippedEpochDefinitions(skippedEpoch, currentEpoch uint64,

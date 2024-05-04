@@ -118,7 +118,7 @@ func Test_getAuthorityIndex(t *testing.T) {
 	headerPrimary := types.NewEmptyHeader()
 	headerPrimary.Digest = digestPrimary
 
-	//BabeSecondaryVRFPreDigest Case
+	// BabeSecondaryVRFPreDigest Case
 	babeDigest2 := types.NewBabeDigest()
 	err = babeDigest2.SetValue(types.BabeSecondaryVRFPreDigest{AuthorityIndex: 21, SlotNumber: 10})
 	assert.NoError(t, err)
@@ -301,7 +301,7 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	assert.NoError(t, err)
 
-	//BabePrimaryPreDigest case
+	// BabePrimaryPreDigest case
 	output, proof, err := kp.VrfSign(makeTranscript(Randomness{}, uint64(1), 1))
 	assert.NoError(t, err)
 
@@ -334,7 +334,7 @@ func Test_verifier_verifyPreRuntimeDigest(t *testing.T) {
 
 	v1 := newVerifier(mockBlockState, mockSlotState, 1, vi1, testSlotDuration)
 
-	//BabeSecondaryVRFPreDigest case
+	// BabeSecondaryVRFPreDigest case
 	secVRFDigest := types.BabeSecondaryVRFPreDigest{
 		SlotNumber: 1,
 		VrfOutput:  output,
