@@ -6,6 +6,7 @@ package backing
 import (
 	"errors"
 	"fmt"
+	"math"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
@@ -35,9 +36,54 @@ type candidateData struct { //nolint:unused
 	validityVotes map[parachaintypes.ValidatorIndex]validityVoteWithSign
 }
 
+// attested yields a full attestation for a candidate.
+// If the candidate can be included, it will return attested candidate.
+func (data candidateData) attested(validityThreshold uint) (*AttestedCandidate, error) { //nolint:unused
+	numOfValidityVotes := uint(len(data.validityVotes))
+	if numOfValidityVotes < validityThreshold {
+		return nil, fmt.Errorf("not enough validity votes: %d < %d", numOfValidityVotes, validityThreshold)
+	}
+
+	validityAttestations := make([]validityAttestation, numOfValidityVotes)
+	for validatorIndex, voteWithSign := range data.validityVotes {
+		switch voteWithSign.validityVote {
+		case valid:
+			attestation := parachaintypes.NewValidityAttestation()
+			err := attestation.Set(parachaintypes.Explicit(voteWithSign.signature))
+			if err != nil {
+				return nil, fmt.Errorf("failed to set validity attestation: %w", err)
+			}
+
+			validityAttestations = append(validityAttestations, validityAttestation{
+				ValidatorIndex:      validatorIndex,
+				ValidityAttestation: attestation,
+			})
+		case issued:
+			attestation := parachaintypes.NewValidityAttestation()
+			err := attestation.Set(parachaintypes.Implicit(voteWithSign.signature))
+			if err != nil {
+				return nil, fmt.Errorf("failed to set validity attestation: %w", err)
+			}
+
+			validityAttestations = append(validityAttestations, validityAttestation{
+				ValidatorIndex:      validatorIndex,
+				ValidityAttestation: attestation,
+			})
+		default:
+			return nil, fmt.Errorf("unknown validity vote: %d", voteWithSign.validityVote)
+		}
+	}
+
+	return &AttestedCandidate{
+		GroupID:              data.groupID,
+		Candidate:            data.candidate,
+		ValidityAttestations: validityAttestations,
+	}, nil
+}
+
 type validityVoteWithSign struct { //nolint:unused
 	validityVote validityVote
-	signature    parachaintypes.Signature
+	signature    parachaintypes.ValidatorSignature
 }
 
 type validityVote byte //nolint:unused
@@ -67,10 +113,35 @@ func (statementTable) importStatement( //nolint:unused
 	return nil, nil
 }
 
-func (statementTable) attestedCandidate(candidateHash parachaintypes.CandidateHash, ctx *TableContext, //nolint:unused
+// attestedCandidate retrieves the attested candidate for the given candidate hash.
+// returns attested candidate  if the candidate exists and is includable.
+func (table statementTable) attestedCandidate( //nolint:unused
+	candidateHash parachaintypes.CandidateHash, tableContext *TableContext, minimumBackingVotes uint32,
 ) (*AttestedCandidate, error) {
-	// TODO: Implement this method
-	return nil, nil
+	// size of the backing group.
+	var groupLen uint
+
+	data, ok := table.candidateVotes[candidateHash]
+	if !ok {
+		return nil, fmt.Errorf("%w for candidate-hash: %s", errCandidateDataNotFound, candidateHash)
+	}
+
+	group, ok := tableContext.groups[data.groupID]
+	if ok {
+		groupLen = uint(len(group))
+	} else {
+		groupLen = math.MaxUint
+	}
+
+	validityThreshold := effectiveMinimumBackingVotes(groupLen, minimumBackingVotes)
+	return data.attested(validityThreshold)
+}
+
+// effectiveMinimumBackingVotes adjusts the configured needed backing votes with the size of the backing group.
+//
+// groupLen is the size of the backing group.
+func effectiveMinimumBackingVotes(groupLen uint, configuredMinimumBackingVotes uint32) uint { //nolint:unused
+	return min(groupLen, uint(configuredMinimumBackingVotes))
 }
 
 func (statementTable) drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport { //nolint:unused
@@ -81,7 +152,7 @@ func (statementTable) drainMisbehaviors() []parachaintypes.ProvisionableDataMisb
 type Table interface {
 	getCandidate(parachaintypes.CandidateHash) (parachaintypes.CommittedCandidateReceipt, error)
 	importStatement(*TableContext, parachaintypes.SignedFullStatementWithPVD) (*Summary, error)
-	attestedCandidate(parachaintypes.CandidateHash, *TableContext) (*AttestedCandidate, error)
+	attestedCandidate(parachaintypes.CandidateHash, *TableContext, uint32) (*AttestedCandidate, error)
 	drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport
 }
 
