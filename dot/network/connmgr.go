@@ -36,8 +36,6 @@ type ConnManager struct {
 func newConnManager(max int, peerSetCfg *peerset.ConfigSet) (*ConnManager, error) {
 	// TODO: peerSetHandler never used from within connection manager and also referred outside through cm,
 	// so this should be refactored
-	// Uhh what is this todo
-	// is this literally just for logging??
 	psh, err := peerset.NewPeerSetHandler(peerSetCfg)
 	if err != nil {
 		return nil, err

@@ -9,11 +9,10 @@ import (
 	"io"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
-
-	"github.com/ChainSafe/gossamer/dot/peerset"
 )
 
 const handshakeTimeout = time.Second * 10
@@ -255,10 +254,6 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		return
 	}
 
-	// Is there a chance we are acting prematurely here? Do we need to be connected, or at least be a certain
-	// amount into the handshake process to be able to check this info?
-	// I think the support protocol func is worth looking into potentially. Not sure what the
-	// length check means
 	support, err := s.host.supportsProtocol(peer, info.protocolID)
 	if err != nil {
 		logger.Errorf("could not check if protocol %s is supported by peer %s: %s", info.protocolID, peer, err)
@@ -266,19 +261,6 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	}
 
 	if !support {
-		// Here could be a good place to check if we support the protocol
-		protocols := s.host.protocols()
-		found := false
-		for _, p := range protocols {
-			if p == string(info.protocolID) {
-				found = true
-			}
-		}
-
-		if !found {
-			logger.Criticalf("protocol %s is not supported US", info.protocolID)
-		}
-
 		s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.BadProtocolValue,
 			Reason: peerset.BadProtocolReason,
