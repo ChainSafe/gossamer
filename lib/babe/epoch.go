@@ -30,7 +30,35 @@ func (b *Service) initiateEpoch(epoch uint64) (*epochDescriptor, error) {
 		return nil, fmt.Errorf("cannot get the best block header: %w", err)
 	}
 
-	skipped, diff, err := b.checkIfEpochSkipped(epoch, bestBlockHeader)
+	// if we're at genesis or epoch was skipped then we can estimate when the start
+	// slot of the epoch will be, the estimation is used to calculate the epoch end
+	// TODO: check how substrate deals with these estimation
+	if bestBlockHeader.Hash() == b.blockState.GenesisHash() {
+		epochData, err := b.getEpochData(epoch, bestBlockHeader)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get epoch data and start slot: %w", err)
+		}
+
+		startSlot, err := b.getFirstAuthoringSlot(epoch, epochData)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get first authoring slot: %w", err)
+		}
+
+		logger.Debugf("estimated first slot as %d for epoch %d", startSlot, epoch)
+		return &epochDescriptor{
+			data:      epochData,
+			epoch:     epoch,
+			startSlot: startSlot,
+			endSlot:   startSlot + b.constants.epochLength,
+		}, nil
+	}
+
+	epochFromBestBlock, err := b.epochState.GetEpochForBlock(bestBlockHeader)
+	if err != nil {
+		return nil, fmt.Errorf("getting epoch for block: %w", err)
+	}
+
+	skipped, diff, err := checkIfEpochSkipped(epoch, epochFromBestBlock)
 	if err != nil {
 		return nil, fmt.Errorf("checking if epoch skipped: %w", err)
 	}
@@ -60,24 +88,6 @@ func (b *Service) initiateEpoch(epoch uint64) (*epochDescriptor, error) {
 		}
 	}
 
-	// if we're at genesis or epoch was skipped then we can estimate when the start
-	// slot of the epoch will be, the estimation is used to calculate the epoch end
-	// TODO: check how substrate deals with these estimation
-	if bestBlockHeader.Hash() == b.blockState.GenesisHash() {
-		startSlot, err := b.getFirstAuthoringSlot(epoch, epochData)
-		if err != nil {
-			return nil, fmt.Errorf("cannot get first authoring slot: %w", err)
-		}
-
-		logger.Debugf("estimated first slot as %d for epoch %d", startSlot, epoch)
-		return &epochDescriptor{
-			data:      epochData,
-			epoch:     epoch,
-			startSlot: startSlot,
-			endSlot:   startSlot + b.constants.epochLength,
-		}, nil
-	}
-
 	startSlot, err := b.epochState.GetStartSlotForEpoch(epoch, bestBlockHeader.Hash())
 	if err != nil {
 		return nil, fmt.Errorf("cannot get start slot for epoch %d: %w", epoch, err)
@@ -92,15 +102,10 @@ func (b *Service) initiateEpoch(epoch uint64) (*epochDescriptor, error) {
 	}, nil
 }
 
-func (b *Service) checkIfEpochSkipped(epochBeingInitialized uint64, bestBlock *types.Header) (
+func checkIfEpochSkipped(epochBeingInitialized, epochFromBestBlock uint64) (
 	skipped bool, diff uint64, err error) {
 	if epochBeingInitialized == 0 {
 		return false, 0, nil
-	}
-
-	epochFromBestBlock, err := b.epochState.GetEpochForBlock(bestBlock)
-	if err != nil {
-		return false, 0, fmt.Errorf("getting epoch for block: %w", err)
 	}
 
 	if epochBeingInitialized < epochFromBestBlock {

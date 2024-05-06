@@ -732,6 +732,95 @@ func TestRetrieveChainFirstSlot(t *testing.T) {
 
 }
 
+func TestRetrieveAndUpdate(t *testing.T) {
+	epochState := newEpochStateFromGenesis(t)
+	blockState := epochState.blockState
+
+	nem := nextEpochMap[types.NextEpochData]{}
+
+	// setup 2 headers
+	headerA := types.NewHeader(
+		common.BytesToHash([]byte{0x01}),
+		common.BytesToHash([]byte{0x01}),
+		common.BytesToHash([]byte{0x01}),
+		1,
+		types.NewDigest(),
+	)
+
+	headerB := types.NewHeader(
+		common.BytesToHash([]byte{0x02}),
+		common.BytesToHash([]byte{0x02}),
+		common.BytesToHash([]byte{0x02}),
+		1,
+		types.NewDigest(),
+	)
+
+	headerC := types.NewHeader(
+		common.BytesToHash([]byte{0x03}),
+		common.BytesToHash([]byte{0x03}),
+		common.BytesToHash([]byte{0x03}),
+		2,
+		types.NewDigest(),
+	)
+
+	// both headers are targeting its epoch data
+	// in the mapping for epoch 3
+	epoch3Mapping := make(map[common.Hash]types.NextEpochData)
+	headerANextEpochData := types.NextEpochData{
+		Authorities: []types.AuthorityRaw{
+			{Key: [32]byte(kr.KeyAlice.Public().Encode())},
+			{Key: [32]byte(kr.KeyBob.Public().Encode())},
+		},
+		Randomness: [32]byte{90, 90, 0x1},
+	}
+	epoch3Mapping[headerA.Hash()] = headerANextEpochData
+
+	headerBNextEpochData := types.NextEpochData{
+		Authorities: []types.AuthorityRaw{
+			{Key: [32]byte(kr.KeyIan.Public().Encode())},
+			{Key: [32]byte(kr.KeyCharlie.Public().Encode())},
+		},
+		Randomness: [32]byte{0, 42, 0xff},
+	}
+	epoch3Mapping[headerB.Hash()] = headerBNextEpochData
+	nem[3] = epoch3Mapping
+
+	// inserting a hash in the epoch 8 mapping
+	// so updating the header B to epoch 8 mapping
+	// should not mess with the data already there
+	epoch8Mapping := make(map[common.Hash]types.NextEpochData)
+	headerCNextEpochData := types.NextEpochData{
+		Authorities: []types.AuthorityRaw{
+			{Key: [32]byte(kr.KeyIan.Public().Encode())},
+			{Key: [32]byte(kr.KeyCharlie.Public().Encode())},
+		},
+		Randomness: [32]byte{0, 42, 0xff},
+	}
+	epoch8Mapping[headerC.Hash()] = headerCNextEpochData
+	nem[8] = epoch8Mapping
+
+	// when retrieving and updating header B to
+	// target now epoch 8, we should keep the
+	// epoch 3 mapping since it might be used
+	// the prune should only happens only on finalisation
+	const oldEpoch = 3
+	const newEpoch = 8
+	nextEpochDataRaw, err := nem.RetrieveAndUpdate(blockState, oldEpoch, newEpoch, headerB)
+	require.NoError(t, err)
+	require.Equal(t, &headerBNextEpochData, nextEpochDataRaw)
+
+	expectedEpoch3Map := map[common.Hash]types.NextEpochData{
+		headerA.Hash(): headerANextEpochData,
+	}
+	require.Equal(t, expectedEpoch3Map, nem[3])
+
+	expectedEpoch8Map := map[common.Hash]types.NextEpochData{
+		headerB.Hash(): headerBNextEpochData,
+		headerC.Hash(): headerCNextEpochData,
+	}
+	require.Equal(t, expectedEpoch8Map, nem[8])
+}
+
 func TestFirstSlotNumberFromDb(t *testing.T) {
 	// test case to check whether we have the correct first slot number in the database
 	epochState := newEpochStateFromGenesis(t)
