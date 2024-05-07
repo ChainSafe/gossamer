@@ -34,22 +34,17 @@ type contextKey string
 
 const runtimeContextKey = contextKey("runtime.Context")
 
-var _ runtime.Instance = &Instance{}
+var ErrExportFunctionNotFound = errors.New("export function not found")
 
-type wazeroMeta struct {
-	config      wazero.RuntimeConfig
-	cache       wazero.CompilationCache
-	guestModule wazero.CompiledModule
-}
+var _ runtime.Instance = &Instance{}
 
 // Instance backed by wazero.Runtime
 type Instance struct {
-	Runtime      wazero.Runtime
-	Module       api.Module
-	Context      *runtime.Context
-	wasmByteCode []byte
-	codeHash     common.Hash
-	metadata     wazeroMeta
+	Runtime             wazero.Runtime
+	Module              api.Module
+	Context             *runtime.Context
+	codeHash            common.Hash
+	guestCompiledModule wazero.CompiledModule
 	sync.Mutex
 }
 
@@ -107,342 +102,30 @@ func NewInstanceFromTrie(t trie.Trie, cfg Config) (*Instance, error) {
 	return NewInstance(code, cfg)
 }
 
-func newRuntime(ctx context.Context,
-	code []byte,
-	config wazero.RuntimeConfig,
-) (api.Module, wazero.Runtime, wazero.CompiledModule, error) {
-	rt := wazero.NewRuntimeWithConfig(ctx, config)
-
-	hostCompiledModule, err := rt.NewHostModuleBuilder("env").
-		// values from newer kusama/polkadot runtimes
-		ExportMemory("memory", 23).
-		NewFunctionBuilder().
-		WithFunc(ext_logging_log_version_1).
-		Export("ext_logging_log_version_1").
-		NewFunctionBuilder().
-		WithFunc(func() int32 {
-			return 4
-		}).
-		Export("ext_logging_max_level_version_1").
-		NewFunctionBuilder().
-		WithFunc(func(a int32, b int32, c int32) {
-			panic("unimplemented")
-		}).
-		Export("ext_transaction_index_index_version_1").
-		NewFunctionBuilder().
-		WithFunc(func(a int32, b int32) {
-			panic("unimplemented")
-		}).
-		Export("ext_transaction_index_renew_version_1").
-		NewFunctionBuilder().
-		WithFunc(func(a int32) {
-			panic("unimplemented")
-		}).
-		Export("ext_sandbox_instance_teardown_version_1").
-		NewFunctionBuilder().
-		WithFunc(func(a int32, b int64, c int64, d int32) int32 {
-			panic("unimplemented")
-		}).
-		Export("ext_sandbox_instantiate_version_1").
-		NewFunctionBuilder().
-		WithFunc(func(a int32, b int64, c int64, d int32, e int32, f int32) int32 {
-			panic("unimplemented")
-		}).
-		Export("ext_sandbox_invoke_version_1").
-		NewFunctionBuilder().
-		WithFunc(func(a int32, b int32, c int32, d int32) int32 {
-			panic("unimplemented")
-		}).
-		Export("ext_sandbox_memory_get_version_1").
-		NewFunctionBuilder().
-		WithFunc(func(a int32, b int32, c int32, d int32) int32 {
-			panic("unimplemented")
-		}).
-		Export("ext_sandbox_memory_set_version_1").
-		NewFunctionBuilder().
-		WithFunc(func(a int32) {
-			panic("unimplemented")
-		}).
-		Export("ext_sandbox_memory_teardown_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_crypto_ed25519_generate_version_1).
-		Export("ext_crypto_ed25519_generate_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_crypto_ed25519_public_keys_version_1).
-		Export("ext_crypto_ed25519_public_keys_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_crypto_ed25519_sign_version_1).
-		Export("ext_crypto_ed25519_sign_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_crypto_ed25519_verify_version_1).
-		Export("ext_crypto_ed25519_verify_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_crypto_secp256k1_ecdsa_recover_version_1).
-		Export("ext_crypto_secp256k1_ecdsa_recover_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_crypto_secp256k1_ecdsa_recover_version_2).
-		Export("ext_crypto_secp256k1_ecdsa_recover_version_2").
-		NewFunctionBuilder().
-		WithFunc(ext_crypto_ecdsa_verify_version_2).
-		Export("ext_crypto_ecdsa_verify_version_2").
-		NewFunctionBuilder().
-		WithFunc(ext_crypto_secp256k1_ecdsa_recover_compressed_version_1).
-		Export("ext_crypto_secp256k1_ecdsa_recover_compressed_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_crypto_secp256k1_ecdsa_recover_compressed_version_2).
-		Export("ext_crypto_secp256k1_ecdsa_recover_compressed_version_2").
-		NewFunctionBuilder().
-		WithFunc(ext_crypto_sr25519_generate_version_1).
-		Export("ext_crypto_sr25519_generate_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_crypto_sr25519_public_keys_version_1).
-		Export("ext_crypto_sr25519_public_keys_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_crypto_sr25519_sign_version_1).
-		Export("ext_crypto_sr25519_sign_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_crypto_sr25519_verify_version_1).
-		Export("ext_crypto_sr25519_verify_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_crypto_sr25519_verify_version_2).
-		Export("ext_crypto_sr25519_verify_version_2").
-		NewFunctionBuilder().
-		WithFunc(ext_crypto_start_batch_verify_version_1).
-		Export("ext_crypto_start_batch_verify_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_crypto_finish_batch_verify_version_1).
-		Export("ext_crypto_finish_batch_verify_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_trie_blake2_256_root_version_1).
-		Export("ext_trie_blake2_256_root_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_trie_blake2_256_root_version_2).
-		Export("ext_trie_blake2_256_root_version_2").
-		NewFunctionBuilder().
-		WithFunc(ext_trie_blake2_256_ordered_root_version_1).
-		Export("ext_trie_blake2_256_ordered_root_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_trie_blake2_256_ordered_root_version_2).
-		Export("ext_trie_blake2_256_ordered_root_version_2").
-		NewFunctionBuilder().
-		WithFunc(ext_trie_blake2_256_verify_proof_version_1).
-		Export("ext_trie_blake2_256_verify_proof_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_trie_blake2_256_verify_proof_version_2).
-		Export("ext_trie_blake2_256_verify_proof_version_2").
-		NewFunctionBuilder().
-		WithFunc(ext_misc_print_hex_version_1).
-		Export("ext_misc_print_hex_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_misc_print_num_version_1).
-		Export("ext_misc_print_num_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_misc_print_utf8_version_1).
-		Export("ext_misc_print_utf8_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_misc_runtime_version_version_1).
-		Export("ext_misc_runtime_version_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_set_version_1).
-		Export("ext_default_child_storage_set_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_read_version_1).
-		Export("ext_default_child_storage_read_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_clear_version_1).
-		Export("ext_default_child_storage_clear_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_clear_prefix_version_1).
-		Export("ext_default_child_storage_clear_prefix_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_clear_prefix_version_2).
-		Export("ext_default_child_storage_clear_prefix_version_2").
-		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_exists_version_1).
-		Export("ext_default_child_storage_exists_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_get_version_1).
-		Export("ext_default_child_storage_get_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_next_key_version_1).
-		Export("ext_default_child_storage_next_key_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_root_version_1).
-		Export("ext_default_child_storage_root_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_root_version_2).
-		Export("ext_default_child_storage_root_version_2").
-		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_storage_kill_version_1).
-		Export("ext_default_child_storage_storage_kill_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_storage_kill_version_2).
-		Export("ext_default_child_storage_storage_kill_version_2").
-		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_storage_kill_version_3).
-		Export("ext_default_child_storage_storage_kill_version_3").
-		NewFunctionBuilder().
-		WithFunc(ext_allocator_free_version_1).
-		Export("ext_allocator_free_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_allocator_malloc_version_1).
-		Export("ext_allocator_malloc_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_hashing_blake2_128_version_1).
-		Export("ext_hashing_blake2_128_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_hashing_blake2_256_version_1).
-		Export("ext_hashing_blake2_256_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_hashing_keccak_256_version_1).
-		Export("ext_hashing_keccak_256_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_hashing_sha2_256_version_1).
-		Export("ext_hashing_sha2_256_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_hashing_twox_256_version_1).
-		Export("ext_hashing_twox_256_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_hashing_twox_128_version_1).
-		Export("ext_hashing_twox_128_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_hashing_twox_64_version_1).
-		Export("ext_hashing_twox_64_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_offchain_index_set_version_1).
-		Export("ext_offchain_index_set_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_offchain_index_clear_version_1).
-		Export("ext_offchain_index_clear_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_offchain_local_storage_clear_version_1).
-		Export("ext_offchain_local_storage_clear_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_offchain_is_validator_version_1).
-		Export("ext_offchain_is_validator_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_offchain_local_storage_compare_and_set_version_1).
-		Export("ext_offchain_local_storage_compare_and_set_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_offchain_local_storage_get_version_1).
-		Export("ext_offchain_local_storage_get_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_offchain_local_storage_set_version_1).
-		Export("ext_offchain_local_storage_set_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_offchain_network_state_version_1).
-		Export("ext_offchain_network_state_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_offchain_random_seed_version_1).
-		Export("ext_offchain_random_seed_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_offchain_submit_transaction_version_1).
-		Export("ext_offchain_submit_transaction_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_offchain_timestamp_version_1).
-		Export("ext_offchain_timestamp_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_offchain_sleep_until_version_1).
-		Export("ext_offchain_sleep_until_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_offchain_http_request_start_version_1).
-		Export("ext_offchain_http_request_start_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_offchain_http_request_add_header_version_1).
-		Export("ext_offchain_http_request_add_header_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_storage_append_version_1).
-		Export("ext_storage_append_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_storage_changes_root_version_1).
-		Export("ext_storage_changes_root_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_storage_clear_version_1).
-		Export("ext_storage_clear_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_storage_clear_prefix_version_1).
-		Export("ext_storage_clear_prefix_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_storage_clear_prefix_version_2).
-		Export("ext_storage_clear_prefix_version_2").
-		NewFunctionBuilder().
-		WithFunc(ext_storage_exists_version_1).
-		Export("ext_storage_exists_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_storage_get_version_1).
-		Export("ext_storage_get_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_storage_next_key_version_1).
-		Export("ext_storage_next_key_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_storage_read_version_1).
-		Export("ext_storage_read_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_storage_root_version_1).
-		Export("ext_storage_root_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_storage_root_version_2).
-		Export("ext_storage_root_version_2").
-		NewFunctionBuilder().
-		WithFunc(ext_storage_set_version_1).
-		Export("ext_storage_set_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_storage_start_transaction_version_1).
-		Export("ext_storage_start_transaction_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_storage_rollback_transaction_version_1).
-		Export("ext_storage_rollback_transaction_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_storage_commit_transaction_version_1).
-		Export("ext_storage_commit_transaction_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_crypto_ecdsa_generate_version_1).
-		Export("ext_crypto_ecdsa_generate_version_1").
-		Compile(ctx)
-
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	_, err = rt.InstantiateModule(ctx, hostCompiledModule, wazero.NewModuleConfig())
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	code, err = decompressWasm(code)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	guestCompiledModule, err := rt.CompileModule(ctx, code)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	mod, err := rt.Instantiate(ctx, code)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	return mod, rt, guestCompiledModule, nil
-}
-
 // NewInstance instantiates a runtime from raw wasm bytecode
 func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	logger.Debug("instantiating a runtime!")
 	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
 
-	// Prepare a cache directory.
-	ctx := context.Background()
-	cache := wazero.NewCompilationCache()
-	config := wazero.NewRuntimeConfig().WithCompilationCache(cache)
-	mod, rt, guestCompiledModule, err := newRuntime(ctx, code, config)
+	code, err = decompressWasm(code)
 	if err != nil {
-		return nil, fmt.Errorf("creating runtime instance: %w", err)
+		return nil, err
+	}
+
+	rt := wazero.NewRuntimeWithConfig(context.Background(), RuntimeConfig)
+
+	_, err = rt.InstantiateModule(context.Background(), HostRuntimeModule, wazero.NewModuleConfig())
+	if err != nil {
+		return nil, err
+	}
+
+	guestCompiledModule, err := rt.CompileModule(context.Background(), code)
+	if err != nil {
+		return nil, err
 	}
 
 	instance = &Instance{
-		wasmByteCode: code,
-		Runtime:      rt,
+		Runtime: rt,
 		Context: &runtime.Context{
 			Keystore:        cfg.Keystore,
 			Validator:       cfg.Role == common.AuthorityRole,
@@ -452,13 +135,8 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 			SigVerifier:     crypto.NewSignatureVerifier(logger),
 			OffchainHTTPSet: offchain.NewHTTPSet(),
 		},
-		Module:   mod,
-		codeHash: cfg.CodeHash,
-		metadata: wazeroMeta{
-			config:      config,
-			cache:       cache,
-			guestModule: guestCompiledModule,
-		},
+		codeHash:            cfg.CodeHash,
+		guestCompiledModule: guestCompiledModule,
 	}
 
 	if cfg.DefaultVersion == nil {
@@ -477,13 +155,11 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	return instance, nil
 }
 
-var ErrExportFunctionNotFound = errors.New("export function not found")
-
 func (i *Instance) Exec(function string, data []byte) ([]byte, error) {
 	i.Lock()
 	defer i.Unlock()
 
-	mod, err := i.Runtime.InstantiateModule(context.Background(), i.metadata.guestModule, wazero.NewModuleConfig())
+	mod, err := i.Runtime.InstantiateModule(context.Background(), i.guestCompiledModule, wazero.NewModuleConfig())
 	if mod == nil {
 		return nil, fmt.Errorf("instantiate guest module: nil")
 	}
@@ -936,10 +612,5 @@ func (in *Instance) Stop() {
 	err := in.Runtime.Close(context.Background())
 	if err != nil {
 		log.Errorf("runtime failed to close: %v", err)
-	}
-
-	err = in.metadata.cache.Close(context.Background())
-	if err != nil {
-		log.Errorf("closing the wazero compilation cache: %v", err)
 	}
 }
