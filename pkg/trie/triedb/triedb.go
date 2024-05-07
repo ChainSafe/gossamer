@@ -72,7 +72,7 @@ func (t *TrieDB) Get(key []byte) []byte {
 // Internal methods
 func (t *TrieDB) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error) {
 	lookup := NewTrieLookup(t.db, t.rootHash)
-	return lookup.loadValue(prefix, value)
+	return lookup.fetchValue(prefix, value)
 }
 
 func (t *TrieDB) getRootNode() (codec.Node, error) {
