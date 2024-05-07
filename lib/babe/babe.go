@@ -257,14 +257,14 @@ func (b *Service) IsStopped() bool {
 	return b.ctx.Err() != nil
 }
 
-func (b *Service) getAuthorityIndex(Authorities []types.AuthorityRaw) (uint32, error) {
+func (b *Service) getAuthorityIndex(authorities []types.AuthorityRaw) (uint32, error) {
 	if !b.authority {
 		return 0, ErrNotAuthority
 	}
 
 	pub := b.keypair.Public()
 
-	for i, auth := range Authorities {
+	for i, auth := range authorities {
 		if bytes.Equal(pub.Encode(), auth.Key[:]) {
 			return uint32(i), nil
 		}

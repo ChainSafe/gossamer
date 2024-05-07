@@ -256,7 +256,8 @@ func (s *EpochState) GetSkippedEpochDataRaw(skippedEpoch, currentEpoch uint64,
 	}
 
 	searchOnDatabase := func() (*types.EpochDataRaw, error) {
-		epochDataRaw, err := getAndUpdateEpochDefinitionKey[types.EpochDataRaw](s.db, skippedEpoch, currentEpoch)
+		epochDataRaw, err := getAndUpdateEpochDefinitionKey[types.EpochDataRaw](s.db,
+			skippedEpoch, currentEpoch, epochDataKey)
 		if err != nil && !errors.Is(err, database.ErrNotFound) {
 			return nil, fmt.Errorf("failed to retrieve epoch data from database: %w", err)
 		}
@@ -278,6 +279,59 @@ func (s *EpochState) GetSkippedEpochDataRaw(skippedEpoch, currentEpoch uint64,
 	}
 
 	return retrieveEpochDefinitions(searchOnDatabase, searchOnMemory)
+}
+
+// UpdateSkippedEpochDefinitions updates the skipped epoch definitions by changing the
+// key from skipped epoch to current epoch on each epoch data raw storage
+// and on config data storage, it returns an error if the skipped epoch number does not
+// exists in the database.
+func (s *EpochState) UpdateSkippedEpochDefinitions(skippedEpoch, currentEpoch uint64,
+	header *types.Header) error {
+	if skippedEpoch == 0 {
+		return nil
+	}
+
+	err := s.updateSkippedEpochDataRaw(skippedEpoch, currentEpoch, header)
+	if err != nil {
+		return fmt.Errorf("updatting skipped epoch data raw: %w", err)
+	}
+
+	err = s.updateSkippedConfigData(skippedEpoch, currentEpoch, header)
+	if err != nil {
+		return fmt.Errorf("updatting skipped config data: %w", err)
+	}
+
+	return nil
+}
+
+// updateSkippedEpochDataRaw only updates the key from `skippedEpoch` to `currentEpoch`
+// returns an error if `skippedEpoch` does not exists on database or in memory
+func (s *EpochState) updateSkippedEpochDataRaw(skippedEpoch, currentEpoch uint64,
+	header *types.Header) error {
+	if skippedEpoch == 0 {
+		return nil
+	}
+
+	_, err := updateEpochDefinitionKey(s.db,
+		skippedEpoch, currentEpoch, epochDataKey)
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
+		return fmt.Errorf("getting and updating epoch definition key: %w", err)
+	}
+
+	if err == nil {
+		return nil
+	}
+
+	s.nextEpochDataLock.RLock()
+	defer s.nextConfigDataLock.RUnlock()
+
+	_, err = s.nextEpochData.RetrieveAndUpdate(s.blockState,
+		skippedEpoch, currentEpoch, header)
+	if err != nil {
+		return fmt.Errorf("updating in memory epoch data definition: %w", err)
+	}
+
+	return nil
 }
 
 // StoreConfigData sets the BABE config data for a given epoch
@@ -359,7 +413,7 @@ func (s *EpochState) GetSkippedConfigData(skippedEpoch, currentEpoch uint64,
 
 	searchOnDatabase := func() (*types.ConfigData, error) {
 		configData, err := getAndUpdateEpochDefinitionKey[types.ConfigData](
-			s.db, skippedEpoch, currentEpoch)
+			s.db, skippedEpoch, currentEpoch, configDataKey)
 		if err != nil && !errors.Is(err, database.ErrNotFound) {
 			return nil, fmt.Errorf("getting and updating epoch definition key: %w", err)
 		}
@@ -393,6 +447,42 @@ func (s *EpochState) GetSkippedConfigData(skippedEpoch, currentEpoch uint64,
 	return skippedConfigData, nil
 }
 
+// updateSkippedConfigData only updates the key from `skippedEpoch` to `currentEpoch`
+func (s *EpochState) updateSkippedConfigData(skippedEpoch, currentEpoch uint64,
+	header *types.Header) error {
+	if skippedEpoch == 0 {
+		return nil
+	}
+
+	_, err := updateEpochDefinitionKey(s.db,
+		skippedEpoch, currentEpoch, configDataKey)
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
+		return fmt.Errorf("getting and updating epoch definition key: %w", err)
+	}
+
+	if err == nil {
+		return nil
+	}
+
+	s.nextConfigDataLock.RLock()
+	defer s.nextConfigDataLock.RUnlock()
+
+	_, err = s.nextConfigData.RetrieveAndUpdate(s.blockState,
+		skippedEpoch, currentEpoch, header)
+	if err != nil {
+		if errors.Is(err, ErrEpochNotInMemory) || errors.Is(err, errEpochNotInDatabase) {
+			// if there is no config data for the skipped epoch them
+			// that just mean for this skipped epoch the runtime didn't
+			// issue any config data, but we can still use prev epochs config data
+			return nil
+		}
+
+		return fmt.Errorf("updating in memory epoch config data definition: %w", err)
+	}
+
+	return nil
+}
+
 // retrieveFrom type annotation makes it generic to query the database
 // or memory in order to find some data
 type retrieveFrom[T types.EpochDataRaw | types.ConfigData] func() (*T, error)
@@ -419,9 +509,12 @@ func retrieveEpochDefinitions[T types.EpochDataRaw | types.ConfigData](
 
 type prefixedKeyBuilder func(epoch uint64) []byte
 
-func getAndUpdateEpochDefinitionKey[T types.ConfigData | types.EpochDataRaw](
-	db GetterPutterNewBatcher, oldEpoch, newEpoch uint64) (*T, error) {
-	rawBytes, err := db.Get(epochDataKey(oldEpoch))
+// updateEpochDefinitionKey updates the informations from database
+// by querying the raw bytes from prefix + oldEpoch and inserting
+// at prefix + newEpoch and return the values stored at prefix + oldEpoch
+func updateEpochDefinitionKey(db GetterPutterNewBatcher,
+	oldEpoch, newEpoch uint64, usePrefix prefixedKeyBuilder) ([]byte, error) {
+	rawBytes, err := db.Get(usePrefix(oldEpoch))
 	if err != nil {
 		return nil, fmt.Errorf("getting epoch data: %w", err)
 	}
@@ -433,18 +526,28 @@ func getAndUpdateEpochDefinitionKey[T types.ConfigData | types.EpochDataRaw](
 		}
 	}()
 
-	err = updateKeyBatcher.Del(epochDataKey(oldEpoch))
+	err = updateKeyBatcher.Del(usePrefix(oldEpoch))
 	if err != nil {
 		return nil, fmt.Errorf("deleting old epoch key: %w", err)
 	}
 
-	err = updateKeyBatcher.Put(epochDataKey(newEpoch), rawBytes)
+	err = updateKeyBatcher.Put(usePrefix(newEpoch), rawBytes)
 	if err != nil {
 		return nil, fmt.Errorf("storing new epoch key: %w", err)
 	}
 
 	if err := updateKeyBatcher.Flush(); err != nil {
 		return nil, fmt.Errorf("flushing batcher: %w", err)
+	}
+
+	return rawBytes, nil
+}
+
+func getAndUpdateEpochDefinitionKey[T types.ConfigData | types.EpochDataRaw](
+	db GetterPutterNewBatcher, oldEpoch, newEpoch uint64, usePrefix prefixedKeyBuilder) (*T, error) {
+	rawBytes, err := updateEpochDefinitionKey(db, oldEpoch, newEpoch, usePrefix)
+	if err != nil {
+		return nil, fmt.Errorf("updating epoch key definition: %w", err)
 	}
 
 	raw := new(T)
@@ -523,14 +626,29 @@ type nextEpochMap[T types.NextEpochData | types.NextConfigDataV1] map[uint64]map
 
 func (nem nextEpochMap[T]) RetrieveAndUpdate(blockState *BlockState,
 	oldEpoch, newEpoch uint64, header *types.Header) (*T, error) {
-	find, err := nem.Retrieve(blockState, oldEpoch, header)
-	if err != nil {
-		return nil, fmt.Errorf("retrieving next epoch data: %w", err)
+	oldEpochHashes, has := nem[oldEpoch]
+	if !has {
+		return nil, fmt.Errorf("%w: %d", ErrEpochNotInMemory, oldEpoch)
 	}
 
-	nem[newEpoch] = nem[oldEpoch]
-	delete(nem, oldEpoch)
-	return find, nil
+	hashToMove, value, err := findAncestor(blockState, oldEpochHashes, header)
+	if err != nil {
+		return nil, err
+	}
+
+	// just remove the HASH -> Next Epoch Data from the old epoch
+	// and introduce the HASH -> Next Epoch Data into the new epoch
+	delete(oldEpochHashes, hashToMove)
+	nem[oldEpoch] = oldEpochHashes
+
+	hashes, ok := nem[newEpoch]
+	if !ok {
+		hashes = make(map[common.Hash]T)
+	}
+
+	hashes[hashToMove] = *value
+	nem[newEpoch] = hashes
+	return value, nil
 }
 
 func (nem nextEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header *types.Header) (*T, error) {
@@ -539,27 +657,39 @@ func (nem nextEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header
 		return nil, fmt.Errorf("%w: %d", ErrEpochNotInMemory, epoch)
 	}
 
+	_, value, err := findAncestor(blockState, atEpoch, header)
+	return value, err
+}
+
+func findAncestor[T types.NextEpochData | types.NextConfigDataV1](blockState *BlockState,
+	hashesAtEpoch map[common.Hash]T, header *types.Header) (common.Hash, *T, error) {
+
 	currentHeader := header
 
 	for {
-		for hash, value := range atEpoch {
+		for hash, value := range hashesAtEpoch {
+			if bytes.Equal(hash[:], currentHeader.Hash().ToBytes()) {
+				return hash, &value, nil
+			}
+
 			isDescendant, err := blockState.IsDescendantOf(hash, currentHeader.Hash())
 			if err != nil {
 				if errors.Is(err, database.ErrNotFound) {
 					continue
 				}
 
-				return nil, fmt.Errorf("cannot verify the ancestry: %w", err)
+				return common.Hash{}, nil, fmt.Errorf("cannot verify the ancestry: %w", err)
 			}
 
 			if isDescendant {
-				return &value, nil
+				return hash, &value, nil
 			}
 		}
 
 		// if there is no more ancestors then return
 		if bytes.Equal(currentHeader.ParentHash.ToBytes(), common.EmptyHash.ToBytes()) {
-			return nil, fmt.Errorf("%w: could not found config data for hash %s", errHashNotInMemory, currentHeader.Hash())
+			return common.Hash{}, nil, fmt.Errorf("%w: could not found config data for hash %s",
+				errHashNotInMemory, currentHeader.Hash())
 		}
 
 		// sometimes while moving to the next epoch is possible the header
@@ -567,7 +697,7 @@ func (nem nextEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header
 		// its parent header which migth be already imported.
 		parentHeader, err := blockState.GetHeader(header.ParentHash)
 		if err != nil {
-			return nil, fmt.Errorf("cannot get parent header: %w", err)
+			return common.Hash{}, nil, fmt.Errorf("cannot get parent header: %w", err)
 		}
 
 		currentHeader = parentHeader
