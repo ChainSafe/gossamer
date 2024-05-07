@@ -15,7 +15,7 @@ type iteratorState struct {
 	node          codec.Node // actual node
 }
 
-// fullKeyNibbles return the full key of the node contained in this state
+// fullKeyNibbles return the full key of the node contained in this state.
 // child is the child where the node is stored in the parent node
 func (s *iteratorState) fullKeyNibbles(child *int) []byte {
 	fullKey := bytes.Join([][]byte{s.parentFullKey, s.node.GetPartialKey()}, nil)
