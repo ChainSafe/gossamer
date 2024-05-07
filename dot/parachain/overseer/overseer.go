@@ -60,7 +60,7 @@ type BlockState interface {
 	GetRuntime(hash common.Hash) (runtime.Instance, error)
 }
 
-func NewOverseer(blockState BlockState) OverseerSystem {
+func NewOverseer(blockState BlockState) *Overseer {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 
@@ -142,12 +142,12 @@ func (o *Overseer) processMessages() {
 				subsystem = o.nameToSubsystem[parachaintypes.ChainAPI]
 
 			case parachain.RuntimeAPIMessage:
+				// TODO: this should be handled by the parachain runtime subsystem, see issue #3940
 				rt, err := o.blockState.GetRuntime(msg.Hash)
 				if err != nil {
 					logger.Errorf("failed to get runtime: %v", err)
 					continue
 				}
-				logger.Infof("runtime: %v", rt)
 				msg.Resp <- rt
 
 			default:

@@ -7,7 +7,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 )
 
-func Register(overseerChan chan<- any, db database.Database, pruning *PruningConfig) (*AvailabilityStoreSubsystem,
+func Register(overseerChan chan<- any, db database.Database, pruning *pruningConfig) (*AvailabilityStoreSubsystem,
 	error) {
 
 	availabilityStoreSubsystem := NewAvailabilityStoreSubsystem(db)
@@ -15,6 +15,6 @@ func Register(overseerChan chan<- any, db database.Database, pruning *PruningCon
 	if pruning != nil {
 		availabilityStoreSubsystem.pruningConfig = *pruning
 	}
-	availabilityStoreSubsystem.SubSystemToOverseer = overseerChan
+	availabilityStoreSubsystem.subSystemToOverseer = overseerChan
 	return availabilityStoreSubsystem, nil
 }

@@ -46,7 +46,7 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	if err != nil {
 		return nil, fmt.Errorf("registering availability store: %w", err)
 	}
-	availabilityStore.OverseerToSubSystem = overseer.RegisterSubsystem(availabilityStore)
+	availabilityStore.overseerToSubSystem = overseer.RegisterSubsystem(availabilityStore)
 
 	validationProtocolID := GeneratePeersetProtocolName(
 		ValidationProtocolName, forkID, genesisHash, ValidationProtocolVersion)

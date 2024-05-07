@@ -75,17 +75,18 @@ func setupTestDB(t *testing.T) database.Database {
 	require.NoError(t, err)
 	as := NewAvailabilityStore(inmemoryDB)
 	batch := newAvailabilityStoreBatch(as)
-	metaState := NewStateVDT()
+	metaState := newStateVDT()
 	err = metaState.Set(Unavailable{})
 	require.NoError(t, err)
-	meta := &CandidateMeta{
+	meta := CandidateMeta{
 		State:         metaState,
 		DataAvailable: false,
 		ChunksStored:  []bool{false, false, false},
 	}
 
-	dataBytes, err := scale.Marshal(*meta)
+	dataBytes, err := scale.Marshal(meta)
 	require.NoError(t, err)
+	fmt.Printf("dataBytes: %v\n", dataBytes)
 	err = batch.meta.Put(testCandidateReceiptHash[:], dataBytes)
 	require.NoError(t, err)
 	err = batch.meta.Put(common.Hash{0x02}.ToBytes(), dataBytes)
@@ -153,7 +154,7 @@ func TestAvailabilityStore_WriteLoadDeleteChuckData(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
 	batch := newAvailabilityStoreBatch(as)
-	metaState := NewStateVDT()
+	metaState := newStateVDT()
 	err := metaState.Set(Unavailable{})
 	require.NoError(t, err)
 	meta := CandidateMeta{
@@ -201,7 +202,7 @@ func TestAvailabilityStore_WriteLoadDeleteMeta(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
 	batch := newAvailabilityStoreBatch(as)
-	metaState := NewStateVDT()
+	metaState := newStateVDT()
 	err := metaState.Set(Unavailable{BETimestamp(1711026139)})
 	require.NoError(t, err)
 	meta := &CandidateMeta{
@@ -858,8 +859,9 @@ func TestAvailabilityStoreSubsystem_noteBlockBacked(t *testing.T) {
 			av := &AvailabilityStoreSubsystem{
 				availabilityStore: tt.fields.availabilityStore,
 			}
-			av.noteBlockBacked(tt.args.tx, tt.args.now, tt.args.nValidators, tt.args.candidate)
-			err := tt.args.tx.flushAll()
+			err := av.noteBlockBacked(tt.args.tx, tt.args.now, tt.args.nValidators, tt.args.candidate)
+			require.NoError(t, err)
+			err = tt.args.tx.flushAll()
 			require.NoError(t, err)
 			itr, err := inmemoryDB.NewIterator()
 			require.NoError(t, err)
@@ -921,8 +923,9 @@ func TestAvailabilityStoreSubsystem_noteBlockIncluded(t *testing.T) {
 			av := &AvailabilityStoreSubsystem{
 				availabilityStore: tt.fields.availabilityStore,
 			}
-			av.noteBlockIncluded(tt.args.tx, tt.args.blockNumber, tt.args.blockHash, tt.args.candidate)
-			err := tt.args.tx.flushAll()
+			err := av.noteBlockIncluded(tt.args.tx, tt.args.blockNumber, tt.args.blockHash, tt.args.candidate)
+			require.NoError(t, err)
+			err = tt.args.tx.flushAll()
 			require.NoError(t, err)
 			itr, err := inmemoryDB.NewIterator()
 			require.NoError(t, err)
@@ -947,10 +950,10 @@ func newTestHarness(t *testing.T) *testHarness {
 
 	harness.db = setupTestDB(t)
 
-	testPruningConfig := &PruningConfig{
-		KeepUnavailableFor: time.Second * 2,
-		KeepFinalizedFor:   time.Second * 5,
-		PruningInterval:    time.Second * 1,
+	testPruningConfig := &pruningConfig{
+		keepUnavailableFor: time.Second * 2,
+		keepFinalizedFor:   time.Second * 5,
+		pruningInterval:    time.Second * 1,
 	}
 
 	availabilityStore, err := Register(harness.overseer.GetSubsystemToOverseerChannel(),
@@ -958,7 +961,7 @@ func newTestHarness(t *testing.T) *testHarness {
 
 	require.NoError(t, err)
 
-	availabilityStore.OverseerToSubSystem = harness.overseer.RegisterSubsystem(availabilityStore)
+	availabilityStore.overseerToSubSystem = harness.overseer.RegisterSubsystem(availabilityStore)
 
 	return harness
 }
@@ -1706,7 +1709,8 @@ func TestStoredDataKeptUntilFinalized(t *testing.T) {
 	// trigger import leaf
 	candidateEvents, err := parachaintypes.NewCandidateEvents()
 	require.NoError(harness.t, err)
-	candidateEvents.Add(parachaintypes.CandidateIncluded{CandidateReceipt: testCandidateReceipt})
+	err = candidateEvents.Add(parachaintypes.CandidateIncluded{CandidateReceipt: testCandidateReceipt})
+	require.NoError(harness.t, err)
 
 	aLeaf := harness.importLeaf(t, parent, blockNumber, candidateEvents)
 

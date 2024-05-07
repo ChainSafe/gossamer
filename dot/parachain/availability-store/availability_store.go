@@ -60,16 +60,16 @@ func (b BETimestamp) ToBigEndianBytes() []byte {
 // pruningConfig Struct holding pruning timing configuration.
 // The only purpose of this structure is to use different timing
 // configurations in production and in testing.
-type PruningConfig struct {
-	KeepUnavailableFor time.Duration
-	KeepFinalizedFor   time.Duration
-	PruningInterval    time.Duration
+type pruningConfig struct {
+	keepUnavailableFor time.Duration
+	keepFinalizedFor   time.Duration
+	pruningInterval    time.Duration
 }
 
-var defaultPruningConfig = PruningConfig{
-	KeepUnavailableFor: keepUnavilableFor,
-	KeepFinalizedFor:   keepFinalizedFor,
-	PruningInterval:    pruningInterval,
+var defaultPruningConfig = pruningConfig{
+	keepUnavailableFor: keepUnavilableFor,
+	keepFinalizedFor:   keepFinalizedFor,
+	pruningInterval:    pruningInterval,
 }
 
 // AvailabilityStoreSubsystem is the struct that holds subsystem data for the availability store
@@ -78,12 +78,12 @@ type AvailabilityStoreSubsystem struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
-	SubSystemToOverseer    chan<- any
-	OverseerToSubSystem    <-chan any
+	subSystemToOverseer    chan<- any
+	overseerToSubSystem    <-chan any
 	availabilityStore      availabilityStore
 	finalizedBlockNumber   parachaintypes.BlockNumber
 	knownUnfinalizedBlocks knownUnfinalizedBlocks
-	pruningConfig          PruningConfig
+	pruningConfig          pruningConfig
 }
 
 // NewAvailabilityStoreSubsystem creates a new instance of AvailabilityStoreSubsystem
@@ -308,16 +308,16 @@ func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 		return true, nil // already stored
 	}
 
-	candidateMeta := CandidateMeta{}
+	var candidateMeta CandidateMeta
 
 	now := timeNow()
-	pruneAt := now + BETimestamp(subsystem.pruningConfig.KeepUnavailableFor.Seconds())
+	pruneAt := now + BETimestamp(subsystem.pruningConfig.keepUnavailableFor.Seconds())
 	err = subsystem.writePruningKey(batch.pruneByTime, pruneAt, candidate)
 	if err != nil {
 		return false, fmt.Errorf("writing pruning key: %w", err)
 	}
 
-	candidateMeta.State = NewStateVDT()
+	candidateMeta.State = newStateVDT()
 	err = candidateMeta.State.Set(Unavailable{Timestamp: now})
 	if err != nil {
 		return false, fmt.Errorf("setting state to unavailable: %w", err)
@@ -434,7 +434,7 @@ func (*AvailabilityStoreSubsystem) Name() parachaintypes.SubSystemName {
 func (av *AvailabilityStoreSubsystem) processMessages() {
 	for {
 		select {
-		case msg := <-av.OverseerToSubSystem:
+		case msg := <-av.overseerToSubSystem:
 			logger.Infof("received message %T, %v", msg, msg)
 			switch msg := msg.(type) {
 			case QueryAvailableData:
@@ -500,7 +500,7 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 			}
 			av.wg.Done()
 			return
-		case <-time.After(av.pruningConfig.PruningInterval):
+		case <-time.After(av.pruningConfig.pruningInterval):
 			av.pruneAll()
 		}
 	}
@@ -516,12 +516,12 @@ func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal(signal par
 		Message:         chainapi.BlockHeader(signal.Activated.Hash),
 		ResponseChannel: respChan,
 	}
-	response, err := util.SendOverseerMessage(av.SubSystemToOverseer, message, message.ResponseChannel)
+	response, err := util.SendOverseerMessage(av.subSystemToOverseer, message, message.ResponseChannel)
 	if err != nil {
 		return fmt.Errorf("sending message to get block header: %w", err)
 	}
 
-	newBlocks, err := util.DetermineNewBlocks(av.SubSystemToOverseer, av.knownUnfinalizedBlocks.isKnown,
+	newBlocks, err := util.DetermineNewBlocks(av.subSystemToOverseer, av.knownUnfinalizedBlocks.isKnown,
 		signal.Activated.Hash,
 		response.(types.Header),
 		av.finalizedBlockNumber)
@@ -560,7 +560,7 @@ func (av *AvailabilityStoreSubsystem) processNewHead(tx *availabilityStoreBatch,
 	respChan := make(chan any)
 	message := parachain.RuntimeAPIMessage{Hash: hash, Resp: respChan}
 
-	rtRes, err := util.SendOverseerMessage(av.SubSystemToOverseer, message, respChan)
+	rtRes, err := util.SendOverseerMessage(av.subSystemToOverseer, message, respChan)
 	if err != nil {
 		return fmt.Errorf("sending message to get block header: %w", err)
 	}
@@ -602,10 +602,10 @@ func (av *AvailabilityStoreSubsystem) noteBlockBacked(tx *availabilityStoreBatch
 	candidateHash := parachaintypes.CandidateHash{Value: hash}
 	meta, err := av.availabilityStore.loadMeta(candidateHash)
 	if err != nil {
-		return fmt.Errorf("failed to load meta for candidate %v: %w", candidateHash, err)
+		logger.Errorf("failed to load meta for candidate %v: %w", candidateHash, err)
 	}
 	if meta == nil {
-		state := NewStateVDT()
+		state := newStateVDT()
 		err := state.Set(Unavailable{now})
 		if err != nil {
 			return fmt.Errorf("failed to set state to unavailable: %w", err)
@@ -621,7 +621,7 @@ func (av *AvailabilityStoreSubsystem) noteBlockBacked(tx *availabilityStoreBatch
 			return fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
 		}
 
-		pruneAt := now + BETimestamp(av.pruningConfig.KeepUnavailableFor.Seconds())
+		pruneAt := now + BETimestamp(av.pruningConfig.keepUnavailableFor.Seconds())
 		err = av.writePruningKey(tx.pruneByTime, pruneAt, candidateHash)
 		if err != nil {
 			return fmt.Errorf("writing pruning key: %w", err)
@@ -657,7 +657,7 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 
 	switch val := stateValue.(type) {
 	case Unavailable:
-		pruneAt := val.Timestamp + BETimestamp(av.pruningConfig.KeepUnavailableFor.Seconds())
+		pruneAt := val.Timestamp + BETimestamp(av.pruningConfig.keepUnavailableFor.Seconds())
 
 		pruneKey := append(uint32ToBytes(uint32(pruneAt)), candidateHash.Value[:]...)
 		err = tx.pruneByTime.Del(pruneKey)
@@ -682,6 +682,7 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 	case Finalized:
 		// This should never happen as a candidate would have to be included after
 		// finality.
+		logger.Errorf("Candidate included after finality %v", candidateHash)
 	}
 
 	// write unfinalized block contains
@@ -1029,7 +1030,7 @@ func (av *AvailabilityStoreSubsystem) updateBlockAtFinalizedHeight(tx *availabil
 				// be `Unfinalized`.
 				err = tx.pruneByTime.Del(append(uint32ToBytes(uint32(val.Timestamp)), candidateHash.Value[:]...))
 				if err != nil {
-					logger.Errorf("failed to delete pruning key: %w", err)
+					panic(fmt.Sprintf("failed to delete pruning key: %v", err))
 				}
 			case Unfinalized:
 				for _, v := range val.BlockEntry {
@@ -1039,7 +1040,7 @@ func (av *AvailabilityStoreSubsystem) updateBlockAtFinalizedHeight(tx *availabil
 						key = append(key, candidateHash.Value[:]...)
 						err = tx.unfinalized.Del(key)
 						if err != nil {
-							logger.Errorf("failed to delete unfinalized key: %w", err)
+							panic(fmt.Sprintf("failed to delete unfinalized key: %v", err))
 						}
 					}
 				}
@@ -1053,14 +1054,14 @@ func (av *AvailabilityStoreSubsystem) updateBlockAtFinalizedHeight(tx *availabil
 			// write meta
 			err = writeCandidateMetaToDB(tx.meta, candidateHash, meta)
 			if err != nil {
-				logger.Errorf("storing metadata for candidate %v: %w", candidateHash, err)
+				panic(fmt.Sprintf("storing metadata for candidate %v: %v", candidateHash, err))
 			}
 
 			// write pruning key
-			pruneAt := now + BETimestamp(av.pruningConfig.KeepFinalizedFor.Seconds())
+			pruneAt := now + BETimestamp(av.pruningConfig.keepFinalizedFor.Seconds())
 			err = av.writePruningKey(tx.pruneByTime, pruneAt, candidateHash)
 			if err != nil {
-				logger.Errorf("writing pruning key: %w", err)
+				panic(fmt.Sprintf("writing pruning key: %v", err))
 			}
 
 		} else {
@@ -1082,10 +1083,10 @@ func (av *AvailabilityStoreSubsystem) updateBlockAtFinalizedHeight(tx *availabil
 				}
 				if len(retainedBlocks) == 0 {
 					// write pruning key
-					pruneAt := val.Timestamp + BETimestamp(av.pruningConfig.KeepUnavailableFor.Seconds())
+					pruneAt := val.Timestamp + BETimestamp(av.pruningConfig.keepUnavailableFor.Seconds())
 					err = av.writePruningKey(tx.pruneByTime, pruneAt, candidateHash)
 					if err != nil {
-						logger.Errorf("writing pruning key: %w", err)
+						panic(fmt.Sprintf("writing pruning key: %v", err))
 					}
 
 					err = meta.State.Set(Unavailable{Timestamp: val.Timestamp})
@@ -1103,7 +1104,7 @@ func (av *AvailabilityStoreSubsystem) updateBlockAtFinalizedHeight(tx *availabil
 			// write meta
 			err = writeCandidateMetaToDB(tx.meta, candidateHash, meta)
 			if err != nil {
-				logger.Errorf("failed to put meta: %w", err)
+				panic(fmt.Sprintf("failed to put meta: %v", err))
 			}
 		}
 	}

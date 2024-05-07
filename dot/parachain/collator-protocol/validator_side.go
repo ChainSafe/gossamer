@@ -54,6 +54,7 @@ var (
 	ErrNotAdvertised          = errors.New("collation was not previously advertised")
 
 	ErrInvalidStringFormat = errors.New("invalid string format for fetched collation info")
+	ErrFinalizedNumber     = errors.New("finalized number is greater than or equal to the block number")
 )
 
 func (cpvs CollatorProtocolValidatorSide) Run(
@@ -426,7 +427,7 @@ func (cpvs *CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal(signal pa
 	BlockFinalizedSignal) error {
 	if cpvs.finalizedNumber >= signal.BlockNumber {
 		// error
-		return fmt.Errorf("finalized number is greater than or equal to the block number")
+		return ErrFinalizedNumber
 	}
 	cpvs.finalizedNumber = signal.BlockNumber
 	return nil
