@@ -184,7 +184,6 @@ func (c *Config) buildIdentity() error {
 	}
 
 	if c.RandSeed == 0 {
-
 		// attempt to load existing key
 		key, err := loadKey(c.BasePath)
 		if err != nil {

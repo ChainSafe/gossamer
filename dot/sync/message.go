@@ -9,10 +9,13 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // CreateBlockResponse creates a block response message from a block request message
-func (s *Service) CreateBlockResponse(req *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
+func (s *Service) CreateBlockResponse(from peer.ID, req *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
+	logger.Debugf("sync request from %s: %s", from, req.String())
+
 	switch req.Direction {
 	case network.Ascending:
 		return s.handleAscendingRequest(req)
@@ -82,18 +85,18 @@ func (s *Service) handleAscendingRequest(req *network.BlockRequestMessage) (*net
 	}
 
 	if startHash == nil {
-		logger.Debugf("handling block request: direction %s, "+
+		logger.Debugf("ascending request, "+
 			"start block number: %d, "+
 			"end block number: %d",
-			req.Direction, startNumber, endNumber)
+			startNumber, endNumber)
 
 		return s.handleAscendingByNumber(startNumber, endNumber, req.RequestedData)
 	}
 
-	logger.Debugf("handling block request: direction %s, "+
+	logger.Debugf("ascending request, "+
 		"start block hash: %s, "+
 		"end block hash: %s",
-		req.Direction, *startHash, *endHash)
+		*startHash, *endHash)
 
 	return s.handleChainByHash(*startHash, *endHash, max, req.RequestedData, req.Direction)
 }
@@ -155,15 +158,17 @@ func (s *Service) handleDescendingRequest(req *network.BlockRequestMessage) (*ne
 	}
 
 	if startHash == nil || endHash == nil {
-		logger.Debugf("handling BlockRequestMessage with direction %s "+
-			"from start block with number %d to end block with number %d",
-			req.Direction, startNumber, endNumber)
+		logger.Debugf("descending request, "+
+			"start block number: %s, "+
+			"end block number: %s",
+			startNumber, endNumber)
 		return s.handleDescendingByNumber(startNumber, endNumber, req.RequestedData)
 	}
 
-	logger.Debugf("handling block request message with direction %s "+
-		"from start block with hash %s to end block with hash %s",
-		req.Direction, *startHash, *endHash)
+	logger.Debugf("descending request, "+
+		"start block hash: %s, "+
+		"end block hash: %s",
+		*startHash, *endHash)
 	return s.handleChainByHash(*endHash, *startHash, max, req.RequestedData, req.Direction)
 }
 

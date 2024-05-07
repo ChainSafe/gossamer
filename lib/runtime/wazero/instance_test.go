@@ -907,6 +907,13 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestWestendSlowDownAfterRuntimeUpgrade(t *testing.T) {
+	wndTrie := newTrieFromKeyValueList(t, "../test_data/11m_block.out")
+	expectedRoot := common.MustHexToHash("0xa52d110c8219cfe83b05656851ec1df4cb6aa12c76a6f58d7e5863de135fcc23")
+	require.Equal(t, expectedRoot, trie.V0.MustHash(wndTrie))
+
+}
+
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1482002.out")
 	expectedRoot := common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb")
@@ -1093,6 +1100,28 @@ func newTrieFromPairs(t *testing.T, filename string) trie.Trie {
 	for _, pair := range pairs {
 		pairArr := pair.([]interface{})
 		entries[pairArr[0].(string)] = pairArr[1].(string)
+	}
+
+	tr, err := inmemory_trie.LoadFromMap(entries, trie.V0)
+	require.NoError(t, err)
+	return tr
+}
+
+func newTrieFromKeyValueList(t *testing.T, filename string) trie.Trie {
+	data, err := os.ReadFile(filename)
+	require.NoError(t, err)
+
+	stateTrieResponse := make([]string, 0)
+	err = json.Unmarshal(data, &stateTrieResponse)
+	require.NoError(t, err)
+
+	entries := make(map[string]string)
+	for _, encEntry := range stateTrieResponse {
+		entry := new(trie.Entry)
+		err := scale.Unmarshal(common.MustHexToBytes(encEntry), entry)
+		require.NoError(t, err)
+
+		entries[common.BytesToHex(entry.Key)] = common.BytesToHex(entry.Value)
 	}
 
 	tr, err := inmemory_trie.LoadFromMap(entries, trie.V0)
