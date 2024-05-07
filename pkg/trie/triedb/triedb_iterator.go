@@ -5,6 +5,7 @@ package triedb
 
 import (
 	"bytes"
+	"fmt"
 
 	nibbles "github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
@@ -90,7 +91,7 @@ func (i *TrieDBIterator) NextEntry() *entry {
 			key := currentState.fullKeyNibbles(nil)
 			value, err := i.db.loadValue(n.PartialKey, n.GetValue())
 			if err != nil {
-				panic("Error loading value")
+				panic(fmt.Sprintf("Error loading value for key %x: %s", key, err.Error()))
 			}
 			return &entry{key: key, value: value}
 		case codec.Branch:
@@ -110,7 +111,7 @@ func (i *TrieDBIterator) NextEntry() *entry {
 				key := currentState.fullKeyNibbles(nil)
 				value, err := i.db.loadValue(n.PartialKey, n.GetValue())
 				if err != nil {
-					panic("Error loading value")
+					panic(fmt.Sprintf("Error loading value for key %x: %s", key, err.Error()))
 				}
 				return &entry{key: key, value: value}
 			}
