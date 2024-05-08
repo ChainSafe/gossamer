@@ -26,14 +26,14 @@ var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-overseer"))
 )
 
-type OverseerSystem interface {
+type Overseer interface {
 	Start() error
 	RegisterSubsystem(subsystem parachaintypes.Subsystem) chan any
 	Stop() error
 	GetSubsystemToOverseerChannel() chan any
 }
 
-type Overseer struct {
+type OverseerSystem struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
 	errChan chan error // channel for overseer to send errors to service that started it
@@ -60,11 +60,11 @@ type BlockState interface {
 	GetRuntime(hash common.Hash) (runtime.Instance, error)
 }
 
-func NewOverseer(blockState BlockState) *Overseer {
+func NewOverseer(blockState BlockState) *OverseerSystem {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 
-	return &Overseer{
+	return &OverseerSystem{
 		ctx:                  ctx,
 		cancel:               cancel,
 		errChan:              make(chan error),
@@ -76,13 +76,13 @@ func NewOverseer(blockState BlockState) *Overseer {
 	}
 }
 
-func (o *Overseer) GetSubsystemToOverseerChannel() chan any {
+func (o *OverseerSystem) GetSubsystemToOverseerChannel() chan any {
 	return o.SubsystemsToOverseer
 }
 
 // RegisterSubsystem registers a subsystem with the overseer,
 // Add OverseerToSubSystem channel to subsystem, which will be passed to subsystem's Run method.
-func (o *Overseer) RegisterSubsystem(subsystem parachaintypes.Subsystem) chan any {
+func (o *OverseerSystem) RegisterSubsystem(subsystem parachaintypes.Subsystem) chan any {
 	OverseerToSubSystem := make(chan any)
 	o.subsystems[subsystem] = OverseerToSubSystem
 	o.nameToSubsystem[subsystem.Name()] = subsystem
@@ -90,7 +90,7 @@ func (o *Overseer) RegisterSubsystem(subsystem parachaintypes.Subsystem) chan an
 	return OverseerToSubSystem
 }
 
-func (o *Overseer) Start() error {
+func (o *OverseerSystem) Start() error {
 
 	imported := o.blockState.GetImportedBlockNotifierChannel()
 	finalised := o.blockState.GetFinalisedNotifierChannel()
@@ -115,7 +115,7 @@ func (o *Overseer) Start() error {
 	return nil
 }
 
-func (o *Overseer) processMessages() {
+func (o *OverseerSystem) processMessages() {
 	for {
 		select {
 		case msg := <-o.SubsystemsToOverseer:
@@ -167,7 +167,7 @@ func (o *Overseer) processMessages() {
 	}
 }
 
-func (o *Overseer) handleBlockEvents() {
+func (o *OverseerSystem) handleBlockEvents() {
 	for {
 		select {
 		case <-o.ctx.Done():
@@ -244,13 +244,13 @@ func (o *Overseer) handleBlockEvents() {
 	}
 }
 
-func (o *Overseer) broadcast(msg any) {
+func (o *OverseerSystem) broadcast(msg any) {
 	for _, overseerToSubSystem := range o.subsystems {
 		overseerToSubSystem <- msg
 	}
 }
 
-func (o *Overseer) Stop() error {
+func (o *OverseerSystem) Stop() error {
 	o.cancel()
 
 	o.blockState.FreeImportedBlockNotifierChannel(o.imported)

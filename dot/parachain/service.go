@@ -29,7 +29,7 @@ const (
 
 type Service struct {
 	Network  Network
-	overseer overseer.OverseerSystem
+	overseer overseer.Overseer
 }
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain"))
