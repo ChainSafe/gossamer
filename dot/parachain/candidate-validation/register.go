@@ -3,10 +3,10 @@
 
 package candidatevalidation
 
-func Register(overseerChan chan<- any) (*CandidateValidation, error) {
+func NewCandidateValidation(overseerChan chan<- any) *CandidateValidation {
 	candidateValidation := CandidateValidation{
 		SubsystemToOverseer: overseerChan,
 	}
 
-	return &candidateValidation, nil
+	return &candidateValidation
 }
