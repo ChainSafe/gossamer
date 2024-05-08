@@ -30,7 +30,7 @@ func (VoterSet[ID]) Generate(rand *rand.Rand, _ int) reflect.Value {
 			}
 			weights[i] = IDWeight[ID]{
 				id,
-				VoterWeight(u64v.Interface().(uint64)),
+				u64v.Interface().(uint64),
 			}
 		}
 		set := NewVoterSet(weights)
@@ -65,7 +65,7 @@ func TestVoterSet_Equality(t *testing.T) {
 		// or the total weight overflows a u64
 		sum := big.NewInt(0)
 		for _, iw := range v {
-			sum.Add(sum, new(big.Int).SetUint64(uint64(iw.Weight)))
+			sum.Add(sum, new(big.Int).SetUint64(iw.Weight))
 		}
 		return sum.Cmp(new(big.Int).SetUint64(uint64(math.MaxUint64))) > 0
 
@@ -79,7 +79,7 @@ func TestVoterSet_TotalWeight(t *testing.T) {
 	f := func(v []IDWeight[uint]) bool {
 		totalWeight := big.NewInt(0)
 		for _, iw := range v {
-			totalWeight.Add(totalWeight, new(big.Int).SetUint64(uint64(iw.Weight)))
+			totalWeight.Add(totalWeight, new(big.Int).SetUint64(iw.Weight))
 		}
 		// this validator set is invalid
 		if totalWeight.Cmp(new(big.Int).SetUint64(uint64(math.MaxUint64))) > 0 {
