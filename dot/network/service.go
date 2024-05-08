@@ -18,6 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
+	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
 	libp2pnetwork "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
@@ -117,6 +118,8 @@ type Service struct {
 	gossip        *gossip
 	bufPool       *sync.Pool
 	streamManager *streamManager
+
+	seenBlockSyncRequests *lrucache.LRUCache[common.Hash, uint]
 
 	notificationsProtocols map[MessageType]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
@@ -222,6 +225,7 @@ func NewService(cfg *Config) (*Service, error) {
 		streamManager:          newStreamManager(ctx),
 		telemetry:              cfg.Telemetry,
 		Metrics:                cfg.Metrics,
+		seenBlockSyncRequests:  lrucache.NewLRUCache[common.Hash, uint](100),
 	}
 
 	return network, nil
