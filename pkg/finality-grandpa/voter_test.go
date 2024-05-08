@@ -300,7 +300,7 @@ func TestVoter_BroadcastCommitOnlyIfNewer(t *testing.T) {
 	assert.Equal(t, localID, item.SignedMessage.ID)
 
 	// send our prevote and precommit
-	votes := []Message[string, uint32]{newMessage(prevote), newMessage(precommit)}
+	votes := []Message[string, uint32]{NewMessage(prevote), NewMessage(precommit)}
 	for _, v := range votes {
 		roundOut <- v
 	}
@@ -595,13 +595,13 @@ func TestVoter_PickUpFromPriorWithGrandparentStatus(t *testing.T) {
 		}
 
 		lastRoundVotes = append(lastRoundVotes, SignedMessage[string, uint32, Signature, ID]{
-			Message:   newMessage(prevote),
+			Message:   NewMessage(prevote),
 			Signature: Signature(id),
 			ID:        ID(id),
 		})
 
 		lastRoundVotes = append(lastRoundVotes, SignedMessage[string, uint32, Signature, ID]{
-			Message:   newMessage(precommit),
+			Message:   NewMessage(precommit),
 			Signature: Signature(id),
 			ID:        ID(id),
 		})
@@ -612,7 +612,7 @@ func TestVoter_PickUpFromPriorWithGrandparentStatus(t *testing.T) {
 		// the estimate of round-1 moves backwards.
 		roundOut := make(chan Message[string, uint32])
 		_ = network.MakeRoundComms(2, ID(id), roundOut)
-		msgs := []Message[string, uint32]{newMessage(prevote), newMessage(precommit)}
+		msgs := []Message[string, uint32]{NewMessage(prevote), NewMessage(precommit)}
 		for _, msg := range msgs {
 			roundOut <- msg
 		}
@@ -624,7 +624,7 @@ func TestVoter_PickUpFromPriorWithGrandparentStatus(t *testing.T) {
 	roundOut := make(chan Message[string, uint32])
 	_ = network.MakeRoundComms(1, sender, roundOut)
 	lastPrecommit := Precommit[string, uint32]{"D", 3}
-	roundOut <- newMessage(lastPrecommit)
+	roundOut <- NewMessage(lastPrecommit)
 
 	// run voter in background. scheduling it to shut down at the end.
 	voter, globalOut := NewVoter[string, uint32, Signature, ID](

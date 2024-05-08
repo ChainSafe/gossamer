@@ -89,7 +89,7 @@ func setMessage[Hash, Number any, T Messages[Hash, Number]](m *Message[Hash, Num
 	m.Value = val
 }
 
-func newMessage[Hash, Number any, T Messages[Hash, Number]](val T) (m Message[Hash, Number]) {
+func NewMessage[Hash, Number any, T Messages[Hash, Number]](val T) (m Message[Hash, Number]) {
 	msg := Message[Hash, Number]{}
 	setMessage(&msg, val)
 	return msg
