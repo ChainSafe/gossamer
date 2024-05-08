@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sync"
 
-	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
@@ -25,7 +25,7 @@ type completedRound[H comparable, N constraints.Unsigned] struct {
 	Base grandpa.HashNumber[H, N]
 	// All the votes observed in the round
 	// I think this is signature type, double check
-	Votes []pgrandpa.SignedMessage[H, N]
+	Votes []primitives.SignedMessage[H, N]
 }
 
 // numLastCompletedRounds NOTE: the current strategy for persisting completed rounds is very naive
@@ -39,7 +39,7 @@ const numLastCompletedRounds = 2
 type completedRounds[H comparable, N constraints.Unsigned] struct {
 	Rounds []completedRound[H, N]
 	SetId  uint64
-	Voters []pgrandpa.AuthorityID
+	Voters []primitives.AuthorityID
 }
 
 // NewCompletedRounds Create a new completed rounds tracker with NUM_LAST_COMPLETED_ROUNDS capacity.
@@ -50,7 +50,7 @@ func NewCompletedRounds[H comparable, N constraints.Unsigned](
 	rounds := make([]completedRound[H, N], 0, numLastCompletedRounds)
 	rounds = append(rounds, genesis)
 
-	var voterIDs []pgrandpa.AuthorityID
+	var voterIDs []primitives.AuthorityID
 	currentAuthorities := voters.CurrentAuthorities
 	for _, auth := range currentAuthorities {
 		voterIDs = append(voterIDs, auth.AuthorityID)
@@ -124,7 +124,7 @@ type CurrentRounds[H comparable, N constraints.Unsigned] map[uint64]hasVoted[H, 
 // and the authority id under which we are doing it.
 type votingTracker struct {
 	sync.Mutex
-	Inner map[uint64]pgrandpa.AuthorityID
+	Inner map[uint64]primitives.AuthorityID
 }
 
 type sharedVoterSetState[H comparable, N constraints.Unsigned] struct {
@@ -156,7 +156,7 @@ func (svss *SharedVoterSetState[H, N]) read() voterSetState[H, N] { //nolint
 }
 
 // Get the authority id that we are using to vote on the given round, if any
-func (svss *SharedVoterSetState[H, N]) votingOn(round uint64) *pgrandpa.AuthorityID { //nolint
+func (svss *SharedVoterSetState[H, N]) votingOn(round uint64) *primitives.AuthorityID { //nolint
 	svss.Voting.Lock()
 	defer svss.Voting.Unlock()
 	key, ok := svss.Voting.Inner[round]
@@ -167,7 +167,7 @@ func (svss *SharedVoterSetState[H, N]) votingOn(round uint64) *pgrandpa.Authorit
 }
 
 // Note that we started voting on the give round with the given authority id
-func (svss *SharedVoterSetState[H, N]) startedVotingOn(round uint64, localID pgrandpa.AuthorityID) { //nolint
+func (svss *SharedVoterSetState[H, N]) startedVotingOn(round uint64, localID primitives.AuthorityID) { //nolint
 	svss.Voting.Lock()
 	defer svss.Voting.Unlock()
 	svss.Voting.Inner[round] = localID
@@ -456,7 +456,7 @@ func (mvdt hasVoted[H, N]) ValueAt(index uint) (value any, err error) {
 type no struct{}
 
 type yes[H comparable, N constraints.Unsigned] struct {
-	AuthId pgrandpa.AuthorityID
+	AuthId primitives.AuthorityID
 	Vote   vote[H, N]
 }
 

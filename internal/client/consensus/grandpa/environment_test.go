@@ -6,7 +6,7 @@ package grandpa
 import (
 	"testing"
 
-	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
@@ -372,7 +372,7 @@ func TestVoterSetState_CompletedRounds(t *testing.T) {
 			10,
 			state,
 			dummyHashNumber,
-			[]pgrandpa.SignedMessage[string, uint]{},
+			[]primitives.SignedMessage[string, uint]{},
 		},
 		5,
 		authorities,
@@ -407,7 +407,7 @@ func TestVoterSetState_LastCompletedRound(t *testing.T) {
 		8,
 		state,
 		dummyHashNumber,
-		[]pgrandpa.SignedMessage[string, uint]{},
+		[]primitives.SignedMessage[string, uint]{},
 	}
 	completedRounds := NewCompletedRounds[string, uint](
 		originalCompletedRound,
@@ -419,7 +419,7 @@ func TestVoterSetState_LastCompletedRound(t *testing.T) {
 		8,
 		state,
 		dummyHashNumber,
-		[]pgrandpa.SignedMessage[string, uint]{},
+		[]primitives.SignedMessage[string, uint]{},
 	}
 
 	completedRounds.push(addedCompletedRound)
@@ -452,7 +452,7 @@ func TestVoterSetState_WithCurrentRound(t *testing.T) {
 			10,
 			state,
 			dummyHashNumber,
-			[]pgrandpa.SignedMessage[string, uint]{},
+			[]primitives.SignedMessage[string, uint]{},
 		},
 		5,
 		authorities,

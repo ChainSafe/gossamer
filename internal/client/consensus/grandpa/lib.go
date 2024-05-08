@@ -5,7 +5,7 @@ package grandpa
 
 import (
 	"github.com/ChainSafe/gossamer/internal/log"
-	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("consensus", "grandpa"))
@@ -14,6 +14,6 @@ var logger = log.NewFromGlobal(log.AddContext("consensus", "grandpa"))
 type newAuthoritySet[H, N any] struct {
 	CanonNumber N
 	CanonHash   H
-	SetId       pgrandpa.SetID
-	Authorities pgrandpa.AuthorityList
+	SetId       primitives.SetID
+	Authorities primitives.AuthorityList
 }

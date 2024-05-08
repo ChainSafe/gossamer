@@ -7,7 +7,7 @@ import (
 	"errors"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
-	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -184,7 +184,7 @@ func proveFinality[
 				block)
 			return nil, nil //nolint
 		}
-		justification := justifications.IntoJustification(pgrandpa.GrandpaEngineID)
+		justification := justifications.IntoJustification(primitives.GrandpaEngineID)
 		if justification != nil {
 			encJustification = *justification
 			justBlock = val.inner.BlockNumber

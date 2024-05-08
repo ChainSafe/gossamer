@@ -8,14 +8,14 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
-	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
-func genesisAuthorities(auths pgrandpa.AuthorityList, err error) getGenesisAuthorities {
-	return func() (pgrandpa.AuthorityList, error) { return auths, err }
+func genesisAuthorities(auths primitives.AuthorityList, err error) getGenesisAuthorities {
+	return func() (primitives.AuthorityList, error) { return auths, err }
 }
 
 func write(store api.AuxStore) writeAux {
@@ -94,7 +94,7 @@ func TestLoadPersistentGenesis(t *testing.T) {
 	store := newDummyStore()
 	genesisHash := "a"
 	genesisNumber := uint(21)
-	genesisAuths := pgrandpa.AuthorityList{{
+	genesisAuths := primitives.AuthorityList{{
 		AuthorityID:     newTestPublic(t, 1),
 		AuthorityWeight: 1,
 	}}
@@ -138,7 +138,7 @@ func TestLoadPersistentNotGenesis(t *testing.T) {
 	store := newDummyStore()
 	genesisHash := "a"
 	genesisNumber := uint(21)
-	genesisAuths := pgrandpa.AuthorityList{{
+	genesisAuths := primitives.AuthorityList{{
 		AuthorityID:     newTestPublic(t, 1),
 		AuthorityWeight: 1,
 	}}
@@ -273,7 +273,7 @@ func TestUpdateAuthoritySet(t *testing.T) {
 func TestWriteVoterSetState(t *testing.T) {
 	store := newDummyStore()
 	authorities := AuthoritySet[string, uint]{
-		CurrentAuthorities:     pgrandpa.AuthorityList{},
+		CurrentAuthorities:     primitives.AuthorityList{},
 		SetID:                  1,
 		PendingStandardChanges: NewChangeTree[string, uint](),
 		PendingForcedChanges:   []PendingChange[string, uint]{},
@@ -324,7 +324,7 @@ func TestWriteVoterSetState(t *testing.T) {
 func TestWriteConcludedRound(t *testing.T) {
 	store := newDummyStore()
 	authorities := AuthoritySet[string, uint]{
-		CurrentAuthorities:     pgrandpa.AuthorityList{},
+		CurrentAuthorities:     primitives.AuthorityList{},
 		SetID:                  1,
 		PendingStandardChanges: NewChangeTree[string, uint](),
 		PendingForcedChanges:   []PendingChange[string, uint]{},

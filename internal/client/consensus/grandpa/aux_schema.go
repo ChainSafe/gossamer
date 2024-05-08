@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
-	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -26,7 +26,7 @@ var (
 
 type writeAux func(insertions []api.KeyValue) error
 
-type getGenesisAuthorities func() (pgrandpa.AuthorityList, error)
+type getGenesisAuthorities func() (primitives.AuthorityList, error)
 
 type persistentData[H comparable, N constraints.Unsigned] struct {
 	authoritySet SharedAuthoritySet[H, N]
@@ -139,7 +139,7 @@ func loadPersistent[H comparable, N constraints.Unsigned](
 // If there has just been a handoff, pass a `new_set` parameter that describes the
 // handoff. `set` in all cases should reflect the current authority set, with all
 // changes and handoffs applied.
-func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID pgrandpa.AuthorityID](
+func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID primitives.AuthorityID](
 	set AuthoritySet[H, N],
 	newSet *newAuthoritySet[H, N],
 	write writeAux) error {

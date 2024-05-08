@@ -9,7 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/client/consensus/grandpa/mocks"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
-	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	ced25519 "github.com/ChainSafe/gossamer/internal/primitives/core/ed25519"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/keyring/ed25519"
@@ -27,7 +27,7 @@ import (
 // AND if at least one of those headers is invalid, all other MUST be considered invalid.
 func checkFinalityProof[Hash runtime.Hash, N runtime.Number](
 	currentSetID uint64,
-	currentAuthorities pgrandpa.AuthorityList,
+	currentAuthorities primitives.AuthorityList,
 	remoteProof []byte,
 ) (FinalityProof[Hash, N], error) {
 	proof := FinalityProof[Hash, N]{}
@@ -102,7 +102,7 @@ func TestFinalityProof_CheckFailsWhenProofDecodeFails(t *testing.T) {
 	// When we can't decode proof from Vec<u8>
 	_, err := checkFinalityProof[hash.H256, uint32](
 		1,
-		pgrandpa.AuthorityList{},
+		primitives.AuthorityList{},
 		[]byte{42},
 	)
 	require.NotNil(t, err)
@@ -111,7 +111,7 @@ func TestFinalityProof_CheckFailsWhenProofDecodeFails(t *testing.T) {
 
 func TestFinalityProof_CheckFailsWhenProofIsEmpty(t *testing.T) {
 	// When decoded proof has zero length
-	authorityList := pgrandpa.AuthorityList{}
+	authorityList := primitives.AuthorityList{}
 	grandpaJustification := GrandpaJustification[hash.H256, uint32]{}
 	encJustification, err := scale.Marshal(grandpaJustification)
 	require.NoError(t, err)
@@ -124,21 +124,21 @@ func TestFinalityProof_CheckFailsWhenProofIsEmpty(t *testing.T) {
 }
 
 func TestFinalityProof_CheckFailsWithIncompleteJustification(t *testing.T) {
-	authorityList := pgrandpa.AuthorityList{
-		pgrandpa.AuthorityIDWeight{
+	authorityList := primitives.AuthorityList{
+		primitives.AuthorityIDWeight{
 			AuthorityID:     newTestPublic(t, 3),
 			AuthorityWeight: 1,
 		},
 	}
 
 	// Create a commit without precommits
-	commit := pgrandpa.Commit[hash.H256, uint32]{
+	commit := primitives.Commit[hash.H256, uint32]{
 		TargetHash:   "hash7",
 		TargetNumber: 7,
 	}
 
 	grandpaJust := GrandpaJustification[hash.H256, uint32]{
-		Justification: pgrandpa.GrandpaJustification[hash.H256, uint32]{
+		Justification: primitives.GrandpaJustification[hash.H256, uint32]{
 			Round:  8,
 			Commit: commit,
 		},
@@ -161,12 +161,12 @@ func createCommit[H runtime.Hash, N runtime.Number](
 	t *testing.T,
 	block runtime.Block[N, H],
 	round uint64,
-	setID pgrandpa.SetID,
+	setID primitives.SetID,
 	auth []ed25519.Keyring,
-) pgrandpa.Commit[H, N] {
+) primitives.Commit[H, N] {
 	t.Helper()
 
-	var precommits []grandpa.SignedPrecommit[H, N, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
+	var precommits []grandpa.SignedPrecommit[H, N, primitives.AuthoritySignature, primitives.AuthorityID]
 
 	for _, voter := range auth {
 		precommit := grandpa.Precommit[H, N]{
@@ -174,10 +174,10 @@ func createCommit[H runtime.Hash, N runtime.Number](
 			TargetNumber: block.Header().Number(),
 		}
 		msg := grandpa.NewMessage(precommit)
-		encoded := pgrandpa.LocalizedPayload(pgrandpa.RoundNumber(round), setID, msg)
+		encoded := primitives.LocalizedPayload(primitives.RoundNumber(round), setID, msg)
 		signature := voter.Sign(encoded)
 
-		signedPrecommit := grandpa.SignedPrecommit[H, N, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]{
+		signedPrecommit := grandpa.SignedPrecommit[H, N, primitives.AuthoritySignature, primitives.AuthorityID]{
 			Precommit: precommit,
 			Signature: signature,
 			ID:        voter.Pair().Public().(ced25519.Public),
@@ -185,7 +185,7 @@ func createCommit[H runtime.Hash, N runtime.Number](
 		precommits = append(precommits, signedPrecommit)
 	}
 
-	return pgrandpa.Commit[H, N]{
+	return primitives.Commit[H, N]{
 		TargetHash:   block.Hash(),
 		TargetNumber: block.Header().Number(),
 		Precommits:   precommits,
@@ -219,7 +219,7 @@ func TestNewHeader(t *testing.T) {
 
 func TestFinalityProof_CheckWorksWithCorrectJustification(t *testing.T) {
 	alice := ed25519.Alice
-	var setID pgrandpa.SetID = 1
+	var setID primitives.SetID = 1
 	var round uint64 = 8
 	var block = generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](newHeader(7), nil)
 	commit := createCommit(t, block, round, setID, []ed25519.Keyring{alice})
@@ -235,9 +235,9 @@ func TestFinalityProof_CheckWorksWithCorrectJustification(t *testing.T) {
 		UnknownHeaders: nil,
 	}
 
-	authorityList := pgrandpa.AuthorityList{
-		pgrandpa.AuthorityIDWeight{
-			AuthorityID:     alice.Pair().Public().(pgrandpa.AuthorityID),
+	authorityList := primitives.AuthorityList{
+		primitives.AuthorityIDWeight{
+			AuthorityID:     alice.Pair().Public().(primitives.AuthorityID),
 			AuthorityWeight: 1,
 		},
 	}
@@ -296,7 +296,7 @@ func TestFinalityProof_UsingAuthoritySetChangesWorks(t *testing.T) {
 	blockchainBackend.EXPECT().ExpectHeader(block8.Hash()).Return(block8.Header(), nil)
 
 	justification := runtime.Justification{
-		ConsensusEngineID:    pgrandpa.GrandpaEngineID,
+		ConsensusEngineID:    primitives.GrandpaEngineID,
 		EncodedJustification: scale.MustMarshal(grandpaJust8),
 	}
 	blockchainBackend.EXPECT().Justifications(block8.Hash()).Return(&runtime.Justifications{justification}, nil)

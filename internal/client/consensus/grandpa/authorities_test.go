@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa/app"
 	"github.com/stretchr/testify/require"
 )
@@ -56,8 +56,8 @@ func newTestPublic(t *testing.T, index uint8) app.Public {
 }
 
 func TestCurrentLimitFiltersMin(t *testing.T) {
-	currentAuthorities := pgrandpa.AuthorityList{
-		pgrandpa.AuthorityIDWeight{
+	currentAuthorities := primitives.AuthorityList{
+		primitives.AuthorityIDWeight{
 			AuthorityID:     newTestPublic(t, 1),
 			AuthorityWeight: 1,
 		},
@@ -102,8 +102,8 @@ func TestCurrentLimitFiltersMin(t *testing.T) {
 }
 
 func TestChangesIteratedInPreOrder(t *testing.T) {
-	currentAuthorities := pgrandpa.AuthorityList{
-		pgrandpa.AuthorityIDWeight{
+	currentAuthorities := primitives.AuthorityList{
+		primitives.AuthorityIDWeight{
 			AuthorityID:     newTestPublic(t, 1),
 			AuthorityWeight: 1,
 		},
@@ -201,15 +201,15 @@ func TestApplyChange(t *testing.T) {
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
-	setA := pgrandpa.AuthorityList{
-		pgrandpa.AuthorityIDWeight{
+	setA := primitives.AuthorityList{
+		primitives.AuthorityIDWeight{
 			AuthorityID:     newTestPublic(t, 1),
 			AuthorityWeight: 5,
 		},
 	}
 
-	setB := pgrandpa.AuthorityList{
-		pgrandpa.AuthorityIDWeight{
+	setB := primitives.AuthorityList{
+		primitives.AuthorityIDWeight{
 			AuthorityID:     newTestPublic(t, 2),
 			AuthorityWeight: 5,
 		},
@@ -315,15 +315,15 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
-	setA := pgrandpa.AuthorityList{
-		pgrandpa.AuthorityIDWeight{
+	setA := primitives.AuthorityList{
+		primitives.AuthorityIDWeight{
 			AuthorityID:     newTestPublic(t, 1),
 			AuthorityWeight: 5,
 		},
 	}
 
-	setC := pgrandpa.AuthorityList{
-		pgrandpa.AuthorityIDWeight{
+	setC := primitives.AuthorityList{
+		primitives.AuthorityIDWeight{
 			AuthorityID:     newTestPublic(t, 2),
 			AuthorityWeight: 5,
 		},
@@ -439,8 +439,8 @@ func TestEnactsStandardChangeWorks(t *testing.T) {
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
-	setA := pgrandpa.AuthorityList{
-		pgrandpa.AuthorityIDWeight{
+	setA := primitives.AuthorityList{
+		primitives.AuthorityIDWeight{
 			AuthorityID:     newTestPublic(t, 1),
 			AuthorityWeight: 5,
 		},
@@ -515,15 +515,15 @@ func TestForceChanges(t *testing.T) {
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
-	setA := pgrandpa.AuthorityList{
-		pgrandpa.AuthorityIDWeight{
+	setA := primitives.AuthorityList{
+		primitives.AuthorityIDWeight{
 			AuthorityID:     newTestPublic(t, 1),
 			AuthorityWeight: 5,
 		},
 	}
 
-	setB := pgrandpa.AuthorityList{
-		pgrandpa.AuthorityIDWeight{
+	setB := primitives.AuthorityList{
+		primitives.AuthorityIDWeight{
 			AuthorityID:     newTestPublic(t, 2),
 			AuthorityWeight: 5,
 		},
@@ -627,8 +627,8 @@ func TestForceChangesWithNoDelay(t *testing.T) {
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
-	setA := pgrandpa.AuthorityList{
-		pgrandpa.AuthorityIDWeight{
+	setA := primitives.AuthorityList{
+		primitives.AuthorityIDWeight{
 			AuthorityID:     newTestPublic(t, 1),
 			AuthorityWeight: 5,
 		},
@@ -669,8 +669,8 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
-	setA := pgrandpa.AuthorityList{
-		pgrandpa.AuthorityIDWeight{
+	setA := primitives.AuthorityList{
+		primitives.AuthorityIDWeight{
 			AuthorityID:     newTestPublic(t, 1),
 			AuthorityWeight: 5,
 		},
@@ -810,8 +810,8 @@ func TestForceChangesBlockedByStandardChanges(t *testing.T) {
 }
 
 func TestNextChangeWorks(t *testing.T) {
-	currentAuthorities := pgrandpa.AuthorityList{
-		pgrandpa.AuthorityIDWeight{
+	currentAuthorities := primitives.AuthorityList{
+		primitives.AuthorityIDWeight{
 			AuthorityID:     newTestPublic(t, 1),
 			AuthorityWeight: 1,
 		},
@@ -952,12 +952,12 @@ func TestMaintainsAuthorityListInvariants(t *testing.T) {
 	)
 	require.NotNil(t, err)
 
-	invalidAuthoritiesWeight := pgrandpa.AuthorityList{
-		pgrandpa.AuthorityIDWeight{
+	invalidAuthoritiesWeight := primitives.AuthorityList{
+		primitives.AuthorityIDWeight{
 			AuthorityID:     newTestPublic(t, 1),
 			AuthorityWeight: 5,
 		},
-		pgrandpa.AuthorityIDWeight{
+		primitives.AuthorityIDWeight{
 			AuthorityID:     newTestPublic(t, 2),
 			AuthorityWeight: 0,
 		},
@@ -975,8 +975,8 @@ func TestMaintainsAuthorityListInvariants(t *testing.T) {
 	)
 	require.NotNil(t, err)
 
-	authoritySet, err := NewGenesisAuthoritySet[string, uint](pgrandpa.AuthorityList{
-		pgrandpa.AuthorityIDWeight{
+	authoritySet, err := NewGenesisAuthoritySet[string, uint](primitives.AuthorityList{
+		primitives.AuthorityIDWeight{
 			AuthorityID:     newTestPublic(t, 1),
 			AuthorityWeight: 5,
 		},
@@ -1015,8 +1015,8 @@ func TestMaintainsAuthorityListInvariants(t *testing.T) {
 }
 
 func TestCleanUpStaleForcedChangesWhenApplyingStandardChange(t *testing.T) {
-	currentAuthorities := pgrandpa.AuthorityList{
-		pgrandpa.AuthorityIDWeight{
+	currentAuthorities := primitives.AuthorityList{
+		primitives.AuthorityIDWeight{
 			AuthorityID:     newTestPublic(t, 1),
 			AuthorityWeight: 1,
 		},
@@ -1121,8 +1121,8 @@ func TestCleanUpStaleForcedChangesWhenApplyingStandardChange(t *testing.T) {
 }
 
 func TestCleanUpStaleForcedChangesWhenApplyingStandardChangeAlternateCase(t *testing.T) {
-	currentAuthorities := pgrandpa.AuthorityList{
-		pgrandpa.AuthorityIDWeight{
+	currentAuthorities := primitives.AuthorityList{
+		primitives.AuthorityIDWeight{
 			AuthorityID:     newTestPublic(t, 1),
 			AuthorityWeight: 1,
 		},
@@ -1405,7 +1405,7 @@ func TestIterFromWorks(t *testing.T) {
 
 func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 	type args struct {
-		authorities pgrandpa.AuthorityList
+		authorities primitives.AuthorityList
 	}
 	tests := []struct {
 		name string
@@ -1422,14 +1422,14 @@ func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 		{
 			name: "emptyAuthorities",
 			args: args{
-				authorities: pgrandpa.AuthorityList{},
+				authorities: primitives.AuthorityList{},
 			},
 			exp: true,
 		},
 		{
 			name: "invalidAuthoritiesWeight",
 			args: args{
-				authorities: pgrandpa.AuthorityList{
+				authorities: primitives.AuthorityList{
 					{
 						AuthorityWeight: 0,
 					},
@@ -1440,7 +1440,7 @@ func TestAuthoritySet_InvalidAuthorityList(t *testing.T) {
 		{
 			name: "validAuthorityList",
 			args: args{
-				authorities: pgrandpa.AuthorityList{
+				authorities: primitives.AuthorityList{
 					{
 						AuthorityWeight: 1,
 					},

@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/internal/client/telemetry"
-	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
@@ -67,15 +67,15 @@ func (sas *SharedAuthoritySet[H, N]) CurrentAuthorities() grandpa.VoterSet[strin
 	}
 	voterSet := grandpa.NewVoterSet[string](idWeights)
 	if voterSet == nil {
-		panic(fmt.Errorf(
+		panic(
 			"current_authorities is non-empty and weights are non-zero; constructor and all mutating operations on `AuthoritySet` ensure this; qed", //nolint: lll
-		))
+		)
 	}
 	return *voterSet
 }
 
 // Current Get the current set id and a reference to the current authority set.
-func (sas *SharedAuthoritySet[H, N]) Current() (uint64, *pgrandpa.AuthorityList) {
+func (sas *SharedAuthoritySet[H, N]) Current() (uint64, *primitives.AuthorityList) {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.current()
@@ -194,7 +194,7 @@ type status[H comparable, N constraints.Unsigned] struct {
 // AuthoritySet A set of authorities.
 type AuthoritySet[H comparable, N constraints.Unsigned] struct {
 	// The current active authorities.
-	CurrentAuthorities pgrandpa.AuthorityList
+	CurrentAuthorities primitives.AuthorityList
 	// The current set id.
 	SetID uint64
 	// Tree of pending standard changes across forks. Standard changes are
@@ -217,7 +217,7 @@ type AuthoritySet[H comparable, N constraints.Unsigned] struct {
 }
 
 // invalidAuthorityList authority sets must be non-empty and all weights must be greater than 0
-func invalidAuthorityList(authorities pgrandpa.AuthorityList) bool { //skipcq:  RVV-B0001
+func invalidAuthorityList(authorities primitives.AuthorityList) bool { //skipcq:  RVV-B0001
 	if len(authorities) == 0 {
 		return true
 	}
@@ -231,7 +231,7 @@ func invalidAuthorityList(authorities pgrandpa.AuthorityList) bool { //skipcq:  
 }
 
 // NewGenesisAuthoritySet Get a genesis set with given authorities.
-func NewGenesisAuthoritySet[H comparable, N constraints.Unsigned](initial pgrandpa.AuthorityList) (
+func NewGenesisAuthoritySet[H comparable, N constraints.Unsigned](initial primitives.AuthorityList) (
 	authSet *AuthoritySet[H, N], err error) {
 	if invalidAuthorityList(initial) {
 		return nil, errInvalidAuthorityList
@@ -244,7 +244,7 @@ func NewGenesisAuthoritySet[H comparable, N constraints.Unsigned](initial pgrand
 
 // NewAuthoritySet creates a new AuthoritySet
 func NewAuthoritySet[H comparable, N constraints.Unsigned](
-	authorities pgrandpa.AuthorityList,
+	authorities primitives.AuthorityList,
 	setID uint64,
 	pendingStandardChanges ChangeTree[H, N],
 	pendingForcedChanges []PendingChange[H, N],
@@ -264,7 +264,7 @@ func NewAuthoritySet[H comparable, N constraints.Unsigned](
 }
 
 // current Get the current set id and a reference to the current authority set.
-func (authSet *AuthoritySet[H, N]) current() (uint64, *pgrandpa.AuthorityList) {
+func (authSet *AuthoritySet[H, N]) current() (uint64, *primitives.AuthorityList) {
 	return authSet.SetID, &authSet.CurrentAuthorities
 }
 
@@ -698,7 +698,7 @@ type Best[N constraints.Unsigned] struct {
 // the finalised or unfinalised chain.
 type PendingChange[H comparable, N constraints.Unsigned] struct {
 	// The new authorities and weights to apply.
-	NextAuthorities pgrandpa.AuthorityList
+	NextAuthorities primitives.AuthorityList
 	// How deep in the chain the announcing block must be
 	// before the hashNumber is applied.
 	Delay N

@@ -10,7 +10,7 @@ import (
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
-	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
@@ -33,7 +33,7 @@ var (
 // nodes, and are used by syncing nodes to prove authority set handoffs.
 type GrandpaJustification[Hash runtime.Hash, N runtime.Number] struct {
 	// The GRANDPA justification for block finality.
-	Justification pgrandpa.GrandpaJustification[Hash, N]
+	Justification primitives.GrandpaJustification[Hash, N]
 }
 
 // Type used for decoding grandpa justifications (can pass in generic Header type)
@@ -59,7 +59,7 @@ func decodeJustification[
 func (dgj *decodeGrandpaJustification[H, N, Hasher]) UnmarshalSCALE(reader io.Reader) (err error) {
 	type roundCommitHeader struct {
 		Round   uint64
-		Commit  pgrandpa.Commit[H, N]
+		Commit  primitives.Commit[H, N]
 		Headers []generic.Header[N, H, Hasher]
 	}
 	rch := roundCommitHeader{}
@@ -80,7 +80,7 @@ func (dgj *decodeGrandpaJustification[H, N, Hasher]) UnmarshalSCALE(reader io.Re
 
 func (dgj decodeGrandpaJustification[Hash, N, Hasher]) GrandpaJustification() *GrandpaJustification[Hash, N] {
 	return &GrandpaJustification[Hash, N]{
-		Justification: pgrandpa.GrandpaJustification[Hash, N]{
+		Justification: primitives.GrandpaJustification[Hash, N]{
 			Round:          dgj.Justification.Round,
 			Commit:         dgj.Justification.Commit,
 			VoteAncestries: dgj.Justification.VoteAncestries,
@@ -96,7 +96,7 @@ func NewJustificationFromCommit[
 ](
 	client blockchain.HeaderBackend[Hash, N],
 	round uint64,
-	commit pgrandpa.Commit[Hash, N],
+	commit primitives.Commit[Hash, N],
 ) (GrandpaJustification[Hash, N], error) {
 	votesAncestriesHashes := make(map[Hash]struct{})
 	voteAncestries := make([]runtime.Header[N, Hash], 0)
@@ -161,7 +161,7 @@ func NewJustificationFromCommit[
 	}
 
 	return GrandpaJustification[Hash, N]{
-		Justification: pgrandpa.GrandpaJustification[Hash, N]{
+		Justification: primitives.GrandpaJustification[Hash, N]{
 			Round:          round,
 			Commit:         commit,
 			VoteAncestries: voteAncestries,
@@ -199,7 +199,7 @@ func decodeAndVerifyFinalizes[
 }
 
 // Verify Validate the commit and the votes' ancestry proofs.
-func (j *GrandpaJustification[Hash, N]) Verify(setID uint64, authorities pgrandpa.AuthorityList) error {
+func (j *GrandpaJustification[Hash, N]) Verify(setID uint64, authorities primitives.AuthorityList) error {
 	var weights []grandpa.IDWeight[string]
 	for _, authority := range authorities {
 		weight := grandpa.IDWeight[string]{
@@ -252,7 +252,7 @@ func (j *GrandpaJustification[Hash, N]) verifyWithVoterSet(
 	// should serve as the root block for populating ancestry (i.e.
 	// collect all headers from all precommit blocks to the base)
 	precommits := j.Justification.Commit.Precommits
-	var minPrecommit *grandpa.SignedPrecommit[Hash, N, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
+	var minPrecommit *grandpa.SignedPrecommit[Hash, N, primitives.AuthoritySignature, primitives.AuthorityID]
 	if len(precommits) == 0 {
 		panic("can only fail if precommits is empty; commit has been validated above; " +
 			"valid commits must include precommits")
@@ -270,12 +270,12 @@ func (j *GrandpaJustification[Hash, N]) verifyWithVoterSet(
 	visitedHashes := make(map[Hash]struct{})
 	for _, signed := range precommits {
 		msg := grandpa.NewMessage(signed.Precommit)
-		isValidSignature := pgrandpa.CheckMessageSignature[Hash, N](
+		isValidSignature := primitives.CheckMessageSignature[Hash, N](
 			msg,
 			signed.ID,
 			signed.Signature,
-			pgrandpa.RoundNumber(j.Justification.Round),
-			pgrandpa.SetID(setID),
+			primitives.RoundNumber(j.Justification.Round),
+			primitives.SetID(setID),
 		)
 
 		if !isValidSignature {

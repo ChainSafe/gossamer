@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/client/consensus/grandpa/mocks"
-	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	ced25519 "github.com/ChainSafe/gossamer/internal/primitives/core/ed25519"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/keyring/ed25519"
@@ -26,7 +26,7 @@ func makePrecommit(t *testing.T,
 	round uint64, //nolint:unparam
 	setID uint64,
 	voter ed25519.Keyring,
-) grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID] {
+) grandpa.SignedPrecommit[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID] {
 	t.Helper()
 
 	precommit := grandpa.Precommit[hash.H256, uint64]{
@@ -34,10 +34,10 @@ func makePrecommit(t *testing.T,
 		TargetNumber: targetNumber,
 	}
 	msg := grandpa.NewMessage(precommit)
-	encoded := pgrandpa.LocalizedPayload(pgrandpa.RoundNumber(round), pgrandpa.SetID(setID), msg)
+	encoded := primitives.LocalizedPayload(primitives.RoundNumber(round), primitives.SetID(setID), msg)
 	signature := voter.Sign(encoded)
 
-	return grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]{
+	return grandpa.SignedPrecommit[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID]{
 		Precommit: grandpa.Precommit[hash.H256, uint64]{
 			TargetHash:   hash.H256(targetHash),
 			TargetNumber: targetNumber,
@@ -49,7 +49,7 @@ func makePrecommit(t *testing.T,
 
 func TestJustificationEncoding(t *testing.T) {
 	var hashA = "a\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" //nolint:lll
-	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
+	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID]
 	precommit := makePrecommit(t, hashA, 1, 1, 1, ed25519.Alice)
 	precommits = append(precommits, precommit)
 
@@ -62,9 +62,9 @@ func TestJustificationEncoding(t *testing.T) {
 		runtime.Digest{}),
 	)
 
-	expected := pgrandpa.GrandpaJustification[hash.H256, uint64]{
+	expected := primitives.GrandpaJustification[hash.H256, uint64]{
 		Round: 2,
-		Commit: pgrandpa.Commit[hash.H256, uint64]{
+		Commit: primitives.Commit[hash.H256, uint64]{
 			TargetHash: hash.H256(
 				"b\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", //nolint:lll
 			),
@@ -83,7 +83,7 @@ func TestJustificationEncoding(t *testing.T) {
 }
 
 func TestJustification_fromCommit(t *testing.T) {
-	commit := pgrandpa.Commit[hash.H256, uint64]{}
+	commit := primitives.Commit[hash.H256, uint64]{}
 	client := mocks.NewHeaderBackend[hash.H256, uint64](t)
 	_, err := NewJustificationFromCommit[hash.H256, uint64](client, 2, commit)
 	require.NotNil(t, err)
@@ -91,14 +91,14 @@ func TestJustification_fromCommit(t *testing.T) {
 	require.Equal(t, "bad justification for header: invalid precommits for target commit", err.Error())
 
 	// nil header
-	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
+	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID]
 	precommit := makePrecommit(t, "a", 1, 1, 1, ed25519.Alice)
 	precommits = append(precommits, precommit)
 
 	precommit = makePrecommit(t, "b", 2, 1, 1, ed25519.Alice)
 	precommits = append(precommits, precommit)
 
-	validCommit := pgrandpa.Commit[hash.H256, uint64]{
+	validCommit := primitives.Commit[hash.H256, uint64]{
 		TargetHash:   "a",
 		TargetNumber: 1,
 		Precommits:   precommits,
@@ -152,9 +152,9 @@ func TestJustification_fromCommit(t *testing.T) {
 		hash.H256("a"),
 		runtime.Digest{}),
 	)
-	expJustification := pgrandpa.GrandpaJustification[hash.H256, uint64]{
+	expJustification := primitives.GrandpaJustification[hash.H256, uint64]{
 		Round: 2,
-		Commit: pgrandpa.Commit[hash.H256, uint64]{
+		Commit: primitives.Commit[hash.H256, uint64]{
 			TargetHash:   "a",
 			TargetNumber: 1,
 			Precommits:   precommits,
@@ -182,8 +182,8 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 	require.Error(t, err)
 
 	// Invalid target
-	justification := pgrandpa.GrandpaJustification[hash.H256, uint64]{
-		Commit: pgrandpa.Commit[hash.H256, uint64]{
+	justification := primitives.GrandpaJustification[hash.H256, uint64]{
+		Commit: primitives.Commit[hash.H256, uint64]{
 			TargetHash:   a,
 			TargetNumber: 1,
 		},
@@ -208,14 +208,14 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 
 	hederList := []runtime.Header[uint64, hash.H256]{headerB}
 
-	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
+	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID]
 	precommits = append(precommits, makePrecommit(t, string(a), 1, 1, 1, ed25519.Alice))
 	precommits = append(precommits, makePrecommit(t, string(a), 1, 1, 1, ed25519.Bob))
 	precommits = append(precommits, makePrecommit(t, string(headerB.Hash()), 2, 1, 1, ed25519.Charlie))
 
-	expectedJustification := pgrandpa.GrandpaJustification[hash.H256, uint64]{
+	expectedJustification := primitives.GrandpaJustification[hash.H256, uint64]{
 		Round: 1,
-		Commit: pgrandpa.Commit[hash.H256, uint64]{
+		Commit: primitives.Commit[hash.H256, uint64]{
 			TargetHash:   a,
 			TargetNumber: 1,
 			Precommits:   precommits,
@@ -261,7 +261,7 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 
 func TestJustification_verify(t *testing.T) {
 	// Nil voter case
-	auths := make(pgrandpa.AuthorityList, 0)
+	auths := make(primitives.AuthorityList, 0)
 	justification := GrandpaJustification[hash.H256, uint64]{}
 	err := justification.Verify(2, auths)
 	require.ErrorIs(t, err, errInvalidAuthoritiesSet)
@@ -279,7 +279,7 @@ func TestJustification_verify(t *testing.T) {
 		case 4:
 			id = ed25519.Ferdie.Pair().Public().(ced25519.Public)
 		}
-		auths = append(auths, pgrandpa.AuthorityIDWeight{
+		auths = append(auths, primitives.AuthorityIDWeight{
 			AuthorityID:     id,
 			AuthorityWeight: 1,
 		})
@@ -295,15 +295,15 @@ func TestJustification_verify(t *testing.T) {
 
 	headerList := []runtime.Header[uint64, hash.H256]{headerB}
 
-	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
+	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID]
 	precommits = append(precommits, makePrecommit(t, string(a), 1, 1, 2, ed25519.Alice))
 	precommits = append(precommits, makePrecommit(t, string(a), 1, 1, 2, ed25519.Bob))
 	precommits = append(precommits, makePrecommit(t, string(headerB.Hash()), 2, 1, 2, ed25519.Charlie))
 
 	validJustification := GrandpaJustification[hash.H256, uint64]{
-		Justification: pgrandpa.GrandpaJustification[hash.H256, uint64]{
+		Justification: primitives.GrandpaJustification[hash.H256, uint64]{
 			Round: 1,
-			Commit: pgrandpa.Commit[hash.H256, uint64]{
+			Commit: primitives.Commit[hash.H256, uint64]{
 				TargetHash:   a,
 				TargetNumber: 1,
 				Precommits:   precommits,
@@ -338,8 +338,8 @@ func TestJustification_verifyWithVoterSet(t *testing.T) {
 	voters := grandpa.NewVoterSet(idWeights)
 
 	invalidJustification := GrandpaJustification[hash.H256, uint64]{
-		pgrandpa.GrandpaJustification[hash.H256, uint64]{
-			Commit: pgrandpa.Commit[hash.H256, uint64]{
+		primitives.GrandpaJustification[hash.H256, uint64]{
+			Commit: primitives.Commit[hash.H256, uint64]{
 				TargetHash:   "B",
 				TargetNumber: 2,
 			},
@@ -370,14 +370,14 @@ func TestJustification_verifyWithVoterSet(t *testing.T) {
 		headerB,
 	}
 
-	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
+	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID]
 	precommits = append(precommits, makePrecommit(t, string(headerA.Hash()), 1, 1, 2, ed25519.Alice))
 	precommits = append(precommits, makePrecommit(t, string(headerA.Hash()), 1, 1, 2, ed25519.Bob))
 	precommits = append(precommits, makePrecommit(t, string(headerB.Hash()), 2, 1, 2, ed25519.Charlie))
 
 	validJustification := GrandpaJustification[hash.H256, uint64]{
-		pgrandpa.GrandpaJustification[hash.H256, uint64]{
-			Commit: pgrandpa.Commit[hash.H256, uint64]{
+		primitives.GrandpaJustification[hash.H256, uint64]{
+			Commit: primitives.Commit[hash.H256, uint64]{
 				TargetHash:   headerA.Hash(),
 				TargetNumber: 1,
 				Precommits:   precommits,
@@ -398,8 +398,8 @@ func TestJustification_verifyWithVoterSet(t *testing.T) {
 	}
 
 	validJustification = GrandpaJustification[hash.H256, uint64]{
-		pgrandpa.GrandpaJustification[hash.H256, uint64]{
-			Commit: pgrandpa.Commit[hash.H256, uint64]{
+		primitives.GrandpaJustification[hash.H256, uint64]{
+			Commit: primitives.Commit[hash.H256, uint64]{
 				TargetHash:   headerA.Hash(),
 				TargetNumber: 1,
 				Precommits:   precommits,
@@ -620,15 +620,15 @@ func TestWriteJustification(t *testing.T) {
 		hash.H256(""),
 		runtime.Digest{})
 
-	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
+	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID]
 	precommits = append(precommits, makePrecommit(t, string(headerA.Hash()), 1, 1, 1, ed25519.Alice))
 
 	expAncestries := make([]runtime.Header[uint64, hash.H256], 0)
 	expAncestries = append(expAncestries, headerA)
 
 	justification := GrandpaJustification[hash.H256, uint64]{
-		pgrandpa.GrandpaJustification[hash.H256, uint64]{
-			Commit: pgrandpa.Commit[hash.H256, uint64]{
+		primitives.GrandpaJustification[hash.H256, uint64]{
+			Commit: primitives.Commit[hash.H256, uint64]{
 				TargetHash:   headerA.Hash(),
 				TargetNumber: 1,
 				Precommits:   precommits,
