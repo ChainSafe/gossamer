@@ -13,11 +13,11 @@ type MerkleValue interface {
 }
 
 type (
-	// Value bytes as stored in a trie node
+	// InlineNode contains bytes of the encoded node data
 	InlineNode struct {
 		Data []byte
 	}
-	// Containing a hash used to lookup in db for real value
+	// HashedNode contains a hash used to lookup in db for encoded node data
 	HashedNode struct {
 		Data []byte
 	}
@@ -42,11 +42,11 @@ type NodeValue interface {
 }
 
 type (
-	// Value bytes as stored in a trie node
+	// InlineValue contains bytes for the value in this node
 	InlineValue struct {
 		Data []byte
 	}
-	// Containing a hash used to lookup in db for real value
+	// HashedValue contains a hash used to lookup in db for real value
 	HashedValue struct {
 		Data []byte
 	}
@@ -65,7 +65,8 @@ func NewHashedValue(data []byte) NodeValue {
 
 // Node is the representation of a decoded node
 type Node interface {
-	isNode()
+	GetPartialKey() []byte
+	GetValue() NodeValue
 }
 
 type (
@@ -84,6 +85,9 @@ type (
 	}
 )
 
-func (Empty) isNode()  {}
-func (Leaf) isNode()   {}
-func (Branch) isNode() {}
+func (Empty) GetPartialKey() []byte    { return nil }
+func (Empty) GetValue() NodeValue      { return nil }
+func (l Leaf) GetPartialKey() []byte   { return l.PartialKey }
+func (l Leaf) GetValue() NodeValue     { return l.Value }
+func (b Branch) GetPartialKey() []byte { return b.PartialKey }
+func (b Branch) GetValue() NodeValue   { return b.Value }
