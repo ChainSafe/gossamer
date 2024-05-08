@@ -11,6 +11,7 @@ import (
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -225,7 +226,7 @@ func attestedToBackedCandidate(
 	// the order of bits set in the bitfield, which is not necessarily
 	// the order of the `validity_votes` we got from the table.
 	for positionInGroup, validatorIndex := range group {
-		for _, validityVote := range attested.ValidityVotes {
+		for _, validityVote := range attested.ValidityAttestations {
 			if validityVote.ValidatorIndex == validatorIndex {
 				validatorIndices[positionInGroup] = true
 				validityAttestations = append(validityAttestations, validityVote.ValidityAttestation)
@@ -247,6 +248,7 @@ func attestedToBackedCandidate(
 
 // Kick off validation work and distribute the result as a signed statement.
 func (rpState *perRelayParentState) kickOffValidationWork(
+	blockState BlockState,
 	subSystemToOverseer chan<- any,
 	chRelayParentAndCommand chan relayParentAndCommand,
 	pvd parachaintypes.PersistedValidationData,
@@ -273,7 +275,7 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 	}
 
 	return rpState.validateAndMakeAvailable(
-		executorParamsAtRelayParent,
+		blockState,
 		subSystemToOverseer,
 		chRelayParentAndCommand,
 		attesting.candidate,
@@ -286,11 +288,8 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 	)
 }
 
-// this is temporary until we implement executorParamsAtRelayParent #3544
-type executorParamsGetter func(common.Hash, chan<- any) (parachaintypes.ExecutorParams, error)
-
 func (rpState *perRelayParentState) validateAndMakeAvailable(
-	executorParamsAtRelayParentFunc executorParamsGetter, // remove after executorParamsAtRelayParent is implemented #3544
+	blockState BlockState,
 	subSystemToOverseer chan<- any,
 	chRelayParentAndCommand chan relayParentAndCommand,
 	candidateReceipt parachaintypes.CandidateReceipt,
@@ -322,10 +321,9 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		return fmt.Errorf("getting validation code by hash: %w", validationCodeByHashRes.Err)
 	}
 
-	// executorParamsAtRelayParent() should be called after it is implemented #3544
-	executorParams, err := executorParamsAtRelayParentFunc(relayParent, subSystemToOverseer)
+	executorParams, err := executorParamsAtRelayParent(blockState, relayParent)
 	if err != nil {
-		return fmt.Errorf("getting executor params at relay parent: %w", err)
+		return fmt.Errorf("getting executor params for relay parent %s: %w", relayParent, err)
 	}
 
 	pvfExecTimeoutKind := parachaintypes.NewPvfExecTimeoutKind()
@@ -340,7 +338,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		ValidationCode:          validationCodeByHashRes.Data,
 		CandidateReceipt:        candidateReceipt,
 		PoV:                     pov,
-		ExecutorParams:          executorParams,
+		ExecutorParams:          *executorParams,
 		PvfExecTimeoutKind:      pvfExecTimeoutKind,
 		Ch:                      chValidationResultRes,
 	}
@@ -419,12 +417,35 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	return nil
 }
 
-func executorParamsAtRelayParent(
-	relayParent common.Hash, subSystemToOverseer chan<- any,
-) (parachaintypes.ExecutorParams, error) {
-	// TODO: Implement this #3544
-	// https://github.com/paritytech/polkadot-sdk/blob/7ca0d65f19497ac1c3c7ad6315f1a0acb2ca32f8/polkadot/node/subsystem-util/src/lib.rs#L241-L242
-	return parachaintypes.ExecutorParams{}, nil
+func executorParamsAtRelayParent(blockState BlockState, relayParent common.Hash,
+) (*parachaintypes.ExecutorParams, error) {
+	rt, err := blockState.GetRuntime(relayParent)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
+	}
+
+	sessionIndex, err := rt.ParachainHostSessionIndexForChild()
+	if err != nil {
+		return nil, fmt.Errorf("getting session index for relay parent %s: %w", relayParent, err)
+	}
+
+	executorParams, err := rt.ParachainHostSessionExecutorParams(sessionIndex)
+	if err != nil {
+		if errors.Is(err, wazero_runtime.ErrExportFunctionNotFound) {
+			// Runtime doesn't yet support the api requested,
+			// should execute anyway with default set of parameters.
+			defaultExecutorParams := parachaintypes.ExecutorParams(parachaintypes.NewExecutorParams())
+			return &defaultExecutorParams, nil
+		}
+		return nil, err
+	}
+
+	if executorParams == nil {
+		// should never happen
+		return nil, fmt.Errorf("executor params for relay parent %s is nil", relayParent)
+	}
+
+	return executorParams, nil
 }
 
 func getPovFromValidator(

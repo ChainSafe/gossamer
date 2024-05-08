@@ -12,7 +12,6 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	parachainutil "github.com/ChainSafe/gossamer/dot/parachain/util"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -253,7 +252,7 @@ func (cb *CandidateBacking) removeUnknownRelayParentsFromPerCandidate() {
 
 // getProspectiveParachainsMode requests prospective parachains mode
 // for a given relay parent based on the Runtime API version.
-func getProspectiveParachainsMode(blockstate *state.BlockState, relayParent common.Hash,
+func getProspectiveParachainsMode(blockstate BlockState, relayParent common.Hash,
 ) (parachaintypes.ProspectiveParachainsMode, error) {
 	var emptyMode parachaintypes.ProspectiveParachainsMode
 
@@ -286,7 +285,7 @@ func getProspectiveParachainsMode(blockstate *state.BlockState, relayParent comm
 
 // Load the data necessary to do backing work on top of a relay-parent.
 func constructPerRelayParentState(
-	blockstate *state.BlockState,
+	blockstate BlockState,
 	relayParent common.Hash,
 	keystore *keystore.Keystore,
 	mode parachaintypes.ProspectiveParachainsMode,
@@ -367,8 +366,8 @@ func constructPerRelayParentState(
 		validators: validators,
 	}
 
-	tableConfig := Config{
-		AllowMultipleSeconded: mode.IsEnabled,
+	tableConfig := tableConfig{
+		allowMultipleSeconded: mode.IsEnabled,
 	}
 
 	newPerRelayParentState := perRelayParentState{
