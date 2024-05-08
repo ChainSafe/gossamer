@@ -7,17 +7,19 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sort"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
 
-var errCandidateDataNotFound = errors.New("candidate data not found") //nolint:unused
+var errCandidateDataNotFound = errors.New("candidate data not found")
+var errNotEnoughValidityVotes = errors.New("not enough validity votes")
 
 // statementTable implements the Table interface.
-type statementTable struct { //nolint:unused
-	authorityData  map[parachaintypes.ValidatorIndex]authorityData
+type statementTable struct {
+	authorityData  map[parachaintypes.ValidatorIndex]authorityData //nolint:unused
 	candidateVotes map[parachaintypes.CandidateHash]candidateData
-	config         tableConfig
+	config         tableConfig //nolint:unused
 
 	// TODO: Implement this
 	// detected_misbehaviour: HashMap<Ctx::AuthorityId, Vec<MisbehaviorFor<Ctx>>>,
@@ -30,7 +32,7 @@ type proposal struct { //nolint:unused
 	signature     parachaintypes.Signature
 }
 
-type candidateData struct { //nolint:unused
+type candidateData struct {
 	groupID       parachaintypes.ParaID
 	candidate     parachaintypes.CommittedCandidateReceipt
 	validityVotes map[parachaintypes.ValidatorIndex]validityVoteWithSign
@@ -38,13 +40,13 @@ type candidateData struct { //nolint:unused
 
 // attested yields a full attestation for a candidate.
 // If the candidate can be included, it will return attested candidate.
-func (data candidateData) attested(validityThreshold uint) (*AttestedCandidate, error) { //nolint:unused
+func (data candidateData) attested(validityThreshold uint) (*AttestedCandidate, error) {
 	numOfValidityVotes := uint(len(data.validityVotes))
 	if numOfValidityVotes < validityThreshold {
-		return nil, fmt.Errorf("not enough validity votes: %d < %d", numOfValidityVotes, validityThreshold)
+		return nil, fmt.Errorf("%w: %d < %d", errNotEnoughValidityVotes, numOfValidityVotes, validityThreshold)
 	}
 
-	validityAttestations := make([]validityAttestation, numOfValidityVotes)
+	validityAttestations := make([]validityAttestation, 0, numOfValidityVotes)
 	for validatorIndex, voteWithSign := range data.validityVotes {
 		switch voteWithSign.validityVote {
 		case valid:
@@ -74,6 +76,10 @@ func (data candidateData) attested(validityThreshold uint) (*AttestedCandidate, 
 		}
 	}
 
+	sort.Slice(validityAttestations, func(i, j int) bool {
+		return validityAttestations[i].ValidatorIndex < validityAttestations[j].ValidatorIndex
+	})
+
 	return &AttestedCandidate{
 		GroupID:              data.groupID,
 		Candidate:            data.candidate,
@@ -81,18 +87,19 @@ func (data candidateData) attested(validityThreshold uint) (*AttestedCandidate, 
 	}, nil
 }
 
-type validityVoteWithSign struct { //nolint:unused
+type validityVoteWithSign struct {
 	validityVote validityVote
-	signature    parachaintypes.ValidatorSignature
+	signature    parachaintypes.ValidatorSignature // NOTE: should never be empty
 }
 
-type validityVote byte //nolint:unused
+type validityVote byte
 
+// To make sure the validity vote has a value assigned, we use iota + 1.
 const (
 	// Implicit validity vote.
-	issued validityVote = iota //nolint:unused
+	issued validityVote = iota + 1
 	// Direct validity vote.
-	valid //nolint:unused
+	valid
 )
 
 // getCommittedCandidateReceipt returns the committed candidate receipt for the given candidate hash.
@@ -115,7 +122,7 @@ func (statementTable) importStatement( //nolint:unused
 
 // attestedCandidate retrieves the attested candidate for the given candidate hash.
 // returns attested candidate  if the candidate exists and is includable.
-func (table statementTable) attestedCandidate( //nolint:unused
+func (table statementTable) attestedCandidate(
 	candidateHash parachaintypes.CandidateHash, tableContext *TableContext, minimumBackingVotes uint32,
 ) (*AttestedCandidate, error) {
 	// size of the backing group.
@@ -140,7 +147,7 @@ func (table statementTable) attestedCandidate( //nolint:unused
 // effectiveMinimumBackingVotes adjusts the configured needed backing votes with the size of the backing group.
 //
 // groupLen is the size of the backing group.
-func effectiveMinimumBackingVotes(groupLen uint, configuredMinimumBackingVotes uint32) uint { //nolint:unused
+func effectiveMinimumBackingVotes(groupLen uint, configuredMinimumBackingVotes uint32) uint {
 	return min(groupLen, uint(configuredMinimumBackingVotes))
 }
 
@@ -172,6 +179,8 @@ type Summary struct {
 }
 
 // AttestedCandidate represents an attested-to candidate.
+//
+// TODO: test AttestedCandidate scale encode decode
 type AttestedCandidate struct {
 	// The group ID that the candidate is in.
 	GroupID parachaintypes.ParaID `scale:"1"`
