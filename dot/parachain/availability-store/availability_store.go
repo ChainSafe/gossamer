@@ -79,7 +79,7 @@ type AvailabilityStoreSubsystem struct {
 	wg     sync.WaitGroup
 
 	subSystemToOverseer    chan<- any
-	overseerToSubSystem    <-chan any
+	OverseerToSubSystem    <-chan any
 	availabilityStore      availabilityStore
 	finalizedBlockNumber   parachaintypes.BlockNumber
 	knownUnfinalizedBlocks knownUnfinalizedBlocks
@@ -434,7 +434,7 @@ func (*AvailabilityStoreSubsystem) Name() parachaintypes.SubSystemName {
 func (av *AvailabilityStoreSubsystem) processMessages() {
 	for {
 		select {
-		case msg := <-av.overseerToSubSystem:
+		case msg := <-av.OverseerToSubSystem:
 			logger.Infof("received message %T, %v", msg, msg)
 			switch msg := msg.(type) {
 			case QueryAvailableData:

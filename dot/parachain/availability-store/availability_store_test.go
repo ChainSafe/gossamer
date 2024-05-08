@@ -86,7 +86,7 @@ func setupTestDB(t *testing.T) database.Database {
 
 	dataBytes, err := scale.Marshal(meta)
 	require.NoError(t, err)
-	fmt.Printf("dataBytes: %v\n", dataBytes)
+
 	err = batch.meta.Put(testCandidateReceiptHash[:], dataBytes)
 	require.NoError(t, err)
 	err = batch.meta.Put(common.Hash{0x02}.ToBytes(), dataBytes)
@@ -900,7 +900,8 @@ func TestAvailabilityStoreSubsystem_noteBlockIncluded(t *testing.T) {
 				availabilityStore: *as,
 			},
 			args: args{
-				tx: tx,
+				tx:        tx,
+				candidate: testCandidateReceipt,
 			},
 			expected: map[string][]byte{
 				string([]byte{99, 104, 117, 110, 107, 190, 125, 73, 215, 144, 39, 58, 150, 230, 192, 195, 193, 110,
@@ -913,8 +914,13 @@ func TestAvailabilityStoreSubsystem_noteBlockIncluded(t *testing.T) {
 				string([]byte{109, 101, 116, 97, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 					0, 0, 0, 0, 0, 0, 0, 0, 0}): {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0},
 				string([]byte{109, 101, 116, 97, 190, 125, 73, 215, 144, 39, 58, 150, 230, 192, 195, 193, 110, 209,
-					237, 104, 149, 255, 87, 165, 123, 87, 60, 126, 176, 129, 233, 174, 218, 120, 53, 245}): {0, 0, 0,
-					0, 0, 0, 0, 0, 0, 0, 12, 1, 1, 0},
+					237, 104, 149, 255, 87, 165, 123, 87, 60, 126, 176, 129, 233, 174, 218, 120, 53, 245}): {1, 0, 0,
+					0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 1, 1, 0},
+				string([]byte{117, 110, 102, 105, 110, 97, 108, 105, 122, 101, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 125, 73, 215,
+					144, 39, 58, 150, 230, 192, 195, 193, 110, 209, 237, 104, 149, 255, 87, 165, 123, 87, 60, 126,
+					176, 129, 233, 174, 218, 120, 53, 245}): {},
 			},
 		},
 	}
@@ -961,7 +967,7 @@ func newTestHarness(t *testing.T) *testHarness {
 
 	require.NoError(t, err)
 
-	availabilityStore.overseerToSubSystem = harness.overseer.RegisterSubsystem(availabilityStore)
+	availabilityStore.OverseerToSubSystem = harness.overseer.RegisterSubsystem(availabilityStore)
 
 	return harness
 }
