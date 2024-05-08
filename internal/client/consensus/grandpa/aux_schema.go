@@ -7,6 +7,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/internal/client/api"
+	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"golang.org/x/exp/constraints"
@@ -21,17 +24,17 @@ var (
 	errValueNotFound = errors.New("value not found")
 )
 
-type writeAux func(insertions []KeyValue) error
+type writeAux func(insertions []api.KeyValue) error
 
-type getGenesisAuthorities[ID AuthorityID] func() ([]Authority[ID], error)
+type getGenesisAuthorities func() (primitives.AuthorityList, error)
 
-type persistentData[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature] struct {
-	authoritySet SharedAuthoritySet[H, N, ID]
-	setState     SharedVoterSetState[H, N, ID, Sig]
+type persistentData[H comparable, N constraints.Unsigned] struct {
+	authoritySet SharedAuthoritySet[H, N]
+	setState     SharedVoterSetState[H, N]
 }
 
-func loadDecoded(store AuxStore, key []byte, destination any) error {
-	encodedValue, err := store.Get(key)
+func loadDecoded(store api.AuxStore, key []byte, destination any) error {
+	encodedValue, err := store.GetAux(key)
 	if err != nil {
 		return err
 	}
@@ -48,23 +51,23 @@ func loadDecoded(store AuxStore, key []byte, destination any) error {
 	return errValueNotFound
 }
 
-func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature](
-	store AuxStore,
+func loadPersistent[H comparable, N constraints.Unsigned](
+	store api.AuxStore,
 	genesisHash H,
 	genesisNumber N,
-	genesisAuths getGenesisAuthorities[ID]) (*persistentData[H, N, ID, Sig], error) {
+	genesisAuths getGenesisAuthorities,
+) (*persistentData[H, N], error) {
 	genesis := grandpa.HashNumber[H, N]{Hash: genesisHash, Number: genesisNumber}
 	makeGenesisRound := grandpa.NewRoundState[H, N]
 
-	authSet := &AuthoritySet[H, N, ID]{}
+	authSet := &AuthoritySet[H, N]{}
 	err := loadDecoded(store, authoritySetKey, authSet)
 	if err != nil && !errors.Is(err, errValueNotFound) {
 		return nil, err
 	}
 
 	if !errors.Is(err, errValueNotFound) {
-		setStateOld := voterSetState[H, N, ID, Sig]{}
-		setState := setStateOld.New()
+		setState := voterSetState[H, N]{}
 		err = loadDecoded(store, setStateKey, &setState)
 		if err != nil && !errors.Is(err, errValueNotFound) {
 			return nil, err
@@ -74,7 +77,7 @@ func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 			state := makeGenesisRound(genesis)
 			base := state.PrevoteGHOST
 			if base != nil {
-				state, err := NewLiveVoterSetState[H, N, ID, Sig](authSet.SetID, *authSet, *base)
+				state, err := NewLiveVoterSetState[H, N](authSet.SetID, *authSet, *base)
 				if err != nil {
 					return nil, err
 				}
@@ -84,9 +87,9 @@ func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 			}
 		}
 
-		return &persistentData[H, N, ID, Sig]{
-			authoritySet: SharedAuthoritySet[H, N, ID]{inner: *authSet},
-			setState: SharedVoterSetState[H, N, ID, Sig]{Inner: sharedVoterSetState[H, N, ID, Sig]{
+		return &persistentData[H, N]{
+			authoritySet: SharedAuthoritySet[H, N]{inner: *authSet},
+			setState: SharedVoterSetState[H, N]{Inner: sharedVoterSetState[H, N]{
 				Inner: setState,
 			}},
 		}, nil
@@ -108,24 +111,24 @@ func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 		panic("state is for completed round; completed rounds must have a prevote ghost; qed.")
 	}
 
-	genesisState, err := NewLiveVoterSetState[H, N, ID, Sig](0, *genesisSet, *base)
+	genesisState, err := NewLiveVoterSetState[H, N](0, *genesisSet, *base)
 	if err != nil {
 		return nil, err
 	}
 
-	insert := []KeyValue{
-		{authoritySetKey, scale.MustMarshal(*genesisSet)},
-		{setStateKey, scale.MustMarshal(genesisState)},
+	insert := []api.KeyValue{
+		{Key: authoritySetKey, Value: scale.MustMarshal(*genesisSet)},
+		{Key: setStateKey, Value: scale.MustMarshal(genesisState)},
 	}
 
-	err = store.Insert(insert, nil)
+	err = store.InsertAux(insert, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return &persistentData[H, N, ID, Sig]{
-		authoritySet: SharedAuthoritySet[H, N, ID]{inner: *genesisSet},
-		setState: SharedVoterSetState[H, N, ID, Sig]{Inner: sharedVoterSetState[H, N, ID, Sig]{
+	return &persistentData[H, N]{
+		authoritySet: SharedAuthoritySet[H, N]{inner: *genesisSet},
+		setState: SharedVoterSetState[H, N]{Inner: sharedVoterSetState[H, N]{
 			Inner: genesisState,
 		}},
 	}, nil
@@ -136,9 +139,9 @@ func loadPersistent[H comparable, N constraints.Unsigned, ID AuthorityID, Sig Au
 // If there has just been a handoff, pass a `new_set` parameter that describes the
 // handoff. `set` in all cases should reflect the current authority set, with all
 // changes and handoffs applied.
-func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature](
-	set AuthoritySet[H, N, ID],
-	newSet *NewAuthoritySetStruct[H, N, ID],
+func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID primitives.AuthorityID](
+	set AuthoritySet[H, N],
+	newSet *newAuthoritySet[H, N],
 	write writeAux) error {
 	encodedAuthSet, err := scale.Marshal(set)
 	if err != nil {
@@ -153,7 +156,7 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 			Hash:   newSet.CanonHash,
 			Number: newSet.CanonNumber,
 		}
-		setState, err := NewLiveVoterSetState[H, N, ID, Sig](uint64(newSet.SetId), set, genesisState)
+		setState, err := NewLiveVoterSetState[H, N](uint64(newSet.SetId), set, genesisState)
 		if err != nil {
 			return err
 		}
@@ -163,9 +166,9 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 			return err
 		}
 
-		insert := []KeyValue{
-			{authoritySetKey, encodedAuthSet},
-			{setStateKey, encodedVoterSet},
+		insert := []api.KeyValue{
+			{Key: authoritySetKey, Value: encodedAuthSet},
+			{Key: setStateKey, Value: encodedVoterSet},
 		}
 		err = write(insert)
 		if err != nil {
@@ -173,8 +176,8 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 		}
 
 	} else {
-		insert := []KeyValue{
-			{authoritySetKey, encodedAuthSet},
+		insert := []api.KeyValue{
+			{Key: authoritySetKey, Value: encodedAuthSet},
 		}
 
 		err = write(insert)
@@ -191,20 +194,18 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 // as we finalize new blocks, this makes sure that we don't store useless justifications
 // but can always prove finality of the latest block.
 func updateBestJustification[
-	Hash constraints.Ordered,
-	N constraints.Unsigned,
-	S comparable,
-	ID AuthorityID,
+	Hash runtime.Hash,
+	N runtime.Number,
 ](
-	justification GrandpaJustification[Hash, N, S, ID],
+	justification GrandpaJustification[Hash, N],
 	write writeAux) error {
 	encodedJustificaiton, err := scale.Marshal(justification)
 	if err != nil {
 		return fmt.Errorf("marshalling: %w", err)
 	}
 
-	insert := []KeyValue{
-		{bestJustification, encodedJustificaiton},
+	insert := []api.KeyValue{
+		{Key: bestJustification, Value: encodedJustificaiton},
 	}
 	err = write(insert)
 	if err != nil {
@@ -215,13 +216,11 @@ func updateBestJustification[
 
 // BestJustification  Fetch the justification for the latest block finalized by GRANDPA, if any.
 func BestJustification[
-	Hash constraints.Ordered,
-	N constraints.Unsigned,
-	S comparable,
-	ID AuthorityID,
-	H Header[Hash, N],
-](store AuxStore) (*GrandpaJustification[Hash, N, S, ID], error) {
-	justification := decodeGrandpaJustification[Hash, N, S, ID, H]{}
+	Hash runtime.Hash,
+	N runtime.Number,
+	Hasher runtime.Hasher[Hash],
+](store api.AuxStore) (*GrandpaJustification[Hash, N], error) {
+	justification := decodeGrandpaJustification[Hash, N, Hasher]{}
 	err := loadDecoded(store, bestJustification, &justification)
 	if err != nil {
 		return nil, err
@@ -231,15 +230,15 @@ func BestJustification[
 }
 
 // WriteVoterSetState Write voter set state.
-func WriteVoterSetState[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature](
-	setState voterSetState[H, N, ID, Sig],
+func WriteVoterSetState[H comparable, N constraints.Unsigned](
+	setState voterSetState[H, N],
 	write writeAux) error {
 	encodedVoterSet, err := scale.Marshal(setState)
 	if err != nil {
 		return err
 	}
-	insert := []KeyValue{
-		{setStateKey, encodedVoterSet},
+	insert := []api.KeyValue{
+		{Key: setStateKey, Value: encodedVoterSet},
 	}
 	err = write(insert)
 	if err != nil {
@@ -249,8 +248,8 @@ func WriteVoterSetState[H comparable, N constraints.Unsigned, ID AuthorityID, Si
 }
 
 // WriteConcludedRound Write concluded round.
-func WriteConcludedRound[H comparable, N constraints.Unsigned, ID AuthorityID, Sig AuthoritySignature](
-	roundData completedRound[H, N, ID, Sig],
+func WriteConcludedRound[H comparable, N constraints.Unsigned](
+	roundData completedRound[H, N],
 	write writeAux) error {
 	key := concludedRounds
 	encodedRoundNumber, err := scale.Marshal(roundData.Number)
@@ -265,8 +264,8 @@ func WriteConcludedRound[H comparable, N constraints.Unsigned, ID AuthorityID, S
 		return err
 	}
 
-	insert := []KeyValue{
-		{key, encRoundData},
+	insert := []api.KeyValue{
+		{Key: key, Value: encRoundData},
 	}
 	err = write(insert)
 	if err != nil {

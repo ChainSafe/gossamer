@@ -6,8 +6,10 @@ package grandpa
 import (
 	"errors"
 
+	"github.com/ChainSafe/gossamer/internal/client/api"
+	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"golang.org/x/exp/constraints"
 )
 
 // GRANDPA block finality proof generation and check.
@@ -42,16 +44,12 @@ const maxUnknownHeaders = 100_000
 
 // FinalityProofProvider Finality proof provider for serving network requests.
 type FinalityProofProvider[
-	BE Backend[Hash, N, H, B],
-	Hash constraints.Ordered,
-	N constraints.Unsigned,
-	S comparable,
-	ID AuthorityID,
-	H Header[Hash, N],
-	B BlockchainBackend[Hash, N, H],
+	Hash runtime.Hash,
+	N runtime.Number,
+	Hasher runtime.Hasher[Hash],
 ] struct {
-	backend            BE
-	sharedAuthoritySet *SharedAuthoritySet[Hash, N, ID]
+	backend            api.Backend[Hash, N, Hasher]
+	sharedAuthoritySet *SharedAuthoritySet[Hash, N]
 }
 
 // NewFinalityProofProvider Create new finality proof provider using:
@@ -60,17 +58,14 @@ type FinalityProofProvider[
 // - authorityProvider for calling and proving runtime methods.
 // - sharedAuthoritySet for accessing authority set data
 func NewFinalityProofProvider[
-	BE Backend[Hash, N, H, B],
-	Hash constraints.Ordered,
-	N constraints.Unsigned,
-	S comparable,
-	ID AuthorityID,
-	H Header[Hash, N],
-	B BlockchainBackend[Hash, N, H],
+	Hash runtime.Hash,
+	N runtime.Number,
+	Hasher runtime.Hasher[Hash],
 ](
-	backend BE,
-	sharedAuthSet *SharedAuthoritySet[Hash, N, ID]) *FinalityProofProvider[BE, Hash, N, S, ID, H, B] {
-	return &FinalityProofProvider[BE, Hash, N, S, ID, H, B]{
+	backend api.Backend[Hash, N, Hasher],
+	sharedAuthSet *SharedAuthoritySet[Hash, N],
+) *FinalityProofProvider[Hash, N, Hasher] {
+	return &FinalityProofProvider[Hash, N, Hasher]{
 		backend:            backend,
 		sharedAuthoritySet: sharedAuthSet,
 	}
@@ -78,7 +73,7 @@ func NewFinalityProofProvider[
 
 // ProveFinality Prove finality for the given block number by returning a Justification for the last block of
 // the authority set in bytes.
-func (provider FinalityProofProvider[BE, H, N, S, ID, Header, B]) ProveFinality(block N) (*[]byte, error) {
+func (provider FinalityProofProvider[Hash, N, Hasher]) ProveFinality(block N) (*[]byte, error) {
 	proof, err := provider.proveFinalityProof(block, true)
 	if err != nil {
 		return nil, err
@@ -100,14 +95,14 @@ func (provider FinalityProofProvider[BE, H, N, S, ID, Header, B]) ProveFinality(
 //
 // If `collectUnknownHeaders` is true, the finality proof will include all headers from the
 // requested block until the block the justification refers to.
-func (provider FinalityProofProvider[BE, Hash, N, S, ID, H, B]) proveFinalityProof(
+func (provider FinalityProofProvider[Hash, N, Hasher]) proveFinalityProof(
 	block N,
-	collectUnknownHeaders bool) (*FinalityProof[Hash, N, H], error) {
+	collectUnknownHeaders bool) (*FinalityProof[Hash, N], error) {
 	if provider.sharedAuthoritySet == nil {
 		return nil, nil
 	}
 
-	return proveFinality[BE, Hash, N, S, ID, H, B](
+	return proveFinality[Hash, N, Hasher](
 		provider.backend,
 		provider.sharedAuthoritySet.inner.AuthoritySetChanges,
 		block,
@@ -118,13 +113,13 @@ func (provider FinalityProofProvider[BE, Hash, N, S, ID, H, B]) proveFinalityPro
 // FinalityProof Finality for block B is proved by providing:
 // 1) the justification for the descendant block F;
 // 2) headers sub-chain (B; F] if B != F;
-type FinalityProof[Hash constraints.Ordered, N constraints.Unsigned, H Header[Hash, N]] struct {
+type FinalityProof[Hash runtime.Hash, N runtime.Number] struct {
 	// The hash of block F for which justification is provided
 	Block Hash
 	// Justification of the block F
 	Justification []byte
 	// The set of headers in the range (B; F] that we believe are unknown to the caller. Ordered.
-	UnknownHeaders []H
+	UnknownHeaders []runtime.Header[N, Hash]
 }
 
 // Prove finality for the given block number by returning a justification for the last block of
@@ -134,19 +129,15 @@ type FinalityProof[Hash constraints.Ordered, N constraints.Unsigned, H Header[Ha
 // If `collectUnknownHeaders` is true, the finality proof will include all headers from the
 // requested block until the block the justification refers to.
 func proveFinality[
-	BE Backend[Hash, N, H, B],
-	Hash constraints.Ordered,
-	N constraints.Unsigned,
-	S comparable,
-	ID AuthorityID,
-	H Header[Hash, N],
-	B BlockchainBackend[Hash, N, H],
+	Hash runtime.Hash,
+	N runtime.Number,
+	Hasher runtime.Hasher[Hash],
 ](
-	backend BE,
+	backend api.Backend[Hash, N, Hasher],
 	authSetChanges AuthoritySetChanges[N],
 	block N,
 	collectUnknownHeaders bool,
-) (*FinalityProof[Hash, N, H], error) {
+) (*FinalityProof[Hash, N], error) {
 	// Early-return if we are sure that there are no blocks finalized that cover the requested
 	// block.
 	finalizedNumber := backend.Blockchain().Info().FinalizedNumber
@@ -165,7 +156,7 @@ func proveFinality[
 
 	switch val := authSetChangeID.(type) {
 	case authoritySetChangeIDLatest:
-		justification, err := BestJustification[Hash, N, S, ID, H](backend)
+		justification, err := BestJustification[Hash, N, Hasher](backend)
 		if err != nil && !errors.Is(err, errValueNotFound) {
 			return nil, err
 		}
@@ -175,7 +166,7 @@ func proveFinality[
 			if err != nil {
 				return nil, err
 			}
-			justBlock = justification.Target().number
+			justBlock = justification.Target().Number
 		} else {
 			logger.Trace("No justification found for the authoritySetChangeIDLatest finalized block. Returning empty proof")
 			return nil, nil
@@ -193,7 +184,7 @@ func proveFinality[
 				block)
 			return nil, nil //nolint
 		}
-		justification := justifications.IntoJustification(GrandpaEngineID)
+		justification := justifications.IntoJustification(primitives.GrandpaEngineID)
 		if justification != nil {
 			encJustification = *justification
 			justBlock = val.inner.BlockNumber
@@ -211,7 +202,7 @@ func proveFinality[
 		panic("authoritySetChangeIDUnknown type for authSetChangeID")
 	}
 
-	var headers []H
+	var headers []runtime.Header[N, Hash]
 	if collectUnknownHeaders {
 		// Collect all headers from the requested block until the last block of the set
 		current := block + 1
@@ -238,7 +229,7 @@ func proveFinality[
 		return nil, err
 	}
 
-	return &FinalityProof[Hash, N, H]{
+	return &FinalityProof[Hash, N]{
 		Block:          blockHash,
 		Justification:  encJustification,
 		UnknownHeaders: headers,

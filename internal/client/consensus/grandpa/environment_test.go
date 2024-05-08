@@ -6,6 +6,7 @@ package grandpa
 import (
 	"testing"
 
+	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
@@ -13,11 +14,10 @@ import (
 
 func TestSharedVoterSetState_hasVoted(t *testing.T) {
 	// Has Not Voted
-	hasNotVoted := hasVoted[string, uint, dummyAuthID]{}
-	hasNotVoted = hasNotVoted.New()
-	err := hasNotVoted.Set(no{})
+	hasNotVoted := hasVoted[string, uint]{}
+	err := hasNotVoted.SetValue(no{})
 	require.NoError(t, err)
-	voterSetState := *NewVoterSetState[string, uint, dummyAuthID, uint]()
+	voterSetState := *NewVoterSetState[string, uint]()
 	sharedVoterSetState := NewSharedVoterSetState[string, uint](voterSetState)
 	voted, err := sharedVoterSetState.hasVoted(0)
 	require.NoError(t, err)
@@ -25,31 +25,29 @@ func TestSharedVoterSetState_hasVoted(t *testing.T) {
 
 	// Has Voted
 	vote := vote[string, uint]{}
-	vote = vote.New()
-	err = vote.Set(propose[string, uint]{})
+	err = vote.SetValue(propose[string, uint]{})
 	require.NoError(t, err)
 
-	yes := yes[string, uint, dummyAuthID]{
-		AuthId: key,
+	yes := yes[string, uint]{
+		AuthId: newTestPublic(t, 1),
 		Vote:   vote,
 	}
 
-	hasIndeedVoted := hasVoted[string, uint, dummyAuthID]{}
-	hasIndeedVoted = hasIndeedVoted.New()
-	err = hasIndeedVoted.Set(yes)
+	hasIndeedVoted := hasVoted[string, uint]{}
+	err = hasIndeedVoted.SetValue(yes)
 	require.NoError(t, err)
 
-	example := make(map[uint64]hasVoted[string, uint, dummyAuthID])
+	example := make(map[uint64]hasVoted[string, uint])
 	example[1] = hasIndeedVoted
-	newCurrentRounds := CurrentRounds[string, uint, dummyAuthID](
+	newCurrentRounds := CurrentRounds[string, uint](
 		example,
 	)
-	liveState := voterSetStateLive[string, uint, dummyAuthID, uint]{
+	liveState := voterSetStateLive[string, uint]{
 		CurrentRounds: newCurrentRounds,
 	}
 
-	newVoterSetState := *NewVoterSetState[string, uint, dummyAuthID, uint]()
-	err = newVoterSetState.Set(liveState)
+	newVoterSetState := *NewVoterSetState[string, uint]()
+	err = newVoterSetState.SetValue(liveState)
 	require.NoError(t, err)
 
 	sharedVoterSetState = NewSharedVoterSetState[string, uint](newVoterSetState)
@@ -64,7 +62,7 @@ func TestCompleteRoundEncoding(t *testing.T) {
 		Number: 1,
 	}
 
-	compRound := completedRound[string, uint, dummyAuthID, uint]{
+	compRound := completedRound[string, uint]{
 		Number: 1,
 		State: grandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
@@ -78,18 +76,17 @@ func TestCompleteRoundEncoding(t *testing.T) {
 	enc, err := scale.Marshal(compRound)
 	require.NoError(t, err)
 
-	newCompletedRound := completedRound[string, uint, dummyAuthID, uint]{}
+	newCompletedRound := completedRound[string, uint]{}
 	err = scale.Unmarshal(enc, &newCompletedRound)
 	require.NoError(t, err)
 	require.Equal(t, compRound, newCompletedRound)
 }
 
 func TestCompletedRoundsEncoding(t *testing.T) {
-	authorities := AuthoritySet[string, uint, dummyAuthID]{
-		CurrentAuthorities:     []Authority[dummyAuthID]{},
+	authorities := AuthoritySet[string, uint]{
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[string, uint, dummyAuthID](),
-		PendingForcedChanges:   []PendingChange[string, uint, dummyAuthID]{},
+		PendingStandardChanges: NewChangeTree[string, uint](),
+		PendingForcedChanges:   []PendingChange[string, uint]{},
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
@@ -98,7 +95,7 @@ func TestCompletedRoundsEncoding(t *testing.T) {
 		Number: 1,
 	}
 
-	completedRound := completedRound[string, uint, dummyAuthID, uint]{
+	completedRound := completedRound[string, uint]{
 		Number: 1,
 		State: grandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
@@ -113,7 +110,7 @@ func TestCompletedRoundsEncoding(t *testing.T) {
 	enc, err := scale.Marshal(compRounds)
 	require.NoError(t, err)
 
-	var newCompletedRounds completedRounds[string, uint, dummyAuthID, uint]
+	var newCompletedRounds completedRounds[string, uint]
 	err = scale.Unmarshal(enc, &newCompletedRounds)
 	require.NoError(t, err)
 	require.Equal(t, compRounds, newCompletedRounds)
@@ -125,7 +122,7 @@ func TestCompletedRounds_Iter(t *testing.T) {
 		Number: 1,
 	}
 
-	completedRound0 := completedRound[string, uint, dummyAuthID, uint]{
+	completedRound0 := completedRound[string, uint]{
 		Number: 0,
 		State: grandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
@@ -136,7 +133,7 @@ func TestCompletedRounds_Iter(t *testing.T) {
 		Base: dummyHashNumber,
 	}
 
-	completedRound1 := completedRound[string, uint, dummyAuthID, uint]{
+	completedRound1 := completedRound[string, uint]{
 		Number: 1,
 		State: grandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
@@ -147,7 +144,7 @@ func TestCompletedRounds_Iter(t *testing.T) {
 		Base: dummyHashNumber,
 	}
 
-	completedRound2 := completedRound[string, uint, dummyAuthID, uint]{
+	completedRound2 := completedRound[string, uint]{
 		Number: 2,
 		State: grandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
@@ -157,17 +154,17 @@ func TestCompletedRounds_Iter(t *testing.T) {
 		},
 		Base: dummyHashNumber,
 	}
-	rounds := make([]completedRound[string, uint, dummyAuthID, uint], 0, 3)
+	rounds := make([]completedRound[string, uint], 0, 3)
 	rounds = append(rounds, completedRound0)
 	rounds = append(rounds, completedRound1)
 	rounds = append(rounds, completedRound2)
 
-	expRounds := make([]completedRound[string, uint, dummyAuthID, uint], 0, 3)
+	expRounds := make([]completedRound[string, uint], 0, 3)
 	expRounds = append(expRounds, completedRound2)
 	expRounds = append(expRounds, completedRound1)
 	expRounds = append(expRounds, completedRound0)
 
-	compRounds := completedRounds[string, uint, dummyAuthID, uint]{
+	compRounds := completedRounds[string, uint]{
 		Rounds: rounds,
 	}
 
@@ -176,11 +173,10 @@ func TestCompletedRounds_Iter(t *testing.T) {
 }
 
 func TestCompletedRounds_Last(t *testing.T) {
-	authorities := AuthoritySet[string, uint, dummyAuthID]{
-		CurrentAuthorities:     []Authority[dummyAuthID]{},
+	authorities := AuthoritySet[string, uint]{
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[string, uint, dummyAuthID](),
-		PendingForcedChanges:   []PendingChange[string, uint, dummyAuthID]{},
+		PendingStandardChanges: NewChangeTree[string, uint](),
+		PendingForcedChanges:   []PendingChange[string, uint]{},
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
@@ -189,7 +185,7 @@ func TestCompletedRounds_Last(t *testing.T) {
 		Number: 1,
 	}
 
-	compRound := completedRound[string, uint, dummyAuthID, uint]{
+	compRound := completedRound[string, uint]{
 		Number: 1,
 		State: grandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
@@ -203,16 +199,15 @@ func TestCompletedRounds_Last(t *testing.T) {
 	lastCompletedRound := compRounds.last()
 	require.Equal(t, compRound, lastCompletedRound)
 
-	emptyCompletedRounds := completedRounds[string, uint, dummyAuthID, uint]{}
+	emptyCompletedRounds := completedRounds[string, uint]{}
 	require.Panics(t, func() { emptyCompletedRounds.last() }, "last did not panic")
 }
 
 func TestCompletedRounds_Push(t *testing.T) {
-	authorities := AuthoritySet[string, uint, dummyAuthID]{
-		CurrentAuthorities:     []Authority[dummyAuthID]{},
+	authorities := AuthoritySet[string, uint]{
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[string, uint, dummyAuthID](),
-		PendingForcedChanges:   []PendingChange[string, uint, dummyAuthID]{},
+		PendingStandardChanges: NewChangeTree[string, uint](),
+		PendingForcedChanges:   []PendingChange[string, uint]{},
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
@@ -221,7 +216,7 @@ func TestCompletedRounds_Push(t *testing.T) {
 		Number: 1,
 	}
 
-	completedRound0 := completedRound[string, uint, dummyAuthID, uint]{
+	completedRound0 := completedRound[string, uint]{
 		Number: 0,
 		State: grandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
@@ -232,7 +227,7 @@ func TestCompletedRounds_Push(t *testing.T) {
 		Base: dummyHashNumber,
 	}
 
-	completedRound1 := completedRound[string, uint, dummyAuthID, uint]{
+	completedRound1 := completedRound[string, uint]{
 		Number: 1,
 		State: grandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
@@ -243,7 +238,7 @@ func TestCompletedRounds_Push(t *testing.T) {
 		Base: dummyHashNumber,
 	}
 
-	completedRound2 := completedRound[string, uint, dummyAuthID, uint]{
+	completedRound2 := completedRound[string, uint]{
 		Number: 2,
 		State: grandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
@@ -265,24 +260,22 @@ func TestCompletedRounds_Push(t *testing.T) {
 }
 
 func TestCurrentRoundsEncoding(t *testing.T) {
-	currentRounds := CurrentRounds[string, uint, dummyAuthID](
-		make(map[uint64]hasVoted[string, uint, dummyAuthID]),
+	currentRounds := CurrentRounds[string, uint](
+		make(map[uint64]hasVoted[string, uint]),
 	)
 
-	hv := hasVoted[string, uint, dummyAuthID]{}
-	hv = hv.New()
-	err := hv.Set(no{})
+	hv := hasVoted[string, uint]{}
+	err := hv.SetValue(no{})
 	require.NoError(t, err)
 	currentRounds[1] = hv
 
 	enc, err := scale.Marshal(currentRounds)
 	require.NoError(t, err)
 
-	hasVotedNew := hasVoted[string, uint, dummyAuthID]{}
-	hasVotedNew = hv.New()
-	example := make(map[uint64]hasVoted[string, uint, dummyAuthID])
+	hasVotedNew := hasVoted[string, uint]{}
+	example := make(map[uint64]hasVoted[string, uint])
 	example[1] = hasVotedNew
-	newCurrentRounds := CurrentRounds[string, uint, dummyAuthID](
+	newCurrentRounds := CurrentRounds[string, uint](
 		example,
 	)
 	err = scale.Unmarshal(enc, &newCurrentRounds)
@@ -291,14 +284,14 @@ func TestCurrentRoundsEncoding(t *testing.T) {
 }
 
 func TestVoterSetStateEncoding(t *testing.T) {
-	authorities := AuthoritySet[string, uint, dummyAuthID]{}
+	authorities := AuthoritySet[string, uint]{}
 
 	dummyHashNumber := grandpa.HashNumber[string, uint]{
 		Hash:   "a",
 		Number: 1,
 	}
 
-	compRound := completedRound[string, uint, dummyAuthID, uint]{
+	compRound := completedRound[string, uint]{
 		Number: 1,
 		State: grandpa.RoundState[string, uint]{
 			PrevoteGHOST: &dummyHashNumber,
@@ -309,24 +302,22 @@ func TestVoterSetStateEncoding(t *testing.T) {
 		Base: dummyHashNumber,
 	}
 
-	completedRounds := NewCompletedRounds[string, uint, dummyAuthID, uint](compRound, 1, authorities)
-	currentRounds := CurrentRounds[string, uint, dummyAuthID](
-		make(map[uint64]hasVoted[string, uint, dummyAuthID]),
-	)
+	completedRounds := NewCompletedRounds[string, uint](compRound, 1, authorities)
+	var currentRounds CurrentRounds[string, uint]
 
-	liveState := voterSetStateLive[string, uint, dummyAuthID, uint]{
+	liveState := voterSetStateLive[string, uint]{
 		CompletedRounds: completedRounds,
 		CurrentRounds:   currentRounds,
 	}
 
-	voterSetState := *NewVoterSetState[string, uint, dummyAuthID, uint]()
-	err := voterSetState.Set(liveState)
+	voterSetState := *NewVoterSetState[string, uint]()
+	err := voterSetState.SetValue(liveState)
 	require.NoError(t, err)
 
 	enc, err := scale.Marshal(voterSetState)
 	require.NoError(t, err)
 
-	newVoterSetState := *NewVoterSetState[string, uint, dummyAuthID, uint]()
+	newVoterSetState := *NewVoterSetState[string, uint]()
 	err = scale.Unmarshal(enc, &newVoterSetState)
 	require.NoError(t, err)
 
@@ -335,16 +326,15 @@ func TestVoterSetStateEncoding(t *testing.T) {
 
 	newVal, err := newVoterSetState.Value()
 	require.NoError(t, err)
-	require.Equal(t, oldVal.(voterSetStateLive[string, uint, dummyAuthID, uint]),
-		newVal.(voterSetStateLive[string, uint, dummyAuthID, uint]))
+	require.Equal(t, oldVal.(voterSetStateLive[string, uint]),
+		newVal.(voterSetStateLive[string, uint]))
 }
 
 func TestVoterSetState_Live(t *testing.T) {
-	authorities := AuthoritySet[string, uint, dummyAuthID]{
-		CurrentAuthorities:     []Authority[dummyAuthID]{},
+	authorities := AuthoritySet[string, uint]{
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[string, uint, dummyAuthID](),
-		PendingForcedChanges:   []PendingChange[string, uint, dummyAuthID]{},
+		PendingStandardChanges: NewChangeTree[string, uint](),
+		PendingForcedChanges:   []PendingChange[string, uint]{},
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 
@@ -353,24 +343,23 @@ func TestVoterSetState_Live(t *testing.T) {
 		Number: 1,
 	}
 
-	liveSetState, err := NewLiveVoterSetState[string, uint, dummyAuthID, uint](5, authorities, dummyHashNumber)
+	liveSetState, err := NewLiveVoterSetState[string, uint](5, authorities, dummyHashNumber)
 	require.NoError(t, err)
 
 	live, err := liveSetState.Value()
 	require.NoError(t, err)
 
-	val, ok := live.(voterSetStateLive[string, uint, dummyAuthID, uint])
+	val, ok := live.(voterSetStateLive[string, uint])
 	require.True(t, ok)
 	require.Equal(t, uint64(5), val.CompletedRounds.SetId)
 	require.Equal(t, uint64(0), val.CompletedRounds.Rounds[0].Number)
 }
 
 func TestVoterSetState_CompletedRounds(t *testing.T) {
-	authorities := AuthoritySet[string, uint, dummyAuthID]{
-		CurrentAuthorities:     []Authority[dummyAuthID]{},
+	authorities := AuthoritySet[string, uint]{
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[string, uint, dummyAuthID](),
-		PendingForcedChanges:   []PendingChange[string, uint, dummyAuthID]{},
+		PendingStandardChanges: NewChangeTree[string, uint](),
+		PendingForcedChanges:   []PendingChange[string, uint]{},
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 	dummyHashNumber := grandpa.HashNumber[string, uint]{
@@ -378,20 +367,20 @@ func TestVoterSetState_CompletedRounds(t *testing.T) {
 		Number: 1,
 	}
 	state := grandpa.NewRoundState[string, uint](dummyHashNumber)
-	completedRounds := NewCompletedRounds[string, uint, dummyAuthID, uint](
-		completedRound[string, uint, dummyAuthID, uint]{
+	completedRounds := NewCompletedRounds[string, uint](
+		completedRound[string, uint]{
 			10,
 			state,
 			dummyHashNumber,
-			[]grandpa.SignedMessage[string, uint, dummyAuthID, uint]{},
+			[]primitives.SignedMessage[string, uint]{},
 		},
 		5,
 		authorities,
 	)
 
-	voterSetState := NewVoterSetState[string, uint, dummyAuthID, uint]()
+	voterSetState := NewVoterSetState[string, uint]()
 
-	err := voterSetState.Set(voterSetStateLive[string, uint, dummyAuthID, uint]{
+	err := voterSetState.SetValue(voterSetStateLive[string, uint]{
 		CompletedRounds: completedRounds,
 	})
 	require.NoError(t, err)
@@ -402,11 +391,10 @@ func TestVoterSetState_CompletedRounds(t *testing.T) {
 }
 
 func TestVoterSetState_LastCompletedRound(t *testing.T) {
-	authorities := AuthoritySet[string, uint, dummyAuthID]{
-		CurrentAuthorities:     []Authority[dummyAuthID]{},
+	authorities := AuthoritySet[string, uint]{
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[string, uint, dummyAuthID](),
-		PendingForcedChanges:   []PendingChange[string, uint, dummyAuthID]{},
+		PendingStandardChanges: NewChangeTree[string, uint](),
+		PendingForcedChanges:   []PendingChange[string, uint]{},
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 	dummyHashNumber := grandpa.HashNumber[string, uint]{
@@ -415,29 +403,29 @@ func TestVoterSetState_LastCompletedRound(t *testing.T) {
 	}
 	state := grandpa.NewRoundState[string, uint](dummyHashNumber)
 
-	originalCompletedRound := completedRound[string, uint, dummyAuthID, uint]{
+	originalCompletedRound := completedRound[string, uint]{
 		8,
 		state,
 		dummyHashNumber,
-		[]grandpa.SignedMessage[string, uint, dummyAuthID, uint]{},
+		[]primitives.SignedMessage[string, uint]{},
 	}
-	completedRounds := NewCompletedRounds[string, uint, dummyAuthID, uint](
+	completedRounds := NewCompletedRounds[string, uint](
 		originalCompletedRound,
 		5,
 		authorities,
 	)
 
-	addedCompletedRound := completedRound[string, uint, dummyAuthID, uint]{
+	addedCompletedRound := completedRound[string, uint]{
 		8,
 		state,
 		dummyHashNumber,
-		[]grandpa.SignedMessage[string, uint, dummyAuthID, uint]{},
+		[]primitives.SignedMessage[string, uint]{},
 	}
 
 	completedRounds.push(addedCompletedRound)
 
-	voterSetState := NewVoterSetState[string, uint, dummyAuthID, uint]()
-	err := voterSetState.Set(voterSetStatePaused[string, uint, dummyAuthID, uint]{
+	voterSetState := NewVoterSetState[string, uint]()
+	err := voterSetState.SetValue(voterSetStatePaused[string, uint]{
 		CompletedRounds: completedRounds,
 	})
 	require.NoError(t, err)
@@ -448,11 +436,10 @@ func TestVoterSetState_LastCompletedRound(t *testing.T) {
 }
 
 func TestVoterSetState_WithCurrentRound(t *testing.T) {
-	authorities := AuthoritySet[string, uint, dummyAuthID]{
-		CurrentAuthorities:     []Authority[dummyAuthID]{},
+	authorities := AuthoritySet[string, uint]{
 		SetID:                  1,
-		PendingStandardChanges: NewChangeTree[string, uint, dummyAuthID](),
-		PendingForcedChanges:   []PendingChange[string, uint, dummyAuthID]{},
+		PendingStandardChanges: NewChangeTree[string, uint](),
+		PendingForcedChanges:   []PendingChange[string, uint]{},
 		AuthoritySetChanges:    AuthoritySetChanges[uint]{},
 	}
 	dummyHashNumber := grandpa.HashNumber[string, uint]{
@@ -460,21 +447,21 @@ func TestVoterSetState_WithCurrentRound(t *testing.T) {
 		Number: 1,
 	}
 	state := grandpa.NewRoundState[string, uint](dummyHashNumber)
-	completedRounds := NewCompletedRounds[string, uint, dummyAuthID, uint](
-		completedRound[string, uint, dummyAuthID, uint]{
+	completedRounds := NewCompletedRounds[string, uint](
+		completedRound[string, uint]{
 			10,
 			state,
 			dummyHashNumber,
-			[]grandpa.SignedMessage[string, uint, dummyAuthID, uint]{},
+			[]primitives.SignedMessage[string, uint]{},
 		},
 		5,
 		authorities,
 	)
 
-	voterSetState := NewVoterSetState[string, uint, dummyAuthID, uint]()
+	voterSetState := NewVoterSetState[string, uint]()
 
 	// voterSetStatePaused
-	err := voterSetState.Set(voterSetStatePaused[string, uint, dummyAuthID, uint]{
+	err := voterSetState.SetValue(voterSetStatePaused[string, uint]{
 		CompletedRounds: completedRounds,
 	})
 	require.NoError(t, err)
@@ -483,7 +470,7 @@ func TestVoterSetState_WithCurrentRound(t *testing.T) {
 	require.Equal(t, "voter acting while in paused state", err.Error())
 
 	// voterSetStateLive: invalid round
-	err = voterSetState.Set(voterSetStateLive[string, uint, dummyAuthID, uint]{
+	err = voterSetState.SetValue(voterSetStateLive[string, uint]{
 		CompletedRounds: completedRounds,
 	})
 	require.NoError(t, err)
@@ -492,16 +479,15 @@ func TestVoterSetState_WithCurrentRound(t *testing.T) {
 	require.Equal(t, "voter acting on a live round we are not tracking", err.Error())
 
 	// Valid
-	currentRounds := CurrentRounds[string, uint, dummyAuthID](
-		make(map[uint64]hasVoted[string, uint, dummyAuthID]),
+	currentRounds := CurrentRounds[string, uint](
+		make(map[uint64]hasVoted[string, uint]),
 	)
 
-	hasVoted := hasVoted[string, uint, dummyAuthID]{}
-	hasVoted = hasVoted.New()
-	err = hasVoted.Set(no{})
+	hasVoted := hasVoted[string, uint]{}
+	err = hasVoted.SetValue(no{})
 	require.NoError(t, err)
 	currentRounds[1] = hasVoted
-	err = voterSetState.Set(voterSetStateLive[string, uint, dummyAuthID, uint]{
+	err = voterSetState.SetValue(voterSetStateLive[string, uint]{
 		CompletedRounds: completedRounds,
 		CurrentRounds:   currentRounds,
 	})
@@ -514,24 +500,21 @@ func TestVoterSetState_WithCurrentRound(t *testing.T) {
 
 func TestHasVotedEncoding(t *testing.T) {
 	vote := vote[string, uint]{}
-	vote = vote.New()
-	err := vote.Set(propose[string, uint]{})
+	err := vote.SetValue(propose[string, uint]{})
 	require.NoError(t, err)
 
-	yes := yes[string, uint, dummyAuthID]{
-		AuthId: key,
+	yes := yes[string, uint]{
+		AuthId: newTestPublic(t, 1),
 		Vote:   vote,
 	}
-	hv := hasVoted[string, uint, dummyAuthID]{}
-	hv = hv.New()
-	err = hv.Set(yes)
+	hv := hasVoted[string, uint]{}
+	err = hv.SetValue(yes)
 	require.NoError(t, err)
 
 	res, err := scale.Marshal(hv)
 	require.NoError(t, err)
 
-	newHasVoted := hasVoted[string, uint, dummyAuthID]{}
-	newHasVoted = hv.New()
+	newHasVoted := hasVoted[string, uint]{}
 	err = scale.Unmarshal(res, &newHasVoted)
 	require.NoError(t, err)
 	require.Equal(t, hv, newHasVoted)
@@ -543,16 +526,14 @@ func TestHasVoted_Propose(t *testing.T) {
 		TargetNumber: 2,
 	}
 	vote := vote[string, uint]{}
-	vote = vote.New()
-	err := vote.Set(propose[string, uint]{*primaryPropose})
+	err := vote.SetValue(propose[string, uint]{*primaryPropose})
 	require.NoError(t, err)
 
-	yes := yes[string, uint, dummyAuthID]{
+	yes := yes[string, uint]{
 		Vote: vote,
 	}
-	hasVoted := hasVoted[string, uint, dummyAuthID]{}
-	hasVoted = hasVoted.New()
-	err = hasVoted.Set(yes)
+	hasVoted := hasVoted[string, uint]{}
+	err = hasVoted.SetValue(yes)
 	require.NoError(t, err)
 
 	newPrimaryPropose := hasVoted.Propose()
@@ -565,16 +546,14 @@ func TestHasVoted_Prevote(t *testing.T) {
 		TargetNumber: 2,
 	}
 	voteVal := vote[string, uint]{}
-	voteVal = voteVal.New()
-	err := voteVal.Set(prevote[string, uint]{&grandpa.PrimaryPropose[string, uint]{}, *prevoteVal})
+	err := voteVal.SetValue(prevote[string, uint]{&grandpa.PrimaryPropose[string, uint]{}, *prevoteVal})
 	require.NoError(t, err)
 
-	y := yes[string, uint, dummyAuthID]{
+	y := yes[string, uint]{
 		Vote: voteVal,
 	}
-	hasVoted := hasVoted[string, uint, dummyAuthID]{}
-	hasVoted = hasVoted.New()
-	err = hasVoted.Set(y)
+	hasVoted := hasVoted[string, uint]{}
+	err = hasVoted.SetValue(y)
 	require.NoError(t, err)
 
 	newPrevote := hasVoted.Prevote()
@@ -585,15 +564,13 @@ func TestHasVoted_Prevote(t *testing.T) {
 		TargetNumber: 2,
 	}
 	proposeVote := vote[string, uint]{}
-	proposeVote = voteVal.New()
-	err = proposeVote.Set(propose[string, uint]{PrimaryPropose: *primaryPropose})
+	err = proposeVote.SetValue(propose[string, uint]{PrimaryPropose: *primaryPropose})
 	require.NoError(t, err)
 
-	y = yes[string, uint, dummyAuthID]{
+	y = yes[string, uint]{
 		Vote: proposeVote,
 	}
-	hasVoted = hasVoted.New()
-	err = hasVoted.Set(y)
+	err = hasVoted.SetValue(y)
 	require.NoError(t, err)
 
 	newPrevote = hasVoted.Prevote()
@@ -606,19 +583,17 @@ func TestHasVoted_Precommit(t *testing.T) {
 		TargetNumber: 2,
 	}
 	voteVal := vote[string, uint]{}
-	voteVal = voteVal.New()
-	err := voteVal.Set(precommit[string, uint]{
+	err := voteVal.SetValue(precommit[string, uint]{
 		&grandpa.PrimaryPropose[string, uint]{},
 		grandpa.Prevote[string, uint]{},
 		*precommitVal})
 	require.NoError(t, err)
 
-	y := yes[string, uint, dummyAuthID]{
+	y := yes[string, uint]{
 		Vote: voteVal,
 	}
-	hasVoted := hasVoted[string, uint, dummyAuthID]{}
-	hasVoted = hasVoted.New()
-	err = hasVoted.Set(y)
+	hasVoted := hasVoted[string, uint]{}
+	err = hasVoted.SetValue(y)
 	require.NoError(t, err)
 
 	newCommit := hasVoted.Precommit()
@@ -629,15 +604,13 @@ func TestHasVoted_Precommit(t *testing.T) {
 		TargetNumber: 2,
 	}
 	proposeVote := vote[string, uint]{}
-	proposeVote = proposeVote.New()
-	err = proposeVote.Set(propose[string, uint]{PrimaryPropose: *primaryPropose})
+	err = proposeVote.SetValue(propose[string, uint]{PrimaryPropose: *primaryPropose})
 	require.NoError(t, err)
 
-	y = yes[string, uint, dummyAuthID]{
+	y = yes[string, uint]{
 		Vote: proposeVote,
 	}
-	hasVoted = hasVoted.New()
-	err = hasVoted.Set(y)
+	err = hasVoted.SetValue(y)
 	require.NoError(t, err)
 
 	newCommit = hasVoted.Precommit()
@@ -650,21 +623,18 @@ func TestHasVoted_CanPropose(t *testing.T) {
 		TargetNumber: 2,
 	}
 	voteVal := vote[string, uint]{}
-	voteVal = voteVal.New()
-	err := voteVal.Set(propose[string, uint]{*primaryPropose})
+	err := voteVal.SetValue(propose[string, uint]{*primaryPropose})
 	require.NoError(t, err)
 
-	yes := yes[string, uint, dummyAuthID]{
+	yes := yes[string, uint]{
 		Vote: voteVal,
 	}
-	hasVoted := hasVoted[string, uint, dummyAuthID]{}
-	hasVoted = hasVoted.New()
-	err = hasVoted.Set(yes)
+	hasVoted := hasVoted[string, uint]{}
+	err = hasVoted.SetValue(yes)
 	require.NoError(t, err)
 	require.False(t, hasVoted.CanPropose())
 
-	hasVoted = hasVoted.New()
-	err = hasVoted.Set(no{})
+	err = hasVoted.SetValue(no{})
 	require.NoError(t, err)
 	require.True(t, hasVoted.CanPropose())
 }
@@ -675,21 +645,18 @@ func TestHasVoted_CanPrevote(t *testing.T) {
 		TargetNumber: 2,
 	}
 	voteVal := vote[string, uint]{}
-	voteVal = voteVal.New()
-	err := voteVal.Set(prevote[string, uint]{&grandpa.PrimaryPropose[string, uint]{}, *prevoteVal})
+	err := voteVal.SetValue(prevote[string, uint]{&grandpa.PrimaryPropose[string, uint]{}, *prevoteVal})
 	require.NoError(t, err)
 
-	yes := yes[string, uint, dummyAuthID]{
+	yes := yes[string, uint]{
 		Vote: voteVal,
 	}
-	hasVoted := hasVoted[string, uint, dummyAuthID]{}
-	hasVoted = hasVoted.New()
-	err = hasVoted.Set(yes)
+	hasVoted := hasVoted[string, uint]{}
+	err = hasVoted.SetValue(yes)
 	require.NoError(t, err)
 	require.False(t, hasVoted.CanPrevote())
 
-	hasVoted = hasVoted.New()
-	err = hasVoted.Set(no{})
+	err = hasVoted.SetValue(no{})
 	require.NoError(t, err)
 	require.True(t, hasVoted.CanPrevote())
 }
@@ -700,32 +667,28 @@ func TestHasVoted_CanPrecommit(t *testing.T) {
 		TargetNumber: 2,
 	}
 	vote := vote[string, uint]{}
-	vote = vote.New()
-	err := vote.Set(precommit[string, uint]{
+	err := vote.SetValue(precommit[string, uint]{
 		&grandpa.PrimaryPropose[string, uint]{},
 		grandpa.Prevote[string, uint]{},
 		*precommitVal})
 	require.NoError(t, err)
 
-	yes := yes[string, uint, dummyAuthID]{
+	yes := yes[string, uint]{
 		Vote: vote,
 	}
-	hasVoted := hasVoted[string, uint, dummyAuthID]{}
-	hasVoted = hasVoted.New()
-	err = hasVoted.Set(yes)
+	hasVoted := hasVoted[string, uint]{}
+	err = hasVoted.SetValue(yes)
 	require.NoError(t, err)
 	require.False(t, hasVoted.CanPrecommit())
 
-	hasVoted = hasVoted.New()
-	err = hasVoted.Set(no{})
+	err = hasVoted.SetValue(no{})
 	require.NoError(t, err)
 	require.True(t, hasVoted.CanPrecommit())
 }
 
 func TestVoteEncoding(t *testing.T) {
 	voteVal := vote[string, uint]{}
-	voteVal = voteVal.New()
-	err := voteVal.Set(propose[string, uint]{
+	err := voteVal.SetValue(propose[string, uint]{
 		PrimaryPropose: grandpa.PrimaryPropose[string, uint]{
 			TargetHash:   "a",
 			TargetNumber: 1,
@@ -737,7 +700,6 @@ func TestVoteEncoding(t *testing.T) {
 	require.NoError(t, err)
 
 	newVote := vote[string, uint]{}
-	newVote = newVote.New()
 	err = scale.Unmarshal(enc, &newVote)
 	require.NoError(t, err)
 	require.Equal(t, voteVal, newVote)
