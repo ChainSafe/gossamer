@@ -8,7 +8,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +20,7 @@ func newTestDB(t assert.TestingT) database.Table {
 
 func TestTrieDB_Migration(t *testing.T) {
 	db := newTestDB(t)
-	inMemoryTrie := inmemory_trie.NewEmptyTrie()
+	inMemoryTrie := inmemory.NewEmptyTrie()
 	inMemoryTrie.SetVersion(trie.V1)
 
 	// Use at least 1 value with more than 32 bytes to test trie V1
@@ -53,7 +53,6 @@ func TestTrieDB_Migration(t *testing.T) {
 
 		assert.Equal(t, root, trieDB.MustHash())
 	})
-
 	t.Run("next_key_are_the_same", func(t *testing.T) {
 		key := []byte("no")
 

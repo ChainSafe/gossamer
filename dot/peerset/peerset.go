@@ -292,6 +292,7 @@ func (ps *PeerSet) updateTime() error {
 				return fmt.Errorf("cannot update reputation by tick: %w", err)
 			}
 
+			// Maybe this should also check if below banned threshold
 			if after != 0 {
 				continue
 			}
@@ -423,7 +424,16 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 
 		n := peerState.nodes[peerID]
 		if n.reputation < BannedThresholdValue {
-			logger.Critical("highest rated peer is below bannedThresholdValue")
+			/*
+				If our highest not connect peer is below threshold and we have no connections this is a problem.
+				However, if we have peers we are still connected to then this is not a big deal. For example,
+				if we have 10 peers in our set and are connected to 9 while 1 we are not connected because
+				they are below threshold, then our highestNotConnectedPeer is this one peer, which is ok
+				and we should just break
+			*/
+			if len(peerState.sortedPeers(setIdx)) == 0 {
+				logger.Criticalf("highest rated peer is below bannedThresholdValue, peer: %v, rep: %v", peerID, n.reputation)
+			}
 			break
 		}
 

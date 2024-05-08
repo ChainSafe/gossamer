@@ -7,13 +7,13 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestIterator(t *testing.T) {
 	db := newTestDB(t)
-	inMemoryTrie := inmemory_trie.NewEmptyTrie()
+	inMemoryTrie := inmemory.NewEmptyTrie()
 	inMemoryTrie.SetVersion(trie.V1)
 
 	entries := map[string][]byte{
