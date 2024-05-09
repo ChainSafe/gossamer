@@ -73,7 +73,6 @@ func (t *TrieDB) Get(key []byte) []byte {
 	return val
 }
 
-// Internal methods
 func (t *TrieDB) getRootNode() (codec.Node, error) {
 	encodedNode, err := t.db.Get(t.rootHash[:])
 	if err != nil {
