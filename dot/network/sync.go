@@ -4,6 +4,8 @@
 package network
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -13,6 +15,8 @@ import (
 )
 
 const maxNumberOfSameRequestPerPeer uint = 2
+
+var ErrMaxNumberOfSameRequest = errors.New("max number of same request reached")
 
 // handleSyncStream handles streams with the <protocol-id>/sync/2 protocol ID
 func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
@@ -43,24 +47,29 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 		}
 	}()
 
-	encoded, err := msg.Encode()
+	encodedMessage, err := msg.Encode()
 	if err != nil {
 		return fmt.Errorf("encoding block request sync message: %w", err)
 	}
 
-	requestHash, err := common.Blake2bHash(encoded)
+	peerID := stream.Conn().RemotePeer()
+	encodedKey := bytes.Join([][]byte{[]byte(peerID.String()), encodedMessage}, nil)
+
+	requestHash, err := common.Blake2bHash(encodedKey)
 	if err != nil {
 		return fmt.Errorf("hashing encoded block request sync message: %w", err)
 	}
 
 	numOfRequests := s.seenBlockSyncRequests.Get(requestHash)
 	if numOfRequests > maxNumberOfSameRequestPerPeer {
-		peerID := stream.Conn().RemotePeer()
+
 		s.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.SameBlockSyncRequest,
 			Reason: peerset.SameBlockSyncRequestReason,
 		}, peerID)
-		return fmt.Errorf("max number of same request reached by: %s", peerID.String())
+
+		logger.Debugf("max number of same request reached by: %s", peerID.String())
+		return fmt.Errorf("%w: %s", ErrMaxNumberOfSameRequest, peerID.String())
 	}
 
 	s.seenBlockSyncRequests.Put(requestHash, numOfRequests+1)
