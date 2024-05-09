@@ -48,6 +48,7 @@ func TestTrieDB_Migration(t *testing.T) {
 	t.Run("read_successful_from_db_created_using_v1_trie", func(t *testing.T) {
 		for k, v := range entries {
 			value := trieDB.Get([]byte(k))
+			assert.NotNil(t, value)
 			assert.Equal(t, v, value)
 		}
 

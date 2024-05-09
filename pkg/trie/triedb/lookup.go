@@ -156,7 +156,9 @@ func (l *TrieLookup) fetchValue(prefix []byte, value codec.NodeValue) ([]byte, e
 	case codec.HashedValue:
 		prefixedKey := bytes.Join([][]byte{prefix, v.Data}, nil)
 		if l.cache != nil {
-			return l.cache.GetNode(prefixedKey), nil
+			if value := l.cache.GetValue(prefixedKey); value != nil {
+				return value, nil
+			}
 		}
 
 		nodeData, err := l.db.Get(prefixedKey)
