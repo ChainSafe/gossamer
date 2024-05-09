@@ -37,9 +37,21 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.Node, error) {
 	// Iterates through non inlined nodes
 	for {
 		// Get node from DB
-		nodeData, err := l.db.Get(hash)
-		if err != nil {
-			return nil, ErrIncompleteDB
+		var nodeData []byte
+		if l.cache != nil {
+			nodeData = l.cache.GetNode(hash)
+		}
+
+		if nodeData == nil {
+			var err error
+			nodeData, err = l.db.Get(hash)
+			if err != nil {
+				return nil, ErrIncompleteDB
+			}
+
+			if l.cache != nil {
+				l.cache.SetNode(hash, nodeData)
+			}
 		}
 
 	InlinedChildrenIterator:
@@ -143,7 +155,20 @@ func (l *TrieLookup) fetchValue(prefix []byte, value codec.NodeValue) ([]byte, e
 		return v.Data, nil
 	case codec.HashedValue:
 		prefixedKey := bytes.Join([][]byte{prefix, v.Data}, nil)
-		return l.db.Get(prefixedKey)
+		if l.cache != nil {
+			return l.cache.GetNode(prefixedKey), nil
+		}
+
+		nodeData, err := l.db.Get(prefixedKey)
+		if err != nil {
+			return nil, err
+		}
+
+		if l.cache != nil {
+			l.cache.SetNode(prefixedKey, nodeData)
+		}
+
+		return nodeData, nil
 	default:
 		panic("unreachable")
 	}
