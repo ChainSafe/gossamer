@@ -1032,7 +1032,7 @@ func (h *testHarness) importLeaf(t *testing.T, parentHash common.Hash,
 	h.processes = append(h.processes, func(msg any) {
 		msg2, _ := msg.(chainapi.ChainAPIMessage[chainapi.BlockHeader])
 		msg2.ResponseChannel <- header
-		require.Equal(t, activatedLeaf, msg2.Message.Hash)
+		require.Equal(t, chainapi.BlockHeader(activatedLeaf), msg2.Message)
 	})
 
 	h.processes = append(h.processes, func(msg any) {

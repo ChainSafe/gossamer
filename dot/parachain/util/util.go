@@ -86,9 +86,6 @@ func DetermineNewBlocks(subsystemToOverseer chan<- any, isKnown func(hash common
 		return ancestry, nil
 	}
 
-	if len(ancestry) == 1 {
-		return nil, fmt.Errorf("ancestry has length 1 at initialization and is only added to.")
-	}
 	lastHeader := ancestry[len(ancestry)-1].Header
 	// This is always non-zero as determined by the loop invariant above.
 	numberOfAncestors := min(maxNumberOfAncestors, (lastHeader.Number - minBlockNeeded))
