@@ -29,7 +29,7 @@ go run retrieve_block.go 10,asc,3 ./westend.json file.out
 go run retrieve_block.go 50,desc,21 ./westend.json file.out
 ```
 
-The block response is written to the output file in the raw form, to decode it use
+The block response is written to the output file in the raw form, so you can use your own language to parse the block response to your own structure, here is an example in Go:
 
 ```go
 rawBlockResponse, err := os.ReadFile(output_file)
