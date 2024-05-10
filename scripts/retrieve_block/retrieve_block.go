@@ -51,11 +51,7 @@ func setupP2PClient() host.Host {
 		log.Fatalf("creating external address: %s", err.Error())
 	}
 
-	// Set your own keypair
-	priv, _, err := crypto.GenerateKeyPair(
-		crypto.Ed25519, // Select your key type. Ed25519 are nice short
-		-1,             // Select key length when possible (i.e. RSA).
-	)
+	priv, _, err := crypto.GenerateKeyPair(crypto.Ed25519, -1)
 	if err != nil {
 		log.Fatalf("generating keypair: %s", err.Error())
 	}
