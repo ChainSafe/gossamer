@@ -133,7 +133,7 @@ func saveKey(priv crypto.PrivKey, fp string) (err error) {
 	return f.Close()
 }
 
-func uint64ToLEB128(in uint64) []byte {
+func Uint64ToLEB128(in uint64) []byte {
 	var out []byte
 	for {
 		b := uint8(in & 0x7f)
@@ -149,7 +149,7 @@ func uint64ToLEB128(in uint64) []byte {
 	return out
 }
 
-func readLEB128ToUint64(r io.Reader) (uint64, int, error) {
+func ReadLEB128ToUint64(r io.Reader) (uint64, int, error) {
 	var out uint64
 	var shift uint
 
@@ -188,7 +188,7 @@ func readStream(stream libp2pnetwork.Stream, bufPointer *[]byte, maxSize uint64)
 		return 0, ErrNilStream
 	}
 
-	length, bytesRead, err := readLEB128ToUint64(stream)
+	length, bytesRead, err := ReadLEB128ToUint64(stream)
 	if err != nil {
 		return bytesRead, fmt.Errorf("failed to read length: %w", err)
 	}
