@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -120,7 +122,13 @@ func parseTargetBlock(arg string) variadic.Uint32OrHash {
 }
 
 func parseChainSpec(arg string) *chainSpec {
-	rawChainSpec, err := os.ReadFile(arg)
+	chainSpecFile, err := os.Open(filepath.Clean(arg))
+	if err != nil {
+		log.Fatalf("openning %s file: %s", arg, err.Error())
+	}
+	defer chainSpecFile.Close() //nolint:errcheck
+
+	rawChainSpec, err := io.ReadAll(chainSpecFile)
 	if err != nil {
 		log.Fatalf("reading %s file: %s", arg, err.Error())
 	}
@@ -167,7 +175,7 @@ func writeMessageOnStream(msg *network.BlockRequestMessage, stream lip2pnetwork.
 
 	_, err = stream.Write(encMsg)
 	if err != nil {
-		log.Fatalf("writting message: %s", err.Error())
+		log.Fatalf("writing message: %s", err.Error())
 	}
 }
 
@@ -228,7 +236,10 @@ func waitAndStoreResponse(stream lip2pnetwork.Stream, outputFile string) bool {
 	}
 
 	log.Println(resultOutput.String())
-	os.WriteFile(outputFile, []byte(common.BytesToHex(output)), os.ModePerm)
+	err = os.WriteFile(outputFile, []byte(common.BytesToHex(output)), os.ModePerm)
+	if err != nil {
+		log.Fatalf("failed to write response to file %s: %s", outputFile, err.Error())
+	}
 	return true
 }
 
@@ -268,7 +279,7 @@ func main() {
 			log.Printf("WARN: failed to create stream using protocol %s: %s", protocolID, err.Error())
 		}
 
-		defer stream.Close()
+		defer stream.Close() //nolint:errcheck
 		writeMessageOnStream(requestMessage, stream)
 		if !waitAndStoreResponse(stream, os.Args[3]) {
 			continue
