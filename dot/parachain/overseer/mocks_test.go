@@ -109,7 +109,7 @@ func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), arg0)
 }
 
-// MockOverseerSystem is a mock of OverseerSystem interface.
+// MockOverseerSystem is a mock of Overseer interface.
 type MockOverseerSystem struct {
 	ctrl     *gomock.Controller
 	recorder *MockOverseerSystemMockRecorder

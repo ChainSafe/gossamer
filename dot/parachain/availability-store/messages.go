@@ -108,11 +108,11 @@ type State scale.VaryingDataType
 
 // New will enable scale to create new instance when needed
 func (State) New() State {
-	return NewStateVDT()
+	return newStateVDT()
 }
 
-// NewState creates a new State
-func NewStateVDT() State {
+// newState creates a new State
+func newStateVDT() State {
 	vdt := scale.MustNewVaryingDataType(Unavailable{}, Unfinalized{}, Finalized{})
 	return State(vdt)
 }

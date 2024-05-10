@@ -15,6 +15,6 @@ func Register(overseerChan chan<- any, db database.Database, pruning *pruningCon
 	if pruning != nil {
 		availabilityStoreSubsystem.pruningConfig = *pruning
 	}
-	availabilityStoreSubsystem.SubSystemToOverseer = overseerChan
+	availabilityStoreSubsystem.subSystemToOverseer = overseerChan
 	return availabilityStoreSubsystem, nil
 }

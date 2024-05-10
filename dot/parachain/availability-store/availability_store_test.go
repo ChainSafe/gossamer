@@ -16,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
@@ -74,17 +75,18 @@ func setupTestDB(t *testing.T) database.Database {
 	require.NoError(t, err)
 	as := NewAvailabilityStore(inmemoryDB)
 	batch := newAvailabilityStoreBatch(as)
-	metaState := NewStateVDT()
+	metaState := newStateVDT()
 	err = metaState.Set(Unavailable{})
 	require.NoError(t, err)
-	meta := &CandidateMeta{
+	meta := CandidateMeta{
 		State:         metaState,
 		DataAvailable: false,
 		ChunksStored:  []bool{false, false, false},
 	}
 
-	dataBytes, err := scale.Marshal(*meta)
+	dataBytes, err := scale.Marshal(meta)
 	require.NoError(t, err)
+
 	err = batch.meta.Put(testCandidateReceiptHash[:], dataBytes)
 	require.NoError(t, err)
 	err = batch.meta.Put(common.Hash{0x02}.ToBytes(), dataBytes)
@@ -152,7 +154,7 @@ func TestAvailabilityStore_WriteLoadDeleteChuckData(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
 	batch := newAvailabilityStoreBatch(as)
-	metaState := NewStateVDT()
+	metaState := newStateVDT()
 	err := metaState.Set(Unavailable{})
 	require.NoError(t, err)
 	meta := CandidateMeta{
@@ -200,7 +202,7 @@ func TestAvailabilityStore_WriteLoadDeleteMeta(t *testing.T) {
 	inmemoryDB := state.NewInMemoryDB(t)
 	as := NewAvailabilityStore(inmemoryDB)
 	batch := newAvailabilityStoreBatch(as)
-	metaState := NewStateVDT()
+	metaState := newStateVDT()
 	err := metaState.Set(Unavailable{BETimestamp(1711026139)})
 	require.NoError(t, err)
 	meta := &CandidateMeta{
@@ -857,8 +859,9 @@ func TestAvailabilityStoreSubsystem_noteBlockBacked(t *testing.T) {
 			av := &AvailabilityStoreSubsystem{
 				availabilityStore: tt.fields.availabilityStore,
 			}
-			av.noteBlockBacked(tt.args.tx, tt.args.now, tt.args.nValidators, tt.args.candidate)
-			err := tt.args.tx.flushAll()
+			err := av.noteBlockBacked(tt.args.tx, tt.args.now, tt.args.nValidators, tt.args.candidate)
+			require.NoError(t, err)
+			err = tt.args.tx.flushAll()
 			require.NoError(t, err)
 			itr, err := inmemoryDB.NewIterator()
 			require.NoError(t, err)
@@ -897,7 +900,8 @@ func TestAvailabilityStoreSubsystem_noteBlockIncluded(t *testing.T) {
 				availabilityStore: *as,
 			},
 			args: args{
-				tx: tx,
+				tx:        tx,
+				candidate: testCandidateReceipt,
 			},
 			expected: map[string][]byte{
 				string([]byte{99, 104, 117, 110, 107, 190, 125, 73, 215, 144, 39, 58, 150, 230, 192, 195, 193, 110,
@@ -910,8 +914,13 @@ func TestAvailabilityStoreSubsystem_noteBlockIncluded(t *testing.T) {
 				string([]byte{109, 101, 116, 97, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 					0, 0, 0, 0, 0, 0, 0, 0, 0}): {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 0, 0},
 				string([]byte{109, 101, 116, 97, 190, 125, 73, 215, 144, 39, 58, 150, 230, 192, 195, 193, 110, 209,
-					237, 104, 149, 255, 87, 165, 123, 87, 60, 126, 176, 129, 233, 174, 218, 120, 53, 245}): {0, 0, 0,
-					0, 0, 0, 0, 0, 0, 0, 12, 1, 1, 0},
+					237, 104, 149, 255, 87, 165, 123, 87, 60, 126, 176, 129, 233, 174, 218, 120, 53, 245}): {1, 0, 0,
+					0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 1, 1, 0},
+				string([]byte{117, 110, 102, 105, 110, 97, 108, 105, 122, 101, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+					0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 190, 125, 73, 215,
+					144, 39, 58, 150, 230, 192, 195, 193, 110, 209, 237, 104, 149, 255, 87, 165, 123, 87, 60, 126,
+					176, 129, 233, 174, 218, 120, 53, 245}): {},
 			},
 		},
 	}
@@ -920,8 +929,9 @@ func TestAvailabilityStoreSubsystem_noteBlockIncluded(t *testing.T) {
 			av := &AvailabilityStoreSubsystem{
 				availabilityStore: tt.fields.availabilityStore,
 			}
-			av.noteBlockIncluded(tt.args.tx, tt.args.blockNumber, tt.args.blockHash, tt.args.candidate)
-			err := tt.args.tx.flushAll()
+			err := av.noteBlockIncluded(tt.args.tx, tt.args.blockNumber, tt.args.blockHash, tt.args.candidate)
+			require.NoError(t, err)
+			err = tt.args.tx.flushAll()
 			require.NoError(t, err)
 			itr, err := inmemoryDB.NewIterator()
 			require.NoError(t, err)
@@ -1026,8 +1036,8 @@ func (h *testHarness) importLeaf(t *testing.T, parentHash common.Hash,
 	})
 
 	h.processes = append(h.processes, func(msg any) {
-		msg2, _ := msg.(chainapi.ChainAPIMessage[chainapi.Ancestors])
-		msg2.ResponseChannel <- chainapi.AncestorsResponse{
+		msg2, _ := msg.(chainapi.ChainAPIMessage[util.Ancestors])
+		msg2.ResponseChannel <- util.AncestorsResponse{
 			Ancestors: []common.Hash{{0x01}, {0x02}},
 		}
 		require.Equal(t, activatedLeaf, msg2.Message.Hash)
@@ -1178,8 +1188,8 @@ func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 		}
 	})
 	harness.processes = append(harness.processes, func(msg any) {
-		msg2, _ := msg.(chainapi.ChainAPIMessage[chainapi.Ancestors])
-		msg2.ResponseChannel <- chainapi.AncestorsResponse{
+		msg2, _ := msg.(chainapi.ChainAPIMessage[util.Ancestors])
+		msg2.ResponseChannel <- util.AncestorsResponse{
 			Ancestors: []common.Hash{{0x01}, {0x02}},
 		}
 	})
@@ -1755,7 +1765,8 @@ func TestStoredDataKeptUntilFinalized(t *testing.T) {
 	// trigger import leaf
 	candidateEvents, err := parachaintypes.NewCandidateEvents()
 	require.NoError(harness.t, err)
-	candidateEvents.Add(parachaintypes.CandidateIncluded{CandidateReceipt: testCandidateReceipt})
+	err = candidateEvents.Add(parachaintypes.CandidateIncluded{CandidateReceipt: testCandidateReceipt})
+	require.NoError(harness.t, err)
 
 	aLeaf := harness.importLeaf(t, parent, blockNumber, candidateEvents)
 
