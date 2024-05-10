@@ -3,7 +3,16 @@
 
 package candidatevalidation
 
+import (
+	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+)
+
 type ValidateFromChainState struct {
+	CandidateReceipt parachaintypes.CandidateReceipt
+	RuntimeInstance  parachainruntime.RuntimeInstance
+	PovRequestor     PoVRequestor
+	Sender           chan any
 }
 
 type ValidateFromExhaustive struct{}

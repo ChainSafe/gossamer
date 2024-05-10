@@ -43,12 +43,12 @@ func (*CandidateValidation) Name() parachaintypes.SubSystemName {
 }
 
 func (*CandidateValidation) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
-	// TODO: determine how this subsystem should process active leaves update signal and implement functionality
+	// NOTE: this subsystem does not process active leaves update signal
 	return nil
 }
 
 func (*CandidateValidation) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
-	// TODO: determine how this subsystem should process block finalized signal and implement functionality
+	// NOTE: this subsystem does not process block finalized signal
 	return nil
 }
 
@@ -64,7 +64,10 @@ func (cv *CandidateValidation) processMessages() {
 			logger.Debugf("received message %v", msg)
 			switch msg := msg.(type) {
 			case ValidateFromChainState:
-				// TODO: implement functionality to handle ValidateFromChainState, see issue #3919
+				_, _, _, err := validateFromChainState(msg.RuntimeInstance, msg.PovRequestor, msg.CandidateReceipt)
+				if err != nil {
+					logger.Errorf("failed to validate candidate from chain state: %w", err)
+				}
 			case ValidateFromExhaustive:
 				// TODO: implement functionality to handle ValidateFromExhaustive, see issue #3920
 			case PreCheck:
