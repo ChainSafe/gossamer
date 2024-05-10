@@ -1010,11 +1010,11 @@ func (h *testHarness) importLeaf(t *testing.T, parentHash common.Hash,
 		ParentHash: parentHash,
 		Number:     uint(blockNumber),
 	}
-	aLeaf := header.Hash()
+	activatedLeaf := header.Hash()
 
 	h.overseer.broadcast(parachaintypes.ActiveLeavesUpdateSignal{
 		Activated: &parachaintypes.ActivatedLeaf{
-			Hash:   aLeaf,
+			Hash:   activatedLeaf,
 			Number: uint32(1),
 		},
 	})
@@ -1022,7 +1022,7 @@ func (h *testHarness) importLeaf(t *testing.T, parentHash common.Hash,
 	h.processes = append(h.processes, func(msg any) {
 		msg2, _ := msg.(chainapi.ChainAPIMessage[chainapi.BlockHeader])
 		msg2.ResponseChannel <- header
-		require.Equal(t, aLeaf, msg2.Message.Hash)
+		require.Equal(t, activatedLeaf, msg2.Message.Hash)
 	})
 
 	h.processes = append(h.processes, func(msg any) {
@@ -1030,12 +1030,12 @@ func (h *testHarness) importLeaf(t *testing.T, parentHash common.Hash,
 		msg2.ResponseChannel <- chainapi.AncestorsResponse{
 			Ancestors: []common.Hash{{0x01}, {0x02}},
 		}
-		require.Equal(t, aLeaf, msg2.Message.Hash)
+		require.Equal(t, activatedLeaf, msg2.Message.Hash)
 	})
 
 	h.processes = append(h.processes, func(msg any) {
 		msg2, _ := msg.(parachain.RuntimeAPIMessage)
-		require.Equal(t, aLeaf, msg2.Hash)
+		require.Equal(t, activatedLeaf, msg2.Hash)
 		ctrl := gomock.NewController(h.t)
 		inst := NewMockRuntimeInstance(ctrl)
 
@@ -1044,7 +1044,7 @@ func (h *testHarness) importLeaf(t *testing.T, parentHash common.Hash,
 		msg2.Resp <- inst
 	})
 
-	return aLeaf
+	return activatedLeaf
 }
 
 func (h *testHarness) hasAllChunks(candidateHash parachaintypes.CandidateHash, numValidators uint32, //nolint
@@ -1081,15 +1081,6 @@ func (h *testHarness) queryAvailableData(candidateHash parachaintypes.CandidateH
 	return msgQueryChan
 }
 
-func buildCandidateReceipt(povHash common.Hash) parachaintypes.CandidateReceipt {
-	receipt := parachaintypes.CandidateReceipt{
-		Descriptor: parachaintypes.CandidateDescriptor{
-			PovHash: povHash,
-		},
-	}
-	return receipt
-}
-
 func buildAvailableDataBranchesRoot(t *testing.T, numValidators uint32, availableData AvailableData) common.Hash {
 	availableDataEnc, err := scale.Marshal(availableData)
 	require.NoError(t, err)
@@ -1112,19 +1103,23 @@ func buildAvailableDataBranchesRoot(t *testing.T, numValidators uint32, availabl
 
 func newTestOverseer() *testOverseer {
 	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+
 	return &testOverseer{
 		ctx:                  ctx,
+		cancel:               cancel,
 		subsystems:           make(map[parachaintypes.Subsystem]chan any),
 		SubsystemsToOverseer: make(chan any),
 	}
 }
 
 type testOverseer struct {
-	ctx context.Context
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
 
 	subsystems           map[parachaintypes.Subsystem]chan any
 	SubsystemsToOverseer chan any
-	wg                   sync.WaitGroup
 }
 
 func (to *testOverseer) GetSubsystemToOverseerChannel() chan any {
@@ -1145,13 +1140,14 @@ func (to *testOverseer) Start() error {
 		go func(sub parachaintypes.Subsystem, overseerToSubSystem chan any) {
 			sub.Run(to.ctx, overseerToSubSystem, to.SubsystemsToOverseer)
 			logger.Infof("subsystem %v stopped", sub)
-			to.wg.Done()
 		}(subsystem, overseerToSubSystem)
 	}
 	return nil
 }
 
 func (to *testOverseer) Stop() error {
+	to.cancel()
+	to.wg.Wait()
 	return nil
 }
 
@@ -1164,6 +1160,7 @@ func (to *testOverseer) broadcast(msg any) {
 func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	harness := newTestHarness(t)
+	defer harness.overseer.Stop()
 
 	activeLeavesUpdate := parachaintypes.ActiveLeavesUpdateSignal{
 		Activated: &parachaintypes.ActivatedLeaf{
@@ -1211,6 +1208,7 @@ func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 
 func TestStoreChunkWorks(t *testing.T) {
 	harness := newTestHarness(t)
+	defer harness.overseer.Stop()
 
 	msgSenderChan := make(chan any)
 
@@ -1251,6 +1249,7 @@ func TestStoreChunkWorks(t *testing.T) {
 
 func TestStoreChunkDoesNothingIfNoEntryAlready(t *testing.T) {
 	harness := newTestHarness(t)
+	defer harness.overseer.Stop()
 
 	msgSenderChan := make(chan any)
 
@@ -1290,6 +1289,7 @@ func TestStoreChunkDoesNothingIfNoEntryAlready(t *testing.T) {
 
 func TestQueryChunkChecksMetadata(t *testing.T) {
 	harness := newTestHarness(t)
+	defer harness.overseer.Stop()
 
 	msgSenderChan := make(chan bool)
 
@@ -1330,6 +1330,7 @@ func TestQueryChunkChecksMetadata(t *testing.T) {
 
 func TestStorePOVandQueryChunkWorks(t *testing.T) {
 	harness := newTestHarness(t)
+	defer harness.overseer.Stop()
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
 	nValidators := uint32(10)
 
@@ -1392,6 +1393,7 @@ func TestStorePOVandQueryChunkWorks(t *testing.T) {
 
 func TestQueryAllChunksWorks(t *testing.T) {
 	harness := newTestHarness(t)
+	defer harness.overseer.Stop()
 	candidateHash := parachaintypes.CandidateHash{Value: testCandidateReceiptHash}
 	candidateHash2 := parachaintypes.CandidateHash{Value: common.Hash{0x02}}
 	candidateHash3 := parachaintypes.CandidateHash{Value: common.Hash{0x03}}
@@ -1454,6 +1456,7 @@ func TestQueryAllChunksWorks(t *testing.T) {
 
 func TestQueryChunkSizeWorks(t *testing.T) {
 	harness := newTestHarness(t)
+	defer harness.overseer.Stop()
 
 	msgSenderChan := make(chan uint32)
 
@@ -1480,6 +1483,7 @@ func TestQueryChunkSizeWorks(t *testing.T) {
 
 func TestStoreBlockWorks(t *testing.T) {
 	harness := newTestHarness(t)
+	defer harness.overseer.Stop()
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
 	nValidators := uint32(10)
 
@@ -1564,6 +1568,7 @@ func TestStoreBlockWorks(t *testing.T) {
 
 func TestStoreAvailableDataErasureMismatch(t *testing.T) {
 	harness := newTestHarness(t)
+	defer harness.overseer.Stop()
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
 	nValidators := uint32(10)
 
@@ -1601,6 +1606,7 @@ func TestStoreAvailableDataErasureMismatch(t *testing.T) {
 
 func TestStoredButNotIncludedDataIsPruned(t *testing.T) {
 	harness := newTestHarness(t)
+	defer harness.overseer.Stop()
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
 	nValidators := uint32(10)
 
@@ -1678,6 +1684,7 @@ func TestStoredButNotIncludedDataIsPruned(t *testing.T) {
 
 func TestStoredDataKeptUntilFinalized(t *testing.T) {
 	harness := newTestHarness(t)
+	defer harness.overseer.Stop()
 	candidateHash := parachaintypes.CandidateHash{Value: testCandidateReceiptHash}
 	nValidators := uint32(10)
 
@@ -1798,6 +1805,7 @@ func TestStoredDataKeptUntilFinalized(t *testing.T) {
 
 func TestForkfullnessWorks(t *testing.T) {
 	harness := newTestHarness(t)
+	defer harness.overseer.Stop()
 	nValidators := uint32(10)
 	msgSenderChan := make(chan error)
 
@@ -1805,7 +1813,12 @@ func TestForkfullnessWorks(t *testing.T) {
 	parent1 := common.Hash{0x03, 0x03, 0x03, 0x03}
 	pov1 := parachaintypes.PoV{BlockData: parachaintypes.BlockData{1, 2, 3}}
 	pov1Hash := common.MustBlake2bHash(scale.MustMarshal(pov1))
-	candidate1 := buildCandidateReceipt(pov1Hash)
+	candidate1 := parachaintypes.CandidateReceipt{
+		Descriptor: parachaintypes.CandidateDescriptor{
+			PovHash: pov1Hash,
+		},
+	}
+
 	candidate1Hash, err := candidate1.Hash()
 	require.NoError(t, err)
 	availableData1 := AvailableData{
@@ -1830,7 +1843,11 @@ func TestForkfullnessWorks(t *testing.T) {
 	parent2 := common.Hash{0x04, 0x04, 0x04, 0x04}
 	pov2 := parachaintypes.PoV{BlockData: parachaintypes.BlockData{4, 5, 6}}
 	pov2Hash := common.MustBlake2bHash(scale.MustMarshal(pov2))
-	candidate2 := buildCandidateReceipt(pov2Hash)
+	candidate2 := parachaintypes.CandidateReceipt{
+		Descriptor: parachaintypes.CandidateDescriptor{
+			PovHash: pov2Hash,
+		},
+	}
 	candidate2Hash, err := candidate2.Hash()
 	require.NoError(t, err)
 	availableData2 := AvailableData{
@@ -1882,7 +1899,7 @@ func TestForkfullnessWorks(t *testing.T) {
 	harness.printDB("before import leaf")
 
 	// import leaf for candidate 1
-	aLeaf := harness.importLeaf(t, parent1, blockNumber1, candidate1Events)
+	activatedLeaf := harness.importLeaf(t, parent1, blockNumber1, candidate1Events)
 	time.Sleep(50 * time.Millisecond)
 
 	// import leaf for candidate 2
@@ -1892,7 +1909,7 @@ func TestForkfullnessWorks(t *testing.T) {
 
 	// signal block 1 finalized for candidate 1
 	blockFinalizedSignal := parachaintypes.BlockFinalizedSignal{
-		Hash:        aLeaf,
+		Hash:        activatedLeaf,
 		BlockNumber: blockNumber1,
 	}
 	harness.broadcastMessages = append(harness.broadcastMessages, blockFinalizedSignal)
