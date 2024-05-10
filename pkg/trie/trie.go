@@ -37,9 +37,6 @@ type KVStoreWrite interface {
 type TrieIterator interface {
 	Entries() (keyValueMap map[string][]byte)
 	NextKey(key []byte) []byte
-}
-
-type PrefixTrieRead interface {
 	GetKeysWithPrefix(prefix []byte) (keysLE [][]byte)
 }
 
@@ -69,7 +66,6 @@ type TrieRead interface {
 	KVStoreRead
 	Hashable
 	ChildTriesRead
-	PrefixTrieRead
 	TrieIterator
 }
 

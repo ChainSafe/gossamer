@@ -17,6 +17,11 @@ import (
 
 var ErrIncompleteDB = errors.New("incomplete database")
 
+type entry struct {
+	key   []byte
+	value []byte
+}
+
 // TrieDB is a DB-backed patricia merkle trie implementation
 // using lazy loading to fetch nodes
 type TrieDB struct {
@@ -54,120 +59,69 @@ func (t *TrieDB) MustHash() common.Hash {
 // which matches its key with the key given.
 // Note the key argument is given in little Endian format.
 func (t *TrieDB) Get(key []byte) []byte {
-	val, err := t.lookup(key)
+	keyNibbles := nibbles.KeyLEToNibbles(key)
+
+	lookup := NewTrieLookup(t.db, t.rootHash)
+	val, err := lookup.lookupValue(keyNibbles)
 	if err != nil {
 		return nil
 	}
 	return val
 }
 
-// GetKeysWithPrefix returns all keys in little Endian
-// format from nodes in the trie that have the given little
-// Endian formatted prefix in their key.
-func (t *TrieDB) GetKeysWithPrefix(prefix []byte) (keysLE [][]byte) {
-	panic("not implemented yet")
-}
-
 // Internal methods
-
-func (t *TrieDB) lookup(key []byte) ([]byte, error) {
-	keyNibbles := nibbles.KeyLEToNibbles(key)
-	return t.lookupWithoutCache(keyNibbles)
+func (t *TrieDB) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error) {
+	lookup := NewTrieLookup(t.db, t.rootHash)
+	return lookup.fetchValue(prefix, value)
 }
 
-// lookupWithoutCache traverse nodes loading then from DB until reach the one
-// we are looking for.
-func (t *TrieDB) lookupWithoutCache(nibbleKey []byte) ([]byte, error) {
-	// Start from root node and going downwards
-	partialKey := nibbleKey
-	hash := t.rootHash[:]
+func (t *TrieDB) getRootNode() (codec.Node, error) {
+	nodeData, err := t.db.Get(t.rootHash[:])
+	if err != nil {
+		return nil, ErrIncompleteDB
+	}
 
-	// Iterates through non inlined nodes
-	for {
-		// Get node from DB
-		nodeData, err := t.db.Get(hash)
+	reader := bytes.NewReader(nodeData)
+	decodedNode, err := codec.Decode(reader)
+	if err != nil {
+		return nil, err
+	}
 
+	return decodedNode, nil
+}
+
+func (t *TrieDB) getNodeAt(key []byte) (codec.Node, error) {
+	lookup := NewTrieLookup(t.db, t.rootHash)
+	node, err := lookup.lookupNode(nibbles.KeyLEToNibbles(key))
+	if err != nil {
+		return nil, err
+	}
+
+	return node, nil
+}
+
+func (t *TrieDB) getNode(
+	merkleValue codec.MerkleValue,
+) (node codec.Node, err error) {
+	var nodeData []byte
+
+	switch n := merkleValue.(type) {
+	case codec.InlineNode:
+		nodeData = n.Data
+	case codec.HashedNode:
+		nodeData, err = t.db.Get(n.Data)
 		if err != nil {
 			return nil, ErrIncompleteDB
 		}
-
-	InlinedChildrenIterator:
-		for {
-			// Decode node
-			reader := bytes.NewReader(nodeData)
-			decodedNode, err := codec.Decode(reader)
-			if err != nil {
-				return nil, err
-			}
-
-			var nextNode codec.MerkleValue
-
-			switch n := decodedNode.(type) {
-			case codec.Empty:
-				return nil, nil
-			case codec.Leaf:
-				// We are in the node we were looking for
-				if bytes.Equal(partialKey, n.PartialKey) {
-					return t.loadValue(partialKey, n.Value)
-				}
-				return nil, nil
-			case codec.Branch:
-				nodePartialKey := n.PartialKey
-
-				// This is unusual but could happen if for some reason one
-				// branch has a hashed child node that points to a node that
-				// doesn't share the prefix we are expecting
-				if !bytes.HasPrefix(partialKey, nodePartialKey) {
-					return nil, nil
-				}
-
-				// We are in the node we were looking for
-				if bytes.Equal(partialKey, nodePartialKey) {
-					if n.Value != nil {
-						return t.loadValue(partialKey, n.Value)
-					}
-					return nil, nil
-				}
-
-				// This is not the node we were looking for but it might be in
-				// one of its children
-				childIdx := int(partialKey[len(nodePartialKey)])
-				nextNode = n.Children[childIdx]
-				if nextNode == nil {
-					return nil, nil
-				}
-
-				// Advance the partial key consuming the part we already checked
-				partialKey = partialKey[len(nodePartialKey)+1:]
-			}
-
-			// Next node could be inlined or hashed (pointer to a node)
-			// https://spec.polkadot.network/chap-state#defn-merkle-value
-			switch merkleValue := nextNode.(type) {
-			case codec.HashedNode:
-				// If it's hashed we set the hash to look for it in next loop
-				hash = merkleValue.Data
-				break InlinedChildrenIterator
-			case codec.InlineNode:
-				// If it is inlined we just need to decode it in the next loop
-				nodeData = merkleValue.Data
-			}
-		}
 	}
-}
 
-// loadValue gets the value from the node, if it is inlined we can return it
-// directly. But if it is hashed (V1) we have to look up for its value in the DB
-func (t *TrieDB) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error) {
-	switch v := value.(type) {
-	case codec.InlineValue:
-		return v.Data, nil
-	case codec.HashedValue:
-		prefixedKey := bytes.Join([][]byte{prefix, v.Data}, nil)
-		return t.db.Get(prefixedKey)
-	default:
-		panic("unreachable")
+	reader := bytes.NewReader(nodeData)
+	node, err = codec.Decode(reader)
+	if err != nil {
+		return nil, err
 	}
+
+	return node, err
 }
 
 var _ trie.TrieRead = (*TrieDB)(nil)
