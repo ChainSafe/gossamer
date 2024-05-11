@@ -40,10 +40,12 @@ func (nbs *NetworkBridgeSender) Name() parachaintypes.SubSystemName {
 }
 
 func (nbs *NetworkBridgeSender) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
+	// nothing to do here
 	return nil
 }
 
 func (nbs *NetworkBridgeSender) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
+	// nothing to do here
 }
 
 func (nbs *NetworkBridgeSender) Stop() {}
@@ -54,6 +56,7 @@ func (nbs *NetworkBridgeSender) processMessage(msg any) error {
 	switch msg := msg.(type) {
 	case networkbridgemessages.SendCollationMessage:
 		// TODO
+		wireMessage := parachaintypes.NewWireMessage()
 		fmt.Println(msg)
 	case networkbridgemessages.SendValidationMessage:
 		// TODO: add SendValidationMessages and SendCollationMessages to send multiple messages at the same time
