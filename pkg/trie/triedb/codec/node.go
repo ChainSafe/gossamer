@@ -64,8 +64,8 @@ func NewHashedValue(data []byte) NodeValue {
 	return HashedValue{Data: data}
 }
 
-// Node is the representation of a decoded node
-type Node interface {
+// EncodedNode is the object representation of a encoded node
+type EncodedNode interface {
 	GetPartialKey() []byte
 	GetValue() NodeValue
 }

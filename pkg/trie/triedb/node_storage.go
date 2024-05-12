@@ -29,6 +29,10 @@ func (n Cached) getNode() Node {
 	return n.node
 }
 
+func NewNewNode(node Node) New {
+	return New{node}
+}
+
 type NodeStorage struct {
 	nodes       []StoredNode
 	freeIndices *deque.Deque[int]

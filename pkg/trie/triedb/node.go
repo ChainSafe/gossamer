@@ -29,7 +29,11 @@ type (
 func (InMemory) isNodeHandle() {}
 func (Hash) isNodeHandle()     {}
 
-func newFromEncodedMerkleValue(parentHash common.Hash, encodedNodeHandle codec.MerkleValue, storage NodeStorage) (NodeHandle, error) {
+func newFromEncodedMerkleValue(
+	parentHash common.Hash,
+	encodedNodeHandle codec.MerkleValue,
+	storage NodeStorage,
+) (NodeHandle, error) {
 	switch encoded := encodedNodeHandle.(type) {
 	case codec.HashedNode:
 		return Hash{hash: common.NewHash(encoded.Data)}, nil
@@ -39,9 +43,9 @@ func newFromEncodedMerkleValue(parentHash common.Hash, encodedNodeHandle codec.M
 			return nil, err
 		}
 		return InMemory{storage.alloc(New{child})}, nil
+	default:
+		panic("unreachable")
 	}
-
-	return nil, nil
 }
 
 type Value interface {
@@ -144,7 +148,7 @@ func newNodeFromEncoded(nodeHash common.Hash, data []byte, storage NodeStorage) 
 				}
 				return newChild, nil
 			}
-			return nil, nil
+			return nil, nil //nolint:nilnil
 		}
 
 		children := [codec.ChildrenCapacity]NodeHandle{}

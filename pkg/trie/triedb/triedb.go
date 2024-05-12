@@ -34,7 +34,7 @@ type TrieDB struct {
 	// references and new inserted nodes in the trie
 	rootHandle NodeHandle
 	// Storage is an in memory storage for nodes that we need to use during this
-	// trieDB session (before nodes are commited to db)
+	// trieDB session (before nodes are committed to db)
 	storage NodeStorage
 	// deathRow is a set of nodes that we want to delete from db
 	deathRow map[common.Hash]interface{}
@@ -87,7 +87,7 @@ func (t *TrieDB) Get(key []byte) []byte {
 }
 
 // Internal methods
-func (t *TrieDB) getRootNode() (codec.Node, error) {
+func (t *TrieDB) getRootNode() (codec.EncodedNode, error) {
 	encodedNode, err := t.db.Get(t.rootHash[:])
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ func (t *TrieDB) getRootNode() (codec.Node, error) {
 
 // Internal methods
 
-func (t *TrieDB) getNodeAt(key []byte) (codec.Node, error) {
+func (t *TrieDB) getNodeAt(key []byte) (codec.EncodedNode, error) {
 	lookup := NewTrieLookup(t.db, t.rootHash, t.cache)
 	node, err := lookup.lookupNode(nibbles.KeyLEToNibbles(key))
 	if err != nil {
@@ -111,7 +111,7 @@ func (t *TrieDB) getNodeAt(key []byte) (codec.Node, error) {
 
 func (t *TrieDB) getNode(
 	merkleValue codec.MerkleValue,
-) (node codec.Node, err error) {
+) (node codec.EncodedNode, err error) {
 	switch n := merkleValue.(type) {
 	case codec.InlineNode:
 		reader := bytes.NewReader(n.Data)
@@ -134,7 +134,7 @@ func (t *TrieDB) Put(key, value []byte) error {
 
 	rootHandle := t.rootHandle
 	keyNibbles := nibbles.KeyLEToNibbles(key)
-	newHandle, _, err := t.insertAt(rootHandle, keyNibbles, value, oldValue)
+	newHandle, _, err := t.insertAt(rootHandle, keyNibbles, value, &oldValue)
 	if err != nil {
 		return err
 	}
@@ -142,7 +142,12 @@ func (t *TrieDB) Put(key, value []byte) error {
 	return nil
 }
 
-func (t *TrieDB) insertAt(handle NodeHandle, keyNibbles, value []byte, oldValue Value) (storageHandle StorageHandle, changed bool, err error) {
+func (t *TrieDB) insertAt(
+	handle NodeHandle,
+	keyNibbles,
+	value []byte,
+	oldValue *Value,
+) (storageHandle StorageHandle, changed bool, err error) {
 	switch h := handle.(type) {
 	case InMemory:
 		storageHandle = h.idx
@@ -163,7 +168,11 @@ func (t *TrieDB) insertAt(handle NodeHandle, keyNibbles, value []byte, oldValue 
 	return t.storage.alloc(newStored), changed, nil
 }
 
-func (t *TrieDB) inspect(stored StoredNode, key []byte, inspector func(Node, []byte) (Action, error)) (StoredNode, bool, error) {
+func (t *TrieDB) inspect(
+	stored StoredNode,
+	key []byte,
+	inspector func(Node, []byte) (Action, error),
+) (StoredNode, bool, error) {
 	//currentKey := key
 	switch n := stored.(type) {
 	case New:
@@ -171,11 +180,11 @@ func (t *TrieDB) inspect(stored StoredNode, key []byte, inspector func(Node, []b
 		if err != nil {
 			return nil, false, err
 		}
-		switch a := action.(type) {
+		switch action.(type) {
 		case Restore:
-			return New{a.node}, false, nil
+			return NewNewNode(n.node), false, nil
 		case Replace:
-			return New{a.node}, true, nil
+			return NewNewNode(n.node), true, nil
 		case Delete:
 			return nil, false, nil
 		default:
@@ -191,7 +200,7 @@ func (t *TrieDB) inspect(stored StoredNode, key []byte, inspector func(Node, []b
 			return Cached{a.node, n.hash}, false, nil
 		case Replace:
 			t.deathRow[n.hash] = nil
-			return New{a.node}, true, nil
+			return NewNewNode(a.node), true, nil
 		case Delete:
 			t.deathRow[n.hash] = nil
 			return nil, false, nil
@@ -203,7 +212,7 @@ func (t *TrieDB) inspect(stored StoredNode, key []byte, inspector func(Node, []b
 	}
 }
 
-func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, oldValue Value) (Action, error) {
+func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, oldValue *Value) (Action, error) {
 	partial := keyNibbles
 
 	switch n := stored.(type) {
@@ -217,8 +226,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 			// Equivalent leaf
 			value := NewValue(value, t.layout.MaxInlineValue())
 			unchanged := n.value == value
-			keyVal := keyNibbles[len(existingKey):]
-			t.replaceOldValue(oldValue, n.value, keyVal)
+			t.replaceOldValue(oldValue, n.value)
 			if unchanged {
 				// Unchanged then restore
 				return Restore{Leaf{partialKey: n.partialKey, value: n.value}}, nil
@@ -247,8 +255,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 			unchanged := n.value == value
 			branch := Branch{existingKey, n.children, value}
 
-			keyVal := keyNibbles[len(existingKey):]
-			t.replaceOldValue(oldValue, n.value, keyVal)
+			t.replaceOldValue(oldValue, n.value)
 			if unchanged {
 				// Unchanged then restore
 				return Restore{branch}, nil
@@ -328,14 +335,18 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 	}
 }
 
-func (t *TrieDB) replaceOldValue(oldValue Value, storedValue Value, prefix []byte) {
-	switch oldv := oldValue.(type) {
+func (t *TrieDB) replaceOldValue(
+	oldValue *Value,
+	storedValue Value,
+) {
+	switch oldv := storedValue.(type) {
 	case ValueRef, NewValueRef:
 		hash := oldv.getHash()
 		if hash != common.EmptyHash {
 			t.deathRow[oldv.getHash()] = nil
 		}
 	}
+	*oldValue = storedValue
 }
 
 // lookup node in DB and add it in storage, return storage handle
@@ -347,6 +358,9 @@ func (t *TrieDB) lookupNode(hash common.Hash) (StorageHandle, error) {
 	}
 
 	node, err := newNodeFromEncoded(hash, encodedNode, t.storage)
+	if err != nil {
+		return StorageHandle{-1}, err
+	}
 
 	return t.storage.alloc(Cached{
 		node: node,
