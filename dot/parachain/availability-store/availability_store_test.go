@@ -1113,20 +1113,17 @@ func buildAvailableDataBranchesRoot(t *testing.T, numValidators uint32, availabl
 
 func newTestOverseer() *testOverseer {
 	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
 
 	return &testOverseer{
 		ctx:                  ctx,
-		cancel:               cancel,
 		subsystems:           make(map[parachaintypes.Subsystem]chan any),
 		SubsystemsToOverseer: make(chan any),
 	}
 }
 
 type testOverseer struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
+	ctx context.Context
+	wg  sync.WaitGroup
 
 	subsystems           map[parachaintypes.Subsystem]chan any
 	SubsystemsToOverseer chan any
@@ -1157,8 +1154,6 @@ func (to *testOverseer) Start() error {
 }
 
 func (to *testOverseer) Stop() error {
-	to.cancel()
-	to.wg.Wait()
 	return nil
 }
 
@@ -1166,6 +1161,55 @@ func (to *testOverseer) broadcast(msg any) {
 	for _, overseerToSubSystem := range to.subsystems {
 		overseerToSubSystem <- msg
 	}
+}
+
+func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	harness := newTestHarness(t)
+	defer harness.overseer.Stop()
+
+	activeLeavesUpdate := parachaintypes.ActiveLeavesUpdateSignal{
+		Activated: &parachaintypes.ActivatedLeaf{
+			Hash:   common.Hash{},
+			Number: uint32(1),
+		},
+		Deactivated: []common.Hash{{}},
+	}
+
+	harness.broadcastMessages = append(harness.broadcastMessages, activeLeavesUpdate)
+	harness.processes = append(harness.processes, func(msg any) {
+		msg2, _ := msg.(chainapi.ChainAPIMessage[chainapi.BlockHeader])
+		msg2.ResponseChannel <- types.Header{
+			Number: 3,
+		}
+	})
+	harness.processes = append(harness.processes, func(msg any) {
+		msg2, _ := msg.(chainapi.ChainAPIMessage[util.Ancestors])
+		msg2.ResponseChannel <- util.AncestorsResponse{
+			Ancestors: []common.Hash{{0x01}, {0x02}},
+		}
+	})
+	harness.processes = append(harness.processes, func(msg any) {
+		msg2, _ := msg.(parachain.RuntimeAPIMessage)
+
+		// return error from runtime call, and check that the subsystem continues to run
+		inst := NewMockRuntimeInstance(ctrl)
+		inst.EXPECT().ParachainHostCandidateEvents().Return(nil, errors.New("error"))
+
+		msg2.Resp <- inst
+	})
+
+	err := harness.overseer.Start()
+	require.NoError(t, err)
+
+	go harness.processMessages()
+
+	harness.triggerBroadcast()
+	// time to process messages
+	time.Sleep(500 * time.Millisecond)
+
+	err = harness.overseer.Stop()
+	require.NoError(t, err)
 }
 
 func TestStoreChunkWorks(t *testing.T) {
