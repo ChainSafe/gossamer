@@ -393,7 +393,7 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 			net.EXPECT().GetRequestResponseProtocol(gomock.Any(), collationFetchingRequestTimeout,
 				uint64(collationFetchingMaxResponseSize)).Return(&network.RequestResponseProtocol{})
 			net.EXPECT().GetNetworkEventsChannel().Return(make(chan *network.NetworkEventInfo))
-			cpvs, err := Register(net, protocol.ID(collationProtocolID), overseer.SubsystemsToOverseer)
+			cpvs, err := Register(net, protocol.ID(collationProtocolID), overseer.GetSubsystemToOverseerChannel())
 			require.NoError(t, err)
 
 			cpvs.BlockedAdvertisements = c.blockedAdvertisements

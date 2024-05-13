@@ -78,11 +78,6 @@ func (mvdt StatementFetchingResponse) ValueAt(index uint) (value any, err error)
 // MissingDataInStatement represents the data missing to reconstruct the full signed statement.
 type MissingDataInStatement parachaintypes.CommittedCandidateReceipt
 
-// Index returns the index of varying data type
-func (MissingDataInStatement) Index() uint {
-	return 0
-}
-
 // NewStatementFetchingResponse returns a new statement fetching response varying data type
 func NewStatementFetchingResponse() StatementFetchingResponse {
 	return StatementFetchingResponse{}

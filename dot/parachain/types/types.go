@@ -5,6 +5,7 @@ package parachaintypes
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"math"
 
@@ -485,9 +486,9 @@ func (mvdt CandidateEvent) ValueAt(index uint) (value any, err error) {
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
-// NewCandidateEventVDT returns a new CandidateEvent VaryingDataType
-func NewCandidateEventVDT() scale.VaryingDataType {
-	return &CandidateEvent{}
+// NewCandidateEvent returns a new CandidateEvent VaryingDataType
+func NewCandidateEvent() CandidateEvent {
+	return CandidateEvent{}
 }
 
 // NewCandidateEvents returns a new CandidateEvents
@@ -688,4 +689,14 @@ type UncheckedSignedAvailabilityBitfield struct {
 
 	// The signature by the validator of the signed payload.
 	Signature ValidatorSignature `scale:"3"`
+}
+
+// Subsystem is an interface for subsystems to be registered with the overseer.
+type Subsystem interface {
+	// Run runs the subsystem.
+	Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any)
+	Name() SubSystemName
+	ProcessActiveLeavesUpdateSignal(ActiveLeavesUpdateSignal) error
+	ProcessBlockFinalizedSignal(BlockFinalizedSignal) error
+	Stop()
 }

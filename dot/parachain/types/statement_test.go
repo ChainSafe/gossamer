@@ -6,7 +6,6 @@ package parachaintypes
 import (
 	_ "embed"
 	"fmt"
-	"math"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -31,10 +30,6 @@ func init() {
 }
 
 type invalidVayingDataTypeValue struct{}
-
-func (invalidVayingDataTypeValue) Index() uint {
-	return math.MaxUint
-}
 
 func getDummyHash(num byte) common.Hash {
 	hash := common.Hash{}
