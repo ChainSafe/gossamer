@@ -361,7 +361,7 @@ func (h *host) writeToStream(s network.Stream, msg Message) error {
 	}
 
 	msgLen := uint64(len(encMsg))
-	lenBytes := uint64ToLEB128(msgLen)
+	lenBytes := Uint64ToLEB128(msgLen)
 	encMsg = append(lenBytes, encMsg...)
 
 	sent, err := s.Write(encMsg)
