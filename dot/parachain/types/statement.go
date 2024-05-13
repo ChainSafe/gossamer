@@ -80,11 +80,6 @@ type Seconded CommittedCandidateReceipt
 // Valid represents a statement that a validator has deemed a candidate valid.
 type Valid CandidateHash
 
-// Index returns the index of varying data type
-func (Valid) Index() uint {
-	return 2
-}
-
 func (s *StatementVDT) Sign(
 	keystore keystore.Keystore,
 	signingContext SigningContext,

@@ -11,7 +11,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
+	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -43,17 +47,15 @@ const (
 // BETimestamp is a unix time wrapper with big-endian encoding
 type BETimestamp uint64
 
+func timeNow() BETimestamp {
+	return BETimestamp(time.Now().Unix())
+}
+
 // ToBigEndianBytes returns the big-endian encoding of the timestamp
 func (b BETimestamp) ToBigEndianBytes() []byte {
 	res := make([]byte, 8)
 	binary.BigEndian.PutUint64(res, uint64(b))
 	return res
-}
-
-type subsystemClock struct{}
-
-func (sc *subsystemClock) Now() BETimestamp {
-	return BETimestamp(time.Now().Unix())
 }
 
 // pruningConfig Struct holding pruning timing configuration.
@@ -77,14 +79,52 @@ type AvailabilityStoreSubsystem struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
-	SubSystemToOverseer chan<- any
-	OverseerToSubSystem <-chan any
-	availabilityStore   availabilityStore
-	pruningConfig       pruningConfig
-	clock               subsystemClock
-	//TODO: pruningConfig PruningConfig
-	//TODO: clock         Clock
-	//TODO: metrics       Metrics
+	subSystemToOverseer    chan<- any
+	OverseerToSubSystem    <-chan any
+	availabilityStore      availabilityStore
+	finalizedBlockNumber   parachaintypes.BlockNumber
+	knownUnfinalizedBlocks knownUnfinalizedBlocks
+	pruningConfig          pruningConfig
+}
+
+// NewAvailabilityStoreSubsystem creates a new instance of AvailabilityStoreSubsystem
+func NewAvailabilityStoreSubsystem(db database.Database) *AvailabilityStoreSubsystem {
+	availabilityStore := NewAvailabilityStore(db)
+
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+
+	availabilityStoreSubsystem := &AvailabilityStoreSubsystem{
+		ctx:                    ctx,
+		cancel:                 cancel,
+		pruningConfig:          defaultPruningConfig,
+		availabilityStore:      *availabilityStore,
+		knownUnfinalizedBlocks: *newKnownUnfinalizedBlock(),
+	}
+
+	return availabilityStoreSubsystem
+}
+
+type knownUnfinalizedBlocks struct {
+	byHash   map[common.Hash]struct{}
+	byNumber map[BlockEntry]struct{}
+}
+
+func newKnownUnfinalizedBlock() *knownUnfinalizedBlocks {
+	return &knownUnfinalizedBlocks{
+		byHash:   make(map[common.Hash]struct{}),
+		byNumber: make(map[BlockEntry]struct{}),
+	}
+}
+
+func (kud *knownUnfinalizedBlocks) isKnown(hash common.Hash) bool {
+	_, ok := kud.byHash[hash]
+	return ok
+}
+
+func (kud *knownUnfinalizedBlocks) insert(hash common.Hash, number parachaintypes.BlockNumber) {
+	kud.byHash[hash] = struct{}{}
+	kud.byNumber[BlockEntry{number, hash}] = struct{}{}
 }
 
 // availabilityStore is the struct that holds data for the availability store
@@ -243,11 +283,7 @@ func (as *availabilityStore) storeChunk(candidate parachaintypes.CandidateHash, 
 
 	meta.ChunksStored[chunk.Index] = true
 
-	dataBytes, err = scale.Marshal(*meta)
-	if err != nil {
-		return false, fmt.Errorf("marshalling meta for candidate: %w", err)
-	}
-	err = batch.meta.Put(candidate.Value[:], dataBytes)
+	err = writeCandidateMetaToDB(batch.meta, candidate, meta)
 	if err != nil {
 		return false, fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
 	}
@@ -262,7 +298,7 @@ func (as *availabilityStore) storeChunk(candidate parachaintypes.CandidateHash, 
 }
 
 func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubsystem,
-	candidate parachaintypes.CandidateHash, nValidators uint, data AvailableData,
+	candidate parachaintypes.CandidateHash, nValidators uint32, data AvailableData,
 	expectedErasureRoot common.Hash) (bool, error) {
 	batch := newAvailabilityStoreBatch(as)
 	meta, err := as.loadMeta(candidate)
@@ -273,31 +309,29 @@ func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 		return true, nil // already stored
 	}
 
-	meta = &CandidateMeta{}
+	var candidateMeta CandidateMeta
 
-	now := subsystem.clock.Now()
+	now := timeNow()
 	pruneAt := now + BETimestamp(subsystem.pruningConfig.keepUnavailableFor.Seconds())
-
-	pruneKey := append(pruneAt.ToBigEndianBytes(), candidate.Value[:]...)
-	err = batch.pruneByTime.Put(pruneKey, nil)
+	err = subsystem.writePruningKey(batch.pruneByTime, pruneAt, candidate)
 	if err != nil {
 		return false, fmt.Errorf("writing pruning key: %w", err)
 	}
 
-	meta.State = NewStateVDT()
-	err = meta.State.SetValue(Unavailable{Timestamp: now})
+	candidateMeta.State = newStateVDT()
+	err = candidateMeta.State.SetValue(Unavailable{Timestamp: now})
 	if err != nil {
 		return false, fmt.Errorf("setting state to unavailable: %w", err)
 	}
-	meta.DataAvailable = false
-	meta.ChunksStored = make([]bool, nValidators)
+	candidateMeta.DataAvailable = false
+	candidateMeta.ChunksStored = make([]bool, nValidators)
 
 	dataEncoded, err := scale.Marshal(data)
 	if err != nil {
 		return false, fmt.Errorf("encoding data: %w", err)
 	}
 
-	chunks, err := erasure.ObtainChunks(nValidators, dataEncoded)
+	chunks, err := erasure.ObtainChunks(uint(nValidators), dataEncoded)
 	if err != nil {
 		return false, fmt.Errorf("obtaining chunks: %w", err)
 	}
@@ -325,25 +359,21 @@ func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 			return false, fmt.Errorf("writing chunk for candidate %v, index %d: %w", candidate, erasureChunk.Index, err)
 		}
 
-		meta.ChunksStored[i] = true
+		candidateMeta.ChunksStored[i] = true
 	}
 
-	meta.DataAvailable = true
-	meta.ChunksStored = make([]bool, nValidators)
-	for i := range meta.ChunksStored {
-		meta.ChunksStored[i] = true
+	candidateMeta.DataAvailable = true
+	candidateMeta.ChunksStored = make([]bool, nValidators)
+	for i := range candidateMeta.ChunksStored {
+		candidateMeta.ChunksStored[i] = true
 	}
 
-	dataBytes, err := scale.Marshal(meta)
-	if err != nil {
-		return false, fmt.Errorf("marshalling meta for candidate: %w", err)
-	}
-	err = batch.meta.Put(candidate.Value[:], dataBytes)
+	err = writeCandidateMetaToDB(batch.meta, candidate, &candidateMeta)
 	if err != nil {
 		return false, fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
 	}
 
-	dataBytes, err = scale.Marshal(data)
+	dataBytes, err := scale.Marshal(data)
 	if err != nil {
 		return false, fmt.Errorf("marshalling available data: %w", err)
 	}
@@ -361,14 +391,7 @@ func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 	return true, nil
 }
 
-// todo(ed) determine if this should be LittleEndian or BigEndian
 func uint32ToBytes(value uint32) []byte {
-	result := make([]byte, 4)
-	binary.LittleEndian.PutUint32(result, value)
-	return result
-}
-
-func uint32ToBytesBigEndian(value uint32) []byte {
 	result := make([]byte, 4)
 	binary.BigEndian.PutUint32(result, value)
 	return result
@@ -413,7 +436,7 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 	for {
 		select {
 		case msg := <-av.OverseerToSubSystem:
-			logger.Debugf("received message %v", msg)
+			logger.Infof("received message %T, %v", msg, msg)
 			switch msg := msg.(type) {
 			case QueryAvailableData:
 				err := av.handleQueryAvailableData(msg)
@@ -461,31 +484,242 @@ func (av *AvailabilityStoreSubsystem) processMessages() {
 					logger.Errorf("failed to process active leaves update signal: %w", err)
 				}
 			case parachaintypes.BlockFinalizedSignal:
-				av.ProcessBlockFinalizedSignal(msg)
+				err := av.ProcessBlockFinalizedSignal(msg)
+				if err != nil {
+					logger.Errorf("failed to process block finalized signal: %w", err)
+				}
 
 			default:
-				logger.Error(parachaintypes.ErrUnknownOverseerMessage.Error())
+				if msg != nil {
+					// this error shouldn't happen, so we'll panic to catch it during development
+					panic(fmt.Sprintf("%s: %T", parachaintypes.ErrUnknownOverseerMessage.Error(), msg))
+				}
 			}
-
 		case <-av.ctx.Done():
 			if err := av.ctx.Err(); err != nil {
-				logger.Errorf("ctx error: %v\n", err)
+				logger.Errorf("ctx error: %v", err)
 			}
 			av.wg.Done()
 			return
+		case <-time.After(av.pruningConfig.pruningInterval):
+			av.pruneAll()
 		}
-
 	}
 }
 
-func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal(
-	update parachaintypes.ActiveLeavesUpdateSignal) error {
-	// TODO: #3630
+func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal(signal parachaintypes.
+	ActiveLeavesUpdateSignal) error {
+	now := timeNow()
+	logger.Infof("ProcessActiveLeavesUpdateSignal %s", signal)
+
+	respChan := make(chan any)
+	message := chainapi.ChainAPIMessage[chainapi.BlockHeader]{
+		Message:         chainapi.BlockHeader(signal.Activated.Hash),
+		ResponseChannel: respChan,
+	}
+	response, err := util.SendOverseerMessage(av.subSystemToOverseer, message, message.ResponseChannel)
+	if err != nil {
+		return fmt.Errorf("sending message to get block header: %w", err)
+	}
+
+	newBlocks, err := util.DetermineNewBlocks(av.subSystemToOverseer, av.knownUnfinalizedBlocks.isKnown,
+		signal.Activated.Hash,
+		response.(types.Header),
+		av.finalizedBlockNumber)
+	if err != nil {
+		return fmt.Errorf("failed to determine new blocks: %w", err)
+	}
+
+	for _, v := range newBlocks {
+		// start db batch
+		tx := newAvailabilityStoreBatch(&av.availabilityStore)
+
+		err := av.processNewHead(tx, v.Hash, now, v.Header)
+		if err != nil {
+			return fmt.Errorf("failed to process new head: %w", err)
+		}
+
+		// add to known blocks
+		av.knownUnfinalizedBlocks.insert(v.Hash, parachaintypes.BlockNumber(v.Header.Number))
+
+		// end db batch
+		err = tx.flush()
+		if err != nil {
+			return fmt.Errorf("failed to flush tx: %w", err)
+		}
+	}
 	return nil
 }
 
-func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
-	// TODO: #3630
+func (av *AvailabilityStoreSubsystem) processNewHead(tx *availabilityStoreBatch, hash common.Hash, now BETimestamp,
+	header types.Header) error {
+	logger.Infof("processNewHead hash %s, now %v, header %v\n", hash, now, header)
+
+	nValidators := chainapi.GetNumberOfValidators()
+
+	// call to get runtime
+	respChan := make(chan any)
+	message := parachain.RuntimeAPIMessage{Hash: hash, Resp: respChan}
+
+	rtRes, err := util.SendOverseerMessage(av.subSystemToOverseer, message, respChan)
+	if err != nil {
+		return fmt.Errorf("sending message to get block header: %w", err)
+	}
+	runtime := rtRes.(parachain.RuntimeInstance)
+
+	candidateEvents, err := runtime.ParachainHostCandidateEvents()
+	if err != nil {
+		return fmt.Errorf("failed to get candidate events: %w", err)
+	}
+
+	for _, v := range candidateEvents {
+		event, err := v.Value()
+		if err != nil {
+			return fmt.Errorf("failed to get candidate event value: %w", err)
+		}
+		switch event := event.(type) {
+		case parachaintypes.CandidateBacked:
+			err := av.noteBlockBacked(tx, now, nValidators, event.CandidateReceipt)
+			if err != nil {
+				return fmt.Errorf("failed to note block backed: %w", err)
+			}
+		case parachaintypes.CandidateIncluded:
+			err := av.noteBlockIncluded(tx, parachaintypes.BlockNumber(header.Number), header.Hash(),
+				event.CandidateReceipt)
+			if err != nil {
+				return fmt.Errorf("failed to note block included: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
+func (av *AvailabilityStoreSubsystem) noteBlockBacked(tx *availabilityStoreBatch, now BETimestamp, nValidators uint,
+	candidate parachaintypes.CandidateReceipt) error {
+	hash, err := candidate.Hash()
+	if err != nil {
+		return fmt.Errorf("failed to hash candidate: %w", err)
+	}
+	candidateHash := parachaintypes.CandidateHash{Value: hash}
+	meta, err := av.availabilityStore.loadMeta(candidateHash)
+	if err != nil {
+		logger.Errorf("failed to load meta for candidate %v: %w", candidateHash, err)
+	}
+	if meta == nil {
+		state := newStateVDT()
+		err := state.SetValue(Unavailable{now})
+		if err != nil {
+			return fmt.Errorf("failed to set state to unavailable: %w", err)
+		}
+		meta = &CandidateMeta{
+			State:         state,
+			DataAvailable: false,
+			ChunksStored:  make([]bool, nValidators),
+		}
+
+		err = writeCandidateMetaToDB(tx.meta, candidateHash, meta)
+		if err != nil {
+			return fmt.Errorf("storing metadata for candidate %v: %w", candidate, err)
+		}
+
+		pruneAt := now + BETimestamp(av.pruningConfig.keepUnavailableFor.Seconds())
+		err = av.writePruningKey(tx.pruneByTime, pruneAt, candidateHash)
+		if err != nil {
+			return fmt.Errorf("writing pruning key: %w", err)
+		}
+	}
+	return nil
+}
+
+func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBatch,
+	blockNumber parachaintypes.BlockNumber, blockHash common.Hash,
+	candidate parachaintypes.CandidateReceipt) error {
+	hash, err := candidate.Hash()
+	if err != nil {
+		return fmt.Errorf("failed to hash candidate: %w", err)
+	}
+	candidateHash := parachaintypes.CandidateHash{Value: hash}
+	meta, err := av.availabilityStore.loadMeta(candidateHash)
+	if err != nil {
+		return fmt.Errorf("failed to load meta for candidate %v: %w", candidateHash, err)
+	}
+
+	if meta == nil {
+		return fmt.Errorf("Candidate included without being backed %v", candidateHash)
+	}
+	beBlock := BlockEntry{
+		BlockNumber: blockNumber,
+		BlockHash:   blockHash,
+	}
+	stateValue, err := meta.State.Value()
+	if err != nil {
+		return fmt.Errorf("failed to get state value: %w", err)
+	}
+
+	switch val := stateValue.(type) {
+	case Unavailable:
+		pruneAt := val.Timestamp + BETimestamp(av.pruningConfig.keepUnavailableFor.Seconds())
+
+		pruneKey := append(uint32ToBytes(uint32(pruneAt)), candidateHash.Value[:]...)
+		err = tx.pruneByTime.Del(pruneKey)
+		if err != nil {
+			return fmt.Errorf("failed to delete pruning key: %w", err)
+		}
+		err = meta.State.SetValue(Unfinalized{
+			Timestamp:  val.Timestamp,
+			BlockEntry: []BlockEntry{beBlock},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to set state to unfinalized: %w", err)
+		}
+	case Unfinalized:
+		err = meta.State.SetValue(Unfinalized{
+			Timestamp:  val.Timestamp,
+			BlockEntry: append(val.BlockEntry, beBlock),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to set state to unfinalized: %w", err)
+		}
+	case Finalized:
+		// This should never happen as a candidate would have to be included after
+		// finality.
+		logger.Errorf("Candidate included after finality %v", candidateHash)
+	}
+
+	// write unfinalized block contains
+	key := append(uint32ToBytes(uint32(blockNumber)), blockHash[:]...)
+	key = append(key, candidateHash.Value[:]...)
+	err = tx.unfinalized.Put(key, nil)
+	if err != nil {
+		return fmt.Errorf("failed to put unfinalized key: %w", err)
+	}
+
+	err = writeCandidateMetaToDB(tx.meta, candidateHash, meta)
+	if err != nil {
+		return fmt.Errorf("failed to put meta key: %w", err)
+	}
+	return nil
+}
+
+func (av *AvailabilityStoreSubsystem) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
+	logger.Infof("ProcessBlockFinalizedSignal %T, %v", signal, signal)
+	now := timeNow()
+
+	// load all of finalized height
+	batch := av.loadAllAtFinalizedHeight(signal.BlockNumber, signal.Hash)
+
+	// delete unfinalized height
+	tx := newAvailabilityStoreBatch(&av.availabilityStore)
+	av.deleteUnfinalizedHeight(tx.unfinalized, signal.BlockNumber)
+
+	// update blocks at finalized height
+	av.updateBlockAtFinalizedHeight(tx, batch, signal.BlockNumber, now)
+
+	err := tx.flush()
+	if err != nil {
+		return fmt.Errorf("failed to flush tx: %w", err)
+	}
+	return nil
 }
 
 func (av *AvailabilityStoreSubsystem) handleQueryAvailableData(msg QueryAvailableData) error {
@@ -587,8 +821,7 @@ func (av *AvailabilityStoreSubsystem) handleStoreChunk(msg StoreChunk) error {
 
 func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailableData) error {
 	// TODO: add to metric on_chunks_received
-
-	res, err := av.availabilityStore.storeAvailableData(av, msg.CandidateHash, uint(msg.NumValidators),
+	res, err := av.availabilityStore.storeAvailableData(av, msg.CandidateHash, msg.NumValidators,
 		msg.AvailableData,
 		msg.ExpectedErasureRoot)
 	if res {
@@ -605,7 +838,91 @@ func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailabl
 		//
 		// We bubble up the specific error here so `av-store` logs still tell what
 		// happened.
+		msg.Sender <- fmt.Errorf("store available data: %w", err)
 		return fmt.Errorf("store available data: %w", err)
+	}
+	return nil
+}
+
+func (av *AvailabilityStoreSubsystem) pruneAll() {
+	now := timeNow()
+	iter, err := av.availabilityStore.pruneByTime.NewIterator()
+	if err != nil {
+		logger.Errorf("creating iterator: %w", err)
+		return
+	}
+	defer iter.Release()
+	for iter.First(); iter.Valid(); iter.Next() {
+		key := iter.Key()
+
+		pruneAt := binary.BigEndian.Uint32(key[len(pruneByTimePrefix) : len(pruneByTimePrefix)+4])
+		if pruneAt > uint32(now) {
+			continue
+		}
+
+		err := av.processPruneKey(key)
+		if err != nil {
+			logger.Errorf("failed to process prune key: %w", err)
+		}
+	}
+}
+
+func (av *AvailabilityStoreSubsystem) writePruningKey(writer database.Writer, pruneTime BETimestamp,
+	hash parachaintypes.CandidateHash) error {
+	key := append((uint32ToBytes(uint32(pruneTime))), hash.Value[:]...)
+	return writer.Put(key, nil)
+}
+
+func (av *AvailabilityStoreSubsystem) processPruneKey(key []byte) error {
+	candidateHash := key[len(pruneByTimePrefix)+4:]
+	err := av.availabilityStore.pruneByTime.Del(key[len(pruneByTimePrefix):])
+	if err != nil {
+		logger.Errorf("failed to delete key: %w", err)
+		return err
+	}
+	meta, err := av.availabilityStore.loadMeta(parachaintypes.CandidateHash{Value: common.Hash(candidateHash)})
+	if err != nil {
+		logger.Errorf("failed to load meta: %w", err)
+		return err
+	}
+
+	if meta.DataAvailable {
+		// delete key from available
+		err = av.availabilityStore.available.Del(candidateHash)
+		if err != nil {
+			logger.Errorf("failed to delete key: %w", err)
+		}
+	}
+
+	// delete chunks
+	for i := range meta.ChunksStored {
+		err = av.availabilityStore.chunk.Del(append(candidateHash, uint32ToBytes(uint32(i))...))
+		if err != nil {
+			logger.Errorf("failed to delete key: %w", err)
+		}
+	}
+
+	// delete from meta
+	err = av.availabilityStore.meta.Del(candidateHash)
+	if err != nil {
+		logger.Errorf("failed to delete key: %w", err)
+	}
+
+	stateValue, err := meta.State.Value()
+	if err != nil {
+		logger.Errorf("failed to get state value: %w", err)
+	}
+
+	switch state := stateValue.(type) {
+	case Unfinalized:
+		for _, v := range state.BlockEntry {
+			key := append(uint32ToBytes(uint32(v.BlockNumber)), v.BlockHash[:]...)
+			key = append(key, candidateHash...)
+			err = av.availabilityStore.unfinalized.Del(key)
+			if err != nil {
+				logger.Errorf("failed to delete key: %w", err)
+			}
+		}
 	}
 	return nil
 }
@@ -613,4 +930,183 @@ func (av *AvailabilityStoreSubsystem) handleStoreAvailableData(msg StoreAvailabl
 func (av *AvailabilityStoreSubsystem) Stop() {
 	av.cancel()
 	av.wg.Wait()
+}
+
+func (av *AvailabilityStoreSubsystem) deleteUnfinalizedHeight(writer database.Writer,
+	blockNumber uint32) {
+	iter, err := av.availabilityStore.unfinalized.NewIterator()
+	if err != nil {
+		logger.Errorf("creating iterator: %w", err)
+	}
+	defer iter.Release()
+
+	for iter.First(); iter.Valid(); iter.Next() {
+		key := iter.Key()
+		number, _, _ := decodeUnfinalizedKey(key)
+		if number < blockNumber {
+			continue
+		}
+		if number == blockNumber {
+			err := writer.Del(key[len(unfinalizedPrefix):])
+			if err != nil {
+				logger.Errorf("failed to delete unfinalized key: %w", err)
+			}
+		}
+		if number > blockNumber {
+			break
+		}
+	}
+}
+
+func (av *AvailabilityStoreSubsystem) loadAllAtFinalizedHeight(finalizedNumber uint32,
+	finalizedHash common.Hash) map[parachaintypes.CandidateHash]bool {
+	result := make(map[parachaintypes.CandidateHash]bool)
+	iter, err := av.availabilityStore.unfinalized.NewIterator()
+	if err != nil {
+		logger.Errorf("creating iterator: %w", err)
+	}
+	defer iter.Release()
+
+	for iter.First(); iter.Valid(); iter.Next() {
+		key := iter.Key()
+		blockNum, blockHash, candidateHash := decodeUnfinalizedKey(key)
+		if blockNum < finalizedNumber {
+			continue
+		}
+		if blockNum == finalizedNumber {
+			if blockHash == finalizedHash {
+				result[candidateHash] = true
+			} else {
+				result[candidateHash] = false
+			}
+		}
+		if blockNum > finalizedNumber {
+			break
+		}
+	}
+
+	return result
+}
+
+func decodeUnfinalizedKey(key []byte) (blockNumber uint32, blockHash common.Hash,
+	candidateHash parachaintypes.CandidateHash) {
+	prefixLen := len(unfinalizedPrefix)
+	blockNumber = binary.BigEndian.Uint32(key[prefixLen : prefixLen+4])
+	blockHash = common.Hash(key[prefixLen+4 : prefixLen+36])
+	candidateHash = parachaintypes.CandidateHash{Value: common.Hash(key[prefixLen+36:])}
+	return
+}
+
+func writeCandidateMetaToDB(writer database.Writer, hash parachaintypes.CandidateHash, meta *CandidateMeta) error {
+	dataBytes, err := scale.Marshal(*meta)
+	if err != nil {
+		return err
+	}
+	err = writer.Put(hash.Value[:], dataBytes)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (av *AvailabilityStoreSubsystem) updateBlockAtFinalizedHeight(tx *availabilityStoreBatch,
+	candidates map[parachaintypes.CandidateHash]bool,
+	blockNumber uint32, now BETimestamp) {
+	for candidateHash, isFinalized := range candidates {
+		meta, err := av.availabilityStore.loadMeta(candidateHash)
+		if err != nil {
+			logger.Errorf("failed to load meta for candidate %v: %w", candidateHash, err)
+		}
+		if isFinalized {
+			stateValue, err := meta.State.Value()
+			if err != nil {
+				logger.Errorf("failed to get state value: %w", err)
+			}
+			switch val := stateValue.(type) {
+			case Finalized:
+				continue // sanity check
+			case Unavailable:
+				// This is also not going to happen; the very fact that we are
+				// iterating over the candidate here indicates that `State` should
+				// be `Unfinalized`.
+				err = tx.pruneByTime.Del(append(uint32ToBytes(uint32(val.Timestamp)), candidateHash.Value[:]...))
+				if err != nil {
+					panic(fmt.Sprintf("failed to delete pruning key: %v", err))
+				}
+			case Unfinalized:
+				for _, v := range val.BlockEntry {
+					if v.BlockNumber != parachaintypes.BlockNumber(blockNumber) {
+						// deleteUnfinalizedInclusion
+						key := append(uint32ToBytes(uint32(v.BlockNumber)), v.BlockHash[:]...)
+						key = append(key, candidateHash.Value[:]...)
+						err = tx.unfinalized.Del(key)
+						if err != nil {
+							panic(fmt.Sprintf("failed to delete unfinalized key: %v", err))
+						}
+					}
+				}
+			}
+
+			err = meta.State.SetValue(Finalized{Timestamp: now})
+			if err != nil {
+				logger.Errorf("failed to set state to finalized: %w", err)
+			}
+
+			// write meta
+			err = writeCandidateMetaToDB(tx.meta, candidateHash, meta)
+			if err != nil {
+				panic(fmt.Sprintf("storing metadata for candidate %v: %v", candidateHash, err))
+			}
+
+			// write pruning key
+			pruneAt := now + BETimestamp(av.pruningConfig.keepFinalizedFor.Seconds())
+			err = av.writePruningKey(tx.pruneByTime, pruneAt, candidateHash)
+			if err != nil {
+				panic(fmt.Sprintf("writing pruning key: %v", err))
+			}
+
+		} else {
+			stateValue, err := meta.State.Value()
+			if err != nil {
+				logger.Errorf("failed to get state value: %w", err)
+			}
+			switch val := stateValue.(type) {
+			case Finalized:
+				continue // sanity
+			case Unavailable:
+				continue // sanity
+			case Unfinalized:
+				retainedBlocks := []BlockEntry{}
+				for _, v := range val.BlockEntry {
+					if v.BlockNumber != parachaintypes.BlockNumber(blockNumber) {
+						retainedBlocks = append(retainedBlocks, v)
+					}
+				}
+				if len(retainedBlocks) == 0 {
+					// write pruning key
+					pruneAt := val.Timestamp + BETimestamp(av.pruningConfig.keepUnavailableFor.Seconds())
+					err = av.writePruningKey(tx.pruneByTime, pruneAt, candidateHash)
+					if err != nil {
+						panic(fmt.Sprintf("writing pruning key: %v", err))
+					}
+
+					err = meta.State.SetValue(Unavailable{Timestamp: val.Timestamp})
+					if err != nil {
+						logger.Errorf("failed to set state to unavailable: %w", err)
+					}
+				} else {
+					err = meta.State.SetValue(Unfinalized{Timestamp: val.Timestamp, BlockEntry: retainedBlocks})
+					if err != nil {
+						logger.Errorf("failed to set state to unfinalized: %w", err)
+					}
+				}
+			}
+
+			// write meta
+			err = writeCandidateMetaToDB(tx.meta, candidateHash, meta)
+			if err != nil {
+				panic(fmt.Sprintf("failed to put meta: %v", err))
+			}
+		}
+	}
 }
