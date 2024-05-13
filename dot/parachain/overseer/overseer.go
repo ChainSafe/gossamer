@@ -11,19 +11,29 @@ import (
 
 	availability_store "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
+	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-
+	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 )
 
 var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-overseer"))
 )
 
-type Overseer struct {
+type Overseer interface {
+	Start() error
+	RegisterSubsystem(subsystem parachaintypes.Subsystem) chan any
+	Stop() error
+	GetSubsystemToOverseerChannel() chan any
+}
+
+type OverseerSystem struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
 	errChan chan error // channel for overseer to send errors to service that started it
@@ -36,8 +46,8 @@ type Overseer struct {
 	finalised chan *types.FinalisationInfo
 
 	SubsystemsToOverseer chan any
-	subsystems           map[Subsystem]chan any // map[Subsystem]OverseerToSubSystem channel
-	nameToSubsystem      map[parachaintypes.SubSystemName]Subsystem
+	subsystems           map[parachaintypes.Subsystem]chan any // map[Subsystem]OverseerToSubSystem channel
+	nameToSubsystem      map[parachaintypes.SubSystemName]parachaintypes.Subsystem
 	wg                   sync.WaitGroup
 }
 
@@ -47,27 +57,32 @@ type BlockState interface {
 	FreeImportedBlockNotifierChannel(ch chan *types.Block)
 	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
 	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
+	GetRuntime(hash common.Hash) (runtime.Instance, error)
 }
 
-func NewOverseer(blockState BlockState) *Overseer {
+func NewOverseer(blockState BlockState) *OverseerSystem {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 
-	return &Overseer{
+	return &OverseerSystem{
 		ctx:                  ctx,
 		cancel:               cancel,
 		errChan:              make(chan error),
 		blockState:           blockState,
 		activeLeaves:         make(map[common.Hash]uint32),
 		SubsystemsToOverseer: make(chan any),
-		subsystems:           make(map[Subsystem]chan any),
-		nameToSubsystem:      make(map[parachaintypes.SubSystemName]Subsystem),
+		subsystems:           make(map[parachaintypes.Subsystem]chan any),
+		nameToSubsystem:      make(map[parachaintypes.SubSystemName]parachaintypes.Subsystem),
 	}
+}
+
+func (o *OverseerSystem) GetSubsystemToOverseerChannel() chan any {
+	return o.SubsystemsToOverseer
 }
 
 // RegisterSubsystem registers a subsystem with the overseer,
 // Add OverseerToSubSystem channel to subsystem, which will be passed to subsystem's Run method.
-func (o *Overseer) RegisterSubsystem(subsystem Subsystem) chan any {
+func (o *OverseerSystem) RegisterSubsystem(subsystem parachaintypes.Subsystem) chan any {
 	OverseerToSubSystem := make(chan any)
 	o.subsystems[subsystem] = OverseerToSubSystem
 	o.nameToSubsystem[subsystem.Name()] = subsystem
@@ -75,7 +90,7 @@ func (o *Overseer) RegisterSubsystem(subsystem Subsystem) chan any {
 	return OverseerToSubSystem
 }
 
-func (o *Overseer) Start() error {
+func (o *OverseerSystem) Start() error {
 
 	imported := o.blockState.GetImportedBlockNotifierChannel()
 	finalised := o.blockState.GetFinalisedNotifierChannel()
@@ -86,7 +101,7 @@ func (o *Overseer) Start() error {
 	// start subsystems
 	for subsystem, overseerToSubSystem := range o.subsystems {
 		o.wg.Add(1)
-		go func(sub Subsystem, overseerToSubSystem chan any) {
+		go func(sub parachaintypes.Subsystem, overseerToSubSystem chan any) {
 			sub.Run(o.ctx, overseerToSubSystem, o.SubsystemsToOverseer)
 			logger.Infof("subsystem %v stopped", sub)
 			o.wg.Done()
@@ -100,13 +115,13 @@ func (o *Overseer) Start() error {
 	return nil
 }
 
-func (o *Overseer) processMessages() {
+func (o *OverseerSystem) processMessages() {
 	for {
 		select {
 		case msg := <-o.SubsystemsToOverseer:
-			var subsystem Subsystem
+			var subsystem parachaintypes.Subsystem
 
-			switch msg.(type) {
+			switch msg := msg.(type) {
 			case backing.GetBackedCandidatesMessage, backing.CanSecondMessage, backing.SecondMessage, backing.StatementMessage:
 				subsystem = o.nameToSubsystem[parachaintypes.CandidateBacking]
 
@@ -122,6 +137,18 @@ func (o *Overseer) processMessages() {
 				availability_store.StoreAvailableData:
 
 				subsystem = o.nameToSubsystem[parachaintypes.AvailabilityStore]
+
+			case chainapi.ChainAPIMessage[util.Ancestors], chainapi.ChainAPIMessage[chainapi.BlockHeader]:
+				subsystem = o.nameToSubsystem[parachaintypes.ChainAPI]
+
+			case parachain.RuntimeAPIMessage:
+				// TODO: this should be handled by the parachain runtime subsystem, see issue #3940
+				rt, err := o.blockState.GetRuntime(msg.Hash)
+				if err != nil {
+					logger.Errorf("failed to get runtime: %v", err)
+					continue
+				}
+				msg.Resp <- rt
 
 			default:
 				logger.Error("unknown message type")
@@ -140,7 +167,7 @@ func (o *Overseer) processMessages() {
 	}
 }
 
-func (o *Overseer) handleBlockEvents() {
+func (o *OverseerSystem) handleBlockEvents() {
 	for {
 		select {
 		case <-o.ctx.Done():
@@ -217,13 +244,13 @@ func (o *Overseer) handleBlockEvents() {
 	}
 }
 
-func (o *Overseer) broadcast(msg any) {
+func (o *OverseerSystem) broadcast(msg any) {
 	for _, overseerToSubSystem := range o.subsystems {
 		overseerToSubSystem <- msg
 	}
 }
 
-func (o *Overseer) Stop() error {
+func (o *OverseerSystem) Stop() error {
 	o.cancel()
 
 	o.blockState.FreeImportedBlockNotifierChannel(o.imported)
