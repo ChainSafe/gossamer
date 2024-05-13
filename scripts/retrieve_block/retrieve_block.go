@@ -125,7 +125,10 @@ func parseChainSpec(arg string) *chainSpec {
 	if err != nil {
 		log.Fatalf("openning %s file: %s", arg, err.Error())
 	}
-	defer chainSpecFile.Close() //nolint:errcheck
+
+	defer func() {
+		_ = chainSpecFile.Close()
+	}()
 
 	rawChainSpec, err := io.ReadAll(chainSpecFile)
 	if err != nil {
