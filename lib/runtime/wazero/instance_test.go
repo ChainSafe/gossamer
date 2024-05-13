@@ -5,7 +5,6 @@ package wazero_runtime
 
 import (
 	_ "embed"
-	"fmt"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/internal/database"
 
@@ -1015,13 +1014,7 @@ func TestInstance_ExecuteBlock_PaseoRuntime_PaseoBlock1008649(t *testing.T) {
 	_, err = instance.ExecuteBlock(block)
 	require.NoError(t, err)
 
-	//require.Equal(t, expectedRoot, trie.V0.MustHash(paseoTrie))
-
 	expectedRootNew := common.MustHexToHash("0xc75b6a15438acb997f925a09714092fc463af3ba44ab93654c89b775c44dfe13")
-	// What we actually get: 0xf857c3a183595266a582f57f6a84ea251d746702e6cf0441b2b422c9d29268c2
-	fmt.Println("here1")
-	fmt.Println(trie.V1.MustHash(state.Trie()))
-	fmt.Println("here2")
 	require.Equal(t, expectedRootNew, state.MustRoot())
 
 }

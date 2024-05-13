@@ -1224,7 +1224,6 @@ func (t *InMemoryTrie) clearPrefixAtNode(parent *node.Node, prefix []byte,
 // matching the key given in little Endian format.
 // If no node is found at this key, nothing is deleted.
 func (t *InMemoryTrie) Delete(keyLE []byte) (err error) {
-	//fmt.Println("InMemoryTrie Delete")
 	pendingDeltas := tracking.New()
 	defer func() {
 		const success = true
@@ -1249,6 +1248,7 @@ func (t *InMemoryTrie) deleteAtNode(parent *node.Node, key []byte,
 	}
 
 	if parent.Kind() == node.Leaf {
+		fmt.Println("deleting leaf")
 		newParent, err = t.deleteLeaf(parent, key, pendingDeltas)
 		if err != nil {
 			return nil, false, 0, fmt.Errorf("deleting leaf: %w", err)
@@ -1261,7 +1261,7 @@ func (t *InMemoryTrie) deleteAtNode(parent *node.Node, key []byte,
 		const nodesRemoved = 0
 		return parent, false, nodesRemoved, nil
 	}
-
+	fmt.Println("deleting branch")
 	newParent, deleted, nodesRemoved, err = t.deleteBranch(parent, key, pendingDeltas)
 	if err != nil {
 		return nil, false, 0, fmt.Errorf("deleting branch: %w", err)

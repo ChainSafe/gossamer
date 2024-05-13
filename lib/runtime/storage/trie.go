@@ -55,6 +55,8 @@ func (t *TrieState) StartTransaction() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
+	fmt.Println("starting transaction")
+
 	nextChangeSet := t.getCurrentTransaction()
 	if nextChangeSet == nil {
 		nextChangeSet = newStorageDiff()
@@ -88,6 +90,7 @@ func (t *TrieState) CommitTransaction() {
 		// We merge this transaction with its parent transaction
 		t.transactions.Back().Prev().Value = t.transactions.Remove(t.transactions.Back())
 	} else {
+		fmt.Println("committing with len == 1")
 		// This is the last transaction so we apply all the changes to our state
 		t.transactions.Remove(t.transactions.Back()).(*storageDiff).applyToTrie(t.state)
 	}
@@ -103,16 +106,17 @@ func (t *TrieState) Trie() trie.Trie {
 
 // Put puts a key-value pair in the trie
 func (t *TrieState) Put(key, value []byte) (err error) {
-	//fmt.Println("calling Put")
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
 	// If we have running transactions we apply the change there,
 	// if not, we apply the changes directly on our state trie
 	if t.getCurrentTransaction() != nil {
+		fmt.Println("put: calling upsert")
 		t.getCurrentTransaction().upsert(string(key), value)
 		return nil
 	} else {
+		fmt.Println("put: direct put")
 		return t.state.Put(key, value)
 	}
 }
@@ -148,9 +152,7 @@ func (t *TrieState) MustRoot() common.Hash {
 func (t *TrieState) Root() (common.Hash, error) {
 	// Since the Root function is called without running transactions we can do:
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-		fmt.Println("transaction not nil when rooting")
-	} else {
-		fmt.Println("transaction is nil when rooting")
+		panic("cannot calculate root with running transactions")
 	}
 	return t.state.Hash()
 }
@@ -166,12 +168,10 @@ func (t *TrieState) Delete(key []byte) (err error) {
 	defer t.mtx.Unlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-		//fmt.Println("calling Delete")
 		t.getCurrentTransaction().delete(string(key))
 		return nil
 	}
 
-	//fmt.Println("calling Delete")
 	return t.state.Delete(key)
 }
 
@@ -188,7 +188,11 @@ func (t *TrieState) NextKey(key []byte) []byte {
 		sort.Strings(keys)
 
 		for _, k := range keys {
-			if k > string(key) && !currentTx.deletes[k] {
+			//if k > string(key) && !currentTx.deletes[k] {
+			//	return allEntries[k]
+			//}
+			_, deletes := currentTx.deletes[k]
+			if k > string(key) && !deletes {
 				return allEntries[k]
 			}
 		}
@@ -454,7 +458,8 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		// If we are going to delete this child we return error
-		if currentTx.deletes[string(keyToChild)] {
+
+		if _, deletes := currentTx.deletes[string(keyToChild)]; deletes {
 			return nil, trie.ErrChildTrieDoesNotExist
 		}
 
@@ -475,7 +480,8 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 			sort.Strings(keys)
 
 			for _, k := range keys {
-				if k > string(key) && !childChanges.deletes[k] {
+				_, deletes := childChanges.deletes[k]
+				if k > string(key) && !deletes {
 					return allEntries[k], nil
 				}
 			}
@@ -501,7 +507,7 @@ func (t *TrieState) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]b
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		// If we are going to delete this child we return error
-		if currentTx.deletes[string(keyToChild)] {
+		if _, deletes := currentTx.deletes[string(keyToChild)]; deletes {
 			return nil, trie.ErrChildTrieDoesNotExist
 		}
 

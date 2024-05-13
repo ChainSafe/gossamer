@@ -5,11 +5,11 @@ package storage
 
 import (
 	"bytes"
-	"sort"
-	"strings"
-
+	"fmt"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
+	"sort"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/pkg/trie"
 )
@@ -23,7 +23,7 @@ import (
 // Note: this structure is not thread safe, be careful
 type storageDiff struct {
 	upserts        map[string][]byte
-	deletes        map[string]bool
+	deletes        map[string]struct{}
 	childChangeSet map[string]*storageDiff
 }
 
@@ -31,7 +31,7 @@ type storageDiff struct {
 func newStorageDiff() *storageDiff {
 	return &storageDiff{
 		upserts:        make(map[string][]byte),
-		deletes:        make(map[string]bool),
+		deletes:        make(map[string]struct{}),
 		childChangeSet: make(map[string]*storageDiff),
 	}
 }
@@ -46,7 +46,7 @@ func (cs *storageDiff) get(key string) ([]byte, bool) {
 	// Check in recent upserts if not found check if we want to delete it
 	if val, ok := cs.upserts[key]; ok {
 		return val, false
-	} else if deleted := cs.deletes[key]; deleted {
+	} else if _, deleted := cs.deletes[key]; deleted {
 		return nil, true
 	}
 
@@ -56,16 +56,15 @@ func (cs *storageDiff) get(key string) ([]byte, bool) {
 // upsert records a new value for the key, or updates an existing value.
 // If the key was previously marked for deletion, that deletion is undone
 func (cs *storageDiff) upsert(key string, value []byte) {
-	//fmt.Println("upserting")
 	if cs == nil {
 		return
 	}
 
 	// If we previously deleted this trie we have to undo that deletion
-	if cs.deletes[key] {
-		delete(cs.deletes, key)
-	}
-
+	//if _, ok := cs.deletes[key]; ok {
+	//	delete(cs.deletes, key)
+	//}
+	delete(cs.deletes, key)
 	cs.upserts[key] = value
 }
 
@@ -76,9 +75,12 @@ func (cs *storageDiff) delete(key string) {
 		return
 	}
 
+	fmt.Println("deleting")
+
 	delete(cs.childChangeSet, key)
 	delete(cs.upserts, key)
-	cs.deletes[key] = true
+	//cs.deletes[key] = true
+	cs.deletes[key] = struct{}{}
 }
 
 // deleteChildLimit deletes lexicographical sorted keys from a child trie with
@@ -188,7 +190,7 @@ func (cs *storageDiff) upsertChild(keyToChild, key string, value []byte) {
 	}
 
 	// If we previously deleted this child trie we have to undo that deletion
-	if cs.deletes[keyToChild] {
+	if _, ok := cs.deletes[keyToChild]; ok {
 		delete(cs.deletes, keyToChild)
 	}
 
@@ -240,7 +242,6 @@ func (cs *storageDiff) snapshot() *storageDiff {
 // the main trie and child tries.
 // In case of errors during the application of changes, the method will panic
 func (cs *storageDiff) applyToTrie(t trie.Trie) {
-	//fmt.Println("applying to trie")
 	if cs == nil {
 		panic("trying to apply nil change set")
 	}
@@ -284,11 +285,10 @@ func (cs *storageDiff) applyToTrie(t trie.Trie) {
 				panic("Error deleting child trie from trie")
 			}
 		} else {
-			err := t.Delete([]byte(k))
+			err := t.Delete(key)
 			if err != nil {
 				panic("Error deleting key from trie")
 			}
 		}
-
 	}
 }
