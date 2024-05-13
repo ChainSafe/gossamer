@@ -916,14 +916,21 @@ func TestWestendSlowDownAfterRuntimeUpgrade(t *testing.T) {
 	expectedRoot := common.MustHexToHash("0xa52d110c8219cfe83b05656851ec1df4cb6aa12c76a6f58d7e5863de135fcc23")
 	require.Equal(t, expectedRoot, trie.V0.MustHash(wndTrie))
 
-	rawBlocks, err := os.ReadFile("../test_data/block11409279.out")
-	require.NoError(t, err)
+	numOfRequests := 8
+	responses := make([]*network.BlockResponseMessage, 0, 8)
+	for i := 1; i <= numOfRequests; i++ {
+		rawBlocks, err := os.ReadFile(fmt.Sprintf("../../../scripts/retrieve_block/req_%d.out", i))
+		require.NoError(t, err)
 
-	blockResponse := &network.BlockResponseMessage{}
-	err = blockResponse.Decode(common.MustHexToBytes(string(rawBlocks)))
-	require.NoError(t, err)
+		blockResponse := &network.BlockResponseMessage{}
+		err = blockResponse.Decode(common.MustHexToBytes(string(rawBlocks)))
+		require.NoError(t, err)
 
-	blockWithRuntimeUpgrade := blockResponse.BlockData[0]
+		responses = append(responses, blockResponse)
+	}
+
+	// the first one in the first request contains the runtime upgrade
+	blockWithRuntimeUpgrade := responses[0].BlockData[0]
 
 	// instantiating runtime setting the state trie
 	state := storage.NewTrieState(wndTrie)
@@ -971,7 +978,15 @@ func TestWestendSlowDownAfterRuntimeUpgrade(t *testing.T) {
 	instance, err = NewInstanceFromTrie(wndTrie, cfg)
 	require.NoError(t, err)
 
-	consecutiveBlocks := blockResponse.BlockData[1:]
+	// after taking the first one we should now
+	// execute the next ones after it for each
+	// of the 8 requests
+	consecutiveBlocks := responses[0].BlockData[1:]
+	for _, b := range responses[1:] {
+		consecutiveBlocks = append(consecutiveBlocks, b.BlockData...)
+	}
+
+	totalTookTime := 0.0
 	for _, b := range consecutiveBlocks {
 		startTime := time.Now()
 		_, err = instance.ExecuteBlock(&types.Block{
@@ -981,8 +996,11 @@ func TestWestendSlowDownAfterRuntimeUpgrade(t *testing.T) {
 		require.NoError(t, err)
 
 		execBlockInSeconds := time.Since(startTime).Seconds()
+		totalTookTime += execBlockInSeconds
 		fmt.Printf("block #%d took: %.2f seconds\n", b.Header.Number, execBlockInSeconds)
 	}
+	fmt.Printf("took %.2f seconds\n", totalTookTime)
+	fmt.Printf("mean %.2f seconds\n", totalTookTime/float64(len(consecutiveBlocks)))
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
