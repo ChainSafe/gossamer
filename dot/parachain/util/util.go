@@ -15,7 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 )
 
-type hashHeader struct {
+type HashHeader struct {
 	Hash   common.Hash
 	Header types.Header
 }
@@ -62,7 +62,7 @@ func SigningKeyAndIndex(
 // NOTE: TOTO: this issue needs to be finished, see issue #3933
 func DetermineNewBlocks(subsystemToOverseer chan<- any, isKnown func(hash common.Hash) bool, head common.Hash,
 	header types.Header,
-	lowerBoundNumber parachaintypes.BlockNumber) ([]hashHeader, error) {
+	lowerBoundNumber parachaintypes.BlockNumber) ([]HashHeader, error) {
 	const maxNumberOfAncestors = 4
 	minBlockNeeded := uint(lowerBoundNumber + 1)
 
@@ -73,22 +73,19 @@ func DetermineNewBlocks(subsystemToOverseer chan<- any, isKnown func(hash common
 		return nil, nil
 	}
 
-	ancestry := make([]hashHeader, 0)
+	ancestry := make([]HashHeader, 0)
 	headerClone, err := header.DeepCopy()
 	if err != nil {
 		return nil, fmt.Errorf("failed to deep copy header: %w", err)
 	}
 
-	ancestry = append(ancestry, hashHeader{Hash: head, Header: *headerClone})
+	ancestry = append(ancestry, HashHeader{Hash: head, Header: *headerClone})
 
 	// Early exit if the parent hash is in the DB or no further blocks are needed.
 	if isKnown(header.ParentHash) || header.Number == minBlockNeeded {
 		return ancestry, nil
 	}
 
-	if len(ancestry) == 1 {
-		return nil, fmt.Errorf("ancestry has length 1 at initialization and is only added to.")
-	}
 	lastHeader := ancestry[len(ancestry)-1].Header
 	// This is always non-zero as determined by the loop invariant above.
 	numberOfAncestors := min(maxNumberOfAncestors, (lastHeader.Number - minBlockNeeded))
