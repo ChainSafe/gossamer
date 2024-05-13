@@ -1150,6 +1150,7 @@ func (to *testOverseer) Start() error {
 		go func(sub parachaintypes.Subsystem, overseerToSubSystem chan any) {
 			sub.Run(to.ctx, overseerToSubSystem, to.SubsystemsToOverseer)
 			logger.Infof("subsystem %v stopped", sub)
+			to.wg.Done()
 		}(subsystem, overseerToSubSystem)
 	}
 	return nil
@@ -1800,7 +1801,6 @@ func TestStoredDataKeptUntilFinalized(t *testing.T) {
 
 	harness.broadcastMessages = append(harness.broadcastMessages, queryData)
 
-	harness.printDB("queryData after pruning")
 	harness.triggerBroadcast()
 	msgQueryChan = <-msgSenderQueryChan
 	expectedResult := AvailableData{}
