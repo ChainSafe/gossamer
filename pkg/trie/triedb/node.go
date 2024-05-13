@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 )
 
@@ -98,6 +99,27 @@ func NewFromEncoded(encodedValue codec.NodeValue) Value {
 	}
 
 	return nil
+}
+
+func InMemoryFetchedValue(value Value, prefix []byte, db db.DBGetter, fullKey []byte) ([]byte, error) {
+	switch v := value.(type) {
+	case Inline:
+		return v.Data, nil
+	case NewValueRef:
+		return v.Data, nil
+	case ValueRef:
+		prefixedKey := bytes.Join([][]byte{prefix, v.hash.ToBytes()}, nil)
+		value, err := db.Get(prefixedKey)
+		if err != nil {
+			return nil, err
+		}
+		if value != nil {
+			return value, nil
+		}
+		return value, ErrIncompleteDB
+	default:
+		panic("unreachable")
+	}
 }
 
 type Node interface {

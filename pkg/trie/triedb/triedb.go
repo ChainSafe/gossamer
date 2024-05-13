@@ -77,13 +77,54 @@ func (t *TrieDB) MustHash() common.Hash {
 func (t *TrieDB) Get(key []byte) []byte {
 	keyNibbles := nibbles.KeyLEToNibbles(key)
 
-	lookup := NewTrieLookup(t.db, t.rootHash, t.cache)
-	val, err := lookup.lookupValue(keyNibbles)
+	val, err := t.lookup(keyNibbles, keyNibbles, t.rootHandle)
 	if err != nil {
 		return nil
 	}
 
 	return val
+}
+
+func (t *TrieDB) lookup(fullKey []byte, partialKey []byte, handle NodeHandle) ([]byte, error) {
+	prefix := fullKey
+
+	for {
+		var partialIdx int
+		switch node := handle.(type) {
+		case Hash:
+			lookup := NewTrieLookup(t.db, node.hash, t.cache)
+			val, err := lookup.lookupValue(fullKey)
+			if err != nil {
+				return nil, err
+			}
+			return val, nil
+		case InMemory:
+			switch n := t.storage.get(node.idx).(type) {
+			case Empty:
+				return nil, nil
+			case Leaf:
+				if bytes.Equal(n.partialKey, partialKey) {
+					return InMemoryFetchedValue(n.value, prefix, t.db, fullKey)
+				} else {
+					return nil, nil
+				}
+			case Branch:
+				if bytes.Equal(n.partialKey, partialKey) {
+					return InMemoryFetchedValue(n.value, prefix, t.db, fullKey)
+				} else if bytes.HasPrefix(partialKey, n.partialKey) {
+					idx := partialKey[len(n.partialKey)]
+					child := n.children[idx]
+					if child != nil {
+						partialIdx = 1 + len(n.partialKey)
+						handle = child
+					}
+				} else {
+					return nil, nil
+				}
+			}
+		}
+		partialKey = partialKey[partialIdx:]
+	}
 }
 
 // Internal methods

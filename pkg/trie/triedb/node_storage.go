@@ -64,3 +64,14 @@ func (ns *NodeStorage) destroy(handle StorageHandle) StoredNode {
 
 	return oldNode
 }
+
+func (ns *NodeStorage) get(handle StorageHandle) Node {
+	switch n := ns.nodes[handle.int].(type) {
+	case New:
+		return n.node
+	case Cached:
+		return n.node
+	default:
+		panic("unreachable")
+	}
+}
