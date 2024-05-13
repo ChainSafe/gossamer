@@ -166,11 +166,6 @@ type CollationSeconded struct {
 	Statement   parachaintypes.UncheckedSignedFullStatement `scale:"2"`
 }
 
-// Index returns the index of varying data type
-func (CollationSeconded) Index() uint {
-	return 4
-}
-
 const MaxCollationMessageSize uint64 = 100 * 1024
 
 // Type returns CollationMsgType
