@@ -1123,7 +1123,6 @@ func NewKillStorageResult(deleted uint32, allDeleted bool) scale.VaryingDataType
 //export ext_default_child_storage_clear_prefix_version_2
 func ext_default_child_storage_clear_prefix_version_2(ctx context.Context, m api.Module,
 	childStorageKey, prefixSpan, limitSpan uint64) uint64 {
-
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -2021,6 +2020,7 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) (err erro
 }
 
 func ext_storage_append_version_1(ctx context.Context, m api.Module, keySpan, valueSpan uint64) {
+	fmt.Println("calling storage_append_version_1")
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -2060,6 +2060,7 @@ func ext_storage_changes_root_version_1(
 }
 
 func ext_storage_clear_version_1(ctx context.Context, m api.Module, keySpan uint64) {
+	fmt.Println("calling storage_clear_version_1")
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -2076,6 +2077,7 @@ func ext_storage_clear_version_1(ctx context.Context, m api.Module, keySpan uint
 }
 
 func ext_storage_clear_prefix_version_1(ctx context.Context, m api.Module, prefixSpan uint64) {
+	fmt.Println("calling clear_prefix_version_1")
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -2114,6 +2116,7 @@ func toKillStorageResultEnum(allRemoved bool, numRemoved uint32) (
 }
 
 func ext_storage_clear_prefix_version_2(ctx context.Context, m api.Module, prefixSpan, lim uint64) uint64 {
+	fmt.Println("calling clear_prefix_version_2")
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -2310,6 +2313,7 @@ func ext_storage_root_version_2(ctx context.Context, m api.Module, _ uint32) uin
 }
 
 func ext_storage_set_version_1(ctx context.Context, m api.Module, keySpan, valueSpan uint64) {
+	fmt.Println("calling storage_set_version_1")
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")

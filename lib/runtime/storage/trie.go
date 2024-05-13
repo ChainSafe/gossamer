@@ -103,6 +103,7 @@ func (t *TrieState) Trie() trie.Trie {
 
 // Put puts a key-value pair in the trie
 func (t *TrieState) Put(key, value []byte) (err error) {
+	//fmt.Println("calling Put")
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
@@ -146,6 +147,11 @@ func (t *TrieState) MustRoot() common.Hash {
 // Root returns the trie's root hash
 func (t *TrieState) Root() (common.Hash, error) {
 	// Since the Root function is called without running transactions we can do:
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		fmt.Println("transaction not nil when rooting")
+	} else {
+		fmt.Println("transaction is nil when rooting")
+	}
 	return t.state.Hash()
 }
 
@@ -160,10 +166,12 @@ func (t *TrieState) Delete(key []byte) (err error) {
 	defer t.mtx.Unlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		//fmt.Println("calling Delete")
 		t.getCurrentTransaction().delete(string(key))
 		return nil
 	}
 
+	//fmt.Println("calling Delete")
 	return t.state.Delete(key)
 }
 
@@ -191,6 +199,7 @@ func (t *TrieState) NextKey(key []byte) []byte {
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
 func (t *TrieState) ClearPrefix(prefix []byte) (err error) {
+	//fmt.Println("calling ClearPrefix")
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
@@ -206,6 +215,7 @@ func (t *TrieState) ClearPrefix(prefix []byte) (err error) {
 // ClearPrefixLimit deletes key-value pairs from the trie where the key starts with the given prefix till limit reached
 func (t *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
 	deleted uint32, allDeleted bool, err error) {
+	//fmt.Println("calling ClearPrefixLimit")
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 

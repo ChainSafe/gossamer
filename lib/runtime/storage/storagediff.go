@@ -56,6 +56,7 @@ func (cs *storageDiff) get(key string) ([]byte, bool) {
 // upsert records a new value for the key, or updates an existing value.
 // If the key was previously marked for deletion, that deletion is undone
 func (cs *storageDiff) upsert(key string, value []byte) {
+	//fmt.Println("upserting")
 	if cs == nil {
 		return
 	}
@@ -239,6 +240,7 @@ func (cs *storageDiff) snapshot() *storageDiff {
 // the main trie and child tries.
 // In case of errors during the application of changes, the method will panic
 func (cs *storageDiff) applyToTrie(t trie.Trie) {
+	//fmt.Println("applying to trie")
 	if cs == nil {
 		panic("trying to apply nil change set")
 	}
