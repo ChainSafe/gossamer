@@ -5,6 +5,8 @@ package wazero_runtime
 
 import (
 	_ "embed"
+	"fmt"
+	"time"
 
 	"bytes"
 	"encoding/json"
@@ -13,7 +15,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -912,6 +916,73 @@ func TestWestendSlowDownAfterRuntimeUpgrade(t *testing.T) {
 	expectedRoot := common.MustHexToHash("0xa52d110c8219cfe83b05656851ec1df4cb6aa12c76a6f58d7e5863de135fcc23")
 	require.Equal(t, expectedRoot, trie.V0.MustHash(wndTrie))
 
+	rawBlocks, err := os.ReadFile("../test_data/block11409279.out")
+	require.NoError(t, err)
+
+	blockResponse := &network.BlockResponseMessage{}
+	err = blockResponse.Decode(common.MustHexToBytes(string(rawBlocks)))
+	require.NoError(t, err)
+
+	blockWithRuntimeUpgrade := blockResponse.BlockData[0]
+
+	// instantiating runtime setting the state trie
+	state := storage.NewTrieState(wndTrie)
+	inMemoryDB, err := database.NewPebble(t.TempDir(), true)
+	require.NoError(t, err)
+
+	cfg := Config{
+		Storage: state,
+		LogLvl:  log.Critical,
+		NodeStorage: runtime.NodeStorage{
+			LocalStorage:      inMemoryDB,
+			PersistentStorage: inMemoryDB,
+			BaseDB:            inMemoryDB,
+		},
+	}
+
+	prevCodeHash, err := state.LoadCodeHash()
+	require.NoError(t, err)
+
+	fmt.Printf("%s\n", prevCodeHash.String())
+
+	instance, err := NewInstanceFromTrie(wndTrie, cfg)
+	require.NoError(t, err)
+
+	// executing the block with the runtime upgrade and
+	// then we can instantiate new the runtime
+	startTime := time.Now()
+	_, err = instance.ExecuteBlock(&types.Block{
+		Header: *blockWithRuntimeUpgrade.Header,
+		Body:   *blockWithRuntimeUpgrade.Body,
+	})
+	require.NoError(t, err)
+	execBlockInSeconds := time.Since(startTime).Seconds()
+	fmt.Printf("block #%d took: %.2f seconds\n", blockWithRuntimeUpgrade.Header.Number, execBlockInSeconds)
+	fmt.Println()
+
+	currentCodeHash, err := state.LoadCodeHash()
+	require.NoError(t, err)
+	require.NotEqual(t, prevCodeHash, currentCodeHash)
+
+	fmt.Printf("%s\n", currentCodeHash.String())
+
+	// effectivelly use the new runtime to execute
+	// the consecutive blocks
+	instance, err = NewInstanceFromTrie(wndTrie, cfg)
+	require.NoError(t, err)
+
+	consecutiveBlocks := blockResponse.BlockData[1:]
+	for _, b := range consecutiveBlocks {
+		startTime := time.Now()
+		_, err = instance.ExecuteBlock(&types.Block{
+			Header: *b.Header,
+			Body:   *b.Body,
+		})
+		require.NoError(t, err)
+
+		execBlockInSeconds := time.Since(startTime).Seconds()
+		fmt.Printf("block #%d took: %.2f seconds\n", b.Header.Number, execBlockInSeconds)
+	}
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
