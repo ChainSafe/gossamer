@@ -1211,7 +1211,7 @@ func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 
 	harness.triggerBroadcast()
 	// time to process messages
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 
 	err = harness.overseer.Stop()
 	require.NoError(t, err)
