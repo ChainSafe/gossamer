@@ -22,7 +22,7 @@ go run retrieve_block.go 0x9b0211aadcef4bb65e69346cfd256ddd2abcb674271326b08f097
 ```sh
 go run retrieve_block.go [number or hash],[direction],[number of blocks] [network chain spec] [output file]
 
-# requesting from a chain of blocks from 10 to 13
+# requesting from a chain of blocks from 10 to 12
 go run retrieve_block.go 10,asc,3 ./westend.json file.out
 
 # requesting from a chain of blocks from 50 to 30
