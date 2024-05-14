@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+
 	"github.com/stretchr/testify/require"
 )
 

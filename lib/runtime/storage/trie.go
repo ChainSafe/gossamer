@@ -183,13 +183,8 @@ func (t *TrieState) NextKey(key []byte) []byte {
 		sort.Strings(keys)
 
 		for _, k := range keys {
-			//if k > string(key) && !currentTx.deletes[k] {
-			//	return allEntries[k]
-			//}
-			_, deletes := currentTx.deletes[k]
-			if k > string(key) && !deletes {
+			if k > string(key) && !currentTx.deletes[k] {
 				return []byte(k)
-				//return allEntries[k]
 			}
 		}
 	}
@@ -453,7 +448,7 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		// If we are going to delete this child we return error
 
-		if _, deletes := currentTx.deletes[string(keyToChild)]; deletes {
+		if currentTx.deletes[string(keyToChild)] {
 			return nil, trie.ErrChildTrieDoesNotExist
 		}
 
@@ -501,7 +496,7 @@ func (t *TrieState) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]b
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		// If we are going to delete this child we return error
-		if _, deletes := currentTx.deletes[string(keyToChild)]; deletes {
+		if currentTx.deletes[string(keyToChild)] {
 			return nil, trie.ErrChildTrieDoesNotExist
 		}
 

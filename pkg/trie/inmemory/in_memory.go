@@ -355,8 +355,6 @@ func findNextKeyChild(children []*node.Node, startIndex byte,
 // Put inserts a value into the trie at the
 // key specified in little Endian format.
 func (t *InMemoryTrie) Put(keyLE, value []byte) (err error) {
-	// THis does get called twice in a row at some point
-	//fmt.Println("InMemoryTrie Put")
 	pendingDeltas := tracking.New()
 	defer func() {
 		const success = true
@@ -1260,6 +1258,7 @@ func (t *InMemoryTrie) deleteAtNode(parent *node.Node, key []byte,
 		const nodesRemoved = 0
 		return parent, false, nodesRemoved, nil
 	}
+
 	newParent, deleted, nodesRemoved, err = t.deleteBranch(parent, key, pendingDeltas)
 	if err != nil {
 		return nil, false, 0, fmt.Errorf("deleting branch: %w", err)

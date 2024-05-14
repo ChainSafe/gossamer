@@ -1123,6 +1123,7 @@ func NewKillStorageResult(deleted uint32, allDeleted bool) scale.VaryingDataType
 //export ext_default_child_storage_clear_prefix_version_2
 func ext_default_child_storage_clear_prefix_version_2(ctx context.Context, m api.Module,
 	childStorageKey, prefixSpan, limitSpan uint64) uint64 {
+
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")

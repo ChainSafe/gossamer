@@ -5,12 +5,13 @@ package storage
 
 import (
 	"bytes"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 	"sort"
 	"strings"
 
 	"github.com/ChainSafe/gossamer/pkg/trie"
+
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 // storageDiff is a structure that stores the differences between consecutive
@@ -22,7 +23,7 @@ import (
 // Note: this structure is not thread safe, be careful
 type storageDiff struct {
 	upserts        map[string][]byte
-	deletes        map[string]struct{}
+	deletes        map[string]bool
 	childChangeSet map[string]*storageDiff
 }
 
@@ -30,7 +31,7 @@ type storageDiff struct {
 func newStorageDiff() *storageDiff {
 	return &storageDiff{
 		upserts:        make(map[string][]byte),
-		deletes:        make(map[string]struct{}),
+		deletes:        make(map[string]bool),
 		childChangeSet: make(map[string]*storageDiff),
 	}
 }
@@ -45,7 +46,7 @@ func (cs *storageDiff) get(key string) ([]byte, bool) {
 	// Check in recent upserts if not found check if we want to delete it
 	if val, ok := cs.upserts[key]; ok {
 		return val, false
-	} else if _, deleted := cs.deletes[key]; deleted {
+	} else if deleted := cs.deletes[key]; deleted {
 		return nil, true
 	}
 
@@ -60,10 +61,10 @@ func (cs *storageDiff) upsert(key string, value []byte) {
 	}
 
 	// If we previously deleted this trie we have to undo that deletion
-	//if _, ok := cs.deletes[key]; ok {
-	//	delete(cs.deletes, key)
-	//}
-	delete(cs.deletes, key)
+	if cs.deletes[key] {
+		delete(cs.deletes, key)
+	}
+
 	cs.upserts[key] = value
 }
 
@@ -76,8 +77,7 @@ func (cs *storageDiff) delete(key string) {
 
 	delete(cs.childChangeSet, key)
 	delete(cs.upserts, key)
-	//cs.deletes[key] = true
-	cs.deletes[key] = struct{}{}
+	cs.deletes[key] = true
 }
 
 // deleteChildLimit deletes lexicographical sorted keys from a child trie with
@@ -187,7 +187,7 @@ func (cs *storageDiff) upsertChild(keyToChild, key string, value []byte) {
 	}
 
 	// If we previously deleted this child trie we have to undo that deletion
-	if _, ok := cs.deletes[keyToChild]; ok {
+	if cs.deletes[keyToChild] {
 		delete(cs.deletes, keyToChild)
 	}
 
@@ -282,7 +282,7 @@ func (cs *storageDiff) applyToTrie(t trie.Trie) {
 				panic("Error deleting child trie from trie")
 			}
 		} else {
-			err := t.Delete(key)
+			err := t.Delete([]byte(k))
 			if err != nil {
 				panic("Error deleting key from trie")
 			}
