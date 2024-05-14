@@ -17,7 +17,8 @@ import (
 const maxNumberOfSameRequestPerPeer uint = 2
 
 // CreateBlockResponse creates a block response message from a block request message
-func (s *Service) CreateBlockResponse(from peer.ID, req *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
+func (s *Service) CreateBlockResponse(from peer.ID, req *network.BlockRequestMessage) (
+	*network.BlockResponseMessage, error) {
 	logger.Debugf("sync request from %s: %s", from, req.String())
 
 	encodedRequest, err := req.Encode()
