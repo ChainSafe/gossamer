@@ -471,7 +471,6 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 			for _, k := range keys {
 				if k > string(key) && !childChanges.deletes[k] {
 					return []byte(k), nil
-					//return allEntries[k], nil
 				}
 			}
 			return nil, nil
