@@ -4,12 +4,27 @@
 package parachain
 
 import (
+	"fmt"
 	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 )
+
+//go:embed testdata/statement.yaml
+var testDataStatementRaw string
+
+var testDataStatement map[string]string
+
+func init() {
+	err := yaml.Unmarshal([]byte(testDataStatementRaw), &testDataStatement)
+	if err != nil {
+		fmt.Printf("Error unmarshaling test data: %s\n", err)
+		return
+	}
+}
 
 func TestEncodeStatementFetchingRequest(t *testing.T) {
 	t.Parallel()
@@ -133,4 +148,12 @@ func TestStatementFetchingResponse(t *testing.T) {
 
 		require.EqualValues(t, missingDataInStatement, actualData)
 	})
+}
+
+func getDummyHash(num byte) common.Hash {
+	hash := common.Hash{}
+	for i := 0; i < 32; i++ {
+		hash[i] = num
+	}
+	return hash
 }

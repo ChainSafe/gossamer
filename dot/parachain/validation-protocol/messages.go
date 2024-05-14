@@ -1,7 +1,7 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package parachain
+package validationprotocol
 
 import (
 	"fmt"
@@ -90,6 +90,12 @@ func (StatementDistribution) Index() uint {
 
 // ValidationProtocol VaryingDataType for ValidationProtocol
 type ValidationProtocol scale.VaryingDataType
+
+// Index returns the index of varying data type
+// This gets used in WireMessage
+func (ValidationProtocol) Index() uint {
+	return 1
+}
 
 // NewValidationProtocolVDT constructor or ValidationProtocol VaryingDataType
 func NewValidationProtocolVDT() ValidationProtocol {

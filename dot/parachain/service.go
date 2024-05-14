@@ -13,6 +13,7 @@ import (
 	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
+	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -58,34 +59,9 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 		ValidationProtocolName, forkID, genesisHash, ValidationProtocolVersion)
 
 	// register validation protocol
-	err = net.RegisterNotificationsProtocol(
-		protocol.ID(validationProtocolID),
-		network.ValidationMsgType,
-		getValidationHandshake,
-		decodeValidationHandshake,
-		validateValidationHandshake,
-		decodeValidationMessage,
-		handleValidationMessage,
-		nil,
-		MaxValidationMessageSize,
-	)
+	err = validationprotocol.Register(net, protocol.ID(validationProtocolID))
 	if err != nil {
-		// try with legacy protocol id
-		err1 := net.RegisterNotificationsProtocol(
-			protocol.ID(legacyValidationProtocolV1),
-			network.ValidationMsgType,
-			getValidationHandshake,
-			decodeValidationHandshake,
-			validateValidationHandshake,
-			decodeValidationMessage,
-			handleValidationMessage,
-			nil,
-			MaxValidationMessageSize,
-		)
-
-		if err1 != nil {
-			return nil, fmt.Errorf("registering validation protocol, new: %w, legacy:%w", err, err1)
-		}
+		return nil, fmt.Errorf("registering validation protocol: %w", err)
 	}
 
 	collationProtocolID := GeneratePeersetProtocolName(
@@ -142,8 +118,9 @@ func (s Service) run(blockState *state.BlockState) {
 	_ = collationMessage.Set(collatorProtocolMessage)
 	s.Network.GossipMessage(&collationMessage)
 
-	statementDistributionLargeStatement := StatementDistribution{NewStatementDistributionMessage()}
-	err := statementDistributionLargeStatement.Set(LargePayload{
+	statementDistributionLargeStatement := validationprotocol.StatementDistribution{
+		validationprotocol.NewStatementDistributionMessage()}
+	err := statementDistributionLargeStatement.Set(validationprotocol.LargePayload{
 		RelayParent:   common.Hash{},
 		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{}},
 		SignedBy:      5,
@@ -153,7 +130,7 @@ func (s Service) run(blockState *state.BlockState) {
 		logger.Errorf("creating test statement message: %w\n", err)
 	}
 
-	validationMessage := NewValidationProtocolVDT()
+	validationMessage := validationprotocol.NewValidationProtocolVDT()
 	err = validationMessage.Set(statementDistributionLargeStatement)
 	if err != nil {
 		logger.Errorf("creating test validation message: %w\n", err)

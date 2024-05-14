@@ -1,6 +1,9 @@
-package parachaintypes
+package networkbridge
 
 import (
+	"fmt"
+
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -35,6 +38,30 @@ func (w *WireMessage) Value() (val scale.VaryingDataTypeValue, err error) {
 	return vdt.Value()
 }
 
+func (w WireMessage) Type() network.MessageType {
+	// TODO: create a wire message type and return that
+	return network.CollationMsgType
+}
+
+func (w WireMessage) Hash() (common.Hash, error) {
+	// scale encode each extrinsic
+	encMsg, err := w.Encode()
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("cannot encode message: %w", err)
+	}
+
+	return common.Blake2bHash(encMsg)
+}
+
+// Encode a collator protocol message using scale encode
+func (w WireMessage) Encode() ([]byte, error) {
+	enc, err := scale.Marshal(w)
+	if err != nil {
+		return nil, err
+	}
+	return enc, nil
+}
+
 type ViewUpdate View
 
 // View is a succinct representation of a peer's view. This consists of a bounded amount of chain heads
@@ -53,8 +80,8 @@ func (ViewUpdate) Index() uint {
 	return 2
 }
 
-// type ProtocolMessage interface {
-// 	collatorprotocol.CollationProtocol | ValidationProtocol
+// type ProtocolMessage[T collatorprotocolmessages.CollationProtocol|collatorprotocolmessages.ValidationProtocol]{
+
 // }
 
 type ProtocolMessage struct{}

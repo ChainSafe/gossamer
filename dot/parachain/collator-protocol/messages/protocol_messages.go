@@ -13,6 +13,12 @@ import (
 // CollationProtocol represents all network messages on the collation peer-set.
 type CollationProtocol scale.VaryingDataType
 
+// Index returns the index of varying data type
+// This gets used in WireMessage
+func (CollationProtocol) Index() uint {
+	return 1
+}
+
 // NewCollationProtocol returns a new collation protocol varying data type
 func NewCollationProtocol() CollationProtocol {
 	vdt := scale.MustNewVaryingDataType(NewCollatorProtocolMessage())
