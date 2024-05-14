@@ -45,6 +45,15 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 		[]byte("val6"),
 	}
 
+	sortedKeyToChild := [][]byte{
+		[]byte("ktc1"),
+		[]byte("ktc2"),
+		[]byte("ktc3"),
+		[]byte("ktc4"),
+		[]byte("ktc5"),
+		[]byte("ktc6"),
+	}
+
 	keyToChild := []byte("keytochild")
 
 	cases := map[string]struct {
@@ -67,32 +76,32 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 		},
 		"set_child_storage": {
 			changes: func(t *testing.T, ts *TrieState) {
-				for _, tc := range testCases {
-					err := ts.SetChildStorage([]byte(tc), []byte(tc), []byte(tc))
+				for i, tc := range testCases {
+					err := ts.SetChildStorage(sortedKeyToChild[i], []byte(tc), sortedValues[i])
 					require.NoError(t, err)
 				}
 			},
 			checks: func(t *testing.T, ts *TrieState, _ bool) {
-				for _, tc := range testCases {
-					res, err := ts.GetChildStorage([]byte(tc), []byte(tc))
+				for i, tc := range testCases {
+					res, err := ts.GetChildStorage(sortedKeyToChild[i], []byte(tc))
 					require.NoError(t, err)
-					require.Equal(t, []byte(tc), res)
+					require.Equal(t, sortedValues[i], res)
 				}
 			},
 		},
 		"set_and_clear_from_child": {
 			changes: func(t *testing.T, ts *TrieState) {
-				for _, tc := range testCases {
-					err := ts.SetChildStorage([]byte(tc), []byte(tc), []byte(tc))
+				for i, tc := range testCases {
+					err := ts.SetChildStorage(sortedKeyToChild[i], []byte(tc), sortedValues[i])
 					require.NoError(t, err)
 				}
 			},
 			checks: func(t *testing.T, ts *TrieState, isTransactionRunning bool) {
-				for _, tc := range testCases {
-					err := ts.ClearChildStorage([]byte(tc), []byte(tc))
+				for i, tc := range testCases {
+					err := ts.ClearChildStorage(sortedKeyToChild[i], []byte(tc))
 					require.NoError(t, err)
 
-					val, err := ts.GetChildStorage([]byte(tc), []byte(tc))
+					val, err := ts.GetChildStorage(sortedKeyToChild[i], []byte(tc))
 
 					require.Nil(t, val)
 
@@ -118,8 +127,8 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 		},
 		"delete_child": {
 			changes: func(t *testing.T, ts *TrieState) {
-				for _, tc := range prefixedKeys {
-					ts.SetChildStorage(keyToChild, tc, tc)
+				for i, tc := range prefixedKeys {
+					ts.SetChildStorage(keyToChild, tc, sortedValues[i])
 				}
 			},
 			checks: func(t *testing.T, ts *TrieState, _ bool) {
@@ -295,8 +304,8 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 		},
 		"child_next_key": {
 			changes: func(t *testing.T, ts *TrieState) {
-				for _, tc := range sortedKeys {
-					err := ts.SetChildStorage(keyToChild, tc, tc)
+				for i, tc := range sortedKeys {
+					err := ts.SetChildStorage(keyToChild, tc, sortedValues[i])
 					require.Nil(t, err)
 				}
 			},
@@ -331,8 +340,8 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 		},
 		"get_keys_with_prefix_from_child": {
 			changes: func(t *testing.T, ts *TrieState) {
-				for _, tc := range prefixedKeys {
-					err := ts.SetChildStorage(keyToChild, tc, tc)
+				for i, tc := range prefixedKeys {
+					err := ts.SetChildStorage(keyToChild, tc, sortedValues[i])
 					require.Nil(t, err)
 				}
 			},

@@ -470,7 +470,8 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 
 			for _, k := range keys {
 				if k > string(key) && !childChanges.deletes[k] {
-					return allEntries[k], nil
+					return []byte(k), nil
+					//return allEntries[k], nil
 				}
 			}
 			return nil, nil
@@ -518,7 +519,7 @@ func (t *TrieState) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]b
 
 			for _, k := range keys {
 				if bytes.HasPrefix([]byte(k), prefix) {
-					values = append(values, allEntries[k])
+					values = append(values, []byte(k))
 				}
 			}
 
