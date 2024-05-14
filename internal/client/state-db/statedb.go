@@ -44,6 +44,7 @@ type Hash interface {
 	comparable
 }
 
+// HashDBValue is a helper struct which contains Hash and DBValue.
 type HashDBValue[H any] struct {
 	Hash H
 	DBValue
