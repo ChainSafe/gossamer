@@ -1,3 +1,6 @@
+// Copyright 2024 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package statedb
 
 // State database maintenance. Handles canonicalization and pruning in the database.
@@ -32,13 +35,6 @@ import (
 )
 
 const defaultMaxBlockConstraint uint32 = 256
-
-var (
-	pruningMode             = []byte("mode")
-	pruningModeArchive      = []byte("archive")
-	pruningModeArchiveCanon = []byte("archive_canonical")
-	pruningModeConstrained  = []byte("constrained")
-)
 
 // Database value type.
 type DBValue []byte

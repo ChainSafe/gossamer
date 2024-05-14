@@ -1,3 +1,6 @@
+// Copyright 2024 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package hash
 
 import (
@@ -22,14 +25,14 @@ func (h256 H256) String() string {
 	return fmt.Sprintf("%v", h256.Bytes())
 }
 
-// MarshalSCALE fulfills the SCALE interface for encoding
+// MarshalSCALE fulfils the SCALE interface for encoding
 func (h256 H256) MarshalSCALE() ([]byte, error) {
 	var arr [32]byte
 	copy(arr[:], []byte(h256))
 	return scale.Marshal(arr)
 }
 
-// UnmarshalSCALE fulfills the SCALE interface for decoding
+// UnmarshalSCALE fulfils the SCALE interface for decoding
 func (h256 *H256) UnmarshalSCALE(r io.Reader) error {
 	var arr [32]byte
 	decoder := scale.NewDecoder(r)
@@ -52,6 +55,9 @@ func NewH256FromLowUint64BigEndian(v uint64) H256 {
 // NewRandomH256 is constructor for a random H256
 func NewRandomH256() H256 {
 	token := make([]byte, 32)
-	rand.Read(token)
+	_, err := rand.Read(token)
+	if err != nil {
+		panic(err)
+	}
 	return H256(token)
 }

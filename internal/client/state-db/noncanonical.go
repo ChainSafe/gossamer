@@ -1,3 +1,6 @@
+// Copyright 2024 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package statedb
 
 import (
@@ -218,7 +221,8 @@ func (nco *NonCanonicalOverlay[BlockHash, Key]) Insert(
 	return commit, nil
 }
 
-func (nco *NonCanonicalOverlay[BlockHash, Key]) discardJournals(levelIndex uint, discardedJournals *[][]byte, hash BlockHash) {
+func (nco *NonCanonicalOverlay[BlockHash, Key]) discardJournals(
+	levelIndex uint, discardedJournals *[][]byte, hash BlockHash) {
 	if levelIndex >= uint(nco.levels.Len()) {
 		return
 	}

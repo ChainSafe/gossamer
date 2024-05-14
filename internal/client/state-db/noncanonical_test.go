@@ -1,3 +1,6 @@
+// Copyright 2024 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package statedb
 
 import (
@@ -117,14 +120,14 @@ func TestInsertCanonicalizeOne(t *testing.T) {
 	assert.Equal(t, 2, len(insertion.Meta.Inserted))
 	assert.Equal(t, 0, len(insertion.Data.Deleted))
 	db.Commit(insertion)
-	finalization := CommitSet[hash.H256]{}
-	_, err = overlay.Canonicalize(h1, &finalization)
+	finalisation := CommitSet[hash.H256]{}
+	_, err = overlay.Canonicalize(h1, &finalisation)
 	assert.NoError(t, err)
-	assert.Equal(t, len(changeset.Inserted), len(finalization.Data.Inserted))
-	assert.Equal(t, len(changeset.Deleted), len(finalization.Data.Deleted))
-	assert.Equal(t, 1, len(finalization.Meta.Inserted))
-	assert.Equal(t, 1, len(finalization.Meta.Deleted))
-	db.Commit(finalization)
+	assert.Equal(t, len(changeset.Inserted), len(finalisation.Data.Inserted))
+	assert.Equal(t, len(changeset.Deleted), len(finalisation.Data.Deleted))
+	assert.Equal(t, 1, len(finalisation.Meta.Inserted))
+	assert.Equal(t, 1, len(finalisation.Meta.Deleted))
+	db.Commit(finalisation)
 	assert.Equal(t, NewTestDB([]uint64{1, 3, 4}).Data, db.Data)
 }
 func TestRestoreFromJournal(t *testing.T) {
