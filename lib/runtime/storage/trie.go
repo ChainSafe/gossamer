@@ -469,8 +469,7 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 			sort.Strings(keys)
 
 			for _, k := range keys {
-				_, deletes := childChanges.deletes[k]
-				if k > string(key) && !deletes {
+				if k > string(key) && !childChanges.deletes[k] {
 					return allEntries[k], nil
 				}
 			}
