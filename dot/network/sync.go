@@ -62,7 +62,6 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 
 	numOfRequests := s.seenBlockSyncRequests.Get(requestHash)
 	if numOfRequests > maxNumberOfSameRequestPerPeer {
-
 		s.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.SameBlockSyncRequest,
 			Reason: peerset.SameBlockSyncRequestReason,
@@ -73,6 +72,7 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 	}
 
 	s.seenBlockSyncRequests.Put(requestHash, numOfRequests+1)
+
 	if req, ok := msg.(*BlockRequestMessage); ok {
 		resp, err := s.syncer.CreateBlockResponse(stream.Conn().RemotePeer(), req)
 		if err != nil {

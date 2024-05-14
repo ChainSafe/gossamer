@@ -110,31 +110,55 @@ func init() {
 		}), []api.ValueType{api.ValueTypeI32, api.ValueTypeI64, api.ValueTypeI32}, []api.ValueType{api.ValueTypeI32}).
 		Export("ext_crypto_ecdsa_verify_version_2").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_secp256k1_ecdsa_recover_compressed_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
+			stack[0] = ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(ctx, mod,
+				api.DecodeU32(stack[0]), api.DecodeU32(stack[1]))
+		}), []api.ValueType{api.ValueTypeI32, api.ValueTypeI32}, []api.ValueType{api.ValueTypeI64}).
 		Export("ext_crypto_secp256k1_ecdsa_recover_compressed_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_secp256k1_ecdsa_recover_compressed_version_2).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
+			stack[0] = ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(ctx, mod,
+				api.DecodeU32(stack[0]), api.DecodeU32(stack[1]))
+		}), []api.ValueType{api.ValueTypeI32, api.ValueTypeI32}, []api.ValueType{api.ValueTypeI64}).
 		Export("ext_crypto_secp256k1_ecdsa_recover_compressed_version_2").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_sr25519_generate_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
+			stack[0] = api.EncodeU32(ext_crypto_sr25519_generate_version_1(ctx, mod,
+				api.DecodeU32(stack[0]), stack[1]))
+		}), []api.ValueType{api.ValueTypeI32, api.ValueTypeI64}, []api.ValueType{api.ValueTypeI32}).
 		Export("ext_crypto_sr25519_generate_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_sr25519_public_keys_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
+			stack[0] = ext_crypto_sr25519_public_keys_version_1(ctx, mod, api.DecodeU32(stack[0]))
+		}), []api.ValueType{api.ValueTypeI32}, []api.ValueType{api.ValueTypeI64}).
 		Export("ext_crypto_sr25519_public_keys_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_sr25519_sign_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
+			stack[0] = ext_crypto_sr25519_sign_version_1(ctx, mod,
+				api.DecodeU32(stack[0]), api.DecodeU32(stack[1]), stack[2])
+		}), []api.ValueType{api.ValueTypeI32, api.ValueTypeI32, api.ValueTypeI64}, []api.ValueType{api.ValueTypeI64}).
 		Export("ext_crypto_sr25519_sign_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_sr25519_verify_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
+			stack[0] = api.EncodeU32(ext_crypto_sr25519_verify_version_1(ctx, mod,
+				api.DecodeU32(stack[0]), stack[1], api.DecodeU32(stack[2])))
+		}), []api.ValueType{api.ValueTypeI32, api.ValueTypeI64, api.ValueTypeI32}, []api.ValueType{api.ValueTypeI32}).
 		Export("ext_crypto_sr25519_verify_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_sr25519_verify_version_2).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
+			stack[0] = api.EncodeU32(ext_crypto_sr25519_verify_version_2(ctx, mod,
+				api.DecodeU32(stack[0]), stack[1], api.DecodeU32(stack[2])))
+		}), []api.ValueType{api.ValueTypeI32, api.ValueTypeI64, api.ValueTypeI32}, []api.ValueType{api.ValueTypeI32}).
 		Export("ext_crypto_sr25519_verify_version_2").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_start_batch_verify_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
+			ext_crypto_start_batch_verify_version_1(ctx, mod)
+		}), []api.ValueType{}, []api.ValueType{}).
 		Export("ext_crypto_start_batch_verify_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_finish_batch_verify_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
+			stack[0] = api.EncodeU32(ext_crypto_finish_batch_verify_version_1(ctx, mod))
+		}), []api.ValueType{}, []api.ValueType{api.ValueTypeI32}).
 		Export("ext_crypto_finish_batch_verify_version_1").
 		NewFunctionBuilder().
 		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
@@ -173,13 +197,19 @@ func init() {
 			[]api.ValueType{api.ValueTypeI32}).
 		Export("ext_trie_blake2_256_verify_proof_version_2").
 		NewFunctionBuilder().
-		WithFunc(ext_misc_print_hex_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
+			ext_misc_print_hex_version_1(ctx, mod, stack[0])
+		}), []api.ValueType{api.ValueTypeI64}, []api.ValueType{}).
 		Export("ext_misc_print_hex_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_misc_print_num_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
+			ext_misc_print_num_version_1(ctx, mod, stack[0])
+		}), []api.ValueType{api.ValueTypeI64}, []api.ValueType{}).
 		Export("ext_misc_print_num_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_misc_print_utf8_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
+			ext_misc_print_utf8_version_1(ctx, mod, stack[0])
+		}), []api.ValueType{api.ValueTypeI64}, []api.ValueType{}).
 		Export("ext_misc_print_utf8_version_1").
 		NewFunctionBuilder().
 		WithFunc(ext_misc_runtime_version_version_1).
@@ -388,7 +418,9 @@ func init() {
 		}), []api.ValueType{}, []api.ValueType{}).
 		Export("ext_storage_commit_transaction_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_ecdsa_generate_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
+			stack[0] = api.EncodeU32(ext_crypto_ecdsa_generate_version_1(ctx, mod, api.DecodeU32(stack[0]), stack[1]))
+		}), []api.ValueType{api.ValueTypeI32, api.ValueTypeI64}, []api.ValueType{api.ValueTypeI32}).
 		Export("ext_crypto_ecdsa_generate_version_1").
 		Compile(context.Background())
 
