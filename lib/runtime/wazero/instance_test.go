@@ -912,7 +912,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 }
 
 func TestWestendSlowDownAfterRuntimeUpgrade(t *testing.T) {
-	wndTrie := newTrieFromKeyValueList(t, "../test_data/11m_block.out")
+	wndTrie := newTrieFromKeyValueList(t, "../test_data/wnd_state_block11409278.out")
 	expectedRoot := common.MustHexToHash("0xa52d110c8219cfe83b05656851ec1df4cb6aa12c76a6f58d7e5863de135fcc23")
 	require.Equal(t, expectedRoot, trie.V0.MustHash(wndTrie))
 
