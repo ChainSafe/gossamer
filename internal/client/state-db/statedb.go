@@ -34,8 +34,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-const defaultMaxBlockConstraint uint32 = 256
-
 // Database value type.
 type DBValue []byte
 
