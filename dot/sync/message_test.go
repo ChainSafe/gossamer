@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
@@ -157,7 +158,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			s := &Service{
 				blockState: tt.blockStateBuilder(ctrl),
 			}
-			got, err := s.CreateBlockResponse(tt.args.req)
+			got, err := s.CreateBlockResponse(peer.ID("alice"), tt.args.req)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {

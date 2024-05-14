@@ -67,4 +67,8 @@ const (
 	GenesisMismatch Reputation = math.MinInt32
 	// GenesisMismatchReason used when a peer has a different genesis
 	GenesisMismatchReason = "Genesis mismatch"
+
+	// SameBlockSyncRequest used when a peer send us more than the max number of the same request.
+	SameBlockSyncRequest       Reputation = math.MinInt32
+	SameBlockSyncRequestReason            = "same block sync request"
 )
