@@ -5,7 +5,6 @@ package storage
 
 import (
 	"bytes"
-	"fmt"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	"sort"
@@ -74,8 +73,6 @@ func (cs *storageDiff) delete(key string) {
 	if cs == nil {
 		return
 	}
-
-	fmt.Println("deleting")
 
 	delete(cs.childChangeSet, key)
 	delete(cs.upserts, key)

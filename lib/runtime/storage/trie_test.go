@@ -36,6 +36,15 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 		[]byte("key3"),
 	}
 
+	sortedValues := [][]byte{
+		[]byte("val1"),
+		[]byte("val2"),
+		[]byte("val3"),
+		[]byte("val4"),
+		[]byte("val5"),
+		[]byte("val6"),
+	}
+
 	keyToChild := []byte("keytochild")
 
 	cases := map[string]struct {
@@ -44,15 +53,15 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 	}{
 		"set_get": {
 			changes: func(t *testing.T, ts *TrieState) {
-				for _, tc := range testCases {
-					err := ts.Put([]byte(tc), []byte(tc))
+				for i, tc := range testCases {
+					err := ts.Put([]byte(tc), sortedValues[i])
 					require.NoError(t, err)
 				}
 			},
 			checks: func(t *testing.T, ts *TrieState, _ bool) {
-				for _, tc := range testCases {
+				for i, tc := range testCases {
 					res := ts.Get([]byte(tc))
-					require.Equal(t, []byte(tc), res)
+					require.Equal(t, sortedValues[i], res)
 				}
 			},
 		},
@@ -97,8 +106,8 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 		},
 		"delete": {
 			changes: func(t *testing.T, ts *TrieState) {
-				for _, tc := range testCases {
-					ts.Put([]byte(tc), []byte(tc))
+				for i, tc := range testCases {
+					ts.Put([]byte(tc), sortedValues[i])
 				}
 			},
 			checks: func(t *testing.T, ts *TrieState, _ bool) {
@@ -268,8 +277,8 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 		},
 		"next_key": {
 			changes: func(t *testing.T, ts *TrieState) {
-				for _, tc := range sortedKeys {
-					err := ts.Put(tc, tc)
+				for i, tc := range sortedKeys {
+					err := ts.Put(tc, sortedValues[i])
 					require.Nil(t, err)
 				}
 			},
@@ -306,8 +315,8 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 		},
 		"entries": {
 			changes: func(t *testing.T, ts *TrieState) {
-				for _, tc := range testCases {
-					err := ts.Put([]byte(tc), []byte(tc))
+				for i, tc := range testCases {
+					err := ts.Put([]byte(tc), sortedValues[i])
 					require.Nil(t, err)
 				}
 			},

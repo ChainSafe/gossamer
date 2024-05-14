@@ -55,8 +55,6 @@ func (t *TrieState) StartTransaction() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	fmt.Println("starting transaction")
-
 	nextChangeSet := t.getCurrentTransaction()
 	if nextChangeSet == nil {
 		nextChangeSet = newStorageDiff()
@@ -90,7 +88,6 @@ func (t *TrieState) CommitTransaction() {
 		// We merge this transaction with its parent transaction
 		t.transactions.Back().Prev().Value = t.transactions.Remove(t.transactions.Back())
 	} else {
-		fmt.Println("committing with len == 1")
 		// This is the last transaction so we apply all the changes to our state
 		t.transactions.Remove(t.transactions.Back()).(*storageDiff).applyToTrie(t.state)
 	}
@@ -112,11 +109,9 @@ func (t *TrieState) Put(key, value []byte) (err error) {
 	// If we have running transactions we apply the change there,
 	// if not, we apply the changes directly on our state trie
 	if t.getCurrentTransaction() != nil {
-		fmt.Println("put: calling upsert")
 		t.getCurrentTransaction().upsert(string(key), value)
 		return nil
 	} else {
-		fmt.Println("put: direct put")
 		return t.state.Put(key, value)
 	}
 }
@@ -193,7 +188,8 @@ func (t *TrieState) NextKey(key []byte) []byte {
 			//}
 			_, deletes := currentTx.deletes[k]
 			if k > string(key) && !deletes {
-				return allEntries[k]
+				return []byte(k)
+				//return allEntries[k]
 			}
 		}
 	}
@@ -203,7 +199,6 @@ func (t *TrieState) NextKey(key []byte) []byte {
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
 func (t *TrieState) ClearPrefix(prefix []byte) (err error) {
-	//fmt.Println("calling ClearPrefix")
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
@@ -219,7 +214,6 @@ func (t *TrieState) ClearPrefix(prefix []byte) (err error) {
 // ClearPrefixLimit deletes key-value pairs from the trie where the key starts with the given prefix till limit reached
 func (t *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
 	deleted uint32, allDeleted bool, err error) {
-	//fmt.Println("calling ClearPrefixLimit")
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
