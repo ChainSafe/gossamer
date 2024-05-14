@@ -8,10 +8,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ChainSafe/gossamer/pkg/trie"
-
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
+
+	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
 // storageDiff is a structure that stores the differences between consecutive
@@ -287,5 +287,6 @@ func (cs *storageDiff) applyToTrie(t trie.Trie) {
 				panic("Error deleting key from trie")
 			}
 		}
+
 	}
 }
