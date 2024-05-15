@@ -9,13 +9,10 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // CreateBlockResponse creates a block response message from a block request message
-func (s *Service) CreateBlockResponse(from peer.ID, req *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
-	logger.Debugf("sync request from %s: %s", from, req.String())
-
+func (s *Service) CreateBlockResponse(req *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
 	switch req.Direction {
 	case network.Ascending:
 		return s.handleAscendingRequest(req)

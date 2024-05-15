@@ -212,13 +212,19 @@ func init() {
 		}), []api.ValueType{api.ValueTypeI64}, []api.ValueType{}).
 		Export("ext_misc_print_utf8_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_misc_runtime_version_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
+			stack[0] = ext_misc_runtime_version_version_1(ctx, mod, stack[0])
+		}), []api.ValueType{api.ValueTypeI64}, []api.ValueType{api.ValueTypeI64}).
 		Export("ext_misc_runtime_version_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_set_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
+			ext_default_child_storage_set_version_1(ctx, mod, stack[0], stack[1], stack[3])
+		}), []api.ValueType{api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64}, []api.ValueType{}).
 		Export("ext_default_child_storage_set_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_read_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, mod api.Module, stack []uint64) {
+			stack[0] = ext_default_child_storage_read_version_1(ctx, mod, stack[0], stack[1], stack[2], api.DecodeU32(stack[3]))
+		}), []api.ValueType{api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI32}, []api.ValueType{api.ValueTypeI64}).
 		Export("ext_default_child_storage_read_version_1").
 		NewFunctionBuilder().
 		WithFunc(ext_default_child_storage_clear_version_1).

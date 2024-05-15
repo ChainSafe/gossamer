@@ -40,18 +40,18 @@ func (m *MockSyncer) EXPECT() *MockSyncerMockRecorder {
 }
 
 // CreateBlockResponse mocks base method.
-func (m *MockSyncer) CreateBlockResponse(arg0 peer.ID, arg1 *BlockRequestMessage) (*BlockResponseMessage, error) {
+func (m *MockSyncer) CreateBlockResponse(arg0 *BlockRequestMessage) (*BlockResponseMessage, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateBlockResponse", arg0, arg1)
+	ret := m.ctrl.Call(m, "CreateBlockResponse", arg0)
 	ret0, _ := ret[0].(*BlockResponseMessage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateBlockResponse indicates an expected call of CreateBlockResponse.
-func (mr *MockSyncerMockRecorder) CreateBlockResponse(arg0, arg1 any) *gomock.Call {
+func (mr *MockSyncerMockRecorder) CreateBlockResponse(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBlockResponse", reflect.TypeOf((*MockSyncer)(nil).CreateBlockResponse), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBlockResponse", reflect.TypeOf((*MockSyncer)(nil).CreateBlockResponse), arg0)
 }
 
 // HandleBlockAnnounce mocks base method.
