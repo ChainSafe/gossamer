@@ -421,21 +421,21 @@ func dummyTableContext(t *testing.T) TableContext {
 func rpStateWhenPpmDisabled(t *testing.T) perRelayParentState {
 	t.Helper()
 
-	attestedToReturn := AttestedCandidate{
-		GroupID:   3,
-		Candidate: getDummyCommittedCandidateReceipt(t),
-		ValidityAttestations: []validityAttestation{
+	attestedToReturn := attestedCandidate{
+		groupID:                   3,
+		committedCandidateReceipt: getDummyCommittedCandidateReceipt(t),
+		validityAttestations: []validatorIndexWithAttestation{
 			{
-				ValidatorIndex:      7,
-				ValidityAttestation: dummyValidityAttestation(t, "implicit"),
+				validatorIndex:      7,
+				validityAttestation: dummyValidityAttestation(t, "implicit"),
 			},
 			{
-				ValidatorIndex:      8,
-				ValidityAttestation: dummyValidityAttestation(t, "explicit"),
+				validatorIndex:      8,
+				validityAttestation: dummyValidityAttestation(t, "explicit"),
 			},
 			{
-				ValidatorIndex:      9,
-				ValidityAttestation: dummyValidityAttestation(t, "implicit"),
+				validatorIndex:      9,
+				validityAttestation: dummyValidityAttestation(t, "implicit"),
 			},
 		},
 	}
@@ -526,9 +526,9 @@ func TestPostImportStatement(t *testing.T) {
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
-				).Return(&AttestedCandidate{
-					GroupID:   4,
-					Candidate: candidate,
+				).Return(&attestedCandidate{
+					groupID:                   4,
+					committedCandidateReceipt: candidate,
 				}, nil)
 
 				return perRelayParentState{
@@ -552,9 +552,9 @@ func TestPostImportStatement(t *testing.T) {
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
-				).Return(&AttestedCandidate{
-					GroupID:   3,
-					Candidate: getDummyCommittedCandidateReceipt(t),
+				).Return(&attestedCandidate{
+					groupID:                   3,
+					committedCandidateReceipt: getDummyCommittedCandidateReceipt(t),
 				}, nil)
 
 				return perRelayParentState{
@@ -983,7 +983,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
-				).Return(new(AttestedCandidate), nil)
+				).Return(new(attestedCandidate), nil)
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
@@ -1021,7 +1021,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
-				).Return(new(AttestedCandidate), nil)
+				).Return(new(attestedCandidate), nil)
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
@@ -1062,7 +1062,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
-				).Return(new(AttestedCandidate), nil)
+				).Return(new(attestedCandidate), nil)
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
@@ -1106,7 +1106,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
-				).Return(new(AttestedCandidate), nil)
+				).Return(new(attestedCandidate), nil)
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
@@ -1157,7 +1157,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
-				).Return(new(AttestedCandidate), nil)
+				).Return(new(attestedCandidate), nil)
 				mockTable.EXPECT().getCandidate(
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 				).Return(
@@ -1201,7 +1201,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
-				).Return(new(AttestedCandidate), nil)
+				).Return(new(attestedCandidate), nil)
 				mockTable.EXPECT().getCandidate(
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 				).Return(dummyCCR, nil)

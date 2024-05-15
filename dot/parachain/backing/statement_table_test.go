@@ -16,9 +16,9 @@ func TestCandidateData_attested(t *testing.T) {
 		validityVotes: map[parachaintypes.ValidatorIndex]validityVoteWithSign{},
 	}
 
-	attestedCandidate, err := data.attested(validityThreshold)
+	attested, err := data.attested(validityThreshold)
 	require.ErrorIs(t, err, errNotEnoughValidityVotes)
-	require.Nil(t, attestedCandidate)
+	require.Nil(t, attested)
 
 	data.validityVotes = map[parachaintypes.ValidatorIndex]validityVoteWithSign{
 		1: {validityVote: issued, signature: parachaintypes.ValidatorSignature{1}},
@@ -26,11 +26,11 @@ func TestCandidateData_attested(t *testing.T) {
 		3: {validityVote: valid, signature: parachaintypes.ValidatorSignature{1, 2, 3}},
 	}
 
-	expectedAttestedCandidate := &AttestedCandidate{
-		GroupID:   1,
-		Candidate: committedCandidateReceipt,
-		ValidityAttestations: func() []validityAttestation {
-			var attestations []validityAttestation
+	expectedAttestedCandidate := &attestedCandidate{
+		groupID:                   1,
+		committedCandidateReceipt: committedCandidateReceipt,
+		validityAttestations: func() []validatorIndexWithAttestation {
+			var attestations []validatorIndexWithAttestation
 
 			// validity vote: issued
 			vote1 := parachaintypes.NewValidityAttestation()
@@ -38,9 +38,9 @@ func TestCandidateData_attested(t *testing.T) {
 				parachaintypes.ValidatorSignature{1},
 			))
 			require.NoError(t, err)
-			attest1 := validityAttestation{
-				ValidatorIndex:      1,
-				ValidityAttestation: vote1,
+			attest1 := validatorIndexWithAttestation{
+				validatorIndex:      1,
+				validityAttestation: vote1,
 			}
 
 			// validity vote: valid
@@ -49,9 +49,9 @@ func TestCandidateData_attested(t *testing.T) {
 				parachaintypes.ValidatorSignature{1, 2},
 			))
 			require.NoError(t, err)
-			attest2 := validityAttestation{
-				ValidatorIndex:      2,
-				ValidityAttestation: vote2,
+			attest2 := validatorIndexWithAttestation{
+				validatorIndex:      2,
+				validityAttestation: vote2,
 			}
 
 			// validity vote: valid
@@ -60,18 +60,18 @@ func TestCandidateData_attested(t *testing.T) {
 				parachaintypes.ValidatorSignature{1, 2, 3},
 			))
 			require.NoError(t, err)
-			attest3 := validityAttestation{
-				ValidatorIndex:      3,
-				ValidityAttestation: vote3,
+			attest3 := validatorIndexWithAttestation{
+				validatorIndex:      3,
+				validityAttestation: vote3,
 			}
 
 			return append(attestations, attest1, attest2, attest3)
 		}(),
 	}
 
-	attestedCandidate, err = data.attested(validityThreshold)
+	attested, err = data.attested(validityThreshold)
 	require.NoError(t, err)
-	require.Equal(t, expectedAttestedCandidate, attestedCandidate)
+	require.Equal(t, expectedAttestedCandidate, attested)
 }
 
 func TestStatementTable_attestedCandidate(t *testing.T) {
@@ -86,7 +86,7 @@ func TestStatementTable_attestedCandidate(t *testing.T) {
 		name    string
 		table   *statementTable
 		args    args
-		want    *AttestedCandidate
+		want    *attestedCandidate
 		wantErr error
 	}{
 		{

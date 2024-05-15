@@ -81,7 +81,7 @@ func TestHandleGetBackedCandidatesMessage(t *testing.T) {
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
-				).Return(new(AttestedCandidate), nil)
+				).Return(new(attestedCandidate), nil)
 
 				return map[common.Hash]*perRelayParentState{
 					getDummyHash(t, 2): {

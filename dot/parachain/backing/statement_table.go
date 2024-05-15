@@ -40,13 +40,13 @@ type candidateData struct {
 
 // attested yields a full attestation for a candidate.
 // If the candidate can be included, it will return attested candidate.
-func (data candidateData) attested(validityThreshold uint) (*AttestedCandidate, error) {
+func (data candidateData) attested(validityThreshold uint) (*attestedCandidate, error) {
 	numOfValidityVotes := uint(len(data.validityVotes))
 	if numOfValidityVotes < validityThreshold {
 		return nil, fmt.Errorf("%w: %d < %d", errNotEnoughValidityVotes, numOfValidityVotes, validityThreshold)
 	}
 
-	validityAttestations := make([]validityAttestation, 0, numOfValidityVotes)
+	validityAttestations := make([]validatorIndexWithAttestation, 0, numOfValidityVotes)
 	for validatorIndex, voteWithSign := range data.validityVotes {
 		switch voteWithSign.validityVote {
 		case valid:
@@ -56,9 +56,9 @@ func (data candidateData) attested(validityThreshold uint) (*AttestedCandidate, 
 				return nil, fmt.Errorf("failed to set validity attestation: %w", err)
 			}
 
-			validityAttestations = append(validityAttestations, validityAttestation{
-				ValidatorIndex:      validatorIndex,
-				ValidityAttestation: attestation,
+			validityAttestations = append(validityAttestations, validatorIndexWithAttestation{
+				validatorIndex:      validatorIndex,
+				validityAttestation: attestation,
 			})
 		case issued:
 			attestation := parachaintypes.NewValidityAttestation()
@@ -67,9 +67,9 @@ func (data candidateData) attested(validityThreshold uint) (*AttestedCandidate, 
 				return nil, fmt.Errorf("failed to set validity attestation: %w", err)
 			}
 
-			validityAttestations = append(validityAttestations, validityAttestation{
-				ValidatorIndex:      validatorIndex,
-				ValidityAttestation: attestation,
+			validityAttestations = append(validityAttestations, validatorIndexWithAttestation{
+				validatorIndex:      validatorIndex,
+				validityAttestation: attestation,
 			})
 		default:
 			return nil, fmt.Errorf("unknown validity vote: %d", voteWithSign.validityVote)
@@ -77,13 +77,13 @@ func (data candidateData) attested(validityThreshold uint) (*AttestedCandidate, 
 	}
 
 	sort.Slice(validityAttestations, func(i, j int) bool {
-		return validityAttestations[i].ValidatorIndex < validityAttestations[j].ValidatorIndex
+		return validityAttestations[i].validatorIndex < validityAttestations[j].validatorIndex
 	})
 
-	return &AttestedCandidate{
-		GroupID:              data.groupID,
-		Candidate:            data.candidate,
-		ValidityAttestations: validityAttestations,
+	return &attestedCandidate{
+		groupID:                   data.groupID,
+		committedCandidateReceipt: data.candidate,
+		validityAttestations:      validityAttestations,
 	}, nil
 }
 
@@ -124,7 +124,7 @@ func (statementTable) importStatement( //nolint:unused
 // returns attested candidate  if the candidate exists and is includable.
 func (table statementTable) attestedCandidate(
 	candidateHash parachaintypes.CandidateHash, tableContext *TableContext, minimumBackingVotes uint32,
-) (*AttestedCandidate, error) {
+) (*attestedCandidate, error) {
 	// size of the backing group.
 	var groupLen uint
 
@@ -159,7 +159,7 @@ func (statementTable) drainMisbehaviors() []parachaintypes.ProvisionableDataMisb
 type Table interface {
 	getCandidate(parachaintypes.CandidateHash) (parachaintypes.CommittedCandidateReceipt, error)
 	importStatement(*TableContext, parachaintypes.SignedFullStatementWithPVD) (*Summary, error)
-	attestedCandidate(parachaintypes.CandidateHash, *TableContext, uint32) (*AttestedCandidate, error)
+	attestedCandidate(parachaintypes.CandidateHash, *TableContext, uint32) (*attestedCandidate, error)
 	drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport
 }
 
@@ -178,22 +178,20 @@ type Summary struct {
 	ValidityVotes uint64
 }
 
-// AttestedCandidate represents an attested-to candidate.
-//
-// TODO: test AttestedCandidate scale encode decode
-type AttestedCandidate struct {
+// attestedCandidate represents an attested-to candidate.
+type attestedCandidate struct {
 	// The group ID that the candidate is in.
-	GroupID parachaintypes.ParaID `scale:"1"`
-	// The candidate data.
-	Candidate parachaintypes.CommittedCandidateReceipt `scale:"2"`
+	groupID parachaintypes.ParaID
+	// The committedCandidateReceipt data.
+	committedCandidateReceipt parachaintypes.CommittedCandidateReceipt
 	// Validity attestations.
-	ValidityAttestations []validityAttestation `scale:"3"`
+	validityAttestations []validatorIndexWithAttestation
 }
 
-// validityAttestation represents a validity attestation for a candidate.
-type validityAttestation struct {
-	ValidatorIndex      parachaintypes.ValidatorIndex      `scale:"1"`
-	ValidityAttestation parachaintypes.ValidityAttestation `scale:"2"`
+// validatorIndexWithAttestation represents a validity attestation for a candidate.
+type validatorIndexWithAttestation struct {
+	validatorIndex      parachaintypes.ValidatorIndex
+	validityAttestation parachaintypes.ValidityAttestation
 }
 
 // Table configuration.
