@@ -16,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	types "github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p/core/peer"
 	protocol "github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/stretchr/testify/require"
@@ -55,16 +56,27 @@ func TestProcessOverseerMessage(t *testing.T) {
 		CommitmentsHash: commitments.Hash(),
 	}
 
+	vdt := parachaintypes.NewStatementVDT()
+	vdt.Set(parachaintypes.Seconded(
+		parachaintypes.CommittedCandidateReceipt{
+			Descriptor:  testCandidateReceipt.Descriptor,
+			Commitments: commitments,
+		},
+	))
+	testValidStatement := parachaintypes.SignedFullStatement{
+		Payload: vdt,
+	}
+
 	testCases := []struct {
-		description                    string
-		msg                            any
-		peerData                       map[peer.ID]PeerData
-		net                            Network
-		expectedMessageCounts          int
-		expectedNetworkBridgeSenderMsg any
-		fetchedCandidates              map[string]CollationEvent
-		deletesFetchCandidate          bool
-		errString                      string
+		description                     string
+		msg                             any
+		peerData                        map[peer.ID]PeerData
+		net                             Network
+		expectedMessageCounts           int
+		expectedNetworkBridgeSenderMsgs []any
+		fetchedCandidates               map[string]CollationEvent
+		deletesFetchCandidate           bool
+		errString                       string
 	}{
 		{
 			description: "CollateOn message fails with message not expected",
@@ -85,13 +97,13 @@ func TestProcessOverseerMessage(t *testing.T) {
 			description:           "ReportCollator message succeeds and reports a bad collator",
 			msg:                   collatorprotocolmessages.ReportCollator(testCollatorID),
 			expectedMessageCounts: 1,
-			expectedNetworkBridgeSenderMsg: networkbridgemessages.ReportPeer{
+			expectedNetworkBridgeSenderMsgs: []any{networkbridgemessages.ReportPeer{
 				ReputationChange: peerset.ReputationChange{
 					Value:  peerset.ReportBadCollatorValue,
 					Reason: peerset.ReportBadCollatorReason,
 				},
 				PeerID: peerID,
-			},
+			}},
 			peerData: map[peer.ID]PeerData{
 				peerID: {
 					view: View{},
@@ -136,13 +148,13 @@ func TestProcessOverseerMessage(t *testing.T) {
 				CandidateReceipt: testCandidateReceipt,
 			},
 			expectedMessageCounts: 1,
-			expectedNetworkBridgeSenderMsg: networkbridgemessages.ReportPeer{
+			expectedNetworkBridgeSenderMsgs: []any{networkbridgemessages.ReportPeer{
 				ReputationChange: peerset.ReputationChange{
 					Value:  peerset.ReportBadCollatorValue,
 					Reason: peerset.ReportBadCollatorReason,
 				},
 				PeerID: peerID,
-			},
+			}},
 			fetchedCandidates: func() map[string]CollationEvent {
 				fetchedCollation, err := newFetchedCollationInfo(testCandidateReceipt)
 				require.NoError(t, err)
@@ -175,18 +187,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 			description: "SecondedOverseerMsg message fails with peer not found for collator and removes fetchedCandidate",
 			msg: collatorprotocolmessages.Seconded{
 				Parent: testRelayParent,
-				Stmt: func() parachaintypes.SignedFullStatement {
-					vdt := parachaintypes.NewStatementVDT()
-					vdt.Set(parachaintypes.Seconded(
-						parachaintypes.CommittedCandidateReceipt{
-							Descriptor:  testCandidateReceipt.Descriptor,
-							Commitments: commitments,
-						},
-					))
-					return parachaintypes.SignedFullStatement{
-						Payload: vdt,
-					}
-				}(),
+				Stmt:   testValidStatement,
 			},
 			fetchedCandidates: func() map[string]CollationEvent {
 				fetchedCollation, err := newFetchedCollationInfo(testCandidateReceipt)
@@ -208,26 +209,34 @@ func TestProcessOverseerMessage(t *testing.T) {
 			description: "SecondedOverseerMsg message succceds, reports a good collator and removes fetchedCandidate",
 			msg: collatorprotocolmessages.Seconded{
 				Parent: testRelayParent,
-				Stmt: func() parachaintypes.SignedFullStatement {
-					vdt := parachaintypes.NewStatementVDT()
-					vdt.Set(parachaintypes.Seconded(
-						parachaintypes.CommittedCandidateReceipt{
-							Descriptor:  testCandidateReceipt.Descriptor,
-							Commitments: commitments,
-						},
-					))
-					return parachaintypes.SignedFullStatement{
-						Payload: vdt,
-					}
-				}(),
+				Stmt:   testValidStatement,
 			},
 			expectedMessageCounts: 2,
-			expectedNetworkBridgeSenderMsg: networkbridgemessages.ReportPeer{
-				ReputationChange: peerset.ReputationChange{
-					Value:  peerset.BenefitNotifyGoodValue,
-					Reason: peerset.BenefitNotifyGoodReason,
+			expectedNetworkBridgeSenderMsgs: []any{
+				networkbridgemessages.ReportPeer{
+					ReputationChange: peerset.ReputationChange{
+						Value:  peerset.BenefitNotifyGoodValue,
+						Reason: peerset.BenefitNotifyGoodReason,
+					},
+					PeerID: peerID,
 				},
-				PeerID: peerID,
+				networkbridgemessages.SendCollationMessage{
+					To: []peer.ID{peerID},
+					CollationProtocolMessage: func() collatorprotocolmessages.CollationProtocol {
+						collatorProtocolMessage := collatorprotocolmessages.NewCollatorProtocolMessage()
+						err := collatorProtocolMessage.Set(collatorprotocolmessages.CollationSeconded{
+							RelayParent: testRelayParent,
+							Statement:   parachaintypes.UncheckedSignedFullStatement(testValidStatement),
+						})
+						require.NoError(t, err)
+						collationMessage := collatorprotocolmessages.NewCollationProtocol()
+
+						err = collationMessage.Set(collatorProtocolMessage)
+						require.NoError(t, err)
+
+						return collationMessage
+					}(),
+				},
 			},
 			fetchedCandidates: func() map[string]CollationEvent {
 				fetchedCollation, err := newFetchedCollationInfo(testCandidateReceipt)
@@ -297,12 +306,15 @@ func TestProcessOverseerMessage(t *testing.T) {
 			var wg sync.WaitGroup
 			wg.Add(1)
 
-			go func(count int) {
-				for i := 0; i < count; i++ {
-					<-overseerToNetworkBridgeSender
+			go func(expectedNetworkBridgeSenderMsgs []any) {
+				var actual []any
+				for i := 0; i < len(expectedNetworkBridgeSenderMsgs); i++ {
+					actual = append(actual, <-overseerToNetworkBridgeSender)
 				}
+
+				testCompareNetworkBridgeMsgs(t, expectedNetworkBridgeSenderMsgs, actual)
 				wg.Done()
-			}(c.expectedMessageCounts)
+			}(c.expectedNetworkBridgeSenderMsgs)
 
 			lenFetchedCandidatesBefore := len(cpvs.fetchedCandidates)
 
@@ -321,6 +333,27 @@ func TestProcessOverseerMessage(t *testing.T) {
 
 			wg.Wait()
 		})
+	}
+}
+
+func testCompareNetworkBridgeMsgs(t *testing.T, expected []any, actual []any) {
+	for i := 0; i < len(expected); i++ {
+		switch expectedMsg := expected[i].(type) {
+		case networkbridgemessages.ReportPeer:
+			actualMsg, ok := actual[i].(networkbridgemessages.ReportPeer)
+			require.True(t, ok)
+			require.Equal(t, expectedMsg.PeerID, actualMsg.PeerID)
+			require.Equal(t, expectedMsg.ReputationChange.Reason, actualMsg.ReputationChange.Reason)
+			require.Equal(t, expectedMsg.ReputationChange.Value, actualMsg.ReputationChange.Value)
+		case networkbridgemessages.SendCollationMessage:
+			actualMsg, ok := actual[i].(networkbridgemessages.SendCollationMessage)
+			require.True(t, ok)
+			require.Equal(t, expectedMsg.To, actualMsg.To)
+			expectedCollationMsg, err := scale.Marshal(expectedMsg.CollationProtocolMessage)
+			require.NoError(t, err)
+			actualCollationMsg, err := scale.Marshal(actualMsg.CollationProtocolMessage)
+			require.Equal(t, expectedCollationMsg, actualCollationMsg)
+		}
 	}
 }
 
