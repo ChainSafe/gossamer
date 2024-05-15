@@ -667,7 +667,6 @@ func ConstructView(liveHeads map[common.Hash]struct{}, finalizedNumber uint32) V
 // Network is the interface required by parachain service for the network
 type Network interface {
 	GossipMessage(msg network.NotificationsMessage)
-	SendMessage(to peer.ID, msg network.NotificationsMessage) error
 	RegisterNotificationsProtocol(sub protocol.ID,
 		messageID network.MessageType,
 		handshakeGetter network.HandshakeGetter,
@@ -680,7 +679,6 @@ type Network interface {
 	) error
 	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
 		maxResponseSize uint64) *network.RequestResponseProtocol
-	ReportPeer(change peerset.ReputationChange, p peer.ID)
 	GetNetworkEventsChannel() chan *network.NetworkEventInfo
 	FreeNetworkEventsChannel(ch chan *network.NetworkEventInfo)
 }

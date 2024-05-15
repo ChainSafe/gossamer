@@ -80,10 +80,6 @@ func (ViewUpdate) Index() uint {
 	return 2
 }
 
-// type ProtocolMessage[T collatorprotocolmessages.CollationProtocol|collatorprotocolmessages.ValidationProtocol]{
-
-// }
-
 type ProtocolMessage struct{}
 
 // Index returns the index of varying data type

@@ -421,7 +421,11 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 				},
 			}
 
-			// TODO: Disconnect peer. #3530
+			cpvs.SubSystemToOverseer <- networkbridgemessages.DisconnectPeer{
+				Peer:    sender,
+				PeerSet: networkbridgemessages.CollationProtocol,
+			}
+
 			// Do a thorough review of substrate/client/network/src/
 			// check how are they managing peerset of different protocol.
 			// Currently we have a Handler in dot/peerset, but it does not get used anywhere.
