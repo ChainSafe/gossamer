@@ -4,10 +4,11 @@
 package backing
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"math"
-	"sort"
+	"slices"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
@@ -76,8 +77,8 @@ func (data candidateData) attested(validityThreshold uint) (*attestedCandidate, 
 		}
 	}
 
-	sort.Slice(validityAttestations, func(i, j int) bool {
-		return validityAttestations[i].validatorIndex < validityAttestations[j].validatorIndex
+	slices.SortFunc(validityAttestations, func(i, j validatorIndexWithAttestation) int {
+		return cmp.Compare(i.validatorIndex, j.validatorIndex)
 	})
 
 	return &attestedCandidate{
