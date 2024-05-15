@@ -15,6 +15,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -866,10 +867,14 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 		if !ok {
 			return ErrPeerIDNotFoundForCollator
 		}
-		cpvs.net.ReportPeer(peerset.ReputationChange{
-			Value:  peerset.ReportBadCollatorValue,
-			Reason: peerset.ReportBadCollatorReason,
-		}, peerID)
+
+		cpvs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{
+			PeerID: peerID,
+			ReputationChange: peerset.ReputationChange{
+				Value:  peerset.ReportBadCollatorValue,
+				Reason: peerset.ReportBadCollatorReason,
+			},
+		}
 	case collatorprotocolmessages.NetworkBridgeUpdate:
 		// TODO: handle network message https://github.com/ChainSafe/gossamer/issues/3515
 		// https://github.com/paritytech/polkadot-sdk/blob/db3fd687262c68b115ab6724dfaa6a71d4a48a59/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1457 //nolint
@@ -908,12 +913,17 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 		if !ok {
 			return ErrPeerIDNotFoundForCollator
 		}
-		cpvs.net.ReportPeer(peerset.ReputationChange{
-			Value:  peerset.BenefitNotifyGoodValue,
-			Reason: peerset.BenefitNotifyGoodReason,
-		}, peerID)
+
+		cpvs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{
+			PeerID: peerID,
+			ReputationChange: peerset.ReputationChange{
+				Value:  peerset.BenefitNotifyGoodValue,
+				Reason: peerset.BenefitNotifyGoodReason,
+			},
+		}
 
 		// notify candidate seconded
+		// edit here
 		_, ok = cpvs.peerData[peerID]
 		if ok {
 			collatorProtocolMessage := collatorprotocolmessages.NewCollatorProtocolMessage()
@@ -931,9 +941,9 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 				return fmt.Errorf("setting collation message: %w", err)
 			}
 
-			err = cpvs.net.SendMessage(peerID, &collationMessage)
-			if err != nil {
-				return fmt.Errorf("sending collation message: %w", err)
+			cpvs.SubSystemToOverseer <- networkbridgemessages.SendCollationMessage{
+				To:                       []peer.ID{peerID},
+				CollationProtocolMessage: collationMessage,
 			}
 
 			perRelayParent, ok := cpvs.perRelayParent[msg.Parent]
@@ -981,10 +991,14 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 		if !ok {
 			return ErrPeerIDNotFoundForCollator
 		}
-		cpvs.net.ReportPeer(peerset.ReputationChange{
-			Value:  peerset.ReportBadCollatorValue,
-			Reason: peerset.ReportBadCollatorReason,
-		}, peerID)
+
+		cpvs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{
+			PeerID: peerID,
+			ReputationChange: peerset.ReputationChange{
+				Value:  peerset.ReportBadCollatorValue,
+				Reason: peerset.ReportBadCollatorReason,
+			},
+		}
 
 	case parachaintypes.ActiveLeavesUpdateSignal:
 		err := cpvs.ProcessActiveLeavesUpdateSignal(msg)

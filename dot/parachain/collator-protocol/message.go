@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -169,10 +170,14 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 	prospectiveCandidate *ProspectiveCandidate) error {
 	perRelayParent, ok := cpvs.perRelayParent[relayParent]
 	if !ok {
-		cpvs.net.ReportPeer(peerset.ReputationChange{
-			Value:  peerset.UnexpectedMessageValue,
-			Reason: peerset.UnexpectedMessageReason,
-		}, sender)
+		cpvs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{
+			PeerID: sender,
+			ReputationChange: peerset.ReputationChange{
+				Value:  peerset.UnexpectedMessageValue,
+				Reason: peerset.UnexpectedMessageReason,
+			},
+		}
+
 		return ErrRelayParentUnknown
 	}
 
@@ -182,20 +187,28 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 	}
 
 	if peerData.state.PeerState != Collating {
-		cpvs.net.ReportPeer(peerset.ReputationChange{
-			Value:  peerset.UnexpectedMessageValue,
-			Reason: peerset.UnexpectedMessageReason,
-		}, sender)
+		cpvs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{
+			PeerID: sender,
+			ReputationChange: peerset.ReputationChange{
+				Value:  peerset.UnexpectedMessageValue,
+				Reason: peerset.UnexpectedMessageReason,
+			},
+		}
+
 		return ErrUndeclaredPara
 	}
 
 	collatorParaID := peerData.state.CollatingPeerState.ParaID
 
 	if perRelayParent.assignment == nil || *perRelayParent.assignment != collatorParaID {
-		cpvs.net.ReportPeer(peerset.ReputationChange{
-			Value:  peerset.WrongParaValue,
-			Reason: peerset.WrongParaReason,
-		}, sender)
+		cpvs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{
+			PeerID: sender,
+			ReputationChange: peerset.ReputationChange{
+				Value:  peerset.WrongParaValue,
+				Reason: peerset.WrongParaReason,
+			},
+		}
+
 		return ErrInvalidAssignment
 	}
 
@@ -218,10 +231,14 @@ func (cpvs *CollatorProtocolValidatorSide) handleAdvertisement(relayParent commo
 		cpvs.activeLeaves,
 	)
 	if !isAdvertisementValid {
-		cpvs.net.ReportPeer(peerset.ReputationChange{
-			Value:  peerset.UnexpectedMessageValue,
-			Reason: peerset.UnexpectedMessageReason,
-		}, sender)
+		cpvs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{
+			PeerID: sender,
+			ReputationChange: peerset.ReputationChange{
+				Value:  peerset.UnexpectedMessageValue,
+				Reason: peerset.UnexpectedMessageReason,
+			},
+		}
+
 		logger.Errorf(ErrInvalidAdvertisement.Error())
 	} else if err != nil {
 		return fmt.Errorf("inserting advertisement: %w", err)
@@ -331,29 +348,41 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 		// peer who sent us this message by reducing its reputation
 		_, ok = cpvs.getPeerIDFromCollatorID(declareMessage.CollatorId)
 		if ok {
-			cpvs.net.ReportPeer(peerset.ReputationChange{
-				Value:  peerset.UnexpectedMessageValue,
-				Reason: peerset.UnexpectedMessageReason,
-			}, sender)
+			cpvs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{
+				PeerID: sender,
+				ReputationChange: peerset.ReputationChange{
+					Value:  peerset.UnexpectedMessageValue,
+					Reason: peerset.UnexpectedMessageReason,
+				},
+			}
+
 			return propagate, nil
 		}
 
 		// NOTE: peerData for sender will be filled when it gets connected to us
 		peerData, ok := cpvs.peerData[sender]
 		if !ok {
-			cpvs.net.ReportPeer(peerset.ReputationChange{
-				Value:  peerset.UnexpectedMessageValue,
-				Reason: peerset.UnexpectedMessageReason,
-			}, sender)
+			cpvs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{
+				PeerID: sender,
+				ReputationChange: peerset.ReputationChange{
+					Value:  peerset.UnexpectedMessageValue,
+					Reason: peerset.UnexpectedMessageReason,
+				},
+			}
+
 			return propagate, fmt.Errorf("%w: %s", ErrUnknownPeer, sender)
 		}
 
 		if peerData.state.PeerState == Collating {
 			logger.Error("peer is already in the collating state")
-			cpvs.net.ReportPeer(peerset.ReputationChange{
-				Value:  peerset.UnexpectedMessageValue,
-				Reason: peerset.UnexpectedMessageReason,
-			}, sender)
+			cpvs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{
+				PeerID: sender,
+				ReputationChange: peerset.ReputationChange{
+					Value:  peerset.UnexpectedMessageValue,
+					Reason: peerset.UnexpectedMessageReason,
+				},
+			}
+
 			return propagate, nil
 		}
 
@@ -361,10 +390,14 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 		err = sr25519.VerifySignature(declareMessage.CollatorId[:], declareMessage.CollatorSignature[:],
 			getDeclareSignaturePayload(sender))
 		if errors.Is(err, crypto.ErrSignatureVerificationFailed) {
-			cpvs.net.ReportPeer(peerset.ReputationChange{
-				Value:  peerset.InvalidSignatureValue,
-				Reason: peerset.InvalidSignatureReason,
-			}, sender)
+			cpvs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{
+				PeerID: sender,
+				ReputationChange: peerset.ReputationChange{
+					Value:  peerset.InvalidSignatureValue,
+					Reason: peerset.InvalidSignatureReason,
+				},
+			}
+
 			return propagate, fmt.Errorf("invalid signature: %w", err)
 		}
 		if err != nil {
@@ -380,10 +413,13 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 			cpvs.peerData[sender] = peerData
 		} else {
 			logger.Errorf("declared as collator for unneeded para: %d", declareMessage.ParaID)
-			cpvs.net.ReportPeer(peerset.ReputationChange{
-				Value:  peerset.UnneededCollatorValue,
-				Reason: peerset.UnneededCollatorReason,
-			}, sender)
+			cpvs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{
+				PeerID: sender,
+				ReputationChange: peerset.ReputationChange{
+					Value:  peerset.UnneededCollatorValue,
+					Reason: peerset.UnneededCollatorReason,
+				},
+			}
 
 			// TODO: Disconnect peer. #3530
 			// Do a thorough review of substrate/client/network/src/
@@ -406,10 +442,13 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 
 	case 2: // CollationSeconded
 		logger.Errorf("unexpected collation seconded message from peer %s, decreasing its reputation", sender)
-		cpvs.net.ReportPeer(peerset.ReputationChange{
-			Value:  peerset.UnexpectedMessageValue,
-			Reason: peerset.UnexpectedMessageReason,
-		}, sender)
+		cpvs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{
+			PeerID: sender,
+			ReputationChange: peerset.ReputationChange{
+				Value:  peerset.UnexpectedMessageValue,
+				Reason: peerset.UnexpectedMessageReason,
+			},
+		}
 	}
 
 	return propagate, nil

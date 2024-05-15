@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -21,7 +22,8 @@ const propagate = false
 var ErrNotExpectedOnCollatorSide = errors.New("message is not expected on the collator side of the protocol")
 
 type CollatorProtocolCollatorSide struct {
-	net         Network
+	SubSystemToOverseer chan<- any
+
 	collatingOn parachaintypes.ParaID //nolint
 }
 
@@ -97,16 +99,24 @@ func (cpcs CollatorProtocolCollatorSide) handleCollationMessage(
 	switch collatorProtocolMessageV.(type) {
 	case collatorprotocolmessages.Declare:
 		logger.Errorf("unexpected collation declare message from peer %s, decreasing its reputation", sender)
-		cpcs.net.ReportPeer(peerset.ReputationChange{
-			Value:  peerset.UnexpectedMessageValue,
-			Reason: peerset.UnexpectedMessageReason,
-		}, sender)
+
+		cpcs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{
+			PeerID: sender,
+			ReputationChange: peerset.ReputationChange{
+				Value:  peerset.UnexpectedMessageValue,
+				Reason: peerset.UnexpectedMessageReason,
+			},
+		}
 	case collatorprotocolmessages.AdvertiseCollation:
 		logger.Errorf("unexpected collation advertise collation message from peer %s, decreasing its reputation", sender)
-		cpcs.net.ReportPeer(peerset.ReputationChange{
-			Value:  peerset.UnexpectedMessageValue,
-			Reason: peerset.UnexpectedMessageReason,
-		}, sender)
+
+		cpcs.SubSystemToOverseer <- networkbridgemessages.ReportPeer{
+			PeerID: sender,
+			ReputationChange: peerset.ReputationChange{
+				Value:  peerset.UnexpectedMessageValue,
+				Reason: peerset.UnexpectedMessageReason,
+			},
+		}
 	case collatorprotocolmessages.CollationSeconded:
 		// TODO: handle collation seconded message #3824
 	}
@@ -114,9 +124,10 @@ func (cpcs CollatorProtocolCollatorSide) handleCollationMessage(
 	return propagate, nil
 }
 
-func RegisterCollatorSide(net Network, protocolID protocol.ID) (*CollatorProtocolCollatorSide, error) {
+func RegisterCollatorSide(net Network, protocolID protocol.ID, SubSystemToOverseer chan<- any,
+) (*CollatorProtocolCollatorSide, error) {
 	cpcs := CollatorProtocolCollatorSide{
-		net: net,
+		SubSystemToOverseer: SubSystemToOverseer,
 	}
 
 	// register collation protocol
