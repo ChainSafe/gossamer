@@ -34,7 +34,8 @@ func (nbr *NetworkBridgeReceiver) Name() parachaintypes.SubSystemName {
 	return parachaintypes.NetworkBridgeReceiver
 }
 
-func (nbr *NetworkBridgeReceiver) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
+func (nbr *NetworkBridgeReceiver) ProcessActiveLeavesUpdateSignal(
+	signal parachaintypes.ActiveLeavesUpdateSignal) error {
 	return nil
 }
 

@@ -70,7 +70,7 @@ func (nbs *NetworkBridgeSender) processMessage(msg any) error {
 
 	case networkbridgemessages.SendValidationMessage:
 		wireMessage := NewWireMessage()
-		err := wireMessage.Set(msg.CollationProtocolMessage)
+		err := wireMessage.Set(msg.ValidationProtocolMessage)
 		if err != nil {
 			return fmt.Errorf("setting wire message: %w", err)
 		}
@@ -81,7 +81,6 @@ func (nbs *NetworkBridgeSender) processMessage(msg any) error {
 				return fmt.Errorf("sending message: %w", err)
 			}
 		}
-		// TODO: add SendValidationMessages and SendCollationMessages to send multiple messages at the same time
 		// TODO: add ConnectTOResolvedValidators, SendRequests
 	case networkbridgemessages.ConnectToValidators:
 		// TODO

@@ -119,7 +119,7 @@ func (s Service) run(blockState *state.BlockState) {
 	s.Network.GossipMessage(&collationMessage)
 
 	statementDistributionLargeStatement := validationprotocol.StatementDistribution{
-		validationprotocol.NewStatementDistributionMessage()}
+		StatementDistributionMessage: validationprotocol.NewStatementDistributionMessage()}
 	err := statementDistributionLargeStatement.Set(validationprotocol.LargePayload{
 		RelayParent:   common.Hash{},
 		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{}},

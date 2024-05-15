@@ -3,6 +3,7 @@ package messages
 import (
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -28,8 +29,8 @@ type SendCollationMessage struct {
 
 type SendValidationMessage struct {
 	To []peer.ID
-	// TODO: move validation protocol to a new package to be able to be used here
-	// validationProtocolMessage
+	// TODO: make this versioned
+	ValidationProtocolMessage validationprotocol.ValidationProtocol
 }
 
 type PeerSetType int
@@ -39,6 +40,18 @@ const (
 	CollationProtocol
 )
 
+// ConnectToValidators is a subsystem message to network bridge for connecting to
+// peers who represent the given `validator_ids`.
+//
+// Also ask the network to stay connected to these peers at least
+// until a new request is issued.
+//
+// Because it overrides the previous request, it must be ensured
+// that `validator_ids` include all peers the subsystems
+// are interested in (per `PeerSet`).
+//
+// A caller can learn about validator connections by listening to the
+// `PeerConnected` events from the network bridge.
 type ConnectToValidators struct {
 	// IDs of the validators to connect to.
 	ValidatorIDs []parachaintypes.AuthorityDiscoveryID

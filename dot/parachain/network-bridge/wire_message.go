@@ -72,7 +72,7 @@ type View struct {
 	// a bounded amount of chain heads
 	heads []common.Hash
 	// the highest known finalized number
-	finalizedNumber uint32 //nolint
+	finalizedNumber uint32
 }
 
 // Index returns the index of varying data type
