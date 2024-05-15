@@ -4,7 +4,6 @@
 package collatorprotocol
 
 import (
-	"fmt"
 	"sync"
 	"testing"
 
@@ -83,18 +82,8 @@ func TestProcessOverseerMessage(t *testing.T) {
 			errString:   ErrPeerIDNotFoundForCollator.Error(),
 		},
 		{
-			description: "ReportCollator message succeeds and reports a bad collator",
-			msg:         collatorprotocolmessages.ReportCollator(testCollatorID),
-			// net: func() Network {
-			// 	ctrl := gomock.NewController(t)
-			// 	net := NewMockNetwork(ctrl)
-			// 	net.EXPECT().ReportPeer(peerset.ReputationChange{
-			// 		Value:  peerset.ReportBadCollatorValue,
-			// 		Reason: peerset.ReportBadCollatorReason,
-			// 	}, peerID)
-
-			// 	return net
-			// }(),
+			description:           "ReportCollator message succeeds and reports a bad collator",
+			msg:                   collatorprotocolmessages.ReportCollator(testCollatorID),
 			expectedMessageCounts: 1,
 			expectedNetworkBridgeSenderMsg: networkbridgemessages.ReportPeer{
 				ReputationChange: peerset.ReputationChange{
@@ -123,6 +112,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 				Parent:           testRelayParent,
 				CandidateReceipt: testCandidateReceipt,
 			},
+			expectedMessageCounts: 0,
 			fetchedCandidates: func() map[string]CollationEvent {
 				fetchedCollation, err := newFetchedCollationInfo(testCandidateReceipt)
 				require.NoError(t, err)
@@ -145,16 +135,6 @@ func TestProcessOverseerMessage(t *testing.T) {
 				Parent:           testRelayParent,
 				CandidateReceipt: testCandidateReceipt,
 			},
-			// net: func() Network {
-			// 	ctrl := gomock.NewController(t)
-			// 	net := NewMockNetwork(ctrl)
-			// 	net.EXPECT().ReportPeer(peerset.ReputationChange{
-			// 		Value:  peerset.ReportBadCollatorValue,
-			// 		Reason: peerset.ReportBadCollatorReason,
-			// 	}, peerID)
-
-			// 	return net
-			// }(),
 			expectedMessageCounts: 1,
 			expectedNetworkBridgeSenderMsg: networkbridgemessages.ReportPeer{
 				ReputationChange: peerset.ReputationChange{
@@ -220,6 +200,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 					},
 				}
 			}(),
+			expectedMessageCounts: 0,
 			deletesFetchCandidate: true,
 			errString:             ErrPeerIDNotFoundForCollator.Error(),
 		},
@@ -240,7 +221,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 					}
 				}(),
 			},
-			expectedMessageCounts: 1,
+			expectedMessageCounts: 2,
 			expectedNetworkBridgeSenderMsg: networkbridgemessages.ReportPeer{
 				ReputationChange: peerset.ReputationChange{
 					Value:  peerset.BenefitNotifyGoodValue,
@@ -248,18 +229,6 @@ func TestProcessOverseerMessage(t *testing.T) {
 				},
 				PeerID: peerID,
 			},
-			// net: func() Network {
-			// 	ctrl := gomock.NewController(t)
-			// 	net := NewMockNetwork(ctrl)
-			// 	net.EXPECT().ReportPeer(peerset.ReputationChange{
-			// 		Value:  peerset.BenefitNotifyGoodValue,
-			// 		Reason: peerset.BenefitNotifyGoodReason,
-			// 	}, peerID)
-
-			// 	net.EXPECT().SendMessage(peerID, gomock.AssignableToTypeOf(&collatorprotocolmessages.CollationProtocol{}))
-
-			// 	return net
-			// }(),
 			fetchedCandidates: func() map[string]CollationEvent {
 				fetchedCollation, err := newFetchedCollationInfo(testCandidateReceipt)
 				require.NoError(t, err)
@@ -329,9 +298,10 @@ func TestProcessOverseerMessage(t *testing.T) {
 			wg.Add(1)
 
 			go func(count int) {
-				for i := 0; i <= count; i++ {
-					fmt.Println(<-overseerToNetworkBridgeSender)
+				for i := 0; i < count; i++ {
+					<-overseerToNetworkBridgeSender
 				}
+				wg.Done()
 			}(c.expectedMessageCounts)
 
 			lenFetchedCandidatesBefore := len(cpvs.fetchedCandidates)
