@@ -167,7 +167,7 @@ func (l *TrieLookup) fetchValue(prefix []byte, value codec.NodeValue) ([]byte, e
 		}
 
 		if l.cache != nil {
-			l.cache.SetNode(prefixedKey, nodeData)
+			l.cache.SetValue(prefixedKey, nodeData)
 		}
 
 		return nodeData, nil
