@@ -27,7 +27,6 @@ func (s *TestSubsystem) Name() parachaintypes.SubSystemName {
 }
 
 func (s *TestSubsystem) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) {
-	fmt.Printf("%s run\n", s.name)
 	counter := 0
 	for {
 		select {
@@ -54,8 +53,9 @@ func (s *TestSubsystem) ProcessActiveLeavesUpdateSignal(update parachaintypes.Ac
 	return nil
 }
 
-func (s *TestSubsystem) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
+func (s *TestSubsystem) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
 	fmt.Printf("%s ProcessActiveLeavesUpdateSignal\n", s.name)
+	return nil
 }
 
 func (s *TestSubsystem) String() parachaintypes.SubSystemName {
@@ -104,6 +104,7 @@ func TestHandleBlockEvents(t *testing.T) {
 				go incrementCounters(t, msg, &finalizedCounter, &importedCounter)
 				wg.Done()
 			}
+
 		}
 	}()
 
@@ -113,6 +114,9 @@ func TestHandleBlockEvents(t *testing.T) {
 	importedBlockNotiferChan <- &types.Block{}
 
 	wg.Wait()
+
+	// let subsystems run for a bit
+	time.Sleep(4000 * time.Millisecond)
 
 	err = overseer.Stop()
 	require.NoError(t, err)

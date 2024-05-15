@@ -42,7 +42,7 @@ type ValidationParameters struct {
 	// Previous head-data.
 	ParentHeadData parachaintypes.HeadData
 	// The collation body.
-	BlockData []byte //types.BlockData
+	BlockData []byte // types.BlockData
 	// The current relay-chain block number.
 	RelayParentNumber uint32
 	// The relay-chain block's storage root.
@@ -95,4 +95,10 @@ type RuntimeInstance interface {
 	ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
 	) (*parachaintypes.ValidationCode, error)
 	ParachainHostCheckValidationOutputs(parachainID uint32, outputs parachaintypes.CandidateCommitments) (bool, error)
+	ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice, error)
+}
+
+type RuntimeAPIMessage struct {
+	Hash common.Hash
+	Resp chan any
 }

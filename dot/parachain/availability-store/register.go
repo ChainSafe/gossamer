@@ -3,16 +3,18 @@
 
 package availabilitystore
 
-import "github.com/ChainSafe/gossamer/dot/state"
+import (
+	"github.com/ChainSafe/gossamer/internal/database"
+)
 
-func Register(overseerChan chan<- any, st *state.Service) (*AvailabilityStoreSubsystem, error) {
-	availabilityStore := NewAvailabilityStore(st.DB())
+func Register(overseerChan chan<- any, db database.Database, pruning *pruningConfig) (*AvailabilityStoreSubsystem,
+	error) {
 
-	availabilityStoreSubsystem := AvailabilityStoreSubsystem{
-		pruningConfig:       defaultPruningConfig,
-		SubSystemToOverseer: overseerChan,
-		availabilityStore:   *availabilityStore,
+	availabilityStoreSubsystem := NewAvailabilityStoreSubsystem(db)
+
+	if pruning != nil {
+		availabilityStoreSubsystem.pruningConfig = *pruning
 	}
-
-	return &availabilityStoreSubsystem, nil
+	availabilityStoreSubsystem.subSystemToOverseer = overseerChan
+	return availabilityStoreSubsystem, nil
 }

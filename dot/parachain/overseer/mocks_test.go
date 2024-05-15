@@ -12,7 +12,10 @@ package overseer
 import (
 	reflect "reflect"
 
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	types "github.com/ChainSafe/gossamer/dot/types"
+	common "github.com/ChainSafe/gossamer/lib/common"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -89,4 +92,98 @@ func (m *MockBlockState) GetImportedBlockNotifierChannel() chan *types.Block {
 func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).GetImportedBlockNotifierChannel))
+}
+
+// GetRuntime mocks base method.
+func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRuntime", arg0)
+	ret0, _ := ret[0].(runtime.Instance)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRuntime indicates an expected call of GetRuntime.
+func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), arg0)
+}
+
+// MockOverseerSystem is a mock of Overseer interface.
+type MockOverseerSystem struct {
+	ctrl     *gomock.Controller
+	recorder *MockOverseerSystemMockRecorder
+}
+
+// MockOverseerSystemMockRecorder is the mock recorder for MockOverseerSystem.
+type MockOverseerSystemMockRecorder struct {
+	mock *MockOverseerSystem
+}
+
+// NewMockOverseerSystem creates a new mock instance.
+func NewMockOverseerSystem(ctrl *gomock.Controller) *MockOverseerSystem {
+	mock := &MockOverseerSystem{ctrl: ctrl}
+	mock.recorder = &MockOverseerSystemMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockOverseerSystem) EXPECT() *MockOverseerSystemMockRecorder {
+	return m.recorder
+}
+
+// GetSubsystemToOverseerChannel mocks base method.
+func (m *MockOverseerSystem) GetSubsystemToOverseerChannel() chan interface{} {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSubsystemToOverseerChannel")
+	ret0, _ := ret[0].(chan interface{})
+	return ret0
+}
+
+// GetSubsystemToOverseerChannel indicates an expected call of GetSubsystemToOverseerChannel.
+func (mr *MockOverseerSystemMockRecorder) GetSubsystemToOverseerChannel() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSubsystemToOverseerChannel", reflect.TypeOf((*MockOverseerSystem)(nil).GetSubsystemToOverseerChannel))
+}
+
+// RegisterSubsystem mocks base method.
+func (m *MockOverseerSystem) RegisterSubsystem(arg0 parachaintypes.Subsystem) chan interface{} {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterSubsystem", arg0)
+	ret0, _ := ret[0].(chan interface{})
+	return ret0
+}
+
+// RegisterSubsystem indicates an expected call of RegisterSubsystem.
+func (mr *MockOverseerSystemMockRecorder) RegisterSubsystem(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterSubsystem", reflect.TypeOf((*MockOverseerSystem)(nil).RegisterSubsystem), arg0)
+}
+
+// Start mocks base method.
+func (m *MockOverseerSystem) Start() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Start")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Start indicates an expected call of Start.
+func (mr *MockOverseerSystemMockRecorder) Start() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Start", reflect.TypeOf((*MockOverseerSystem)(nil).Start))
+}
+
+// Stop mocks base method.
+func (m *MockOverseerSystem) Stop() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Stop")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Stop indicates an expected call of Stop.
+func (mr *MockOverseerSystemMockRecorder) Stop() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stop", reflect.TypeOf((*MockOverseerSystem)(nil).Stop))
 }

@@ -29,7 +29,7 @@ const (
 
 type Service struct {
 	Network  Network
-	overseer *overseer.Overseer
+	overseer overseer.Overseer
 }
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain"))
@@ -42,7 +42,7 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	}
 	genesisHash := st.Block.GenesisHash()
 
-	availabilityStore, err := availability_store.Register(overseer.SubsystemsToOverseer, st)
+	availabilityStore, err := availability_store.Register(overseer.GetSubsystemToOverseerChannel(), st.DB(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("registering availability store: %w", err)
 	}
@@ -86,7 +86,7 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 		CollationProtocolName, forkID, genesisHash, CollationProtocolVersion)
 
 	// register collation protocol
-	cpvs, err := collatorprotocol.Register(net, protocol.ID(collationProtocolID), overseer.SubsystemsToOverseer)
+	cpvs, err := collatorprotocol.Register(net, protocol.ID(collationProtocolID), overseer.GetSubsystemToOverseerChannel())
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func (Service) Stop() error {
 func (s Service) run(blockState *state.BlockState) {
 	overseer := s.overseer
 
-	candidateBacking := backing.New(overseer.SubsystemsToOverseer)
+	candidateBacking := backing.New(overseer.GetSubsystemToOverseerChannel())
 	candidateBacking.BlockState = blockState
 	candidateBacking.OverseerToSubSystem = overseer.RegisterSubsystem(candidateBacking)
 
