@@ -5,6 +5,7 @@ package parachaintypes
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"math"
 
@@ -653,4 +654,14 @@ type UncheckedSignedAvailabilityBitfield struct {
 
 	// The signature by the validator of the signed payload.
 	Signature ValidatorSignature `scale:"3"`
+}
+
+// Subsystem is an interface for subsystems to be registered with the overseer.
+type Subsystem interface {
+	// Run runs the subsystem.
+	Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any)
+	Name() SubSystemName
+	ProcessActiveLeavesUpdateSignal(ActiveLeavesUpdateSignal) error
+	ProcessBlockFinalizedSignal(BlockFinalizedSignal) error
+	Stop()
 }

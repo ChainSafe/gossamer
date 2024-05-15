@@ -55,6 +55,7 @@ var (
 	ErrNotAdvertised          = errors.New("collation was not previously advertised")
 
 	ErrInvalidStringFormat = errors.New("invalid string format for fetched collation info")
+	ErrFinalizedNumber     = errors.New("finalized number is greater than or equal to the block number")
 )
 
 func (cpvs CollatorProtocolValidatorSide) Run(
@@ -423,12 +424,14 @@ func (s SortableActivatedLeaves) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-func (cpvs *CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
+func (cpvs *CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal(signal parachaintypes.
+	BlockFinalizedSignal) error {
 	if cpvs.finalizedNumber >= signal.BlockNumber {
 		// error
-		return
+		return ErrFinalizedNumber
 	}
 	cpvs.finalizedNumber = signal.BlockNumber
+	return nil
 }
 
 func (cpvs CollatorProtocolValidatorSide) Stop() {
@@ -999,12 +1002,9 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 		}
 
 	case parachaintypes.ActiveLeavesUpdateSignal:
-		err := cpvs.ProcessActiveLeavesUpdateSignal(msg)
-		if err != nil {
-			return fmt.Errorf("processing active leaves update signal: %w", err)
-		}
+		return cpvs.ProcessActiveLeavesUpdateSignal(msg)
 	case parachaintypes.BlockFinalizedSignal:
-		cpvs.ProcessBlockFinalizedSignal(msg)
+		return cpvs.ProcessBlockFinalizedSignal(msg)
 
 	default:
 		return parachaintypes.ErrUnknownOverseerMessage

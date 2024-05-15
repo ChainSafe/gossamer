@@ -255,15 +255,16 @@ func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan
 			return fmt.Errorf("processing active leaves update signal: %w", err)
 		}
 	case parachaintypes.BlockFinalizedSignal:
-		cb.ProcessBlockFinalizedSignal(msg)
+		return cb.ProcessBlockFinalizedSignal(msg)
 	default:
 		return fmt.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
 	}
 	return nil
 }
 
-func (cb *CandidateBacking) ProcessBlockFinalizedSignal(parachaintypes.BlockFinalizedSignal) {
+func (cb *CandidateBacking) ProcessBlockFinalizedSignal(parachaintypes.BlockFinalizedSignal) error {
 	// Nothing to do here
+	return nil
 }
 
 // Import the statement and kick off validation work if it is a part of our assignment.

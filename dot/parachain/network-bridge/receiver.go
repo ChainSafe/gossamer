@@ -39,7 +39,8 @@ func (nbr *NetworkBridgeReceiver) ProcessActiveLeavesUpdateSignal(
 	return nil
 }
 
-func (nbr *NetworkBridgeReceiver) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
+func (nbr *NetworkBridgeReceiver) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
+	return nil
 }
 
 func (nbr *NetworkBridgeReceiver) Stop() {}

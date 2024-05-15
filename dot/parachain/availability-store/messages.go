@@ -6,7 +6,6 @@ package availabilitystore
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -79,9 +78,13 @@ type StoreChunk struct {
 // StoreAvailableData computes and checks the erasure root of `AvailableData`
 // before storing its chunks in the AV store.
 type StoreAvailableData struct {
-	CandidateHash       parachaintypes.CandidateHash
-	NumValidators       uint32
-	AvailableData       AvailableData
+	// A hash of the candidate this `ASMStoreAvailableData` belongs to.
+	CandidateHash parachaintypes.CandidateHash
+	// The number of validators in the session.
+	NumValidators uint32
+	// The `AvailableData` itself.
+	AvailableData AvailableData
+	// Erasure root we expect to get after chunking.
 	ExpectedErasureRoot common.Hash
 	// channel to send result to.
 	Sender chan error
@@ -105,11 +108,11 @@ type State scale.VaryingDataType
 
 // New will enable scale to create new instance when needed
 func (State) New() State {
-	return NewStateVDT()
+	return newStateVDT()
 }
 
-// NewState creates a new State
-func NewStateVDT() State {
+// newState creates a new State
+func newStateVDT() State {
 	vdt := scale.MustNewVaryingDataType(Unavailable{}, Unfinalized{}, Finalized{})
 	return State(vdt)
 }
@@ -123,6 +126,12 @@ func (s *State) Set(val scale.VaryingDataTypeValue) (err error) {
 	}
 	*s = State(vdt)
 	return nil
+}
+
+// Value returns the value from the underlying varying data type
+func (s *State) Value() (val scale.VaryingDataTypeValue, err error) {
+	vdt := scale.VaryingDataType(*s)
+	return vdt.Value()
 }
 
 // Unavailable candidate data was first observed at the given time but in not available in any black
@@ -141,8 +150,8 @@ func (Unavailable) Index() uint {
 // which case the same timestamp will be reused. Blocks are sorted ascending first by block
 // number and then hash. candidate data was first observed at the given time and is available in at least one block
 type Unfinalized struct {
-	Timestamp       time.Time
-	BlockNumberHash []BlockNumberHash
+	Timestamp  BETimestamp
+	BlockEntry []BlockEntry
 }
 
 // Index returns the index of the varying data type
@@ -152,7 +161,7 @@ func (Unfinalized) Index() uint {
 
 // Finalized candidate data has appeared in a finalized block and did so at the given time
 type Finalized struct {
-	Timestamp time.Time
+	Timestamp BETimestamp `scale:"1"`
 }
 
 // Index returns the index of the varying data type
@@ -160,10 +169,10 @@ func (Finalized) Index() uint {
 	return 2
 }
 
-// BlockNumberHash is a block number and hash
-type BlockNumberHash struct {
-	blockNumber parachaintypes.BlockNumber //nolint:unused,structcheck
-	blockHash   common.Hash                //nolint:unused,structcheck
+// BlockEntry is a block number and hash
+type BlockEntry struct {
+	BlockNumber parachaintypes.BlockNumber
+	BlockHash   common.Hash
 }
 
 type branches struct {

@@ -44,8 +44,9 @@ func (nbs *NetworkBridgeSender) ProcessActiveLeavesUpdateSignal(signal parachain
 	return nil
 }
 
-func (nbs *NetworkBridgeSender) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) {
+func (nbs *NetworkBridgeSender) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
 	// nothing to do here
+	return nil
 }
 
 func (nbs *NetworkBridgeSender) Stop() {}
