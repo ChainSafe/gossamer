@@ -146,6 +146,9 @@ func (t *TrieState) MustRoot() common.Hash {
 // Root returns the trie's root hash
 func (t *TrieState) Root() (common.Hash, error) {
 	// Since the Root function is called without running transactions we can do:
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		panic("cannot calculate root with running transactions")
+	}
 	return t.state.Hash()
 }
 
@@ -181,7 +184,7 @@ func (t *TrieState) NextKey(key []byte) []byte {
 
 		for _, k := range keys {
 			if k > string(key) && !currentTx.deletes[k] {
-				return allEntries[k]
+				return []byte(k)
 			}
 		}
 	}
@@ -444,6 +447,7 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		// If we are going to delete this child we return error
+
 		if currentTx.deletes[string(keyToChild)] {
 			return nil, trie.ErrChildTrieDoesNotExist
 		}
@@ -466,7 +470,7 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 
 			for _, k := range keys {
 				if k > string(key) && !childChanges.deletes[k] {
-					return allEntries[k], nil
+					return []byte(k), nil
 				}
 			}
 			return nil, nil
@@ -514,7 +518,7 @@ func (t *TrieState) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]b
 
 			for _, k := range keys {
 				if bytes.HasPrefix([]byte(k), prefix) {
-					values = append(values, allEntries[k])
+					values = append(values, []byte(k))
 				}
 			}
 
