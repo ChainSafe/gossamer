@@ -196,7 +196,7 @@ func TestHandleCollationMessageCommon(t *testing.T) {
 	propagate, err = cpvs.handleCollationMessage(peerID, msg2)
 	require.False(t, propagate)
 	require.ErrorContains(t, err, "failed to cast into collator protocol message, "+
-		"expected: *CollationProtocol, got: collatorprotocol.CollationProtocol")
+		"expected: *CollationProtocol, got: messages.CollationProtocol")
 
 	// fail if no value set in the collator protocol message
 	msg3 := collatorprotocolmessages.NewCollationProtocol()
