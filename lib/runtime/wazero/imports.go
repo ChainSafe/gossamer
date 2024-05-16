@@ -116,6 +116,56 @@ func ext_crypto_ecdsa_generate_version_1(ctx context.Context, m api.Module, _ ui
 	panic("TODO impl: see https://github.com/ChainSafe/gossamer/issues/3769 ")
 }
 
+type Constraint interface {
+	uint32 | uint64 | int32
+}
+
+func wrap1[T0 Constraint](f func(ctx context.Context, m api.Module, a T0)) api.GoModuleFunc {
+	return func(ctx context.Context, m api.Module, stack []uint64) {
+		f(ctx, m, T0(stack[0]))
+	}
+}
+
+func wrap2[T0 Constraint, T1 Constraint](f func(ctx context.Context, m api.Module, a T0, b T1)) api.GoModuleFunc {
+	return func(ctx context.Context, m api.Module, stack []uint64) {
+		f(ctx, m, T0(stack[0]), T1(stack[1]))
+	}
+}
+func wrap3[T0 Constraint, T1 Constraint, T2 Constraint](f func(ctx context.Context, m api.Module, a T0, b T1, c T2)) api.GoModuleFunc {
+	return func(ctx context.Context, m api.Module, stack []uint64) {
+		f(ctx, m, T0(stack[0]), T1(stack[1]), T2(stack[2]))
+	}
+}
+func wrap4[T0 Constraint, T1 Constraint, T2 Constraint, T3 Constraint](f func(ctx context.Context, m api.Module, a T0, b T1, c T2, d T3)) api.GoModuleFunc {
+	return func(ctx context.Context, m api.Module, stack []uint64) {
+		f(ctx, m, T0(stack[0]), T1(stack[1]), T2(stack[2]), T3(stack[3]))
+	}
+}
+
+func wrap1ret[T0 Constraint, R Constraint](f func(ctx context.Context, m api.Module, a T0) R) api.GoModuleFunc {
+	return func(ctx context.Context, m api.Module, stack []uint64) {
+		stack[0] = uint64(f(ctx, m, T0(stack[0])))
+	}
+}
+
+func wrap2ret[T0 Constraint, T1 Constraint, R Constraint](f func(ctx context.Context, m api.Module, a T0, b T1) R) api.GoModuleFunc {
+	return func(ctx context.Context, m api.Module, stack []uint64) {
+		stack[0] = uint64(f(ctx, m, T0(stack[0]), T1(stack[1])))
+	}
+}
+
+func wrap3ret[T0 Constraint, T1 Constraint, T2 Constraint, R Constraint](f func(ctx context.Context, m api.Module, a T0, b T1, c T2) R) api.GoModuleFunc {
+	return func(ctx context.Context, m api.Module, stack []uint64) {
+		stack[0] = uint64(f(ctx, m, T0(stack[0]), T1(stack[1]), T2(stack[2])))
+	}
+}
+
+func wrap4ret[T0 Constraint, T1 Constraint, T2 Constraint, T3 Constraint, R Constraint](f func(ctx context.Context, m api.Module, a T0, b T1, c T2, d T3) R) api.GoModuleFunc {
+	return func(ctx context.Context, m api.Module, stack []uint64) {
+		stack[0] = uint64(f(ctx, m, T0(stack[0]), T1(stack[1]), T2(stack[2]), T3(stack[3])))
+	}
+}
+
 func ext_crypto_ed25519_generate_version_1(
 	ctx context.Context, m api.Module, keyTypeID uint32, seedSpan uint64) uint32 {
 	id, ok := m.Memory().Read(keyTypeID, 4)

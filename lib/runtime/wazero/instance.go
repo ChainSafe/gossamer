@@ -119,9 +119,7 @@ func newRuntime(ctx context.Context,
 		// values from newer kusama/polkadot runtimes
 		ExportMemory("memory", 23).
 		NewFunctionBuilder().
-		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			ext_logging_log_version_1(ctx, m, api.DecodeI32(stack[0]), stack[1], stack[2])
-		}), []api.ValueType{i32, i64, i64}, []api.ValueType{}).
+		WithGoModuleFunction(api.GoModuleFunc(wrap1(ext_misc_print_num_version_1)), []api.ValueType{i32, i64, i64}, []api.ValueType{}).
 		Export("ext_logging_log_version_1").
 		NewFunctionBuilder().
 		WithFunc(func() int32 {
@@ -169,59 +167,37 @@ func newRuntime(ctx context.Context,
 		}).
 		Export("ext_sandbox_memory_teardown_version_1").
 		NewFunctionBuilder().
-		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			stack[0] = api.EncodeU32(ext_crypto_ed25519_generate_version_1(ctx, m, api.DecodeU32(stack[0]), stack[1]))
-		}), []api.ValueType{i32, i64}, []api.ValueType{i32}).
+		WithGoModuleFunction(wrap2ret(ext_crypto_ed25519_generate_version_1), []api.ValueType{i32, i64}, []api.ValueType{i32}).
 		Export("ext_crypto_ed25519_generate_version_1").
 		NewFunctionBuilder().
-		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			stack[0] = ext_crypto_ed25519_public_keys_version_1(ctx, m, api.DecodeU32(stack[0]))
-		}), []api.ValueType{i32}, []api.ValueType{i64}).
+		WithGoModuleFunction(wrap1ret(ext_crypto_ed25519_public_keys_version_1), []api.ValueType{i32}, []api.ValueType{i64}).
 		Export("ext_crypto_ed25519_public_keys_version_1").
 		NewFunctionBuilder().
-		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			stack[0] = ext_crypto_ed25519_sign_version_1(ctx, m, api.DecodeU32(stack[0]), api.DecodeU32(stack[1]), stack[2])
-		}), []api.ValueType{i32, i32, i64}, []api.ValueType{i64}).
+		WithGoModuleFunction(wrap3ret(ext_crypto_ed25519_sign_version_1), []api.ValueType{i32, i32, i64}, []api.ValueType{i64}).
 		Export("ext_crypto_ed25519_sign_version_1").
 		NewFunctionBuilder().
-		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			stack[0] = api.EncodeU32(ext_crypto_ed25519_verify_version_1(ctx, m, api.DecodeU32(stack[0]), stack[1], api.DecodeU32(stack[2])))
-		}), []api.ValueType{i32, i64, i32}, []api.ValueType{i32}).
+		WithGoModuleFunction(wrap3ret(ext_crypto_ed25519_verify_version_1), []api.ValueType{i32, i64, i32}, []api.ValueType{i32}).
 		Export("ext_crypto_ed25519_verify_version_1").
 		NewFunctionBuilder().
-		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			stack[0] = ext_crypto_secp256k1_ecdsa_recover_version_1(ctx, m, api.DecodeU32(stack[0]), api.DecodeU32(stack[1]))
-		}), []api.ValueType{i32, i32}, []api.ValueType{i64}).
+		WithGoModuleFunction(wrap2ret(ext_crypto_secp256k1_ecdsa_recover_version_1), []api.ValueType{i32, i32}, []api.ValueType{i64}).
 		Export("ext_crypto_secp256k1_ecdsa_recover_version_1").
 		NewFunctionBuilder().
-		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			stack[0] = ext_crypto_secp256k1_ecdsa_recover_version_2(ctx, m, api.DecodeU32(stack[0]), api.DecodeU32(stack[1]))
-		}), []api.ValueType{i32, i32}, []api.ValueType{i64}).
+		WithGoModuleFunction(wrap2ret(ext_crypto_secp256k1_ecdsa_recover_version_2), []api.ValueType{i32, i32}, []api.ValueType{i64}).
 		Export("ext_crypto_secp256k1_ecdsa_recover_version_2").
 		NewFunctionBuilder().
-		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			stack[0] = api.EncodeU32(ext_crypto_ecdsa_verify_version_2(ctx, m, api.DecodeU32(stack[0]), stack[1], api.DecodeU32(stack[2])))
-		}), []api.ValueType{i32, i64, i32}, []api.ValueType{i32}).
+		WithGoModuleFunction(wrap3ret(ext_crypto_ecdsa_verify_version_2), []api.ValueType{i32, i64, i32}, []api.ValueType{i32}).
 		Export("ext_crypto_ecdsa_verify_version_2").
 		NewFunctionBuilder().
-		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			stack[0] = ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(ctx, m, api.DecodeU32(stack[0]), api.DecodeU32(stack[1]))
-		}), []api.ValueType{i32, i32}, []api.ValueType{i64}).
+		WithGoModuleFunction(wrap2ret(ext_crypto_secp256k1_ecdsa_recover_compressed_version_1), []api.ValueType{i32, i32}, []api.ValueType{i64}).
 		Export("ext_crypto_secp256k1_ecdsa_recover_compressed_version_1").
 		NewFunctionBuilder().
-		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			stack[0] = ext_crypto_secp256k1_ecdsa_recover_compressed_version_2(ctx, m, api.DecodeU32(stack[0]), api.DecodeU32(stack[1]))
-		}), []api.ValueType{i32, i32}, []api.ValueType{i64}).
+		WithGoModuleFunction(wrap2ret(ext_crypto_secp256k1_ecdsa_recover_compressed_version_2), []api.ValueType{i32, i32}, []api.ValueType{i64}).
 		Export("ext_crypto_secp256k1_ecdsa_recover_compressed_version_2").
 		NewFunctionBuilder().
-		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			stack[0] = api.EncodeU32(ext_crypto_sr25519_generate_version_1(ctx, m, api.DecodeU32(stack[0]), stack[1]))
-		}), []api.ValueType{i32, i64}, []api.ValueType{i32}).
+		WithGoModuleFunction(wrap2ret(ext_crypto_sr25519_generate_version_1), []api.ValueType{i32, i64}, []api.ValueType{i32}).
 		Export("ext_crypto_sr25519_generate_version_1").
 		NewFunctionBuilder().
-		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			stack[0] = ext_crypto_sr25519_public_keys_version_1(ctx, m, api.DecodeU32(stack[0]))
-		}), []api.ValueType{i32}, []api.ValueType{i64}).
+		WithGoModuleFunction(wrap1ret(ext_crypto_sr25519_public_keys_version_1), []api.ValueType{i32}, []api.ValueType{i64}).
 		Export("ext_crypto_sr25519_public_keys_version_1").
 		NewFunctionBuilder().
 		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
