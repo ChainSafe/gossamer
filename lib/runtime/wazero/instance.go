@@ -30,11 +30,11 @@ import (
 // Name represents the name of the interpreter
 const Name = "wazero"
 
-type contextKey string
+type runtimeContextKeyType struct{}
 
-const runtimeContextKey = contextKey("runtime.Context")
+var runtimeContextKey = runtimeContextKeyType{}
 
-var _ runtime.Instance = &Instance{}
+var _ runtime.Instance = (*Instance)(nil)
 
 type wazeroMeta struct {
 	config      wazero.RuntimeConfig
