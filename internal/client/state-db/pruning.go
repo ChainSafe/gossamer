@@ -280,8 +280,6 @@ type haveBlock uint
 const (
 	/// Definitely don't have this block.
 	haveBlockNo haveBlock = iota
-	/// May or may not have this block, need further checking
-	haveBlockMaybe
 	/// Definitely has this block
 	haveBlockYes
 )

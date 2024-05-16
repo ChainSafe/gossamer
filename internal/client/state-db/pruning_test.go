@@ -168,6 +168,7 @@ func TestRefWindow_ReinsertedSurvives(t *testing.T) {
 	assert.Equal(t, uint64(3), pruning.base)
 }
 
+// NOTE: this is the same test as TestRefWindow_ReinsertedSurvives, but doesn't call checkJournal
 func TestRefWindow_ReinsertedSurvivesPending(t *testing.T) {
 	db := NewTestDB([]uint64{1, 2, 3})
 	pruning, err := newPruningWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint)
