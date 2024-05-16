@@ -24,6 +24,7 @@ type TrieState struct {
 	mtx          sync.RWMutex
 	state        trie.Trie
 	transactions *list.List
+	sortedKeys   []string
 }
 
 // NewTrieState initialises and returns a new TrieState instance
@@ -110,10 +111,14 @@ func (t *TrieState) Put(key, value []byte) (err error) {
 	// if not, we apply the changes directly on our state trie
 	if t.getCurrentTransaction() != nil {
 		t.getCurrentTransaction().upsert(string(key), value)
-		return nil
 	} else {
-		return t.state.Put(key, value)
+		if err := t.state.Put(key, value); err != nil {
+			return err
+		}
 	}
+
+	t.insertSortedKey(string(key))
+	return nil
 }
 
 // Get gets a value from the trie
@@ -164,10 +169,14 @@ func (t *TrieState) Delete(key []byte) (err error) {
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		t.getCurrentTransaction().delete(string(key))
-		return nil
+	} else {
+		if err := t.state.Delete(key); err != nil {
+			return err
+		}
 	}
 
-	return t.state.Delete(key)
+	t.removeSortedKey(string(key))
+	return nil
 }
 
 // NextKey returns the next key in the trie in lexicographical order. If it does not exist, it returns nil.
@@ -176,16 +185,18 @@ func (t *TrieState) NextKey(key []byte) []byte {
 	defer t.mtx.RUnlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-		allEntries := t.state.Entries()
-		maps.Copy(allEntries, currentTx.upserts)
+		// Find key position
+		pos := sort.Search(len(t.sortedKeys), func(i int) bool {
+			return bytes.Compare([]byte(t.sortedKeys[i]), key) > 0
+		})
 
-		keys := maps.Keys(allEntries)
-		sort.Strings(keys)
-
-		for _, k := range keys {
-			if k > string(key) && !currentTx.deletes[k] {
+		// Get next key based on that position
+		for pos < len(t.sortedKeys) {
+			k := t.sortedKeys[pos]
+			if !currentTx.deletes[k] {
 				return []byte(k)
 			}
+			pos++
 		}
 	}
 
@@ -554,4 +565,28 @@ func (t *TrieState) GetChangedNodeHashes() (inserted, deleted map[common.Hash]st
 	defer t.mtx.RUnlock()
 
 	return t.state.GetChangedNodeHashes()
+}
+
+func (t *TrieState) insertSortedKey(key string) {
+	pos := sort.Search(len(t.sortedKeys), func(i int) bool {
+		return t.sortedKeys[i] >= key
+	})
+
+	if pos < len(t.sortedKeys) && t.sortedKeys[pos] == key {
+		return // key already exists
+	}
+
+	t.sortedKeys = append(t.sortedKeys, "")
+	copy(t.sortedKeys[pos+1:], t.sortedKeys[pos:])
+	t.sortedKeys[pos] = key
+}
+
+func (t *TrieState) removeSortedKey(key string) {
+	pos := sort.Search(len(t.sortedKeys), func(i int) bool {
+		return t.sortedKeys[i] >= key
+	})
+
+	if pos < len(t.sortedKeys) && t.sortedKeys[pos] == key {
+		t.sortedKeys = append(t.sortedKeys[:pos], t.sortedKeys[pos+1:]...)
+	}
 }
