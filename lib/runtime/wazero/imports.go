@@ -120,6 +120,12 @@ type Constraint interface {
 	uint32 | uint64 | int32
 }
 
+func wrap0(f func(ctx context.Context, m api.Module)) api.GoModuleFunc {
+	return func(ctx context.Context, m api.Module, stack []uint64) {
+		f(ctx, m)
+	}
+}
+
 func wrap1[T0 Constraint](f func(ctx context.Context, m api.Module, a T0)) api.GoModuleFunc {
 	return func(ctx context.Context, m api.Module, stack []uint64) {
 		f(ctx, m, T0(stack[0]))
@@ -139,6 +145,12 @@ func wrap3[T0 Constraint, T1 Constraint, T2 Constraint](f func(ctx context.Conte
 func wrap4[T0 Constraint, T1 Constraint, T2 Constraint, T3 Constraint](f func(ctx context.Context, m api.Module, a T0, b T1, c T2, d T3)) api.GoModuleFunc {
 	return func(ctx context.Context, m api.Module, stack []uint64) {
 		f(ctx, m, T0(stack[0]), T1(stack[1]), T2(stack[2]), T3(stack[3]))
+	}
+}
+
+func wrap0ret[R Constraint](f func(ctx context.Context, m api.Module) R) api.GoModuleFunc {
+	return func(ctx context.Context, m api.Module, stack []uint64) {
+		stack[0] = uint64(f(ctx, m))
 	}
 }
 
@@ -163,6 +175,12 @@ func wrap3ret[T0 Constraint, T1 Constraint, T2 Constraint, R Constraint](f func(
 func wrap4ret[T0 Constraint, T1 Constraint, T2 Constraint, T3 Constraint, R Constraint](f func(ctx context.Context, m api.Module, a T0, b T1, c T2, d T3) R) api.GoModuleFunc {
 	return func(ctx context.Context, m api.Module, stack []uint64) {
 		stack[0] = uint64(f(ctx, m, T0(stack[0]), T1(stack[1]), T2(stack[2]), T3(stack[3])))
+	}
+}
+
+func wrap5ret[T0 Constraint, T1 Constraint, T2 Constraint, T3 Constraint, T4 Constraint, R Constraint](f func(ctx context.Context, m api.Module, a T0, b T1, c T2, d T3, e T4) R) api.GoModuleFunc {
+	return func(ctx context.Context, m api.Module, stack []uint64) {
+		stack[0] = uint64(f(ctx, m, T0(stack[0]), T1(stack[1]), T2(stack[2]), T3(stack[3]), T4(stack[4])))
 	}
 }
 
@@ -826,12 +844,12 @@ func ext_crypto_sr25519_verify_version_2(ctx context.Context, m api.Module, sig 
 	return 1
 }
 
-func ext_crypto_start_batch_verify_version_1(ctx context.Context, m api.Module) {
+func ext_crypto_start_batch_verify_version_1(_ context.Context, _ api.Module) {
 	// TODO: fix and re-enable signature verification (#1405)
 	// beginBatchVerify(context)
 }
 
-func ext_crypto_finish_batch_verify_version_1(_ context.Context) uint32 {
+func ext_crypto_finish_batch_verify_version_1(_ context.Context, _ api.Module) uint32 {
 	// TODO: fix and re-enable signature verification (#1405)
 	// return finishBatchVerify(context)
 	return 1
