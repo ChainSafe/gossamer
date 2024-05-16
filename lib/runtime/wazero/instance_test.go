@@ -1003,6 +1003,67 @@ func TestWestendSlowDownAfterRuntimeUpgrade(t *testing.T) {
 	fmt.Printf("mean %.2f seconds\n", totalTookTime/float64(len(consecutiveBlocks)))
 }
 
+func TestWestendSlowDownBeforeRuntimeUpgrade(t *testing.T) {
+	wndTrie := newTrieFromKeyValueList(t, "../test_data/wnd_state_block11211421.out")
+	expectedRoot := common.MustHexToHash("0x1820638fd189ff296a6f9ef79144c2e9744b7eb3f2e005b4b2600badd1b84a49")
+	require.Equal(t, expectedRoot, trie.V0.MustHash(wndTrie))
+
+	numOfRequests := 8
+	responses := make([]*network.BlockResponseMessage, 0, 8)
+	for i := 1; i <= numOfRequests; i++ {
+		rawBlocks, err := os.ReadFile(fmt.Sprintf("../../../scripts/retrieve_block/req_prev_%d.out", i))
+		require.NoError(t, err)
+
+		blockResponse := &network.BlockResponseMessage{}
+		err = blockResponse.Decode(common.MustHexToBytes(string(rawBlocks)))
+		require.NoError(t, err)
+
+		responses = append(responses, blockResponse)
+	}
+	// instantiating runtime setting the state trie
+	state := storage.NewTrieState(wndTrie)
+	inMemoryDB, err := database.NewPebble(t.TempDir(), true)
+	require.NoError(t, err)
+
+	cfg := Config{
+		Storage: state,
+		LogLvl:  log.Critical,
+		NodeStorage: runtime.NodeStorage{
+			LocalStorage:      inMemoryDB,
+			PersistentStorage: inMemoryDB,
+			BaseDB:            inMemoryDB,
+		},
+	}
+
+	instance, err := NewInstanceFromTrie(wndTrie, cfg)
+	require.NoError(t, err)
+
+	// after taking the first one we should now
+	// execute the next ones after it for each
+	// of the 8 requests
+	var consecutiveBlocks []*types.BlockData
+
+	for _, b := range responses {
+		consecutiveBlocks = append(consecutiveBlocks, b.BlockData...)
+	}
+
+	totalTookTime := 0.0
+	for _, b := range consecutiveBlocks {
+		startTime := time.Now()
+		_, err = instance.ExecuteBlock(&types.Block{
+			Header: *b.Header,
+			Body:   *b.Body,
+		})
+		require.NoError(t, err)
+
+		execBlockInSeconds := time.Since(startTime).Seconds()
+		totalTookTime += execBlockInSeconds
+		fmt.Printf("block #%d took: %.2f seconds\n", b.Header.Number, execBlockInSeconds)
+	}
+	fmt.Printf("took %.2f seconds\n", totalTookTime)
+	fmt.Printf("mean %.2f seconds\n", totalTookTime/float64(len(consecutiveBlocks)))
+}
+
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1482002.out")
 	expectedRoot := common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb")
