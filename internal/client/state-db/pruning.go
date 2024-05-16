@@ -129,7 +129,10 @@ func (rw *pruningWindow[BlockHash, Key]) NoteCanonical(hash BlockHash, number ui
 	} else if (rw.base + rw.WindowSize()) != number {
 		return ErrInvalidBlockNumber
 	}
-	log.Printf("TRACE: Adding to pruning window: %v (%v inserted, %v deleted)", hash, len(commit.Data.Inserted), len(commit.Data.Deleted))
+	log.Printf(
+		"TRACE: Adding to pruning window: %v (%v inserted, %v deleted)",
+		hash, len(commit.Data.Inserted), len(commit.Data.Deleted),
+	)
 	var inserted []Key
 	for _, kv := range commit.Data.Inserted {
 		inserted = append(inserted, kv.Hash)
