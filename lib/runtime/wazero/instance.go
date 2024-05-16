@@ -245,7 +245,7 @@ func newRuntime(ctx context.Context,
 		Export("ext_crypto_start_batch_verify_version_1").
 		NewFunctionBuilder().
 		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			stack[0] = api.EncodeU32(ext_crypto_finish_batch_verify_version_1(ctx, m))
+			stack[0] = api.EncodeU32(ext_crypto_finish_batch_verify_version_1(ctx))
 		}), []api.ValueType{}, []api.ValueType{i32}).
 		Export("ext_crypto_finish_batch_verify_version_1").
 		NewFunctionBuilder().
@@ -279,18 +279,18 @@ func newRuntime(ctx context.Context,
 		}), []api.ValueType{i32, i64, i64, i64, i32}, []api.ValueType{i32}).
 		Export("ext_trie_blake2_256_verify_proof_version_2").
 		NewFunctionBuilder().
-		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			ext_misc_print_hex_version_1(ctx, m, stack[0])
+		WithGoFunction(api.GoFunc(func(ctx context.Context, stack []uint64) {
+			ext_misc_print_hex_version_1(ctx, nil, stack[0])
 		}), []api.ValueType{i64}, []api.ValueType{}).
 		Export("ext_misc_print_hex_version_1").
 		NewFunctionBuilder().
-		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			ext_misc_print_num_version_1(ctx, m, stack[0])
+		WithGoFunction(api.GoFunc(func(ctx context.Context, stack []uint64) {
+			ext_misc_print_num_version_1(ctx, nil, stack[0])
 		}), []api.ValueType{i64}, []api.ValueType{}).
 		Export("ext_misc_print_num_version_1").
 		NewFunctionBuilder().
-		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
-			ext_misc_print_utf8_version_1(ctx, m, stack[0])
+		WithGoFunction(api.GoFunc(func(ctx context.Context, stack []uint64) {
+			ext_misc_print_utf8_version_1(ctx, nil, stack[0])
 		}), []api.ValueType{i64}, []api.ValueType{}).
 		Export("ext_misc_print_utf8_version_1").
 		NewFunctionBuilder().
