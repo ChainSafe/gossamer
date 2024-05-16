@@ -478,7 +478,7 @@ func newRuntime(ctx context.Context,
 		NewFunctionBuilder().
 		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
 			stack[0] = ext_offchain_http_request_add_header_version_1(ctx, m, api.DecodeU32(stack[0]), stack[1], stack[2])
-		}), []api.ValueType{i32, i64, i64}, []api.ValueType{i32}).
+		}), []api.ValueType{i32, i64, i64}, []api.ValueType{i64}).
 		Export("ext_offchain_http_request_add_header_version_1").
 		NewFunctionBuilder().
 		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
