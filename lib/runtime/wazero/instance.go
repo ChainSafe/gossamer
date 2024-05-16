@@ -119,7 +119,7 @@ func newRuntime(ctx context.Context,
 		// values from newer kusama/polkadot runtimes
 		ExportMemory("memory", 23).
 		NewFunctionBuilder().
-		WithGoModuleFunction(api.GoModuleFunc(wrap1(ext_misc_print_num_version_1)), []api.ValueType{i32, i64, i64}, []api.ValueType{}).
+		WithGoModuleFunction(api.GoModuleFunc(wrap3(ext_logging_log_version_1)), []api.ValueType{i32, i64, i64}, []api.ValueType{}).
 		Export("ext_logging_log_version_1").
 		NewFunctionBuilder().
 		WithFunc(func() int32 {
@@ -388,7 +388,6 @@ func newRuntime(ctx context.Context,
 		NewFunctionBuilder().
 		WithGoModuleFunction(wrap2(ext_storage_set_version_1), []api.ValueType{i64, i64}, []api.ValueType{}).
 		Export("ext_storage_set_version_1").
-		// TODO: ???
 		NewFunctionBuilder().
 		WithGoModuleFunction(wrap0(ext_storage_start_transaction_version_1), []api.ValueType{}, []api.ValueType{}).
 		Export("ext_storage_start_transaction_version_1").

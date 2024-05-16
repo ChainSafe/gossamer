@@ -90,7 +90,7 @@ func mustWrite(m api.Module, allocator runtime.Allocator, data []byte) (pointerS
 	return pointerSize
 }
 
-func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, targetData, msgData uint64) {
+func ext_logging_log_version_1(_ context.Context, m api.Module, level int32, targetData, msgData uint64) {
 	target := string(read(m, targetData))
 	msg := string(read(m, msgData))
 
@@ -116,7 +116,7 @@ func ext_crypto_ecdsa_generate_version_1(ctx context.Context, m api.Module, _ ui
 	panic("TODO impl: see https://github.com/ChainSafe/gossamer/issues/3769 ")
 }
 
-type Constraint interface {
+type WasmParamType interface {
 	uint32 | uint64 | int32
 }
 
@@ -126,59 +126,54 @@ func wrap0(f func(ctx context.Context, m api.Module)) api.GoModuleFunc {
 	}
 }
 
-func wrap1[T0 Constraint](f func(ctx context.Context, m api.Module, a T0)) api.GoModuleFunc {
+func wrap1[T0 WasmParamType](f func(ctx context.Context, m api.Module, a T0)) api.GoModuleFunc {
 	return func(ctx context.Context, m api.Module, stack []uint64) {
 		f(ctx, m, T0(stack[0]))
 	}
 }
 
-func wrap2[T0 Constraint, T1 Constraint](f func(ctx context.Context, m api.Module, a T0, b T1)) api.GoModuleFunc {
+func wrap2[T0 WasmParamType, T1 WasmParamType](f func(ctx context.Context, m api.Module, a T0, b T1)) api.GoModuleFunc {
 	return func(ctx context.Context, m api.Module, stack []uint64) {
 		f(ctx, m, T0(stack[0]), T1(stack[1]))
 	}
 }
-func wrap3[T0 Constraint, T1 Constraint, T2 Constraint](f func(ctx context.Context, m api.Module, a T0, b T1, c T2)) api.GoModuleFunc {
+func wrap3[T0 WasmParamType, T1 WasmParamType, T2 WasmParamType](f func(ctx context.Context, m api.Module, a T0, b T1, c T2)) api.GoModuleFunc {
 	return func(ctx context.Context, m api.Module, stack []uint64) {
 		f(ctx, m, T0(stack[0]), T1(stack[1]), T2(stack[2]))
 	}
 }
-func wrap4[T0 Constraint, T1 Constraint, T2 Constraint, T3 Constraint](f func(ctx context.Context, m api.Module, a T0, b T1, c T2, d T3)) api.GoModuleFunc {
-	return func(ctx context.Context, m api.Module, stack []uint64) {
-		f(ctx, m, T0(stack[0]), T1(stack[1]), T2(stack[2]), T3(stack[3]))
-	}
-}
 
-func wrap0ret[R Constraint](f func(ctx context.Context, m api.Module) R) api.GoModuleFunc {
+func wrap0ret[R WasmParamType](f func(ctx context.Context, m api.Module) R) api.GoModuleFunc {
 	return func(ctx context.Context, m api.Module, stack []uint64) {
 		stack[0] = uint64(f(ctx, m))
 	}
 }
 
-func wrap1ret[T0 Constraint, R Constraint](f func(ctx context.Context, m api.Module, a T0) R) api.GoModuleFunc {
+func wrap1ret[T0 WasmParamType, R WasmParamType](f func(ctx context.Context, m api.Module, a T0) R) api.GoModuleFunc {
 	return func(ctx context.Context, m api.Module, stack []uint64) {
 		stack[0] = uint64(f(ctx, m, T0(stack[0])))
 	}
 }
 
-func wrap2ret[T0 Constraint, T1 Constraint, R Constraint](f func(ctx context.Context, m api.Module, a T0, b T1) R) api.GoModuleFunc {
+func wrap2ret[T0 WasmParamType, T1 WasmParamType, R WasmParamType](f func(ctx context.Context, m api.Module, a T0, b T1) R) api.GoModuleFunc {
 	return func(ctx context.Context, m api.Module, stack []uint64) {
 		stack[0] = uint64(f(ctx, m, T0(stack[0]), T1(stack[1])))
 	}
 }
 
-func wrap3ret[T0 Constraint, T1 Constraint, T2 Constraint, R Constraint](f func(ctx context.Context, m api.Module, a T0, b T1, c T2) R) api.GoModuleFunc {
+func wrap3ret[T0 WasmParamType, T1 WasmParamType, T2 WasmParamType, R WasmParamType](f func(ctx context.Context, m api.Module, a T0, b T1, c T2) R) api.GoModuleFunc {
 	return func(ctx context.Context, m api.Module, stack []uint64) {
 		stack[0] = uint64(f(ctx, m, T0(stack[0]), T1(stack[1]), T2(stack[2])))
 	}
 }
 
-func wrap4ret[T0 Constraint, T1 Constraint, T2 Constraint, T3 Constraint, R Constraint](f func(ctx context.Context, m api.Module, a T0, b T1, c T2, d T3) R) api.GoModuleFunc {
+func wrap4ret[T0 WasmParamType, T1 WasmParamType, T2 WasmParamType, T3 WasmParamType, R WasmParamType](f func(ctx context.Context, m api.Module, a T0, b T1, c T2, d T3) R) api.GoModuleFunc {
 	return func(ctx context.Context, m api.Module, stack []uint64) {
 		stack[0] = uint64(f(ctx, m, T0(stack[0]), T1(stack[1]), T2(stack[2]), T3(stack[3])))
 	}
 }
 
-func wrap5ret[T0 Constraint, T1 Constraint, T2 Constraint, T3 Constraint, T4 Constraint, R Constraint](f func(ctx context.Context, m api.Module, a T0, b T1, c T2, d T3, e T4) R) api.GoModuleFunc {
+func wrap5ret[T0 WasmParamType, T1 WasmParamType, T2 WasmParamType, T3 WasmParamType, T4 WasmParamType, R WasmParamType](f func(ctx context.Context, m api.Module, a T0, b T1, c T2, d T3, e T4) R) api.GoModuleFunc {
 	return func(ctx context.Context, m api.Module, stack []uint64) {
 		stack[0] = uint64(f(ctx, m, T0(stack[0]), T1(stack[1]), T2(stack[2]), T3(stack[3]), T4(stack[4])))
 	}
