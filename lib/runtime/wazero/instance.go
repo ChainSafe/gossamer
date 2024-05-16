@@ -119,7 +119,9 @@ func newRuntime(ctx context.Context,
 		// values from newer kusama/polkadot runtimes
 		ExportMemory("memory", 23).
 		NewFunctionBuilder().
-		WithFunc(ext_logging_log_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
+			ext_logging_log_version_1(ctx, m, api.DecodeI32(stack[0]), stack[1], stack[2])
+		}), []api.ValueType{i32, i64, i64}, []api.ValueType{}).
 		Export("ext_logging_log_version_1").
 		NewFunctionBuilder().
 		WithFunc(func() int32 {
@@ -237,10 +239,14 @@ func newRuntime(ctx context.Context,
 		}), []api.ValueType{i32, i64, i32}, []api.ValueType{i32}).
 		Export("ext_crypto_sr25519_verify_version_2").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_start_batch_verify_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
+			ext_crypto_start_batch_verify_version_1(ctx, m)
+		}), []api.ValueType{}, []api.ValueType{}).
 		Export("ext_crypto_start_batch_verify_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_finish_batch_verify_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
+			stack[0] = api.EncodeU32(ext_crypto_finish_batch_verify_version_1(ctx, m))
+		}), []api.ValueType{}, []api.ValueType{i32}).
 		Export("ext_crypto_finish_batch_verify_version_1").
 		NewFunctionBuilder().
 		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
@@ -425,34 +431,54 @@ func newRuntime(ctx context.Context,
 		}), []api.ValueType{}, []api.ValueType{i32}).
 		Export("ext_offchain_is_validator_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_local_storage_compare_and_set_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
+			stack[0] = api.EncodeU32(ext_offchain_local_storage_compare_and_set_version_1(ctx, m, api.DecodeU32(stack[0]), stack[1], stack[2], stack[3]))
+		}), []api.ValueType{i32, i64, i64, i64}, []api.ValueType{i32}).
 		Export("ext_offchain_local_storage_compare_and_set_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_local_storage_get_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
+			stack[0] = ext_offchain_local_storage_get_version_1(ctx, m, api.DecodeU32(stack[0]), stack[1])
+		}), []api.ValueType{i32, i64}, []api.ValueType{i64}).
 		Export("ext_offchain_local_storage_get_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_local_storage_set_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
+			ext_offchain_local_storage_set_version_1(ctx, m, api.DecodeU32(stack[0]), stack[1], stack[2])
+		}), []api.ValueType{i32, i64, i64}, []api.ValueType{}).
 		Export("ext_offchain_local_storage_set_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_network_state_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
+			stack[0] = ext_offchain_network_state_version_1(ctx, m)
+		}), []api.ValueType{}, []api.ValueType{i64}).
 		Export("ext_offchain_network_state_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_random_seed_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
+			stack[0] = api.EncodeU32(ext_offchain_random_seed_version_1(ctx, m))
+		}), []api.ValueType{}, []api.ValueType{i32}).
 		Export("ext_offchain_random_seed_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_submit_transaction_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
+			stack[0] = ext_offchain_submit_transaction_version_1(ctx, m, stack[0])
+		}), []api.ValueType{i64}, []api.ValueType{i64}).
 		Export("ext_offchain_submit_transaction_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_timestamp_version_1).
+		WithGoFunction(api.GoFunc(func(ctx context.Context, stack []uint64) {
+			stack[0] = ext_offchain_timestamp_version_1(ctx, nil)
+		}), []api.ValueType{}, []api.ValueType{i64}).
 		Export("ext_offchain_timestamp_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_sleep_until_version_1).
+		WithGoFunction(api.GoFunc(func(ctx context.Context, stack []uint64) {
+			ext_offchain_sleep_until_version_1(ctx, nil, stack[0])
+		}), []api.ValueType{i64}, []api.ValueType{}).
 		Export("ext_offchain_sleep_until_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_http_request_start_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
+			stack[0] = ext_offchain_http_request_start_version_1(ctx, m, stack[0], stack[1], stack[2])
+		}), []api.ValueType{i64, i64, i64}, []api.ValueType{i64}).
 		Export("ext_offchain_http_request_start_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_http_request_add_header_version_1).
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
+			stack[0] = ext_offchain_http_request_add_header_version_1(ctx, m, api.DecodeU32(stack[0]), stack[1], stack[2])
+		}), []api.ValueType{i32, i64, i64}, []api.ValueType{i32}).
 		Export("ext_offchain_http_request_add_header_version_1").
 		NewFunctionBuilder().
 		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
