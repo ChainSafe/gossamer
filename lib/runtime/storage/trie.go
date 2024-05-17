@@ -21,18 +21,21 @@ import (
 // If the execution of the call is successful, the changes will be applied to
 // the current `state`
 type TrieState struct {
-	mtx          sync.RWMutex
-	state        trie.Trie
-	transactions *list.List
-	sortedKeys   []string
+	mtx             sync.RWMutex
+	state           trie.Trie
+	transactions    *list.List
+	sortedKeys      []string
+	childSortedKeys map[string][]string
 }
 
 // NewTrieState initialises and returns a new TrieState instance
 func NewTrieState(initialState trie.Trie) *TrieState {
 	transactions := list.New()
 	return &TrieState{
-		transactions: transactions,
-		state:        initialState,
+		transactions:    transactions,
+		state:           initialState,
+		sortedKeys:      make([]string, 0),
+		childSortedKeys: make(map[string][]string),
 	}
 }
 
@@ -112,12 +115,13 @@ func (t *TrieState) Put(key, value []byte) (err error) {
 	if t.getCurrentTransaction() != nil {
 		t.getCurrentTransaction().upsert(string(key), value)
 	} else {
-		if err := t.state.Put(key, value); err != nil {
+		err := t.state.Put(key, value)
+		if err != nil {
 			return err
 		}
+		t.addMainTrieSortedKey(string(key))
 	}
 
-	t.insertSortedKey(string(key))
 	return nil
 }
 
@@ -169,13 +173,15 @@ func (t *TrieState) Delete(key []byte) (err error) {
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		t.getCurrentTransaction().delete(string(key))
+
 	} else {
-		if err := t.state.Delete(key); err != nil {
+		err := t.state.Delete(key)
+		if err != nil {
 			return err
 		}
+		t.removeMainTrieSortedKey(string(key))
 	}
 
-	t.removeSortedKey(string(key))
 	return nil
 }
 
@@ -185,19 +191,18 @@ func (t *TrieState) NextKey(key []byte) []byte {
 	defer t.mtx.RUnlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		allSortedKeys := append(t.sortedKeys, currentTx.sortedKeys...)
 		// Find key position
-		pos := sort.Search(len(t.sortedKeys), func(i int) bool {
-			return bytes.Compare([]byte(t.sortedKeys[i]), key) > 0
+		pos := sort.Search(len(allSortedKeys), func(i int) bool {
+			return bytes.Compare([]byte(allSortedKeys[i]), key) > 0
 		})
 
 		// Get next key based on that position
-		for pos < len(t.sortedKeys) {
-			k := t.sortedKeys[pos]
-			if !currentTx.deletes[k] {
-				return []byte(k)
-			}
-			pos++
+		if pos < len(allSortedKeys) {
+			k := allSortedKeys[pos]
+			return []byte(k)
 		}
+		return nil
 	}
 
 	return t.state.NextKey(key)
@@ -267,7 +272,12 @@ func (t *TrieState) SetChildStorage(keyToChild, key, value []byte) error {
 		return nil
 	}
 
-	return t.state.PutIntoChild(keyToChild, key, value)
+	err := t.state.PutIntoChild(keyToChild, key, value)
+	if err != nil {
+		return err
+	}
+	t.addChildTrieSortedKey(string(keyToChild), string(key))
+	return nil
 }
 
 func (t *TrieState) GetChildRoot(keyToChild []byte) (common.Hash, error) {
@@ -299,7 +309,7 @@ func (t *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 }
 
 // DeleteChild deletes a child trie from the main trie
-func (t *TrieState) DeleteChild(keyToChild []byte) (err error) {
+func (t *TrieState) DeleteChild(keyToChild []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
@@ -308,7 +318,12 @@ func (t *TrieState) DeleteChild(keyToChild []byte) (err error) {
 		return nil
 	}
 
-	return t.state.DeleteChild(keyToChild)
+	err := t.state.DeleteChild(keyToChild)
+	if err != nil {
+		return err
+	}
+	delete(t.childSortedKeys, string(keyToChild))
+	return nil
 }
 
 // DeleteChildLimit deletes up to limit of database entries by lexicographic order.
@@ -393,7 +408,13 @@ func (t *TrieState) ClearChildStorage(keyToChild, key []byte) error {
 		return nil
 	}
 
-	return t.state.ClearFromChild(keyToChild, key)
+	err := t.state.ClearFromChild(keyToChild, key)
+	if err != nil {
+		return err
+	}
+
+	t.removeChildTrieSortedKey(string(keyToChild), string(key))
+	return nil
 }
 
 // ClearPrefixInChild clears all the keys from the child trie that have the given prefix
@@ -458,32 +479,23 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		// If we are going to delete this child we return error
-
 		if currentTx.deletes[string(keyToChild)] {
 			return nil, trie.ErrChildTrieDoesNotExist
 		}
 
 		if childChanges := currentTx.childChangeSet[string(keyToChild)]; childChanges != nil {
-			allEntries := make(map[string][]byte)
+			allSortedKeys := append(t.childSortedKeys[string(keyToChild)], childChanges.sortedKeys...)
+			// Find key position
+			pos := sort.Search(len(allSortedKeys), func(i int) bool {
+				return bytes.Compare([]byte(allSortedKeys[i]), key) > 0
+			})
 
-			maps.Copy(allEntries, childChanges.upserts)
-			child, err := t.state.GetChild(keyToChild)
-			if err != nil {
-				// Child trie does not exists and won't exists in the future
-				if len(allEntries) == 0 {
-					return nil, err
-				}
-			} else {
-				allEntries = child.Entries()
+			// Get next key based on that position
+			if pos < len(allSortedKeys) {
+				k := allSortedKeys[pos]
+				return []byte(k), nil
 			}
-			keys := maps.Keys(allEntries)
-			sort.Strings(keys)
 
-			for _, k := range keys {
-				if k > string(key) && !childChanges.deletes[k] {
-					return []byte(k), nil
-				}
-			}
 			return nil, nil
 		}
 	}
@@ -567,26 +579,45 @@ func (t *TrieState) GetChangedNodeHashes() (inserted, deleted map[common.Hash]st
 	return t.state.GetChangedNodeHashes()
 }
 
-func (t *TrieState) insertSortedKey(key string) {
-	pos := sort.Search(len(t.sortedKeys), func(i int) bool {
-		return t.sortedKeys[i] >= key
-	})
-
-	if pos < len(t.sortedKeys) && t.sortedKeys[pos] == key {
-		return // key already exists
-	}
-
-	t.sortedKeys = append(t.sortedKeys, "")
-	copy(t.sortedKeys[pos+1:], t.sortedKeys[pos:])
-	t.sortedKeys[pos] = key
+func (t *TrieState) addMainTrieSortedKey(key string) {
+	t.sortedKeys = t.insertSortedKey(t.sortedKeys, key)
 }
 
-func (t *TrieState) removeSortedKey(key string) {
-	pos := sort.Search(len(t.sortedKeys), func(i int) bool {
-		return t.sortedKeys[i] >= key
+func (t *TrieState) removeMainTrieSortedKey(key string) {
+	t.sortedKeys = t.removeSortedKey(t.sortedKeys, key)
+}
+
+func (t *TrieState) addChildTrieSortedKey(keyToChild, key string) {
+	t.childSortedKeys[keyToChild] = t.insertSortedKey(t.childSortedKeys[keyToChild], key)
+}
+
+func (t *TrieState) removeChildTrieSortedKey(keyToChild, key string) {
+	t.childSortedKeys[keyToChild] = t.removeSortedKey(t.childSortedKeys[keyToChild], key)
+}
+
+func (t *TrieState) insertSortedKey(keys []string, key string) []string {
+	pos := sort.Search(len(keys), func(i int) bool {
+		return keys[i] >= key
 	})
 
-	if pos < len(t.sortedKeys) && t.sortedKeys[pos] == key {
-		t.sortedKeys = append(t.sortedKeys[:pos], t.sortedKeys[pos+1:]...)
+	if pos < len(keys) && keys[pos] == key {
+		return keys // key already exists
 	}
+
+	keys = append(keys, "")
+	copy(keys[pos+1:], keys[pos:])
+	keys[pos] = key
+	return keys
+}
+
+func (t *TrieState) removeSortedKey(keys []string, key string) []string {
+	pos := sort.Search(len(keys), func(i int) bool {
+		return keys[i] >= key
+	})
+
+	if pos < len(keys) && keys[pos] == key {
+		keys = append(keys[:pos], keys[pos+1:]...)
+	}
+
+	return keys
 }
