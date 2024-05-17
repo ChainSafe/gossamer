@@ -25,9 +25,8 @@ var (
 )
 
 type CandidateValidation struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
+	wg       sync.WaitGroup
+	stopChan chan struct{}
 
 	SubsystemToOverseer chan<- any
 	OverseerToSubsystem <-chan any
@@ -35,7 +34,7 @@ type CandidateValidation struct {
 
 func (cv *CandidateValidation) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) {
 	cv.wg.Add(1)
-	go cv.processMessages()
+	go cv.processMessages(&cv.wg)
 }
 
 func (*CandidateValidation) Name() parachaintypes.SubSystemName {
@@ -53,23 +52,20 @@ func (*CandidateValidation) ProcessBlockFinalizedSignal(signal parachaintypes.Bl
 }
 
 func (cv *CandidateValidation) Stop() {
-	cv.cancel()
 	cv.wg.Wait()
 }
 
-func (cv *CandidateValidation) processMessages() {
+func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
+	defer wg.Done()
 	for {
 		select {
 		case msg := <-cv.OverseerToSubsystem:
 			logger.Debugf("received message %v", msg)
 			switch msg := msg.(type) {
 			case ValidateFromChainState:
-				_, _, _, err := validateFromChainState(msg.RuntimeInstance, msg.PovRequestor, msg.CandidateReceipt)
-				if err != nil {
-					logger.Errorf("failed to validate candidate from chain state: %w", err)
-				}
+				// TODO: implement functionality to handle ValidateFromChainState, see issue #3919
 			case ValidateFromExhaustive:
-				// TODO: implement functionality to handle ValidateFromExhaustive, see issue #3920
+				// TODO: implement functionality to handle ValidateFromExhaustive, see issue #3547
 			case PreCheck:
 				// TODO: implement functionality to handle PreCheck, see issue #3921
 
@@ -89,18 +85,14 @@ func (cv *CandidateValidation) processMessages() {
 				logger.Error(parachaintypes.ErrUnknownOverseerMessage.Error())
 			}
 
-		case <-cv.ctx.Done():
-			if err := cv.ctx.Err(); err != nil {
-				logger.Errorf("ctx error: %v\n", err)
-			}
-			cv.wg.Done()
+		case <-cv.stopChan:
 			return
 		}
 	}
 }
 
 // PoVRequestor gets proof of validity by issuing network requests to validators of the current backing group.
-// TODO: Implement PoV requestor
+// TODO: Implement PoV requestor, issue #3919
 type PoVRequestor interface {
 	RequestPoV(povHash common.Hash) parachaintypes.PoV
 }

@@ -11,18 +11,15 @@ import (
 
 	availability_store "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
-	candidate_validation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 var (
