@@ -90,7 +90,7 @@ func mustWrite(m api.Module, allocator runtime.Allocator, data []byte) (pointerS
 	return pointerSize
 }
 
-func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, targetData, msgData uint64) {
+func ext_logging_log_version_1(_ context.Context, m api.Module, level int32, targetData, msgData uint64) {
 	target := string(read(m, targetData))
 	msg := string(read(m, msgData))
 
