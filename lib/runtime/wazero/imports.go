@@ -182,11 +182,19 @@ func wrap4ret[T0 WasmParamType, T1 WasmParamType, T2 WasmParamType, T3 WasmParam
 	}
 }
 
-func wrap5ret[T0 WasmParamType, T1 WasmParamType, T2 WasmParamType, T3 WasmParamType, T4 WasmParamType, R WasmParamType](
+func wrap5ret[
+	T0 WasmParamType,
+	T1 WasmParamType,
+	T2 WasmParamType,
+	T3 WasmParamType,
+	T4 WasmParamType,
+	R WasmParamType,
+](
 	f func(ctx context.Context, m api.Module, a T0, b T1, c T2, d T3, e T4) R,
 ) api.GoModuleFunc {
 	return func(ctx context.Context, m api.Module, stack []uint64) {
-		stack[0] = uint64(f(ctx, m, T0(stack[0]), T1(stack[1]), T2(stack[2]), T3(stack[3]), T4(stack[4])))
+		stack[0] = uint64(f(ctx, m, T0(stack[0]), T1(stack[1]),
+			T2(stack[2]), T3(stack[3]), T4(stack[4])))
 	}
 }
 
