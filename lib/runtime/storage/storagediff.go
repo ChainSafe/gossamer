@@ -298,11 +298,9 @@ func (cs *storageDiff) applyToTrie(t trie.Trie) {
 }
 
 func (cs *storageDiff) insertSortedKey(key string) {
-	pos := sort.Search(len(cs.sortedKeys), func(i int) bool {
-		return cs.sortedKeys[i] >= key
-	})
+	pos, found := slices.BinarySearch(cs.sortedKeys, key)
 
-	if pos < len(cs.sortedKeys) && cs.sortedKeys[pos] == key {
+	if found {
 		return // key already exists
 	}
 
@@ -312,11 +310,9 @@ func (cs *storageDiff) insertSortedKey(key string) {
 }
 
 func (cs *storageDiff) removeSortedKey(key string) {
-	pos := sort.Search(len(cs.sortedKeys), func(i int) bool {
-		return cs.sortedKeys[i] >= key
-	})
+	pos, found := slices.BinarySearch(cs.sortedKeys, key)
 
-	if pos < len(cs.sortedKeys) && cs.sortedKeys[pos] == key {
+	if found {
 		cs.sortedKeys = append(cs.sortedKeys[:pos], cs.sortedKeys[pos+1:]...)
 	}
 }
