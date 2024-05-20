@@ -15,7 +15,7 @@ const defaultValueCacheMaxSize = 2 * 1024 * 1024 // 2MB
 // TrieInMemoryCache is an in-memory cache for trie nodes
 type TrieInMemoryCache struct {
 	nodeCache  *lrucache.LRUCache[string, []byte]
-	valueCache *lruCache
+	valueCache *maxBytesLRUCache
 }
 
 // NewTrieInMemoryCache creates a new TrieInMemoryCache
