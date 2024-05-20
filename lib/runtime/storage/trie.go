@@ -374,11 +374,11 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 	childTrieEntries := child.Entries()
 	qtyEntries := uint32(len(childTrieEntries))
 	if limit == nil {
-		err = t.DeleteChild(key)
+		err = t.state.DeleteChild(key)
 		if err != nil {
 			return 0, false, fmt.Errorf("deleting child trie: %w", err)
 		}
-
+		delete(t.childSortedKeys, string(key))
 		return qtyEntries, true, nil
 	}
 	limitUint := binary.LittleEndian.Uint32(*limit)
