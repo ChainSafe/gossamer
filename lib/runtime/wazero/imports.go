@@ -90,7 +90,7 @@ func mustWrite(m api.Module, allocator runtime.Allocator, data []byte) (pointerS
 	return pointerSize
 }
 
-func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, targetData, msgData uint64) {
+func ext_logging_log_version_1(_ context.Context, m api.Module, level int32, targetData, msgData uint64) {
 	target := string(read(m, targetData))
 	msg := string(read(m, msgData))
 
@@ -781,7 +781,7 @@ func ext_crypto_start_batch_verify_version_1(ctx context.Context, m api.Module) 
 	// beginBatchVerify(context)
 }
 
-func ext_crypto_finish_batch_verify_version_1(ctx context.Context, m api.Module) uint32 {
+func ext_crypto_finish_batch_verify_version_1(_ context.Context) uint32 {
 	// TODO: fix and re-enable signature verification (#1405)
 	// return finishBatchVerify(context)
 	return 1
@@ -956,16 +956,16 @@ func ext_trie_blake2_256_verify_proof_version_2(
 	return 1
 }
 
-func ext_misc_print_hex_version_1(ctx context.Context, m api.Module, dataSpan uint64) {
+func ext_misc_print_hex_version_1(_ context.Context, m api.Module, dataSpan uint64) {
 	data := read(m, dataSpan)
 	logger.Debugf("data: 0x%x", data)
 }
 
-func ext_misc_print_num_version_1(ctx context.Context, m api.Module, data uint64) {
+func ext_misc_print_num_version_1(_ context.Context, _ api.Module, data uint64) {
 	logger.Debugf("num: %d", int64(data))
 }
 
-func ext_misc_print_utf8_version_1(ctx context.Context, m api.Module, dataSpan uint64) {
+func ext_misc_print_utf8_version_1(_ context.Context, m api.Module, dataSpan uint64) {
 	data := read(m, dataSpan)
 	logger.Debug("utf8: " + string(data))
 }
@@ -1259,7 +1259,7 @@ func ext_default_child_storage_root_version_1(
 
 //export ext_default_child_storage_root_version_2
 func ext_default_child_storage_root_version_2(ctx context.Context, m api.Module, childStorageKey uint64,
-	version uint32) (ptrSize uint64) { //skipcq: RVV-B0012
+	_ uint32) (ptrSize uint64) { //skipcq: RVV-B0012
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -1878,7 +1878,7 @@ func ext_offchain_sleep_until_version_1(_ context.Context, _ api.Module, deadlin
 }
 
 func ext_offchain_http_request_start_version_1(
-	ctx context.Context, m api.Module, methodSpan, uriSpan, metaSpan uint64) (pointerSize uint64) { //skipcq: RVV-B0012
+	ctx context.Context, m api.Module, methodSpan, uriSpan, _ uint64) (pointerSize uint64) { //skipcq: RVV-B0012
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -2044,7 +2044,7 @@ func ext_storage_append_version_1(ctx context.Context, m api.Module, keySpan, va
 
 // Always returns `None`. This function exists for compatibility reasons.
 func ext_storage_changes_root_version_1(
-	ctx context.Context, m api.Module, parentHashSpan uint64) uint64 { //skipcq: RVV-B0012
+	ctx context.Context, m api.Module, _ uint64) uint64 { //skipcq: RVV-B0012
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
