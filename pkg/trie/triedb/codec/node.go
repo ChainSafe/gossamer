@@ -13,11 +13,11 @@ type MerkleValue interface {
 }
 
 type (
-	// Value bytes as stored in a trie node
+	// InlineNode contains bytes of the encoded node data
 	InlineNode struct {
 		Data []byte
 	}
-	// Containing a hash used to lookup in db for real value
+	// HashedNode contains a hash used to lookup in db for encoded node data
 	HashedNode struct {
 		Data []byte
 	}
@@ -48,7 +48,6 @@ type (
 	}
 	// HashedValue contains a hash used to lookup in db for real value
 	HashedValue struct {
-		// TODO: use common.Hash
 		Data []byte
 	}
 )

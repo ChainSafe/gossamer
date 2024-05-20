@@ -37,9 +37,21 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 	// Iterates through non inlined nodes
 	for {
 		// Get node from DB
-		nodeData, err := l.db.Get(hash)
-		if err != nil {
-			return nil, ErrIncompleteDB
+		var nodeData []byte
+		if l.cache != nil {
+			nodeData = l.cache.GetNode(hash)
+		}
+
+		if nodeData == nil {
+			var err error
+			nodeData, err = l.db.Get(hash)
+			if err != nil {
+				return nil, ErrIncompleteDB
+			}
+
+			if l.cache != nil {
+				l.cache.SetNode(hash, nodeData)
+			}
 		}
 
 	InlinedChildrenIterator:
@@ -120,7 +132,7 @@ func (l *TrieLookup) lookupValue(keyNibbles []byte) (value []byte, err error) {
 	}
 
 	if nodeValue := node.GetValue(); nodeValue != nil {
-		value, err = l.loadValue(node.GetPartialKey(), nodeValue)
+		value, err = l.fetchValue(node.GetPartialKey(), nodeValue)
 		if err != nil {
 			return nil, err
 		}
@@ -135,15 +147,30 @@ func (l *TrieLookup) lookupValue(keyNibbles []byte) (value []byte, err error) {
 	return nil, nil
 }
 
-// loadValue gets the value from the node, if it is inlined we can return it
+// fetchValue gets the value from the node, if it is inlined we can return it
 // directly. But if it is hashed (V1) we have to look up for its value in the DB
-func (l *TrieLookup) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error) {
+func (l *TrieLookup) fetchValue(prefix []byte, value codec.NodeValue) ([]byte, error) {
 	switch v := value.(type) {
 	case codec.InlineValue:
 		return v.Data, nil
 	case codec.HashedValue:
 		prefixedKey := bytes.Join([][]byte{prefix, v.Data}, nil)
-		return l.db.Get(prefixedKey)
+		if l.cache != nil {
+			if value := l.cache.GetValue(prefixedKey); value != nil {
+				return value, nil
+			}
+		}
+
+		nodeData, err := l.db.Get(prefixedKey)
+		if err != nil {
+			return nil, err
+		}
+
+		if l.cache != nil {
+			l.cache.SetValue(prefixedKey, nodeData)
+		}
+
+		return nodeData, nil
 	default:
 		panic("unreachable")
 	}

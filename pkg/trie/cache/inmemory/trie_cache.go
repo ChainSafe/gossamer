@@ -4,45 +4,46 @@
 package inmemory
 
 import (
+	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
 	"github.com/ChainSafe/gossamer/pkg/trie/cache"
 )
 
 // https://github.com/paritytech/polkadot-sdk/blob/a8f4f4f00f8fc0da512a09e1450bf4cda954d70d/substrate/primitives/trie/src/cache/mod.rs#L98
-const defaultNodeCacheMaxSize = 8 * 1024 * 1024  // 8MB
+const defaultNodeCacheMaxElements = 10000
 const defaultValueCacheMaxSize = 2 * 1024 * 1024 // 2MB
 
 // TrieInMemoryCache is an in-memory cache for trie nodes
-type trieInMemoryCache struct {
-	nodeCache  *lruCache
-	valueCache *lruCache
+type TrieInMemoryCache struct {
+	nodeCache  *lrucache.LRUCache[string, []byte]
+	valueCache *maxBytesLRUCache
 }
 
 // NewTrieInMemoryCache creates a new TrieInMemoryCache
-func NewTrieInMemoryCache() *trieInMemoryCache {
-	return &trieInMemoryCache{
-		nodeCache:  newLruCache(defaultNodeCacheMaxSize),
+func NewTrieInMemoryCache() *TrieInMemoryCache {
+	return &TrieInMemoryCache{
+		nodeCache:  lrucache.NewLRUCache[string, []byte](defaultNodeCacheMaxElements),
 		valueCache: newLruCache(defaultValueCacheMaxSize),
 	}
 }
 
 // GetValue returns the value for the given key
-func (tc *trieInMemoryCache) GetValue(key []byte) []byte {
+func (tc *TrieInMemoryCache) GetValue(key []byte) []byte {
 	return tc.valueCache.get(string(key))
 }
 
 // SetValue sets the value for the given key
-func (tc *trieInMemoryCache) SetValue(key []byte, value []byte) {
+func (tc *TrieInMemoryCache) SetValue(key []byte, value []byte) {
 	tc.valueCache.set(string(key), value)
 }
 
 // GetNode returns the node for the given key
-func (tc *trieInMemoryCache) GetNode(key []byte) []byte {
-	return tc.nodeCache.get(string(key))
+func (tc *TrieInMemoryCache) GetNode(key []byte) []byte {
+	return tc.nodeCache.Get(string(key))
 }
 
 // SetNode sets the node for the given key
-func (tc *trieInMemoryCache) SetNode(key, value []byte) {
-	tc.nodeCache.set(string(key), value)
+func (tc *TrieInMemoryCache) SetNode(key, value []byte) {
+	tc.nodeCache.Put(string(key), value)
 }
 
-var _ cache.TrieCache = (*trieInMemoryCache)(nil)
+var _ cache.TrieCache = (*TrieInMemoryCache)(nil)

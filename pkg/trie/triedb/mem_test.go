@@ -37,7 +37,7 @@ func Benchmark_ValueCache(b *testing.B) {
 	root, err := inMemoryTrie.Hash()
 	assert.NoError(b, err)
 
-	b.Run("get_key_without_cache", func(b *testing.B) {
+	b.Run("get_value_without_cache", func(b *testing.B) {
 		trieDB := NewTrieDB(root, db, nil)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -46,7 +46,7 @@ func Benchmark_ValueCache(b *testing.B) {
 		}
 	})
 
-	b.Run("get_key_with_cache", func(b *testing.B) {
+	b.Run("get_value_with_cache", func(b *testing.B) {
 		cache := inmemory_cache.NewTrieInMemoryCache()
 		trieDB := NewTrieDB(root, db, cache)
 		b.ResetTimer()

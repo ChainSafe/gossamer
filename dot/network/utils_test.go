@@ -137,7 +137,7 @@ func TestReadLEB128ToUint64(t *testing.T) {
 		_, err := buf.Write(tc.input)
 		require.NoError(t, err)
 
-		ret, _, err := readLEB128ToUint64(buf)
+		ret, _, err := ReadLEB128ToUint64(buf)
 		require.NoError(t, err)
 		require.Equal(t, tc.output, ret)
 	}
@@ -150,7 +150,7 @@ func TestInvalidLeb128(t *testing.T) {
 	_, err := buf.Write(input)
 	require.NoError(t, err)
 
-	_, _, err = readLEB128ToUint64(buf)
+	_, _, err = ReadLEB128ToUint64(buf)
 	require.Error(t, err)
 }
 

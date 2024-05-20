@@ -47,6 +47,7 @@ type Service struct {
 	storageState     StorageState
 	transactionState TransactionState
 	grandpaState     GrandpaState
+	epochState       EpochState
 	net              Network
 
 	// map of code substitutions keyed by block hash
@@ -66,6 +67,7 @@ type Config struct {
 	StorageState     StorageState
 	TransactionState TransactionState
 	GrandpaState     GrandpaState
+	EpochState       EpochState
 	Network          Network
 	Keystore         *keystore.GlobalKeystore
 	Runtime          runtime.Instance
@@ -96,6 +98,7 @@ func NewService(cfg *Config) (*Service, error) {
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
 		onBlockImport:        cfg.OnBlockImport,
+		epochState:           cfg.EpochState,
 	}
 
 	return srv, nil
@@ -149,6 +152,36 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 
 // HandleBlockImport handles a block that was imported via the network
 func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieState, announce bool) error {
+	parentHash := block.Header.ParentHash
+	if parentHash != s.blockState.GenesisHash() {
+		parentHeader, err := s.blockState.GetHeader(parentHash)
+		if err != nil {
+			return fmt.Errorf("getting parent header: %w", err)
+		}
+
+		parentEpoch, err := s.epochState.GetEpochForBlock(parentHeader)
+		if err != nil {
+			return fmt.Errorf("getting epoch for parent block: %w", err)
+		}
+
+		currentBlockEpoch, err := s.epochState.GetEpochForBlock(&block.Header)
+		if err != nil {
+			return fmt.Errorf("getting epoch for current block: %w", err)
+		}
+
+		// if epoch was skipped then we should change the current
+		// epoch descriptor mapping to use the actual epoch,since
+		// was expected to have a block on `parentEpoch + 1` but
+		// the descendant is more than one epoch forward
+		if currentBlockEpoch > (parentEpoch + 1) {
+			err := s.epochState.UpdateSkippedEpochDefinitions(parentEpoch+1,
+				currentBlockEpoch, &block.Header)
+			if err != nil {
+				return fmt.Errorf("updating skipped epoch data raw: %w", err)
+			}
+		}
+	}
+
 	err := s.handleBlock(block, state)
 	if err != nil {
 		return fmt.Errorf("handling block: %w", err)

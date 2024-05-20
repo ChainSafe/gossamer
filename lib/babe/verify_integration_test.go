@@ -872,3 +872,115 @@ func issueNewBlockFrom(t *testing.T, parentHeader *types.Header,
 
 	return header
 }
+
+func TestVerifyBlockAfterSkippedEpochs(t *testing.T) {
+	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	currentBABEConfig := AuthorOnEverySlotBABEConfig
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, currentBABEConfig)
+
+	epoch0DataRaw := &types.EpochDataRaw{
+		Authorities: currentBABEConfig.GenesisAuthorities,
+		Randomness:  currentBABEConfig.Randomness,
+	}
+	epoch0ConfigData := &types.ConfigData{
+		C1:             currentBABEConfig.C1,
+		C2:             currentBABEConfig.C2,
+		SecondarySlots: currentBABEConfig.SecondarySlots,
+	}
+
+	epochData := testBuildEpochData(t, epoch0DataRaw, epoch0ConfigData)
+	epochData.authorityIndex = 0
+	ed := &epochDescriptor{
+		data:  epochData,
+		epoch: 0,
+	}
+
+	db, err := database.NewPebble(t.TempDir(), true)
+	require.NoError(t, err)
+	slotState := state.NewSlotState(db)
+
+	verificationManager := NewVerificationManager(babeService.blockState, slotState, babeService.epochState)
+
+	firstBlockSlot := Slot{
+		start:    time.Unix(0, 0),
+		duration: 6 * time.Second,
+		number:   0,
+	}
+
+	firstBlock := createTestBlockToImport(t, babeService, &genesisHeader, ed, firstBlockSlot)
+
+	err = verificationManager.VerifyBlock(&firstBlock.Header)
+	require.NoError(t, err)
+
+	// add to the state then we can use the chain first slot number
+	// to calculate correctly the epochs from the next blocks
+	err = babeService.blockState.AddBlock(firstBlock)
+	require.NoError(t, err)
+
+	epoch1DataRaw := &types.EpochDataRaw{
+		Authorities: []types.AuthorityRaw{
+			{Key: keyring.Alice().Public().(*sr25519.PublicKey).AsBytes(), Weight: 1},
+			{Key: keyring.Bob().Public().(*sr25519.PublicKey).AsBytes(), Weight: 1},
+			{Key: keyring.Charlie().Public().(*sr25519.PublicKey).AsBytes(), Weight: 1},
+		},
+		Randomness: currentBABEConfig.Randomness,
+	}
+
+	// setting epoch data raw for epoch 1 but the config remains the same
+	// one that was set to epoch 0, the point is:
+	// we are going to skip epoch 1 and produce a block on epoch 2
+	// given that we're going to produce using the data that was stored on epoch 1
+	// the validation should be able to use the correct epoch descriptor to validate the block
+	err = babeService.epochState.(*state.EpochState).SetEpochDataRaw(1, epoch1DataRaw)
+	require.NoError(t, err)
+
+	epochDataToBuildSecondBlock := testBuildEpochData(t, epoch1DataRaw, epoch0ConfigData)
+	epochDataToBuildSecondBlock.authorityIndex = 0
+	epoch2Descriptor := &epochDescriptor{
+		data:  epochDataToBuildSecondBlock,
+		epoch: 2,
+	}
+
+	// now lets create another block but on epoch 2, skipping epoch 1
+	// here is a little scheme on how to find epoch 2 start slot number:
+	// | 0 ---- 199 | 200 ---- 399 | 400 --- 599 |
+	// |-- epoch 0 -|-- epoch 1 ---|-- epoch 2 --|
+	epoch2StartTime := int64(((6 * time.Second) * 200 * 2).Seconds())
+	secondBlockSlot := Slot{
+		start:    time.Unix(epoch2StartTime, 0),
+		duration: 6 * time.Second,
+		number:   400,
+	}
+
+	secondBlock := createTestBlockToImport(t, babeService, &firstBlock.Header, epoch2Descriptor, secondBlockSlot)
+	err = verificationManager.VerifyBlock(&secondBlock.Header)
+	require.NoError(t, err)
+}
+
+func createTestBlockToImport(t *testing.T, babeService *Service, parent *types.Header,
+	epochDescriptor *epochDescriptor, slot Slot) *types.Block {
+	rt, err := babeService.blockState.GetRuntime(parent.Hash())
+	require.NoError(t, err)
+
+	preRuntimeDigest, err := claimSlot(epochDescriptor.epoch, slot.number, epochDescriptor.data, babeService.keypair)
+	require.NoError(t, err)
+
+	block, err := babeService.buildBlock(parent, slot, rt, epochDescriptor.data.authorityIndex, preRuntimeDigest)
+	require.NoError(t, err)
+
+	return block
+}
+
+func testBuildEpochData(t *testing.T, epochDataRaw *types.EpochDataRaw, configData *types.ConfigData) *epochData {
+	t.Helper()
+
+	threshold, err := CalculateThreshold(configData.C1, configData.C2, len(epochDataRaw.Authorities))
+	require.NoError(t, err)
+
+	return &epochData{
+		randomness:   epochDataRaw.Randomness,
+		authorities:  epochDataRaw.Authorities,
+		threshold:    threshold,
+		allowedSlots: types.AllowedSlots(configData.SecondarySlots),
+	}
+}
