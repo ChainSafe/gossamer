@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 // TrieState relies on `storageDiff` to perform changes over the current state.
@@ -193,9 +194,10 @@ func (t *TrieState) NextKey(key []byte) []byte {
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		allSortedKeys := append(t.sortedKeys, currentTx.sortedKeys...)
 		// Find key position
-		pos := sort.Search(len(allSortedKeys), func(i int) bool {
-			return bytes.Compare([]byte(allSortedKeys[i]), key) > 0
-		})
+		pos, found := slices.BinarySearch(allSortedKeys, string(key))
+		if found {
+			pos = pos + 1
+		}
 
 		// Get next key based on that position
 		if pos < len(allSortedKeys) {
@@ -511,9 +513,10 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 		if childChanges := currentTx.childChangeSet[string(keyToChild)]; childChanges != nil {
 			allSortedKeys := append(t.childSortedKeys[string(keyToChild)], childChanges.sortedKeys...)
 			// Find key position
-			pos := sort.Search(len(allSortedKeys), func(i int) bool {
-				return bytes.Compare([]byte(allSortedKeys[i]), key) > 0
-			})
+			pos, found := slices.BinarySearch(allSortedKeys, string(key))
+			if found {
+				pos = pos + 1
+			}
 
 			// Get next key based on that position
 			if pos < len(allSortedKeys) {
@@ -621,11 +624,9 @@ func (t *TrieState) removeChildTrieSortedKey(keyToChild, key string) {
 }
 
 func (t *TrieState) insertSortedKey(keys []string, key string) []string {
-	pos := sort.Search(len(keys), func(i int) bool {
-		return keys[i] >= key
-	})
+	pos, found := slices.BinarySearch(keys, key)
 
-	if pos < len(keys) && keys[pos] == key {
+	if found {
 		return keys // key already exists
 	}
 
@@ -636,11 +637,9 @@ func (t *TrieState) insertSortedKey(keys []string, key string) []string {
 }
 
 func (t *TrieState) removeSortedKey(keys []string, key string) []string {
-	pos := sort.Search(len(keys), func(i int) bool {
-		return keys[i] >= key
-	})
+	pos, found := slices.BinarySearch(keys, key)
 
-	if pos < len(keys) && keys[pos] == key {
+	if found {
 		keys = append(keys[:pos], keys[pos+1:]...)
 	}
 
