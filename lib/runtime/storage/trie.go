@@ -209,17 +209,22 @@ func (t *TrieState) NextKey(key []byte) []byte {
 }
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
-func (t *TrieState) ClearPrefix(prefix []byte) (err error) {
+func (t *TrieState) ClearPrefix(prefix []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		trieKeys := t.state.Entries()
 		currentTx.clearPrefix(prefix, maps.Keys(trieKeys), -1)
-		return
+		return nil
 	}
 
-	return t.state.ClearPrefix(prefix)
+	err := t.state.ClearPrefix(prefix)
+	if err != nil {
+		return err
+	}
+	t.sortedKeys = t.removePrefixedSortedKey(t.sortedKeys, string(prefix), -1)
+	return nil
 }
 
 // ClearPrefixLimit deletes key-value pairs from the trie where the key starts with the given prefix till limit reached
@@ -234,7 +239,12 @@ func (t *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
 		return deleted, allDeleted, nil
 	}
 
-	return t.state.ClearPrefixLimit(prefix, limit)
+	deleted, allDeleted, err = t.state.ClearPrefixLimit(prefix, limit)
+	if err != nil {
+		return 0, false, err
+	}
+	t.sortedKeys = t.removePrefixedSortedKey(t.sortedKeys, string(prefix), int(limit))
+	return
 }
 
 // TrieEntries returns every key-value pair in the trie
@@ -364,7 +374,7 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 	childTrieEntries := child.Entries()
 	qtyEntries := uint32(len(childTrieEntries))
 	if limit == nil {
-		err = t.state.DeleteChild(key)
+		err = t.DeleteChild(key)
 		if err != nil {
 			return 0, false, fmt.Errorf("deleting child trie: %w", err)
 		}
@@ -386,6 +396,7 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 			return deleted, allDeleted, fmt.Errorf("deleting from child trie located at key 0x%x: %w", key, err)
 		}
 
+		t.removeChildTrieSortedKey(string(key), k)
 		deleted++
 		if deleted == limitUint {
 			break
@@ -445,6 +456,11 @@ func (t *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 	if err != nil {
 		return fmt.Errorf("clearing prefix in child trie located at key 0x%x: %w", keyToChild, err)
 	}
+	t.childSortedKeys[string(keyToChild)] = t.removePrefixedSortedKey(
+		t.childSortedKeys[string(keyToChild)],
+		string(prefix),
+		-1,
+	)
 
 	return nil
 }
@@ -469,7 +485,16 @@ func (t *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit
 		return 0, false, err
 	}
 
-	return child.ClearPrefixLimit(prefix, limit)
+	deleted, allDeleted, err := child.ClearPrefixLimit(prefix, limit)
+	if err != nil {
+		return 0, false, err
+	}
+	t.childSortedKeys[string(keyToChild)] = t.removePrefixedSortedKey(
+		t.childSortedKeys[string(keyToChild)],
+		string(prefix),
+		-1,
+	)
+	return deleted, allDeleted, nil
 }
 
 // GetChildNextKey returns the next lexicographical larger key from child storage. If it does not exist, it returns nil.
@@ -617,6 +642,20 @@ func (t *TrieState) removeSortedKey(keys []string, key string) []string {
 
 	if pos < len(keys) && keys[pos] == key {
 		keys = append(keys[:pos], keys[pos+1:]...)
+	}
+
+	return keys
+}
+
+func (t *TrieState) removePrefixedSortedKey(keys []string, key string, limit int) []string {
+	amountDeleted := 0
+	for _, k := range keys {
+		if bytes.HasPrefix([]byte(k), []byte(key)) {
+			keys = t.removeSortedKey(keys, k)
+			if limit > 0 && amountDeleted == limit {
+				break
+			}
+		}
 	}
 
 	return keys
