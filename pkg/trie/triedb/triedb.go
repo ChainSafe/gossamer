@@ -40,6 +40,11 @@ type TrieDB struct {
 	deathRow map[common.Hash]interface{}
 }
 
+func NewEmptyTrieDB(db db.Database, cache cache.TrieCache) *TrieDB {
+	root := HashedNullNode
+	return NewTrieDB(root, db, cache)
+}
+
 // NewTrieDB creates a new TrieDB using the given root and db
 func NewTrieDB(rootHash common.Hash, db db.DBGetter, cache cache.TrieCache) *TrieDB {
 	rootHandle := Hash{hash: rootHash}
@@ -50,6 +55,7 @@ func NewTrieDB(rootHash common.Hash, db db.DBGetter, cache cache.TrieCache) *Tri
 		db:         db,
 		storage:    NewNodeStorage(),
 		rootHandle: rootHandle,
+		deathRow:   make(map[common.Hash]interface{}),
 	}
 }
 

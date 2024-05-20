@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/db"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +19,46 @@ func newTestDB(t assert.TestingT) database.Table {
 	return database.NewTable(db, "trie")
 }
 
-func TestTrieDB_Migration(t *testing.T) {
+func TestWriteTrieDB_Migration(t *testing.T) {
+	inmemoryTrieDB := newTestDB(t)
+	inMemoryTrie := inmemory.NewEmptyTrie()
+	inMemoryTrie.SetVersion(trie.V1)
+
+	inmemoryDB := db.NewMemoryDB(make([]byte, 1))
+	trieDB := NewTrieDB(trie.EmptyHash, inmemoryDB, nil)
+
+	// Use at least 1 value with more than 32 bytes to test trie V1
+	entries := map[string][]byte{
+		"no":   make([]byte, 10),
+		"noot": make([]byte, 20),
+		//"not":          make([]byte, 30),
+		//"notable":      make([]byte, 40),
+		//"notification": make([]byte, 50),
+		//"test":         make([]byte, 60),
+		//"dimartiro":    make([]byte, 70),
+	}
+
+	for k, v := range entries {
+		inMemoryTrie.Put([]byte(k), v)
+		trieDB.Put([]byte(k), v)
+	}
+
+	err := inMemoryTrie.WriteDirty(inmemoryTrieDB)
+	assert.NoError(t, err)
+
+	t.Run("read_same_from_both", func(t *testing.T) {
+		for k, _ := range entries {
+			valueFromInMemoryTrie := inMemoryTrie.Get([]byte(k))
+			assert.NotNil(t, valueFromInMemoryTrie)
+
+			valueFromTrieDB := trieDB.Get([]byte(k))
+			assert.NotNil(t, valueFromTrieDB)
+			assert.Equal(t, valueFromInMemoryTrie, valueFromTrieDB)
+		}
+	})
+}
+
+func TestReadTrieDB_Migration(t *testing.T) {
 	db := newTestDB(t)
 	inMemoryTrie := inmemory.NewEmptyTrie()
 	inMemoryTrie.SetVersion(trie.V1)
