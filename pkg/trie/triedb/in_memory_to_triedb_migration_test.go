@@ -27,15 +27,14 @@ func TestWriteTrieDB_Migration(t *testing.T) {
 	inmemoryDB := db.NewMemoryDB(make([]byte, 1))
 	trieDB := NewTrieDB(trie.EmptyHash, inmemoryDB, nil)
 
-	// Use at least 1 value with more than 32 bytes to test trie V1
 	entries := map[string][]byte{
-		"no":   make([]byte, 10),
-		"noot": make([]byte, 20),
-		//"not":          make([]byte, 30),
-		//"notable":      make([]byte, 40),
-		//"notification": make([]byte, 50),
-		//"test":         make([]byte, 60),
-		//"dimartiro":    make([]byte, 70),
+		"no":        []byte("no"),
+		"noot":      []byte("noot"),
+		"not":       []byte("not"),
+		"a":         []byte("a"),
+		"b":         []byte("b"),
+		"test":      []byte("test"),
+		"dimartiro": []byte("dimartiro"),
 	}
 
 	for k, v := range entries {
