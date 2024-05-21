@@ -25,6 +25,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -124,8 +125,12 @@ type tableContext struct {
 }
 
 func (tc *tableContext) isMemberOf(validatorIndex parachaintypes.ValidatorIndex, paraID parachaintypes.ParaID) bool {
-	// TODO: implement this
-	return false
+	indexes, ok := tc.groups[paraID]
+	if !ok {
+		return false
+	}
+
+	return slices.Contains(indexes, validatorIndex)
 }
 
 // validator represents local validator information.
