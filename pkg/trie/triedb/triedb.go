@@ -12,6 +12,7 @@ import (
 	nibbles "github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 
+	"github.com/ChainSafe/gossamer/pkg/trie/cache"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 )
 
@@ -27,12 +28,14 @@ type entry struct {
 type TrieDB struct {
 	rootHash common.Hash
 	db       db.DBGetter
+	cache    cache.TrieCache
 }
 
 // NewTrieDB creates a new TrieDB using the given root and db
-func NewTrieDB(rootHash common.Hash, db db.DBGetter) *TrieDB {
+func NewTrieDB(rootHash common.Hash, db db.DBGetter, cache cache.TrieCache) *TrieDB {
 	return &TrieDB{
 		rootHash: rootHash,
+		cache:    cache,
 		db:       db,
 	}
 }
@@ -61,37 +64,29 @@ func (t *TrieDB) MustHash() common.Hash {
 func (t *TrieDB) Get(key []byte) []byte {
 	keyNibbles := nibbles.KeyLEToNibbles(key)
 
-	lookup := NewTrieLookup(t.db, t.rootHash)
+	lookup := NewTrieLookup(t.db, t.rootHash, t.cache)
 	val, err := lookup.lookupValue(keyNibbles)
 	if err != nil {
 		return nil
 	}
+
 	return val
 }
 
-// Internal methods
-func (t *TrieDB) loadValue(prefix []byte, value codec.NodeValue) ([]byte, error) {
-	lookup := NewTrieLookup(t.db, t.rootHash)
-	return lookup.fetchValue(prefix, value)
-}
-
 func (t *TrieDB) getRootNode() (codec.Node, error) {
-	nodeData, err := t.db.Get(t.rootHash[:])
-	if err != nil {
-		return nil, ErrIncompleteDB
-	}
-
-	reader := bytes.NewReader(nodeData)
-	decodedNode, err := codec.Decode(reader)
+	encodedNode, err := t.db.Get(t.rootHash[:])
 	if err != nil {
 		return nil, err
 	}
 
-	return decodedNode, nil
+	reader := bytes.NewReader(encodedNode)
+	return codec.Decode(reader)
 }
 
+// Internal methods
+
 func (t *TrieDB) getNodeAt(key []byte) (codec.Node, error) {
-	lookup := NewTrieLookup(t.db, t.rootHash)
+	lookup := NewTrieLookup(t.db, t.rootHash, t.cache)
 	node, err := lookup.lookupNode(nibbles.KeyLEToNibbles(key))
 	if err != nil {
 		return nil, err
@@ -103,25 +98,20 @@ func (t *TrieDB) getNodeAt(key []byte) (codec.Node, error) {
 func (t *TrieDB) getNode(
 	merkleValue codec.MerkleValue,
 ) (node codec.Node, err error) {
-	var nodeData []byte
-
 	switch n := merkleValue.(type) {
 	case codec.InlineNode:
-		nodeData = n.Data
+		reader := bytes.NewReader(n.Data)
+		return codec.Decode(reader)
 	case codec.HashedNode:
-		nodeData, err = t.db.Get(n.Data)
+		encodedNode, err := t.db.Get(n.Data)
 		if err != nil {
-			return nil, ErrIncompleteDB
+			return nil, err
 		}
+		reader := bytes.NewReader(encodedNode)
+		return codec.Decode(reader)
+	default: // should never happen
+		panic("unreachable")
 	}
-
-	reader := bytes.NewReader(nodeData)
-	node, err = codec.Decode(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	return node, err
 }
 
 var _ trie.TrieRead = (*TrieDB)(nil)

@@ -10,12 +10,11 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-func newTestDB(t *testing.T) database.Table {
+func newTestDB(t assert.TestingT) database.Table {
 	db, err := database.NewPebble("", true)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	return database.NewTable(db, "trie")
 }
 
@@ -44,11 +43,12 @@ func TestTrieDB_Migration(t *testing.T) {
 
 	root, err := inMemoryTrie.Hash()
 	assert.NoError(t, err)
-	trieDB := NewTrieDB(root, db)
+	trieDB := NewTrieDB(root, db, nil)
 
 	t.Run("read_successful_from_db_created_using_v1_trie", func(t *testing.T) {
 		for k, v := range entries {
 			value := trieDB.Get([]byte(k))
+			assert.NotNil(t, value)
 			assert.Equal(t, v, value)
 		}
 
