@@ -224,7 +224,7 @@ func TestImportStatement(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
-					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
+					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(new(Summary), nil)
 
 				return perRelayParentState{
@@ -260,7 +260,7 @@ func TestImportStatement(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
-					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
+					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(new(Summary), nil)
 
 				return perRelayParentState{
@@ -291,7 +291,7 @@ func TestImportStatement(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
-					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
+					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(new(Summary), nil)
 
 				return perRelayParentState{
@@ -311,7 +311,7 @@ func TestImportStatement(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
-					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
+					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(new(Summary), nil)
 
 				return perRelayParentState{
@@ -910,7 +910,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
-					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
+					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(nil, nil)
 				mockTable.EXPECT().drainMisbehaviors().
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
@@ -937,7 +937,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
-					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
+					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(&Summary{
 					GroupID: 4,
 				}, nil)
@@ -972,7 +972,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
-					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
+					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(&Summary{
 					Candidate: candidateHash,
 					GroupID:   4,
@@ -1010,7 +1010,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
-					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
+					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(&Summary{
 					Candidate: candidateHash,
 					GroupID:   4,
@@ -1051,7 +1051,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
-					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
+					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(&Summary{
 					Candidate: candidateHash,
 					GroupID:   4,
@@ -1095,7 +1095,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
-					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
+					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(&Summary{
 					Candidate: candidateHash,
 					GroupID:   4,
@@ -1146,7 +1146,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
-					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
+					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(&Summary{
 					Candidate: candidateHash,
 					GroupID:   4,
@@ -1190,7 +1190,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
-					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
+					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(&Summary{
 					Candidate: candidateHash,
 					GroupID:   4,

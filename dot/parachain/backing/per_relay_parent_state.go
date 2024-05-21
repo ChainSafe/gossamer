@@ -51,7 +51,7 @@ func (rpState *perRelayParentState) importStatement(
 	}
 
 	if statementVDT.Index() == 2 { // Valid
-		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD)
+		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD.SignedFullStatement)
 	}
 
 	// PersistedValidationData should not be nil if the statementVDT is Seconded.
@@ -68,7 +68,7 @@ func (rpState *perRelayParentState) importStatement(
 	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	if _, ok := perCandidate[candidateHash]; ok {
-		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD)
+		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD.SignedFullStatement)
 	}
 
 	if rpState.prospectiveParachainsMode.IsEnabled {
@@ -107,7 +107,7 @@ func (rpState *perRelayParentState) importStatement(
 		relayParent:             statementVDTSeconded.Descriptor.RelayParent,
 	}
 
-	return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD)
+	return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD.SignedFullStatement)
 }
 
 // postImportStatement handles a summary received from importStatement func and dispatches `Backed` notifications and

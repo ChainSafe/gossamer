@@ -85,7 +85,7 @@ func (mr *MockTableMockRecorder) getCandidate(arg0 any) *gomock.Call {
 }
 
 // importStatement mocks base method.
-func (m *MockTable) importStatement(arg0 *tableContext, arg1 parachaintypes.SignedFullStatementWithPVD) (*Summary, error) {
+func (m *MockTable) importStatement(arg0 *tableContext, arg1 parachaintypes.SignedFullStatement) (*Summary, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "importStatement", arg0, arg1)
 	ret0, _ := ret[0].(*Summary)

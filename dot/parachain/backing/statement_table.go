@@ -122,10 +122,6 @@ func (table *statementTable) getCommittedCandidateReceipt(candidateHash parachai
 	return data.candidate, nil
 }
 
-/*
-TODO:
-  - change interface method arguments after implementing this method
-*/
 func (table *statementTable) importStatement( //nolint:unused
 	tableCtx *tableContext, signedStatement parachaintypes.SignedFullStatement,
 ) (*Summary, error) {
@@ -154,12 +150,12 @@ func (table *statementTable) importStatement( //nolint:unused
 		)
 	}
 
-	if err == nil {
-		return summary, nil
+	if err != nil {
+		return nil, err
 	}
 
 	// If misbehavior is detected, store it.
-	{
+	if misbehavior != nil {
 		misbehaviors, ok := table.detectedMisbehaviour[signedStatement.ValidatorIndex]
 		if !ok {
 			misbehaviors = []parachaintypes.Misbehaviour{misbehavior}
@@ -169,7 +165,8 @@ func (table *statementTable) importStatement( //nolint:unused
 
 		table.detectedMisbehaviour[signedStatement.ValidatorIndex] = misbehaviors
 	}
-	return nil, nil
+
+	return summary, nil
 }
 
 func isCandidateAlreadyProposed(authData authorityData, candidateHash parachaintypes.CandidateHash) bool {
@@ -381,7 +378,7 @@ func (statementTable) drainMisbehaviors() []parachaintypes.ProvisionableDataMisb
 
 type Table interface {
 	getCandidate(parachaintypes.CandidateHash) (parachaintypes.CommittedCandidateReceipt, error)
-	importStatement(*tableContext, parachaintypes.SignedFullStatementWithPVD) (*Summary, error)
+	importStatement(*tableContext, parachaintypes.SignedFullStatement) (*Summary, error)
 	attestedCandidate(parachaintypes.CandidateHash, *tableContext, uint32) (*attestedCandidate, error)
 	drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport
 }
