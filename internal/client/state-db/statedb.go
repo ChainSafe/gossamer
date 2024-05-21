@@ -48,7 +48,7 @@ type HashDBValue[H any] struct {
 	DBValue
 }
 
-// Backend database trait. Read-only.
+// Backend database interface for metadata. Read-only.
 type MetaDB interface {
 	// Get meta value, such as the journal.
 	GetMeta(key []byte) (*DBValue, error)
