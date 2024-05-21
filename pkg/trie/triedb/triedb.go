@@ -339,7 +339,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 				// Value should be part of the branch
 				return Replace{
 					Branch{
-						existingKey[common:],
+						existingKey[:common],
 						children,
 						value,
 					},
@@ -354,7 +354,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 				children[ix] = leaf.toNodeHandle()
 				return Replace{
 					Branch{
-						existingKey[common:],
+						existingKey[:common],
 						children,
 						nil,
 					},

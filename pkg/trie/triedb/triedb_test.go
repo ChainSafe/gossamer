@@ -15,11 +15,11 @@ func TestInsertions(t *testing.T) {
 	entries := map[string][]byte{
 		"no":        []byte("no"),
 		"noot":      []byte("noot"),
-		"not":       make([]byte, 30),
-		"a":         make([]byte, 40),
-		"b":         make([]byte, 50),
-		"test":      make([]byte, 60),
-		"dimartiro": make([]byte, 70),
+		"not":       []byte("not"),
+		"a":         []byte("a"),
+		"b":         []byte("b"),
+		"test":      []byte("test"),
+		"dimartiro": []byte("dimartiro"),
 	}
 
 	for k, v := range entries {
