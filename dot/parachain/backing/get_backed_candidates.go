@@ -34,7 +34,7 @@ func (cb *CandidateBacking) handleGetBackedCandidatesMessage(requestedCandidates
 			continue
 		}
 
-		backed := attestedToBackedCandidate(*attested, &rpState.tableContext)
+		backed := attested.toBackedCandidate(&rpState.tableContext)
 		backedCandidates = append(backedCandidates, backed)
 	}
 

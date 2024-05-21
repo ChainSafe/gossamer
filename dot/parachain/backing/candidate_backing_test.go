@@ -223,7 +223,7 @@ func TestImportStatement(t *testing.T) {
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().importStatement(
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
 				).Return(new(Summary), nil)
 
@@ -259,7 +259,7 @@ func TestImportStatement(t *testing.T) {
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().importStatement(
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
 				).Return(new(Summary), nil)
 
@@ -290,7 +290,7 @@ func TestImportStatement(t *testing.T) {
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().importStatement(
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
 				).Return(new(Summary), nil)
 
@@ -310,7 +310,7 @@ func TestImportStatement(t *testing.T) {
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().importStatement(
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
 				).Return(new(Summary), nil)
 
@@ -397,10 +397,10 @@ func dummyValidityAttestation(t *testing.T, value string) parachaintypes.Validit
 	return vdt
 }
 
-func dummyTableContext(t *testing.T) TableContext {
+func dummyTableContext(t *testing.T) tableContext {
 	t.Helper()
 
-	return TableContext{
+	return tableContext{
 		validator: &validator{
 			index: 1,
 		},
@@ -447,7 +447,7 @@ func rpStateWhenPpmDisabled(t *testing.T) perRelayParentState {
 		Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 	mockTable.EXPECT().attestedCandidate(
 		gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
-		gomock.AssignableToTypeOf(new(TableContext)),
+		gomock.AssignableToTypeOf(new(tableContext)),
 		gomock.AssignableToTypeOf(uint32(0)),
 	).Return(&attestedToReturn, nil)
 
@@ -498,7 +498,7 @@ func TestPostImportStatement(t *testing.T) {
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
 				).Return(nil, errors.New("could not get attested candidate from table"))
 
@@ -524,7 +524,7 @@ func TestPostImportStatement(t *testing.T) {
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
 				).Return(&attestedCandidate{
 					groupID:                   4,
@@ -550,7 +550,7 @@ func TestPostImportStatement(t *testing.T) {
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
 				).Return(&attestedCandidate{
 					groupID:                   3,
@@ -909,7 +909,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().importStatement(
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
 				).Return(nil, nil)
 				mockTable.EXPECT().drainMisbehaviors().
@@ -936,7 +936,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().importStatement(
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
 				).Return(&Summary{
 					GroupID: 4,
@@ -945,7 +945,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
 				).Return(nil, errors.New("could not get attested candidate from table"))
 
@@ -971,7 +971,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().importStatement(
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
 				).Return(&Summary{
 					Candidate: candidateHash,
@@ -981,7 +981,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
 				).Return(new(attestedCandidate), nil)
 
@@ -1009,7 +1009,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().importStatement(
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
 				).Return(&Summary{
 					Candidate: candidateHash,
@@ -1019,7 +1019,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
 				).Return(new(attestedCandidate), nil)
 
@@ -1050,7 +1050,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().importStatement(
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
 				).Return(&Summary{
 					Candidate: candidateHash,
@@ -1060,7 +1060,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
 				).Return(new(attestedCandidate), nil)
 
@@ -1094,7 +1094,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().importStatement(
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
 				).Return(&Summary{
 					Candidate: candidateHash,
@@ -1104,7 +1104,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
 				).Return(new(attestedCandidate), nil)
 
@@ -1145,7 +1145,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().importStatement(
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
 				).Return(&Summary{
 					Candidate: candidateHash,
@@ -1155,7 +1155,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
 				).Return(new(attestedCandidate), nil)
 				mockTable.EXPECT().getCandidate(
@@ -1189,7 +1189,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().importStatement(
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatementWithPVD{}),
 				).Return(&Summary{
 					Candidate: candidateHash,
@@ -1199,7 +1199,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					Return([]parachaintypes.ProvisionableDataMisbehaviorReport{})
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
-					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(new(tableContext)),
 					gomock.AssignableToTypeOf(uint32(0)),
 				).Return(new(attestedCandidate), nil)
 				mockTable.EXPECT().getCandidate(

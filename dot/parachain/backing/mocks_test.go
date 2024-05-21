@@ -41,7 +41,7 @@ func (m *MockTable) EXPECT() *MockTableMockRecorder {
 }
 
 // attestedCandidate mocks base method.
-func (m *MockTable) attestedCandidate(arg0 parachaintypes.CandidateHash, arg1 *TableContext, arg2 uint32) (*attestedCandidate, error) {
+func (m *MockTable) attestedCandidate(arg0 parachaintypes.CandidateHash, arg1 *tableContext, arg2 uint32) (*attestedCandidate, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "attestedCandidate", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*attestedCandidate)
@@ -85,7 +85,7 @@ func (mr *MockTableMockRecorder) getCandidate(arg0 any) *gomock.Call {
 }
 
 // importStatement mocks base method.
-func (m *MockTable) importStatement(arg0 *TableContext, arg1 parachaintypes.SignedFullStatementWithPVD) (*Summary, error) {
+func (m *MockTable) importStatement(arg0 *tableContext, arg1 parachaintypes.SignedFullStatementWithPVD) (*Summary, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "importStatement", arg0, arg1)
 	ret0, _ := ret[0].(*Summary)

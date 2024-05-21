@@ -79,7 +79,7 @@ func TestStatementTable_attestedCandidate(t *testing.T) {
 
 	type args struct {
 		candidateHash       parachaintypes.CandidateHash
-		tableContext        *TableContext
+		tableContext        *tableContext
 		minimumBackingVotes uint32
 	}
 	tests := []struct {
@@ -92,7 +92,7 @@ func TestStatementTable_attestedCandidate(t *testing.T) {
 		{
 			name: "candidate_votes_not_available_for_given_candidate_hash",
 			table: &statementTable{
-				candidateVotes: map[parachaintypes.CandidateHash]candidateData{},
+				candidateVotes: map[parachaintypes.CandidateHash]*candidateData{},
 			},
 			args: args{
 				candidateHash: dummyCandidateHash(t),
@@ -102,7 +102,7 @@ func TestStatementTable_attestedCandidate(t *testing.T) {
 		{
 			name: "not_enough_validity_votes",
 			table: &statementTable{
-				candidateVotes: map[parachaintypes.CandidateHash]candidateData{
+				candidateVotes: map[parachaintypes.CandidateHash]*candidateData{
 					dummyCandidateHash(t): {
 						groupID:       1,
 						validityVotes: map[parachaintypes.ValidatorIndex]validityVoteWithSign{},
@@ -111,7 +111,7 @@ func TestStatementTable_attestedCandidate(t *testing.T) {
 			},
 			args: args{
 				candidateHash: dummyCandidateHash(t),
-				tableContext: &TableContext{
+				tableContext: &tableContext{
 					groups: map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex{
 						1: {1, 2, 3},
 						2: {4, 5, 6},

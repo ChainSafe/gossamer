@@ -115,12 +115,17 @@ type attestingData struct {
 	backing []parachaintypes.ValidatorIndex
 }
 
-// TableContext represents the contextual information associated with a validator and groups
+// tableContext represents the contextual information associated with a validator and groups
 // for a table under a relay-parent.
-type TableContext struct {
+type tableContext struct {
 	validator  *validator
 	groups     map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex
 	validators []parachaintypes.ValidatorID
+}
+
+func (tc *tableContext) isMemberOf(validatorIndex parachaintypes.ValidatorIndex, paraID parachaintypes.ParaID) bool {
+	// TODO: implement this
+	return false
 }
 
 // validator represents local validator information.

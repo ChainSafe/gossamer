@@ -14,7 +14,6 @@ import (
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // PerRelayParentState represents the state information for a relay-parent in the subsystem.
@@ -27,7 +26,7 @@ type perRelayParentState struct {
 	// The table of candidates and statements under this relay-parent.
 	table Table
 	// The table context, including groups.
-	tableContext TableContext
+	tableContext tableContext
 	// Data needed for retrying in case of `ValidatedCandidateCommand::AttestNoPoV`.
 	fallbacks map[parachaintypes.CandidateHash]attestingData
 	// These candidates are undergoing validation in the background.
@@ -149,7 +148,7 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 	rpState.backed[candidateHash] = true
 
 	// Convert the attested candidate to a backed candidate.
-	backedCandidate := attestedToBackedCandidate(*attested, &rpState.tableContext)
+	backedCandidate := attested.toBackedCandidate(&rpState.tableContext)
 	if backedCandidate == nil {
 		issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 		return
@@ -211,38 +210,6 @@ func issueNewMisbehaviors(subSystemToOverseer chan<- any, relayParent common.Has
 				Misbehaviour:   m.Misbehaviour,
 			},
 		}
-	}
-}
-
-func attestedToBackedCandidate(
-	attested attestedCandidate,
-	tableContext *TableContext,
-) *parachaintypes.BackedCandidate {
-	group := tableContext.groups[attested.groupID]
-	validatorIndices := make([]bool, len(group))
-	var validityAttestations []parachaintypes.ValidityAttestation
-
-	// The order of the validity votes in the backed candidate must match
-	// the order of bits set in the bitfield, which is not necessarily
-	// the order of the `validity_votes` we got from the table.
-	for positionInGroup, validatorIndex := range group {
-		for _, validityVote := range attested.validityAttestations {
-			if validityVote.validatorIndex == validatorIndex {
-				validatorIndices[positionInGroup] = true
-				validityAttestations = append(validityAttestations, validityVote.validityAttestation)
-			}
-		}
-
-		if !validatorIndices[positionInGroup] {
-			logger.Error("validity vote from unknown validator")
-			return nil
-		}
-	}
-
-	return &parachaintypes.BackedCandidate{
-		Candidate:        attested.committedCandidateReceipt,
-		ValidityVotes:    validityAttestations,
-		ValidatorIndices: scale.NewBitVec(validatorIndices),
 	}
 }
 
