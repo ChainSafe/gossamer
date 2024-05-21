@@ -74,7 +74,14 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 			case ValidateFromChainState:
 				// TODO: implement functionality to handle ValidateFromChainState, see issue #3919
 			case ValidateFromExhaustive:
-				// TODO: implement functionality to handle ValidateFromExhaustive, see issue #3547
+				result, err := validateFromExhaustive(msg.PersistedValidationData, msg.ValidationCode,
+					msg.CandidateReceipt, msg.Pov)
+				if err != nil {
+					logger.Errorf("failed to validate from exhaustive: %w", err)
+					msg.Sender <- ValidationResultMessage{ValidationFailed: err.Error()}
+					continue
+				}
+				msg.Sender <- ValidationResultMessage{ValidationResult: *result}
 			case PreCheck:
 				// TODO: implement functionality to handle PreCheck, see issue #3921
 
@@ -210,4 +217,30 @@ func validateFromChainState(runtimeInstance parachainruntime.RuntimeInstance, po
 	}
 
 	return &candidateCommitments, persistedValidationData, isValid, nil
+}
+
+// validateFromExhaustive validates a candidate parachain block with provided parameters
+func validateFromExhaustive(persistedValidationData parachaintypes.PersistedValidationData,
+	validationCode parachaintypes.ValidationCode,
+	candidateReceipt parachaintypes.CandidateReceipt, pov parachaintypes.PoV) ( //nolint:unparam
+	*parachainruntime.ValidationResult, error) {
+
+	parachainRuntimeInstance, err := parachainruntime.SetupVM(validationCode)
+	if err != nil {
+		return nil, fmt.Errorf("setting up VM: %w", err)
+	}
+
+	validationParams := parachainruntime.ValidationParameters{
+		ParentHeadData:         persistedValidationData.ParentHead,
+		BlockData:              pov.BlockData,
+		RelayParentNumber:      persistedValidationData.RelayParentNumber,
+		RelayParentStorageRoot: persistedValidationData.RelayParentStorageRoot,
+	}
+
+	validationResults, err := parachainRuntimeInstance.ValidateBlock(validationParams)
+	if err != nil {
+		return nil, fmt.Errorf("executing validate_block: %w", err)
+	}
+
+	return validationResults, nil
 }
