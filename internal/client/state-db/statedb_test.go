@@ -131,7 +131,7 @@ func newTestDB(t *testing.T, settings PruningMode) (TestDB, *StateDB[hash.H256, 
 	assert.NoError(t, err)
 	db.Commit(commit)
 
-	return db, &stateDB
+	return db, stateDB
 }
 
 func TestStateDB_FullArchiveKeepsEverything(t *testing.T) {
@@ -210,7 +210,9 @@ func TestStateDB_DetectsIncompatibleMode(t *testing.T) {
 	init, stateDB, err := NewStateDB[hash.H256, hash.H256](db, PruningModeArchiveAll{}, true)
 	assert.NoError(t, err)
 	db.Commit(init)
-	commit, err := stateDB.InsertBlock(hash.NewH256FromLowUint64BigEndian(0), 0, hash.NewH256FromLowUint64BigEndian(0), NewChangeset(nil, nil))
+	commit, err := stateDB.InsertBlock(
+		hash.NewH256FromLowUint64BigEndian(0), 0, hash.NewH256FromLowUint64BigEndian(0), NewChangeset(nil, nil),
+	)
 	assert.NoError(t, err)
 	db.Commit(commit)
 	var maxBlocks uint32 = 2
@@ -220,13 +222,15 @@ func TestStateDB_DetectsIncompatibleMode(t *testing.T) {
 	assert.ErrorIs(t, err, ErrIncompatiblePruningModes)
 }
 
-func checkStoredAndRequestedModeCompatibility(t *testing.T, created PruningMode, reopened PruningMode, expectedMode PruningMode, expectedErr error) {
+func checkStoredAndRequestedModeCompatibility(
+	t *testing.T,
+	created PruningMode, reopened PruningMode, expectedMode PruningMode, expectedErr error) {
 	db := NewTestDB(nil)
-	init, stateDB, err := NewStateDB[hash.H256, hash.H256](db, created, true)
+	init, _, err := NewStateDB[hash.H256, hash.H256](db, created, true)
 	assert.NoError(t, err)
 	db.Commit(init)
 
-	init, stateDB, err = NewStateDB[hash.H256, hash.H256](db, reopened, false)
+	init, stateDB, err := NewStateDB[hash.H256, hash.H256](db, reopened, false)
 
 	if expectedErr == nil {
 		assert.NoError(t, err)
@@ -256,9 +260,12 @@ func TestStateDB_PruningModeCompatibility(t *testing.T) {
 		{nil, PruningModeArchiveAll{}, nil, ErrIncompatiblePruningModes},
 		{nil, PruningModeArchiveCanonical{}, nil, ErrIncompatiblePruningModes},
 		{PruningModeConstrained{maxBlocks(256)}, nil, PruningModeConstrained{maxBlocks(256)}, nil},
-		{PruningModeConstrained{maxBlocks(256)}, PruningModeConstrained{maxBlocks(256)}, PruningModeConstrained{maxBlocks(256)}, nil},
-		{PruningModeConstrained{maxBlocks(256)}, PruningModeConstrained{maxBlocks(128)}, PruningModeConstrained{maxBlocks(128)}, nil},
-		{PruningModeConstrained{maxBlocks(256)}, PruningModeConstrained{maxBlocks(512)}, PruningModeConstrained{maxBlocks(512)}, nil},
+		{PruningModeConstrained{maxBlocks(256)}, PruningModeConstrained{maxBlocks(256)},
+			PruningModeConstrained{maxBlocks(256)}, nil},
+		{PruningModeConstrained{maxBlocks(256)}, PruningModeConstrained{maxBlocks(128)},
+			PruningModeConstrained{maxBlocks(128)}, nil},
+		{PruningModeConstrained{maxBlocks(256)}, PruningModeConstrained{maxBlocks(512)},
+			PruningModeConstrained{maxBlocks(512)}, nil},
 		{PruningModeConstrained{maxBlocks(256)}, PruningModeArchiveAll{}, nil, ErrIncompatiblePruningModes},
 		{PruningModeConstrained{maxBlocks(256)}, PruningModeArchiveCanonical{}, nil, ErrIncompatiblePruningModes},
 		{PruningModeArchiveAll{}, nil, PruningModeArchiveAll{}, nil},

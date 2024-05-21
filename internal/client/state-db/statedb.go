@@ -84,15 +84,19 @@ type Constraints struct {
 	MaxBlocks *uint32
 }
 
-// Pruning mode.
+// PruningMode interface
 type PruningMode interface {
 	IsArchive() bool
 	ID() []byte
 }
+
+// PruningModes are the supported PruningMode types
 type PruningModes interface {
 	PruningModeConstrained | PruningModeArchiveAll | PruningModeArchiveCanonical
 }
 
+// NewPruningModeFromID will return you the correct PruningMode based on provided id.
+// Will return nil if an unrecognised id is provided.
 func NewPruningModeFromID(id []byte) PruningMode {
 	switch string(id) {
 	case string(pruningModeArchive):
@@ -107,32 +111,42 @@ func NewPruningModeFromID(id []byte) PruningMode {
 	}
 }
 
-// Maintain a pruning window.
+// PruningModeConstrained will maintain a constrained pruning window.
 type PruningModeConstrained Constraints
 
+// IsArchive returns whether or not this mode will archive entire history.
 func (pmc PruningModeConstrained) IsArchive() bool {
 	return false
 }
+
+// ID returns the byte slice id of this mode
 func (pmc PruningModeConstrained) ID() []byte {
 	return []byte("constrained")
 }
 
-// No pruning. Canonicalization is a no-op.
+// PruningModeArchiveAll will not prune. Canonicalization is a no-op.
 type PruningModeArchiveAll struct{}
 
+// IsArchive returns whether or not this mode will archive entire history.
 func (pmaa PruningModeArchiveAll) IsArchive() bool {
 	return true
 }
+
+// ID returns the byte slice id of this mode
 func (pmaa PruningModeArchiveAll) ID() []byte {
 	return []byte("archive")
 }
 
-// Canonicalization discards non-canonical nodes. All the canonical nodes are kept in the DB.
+// PruningModeArchiveCanonical discards non-canonical nodes.
+// All the canonical nodes are kept in the DB.
 type PruningModeArchiveCanonical struct{}
 
+// IsArchive returns whether or not this mode will archive entire history.
 func (pmac PruningModeArchiveCanonical) IsArchive() bool {
 	return true
 }
+
+// ID returns the byte slice id of this mode
 func (pmac PruningModeArchiveCanonical) ID() []byte {
 	return []byte("archive_canonical")
 }
@@ -143,19 +157,19 @@ func toMetaKey(suffix []byte, data any) []byte {
 	return key
 }
 
-// Status information about the last canonicalized block.
+// LastCanonicalized is the status information about the last canonicalized block.
 type LastCanonicalized any
 type LastCanonicalizedValues interface {
 	LastCanonicalizedNone | LastCanonicalizedBlock | LastCanonicalizedNotCanonicalizing
 }
 
-// Not yet have canonicalized any block.
+// LastCanonicalizedNone represents not having canonicalized any block yet.
 type LastCanonicalizedNone struct{}
 
-// The given block number is the last canonicalized block.
+// LastCanonicalizedBlock represents the block number of the last canonicalized block.
 type LastCanonicalizedBlock uint64
 
-// No canonicalization is happening (pruning mode is archive all).
+// LastCanonicalizedNotCanonicalizing means no canonicalization is happening (pruning mode is archive all).
 type LastCanonicalizedNotCanonicalizing struct{}
 
 type stateDBSync[BlockHash Hash, Key Hash] struct {
@@ -208,9 +222,9 @@ func (sdbs *stateDBSync[BlockHash, Key]) insertBlock(
 }
 
 func (sdbs *stateDBSync[BlockHash, Key]) canonicalizeBlock(hash BlockHash) (CommitSet[Key], error) {
-	// NOTE: it is important that the change to `LAST_CANONICAL` (emit from
-	// `non_canonical.canonicalize`) and the insert of the new pruning journal (emit from
-	// `pruning.note_canonical`) are collected into the same `CommitSet` and are committed to
+	// NOTE: it is important that the change to `lastCanonical` (emit from
+	// `nonCanonicalOverlay.Canonicalize`) and the insert of the new pruning journal (emit from
+	// `pruningWindow.NoteCanonical`) are collected into the same `CommitSet` and are committed to
 	// the database atomically to keep their consistency when restarting the node
 	commit := CommitSet[Key]{}
 	if _, ok := sdbs.mode.(PruningModeArchiveAll); ok {
@@ -275,8 +289,6 @@ func (sdbs *stateDBSync[BlockHash, Key]) isPruned(hash BlockHash, number uint64)
 				return IsPrunedPruned
 			case haveBlockYes:
 				return IsPrunedNotPruned
-				// case haveBlockMaybe:
-				// 	return IsPrunedMaybePruned
 			}
 		}
 		// We don't know for sure.
@@ -365,8 +377,6 @@ func (sdbs *stateDBSync[BlockHash, Key]) pin(hash BlockHash, number uint64, hint
 				right = false
 			case haveBlockYes:
 				right = true
-				// case haveBlockMaybe:
-				// 	right = hint()
 			}
 		} else {
 			right = hint()
@@ -443,22 +453,22 @@ type StateDB[BlockHash Hash, Key Hash] struct {
 	sync.RWMutex
 }
 
+// NewStateDB is the constructor for StateDB
 func NewStateDB[BlockHash Hash, Key Hash](
 	db MetaDB,
 	requestedMode PruningMode,
-	// refCounting bool,
 	shouldInit bool,
-) (CommitSet[Key], StateDB[BlockHash, Key], error) {
+) (CommitSet[Key], *StateDB[BlockHash, Key], error) {
 	storedMode, err := fetchStoredPruningMode(db)
 	if err != nil {
-		return CommitSet[Key]{}, StateDB[BlockHash, Key]{}, err
+		return CommitSet[Key]{}, &StateDB[BlockHash, Key]{}, err
 	}
 
 	var selectedMode PruningMode
 	switch {
 	case shouldInit:
 		if storedMode != nil {
-			panic("The storage has just been initialized. No meta-data is expected to be found in it.")
+			panic("The storage has just been initialised. No meta-data is expected to be found in it.")
 		}
 		if requestedMode != nil {
 			selectedMode = requestedMode
@@ -469,13 +479,14 @@ func NewStateDB[BlockHash Hash, Key Hash](
 			}
 		}
 	case !shouldInit && storedMode == nil:
-		return CommitSet[Key]{}, StateDB[BlockHash, Key]{}, fmt.Errorf("%w An existing StateDb does not have PRUNING_MODE stored in its meta-data", ErrMetadata)
+		return CommitSet[Key]{}, &StateDB[BlockHash, Key]{},
+			fmt.Errorf("%w An existing StateDb does not have PRUNING_MODE stored in its meta-data", ErrMetadata)
 	case !shouldInit && storedMode != nil && requestedMode == nil:
 		selectedMode = storedMode
 	case !shouldInit && storedMode != nil && requestedMode != nil:
 		mode, err := choosePruningMode(storedMode, requestedMode)
 		if err != nil {
-			return CommitSet[Key]{}, StateDB[BlockHash, Key]{}, err
+			return CommitSet[Key]{}, &StateDB[BlockHash, Key]{}, err
 		}
 		selectedMode = mode
 	default:
@@ -498,21 +509,22 @@ func NewStateDB[BlockHash Hash, Key Hash](
 
 	stateDBSync, err := newStateDBSync[BlockHash, Key](selectedMode, db)
 	if err != nil {
-		return CommitSet[Key]{}, StateDB[BlockHash, Key]{}, err
+		return CommitSet[Key]{}, &StateDB[BlockHash, Key]{}, err
 	}
-	stateDB := StateDB[BlockHash, Key]{
+	stateDB := &StateDB[BlockHash, Key]{
 		db: stateDBSync,
 	}
 	return dbInitCommitSet, stateDB, nil
 }
 
+// PruningMode returns the PruningMode
 func (sdb *StateDB[BlockHash, Key]) PruningMode() PruningMode {
 	sdb.RLock()
 	defer sdb.RUnlock()
 	return sdb.db.mode
 }
 
-// Add a new non-canonical block.
+// InsertBlock will add a new non-canonical block.
 func (sdb *StateDB[BlockHash, Key]) InsertBlock(
 	hash BlockHash,
 	number uint64,
@@ -524,14 +536,14 @@ func (sdb *StateDB[BlockHash, Key]) InsertBlock(
 	return sdb.db.insertBlock(hash, number, parentHash, changeset)
 }
 
-// Finalize a previously inserted block.
+// CanonicalizeBlock will finalize a previously inserted block.
 func (sdb *StateDB[BlockHash, Key]) CanonicalizeBlock(hash BlockHash) (CommitSet[Key], error) {
 	sdb.Lock()
 	defer sdb.Unlock()
 	return sdb.db.canonicalizeBlock(hash)
 }
 
-// Prevents pruning of specified block and its descendants.
+// Pin prevents pruning of specified block and its descendants.
 // `hint` used for further checking if the given block exists
 func (sdb *StateDB[BlockHash, Key]) Pin(hash BlockHash, number uint64, hint func() bool) error {
 	sdb.Lock()
@@ -539,14 +551,14 @@ func (sdb *StateDB[BlockHash, Key]) Pin(hash BlockHash, number uint64, hint func
 	return sdb.db.pin(hash, number, hint)
 }
 
-// Allows pruning of specified block.
+// Unpin allows pruning of specified block.
 func (sdb *StateDB[BlockHash, Key]) Unpin(hash BlockHash) {
 	sdb.Lock()
 	defer sdb.Unlock()
 	sdb.db.unpin(hash)
 }
 
-// Confirm that all changes made to commit sets are on disk. Allows for temporarily pinned
+// Sync confirms that all changes made to commit sets are on disk. Allows for temporarily pinned
 // blocks to be released.
 func (sdb *StateDB[BlockHash, Key]) Sync() {
 	sdb.Lock()
@@ -561,8 +573,8 @@ func (sdb *StateDB[BlockHash, Key]) Get(key Key, db NodeDB[Key]) (*DBValue, erro
 	return sdb.db.get(key, db)
 }
 
-// Revert all non-canonical blocks with the best block number.
-// Returns a database commit or `None` if not possible.
+// RevertOne will revert all non-canonical blocks with the best block number.
+// Returns a database commit or `nil` if not possible.
 // For archive an empty commit set is returned.
 func (sdb *StateDB[BlockHash, Key]) RevertOne() *CommitSet[Key] {
 	sdb.Lock()
@@ -571,21 +583,21 @@ func (sdb *StateDB[BlockHash, Key]) RevertOne() *CommitSet[Key] {
 }
 
 // Remove specified non-canonical block.
-// Returns a database commit or `None` if not possible.
+// Returns a database commit or `nil` if not possible.
 func (sdb *StateDB[BlockHash, Key]) Remove(hash BlockHash) *CommitSet[Key] {
 	sdb.Lock()
 	defer sdb.Unlock()
 	return sdb.db.remove(hash)
 }
 
-// Returns last canonicalized block.
+// LastCanonicalized returns last canonicalized block.
 func (sdb *StateDB[BlockHash, Key]) LastCanonicalized() LastCanonicalized {
 	sdb.RLock()
 	defer sdb.RUnlock()
 	return sdb.db.lastCanonicalized()
 }
 
-// Check if block is pruned away.
+// IsPruned checks if block is pruned away.
 func (sdb *StateDB[BlockHash, Key]) IsPruned(hash BlockHash, number uint64) IsPruned {
 	sdb.RLock()
 	defer sdb.RUnlock()
@@ -608,11 +620,11 @@ func (sdb *StateDB[BlockHash, Key]) Reset(db MetaDB) error {
 type IsPruned uint
 
 const (
-	// Definitely pruned
+	// IsPrunedPruned means definitely pruned
 	IsPrunedPruned IsPruned = iota
-	// Definitely not pruned
+	// IsPrunedNotPruned means definitely not pruned
 	IsPrunedNotPruned
-	// May or may not pruned, need further checking
+	// IsPrunedMaybePruned means it may or may not pruned, needs further checking
 	IsPrunedMaybePruned
 )
 
@@ -655,7 +667,7 @@ func fetchStoredPruningMode(db MetaDB) (PruningMode, error) {
 		return nil, err
 	}
 	if val == nil {
-		return nil, nil
+		return nil, fmt.Errorf("unable to retrieve stored value for PRUNING_MODE")
 	}
 	mode := NewPruningModeFromID(*val)
 	if mode != nil {
