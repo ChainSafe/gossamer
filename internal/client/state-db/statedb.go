@@ -54,7 +54,7 @@ type MetaDB interface {
 	GetMeta(key []byte) (*DBValue, error)
 }
 
-// Backend database trait. Read-only.
+// Backend database interface. Read-only.
 type NodeDB[Key comparable] interface {
 	// Get state trie node.
 	Get(key Key) (*DBValue, error)
