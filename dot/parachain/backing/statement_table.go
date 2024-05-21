@@ -18,17 +18,17 @@ var errCandidateDataNotFound = errors.New("candidate data not found")
 var errNotEnoughValidityVotes = errors.New("not enough validity votes")
 var errUnknownValidityVote = errors.New("unknown validity vote")
 
+var _ Table = (*statementTable)(nil)
+
 // statementTable implements the Table interface.
 type statementTable struct {
-	authorityData        map[parachaintypes.ValidatorIndex]authorityData //nolint:unused
+	authorityData        map[parachaintypes.ValidatorIndex][]proposal
 	detectedMisbehaviour map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour
 	candidateVotes       map[parachaintypes.CandidateHash]*candidateData
-	config               tableConfig //nolint:unused
+	config               tableConfig
 }
 
-type authorityData []proposal //nolint:unused
-
-type proposal struct { //nolint:unused
+type proposal struct {
 	candidateHash parachaintypes.CandidateHash
 	signature     parachaintypes.ValidatorSignature
 }
@@ -81,7 +81,7 @@ func (data candidateData) attested(validityThreshold uint) (*attestedCandidate, 
 				validityAttestation: attestation,
 			})
 		default:
-			return nil, fmt.Errorf("unknown validity vote: %d", voteWithSign.validityVote)
+			return nil, fmt.Errorf("%w: %d", errUnknownValidityVote, voteWithSign.validityVote)
 		}
 	}
 
@@ -112,7 +112,7 @@ const (
 )
 
 // getCommittedCandidateReceipt returns the committed candidate receipt for the given candidate hash.
-func (table *statementTable) getCommittedCandidateReceipt(candidateHash parachaintypes.CandidateHash, //nolint:unused
+func (table *statementTable) getCommittedCandidateReceipt(candidateHash parachaintypes.CandidateHash,
 ) (parachaintypes.CommittedCandidateReceipt, error) {
 	data, ok := table.candidateVotes[candidateHash]
 	if !ok {
@@ -122,11 +122,11 @@ func (table *statementTable) getCommittedCandidateReceipt(candidateHash parachai
 	return data.candidate, nil
 }
 
-func (table *statementTable) importStatement( //nolint:unused
+func (table *statementTable) importStatement(
 	tableCtx *tableContext, signedStatement parachaintypes.SignedFullStatement,
 ) (*Summary, error) {
 	var summary *Summary
-	var misbehavior parachaintypes.Misbehaviour
+	var misbehaviour parachaintypes.Misbehaviour
 
 	statementVDT, err := signedStatement.Payload.Value()
 	if err != nil {
@@ -135,14 +135,14 @@ func (table *statementTable) importStatement( //nolint:unused
 
 	switch statementVDT := statementVDT.(type) {
 	case parachaintypes.Seconded:
-		summary, misbehavior, err = table.importCandidate(
+		summary, misbehaviour, err = table.importCandidate(
 			signedStatement.ValidatorIndex,
 			parachaintypes.CommittedCandidateReceipt(statementVDT),
 			signedStatement.Signature,
 			tableCtx,
 		)
 	case parachaintypes.Valid:
-		summary, misbehavior, err = table.validityVote(
+		summary, misbehaviour, err = table.validityVote(
 			signedStatement.ValidatorIndex,
 			parachaintypes.CandidateHash(statementVDT),
 			validityVoteWithSign{validityVote: valid, signature: signedStatement.Signature},
@@ -154,13 +154,13 @@ func (table *statementTable) importStatement( //nolint:unused
 		return nil, err
 	}
 
-	// If misbehavior is detected, store it.
-	if misbehavior != nil {
+	// If misbehaviour is detected, store it.
+	if misbehaviour != nil {
 		misbehaviors, ok := table.detectedMisbehaviour[signedStatement.ValidatorIndex]
 		if !ok {
-			misbehaviors = []parachaintypes.Misbehaviour{misbehavior}
+			misbehaviors = []parachaintypes.Misbehaviour{misbehaviour}
 		} else {
-			misbehaviors = append(misbehaviors, misbehavior)
+			misbehaviors = append(misbehaviors, misbehaviour)
 		}
 
 		table.detectedMisbehaviour[signedStatement.ValidatorIndex] = misbehaviors
@@ -169,8 +169,8 @@ func (table *statementTable) importStatement( //nolint:unused
 	return summary, nil
 }
 
-func isCandidateAlreadyProposed(authData authorityData, candidateHash parachaintypes.CandidateHash) bool {
-	return slices.ContainsFunc(authData, func(p proposal) bool {
+func isCandidateAlreadyProposed(proposals []proposal, candidateHash parachaintypes.CandidateHash) bool {
+	return slices.ContainsFunc(proposals, func(p proposal) bool {
 		return p.candidateHash == candidateHash
 	})
 }
@@ -190,13 +190,13 @@ func (table *statementTable) importCandidate(
 			return nil, nil, fmt.Errorf("setting seconded statement: %w", err)
 		}
 
-		misbehavior := parachaintypes.UnauthorizedStatement{
+		misbehaviour := parachaintypes.UnauthorizedStatement{
 			Payload:        statementSeconded,
 			ValidatorIndex: authority,
 			Signature:      signature,
 		}
 
-		return nil, misbehavior, nil
+		return nil, misbehaviour, nil
 	}
 
 	candidateHash, err := parachaintypes.GetCandidateHash(candidate)
@@ -205,15 +205,15 @@ func (table *statementTable) importCandidate(
 	}
 
 	var isNewProposal bool
-	authData, ok := table.authorityData[authority]
+	proposals, ok := table.authorityData[authority]
 	if !ok {
-		table.authorityData[authority] = authorityData{{candidateHash, signature}}
+		table.authorityData[authority] = []proposal{{candidateHash, signature}}
 		isNewProposal = true
 	} else {
-		// if digest is different, fetch candidate and note misbehavior.
-		if !table.config.allowMultipleSeconded && len(authData) == 1 {
-			oldCandidateHash := authData[0].candidateHash
-			oldSignature := authData[0].signature
+		// if digest is different, fetch candidate and note misbehaviour.
+		if !table.config.allowMultipleSeconded && len(proposals) == 1 {
+			oldCandidateHash := proposals[0].candidateHash
+			oldSignature := proposals[0].signature
 
 			if oldCandidateHash != candidateHash {
 				data, ok := table.candidateVotes[oldCandidateHash]
@@ -226,7 +226,7 @@ func (table *statementTable) importCandidate(
 
 				oldCandidate := data.candidate
 
-				misbehavior := parachaintypes.MultipleCandidates{
+				misbehaviour := parachaintypes.MultipleCandidates{
 					First: parachaintypes.CommittedCandidateReceiptAndSign{
 						CommittedCandidateReceipt: oldCandidate,
 						Signature:                 oldSignature,
@@ -236,13 +236,13 @@ func (table *statementTable) importCandidate(
 						Signature:                 signature,
 					},
 				}
-				return nil, misbehavior, nil
+				return nil, misbehaviour, nil
 			}
-		} else if table.config.allowMultipleSeconded && isCandidateAlreadyProposed(authData, candidateHash) {
+		} else if table.config.allowMultipleSeconded && isCandidateAlreadyProposed(proposals, candidateHash) {
 			// nothing to do
 		} else {
-			authData = append(authData, proposal{candidateHash, signature})
-			table.authorityData[authority] = authData
+			proposals = append(proposals, proposal{candidateHash, signature})
+			table.authorityData[authority] = proposals
 			isNewProposal = true
 		}
 	}
@@ -284,13 +284,13 @@ func (table *statementTable) validityVote(
 				return nil, nil, fmt.Errorf("setting valid statement: %w", err)
 			}
 
-			misbehavior := parachaintypes.UnauthorizedStatement{
+			misbehaviour := parachaintypes.UnauthorizedStatement{
 				Payload:        validStatement,
 				ValidatorIndex: from,
 				Signature:      voteWithSign.signature,
 			}
 
-			return nil, misbehavior, nil
+			return nil, misbehaviour, nil
 		case issued:
 			panic("implicit issuance vote must only cast from `importCandidate` after checking group membership of issuer.")
 		default:
@@ -306,12 +306,12 @@ func (table *statementTable) validityVote(
 
 	// check for double votes.
 	if existingVoteWithSign != voteWithSign {
-		var misbehavior parachaintypes.Misbehaviour
+		var misbehaviour parachaintypes.Misbehaviour
 
 		switch {
 		case existingVoteWithSign.validityVote == issued && voteWithSign.validityVote == valid,
 			existingVoteWithSign.validityVote == valid && voteWithSign.validityVote == issued:
-			misbehavior = parachaintypes.ValidityDoubleVoteIssuedAndValidity{
+			misbehaviour = parachaintypes.ValidityDoubleVoteIssuedAndValidity{
 				CommittedCandidateReceiptAndSign: parachaintypes.CommittedCandidateReceiptAndSign{
 					CommittedCandidateReceipt: data.candidate,
 					Signature:                 existingVoteWithSign.signature,
@@ -322,19 +322,19 @@ func (table *statementTable) validityVote(
 				},
 			}
 		case existingVoteWithSign.validityVote == issued && voteWithSign.validityVote == issued:
-			misbehavior = parachaintypes.DoubleSignOnSeconded{
+			misbehaviour = parachaintypes.DoubleSignOnSeconded{
 				Candidate: data.candidate,
 				Sign1:     existingVoteWithSign.signature,
 				Sign2:     voteWithSign.signature,
 			}
 		case existingVoteWithSign.validityVote == valid && voteWithSign.validityVote == valid:
-			misbehavior = parachaintypes.DoubleSignOnValidity{
+			misbehaviour = parachaintypes.DoubleSignOnValidity{
 				CandidateHash: candidateHash,
 				Sign1:         existingVoteWithSign.signature,
 				Sign2:         voteWithSign.signature,
 			}
 		}
-		return nil, misbehavior, nil
+		return nil, misbehaviour, nil
 	}
 
 	return nil, nil, nil
@@ -371,21 +371,25 @@ func effectiveMinimumBackingVotes(groupLen uint, configuredMinimumBackingVotes u
 	return min(groupLen, uint(configuredMinimumBackingVotes))
 }
 
-func (statementTable) drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport { //nolint:unused
+func (statementTable) drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport {
 	// TODO: Implement this method
 	return nil
 }
 
 type Table interface {
-	getCandidate(parachaintypes.CandidateHash) (parachaintypes.CommittedCandidateReceipt, error)
+	getCommittedCandidateReceipt(parachaintypes.CandidateHash) (parachaintypes.CommittedCandidateReceipt, error)
 	importStatement(*tableContext, parachaintypes.SignedFullStatement) (*Summary, error)
 	attestedCandidate(parachaintypes.CandidateHash, *tableContext, uint32) (*attestedCandidate, error)
 	drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport
 }
 
-func newTable(tableConfig) Table {
-	// TODO: Implement this function
-	return nil
+func newTable(config tableConfig) Table {
+	return &statementTable{
+		authorityData:        make(map[parachaintypes.ValidatorIndex][]proposal),
+		detectedMisbehaviour: make(map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour),
+		candidateVotes:       make(map[parachaintypes.CandidateHash]*candidateData),
+		config:               config,
+	}
 }
 
 // Summary represents summary of import of a statement.
