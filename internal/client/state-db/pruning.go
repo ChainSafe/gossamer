@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/gammazero/deque"
+	"golang.org/x/exp/maps"
 )
 
 var lastPruned = []byte("last_pruned")
@@ -97,11 +98,7 @@ func (rw *pruningWindow[BlockHash, Key]) PruneOne(commit *CommitSet[Key]) error 
 	if pruned != nil {
 		log.Printf("TRACE: Pruning %v (%v deleted)", pruned.hash, len(pruned.deleted))
 		index := rw.base
-		var deletedKeys []Key
-		for deleted := range pruned.deleted {
-			deletedKeys = append(deletedKeys, deleted)
-		}
-		commit.Data.Deleted = append(commit.Data.Deleted, deletedKeys...)
+		commit.Data.Deleted = append(commit.Data.Deleted, maps.Keys(pruned.deleted)...)
 		commit.Meta.Inserted = append(commit.Meta.Inserted, HashDBValue[[]byte]{
 			Hash:    toMetaKey(lastPruned, struct{}{}),
 			DBValue: scale.MustMarshal(index),
@@ -239,12 +236,10 @@ func (drqim *inMemDeathRowQueue[BlockHash, Key]) PopFront(base uint64) (*deathRo
 // Check if the block at the given `index` of the queue exist
 // it is the caller's responsibility to ensure `index` won't be out of bounds
 func (drqim *inMemDeathRowQueue[BlockHash, Key]) HaveBlock(hash BlockHash, index uint) haveBlock {
-	switch drqim.deathRows.At(int(index)).hash == hash {
-	case true:
+	if drqim.deathRows.At(int(index)).hash == hash {
 		return haveBlockYes
-	default:
-		return haveBlockNo
 	}
+	return haveBlockNo
 }
 
 // Return the number of block in the pruning window
