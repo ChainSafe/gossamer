@@ -986,8 +986,10 @@ func (h *testHarness) processMessages() {
 	for {
 		select {
 		case msg := <-h.overseer.SubsystemsToOverseer:
-			h.processes[processIndex](msg)
-			processIndex++
+			if h.processes != nil && processIndex < len(h.processes) {
+				h.processes[processIndex](msg)
+				processIndex++
+			}
 		case <-h.overseer.ctx.Done():
 			if err := h.overseer.ctx.Err(); err != nil {
 				logger.Errorf("ctx error: %v\n", err)
