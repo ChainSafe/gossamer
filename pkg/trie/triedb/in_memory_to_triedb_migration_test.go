@@ -47,7 +47,7 @@ func TestWriteTrieDB_Migration(t *testing.T) {
 	assert.NoError(t, err)
 
 	t.Run("read_same_from_both", func(t *testing.T) {
-		for k, _ := range entries {
+		for k := range entries {
 			valueFromInMemoryTrie := inMemoryTrie.Get([]byte(k))
 			assert.NotNil(t, valueFromInMemoryTrie)
 
