@@ -227,11 +227,11 @@ func (t *TrieDB) inspect(
 		if err != nil {
 			return nil, false, err
 		}
-		switch action.(type) {
+		switch a := action.(type) {
 		case Restore:
-			return NewNewNode(n.node), false, nil
+			return NewNewNode(a.node), false, nil
 		case Replace:
-			return NewNewNode(n.node), true, nil
+			return NewNewNode(a.node), true, nil
 		case Delete:
 			return nil, false, nil
 		default:
@@ -279,6 +279,22 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 				return Restore{Leaf{partialKey: n.partialKey, value: n.value}}, nil
 			}
 			return Replace{Leaf{partialKey: n.partialKey, value: n.value}}, nil
+		} else if common < len(existingKey) {
+			var children [codec.ChildrenCapacity]NodeHandle
+
+			idx := existingKey[common]
+			newLeaf := Leaf{existingKey[common+1:], n.value}
+			children[idx] = t.storage.alloc(New{node: newLeaf}).toNodeHandle()
+			branch := Branch{
+				partialKey: partial[:common],
+				children:   children,
+				value:      nil,
+			}
+			branchAction, err := t.insertInspector(branch, keyNibbles, value, oldValue)
+			if err != nil {
+				return nil, err
+			}
+			return Replace{branchAction.getNode()}, nil
 		} else {
 			// fully shared prefix then create a branch
 			var branch Node = Branch{
