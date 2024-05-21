@@ -16,9 +16,9 @@ var lastCanonical = []byte("last_canonical")
 
 const maxBlocksPerLevel uint64 = 32
 
-// NonCanonicalOverlay maintains trees of block overlays and allows discarding trees/roots.
+// nonCanonicalOverlay maintains trees of block overlays and allows discarding trees/roots.
 // The overlays are added in `Insert` and removed in `Canonicalize`.
-type NonCanonicalOverlay[BlockHash Hash, Key Hash] struct {
+type nonCanonicalOverlay[BlockHash Hash, Key Hash] struct {
 	lastCanonicalized *hashBlock[BlockHash]
 	levels            deque.Deque[overlayLevel[BlockHash, Key]]
 	parents           map[BlockHash]BlockHash
@@ -40,18 +40,18 @@ type hashBlock[BlockHash Hash] struct {
 	Block uint64
 }
 
-// NewNonCanonicalOverlay is constructor for NonCanonicalOverlay
-func NewNonCanonicalOverlay[BlockHash Hash, Key Hash](db MetaDB) (NonCanonicalOverlay[BlockHash, Key], error) {
+// NewnonCanonicalOverlay is constructor for nonCanonicalOverlay
+func newNonCanonicalOverlay[BlockHash Hash, Key Hash](db MetaDB) (nonCanonicalOverlay[BlockHash, Key], error) {
 	lastCanonicalizedMeta, err := db.GetMeta(toMetaKey(lastCanonical, struct{}{}))
 	if err != nil {
-		return NonCanonicalOverlay[BlockHash, Key]{}, err
+		return nonCanonicalOverlay[BlockHash, Key]{}, err
 	}
 	var lastCanonicalized *hashBlock[BlockHash]
 	if lastCanonicalizedMeta != nil {
 		bhk := hashBlock[BlockHash]{}
 		err := scale.Unmarshal(*lastCanonicalizedMeta, &bhk)
 		if err != nil {
-			return NonCanonicalOverlay[BlockHash, Key]{}, err
+			return nonCanonicalOverlay[BlockHash, Key]{}, err
 		}
 		lastCanonicalized = &bhk
 	}
@@ -73,14 +73,14 @@ func NewNonCanonicalOverlay[BlockHash Hash, Key Hash](db MetaDB) (NonCanonicalOv
 				journalKey := toJournalKey(block, index)
 				record, err := db.GetMeta(journalKey)
 				if err != nil {
-					return NonCanonicalOverlay[BlockHash, Key]{}, err
+					return nonCanonicalOverlay[BlockHash, Key]{}, err
 				}
 				if record != nil {
 					recordBytes := *record
 					var record journalRecord[BlockHash, Key]
 					err := scale.Unmarshal(recordBytes, &record)
 					if err != nil {
-						return NonCanonicalOverlay[BlockHash, Key]{}, err
+						return nonCanonicalOverlay[BlockHash, Key]{}, err
 					}
 					var inserted []Key
 					for _, kv := range record.Inserted {
@@ -114,7 +114,7 @@ func NewNonCanonicalOverlay[BlockHash Hash, Key Hash](db MetaDB) (NonCanonicalOv
 		}
 		log.Printf("TRACE: Finished reading uncanonicalized journal, %v entries\n", total)
 	}
-	return NonCanonicalOverlay[BlockHash, Key]{
+	return nonCanonicalOverlay[BlockHash, Key]{
 		lastCanonicalized: lastCanonicalized,
 		levels:            levels,
 		parents:           parents,
@@ -129,7 +129,7 @@ func NewNonCanonicalOverlay[BlockHash Hash, Key Hash](db MetaDB) (NonCanonicalOv
 
 // Insert a new block into the overlay. If inserted on the second level or lover expects parent
 // to be present in the window.
-func (nco *NonCanonicalOverlay[BlockHash, Key]) Insert(
+func (nco *nonCanonicalOverlay[BlockHash, Key]) Insert(
 	hash BlockHash,
 	number uint64,
 	parentHash BlockHash,
@@ -147,13 +147,9 @@ func (nco *NonCanonicalOverlay[BlockHash, Key]) Insert(
 		nco.lastCanonicalized = &lastCanonicalized
 	} else if nco.lastCanonicalized != nil {
 		if number < frontBlockNumber || number > frontBlockNumber+uint64(nco.levels.Len()) {
-			// trace!(
-			// 	target: LOG_TARGET,
-			// 	"Failed to insert block {}, current is {} .. {})",
-			// 	number,
-			// 	front_block_number,
-			// 	front_block_number + self.levels.len() as u64,
-			// );
+			log.Printf(
+				"TRACE: Failed to insert block %v, current is %v .. %v)\n",
+				number, frontBlockNumber, frontBlockNumber+uint64(nco.levels.Len()))
 			return CommitSet[Key]{}, ErrInvalidBlockNumber
 		}
 		// check for valid parent if inserting on second level or higher
@@ -177,11 +173,13 @@ func (nco *NonCanonicalOverlay[BlockHash, Key]) Insert(
 	}
 
 	if len(level.blocks) >= int(maxBlocksPerLevel) {
-		// trace!(
-		// 	target: LOG_TARGET,
-		// 	"Too many sibling blocks at #{number}: {:?}",
-		// 	level.blocks.iter().map(|b| &b.hash).collect::<Vec<_>>()
-		// );
+		hashes := make([]BlockHash, 0)
+		for _, block := range level.blocks {
+			hashes = append(hashes, block.hash)
+		}
+		log.Printf(
+			"TRACE: Too many sibling blocks at %v: %v\n",
+			number, hashes)
 		return CommitSet[Key]{}, fmt.Errorf("too many sibling blocks at %d inserted", number)
 	}
 	for _, block := range level.blocks {
@@ -221,7 +219,7 @@ func (nco *NonCanonicalOverlay[BlockHash, Key]) Insert(
 	return commit, nil
 }
 
-func (nco *NonCanonicalOverlay[BlockHash, Key]) discardJournals(
+func (nco *nonCanonicalOverlay[BlockHash, Key]) discardJournals(
 	levelIndex uint, discardedJournals *[][]byte, hash BlockHash) {
 	if levelIndex >= uint(nco.levels.Len()) {
 		return
@@ -239,7 +237,7 @@ func (nco *NonCanonicalOverlay[BlockHash, Key]) discardJournals(
 	}
 }
 
-func (nco *NonCanonicalOverlay[BlockHash, Key]) frontBlockNumber() uint64 {
+func (nco *nonCanonicalOverlay[BlockHash, Key]) frontBlockNumber() uint64 {
 	if nco.lastCanonicalized != nil {
 		return nco.lastCanonicalized.Block + 1
 	} else {
@@ -247,7 +245,7 @@ func (nco *NonCanonicalOverlay[BlockHash, Key]) frontBlockNumber() uint64 {
 	}
 }
 
-func (nco *NonCanonicalOverlay[BlockHash, Key]) LastCanonicalizedBlockNumber() *uint64 {
+func (nco *nonCanonicalOverlay[BlockHash, Key]) LastCanonicalizedBlockNumber() *uint64 {
 	if nco.lastCanonicalized != nil {
 		return &nco.lastCanonicalized.Block
 	}
@@ -256,7 +254,7 @@ func (nco *NonCanonicalOverlay[BlockHash, Key]) LastCanonicalizedBlockNumber() *
 
 // Sync will confirm that all changes made to commit sets are on disk. Allows for temporarily pinned
 // blocks to be released.
-func (nco *NonCanonicalOverlay[BlockHash, Key]) Sync() {
+func (nco *nonCanonicalOverlay[BlockHash, Key]) Sync() {
 	pinned := nco.pinnedCanonicalized
 	nco.pinnedCanonicalized = nil
 	for _, hash := range pinned {
@@ -270,7 +268,7 @@ func (nco *NonCanonicalOverlay[BlockHash, Key]) Sync() {
 // Canonicalize will select a top-level root and canonicalized it. Discards all sibling subtrees and the root.
 // Add a set of changes of the canonicalized block to a provided `CommitSet`
 // Return the block number of the canonicalized block
-func (nco *NonCanonicalOverlay[BlockHash, Key]) Canonicalize(
+func (nco *nonCanonicalOverlay[BlockHash, Key]) Canonicalize(
 	hash BlockHash,
 	commit *CommitSet[Key],
 ) (uint64, error) {
@@ -364,7 +362,7 @@ func (nco *NonCanonicalOverlay[BlockHash, Key]) Canonicalize(
 }
 
 // Get a value from the node overlay. This searches in every existing changeset.
-func (nco *NonCanonicalOverlay[BlockHash, Key]) Get(key Key) *DBValue {
+func (nco *nonCanonicalOverlay[BlockHash, Key]) Get(key Key) *DBValue {
 	cv, ok := nco.values[key]
 	if !ok {
 		return nil
@@ -373,14 +371,14 @@ func (nco *NonCanonicalOverlay[BlockHash, Key]) Get(key Key) *DBValue {
 }
 
 // HaveBlock checks if the block is in the canonicalization queue.
-func (nco *NonCanonicalOverlay[BlockHash, Key]) HaveBlock(hash BlockHash) bool {
+func (nco *nonCanonicalOverlay[BlockHash, Key]) HaveBlock(hash BlockHash) bool {
 	_, ok := nco.parents[hash]
 	return ok
 }
 
 // RevertOne will revert a single level. Returns commit set that deletes the journal or `nil` if not
 // possible.
-func (nco *NonCanonicalOverlay[BlockHash, Key]) RevertOne() *CommitSet[Key] {
+func (nco *nonCanonicalOverlay[BlockHash, Key]) RevertOne() *CommitSet[Key] {
 	if nco.levels.Len() == 0 {
 		return nil
 	}
@@ -396,7 +394,7 @@ func (nco *NonCanonicalOverlay[BlockHash, Key]) RevertOne() *CommitSet[Key] {
 
 // Remove will revert a single block. Returns commit set that deletes the journal or `nil` if not
 // possible.
-func (nco *NonCanonicalOverlay[BlockHash, Key]) Remove(hash BlockHash) *CommitSet[Key] {
+func (nco *nonCanonicalOverlay[BlockHash, Key]) Remove(hash BlockHash) *CommitSet[Key] {
 	commit := CommitSet[Key]{}
 	levelCount := nco.levels.Len()
 	for levelIndex := nco.levels.Len() - 1; levelIndex >= 0; levelIndex-- {
@@ -437,7 +435,7 @@ func (nco *NonCanonicalOverlay[BlockHash, Key]) Remove(hash BlockHash) *CommitSe
 }
 
 // Pin state values in memory
-func (nco *NonCanonicalOverlay[BlockHash, Key]) Pin(hash BlockHash) {
+func (nco *nonCanonicalOverlay[BlockHash, Key]) Pin(hash BlockHash) {
 	refs := nco.pinned[hash]
 	if refs == 0 {
 		log.Println("TRACE: Pinned non-canon block:", hash)
@@ -447,7 +445,7 @@ func (nco *NonCanonicalOverlay[BlockHash, Key]) Pin(hash BlockHash) {
 }
 
 // Unpin will discard pinned state
-func (nco *NonCanonicalOverlay[BlockHash, Key]) Unpin(hash BlockHash) {
+func (nco *nonCanonicalOverlay[BlockHash, Key]) Unpin(hash BlockHash) {
 	var removed bool
 	entry, ok := nco.pinned[hash]
 	if ok {

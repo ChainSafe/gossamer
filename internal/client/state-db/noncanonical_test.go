@@ -32,7 +32,7 @@ func TestSplitFirst(t *testing.T) {
 
 func TestCreatedFromEmptyDB(t *testing.T) {
 	db := TestDB{}
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	assert.True(t, overlay.levels.Len() == 0)
 	assert.True(t, len(overlay.parents) == 0)
@@ -40,7 +40,7 @@ func TestCreatedFromEmptyDB(t *testing.T) {
 
 func TestCanonicalizeEmptyError(t *testing.T) {
 	db := TestDB{}
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	commit := CommitSet[hash.H256]{}
 	_, err = overlay.Canonicalize(hash.H256(make([]byte, 32)), &commit)
@@ -51,7 +51,7 @@ func TestInsertAheadError(t *testing.T) {
 	h1 := hash.NewRandomH256()
 	h2 := hash.NewRandomH256()
 	db := TestDB{}
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	_, err = overlay.Insert(h1, 2, hash.H256(make([]byte, 32)), ChangeSet[hash.H256]{})
 	assert.NoError(t, err)
@@ -63,7 +63,7 @@ func TestInsertBehindError(t *testing.T) {
 	h1 := hash.NewRandomH256()
 	h2 := hash.NewRandomH256()
 	db := TestDB{}
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	_, err = overlay.Insert(h1, 1, hash.H256(make([]byte, 32)), ChangeSet[hash.H256]{})
 	assert.NoError(t, err)
@@ -75,7 +75,7 @@ func TestInsertUnknownParentError(t *testing.T) {
 	h1 := hash.NewRandomH256()
 	h2 := hash.NewRandomH256()
 	db := TestDB{}
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	_, err = overlay.Insert(h1, 1, hash.H256(make([]byte, 32)), ChangeSet[hash.H256]{})
 	assert.NoError(t, err)
@@ -86,7 +86,7 @@ func TestInsertUnknownParentError(t *testing.T) {
 func TestInsertExistingError(t *testing.T) {
 	h1 := hash.NewRandomH256()
 	db := TestDB{}
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	_, err = overlay.Insert(h1, 2, hash.H256(make([]byte, 32)), ChangeSet[hash.H256]{})
 	assert.NoError(t, err)
@@ -98,7 +98,7 @@ func TestCanonicalizeUnknownError(t *testing.T) {
 	h1 := hash.NewRandomH256()
 	h2 := hash.NewRandomH256()
 	db := TestDB{}
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	_, err = overlay.Insert(h1, 1, hash.H256(make([]byte, 32)), ChangeSet[hash.H256]{})
 	assert.NoError(t, err)
@@ -110,7 +110,7 @@ func TestCanonicalizeUnknownError(t *testing.T) {
 func TestInsertCanonicalizeOne(t *testing.T) {
 	h1 := hash.NewRandomH256()
 	db := NewTestDB([]uint64{1, 2})
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	changeset := NewChangeset([]uint64{3, 4}, []uint64{2})
 	insertion, err := overlay.Insert(h1, 1, hash.H256(make([]byte, 32)), changeset)
@@ -134,7 +134,7 @@ func TestRestoreFromJournal(t *testing.T) {
 	h1 := hash.NewRandomH256()
 	h2 := hash.NewRandomH256()
 	db := NewTestDB([]uint64{1, 2})
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	insertion, err := overlay.Insert(h1, 10, hash.H256(make([]byte, 32)), NewChangeset([]uint64{3, 4}, []uint64{2}))
 	assert.NoError(t, err)
@@ -144,7 +144,7 @@ func TestRestoreFromJournal(t *testing.T) {
 	db.Commit(insertion)
 	assert.Equal(t, 3, len(db.Meta))
 
-	overlay2, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay2, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	assert.Equal(t, overlay.levels.Len(), overlay2.levels.Len())
 	actual := make([]overlayLevel[hash.H256, hash.H256], overlay.levels.Len())
@@ -160,7 +160,7 @@ func TestRestoreFromJournalAfterCanonicalize(t *testing.T) {
 	h1 := hash.NewRandomH256()
 	h2 := hash.NewRandomH256()
 	db := NewTestDB([]uint64{1, 2})
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	insertion, err := overlay.Insert(h1, 10, hash.H256(make([]byte, 32)), NewChangeset([]uint64{3, 4}, []uint64{2}))
 	assert.NoError(t, err)
@@ -177,7 +177,7 @@ func TestRestoreFromJournalAfterCanonicalize(t *testing.T) {
 	db.Commit(commit)
 	assert.Equal(t, 1, overlay.levels.Len())
 
-	overlay2, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay2, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	assert.Equal(t, overlay.levels.Len(), overlay2.levels.Len())
 	actual := make([]overlayLevel[hash.H256, hash.H256], overlay.levels.Len())
@@ -191,7 +191,7 @@ func TestRestoreFromJournalAfterCanonicalize(t *testing.T) {
 	assert.Equal(t, overlay.lastCanonicalized, overlay2.lastCanonicalized)
 }
 
-func contains(overlay NonCanonicalOverlay[hash.H256, hash.H256], key uint64) bool {
+func contains(overlay nonCanonicalOverlay[hash.H256, hash.H256], key uint64) bool {
 	val := overlay.Get(hash.NewH256FromLowUint64BigEndian(key))
 	return val != nil && string(*val) == string(hash.NewH256FromLowUint64BigEndian(key))
 }
@@ -200,7 +200,7 @@ func TestInsertCanonicalizeTwo(t *testing.T) {
 	h1 := hash.NewRandomH256()
 	h2 := hash.NewRandomH256()
 	db := NewTestDB([]uint64{1, 2, 3, 4})
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	changeset1 := NewChangeset([]uint64{5, 6}, []uint64{2})
 	changeset2 := NewChangeset([]uint64{7, 8}, []uint64{5, 3})
@@ -240,7 +240,7 @@ func TestInsertSameKey(t *testing.T) {
 	h2 := hash.NewRandomH256()
 	c2 := NewChangeset([]uint64{1}, []uint64{})
 
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	insertion, err := overlay.Insert(h1, 1, hash.H256(make([]byte, 32)), c1)
 	assert.NoError(t, err)
@@ -262,7 +262,7 @@ func TestInsertAndCanonicalize(t *testing.T) {
 	h2 := hash.NewRandomH256()
 	h3 := hash.NewRandomH256()
 	db := NewTestDB([]uint64{})
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	changeset := NewChangeset([]uint64{}, []uint64{})
 	insertion, err := overlay.Insert(h1, 1, hash.H256(make([]byte, 32)), changeset)
@@ -321,7 +321,7 @@ func TestComplexTree(t *testing.T) {
 	h211 := hash.NewRandomH256()
 	c211 := NewChangeset([]uint64{211}, []uint64{})
 
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	insertion, err := overlay.Insert(h1, 1, hash.H256(make([]byte, 32)), c1)
 	assert.NoError(t, err)
@@ -372,7 +372,7 @@ func TestComplexTree(t *testing.T) {
 	assert.Equal(t, overlay.lastCanonicalized, &hashBlock[hash.H256]{hash.H256(make([]byte, 32)), 0})
 
 	// check if restoration from journal results in the same tree
-	overlay2, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay2, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	assert.Equal(t, overlay.levels.Len(), overlay2.levels.Len())
 	actual := make([]overlayLevel[hash.H256, hash.H256], overlay.levels.Len())
@@ -450,7 +450,7 @@ func TestInsertRevert(t *testing.T) {
 	h1 := hash.NewRandomH256()
 	h2 := hash.NewRandomH256()
 	db := NewTestDB([]uint64{1, 2, 3, 4})
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	assert.Nil(t, overlay.RevertOne())
 	changeset1 := NewChangeset([]uint64{5, 6}, []uint64{2})
@@ -488,7 +488,7 @@ func TestKeepsPinned(t *testing.T) {
 	h2 := hash.NewRandomH256()
 	c2 := NewChangeset([]uint64{2}, []uint64{})
 
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	insertion, err := overlay.Insert(h1, 1, hash.H256(make([]byte, 32)), c1)
 	assert.NoError(t, err)
@@ -523,7 +523,7 @@ func TestKeepsPinnedRefCount(t *testing.T) {
 	h3 := hash.NewRandomH256()
 	c3 := NewChangeset([]uint64{}, []uint64{})
 
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	insertion, err := overlay.Insert(h1, 1, hash.H256(make([]byte, 32)), c1)
 	assert.NoError(t, err)
@@ -555,7 +555,7 @@ func TestPinsCanonicalized(t *testing.T) {
 	h2 := hash.NewRandomH256()
 	c2 := NewChangeset([]uint64{2}, []uint64{})
 
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	insertion, err := overlay.Insert(h1, 1, hash.H256(make([]byte, 32)), c1)
 	assert.NoError(t, err)
@@ -590,7 +590,7 @@ func TestPinKeepsParent(t *testing.T) {
 	h21 := hash.NewRandomH256()
 	c21 := NewChangeset([]uint64{}, []uint64{})
 
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	insertion, err := overlay.Insert(h11, 1, hash.H256(make([]byte, 32)), c11)
 	assert.NoError(t, err)
@@ -625,7 +625,7 @@ func TestRestoreFromJournalAfterCanonicalizeNoFirst(t *testing.T) {
 	h11 := hash.NewRandomH256()
 	h21 := hash.NewRandomH256()
 	db := NewTestDB([]uint64{})
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	insertion, err := overlay.Insert(root, 10, hash.H256(make([]byte, 32)), NewChangeset([]uint64{}, []uint64{}))
 	assert.NoError(t, err)
@@ -656,7 +656,7 @@ func TestRestoreFromJournalAfterCanonicalizeNoFirst(t *testing.T) {
 	assert.NotNil(t, val)
 
 	// Restore into a new overlay and check that journaled value exists.
-	overlay, err = NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err = newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	assert.True(t, contains(overlay, 21))
 
@@ -677,7 +677,7 @@ func TestIndexReuse(t *testing.T) {
 	h11 := hash.NewRandomH256()
 	h21 := hash.NewRandomH256()
 	db := NewTestDB([]uint64{})
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	insertion, err := overlay.Insert(root, 10, hash.H256(make([]byte, 32)), NewChangeset([]uint64{}, []uint64{}))
 	assert.NoError(t, err)
@@ -718,7 +718,7 @@ func TestRemoveWorks(t *testing.T) {
 	h11 := hash.NewRandomH256()
 	h21 := hash.NewRandomH256()
 	db := NewTestDB([]uint64{})
-	overlay, err := NewNonCanonicalOverlay[hash.H256, hash.H256](db)
+	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
 	insertion, err := overlay.Insert(root, 10, hash.H256(make([]byte, 32)), NewChangeset([]uint64{}, []uint64{}))
 	assert.NoError(t, err)
