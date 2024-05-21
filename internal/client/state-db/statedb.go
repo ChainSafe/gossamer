@@ -158,31 +158,31 @@ type LastCanonicalizedBlock uint64
 // No canonicalization is happening (pruning mode is archive all).
 type LastCanonicalizedNotCanonicalizing struct{}
 
-type StateDBSync[BlockHash Hash, Key Hash] struct {
+type stateDBSync[BlockHash Hash, Key Hash] struct {
 	mode         PruningMode
-	nonCanonical NonCanonicalOverlay[BlockHash, Key]
+	nonCanonical nonCanonicalOverlay[BlockHash, Key]
 	pruning      *pruningWindow[BlockHash, Key]
 	pinned       map[BlockHash]uint32
 }
 
-func NewStateDBSync[BlockHash Hash, Key Hash](
+func newStateDBSync[BlockHash Hash, Key Hash](
 	mode PruningMode,
 	db MetaDB,
-) (StateDBSync[BlockHash, Key], error) {
-	nonCanonical, err := NewNonCanonicalOverlay[BlockHash, Key](db)
+) (stateDBSync[BlockHash, Key], error) {
+	nonCanonical, err := newNonCanonicalOverlay[BlockHash, Key](db)
 	if err != nil {
-		return StateDBSync[BlockHash, Key]{}, err
+		return stateDBSync[BlockHash, Key]{}, err
 	}
 	var pruning *pruningWindow[BlockHash, Key]
 	switch mode := mode.(type) {
 	case PruningModeConstrained:
 		rw, err := newPruningWindow[BlockHash, Key](db, *mode.MaxBlocks)
 		if err != nil {
-			return StateDBSync[BlockHash, Key]{}, err
+			return stateDBSync[BlockHash, Key]{}, err
 		}
 		pruning = &rw
 	}
-	return StateDBSync[BlockHash, Key]{
+	return stateDBSync[BlockHash, Key]{
 		mode:         mode,
 		nonCanonical: nonCanonical,
 		pruning:      pruning,
@@ -190,7 +190,7 @@ func NewStateDBSync[BlockHash Hash, Key Hash](
 	}, nil
 }
 
-func (sdbs *StateDBSync[BlockHash, Key]) insertBlock(
+func (sdbs *stateDBSync[BlockHash, Key]) insertBlock(
 	hash BlockHash,
 	number uint64,
 	parentHash BlockHash,
@@ -207,7 +207,7 @@ func (sdbs *StateDBSync[BlockHash, Key]) insertBlock(
 	}
 }
 
-func (sdbs *StateDBSync[BlockHash, Key]) canonicalizeBlock(hash BlockHash) (CommitSet[Key], error) {
+func (sdbs *stateDBSync[BlockHash, Key]) canonicalizeBlock(hash BlockHash) (CommitSet[Key], error) {
 	// NOTE: it is important that the change to `LAST_CANONICAL` (emit from
 	// `non_canonical.canonicalize`) and the insert of the new pruning journal (emit from
 	// `pruning.note_canonical`) are collected into the same `CommitSet` and are committed to
@@ -237,7 +237,7 @@ func (sdbs *StateDBSync[BlockHash, Key]) canonicalizeBlock(hash BlockHash) (Comm
 }
 
 // Returns the block number of the last canonicalized block.
-func (sdbs *StateDBSync[BlockHash, Key]) lastCanonicalized() LastCanonicalized {
+func (sdbs *stateDBSync[BlockHash, Key]) lastCanonicalized() LastCanonicalized {
 	switch sdbs.mode.(type) {
 	case PruningModeArchiveAll:
 		return LastCanonicalizedNotCanonicalizing{}
@@ -250,7 +250,7 @@ func (sdbs *StateDBSync[BlockHash, Key]) lastCanonicalized() LastCanonicalized {
 	}
 }
 
-func (sdbs *StateDBSync[BlockHash, Key]) isPruned(hash BlockHash, number uint64) IsPruned {
+func (sdbs *stateDBSync[BlockHash, Key]) isPruned(hash BlockHash, number uint64) IsPruned {
 	switch sdbs.mode.(type) {
 	case PruningModeArchiveAll:
 		return IsPrunedNotPruned
@@ -286,7 +286,7 @@ func (sdbs *StateDBSync[BlockHash, Key]) isPruned(hash BlockHash, number uint64)
 	}
 }
 
-func (sdbs *StateDBSync[BlockHash, Key]) prune(commit *CommitSet[Key]) error {
+func (sdbs *stateDBSync[BlockHash, Key]) prune(commit *CommitSet[Key]) error {
 	if constraints, ok := sdbs.mode.(PruningModeConstrained); ok {
 		for {
 			var maxBlocks uint64
@@ -328,7 +328,7 @@ func (sdbs *StateDBSync[BlockHash, Key]) prune(commit *CommitSet[Key]) error {
 // Revert all non-canonical blocks with the best block number.
 // Returns a database commit or `None` if not possible.
 // For archive an empty commit set is returned.
-func (sdbs *StateDBSync[BlockHash, Key]) revertOne() *CommitSet[Key] {
+func (sdbs *stateDBSync[BlockHash, Key]) revertOne() *CommitSet[Key] {
 	switch sdbs.mode.(type) {
 	case PruningModeArchiveAll:
 		return &CommitSet[Key]{}
@@ -339,7 +339,7 @@ func (sdbs *StateDBSync[BlockHash, Key]) revertOne() *CommitSet[Key] {
 	}
 }
 
-func (sdbs *StateDBSync[BlockHash, Key]) remove(hash BlockHash) *CommitSet[Key] {
+func (sdbs *stateDBSync[BlockHash, Key]) remove(hash BlockHash) *CommitSet[Key] {
 	switch sdbs.mode.(type) {
 	case PruningModeArchiveAll:
 		return &CommitSet[Key]{}
@@ -350,7 +350,7 @@ func (sdbs *StateDBSync[BlockHash, Key]) remove(hash BlockHash) *CommitSet[Key] 
 	}
 }
 
-func (sdbs *StateDBSync[BlockHash, Key]) pin(hash BlockHash, number uint64, hint func() bool) error {
+func (sdbs *stateDBSync[BlockHash, Key]) pin(hash BlockHash, number uint64, hint func() bool) error {
 	switch sdbs.mode.(type) {
 	case PruningModeArchiveAll:
 		return nil
@@ -387,7 +387,7 @@ func (sdbs *StateDBSync[BlockHash, Key]) pin(hash BlockHash, number uint64, hint
 	}
 }
 
-func (sdbs *StateDBSync[BlockHash, Key]) unpin(hash BlockHash) {
+func (sdbs *stateDBSync[BlockHash, Key]) unpin(hash BlockHash) {
 	entry, ok := sdbs.pinned[hash]
 	if ok {
 		sdbs.pinned[hash] -= 1
@@ -401,11 +401,11 @@ func (sdbs *StateDBSync[BlockHash, Key]) unpin(hash BlockHash) {
 	}
 }
 
-func (sdbs *StateDBSync[BlockHash, Key]) sync() {
+func (sdbs *stateDBSync[BlockHash, Key]) sync() {
 	sdbs.nonCanonical.Sync()
 }
 
-func (sdbs *StateDBSync[BlockHash, Key]) get(key Key, db NodeDB[Key]) (*DBValue, error) {
+func (sdbs *stateDBSync[BlockHash, Key]) get(key Key, db NodeDB[Key]) (*DBValue, error) {
 	val := sdbs.nonCanonical.Get(key)
 	if val != nil {
 		return val, nil
@@ -439,7 +439,7 @@ func (sdbs *StateDBSync[BlockHash, Key]) get(key Key, db NodeDB[Key]) (*DBValue,
 // See `pruningWindow` for pruning algorithm details. `StateDB` prunes on each canonicalization until
 // pruning constraints are satisfied.
 type StateDB[BlockHash Hash, Key Hash] struct {
-	db StateDBSync[BlockHash, Key]
+	db stateDBSync[BlockHash, Key]
 	sync.RWMutex
 }
 
@@ -496,7 +496,7 @@ func NewStateDB[BlockHash Hash, Key Hash](
 		dbInitCommitSet = cs
 	}
 
-	stateDBSync, err := NewStateDBSync[BlockHash, Key](selectedMode, db)
+	stateDBSync, err := newStateDBSync[BlockHash, Key](selectedMode, db)
 	if err != nil {
 		return CommitSet[Key]{}, StateDB[BlockHash, Key]{}, err
 	}
@@ -596,7 +596,7 @@ func (sdb *StateDB[BlockHash, Key]) IsPruned(hash BlockHash, number uint64) IsPr
 func (sdb *StateDB[BlockHash, Key]) Reset(db MetaDB) error {
 	sdb.Lock()
 	defer sdb.Unlock()
-	new, err := NewStateDBSync[BlockHash, Key](sdb.db.mode, db)
+	new, err := newStateDBSync[BlockHash, Key](sdb.db.mode, db)
 	if err != nil {
 		return err
 	}
