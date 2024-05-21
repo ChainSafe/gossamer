@@ -667,7 +667,7 @@ func fetchStoredPruningMode(db MetaDB) (PruningMode, error) {
 		return nil, err
 	}
 	if val == nil {
-		return nil, fmt.Errorf("unable to retrieve stored value for PRUNING_MODE")
+		return nil, nil //nolint: nilnil
 	}
 	mode := NewPruningModeFromID(*val)
 	if mode != nil {
