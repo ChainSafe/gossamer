@@ -204,63 +204,67 @@ func (table *statementTable) importCandidate(
 		return nil, nil, fmt.Errorf("getting candidate hash: %w", err)
 	}
 
-	var isNewProposal bool
 	proposals, ok := table.authorityData[authority]
 	if !ok {
 		table.authorityData[authority] = []proposal{{candidateHash, signature}}
-		isNewProposal = true
-	} else {
+		table.addCandidateVote(candidateHash, paraID, candidate)
+
+		return table.validityVote(authority, candidateHash,
+			validityVoteWithSign{validityVote: issued, signature: signature}, tableCtx)
+	}
+
+	switch {
+	case !table.config.allowMultipleSeconded && len(proposals) == 1:
+		oldCandidateHash := proposals[0].candidateHash
+		oldSignature := proposals[0].signature
+
 		// if digest is different, fetch candidate and note misbehaviour.
-		if !table.config.allowMultipleSeconded && len(proposals) == 1 {
-			oldCandidateHash := proposals[0].candidateHash
-			oldSignature := proposals[0].signature
-
-			if oldCandidateHash != candidateHash {
-				data, ok := table.candidateVotes[oldCandidateHash]
-				if !ok {
-					// when proposal first received from authority, candidate votes entry is created.
-					// and here authData is not empty, so candidate votes entry should be present.
-					// So, this error should never happen.
-					return nil, nil, fmt.Errorf("%w for candidate-hash: %s", errCandidateDataNotFound, oldCandidateHash)
-				}
-
-				oldCandidate := data.candidate
-
-				misbehaviour := parachaintypes.MultipleCandidates{
-					First: parachaintypes.CommittedCandidateReceiptAndSign{
-						CommittedCandidateReceipt: oldCandidate,
-						Signature:                 oldSignature,
-					},
-					Second: parachaintypes.CommittedCandidateReceiptAndSign{
-						CommittedCandidateReceipt: candidate,
-						Signature:                 signature,
-					},
-				}
-				return nil, misbehaviour, nil
+		if oldCandidateHash != candidateHash {
+			data, ok := table.candidateVotes[oldCandidateHash]
+			if !ok {
+				// when proposal first received from authority, candidate votes entry is created.
+				// and here authData is not empty, so candidate votes entry should be present.
+				// So, this error should never happen.
+				return nil, nil, fmt.Errorf("%w for candidate-hash: %s", errCandidateDataNotFound, oldCandidateHash)
 			}
-		} else if table.config.allowMultipleSeconded && isCandidateAlreadyProposed(proposals, candidateHash) {
-			// nothing to do
-		} else {
-			proposals = append(proposals, proposal{candidateHash, signature})
-			table.authorityData[authority] = proposals
-			isNewProposal = true
+
+			oldCandidate := data.candidate
+
+			misbehaviour := parachaintypes.MultipleCandidates{
+				First: parachaintypes.CommittedCandidateReceiptAndSign{
+					CommittedCandidateReceipt: oldCandidate,
+					Signature:                 oldSignature,
+				},
+				Second: parachaintypes.CommittedCandidateReceiptAndSign{
+					CommittedCandidateReceipt: candidate,
+					Signature:                 signature,
+				},
+			}
+			return nil, misbehaviour, nil
 		}
+	case table.config.allowMultipleSeconded && isCandidateAlreadyProposed(proposals, candidateHash):
+		// nothing to do here.
+	default:
+		proposals = append(proposals, proposal{candidateHash, signature})
+		table.authorityData[authority] = proposals
+
+		table.addCandidateVote(candidateHash, paraID, candidate)
 	}
 
-	if isNewProposal {
-		table.candidateVotes[candidateHash] = &candidateData{
-			groupID:       paraID,
-			candidate:     candidate,
-			validityVotes: make(map[parachaintypes.ValidatorIndex]validityVoteWithSign),
-		}
-	}
+	return table.validityVote(authority, candidateHash,
+		validityVoteWithSign{validityVote: issued, signature: signature}, tableCtx)
+}
 
-	return table.validityVote(
-		authority,
-		candidateHash,
-		validityVoteWithSign{validityVote: issued, signature: signature},
-		tableCtx,
-	)
+func (table *statementTable) addCandidateVote(
+	candidateHash parachaintypes.CandidateHash,
+	paraID parachaintypes.ParaID,
+	candidate parachaintypes.CommittedCandidateReceipt,
+) {
+	table.candidateVotes[candidateHash] = &candidateData{
+		groupID:       paraID,
+		candidate:     candidate,
+		validityVotes: make(map[parachaintypes.ValidatorIndex]validityVoteWithSign),
+	}
 }
 
 func (table *statementTable) validityVote(
