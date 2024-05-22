@@ -7,7 +7,6 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
-	"math"
 	"slices"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -349,22 +348,21 @@ func (table *statementTable) validityVote(
 func (table *statementTable) attestedCandidate(
 	candidateHash parachaintypes.CandidateHash, tableCtx *tableContext, minimumBackingVotes uint32,
 ) (*attestedCandidate, error) {
-	// size of the backing group.
-	var groupLen uint
-
 	data, ok := table.candidateVotes[candidateHash]
 	if !ok {
 		return nil, fmt.Errorf("%w for candidate-hash: %s", errCandidateDataNotFound, candidateHash)
 	}
 
+	var validityThreshold uint
 	group, ok := tableCtx.groups[data.groupID]
 	if ok {
-		groupLen = uint(len(group))
+		// size of the backing group.
+		groupLen := uint(len(group))
+		validityThreshold = effectiveMinimumBackingVotes(groupLen, minimumBackingVotes)
 	} else {
-		groupLen = math.MaxUint
+		validityThreshold = uint(minimumBackingVotes)
 	}
 
-	validityThreshold := effectiveMinimumBackingVotes(groupLen, minimumBackingVotes)
 	return data.attested(validityThreshold)
 }
 
