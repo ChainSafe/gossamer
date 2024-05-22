@@ -986,10 +986,8 @@ func (h *testHarness) processMessages() {
 	for {
 		select {
 		case msg := <-h.overseer.SubsystemsToOverseer:
-			//if h.processes != nil && processIndex < len(h.processes) {
 			h.processes[processIndex](msg)
 			processIndex++
-			//}
 		case <-h.overseer.ctx.Done():
 			if err := h.overseer.ctx.Err(); err != nil {
 				logger.Errorf("ctx error: %v\n", err)
@@ -1024,6 +1022,13 @@ func (h *testHarness) importLeaf(t *testing.T, parentHash common.Hash,
 	}
 	activatedLeaf := header.Hash()
 
+	h.overseer.broadcast(parachaintypes.ActiveLeavesUpdateSignal{
+		Activated: &parachaintypes.ActivatedLeaf{
+			Hash:   activatedLeaf,
+			Number: uint32(1),
+		},
+	})
+
 	h.processes = append(h.processes, func(msg any) {
 		msg2, _ := msg.(chainapi.ChainAPIMessage[chainapi.BlockHeader])
 		msg2.ResponseChannel <- header
@@ -1047,13 +1052,6 @@ func (h *testHarness) importLeaf(t *testing.T, parentHash common.Hash,
 		inst.EXPECT().ParachainHostCandidateEvents().Return(&candidateEvents, nil)
 
 		msg2.Resp <- inst
-	})
-
-	h.overseer.broadcast(parachaintypes.ActiveLeavesUpdateSignal{
-		Activated: &parachaintypes.ActivatedLeaf{
-			Hash:   activatedLeaf,
-			Number: uint32(1),
-		},
 	})
 
 	return activatedLeaf
