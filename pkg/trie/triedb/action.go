@@ -3,8 +3,11 @@
 
 package triedb
 
+// Action is an enum used in the trie db to represent the different types of
+// actions that can be performed during a trie insertion / deletion
+// this is useful to perform this changes in our temporal structure
+// see `Triedb.inspect` for more details
 type Action interface {
-	isInsertAction()
 	getNode() Node
 }
 
@@ -18,9 +21,6 @@ type (
 	Delete struct{}
 )
 
-func (Replace) isInsertAction() {}
 func (r Replace) getNode() Node { return r.node }
-func (Restore) isInsertAction() {}
 func (r Restore) getNode() Node { return r.node }
-func (Delete) isInsertAction()  {}
 func (Delete) getNode() Node    { return nil }
