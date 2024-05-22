@@ -11,49 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 )
 
-type StorageHandle struct{ int }
-
-func (sh StorageHandle) toNodeHandle() NodeHandle {
-	return InMemory{idx: sh}
-}
-
-type NodeHandle interface {
-	isNodeHandle()
-}
-
-type (
-	InMemory struct {
-		idx StorageHandle
-	}
-	Hash struct {
-		hash common.Hash
-	}
-)
-
-func (InMemory) isNodeHandle() {}
-func (Hash) isNodeHandle()     {}
-
-func newFromEncodedMerkleValue(
-	parentHash common.Hash,
-	encodedNodeHandle codec.MerkleValue,
-	storage NodeStorage,
-) (NodeHandle, error) {
-	switch encoded := encodedNodeHandle.(type) {
-	case codec.HashedNode:
-		return Hash{hash: common.NewHash(encoded.Data)}, nil
-	case codec.InlineNode:
-		child, err := newNodeFromEncoded(parentHash, encoded.Data, storage)
-		if err != nil {
-			return nil, err
-		}
-		return InMemory{storage.alloc(New{child})}, nil
-	default:
-		panic("unreachable")
-	}
-}
-
 type Value interface {
-	isValue()
 	getHash() common.Hash
 }
 
@@ -72,11 +30,8 @@ type (
 	}
 )
 
-func (Inline) isValue()                  {}
 func (Inline) getHash() common.Hash      { return common.EmptyHash }
-func (ValueRef) isValue()                {}
 func (vr ValueRef) getHash() common.Hash { return vr.hash }
-func (NewValueRef) isValue()             {}
 func (vr NewValueRef) getHash() common.Hash {
 	if vr.hash == nil {
 		return common.EmptyHash

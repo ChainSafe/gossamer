@@ -5,11 +5,62 @@ package triedb
 
 import (
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 	"github.com/gammazero/deque"
 )
 
+// StorageHandle is a pointer to a node contained in `NodeStorage`
+type StorageHandle struct{ int }
+
+func (sh StorageHandle) toNodeHandle() NodeHandle {
+	return InMemory{idx: sh}
+}
+
+// NodeHandle is an enum for the different types of nodes that can be stored in
+// in our trieDB before a commit is applied
+// This is useful to mantain the trie structure with nodes that could be loaded
+// in memory or are a hash to a node that is stored in the backed db
+type NodeHandle interface {
+	isNodeHandle()
+}
+
+type (
+	InMemory struct {
+		idx StorageHandle
+	}
+	Hash struct {
+		hash common.Hash
+	}
+)
+
+func (InMemory) isNodeHandle() {}
+func (Hash) isNodeHandle()     {}
+
+func newFromEncodedMerkleValue(
+	parentHash common.Hash,
+	encodedNodeHandle codec.MerkleValue,
+	storage NodeStorage,
+) (NodeHandle, error) {
+	switch encoded := encodedNodeHandle.(type) {
+	case codec.HashedNode:
+		return Hash{hash: common.NewHash(encoded.Data)}, nil
+	case codec.InlineNode:
+		child, err := newNodeFromEncoded(parentHash, encoded.Data, storage)
+		if err != nil {
+			return nil, err
+		}
+		return InMemory{storage.alloc(New{child})}, nil
+	default:
+		panic("unreachable")
+	}
+}
+
+// StoredNode is an enum for temporal nodes stored in the trieDB
+// these nodes could be either new nodes or cached nodes
+// New nodes are used to know that we need to add them in our backed db
+// Cached nodes are loaded in memory and are used to keep the structure of the
+// trie
 type StoredNode interface {
-	isStoredNode()
 	getNode() Node
 }
 
@@ -23,11 +74,9 @@ type (
 	}
 )
 
-func (New) isStoredNode() {}
 func (n New) getNode() Node {
 	return n.node
 }
-func (Cached) isStoredNode() {}
 func (n Cached) getNode() Node {
 	return n.node
 }
@@ -36,6 +85,8 @@ func NewNewNode(node Node) New {
 	return New{node}
 }
 
+// NodeStorage is a struct that contains all the temporal nodes that are stored
+// in the trieDB before being written to the backed db
 type NodeStorage struct {
 	nodes       []StoredNode
 	freeIndices *deque.Deque[int]
