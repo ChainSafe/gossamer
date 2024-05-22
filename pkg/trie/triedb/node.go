@@ -125,7 +125,7 @@ func InMemoryFetchedValue(value Value, prefix []byte, db db.DBGetter, fullKey []
 	}
 }
 
-var EmptyNode = []byte{EmptyTrie}
+var EmptyNode = make([]byte, 0)
 var HashedNullNode = common.MustBlake2bHash(EmptyNode)
 
 type Node interface {
