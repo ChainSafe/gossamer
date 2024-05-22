@@ -138,3 +138,44 @@ func TestStatementTable_attestedCandidate(t *testing.T) {
 		})
 	}
 }
+
+func TestStatementTable_importStatement(t *testing.T) {
+
+	tableCtx := &tableContext{}
+	config := tableConfig{}
+
+	committedCandidate := getDummyCommittedCandidateReceipt(t)
+
+	secondedStatement := parachaintypes.NewStatementVDT()
+	err := secondedStatement.Set(parachaintypes.Seconded(committedCandidate))
+	require.NoError(t, err)
+
+	signedStatement := parachaintypes.SignedFullStatement{
+		Payload: secondedStatement,
+	}
+
+	table := newTable(config)
+	summary, err := table.importStatement(tableCtx, signedStatement)
+	require.NoError(t, err)
+	require.Nil(t, summary)
+
+	require.Len(t, table.detectedMisbehaviour, 1)
+
+	// ===
+
+	candidateHash, err := parachaintypes.GetCandidateHash(committedCandidate)
+	require.NoError(t, err)
+
+	validStatement := parachaintypes.NewStatementVDT()
+	err = validStatement.Set(parachaintypes.Valid(candidateHash))
+	require.NoError(t, err)
+
+	signedStatement = parachaintypes.SignedFullStatement{
+		Payload: validStatement,
+	}
+
+	summary, err = table.importStatement(tableCtx, signedStatement)
+	require.NoError(t, err)
+	require.Nil(t, summary)
+	require.Len(t, table.detectedMisbehaviour, 1)
+}
