@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInsertions(t *testing.T) {
+func TestWrites(t *testing.T) {
 	inmemoryDB := db.NewMemoryDB(make([]byte, 1))
 	trieDB := NewTrieDB(trie.EmptyHash, inmemoryDB, nil)
 
@@ -25,14 +25,43 @@ func TestInsertions(t *testing.T) {
 		"dimartiro": []byte("dimartiroValue"),
 	}
 
+	t.Run("inserts are successful", func(t *testing.T) {
+		for k, v := range entries {
+			err := trieDB.Put([]byte(k), v)
+			assert.NoError(t, err)
+		}
+
+		for k, v := range entries {
+			valueFromTrieDB := trieDB.Get([]byte(k))
+			assert.Equal(t, v, valueFromTrieDB)
+		}
+	})
+
+	t.Run("delete leaf ok", func(t *testing.T) {
+
+	})
+
+}
+
+func TestDeletes(t *testing.T) {
+	inmemoryDB := db.NewMemoryDB(make([]byte, 1))
+	trieDB := NewTrieDB(trie.EmptyHash, inmemoryDB, nil)
+
+	entries := map[string][]byte{
+		"no":   []byte("noValue"),
+		"not":  []byte("notValue"),
+		"note": []byte("noteValue"),
+		"a":    []byte("aValue"),
+	}
+
 	for k, v := range entries {
 		err := trieDB.Put([]byte(k), v)
 		assert.NoError(t, err)
 	}
 
-	for k, v := range entries {
-		valueFromTrieDB := trieDB.Get([]byte(k))
-		assert.Equal(t, v, valueFromTrieDB)
-	}
+	err := trieDB.Delete([]byte("not"))
+	assert.NoError(t, err)
 
+	valueFromTrieDB := trieDB.Get([]byte("not"))
+	assert.Nil(t, valueFromTrieDB)
 }
