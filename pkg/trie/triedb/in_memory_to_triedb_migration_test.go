@@ -28,13 +28,13 @@ func TestWriteTrieDB_Migration(t *testing.T) {
 	trieDB := NewTrieDB(trie.EmptyHash, inmemoryDB, nil)
 
 	entries := map[string][]byte{
-		"no":        []byte("no"),
-		"noot":      []byte("noot"),
-		"not":       []byte("not"),
-		"a":         []byte("a"),
-		"b":         []byte("b"),
-		"test":      []byte("test"),
-		"dimartiro": []byte("dimartiro"),
+		"no":        []byte("noValue"),
+		"noot":      []byte("nootValue"),
+		"not":       []byte("notValue"),
+		"a":         []byte("aValue"),
+		"b":         []byte("bValue"),
+		"test":      []byte("testValue"),
+		"dimartiro": []byte("dimartiroValue"),
 	}
 
 	for k, v := range entries {
