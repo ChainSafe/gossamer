@@ -5,7 +5,6 @@ package triedb
 
 import (
 	"bytes"
-	"fmt"
 
 	nibbles "github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
@@ -16,7 +15,7 @@ type iteratorState struct {
 	node          codec.Node // actual node
 }
 
-// fullKeyNibbles return the full key of the node contained in this state.
+// fullKeyNibbles return the full key of the node contained in this state
 // child is the child where the node is stored in the parent node
 func (s *iteratorState) fullKeyNibbles(child *int) []byte {
 	fullKey := bytes.Join([][]byte{s.parentFullKey, s.node.GetPartialKey()}, nil)
@@ -89,10 +88,7 @@ func (i *TrieDBIterator) NextEntry() *entry {
 		switch n := currentNode.(type) {
 		case codec.Leaf:
 			key := currentState.fullKeyNibbles(nil)
-			value, err := i.db.loadValue(n.PartialKey, n.GetValue())
-			if err != nil {
-				panic(fmt.Sprintf("Error loading value for key %x: %s", key, err.Error()))
-			}
+			value := i.db.Get(key)
 			return &entry{key: key, value: value}
 		case codec.Branch:
 			// Reverse iterate over children because we are using a LIFO stack
@@ -109,10 +105,7 @@ func (i *TrieDBIterator) NextEntry() *entry {
 			}
 			if n.GetValue() != nil {
 				key := currentState.fullKeyNibbles(nil)
-				value, err := i.db.loadValue(n.PartialKey, n.GetValue())
-				if err != nil {
-					panic(fmt.Sprintf("Error loading value for key %x: %s", key, err.Error()))
-				}
+				value := i.db.Get(key)
 				return &entry{key: key, value: value}
 			}
 		}
