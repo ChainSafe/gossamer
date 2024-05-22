@@ -5,8 +5,8 @@ package candidatevalidation
 
 import (
 	"context"
+	"errors"
 	"os"
-	"reflect"
 	"testing"
 	"time"
 
@@ -41,7 +41,7 @@ func createTestCandidateReceiptAndValidationCode(t *testing.T) (
 			RelayParent:                 common.MustHexToHash("0xded542bacb3ca6c033a57676f94ae7c8f36834511deb44e3164256fd3b1c0de0"), //nolint:lll
 			Collator:                    collatorID.AsBytes(),
 			PersistedValidationDataHash: common.MustHexToHash("0x690d8f252ef66ab0f969c3f518f90012b849aa5ac94e1752c5e5ae5a8996de37"), //nolint:lll
-			PovHash:                     common.MustHexToHash("0xe7df1126ac4b4f0fb1bc00367a12ec26ca7c51256735a5e11beecdc1e3eca274"), //nolint:lll
+			PovHash:                     common.MustHexToHash("0xb608991ffc48dd405fd4b10e92eaebe2b5a2eedf44d0c3efb8997fdee8bebed9"), //nolint:lll
 			ErasureRoot:                 common.MustHexToHash("0xc07f658163e93c45a6f0288d229698f09c1252e41076f4caa71c8cbc12f118a1"), //nolint:lll
 			ParaHead:                    common.MustHexToHash("0x9a8a7107426ef873ab89fc8af390ec36bdb2f744a9ff71ad7f18a12d55a7f4f5"), //nolint:lll
 			ValidationCodeHash:          parachaintypes.ValidationCodeHash(validationCodeHashV),
@@ -116,7 +116,7 @@ func TestValidateFromChainState(t *testing.T) {
 
 	mockPoVRequestor := NewMockPoVRequestor(ctrl)
 	mockPoVRequestor.EXPECT().
-		RequestPoV(common.MustHexToHash("0xe7df1126ac4b4f0fb1bc00367a12ec26ca7c51256735a5e11beecdc1e3eca274")).Return(pov)
+		RequestPoV(common.MustHexToHash("0xb608991ffc48dd405fd4b10e92eaebe2b5a2eedf44d0c3efb8997fdee8bebed9")).Return(pov)
 
 	candidateCommitments, persistedValidationData, isValid, err := validateFromChainState(
 		mockInstance, mockPoVRequestor, candidateReceipt)
@@ -139,7 +139,9 @@ type BlockDataInAdderParachain struct {
 
 func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 	candidateReceipt, validationCode := createTestCandidateReceiptAndValidationCode(t)
-
+	candidateReceipt2 := candidateReceipt
+	candidateReceipt2.Descriptor.PovHash = common.MustHexToHash(
+		"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
 	bd, err := scale.Marshal(BlockDataInAdderParachain{
 		State: uint64(1),
 		Add:   uint64(1),
@@ -171,10 +173,52 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 		pov                     parachaintypes.PoV
 	}
 	tests := map[string]struct {
-		args    args
-		want    *parachainruntime.ValidationResult
-		wantErr bool
+		args          args
+		want          *parachainruntime.ValidationResult
+		expectedError error
 	}{
+		"invalid_pov_hash": {
+			args: args{
+				persistedValidationData: parachaintypes.PersistedValidationData{
+					ParentHead:             parachaintypes.HeadData{Data: hd},
+					RelayParentNumber:      uint32(1),
+					RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
+					MaxPovSize:             uint32(2048),
+				},
+				validationCode:   validationCode,
+				candidateReceipt: candidateReceipt2,
+				pov:              pov,
+			},
+			expectedError: ErrValidationPoVHashMismatch,
+		},
+		"invalid_pov_size": {
+			args: args{
+				persistedValidationData: parachaintypes.PersistedValidationData{
+					ParentHead:             parachaintypes.HeadData{Data: hd},
+					RelayParentNumber:      uint32(1),
+					RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
+					MaxPovSize:             uint32(10),
+				},
+				validationCode:   validationCode,
+				candidateReceipt: candidateReceipt,
+				pov:              pov,
+			},
+			expectedError: errors.New("validation parameters are too large, limit: 10, got: 17"),
+		},
+		"code_mismatch": {
+			args: args{
+				persistedValidationData: parachaintypes.PersistedValidationData{
+					ParentHead:             parachaintypes.HeadData{Data: hd},
+					RelayParentNumber:      uint32(1),
+					RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
+					MaxPovSize:             uint32(2048),
+				},
+				validationCode:   []byte{1, 2, 3, 4, 5, 6, 7, 8},
+				candidateReceipt: candidateReceipt,
+				pov:              pov,
+			},
+			expectedError: ErrValidationCodeMismatch,
+		},
 		"happy_path": {
 			args: args{
 				persistedValidationData: parachaintypes.PersistedValidationData{
@@ -195,26 +239,28 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				ProcessedDownwardMessages: 0,
 				HrmpWatermark:             1,
 			},
-			wantErr: false,
 		},
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			got, err := validateFromExhaustive(tt.args.persistedValidationData, tt.args.validationCode,
 				tt.args.candidateReceipt, tt.args.pov)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("validateFromExhaustive() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.expectedError != nil {
+				require.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				require.NoError(t, err)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("validateFromExhaustive() got = %v, want %v", got, tt.want)
-			}
+
+			require.Equal(t, tt.want, got)
 		})
 	}
 }
 
 func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) {
 	candidateReceipt, validationCode := createTestCandidateReceiptAndValidationCode(t)
+	candidateReceipt2 := candidateReceipt
+	candidateReceipt2.Descriptor.PovHash = common.MustHexToHash(
+		"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
 	bd, err := scale.Marshal(BlockDataInAdderParachain{
 		State: uint64(1),
 		Add:   uint64(1),
@@ -237,14 +283,6 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 	})
 	require.NoError(t, err)
 
-	expected := &parachainruntime.ValidationResult{
-		HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123, 207, 206, 8, 219, 227,
-			136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245, 59, 106, 76, 168, 122, 109,
-			164, 169, 22, 46, 144, 39, 103, 92, 31, 78, 66, 72, 252, 64, 24, 194, 129, 162, 128, 1, 77, 147,
-			200, 229, 189, 242, 111, 198, 236, 139, 16, 143, 19, 245, 113, 233, 138, 210}},
-		ProcessedDownwardMessages: 0,
-		HrmpWatermark:             1}
-
 	toSubsystem := make(chan any)
 	sender := make(chan ValidationResultMessage)
 	stopChan := make(chan struct{})
@@ -255,22 +293,95 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 	defer candidateValidationSubsystem.Stop()
 
 	candidateValidationSubsystem.Run(context.Background(), nil, nil)
-	time.Sleep(100 * time.Millisecond)
-	toSubsystem <- ValidateFromExhaustive{
-		PersistedValidationData: parachaintypes.PersistedValidationData{
-			ParentHead:             parachaintypes.HeadData{Data: hd},
-			RelayParentNumber:      uint32(1),
-			RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
-			MaxPovSize:             uint32(2048),
+
+	tests := map[string]struct {
+		msg  ValidateFromExhaustive
+		want ValidationResultMessage
+	}{
+		"invalid_pov_hash": {
+			msg: ValidateFromExhaustive{
+				PersistedValidationData: parachaintypes.PersistedValidationData{
+					ParentHead:             parachaintypes.HeadData{Data: hd},
+					RelayParentNumber:      uint32(1),
+					RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
+					MaxPovSize:             uint32(2048),
+				},
+				ValidationCode:   validationCode,
+				CandidateReceipt: candidateReceipt2,
+				Pov:              pov,
+				Sender:           sender,
+			},
+			want: ValidationResultMessage{
+				ValidationFailed: ErrValidationPoVHashMismatch.Error(),
+			},
 		},
-		ValidationCode:   validationCode,
-		CandidateReceipt: candidateReceipt,
-		Pov:              pov,
-		ExecutorParams:   parachaintypes.ExecutorParams{},
-		ExecKind:         parachaintypes.PvfExecTimeoutKind{},
-		Sender:           sender,
+		"invalid_pov_size": {
+			msg: ValidateFromExhaustive{
+				PersistedValidationData: parachaintypes.PersistedValidationData{
+					ParentHead:             parachaintypes.HeadData{Data: hd},
+					RelayParentNumber:      uint32(1),
+					RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
+					MaxPovSize:             uint32(10),
+				},
+				ValidationCode:   validationCode,
+				CandidateReceipt: candidateReceipt,
+				Pov:              pov,
+				Sender:           sender,
+			},
+			want: ValidationResultMessage{
+				ValidationFailed: "validation parameters are too large, limit: 10, got: 17",
+			},
+		},
+		"code_mismatch": {
+			msg: ValidateFromExhaustive{
+				PersistedValidationData: parachaintypes.PersistedValidationData{
+					ParentHead:             parachaintypes.HeadData{Data: hd},
+					RelayParentNumber:      uint32(1),
+					RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
+					MaxPovSize:             uint32(2048),
+				},
+				ValidationCode:   []byte{1, 2, 3, 4, 5, 6, 7, 8},
+				CandidateReceipt: candidateReceipt,
+				Pov:              pov,
+				Sender:           sender,
+			},
+			want: ValidationResultMessage{
+				ValidationFailed: ErrValidationCodeMismatch.Error(),
+			},
+		},
+		"happy_path": {
+			msg: ValidateFromExhaustive{
+				PersistedValidationData: parachaintypes.PersistedValidationData{
+					ParentHead:             parachaintypes.HeadData{Data: hd},
+					RelayParentNumber:      uint32(1),
+					RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
+					MaxPovSize:             uint32(2048),
+				},
+				ValidationCode:   validationCode,
+				CandidateReceipt: candidateReceipt,
+				Pov:              pov,
+				Sender:           sender,
+			},
+			want: ValidationResultMessage{
+				ValidationResult: parachainruntime.ValidationResult{
+					HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123, 207, 206, 8, 219, 227,
+						136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245, 59, 106, 76, 168, 122, 109,
+						164, 169, 22, 46, 144, 39, 103, 92, 31, 78, 66, 72, 252, 64, 24, 194, 129, 162, 128, 1, 77, 147,
+						200, 229, 189, 242, 111, 198, 236, 139, 16, 143, 19, 245, 113, 233, 138, 210}},
+					ProcessedDownwardMessages: 0,
+					HrmpWatermark:             1,
+				},
+				ValidationFailed: "",
+			},
+		},
 	}
-	time.Sleep(100 * time.Millisecond)
-	result := <-sender
-	require.Equal(t, ValidationResultMessage{ValidationResult: *expected, ValidationFailed: ""}, result)
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			time.Sleep(100 * time.Millisecond)
+			toSubsystem <- tt.msg
+			time.Sleep(100 * time.Millisecond)
+			result := <-sender
+			require.Equal(t, tt.want, result)
+		})
+	}
 }

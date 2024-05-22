@@ -20,8 +20,10 @@ import (
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-candidate-validation"))
 
 var (
-	ErrValidationCodeMismatch   = errors.New("validation code hash does not match")
-	ErrValidationInputOverLimit = errors.New("validation input is over the limit")
+	ErrValidationCodeMismatch    = errors.New("validation code hash does not match")
+	ErrValidationInputOverLimit  = errors.New("validation input is over the limit")
+	ErrValidationParamsTooLarge  = errors.New("validation parameters are too large")
+	ErrValidationPoVHashMismatch = errors.New("PoV hash does not match candidate PoV hash")
 )
 
 type CandidateValidation struct {
@@ -222,8 +224,16 @@ func validateFromChainState(runtimeInstance parachainruntime.RuntimeInstance, po
 // validateFromExhaustive validates a candidate parachain block with provided parameters
 func validateFromExhaustive(persistedValidationData parachaintypes.PersistedValidationData,
 	validationCode parachaintypes.ValidationCode,
-	candidateReceipt parachaintypes.CandidateReceipt, pov parachaintypes.PoV) ( //nolint:unparam
+	candidateReceipt parachaintypes.CandidateReceipt, pov parachaintypes.PoV) (
 	*parachainruntime.ValidationResult, error) {
+
+	validationCodeHash := validationCode.Hash()
+	// basic checks
+	err := performBasicChecks(&candidateReceipt.Descriptor, persistedValidationData.MaxPovSize, pov,
+		validationCodeHash)
+	if err != nil {
+		return nil, err
+	}
 
 	parachainRuntimeInstance, err := parachainruntime.SetupVM(validationCode)
 	if err != nil {
@@ -243,4 +253,32 @@ func validateFromExhaustive(persistedValidationData parachaintypes.PersistedVali
 	}
 
 	return validationResults, nil
+}
+
+func performBasicChecks(candidate *parachaintypes.CandidateDescriptor, maxPoVSize uint32,
+	pov parachaintypes.PoV, validationCodeHash parachaintypes.ValidationCodeHash) error {
+	povHash, err := pov.Hash()
+	if err != nil {
+		return fmt.Errorf("hashing PoV: %w", err)
+	}
+
+	encodedPoV, err := pov.Encode()
+	if err != nil {
+		return fmt.Errorf("encoding PoV: %w", err)
+	}
+	encodedPoVSize := uint32(len(encodedPoV))
+
+	if encodedPoVSize > maxPoVSize {
+		return fmt.Errorf("%w, limit: %d, got: %d", ErrValidationParamsTooLarge, maxPoVSize, encodedPoVSize)
+	}
+
+	if povHash != candidate.PovHash {
+		return ErrValidationPoVHashMismatch
+	}
+
+	if validationCodeHash != candidate.ValidationCodeHash {
+		return ErrValidationCodeMismatch
+	}
+
+	return candidate.CheckCollatorSignature()
 }
