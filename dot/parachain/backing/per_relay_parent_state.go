@@ -120,7 +120,7 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		return
 	}
 
-	attested, err := rpState.table.attestedCandidate(summary.Candidate, &rpState.tableContext)
+	attested, err := rpState.table.attestedCandidate(summary.Candidate, &rpState.tableContext, rpState.minBackingVotes)
 	if err != nil {
 		logger.Error(err.Error())
 	}
@@ -131,7 +131,7 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		return
 	}
 
-	hash, err := attested.Candidate.Hash()
+	hash, err := attested.committedCandidateReceipt.Hash()
 	if err != nil {
 		logger.Error(err.Error())
 		return
@@ -215,10 +215,10 @@ func issueNewMisbehaviors(subSystemToOverseer chan<- any, relayParent common.Has
 }
 
 func attestedToBackedCandidate(
-	attested AttestedCandidate,
+	attested attestedCandidate,
 	tableContext *TableContext,
 ) *parachaintypes.BackedCandidate {
-	group := tableContext.groups[attested.GroupID]
+	group := tableContext.groups[attested.groupID]
 	validatorIndices := make([]bool, len(group))
 	var validityAttestations []parachaintypes.ValidityAttestation
 
@@ -226,10 +226,10 @@ func attestedToBackedCandidate(
 	// the order of bits set in the bitfield, which is not necessarily
 	// the order of the `validity_votes` we got from the table.
 	for positionInGroup, validatorIndex := range group {
-		for _, validityVote := range attested.ValidityAttestations {
-			if validityVote.ValidatorIndex == validatorIndex {
+		for _, validityVote := range attested.validityAttestations {
+			if validityVote.validatorIndex == validatorIndex {
 				validatorIndices[positionInGroup] = true
-				validityAttestations = append(validityAttestations, validityVote.ValidityAttestation)
+				validityAttestations = append(validityAttestations, validityVote.validityAttestation)
 			}
 		}
 
@@ -240,7 +240,7 @@ func attestedToBackedCandidate(
 	}
 
 	return &parachaintypes.BackedCandidate{
-		Candidate:        attested.Candidate,
+		Candidate:        attested.committedCandidateReceipt,
 		ValidityVotes:    validityAttestations,
 		ValidatorIndices: scale.NewBitVec(validatorIndices),
 	}
