@@ -234,9 +234,9 @@ func (t *TrieDB) inspect(
 		}
 		switch a := action.(type) {
 		case Restore:
-			return NewNewNode(a.node), false, nil
+			return NewStoredNodeNew(a.node), false, nil
 		case Replace:
-			return NewNewNode(a.node), true, nil
+			return NewStoredNodeNew(a.node), true, nil
 		case Delete:
 			return nil, false, nil
 		default:
@@ -252,7 +252,7 @@ func (t *TrieDB) inspect(
 			return Cached{a.node, n.hash}, false, nil
 		case Replace:
 			t.deathRow[n.hash] = nil
-			return NewNewNode(a.node), true, nil
+			return NewStoredNodeNew(a.node), true, nil
 		case Delete:
 			t.deathRow[n.hash] = nil
 			return nil, false, nil

@@ -81,7 +81,7 @@ func (n Cached) getNode() Node {
 	return n.node
 }
 
-func NewNewNode(node Node) New {
+func NewStoredNodeNew(node Node) New {
 	return New{node}
 }
 
