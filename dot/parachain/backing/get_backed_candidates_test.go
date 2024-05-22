@@ -42,6 +42,7 @@ func TestHandleGetBackedCandidatesMessage(t *testing.T) {
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(uint32(0)),
 				).Return(nil, errors.New("could not get attested candidate from table"))
 
 				return map[common.Hash]*perRelayParentState{
@@ -60,6 +61,7 @@ func TestHandleGetBackedCandidatesMessage(t *testing.T) {
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
+					gomock.AssignableToTypeOf(uint32(0)),
 				).Return(nil, nil)
 
 				return map[common.Hash]*perRelayParentState{
@@ -78,7 +80,8 @@ func TestHandleGetBackedCandidatesMessage(t *testing.T) {
 				mockTable.EXPECT().attestedCandidate(
 					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
 					gomock.AssignableToTypeOf(new(TableContext)),
-				).Return(new(AttestedCandidate), nil)
+					gomock.AssignableToTypeOf(uint32(0)),
+				).Return(new(attestedCandidate), nil)
 
 				return map[common.Hash]*perRelayParentState{
 					getDummyHash(t, 2): {

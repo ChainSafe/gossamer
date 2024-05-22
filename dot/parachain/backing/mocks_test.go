@@ -41,18 +41,18 @@ func (m *MockTable) EXPECT() *MockTableMockRecorder {
 }
 
 // attestedCandidate mocks base method.
-func (m *MockTable) attestedCandidate(arg0 parachaintypes.CandidateHash, arg1 *TableContext) (*AttestedCandidate, error) {
+func (m *MockTable) attestedCandidate(arg0 parachaintypes.CandidateHash, arg1 *TableContext, arg2 uint32) (*attestedCandidate, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "attestedCandidate", arg0, arg1)
-	ret0, _ := ret[0].(*AttestedCandidate)
+	ret := m.ctrl.Call(m, "attestedCandidate", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*attestedCandidate)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // attestedCandidate indicates an expected call of attestedCandidate.
-func (mr *MockTableMockRecorder) attestedCandidate(arg0, arg1 any) *gomock.Call {
+func (mr *MockTableMockRecorder) attestedCandidate(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "attestedCandidate", reflect.TypeOf((*MockTable)(nil).attestedCandidate), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "attestedCandidate", reflect.TypeOf((*MockTable)(nil).attestedCandidate), arg0, arg1, arg2)
 }
 
 // drainMisbehaviors mocks base method.
