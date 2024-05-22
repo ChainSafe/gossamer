@@ -225,7 +225,6 @@ func (t *TrieDB) inspect(
 	key []byte,
 	inspector func(Node, []byte) (Action, error),
 ) (StoredNode, bool, error) {
-	//currentKey := key
 	switch n := stored.(type) {
 	case New:
 		action, err := inspector(n.node, key)
