@@ -149,7 +149,7 @@ func (table *statementTable) importStatement(
 		)
 	}
 
-	if err != nil {
+	if err != nil && !errors.Is(err, errCandidateDataNotFound) {
 		return nil, err
 	}
 
@@ -222,9 +222,9 @@ func (table *statementTable) importCandidate(
 			data, ok := table.candidateVotes[oldCandidateHash]
 			if !ok {
 				// when proposal first received from authority, candidate votes entry is created.
-				// and here authData is not empty, so candidate votes entry should be present.
-				// So, this error should never happen.
-				return nil, nil, fmt.Errorf("%w for candidate-hash: %s", errCandidateDataNotFound, oldCandidateHash)
+				// and here proposals is not empty, so candidate votes entry should be present.
+				// So, this should never happen.
+				panic(fmt.Sprintf("%s for candidate-hash: %s", errCandidateDataNotFound, oldCandidateHash))
 			}
 
 			oldCandidate := data.candidate
@@ -274,7 +274,7 @@ func (table *statementTable) validityVote(
 ) (*Summary, parachaintypes.Misbehaviour, error) {
 	data, ok := table.candidateVotes[candidateHash]
 	if !ok {
-		return nil, nil, fmt.Errorf("%w for candidate-hash: %s", errCandidateDataNotFound, candidateHash)
+		return nil, nil, errCandidateDataNotFound
 	}
 
 	// check that this authority actually can vote in this group.
@@ -385,7 +385,7 @@ type Table interface {
 	drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport
 }
 
-func newTable(config tableConfig) Table {
+func newTable(config tableConfig) *statementTable {
 	return &statementTable{
 		authorityData:        make(map[parachaintypes.ValidatorIndex][]proposal),
 		detectedMisbehaviour: make(map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour),
