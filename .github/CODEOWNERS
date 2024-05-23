@@ -1,4 +1,16 @@
 # CODEOWNERS: https://help.github.com/articles/about-codeowners/
 
 # Primary repo maintainers
-*      @edwardmack @timwu20 @EclesioMeloJunior @jimjbrettj @kishansagathiya @dimartiro @axaysagathiya
+* @P1sar @timwu20
+
+/dot/ @EclesioMeloJunior @jimbrettj @timwu20
+
+/internal/ @EclesioMeloJunior @jimbrettj @timwu20
+
+/lib/ @EclesioMeloJunior @jimbrettj @timwu20
+
+/pkg/ @timwu20
+
+/scripts/ @EclesioMeloJunior
+
+/zombienet_tets/ @edwardmack
