@@ -24,6 +24,7 @@ import (
 type storageDiff struct {
 	upserts        map[string][]byte
 	deletes        map[string]bool
+	sortedKeys     []string
 	childChangeSet map[string]*storageDiff
 }
 
@@ -66,6 +67,7 @@ func (cs *storageDiff) upsert(key string, value []byte) {
 	}
 
 	cs.upserts[key] = value
+	cs.insertSortedKey(key)
 }
 
 // delete marks a key for deletion and removes it from upserts and
@@ -78,6 +80,7 @@ func (cs *storageDiff) delete(key string) {
 	delete(cs.childChangeSet, key)
 	delete(cs.upserts, key)
 	cs.deletes[key] = true
+	cs.removeSortedKey(key)
 }
 
 // deleteChildLimit deletes lexicographical sorted keys from a child trie with
@@ -198,6 +201,7 @@ func (cs *storageDiff) upsertChild(keyToChild, key string, value []byte) {
 
 	childChanges.upserts[key] = value
 	cs.childChangeSet[keyToChild] = childChanges
+	childChanges.insertSortedKey(key)
 }
 
 // deleteFromChild marks a key for deletion within a specific child trie.
@@ -213,6 +217,7 @@ func (cs *storageDiff) deleteFromChild(keyToChild, key string) {
 
 	childChanges.delete(key)
 	cs.childChangeSet[keyToChild] = childChanges
+	childChanges.removeSortedKey(key)
 }
 
 // snapshot creates a deep copy of the current change set, including all upserts,
@@ -231,6 +236,7 @@ func (cs *storageDiff) snapshot() *storageDiff {
 		upserts:        maps.Clone(cs.upserts),
 		deletes:        maps.Clone(cs.deletes),
 		childChangeSet: childChangeSetCopy,
+		sortedKeys:     slices.Clone(cs.sortedKeys),
 	}
 }
 
@@ -288,5 +294,25 @@ func (cs *storageDiff) applyToTrie(t trie.Trie) {
 			}
 		}
 
+	}
+}
+
+func (cs *storageDiff) insertSortedKey(key string) {
+	pos, found := slices.BinarySearch(cs.sortedKeys, key)
+
+	if found {
+		return // key already exists
+	}
+
+	cs.sortedKeys = append(cs.sortedKeys, "")
+	copy(cs.sortedKeys[pos+1:], cs.sortedKeys[pos:])
+	cs.sortedKeys[pos] = key
+}
+
+func (cs *storageDiff) removeSortedKey(key string) {
+	pos, found := slices.BinarySearch(cs.sortedKeys, key)
+
+	if found {
+		cs.sortedKeys = append(cs.sortedKeys[:pos], cs.sortedKeys[pos+1:]...)
 	}
 }
