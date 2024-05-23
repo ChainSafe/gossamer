@@ -384,11 +384,8 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 
 	// WHy are we not in this case??
 	if equivocationProof == nil {
-		fmt.Println("equivocationProof == nil")
 		return false, nil
 	}
-
-	fmt.Printf("equivocationProof: %v\n", equivocationProof)
 
 	err = b.submitAndReportEquivocation(equivocationProof)
 	if err != nil {

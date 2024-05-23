@@ -109,7 +109,6 @@ func (s *SlotState) CheckEquivocation(slotNow, slot uint64, header *types.Header
 		if headerAndSigner.Signer == signer {
 			// 2) with different hash
 			if headerAndSigner.Header.Hash() != header.Hash() {
-				fmt.Println("in the case where we return equivocation")
 				return &types.BabeEquivocationProof{
 					Slot:         slot,
 					Offender:     signer,
