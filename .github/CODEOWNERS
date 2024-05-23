@@ -3,13 +3,15 @@
 # Primary repo maintainers
 * @P1sar @timwu20
 
-/dot/ @EclesioMeloJunior @jimjbrettj @timwu20
+/dot/ @EclesioMeloJunior @jimjbrettj @timwu20 @kishansagathiya
 
-/internal/ @EclesioMeloJunior @jimjbrettj @timwu20
+/internal/ @EclesioMeloJunior @jimjbrettj @timwu20 
 
-/lib/ @EclesioMeloJunior @jimjbrettj @timwu20
+/lib/ @EclesioMeloJunior @jimjbrettj @timwu20 @kishansagathiya
 
 /pkg/ @timwu20
+
+/pkg/trie/ @dimartiro
 
 /scripts/ @EclesioMeloJunior
 
