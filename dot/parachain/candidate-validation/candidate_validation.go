@@ -52,6 +52,7 @@ func (*CandidateValidation) ProcessBlockFinalizedSignal(signal parachaintypes.Bl
 }
 
 func (cv *CandidateValidation) Stop() {
+	close(cv.stopChan)
 	cv.wg.Wait()
 }
 
