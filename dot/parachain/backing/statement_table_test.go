@@ -140,42 +140,58 @@ func TestStatementTable_attestedCandidate(t *testing.T) {
 }
 
 func TestStatementTable_importStatement(t *testing.T) {
-
-	tableCtx := &tableContext{}
-	config := tableConfig{}
-
+	t.Parallel()
 	committedCandidate := getDummyCommittedCandidateReceipt(t)
 
-	secondedStatement := parachaintypes.NewStatementVDT()
-	err := secondedStatement.Set(parachaintypes.Seconded(committedCandidate))
-	require.NoError(t, err)
+	testCases := []struct {
+		description             string
+		statementVDT            parachaintypes.StatementVDT
+		detectedMisbehaviourLen int
+	}{
+		{
+			description: "seconded_statement",
+			statementVDT: func() parachaintypes.StatementVDT {
+				secondedStatement := parachaintypes.NewStatementVDT()
+				err := secondedStatement.Set(parachaintypes.Seconded(committedCandidate))
+				require.NoError(t, err)
 
-	signedStatement := parachaintypes.SignedFullStatement{
-		Payload: secondedStatement,
+				return secondedStatement
+			}(),
+			detectedMisbehaviourLen: 1,
+		},
+		{
+			description: "valid_statement",
+			statementVDT: func() parachaintypes.StatementVDT {
+				candidateHash, err := parachaintypes.GetCandidateHash(committedCandidate)
+				require.NoError(t, err)
+
+				validStatement := parachaintypes.NewStatementVDT()
+				err = validStatement.Set(parachaintypes.Valid(candidateHash))
+				require.NoError(t, err)
+
+				return validStatement
+			}(),
+			detectedMisbehaviourLen: 0,
+		},
 	}
 
-	table := newTable(config)
-	summary, err := table.importStatement(tableCtx, signedStatement)
-	require.NoError(t, err)
-	require.Nil(t, summary)
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.description, func(t *testing.T) {
+			t.Parallel()
 
-	require.Len(t, table.detectedMisbehaviour, 1)
+			tableCtx := &tableContext{}
+			signedStatement := parachaintypes.SignedFullStatement{
+				Payload: tc.statementVDT,
+			}
 
-	// ===
+			table := newTable(tableConfig{})
 
-	candidateHash, err := parachaintypes.GetCandidateHash(committedCandidate)
-	require.NoError(t, err)
+			summary, err := table.importStatement(tableCtx, signedStatement)
+			require.NoError(t, err)
+			require.Nil(t, summary)
 
-	validStatement := parachaintypes.NewStatementVDT()
-	err = validStatement.Set(parachaintypes.Valid(candidateHash))
-	require.NoError(t, err)
-
-	signedStatement = parachaintypes.SignedFullStatement{
-		Payload: validStatement,
+			require.Len(t, table.detectedMisbehaviour, tc.detectedMisbehaviourLen)
+		})
 	}
-
-	summary, err = table.importStatement(tableCtx, signedStatement)
-	require.NoError(t, err)
-	require.Nil(t, summary)
-	require.Len(t, table.detectedMisbehaviour, 1)
 }
