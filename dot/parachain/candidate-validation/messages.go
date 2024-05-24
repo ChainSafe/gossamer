@@ -11,65 +11,26 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-type PersistedValidationData struct {
-	ParentHead             parachaintypes.HeadData
-	RelayParentNumber      parachaintypes.BlockNumber
-	RelayParentStorageRoot common.Hash
-	MaxPovSize             uint32
-}
-
 type ValidateFromChainState struct {
 	CandidateReceipt parachaintypes.CandidateReceipt
 	Pov              parachaintypes.PoV
 	ExecutorParams   parachaintypes.ExecutorParams
 	ExecKind         parachaintypes.PvfExecTimeoutKind
-	Sender           chan ValidationResultMessage
+	Sender           chan CandidateValidationMessageValidateFromExhaustive
 }
 
-type ValidateFromExhaustive struct {
-	PersistedValidationData PersistedValidationData
+// CandidateValidationMessageValidateFromExhaustive performs full validation of a candidate with provided parameters,
+// including `PersistedValidationData` and `ValidationCode`. It doesn't involve acceptance
+// criteria checking and is typically used when the candidate's validity is established
+// through prior relay-chain checks.
+type CandidateValidationMessageValidateFromExhaustive struct {
+	PersistedValidationData parachaintypes.PersistedValidationData
 	ValidationCode          parachaintypes.ValidationCode
 	CandidateReceipt        parachaintypes.CandidateReceipt
-	Pov                     parachaintypes.PoV
+	PoV                     parachaintypes.PoV
 	ExecutorParams          parachaintypes.ExecutorParams
-	ExecKind                parachaintypes.PvfExecTimeoutKind
-	Sender                  chan ValidationResultMessage
-}
-
-type ValidationResultMessage struct {
-	ValidationResult ValidationResult
-	ValidationFailed string
-}
-
-// ValidationResult represents the result of the validation of the candidate
-type ValidationResult scale.VaryingDataType
-
-// NewValidationResult returns a new ValidationResult varying data type
-func NewValidationResult() ValidationResult {
-	vdt := scale.MustNewVaryingDataType(Valid{}, Invalid{})
-	return ValidationResult(vdt)
-}
-
-// Valid candidate is valid, The validation process yields these outputs and the persisted
-// validation data used to form inputs.
-type Valid struct {
-	CandidateCommitments    parachaintypes.CandidateCommitments
-	PersistedValidationData PersistedValidationData
-}
-
-// Index returns the index of varying data type
-func (Valid) Index() uint {
-	return 0
-}
-
-// Invalid candidate is invalid.
-type Invalid struct {
-	InvalidCandidate InvalidCandidate
-}
-
-// Index returns the index of varying data type
-func (Invalid) Index() uint {
-	return 1
+	PvfExecTimeoutKind      parachaintypes.PvfExecTimeoutKind
+	Ch                      chan parachaintypes.OverseerFuncRes[parachaintypes.ValidationResult]
 }
 
 // InvalidCandidate candidate invalidity details
@@ -226,66 +187,10 @@ type PreCheck struct {
 }
 
 // PreCheckOutcome represents the outcome of the candidate-validation pre-check request
-type PreCheckOutcome scale.VaryingDataType
+type PreCheckOutcome byte
 
-// NewPreCheckOutcome returns a new PreCheckOutcome varying data type
-func NewPreCheckOutcome() PreCheckOutcome {
-	vdt := scale.MustNewVaryingDataType(PreCheckValid{}, PreCheckInvalid{}, PreCheckFailed{})
-	return PreCheckOutcome(vdt)
-}
-
-// New will enable scale to create new instance when needed
-func (PreCheckOutcome) New() PreCheckOutcome {
-	return NewPreCheckOutcome()
-}
-
-// Set will set a value using the underlying  varying data type
-func (p *PreCheckOutcome) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*p)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value to varying data type: %w", err)
-	}
-
-	*p = PreCheckOutcome(vdt)
-	return nil
-}
-
-// Value returns the value from the underlying varying data type
-func (p *PreCheckOutcome) Value() (scale.VaryingDataTypeValue, error) {
-	vdt := scale.VaryingDataType(*p)
-	return vdt.Value()
-}
-
-// PreCheckValid The PVF has been compiled successfully within the given constraints.
-type PreCheckValid struct{}
-
-// Index returns the index of varying data type
-func (PreCheckValid) Index() uint {
-	return 0
-}
-
-// PreCheckInvalid  The PVF could not be compiled. This variant is used when the candidate-validation subsystem
-// can be sure that the PVF is invalid. To give a couple of examples: a PVF that cannot be
-// decompressed or that does not represent a structurally valid WebAssembly file.
-type PreCheckInvalid struct{}
-
-// Index returns the index of varying data type
-func (PreCheckInvalid) Index() uint {
-	return 1
-}
-
-// PreCheckFailed This variant is used when the PVF cannot be compiled but for other reasons that are not
-// included into [`PreCheckOutcome::Invalid`]. This variant can indicate that the PVF in
-// question is invalid, however it is not necessary that PVF that received this judgement
-// is invalid.
-//
-// For example, if during compilation the preparation worker was killed we cannot be sure why
-// it happened: because the PVF was malicious made the worker to use too much memory or its
-// because the host machine is under severe memory pressure and it decided to kill the worker.
-type PreCheckFailed struct{}
-
-// Index returns the index of varying data type
-func (PreCheckFailed) Index() uint {
-	return 2
-}
+const (
+	PreCheckOutcomeValid PreCheckOutcome = iota
+	PreCheckOutcomeInvalid
+	PreCheckOutcomeFailed
+)

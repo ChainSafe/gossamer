@@ -201,20 +201,6 @@ type RuntimeApiRequestValidationCodeByHash struct {
 
 func (RuntimeApiRequestValidationCodeByHash) IsRuntimeApiRequest() {}
 
-// CandidateValidationMessageValidateFromExhaustive performs full validation of a candidate with provided parameters,
-// including `PersistedValidationData` and `ValidationCode`. It doesn't involve acceptance
-// criteria checking and is typically used when the candidate's validity is established
-// through prior relay-chain checks.
-type CandidateValidationMessageValidateFromExhaustive struct {
-	PersistedValidationData PersistedValidationData
-	ValidationCode          ValidationCode
-	CandidateReceipt        CandidateReceipt
-	PoV                     PoV
-	ExecutorParams          ExecutorParams
-	PvfExecTimeoutKind      PvfExecTimeoutKind
-	Ch                      chan OverseerFuncRes[ValidationResult]
-}
-
 // ValidationResult represents the result coming from the candidate validation subsystem.
 type ValidationResult struct {
 	IsValid                 bool

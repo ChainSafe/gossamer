@@ -9,6 +9,7 @@ import (
 	"time"
 
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
+	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
@@ -333,7 +334,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	}
 
 	chValidationResultRes := make(chan parachaintypes.OverseerFuncRes[parachaintypes.ValidationResult])
-	subSystemToOverseer <- parachaintypes.CandidateValidationMessageValidateFromExhaustive{
+	subSystemToOverseer <- candidatevalidation.CandidateValidationMessageValidateFromExhaustive{
 		PersistedValidationData: pvd,
 		ValidationCode:          validationCodeByHashRes.Data,
 		CandidateReceipt:        candidateReceipt,

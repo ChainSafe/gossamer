@@ -32,6 +32,14 @@ type CandidateValidation struct {
 	OverseerToSubsystem <-chan any
 }
 
+func NewCandidateValidation(overseerChan chan<- any) *CandidateValidation {
+	candidateValidation := CandidateValidation{
+		SubsystemToOverseer: overseerChan,
+	}
+
+	return &candidateValidation
+}
+
 func (cv *CandidateValidation) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) {
 	cv.wg.Add(1)
 	go cv.processMessages(&cv.wg)
@@ -65,25 +73,19 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 			switch msg := msg.(type) {
 			case ValidateFromChainState:
 				// TODO: implement functionality to handle ValidateFromChainState, see issue #3919
-			case ValidateFromExhaustive:
+			case CandidateValidationMessageValidateFromExhaustive:
 				// TODO: implement functionality to handle ValidateFromExhaustive, see issue #3547
 			case PreCheck:
 				// TODO: implement functionality to handle PreCheck, see issue #3921
 
 			case parachaintypes.ActiveLeavesUpdateSignal:
-				err := cv.ProcessActiveLeavesUpdateSignal(msg)
-				if err != nil {
-					logger.Errorf("failed to process active leaves update signal: %w", err)
-				}
+				_ = cv.ProcessActiveLeavesUpdateSignal(msg)
 
 			case parachaintypes.BlockFinalizedSignal:
-				err := cv.ProcessBlockFinalizedSignal(msg)
-				if err != nil {
-					logger.Errorf("failed to process block finalized signal: %w", err)
-				}
+				_ = cv.ProcessBlockFinalizedSignal(msg)
 
 			default:
-				logger.Error(parachaintypes.ErrUnknownOverseerMessage.Error())
+				logger.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
 			}
 
 		case <-cv.stopChan:

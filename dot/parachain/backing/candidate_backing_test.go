@@ -5,12 +5,12 @@ package backing
 
 import (
 	_ "embed"
-
 	"errors"
 	"fmt"
 	"testing"
 
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
+	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -738,7 +738,7 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 							Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
 							Data: parachaintypes.ValidationCode{1, 2, 3},
 						}
-					case parachaintypes.CandidateValidationMessageValidateFromExhaustive:
+					case candidatevalidation.CandidateValidationMessageValidateFromExhaustive:
 						data.Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationResult]{
 							Err: errors.New("mock error getting validation result"),
 						}
@@ -763,7 +763,7 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 							Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
 							Data: parachaintypes.ValidationCode{1, 2, 3},
 						}
-					case parachaintypes.CandidateValidationMessageValidateFromExhaustive:
+					case candidatevalidation.CandidateValidationMessageValidateFromExhaustive:
 						data.Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationResult]{
 							Data: parachaintypes.ValidationResult{
 								IsValid: false,
@@ -791,7 +791,7 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 							Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
 							Data: parachaintypes.ValidationCode{1, 2, 3},
 						}
-					case parachaintypes.CandidateValidationMessageValidateFromExhaustive:
+					case candidatevalidation.CandidateValidationMessageValidateFromExhaustive:
 						data.Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationResult]{
 							Data: parachaintypes.ValidationResult{
 								IsValid: true,
