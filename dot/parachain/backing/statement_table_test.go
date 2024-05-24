@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -194,4 +195,85 @@ func TestStatementTable_importStatement(t *testing.T) {
 			require.Len(t, table.detectedMisbehaviour, tc.detectedMisbehaviourLen)
 		})
 	}
+}
+
+func TestStatementTable_importCandidate(t *testing.T) {
+
+	authority := parachaintypes.ValidatorIndex(10)
+	candidate := getDummyCommittedCandidateReceipt(t)
+	var signature parachaintypes.ValidatorSignature
+
+	var tempSignature = common.MustHexToBytes("0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86") //nolint:lll
+	copy(signature[:], tempSignature)
+
+	tableCtx := &tableContext{}
+
+	statementSeconded := parachaintypes.NewStatementVDT()
+	err := statementSeconded.Set(parachaintypes.Seconded(candidate))
+	require.NoError(t, err)
+
+	// candidateHash, err := parachaintypes.GetCandidateHash(candidate)
+	require.NoError(t, err)
+
+	table := newTable(tableConfig{})
+
+	/*
+		// validator not present in group of parachain validator
+		summary, misehaviour, err := table.importCandidate(authority, candidate, signature, tableCtx)
+		require.NoError(t, err)
+		require.Nil(t, summary)
+		require.Equal(t, parachaintypes.UnauthorizedStatement{
+			Payload:        statementSeconded,
+			ValidatorIndex: authority,
+			Signature:      signature,
+		}, misehaviour)
+	*/
+
+	//no proposals available from the validator
+	tableCtx = &tableContext{
+		groups: map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex{
+			1: {10},
+		},
+	}
+	/*
+		summary, misbehaviour, err := table.importCandidate(authority, candidate, signature, tableCtx)
+		require.NoError(t, err)
+		require.Nil(t, misbehaviour)
+		require.Equal(t, &Summary{
+			Candidate:     candidateHash,
+			GroupID:       parachaintypes.ParaID(candidate.Descriptor.ParaID),
+			ValidityVotes: 1,
+		}, summary)
+
+	*/
+
+	// proposal already exists
+	oldCandidateHash := parachaintypes.CandidateHash{Value: getDummyHash(t, 4)}
+	oldCandidate := parachaintypes.CommittedCandidateReceipt{}
+	oldSign := parachaintypes.ValidatorSignature{1, 2, 3}
+	table.authorityData[authority] = []proposal{
+		{
+			candidateHash: oldCandidateHash,
+			signature:     oldSign,
+		},
+	}
+
+	table.candidateVotes[oldCandidateHash] = &candidateData{
+		candidate: oldCandidate,
+	}
+
+	summary, misbehaviour, err := table.importCandidate(authority, candidate, signature, tableCtx)
+	require.NoError(t, err)
+	require.Nil(t, summary)
+	require.Equal(t, parachaintypes.MultipleCandidates{
+		First: parachaintypes.CommittedCandidateReceiptAndSign{
+			CommittedCandidateReceipt: oldCandidate,
+			Signature:                 oldSign,
+		},
+		Second: parachaintypes.CommittedCandidateReceiptAndSign{
+			CommittedCandidateReceipt: candidate,
+			Signature:                 signature,
+		},
+	}, misbehaviour)
+
 }
