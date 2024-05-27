@@ -209,7 +209,7 @@ func (t *TrieDB) insertAt(
 	}
 
 	stored := t.storage.destroy(storageHandle)
-	newStored, changed, err := t.inspect(stored, keyNibbles, func(stored Node, keyNibbles []byte) (Action, error) {
+	newStored, changed, err := t.inspect(stored, keyNibbles, func(stored Node, keyNibbles []byte) (action, error) {
 		return t.insertInspector(stored, keyNibbles, value, oldValue)
 	})
 	if err != nil {
@@ -223,7 +223,7 @@ func (t *TrieDB) insertAt(
 func (t *TrieDB) inspect(
 	stored StoredNode,
 	key []byte,
-	inspector func(Node, []byte) (Action, error),
+	inspector func(Node, []byte) (action, error),
 ) (StoredNode, bool, error) {
 	switch n := stored.(type) {
 	case New:
@@ -232,11 +232,11 @@ func (t *TrieDB) inspect(
 			return nil, false, err
 		}
 		switch a := action.(type) {
-		case Restore:
+		case restore:
 			return NewStoredNodeNew(a.node), false, nil
-		case Replace:
+		case replace:
 			return NewStoredNodeNew(a.node), true, nil
-		case Delete:
+		case delete:
 			return nil, false, nil
 		default:
 			panic("unreachable")
@@ -247,12 +247,12 @@ func (t *TrieDB) inspect(
 			return nil, false, err
 		}
 		switch a := action.(type) {
-		case Restore:
+		case restore:
 			return Cached{a.node, n.hash}, false, nil
-		case Replace:
+		case replace:
 			t.deathRow[n.hash] = nil
 			return NewStoredNodeNew(a.node), true, nil
-		case Delete:
+		case delete:
 			t.deathRow[n.hash] = nil
 			return nil, false, nil
 		default:
@@ -264,7 +264,7 @@ func (t *TrieDB) inspect(
 }
 
 // insertInspector inserts the new key / value pair into the given node `stored`
-func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, oldValue *Value) (Action, error) {
+func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, oldValue *Value) (action, error) {
 	partial := keyNibbles
 
 	switch n := stored.(type) {
@@ -272,7 +272,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 		// If the node is empty we have to replace it with a leaf node with the
 		// new value
 		value := NewValue(value, t.layout.MaxInlineValue())
-		return Replace{node: Leaf{partialKey: partial, value: value}}, nil
+		return replace{node: Leaf{partialKey: partial, value: value}}, nil
 	case Leaf:
 		existingKey := n.partialKey
 		common := nibbles.CommonPrefix(partial, existingKey)
@@ -287,9 +287,9 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 			if unchanged {
 				// If the value didn't change we can restore this leaf previously
 				// taken from storage
-				return Restore{leaf}, nil
+				return restore{leaf}, nil
 			}
-			return Replace{leaf}, nil
+			return replace{leaf}, nil
 		} else if common < len(existingKey) {
 			// If the common prefix is less than this leaf's key then we need to
 			// create a branch node. Then add this leaf and the new value to the
@@ -312,7 +312,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 			if err != nil {
 				return nil, err
 			}
-			return Replace{branchAction.getNode()}, nil
+			return replace{branchAction.getNode()}, nil
 		} else {
 			// we have a common prefix but the new key is longer than the existing
 			// then we turn this leaf into a branch and add the new leaf as a child
@@ -328,7 +328,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 				return nil, err
 			}
 			branch = action.getNode()
-			return Replace{branch}, nil
+			return replace{branch}, nil
 		}
 	case Branch:
 		existingKey := n.partialKey
@@ -345,9 +345,9 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 			if unchanged {
 				// If the value didn't change we can restore this leaf previously
 				// taken from storage
-				return Restore{branch}, nil
+				return restore{branch}, nil
 			}
-			return Replace{branch}, nil
+			return replace{branch}, nil
 		} else if common < len(existingKey) {
 			// If the common prefix is less than this branch's key then we need to
 			// create a branch node in between.
@@ -366,7 +366,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 
 			if len(partial)-common == 0 {
 				// The value should be part of the branch
-				return Replace{
+				return replace{
 					Branch{
 						existingKey[:common],
 						children,
@@ -380,7 +380,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 
 				ix = partial[common]
 				children[ix] = leaf.toNodeHandle()
-				return Replace{
+				return replace{
 					Branch{
 						existingKey[:common],
 						children,
@@ -408,7 +408,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 						n.value,
 					}
 
-					return Restore{branch}, nil
+					return restore{branch}, nil
 				}
 			} else {
 				// Original has nothing here so we have to create a new leaf
@@ -416,7 +416,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 				leaf := t.storage.alloc(New{node: Leaf{keyNibbles, value}})
 				n.children[idx] = leaf.toNodeHandle()
 			}
-			return Replace{Branch{
+			return replace{Branch{
 				existingKey,
 				n.children,
 				n.value,
