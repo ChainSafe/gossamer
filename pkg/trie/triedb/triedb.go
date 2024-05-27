@@ -204,7 +204,7 @@ func (t *TrieDB) insertAt(
 	case Hash:
 		storageHandle, err = t.lookupNode(h.hash)
 		if err != nil {
-			return StorageHandle{}, false, err
+			return -1, false, err
 		}
 	}
 
@@ -213,7 +213,7 @@ func (t *TrieDB) insertAt(
 		return t.insertInspector(stored, keyNibbles, value, oldValue)
 	})
 	if err != nil {
-		return StorageHandle{}, false, err
+		return -1, false, err
 	}
 	return t.storage.alloc(newStored), changed, nil
 }
@@ -446,12 +446,12 @@ func (t *TrieDB) replaceOldValue(
 func (t *TrieDB) lookupNode(hash common.Hash) (StorageHandle, error) {
 	encodedNode, err := t.db.Get(hash[:])
 	if err != nil {
-		return StorageHandle{}, ErrIncompleteDB
+		return -1, ErrIncompleteDB
 	}
 
 	node, err := newNodeFromEncoded(hash, encodedNode, t.storage)
 	if err != nil {
-		return StorageHandle{-1}, err
+		return -1, err
 	}
 
 	return t.storage.alloc(Cached{

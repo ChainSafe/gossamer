@@ -10,7 +10,7 @@ import (
 )
 
 // StorageHandle is a pointer to a node contained in `NodeStorage`
-type StorageHandle struct{ int }
+type StorageHandle int
 
 // NodeHandle is an enum for the different types of nodes that can be stored in
 // in our trieDB before a commit is applied
@@ -103,15 +103,15 @@ func (ns *NodeStorage) alloc(stored StoredNode) StorageHandle {
 	if ns.freeIndices.Len() > 0 {
 		idx := ns.freeIndices.PopFront()
 		ns.nodes[idx] = stored
-		return StorageHandle{idx}
+		return StorageHandle(idx)
 	}
 
 	ns.nodes = append(ns.nodes, stored)
-	return StorageHandle{len(ns.nodes) - 1}
+	return StorageHandle(len(ns.nodes) - 1)
 }
 
 func (ns *NodeStorage) destroy(handle StorageHandle) StoredNode {
-	idx := handle.int
+	idx := int(handle)
 	ns.freeIndices.PushBack(idx)
 	oldNode := ns.nodes[idx]
 	ns.nodes[idx] = nil
@@ -120,7 +120,7 @@ func (ns *NodeStorage) destroy(handle StorageHandle) StoredNode {
 }
 
 func (ns *NodeStorage) get(handle StorageHandle) Node {
-	switch n := ns.nodes[handle.int].(type) {
+	switch n := ns.nodes[handle].(type) {
 	case New:
 		return n.node
 	case Cached:
