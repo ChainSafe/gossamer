@@ -518,3 +518,40 @@ func TestTrieState_NestedTransactions(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkNextKey(b *testing.B) {
+	ts := NewTrieState(inmemory_trie.NewEmptyTrie())
+
+	// Keys / values already present in state
+	maxKeys := 2000
+	sortedKeys := make([][]byte, maxKeys)
+
+	for i := 0; i < maxKeys/2; i++ {
+		key := []byte(fmt.Sprintf("key%04d", i))
+		sortedKeys[i] = key
+		err := ts.Put(key, key)
+		require.Nil(b, err)
+	}
+
+	// Keys / values added after a transaction starts
+	ts.StartTransaction()
+
+	for i := maxKeys / 2; i < maxKeys; i++ {
+		key := []byte(fmt.Sprintf("key%04d", i))
+		sortedKeys[i] = key
+		err := ts.Put(key, key)
+		require.Nil(b, err)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for i, tc := range sortedKeys {
+			next := ts.NextKey(tc)
+			if i == len(sortedKeys)-1 {
+				require.Nil(b, next)
+			} else {
+				require.Equal(b, sortedKeys[i+1], next, common.BytesToHex(tc))
+			}
+		}
+	}
+}
