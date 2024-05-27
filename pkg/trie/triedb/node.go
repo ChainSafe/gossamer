@@ -11,28 +11,28 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 )
 
-type Value interface {
+type nodeValue interface {
 	getHash() common.Hash
 }
 
 type (
-	Inline struct {
+	inline struct {
 		Data []byte
 	}
 
-	ValueRef struct {
+	valueRef struct {
 		hash common.Hash
 	}
 
-	NewValueRef struct {
+	newValueRef struct {
 		hash *common.Hash
 		Data []byte
 	}
 )
 
-func (Inline) getHash() common.Hash      { return common.EmptyHash }
-func (vr ValueRef) getHash() common.Hash { return vr.hash }
-func (vr NewValueRef) getHash() common.Hash {
+func (inline) getHash() common.Hash      { return common.EmptyHash }
+func (vr valueRef) getHash() common.Hash { return vr.hash }
+func (vr newValueRef) getHash() common.Hash {
 	if vr.hash == nil {
 		return common.EmptyHash
 	}
@@ -40,32 +40,32 @@ func (vr NewValueRef) getHash() common.Hash {
 	return *vr.hash
 }
 
-func NewValue(data []byte, threshold int) Value {
+func NewValue(data []byte, threshold int) nodeValue {
 	if len(data) >= threshold {
-		return NewValueRef{Data: data}
+		return newValueRef{Data: data}
 	}
 
-	return Inline{Data: data}
+	return inline{Data: data}
 }
 
-func NewFromEncoded(encodedValue codec.NodeValue) Value {
+func NewFromEncoded(encodedValue codec.NodeValue) nodeValue {
 	switch encoded := encodedValue.(type) {
 	case codec.InlineValue:
-		return Inline{Data: encoded.Data}
+		return inline{Data: encoded.Data}
 	case codec.HashedValue:
-		return ValueRef{hash: common.NewHash(encoded.Data)}
+		return valueRef{hash: common.NewHash(encoded.Data)}
 	}
 
 	return nil
 }
 
-func InMemoryFetchedValue(value Value, prefix []byte, db db.DBGetter, fullKey []byte) ([]byte, error) {
+func InMemoryFetchedValue(value nodeValue, prefix []byte, db db.DBGetter, fullKey []byte) ([]byte, error) {
 	switch v := value.(type) {
-	case Inline:
+	case inline:
 		return v.Data, nil
-	case NewValueRef:
+	case newValueRef:
 		return v.Data, nil
-	case ValueRef:
+	case valueRef:
 		prefixedKey := bytes.Join([][]byte{prefix, v.hash.ToBytes()}, nil)
 		value, err := db.Get(prefixedKey)
 		if err != nil {
@@ -91,12 +91,12 @@ type (
 	Empty struct{}
 	Leaf  struct {
 		partialKey []byte
-		value      Value
+		value      nodeValue
 	}
 	Branch struct {
 		partialKey []byte
 		children   [codec.ChildrenCapacity]NodeHandle
-		value      Value
+		value      nodeValue
 	}
 )
 

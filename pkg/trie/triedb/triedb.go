@@ -178,7 +178,7 @@ func (t *TrieDB) getNode(
 // Put inserts the given key / value pair into the trie
 func (t *TrieDB) Put(key, value []byte) error {
 	// Insert the node and update the rootHandle
-	var oldValue Value
+	var oldValue nodeValue
 
 	rootHandle := t.rootHandle
 	keyNibbles := nibbles.KeyLEToNibbles(key)
@@ -196,7 +196,7 @@ func (t *TrieDB) insertAt(
 	handle NodeHandle,
 	keyNibbles,
 	value []byte,
-	oldValue *Value,
+	oldValue *nodeValue,
 ) (storageHandle StorageHandle, changed bool, err error) {
 	switch h := handle.(type) {
 	case InMemory:
@@ -264,7 +264,7 @@ func (t *TrieDB) inspect(
 }
 
 // insertInspector inserts the new key / value pair into the given node `stored`
-func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, oldValue *Value) (action, error) {
+func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, oldValue *nodeValue) (action, error) {
 	partial := keyNibbles
 
 	switch n := stored.(type) {
@@ -428,11 +428,11 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 }
 
 func (t *TrieDB) replaceOldValue(
-	oldValue *Value,
-	storedValue Value,
+	oldValue *nodeValue,
+	storedValue nodeValue,
 ) {
 	switch oldv := storedValue.(type) {
-	case ValueRef, NewValueRef:
+	case valueRef, newValueRef:
 		hash := oldv.getHash()
 		if hash != common.EmptyHash {
 			t.deathRow[oldv.getHash()] = nil
