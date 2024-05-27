@@ -110,13 +110,13 @@ func (t *TrieDB) lookup(fullKey []byte, partialKey []byte, handle NodeHandle) ([
 				return nil, nil
 			case Leaf:
 				if bytes.Equal(n.partialKey, partialKey) {
-					return inMemoryFetchedValue(n.value, prefix, t.db, fullKey)
+					return inMemoryFetchedValue(n.value, prefix, t.db)
 				} else {
 					return nil, nil
 				}
 			case Branch:
 				if bytes.Equal(n.partialKey, partialKey) {
-					return inMemoryFetchedValue(n.value, prefix, t.db, fullKey)
+					return inMemoryFetchedValue(n.value, prefix, t.db)
 				} else if bytes.HasPrefix(partialKey, n.partialKey) {
 					idx := partialKey[len(n.partialKey)]
 					child := n.children[idx]
@@ -227,11 +227,11 @@ func (t *TrieDB) inspect(
 ) (StoredNode, bool, error) {
 	switch n := stored.(type) {
 	case New:
-		action, err := inspector(n.node, key)
+		res, err := inspector(n.node, key)
 		if err != nil {
 			return nil, false, err
 		}
-		switch a := action.(type) {
+		switch a := res.(type) {
 		case restore:
 			return NewStoredNodeNew(a.node), false, nil
 		case replace:
@@ -242,11 +242,11 @@ func (t *TrieDB) inspect(
 			panic("unreachable")
 		}
 	case Cached:
-		action, err := inspector(n.node, key)
+		res, err := inspector(n.node, key)
 		if err != nil {
 			return nil, false, err
 		}
-		switch a := action.(type) {
+		switch a := res.(type) {
 		case restore:
 			return Cached{a.node, n.hash}, false, nil
 		case replace:
