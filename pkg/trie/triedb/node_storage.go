@@ -12,10 +12,6 @@ import (
 // StorageHandle is a pointer to a node contained in `NodeStorage`
 type StorageHandle struct{ int }
 
-func (sh StorageHandle) toNodeHandle() NodeHandle {
-	return InMemory{idx: sh}
-}
-
 // NodeHandle is an enum for the different types of nodes that can be stored in
 // in our trieDB before a commit is applied
 // This is useful to mantain the trie structure with nodes that could be loaded
@@ -35,6 +31,10 @@ type (
 
 func (InMemory) isNodeHandle() {}
 func (Hash) isNodeHandle()     {}
+
+func newInMemoryNodeHandle(idx StorageHandle) NodeHandle {
+	return InMemory{idx}
+}
 
 func newFromEncodedMerkleValue(
 	parentHash common.Hash,

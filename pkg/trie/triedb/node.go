@@ -59,7 +59,7 @@ func NewFromEncoded(encodedValue codec.NodeValue) nodeValue {
 	return nil
 }
 
-func InMemoryFetchedValue(value nodeValue, prefix []byte, db db.DBGetter, fullKey []byte) ([]byte, error) {
+func inMemoryFetchedValue(value nodeValue, prefix []byte, db db.DBGetter, fullKey []byte) ([]byte, error) {
 	switch v := value.(type) {
 	case inline:
 		return v.Data, nil
