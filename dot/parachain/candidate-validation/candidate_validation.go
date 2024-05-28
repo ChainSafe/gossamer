@@ -40,7 +40,7 @@ func NewCandidateValidation(overseerChan chan<- any) *CandidateValidation {
 	return &candidateValidation
 }
 
-func (cv *CandidateValidation) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) {
+func (cv *CandidateValidation) Run(context.Context, chan any, chan any) {
 	cv.wg.Add(1)
 	go cv.processMessages(&cv.wg)
 }
