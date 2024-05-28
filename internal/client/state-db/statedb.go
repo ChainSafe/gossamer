@@ -19,7 +19,7 @@ var (
 	pruningModeConstrained  = []byte("constrained")
 )
 
-// Database value type.
+// DBValue is the database value type.
 type DBValue []byte
 
 // Hash is interface for the Block hash and node key types.
@@ -27,41 +27,42 @@ type Hash interface {
 	comparable
 }
 
+// HashDBValue is a helper struct which contains Hash and DBValue.
 type HashDBValue[H any] struct {
 	Hash H
 	DBValue
 }
 
-// Backend database interface for metadata. Read-only.
+// MetaDB is the backend database interface for metadata. Read-only.
 type MetaDB interface {
 	// Get meta value, such as the journal.
 	GetMeta(key []byte) (*DBValue, error)
 }
 
-// Backend database interface. Read-only.
+// NodeDB is the backend database interface. Read-only.
 type NodeDB[Key comparable] interface {
 	// Get state trie node.
 	Get(key Key) (*DBValue, error)
 }
 
 var (
-	// Trying to canonicalize invalid block.
+	// ErrInvalidBlock is trying to canonicalize invalid block.
 	ErrInvalidBlock = errors.New("trying to canonicalize invalid block")
-	// Trying to insert block with invalid number.
+	// ErrInvalidBlockNumber is trying to insert block with invalid number.
 	ErrInvalidBlockNumber = errors.New("trying to insert block with invalid number")
-	// Trying to insert block with unknown parent.
+	// ErrInvalidParent is trying to insert block with unknown parent.
 	ErrInvalidParent = errors.New("trying to insert block with unknown parent")
-	// Invalid pruning mode specified. Contains expected mode.
+	// ErrIncompatiblePruningModes is an invalid pruning mode specified. Contains expected mode.
 	ErrIncompatiblePruningModes = errors.New("incompatible pruning modes")
-	// Trying to insert existing block.
+	// ErrBlockAlreadyExists is trying to insert existing block.
 	ErrBlockAlreadyExists = errors.New("block already exists")
-	// Trying to get a block record from db while it is not commit to db yet
+	// ErrBlockUnavailable is trying to get a block record from db while it is not commit to db yet
 	ErrBlockUnavailable = errors.New("trying to get a block record from db while it is not commit to db yet")
-	// Invalid metadata
+	// ErrMetadata is invalid metadata
 	ErrMetadata = errors.New("Invalid metadata:")
 )
 
-// A set of state node changes.
+// ChangeSet is a set of state node changes.
 type ChangeSet[H any] struct {
 	// Inserted nodes.
 	Inserted []HashDBValue[H]
@@ -69,7 +70,7 @@ type ChangeSet[H any] struct {
 	Deleted []H
 }
 
-// A set of changes to the backing database.
+// CommitSet is a set of changes to the backing database.
 type CommitSet[H Hash] struct {
 	// State node changes.
 	Data ChangeSet[H]
@@ -77,7 +78,7 @@ type CommitSet[H Hash] struct {
 	Meta ChangeSet[[]byte]
 }
 
-// Pruning constraints. If none are specified pruning is
+// Constraints are the pruning constraints. If none are specified pruning is
 type Constraints struct {
 	// Maximum blocks. Defaults to 0 when unspecified, effectively keeping only non-canonical
 	// states.
