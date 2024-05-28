@@ -201,14 +201,6 @@ type RuntimeApiRequestValidationCodeByHash struct {
 
 func (RuntimeApiRequestValidationCodeByHash) IsRuntimeApiRequest() {}
 
-// ValidationResult represents the result coming from the candidate validation subsystem.
-type ValidationResult struct {
-	IsValid                 bool
-	CandidateCommitments    CandidateCommitments
-	PersistedValidationData PersistedValidationData
-	Err                     error
-}
-
 // AvailabilityDistributionMessageFetchPoV represents a message instructing
 // availability distribution to fetch a remote Proof of Validity (PoV).
 type AvailabilityDistributionMessageFetchPoV struct {

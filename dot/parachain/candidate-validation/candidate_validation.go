@@ -49,12 +49,12 @@ func (*CandidateValidation) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CandidateValidation
 }
 
-func (*CandidateValidation) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
+func (*CandidateValidation) ProcessActiveLeavesUpdateSignal(parachaintypes.ActiveLeavesUpdateSignal) error {
 	// NOTE: this subsystem does not process active leaves update signal
 	return nil
 }
 
-func (*CandidateValidation) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
+func (*CandidateValidation) ProcessBlockFinalizedSignal(parachaintypes.BlockFinalizedSignal) error {
 	// NOTE: this subsystem does not process block finalized signal
 	return nil
 }
@@ -73,7 +73,7 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 			switch msg := msg.(type) {
 			case ValidateFromChainState:
 				// TODO: implement functionality to handle ValidateFromChainState, see issue #3919
-			case CandidateValidationMessageValidateFromExhaustive:
+			case ValidateFromExhaustive:
 				// TODO: implement functionality to handle ValidateFromExhaustive, see issue #3547
 			case PreCheck:
 				// TODO: implement functionality to handle PreCheck, see issue #3921
