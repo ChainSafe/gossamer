@@ -1,7 +1,7 @@
-// Copyright 2023 ChainSafe Systems (ON)
+// Copyright 2024 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package parachain
+package candidatevalidation
 
 import (
 	"os"
@@ -114,7 +114,7 @@ func TestValidateFromChainState(t *testing.T) {
 	mockPoVRequestor.EXPECT().
 		RequestPoV(common.MustHexToHash("0xe7df1126ac4b4f0fb1bc00367a12ec26ca7c51256735a5e11beecdc1e3eca274")).Return(pov)
 
-	candidateCommitments, persistedValidationData, isValid, err := ValidateFromChainState(
+	candidateCommitments, persistedValidationData, isValid, err := validateFromChainState(
 		mockInstance, mockPoVRequestor, candidateReceipt)
 	require.NoError(t, err)
 	require.True(t, isValid)
