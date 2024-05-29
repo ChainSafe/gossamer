@@ -4,6 +4,7 @@
 package candidatevalidation
 
 import (
+	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -27,15 +28,18 @@ type ValidateFromExhaustive struct {
 	PoV                     parachaintypes.PoV
 	ExecutorParams          parachaintypes.ExecutorParams
 	PvfExecTimeoutKind      parachaintypes.PvfExecTimeoutKind
-	Ch                      chan parachaintypes.OverseerFuncRes[ValidationResult]
+	Ch                      chan parachaintypes.OverseerFuncRes[ValidationResultMessage]
 }
 
 // ValidationResult represents the result coming from the candidate validation subsystem.
-type ValidationResult struct {
-	IsValid                 bool
-	CandidateCommitments    parachaintypes.CandidateCommitments
-	PersistedValidationData parachaintypes.PersistedValidationData
-	Err                     error
+type ValidationResultMessage struct {
+	IsValid              bool
+	CandidateCommitments parachaintypes.CandidateCommitments // TODO(ed): determine how his is used (
+	// in per_relay_parent_state)
+	PersistedValidationData parachaintypes.PersistedValidationData // TODO(ed): determine how this is used (
+	// in per_relay_parent_state)
+	ValidationResult parachainruntime.ValidationResult
+	Err              error
 }
 
 // PreCheck try to complie the given validation code and return the result

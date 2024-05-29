@@ -6,6 +6,7 @@ package candidatevalidation
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -284,7 +285,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 	require.NoError(t, err)
 
 	toSubsystem := make(chan any)
-	sender := make(chan ValidationResultMessage)
+	sender := make(chan parachaintypes.OverseerFuncRes[ValidationResultMessage])
 	stopChan := make(chan struct{})
 	candidateValidationSubsystem := CandidateValidation{
 		OverseerToSubsystem: toSubsystem,
@@ -296,7 +297,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 
 	tests := map[string]struct {
 		msg  ValidateFromExhaustive
-		want ValidationResultMessage
+		want parachaintypes.OverseerFuncRes[ValidationResultMessage]
 	}{
 		"invalid_pov_hash": {
 			msg: ValidateFromExhaustive{
@@ -308,11 +309,11 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 				},
 				ValidationCode:   validationCode,
 				CandidateReceipt: candidateReceipt2,
-				Pov:              pov,
-				Sender:           sender,
+				PoV:              pov,
+				Ch:               sender,
 			},
-			want: ValidationResultMessage{
-				ValidationFailed: ErrValidationPoVHashMismatch.Error(),
+			want: parachaintypes.OverseerFuncRes[ValidationResultMessage]{
+				Err: ErrValidationPoVHashMismatch,
 			},
 		},
 		"invalid_pov_size": {
@@ -325,11 +326,11 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 				},
 				ValidationCode:   validationCode,
 				CandidateReceipt: candidateReceipt,
-				Pov:              pov,
-				Sender:           sender,
+				PoV:              pov,
+				Ch:               sender,
 			},
-			want: ValidationResultMessage{
-				ValidationFailed: "validation parameters are too large, limit: 10, got: 17",
+			want: parachaintypes.OverseerFuncRes[ValidationResultMessage]{
+				Err: fmt.Errorf("%w, limit: 10, got: 17", ErrValidationParamsTooLarge),
 			},
 		},
 		"code_mismatch": {
@@ -342,11 +343,11 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 				},
 				ValidationCode:   []byte{1, 2, 3, 4, 5, 6, 7, 8},
 				CandidateReceipt: candidateReceipt,
-				Pov:              pov,
-				Sender:           sender,
+				PoV:              pov,
+				Ch:               sender,
 			},
-			want: ValidationResultMessage{
-				ValidationFailed: ErrValidationCodeMismatch.Error(),
+			want: parachaintypes.OverseerFuncRes[ValidationResultMessage]{
+				Err: ErrValidationCodeMismatch,
 			},
 		},
 		"happy_path": {
@@ -359,19 +360,21 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 				},
 				ValidationCode:   validationCode,
 				CandidateReceipt: candidateReceipt,
-				Pov:              pov,
-				Sender:           sender,
+				PoV:              pov,
+				Ch:               sender,
 			},
-			want: ValidationResultMessage{
-				ValidationResult: parachainruntime.ValidationResult{
-					HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123, 207, 206, 8, 219, 227,
-						136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245, 59, 106, 76, 168, 122, 109,
-						164, 169, 22, 46, 144, 39, 103, 92, 31, 78, 66, 72, 252, 64, 24, 194, 129, 162, 128, 1, 77, 147,
-						200, 229, 189, 242, 111, 198, 236, 139, 16, 143, 19, 245, 113, 233, 138, 210}},
-					ProcessedDownwardMessages: 0,
-					HrmpWatermark:             1,
+			want: parachaintypes.OverseerFuncRes[ValidationResultMessage]{
+				Data: ValidationResultMessage{
+					ValidationResult: parachainruntime.ValidationResult{
+						HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123,
+							207, 206, 8, 219, 227, 136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245,
+							59, 106, 76, 168, 122, 109, 164, 169, 22, 46, 144, 39, 103, 92, 31, 78, 66, 72, 252, 64,
+							24, 194, 129, 162, 128, 1, 77, 147, 200, 229, 189, 242, 111, 198, 236, 139, 16, 143, 19,
+							245, 113, 233, 138, 210}},
+						ProcessedDownwardMessages: 0,
+						HrmpWatermark:             1,
+					},
 				},
-				ValidationFailed: "",
 			},
 		},
 	}

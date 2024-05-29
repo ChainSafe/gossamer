@@ -77,13 +77,17 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 				// TODO: implement functionality to handle ValidateFromChainState, see issue #3919
 			case ValidateFromExhaustive:
 				result, err := validateFromExhaustive(msg.PersistedValidationData, msg.ValidationCode,
-					msg.CandidateReceipt, msg.Pov)
+					msg.CandidateReceipt, msg.PoV)
 				if err != nil {
 					logger.Errorf("failed to validate from exhaustive: %w", err)
-					msg.Sender <- ValidationResultMessage{ValidationFailed: err.Error()}
+					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResultMessage]{Err: err}
 					continue
 				}
-				msg.Sender <- ValidationResultMessage{ValidationResult: *result}
+				msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResultMessage]{
+					Data: ValidationResultMessage{
+						ValidationResult: *result,
+					},
+				}
 			case PreCheck:
 				// TODO: implement functionality to handle PreCheck, see issue #3921
 

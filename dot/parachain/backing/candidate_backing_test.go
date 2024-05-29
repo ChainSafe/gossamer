@@ -736,7 +736,7 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 							Data: parachaintypes.ValidationCode{1, 2, 3},
 						}
 					case candidatevalidation.ValidateFromExhaustive:
-						data.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
+						data.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResultMessage]{
 							Err: errors.New("mock error getting validation result"),
 						}
 					default:
@@ -761,8 +761,8 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 							Data: parachaintypes.ValidationCode{1, 2, 3},
 						}
 					case candidatevalidation.ValidateFromExhaustive:
-						data.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
-							Data: candidatevalidation.ValidationResult{
+						data.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResultMessage]{
+							Data: candidatevalidation.ValidationResultMessage{
 								IsValid: false,
 								Err:     errors.New("mock error validating candidate"),
 							},
@@ -789,8 +789,8 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 							Data: parachaintypes.ValidationCode{1, 2, 3},
 						}
 					case candidatevalidation.ValidateFromExhaustive:
-						data.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
-							Data: candidatevalidation.ValidationResult{
+						data.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResultMessage]{
+							Data: candidatevalidation.ValidationResultMessage{
 								IsValid: true,
 							},
 						}
