@@ -382,7 +382,6 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 		return false, fmt.Errorf("checking equivocation: %w", err)
 	}
 
-	// WHy are we not in this case??
 	if equivocationProof == nil {
 		return false, nil
 	}
