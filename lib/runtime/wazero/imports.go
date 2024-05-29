@@ -21,7 +21,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
@@ -1831,31 +1830,12 @@ func ext_offchain_random_seed_version_1(ctx context.Context, m api.Module) uint3
 	return ptr
 }
 
+// TODO Investigate via https://github.com/ChainSafe/gossamer/issues/3986
 func ext_offchain_submit_transaction_version_1(ctx context.Context, m api.Module, data uint64) uint64 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
 	}
-
-	extBytes := read(m, data)
-
-	var extrinsic []byte
-	err := scale.Unmarshal(extBytes, &extrinsic)
-	if err != nil {
-		logger.Errorf("failed to decode extrinsic data: %s", err)
-		// Error case
-		ret, err := write(m, rtCtx.Allocator, []byte{1})
-		if err != nil {
-			panic(err)
-		}
-		return ret
-	}
-
-	// validate the transaction
-	txv := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
-	vtx := transaction.NewValidTransaction(extrinsic, txv)
-
-	rtCtx.Transaction.AddToPool(vtx)
 
 	// OK case
 	ret, err := write(m, rtCtx.Allocator, []byte{0})
