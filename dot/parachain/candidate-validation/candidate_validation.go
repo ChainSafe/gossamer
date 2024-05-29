@@ -1,27 +1,101 @@
-// Copyright 2023 ChainSafe Systems (ON)
+// Copyright 2024 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package parachain
+package candidatevalidation
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
+
+var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-candidate-validation"))
 
 var (
 	ErrValidationCodeMismatch   = errors.New("validation code hash does not match")
 	ErrValidationInputOverLimit = errors.New("validation input is over the limit")
 )
 
+type CandidateValidation struct {
+	wg       sync.WaitGroup
+	stopChan chan struct{}
+
+	SubsystemToOverseer chan<- any
+	OverseerToSubsystem <-chan any
+}
+
+func NewCandidateValidation(overseerChan chan<- any) *CandidateValidation {
+	candidateValidation := CandidateValidation{
+		SubsystemToOverseer: overseerChan,
+	}
+
+	return &candidateValidation
+}
+
+func (cv *CandidateValidation) Run(context.Context, chan any, chan any) {
+	cv.wg.Add(1)
+	go cv.processMessages(&cv.wg)
+}
+
+func (*CandidateValidation) Name() parachaintypes.SubSystemName {
+	return parachaintypes.CandidateValidation
+}
+
+func (*CandidateValidation) ProcessActiveLeavesUpdateSignal(parachaintypes.ActiveLeavesUpdateSignal) error {
+	// NOTE: this subsystem does not process active leaves update signal
+	return nil
+}
+
+func (*CandidateValidation) ProcessBlockFinalizedSignal(parachaintypes.BlockFinalizedSignal) error {
+	// NOTE: this subsystem does not process block finalized signal
+	return nil
+}
+
+func (cv *CandidateValidation) Stop() {
+	close(cv.stopChan)
+	cv.wg.Wait()
+}
+
+func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
+	defer wg.Done()
+	for {
+		select {
+		case msg := <-cv.OverseerToSubsystem:
+			logger.Debugf("received message %v", msg)
+			switch msg := msg.(type) {
+			case ValidateFromChainState:
+				// TODO: implement functionality to handle ValidateFromChainState, see issue #3919
+			case ValidateFromExhaustive:
+				// TODO: implement functionality to handle ValidateFromExhaustive, see issue #3547
+			case PreCheck:
+				// TODO: implement functionality to handle PreCheck, see issue #3921
+
+			case parachaintypes.ActiveLeavesUpdateSignal:
+				_ = cv.ProcessActiveLeavesUpdateSignal(msg)
+
+			case parachaintypes.BlockFinalizedSignal:
+				_ = cv.ProcessBlockFinalizedSignal(msg)
+
+			default:
+				logger.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
+			}
+
+		case <-cv.stopChan:
+			return
+		}
+	}
+}
+
 // PoVRequestor gets proof of validity by issuing network requests to validators of the current backing group.
-// TODO: Implement PoV requestor
+// TODO: Implement PoV requestor, issue #3919
 type PoVRequestor interface {
 	RequestPoV(povHash common.Hash) parachaintypes.PoV
 }
@@ -58,9 +132,9 @@ func getValidationData(runtimeInstance parachainruntime.RuntimeInstance, paraID 
 	return nil, nil, fmt.Errorf("getting persisted validation data: %w", mergedError)
 }
 
-// ValidateFromChainState validates a candidate parachain block with provided parameters using relay-chain
+// validateFromChainState validates a candidate parachain block with provided parameters using relay-chain
 // state and using the parachain runtime.
-func ValidateFromChainState(runtimeInstance parachainruntime.RuntimeInstance, povRequestor PoVRequestor,
+func validateFromChainState(runtimeInstance parachainruntime.RuntimeInstance, povRequestor PoVRequestor,
 	candidateReceipt parachaintypes.CandidateReceipt) (
 	*parachaintypes.CandidateCommitments, *parachaintypes.PersistedValidationData, bool, error) {
 
