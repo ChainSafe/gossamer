@@ -312,6 +312,7 @@ func (table *statementTable) validityVote(
 		var misbehaviour parachaintypes.Misbehaviour
 
 		switch {
+		// valid vote conflicting with candidate statement
 		case existingVoteWithSign.validityVote == issued && voteWithSign.validityVote == valid,
 			existingVoteWithSign.validityVote == valid && voteWithSign.validityVote == issued:
 			misbehaviour = parachaintypes.ValidityDoubleVoteIssuedAndValidity{
@@ -324,12 +325,16 @@ func (table *statementTable) validityVote(
 					Signature:     voteWithSign.signature,
 				},
 			}
+
+		// two signatures on same candidate
 		case existingVoteWithSign.validityVote == issued && voteWithSign.validityVote == issued:
 			misbehaviour = parachaintypes.DoubleSignOnSeconded{
 				Candidate: data.candidate,
 				Sign1:     existingVoteWithSign.signature,
 				Sign2:     voteWithSign.signature,
 			}
+
+		// two signatures on same validity vote
 		case existingVoteWithSign.validityVote == valid && voteWithSign.validityVote == valid:
 			misbehaviour = parachaintypes.DoubleSignOnValidity{
 				CandidateHash: candidateHash,
@@ -337,6 +342,7 @@ func (table *statementTable) validityVote(
 				Sign2:         voteWithSign.signature,
 			}
 		}
+
 		return nil, misbehaviour, nil
 	}
 
