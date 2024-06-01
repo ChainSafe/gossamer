@@ -192,10 +192,10 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 
 // issueNewMisbehaviors checks for new misbehaviors and sends necessary messages to the Overseer subsystem.
 func issueNewMisbehaviors(subSystemToOverseer chan<- any, relayParent common.Hash, table Table) {
-	// collect the misbehaviors to avoid double mutable self borrow issues
-	misbehaviors := table.drainMisbehaviors()
+	// collect the validatorsToMisbehaviors to avoid double mutable self borrow issues
+	validatorsToMisbehaviors := table.drainMisbehaviors()
 
-	for _, m := range misbehaviors {
+	for validatorIndex, misbehaviors := range validatorsToMisbehaviors {
 		// TODO: figure out what this comment means by 'avoid cycles'.
 		//
 		// The provisioner waits on candidate-backing, which means
@@ -203,13 +203,16 @@ func issueNewMisbehaviors(subSystemToOverseer chan<- any, relayParent common.Has
 		//
 		// Misbehaviors are bounded by the number of validators and
 		// the block production protocol.
-		subSystemToOverseer <- parachaintypes.ProvisionerMessageProvisionableData{
-			RelayParent: relayParent,
-			ProvisionableData: parachaintypes.ProvisionableDataMisbehaviorReport{
-				ValidatorIndex: m.ValidatorIndex,
-				Misbehaviour:   m.Misbehaviour,
-			},
+		for _, misbehavior := range misbehaviors {
+			subSystemToOverseer <- parachaintypes.ProvisionerMessageProvisionableData{
+				RelayParent: relayParent,
+				ProvisionableData: parachaintypes.ProvisionableDataMisbehaviorReport{
+					ValidatorIndex: validatorIndex,
+					Misbehaviour:   misbehavior,
+				},
+			}
 		}
+
 	}
 }
 

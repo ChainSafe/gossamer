@@ -379,16 +379,18 @@ func effectiveMinimumBackingVotes(groupLen uint, configuredMinimumBackingVotes u
 	return min(groupLen, uint(configuredMinimumBackingVotes))
 }
 
-func (statementTable) drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport {
-	// TODO: Implement this method
-	return nil
+func (table *statementTable) drainMisbehaviors() map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour {
+	mapToReturn := table.detectedMisbehaviour
+	table.detectedMisbehaviour = make(map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour)
+	return mapToReturn
 }
 
 type Table interface {
 	getCommittedCandidateReceipt(parachaintypes.CandidateHash) (parachaintypes.CommittedCandidateReceipt, error)
 	importStatement(*tableContext, parachaintypes.SignedFullStatement) (*Summary, error)
 	attestedCandidate(parachaintypes.CandidateHash, *tableContext, uint32) (*attestedCandidate, error)
-	drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport
+	drainMisbehaviors() map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour
+	// drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport
 }
 
 func newTable(config tableConfig) *statementTable {
