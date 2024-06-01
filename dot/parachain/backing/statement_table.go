@@ -390,7 +390,6 @@ type Table interface {
 	importStatement(*tableContext, parachaintypes.SignedFullStatement) (*Summary, error)
 	attestedCandidate(parachaintypes.CandidateHash, *tableContext, uint32) (*attestedCandidate, error)
 	drainMisbehaviors() map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour
-	// drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport
 }
 
 func newTable(config tableConfig) *statementTable {
