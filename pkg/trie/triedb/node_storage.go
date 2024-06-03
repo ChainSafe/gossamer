@@ -24,13 +24,13 @@ type (
 	InMemory struct {
 		idx StorageHandle
 	}
-	Hash struct {
+	Persisted struct {
 		hash common.Hash
 	}
 )
 
-func (InMemory) isNodeHandle() {}
-func (Hash) isNodeHandle()     {}
+func (InMemory) isNodeHandle()  {}
+func (Persisted) isNodeHandle() {}
 
 func newInMemoryNodeHandle(idx StorageHandle) NodeHandle {
 	return InMemory{idx}
@@ -43,7 +43,7 @@ func newFromEncodedMerkleValue(
 ) (NodeHandle, error) {
 	switch encoded := encodedNodeHandle.(type) {
 	case codec.HashedNode:
-		return Hash{hash: common.NewHash(encoded.Data)}, nil
+		return Persisted{hash: common.NewHash(encoded.Data)}, nil
 	case codec.InlineNode:
 		child, err := newNodeFromEncoded(parentHash, encoded.Data, storage)
 		if err != nil {

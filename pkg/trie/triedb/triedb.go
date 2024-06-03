@@ -47,7 +47,7 @@ func NewEmptyTrieDB(db db.Database, cache cache.TrieCache) *TrieDB {
 
 // NewTrieDB creates a new TrieDB using the given root and db
 func NewTrieDB(rootHash common.Hash, db db.DBGetter, cache cache.TrieCache) *TrieDB {
-	rootHandle := Hash{hash: rootHash}
+	rootHandle := Persisted{hash: rootHash}
 
 	return &TrieDB{
 		rootHash:   rootHash,
@@ -97,7 +97,7 @@ func (t *TrieDB) lookup(fullKey []byte, partialKey []byte, handle NodeHandle) ([
 	for {
 		var partialIdx int
 		switch node := handle.(type) {
-		case Hash:
+		case Persisted:
 			lookup := NewTrieLookup(t.db, node.hash, t.cache)
 			val, err := lookup.lookupValue(fullKey)
 			if err != nil {
@@ -201,7 +201,7 @@ func (t *TrieDB) insertAt(
 	switch h := handle.(type) {
 	case InMemory:
 		storageHandle = h.idx
-	case Hash:
+	case Persisted:
 		storageHandle, err = t.lookupNode(h.hash)
 		if err != nil {
 			return -1, false, err
