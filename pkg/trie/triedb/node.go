@@ -13,6 +13,7 @@ import (
 
 type nodeValue interface {
 	getHash() common.Hash
+	equal(other nodeValue) bool
 }
 
 type (
@@ -30,14 +31,41 @@ type (
 	}
 )
 
-func (inline) getHash() common.Hash      { return common.EmptyHash }
+func (inline) getHash() common.Hash { return common.EmptyHash }
+func (n inline) equal(other nodeValue) bool {
+	switch otherValue := other.(type) {
+	case inline:
+		return bytes.Equal(n.Data, otherValue.Data)
+	default:
+		return false
+	}
+}
 func (vr valueRef) getHash() common.Hash { return vr.hash }
+func (vr valueRef) equal(other nodeValue) bool {
+	switch otherValue := other.(type) {
+	case valueRef:
+		return vr.hash == otherValue.hash
+	default:
+		return false
+	}
+}
 func (vr newValueRef) getHash() common.Hash {
 	if vr.hash == nil {
 		return common.EmptyHash
 	}
 
 	return *vr.hash
+}
+func (vr newValueRef) equal(other nodeValue) bool {
+	switch otherValue := other.(type) {
+	case newValueRef:
+		if vr.hash != nil && otherValue.hash != nil {
+			return *vr.hash == *otherValue.hash
+		}
+		return vr.hash == otherValue.hash
+	default:
+		return false
+	}
 }
 
 func NewValue(data []byte, threshold int) nodeValue {
@@ -79,9 +107,6 @@ func inMemoryFetchedValue(value nodeValue, prefix []byte, db db.DBGetter) ([]byt
 		panic("unreachable")
 	}
 }
-
-var emptyNode = make([]byte, 0)
-var hashedNullNode = common.MustBlake2bHash(emptyNode)
 
 type Node interface {
 	isNode()

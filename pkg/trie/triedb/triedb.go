@@ -41,7 +41,7 @@ type TrieDB struct {
 }
 
 func NewEmptyTrieDB(db db.Database, cache cache.TrieCache) *TrieDB {
-	root := hashedNullNode
+	root := trie.EmptyHash
 	return NewTrieDB(root, db, cache)
 }
 
@@ -175,19 +175,23 @@ func (t *TrieDB) getNode(
 	}
 }
 
-// Put inserts the given key / value pair into the trie
-func (t *TrieDB) Put(key, value []byte) error {
-	// Insert the node and update the rootHandle
+// insert inserts the node and update the rootHandle
+func (t *TrieDB) insert(keyNibbles, value []byte) error {
 	var oldValue nodeValue
-
 	rootHandle := t.rootHandle
-	keyNibbles := nibbles.KeyLEToNibbles(key)
 	newHandle, _, err := t.insertAt(rootHandle, keyNibbles, value, &oldValue)
 	if err != nil {
 		return err
 	}
 	t.rootHandle = InMemory{idx: newHandle}
+
 	return nil
+}
+
+// Put inserts the given key / value pair into the trie
+func (t *TrieDB) Put(key, value []byte) error {
+	keyNibbles := nibbles.KeyLEToNibbles(key)
+	return t.insert(keyNibbles, value)
 }
 
 // insertAt inserts the given key / value pair into the node referenced by the
@@ -281,9 +285,9 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 			// We are trying to insert a value in the same leaf so we just need
 			// to replace the value
 			value := NewValue(value, t.layout.MaxInlineValue())
-			unchanged := n.value == value
+			unchanged := n.value.equal(value)
 			t.replaceOldValue(oldValue, n.value)
-			leaf := Leaf{partialKey: n.partialKey, value: n.value}
+			leaf := Leaf{partialKey: n.partialKey, value: value}
 			if unchanged {
 				// If the value didn't change we can restore this leaf previously
 				// taken from storage
@@ -338,7 +342,10 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 			// We are trying to insert a value in the same branch so we just need
 			// to replace the value
 			value := NewValue(value, t.layout.MaxInlineValue())
-			unchanged := n.value == value
+			var unchanged bool
+			if n.value != nil {
+				unchanged = n.value.equal(value)
+			}
 			branch := Branch{existingKey, n.children, value}
 
 			t.replaceOldValue(oldValue, n.value)
