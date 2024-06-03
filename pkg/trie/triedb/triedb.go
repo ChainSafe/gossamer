@@ -245,14 +245,14 @@ func (t *TrieDB) inspect(
 		default:
 			panic("unreachable")
 		}
-	case CachedCachedNode:
+	case CachedStoredNode:
 		res, err := inspector(n.node, key)
 		if err != nil {
 			return nil, false, err
 		}
 		switch a := res.(type) {
 		case restore:
-			return CachedCachedNode{a.node, n.hash}, false, nil
+			return CachedStoredNode{a.node, n.hash}, false, nil
 		case replace:
 			t.deathRow[n.hash] = nil
 			return BuildNewStoredNode(a.node), true, nil
@@ -461,7 +461,7 @@ func (t *TrieDB) lookupNode(hash common.Hash) (StorageHandle, error) {
 		return -1, err
 	}
 
-	return t.storage.alloc(CachedCachedNode{
+	return t.storage.alloc(CachedStoredNode{
 		node: node,
 		hash: hash,
 	}), nil

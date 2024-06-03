@@ -68,7 +68,7 @@ type (
 	NewStoredNode struct {
 		node Node
 	}
-	CachedCachedNode struct {
+	CachedStoredNode struct {
 		node Node
 		hash common.Hash
 	}
@@ -77,7 +77,7 @@ type (
 func (n NewStoredNode) getNode() Node {
 	return n.node
 }
-func (n CachedCachedNode) getNode() Node {
+func (n CachedStoredNode) getNode() Node {
 	return n.node
 }
 
@@ -123,7 +123,7 @@ func (ns *NodeStorage) get(handle StorageHandle) Node {
 	switch n := ns.nodes[handle].(type) {
 	case NewStoredNode:
 		return n.node
-	case CachedCachedNode:
+	case CachedStoredNode:
 		return n.node
 	default:
 		panic("unreachable")
