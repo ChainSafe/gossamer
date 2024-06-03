@@ -10,22 +10,17 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 )
 
-type memoryDBEntry struct {
-	value []byte
-	rc    int32
-}
-
 // MemoryDB is an in-memory implementation of the Database interface backed by a
 // map. It uses blake2b as hashing algorithm
 type MemoryDB struct {
-	data           map[common.Hash]memoryDBEntry
+	data           map[common.Hash][]byte
 	hashedNullNode common.Hash
 	nullNodeData   []byte
 }
 
 func memoryDBFromNullNode(nullKey, nullNodeData []byte) *MemoryDB {
 	return &MemoryDB{
-		data:           make(map[common.Hash]memoryDBEntry),
+		data:           make(map[common.Hash][]byte),
 		hashedNullNode: common.MustBlake2bHash(nullKey),
 		nullNodeData:   nullNodeData,
 	}
@@ -40,23 +35,7 @@ func (db *MemoryDB) emplace(key common.Hash, value []byte) {
 		return
 	}
 
-	var (
-		entry memoryDBEntry
-		has   bool
-	)
-
-	if entry, has = db.data[key]; has {
-		if entry.rc <= 0 {
-			entry.value = value
-		}
-		entry.rc++
-	} else {
-		entry = memoryDBEntry{
-			value: value,
-			rc:    1,
-		}
-	}
-	db.data[key] = entry
+	db.data[key] = value
 }
 
 func (db *MemoryDB) Get(key []byte) ([]byte, error) {
@@ -64,10 +43,8 @@ func (db *MemoryDB) Get(key []byte) ([]byte, error) {
 	if dbKey == db.hashedNullNode {
 		return db.nullNodeData, nil
 	}
-	if entry, has := db.data[dbKey]; has {
-		if entry.rc > 0 {
-			return entry.value, nil
-		}
+	if value, has := db.data[dbKey]; has {
+		return value, nil
 	}
 
 	return nil, nil
