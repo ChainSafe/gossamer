@@ -124,6 +124,7 @@ type tableContext struct {
 	validators []parachaintypes.ValidatorID
 }
 
+// isMemberOf returns true if the validator is a member of the group of validators assigned to the parachain.
 func (tc *tableContext) isMemberOf(validatorIndex parachaintypes.ValidatorIndex, paraID parachaintypes.ParaID) bool {
 	indexes, ok := tc.groups[paraID]
 	if !ok {
