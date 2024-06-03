@@ -226,32 +226,32 @@ func (t *TrieDB) inspect(
 	inspector func(Node, []byte) (action, error),
 ) (StoredNode, bool, error) {
 	switch n := stored.(type) {
-	case New:
+	case NewStoredNode:
 		res, err := inspector(n.node, key)
 		if err != nil {
 			return nil, false, err
 		}
 		switch a := res.(type) {
 		case restore:
-			return NewStoredNodeNew(a.node), false, nil
+			return BuildNewStoredNode(a.node), false, nil
 		case replace:
-			return NewStoredNodeNew(a.node), true, nil
+			return BuildNewStoredNode(a.node), true, nil
 		case delete:
 			return nil, false, nil
 		default:
 			panic("unreachable")
 		}
-	case Cached:
+	case CachedCachedNode:
 		res, err := inspector(n.node, key)
 		if err != nil {
 			return nil, false, err
 		}
 		switch a := res.(type) {
 		case restore:
-			return Cached{a.node, n.hash}, false, nil
+			return CachedCachedNode{a.node, n.hash}, false, nil
 		case replace:
 			t.deathRow[n.hash] = nil
-			return NewStoredNodeNew(a.node), true, nil
+			return BuildNewStoredNode(a.node), true, nil
 		case delete:
 			t.deathRow[n.hash] = nil
 			return nil, false, nil
@@ -300,7 +300,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 
 			// Modify the existing leaf partial key and add it as a child
 			newLeaf := Leaf{existingKey[common+1:], n.value}
-			children[idx] = newInMemoryNodeHandle(t.storage.alloc(New{node: newLeaf}))
+			children[idx] = newInMemoryNodeHandle(t.storage.alloc(NewStoredNode{node: newLeaf}))
 			branch := Branch{
 				partialKey: partial[:common],
 				children:   children,
@@ -356,7 +356,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 			// So we take this branch and we add it as a child of the new one
 			branchPartial := existingKey[common+1:]
 			lowerBranch := Branch{branchPartial, n.children, n.value}
-			allocStorage := t.storage.alloc(New{node: lowerBranch})
+			allocStorage := t.storage.alloc(NewStoredNode{node: lowerBranch})
 
 			children := [codec.ChildrenCapacity]NodeHandle{}
 			ix := existingKey[common]
@@ -376,7 +376,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 			} else {
 				// Value is in a leaf under the branch so we have to create it
 				storedLeaf := Leaf{partial[common+1:], value}
-				leaf := t.storage.alloc(New{node: storedLeaf})
+				leaf := t.storage.alloc(NewStoredNode{node: storedLeaf})
 
 				ix = partial[common]
 				children[ix] = newInMemoryNodeHandle(leaf)
@@ -413,7 +413,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 			} else {
 				// Original has nothing here so we have to create a new leaf
 				value := NewValue(value, t.layout.MaxInlineValue())
-				leaf := t.storage.alloc(New{node: Leaf{keyNibbles, value}})
+				leaf := t.storage.alloc(NewStoredNode{node: Leaf{keyNibbles, value}})
 				n.children[idx] = newInMemoryNodeHandle(leaf)
 			}
 			return replace{Branch{
@@ -454,7 +454,7 @@ func (t *TrieDB) lookupNode(hash common.Hash) (StorageHandle, error) {
 		return -1, err
 	}
 
-	return t.storage.alloc(Cached{
+	return t.storage.alloc(CachedCachedNode{
 		node: node,
 		hash: hash,
 	}), nil

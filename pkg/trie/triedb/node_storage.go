@@ -49,7 +49,7 @@ func newFromEncodedMerkleValue(
 		if err != nil {
 			return nil, err
 		}
-		return InMemory{storage.alloc(New{child})}, nil
+		return InMemory{storage.alloc(NewStoredNode{child})}, nil
 	default:
 		panic("unreachable")
 	}
@@ -65,24 +65,24 @@ type StoredNode interface {
 }
 
 type (
-	New struct {
+	NewStoredNode struct {
 		node Node
 	}
-	Cached struct {
+	CachedCachedNode struct {
 		node Node
 		hash common.Hash
 	}
 )
 
-func (n New) getNode() Node {
+func (n NewStoredNode) getNode() Node {
 	return n.node
 }
-func (n Cached) getNode() Node {
+func (n CachedCachedNode) getNode() Node {
 	return n.node
 }
 
-func NewStoredNodeNew(node Node) New {
-	return New{node}
+func BuildNewStoredNode(node Node) NewStoredNode {
+	return NewStoredNode{node}
 }
 
 // NodeStorage is a struct that contains all the temporal nodes that are stored
@@ -121,9 +121,9 @@ func (ns *NodeStorage) destroy(handle StorageHandle) StoredNode {
 
 func (ns *NodeStorage) get(handle StorageHandle) Node {
 	switch n := ns.nodes[handle].(type) {
-	case New:
+	case NewStoredNode:
 		return n.node
-	case Cached:
+	case CachedCachedNode:
 		return n.node
 	default:
 		panic("unreachable")
