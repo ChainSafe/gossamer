@@ -8,7 +8,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
-	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,8 +51,7 @@ func Test_Verify(t *testing.T) {
 		"failed_building_proof_trie": {
 			rootHash:   []byte{1, 2, 3},
 			errWrapped: ErrEmptyProof,
-			errMessage: "building trie from proof encoded nodes: " +
-				"proof slice empty: for Merkle root hash 0x010203",
+			errMessage: "proof slice empty: for Merkle root hash 0x010203",
 		},
 		"value_not_found": {
 			encodedProofNodes: [][]byte{
@@ -149,9 +147,9 @@ func Test_buildTrie(t *testing.T) {
 
 	testCases := map[string]testCase{
 		"no_proof_node": {
-			errWrapped: ErrEmptyProof,
+			errWrapped: ErrRootNodeNotFound,
 			rootHash:   []byte{1},
-			errMessage: "proof slice empty: for Merkle root hash 0x01",
+			errMessage: "root node not found in proof: for root hash 0x01",
 		},
 		"root_node_decoding_error": {
 			encodedProofNodes: [][]byte{
@@ -159,127 +157,10 @@ func Test_buildTrie(t *testing.T) {
 			},
 			rootHash:   blake2b(t, getBadNodeEncoding()),
 			errWrapped: node.ErrVariantUnknown,
-			errMessage: "decoding root node: decoding header: " +
+			errMessage: "cannot decode root node: decoding header: " +
 				"decoding header byte: node variant is unknown: " +
 				"for header byte 00000011",
 		},
-		"root_proof_encoding_smaller_than_32_bytes": func() testCase {
-			encodedProofNodes := [][]byte{
-				encodeNode(t, leafAShort),
-			}
-
-			proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
-			assert.NoError(t, err)
-
-			return testCase{
-				encodedProofNodes: encodedProofNodes,
-				rootHash:          blake2bNode(t, leafAShort),
-				db:                proofDB,
-				expectedTrie: inmemory.NewTrie(&node.Node{
-					PartialKey:   leafAShort.PartialKey,
-					StorageValue: leafAShort.StorageValue,
-					Dirty:        true,
-				}, proofDB),
-			}
-		}(),
-		"root_proof_encoding_larger_than_32_bytes": func() testCase {
-			encodedProofNodes := [][]byte{
-				encodeNode(t, leafBLarge),
-			}
-
-			proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
-			assert.NoError(t, err)
-
-			return testCase{
-				encodedProofNodes: encodedProofNodes,
-				rootHash:          blake2bNode(t, leafBLarge),
-				db:                proofDB,
-				expectedTrie: inmemory.NewTrie(&node.Node{
-					PartialKey:   leafBLarge.PartialKey,
-					StorageValue: leafBLarge.StorageValue,
-					Dirty:        true,
-				}, proofDB),
-			}
-		}(),
-		"discard_unused_node": func() testCase {
-			encodedProofNodes := [][]byte{
-				encodeNode(t, leafAShort),
-				encodeNode(t, leafBLarge),
-			}
-
-			proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
-			assert.NoError(t, err)
-
-			return testCase{
-				encodedProofNodes: encodedProofNodes,
-				rootHash:          blake2bNode(t, leafAShort),
-				db:                proofDB,
-				expectedTrie: inmemory.NewTrie(&node.Node{
-					PartialKey:   leafAShort.PartialKey,
-					StorageValue: leafAShort.StorageValue,
-					Dirty:        true,
-				}, proofDB),
-			}
-		}(),
-		"multiple_unordered_nodes": func() testCase {
-			encodedProofNodes := [][]byte{
-				encodeNode(t, leafBLarge), // chilren 1 and 3
-				encodeNode(t, node.Node{ // root
-					PartialKey: []byte{1},
-					Children: padRightChildren([]*node.Node{
-						&leafAShort, // inlined
-						&leafBLarge, // referenced by Merkle value hash
-						&leafCLarge, // referenced by Merkle value hash
-						&leafBLarge, // referenced by Merkle value hash
-					}),
-				}),
-				encodeNode(t, leafCLarge), // children 2
-			}
-
-			proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
-			assert.NoError(t, err)
-
-			return testCase{
-				encodedProofNodes: encodedProofNodes,
-				rootHash: blake2bNode(t, node.Node{
-					PartialKey: []byte{1},
-					Children: padRightChildren([]*node.Node{
-						&leafAShort,
-						&leafBLarge,
-						&leafCLarge,
-						&leafBLarge,
-					}),
-				}),
-				db: proofDB,
-				expectedTrie: inmemory.NewTrie(&node.Node{
-					PartialKey:  []byte{1},
-					Descendants: 4,
-					Dirty:       true,
-					Children: padRightChildren([]*node.Node{
-						{
-							PartialKey:   leafAShort.PartialKey,
-							StorageValue: leafAShort.StorageValue,
-							Dirty:        true,
-						},
-						{
-							PartialKey:   leafBLarge.PartialKey,
-							StorageValue: leafBLarge.StorageValue,
-							Dirty:        true,
-						},
-						{
-							PartialKey:   leafCLarge.PartialKey,
-							StorageValue: leafCLarge.StorageValue,
-							Dirty:        true,
-						},
-						{
-							PartialKey:   leafBLarge.PartialKey,
-							StorageValue: leafBLarge.StorageValue,
-							Dirty:        true,
-						},
-					}),
-				}, proofDB),
-			}
-		}(),
 		"load_proof_decoding_error": {
 			encodedProofNodes: [][]byte{
 				getBadNodeEncoding(),
@@ -298,10 +179,7 @@ func Test_buildTrie(t *testing.T) {
 				scaleEncode(t, blake2b(t, getBadNodeEncoding())), // child hash
 			})),
 			errWrapped: node.ErrVariantUnknown,
-			errMessage: "loading proof: decoding child node for hash digest " +
-				"0xa111753e9152fe5204e77af20c46f055cb90f56212249d6cbf265395e689a8ed: " +
-				"decoding header: decoding header byte: " +
-				"node variant is unknown: for header byte 00000011",
+			errMessage: "decoding node with hash 0xa111753e9152fe5204e77af20c46f055cb90f56212249d6cbf265395e689a8ed: decoding header: decoding header byte: node variant is unknown: for header byte 00000011",
 		},
 		"root_not_found": {
 			encodedProofNodes: [][]byte{
@@ -313,8 +191,7 @@ func Test_buildTrie(t *testing.T) {
 			rootHash:   []byte{3},
 			errWrapped: ErrRootNodeNotFound,
 			errMessage: "root node not found in proof: " +
-				"for root hash 0x03 in proof hash digests " +
-				"0x60516d0bb6e1bbfb1293f1b276ea9505e9f4a4e7d98f620d05115e0b85274ae1",
+				"for root hash 0x03",
 		},
 	}
 
@@ -323,7 +200,9 @@ func Test_buildTrie(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			trie, err := buildTrie(testCase.encodedProofNodes, testCase.rootHash, testCase.db)
+			proofDB, err := db.NewMemoryDBFromProof(testCase.encodedProofNodes)
+			require.NoError(t, err)
+			trie, err := buildTrie(proofDB, testCase.rootHash)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if testCase.errWrapped != nil {

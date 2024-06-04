@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -15,7 +14,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/ChainSafe/gossamer/pkg/trie/node"
-	"github.com/ChainSafe/gossamer/pkg/trie/pools"
 )
 
 var (
@@ -31,13 +29,18 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "proof"))
 // Note this is exported because it is imported and used by:
 // https://github.com/ComposableFi/ibc-go/blob/6d62edaa1a3cb0768c430dab81bb195e0b0c72db/modules/light-clients/11-beefy/types/client_state.go#L78
 func Verify(encodedProofNodes [][]byte, rootHash, key, value []byte) (err error) {
+	if len(encodedProofNodes) == 0 {
+		return fmt.Errorf("%w: for Merkle root hash 0x%x",
+			ErrEmptyProof, rootHash)
+	}
+
 	proofDB, err := db.NewMemoryDBFromProof(encodedProofNodes)
 
 	if err != nil {
 		return err
 	}
 
-	proofTrie, err := buildTrie(encodedProofNodes, rootHash, proofDB)
+	proofTrie, err := buildTrie(proofDB, rootHash)
 	if err != nil {
 		return fmt.Errorf("building trie from proof encoded nodes: %w", err)
 	}
@@ -63,74 +66,20 @@ var (
 )
 
 // buildTrie sets a partial trie based on the proof slice of encoded nodes.
-func buildTrie(encodedProofNodes [][]byte, rootHash []byte, db db.Database) (t trie.Trie, err error) {
-	if len(encodedProofNodes) == 0 {
-		return nil, fmt.Errorf("%w: for Merkle root hash 0x%x",
-			ErrEmptyProof, rootHash)
+func buildTrie(db db.Database, rootHash []byte) (t trie.Trie, err error) {
+	if _, err := db.Get(rootHash); err != nil {
+		return nil, fmt.Errorf("%w: for root hash 0x%x",
+			ErrRootNodeNotFound, rootHash)
 	}
 
-	digestToEncoding := make(map[string][]byte, len(encodedProofNodes))
+	tr := inmemory.NewEmptyTrie()
+	err = tr.Load(db, common.BytesToHash(rootHash))
 
-	// note we can use a buffer from the pool since
-	// the calculated root hash digest is not used after
-	// the function completes.
-	buffer := pools.DigestBuffers.Get().(*bytes.Buffer)
-	defer pools.DigestBuffers.Put(buffer)
-
-	// This loop does two things:
-	// 1. It finds the root node by comparing it with the root hash and decodes it.
-	// 2. It stores other encoded nodes in a mapping from their encoding digest to
-	//    their encoding. They are only decoded later if the root or one of its
-	//    descendant nodes reference their hash digest.
-	var root *node.Node
-	for _, encodedProofNode := range encodedProofNodes {
-		// Note all encoded proof nodes are one of the following:
-		// - trie root node
-		// - child trie root node
-		// - child node with an encoding larger than 32 bytes
-		// In all cases, their Merkle value is the encoding hash digest,
-		// so we use MerkleValueRoot to force hashing the node in case
-		// it is a root node smaller or equal to 32 bytes.
-		buffer.Reset()
-		err = node.MerkleValueRoot(encodedProofNode, buffer)
-		if err != nil {
-			return nil, fmt.Errorf("calculating node hash: %w", err)
-		}
-		digest := buffer.Bytes()
-
-		if root != nil || !bytes.Equal(digest, rootHash) {
-			// root node already found or the hash doesn't match the root hash.
-			digestToEncoding[string(digest)] = encodedProofNode
-			continue
-			// Note: no need to add the root node to the map of hash to encoding
-		}
-
-		root, err = node.Decode(bytes.NewReader(encodedProofNode))
-		if err != nil {
-			return nil, fmt.Errorf("decoding root node: %w", err)
-		}
-		// The built proof trie is not used with a database, but just in case
-		// it becomes used with a database in the future, we set the dirty flag
-		// to true.
-		root.Dirty = true
-	}
-
-	if root == nil {
-		proofHashDigests := make([]string, 0, len(digestToEncoding))
-		for hashDigestString := range digestToEncoding {
-			hashDigestHex := common.BytesToHex([]byte(hashDigestString))
-			proofHashDigests = append(proofHashDigests, hashDigestHex)
-		}
-		return nil, fmt.Errorf("%w: for root hash 0x%x in proof hash digests %s",
-			ErrRootNodeNotFound, rootHash, strings.Join(proofHashDigests, ", "))
-	}
-
-	err = loadProof(digestToEncoding, root)
 	if err != nil {
-		return nil, fmt.Errorf("loading proof: %w", err)
+		return nil, err
 	}
 
-	return inmemory.NewTrie(root, db), nil
+	return tr, nil
 }
 
 // loadProof is a recursive function that will create all the trie paths based

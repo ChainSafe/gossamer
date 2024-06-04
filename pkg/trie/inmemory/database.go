@@ -95,6 +95,11 @@ func (t *InMemoryTrie) loadNode(db db.DBGetter, n *node.Node) error {
 			return fmt.Errorf("cannot find child node key 0x%x in database: %w", nodeHash, err)
 		}
 
+		// Node is not present in DB so we skip it
+		if encodedNode == nil {
+			continue
+		}
+
 		reader := bytes.NewReader(encodedNode)
 		decodedNode, err := node.Decode(reader)
 		if err != nil {
@@ -134,6 +139,10 @@ func loadStorageValue(db db.DBGetter, node *node.Node) error {
 	}
 
 	prefixedKey := bytes.Join([][]byte{node.PartialKey, node.StorageValue[:]}, nil)
+	if len(prefixedKey) > common.HashLength {
+		// This key is not stored with a prefix
+		prefixedKey = node.StorageValue[:]
+	}
 	rawStorageValue, err := db.Get(prefixedKey)
 	if err != nil {
 		return err
