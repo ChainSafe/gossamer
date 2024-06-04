@@ -24,6 +24,7 @@ var (
 	ErrValidationInputOverLimit  = errors.New("validation input is over the limit")
 	ErrValidationParamsTooLarge  = errors.New("validation parameters are too large")
 	ErrValidationPoVHashMismatch = errors.New("PoV hash does not match candidate PoV hash")
+	ErrValidationBadSignature    = errors.New("bad signature")
 )
 
 type CandidateValidation struct {
@@ -259,6 +260,8 @@ func validateFromExhaustive(persistedValidationData parachaintypes.PersistedVali
 	return validationResults, nil
 }
 
+// performBasicChecks Does basic checks of a candidate. Provide the encoded PoV-block. Returns nil if basic checks
+// are passed, `Err` otherwise.
 func performBasicChecks(candidate *parachaintypes.CandidateDescriptor, maxPoVSize uint32,
 	pov parachaintypes.PoV, validationCodeHash parachaintypes.ValidationCodeHash) error {
 	povHash, err := pov.Hash()
@@ -284,5 +287,9 @@ func performBasicChecks(candidate *parachaintypes.CandidateDescriptor, maxPoVSiz
 		return ErrValidationCodeMismatch
 	}
 
-	return candidate.CheckCollatorSignature()
+	err = candidate.CheckCollatorSignature()
+	if err != nil {
+		return ErrValidationBadSignature
+	}
+	return nil
 }

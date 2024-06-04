@@ -148,7 +148,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 		Add:   uint64(1),
 	})
 	require.NoError(t, err)
-
+	fmt.Printf("paraID %v\n", candidateReceipt.Descriptor.ParaID)
 	pov := parachaintypes.PoV{
 		BlockData: bd,
 	}
@@ -385,6 +385,112 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 			time.Sleep(100 * time.Millisecond)
 			result := <-sender
 			require.Equal(t, tt.want, result)
+		})
+	}
+}
+
+func Test_performBasicChecks(t *testing.T) {
+	pov := parachaintypes.PoV{
+		BlockData: []byte{1, 2, 3, 4, 5, 6, 7, 8},
+	}
+	povHash, err := pov.Hash()
+	pov2 := parachaintypes.PoV{
+		BlockData: []byte{1, 1, 1, 1, 1},
+	}
+	validationCode := parachaintypes.ValidationCode{1, 2, 3}
+	validationCodeHash := validationCode.Hash()
+
+	require.NoError(t, err)
+	collatorKeypair, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+	collatorID, err := sr25519.NewPublicKey(collatorKeypair.Public().Encode())
+	require.NoError(t, err)
+
+	candidate := parachaintypes.CandidateDescriptor{
+		Collator:           collatorID.AsBytes(),
+		PovHash:            povHash,
+		ValidationCodeHash: validationCodeHash,
+	}
+	candidate2 := candidate
+
+	payload, err := candidate.CreateSignaturePayload()
+	require.NoError(t, err)
+
+	signatureBytes, err := collatorKeypair.Sign(payload)
+	require.NoError(t, err)
+
+	signature := [sr25519.SignatureLength]byte{}
+	copy(signature[:], signatureBytes)
+
+	signature2Bytes, err := collatorKeypair.Sign([]byte{1, 2, 3, 4, 5, 6, 7, 8})
+	require.NoError(t, err)
+	signature2 := [sr25519.SignatureLength]byte{}
+	copy(signature2[:], signature2Bytes)
+
+	candidate.Signature = parachaintypes.CollatorSignature(signature)
+	candidate2.Signature = parachaintypes.CollatorSignature(signature2)
+
+	type args struct {
+		candidate          *parachaintypes.CandidateDescriptor
+		maxPoVSize         uint32
+		pov                parachaintypes.PoV
+		validationCodeHash parachaintypes.ValidationCodeHash
+	}
+	tests := map[string]struct {
+		args          args
+		expectedError error
+	}{
+		"params too large": {
+			args: args{
+				candidate:  &candidate,
+				maxPoVSize: 2,
+				pov:        pov,
+			},
+			expectedError: fmt.Errorf("%w, limit: 2, got: 9", ErrValidationParamsTooLarge),
+		},
+		"invalid pov hash": {
+			args: args{
+				candidate:  &candidate,
+				maxPoVSize: 1024,
+				pov:        pov2,
+			},
+			expectedError: ErrValidationPoVHashMismatch,
+		},
+		"invalid code hash": {
+			args: args{
+				candidate:          &candidate,
+				maxPoVSize:         1024,
+				pov:                pov,
+				validationCodeHash: parachaintypes.ValidationCodeHash{1, 2, 3},
+			},
+			expectedError: ErrValidationCodeMismatch,
+		},
+		"invalid signature": {
+			args: args{
+				candidate:          &candidate2,
+				maxPoVSize:         1024,
+				pov:                pov,
+				validationCodeHash: validationCodeHash,
+			},
+			expectedError: ErrValidationBadSignature,
+		},
+		"happy path": {
+			args: args{
+				candidate:          &candidate,
+				maxPoVSize:         1024,
+				pov:                pov,
+				validationCodeHash: validationCodeHash,
+			},
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := performBasicChecks(tt.args.candidate, tt.args.maxPoVSize, tt.args.pov, tt.args.validationCodeHash)
+			if tt.expectedError != nil {
+				require.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }
