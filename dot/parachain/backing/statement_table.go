@@ -121,6 +121,7 @@ func (table *statementTable) getCommittedCandidateReceipt(candidateHash parachai
 	return data.candidate, nil
 }
 
+// importStatement imports a statement into the table.
 func (table *statementTable) importStatement(
 	tableCtx *tableContext, signedStatement parachaintypes.SignedFullStatement,
 ) (*Summary, error) {
