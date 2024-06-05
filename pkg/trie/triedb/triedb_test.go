@@ -14,11 +14,6 @@ import (
 func TestInsertions(t *testing.T) {
 	t.Parallel()
 
-	type entry struct {
-		key   []byte
-		value []byte
-	}
-
 	testCases := map[string]struct {
 		trieEntries []entry
 		key         []byte
@@ -359,6 +354,136 @@ func TestInsertions(t *testing.T) {
 
 			// Check we have what we expect
 			assert.Equal(t, testCase.stored.nodes, trie.storage.nodes)
+		})
+	}
+}
+
+func TestDeletes(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		trieEntries []entry
+		key         []byte
+		expected    NodeStorage
+	}{
+		"nil_key": {
+			trieEntries: []entry{
+				{
+					key:   []byte{1},
+					value: []byte("leaf"),
+				},
+			},
+			expected: NodeStorage{
+				nodes: []StoredNode{
+					NewStoredNode{
+						Leaf{
+							partialKey: []byte{1},
+							value:      inline{Data: []byte("leaf")},
+						},
+					},
+				},
+			},
+		},
+		"empty_trie": {
+			key: []byte{1},
+			expected: NodeStorage{
+				nodes: []StoredNode{nil},
+			},
+		},
+		"delete_leaf": {
+			trieEntries: []entry{
+				{
+					key:   []byte{1},
+					value: []byte("leaf"),
+				},
+			},
+			key: []byte{1},
+			expected: NodeStorage{
+				nodes: []StoredNode{nil},
+			},
+		},
+		"delete_branch": {
+			trieEntries: []entry{
+				{
+					key:   []byte{1},
+					value: []byte("branch"),
+				},
+				{
+					key:   []byte{1, 0},
+					value: []byte("leaf"),
+				},
+			},
+			key: []byte{1},
+			expected: NodeStorage{
+				nodes: []StoredNode{
+					nil,
+					NewStoredNode{
+						Leaf{
+							partialKey: []byte{1, 0},
+							value:      inline{Data: []byte("leaf")},
+						},
+					},
+				},
+			},
+		},
+		"delete_branch_without_value_should_do_nothing": {
+			trieEntries: []entry{
+				{
+					key:   []byte{1, 0},
+					value: []byte("leaf1"),
+				},
+				{
+					key:   []byte{1, 1},
+					value: []byte("leaf2"),
+				},
+			},
+			key: []byte{1},
+			expected: NodeStorage{
+				nodes: []StoredNode{
+					NewStoredNode{
+						Leaf{
+							partialKey: []byte{},
+							value:      inline{Data: []byte("leaf1")},
+						},
+					},
+					NewStoredNode{
+						Leaf{
+							partialKey: []byte{},
+							value:      inline{Data: []byte("leaf2")},
+						},
+					},
+					NewStoredNode{
+						Branch{
+							partialKey: []byte{1},
+							children: [codec.ChildrenCapacity]NodeHandle{
+								InMemory{StorageHandle(0)}, InMemory{StorageHandle(1)},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			// Setup trie
+			inmemoryDB := db.NewMemoryDB(make([]byte, 1))
+			trie := NewEmptyTrieDB(inmemoryDB, nil)
+
+			for _, entry := range testCase.trieEntries {
+				assert.NoError(t, trie.insert(entry.key, entry.value))
+			}
+
+			// Add new key-value pair
+			err := trie.remove(testCase.key)
+			assert.NoError(t, err)
+
+			// Check we have what we expect
+			assert.Equal(t, testCase.expected.nodes, trie.storage.nodes)
 		})
 	}
 }

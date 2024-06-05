@@ -175,12 +175,11 @@ func (t *TrieDB) getNode(
 	}
 }
 
-// Delete deletes the given key from the trie
-func (t *TrieDB) Delete(key []byte) error {
+// Remove removes the given key from the trie
+func (t *TrieDB) remove(keyNibbles []byte) error {
 	var oldValue nodeValue
-
 	rootHandle := t.rootHandle
-	keyNibbles := nibbles.KeyLEToNibbles(key)
+
 	removeResult, err := t.removeAt(rootHandle, keyNibbles, &oldValue)
 	if err != nil {
 		return err
@@ -193,6 +192,13 @@ func (t *TrieDB) Delete(key []byte) error {
 	}
 
 	return nil
+}
+
+// Delete deletes the given key from the trie
+func (t *TrieDB) Delete(key []byte) error {
+
+	keyNibbles := nibbles.KeyLEToNibbles(key)
+	return t.remove(keyNibbles)
 }
 
 // insert inserts the node and update the rootHandle
