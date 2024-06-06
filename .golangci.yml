@@ -41,6 +41,9 @@ linters-settings:
       - finalized
       - finalize
       - initialize
+      - finalization
+      - behavior
+      - finalizing
 
 linters:
   enable:
