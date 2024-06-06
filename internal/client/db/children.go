@@ -17,7 +17,6 @@ import (
 func readChildren[H comparable](
 	db database.Database[hash.H256], column database.ColumnID, prefix []byte, parentHash H,
 ) ([]H, error) {
-	// buf := prefix
 	encoded := scale.MustMarshal(parentHash)
 	key := append(prefix, encoded...)
 
