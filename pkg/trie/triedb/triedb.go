@@ -6,6 +6,7 @@ package triedb
 import (
 	"bytes"
 	"errors"
+	"log"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie"
@@ -27,7 +28,7 @@ type entry struct {
 // using lazy loading to fetch nodes
 type TrieDB struct {
 	rootHash common.Hash
-	db       db.DBGetter
+	db       db.RWDatabase
 	cache    cache.TrieCache
 	layout   trie.TrieLayout
 	// rootHandle is an in-memory-trie-like representation of the node
@@ -40,13 +41,13 @@ type TrieDB struct {
 	deathRow map[common.Hash]interface{}
 }
 
-func NewEmptyTrieDB(db db.Database, cache cache.TrieCache) *TrieDB {
+func NewEmptyTrieDB(db db.RWDatabase, cache cache.TrieCache) *TrieDB {
 	root := hashedNullNode
 	return NewTrieDB(root, db, cache)
 }
 
 // NewTrieDB creates a new TrieDB using the given root and db
-func NewTrieDB(rootHash common.Hash, db db.DBGetter, cache cache.TrieCache) *TrieDB {
+func NewTrieDB(rootHash common.Hash, db db.RWDatabase, cache cache.TrieCache) *TrieDB {
 	rootHandle := Persisted{hash: rootHash}
 
 	return &TrieDB{
@@ -692,6 +693,141 @@ func (t *TrieDB) lookupNode(hash common.Hash) (StorageHandle, error) {
 		node: node,
 		hash: hash,
 	}), nil
+}
+
+func (t *TrieDB) commit() error {
+	log.Printf("Committing trie changes to db")
+	log.Printf("%d nodes to remove from db", len(t.deathRow))
+
+	for hash := range t.deathRow {
+		t.db.Del(hash[:])
+	}
+
+	// Reset deathRow
+	t.deathRow = make(map[common.Hash]interface{})
+
+	var handle StorageHandle
+	switch h := t.rootHandle.(type) {
+	case Persisted:
+		return nil // nothing to commit since the root is already in db
+	case InMemory:
+		handle = h.idx
+	}
+
+	switch stored := t.storage.destroy(handle).(type) {
+	case NewStoredNode:
+		// Reconstructs the full key for root node
+		var k []byte
+
+		encodedNode, err := NewEncodedNode(stored.node, func(node NodeToEncode, oslice []byte, oindex *byte) ChildReference {
+			k = append(k, oslice...)
+			mov := len(oslice)
+			if oindex != nil {
+				k = append(k, *oindex)
+				mov += int(*oindex)
+			}
+
+			switch n := node.(type) {
+			case NewNodeToEncode:
+				hash := common.MustBlake2bHash(n.value)
+				t.db.Put(hash[:], n.value)
+				k = k[:mov]
+				return HashChildReference{hash: hash}
+			case TrieNodeToEncode:
+				result := t.commitChild(n.child, k)
+				k = k[:mov]
+				return result
+			default:
+				panic("unreachable")
+			}
+		})
+
+		if err != nil {
+			return err
+		}
+
+		hash := common.MustBlake2bHash(encodedNode)
+		err = t.db.Put(hash[:], encodedNode)
+		if err != nil {
+			return err
+		}
+
+		t.rootHash = hash
+		t.rootHandle = Persisted{t.rootHash}
+		return nil
+	case CachedStoredNode:
+		t.rootHash = stored.hash
+		t.rootHandle = InMemory{
+			t.storage.alloc(CachedStoredNode{stored.node, stored.hash}),
+		}
+		return nil
+	default:
+		panic("unreachable")
+	}
+}
+
+// Commit a node by hashing it and writing it to the db.
+func (t *TrieDB) commitChild(
+	child NodeHandle,
+	prefixKey []byte,
+) ChildReference {
+	switch nh := child.(type) {
+	case Persisted:
+		// Already persisted we have to do nothing
+		return HashChildReference{hash: nh.hash}
+	case InMemory:
+		stored := t.storage.destroy(nh.idx)
+		switch node := stored.(type) {
+		case CachedStoredNode:
+			return HashChildReference{hash: node.hash}
+		case NewStoredNode:
+			// We have to store the node in the DB
+			commitChildFunc := func(node NodeToEncode, oslice []byte, oindex *byte) ChildReference {
+				prefixKey = append(prefixKey, oslice...)
+				mov := len(oslice)
+				if oindex != nil {
+					prefixKey = append(prefixKey, *oindex)
+					mov += int(*oindex)
+				}
+
+				switch n := node.(type) {
+				case NewNodeToEncode:
+					valueHash := common.MustBlake2bHash(n.value)
+					err := t.db.Put(valueHash.ToBytes(), n.value)
+					if err != nil {
+						panic("inserting in db")
+					}
+
+					//TODO: add value to cache
+					prefixKey = prefixKey[:mov]
+					return HashChildReference{hash: valueHash}
+				case TrieNodeToEncode:
+					result := t.commitChild(n.child, prefixKey)
+					prefixKey = prefixKey[:mov]
+					return result
+				}
+
+				return nil
+			}
+			encoded, err := NewEncodedNode(node.node, commitChildFunc)
+			if err != nil {
+				panic("encoding node")
+			}
+
+			if len(encoded) >= common.HashLength {
+				hash := common.MustBlake2bHash(encoded)
+				t.db.Put(hash[:], encoded)
+
+				return HashChildReference{hash: hash}
+			} else {
+				return InlineChildReference{encoded}
+			}
+		default:
+			panic("unreachable")
+		}
+	default:
+		panic("unreachable")
+	}
 }
 
 var _ trie.TrieRead = (*TrieDB)(nil)

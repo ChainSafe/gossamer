@@ -56,4 +56,14 @@ func (db *MemoryDB) Put(key []byte, value []byte) error {
 	return nil
 }
 
-var _ db.Database = &MemoryDB{}
+func (db *MemoryDB) Del(key []byte) error {
+	dbKey := common.NewHash(key)
+	delete(db.data, dbKey)
+	return nil
+}
+
+func (db *MemoryDB) Flush() error {
+	return nil
+}
+
+var _ db.RWDatabase = &MemoryDB{}
