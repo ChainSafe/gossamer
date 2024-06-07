@@ -20,6 +20,11 @@ import (
 // Meta column. The set of keys in the column is shared by full && light storages.
 const columnMeta = columns.Meta
 
+type finalizedState[H, N any] struct {
+	Hash   H
+	Number N
+}
+
 // Database metadata.
 type meta[H, N any] struct {
 	// Hash of the best known block.
@@ -33,10 +38,7 @@ type meta[H, N any] struct {
 	// Hash of the genesis block.
 	GenesisHash H
 	// Finalized state, if any
-	FinalizedState *struct {
-		Hash   H
-		Number N
-	}
+	FinalizedState *finalizedState[H, N]
 	// Block gap, start and end inclusive, if any.
 	BlockGap *[2]N
 }
@@ -154,15 +156,9 @@ func readMeta[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
 	if err != nil {
 		return meta[H, N]{}, err
 	}
-	var finalizedState *struct {
-		Hash   H
-		Number N
-	}
+	var finalized *finalizedState[H, N]
 	if finalizedStateHash != *new(H) {
-		finalizedState = &struct {
-			Hash   H
-			Number N
-		}{
+		finalized = &finalizedState[H, N]{
 			finalizedStateHash, finalizedStateNumber,
 		}
 	}
@@ -181,7 +177,7 @@ func readMeta[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
 		FinalizedHash:   finalizedHash,
 		FinalizedNumber: finalizedNumber,
 		GenesisHash:     *genesisHash,
-		FinalizedState:  finalizedState,
+		FinalizedState:  finalized,
 		BlockGap:        blockGap,
 	}, nil
 }

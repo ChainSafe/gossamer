@@ -106,7 +106,7 @@ type blockchainDB[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, Header 
 	pinnedBlocksCacheMtx sync.RWMutex
 }
 
-func newblockchainDB[
+func newBlockchainDB[
 	H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H], E runtime.Extrinsic, Header runtime.Header[N, H],
 ](db database.Database[hash.H256]) (*blockchainDB[H, N, E, Header], error) {
 	meta, err := readMeta[H, N, *generic.Header[N, H, Hasher]](db, columns.Header)
@@ -141,10 +141,7 @@ func (bdb *blockchainDB[H, N, E, Header]) updateMeta(update metaUpdate[H, N]) {
 
 	if update.IsFinalized {
 		if update.WithState {
-			bdb.meta.FinalizedState = &struct {
-				Hash   H
-				Number N
-			}{update.Hash, update.Number}
+			bdb.meta.FinalizedState = &finalizedState[H, N]{update.Hash, update.Number}
 		}
 		bdb.meta.FinalizedNumber = update.Number
 		bdb.meta.FinalizedHash = update.Hash
@@ -340,16 +337,20 @@ func (bdb *blockchainDB[H, N, E, Header]) Header(hash H) (runtime.Header[N, H], 
 func (bdb *blockchainDB[H, N, E, Header]) Info() blockchain.Info[H, N] {
 	bdb.metaMtx.RLock()
 	defer bdb.metaMtx.RUnlock()
-	return blockchain.Info[H, N]{
+	info := blockchain.Info[H, N]{
 		BestHash:        bdb.meta.BestHash,
 		BestNumber:      bdb.meta.BestNumber,
 		GenesisHash:     bdb.meta.GenesisHash,
 		FinalizedHash:   bdb.meta.FinalizedHash,
 		FinalizedNumber: bdb.meta.FinalizedNumber,
-		FinalizedState:  bdb.meta.FinalizedState,
-		NumberLeaves:    bdb.leaves.Count(),
-		BlockGap:        bdb.meta.BlockGap,
+		FinalizedState: &struct {
+			Hash   H
+			Number N
+		}{bdb.meta.FinalizedState.Hash, bdb.meta.FinalizedState.Number},
+		NumberLeaves: bdb.leaves.Count(),
+		BlockGap:     bdb.meta.BlockGap,
 	}
+	return info
 }
 
 func (bdb *blockchainDB[H, N, E, Header]) Status(hash H) (blockchain.BlockStatus, error) {
