@@ -65,15 +65,15 @@ func (hmc *HeaderMetadataCache[H, N]) RemoveHeaderMetadata(hash H) {
 
 // CachedHeaderMeatadata is used to efficiently traverse the tree.
 type CachedHeaderMetadata[H, N any] struct {
-	/// Hash of the header.
+	// Hash of the header.
 	Hash H
-	/// Block number.
+	// Block number.
 	Number N
-	/// Hash of parent header.
+	// Hash of parent header.
 	Parent H
-	/// Block state root.
+	// Block state root.
 	StateRoot H
-	/// Hash of an ancestor header. Used to jump through the tree.
+	// Hash of an ancestor header. Used to jump through the tree.
 	ancestor H
 }
 
