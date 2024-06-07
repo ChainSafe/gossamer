@@ -415,6 +415,15 @@ type HeadData struct {
 	Data []byte `scale:"1"`
 }
 
+func (hd HeadData) Hash() (common.Hash, error) {
+	bytes, err := scale.Marshal(hd)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("marshalling HeadData: %w", err)
+	}
+
+	return common.Blake2bHash(bytes)
+}
+
 // CoreIndex The unique (during session) index of a core.
 type CoreIndex struct {
 	Index uint32 `scale:"1"`

@@ -33,6 +33,7 @@ type CandidateValidation struct {
 
 	SubsystemToOverseer chan<- any
 	OverseerToSubsystem <-chan any
+	ValidationHost      parachainruntime.ValidationHost
 }
 
 func NewCandidateValidation(overseerChan chan<- any) *CandidateValidation {
@@ -77,7 +78,8 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 			case ValidateFromChainState:
 				// TODO: implement functionality to handle ValidateFromChainState, see issue #3919
 			case ValidateFromExhaustive:
-				result, err := validateFromExhaustive(msg.PersistedValidationData, msg.ValidationCode,
+				result, err := validateFromExhaustive(cv.ValidationHost, msg.PersistedValidationData,
+					msg.ValidationCode,
 					msg.CandidateReceipt, msg.PoV)
 				if err != nil {
 					logger.Errorf("failed to validate from exhaustive: %w", err)
@@ -227,7 +229,8 @@ func validateFromChainState(runtimeInstance parachainruntime.RuntimeInstance, po
 }
 
 // validateFromExhaustive validates a candidate parachain block with provided parameters
-func validateFromExhaustive(persistedValidationData parachaintypes.PersistedValidationData,
+func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
+	persistedValidationData parachaintypes.PersistedValidationData,
 	validationCode parachaintypes.ValidationCode,
 	candidateReceipt parachaintypes.CandidateReceipt, pov parachaintypes.PoV) (
 	*parachainruntime.ValidationResult, error) {
@@ -240,10 +243,10 @@ func validateFromExhaustive(persistedValidationData parachaintypes.PersistedVali
 		return nil, err
 	}
 
-	parachainRuntimeInstance, err := parachainruntime.SetupVM(validationCode)
-	if err != nil {
-		return nil, fmt.Errorf("setting up VM: %w", err)
-	}
+	//parachainRuntimeInstance, err := parachainruntime.SetupVM(validationCode)
+	//if err != nil {
+	//	return nil, fmt.Errorf("setting up VM: %w", err)
+	//}
 
 	validationParams := parachainruntime.ValidationParameters{
 		ParentHeadData:         persistedValidationData.ParentHead,
@@ -252,7 +255,7 @@ func validateFromExhaustive(persistedValidationData parachaintypes.PersistedVali
 		RelayParentStorageRoot: persistedValidationData.RelayParentStorageRoot,
 	}
 
-	validationResults, err := parachainRuntimeInstance.ValidateBlock(validationParams)
+	validationResults, err := validationHost.ValidateBlock(validationParams)
 	if err != nil {
 		return nil, fmt.Errorf("executing validate_block: %w", err)
 	}

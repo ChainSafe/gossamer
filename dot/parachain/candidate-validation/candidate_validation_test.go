@@ -33,36 +33,53 @@ func createTestCandidateReceiptAndValidationCode(t *testing.T) (
 
 	collatorKeypair, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
-	collatorID, err := sr25519.NewPublicKey(collatorKeypair.Public().Encode())
-	require.NoError(t, err)
+
+	descriptor := makeValidCandidateDescriptor(t, 1000,
+		common.MustHexToHash("0xded542bacb3ca6c033a57676f94ae7c8f36834511deb44e3164256fd3b1c0de0"),
+		common.MustHexToHash("0x690d8f252ef66ab0f969c3f518f90012b849aa5ac94e1752c5e5ae5a8996de37"),
+		common.MustHexToHash("0xb608991ffc48dd405fd4b10e92eaebe2b5a2eedf44d0c3efb8997fdee8bebed9"),
+		parachaintypes.ValidationCodeHash(validationCodeHashV),
+		common.MustHexToHash("0x9a8a7107426ef873ab89fc8af390ec36bdb2f744a9ff71ad7f18a12d55a7f4f5"),
+		common.MustHexToHash("0xc07f658163e93c45a6f0288d229698f09c1252e41076f4caa71c8cbc12f118a1"), *collatorKeypair)
 
 	candidateReceipt := parachaintypes.CandidateReceipt{
-		Descriptor: parachaintypes.CandidateDescriptor{
-			ParaID:                      uint32(1000),
-			RelayParent:                 common.MustHexToHash("0xded542bacb3ca6c033a57676f94ae7c8f36834511deb44e3164256fd3b1c0de0"), //nolint:lll
-			Collator:                    collatorID.AsBytes(),
-			PersistedValidationDataHash: common.MustHexToHash("0x690d8f252ef66ab0f969c3f518f90012b849aa5ac94e1752c5e5ae5a8996de37"), //nolint:lll
-			PovHash:                     common.MustHexToHash("0xb608991ffc48dd405fd4b10e92eaebe2b5a2eedf44d0c3efb8997fdee8bebed9"), //nolint:lll
-			ErasureRoot:                 common.MustHexToHash("0xc07f658163e93c45a6f0288d229698f09c1252e41076f4caa71c8cbc12f118a1"), //nolint:lll
-			ParaHead:                    common.MustHexToHash("0x9a8a7107426ef873ab89fc8af390ec36bdb2f744a9ff71ad7f18a12d55a7f4f5"), //nolint:lll
-			ValidationCodeHash:          parachaintypes.ValidationCodeHash(validationCodeHashV),
-		},
-
+		Descriptor:      descriptor,
 		CommitmentsHash: common.MustHexToHash("0xa54a8dce5fd2a27e3715f99e4241f674a48f4529f77949a4474f5b283b823535"),
 	}
 
-	payload, err := candidateReceipt.Descriptor.CreateSignaturePayload()
+	return candidateReceipt, validationCode
+}
+
+func makeValidCandidateDescriptor(t *testing.T, paraID uint32, relayParent common.Hash,
+	persistedValidationDataHash common.Hash, povHash common.Hash,
+	validationCodeHash parachaintypes.ValidationCodeHash, paraHead common.Hash, erasureRoot common.Hash,
+	collator sr25519.Keypair,
+) parachaintypes.CandidateDescriptor {
+	collatorID, err := sr25519.NewPublicKey(collator.Public().Encode())
 	require.NoError(t, err)
 
-	signatureBytes, err := collatorKeypair.Sign(payload)
+	descriptor := parachaintypes.CandidateDescriptor{
+		ParaID:                      paraID,
+		RelayParent:                 relayParent,
+		Collator:                    collatorID.AsBytes(),
+		PersistedValidationDataHash: persistedValidationDataHash,
+		PovHash:                     povHash,
+		ErasureRoot:                 erasureRoot,
+		ParaHead:                    paraHead,
+		ValidationCodeHash:          validationCodeHash,
+	}
+	payload, err := descriptor.CreateSignaturePayload()
+	require.NoError(t, err)
+
+	signatureBytes, err := collator.Sign(payload)
 	require.NoError(t, err)
 
 	signature := [sr25519.SignatureLength]byte{}
 	copy(signature[:], signatureBytes)
 
-	candidateReceipt.Descriptor.Signature = parachaintypes.CollatorSignature(signature)
+	descriptor.Signature = signature
 
-	return candidateReceipt, validationCode
+	return descriptor
 }
 
 func TestValidateFromChainState(t *testing.T) {
@@ -139,16 +156,26 @@ type BlockDataInAdderParachain struct {
 }
 
 func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
+	t.Parallel()
 	candidateReceipt, validationCode := createTestCandidateReceiptAndValidationCode(t)
 	candidateReceipt2 := candidateReceipt
 	candidateReceipt2.Descriptor.PovHash = common.MustHexToHash(
 		"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
+
+	testValidationHost, err := parachainruntime.SetupVM(validationCode)
+	require.NoError(t, err)
+
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+
+	mockValidationHost := NewMockValidationHost(ctrl)
+	mockValidationHost.EXPECT().ValidateBlock(gomock.Any()).Return(nil, parachainruntime.ErrHardTimeout).AnyTimes()
+
 	bd, err := scale.Marshal(BlockDataInAdderParachain{
 		State: uint64(1),
 		Add:   uint64(1),
 	})
 	require.NoError(t, err)
-	fmt.Printf("paraID %v\n", candidateReceipt.Descriptor.ParaID)
 	pov := parachaintypes.PoV{
 		BlockData: bd,
 	}
@@ -168,6 +195,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 	require.NoError(t, err)
 
 	type args struct {
+		validatonHost           parachainruntime.ValidationHost
 		persistedValidationData parachaintypes.PersistedValidationData
 		validationCode          parachaintypes.ValidationCode
 		candidateReceipt        parachaintypes.CandidateReceipt
@@ -220,6 +248,38 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 			},
 			expectedError: ErrValidationCodeMismatch,
 		},
+		"mock_test": {
+			args: args{
+				persistedValidationData: parachaintypes.PersistedValidationData{
+					ParentHead:             parachaintypes.HeadData{Data: hd},
+					RelayParentNumber:      uint32(1),
+					RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
+					MaxPovSize:             uint32(2048),
+				},
+				validatonHost:    mockValidationHost,
+				validationCode:   validationCode,
+				candidateReceipt: candidateReceipt,
+				pov:              pov,
+			},
+			expectedError: fmt.Errorf("executing validate_block: %w", parachainruntime.ErrHardTimeout),
+		},
+		"wasm_error_unreachable": {
+			args: args{
+				persistedValidationData: parachaintypes.PersistedValidationData{
+					MaxPovSize: uint32(2048),
+				},
+				validatonHost:    testValidationHost,
+				validationCode:   validationCode,
+				candidateReceipt: candidateReceipt,
+				pov:              pov,
+			},
+			expectedError: errors.New("executing validate_block: running runtime function: wasm error: unreachable" +
+				"\nwasm stack trace:\n\t.rust_begin_unwind(i32)\n\t._ZN4core9panicking9panic_fmt17h55a9886e2bf4227aE(" +
+				"i32,i32)\n\t\t0xcbc: /rustc/1c42cb4ef0544fbfaa500216e53382d6b079c001/library/core/src/panicking." +
+				"rs:67:14\n\t._ZN4core6result13unwrap_failed17h18cc772327ac51f6E(i32,i32,i32,i32," +
+				"i32)\n\t\t0xfe9: /rustc/1c42cb4ef0544fbfaa500216e53382d6b079c001/library/core/src/result." +
+				"rs:1651:5\n\t.validate_block(i32,i32) i64"),
+		},
 		"happy_path": {
 			args: args{
 				persistedValidationData: parachaintypes.PersistedValidationData{
@@ -228,6 +288,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 					RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
 					MaxPovSize:             uint32(2048),
 				},
+				validatonHost:    testValidationHost,
 				validationCode:   validationCode,
 				candidateReceipt: candidateReceipt,
 				pov:              pov,
@@ -243,8 +304,10 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 		},
 	}
 	for name, tt := range tests {
+		tt := tt
 		t.Run(name, func(t *testing.T) {
-			got, err := validateFromExhaustive(tt.args.persistedValidationData, tt.args.validationCode,
+			t.Parallel()
+			got, err := validateFromExhaustive(tt.args.validatonHost, tt.args.persistedValidationData, tt.args.validationCode,
 				tt.args.candidateReceipt, tt.args.pov)
 			if tt.expectedError != nil {
 				require.EqualError(t, err, tt.expectedError.Error())
@@ -255,6 +318,13 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 			require.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestCandidateValidation_wasm_invalid_magic_number(t *testing.T) {
+	validationCode := parachaintypes.ValidationCode{1, 2, 3, 4, 5, 6, 7, 8}
+	parachainRuntimeInstance, err := parachainruntime.SetupVM(validationCode)
+	require.EqualError(t, err, "creating instance: invalid magic number")
+	require.Emptyf(t, parachainRuntimeInstance, "parachainRuntimeInstance should be empty")
 }
 
 func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) {
