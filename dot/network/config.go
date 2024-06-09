@@ -206,21 +206,20 @@ func (c *Config) buildIdentity() error {
 
 		// set private key
 		c.privateKey = key
-	} else {
-		c.logger.Infof(
-			"Generating p2p identity with seed %d and key file %s",
-			c.RandSeed, path.Join(c.BasePath, DefaultKeyFile))
+		return nil
+	}
+	c.logger.Infof(
+		"Generating p2p identity with seed %d and key file %s",
+		c.RandSeed, path.Join(c.BasePath, DefaultKeyFile))
 
-		// generate temporary deterministic key
-		key, err := generateKey(c.RandSeed, c.BasePath)
-		if err != nil {
-			return err
-		}
-
-		// set private key
-		c.privateKey = key
+	// generate temporary deterministic key
+	key, err := generateKey(c.RandSeed, c.BasePath)
+	if err != nil {
+		return err
 	}
 
+	// set private key
+	c.privateKey = key
 	return nil
 }
 

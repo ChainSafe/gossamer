@@ -260,11 +260,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 
 	// store block in database
 	if err = s.blockState.AddBlock(block); err != nil {
-		if errors.Is(err, blocktree.ErrParentNotFound) && block.Header.Number != 0 {
-			return err
-		} else if errors.Is(err, blocktree.ErrBlockExists) || block.Header.Number == 0 {
-			// this is fine
-		} else {
+		if !errors.Is(err, blocktree.ErrBlockExists) && block.Header.Number != 0 {
 			return err
 		}
 	}
@@ -410,11 +406,10 @@ func (s *Service) handleChainReorg(best, curr common.Hash) error {
 	}
 
 	// subchain contains the ancestor as well so we need to remove it.
-	if len(subchain) > 0 {
-		subchain = subchain[1:]
-	} else {
+	if len(subchain) == 0 {
 		return nil
 	}
+	subchain = subchain[1:]
 
 	// Check transaction validation on the best block.
 	bestBlockHash := s.blockState.BestBlockHash()

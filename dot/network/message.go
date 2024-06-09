@@ -159,10 +159,9 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 		return err
 	}
 
+	max = nil
 	if msg.MaxBlocks != 0 {
 		max = &msg.MaxBlocks
-	} else {
-		max = nil
 	}
 
 	bm.RequestedData = byte(msg.Fields >> 24)
@@ -287,6 +286,7 @@ func protobufToBlockData(pbd *pb.BlockData) (*types.BlockData, error) {
 		bd.Header = header
 	}
 
+	bd.Body = nil
 	if pbd.Body != nil {
 		body, err := types.NewBodyFromEncodedBytes(pbd.Body)
 		if err != nil {
@@ -294,26 +294,21 @@ func protobufToBlockData(pbd *pb.BlockData) (*types.BlockData, error) {
 		}
 
 		bd.Body = body
-	} else {
-		bd.Body = nil
 	}
 
+	bd.Receipt = nil
 	if pbd.Receipt != nil {
 		bd.Receipt = &pbd.Receipt
-	} else {
-		bd.Receipt = nil
 	}
 
+	bd.MessageQueue = nil
 	if pbd.MessageQueue != nil {
 		bd.MessageQueue = &pbd.MessageQueue
-	} else {
-		bd.MessageQueue = nil
 	}
 
+	bd.Justification = nil
 	if pbd.Justification != nil {
 		bd.Justification = &pbd.Justification
-	} else {
-		bd.Justification = nil
 	}
 
 	if pbd.Justification == nil && pbd.IsEmptyJustification {

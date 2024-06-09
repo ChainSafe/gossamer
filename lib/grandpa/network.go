@@ -72,12 +72,9 @@ func (s *Service) registerProtocol() error {
 }
 
 func (s *Service) getHandshake() (network.Handshake, error) {
-	var role common.NetworkRole
-
+	role := common.FullNodeRole
 	if s.authority {
 		role = common.AuthorityRole
-	} else {
-		role = common.FullNodeRole
 	}
 
 	return &GrandpaHandshake{

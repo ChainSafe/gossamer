@@ -280,11 +280,9 @@ func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
 	require.Equal(t, 2, len(leaves))
 
 	head := s.blockState.BestBlockHash()
-	var other common.Hash
+	other := leaves[0]
 	if leaves[0] == head {
 		other = leaves[1]
-	} else {
-		other = leaves[0]
 	}
 
 	err := s.handleChainReorg(other, head)
@@ -340,11 +338,9 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	require.Equal(t, 2, len(leaves))
 
 	head := s.blockState.BestBlockHash()
-	var other common.Hash
+	other := leaves[0]
 	if leaves[0] == head {
 		other = leaves[1]
-	} else {
-		other = leaves[0]
 	}
 
 	err = s.handleChainReorg(other, head)

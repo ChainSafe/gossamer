@@ -206,10 +206,10 @@ func getPassword(msg string) []byte {
 		password, err := terminal.ReadPassword(syscall.Stdin)
 		if err != nil {
 			fmt.Printf("invalid input: %s\n", err)
-		} else {
-			fmt.Printf("\n")
-			return password
+			continue
 		}
+		fmt.Printf("\n")
+		return password
 	}
 }
 
@@ -307,14 +307,13 @@ func ParseConfig() error {
 
 // parseBasePath parses the base path from the command line flags
 func parseBasePath() error {
-	var home string
+	home := basePath
 	// For the base path, prefer the environment variable over the flag
 	// If neither are set, use the default base path from the config
 	if os.Getenv(DefaultHomeEnv) != "" {
 		home = os.Getenv(DefaultHomeEnv)
-	} else {
-		home = basePath
 	}
+
 	if config.BasePath == "" && home == "" {
 		return fmt.Errorf("--base-path cannot be empty")
 	}
@@ -363,10 +362,9 @@ func parseRPC() {
 	// if rpc modules is set to unsafe, set it to all modules
 	//TODO: refactor this to follow the same pattern as substrate
 	// Substrate accepts `unsafe`,`safe` and `auto` for --rpc-methods
+	config.RPC.Modules = strings.Split(rpcModules, ",")
 	if rpcModules == "unsafe" || rpcModules == "" {
 		config.RPC.Modules = cfg.DefaultRPCModules
-	} else {
-		config.RPC.Modules = strings.Split(rpcModules, ",")
 	}
 
 	// bind it to viper so that it can be used during the config parsing

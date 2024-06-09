@@ -30,11 +30,11 @@ var GitCommit = func() string {
 
 // Version holds a text representation of the Gossamer version
 var Version = func() string {
+	// TODO: VersionMeta is constant and is always different from stable
 	if VersionMeta != "stable" {
 		return GetFullVersion()
-	} else {
-		return GetStableVersion()
 	}
+	return GetStableVersion()
 }()
 
 // GetFullVersion gets a verbose, long version string, e.g., 0.9.0-unstable-e41617ba

@@ -410,11 +410,7 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 			got, err := no.newSyncService(config, stateSrvc, tt.args.fg, tt.args.verifier, tt.args.cs,
 				tt.args.net, tt.args.telemetryMailer)
 			assert.ErrorIs(t, err, tt.err)
-			if tt.expectNil {
-				assert.Nil(t, got)
-			} else {
-				assert.NotNil(t, got)
-			}
+			assert.Equal(t, tt.expectNil, got == nil)
 		})
 	}
 }
@@ -810,11 +806,7 @@ func Test_createPprofService(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := createPprofService(tt.settings)
-			if tt.notNil {
-				assert.NotNil(t, got)
-			} else {
-				assert.Nil(t, got)
-			}
+			assert.Equal(t, tt.notNil, got != nil)
 		})
 	}
 }

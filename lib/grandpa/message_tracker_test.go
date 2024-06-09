@@ -175,12 +175,7 @@ func TestMessageTracker_handleTick_commitMessage(t *testing.T) {
 			grandpaService.tracker.handleTick()
 
 			trackedCommitMessage := grandpaService.tracker.commits.message(testHash)
-
-			if tt.expectedCommitMessage {
-				require.NotNil(t, trackedCommitMessage)
-			} else {
-				require.Nil(t, trackedCommitMessage)
-			}
+			require.Equal(t, tt.expectedCommitMessage, trackedCommitMessage != nil)
 		})
 	}
 

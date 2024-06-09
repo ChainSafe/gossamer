@@ -79,7 +79,6 @@ func execBuildSpec(cmd *cobra.Command) error {
 	}
 
 	var res []byte
-
 	if raw {
 		res, err = bs.ToJSONRaw()
 	} else {
@@ -91,13 +90,12 @@ func execBuildSpec(cmd *cobra.Command) error {
 	}
 
 	if outputPath != "" {
-		err = dot.WriteGenesisSpecFile(res, outputPath)
-		if err != nil {
+		if err = dot.WriteGenesisSpecFile(res, outputPath); err != nil {
 			return fmt.Errorf("cannot write genesis spec file: %w", err)
 		}
-	} else {
-		fmt.Printf("%s\n", res)
+		return nil
 	}
 
+	fmt.Printf("%s\n", res)
 	return nil
 }

@@ -1860,11 +1860,7 @@ func Test_ext_offchain_http_request_add_header(t *testing.T) {
 			require.NoError(t, err)
 
 			ok, err := gotResult.Unwrap()
-			if tcase.expectedErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
+			require.Equal(t, tcase.expectedErr, err != nil)
 
 			offchainReq := inst.Context.OffchainHTTPSet.Get(reqID)
 			gotValue := offchainReq.Request.Header.Get(tcase.key)

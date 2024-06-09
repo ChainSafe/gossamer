@@ -492,11 +492,7 @@ func Test_decodeState_decodeUint(t *testing.T) {
 				Reader: bytes.NewBuffer(tt.want),
 			}
 			err := ds.decodeUint(elem)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+			assert.Equal(t, tt.wantErr, err != nil)
 			assert.Equal(t, tt.in, dst)
 		})
 	}

@@ -89,11 +89,7 @@ func Test_createSystemService(t *testing.T) {
 			assert.ErrorIs(t, err, tt.err)
 
 			// TODO: change this check to assert.Equal after state.Service interface is implemented.
-			if tt.expectNil {
-				assert.Nil(t, got)
-			} else {
-				assert.NotNil(t, got)
-			}
+			assert.Equal(t, tt.expectNil, got == nil)
 		})
 	}
 }
@@ -113,12 +109,7 @@ func Test_newInMemoryDB(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := newInMemoryDB()
 			assert.ErrorIs(t, err, tt.err)
-
-			if tt.expectNil {
-				assert.Nil(t, got)
-			} else {
-				assert.NotNil(t, got)
-			}
+			assert.Equal(t, tt.expectNil, got == nil)
 		})
 	}
 }
