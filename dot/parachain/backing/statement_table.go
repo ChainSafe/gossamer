@@ -380,6 +380,7 @@ func effectiveMinimumBackingVotes(groupLen uint, configuredMinimumBackingVotes u
 	return min(groupLen, uint(configuredMinimumBackingVotes))
 }
 
+// drainMisbehaviors returns the current detected misbehaviors and resets the internal map.
 func (table *statementTable) drainMisbehaviors() map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour {
 	mapToReturn := table.detectedMisbehaviour
 	table.detectedMisbehaviour = make(map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour)
