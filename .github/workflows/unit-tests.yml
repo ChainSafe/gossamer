@@ -78,7 +78,7 @@ jobs:
           cd ..
 
       - name: Run unit tests
-        run: go test -coverprofile=coverage.out -covermode=atomic -timeout=45m ./...
+        run: CI=buildjet go test -coverprofile=coverage.out -covermode=atomic -timeout=45m ./...
 
       - name: Trie memory test
         run: |
