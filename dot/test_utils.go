@@ -23,7 +23,7 @@ func NewTestGenesisRawFile(t *testing.T, config *cfg.Config) (filename string) {
 		tmpdir, err := os.MkdirTemp("..", "*_gen_raw_file")
 		require.NoError(t, err)
 		t.Cleanup(func() {
-			require.NoError(t, os.Remove(tmpdir))
+			require.NoError(t, os.RemoveAll(tmpdir))
 		})
 		filename = filepath.Join(tmpdir, "genesis.json")
 	}

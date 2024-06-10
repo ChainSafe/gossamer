@@ -35,7 +35,7 @@ func DefaultTestWestendDevConfig(t *testing.T) *cfg.Config {
 		tmpdir, err := os.MkdirTemp("..", "*_wnd_dev_cfg")
 		require.NoError(t, err)
 		t.Cleanup(func() {
-			require.NoError(t, os.Remove(tmpdir))
+			require.NoError(t, os.RemoveAll(tmpdir))
 		})
 		config.BasePath = tmpdir
 	}
