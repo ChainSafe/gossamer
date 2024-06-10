@@ -359,7 +359,7 @@ func constructPerRelayParentState(
 		}
 	}
 
-	tableContext := TableContext{
+	tableContext := tableContext{
 		validator:  localValidator,
 		groups:     groups,
 		validators: validators,
