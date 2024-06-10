@@ -332,6 +332,9 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 	candidateReceipt2 := candidateReceipt
 	candidateReceipt2.Descriptor.PovHash = common.MustHexToHash(
 		"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
+	testValidationHost, err := parachainruntime.SetupVM(validationCode)
+	require.NoError(t, err)
+
 	bd, err := scale.Marshal(BlockDataInAdderParachain{
 		State: uint64(1),
 		Add:   uint64(1),
@@ -360,6 +363,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 	candidateValidationSubsystem := CandidateValidation{
 		OverseerToSubsystem: toSubsystem,
 		stopChan:            stopChan,
+		ValidationHost:      testValidationHost,
 	}
 	defer candidateValidationSubsystem.Stop()
 
