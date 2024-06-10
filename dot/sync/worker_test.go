@@ -4,13 +4,14 @@
 package sync
 
 import (
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
-	"sync"
-	"testing"
-	"time"
 )
 
 func TestWorker(t *testing.T) {
