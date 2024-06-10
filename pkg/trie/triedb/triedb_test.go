@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
-	"github.com/ChainSafe/gossamer/pkg/trie/triedb/db"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -346,7 +345,7 @@ func TestInsertions(t *testing.T) {
 			t.Parallel()
 
 			// Setup trie
-			inmemoryDB := db.NewMemoryDB(make([]byte, 1))
+			inmemoryDB := NewMemoryDB(make([]byte, 1))
 			trie := NewEmptyTrieDB(inmemoryDB, nil)
 
 			for _, entry := range testCase.trieEntries {

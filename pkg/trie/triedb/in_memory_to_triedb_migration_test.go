@@ -9,7 +9,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
-	"github.com/ChainSafe/gossamer/pkg/trie/triedb/db"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +23,7 @@ func TestWriteTrieDB_Migration(t *testing.T) {
 	inMemoryTrie := inmemory.NewEmptyTrie()
 	inMemoryTrie.SetVersion(trie.V1)
 
-	inmemoryDB := db.NewMemoryDB(make([]byte, 1))
+	inmemoryDB := NewMemoryDB(make([]byte, 1))
 	trieDB := NewTrieDB(trie.EmptyHash, inmemoryDB, nil)
 
 	entries := map[string][]byte{
