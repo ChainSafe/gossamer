@@ -9,7 +9,7 @@ import (
 	"github.com/gammazero/deque"
 )
 
-var emptyNode = make([]byte, 0)
+var emptyNode = make([]byte, 1)
 var hashedNullNode = common.MustBlake2bHash(emptyNode)
 
 // StorageHandle is a pointer to a node contained in `NodeStorage`

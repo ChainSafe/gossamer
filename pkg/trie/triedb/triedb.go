@@ -41,7 +41,7 @@ type TrieDB struct {
 }
 
 func NewEmptyTrieDB(db db.Database, cache cache.TrieCache) *TrieDB {
-	root := trie.EmptyHash
+	root := hashedNullNode
 	return NewTrieDB(root, db, cache)
 }
 

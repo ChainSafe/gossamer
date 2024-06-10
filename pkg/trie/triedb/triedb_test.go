@@ -340,7 +340,7 @@ func TestInsertions(t *testing.T) {
 			t.Parallel()
 
 			// Setup trie
-			inmemoryDB := NewMemoryDB(make([]byte, 1))
+			inmemoryDB := NewMemoryDB(emptyNode)
 			trie := NewEmptyTrieDB(inmemoryDB, nil)
 
 			for _, entry := range testCase.trieEntries {
@@ -470,15 +470,106 @@ func TestDeletes(t *testing.T) {
 			t.Parallel()
 
 			// Setup trie
-			inmemoryDB := db.NewMemoryDB(make([]byte, 1))
+			inmemoryDB := NewMemoryDB(emptyNode)
 			trie := NewEmptyTrieDB(inmemoryDB, nil)
 
 			for _, entry := range testCase.trieEntries {
 				assert.NoError(t, trie.insert(entry.key, entry.value))
 			}
 
-			// Add new key-value pair
+			// Remove key
 			err := trie.remove(testCase.key)
+			assert.NoError(t, err)
+
+			// Check we have what we expect
+			assert.Equal(t, testCase.expected.nodes, trie.storage.nodes)
+		})
+	}
+}
+
+func TestInsertAfterDelete(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		trieEntries []entry
+		key         []byte
+		value       []byte
+		expected    NodeStorage
+	}{
+		"insert_leaf_after_delete": {
+			trieEntries: []entry{
+				{
+					key:   []byte{1},
+					value: []byte("leaf"),
+				},
+			},
+			key:   []byte{1},
+			value: []byte("new leaf"),
+			expected: NodeStorage{
+				nodes: []StoredNode{
+					NewStoredNode{
+						Leaf{
+							partialKey: []byte{1},
+							value:      inline{Data: []byte("new leaf")},
+						},
+					},
+				},
+			},
+		},
+		"insert_branch_after_delete": {
+			trieEntries: []entry{
+				{
+					key:   []byte{1},
+					value: []byte("branch"),
+				},
+				{
+					key:   []byte{1, 0},
+					value: []byte("leaf"),
+				},
+			},
+			key:   []byte{1},
+			value: []byte("new branch"),
+			expected: NodeStorage{
+				nodes: []StoredNode{
+					NewStoredNode{
+						Leaf{
+							partialKey: []byte{},
+							value:      inline{Data: []byte("leaf")},
+						},
+					},
+					NewStoredNode{
+						Branch{
+							partialKey: []byte{1},
+							value:      inline{Data: []byte("new branch")},
+							children: [codec.ChildrenCapacity]NodeHandle{
+								InMemory{StorageHandle(0)},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for name, testCase := range testCases {
+		testCase := testCase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			// Setup trie
+			inmemoryDB := NewMemoryDB(emptyNode)
+			trie := NewEmptyTrieDB(inmemoryDB, nil)
+
+			for _, entry := range testCase.trieEntries {
+				assert.NoError(t, trie.insert(entry.key, entry.value))
+			}
+
+			// Remove key
+			err := trie.remove(testCase.key)
+			assert.NoError(t, err)
+
+			// Add again
+			err = trie.insert(testCase.key, testCase.value)
 			assert.NoError(t, err)
 
 			// Check we have what we expect
