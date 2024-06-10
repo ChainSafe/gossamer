@@ -48,7 +48,7 @@ func (data *candidateData) getSummary(candidateHash parachaintypes.CandidateHash
 
 // attested yields a full attestation for a candidate.
 // If the candidate can be included, it will return attested candidate.
-func (data candidateData) attested(validityThreshold uint) (*attestedCandidate, error) {
+func (data *candidateData) attested(validityThreshold uint) (*attestedCandidate, error) {
 	numOfValidityVotes := uint(len(data.validityVotes))
 	if numOfValidityVotes < validityThreshold {
 		return nil, fmt.Errorf("%w: %d < %d", errNotEnoughValidityVotes, numOfValidityVotes, validityThreshold)
@@ -121,6 +121,7 @@ func (table *statementTable) getCommittedCandidateReceipt(candidateHash parachai
 	return data.candidate, nil
 }
 
+// importStatement imports a statement into the table.
 func (table *statementTable) importStatement(
 	tableCtx *tableContext, signedStatement parachaintypes.SignedFullStatement,
 ) (*Summary, error) {

@@ -9,12 +9,15 @@ import (
 	"time"
 
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
+	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
+
+var errNilPersistedValidationData = errors.New("persisted validation data is nil")
 
 // PerRelayParentState represents the state information for a relay-parent in the subsystem.
 type perRelayParentState struct {
@@ -50,13 +53,13 @@ func (rpState *perRelayParentState) importStatement(
 		return nil, fmt.Errorf("getting value from statementVDT: %w", err)
 	}
 
-	if statementVDT.Index() == 2 { // Valid
+	if statementVDT.Index() != 1 { // Not Seconded
 		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD.SignedFullStatement)
 	}
 
 	// PersistedValidationData should not be nil if the statementVDT is Seconded.
 	if signedStatementWithPVD.PersistedValidationData == nil {
-		return nil, fmt.Errorf("persisted validation data is nil")
+		return nil, errNilPersistedValidationData
 	}
 
 	statementVDTSeconded := statementVDT.(parachaintypes.Seconded)
@@ -113,9 +116,10 @@ func (rpState *perRelayParentState) importStatement(
 // postImportStatement handles a summary received from importStatement func and dispatches `Backed` notifications and
 // misbehaviors as a result of importing a statement.
 func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan<- any, summary *Summary) {
-	// If the summary is nil, issue new misbehaviors and return.
+	defer issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
+
+	// Return, If the summary is nil.
 	if summary == nil {
-		issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 		return
 	}
 
@@ -124,23 +128,19 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		logger.Error(err.Error())
 	}
 
-	// If the candidate is not attested, issue new misbehaviors and return.
+	// Return, If the candidate is not attested.
 	if attested == nil {
-		issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 		return
 	}
 
-	hash, err := attested.committedCandidateReceipt.Hash()
+	candidateHash, err := parachaintypes.GetCandidateHash(attested.committedCandidateReceipt)
 	if err != nil {
 		logger.Error(err.Error())
 		return
 	}
 
-	candidateHash := parachaintypes.CandidateHash{Value: hash}
-
-	// If the candidate is already backed, issue new misbehaviors and return.
+	// Return, If the candidate is already backed.
 	if rpState.backed[candidateHash] {
-		issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 		return
 	}
 
@@ -150,7 +150,6 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 	// Convert the attested candidate to a backed candidate.
 	backedCandidate := attested.toBackedCandidate(&rpState.tableContext)
 	if backedCandidate == nil {
-		issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 		return
 	}
 
@@ -186,8 +185,6 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 			ProvisionableData: parachaintypes.ProvisionableDataBackedCandidate(backedCandidate.Candidate.ToPlain()),
 		}
 	}
-
-	issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 }
 
 // issueNewMisbehaviors checks for new misbehaviors and sends necessary messages to the Overseer subsystem.
@@ -302,8 +299,8 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		return fmt.Errorf("setting pvfExecTimeoutKind: %w", err)
 	}
 
-	chValidationResultRes := make(chan parachaintypes.OverseerFuncRes[parachaintypes.ValidationResult])
-	subSystemToOverseer <- parachaintypes.CandidateValidationMessageValidateFromExhaustive{
+	chValidationResultRes := make(chan parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult])
+	subSystemToOverseer <- candidatevalidation.ValidateFromExhaustive{
 		PersistedValidationData: pvd,
 		ValidationCode:          validationCodeByHashRes.Data,
 		CandidateReceipt:        candidateReceipt,
