@@ -25,6 +25,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -115,12 +116,22 @@ type attestingData struct {
 	backing []parachaintypes.ValidatorIndex
 }
 
-// TableContext represents the contextual information associated with a validator and groups
+// tableContext represents the contextual information associated with a validator and groups
 // for a table under a relay-parent.
-type TableContext struct {
+type tableContext struct {
 	validator  *validator
 	groups     map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex
 	validators []parachaintypes.ValidatorID
+}
+
+// isMemberOf returns true if the validator is a member of the group of validators assigned to the parachain.
+func (tc *tableContext) isMemberOf(validatorIndex parachaintypes.ValidatorIndex, paraID parachaintypes.ParaID) bool {
+	indexes, ok := tc.groups[paraID]
+	if !ok {
+		return false
+	}
+
+	return slices.Contains(indexes, validatorIndex)
 }
 
 // validator represents local validator information.
@@ -307,7 +318,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 	var attesting attestingData
 	switch statementVDT := statementVDT.(type) {
 	case parachaintypes.Seconded:
-		commitedCandidateReceipt, err := rpState.table.getCandidate(summary.Candidate)
+		commitedCandidateReceipt, err := rpState.table.getCommittedCandidateReceipt(summary.Candidate)
 		if err != nil {
 			return fmt.Errorf("getting candidate: %w", err)
 		}
