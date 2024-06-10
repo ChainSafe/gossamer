@@ -29,7 +29,17 @@ import (
 
 func DefaultTestWestendDevConfig(t *testing.T) *cfg.Config {
 	config := westenddev.DefaultConfig()
-	config.BasePath = t.TempDir()
+	var tempDir string
+	if os.Getenv("CI") == "buildjet" {
+		var err error
+		tempDir, err = os.MkdirTemp("..", "DefaultTestWestendDevConfig")
+		if err != nil {
+			t.Error(err)
+		}
+	} else {
+		tempDir = t.TempDir()
+	}
+	config.BasePath = tempDir
 
 	return config
 }
