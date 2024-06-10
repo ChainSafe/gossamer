@@ -310,6 +310,22 @@ func (c CommittedCandidateReceipt) Hash() (common.Hash, error) {
 	return c.ToPlain().Hash()
 }
 
+type hashable interface {
+	Hash() (common.Hash, error)
+}
+
+// GetCandidateHash returns the CandidateHash.
+//
+// candidate would be either CommittedCandidateReceipt or CandidateReceipt.
+func GetCandidateHash(candidate hashable) (CandidateHash, error) {
+	h, err := candidate.Hash()
+	if err != nil {
+		return CandidateHash{}, err
+	}
+
+	return CandidateHash{Value: h}, nil
+}
+
 // AssignmentID The public key of a keypair used by a validator for determining assignments
 // to approve included parachain candidates.
 type AssignmentID [sr25519.PublicKeyLength]byte

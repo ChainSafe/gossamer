@@ -15,8 +15,9 @@ import (
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 )
+
+var errNilPersistedValidationData = errors.New("persisted validation data is nil")
 
 // PerRelayParentState represents the state information for a relay-parent in the subsystem.
 type perRelayParentState struct {
@@ -28,7 +29,7 @@ type perRelayParentState struct {
 	// The table of candidates and statements under this relay-parent.
 	table Table
 	// The table context, including groups.
-	tableContext TableContext
+	tableContext tableContext
 	// Data needed for retrying in case of `ValidatedCandidateCommand::AttestNoPoV`.
 	fallbacks map[parachaintypes.CandidateHash]attestingData
 	// These candidates are undergoing validation in the background.
@@ -52,13 +53,13 @@ func (rpState *perRelayParentState) importStatement(
 		return nil, fmt.Errorf("getting value from statementVDT: %w", err)
 	}
 
-	if index == 2 { // Valid
-		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD)
+	if index != 1 { // Not Seconded
+		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD.SignedFullStatement)
 	}
 
 	// PersistedValidationData should not be nil if the statementVDT is Seconded.
 	if signedStatementWithPVD.PersistedValidationData == nil {
-		return nil, fmt.Errorf("persisted validation data is nil")
+		return nil, errNilPersistedValidationData
 	}
 
 	statementVDTSeconded := statementVDT.(parachaintypes.Seconded)
@@ -70,7 +71,7 @@ func (rpState *perRelayParentState) importStatement(
 	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	if _, ok := perCandidate[candidateHash]; ok {
-		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD)
+		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD.SignedFullStatement)
 	}
 
 	if rpState.prospectiveParachainsMode.IsEnabled {
@@ -109,15 +110,16 @@ func (rpState *perRelayParentState) importStatement(
 		relayParent:             statementVDTSeconded.Descriptor.RelayParent,
 	}
 
-	return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD)
+	return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD.SignedFullStatement)
 }
 
 // postImportStatement handles a summary received from importStatement func and dispatches `Backed` notifications and
 // misbehaviors as a result of importing a statement.
 func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan<- any, summary *Summary) {
-	// If the summary is nil, issue new misbehaviors and return.
+	defer issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
+
+	// Return, If the summary is nil.
 	if summary == nil {
-		issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 		return
 	}
 
@@ -126,23 +128,19 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		logger.Error(err.Error())
 	}
 
-	// If the candidate is not attested, issue new misbehaviors and return.
+	// Return, If the candidate is not attested.
 	if attested == nil {
-		issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 		return
 	}
 
-	hash, err := attested.committedCandidateReceipt.Hash()
+	candidateHash, err := parachaintypes.GetCandidateHash(attested.committedCandidateReceipt)
 	if err != nil {
 		logger.Error(err.Error())
 		return
 	}
 
-	candidateHash := parachaintypes.CandidateHash{Value: hash}
-
-	// If the candidate is already backed, issue new misbehaviors and return.
+	// Return, If the candidate is already backed.
 	if rpState.backed[candidateHash] {
-		issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 		return
 	}
 
@@ -150,9 +148,8 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 	rpState.backed[candidateHash] = true
 
 	// Convert the attested candidate to a backed candidate.
-	backedCandidate := attestedToBackedCandidate(*attested, &rpState.tableContext)
+	backedCandidate := attested.toBackedCandidate(&rpState.tableContext)
 	if backedCandidate == nil {
-		issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 		return
 	}
 
@@ -188,8 +185,6 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 			ProvisionableData: parachaintypes.ProvisionableDataBackedCandidate(backedCandidate.Candidate.ToPlain()),
 		}
 	}
-
-	issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 }
 
 // issueNewMisbehaviors checks for new misbehaviors and sends necessary messages to the Overseer subsystem.
@@ -212,38 +207,6 @@ func issueNewMisbehaviors(subSystemToOverseer chan<- any, relayParent common.Has
 				Misbehaviour:   m.Misbehaviour,
 			},
 		}
-	}
-}
-
-func attestedToBackedCandidate(
-	attested attestedCandidate,
-	tableContext *TableContext,
-) *parachaintypes.BackedCandidate {
-	group := tableContext.groups[attested.groupID]
-	validatorIndices := make([]bool, len(group))
-	var validityAttestations []parachaintypes.ValidityAttestation
-
-	// The order of the validity votes in the backed candidate must match
-	// the order of bits set in the bitfield, which is not necessarily
-	// the order of the `validity_votes` we got from the table.
-	for positionInGroup, validatorIndex := range group {
-		for _, validityVote := range attested.validityAttestations {
-			if validityVote.validatorIndex == validatorIndex {
-				validatorIndices[positionInGroup] = true
-				validityAttestations = append(validityAttestations, validityVote.validityAttestation)
-			}
-		}
-
-		if !validatorIndices[positionInGroup] {
-			logger.Error("validity vote from unknown validator")
-			return nil
-		}
-	}
-
-	return &parachaintypes.BackedCandidate{
-		Candidate:        attested.committedCandidateReceipt,
-		ValidityVotes:    validityAttestations,
-		ValidatorIndices: scale.NewBitVec(validatorIndices),
 	}
 }
 
