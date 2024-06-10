@@ -21,7 +21,7 @@ func NewTestGenesisRawFile(t *testing.T, config *cfg.Config) (filename string) {
 	var tempDir string
 	if os.Getenv("CI") == "buildjet" {
 		var err error
-		tempDir, err = os.MkdirTemp("", "NewTestGenesisRawFile")
+		tempDir, err = os.MkdirTemp("..", "NewTestGenesisRawFile")
 		if err != nil {
 			t.Error(err)
 		}
