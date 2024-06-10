@@ -27,6 +27,7 @@ var (
 	ErrValidationBadSignature    = errors.New("bad signature")
 )
 
+// CandidateValidation is a parachain subsystem that validates candidate parachain blocks
 type CandidateValidation struct {
 	wg       sync.WaitGroup
 	stopChan chan struct{}
@@ -36,38 +37,44 @@ type CandidateValidation struct {
 	ValidationHost      parachainruntime.ValidationHost
 }
 
+// NewCandidateValidation creates a new CandidateValidation subsystem
 func NewCandidateValidation(overseerChan chan<- any) *CandidateValidation {
 	candidateValidation := CandidateValidation{
 		SubsystemToOverseer: overseerChan,
 	}
-
 	return &candidateValidation
 }
 
+// Run starts the CandidateValidation subsystem
 func (cv *CandidateValidation) Run(context.Context, chan any, chan any) {
 	cv.wg.Add(1)
 	go cv.processMessages(&cv.wg)
 }
 
+// Name returns the name of the subsystem
 func (*CandidateValidation) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CandidateValidation
 }
 
+// ProcessActiveLeavesUpdateSignal processes active leaves update signal
 func (*CandidateValidation) ProcessActiveLeavesUpdateSignal(parachaintypes.ActiveLeavesUpdateSignal) error {
 	// NOTE: this subsystem does not process active leaves update signal
 	return nil
 }
 
+// ProcessBlockFinalizedSignal processes block finalized signal
 func (*CandidateValidation) ProcessBlockFinalizedSignal(parachaintypes.BlockFinalizedSignal) error {
 	// NOTE: this subsystem does not process block finalized signal
 	return nil
 }
 
+// Stop stops the CandidateValidation subsystem
 func (cv *CandidateValidation) Stop() {
 	close(cv.stopChan)
 	cv.wg.Wait()
 }
 
+// processMessages processes messages sent to the CandidateValidation subsystem
 func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 	defer wg.Done()
 	for {
@@ -116,6 +123,7 @@ type PoVRequestor interface {
 	RequestPoV(povHash common.Hash) parachaintypes.PoV
 }
 
+// getValidationData gets validation data for a parachain block from the runtime instance
 func getValidationData(runtimeInstance parachainruntime.RuntimeInstance, paraID uint32,
 ) (*parachaintypes.PersistedValidationData, *parachaintypes.ValidationCode, error) {
 
@@ -243,11 +251,6 @@ func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
 		return nil, err
 	}
 
-	//parachainRuntimeInstance, err := parachainruntime.SetupVM(validationCode)
-	//if err != nil {
-	//	return nil, fmt.Errorf("setting up VM: %w", err)
-	//}
-
 	validationParams := parachainruntime.ValidationParameters{
 		ParentHeadData:         persistedValidationData.ParentHead,
 		BlockData:              pov.BlockData,
@@ -264,7 +267,7 @@ func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
 }
 
 // performBasicChecks Does basic checks of a candidate. Provide the encoded PoV-block. Returns nil if basic checks
-// are passed, `Err` otherwise.
+// are passed, error otherwise.
 func performBasicChecks(candidate *parachaintypes.CandidateDescriptor, maxPoVSize uint32,
 	pov parachaintypes.PoV, validationCodeHash parachaintypes.ValidationCodeHash) error {
 	povHash, err := pov.Hash()

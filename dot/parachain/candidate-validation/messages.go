@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+// ValidateFromChainState performs validation of a candidate with provided parameters,
 type ValidateFromChainState struct {
 	CandidateReceipt parachaintypes.CandidateReceipt
 	Pov              parachaintypes.PoV
@@ -33,16 +34,14 @@ type ValidateFromExhaustive struct {
 
 // ValidationResult represents the result coming from the candidate validation subsystem.
 type ValidationResultMessage struct {
-	IsValid              bool
-	CandidateCommitments parachaintypes.CandidateCommitments // TODO(ed): determine how his is used (
-	// in per_relay_parent_state)
-	PersistedValidationData parachaintypes.PersistedValidationData // TODO(ed): determine how this is used (
-	// in per_relay_parent_state)
-	ValidationResult parachainruntime.ValidationResult
-	Err              error
+	IsValid                 bool
+	CandidateCommitments    parachaintypes.CandidateCommitments
+	PersistedValidationData parachaintypes.PersistedValidationData
+	ValidationResult        parachainruntime.ValidationResult
+	Err                     error
 }
 
-// PreCheck try to complie the given validation code and return the result
+// PreCheck try to compile the given validation code and return the result
 // The validation code is specified by the hash and will be queried from the runtime API at
 // the given relay-parent.
 type PreCheck struct {
