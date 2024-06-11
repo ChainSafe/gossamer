@@ -514,7 +514,7 @@ func Test_performBasicChecks(t *testing.T) {
 		args          args
 		expectedError error
 	}{
-		"params too large": {
+		"params_too_large": {
 			args: args{
 				candidate:  &candidate,
 				maxPoVSize: 2,
@@ -522,7 +522,7 @@ func Test_performBasicChecks(t *testing.T) {
 			},
 			expectedError: fmt.Errorf("%w, limit: 2, got: 9", ErrValidationParamsTooLarge),
 		},
-		"invalid pov hash": {
+		"invalid_pov_hash": {
 			args: args{
 				candidate:  &candidate,
 				maxPoVSize: 1024,
@@ -530,7 +530,7 @@ func Test_performBasicChecks(t *testing.T) {
 			},
 			expectedError: ErrValidationPoVHashMismatch,
 		},
-		"invalid code hash": {
+		"invalid_code_hash": {
 			args: args{
 				candidate:          &candidate,
 				maxPoVSize:         1024,
@@ -539,7 +539,7 @@ func Test_performBasicChecks(t *testing.T) {
 			},
 			expectedError: ErrValidationCodeMismatch,
 		},
-		"invalid signature": {
+		"invalid_signature": {
 			args: args{
 				candidate:          &candidate2,
 				maxPoVSize:         1024,
@@ -548,7 +548,7 @@ func Test_performBasicChecks(t *testing.T) {
 			},
 			expectedError: ErrValidationBadSignature,
 		},
-		"happy path": {
+		"happy_path": {
 			args: args{
 				candidate:          &candidate,
 				maxPoVSize:         1024,
