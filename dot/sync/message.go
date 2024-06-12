@@ -21,6 +21,10 @@ func (s *Service) CreateBlockResponse(from peer.ID, req *network.BlockRequestMes
 	*network.BlockResponseMessage, error) {
 	logger.Debugf("sync request from %s: %s", from, req.String())
 
+	if !req.StartingBlock.IsUint32() && !req.StartingBlock.IsHash() {
+		return nil, ErrInvalidBlockRequest
+	}
+
 	encodedRequest, err := req.Encode()
 	if err != nil {
 		return nil, fmt.Errorf("encoding request: %w", err)
