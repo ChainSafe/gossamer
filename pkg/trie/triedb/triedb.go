@@ -286,7 +286,10 @@ func (t *TrieDB) removeAt(
 		return nil, nil
 	}
 
-	return &RemoveAtResult{t.storage.alloc(result.stored), result.changed}, err
+	return &RemoveAtResult{
+		handle:  t.storage.alloc(result.stored),
+		changed: result.changed,
+	}, err
 }
 
 type InspectResult struct {
