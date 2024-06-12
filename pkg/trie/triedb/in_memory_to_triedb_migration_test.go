@@ -18,7 +18,45 @@ func newTestDB(t assert.TestingT) database.Table {
 	return database.NewTable(db, "trie")
 }
 
-func TestTrieDB_Migration(t *testing.T) {
+func TestWriteTrieDB_Migration(t *testing.T) {
+	inmemoryTrieDB := newTestDB(t)
+	inMemoryTrie := inmemory.NewEmptyTrie()
+	inMemoryTrie.SetVersion(trie.V1)
+
+	inmemoryDB := NewMemoryDB(make([]byte, 1))
+	trieDB := NewTrieDB(trie.EmptyHash, inmemoryDB, nil)
+
+	entries := map[string][]byte{
+		"no":        []byte("noValue"),
+		"noot":      []byte("nootValue"),
+		"not":       []byte("notValue"),
+		"a":         []byte("aValue"),
+		"b":         []byte("bValue"),
+		"test":      []byte("testValue"),
+		"dimartiro": []byte("dimartiroValue"),
+	}
+
+	for k, v := range entries {
+		inMemoryTrie.Put([]byte(k), v)
+		trieDB.Put([]byte(k), v)
+	}
+
+	err := inMemoryTrie.WriteDirty(inmemoryTrieDB)
+	assert.NoError(t, err)
+
+	t.Run("read_same_from_both", func(t *testing.T) {
+		for k := range entries {
+			valueFromInMemoryTrie := inMemoryTrie.Get([]byte(k))
+			assert.NotNil(t, valueFromInMemoryTrie)
+
+			valueFromTrieDB := trieDB.Get([]byte(k))
+			assert.NotNil(t, valueFromTrieDB)
+			assert.Equal(t, valueFromInMemoryTrie, valueFromTrieDB)
+		}
+	})
+}
+
+func TestReadTrieDB_Migration(t *testing.T) {
 	db := newTestDB(t)
 	inMemoryTrie := inmemory.NewEmptyTrie()
 	inMemoryTrie.SetVersion(trie.V1)

@@ -190,6 +190,7 @@ func createRuntime(config *cfg.Config, ns runtime.NodeStorage, st *state.Service
 			LogLvl:      wasmerLogLevel,
 			NodeStorage: ns,
 			Network:     net,
+			Transaction: st.Transaction,
 			Role:        config.Core.Role,
 			CodeHash:    codeHash,
 		}
