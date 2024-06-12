@@ -345,16 +345,11 @@ func (t *TrieDB) fix(node Node) (Node, error) {
 	switch branch := node.(type) {
 	case Branch:
 		for i := 0; i < codec.ChildrenCapacity; i++ {
-			if branch.children[i] == nil || len(usedIndex) > 1 {
-				continue
-			}
 			if branch.children[i] != nil {
-				if len(usedIndex) == 0 {
-					usedIndex = append(usedIndex, byte(i))
-				} else if len(usedIndex) == 1 {
-					usedIndex = append(usedIndex, byte(i))
+				if len(usedIndex) == 2 {
 					break
 				}
+				usedIndex = append(usedIndex, byte(i))
 			}
 		}
 
