@@ -62,6 +62,10 @@ func NewTrieDB(rootHash common.Hash, db db.RWDatabase, cache cache.TrieCache) *T
 
 // Hash returns the hashed root of the trie.
 func (t *TrieDB) Hash() (common.Hash, error) {
+	err := t.commit()
+	if err != nil {
+		return common.EmptyHash, err
+	}
 	// This is trivial since it is a read only trie, but will change when we
 	// support writes
 	return t.rootHash, nil
@@ -700,7 +704,10 @@ func (t *TrieDB) commit() error {
 	log.Printf("%d nodes to remove from db", len(t.deathRow))
 
 	for hash := range t.deathRow {
-		t.db.Del(hash[:])
+		err := t.db.Del(hash[:])
+		if err != nil {
+			return err
+		}
 	}
 
 	// Reset deathRow
@@ -719,28 +726,39 @@ func (t *TrieDB) commit() error {
 		// Reconstructs the full key for root node
 		var k []byte
 
-		encodedNode, err := NewEncodedNode(stored.node, func(node NodeToEncode, oslice []byte, oindex *byte) ChildReference {
-			k = append(k, oslice...)
-			mov := len(oslice)
-			if oindex != nil {
-				k = append(k, *oindex)
-				mov += int(*oindex)
-			}
+		encodedNode, err := NewEncodedNode(
+			stored.node,
+			func(node NodeToEncode, oslice []byte, oindex *byte) (ChildReference, error) {
+				k = append(k, oslice...)
+				mov := len(oslice)
+				if oindex != nil {
+					k = append(k, *oindex)
+					mov += int(*oindex)
+				}
 
-			switch n := node.(type) {
-			case NewNodeToEncode:
-				hash := common.MustBlake2bHash(n.value)
-				t.db.Put(hash[:], n.value)
-				k = k[:mov]
-				return HashChildReference{hash: hash}
-			case TrieNodeToEncode:
-				result := t.commitChild(n.child, k)
-				k = k[:mov]
-				return result
-			default:
-				panic("unreachable")
-			}
-		})
+				switch n := node.(type) {
+				case NewNodeToEncode:
+					hash := common.MustBlake2bHash(n.value)
+					err := t.db.Put(hash[:], n.value)
+					if err != nil {
+						return nil, err
+					}
+
+					k = k[:mov]
+					return HashChildReference{hash: hash}, nil
+				case TrieNodeToEncode:
+					result, err := t.commitChild(n.child, k)
+					if err != nil {
+						return nil, err
+					}
+
+					k = k[:mov]
+					return result, nil
+				default:
+					panic("unreachable")
+				}
+			},
+		)
 
 		if err != nil {
 			return err
@@ -770,19 +788,19 @@ func (t *TrieDB) commit() error {
 func (t *TrieDB) commitChild(
 	child NodeHandle,
 	prefixKey []byte,
-) ChildReference {
+) (ChildReference, error) {
 	switch nh := child.(type) {
 	case Persisted:
 		// Already persisted we have to do nothing
-		return HashChildReference{hash: nh.hash}
+		return HashChildReference(nh), nil
 	case InMemory:
 		stored := t.storage.destroy(nh.idx)
 		switch node := stored.(type) {
 		case CachedStoredNode:
-			return HashChildReference{hash: node.hash}
+			return HashChildReference{hash: node.hash}, nil
 		case NewStoredNode:
 			// We have to store the node in the DB
-			commitChildFunc := func(node NodeToEncode, oslice []byte, oindex *byte) ChildReference {
+			commitChildFunc := func(node NodeToEncode, oslice []byte, oindex *byte) (ChildReference, error) {
 				prefixKey = append(prefixKey, oslice...)
 				mov := len(oslice)
 				if oindex != nil {
@@ -800,15 +818,20 @@ func (t *TrieDB) commitChild(
 
 					//TODO: add value to cache
 					prefixKey = prefixKey[:mov]
-					return HashChildReference{hash: valueHash}
+					return HashChildReference{hash: valueHash}, nil
 				case TrieNodeToEncode:
-					result := t.commitChild(n.child, prefixKey)
-					prefixKey = prefixKey[:mov]
-					return result
-				}
+					result, err := t.commitChild(n.child, prefixKey)
+					if err != nil {
+						return nil, err
+					}
 
-				return nil
+					prefixKey = prefixKey[:mov]
+					return result, nil
+				default:
+					panic("unreachable")
+				}
 			}
+
 			encoded, err := NewEncodedNode(node.node, commitChildFunc)
 			if err != nil {
 				panic("encoding node")
@@ -816,11 +839,14 @@ func (t *TrieDB) commitChild(
 
 			if len(encoded) >= common.HashLength {
 				hash := common.MustBlake2bHash(encoded)
-				t.db.Put(hash[:], encoded)
+				err := t.db.Put(hash[:], encoded)
+				if err != nil {
+					return nil, err
+				}
 
-				return HashChildReference{hash: hash}
+				return HashChildReference{hash: hash}, nil
 			} else {
-				return InlineChildReference{encoded}
+				return InlineChildReference{encoded}, nil
 			}
 		default:
 			panic("unreachable")

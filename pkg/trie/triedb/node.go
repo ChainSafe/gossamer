@@ -34,10 +34,14 @@ type (
 	}
 )
 
-func NewEncodedValue(value nodeValue, partial []byte, f childFunc) codec.EncodedValue {
+func NewEncodedValue(value nodeValue, partial []byte, f childFunc) (codec.EncodedValue, error) {
 	switch v := value.(type) {
 	case newValueRef:
-		childRef := f(NewNodeToEncode{value: v.Data}, partial, nil)
+		childRef, err := f(NewNodeToEncode{value: v.Data}, partial, nil)
+		if err != nil {
+			return nil, err
+		}
+
 		var newHash common.Hash
 		switch cr := childRef.(type) {
 		case HashChildReference:
@@ -56,12 +60,12 @@ func NewEncodedValue(value nodeValue, partial []byte, f childFunc) codec.Encoded
 
 	switch v := value.(type) {
 	case inline:
-		return codec.NewInlineValue(v.Data)
+		return codec.NewInlineValue(v.Data), nil
 	case valueRef:
-		return codec.NewHashedValue(v.hash.ToBytes())
+		return codec.NewHashedValue(v.hash.ToBytes()), nil
 	case newValueRef:
 		if v.hash != nil {
-			return codec.NewHashedValue(v.hash.ToBytes())
+			return codec.NewHashedValue(v.hash.ToBytes()), nil
 		} else {
 			panic("new external value are always added before encoding a node")
 		}
@@ -249,10 +253,10 @@ type (
 func (HashChildReference) isChildReference()   {}
 func (InlineChildReference) isChildReference() {}
 
-type childFunc = func(node NodeToEncode, oslice []byte, oindex *byte) ChildReference
+type childFunc = func(node NodeToEncode, oslice []byte, oindex *byte) (ChildReference, error)
 
 const firstPrefix = (0x00 << 6)
-const emptyTrieBytes = (0x00 << 4)
+const emptyTrieBytes = firstPrefix | (0x00 << 4)
 
 // TODO: move this to codec package
 func NewEncodedNode(node Node, childF childFunc) (encodedNode []byte, err error) {
@@ -263,9 +267,12 @@ func NewEncodedNode(node Node, childF childFunc) (encodedNode []byte, err error)
 		return []byte{emptyTrieBytes}, nil
 	case Leaf:
 		pr := n.partialKey
-		value := NewEncodedValue(n.value, pr, childF)
+		value, err := NewEncodedValue(n.value, pr, childF)
+		if err != nil {
+			return nil, err
+		}
 
-		NewEncodedLeaf(pr, value, encodingBuffer)
+		err = NewEncodedLeaf(pr, value, encodingBuffer)
 		if err != nil {
 			return nil, err
 		}
@@ -273,7 +280,10 @@ func NewEncodedNode(node Node, childF childFunc) (encodedNode []byte, err error)
 		var value codec.EncodedValue
 		if n.value != nil {
 			pr := n.partialKey
-			value = NewEncodedValue(n.value, pr, childF)
+			value, err = NewEncodedValue(n.value, pr, childF)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		var children [codec.ChildrenCapacity]ChildReference
@@ -284,7 +294,10 @@ func NewEncodedNode(node Node, childF childFunc) (encodedNode []byte, err error)
 
 			pr := n.partialKey[len(n.partialKey)-1:] // TODO: check this
 			oindex := byte(i)
-			children[i] = childF(TrieNodeToEncode{child}, pr, &oindex)
+			children[i], err = childF(TrieNodeToEncode{child}, pr, &oindex)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		err := NewEncodedBranch(n.partialKey, children, value, encodingBuffer)
@@ -320,7 +333,12 @@ func NewEncodedLeaf(partialKey []byte, value codec.EncodedValue, writer io.Write
 	return nil
 }
 
-func NewEncodedBranch(partialKey []byte, children [codec.ChildrenCapacity]ChildReference, value codec.EncodedValue, writer io.Writer) error {
+func NewEncodedBranch(
+	partialKey []byte,
+	children [codec.ChildrenCapacity]ChildReference,
+	value codec.EncodedValue,
+	writer io.Writer,
+) error {
 	// Write encoded header
 	if value == nil {
 		err := codec.EncodeHeader(partialKey, codec.BranchWithoutValue, writer)
