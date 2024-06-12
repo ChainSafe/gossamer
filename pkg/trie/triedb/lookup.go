@@ -29,7 +29,7 @@ func NewTrieLookup(db db.DBGetter, hash common.Hash, cache cache.TrieCache) Trie
 	}
 }
 
-func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.Node, error) {
+func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 	// Start from root node and going downwards
 	partialKey := keyNibbles
 	hash := l.hash[:]
