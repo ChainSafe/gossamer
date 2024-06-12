@@ -31,7 +31,7 @@ const hashLength = common.HashLength
 // The encoding format is documented in the README.md
 // of this package, and specified in the Polkadot spec at
 // https://spec.polkadot.network/chap-state#defn-node-header
-func Decode(reader io.Reader) (n Node, err error) {
+func Decode(reader io.Reader) (n EncodedNode, err error) {
 	variant, partialKeyLength, err := decodeHeader(reader)
 	if err != nil {
 		return nil, fmt.Errorf("decoding header: %w", err)

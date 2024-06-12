@@ -78,7 +78,7 @@ jobs:
           cd ..
 
       - name: Run unit tests
-        run: go test -coverprofile=coverage.out -covermode=atomic -timeout=45m ./...
+        run: CI=buildjet go test -coverprofile=coverage.out -covermode=atomic -timeout=45m ./...
 
       - name: Trie memory test
         run: |
@@ -89,7 +89,7 @@ jobs:
       - name: Test - Race
         run: make test-using-race-detector
 
-      - uses: codecov/codecov-action@v4.3.1
+      - uses: codecov/codecov-action@v4.4.1
         with:
           if_ci_failed: success
           informational: true

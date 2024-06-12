@@ -21,7 +21,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
@@ -90,7 +89,7 @@ func mustWrite(m api.Module, allocator runtime.Allocator, data []byte) (pointerS
 	return pointerSize
 }
 
-func ext_logging_log_version_1(ctx context.Context, m api.Module, level int32, targetData, msgData uint64) {
+func ext_logging_log_version_1(_ context.Context, m api.Module, level int32, targetData, msgData uint64) {
 	target := string(read(m, targetData))
 	msg := string(read(m, msgData))
 
@@ -781,7 +780,7 @@ func ext_crypto_start_batch_verify_version_1(ctx context.Context, m api.Module) 
 	// beginBatchVerify(context)
 }
 
-func ext_crypto_finish_batch_verify_version_1(ctx context.Context, m api.Module) uint32 {
+func ext_crypto_finish_batch_verify_version_1(_ context.Context) uint32 {
 	// TODO: fix and re-enable signature verification (#1405)
 	// return finishBatchVerify(context)
 	return 1
@@ -956,16 +955,16 @@ func ext_trie_blake2_256_verify_proof_version_2(
 	return 1
 }
 
-func ext_misc_print_hex_version_1(ctx context.Context, m api.Module, dataSpan uint64) {
+func ext_misc_print_hex_version_1(_ context.Context, m api.Module, dataSpan uint64) {
 	data := read(m, dataSpan)
 	logger.Debugf("data: 0x%x", data)
 }
 
-func ext_misc_print_num_version_1(ctx context.Context, m api.Module, data uint64) {
+func ext_misc_print_num_version_1(_ context.Context, _ api.Module, data uint64) {
 	logger.Debugf("num: %d", int64(data))
 }
 
-func ext_misc_print_utf8_version_1(ctx context.Context, m api.Module, dataSpan uint64) {
+func ext_misc_print_utf8_version_1(_ context.Context, m api.Module, dataSpan uint64) {
 	data := read(m, dataSpan)
 	logger.Debug("utf8: " + string(data))
 }
@@ -1259,7 +1258,7 @@ func ext_default_child_storage_root_version_1(
 
 //export ext_default_child_storage_root_version_2
 func ext_default_child_storage_root_version_2(ctx context.Context, m api.Module, childStorageKey uint64,
-	version uint32) (ptrSize uint64) { //skipcq: RVV-B0012
+	_ uint32) (ptrSize uint64) { //skipcq: RVV-B0012
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -1831,31 +1830,12 @@ func ext_offchain_random_seed_version_1(ctx context.Context, m api.Module) uint3
 	return ptr
 }
 
-func ext_offchain_submit_transaction_version_1(ctx context.Context, m api.Module, data uint64) uint64 {
+// TODO Investigate via https://github.com/ChainSafe/gossamer/issues/3986
+func ext_offchain_submit_transaction_version_1(ctx context.Context, m api.Module, data uint64) uint64 { //nolint
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
 	}
-
-	extBytes := read(m, data)
-
-	var extrinsic []byte
-	err := scale.Unmarshal(extBytes, &extrinsic)
-	if err != nil {
-		logger.Errorf("failed to decode extrinsic data: %s", err)
-		// Error case
-		ret, err := write(m, rtCtx.Allocator, []byte{1})
-		if err != nil {
-			panic(err)
-		}
-		return ret
-	}
-
-	// validate the transaction
-	txv := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
-	vtx := transaction.NewValidTransaction(extrinsic, txv)
-
-	rtCtx.Transaction.AddToPool(vtx)
 
 	// OK case
 	ret, err := write(m, rtCtx.Allocator, []byte{0})
@@ -1878,7 +1858,7 @@ func ext_offchain_sleep_until_version_1(_ context.Context, _ api.Module, deadlin
 }
 
 func ext_offchain_http_request_start_version_1(
-	ctx context.Context, m api.Module, methodSpan, uriSpan, metaSpan uint64) (pointerSize uint64) { //skipcq: RVV-B0012
+	ctx context.Context, m api.Module, methodSpan, uriSpan, _ uint64) (pointerSize uint64) { //skipcq: RVV-B0012
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
@@ -2044,7 +2024,7 @@ func ext_storage_append_version_1(ctx context.Context, m api.Module, keySpan, va
 
 // Always returns `None`. This function exists for compatibility reasons.
 func ext_storage_changes_root_version_1(
-	ctx context.Context, m api.Module, parentHashSpan uint64) uint64 { //skipcq: RVV-B0012
+	ctx context.Context, m api.Module, _ uint64) uint64 { //skipcq: RVV-B0012
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")

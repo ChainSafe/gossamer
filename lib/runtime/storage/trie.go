@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 // TrieState relies on `storageDiff` to perform changes over the current state.
@@ -21,17 +22,21 @@ import (
 // If the execution of the call is successful, the changes will be applied to
 // the current `state`
 type TrieState struct {
-	mtx          sync.RWMutex
-	state        trie.Trie
-	transactions *list.List
+	mtx             sync.RWMutex
+	state           trie.Trie
+	transactions    *list.List
+	sortedKeys      []string
+	childSortedKeys map[string][]string
 }
 
 // NewTrieState initialises and returns a new TrieState instance
 func NewTrieState(initialState trie.Trie) *TrieState {
 	transactions := list.New()
 	return &TrieState{
-		transactions: transactions,
-		state:        initialState,
+		transactions:    transactions,
+		state:           initialState,
+		sortedKeys:      make([]string, 0),
+		childSortedKeys: make(map[string][]string),
 	}
 }
 
@@ -110,10 +115,15 @@ func (t *TrieState) Put(key, value []byte) (err error) {
 	// if not, we apply the changes directly on our state trie
 	if t.getCurrentTransaction() != nil {
 		t.getCurrentTransaction().upsert(string(key), value)
-		return nil
 	} else {
-		return t.state.Put(key, value)
+		err := t.state.Put(key, value)
+		if err != nil {
+			return err
+		}
+		t.addMainTrieSortedKey(string(key))
 	}
+
+	return nil
 }
 
 // Get gets a value from the trie
@@ -146,6 +156,9 @@ func (t *TrieState) MustRoot() common.Hash {
 // Root returns the trie's root hash
 func (t *TrieState) Root() (common.Hash, error) {
 	// Since the Root function is called without running transactions we can do:
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		panic("cannot calculate root with running transactions")
+	}
 	return t.state.Hash()
 }
 
@@ -161,10 +174,16 @@ func (t *TrieState) Delete(key []byte) (err error) {
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		t.getCurrentTransaction().delete(string(key))
-		return nil
+
+	} else {
+		err := t.state.Delete(key)
+		if err != nil {
+			return err
+		}
+		t.removeMainTrieSortedKey(string(key))
 	}
 
-	return t.state.Delete(key)
+	return nil
 }
 
 // NextKey returns the next key in the trie in lexicographical order. If it does not exist, it returns nil.
@@ -173,34 +192,41 @@ func (t *TrieState) NextKey(key []byte) []byte {
 	defer t.mtx.RUnlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-		allEntries := t.state.Entries()
-		maps.Copy(allEntries, currentTx.upserts)
-
-		keys := maps.Keys(allEntries)
-		sort.Strings(keys)
-
-		for _, k := range keys {
-			if k > string(key) && !currentTx.deletes[k] {
-				return allEntries[k]
-			}
+		allSortedKeys := append(t.sortedKeys, currentTx.sortedKeys...)
+		// Find key position
+		pos, found := slices.BinarySearch(allSortedKeys, string(key))
+		if found {
+			pos = pos + 1
 		}
+
+		// Get next key based on that position
+		if pos < len(allSortedKeys) {
+			k := allSortedKeys[pos]
+			return []byte(k)
+		}
+		return nil
 	}
 
 	return t.state.NextKey(key)
 }
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
-func (t *TrieState) ClearPrefix(prefix []byte) (err error) {
+func (t *TrieState) ClearPrefix(prefix []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		trieKeys := t.state.Entries()
 		currentTx.clearPrefix(prefix, maps.Keys(trieKeys), -1)
-		return
+		return nil
 	}
 
-	return t.state.ClearPrefix(prefix)
+	err := t.state.ClearPrefix(prefix)
+	if err != nil {
+		return err
+	}
+	t.sortedKeys = t.removePrefixedSortedKey(t.sortedKeys, string(prefix), -1)
+	return nil
 }
 
 // ClearPrefixLimit deletes key-value pairs from the trie where the key starts with the given prefix till limit reached
@@ -215,7 +241,12 @@ func (t *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
 		return deleted, allDeleted, nil
 	}
 
-	return t.state.ClearPrefixLimit(prefix, limit)
+	deleted, allDeleted, err = t.state.ClearPrefixLimit(prefix, limit)
+	if err != nil {
+		return 0, false, err
+	}
+	t.sortedKeys = t.removePrefixedSortedKey(t.sortedKeys, string(prefix), int(limit))
+	return
 }
 
 // TrieEntries returns every key-value pair in the trie
@@ -253,7 +284,12 @@ func (t *TrieState) SetChildStorage(keyToChild, key, value []byte) error {
 		return nil
 	}
 
-	return t.state.PutIntoChild(keyToChild, key, value)
+	err := t.state.PutIntoChild(keyToChild, key, value)
+	if err != nil {
+		return err
+	}
+	t.addChildTrieSortedKey(string(keyToChild), string(key))
+	return nil
 }
 
 func (t *TrieState) GetChildRoot(keyToChild []byte) (common.Hash, error) {
@@ -285,7 +321,7 @@ func (t *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 }
 
 // DeleteChild deletes a child trie from the main trie
-func (t *TrieState) DeleteChild(keyToChild []byte) (err error) {
+func (t *TrieState) DeleteChild(keyToChild []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
@@ -294,7 +330,12 @@ func (t *TrieState) DeleteChild(keyToChild []byte) (err error) {
 		return nil
 	}
 
-	return t.state.DeleteChild(keyToChild)
+	err := t.state.DeleteChild(keyToChild)
+	if err != nil {
+		return err
+	}
+	delete(t.childSortedKeys, string(keyToChild))
+	return nil
 }
 
 // DeleteChildLimit deletes up to limit of database entries by lexicographic order.
@@ -339,7 +380,7 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 		if err != nil {
 			return 0, false, fmt.Errorf("deleting child trie: %w", err)
 		}
-
+		delete(t.childSortedKeys, string(key))
 		return qtyEntries, true, nil
 	}
 	limitUint := binary.LittleEndian.Uint32(*limit)
@@ -357,6 +398,7 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 			return deleted, allDeleted, fmt.Errorf("deleting from child trie located at key 0x%x: %w", key, err)
 		}
 
+		t.removeChildTrieSortedKey(string(key), k)
 		deleted++
 		if deleted == limitUint {
 			break
@@ -379,7 +421,13 @@ func (t *TrieState) ClearChildStorage(keyToChild, key []byte) error {
 		return nil
 	}
 
-	return t.state.ClearFromChild(keyToChild, key)
+	err := t.state.ClearFromChild(keyToChild, key)
+	if err != nil {
+		return err
+	}
+
+	t.removeChildTrieSortedKey(string(keyToChild), string(key))
+	return nil
 }
 
 // ClearPrefixInChild clears all the keys from the child trie that have the given prefix
@@ -410,6 +458,11 @@ func (t *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 	if err != nil {
 		return fmt.Errorf("clearing prefix in child trie located at key 0x%x: %w", keyToChild, err)
 	}
+	t.childSortedKeys[string(keyToChild)] = t.removePrefixedSortedKey(
+		t.childSortedKeys[string(keyToChild)],
+		string(prefix),
+		-1,
+	)
 
 	return nil
 }
@@ -434,7 +487,16 @@ func (t *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit
 		return 0, false, err
 	}
 
-	return child.ClearPrefixLimit(prefix, limit)
+	deleted, allDeleted, err := child.ClearPrefixLimit(prefix, limit)
+	if err != nil {
+		return 0, false, err
+	}
+	t.childSortedKeys[string(keyToChild)] = t.removePrefixedSortedKey(
+		t.childSortedKeys[string(keyToChild)],
+		string(prefix),
+		-1,
+	)
+	return deleted, allDeleted, nil
 }
 
 // GetChildNextKey returns the next lexicographical larger key from child storage. If it does not exist, it returns nil.
@@ -449,26 +511,19 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 		}
 
 		if childChanges := currentTx.childChangeSet[string(keyToChild)]; childChanges != nil {
-			allEntries := make(map[string][]byte)
-
-			maps.Copy(allEntries, childChanges.upserts)
-			child, err := t.state.GetChild(keyToChild)
-			if err != nil {
-				// Child trie does not exists and won't exists in the future
-				if len(allEntries) == 0 {
-					return nil, err
-				}
-			} else {
-				allEntries = child.Entries()
+			allSortedKeys := append(t.childSortedKeys[string(keyToChild)], childChanges.sortedKeys...)
+			// Find key position
+			pos, found := slices.BinarySearch(allSortedKeys, string(key))
+			if found {
+				pos = pos + 1
 			}
-			keys := maps.Keys(allEntries)
-			sort.Strings(keys)
 
-			for _, k := range keys {
-				if k > string(key) && !childChanges.deletes[k] {
-					return allEntries[k], nil
-				}
+			// Get next key based on that position
+			if pos < len(allSortedKeys) {
+				k := allSortedKeys[pos]
+				return []byte(k), nil
 			}
+
 			return nil, nil
 		}
 	}
@@ -514,7 +569,7 @@ func (t *TrieState) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]b
 
 			for _, k := range keys {
 				if bytes.HasPrefix([]byte(k), prefix) {
-					values = append(values, allEntries[k])
+					values = append(values, []byte(k))
 				}
 			}
 
@@ -550,4 +605,57 @@ func (t *TrieState) GetChangedNodeHashes() (inserted, deleted map[common.Hash]st
 	defer t.mtx.RUnlock()
 
 	return t.state.GetChangedNodeHashes()
+}
+
+func (t *TrieState) addMainTrieSortedKey(key string) {
+	t.sortedKeys = t.insertSortedKey(t.sortedKeys, key)
+}
+
+func (t *TrieState) removeMainTrieSortedKey(key string) {
+	t.sortedKeys = t.removeSortedKey(t.sortedKeys, key)
+}
+
+func (t *TrieState) addChildTrieSortedKey(keyToChild, key string) {
+	t.childSortedKeys[keyToChild] = t.insertSortedKey(t.childSortedKeys[keyToChild], key)
+}
+
+func (t *TrieState) removeChildTrieSortedKey(keyToChild, key string) {
+	t.childSortedKeys[keyToChild] = t.removeSortedKey(t.childSortedKeys[keyToChild], key)
+}
+
+func (t *TrieState) insertSortedKey(keys []string, key string) []string {
+	pos, found := slices.BinarySearch(keys, key)
+
+	if found {
+		return keys // key already exists
+	}
+
+	keys = append(keys, "")
+	copy(keys[pos+1:], keys[pos:])
+	keys[pos] = key
+	return keys
+}
+
+func (t *TrieState) removeSortedKey(keys []string, key string) []string {
+	pos, found := slices.BinarySearch(keys, key)
+
+	if found {
+		keys = append(keys[:pos], keys[pos+1:]...)
+	}
+
+	return keys
+}
+
+func (t *TrieState) removePrefixedSortedKey(keys []string, key string, limit int) []string {
+	amountDeleted := 0
+	for _, k := range keys {
+		if bytes.HasPrefix([]byte(k), []byte(key)) {
+			keys = t.removeSortedKey(keys, k)
+			if limit > 0 && amountDeleted == limit {
+				break
+			}
+		}
+	}
+
+	return keys
 }
