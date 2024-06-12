@@ -106,7 +106,7 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 					require.Nil(t, val)
 
 					if isTransactionRunning {
-						require.Nil(t, err)
+						require.NoError(t, err)
 					} else {
 						require.ErrorContains(t, err, "child trie does not exist at key")
 					}
@@ -133,7 +133,7 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 			},
 			checks: func(t *testing.T, ts *TrieState, _ bool) {
 				err := ts.DeleteChild(keyToChild)
-				require.Nil(t, err)
+				require.NoError(t, err)
 
 				root, err := ts.GetChildStorage(keyToChild, prefixedKeys[0])
 				require.NotNil(t, err)
@@ -144,12 +144,12 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 			changes: func(t *testing.T, ts *TrieState) {
 				for i, key := range prefixedKeys {
 					err := ts.Put(key, []byte{byte(i)})
-					require.Nil(t, err)
+					require.NoError(t, err)
 				}
 			},
 			checks: func(t *testing.T, ts *TrieState, _ bool) {
 				err := ts.ClearPrefix([]byte("noo"))
-				require.Nil(t, err)
+				require.NoError(t, err)
 
 				for i, key := range prefixedKeys {
 					val := ts.Get(key)
@@ -165,12 +165,12 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 			changes: func(t *testing.T, ts *TrieState) {
 				for i, key := range prefixedKeys {
 					err := ts.Put(key, []byte{byte(i)})
-					require.Nil(t, err)
+					require.NoError(t, err)
 				}
 			},
 			checks: func(t *testing.T, ts *TrieState, isTransactionRunning bool) {
 				deleted, allDeleted, err := ts.ClearPrefixLimit([]byte("noo"), uint32(1))
-				require.Nil(t, err)
+				require.NoError(t, err)
 
 				if isTransactionRunning {
 					// New keys are not considered towards the limit
@@ -229,7 +229,7 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 			changes: func(t *testing.T, ts *TrieState) {
 				for i, key := range sortedKeys {
 					err := ts.SetChildStorage(keyToChild, key, []byte{byte(i)})
-					require.Nil(t, err)
+					require.NoError(t, err)
 				}
 			},
 			checks: func(t *testing.T, ts *TrieState, isTransactionRunning bool) {
@@ -249,7 +249,7 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 			changes: func(t *testing.T, ts *TrieState) {
 				for i, key := range sortedKeys {
 					err := ts.SetChildStorage(keyToChild, key, []byte{byte(i)})
-					require.Nil(t, err)
+					require.NoError(t, err)
 				}
 			},
 			checks: func(t *testing.T, ts *TrieState, isTransactionRunning bool) {
@@ -273,13 +273,13 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 			changes: func(t *testing.T, ts *TrieState) {
 				for i, key := range sortedKeys {
 					err := ts.SetChildStorage(keyToChild, key, []byte{byte(i)})
-					require.Nil(t, err)
+					require.NoError(t, err)
 				}
 			},
 			checks: func(t *testing.T, ts *TrieState, isTransactionRunning bool) {
 				deleted, all, err := ts.DeleteChildLimit(keyToChild, nil)
 
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.Equal(t, uint32(3), deleted)
 				require.Equal(t, true, all)
 			},
@@ -288,7 +288,7 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 			changes: func(t *testing.T, ts *TrieState) {
 				for i, tc := range sortedKeys {
 					err := ts.Put(tc, sortedValues[i])
-					require.Nil(t, err)
+					require.NoError(t, err)
 				}
 			},
 			checks: func(t *testing.T, ts *TrieState, _ bool) {
@@ -306,13 +306,13 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 			changes: func(t *testing.T, ts *TrieState) {
 				for i, tc := range sortedKeys {
 					err := ts.SetChildStorage(keyToChild, tc, sortedValues[i])
-					require.Nil(t, err)
+					require.NoError(t, err)
 				}
 			},
 			checks: func(t *testing.T, ts *TrieState, _ bool) {
 				for i, tc := range sortedKeys {
 					next, err := ts.GetChildNextKey(keyToChild, tc)
-					require.Nil(t, err)
+					require.NoError(t, err)
 
 					if i == len(sortedKeys)-1 {
 						require.Nil(t, next)
@@ -326,7 +326,7 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 			changes: func(t *testing.T, ts *TrieState) {
 				for i, tc := range testCases {
 					err := ts.Put([]byte(tc), sortedValues[i])
-					require.Nil(t, err)
+					require.NoError(t, err)
 				}
 			},
 			checks: func(t *testing.T, ts *TrieState, _ bool) {
@@ -342,13 +342,13 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 			changes: func(t *testing.T, ts *TrieState) {
 				for i, tc := range prefixedKeys {
 					err := ts.SetChildStorage(keyToChild, tc, sortedValues[i])
-					require.Nil(t, err)
+					require.NoError(t, err)
 				}
 			},
 			checks: func(t *testing.T, ts *TrieState, _ bool) {
 				values, err := ts.GetKeysWithPrefixFromChild(keyToChild, []byte("noo"))
 
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.Len(t, values, 2)
 				require.Contains(t, values, []byte("noot"))
 				require.Contains(t, values, []byte("noodle"))
@@ -412,7 +412,7 @@ func TestTrieState_ChildRoot(t *testing.T) {
 	}
 
 	root, err := ts.GetChildRoot(keyToChild)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, root)
 }
 
