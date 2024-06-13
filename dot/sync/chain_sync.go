@@ -731,16 +731,10 @@ taskResultLoop:
 					continue taskResultLoop
 				}
 
-				// What if i can just do a bounds check here? is that hacky or is that okay?
-				// Maybe I can do a temp fix now, and create issue to look into this in greater depth later?
-
 				blockExactIndex := blockInResponse.Header.Number - startAtBlock
-
 				if blockExactIndex < uint(expectedSyncedBlocks) {
 					syncingChain[blockExactIndex] = blockInResponse
 				}
-
-				//syncingChain[blockExactIndex] = blockInResponse
 			}
 
 			// we need to check if we've filled all positions
