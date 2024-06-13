@@ -775,12 +775,12 @@ func ext_crypto_sr25519_verify_version_2(ctx context.Context, m api.Module, sig 
 	return 1
 }
 
-func ext_crypto_start_batch_verify_version_1(ctx context.Context, m api.Module) {
+func ext_crypto_start_batch_verify_version_1(_ context.Context, _ api.Module) {
 	// TODO: fix and re-enable signature verification (#1405)
 	// beginBatchVerify(context)
 }
 
-func ext_crypto_finish_batch_verify_version_1(_ context.Context) uint32 {
+func ext_crypto_finish_batch_verify_version_1(_ context.Context, _ api.Module) uint32 {
 	// TODO: fix and re-enable signature verification (#1405)
 	// return finishBatchVerify(context)
 	return 1
@@ -1831,7 +1831,7 @@ func ext_offchain_random_seed_version_1(ctx context.Context, m api.Module) uint3
 }
 
 // TODO Investigate via https://github.com/ChainSafe/gossamer/issues/3986
-func ext_offchain_submit_transaction_version_1(ctx context.Context, m api.Module, data uint64) uint64 { //nolint
+func ext_offchain_submit_transaction_version_1(ctx context.Context, m api.Module, data uint64) uint64 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
