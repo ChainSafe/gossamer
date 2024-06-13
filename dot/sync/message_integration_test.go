@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/stretchr/testify/require"
 )
@@ -61,7 +62,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 		Max:           nil,
 	}
 
-	resp, err := s.CreateBlockResponse(req)
+	resp, err := s.CreateBlockResponse(peer.ID("alice"), req)
 	require.NoError(t, err)
 	require.Equal(t, int(network.MaxBlocksInResponse), len(resp.BlockData))
 	require.Equal(t, uint(1), resp.BlockData[0].Number())
@@ -75,7 +76,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 		Max:           &max,
 	}
 
-	resp, err = s.CreateBlockResponse(req)
+	resp, err = s.CreateBlockResponse(peer.ID("alice"), req)
 	require.NoError(t, err)
 	require.Equal(t, int(network.MaxBlocksInResponse), len(resp.BlockData))
 	require.Equal(t, uint(1), resp.BlockData[0].Number())
@@ -89,7 +90,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 		Max:           &max,
 	}
 
-	resp, err = s.CreateBlockResponse(req)
+	resp, err = s.CreateBlockResponse(peer.ID("alice"), req)
 	require.NoError(t, err)
 	require.Equal(t, int(max), len(resp.BlockData))
 	require.Equal(t, uint(1), resp.BlockData[0].Number())
@@ -106,7 +107,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 		Max:           nil,
 	}
 
-	resp, err = s.CreateBlockResponse(req)
+	resp, err = s.CreateBlockResponse(peer.ID("alice"), req)
 	require.NoError(t, err)
 	require.Equal(t, int(network.MaxBlocksInResponse), len(resp.BlockData))
 	require.Equal(t, uint(128), resp.BlockData[0].Number())
@@ -123,7 +124,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 		Max:           &max,
 	}
 
-	resp, err = s.CreateBlockResponse(req)
+	resp, err = s.CreateBlockResponse(peer.ID("alice"), req)
 	require.NoError(t, err)
 	require.Equal(t, int(network.MaxBlocksInResponse), len(resp.BlockData))
 	require.Equal(t, uint(256), resp.BlockData[0].Number())
@@ -137,7 +138,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 		Max:           &max,
 	}
 
-	resp, err = s.CreateBlockResponse(req)
+	resp, err = s.CreateBlockResponse(peer.ID("alice"), req)
 	require.NoError(t, err)
 	require.Equal(t, int(max), len(resp.BlockData))
 	require.Equal(t, uint(256), resp.BlockData[0].Number())
@@ -162,7 +163,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 		Max:           nil,
 	}
 
-	resp, err := s.CreateBlockResponse(req)
+	resp, err := s.CreateBlockResponse(peer.ID("alice"), req)
 	require.NoError(t, err)
 	require.Equal(t, int(network.MaxBlocksInResponse), len(resp.BlockData))
 	require.Equal(t, uint(1), resp.BlockData[0].Number())
@@ -182,7 +183,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 		Max:           nil,
 	}
 
-	resp, err = s.CreateBlockResponse(req)
+	resp, err = s.CreateBlockResponse(peer.ID("alice"), req)
 	require.NoError(t, err)
 	require.Equal(t, int(16), len(resp.BlockData))
 	require.Equal(t, uint(16), resp.BlockData[0].Number())
@@ -195,7 +196,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 		Max:           nil,
 	}
 
-	resp, err = s.CreateBlockResponse(req)
+	resp, err = s.CreateBlockResponse(peer.ID("alice"), req)
 	require.NoError(t, err)
 	require.Equal(t, int(16), len(resp.BlockData))
 	require.Equal(t, uint(16), resp.BlockData[0].Number())
@@ -215,7 +216,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 		Max:           nil,
 	}
 
-	resp, err = s.CreateBlockResponse(req)
+	resp, err = s.CreateBlockResponse(peer.ID("alice"), req)
 	require.NoError(t, err)
 	require.Equal(t, int(network.MaxBlocksInResponse), len(resp.BlockData))
 	require.Equal(t, uint(256), resp.BlockData[0].Number())
@@ -234,7 +235,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 		Max:           nil,
 	}
 
-	resp, err = s.CreateBlockResponse(req)
+	resp, err = s.CreateBlockResponse(peer.ID("alice"), req)
 	require.NoError(t, err)
 	require.Equal(t, network.MaxBlocksInResponse, len(resp.BlockData))
 	require.Equal(t, uint(128), resp.BlockData[0].Number())
@@ -444,7 +445,7 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.description, func(t *testing.T) {
-			resp, err := s.CreateBlockResponse(test.value)
+			resp, err := s.CreateBlockResponse(peer.ID("alice"), test.value)
 			require.NoError(t, err)
 			require.Len(t, resp.BlockData, 2)
 			require.Equal(t, test.expectedMsgValue.BlockData[0].Hash, bestHash)

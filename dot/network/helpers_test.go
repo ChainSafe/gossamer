@@ -252,7 +252,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 			Return(nil).AnyTimes()
 
 		syncer.EXPECT().
-			CreateBlockResponse(gomock.Any()).
+			CreateBlockResponse(gomock.Any(), gomock.Any()).
 			Return(newTestBlockResponseMessage(t), nil).AnyTimes()
 
 		syncer.EXPECT().IsSynced().Return(false).AnyTimes()
