@@ -604,3 +604,47 @@ func TestStatementTable_validityVote(t *testing.T) {
 		})
 	}
 }
+
+func TestStatementTable_drainMisbehaviors(t *testing.T) {
+	t.Parallel()
+
+	committedCandidate := getDummyCommittedCandidateReceipt(t)
+
+	candidateHash, err := parachaintypes.GetCandidateHash(committedCandidate)
+	require.NoError(t, err)
+
+	var validatorSign parachaintypes.ValidatorSignature
+	var tempSignature = common.MustHexToBytes("0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86") //nolint:lll
+	copy(validatorSign[:], tempSignature)
+
+	oldSign := parachaintypes.ValidatorSignature{}
+
+	valToMic := map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour{
+		1: {
+			parachaintypes.ValidityDoubleVoteIssuedAndValidity{
+				CommittedCandidateReceiptAndSign: parachaintypes.CommittedCandidateReceiptAndSign{
+					CommittedCandidateReceipt: committedCandidate,
+					Signature:                 oldSign,
+				},
+				CandidateHashAndSign: parachaintypes.CandidateHashAndSign{
+					CandidateHash: candidateHash,
+					Signature:     validatorSign,
+				},
+			},
+
+			parachaintypes.DoubleSignOnValidity{
+				CandidateHash: candidateHash,
+				Sign1:         oldSign,
+				Sign2:         validatorSign,
+			},
+		},
+	}
+
+	table := &statementTable{
+		detectedMisbehaviour: valToMic,
+	}
+
+	misbehaviours := table.drainMisbehaviors()
+	require.Equal(t, valToMic, misbehaviours)
+	require.Empty(t, table.detectedMisbehaviour)
+}
