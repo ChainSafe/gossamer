@@ -56,10 +56,10 @@ func (mr *MockTableMockRecorder) attestedCandidate(arg0, arg1, arg2 any) *gomock
 }
 
 // drainMisbehaviors mocks base method.
-func (m *MockTable) drainMisbehaviors() []parachaintypes.ProvisionableDataMisbehaviorReport {
+func (m *MockTable) drainMisbehaviors() map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "drainMisbehaviors")
-	ret0, _ := ret[0].([]parachaintypes.ProvisionableDataMisbehaviorReport)
+	ret0, _ := ret[0].(map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour)
 	return ret0
 }
 
@@ -72,16 +72,16 @@ func (mr *MockTableMockRecorder) drainMisbehaviors() *gomock.Call {
 // getCommittedCandidateReceipt mocks base method.
 func (m *MockTable) getCommittedCandidateReceipt(arg0 parachaintypes.CandidateHash) (parachaintypes.CommittedCandidateReceipt, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "getCandidate", arg0)
+	ret := m.ctrl.Call(m, "getCommittedCandidateReceipt", arg0)
 	ret0, _ := ret[0].(parachaintypes.CommittedCandidateReceipt)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// getCandidate indicates an expected call of getCandidate.
-func (mr *MockTableMockRecorder) getCandidate(arg0 any) *gomock.Call {
+// getCommittedCandidateReceipt indicates an expected call of getCommittedCandidateReceipt.
+func (mr *MockTableMockRecorder) getCommittedCandidateReceipt(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getCandidate", reflect.TypeOf((*MockTable)(nil).getCommittedCandidateReceipt), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getCommittedCandidateReceipt", reflect.TypeOf((*MockTable)(nil).getCommittedCandidateReceipt), arg0)
 }
 
 // importStatement mocks base method.
