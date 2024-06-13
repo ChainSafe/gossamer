@@ -84,11 +84,3 @@ func TestWorker(t *testing.T) {
 
 	require.Equal(t, 0, len(sharedGuard)) // check that workers release lock
 }
-
-type fakeReqMaker struct {
-	doFunc func(id peer.ID, req network.Message, resp network.ResponseMessage) error
-}
-
-func (f fakeReqMaker) Do(id peer.ID, req network.Message, resp network.ResponseMessage) error {
-	return f.doFunc(id, req, resp)
-}
