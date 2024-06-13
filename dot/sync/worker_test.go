@@ -12,10 +12,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func TestWorker(t *testing.T) {
 	peerA := peer.ID("peerA")
+	ctrl := gomock.NewController(t)
 	m := uint32(60)
 	blockReq := &network.BlockRequestMessage{
 		RequestedData: 1,
@@ -23,18 +25,16 @@ func TestWorker(t *testing.T) {
 		Direction:     3,
 		Max:           &m,
 	}
-	requestCounter := 0
-	reqMaker := fakeReqMaker{
-		doFunc: func(id peer.ID, req network.Message, resp network.ResponseMessage) error {
-			// assert that what is added as a task in the channel
-			// queue, this will be used in the requests
-			require.Equal(t, peerA, id)
-			require.Equal(t, blockReq, req)
-			resp = new(network.BlockResponseMessage)
-			requestCounter++
+
+	reqMaker := NewMockRequestMaker(ctrl)
+	reqMaker.EXPECT().
+		Do(peerA, blockReq, gomock.AssignableToTypeOf((*network.BlockResponseMessage)(nil))).
+		DoAndReturn(func(_, _, _ any) any {
+			time.Sleep(2 * time.Second)
 			return nil
-		},
-	}
+		}).
+		Times(2).
+		Return(nil)
 
 	sharedGuard := make(chan struct{}, 1)
 	w := newWorker(peerA, sharedGuard, reqMaker)
@@ -62,8 +62,8 @@ func TestWorker(t *testing.T) {
 	// we are waiting 500 ms to guarantee that workers had time to read sync tasks from the queue
 	// and send the request. With this assertion we can be sure that even that we start 2 workers
 	// only one of them is working and sent a requests
-	time.Sleep(500 * time.Millisecond)
-	require.Equal(t, 1, requestCounter)
+	time.Sleep(10 * time.Millisecond)
+	require.Equal(t, 1, len(sharedGuard))
 
 	actual := <-resultCh
 	expected := &syncTaskResult{
@@ -74,13 +74,15 @@ func TestWorker(t *testing.T) {
 	}
 	require.Equal(t, expected, actual)
 
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 	require.Equal(t, 1, len(sharedGuard))
 
 	actual = <-resultCh
 	require.Equal(t, expected, actual)
 	close(queue)
 	wg.Wait()
+
+	require.Equal(t, 0, len(sharedGuard)) // check that workers release lock
 }
 
 type fakeReqMaker struct {
