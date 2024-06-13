@@ -89,6 +89,7 @@ type announcedBlock struct {
 	who    peer.ID
 	header *types.Header
 }
+
 type chainSync struct {
 	wg     sync.WaitGroup
 	stopCh chan struct{}
