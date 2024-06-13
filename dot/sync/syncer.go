@@ -11,6 +11,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
 
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -24,6 +26,8 @@ type Service struct {
 	blockState BlockState
 	chainSync  ChainSync
 	network    Network
+
+	seenBlockSyncRequests *lrucache.LRUCache[common.Hash, uint]
 }
 
 // Pause Pauses the sync service
@@ -74,9 +78,10 @@ func NewService(cfg *Config) (*Service, error) {
 	chainSync := newChainSync(csCfg)
 
 	return &Service{
-		blockState: cfg.BlockState,
-		chainSync:  chainSync,
-		network:    cfg.Network,
+		blockState:            cfg.BlockState,
+		chainSync:             chainSync,
+		network:               cfg.Network,
+		seenBlockSyncRequests: lrucache.NewLRUCache[common.Hash, uint](100),
 	}, nil
 }
 

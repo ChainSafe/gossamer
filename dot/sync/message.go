@@ -4,15 +4,52 @@
 package sync
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
+const maxNumberOfSameRequestPerPeer uint = 2
+
 // CreateBlockResponse creates a block response message from a block request message
-func (s *Service) CreateBlockResponse(req *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
+func (s *Service) CreateBlockResponse(from peer.ID, req *network.BlockRequestMessage) (
+	*network.BlockResponseMessage, error) {
+	logger.Debugf("sync request from %s: %s", from, req.String())
+
+	if !req.StartingBlock.IsUint32() && !req.StartingBlock.IsHash() {
+		return nil, ErrInvalidBlockRequest
+	}
+
+	encodedRequest, err := req.Encode()
+	if err != nil {
+		return nil, fmt.Errorf("encoding request: %w", err)
+	}
+
+	encodedKey := bytes.Join([][]byte{[]byte(from.String()), encodedRequest}, nil)
+	requestHash, err := common.Blake2bHash(encodedKey)
+	if err != nil {
+		return nil, fmt.Errorf("hashing encoded block request sync message: %w", err)
+	}
+
+	numOfRequests := s.seenBlockSyncRequests.Get(requestHash)
+
+	if numOfRequests > maxNumberOfSameRequestPerPeer {
+		s.network.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.SameBlockSyncRequest,
+			Reason: peerset.SameBlockSyncRequestReason,
+		}, from)
+
+		logger.Debugf("max number of same request reached by: %s", from.String())
+		return nil, fmt.Errorf("%w: %s", errMaxNumberOfSameRequest, from.String())
+	}
+
+	s.seenBlockSyncRequests.Put(requestHash, numOfRequests+1)
+
 	switch req.Direction {
 	case network.Ascending:
 		return s.handleAscendingRequest(req)
