@@ -41,9 +41,11 @@ func NewServiceRegistry(logger Logger) *ServiceRegistry {
 // If a service of that type has already been registered, it logs a warning and does not register the service again.
 // The method guarantee that only one instance of a service can be added in the registry.
 //
-// The order in which services are added to the registry is important because later they will be started in the same order
+// The order in which services are added to the registry is important because later they will be started in the
+// same order
 func (s *ServiceRegistry) RegisterService(service Service) {
-	// by using type of the service as a key in the map, we guarantee that only one instance of the service can be registered.
+	// by using type of the service as a key in the map, we guarantee
+	// that only one instance of the service can be registered.
 	kind := reflect.TypeOf(service)
 	if _, exists := s.services[kind]; exists {
 		s.logger.Warnf("Tried to add service type %s that has already been seen", kind)
