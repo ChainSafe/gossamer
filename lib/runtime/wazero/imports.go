@@ -1831,7 +1831,7 @@ func ext_offchain_random_seed_version_1(ctx context.Context, m api.Module) uint3
 }
 
 // TODO Investigate via https://github.com/ChainSafe/gossamer/issues/3986
-func ext_offchain_submit_transaction_version_1(ctx context.Context, m api.Module, data uint64) uint64 { //nolint
+func ext_offchain_submit_transaction_version_1(ctx context.Context, m api.Module, data uint64) uint64 {
 	rtCtx := ctx.Value(runtimeContextKey).(*runtime.Context)
 	if rtCtx == nil {
 		panic("nil runtime context")
