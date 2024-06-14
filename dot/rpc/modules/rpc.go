@@ -12,6 +12,7 @@ var (
 	UnsafeMethods = []string{
 		"system_addReservedPeer",
 		"system_removeReservedPeer",
+		"system_dryRun",
 		"author_submitExtrinsic",
 		"author_removeExtrinsic",
 		"author_insertKey",
@@ -27,7 +28,6 @@ var (
 		"chain_getHead":          "chain_getBlockHash",
 		"account_nextIndex":      "system_accountNextIndex",
 		"chain_getFinalisedHead": "chain_getFinalizedHead",
-		"system_dryRun":          "system_dryRun",
 	}
 )
 

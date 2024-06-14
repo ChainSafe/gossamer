@@ -6,10 +6,12 @@ package modules
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math/big"
 	"net/http"
 	"strings"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -161,6 +163,7 @@ func (sm *SystemModule) NodeRoles(r *http.Request, req *EmptyRequest, res *[]int
 
 // AccountNextIndex Returns the next valid index (aka. nonce) for given account.
 func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, res *U64Response) error {
+	// I do not understand how this params should be parsed. eg. func (gm *GrandpaModule) ProveFinality should accept 3 paras according to RPC documentation
 	if req == nil || req.String == "" {
 		return errors.New("account address must be valid")
 	}
@@ -290,12 +293,39 @@ func (sm *SystemModule) RemoveReservedPeer(r *http.Request, req *StringRequest, 
 	return sm.networkAPI.RemoveReservedPeers(req.String)
 }
 
+// DryRunRequest request struct
+type DryRunRequest struct {
+	Extrinsic []byte
+	Bhash     *common.Hash
+}
+
 // DryRun Dry run an extrinsic. Returns a SCALE encoded ApplyExtrinsicResult.
 // Params:
 //   - HEX - The raw, SCALE encoded extrinsic.
 //   - HASH - The block hash indicating the state. Null implies the current state.
 //
+// unsafe: This method is only active with appropriate flags
+// interface: api.rpc.system.dryRun
+// jsonrpc: system_dryRun
 // Response: The SCALE encoded ApplyExtrinsicResult.
-func (sm *SystemModule) DryRun(r *http.Request, req *StringRequest, res *[]byte) error {
+func (sm *SystemModule) DryRun(_ *http.Request, req *DryRunRequest, result *[]byte) error {
+
+	var block common.Hash
+	if req.Bhash == nil {
+		block = sm.blockAPI.BestBlockHash()
+	} else {
+		block = *req.Bhash
+	}
+
+	// TODO: add different runtime execution flow based on runtime version <6
+	runtime, err := sm.blockAPI.GetRuntime(block)
+	if err != nil {
+		return fmt.Errorf("GetRuntime error: %w", err)
+	}
+	extrResult, err := runtime.ApplyExtrinsic(types.NewExtrinsic(req.Extrinsic))
+	if err != nil {
+		return fmt.Errorf("ApplyExtrinsic error: %w", err)
+	}
+	*result = extrResult
 	return nil
 }

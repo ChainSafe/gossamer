@@ -69,7 +69,7 @@ func TestApplyExtrinsicErrors(t *testing.T) {
 
 	for _, c := range testCases {
 		t.Run(c.name, func(t *testing.T) {
-			err := determineErr(c.test)
+			err := DetermineErr(c.test)
 			if c.expected == "" {
 				require.NoError(t, err)
 				return

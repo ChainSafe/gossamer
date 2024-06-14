@@ -194,7 +194,7 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt ExtrinsicHandler) []*t
 			continue
 		}
 
-		err = determineErr(ret)
+		err = DetermineErr(ret)
 		if err != nil {
 			logger.Warnf("error when applying extrinsic %s: %s", extrinsic, err)
 
@@ -287,7 +287,7 @@ func buildBlockInherents(slot Slot, rt ExtrinsicHandler, parent *types.Header) (
 		}
 
 		if !bytes.Equal(ret, []byte{0, 0}) {
-			errTxt := determineErr(ret)
+			errTxt := DetermineErr(ret)
 			return nil, fmt.Errorf("error applying inherent: %s", errTxt)
 		}
 	}

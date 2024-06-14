@@ -728,7 +728,8 @@ func TestNewWebSocketServer(t *testing.T) {
 			expected: []byte(`{"jsonrpc":"2.0","result":1,"id":3}` + "\n")},
 		{
 			call:     []byte(`{"jsonrpc":"2.0","method":"state_subscribeStorage","params":[],"id":4}`),
-			expected: []byte(`{"jsonrpc":"2.0","result":2,"id":4}` + "\n")},
+			expected: []byte(`{"jsonrpc":"2.0","result":2,"id":4}` + "\n"),
+		},
 	}
 
 	config := DefaultTestWestendDevConfig(t)

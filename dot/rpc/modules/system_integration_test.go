@@ -1,19 +1,20 @@
 // Copyright 2021 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-//go:build integration
-
 package modules
 
 import (
 	"errors"
 	"fmt"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"math/big"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/btcsuite/btcd/btcutil/base58"
+	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -23,10 +24,14 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
+	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -41,6 +46,98 @@ var (
 	}
 	testPeers []common.PeerInfo
 )
+
+// test data
+var (
+	sampleBodyBytes = *types.NewBody([]types.Extrinsic{[]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}})
+	// sampleBodyString is string conversion of sampleBodyBytes
+	sampleBodyString = []string{"0x2800010203040506070809"}
+)
+
+func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runtime.Instance) {
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+
+	header1 := &types.Header{
+		Number:     1,
+		Digest:     digest,
+		ParentHash: gh,
+		StateRoot:  trie.EmptyHash,
+	}
+
+	block1 := &types.Block{
+		Header: *header1,
+		Body:   sampleBodyBytes,
+	}
+
+	err = bs.AddBlock(block1)
+	require.NoError(t, err)
+	bs.StoreRuntime(header1.Hash(), rt)
+
+	header2 := &types.Header{
+		Number:     2,
+		Digest:     digest,
+		ParentHash: header1.Hash(),
+		StateRoot:  trie.EmptyHash,
+	}
+
+	block2 := &types.Block{
+		Header: *header2,
+		Body:   sampleBodyBytes,
+	}
+
+	err = bs.AddBlock(block2)
+	require.NoError(t, err)
+	bs.StoreRuntime(header2.Hash(), rt)
+}
+
+func newTestStateService(t *testing.T) *state.Service {
+	testDatadirPath := t.TempDir()
+
+	ctrl := gomock.NewController(t)
+	telemetryMock := NewMockTelemetry(ctrl)
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	config := state.Config{
+		Path:      testDatadirPath,
+		LogLevel:  log.Info,
+		Telemetry: telemetryMock,
+	}
+	stateSrvc := state.NewService(config)
+	stateSrvc.UseMemDB()
+
+	gen, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+
+	err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
+	require.NoError(t, err)
+
+	err = stateSrvc.Start()
+	require.NoError(t, err)
+
+	var rtCfg wazero_runtime.Config
+
+	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
+
+	if stateSrvc != nil {
+		rtCfg.NodeStorage.BaseDB = stateSrvc.Base
+	} else {
+		rtCfg.NodeStorage.BaseDB, err = database.LoadDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+		require.NoError(t, err)
+	}
+
+	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
+	require.NoError(t, err)
+
+	loadTestBlocks(t, genesisHeader.Hash(), stateSrvc.Block, rt)
+
+	t.Cleanup(func() {
+		stateSrvc.Stop()
+	})
+	return stateSrvc
+}
 
 func newNetworkService(t *testing.T) *network.Service {
 	ctrl := gomock.NewController(t)
@@ -294,6 +391,8 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	// setup service
 	net := newNetworkService(t)
 	chain := newTestStateService(t)
+
+	block := chain.Block
 	// init storage with test data
 	ts, err := chain.Storage.TrieState(nil)
 	require.NoError(t, err)
@@ -348,7 +447,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 		AnyTimes()
 
 	txQueue := state.NewTransactionState(telemetryMock)
-	return NewSystemModule(net, nil, core, chain.Storage, txQueue, nil, nil)
+	return NewSystemModule(net, nil, core, chain.Storage, txQueue, block, nil)
 }
 
 func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
@@ -551,4 +650,75 @@ func TestAddReservedPeer(t *testing.T) {
 		require.Error(t, sysModule.AddReservedPeer(nil, &StringRequest{String: ""}, nil))
 		require.Error(t, sysModule.RemoveReservedPeer(nil, &StringRequest{String: "    "}, nil))
 	})
+}
+
+func TestSystemModule_DryRun_HappyPass(t *testing.T) {
+	sys := setupSystemModule(t)
+
+	runtimeInstance, err := sys.blockAPI.GetRuntime(sys.blockAPI.BestBlockHash())
+	require.NoError(t, err)
+
+	_, _, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+
+	keyRing, err := keystore.NewSr25519Keyring()
+
+	require.NoError(t, err)
+
+	charlie, err := ctypes.NewMultiAddressFromHexAccountID(
+		keyRing.KeyCharlie.Public().Hex())
+	require.NoError(t, err)
+
+	extHex := runtime.NewTestExtrinsic(t, runtimeInstance, genesisHeader.Hash(), sys.blockAPI.BestBlockHash(),
+		0, signature.TestKeyringPairAlice, "Balances.transfer",
+		charlie, ctypes.NewUCompactFromUInt(12345))
+
+	//NewTestExtrinsic returns hex encoded value so we decode it
+	req := &DryRunRequest{
+		Extrinsic: common.MustHexToBytes(extHex),
+	}
+
+	var callResponse []byte
+
+	err = sys.DryRun(nil, req, &callResponse)
+
+	fmt.Printf("TRACE: bestBlock hash%x", sys.blockAPI.BestBlockHash())
+
+	require.NoError(t, err)
+
+	// Result is Hexed and umrashalled SCALE
+	err = babe.DetermineErr(callResponse)
+	// TODO: currently happens error: "transaction validity error: ancient birth block"
+	require.NoError(t, err, "An error was determined in response")
+}
+
+func TestSystemModule_DryRun_MalformedExtrinsic(t *testing.T) {
+	sys := setupSystemModule(t)
+
+	testCallArguments := []byte{0xab, 0xcd}
+
+	runtimeInstance, err := sys.blockAPI.GetRuntime(sys.blockAPI.BestBlockHash())
+	require.NoError(t, err)
+
+	_, _, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
+
+	extHex := runtime.NewTestExtrinsic(t, runtimeInstance, genesisHeader.Hash(), sys.blockAPI.BestBlockHash(),
+		100, signature.TestKeyringPairAlice, "System.remark", testCallArguments)
+
+	req := &DryRunRequest{
+		Extrinsic: common.MustHexToBytes(extHex),
+	}
+
+	var callResponse []byte
+
+	err = sys.DryRun(nil, req, &callResponse)
+	require.NoError(t, err)
+
+	// Result is Hexed and umrashalled SCALE
+
+	err = babe.DetermineErr(callResponse)
+	require.NoError(t, err, "An error was determined in response")
+}
+
+func TestSystemModule_DryRun_Pass_WithBlockPassed(t *testing.T) {
+	// TODO
 }

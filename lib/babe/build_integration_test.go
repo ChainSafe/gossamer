@@ -257,7 +257,7 @@ func TestBuildAndApplyExtrinsic_InvalidPayment(t *testing.T) {
 
 	header := types.NewHeader(genesisHeader.Hash(), common.Hash{}, common.Hash{}, 1, types.NewDigest())
 	bestBlockHash := babeService.blockState.BestBlockHash()
-	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
+	rt, err := babeService.blockState.GetRuntime(й)
 	require.NoError(t, err)
 
 	err = rt.InitializeBlock(header)
@@ -308,7 +308,7 @@ func TestBuildAndApplyExtrinsic_InvalidPayment(t *testing.T) {
 	res, err := rt.ApplyExtrinsic(extEnc.Bytes())
 	require.NoError(t, err)
 
-	err = determineErr(res)
+	err = DetermineErr(res)
 	_, ok := err.(*TransactionValidityError)
 	require.True(t, ok)
 	require.Equal(t, "transaction validity error: invalid payment", err.Error())

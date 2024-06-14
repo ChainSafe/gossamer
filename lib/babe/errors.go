@@ -504,7 +504,7 @@ func (mvdt unknown) ValueAt(index uint) (value any, err error) {
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
-func determineErr(res []byte) error {
+func DetermineErr(res []byte) error {
 	okRes := scale.NewResult(nil, dispatchError{})
 	errRes := scale.NewResult(invalid{}, unknown{})
 	result := scale.NewResult(okRes, errRes)

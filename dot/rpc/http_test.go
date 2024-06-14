@@ -10,11 +10,11 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
+	"github.com/gorilla/websocket"
 	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -28,6 +28,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/btcsuite/btcutil/base58"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -93,6 +95,62 @@ func TestUnsafeRPCProtection(t *testing.T) {
 			)
 
 			require.Equal(t, expected, string(resBody))
+		})
+	}
+}
+
+func TestUnsafeWSProtection(t *testing.T) {
+	cfg := &HTTPServerConfig{
+		Modules:           []string{"system", "author", "chain", "state", "rpc", "grandpa", "dev", "syncstate"},
+		RPCPort:           7878,
+		WSExternal:        true,
+		WSPort:            9546,
+		RPCAPI:            NewService(),
+		RPCUnsafeExternal: false,
+		RPCUnsafe:         false,
+		WSUnsafeExternal:  false,
+	}
+
+	s := NewHTTPServer(cfg)
+	err := s.Start()
+	require.NoError(t, err)
+
+	time.Sleep(time.Second)
+	defer s.Stop()
+
+	for _, unsafe := range modules.UnsafeMethods {
+		t.Run(fmt.Sprintf("Unsafe method %s should not be reachable", unsafe), func(t *testing.T) {
+			data := []byte(fmt.Sprintf(`{"jsonrpc":"2.0","method":"%s","params":[],"id":1}`, unsafe))
+
+			buf := new(bytes.Buffer)
+			_, err = buf.Write(data)
+			require.NoError(t, err)
+
+			const addr = "localhost:9546"
+			u := url.URL{Scheme: "ws", Host: addr, Path: "/"}
+
+			c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+			defer c.Close()
+
+			err = c.WriteMessage(websocket.TextMessage, data)
+			require.NoError(t, err)
+
+			_, message, err := c.ReadMessage()
+			require.NoError(t, err)
+
+			expected := fmt.Sprintf(`{`+
+				`"error":{`+
+				`"code":-32000,`+
+				`"data":null,`+
+				`"message":"unsafe rpc method %s cannot be reachable"`+
+				`},`+
+				`"id":1,`+
+				`"jsonrpc":"2.0"`+
+				`}`+"\n",
+				unsafe,
+			)
+
+			require.Equal(t, expected, string(message))
 		})
 	}
 }
