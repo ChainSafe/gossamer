@@ -1014,6 +1014,9 @@ func doResponseGrowsTheChain(response, ongoingChain []*types.BlockData, startAtB
 	firstBlockInResponse := response[0]
 	firstBlockExactIndex := firstBlockInResponse.Header.Number - startAtBlock
 	if firstBlockExactIndex != 0 {
+		if firstBlockExactIndex-1 >= uint(len(ongoingChain)) {
+			return false
+		}
 		leftElement := ongoingChain[firstBlockExactIndex-1]
 		if leftElement != nil && !compareParentHash(leftElement, firstBlockInResponse) {
 			return false
