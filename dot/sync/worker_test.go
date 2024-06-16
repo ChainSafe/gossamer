@@ -4,12 +4,12 @@
 package sync
 
 import (
+	"sort"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -17,39 +17,51 @@ import (
 
 func TestWorker(t *testing.T) {
 	peerA := peer.ID("peerA")
+	peerB := peer.ID("peerB")
+
 	ctrl := gomock.NewController(t)
 	m := uint32(60)
 	blockReq := &network.BlockRequestMessage{
 		RequestedData: 1,
-		StartingBlock: variadic.Uint32OrHash{},
 		Direction:     3,
 		Max:           &m,
 	}
 
 	reqMaker := NewMockRequestMaker(ctrl)
+	// define a mock expectation to peerA
 	reqMaker.EXPECT().
 		Do(peerA, blockReq, gomock.AssignableToTypeOf((*network.BlockResponseMessage)(nil))).
 		DoAndReturn(func(_, _, _ any) any {
 			time.Sleep(2 * time.Second)
 			return nil
 		}).
-		Times(2).
+		Return(nil)
+
+	// define a mock expectation to peerB
+	reqMaker.EXPECT().
+		Do(peerB, blockReq, gomock.AssignableToTypeOf((*network.BlockResponseMessage)(nil))).
+		DoAndReturn(func(_, _, _ any) any {
+			time.Sleep(2 * time.Second)
+			return nil
+		}).
 		Return(nil)
 
 	sharedGuard := make(chan struct{}, 1)
-	w := newWorker(peerA, sharedGuard, reqMaker)
+
+	// instantiate the workers
+	fstWorker := newWorker(peerA, sharedGuard, reqMaker)
+	sndWorker := newWorker(peerB, sharedGuard, reqMaker)
 
 	wg := sync.WaitGroup{}
-	queue := make(chan *syncTask, 1) // 1 means that maximum 1 worker can send request at a given time
+	queue := make(chan *syncTask, 2)
 
 	// run two workers, but they shouldn't work concurrently,
 	// because sharedGuard is buffered channel with capacity
 	wg.Add(2)
-	go w.run(queue, &wg)
-	go w.run(queue, &wg)
+	go fstWorker.run(queue, &wg)
+	go sndWorker.run(queue, &wg)
 
 	resultCh := make(chan *syncTaskResult)
-	defer close(resultCh)
 	queue <- &syncTask{
 		request:  blockReq,
 		resultCh: resultCh,
@@ -62,23 +74,30 @@ func TestWorker(t *testing.T) {
 	// we are waiting 500 ms to guarantee that workers had time to read sync tasks from the queue
 	// and send the request. With this assertion we can be sure that even that we start 2 workers
 	// only one of them is working and sent a requests
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 	require.Equal(t, 1, len(sharedGuard))
 
-	actual := <-resultCh
-	expected := &syncTaskResult{
-		who:      peerA,
-		request:  blockReq,
-		response: new(network.BlockResponseMessage),
-		err:      nil,
+	var actual []*syncTaskResult
+	result := <-resultCh
+	actual = append(actual, result)
+
+	time.Sleep(500 * time.Millisecond)
+	require.Equal(t, 1, len(sharedGuard))
+
+	result = <-resultCh
+	actual = append(actual, result)
+
+	expected := []*syncTaskResult{
+		{who: peerA, request: blockReq, response: new(network.BlockResponseMessage)},
+		{who: peerB, request: blockReq, response: new(network.BlockResponseMessage)},
 	}
+
+	sort.Slice(actual, func(i, j int) bool {
+		return actual[i].who < actual[j].who
+	})
+
 	require.Equal(t, expected, actual)
 
-	time.Sleep(10 * time.Millisecond)
-	require.Equal(t, 1, len(sharedGuard))
-
-	actual = <-resultCh
-	require.Equal(t, expected, actual)
 	close(queue)
 	wg.Wait()
 
