@@ -300,7 +300,7 @@ func Test_Service_HandleBlockAnnounceHandshake(t *testing.T) {
 	}
 
 	err := service.HandleBlockAnnounceHandshake(peer.ID("peer"), message)
-	require.Nil(t, err)
+	require.NoError(t, err)
 }
 
 func TestService_IsSynced(t *testing.T) {
