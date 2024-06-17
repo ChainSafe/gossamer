@@ -20,7 +20,8 @@ func NewExecutorParams() ExecutorParams {
 }
 
 type ExecutorParamValues interface {
-	MaxMemoryPages | StackLogicalMax | StackNativeMax | PrecheckingMaxMemory | PvfPrepTimeout | PvfExecTimeout | WasmExtBulkMemory
+	MaxMemoryPages | StackLogicalMax | StackNativeMax | PrecheckingMaxMemory | PvfPrepTimeout | PvfExecTimeout |
+		WasmExtBulkMemory
 }
 
 // ExecutorParam represents the various parameters for modifying the semantics of the execution environment.
