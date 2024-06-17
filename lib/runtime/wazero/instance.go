@@ -37,8 +37,6 @@ type runtimeContextKeyType struct{}
 // If the instantiation fails, increase the value.
 const minMemoryPages uint32 = 2080
 
-type contextKey string
-
 var runtimeContextKey = runtimeContextKeyType{}
 
 var _ runtime.Instance = (*Instance)(nil)
@@ -1416,7 +1414,7 @@ func (in *Instance) ParachainHostSessionExecutorParams(index parachaintypes.Sess
 		return nil, fmt.Errorf("unmarshalling session executor params: %w", err)
 	}
 
-	params := parachaintypes.ExecutorParams(executorParams)
+	params := executorParams
 	return &params, nil
 }
 

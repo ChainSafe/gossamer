@@ -20,7 +20,9 @@ type StatementDistributionMessage struct {
 	inner any
 }
 
-func setStatementDistributionMessage[Value StatementDistributionMessageValues](mvdt *StatementDistributionMessage, value Value) {
+func setStatementDistributionMessage[Value StatementDistributionMessageValues](
+	mvdt *StatementDistributionMessage, value Value,
+) {
 	mvdt.inner = value
 }
 
