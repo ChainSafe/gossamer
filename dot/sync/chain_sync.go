@@ -785,6 +785,10 @@ taskResultLoop:
 }
 
 func (cs *chainSync) handleReadyBlock(bd *types.BlockData, origin blockOrigin) error {
+	if bd == nil {
+		logger.Debugf("nil block data provided to handleReadyBlock")
+		return fmt.Errorf("nil block data provided to handleReadyBlock")
+	}
 	// if header was not requested, get it from the pending set
 	// if we're expecting headers, validate should ensure we have a header
 	if bd.Header == nil {
@@ -1014,14 +1018,16 @@ func doResponseGrowsTheChain(response, ongoingChain []*types.BlockData, startAtB
 	firstBlockInResponse := response[0]
 	firstBlockExactIndex := firstBlockInResponse.Header.Number - startAtBlock
 	if firstBlockExactIndex != 0 {
-		if firstBlockExactIndex-1 >= uint(len(ongoingChain)) {
-			return false
+		if firstBlockExactIndex < uint(expectedTotal) {
+			leftElement := ongoingChain[firstBlockExactIndex-1]
+			if leftElement != nil && !compareParentHash(leftElement, firstBlockInResponse) {
+				return false
+			}
 		}
-		leftElement := ongoingChain[firstBlockExactIndex-1]
-		if leftElement != nil && !compareParentHash(leftElement, firstBlockInResponse) {
-			return false
-		}
-
+		//leftElement := ongoingChain[firstBlockExactIndex-1]
+		//if leftElement != nil && !compareParentHash(leftElement, firstBlockInResponse) {
+		//	return false
+		//}
 	}
 
 	switch {
