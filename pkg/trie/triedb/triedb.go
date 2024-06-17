@@ -342,6 +342,8 @@ func (t *TrieDB) inspect(
 	}
 }
 
+// fix is a helper function to reorganise the nodes after deleting a branch.
+// For example, if the node we are deleting is the only child for a branch node, we can transform that branch in a leaf
 func (t *TrieDB) fix(node Node) (Node, error) {
 	usedIndex := make([]byte, 0)
 
