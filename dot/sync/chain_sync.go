@@ -1024,10 +1024,6 @@ func doResponseGrowsTheChain(response, ongoingChain []*types.BlockData, startAtB
 				return false
 			}
 		}
-		//leftElement := ongoingChain[firstBlockExactIndex-1]
-		//if leftElement != nil && !compareParentHash(leftElement, firstBlockInResponse) {
-		//	return false
-		//}
 	}
 
 	switch {
