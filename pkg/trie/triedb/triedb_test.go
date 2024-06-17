@@ -6,6 +6,7 @@ package triedb
 import (
 	"testing"
 
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 	"github.com/stretchr/testify/assert"
 )
@@ -576,4 +577,162 @@ func TestInsertAfterDelete(t *testing.T) {
 			assert.Equal(t, testCase.expected.nodes, trie.storage.nodes)
 		})
 	}
+}
+
+func TestDBCommits(t *testing.T) {
+	t.Parallel()
+
+	t.Run("commit_leaf", func(t *testing.T) {
+		t.Parallel()
+
+		inmemoryDB := NewMemoryDB(emptyNode)
+		trie := NewEmptyTrieDB(inmemoryDB, nil)
+
+		err := trie.Put([]byte("leaf"), []byte("leafvalue"))
+		assert.NoError(t, err)
+
+		err = trie.commit()
+		assert.NoError(t, err)
+
+		// 1 leaf
+		assert.Len(t, inmemoryDB.data, 1)
+
+		// Get values using lazy loading
+		value := trie.Get([]byte("leaf"))
+		assert.Equal(t, []byte("leafvalue"), value)
+	})
+
+	t.Run("commit_branch_and_inlined_leaf", func(t *testing.T) {
+		t.Parallel()
+
+		inmemoryDB := NewMemoryDB(emptyNode)
+		trie := NewEmptyTrieDB(inmemoryDB, nil)
+
+		err := trie.Put([]byte("branchleaf"), []byte("leafvalue"))
+		assert.NoError(t, err)
+		err = trie.Put([]byte("branch"), []byte("branchvalue"))
+		assert.NoError(t, err)
+
+		err = trie.commit()
+		assert.NoError(t, err)
+
+		// 1 branch with its inlined leaf
+		assert.Len(t, inmemoryDB.data, 1)
+
+		// Get values using lazy loading
+		value := trie.Get([]byte("branch"))
+		assert.Equal(t, []byte("branchvalue"), value)
+		value = trie.Get([]byte("branchleaf"))
+		assert.Equal(t, []byte("leafvalue"), value)
+	})
+
+	t.Run("commit_branch_and_hashed_leaf", func(t *testing.T) {
+		t.Parallel()
+
+		inmemoryDB := NewMemoryDB(emptyNode)
+		tr := NewEmptyTrieDB(inmemoryDB, nil)
+
+		err := tr.Put([]byte("branchleaf"), make([]byte, 40))
+		assert.NoError(t, err)
+		err = tr.Put([]byte("branch"), []byte("branchvalue"))
+		assert.NoError(t, err)
+
+		err = tr.commit()
+		assert.NoError(t, err)
+
+		// 1 branch with 1 hashed leaf child
+		// 1 hashed leaf
+		assert.Len(t, inmemoryDB.data, 2)
+
+		// Get values using lazy loading
+		value := tr.Get([]byte("branch"))
+		assert.Equal(t, []byte("branchvalue"), value)
+		value = tr.Get([]byte("branchleaf"))
+		assert.Equal(t, make([]byte, 40), value)
+	})
+
+	t.Run("commit_branch_and_hashed_leaf_with_hashed_value", func(t *testing.T) {
+		t.Parallel()
+
+		inmemoryDB := NewMemoryDB(emptyNode)
+		tr := NewEmptyTrieDB(inmemoryDB, nil)
+		tr.SetVersion(trie.V1)
+
+		err := tr.Put([]byte("branchleaf"), make([]byte, 40))
+		assert.NoError(t, err)
+		err = tr.Put([]byte("branch"), []byte("branchvalue"))
+		assert.NoError(t, err)
+
+		err = tr.commit()
+		assert.NoError(t, err)
+
+		// 1 branch with 1 hashed leaf child
+		// 1 hashed leaf with hashed value
+		// 1 hashed value
+		assert.Len(t, inmemoryDB.data, 3)
+
+		// Get values using lazy loading
+		value := tr.Get([]byte("branch"))
+		assert.Equal(t, []byte("branchvalue"), value)
+		value = tr.Get([]byte("branchleaf"))
+		assert.Equal(t, make([]byte, 40), value)
+	})
+
+	t.Run("commit_branch_and_hashed_leaf_with_hashed_value_then_delete_it", func(t *testing.T) {
+		t.Parallel()
+
+		inmemoryDB := NewMemoryDB(emptyNode)
+		tr := NewEmptyTrieDB(inmemoryDB, nil)
+		tr.SetVersion(trie.V1)
+
+		err := tr.Put([]byte("branchleaf"), make([]byte, 40))
+		assert.NoError(t, err)
+		err = tr.Put([]byte("branch"), []byte("branchvalue"))
+		assert.NoError(t, err)
+
+		err = tr.commit()
+		assert.NoError(t, err)
+
+		// 1 branch with 1 hashed leaf child
+		// 1 hashed leaf with hashed value
+		// 1 hashed value
+		assert.Len(t, inmemoryDB.data, 3)
+
+		err = tr.Delete([]byte("branchleaf"))
+		assert.NoError(t, err)
+		tr.commit()
+
+		// 1 branch transformed in a leaf
+		// previous leaf was deleted
+		// previous hashed (V1) value was deleted too
+		assert.Len(t, inmemoryDB.data, 1)
+	})
+
+	t.Run("commit_branch_with_leaf_then_delete_leaf", func(t *testing.T) {
+		t.Parallel()
+
+		inmemoryDB := NewMemoryDB(emptyNode)
+		trie := NewEmptyTrieDB(inmemoryDB, nil)
+
+		err := trie.Put([]byte("branchleaf"), []byte("leafvalue"))
+		assert.NoError(t, err)
+		err = trie.Put([]byte("branch"), []byte("branchvalue"))
+		assert.NoError(t, err)
+
+		err = trie.commit()
+		assert.NoError(t, err)
+
+		err = trie.Delete([]byte("branchleaf"))
+		assert.NoError(t, err)
+
+		err = trie.commit()
+		assert.NoError(t, err)
+
+		// 1 branch transformed in a leaf
+		// previous leaf was deleted
+		assert.Len(t, inmemoryDB.data, 1)
+
+		v := trie.Get([]byte("branch"))
+		assert.Equal(t, []byte("branchvalue"), v)
+	})
 }

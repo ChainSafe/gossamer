@@ -10,6 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	nibbles "github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 )
@@ -29,32 +30,32 @@ type (
 	}
 
 	newValueRef struct {
-		hash *common.Hash
+		hash common.Hash
 		Data []byte
 	}
 )
 
 func NewEncodedValue(value nodeValue, partial []byte, f childFunc) (codec.EncodedValue, error) {
+	var newHashedValueHash common.Hash
 	switch v := value.(type) {
 	case newValueRef:
-		childRef, err := f(NewNodeToEncode{value: v.Data}, partial, nil)
+		childRef, err := f(NewNodeToEncode{partialKey: partial, value: v.Data}, partial, nil)
 		if err != nil {
 			return nil, err
 		}
 
-		var newHash common.Hash
 		switch cr := childRef.(type) {
 		case HashChildReference:
-			newHash = cr.hash
+			newHashedValueHash = cr.hash
 		default:
 			panic("value node can never be inlined")
 		}
-		if v.hash != nil {
-			if *v.hash != newHash {
+		if v.hash != common.EmptyHash {
+			if v.hash != newHashedValueHash {
 				panic("hash mismatch")
 			}
 		} else {
-			v.hash = &newHash
+			v.hash = newHashedValueHash
 		}
 	}
 
@@ -64,8 +65,8 @@ func NewEncodedValue(value nodeValue, partial []byte, f childFunc) (codec.Encode
 	case valueRef:
 		return codec.NewHashedValue(v.hash.ToBytes()), nil
 	case newValueRef:
-		if v.hash != nil {
-			return codec.NewHashedValue(v.hash.ToBytes()), nil
+		if newHashedValueHash != common.EmptyHash {
+			return codec.NewHashedValue(newHashedValueHash.ToBytes()), nil
 		} else {
 			panic("new external value are always added before encoding a node")
 		}
@@ -92,19 +93,13 @@ func (vr valueRef) equal(other nodeValue) bool {
 		return false
 	}
 }
-func (vr newValueRef) getHash() common.Hash {
-	if vr.hash == nil {
-		return common.EmptyHash
-	}
 
-	return *vr.hash
+func (vr newValueRef) getHash() common.Hash {
+	return vr.hash
 }
 func (vr newValueRef) equal(other nodeValue) bool {
 	switch otherValue := other.(type) {
 	case newValueRef:
-		if vr.hash != nil && otherValue.hash != nil {
-			return *vr.hash == *otherValue.hash
-		}
 		return vr.hash == otherValue.hash
 	default:
 		return false
@@ -119,12 +114,13 @@ func NewValue(data []byte, threshold int) nodeValue {
 	return inline{Data: data}
 }
 
-func NewFromEncoded(encodedValue codec.EncodedValue) nodeValue {
+func NewValueFromEncoded(prefix []byte, encodedValue codec.EncodedValue) nodeValue {
 	switch encoded := encodedValue.(type) {
 	case codec.InlineValue:
 		return inline{Data: encoded.Data}
 	case codec.HashedValue:
-		return valueRef{hash: common.NewHash(encoded.Data)}
+		prefixedKey := bytes.Join([][]byte{prefix, encoded.Data}, nil)
+		return valueRef{hash: common.NewHash(prefixedKey)}
 	}
 
 	return nil
@@ -189,7 +185,7 @@ func newNodeFromEncoded(nodeHash common.Hash, data []byte, storage NodeStorage) 
 	case codec.Empty:
 		return Empty{}, nil
 	case codec.Leaf:
-		return Leaf{partialKey: encoded.PartialKey, value: NewFromEncoded(encoded.Value)}, nil
+		return Leaf{partialKey: encoded.PartialKey, value: NewValueFromEncoded(encoded.PartialKey, encoded.Value)}, nil
 	case codec.Branch:
 		key := encoded.PartialKey
 		encodedChildren := encoded.Children
@@ -215,7 +211,7 @@ func newNodeFromEncoded(nodeHash common.Hash, data []byte, storage NodeStorage) 
 			children[i] = child
 		}
 
-		return Branch{partialKey: key, children: children, value: NewFromEncoded(value)}, nil
+		return Branch{partialKey: key, children: children, value: NewValueFromEncoded(encoded.PartialKey, value)}, nil
 	default:
 		panic("unreachable")
 	}
@@ -227,7 +223,8 @@ type NodeToEncode interface {
 
 type (
 	NewNodeToEncode struct {
-		value []byte
+		partialKey []byte
+		value      []byte
 	}
 	TrieNodeToEncode struct {
 		child NodeHandle
@@ -239,6 +236,7 @@ func (TrieNodeToEncode) isNodeToEncode() {}
 
 type ChildReference interface {
 	isChildReference()
+	getNodeData() []byte
 }
 
 type (
@@ -246,12 +244,18 @@ type (
 		hash common.Hash
 	}
 	InlineChildReference struct {
-		hash []byte
+		encodedNode []byte
 	}
 )
 
-func (HashChildReference) isChildReference()   {}
+func (HashChildReference) isChildReference() {}
+func (h HashChildReference) getNodeData() []byte {
+	return h.hash.ToBytes()
+}
 func (InlineChildReference) isChildReference() {}
+func (i InlineChildReference) getNodeData() []byte {
+	return i.encodedNode
+}
 
 type childFunc = func(node NodeToEncode, oslice []byte, oindex *byte) (ChildReference, error)
 
@@ -325,8 +329,15 @@ func NewEncodedLeaf(partialKey []byte, value codec.EncodedValue, writer io.Write
 		}
 	}
 
+	// Write partial key
+	keyLE := nibbles.NibblesToKeyLE(partialKey)
+	_, err := writer.Write(keyLE)
+	if err != nil {
+		return fmt.Errorf("cannot write LE key to buffer: %w", err)
+	}
+
 	// Write encoded value
-	err := value.Write(writer)
+	err = value.Write(writer)
 	if err != nil {
 		return fmt.Errorf("writing leaf value: %w", err)
 	}
@@ -358,12 +369,12 @@ func NewEncodedBranch(
 			}
 		}
 	}
-	//Write encoded value
-	if value != nil {
-		err := value.Write(writer)
-		if err != nil {
-			return fmt.Errorf("writing branch value: %w", err)
-		}
+
+	// Write partial key
+	keyLE := nibbles.NibblesToKeyLE(partialKey)
+	_, err := writer.Write(keyLE)
+	if err != nil {
+		return fmt.Errorf("cannot write LE key to buffer: %w", err)
 	}
 
 	//Write bitmap
@@ -375,23 +386,24 @@ func NewEncodedBranch(
 		bitmap |= 1 << uint(i)
 	}
 	childrenBitmap := common.Uint16ToBytes(bitmap)
-	_, err := writer.Write(childrenBitmap)
+	_, err = writer.Write(childrenBitmap)
 	if err != nil {
 		return fmt.Errorf("writing branch bitmap: %w", err)
 	}
 
+	//Write encoded value
+	if value != nil {
+		err := value.Write(writer)
+		if err != nil {
+			return fmt.Errorf("writing branch value: %w", err)
+		}
+	}
+
 	//Write children
 	for _, child := range children {
-		switch c := child.(type) {
-		case HashChildReference:
+		if child != nil {
 			encoder := scale.NewEncoder(writer)
-			err := encoder.Encode(c.hash)
-			if err != nil {
-				return fmt.Errorf("encoding hash child reference: %w", err)
-			}
-		case InlineChildReference:
-			encoder := scale.NewEncoder(writer)
-			err := encoder.Encode(c.hash)
+			err := encoder.Encode(child.getNodeData())
 			if err != nil {
 				return fmt.Errorf("encoding hash child reference: %w", err)
 			}

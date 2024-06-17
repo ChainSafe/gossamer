@@ -30,7 +30,7 @@ type TrieDB struct {
 	rootHash common.Hash
 	db       db.RWDatabase
 	cache    cache.TrieCache
-	layout   trie.TrieLayout
+	version  trie.TrieLayout
 	// rootHandle is an in-memory-trie-like representation of the node
 	// references and new inserted nodes in the trie
 	rootHandle NodeHandle
@@ -53,11 +53,20 @@ func NewTrieDB(rootHash common.Hash, db db.RWDatabase, cache cache.TrieCache) *T
 	return &TrieDB{
 		rootHash:   rootHash,
 		cache:      cache,
+		version:    trie.V0,
 		db:         db,
 		storage:    NewNodeStorage(),
 		rootHandle: rootHandle,
 		deathRow:   make(map[common.Hash]interface{}),
 	}
+}
+
+func (t *TrieDB) SetVersion(v trie.TrieLayout) {
+	if v < t.version {
+		panic("cannot regress trie version")
+	}
+
+	t.version = v
 }
 
 // Hash returns the hashed root of the trie.
@@ -507,7 +516,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 	case Empty:
 		// If the node is empty we have to replace it with a leaf node with the
 		// new value
-		value := NewValue(value, t.layout.MaxInlineValue())
+		value := NewValue(value, t.version.MaxInlineValue())
 		return replaceNode{node: Leaf{partialKey: partial, value: value}}, nil
 	case Leaf:
 		existingKey := n.partialKey
@@ -516,7 +525,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 		if common == len(existingKey) && common == len(partial) {
 			// We are trying to insert a value in the same leaf so we just need
 			// to replace the value
-			value := NewValue(value, t.layout.MaxInlineValue())
+			value := NewValue(value, t.version.MaxInlineValue())
 			unchanged := n.value.equal(value)
 			t.replaceOldValue(oldValue, n.value)
 			leaf := Leaf{partialKey: n.partialKey, value: value}
@@ -573,7 +582,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 		if common == len(existingKey) && common == len(partial) {
 			// We are trying to insert a value in the same branch so we just need
 			// to replace the value
-			value := NewValue(value, t.layout.MaxInlineValue())
+			value := NewValue(value, t.version.MaxInlineValue())
 			var unchanged bool
 			if n.value != nil {
 				unchanged = n.value.equal(value)
@@ -601,7 +610,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 			ix := existingKey[common]
 			children[ix] = newInMemoryNodeHandle(allocStorage)
 
-			value := NewValue(value, t.layout.MaxInlineValue())
+			value := NewValue(value, t.version.MaxInlineValue())
 
 			if len(partial)-common == 0 {
 				// The value should be part of the branch
@@ -651,7 +660,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 				}
 			} else {
 				// Original has nothing here so we have to create a new leaf
-				value := NewValue(value, t.layout.MaxInlineValue())
+				value := NewValue(value, t.version.MaxInlineValue())
 				leaf := t.storage.alloc(NewStoredNode{node: Leaf{keyNibbles, value}})
 				n.children[idx] = newInMemoryNodeHandle(leaf)
 			}
@@ -795,9 +804,9 @@ func (t *TrieDB) commitChild(
 		return HashChildReference(nh), nil
 	case InMemory:
 		stored := t.storage.destroy(nh.idx)
-		switch node := stored.(type) {
+		switch storedNode := stored.(type) {
 		case CachedStoredNode:
-			return HashChildReference{hash: node.hash}, nil
+			return HashChildReference{hash: storedNode.hash}, nil
 		case NewStoredNode:
 			// We have to store the node in the DB
 			commitChildFunc := func(node NodeToEncode, oslice []byte, oindex *byte) (ChildReference, error) {
@@ -805,13 +814,14 @@ func (t *TrieDB) commitChild(
 				mov := len(oslice)
 				if oindex != nil {
 					prefixKey = append(prefixKey, *oindex)
-					mov += int(*oindex)
+					//mov += int(*oindex)
 				}
 
 				switch n := node.(type) {
 				case NewNodeToEncode:
 					valueHash := common.MustBlake2bHash(n.value)
-					err := t.db.Put(valueHash.ToBytes(), n.value)
+					prefixedKey := bytes.Join([][]byte{n.partialKey, valueHash.ToBytes()}, nil)
+					err := t.db.Put(prefixedKey, n.value)
 					if err != nil {
 						panic("inserting in db")
 					}
@@ -832,11 +842,12 @@ func (t *TrieDB) commitChild(
 				}
 			}
 
-			encoded, err := NewEncodedNode(node.node, commitChildFunc)
+			encoded, err := NewEncodedNode(storedNode.node, commitChildFunc)
 			if err != nil {
 				panic("encoding node")
 			}
 
+			// Not inlined node
 			if len(encoded) >= common.HashLength {
 				hash := common.MustBlake2bHash(encoded)
 				err := t.db.Put(hash[:], encoded)
