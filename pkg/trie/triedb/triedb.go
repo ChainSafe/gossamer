@@ -426,24 +426,22 @@ func (t *TrieDB) removeInspector(stored Node, keyNibbles []byte, oldValue *nodeV
 			// This is the node we are looking for so we delete it
 			t.replaceOldValue(oldValue, n.value)
 			return delete{}, nil
-		} else {
-			// Wrong partial, so we return the node as is
-			return restore{n}, nil
 		}
+		// Wrong partial, so we return the node as is
+		return restore{n}, nil
 	case Branch:
 		if len(partial) == 0 {
 			if n.value == nil {
 				// Nothing to delete since the branch doesn't contains a value
 				return restore{n}, nil
-			} else {
-				// The branch contains the value so we delete it
-				t.replaceOldValue(oldValue, n.value)
-				newNode, err := t.fix(Branch{n.partialKey, n.children, nil})
-				if err != nil {
-					return nil, err
-				}
-				return replace{newNode}, nil
 			}
+			// The branch contains the value so we delete it
+			t.replaceOldValue(oldValue, n.value)
+			newNode, err := t.fix(Branch{n.partialKey, n.children, nil})
+			if err != nil {
+				return nil, err
+			}
+			return replace{newNode}, nil
 		} else {
 			common := nibbles.CommonPrefix(n.partialKey, partial)
 			existingLength := len(n.partialKey)
@@ -459,36 +457,35 @@ func (t *TrieDB) removeInspector(stored Node, keyNibbles []byte, oldValue *nodeV
 				}
 			} else if common < existingLength {
 				return restore{n}, nil
-			} else {
-				// Check children
-				idx := partial[common]
-				// take child and replace it to nil
-				child := n.children[idx]
-				n.children[idx] = nil
+			}
+			// Check children
+			idx := partial[common]
+			// take child and replace it to nil
+			child := n.children[idx]
+			n.children[idx] = nil
 
-				if child != nil {
-					removeAtResult, err := t.removeAt(child, keyNibbles[len(n.partialKey)+1:], oldValue)
+			if child != nil {
+				removeAtResult, err := t.removeAt(child, keyNibbles[len(n.partialKey)+1:], oldValue)
+				if err != nil {
+					return nil, err
+				}
+
+				if removeAtResult != nil {
+					n.children[idx] = newInMemoryNodeHandle(removeAtResult.handle)
+					if removeAtResult.changed {
+						return replace{n}, nil
+					} else {
+						return restore{n}, nil
+					}
+				} else {
+					newNode, err := t.fix(n)
 					if err != nil {
 						return nil, err
 					}
-
-					if removeAtResult != nil {
-						n.children[idx] = newInMemoryNodeHandle(removeAtResult.handle)
-						if removeAtResult.changed {
-							return replace{n}, nil
-						} else {
-							return restore{n}, nil
-						}
-					} else {
-						newNode, err := t.fix(n)
-						if err != nil {
-							return nil, err
-						}
-						return replace{newNode}, nil
-					}
+					return replace{newNode}, nil
 				}
-				return restore{n}, nil
 			}
+			return restore{n}, nil
 		}
 	default:
 		panic("unreachable")
