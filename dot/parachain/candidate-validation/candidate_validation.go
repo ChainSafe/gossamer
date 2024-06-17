@@ -86,18 +86,41 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 				// TODO: implement functionality to handle ValidateFromChainState, see issue #3919
 			case ValidateFromExhaustive:
 				result, err := validateFromExhaustive(cv.ValidationHost, msg.PersistedValidationData,
-					msg.ValidationCode,
-					msg.CandidateReceipt, msg.PoV)
+					msg.ValidationCode, msg.CandidateReceipt, msg.PoV)
+				resultMessage := NewValidationResultVDT()
+
 				if err != nil {
 					logger.Errorf("failed to validate from exhaustive: %w", err)
-					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResultMessage]{Err: err}
-					continue
+					err := resultMessage.Set(Invalid{Err: err})
+					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResultMessage]{
+						Data: ValidationResultMessage{
+							IsValid:             false,
+							ValidationResultVDT: resultMessage,
+						},
+						Err: err,
+					}
+				} else {
+					candidateCommitments := parachaintypes.CandidateCommitments{
+						UpwardMessages:            result.UpwardMessages,
+						HorizontalMessages:        result.HorizontalMessages,
+						NewValidationCode:         result.NewValidationCode,
+						HeadData:                  result.HeadData,
+						ProcessedDownwardMessages: result.ProcessedDownwardMessages,
+						HrmpWatermark:             result.HrmpWatermark,
+					}
+					err := resultMessage.Set(Valid{
+						CandidateCommitments:    candidateCommitments,
+						PersistedValidationData: msg.PersistedValidationData,
+					})
+					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResultMessage]{
+						Data: ValidationResultMessage{
+							IsValid:             true,
+							ValidationResultVDT: resultMessage,
+						},
+						Err: err,
+					}
 				}
-				msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResultMessage]{
-					Data: ValidationResultMessage{
-						ValidationResult: *result,
-					},
-				}
+
 			case PreCheck:
 				// TODO: implement functionality to handle PreCheck, see issue #3921
 

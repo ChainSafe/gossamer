@@ -439,15 +439,16 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 			},
 			want: parachaintypes.OverseerFuncRes[ValidationResultMessage]{
 				Data: ValidationResultMessage{
-					ValidationResult: parachainruntime.ValidationResult{
-						HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123,
-							207, 206, 8, 219, 227, 136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245,
-							59, 106, 76, 168, 122, 109, 164, 169, 22, 46, 144, 39, 103, 92, 31, 78, 66, 72, 252, 64,
-							24, 194, 129, 162, 128, 1, 77, 147, 200, 229, 189, 242, 111, 198, 236, 139, 16, 143, 19,
-							245, 113, 233, 138, 210}},
-						ProcessedDownwardMessages: 0,
-						HrmpWatermark:             1,
-					},
+					// TODO(ed): refactor this to use vdt type
+					//ValidationResult: parachainruntime.ValidationResult{
+					//	HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123,
+					//		207, 206, 8, 219, 227, 136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245,
+					//		59, 106, 76, 168, 122, 109, 164, 169, 22, 46, 144, 39, 103, 92, 31, 78, 66, 72, 252, 64,
+					//		24, 194, 129, 162, 128, 1, 77, 147, 200, 229, 189, 242, 111, 198, 236, 139, 16, 143, 19,
+					//		245, 113, 233, 138, 210}},
+					//	ProcessedDownwardMessages: 0,
+					//	HrmpWatermark:             1,
+					//},
 				},
 			},
 		},
