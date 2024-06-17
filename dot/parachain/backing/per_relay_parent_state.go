@@ -401,7 +401,7 @@ func executorParamsAtRelayParent(blockState BlockState, relayParent common.Hash,
 		if errors.Is(err, wazero_runtime.ErrExportFunctionNotFound) {
 			// Runtime doesn't yet support the api requested,
 			// should execute anyway with default set of parameters.
-			defaultExecutorParams := parachaintypes.ExecutorParams(parachaintypes.NewExecutorParams())
+			defaultExecutorParams := parachaintypes.NewExecutorParams()
 			return &defaultExecutorParams, nil
 		}
 		return nil, err

@@ -30,7 +30,9 @@ type BitfieldDistributionMessage struct {
 	inner any
 }
 
-func setBitfieldDistributionMessage[Value BitfieldDistributionMessageValues](mvdt *BitfieldDistributionMessage, value Value) {
+func setBitfieldDistributionMessage[Value BitfieldDistributionMessageValues](
+	mvdt *BitfieldDistributionMessage, value Value,
+) {
 	mvdt.inner = value
 }
 

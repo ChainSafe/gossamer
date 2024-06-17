@@ -163,7 +163,9 @@ type ApprovalDistributionMessage struct {
 	inner any
 }
 
-func setApprovalDistributionMessage[Value ApprovalDistributionMessageValues](mvdt *ApprovalDistributionMessage, value Value) {
+func setApprovalDistributionMessage[Value ApprovalDistributionMessageValues](
+	mvdt *ApprovalDistributionMessage, value Value,
+) {
 	mvdt.inner = value
 }
 

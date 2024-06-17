@@ -31,7 +31,9 @@ type AvailableDataFetchingResponse struct {
 	inner any
 }
 
-func setAvailableDataFetchingResponse[Value AvailableDataFetchingResponseValues](mvdt *AvailableDataFetchingResponse, value Value) {
+func setAvailableDataFetchingResponse[Value AvailableDataFetchingResponseValues](
+	mvdt *AvailableDataFetchingResponse, value Value,
+) {
 	mvdt.inner = value
 }
 

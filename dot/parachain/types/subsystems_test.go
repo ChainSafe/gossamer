@@ -133,7 +133,6 @@ func TestExecutorParams(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			params := NewExecutorParams()
 			param := NewExecutorParam()
 			err := param.SetValue(c.enumValue)
 			if c.expectedErr == nil {
@@ -141,7 +140,6 @@ func TestExecutorParams(t *testing.T) {
 			} else {
 				require.ErrorContains(t, err, c.expectedErr.Error())
 			}
-			params = append(params, param)
 		})
 	}
 }
