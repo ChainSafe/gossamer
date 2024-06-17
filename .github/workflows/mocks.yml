@@ -35,6 +35,9 @@ jobs:
           go generate -run "mockgen" -tags integration ./... && \
           git diff --exit-code && \
           cd ..
+      
+      - name: generate a shared library file for erasure 
+        run: make compile-erasure
 
       - name: Check Gossamer module
         run: |
