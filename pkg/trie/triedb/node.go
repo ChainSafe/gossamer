@@ -292,7 +292,7 @@ func NewEncodedNode(node Node, childF childFunc) (encodedNode []byte, err error)
 				continue
 			}
 
-			pr := n.partialKey[len(n.partialKey)-1:] // TODO: check this
+			pr := n.partialKey[len(n.partialKey)-1:]
 			oindex := byte(i)
 			children[i], err = childF(TrieNodeToEncode{child}, pr, &oindex)
 			if err != nil {
