@@ -137,12 +137,11 @@ func (ls *LeafSet[H, N]) Remove(hash H, number N, parentHash *H) *RemoveOutcome[
 // is simpler and our assumptions about how finalization works means that those leaves
 // will be pruned soon afterwards anyway.
 func (ls *LeafSet[H, N]) FinalizeHeight(number N) FinalizationOutcome[H, N] {
-	var boundary N
 	if number == 0 {
 		removed := btree.NewMap[N, []H](0)
 		return FinalizationOutcome[H, N]{removed: *removed}
 	}
-	boundary = number - 1
+	boundary := number - 1
 	belowBoundary := btree.NewMap[N, []H](0)
 	ls.storage.Ascend(boundary, func(key N, value []H) bool {
 		belowBoundary.Set(key, value)
@@ -158,12 +157,11 @@ func (ls *LeafSet[H, N]) FinalizeHeight(number N) FinalizationOutcome[H, N] {
 //
 // Returns the leaves that would be displaced by finalizing the given block.
 func (ls *LeafSet[H, N]) DisplacedByFinalHeight(number N) FinalizationOutcome[H, N] {
-	var boundary N
 	if number == 0 {
 		removed := btree.NewMap[N, []H](0)
 		return FinalizationOutcome[H, N]{removed: *removed}
 	}
-	boundary = number - 1
+	boundary := number - 1
 	belowBoundary := btree.NewMap[N, []H](0)
 	ls.storage.Ascend(boundary, func(key N, value []H) bool {
 		belowBoundary.Set(key, value)
@@ -175,7 +173,7 @@ func (ls *LeafSet[H, N]) DisplacedByFinalHeight(number N) FinalizationOutcome[H,
 // Undo all pending operations.
 //
 // This returns an `Undo` struct, where any
-// `Displaced` objects that have returned by previous method calls
+// outcomes objects that have returned by previous method calls
 // should be passed to via the appropriate methods. Otherwise,
 // the on-disk state may get out of sync with in-memory state.
 func (ls *LeafSet[H, N]) Undo() Undo[H, N] {
@@ -267,7 +265,7 @@ func (ls *LeafSet[H, N]) insertLeaf(number N, hash H) {
 	}
 }
 
-// Returns true if this leaf was contained, false otherwise.
+// Returns true if a leaf was found, false otherwise.
 func (ls *LeafSet[H, N]) removeLeaf(number N, hash H) bool {
 	var empty bool
 	var removed bool
