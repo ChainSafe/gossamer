@@ -6,6 +6,7 @@ package triedb
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -358,73 +359,66 @@ func (t *TrieDB) inspect(
 
 // fix is a helper function to reorganise the nodes after deleting a branch.
 // For example, if the node we are deleting is the only child for a branch node, we can transform that branch in a leaf
-func (t *TrieDB) fix(node Node) (Node, error) {
+func (t *TrieDB) fix(branch Branch) (Node, error) {
 	usedIndex := make([]byte, 0)
 
-	switch branch := node.(type) {
-	case Branch:
-		for i := 0; i < codec.ChildrenCapacity; i++ {
-			if branch.children[i] != nil {
-				if len(usedIndex) == 2 {
-					break
-				}
-				usedIndex = append(usedIndex, byte(i))
+	for i := 0; i < codec.ChildrenCapacity; i++ {
+		if branch.children[i] != nil {
+			if len(usedIndex) == 2 {
+				break
 			}
+			usedIndex = append(usedIndex, byte(i))
+		}
+	}
+
+	if len(usedIndex) == 0 {
+		if branch.value == nil {
+			panic("branch with no subvalues. Something went wrong.")
 		}
 
-		if len(usedIndex) == 0 {
-			if branch.value == nil {
-				panic("branch with no subvalues. Something went wrong.")
+		// Make it a leaf
+		return Leaf{branch.partialKey, branch.value}, nil
+	} else if len(usedIndex) == 1 && branch.value == nil {
+		// Only one onward node. use child instead
+		idx := usedIndex[0] //nolint:gosec
+		// take child and replace it to nil
+		child := branch.children[idx]
+		branch.children[idx] = nil
+
+		var stored StoredNode
+		switch n := child.(type) {
+		case InMemory:
+			stored = t.storage.destroy(n.idx)
+		case Persisted:
+			handle, err := t.lookupNode(n.hash)
+			if err != nil {
+				return nil, fmt.Errorf("looking up node: %w", err)
 			}
-
-			// Make it a leaf
-			return Leaf{branch.partialKey, branch.value}, nil
-		} else if len(usedIndex) == 1 && branch.value == nil {
-			// Only one onward node. use child instead
-			idx := usedIndex[0] //nolint:gosec
-			// take child and replace it to nil
-			child := branch.children[idx]
-			branch.children[idx] = nil
-
-			var stored StoredNode
-			switch n := child.(type) {
-			case InMemory:
-				stored = t.storage.destroy(n.idx)
-			case Persisted:
-				handle, err := t.lookupNode(n.hash)
-				if err != nil {
-					return nil, err
-				}
-				stored = t.storage.destroy(handle)
-			}
-
-			var childNode Node
-			switch n := stored.(type) {
-			case NewStoredNode:
-				childNode = n.node
-			case CachedStoredNode:
-				t.deathRow[n.hash] = nil
-				childNode = n.node
-			}
-
-			combinedKey := branch.partialKey
-			combinedKey = append(combinedKey, idx)
-			combinedKey = append(combinedKey, childNode.getPartialKey()...)
-
-			switch n := childNode.(type) {
-			case Leaf:
-				return Leaf{combinedKey, n.value}, nil
-			case Branch:
-				return Branch{combinedKey, n.children, n.value}, nil
-			default:
-				panic("unreachable")
-			}
-		} else {
-			// Restore branch
-			return Branch{branch.partialKey, branch.children, branch.value}, nil
+			stored = t.storage.destroy(handle)
 		}
-	default:
-		panic("fix should be only called with branch nodes")
+
+		var childNode Node
+		switch n := stored.(type) {
+		case NewStoredNode:
+			childNode = n.node
+		case CachedStoredNode:
+			t.deathRow[n.hash] = nil
+			childNode = n.node
+		}
+
+		combinedKey := bytes.Join([][]byte{branch.partialKey, {idx}, childNode.getPartialKey()}, nil)
+
+		switch n := childNode.(type) {
+		case Leaf:
+			return Leaf{combinedKey, n.value}, nil
+		case Branch:
+			return Branch{combinedKey, n.children, n.value}, nil
+		default:
+			panic("unreachable")
+		}
+	} else {
+		// Restore branch
+		return branch, nil
 	}
 }
 
@@ -436,9 +430,7 @@ func (t *TrieDB) removeInspector(stored Node, keyNibbles []byte, oldValue *nodeV
 	case Empty:
 		return deleteNode{}, nil
 	case Leaf:
-		existingKey := n.partialKey
-
-		if bytes.Equal(existingKey, partial) {
+		if bytes.Equal(n.partialKey, partial) {
 			// This is the node we are looking for so we delete it
 			t.replaceOldValue(oldValue, n.value)
 			return deleteNode{}, nil
@@ -458,51 +450,50 @@ func (t *TrieDB) removeInspector(stored Node, keyNibbles []byte, oldValue *nodeV
 				return nil, err
 			}
 			return replaceNode{newNode}, nil
-		} else {
-			common := nibbles.CommonPrefix(n.partialKey, partial)
-			existingLength := len(n.partialKey)
+		}
 
-			if common == existingLength && common == len(partial) {
-				// Replace value
-				if n.value != nil {
-					t.replaceOldValue(oldValue, n.value)
-					newNode, err := t.fix(Branch{n.partialKey, n.children, nil})
-					return replaceNode{newNode}, err
-				} else {
-					return restoreNode{Branch{n.partialKey, n.children, nil}}, nil
-				}
-			} else if common < existingLength {
-				return restoreNode{n}, nil
+		common := nibbles.CommonPrefix(n.partialKey, partial)
+		existingLength := len(n.partialKey)
+
+		if common == existingLength && common == len(partial) {
+			// Replace value
+			if n.value != nil {
+				t.replaceOldValue(oldValue, n.value)
+				newNode, err := t.fix(Branch{n.partialKey, n.children, nil})
+				return replaceNode{newNode}, err
 			}
-			// Check children
-			idx := partial[common]
-			// take child and replace it to nil
-			child := n.children[idx]
-			n.children[idx] = nil
+			return restoreNode{Branch{n.partialKey, n.children, nil}}, nil
+		} else if common < existingLength {
+			return replaceNode{n}, nil
+		}
+		// Check children
+		idx := partial[common]
+		// take child and replace it to nil
+		child := n.children[idx]
+		n.children[idx] = nil
 
-			if child != nil {
-				removeAtResult, err := t.removeAt(child, keyNibbles[len(n.partialKey)+1:], oldValue)
-				if err != nil {
-					return nil, err
-				}
+		if child == nil {
+			return replaceNode{n}, nil
+		}
 
-				if removeAtResult != nil {
-					n.children[idx] = newInMemoryNodeHandle(removeAtResult.handle)
-					if removeAtResult.changed {
-						return replaceNode{n}, nil
-					} else {
-						return restoreNode{n}, nil
-					}
-				} else {
-					newNode, err := t.fix(n)
-					if err != nil {
-						return nil, err
-					}
-					return replaceNode{newNode}, nil
-				}
+		removeAtResult, err := t.removeAt(child, partial[len(n.partialKey)+1:], oldValue)
+		if err != nil {
+			return nil, err
+		}
+
+		if removeAtResult != nil {
+			n.children[idx] = newInMemoryNodeHandle(removeAtResult.handle)
+			if removeAtResult.changed {
+				return replaceNode{n}, nil
 			}
 			return restoreNode{n}, nil
 		}
+
+		newNode, err := t.fix(n)
+		if err != nil {
+			return nil, err
+		}
+		return replaceNode{newNode}, nil
 	default:
 		panic("unreachable")
 	}

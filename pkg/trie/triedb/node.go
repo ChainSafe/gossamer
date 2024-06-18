@@ -148,7 +148,6 @@ func inMemoryFetchedValue(value nodeValue, prefix []byte, db db.DBGetter) ([]byt
 }
 
 type Node interface {
-	isNode()
 	getPartialKey() []byte
 }
 
@@ -165,11 +164,8 @@ type (
 	}
 )
 
-func (Empty) isNode()                  {}
 func (Empty) getPartialKey() []byte    { return nil }
-func (Leaf) isNode()                   {}
 func (n Leaf) getPartialKey() []byte   { return n.partialKey }
-func (Branch) isNode()                 {}
 func (n Branch) getPartialKey() []byte { return n.partialKey }
 
 // Create a new node from the encoded data, decoding this data into a codec.Node
