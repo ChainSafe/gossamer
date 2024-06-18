@@ -820,7 +820,7 @@ func (t *TrieDB) commitChild(
 					if t.cache != nil {
 						t.cache.SetValue(n.partialKey, n.value)
 					}
-					
+
 					prefixKey = prefixKey[:mov]
 					return HashChildReference{hash: valueHash}, nil
 				case TrieNodeToEncode:
