@@ -131,6 +131,11 @@ func (l *TrieLookup) lookupValue(keyNibbles []byte) (value []byte, err error) {
 		return nil, err
 	}
 
+	// node not found so we return nil
+	if node == nil {
+		return nil, nil
+	}
+
 	if nodeValue := node.GetValue(); nodeValue != nil {
 		value, err = l.fetchValue(node.GetPartialKey(), nodeValue)
 		if err != nil {

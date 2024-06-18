@@ -734,5 +734,7 @@ func TestDBCommits(t *testing.T) {
 
 		v := trie.Get([]byte("branch"))
 		assert.Equal(t, []byte("branchvalue"), v)
+		v = trie.Get([]byte("branchleaf"))
+		assert.Nil(t, v)
 	})
 }
