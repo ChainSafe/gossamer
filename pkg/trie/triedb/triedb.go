@@ -464,7 +464,7 @@ func (t *TrieDB) removeInspector(stored Node, keyNibbles []byte, oldValue *nodeV
 			}
 			return restoreNode{Branch{n.partialKey, n.children, nil}}, nil
 		} else if common < existingLength {
-			return replaceNode{n}, nil
+			return restoreNode{n}, nil
 		}
 		// Check children
 		idx := partial[common]
@@ -473,7 +473,7 @@ func (t *TrieDB) removeInspector(stored Node, keyNibbles []byte, oldValue *nodeV
 		n.children[idx] = nil
 
 		if child == nil {
-			return replaceNode{n}, nil
+			return restoreNode{n}, nil
 		}
 
 		removeAtResult, err := t.removeAt(child, partial[len(n.partialKey)+1:], oldValue)
