@@ -731,9 +731,17 @@ taskResultLoop:
 					continue taskResultLoop
 				}
 
-				blockExactIndex := blockInResponse.Header.Number - startAtBlock
-				if blockExactIndex < uint(expectedSyncedBlocks) {
-					syncingChain[blockExactIndex] = blockInResponse
+				if blockInResponse != nil {
+					blockExactIndex := blockInResponse.Header.Number - startAtBlock
+					if blockExactIndex < uint(expectedSyncedBlocks) {
+						syncingChain[blockExactIndex] = blockInResponse
+					}
+				} else {
+					err = cs.submitRequest(taskResult.request, nil, workersResults)
+					if err != nil {
+						return err
+					}
+					continue taskResultLoop
 				}
 			}
 
@@ -785,10 +793,6 @@ taskResultLoop:
 }
 
 func (cs *chainSync) handleReadyBlock(bd *types.BlockData, origin blockOrigin) error {
-	if bd == nil {
-		logger.Debugf("nil block data provided to handleReadyBlock")
-		return fmt.Errorf("nil block data provided to handleReadyBlock")
-	}
 	// if header was not requested, get it from the pending set
 	// if we're expecting headers, validate should ensure we have a header
 	if bd.Header == nil {
@@ -1017,12 +1021,10 @@ func doResponseGrowsTheChain(response, ongoingChain []*types.BlockData, startAtB
 
 	firstBlockInResponse := response[0]
 	firstBlockExactIndex := firstBlockInResponse.Header.Number - startAtBlock
-	if firstBlockExactIndex != 0 {
-		if firstBlockExactIndex != 0 && firstBlockExactIndex < uint(expectedTotal) {
-			leftElement := ongoingChain[firstBlockExactIndex-1]
-			if leftElement != nil && !compareParentHash(leftElement, firstBlockInResponse) {
-				return false
-			}
+	if firstBlockExactIndex != 0 && firstBlockExactIndex < uint(expectedTotal) {
+		leftElement := ongoingChain[firstBlockExactIndex-1]
+		if leftElement != nil && !compareParentHash(leftElement, firstBlockInResponse) {
+			return false
 		}
 	}
 
