@@ -203,7 +203,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 	}
 	tests := map[string]struct {
 		args          args
-		want          *parachainruntime.ValidationResult
+		want          *ValidationResult
 		expectedError error
 	}{
 		"invalid_pov_hash": {
@@ -218,7 +218,12 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				candidateReceipt: candidateReceipt2,
 				pov:              pov,
 			},
-			expectedError: ErrValidationPoVHashMismatch,
+			want: &ValidationResult{
+				IsValid:                 false,
+				CandidateCommitments:    parachaintypes.CandidateCommitments{},
+				PersistedValidationData: parachaintypes.PersistedValidationData{},
+				Err:                     ErrValidationPoVHashMismatch,
+			},
 		},
 		"invalid_pov_size": {
 			args: args{
@@ -232,7 +237,10 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				candidateReceipt: candidateReceipt,
 				pov:              pov,
 			},
-			expectedError: errors.New("validation parameters are too large, limit: 10, got: 17"),
+			want: &ValidationResult{
+				IsValid: false,
+				Err:     fmt.Errorf("%w, limit: %d, got: %d", ErrValidationParamsTooLarge, 10, 17),
+			},
 		},
 		"code_mismatch": {
 			args: args{
@@ -246,7 +254,10 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				candidateReceipt: candidateReceipt,
 				pov:              pov,
 			},
-			expectedError: ErrValidationCodeMismatch,
+			want: &ValidationResult{
+				IsValid: false,
+				Err:     ErrValidationCodeMismatch,
+			},
 		},
 		"mock_test": {
 			args: args{
@@ -293,13 +304,30 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				candidateReceipt: candidateReceipt,
 				pov:              pov,
 			},
-			want: &parachainruntime.ValidationResult{
-				HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123, 207, 206, 8, 219, 227,
-					136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245, 59, 106, 76, 168, 122, 109,
-					164, 169, 22, 46, 144, 39, 103, 92, 31, 78, 66, 72, 252, 64, 24, 194, 129, 162, 128, 1, 77, 147,
-					200, 229, 189, 242, 111, 198, 236, 139, 16, 143, 19, 245, 113, 233, 138, 210}},
-				ProcessedDownwardMessages: 0,
-				HrmpWatermark:             1,
+			want: &ValidationResult{
+				IsValid: true,
+				CandidateCommitments: parachaintypes.CandidateCommitments{
+					UpwardMessages:     nil,
+					HorizontalMessages: nil,
+					NewValidationCode:  nil,
+					HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123, 207, 206, 8, 219, 227,
+						136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245, 59, 106, 76, 168, 122, 109,
+						164, 169, 22, 46, 144, 39, 103, 92, 31, 78, 66, 72, 252, 64, 24, 194, 129, 162, 128, 1, 77, 147,
+						200, 229, 189, 242, 111, 198, 236, 139, 16, 143, 19, 245, 113, 233, 138, 210}},
+					ProcessedDownwardMessages: 0,
+					HrmpWatermark:             1,
+				},
+				PersistedValidationData: parachaintypes.PersistedValidationData{
+					ParentHead: parachaintypes.HeadData{Data: []byte{1, 0, 0, 0, 0, 0, 0, 0, 1,
+						2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7,
+						8, 9, 0, 1, 2, 48, 246, 146, 178, 86, 226, 64, 9,
+						188, 179, 77, 14, 232, 77, 167, 60, 41, 138, 250, 204, 9, 36, 224, 17, 5, 226, 235,
+						15, 1, 168, 127, 226}},
+					RelayParentNumber: 1,
+					RelayParentStorageRoot: common.MustHexToHash(
+						"0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
+					MaxPovSize: 2048,
+				},
 			},
 		},
 	}
@@ -358,7 +386,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 	require.NoError(t, err)
 
 	toSubsystem := make(chan any)
-	sender := make(chan parachaintypes.OverseerFuncRes[ValidationResultMessage])
+	sender := make(chan parachaintypes.OverseerFuncRes[ValidationResult])
 	stopChan := make(chan struct{})
 	candidateValidationSubsystem := CandidateValidation{
 		OverseerToSubsystem: toSubsystem,
@@ -371,7 +399,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 
 	tests := map[string]struct {
 		msg  ValidateFromExhaustive
-		want parachaintypes.OverseerFuncRes[ValidationResultMessage]
+		want parachaintypes.OverseerFuncRes[ValidationResult]
 	}{
 		"invalid_pov_hash": {
 			msg: ValidateFromExhaustive{
@@ -386,8 +414,12 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 				PoV:              pov,
 				Ch:               sender,
 			},
-			want: parachaintypes.OverseerFuncRes[ValidationResultMessage]{
-				Err: ErrValidationPoVHashMismatch,
+			want: parachaintypes.OverseerFuncRes[ValidationResult]{
+				Data: ValidationResult{
+					IsValid: false,
+					Err:     ErrValidationPoVHashMismatch,
+				},
+				Err: nil,
 			},
 		},
 		"invalid_pov_size": {
@@ -403,8 +435,11 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 				PoV:              pov,
 				Ch:               sender,
 			},
-			want: parachaintypes.OverseerFuncRes[ValidationResultMessage]{
-				Err: fmt.Errorf("%w, limit: 10, got: 17", ErrValidationParamsTooLarge),
+			want: parachaintypes.OverseerFuncRes[ValidationResult]{
+				Data: ValidationResult{
+					IsValid: false,
+					Err:     fmt.Errorf("%w, limit: 10, got: 17", ErrValidationParamsTooLarge),
+				},
 			},
 		},
 		"code_mismatch": {
@@ -420,8 +455,11 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 				PoV:              pov,
 				Ch:               sender,
 			},
-			want: parachaintypes.OverseerFuncRes[ValidationResultMessage]{
-				Err: ErrValidationCodeMismatch,
+			want: parachaintypes.OverseerFuncRes[ValidationResult]{
+				Data: ValidationResult{
+					IsValid: false,
+					Err:     ErrValidationCodeMismatch,
+				},
 			},
 		},
 		"happy_path": {
@@ -437,18 +475,28 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 				PoV:              pov,
 				Ch:               sender,
 			},
-			want: parachaintypes.OverseerFuncRes[ValidationResultMessage]{
-				Data: ValidationResultMessage{
-					// TODO(ed): refactor this to use vdt type
-					//ValidationResult: parachainruntime.ValidationResult{
-					//	HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123,
-					//		207, 206, 8, 219, 227, 136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245,
-					//		59, 106, 76, 168, 122, 109, 164, 169, 22, 46, 144, 39, 103, 92, 31, 78, 66, 72, 252, 64,
-					//		24, 194, 129, 162, 128, 1, 77, 147, 200, 229, 189, 242, 111, 198, 236, 139, 16, 143, 19,
-					//		245, 113, 233, 138, 210}},
-					//	ProcessedDownwardMessages: 0,
-					//	HrmpWatermark:             1,
-					//},
+			want: parachaintypes.OverseerFuncRes[ValidationResult]{
+				Data: ValidationResult{
+					IsValid: true,
+					CandidateCommitments: parachaintypes.CandidateCommitments{
+						HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123,
+							207, 206, 8, 219, 227, 136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245,
+							59, 106, 76, 168, 122, 109, 164, 169, 22, 46, 144, 39, 103, 92, 31, 78, 66, 72, 252, 64,
+							24, 194, 129, 162, 128, 1, 77, 147, 200, 229, 189, 242, 111, 198, 236, 139, 16, 143, 19,
+							245, 113, 233, 138, 210}},
+						HrmpWatermark: 1,
+					},
+					PersistedValidationData: parachaintypes.PersistedValidationData{
+						ParentHead: parachaintypes.HeadData{Data: []byte{1, 0, 0, 0, 0, 0, 0, 0, 1,
+							2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7,
+							8, 9, 0, 1, 2, 48, 246, 146, 178, 86, 226, 64, 9,
+							188, 179, 77, 14, 232, 77, 167, 60, 41, 138, 250, 204, 9, 36, 224, 17, 5, 226, 235,
+							15, 1, 168, 127, 226}},
+						RelayParentNumber: 1,
+						RelayParentStorageRoot: common.MustHexToHash(
+							"0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
+						MaxPovSize: 2048,
+					},
 				},
 			},
 		},

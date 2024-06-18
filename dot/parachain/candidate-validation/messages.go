@@ -4,11 +4,8 @@
 package candidatevalidation
 
 import (
-	"fmt"
-
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // ValidateFromChainState performs validation of a candidate with provided parameters,
@@ -31,63 +28,15 @@ type ValidateFromExhaustive struct {
 	PoV                     parachaintypes.PoV
 	ExecutorParams          parachaintypes.ExecutorParams
 	PvfExecTimeoutKind      parachaintypes.PvfExecTimeoutKind
-	Ch                      chan parachaintypes.OverseerFuncRes[ValidationResultMessage]
+	Ch                      chan parachaintypes.OverseerFuncRes[ValidationResult]
 }
 
-// ValidationResultMessage represents the result coming from the candidate validation subsystem.
-type ValidationResultMessage struct {
-	IsValid             bool
-	ValidationResultVDT ValidationResultVDT
-}
-
-type ValidationResultVDT scale.VaryingDataType
-
-func NewValidationResultVDT() ValidationResultVDT {
-	vdt, err := scale.NewVaryingDataType(Valid{}, Invalid{})
-	if err != nil {
-		panic(err)
-	}
-	return ValidationResultVDT(vdt)
-}
-
-// New returns new ValidationResult VDT
-func (ValidationResultVDT) New() ValidationResultVDT {
-	return NewValidationResultVDT()
-}
-
-// Value returns the value from the underlying VaryingDataType
-func (vr *ValidationResultVDT) Value() (scale.VaryingDataTypeValue, error) {
-	vdt := scale.VaryingDataType(*vr)
-	return vdt.Value()
-}
-
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (vr *ValidationResultVDT) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*vr)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value to varying data type: %w", err)
-	}
-
-	*vr = ValidationResultVDT(vdt)
-	return nil
-}
-
-type Valid struct {
+// ValidationResult represents the result coming from the candidate validation subsystem.
+type ValidationResult struct {
+	IsValid                 bool
 	CandidateCommitments    parachaintypes.CandidateCommitments
 	PersistedValidationData parachaintypes.PersistedValidationData
-}
-
-func (Valid) Index() uint {
-	return 1
-}
-
-type Invalid struct {
-	Err error
-}
-
-func (Invalid) Index() uint {
-	return 2
+	Err                     error
 }
 
 // PreCheck try to compile the given validation code and return the result

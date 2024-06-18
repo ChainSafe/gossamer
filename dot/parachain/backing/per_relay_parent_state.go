@@ -299,7 +299,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		return fmt.Errorf("setting pvfExecTimeoutKind: %w", err)
 	}
 
-	chValidationResultRes := make(chan parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResultMessage])
+	chValidationResultRes := make(chan parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult])
 	subSystemToOverseer <- candidatevalidation.ValidateFromExhaustive{
 		PersistedValidationData: pvd,
 		ValidationCode:          validationCodeByHashRes.Data,
