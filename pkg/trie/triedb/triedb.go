@@ -817,7 +817,10 @@ func (t *TrieDB) commitChild(
 						panic("inserting in db")
 					}
 
-					//TODO: add value to cache
+					if t.cache != nil {
+						t.cache.SetValue(n.partialKey, n.value)
+					}
+					
 					prefixKey = prefixKey[:mov]
 					return HashChildReference{hash: valueHash}, nil
 				case TrieNodeToEncode:
