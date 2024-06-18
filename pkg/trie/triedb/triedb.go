@@ -728,12 +728,12 @@ func (t *TrieDB) commit() error {
 
 		encodedNode, err := NewEncodedNode(
 			stored.node,
-			func(node NodeToEncode, oslice []byte, oindex *byte) (ChildReference, error) {
-				k = append(k, oslice...)
-				mov := len(oslice)
-				if oindex != nil {
-					k = append(k, *oindex)
-					mov += int(*oindex)
+			func(node NodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error) {
+				k = append(k, partialKey...)
+				mov := len(partialKey)
+				if childIndex != nil {
+					k = append(k, *childIndex)
+					mov += int(*childIndex)
 				}
 
 				switch n := node.(type) {
@@ -800,12 +800,12 @@ func (t *TrieDB) commitChild(
 			return HashChildReference{hash: storedNode.hash}, nil
 		case NewStoredNode:
 			// We have to store the node in the DB
-			commitChildFunc := func(node NodeToEncode, oslice []byte, oindex *byte) (ChildReference, error) {
-				prefixKey = append(prefixKey, oslice...)
-				mov := len(oslice)
-				if oindex != nil {
-					prefixKey = append(prefixKey, *oindex)
-					mov += int(*oindex)
+			commitChildFunc := func(node NodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error) {
+				prefixKey = append(prefixKey, partialKey...)
+				mov := len(partialKey)
+				if childIndex != nil {
+					prefixKey = append(prefixKey, *childIndex)
+					mov += int(*childIndex)
 				}
 
 				switch n := node.(type) {

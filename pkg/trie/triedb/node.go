@@ -35,11 +35,11 @@ type (
 	}
 )
 
-func NewEncodedValue(value nodeValue, partial []byte, f childFunc) (codec.EncodedValue, error) {
+func NewEncodedValue(value nodeValue, partial []byte, childF childFunc) (codec.EncodedValue, error) {
 	var newHashedValueHash common.Hash
 	switch v := value.(type) {
 	case newValueRef:
-		childRef, err := f(NewNodeToEncode{partialKey: partial, value: v.Data}, partial, nil)
+		childRef, err := childF(NewNodeToEncode{partialKey: partial, value: v.Data}, partial, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -253,7 +253,7 @@ func (i InlineChildReference) getNodeData() []byte {
 	return i.encodedNode
 }
 
-type childFunc = func(node NodeToEncode, oslice []byte, oindex *byte) (ChildReference, error)
+type childFunc = func(node NodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error)
 
 const firstPrefix = (0x00 << 6)
 const emptyTrieBytes = firstPrefix | (0x00 << 4)
@@ -293,8 +293,8 @@ func NewEncodedNode(node Node, childF childFunc) (encodedNode []byte, err error)
 			}
 
 			pr := n.partialKey[len(n.partialKey)-1:]
-			oindex := byte(i)
-			children[i], err = childF(TrieNodeToEncode{child}, pr, &oindex)
+			childIndex := byte(i)
+			children[i], err = childF(TrieNodeToEncode{child}, pr, &childIndex)
 			if err != nil {
 				return nil, err
 			}
