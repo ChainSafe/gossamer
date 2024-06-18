@@ -805,7 +805,7 @@ func (t *TrieDB) commitChild(
 				mov := len(oslice)
 				if oindex != nil {
 					prefixKey = append(prefixKey, *oindex)
-					//mov += int(*oindex)
+					mov += int(*oindex)
 				}
 
 				switch n := node.(type) {
