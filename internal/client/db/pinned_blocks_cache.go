@@ -26,12 +26,16 @@ type pinnedBlocksCacheEntry struct {
 func (pbce *pinnedBlocksCacheEntry) DecreaseRef() {
 	if pbce.refCount > 0 {
 		pbce.refCount--
+	} else {
+		panic("can not decrease refCount less than 0")
 	}
 }
 
 func (pbce *pinnedBlocksCacheEntry) IncreaseRef() {
 	if pbce.refCount < math.MaxUint32 {
 		pbce.refCount++
+	} else {
+		panic("can not increase refCount greater than MaxUint32")
 	}
 }
 

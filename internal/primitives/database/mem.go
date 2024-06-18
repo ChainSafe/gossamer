@@ -35,19 +35,19 @@ func (mdb *MemDB[H]) Commit(transaction Transaction[H]) error {
 	defer mdb.Unlock()
 	for _, change := range transaction {
 		switch change := change.(type) {
-		case ChangeSet:
+		case Set:
 			_, ok := mdb.inner[change.ColumnID]
 			if !ok {
 				mdb.inner[change.ColumnID] = make(map[string]countValue)
 			}
 			mdb.inner[change.ColumnID][string(change.Key)] = countValue{1, change.Value}
-		case ChangeRemove:
+		case Remove:
 			_, ok := mdb.inner[change.ColumnID]
 			if !ok {
 				mdb.inner[change.ColumnID] = make(map[string]countValue)
 			}
 			delete(mdb.inner[change.ColumnID], string(change.Key))
-		case ChangeStore[H]:
+		case Store[H]:
 			_, ok := mdb.inner[change.ColumnID]
 			if !ok {
 				mdb.inner[change.ColumnID] = make(map[string]countValue)
@@ -59,7 +59,7 @@ func (mdb *MemDB[H]) Commit(transaction Transaction[H]) error {
 			} else {
 				mdb.inner[change.ColumnID][change.Hash.String()] = countValue{1, change.Preimage}
 			}
-		case ChangeReference[H]:
+		case Reference[H]:
 			_, ok := mdb.inner[change.ColumnID]
 			if !ok {
 				mdb.inner[change.ColumnID] = make(map[string]countValue)
@@ -69,7 +69,7 @@ func (mdb *MemDB[H]) Commit(transaction Transaction[H]) error {
 				cv.Count += 1
 				mdb.inner[change.ColumnID][change.Hash.String()] = cv
 			}
-		case ChangeRelease[H]:
+		case Release[H]:
 			_, ok := mdb.inner[change.ColumnID]
 			if !ok {
 				mdb.inner[change.ColumnID] = make(map[string]countValue)
@@ -105,7 +105,7 @@ func (mdb *MemDB[H]) Get(col ColumnID, key []byte) []byte {
 
 // Check if the value exists in the database without retrieving it.
 func (mdb *MemDB[H]) Contains(col ColumnID, key []byte) bool {
-	panic("unimplemented")
+	return mdb.Get(col, key) != nil
 }
 
 var _ Database[hash.H256] = &MemDB[hash.H256]{}

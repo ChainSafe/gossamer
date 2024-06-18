@@ -76,7 +76,7 @@ func blockIDToLookupKey[H runtime.Hash, N runtime.Number](
 	case generic.BlockIDHash[H]:
 		return db.Get(keyLookupCol, id.Inner.Bytes()), nil
 	default:
-		panic("wtf?")
+		panic("unsupported generic.BlockIDNumber")
 	}
 }
 
@@ -196,15 +196,6 @@ func readGenesisHash[H any](db database.Database[hash.H256]) (*H, error) {
 	return nil, nil
 }
 
-type joinInput struct {
-	I1 []byte
-	I2 []byte
-}
-
-func (ji joinInput) Bytes() []byte {
-	return append(ji.I1, ji.I2...)
-}
-
-func newJoinInput(i1 []byte, i2 []byte) joinInput {
-	return joinInput{i1, i2}
+func joinInput(i1 []byte, i2 []byte) []byte {
+	return append(i1, i2...)
 }

@@ -120,6 +120,8 @@ func (ls *LeafSet[H, N]) Remove(hash H, number N, parentHash *H) *RemoveOutcome[
 			parentNumber := number - 1
 			ls.insertLeaf(parentNumber, *parentHash)
 			inserted = parentHash
+		} else {
+			return nil
 		}
 	}
 

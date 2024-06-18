@@ -19,12 +19,17 @@ func TestNewNumberIndexKey(t *testing.T) {
 	key, err := newNumberIndexKey(id)
 	assert.Nil(t, err)
 	assert.Equal(t, key, numberIndexKey{255, 255, 255, 255})
+
+	id = uint64(9)
+	key, err = newNumberIndexKey(id)
+	assert.Nil(t, err)
+	assert.Equal(t, key, numberIndexKey{0, 0, 0, 9})
 }
 
 func TestJoinInput(t *testing.T) {
 	buf1 := []byte{1, 2, 3, 4}
 	buf2 := []byte{5, 6, 7, 8}
 
-	joined := newJoinInput(buf1, buf2)
-	assert.Equal(t, joined.Bytes(), []byte{1, 2, 3, 4, 5, 6, 7, 8})
+	joined := joinInput(buf1, buf2)
+	assert.Equal(t, joined, []byte{1, 2, 3, 4, 5, 6, 7, 8})
 }

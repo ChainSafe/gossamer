@@ -31,17 +31,17 @@ type dbExtrinsicValues[E runtime.Extrinsic] interface {
 	dbExtrinsicIndexed | dbExtrinsicFull[E]
 }
 
-func setVote[E runtime.Extrinsic, Value dbExtrinsicValues[E]](mvdt *dbExtrinsic[E], value Value) {
+func setDbExtrinsic[E runtime.Extrinsic, Value dbExtrinsicValues[E]](mvdt *dbExtrinsic[E], value Value) {
 	mvdt.inner = value
 }
 
 func (mvdt *dbExtrinsic[E]) SetValue(value any) (err error) {
 	switch value := value.(type) {
 	case dbExtrinsicIndexed:
-		setVote[E](mvdt, value)
+		setDbExtrinsic[E](mvdt, value)
 		return
 	case dbExtrinsicFull[E]:
-		setVote[E](mvdt, value)
+		setDbExtrinsic[E](mvdt, value)
 		return
 	default:
 		return fmt.Errorf("unsupported type")
@@ -283,9 +283,9 @@ func (bdb *blockchainDB[H, N, E, Header]) bodyUncached(hash H) ([]runtime.Extrin
 		case dbExtrinsicIndexed:
 			t := bdb.db.Get(columns.Transaction, hash.Bytes())
 			if t != nil {
-				input := newJoinInput(dbex.Header, t)
+				input := joinInput(dbex.Header, t)
 				var ex E
-				err := scale.Unmarshal(input.Bytes(), &ex)
+				err := scale.Unmarshal(input, &ex)
 				if err != nil {
 					return nil, fmt.Errorf("Error decoding indexed extrinsic: %w", err)
 				}
@@ -305,7 +305,7 @@ func (bdb *blockchainDB[H, N, E, Header]) cacheHeader(hash H, header *runtime.He
 	for bdb.headerCache.Size() > numCachedHeaders {
 		iterator := bdb.headerCache.Iterator()
 		if !iterator.First() {
-			panic("huh?")
+			panic("headerCache is empty")
 		}
 		bdb.headerCache.Remove(iterator.Key())
 	}

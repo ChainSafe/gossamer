@@ -20,12 +20,10 @@ func readChildren[H comparable](
 	encoded := scale.MustMarshal(parentHash)
 	key := append(prefix, encoded...)
 
-	rawValOpt := db.Get(column, key)
-
-	if rawValOpt == nil {
+	rawVal := db.Get(column, key)
+	if rawVal == nil {
 		return nil, nil
 	}
-	rawVal := rawValOpt
 
 	var children []H
 	err := scale.Unmarshal(rawVal, &children)

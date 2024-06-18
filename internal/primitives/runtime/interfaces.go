@@ -100,6 +100,6 @@ type Block[N Number, H Hash] interface {
 // Extrinisic is the interface for an `Extrinsic`.
 type Extrinsic interface {
 	// Is this `Extrinsic` signed?
-	// If no information are available about signed/unsigned, `None` should be returned.
+	// If no information are available about signed/unsigned, `nil` should be returned.
 	IsSigned() *bool
 }
