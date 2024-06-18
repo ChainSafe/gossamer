@@ -416,9 +416,7 @@ func (t *TrieDB) removeInspector(stored Node, keyNibbles []byte, oldValue *nodeV
 	case Empty:
 		return delete{}, nil
 	case Leaf:
-		existingKey := n.partialKey
-
-		if bytes.Equal(existingKey, partial) {
+		if bytes.Equal(n.partialKey, partial) {
 			// This is the node we are looking for so we delete it
 			t.replaceOldValue(oldValue, n.value)
 			return delete{}, nil
@@ -448,9 +446,8 @@ func (t *TrieDB) removeInspector(stored Node, keyNibbles []byte, oldValue *nodeV
 					t.replaceOldValue(oldValue, n.value)
 					newNode, err := t.fix(Branch{n.partialKey, n.children, nil})
 					return replace{newNode}, err
-				} else {
-					return restore{Branch{n.partialKey, n.children, nil}}, nil
 				}
+				return restore{Branch{n.partialKey, n.children, nil}}, nil
 			} else if common < existingLength {
 				return restore{n}, nil
 			}
@@ -460,28 +457,29 @@ func (t *TrieDB) removeInspector(stored Node, keyNibbles []byte, oldValue *nodeV
 			child := n.children[idx]
 			n.children[idx] = nil
 
-			if child != nil {
-				removeAtResult, err := t.removeAt(child, keyNibbles[len(n.partialKey)+1:], oldValue)
-				if err != nil {
-					return nil, err
-				}
+			if child == nil {
+				return restore{n}, nil
 
-				if removeAtResult != nil {
-					n.children[idx] = newInMemoryNodeHandle(removeAtResult.handle)
-					if removeAtResult.changed {
-						return replace{n}, nil
-					} else {
-						return restore{n}, nil
-					}
-				} else {
-					newNode, err := t.fix(n)
-					if err != nil {
-						return nil, err
-					}
-					return replace{newNode}, nil
-				}
 			}
-			return restore{n}, nil
+
+			removeAtResult, err := t.removeAt(child, partial[len(n.partialKey)+1:], oldValue)
+			if err != nil {
+				return nil, err
+			}
+
+			if removeAtResult != nil {
+				n.children[idx] = newInMemoryNodeHandle(removeAtResult.handle)
+				if removeAtResult.changed {
+					return replace{n}, nil
+				}
+				return restore{n}, nil
+			}
+
+			newNode, err := t.fix(n)
+			if err != nil {
+				return nil, err
+			}
+			return replace{newNode}, nil
 		}
 	default:
 		panic("unreachable")
