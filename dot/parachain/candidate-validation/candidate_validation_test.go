@@ -351,7 +351,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 func TestCandidateValidation_wasm_invalid_magic_number(t *testing.T) {
 	validationCode := parachaintypes.ValidationCode{1, 2, 3, 4, 5, 6, 7, 8}
 	parachainRuntimeInstance, err := parachainruntime.SetupVM(validationCode)
-	require.EqualError(t, err, "creating instance: invalid magic number")
+	require.EqualError(t, err, "creating instance: creating runtime instance: invalid magic number")
 	require.Emptyf(t, parachainRuntimeInstance, "parachainRuntimeInstance should be empty")
 }
 
