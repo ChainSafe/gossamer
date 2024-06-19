@@ -13,6 +13,11 @@ type Change interface {
 	isChange()
 }
 
+// ChangeTypes is the interface constraint which can be a Change
+type ChangeTypes[H any] interface {
+	Set | Remove | Store[H] | Reference[H] | Release[H]
+}
+
 // ChangeSet sets a key in column to a value
 type Set struct {
 	ColumnID
