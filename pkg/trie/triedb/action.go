@@ -12,15 +12,15 @@ type action interface {
 }
 
 type (
-	replace struct {
+	replaceNode struct {
 		node Node
 	}
-	restore struct {
+	restoreNode struct {
 		node Node
 	}
-	delete struct{}
+	deleteNode struct{}
 )
 
-func (r replace) getNode() Node { return r.node }
-func (r restore) getNode() Node { return r.node }
-func (delete) getNode() Node    { return nil }
+func (r replaceNode) getNode() Node { return r.node }
+func (r restoreNode) getNode() Node { return r.node }
+func (deleteNode) getNode() Node    { return nil }
