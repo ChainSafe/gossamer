@@ -20,7 +20,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/rpc v1.2.1
-	github.com/gorilla/websocket v1.5.2
+	github.com/gorilla/websocket v1.5.3
 	github.com/gtank/merlin v0.1.1
 	github.com/ipfs/go-ds-badger2 v0.1.3
 	github.com/jpillora/backoff v1.0.0
@@ -35,7 +35,7 @@ require (
 	github.com/prometheus/client_golang v1.19.1
 	github.com/prometheus/client_model v0.6.1
 	github.com/qdm12/gotree v0.2.0
-	github.com/spf13/cobra v1.8.0
+	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
 	github.com/tetratelabs/wazero v1.1.0
@@ -43,7 +43,7 @@ require (
 	golang.org/x/crypto v0.24.0
 	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
 	golang.org/x/term v0.21.0
-	google.golang.org/protobuf v1.34.1
+	google.golang.org/protobuf v1.34.2
 )
 
 require (
