@@ -7,18 +7,22 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	nibbles "github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/pkg/trie/cache"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 )
 
 var ErrIncompleteDB = errors.New("incomplete database")
+
+var (
+	logger = log.NewFromGlobal(log.AddContext("pkg", "triedb"))
+)
 
 type entry struct {
 	key   []byte
@@ -700,8 +704,8 @@ func (t *TrieDB) lookupNode(hash common.Hash) (StorageHandle, error) {
 }
 
 func (t *TrieDB) commit() error {
-	log.Printf("Committing trie changes to db")
-	log.Printf("%d nodes to remove from db", len(t.deathRow))
+	logger.Debug("Committing trie changes to db")
+	logger.Debugf("%d nodes to remove from db", len(t.deathRow))
 
 	for hash := range t.deathRow {
 		err := t.db.Del(hash[:])
