@@ -36,40 +36,37 @@ type (
 )
 
 func NewEncodedValue(value nodeValue, partial []byte, childF childFunc) (codec.EncodedValue, error) {
-	var newHashedValueHash common.Hash
-	switch v := value.(type) {
-	case newValueRef:
-		childRef, err := childF(NewNodeToEncode{partialKey: partial, value: v.Data}, partial, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		switch cr := childRef.(type) {
-		case HashChildReference:
-			newHashedValueHash = cr.hash
-		default:
-			panic("value node can never be inlined")
-		}
-		if v.hash != common.EmptyHash {
-			if v.hash != newHashedValueHash {
-				panic("hash mismatch")
-			}
-		} else {
-			v.hash = newHashedValueHash
-		}
-	}
-
 	switch v := value.(type) {
 	case inline:
 		return codec.NewInlineValue(v.Data), nil
 	case valueRef:
 		return codec.NewHashedValue(v.hash.ToBytes()), nil
 	case newValueRef:
-		if newHashedValueHash != common.EmptyHash {
-			return codec.NewHashedValue(newHashedValueHash.ToBytes()), nil
-		} else {
-			panic("new external value are always added before encoding a node")
+		// Store value in db
+		childRef, err := childF(NewNodeToEncode{partialKey: partial, value: v.Data}, partial, nil)
+		if err != nil {
+			return nil, err
 		}
+
+		// Check and get new new value hash
+		switch cr := childRef.(type) {
+		case HashChildReference:
+			if cr.hash == common.EmptyHash {
+				panic("new external value are always added before encoding a node")
+			}
+
+			if v.hash != common.EmptyHash {
+				if v.hash != cr.hash {
+					panic("hash mismatch")
+				}
+			}
+
+			v.hash = cr.hash
+		default:
+			panic("value node can never be inlined")
+		}
+
+		return codec.NewHashedValue(v.hash.ToBytes()), nil
 	default:
 		panic("unreachable")
 	}
