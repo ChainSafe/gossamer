@@ -15,9 +15,9 @@ import (
 var ErrStopTimeout = errors.New("stop timeout")
 
 // worker represents a worker that processes sync tasks by making network requests to peers.
-// It manages the synchronization tasks between nodes in the Polkadot's peer-to-peer network.
+// It manages the synchronisation tasks between nodes in the Polkadot's peer-to-peer network.
 // The primary goal of the worker is to handle and coordinate tasks related to network requests,
-// ensuring that nodes stay synchronized with the blockchain state
+// ensuring that nodes stay synchronised with the blockchain state
 type worker struct {
 	// Status of the worker (e.g., available, busy, etc.)
 	status byte
