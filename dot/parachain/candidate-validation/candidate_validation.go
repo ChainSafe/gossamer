@@ -97,28 +97,6 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 						Data: *result,
 					}
-					//if err != nil {
-					//	logger.Errorf("failed to validate from exhaustive: %w", err)
-					//	msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
-					//		Data: ValidationResult{IsValid: false, Err: err},
-					//		Err:  nil,
-					//	}
-					//} else {
-					//	msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
-					//		Data: ValidationResult{
-					//			IsValid: true,
-					//			CandidateCommitments: parachaintypes.CandidateCommitments{
-					//				UpwardMessages:            result.UpwardMessages,
-					//				HorizontalMessages:        result.HorizontalMessages,
-					//				NewValidationCode:         result.NewValidationCode,
-					//				HeadData:                  result.HeadData,
-					//				ProcessedDownwardMessages: result.ProcessedDownwardMessages,
-					//				HrmpWatermark:             result.HrmpWatermark,
-					//			},
-					//			PersistedValidationData: msg.PersistedValidationData,
-					//			Err:                     nil,
-					//		},
-					//	}
 				}
 
 			case PreCheck:
