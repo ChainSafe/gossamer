@@ -17,8 +17,8 @@ import (
 
 func TestMain(m *testing.M) {
 	if utils.MODE != "rpc" {
-		fmt.Println("Going to skip RPC suite tests")
-		os.Exit(0)
+		//fmt.Println("Going to skip RPC suite tests")
+		//os.Exit(0)
 	}
 
 	err := utils.BuildGossamer()
