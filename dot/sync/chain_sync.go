@@ -658,6 +658,11 @@ taskResultLoop:
 							Reason: peerset.BadProtocolReason,
 						}, who)
 					}
+				} else if errors.Is(taskResult.err, network.ErrNilBlock) {
+					cs.network.ReportPeer(peerset.ReputationChange{
+						Value:  peerset.BadMessageValue,
+						Reason: peerset.BadMessageReason,
+					}, who)
 				}
 
 				// TODO: avoid the same peer to get the same task
@@ -731,17 +736,9 @@ taskResultLoop:
 					continue taskResultLoop
 				}
 
-				if blockInResponse != nil {
-					blockExactIndex := blockInResponse.Header.Number - startAtBlock
-					if blockExactIndex < uint(expectedSyncedBlocks) {
-						syncingChain[blockExactIndex] = blockInResponse
-					}
-				} else {
-					err = cs.submitRequest(taskResult.request, nil, workersResults)
-					if err != nil {
-						return err
-					}
-					continue taskResultLoop
+				blockExactIndex := blockInResponse.Header.Number - startAtBlock
+				if blockExactIndex < uint(expectedSyncedBlocks) {
+					syncingChain[blockExactIndex] = blockInResponse
 				}
 			}
 
