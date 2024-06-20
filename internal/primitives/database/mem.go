@@ -10,21 +10,21 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 )
 
-type countValue struct {
-	Count uint32
-	Value []byte
+type refCountValue struct {
+	refCount uint32
+	value    []byte
 }
 
 // MemDB implements `Database` as an in-memory hash map. `Commit` is not atomic.
 type MemDB[H runtime.Hash] struct {
-	inner map[ColumnID]map[string]countValue
+	inner map[ColumnID]map[string]refCountValue
 	sync.RWMutex
 }
 
 // NewMemDB is constructor for MemDB
 func NewMemDB[H runtime.Hash]() *MemDB[H] {
 	return &MemDB[H]{
-		inner: make(map[ColumnID]map[string]countValue),
+		inner: make(map[ColumnID]map[string]refCountValue),
 	}
 }
 
@@ -38,46 +38,46 @@ func (mdb *MemDB[H]) Commit(transaction Transaction[H]) error {
 		case Set:
 			_, ok := mdb.inner[change.ColumnID]
 			if !ok {
-				mdb.inner[change.ColumnID] = make(map[string]countValue)
+				mdb.inner[change.ColumnID] = make(map[string]refCountValue)
 			}
-			mdb.inner[change.ColumnID][string(change.Key)] = countValue{1, change.Value}
+			mdb.inner[change.ColumnID][string(change.Key)] = refCountValue{1, change.Value}
 		case Remove:
 			_, ok := mdb.inner[change.ColumnID]
 			if !ok {
-				mdb.inner[change.ColumnID] = make(map[string]countValue)
+				mdb.inner[change.ColumnID] = make(map[string]refCountValue)
 			}
 			delete(mdb.inner[change.ColumnID], string(change.Key))
 		case Store[H]:
 			_, ok := mdb.inner[change.ColumnID]
 			if !ok {
-				mdb.inner[change.ColumnID] = make(map[string]countValue)
+				mdb.inner[change.ColumnID] = make(map[string]refCountValue)
 			}
 			cv, ok := mdb.inner[change.ColumnID][change.Hash.String()]
 			if ok {
-				cv.Count += 1
+				cv.refCount += 1
 				mdb.inner[change.ColumnID][change.Hash.String()] = cv
 			} else {
-				mdb.inner[change.ColumnID][change.Hash.String()] = countValue{1, change.Preimage}
+				mdb.inner[change.ColumnID][change.Hash.String()] = refCountValue{1, change.Preimage}
 			}
 		case Reference[H]:
 			_, ok := mdb.inner[change.ColumnID]
 			if !ok {
-				mdb.inner[change.ColumnID] = make(map[string]countValue)
+				mdb.inner[change.ColumnID] = make(map[string]refCountValue)
 			}
 			cv, ok := mdb.inner[change.ColumnID][change.Hash.String()]
 			if ok {
-				cv.Count += 1
+				cv.refCount += 1
 				mdb.inner[change.ColumnID][change.Hash.String()] = cv
 			}
 		case Release[H]:
 			_, ok := mdb.inner[change.ColumnID]
 			if !ok {
-				mdb.inner[change.ColumnID] = make(map[string]countValue)
+				mdb.inner[change.ColumnID] = make(map[string]refCountValue)
 			}
 			cv, ok := mdb.inner[change.ColumnID][change.Hash.String()]
 			if ok {
-				cv.Count -= 1
-				if cv.Count == 0 {
+				cv.refCount -= 1
+				if cv.refCount == 0 {
 					delete(mdb.inner[change.ColumnID], change.Hash.String())
 				} else {
 					mdb.inner[change.ColumnID][change.Hash.String()] = cv
@@ -98,7 +98,7 @@ func (mdb *MemDB[H]) Get(col ColumnID, key []byte) []byte {
 	}
 	cv, ok := mdb.inner[col][string(key)]
 	if ok {
-		return cv.Value
+		return cv.value
 	}
 	return nil
 }
