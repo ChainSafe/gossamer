@@ -391,6 +391,61 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 	}
 }
 
+func TestNextKeysUsingDifferentTransactions(t *testing.T) {
+	ts := NewTrieState(inmemory_trie.NewEmptyTrie())
+
+	keys := [][]byte{
+		[]byte("acc:abc123:ddd"),
+		[]byte("acc:abc123:eee"),
+		[]byte("acc:abc123:fff"),
+	}
+
+	ts.StartTransaction()
+	for _, key := range keys {
+		require.NoError(t, ts.Put(key, []byte("0x10")))
+	}
+	ts.CommitTransaction()
+
+	lastKey := []byte("acc:abc123")
+	notNilResults := keys[0 : len(keys)-1]
+	for _, curr := range notNilResults {
+		ts.StartTransaction()
+		nextKey := ts.NextKey(lastKey)
+		require.NotNil(t, nextKey)
+		require.Equal(t, curr, nextKey)
+		lastKey = curr
+		ts.CommitTransaction()
+	}
+
+	ts.StartTransaction()
+	// given the last key, the next key should be nil
+	nextKey := ts.NextKey(keys[len(keys)-1])
+	require.Nil(t, nextKey)
+	ts.CommitTransaction()
+}
+
+func TestNextKeysWhitinSameTransaction(t *testing.T) {
+	ts := NewTrieState(inmemory_trie.NewEmptyTrie())
+
+	keyAlreadyInMainState := []byte("fgh")
+	require.NoError(t, ts.Put(keyAlreadyInMainState, []byte("0x10")))
+
+	ts.StartTransaction()
+	keyInsertedUnderTx := []byte("cde")
+	require.NoError(t, ts.Put(keyInsertedUnderTx, []byte("0x10")))
+
+	prefix := []byte("a")
+	nextKey := ts.NextKey(prefix)
+
+	require.Equal(t, keyInsertedUnderTx, nextKey)
+
+	prefix = []byte("def")
+	nextKey = ts.NextKey(prefix)
+
+	require.Equal(t, keyAlreadyInMainState, nextKey)
+	ts.CommitTransaction()
+}
+
 func TestTrieState_Root(t *testing.T) {
 	ts := NewTrieState(inmemory_trie.NewEmptyTrie())
 

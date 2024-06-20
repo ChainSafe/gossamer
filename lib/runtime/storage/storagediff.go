@@ -293,7 +293,6 @@ func (cs *storageDiff) applyToTrie(t trie.Trie) {
 				panic("Error deleting key from trie")
 			}
 		}
-
 	}
 }
 
