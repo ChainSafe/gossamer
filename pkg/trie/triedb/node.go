@@ -249,8 +249,7 @@ func (i InlineChildReference) getNodeData() []byte {
 
 type childFunc = func(node NodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error)
 
-const firstPrefix = (0x00 << 6)
-const emptyTrieBytes = firstPrefix | (0x00 << 4)
+const emptyTrieBytes = byte(0)
 
 // TODO: move this to codec package
 func NewEncodedNode(node Node, childF childFunc) (encodedNode []byte, err error) {
