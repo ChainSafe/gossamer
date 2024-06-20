@@ -228,7 +228,6 @@ func (NewNodeToEncode) isNodeToEncode()  {}
 func (TrieNodeToEncode) isNodeToEncode() {}
 
 type ChildReference interface {
-	isChildReference()
 	getNodeData() []byte
 }
 
@@ -241,11 +240,9 @@ type (
 	}
 )
 
-func (HashChildReference) isChildReference() {}
 func (h HashChildReference) getNodeData() []byte {
 	return h.hash.ToBytes()
 }
-func (InlineChildReference) isChildReference() {}
 func (i InlineChildReference) getNodeData() []byte {
 	return i.encodedNode
 }
