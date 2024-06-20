@@ -27,11 +27,24 @@ func TestWorker(t *testing.T) {
 		Max:           &m,
 	}
 
+	// acquireOrFail is a test channel used to
+	// ensure the shared guard is working properly
+	// should have the same len as the shared guard
+	acquireOrFail := make(chan struct{}, 1)
+
 	reqMaker := NewMockRequestMaker(ctrl)
 	// define a mock expectation to peerA
 	reqMaker.EXPECT().
 		Do(peerA, blockReq, gomock.AssignableToTypeOf((*network.BlockResponseMessage)(nil))).
 		DoAndReturn(func(_, _, _ any) any {
+			select {
+			case acquireOrFail <- struct{}{}:
+				defer func() {
+					<-acquireOrFail // release once it finishes
+				}()
+			default:
+				t.Errorf("should acquire the channel, othewise the shared guard is not working")
+			}
 			time.Sleep(2 * time.Second)
 			return nil
 		}).
@@ -41,6 +54,14 @@ func TestWorker(t *testing.T) {
 	reqMaker.EXPECT().
 		Do(peerB, blockReq, gomock.AssignableToTypeOf((*network.BlockResponseMessage)(nil))).
 		DoAndReturn(func(_, _, _ any) any {
+			select {
+			case acquireOrFail <- struct{}{}:
+				defer func() {
+					<-acquireOrFail // release once it finishes
+				}()
+			default:
+				t.Errorf("should acquire the channel, othewise the shared guard is not working")
+			}
 			time.Sleep(2 * time.Second)
 			return nil
 		}).
