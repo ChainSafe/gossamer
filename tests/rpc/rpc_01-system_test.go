@@ -106,7 +106,8 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 			for _, peer := range response {
 				// wait for all peers to have the same best block number
 				if peer.PeerID == "" || peer.BestHash.IsEmpty() {
-					t.Logf("TestSystemRPC/system_peers peer.PeerID is %s and peer.BestHash.IsEmpty: %v", peer.PeerID, peer.BestHash.IsEmpty())
+					t.Logf("TestSystemRPC/system_peers peer.PeerID is %s and peer.BestHash.IsEmpty: %v",
+						peer.PeerID, peer.BestHash.IsEmpty())
 					return false, nil // retry
 				}
 			}
