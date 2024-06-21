@@ -246,13 +246,14 @@ func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
 
 	validationCodeHash := validationCode.Hash()
 	// basic checks
-	err := performBasicChecks(&candidateReceipt.Descriptor, persistedValidationData.MaxPovSize, pov,
+	validationErr, internalErr := performBasicChecks(&candidateReceipt.Descriptor, persistedValidationData.MaxPovSize,
+		pov,
 		validationCodeHash)
-	if err != nil {
-		return &ValidationResult{ //nolint:nilerr  // note: we don't want to return an error here as the error is already set
-			IsValid: false,
-			Err:     err,
-		}, nil
+	if validationErr != nil {
+		return &ValidationResult{
+			IsValid:             false,
+			ReasonForInvalidity: validationErr,
+		}, internalErr
 	}
 
 	validationParams := parachainruntime.ValidationParameters{
@@ -278,41 +279,42 @@ func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
 			HrmpWatermark:             validationResult.HrmpWatermark,
 		},
 		PersistedValidationData: persistedValidationData,
-		Err:                     nil,
+		ReasonForInvalidity:     nil,
 	}
 	return result, nil
 }
 
-// performBasicChecks Does basic checks of a candidate. Provide the encoded PoV-block. Returns nil if basic checks
-// are passed, error otherwise.
+// performBasicChecks Does basic checks of a candidate. Provide the encoded PoV-block.
+// Returns validation error or internal error if any.
 func performBasicChecks(candidate *parachaintypes.CandidateDescriptor, maxPoVSize uint32,
-	pov parachaintypes.PoV, validationCodeHash parachaintypes.ValidationCodeHash) error {
+	pov parachaintypes.PoV, validationCodeHash parachaintypes.ValidationCodeHash) (validationError error,
+	internalError error) {
 	povHash, err := pov.Hash()
 	if err != nil {
-		return fmt.Errorf("hashing PoV: %w", err)
+		return nil, fmt.Errorf("hashing PoV: %w", err)
 	}
 
 	encodedPoV, err := pov.Encode()
 	if err != nil {
-		return fmt.Errorf("encoding PoV: %w", err)
+		return nil, fmt.Errorf("encoding PoV: %w", err)
 	}
 	encodedPoVSize := uint32(len(encodedPoV))
 
 	if encodedPoVSize > maxPoVSize {
-		return fmt.Errorf("%w, limit: %d, got: %d", ErrValidationParamsTooLarge, maxPoVSize, encodedPoVSize)
+		return fmt.Errorf("%w, limit: %d, got: %d", ErrValidationParamsTooLarge, maxPoVSize, encodedPoVSize), nil
 	}
 
 	if povHash != candidate.PovHash {
-		return ErrValidationPoVHashMismatch
+		return ErrValidationPoVHashMismatch, nil
 	}
 
 	if validationCodeHash != candidate.ValidationCodeHash {
-		return ErrValidationCodeMismatch
+		return ErrValidationCodeMismatch, nil
 	}
 
 	err = candidate.CheckCollatorSignature()
 	if err != nil {
-		return ErrValidationBadSignature
+		return ErrValidationBadSignature, nil
 	}
-	return nil
+	return nil, nil
 }

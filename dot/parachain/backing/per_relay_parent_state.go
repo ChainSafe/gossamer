@@ -361,11 +361,11 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		}
 
 	} else { // Invalid
-		logger.Error(validationResultRes.Data.Err.Error())
+		logger.Error(validationResultRes.Data.ReasonForInvalidity.Error())
 		bgValidationResult = backgroundValidationResult{
 			outputs:   nil,
 			candidate: &candidateReceipt,
-			err:       validationResultRes.Data.Err,
+			err:       validationResultRes.Data.ReasonForInvalidity,
 		}
 	}
 

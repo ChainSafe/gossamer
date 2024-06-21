@@ -36,7 +36,7 @@ type ValidationResult struct {
 	IsValid                 bool
 	CandidateCommitments    parachaintypes.CandidateCommitments
 	PersistedValidationData parachaintypes.PersistedValidationData
-	Err                     error
+	ReasonForInvalidity     error
 }
 
 // PreCheck try to compile the given validation code and return the result

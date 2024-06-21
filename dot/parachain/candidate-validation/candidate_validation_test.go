@@ -222,7 +222,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				IsValid:                 false,
 				CandidateCommitments:    parachaintypes.CandidateCommitments{},
 				PersistedValidationData: parachaintypes.PersistedValidationData{},
-				Err:                     ErrValidationPoVHashMismatch,
+				ReasonForInvalidity:     ErrValidationPoVHashMismatch,
 			},
 		},
 		"invalid_pov_size": {
@@ -238,8 +238,8 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				pov:              pov,
 			},
 			want: &ValidationResult{
-				IsValid: false,
-				Err:     fmt.Errorf("%w, limit: %d, got: %d", ErrValidationParamsTooLarge, 10, 17),
+				IsValid:             false,
+				ReasonForInvalidity: fmt.Errorf("%w, limit: %d, got: %d", ErrValidationParamsTooLarge, 10, 17),
 			},
 		},
 		"code_mismatch": {
@@ -255,8 +255,8 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				pov:              pov,
 			},
 			want: &ValidationResult{
-				IsValid: false,
-				Err:     ErrValidationCodeMismatch,
+				IsValid:             false,
+				ReasonForInvalidity: ErrValidationCodeMismatch,
 			},
 		},
 		"mock_test": {
@@ -416,8 +416,8 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 			},
 			want: parachaintypes.OverseerFuncRes[ValidationResult]{
 				Data: ValidationResult{
-					IsValid: false,
-					Err:     ErrValidationPoVHashMismatch,
+					IsValid:             false,
+					ReasonForInvalidity: ErrValidationPoVHashMismatch,
 				},
 				Err: nil,
 			},
@@ -437,8 +437,8 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 			},
 			want: parachaintypes.OverseerFuncRes[ValidationResult]{
 				Data: ValidationResult{
-					IsValid: false,
-					Err:     fmt.Errorf("%w, limit: 10, got: 17", ErrValidationParamsTooLarge),
+					IsValid:             false,
+					ReasonForInvalidity: fmt.Errorf("%w, limit: 10, got: 17", ErrValidationParamsTooLarge),
 				},
 			},
 		},
@@ -457,8 +457,8 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 			},
 			want: parachaintypes.OverseerFuncRes[ValidationResult]{
 				Data: ValidationResult{
-					IsValid: false,
-					Err:     ErrValidationCodeMismatch,
+					IsValid:             false,
+					ReasonForInvalidity: ErrValidationCodeMismatch,
 				},
 			},
 		},
@@ -608,11 +608,12 @@ func Test_performBasicChecks(t *testing.T) {
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			err := performBasicChecks(tt.args.candidate, tt.args.maxPoVSize, tt.args.pov, tt.args.validationCodeHash)
+			validationError, _ := performBasicChecks(tt.args.candidate, tt.args.maxPoVSize, tt.args.pov,
+				tt.args.validationCodeHash)
 			if tt.expectedError != nil {
-				require.EqualError(t, err, tt.expectedError.Error())
+				require.EqualError(t, validationError, tt.expectedError.Error())
 			} else {
-				require.NoError(t, err)
+				require.NoError(t, validationError)
 			}
 		})
 	}
