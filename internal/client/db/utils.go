@@ -76,7 +76,7 @@ func blockIDToLookupKey[H runtime.Hash, N runtime.Number](
 	case generic.BlockIDHash[H]:
 		return db.Get(keyLookupCol, id.Inner.Bytes()), nil
 	default:
-		panic("unsupported generic.BlockIDNumber")
+		panic("unsupported generic.BlockID")
 	}
 }
 
