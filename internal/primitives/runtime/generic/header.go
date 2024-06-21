@@ -75,7 +75,7 @@ func (h Header[N, H, Hasher]) DigestMut() *runtime.Digest {
 	return &h.digest
 }
 
-type helper[H any] struct {
+type encodingHelper[H any] struct {
 	ParentHash H
 	// uses compact encoding so we need to cast to uint
 	// https://github.com/paritytech/substrate/blob/e374a33fe1d99d59eb24a08981090bdb4503e81b/primitives/runtime/src/generic/header.rs#L47
@@ -87,13 +87,13 @@ type helper[H any] struct {
 
 // MarshalSCALE implements custom SCALE encoding.
 func (h Header[N, H, Hasher]) MarshalSCALE() ([]byte, error) {
-	help := helper[H]{h.parentHash, uint(h.number), h.stateRoot, h.extrinsicsRoot, h.digest}
+	help := encodingHelper[H]{h.parentHash, uint(h.number), h.stateRoot, h.extrinsicsRoot, h.digest}
 	return scale.Marshal(help)
 }
 
 // UnmarshalSCALE implements custom SCALE decoding.
 func (h *Header[N, H, Hasher]) UnmarshalSCALE(r io.Reader) error {
-	var header helper[H]
+	var header encodingHelper[H]
 	decoder := scale.NewDecoder(r)
 	err := decoder.Decode(&header)
 	if err != nil {
