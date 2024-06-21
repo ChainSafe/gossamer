@@ -9,6 +9,9 @@ import (
 	"github.com/gammazero/deque"
 )
 
+var emptyNode = []byte{0}
+var hashedNullNode = common.MustBlake2bHash(emptyNode)
+
 // StorageHandle is a pointer to a node contained in `NodeStorage`
 type StorageHandle int
 
