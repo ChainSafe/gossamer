@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
@@ -25,9 +24,9 @@ import (
 )
 
 func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
-	if utils.MODE != "rpc" {
-		//t.Skip("RPC tests are disabled, going to skip.")
-	}
+	//if utils.MODE != "rpc" {
+	//t.Skip("RPC tests are disabled, going to skip.")
+	//}
 
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	con := config.Default()
