@@ -30,7 +30,7 @@ type Hasher[H Hash] interface {
 	Hash(s []byte) H
 
 	// Produce the hash of some codec-encodable value.
-	HashOf(s any) H
+	HashEncoded(s any) H
 }
 
 // Blake2-256 Hash implementation.
@@ -43,7 +43,7 @@ func (bt256 BlakeTwo256) Hash(s []byte) hash.H256 {
 }
 
 // Produce the hash of some codec-encodable value.
-func (bt256 BlakeTwo256) HashOf(s any) hash.H256 {
+func (bt256 BlakeTwo256) HashEncoded(s any) hash.H256 {
 	bytes := scale.MustMarshal(s)
 	return bt256.Hash(bytes)
 }

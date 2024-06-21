@@ -110,7 +110,7 @@ func (h *Header[N, H, Hasher]) UnmarshalSCALE(r io.Reader) error {
 // Hash returns the hash of the header.
 func (h Header[N, H, Hasher]) Hash() H {
 	hasher := *new(Hasher)
-	return hasher.HashOf(h)
+	return hasher.HashEncoded(h)
 }
 
 // NewHeader is the constructor for `Header`

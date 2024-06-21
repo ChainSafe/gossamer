@@ -57,7 +57,7 @@ func (b Block[N, H, Hasher]) Deconstruct() (header runtime.Header[N, H], extrins
 // Hash returns the block hash.
 func (b Block[N, H, Hasher]) Hash() H {
 	hasher := *new(Hasher)
-	return hasher.HashOf(b.header)
+	return hasher.HashEncoded(b.header)
 }
 
 // NewBlock is the constructor for `Block`.
