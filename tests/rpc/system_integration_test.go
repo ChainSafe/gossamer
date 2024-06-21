@@ -5,7 +5,6 @@ package rpc
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -91,19 +90,19 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	syncTimeout, syncCancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer syncCancel()
 	err = retry.UntilOK(syncTimeout, 10*time.Second, func() (bool, error) {
-		fmt.Println("9999999999999999")
+		t.Log("9999999999999999")
 		for _, node := range nodes {
-			fmt.Println("10101010101010101010")
+			t.Log("10101010101010101010")
 			//TODO: remove this once the issue has been addressed
 			// https://github.com/ChainSafe/gossamer/issues/3030
 			if node.Key() == config.AliceKey {
 				continue
 			}
 			endpoint := rpc.NewEndpoint(node.RPCPort())
-			fmt.Println(" 11-11-11-11-11-11-11-11-11-11")
+			t.Log(" 11-11-11-11-11-11-11-11-11-11")
 			var response modules.SystemHealthResponse
 			fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", &response)
-			fmt.Println("121212121212121212")
+			t.Log("121212121212121212")
 			if response.IsSyncing {
 				return false, nil
 			}
