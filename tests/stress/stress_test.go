@@ -102,13 +102,14 @@ func stopNodes(cancel context.CancelFunc, runtimeErrors []<-chan error) {
 // See https://github.com/ChainSafe/gossamer/issues/2705
 func TestSync_SingleBlockProducer(t *testing.T) {
 	const numNodes = 4
+	t.Log("TestSync_SingleBlockProducer 00000000000000000000")
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
-
+	t.Log("TestSync_SingleBlockProducer 11111111111111111111")
 	configNoGrandpa := config.NoGrandpa()
 	configNoGrandpa.ChainSpec = genesisPath
 	configNoGrandpa.Account.Key = config.AliceKey
 	blockProducerNode := node.New(t, configNoGrandpa, node.SetIndex(numNodes-1))
-
+	t.Log("TestSync_SingleBlockProducer 222222222222222222222")
 	configNoAuthority := config.NotAuthority()
 	configNoAuthority.ChainSpec = genesisPath
 	noAuthorityNodes := node.MakeNodes(t, numNodes-1, configNoAuthority)
@@ -116,17 +117,19 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	nodes := make(node.Nodes, 0, numNodes)
 	nodes = append(nodes, blockProducerNode)
 	nodes = append(nodes, noAuthorityNodes...)
-
+	t.Log("TestSync_SingleBlockProducer 333333333333333333333")
 	const testTimeout = 20 * time.Minute
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
-
+	t.Log("TestSync_SingleBlockProducer 444444444444444444444")
 	nodes.InitAndStartTest(ctx, t, cancel)
+	t.Log("TestSync_SingleBlockProducer 55555555555555555555555555555")
 
 	const blockNumbers = 10
 	for blockNumber := 0; blockNumber < blockNumbers; blockNumber++ {
 		t.Logf("comparing block number %d...", blockNumber)
-
+		t.Log("TestSync_SingleBlockProducer 666666666666666666666666666666")
 		nodeKeys, err := compareBlocksByNumber(ctx, nodes, fmt.Sprint(blockNumber))
+		t.Log("TestSync_SingleBlockProducer 7777777777777777777777777777")
 		require.NoError(t, err)
 		require.Equal(t, len(nodeKeys), numNodes)
 	}

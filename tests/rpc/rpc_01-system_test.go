@@ -87,22 +87,26 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 		var response modules.SystemPeersResponse
 		// Wait for N-1 peers with peer IDs set
 		err = retry.UntilOK(ctx, time.Second, func() (ok bool, err error) {
+			t.Log("TestSystemRPC/system_peers 000000000000000000000")
 			getResponseCtx, getResponseCancel := context.WithTimeout(ctx, time.Second)
 			const method = "system_peers"
 			const params = "{}"
 			err = getResponse(getResponseCtx, method, params, &response)
 			getResponseCancel()
 			if err != nil {
+				t.Logf("TestSystemRPC/system_peers error is not nil: %s", err)
 				return false, err // error and stop retrying
 			}
 
 			if len(response) != numberOfNodes-1 {
+				t.Logf("TestSystemRPC/system_peers len(response) is different from numberOfNodes-1: %d", numberOfNodes-1)
 				return false, nil // retry
 			}
 
 			for _, peer := range response {
 				// wait for all peers to have the same best block number
 				if peer.PeerID == "" || peer.BestHash.IsEmpty() {
+					t.Logf("TestSystemRPC/system_peers peer.PeerID is %s and peer.BestHash.IsEmpty: %v", peer.PeerID, peer.BestHash.IsEmpty())
 					return false, nil // retry
 				}
 			}
