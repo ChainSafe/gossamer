@@ -39,7 +39,6 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	con.Log.Sync = "trace"
 
 	babeAuthorityNode := node.New(t, con, node.SetIndex(0))
-
 	peerConfig := cfg.Copy(&con)
 	peerConfig.Core.BabeAuthority = false
 	peer1 := node.New(t, peerConfig, node.SetIndex(1))
@@ -78,7 +77,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 			var response modules.SystemHealthResponse
 			fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", &response)
 			fmt.Println("777777777777777777")
-			t.Logf("Response: %+v", response)
+			t.Logf("Response: %+v, len(nodes)=%d", response, len(nodes))
 			if response.Peers != len(nodes)-1 {
 				return false, nil
 			}
