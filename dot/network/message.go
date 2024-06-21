@@ -226,7 +226,7 @@ func (bm *BlockResponseMessage) Decode(in []byte) (err error) {
 		}
 
 		if block == nil {
-			return fmt.Errorf("decoding blockResponseMessage: %w", ErrNilBlock)
+			return fmt.Errorf("decoding blockResponseMessage: %w", ErrNilBlockInResponse)
 		}
 		bm.BlockData[i] = block
 	}

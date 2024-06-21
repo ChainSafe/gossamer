@@ -658,7 +658,7 @@ taskResultLoop:
 							Reason: peerset.BadProtocolReason,
 						}, who)
 					}
-				} else if errors.Is(taskResult.err, network.ErrNilBlock) {
+				} else if errors.Is(taskResult.err, network.ErrNilBlockInResponse) {
 					cs.network.ReportPeer(peerset.ReputationChange{
 						Value:  peerset.BadMessageValue,
 						Reason: peerset.BadMessageReason,
