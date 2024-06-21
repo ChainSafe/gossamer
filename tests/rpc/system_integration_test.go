@@ -49,34 +49,34 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	t.Cleanup(cancel)
 
 	for _, node := range nodes {
-		fmt.Println("00000000000000000")
+		t.Log("000000000000000000000")
 		node.InitAndStartTest(ctx, t, cancel)
 		const timeBetweenStart = 0 * time.Second
 		timer := time.NewTimer(timeBetweenStart)
 		select {
 		case <-timer.C:
-			fmt.Println("111111111111111111111")
+			t.Log("111111111111111111111")
 		case <-ctx.Done():
-			fmt.Println("22222222222222")
+			t.Log("22222222222222")
 			timer.Stop()
 			return
 		}
 	}
-	fmt.Println("33333333333333333")
+	t.Log("33333333333333333")
 	// wait until all nodes are connected
 	t.Log("waiting for all nodes to be connected")
 	peerTimeout, peerCancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer peerCancel()
 	err := retry.UntilOK(peerTimeout, 10*time.Second, func() (bool, error) {
-		fmt.Println("44444444444444444444")
+		t.Log("44444444444444444444")
 		for _, node := range nodes {
-			fmt.Println("555555555555555555555")
+			t.Log("555555555555555555555")
 			endpoint := rpc.NewEndpoint(node.RPCPort())
-			fmt.Println("66666666666666666666")
+			t.Log("66666666666666666666")
 			t.Logf("requesting node %s with port %s", node.String(), endpoint)
 			var response modules.SystemHealthResponse
 			fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", &response)
-			fmt.Println("777777777777777777")
+			t.Log("777777777777777777")
 			t.Logf("Response: %+v, len(nodes)=%d", response, len(nodes))
 			if response.Peers != len(nodes)-1 {
 				return false, nil
@@ -85,7 +85,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 		return true, nil
 	})
 	require.NoError(t, err)
-	fmt.Println("888888888888888888888")
+	t.Log("888888888888888888888")
 	// wait until all nodes are synced
 	t.Log("waiting for all nodes to be synced")
 	syncTimeout, syncCancel := context.WithTimeout(context.Background(), 120*time.Second)
@@ -111,15 +111,15 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 		return true, nil
 	})
 	require.NoError(t, err)
-	fmt.Println("131313131313131313131313131")
+	t.Log("131313131313131313131313131")
 	t.Logf("All nodes have %d peers and synced", len(nodes)-1)
 
 	// wait for a bit and then run the test suite to ensure that the nodes are still connected and synced
 	t.Logf("Waiting for 60 seconds before running the test suite")
 	time.Sleep(60 * time.Second)
-	fmt.Println("14141414141414141414141414")
+	t.Log("14141414141414141414141414")
 	for _, node := range nodes {
-		fmt.Println("1515151515151515151515151")
+		t.Log("1515151515151515151515151")
 		node := node
 		t.Run(node.String(), func(t *testing.T) {
 			t.Parallel()
@@ -130,15 +130,15 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 				t.Logf("Skipping test for alice")
 				t.Skip()
 			}
-			fmt.Println("1515151515151515151515151")
+			t.Log("1515151515151515151515151")
 			endpoint := rpc.NewEndpoint(node.RPCPort())
-			fmt.Println("1616161616161616161616161")
+			t.Log("1616161616161616161616161")
 			t.Run("system_health", func(t *testing.T) {
 				t.Parallel()
-				fmt.Println("171717171717171717171")
+				t.Log("171717171717171717171")
 				var response modules.SystemHealthResponse
 				fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", &response)
-				fmt.Println("18181818181818181818181818181")
+				t.Log("18181818181818181818181818181")
 				expectedResponse := modules.SystemHealthResponse{
 					Peers:           len(nodes) - 1,
 					IsSyncing:       false,
@@ -149,11 +149,11 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 
 			t.Run("system_networkState", func(t *testing.T) {
 				t.Parallel()
-				fmt.Println("19191919191919191919191919191919191")
+				t.Log("19191919191919191919191919191919191")
 				var response modules.SystemNetworkStateResponse
 
 				fetchWithTimeoutFromEndpoint(t, endpoint, "system_networkState", &response)
-				fmt.Println("20202020202020202020202020202020202")
+				t.Log("20202020202020202020202020202020202")
 				// TODO assert response
 			})
 
@@ -161,9 +161,9 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 				t.Parallel()
 
 				var response modules.SystemPeersResponse
-				fmt.Println("212121212121212121212121212121212121212121")
+				t.Log("212121212121212121212121212121212121212121")
 				fetchWithTimeoutFromEndpoint(t, endpoint, "system_peers", &response)
-				fmt.Println("23-23-23-23-23-23-23-23-23-23-23-23-23-23")
+				t.Log("23-23-23-23-23-23-23-23-23-23-23-23-23-23")
 				assert.GreaterOrEqual(t, len(response), len(nodes)-2)
 
 				// TODO assert response
