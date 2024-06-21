@@ -32,6 +32,16 @@ type ValidateFromExhaustive struct {
 }
 
 // ValidationResult represents the result coming from the candidate validation subsystem.
+// Validation results can be either Valid or Invalid.
+//
+// If the result is Invalid,
+// set the IsValid field of ValidationResultMessage to false.
+// also store the reason for invalidity in the Err field of ValidationResultMessage.
+//
+// If the result is Valid,
+// set the IsValid field of ValidationResultMessage to true.
+// set the values of the CandidateCommitments and PersistedValidationData fields of ValidationResultMessage.
+
 type ValidationResult struct {
 	IsValid                 bool
 	CandidateCommitments    parachaintypes.CandidateCommitments
