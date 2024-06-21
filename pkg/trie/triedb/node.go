@@ -345,17 +345,15 @@ func NewEncodedBranch(
 		if err != nil {
 			return fmt.Errorf("encoding header for branch without value: %w", err)
 		}
+	} else if value.IsHashed() {
+		err := codec.EncodeHeader(partialKey, codec.BranchWithHashedValue, writer)
+		if err != nil {
+			return fmt.Errorf("encoding header for branch with hashed value: %w", err)
+		}
 	} else {
-		if value.IsHashed() {
-			err := codec.EncodeHeader(partialKey, codec.BranchWithHashedValue, writer)
-			if err != nil {
-				return fmt.Errorf("encoding header for branch with hashed value: %w", err)
-			}
-		} else {
-			err := codec.EncodeHeader(partialKey, codec.BranchWithValue, writer)
-			if err != nil {
-				return fmt.Errorf("encoding header for branch with value: %w", err)
-			}
+		err := codec.EncodeHeader(partialKey, codec.BranchWithValue, writer)
+		if err != nil {
+			return fmt.Errorf("encoding header for branch with value: %w", err)
 		}
 	}
 
