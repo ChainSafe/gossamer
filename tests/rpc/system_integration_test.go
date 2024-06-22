@@ -70,7 +70,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	err := retry.UntilOK(peerTimeout, 10*time.Second, func() (bool, error) {
 		t.Logf("44444444444444444444 at %s:", time.Now().String())
 		for _, node := range nodes {
-			t.Logf("555555555555555555555 at:", time.Now().String())
+			t.Logf("555555555555555555555 at: %s", time.Now().String())
 			endpoint := rpc.NewEndpoint(node.RPCPort())
 			t.Logf("66666666666666666666 at %s", time.Now().String())
 			t.Logf("requesting node %s with port %s", node.String(), endpoint)
@@ -117,9 +117,9 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	// wait for a bit and then run the test suite to ensure that the nodes are still connected and synced
 	t.Logf("Waiting for 60 seconds before running the test suite at: %s", time.Now().String())
 	time.Sleep(60 * time.Second)
-	t.Log("14141414141414141414141414")
+	t.Logf("14141414141414141414141414 at %s", time.Now().String())
 	for _, node := range nodes {
-		t.Log("1515151515151515151515151")
+		t.Logf("1515151515151515151515151 at %s", time.Now().String())
 		node := node
 		t.Run(node.String(), func(t *testing.T) {
 			t.Parallel()
@@ -130,15 +130,15 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 				t.Logf("Skipping test for alice")
 				t.Skip()
 			}
-			t.Log("1515151515151515151515151")
+			t.Logf("1515151515151515151515151 at %s", time.Now().String())
 			endpoint := rpc.NewEndpoint(node.RPCPort())
-			t.Log("1616161616161616161616161")
+			t.Logf("1616161616161616161616161 at %s", time.Now().String())
 			t.Run("system_health", func(t *testing.T) {
 				t.Parallel()
-				t.Log("171717171717171717171")
+				t.Logf("171717171717171717171 at %s", time.Now().String())
 				var response modules.SystemHealthResponse
 				fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", &response)
-				t.Log("18181818181818181818181818181")
+				t.Logf("18181818181818181818181818181 at %s", time.Now().String())
 				expectedResponse := modules.SystemHealthResponse{
 					Peers:           len(nodes) - 1,
 					IsSyncing:       false,
@@ -149,11 +149,11 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 
 			t.Run("system_networkState", func(t *testing.T) {
 				t.Parallel()
-				t.Log("19191919191919191919191919191919191")
+				t.Logf("19191919191919191919191919191919191 at: %s", time.Now().String())
 				var response modules.SystemNetworkStateResponse
 
 				fetchWithTimeoutFromEndpoint(t, endpoint, "system_networkState", &response)
-				t.Log("20202020202020202020202020202020202")
+				t.Logf("20202020202020202020202020202020202 at %s", time.Now().String())
 				// TODO assert response
 			})
 
@@ -161,9 +161,9 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 				t.Parallel()
 
 				var response modules.SystemPeersResponse
-				t.Log("212121212121212121212121212121212121212121")
+				t.Logf("212121212121212121212121212121212121212121 at %s", time.Now().String())
 				fetchWithTimeoutFromEndpoint(t, endpoint, "system_peers", &response)
-				t.Log("23-23-23-23-23-23-23-23-23-23-23-23-23-23")
+				t.Logf("23-23-23-23-23-23-23-23-23-23-23-23-23-23 at %s", time.Now().String())
 				assert.GreaterOrEqual(t, len(response), len(nodes)-2)
 
 				// TODO assert response
