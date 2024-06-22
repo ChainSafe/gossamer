@@ -4,6 +4,7 @@
 package db
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"math"
@@ -197,5 +198,5 @@ func readGenesisHash[H any](db database.Database[hash.H256]) (*H, error) {
 }
 
 func joinInput(i1 []byte, i2 []byte) []byte {
-	return append(i1, i2...)
+	return bytes.Join([][]byte{i1, i2}, nil)
 }
