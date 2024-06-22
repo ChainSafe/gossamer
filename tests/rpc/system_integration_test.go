@@ -48,7 +48,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	t.Cleanup(cancel)
 
 	for _, node := range nodes {
-		t.Log("000000000000000000000")
+		t.Log("0000000000000000000000")
 		node.InitAndStartTest(ctx, t, cancel)
 		const timeBetweenStart = 0 * time.Second
 		timer := time.NewTimer(timeBetweenStart)
