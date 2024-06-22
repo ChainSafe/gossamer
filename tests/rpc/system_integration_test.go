@@ -117,7 +117,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	// wait for a bit and then run the test suite to ensure that the nodes are still connected and synced
 	t.Logf("Waiting for 60 seconds before running the test suite at: %s", time.Now().String())
 	time.Sleep(60 * time.Second)
-	t.Logf("14141414141414141414141414 at %s", time.Now().String())
+	t.Logf("14141414141414141414141414  at %s", time.Now().String())
 	for _, node := range nodes {
 		t.Logf("1515151515151515151515151 at %s", time.Now().String())
 		node := node
