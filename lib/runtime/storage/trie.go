@@ -191,7 +191,7 @@ func (t *TrieState) NextKey(key []byte) []byte {
 		// Get next key based on that position
 		if pos < len(currentTx.sortedKeys) {
 			currentTxNextKey := currentTx.sortedKeys[pos]
-			if currentTxNextKey < string(nextKey) {
+			if nextKey == nil || currentTxNextKey < string(nextKey) {
 				return []byte(currentTxNextKey)
 			}
 		}
@@ -457,16 +457,7 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 
-	child, err := t.state.GetChild(keyToChild)
-	if err != nil {
-		return nil, err
-	}
-	if child == nil {
-		return nil, nil
-	}
-
-	childNextKey := child.NextKey(key)
-
+	var childNextKey []byte = nil
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		// If we are going to delete this child we return error
 		if currentTx.deletes[string(keyToChild)] {
@@ -482,12 +473,23 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 
 			// Get next key based on that position
 			if pos < len(childChanges.sortedKeys) {
-				currentTxChildNextKey := childChanges.sortedKeys[pos]
-				if currentTxChildNextKey < string(childNextKey) {
-					return []byte(currentTxChildNextKey), nil
-				}
+				childNextKey = []byte(childChanges.sortedKeys[pos])
 			}
 		}
+	}
+
+	child, err := t.state.GetChild(keyToChild)
+	if err != nil {
+		return nil, err
+	}
+
+	if child == nil {
+		return childNextKey, nil
+	}
+
+	childNextKeyOnMainTrie := child.NextKey(key)
+	if childNextKeyOnMainTrie != nil && bytes.Compare(childNextKeyOnMainTrie, childNextKey) == -1 {
+		return childNextKeyOnMainTrie, nil
 	}
 
 	return childNextKey, nil
