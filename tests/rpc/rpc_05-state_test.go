@@ -26,7 +26,7 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 	startTime := time.Now()
 	t.Cleanup(func() {
 		elapsedTime := time.Since(startTime)
-		t.Logf("TestStateRPCResponseValidation total test time: %v", elapsedTime)
+		t.Logf("TestStateRPCResponseValidation total test time: %v ----------------", elapsedTime)
 	})
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
@@ -208,7 +208,7 @@ func TestStateRPCAPI(t *testing.T) {
 	startTime := time.Now()
 	t.Cleanup(func() {
 		elapsedTime := time.Since(startTime)
-		t.Logf("TestStateRPCAPI total test time: %v", elapsedTime)
+		t.Logf("TestStateRPCAPI total test time: %v ---------------------------------", elapsedTime)
 	})
 	genesisPath := libutils.GetWestendLocalRawGenesisPath(t)
 	tomlConfig := config.Default()
@@ -415,7 +415,7 @@ func TestRPCStructParamUnmarshal(t *testing.T) {
 	startTime := time.Now()
 	t.Cleanup(func() {
 		elapsedTime := time.Since(startTime)
-		t.Logf("TestRPCStructParamUnmarshal total test time: %v", elapsedTime)
+		t.Logf("TestRPCStructParamUnmarshal total test time: %v -----------------------------", elapsedTime)
 	})
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()

@@ -26,7 +26,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	startTime := time.Now()
 	t.Cleanup(func() {
 		elapsedTime := time.Since(startTime)
-		t.Logf("TestStableNetworkRPC total test time: %v", elapsedTime)
+		t.Logf("TestStableNetworkRPC total test time: %v -------------------------", elapsedTime)
 	})
 	//if utils.MODE != "rpc" {
 	//t.Skip("RPC tests are disabled, going to skip.")

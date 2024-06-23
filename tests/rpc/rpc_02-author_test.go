@@ -28,7 +28,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	startTime := time.Now()
 	t.Cleanup(func() {
 		elapsedTime := time.Since(startTime)
-		t.Logf("TestAuthorSubmitExtrinsic total test time: %v", elapsedTime)
+		t.Logf("TestAuthorSubmitExtrinsic total test time: %v --------------------", elapsedTime)
 	})
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
@@ -104,7 +104,7 @@ func TestAuthorRPC(t *testing.T) { //nolint:tparallel
 	startTime := time.Now()
 	t.Cleanup(func() {
 		elapsedTime := time.Since(startTime)
-		t.Logf("TestAuthorRPC total test time: %v", elapsedTime)
+		t.Logf("TestAuthorRPC total test time: %v ----------------", elapsedTime)
 	})
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()

@@ -33,7 +33,7 @@ func TestChainRPC(t *testing.T) {
 	startTime := time.Now()
 	t.Cleanup(func() {
 		elapsedTime := time.Since(startTime)
-		t.Logf("TestChainRPC total test time: %v", elapsedTime)
+		t.Logf("TestChainRPC total test time: %v -----------------------------", elapsedTime)
 	})
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
@@ -142,7 +142,7 @@ func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
 	startTime := time.Now()
 	t.Cleanup(func() {
 		elapsedTime := time.Since(startTime)
-		t.Logf("TestChainSubscriptionRPC total test time: %v", elapsedTime)
+		t.Logf("TestChainSubscriptionRPC total test time: %v ------------------", elapsedTime)
 	})
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()

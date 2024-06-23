@@ -5,7 +5,6 @@ package rpc
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -25,7 +24,7 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 	startTime := time.Now()
 	t.Cleanup(func() {
 		elapsedTime := time.Since(startTime)
-		t.Logf("TestSystemRPC total test time: %v", elapsedTime)
+		t.Logf("TestSystemRPC total test time: %v ---------------------------------", elapsedTime)
 	})
 	const testTimeout = 8 * time.Minute
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
@@ -42,7 +41,6 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 	nodes.InitAndStartTest(ctx, t, cancel)
 
 	t.Run("system_health", func(t *testing.T) {
-		fmt.Println("MIDDLEEEEEEEEEEEEE")
 		t.Parallel()
 
 		const method = "system_health"
