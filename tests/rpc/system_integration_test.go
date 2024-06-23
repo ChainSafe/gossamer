@@ -23,8 +23,11 @@ import (
 )
 
 func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
-	nn := time.Now()
-	t.Logf("Start test at: %s", time.Now().String())
+	startTime := time.Now()
+	t.Cleanup(func() {
+		elapsedTime := time.Since(startTime)
+		t.Logf("TestStableNetworkRPC total test time: %v", elapsedTime)
+	})
 	//if utils.MODE != "rpc" {
 	//t.Skip("RPC tests are disabled, going to skip.")
 	//}
@@ -171,7 +174,6 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 			})
 		})
 	}
-	t.Logf("TestStableNetworkRPC FINISHED FOR: %v", time.Since(nn))
 }
 
 func fetchWithTimeoutFromEndpoint(t *testing.T, endpoint, method string, target interface{}) {

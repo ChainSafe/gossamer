@@ -5,6 +5,7 @@ package rpc
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -21,7 +22,11 @@ import (
 const peerIDRegex = `^[a-zA-Z0-9]{52}$`
 
 func TestSystemRPC(t *testing.T) { //nolint:tparallel
-	t.Logf("TestSystemRPC START AT: %s", time.Now().String())
+	startTime := time.Now()
+	t.Cleanup(func() {
+		elapsedTime := time.Since(startTime)
+		t.Logf("TestSystemRPC total test time: %v", elapsedTime)
+	})
 	const testTimeout = 8 * time.Minute
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 
@@ -37,6 +42,7 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 	nodes.InitAndStartTest(ctx, t, cancel)
 
 	t.Run("system_health", func(t *testing.T) {
+		fmt.Println("MIDDLEEEEEEEEEEEEE")
 		t.Parallel()
 
 		const method = "system_health"
@@ -197,5 +203,4 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 		t.Parallel()
 		t.Skip("test not implemented")
 	})
-	t.Logf("TestSystemRPC END AT: %s", time.Now().String())
 }

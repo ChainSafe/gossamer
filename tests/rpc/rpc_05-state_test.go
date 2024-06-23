@@ -23,7 +23,11 @@ import (
 )
 
 func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
-	nn := time.Now()
+	startTime := time.Now()
+	t.Cleanup(func() {
+		elapsedTime := time.Since(startTime)
+		t.Logf("TestStateRPCResponseValidation total test time: %v", elapsedTime)
+	})
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath
@@ -198,11 +202,14 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 
 		// TODO assert response
 	})
-	t.Logf("TestStateRPCResponseValidation FINISHED FOR: %v", time.Since(nn))
 }
 
 func TestStateRPCAPI(t *testing.T) {
-	nn := time.Now()
+	startTime := time.Now()
+	t.Cleanup(func() {
+		elapsedTime := time.Since(startTime)
+		t.Logf("TestStateRPCAPI total test time: %v", elapsedTime)
+	})
 	genesisPath := libutils.GetWestendLocalRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath
@@ -402,11 +409,14 @@ func TestStateRPCAPI(t *testing.T) {
 			require.Contains(t, string(respBody), test.expected)
 		})
 	}
-	t.Logf("TestStateRPCAPI FINISHED FOR: %v", time.Since(nn))
 }
 
 func TestRPCStructParamUnmarshal(t *testing.T) {
-	nn := time.Now()
+	startTime := time.Now()
+	t.Cleanup(func() {
+		elapsedTime := time.Since(startTime)
+		t.Logf("TestRPCStructParamUnmarshal total test time: %v", elapsedTime)
+	})
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath
@@ -430,5 +440,4 @@ func TestRPCStructParamUnmarshal(t *testing.T) {
 		require.NotContains(t, string(respBody), "json: cannot unmarshal")
 		fmt.Println(string(respBody))
 	})
-	t.Logf("TestRPCStructParamUnmarshal FINISHED FOR: %v", time.Since(nn))
 }

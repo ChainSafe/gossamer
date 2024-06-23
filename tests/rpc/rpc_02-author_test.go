@@ -25,7 +25,11 @@ import (
 // TODO: add test against latest dev runtime
 // See https://github.com/ChainSafe/gossamer/issues/2705
 func TestAuthorSubmitExtrinsic(t *testing.T) {
-	nn := time.Now()
+	startTime := time.Now()
+	t.Cleanup(func() {
+		elapsedTime := time.Since(startTime)
+		t.Logf("TestAuthorSubmitExtrinsic total test time: %v", elapsedTime)
+	})
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Account.Key = config.AliceKey
@@ -94,11 +98,14 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
 	require.NoError(t, err)
 	require.NotEqual(t, types.Hash{}, hash)
-	t.Logf("TestAuthorSubmitExtrinsic FINISHED FOR: %v", time.Since(nn))
 }
 
 func TestAuthorRPC(t *testing.T) { //nolint:tparallel
-	nn := time.Now()
+	startTime := time.Now()
+	t.Cleanup(func() {
+		elapsedTime := time.Since(startTime)
+		t.Logf("TestAuthorRPC total test time: %v", elapsedTime)
+	})
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath
@@ -169,5 +176,4 @@ func TestAuthorRPC(t *testing.T) { //nolint:tparallel
 		var target interface{} // TODO
 		fetchWithTimeout(ctx, t, "author_hasKey", "", target)
 	})
-	t.Logf("TestAuthorRPC FINISHED FOR: %v", time.Since(nn))
 }
