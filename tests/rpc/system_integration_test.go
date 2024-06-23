@@ -164,7 +164,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 				var response modules.SystemPeersResponse
 				t.Logf("212121212121212121212121212121212121212121 at %s", time.Now().String())
 				fetchWithTimeoutFromEndpoint(t, endpoint, "system_peers", &response)
-				t.Logf("23-23-23-23-23-23-23-23-23-23-23-23-23-23 at %s", time.Now().String())
+				t.Logf("23-23-23-23-23-23-23-23-23-23-23-23-23-23  at %s", time.Now().String())
 				assert.GreaterOrEqual(t, len(response), len(nodes)-2)
 
 				// TODO assert response
