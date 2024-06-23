@@ -21,6 +21,7 @@ import (
 const peerIDRegex = `^[a-zA-Z0-9]{52}$`
 
 func TestSystemRPC(t *testing.T) { //nolint:tparallel
+	t.Logf("TestSystemRPC START AT: %s", time.Now().String())
 	const testTimeout = 8 * time.Minute
 	ctx, cancel := context.WithTimeout(context.Background(), testTimeout)
 
@@ -196,4 +197,5 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 		t.Parallel()
 		t.Skip("test not implemented")
 	})
+	t.Logf("TestSystemRPC END AT: %s", time.Now().String())
 }

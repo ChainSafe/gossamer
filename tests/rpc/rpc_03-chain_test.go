@@ -30,6 +30,7 @@ const (
 )
 
 func TestChainRPC(t *testing.T) {
+	nn := time.Now()
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath
@@ -131,9 +132,11 @@ func TestChainRPC(t *testing.T) {
 	fetchWithTimeout(ctx, t, "chain_getBlockHash", "[]", &blockHash)
 	assert.Regexp(t, regex32BytesHex, blockHash)
 	assert.NotEqual(t, finalizedHash, blockHash)
+	t.Logf("TestChainRPC FINISHED FOR: %v", time.Since(nn))
 }
 
 func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
+	nn := time.Now()
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath
@@ -263,6 +266,7 @@ func TestChainSubscriptionRPC(t *testing.T) { //nolint:tparallel
 			assert.GreaterOrEqual(t, blockNumber, blockNumbers[i-1])
 		}
 	})
+	t.Logf("TestChainSubscriptionRPC FINISHED FOR: %v", time.Since(nn))
 }
 
 func getResultMapFromParams(t *testing.T, params subscription.Params) (
