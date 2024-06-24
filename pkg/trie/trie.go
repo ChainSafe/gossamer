@@ -36,7 +36,7 @@ type KVStoreWrite interface {
 
 type TrieIterator interface {
 	Entries() (keyValueMap map[string][]byte)
-	NextKey(key []byte) []byte
+	NextKey(key []byte, predicate func([]byte) bool) []byte
 	GetKeysWithPrefix(prefix []byte) (keysLE [][]byte)
 }
 

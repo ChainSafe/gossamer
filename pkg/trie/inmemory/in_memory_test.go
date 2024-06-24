@@ -20,6 +20,8 @@ import (
 	gomock "go.uber.org/mock/gomock"
 )
 
+var alwaysTrue = func([]byte) bool { return true }
+
 func Test_EmptyHash(t *testing.T) {
 	t.Parallel()
 
@@ -781,7 +783,7 @@ func Test_Trie_NextKey(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			nextKey := testCase.trie.NextKey(testCase.key)
+			nextKey := testCase.trie.NextKey(testCase.key, alwaysTrue)
 
 			assert.Equal(t, testCase.nextKey, nextKey)
 		})
@@ -1067,7 +1069,7 @@ func Test_nextKey(t *testing.T) {
 
 			originalTrie := testCase.trie.DeepCopy()
 
-			nextKey := findNextKey(testCase.trie.root, nil, testCase.key)
+			nextKey := findNextKey(testCase.trie.root, nil, testCase.key, alwaysTrue)
 
 			assert.Equal(t, testCase.nextKey, nextKey)
 			assert.Equal(t, *originalTrie, testCase.trie) // ensure no mutation

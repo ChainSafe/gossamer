@@ -18,7 +18,7 @@ func (t *TrieDB) Entries() (keyValueMap map[string][]byte) {
 
 // NextKey returns the next key in the trie in lexicographic order.
 // It returns nil if no next key is found.
-func (t *TrieDB) NextKey(key []byte) []byte {
+func (t *TrieDB) NextKey(key []byte, _ func([]byte) bool) []byte {
 	iter := NewTrieDBIterator(t)
 
 	// TODO: Seek will potentially skip a lot of keys, we need to find a way to

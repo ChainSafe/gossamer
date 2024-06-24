@@ -263,89 +263,115 @@ func (t *InMemoryTrie) buildEntriesMap(currentNode *node.Node, prefix []byte, kv
 
 // NextKey returns the next key in the trie in lexicographic order.
 // It returns nil if no next key is found.
-func (t *InMemoryTrie) NextKey(keyLE []byte) (nextKeyLE []byte) {
+func (t *InMemoryTrie) NextKey(keyLE []byte, predicate func(key []byte) bool) (nextKeyLE []byte) {
 	prefix := []byte(nil)
 	key := codec.KeyLEToNibbles(keyLE)
 
-	nextKey := findNextKey(t.root, prefix, key)
+	nextKey := findNextKey(t.root, prefix, key, predicate)
 	if nextKey == nil {
 		return nil
 	}
 
-	nextKeyLE = codec.NibblesToKeyLE(nextKey)
-	return nextKeyLE
+	return codec.NibblesToKeyLE(nextKey)
 }
 
-func findNextKey(parent *node.Node, prefix, searchKey []byte) (nextKey []byte) {
-	if parent == nil {
+func findNextKey(currentNode *node.Node, prefix, searchKey []byte, predicate func(key []byte) bool) (nextKey []byte) {
+	if currentNode == nil {
 		return nil
 	}
 
-	if parent.Kind() == node.Leaf {
-		return findNextKeyLeaf(parent, prefix, searchKey)
-	}
-	return findNextKeyBranch(parent, prefix, searchKey)
-}
+	currentFullKey := bytes.Join([][]byte{prefix, currentNode.PartialKey}, nil)
 
-func findNextKeyLeaf(leaf *node.Node, prefix, searchKey []byte) (nextKey []byte) {
-	parentLeafKey := leaf.PartialKey
-	fullKey := concatenateSlices(prefix, parentLeafKey)
+	// if the keys are lexicographically equal then we will proceed
+	// in order to find the one that is lexicographically greater
+	// if the current node is a leaf then there is no other path
+	// if the current node is a branch then we can iterate over its children
+	switch currentNode.Kind() {
+	case node.Leaf:
+		// if search key lexicographically lower than the current full key
+		// then we should return the full key if it is not in the deletedKeys
+		if bytes.Compare(searchKey, currentFullKey) == -1 {
+			if predicate(codec.NibblesToKeyLE(currentFullKey)) {
+				return currentFullKey
+			}
 
-	if keyIsLexicographicallyBigger(searchKey, fullKey) {
-		return nil
-	}
-
-	return fullKey
-}
-
-func findNextKeyBranch(parentBranch *node.Node, prefix, searchKey []byte) (nextKey []byte) {
-	fullKey := concatenateSlices(prefix, parentBranch.PartialKey)
-
-	if bytes.Equal(searchKey, fullKey) {
-		const startChildIndex = 0
-		return findNextKeyChild(parentBranch.Children, startChildIndex, fullKey, searchKey)
-	}
-
-	if keyIsLexicographicallyBigger(searchKey, fullKey) {
-		if len(searchKey) < len(fullKey) {
 			return nil
-		} else if len(searchKey) > len(fullKey) {
-			startChildIndex := searchKey[len(fullKey)]
-			return findNextKeyChild(parentBranch.Children,
-				startChildIndex, fullKey, searchKey)
 		}
+
+		return nil
+	case node.Branch:
+		comparision := bytes.Compare(searchKey, currentFullKey)
+
+		// if searchKey is lexicographically lower (-1) and the branch has a storage value then
+		// we found the next key, otherwise go over the children from the start
+		if comparision == -1 {
+			if currentNode.StorageValue != nil {
+				if predicate(codec.NibblesToKeyLE(currentFullKey)) {
+					return currentFullKey
+				}
+
+				return nil
+			}
+
+			return findNextKeyOnChildren(
+				currentNode,
+				currentFullKey,
+				searchKey,
+				0,
+				predicate,
+			)
+		}
+
+		// if searchKey is lexicographically equal (0) we should go over children from the start
+		if comparision == 0 {
+			return findNextKeyOnChildren(
+				currentNode,
+				currentFullKey,
+				searchKey,
+				0,
+				predicate,
+			)
+		}
+
+		// if searchKey is lexicographically greater (1) we should go over  children starting from
+		// the last match between `searchKey` and `currentFullKey`
+		if comparision == 1 {
+			// search key is exhausted then return nil
+			if len(searchKey) < len(currentFullKey) {
+				return nil
+			}
+
+			return findNextKeyOnChildren(
+				currentNode,
+				currentFullKey,
+				searchKey,
+				searchKey[len(currentFullKey)],
+				predicate,
+			)
+		}
+	default:
+		panic(fmt.Sprintf("node type not supported: %s", currentNode.Kind().String()))
 	}
 
-	// search key is smaller than full key
-	if parentBranch.StorageValue != nil {
-		return fullKey
-	}
-	const startChildIndex = 0
-	return findNextKeyChild(parentBranch.Children, startChildIndex,
-		fullKey, searchKey)
+	return nil
 }
 
-func keyIsLexicographicallyBigger(key, key2 []byte) (bigger bool) {
-	if len(key) < len(key2) {
-		return bytes.Compare(key, key2[:len(key)]) == 1
-	}
-	return bytes.Compare(key[:len(key2)], key2) != -1
-}
-
-// findNextKeyChild searches for a next key in the children
-// given and returns a next key or nil if no next key is found.
-func findNextKeyChild(children []*node.Node, startIndex byte,
-	fullKey, key []byte) (nextKey []byte) {
-	for i := startIndex; i < node.ChildrenCapacity; i++ {
-		child := children[i]
+func findNextKeyOnChildren(currentNode *node.Node, prefix, searchKey []byte, startingAt byte,
+	predicate func(key []byte) bool) (nextKey []byte) {
+	for i := startingAt; i < node.ChildrenCapacity; i++ {
+		child := currentNode.Children[i]
 		if child == nil {
 			continue
 		}
 
-		childFullKey := concatenateSlices(fullKey, []byte{i})
-		next := findNextKey(child, childFullKey, key)
-		if len(next) > 0 {
-			return next
+		nextKey = findNextKey(child,
+			bytes.Join([][]byte{prefix, {byte(i)}}, nil),
+			searchKey,
+			predicate,
+		)
+
+		if len(nextKey) > 0 {
+			return nextKey
 		}
 	}
 

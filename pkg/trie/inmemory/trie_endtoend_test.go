@@ -673,7 +673,7 @@ func Test_Trie_NextKey_Random(t *testing.T) {
 
 	for i, key := range sortedKeys {
 
-		nextKey := trie.NextKey(key)
+		nextKey := trie.NextKey(key, alwaysTrue)
 
 		var expectedNextKey []byte
 		isLastKey := i == len(sortedKeys)-1

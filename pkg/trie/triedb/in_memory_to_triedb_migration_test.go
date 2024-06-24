@@ -96,8 +96,8 @@ func TestReadTrieDB_Migration(t *testing.T) {
 		key := []byte("no")
 
 		for key != nil {
-			expected := inMemoryTrie.NextKey(key)
-			actual := trieDB.NextKey(key)
+			expected := inMemoryTrie.NextKey(key, alwaysTrue)
+			actual := trieDB.NextKey(key, alwaysTrue)
 			assert.Equal(t, expected, actual)
 
 			key = actual

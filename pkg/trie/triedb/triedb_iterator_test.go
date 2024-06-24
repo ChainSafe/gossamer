@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var alwaysTrue = func(key []byte) bool { return true }
+
 func TestIterator(t *testing.T) {
 	db := newTestDB(t)
 	inMemoryTrie := inmemory.NewEmptyTrie()
@@ -40,11 +42,11 @@ func TestIterator(t *testing.T) {
 	t.Run("iterate_over_all_entries", func(t *testing.T) {
 		iter := NewTrieDBIterator(trieDB)
 
-		expected := inMemoryTrie.NextKey([]byte{})
+		expected := inMemoryTrie.NextKey([]byte{}, alwaysTrue)
 		i := 0
 		for key := iter.NextKey(); key != nil; key = iter.NextKey() {
 			assert.Equal(t, expected, key)
-			expected = inMemoryTrie.NextKey(expected)
+			expected = inMemoryTrie.NextKey(expected, alwaysTrue)
 			i++
 		}
 
@@ -56,7 +58,7 @@ func TestIterator(t *testing.T) {
 
 		iter.Seek([]byte("not"))
 
-		expected := inMemoryTrie.NextKey([]byte("not"))
+		expected := inMemoryTrie.NextKey([]byte("not"), alwaysTrue)
 		actual := iter.NextKey()
 
 		assert.Equal(t, expected, actual)

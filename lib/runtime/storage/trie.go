@@ -180,8 +180,12 @@ func (t *TrieState) NextKey(key []byte) []byte {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
 
-	nextKey := t.state.NextKey(key)
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		nextKey := t.state.NextKey(key, func(foundNxtKey []byte) bool {
+			_, ok := currentTx.deletes[string(foundNxtKey)]
+			return !ok
+		})
+
 		// Find key position
 		pos, found := slices.BinarySearch(currentTx.sortedKeys, string(key))
 		if found {
@@ -195,9 +199,11 @@ func (t *TrieState) NextKey(key []byte) []byte {
 				return []byte(currentTxNextKey)
 			}
 		}
+
+		return nextKey
 	}
 
-	return nextKey
+	return t.state.NextKey(key, nil)
 }
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
@@ -487,7 +493,7 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 		return childNextKey, nil
 	}
 
-	childNextKeyOnMainTrie := child.NextKey(key)
+	childNextKeyOnMainTrie := child.NextKey(key, nil)
 	if childNextKeyOnMainTrie != nil && bytes.Compare(childNextKeyOnMainTrie, childNextKey) == -1 {
 		return childNextKeyOnMainTrie, nil
 	}
