@@ -6,6 +6,7 @@ package backing
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"time"
 
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
@@ -316,8 +317,8 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	}
 
 	var bgValidationResult backgroundValidationResult
-
-	if validationResultRes.Data.IsValid { // Valid
+	resultType := reflect.TypeOf(validationResultRes.Data.Value)
+	if resultType == reflect.TypeOf(candidatevalidation.ValidValidationResult{}) { // Valid
 		// Important: the `av-store` subsystem will check if the erasure root of the `available_data`
 		// matches `expected_erasure_root` which was provided by the collator in the `CandidateReceipt`.
 		// This check is consensus critical and the `backing` subsystem relies on it for ensuring
@@ -342,9 +343,11 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		case storeAvailableDataError == nil:
 			bgValidationResult = backgroundValidationResult{
 				outputs: &backgroundValidationOutputs{
-					candidateReceipt:        candidateReceipt,
-					candidateCommitments:    validationResultRes.Data.CandidateCommitments,
-					persistedValidationData: validationResultRes.Data.PersistedValidationData,
+					candidateReceipt: candidateReceipt,
+					candidateCommitments: validationResultRes.Data.Value.(candidatevalidation.ValidValidationResult).
+						CandidateCommitments,
+					persistedValidationData: validationResultRes.Data.Value.(candidatevalidation.ValidValidationResult).
+						PersistedValidationData,
 				},
 				candidate: nil,
 				err:       nil,
@@ -361,11 +364,12 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		}
 
 	} else { // Invalid
-		logger.Error(validationResultRes.Data.ReasonForInvalidity.Error())
+		logger.Error(validationResultRes.Data.Value.(candidatevalidation.
+			InvalidValidationResult).ReasonForInvalidity.Error())
 		bgValidationResult = backgroundValidationResult{
 			outputs:   nil,
 			candidate: &candidateReceipt,
-			err:       validationResultRes.Data.ReasonForInvalidity,
+			err:       validationResultRes.Data.Value.(candidatevalidation.InvalidValidationResult).ReasonForInvalidity,
 		}
 	}
 

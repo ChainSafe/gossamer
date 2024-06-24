@@ -90,7 +90,7 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 				if err != nil {
 					logger.Errorf("failed to validate from exhaustive: %w", err)
 					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
-						Data: ValidationResult{},
+						Data: ValidationResult{InvalidValidationResult{ReasonForInvalidity: err}},
 						Err:  err,
 					}
 				} else {
@@ -250,10 +250,12 @@ func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
 		pov,
 		validationCodeHash)
 	if validationErr != nil {
-		return &ValidationResult{
-			IsValid:             false,
-			ReasonForInvalidity: validationErr,
-		}, internalErr
+		validationResult := ValidationResult{
+			InvalidValidationResult{
+				ReasonForInvalidity: validationErr,
+			},
+		}
+		return &validationResult, internalErr
 	}
 
 	validationParams := parachainruntime.ValidationParameters{
@@ -269,17 +271,17 @@ func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
 	}
 
 	result := &ValidationResult{
-		IsValid: true,
-		CandidateCommitments: parachaintypes.CandidateCommitments{
-			UpwardMessages:            validationResult.UpwardMessages,
-			HorizontalMessages:        validationResult.HorizontalMessages,
-			NewValidationCode:         validationResult.NewValidationCode,
-			HeadData:                  validationResult.HeadData,
-			ProcessedDownwardMessages: validationResult.ProcessedDownwardMessages,
-			HrmpWatermark:             validationResult.HrmpWatermark,
+		ValidValidationResult{
+			CandidateCommitments: parachaintypes.CandidateCommitments{
+				UpwardMessages:            validationResult.UpwardMessages,
+				HorizontalMessages:        validationResult.HorizontalMessages,
+				NewValidationCode:         validationResult.NewValidationCode,
+				HeadData:                  validationResult.HeadData,
+				ProcessedDownwardMessages: validationResult.ProcessedDownwardMessages,
+				HrmpWatermark:             validationResult.HrmpWatermark,
+			},
+			PersistedValidationData: persistedValidationData,
 		},
-		PersistedValidationData: persistedValidationData,
-		ReasonForInvalidity:     nil,
 	}
 	return result, nil
 }
