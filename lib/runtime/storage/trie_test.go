@@ -391,6 +391,91 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 	}
 }
 
+func TestNextKeys(t *testing.T) {
+	cases := map[string]struct {
+		keysOnState        [][]byte
+		underTransactionFn func(t *testing.T, ts *TrieState)
+		expectedNextKey    []byte
+		searchKey          []byte
+	}{
+		"key_removed_inside_tx": {
+			searchKey: []byte("acc:abc123"),
+			keysOnState: [][]byte{
+				[]byte("acc:abc123:ddd"),
+				[]byte("acc:abc123:eee"),
+				[]byte("acc:abc123:fff"),
+				[]byte("completely_diff_key"),
+			},
+			underTransactionFn: func(t *testing.T, ts *TrieState) {
+				require.NoError(t, ts.Delete([]byte("acc:abc123:ddd")))
+			},
+			expectedNextKey: []byte("acc:abc123:eee"),
+		},
+		"remove_all_acc:abc123_keys_should_return_completely_diff_key": {
+			searchKey: []byte("acc:abc123"),
+			keysOnState: [][]byte{
+				[]byte("acc:abc123:ddd"),
+				[]byte("acc:abc123:eee"),
+				[]byte("acc:abc123:fff"),
+				[]byte("completely_diff_key"),
+			},
+			underTransactionFn: func(t *testing.T, ts *TrieState) {
+				require.NoError(t, ts.Delete([]byte("acc:abc123:ddd")))
+				require.NoError(t, ts.Delete([]byte("acc:abc123:eee")))
+				require.NoError(t, ts.Delete([]byte("acc:abc123:fff")))
+			},
+			expectedNextKey: []byte("completely_diff_key"),
+		},
+		"find_key_on_state_and_on_tx_should_return_key_on_tx": {
+			searchKey: []byte("acc:abc123"),
+			keysOnState: [][]byte{
+				[]byte("acc:abc123:ddd"),
+				[]byte("acc:abc123:eee"),
+				[]byte("acc:abc123:fff"),
+				[]byte("completely_diff_key"),
+			},
+			underTransactionFn: func(t *testing.T, ts *TrieState) {
+				require.NoError(t, ts.Delete([]byte("acc:abc123:ddd")))
+				require.NoError(t, ts.Delete([]byte("acc:abc123:eee")))
+				require.NoError(t, ts.Delete([]byte("acc:abc123:fff")))
+				require.NoError(t, ts.Put([]byte("acc:abc123:ggg"), []byte("0x010")))
+			},
+			expectedNextKey: []byte("acc:abc123:ggg"),
+		},
+		"no_next_key": {
+			searchKey: []byte("zzzz"),
+			keysOnState: [][]byte{
+				[]byte("acc:abc123:ddd"),
+				[]byte("acc:abc123:eee"),
+				[]byte("acc:abc123:fff"),
+				[]byte("completely_diff_key"),
+			},
+			underTransactionFn: func(t *testing.T, ts *TrieState) {},
+			expectedNextKey:    nil,
+		},
+	}
+
+	for tname, tt := range cases {
+		tt := tt
+		t.Run(tname, func(t *testing.T) {
+			ts := NewTrieState(inmemory_trie.NewEmptyTrie())
+
+			// inserting first keys on state
+			for _, key := range tt.keysOnState {
+				require.NoError(t, ts.Put(key, []byte("0x10")))
+			}
+
+			ts.StartTransaction()
+			tt.underTransactionFn(t, ts)
+
+			nxt := ts.NextKey(tt.searchKey)
+			require.Equal(t, tt.expectedNextKey, nxt)
+
+			ts.CommitTransaction()
+		})
+	}
+}
+
 func TestTrieState_Root(t *testing.T) {
 	ts := NewTrieState(inmemory_trie.NewEmptyTrie())
 
