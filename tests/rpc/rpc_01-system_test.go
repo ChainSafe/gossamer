@@ -92,7 +92,7 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 		var response modules.SystemPeersResponse
 		// Wait for N-1 peers with peer IDs set
 		err = retry.UntilOK(ctx, time.Second, func() (ok bool, err error) {
-			t.Log("TestSystemRPC/system_peers 000000000000000000000")
+			t.Log("TestSystemRPC/system_peers  000000000000000000000")
 			getResponseCtx, getResponseCancel := context.WithTimeout(ctx, time.Second)
 			const method = "system_peers"
 			const params = "{}"
