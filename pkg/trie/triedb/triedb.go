@@ -13,6 +13,7 @@ import (
 	nibbles "github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/pkg/trie/cache"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
@@ -707,8 +708,15 @@ func (t *TrieDB) commit() error {
 	logger.Debug("Committing trie changes to db")
 	logger.Debugf("%d nodes to remove from db", len(t.deathRow))
 
+	dbBatch := t.db.NewBatch()
+	defer func() {
+		if err := dbBatch.Close(); err != nil {
+			logger.Criticalf("cannot close triedb commit batcher: %w", err)
+		}
+	}()
+
 	for hash := range t.deathRow {
-		err := t.db.Del(hash[:])
+		err := dbBatch.Del(hash[:])
 		if err != nil {
 			return err
 		}
@@ -743,7 +751,7 @@ func (t *TrieDB) commit() error {
 				switch n := node.(type) {
 				case NewNodeToEncode:
 					hash := common.MustBlake2bHash(n.value)
-					err := t.db.Put(hash[:], n.value)
+					err := dbBatch.Put(hash[:], n.value)
 					if err != nil {
 						return nil, err
 					}
@@ -751,7 +759,7 @@ func (t *TrieDB) commit() error {
 					k = k[:mov]
 					return HashChildReference{hash: hash}, nil
 				case TrieNodeToEncode:
-					result, err := t.commitChild(n.child, k)
+					result, err := t.commitChild(dbBatch, n.child, k)
 					if err != nil {
 						return nil, err
 					}
@@ -769,14 +777,16 @@ func (t *TrieDB) commit() error {
 		}
 
 		hash := common.MustBlake2bHash(encodedNode)
-		err = t.db.Put(hash[:], encodedNode)
+		err = dbBatch.Put(hash[:], encodedNode)
 		if err != nil {
 			return err
 		}
 
 		t.rootHash = hash
 		t.rootHandle = Persisted{t.rootHash}
-		return nil
+
+		// Flush all db changes
+		return dbBatch.Flush()
 	case CachedStoredNode:
 		t.rootHash = stored.hash
 		t.rootHandle = InMemory{
@@ -790,6 +800,7 @@ func (t *TrieDB) commit() error {
 
 // Commit a node by hashing it and writing it to the db.
 func (t *TrieDB) commitChild(
+	dbBatch database.Batch,
 	child NodeHandle,
 	prefixKey []byte,
 ) (ChildReference, error) {
@@ -816,7 +827,7 @@ func (t *TrieDB) commitChild(
 				case NewNodeToEncode:
 					valueHash := common.MustBlake2bHash(n.value)
 					prefixedKey := bytes.Join([][]byte{n.partialKey, valueHash.ToBytes()}, nil)
-					err := t.db.Put(prefixedKey, n.value)
+					err := dbBatch.Put(prefixedKey, n.value)
 					if err != nil {
 						panic("inserting in db")
 					}
@@ -828,7 +839,7 @@ func (t *TrieDB) commitChild(
 					prefixKey = prefixKey[:mov]
 					return HashChildReference{hash: valueHash}, nil
 				case TrieNodeToEncode:
-					result, err := t.commitChild(n.child, prefixKey)
+					result, err := t.commitChild(dbBatch, n.child, prefixKey)
 					if err != nil {
 						return nil, err
 					}
@@ -848,7 +859,7 @@ func (t *TrieDB) commitChild(
 			// Not inlined node
 			if len(encoded) >= common.HashLength {
 				hash := common.MustBlake2bHash(encoded)
-				err := t.db.Put(hash[:], encoded)
+				err := dbBatch.Put(hash[:], encoded)
 				if err != nil {
 					return nil, err
 				}

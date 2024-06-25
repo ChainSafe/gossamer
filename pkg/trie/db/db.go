@@ -25,6 +25,7 @@ type NewBatcher interface {
 type RWDatabase interface {
 	DBGetter
 	Writer
+	NewBatcher
 }
 
 type Database interface {
