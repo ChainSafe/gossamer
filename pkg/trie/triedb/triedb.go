@@ -737,7 +737,7 @@ func (t *TrieDB) commit() error {
 				mov := len(partialKey)
 				if childIndex != nil {
 					k = append(k, *childIndex)
-					mov += int(*childIndex)
+					mov += 1
 				}
 
 				switch n := node.(type) {
@@ -809,7 +809,7 @@ func (t *TrieDB) commitChild(
 				mov := len(partialKey)
 				if childIndex != nil {
 					prefixKey = append(prefixKey, *childIndex)
-					mov += int(*childIndex)
+					mov += 1
 				}
 
 				switch n := node.(type) {

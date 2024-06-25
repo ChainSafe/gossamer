@@ -271,8 +271,7 @@ func NewEncodedNode(node Node, childF onChildStoreFn) (encodedNode []byte, err e
 	case Branch:
 		var value codec.EncodedValue
 		if n.value != nil {
-			pr := n.partialKey
-			value, err = NewEncodedValue(n.value, pr, childF)
+			value, err = NewEncodedValue(n.value, n.partialKey, childF)
 			if err != nil {
 				return nil, err
 			}
@@ -284,9 +283,8 @@ func NewEncodedNode(node Node, childF onChildStoreFn) (encodedNode []byte, err e
 				continue
 			}
 
-			pr := n.partialKey[len(n.partialKey)-1:]
 			childIndex := byte(i)
-			children[i], err = childF(TrieNodeToEncode{child}, pr, &childIndex)
+			children[i], err = childF(TrieNodeToEncode{child}, n.partialKey, &childIndex)
 			if err != nil {
 				return nil, err
 			}
