@@ -251,7 +251,6 @@ type onChildStoreFn = func(node NodeToEncode, partialKey []byte, childIndex *byt
 
 const emptyTrieBytes = byte(0)
 
-// TODO: move this to codec package
 func NewEncodedNode(node Node, childF onChildStoreFn) (encodedNode []byte, err error) {
 	encodingBuffer := bytes.NewBuffer(nil)
 
