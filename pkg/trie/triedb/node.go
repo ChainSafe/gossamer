@@ -35,7 +35,7 @@ type (
 	}
 )
 
-func NewEncodedValue(value nodeValue, partial []byte, childF childFunc) (codec.EncodedValue, error) {
+func NewEncodedValue(value nodeValue, partial []byte, childF onChildStoreFn) (codec.EncodedValue, error) {
 	switch v := value.(type) {
 	case inline:
 		return codec.NewInlineValue(v.Data), nil
@@ -247,12 +247,12 @@ func (i InlineChildReference) getNodeData() []byte {
 	return i.encodedNode
 }
 
-type childFunc = func(node NodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error)
+type onChildStoreFn = func(node NodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error)
 
 const emptyTrieBytes = byte(0)
 
 // TODO: move this to codec package
-func NewEncodedNode(node Node, childF childFunc) (encodedNode []byte, err error) {
+func NewEncodedNode(node Node, childF onChildStoreFn) (encodedNode []byte, err error) {
 	encodingBuffer := bytes.NewBuffer(nil)
 
 	switch n := node.(type) {
