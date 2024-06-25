@@ -157,9 +157,9 @@ func (v validator) sign(keystore keystore.Keystore, payload parachaintypes.State
 	}, nil
 }
 
-// GetBackedCandidatesMessage is a message received from overseer that requests a set of backable
+// GetBackableCandidatesMessage is a message received from overseer that requests a set of backable
 // candidates that could be backed in a child of the given relay-parent.
-type GetBackedCandidatesMessage struct {
+type GetBackableCandidatesMessage struct {
 	Candidates []*CandidateHashAndRelayParent
 	ResCh      chan []*parachaintypes.BackedCandidate
 }
@@ -249,8 +249,8 @@ func (*CandidateBacking) Name() parachaintypes.SubSystemName {
 // processMessage processes incoming messages from overseer
 func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan relayParentAndCommand) error {
 	switch msg := msg.(type) {
-	case GetBackedCandidatesMessage:
-		cb.handleGetBackedCandidatesMessage(msg)
+	case GetBackableCandidatesMessage:
+		cb.handleGetBackableCandidatesMessage(msg)
 	case CanSecondMessage:
 		err := cb.handleCanSecondMessage(msg)
 		if err != nil {

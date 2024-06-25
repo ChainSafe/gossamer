@@ -7,7 +7,8 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
 
-func (cb *CandidateBacking) handleGetBackedCandidatesMessage(requestedCandidates GetBackedCandidatesMessage) {
+// handleGetBackableCandidatesMessage send back the backable candidates via the response channel
+func (cb *CandidateBacking) handleGetBackableCandidatesMessage(requestedCandidates GetBackableCandidatesMessage) {
 	var backedCandidates []*parachaintypes.BackedCandidate
 
 	for _, candidate := range requestedCandidates.Candidates {
