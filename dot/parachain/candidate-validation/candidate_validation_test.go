@@ -165,6 +165,11 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 	testValidationHost, err := parachainruntime.SetupVM(validationCode)
 	require.NoError(t, err)
 
+	povHashMismatch := PoVHashMismatch
+	paramsTooLarge := ParamsTooLarge
+	codeHashMismatch := CodeHashMismatch
+	executionError := ExecutionError
+
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 
@@ -205,6 +210,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 		args          args
 		want          *ValidationResult
 		expectedError error
+		isValid       bool
 	}{
 		"invalid_pov_hash": {
 			args: args{
@@ -219,10 +225,9 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				pov:              pov,
 			},
 			want: &ValidationResult{
-				InvalidValidationResult{
-					ReasonForInvalidity: ErrValidationPoVHashMismatch,
-				},
+				InvalidResult: &povHashMismatch,
 			},
+			isValid: false,
 		},
 		"invalid_pov_size": {
 			args: args{
@@ -237,9 +242,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				pov:              pov,
 			},
 			want: &ValidationResult{
-				InvalidValidationResult{
-					ReasonForInvalidity: fmt.Errorf("%w, limit: %d, got: %d", ErrValidationParamsTooLarge, 10, 17),
-				},
+				InvalidResult: &paramsTooLarge,
 			},
 		},
 		"code_mismatch": {
@@ -255,10 +258,9 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				pov:              pov,
 			},
 			want: &ValidationResult{
-				InvalidValidationResult{
-					ReasonForInvalidity: ErrValidationCodeMismatch,
-				},
+				InvalidResult: &codeHashMismatch,
 			},
+			isValid: false,
 		},
 		"mock_test": {
 			args: args{
@@ -273,6 +275,10 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				candidateReceipt: candidateReceipt,
 				pov:              pov,
 			},
+			want: &ValidationResult{
+				InvalidResult: &executionError,
+			},
+			isValid:       false,
 			expectedError: fmt.Errorf("executing validate_block: %w", parachainruntime.ErrHardTimeout),
 		},
 		"wasm_error_unreachable": {
@@ -285,6 +291,10 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				candidateReceipt: candidateReceipt,
 				pov:              pov,
 			},
+			want: &ValidationResult{
+				InvalidResult: &executionError,
+			},
+			isValid: false,
 			expectedError: errors.New("executing validate_block: running runtime function: wasm error: unreachable" +
 				"\nwasm stack trace:\n\t.rust_begin_unwind(i32)\n\t._ZN4core9panicking9panic_fmt17h55a9886e2bf4227aE(" +
 				"i32,i32)\n\t\t0xcbc: /rustc/1c42cb4ef0544fbfaa500216e53382d6b079c001/library/core/src/panicking." +
@@ -306,7 +316,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				pov:              pov,
 			},
 			want: &ValidationResult{
-				ValidValidationResult{
+				ValidResult: &ValidValidationResult{
 					CandidateCommitments: parachaintypes.CandidateCommitments{
 						UpwardMessages:     nil,
 						HorizontalMessages: nil,
@@ -331,6 +341,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 					},
 				},
 			},
+			isValid: true,
 		},
 	}
 	for name, tt := range tests {
@@ -345,7 +356,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-
+			require.Equal(t, tt.isValid, got.IsValid())
 			require.Equal(t, tt.want, got)
 		})
 	}
@@ -359,6 +370,10 @@ func TestCandidateValidation_wasm_invalid_magic_number(t *testing.T) {
 }
 
 func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) {
+	povHashMismatch := PoVHashMismatch
+	paramsTooLarge := ParamsTooLarge
+	codeHashMismatch := CodeHashMismatch
+
 	candidateReceipt, validationCode := createTestCandidateReceiptAndValidationCode(t)
 	candidateReceipt2 := candidateReceipt
 	candidateReceipt2.Descriptor.PovHash = common.MustHexToHash(
@@ -419,9 +434,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 			},
 			want: parachaintypes.OverseerFuncRes[ValidationResult]{
 				Data: ValidationResult{
-					InvalidValidationResult{
-						ReasonForInvalidity: ErrValidationPoVHashMismatch,
-					},
+					InvalidResult: &povHashMismatch,
 				},
 				Err: nil,
 			},
@@ -441,9 +454,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 			},
 			want: parachaintypes.OverseerFuncRes[ValidationResult]{
 				Data: ValidationResult{
-					InvalidValidationResult{
-						ReasonForInvalidity: fmt.Errorf("%w, limit: 10, got: 17", ErrValidationParamsTooLarge),
-					},
+					InvalidResult: &paramsTooLarge,
 				},
 			},
 		},
@@ -462,9 +473,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 			},
 			want: parachaintypes.OverseerFuncRes[ValidationResult]{
 				Data: ValidationResult{
-					InvalidValidationResult{
-						ReasonForInvalidity: ErrValidationCodeMismatch,
-					},
+					InvalidResult: &codeHashMismatch,
 				},
 			},
 		},
@@ -483,7 +492,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 			},
 			want: parachaintypes.OverseerFuncRes[ValidationResult]{
 				Data: ValidationResult{
-					ValidValidationResult{
+					ValidResult: &ValidValidationResult{
 						CandidateCommitments: parachaintypes.CandidateCommitments{
 							HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123,
 								207, 206, 8, 219, 227, 136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245,
@@ -520,6 +529,11 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 }
 
 func Test_performBasicChecks(t *testing.T) {
+	paramsTooLarge := ParamsTooLarge
+	povHashMismatch := PoVHashMismatch
+	codeHashMismatch := CodeHashMismatch
+	badSignature := BadSignature
+
 	pov := parachaintypes.PoV{
 		BlockData: []byte{1, 2, 3, 4, 5, 6, 7, 8},
 	}
@@ -568,7 +582,7 @@ func Test_performBasicChecks(t *testing.T) {
 	}
 	tests := map[string]struct {
 		args          args
-		expectedError error
+		expectedError *CandidateInvalidity
 	}{
 		"params_too_large": {
 			args: args{
@@ -576,7 +590,7 @@ func Test_performBasicChecks(t *testing.T) {
 				maxPoVSize: 2,
 				pov:        pov,
 			},
-			expectedError: fmt.Errorf("%w, limit: 2, got: 9", ErrValidationParamsTooLarge),
+			expectedError: &paramsTooLarge,
 		},
 		"invalid_pov_hash": {
 			args: args{
@@ -584,7 +598,7 @@ func Test_performBasicChecks(t *testing.T) {
 				maxPoVSize: 1024,
 				pov:        pov2,
 			},
-			expectedError: ErrValidationPoVHashMismatch,
+			expectedError: &povHashMismatch,
 		},
 		"invalid_code_hash": {
 			args: args{
@@ -593,7 +607,7 @@ func Test_performBasicChecks(t *testing.T) {
 				pov:                pov,
 				validationCodeHash: parachaintypes.ValidationCodeHash{1, 2, 3},
 			},
-			expectedError: ErrValidationCodeMismatch,
+			expectedError: &codeHashMismatch,
 		},
 		"invalid_signature": {
 			args: args{
@@ -602,7 +616,7 @@ func Test_performBasicChecks(t *testing.T) {
 				pov:                pov,
 				validationCodeHash: validationCodeHash,
 			},
-			expectedError: ErrValidationBadSignature,
+			expectedError: &badSignature,
 		},
 		"happy_path": {
 			args: args{
@@ -620,7 +634,7 @@ func Test_performBasicChecks(t *testing.T) {
 			if tt.expectedError != nil {
 				require.EqualError(t, validationError, tt.expectedError.Error())
 			} else {
-				require.NoError(t, validationError)
+				require.Nil(t, validationError)
 			}
 		})
 	}

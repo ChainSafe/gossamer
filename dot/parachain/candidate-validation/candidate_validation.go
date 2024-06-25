@@ -20,11 +20,8 @@ import (
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-candidate-validation"))
 
 var (
-	ErrValidationCodeMismatch    = errors.New("validation code hash does not match")
-	ErrValidationInputOverLimit  = errors.New("validation input is over the limit")
-	ErrValidationParamsTooLarge  = errors.New("validation parameters are too large")
-	ErrValidationPoVHashMismatch = errors.New("PoV hash does not match candidate PoV hash")
-	ErrValidationBadSignature    = errors.New("bad signature")
+	ErrValidationCodeMismatch   = errors.New("validation code hash does not match")
+	ErrValidationInputOverLimit = errors.New("validation input is over the limit")
 )
 
 // CandidateValidation is a parachain subsystem that validates candidate parachain blocks
@@ -90,7 +87,7 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 				if err != nil {
 					logger.Errorf("failed to validate from exhaustive: %w", err)
 					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
-						Data: ValidationResult{InvalidValidationResult{ReasonForInvalidity: err}},
+						Data: *result,
 						Err:  err,
 					}
 				} else {
@@ -250,12 +247,10 @@ func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
 		pov,
 		validationCodeHash)
 	if validationErr != nil {
-		validationResult := ValidationResult{
-			InvalidValidationResult{
-				ReasonForInvalidity: validationErr,
-			},
+		validationResult := &ValidationResult{
+			InvalidResult: validationErr,
 		}
-		return &validationResult, internalErr
+		return validationResult, internalErr
 	}
 
 	validationParams := parachainruntime.ValidationParameters{
@@ -267,11 +262,12 @@ func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
 
 	validationResult, err := validationHost.ValidateBlock(validationParams)
 	if err != nil {
-		return nil, fmt.Errorf("executing validate_block: %w", err)
+		ci := ExecutionError
+		return &ValidationResult{InvalidResult: &ci}, fmt.Errorf("executing validate_block: %w", err)
 	}
 
 	result := &ValidationResult{
-		ValidValidationResult{
+		ValidResult: &ValidValidationResult{
 			CandidateCommitments: parachaintypes.CandidateCommitments{
 				UpwardMessages:            validationResult.UpwardMessages,
 				HorizontalMessages:        validationResult.HorizontalMessages,
@@ -287,9 +283,9 @@ func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
 }
 
 // performBasicChecks Does basic checks of a candidate. Provide the encoded PoV-block.
-// Returns validation error or internal error if any.
+// Returns CandidateInvalidity and internal error if any.
 func performBasicChecks(candidate *parachaintypes.CandidateDescriptor, maxPoVSize uint32,
-	pov parachaintypes.PoV, validationCodeHash parachaintypes.ValidationCodeHash) (validationError error,
+	pov parachaintypes.PoV, validationCodeHash parachaintypes.ValidationCodeHash) (validationError *CandidateInvalidity,
 	internalError error) {
 	povHash, err := pov.Hash()
 	if err != nil {
@@ -303,20 +299,24 @@ func performBasicChecks(candidate *parachaintypes.CandidateDescriptor, maxPoVSiz
 	encodedPoVSize := uint32(len(encodedPoV))
 
 	if encodedPoVSize > maxPoVSize {
-		return fmt.Errorf("%w, limit: %d, got: %d", ErrValidationParamsTooLarge, maxPoVSize, encodedPoVSize), nil
+		ci := ParamsTooLarge
+		return &ci, nil
 	}
 
 	if povHash != candidate.PovHash {
-		return ErrValidationPoVHashMismatch, nil
+		ci := PoVHashMismatch
+		return &ci, nil
 	}
 
 	if validationCodeHash != candidate.ValidationCodeHash {
-		return ErrValidationCodeMismatch, nil
+		ci := CodeHashMismatch
+		return &ci, nil
 	}
 
 	err = candidate.CheckCollatorSignature()
 	if err != nil {
-		return ErrValidationBadSignature, nil
+		ci := BadSignature
+		return &ci, nil
 	}
 	return nil, nil
 }

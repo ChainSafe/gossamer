@@ -40,7 +40,12 @@ type ValidateFromExhaustive struct {
 // If the result is valid,
 // set the values of the CandidateCommitments and PersistedValidationData fields of ValidValidationResult.
 type ValidationResult struct {
-	Value any
+	ValidResult   *ValidValidationResult
+	InvalidResult *CandidateInvalidity
+}
+
+func (vr ValidationResult) IsValid() bool {
+	return vr.ValidResult != nil
 }
 
 type ValidValidationResult struct {
@@ -48,8 +53,68 @@ type ValidValidationResult struct {
 	PersistedValidationData parachaintypes.PersistedValidationData
 }
 
-type InvalidValidationResult struct {
-	ReasonForInvalidity error
+type CandidateInvalidity int
+
+const (
+	// ExecutionError Failed to execute `validate_block`. This includes function panicking.
+	ExecutionError CandidateInvalidity = iota
+	// InvalidOutputs Validation outputs check doesn't pass.
+	InvalidOutputs
+	// Timeout Execution timeout.
+	Timeout
+	// ParamsTooLarge Validation input is over the limit.
+	ParamsTooLarge
+	// CodeTooLarge Code size is over the limit.
+	CodeTooLarge
+	// PoVDecompressionFailure PoV does not decompress correctly.
+	PoVDecompressionFailure
+	// BadReturn Validation function returned invalid data.
+	BadReturn
+	// BadParent Invalid relay chain parent.
+	BadParent
+	// PoVHashMismatch POV hash does not match.
+	PoVHashMismatch
+	// BadSignature Bad collator signature.
+	BadSignature
+	// ParaHeadHashMismatch Para head hash does not match.
+	ParaHeadHashMismatch
+	// CodeHashMismatch Validation code hash does not match.
+	CodeHashMismatch
+	// CommitmentsHashMismatch Validation has generated different candidate commitments.
+	CommitmentsHashMismatch
+)
+
+func (ci CandidateInvalidity) Error() string {
+	switch ci {
+	case ExecutionError:
+		return "failed to execute `validate_block`"
+	case InvalidOutputs:
+		return "validation outputs check doesn't pass"
+	case Timeout:
+		return "execution timeout"
+	case ParamsTooLarge:
+		return "validation input is over the limit"
+	case CodeTooLarge:
+		return "code size is over the limit"
+	case PoVDecompressionFailure:
+		return "PoV does not decompress correctly"
+	case BadReturn:
+		return "validation function returned invalid data"
+	case BadParent:
+		return "invalid relay chain parent"
+	case PoVHashMismatch:
+		return "PoV hash does not match"
+	case BadSignature:
+		return "bad collator signature"
+	case ParaHeadHashMismatch:
+		return "para head hash does not match"
+	case CodeHashMismatch:
+		return "validation code hash does not match"
+	case CommitmentsHashMismatch:
+		return "validation has generated different candidate commitments"
+	default:
+		return "unknown invalidity reason"
+	}
 }
 
 // PreCheck try to compile the given validation code and return the result
