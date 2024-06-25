@@ -94,7 +94,27 @@ func (t *TrieState) CommitTransaction() {
 		t.transactions.Back().Prev().Value = t.transactions.Remove(t.transactions.Back())
 	} else {
 		// This is the last transaction so we apply all the changes to our state
-		t.transactions.Remove(t.transactions.Back()).(*storageDiff).applyToTrie(t.state)
+		tx := t.transactions.Remove(t.transactions.Back()).(*storageDiff)
+		tx.applyToTrie(t.state)
+
+		// Update sorted keys
+		for _, k := range tx.sortedKeys {
+			t.addMainTrieSortedKey(k)
+		}
+
+		for k := range tx.deletes {
+			t.removeMainTrieSortedKey(k)
+		}
+
+		for childKey, childChanges := range tx.childChangeSet {
+			for _, k := range childChanges.sortedKeys {
+				t.addChildTrieSortedKey(childKey, k)
+			}
+
+			for k := range childChanges.deletes {
+				t.removeChildTrieSortedKey(childKey, k)
+			}
+		}
 	}
 }
 
@@ -174,7 +194,6 @@ func (t *TrieState) Delete(key []byte) (err error) {
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		t.getCurrentTransaction().delete(string(key))
-
 	} else {
 		err := t.state.Delete(key)
 		if err != nil {
@@ -192,11 +211,21 @@ func (t *TrieState) NextKey(key []byte) []byte {
 	defer t.mtx.RUnlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-		allSortedKeys := append(t.sortedKeys, currentTx.sortedKeys...)
+		mainStateSortedKeys := make([]string, len(t.sortedKeys))
+		copy(mainStateSortedKeys, t.sortedKeys)
+
+		mainStateSortedKeys = slices.DeleteFunc(mainStateSortedKeys, func(s string) bool {
+			_, ok := currentTx.deletes[s]
+			return ok
+		})
+
+		allSortedKeys := append(mainStateSortedKeys, currentTx.sortedKeys...)
+		sort.Strings(allSortedKeys)
+
 		// Find key position
 		pos, found := slices.BinarySearch(allSortedKeys, string(key))
 		if found {
-			pos = pos + 1
+			pos += 1
 		}
 
 		// Get next key based on that position
@@ -204,6 +233,7 @@ func (t *TrieState) NextKey(key []byte) []byte {
 			k := allSortedKeys[pos]
 			return []byte(k)
 		}
+
 		return nil
 	}
 
@@ -511,7 +541,18 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 		}
 
 		if childChanges := currentTx.childChangeSet[string(keyToChild)]; childChanges != nil {
-			allSortedKeys := append(t.childSortedKeys[string(keyToChild)], childChanges.sortedKeys...)
+			mainStateChildTrieSortedKeys := t.childSortedKeys[string(keyToChild)]
+			childTrieSortedKeys := make([]string, len(mainStateChildTrieSortedKeys))
+			copy(childTrieSortedKeys, mainStateChildTrieSortedKeys)
+
+			childTrieSortedKeys = slices.DeleteFunc(childTrieSortedKeys, func(s string) bool {
+				_, ok := childChanges.deletes[s]
+				return ok
+			})
+
+			allSortedKeys := append(childTrieSortedKeys, childChanges.sortedKeys...)
+			sort.Strings(allSortedKeys)
+
 			// Find key position
 			pos, found := slices.BinarySearch(allSortedKeys, string(key))
 			if found {

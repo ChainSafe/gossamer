@@ -10,6 +10,7 @@ import (
 var (
 	ErrNoPeersConnected     = errors.New("no peers connected")
 	ErrReceivedEmptyMessage = errors.New("received empty message")
+	ErrNilBlockInResponse   = errors.New("nil block in response")
 
 	errCannotValidateHandshake       = errors.New("failed to validate handshake")
 	errMessageTypeNotValid           = errors.New("message type is not valid")
