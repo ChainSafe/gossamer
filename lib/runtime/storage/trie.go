@@ -9,6 +9,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -246,8 +247,7 @@ func (t *TrieState) ClearPrefix(prefix []byte) error {
 	defer t.mtx.Unlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-		trieKeys := t.state.Entries()
-		currentTx.clearPrefix(prefix, maps.Keys(trieKeys), -1)
+		currentTx.clearPrefix(prefix, t.sortedKeys, -1)
 		return nil
 	}
 
@@ -266,8 +266,7 @@ func (t *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
 	defer t.mtx.Unlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-		trieKeys := t.state.Entries()
-		deleted, allDeleted = currentTx.clearPrefix(prefix, maps.Keys(trieKeys), int(limit))
+		deleted, allDeleted = currentTx.clearPrefix(prefix, t.sortedKeys, int(limit))
 		return deleted, allDeleted, nil
 	}
 
@@ -466,13 +465,7 @@ func (t *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 	defer t.mtx.Unlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-		child, err := t.state.GetChild(keyToChild)
-		childKeys := make([]string, 0)
-		if err == nil {
-			childKeys = maps.Keys(child.Entries())
-		}
-
-		currentTx.clearPrefixInChild(string(keyToChild), prefix, childKeys, -1)
+		currentTx.clearPrefixInChild(string(keyToChild), prefix, t.childSortedKeys[string(keyToChild)], -1)
 		return nil
 	}
 
@@ -502,13 +495,8 @@ func (t *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit
 	defer t.mtx.Unlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-		child, err := t.state.GetChild(keyToChild)
-		childKeys := make([]string, 0)
-		if err == nil {
-			childKeys = maps.Keys(child.Entries())
-		}
 
-		deleted, allDeleted := currentTx.clearPrefixInChild(string(keyToChild), prefix, childKeys, int(limit))
+		deleted, allDeleted := currentTx.clearPrefixInChild(string(keyToChild), prefix, t.childSortedKeys[string(keyToChild)], int(limit))
 		return deleted, allDeleted, nil
 	}
 
@@ -687,11 +675,16 @@ func (t *TrieState) removeSortedKey(keys []string, key string) []string {
 	return keys
 }
 
-func (t *TrieState) removePrefixedSortedKey(keys []string, key string, limit int) []string {
+func (t *TrieState) removePrefixedSortedKey(keys []string, prefix string, limit int) []string {
+	if limit == 0 {
+		return keys
+	}
+
 	amountDeleted := 0
 	for _, k := range keys {
-		if bytes.HasPrefix([]byte(k), []byte(key)) {
+		if strings.HasPrefix(k, prefix) {
 			keys = t.removeSortedKey(keys, k)
+			amountDeleted++
 			if limit > 0 && amountDeleted == limit {
 				break
 			}
