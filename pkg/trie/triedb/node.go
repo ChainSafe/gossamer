@@ -59,9 +59,9 @@ func NewEncodedValue(value nodeValue, partial []byte, childF onChildStoreFn) (co
 				if v.hash != cr.hash {
 					panic("hash mismatch")
 				}
+			} else {
+				v.hash = cr.hash
 			}
-
-			v.hash = cr.hash
 		default:
 			panic("value node can never be inlined")
 		}
