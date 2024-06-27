@@ -551,7 +551,7 @@ func TestClearPrefixSortedKeys(t *testing.T) {
 			ts.CommitTransaction()
 		}
 
-		// clear just 1 key using the prefix
+		// clear all keys using the prefix
 		commonPrefix := []byte("same_prefix_key::")
 		ts.ClearPrefix(commonPrefix)
 
