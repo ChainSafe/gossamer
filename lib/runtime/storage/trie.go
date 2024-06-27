@@ -255,7 +255,7 @@ func (t *TrieState) ClearPrefix(prefix []byte) error {
 	if err != nil {
 		return err
 	}
-	t.sortedKeys = t.removePrefixedSortedKey(t.sortedKeys, string(prefix), -1)
+	t.sortedKeys = removePrefixedSortedKey(t.sortedKeys, string(prefix), -1)
 	return nil
 }
 
@@ -274,7 +274,7 @@ func (t *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
 	if err != nil {
 		return 0, false, err
 	}
-	t.sortedKeys = t.removePrefixedSortedKey(t.sortedKeys, string(prefix), int(limit))
+	t.sortedKeys = removePrefixedSortedKey(t.sortedKeys, string(prefix), int(limit))
 	return
 }
 
@@ -481,7 +481,7 @@ func (t *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 	if err != nil {
 		return fmt.Errorf("clearing prefix in child trie located at key 0x%x: %w", keyToChild, err)
 	}
-	t.childSortedKeys[string(keyToChild)] = t.removePrefixedSortedKey(
+	t.childSortedKeys[string(keyToChild)] = removePrefixedSortedKey(
 		t.childSortedKeys[string(keyToChild)],
 		string(prefix),
 		-1,
@@ -509,7 +509,7 @@ func (t *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit
 	if err != nil {
 		return 0, false, err
 	}
-	t.childSortedKeys[string(keyToChild)] = t.removePrefixedSortedKey(
+	t.childSortedKeys[string(keyToChild)] = removePrefixedSortedKey(
 		t.childSortedKeys[string(keyToChild)],
 		string(prefix),
 		-1,
@@ -637,24 +637,23 @@ func (t *TrieState) GetChangedNodeHashes() (inserted, deleted map[common.Hash]st
 }
 
 func (t *TrieState) addMainTrieSortedKey(key string) {
-	t.sortedKeys = t.insertSortedKey(t.sortedKeys, key)
+	t.sortedKeys = insertSortedKey(t.sortedKeys, key)
 }
 
 func (t *TrieState) removeMainTrieSortedKey(key string) {
-	t.sortedKeys = t.removeSortedKey(t.sortedKeys, key)
+	t.sortedKeys = removeSortedKey(t.sortedKeys, key)
 }
 
 func (t *TrieState) addChildTrieSortedKey(keyToChild, key string) {
-	t.childSortedKeys[keyToChild] = t.insertSortedKey(t.childSortedKeys[keyToChild], key)
+	t.childSortedKeys[keyToChild] = insertSortedKey(t.childSortedKeys[keyToChild], key)
 }
 
 func (t *TrieState) removeChildTrieSortedKey(keyToChild, key string) {
-	t.childSortedKeys[keyToChild] = t.removeSortedKey(t.childSortedKeys[keyToChild], key)
+	t.childSortedKeys[keyToChild] = removeSortedKey(t.childSortedKeys[keyToChild], key)
 }
 
-func (t *TrieState) insertSortedKey(keys []string, key string) []string {
+func insertSortedKey(keys []string, key string) []string {
 	pos, found := slices.BinarySearch(keys, key)
-
 	if found {
 		return keys // key already exists
 	}
@@ -665,7 +664,7 @@ func (t *TrieState) insertSortedKey(keys []string, key string) []string {
 	return keys
 }
 
-func (t *TrieState) removeSortedKey(keys []string, key string) []string {
+func removeSortedKey(keys []string, key string) []string {
 	pos, found := slices.BinarySearch(keys, key)
 
 	if found {
@@ -675,7 +674,7 @@ func (t *TrieState) removeSortedKey(keys []string, key string) []string {
 	return keys
 }
 
-func (t *TrieState) removePrefixedSortedKey(keys []string, prefix string, limit int) []string {
+func removePrefixedSortedKey(keys []string, prefix string, limit int) []string {
 	if limit == 0 {
 		return keys
 	}

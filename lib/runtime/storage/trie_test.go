@@ -503,34 +503,31 @@ func TestClearPrefixSortedKeys(t *testing.T) {
 			[]byte("same_prefix_key::E"),
 		}
 
-		{
-			// insert the keys under a transaction
-			ts.StartTransaction()
-			for _, k := range setOfKeysWithSamePrefix {
-				ts.Put(k, []byte("some_value"))
-			}
-			ts.CommitTransaction()
+		// insert the keys under a transaction
+		ts.StartTransaction()
+		for _, k := range setOfKeysWithSamePrefix {
+			ts.Put(k, []byte("some_value"))
 		}
+		ts.CommitTransaction()
 
 		// clear just 1 key using the prefix
 		commonPrefix := []byte("same_prefix_key::")
 		ts.ClearPrefixLimit(commonPrefix, 1)
 
-		{
-			ts.StartTransaction()
-			lastKey := commonPrefix
+		ts.StartTransaction()
+		lastKey := commonPrefix
 
-			// we should be able to retrieve
-			for i := 0; i < len(setOfKeysWithSamePrefix)-1; i++ {
-				nextKey := ts.NextKey(lastKey)
-				require.True(t, bytes.HasPrefix(nextKey, commonPrefix), "%v does not have prefix %s", nextKey, commonPrefix)
-				lastKey = nextKey
-			}
-
-			// the 5th next key call should return nil
-			require.Nil(t, ts.NextKey(lastKey))
-			ts.CommitTransaction()
+		// we should be able to retrieve
+		for i := 0; i < len(setOfKeysWithSamePrefix)-1; i++ {
+			nextKey := ts.NextKey(lastKey)
+			require.True(t, bytes.HasPrefix(nextKey, commonPrefix), "%v does not have prefix %s", nextKey, commonPrefix)
+			lastKey = nextKey
 		}
+
+		// the 5th next key call should return nil
+		require.Nil(t, ts.NextKey(lastKey))
+		ts.CommitTransaction()
+
 	})
 
 	t.Run("without_limit", func(t *testing.T) {
@@ -558,12 +555,11 @@ func TestClearPrefixSortedKeys(t *testing.T) {
 		commonPrefix := []byte("same_prefix_key::")
 		ts.ClearPrefix(commonPrefix)
 
-		{
-			ts.StartTransaction()
-			// should not exist any key
-			require.Nil(t, ts.NextKey(commonPrefix))
-			ts.CommitTransaction()
-		}
+		ts.StartTransaction()
+		// should not exist any key
+		require.Nil(t, ts.NextKey(commonPrefix))
+		ts.CommitTransaction()
+
 	})
 }
 
