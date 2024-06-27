@@ -496,8 +496,8 @@ func (t *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit
 	defer t.mtx.Unlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-
-		deleted, allDeleted := currentTx.clearPrefixInChild(string(keyToChild), prefix, t.childSortedKeys[string(keyToChild)], int(limit))
+		deleted, allDeleted := currentTx.clearPrefixInChild(string(keyToChild), prefix,
+			t.childSortedKeys[string(keyToChild)], int(limit))
 		return deleted, allDeleted, nil
 	}
 
