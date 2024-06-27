@@ -212,7 +212,6 @@ func (t *TrieState) NextKey(key []byte) []byte {
 	defer t.mtx.RUnlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-		fmt.Printf("next key: %v\n", t.sortedKeys)
 		mainStateSortedKeys := make([]string, len(t.sortedKeys))
 		copy(mainStateSortedKeys, t.sortedKeys)
 
