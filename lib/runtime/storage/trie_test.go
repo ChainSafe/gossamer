@@ -4,11 +4,13 @@
 package storage
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/require"
 )
@@ -398,6 +400,18 @@ func TestNextKeys(t *testing.T) {
 		expectedNextKey    []byte
 		searchKey          []byte
 	}{
+		"key_already_on_state": {
+			searchKey: []byte("acc:abc123:fff"),
+			keysOnState: [][]byte{
+				[]byte("acc:abc123:ddd"),
+				[]byte("acc:abc123:eee"),
+				[]byte("acc:abc123:fff"),
+				[]byte("completely_diff_key"),
+			},
+			underTransactionFn: func(t *testing.T, ts *TrieState) {
+			},
+			expectedNextKey: []byte("completely_diff_key"),
+		},
 		"key_removed_inside_tx": {
 			searchKey: []byte("acc:abc123"),
 			keysOnState: [][]byte{
@@ -474,6 +488,83 @@ func TestNextKeys(t *testing.T) {
 			ts.CommitTransaction()
 		})
 	}
+}
+
+func TestClearPrefixSortedKeys(t *testing.T) {
+	t.Run("with_limit", func(t *testing.T) {
+		ts := NewTrieState(inmemory_trie.NewEmptyTrie())
+		ts.SetVersion(trie.V1)
+
+		setOfKeysWithSamePrefix := [][]byte{
+			[]byte("same_prefix_key::A"),
+			[]byte("same_prefix_key::B"),
+			[]byte("same_prefix_key::C"),
+			[]byte("same_prefix_key::D"),
+			[]byte("same_prefix_key::E"),
+		}
+
+		{
+			// insert the keys under a transaction
+			ts.StartTransaction()
+			for _, k := range setOfKeysWithSamePrefix {
+				ts.Put(k, []byte("some_value"))
+			}
+			ts.CommitTransaction()
+		}
+
+		// clear just 1 key using the prefix
+		commonPrefix := []byte("same_prefix_key::")
+		ts.ClearPrefixLimit(commonPrefix, 1)
+
+		{
+			ts.StartTransaction()
+			lastKey := commonPrefix
+
+			// we should be able to retrieve
+			for i := 0; i < len(setOfKeysWithSamePrefix)-1; i++ {
+				nextKey := ts.NextKey(lastKey)
+				require.True(t, bytes.HasPrefix(nextKey, commonPrefix), "%v does not have prefix %s", nextKey, commonPrefix)
+				lastKey = nextKey
+			}
+
+			// the 5th next key call should return nil
+			require.Nil(t, ts.NextKey(lastKey))
+			ts.CommitTransaction()
+		}
+	})
+
+	t.Run("without_limit", func(t *testing.T) {
+		ts := NewTrieState(inmemory_trie.NewEmptyTrie())
+		ts.SetVersion(trie.V1)
+
+		setOfKeysWithSamePrefix := [][]byte{
+			[]byte("same_prefix_key::A"),
+			[]byte("same_prefix_key::B"),
+			[]byte("same_prefix_key::C"),
+			[]byte("same_prefix_key::D"),
+			[]byte("same_prefix_key::E"),
+		}
+
+		{
+			// insert the keys under a transaction
+			ts.StartTransaction()
+			for _, k := range setOfKeysWithSamePrefix {
+				ts.Put(k, []byte("some_value"))
+			}
+			ts.CommitTransaction()
+		}
+
+		// clear just 1 key using the prefix
+		commonPrefix := []byte("same_prefix_key::")
+		ts.ClearPrefix(commonPrefix)
+
+		{
+			ts.StartTransaction()
+			// should not exist any key
+			require.Nil(t, ts.NextKey(commonPrefix))
+			ts.CommitTransaction()
+		}
+	})
 }
 
 func TestTrieState_Root(t *testing.T) {

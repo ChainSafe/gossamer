@@ -212,6 +212,7 @@ func (t *TrieState) NextKey(key []byte) []byte {
 	defer t.mtx.RUnlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		fmt.Printf("next key: %v\n", t.sortedKeys)
 		mainStateSortedKeys := make([]string, len(t.sortedKeys))
 		copy(mainStateSortedKeys, t.sortedKeys)
 
@@ -669,7 +670,7 @@ func (t *TrieState) removeSortedKey(keys []string, key string) []string {
 	pos, found := slices.BinarySearch(keys, key)
 
 	if found {
-		keys = append(keys[:pos], keys[pos+1:]...)
+		return append(keys[:pos], keys[pos+1:]...)
 	}
 
 	return keys
@@ -681,13 +682,20 @@ func (t *TrieState) removePrefixedSortedKey(keys []string, prefix string, limit 
 	}
 
 	amountDeleted := 0
-	for _, k := range keys {
-		if strings.HasPrefix(k, prefix) {
-			keys = t.removeSortedKey(keys, k)
-			amountDeleted++
-			if limit > 0 && amountDeleted == limit {
-				break
-			}
+	for {
+		pos, _ := slices.BinarySearch(keys, prefix)
+		if pos >= len(keys) {
+			break
+		}
+
+		if !strings.HasPrefix(keys[pos], prefix) {
+			break
+		}
+
+		keys = append(keys[:pos], keys[pos+1:]...)
+		amountDeleted++
+		if limit > 0 && limit == amountDeleted {
+			break
 		}
 	}
 
