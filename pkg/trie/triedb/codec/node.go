@@ -84,11 +84,11 @@ func (v HashedValue) Write(writer io.Writer) error {
 	return nil
 }
 
-func NewInlineValue(data []byte) EncodedValue {
+func NewInlineValue(data []byte) InlineValue {
 	return InlineValue{Data: data}
 }
 
-func NewHashedValue(data []byte) EncodedValue {
+func NewHashedValue(data []byte) HashedValue {
 	return HashedValue{Data: data}
 }
 
