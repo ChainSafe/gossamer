@@ -50,18 +50,19 @@ type TrieDB struct {
 	recorder *Recorder
 }
 
-func NewEmptyTrieDB(db db.RWDatabase, cache cache.TrieCache) *TrieDB {
+func NewEmptyTrieDB(db db.RWDatabase, cache cache.TrieCache, recorder *Recorder) *TrieDB {
 	root := hashedNullNode
-	return NewTrieDB(root, db, cache)
+	return NewTrieDB(root, db, cache, recorder)
 }
 
 // NewTrieDB creates a new TrieDB using the given root and db
-func NewTrieDB(rootHash common.Hash, db db.RWDatabase, cache cache.TrieCache) *TrieDB {
+func NewTrieDB(rootHash common.Hash, db db.RWDatabase, cache cache.TrieCache, recorder *Recorder) *TrieDB {
 	rootHandle := Persisted{hash: rootHash}
 
 	return &TrieDB{
 		rootHash:   rootHash,
 		cache:      cache,
+		recorder:   recorder,
 		version:    trie.V0,
 		db:         db,
 		storage:    NewNodeStorage(),
@@ -766,7 +767,7 @@ func (t *TrieDB) commit() error {
 					}
 
 					k = k[:mov]
-					return HashChildReference{hash: hash}, nil
+					return HashChildReference{Hash: hash}, nil
 				case TrieNodeToEncode:
 					result, err := t.commitChild(dbBatch, n.child, k)
 					if err != nil {
@@ -816,12 +817,12 @@ func (t *TrieDB) commitChild(
 	switch nh := child.(type) {
 	case Persisted:
 		// Already persisted we have to do nothing
-		return HashChildReference(nh), nil
+		return HashChildReference{Hash: nh.hash}, nil
 	case InMemory:
 		stored := t.storage.destroy(nh.idx)
 		switch storedNode := stored.(type) {
 		case CachedStoredNode:
-			return HashChildReference{hash: storedNode.hash}, nil
+			return HashChildReference{Hash: storedNode.hash}, nil
 		case NewStoredNode:
 			// We have to store the node in the DB
 			commitChildFunc := func(node NodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error) {
@@ -846,7 +847,7 @@ func (t *TrieDB) commitChild(
 					}
 
 					prefixKey = prefixKey[:mov]
-					return HashChildReference{hash: valueHash}, nil
+					return HashChildReference{Hash: valueHash}, nil
 				case TrieNodeToEncode:
 					result, err := t.commitChild(dbBatch, n.child, prefixKey)
 					if err != nil {
@@ -873,7 +874,7 @@ func (t *TrieDB) commitChild(
 					return nil, err
 				}
 
-				return HashChildReference{hash: hash}, nil
+				return HashChildReference{Hash: hash}, nil
 			} else {
 				return InlineChildReference{encoded}, nil
 			}

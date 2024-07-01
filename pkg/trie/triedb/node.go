@@ -51,16 +51,16 @@ func NewEncodedValue(value nodeValue, partial []byte, childF onChildStoreFn) (co
 		// Check and get new new value hash
 		switch cr := childRef.(type) {
 		case HashChildReference:
-			if cr.hash == common.EmptyHash {
+			if cr.Hash == common.EmptyHash {
 				panic("new external value are always added before encoding a node")
 			}
 
 			if v.hash != common.EmptyHash {
-				if v.hash != cr.hash {
+				if v.hash != cr.Hash {
 					panic("hash mismatch")
 				}
 			} else {
-				v.hash = cr.hash
+				v.hash = cr.Hash
 			}
 		default:
 			panic("value node can never be inlined")
@@ -233,18 +233,18 @@ type ChildReference interface {
 
 type (
 	HashChildReference struct {
-		hash common.Hash
+		Hash common.Hash
 	}
 	InlineChildReference struct {
-		encodedNode []byte
+		EncodedNode []byte
 	}
 )
 
 func (h HashChildReference) getNodeData() []byte {
-	return h.hash.ToBytes()
+	return h.Hash.ToBytes()
 }
 func (i InlineChildReference) getNodeData() []byte {
-	return i.encodedNode
+	return i.EncodedNode
 }
 
 type onChildStoreFn = func(node NodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error)

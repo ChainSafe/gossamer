@@ -45,10 +45,10 @@ const (
 )
 
 type Record struct {
-	// We are not using common.Hash here since hash size could be > 32 bytes when we use prefixed keys.
-	// See ValueAccess.hash
-	hash []byte
-	data []byte
+	// We are not using common.Hash here since Hash size could be > 32 bytes when we use prefixed keys.
+	// See ValueAccess.Hash
+	Hash []byte
+	Data []byte
 }
 
 type Recorder struct {
@@ -66,9 +66,9 @@ func NewRecorder() *Recorder {
 func (r *Recorder) record(access TrieAccess) {
 	switch a := access.(type) {
 	case EncodedNodeAccess:
-		r.nodes = append(r.nodes, Record{hash: a.hash.ToBytes(), data: a.encodedNode})
+		r.nodes = append(r.nodes, Record{Hash: a.hash.ToBytes(), Data: a.encodedNode})
 	case ValueAccess:
-		r.nodes = append(r.nodes, Record{hash: a.hash, data: a.value})
+		r.nodes = append(r.nodes, Record{Hash: a.hash, Data: a.value})
 		r.recordedKeys.Set(string(a.fullKey), RecordedValue)
 	case InlineValueAccess:
 		r.recordedKeys.Set(string(a.fullKey), RecordedValue)
@@ -82,7 +82,7 @@ func (r *Recorder) record(access TrieAccess) {
 	}
 }
 
-func (r *Recorder) drain() []Record {
+func (r *Recorder) Drain() []Record {
 	r.recordedKeys.Clear()
 	nodesToReturn := r.nodes
 	r.nodes = []Record{}
