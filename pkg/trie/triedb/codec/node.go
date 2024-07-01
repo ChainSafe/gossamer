@@ -121,6 +121,7 @@ func (l Leaf) GetValue() EncodedValue   { return l.Value }
 func (b Branch) GetPartialKey() []byte  { return b.PartialKey }
 func (b Branch) GetValue() EncodedValue { return b.Value }
 
+// NodeKind is an enum to represent the different types of nodes (Leaf, Branch, etc.)
 type NodeKind int
 
 const (
