@@ -35,7 +35,6 @@ type entry struct {
 type TrieDB struct {
 	rootHash common.Hash
 	db       db.RWDatabase
-	cache    cache.TrieCache
 	version  trie.TrieLayout
 	// rootHandle is an in-memory-trie-like representation of the node
 	// references and new inserted nodes in the trie
@@ -45,6 +44,10 @@ type TrieDB struct {
 	storage NodeStorage
 	// deathRow is a set of nodes that we want to delete from db
 	deathRow map[common.Hash]interface{}
+	// Optional cache to speed up the db lookups
+	cache cache.TrieCache
+	// Optional recorder for recording trie accesses
+	recorder *Recorder
 }
 
 func NewEmptyTrieDB(db db.RWDatabase, cache cache.TrieCache) *TrieDB {
@@ -160,6 +163,8 @@ func (t *TrieDB) getRootNode() (codec.EncodedNode, error) {
 		return nil, err
 	}
 
+	t.recordAccess(EncodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
+
 	reader := bytes.NewReader(encodedNode)
 	return codec.Decode(reader)
 }
@@ -188,6 +193,8 @@ func (t *TrieDB) getNode(
 		if err != nil {
 			return nil, err
 		}
+		t.recordAccess(EncodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
+
 		reader := bytes.NewReader(encodedNode)
 		return codec.Decode(reader)
 	default: // should never happen
@@ -693,6 +700,8 @@ func (t *TrieDB) lookupNode(hash common.Hash) (StorageHandle, error) {
 		return -1, ErrIncompleteDB
 	}
 
+	t.recordAccess(EncodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
+
 	node, err := newNodeFromEncoded(hash, encodedNode, t.storage)
 	if err != nil {
 		return -1, err
@@ -873,6 +882,12 @@ func (t *TrieDB) commitChild(
 		}
 	default:
 		panic("unreachable")
+	}
+}
+
+func (t *TrieDB) recordAccess(access TrieAccess) {
+	if t.recorder != nil {
+		t.recorder.record(access)
 	}
 }
 
