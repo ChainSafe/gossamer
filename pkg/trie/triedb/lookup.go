@@ -19,6 +19,8 @@ type TrieLookup struct {
 	hash common.Hash
 	// cache to speed up the db lookups
 	cache cache.TrieCache
+	// Optional recorder for recording trie accesses
+	recorder *Recorder
 }
 
 func NewTrieLookup(db db.DBGetter, hash common.Hash, cache cache.TrieCache) TrieLookup {
@@ -52,6 +54,8 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 			if l.cache != nil {
 				l.cache.SetNode(hash, nodeData)
 			}
+
+			l.recordAccess(EncodedNodeAccess{hash: common.BytesToHash(hash), encodedNode: nodeData})
 		}
 
 	InlinedChildrenIterator:
@@ -73,6 +77,9 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 				if bytes.Equal(partialKey, n.PartialKey) {
 					return n, nil
 				}
+
+				l.recordAccess(NonExistingNodeAccess{fullKey: keyNibbles})
+
 				return nil, nil
 			case codec.Branch:
 				nodePartialKey := n.PartialKey
@@ -81,6 +88,7 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 				// branch has a hashed child node that points to a node that
 				// doesn't share the prefix we are expecting
 				if !bytes.HasPrefix(partialKey, nodePartialKey) {
+					l.recordAccess(NonExistingNodeAccess{fullKey: keyNibbles})
 					return nil, nil
 				}
 
@@ -89,6 +97,8 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 					if n.Value != nil {
 						return n, nil
 					}
+
+					l.recordAccess(NonExistingNodeAccess{fullKey: keyNibbles})
 					return nil, nil
 				}
 
@@ -97,6 +107,7 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 				childIdx := int(partialKey[len(nodePartialKey)])
 				nextNode = n.Children[childIdx]
 				if nextNode == nil {
+					l.recordAccess(NonExistingNodeAccess{fullKey: keyNibbles})
 					return nil, nil
 				}
 
@@ -137,7 +148,7 @@ func (l *TrieLookup) lookupValue(keyNibbles []byte) (value []byte, err error) {
 	}
 
 	if nodeValue := node.GetValue(); nodeValue != nil {
-		value, err = l.fetchValue(node.GetPartialKey(), nodeValue)
+		value, err = l.fetchValue(node.GetPartialKey(), keyNibbles, nodeValue)
 		if err != nil {
 			return nil, err
 		}
@@ -154,9 +165,10 @@ func (l *TrieLookup) lookupValue(keyNibbles []byte) (value []byte, err error) {
 
 // fetchValue gets the value from the node, if it is inlined we can return it
 // directly. But if it is hashed (V1) we have to look up for its value in the DB
-func (l *TrieLookup) fetchValue(prefix []byte, value codec.EncodedValue) ([]byte, error) {
+func (l *TrieLookup) fetchValue(prefix []byte, fullKey []byte, value codec.EncodedValue) ([]byte, error) {
 	switch v := value.(type) {
 	case codec.InlineValue:
+		l.recordAccess(InlineValueAccess{fullKey: fullKey})
 		return v.Data, nil
 	case codec.HashedValue:
 		prefixedKey := bytes.Join([][]byte{prefix, v.Data}, nil)
@@ -168,15 +180,23 @@ func (l *TrieLookup) fetchValue(prefix []byte, value codec.EncodedValue) ([]byte
 
 		nodeData, err := l.db.Get(prefixedKey)
 		if err != nil {
-			return nil, err
+			return nil, ErrIncompleteDB
 		}
 
 		if l.cache != nil {
 			l.cache.SetValue(prefixedKey, nodeData)
 		}
 
+		l.recordAccess(ValueAccess{hash: prefixedKey, fullKey: fullKey, value: nodeData})
+
 		return nodeData, nil
 	default:
 		panic("unreachable")
+	}
+}
+
+func (l *TrieLookup) recordAccess(access TrieAccess) {
+	if l.recorder != nil {
+		l.recorder.record(access)
 	}
 }

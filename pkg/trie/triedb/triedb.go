@@ -30,7 +30,6 @@ var (
 type TrieDB struct {
 	rootHash common.Hash
 	db       db.RWDatabase
-	cache    cache.TrieCache
 	version  trie.TrieLayout
 	// rootHandle is an in-memory-trie-like representation of the node
 	// references and new inserted nodes in the trie
@@ -40,15 +39,19 @@ type TrieDB struct {
 	storage NodeStorage
 	// deathRow is a set of nodes that we want to delete from db
 	deathRow map[common.Hash]interface{}
+	// Optional cache to speed up the db lookups
+	cache cache.TrieCache
+	// Optional recorder for recording trie accesses
+	recorder *Recorder
 }
 
 func NewEmptyTrieDB(db db.RWDatabase, cache cache.TrieCache) *TrieDB {
 	root := hashedNullNode
-	return NewTrieDB(root, db, cache)
+	return NewTrieDB(root, db, cache, nil)
 }
 
 // NewTrieDB creates a new TrieDB using the given root and db
-func NewTrieDB(rootHash common.Hash, db db.RWDatabase, cache cache.TrieCache) *TrieDB {
+func NewTrieDB(rootHash common.Hash, db db.RWDatabase, cache cache.TrieCache, recorder *Recorder) *TrieDB {
 	rootHandle := Persisted{hash: rootHash}
 
 	return &TrieDB{
@@ -59,6 +62,7 @@ func NewTrieDB(rootHash common.Hash, db db.RWDatabase, cache cache.TrieCache) *T
 		storage:    NewNodeStorage(),
 		rootHandle: rootHandle,
 		deathRow:   make(map[common.Hash]interface{}),
+		recorder:   recorder,
 	}
 }
 
@@ -155,6 +159,8 @@ func (t *TrieDB) getRootNode() (codec.EncodedNode, error) {
 		return nil, err
 	}
 
+	t.recordAccess(EncodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
+
 	reader := bytes.NewReader(encodedNode)
 	return codec.Decode(reader)
 }
@@ -183,6 +189,8 @@ func (t *TrieDB) getNode(
 		if err != nil {
 			return nil, err
 		}
+		t.recordAccess(EncodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
+
 		reader := bytes.NewReader(encodedNode)
 		return codec.Decode(reader)
 	default: // should never happen
@@ -687,6 +695,8 @@ func (t *TrieDB) lookupNode(hash common.Hash) (StorageHandle, error) {
 		return -1, ErrIncompleteDB
 	}
 
+	t.recordAccess(EncodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
+
 	node, err := newNodeFromEncoded(hash, encodedNode, t.storage)
 	if err != nil {
 		return -1, err
@@ -877,6 +887,12 @@ func (t *TrieDB) Iter() trie.TrieIterator {
 
 func (t *TrieDB) PrefixedIter(prefix []byte) trie.TrieIterator {
 	return NewPrefixedTrieDBIterator(t, prefix)
+}
+
+func (t *TrieDB) recordAccess(access TrieAccess) {
+	if t.recorder != nil {
+		t.recorder.record(access)
+	}
 }
 
 var _ trie.TrieRead = (*TrieDB)(nil)
