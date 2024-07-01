@@ -902,7 +902,8 @@ func (cs *chainSync) handleBody(body *types.Body) {
 
 func (cs *chainSync) handleJustification(header *types.Header, justification []byte) (err error) {
 	headerHash := header.Hash()
-	err = cs.finalityGadget.VerifyBlockJustification(headerHash, justification)
+
+	err = cs.finalityGadget.VerifyBlockJustification(header.ParentHash, headerHash, justification)
 	if err != nil {
 		return fmt.Errorf("verifying block number %d justification: %w", header.Number, err)
 	}
