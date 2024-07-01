@@ -24,7 +24,7 @@ func TestWriteTrieDB_Migration(t *testing.T) {
 	inMemoryTrie.SetVersion(trie.V1)
 
 	inmemoryDB := NewMemoryDB(make([]byte, 1))
-	trieDB := NewTrieDB(trie.EmptyHash, inmemoryDB, nil)
+	trieDB := NewTrieDB(trie.EmptyHash, inmemoryDB, nil, nil)
 
 	entries := map[string][]byte{
 		"no":        []byte("noValue"),
@@ -81,7 +81,7 @@ func TestReadTrieDB_Migration(t *testing.T) {
 
 	root, err := inMemoryTrie.Hash()
 	assert.NoError(t, err)
-	trieDB := NewTrieDB(root, db, nil)
+	trieDB := NewTrieDB(root, db, nil, nil)
 
 	t.Run("read_successful_from_db_created_using_v1_trie", func(t *testing.T) {
 		for k, v := range entries {
