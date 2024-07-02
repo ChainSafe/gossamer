@@ -13,11 +13,17 @@ import (
 	nibbles "github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 
+	"github.com/ChainSafe/gossamer/internal/database"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/pkg/trie/cache"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 )
 
 var ErrIncompleteDB = errors.New("incomplete database")
+
+var (
+	logger = log.NewFromGlobal(log.AddContext("pkg", "triedb"))
+)
 
 type entry struct {
 	key   []byte
@@ -28,9 +34,9 @@ type entry struct {
 // using lazy loading to fetch nodes
 type TrieDB struct {
 	rootHash common.Hash
-	db       db.DBGetter
+	db       db.RWDatabase
 	cache    cache.TrieCache
-	layout   trie.TrieLayout
+	version  trie.TrieLayout
 	// rootHandle is an in-memory-trie-like representation of the node
 	// references and new inserted nodes in the trie
 	rootHandle NodeHandle
@@ -41,18 +47,19 @@ type TrieDB struct {
 	deathRow map[common.Hash]interface{}
 }
 
-func NewEmptyTrieDB(db db.Database, cache cache.TrieCache) *TrieDB {
+func NewEmptyTrieDB(db db.RWDatabase, cache cache.TrieCache) *TrieDB {
 	root := hashedNullNode
 	return NewTrieDB(root, db, cache)
 }
 
 // NewTrieDB creates a new TrieDB using the given root and db
-func NewTrieDB(rootHash common.Hash, db db.DBGetter, cache cache.TrieCache) *TrieDB {
+func NewTrieDB(rootHash common.Hash, db db.RWDatabase, cache cache.TrieCache) *TrieDB {
 	rootHandle := Persisted{hash: rootHash}
 
 	return &TrieDB{
 		rootHash:   rootHash,
 		cache:      cache,
+		version:    trie.V0,
 		db:         db,
 		storage:    NewNodeStorage(),
 		rootHandle: rootHandle,
@@ -60,8 +67,20 @@ func NewTrieDB(rootHash common.Hash, db db.DBGetter, cache cache.TrieCache) *Tri
 	}
 }
 
+func (t *TrieDB) SetVersion(v trie.TrieLayout) {
+	if v < t.version {
+		panic("cannot regress trie version")
+	}
+
+	t.version = v
+}
+
 // Hash returns the hashed root of the trie.
 func (t *TrieDB) Hash() (common.Hash, error) {
+	err := t.commit()
+	if err != nil {
+		return common.EmptyHash, err
+	}
 	// This is trivial since it is a read only trie, but will change when we
 	// support writes
 	return t.rootHash, nil
@@ -493,7 +512,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 	case Empty:
 		// If the node is empty we have to replace it with a leaf node with the
 		// new value
-		value := NewValue(value, t.layout.MaxInlineValue())
+		value := NewValue(value, t.version.MaxInlineValue())
 		return replaceNode{node: Leaf{partialKey: partial, value: value}}, nil
 	case Leaf:
 		existingKey := n.partialKey
@@ -502,7 +521,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 		if common == len(existingKey) && common == len(partial) {
 			// We are trying to insert a value in the same leaf so we just need
 			// to replace the value
-			value := NewValue(value, t.layout.MaxInlineValue())
+			value := NewValue(value, t.version.MaxInlineValue())
 			unchanged := n.value.equal(value)
 			t.replaceOldValue(oldValue, n.value)
 			leaf := Leaf{partialKey: n.partialKey, value: value}
@@ -559,7 +578,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 		if common == len(existingKey) && common == len(partial) {
 			// We are trying to insert a value in the same branch so we just need
 			// to replace the value
-			value := NewValue(value, t.layout.MaxInlineValue())
+			value := NewValue(value, t.version.MaxInlineValue())
 			var unchanged bool
 			if n.value != nil {
 				unchanged = n.value.equal(value)
@@ -587,7 +606,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 			ix := existingKey[common]
 			children[ix] = newInMemoryNodeHandle(allocStorage)
 
-			value := NewValue(value, t.layout.MaxInlineValue())
+			value := NewValue(value, t.version.MaxInlineValue())
 
 			if len(partial)-common == 0 {
 				// The value should be part of the branch
@@ -637,7 +656,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 				}
 			} else {
 				// Original has nothing here so we have to create a new leaf
-				value := NewValue(value, t.layout.MaxInlineValue())
+				value := NewValue(value, t.version.MaxInlineValue())
 				leaf := t.storage.alloc(NewStoredNode{node: Leaf{keyNibbles, value}})
 				n.children[idx] = newInMemoryNodeHandle(leaf)
 			}
@@ -683,6 +702,179 @@ func (t *TrieDB) lookupNode(hash common.Hash) (StorageHandle, error) {
 		node: node,
 		hash: hash,
 	}), nil
+}
+
+// commit writes all trie changes to the underlying db
+func (t *TrieDB) commit() error {
+	logger.Debug("Committing trie changes to db")
+	logger.Debugf("%d nodes to remove from db", len(t.deathRow))
+
+	dbBatch := t.db.NewBatch()
+	defer func() {
+		if err := dbBatch.Close(); err != nil {
+			logger.Criticalf("cannot close triedb commit batcher: %w", err)
+		}
+	}()
+
+	for hash := range t.deathRow {
+		err := dbBatch.Del(hash[:])
+		if err != nil {
+			return err
+		}
+	}
+
+	// Reset deathRow
+	t.deathRow = make(map[common.Hash]interface{})
+
+	var handle StorageHandle
+	switch h := t.rootHandle.(type) {
+	case Persisted:
+		return nil // nothing to commit since the root is already in db
+	case InMemory:
+		handle = h.idx
+	}
+
+	switch stored := t.storage.destroy(handle).(type) {
+	case NewStoredNode:
+		// Reconstructs the full key for root node
+		var k []byte
+
+		encodedNode, err := NewEncodedNode(
+			stored.node,
+			func(node nodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error) {
+				k = append(k, partialKey...)
+				mov := len(partialKey)
+				if childIndex != nil {
+					k = append(k, *childIndex)
+					mov += 1
+				}
+
+				switch n := node.(type) {
+				case newNodeToEncode:
+					hash := common.MustBlake2bHash(n.value)
+					err := dbBatch.Put(hash[:], n.value)
+					if err != nil {
+						return nil, err
+					}
+
+					k = k[:mov]
+					return HashChildReference{hash: hash}, nil
+				case trieNodeToEncode:
+					result, err := t.commitChild(dbBatch, n.child, k)
+					if err != nil {
+						return nil, err
+					}
+
+					k = k[:mov]
+					return result, nil
+				default:
+					panic("unreachable")
+				}
+			},
+		)
+
+		if err != nil {
+			return err
+		}
+
+		hash := common.MustBlake2bHash(encodedNode)
+		err = dbBatch.Put(hash[:], encodedNode)
+		if err != nil {
+			return err
+		}
+
+		t.rootHash = hash
+		t.rootHandle = Persisted{t.rootHash}
+
+		// Flush all db changes
+		return dbBatch.Flush()
+	case CachedStoredNode:
+		t.rootHash = stored.hash
+		t.rootHandle = InMemory{
+			t.storage.alloc(CachedStoredNode{stored.node, stored.hash}),
+		}
+		return nil
+	default:
+		panic("unreachable")
+	}
+}
+
+// Commit a node by hashing it and writing it to the db.
+func (t *TrieDB) commitChild(
+	dbBatch database.Batch,
+	child NodeHandle,
+	prefixKey []byte,
+) (ChildReference, error) {
+	switch nh := child.(type) {
+	case Persisted:
+		// Already persisted we have to do nothing
+		return HashChildReference(nh), nil
+	case InMemory:
+		stored := t.storage.destroy(nh.idx)
+		switch storedNode := stored.(type) {
+		case CachedStoredNode:
+			return HashChildReference{hash: storedNode.hash}, nil
+		case NewStoredNode:
+			// We have to store the node in the DB
+			commitChildFunc := func(node nodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error) {
+				prefixKey = append(prefixKey, partialKey...)
+				mov := len(partialKey)
+				if childIndex != nil {
+					prefixKey = append(prefixKey, *childIndex)
+					mov += 1
+				}
+
+				switch n := node.(type) {
+				case newNodeToEncode:
+					valueHash := common.MustBlake2bHash(n.value)
+					prefixedKey := bytes.Join([][]byte{n.partialKey, valueHash.ToBytes()}, nil)
+					err := dbBatch.Put(prefixedKey, n.value)
+					if err != nil {
+						panic("inserting in db")
+					}
+
+					if t.cache != nil {
+						t.cache.SetValue(n.partialKey, n.value)
+					}
+
+					prefixKey = prefixKey[:mov]
+					return HashChildReference{hash: valueHash}, nil
+				case trieNodeToEncode:
+					result, err := t.commitChild(dbBatch, n.child, prefixKey)
+					if err != nil {
+						return nil, err
+					}
+
+					prefixKey = prefixKey[:mov]
+					return result, nil
+				default:
+					panic("unreachable")
+				}
+			}
+
+			encoded, err := NewEncodedNode(storedNode.node, commitChildFunc)
+			if err != nil {
+				panic("encoding node")
+			}
+
+			// Not inlined node
+			if len(encoded) >= common.HashLength {
+				hash := common.MustBlake2bHash(encoded)
+				err := dbBatch.Put(hash[:], encoded)
+				if err != nil {
+					return nil, err
+				}
+
+				return HashChildReference{hash: hash}, nil
+			} else {
+				return InlineChildReference{encoded}, nil
+			}
+		default:
+			panic("unreachable")
+		}
+	default:
+		panic("unreachable")
+	}
 }
 
 var _ trie.TrieRead = (*TrieDB)(nil)

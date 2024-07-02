@@ -131,6 +131,11 @@ func (l *TrieLookup) lookupValue(keyNibbles []byte) (value []byte, err error) {
 		return nil, err
 	}
 
+	// node not found so we return nil
+	if node == nil {
+		return nil, nil
+	}
+
 	if nodeValue := node.GetValue(); nodeValue != nil {
 		value, err = l.fetchValue(node.GetPartialKey(), nodeValue)
 		if err != nil {
@@ -149,7 +154,7 @@ func (l *TrieLookup) lookupValue(keyNibbles []byte) (value []byte, err error) {
 
 // fetchValue gets the value from the node, if it is inlined we can return it
 // directly. But if it is hashed (V1) we have to look up for its value in the DB
-func (l *TrieLookup) fetchValue(prefix []byte, value codec.NodeValue) ([]byte, error) {
+func (l *TrieLookup) fetchValue(prefix []byte, value codec.EncodedValue) ([]byte, error) {
 	switch v := value.(type) {
 	case codec.InlineValue:
 		return v.Data, nil

@@ -22,6 +22,12 @@ type NewBatcher interface {
 	NewBatch() database.Batch
 }
 
+type RWDatabase interface {
+	DBGetter
+	Writer
+	NewBatcher
+}
+
 type Database interface {
 	DBGetter
 	DBPutter

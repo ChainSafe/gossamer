@@ -6,6 +6,7 @@ package triedb
 import (
 	"bytes"
 
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 )
@@ -56,4 +57,34 @@ func (db *MemoryDB) Put(key []byte, value []byte) error {
 	return nil
 }
 
-var _ db.Database = &MemoryDB{}
+func (db *MemoryDB) Del(key []byte) error {
+	dbKey := common.NewHash(key)
+	delete(db.data, dbKey)
+	return nil
+}
+
+func (db *MemoryDB) Flush() error {
+	return nil
+}
+
+func (db *MemoryDB) NewBatch() database.Batch {
+	return &MemoryBatch{db}
+}
+
+var _ db.RWDatabase = &MemoryDB{}
+
+type MemoryBatch struct {
+	*MemoryDB
+}
+
+func (b *MemoryBatch) Close() error {
+	return nil
+}
+
+func (*MemoryBatch) Reset() {}
+
+func (b *MemoryBatch) ValueSize() int {
+	return 1
+}
+
+var _ database.Batch = &MemoryBatch{}

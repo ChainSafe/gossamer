@@ -3,6 +3,14 @@
 
 package codec
 
+import (
+	"fmt"
+	"io"
+
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+)
+
 const ChildrenCapacity = 16
 
 // MerkleValue is a helper enum to differentiate between inline and hashed nodes
@@ -36,9 +44,10 @@ func NewHashedNode(data []byte) MerkleValue {
 	return HashedNode{Data: data}
 }
 
-// NodeValue is a helper enum to differentiate between inline and hashed values
-type NodeValue interface {
-	isNodeValue()
+// EncodedValue is a helper enum to differentiate between inline and hashed values
+type EncodedValue interface {
+	IsHashed() bool
+	Write(writer io.Writer) error
 }
 
 type (
@@ -52,21 +61,41 @@ type (
 	}
 )
 
-func (InlineValue) isNodeValue() {}
-func (HashedValue) isNodeValue() {}
+func (InlineValue) IsHashed() bool { return false }
+func (v InlineValue) Write(writer io.Writer) error {
+	encoder := scale.NewEncoder(writer)
+	err := encoder.Encode(v.Data)
+	if err != nil {
+		return fmt.Errorf("scale encoding storage value: %w", err)
+	}
+	return nil
+}
 
-func NewInlineValue(data []byte) NodeValue {
+func (HashedValue) IsHashed() bool { return true }
+func (v HashedValue) Write(writer io.Writer) error {
+	if len(v.Data) != common.HashLength {
+		panic("invalid hash length")
+	}
+
+	_, err := writer.Write(v.Data)
+	if err != nil {
+		return fmt.Errorf("writing hashed storage value: %w", err)
+	}
+	return nil
+}
+
+func NewInlineValue(data []byte) InlineValue {
 	return InlineValue{Data: data}
 }
 
-func NewHashedValue(data []byte) NodeValue {
+func NewHashedValue(data []byte) HashedValue {
 	return HashedValue{Data: data}
 }
 
 // EncodedNode is the object representation of a encoded node
 type EncodedNode interface {
 	GetPartialKey() []byte
-	GetValue() NodeValue
+	GetValue() EncodedValue
 }
 
 type (
@@ -75,19 +104,92 @@ type (
 	// Leaf always contains values
 	Leaf struct {
 		PartialKey []byte
-		Value      NodeValue
+		Value      EncodedValue
 	}
 	// Branch could has or not has values
 	Branch struct {
 		PartialKey []byte
 		Children   [16]MerkleValue
-		Value      NodeValue
+		Value      EncodedValue
 	}
 )
 
-func (Empty) GetPartialKey() []byte    { return nil }
-func (Empty) GetValue() NodeValue      { return nil }
-func (l Leaf) GetPartialKey() []byte   { return l.PartialKey }
-func (l Leaf) GetValue() NodeValue     { return l.Value }
-func (b Branch) GetPartialKey() []byte { return b.PartialKey }
-func (b Branch) GetValue() NodeValue   { return b.Value }
+func (Empty) GetPartialKey() []byte     { return nil }
+func (Empty) GetValue() EncodedValue    { return nil }
+func (l Leaf) GetPartialKey() []byte    { return l.PartialKey }
+func (l Leaf) GetValue() EncodedValue   { return l.Value }
+func (b Branch) GetPartialKey() []byte  { return b.PartialKey }
+func (b Branch) GetValue() EncodedValue { return b.Value }
+
+// NodeKind is an enum to represent the different types of nodes (Leaf, Branch, etc.)
+type NodeKind int
+
+const (
+	LeafNode NodeKind = iota
+	BranchWithoutValue
+	BranchWithValue
+	LeafWithHashedValue
+	BranchWithHashedValue
+)
+
+func EncodeHeader(partialKey []byte, kind NodeKind, writer io.Writer) (err error) {
+	partialKeyLength := len(partialKey)
+	if partialKeyLength > int(maxPartialKeyLength) {
+		panic(fmt.Sprintf("partial key length is too big: %d", partialKeyLength))
+	}
+
+	// Merge variant byte and partial key length together
+	var nodeVariant variant
+
+	switch kind {
+	case LeafNode:
+		nodeVariant = leafVariant
+	case LeafWithHashedValue:
+		nodeVariant = leafWithHashedValueVariant
+	case BranchWithoutValue:
+		nodeVariant = branchWithValueVariant
+	case BranchWithValue:
+		nodeVariant = branchWithValueVariant
+	case BranchWithHashedValue:
+		nodeVariant = branchWithHashedValueVariant
+	}
+
+	buffer := make([]byte, 1)
+	buffer[0] = nodeVariant.bits
+	partialKeyLengthMask := nodeVariant.partialKeyLengthHeaderMask()
+
+	if partialKeyLength < int(partialKeyLengthMask) {
+		// Partial key length fits in header byte
+		buffer[0] |= byte(partialKeyLength)
+		_, err = writer.Write(buffer)
+		return err
+	}
+
+	// Partial key length does not fit in header byte only
+	buffer[0] |= partialKeyLengthMask
+	partialKeyLength -= int(partialKeyLengthMask)
+	_, err = writer.Write(buffer)
+	if err != nil {
+		return err
+	}
+
+	for {
+		buffer[0] = 255
+		if partialKeyLength < 255 {
+			buffer[0] = byte(partialKeyLength)
+		}
+
+		_, err = writer.Write(buffer)
+		if err != nil {
+			return err
+		}
+
+		partialKeyLength -= int(buffer[0])
+
+		if buffer[0] < 255 {
+			break
+		}
+	}
+
+	return nil
+}
