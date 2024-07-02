@@ -5,11 +5,9 @@ package availabilitystore
 
 import (
 	"bytes"
-	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"sync"
 	"testing"
 	"time"
 
@@ -947,12 +945,11 @@ func TestAvailabilityStoreSubsystem_noteBlockIncluded(t *testing.T) {
 	}
 }
 
-func newTestHarness(t *testing.T) *testHarness {
-	overseer := newTestOverseer()
-	harness := &testHarness{
+func newHarnessTest(t *testing.T) *HarnessTest {
+	overseer := util.NewTestOverseer()
+	harness := &HarnessTest{
 		overseer:       overseer,
 		broadcastIndex: 0,
-		t:              t,
 	}
 
 	harness.db = setupTestDB(t)
@@ -973,16 +970,17 @@ func newTestHarness(t *testing.T) *testHarness {
 	return harness
 }
 
-type testHarness struct {
-	overseer          *testOverseer
-	t                 *testing.T
+type HarnessTest struct {
+	overseer          *util.TestOverseer
 	broadcastMessages []any
 	broadcastIndex    int
 	processes         []func(msg any)
 	db                database.Database
 }
 
-func (h *testHarness) processMessages() {
+// processes messgaes of other subsystems(return hardcoded responses)
+// need to store function with hardcoded responses
+func (h *HarnessTest) processMessages() {
 	processIndex := 0
 	for {
 		select {
@@ -991,25 +989,26 @@ func (h *testHarness) processMessages() {
 				h.processes[processIndex](msg)
 				processIndex++
 			}
-		case <-h.overseer.ctx.Done():
-			if err := h.overseer.ctx.Err(); err != nil {
+		case <-h.overseer.Ctx.Done():
+			if err := h.overseer.Ctx.Err(); err != nil {
 				logger.Errorf("ctx error: %v\n", err)
 			}
-			h.overseer.wg.Done()
+			h.overseer.Wg.Done()
 			return
 		}
 	}
 }
 
-func (h *testHarness) triggerBroadcast() {
-	h.overseer.broadcast(h.broadcastMessages[h.broadcastIndex])
+// send a message from overseer to subsystem
+func (h *HarnessTest) triggerBroadcast() {
+	h.overseer.Broadcast(h.broadcastMessages[h.broadcastIndex])
 	h.broadcastIndex++
 }
 
-func (h *testHarness) printDB(caption string) {
+func printDB(t *testing.T, h *HarnessTest, caption string) {
 	fmt.Printf("db contents %v:\n", caption)
 	iterator, err := h.db.NewIterator()
-	require.NoError(h.t, err)
+	require.NoError(t, err)
 	defer iterator.Release()
 
 	for iterator.First(); iterator.Valid(); iterator.Next() {
@@ -1017,7 +1016,7 @@ func (h *testHarness) printDB(caption string) {
 	}
 }
 
-func (h *testHarness) importLeaf(t *testing.T, parentHash common.Hash,
+func importLeaf(t *testing.T, h *HarnessTest, parentHash common.Hash,
 	blockNumber uint32, candidateEvents []parachaintypes.CandidateEvent) common.Hash {
 	header := types.Header{
 		ParentHash: parentHash,
@@ -1042,7 +1041,7 @@ func (h *testHarness) importLeaf(t *testing.T, parentHash common.Hash,
 	h.processes = append(h.processes, func(msg any) {
 		msg2, _ := msg.(parachain.RuntimeAPIMessage)
 		require.Equal(t, activatedLeaf, msg2.Hash)
-		ctrl := gomock.NewController(h.t)
+		ctrl := gomock.NewController(t)
 		inst := NewMockRuntimeInstance(ctrl)
 
 		inst.EXPECT().ParachainHostCandidateEvents().Return(candidateEvents, nil)
@@ -1050,7 +1049,7 @@ func (h *testHarness) importLeaf(t *testing.T, parentHash common.Hash,
 		msg2.Resp <- inst
 	})
 
-	h.overseer.broadcast(parachaintypes.ActiveLeavesUpdateSignal{
+	h.overseer.Broadcast(parachaintypes.ActiveLeavesUpdateSignal{
 		Activated: &parachaintypes.ActivatedLeaf{
 			Hash:   activatedLeaf,
 			Number: uint32(1),
@@ -1060,7 +1059,7 @@ func (h *testHarness) importLeaf(t *testing.T, parentHash common.Hash,
 	return activatedLeaf
 }
 
-func (h *testHarness) hasAllChunks(candidateHash parachaintypes.CandidateHash, numValidators uint32, //nolint
+func hasAllChunks(h *HarnessTest, candidateHash parachaintypes.CandidateHash, numValidators uint32, //nolint
 	expectPresent bool) bool {
 
 	for i := uint32(0); i < numValidators; i++ {
@@ -1081,7 +1080,7 @@ func (h *testHarness) hasAllChunks(candidateHash parachaintypes.CandidateHash, n
 	return true
 }
 
-func (h *testHarness) queryAvailableData(candidateHash parachaintypes.CandidateHash) AvailableData {
+func queryAvailableData(h *HarnessTest, candidateHash parachaintypes.CandidateHash) AvailableData {
 	msgSenderQueryChan := make(chan AvailableData)
 	queryData := QueryAvailableData{
 		CandidateHash: candidateHash,
@@ -1114,6 +1113,7 @@ func buildAvailableDataBranchesRoot(t *testing.T, numValidators uint32, availabl
 	return branchHash
 }
 
+/*
 func newTestOverseer() *testOverseer {
 	ctx := context.Background()
 
@@ -1165,10 +1165,11 @@ func (to *testOverseer) broadcast(msg any) {
 		overseerToSubSystem <- msg
 	}
 }
+*/
 
 func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	harness := newTestHarness(t)
+	harness := newHarnessTest(t)
 	defer harness.overseer.Stop()
 
 	activeLeavesUpdate := parachaintypes.ActiveLeavesUpdateSignal{
@@ -1216,7 +1217,7 @@ func TestRuntimeApiErrorDoesNotStopTheSubsystemTestHarness(t *testing.T) {
 }
 
 func TestStoreChunkWorks(t *testing.T) {
-	harness := newTestHarness(t)
+	harness := newHarnessTest(t)
 	defer harness.overseer.Stop()
 
 	msgSenderChan := make(chan any)
@@ -1239,7 +1240,7 @@ func TestStoreChunkWorks(t *testing.T) {
 	err := harness.overseer.Start()
 	require.NoError(t, err)
 
-	go harness.processMessages()
+	go harness.processMessages() // overseer to subsystem
 
 	harness.triggerBroadcast()
 	time.Sleep(100 * time.Millisecond)
@@ -1257,7 +1258,7 @@ func TestStoreChunkWorks(t *testing.T) {
 }
 
 func TestStoreChunkDoesNothingIfNoEntryAlready(t *testing.T) {
-	harness := newTestHarness(t)
+	harness := newHarnessTest(t)
 	defer harness.overseer.Stop()
 
 	msgSenderChan := make(chan any)
@@ -1297,7 +1298,7 @@ func TestStoreChunkDoesNothingIfNoEntryAlready(t *testing.T) {
 }
 
 func TestQueryChunkChecksMetadata(t *testing.T) {
-	harness := newTestHarness(t)
+	harness := newHarnessTest(t)
 	defer harness.overseer.Stop()
 
 	msgSenderChan := make(chan bool)
@@ -1338,7 +1339,7 @@ func TestQueryChunkChecksMetadata(t *testing.T) {
 }
 
 func TestStorePOVandQueryChunkWorks(t *testing.T) {
-	harness := newTestHarness(t)
+	harness := newHarnessTest(t)
 	defer harness.overseer.Stop()
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
 	nValidators := uint32(10)
@@ -1401,7 +1402,7 @@ func TestStorePOVandQueryChunkWorks(t *testing.T) {
 }
 
 func TestQueryAllChunksWorks(t *testing.T) {
-	harness := newTestHarness(t)
+	harness := newHarnessTest(t)
 	defer harness.overseer.Stop()
 	candidateHash := parachaintypes.CandidateHash{Value: testCandidateReceiptHash}
 	candidateHash2 := parachaintypes.CandidateHash{Value: common.Hash{0x02}}
@@ -1464,7 +1465,7 @@ func TestQueryAllChunksWorks(t *testing.T) {
 }
 
 func TestQueryChunkSizeWorks(t *testing.T) {
-	harness := newTestHarness(t)
+	harness := newHarnessTest(t)
 	defer harness.overseer.Stop()
 
 	msgSenderChan := make(chan uint32)
@@ -1491,7 +1492,7 @@ func TestQueryChunkSizeWorks(t *testing.T) {
 }
 
 func TestStoreBlockWorks(t *testing.T) {
-	harness := newTestHarness(t)
+	harness := newHarnessTest(t)
 	defer harness.overseer.Stop()
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
 	nValidators := uint32(10)
@@ -1576,7 +1577,7 @@ func TestStoreBlockWorks(t *testing.T) {
 }
 
 func TestStoreAvailableDataErasureMismatch(t *testing.T) {
-	harness := newTestHarness(t)
+	harness := newHarnessTest(t)
 	defer harness.overseer.Stop()
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
 	nValidators := uint32(10)
@@ -1614,7 +1615,7 @@ func TestStoreAvailableDataErasureMismatch(t *testing.T) {
 }
 
 func TestStoredButNotIncludedDataIsPruned(t *testing.T) {
-	harness := newTestHarness(t)
+	harness := newHarnessTest(t)
 	defer harness.overseer.Stop()
 	candidateHash := parachaintypes.CandidateHash{Value: common.Hash{0x01}}
 	nValidators := uint32(10)
@@ -1685,14 +1686,14 @@ func TestStoredButNotIncludedDataIsPruned(t *testing.T) {
 	harness.triggerBroadcast()
 	msgQueryChan = <-msgSenderQueryChan
 	require.Equal(t, AvailableData{}, msgQueryChan)
-	harness.printDB("after pruning")
+	printDB(t, harness, "after pruning")
 
 	err = harness.overseer.Stop()
 	require.NoError(t, err)
 }
 
 func TestStoredDataKeptUntilFinalized(t *testing.T) {
-	harness := newTestHarness(t)
+	harness := newHarnessTest(t)
 	defer harness.overseer.Stop()
 	candidateHash := parachaintypes.CandidateHash{Value: testCandidateReceiptHash}
 	nValidators := uint32(10)
@@ -1759,7 +1760,7 @@ func TestStoredDataKeptUntilFinalized(t *testing.T) {
 	harness.triggerBroadcast()
 	msgQueryChan := <-msgSenderQueryChan
 	require.Equal(t, availableData, msgQueryChan)
-	harness.printDB("before import leaf")
+	printDB(t, harness, "before import leaf")
 
 	// trigger import leaf
 	candidateEvents := parachaintypes.NewCandidateEvents()
@@ -1767,12 +1768,12 @@ func TestStoredDataKeptUntilFinalized(t *testing.T) {
 	err = event.SetValue(parachaintypes.CandidateIncluded{CandidateReceipt: testCandidateReceipt})
 	require.NoError(t, err)
 	candidateEvents = append(candidateEvents, event)
-	require.NoError(harness.t, err)
+	require.NoError(t, err)
 
-	aLeaf := harness.importLeaf(t, parent, blockNumber, candidateEvents)
+	aLeaf := importLeaf(t, harness, parent, blockNumber, candidateEvents)
 
 	time.Sleep(500 * time.Millisecond)
-	harness.printDB("after import leaf")
+	printDB(t, harness, "after import leaf")
 
 	// check that the data is still there
 	// queryAvailabeData, hasAllChunks
@@ -1781,10 +1782,10 @@ func TestStoredDataKeptUntilFinalized(t *testing.T) {
 	harness.triggerBroadcast()
 	msgQueryChan = <-msgSenderQueryChan
 	require.Equal(t, availableData, msgQueryChan)
-	harness.printDB("after queryData")
+	printDB(t, harness, "after queryData")
 
 	// check that the chunks are there
-	hasChunks := harness.hasAllChunks(candidateHash, nValidators, true)
+	hasChunks := hasAllChunks(harness, candidateHash, nValidators, true)
 	require.True(t, hasChunks)
 
 	// trigger block finalized
@@ -1797,7 +1798,8 @@ func TestStoredDataKeptUntilFinalized(t *testing.T) {
 
 	// wait for pruning to occur and check that the data is gone
 	time.Sleep(7000 * time.Millisecond)
-	harness.printDB("after block finalized")
+	// printDB(t, harness, "after block finalized")
+	printDB(t, harness, "after block finalized")
 
 	harness.broadcastMessages = append(harness.broadcastMessages, queryData)
 
@@ -1807,7 +1809,7 @@ func TestStoredDataKeptUntilFinalized(t *testing.T) {
 	require.Equal(t, expectedResult, msgQueryChan)
 
 	// check that the chunks are gone
-	hasChunks = harness.hasAllChunks(candidateHash, nValidators, false)
+	hasChunks = hasAllChunks(harness, candidateHash, nValidators, false)
 	require.True(t, hasChunks)
 
 	err = harness.overseer.Stop()
@@ -1815,7 +1817,7 @@ func TestStoredDataKeptUntilFinalized(t *testing.T) {
 }
 
 func TestForkfullnessWorks(t *testing.T) {
-	harness := newTestHarness(t)
+	harness := newHarnessTest(t)
 	defer harness.overseer.Stop()
 	nValidators := uint32(10)
 	msgSenderChan := make(chan error)
@@ -1903,24 +1905,24 @@ func TestForkfullnessWorks(t *testing.T) {
 	require.Equal(t, nil, msgSender2ChanResult)
 
 	// confirm available data 1 and 2, and has all chunks 1 and 2
-	availableDataResult := harness.queryAvailableData(parachaintypes.CandidateHash{Value: candidate1Hash})
+	availableDataResult := queryAvailableData(harness, parachaintypes.CandidateHash{Value: candidate1Hash})
 	require.Equal(t, availableData1, availableDataResult)
-	availableDataResult = harness.queryAvailableData(parachaintypes.CandidateHash{Value: candidate2Hash})
+	availableDataResult = queryAvailableData(harness, parachaintypes.CandidateHash{Value: candidate2Hash})
 	require.Equal(t, availableData2, availableDataResult)
-	hasChunks := harness.hasAllChunks(parachaintypes.CandidateHash{Value: candidate1Hash}, nValidators, true)
+	hasChunks := hasAllChunks(harness, parachaintypes.CandidateHash{Value: candidate1Hash}, nValidators, true)
 	require.True(t, hasChunks)
-	hasChunks = harness.hasAllChunks(parachaintypes.CandidateHash{Value: candidate2Hash}, nValidators, true)
+	hasChunks = hasAllChunks(harness, parachaintypes.CandidateHash{Value: candidate2Hash}, nValidators, true)
 	require.True(t, hasChunks)
-	harness.printDB("before import leaf")
+	printDB(t, harness, "before import leaf")
 
 	// import leaf for candidate 1
-	activatedLeaf := harness.importLeaf(t, parent1, blockNumber1, candidate1Events)
+	activatedLeaf := importLeaf(t, harness, parent1, blockNumber1, candidate1Events)
 	time.Sleep(50 * time.Millisecond)
 
 	// import leaf for candidate 2
-	harness.importLeaf(t, parent2, blockNumber2, candidate2Events)
+	importLeaf(t, harness, parent2, blockNumber2, candidate2Events)
 	time.Sleep(1500 * time.Millisecond)
-	harness.printDB("after import leaf")
+	printDB(t, harness, "after import leaf")
 
 	// signal block 1 finalized for candidate 1
 	blockFinalizedSignal := parachaintypes.BlockFinalizedSignal{
@@ -1932,39 +1934,39 @@ func TestForkfullnessWorks(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	// confirm available data 1, and 2, and has all chunks 1 and 2
-	availableDataResult = harness.queryAvailableData(parachaintypes.CandidateHash{Value: candidate1Hash})
+	availableDataResult = queryAvailableData(harness, parachaintypes.CandidateHash{Value: candidate1Hash})
 	require.Equal(t, availableData1, availableDataResult)
-	availableDataResult = harness.queryAvailableData(parachaintypes.CandidateHash{Value: candidate2Hash})
+	availableDataResult = queryAvailableData(harness, parachaintypes.CandidateHash{Value: candidate2Hash})
 	require.Equal(t, availableData2, availableDataResult)
-	hasChunks = harness.hasAllChunks(parachaintypes.CandidateHash{Value: candidate1Hash}, nValidators, true)
+	hasChunks = hasAllChunks(harness, parachaintypes.CandidateHash{Value: candidate1Hash}, nValidators, true)
 	require.True(t, hasChunks)
-	hasChunks = harness.hasAllChunks(parachaintypes.CandidateHash{Value: candidate2Hash}, nValidators, true)
+	hasChunks = hasAllChunks(harness, parachaintypes.CandidateHash{Value: candidate2Hash}, nValidators, true)
 	require.True(t, hasChunks)
-	harness.printDB("after block finalized")
+	printDB(t, harness, "after block finalized")
 
 	// wait for pruning
 	time.Sleep(3000 * time.Millisecond)
 	// query available data 1 matches and 2 is empty, and has all chunks 1 true 2 false
-	availableDataResult = harness.queryAvailableData(parachaintypes.CandidateHash{Value: candidate1Hash})
+	availableDataResult = queryAvailableData(harness, parachaintypes.CandidateHash{Value: candidate1Hash})
 	require.Equal(t, availableData1, availableDataResult)
-	availableDataResult = harness.queryAvailableData(parachaintypes.CandidateHash{Value: candidate2Hash})
+	availableDataResult = queryAvailableData(harness, parachaintypes.CandidateHash{Value: candidate2Hash})
 	require.Equal(t, AvailableData{}, availableDataResult)
-	hasChunks = harness.hasAllChunks(parachaintypes.CandidateHash{Value: candidate1Hash}, nValidators, true)
+	hasChunks = hasAllChunks(harness, parachaintypes.CandidateHash{Value: candidate1Hash}, nValidators, true)
 	require.True(t, hasChunks)
-	hasChunks = harness.hasAllChunks(parachaintypes.CandidateHash{Value: candidate2Hash}, nValidators, false)
+	hasChunks = hasAllChunks(harness, parachaintypes.CandidateHash{Value: candidate2Hash}, nValidators, false)
 	require.True(t, hasChunks)
-	harness.printDB("after unfinalized pruning time delay")
+	printDB(t, harness, "after unfinalized pruning time delay")
 
 	// wait for finalized pruning
 	time.Sleep(3000 * time.Millisecond)
 	// query available data 1 and 2 are empty, and has all chunks 1 and 2 are empty
-	availableDataResult = harness.queryAvailableData(parachaintypes.CandidateHash{Value: candidate1Hash})
+	availableDataResult = queryAvailableData(harness, parachaintypes.CandidateHash{Value: candidate1Hash})
 	require.Equal(t, AvailableData{}, availableDataResult)
-	availableDataResult = harness.queryAvailableData(parachaintypes.CandidateHash{Value: candidate2Hash})
+	availableDataResult = queryAvailableData(harness, parachaintypes.CandidateHash{Value: candidate2Hash})
 	require.Equal(t, AvailableData{}, availableDataResult)
-	hasChunks = harness.hasAllChunks(parachaintypes.CandidateHash{Value: candidate1Hash}, nValidators, false)
+	hasChunks = hasAllChunks(harness, parachaintypes.CandidateHash{Value: candidate1Hash}, nValidators, false)
 	require.True(t, hasChunks)
-	hasChunks = harness.hasAllChunks(parachaintypes.CandidateHash{Value: candidate2Hash}, nValidators, false)
+	hasChunks = hasAllChunks(harness, parachaintypes.CandidateHash{Value: candidate2Hash}, nValidators, false)
 	require.True(t, hasChunks)
-	harness.printDB("after final time pruning delay")
+	printDB(t, harness, "after final time pruning delay")
 }
