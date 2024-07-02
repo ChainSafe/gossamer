@@ -683,6 +683,7 @@ type Network interface {
 		maxResponseSize uint64) *network.RequestResponseProtocol
 	GetNetworkEventsChannel() chan *network.NetworkEventInfo
 	FreeNetworkEventsChannel(ch chan *network.NetworkEventInfo)
+	ReportPeer(change peerset.ReputationChange, p peer.ID)
 }
 
 type CollationEvent struct {

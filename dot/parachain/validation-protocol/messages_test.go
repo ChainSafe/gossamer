@@ -43,14 +43,14 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	}
 	*/
 	approvalDistribution := ApprovalDistribution{NewApprovalDistributionMessageVDT()}
-	approvalDistribution.Set(Assignments{
+	approvalDistribution.SetValue(Assignments{
 		Assignment{
 			IndirectAssignmentCert: fakeAssignmentCert(hashA, parachaintypes.ValidatorIndex(1), false),
 			CandidateIndex:         4,
 		},
 	})
 	vpApprovalDistributionAssignments := NewValidationProtocolVDT()
-	vpApprovalDistributionAssignments.Set(approvalDistribution)
+	vpApprovalDistributionAssignments.SetValue(approvalDistribution)
 	vpApprovalDistributionAssignmentsValue, err := vpApprovalDistributionAssignments.Value()
 	require.NoError(t, err)
 
@@ -75,7 +75,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	copy(validatorSignature[:], tempSignature)
 
 	approvalDistributionApprovals := ApprovalDistribution{NewApprovalDistributionMessageVDT()}
-	approvalDistributionApprovals.Set(Approvals{
+	approvalDistributionApprovals.SetValue(Approvals{
 		IndirectSignedApprovalVote{
 			BlockHash:      hashA,
 			CandidateIndex: 10,
@@ -85,7 +85,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	})
 
 	vpApprovalDistributionApprovals := NewValidationProtocolVDT()
-	vpApprovalDistributionApprovals.Set(approvalDistributionApprovals)
+	vpApprovalDistributionApprovals.SetValue(approvalDistributionApprovals)
 	vpApprovalDistributionApprovalsValue, err := vpApprovalDistributionApprovals.Value()
 	require.NoError(t, err)
 
@@ -180,7 +180,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	})
 
 	vpStatementDistributionStatement := NewValidationProtocolVDT()
-	vpStatementDistributionStatement.Set(statementDistributionStatement)
+	vpStatementDistributionStatement.SetValue(statementDistributionStatement)
 	vpStatementDistributionStatementValue, err := vpStatementDistributionStatement.Value()
 	require.NoError(t, err)
 
@@ -211,7 +211,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	})
 
 	vpStatementDistributionLargeStatement := NewValidationProtocolVDT()
-	vpStatementDistributionLargeStatement.Set(statementDistributionLargeStatement)
+	vpStatementDistributionLargeStatement.SetValue(statementDistributionLargeStatement)
 	vpStatementDistributionLargeStatementValue, err := vpStatementDistributionLargeStatement.Value()
 	require.NoError(t, err)
 
@@ -242,7 +242,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	}
 	*/
 	bitfieldDistribution := BitfieldDistribution{NewBitfieldDistributionMessageVDT()}
-	bitfieldDistribution.Set(Bitfield{
+	bitfieldDistribution.SetValue(Bitfield{
 		Hash: hashA,
 		UncheckedSignedAvailabilityBitfield: parachaintypes.UncheckedSignedAvailabilityBitfield{
 			Payload: scale.NewBitVec([]bool{true, true, true, true, true, true, true, true, true, true, true,
@@ -254,7 +254,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	})
 
 	vpBitfieldDistribution := NewValidationProtocolVDT()
-	vpBitfieldDistribution.Set(bitfieldDistribution)
+	vpBitfieldDistribution.SetValue(bitfieldDistribution)
 	vpBitfieldDistributionVal, err := vpBitfieldDistribution.Value()
 	require.NoError(t, err)
 
@@ -302,7 +302,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 			t.Parallel()
 
 			validationProtocol := NewValidationProtocolVDT()
-			err := validationProtocol.Set(c.enumValue)
+			err := validationProtocol.SetValue(c.enumValue)
 			require.NoError(t, err)
 
 			encoded, err := scale.Marshal(validationProtocol)

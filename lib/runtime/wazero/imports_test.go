@@ -383,11 +383,7 @@ func Test_ext_crypto_ecdsa_verify_version_2_Table(t *testing.T) {
 }
 
 func Test_ext_crypto_ecdsa_generate_version_1(t *testing.T) {
-<<<<<<< HEAD
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-=======
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
->>>>>>> feat/parachain
 
 	idData := []byte(keystore.AccoName)
 	ks, err := inst.Context.Keystore.GetKeystore(idData)

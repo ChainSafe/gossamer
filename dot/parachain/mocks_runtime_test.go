@@ -13,7 +13,6 @@ import (
 	reflect "reflect"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	scale "github.com/ChainSafe/gossamer/pkg/scale"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -41,10 +40,10 @@ func (m *MockRuntimeInstance) EXPECT() *MockRuntimeInstanceMockRecorder {
 }
 
 // ParachainHostCandidateEvents mocks base method.
-func (m *MockRuntimeInstance) ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice, error) {
+func (m *MockRuntimeInstance) ParachainHostCandidateEvents() ([]parachaintypes.CandidateEvent, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostCandidateEvents")
-	ret0, _ := ret[0].(*scale.VaryingDataTypeSlice)
+	ret0, _ := ret[0].([]parachaintypes.CandidateEvent)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

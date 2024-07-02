@@ -56,8 +56,8 @@ func (nbs *NetworkBridgeSender) processMessage(msg any) error {
 
 	switch msg := msg.(type) {
 	case networkbridgemessages.SendCollationMessage:
-		wireMessage := NewWireMessage()
-		err := wireMessage.Set(msg.CollationProtocolMessage)
+		wireMessage := WireMessage{}
+		err := wireMessage.SetValue(msg.CollationProtocolMessage)
 		if err != nil {
 			return fmt.Errorf("setting wire message: %w", err)
 		}
@@ -70,8 +70,8 @@ func (nbs *NetworkBridgeSender) processMessage(msg any) error {
 		}
 
 	case networkbridgemessages.SendValidationMessage:
-		wireMessage := NewWireMessage()
-		err := wireMessage.Set(msg.ValidationProtocolMessage)
+		wireMessage := WireMessage{}
+		err := wireMessage.SetValue(msg.ValidationProtocolMessage)
 		if err != nil {
 			return fmt.Errorf("setting wire message: %w", err)
 		}

@@ -8,34 +8,55 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-type WireMessage scale.VaryingDataType
-
-// NewWireMessage returns a new WireMessage varying data type
-func NewWireMessage() WireMessage {
-	vdt := scale.MustNewVaryingDataType(ProtocolMessage{}, ViewUpdate{})
-	return WireMessage(vdt)
+type WireMessage struct {
+	inner any
 }
 
-// New will enable scale to create new instance when needed
-func (WireMessage) New() WireMessage {
-	return NewWireMessage()
+type WireMessageValues interface {
+	ViewUpdate | ProtocolMessage
 }
 
-// Set will set a value using the underlying  varying data type
-func (w *WireMessage) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*w)
-	err = vdt.Set(val)
-	if err != nil {
+func setMyVaryingDataType[Value WireMessageValues](mvdt *WireMessage, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *WireMessage) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case ViewUpdate:
+		setMyVaryingDataType(mvdt, value)
 		return
+	case ProtocolMessage:
+		setMyVaryingDataType(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
 	}
-	*w = WireMessage(vdt)
+}
+
+func (mvdt WireMessage) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case ProtocolMessage:
+		return 1, mvdt.inner, nil
+	case ViewUpdate:
+		return 2, mvdt.inner, nil
+
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt WireMessage) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
 	return
 }
 
-// Value returns the value from the underlying varying data type
-func (w *WireMessage) Value() (val scale.VaryingDataTypeValue, err error) {
-	vdt := scale.VaryingDataType(*w)
-	return vdt.Value()
+func (mvdt WireMessage) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 1:
+		return ProtocolMessage{}, nil
+	case 2:
+		return ViewUpdate{}, nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
 func (w WireMessage) Type() network.MessageType {
