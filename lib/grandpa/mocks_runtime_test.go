@@ -19,7 +19,6 @@ import (
 	keystore "github.com/ChainSafe/gossamer/lib/keystore"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	transaction "github.com/ChainSafe/gossamer/lib/transaction"
-	scale "github.com/ChainSafe/gossamer/pkg/scale"
 	gomock "go.uber.org/mock/gomock"
 )
 

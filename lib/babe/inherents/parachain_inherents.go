@@ -234,24 +234,7 @@ func (explicitInvalidDisputeStatementKind) String() string { //skipcq:SCC-U1000
 
 // newDisputeStatement create a new DisputeStatement varying data type.
 func newDisputeStatement() disputeStatement { //skipcq
-	idsKind, err := scale.NewVaryingDataType(explicitInvalidDisputeStatementKind{})
-	if err != nil {
-		panic(err)
-	}
-
-	vdsKind, err := scale.NewVaryingDataType(
-		explicitValidDisputeStatementKind{}, backingSeconded{}, backingValid{}, approvalChecking{})
-	if err != nil {
-		panic(err)
-	}
-
-	vdt, err := scale.NewVaryingDataType(
-		validDisputeStatementKind(vdsKind), invalidDisputeStatementKind(idsKind))
-	if err != nil {
-		panic(err)
-	}
-
-	return disputeStatement(vdt)
+	return disputeStatement{}
 }
 
 // multiDisputeStatementSet is a set of dispute statements.

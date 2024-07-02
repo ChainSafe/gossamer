@@ -12,39 +12,67 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+type AssignmentCertKindValues interface {
+	RelayVRFModulo | RelayVRFDelay
+}
+
 // AssignmentCertKind different kinds of input or criteria that can prove a validator's assignment
 // to check a particular parachain.
-type AssignmentCertKind scale.VaryingDataType
-
-// New will enable scale to create new instance when needed
-func (AssignmentCertKind) New() AssignmentCertKind {
-	return NewAssignmentCertKindVDT()
+type AssignmentCertKind struct {
+	inner any
 }
 
-// Set will set VaryingDataTypeValue using undurlying VaryingDataType
-func (ack *AssignmentCertKind) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*ack)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value te varying data type: %w", err)
+func setAssignmentCertKind[Value AssignmentCertKindValues](mvdt *AssignmentCertKind, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *AssignmentCertKind) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case RelayVRFModulo:
+		setAssignmentCertKind(mvdt, value)
+		return
+
+	case RelayVRFDelay:
+		setAssignmentCertKind(mvdt, value)
+		return
+
+	default:
+		return fmt.Errorf("unsupported type")
 	}
-	*ack = AssignmentCertKind(vdt)
-	return nil
 }
 
-// Value returns the value from the underlying VaryingDataType
-func (ack *AssignmentCertKind) Value() (scale.VaryingDataTypeValue, error) {
-	vdt := scale.VaryingDataType(*ack)
-	return vdt.Value()
+func (mvdt AssignmentCertKind) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case RelayVRFModulo:
+		return 0, mvdt.inner, nil
+
+	case RelayVRFDelay:
+		return 1, mvdt.inner, nil
+
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt AssignmentCertKind) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt AssignmentCertKind) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return *new(RelayVRFModulo), nil
+
+	case 1:
+		return *new(RelayVRFDelay), nil
+
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
 // NewAssignmentCertKindVDT constructor for AssignmentCertKind
 func NewAssignmentCertKindVDT() AssignmentCertKind {
-	vdt, err := scale.NewVaryingDataType(NewRelayVRFModulo(), NewVRFDelay())
-	if err != nil {
-		panic(err)
-	}
-	return AssignmentCertKind(vdt)
+	return AssignmentCertKind{}
 }
 
 // RelayVRFModulo an assignment story based on the VRF that authorized the relay-chain block where the
@@ -59,11 +87,6 @@ func NewRelayVRFModulo() RelayVRFModulo {
 	return RelayVRFModulo{}
 }
 
-// Index returns varying data type index
-func (rvm RelayVRFModulo) Index() uint {
-	return 0
-}
-
 // RelayVRFDelay an assignment story based on the VRF that authorized the relay-chain block where the
 // candidate was included combined with the index of a particular core.
 type RelayVRFDelay struct {
@@ -74,11 +97,6 @@ type RelayVRFDelay struct {
 // NewVRFDelay constructor for RelayVRFDelay
 func NewVRFDelay() RelayVRFDelay {
 	return RelayVRFDelay{}
-}
-
-// Index returns varying data type index
-func (RelayVRFDelay) Index() uint {
-	return 1
 }
 
 // VrfSignature represents VRF signature, which itself consists of a VRF pre-output and DLEQ proof
@@ -120,11 +138,6 @@ type Assignment struct {
 // Assignments for candidates in recent, unfinalized blocks.
 type Assignments []Assignment
 
-// Index returns varying data type index
-func (Assignments) Index() uint {
-	return 0
-}
-
 // IndirectSignedApprovalVote represents a signed approval vote which references the candidate indirectly via the block.
 type IndirectSignedApprovalVote struct {
 	// BlockHash a block hash where the candidate appears.
@@ -140,41 +153,67 @@ type IndirectSignedApprovalVote struct {
 // Approvals for candidates in some recent, unfinalized block.
 type Approvals []IndirectSignedApprovalVote
 
-// Index returns varying data type index
-func (Approvals) Index() uint {
-	return 1
+// ApprovalDistributionMessage network messages used by approval distribution subsystem.
+type ApprovalDistributionMessageValues interface {
+	Assignments | Approvals
 }
 
 // ApprovalDistributionMessage network messages used by approval distribution subsystem.
-type ApprovalDistributionMessage scale.VaryingDataType
+type ApprovalDistributionMessage struct {
+	inner any
+}
 
-// Set will set a VoryingDataTypeValue using the underlying VaryingDataType
-func (adm *ApprovalDistributionMessage) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*adm)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value to varying data type: %w", err)
+func setApprovalDistributionMessage[Value ApprovalDistributionMessageValues](
+	mvdt *ApprovalDistributionMessage, value Value,
+) {
+	mvdt.inner = value
+}
+
+func (mvdt *ApprovalDistributionMessage) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case Assignments:
+		setApprovalDistributionMessage(mvdt, value)
+		return
+
+	case Approvals:
+		setApprovalDistributionMessage(mvdt, value)
+		return
+
+	default:
+		return fmt.Errorf("unsupported type")
 	}
-	*adm = ApprovalDistributionMessage(vdt)
-	return nil
 }
 
-// Value returns the value from the underlying VaryingDataType
-func (adm *ApprovalDistributionMessage) Value() (scale.VaryingDataTypeValue, error) {
-	vdt := scale.VaryingDataType(*adm)
-	return vdt.Value()
+func (mvdt ApprovalDistributionMessage) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case Assignments:
+		return 0, mvdt.inner, nil
+
+	case Approvals:
+		return 1, mvdt.inner, nil
+
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
-// New returns new ApprovalDistributionMessage VDT
-func (ApprovalDistributionMessage) New() ApprovalDistributionMessage {
-	return NewApprovalDistributionMessageVDT()
+func (mvdt ApprovalDistributionMessage) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt ApprovalDistributionMessage) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return *new(Assignments), nil
+
+	case 1:
+		return *new(Approvals), nil
+
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
 // NewApprovalDistributionMessageVDT ruturns a new ApprovalDistributionMessage VaryingDataType
 func NewApprovalDistributionMessageVDT() ApprovalDistributionMessage {
-	vdt, err := scale.NewVaryingDataType(Assignments{}, Approvals{})
-	if err != nil {
-		panic(err)
-	}
-	return ApprovalDistributionMessage(vdt)
+	return ApprovalDistributionMessage{}
 }

@@ -167,10 +167,10 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 		},
 	}
 	statementVDT := parachaintypes.NewStatementVDT()
-	statementVDT.Set(statementSecond)
+	statementVDT.SetValue(statementSecond)
 
 	statementDistributionStatement := StatementDistribution{NewStatementDistributionMessage()}
-	statementDistributionStatement.Set(Statement{
+	statementDistributionStatement.SetValue(Statement{
 		Hash: hashA,
 		UncheckedSignedFullStatement: parachaintypes.UncheckedSignedFullStatement{
 			Payload:        statementVDT,
@@ -203,7 +203,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	}
 	*/
 	statementDistributionLargeStatement := StatementDistribution{NewStatementDistributionMessage()}
-	statementDistributionLargeStatement.Set(LargePayload{
+	statementDistributionLargeStatement.SetValue(LargePayload{
 		RelayParent:   hashA,
 		CandidateHash: parachaintypes.CandidateHash{Value: hashA},
 		SignedBy:      5,
@@ -259,7 +259,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	require.NoError(t, err)
 
 	testCases := map[string]struct {
-		enumValue     scale.VaryingDataTypeValue
+		enumValue     any
 		encodingValue []byte
 	}{
 		"ValidationProtocol_with_ApprovalDistribution_with_Assignments": {

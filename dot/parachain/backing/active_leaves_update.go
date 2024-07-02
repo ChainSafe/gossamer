@@ -324,17 +324,10 @@ func constructPerRelayParentState(
 
 	groups := make(map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex)
 
-<<<<<<< HEAD
-	numOfCores := uint(len(cores.Types))
-
-	for idx := uint(0); idx < numOfCores; idx++ {
-		coreValue, err := cores.Types[idx].Value()
-=======
 	numOfCores := uint(len(cores))
 
 	for idx := uint(0); idx < numOfCores; idx++ {
 		coreValue, err := cores[idx].Value()
->>>>>>> feat/parachain
 		if err != nil {
 			return nil, fmt.Errorf("getting core value at index %d: %w", idx, err)
 		}

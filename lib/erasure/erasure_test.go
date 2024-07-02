@@ -9,10 +9,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/erasure"
-<<<<<<< HEAD
-	libtrie "github.com/ChainSafe/gossamer/lib/trie"
-=======
->>>>>>> feat/parachain
 
 	"github.com/stretchr/testify/require"
 )

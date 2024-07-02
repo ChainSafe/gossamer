@@ -90,8 +90,7 @@ func (mvdt CollationFetchingResponse) ValueAt(index uint) (value any, err error)
 
 // NewCollationFetchingResponse returns a new collation fetching response varying data type
 func NewCollationFetchingResponse() CollationFetchingResponse {
-	vdt := scale.MustNewVaryingDataType(CollationVDT{})
-	return CollationFetchingResponse(vdt)
+	return CollationFetchingResponse{}
 }
 
 // Encode returns the SCALE encoding of the CollationFetchingResponse

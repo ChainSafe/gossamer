@@ -31,13 +31,13 @@ func getValidationData(runtimeInstance parachainruntime.RuntimeInstance, paraID 
 
 	var mergedError error
 
-	for _, assumptionValue := range []scale.VaryingDataTypeValue{
+	for _, assumptionValue := range []any{
 		parachaintypes.IncludedOccupiedCoreAssumption{},
 		parachaintypes.TimedOutOccupiedCoreAssumption{},
 		parachaintypes.Free{},
 	} {
 		assumption := parachaintypes.NewOccupiedCoreAssumption()
-		err := assumption.Set(assumptionValue)
+		err := assumption.SetValue(assumptionValue)
 		if err != nil {
 			return nil, nil, fmt.Errorf("getting assumption: %w", err)
 		}

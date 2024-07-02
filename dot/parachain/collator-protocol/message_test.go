@@ -149,9 +149,9 @@ func TestCollationProtocol(t *testing.T) {
 				err := scale.Unmarshal(c.encodingValue, &vdtParent)
 				require.NoError(t, err)
 
-				vdtChildTemp, err := vdtParent.Value()
+				index, vdtChildTemp, err := vdtParent.IndexValue()
 				require.NoError(t, err)
-				require.Equal(t, uint(0), vdtChildTemp.Index())
+				require.Equal(t, uint(0), index)
 
 				vdtChild := vdtChildTemp.(collatorprotocolmessages.CollatorProtocolMessage)
 				require.NoError(t, err)
@@ -159,7 +159,6 @@ func TestCollationProtocol(t *testing.T) {
 				actualData, err := vdtChild.Value()
 				require.NoError(t, err)
 
-				require.Equal(t, c.enumValue.Index(), actualData.Index())
 				require.EqualValues(t, c.enumValue, actualData)
 			})
 		})
@@ -379,7 +378,7 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 			msg := collatorprotocolmessages.NewCollationProtocol()
 			vdtChild := collatorprotocolmessages.NewCollatorProtocolMessage()
 
-			err = vdtChild.Set(c.declareMsg)
+			err = vdtChild.SetValue(c.declareMsg)
 			require.NoError(t, err)
 
 			err = msg.SetValue(vdtChild)
@@ -579,7 +578,7 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			msg := collatorprotocolmessages.NewCollationProtocol()
 			vdtChild := collatorprotocolmessages.NewCollatorProtocolMessage()
 
-			err := vdtChild.Set(c.advertiseCollation)
+			err := vdtChild.SetValue(c.advertiseCollation)
 			require.NoError(t, err)
 
 			err = msg.SetValue(vdtChild)

@@ -118,7 +118,7 @@ func (s Service) run(blockState *state.BlockState) {
 	// let's try sending a collation message  and validation message to a peer and see what happens
 	collatorProtocolMessage := collatorprotocolmessages.NewCollatorProtocolMessage()
 	// NOTE: This is just to test. We should not be sending declare messages, since we are not a collator, just a validator
-	_ = collatorProtocolMessage.SetValue(collatorprotocol.Declare{})
+	_ = collatorProtocolMessage.SetValue(collatorprotocolmessages.Declare{})
 	collationMessage := collatorprotocolmessages.NewCollationProtocol()
 
 	_ = collationMessage.SetValue(collatorProtocolMessage)

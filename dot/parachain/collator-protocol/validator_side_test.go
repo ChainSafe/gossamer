@@ -57,7 +57,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 	}
 
 	vdt := parachaintypes.NewStatementVDT()
-	vdt.Set(parachaintypes.Seconded(
+	vdt.SetValue(parachaintypes.Seconded(
 		parachaintypes.CommittedCandidateReceipt{
 			Descriptor:  testCandidateReceipt.Descriptor,
 			Commitments: commitments,
@@ -224,14 +224,14 @@ func TestProcessOverseerMessage(t *testing.T) {
 					To: []peer.ID{peerID},
 					CollationProtocolMessage: func() collatorprotocolmessages.CollationProtocol {
 						collatorProtocolMessage := collatorprotocolmessages.NewCollatorProtocolMessage()
-						err := collatorProtocolMessage.Set(collatorprotocolmessages.CollationSeconded{
+						err := collatorProtocolMessage.SetValue(collatorprotocolmessages.CollationSeconded{
 							RelayParent: testRelayParent,
 							Statement:   parachaintypes.UncheckedSignedFullStatement(testValidStatement),
 						})
 						require.NoError(t, err)
 						collationMessage := collatorprotocolmessages.NewCollationProtocol()
 
-						err = collationMessage.Set(collatorProtocolMessage)
+						err = collationMessage.SetValue(collatorProtocolMessage)
 						require.NoError(t, err)
 
 						return collationMessage

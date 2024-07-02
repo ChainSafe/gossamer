@@ -341,12 +341,11 @@ func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Has
 		return nil
 	}
 
-	coreIndexNow := validatorGroups.GroupRotationInfo.CoreForGroup(groupIndex, uint8(len(availabilityCores.Types)))
-	coreNow, err := availabilityCores.Types[coreIndexNow.Index].Value()
+	coreIndexNow := validatorGroups.GroupRotationInfo.CoreForGroup(groupIndex, uint8(len(availabilityCores)))
+	coreNow, err := availabilityCores[coreIndexNow.Index].Value()
 	if err != nil {
 		return fmt.Errorf("getting core now: %w", err)
 	}
-
 	var paraNow *parachaintypes.ParaID
 
 	switch c := coreNow.(type) /*coreNow.Index()*/ {
