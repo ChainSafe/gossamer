@@ -100,7 +100,7 @@ func TestHandleGetBackedCandidatesMessage(t *testing.T) {
 			resCh := make(chan []*parachaintypes.BackedCandidate)
 			defer close(resCh)
 
-			requestedCandidates := GetBackedCandidatesMessage{
+			requestedCandidates := GetBackableCandidatesMessage{
 				Candidates: []*CandidateHashAndRelayParent{
 					{
 						CandidateHash:        dummyCandidateHash(t),
@@ -118,7 +118,7 @@ func TestHandleGetBackedCandidatesMessage(t *testing.T) {
 				perRelayParent: tc.perRelayParent(),
 			}
 
-			cb.handleGetBackedCandidatesMessage(requestedCandidates)
+			cb.handleGetBackableCandidatesMessage(requestedCandidates)
 		})
 	}
 

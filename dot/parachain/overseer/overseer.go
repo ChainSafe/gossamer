@@ -128,7 +128,7 @@ func (o *OverseerSystem) processMessages() {
 				networkbridgemessages.SendValidationMessage:
 				subsystem = o.nameToSubsystem[parachaintypes.NetworkBridgeSender]
 
-			case backing.GetBackedCandidatesMessage, backing.CanSecondMessage, backing.SecondMessage, backing.StatementMessage:
+			case backing.GetBackableCandidatesMessage, backing.CanSecondMessage, backing.SecondMessage, backing.StatementMessage:
 				subsystem = o.nameToSubsystem[parachaintypes.CandidateBacking]
 
 			case collatorprotocolmessages.CollateOn, collatorprotocolmessages.DistributeCollation,
