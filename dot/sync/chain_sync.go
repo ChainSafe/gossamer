@@ -89,6 +89,7 @@ type announcedBlock struct {
 	who    peer.ID
 	header *types.Header
 }
+
 type chainSync struct {
 	wg     sync.WaitGroup
 	stopCh chan struct{}
@@ -657,6 +658,11 @@ taskResultLoop:
 							Reason: peerset.BadProtocolReason,
 						}, who)
 					}
+				} else if errors.Is(taskResult.err, network.ErrNilBlockInResponse) {
+					cs.network.ReportPeer(peerset.ReputationChange{
+						Value:  peerset.BadMessageValue,
+						Reason: peerset.BadMessageReason,
+					}, who)
 				}
 
 				// TODO: avoid the same peer to get the same task
@@ -731,7 +737,9 @@ taskResultLoop:
 				}
 
 				blockExactIndex := blockInResponse.Header.Number - startAtBlock
-				syncingChain[blockExactIndex] = blockInResponse
+				if blockExactIndex < uint(expectedSyncedBlocks) {
+					syncingChain[blockExactIndex] = blockInResponse
+				}
 			}
 
 			// we need to check if we've filled all positions
@@ -1010,12 +1018,11 @@ func doResponseGrowsTheChain(response, ongoingChain []*types.BlockData, startAtB
 
 	firstBlockInResponse := response[0]
 	firstBlockExactIndex := firstBlockInResponse.Header.Number - startAtBlock
-	if firstBlockExactIndex != 0 {
+	if firstBlockExactIndex != 0 && firstBlockExactIndex < uint(expectedTotal) {
 		leftElement := ongoingChain[firstBlockExactIndex-1]
 		if leftElement != nil && !compareParentHash(leftElement, firstBlockInResponse) {
 			return false
 		}
-
 	}
 
 	switch {

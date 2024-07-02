@@ -11,8 +11,8 @@ import (
 )
 
 type iteratorState struct {
-	parentFullKey []byte     // key of the parent node of the actual node
-	node          codec.Node // actual node
+	parentFullKey []byte            // key of the parent node of the actual node
+	node          codec.EncodedNode // actual node
 }
 
 // fullKeyNibbles return the full key of the node contained in this state
@@ -64,7 +64,7 @@ func NewPrefixedTrieDBIterator(trie *TrieDB, prefix []byte) *TrieDBIterator {
 }
 
 // nextToVisit sets the next node to visit in the iterator
-func (i *TrieDBIterator) nextToVisit(parentKey []byte, node codec.Node) {
+func (i *TrieDBIterator) nextToVisit(parentKey []byte, node codec.EncodedNode) {
 	i.nodeStack = append(i.nodeStack, &iteratorState{
 		parentFullKey: parentKey,
 		node:          node,
