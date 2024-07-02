@@ -22,11 +22,13 @@ require (
 	github.com/gorilla/rpc v1.2.1
 	github.com/gorilla/websocket v1.5.3
 	github.com/gtank/merlin v0.1.1
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/ipfs/go-ds-badger4 v0.1.5
 	github.com/jpillora/backoff v1.0.0
 	github.com/jpillora/ipfilter v1.2.9
 	github.com/karlseguin/ccache/v3 v3.0.6
 	github.com/klauspost/compress v1.17.11
+	github.com/li1234yun/gods-generic v0.0.0-20230420031820-5b9f08f4846b
 	github.com/libp2p/go-libp2p v0.36.2
 	github.com/libp2p/go-libp2p-kad-dht v0.27.0
 	github.com/minio/sha256-simd v1.0.1
