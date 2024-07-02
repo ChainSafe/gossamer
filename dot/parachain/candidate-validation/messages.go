@@ -35,13 +35,13 @@ type ValidateFromExhaustive struct {
 // Validation results can be either a ValidValidationResult or InvalidValidationResult.
 //
 // If the result is invalid,
-// store the reason for invalidity in the Err field of InvalidValidationResult.
+// store the reason for invalidity in the InvalidResult field of ValidationResult.
 //
 // If the result is valid,
-// set the values of the CandidateCommitments and PersistedValidationData fields of ValidValidationResult.
+// set the values of the ValidResult field of ValidValidationResult.
 type ValidationResult struct {
 	ValidResult   *ValidValidationResult
-	InvalidResult *CandidateInvalidity
+	InvalidResult *ReasonForInvalidity
 }
 
 func (vr ValidationResult) IsValid() bool {
@@ -53,11 +53,11 @@ type ValidValidationResult struct {
 	PersistedValidationData parachaintypes.PersistedValidationData
 }
 
-type CandidateInvalidity int
+type ReasonForInvalidity byte
 
 const (
 	// ExecutionError Failed to execute `validate_block`. This includes function panicking.
-	ExecutionError CandidateInvalidity = iota
+	ExecutionError ReasonForInvalidity = iota
 	// InvalidOutputs Validation outputs check doesn't pass.
 	InvalidOutputs
 	// Timeout Execution timeout.
@@ -84,7 +84,7 @@ const (
 	CommitmentsHashMismatch
 )
 
-func (ci CandidateInvalidity) Error() string {
+func (ci ReasonForInvalidity) Error() string {
 	switch ci {
 	case ExecutionError:
 		return "failed to execute `validate_block`"

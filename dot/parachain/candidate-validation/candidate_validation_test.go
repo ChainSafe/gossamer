@@ -582,7 +582,7 @@ func Test_performBasicChecks(t *testing.T) {
 	}
 	tests := map[string]struct {
 		args          args
-		expectedError *CandidateInvalidity
+		expectedError *ReasonForInvalidity
 	}{
 		"params_too_large": {
 			args: args{

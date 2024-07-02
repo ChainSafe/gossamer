@@ -283,16 +283,16 @@ func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
 }
 
 // performBasicChecks Does basic checks of a candidate. Provide the encoded PoV-block.
-// Returns CandidateInvalidity and internal error if any.
+// Returns ReasonForInvalidity and internal error if any.
 func performBasicChecks(candidate *parachaintypes.CandidateDescriptor, maxPoVSize uint32,
-	pov parachaintypes.PoV, validationCodeHash parachaintypes.ValidationCodeHash) (validationError *CandidateInvalidity,
+	pov parachaintypes.PoV, validationCodeHash parachaintypes.ValidationCodeHash) (validationError *ReasonForInvalidity,
 	internalError error) {
 	povHash, err := pov.Hash()
 	if err != nil {
 		return nil, fmt.Errorf("hashing PoV: %w", err)
 	}
 
-	encodedPoV, err := pov.Encode()
+	encodedPoV, err := scale.Marshal(pov)
 	if err != nil {
 		return nil, fmt.Errorf("encoding PoV: %w", err)
 	}
