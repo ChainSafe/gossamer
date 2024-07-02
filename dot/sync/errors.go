@@ -8,7 +8,8 @@ import (
 )
 
 var (
-	errBlockStatePaused = errors.New("blockstate service has been paused")
+	errBlockStatePaused       = errors.New("blockstate service has been paused")
+	errMaxNumberOfSameRequest = errors.New("max number of same request reached")
 
 	// ErrInvalidBlockRequest is returned when an invalid block request is received
 	ErrInvalidBlockRequest     = errors.New("invalid block request")

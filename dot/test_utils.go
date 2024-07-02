@@ -19,9 +19,16 @@ import (
 // NewTestGenesisRawFile returns a test genesis file using "westend-dev" raw data
 func NewTestGenesisRawFile(t *testing.T, config *cfg.Config) (filename string) {
 	filename = filepath.Join(t.TempDir(), "genesis.json")
+	if os.Getenv("CI") == "buildjet" {
+		tmpdir, err := os.MkdirTemp("..", "*_gen_raw_file")
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			require.NoError(t, os.RemoveAll(tmpdir))
+		})
+		filename = filepath.Join(tmpdir, "genesis.json")
+	}
 
 	fp := utils.GetWestendDevRawGenesisPath(t)
-
 	westendDevGenesis, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 
