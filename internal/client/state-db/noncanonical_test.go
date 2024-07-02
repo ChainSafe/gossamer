@@ -323,7 +323,7 @@ func TestComplexTree(t *testing.T) {
 
 	overlay, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
 	assert.NoError(t, err)
-	insertion, err := overlay.Insert(h1, 1, hash.H256(make([]byte, 32)), c1)
+	insertion, err := overlay.Insert(h1, 1, hash.H256(""), c1)
 	assert.NoError(t, err)
 	db.Commit(insertion)
 
@@ -334,7 +334,7 @@ func TestComplexTree(t *testing.T) {
 	assert.NoError(t, err)
 	db.Commit(insertion)
 
-	insertion, err = overlay.Insert(h2, 1, hash.H256(make([]byte, 32)), c2)
+	insertion, err = overlay.Insert(h2, 1, hash.H256(""), c2)
 	assert.NoError(t, err)
 	db.Commit(insertion)
 
@@ -369,7 +369,7 @@ func TestComplexTree(t *testing.T) {
 	assert.True(t, contains(overlay, 211))
 	assert.Equal(t, 3, overlay.levels.Len())
 	assert.Equal(t, 11, len(overlay.parents))
-	assert.Equal(t, overlay.lastCanonicalized, &hashBlock[hash.H256]{hash.H256(make([]byte, 32)), 0})
+	assert.Equal(t, overlay.lastCanonicalized, &hashBlock[hash.H256]{hash.H256(""), 0})
 
 	// check if restoration from journal results in the same tree
 	overlay2, err := newNonCanonicalOverlay[hash.H256, hash.H256](db)
