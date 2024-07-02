@@ -7,8 +7,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	in_memory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 )
 
 var (
@@ -17,8 +20,7 @@ var (
 
 // NewTrieFromGenesis creates a new trie from the raw genesis data
 func NewTrieFromGenesis(gen genesis.Genesis) (tr trie.Trie, err error) {
-	triePtr := trie.NewEmptyTrie()
-	tr = *triePtr
+	tr = in_memory_trie.NewEmptyTrie()
 	genesisFields := gen.GenesisFields()
 	keyValues, ok := genesisFields.Raw["top"]
 	if !ok {
@@ -26,10 +28,24 @@ func NewTrieFromGenesis(gen genesis.Genesis) (tr trie.Trie, err error) {
 			ErrGenesisTopNotFound, gen.Name)
 	}
 
-	tr, err = trie.LoadFromMap(keyValues)
+	tr, err = in_memory_trie.LoadFromMap(keyValues, trie.V0)
 	if err != nil {
 		return tr, fmt.Errorf("loading genesis top key values into trie: %w", err)
 	}
 
 	return tr, nil
+}
+
+func GenesisBlockFromTrie(t trie.Trie) (genesisHeader types.Header, err error) {
+	rootHash, err := t.Hash()
+	if err != nil {
+		return genesisHeader, fmt.Errorf("root hashing trie: %w", err)
+	}
+
+	parentHash := common.Hash{0}
+	extrinsicRoot := trie.EmptyHash
+	const blockNumber = 0
+	digest := types.NewDigest()
+	genesisHeader = *types.NewHeader(parentHash, rootHash, extrinsicRoot, blockNumber, digest)
+	return genesisHeader, nil
 }

@@ -108,7 +108,7 @@ func TestCollationFetchingResponse(t *testing.T) {
 		t.Parallel()
 
 		responseVDT := NewCollationFetchingResponse()
-		err := responseVDT.Set(collation)
+		err := responseVDT.SetValue(collation)
 		require.NoError(t, err)
 
 		actualEncode, err := responseVDT.Encode()

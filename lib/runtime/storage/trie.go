@@ -4,6 +4,7 @@
 package storage
 
 import (
+	"bytes"
 	"container/list"
 	"encoding/binary"
 	"fmt"
@@ -11,31 +12,46 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
-// TrieState is a wrapper around a transient trie that is used during the course of executing some runtime call.
-// If the execution of the call is successful, the trie will be saved in the StorageState.
+// TrieState relies on `storageDiff` to perform changes over the current state.
+// It has support for transactions using "nested" storageDiff changes
+// If the execution of the call is successful, the changes will be applied to
+// the current `state`
 type TrieState struct {
-	mtx          sync.RWMutex
-	transactions *list.List
+	mtx             sync.RWMutex
+	state           trie.Trie
+	transactions    *list.List
+	sortedKeys      []string
+	childSortedKeys map[string][]string
 }
 
-func NewTrieState(state *trie.Trie) *TrieState {
+// NewTrieState initialises and returns a new TrieState instance
+func NewTrieState(initialState trie.Trie) *TrieState {
 	transactions := list.New()
-	transactions.PushBack(state)
 	return &TrieState{
-		transactions: transactions,
+		transactions:    transactions,
+		state:           initialState,
+		sortedKeys:      make([]string, 0),
+		childSortedKeys: make(map[string][]string),
 	}
 }
 
-func (t *TrieState) getCurrentTrie() *trie.Trie {
-	return t.transactions.Back().Value.(*trie.Trie)
+func (t *TrieState) getCurrentTransaction() *storageDiff {
+	innerTransaction := t.transactions.Back()
+	if innerTransaction == nil {
+		return nil
+	}
+	return innerTransaction.Value.(*storageDiff)
 }
 
-func (t *TrieState) updateCurrentTrie(new *trie.Trie) {
-	t.transactions.Back().Value = new
+func (t *TrieState) SetVersion(v trie.TrieLayout) {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+	t.state.SetVersion(v)
 }
 
 // StartTransaction begins a new nested storage transaction
@@ -44,43 +60,50 @@ func (t *TrieState) StartTransaction() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	t.transactions.PushBack(t.getCurrentTrie().Snapshot())
+	nextChangeSet := t.getCurrentTransaction()
+	if nextChangeSet == nil {
+		nextChangeSet = newStorageDiff()
+	}
+
+	t.transactions.PushBack(nextChangeSet.snapshot())
 }
 
-// Rollback rolls back all storage changes made since StartTransaction was called.
+// RollbackTransaction back all storage changes made since StartTransaction was called.
 func (t *TrieState) RollbackTransaction() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	if t.transactions.Len() <= 1 {
+	if t.transactions.Len() < 1 {
 		panic("no transactions to rollback")
 	}
 
 	t.transactions.Remove(t.transactions.Back())
 }
 
-// Commit commits all storage changes made since StartTransaction was called.
+// CommitTransaction all storage changes made since StartTransaction was called.
 func (t *TrieState) CommitTransaction() {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	if t.transactions.Len() <= 1 {
+	if t.transactions.Len() == 0 {
 		panic("no transactions to commit")
 	}
 
-	t.transactions.Back().Prev().Value = t.transactions.Remove(t.transactions.Back())
+	if t.transactions.Len() > 1 {
+		// We merge this transaction with its parent transaction
+		t.transactions.Back().Prev().Value = t.transactions.Remove(t.transactions.Back())
+	} else {
+		// This is the last transaction so we apply all the changes to our state
+		t.transactions.Remove(t.transactions.Back()).(*storageDiff).applyToTrie(t.state)
+	}
 }
 
 // Trie returns the TrieState's underlying trie
-func (t *TrieState) Trie() *trie.Trie {
-	return t.getCurrentTrie()
-}
+func (t *TrieState) Trie() trie.Trie {
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
 
-// Snapshot creates a new "version" of the trie. The trie before Snapshot is called
-// can no longer be modified, all further changes are on a new "version" of the trie.
-// It returns the new version of the trie.
-func (t *TrieState) Snapshot() *trie.Trie {
-	return t.getCurrentTrie().Snapshot()
+	return t.state
 }
 
 // Put puts a key-value pair in the trie
@@ -88,24 +111,55 @@ func (t *TrieState) Put(key, value []byte) (err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	return t.getCurrentTrie().Put(key, value)
+	// If we have running transactions we apply the change there,
+	// if not, we apply the changes directly on our state trie
+	if t.getCurrentTransaction() != nil {
+		t.getCurrentTransaction().upsert(string(key), value)
+	} else {
+		err := t.state.Put(key, value)
+		if err != nil {
+			return err
+		}
+		t.addMainTrieSortedKey(string(key))
+	}
+
+	return nil
 }
 
 // Get gets a value from the trie
 func (t *TrieState) Get(key []byte) []byte {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
-	return t.getCurrentTrie().Get(key)
+
+	// If we find the key or it is deleted return from latest transaction
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		val, deleted := currentTx.get(string(key))
+		if val != nil || deleted {
+			return val
+		}
+	}
+
+	// If we didn't find the key in the latest transactions lookup from state
+	return t.state.Get(key)
 }
 
 // MustRoot returns the trie's root hash. It panics if it fails to compute the root.
-func (t *TrieState) MustRoot(maxInlineValue int) common.Hash {
-	return t.getCurrentTrie().MustHash(maxInlineValue)
+func (t *TrieState) MustRoot() common.Hash {
+	hash, err := t.Root()
+	if err != nil {
+		panic(err)
+	}
+
+	return hash
 }
 
 // Root returns the trie's root hash
-func (t *TrieState) Root(maxInlineValue int) (common.Hash, error) {
-	return t.getCurrentTrie().Hash(maxInlineValue)
+func (t *TrieState) Root() (common.Hash, error) {
+	// Since the Root function is called without running transactions we can do:
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		panic("cannot calculate root with running transactions")
+	}
+	return t.state.Hash()
 }
 
 // Has returns whether or not a key exists
@@ -115,16 +169,18 @@ func (t *TrieState) Has(key []byte) bool {
 
 // Delete deletes a key from the trie
 func (t *TrieState) Delete(key []byte) (err error) {
-	val := t.getCurrentTrie().Get(key)
-	if val == nil {
-		return nil
-	}
-
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
-	err = t.getCurrentTrie().Delete(key)
-	if err != nil {
-		return fmt.Errorf("deleting from trie: %w", err)
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		t.getCurrentTransaction().delete(string(key))
+
+	} else {
+		err := t.state.Delete(key)
+		if err != nil {
+			return err
+		}
+		t.removeMainTrieSortedKey(string(key))
 	}
 
 	return nil
@@ -134,14 +190,43 @@ func (t *TrieState) Delete(key []byte) (err error) {
 func (t *TrieState) NextKey(key []byte) []byte {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
-	return t.getCurrentTrie().NextKey(key)
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		allSortedKeys := append(t.sortedKeys, currentTx.sortedKeys...)
+		// Find key position
+		pos, found := slices.BinarySearch(allSortedKeys, string(key))
+		if found {
+			pos = pos + 1
+		}
+
+		// Get next key based on that position
+		if pos < len(allSortedKeys) {
+			k := allSortedKeys[pos]
+			return []byte(k)
+		}
+		return nil
+	}
+
+	return t.state.NextKey(key)
 }
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
-func (t *TrieState) ClearPrefix(prefix []byte) (err error) {
+func (t *TrieState) ClearPrefix(prefix []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
-	return t.getCurrentTrie().ClearPrefix(prefix)
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		trieKeys := t.state.Entries()
+		currentTx.clearPrefix(prefix, maps.Keys(trieKeys), -1)
+		return nil
+	}
+
+	err := t.state.ClearPrefix(prefix)
+	if err != nil {
+		return err
+	}
+	t.sortedKeys = t.removePrefixedSortedKey(t.sortedKeys, string(prefix), -1)
+	return nil
 }
 
 // ClearPrefixLimit deletes key-value pairs from the trie where the key starts with the given prefix till limit reached
@@ -150,49 +235,107 @@ func (t *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	return t.getCurrentTrie().ClearPrefixLimit(prefix, limit)
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		trieKeys := t.state.Entries()
+		deleted, allDeleted = currentTx.clearPrefix(prefix, maps.Keys(trieKeys), int(limit))
+		return deleted, allDeleted, nil
+	}
+
+	deleted, allDeleted, err = t.state.ClearPrefixLimit(prefix, limit)
+	if err != nil {
+		return 0, false, err
+	}
+	t.sortedKeys = t.removePrefixedSortedKey(t.sortedKeys, string(prefix), int(limit))
+	return
 }
 
 // TrieEntries returns every key-value pair in the trie
 func (t *TrieState) TrieEntries() map[string][]byte {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
-	return t.getCurrentTrie().Entries()
-}
 
-// SetChild sets the child trie at the given key
-func (t *TrieState) SetChild(keyToChild []byte, child *trie.Trie) error {
-	t.mtx.Lock()
-	defer t.mtx.Unlock()
-	return t.getCurrentTrie().SetChild(keyToChild, child)
+	entries := make(map[string][]byte)
+
+	// Get entries from original trie
+	maps.Copy(entries, t.state.Entries())
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		// Overwrite it with last changes
+		maps.Copy(entries, t.getCurrentTransaction().upserts)
+
+		// Remove deleted keys
+		for k := range t.getCurrentTransaction().deletes {
+			delete(entries, k)
+		}
+	}
+
+	return entries
 }
 
 // SetChildStorage sets a key-value pair in a child trie
 func (t *TrieState) SetChildStorage(keyToChild, key, value []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
-	return t.getCurrentTrie().PutIntoChild(keyToChild, key, value)
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		keyToChildStr := string(keyToChild)
+		keyString := string(key)
+		currentTx.upsertChild(keyToChildStr, keyString, value)
+		return nil
+	}
+
+	err := t.state.PutIntoChild(keyToChild, key, value)
+	if err != nil {
+		return err
+	}
+	t.addChildTrieSortedKey(string(keyToChild), string(key))
+	return nil
 }
 
-// GetChild returns the child trie at the given key
-func (t *TrieState) GetChild(keyToChild []byte) (*trie.Trie, error) {
+func (t *TrieState) GetChildRoot(keyToChild []byte) (common.Hash, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
-	return t.getCurrentTrie().GetChild(keyToChild)
+
+	child, err := t.state.GetChild(keyToChild)
+	if err != nil {
+		return common.EmptyHash, err
+	}
+
+	return child.Hash()
 }
 
 // GetChildStorage returns a value from a child trie
 func (t *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
-	return t.getCurrentTrie().GetFromChild(keyToChild, key)
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		val, deleted := currentTx.getFromChild(string(keyToChild), string(key))
+		if val != nil || deleted {
+			return val, nil
+		}
+	}
+
+	// If we didnt find the key in the latest transactions lookup from state
+	return t.state.GetFromChild(keyToChild, key)
 }
 
 // DeleteChild deletes a child trie from the main trie
-func (t *TrieState) DeleteChild(key []byte) (err error) {
+func (t *TrieState) DeleteChild(keyToChild []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
-	return t.getCurrentTrie().DeleteChild(key)
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		currentTx.delete(string(keyToChild))
+		return nil
+	}
+
+	err := t.state.DeleteChild(keyToChild)
+	if err != nil {
+		return err
+	}
+	delete(t.childSortedKeys, string(keyToChild))
+	return nil
 }
 
 // DeleteChildLimit deletes up to limit of database entries by lexicographic order.
@@ -201,22 +344,43 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	trieSnapshot := t.getCurrentTrie().Snapshot()
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		deleteLimit := -1
+		if limit != nil {
+			deleteLimit = int(binary.LittleEndian.Uint32(*limit))
+		}
 
-	tr, err := trieSnapshot.GetChild(key)
+		childKey := string(key)
+
+		child, err := t.state.GetChild(key)
+
+		childEntriesKeys := make([]string, 0)
+		if err != nil {
+			// If child trie does not exists and won't be created return err
+			if currentTx.childChangeSet[childKey] == nil {
+				return 0, false, err
+			}
+		} else {
+			childEntriesKeys = maps.Keys(child.Entries())
+		}
+
+		deleted, allDeleted = currentTx.deleteChildLimit(childKey, childEntriesKeys, deleteLimit)
+		return deleted, allDeleted, nil
+	}
+
+	child, err := t.state.GetChild(key)
 	if err != nil {
 		return 0, false, err
 	}
 
-	childTrieEntries := tr.Entries()
+	childTrieEntries := child.Entries()
 	qtyEntries := uint32(len(childTrieEntries))
 	if limit == nil {
-		err = trieSnapshot.DeleteChild(key)
+		err = t.state.DeleteChild(key)
 		if err != nil {
 			return 0, false, fmt.Errorf("deleting child trie: %w", err)
 		}
-
-		t.updateCurrentTrie(trieSnapshot)
+		delete(t.childSortedKeys, string(key))
 		return qtyEntries, true, nil
 	}
 	limitUint := binary.LittleEndian.Uint32(*limit)
@@ -229,17 +393,18 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 		// a bad intermediary state. Take also care of the caching of deleted Merkle
 		// values within the tries, which is used for online pruning.
 		// See https://github.com/ChainSafe/gossamer/issues/3032
-		err = tr.Delete([]byte(k))
+		err = child.Delete([]byte(k))
 		if err != nil {
 			return deleted, allDeleted, fmt.Errorf("deleting from child trie located at key 0x%x: %w", key, err)
 		}
 
+		t.removeChildTrieSortedKey(string(key), k)
 		deleted++
 		if deleted == limitUint {
 			break
 		}
 	}
-	t.updateCurrentTrie(trieSnapshot)
+
 	allDeleted = deleted == qtyEntries
 	return deleted, allDeleted, nil
 }
@@ -248,7 +413,21 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 func (t *TrieState) ClearChildStorage(keyToChild, key []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
-	return t.getCurrentTrie().ClearFromChild(keyToChild, key)
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		keyToChildStr := string(keyToChild)
+		keyStr := string(key)
+		currentTx.deleteFromChild(keyToChildStr, keyStr)
+		return nil
+	}
+
+	err := t.state.ClearFromChild(keyToChild, key)
+	if err != nil {
+		return err
+	}
+
+	t.removeChildTrieSortedKey(string(keyToChild), string(key))
+	return nil
 }
 
 // ClearPrefixInChild clears all the keys from the child trie that have the given prefix
@@ -256,7 +435,18 @@ func (t *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	child, err := t.getCurrentTrie().GetChild(keyToChild)
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		child, err := t.state.GetChild(keyToChild)
+		childKeys := make([]string, 0)
+		if err == nil {
+			childKeys = maps.Keys(child.Entries())
+		}
+
+		currentTx.clearPrefixInChild(string(keyToChild), prefix, childKeys, -1)
+		return nil
+	}
+
+	child, err := t.state.GetChild(keyToChild)
 	if err != nil {
 		return err
 	}
@@ -268,6 +458,11 @@ func (t *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 	if err != nil {
 		return fmt.Errorf("clearing prefix in child trie located at key 0x%x: %w", keyToChild, err)
 	}
+	t.childSortedKeys[string(keyToChild)] = t.removePrefixedSortedKey(
+		t.childSortedKeys[string(keyToChild)],
+		string(prefix),
+		-1,
+	)
 
 	return nil
 }
@@ -276,31 +471,113 @@ func (t *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	child, err := t.getCurrentTrie().GetChild(keyToChild)
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		child, err := t.state.GetChild(keyToChild)
+		childKeys := make([]string, 0)
+		if err == nil {
+			childKeys = maps.Keys(child.Entries())
+		}
+
+		deleted, allDeleted := currentTx.clearPrefixInChild(string(keyToChild), prefix, childKeys, int(limit))
+		return deleted, allDeleted, nil
+	}
+
+	child, err := t.state.GetChild(keyToChild)
 	if err != nil || child == nil {
 		return 0, false, err
 	}
 
-	return child.ClearPrefixLimit(prefix, limit)
+	deleted, allDeleted, err := child.ClearPrefixLimit(prefix, limit)
+	if err != nil {
+		return 0, false, err
+	}
+	t.childSortedKeys[string(keyToChild)] = t.removePrefixedSortedKey(
+		t.childSortedKeys[string(keyToChild)],
+		string(prefix),
+		-1,
+	)
+	return deleted, allDeleted, nil
 }
 
 // GetChildNextKey returns the next lexicographical larger key from child storage. If it does not exist, it returns nil.
 func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
-	child, err := t.getCurrentTrie().GetChild(keyToChild)
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		// If we are going to delete this child we return error
+		if currentTx.deletes[string(keyToChild)] {
+			return nil, trie.ErrChildTrieDoesNotExist
+		}
+
+		if childChanges := currentTx.childChangeSet[string(keyToChild)]; childChanges != nil {
+			allSortedKeys := append(t.childSortedKeys[string(keyToChild)], childChanges.sortedKeys...)
+			// Find key position
+			pos, found := slices.BinarySearch(allSortedKeys, string(key))
+			if found {
+				pos = pos + 1
+			}
+
+			// Get next key based on that position
+			if pos < len(allSortedKeys) {
+				k := allSortedKeys[pos]
+				return []byte(k), nil
+			}
+
+			return nil, nil
+		}
+	}
+
+	child, err := t.state.GetChild(keyToChild)
 	if err != nil {
 		return nil, err
 	}
 	if child == nil {
 		return nil, nil
 	}
+
 	return child.NextKey(key), nil
 }
 
 // GetKeysWithPrefixFromChild ...
 func (t *TrieState) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]byte, error) {
-	child, err := t.GetChild(keyToChild)
+	t.mtx.RLock()
+	defer t.mtx.RUnlock()
+
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		// If we are going to delete this child we return error
+		if currentTx.deletes[string(keyToChild)] {
+			return nil, trie.ErrChildTrieDoesNotExist
+		}
+
+		if childChanges := currentTx.childChangeSet[string(keyToChild)]; childChanges != nil {
+			allEntries := make(map[string][]byte)
+
+			maps.Copy(allEntries, childChanges.upserts)
+			child, err := t.state.GetChild(keyToChild)
+			if err != nil {
+				// Child trie does not exists and won't exists in the future
+				if len(allEntries) == 0 {
+					return nil, err
+				}
+			} else {
+				allEntries = child.Entries()
+			}
+			keys := maps.Keys(allEntries)
+
+			values := make([][]byte, 0)
+
+			for _, k := range keys {
+				if bytes.HasPrefix([]byte(k), prefix) {
+					values = append(values, []byte(k))
+				}
+			}
+
+			return values, nil
+		}
+	}
+
+	child, err := t.state.GetChild(keyToChild)
 	if err != nil {
 		return nil, err
 	}
@@ -326,5 +603,59 @@ func (t *TrieState) LoadCodeHash() (common.Hash, error) {
 func (t *TrieState) GetChangedNodeHashes() (inserted, deleted map[common.Hash]struct{}, err error) {
 	t.mtx.RLock()
 	defer t.mtx.RUnlock()
-	return t.getCurrentTrie().GetChangedNodeHashes()
+
+	return t.state.GetChangedNodeHashes()
+}
+
+func (t *TrieState) addMainTrieSortedKey(key string) {
+	t.sortedKeys = t.insertSortedKey(t.sortedKeys, key)
+}
+
+func (t *TrieState) removeMainTrieSortedKey(key string) {
+	t.sortedKeys = t.removeSortedKey(t.sortedKeys, key)
+}
+
+func (t *TrieState) addChildTrieSortedKey(keyToChild, key string) {
+	t.childSortedKeys[keyToChild] = t.insertSortedKey(t.childSortedKeys[keyToChild], key)
+}
+
+func (t *TrieState) removeChildTrieSortedKey(keyToChild, key string) {
+	t.childSortedKeys[keyToChild] = t.removeSortedKey(t.childSortedKeys[keyToChild], key)
+}
+
+func (t *TrieState) insertSortedKey(keys []string, key string) []string {
+	pos, found := slices.BinarySearch(keys, key)
+
+	if found {
+		return keys // key already exists
+	}
+
+	keys = append(keys, "")
+	copy(keys[pos+1:], keys[pos:])
+	keys[pos] = key
+	return keys
+}
+
+func (t *TrieState) removeSortedKey(keys []string, key string) []string {
+	pos, found := slices.BinarySearch(keys, key)
+
+	if found {
+		keys = append(keys[:pos], keys[pos+1:]...)
+	}
+
+	return keys
+}
+
+func (t *TrieState) removePrefixedSortedKey(keys []string, key string, limit int) []string {
+	amountDeleted := 0
+	for _, k := range keys {
+		if bytes.HasPrefix([]byte(k), []byte(key)) {
+			keys = t.removeSortedKey(keys, k)
+			if limit > 0 && amountDeleted == limit {
+				break
+			}
+		}
+	}
+
+	return keys
 }

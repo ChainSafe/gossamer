@@ -9,36 +9,66 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// ValidityAttestation is an implicit or explicit attestation to the validity of a parachain
-// candidate.
-type ValidityAttestation scale.VaryingDataType
-
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (va *ValidityAttestation) Set(val scale.VaryingDataTypeValue) (err error) {
-	// cast to VaryingDataType to use VaryingDataType.Set method
-	vdt := scale.VaryingDataType(*va)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value to varying data type: %w", err)
-	}
-	// store original ParentVDT with VaryingDataType that has been set
-	*va = ValidityAttestation(vdt)
-	return nil
+type ValidityAttestationValues interface {
+	Implicit | Explicit
 }
 
-// Value returns the value from the underlying VaryingDataType
-func (va *ValidityAttestation) Value() (scale.VaryingDataTypeValue, error) {
-	vdt := scale.VaryingDataType(*va)
-	return vdt.Value()
+// ValidityAttestation is an implicit or explicit attestation to the validity of a parachain
+// candidate.
+type ValidityAttestation struct {
+	inner any
+}
+
+func setValidityAttestation[Value ValidityAttestationValues](mvdt *ValidityAttestation, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *ValidityAttestation) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case Implicit:
+		setValidityAttestation(mvdt, value)
+		return
+
+	case Explicit:
+		setValidityAttestation(mvdt, value)
+		return
+
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt ValidityAttestation) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case Implicit:
+		return 1, mvdt.inner, nil
+
+	case Explicit:
+		return 2, mvdt.inner, nil
+
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt ValidityAttestation) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt ValidityAttestation) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 1:
+		return *new(Implicit), nil
+
+	case 2:
+		return *new(Explicit), nil
+
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
 // Implicit is for Implicit attestation.
 type Implicit ValidatorSignature
-
-// Index returns VDT index
-func (Implicit) Index() uint {
-	return 1
-}
 
 func (i Implicit) String() string { //skipcq:SCC-U1000
 	return fmt.Sprintf("implicit(%s)", ValidatorSignature(i))
@@ -47,17 +77,11 @@ func (i Implicit) String() string { //skipcq:SCC-U1000
 // Explicit is for Explicit attestation.
 type Explicit ValidatorSignature //skipcq
 
-// Index returns VDT index
-func (Explicit) Index() uint { //skipcq
-	return 2
-}
-
 func (e Explicit) String() string { //skipcq:SCC-U1000
 	return fmt.Sprintf("explicit(%s)", ValidatorSignature(e))
 }
 
 // NewValidityAttestation creates a ValidityAttestation varying data type.
 func NewValidityAttestation() ValidityAttestation {
-	vdt := scale.MustNewVaryingDataType(Implicit{}, Explicit{})
-	return ValidityAttestation(vdt)
+	return ValidityAttestation{}
 }

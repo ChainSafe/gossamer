@@ -25,7 +25,8 @@
                     {
                         "path": "dist/**"
                     }
-                ]
+                ],
+                "successComment": false
             }
         ]
     ]

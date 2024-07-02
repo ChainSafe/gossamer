@@ -37,7 +37,7 @@ type onDisabledInfo struct {
 // VerificationManager deals with verification that a BABE block producer was authorized to produce a given block.
 // It tracks the BABE epoch data that is needed for verification.
 type VerificationManager struct {
-	lock       sync.RWMutex
+	lock       sync.Mutex
 	blockState BlockState
 	slotState  SlotState
 	epochState EpochState
@@ -128,69 +128,44 @@ func (v *VerificationManager) SetOnDisabled(index uint32, header *types.Header) 
 // It checks the next epoch and config data stored in memory only if it cannot retrieve the data from database
 // It returns an error if the block is invalid.
 func (v *VerificationManager) VerifyBlock(header *types.Header) error {
-	var (
-		info *verifierInfo
-		has  bool
-	)
-
-	// special case for block 1 - the network doesn't necessarily start in epoch 1.
-	// if this happens, the database will be missing info for epochs before the first block.
-	if header.Number == 1 {
-		block1IsFinal, err := v.blockState.NumberIsFinalised(header.Number)
-		if err != nil {
-			return fmt.Errorf("failed to check if block 1 is finalised: %w", err)
-		}
-
-		if !block1IsFinal {
-			firstSlot, err := types.GetSlotFromHeader(header)
-			if err != nil {
-				return fmt.Errorf("failed to get slot from header of block 1: %w", err)
-			}
-
-			logger.Debugf("syncing block 1, setting first slot as %d", firstSlot)
-
-			err = v.epochState.SetFirstSlot(firstSlot)
-			if err != nil {
-				return fmt.Errorf("failed to set current epoch after receiving block 1: %w", err)
-			}
-		}
-	}
-
-	epoch, err := v.epochState.GetEpochForBlock(header)
+	parentHeader, err := v.blockState.GetHeader(header.ParentHash)
 	if err != nil {
-		return fmt.Errorf("failed to get epoch for block header: %w", err)
+		return fmt.Errorf("getting header: %w", err)
 	}
 
-	v.lock.Lock()
+	currentBlockEpoch, err := v.epochState.GetEpochForBlock(header)
+	if err != nil {
+		return fmt.Errorf("getting epoch for block header: %w", err)
+	}
 
-	if info, has = v.epochInfo[epoch]; !has {
-		info, err = v.getVerifierInfo(epoch, header)
+	epochWhereDataDescriptorIs := currentBlockEpoch
+	if parentHeader.Hash() != v.blockState.GenesisHash() {
+		parentEpoch, err := v.epochState.GetEpochForBlock(parentHeader)
 		if err != nil {
-			v.lock.Unlock()
-			// SkipVerify is set to true only in the case where we have imported a state at a given height,
-			// thus missing the epoch data for previous epochs.
-			skip, skipErr := v.epochState.SkipVerify(header)
-			if skipErr != nil {
-				return fmt.Errorf("failed to check if verification can be skipped: %w", skipErr)
-			}
-
-			if skip {
-				return nil
-			}
-
-			return fmt.Errorf("failed to get verifier info for block %d: %w", header.Number, err)
+			return fmt.Errorf("getting epoch for parent header: %w", err)
 		}
 
-		v.epochInfo[epoch] = info
+		if parentEpoch > currentBlockEpoch {
+			return fmt.Errorf("%w: expected epoch greater than parent block epoch %d, got: %d",
+				errEpochLowerThanExpected, parentEpoch, currentBlockEpoch)
+		}
+
+		if currentBlockEpoch > (parentEpoch + 1) {
+			epochWhereDataDescriptorIs = parentEpoch + 1
+		}
 	}
 
-	v.lock.Unlock()
 	slotDuration, err := v.epochState.GetSlotDuration()
 	if err != nil {
 		return fmt.Errorf("getting current slot duration: %w", err)
 	}
 
-	verifier := newVerifier(v.blockState, v.slotState, epoch, info, slotDuration)
+	info, err := v.getVerifierInfo(epochWhereDataDescriptorIs, header)
+	if err != nil {
+		return fmt.Errorf("getting verifier info: %w", err)
+	}
+
+	verifier := newVerifier(v.blockState, v.slotState, currentBlockEpoch, info, slotDuration)
 	return verifier.verifyAuthorshipRight(header)
 }
 
@@ -249,15 +224,15 @@ func newVerifier(blockState BlockState, slotState SlotState,
 func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// header should have 2 digest items (possibly more in the future)
 	// first item should be pre-digest, second should be seal
-	if len(header.Digest.Types) < 2 {
+	if len(header.Digest) < 2 {
 		return errMissingDigestItems
 	}
 
 	logger.Tracef("beginning BABE authorship right verification for block %s", header.Hash())
 
 	// check for valid seal by verifying signature
-	preDigestItem := header.Digest.Types[0]
-	sealItem := header.Digest.Types[len(header.Digest.Types)-1]
+	preDigestItem := header.Digest[0]
+	sealItem := header.Digest[len(header.Digest)-1]
 
 	preDigestItemValue, err := preDigestItem.Value()
 	if err != nil {
@@ -302,7 +277,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 
 	// remove seal before verifying signature
 	h := types.NewDigest()
-	for _, val := range header.Digest.Types[:len(header.Digest.Types)-1] {
+	for _, val := range header.Digest[:len(header.Digest)-1] {
 		digestValue, err := val.Value()
 		if err != nil {
 			return fmt.Errorf("getting digest type value: %w", err)
@@ -419,7 +394,7 @@ func (b *verifier) verifyBlockEquivocation(header *types.Header) (bool, error) {
 	return true, nil
 }
 
-func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (scale.VaryingDataTypeValue, error) {
+func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (any, error) {
 	babePreDigest, err := types.DecodeBabePreDigest(digest.Data)
 	if err != nil {
 		return nil, err
@@ -524,11 +499,11 @@ func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32,
 }
 
 func getAuthorityIndexAndSlot(header *types.Header) (authIdx uint32, slot uint64, err error) {
-	if len(header.Digest.Types) == 0 {
+	if len(header.Digest) == 0 {
 		return 0, 0, fmt.Errorf("for block hash %s: %w", header.Hash(), errNoDigest)
 	}
 
-	digestValue, err := header.Digest.Types[0].Value()
+	digestValue, err := header.Digest[0].Value()
 	if err != nil {
 		return 0, 0, fmt.Errorf("getting first digest type value: %w", err)
 	}

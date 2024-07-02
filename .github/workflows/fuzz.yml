@@ -8,7 +8,7 @@ jobs:
     runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
       - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.12.0
+        uses: styfle/cancel-workflow-action@0.12.1
         with:
           all_but_latest: true
 
@@ -41,4 +41,4 @@ jobs:
           restore-keys: ${{ runner.os }}-go-mod
 
       - name: Fuzz trie
-        run: go test -run Fuzz_Trie_PutAndGet_Single -fuzz=Fuzz_Trie_PutAndGet_Single -fuzztime=5m github.com/ChainSafe/gossamer/lib/trie
+        run: go test -run Fuzz_Trie_PutAndGet_Single -fuzz=Fuzz_Trie_PutAndGet_Single -fuzztime=5m github.com/ChainSafe/gossamer/pkg/trie

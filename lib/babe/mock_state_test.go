@@ -113,18 +113,19 @@ func (mr *MockBlockStateMockRecorder) GenesisHash() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenesisHash", reflect.TypeOf((*MockBlockState)(nil).GenesisHash))
 }
 
-// GetAllBlocksAtDepth mocks base method.
-func (m *MockBlockState) GetAllBlocksAtDepth(arg0 common.Hash) []common.Hash {
+// GetBlockByHash mocks base method.
+func (m *MockBlockState) GetBlockByHash(arg0 common.Hash) (*types.Block, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAllBlocksAtDepth", arg0)
-	ret0, _ := ret[0].([]common.Hash)
-	return ret0
+	ret := m.ctrl.Call(m, "GetBlockByHash", arg0)
+	ret0, _ := ret[0].(*types.Block)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// GetAllBlocksAtDepth indicates an expected call of GetAllBlocksAtDepth.
-func (mr *MockBlockStateMockRecorder) GetAllBlocksAtDepth(arg0 any) *gomock.Call {
+// GetBlockByHash indicates an expected call of GetBlockByHash.
+func (mr *MockBlockStateMockRecorder) GetBlockByHash(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllBlocksAtDepth", reflect.TypeOf((*MockBlockState)(nil).GetAllBlocksAtDepth), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockByHash", reflect.TypeOf((*MockBlockState)(nil).GetBlockByHash), arg0)
 }
 
 // GetBlockByNumber mocks base method.
@@ -505,12 +506,11 @@ func (mr *MockEpochStateMockRecorder) GetEpochForBlock(arg0 any) *gomock.Call {
 }
 
 // GetEpochLength mocks base method.
-func (m *MockEpochState) GetEpochLength() (uint64, error) {
+func (m *MockEpochState) GetEpochLength() uint64 {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetEpochLength")
 	ret0, _ := ret[0].(uint64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	return ret0
 }
 
 // GetEpochLength indicates an expected call of GetEpochLength.
@@ -519,34 +519,34 @@ func (mr *MockEpochStateMockRecorder) GetEpochLength() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpochLength", reflect.TypeOf((*MockEpochState)(nil).GetEpochLength))
 }
 
-// GetLatestConfigData mocks base method.
-func (m *MockEpochState) GetLatestConfigData() (*types.ConfigData, error) {
+// GetSkippedConfigData mocks base method.
+func (m *MockEpochState) GetSkippedConfigData(arg0, arg1 uint64, arg2 *types.Header) (*types.ConfigData, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetLatestConfigData")
+	ret := m.ctrl.Call(m, "GetSkippedConfigData", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*types.ConfigData)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetLatestConfigData indicates an expected call of GetLatestConfigData.
-func (mr *MockEpochStateMockRecorder) GetLatestConfigData() *gomock.Call {
+// GetSkippedConfigData indicates an expected call of GetSkippedConfigData.
+func (mr *MockEpochStateMockRecorder) GetSkippedConfigData(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLatestConfigData", reflect.TypeOf((*MockEpochState)(nil).GetLatestConfigData))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSkippedConfigData", reflect.TypeOf((*MockEpochState)(nil).GetSkippedConfigData), arg0, arg1, arg2)
 }
 
-// GetLatestEpochDataRaw mocks base method.
-func (m *MockEpochState) GetLatestEpochDataRaw() (*types.EpochDataRaw, error) {
+// GetSkippedEpochDataRaw mocks base method.
+func (m *MockEpochState) GetSkippedEpochDataRaw(arg0, arg1 uint64, arg2 *types.Header) (*types.EpochDataRaw, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetLatestEpochDataRaw")
+	ret := m.ctrl.Call(m, "GetSkippedEpochDataRaw", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*types.EpochDataRaw)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetLatestEpochDataRaw indicates an expected call of GetLatestEpochDataRaw.
-func (mr *MockEpochStateMockRecorder) GetLatestEpochDataRaw() *gomock.Call {
+// GetSkippedEpochDataRaw indicates an expected call of GetSkippedEpochDataRaw.
+func (mr *MockEpochStateMockRecorder) GetSkippedEpochDataRaw(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLatestEpochDataRaw", reflect.TypeOf((*MockEpochState)(nil).GetLatestEpochDataRaw))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSkippedEpochDataRaw", reflect.TypeOf((*MockEpochState)(nil).GetSkippedEpochDataRaw), arg0, arg1, arg2)
 }
 
 // GetSlotDuration mocks base method.
@@ -565,46 +565,18 @@ func (mr *MockEpochStateMockRecorder) GetSlotDuration() *gomock.Call {
 }
 
 // GetStartSlotForEpoch mocks base method.
-func (m *MockEpochState) GetStartSlotForEpoch(arg0 uint64) (uint64, error) {
+func (m *MockEpochState) GetStartSlotForEpoch(arg0 uint64, arg1 common.Hash) (uint64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStartSlotForEpoch", arg0)
+	ret := m.ctrl.Call(m, "GetStartSlotForEpoch", arg0, arg1)
 	ret0, _ := ret[0].(uint64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStartSlotForEpoch indicates an expected call of GetStartSlotForEpoch.
-func (mr *MockEpochStateMockRecorder) GetStartSlotForEpoch(arg0 any) *gomock.Call {
+func (mr *MockEpochStateMockRecorder) GetStartSlotForEpoch(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStartSlotForEpoch", reflect.TypeOf((*MockEpochState)(nil).GetStartSlotForEpoch), arg0)
-}
-
-// SetCurrentEpoch mocks base method.
-func (m *MockEpochState) SetCurrentEpoch(arg0 uint64) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetCurrentEpoch", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SetCurrentEpoch indicates an expected call of SetCurrentEpoch.
-func (mr *MockEpochStateMockRecorder) SetCurrentEpoch(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCurrentEpoch", reflect.TypeOf((*MockEpochState)(nil).SetCurrentEpoch), arg0)
-}
-
-// SetFirstSlot mocks base method.
-func (m *MockEpochState) SetFirstSlot(arg0 uint64) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetFirstSlot", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SetFirstSlot indicates an expected call of SetFirstSlot.
-func (mr *MockEpochStateMockRecorder) SetFirstSlot(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFirstSlot", reflect.TypeOf((*MockEpochState)(nil).SetFirstSlot), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStartSlotForEpoch", reflect.TypeOf((*MockEpochState)(nil).GetStartSlotForEpoch), arg0, arg1)
 }
 
 // SkipVerify mocks base method.
@@ -620,6 +592,20 @@ func (m *MockEpochState) SkipVerify(arg0 *types.Header) (bool, error) {
 func (mr *MockEpochStateMockRecorder) SkipVerify(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SkipVerify", reflect.TypeOf((*MockEpochState)(nil).SkipVerify), arg0)
+}
+
+// StoreCurrentEpoch mocks base method.
+func (m *MockEpochState) StoreCurrentEpoch(arg0 uint64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StoreCurrentEpoch", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// StoreCurrentEpoch indicates an expected call of StoreCurrentEpoch.
+func (mr *MockEpochStateMockRecorder) StoreCurrentEpoch(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreCurrentEpoch", reflect.TypeOf((*MockEpochState)(nil).StoreCurrentEpoch), arg0)
 }
 
 // MockBlockImportHandler is a mock of BlockImportHandler interface.

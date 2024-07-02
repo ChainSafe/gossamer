@@ -13,15 +13,17 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 )
 
 // ImportState imports the state in the given files to the database with the given path.
-func ImportState(basepath, stateFP, headerFP string, stateTrieVersion trie.TrieLayout, firstSlot uint64) error {
-	tr, err := newTrieFromPairs(stateFP)
+func ImportState(basepath, stateFP, headerFP string, stateTrieVersion trie.TrieLayout,
+	genesisBABEConfig *types.BabeConfiguration, firstSlot uint64) error {
+	tr, err := newTrieFromPairs(stateFP, trie.V0)
 	if err != nil {
 		return err
 	}
@@ -34,14 +36,15 @@ func ImportState(basepath, stateFP, headerFP string, stateTrieVersion trie.TrieL
 	logger.Infof("ImportState with header: %v", header)
 
 	config := state.Config{
-		Path:     basepath,
-		LogLevel: log.Info,
+		Path:              basepath,
+		LogLevel:          log.Info,
+		GenesisBABEConfig: genesisBABEConfig,
 	}
 	srv := state.NewService(config)
 	return srv.Import(header, tr, stateTrieVersion, firstSlot)
 }
 
-func newTrieFromPairs(filename string) (*trie.Trie, error) {
+func newTrieFromPairs(filename string, version trie.TrieLayout) (trie.Trie, error) {
 	data, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, err
@@ -62,12 +65,12 @@ func newTrieFromPairs(filename string) (*trie.Trie, error) {
 		entries[pairArr[0].(string)] = pairArr[1].(string)
 	}
 
-	tr, err := trie.LoadFromMap(entries)
+	tr, err := inmemory_trie.LoadFromMap(entries, version)
 	if err != nil {
 		return nil, err
 	}
 
-	return &tr, nil
+	return tr, nil
 }
 
 func newHeaderFromFile(filename string) (*types.Header, error) {

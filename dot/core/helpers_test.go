@@ -20,9 +20,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/centrifuge/go-substrate-rpc-client/v4/signature"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -76,15 +77,16 @@ func createTestService(t *testing.T, genesisFilePath string,
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	stateConfig := state.Config{
-		Path:      testDatadirPath,
-		LogLevel:  log.Critical,
-		Telemetry: telemetryMock,
+		Path:              testDatadirPath,
+		LogLevel:          log.Critical,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 
 	stateSrvc = state.NewService(stateConfig)
 	stateSrvc.UseMemDB()
 
-	err = stateSrvc.Initialise(gen, genesisHeader, &genesisTrie)
+	err = stateSrvc.Initialise(gen, genesisHeader, genesisTrie)
 	require.NoError(t, err)
 
 	// Start state service
@@ -96,7 +98,7 @@ func createTestService(t *testing.T, genesisFilePath string,
 	cfgCodeSubstitutedState := stateSrvc.Base
 
 	var rtCfg wazero_runtime.Config
-	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(genesisTrie)
 
 	rtCfg.CodeHash, err = cfgStorageState.LoadCodeHash(nil)
 	require.NoError(t, err)
@@ -181,15 +183,16 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 		config := state.Config{
-			Path:      testDatadirPath,
-			LogLevel:  log.Info,
-			Telemetry: telemetryMock,
+			Path:              testDatadirPath,
+			LogLevel:          log.Info,
+			Telemetry:         telemetryMock,
+			GenesisBABEConfig: config.BABEConfigurationTestDefault,
 		}
 
 		stateSrvc = state.NewService(config)
 		stateSrvc.UseMemDB()
 
-		err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
+		err := stateSrvc.Initialise(&gen, &genesisHeader, genesisTrie)
 		require.NoError(t, err)
 
 		err = stateSrvc.Start()
@@ -215,10 +218,10 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.Runtime == nil {
 		var rtCfg wazero_runtime.Config
 
-		rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
+		rtCfg.Storage = rtstorage.NewTrieState(genesisTrie)
 
 		var err error
-		rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
+		rtCfg.CodeHash, err = cfg.StorageState.(*state.InmemoryStorageState).LoadCodeHash(nil)
 		require.NoError(t, err)
 
 		nodeStorage := runtime.NodeStorage{}
@@ -291,7 +294,7 @@ func getWestendDevRuntimeCode(t *testing.T) (code []byte) {
 	genesisTrie, err := runtime.NewTrieFromGenesis(*westendDevGenesis)
 	require.NoError(t, err)
 
-	trieState := rtstorage.NewTrieState(&genesisTrie)
+	trieState := rtstorage.NewTrieState(genesisTrie)
 
 	return trieState.LoadCode()
 }

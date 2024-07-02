@@ -65,7 +65,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 		Number:         77,
 		StateRoot:      common.Hash{2},
 		ExtrinsicsRoot: common.Hash{3},
-		Digest:         types.NewDigest(),
+		Digest:         nil,
 	}
 
 	enc, err = testBlockAnnounce.Encode()
@@ -303,7 +303,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 	// after the timeout
 	time.Sleep(handshakeTimeout)
 
-	// handshake data shouldn't exist still
+	// handshake data still shouldn't exist
 	data = info.peersData.getOutboundHandshakeData(nodeB.host.id())
 	require.Nil(t, data)
 

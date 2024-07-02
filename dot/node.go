@@ -50,7 +50,6 @@ type Node struct {
 }
 
 type nodeBuilderIface interface {
-	isNodeInitialised(basepath string) (bool, error)
 	initNode(config *cfg.Config) error
 	createStateService(config *cfg.Config) (*state.Service, error)
 	createNetworkService(config *cfg.Config, stateSrvc *state.Service, telemetryMailer Telemetry) (*network.Service,
@@ -82,13 +81,6 @@ type nodeBuilder struct{}
 // IsNodeInitialised returns true if, within the configured data directory for the
 // node, the state database has been created and the genesis data can been loaded
 func IsNodeInitialised(basepath string) (bool, error) {
-	nodeInstance := nodeBuilder{}
-	return nodeInstance.isNodeInitialised(basepath)
-}
-
-// isNodeInitialised returns nil if the node is successfully initialised
-// and an error otherwise.
-func (nodeBuilder) isNodeInitialised(basepath string) (bool, error) {
 	// check if key registry exists
 	nodeDatabaseDir := filepath.Join(basepath, database.DefaultDatabaseDir)
 
@@ -168,7 +160,7 @@ func (nodeBuilder) initNode(config *cfg.Config) error {
 	}
 
 	// create genesis block from trie
-	header, err := t.GenesisBlock()
+	header, err := runtime.GenesisBlockFromTrie(t)
 	if err != nil {
 		return fmt.Errorf("failed to create genesis block from trie: %w", err)
 	}
@@ -198,7 +190,7 @@ func (nodeBuilder) initNode(config *cfg.Config) error {
 	stateSrvc := state.NewService(stateConfig)
 
 	// initialise state service with genesis data, block, and trie
-	err = stateSrvc.Initialise(gen, &header, &t)
+	err = stateSrvc.Initialise(gen, &header, t)
 	if err != nil {
 		return fmt.Errorf("failed to initialise state service: %s", err)
 	}
@@ -242,7 +234,21 @@ func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 // NewNode creates a node based on the given Config and key store.
 func NewNode(config *cfg.Config, ks *keystore.GlobalKeystore) (*Node, error) {
 	serviceRegistryLogger := logger.New(log.AddContext("pkg", "services"))
-	return newNode(config, ks, &nodeBuilder{}, services.NewServiceRegistry(serviceRegistryLogger))
+
+	isInitialised, err := IsNodeInitialised(config.BasePath)
+	if err != nil {
+		return nil, fmt.Errorf("checking if node is initialised: %w", err)
+	}
+
+	builder := &nodeBuilder{}
+	if !isInitialised {
+		err := builder.initNode(config)
+		if err != nil {
+			return nil, fmt.Errorf("cannot initialise node: %w", err)
+		}
+	}
+
+	return newNode(config, ks, builder, services.NewServiceRegistry(serviceRegistryLogger))
 }
 
 func newNode(config *cfg.Config,
@@ -254,18 +260,6 @@ func newNode(config *cfg.Config,
 	prev := debug.SetGCPercent(10)
 	if prev != 100 {
 		debug.SetGCPercent(prev)
-	}
-
-	isInitialised, err := builder.isNodeInitialised(config.BasePath)
-	if err != nil {
-		return nil, fmt.Errorf("checking if node is initialised: %w", err)
-	}
-
-	if !isInitialised {
-		err := builder.initNode(config)
-		if err != nil {
-			return nil, fmt.Errorf("cannot initialise node: %w", err)
-		}
 	}
 
 	globalLogLevel, err := log.ParseLevel(config.LogLevel)

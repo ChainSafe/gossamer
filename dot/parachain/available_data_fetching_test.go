@@ -8,7 +8,6 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
@@ -43,7 +42,7 @@ func TestAvailableDataFetchingResponse(t *testing.T) {
 
 	testCases := []struct {
 		name        string
-		value       scale.VaryingDataTypeValue
+		value       any
 		encodeValue []byte
 	}{
 		{
@@ -67,7 +66,7 @@ func TestAvailableDataFetchingResponse(t *testing.T) {
 				t.Parallel()
 
 				availableDataFetchingResponse := NewAvailableDataFetchingResponse()
-				err := availableDataFetchingResponse.Set(c.value)
+				err := availableDataFetchingResponse.SetValue(c.value)
 				require.NoError(t, err)
 
 				actualEncode, err := availableDataFetchingResponse.Encode()

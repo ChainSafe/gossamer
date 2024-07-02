@@ -19,7 +19,7 @@ import (
 type ConnManager struct {
 	sync.Mutex
 	host              *host
-	min, max          int
+	maxPeers          int
 	connectHandler    func(peer.ID)
 	disconnectHandler func(peer.ID)
 
@@ -33,15 +33,16 @@ type ConnManager struct {
 	peerSetHandler PeerSetHandler
 }
 
-func newConnManager(min, max int, peerSetCfg *peerset.ConfigSet) (*ConnManager, error) {
+func newConnManager(max int, peerSetCfg *peerset.ConfigSet) (*ConnManager, error) {
+	// TODO: peerSetHandler never used from within connection manager and also referred outside through cm,
+	// so this should be refactored
 	psh, err := peerset.NewPeerSetHandler(peerSetCfg)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ConnManager{
-		min:             min,
-		max:             max,
+		maxPeers:        max,
 		protectedPeers:  new(sync.Map),
 		persistentPeers: new(sync.Map),
 		peerSetHandler:  psh,
@@ -74,6 +75,11 @@ func (*ConnManager) GetTagInfo(peer.ID) *connmgr.TagInfo { return &connmgr.TagIn
 
 // TrimOpenConns is unimplemented
 func (*ConnManager) TrimOpenConns(context.Context) {}
+
+// CheckLimit is unimplemented
+func (*ConnManager) CheckLimit(connmgr.GetConnLimiter) error {
+	return nil
+}
 
 // Protect peer will add the given peer to the protectedPeerMap which will
 // protect the peer from pruning.

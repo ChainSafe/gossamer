@@ -12,53 +12,73 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// StatementVDT is a result of candidate validation. It could be either `Valid` or `Seconded`.
-type StatementVDT scale.VaryingDataType
-
-// NewStatementVDT returns a new statement varying data type
-func NewStatementVDT() StatementVDT {
-	vdt := scale.MustNewVaryingDataType(Seconded{}, Valid{})
-	return StatementVDT(vdt)
+// Statement is a result of candidate validation. It could be either `Valid` or `Seconded`.
+type StatementVDTValues interface {
+	Valid | Seconded
 }
 
-// New will enable scale to create new instance when needed
-func (StatementVDT) New() StatementVDT {
-	return NewStatementVDT()
+type StatementVDT struct {
+	inner any
 }
 
-// Set will set a value using the underlying  varying data type
-func (s *StatementVDT) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*s)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value to varying data type: %w", err)
+func setStatement[Value StatementVDTValues](mvdt *StatementVDT, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *StatementVDT) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case Valid:
+		setStatement(mvdt, value)
+		return
+
+	case Seconded:
+		setStatement(mvdt, value)
+		return
+
+	default:
+		return fmt.Errorf("unsupported type")
 	}
-
-	*s = StatementVDT(vdt)
-	return nil
 }
 
-// Value returns the value from the underlying varying data type
-func (s *StatementVDT) Value() (scale.VaryingDataTypeValue, error) {
-	vdt := scale.VaryingDataType(*s)
-	return vdt.Value()
+func (mvdt StatementVDT) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case Valid:
+		return 2, mvdt.inner, nil
+
+	case Seconded:
+		return 1, mvdt.inner, nil
+
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt StatementVDT) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt StatementVDT) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 2:
+		return *new(Valid), nil
+
+	case 1:
+		return *new(Seconded), nil
+
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
+
+// NewStatement returns a new statement varying data type
+func NewStatementVDT() StatementVDT {
+	return StatementVDT{}
 }
 
 // Seconded represents a statement that a validator seconds a candidate.
 type Seconded CommittedCandidateReceipt
 
-// Index returns the index of varying data type
-func (Seconded) Index() uint {
-	return 1
-}
-
 // Valid represents a statement that a validator has deemed a candidate valid.
 type Valid CandidateHash
-
-// Index returns the index of varying data type
-func (Valid) Index() uint {
-	return 2
-}
 
 func (s *StatementVDT) Sign(
 	keystore keystore.Keystore,

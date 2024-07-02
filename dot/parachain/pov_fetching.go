@@ -21,30 +21,66 @@ func (p PoVFetchingRequest) Encode() ([]byte, error) {
 	return scale.Marshal(p)
 }
 
-// PoVFetchingResponse represents the possible responses to a PoVFetchingRequest.
-type PoVFetchingResponse scale.VaryingDataType
-
-// NewPoVFetchingResponse returns a new PoV fetching response varying data type
-func NewPoVFetchingResponse() PoVFetchingResponse {
-	vdt := scale.MustNewVaryingDataType(parachaintypes.PoV{}, parachaintypes.NoSuchPoV{})
-	return PoVFetchingResponse(vdt)
+type PoVFetchingResponseValues interface {
+	parachaintypes.PoV | parachaintypes.NoSuchPoV
 }
 
-// Set will set a value using the underlying  varying data type
-func (p *PoVFetchingResponse) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*p)
-	err = vdt.Set(val)
-	if err != nil {
+// PoVFetchingResponse represents the possible responses to a PoVFetchingRequest.
+type PoVFetchingResponse struct {
+	inner any
+}
+
+func setPoVFetchingResponse[Value PoVFetchingResponseValues](mvdt *PoVFetchingResponse, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *PoVFetchingResponse) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case parachaintypes.PoV:
+		setPoVFetchingResponse(mvdt, value)
 		return
+
+	case parachaintypes.NoSuchPoV:
+		setPoVFetchingResponse(mvdt, value)
+		return
+
+	default:
+		return fmt.Errorf("unsupported type")
 	}
-	*p = PoVFetchingResponse(vdt)
+}
+
+func (mvdt PoVFetchingResponse) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case parachaintypes.PoV:
+		return 0, mvdt.inner, nil
+
+	case parachaintypes.NoSuchPoV:
+		return 1, mvdt.inner, nil
+
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt PoVFetchingResponse) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
 	return
 }
 
-// Value returns the value from the underlying varying data type
-func (p *PoVFetchingResponse) Value() (val scale.VaryingDataTypeValue, err error) {
-	vdt := scale.VaryingDataType(*p)
-	return vdt.Value()
+func (mvdt PoVFetchingResponse) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return *new(parachaintypes.PoV), nil
+
+	case 1:
+		return *new(parachaintypes.NoSuchPoV), nil
+
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
+
+// NewPoVFetchingResponse returns a new PoV fetching response varying data type
+func NewPoVFetchingResponse() PoVFetchingResponse {
+	return PoVFetchingResponse{}
 }
 
 // Encode returns the SCALE encoding of the PoVFetchingResponse

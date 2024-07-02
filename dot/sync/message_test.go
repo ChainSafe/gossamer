@@ -11,6 +11,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
@@ -30,7 +32,6 @@ func TestService_CreateBlockResponse(t *testing.T) {
 		"invalid_block_request": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
-				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
 				return mockBlockState
 			},
 			args: args{req: &network.BlockRequestMessage{}},
@@ -44,7 +45,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				return mockBlockState
 			},
 			args: args{req: &network.BlockRequestMessage{
-				StartingBlock: *variadic.MustNewUint32OrHash(0),
+				StartingBlock: *variadic.MustNewUint32OrHash(uint32(0)),
 				Direction:     network.Ascending,
 			}},
 			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{{
@@ -57,7 +58,6 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
 				return mockBlockState
 			},
-
 			args: args{req: &network.BlockRequestMessage{
 				StartingBlock: *variadic.MustNewUint32OrHash(2),
 				Direction:     network.Ascending,
@@ -144,7 +144,8 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			},
 			args: args{
 				req: &network.BlockRequestMessage{
-					Direction: network.SyncDirection(3),
+					StartingBlock: *variadic.MustNewUint32OrHash(common.Hash{}),
+					Direction:     network.SyncDirection(3),
 				}},
 			err: errInvalidRequestDirection,
 		},
@@ -155,9 +156,10 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
 			s := &Service{
-				blockState: tt.blockStateBuilder(ctrl),
+				blockState:            tt.blockStateBuilder(ctrl),
+				seenBlockSyncRequests: lrucache.NewLRUCache[common.Hash, uint](100),
 			}
-			got, err := s.CreateBlockResponse(tt.args.req)
+			got, err := s.CreateBlockResponse(peer.ID("alice"), tt.args.req)
 			if tt.err != nil {
 				assert.EqualError(t, err, tt.err.Error())
 			} else {

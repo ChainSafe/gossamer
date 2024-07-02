@@ -121,7 +121,7 @@ func NewEndpoint(port string) string {
 	return "http://localhost:" + port
 }
 
-func rpcLogsToDigest(logs []string) (digest scale.VaryingDataTypeSlice, err error) {
+func rpcLogsToDigest(logs []string) (digest types.Digest, err error) {
 	digest = types.NewDigest()
 
 	for _, l := range logs {

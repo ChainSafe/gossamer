@@ -9,8 +9,8 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
 var errInvalidErasureRoot = errors.New("Invalid erasure root")
@@ -103,45 +103,81 @@ type CandidateMeta struct {
 	ChunksStored  []bool
 }
 
+type StateValues interface {
+	Unavailable | Unfinalized | Finalized
+}
+
 // State is the state of candidate data
-type State scale.VaryingDataType
-
-// New will enable scale to create new instance when needed
-func (State) New() State {
-	return newStateVDT()
+type State struct {
+	inner any
 }
 
-// newState creates a new State
-func newStateVDT() State {
-	vdt := scale.MustNewVaryingDataType(Unavailable{}, Unfinalized{}, Finalized{})
-	return State(vdt)
+func setState[Value StateValues](mvdt *State, value Value) {
+	mvdt.inner = value
 }
 
-// Set will set VaryingDataTypeValue using underlying VaryingDataType
-func (s *State) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*s)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value te varying data type: %w", err)
+func (mvdt *State) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case Unavailable:
+		setState(mvdt, value)
+		return
+
+	case Unfinalized:
+		setState(mvdt, value)
+		return
+
+	case Finalized:
+		setState(mvdt, value)
+		return
+
+	default:
+		return fmt.Errorf("unsupported type")
 	}
-	*s = State(vdt)
-	return nil
 }
 
-// Value returns the value from the underlying varying data type
-func (s *State) Value() (val scale.VaryingDataTypeValue, err error) {
-	vdt := scale.VaryingDataType(*s)
-	return vdt.Value()
+func (mvdt State) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case Unavailable:
+		return 0, mvdt.inner, nil
+
+	case Unfinalized:
+		return 1, mvdt.inner, nil
+
+	case Finalized:
+		return 2, mvdt.inner, nil
+
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt State) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt State) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return *new(Unavailable), nil
+
+	case 1:
+		return *new(Unfinalized), nil
+
+	case 2:
+		return *new(Finalized), nil
+
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
+
+// NewState creates a new State
+func newStateVDT() State {
+	return State{}
 }
 
 // Unavailable candidate data was first observed at the given time but in not available in any black
 type Unavailable struct {
 	Timestamp BETimestamp
-}
-
-// Index returns the index of the varying data type
-func (Unavailable) Index() uint {
-	return 0
 }
 
 // Unfinalized the candidate was first observed at the given time and was included in the given list of
@@ -154,19 +190,9 @@ type Unfinalized struct {
 	BlockEntry []BlockEntry
 }
 
-// Index returns the index of the varying data type
-func (Unfinalized) Index() uint {
-	return 1
-}
-
 // Finalized candidate data has appeared in a finalized block and did so at the given time
 type Finalized struct {
 	Timestamp BETimestamp `scale:"1"`
-}
-
-// Index returns the index of the varying data type
-func (Finalized) Index() uint {
-	return 2
 }
 
 // BlockEntry is a block number and hash
@@ -176,7 +202,7 @@ type BlockEntry struct {
 }
 
 type branches struct {
-	trieStorage *trie.Trie
+	trieStorage trie.Trie
 	root        common.Hash
 	chunks      [][]byte
 	currentPos  uint

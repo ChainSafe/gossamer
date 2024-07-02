@@ -112,11 +112,11 @@ func GetSlotFromHeader(header *Header) (uint64, error) {
 		return 0, ErrGenesisHeader
 	}
 
-	if len(header.Digest.Types) == 0 {
+	if len(header.Digest) == 0 {
 		return 0, ErrChainHeadMissingDigest
 	}
 
-	digestValue, err := header.Digest.Types[0].Value()
+	digestValue, err := header.Digest[0].Value()
 	if err != nil {
 		return 0, fmt.Errorf("getting first digest type value: %w", err)
 	}
@@ -149,11 +149,11 @@ func IsPrimary(header *Header) (bool, error) {
 		return false, fmt.Errorf("cannot have nil header")
 	}
 
-	if len(header.Digest.Types) == 0 {
+	if len(header.Digest) == 0 {
 		return false, ErrChainHeadMissingDigest
 	}
 
-	digestValue, err := header.Digest.Types[0].Value()
+	digestValue, err := header.Digest[0].Value()
 	if err != nil {
 		return false, fmt.Errorf("getting first digest type value: %w", err)
 	}

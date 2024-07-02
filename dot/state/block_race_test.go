@@ -10,7 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/require"
@@ -41,7 +41,7 @@ func TestConcurrencySetHeader(t *testing.T) {
 			header := &types.Header{
 				Number:    1,
 				StateRoot: trie.EmptyHash,
-				Digest:    types.NewDigest(),
+				Digest:    nil,
 			}
 
 			err = bs.SetHeader(header)

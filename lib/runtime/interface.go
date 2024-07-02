@@ -10,7 +10,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Instance for runtime methods
@@ -59,9 +58,7 @@ type Instance interface {
 	ParachainHostValidationCodeByHash(validationCodeHash common.Hash) (*parachaintypes.ValidationCode, error)
 	ParachainHostValidators() ([]parachaintypes.ValidatorID, error)
 	ParachainHostValidatorGroups() (*parachaintypes.ValidatorGroups, error)
-	// TODO: There might be a scope to have more go friendly return values here
-	// VaryingDataTypeSlice is not very nice to use.
-	ParachainHostAvailabilityCores() (*scale.VaryingDataTypeSlice, error)
+	ParachainHostAvailabilityCores() ([]parachaintypes.CoreState, error)
 	ParachainHostCheckValidationOutputs(
 		parachainID parachaintypes.ParaID,
 		outputs parachaintypes.CandidateCommitments,
@@ -70,9 +67,7 @@ type Instance interface {
 	ParachainHostCandidatePendingAvailability(
 		parachainID parachaintypes.ParaID,
 	) (*parachaintypes.CommittedCandidateReceipt, error)
-	// TODO: There might be a scope to have more go friendly return values here
-	// VaryingDataTypeSlice is not very nice to use.
-	ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice, error)
+	ParachainHostCandidateEvents() ([]parachaintypes.CandidateEvent, error)
 	ParachainHostSessionInfo(sessionIndex parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error)
 	ParachainHostAsyncBackingParams() (*parachaintypes.AsyncBackingParams, error)
 	ParachainHostMinimumBackingVotes() (uint32, error)

@@ -22,7 +22,8 @@ func (cb *CandidateBacking) handleGetBackedCandidatesMessage(requestedCandidates
 			continue
 		}
 
-		attested, err := rpState.table.attestedCandidate(candidate.CandidateHash, &rpState.tableContext)
+		attested, err := rpState.table.attestedCandidate(
+			candidate.CandidateHash, &rpState.tableContext, rpState.minBackingVotes)
 		if err != nil {
 			logger.Debugf("getting attested candidate: %w", err)
 			continue
@@ -33,7 +34,7 @@ func (cb *CandidateBacking) handleGetBackedCandidatesMessage(requestedCandidates
 			continue
 		}
 
-		backed := attestedToBackedCandidate(*attested, &rpState.tableContext)
+		backed := attested.toBackedCandidate(&rpState.tableContext)
 		backedCandidates = append(backedCandidates, backed)
 	}
 

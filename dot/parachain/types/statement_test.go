@@ -6,7 +6,6 @@ package parachaintypes
 import (
 	_ "embed"
 	"fmt"
-	"math"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -31,10 +30,6 @@ func init() {
 }
 
 type invalidVayingDataTypeValue struct{}
-
-func (invalidVayingDataTypeValue) Index() uint {
-	return math.MaxUint
-}
 
 func getDummyHash(num byte) common.Hash {
 	hash := common.Hash{}
@@ -82,7 +77,7 @@ func TestStatementVDT(t *testing.T) {
 
 	testCases := []struct {
 		name          string
-		enumValue     scale.VaryingDataTypeValue
+		enumValue     any
 		encodingValue []byte
 		expectedErr   error
 	}{
@@ -101,7 +96,7 @@ func TestStatementVDT(t *testing.T) {
 		{
 			name:        "invalid struct",
 			enumValue:   invalidVayingDataTypeValue{},
-			expectedErr: scale.ErrUnsupportedVaryingDataTypeValue,
+			expectedErr: fmt.Errorf("unsupported type"),
 		},
 	}
 
@@ -113,7 +108,7 @@ func TestStatementVDT(t *testing.T) {
 				t.Parallel()
 
 				vdt := NewStatementVDT()
-				err := vdt.Set(c.enumValue)
+				err := vdt.SetValue(c.enumValue)
 
 				if c.expectedErr != nil {
 					require.ErrorContains(t, err, c.expectedErr.Error())
@@ -148,7 +143,7 @@ func TestStatementVDT(t *testing.T) {
 
 func TestStatementVDT_Sign(t *testing.T) {
 	statement := NewStatementVDT()
-	err := statement.Set(Seconded{})
+	err := statement.SetValue(Seconded{})
 	require.NoError(t, err)
 
 	signingContext := SigningContext{

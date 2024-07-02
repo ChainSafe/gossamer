@@ -90,6 +90,20 @@ func (mr *MockBlockStateMockRecorder) BestBlockHeader() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BestBlockHeader", reflect.TypeOf((*MockBlockState)(nil).BestBlockHeader))
 }
 
+// GenesisHash mocks base method.
+func (m *MockBlockState) GenesisHash() common.Hash {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenesisHash")
+	ret0, _ := ret[0].(common.Hash)
+	return ret0
+}
+
+// GenesisHash indicates an expected call of GenesisHash.
+func (mr *MockBlockStateMockRecorder) GenesisHash() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenesisHash", reflect.TypeOf((*MockBlockState)(nil).GenesisHash))
+}
+
 // GetBlockBody mocks base method.
 func (m *MockBlockState) GetBlockBody(arg0 common.Hash) (*types.Body, error) {
 	m.ctrl.T.Helper()
@@ -118,6 +132,21 @@ func (m *MockBlockState) GetBlockStateRoot(arg0 common.Hash) (common.Hash, error
 func (mr *MockBlockStateMockRecorder) GetBlockStateRoot(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockStateRoot", reflect.TypeOf((*MockBlockState)(nil).GetBlockStateRoot), arg0)
+}
+
+// GetHeader mocks base method.
+func (m *MockBlockState) GetHeader(arg0 common.Hash) (*types.Header, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHeader", arg0)
+	ret0, _ := ret[0].(*types.Header)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetHeader indicates an expected call of GetHeader.
+func (mr *MockBlockStateMockRecorder) GetHeader(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHeader", reflect.TypeOf((*MockBlockState)(nil).GetHeader), arg0)
 }
 
 // GetRuntime mocks base method.

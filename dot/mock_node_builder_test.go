@@ -230,21 +230,6 @@ func (mr *MocknodeBuilderIfaceMockRecorder) initNode(config any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "initNode", reflect.TypeOf((*MocknodeBuilderIface)(nil).initNode), config)
 }
 
-// isNodeInitialised mocks base method.
-func (m *MocknodeBuilderIface) isNodeInitialised(basepath string) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "isNodeInitialised", basepath)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// isNodeInitialised indicates an expected call of isNodeInitialised.
-func (mr *MocknodeBuilderIfaceMockRecorder) isNodeInitialised(basepath any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "isNodeInitialised", reflect.TypeOf((*MocknodeBuilderIface)(nil).isNodeInitialised), basepath)
-}
-
 // loadRuntime mocks base method.
 func (m *MocknodeBuilderIface) loadRuntime(config *config.Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore, net *network.Service) error {
 	m.ctrl.T.Helper()

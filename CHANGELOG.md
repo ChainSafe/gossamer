@@ -1,5 +1,31 @@
 # Semantic Versioning Changelog
 
+# [0.9.0](https://github.com/ChainSafe/gossamer/compare/v0.8.0...v0.9.0) (2024-3-1)
+
+
+### Bug Fixes
+
+* add a limit of number of bytes while scale decoding a slice ([#3733](https://github.com/ChainSafe/gossamer/issues/3733)) ([5edbf89](https://github.com/ChainSafe/gossamer/commit/5edbf89541908cd73493d8c08de32cd48945aeb3))
+* **docs:** Fixing link to polkadot runtime fundamentals to the right one ([#3763](https://github.com/ChainSafe/gossamer/issues/3763)) ([a785d32](https://github.com/ChainSafe/gossamer/commit/a785d3222b9800a38f83d7d5a6fe9c453f816658))
+* don't panic if we fail to convert hex to bytes ([#3734](https://github.com/ChainSafe/gossamer/issues/3734)) ([12234de](https://github.com/ChainSafe/gossamer/commit/12234de2308644da1a326965a012106dc7c98f64))
+* **dot/sync:** execute p2p handshake when there is no target ([#3695](https://github.com/ChainSafe/gossamer/issues/3695)) ([a9db0ec](https://github.com/ChainSafe/gossamer/commit/a9db0ec78205905be4b92ddb6a177a6d5fbfdace))
+* fix index out of range undeterministic error in rpc test ([#3718](https://github.com/ChainSafe/gossamer/issues/3718)) ([d099384](https://github.com/ChainSafe/gossamer/commit/d0993843235eecac400c1a3a09a0236564137638))
+* fix non deterministic  panic during TestStableNetworkRPC integration test ([#3756](https://github.com/ChainSafe/gossamer/issues/3756)) ([ee3d243](https://github.com/ChainSafe/gossamer/commit/ee3d243debc4370dc8ac8799923bc5390f28d274))
+* **lib/trie:** use `MustBeHashed` for V1 trie nodes with larger storage values ([#3739](https://github.com/ChainSafe/gossamer/issues/3739)) ([f5e48a9](https://github.com/ChainSafe/gossamer/commit/f5e48a97b9e9edf53d27a86875d834865e415f55))
+* **mocks:** Set fixed version for uber mockgen in CI ([#3656](https://github.com/ChainSafe/gossamer/issues/3656)) ([ea9877e](https://github.com/ChainSafe/gossamer/commit/ea9877e4af0a6e453f3e9c5bf27069ef5c9fa797))
+* **runtime/storage:** support nested storage transactions ([#3670](https://github.com/ChainSafe/gossamer/issues/3670)) ([3e99f6d](https://github.com/ChainSafe/gossamer/commit/3e99f6de37d61d1db4d0e367d91fc59e568888b4))
+* segfault on node restart ([#3736](https://github.com/ChainSafe/gossamer/issues/3736)) ([d1ca7aa](https://github.com/ChainSafe/gossamer/commit/d1ca7aa6a013ba3b8190d0a953789c01d3620c36))
+* **state-version:** should be uint8 instead of uint32 ([#3779](https://github.com/ChainSafe/gossamer/issues/3779)) ([c8fdb14](https://github.com/ChainSafe/gossamer/commit/c8fdb144cbdc31690c1d69900cf3d6f13fcddad5))
+* update paseo chain spec ([#3770](https://github.com/ChainSafe/gossamer/issues/3770)) ([6a54f28](https://github.com/ChainSafe/gossamer/commit/6a54f28b61b315324a118557260f2cd6584fd200))
+* use last finalized block on startup ([#3737](https://github.com/ChainSafe/gossamer/issues/3737)) ([c262642](https://github.com/ChainSafe/gossamer/commit/c262642784c3879400bdb2da7531aa4de8acc5a2))
+
+
+### Features
+
+* **config:** dynamically set version based on environment ([#3693](https://github.com/ChainSafe/gossamer/issues/3693)) ([5c534c9](https://github.com/ChainSafe/gossamer/commit/5c534c94cefd9e528f18b6c60e3c7d1385ea523d))
+* **staging:** Expose RPC on Westend Staging Node ([#3687](https://github.com/ChainSafe/gossamer/issues/3687)) ([c374eaa](https://github.com/ChainSafe/gossamer/commit/c374eaa1487236e7f6a606ccda3c96d512d3ba46))
+* **tests/scripts:** create script to retrieve trie state via rpc ([#3714](https://github.com/ChainSafe/gossamer/issues/3714)) ([5ccea40](https://github.com/ChainSafe/gossamer/commit/5ccea40bc20b2eece2fa00d41f312e9c5f2ffc5f))
+
 # [0.8.0](https://github.com/ChainSafe/gossamer/compare/v0.7.0...v0.8.0) (2023-12-11)
 
 

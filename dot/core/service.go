@@ -20,7 +20,7 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v4/scale"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
@@ -47,6 +47,7 @@ type Service struct {
 	storageState     StorageState
 	transactionState TransactionState
 	grandpaState     GrandpaState
+	epochState       EpochState
 	net              Network
 
 	// map of code substitutions keyed by block hash
@@ -66,6 +67,7 @@ type Config struct {
 	StorageState     StorageState
 	TransactionState TransactionState
 	GrandpaState     GrandpaState
+	EpochState       EpochState
 	Network          Network
 	Keystore         *keystore.GlobalKeystore
 	Runtime          runtime.Instance
@@ -96,6 +98,7 @@ func NewService(cfg *Config) (*Service, error) {
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
 		onBlockImport:        cfg.OnBlockImport,
+		epochState:           cfg.EpochState,
 	}
 
 	return srv, nil
@@ -149,6 +152,36 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 
 // HandleBlockImport handles a block that was imported via the network
 func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieState, announce bool) error {
+	parentHash := block.Header.ParentHash
+	if parentHash != s.blockState.GenesisHash() {
+		parentHeader, err := s.blockState.GetHeader(parentHash)
+		if err != nil {
+			return fmt.Errorf("getting parent header: %w", err)
+		}
+
+		parentEpoch, err := s.epochState.GetEpochForBlock(parentHeader)
+		if err != nil {
+			return fmt.Errorf("getting epoch for parent block: %w", err)
+		}
+
+		currentBlockEpoch, err := s.epochState.GetEpochForBlock(&block.Header)
+		if err != nil {
+			return fmt.Errorf("getting epoch for current block: %w", err)
+		}
+
+		// if epoch was skipped then we should change the current
+		// epoch descriptor mapping to use the actual epoch,since
+		// was expected to have a block on `parentEpoch + 1` but
+		// the descendant is more than one epoch forward
+		if currentBlockEpoch > (parentEpoch + 1) {
+			err := s.epochState.UpdateSkippedEpochDefinitions(parentEpoch+1,
+				currentBlockEpoch, &block.Header)
+			if err != nil {
+				return fmt.Errorf("updating skipped epoch data raw: %w", err)
+			}
+		}
+	}
+
 	err := s.handleBlock(block, state)
 	if err != nil {
 		return fmt.Errorf("handling block: %w", err)
@@ -191,8 +224,8 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 func createBlockAnnounce(block *types.Block, isBestBlock bool) (
 	blockAnnounce *network.BlockAnnounceMessage, err error) {
 	digest := types.NewDigest()
-	for i := range block.Header.Digest.Types {
-		digestValue, err := block.Header.Digest.Types[i].Value()
+	for i := range block.Header.Digest {
+		digestValue, err := block.Header.Digest[i].Value()
 		if err != nil {
 			return nil, fmt.Errorf("getting value of digest type at index %d: %w", i, err)
 		}
@@ -247,7 +280,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	logger.Debugf("imported block %s and stored state trie with root %s",
-		block.Header.Hash(), state.MustRoot(trie.NoMaxInlineValueSize))
+		block.Header.Hash(), state.MustRoot())
 
 	parentRuntimeInstance, err := s.blockState.GetRuntime(block.Header.ParentHash)
 	if err != nil {

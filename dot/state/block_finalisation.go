@@ -54,6 +54,14 @@ func (bs *BlockState) GetFinalisedHeader(round, setID uint64) (*types.Header, er
 	return header, nil
 }
 
+// GetRoundAndSetID returns the finalised round and setID
+func (bs *BlockState) GetRoundAndSetID() (uint64, uint64) {
+	bs.lock.Lock()
+	defer bs.lock.Unlock()
+
+	return bs.lastRound, bs.lastSetID
+}
+
 // GetFinalisedHash gets the finalised block header by round and setID
 func (bs *BlockState) GetFinalisedHash(round, setID uint64) (common.Hash, error) {
 	h, err := bs.db.Get(finalisedHashKey(round, setID))
@@ -119,6 +127,10 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	bs.lock.Lock()
 	defer bs.lock.Unlock()
 
+	if bs.IsPaused() {
+		return errors.New("blockstate service is paused")
+	}
+
 	has, err := bs.HasHeader(hash)
 	if err != nil {
 		return fmt.Errorf("could not check header for hash %s: %w", hash, err)
@@ -154,14 +166,6 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		logger.Tracef("pruned block number %d with hash %s", blockHeader.Number, hash)
 	}
 
-	// if nothing was previously finalised, set the first slot of the network to the
-	// slot number of block 1, which is now being set as final
-	if bs.lastFinalised == bs.genesisHash && hash != bs.genesisHash {
-		if err := bs.setFirstSlotOnFinalisation(); err != nil {
-			return fmt.Errorf("failed to set first slot on finalisation: %w", err)
-		}
-	}
-
 	header, err := bs.GetHeader(hash)
 	if err != nil {
 		return fmt.Errorf("failed to get finalised header, hash: %s, error: %s", hash, err)
@@ -182,6 +186,11 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	}
 
 	bs.lastFinalised = hash
+	bs.lastRound = round
+	bs.lastSetID = setID
+
+	logger.Infof(
+		"🔨 finalised block #%d (%s), round %d, set id %d", header.Number, hash, round, setID)
 	return nil
 }
 
@@ -228,6 +237,16 @@ func (bs *BlockState) handleFinalisedBlock(currentFinalizedHash common.Hash) err
 			return err
 		}
 
+		if block.Header.Number == 1 {
+			slotNumber, err := block.Header.SlotNumber()
+			if err != nil {
+				return err
+			}
+
+			if err = bs.setFirstNonOriginSlotNumber(slotNumber); err != nil {
+				return err
+			}
+		}
 		if err = bs.SetBlockBody(subchainHash, &block.Body); err != nil {
 			return err
 		}
@@ -262,18 +281,4 @@ func (bs *BlockState) handleFinalisedBlock(currentFinalizedHash common.Hash) err
 	}
 
 	return batch.Flush()
-}
-
-func (bs *BlockState) setFirstSlotOnFinalisation() error {
-	header, err := bs.GetHeaderByNumber(1)
-	if err != nil {
-		return err
-	}
-
-	slot, err := types.GetSlotFromHeader(header)
-	if err != nil {
-		return err
-	}
-
-	return bs.baseState.storeFirstSlot(slot)
 }

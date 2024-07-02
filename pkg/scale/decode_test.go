@@ -294,57 +294,20 @@ func Test_unmarshal_optionality(t *testing.T) {
 	}
 	for _, tt := range ptrTests {
 		t.Run(tt.name, func(t *testing.T) {
-			switch in := tt.in.(type) {
-			case VaryingDataType:
-				// copy the inputted vdt cause we need the cached values
-				cp := in
-				vdt := cp
-				vdt.value = nil
-				var dst interface{} = &vdt
-				if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
-					t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
-					return
-				}
-				diff := cmp.Diff(
-					vdt.value,
-					tt.in.(VaryingDataType).value,
-					cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
-				if diff != "" {
-					t.Errorf("decodeState.unmarshal() = %s", diff)
-				}
-			default:
-				var dst interface{}
-
-				if reflect.TypeOf(tt.in).Kind().String() == "map" {
-					dst = &(map[int8][]byte{})
-				} else {
-					dst = reflect.New(reflect.TypeOf(tt.in)).Interface()
-				}
-
-				if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
-					t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
-					return
-				}
-
-				// assert response only if we aren't expecting an error
-				if !tt.wantErr {
-					var diff string
-					if tt.out != nil {
-						diff = cmp.Diff(
-							reflect.ValueOf(dst).Elem().Interface(),
-							reflect.ValueOf(tt.out).Interface(),
-							cmpopts.IgnoreUnexported(tt.in))
-					} else {
-						diff = cmp.Diff(
-							reflect.ValueOf(dst).Elem().Interface(),
-							reflect.ValueOf(tt.in).Interface(),
-							cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
-					}
-					if diff != "" {
-						t.Errorf("decodeState.unmarshal() = %s", diff)
-					}
-				}
+			dst := reflect.New(reflect.TypeOf(tt.in)).Interface()
+			err := Unmarshal(tt.want, &dst)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
 			}
+			assert.NoError(t, err)
+			var expected any
+			if tt.out != nil {
+				expected = reflect.ValueOf(tt.out).Interface()
+			} else {
+				expected = reflect.ValueOf(tt.in).Interface()
+			}
+			assert.Equal(t, expected, reflect.ValueOf(dst).Elem().Interface())
 		})
 	}
 }

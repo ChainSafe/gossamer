@@ -880,11 +880,11 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 		// TODO: handle network message https://github.com/ChainSafe/gossamer/issues/3515
 		// https://github.com/paritytech/polkadot-sdk/blob/db3fd687262c68b115ab6724dfaa6a71d4a48a59/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1457 //nolint
 	case collatorprotocolmessages.Seconded:
-		statementV, err := msg.Stmt.Payload.Value()
+		index, statementV, err := msg.Stmt.Payload.IndexValue()
 		if err != nil {
 			return fmt.Errorf("getting value of statement: %w", err)
 		}
-		if statementV.Index() != 1 {
+		if index != 1 {
 			return fmt.Errorf("expected a seconded statement")
 		}
 
@@ -928,7 +928,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 		_, ok = cpvs.peerData[peerID]
 		if ok {
 			collatorProtocolMessage := collatorprotocolmessages.NewCollatorProtocolMessage()
-			err = collatorProtocolMessage.Set(collatorprotocolmessages.CollationSeconded{
+			err = collatorProtocolMessage.SetValue(collatorprotocolmessages.CollationSeconded{
 				RelayParent: msg.Parent,
 				Statement:   parachaintypes.UncheckedSignedFullStatement(msg.Stmt),
 			})
@@ -937,7 +937,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 			}
 			collationMessage := collatorprotocolmessages.NewCollationProtocol()
 
-			err = collationMessage.Set(collatorProtocolMessage)
+			err = collationMessage.SetValue(collatorProtocolMessage)
 			if err != nil {
 				return fmt.Errorf("setting collation message: %w", err)
 			}

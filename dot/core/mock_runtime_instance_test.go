@@ -361,10 +361,10 @@ func (mr *MockInstanceMockRecorder) ParachainHostAsyncBackingParams() *gomock.Ca
 }
 
 // ParachainHostAvailabilityCores mocks base method.
-func (m *MockInstance) ParachainHostAvailabilityCores() (*scale.VaryingDataTypeSlice, error) {
+func (m *MockInstance) ParachainHostAvailabilityCores() ([]parachaintypes.CoreState, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostAvailabilityCores")
-	ret0, _ := ret[0].(*scale.VaryingDataTypeSlice)
+	ret0, _ := ret[0].([]parachaintypes.CoreState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -376,10 +376,10 @@ func (mr *MockInstanceMockRecorder) ParachainHostAvailabilityCores() *gomock.Cal
 }
 
 // ParachainHostCandidateEvents mocks base method.
-func (m *MockInstance) ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice, error) {
+func (m *MockInstance) ParachainHostCandidateEvents() ([]parachaintypes.CandidateEvent, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostCandidateEvents")
-	ret0, _ := ret[0].(*scale.VaryingDataTypeSlice)
+	ret0, _ := ret[0].([]parachaintypes.CandidateEvent)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

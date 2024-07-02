@@ -11,6 +11,7 @@ import (
 	"time"
 
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 
 	core "github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -440,36 +441,29 @@ func newStateServiceWithoutMock(t *testing.T) *state.Service {
 	t.Helper()
 
 	stateConfig := state.Config{
-		Path:      t.TempDir(),
-		LogLevel:  log.Error,
-		Telemetry: telemetry.NoopClient{},
+		Path:              t.TempDir(),
+		LogLevel:          log.Error,
+		Telemetry:         telemetry.NoopClient{},
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	stateSrvc := state.NewService(stateConfig)
 	stateSrvc.UseMemDB()
 	genData, genTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(&genData, &genesisHeader, &genTrie)
+	err := stateSrvc.Initialise(&genData, &genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.SetupBase()
 	require.NoError(t, err)
 
-	genesisBABEConfig := &types.BabeConfiguration{
-		SlotDuration:       1000,
-		EpochLength:        200,
-		C1:                 1,
-		C2:                 4,
-		GenesisAuthorities: []types.AuthorityRaw{},
-		Randomness:         [32]byte{},
-		SecondarySlots:     0,
-	}
-	epochState, err := state.NewEpochStateFromGenesis(stateSrvc.DB(), stateSrvc.Block, genesisBABEConfig)
+	epochState, err := state.NewEpochStateFromGenesis(stateSrvc.DB(), stateSrvc.Block,
+		config.BABEConfigurationTestDefault)
 	require.NoError(t, err)
 
 	stateSrvc.Epoch = epochState
 
 	var rtCfg wazero_runtime.Config
 
-	rtCfg.Storage = rtstorage.NewTrieState(&genTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(genTrie)
 
 	rtCfg.CodeHash, err = stateSrvc.Storage.LoadCodeHash(nil)
 	require.NoError(t, err)

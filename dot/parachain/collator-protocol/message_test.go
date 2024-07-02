@@ -84,12 +84,12 @@ func TestCollationProtocol(t *testing.T) {
 	}
 
 	statementVDTWithSeconded := parachaintypes.NewStatementVDT()
-	err := statementVDTWithSeconded.Set(secondedEnumValue)
+	err := statementVDTWithSeconded.SetValue(secondedEnumValue)
 	require.NoError(t, err)
 
 	testCases := []struct {
 		name          string
-		enumValue     scale.VaryingDataTypeValue
+		enumValue     any
 		encodingValue []byte
 	}{
 		{
@@ -130,10 +130,10 @@ func TestCollationProtocol(t *testing.T) {
 				vdtParent := collatorprotocolmessages.NewCollationProtocol()
 				vdtChild := collatorprotocolmessages.NewCollatorProtocolMessage()
 
-				err := vdtChild.Set(c.enumValue)
+				err := vdtChild.SetValue(c.enumValue)
 				require.NoError(t, err)
 
-				err = vdtParent.Set(vdtChild)
+				err = vdtParent.SetValue(vdtChild)
 				require.NoError(t, err)
 
 				bytes, err := scale.Marshal(vdtParent)
@@ -382,7 +382,7 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 			err = vdtChild.Set(c.declareMsg)
 			require.NoError(t, err)
 
-			err = msg.Set(vdtChild)
+			err = msg.SetValue(vdtChild)
 			require.NoError(t, err)
 
 			propagate, err := cpvs.handleCollationMessage(peerID, &msg)
@@ -582,7 +582,7 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			err := vdtChild.Set(c.advertiseCollation)
 			require.NoError(t, err)
 
-			err = msg.Set(vdtChild)
+			err = msg.SetValue(vdtChild)
 			require.NoError(t, err)
 
 			propagate, err := cpvs.handleCollationMessage(peerID, &msg)

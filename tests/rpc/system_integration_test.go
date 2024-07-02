@@ -36,7 +36,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	con.Core.Role = common.FullNodeRole
 	con.RPC.Modules = []string{"system", "author", "chain"}
 	con.Network.MinPeers = 1
-	con.Network.MaxPeers = 2
+	con.Network.MaxPeers = 20
 	con.Core.BabeAuthority = true
 	con.Log.Sync = "trace"
 
@@ -70,7 +70,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	err := retry.UntilOK(peerTimeout, 10*time.Second, func() (bool, error) {
 		for _, node := range nodes {
 			endpoint := rpc.NewEndpoint(node.RPCPort())
-			t.Logf("starting node %s with port %s", node.String(), endpoint)
+			t.Logf("requesting node %s with port %s", node.String(), endpoint)
 			var response modules.SystemHealthResponse
 			fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", &response)
 			t.Logf("Response: %+v", response)

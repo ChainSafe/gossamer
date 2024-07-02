@@ -4,6 +4,7 @@
 package parachaintypes
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -12,7 +13,7 @@ import (
 
 var testCasesExecutorParam = []struct {
 	name          string
-	enumValue     scale.VaryingDataTypeValue
+	enumValue     any
 	encodingValue []byte
 	expectedErr   error
 }{
@@ -45,7 +46,7 @@ var testCasesExecutorParam = []struct {
 		enumValue: PvfPrepTimeout{
 			PvfPrepTimeoutKind: func() PvfPrepTimeoutKind {
 				kind := NewPvfPrepTimeoutKind()
-				if err := kind.Set(Lenient{}); err != nil {
+				if err := kind.SetValue(Lenient{}); err != nil {
 					panic(err)
 				}
 
@@ -61,7 +62,7 @@ var testCasesExecutorParam = []struct {
 		enumValue: PvfExecTimeout{
 			PvfExecTimeoutKind: func() PvfExecTimeoutKind {
 				kind := NewPvfExecTimeoutKind()
-				if err := kind.Set(Approval{}); err != nil {
+				if err := kind.SetValue(Approval{}); err != nil {
 					panic(err)
 				}
 
@@ -75,7 +76,7 @@ var testCasesExecutorParam = []struct {
 	{
 		name:        "invalid_struct",
 		enumValue:   invalidVayingDataTypeValue{},
-		expectedErr: scale.ErrUnsupportedVaryingDataTypeValue,
+		expectedErr: fmt.Errorf("unsupported type"),
 	},
 }
 
@@ -90,7 +91,7 @@ func TestExecutorParam(t *testing.T) {
 				t.Parallel()
 
 				vdt := NewExecutorParam()
-				err := vdt.Set(c.enumValue)
+				err := vdt.SetValue(c.enumValue)
 
 				if c.expectedErr != nil {
 					require.ErrorContains(t, err, c.expectedErr.Error())
@@ -132,9 +133,8 @@ func TestExecutorParams(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 
-			params := NewExecutorParams()
-			err := params.Add(c.enumValue)
-
+			param := NewExecutorParam()
+			err := param.SetValue(c.enumValue)
 			if c.expectedErr == nil {
 				require.NoError(t, err)
 			} else {

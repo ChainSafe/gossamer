@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/chyeh/pubip"
+	"github.com/ChainSafe/gossamer/internal/pubip"
 	"github.com/dgraph-io/ristretto"
 	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p"
@@ -152,14 +152,19 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// connections remain between min peers and max peers
 	const reservedOnly = false
 	peerCfgSet := peerset.NewConfigSet(
+		//TODO: there is no any understanding of maxOutPeers and maxInPirs calculations.
+		// This needs to be explicitly mentioned
+
+		// maxInPeers is later used in peerstate only and defines available Incoming connection slots
 		uint32(cfg.MaxPeers-cfg.MinPeers),
+		// maxOutPeers is later used in peerstate only and defines available Outgoing connection slots
 		uint32(cfg.MaxPeers/2),
 		reservedOnly,
 		peerSetSlotAllocTime,
 	)
 
 	// create connection manager
-	cm, err := newConnManager(cfg.MinPeers, cfg.MaxPeers, peerCfgSet)
+	cm, err := newConnManager(cfg.MaxPeers, peerCfgSet)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create connection manager: %w", err)
 	}
@@ -243,7 +248,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	bwc := metrics.NewBandwidthCounter()
-	discovery := newDiscovery(ctx, h, bns, ds, pid, cfg.MinPeers, cfg.MaxPeers, cm.peerSetHandler)
+	discovery := newDiscovery(ctx, h, bns, ds, pid, cfg.MaxPeers, cm.peerSetHandler)
 
 	host := &host{
 		ctx:             ctx,
@@ -356,7 +361,7 @@ func (h *host) writeToStream(s network.Stream, msg Message) error {
 	}
 
 	msgLen := uint64(len(encMsg))
-	lenBytes := uint64ToLEB128(msgLen)
+	lenBytes := Uint64ToLEB128(msgLen)
 	encMsg = append(lenBytes, encMsg...)
 
 	sent, err := s.Write(encMsg)
