@@ -39,12 +39,12 @@ func createTestCandidateReceiptAndValidationCode(t *testing.T) (
 		common.MustHexToHash("0x690d8f252ef66ab0f969c3f518f90012b849aa5ac94e1752c5e5ae5a8996de37"),
 		common.MustHexToHash("0xb608991ffc48dd405fd4b10e92eaebe2b5a2eedf44d0c3efb8997fdee8bebed9"),
 		parachaintypes.ValidationCodeHash(validationCodeHashV),
-		common.MustHexToHash("0x9a8a7107426ef873ab89fc8af390ec36bdb2f744a9ff71ad7f18a12d55a7f4f5"),
+		common.MustHexToHash("0x657a011336002a7f2acd5db97d34b9b703c04cadcb63ad82c7658b04fb42f3de"),
 		common.MustHexToHash("0xc07f658163e93c45a6f0288d229698f09c1252e41076f4caa71c8cbc12f118a1"), *collatorKeypair)
 
 	candidateReceipt := parachaintypes.CandidateReceipt{
 		Descriptor:      descriptor,
-		CommitmentsHash: common.MustHexToHash("0xa54a8dce5fd2a27e3715f99e4241f674a48f4529f77949a4474f5b283b823535"),
+		CommitmentsHash: common.MustHexToHash("0x4ddce2e9ed80f386cdbba4b42f5de76957d5fbf9f093258d6048e9218d1fe98d"),
 	}
 
 	return candidateReceipt, validationCode
@@ -161,14 +161,20 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 	candidateReceipt2 := candidateReceipt
 	candidateReceipt2.Descriptor.PovHash = common.MustHexToHash(
 		"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
-
+	candidateReceiptParaHeadMismatch := candidateReceipt
+	candidateReceiptParaHeadMismatch.Descriptor.ParaHead = common.MustHexToHash(
+		"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
+	candidateReceiptCommitmentsMismatch := candidateReceipt
+	candidateReceiptCommitmentsMismatch.CommitmentsHash = common.MustHexToHash(
+		"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
 	testValidationHost, err := parachainruntime.SetupVM(validationCode)
 	require.NoError(t, err)
 
 	povHashMismatch := PoVHashMismatch
 	paramsTooLarge := ParamsTooLarge
 	codeHashMismatch := CodeHashMismatch
-	executionError := ExecutionError
+	paraHedHashMismatch := ParaHeadHashMismatch
+	commitmentsHashMismatch := CommitmentsHashMismatch
 
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
@@ -275,10 +281,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				candidateReceipt: candidateReceipt,
 				pov:              pov,
 			},
-			want: &ValidationResult{
-				InvalidResult: &executionError,
-			},
-			isValid:       false,
+			want:          nil,
 			expectedError: fmt.Errorf("executing validate_block: %w", parachainruntime.ErrHardTimeout),
 		},
 		"wasm_error_unreachable": {
@@ -291,16 +294,49 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				candidateReceipt: candidateReceipt,
 				pov:              pov,
 			},
-			want: &ValidationResult{
-				InvalidResult: &executionError,
-			},
-			isValid: false,
+			want: nil,
 			expectedError: errors.New("executing validate_block: running runtime function: wasm error: unreachable" +
 				"\nwasm stack trace:\n\t.rust_begin_unwind(i32)\n\t._ZN4core9panicking9panic_fmt17h55a9886e2bf4227aE(" +
 				"i32,i32)\n\t\t0xcbc: /rustc/1c42cb4ef0544fbfaa500216e53382d6b079c001/library/core/src/panicking." +
 				"rs:67:14\n\t._ZN4core6result13unwrap_failed17h18cc772327ac51f6E(i32,i32,i32,i32," +
 				"i32)\n\t\t0xfe9: /rustc/1c42cb4ef0544fbfaa500216e53382d6b079c001/library/core/src/result." +
 				"rs:1651:5\n\t.validate_block(i32,i32) i64"),
+		},
+		"para_head_hash_mismatch": {
+			args: args{
+				persistedValidationData: parachaintypes.PersistedValidationData{
+					ParentHead:             parachaintypes.HeadData{Data: hd},
+					RelayParentNumber:      uint32(1),
+					RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
+					MaxPovSize:             uint32(2048),
+				},
+				validationHost:   testValidationHost,
+				validationCode:   validationCode,
+				candidateReceipt: candidateReceiptParaHeadMismatch,
+				pov:              pov,
+			},
+			want: &ValidationResult{
+				InvalidResult: &paraHedHashMismatch,
+			},
+			isValid: false,
+		},
+		"commitments_hash_mismatch": {
+			args: args{
+				persistedValidationData: parachaintypes.PersistedValidationData{
+					ParentHead:             parachaintypes.HeadData{Data: hd},
+					RelayParentNumber:      uint32(1),
+					RelayParentStorageRoot: common.MustHexToHash("0x50c969706800c0e9c3c4565dc2babb25e4a73d1db0dee1bcf7745535a32e7ca1"),
+					MaxPovSize:             uint32(2048),
+				},
+				validationHost:   testValidationHost,
+				validationCode:   validationCode,
+				candidateReceipt: candidateReceiptCommitmentsMismatch,
+				pov:              pov,
+			},
+			want: &ValidationResult{
+				InvalidResult: &commitmentsHashMismatch,
+			},
+			isValid: false,
 		},
 		"happy_path": {
 			args: args{
@@ -356,8 +392,10 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-			require.Equal(t, tt.isValid, got.IsValid())
 			require.Equal(t, tt.want, got)
+			if got != nil {
+				require.Equal(t, tt.isValid, got.IsValid())
+			}
 		})
 	}
 }

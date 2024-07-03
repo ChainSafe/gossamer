@@ -87,8 +87,7 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 				if err != nil {
 					logger.Errorf("failed to validate from exhaustive: %w", err)
 					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
-						Data: *result,
-						Err:  err,
+						Err: err,
 					}
 				} else {
 					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
@@ -246,11 +245,15 @@ func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
 	validationErr, internalErr := performBasicChecks(&candidateReceipt.Descriptor, persistedValidationData.MaxPovSize,
 		pov,
 		validationCodeHash)
+	if internalErr != nil {
+		return nil, fmt.Errorf("performing basic checks: %w", internalErr)
+	}
+
 	if validationErr != nil {
 		validationResult := &ValidationResult{
 			InvalidResult: validationErr,
 		}
-		return validationResult, internalErr
+		return validationResult, nil //nolint: nilerr
 	}
 
 	validationParams := parachainruntime.ValidationParameters{
@@ -262,24 +265,40 @@ func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
 
 	validationResult, err := validationHost.ValidateBlock(validationParams)
 	if err != nil {
-		ci := ExecutionError
-		return &ValidationResult{InvalidResult: &ci}, fmt.Errorf("executing validate_block: %w", err)
+		return nil, fmt.Errorf("executing validate_block: %w", err)
 	}
 
-	result := &ValidationResult{
-		ValidResult: &ValidValidationResult{
-			CandidateCommitments: parachaintypes.CandidateCommitments{
-				UpwardMessages:            validationResult.UpwardMessages,
-				HorizontalMessages:        validationResult.HorizontalMessages,
-				NewValidationCode:         validationResult.NewValidationCode,
-				HeadData:                  validationResult.HeadData,
-				ProcessedDownwardMessages: validationResult.ProcessedDownwardMessages,
-				HrmpWatermark:             validationResult.HrmpWatermark,
-			},
-			PersistedValidationData: persistedValidationData,
-		},
+	validationResultHash, err := validationResult.HeadData.Hash()
+	if err != nil {
+		return nil, fmt.Errorf("hashing validation result: %w", err)
 	}
-	return result, nil
+
+	if validationResultHash != candidateReceipt.Descriptor.ParaHead {
+		ci := ParaHeadHashMismatch
+		return &ValidationResult{InvalidResult: &ci}, nil
+	} else {
+		outputs := parachaintypes.CandidateCommitments{
+			UpwardMessages:            validationResult.UpwardMessages,
+			HorizontalMessages:        validationResult.HorizontalMessages,
+			NewValidationCode:         validationResult.NewValidationCode,
+			HeadData:                  validationResult.HeadData,
+			ProcessedDownwardMessages: validationResult.ProcessedDownwardMessages,
+			HrmpWatermark:             validationResult.HrmpWatermark,
+		}
+
+		// if validation produced a new set of commitments, we treat the candidate as invalid
+		if candidateReceipt.CommitmentsHash != outputs.Hash() {
+			ci := CommitmentsHashMismatch
+			return &ValidationResult{InvalidResult: &ci}, nil
+		} else {
+			return &ValidationResult{
+				ValidResult: &ValidValidationResult{
+					CandidateCommitments:    outputs,
+					PersistedValidationData: persistedValidationData,
+				},
+			}, nil
+		}
+	}
 }
 
 // performBasicChecks Does basic checks of a candidate. Provide the encoded PoV-block.
