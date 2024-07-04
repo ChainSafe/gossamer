@@ -150,7 +150,7 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 
 		trie.Get([]byte(key))
 
-		recordedNodes := recorder.Drain()
+		recordedNodes := triedb.NewRecordedNodesIterator(recorder.Drain())
 
 		// Skip over recorded nodes already on the stack.
 		recordedNodesIdx := 0
