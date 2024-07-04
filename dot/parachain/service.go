@@ -124,8 +124,10 @@ func (s Service) run(blockState *state.BlockState) {
 	_ = collationMessage.SetValue(collatorProtocolMessage)
 	s.Network.GossipMessage(&collationMessage)
 
-	statementDistributionLargeStatement := StatementDistribution{NewStatementDistributionMessage()}
-	err := statementDistributionLargeStatement.SetValue(LargePayload{
+	statementDistributionLargeStatement := validationprotocol.StatementDistribution{
+		StatementDistributionMessage: validationprotocol.NewStatementDistributionMessage(),
+	}
+	err := statementDistributionLargeStatement.SetValue(validationprotocol.LargePayload{
 		RelayParent:   common.Hash{},
 		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{}},
 		SignedBy:      5,
@@ -135,7 +137,7 @@ func (s Service) run(blockState *state.BlockState) {
 		logger.Errorf("creating test statement message: %w\n", err)
 	}
 
-	validationMessage := NewValidationProtocolVDT()
+	validationMessage := validationprotocol.NewValidationProtocolVDT()
 	err = validationMessage.SetValue(statementDistributionLargeStatement)
 	if err != nil {
 		logger.Errorf("creating test validation message: %w\n", err)

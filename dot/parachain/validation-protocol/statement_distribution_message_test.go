@@ -30,8 +30,7 @@ func init() {
 	}
 }
 
-var ErrInvalidVayingDataTypeValue = errors.New(
-	"setting value to varying data type: unsupported VaryingDataTypeValue: {} (parachain.invalidVayingDataTypeValue)")
+var ErrInvalidVayingDataTypeValue = errors.New("unsupported type")
 
 type invalidVayingDataTypeValue struct{}
 
