@@ -96,14 +96,4 @@ type View struct {
 	finalizedNumber uint32
 }
 
-// Index returns the index of varying data type
-func (ViewUpdate) Index() uint {
-	return 2
-}
-
 type ProtocolMessage struct{}
-
-// Index returns the index of varying data type
-func (ProtocolMessage) Index() uint {
-	return 1
-}

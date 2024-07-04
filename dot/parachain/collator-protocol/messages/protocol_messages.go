@@ -142,31 +142,16 @@ type Declare struct {
 	CollatorSignature parachaintypes.CollatorSignature `scale:"3"`
 }
 
-// Index returns the index of varying data type
-func (Declare) Index() uint {
-	return 0
-}
-
 // AdvertiseCollation contains a relay parent hash and is used to advertise a collation to a validator.
 // This will only advertise a collation if there exists one for the given relay parent and the given peer is
 // set as validator for our para at the given relay parent.
 // It can only be sent once the peer has declared that they are a collator with given ID
 type AdvertiseCollation common.Hash
 
-// Index returns the index of varying data type
-func (AdvertiseCollation) Index() uint {
-	return 1
-}
-
 // CollationSeconded represents that a collation sent to a validator was seconded.
 type CollationSeconded struct {
 	RelayParent common.Hash                                 `scale:"1"`
 	Statement   parachaintypes.UncheckedSignedFullStatement `scale:"2"`
-}
-
-// Index returns the index of varying data type
-func (CollationSeconded) Index() uint {
-	return 4
 }
 
 const MaxCollationMessageSize uint64 = 100 * 1024

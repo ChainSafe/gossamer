@@ -36,11 +36,6 @@ func (c CollationFetchingRequest) Encode() ([]byte, error) {
 
 type CollationVDT parachaintypes.Collation
 
-// Index returns the index of varying data type
-func (CollationVDT) Index() uint {
-	return 0
-}
-
 type CollationFetchingResponseValues interface {
 	parachaintypes.Collation
 }
