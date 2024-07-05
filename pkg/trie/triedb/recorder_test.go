@@ -15,11 +15,12 @@ func TestRecorder(t *testing.T) {
 	triedb := NewEmptyTrieDB(inmemoryDB, nil, nil)
 	triedb.SetVersion(trie.V1)
 
-	triedb.Put([]byte("aa"), []byte("avalue"))
+	triedb.Put([]byte("aa"), []byte("aavalue"))
 	triedb.Put([]byte("aab"), []byte("aabvalue"))
 	triedb.Put([]byte("aac"), make([]byte, 40))
-	triedb.Put([]byte("aabb"), []byte("avalue"))
+	triedb.Put([]byte("aabb"), []byte("aabbvalue"))
 
+	// Commit and get root
 	root := triedb.MustHash()
 
 	assert.NotNil(t, root)
@@ -29,7 +30,7 @@ func TestRecorder(t *testing.T) {
 		trie := NewTrieDB(root, inmemoryDB, nil, recorder)
 
 		value := trie.Get([]byte("aa"))
-		assert.True(t, bytes.Equal(value, []byte("avalue")))
+		assert.True(t, bytes.Equal(value, []byte("aavalue")))
 
 		assert.Equal(t, len(recorder.nodes), 1)
 		assert.Equal(t, recorder.recordedKeys.Len(), 1)
@@ -41,21 +42,20 @@ func TestRecorder(t *testing.T) {
 		trie := NewTrieDB(root, inmemoryDB, nil, recorder)
 
 		value := trie.Get([]byte("aab"))
-		t.Log(value)
 		assert.True(t, bytes.Equal(value, []byte("aabvalue")))
 
 		assert.Equal(t, len(recorder.nodes), 2)
 		assert.Equal(t, recorder.recordedKeys.Keys()[0], string(codec.KeyLEToNibbles([]byte("aab"))))
 	})
 
-	t.Run("Record `aac` access should record 2 nodes", func(t *testing.T) {
+	t.Run("Record `aabb` access should record 2 nodes", func(t *testing.T) {
 		recorder := NewRecorder()
 		trie := NewTrieDB(root, inmemoryDB, nil, recorder)
 
-		trie.Get([]byte("aac"))
+		value := trie.Get([]byte("aabb"))
+		assert.True(t, bytes.Equal(value, []byte("aabbvalue")))
 
-		nodes := recorder.Drain()
-
-		assert.Equal(t, len(nodes), 3)
+		assert.Equal(t, len(recorder.nodes), 2)
+		assert.Equal(t, recorder.recordedKeys.Keys()[0], string(codec.KeyLEToNibbles([]byte("aabb"))))
 	})
 }
