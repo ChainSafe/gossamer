@@ -25,11 +25,6 @@ var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "triedb"))
 )
 
-type entry struct {
-	key   []byte
-	value []byte
-}
-
 // TrieDB is a DB-backed patricia merkle trie implementation
 // using lazy loading to fetch nodes
 type TrieDB struct {
@@ -216,7 +211,6 @@ func (t *TrieDB) remove(keyNibbles []byte) error {
 
 // Delete deletes the given key from the trie
 func (t *TrieDB) Delete(key []byte) error {
-
 	keyNibbles := nibbles.KeyLEToNibbles(key)
 	return t.remove(keyNibbles)
 }
@@ -875,6 +869,14 @@ func (t *TrieDB) commitChild(
 	default:
 		panic("unreachable")
 	}
+}
+
+func (t *TrieDB) Iter() trie.TrieIterator {
+	return NewTrieDBIterator(t)
+}
+
+func (t *TrieDB) PrefixedIter(prefix []byte) trie.TrieIterator {
+	return NewPrefixedTrieDBIterator(t, prefix)
 }
 
 var _ trie.TrieRead = (*TrieDB)(nil)

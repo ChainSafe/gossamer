@@ -35,9 +35,18 @@ type KVStoreWrite interface {
 }
 
 type TrieIterator interface {
-	Entries() (keyValueMap map[string][]byte)
-	NextKey(key []byte) []byte
-	GetKeysWithPrefix(prefix []byte) (keysLE [][]byte)
+	// NextKey performs a depth-first search on the trie and returns the next key
+	// and value based on the current state of the iterator.
+	NextEntry() (entry *Entry)
+
+	// NextKey performs a depth-first search on the trie and returns the next key
+	// based on the current state of the iterator.
+	NextKey() (nextKey []byte)
+
+	NextKeyFunc(func(nextKey []byte) bool) (nextKey []byte)
+
+	// Seek moves the iterator to the first key that is greater than the target key.
+	Seek(targetKey []byte)
 }
 
 type PrefixTrieWrite interface {
@@ -66,7 +75,12 @@ type TrieRead interface {
 	KVStoreRead
 	Hashable
 	ChildTriesRead
-	TrieIterator
+
+	Iter() TrieIterator
+	PrefixedIter(prefix []byte) TrieIterator
+	Entries() (keyValueMap map[string][]byte)
+	NextKey(key []byte) []byte
+	GetKeysWithPrefix(prefix []byte) (keysLE [][]byte)
 }
 
 type Trie interface {

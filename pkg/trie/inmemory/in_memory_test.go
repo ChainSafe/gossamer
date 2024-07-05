@@ -1067,7 +1067,7 @@ func Test_nextKey(t *testing.T) {
 
 			originalTrie := testCase.trie.DeepCopy()
 
-			nextKey := findNextKey(testCase.trie.root, nil, testCase.key)
+			nextKey := findNextNode(testCase.trie.root, nil, testCase.key)
 
 			assert.Equal(t, testCase.nextKey, nextKey)
 			assert.Equal(t, *originalTrie, testCase.trie) // ensure no mutation
