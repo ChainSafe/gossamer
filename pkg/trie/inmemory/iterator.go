@@ -113,11 +113,11 @@ func findNextNode(currentNode *node.Node, prefix, searchKey []byte) *trie.Entry 
 			return &trie.Entry{Key: currentFullKey, Value: currentNode.StorageValue}
 		}
 	case node.Branch:
-		comparision := bytes.Compare(searchKey, currentFullKey)
+		cmp := bytes.Compare(searchKey, currentFullKey)
 
 		// if searchKey is lexicographically lower (-1) and the branch has a storage value then
 		// we found the next key, otherwise go over the children from the start
-		if comparision == -1 {
+		if cmp == -1 {
 			if currentNode.StorageValue != nil {
 				return &trie.Entry{Key: currentFullKey, Value: currentNode.StorageValue}
 			}
@@ -131,7 +131,7 @@ func findNextNode(currentNode *node.Node, prefix, searchKey []byte) *trie.Entry 
 		}
 
 		// if searchKey is lexicographically equal (0) we should go over children from the start
-		if comparision == 0 {
+		if cmp == 0 {
 			return findNextKeyOnChildren(
 				currentNode,
 				currentFullKey,
@@ -142,7 +142,7 @@ func findNextNode(currentNode *node.Node, prefix, searchKey []byte) *trie.Entry 
 
 		// if searchKey is lexicographically greater (1) we should go over  children starting from
 		// the last match between `searchKey` and `currentFullKey`
-		if comparision == 1 {
+		if cmp == 1 {
 			// search key is exhausted then return nil
 			if len(searchKey) < len(currentFullKey) {
 				return nil
@@ -170,7 +170,7 @@ func findNextKeyOnChildren(currentNode *node.Node, prefix, searchKey []byte, sta
 		}
 
 		next := findNextNode(child,
-			bytes.Join([][]byte{prefix, {byte(i)}}, nil),
+			bytes.Join([][]byte{prefix, {i}}, nil),
 			searchKey,
 		)
 
