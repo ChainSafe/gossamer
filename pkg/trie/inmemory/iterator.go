@@ -178,18 +178,3 @@ func findNextKeyOnChildren(currentNode *node.Node, prefix, searchKey []byte, sta
 
 	return nil
 }
-
-// GetKeysWithPrefix returns all keys in little Endian
-// format from nodes in the trie that have the given little
-// Endian formatted prefix in their key.
-func (t *InMemoryTrie) GetKeysWithPrefix(prefixLE []byte) (keysLE [][]byte) {
-	var prefixNibbles []byte
-	if len(prefixLE) > 0 {
-		prefixNibbles = codec.KeyLEToNibbles(prefixLE)
-		prefixNibbles = bytes.TrimSuffix(prefixNibbles, []byte{0})
-	}
-
-	prefix := []byte(nil)
-	key := prefixNibbles
-	return getKeysWithPrefix(t.root, prefix, key, keysLE)
-}

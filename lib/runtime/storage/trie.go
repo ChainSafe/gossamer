@@ -554,8 +554,8 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 			}
 
 			nextKeyOnState := childTrie.PrefixedIter(key).NextKeyFunc(func(nextKey []byte) bool {
-				_, ok := childChanges.deletes[string(nextKey)]
-				return !ok
+				_, deleted := childChanges.deletes[string(nextKey)]
+				return !deleted
 			})
 
 			if nextKeyOnState == nil {
