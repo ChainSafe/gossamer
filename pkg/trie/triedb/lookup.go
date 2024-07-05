@@ -23,11 +23,12 @@ type TrieLookup struct {
 	recorder *Recorder
 }
 
-func NewTrieLookup(db db.DBGetter, hash common.Hash, cache cache.TrieCache) TrieLookup {
+func NewTrieLookup(db db.DBGetter, hash common.Hash, cache cache.TrieCache, recorder *Recorder) TrieLookup {
 	return TrieLookup{
-		db:    db,
-		hash:  hash,
-		cache: cache,
+		db:       db,
+		hash:     hash,
+		cache:    cache,
+		recorder: recorder,
 	}
 }
 
