@@ -50,9 +50,9 @@ type TrieDB struct {
 	recorder *Recorder
 }
 
-func NewEmptyTrieDB(db db.RWDatabase, cache cache.TrieCache) *TrieDB {
+func NewEmptyTrieDB(db db.RWDatabase, cache cache.TrieCache, recorder *Recorder) *TrieDB {
 	root := hashedNullNode
-	return NewTrieDB(root, db, cache, nil)
+	return NewTrieDB(root, db, cache, recorder)
 }
 
 // NewTrieDB creates a new TrieDB using the given root and db
@@ -122,7 +122,7 @@ func (t *TrieDB) lookup(fullKey []byte, partialKey []byte, handle NodeHandle) ([
 		var partialIdx int
 		switch node := handle.(type) {
 		case Persisted:
-			lookup := NewTrieLookup(t.db, node.hash, t.cache)
+			lookup := NewTrieLookup(t.db, node.hash, t.cache, t.recorder)
 			val, err := lookup.lookupValue(fullKey)
 			if err != nil {
 				return nil, err
@@ -173,7 +173,7 @@ func (t *TrieDB) getRootNode() (codec.EncodedNode, error) {
 // Internal methods
 
 func (t *TrieDB) getNodeAt(key []byte) (codec.EncodedNode, error) {
-	lookup := NewTrieLookup(t.db, t.rootHash, t.cache)
+	lookup := NewTrieLookup(t.db, t.rootHash, t.cache, t.recorder)
 	node, err := lookup.lookupNode(nibbles.KeyLEToNibbles(key))
 	if err != nil {
 		return nil, err
