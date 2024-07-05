@@ -147,7 +147,7 @@ func EncodeHeader(partialKey []byte, kind NodeKind, writer io.Writer) (err error
 	case LeafWithHashedValue:
 		nodeVariant = leafWithHashedValueVariant
 	case BranchWithoutValue:
-		nodeVariant = branchWithValueVariant
+		nodeVariant = branchVariant
 	case BranchWithValue:
 		nodeVariant = branchWithValueVariant
 	case BranchWithHashedValue:
