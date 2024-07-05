@@ -46,24 +46,24 @@ func NewInMemoryTrieIterator(opts ...IterOpts) *InMemoryTrieIterator {
 	return iter
 }
 
-func (t *InMemoryTrieIterator) NextEntry() *trie.Entry {
-	found := findNextNode(t.trie.root, []byte(nil), t.cursorAtKey)
+func (i *InMemoryTrieIterator) NextEntry() *trie.Entry {
+	found := findNextNode(i.trie.root, []byte(nil), i.cursorAtKey)
 	if found != nil {
-		t.cursorAtKey = found.Key
+		i.cursorAtKey = found.Key
 	}
 	return found
 }
 
-func (t *InMemoryTrieIterator) NextKey() []byte {
-	entry := t.NextEntry()
+func (i *InMemoryTrieIterator) NextKey() []byte {
+	entry := i.NextEntry()
 	if entry != nil {
 		return codec.NibblesToKeyLE(entry.Key)
 	}
 	return nil
 }
 
-func (t *InMemoryTrieIterator) NextKeyFunc(predicate func(nextKey []byte) bool) (nextKey []byte) {
-	for entry := t.NextEntry(); entry != nil; entry = t.NextEntry() {
+func (i *InMemoryTrieIterator) NextKeyFunc(predicate func(nextKey []byte) bool) (nextKey []byte) {
+	for entry := i.NextEntry(); entry != nil; entry = i.NextEntry() {
 		key := codec.NibblesToKeyLE(entry.Key)
 		if predicate(key) {
 			return key
@@ -73,8 +73,9 @@ func (t *InMemoryTrieIterator) NextKeyFunc(predicate func(nextKey []byte) bool) 
 }
 
 func (i *InMemoryTrieIterator) Seek(targetKey []byte) {
-	for key := i.NextKey(); bytes.Compare(key, targetKey) < 0; key = i.NextKey() {
-	}
+	i.NextKeyFunc(func(nextKey []byte) bool {
+		return bytes.Compare(nextKey, targetKey) >= 0
+	})
 }
 
 // Entries returns all the key-value pairs in the trie as a map of keys to values
