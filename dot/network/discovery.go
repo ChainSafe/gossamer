@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ChainSafe/gossamer/internal/log"
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 	badger "github.com/ipfs/go-ds-badger2"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
@@ -32,8 +31,6 @@ var (
 	tryAdvertiseTimeout         = time.Second * 30
 	connectToPeersTimeout       = time.Minute
 	findPeersTimeout            = time.Minute
-
-	discoveryLogger = log.NewFromGlobal(log.AddContext("pkg", "network-discovery"))
 )
 
 // discovery handles discovery of new peers via the kademlia DHT
@@ -75,7 +72,7 @@ func (d *discovery) waitForPeers() (peers []peer.AddrInfo, err error) {
 	for len(currentPeers) == 0 {
 		select {
 		case <-t.C:
-			discoveryLogger.Debug("no peers yet, waiting to start DHT...")
+			logger.Debug("no peers yet, waiting to start DHT...")
 			// wait for peers to connect before starting DHT, otherwise DHT bootstrap nodes
 			// will be empty and we will fail to fill the routing table
 		case <-d.ctx.Done():
@@ -107,8 +104,8 @@ func (d *discovery) start() error {
 		}
 		d.bootnodes = peers
 	}
-	discoveryLogger.Debugf("starting DHT with bootnodes %v...", d.bootnodes)
-	discoveryLogger.Debugf("V1ProtocolOverride %v...", d.pid+"/kad")
+	logger.Debugf("starting DHT with bootnodes %v...", d.bootnodes)
+	logger.Debugf("V1ProtocolOverride %v...", d.pid+"/kad")
 
 	dhtOpts := []dual.Option{
 		dual.DHTOption(kaddht.Datastore(d.ds)),
@@ -150,7 +147,7 @@ func (d *discovery) discoverAndAdvertise() error {
 	go d.advertise()
 	go d.checkPeerCount()
 
-	discoveryLogger.Debug("DHT discovery started!")
+	logger.Debug("DHT discovery started!")
 	return nil
 }
 
@@ -165,16 +162,16 @@ func (d *discovery) advertise() {
 			timer.Stop()
 			return
 		case <-timer.C:
-			discoveryLogger.Debug("advertising ourselves in the DHT...")
+			logger.Debug("advertising ourselves in the DHT...")
 			err := d.dht.Bootstrap(d.ctx)
 			if err != nil {
-				discoveryLogger.Warnf("failed to bootstrap DHT: %s", err)
+				logger.Warnf("failed to bootstrap DHT: %s", err)
 				continue
 			}
 
 			ttl, err = d.rd.Advertise(d.ctx, string(d.pid))
 			if err != nil {
-				discoveryLogger.Warnf("failed to advertise in the DHT: %s", err)
+				logger.Warnf("failed to advertise in the DHT: %s", err)
 				ttl = tryAdvertiseTimeout
 			}
 		}
@@ -200,10 +197,10 @@ func (d *discovery) checkPeerCount() {
 }
 
 func (d *discovery) findPeers() {
-	discoveryLogger.Debug("attempting to find DHT peers...")
+	logger.Debug("attempting to find DHT peers...")
 	peerCh, err := d.rd.FindPeers(d.ctx, string(d.pid))
 	if err != nil {
-		discoveryLogger.Warnf("failed to begin finding peers via DHT: %s", err)
+		logger.Warnf("failed to begin finding peers via DHT: %s", err)
 		return
 	}
 
@@ -219,7 +216,7 @@ func (d *discovery) findPeers() {
 				continue
 			}
 
-			discoveryLogger.Tracef("found new peer %s via DHT", peer.ID)
+			logger.Tracef("found new peer %s via DHT", peer.ID)
 			d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
 			d.handler.AddPeer(0, peer.ID)
 		}
