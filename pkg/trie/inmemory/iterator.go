@@ -149,11 +149,20 @@ func findNextNode(currentNode *node.Node, prefix, searchKey []byte) *trie.Entry 
 				return nil
 			}
 
+			if len(searchKey) > len(currentFullKey) {
+				return findNextKeyOnChildren(
+					currentNode,
+					currentFullKey,
+					searchKey,
+					searchKey[len(currentFullKey)],
+				)
+			}
+
 			return findNextKeyOnChildren(
 				currentNode,
 				currentFullKey,
 				searchKey,
-				searchKey[len(currentFullKey)],
+				0,
 			)
 		}
 	default:
