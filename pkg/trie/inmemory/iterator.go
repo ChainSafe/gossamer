@@ -145,24 +145,15 @@ func findNextNode(currentNode *node.Node, prefix, searchKey []byte) *trie.Entry 
 		// the last match between `searchKey` and `currentFullKey`
 		if cmp == 1 {
 			// search key is exhausted then return nil
-			if len(searchKey) < len(currentFullKey) {
+			if len(searchKey) <= len(currentFullKey) {
 				return nil
-			}
-
-			if len(searchKey) > len(currentFullKey) {
-				return findNextKeyOnChildren(
-					currentNode,
-					currentFullKey,
-					searchKey,
-					searchKey[len(currentFullKey)],
-				)
 			}
 
 			return findNextKeyOnChildren(
 				currentNode,
 				currentFullKey,
 				searchKey,
-				0,
+				searchKey[len(currentFullKey)],
 			)
 		}
 	default:

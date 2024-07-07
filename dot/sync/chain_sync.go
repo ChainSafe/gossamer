@@ -649,8 +649,6 @@ taskResultLoop:
 
 			if taskResult.err != nil {
 				if !errors.Is(taskResult.err, network.ErrReceivedEmptyMessage) {
-					cs.workerPool.ignorePeerAsWorker(taskResult.who)
-
 					logger.Errorf("task result: peer(%s) error: %s",
 						taskResult.who, taskResult.err)
 
