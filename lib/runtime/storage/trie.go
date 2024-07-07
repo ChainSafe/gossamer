@@ -91,8 +91,7 @@ func (t *TrieState) CommitTransaction() {
 		t.transactions.Back().Prev().Value = t.transactions.Remove(t.transactions.Back())
 	} else {
 		// This is the last transaction so we apply all the changes to our state
-		tx := t.transactions.Remove(t.transactions.Back()).(*storageDiff)
-		tx.applyToTrie(t.state)
+		t.transactions.Remove(t.transactions.Back()).(*storageDiff).applyToTrie(t.state)
 	}
 }
 
@@ -111,8 +110,9 @@ func (t *TrieState) Put(key, value []byte) (err error) {
 
 	// If we have running transactions we apply the change there,
 	// if not, we apply the changes directly on our state trie
-	if t.getCurrentTransaction() != nil {
-		t.getCurrentTransaction().upsert(string(key), value)
+	if currentTx := t.getCurrentTransaction(); currentTx != nil {
+		currentTx.upsert(string(key), value)
+		return nil
 	}
 
 	return t.state.Put(key, value)
@@ -165,7 +165,8 @@ func (t *TrieState) Delete(key []byte) (err error) {
 	defer t.mtx.Unlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-		t.getCurrentTransaction().delete(string(key))
+		currentTx.delete(string(key))
+		return nil
 	}
 
 	return t.state.Delete(key)
