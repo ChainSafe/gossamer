@@ -649,6 +649,8 @@ taskResultLoop:
 
 			if taskResult.err != nil {
 				if !errors.Is(taskResult.err, network.ErrReceivedEmptyMessage) {
+					cs.workerPool.ignorePeerAsWorker(taskResult.who)
+
 					logger.Errorf("task result: peer(%s) error: %s",
 						taskResult.who, taskResult.err)
 
@@ -658,11 +660,14 @@ taskResultLoop:
 							Reason: peerset.BadProtocolReason,
 						}, who)
 					}
-				} else if errors.Is(taskResult.err, network.ErrNilBlockInResponse) {
-					cs.network.ReportPeer(peerset.ReputationChange{
-						Value:  peerset.BadMessageValue,
-						Reason: peerset.BadMessageReason,
-					}, who)
+
+					if errors.Is(taskResult.err, network.ErrNilBlockInResponse) {
+						cs.network.ReportPeer(peerset.ReputationChange{
+							Value:  peerset.BadMessageValue,
+							Reason: peerset.BadMessageReason,
+						}, who)
+					}
+
 				}
 
 				// TODO: avoid the same peer to get the same task

@@ -106,7 +106,9 @@ func (s *syncWorkerPool) useConnectedPeers() {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	for _, connectedPeer := range connectedPeers {
-		s.newPeer(connectedPeer)
+		if _, ok := s.ignorePeers[connectedPeer]; !ok {
+			s.newPeer(connectedPeer)
+		}
 	}
 }
 
