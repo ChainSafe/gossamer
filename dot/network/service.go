@@ -734,6 +734,7 @@ func (s *Service) processMessage(msg peerset.Message) {
 			return
 		}
 		logger.Debugf("connection dropped successfully for peer %s", peerID)
+		s.syncer.OnConnectionClosed(peerID)
 	}
 }
 

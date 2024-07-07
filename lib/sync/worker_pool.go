@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"golang.org/x/exp/maps"
 )
@@ -27,41 +28,48 @@ const (
 )
 
 type syncTask struct {
-	request  *network.BlockRequestMessage
-	resultCh chan<- *syncTaskResult
+	requestMaker network.RequestMaker
+	request      network.Message
+	response     network.ResponseMessage
+	resultCh     chan<- *syncTaskResult
 }
 
 type syncTaskResult struct {
 	who      peer.ID
-	request  *network.BlockRequestMessage
-	response *network.BlockResponseMessage
+	request  network.Message
+	response network.ResponseMessage
 	err      error
 }
 
 type syncWorker struct {
-	worker *worker
-	queue  chan *syncTask
+	stopCh          chan struct{}
+	bestBlockHash   common.Hash
+	bestBlockNumber uint
+	worker          *worker
+	queue           chan *syncTask
+}
+
+func (s *syncWorker) stop() {
+
 }
 
 type syncWorkerPool struct {
 	mtx sync.RWMutex
 	wg  sync.WaitGroup
 
-	network      Network
-	requestMaker network.RequestMaker
-	workers      map[peer.ID]*syncWorker
-	ignorePeers  map[peer.ID]struct{}
+	network     Network
+	workers     map[peer.ID]*syncWorker
+	ignorePeers map[peer.ID]struct{}
 
 	sharedGuard chan struct{}
 }
 
-func newSyncWorkerPool(net Network, requestMaker network.RequestMaker) *syncWorkerPool {
+func newSyncWorkerPool(net Network) *syncWorkerPool {
 	swp := &syncWorkerPool{
-		network:      net,
-		requestMaker: requestMaker,
-		workers:      make(map[peer.ID]*syncWorker),
-		ignorePeers:  make(map[peer.ID]struct{}),
-		sharedGuard:  make(chan struct{}, maxRequestsAllowed),
+		network:     net,
+		workers:     make(map[peer.ID]*syncWorker),
+		ignorePeers: make(map[peer.ID]struct{}),
+		sharedGuard: make(chan struct{}, maxRequestsAllowed),
 	}
 
 	return swp
@@ -95,52 +103,49 @@ func (s *syncWorkerPool) stop() error {
 	}
 }
 
-// useConnectedPeers will retrieve all connected peers
-// through the network layer and use them as sources of blocks
-func (s *syncWorkerPool) useConnectedPeers() {
-	connectedPeers := s.network.AllConnectedPeersIDs()
-	if len(connectedPeers) < 1 {
-		return
-	}
-
+func (s *syncWorkerPool) fromBlockAnnounceHandshake(who peer.ID, bestBlockHash common.Hash, bestBlockNumber uint) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	for _, connectedPeer := range connectedPeers {
-		if _, shouldIgnore := s.ignorePeers[connectedPeer]; !shouldIgnore {
-			s.newPeer(connectedPeer)
-		}
-	}
-}
 
-func (s *syncWorkerPool) fromBlockAnnounce(who peer.ID) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	s.newPeer(who)
-}
-
-// newPeer a new peer will be included in the worker
-// pool if it is not a peer to ignore or is not punished
-func (s *syncWorkerPool) newPeer(who peer.ID) {
 	if _, ok := s.ignorePeers[who]; ok {
 		return
 	}
 
-	_, has := s.workers[who]
+	syncPeer, has := s.workers[who]
 	if has {
+		syncPeer.bestBlockHash = bestBlockHash
+		syncPeer.bestBlockNumber = bestBlockNumber
 		return
 	}
 
-	worker := newWorker(who, s.sharedGuard, s.requestMaker)
+	workerStopCh := make(chan struct{})
+	worker := newWorker(who, s.sharedGuard, workerStopCh)
 	workerQueue := make(chan *syncTask, maxRequestsAllowed)
 
 	s.wg.Add(1)
 	go worker.run(workerQueue, &s.wg)
 
 	s.workers[who] = &syncWorker{
-		worker: worker,
-		queue:  workerQueue,
+		worker:          worker,
+		queue:           workerQueue,
+		bestBlockHash:   bestBlockHash,
+		bestBlockNumber: bestBlockNumber,
+		stopCh:          workerStopCh,
 	}
 	logger.Tracef("potential worker added, total in the pool %d", len(s.workers))
+}
+
+func (s *syncWorkerPool) removeWorker(who peer.ID) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	worker, ok := s.workers[who]
+	if !ok {
+		return
+	}
+
+	close(worker.stopCh)
+	delete(s.workers, who)
 }
 
 // submitRequest given a request, the worker pool will get the peer given the peer.ID
@@ -188,24 +193,17 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 
 // submitRequests takes an set of requests and will submit to the pool through submitRequest
 // the response will be dispatch in the resultCh
-func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage) (resultCh chan *syncTaskResult) {
-	resultCh = make(chan *syncTaskResult, maxRequestsAllowed+1)
-
+func (s *syncWorkerPool) submitRequests(tasks []*syncTask) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
 	allWorkers := maps.Values(s.workers)
-	for idx, request := range requests {
+	for idx, task := range tasks {
 		workerID := idx % len(allWorkers)
 		syncWorker := allWorkers[workerID]
 
-		syncWorker.queue <- &syncTask{
-			request:  request,
-			resultCh: resultCh,
-		}
+		syncWorker.queue <- task
 	}
-
-	return resultCh
 }
 
 func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) {
@@ -221,13 +219,9 @@ func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) {
 }
 
 // totalWorkers only returns available or busy workers
-func (s *syncWorkerPool) totalWorkers() (total uint) {
+func (s *syncWorkerPool) totalWorkers() (total int) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
-	for range s.workers {
-		total++
-	}
-
-	return total
+	return len(s.workers)
 }

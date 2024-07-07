@@ -179,6 +179,10 @@ func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMe
 	})
 }
 
+func (s *Service) OnConnectionClosed(who peer.ID) {
+	logger.Tracef("[NOT IMPLEMENTED] OnConnectionClosed: %s", who.String())
+}
+
 // IsSynced exposes the synced state
 func (s *Service) IsSynced() bool {
 	return s.chainSync.getSyncMode() == tip

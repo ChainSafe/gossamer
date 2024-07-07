@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	cfg "github.com/ChainSafe/gossamer/config"
 
@@ -17,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
@@ -35,6 +33,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
+	libsync "github.com/ChainSafe/gossamer/lib/sync"
 )
 
 // BlockProducer to produce blocks
@@ -54,7 +53,7 @@ type rpcServiceSettings struct {
 	blockProducer BlockProducer
 	system        *system.Service
 	blockFinality *grandpa.Service
-	syncer        *sync.Service
+	syncer        rpc.SyncAPI
 }
 
 func newInMemoryDB() (database.Database, error) {
@@ -499,46 +498,46 @@ func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationMana
 
 func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg BlockJustificationVerifier,
 	verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer Telemetry) (
-	*sync.Service, error) {
-	slotDuration, err := st.Epoch.GetSlotDuration()
-	if err != nil {
-		return nil, err
-	}
+	network.Syncer, error) {
+	// slotDuration, err := st.Epoch.GetSlotDuration()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	genesisData, err := st.Base.LoadGenesisData()
-	if err != nil {
-		return nil, err
-	}
+	// genesisData, err := st.Base.LoadGenesisData()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	syncLogLevel, err := log.ParseLevel(config.Log.Sync)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse sync log level: %w", err)
-	}
+	// syncLogLevel, err := log.ParseLevel(config.Log.Sync)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to parse sync log level: %w", err)
+	// }
 
-	const blockRequestTimeout = time.Second * 20
-	requestMaker := net.GetRequestResponseProtocol(
-		network.SyncID,
-		blockRequestTimeout,
-		network.MaxBlockResponseSize)
+	// const blockRequestTimeout = time.Second * 20
+	// requestMaker := net.GetRequestResponseProtocol(
+	// 	network.SyncID,
+	// 	blockRequestTimeout,
+	// 	network.MaxBlockResponseSize)
 
-	syncCfg := &sync.Config{
-		LogLvl:             syncLogLevel,
-		Network:            net,
-		BlockState:         st.Block,
-		StorageState:       st.Storage,
-		TransactionState:   st.Transaction,
-		FinalityGadget:     fg,
-		BabeVerifier:       verifier,
-		BlockImportHandler: cs,
-		MinPeers:           config.Network.MinPeers,
-		MaxPeers:           config.Network.MaxPeers,
-		SlotDuration:       slotDuration,
-		Telemetry:          telemetryMailer,
-		BadBlocks:          genesisData.BadBlocks,
-		RequestMaker:       requestMaker,
-	}
+	// syncCfg := &sync.Config{
+	// 	LogLvl:             syncLogLevel,
+	// 	Network:            net,
+	// 	BlockState:         st.Block,
+	// 	StorageState:       st.Storage,
+	// 	TransactionState:   st.Transaction,
+	// 	FinalityGadget:     fg,
+	// 	BabeVerifier:       verifier,
+	// 	BlockImportHandler: cs,
+	// 	MinPeers:           config.Network.MinPeers,
+	// 	MaxPeers:           config.Network.MaxPeers,
+	// 	SlotDuration:       slotDuration,
+	// 	Telemetry:          telemetryMailer,
+	// 	BadBlocks:          genesisData.BadBlocks,
+	// 	RequestMaker:       requestMaker,
+	// }
 
-	return sync.NewService(syncCfg)
+	return libsync.NewSyncService(net, st.Block, &libsync.FullSyncStrategy{}, nil), nil
 }
 
 func (nodeBuilder) createDigestHandler(st *state.Service) (*digest.Handler, error) {
