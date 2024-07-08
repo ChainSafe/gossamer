@@ -13,8 +13,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/stretchr/testify/require"
 )
 
@@ -48,9 +48,8 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 
 	extrinsicRoot := trie.EmptyHash
 	const number = 0
-	digest := types.NewDigest()
 	genesisHeader = *types.NewHeader(parentHash,
-		stateRoot, extrinsicRoot, number, digest)
+		stateRoot, extrinsicRoot, number, nil)
 
 	return gen, genesisTrie, genesisHeader
 }

@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/chain/westend"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 
 	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -36,7 +37,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
@@ -73,8 +75,9 @@ func TestNewNode(t *testing.T) {
 	logLevel, err := log.ParseLevel(initConfig.Log.State)
 	require.NoError(t, err)
 	stateConfig := state.Config{
-		Path:     initConfig.BasePath,
-		LogLevel: logLevel,
+		Path:              initConfig.BasePath,
+		LogLevel:          logLevel,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 
 	systemInfo := &types.SystemInfo{
@@ -89,7 +92,6 @@ func TestNewNode(t *testing.T) {
 	mockServiceRegistry.EXPECT().RegisterService(gomock.Any()).Times(9)
 
 	m := NewMocknodeBuilderIface(ctrl)
-	m.EXPECT().isNodeInitialised(initConfig.BasePath).Return(true, nil)
 	m.EXPECT().createStateService(initConfig).DoAndReturn(func(config *cfg.Config) (*state.Service, error) {
 		stateSrvc := state.NewService(stateConfig)
 		// create genesis from configuration file
@@ -103,12 +105,12 @@ func TestNewNode(t *testing.T) {
 			return nil, fmt.Errorf("failed to create trie from genesis: %w", err)
 		}
 		// create genesis block from trie
-		header, err := trie.GenesisBlock()
+		header, err := runtime.GenesisBlockFromTrie(trie)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create genesis block from trie: %w", err)
 		}
 		stateSrvc.Telemetry = mockTelemetryClient
-		err = stateSrvc.Initialise(gen, &header, &trie)
+		err = stateSrvc.Initialise(gen, &header, trie)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialise state service: %s", err)
 		}
@@ -418,10 +420,10 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	node, err := NewNode(config, ks)
 	require.NoError(t, err)
 
-	expected, err := trie.LoadFromMap(gen.GenesisFields().Raw["top"])
+	expected, err := inmemory_trie.LoadFromMap(gen.GenesisFields().Raw["top"], trie.V0)
 	require.NoError(t, err)
 
-	expectedRoot, err := trie.V0.Hash(&expected) // Since we are using a runtime with state trie V0
+	expectedRoot, err := trie.V0.Hash(expected) // Since we are using a runtime with state trie V0
 	require.NoError(t, err)
 
 	coreServiceInterface := node.ServiceRegistry.Get(&core.Service{})

@@ -4,39 +4,12 @@
 package scale
 
 import (
-	"bytes"
+	"fmt"
 	"math/big"
-	"reflect"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/assert"
 )
-
-func mustNewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType) {
-	vdt, err := NewVaryingDataType(values...)
-	if err != nil {
-		panic(err)
-	}
-	return
-}
-
-func mustNewVaryingDataTypeAndSet(value VaryingDataTypeValue, values ...VaryingDataTypeValue) (vdt VaryingDataType) {
-	vdt = mustNewVaryingDataType(values...)
-	err := vdt.Set(value)
-	if err != nil {
-		panic(err)
-	}
-	return
-}
-
-type customVDT VaryingDataType
-
-type customVDTWithNew VaryingDataType
-
-func (customVDTWithNew) New() customVDTWithNew {
-	return customVDTWithNew(mustNewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0)))
-}
 
 type VDTValue struct {
 	A *big.Int
@@ -55,12 +28,6 @@ type VDTValue struct {
 	N bool
 }
 
-func (VDTValue) Index() uint {
-	return 1
-}
-
-func (VDTValue) String() string { return "" }
-
 type VDTValue1 struct {
 	O  **big.Int
 	P  *int
@@ -77,12 +44,6 @@ type VDTValue1 struct {
 	AA *string
 	AB *bool
 }
-
-func (VDTValue1) Index() uint {
-	return 2
-}
-
-func (VDTValue1) String() string { return "" }
 
 type VDTValue2 struct {
 	A MyStruct
@@ -105,26 +66,93 @@ type VDTValue2 struct {
 	P [2][2]byte
 }
 
-func (VDTValue2) Index() uint {
-	return 3
-}
-
-func (VDTValue2) String() string { return "" }
-
 type VDTValue3 int16
 
-func (VDTValue3) Index() uint {
-	return 4
+type MyVaryingDataType struct {
+	inner any
 }
 
-func (VDTValue3) String() string { return "" }
+type CustomAny any
+
+type MyVaryingDataTypeValues interface {
+	VDTValue | VDTValue1 | VDTValue2 | VDTValue3 | CustomAny
+}
+
+func NewMyVaringDataType[Value MyVaryingDataTypeValues](value ...Value) *MyVaryingDataType {
+	if len(value) == 0 {
+		return &MyVaryingDataType{}
+	}
+	return &MyVaryingDataType{
+		inner: value[0],
+	}
+}
+
+func setMyVaryingDataType[Value MyVaryingDataTypeValues](mvdt *MyVaryingDataType, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *MyVaryingDataType) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case VDTValue:
+		setMyVaryingDataType[VDTValue](mvdt, value)
+		return
+	case VDTValue1:
+		setMyVaryingDataType[VDTValue1](mvdt, value)
+		return
+	case VDTValue2:
+		setMyVaryingDataType[VDTValue2](mvdt, value)
+		return
+	case VDTValue3:
+		setMyVaryingDataType[VDTValue3](mvdt, value)
+		return
+	case CustomAny:
+		setMyVaryingDataType(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt MyVaryingDataType) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case VDTValue:
+		return 1, mvdt.inner, nil
+	case VDTValue1:
+		return 2, mvdt.inner, nil
+	case VDTValue2:
+		return 3, mvdt.inner, nil
+	case VDTValue3:
+		return 4, mvdt.inner, nil
+	case CustomAny:
+		return 5, mvdt.inner, nil
+	}
+	return 0, nil, ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt MyVaryingDataType) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt MyVaryingDataType) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 1:
+		return VDTValue{}, nil
+	case 2:
+		return VDTValue1{}, nil
+	case 3:
+		return VDTValue2{}, nil
+	case 4:
+		return VDTValue3(0), nil
+	case 5:
+		return CustomAny(int16(0)), nil
+	}
+	return nil, ErrUnknownVaryingDataTypeValue
+}
 
 var varyingDataTypeTests = tests{
-	{
-		in: mustNewVaryingDataTypeAndSet(
-			VDTValue1{O: newBigIntPtr(big.NewInt(1073741823))},
-			VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0),
-		),
+	test{
+		in: NewMyVaringDataType(VDTValue1{O: newBigIntPtr(big.NewInt(1073741823))}),
 		want: []byte{
 			2,
 			0x01, 0xfe, 0xff, 0xff, 0xff,
@@ -144,7 +172,7 @@ var varyingDataTypeTests = tests{
 		},
 	},
 	{
-		in: mustNewVaryingDataTypeAndSet(
+		in: NewMyVaringDataType(
 			VDTValue{
 				A: big.NewInt(1073741823),
 				B: int(1073741823),
@@ -161,7 +189,6 @@ var varyingDataTypeTests = tests{
 				M: testStrings[1],
 				N: true,
 			},
-			VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0),
 		),
 		want: newWant(
 			// index of VDTValue
@@ -186,7 +213,7 @@ var varyingDataTypeTests = tests{
 		),
 	},
 	{
-		in: mustNewVaryingDataTypeAndSet(
+		in: NewMyVaringDataType(
 			VDTValue1{
 				O:  newBigIntPtr(big.NewInt(1073741823)),
 				P:  newIntPtr(int(1073741823)),
@@ -203,7 +230,6 @@ var varyingDataTypeTests = tests{
 				AA: newStringPtr(testStrings[1]),
 				AB: newBoolPtr(true),
 			},
-			VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0),
 		),
 		want: newWant(
 			// index of VDTValue1
@@ -228,7 +254,7 @@ var varyingDataTypeTests = tests{
 		),
 	},
 	{
-		in: mustNewVaryingDataTypeAndSet(
+		in: NewMyVaringDataType(
 			VDTValue2{
 				A: MyStruct{
 					Foo: []byte{0x01},
@@ -265,7 +291,6 @@ var varyingDataTypeTests = tests{
 				O: [2][]byte{{0x00, 0x01}, {0x01, 0x00}},
 				P: [2][2]byte{{0x00, 0x01}, {0x01, 0x00}},
 			},
-			VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0),
 		),
 		want: newWant(
 			// index of VDTValue2
@@ -292,9 +317,8 @@ var varyingDataTypeTests = tests{
 		),
 	},
 	{
-		in: mustNewVaryingDataTypeAndSet(
+		in: NewMyVaringDataType(
 			VDTValue3(16383),
-			VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0),
 		),
 		want: newWant(
 			// index of VDTValue2
@@ -303,318 +327,54 @@ var varyingDataTypeTests = tests{
 			[]byte{0xff, 0x3f},
 		),
 	},
+	{
+		name: "CustomAny",
+		in: NewMyVaringDataType(
+			CustomAny(int16(16383)),
+		),
+		want: newWant(
+			// index of VDTValue2
+			[]byte{5},
+			// encoding of int16
+			[]byte{0xff, 0x3f},
+		),
+	},
 }
 
-func Test_encodeState_encodeVaryingDataType(t *testing.T) {
+func TestVaryingDataType_Encode(t *testing.T) {
 	for _, tt := range varyingDataTypeTests {
 		t.Run(tt.name, func(t *testing.T) {
-			buffer := bytes.NewBuffer(nil)
-			es := &encodeState{
-				Writer:                 buffer,
-				fieldScaleIndicesCache: cache,
-			}
-			vdt := tt.in.(VaryingDataType)
-			if err := es.marshal(vdt); (err != nil) != tt.wantErr {
-				t.Errorf("encodeState.marshal() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.marshal() = %v, want %v", buffer.Bytes(), tt.want)
-			}
+			vdt := tt.in.(EncodeVaryingDataType)
+			bytes, err := Marshal(vdt)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, bytes)
 		})
 	}
 }
 
-func Test_decodeState_decodeVaryingDataType(t *testing.T) {
+func TestVaryingDataType_Decode(t *testing.T) {
 	for _, tt := range varyingDataTypeTests {
 		t.Run(tt.name, func(t *testing.T) {
-			dst, err := NewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0))
-			if err != nil {
-				t.Errorf("%v", err)
-				return
-			}
-			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
-				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			vdt := tt.in.(VaryingDataType)
-			dstVal, err := dst.Value()
-			if err != nil {
-				t.Errorf("%v", err)
-				return
-			}
-			vdtVal, err := vdt.Value()
-			if err != nil {
-				t.Errorf("%v", err)
-				return
-			}
-			diff := cmp.Diff(dstVal, vdtVal, cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}))
-			if diff != "" {
-				t.Errorf("decodeState.unmarshal() = %s", diff)
-			}
-		})
-	}
-}
+			dst := NewMyVaringDataType[VDTValue3]()
+			err := Unmarshal(tt.want, dst)
+			assert.NoError(t, err)
 
-func Test_encodeState_encodeCustomVaryingDataType(t *testing.T) {
-	for _, tt := range varyingDataTypeTests {
-		t.Run(tt.name, func(t *testing.T) {
-			buffer := bytes.NewBuffer(nil)
-			es := &encodeState{
-				Writer:                 buffer,
-				fieldScaleIndicesCache: cache,
-			}
-			vdt := tt.in.(VaryingDataType)
-			cvdt := customVDT(vdt)
-			if err := es.marshal(cvdt); (err != nil) != tt.wantErr {
-				t.Errorf("encodeState.encodeStruct() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if !reflect.DeepEqual(buffer.Bytes(), tt.want) {
-				t.Errorf("encodeState.encodeStruct() = %v, want %v", buffer.Bytes(), tt.want)
-			}
-		})
-	}
-}
-func Test_decodeState_decodeCustomVaryingDataType(t *testing.T) {
-	for _, tt := range varyingDataTypeTests {
-		t.Run(tt.name, func(t *testing.T) {
-			vdt, err := NewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0))
-			if err != nil {
-				t.Errorf("%v", err)
-				return
-			}
-			dst := customVDT(vdt)
-			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
-				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
+			dstVal, err := tt.in.(VaryingDataType).Value()
+			assert.NoError(t, err)
 
-			dstVDT := reflect.ValueOf(tt.in).Convert(reflect.TypeOf(VaryingDataType{})).Interface().(VaryingDataType)
-			inVDT := reflect.ValueOf(tt.in).Convert(reflect.TypeOf(VaryingDataType{})).Interface().(VaryingDataType)
-			dstVDTVal, err := dstVDT.Value()
-			if err != nil {
-				t.Errorf("%v", err)
-				return
-			}
-			inVDTVal, err := inVDT.Value()
-			if err != nil {
-				t.Errorf("%v", err)
-				return
-			}
-			diff := cmp.Diff(dstVDTVal, inVDTVal,
-				cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}))
-			if diff != "" {
-				t.Errorf("decodeState.unmarshal() = %s", diff)
-			}
-			if reflect.TypeOf(dst) != reflect.TypeOf(customVDT{}) {
-				t.Errorf("types mismatch dst: %v expected: %v", reflect.TypeOf(dst), reflect.TypeOf(customVDT{}))
-			}
-		})
-	}
-}
+			vdtVal, err := dst.Value()
+			assert.NoError(t, err)
 
-func Test_decodeState_decodeCustomVaryingDataTypeWithNew(t *testing.T) {
-	for _, tt := range varyingDataTypeTests {
-		t.Run(tt.name, func(t *testing.T) {
-			dst := customVDTWithNew{}
-			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
-				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-
-			dstVDT := reflect.ValueOf(tt.in).Convert(reflect.TypeOf(VaryingDataType{})).Interface().(VaryingDataType)
-			inVDT := reflect.ValueOf(tt.in).Convert(reflect.TypeOf(VaryingDataType{})).Interface().(VaryingDataType)
-			dstVDTVal, err := dstVDT.Value()
-			if err != nil {
-				t.Errorf("%v", err)
-				return
-			}
-			inVDTVal, err := inVDT.Value()
-			if err != nil {
-				t.Errorf("%v", err)
-				return
-			}
-			diff := cmp.Diff(dstVDTVal, inVDTVal,
-				cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}))
-			if diff != "" {
-				t.Errorf("decodeState.unmarshal() = %s", diff)
-			}
-			if reflect.TypeOf(dst) != reflect.TypeOf(customVDTWithNew{}) {
-				t.Errorf("types mismatch dst: %v expected: %v", reflect.TypeOf(dst), reflect.TypeOf(customVDT{}))
-			}
-		})
-	}
-}
-
-func TestNewVaryingDataType(t *testing.T) {
-	type args struct {
-		values []VaryingDataTypeValue
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantVdt VaryingDataType
-		wantErr bool
-	}{
-		{
-			args: args{
-				values: []VaryingDataTypeValue{},
-			},
-			wantErr: true,
-		},
-		{
-			args: args{
-				values: []VaryingDataTypeValue{
-					VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0),
-				},
-			},
-			wantVdt: VaryingDataType{
-				cache: map[uint]VaryingDataTypeValue{
-					VDTValue{}.Index():   VDTValue{},
-					VDTValue1{}.Index():  VDTValue1{},
-					VDTValue2{}.Index():  VDTValue2{},
-					VDTValue3(0).Index(): VDTValue3(0),
-				},
-			},
-		},
-		{
-			args: args{
-				values: []VaryingDataTypeValue{
-					VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0), VDTValue{},
-				},
-			},
-			wantVdt: VaryingDataType{
-				cache: map[uint]VaryingDataTypeValue{
-					VDTValue{}.Index():   VDTValue{},
-					VDTValue1{}.Index():  VDTValue1{},
-					VDTValue2{}.Index():  VDTValue2{},
-					VDTValue3(0).Index(): VDTValue3(0),
-				},
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotVdt, err := NewVaryingDataType(tt.args.values...)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NewVaryingDataType() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(gotVdt, tt.wantVdt) {
-				t.Errorf("NewVaryingDataType() = %v, want %v", gotVdt, tt.wantVdt)
-			}
-		})
-	}
-}
-
-func TestVaryingDataType_Set(t *testing.T) {
-	type args struct {
-		value VaryingDataTypeValue
-	}
-	tests := []struct {
-		name    string
-		vdt     VaryingDataType
-		args    args
-		wantErr bool
-	}{
-		{
-			vdt: mustNewVaryingDataType(VDTValue1{}),
-			args: args{
-				value: VDTValue1{},
-			},
-		},
-		{
-			vdt: mustNewVaryingDataType(VDTValue1{}, VDTValue2{}),
-			args: args{
-				value: VDTValue1{},
-			},
-		},
-		{
-			vdt: mustNewVaryingDataType(VDTValue1{}, VDTValue2{}),
-			args: args{
-				value: VDTValue2{},
-			},
-		},
-		{
-			vdt: mustNewVaryingDataType(VDTValue1{}, VDTValue2{}),
-			args: args{
-				value: VDTValue3(0),
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			vdt := tt.vdt
-			if err := vdt.Set(tt.args.value); (err != nil) != tt.wantErr {
-				t.Errorf("VaryingDataType.SetValue() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestVaryingDataTypeSlice_Add(t *testing.T) {
-	type args struct {
-		values []VaryingDataTypeValue
-	}
-	tests := []struct {
-		name       string
-		vdts       VaryingDataTypeSlice
-		args       args
-		wantErr    bool
-		wantValues []VaryingDataType
-	}{
-		{
-			name: "happy_path",
-			vdts: NewVaryingDataTypeSlice(MustNewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0))),
-			args: args{
-				values: []VaryingDataTypeValue{
-					VDTValue{
-						B: 1,
-					},
-				},
-			},
-			wantValues: []VaryingDataType{
-				mustNewVaryingDataTypeAndSet(
-					VDTValue{
-						B: 1,
-					},
-					VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0),
-				),
-			},
-		},
-		{
-			name: "invalid_value_error_case",
-			vdts: NewVaryingDataTypeSlice(MustNewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{})),
-			args: args{
-				values: []VaryingDataTypeValue{
-					VDTValue3(0),
-				},
-			},
-			wantValues: []VaryingDataType{},
-			wantErr:    true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.vdts.Add(tt.args.values...); (err != nil) != tt.wantErr {
-				t.Errorf("VaryingDataTypeSlice.Add() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if !reflect.DeepEqual(tt.vdts.Types, tt.wantValues) {
-				t.Errorf("NewVaryingDataType() = %v, want %v", tt.vdts.Types, tt.wantValues)
-			}
+			assert.Equal(t, vdtVal, dstVal)
 		})
 	}
 }
 
 var varyingDataTypeSliceTests = tests{
 	{
-		in: mustNewVaryingDataTypeSliceAndSet(
-			mustNewVaryingDataType(
-				VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0),
-			),
-			VDTValue1{O: newBigIntPtr(big.NewInt(1073741823))},
-		),
+		in: []VaryingDataType{
+			NewMyVaringDataType(VDTValue1{O: newBigIntPtr(big.NewInt(1073741823))}),
+		},
 		want: newWant(
 			[]byte{
 				// length
@@ -640,12 +400,9 @@ var varyingDataTypeSliceTests = tests{
 		),
 	},
 	{
-		in: mustNewVaryingDataTypeSliceAndSet(
-			mustNewVaryingDataType(
-				VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0),
-			),
-			VDTValue1{O: newBigIntPtr(big.NewInt(1073741823))},
-			VDTValue{
+		in: []VaryingDataType{
+			NewMyVaringDataType(VDTValue1{O: newBigIntPtr(big.NewInt(1073741823))}),
+			NewMyVaringDataType(VDTValue{
 				A: big.NewInt(1073741823),
 				B: int(1073741823),
 				C: uint(1073741823),
@@ -660,8 +417,8 @@ var varyingDataTypeSliceTests = tests{
 				L: byteArray(64),
 				M: testStrings[1],
 				N: true,
-			},
-		),
+			}),
+		},
 		want: newWant(
 			[]byte{
 				// length
@@ -709,39 +466,103 @@ var varyingDataTypeSliceTests = tests{
 	},
 }
 
-func Test_encodeState_encodeVaryingDataTypeSlice(t *testing.T) {
+func TestVaryingDataType_EncodeSlice(t *testing.T) {
 	for _, tt := range varyingDataTypeSliceTests {
 		t.Run(tt.name, func(t *testing.T) {
-			vdt := tt.in.(VaryingDataTypeSlice)
+			vdt := tt.in.([]VaryingDataType)
 			b, err := Marshal(vdt)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Marshal() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if !reflect.DeepEqual(b, tt.want) {
-				t.Errorf("Marshal() = %v, want %v", b, tt.want)
-			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, b)
 		})
 	}
 }
 
-func Test_decodeState_decodeVaryingDataTypeSlice(t *testing.T) {
-	opt := cmp.Comparer(func(x, y VaryingDataType) bool {
-		return reflect.DeepEqual(x.value, y.value) && reflect.DeepEqual(x.cache, y.cache)
-	})
-
+func TestVaryingDataType_DecodeSlice(t *testing.T) {
 	for _, tt := range varyingDataTypeSliceTests {
 		t.Run(tt.name, func(t *testing.T) {
-			dst := tt.in.(VaryingDataTypeSlice)
-			dst.Types = make([]VaryingDataType, 0)
-			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
-				t.Errorf("Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			var dst []MyVaryingDataType
+			err := Unmarshal(tt.want, &dst)
+			assert.NoError(t, err)
+
+			dstValues := make([]any, len(dst))
+			for i, vdt := range dst {
+				value, err := vdt.Value()
+				assert.NoError(t, err)
+				dstValues[i] = value
 			}
-			vdts := tt.in.(VaryingDataTypeSlice)
-			diff := cmp.Diff(dst, vdts, cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}), opt)
-			if diff != "" {
-				t.Errorf("decodeState.unmarshal() = %s", diff)
+
+			expectedValues := make([]any, len(tt.in.([]VaryingDataType)))
+			for i, vdt := range tt.in.([]VaryingDataType) {
+				value, err := vdt.Value()
+				assert.NoError(t, err)
+				expectedValues[i] = value
 			}
+
+			assert.Equal(t, expectedValues, dstValues)
 		})
 	}
+}
+
+func TestVaryingDataType_EncodeArray(t *testing.T) {
+	vdtval1 := VDTValue1{O: newBigIntPtr(big.NewInt(1073741823))}
+	mvdt := NewMyVaringDataType[VDTValue1](vdtval1)
+	_ = VaryingDataType(mvdt)
+	mvdtArray := [1]VaryingDataType{
+		mvdt,
+	}
+	expected := []byte{
+		2,
+		0x01, 0xfe, 0xff, 0xff, 0xff,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+	}
+
+	bytes, err := Marshal(mvdtArray)
+	if err != nil {
+		t.Errorf("wtf %v", err)
+	}
+	assert.NoError(t, err)
+	assert.Equal(t, expected, bytes)
+}
+
+func TestVaryingDataType_DecodeArray(t *testing.T) {
+	vdtval1 := VDTValue1{O: newBigIntPtr(big.NewInt(1073741823))}
+	mvdt := NewMyVaringDataType[VDTValue1](vdtval1)
+	_ = VaryingDataType(mvdt)
+	expected := [1]MyVaryingDataType{
+		*mvdt,
+	}
+	var mvdtArr [1]MyVaryingDataType
+
+	bytes := []byte{
+		2,
+		0x01, 0xfe, 0xff, 0xff, 0xff,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+	}
+	err := Unmarshal(bytes, &mvdtArr)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, mvdtArr)
 }

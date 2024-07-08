@@ -18,6 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/require"
@@ -31,14 +32,15 @@ func newTestHandler(t *testing.T) (*Handler, *BlockImportHandler, *state.Service
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := state.Config{
-		Path:      testDatadirPath,
-		Telemetry: telemetryMock,
+		Path:              testDatadirPath,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
 	gen, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
+	err := stateSrvc.Initialise(&gen, &genesisHeader, genesisTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.SetupBase()
@@ -77,7 +79,7 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 	}
 
 	var digest = types.NewGrandpaConsensusDigest()
-	err = digest.Set(sc)
+	err = digest.SetValue(sc)
 	require.NoError(t, err)
 
 	data, err := scale.Marshal(digest)
@@ -110,48 +112,48 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 
 func TestMultipleGRANDPADigests_ShouldIncludeJustForcedChanges(t *testing.T) {
 	tests := map[string]struct {
-		digestsTypes    []scale.VaryingDataTypeValue
-		expectedHandled []scale.VaryingDataTypeValue
+		digestsTypes    []any
+		expectedHandled []any
 	}{
 		"forced_and_scheduled_changes_same_block": {
-			digestsTypes: []scale.VaryingDataTypeValue{
+			digestsTypes: []any{
 				types.GrandpaForcedChange{},
 				types.GrandpaScheduledChange{},
 			},
-			expectedHandled: []scale.VaryingDataTypeValue{
+			expectedHandled: []any{
 				types.GrandpaForcedChange{},
 			},
 		},
 		"only_scheduled_change_in_block": {
-			digestsTypes: []scale.VaryingDataTypeValue{
+			digestsTypes: []any{
 				types.GrandpaScheduledChange{},
 			},
-			expectedHandled: []scale.VaryingDataTypeValue{
+			expectedHandled: []any{
 				types.GrandpaScheduledChange{},
 			},
 		},
 		"more_than_one_forced_changes_in_block": {
-			digestsTypes: []scale.VaryingDataTypeValue{
+			digestsTypes: []any{
 				types.GrandpaForcedChange{},
 				types.GrandpaForcedChange{},
 				types.GrandpaForcedChange{},
 				types.GrandpaScheduledChange{},
 			},
-			expectedHandled: []scale.VaryingDataTypeValue{
+			expectedHandled: []any{
 				types.GrandpaForcedChange{},
 				types.GrandpaForcedChange{},
 				types.GrandpaForcedChange{},
 			},
 		},
 		"multiple_consensus_digests_in_block": {
-			digestsTypes: []scale.VaryingDataTypeValue{
+			digestsTypes: []any{
 				types.GrandpaOnDisabled{},
 				types.GrandpaPause{},
 				types.GrandpaResume{},
 				types.GrandpaForcedChange{},
 				types.GrandpaScheduledChange{},
 			},
-			expectedHandled: []scale.VaryingDataTypeValue{
+			expectedHandled: []any{
 				types.GrandpaOnDisabled{},
 				types.GrandpaPause{},
 				types.GrandpaResume{},
@@ -167,7 +169,7 @@ func TestMultipleGRANDPADigests_ShouldIncludeJustForcedChanges(t *testing.T) {
 
 			for _, item := range tt.digestsTypes {
 				var digest = types.NewGrandpaConsensusDigest()
-				require.NoError(t, digest.Set(item))
+				require.NoError(t, digest.SetValue(item))
 
 				data, err := scale.Marshal(digest)
 				require.NoError(t, err)
@@ -190,7 +192,7 @@ func TestMultipleGRANDPADigests_ShouldIncludeJustForcedChanges(t *testing.T) {
 
 			for _, item := range tt.expectedHandled {
 				var digest = types.NewGrandpaConsensusDigest()
-				require.NoError(t, digest.Set(item))
+				require.NoError(t, digest.SetValue(item))
 
 				data, err := scale.Marshal(digest)
 				require.NoError(t, err)
@@ -215,7 +217,7 @@ func TestHandler_HandleBABEOnDisabled(t *testing.T) {
 	}
 
 	var digest = types.NewBabeConsensusDigest()
-	err := digest.Set(types.BABEOnDisabled{
+	err := digest.SetValue(types.BABEOnDisabled{
 		ID: 7,
 	})
 	require.NoError(t, err)
@@ -236,7 +238,7 @@ func createHeaderWithPreDigest(t *testing.T, slotNumber uint64) *types.Header {
 	t.Helper()
 
 	babeHeader := types.NewBabeDigest()
-	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, slotNumber, [32]byte{}, [64]byte{}))
+	err := babeHeader.SetValue(*types.NewBabePrimaryPreDigest(0, slotNumber, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 
 	enc, err := scale.Marshal(babeHeader)
@@ -276,7 +278,7 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 	}
 
 	digest := types.NewBabeConsensusDigest()
-	err = digest.Set(nextEpochData)
+	err = digest.SetValue(nextEpochData)
 	require.NoError(t, err)
 
 	data, err := scale.Marshal(digest)
@@ -339,9 +341,9 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 	}
 
 	versionedNextConfigData := types.NewVersionedNextConfigData()
-	versionedNextConfigData.Set(nextConfigData)
+	versionedNextConfigData.SetValue(nextConfigData)
 
-	err := digest.Set(versionedNextConfigData)
+	err := digest.SetValue(versionedNextConfigData)
 	require.NoError(t, err)
 
 	data, err := scale.Marshal(digest)

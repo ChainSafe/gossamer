@@ -80,6 +80,10 @@ const (
 	// GenesisMismatchReason used when a peer has a different genesis
 	GenesisMismatchReason = "Genesis mismatch"
 
+	// SameBlockSyncRequest used when a peer send us more than the max number of the same request.
+	SameBlockSyncRequest       Reputation = math.MinInt32
+	SameBlockSyncRequestReason            = "same block sync request"
+
 	// BenefitNotifyGoodValue is used when a collator was noted good by another subsystem
 	BenefitNotifyGoodValue = BenefitMinor
 	// BenefitNotifyGoodReason is used when a collator was noted good by another subsystem

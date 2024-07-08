@@ -16,8 +16,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"go.uber.org/mock/gomock"
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -41,7 +42,7 @@ func TestChainGetHeader_Genesis(t *testing.T) {
 	di := types.NewDigestItem()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	require.NoError(t, err)
-	err = di.Set(*prd)
+	err = di.SetValue(*prd)
 	require.NoError(t, err)
 
 	d, err := scale.Marshal(di)
@@ -77,7 +78,7 @@ func TestChainGetHeader_Latest(t *testing.T) {
 	di := types.NewDigestItem()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	require.NoError(t, err)
-	err = di.Set(*prd)
+	err = di.SetValue(*prd)
 	require.NoError(t, err)
 
 	d, err := scale.Marshal(di)
@@ -125,7 +126,7 @@ func TestChainGetBlock_Genesis(t *testing.T) {
 	di := types.NewDigestItem()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	require.NoError(t, err)
-	err = di.Set(*prd)
+	err = di.SetValue(*prd)
 	require.NoError(t, err)
 
 	d, err := scale.Marshal(di)
@@ -169,7 +170,7 @@ func TestChainGetBlock_Latest(t *testing.T) {
 	di := types.NewDigestItem()
 	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	require.NoError(t, err)
-	err = di.Set(*prd)
+	err = di.SetValue(*prd)
 	require.NoError(t, err)
 
 	d, err := scale.Marshal(di)
@@ -344,16 +345,17 @@ func newTestStateService(t *testing.T) *state.Service {
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 	config := state.Config{
-		Path:      testDatadirPath,
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
+		Path:              testDatadirPath,
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
 	}
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
 	gen, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 
-	err := stateSrvc.Initialise(&gen, &genesisHeader, &genesisTrie)
+	err := stateSrvc.Initialise(&gen, &genesisHeader, genesisTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()
@@ -361,7 +363,7 @@ func newTestStateService(t *testing.T) *state.Service {
 
 	var rtCfg wazero_runtime.Config
 
-	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(genesisTrie)
 
 	if stateSrvc != nil {
 		rtCfg.NodeStorage.BaseDB = stateSrvc.Base

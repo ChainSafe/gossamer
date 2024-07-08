@@ -89,11 +89,6 @@ func (Builder) NewServiceIFace(cfg *ServiceConfig) (service *Service, err error)
 		return nil, fmt.Errorf("cannot get slot duration: %w", err)
 	}
 
-	epochLength, err := cfg.EpochState.GetEpochLength()
-	if err != nil {
-		return nil, fmt.Errorf("cannot get epoch length: %w", err)
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	babeService := &Service{
@@ -110,7 +105,7 @@ func (Builder) NewServiceIFace(cfg *ServiceConfig) (service *Service, err error)
 		blockImportHandler: cfg.BlockImportHandler,
 		constants: constants{
 			slotDuration: slotDuration,
-			epochLength:  epochLength,
+			epochLength:  cfg.EpochState.GetEpochLength(),
 		},
 		telemetry: cfg.Telemetry,
 	}
@@ -136,11 +131,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, fmt.Errorf("cannot get slot duration: %w", err)
 	}
 
-	epochLength, err := cfg.EpochState.GetEpochLength()
-	if err != nil {
-		return nil, fmt.Errorf("cannot get epoch length: %w", err)
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	babeService := &Service{
@@ -157,7 +147,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		blockImportHandler: cfg.BlockImportHandler,
 		constants: constants{
 			slotDuration: slotDuration,
-			epochLength:  epochLength,
+			epochLength:  cfg.EpochState.GetEpochLength(),
 		},
 		telemetry: cfg.Telemetry,
 	}
@@ -257,9 +247,9 @@ func (b *Service) Stop() error {
 	return nil
 }
 
-// Authorities returns the current BABE authorities
+// AuthoritiesRaw returns the current BABE authorities
 func (b *Service) AuthoritiesRaw() []types.AuthorityRaw {
-	return b.epochHandler.epochData.authorities
+	return b.epochHandler.descriptor.data.authorities
 }
 
 // IsStopped returns true if the service is stopped (ie not producing blocks)
@@ -267,14 +257,14 @@ func (b *Service) IsStopped() bool {
 	return b.ctx.Err() != nil
 }
 
-func (b *Service) getAuthorityIndex(Authorities []types.AuthorityRaw) (uint32, error) {
+func (b *Service) getAuthorityIndex(authorities []types.AuthorityRaw) (uint32, error) {
 	if !b.authority {
 		return 0, ErrNotAuthority
 	}
 
 	pub := b.keypair.Public()
 
-	for i, auth := range Authorities {
+	for i, auth := range authorities {
 		if bytes.Equal(pub.Encode(), auth.Key[:]) {
 			return uint32(i), nil
 		}
@@ -293,22 +283,16 @@ func (b *Service) initiate() {
 }
 
 func (b *Service) initiateAndGetEpochHandler(epoch uint64) (*epochHandler, error) {
-	epochData, err := b.initiateEpoch(epoch)
+	epochDescriptor, err := b.initiateEpoch(epoch)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initiate epoch: %w", err)
 	}
 
 	logger.Debugf("initiated epoch with threshold %s, randomness 0x%x and authorities %v",
-		epochData.threshold, epochData.randomness[:], epochData.authorities)
+		epochDescriptor.data.threshold, epochDescriptor.data.randomness[:], epochDescriptor.data.authorities)
 
-	epochStartSlot, err := b.epochState.GetStartSlotForEpoch(epoch)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get start slot for current epoch %d: %w", epoch, err)
-	}
-
-	return newEpochHandler(epoch,
-		epochStartSlot,
-		epochData,
+	return newEpochHandler(
+		epochDescriptor,
 		b.constants,
 		b.handleSlot,
 		b.keypair,
@@ -347,13 +331,8 @@ func (b *Service) handleEpoch(epoch uint64) (next uint64, err error) {
 		return 0, fmt.Errorf("cannot initiate and get epoch handler: %w", err)
 	}
 
-	// get start slot for current epoch
-	nextEpochStart, err := b.epochState.GetStartSlotForEpoch(epoch + 1)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get start slot for next epoch %d: %w", epoch+1, err)
-	}
-
-	nextEpochStartTime := getSlotStartTime(nextEpochStart, b.constants.slotDuration)
+	nextEpochStarts := b.epochHandler.descriptor.endSlot
+	nextEpochStartTime := getSlotStartTime(nextEpochStarts, b.constants.slotDuration)
 	epochTimer := time.NewTimer(time.Until(nextEpochStartTime))
 
 	errCh := make(chan error, 1)

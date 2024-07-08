@@ -35,7 +35,7 @@ func TestEncodeApprovalDistributionMessageAssignmentModulo(t *testing.T) {
 		30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
 		58, 59, 60, 61, 62, 63, 64, 4, 0, 0, 0}
 
-	approvalDistributionMessage.Set(Assignments{
+	approvalDistributionMessage.SetValue(Assignments{
 		Assignment{
 			IndirectAssignmentCert: fakeAssignmentCert(hashA, parachaintypes.ValidatorIndex(1), false),
 			CandidateIndex:         4,
@@ -62,7 +62,7 @@ func TestEncodeApprovalDistributionMessageAssignmentDelay(t *testing.T) {
 		31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58,
 		59, 60, 61, 62, 63, 64, 2, 0, 0, 0}
 
-	approvalDistributionMessage.Set(Assignments{
+	approvalDistributionMessage.SetValue(Assignments{
 		Assignment{
 			IndirectAssignmentCert: fakeAssignmentCert(hashA, parachaintypes.ValidatorIndex(2), true),
 			CandidateIndex:         2,
@@ -77,7 +77,7 @@ func TestEncodeApprovalDistributionMessageAssignmentDelay(t *testing.T) {
 
 func TestEncodeAssignmentCertKindModulo(t *testing.T) {
 	assignmentCertKind := NewAssignmentCertKindVDT()
-	assignmentCertKind.Set(RelayVRFModulo{Sample: 4})
+	assignmentCertKind.SetValue(RelayVRFModulo{Sample: 4})
 	expectedEncoding := []byte{0, 4, 0, 0, 0}
 	encodedAssignmentCertKind, err := scale.Marshal(assignmentCertKind)
 	require.NoError(t, err)
@@ -91,7 +91,7 @@ func TestEncodeAssignmentCertKindModulo(t *testing.T) {
 
 func TestEncodeAssignmentCertKindDelay(t *testing.T) {
 	assignmentCertKind := NewAssignmentCertKindVDT()
-	assignmentCertKind.Set(RelayVRFDelay{CoreIndex: 5})
+	assignmentCertKind.SetValue(RelayVRFDelay{CoreIndex: 5})
 	expectedEncoding := []byte{1, 5, 0, 0, 0}
 	encodedAssignmentCertKind, err := scale.Marshal(assignmentCertKind)
 	require.NoError(t, err)
@@ -111,7 +111,7 @@ func TestEncodeApprovalDistributionMessageApprovals(t *testing.T) {
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 
-	approvalDistributionMessage.Set(Approvals{
+	approvalDistributionMessage.SetValue(Approvals{
 		IndirectSignedApprovalVote{
 			BlockHash:      hashA,
 			CandidateIndex: CandidateIndex(2),
@@ -139,7 +139,7 @@ func TestDecodeApprovalDistributionMessageAssignmentModulo(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedApprovalDistributionMessage := NewApprovalDistributionMessageVDT()
-	expectedApprovalDistributionMessage.Set(Assignments{
+	expectedApprovalDistributionMessage.SetValue(Assignments{
 		Assignment{
 			IndirectAssignmentCert: fakeAssignmentCert(hashA, parachaintypes.ValidatorIndex(2), false),
 			CandidateIndex:         4,
@@ -159,7 +159,7 @@ func TestDecodeApprovalDistributionMessageApprovals(t *testing.T) {
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 	expectedApprovalDistributionMessage := NewApprovalDistributionMessageVDT()
-	expectedApprovalDistributionMessage.Set(Approvals{
+	expectedApprovalDistributionMessage.SetValue(Approvals{
 		IndirectSignedApprovalVote{
 			BlockHash:      hashA,
 			CandidateIndex: CandidateIndex(2),
@@ -185,9 +185,9 @@ func fakeAssignmentCert(blockHash common.Hash, validator parachaintypes.Validato
 		55, 56, 57, 58, 59, 60, 61, 62, 63, 64}
 	assignmentCertKind := NewAssignmentCertKindVDT()
 	if useDelay {
-		assignmentCertKind.Set(RelayVRFDelay{CoreIndex: 1})
+		assignmentCertKind.SetValue(RelayVRFDelay{CoreIndex: 1})
 	} else {
-		assignmentCertKind.Set(RelayVRFModulo{Sample: 2})
+		assignmentCertKind.SetValue(RelayVRFModulo{Sample: 2})
 	}
 
 	return IndirectAssignmentCert{

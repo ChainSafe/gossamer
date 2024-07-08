@@ -21,8 +21,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/allocator"
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/klauspost/compress/zstd"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
@@ -31,35 +31,44 @@ import (
 // Name represents the name of the interpreter
 const Name = "wazero"
 
+type runtimeContextKeyType struct{}
+
 // This value is implementation specific. it is just to optimise the memory usage
 // If the instantiation fails, increase the value.
 const minMemoryPages uint32 = 2080
 
-type contextKey string
+var runtimeContextKey = runtimeContextKeyType{}
 
-const runtimeContextKey = contextKey("runtime.Context")
+var _ runtime.Instance = (*Instance)(nil)
 
-var _ runtime.Instance = &Instance{}
+type wazeroMeta struct {
+	config      wazero.RuntimeConfig
+	cache       wazero.CompilationCache
+	guestModule wazero.CompiledModule
+}
 
 // Instance backed by wazero.Runtime
 type Instance struct {
-	Runtime  wazero.Runtime
-	Module   api.Module
-	Context  *runtime.Context
-	codeHash common.Hash
+	Runtime      wazero.Runtime
+	Module       api.Module
+	Context      *runtime.Context
+	wasmByteCode []byte
+	codeHash     common.Hash
+	metadata     wazeroMeta
 	sync.Mutex
 }
 
 // Config is the configuration used to create a Wasmer runtime instance.
 type Config struct {
-	Storage     runtime.Storage
-	Keystore    *keystore.GlobalKeystore
-	LogLvl      log.Level
-	Role        common.NetworkRole
-	NodeStorage runtime.NodeStorage
-	Network     runtime.BasicNetwork
-	Transaction runtime.TransactionState
-	CodeHash    common.Hash
+	Storage        runtime.Storage
+	Keystore       *keystore.GlobalKeystore
+	LogLvl         log.Level
+	Role           common.NetworkRole
+	NodeStorage    runtime.NodeStorage
+	Network        runtime.BasicNetwork
+	Transaction    runtime.TransactionState
+	CodeHash       common.Hash
+	DefaultVersion *runtime.Version
 }
 
 func decompressWasm(code []byte) ([]byte, error) {
@@ -94,7 +103,7 @@ func NewRuntimeFromGenesis(cfg Config) (instance *Instance, err error) {
 }
 
 // NewInstanceFromTrie returns a new runtime instance with the code provided in the given trie
-func NewInstanceFromTrie(t *trie.Trie, cfg Config) (*Instance, error) {
+func NewInstanceFromTrie(t trie.Trie, cfg Config) (*Instance, error) {
 	code := t.Get(common.CodeKey)
 	if len(code) == 0 {
 		return nil, fmt.Errorf("cannot find :code in trie")
@@ -103,18 +112,22 @@ func NewInstanceFromTrie(t *trie.Trie, cfg Config) (*Instance, error) {
 	return NewInstance(code, cfg)
 }
 
-// NewInstance instantiates a runtime from raw wasm bytecode
-func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
-	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
+func newRuntime(ctx context.Context,
+	code []byte,
+	config wazero.RuntimeConfig,
+) (api.Module, wazero.Runtime, wazero.CompiledModule, error) {
+	rt := wazero.NewRuntimeWithConfig(ctx, config)
 
-	ctx := context.Background()
-	rt := wazero.NewRuntime(ctx)
+	const i32, i64 = api.ValueTypeI32, api.ValueTypeI64
 
-	_, err = rt.NewHostModuleBuilder("env").
+	hostCompiledModule, err := rt.NewHostModuleBuilder("env").
 		// values from newer kusama/polkadot runtimes
 		ExportMemory("memory", minMemoryPages).
 		NewFunctionBuilder().
-		WithFunc(ext_logging_log_version_1).
+		WithGoModuleFunction(
+			tripleArgFn(ext_logging_log_version_1),
+			[]api.ValueType{i32, i64, i64}, []api.ValueType{},
+		).
 		Export("ext_logging_log_version_1").
 		NewFunctionBuilder().
 		WithFunc(func() int32 {
@@ -162,275 +175,519 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		}).
 		Export("ext_sandbox_memory_teardown_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_ed25519_generate_version_1).
+		WithGoModuleFunction(
+			doubleArgWithReturnFn(ext_crypto_ed25519_generate_version_1),
+			[]api.ValueType{i32, i64}, []api.ValueType{i32},
+		).
 		Export("ext_crypto_ed25519_generate_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_ed25519_public_keys_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_crypto_ed25519_public_keys_version_1),
+			[]api.ValueType{i32}, []api.ValueType{i64},
+		).
 		Export("ext_crypto_ed25519_public_keys_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_ed25519_sign_version_1).
+		WithGoModuleFunction(
+			tripleArgWithReturnFn(ext_crypto_ed25519_sign_version_1),
+			[]api.ValueType{i32, i32, i64}, []api.ValueType{i64},
+		).
 		Export("ext_crypto_ed25519_sign_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_ed25519_verify_version_1).
+		WithGoModuleFunction(
+			tripleArgWithReturnFn(ext_crypto_ed25519_verify_version_1),
+			[]api.ValueType{i32, i64, i32}, []api.ValueType{i32},
+		).
 		Export("ext_crypto_ed25519_verify_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_ecdsa_generate_version_1).
-		Export("ext_crypto_ecdsa_generate_version_1").
-		NewFunctionBuilder().
-		WithFunc(ext_crypto_secp256k1_ecdsa_recover_version_1).
+		WithGoModuleFunction(
+			doubleArgWithReturnFn(ext_crypto_secp256k1_ecdsa_recover_version_1),
+			[]api.ValueType{i32, i32}, []api.ValueType{i64},
+		).
 		Export("ext_crypto_secp256k1_ecdsa_recover_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_secp256k1_ecdsa_recover_version_2).
+		WithGoModuleFunction(
+			doubleArgWithReturnFn(ext_crypto_secp256k1_ecdsa_recover_version_2),
+			[]api.ValueType{i32, i32}, []api.ValueType{i64},
+		).
 		Export("ext_crypto_secp256k1_ecdsa_recover_version_2").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_ecdsa_verify_version_2).
+		WithGoModuleFunction(
+			tripleArgWithReturnFn(ext_crypto_ecdsa_verify_version_2),
+			[]api.ValueType{i32, i64, i32}, []api.ValueType{i32},
+		).
 		Export("ext_crypto_ecdsa_verify_version_2").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_secp256k1_ecdsa_recover_compressed_version_1).
+		WithGoModuleFunction(
+			doubleArgWithReturnFn(ext_crypto_secp256k1_ecdsa_recover_compressed_version_1),
+			[]api.ValueType{i32, i32}, []api.ValueType{i64},
+		).
 		Export("ext_crypto_secp256k1_ecdsa_recover_compressed_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_secp256k1_ecdsa_recover_compressed_version_2).
+		WithGoModuleFunction(
+			doubleArgWithReturnFn(ext_crypto_secp256k1_ecdsa_recover_compressed_version_2),
+			[]api.ValueType{i32, i32}, []api.ValueType{i64},
+		).
 		Export("ext_crypto_secp256k1_ecdsa_recover_compressed_version_2").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_sr25519_generate_version_1).
+		WithGoModuleFunction(
+			doubleArgWithReturnFn(ext_crypto_sr25519_generate_version_1),
+			[]api.ValueType{i32, i64}, []api.ValueType{i32},
+		).
 		Export("ext_crypto_sr25519_generate_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_sr25519_public_keys_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_crypto_sr25519_public_keys_version_1),
+			[]api.ValueType{i32}, []api.ValueType{i64},
+		).
 		Export("ext_crypto_sr25519_public_keys_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_sr25519_sign_version_1).
+		WithGoModuleFunction(
+			tripleArgWithReturnFn(ext_crypto_sr25519_sign_version_1),
+			[]api.ValueType{i32, i32, i64}, []api.ValueType{i64},
+		).
 		Export("ext_crypto_sr25519_sign_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_sr25519_verify_version_1).
+		WithGoModuleFunction(
+			tripleArgWithReturnFn(ext_crypto_sr25519_verify_version_1),
+			[]api.ValueType{i32, i64, i32}, []api.ValueType{i32},
+		).
 		Export("ext_crypto_sr25519_verify_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_sr25519_verify_version_2).
+		WithGoModuleFunction(
+			tripleArgWithReturnFn(ext_crypto_sr25519_verify_version_2),
+			[]api.ValueType{i32, i64, i32}, []api.ValueType{i32},
+		).
 		Export("ext_crypto_sr25519_verify_version_2").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_start_batch_verify_version_1).
+		WithGoModuleFunction(
+			noArgFn(ext_crypto_start_batch_verify_version_1),
+			[]api.ValueType{}, []api.ValueType{},
+		).
 		Export("ext_crypto_start_batch_verify_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_crypto_finish_batch_verify_version_1).
+		WithGoModuleFunction(
+			noArgWithReturn(ext_crypto_finish_batch_verify_version_1),
+			[]api.ValueType{}, []api.ValueType{i32},
+		).
 		Export("ext_crypto_finish_batch_verify_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_trie_blake2_256_root_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_trie_blake2_256_root_version_1),
+			[]api.ValueType{i64}, []api.ValueType{i32},
+		).
 		Export("ext_trie_blake2_256_root_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_trie_blake2_256_root_version_2).
+		WithGoModuleFunction(
+			doubleArgWithReturnFn(ext_trie_blake2_256_root_version_2),
+			[]api.ValueType{i64, i32}, []api.ValueType{i32},
+		).
 		Export("ext_trie_blake2_256_root_version_2").
 		NewFunctionBuilder().
-		WithFunc(ext_trie_blake2_256_ordered_root_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_trie_blake2_256_ordered_root_version_1),
+			[]api.ValueType{i64}, []api.ValueType{i32},
+		).
 		Export("ext_trie_blake2_256_ordered_root_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_trie_blake2_256_ordered_root_version_2).
+		WithGoModuleFunction(
+			doubleArgWithReturnFn(ext_trie_blake2_256_ordered_root_version_2),
+			[]api.ValueType{i64, i32}, []api.ValueType{i32},
+		).
 		Export("ext_trie_blake2_256_ordered_root_version_2").
 		NewFunctionBuilder().
-		WithFunc(ext_trie_blake2_256_verify_proof_version_1).
+		WithGoModuleFunction(
+			quadArgWithReturnFn(ext_trie_blake2_256_verify_proof_version_1),
+			[]api.ValueType{i32, i64, i64, i64}, []api.ValueType{i32},
+		).
 		Export("ext_trie_blake2_256_verify_proof_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_trie_blake2_256_verify_proof_version_2).
+		WithGoModuleFunction(
+			quintArgWithReturnFn(ext_trie_blake2_256_verify_proof_version_2),
+			[]api.ValueType{i32, i64, i64, i64, i32}, []api.ValueType{i32},
+		).
 		Export("ext_trie_blake2_256_verify_proof_version_2").
 		NewFunctionBuilder().
-		WithFunc(ext_misc_print_hex_version_1).
+		WithGoModuleFunction(
+			singleArgFn(ext_misc_print_hex_version_1),
+			[]api.ValueType{i64}, []api.ValueType{},
+		).
 		Export("ext_misc_print_hex_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_misc_print_num_version_1).
+		WithGoModuleFunction(
+			singleArgFn(ext_misc_print_num_version_1),
+			[]api.ValueType{i64}, []api.ValueType{},
+		).
 		Export("ext_misc_print_num_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_misc_print_utf8_version_1).
+		WithGoModuleFunction(
+			singleArgFn(ext_misc_print_utf8_version_1),
+			[]api.ValueType{i64}, []api.ValueType{},
+		).
 		Export("ext_misc_print_utf8_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_misc_runtime_version_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_misc_runtime_version_version_1),
+			[]api.ValueType{i64}, []api.ValueType{i64},
+		).
 		Export("ext_misc_runtime_version_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_set_version_1).
+		WithGoModuleFunction(
+			tripleArgFn(ext_default_child_storage_set_version_1),
+			[]api.ValueType{i64, i64, i64}, []api.ValueType{},
+		).
 		Export("ext_default_child_storage_set_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_read_version_1).
+		WithGoModuleFunction(
+			quadArgWithReturnFn(ext_default_child_storage_read_version_1),
+			[]api.ValueType{i64, i64, i64, i32}, []api.ValueType{i64},
+		).
 		Export("ext_default_child_storage_read_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_clear_version_1).
+		WithGoModuleFunction(
+			doubleArgFn(ext_default_child_storage_clear_version_1),
+			[]api.ValueType{i64, i64}, []api.ValueType{},
+		).
 		Export("ext_default_child_storage_clear_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_clear_prefix_version_1).
+		WithGoModuleFunction(
+			doubleArgFn(ext_default_child_storage_clear_prefix_version_1),
+			[]api.ValueType{i64, i64}, []api.ValueType{},
+		).
 		Export("ext_default_child_storage_clear_prefix_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_clear_prefix_version_2).
+		WithGoModuleFunction(
+			tripleArgWithReturnFn(ext_default_child_storage_clear_prefix_version_2),
+			[]api.ValueType{i64, i64, i64}, []api.ValueType{i64},
+		).
 		Export("ext_default_child_storage_clear_prefix_version_2").
 		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_exists_version_1).
+		WithGoModuleFunction(
+			doubleArgWithReturnFn(ext_default_child_storage_exists_version_1),
+			[]api.ValueType{i64, i64}, []api.ValueType{i32},
+		).
 		Export("ext_default_child_storage_exists_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_get_version_1).
+		WithGoModuleFunction(
+			doubleArgWithReturnFn(ext_default_child_storage_get_version_1),
+			[]api.ValueType{i64, i64}, []api.ValueType{i64},
+		).
 		Export("ext_default_child_storage_get_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_next_key_version_1).
+		WithGoModuleFunction(
+			doubleArgWithReturnFn(ext_default_child_storage_next_key_version_1),
+			[]api.ValueType{i64, i64}, []api.ValueType{i64},
+		).
 		Export("ext_default_child_storage_next_key_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_root_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_default_child_storage_root_version_1),
+			[]api.ValueType{i64}, []api.ValueType{i64},
+		).
 		Export("ext_default_child_storage_root_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_root_version_2).
+		WithGoModuleFunction(
+			doubleArgWithReturnFn(ext_default_child_storage_root_version_2),
+			[]api.ValueType{i64, i32}, []api.ValueType{i64},
+		).
 		Export("ext_default_child_storage_root_version_2").
 		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_storage_kill_version_1).
+		WithGoModuleFunction(
+			singleArgFn(ext_default_child_storage_storage_kill_version_1),
+			[]api.ValueType{i64}, []api.ValueType{},
+		).
 		Export("ext_default_child_storage_storage_kill_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_storage_kill_version_2).
+		WithGoModuleFunction(
+			doubleArgWithReturnFn(ext_default_child_storage_storage_kill_version_2),
+			[]api.ValueType{i64, i64}, []api.ValueType{i32},
+		).
 		Export("ext_default_child_storage_storage_kill_version_2").
 		NewFunctionBuilder().
-		WithFunc(ext_default_child_storage_storage_kill_version_3).
+		WithGoModuleFunction(
+			doubleArgWithReturnFn(ext_default_child_storage_storage_kill_version_3),
+			[]api.ValueType{i64, i64}, []api.ValueType{i64},
+		).
 		Export("ext_default_child_storage_storage_kill_version_3").
 		NewFunctionBuilder().
-		WithFunc(ext_allocator_free_version_1).
+		WithGoModuleFunction(
+			singleArgFn(ext_allocator_free_version_1),
+			[]api.ValueType{i32}, []api.ValueType{},
+		).
 		Export("ext_allocator_free_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_allocator_malloc_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_allocator_malloc_version_1),
+			[]api.ValueType{i32}, []api.ValueType{i32},
+		).
 		Export("ext_allocator_malloc_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_hashing_blake2_128_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_hashing_blake2_128_version_1),
+			[]api.ValueType{i64}, []api.ValueType{i32},
+		).
 		Export("ext_hashing_blake2_128_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_hashing_blake2_256_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_hashing_blake2_256_version_1),
+			[]api.ValueType{i64}, []api.ValueType{i32},
+		).
 		Export("ext_hashing_blake2_256_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_hashing_keccak_256_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_hashing_keccak_256_version_1),
+			[]api.ValueType{i64}, []api.ValueType{i32},
+		).
 		Export("ext_hashing_keccak_256_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_hashing_sha2_256_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_hashing_sha2_256_version_1),
+			[]api.ValueType{i64}, []api.ValueType{i32},
+		).
 		Export("ext_hashing_sha2_256_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_hashing_twox_256_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_hashing_twox_256_version_1),
+			[]api.ValueType{i64}, []api.ValueType{i32},
+		).
 		Export("ext_hashing_twox_256_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_hashing_twox_128_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_hashing_twox_128_version_1),
+			[]api.ValueType{i64}, []api.ValueType{i32},
+		).
 		Export("ext_hashing_twox_128_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_hashing_twox_64_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_hashing_twox_64_version_1),
+			[]api.ValueType{i64}, []api.ValueType{i32},
+		).
 		Export("ext_hashing_twox_64_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_index_set_version_1).
+		WithGoModuleFunction(
+			doubleArgFn(ext_offchain_index_set_version_1),
+			[]api.ValueType{i64, i64}, []api.ValueType{},
+		).
 		Export("ext_offchain_index_set_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_index_clear_version_1).
+		WithGoModuleFunction(
+			singleArgFn(ext_offchain_index_clear_version_1),
+			[]api.ValueType{i64}, []api.ValueType{},
+		).
 		Export("ext_offchain_index_clear_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_local_storage_clear_version_1).
+		WithGoModuleFunction(
+			doubleArgFn(ext_offchain_local_storage_clear_version_1),
+			[]api.ValueType{i32, i64}, []api.ValueType{},
+		).
 		Export("ext_offchain_local_storage_clear_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_is_validator_version_1).
+		WithGoModuleFunction(
+			noArgWithReturn(ext_offchain_is_validator_version_1),
+			[]api.ValueType{}, []api.ValueType{i32},
+		).
 		Export("ext_offchain_is_validator_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_local_storage_compare_and_set_version_1).
+		WithGoModuleFunction(
+			quadArgWithReturnFn(ext_offchain_local_storage_compare_and_set_version_1),
+			[]api.ValueType{i32, i64, i64, i64}, []api.ValueType{i32},
+		).
 		Export("ext_offchain_local_storage_compare_and_set_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_local_storage_get_version_1).
+		WithGoModuleFunction(
+			doubleArgWithReturnFn(ext_offchain_local_storage_get_version_1),
+			[]api.ValueType{i32, i64}, []api.ValueType{i64},
+		).
 		Export("ext_offchain_local_storage_get_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_local_storage_set_version_1).
+		WithGoModuleFunction(
+			tripleArgFn(ext_offchain_local_storage_set_version_1),
+			[]api.ValueType{i32, i64, i64}, []api.ValueType{},
+		).
 		Export("ext_offchain_local_storage_set_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_network_state_version_1).
+		WithGoModuleFunction(
+			noArgWithReturn(ext_offchain_network_state_version_1),
+			[]api.ValueType{}, []api.ValueType{i64},
+		).
 		Export("ext_offchain_network_state_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_random_seed_version_1).
+		WithGoModuleFunction(
+			noArgWithReturn(ext_offchain_random_seed_version_1),
+			[]api.ValueType{}, []api.ValueType{i32},
+		).
 		Export("ext_offchain_random_seed_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_submit_transaction_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_offchain_submit_transaction_version_1),
+			[]api.ValueType{i64}, []api.ValueType{i64},
+		).
 		Export("ext_offchain_submit_transaction_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_timestamp_version_1).
+		WithGoModuleFunction(
+			noArgWithReturn(ext_offchain_timestamp_version_1),
+			[]api.ValueType{}, []api.ValueType{i64},
+		).
 		Export("ext_offchain_timestamp_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_sleep_until_version_1).
+		WithGoModuleFunction(
+			singleArgFn(ext_offchain_sleep_until_version_1),
+			[]api.ValueType{i64}, []api.ValueType{},
+		).
 		Export("ext_offchain_sleep_until_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_http_request_start_version_1).
+		WithGoModuleFunction(
+			tripleArgWithReturnFn(ext_offchain_http_request_start_version_1),
+			[]api.ValueType{i64, i64, i64}, []api.ValueType{i64},
+		).
 		Export("ext_offchain_http_request_start_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_offchain_http_request_add_header_version_1).
+		WithGoModuleFunction(
+			tripleArgWithReturnFn(ext_offchain_http_request_add_header_version_1),
+			[]api.ValueType{i32, i64, i64}, []api.ValueType{i64},
+		).
 		Export("ext_offchain_http_request_add_header_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_storage_append_version_1).
+		WithGoModuleFunction(
+			doubleArgFn(ext_storage_append_version_1),
+			[]api.ValueType{i64, i64}, []api.ValueType{},
+		).
 		Export("ext_storage_append_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_storage_changes_root_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_storage_changes_root_version_1),
+			[]api.ValueType{i64}, []api.ValueType{i64},
+		).
 		Export("ext_storage_changes_root_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_storage_clear_version_1).
+		WithGoModuleFunction(
+			singleArgFn(ext_storage_clear_version_1),
+			[]api.ValueType{i64}, []api.ValueType{},
+		).
 		Export("ext_storage_clear_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_storage_clear_prefix_version_1).
+		WithGoModuleFunction(
+			singleArgFn(ext_storage_clear_prefix_version_1),
+			[]api.ValueType{i64}, []api.ValueType{},
+		).
 		Export("ext_storage_clear_prefix_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_storage_clear_prefix_version_2).
+		WithGoModuleFunction(
+			doubleArgWithReturnFn(ext_storage_clear_prefix_version_2),
+			[]api.ValueType{i64, i64}, []api.ValueType{i64},
+		).
 		Export("ext_storage_clear_prefix_version_2").
 		NewFunctionBuilder().
-		WithFunc(ext_storage_exists_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_storage_exists_version_1),
+			[]api.ValueType{i64}, []api.ValueType{i32},
+		).
 		Export("ext_storage_exists_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_storage_get_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_storage_get_version_1),
+			[]api.ValueType{i64}, []api.ValueType{i64},
+		).
 		Export("ext_storage_get_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_storage_next_key_version_1).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_storage_next_key_version_1),
+			[]api.ValueType{i64}, []api.ValueType{i64},
+		).
 		Export("ext_storage_next_key_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_storage_read_version_1).
+		WithGoModuleFunction(
+			tripleArgWithReturnFn(ext_storage_read_version_1),
+			[]api.ValueType{i64, i64, i32}, []api.ValueType{i64},
+		).
 		Export("ext_storage_read_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_storage_root_version_1).
+		WithGoModuleFunction(
+			noArgWithReturn(ext_storage_root_version_1),
+			[]api.ValueType{}, []api.ValueType{i64},
+		).
 		Export("ext_storage_root_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_storage_root_version_2).
+		WithGoModuleFunction(
+			singleArgWithReturnFn(ext_storage_root_version_2),
+			[]api.ValueType{i32}, []api.ValueType{i64},
+		).
 		Export("ext_storage_root_version_2").
 		NewFunctionBuilder().
-		WithFunc(ext_storage_set_version_1).
+		WithGoModuleFunction(
+			doubleArgFn(ext_storage_set_version_1),
+			[]api.ValueType{i64, i64}, []api.ValueType{},
+		).
 		Export("ext_storage_set_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_storage_start_transaction_version_1).
+		WithGoModuleFunction(
+			noArgFn(ext_storage_start_transaction_version_1),
+			[]api.ValueType{}, []api.ValueType{},
+		).
 		Export("ext_storage_start_transaction_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_storage_rollback_transaction_version_1).
+		WithGoModuleFunction(
+			noArgFn(ext_storage_rollback_transaction_version_1),
+			[]api.ValueType{}, []api.ValueType{},
+		).
 		Export("ext_storage_rollback_transaction_version_1").
 		NewFunctionBuilder().
-		WithFunc(ext_storage_commit_transaction_version_1).
+		WithGoModuleFunction(
+			noArgFn(ext_storage_commit_transaction_version_1),
+			[]api.ValueType{}, []api.ValueType{},
+		).
 		Export("ext_storage_commit_transaction_version_1").
-		Instantiate(ctx)
+		NewFunctionBuilder().
+		WithGoModuleFunction(
+			doubleArgWithReturnFn(ext_crypto_ecdsa_generate_version_1),
+			[]api.ValueType{i32, i64}, []api.ValueType{i32},
+		).
+		Export("ext_crypto_ecdsa_generate_version_1").
+		Compile(ctx)
 
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
+	}
+
+	_, err = rt.InstantiateModule(ctx, hostCompiledModule, wazero.NewModuleConfig())
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
 	code, err = decompressWasm(code)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
+	guestCompiledModule, err := rt.CompileModule(ctx, code)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	mod, err := rt.Instantiate(ctx, code)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
-	global := mod.ExportedGlobal("__heap_base")
-	if global == nil {
-		return nil, fmt.Errorf("wazero error: nil global for __heap_base")
+	return mod, rt, guestCompiledModule, nil
+}
+
+// NewInstance instantiates a runtime from raw wasm bytecode
+func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
+	logger.Debug("instantiating a runtime!")
+	logger.Patch(log.SetLevel(cfg.LogLvl), log.SetCallerFunc(true))
+
+	// Prepare a cache directory.
+	ctx := context.Background()
+	cache := wazero.NewCompilationCache()
+	config := wazero.NewRuntimeConfig().WithCompilationCache(cache)
+	mod, rt, guestCompiledModule, err := newRuntime(ctx, code, config)
+	if err != nil {
+		return nil, fmt.Errorf("creating runtime instance: %w", err)
 	}
 
-	hb := api.DecodeU32(global.Get())
-	// hb = runtime.DefaultHeapBase
-
-	mem := mod.Memory()
-	if mem == nil {
-		return nil, fmt.Errorf("wazero error: nil memory for module")
-	}
-
-	allocator := allocator.NewFreeingBumpHeapAllocator(hb)
-
-	return &Instance{
-		Runtime: rt,
+	instance = &Instance{
+		wasmByteCode: code,
+		Runtime:      rt,
 		Context: &runtime.Context{
-			Storage:         cfg.Storage,
-			Allocator:       allocator,
 			Keystore:        cfg.Keystore,
 			Validator:       cfg.Role == common.AuthorityRole,
 			NodeStorage:     cfg.NodeStorage,
@@ -441,38 +698,80 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 		},
 		Module:   mod,
 		codeHash: cfg.CodeHash,
-	}, nil
+		metadata: wazeroMeta{
+			config:      config,
+			cache:       cache,
+			guestModule: guestCompiledModule,
+		},
+	}
+
+	if cfg.DefaultVersion == nil {
+		err = instance.version()
+		if err != nil {
+			logger.Tracef("error while getting runtime version: %w", err)
+		}
+	} else {
+		instance.Context.Version = cfg.DefaultVersion
+	}
+
+	if cfg.Storage != nil {
+		instance.SetContextStorage(cfg.Storage)
+	}
+
+	return instance, nil
 }
 
 var ErrExportFunctionNotFound = errors.New("export function not found")
 
-func (i *Instance) Exec(function string, data []byte) (result []byte, err error) {
+func (i *Instance) Exec(function string, data []byte) ([]byte, error) {
 	i.Lock()
 	defer i.Unlock()
 
+	mod, err := i.Runtime.InstantiateModule(context.Background(), i.metadata.guestModule, wazero.NewModuleConfig())
+	if mod == nil {
+		return nil, fmt.Errorf("instantiate guest module: nil")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("instantiate guest module: %w", err)
+	}
+
+	defer func() {
+		err = mod.Close(context.Background())
+		if err != nil {
+			logger.Criticalf("guest module not closed: %w", err)
+		}
+	}()
+
+	encodedHeapBase := mod.ExportedGlobal("__heap_base")
+	if encodedHeapBase == nil {
+		return nil, fmt.Errorf("wazero error: nil global for __heap_base")
+	}
+
+	heapBase := api.DecodeU32(encodedHeapBase.Get())
+	i.Context.Allocator = allocator.NewFreeingBumpHeapAllocator(heapBase)
+
+	memory := mod.Memory()
+	if memory == nil {
+		panic("nil memory")
+	}
+
 	dataLength := uint32(len(data))
-	inputPtr, err := i.Context.Allocator.Allocate(i.Module.Memory(), dataLength)
+	inputPtr, err := i.Context.Allocator.Allocate(memory, dataLength)
 	if err != nil {
 		return nil, fmt.Errorf("allocating input memory: %w", err)
 	}
 
-	// Store the data into memory
-	mem := i.Module.Memory()
-	if mem == nil {
-		panic("nil memory")
-	}
-	ok := mem.Write(inputPtr, data)
+	ok := memory.Write(inputPtr, data)
 	if !ok {
 		panic("write overflow")
 	}
 
-	runtimeFunc := i.Module.ExportedFunction(function)
+	runtimeFunc := mod.ExportedFunction(function)
 	if runtimeFunc == nil {
 		return nil, fmt.Errorf("%w: %s", ErrExportFunctionNotFound, function)
 	}
 
 	ctx := context.WithValue(context.Background(), runtimeContextKey, i.Context)
-
 	values, err := runtimeFunc.Call(ctx, api.EncodeU32(inputPtr), api.EncodeU32(dataLength))
 	if err != nil {
 		return nil, fmt.Errorf("running runtime function: %w", err)
@@ -481,12 +780,12 @@ func (i *Instance) Exec(function string, data []byte) (result []byte, err error)
 		return nil, fmt.Errorf("no returned values from runtime function: %s", function)
 	}
 	wasmValue := values[0]
-
 	outputPtr, outputLength := splitPointerSize(wasmValue)
-	result, ok = mem.Read(outputPtr, outputLength)
+	result, ok := memory.Read(outputPtr, outputLength)
 	if !ok {
-		panic("write overflow")
+		panic("read overflow")
 	}
+
 	return result, nil
 }
 
@@ -520,7 +819,6 @@ func (in *Instance) version() error { //skipcq: RVV-B0001
 	}
 
 	in.Context.Version = &version
-
 	return nil
 }
 
@@ -675,7 +973,7 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	b.Header.Digest = types.NewDigest()
 
 	// remove seal digest only
-	for _, d := range block.Header.Digest.Types {
+	for _, d := range block.Header.Digest {
 		digestValue, err := d.Value()
 		if err != nil {
 			return nil, fmt.Errorf("getting digest type value: %w", err)
@@ -914,22 +1212,19 @@ func (in *Instance) ParachainHostValidatorGroups() (*parachaintypes.ValidatorGro
 }
 
 // ParachainHostAvailabilityCores returns the availability cores for the current state.
-func (in *Instance) ParachainHostAvailabilityCores() (*scale.VaryingDataTypeSlice, error) {
+func (in *Instance) ParachainHostAvailabilityCores() ([]parachaintypes.CoreState, error) {
 	encodedAvailabilityCores, err := in.Exec(runtime.ParachainHostAvailabilityCores, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	availabilityCores, err := parachaintypes.NewAvailabilityCores()
-	if err != nil {
-		return nil, fmt.Errorf("new availability cores: %w", err)
-	}
+	availabilityCores := parachaintypes.NewAvailabilityCores()
 	err = scale.Unmarshal(encodedAvailabilityCores, &availabilityCores)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling: %w", err)
 	}
 
-	return &availabilityCores, nil
+	return availabilityCores, nil
 }
 
 // ParachainHostCheckValidationOutputs checks the validation outputs of a candidate.
@@ -1006,22 +1301,19 @@ func (in *Instance) ParachainHostCandidatePendingAvailability(
 }
 
 // ParachainHostCandidateEvents returns an array of candidate events that occurred within the latest state.
-func (in *Instance) ParachainHostCandidateEvents() (*scale.VaryingDataTypeSlice, error) {
+func (in *Instance) ParachainHostCandidateEvents() ([]parachaintypes.CandidateEvent, error) {
 	encodedCandidateEvents, err := in.Exec(runtime.ParachainHostCandidateEvents, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	candidateEvents, err := parachaintypes.NewCandidateEvents()
-	if err != nil {
-		return nil, fmt.Errorf("create new candidate events: %w", err)
-	}
+	candidateEvents := parachaintypes.NewCandidateEvents()
 	err = scale.Unmarshal(encodedCandidateEvents, &candidateEvents)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling: %w", err)
 	}
 
-	return &candidateEvents, nil
+	return candidateEvents, nil
 }
 
 // ParachainHostSessionInfo returns the session info of the given session, if available.
@@ -1122,7 +1414,7 @@ func (in *Instance) ParachainHostSessionExecutorParams(index parachaintypes.Sess
 		return nil, fmt.Errorf("unmarshalling session executor params: %w", err)
 	}
 
-	params := parachaintypes.ExecutorParams(executorParams)
+	params := executorParams
 	return &params, nil
 }
 
@@ -1165,6 +1457,17 @@ func (in *Instance) Validator() bool {
 func (in *Instance) SetContextStorage(s runtime.Storage) {
 	in.Lock()
 	defer in.Unlock()
+
+	if in.Context.Version == nil {
+		panic("expected runtime version got nil")
+	}
+
+	runtimeStateVersion, err := trie.ParseVersion(in.Context.Version.StateVersion)
+	if err != nil {
+		panic(err)
+	}
+
+	s.SetVersion(runtimeStateVersion)
 	in.Context.Storage = s
 }
 
@@ -1176,5 +1479,10 @@ func (in *Instance) Stop() {
 	err := in.Runtime.Close(context.Background())
 	if err != nil {
 		log.Errorf("runtime failed to close: %v", err)
+	}
+
+	err = in.metadata.cache.Close(context.Background())
+	if err != nil {
+		log.Errorf("closing the wazero compilation cache: %v", err)
 	}
 }

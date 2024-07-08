@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/tidwall/btree"
 )
 
@@ -325,10 +324,10 @@ func constructPerRelayParentState(
 
 	groups := make(map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex)
 
-	numOfCores := uint(len(cores.Types))
+	numOfCores := uint(len(cores))
 
 	for idx := uint(0); idx < numOfCores; idx++ {
-		coreValue, err := cores.Types[idx].Value()
+		coreValue, err := cores[idx].Value()
 		if err != nil {
 			return nil, fmt.Errorf("getting core value at index %d: %w", idx, err)
 		}
@@ -360,7 +359,7 @@ func constructPerRelayParentState(
 		}
 	}
 
-	tableContext := TableContext{
+	tableContext := tableContext{
 		validator:  localValidator,
 		groups:     groups,
 		validators: validators,
@@ -402,14 +401,14 @@ func fetchParachainHostData(rt runtime.Instance) (
 	parachaintypes.SessionIndex,
 	[]parachaintypes.ValidatorID,
 	parachaintypes.ValidatorGroups,
-	scale.VaryingDataTypeSlice,
+	[]parachaintypes.CoreState,
 	error,
 ) {
 	var (
 		sessionIndex    parachaintypes.SessionIndex
 		validators      []parachaintypes.ValidatorID
 		validatorGroups *parachaintypes.ValidatorGroups
-		cores           *scale.VaryingDataTypeSlice
+		cores           []parachaintypes.CoreState
 	)
 
 	// Error channel to receive errors from goroutines.
@@ -472,9 +471,9 @@ func fetchParachainHostData(rt runtime.Instance) (
 			joinedErrors = errors.Join(joinedErrors, err)
 		}
 
-		return parachaintypes.SessionIndex(0), nil, parachaintypes.ValidatorGroups{}, scale.VaryingDataTypeSlice{},
+		return parachaintypes.SessionIndex(0), nil, parachaintypes.ValidatorGroups{}, []parachaintypes.CoreState(nil),
 			joinedErrors
 	}
 
-	return sessionIndex, validators, *validatorGroups, *cores, nil
+	return sessionIndex, validators, *validatorGroups, cores, nil
 }

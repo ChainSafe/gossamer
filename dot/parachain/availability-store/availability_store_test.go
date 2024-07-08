@@ -22,8 +22,9 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/erasure"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -76,7 +77,7 @@ func setupTestDB(t *testing.T) database.Database {
 	as := NewAvailabilityStore(inmemoryDB)
 	batch := newAvailabilityStoreBatch(as)
 	metaState := newStateVDT()
-	err = metaState.Set(Unavailable{})
+	err = metaState.SetValue(Unavailable{})
 	require.NoError(t, err)
 	meta := CandidateMeta{
 		State:         metaState,
@@ -155,7 +156,7 @@ func TestAvailabilityStore_WriteLoadDeleteChuckData(t *testing.T) {
 	as := NewAvailabilityStore(inmemoryDB)
 	batch := newAvailabilityStoreBatch(as)
 	metaState := newStateVDT()
-	err := metaState.Set(Unavailable{})
+	err := metaState.SetValue(Unavailable{})
 	require.NoError(t, err)
 	meta := CandidateMeta{
 		State:         metaState,
@@ -203,7 +204,7 @@ func TestAvailabilityStore_WriteLoadDeleteMeta(t *testing.T) {
 	as := NewAvailabilityStore(inmemoryDB)
 	batch := newAvailabilityStoreBatch(as)
 	metaState := newStateVDT()
-	err := metaState.Set(Unavailable{BETimestamp(1711026139)})
+	err := metaState.SetValue(Unavailable{BETimestamp(1711026139)})
 	require.NoError(t, err)
 	meta := &CandidateMeta{
 		State:         metaState,
@@ -986,8 +987,10 @@ func (h *testHarness) processMessages() {
 	for {
 		select {
 		case msg := <-h.overseer.SubsystemsToOverseer:
-			h.processes[processIndex](msg)
-			processIndex++
+			if h.processes != nil && processIndex < len(h.processes) {
+				h.processes[processIndex](msg)
+				processIndex++
+			}
 		case <-h.overseer.ctx.Done():
 			if err := h.overseer.ctx.Err(); err != nil {
 				logger.Errorf("ctx error: %v\n", err)
@@ -1015,19 +1018,12 @@ func (h *testHarness) printDB(caption string) {
 }
 
 func (h *testHarness) importLeaf(t *testing.T, parentHash common.Hash,
-	blockNumber uint32, candidateEvents scale.VaryingDataTypeSlice) common.Hash {
+	blockNumber uint32, candidateEvents []parachaintypes.CandidateEvent) common.Hash {
 	header := types.Header{
 		ParentHash: parentHash,
 		Number:     uint(blockNumber),
 	}
 	activatedLeaf := header.Hash()
-
-	h.overseer.broadcast(parachaintypes.ActiveLeavesUpdateSignal{
-		Activated: &parachaintypes.ActivatedLeaf{
-			Hash:   activatedLeaf,
-			Number: uint32(1),
-		},
-	})
 
 	h.processes = append(h.processes, func(msg any) {
 		msg2, _ := msg.(chainapi.ChainAPIMessage[chainapi.BlockHeader])
@@ -1049,9 +1045,16 @@ func (h *testHarness) importLeaf(t *testing.T, parentHash common.Hash,
 		ctrl := gomock.NewController(h.t)
 		inst := NewMockRuntimeInstance(ctrl)
 
-		inst.EXPECT().ParachainHostCandidateEvents().Return(&candidateEvents, nil)
+		inst.EXPECT().ParachainHostCandidateEvents().Return(candidateEvents, nil)
 
 		msg2.Resp <- inst
+	})
+
+	h.overseer.broadcast(parachaintypes.ActiveLeavesUpdateSignal{
+		Activated: &parachaintypes.ActivatedLeaf{
+			Hash:   activatedLeaf,
+			Number: uint32(1),
+		},
 	})
 
 	return activatedLeaf
@@ -1098,7 +1101,7 @@ func buildAvailableDataBranchesRoot(t *testing.T, numValidators uint32, availabl
 	chunksExpected, err := erasure.ObtainChunks(uint(numValidators), availableDataEnc)
 	require.NoError(t, err)
 
-	tr := trie.NewEmptyTrie()
+	tr := inmemory.NewEmptyTrie()
 
 	for i, chunk := range chunksExpected {
 		result := make([]byte, 4)
@@ -1351,7 +1354,7 @@ func TestStorePOVandQueryChunkWorks(t *testing.T) {
 	chunksExpected, err := erasure.ObtainChunks(uint(nValidators), availableDataEnc)
 	require.NoError(t, err)
 
-	tr := trie.NewEmptyTrie()
+	tr := inmemory.NewEmptyTrie()
 
 	for i, chunk := range chunksExpected {
 		result := make([]byte, 4)
@@ -1507,7 +1510,7 @@ func TestStoreBlockWorks(t *testing.T) {
 	chunksExpected, err := erasure.ObtainChunks(uint(nValidators), availableDataEnc)
 	require.NoError(t, err)
 
-	tr := trie.NewEmptyTrie()
+	tr := inmemory.NewEmptyTrie()
 
 	for i, chunk := range chunksExpected {
 		result := make([]byte, 4)
@@ -1630,7 +1633,7 @@ func TestStoredButNotIncludedDataIsPruned(t *testing.T) {
 	chunksExpected, err := erasure.ObtainChunks(uint(nValidators), availableDataEnc)
 	require.NoError(t, err)
 
-	tr := trie.NewEmptyTrie()
+	tr := inmemory.NewEmptyTrie()
 
 	for i, chunk := range chunksExpected {
 		result := make([]byte, 4)
@@ -1711,7 +1714,7 @@ func TestStoredDataKeptUntilFinalized(t *testing.T) {
 	chunksExpected, err := erasure.ObtainChunks(uint(nValidators), availableDataEnc)
 	require.NoError(t, err)
 
-	tr := trie.NewEmptyTrie()
+	tr := inmemory.NewEmptyTrie()
 
 	for i, chunk := range chunksExpected {
 		result := make([]byte, 4)
@@ -1759,9 +1762,11 @@ func TestStoredDataKeptUntilFinalized(t *testing.T) {
 	harness.printDB("before import leaf")
 
 	// trigger import leaf
-	candidateEvents, err := parachaintypes.NewCandidateEvents()
-	require.NoError(harness.t, err)
-	err = candidateEvents.Add(parachaintypes.CandidateIncluded{CandidateReceipt: testCandidateReceipt})
+	candidateEvents := parachaintypes.NewCandidateEvents()
+	event := parachaintypes.NewCandidateEvent()
+	err = event.SetValue(parachaintypes.CandidateIncluded{CandidateReceipt: testCandidateReceipt})
+	require.NoError(t, err)
+	candidateEvents = append(candidateEvents, event)
 	require.NoError(harness.t, err)
 
 	aLeaf := harness.importLeaf(t, parent, blockNumber, candidateEvents)
@@ -1841,9 +1846,11 @@ func TestForkfullnessWorks(t *testing.T) {
 		ExpectedErasureRoot: availableData1ErasureRoot,
 		Sender:              msgSenderChan,
 	}
-	candidate1Events, err := parachaintypes.NewCandidateEvents()
-	require.NoError(harness.t, err)
-	candidate1Events.Add(parachaintypes.CandidateIncluded{CandidateReceipt: candidate1})
+	candidate1Events := parachaintypes.NewCandidateEvents()
+	event := parachaintypes.NewCandidateEvent()
+	err = event.SetValue(parachaintypes.CandidateIncluded{CandidateReceipt: candidate1})
+	require.NoError(t, err)
+	candidate1Events = append(candidate1Events, event)
 
 	blockNumber2 := uint32(5)
 	parent2 := common.Hash{0x04, 0x04, 0x04, 0x04}
@@ -1870,9 +1877,11 @@ func TestForkfullnessWorks(t *testing.T) {
 		ExpectedErasureRoot: availableData2ErasureRoot,
 		Sender:              msgSenderChan,
 	}
-	candidate2Events, err := parachaintypes.NewCandidateEvents()
-	require.NoError(harness.t, err)
-	candidate2Events.Add(parachaintypes.CandidateIncluded{CandidateReceipt: candidate2})
+	candidate2Events := parachaintypes.NewCandidateEvents()
+	event = parachaintypes.NewCandidateEvent()
+	err = event.SetValue(parachaintypes.CandidateIncluded{CandidateReceipt: candidate2})
+	require.NoError(t, err)
+	candidate2Events = append(candidate2Events, event)
 
 	err = harness.overseer.Start()
 	require.NoError(t, err)

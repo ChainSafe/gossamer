@@ -37,7 +37,7 @@ func TestCollationFetchingResponse(t *testing.T) {
 	tempSignature := common.MustHexToBytes(testDataCollationProtocol["collatorSignature"])
 	copy(collatorSignature[:], tempSignature)
 
-	collation := CollationVDT{
+	collation := parachaintypes.Collation{
 		CandidateReceipt: parachaintypes.CandidateReceipt{
 			Descriptor: parachaintypes.CandidateDescriptor{
 				ParaID:                      uint32(1),
@@ -108,7 +108,7 @@ func TestCollationFetchingResponse(t *testing.T) {
 		t.Parallel()
 
 		responseVDT := NewCollationFetchingResponse()
-		err := responseVDT.Set(collation)
+		err := responseVDT.SetValue(collation)
 		require.NoError(t, err)
 
 		actualEncode, err := responseVDT.Encode()

@@ -32,7 +32,7 @@ type Syncer interface {
 	IsSynced() bool
 
 	// CreateBlockResponse is called upon receipt of a BlockRequestMessage to create the response
-	CreateBlockResponse(*BlockRequestMessage) (*BlockResponseMessage, error)
+	CreateBlockResponse(peer.ID, *BlockRequestMessage) (*BlockResponseMessage, error)
 }
 
 // TransactionHandler is the interface used by the transactions sub-protocol

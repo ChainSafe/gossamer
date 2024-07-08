@@ -115,8 +115,7 @@ func Test_AvailabilityCores(t *testing.T) {
 	resultBytes, err := common.HexToBytes(result)
 	require.NoError(t, err)
 
-	availabilityCores, err := NewAvailabilityCores()
-	require.NoError(t, err)
+	availabilityCores := NewAvailabilityCores()
 	err = scale.Unmarshal(resultBytes, &availabilityCores)
 	require.NoError(t, err)
 
@@ -346,12 +345,11 @@ func TestCandidateEvent(t *testing.T) {
 	resultBytes, err := common.HexToBytes(result)
 	require.NoError(t, err)
 
-	candidateEvents, err := NewCandidateEvents()
-	require.NoError(t, err)
+	candidateEvents := NewCandidateEvents()
 	err = scale.Unmarshal(resultBytes, &candidateEvents)
 	require.NoError(t, err)
 
-	require.Greater(t, len(candidateEvents.Types), 0)
+	require.Greater(t, len(candidateEvents), 0)
 
 	encoded, err := scale.Marshal(candidateEvents)
 	require.NoError(t, err)
@@ -393,10 +391,9 @@ func TestPersistedValidationData(t *testing.T) {
 }
 
 func TestOccupiedCoreAssumption(t *testing.T) {
-
 	for _, tc := range []struct {
 		name string
-		in   scale.VaryingDataTypeValue
+		in   any
 		out  byte
 	}{
 		{
@@ -417,7 +414,7 @@ func TestOccupiedCoreAssumption(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			vdt := NewOccupiedCoreAssumption()
-			err := vdt.Set(tc.in)
+			err := vdt.SetValue(tc.in)
 			require.NoError(t, err)
 			res, err := scale.Marshal(vdt)
 			require.NoError(t, err)
@@ -426,7 +423,6 @@ func TestOccupiedCoreAssumption(t *testing.T) {
 			vdt2 := NewOccupiedCoreAssumption()
 			err = scale.Unmarshal([]byte{tc.out}, &vdt2)
 			require.NoError(t, err)
-			require.Equal(t, tc.in.Index(), uint(tc.out))
 		})
 	}
 }

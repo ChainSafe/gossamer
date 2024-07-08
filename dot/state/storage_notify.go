@@ -45,7 +45,7 @@ type Observer interface {
 }
 
 // RegisterStorageObserver to add abserver to notification list
-func (s *StorageState) RegisterStorageObserver(o Observer) {
+func (s *InmemoryStorageState) RegisterStorageObserver(o Observer) {
 	s.observerListMutex.Lock()
 	defer s.observerListMutex.Unlock()
 	s.observerList = append(s.observerList, o)
@@ -65,13 +65,13 @@ func (s *StorageState) RegisterStorageObserver(o Observer) {
 }
 
 // UnregisterStorageObserver removes observer from notification list
-func (s *StorageState) UnregisterStorageObserver(o Observer) {
+func (s *InmemoryStorageState) UnregisterStorageObserver(o Observer) {
 	s.observerListMutex.Lock()
 	defer s.observerListMutex.Unlock()
 	s.observerList = s.removeFromSlice(s.observerList, o)
 }
 
-func (s *StorageState) notifyAll(root common.Hash) {
+func (s *InmemoryStorageState) notifyAll(root common.Hash) {
 	s.observerListMutex.RLock()
 	defer s.observerListMutex.RUnlock()
 	for _, observer := range s.observerList {
@@ -82,7 +82,7 @@ func (s *StorageState) notifyAll(root common.Hash) {
 	}
 }
 
-func (s *StorageState) notifyObserver(root common.Hash, o Observer) error {
+func (s *InmemoryStorageState) notifyObserver(root common.Hash, o Observer) error {
 	t, err := s.TrieState(&root)
 	if err != nil {
 		return err
@@ -111,7 +111,11 @@ func (s *StorageState) notifyObserver(root common.Hash, o Observer) error {
 	} else {
 		// filter result to include only interested keys
 		for k, cachedValue := range o.GetFilter() {
-			value := t.Get(common.MustHexToBytes(k))
+			bytes, err := common.HexToBytes(k)
+			if err != nil {
+				return fmt.Errorf("failed to convert hex to bytes: %s", err)
+			}
+			value := t.Get(bytes)
 			if !reflect.DeepEqual(cachedValue, value) {
 				kv := &KeyValue{
 					Key:   common.MustHexToBytes(k),
@@ -133,7 +137,7 @@ func (s *StorageState) notifyObserver(root common.Hash, o Observer) error {
 	return nil
 }
 
-func (s *StorageState) removeFromSlice(observerList []Observer, observerToRemove Observer) []Observer {
+func (s *InmemoryStorageState) removeFromSlice(observerList []Observer, observerToRemove Observer) []Observer {
 	observerListLength := len(observerList)
 	for i, observer := range observerList {
 		if observerToRemove.GetID() == observer.GetID() {

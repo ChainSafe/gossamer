@@ -12,8 +12,9 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"go.uber.org/mock/gomock"
 
 	"github.com/stretchr/testify/require"
@@ -40,7 +41,7 @@ func newTestBlockState(t *testing.T, tries *Tries) *BlockState {
 
 	// loads in-memory tries with genesis state root, should be deleted
 	// after another block is finalised
-	tr := trie.NewEmptyTrie()
+	tr := inmemory_trie.NewEmptyTrie()
 	err = tr.Load(bs.db, header.StateRoot)
 	require.NoError(t, err)
 	bs.tries.softSet(header.StateRoot, tr)
@@ -54,7 +55,7 @@ func TestSetAndGetHeader(t *testing.T) {
 	header := &types.Header{
 		Number:    0,
 		StateRoot: trie.EmptyHash,
-		Digest:    types.NewDigest(),
+		Digest:    nil,
 	}
 
 	err := bs.SetHeader(header)
@@ -71,7 +72,7 @@ func TestHasHeader(t *testing.T) {
 	header := &types.Header{
 		Number:    0,
 		StateRoot: trie.EmptyHash,
-		Digest:    types.NewDigest(),
+		Digest:    nil,
 	}
 
 	err := bs.SetHeader(header)
@@ -172,7 +173,7 @@ func TestGetSlotForBlock(t *testing.T) {
 	expectedSlot := uint64(77)
 
 	babeHeader := types.NewBabeDigest()
-	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, expectedSlot, [32]byte{}, [64]byte{}))
+	err := babeHeader.SetValue(*types.NewBabePrimaryPreDigest(0, expectedSlot, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 	data, err := scale.Marshal(babeHeader)
 	require.NoError(t, err)
@@ -207,7 +208,7 @@ func TestGetHashesByNumber(t *testing.T) {
 	slot := uint64(77)
 
 	babeHeader := types.NewBabeDigest()
-	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, slot, [32]byte{}, [64]byte{}))
+	err := babeHeader.SetValue(*types.NewBabePrimaryPreDigest(0, slot, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 	data, err := scale.Marshal(babeHeader)
 	require.NoError(t, err)
@@ -229,7 +230,7 @@ func TestGetHashesByNumber(t *testing.T) {
 	require.NoError(t, err)
 
 	babeHeader2 := types.NewBabeDigest()
-	err = babeHeader2.Set(*types.NewBabePrimaryPreDigest(1, slot+1, [32]byte{}, [64]byte{}))
+	err = babeHeader2.SetValue(*types.NewBabePrimaryPreDigest(1, slot+1, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 	data2, err := scale.Marshal(babeHeader2)
 	require.NoError(t, err)
@@ -261,7 +262,7 @@ func TestGetAllDescendants(t *testing.T) {
 	slot := uint64(77)
 
 	babeHeader := types.NewBabeDigest()
-	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, slot, [32]byte{}, [64]byte{}))
+	err := babeHeader.SetValue(*types.NewBabePrimaryPreDigest(0, slot, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 	data, err := scale.Marshal(babeHeader)
 	require.NoError(t, err)
@@ -283,7 +284,7 @@ func TestGetAllDescendants(t *testing.T) {
 	require.NoError(t, err)
 
 	babeHeader2 := types.NewBabeDigest()
-	err = babeHeader2.Set(*types.NewBabePrimaryPreDigest(1, slot+1, [32]byte{}, [64]byte{}))
+	err = babeHeader2.SetValue(*types.NewBabePrimaryPreDigest(1, slot+1, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 	data2, err := scale.Marshal(babeHeader2)
 	require.NoError(t, err)
@@ -326,7 +327,7 @@ func TestGetBlockHashesBySlot(t *testing.T) {
 	slot := uint64(77)
 
 	babeHeader := types.NewBabeDigest()
-	err := babeHeader.Set(*types.NewBabePrimaryPreDigest(0, slot, [32]byte{}, [64]byte{}))
+	err := babeHeader.SetValue(*types.NewBabePrimaryPreDigest(0, slot, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 	data, err := scale.Marshal(babeHeader)
 	require.NoError(t, err)
@@ -348,7 +349,7 @@ func TestGetBlockHashesBySlot(t *testing.T) {
 	require.NoError(t, err)
 
 	babeHeader2 := types.NewBabeDigest()
-	err = babeHeader2.Set(*types.NewBabePrimaryPreDigest(1, slot, [32]byte{}, [64]byte{}))
+	err = babeHeader2.SetValue(*types.NewBabePrimaryPreDigest(1, slot, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
 	data2, err := scale.Marshal(babeHeader2)
 	require.NoError(t, err)

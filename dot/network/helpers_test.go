@@ -72,7 +72,7 @@ func (s *testStreamHandler) writeToStream(stream libp2pnetwork.Stream, msg Messa
 	}
 
 	msgLen := uint64(len(encMsg))
-	lenBytes := uint64ToLEB128(msgLen)
+	lenBytes := Uint64ToLEB128(msgLen)
 	encMsg = append(lenBytes, encMsg...)
 
 	_, err = stream.Write(encMsg)
@@ -252,7 +252,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 			Return(nil).AnyTimes()
 
 		syncer.EXPECT().
-			CreateBlockResponse(gomock.Any()).
+			CreateBlockResponse(gomock.Any(), gomock.Any()).
 			Return(newTestBlockResponseMessage(t), nil).AnyTimes()
 
 		syncer.EXPECT().IsSynced().Return(false).AnyTimes()

@@ -8,14 +8,14 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 	db := NewInMemoryDB(t)
-	tt := trie.NewEmptyTrie()
+	tt := inmemory_trie.NewEmptyTrie()
 
 	generator := newGenerator()
 	const size = 500
@@ -29,15 +29,15 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 	err := tt.WriteDirty(db)
 	require.NoError(t, err)
 
-	encroot, err := tt.Hash(trie.NoMaxInlineValueSize)
+	encroot, err := tt.Hash()
 	require.NoError(t, err)
 
-	expected := tt.MustHash(trie.NoMaxInlineValueSize)
+	expected := tt.MustHash()
 
-	tt = trie.NewEmptyTrie()
+	tt = inmemory_trie.NewEmptyTrie()
 	err = tt.Load(db, encroot)
 	require.NoError(t, err)
-	require.Equal(t, expected, tt.MustHash(trie.NoMaxInlineValueSize))
+	require.Equal(t, expected, tt.MustHash())
 }
 
 func TestStoreAndLoadGenesisData(t *testing.T) {
@@ -62,30 +62,4 @@ func TestStoreAndLoadGenesisData(t *testing.T) {
 	gen, err := base.LoadGenesisData()
 	require.NoError(t, err)
 	require.Equal(t, expected, gen)
-}
-
-func TestLoadStoreEpochLength(t *testing.T) {
-	db := NewInMemoryDB(t)
-	base := NewBaseState(db)
-
-	length := uint64(2222)
-	err := base.storeEpochLength(length)
-	require.NoError(t, err)
-
-	ret, err := base.loadEpochLength()
-	require.NoError(t, err)
-	require.Equal(t, length, ret)
-}
-
-func TestLoadAndStoreSlotDuration(t *testing.T) {
-	db := NewInMemoryDB(t)
-	base := NewBaseState(db)
-
-	d := uint64(3000)
-	err := base.storeSlotDuration(d)
-	require.NoError(t, err)
-
-	ret, err := base.loadSlotDuration()
-	require.NoError(t, err)
-	require.Equal(t, d, ret)
 }

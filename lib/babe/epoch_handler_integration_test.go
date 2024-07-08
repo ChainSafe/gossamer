@@ -44,7 +44,14 @@ func TestEpochHandler_run_shouldReturnAfterContextCancel(t *testing.T) {
 	startSlot := getCurrentSlot(slotDuration)
 	handler := testHandleSlotFunc(t, authorityIndex, expectedEpoch, startSlot)
 
-	epochHandler, err := newEpochHandler(1, startSlot, epochData, testConstants, handler, aliceKeyPair)
+	epochDescriptor := &epochDescriptor{
+		data:      epochData,
+		startSlot: startSlot,
+		endSlot:   startSlot + epochLength,
+		epoch:     1,
+	}
+
+	epochHandler, err := newEpochHandler(epochDescriptor, testConstants, handler, aliceKeyPair)
 	require.NoError(t, err)
 	require.Equal(t, epochLength, uint64(len(epochHandler.slotToPreRuntimeDigest)))
 
@@ -89,7 +96,14 @@ func TestEpochHandler_run(t *testing.T) {
 	startSlot := getCurrentSlot(slotDuration)
 	handler := testHandleSlotFunc(t, authorityIndex, expectedEpoch, startSlot)
 
-	epochHandler, err := newEpochHandler(1, startSlot, epochData, testConstants, handler, aliceKeyPair)
+	epochDescriptor := &epochDescriptor{
+		data:      epochData,
+		startSlot: startSlot,
+		endSlot:   startSlot + epochLength,
+		epoch:     1,
+	}
+
+	epochHandler, err := newEpochHandler(epochDescriptor, testConstants, handler, aliceKeyPair)
 	require.NoError(t, err)
 	require.Equal(t, epochLength, uint64(len(epochHandler.slotToPreRuntimeDigest)))
 

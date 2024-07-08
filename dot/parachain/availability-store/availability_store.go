@@ -20,8 +20,9 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/erasure"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-availability-store"))
@@ -318,7 +319,7 @@ func (as *availabilityStore) storeAvailableData(subsystem *AvailabilityStoreSubs
 	}
 
 	candidateMeta.State = newStateVDT()
-	err = candidateMeta.State.Set(Unavailable{Timestamp: now})
+	err = candidateMeta.State.SetValue(Unavailable{Timestamp: now})
 	if err != nil {
 		return false, fmt.Errorf("setting state to unavailable: %w", err)
 	}
@@ -397,7 +398,7 @@ func uint32ToBytes(value uint32) []byte {
 }
 
 func branchesFromChunks(chunks [][]byte) (branches, error) {
-	tr := trie.NewEmptyTrie()
+	tr := inmemory.NewEmptyTrie()
 
 	for i, chunk := range chunks {
 		err := tr.Put(uint32ToBytes(uint32(i)), common.MustBlake2bHash(chunk).ToBytes())
@@ -571,7 +572,7 @@ func (av *AvailabilityStoreSubsystem) processNewHead(tx *availabilityStoreBatch,
 		return fmt.Errorf("failed to get candidate events: %w", err)
 	}
 
-	for _, v := range candidateEvents.Types {
+	for _, v := range candidateEvents {
 		event, err := v.Value()
 		if err != nil {
 			return fmt.Errorf("failed to get candidate event value: %w", err)
@@ -606,7 +607,7 @@ func (av *AvailabilityStoreSubsystem) noteBlockBacked(tx *availabilityStoreBatch
 	}
 	if meta == nil {
 		state := newStateVDT()
-		err := state.Set(Unavailable{now})
+		err := state.SetValue(Unavailable{now})
 		if err != nil {
 			return fmt.Errorf("failed to set state to unavailable: %w", err)
 		}
@@ -664,7 +665,7 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 		if err != nil {
 			return fmt.Errorf("failed to delete pruning key: %w", err)
 		}
-		err = meta.State.Set(Unfinalized{
+		err = meta.State.SetValue(Unfinalized{
 			Timestamp:  val.Timestamp,
 			BlockEntry: []BlockEntry{beBlock},
 		})
@@ -672,7 +673,7 @@ func (av *AvailabilityStoreSubsystem) noteBlockIncluded(tx *availabilityStoreBat
 			return fmt.Errorf("failed to set state to unfinalized: %w", err)
 		}
 	case Unfinalized:
-		err = meta.State.Set(Unfinalized{
+		err = meta.State.SetValue(Unfinalized{
 			Timestamp:  val.Timestamp,
 			BlockEntry: append(val.BlockEntry, beBlock),
 		})
@@ -1046,7 +1047,7 @@ func (av *AvailabilityStoreSubsystem) updateBlockAtFinalizedHeight(tx *availabil
 				}
 			}
 
-			err = meta.State.Set(Finalized{Timestamp: now})
+			err = meta.State.SetValue(Finalized{Timestamp: now})
 			if err != nil {
 				logger.Errorf("failed to set state to finalized: %w", err)
 			}
@@ -1089,12 +1090,12 @@ func (av *AvailabilityStoreSubsystem) updateBlockAtFinalizedHeight(tx *availabil
 						panic(fmt.Sprintf("writing pruning key: %v", err))
 					}
 
-					err = meta.State.Set(Unavailable{Timestamp: val.Timestamp})
+					err = meta.State.SetValue(Unavailable{Timestamp: val.Timestamp})
 					if err != nil {
 						logger.Errorf("failed to set state to unavailable: %w", err)
 					}
 				} else {
-					err = meta.State.Set(Unfinalized{Timestamp: val.Timestamp, BlockEntry: retainedBlocks})
+					err = meta.State.SetValue(Unfinalized{Timestamp: val.Timestamp, BlockEntry: retainedBlocks})
 					if err != nil {
 						logger.Errorf("failed to set state to unfinalized: %w", err)
 					}

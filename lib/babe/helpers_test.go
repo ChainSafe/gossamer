@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -23,9 +22,10 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -76,15 +76,16 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 		telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 
 		config := state.Config{
-			Path:      testDatadirPath,
-			LogLevel:  log.Info,
-			Telemetry: telemetryMock,
+			Path:              testDatadirPath,
+			LogLevel:          log.Info,
+			Telemetry:         telemetryMock,
+			GenesisBABEConfig: config.BABEConfigurationTestDefault,
 		}
 
 		stateSrvc = state.NewService(config)
 		stateSrvc.UseMemDB()
 
-		err := stateSrvc.Initialise(&genesis, &genesisHeader, &genesisTrie)
+		err := stateSrvc.Initialise(&genesis, &genesisHeader, genesisTrie)
 		require.NoError(t, err)
 
 		err = stateSrvc.Start()
@@ -110,10 +111,10 @@ func newTestCoreService(t *testing.T, cfg *core.Config, genesis genesis.Genesis,
 	if cfg.Runtime == nil {
 		var rtCfg wazero_runtime.Config
 
-		rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
+		rtCfg.Storage = rtstorage.NewTrieState(genesisTrie)
 
 		var err error
-		rtCfg.CodeHash, err = cfg.StorageState.(*state.StorageState).LoadCodeHash(nil)
+		rtCfg.CodeHash, err = cfg.StorageState.(*state.InmemoryStorageState).LoadCodeHash(nil)
 		require.NoError(t, err)
 
 		nodeStorage := runtime.NodeStorage{}
@@ -178,16 +179,17 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	testDatadirPath := t.TempDir()
 
 	config := state.Config{
-		Path:      testDatadirPath,
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
+		Path:              testDatadirPath,
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: babeConfig,
 	}
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
 
 	dbSrv.Transaction = state.NewTransactionState(telemetryMock)
 
-	err := dbSrv.Initialise(&genesis, &genesisHeader, &genesisTrie)
+	err := dbSrv.Initialise(&genesis, &genesisHeader, genesisTrie)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()
@@ -208,9 +210,9 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	cfg.TransactionState = dbSrv.Transaction
 
 	var rtCfg wazero_runtime.Config
-	rtCfg.Storage = rtstorage.NewTrieState(&genesisTrie)
+	rtCfg.Storage = rtstorage.NewTrieState(genesisTrie)
 
-	storageState := cfg.StorageState.(*state.StorageState)
+	storageState := cfg.StorageState.(*state.InmemoryStorageState)
 	rtCfg.CodeHash, err = storageState.LoadCodeHash(nil)
 	require.NoError(t, err)
 
@@ -264,15 +266,26 @@ func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
 
 	testDatadirPath := t.TempDir()
 
+	rtCfg := wazero_runtime.Config{
+		Storage: rtstorage.NewTrieState(genesisTrie),
+	}
+
+	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
+	require.NoError(t, err)
+
+	genCfg, err := rt.BabeConfiguration()
+	require.NoError(t, err)
+
 	config := state.Config{
-		Path:      testDatadirPath,
-		LogLevel:  log.Info,
-		Telemetry: telemetryMock,
+		Path:              testDatadirPath,
+		LogLevel:          log.Info,
+		Telemetry:         telemetryMock,
+		GenesisBABEConfig: genCfg,
 	}
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
 
-	err := dbSrv.Initialise(&genesis, &genesisHeader, &genesisTrie)
+	err = dbSrv.Initialise(&genesis, &genesisHeader, genesisTrie)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()
@@ -281,16 +294,6 @@ func newTestServiceSetupParameters(t *testing.T, genesis genesis.Genesis,
 	t.Cleanup(func() {
 		_ = dbSrv.Stop()
 	})
-
-	rtCfg := wazero_runtime.Config{
-		Storage: rtstorage.NewTrieState(&genesisTrie),
-	}
-
-	rt, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
-	require.NoError(t, err)
-
-	genCfg, err := rt.BabeConfiguration()
-	require.NoError(t, err)
 
 	s := &Service{
 		epochState: dbSrv.Epoch,
@@ -326,21 +329,8 @@ func buildLocalTransaction(t *testing.T, rt runtime.Instance, ext types.Extrinsi
 	return types.Extrinsic(bytes.Join(extrinsicParts, nil))
 }
 
-func getSlot(t *testing.T, rt runtime.Instance, timestamp time.Time) Slot {
-	t.Helper()
-	babeConfig, err := rt.BabeConfiguration()
-	require.NoError(t, err)
-
-	currentSlot := uint64(timestamp.UnixMilli()) / babeConfig.SlotDuration
-	return Slot{
-		start:    timestamp,
-		duration: time.Duration(babeConfig.SlotDuration) * time.Millisecond,
-		number:   currentSlot,
-	}
-}
-
 func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.Header,
-	exts [][]byte, epoch uint64, epochData *epochData, slot Slot) *types.Block {
+	exts [][]byte, epochDescriptor *epochDescriptor, slot Slot) *types.Block {
 	for _, ext := range exts {
 		validTransaction := transaction.NewValidTransaction(ext, &transaction.Validity{})
 		_, err := babeService.transactionState.Push(validTransaction)
@@ -351,13 +341,16 @@ func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.H
 	rt, err := babeService.blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
-	preRuntimeDigest, err := claimSlot(epoch, slot.number, epochData, babeService.keypair)
+	preRuntimeDigest, err := claimSlot(epochDescriptor.epoch, slot.number, epochDescriptor.data, babeService.keypair)
 	require.NoError(t, err)
 
-	block, err := babeService.buildBlock(parent, slot, rt, epochData.authorityIndex, preRuntimeDigest)
+	block, err := babeService.buildBlock(parent, slot, rt, epochDescriptor.data.authorityIndex, preRuntimeDigest)
 	require.NoError(t, err)
 
 	babeService.blockState.(*state.BlockState).StoreRuntime(block.Header.Hash(), rt)
+	err = babeService.blockState.AddBlock(block)
+	require.NoError(t, err)
+
 	return block
 }
 
@@ -375,7 +368,7 @@ func newWestendLocalGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 
 	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),
-		genesisTrie.MustHash(trie.NoMaxInlineValueSize), trie.EmptyHash, 0, types.NewDigest())
+		genesisTrie.MustHash(), emptyHash, 0, types.NewDigest())
 
 	return gen, genesisTrie, genesisHeader
 }
@@ -394,7 +387,7 @@ func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
 	require.NoError(t, err)
 
 	genesisHeader = *types.NewHeader(common.NewHash([]byte{0}),
-		genesisTrie.MustHash(trie.NoMaxInlineValueSize), trie.EmptyHash, 0, types.NewDigest())
+		genesisTrie.MustHash(), emptyHash, 0, types.NewDigest())
 
 	return gen, genesisTrie, genesisHeader
 }

@@ -331,12 +331,12 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 		return propagate, errors.New("expected value to be collator protocol message")
 	}
 
-	collatorProtocolMessageV, err := collatorProtocolMessage.Value()
+	index, collatorProtocolMessageV, err := collatorProtocolMessage.IndexValue()
 	if err != nil {
 		return propagate, fmt.Errorf("getting collator protocol message value: %w", err)
 	}
 
-	switch collatorProtocolMessageV.Index() {
+	switch index {
 	// TODO: Create an issue to cover v2 types. #3534
 	case 0: // Declare
 		declareMessage, ok := collatorProtocolMessageV.(collatorprotocolmessages.Declare)

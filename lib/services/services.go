@@ -13,6 +13,11 @@ type Service interface {
 	Stop() error
 }
 
+// Pausable must be implemented by services that must be paused before shutdown
+type Pausable interface {
+	Pause() error
+}
+
 // ServiceRegistry is a structure to manage core system services
 type ServiceRegistry struct {
 	services     map[reflect.Type]Service // map of types to service instances
@@ -52,9 +57,30 @@ func (s *ServiceRegistry) StartAll() {
 	s.logger.Debug("All services started.")
 }
 
+// PauseServices pauses key services before shutdown to allow a graceful shutdown
+func (s *ServiceRegistry) PauseServices() {
+	s.logger.Infof("Pausing key services")
+	for _, typ := range s.serviceTypes {
+		pausable, ok := s.services[typ].(Pausable)
+		if ok && pausable != nil {
+			err := pausable.Pause()
+			if err != nil {
+				s.logger.Errorf("Error pausing %s service: %s", typ, err)
+			}
+		} else if ok {
+			s.logger.Errorf("Error pausing required services")
+		}
+	}
+
+	s.logger.Infof("Paused key services")
+}
+
 // StopAll calls `Service.Stop()` for all registered services
 func (s *ServiceRegistry) StopAll() {
 	s.logger.Infof("Stopping services: %v", s.serviceTypes)
+
+	s.PauseServices()
+
 	for _, typ := range s.serviceTypes {
 		s.logger.Debugf("Stopping service %s", typ)
 		err := s.services[typ].Stop()

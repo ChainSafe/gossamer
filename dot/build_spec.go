@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -100,10 +101,13 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 		Path:      path,
 		LogLevel:  log.Info,
 		Telemetry: telemetry.NewNoopMailer(),
+		GenesisBABEConfig: &types.BabeConfiguration{
+			EpochLength:  10,
+			SlotDuration: 6,
+		},
 	}
 
 	stateSrvc := state.NewService(config)
-
 	err := stateSrvc.SetupBase()
 	if err != nil {
 		return nil, fmt.Errorf("cannot setup state database: %w", err)

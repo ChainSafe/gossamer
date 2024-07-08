@@ -11,36 +11,68 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+type StatementDistributionMessageValues interface {
+	Statement | LargePayload
+}
+
 // StatementDistributionMessage represents network messages used by the statement distribution subsystem
-type StatementDistributionMessage scale.VaryingDataType
+type StatementDistributionMessage struct {
+	inner any
+}
 
 // NewStatementDistributionMessage returns a new statement distribution message varying data type
 func NewStatementDistributionMessage() StatementDistributionMessage {
-	vdt := scale.MustNewVaryingDataType(Statement{}, LargePayload{})
-	return StatementDistributionMessage(vdt)
+	return StatementDistributionMessage{}
 }
 
-// New will enable scale to create new instance when needed
-func (StatementDistributionMessage) New() StatementDistributionMessage {
-	return NewStatementDistributionMessage()
+func setStatementDistributionMessage[Value StatementDistributionMessageValues](
+	mvdt *StatementDistributionMessage, value Value,
+) {
+	mvdt.inner = value
 }
 
-// Set will set a value using the underlying  varying data type
-func (sdm *StatementDistributionMessage) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*sdm)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value to varying data type: %w", err)
+func (mvdt *StatementDistributionMessage) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case Statement:
+		setStatementDistributionMessage(mvdt, value)
+		return
+
+	case LargePayload:
+		setStatementDistributionMessage(mvdt, value)
+		return
+
+	default:
+		return fmt.Errorf("unsupported type")
 	}
-
-	*sdm = StatementDistributionMessage(vdt)
-	return nil
 }
 
-// Value returns the value from the underlying varying data type
-func (sdm *StatementDistributionMessage) Value() (scale.VaryingDataTypeValue, error) {
-	vdt := scale.VaryingDataType(*sdm)
-	return vdt.Value()
+func (mvdt StatementDistributionMessage) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case Statement:
+		return 0, mvdt.inner, nil
+
+	case LargePayload:
+		return 1, mvdt.inner, nil
+
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt StatementDistributionMessage) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt StatementDistributionMessage) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return *new(Statement), nil
+
+	case 1:
+		return *new(LargePayload), nil
+
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
 // Statement represents a signed full statement under a given relay-parent.
@@ -49,22 +81,12 @@ type Statement struct {
 	UncheckedSignedFullStatement parachaintypes.UncheckedSignedFullStatement `scale:"2"`
 }
 
-// Index returns the index of varying data type
-func (Statement) Index() uint {
-	return 0
-}
-
 // LargePayload represents Seconded statement with large payload
 // (e.g. containing a runtime upgrade).
 //
 // We only gossip the hash in that case, actual payloads can be fetched from sending node
 // via request/response.
 type LargePayload StatementMetadata
-
-// Index returns the index of varying data type
-func (LargePayload) Index() uint {
-	return 1
-}
 
 // StatementMetadata represents the data that makes a statement unique.
 type StatementMetadata struct {

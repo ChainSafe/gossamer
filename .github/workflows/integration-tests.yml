@@ -20,6 +20,7 @@ jobs:
   integration-tests:
     timeout-minutes: 60
     strategy:
+      fail-fast: false
       matrix:
         packages:
           [
@@ -38,7 +39,7 @@ jobs:
     runs-on: buildjet-4vcpu-ubuntu-2204
     steps:
       - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.12.0
+        uses: styfle/cancel-workflow-action@0.12.1
         with:
           all_but_latest: true
 
@@ -74,4 +75,4 @@ jobs:
         run: make compile-erasure
 
       - name: Run integration tests
-        run: go test -timeout=45m -tags integration ${{ matrix.packages }}
+        run: CI=buildjet go test -timeout=45m -tags integration ${{ matrix.packages }}

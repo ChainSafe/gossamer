@@ -25,6 +25,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -115,12 +116,22 @@ type attestingData struct {
 	backing []parachaintypes.ValidatorIndex
 }
 
-// TableContext represents the contextual information associated with a validator and groups
+// tableContext represents the contextual information associated with a validator and groups
 // for a table under a relay-parent.
-type TableContext struct {
+type tableContext struct {
 	validator  *validator
 	groups     map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex
 	validators []parachaintypes.ValidatorID
+}
+
+// isMemberOf returns true if the validator is a member of the group of validators assigned to the parachain.
+func (tc *tableContext) isMemberOf(validatorIndex parachaintypes.ValidatorIndex, paraID parachaintypes.ParaID) bool {
+	indexes, ok := tc.groups[paraID]
+	if !ok {
+		return false
+	}
+
+	return slices.Contains(indexes, validatorIndex)
 }
 
 // validator represents local validator information.
@@ -146,9 +157,9 @@ func (v validator) sign(keystore keystore.Keystore, payload parachaintypes.State
 	}, nil
 }
 
-// GetBackedCandidatesMessage is a message received from overseer that requests a set of backable
+// GetBackableCandidatesMessage is a message received from overseer that requests a set of backable
 // candidates that could be backed in a child of the given relay-parent.
-type GetBackedCandidatesMessage struct {
+type GetBackableCandidatesMessage struct {
 	Candidates []*CandidateHashAndRelayParent
 	ResCh      chan []*parachaintypes.BackedCandidate
 }
@@ -238,8 +249,8 @@ func (*CandidateBacking) Name() parachaintypes.SubSystemName {
 // processMessage processes incoming messages from overseer
 func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan relayParentAndCommand) error {
 	switch msg := msg.(type) {
-	case GetBackedCandidatesMessage:
-		cb.handleGetBackedCandidatesMessage(msg)
+	case GetBackableCandidatesMessage:
+		cb.handleGetBackableCandidatesMessage(msg)
 	case CanSecondMessage:
 		err := cb.handleCanSecondMessage(msg)
 		if err != nil {
@@ -307,7 +318,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 	var attesting attestingData
 	switch statementVDT := statementVDT.(type) {
 	case parachaintypes.Seconded:
-		commitedCandidateReceipt, err := rpState.table.getCandidate(summary.Candidate)
+		commitedCandidateReceipt, err := rpState.table.getCommittedCandidateReceipt(summary.Candidate)
 		if err != nil {
 			return fmt.Errorf("getting candidate: %w", err)
 		}

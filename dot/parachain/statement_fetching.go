@@ -25,42 +25,62 @@ func (s *StatementFetchingRequest) Encode() ([]byte, error) {
 	return scale.Marshal(*s)
 }
 
+type StatementFetchingResponseValues interface {
+	MissingDataInStatement
+}
+
 // StatementFetchingResponse represents the statement fetching response is
 // sent by nodes to the clients who issued a collation fetching request.
 //
 // Respond with found full statement.
-type StatementFetchingResponse scale.VaryingDataType
+type StatementFetchingResponse struct {
+	inner any
+}
+
+func setStatementFetchingResponse[Value StatementFetchingResponseValues](mvdt *StatementFetchingResponse, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *StatementFetchingResponse) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case MissingDataInStatement:
+		setStatementFetchingResponse(mvdt, value)
+		return
+
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt StatementFetchingResponse) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case MissingDataInStatement:
+		return 0, mvdt.inner, nil
+
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt StatementFetchingResponse) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt StatementFetchingResponse) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return *new(MissingDataInStatement), nil
+
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
 
 // MissingDataInStatement represents the data missing to reconstruct the full signed statement.
 type MissingDataInStatement parachaintypes.CommittedCandidateReceipt
 
-// Index returns the index of varying data type
-func (MissingDataInStatement) Index() uint {
-	return 0
-}
-
 // NewStatementFetchingResponse returns a new statement fetching response varying data type
 func NewStatementFetchingResponse() StatementFetchingResponse {
-	vdt := scale.MustNewVaryingDataType(MissingDataInStatement{})
-	return StatementFetchingResponse(vdt)
-}
-
-// Set will set a value using the underlying  varying data type
-func (s *StatementFetchingResponse) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*s)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value to varying data type: %w", err)
-	}
-
-	*s = StatementFetchingResponse(vdt)
-	return nil
-}
-
-// Value returns the value from the underlying varying data type
-func (s *StatementFetchingResponse) Value() (scale.VaryingDataTypeValue, error) {
-	vdt := scale.VaryingDataType(*s)
-	return vdt.Value()
+	return StatementFetchingResponse{}
 }
 
 // Encode returns the SCALE encoding of the StatementFetchingResponse.
@@ -78,7 +98,6 @@ func (s *StatementFetchingResponse) String() string {
 	if s == nil {
 		return "StatementFetchingResponse=nil"
 	}
-
 	v, _ := s.Value()
 	missingData := v.(MissingDataInStatement)
 	return fmt.Sprintf("StatementFetchingResponse MissingDataInStatement=%+v", missingData)

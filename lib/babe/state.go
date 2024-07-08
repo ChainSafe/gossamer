@@ -24,7 +24,6 @@ type BlockState interface {
 	BestBlockHash() common.Hash
 	BestBlockHeader() (*types.Header, error)
 	AddBlock(*types.Block) error
-	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
 	GetHeader(common.Hash) (*types.Header, error)
 	GetBlockByNumber(blockNumber uint) (*types.Block, error)
 	GetBlockHashesBySlot(slot uint64) (blockHashes []common.Hash, err error)
@@ -34,6 +33,7 @@ type BlockState interface {
 	NumberIsFinalised(blockNumber uint) (bool, error)
 	GetRuntime(blockHash common.Hash) (runtime runtime.Instance, err error)
 	StoreRuntime(common.Hash, runtime.Instance)
+	GetBlockByHash(common.Hash) (*types.Block, error)
 	ImportedBlockNotifierManager
 }
 
@@ -57,19 +57,21 @@ type TransactionState interface {
 
 // EpochState is the interface for epoch methods
 type EpochState interface {
-	GetEpochLength() (uint64, error)
+	GetEpochLength() uint64
 	GetSlotDuration() (time.Duration, error)
-	SetCurrentEpoch(epoch uint64) error
+	StoreCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
+
+	GetSkippedEpochDataRaw(skippedEpoch, currentEpoch uint64, header *types.Header) (
+		*types.EpochDataRaw, error)
+	GetSkippedConfigData(skippedEpoch, currentEpoch uint64, header *types.Header) (
+		*types.ConfigData, error)
 
 	GetEpochDataRaw(epoch uint64, header *types.Header) (*types.EpochDataRaw, error)
 	GetConfigData(epoch uint64, header *types.Header) (*types.ConfigData, error)
 
-	GetLatestConfigData() (*types.ConfigData, error)
-	GetStartSlotForEpoch(epoch uint64) (uint64, error)
+	GetStartSlotForEpoch(epoch uint64, bestBlockHash common.Hash) (uint64, error)
 	GetEpochForBlock(header *types.Header) (uint64, error)
-	SetFirstSlot(slot uint64) error
-	GetLatestEpochDataRaw() (*types.EpochDataRaw, error)
 	SkipVerify(*types.Header) (bool, error)
 }
 

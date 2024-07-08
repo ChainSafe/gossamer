@@ -12,8 +12,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 
 	"github.com/stretchr/testify/require"
 )
@@ -33,9 +33,9 @@ func NewInMemoryDB(t *testing.T) database.Database {
 	return db
 }
 
-func createPrimaryBABEDigest(t testing.TB) scale.VaryingDataTypeSlice {
+func createPrimaryBABEDigest(t testing.TB) types.Digest {
 	babeDigest := types.NewBabeDigest()
-	err := babeDigest.Set(types.BabePrimaryPreDigest{AuthorityIndex: 0})
+	err := babeDigest.SetValue(types.BabePrimaryPreDigest{AuthorityIndex: 0})
 	require.NoError(t, err)
 
 	bdEnc, err := scale.Marshal(babeDigest)
@@ -54,6 +54,23 @@ func createPrimaryBABEDigest(t testing.TB) scale.VaryingDataTypeSlice {
 type testBranch struct {
 	hash  common.Hash
 	depth uint
+}
+
+func AddBlockToState(t *testing.T, blockState *BlockState,
+	number uint, digest types.Digest, parentHash common.Hash) *types.Header {
+	block := &types.Block{
+		Header: types.Header{
+			ParentHash: parentHash,
+			Number:     number,
+			StateRoot:  trie.EmptyHash,
+			Digest:     digest,
+		},
+		Body: types.Body{},
+	}
+
+	err := blockState.AddBlock(block)
+	require.NoError(t, err)
+	return &block.Header
 }
 
 // AddBlocksToState adds `depth` number of blocks to the BlockState, optionally with random branches

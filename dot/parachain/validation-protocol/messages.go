@@ -21,41 +21,58 @@ type Bitfield struct {
 	UncheckedSignedAvailabilityBitfield parachaintypes.UncheckedSignedAvailabilityBitfield `scale:"2"`
 }
 
-// Index returns the VaryingDataType Index
-func (Bitfield) Index() uint {
-	return 0
+type BitfieldDistributionMessageValues interface {
+	Bitfield
 }
 
 // BitfieldDistributionMessage Network messages used by bitfield distribution subsystem
-type BitfieldDistributionMessage scale.VaryingDataType
+type BitfieldDistributionMessage struct {
+	inner any
+}
+
+func setBitfieldDistributionMessage[Value BitfieldDistributionMessageValues](
+	mvdt *BitfieldDistributionMessage, value Value,
+) {
+	mvdt.inner = value
+}
+
+func (mvdt *BitfieldDistributionMessage) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case Bitfield:
+		setBitfieldDistributionMessage(mvdt, value)
+		return
+
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt BitfieldDistributionMessage) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case Bitfield:
+		return 0, mvdt.inner, nil
+
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt BitfieldDistributionMessage) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt BitfieldDistributionMessage) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return *new(Bitfield), nil
+
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
 
 // NewBitfieldDistributionMessageVDT returns a new BitfieldDistributionMessage VaryingDataType
 func NewBitfieldDistributionMessageVDT() BitfieldDistributionMessage {
-	vdt := scale.MustNewVaryingDataType(Bitfield{})
-	return BitfieldDistributionMessage(vdt)
-}
-
-// New creates new BitfieldDistributionMessage
-func (BitfieldDistributionMessage) New() BitfieldDistributionMessage {
-	return NewBitfieldDistributionMessageVDT()
-}
-
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (bdm *BitfieldDistributionMessage) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*bdm)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value to varying data type: %w", err)
-	}
-
-	*bdm = BitfieldDistributionMessage(vdt)
-	return nil
-}
-
-// Value returns the value from the underlying VaryingDataType
-func (bdm *BitfieldDistributionMessage) Value() (scale.VaryingDataTypeValue, error) {
-	vdt := scale.VaryingDataType(*bdm)
-	return vdt.Value()
+	return BitfieldDistributionMessage{}
 }
 
 // BitfieldDistribution struct holding BitfieldDistributionMessage
@@ -63,19 +80,9 @@ type BitfieldDistribution struct {
 	BitfieldDistributionMessage
 }
 
-// Index VaryingDataType index of Bitfield Distribution
-func (BitfieldDistribution) Index() uint {
-	return 1
-}
-
 // ApprovalDistribution struct holding ApprovalDistributionMessage
 type ApprovalDistribution struct {
 	ApprovalDistributionMessage
-}
-
-// Index VaryingDataType index of ApprovalDistribution
-func (ApprovalDistribution) Index() uint {
-	return 4
 }
 
 // StatementDistribution struct holding StatementDistributionMessage
@@ -83,51 +90,76 @@ type StatementDistribution struct {
 	StatementDistributionMessage
 }
 
-// Index VaryingDataType index for StatementDistribution
-func (StatementDistribution) Index() uint {
-	return 3
+type ValidationProtocolValues interface {
+	BitfieldDistribution | StatementDistribution | ApprovalDistribution
 }
 
 // ValidationProtocol VaryingDataType for ValidationProtocol
-type ValidationProtocol scale.VaryingDataType
+type ValidationProtocol struct {
+	inner any
+}
 
-// Index returns the index of varying data type
-// This gets used in WireMessage
-func (ValidationProtocol) Index() uint {
-	return 1
+func setValidationProtocol[Value ValidationProtocolValues](mvdt *ValidationProtocol, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *ValidationProtocol) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case BitfieldDistribution:
+		setValidationProtocol(mvdt, value)
+		return
+
+	case StatementDistribution:
+		setValidationProtocol(mvdt, value)
+		return
+
+	case ApprovalDistribution:
+		setValidationProtocol(mvdt, value)
+		return
+
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt ValidationProtocol) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case BitfieldDistribution:
+		return 1, mvdt.inner, nil
+
+	case StatementDistribution:
+		return 3, mvdt.inner, nil
+
+	case ApprovalDistribution:
+		return 4, mvdt.inner, nil
+
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt ValidationProtocol) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt ValidationProtocol) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 1:
+		return *new(BitfieldDistribution), nil
+
+	case 3:
+		return *new(StatementDistribution), nil
+
+	case 4:
+		return *new(ApprovalDistribution), nil
+
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
 // NewValidationProtocolVDT constructor or ValidationProtocol VaryingDataType
 func NewValidationProtocolVDT() ValidationProtocol {
-	vdt, err := scale.NewVaryingDataType(BitfieldDistribution{}, StatementDistribution{}, ApprovalDistribution{})
-	if err != nil {
-		panic(err)
-	}
-	return ValidationProtocol(vdt)
-}
-
-// New returns new ValidationProtocol VDT
-func (ValidationProtocol) New() ValidationProtocol {
-	return NewValidationProtocolVDT()
-}
-
-// Value returns the value from the underlying VaryingDataType
-func (vp *ValidationProtocol) Value() (scale.VaryingDataTypeValue, error) {
-	vdt := scale.VaryingDataType(*vp)
-	return vdt.Value()
-}
-
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (vp *ValidationProtocol) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*vp)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value to varying data type: %w", err)
-	}
-
-	*vp = ValidationProtocol(vdt)
-	return nil
-
+	return ValidationProtocol{}
 }
 
 // Type returns ValidationMsgType

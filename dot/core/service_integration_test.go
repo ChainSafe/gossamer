@@ -24,9 +24,9 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -638,7 +638,7 @@ func TestService_HandleCodeSubstitutes(t *testing.T) {
 
 	s.blockState.StoreRuntime(blockHash, rt)
 
-	ts := rtstorage.NewTrieState(trie.NewEmptyTrie())
+	ts := rtstorage.NewTrieState(inmemory_trie.NewEmptyTrie())
 	err = s.handleCodeSubstitution(blockHash, ts)
 	require.NoError(t, err)
 	codSub := s.codeSubstitutedState.(*state.BaseState).LoadCodeSubstitutedBlockHash()
@@ -666,7 +666,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 		Body: *body,
 	}
 
-	ts := rtstorage.NewTrieState(trie.NewEmptyTrie())
+	ts := rtstorage.NewTrieState(inmemory_trie.NewEmptyTrie())
 	err = s.handleCodeSubstitution(blockHash, ts)
 	require.NoError(t, err)
 	require.Equal(t, codeHashBefore, parentRt.GetCodeHash()) // codeHash should remain unchanged after code substitute

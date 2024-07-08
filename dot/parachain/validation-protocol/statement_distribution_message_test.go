@@ -7,7 +7,6 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"math"
 	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -30,14 +29,9 @@ func init() {
 	}
 }
 
-var ErrInvalidVayingDataTypeValue = errors.New(
-	"setting value to varying data type: unsupported VaryingDataTypeValue: {} (parachain.invalidVayingDataTypeValue)")
+var ErrInvalidVayingDataTypeValue = errors.New("unsupported type")
 
 type invalidVayingDataTypeValue struct{}
-
-func (invalidVayingDataTypeValue) Index() uint {
-	return math.MaxUint
-}
 
 func getDummyHash(num byte) common.Hash {
 	hash := common.Hash{}
@@ -64,7 +58,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 	hash5 := getDummyHash(5)
 
 	statementVDTWithValid := parachaintypes.NewStatementVDT()
-	err := statementVDTWithValid.Set(parachaintypes.Valid{Value: hash5})
+	err := statementVDTWithValid.SetValue(parachaintypes.Valid{Value: hash5})
 	require.NoError(t, err)
 
 	secondedEnumValue := parachaintypes.Seconded{
@@ -91,7 +85,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 	}
 
 	statementVDTWithSeconded := parachaintypes.NewStatementVDT()
-	err = statementVDTWithSeconded.Set(secondedEnumValue)
+	err = statementVDTWithSeconded.SetValue(secondedEnumValue)
 	require.NoError(t, err)
 
 	signedFullStatementWithValid := Statement{
@@ -121,7 +115,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 
 	testCases := []struct {
 		name          string
-		enumValue     scale.VaryingDataTypeValue
+		enumValue     any
 		encodingValue []byte
 		expectedErr   error
 	}{
@@ -218,7 +212,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 				t.Parallel()
 
 				vdt := NewStatementDistributionMessage()
-				err := vdt.Set(c.enumValue)
+				err := vdt.SetValue(c.enumValue)
 
 				if c.expectedErr != nil {
 					require.EqualError(t, err, c.expectedErr.Error())

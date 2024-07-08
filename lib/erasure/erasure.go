@@ -14,8 +14,9 @@ import (
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 )
 
 var (
@@ -105,8 +106,8 @@ func Reconstruct(nValidators uint, chunks [][]byte) ([]byte, error) {
 	return res, nil
 }
 
-func ChunksToTrie(chunks [][]byte) (*trie.Trie, error) {
-	chunkTrie := trie.NewEmptyTrie()
+func ChunksToTrie(chunks [][]byte) (trie.Trie, error) {
+	chunkTrie := inmemory.NewEmptyTrie()
 	for i, chunk := range chunks {
 		encodedI, err := scale.Marshal(uint32(i))
 		if err != nil {

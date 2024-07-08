@@ -10,6 +10,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+const (
+	legacyValidationProtocolV1 = "/polkadot/validation/1"
+)
+
 type ReqProtocolName uint
 
 const (

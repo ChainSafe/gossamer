@@ -15,7 +15,7 @@ func TestValidityAttestation(t *testing.T) {
 
 	testCases := []struct {
 		name          string
-		enumValue     scale.VaryingDataTypeValue
+		enumValue     any
 		encodingValue []byte
 	}{
 		{
@@ -36,7 +36,7 @@ func TestValidityAttestation(t *testing.T) {
 			t.Parallel()
 
 			validityAttestation := NewValidityAttestation()
-			err := validityAttestation.Set(c.enumValue)
+			err := validityAttestation.SetValue(c.enumValue)
 			require.NoError(t, err)
 
 			bytes, err := scale.Marshal(validityAttestation)

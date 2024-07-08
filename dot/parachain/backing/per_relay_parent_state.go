@@ -9,13 +9,15 @@ import (
 	"time"
 
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
+	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 )
+
+var errNilPersistedValidationData = errors.New("persisted validation data is nil")
 
 // PerRelayParentState represents the state information for a relay-parent in the subsystem.
 type perRelayParentState struct {
@@ -27,7 +29,7 @@ type perRelayParentState struct {
 	// The table of candidates and statements under this relay-parent.
 	table Table
 	// The table context, including groups.
-	tableContext TableContext
+	tableContext tableContext
 	// Data needed for retrying in case of `ValidatedCandidateCommand::AttestNoPoV`.
 	fallbacks map[parachaintypes.CandidateHash]attestingData
 	// These candidates are undergoing validation in the background.
@@ -46,18 +48,18 @@ func (rpState *perRelayParentState) importStatement(
 	signedStatementWithPVD parachaintypes.SignedFullStatementWithPVD,
 	perCandidate map[parachaintypes.CandidateHash]*perCandidateState,
 ) (*Summary, error) {
-	statementVDT, err := signedStatementWithPVD.SignedFullStatement.Payload.Value()
+	index, statementVDT, err := signedStatementWithPVD.SignedFullStatement.Payload.IndexValue()
 	if err != nil {
 		return nil, fmt.Errorf("getting value from statementVDT: %w", err)
 	}
 
-	if statementVDT.Index() == 2 { // Valid
-		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD)
+	if index != 1 { // Not Seconded
+		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD.SignedFullStatement)
 	}
 
 	// PersistedValidationData should not be nil if the statementVDT is Seconded.
 	if signedStatementWithPVD.PersistedValidationData == nil {
-		return nil, fmt.Errorf("persisted validation data is nil")
+		return nil, errNilPersistedValidationData
 	}
 
 	statementVDTSeconded := statementVDT.(parachaintypes.Seconded)
@@ -69,7 +71,7 @@ func (rpState *perRelayParentState) importStatement(
 	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	if _, ok := perCandidate[candidateHash]; ok {
-		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD)
+		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD.SignedFullStatement)
 	}
 
 	if rpState.prospectiveParachainsMode.IsEnabled {
@@ -108,40 +110,37 @@ func (rpState *perRelayParentState) importStatement(
 		relayParent:             statementVDTSeconded.Descriptor.RelayParent,
 	}
 
-	return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD)
+	return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD.SignedFullStatement)
 }
 
 // postImportStatement handles a summary received from importStatement func and dispatches `Backed` notifications and
 // misbehaviors as a result of importing a statement.
 func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan<- any, summary *Summary) {
-	// If the summary is nil, issue new misbehaviors and return.
+	defer issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
+
+	// Return, If the summary is nil.
 	if summary == nil {
-		issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 		return
 	}
 
-	attested, err := rpState.table.attestedCandidate(summary.Candidate, &rpState.tableContext)
+	attested, err := rpState.table.attestedCandidate(summary.Candidate, &rpState.tableContext, rpState.minBackingVotes)
 	if err != nil {
 		logger.Error(err.Error())
 	}
 
-	// If the candidate is not attested, issue new misbehaviors and return.
+	// Return, If the candidate is not attested.
 	if attested == nil {
-		issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 		return
 	}
 
-	hash, err := attested.Candidate.Hash()
+	candidateHash, err := parachaintypes.GetCandidateHash(attested.committedCandidateReceipt)
 	if err != nil {
 		logger.Error(err.Error())
 		return
 	}
 
-	candidateHash := parachaintypes.CandidateHash{Value: hash}
-
-	// If the candidate is already backed, issue new misbehaviors and return.
+	// Return, If the candidate is already backed.
 	if rpState.backed[candidateHash] {
-		issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 		return
 	}
 
@@ -149,9 +148,8 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 	rpState.backed[candidateHash] = true
 
 	// Convert the attested candidate to a backed candidate.
-	backedCandidate := attestedToBackedCandidate(*attested, &rpState.tableContext)
+	backedCandidate := attested.toBackedCandidate(&rpState.tableContext)
 	if backedCandidate == nil {
-		issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 		return
 	}
 
@@ -187,16 +185,14 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 			ProvisionableData: parachaintypes.ProvisionableDataBackedCandidate(backedCandidate.Candidate.ToPlain()),
 		}
 	}
-
-	issueNewMisbehaviors(subSystemToOverseer, rpState.relayParent, rpState.table)
 }
 
 // issueNewMisbehaviors checks for new misbehaviors and sends necessary messages to the Overseer subsystem.
 func issueNewMisbehaviors(subSystemToOverseer chan<- any, relayParent common.Hash, table Table) {
-	// collect the misbehaviors to avoid double mutable self borrow issues
-	misbehaviors := table.drainMisbehaviors()
+	// collect the validatorsToMisbehaviors to avoid double mutable self borrow issues
+	validatorsToMisbehaviors := table.drainMisbehaviors()
 
-	for _, m := range misbehaviors {
+	for validatorIndex, misbehaviours := range validatorsToMisbehaviors {
 		// TODO: figure out what this comment means by 'avoid cycles'.
 		//
 		// The provisioner waits on candidate-backing, which means
@@ -204,45 +200,16 @@ func issueNewMisbehaviors(subSystemToOverseer chan<- any, relayParent common.Has
 		//
 		// Misbehaviors are bounded by the number of validators and
 		// the block production protocol.
-		subSystemToOverseer <- parachaintypes.ProvisionerMessageProvisionableData{
-			RelayParent: relayParent,
-			ProvisionableData: parachaintypes.ProvisionableDataMisbehaviorReport{
-				ValidatorIndex: m.ValidatorIndex,
-				Misbehaviour:   m.Misbehaviour,
-			},
-		}
-	}
-}
-
-func attestedToBackedCandidate(
-	attested AttestedCandidate,
-	tableContext *TableContext,
-) *parachaintypes.BackedCandidate {
-	group := tableContext.groups[attested.GroupID]
-	validatorIndices := make([]bool, len(group))
-	var validityAttestations []parachaintypes.ValidityAttestation
-
-	// The order of the validity votes in the backed candidate must match
-	// the order of bits set in the bitfield, which is not necessarily
-	// the order of the `validity_votes` we got from the table.
-	for positionInGroup, validatorIndex := range group {
-		for _, validityVote := range attested.ValidityAttestations {
-			if validityVote.ValidatorIndex == validatorIndex {
-				validatorIndices[positionInGroup] = true
-				validityAttestations = append(validityAttestations, validityVote.ValidityAttestation)
+		for _, misbehaviour := range misbehaviours {
+			subSystemToOverseer <- parachaintypes.ProvisionerMessageProvisionableData{
+				RelayParent: relayParent,
+				ProvisionableData: parachaintypes.ProvisionableDataMisbehaviorReport{
+					ValidatorIndex: validatorIndex,
+					Misbehaviour:   misbehaviour,
+				},
 			}
 		}
 
-		if !validatorIndices[positionInGroup] {
-			logger.Error("validity vote from unknown validator")
-			return nil
-		}
-	}
-
-	return &parachaintypes.BackedCandidate{
-		Candidate:        attested.Candidate,
-		ValidityVotes:    validityAttestations,
-		ValidatorIndices: scale.NewBitVec(validatorIndices),
 	}
 }
 
@@ -327,13 +294,13 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	}
 
 	pvfExecTimeoutKind := parachaintypes.NewPvfExecTimeoutKind()
-	err = pvfExecTimeoutKind.Set(parachaintypes.Backing{})
+	err = pvfExecTimeoutKind.SetValue(parachaintypes.Backing{})
 	if err != nil {
 		return fmt.Errorf("setting pvfExecTimeoutKind: %w", err)
 	}
 
-	chValidationResultRes := make(chan parachaintypes.OverseerFuncRes[parachaintypes.ValidationResult])
-	subSystemToOverseer <- parachaintypes.CandidateValidationMessageValidateFromExhaustive{
+	chValidationResultRes := make(chan parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult])
+	subSystemToOverseer <- candidatevalidation.ValidateFromExhaustive{
 		PersistedValidationData: pvd,
 		ValidationCode:          validationCodeByHashRes.Data,
 		CandidateReceipt:        candidateReceipt,
@@ -434,7 +401,7 @@ func executorParamsAtRelayParent(blockState BlockState, relayParent common.Hash,
 		if errors.Is(err, wazero_runtime.ErrExportFunctionNotFound) {
 			// Runtime doesn't yet support the api requested,
 			// should execute anyway with default set of parameters.
-			defaultExecutorParams := parachaintypes.ExecutorParams(parachaintypes.NewExecutorParams())
+			defaultExecutorParams := parachaintypes.NewExecutorParams()
 			return &defaultExecutorParams, nil
 		}
 		return nil, err

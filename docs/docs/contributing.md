@@ -94,7 +94,7 @@ func TestStringTest(t *testing.T) {
 
 func TestLargeStringTest(t *testing.T) {
    	if testing.Short() {
-  		t.Skip("\033[33mSkipping memory intesive test for <TEST NAME> in short mode\033[0m")
+  		t.Skip("\033[33mSkipping memory intensive test for <TEST NAME> in short mode\033[0m")
     } else {
         ...
     }
@@ -118,7 +118,7 @@ Anyone can become a part-time contributor and help out on gossamer. Contribution
 -   Follow up on open PRs
     -   Have an estimated timeframe to completion and let the core contributors know if a PR will take longer than expected
 
-We do not expect all part-time contributors to be experts on all the latest Polkadot documentation, but all contributors should at least be familiarized with the fundamentals of the [Polkadot Runtime Specification](https://research.web3.foundation/en/latest/_static/pdfview/viewer.html?file=../pdf/polkadot_re_spec.pdf).
+We do not expect all part-time contributors to be experts on all the latest Polkadot documentation, but all contributors should at least be familiarized with the fundamentals of The <a href="https://spec.polkadot.network/id-polkadot-protocol" target="_blank">Polkadot Runtime Specification.</a>
 
 ### Core Contributors
 

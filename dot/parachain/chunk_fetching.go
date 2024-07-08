@@ -24,30 +24,65 @@ func (c ChunkFetchingRequest) Encode() ([]byte, error) {
 	return scale.Marshal(c)
 }
 
-// ChunkFetchingResponse represents the response for a requested erasure chunk
-type ChunkFetchingResponse scale.VaryingDataType
-
-// NewChunkFetchingResponse returns a new chunk fetching response varying data type
-func NewChunkFetchingResponse() ChunkFetchingResponse {
-	vdt := scale.MustNewVaryingDataType(ChunkResponse{}, NoSuchChunk{})
-	return ChunkFetchingResponse(vdt)
+type ChunkFetchingResponseValues interface {
+	ChunkResponse | NoSuchChunk
 }
 
-// Set will set a value using the underlying  varying data type
-func (c *ChunkFetchingResponse) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*c)
-	err = vdt.Set(val)
-	if err != nil {
+type ChunkFetchingResponse struct {
+	inner any
+}
+
+func setChunkFetchingResponse[Value ChunkFetchingResponseValues](mvdt *ChunkFetchingResponse, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *ChunkFetchingResponse) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case ChunkResponse:
+		setChunkFetchingResponse(mvdt, value)
 		return
+
+	case NoSuchChunk:
+		setChunkFetchingResponse(mvdt, value)
+		return
+
+	default:
+		return fmt.Errorf("unsupported type")
 	}
-	*c = ChunkFetchingResponse(vdt)
+}
+
+func (mvdt ChunkFetchingResponse) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case ChunkResponse:
+		return 0, mvdt.inner, nil
+
+	case NoSuchChunk:
+		return 1, mvdt.inner, nil
+
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt ChunkFetchingResponse) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
 	return
 }
 
-// Value returns the value from the underlying varying data type
-func (c *ChunkFetchingResponse) Value() (val scale.VaryingDataTypeValue, err error) {
-	vdt := scale.VaryingDataType(*c)
-	return vdt.Value()
+func (mvdt ChunkFetchingResponse) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return *new(ChunkResponse), nil
+
+	case 1:
+		return *new(NoSuchChunk), nil
+
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
+
+// NewChunkFetchingResponse returns a new chunk fetching response varying data type
+func NewChunkFetchingResponse() ChunkFetchingResponse {
+	return ChunkFetchingResponse{}
 }
 
 // ChunkResponse represents the requested chunk data
@@ -59,18 +94,8 @@ type ChunkResponse struct {
 	Proof [][]byte `scale:"2"`
 }
 
-// Index returns the index of varying data type
-func (ChunkResponse) Index() uint {
-	return 0
-}
-
 // NoSuchChunk indicates that the requested chunk was not found
 type NoSuchChunk struct{}
-
-// Index returns the index of varying data type
-func (NoSuchChunk) Index() uint {
-	return 1
-}
 
 // Encode returns the SCALE encoding of the ChunkFetchingResponse
 func (c *ChunkFetchingResponse) Encode() ([]byte, error) {

@@ -438,7 +438,7 @@ func (nbr *NetworkBridgeReceiver) assignIncoming(relayParent common.Hash, perRel
 	}
 
 	coreIndexNow := validatorGroups.GroupRotationInfo.CoreForGroup(groupIndex, uint8(len(availabilityCores.Types)))
-	coreNow, err := availabilityCores.Types[coreIndexNow.Index].Value()
+	coreNow, err := availabilityCores[coreIndexNow.Index].Value()
 	if err != nil {
 		return fmt.Errorf("getting core now: %w", err)
 	}

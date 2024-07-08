@@ -12,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -69,9 +68,9 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 	const somePeer = peer.ID("abc")
 
 	block1AnnounceHeader := types.NewHeader(common.Hash{}, common.Hash{},
-		common.Hash{}, 1, scale.VaryingDataTypeSlice{})
+		common.Hash{}, 1, nil)
 	block2AnnounceHeader := types.NewHeader(common.Hash{}, common.Hash{},
-		common.Hash{}, 2, scale.VaryingDataTypeSlice{})
+		common.Hash{}, 2, nil)
 
 	testCases := map[string]struct {
 		serviceBuilder      func(ctrl *gomock.Controller) *Service
@@ -83,6 +82,7 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 		"best_block_header_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().IsPaused().Return(false)
 				blockState.EXPECT().BestBlockHeader().Return(nil, errTest)
 				return &Service{
 					blockState: blockState,
@@ -96,6 +96,7 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 		"number_smaller_than_best_block_number_get_hash_by_number_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().IsPaused().Return(false)
 				bestBlockHeader := &types.Header{Number: 2}
 				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
 				blockState.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{}, errTest)
@@ -112,6 +113,7 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 		"number_smaller_than_best_block_number_and_same_hash": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().IsPaused().Return(false)
 				bestBlockHeader := &types.Header{Number: 2}
 				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
 				blockState.EXPECT().GetHashByNumber(uint(1)).Return(block1AnnounceHeader.Hash(), nil)
@@ -125,6 +127,7 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 		"number_smaller_than_best_block_number_get_highest_finalised_header_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().IsPaused().Return(false)
 				bestBlockHeader := &types.Header{Number: 2}
 				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
 				blockState.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{2}, nil)
@@ -141,7 +144,7 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 		"number_smaller_than_best_block_announced_number_equaks_finalised_number": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				blockState := NewMockBlockState(ctrl)
-
+				blockState.EXPECT().IsPaused().Return(false)
 				bestBlockHeader := &types.Header{Number: 2}
 				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
 				blockState.EXPECT().GetHashByNumber(uint(1)).
@@ -166,6 +169,7 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 		"number_smaller_than_best_block_number_and_finalised_number_bigger_than_number": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().IsPaused().Return(false)
 				bestBlockHeader := &types.Header{Number: 2}
 				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
 				blockState.EXPECT().GetHashByNumber(uint(1)).
@@ -192,6 +196,7 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 			"has_header_error": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().IsPaused().Return(false)
 				bestBlockHeader := &types.Header{Number: 3}
 				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
 				blockState.EXPECT().GetHashByNumber(uint(2)).
@@ -213,6 +218,7 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 			"has_the_hash": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
 				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().IsPaused().Return(false)
 				bestBlockHeader := &types.Header{Number: 3}
 				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
 				blockState.EXPECT().GetHashByNumber(uint(2)).
@@ -229,8 +235,8 @@ func TestService_HandleBlockAnnounce(t *testing.T) {
 		},
 		"number_bigger_than_best_block_number_added_in_disjoint_set_with_success": {
 			serviceBuilder: func(ctrl *gomock.Controller) *Service {
-
 				blockState := NewMockBlockState(ctrl)
+				blockState.EXPECT().IsPaused().Return(false)
 				bestBlockHeader := &types.Header{Number: 1}
 				blockState.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil)
 				chainSyncMock := NewMockChainSync(ctrl)
@@ -294,7 +300,7 @@ func Test_Service_HandleBlockAnnounceHandshake(t *testing.T) {
 	}
 
 	err := service.HandleBlockAnnounceHandshake(peer.ID("peer"), message)
-	require.Nil(t, err)
+	require.NoError(t, err)
 }
 
 func TestService_IsSynced(t *testing.T) {

@@ -17,119 +17,175 @@ import (
 
 func TestInitiateEpoch_Epoch0(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
+	babeService := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 	babeService.constants.epochLength = 20
-	startSlot := uint64(1000)
 
-	err := babeService.epochState.SetFirstSlot(startSlot)
-	require.NoError(t, err)
-	_, err = babeService.initiateEpoch(0)
+	epochDescriptor, err := babeService.initiateEpoch(0)
 	require.NoError(t, err)
 
-	startSlot, err = babeService.epochState.GetStartSlotForEpoch(0)
+	epochStartSlot, err := babeService.epochState.GetStartSlotForEpoch(0, genesisHeader.Hash())
 	require.NoError(t, err)
-	require.Greater(t, startSlot, uint64(1))
+	require.GreaterOrEqual(t, epochStartSlot, epochDescriptor.startSlot)
 }
 
-func TestInitiateEpoch_Epoch1(t *testing.T) {
+func TestInitiateEpoch_Epoch0_Epoch1WithoutConfigData_Epoch2WithConfigData(t *testing.T) {
 	cfg := ServiceConfig{
 		Authority: true,
 	}
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, nil)
-	babeService.constants.epochLength = 10
+	babeService := createTestService(t, cfg, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 
-	state.AddBlocksToState(t, babeService.blockState.(*state.BlockState), 1, false)
+	epoch0DataRaw, err := babeService.epochState.GetEpochDataRaw(0, nil)
+	require.NoError(t, err)
 
-	// epoch 1, check that genesis EpochData and ConfigData was properly set
-	auth := types.AuthorityRaw{
-		Key:    babeService.keypair.Public().(*sr25519.PublicKey).AsBytes(),
-		Weight: 1,
+	// for epoch 1, change authorities and randomness
+	epoch1DataRaw := *epoch0DataRaw
+	epoch1DataRaw.Authorities = []types.AuthorityRaw{
+		{
+			Key:    [32]byte(keyring.KeyBob.Public().Encode()),
+			Weight: 1,
+		},
+		// on epoch 1, babe service account will be at index 1
+		{
+			Key:    babeService.keypair.Public().(*sr25519.PublicKey).AsBytes(),
+			Weight: 1,
+		},
+		{
+			Key:    [32]byte(keyring.KeyCharlie.Public().Encode()),
+			Weight: 1,
+		},
 	}
-
-	data, err := babeService.epochState.GetEpochDataRaw(0, nil)
-	require.NoError(t, err)
-	data.Authorities = []types.AuthorityRaw{auth}
-	err = babeService.epochState.(*state.EpochState).SetEpochDataRaw(1, data)
+	epoch1DataRaw.Randomness = [32]byte{0x0f}
+	err = babeService.epochState.(*state.EpochState).SetEpochDataRaw(1, &epoch1DataRaw)
 	require.NoError(t, err)
 
-	ed, err := babeService.initiateEpoch(1)
+	const authorityIndex = 0
+	currentEpochNumber := uint64(0)
+	ed, err := babeService.initiateEpoch(currentEpochNumber)
+	require.NoError(t, err)
+
+	const numOfAuthoritiesOnEpoch0 = 1
+	expectedThreshold, err := CalculateThreshold(AuthorOnEverySlotBABEConfig.C1,
+		AuthorOnEverySlotBABEConfig.C2, numOfAuthoritiesOnEpoch0)
 	require.NoError(t, err)
 
 	expected := &epochData{
-		randomness:     [32]byte{},
-		authorities:    []types.AuthorityRaw{auth},
-		authorityIndex: 0,
-		threshold:      ed.threshold,
+		randomness: AuthorOnEverySlotBABEConfig.Randomness,
+		authorities: []types.AuthorityRaw{
+			{
+				Key:    babeService.keypair.Public().(*sr25519.PublicKey).AsBytes(),
+				Weight: 1,
+			},
+		},
+		authorityIndex: authorityIndex,
+		threshold:      expectedThreshold,
 	}
-	require.Equal(t, expected.randomness, ed.randomness)
-	require.Equal(t, expected.authorityIndex, ed.authorityIndex)
-	require.Equal(t, expected.threshold, ed.threshold)
+	require.Equal(t, expected.randomness, ed.data.randomness)
+	require.Equal(t, expected.authorityIndex, ed.data.authorityIndex)
+	require.Equal(t, expected.threshold, ed.data.threshold)
 
-	for i, auth := range ed.authorities {
+	preRuntimeDigest, err := claimSlot(ed.epoch, ed.startSlot, ed.data, babeService.keypair)
+	require.NoError(t, err)
+
+	digest := types.NewDigest()
+	err = digest.Add(*preRuntimeDigest)
+	require.NoError(t, err)
+
+	blockNumber1Header := state.AddBlockToState(t,
+		babeService.blockState.(*state.BlockState), 1, digest, genesisHeader.Hash())
+
+	for i, auth := range ed.data.authorities {
 		require.Equal(t, expected.authorities[i], auth)
 	}
 
-	// for epoch 2, set EpochData but not ConfigData
-	edata := &types.EpochDataRaw{
-		Authorities: ed.authorities,
-		Randomness:  [32]byte{9},
-	}
-
-	err = babeService.epochState.(*state.EpochState).SetEpochDataRaw(2, edata)
+	const numOfAuthoritiesOnEpoch1 = 3
+	expectedThreshold, err = CalculateThreshold(AuthorOnEverySlotBABEConfig.C1,
+		AuthorOnEverySlotBABEConfig.C2, numOfAuthoritiesOnEpoch1)
 	require.NoError(t, err)
 
-	expected = &epochData{
-		randomness:     edata.Randomness,
-		authorities:    edata.Authorities,
-		authorityIndex: 0,
-		threshold:      ed.threshold,
+	expectedEpoch1Data := &epochData{
+		randomness:     epoch1DataRaw.Randomness,
+		authorities:    epoch1DataRaw.Authorities,
+		authorityIndex: 1,
+		threshold:      expectedThreshold,
 	}
 
-	ed, err = babeService.initiateEpoch(2)
+	// epoch 1 has only a different epoch data raw
+	// the epoch config remains
+	currentEpochNumber = uint64(1)
+	ed, err = babeService.initiateEpoch(currentEpochNumber)
 	require.NoError(t, err)
-	require.Equal(t, expected.randomness, ed.randomness)
-	require.Equal(t, expected.authorityIndex, ed.authorityIndex)
-	require.Equal(t, expected.threshold, ed.threshold)
+	require.Equal(t, expectedEpoch1Data.randomness, ed.data.randomness)
+	require.Equal(t, expectedEpoch1Data.authorityIndex, ed.data.authorityIndex)
+	require.Equal(t, expectedEpoch1Data.threshold, ed.data.threshold)
 
-	for i, auth := range ed.authorities {
-		require.Equal(t, expected.authorities[i], auth)
+	for i, auth := range ed.data.authorities {
+		require.Equal(t, expectedEpoch1Data.authorities[i], auth)
 	}
 
-	// for epoch 3, set EpochData and ConfigData
-	edata = &types.EpochDataRaw{
-		Authorities: ed.authorities,
-		Randomness:  [32]byte{9},
-	}
-
-	err = babeService.epochState.(*state.EpochState).SetEpochDataRaw(3, edata)
+	preRuntimeDigest, err = claimSlot(ed.epoch, ed.startSlot, ed.data, babeService.keypair)
 	require.NoError(t, err)
 
-	cdata := &types.ConfigData{
+	digest = types.NewDigest()
+	err = digest.Add(*preRuntimeDigest)
+	require.NoError(t, err)
+
+	state.AddBlockToState(t,
+		babeService.blockState.(*state.BlockState), 2, digest, blockNumber1Header.Hash())
+
+	// for epoch 2, set EpochData and ConfigData
+	epoch2DataRaw := &types.EpochDataRaw{
+		Authorities: []types.AuthorityRaw{
+			// on epoch 2, babe service account will be at index 0
+			{
+				Key:    babeService.keypair.Public().(*sr25519.PublicKey).AsBytes(),
+				Weight: 1,
+			},
+			{
+				Key:    [32]byte(keyring.KeyCharlie.Public().Encode()),
+				Weight: 1,
+			},
+		},
+		Randomness: [32]byte{9},
+	}
+
+	epoch2ConfigData := &types.ConfigData{
 		C1: 1,
 		C2: 99,
 	}
 
-	err = babeService.epochState.(*state.EpochState).SetConfigData(3, cdata)
+	err = babeService.epochState.(*state.EpochState).SetEpochDataRaw(2, epoch2DataRaw)
 	require.NoError(t, err)
 
-	threshold, err := CalculateThreshold(cdata.C1, cdata.C2, 1)
+	err = babeService.epochState.(*state.EpochState).StoreConfigData(2, epoch2ConfigData)
 	require.NoError(t, err)
 
-	expected = &epochData{
-		randomness:     edata.Randomness,
-		authorities:    edata.Authorities,
-		authorityIndex: 0,
-		threshold:      threshold,
+	const numOfAuthoritiesOnEpoch2 = 2
+	expectedThreshold, err = CalculateThreshold(epoch2ConfigData.C1, epoch2ConfigData.C2, numOfAuthoritiesOnEpoch2)
+	require.NoError(t, err)
+
+	expectedEpochDescriptor := &epochDescriptor{
+		data: &epochData{
+			randomness:     epoch2DataRaw.Randomness,
+			authorities:    epoch2DataRaw.Authorities,
+			authorityIndex: 0,
+			threshold:      expectedThreshold,
+		},
+		epoch:     2,
+		startSlot: ed.endSlot,
+		endSlot:   ed.endSlot + babeService.constants.epochLength,
 	}
-	ed, err = babeService.initiateEpoch(3)
+
+	currentEpochNumber = uint64(2)
+	ed, err = babeService.initiateEpoch(currentEpochNumber)
+
 	require.NoError(t, err)
-	require.Equal(t, expected, ed)
+	require.Equal(t, expectedEpochDescriptor, ed)
 }
 
 func TestIncrementEpoch(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	bs := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, nil)
+	bs := createTestService(t, ServiceConfig{}, genesis, genesisTrie, genesisHeader, AuthorOnEverySlotBABEConfig)
 
 	next, err := bs.incrementEpoch()
 	require.NoError(t, err)
@@ -148,7 +204,10 @@ func TestService_getLatestEpochData_genesis(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	service, _, genesisCfg := newTestServiceSetupParameters(t, genesis, genesisTrie, genesisHeader)
 
-	latestEpochData, err := service.getLatestEpochData()
+	service.keypair = keyring.KeyAlice
+	service.authority = true
+
+	latestEpochData, err := service.getEpochData(0, &genesisHeader)
 	require.NoError(t, err)
 
 	threshold, err := CalculateThreshold(genesisCfg.C1, genesisCfg.C2, len(genesisCfg.GenesisAuthorities))
@@ -163,7 +222,10 @@ func TestService_getLatestEpochData_epochData(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	service, epochState, genesisCfg := newTestServiceSetupParameters(t, genesis, genesisTrie, genesisHeader)
 
-	err := epochState.SetCurrentEpoch(1)
+	service.keypair = keyring.KeyAlice
+	service.authority = true
+
+	err := epochState.StoreCurrentEpoch(1)
 	require.NoError(t, err)
 
 	data := &types.EpochDataRaw{
@@ -173,8 +235,9 @@ func TestService_getLatestEpochData_epochData(t *testing.T) {
 	err = epochState.SetEpochDataRaw(1, data)
 	require.NoError(t, err)
 
-	ed, err := service.getLatestEpochData()
+	ed, err := service.getEpochData(1, &genesisHeader)
 	require.NoError(t, err)
+
 	threshold, err := CalculateThreshold(genesisCfg.C1, genesisCfg.C2, len(data.Authorities))
 	require.NoError(t, err)
 	require.Equal(t, data.Authorities, ed.authorities)
@@ -186,7 +249,10 @@ func TestService_getLatestEpochData_configData(t *testing.T) {
 	genesis, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	service, epochState, genesisCfg := newTestServiceSetupParameters(t, genesis, genesisTrie, genesisHeader)
 
-	err := epochState.SetCurrentEpoch(7)
+	service.keypair = keyring.KeyAlice
+	service.authority = true
+
+	err := epochState.StoreCurrentEpoch(7)
 	require.NoError(t, err)
 
 	data := &types.EpochDataRaw{
@@ -200,10 +266,11 @@ func TestService_getLatestEpochData_configData(t *testing.T) {
 		C1: 1,
 		C2: 7,
 	}
-	err = epochState.SetConfigData(1, cfgData) // set config data for a previous epoch, ensure latest config data is used
+	// set config data for a previous epoch, ensure latest config data is used
+	err = epochState.StoreConfigData(1, cfgData)
 	require.NoError(t, err)
 
-	ed, err := service.getLatestEpochData()
+	ed, err := service.getEpochData(7, &genesisHeader)
 	require.NoError(t, err)
 	threshold, err := CalculateThreshold(cfgData.C1, cfgData.C2, len(data.Authorities))
 	require.NoError(t, err)

@@ -198,7 +198,7 @@ func (cb *CandidateBacking) handleCommandSecond(
 	}
 
 	statement := parachaintypes.NewStatementVDT()
-	err = statement.Set(parachaintypes.Seconded(commitedCandidate))
+	err = statement.SetValue(parachaintypes.Seconded(commitedCandidate))
 	if err != nil {
 		return fmt.Errorf("setting statement: %w", err)
 	}
@@ -269,7 +269,7 @@ func (cb *CandidateBacking) handleCommandAttest(
 	}
 
 	statement := parachaintypes.NewStatementVDT()
-	if err := statement.Set(parachaintypes.Valid(candidateHash)); err != nil {
+	if err := statement.SetValue(parachaintypes.Valid(candidateHash)); err != nil {
 		return fmt.Errorf("setting statement: %w", err)
 	}
 

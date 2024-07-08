@@ -34,37 +34,56 @@ func (c CollationFetchingRequest) Encode() ([]byte, error) {
 	return scale.Marshal(c)
 }
 
+type CollationFetchingResponseValues interface {
+	parachaintypes.Collation
+}
+
 // CollationFetchingResponse represents a response sent by collator
-type CollationFetchingResponse scale.VaryingDataType
+type CollationFetchingResponse struct {
+	inner any
+}
 
-type CollationVDT parachaintypes.Collation
+func setCollationFetchingResponse[Value CollationFetchingResponseValues](mvdt *CollationFetchingResponse, value Value) {
+	mvdt.inner = value
+}
 
-// Index returns the index of varying data type
-func (CollationVDT) Index() uint {
-	return 0
+func (mvdt *CollationFetchingResponse) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case parachaintypes.Collation:
+		setCollationFetchingResponse(mvdt, value)
+		return
+
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt CollationFetchingResponse) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case parachaintypes.Collation:
+		return 0, mvdt.inner, nil
+
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt CollationFetchingResponse) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt CollationFetchingResponse) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return *new(parachaintypes.Collation), nil
+
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
 // NewCollationFetchingResponse returns a new collation fetching response varying data type
 func NewCollationFetchingResponse() CollationFetchingResponse {
-	vdt := scale.MustNewVaryingDataType(CollationVDT{})
-	return CollationFetchingResponse(vdt)
-}
-
-// Set will set a value using the underlying  varying data type
-func (c *CollationFetchingResponse) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*c)
-	err = vdt.Set(val)
-	if err != nil {
-		return
-	}
-	*c = CollationFetchingResponse(vdt)
-	return
-}
-
-// Value returns the value from the underlying varying data type
-func (c *CollationFetchingResponse) Value() (val scale.VaryingDataTypeValue, err error) {
-	vdt := scale.VaryingDataType(*c)
-	return vdt.Value()
+	return CollationFetchingResponse{}
 }
 
 // Encode returns the SCALE encoding of the CollationFetchingResponse
@@ -84,6 +103,6 @@ func (c *CollationFetchingResponse) String() string {
 	}
 
 	v, _ := c.Value()
-	collation := v.(CollationVDT)
+	collation := v.(parachaintypes.Collation)
 	return fmt.Sprintf("CollationFetchingResponse Collation=%+v", collation)
 }

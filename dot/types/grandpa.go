@@ -211,43 +211,65 @@ type GrandpaEquivocation struct {
 // GrandpaEquivocationEnum is a wrapper object for GRANDPA equivocation proofs, useful for unifying prevote
 // and precommit equivocations under a common type.
 // https://github.com/paritytech/substrate/blob/fb22096d2ec6bf38e67ce811ad2c31415237a9a5/primitives/finality-grandpa/src/lib.rs#L272 //nolint:lll
-type GrandpaEquivocationEnum scale.VaryingDataType
-
-// Set sets a VaryingDataTypeValue using the underlying VaryingDataType
-func (ge *GrandpaEquivocationEnum) Set(value scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*ge)
-	err = vdt.Set(value)
-	if err != nil {
-		return err
-	}
-	*ge = GrandpaEquivocationEnum(vdt)
-	return nil
+type GrandpaEquivocationEnum struct {
+	inner any
+}
+type GrandpaEquivocationEnumValues interface {
+	PreVote | PreCommit
 }
 
-// Value will return the value from the underlying VaryingDataType
-func (ge *GrandpaEquivocationEnum) Value() (value scale.VaryingDataTypeValue, err error) {
-	vdt := scale.VaryingDataType(*ge)
-	return vdt.Value()
+func setGrandpaEquivocationEnum[Value GrandpaEquivocationEnumValues](mvdt *GrandpaEquivocationEnum, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *GrandpaEquivocationEnum) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case PreVote:
+		setGrandpaEquivocationEnum(mvdt, value)
+		return
+	case PreCommit:
+		setGrandpaEquivocationEnum(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt GrandpaEquivocationEnum) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case PreVote:
+		return 0, mvdt.inner, nil
+	case PreCommit:
+		return 1, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt GrandpaEquivocationEnum) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt GrandpaEquivocationEnum) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return PreVote{}, nil
+	case 1:
+		return PreCommit{}, nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
 // NewGrandpaEquivocation returns a new VaryingDataType to represent a grandpa Equivocation
 func NewGrandpaEquivocation() *GrandpaEquivocationEnum {
-	vdt := scale.MustNewVaryingDataType(PreVote{}, PreCommit{})
-	ge := GrandpaEquivocationEnum(vdt)
-	return &ge
+	return &GrandpaEquivocationEnum{}
 }
 
 // PreVote equivocation type for a prevote
 type PreVote GrandpaEquivocation
 
-// Index returns VDT index
-func (PreVote) Index() uint { return 0 }
-
 // PreCommit equivocation type for a precommit
 type PreCommit GrandpaEquivocation
-
-// Index returns VDT index
-func (PreCommit) Index() uint { return 1 }
 
 // GrandpaOpaqueKeyOwnershipProof contains a key ownership proof for reporting equivocations
 // https://github.com/paritytech/substrate/blob/fb22096d2ec6bf38e67ce811ad2c31415237a9a5/primitives/finality-grandpa/src/lib.rs#L533 //nolint:lll

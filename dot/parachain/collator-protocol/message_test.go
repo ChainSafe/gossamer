@@ -14,11 +14,12 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
-	gomock "go.uber.org/mock/gomock"
 	"gopkg.in/yaml.v3"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
+	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 )
@@ -84,12 +85,12 @@ func TestCollationProtocol(t *testing.T) {
 	}
 
 	statementVDTWithSeconded := parachaintypes.NewStatementVDT()
-	err := statementVDTWithSeconded.Set(secondedEnumValue)
+	err := statementVDTWithSeconded.SetValue(secondedEnumValue)
 	require.NoError(t, err)
 
 	testCases := []struct {
 		name          string
-		enumValue     scale.VaryingDataTypeValue
+		enumValue     any
 		encodingValue []byte
 	}{
 		{
@@ -130,10 +131,10 @@ func TestCollationProtocol(t *testing.T) {
 				vdtParent := collatorprotocolmessages.NewCollationProtocol()
 				vdtChild := collatorprotocolmessages.NewCollatorProtocolMessage()
 
-				err := vdtChild.Set(c.enumValue)
+				err := vdtChild.SetValue(c.enumValue)
 				require.NoError(t, err)
 
-				err = vdtParent.Set(vdtChild)
+				err = vdtParent.SetValue(vdtChild)
 				require.NoError(t, err)
 
 				bytes, err := scale.Marshal(vdtParent)
@@ -149,9 +150,9 @@ func TestCollationProtocol(t *testing.T) {
 				err := scale.Unmarshal(c.encodingValue, &vdtParent)
 				require.NoError(t, err)
 
-				vdtChildTemp, err := vdtParent.Value()
+				index, vdtChildTemp, err := vdtParent.IndexValue()
 				require.NoError(t, err)
-				require.Equal(t, uint(0), vdtChildTemp.Index())
+				require.Equal(t, uint(0), index)
 
 				vdtChild := vdtChildTemp.(collatorprotocolmessages.CollatorProtocolMessage)
 				require.NoError(t, err)
@@ -159,7 +160,6 @@ func TestCollationProtocol(t *testing.T) {
 				actualData, err := vdtChild.Value()
 				require.NoError(t, err)
 
-				require.Equal(t, c.enumValue.Index(), actualData.Index())
 				require.EqualValues(t, c.enumValue, actualData)
 			})
 		})
@@ -202,7 +202,7 @@ func TestHandleCollationMessageCommon(t *testing.T) {
 	msg3 := collatorprotocolmessages.NewCollationProtocol()
 	propagate, err = cpvs.handleCollationMessage(peerID, &msg3)
 	require.False(t, propagate)
-	require.ErrorContains(t, err, "getting collator protocol value: varying data type not set")
+	require.ErrorContains(t, err, "getting collator protocol value: unsupported varying data type value")
 }
 
 func TestHandleCollationMessageDeclare(t *testing.T) {
@@ -230,22 +230,23 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 		declareMsg         collatorprotocolmessages.Declare
 		peerData           map[peer.ID]PeerData
 		currentAssignments map[parachaintypes.ParaID]uint
-		net                Network
-		success            bool
-		errString          string
+		// net                Network
+		expectedMessages []any
+		success          bool
+		errString        string
 	}{
 		{
 			description: "fail with unknown peer and report the sender if sender is not stored in our peerdata",
 			declareMsg:  collatorprotocolmessages.Declare{},
-			net: func() Network {
-				ctrl := gomock.NewController(t)
-				net := NewMockNetwork(ctrl)
-				net.EXPECT().ReportPeer(peerset.ReputationChange{
-					Value:  peerset.UnexpectedMessageValue,
-					Reason: peerset.UnexpectedMessageReason,
-				}, peerID)
-				return net
-			}(),
+			expectedMessages: []any{
+				networkbridgemessages.ReportPeer{
+					PeerID: peerID,
+					ReputationChange: peerset.ReputationChange{
+						Value:  peerset.UnexpectedMessageValue,
+						Reason: peerset.UnexpectedMessageReason,
+					},
+				},
+			},
 			errString: ErrUnknownPeer.Error(),
 		},
 		{
@@ -265,15 +266,15 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 					},
 				},
 			},
-			net: func() Network {
-				ctrl := gomock.NewController(t)
-				net := NewMockNetwork(ctrl)
-				net.EXPECT().ReportPeer(peerset.ReputationChange{
-					Value:  peerset.UnexpectedMessageValue,
-					Reason: peerset.UnexpectedMessageReason,
-				}, peerID)
-				return net
-			}(),
+			expectedMessages: []any{
+				networkbridgemessages.ReportPeer{
+					PeerID: peerID,
+					ReputationChange: peerset.ReputationChange{
+						Value:  peerset.UnexpectedMessageValue,
+						Reason: peerset.UnexpectedMessageReason,
+					},
+				},
+			},
 		},
 		{
 			description: "fail if collator signature could not be verified",
@@ -307,15 +308,15 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 					},
 				},
 			},
-			net: func() Network {
-				ctrl := gomock.NewController(t)
-				net := NewMockNetwork(ctrl)
-				net.EXPECT().ReportPeer(peerset.ReputationChange{
-					Value:  peerset.InvalidSignatureValue,
-					Reason: peerset.InvalidSignatureReason,
-				}, peerID)
-				return net
-			}(),
+			expectedMessages: []any{
+				networkbridgemessages.ReportPeer{
+					PeerID: peerID,
+					ReputationChange: peerset.ReputationChange{
+						Value:  peerset.InvalidSignatureValue,
+						Reason: peerset.InvalidSignatureReason,
+					},
+				},
+			},
 			errString: crypto.ErrSignatureVerificationFailed.Error(),
 		},
 		{
@@ -335,15 +336,19 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 				},
 			},
 			currentAssignments: make(map[parachaintypes.ParaID]uint),
-			net: func() Network {
-				ctrl := gomock.NewController(t)
-				net := NewMockNetwork(ctrl)
-				net.EXPECT().ReportPeer(peerset.ReputationChange{
-					Value:  peerset.UnneededCollatorValue,
-					Reason: peerset.UnneededCollatorReason,
-				}, peerID)
-				return net
-			}(),
+			expectedMessages: []any{
+				networkbridgemessages.ReportPeer{
+					PeerID: peerID,
+					ReputationChange: peerset.ReputationChange{
+						Value:  peerset.UnneededCollatorValue,
+						Reason: peerset.UnneededCollatorReason,
+					},
+				},
+				networkbridgemessages.DisconnectPeer{
+					Peer:    peerID,
+					PeerSet: networkbridgemessages.CollationProtocol,
+				},
+			},
 		},
 		{
 			description: "success case: check if PeerState of the sender has changed to Collating from Connected",
@@ -372,17 +377,31 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 		t.Run(c.description, func(t *testing.T) {
 			t.Parallel()
 			cpvs := CollatorProtocolValidatorSide{
-				net:                c.net,
 				peerData:           c.peerData,
 				currentAssignments: c.currentAssignments,
 			}
+
+			mockOverseer := overseer.NewMockableOverseer(t)
+			overseerToSubsystem := mockOverseer.RegisterSubsystem(&cpvs)
+			cpvs.OverseerToSubSystem = overseerToSubsystem
+			cpvs.SubSystemToOverseer = mockOverseer.GetSubsystemToOverseerChannel()
+
+			mockOverseer.Start()
+			defer mockOverseer.Stop()
+
+			for _, expectedMessage := range c.expectedMessages {
+				mockOverseer.ExpectMessageWithAction(expectedMessage, func(msg any) {
+					// do nothing
+				})
+			}
+
 			msg := collatorprotocolmessages.NewCollationProtocol()
 			vdtChild := collatorprotocolmessages.NewCollatorProtocolMessage()
 
-			err = vdtChild.Set(c.declareMsg)
+			err = vdtChild.SetValue(c.declareMsg)
 			require.NoError(t, err)
 
-			err = msg.Set(vdtChild)
+			err = msg.SetValue(vdtChild)
 			require.NoError(t, err)
 
 			propagate, err := cpvs.handleCollationMessage(peerID, &msg)
@@ -416,6 +435,7 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 		peerData           map[peer.ID]PeerData
 		perRelayParent     map[common.Hash]PerRelayParent
 		net                Network
+		expectedMessage    any
 		activeLeaves       map[common.Hash]parachaintypes.ProspectiveParachainsMode
 		errString          string
 	}{
@@ -423,18 +443,16 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			description: "fail with relay parent is unknown if we don't have the relay" +
 				" parent tracked and report the peer",
 			advertiseCollation: collatorprotocolmessages.AdvertiseCollation(testRelayParent),
-			net: func() Network {
-				ctrl := gomock.NewController(t)
-				net := NewMockNetwork(ctrl)
-				net.EXPECT().ReportPeer(peerset.ReputationChange{
+			expectedMessage: networkbridgemessages.ReportPeer{
+				PeerID: peerID,
+				ReputationChange: peerset.ReputationChange{
 					Value:  peerset.UnexpectedMessageValue,
 					Reason: peerset.UnexpectedMessageReason,
-				}, peerID)
-
-				return net
-			}(),
+				},
+			},
 			errString: ErrRelayParentUnknown.Error(),
 		},
+
 		{
 			description:        "fail with unknown peer if peer is not tracked in our list of active collators",
 			advertiseCollation: collatorprotocolmessages.AdvertiseCollation(testRelayParent),
@@ -458,15 +476,13 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 					},
 				},
 			},
-			net: func() Network {
-				ctrl := gomock.NewController(t)
-				net := NewMockNetwork(ctrl)
-				net.EXPECT().ReportPeer(peerset.ReputationChange{
+			expectedMessage: networkbridgemessages.ReportPeer{
+				PeerID: peerID,
+				ReputationChange: peerset.ReputationChange{
 					Value:  peerset.UnexpectedMessageValue,
 					Reason: peerset.UnexpectedMessageReason,
-				}, peerID)
-				return net
-			}(),
+				},
+			},
 			errString: ErrUndeclaredPara.Error(),
 		},
 		{
@@ -489,15 +505,13 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 					},
 				},
 			},
-			net: func() Network {
-				ctrl := gomock.NewController(t)
-				net := NewMockNetwork(ctrl)
-				net.EXPECT().ReportPeer(peerset.ReputationChange{
+			expectedMessage: networkbridgemessages.ReportPeer{
+				PeerID: peerID,
+				ReputationChange: peerset.ReputationChange{
 					Value:  peerset.WrongParaValue,
 					Reason: peerset.WrongParaReason,
-				}, peerID)
-				return net
-			}(),
+				},
+			},
 			errString: ErrInvalidAssignment.Error(),
 		},
 		{
@@ -552,16 +566,13 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 					},
 				},
 			},
-			net: func() Network {
-				ctrl := gomock.NewController(t)
-				net := NewMockNetwork(ctrl)
-				// reporting for error out of view
-				net.EXPECT().ReportPeer(peerset.ReputationChange{
+			expectedMessage: networkbridgemessages.ReportPeer{
+				PeerID: peerID,
+				ReputationChange: peerset.ReputationChange{
 					Value:  peerset.UnexpectedMessageValue,
 					Reason: peerset.UnexpectedMessageReason,
-				}, peerID)
-				return net
-			}(),
+				},
+			},
 			activeLeaves: map[common.Hash]parachaintypes.ProspectiveParachainsMode{},
 			errString:    ErrSecondedLimitReached.Error(),
 		},
@@ -576,13 +587,25 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 				peerData:       c.peerData,
 				activeLeaves:   c.activeLeaves,
 			}
+
+			mockOverseer := overseer.NewMockableOverseer(t)
+			overseerToSubsystem := mockOverseer.RegisterSubsystem(&cpvs)
+			cpvs.OverseerToSubSystem = overseerToSubsystem
+			cpvs.SubSystemToOverseer = mockOverseer.GetSubsystemToOverseerChannel()
+
+			mockOverseer.Start()
+			defer mockOverseer.Stop()
+
+			mockOverseer.ExpectMessageWithAction(c.expectedMessage, func(msg any) {
+				// do nothing
+			})
 			msg := collatorprotocolmessages.NewCollationProtocol()
 			vdtChild := collatorprotocolmessages.NewCollatorProtocolMessage()
 
-			err := vdtChild.Set(c.advertiseCollation)
+			err := vdtChild.SetValue(c.advertiseCollation)
 			require.NoError(t, err)
 
-			err = msg.Set(vdtChild)
+			err = msg.SetValue(vdtChild)
 			require.NoError(t, err)
 
 			propagate, err := cpvs.handleCollationMessage(peerID, &msg)

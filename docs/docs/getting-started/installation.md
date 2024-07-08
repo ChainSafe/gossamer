@@ -43,7 +43,7 @@ The development node is configured to produce a block every slot and to finalise
 
 ### Run Gossamer Node
 
-The gossamer node runs by default as an authority with 9 authorites set at genesis. The built-in keys, corresponding to the authorities, that are available for the node are `alice`, `bob`, `charlie`, `dave`, `eve`, `ferdie`, `george`, and `ian`.
+The gossamer node runs by default as an authority with 9 authorities set at genesis. The built-in keys, corresponding to the authorities, that are available for the node are `alice`, `bob`, `charlie`, `dave`, `eve`, `ferdie`, `george`, and `ian`.
 
 To initialise a gossamer node:
 

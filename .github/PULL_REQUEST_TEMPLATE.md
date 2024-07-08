@@ -13,9 +13,3 @@ go test -tags integration github.com/ChainSafe/gossamer
 ## Issues
 
 <!-- Write the issue number(s), for example: #123 -->
-
-## Primary Reviewer
-
-<!-- Tag a code owner to review your PR -->
-
-@

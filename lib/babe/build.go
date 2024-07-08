@@ -175,7 +175,7 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt ExtrinsicHandler) []*t
 	var included []*transaction.ValidTransaction
 
 	slotEnd := slot.start.Add(slot.duration * 2 / 3) // reserve last 1/3 of slot for block finalisation
-	timeout := time.Until(slotEnd)
+	timeout := slotEnd.Sub(slot.start)               // timeout relative to the slot start
 	slotTimer := time.NewTimer(timeout)
 
 	for {

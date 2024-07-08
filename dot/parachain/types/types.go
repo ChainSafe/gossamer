@@ -181,11 +181,6 @@ type OccupiedCore struct {
 	CandidateDescriptor CandidateDescriptor `scale:"8"`
 }
 
-// Index returns the index
-func (OccupiedCore) Index() uint {
-	return 0
-}
-
 // ScheduledCore Information about a core which is currently occupied.
 type ScheduledCore struct {
 	// The ID of a para scheduled.
@@ -194,57 +189,71 @@ type ScheduledCore struct {
 	Collator *CollatorID `scale:"2"`
 }
 
-// Index returns the index
-func (ScheduledCore) Index() uint {
-	return 1
-}
-
 // Free Core information about a core which is currently free.
 type Free struct{}
 
-// Index returns the index
-func (Free) Index() uint {
-	return 2
-}
-
 // CoreState represents the state of a particular availability core.
-type CoreState scale.VaryingDataType
-
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (va *CoreState) Set(val scale.VaryingDataTypeValue) (err error) {
-	vdt := scale.VaryingDataType(*va)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value to varying data type: %w", err)
-	}
-	*va = CoreState(vdt)
-	return nil
+// type CoreState scale.VaryingDataType
+type CoreState struct {
+	inner any
 }
 
-// Value returns the value from the underlying VaryingDataType
-func (va *CoreState) Value() (scale.VaryingDataTypeValue, error) {
-	vdt := scale.VaryingDataType(*va)
-	return vdt.Value()
+type CoreStateValues interface {
+	OccupiedCore | ScheduledCore | Free
 }
 
-// NewCoreStateVDT returns a new CoreState VaryingDataType
-func NewCoreStateVDT() (scale.VaryingDataType, error) {
-	vdt, err := scale.NewVaryingDataType(OccupiedCore{}, ScheduledCore{}, Free{})
-	if err != nil {
-		return scale.VaryingDataType{}, fmt.Errorf("create varying data type: %w", err)
-	}
+func setCoreStateVDT[Value CoreStateValues](mvdt *CoreState, value Value) {
+	mvdt.inner = value
+}
 
-	return vdt, nil
+func (mvdt *CoreState) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case OccupiedCore:
+		setCoreStateVDT(mvdt, value)
+		return
+	case ScheduledCore:
+		setCoreStateVDT(mvdt, value)
+		return
+	case Free:
+		setCoreStateVDT(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt CoreState) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case OccupiedCore:
+		return 0, mvdt.inner, nil
+	case ScheduledCore:
+		return 1, mvdt.inner, nil
+	case Free:
+		return 2, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt CoreState) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt CoreState) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return OccupiedCore{}, nil
+	case 1:
+		return ScheduledCore{}, nil
+	case 2:
+		return Free{}, nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
 // NewAvailabilityCores returns a new AvailabilityCores
-func NewAvailabilityCores() (scale.VaryingDataTypeSlice, error) {
-	vdt, err := NewCoreStateVDT()
-	if err != nil {
-		return scale.VaryingDataTypeSlice{}, fmt.Errorf("create varying data type: %w", err)
-	}
-
-	return scale.NewVaryingDataTypeSlice(vdt), nil
+func NewAvailabilityCores() (cores []CoreState) {
+	return
 }
 
 // UpwardMessage A message from a parachain to its Relay Chain.
@@ -299,6 +308,22 @@ func (ccr CommittedCandidateReceipt) ToPlain() CandidateReceipt {
 
 func (c CommittedCandidateReceipt) Hash() (common.Hash, error) {
 	return c.ToPlain().Hash()
+}
+
+type hashable interface {
+	Hash() (common.Hash, error)
+}
+
+// GetCandidateHash returns the CandidateHash.
+//
+// candidate would be either CommittedCandidateReceipt or CandidateReceipt.
+func GetCandidateHash(candidate hashable) (CandidateHash, error) {
+	h, err := candidate.Hash()
+	if err != nil {
+		return CandidateHash{}, err
+	}
+
+	return CandidateHash{Value: h}, nil
 }
 
 // AssignmentID The public key of a keypair used by a validator for determining assignments
@@ -400,11 +425,6 @@ type CandidateBacked struct {
 	GroupIndex       GroupIndex       `scale:"4"`
 }
 
-// Index returns the VaryingDataType Index
-func (CandidateBacked) Index() uint {
-	return 0
-}
-
 // CandidateIncluded This candidate receipt was included and became a parablock at the most recent block.
 // This includes the core index the candidate was occupying as well as the group responsible
 // for backing the candidate.
@@ -413,11 +433,6 @@ type CandidateIncluded struct {
 	HeadData         HeadData         `scale:"2"`
 	CoreIndex        CoreIndex        `scale:"3"`
 	GroupIndex       GroupIndex       `scale:"4"`
-}
-
-// Index returns the VaryingDataType Index
-func (CandidateIncluded) Index() uint {
-	return 1
 }
 
 // CandidateTimedOut A candidate that timed out.
@@ -429,51 +444,72 @@ type CandidateTimedOut struct {
 	CoreIndex        CoreIndex        `scale:"3"`
 }
 
-// Index returns the VaryingDataType Index
-func (CandidateTimedOut) Index() uint {
-	return 2
-}
-
 // CandidateEvent A candidate event.
-type CandidateEvent scale.VaryingDataType
-
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (va *CandidateEvent) Set(val scale.VaryingDataTypeValue) (err error) {
-	// cast to VaryingDataType to use VaryingDataType.Set method
-	vdt := scale.VaryingDataType(*va)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value to varying data type: %w", err)
-	}
-	// store original ParentVDT with VaryingDataType that has been set
-	*va = CandidateEvent(vdt)
-	return nil
+type CandidateEvent struct {
+	inner any
 }
 
-// Value returns the value from the underlying VaryingDataType
-func (va *CandidateEvent) Value() (scale.VaryingDataTypeValue, error) {
-	vdt := scale.VaryingDataType(*va)
-	return vdt.Value()
+type CandidateEventValues interface {
+	CandidateBacked | CandidateIncluded | CandidateTimedOut
 }
 
-// NewCandidateEventVDT returns a new CandidateEvent VaryingDataType
-func NewCandidateEventVDT() (scale.VaryingDataType, error) {
-	vdt, err := scale.NewVaryingDataType(CandidateBacked{}, CandidateIncluded{}, CandidateTimedOut{})
-	if err != nil {
-		return scale.VaryingDataType{}, fmt.Errorf("create varying data type: %w", err)
-	}
+func setCandidateEvent[Value CandidateEventValues](mvdt *CandidateEvent, value Value) {
+	mvdt.inner = value
+}
 
-	return vdt, nil
+func (mvdt *CandidateEvent) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case CandidateBacked:
+		setCandidateEvent(mvdt, value)
+		return
+	case CandidateIncluded:
+		setCandidateEvent(mvdt, value)
+		return
+	case CandidateTimedOut:
+		setCandidateEvent(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt CandidateEvent) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case CandidateBacked:
+		return 0, mvdt.inner, nil
+	case CandidateIncluded:
+		return 1, mvdt.inner, nil
+	case CandidateTimedOut:
+		return 2, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt CandidateEvent) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt CandidateEvent) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return CandidateBacked{}, nil
+	case 1:
+		return CandidateIncluded{}, nil
+	case 2:
+		return CandidateTimedOut{}, nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
+
+// NewCandidateEvent returns a new CandidateEvent VaryingDataType
+func NewCandidateEvent() CandidateEvent {
+	return CandidateEvent{}
 }
 
 // NewCandidateEvents returns a new CandidateEvents
-func NewCandidateEvents() (scale.VaryingDataTypeSlice, error) {
-	vdt, err := NewCandidateEventVDT()
-	if err != nil {
-		return scale.VaryingDataTypeSlice{}, fmt.Errorf("create varying data type: %w", err)
-	}
-
-	return scale.NewVaryingDataTypeSlice(vdt), nil
+func NewCandidateEvents() (events []CandidateEvent) {
+	return
 }
 
 // PersistedValidationData should be relatively lightweight primarily because it is constructed
@@ -494,36 +530,76 @@ func (pvd PersistedValidationData) Hash() (common.Hash, error) {
 	return common.Blake2bHash(bytes)
 }
 
-// OccupiedCoreAssumption is an assumption being made about the state of an occupied core.
-type OccupiedCoreAssumption scale.VaryingDataType
-
-// Set will set a VaryingDataTypeValue using the underlying VaryingDataType
-func (o *OccupiedCoreAssumption) Set(val scale.VaryingDataTypeValue) (err error) {
-	// cast to VaryingDataType to use VaryingDataType.Set method
-	vdt := scale.VaryingDataType(*o)
-	err = vdt.Set(val)
-	if err != nil {
-		return fmt.Errorf("setting value to varying data type: %w", err)
-	}
-	// store original ParentVDT with VaryingDataType that has been set
-	*o = OccupiedCoreAssumption(vdt)
-	return nil
+type OccupiedCoreAssumptionValues interface {
+	IncludedOccupiedCoreAssumption | TimedOutOccupiedCoreAssumption | FreeOccupiedCoreAssumption
 }
 
-// Value will return value from underying VaryingDataType
-func (o *OccupiedCoreAssumption) Value() (scale.VaryingDataTypeValue, error) {
-	vdt := scale.VaryingDataType(*o)
-	return vdt.Value()
+// OccupiedCoreAssumption is an assumption being made about the state of an occupied core.
+type OccupiedCoreAssumption struct {
+	inner any
+}
+
+func setOccupiedCoreAssumption[Value OccupiedCoreAssumptionValues](mvdt *OccupiedCoreAssumption, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *OccupiedCoreAssumption) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case IncludedOccupiedCoreAssumption:
+		setOccupiedCoreAssumption(mvdt, value)
+		return
+
+	case FreeOccupiedCoreAssumption:
+		setOccupiedCoreAssumption(mvdt, value)
+		return
+
+	case TimedOutOccupiedCoreAssumption:
+		setOccupiedCoreAssumption(mvdt, value)
+		return
+
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt OccupiedCoreAssumption) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case IncludedOccupiedCoreAssumption:
+		return 0, mvdt.inner, nil
+
+	case FreeOccupiedCoreAssumption:
+		return 2, mvdt.inner, nil
+
+	case TimedOutOccupiedCoreAssumption:
+		return 1, mvdt.inner, nil
+
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt OccupiedCoreAssumption) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt OccupiedCoreAssumption) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return *new(IncludedOccupiedCoreAssumption), nil
+
+	case 2:
+		return *new(FreeOccupiedCoreAssumption), nil
+
+	case 1:
+		return *new(TimedOutOccupiedCoreAssumption), nil
+
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
 // IncludedOccupiedCoreAssumption means the candidate occupying the core was made available and
 // included to free the core.
 type IncludedOccupiedCoreAssumption struct{}
-
-// Index returns VDT index
-func (IncludedOccupiedCoreAssumption) Index() uint {
-	return 0
-}
 
 func (IncludedOccupiedCoreAssumption) String() string {
 	return "Included"
@@ -533,11 +609,6 @@ func (IncludedOccupiedCoreAssumption) String() string {
 // core without advancing the para.
 type TimedOutOccupiedCoreAssumption struct{}
 
-// Index returns VDT index
-func (TimedOutOccupiedCoreAssumption) Index() uint {
-	return 1
-}
-
 func (TimedOutOccupiedCoreAssumption) String() string {
 	return "TimedOut"
 }
@@ -545,23 +616,13 @@ func (TimedOutOccupiedCoreAssumption) String() string {
 // FreeOccupiedCoreAssumption means the core was not occupied to begin with.
 type FreeOccupiedCoreAssumption struct{}
 
-// Index returns VDT index
-func (FreeOccupiedCoreAssumption) Index() uint {
-	return 2
-}
-
 func (FreeOccupiedCoreAssumption) String() string {
 	return "Free"
 }
 
 // NewOccupiedCoreAssumption creates a OccupiedCoreAssumption varying data type.
 func NewOccupiedCoreAssumption() OccupiedCoreAssumption {
-	vdt := scale.MustNewVaryingDataType(
-		IncludedOccupiedCoreAssumption{},
-		FreeOccupiedCoreAssumption{},
-		TimedOutOccupiedCoreAssumption{})
-
-	return OccupiedCoreAssumption(vdt)
+	return OccupiedCoreAssumption{}
 }
 
 // CandidateHash makes it easy to enforce that a hash is a candidate hash on the type level.
@@ -579,18 +640,8 @@ type PoV struct {
 	BlockData BlockData `scale:"1"`
 }
 
-// Index returns the index of varying data type
-func (PoV) Index() uint {
-	return 0
-}
-
 // NoSuchPoV indicates that the requested PoV was not found in the store.
 type NoSuchPoV struct{}
-
-// Index returns the index of varying data type
-func (NoSuchPoV) Index() uint {
-	return 1
-}
 
 // BlockData represents parachain block data.
 // It contains everything required to validate para-block, may contain block and witness data.

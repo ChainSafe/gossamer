@@ -8,7 +8,6 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,7 +32,7 @@ func TestPoVFetchingResponse(t *testing.T) {
 	testBytes := common.MustHexToBytes("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19")
 	testCases := []struct {
 		name        string
-		value       scale.VaryingDataTypeValue
+		value       any
 		encodeValue []byte
 	}{
 		{
@@ -57,7 +56,7 @@ func TestPoVFetchingResponse(t *testing.T) {
 				t.Parallel()
 
 				povFetchingResponse := NewPoVFetchingResponse()
-				err := povFetchingResponse.Set(c.value)
+				err := povFetchingResponse.SetValue(c.value)
 				require.NoError(t, err)
 
 				actualEncode, err := povFetchingResponse.Encode()

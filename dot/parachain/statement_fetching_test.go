@@ -128,7 +128,7 @@ func TestStatementFetchingResponse(t *testing.T) {
 		t.Parallel()
 
 		response := NewStatementFetchingResponse()
-		err := response.Set(missingDataInStatement)
+		err := response.SetValue(missingDataInStatement)
 		require.NoError(t, err)
 
 		actualEncode, err := response.Encode()
