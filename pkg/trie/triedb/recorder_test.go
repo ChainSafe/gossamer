@@ -15,7 +15,7 @@ import (
 func TestRecorder(t *testing.T) {
 	inmemoryDB := NewMemoryDB(emptyNode)
 
-	triedb := NewEmptyTrieDB(inmemoryDB, nil, nil)
+	triedb := NewEmptyTrieDB(inmemoryDB)
 	triedb.SetVersion(trie.V1)
 
 	triedb.Put([]byte("aa"), []byte("aavalue"))
@@ -30,7 +30,7 @@ func TestRecorder(t *testing.T) {
 
 	t.Run("Record_aa_access_should_record_1_node", func(t *testing.T) {
 		recorder := NewRecorder()
-		trie := NewTrieDB(root, inmemoryDB, nil, recorder)
+		trie := NewTrieDB(root, inmemoryDB, WithRecorder(recorder))
 
 		value := trie.Get([]byte("aa"))
 		assert.True(t, bytes.Equal(value, []byte("aavalue")))
@@ -42,7 +42,7 @@ func TestRecorder(t *testing.T) {
 
 	t.Run("Record_aab_access_should_record_2_nodes_and_1_value", func(t *testing.T) {
 		recorder := NewRecorder()
-		trie := NewTrieDB(root, inmemoryDB, nil, recorder)
+		trie := NewTrieDB(root, inmemoryDB, WithRecorder(recorder))
 
 		value := trie.Get([]byte("aab"))
 		assert.True(t, bytes.Equal(value, []byte("aabvalue")))
@@ -53,7 +53,7 @@ func TestRecorder(t *testing.T) {
 
 	t.Run("Record_aabb_access_should_record_2_nodes", func(t *testing.T) {
 		recorder := NewRecorder()
-		trie := NewTrieDB(root, inmemoryDB, nil, recorder)
+		trie := NewTrieDB(root, inmemoryDB, WithRecorder(recorder))
 
 		value := trie.Get([]byte("aabb"))
 		assert.True(t, bytes.Equal(value, []byte("aabbvalue")))

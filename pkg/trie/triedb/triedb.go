@@ -30,6 +30,20 @@ type entry struct {
 	value []byte
 }
 
+type TrieDBOpts func(*TrieDB)
+
+var WithCache = func(c cache.TrieCache) TrieDBOpts {
+	return func(t *TrieDB) {
+		t.cache = c
+	}
+}
+
+var WithRecorder = func(r *Recorder) TrieDBOpts {
+	return func(t *TrieDB) {
+		t.recorder = r
+	}
+}
+
 // TrieDB is a DB-backed patricia merkle trie implementation
 // using lazy loading to fetch nodes
 type TrieDB struct {
@@ -50,25 +64,29 @@ type TrieDB struct {
 	recorder *Recorder
 }
 
-func NewEmptyTrieDB(db db.RWDatabase, cache cache.TrieCache, recorder *Recorder) *TrieDB {
+func NewEmptyTrieDB(db db.RWDatabase, opts ...TrieDBOpts) *TrieDB {
 	root := hashedNullNode
-	return NewTrieDB(root, db, cache, recorder)
+	return NewTrieDB(root, db)
 }
 
 // NewTrieDB creates a new TrieDB using the given root and db
-func NewTrieDB(rootHash common.Hash, db db.RWDatabase, cache cache.TrieCache, recorder *Recorder) *TrieDB {
+func NewTrieDB(rootHash common.Hash, db db.RWDatabase, opts ...TrieDBOpts) *TrieDB {
 	rootHandle := Persisted{hash: rootHash}
 
-	return &TrieDB{
+	trieDB := &TrieDB{
 		rootHash:   rootHash,
-		cache:      cache,
 		version:    trie.V0,
 		db:         db,
 		storage:    NewNodeStorage(),
 		rootHandle: rootHandle,
 		deathRow:   make(map[common.Hash]interface{}),
-		recorder:   recorder,
 	}
+
+	for _, opt := range opts {
+		opt(trieDB)
+	}
+
+	return trieDB
 }
 
 func (t *TrieDB) SetVersion(v trie.TrieLayout) {
