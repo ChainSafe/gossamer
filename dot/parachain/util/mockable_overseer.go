@@ -1,7 +1,7 @@
 // Copyright 2024 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package backing
+package util
 
 import (
 	"context"
@@ -26,10 +26,9 @@ func NewMockableOverseer() *MockableOverseer {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &MockableOverseer{
-		ctx:    ctx,
-		cancel: cancel,
-		wg:     sync.WaitGroup{},
-
+		ctx:                  ctx,
+		cancel:               cancel,
+		wg:                   sync.WaitGroup{},
 		SubsystemsToOverseer: make(chan any),
 		msgToAction:          make(map[any]func(msg any)),
 	}
@@ -49,9 +48,7 @@ func (m *MockableOverseer) RegisterSubsystem(subsystem parachaintypes.Subsystem)
 func (m *MockableOverseer) Start() error {
 	ctx := context.Background()
 	go func(sub parachaintypes.Subsystem, overseerToSubSystem chan any) {
-		logger.Info("starting subsystem...")
 		sub.Run(ctx, overseerToSubSystem, m.SubsystemsToOverseer)
-		logger.Info("subsystem stopped.")
 	}(m.subSystem, m.overseerToSubsystem)
 
 	return nil
