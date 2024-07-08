@@ -71,7 +71,6 @@ func TestProcessOverseerMessage(t *testing.T) {
 		description                     string
 		msg                             any
 		peerData                        map[peer.ID]PeerData
-		net                             Network
 		expectedMessageCounts           int
 		expectedNetworkBridgeSenderMsgs []any
 		fetchedCandidates               map[string]CollationEvent
@@ -271,7 +270,6 @@ func TestProcessOverseerMessage(t *testing.T) {
 		t.Run(c.description, func(t *testing.T) {
 			t.Parallel()
 			cpvs := CollatorProtocolValidatorSide{
-				net: c.net,
 				// perRelayParent: c.perRelayParent,
 				fetchedCandidates: c.fetchedCandidates,
 				peerData:          c.peerData,

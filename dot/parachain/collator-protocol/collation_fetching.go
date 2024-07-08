@@ -34,8 +34,6 @@ func (c CollationFetchingRequest) Encode() ([]byte, error) {
 	return scale.Marshal(c)
 }
 
-// type CollationVDT parachaintypes.Collation
-
 type CollationFetchingResponseValues interface {
 	parachaintypes.Collation
 }

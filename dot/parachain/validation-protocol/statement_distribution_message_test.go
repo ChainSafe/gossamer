@@ -7,7 +7,6 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"math"
 	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -33,10 +32,6 @@ func init() {
 var ErrInvalidVayingDataTypeValue = errors.New("unsupported type")
 
 type invalidVayingDataTypeValue struct{}
-
-func (invalidVayingDataTypeValue) Index() uint {
-	return math.MaxUint
-}
 
 func getDummyHash(num byte) common.Hash {
 	hash := common.Hash{}
