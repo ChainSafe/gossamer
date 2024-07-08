@@ -9,7 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Tests asserts are based on https://github.com/dimartiro/substrate-trie-test/blob/ed509516a95363d919e3264039d98a5db12bb201/src/substrate_trie_test.rs#L10
+// Tests results are based on
+// https://github.com/dimartiro/substrate-trie-test/blob/master/src/substrate_trie_test.rs
 func TestRecorder(t *testing.T) {
 	inmemoryDB := NewMemoryDB(emptyNode)
 
@@ -25,7 +26,7 @@ func TestRecorder(t *testing.T) {
 	root := triedb.MustHash()
 	require.NotNil(t, root)
 
-	t.Run("Record_pol_access_should_record_1_node", func(t *testing.T) {
+	t.Run("Record_pol_access_should_record_2_node", func(t *testing.T) {
 		recorder := NewRecorder()
 		trie := NewTrieDB(root, inmemoryDB, WithRecorder(recorder))
 
@@ -59,7 +60,7 @@ func TestRecorder(t *testing.T) {
 		}
 	})
 
-	t.Run("Record_go_access_should_record_2_nodes_and_1_value", func(t *testing.T) {
+	t.Run("Record_go_access_should_record_2_nodes", func(t *testing.T) {
 		recorder := NewRecorder()
 		trie := NewTrieDB(root, inmemoryDB, WithRecorder(recorder))
 
