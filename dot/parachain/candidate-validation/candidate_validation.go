@@ -270,35 +270,34 @@ func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
 
 	validationResultHash, err := validationResult.HeadData.Hash()
 	if err != nil {
-		return nil, fmt.Errorf("hashing validation result: %w", err)
+		return nil, fmt.Errorf("hashing head data: %w", err)
 	}
 
 	if validationResultHash != candidateReceipt.Descriptor.ParaHead {
 		ci := ParaHeadHashMismatch
 		return &ValidationResult{InvalidResult: &ci}, nil
-	} else {
-		outputs := parachaintypes.CandidateCommitments{
-			UpwardMessages:            validationResult.UpwardMessages,
-			HorizontalMessages:        validationResult.HorizontalMessages,
-			NewValidationCode:         validationResult.NewValidationCode,
-			HeadData:                  validationResult.HeadData,
-			ProcessedDownwardMessages: validationResult.ProcessedDownwardMessages,
-			HrmpWatermark:             validationResult.HrmpWatermark,
-		}
-
-		// if validation produced a new set of commitments, we treat the candidate as invalid
-		if candidateReceipt.CommitmentsHash != outputs.Hash() {
-			ci := CommitmentsHashMismatch
-			return &ValidationResult{InvalidResult: &ci}, nil
-		} else {
-			return &ValidationResult{
-				ValidResult: &ValidValidationResult{
-					CandidateCommitments:    outputs,
-					PersistedValidationData: persistedValidationData,
-				},
-			}, nil
-		}
 	}
+	candidateCommitments := parachaintypes.CandidateCommitments{
+		UpwardMessages:            validationResult.UpwardMessages,
+		HorizontalMessages:        validationResult.HorizontalMessages,
+		NewValidationCode:         validationResult.NewValidationCode,
+		HeadData:                  validationResult.HeadData,
+		ProcessedDownwardMessages: validationResult.ProcessedDownwardMessages,
+		HrmpWatermark:             validationResult.HrmpWatermark,
+	}
+
+	// if validation produced a new set of commitments, we treat the candidate as invalid
+	if candidateReceipt.CommitmentsHash != candidateCommitments.Hash() {
+		ci := CommitmentsHashMismatch
+		return &ValidationResult{InvalidResult: &ci}, nil
+	}
+	return &ValidationResult{
+		ValidResult: &ValidValidationResult{
+			CandidateCommitments:    candidateCommitments,
+			PersistedValidationData: persistedValidationData,
+		},
+	}, nil
+
 }
 
 // performBasicChecks Does basic checks of a candidate. Provide the encoded PoV-block.
