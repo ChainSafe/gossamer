@@ -897,7 +897,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				}
 			},
 			signedStatementWithPVD: parachaintypes.SignedFullStatementWithPVD{},
-			err:                    "unsupported VaryingDataTypeValue",
+			err:                    "unsupported varying data type value",
 		},
 		{
 			description: "getting_nil_summary_of_import_statement",

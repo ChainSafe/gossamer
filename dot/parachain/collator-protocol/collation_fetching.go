@@ -34,7 +34,7 @@ func (c CollationFetchingRequest) Encode() ([]byte, error) {
 	return scale.Marshal(c)
 }
 
-type CollationVDT parachaintypes.Collation
+// type CollationVDT parachaintypes.Collation
 
 type CollationFetchingResponseValues interface {
 	parachaintypes.Collation
@@ -105,6 +105,6 @@ func (c *CollationFetchingResponse) String() string {
 	}
 
 	v, _ := c.Value()
-	collation := v.(CollationVDT)
+	collation := v.(parachaintypes.Collation)
 	return fmt.Sprintf("CollationFetchingResponse Collation=%+v", collation)
 }

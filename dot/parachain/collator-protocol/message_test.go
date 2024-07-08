@@ -202,7 +202,7 @@ func TestHandleCollationMessageCommon(t *testing.T) {
 	msg3 := collatorprotocolmessages.NewCollationProtocol()
 	propagate, err = cpvs.handleCollationMessage(peerID, &msg3)
 	require.False(t, propagate)
-	require.ErrorContains(t, err, "getting collator protocol value: varying data type not set")
+	require.ErrorContains(t, err, "getting collator protocol value: unsupported varying data type value")
 }
 
 func TestHandleCollationMessageDeclare(t *testing.T) {

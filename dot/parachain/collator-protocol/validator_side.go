@@ -467,7 +467,7 @@ func (cpvs CollatorProtocolValidatorSide) requestCollation(relayParent common.Ha
 	if err != nil {
 		return nil, fmt.Errorf("getting value of collation fetching response: %w", err)
 	}
-	collationVDT, ok := v.(CollationVDT)
+	collationVDT, ok := v.(parachaintypes.Collation)
 	if !ok {
 		return nil, fmt.Errorf("collation fetching response value expected: CollationVDT, got: %T", v)
 	}

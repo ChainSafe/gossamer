@@ -16,7 +16,7 @@ var (
 	errBitVecTooLong                   = errors.New("bitvec too long")
 	ErrResultNotSet                    = errors.New("result not set")
 	ErrResultAlreadySet                = errors.New("result already has an assigned value")
-	ErrUnsupportedVaryingDataTypeValue = errors.New("unsupported VaryingDataTypeValue")
+	ErrUnsupportedVaryingDataTypeValue = errors.New("unsupported varying data type value")
 	ErrMustProvideVaryingDataTypeValue = errors.New("must provide at least one VaryingDataTypeValue")
 	errBigIntIsNil                     = errors.New("big int is nil")
 	ErrVaryingDataTypeNotSet           = errors.New("varying data type not set")
