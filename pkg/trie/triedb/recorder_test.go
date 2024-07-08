@@ -6,10 +6,10 @@ package triedb
 import (
 	"testing"
 
-	"github.com/karlseguin/ccache/v3/assert"
 	"github.com/stretchr/testify/require"
 )
 
+// Tests asserts are based on https://github.com/dimartiro/substrate-trie-test/blob/ed509516a95363d919e3264039d98a5db12bb201/src/substrate_trie_test.rs#L10
 func TestRecorder(t *testing.T) {
 	inmemoryDB := NewMemoryDB(emptyNode)
 
@@ -23,8 +23,7 @@ func TestRecorder(t *testing.T) {
 
 	// Commit and get root
 	root := triedb.MustHash()
-
-	assert.NotNil(t, root)
+	require.NotNil(t, root)
 
 	t.Run("Record_pol_access_should_record_1_node", func(t *testing.T) {
 		recorder := NewRecorder()
