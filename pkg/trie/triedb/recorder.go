@@ -84,3 +84,10 @@ func (r *Recorder) record(access TrieAccess) {
 		r.recordedKeys.Set(string(a.fullKey), RecordedValue)
 	}
 }
+
+func (r *Recorder) Drain() []Record {
+	r.recordedKeys.Clear()
+	nodes := r.nodes
+	r.nodes = []Record{}
+	return nodes
+}
