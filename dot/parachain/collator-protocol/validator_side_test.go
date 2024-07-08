@@ -350,6 +350,7 @@ func testCompareNetworkBridgeMsgs(t *testing.T, expected []any, actual []any) {
 			expectedCollationMsg, err := scale.Marshal(expectedMsg.CollationProtocolMessage)
 			require.NoError(t, err)
 			actualCollationMsg, err := scale.Marshal(actualMsg.CollationProtocolMessage)
+			require.NoError(t, err)
 			require.Equal(t, expectedCollationMsg, actualCollationMsg)
 		}
 	}
