@@ -70,9 +70,7 @@ func (m *MockableOverseer) MockMessageAction(msg any, fn func(msg any)) {
 
 func (m *MockableOverseer) processMessages() {
 	for {
-		select {
-		case msg := <-m.SubsystemsToOverseer:
-			m.msgToAction[msg](msg)
-		}
+		msg := <-m.SubsystemsToOverseer
+		m.msgToAction[msg](msg)
 	}
 }
