@@ -73,10 +73,15 @@ func (m *MockableOverseer) processMessages(t *testing.T) {
 	for {
 		select {
 		case msg := <-m.SubsystemsToOverseer:
+			if msg == nil {
+				continue
+			}
 			action, ok := m.expectedMessagesWithAction[msg]
 			if !ok {
 				t.Errorf("unexpected message: %v", msg)
+				continue
 			}
+
 			action(msg)
 		case <-m.ctx.Done():
 			if err := m.ctx.Err(); err != nil {
