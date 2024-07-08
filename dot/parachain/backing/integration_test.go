@@ -5,9 +5,7 @@ package backing
 
 import (
 	"context"
-	"errors"
 	"sync"
-	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
@@ -21,7 +19,6 @@ type MockableOverseer struct {
 	overseerToSubsystem  chan any
 	subSystem            parachaintypes.Subsystem
 
-	// this is going to be limited to only one testcase
 	msgToAction map[any]func(msg any)
 }
 
@@ -67,18 +64,8 @@ func (m *MockableOverseer) ReceiveMessage(msg any) {
 	m.overseerToSubsystem <- msg
 }
 
-type InputOutput struct {
-	InputMessage  any
-	OutputMessage any
-}
-
 func (m *MockableOverseer) MockMessageAction(msg any, fn func(msg any)) {
 	m.msgToAction[msg] = fn
-}
-
-func test(msg any) {
-	newMessage := msg.(parachaintypes.ProspectiveParachainsMessageIntroduceCandidate)
-	newMessage.Ch <- errors.New("error")
 }
 
 func (m *MockableOverseer) processMessages() {
@@ -89,26 +76,3 @@ func (m *MockableOverseer) processMessages() {
 		}
 	}
 }
-
-func preSetup(t *testing.T) {
-	t.Helper()
-
-	overseer := NewMockableOverseer()
-
-	backing := New(overseer.SubsystemsToOverseer)
-	// candidateBacking.BlockState = nil // use mock block state
-
-	backing.ctx = overseer.ctx
-	backing.cancel = overseer.cancel
-	backing.OverseerToSubSystem = overseer.RegisterSubsystem(backing)
-
-	overseer.Start()
-}
-
-// func TestBacking(t *testing.T) {
-// 	go preSetup(t)
-// 	time.Sleep(2 * time.Second)
-// 	println("Test backing")
-
-// 	time.Sleep(10 * time.Second)
-// }
