@@ -209,14 +209,17 @@ func New(overseerChan chan<- any) *CandidateBacking {
 }
 
 func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan any, subSystemToOverseer chan any) {
+	fmt.Println("Hey AXAY!\nThis is CandidateBacking subsystem.")
 	cb.wg.Add(1)
 	go cb.runUtil()
+	cb.wg.Wait()
 }
 
 func (cb *CandidateBacking) runUtil() {
 	chRelayParentAndCommand := make(chan relayParentAndCommand)
 
 	for {
+		fmt.Println("runUtil function is running...")
 		select {
 		case rpAndCmd := <-chRelayParentAndCommand:
 			if err := cb.processValidatedCandidateCommand(rpAndCmd, chRelayParentAndCommand); err != nil {
@@ -227,6 +230,7 @@ func (cb *CandidateBacking) runUtil() {
 				logger.Errorf("processing message: %s", err.Error())
 			}
 		case <-cb.ctx.Done():
+			logger.Info("==> Context done <==")
 			close(chRelayParentAndCommand)
 			if err := cb.ctx.Err(); err != nil {
 				logger.Errorf("ctx error: %s\n", err)
