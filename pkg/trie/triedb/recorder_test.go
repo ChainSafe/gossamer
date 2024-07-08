@@ -28,7 +28,7 @@ func TestRecorder(t *testing.T) {
 
 	assert.NotNil(t, root)
 
-	t.Run("Record `aa` access should record 1 node", func(t *testing.T) {
+	t.Run("Record_aa_access_should_record_1_node", func(t *testing.T) {
 		recorder := NewRecorder()
 		trie := NewTrieDB(root, inmemoryDB, nil, recorder)
 
@@ -40,7 +40,7 @@ func TestRecorder(t *testing.T) {
 		assert.Equal(t, recorder.recordedKeys.Keys()[0], string(codec.KeyLEToNibbles([]byte("aa"))))
 	})
 
-	t.Run("Record `aab` access should record 2 nodes + 1 value", func(t *testing.T) {
+	t.Run("Record_aab_access_should_record_2_nodes_and_1_value", func(t *testing.T) {
 		recorder := NewRecorder()
 		trie := NewTrieDB(root, inmemoryDB, nil, recorder)
 
@@ -51,7 +51,7 @@ func TestRecorder(t *testing.T) {
 		assert.Equal(t, recorder.recordedKeys.Keys()[0], string(codec.KeyLEToNibbles([]byte("aab"))))
 	})
 
-	t.Run("Record `aabb` access should record 2 nodes", func(t *testing.T) {
+	t.Run("Record_aabb_access_should_record_2_nodes", func(t *testing.T) {
 		recorder := NewRecorder()
 		trie := NewTrieDB(root, inmemoryDB, nil, recorder)
 
