@@ -5,6 +5,7 @@ package sync
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -71,7 +72,7 @@ func executeRequest(who peer.ID, requestMaker network.RequestMaker,
 	sharedGuard <- struct{}{} // Acquire a semaphore slot before starting the request
 
 	request := task.request
-	logger.Debugf("[EXECUTING] worker %s, block request: %s", who, request)
+	fmt.Printf("[EXECUTING] worker %s, block request: %s\n", who, request)
 	response := new(network.BlockResponseMessage)
 	err := requestMaker.Do(who, request, response)
 
@@ -82,5 +83,5 @@ func executeRequest(who peer.ID, requestMaker network.RequestMaker,
 		err:      err,
 	}
 
-	logger.Debugf("[FINISHED] worker %s, err: %s, block data amount: %d", who, err, len(response.BlockData))
+	fmt.Printf("[FINISHED] worker %s, err: %s, block data amount: %d\n", who, err, len(response.BlockData))
 }

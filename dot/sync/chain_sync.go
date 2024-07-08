@@ -667,7 +667,6 @@ taskResultLoop:
 					}
 				}
 
-				// TODO: avoid the same peer to get the same task
 				err := cs.submitRequest(request, nil, workersResults)
 				if err != nil {
 					return err
