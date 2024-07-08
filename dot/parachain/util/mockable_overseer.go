@@ -46,10 +46,13 @@ func (m *MockableOverseer) RegisterSubsystem(subsystem parachaintypes.Subsystem)
 }
 
 func (m *MockableOverseer) Start() error {
-	ctx := context.Background()
+	m.wg.Add(2)
+
 	go func(sub parachaintypes.Subsystem, overseerToSubSystem chan any) {
-		sub.Run(ctx, overseerToSubSystem, m.SubsystemsToOverseer)
+		sub.Run(m.ctx, overseerToSubSystem, m.SubsystemsToOverseer)
 	}(m.subSystem, m.overseerToSubsystem)
+
+	go m.processMessages()
 
 	return nil
 }
