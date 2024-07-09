@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/internal/client/consensus/grandpa/mocks"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	ced25519 "github.com/ChainSafe/gossamer/internal/primitives/core/ed25519"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
@@ -80,93 +79,6 @@ func TestJustificationEncoding(t *testing.T) {
 	justification, err := decodeJustification[hash.H256, uint64, runtime.BlakeTwo256](encodedJustification)
 	require.NoError(t, err)
 	require.Equal(t, expected, justification.Justification)
-}
-
-func TestJustification_fromCommit(t *testing.T) {
-	commit := primitives.Commit[hash.H256, uint64]{}
-	client := mocks.NewHeaderBackend[hash.H256, uint64](t)
-	_, err := NewJustificationFromCommit[hash.H256, uint64](client, 2, commit)
-	require.NotNil(t, err)
-	require.ErrorIs(t, err, errBadJustification)
-	require.Equal(t, "bad justification for header: invalid precommits for target commit", err.Error())
-
-	// nil header
-	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID]
-	precommit := makePrecommit(t, "a", 1, 1, 1, ed25519.Alice)
-	precommits = append(precommits, precommit)
-
-	precommit = makePrecommit(t, "b", 2, 1, 1, ed25519.Alice)
-	precommits = append(precommits, precommit)
-
-	validCommit := primitives.Commit[hash.H256, uint64]{
-		TargetHash:   "a",
-		TargetNumber: 1,
-		Precommits:   precommits,
-	}
-
-	clientNil := mocks.NewHeaderBackend[hash.H256, uint64](t)
-	clientNil.EXPECT().Header(hash.H256("b")).Return(nil, nil)
-	_, err = NewJustificationFromCommit[hash.H256, uint64](
-		clientNil,
-		2,
-		validCommit,
-	)
-	require.NotNil(t, err)
-	require.ErrorIs(t, err, errBadJustification)
-	require.Equal(t, "bad justification for header: invalid precommits for target commit", err.Error())
-
-	// currentHeader.Number() <= baseNumber
-	var header runtime.Header[uint64, hash.H256] = generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
-		1,
-		hash.H256(""),
-		hash.H256(""),
-		"",
-		runtime.Digest{})
-
-	client.EXPECT().Header(hash.H256("b")).Return(&header, nil)
-	_, err = NewJustificationFromCommit[hash.H256, uint64](
-		client,
-		2,
-		validCommit,
-	)
-	require.NotNil(t, err)
-	require.ErrorIs(t, err, errBadJustification)
-	require.Equal(t, "bad justification for header: invalid precommits for target commit", err.Error())
-
-	// happy path
-	header = generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
-		100,
-		hash.H256(""),
-		hash.H256(""),
-		hash.H256("a"),
-		runtime.Digest{})
-
-	client = mocks.NewHeaderBackend[hash.H256, uint64](t)
-	client.EXPECT().Header(hash.H256("b")).Return(&header, nil)
-
-	expAncestries := make([]runtime.Header[uint64, hash.H256], 0)
-	expAncestries = append(expAncestries, generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
-		100,
-		hash.H256(""),
-		hash.H256(""),
-		hash.H256("a"),
-		runtime.Digest{}),
-	)
-	expJustification := primitives.GrandpaJustification[hash.H256, uint64]{
-		Round: 2,
-		Commit: primitives.Commit[hash.H256, uint64]{
-			TargetHash:   "a",
-			TargetNumber: 1,
-			Precommits:   precommits,
-		},
-		VoteAncestries: expAncestries,
-	}
-	justification, err := NewJustificationFromCommit[hash.H256, uint64](
-		client,
-		2,
-		validCommit)
-	require.NoError(t, err)
-	require.Equal(t, expJustification, justification.Justification)
 }
 
 func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
@@ -608,44 +520,4 @@ func TestAncestryChain_IsEqualOrDescendantOf(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
-}
-
-func TestWriteJustification(t *testing.T) {
-	store := newDummyStore()
-
-	headerA := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
-		1,
-		hash.H256(""),
-		hash.H256(""),
-		hash.H256(""),
-		runtime.Digest{})
-
-	var precommits []grandpa.SignedPrecommit[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID]
-	precommits = append(precommits, makePrecommit(t, string(headerA.Hash()), 1, 1, 1, ed25519.Alice))
-
-	expAncestries := make([]runtime.Header[uint64, hash.H256], 0)
-	expAncestries = append(expAncestries, headerA)
-
-	justification := GrandpaJustification[hash.H256, uint64]{
-		primitives.GrandpaJustification[hash.H256, uint64]{
-			Commit: primitives.Commit[hash.H256, uint64]{
-				TargetHash:   headerA.Hash(),
-				TargetNumber: 1,
-				Precommits:   precommits,
-			},
-			VoteAncestries: expAncestries,
-			Round:          2,
-		},
-	}
-
-	_, err := BestJustification[hash.H256, uint64, runtime.BlakeTwo256](store)
-	require.ErrorIs(t, err, errValueNotFound)
-
-	err = updateBestJustification[hash.H256, uint64](justification, write(store))
-	require.NoError(t, err)
-
-	bestJust, err := BestJustification[hash.H256, uint64, runtime.BlakeTwo256](store)
-	require.NoError(t, err)
-	require.NotNil(t, bestJust)
-	require.Equal(t, justification, *bestJust)
 }

@@ -429,7 +429,7 @@ func (s *Service) VerifyBlockJustification(finalizedHash common.Hash, finalizedN
 
 	voters := finality_grandpa.NewVoterSet(idsAndWeights)
 	target := client_grandpa.HashNumber[hash.H256, uint32]{
-		Hash:   hash.H256(string(finalizedHash.Bytes())),
+		Hash:   hash.H256(common.BytesToHex(finalizedHash.ToBytes())),
 		Number: uint32(finalizedNumber),
 	}
 
