@@ -51,7 +51,7 @@ func NewEncodedValue(value nodeValue, partial []byte, childF onChildStoreFn) (co
 
 		// Check and get new new value hash
 		switch cr := childRef.(type) {
-		case hashChildReference:
+		case HashChildReference:
 			if cr.hash == common.EmptyHash {
 				panic("new external value are always added before encoding a node")
 			}
@@ -234,29 +234,29 @@ type ChildReference interface {
 }
 
 type (
-	// hashChildReference is a reference to a child node that is not inlined
-	hashChildReference struct {
+	// HashChildReference is a reference to a child node that is not inlined
+	HashChildReference struct {
 		hash common.Hash
 	}
 	// InlineChildReference is a reference to an inlined child node
-	inlineChildReference struct {
+	InlineChildReference struct {
 		encodedNode []byte
 	}
 )
 
-func (h hashChildReference) getNodeData() []byte {
+func (h HashChildReference) getNodeData() []byte {
 	return h.hash.ToBytes()
 }
-func (i inlineChildReference) getNodeData() []byte {
+func (i InlineChildReference) getNodeData() []byte {
 	return i.encodedNode
 }
 
-func NewHashChildReference(hash common.Hash) hashChildReference {
-	return hashChildReference{hash: hash}
+func NewHashChildReference(hash common.Hash) HashChildReference {
+	return HashChildReference{hash: hash}
 }
 
-func NewInlineChildReference(encodedNode []byte) inlineChildReference {
-	return inlineChildReference{encodedNode: encodedNode}
+func NewInlineChildReference(encodedNode []byte) InlineChildReference {
+	return InlineChildReference{encodedNode: encodedNode}
 }
 
 type onChildStoreFn = func(node nodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error)
