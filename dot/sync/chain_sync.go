@@ -874,7 +874,9 @@ func (cs *chainSync) processBlockData(blockData types.BlockData, origin blockOri
 		}
 
 		if setFinalisedHash != nil {
-			setFinalisedHash()
+			if err := setFinalisedHash(); err != nil {
+				return err
+			}
 		}
 	}
 
