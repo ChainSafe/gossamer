@@ -38,7 +38,7 @@ func Benchmark_ValueCache(b *testing.B) {
 	assert.NoError(b, err)
 
 	b.Run("get_value_without_cache", func(b *testing.B) {
-		trieDB := NewTrieDB(root, db, nil, nil)
+		trieDB := NewTrieDB(root, db)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			// Use the deepest key to ensure the trie is traversed fully
@@ -48,7 +48,7 @@ func Benchmark_ValueCache(b *testing.B) {
 
 	b.Run("get_value_with_cache", func(b *testing.B) {
 		cache := inmemory_cache.NewTrieInMemoryCache()
-		trieDB := NewTrieDB(root, db, cache, nil)
+		trieDB := NewTrieDB(root, db, WithCache(cache))
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			// Use the deepest key to ensure the trie is traversed fully
@@ -83,7 +83,7 @@ func Benchmark_NodesCache(b *testing.B) {
 	assert.NoError(b, err)
 
 	b.Run("iterate_all_entries_without_cache", func(b *testing.B) {
-		trieDB := NewTrieDB(root, db, nil, nil)
+		trieDB := NewTrieDB(root, db)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			// Iterate through all keys
@@ -98,7 +98,7 @@ func Benchmark_NodesCache(b *testing.B) {
 	// cache the decoded node instead and avoid decoding it every time.
 	b.Run("iterate_all_entries_with_cache", func(b *testing.B) {
 		cache := inmemory_cache.NewTrieInMemoryCache()
-		trieDB := NewTrieDB(root, db, cache, nil)
+		trieDB := NewTrieDB(root, db, WithCache(cache))
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			// Iterate through all keys

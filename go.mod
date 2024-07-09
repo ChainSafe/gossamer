@@ -26,11 +26,11 @@ require (
 	github.com/jpillora/backoff v1.0.0
 	github.com/jpillora/ipfilter v1.2.9
 	github.com/karlseguin/ccache/v3 v3.0.5
-	github.com/klauspost/compress v1.17.8
+	github.com/klauspost/compress v1.17.9
 	github.com/libp2p/go-libp2p v0.33.2
 	github.com/libp2p/go-libp2p-kad-dht v0.25.2
 	github.com/minio/sha256-simd v1.0.1
-	github.com/multiformats/go-multiaddr v0.12.4
+	github.com/multiformats/go-multiaddr v0.13.0
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
 	github.com/prometheus/client_golang v1.19.1
 	github.com/prometheus/client_model v0.6.1
@@ -40,9 +40,9 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/tetratelabs/wazero v1.1.0
 	go.uber.org/mock v0.4.0
-	golang.org/x/crypto v0.24.0
+	golang.org/x/crypto v0.25.0
 	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
-	golang.org/x/term v0.21.0
+	golang.org/x/term v0.22.0
 	google.golang.org/protobuf v1.34.2
 )
 
@@ -190,7 +190,7 @@ require (
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	gonum.org/v1/gonum v0.13.0 // indirect

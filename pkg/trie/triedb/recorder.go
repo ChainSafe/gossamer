@@ -1,3 +1,6 @@
+// Copyright 2024 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package triedb
 
 import (
@@ -53,20 +56,20 @@ func NewRecordedNodesIterator(nodes []Record) *RecordedNodesIterator {
 	return &RecordedNodesIterator{nodes: nodes, index: -1}
 }
 
-func (r *RecordedNodesIterator) Next() (Record, bool) {
+func (r *RecordedNodesIterator) Next() *Record {
 	if r.index < len(r.nodes)-1 {
 		r.index++
-		return r.nodes[r.index], true
+		return &r.nodes[r.index]
 	}
-	return Record{}, false
+	return nil
 }
 
-func (r *RecordedNodesIterator) Peek() (Record, bool) {
+func (r *RecordedNodesIterator) Peek() *Record {
 	if r.index+1 < len(r.nodes)-1 {
 		r.index++
-		return r.nodes[r.index+1], true
+		return &r.nodes[r.index+1]
 	}
-	return Record{}, false
+	return nil
 }
 
 type Record struct {
@@ -109,7 +112,7 @@ func (r *Recorder) record(access TrieAccess) {
 
 func (r *Recorder) Drain() []Record {
 	r.recordedKeys.Clear()
-	nodesToReturn := r.nodes
+	nodes := r.nodes
 	r.nodes = []Record{}
-	return nodesToReturn
+	return nodes
 }

@@ -84,11 +84,11 @@ func (v HashedValue) Write(writer io.Writer) error {
 	return nil
 }
 
-func NewInlineValue(data []byte) EncodedValue {
+func NewInlineValue(data []byte) InlineValue {
 	return InlineValue{Data: data}
 }
 
-func NewHashedValue(data []byte) EncodedValue {
+func NewHashedValue(data []byte) HashedValue {
 	return HashedValue{Data: data}
 }
 
@@ -121,6 +121,7 @@ func (l Leaf) GetValue() EncodedValue   { return l.Value }
 func (b Branch) GetPartialKey() []byte  { return b.PartialKey }
 func (b Branch) GetValue() EncodedValue { return b.Value }
 
+// NodeKind is an enum to represent the different types of nodes (Leaf, Branch, etc.)
 type NodeKind int
 
 const (

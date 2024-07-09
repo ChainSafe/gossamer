@@ -30,6 +30,20 @@ type entry struct {
 	value []byte
 }
 
+type TrieDBOpts func(*TrieDB)
+
+var WithCache = func(c cache.TrieCache) TrieDBOpts {
+	return func(t *TrieDB) {
+		t.cache = c
+	}
+}
+
+var WithRecorder = func(r *Recorder) TrieDBOpts {
+	return func(t *TrieDB) {
+		t.recorder = r
+	}
+}
+
 // TrieDB is a DB-backed patricia merkle trie implementation
 // using lazy loading to fetch nodes
 type TrieDB struct {
@@ -50,25 +64,29 @@ type TrieDB struct {
 	recorder *Recorder
 }
 
-func NewEmptyTrieDB(db db.RWDatabase, cache cache.TrieCache, recorder *Recorder) *TrieDB {
+func NewEmptyTrieDB(db db.RWDatabase, opts ...TrieDBOpts) *TrieDB {
 	root := hashedNullNode
-	return NewTrieDB(root, db, cache, recorder)
+	return NewTrieDB(root, db)
 }
 
 // NewTrieDB creates a new TrieDB using the given root and db
-func NewTrieDB(rootHash common.Hash, db db.RWDatabase, cache cache.TrieCache, recorder *Recorder) *TrieDB {
+func NewTrieDB(rootHash common.Hash, db db.RWDatabase, opts ...TrieDBOpts) *TrieDB {
 	rootHandle := Persisted{hash: rootHash}
 
-	return &TrieDB{
+	trieDB := &TrieDB{
 		rootHash:   rootHash,
-		cache:      cache,
-		recorder:   recorder,
 		version:    trie.V0,
 		db:         db,
 		storage:    NewNodeStorage(),
 		rootHandle: rootHandle,
 		deathRow:   make(map[common.Hash]interface{}),
 	}
+
+	for _, opt := range opts {
+		opt(trieDB)
+	}
+
+	return trieDB
 }
 
 func (t *TrieDB) SetVersion(v trie.TrieLayout) {
@@ -714,6 +732,7 @@ func (t *TrieDB) lookupNode(hash common.Hash) (StorageHandle, error) {
 	}), nil
 }
 
+// commit writes all trie changes to the underlying db
 func (t *TrieDB) commit() error {
 	logger.Debug("Committing trie changes to db")
 	logger.Debugf("%d nodes to remove from db", len(t.deathRow))
@@ -750,7 +769,7 @@ func (t *TrieDB) commit() error {
 
 		encodedNode, err := NewEncodedNode(
 			stored.node,
-			func(node NodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error) {
+			func(node nodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error) {
 				k = append(k, partialKey...)
 				mov := len(partialKey)
 				if childIndex != nil {
@@ -759,7 +778,7 @@ func (t *TrieDB) commit() error {
 				}
 
 				switch n := node.(type) {
-				case NewNodeToEncode:
+				case newNodeToEncode:
 					hash := common.MustBlake2bHash(n.value)
 					err := dbBatch.Put(hash[:], n.value)
 					if err != nil {
@@ -767,8 +786,8 @@ func (t *TrieDB) commit() error {
 					}
 
 					k = k[:mov]
-					return HashChildReference{Hash: hash}, nil
-				case TrieNodeToEncode:
+					return hashChildReference{hash: hash}, nil
+				case trieNodeToEncode:
 					result, err := t.commitChild(dbBatch, n.child, k)
 					if err != nil {
 						return nil, err
@@ -817,15 +836,15 @@ func (t *TrieDB) commitChild(
 	switch nh := child.(type) {
 	case Persisted:
 		// Already persisted we have to do nothing
-		return HashChildReference{Hash: nh.hash}, nil
+		return hashChildReference(nh), nil
 	case InMemory:
 		stored := t.storage.destroy(nh.idx)
 		switch storedNode := stored.(type) {
 		case CachedStoredNode:
-			return HashChildReference{Hash: storedNode.hash}, nil
+			return hashChildReference{hash: storedNode.hash}, nil
 		case NewStoredNode:
 			// We have to store the node in the DB
-			commitChildFunc := func(node NodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error) {
+			commitChildFunc := func(node nodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error) {
 				prefixKey = append(prefixKey, partialKey...)
 				mov := len(partialKey)
 				if childIndex != nil {
@@ -834,7 +853,7 @@ func (t *TrieDB) commitChild(
 				}
 
 				switch n := node.(type) {
-				case NewNodeToEncode:
+				case newNodeToEncode:
 					valueHash := common.MustBlake2bHash(n.value)
 					prefixedKey := bytes.Join([][]byte{n.partialKey, valueHash.ToBytes()}, nil)
 					err := dbBatch.Put(prefixedKey, n.value)
@@ -847,8 +866,8 @@ func (t *TrieDB) commitChild(
 					}
 
 					prefixKey = prefixKey[:mov]
-					return HashChildReference{Hash: valueHash}, nil
-				case TrieNodeToEncode:
+					return hashChildReference{hash: valueHash}, nil
+				case trieNodeToEncode:
 					result, err := t.commitChild(dbBatch, n.child, prefixKey)
 					if err != nil {
 						return nil, err
@@ -874,9 +893,9 @@ func (t *TrieDB) commitChild(
 					return nil, err
 				}
 
-				return HashChildReference{Hash: hash}, nil
+				return hashChildReference{hash: hash}, nil
 			} else {
-				return InlineChildReference{encoded}, nil
+				return inlineChildReference{encoded}, nil
 			}
 		default:
 			panic("unreachable")

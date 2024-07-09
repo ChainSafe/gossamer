@@ -35,6 +35,7 @@ type (
 	}
 )
 
+// NewEncodedValue creates an EncodedValue from a nodeValue
 func NewEncodedValue(value nodeValue, partial []byte, childF onChildStoreFn) (codec.EncodedValue, error) {
 	switch v := value.(type) {
 	case inline:
@@ -43,24 +44,24 @@ func NewEncodedValue(value nodeValue, partial []byte, childF onChildStoreFn) (co
 		return codec.NewHashedValue(v.hash.ToBytes()), nil
 	case newValueRef:
 		// Store value in db
-		childRef, err := childF(NewNodeToEncode{partialKey: partial, value: v.Data}, partial, nil)
+		childRef, err := childF(newNodeToEncode{partialKey: partial, value: v.Data}, partial, nil)
 		if err != nil {
 			return nil, err
 		}
 
 		// Check and get new new value hash
 		switch cr := childRef.(type) {
-		case HashChildReference:
-			if cr.Hash == common.EmptyHash {
+		case hashChildReference:
+			if cr.hash == common.EmptyHash {
 				panic("new external value are always added before encoding a node")
 			}
 
 			if v.hash != common.EmptyHash {
-				if v.hash != cr.Hash {
+				if v.hash != cr.hash {
 					panic("hash mismatch")
 				}
 			} else {
-				v.hash = cr.Hash
+				v.hash = cr.hash
 			}
 		default:
 			panic("value node can never be inlined")
@@ -210,47 +211,59 @@ func newNodeFromEncoded(nodeHash common.Hash, data []byte, storage NodeStorage) 
 	}
 }
 
-type NodeToEncode interface {
+type nodeToEncode interface {
 	isNodeToEncode()
 }
 
 type (
-	NewNodeToEncode struct {
+	newNodeToEncode struct {
 		partialKey []byte
 		value      []byte
 	}
-	TrieNodeToEncode struct {
+	trieNodeToEncode struct {
 		child NodeHandle
 	}
 )
 
-func (NewNodeToEncode) isNodeToEncode()  {}
-func (TrieNodeToEncode) isNodeToEncode() {}
+func (newNodeToEncode) isNodeToEncode()  {}
+func (trieNodeToEncode) isNodeToEncode() {}
 
+// ChildReference is a reference to a child node
 type ChildReference interface {
 	getNodeData() []byte
 }
 
 type (
-	HashChildReference struct {
-		Hash common.Hash
+	// hashChildReference is a reference to a child node that is not inlined
+	hashChildReference struct {
+		hash common.Hash
 	}
-	InlineChildReference struct {
-		EncodedNode []byte
+	// InlineChildReference is a reference to an inlined child node
+	inlineChildReference struct {
+		encodedNode []byte
 	}
 )
 
-func (h HashChildReference) getNodeData() []byte {
-	return h.Hash.ToBytes()
+func (h hashChildReference) getNodeData() []byte {
+	return h.hash.ToBytes()
 }
-func (i InlineChildReference) getNodeData() []byte {
-	return i.EncodedNode
+func (i inlineChildReference) getNodeData() []byte {
+	return i.encodedNode
 }
 
-type onChildStoreFn = func(node NodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error)
+func NewHashChildReference(hash common.Hash) hashChildReference {
+	return hashChildReference{hash: hash}
+}
+
+func NewInlineChildReference(encodedNode []byte) inlineChildReference {
+	return inlineChildReference{encodedNode: encodedNode}
+}
+
+type onChildStoreFn = func(node nodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error)
 
 const emptyTrieBytes = byte(0)
 
+// NewEncodedNode creates a new encoded node from a node and a child store function and return its bytes
 func NewEncodedNode(node Node, childF onChildStoreFn) (encodedNode []byte, err error) {
 	encodingBuffer := bytes.NewBuffer(nil)
 
@@ -284,7 +297,7 @@ func NewEncodedNode(node Node, childF onChildStoreFn) (encodedNode []byte, err e
 			}
 
 			childIndex := byte(i)
-			children[i], err = childF(TrieNodeToEncode{child}, n.partialKey, &childIndex)
+			children[i], err = childF(trieNodeToEncode{child}, n.partialKey, &childIndex)
 			if err != nil {
 				return nil, err
 			}
@@ -301,6 +314,7 @@ func NewEncodedNode(node Node, childF onChildStoreFn) (encodedNode []byte, err e
 	return encodingBuffer.Bytes(), nil
 }
 
+// NewEncodedLeaf creates a new encoded leaf node and writes it to the writer
 func NewEncodedLeaf(partialKey []byte, value codec.EncodedValue, writer io.Writer) error {
 	// Write encoded header
 	if value.IsHashed() {
@@ -330,6 +344,7 @@ func NewEncodedLeaf(partialKey []byte, value codec.EncodedValue, writer io.Write
 	return nil
 }
 
+// NewEncodedBranch creates a new encoded branch node and writes it to the writer
 func NewEncodedBranch(
 	partialKey []byte,
 	children [codec.ChildrenCapacity]ChildReference,
@@ -361,7 +376,7 @@ func NewEncodedBranch(
 		return fmt.Errorf("cannot write LE key to buffer: %w", err)
 	}
 
-	//Write bitmap
+	// Write bitmap
 	var bitmap uint16
 	for i := range children {
 		if children[i] == nil {
@@ -375,7 +390,7 @@ func NewEncodedBranch(
 		return fmt.Errorf("writing branch bitmap: %w", err)
 	}
 
-	//Write encoded value
+	// Write encoded value
 	if value != nil {
 		err := value.Write(writer)
 		if err != nil {
@@ -383,7 +398,7 @@ func NewEncodedBranch(
 		}
 	}
 
-	//Write children
+	// Write children
 	for _, child := range children {
 		if child != nil {
 			encoder := scale.NewEncoder(writer)

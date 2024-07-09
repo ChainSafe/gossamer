@@ -120,9 +120,9 @@ func (e *stackEntry) setChild(encodedChild []byte) {
 func (e *stackEntry) replaceChildRef(encodedChild []byte, child codec.MerkleValue) triedb.ChildReference {
 	switch child.(type) {
 	case codec.HashedNode:
-		return triedb.InlineChildReference{}
+		return triedb.NewInlineChildReference(nil)
 	case codec.InlineNode:
-		return triedb.InlineChildReference{EncodedNode: encodedChild}
+		return triedb.NewInlineChildReference(encodedChild)
 	default:
 		panic("unreachable")
 	}
@@ -145,7 +145,7 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 		unwindStack(stack, proofNodes, &key)
 
 		recorder := triedb.NewRecorder()
-		trie := triedb.NewTrieDB(rootHash, db, nil, recorder)
+		trie := triedb.NewTrieDB(rootHash, db, triedb.WithRecorder(recorder))
 		trie.SetVersion(trieVersion)
 
 		trie.Get([]byte(key))
@@ -153,22 +153,18 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 		recordedNodes := triedb.NewRecordedNodesIterator(recorder.Drain())
 
 		// Skip over recorded nodes already on the stack.
-		recordedNodesIdx := 0
-		stackIdx := 0
-		for stackIdx < stack.Len() && recordedNodesIdx < len(recordedNodes) {
-			nextEntry := stack.At(stackIdx)
-			nextRecord := recordedNodes[recordedNodesIdx]
 
-			if nextEntry.nodeHash != nil && bytes.Equal(*nextEntry.nodeHash, nextRecord.Hash) {
-				stackIdx++
-				recordedNodesIdx++
-			} else {
+		nextEntry := stack.Back()
+		nextRecord := recordedNodes.Peek()
+
+		for nextEntry != nil && nextRecord != nil {
+			if nextEntry.nodeHash != &nextRecord.Hash {
 				break
 			}
 
-			stack.PopBack()
+			nextRecord = recordedNodes.Next()
+			nextEntry = stack.PopBack()
 		}
-		recordedNodes = recordedNodes[recordedNodesIdx:]
 
 		for {
 			var nextStep step
@@ -181,7 +177,6 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 					entry.node,
 					&entry.omitValue,
 					entry.childIndex,
-					entry.children,
 					[]byte(key),
 					len(entry.prefix),
 					recordedNodes,
@@ -199,8 +194,7 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 				switch child := s.child.(type) {
 				case nodeHandleHash:
 					// TODO: use recordedNodes iterator
-					childRecord := recordedNodes[0]
-					recordedNodes = recordedNodes[1:]
+					childRecord := recordedNodes.Next()
 					outputIndex := len(proofNodes)
 
 					// Insert a placeholder into output which will be replaced when this
@@ -291,10 +285,9 @@ func matchKeyToNode(
 	node codec.EncodedNode,
 	omitValue *bool,
 	childIndex int,
-	children []*triedb.ChildReference,
 	key []byte,
 	prefixlen int,
-	recordedNodes []triedb.Record,
+	recordedNodes *triedb.RecordedNodesIterator,
 ) (step, error) {
 	switch n := node.(type) {
 	case codec.Empty:
@@ -317,7 +310,6 @@ func matchKeyToNode(
 			n.Children,
 			childIndex,
 			omitValue,
-			children,
 			key,
 			prefixlen,
 			n.PartialKey,
@@ -333,11 +325,10 @@ func matchKeyToBranchNode(
 	childHandles [codec.ChildrenCapacity]codec.MerkleValue,
 	childIndex int,
 	omitValue *bool,
-	children []*triedb.ChildReference,
 	key []byte,
 	prefixlen int,
 	nodePartialKey []byte,
-	recordedNodes []triedb.Record,
+	recordedNodes *triedb.RecordedNodesIterator,
 ) (step, error) {
 	if !bytes.Contains(key, nodePartialKey) {
 		return stepFoundValue{nil}, nil
@@ -380,11 +371,10 @@ func matchKeyToBranchNode(
 }
 
 // TODO: use an iterator to consume recordedNodes
-func resolveValue(recordedNodes []triedb.Record) (step, error) {
-	if len(recordedNodes) > 0 {
-		value := recordedNodes[0].Data
-		recordedNodes = recordedNodes[1:] // TODO: this wont change original recordedNodes
-		return stepFoundHashedValue{value}, nil
+func resolveValue(recordedNodes *triedb.RecordedNodesIterator) (step, error) {
+	value := recordedNodes.Next()
+	if value != nil {
+		return stepFoundHashedValue{value.Data}, nil
 	} else {
 		return nil, triedb.ErrIncompleteDB
 	}
