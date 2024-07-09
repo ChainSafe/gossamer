@@ -142,7 +142,6 @@ func (vt *voteTracker[ID, Vote, Signature]) addVote(
 		return nil, duplicated
 	default:
 		panic("invalid voteMultiplicity value")
-		return nil, false
 	}
 }
 
