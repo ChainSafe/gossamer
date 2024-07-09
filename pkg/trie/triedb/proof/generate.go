@@ -180,6 +180,7 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 	// final proof nodes
 	var proofNodes [][]byte
 
+	// Iterate over the keys and build the proof nodes
 	for i := 0; i < len(keys); i = i + 1 {
 		var key = []byte(keys[i])
 		var keyNibbles = nibbles.KeyLEToNibbles(key)
@@ -189,16 +190,15 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 			return nil, err
 		}
 
+		// Traverse the trie recording the visited nodes
 		recorder := triedb.NewRecorder()
 		trie := triedb.NewTrieDB(rootHash, db, triedb.WithRecorder(recorder))
 		trie.SetVersion(trieVersion)
-
 		trie.Get(key)
 
 		recordedNodes := triedb.NewRecordedNodesIterator(recorder.Drain())
 
 		// Skip over recorded nodes already on the stack.
-
 		if stack.Len() > 0 {
 			nextEntry := stack.Back()
 			nextRecord := recordedNodes.Peek()
@@ -213,6 +213,7 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 			}
 		}
 
+		// Descend in trie collecting nodes until find the value or the end of the path
 	loop:
 		for {
 			var nextStep step
@@ -294,7 +295,7 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 }
 
 // / Unwind the stack until the given key is prefixed by the entry at the top of the stack. If the
-// / key is NIL, unwind the stack completely. As entries are popped from the stack, they are
+// / key is nil, unwind the stack completely. As entries are popped from the stack, they are
 // / encoded into proof nodes and added to the finalized proof.
 func unwindStack(
 	stack *deque.Deque[*stackEntry],
@@ -421,11 +422,8 @@ func matchKeyToBranchNode(
 	if newIndex < *childIndex {
 		panic("newIndex out of bounds")
 	}
-	for *childIndex < newIndex {
-		//TODO: convert branch child into child reference
-		//children[childIndex] = childHandles[childIndex]
-		*childIndex++
-	}
+
+	*childIndex = newIndex
 
 	if childHandles[newIndex] != nil {
 		var child nodeHandle
@@ -444,7 +442,6 @@ func matchKeyToBranchNode(
 	return stepFoundValue{nil}, nil
 }
 
-// TODO: use an iterator to consume recordedNodes
 func resolveValue(recordedNodes *triedb.RecordedNodesIterator) (step, error) {
 	value := recordedNodes.Next()
 	if value != nil {
