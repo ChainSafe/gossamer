@@ -109,7 +109,7 @@ type (
 	// Branch could has or not has values
 	Branch struct {
 		PartialKey []byte
-		Children   [16]MerkleValue
+		Children   [ChildrenCapacity]MerkleValue
 		Value      EncodedValue
 	}
 )

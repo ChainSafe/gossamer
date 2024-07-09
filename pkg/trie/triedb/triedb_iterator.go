@@ -80,7 +80,7 @@ func (i *TrieDBIterator) nextState() *iteratorState {
 	return currentState
 }
 
-func (i *TrieDBIterator) NextEntry() *entry {
+func (i *TrieDBIterator) NextEntry() *Entry {
 	for len(i.nodeStack) > 0 {
 		currentState := i.nextState()
 		currentNode := currentState.node
@@ -89,7 +89,7 @@ func (i *TrieDBIterator) NextEntry() *entry {
 		case codec.Leaf:
 			key := currentState.fullKeyNibbles(nil)
 			value := i.db.Get(key)
-			return &entry{key: key, value: value}
+			return &Entry{Key: key, Value: value}
 		case codec.Branch:
 			// Reverse iterate over children because we are using a LIFO stack
 			// and we want to visit the leftmost child first
@@ -106,7 +106,7 @@ func (i *TrieDBIterator) NextEntry() *entry {
 			if n.GetValue() != nil {
 				key := currentState.fullKeyNibbles(nil)
 				value := i.db.Get(key)
-				return &entry{key: key, value: value}
+				return &Entry{Key: key, Value: value}
 			}
 		}
 	}
@@ -119,7 +119,7 @@ func (i *TrieDBIterator) NextEntry() *entry {
 func (i *TrieDBIterator) NextKey() []byte {
 	entry := i.NextEntry()
 	if entry != nil {
-		return entry.key
+		return entry.Key
 	}
 	return nil
 }

@@ -66,7 +66,7 @@ type stackEntry struct {
 	// childIndex is used for branch nodes
 	childIndex int
 	// children contains the child references to use in constructing the proof nodes.
-	children []*triedb.ChildReference
+	children [codec.ChildrenCapacity]triedb.ChildReference
 	// outputIndex is the index into the proof vector that the encoding of this entry should be placed at.
 	outputIndex *int
 }
@@ -81,14 +81,6 @@ func newStackEntry(
 		return nil, err
 	}
 
-	var childrenLen int
-	switch node.(type) {
-	case codec.Empty, codec.Leaf:
-		childrenLen = 0
-	case codec.Branch:
-		childrenLen = codec.ChildrenCapacity
-	}
-
 	return &stackEntry{
 		prefix:      prefix,
 		node:        node,
@@ -96,30 +88,41 @@ func newStackEntry(
 		nodeHash:    nodeHash,
 		omitValue:   false,
 		childIndex:  0,
-		children:    make([]*triedb.ChildReference, childrenLen),
+		children:    [codec.ChildrenCapacity]triedb.ChildReference{},
 		outputIndex: outputIndex,
 	}, nil
 }
 
 func (e *stackEntry) encodeNode() ([]byte, error) {
-	switch e.node.(type) {
+	switch n := e.node.(type) {
 	case codec.Empty:
 		return e.encodedNode, nil
 	case codec.Leaf:
 		if !e.omitValue {
 			return e.encodedNode, nil
 		}
-		encodingBuffer := bytes.NewBuffer(nil)
 
+		encodingBuffer := bytes.NewBuffer(nil)
 		err := triedb.NewEncodedLeaf(e.node.GetPartialKey(), codec.NewInlineValue([]byte{}), encodingBuffer)
 		if err != nil {
 			return nil, err
 		}
 
 		return encodingBuffer.Bytes(), nil
+	case codec.Branch:
+		var value codec.EncodedValue
+		if !e.omitValue {
+			value = n.Value
+		}
+		e.completBranchChildren(e.encodedNode, n.Children, e.childIndex)
+		encodingBuffer := bytes.NewBuffer(nil)
+		err := triedb.NewEncodedBranch(e.node.GetPartialKey(), e.children, value, encodingBuffer)
+		if err != nil {
+			return nil, err
+		}
+		return encodingBuffer.Bytes(), nil
 	default:
-		//TODO: add branch
-		return nil, nil
+		panic("unreachable")
 	}
 }
 
@@ -136,8 +139,23 @@ func (e *stackEntry) setChild(encodedChild []byte) {
 			childRef = e.replaceChildRef(encodedChild, n.Children[e.childIndex])
 		}
 	}
-	e.children[e.childIndex] = &childRef
+	e.children[e.childIndex] = childRef
 	e.childIndex++
+}
+
+func (e *stackEntry) completBranchChildren(
+	nodeData []byte,
+	childHandles [codec.ChildrenCapacity]codec.MerkleValue,
+	childIndex int,
+) {
+	for i := childIndex; i < codec.ChildrenCapacity; i++ {
+		switch n := childHandles[i].(type) {
+		case codec.InlineNode:
+			e.children[i] = triedb.NewInlineChildReference(n.Data)
+		case codec.HashedNode:
+			e.children[i] = triedb.NewHashChildReference(common.Hash(n.Data))
+		}
+	}
 }
 
 func (e *stackEntry) replaceChildRef(encodedChild []byte, child codec.MerkleValue) triedb.ChildReference {
@@ -164,8 +182,10 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 	var proofNodes [][]byte
 
 	for i := 0; i < len(keys); i = i + 1 {
-		var key = keys[i]
-		err := unwindStack(stack, proofNodes, &key)
+		var key = []byte(keys[i])
+		var keyNibbles = nibbles.KeyLEToNibbles(key)
+
+		err := unwindStack(stack, proofNodes, &keyNibbles)
 		if err != nil {
 			return nil, err
 		}
@@ -174,7 +194,7 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 		trie := triedb.NewTrieDB(rootHash, db, triedb.WithRecorder(recorder))
 		trie.SetVersion(trieVersion)
 
-		trie.Get([]byte(key))
+		trie.Get(key)
 
 		recordedNodes := triedb.NewRecordedNodesIterator(recorder.Drain())
 
@@ -208,8 +228,8 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 				nextStep, err = matchKeyToNode(
 					entry.node,
 					&entry.omitValue,
-					entry.childIndex,
-					nibbles.KeyLEToNibbles([]byte(key)),
+					&entry.childIndex,
+					keyNibbles,
 					len(entry.prefix),
 					recordedNodes,
 				)
@@ -221,8 +241,7 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 
 			switch s := nextStep.(type) {
 			case stepDescend:
-				// TODO: fix this
-				childPrefix := []byte{} //[]byte(key[s.childPrefixLen:])
+				childPrefix := keyNibbles[:s.childPrefixLen]
 				var childEntry *stackEntry
 				switch child := s.child.(type) {
 				case nodeHandleHash:
@@ -281,7 +300,7 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 func unwindStack(
 	stack *deque.Deque[*stackEntry],
 	proofNodes [][]byte,
-	maybeKey *string,
+	maybeKey *[]byte,
 ) error {
 	for stack.Len() > 0 {
 		entry := stack.PopBack()
@@ -293,7 +312,11 @@ func unwindStack(
 		if stack.Len() > 0 {
 			parentEntry := stack.Back()
 			if parentEntry != nil {
-				parentEntry.setChild(entry.encodedNode)
+				encoded, err := entry.encodeNode()
+				if err != nil {
+					return err
+				}
+				parentEntry.setChild(encoded)
 			}
 		}
 
@@ -329,7 +352,7 @@ func sortAndDeduplicateKeys(keys []string) []string {
 func matchKeyToNode(
 	node codec.EncodedNode,
 	omitValue *bool,
-	childIndex int,
+	childIndex *int,
 	key []byte,
 	prefixlen int,
 	recordedNodes *triedb.RecordedNodesIterator,
@@ -368,7 +391,7 @@ func matchKeyToNode(
 func matchKeyToBranchNode(
 	value codec.EncodedValue,
 	childHandles [codec.ChildrenCapacity]codec.MerkleValue,
-	childIndex int,
+	childIndex *int,
 	omitValue *bool,
 	key []byte,
 	prefixlen int,
@@ -396,20 +419,27 @@ func matchKeyToBranchNode(
 
 	newIndex := int(key[prefixlen+len(nodePartialKey)])
 
-	if newIndex > childIndex {
+	if newIndex < *childIndex {
 		panic("newIndex out of bounds")
 	}
-	for childIndex < newIndex {
-		// TODO: convert branch child into child reference
+	for *childIndex < newIndex {
+		//TODO: convert branch child into child reference
 		//children[childIndex] = childHandles[childIndex]
-		childIndex++
+		*childIndex++
 	}
 
-	if childHandles[childIndex] != nil {
+	if childHandles[newIndex] != nil {
+		var child nodeHandle
+		switch c := childHandles[newIndex].(type) {
+		case codec.HashedNode:
+			child = nodeHandleHash{hash: c.Data}
+		case codec.InlineNode:
+			child = nodeHandleInline{data: c.Data}
+		}
+
 		return stepDescend{
 			childPrefixLen: len(nodePartialKey) + prefixlen + 1,
-			// TODO: encode child handle
-			//child:          encode(childHandles[childIndex]),
+			child:          child,
 		}, nil
 	}
 	return stepFoundValue{nil}, nil

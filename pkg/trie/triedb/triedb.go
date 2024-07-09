@@ -25,9 +25,9 @@ var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "triedb"))
 )
 
-type entry struct {
-	key   []byte
-	value []byte
+type Entry struct {
+	Key   []byte
+	Value []byte
 }
 
 type TrieDBOpts func(*TrieDB)
