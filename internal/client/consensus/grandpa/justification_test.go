@@ -174,9 +174,9 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 
 	// Invalid Encoding
 	invalidEncoding := []byte{21}
-	_, err := decodeAndVerifyFinalizes[hash.H256, uint64, runtime.BlakeTwo256](
+	_, err := DecodeAndVerifyFinalizes[hash.H256, uint64, runtime.BlakeTwo256](
 		invalidEncoding,
-		hashNumber[hash.H256, uint64]{},
+		HashNumber[hash.H256, uint64]{},
 		2,
 		grandpa.VoterSet[string]{})
 	require.Error(t, err)
@@ -191,9 +191,9 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 
 	encWrongTarget, err := scale.Marshal(justification)
 	require.NoError(t, err)
-	_, err = decodeAndVerifyFinalizes[hash.H256, uint64, runtime.BlakeTwo256](
+	_, err = DecodeAndVerifyFinalizes[hash.H256, uint64, runtime.BlakeTwo256](
 		encWrongTarget,
-		hashNumber[hash.H256, uint64]{},
+		HashNumber[hash.H256, uint64]{},
 		2,
 		grandpa.VoterSet[string]{})
 	require.Error(t, err)
@@ -226,9 +226,9 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 	encodedJustification, err := scale.Marshal(expectedJustification)
 	require.NoError(t, err)
 
-	target := hashNumber[hash.H256, uint64]{
-		hash:   a,
-		number: 1,
+	target := HashNumber[hash.H256, uint64]{
+		Hash:   a,
+		Number: 1,
 	}
 
 	idWeights := make([]grandpa.IDWeight[string], 0)
@@ -250,7 +250,7 @@ func TestJustification_decodeAndVerifyFinalizes(t *testing.T) {
 	}
 	voters := grandpa.NewVoterSet(idWeights)
 
-	newJustification, err := decodeAndVerifyFinalizes[hash.H256, uint64, runtime.BlakeTwo256](
+	newJustification, err := DecodeAndVerifyFinalizes[hash.H256, uint64, runtime.BlakeTwo256](
 		encodedJustification,
 		target,
 		1,

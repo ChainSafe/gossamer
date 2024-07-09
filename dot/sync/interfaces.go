@@ -28,6 +28,7 @@ type BlockState interface {
 	GetReceipt(common.Hash) ([]byte, error)
 	GetMessageQueue(common.Hash) ([]byte, error)
 	GetJustification(common.Hash) ([]byte, error)
+	SetFinalisedHash(hash common.Hash, round uint64, setID uint64) error
 	SetJustification(hash common.Hash, data []byte) error
 	GetHashByNumber(blockNumber uint) (common.Hash, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
@@ -61,7 +62,7 @@ type BabeVerifier interface {
 
 // FinalityGadget implements justification verification functionality
 type FinalityGadget interface {
-	VerifyBlockJustification(common.Hash, []byte) error
+	VerifyBlockJustification(types.Header, []byte) (round uint64, setID uint64, err error)
 }
 
 // BlockImportHandler is the interface for the handler of newly imported blocks

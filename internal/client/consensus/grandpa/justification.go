@@ -104,18 +104,18 @@ func NewJustificationFromCommit[
 	// we pick the precommit for the lowest block as the base that
 	// should serve as the root block for populating ancestry (i.e.
 	// collect all headers from all precommit blocks to the base)
-	var minPrecommit *hashNumber[Hash, N]
+	var minPrecommit *HashNumber[Hash, N]
 	for _, signed := range commit.Precommits {
 		precommit := signed.Precommit
 		if minPrecommit == nil {
-			minPrecommit = &hashNumber[Hash, N]{
-				hash:   precommit.TargetHash,
-				number: precommit.TargetNumber,
+			minPrecommit = &HashNumber[Hash, N]{
+				Hash:   precommit.TargetHash,
+				Number: precommit.TargetNumber,
 			}
-		} else if precommit.TargetNumber < minPrecommit.number {
-			minPrecommit = &hashNumber[Hash, N]{
-				hash:   precommit.TargetHash,
-				number: precommit.TargetNumber,
+		} else if precommit.TargetNumber < minPrecommit.Number {
+			minPrecommit = &HashNumber[Hash, N]{
+				Hash:   precommit.TargetHash,
+				Number: precommit.TargetNumber,
 			}
 		}
 	}
@@ -124,8 +124,8 @@ func NewJustificationFromCommit[
 			fmt.Errorf("%w: invalid precommits for target commit", errBadJustification)
 	}
 
-	baseNumber := minPrecommit.number
-	baseHash := minPrecommit.hash
+	baseNumber := minPrecommit.Number
+	baseHash := minPrecommit.Hash
 	for _, signed := range commit.Precommits {
 		currentHash := signed.Precommit.TargetHash
 		for {
@@ -169,15 +169,15 @@ func NewJustificationFromCommit[
 	}, nil
 }
 
-// Decode a GRANDPA justification and validate the commit and the votes'
+// DecodeAndVerifyFinalizes decodes a GRANDPA justification and validate the commit and the votes'
 // ancestry proofs finalize the given block.
-func decodeAndVerifyFinalizes[
+func DecodeAndVerifyFinalizes[
 	Hash runtime.Hash,
 	N runtime.Number,
 	Hasher runtime.Hasher[Hash],
 ](
 	encoded []byte,
-	finalizedTarget hashNumber[Hash, N],
+	finalizedTarget HashNumber[Hash, N],
 	setID uint64,
 	voters grandpa.VoterSet[string],
 ) (GrandpaJustification[Hash, N], error) {
@@ -186,9 +186,9 @@ func decodeAndVerifyFinalizes[
 		return GrandpaJustification[Hash, N]{}, fmt.Errorf("error decoding justification for header: %s", err)
 	}
 
-	decodedTarget := hashNumber[Hash, N]{
-		hash:   justification.Justification.Commit.TargetHash,
-		number: justification.Justification.Commit.TargetNumber,
+	decodedTarget := HashNumber[Hash, N]{
+		Hash:   justification.Justification.Commit.TargetHash,
+		Number: justification.Justification.Commit.TargetNumber,
 	}
 
 	if decodedTarget != finalizedTarget {
@@ -322,10 +322,10 @@ func (j *GrandpaJustification[Hash, N]) verifyWithVoterSet(
 }
 
 // Target The target block NumberField and HashField that this justifications proves finality for
-func (j *GrandpaJustification[Hash, N]) Target() hashNumber[Hash, N] {
-	return hashNumber[Hash, N]{
-		number: j.Justification.Commit.TargetNumber,
-		hash:   j.Justification.Commit.TargetHash,
+func (j *GrandpaJustification[Hash, N]) Target() HashNumber[Hash, N] {
+	return HashNumber[Hash, N]{
+		Number: j.Justification.Commit.TargetNumber,
+		Hash:   j.Justification.Commit.TargetHash,
 	}
 }
 

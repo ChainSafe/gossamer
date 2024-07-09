@@ -62,7 +62,7 @@ type nodeBuilderIface interface {
 	) (*core.Service, error)
 	createGRANDPAService(config *cfg.Config, st *state.Service, ks KeyStore,
 		net *network.Service, telemetryMailer Telemetry) (*grandpa.Service, error)
-	newSyncService(config *cfg.Config, st *state.Service, finalityGadget BlockJustificationVerifier,
+	newSyncService(config *cfg.Config, st *state.Service, finalityGadget dotsync.FinalityGadget,
 		verifier *babe.VerificationManager, cs *core.Service, net *network.Service,
 		telemetryMailer Telemetry) (*dotsync.Service, error)
 	createBABEService(config *cfg.Config, st *state.Service, ks KeyStore, cs *core.Service,

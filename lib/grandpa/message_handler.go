@@ -11,10 +11,14 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/pkg/scale"
+
+	client_grandpa "github.com/ChainSafe/gossamer/internal/client/consensus/grandpa"
+	finality_grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -401,144 +405,40 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 
 // VerifyBlockJustification verifies the finality justification for a block, returns scale encoded justification with
 // any extra bytes removed.
-func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byte) error {
-	fj := Justification{}
-	err := scale.Unmarshal(justification, &fj)
+func (s *Service) VerifyBlockJustification(finalizedTarget types.Header, encoded []byte) (
+	round uint64, setID uint64, err error,
+) {
+	setID, err = s.grandpaState.GetSetIDByBlockNumber(finalizedTarget.Number)
 	if err != nil {
-		return err
-	}
-
-	if hash != fj.Commit.Hash {
-		return fmt.Errorf("%w: justification %s and block hash %s",
-			ErrJustificationMismatch, fj.Commit.Hash.Short(), hash.Short())
-	}
-
-	setID, err := s.grandpaState.GetSetIDByBlockNumber(uint(fj.Commit.Number))
-	if err != nil {
-		return fmt.Errorf("cannot get set ID from block number: %w", err)
-	}
-
-	has, err := s.blockState.HasFinalisedBlock(fj.Round, setID)
-	if err != nil {
-		return fmt.Errorf("checking if round and set id has finalised block: %w", err)
-	}
-
-	if has {
-		storedFinalisedHash, err := s.blockState.GetFinalisedHash(fj.Round, setID)
-		if err != nil {
-			return fmt.Errorf("getting finalised hash: %w", err)
-		}
-		if storedFinalisedHash != hash {
-			return fmt.Errorf("%w, setID=%d and round=%d", errFinalisedBlocksMismatch, setID, fj.Round)
-		}
-
-		return nil
-	}
-
-	isDescendant, err := isDescendantOfHighestFinalisedBlock(s.blockState, fj.Commit.Hash)
-	if err != nil {
-		return fmt.Errorf("checking if descendant of highest block: %w", err)
-	}
-
-	if !isDescendant {
-		return errVoteBlockMismatch
+		return 0, 0, fmt.Errorf("cannot get set ID from block number: %w", err)
 	}
 
 	auths, err := s.grandpaState.GetAuthorities(setID)
 	if err != nil {
-		return fmt.Errorf("cannot get authorities for set ID: %w", err)
+		return 0, 0, fmt.Errorf("cannot get authorities for set ID: %w", err)
 	}
 
-	// threshold is two-thirds the number of authorities,
-	// uses the current set of authorities to define the threshold
-	threshold := (2 * len(auths) / 3)
-
-	if len(fj.Commit.Precommits) < threshold {
-		return ErrMinVotesNotMet
+	idsAndWeights := make([]finality_grandpa.IDWeight[string], len(auths))
+	for idx, auth := range auths {
+		idsAndWeights[idx] = finality_grandpa.IDWeight[string]{
+			ID:     auth.Key.AsBytes().String(),
+			Weight: 1,
+		}
 	}
 
-	authPubKeys := make([]AuthData, len(fj.Commit.Precommits))
-	for i, pcj := range fj.Commit.Precommits {
-		authPubKeys[i] = AuthData{AuthorityID: pcj.AuthorityID}
+	voters := finality_grandpa.NewVoterSet(idsAndWeights)
+	target := client_grandpa.HashNumber[hash.H256, uint]{
+		Hash:   hash.H256(finalizedTarget.Hash().String()),
+		Number: finalizedTarget.Number,
 	}
 
-	equivocatoryVoters := getEquivocatoryVoters(authPubKeys)
-
-	var count int
-
-	logger.Debugf(
-		"verifying justification: set id %d, round %d, hash %s, number %d, sig count %d",
-		setID, fj.Round, fj.Commit.Hash, fj.Commit.Number, len(fj.Commit.Precommits))
-
-	for _, just := range fj.Commit.Precommits {
-		// check if vote was for descendant of committed block
-		isDescendant, err := s.blockState.IsDescendantOf(hash, just.Vote.Hash)
-		if err != nil {
-			return err
-		}
-
-		if !isDescendant {
-			return ErrPrecommitBlockMismatch
-		}
-
-		publicKey, err := ed25519.NewPublicKey(just.AuthorityID[:])
-		if err != nil {
-			return err
-		}
-
-		if !isInAuthSet(publicKey, auths) {
-			return ErrAuthorityNotInSet
-		}
-
-		// verify signature for each precommit
-		msg, err := scale.Marshal(FullVote{
-			Stage: precommit,
-			Vote:  just.Vote,
-			Round: fj.Round,
-			SetID: setID,
-		})
-		if err != nil {
-			return err
-		}
-
-		ok, err := publicKey.Verify(msg, just.Signature[:])
-		if err != nil {
-			return err
-		}
-
-		if !ok {
-			return ErrInvalidSignature
-		}
-
-		if _, ok := equivocatoryVoters[just.AuthorityID]; ok {
-			continue
-		}
-
-		count++
-	}
-
-	if count+len(equivocatoryVoters) < threshold {
-		return ErrMinVotesNotMet
-	}
-
-	err = verifyBlockHashAgainstBlockNumber(s.blockState, fj.Commit.Hash, uint(fj.Commit.Number))
+	justification, err := client_grandpa.DecodeAndVerifyFinalizes[hash.H256, uint, runtime.BlakeTwo256](
+		encoded, target, setID, *voters)
 	if err != nil {
-		return fmt.Errorf("verifying block hash against block number: %w", err)
+		fmt.Errorf("while decoding and verifying justification: %w", err)
 	}
 
-	for _, preCommit := range fj.Commit.Precommits {
-		err := verifyBlockHashAgainstBlockNumber(s.blockState, preCommit.Vote.Hash, uint(preCommit.Vote.Number))
-		if err != nil {
-			return fmt.Errorf("verifying block hash against block number: %w", err)
-		}
-	}
-
-	err = s.blockState.SetFinalisedHash(hash, fj.Round, setID)
-	if err != nil {
-		return fmt.Errorf("setting finalised hash: %w", err)
-	}
-
-	return nil
+	return justification.Justification.Round, setID, nil
 }
 
 func verifyBlockHashAgainstBlockNumber(bs BlockState, hash common.Hash, number uint) error {

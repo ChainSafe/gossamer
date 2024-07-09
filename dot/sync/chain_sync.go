@@ -841,6 +841,30 @@ func (cs *chainSync) processBlockData(blockData types.BlockData, origin blockOri
 	announceImportedBlock := cs.getSyncMode() == tip
 
 	if blockData.Header != nil {
+		var setFinalisedHash func() error = nil
+		if blockData.Justification != nil && len(*blockData.Justification) > 0 {
+			round, setID, err := cs.finalityGadget.VerifyBlockJustification(*blockData.Header, *blockData.Justification)
+			if err != nil {
+				return fmt.Errorf("verifying justification: %w", err)
+			}
+
+			setFinalisedHash = func() error {
+				header := blockData.Header
+
+				err = cs.blockState.SetFinalisedHash(header.Hash(), round, setID)
+				if err != nil {
+					return fmt.Errorf("setting finalised hash: %w", err)
+				}
+
+				err = cs.blockState.SetJustification(header.Hash(), *blockData.Justification)
+				if err != nil {
+					return fmt.Errorf("setting justification for block number %d: %w", header.Number, err)
+				}
+
+				return nil
+			}
+		}
+
 		if blockData.Body != nil {
 			err := cs.processBlockDataWithHeaderAndBody(blockData, origin, announceImportedBlock)
 			if err != nil {
@@ -848,11 +872,8 @@ func (cs *chainSync) processBlockData(blockData types.BlockData, origin blockOri
 			}
 		}
 
-		if blockData.Justification != nil && len(*blockData.Justification) > 0 {
-			err := cs.handleJustification(blockData.Header, *blockData.Justification)
-			if err != nil {
-				return fmt.Errorf("handling justification: %w", err)
-			}
+		if setFinalisedHash != nil {
+			setFinalisedHash()
 		}
 	}
 
@@ -898,21 +919,6 @@ func (cs *chainSync) handleBody(body *types.Body) {
 	}
 
 	blockSizeGauge.Set(float64(acc))
-}
-
-func (cs *chainSync) handleJustification(header *types.Header, justification []byte) (err error) {
-	headerHash := header.Hash()
-	err = cs.finalityGadget.VerifyBlockJustification(headerHash, justification)
-	if err != nil {
-		return fmt.Errorf("verifying block number %d justification: %w", header.Number, err)
-	}
-
-	err = cs.blockState.SetJustification(headerHash, justification)
-	if err != nil {
-		return fmt.Errorf("setting justification for block number %d: %w", header.Number, err)
-	}
-
-	return nil
 }
 
 // handleHeader handles blocks (header+body) included in BlockResponses

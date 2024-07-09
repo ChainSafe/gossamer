@@ -43,9 +43,9 @@ type setIDNumber[N constraints.Unsigned] struct {
 }
 
 // generic representation of hash and number tuple
-type hashNumber[H, N any] struct {
-	hash   H
-	number N
+type HashNumber[H, N any] struct {
+	Hash   H
+	Number N
 }
 
 // appliedChanges represents the median and new set when a forced change has occurred
@@ -88,7 +88,7 @@ func (sas *SharedAuthoritySet[H, N]) revert() { //nolint //skipcq: SCC-U1000
 }
 
 func (sas *SharedAuthoritySet[H, N]) nextChange(bestHash H, //nolint //skipcq: SCC-U1000
-	isDescendentOf IsDescendentOf[H]) (*hashNumber[H, N], error) {
+	isDescendentOf IsDescendentOf[H]) (*HashNumber[H, N], error) {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.nextChange(bestHash, isDescendentOf)
@@ -188,7 +188,7 @@ type status[H comparable, N constraints.Unsigned] struct {
 	Changed bool
 	// Not nil when underlying authority set has changed, containing the
 	// block where that set changed.
-	NewSetBlock *hashNumber[H, N]
+	NewSetBlock *HashNumber[H, N]
 }
 
 // AuthoritySet A set of authorities.
@@ -280,8 +280,8 @@ func (authSet *AuthoritySet[H, N]) revert() { //nolint //skipcq: SCC-U1000 //ski
 // the given chain (i.e. it includes `best_hash`) was signalled, nil if
 // there are no pending changes for the given chain.
 func (authSet *AuthoritySet[H, N]) nextChange(bestHash H, //skipcq:  RVV-B0001
-	isDescendentOf IsDescendentOf[H]) (*hashNumber[H, N], error) {
-	var forced *hashNumber[H, N]
+	isDescendentOf IsDescendentOf[H]) (*HashNumber[H, N], error) {
+	var forced *HashNumber[H, N]
 	for _, c := range authSet.PendingForcedChanges {
 		isDesc, err := isDescendentOf(c.CanonHash, bestHash)
 		if err != nil {
@@ -290,14 +290,14 @@ func (authSet *AuthoritySet[H, N]) nextChange(bestHash H, //skipcq:  RVV-B0001
 		if !isDesc {
 			continue
 		}
-		forced = &hashNumber[H, N]{
-			hash:   c.CanonHash,
-			number: c.CanonHeight,
+		forced = &HashNumber[H, N]{
+			Hash:   c.CanonHash,
+			Number: c.CanonHeight,
 		}
 		break
 	}
 
-	var standard *hashNumber[H, N]
+	var standard *HashNumber[H, N]
 	for _, changeNode := range authSet.PendingStandardChanges.Roots() {
 		c := changeNode.Change
 		isDesc, err := isDescendentOf(c.CanonHash, bestHash)
@@ -307,16 +307,16 @@ func (authSet *AuthoritySet[H, N]) nextChange(bestHash H, //skipcq:  RVV-B0001
 		if !isDesc {
 			continue
 		}
-		standard = &hashNumber[H, N]{
-			hash:   c.CanonHash,
-			number: c.CanonHeight,
+		standard = &HashNumber[H, N]{
+			Hash:   c.CanonHash,
+			Number: c.CanonHeight,
 		}
 		break
 	}
 
 	switch {
 	case standard != nil && forced != nil:
-		if forced.number < standard.number {
+		if forced.Number < standard.Number {
 			return forced, nil
 		}
 		return standard, nil
@@ -631,9 +631,9 @@ func (authSet *AuthoritySet[H, N]) applyStandardChanges( //skipcq:  RVV-B0001
 			authSet.CurrentAuthorities = val.value.NextAuthorities
 			authSet.SetID++
 
-			status.NewSetBlock = &hashNumber[H, N]{
-				hash:   finalisedHash,
-				number: finalisedNumber,
+			status.NewSetBlock = &HashNumber[H, N]{
+				Hash:   finalisedHash,
+				Number: finalisedNumber,
 			}
 		}
 

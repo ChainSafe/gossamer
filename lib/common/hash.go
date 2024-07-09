@@ -37,6 +37,12 @@ func (h Hash) ToBytes() []byte { //skipcq: GO-W1029
 	return b[:]
 }
 
+// ToBytes turns a hash to a byte array
+func (h Hash) Bytes() []byte { //skipcq: GO-W1029
+	b := [32]byte(h)
+	return b[:]
+}
+
 // HashValidator validates hash fields
 func HashValidator(field reflect.Value) interface{} {
 	// Try to convert to hash type.

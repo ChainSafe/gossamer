@@ -288,9 +288,9 @@ func TestApplyChange(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	expectedBlockInfo := &hashNumber[string, uint]{
-		hash:   hashD,
-		number: 15,
+	expectedBlockInfo := &HashNumber[string, uint]{
+		Hash:   hashD,
+		Number: 15,
 	}
 
 	require.True(t, status.Changed)
@@ -388,9 +388,9 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, status.Changed)
 
-	expectedBlockInfo := &hashNumber[string, uint]{
-		hash:   hashB,
-		number: 15,
+	expectedBlockInfo := &HashNumber[string, uint]{
+		Hash:   hashB,
+		Number: 15,
 	}
 	expAuthSetChange := AuthoritySetChanges[uint]{setIDNumber[uint]{
 		SetID:       0,
@@ -410,9 +410,9 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, status.Changed)
 
-	expectedBlockInfo = &hashNumber[string, uint]{
-		hash:   hashD,
-		number: 40,
+	expectedBlockInfo = &HashNumber[string, uint]{
+		Hash:   hashD,
+		Number: 40,
 	}
 	expAuthSetChange = AuthoritySetChanges[uint]{
 		setIDNumber[uint]{
@@ -879,18 +879,18 @@ func TestNextChangeWorks(t *testing.T) {
 	require.NoError(t, err)
 
 	// the earliest hashNumber at block `best_a` should be the hashNumber at A0 (#5)
-	expChange := &hashNumber[string, uint]{
-		hash:   "hash_a0",
-		number: 5,
+	expChange := &HashNumber[string, uint]{
+		Hash:   "hash_a0",
+		Number: 5,
 	}
 	c, err := authorities.nextChange(hashB, isDescOf)
 	require.NoError(t, err)
 	require.Equal(t, expChange, c)
 
 	// the earliest hashNumber at block `best_b` should be the hashNumber at B (#4)
-	expChange = &hashNumber[string, uint]{
-		hash:   hashB,
-		number: 4,
+	expChange = &HashNumber[string, uint]{
+		Hash:   hashB,
+		Number: 4,
 	}
 	c, err = authorities.nextChange("best_b", isDescOf)
 	require.NoError(t, err)
@@ -901,9 +901,9 @@ func TestNextChangeWorks(t *testing.T) {
 	require.NoError(t, err)
 
 	// the next hashNumber is now at A1 (#10)
-	expChange = &hashNumber[string, uint]{
-		hash:   "hash_a1",
-		number: 10,
+	expChange = &HashNumber[string, uint]{
+		Hash:   "hash_a1",
+		Number: 10,
 	}
 	c, err = authorities.nextChange("best_a", isDescOf)
 	require.NoError(t, err)
@@ -929,9 +929,9 @@ func TestNextChangeWorks(t *testing.T) {
 	require.NoError(t, err)
 
 	// it should take precedence over the hashNumber at A1 (#10)
-	expChange = &hashNumber[string, uint]{
-		hash:   "hash_a10",
-		number: 8,
+	expChange = &HashNumber[string, uint]{
+		Hash:   "hash_a10",
+		Number: 8,
 	}
 	c, err = authorities.nextChange("best_a", isDescOf)
 	require.NoError(t, err)

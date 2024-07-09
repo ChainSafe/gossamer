@@ -166,7 +166,7 @@ func proveFinality[
 			if err != nil {
 				return nil, err
 			}
-			justBlock = justification.Target().number
+			justBlock = justification.Target().Number
 		} else {
 			logger.Trace("No justification found for the authoritySetChangeIDLatest finalized block. Returning empty proof")
 			return nil, nil
