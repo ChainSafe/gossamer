@@ -114,7 +114,7 @@ func (e *stackEntry) encodeNode() ([]byte, error) {
 		if !e.omitValue {
 			value = n.Value
 		}
-		e.completBranchChildren(e.encodedNode, n.Children, e.childIndex)
+		e.completBranchChildren(n.Children, e.childIndex)
 		encodingBuffer := bytes.NewBuffer(nil)
 		err := triedb.NewEncodedBranch(e.node.GetPartialKey(), e.children, value, encodingBuffer)
 		if err != nil {
@@ -144,7 +144,6 @@ func (e *stackEntry) setChild(encodedChild []byte) {
 }
 
 func (e *stackEntry) completBranchChildren(
-	nodeData []byte,
 	childHandles [codec.ChildrenCapacity]codec.MerkleValue,
 	childIndex int,
 ) {
@@ -304,7 +303,7 @@ func unwindStack(
 ) error {
 	for stack.Len() > 0 {
 		entry := stack.PopBack()
-		if maybeKey != nil && bytes.HasPrefix([]byte(*maybeKey), entry.prefix) {
+		if maybeKey != nil && bytes.HasPrefix(*maybeKey, entry.prefix) {
 			stack.PushBack(entry)
 			break
 		}
