@@ -12,7 +12,7 @@ import (
 // Tests results are based on
 // https://github.com/dimartiro/substrate-trie-test/blob/master/src/substrate_trie_test.rs
 func TestRecorder(t *testing.T) {
-	inmemoryDB := NewMemoryDB(emptyNode)
+	inmemoryDB := NewMemoryDB(EmptyNode)
 
 	triedb := NewEmptyTrieDB(inmemoryDB)
 

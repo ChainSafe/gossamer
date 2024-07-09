@@ -6,6 +6,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	nibbles "github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
@@ -70,7 +71,7 @@ type stackEntry struct {
 	outputIndex *int
 }
 
-func NewStackEntry(
+func newStackEntry(
 	prefix []byte,
 	nodeData []byte,
 	nodeHash *[]byte,
@@ -98,6 +99,28 @@ func NewStackEntry(
 		children:    make([]*triedb.ChildReference, childrenLen),
 		outputIndex: outputIndex,
 	}, nil
+}
+
+func (e *stackEntry) encodeNode() ([]byte, error) {
+	switch e.node.(type) {
+	case codec.Empty:
+		return e.encodedNode, nil
+	case codec.Leaf:
+		if !e.omitValue {
+			return e.encodedNode, nil
+		}
+		encodingBuffer := bytes.NewBuffer(nil)
+
+		err := triedb.NewEncodedLeaf(e.node.GetPartialKey(), codec.NewInlineValue([]byte{}), encodingBuffer)
+		if err != nil {
+			return nil, err
+		}
+
+		return encodingBuffer.Bytes(), nil
+	default:
+		//TODO: add branch
+		return nil, nil
+	}
 }
 
 func (e *stackEntry) setChild(encodedChild []byte) {
@@ -140,9 +163,12 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 	// final proof nodes
 	var proofNodes [][]byte
 
-	for i := 0; i <= len(keys); i = i + 1 {
+	for i := 0; i < len(keys); i = i + 1 {
 		var key = keys[i]
-		unwindStack(stack, proofNodes, &key)
+		err := unwindStack(stack, proofNodes, &key)
+		if err != nil {
+			return nil, err
+		}
 
 		recorder := triedb.NewRecorder()
 		trie := triedb.NewTrieDB(rootHash, db, triedb.WithRecorder(recorder))
@@ -154,21 +180,27 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 
 		// Skip over recorded nodes already on the stack.
 
-		nextEntry := stack.Back()
-		nextRecord := recordedNodes.Peek()
+		if stack.Len() > 0 {
+			nextEntry := stack.Back()
+			nextRecord := recordedNodes.Peek()
 
-		for nextEntry != nil && nextRecord != nil {
-			if nextEntry.nodeHash != &nextRecord.Hash {
-				break
+			for nextEntry != nil && nextRecord != nil {
+				if nextEntry.nodeHash != &nextRecord.Hash {
+					break
+				}
+
+				nextRecord = recordedNodes.Next()
+				nextEntry = stack.PopBack()
 			}
-
-			nextRecord = recordedNodes.Next()
-			nextEntry = stack.PopBack()
 		}
 
+	loop:
 		for {
 			var nextStep step
-			entry := stack.Back()
+			var entry *stackEntry
+			if stack.Len() > 0 {
+				entry = stack.Back()
+			}
 			if entry == nil {
 				nextStep = stepDescend{childPrefixLen: 0, child: nodeHandleHash{hash: rootHash.ToBytes()}}
 			} else {
@@ -177,7 +209,7 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 					entry.node,
 					&entry.omitValue,
 					entry.childIndex,
-					[]byte(key),
+					nibbles.KeyLEToNibbles([]byte(key)),
 					len(entry.prefix),
 					recordedNodes,
 				)
@@ -189,18 +221,23 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 
 			switch s := nextStep.(type) {
 			case stepDescend:
-				childPrefix := []byte(key[s.childPrefixLen:])
+				// TODO: fix this
+				childPrefix := []byte{} //[]byte(key[s.childPrefixLen:])
 				var childEntry *stackEntry
 				switch child := s.child.(type) {
 				case nodeHandleHash:
-					// TODO: use recordedNodes iterator
 					childRecord := recordedNodes.Next()
+
+					if !bytes.Equal(childRecord.Hash, child.hash) {
+						panic("hash mismatch")
+					}
+
 					outputIndex := len(proofNodes)
 
 					// Insert a placeholder into output which will be replaced when this
 					// new entry is popped from the stack.
 					proofNodes = append(proofNodes, []byte{})
-					childEntry, err = NewStackEntry(
+					childEntry, err = newStackEntry(
 						childPrefix,
 						childRecord.Data,
 						&childRecord.Hash,
@@ -212,9 +249,9 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 					}
 				case nodeHandleInline:
 					if len(child.data) > common.HashLength {
-						return nil, errors.New("Invalid hash length")
+						return nil, errors.New("invalid hash length")
 					}
-					childEntry, err = NewStackEntry(
+					childEntry, err = newStackEntry(
 						childPrefix,
 						child.data,
 						nil,
@@ -226,12 +263,15 @@ func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash commo
 				}
 				stack.PushBack(childEntry)
 			default:
-				break
+				break loop
 			}
 		}
 	}
 
-	unwindStack(stack, proofNodes, nil)
+	err = unwindStack(stack, proofNodes, nil)
+	if err != nil {
+		return nil, err
+	}
 	return proofNodes, nil
 }
 
@@ -242,26 +282,31 @@ func unwindStack(
 	stack *deque.Deque[*stackEntry],
 	proofNodes [][]byte,
 	maybeKey *string,
-) {
-	for entry := stack.PopBack(); entry != nil; entry = stack.PopBack() {
-		if maybeKey != nil {
-			key := *maybeKey
-			if bytes.HasPrefix([]byte(key), entry.prefix) {
-				stack.PushBack(entry)
-				break
-			}
+) error {
+	for stack.Len() > 0 {
+		entry := stack.PopBack()
+		if maybeKey != nil && bytes.HasPrefix([]byte(*maybeKey), entry.prefix) {
+			stack.PushBack(entry)
+			break
 		}
 
-		parentEntry := stack.Back()
-		if parentEntry != nil {
-			parentEntry.setChild(entry.encodedNode)
+		if stack.Len() > 0 {
+			parentEntry := stack.Back()
+			if parentEntry != nil {
+				parentEntry.setChild(entry.encodedNode)
+			}
 		}
 
 		index := entry.outputIndex
 		if index != nil {
-			proofNodes[*index] = entry.encodedNode
+			encoded, err := entry.encodeNode()
+			if err != nil {
+				return err
+			}
+			proofNodes[*index] = encoded
 		}
 	}
+	return nil
 }
 
 func sortAndDeduplicateKeys(keys []string) []string {
