@@ -418,6 +418,8 @@ func (s *Service) VerifyBlockJustification(finalizedTarget types.Header, encoded
 		return 0, 0, fmt.Errorf("cannot get authorities for set ID: %w", err)
 	}
 
+	logger.Debugf("verifying justification within set id %d and authorities %d", setID, len(auths))
+
 	idsAndWeights := make([]finality_grandpa.IDWeight[string], len(auths))
 	for idx, auth := range auths {
 		idsAndWeights[idx] = finality_grandpa.IDWeight[string]{
@@ -435,7 +437,7 @@ func (s *Service) VerifyBlockJustification(finalizedTarget types.Header, encoded
 	justification, err := client_grandpa.DecodeAndVerifyFinalizes[hash.H256, uint, runtime.BlakeTwo256](
 		encoded, target, setID, *voters)
 	if err != nil {
-		fmt.Errorf("while decoding and verifying justification: %w", err)
+		return 0, 0, fmt.Errorf("while decoding and verifying justification: %w", err)
 	}
 
 	return justification.Justification.Round, setID, nil
