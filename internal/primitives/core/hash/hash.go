@@ -36,7 +36,6 @@ func (h256 *H256) UnmarshalSCALE(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-
 	if arr != [32]byte{} {
 		*h256 = H256(arr[:])
 	}

@@ -39,6 +39,14 @@ type SetID uint64
 // The round indicator.
 type RoundNumber uint64
 
+type Subround byte
+
+var (
+	Prevote         Subround
+	Precommit       Subround = 1
+	PrimaryProposal Subround = 2
+)
+
 type AuthorityIDWeight struct {
 	AuthorityID
 	AuthorityWeight
@@ -76,9 +84,17 @@ func CheckMessageSignature[H comparable, N constraints.Unsigned](
 	round RoundNumber,
 	setID SetID) bool {
 
-	buf := LocalizedPayload(round, setID, message)
-	valid := id.Verify(signature, buf)
+	var encodedMessage []byte
+	switch message.Value.(type) {
+	case grandpa.Precommit[H, N]:
+		encodedMessage = LocalizedPayload(Precommit, round, setID, message)
+	case grandpa.Prevote[H, N]:
+		encodedMessage = LocalizedPayload(Prevote, round, setID, message)
+	case grandpa.PrimaryPropose[H, N]:
+		encodedMessage = LocalizedPayload(PrimaryProposal, round, setID, message)
+	}
 
+	valid := id.Verify(signature, encodedMessage)
 	if !valid {
 		logger.Debugf("Bad signature on message from %v", id)
 	}
@@ -87,10 +103,11 @@ func CheckMessageSignature[H comparable, N constraints.Unsigned](
 
 // Encode round message localised to a given round and set id using the given
 // buffer.
-func LocalizedPayload(round RoundNumber, setID SetID, message any) []byte {
+func LocalizedPayload(stage Subround, round RoundNumber, setID SetID, message any) []byte {
 	return scale.MustMarshal(struct {
+		Stage   Subround
 		Message any
 		RoundNumber
 		SetID
-	}{message, round, setID})
+	}{stage, message, round, setID})
 }

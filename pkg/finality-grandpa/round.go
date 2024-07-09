@@ -526,6 +526,7 @@ func (r *Round[ID, H, N, S]) State() RoundState[H, N] {
 func (r *Round[ID, H, N, S]) PrecommitGHOST() *HashNumber[H, N] {
 	// update precommit-GHOST
 	var threshold = r.Threshold()
+
 	if r.precommits.currentWeight >= VoteWeight(threshold) {
 		r.precommitGhost = r.graph.FindGHOST(r.precommitGhost, func(v *voteNode[ID]) bool {
 			return r.context.Weight(*v, PrecommitPhase) >= VoteWeight(threshold)

@@ -9,7 +9,6 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
@@ -405,10 +404,10 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *CatchUpResponse) erro
 
 // VerifyBlockJustification verifies the finality justification for a block, returns scale encoded justification with
 // any extra bytes removed.
-func (s *Service) VerifyBlockJustification(finalizedTarget types.Header, encoded []byte) (
+func (s *Service) VerifyBlockJustification(finalizedHash common.Hash, finalizedNumber uint, encoded []byte) (
 	round uint64, setID uint64, err error,
 ) {
-	setID, err = s.grandpaState.GetSetIDByBlockNumber(finalizedTarget.Number)
+	setID, err = s.grandpaState.GetSetIDByBlockNumber(finalizedNumber)
 	if err != nil {
 		return 0, 0, fmt.Errorf("cannot get set ID from block number: %w", err)
 	}
@@ -429,12 +428,12 @@ func (s *Service) VerifyBlockJustification(finalizedTarget types.Header, encoded
 	}
 
 	voters := finality_grandpa.NewVoterSet(idsAndWeights)
-	target := client_grandpa.HashNumber[hash.H256, uint]{
-		Hash:   hash.H256(finalizedTarget.Hash().String()),
-		Number: finalizedTarget.Number,
+	target := client_grandpa.HashNumber[hash.H256, uint32]{
+		Hash:   hash.H256(string(finalizedHash.Bytes())),
+		Number: uint32(finalizedNumber),
 	}
 
-	justification, err := client_grandpa.DecodeAndVerifyFinalizes[hash.H256, uint, runtime.BlakeTwo256](
+	justification, err := client_grandpa.DecodeAndVerifyFinalizes[hash.H256, uint32, runtime.BlakeTwo256](
 		encoded, target, setID, *voters)
 	if err != nil {
 		return 0, 0, fmt.Errorf("while decoding and verifying justification: %w", err)
@@ -454,14 +453,4 @@ func verifyBlockHashAgainstBlockNumber(bs BlockState, hash common.Hash, number u
 			ErrBlockHashMismatch, header.Number, number)
 	}
 	return nil
-}
-
-func isInAuthSet(auth *ed25519.PublicKey, set []types.GrandpaVoter) bool {
-	for _, a := range set {
-		if bytes.Equal(a.Key.Encode(), auth.Encode()) {
-			return true
-		}
-	}
-
-	return false
 }

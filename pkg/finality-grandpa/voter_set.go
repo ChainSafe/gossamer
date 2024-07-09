@@ -45,12 +45,13 @@ func NewVoterSet[ID constraints.Ordered](weights []IDWeight[ID]) *VoterSet[ID] {
 	var totalWeight VoterWeight
 	var voters = btree.NewMap[ID, VoterInfo](2)
 	for _, iw := range weights {
-
 		if iw.Weight != 0 {
 			err := totalWeight.checkedAdd(VoterWeight(iw.Weight))
+			// TODO: we should return the error
 			if err != nil {
 				return nil
 			}
+
 			vi, has := voters.Get(iw.ID)
 			if !has {
 				voters.Set(iw.ID, VoterInfo{

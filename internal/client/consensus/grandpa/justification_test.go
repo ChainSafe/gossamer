@@ -34,7 +34,7 @@ func makePrecommit(t *testing.T,
 		TargetNumber: targetNumber,
 	}
 	msg := grandpa.NewMessage(precommit)
-	encoded := primitives.LocalizedPayload(primitives.RoundNumber(round), primitives.SetID(setID), msg)
+	encoded := primitives.LocalizedPayload(primitives.Prevote, primitives.RoundNumber(round), primitives.SetID(setID), msg)
 	signature := voter.Sign(encoded)
 
 	return grandpa.SignedPrecommit[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID]{

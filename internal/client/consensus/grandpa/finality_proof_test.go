@@ -174,7 +174,7 @@ func createCommit[H runtime.Hash, N runtime.Number](
 			TargetNumber: block.Header().Number(),
 		}
 		msg := grandpa.NewMessage(precommit)
-		encoded := primitives.LocalizedPayload(primitives.RoundNumber(round), setID, msg)
+		encoded := primitives.LocalizedPayload(primitives.Precommit, primitives.RoundNumber(round), setID, msg)
 		signature := voter.Sign(encoded)
 
 		signedPrecommit := grandpa.SignedPrecommit[H, N, primitives.AuthoritySignature, primitives.AuthorityID]{

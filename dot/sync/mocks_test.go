@@ -553,9 +553,9 @@ func (m *MockFinalityGadget) EXPECT() *MockFinalityGadgetMockRecorder {
 }
 
 // VerifyBlockJustification mocks base method.
-func (m *MockFinalityGadget) VerifyBlockJustification(arg0 types.Header, arg1 []byte) (uint64, uint64, error) {
+func (m *MockFinalityGadget) VerifyBlockJustification(arg0 common.Hash, arg1 uint, arg2 []byte) (uint64, uint64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "VerifyBlockJustification", arg0, arg1)
+	ret := m.ctrl.Call(m, "VerifyBlockJustification", arg0, arg1, arg2)
 	ret0, _ := ret[0].(uint64)
 	ret1, _ := ret[1].(uint64)
 	ret2, _ := ret[2].(error)
@@ -563,9 +563,9 @@ func (m *MockFinalityGadget) VerifyBlockJustification(arg0 types.Header, arg1 []
 }
 
 // VerifyBlockJustification indicates an expected call of VerifyBlockJustification.
-func (mr *MockFinalityGadgetMockRecorder) VerifyBlockJustification(arg0, arg1 any) *gomock.Call {
+func (mr *MockFinalityGadgetMockRecorder) VerifyBlockJustification(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyBlockJustification", reflect.TypeOf((*MockFinalityGadget)(nil).VerifyBlockJustification), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VerifyBlockJustification", reflect.TypeOf((*MockFinalityGadget)(nil).VerifyBlockJustification), arg0, arg1, arg2)
 }
 
 // MockBlockImportHandler is a mock of BlockImportHandler interface.

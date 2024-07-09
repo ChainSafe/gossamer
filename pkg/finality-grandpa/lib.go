@@ -286,9 +286,11 @@ func ValidateCommit[ //skipcq: GO-R1005
 			Number: signed.Precommit.TargetNumber,
 		})
 	}
+
 	slices.SortFunc(targets, func(a HashNumber[Hash, Number], b HashNumber[Hash, Number]) int {
 		return int(a.Number - b.Number)
 	})
+
 	if len(targets) == 0 {
 		return validationResult, nil
 	}
@@ -296,6 +298,7 @@ func ValidateCommit[ //skipcq: GO-R1005
 
 	// check that all precommits are for blocks that are equal to or descendants
 	// of the round base
+
 	var allPrecommitsHigherThanBase bool
 	for i, signed := range validPrecommits {
 		if chain.IsEqualOrDescendantOf(base.Hash, signed.Precommit.TargetHash) {

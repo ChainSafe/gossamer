@@ -13,6 +13,7 @@ import (
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
+	"github.com/ChainSafe/gossamer/lib/common"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -66,7 +67,7 @@ func (dgj *decodeGrandpaJustification[H, N, Hasher]) UnmarshalSCALE(reader io.Re
 	decoder := scale.NewDecoder(reader)
 	err = decoder.Decode(&rch)
 	if err != nil {
-		return
+		return err
 	}
 
 	dgj.Justification.Round = rch.Round
@@ -75,7 +76,7 @@ func (dgj *decodeGrandpaJustification[H, N, Hasher]) UnmarshalSCALE(reader io.Re
 	for i, header := range rch.Headers {
 		dgj.Justification.VoteAncestries[i] = header
 	}
-	return
+	return nil
 }
 
 func (dgj decodeGrandpaJustification[Hash, N, Hasher]) GrandpaJustification() *GrandpaJustification[Hash, N] {
@@ -222,16 +223,17 @@ func (j *GrandpaJustification[Hash, N]) verifyWithVoterSet(
 	setID uint64,
 	voters grandpa.VoterSet[string],
 ) error {
-	ancestryChain := newAncestryChain[Hash, N](j.Justification.VoteAncestries)
+	ancestryChain := newAncestryChain(j.Justification.VoteAncestries)
 	signedPrecommits := make([]grandpa.SignedPrecommit[Hash, N, string, string], 0)
 	for _, pc := range j.Justification.Commit.Precommits {
 		signedPrecommits = append(signedPrecommits, grandpa.SignedPrecommit[Hash, N, string, string]{
 			Precommit: pc.Precommit,
-			Signature: string(pc.Signature[:]),
-			ID:        string(pc.ID.ToRawVec()),
+			Signature: common.BytesToHex(pc.Signature[:]),
+			ID:        common.BytesToHex(pc.ID.ToRawVec()),
 		})
 	}
-	commitValidationResult, err := grandpa.ValidateCommit[Hash, N, string, string](
+
+	commitValidationResult, err := grandpa.ValidateCommit(
 		grandpa.Commit[Hash, N, string, string]{
 			TargetHash:   j.Justification.Commit.TargetHash,
 			TargetNumber: j.Justification.Commit.TargetNumber,
@@ -240,8 +242,9 @@ func (j *GrandpaJustification[Hash, N]) verifyWithVoterSet(
 		voters,
 		ancestryChain,
 	)
+
 	if err != nil {
-		return fmt.Errorf("%w: invalid commit in grandpa justification", errBadJustification)
+		return fmt.Errorf("%w: %w", errBadJustification, err)
 	}
 
 	if !commitValidationResult.Valid() {
@@ -270,7 +273,7 @@ func (j *GrandpaJustification[Hash, N]) verifyWithVoterSet(
 	visitedHashes := make(map[Hash]struct{})
 	for _, signed := range precommits {
 		msg := grandpa.NewMessage(signed.Precommit)
-		isValidSignature := primitives.CheckMessageSignature[Hash, N](
+		isValidSignature := primitives.CheckMessageSignature(
 			msg,
 			signed.ID,
 			signed.Signature,

@@ -843,7 +843,8 @@ func (cs *chainSync) processBlockData(blockData types.BlockData, origin blockOri
 	if blockData.Header != nil {
 		var setFinalisedHash func() error = nil
 		if blockData.Justification != nil && len(*blockData.Justification) > 0 {
-			round, setID, err := cs.finalityGadget.VerifyBlockJustification(*blockData.Header, *blockData.Justification)
+			round, setID, err := cs.finalityGadget.VerifyBlockJustification(
+				blockData.Header.Hash(), blockData.Header.Number, *blockData.Justification)
 			if err != nil {
 				return fmt.Errorf("verifying justification: %w", err)
 			}
