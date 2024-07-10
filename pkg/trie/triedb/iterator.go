@@ -10,7 +10,7 @@ func (t *TrieDB) Entries() (keyValueMap map[string][]byte) {
 
 	iter := NewTrieDBIterator(t)
 	for entry := iter.NextEntry(); entry != nil; entry = iter.NextEntry() {
-		entries[string(entry.key)] = entry.value
+		entries[string(entry.Key)] = entry.Value
 	}
 
 	return entries
