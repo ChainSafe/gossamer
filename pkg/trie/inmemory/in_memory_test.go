@@ -797,7 +797,7 @@ func Test_nextKey(t *testing.T) {
 	testCases := map[string]struct {
 		trie    InMemoryTrie
 		key     []byte
-		nextKey []byte
+		nextKey *trie.Entry
 	}{
 		"nil_root_and_nil_key_returns_nil": {},
 		"nil_root_returns_nil": {
@@ -810,7 +810,10 @@ func Test_nextKey(t *testing.T) {
 					StorageValue: []byte{1},
 				},
 			},
-			nextKey: []byte{2},
+			nextKey: &trie.Entry{
+				Key:   []byte{2},
+				Value: []byte{1},
+			},
 		},
 		"key_smaller_than_root_leaf_full_key": {
 			trie: InMemoryTrie{
@@ -819,8 +822,11 @@ func Test_nextKey(t *testing.T) {
 					StorageValue: []byte{1},
 				},
 			},
-			key:     []byte{1},
-			nextKey: []byte{2},
+			key: []byte{1},
+			nextKey: &trie.Entry{
+				Key:   []byte{2},
+				Value: []byte{1},
+			},
 		},
 		"key_equal_to_root_leaf_full_key": {
 			trie: InMemoryTrie{
@@ -854,8 +860,11 @@ func Test_nextKey(t *testing.T) {
 					}),
 				},
 			},
-			key:     []byte{1},
-			nextKey: []byte{2},
+			key: []byte{1},
+			nextKey: &trie.Entry{
+				Key:   []byte{2},
+				Value: []byte("branch"),
+			},
 		},
 		"key_equal_to_root_branch_full_key": {
 			trie: InMemoryTrie{
@@ -889,8 +898,11 @@ func Test_nextKey(t *testing.T) {
 					}),
 				},
 			},
-			key:     []byte{1, 2, 2},
-			nextKey: []byte{1, 2, 3},
+			key: []byte{1, 2, 2},
+			nextKey: &trie.Entry{
+				Key:   []byte{1, 2, 3},
+				Value: []byte{1},
+			},
 		},
 		"key_equal_to_leaf_full_key": {
 			trie: InMemoryTrie{
@@ -953,8 +965,11 @@ func Test_nextKey(t *testing.T) {
 					}),
 				},
 			},
-			key:     []byte{1},
-			nextKey: []byte{1, 2, 3},
+			key: []byte{1},
+			nextKey: &trie.Entry{
+				Key:   []byte{1, 2, 3},
+				Value: []byte("branch 1"),
+			},
 		},
 		"next_key_go_through_branch_without_value": {
 			trie: InMemoryTrie{
@@ -979,8 +994,11 @@ func Test_nextKey(t *testing.T) {
 					}),
 				},
 			},
-			key:     []byte{0},
-			nextKey: []byte{1, 2, 3, 4, 5},
+			key: []byte{0},
+			nextKey: &trie.Entry{
+				Key:   []byte{1, 2, 3, 4, 5},
+				Value: []byte("bottom leaf"),
+			},
 		},
 		"next_key_leaf_from_bottom_branch": {
 			trie: InMemoryTrie{
@@ -1006,8 +1024,11 @@ func Test_nextKey(t *testing.T) {
 					}),
 				},
 			},
-			key:     []byte{1, 2, 3},
-			nextKey: []byte{1, 2, 3, 4, 5},
+			key: []byte{1, 2, 3},
+			nextKey: &trie.Entry{
+				Key:   []byte{1, 2, 3, 4, 5},
+				Value: []byte("bottom leaf"),
+			},
 		},
 		"next_key_greater_than_branch": {
 			trie: InMemoryTrie{
@@ -1034,7 +1055,7 @@ func Test_nextKey(t *testing.T) {
 				},
 			},
 			key:     []byte{1, 2, 3},
-			nextKey: []byte{1, 2, 3, 4, 5},
+			nextKey: &trie.Entry{Key: []byte{1, 2, 3, 4, 5}, Value: []byte("bottom leaf")},
 		},
 		"key_smaller_length_and_greater_than_root_branch_full_key": {
 			trie: InMemoryTrie{
@@ -1067,7 +1088,7 @@ func Test_nextKey(t *testing.T) {
 
 			originalTrie := testCase.trie.DeepCopy()
 
-			nextKey := findNextKey(testCase.trie.root, nil, testCase.key)
+			nextKey := findNextNode(testCase.trie.root, nil, testCase.key)
 
 			assert.Equal(t, testCase.nextKey, nextKey)
 			assert.Equal(t, *originalTrie, testCase.trie) // ensure no mutation

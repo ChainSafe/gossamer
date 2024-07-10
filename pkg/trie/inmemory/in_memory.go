@@ -31,6 +31,8 @@ type InMemoryTrie struct {
 	deltas tracking.Delta
 }
 
+var _ trie.Trie = (*InMemoryTrie)(nil)
+
 // NewEmptyTrie creates a trie with a nil root
 func NewEmptyTrie() *InMemoryTrie {
 	return NewTrie(nil, db.NewEmptyMemoryDB())
@@ -46,6 +48,14 @@ func NewTrie(root *node.Node, db db.Database) *InMemoryTrie {
 		deltas:     tracking.New(),
 		version:    trie.V0,
 	}
+}
+
+func (t *InMemoryTrie) Iter() trie.TrieIterator {
+	return NewInMemoryTrieIterator(WithTrie(t))
+}
+
+func (t *InMemoryTrie) PrefixedIter(prefix []byte) trie.TrieIterator {
+	return NewInMemoryTrieIterator(WithTrie(t), WithCursorAt(codec.KeyLEToNibbles(prefix)))
 }
 
 func (t *InMemoryTrie) SetVersion(v trie.TrieLayout) {
@@ -225,14 +235,6 @@ func (t *InMemoryTrie) Hash() (rootHash common.Hash, err error) {
 	return rootHash, nil
 }
 
-// Entries returns all the key-value pairs in the trie as a map of keys to values
-// where the keys are encoded in Little Endian.
-func (t *InMemoryTrie) Entries() (keyValueMap map[string][]byte) {
-	keyValueMap = make(map[string][]byte)
-	t.buildEntriesMap(t.root, nil, keyValueMap)
-	return keyValueMap
-}
-
 func (t *InMemoryTrie) buildEntriesMap(currentNode *node.Node, prefix []byte, kv map[string][]byte) {
 	if currentNode == nil {
 		return
@@ -259,97 +261,6 @@ func (t *InMemoryTrie) buildEntriesMap(currentNode *node.Node, prefix []byte, kv
 		childPrefix := concatenateSlices(prefix, branch.PartialKey, intToByteSlice(i))
 		t.buildEntriesMap(child, childPrefix, kv)
 	}
-}
-
-// NextKey returns the next key in the trie in lexicographic order.
-// It returns nil if no next key is found.
-func (t *InMemoryTrie) NextKey(keyLE []byte) (nextKeyLE []byte) {
-	prefix := []byte(nil)
-	key := codec.KeyLEToNibbles(keyLE)
-
-	nextKey := findNextKey(t.root, prefix, key)
-	if nextKey == nil {
-		return nil
-	}
-
-	nextKeyLE = codec.NibblesToKeyLE(nextKey)
-	return nextKeyLE
-}
-
-func findNextKey(parent *node.Node, prefix, searchKey []byte) (nextKey []byte) {
-	if parent == nil {
-		return nil
-	}
-
-	if parent.Kind() == node.Leaf {
-		return findNextKeyLeaf(parent, prefix, searchKey)
-	}
-	return findNextKeyBranch(parent, prefix, searchKey)
-}
-
-func findNextKeyLeaf(leaf *node.Node, prefix, searchKey []byte) (nextKey []byte) {
-	parentLeafKey := leaf.PartialKey
-	fullKey := concatenateSlices(prefix, parentLeafKey)
-
-	if keyIsLexicographicallyBigger(searchKey, fullKey) {
-		return nil
-	}
-
-	return fullKey
-}
-
-func findNextKeyBranch(parentBranch *node.Node, prefix, searchKey []byte) (nextKey []byte) {
-	fullKey := concatenateSlices(prefix, parentBranch.PartialKey)
-
-	if bytes.Equal(searchKey, fullKey) {
-		const startChildIndex = 0
-		return findNextKeyChild(parentBranch.Children, startChildIndex, fullKey, searchKey)
-	}
-
-	if keyIsLexicographicallyBigger(searchKey, fullKey) {
-		if len(searchKey) < len(fullKey) {
-			return nil
-		} else if len(searchKey) > len(fullKey) {
-			startChildIndex := searchKey[len(fullKey)]
-			return findNextKeyChild(parentBranch.Children,
-				startChildIndex, fullKey, searchKey)
-		}
-	}
-
-	// search key is smaller than full key
-	if parentBranch.StorageValue != nil {
-		return fullKey
-	}
-	const startChildIndex = 0
-	return findNextKeyChild(parentBranch.Children, startChildIndex,
-		fullKey, searchKey)
-}
-
-func keyIsLexicographicallyBigger(key, key2 []byte) (bigger bool) {
-	if len(key) < len(key2) {
-		return bytes.Compare(key, key2[:len(key)]) == 1
-	}
-	return bytes.Compare(key[:len(key2)], key2) != -1
-}
-
-// findNextKeyChild searches for a next key in the children
-// given and returns a next key or nil if no next key is found.
-func findNextKeyChild(children []*node.Node, startIndex byte,
-	fullKey, key []byte) (nextKey []byte) {
-	for i := startIndex; i < node.ChildrenCapacity; i++ {
-		child := children[i]
-		if child == nil {
-			continue
-		}
-
-		childFullKey := concatenateSlices(fullKey, []byte{i})
-		next := findNextKey(child, childFullKey, key)
-		if len(next) > 0 {
-			return next
-		}
-	}
-
-	return nil
 }
 
 // Put inserts a value into the trie at the
