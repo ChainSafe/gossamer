@@ -316,8 +316,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	}
 
 	var bgValidationResult backgroundValidationResult
-
-	if validationResultRes.Data.IsValid { // Valid
+	if validationResultRes.Data.IsValid() { // Valid
 		// Important: the `av-store` subsystem will check if the erasure root of the `available_data`
 		// matches `expected_erasure_root` which was provided by the collator in the `CandidateReceipt`.
 		// This check is consensus critical and the `backing` subsystem relies on it for ensuring
@@ -343,8 +342,8 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 			bgValidationResult = backgroundValidationResult{
 				outputs: &backgroundValidationOutputs{
 					candidateReceipt:        candidateReceipt,
-					candidateCommitments:    validationResultRes.Data.CandidateCommitments,
-					persistedValidationData: validationResultRes.Data.PersistedValidationData,
+					candidateCommitments:    validationResultRes.Data.ValidResult.CandidateCommitments,
+					persistedValidationData: validationResultRes.Data.ValidResult.PersistedValidationData,
 				},
 				candidate: nil,
 				err:       nil,
@@ -361,11 +360,11 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		}
 
 	} else { // Invalid
-		logger.Error(validationResultRes.Data.Err.Error())
+		logger.Error(validationResultRes.Data.InvalidResult.Error())
 		bgValidationResult = backgroundValidationResult{
 			outputs:   nil,
 			candidate: &candidateReceipt,
-			err:       validationResultRes.Data.Err,
+			err:       fmt.Errorf(validationResultRes.Data.InvalidResult.Error()),
 		}
 	}
 
