@@ -268,6 +268,10 @@ type OutboundHrmpMessage struct {
 // ValidationCode is Parachain validation code.
 type ValidationCode []byte
 
+func (vc ValidationCode) Hash() ValidationCodeHash {
+	return ValidationCodeHash(common.MustBlake2bHash(vc))
+}
+
 // CandidateCommitments are Commitments made in a `CandidateReceipt`. Many of these are outputs of validation.
 type CandidateCommitments struct {
 	// Messages destined to be interpreted by the Relay chain itself.
@@ -409,6 +413,15 @@ func (cr CandidateReceipt) Hash() (common.Hash, error) {
 // HeadData Parachain head data included in the chain.
 type HeadData struct {
 	Data []byte `scale:"1"`
+}
+
+func (hd HeadData) Hash() (common.Hash, error) {
+	bytes, err := scale.Marshal(hd)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("marshalling HeadData: %w", err)
+	}
+
+	return common.Blake2bHash(bytes)
 }
 
 // CoreIndex The unique (during session) index of a core.
@@ -638,6 +651,16 @@ func (ch CandidateHash) String() string {
 // It contains the necessary data for the parachain specific state transition logic.
 type PoV struct {
 	BlockData BlockData `scale:"1"`
+}
+
+// Hash returns the hash of the PoV
+func (p PoV) Hash() (common.Hash, error) {
+	bytes, err := scale.Marshal(p)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("marshalling PoV: %w", err)
+	}
+
+	return common.Blake2bHash(bytes)
 }
 
 // NoSuchPoV indicates that the requested PoV was not found in the store.
