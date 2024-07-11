@@ -15,13 +15,13 @@ func TestInsertions(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trieEntries []entry
+		trieEntries []trie.Entry
 		key         []byte
 		value       []byte
 		stored      NodeStorage
 	}{
 		"nil_parent": {
-			trieEntries: []entry{},
+			trieEntries: []trie.Entry{},
 			key:         []byte{1},
 			value:       []byte("leaf"),
 			stored: NodeStorage{
@@ -36,10 +36,10 @@ func TestInsertions(t *testing.T) {
 			},
 		},
 		"branch_parent": {
-			trieEntries: []entry{
+			trieEntries: []trie.Entry{
 				{
-					key:   []byte{1},
-					value: []byte("branch"),
+					Key:   []byte{1},
+					Value: []byte("branch"),
 				},
 			},
 			key:   []byte{1, 0},
@@ -66,14 +66,14 @@ func TestInsertions(t *testing.T) {
 			},
 		},
 		"branch_in_between_rearrange": {
-			trieEntries: []entry{
+			trieEntries: []trie.Entry{
 				{
-					key:   []byte{1},
-					value: []byte("branch"),
+					Key:   []byte{1},
+					Value: []byte("branch"),
 				},
 				{
-					key:   []byte{1, 0, 1},
-					value: []byte("leaf"),
+					Key:   []byte{1, 0, 1},
+					Value: []byte("leaf"),
 				},
 			},
 			key:   []byte{1, 0},
@@ -110,14 +110,14 @@ func TestInsertions(t *testing.T) {
 			},
 		},
 		"branch_in_between": {
-			trieEntries: []entry{
+			trieEntries: []trie.Entry{
 				{
-					key:   []byte{1, 0},
-					value: []byte("branch"),
+					Key:   []byte{1, 0},
+					Value: []byte("branch"),
 				},
 				{
-					key:   []byte{1, 0, 1},
-					value: []byte("leaf"),
+					Key:   []byte{1, 0, 1},
+					Value: []byte("leaf"),
 				},
 			},
 			key:   []byte{1},
@@ -154,14 +154,14 @@ func TestInsertions(t *testing.T) {
 			},
 		},
 		"override_branch_value": {
-			trieEntries: []entry{
+			trieEntries: []trie.Entry{
 				{
-					key:   []byte{1},
-					value: []byte("branch"),
+					Key:   []byte{1},
+					Value: []byte("branch"),
 				},
 				{
-					key:   []byte{1, 0},
-					value: []byte("leaf"),
+					Key:   []byte{1, 0},
+					Value: []byte("leaf"),
 				},
 			},
 			key:   []byte{1},
@@ -188,14 +188,14 @@ func TestInsertions(t *testing.T) {
 			},
 		},
 		"override_branch_value_same_value": {
-			trieEntries: []entry{
+			trieEntries: []trie.Entry{
 				{
-					key:   []byte{1},
-					value: []byte("branch"),
+					Key:   []byte{1},
+					Value: []byte("branch"),
 				},
 				{
-					key:   []byte{1, 0},
-					value: []byte("leaf"),
+					Key:   []byte{1, 0},
+					Value: []byte("leaf"),
 				},
 			},
 			key:   []byte{1},
@@ -222,14 +222,14 @@ func TestInsertions(t *testing.T) {
 			},
 		},
 		"override_leaf_of_branch_value_same_value": {
-			trieEntries: []entry{
+			trieEntries: []trie.Entry{
 				{
-					key:   []byte{1},
-					value: []byte("branch"),
+					Key:   []byte{1},
+					Value: []byte("branch"),
 				},
 				{
-					key:   []byte{1, 0},
-					value: []byte("leaf"),
+					Key:   []byte{1, 0},
+					Value: []byte("leaf"),
 				},
 			},
 			key:   []byte{1, 0},
@@ -256,10 +256,10 @@ func TestInsertions(t *testing.T) {
 			},
 		},
 		"override_leaf_parent": {
-			trieEntries: []entry{
+			trieEntries: []trie.Entry{
 				{
-					key:   []byte{1},
-					value: []byte("leaf"),
+					Key:   []byte{1},
+					Value: []byte("leaf"),
 				},
 			},
 			key:   []byte{1},
@@ -276,10 +276,10 @@ func TestInsertions(t *testing.T) {
 			},
 		},
 		"write_same_leaf_value_to_leaf_parent": {
-			trieEntries: []entry{
+			trieEntries: []trie.Entry{
 				{
-					key:   []byte{1},
-					value: []byte("same"),
+					Key:   []byte{1},
+					Value: []byte("same"),
 				},
 			},
 			key:   []byte{1},
@@ -296,10 +296,10 @@ func TestInsertions(t *testing.T) {
 			},
 		},
 		"write_leaf_as_divergent_child_next_to_parent_leaf": {
-			trieEntries: []entry{
+			trieEntries: []trie.Entry{
 				{
-					key:   []byte{1, 2},
-					value: []byte("original leaf"),
+					Key:   []byte{1, 2},
+					Value: []byte("original leaf"),
 				},
 			},
 			key:   []byte{2, 3},
@@ -345,7 +345,7 @@ func TestInsertions(t *testing.T) {
 			trie := NewEmptyTrieDB(inmemoryDB, nil)
 
 			for _, entry := range testCase.trieEntries {
-				assert.NoError(t, trie.insert(entry.key, entry.value))
+				assert.NoError(t, trie.insert(entry.Key, entry.Value))
 			}
 
 			// Add new key-value pair
@@ -362,15 +362,15 @@ func TestDeletes(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trieEntries []entry
+		trieEntries []trie.Entry
 		key         []byte
 		expected    NodeStorage
 	}{
 		"nil_key": {
-			trieEntries: []entry{
+			trieEntries: []trie.Entry{
 				{
-					key:   []byte{1},
-					value: []byte("leaf"),
+					Key:   []byte{1},
+					Value: []byte("leaf"),
 				},
 			},
 			expected: NodeStorage{
@@ -391,10 +391,10 @@ func TestDeletes(t *testing.T) {
 			},
 		},
 		"delete_leaf": {
-			trieEntries: []entry{
+			trieEntries: []trie.Entry{
 				{
-					key:   []byte{1},
-					value: []byte("leaf"),
+					Key:   []byte{1},
+					Value: []byte("leaf"),
 				},
 			},
 			key: []byte{1},
@@ -403,14 +403,14 @@ func TestDeletes(t *testing.T) {
 			},
 		},
 		"delete_branch": {
-			trieEntries: []entry{
+			trieEntries: []trie.Entry{
 				{
-					key:   []byte{1},
-					value: []byte("branch"),
+					Key:   []byte{1},
+					Value: []byte("branch"),
 				},
 				{
-					key:   []byte{1, 0},
-					value: []byte("leaf"),
+					Key:   []byte{1, 0},
+					Value: []byte("leaf"),
 				},
 			},
 			key: []byte{1},
@@ -427,14 +427,14 @@ func TestDeletes(t *testing.T) {
 			},
 		},
 		"delete_branch_without_value_should_do_nothing": {
-			trieEntries: []entry{
+			trieEntries: []trie.Entry{
 				{
-					key:   []byte{1, 0},
-					value: []byte("leaf1"),
+					Key:   []byte{1, 0},
+					Value: []byte("leaf1"),
 				},
 				{
-					key:   []byte{1, 1},
-					value: []byte("leaf2"),
+					Key:   []byte{1, 1},
+					Value: []byte("leaf2"),
 				},
 			},
 			key: []byte{1},
@@ -475,7 +475,7 @@ func TestDeletes(t *testing.T) {
 			trie := NewEmptyTrieDB(inmemoryDB, nil)
 
 			for _, entry := range testCase.trieEntries {
-				assert.NoError(t, trie.insert(entry.key, entry.value))
+				assert.NoError(t, trie.insert(entry.Key, entry.Value))
 			}
 
 			// Remove key
@@ -492,16 +492,16 @@ func TestInsertAfterDelete(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		trieEntries []entry
+		trieEntries []trie.Entry
 		key         []byte
 		value       []byte
 		expected    NodeStorage
 	}{
 		"insert_leaf_after_delete": {
-			trieEntries: []entry{
+			trieEntries: []trie.Entry{
 				{
-					key:   []byte{1},
-					value: []byte("leaf"),
+					Key:   []byte{1},
+					Value: []byte("leaf"),
 				},
 			},
 			key:   []byte{1},
@@ -518,14 +518,14 @@ func TestInsertAfterDelete(t *testing.T) {
 			},
 		},
 		"insert_branch_after_delete": {
-			trieEntries: []entry{
+			trieEntries: []trie.Entry{
 				{
-					key:   []byte{1},
-					value: []byte("branch"),
+					Key:   []byte{1},
+					Value: []byte("branch"),
 				},
 				{
-					key:   []byte{1, 0},
-					value: []byte("leaf"),
+					Key:   []byte{1, 0},
+					Value: []byte("leaf"),
 				},
 			},
 			key:   []byte{1},
@@ -562,7 +562,7 @@ func TestInsertAfterDelete(t *testing.T) {
 			trie := NewEmptyTrieDB(inmemoryDB, nil)
 
 			for _, entry := range testCase.trieEntries {
-				assert.NoError(t, trie.insert(entry.key, entry.value))
+				assert.NoError(t, trie.insert(entry.Key, entry.Value))
 			}
 
 			// Remove key

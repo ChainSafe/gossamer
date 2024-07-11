@@ -467,6 +467,24 @@ func TestNextKeys(t *testing.T) {
 			underTransactionFn: func(t *testing.T, ts *TrieState) {},
 			expectedNextKey:    nil,
 		},
+		"nothing_on_state_only_on_tx": {
+			searchKey:   []byte("acc:abc123"),
+			keysOnState: [][]byte{},
+			underTransactionFn: func(t *testing.T, ts *TrieState) {
+				require.NoError(t, ts.Put([]byte("acc:abc123:ddd"), []byte("0x10")))
+			},
+			expectedNextKey: []byte("acc:abc123:ddd"),
+		},
+		"search_key_longer_but_next_key_exists": {
+			searchKey: []byte("abz"),
+			keysOnState: [][]byte{
+				[]byte("a"),
+				[]byte("b"),
+				[]byte("c"),
+			},
+			underTransactionFn: func(t *testing.T, ts *TrieState) {},
+			expectedNextKey:    []byte("b"),
+		},
 	}
 
 	for tname, tt := range cases {

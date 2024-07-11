@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"container/list"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -212,30 +213,32 @@ func (t *TrieState) NextKey(key []byte) []byte {
 	defer t.mtx.RUnlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
-		mainStateSortedKeys := make([]string, len(t.sortedKeys))
-		copy(mainStateSortedKeys, t.sortedKeys)
-
-		mainStateSortedKeys = slices.DeleteFunc(mainStateSortedKeys, func(s string) bool {
-			_, ok := currentTx.deletes[s]
-			return ok
-		})
-
-		allSortedKeys := append(mainStateSortedKeys, currentTx.sortedKeys...)
-		sort.Strings(allSortedKeys)
-
 		// Find key position
-		pos, found := slices.BinarySearch(allSortedKeys, string(key))
+		pos, found := slices.BinarySearch(currentTx.sortedKeys, string(key))
 		if found {
 			pos += 1
 		}
 
+		var nextKey []byte = nil
+
 		// Get next key based on that position
-		if pos < len(allSortedKeys) {
-			k := allSortedKeys[pos]
-			return []byte(k)
+		if pos < len(currentTx.sortedKeys) {
+			nextKey = []byte(currentTx.sortedKeys[pos])
 		}
 
-		return nil
+		nextKeyOnState := t.state.PrefixedIter(key).NextKeyFunc(func(nextKey []byte) bool {
+			_, deleted := currentTx.deletes[string(nextKey)]
+			return !deleted
+		})
+		if nextKeyOnState == nil {
+			return nextKey
+		}
+
+		if nextKey == nil || bytes.Compare(nextKeyOnState, nextKey) < 0 {
+			return nextKeyOnState
+		}
+
+		return nextKey
 	}
 
 	return t.state.NextKey(key)
@@ -529,40 +532,47 @@ func (t *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 		}
 
 		if childChanges := currentTx.childChangeSet[string(keyToChild)]; childChanges != nil {
-			mainStateChildTrieSortedKeys := t.childSortedKeys[string(keyToChild)]
-			childTrieSortedKeys := make([]string, len(mainStateChildTrieSortedKeys))
-			copy(childTrieSortedKeys, mainStateChildTrieSortedKeys)
-
-			childTrieSortedKeys = slices.DeleteFunc(childTrieSortedKeys, func(s string) bool {
-				_, ok := childChanges.deletes[s]
-				return ok
-			})
-
-			allSortedKeys := append(childTrieSortedKeys, childChanges.sortedKeys...)
-			sort.Strings(allSortedKeys)
+			var nextKey []byte = nil
 
 			// Find key position
-			pos, found := slices.BinarySearch(allSortedKeys, string(key))
+			pos, found := slices.BinarySearch(childChanges.sortedKeys, string(key))
 			if found {
 				pos = pos + 1
 			}
 
 			// Get next key based on that position
-			if pos < len(allSortedKeys) {
-				k := allSortedKeys[pos]
-				return []byte(k), nil
+			if pos < len(childChanges.sortedKeys) {
+				nextKey = []byte(childChanges.sortedKeys[pos])
 			}
 
-			return nil, nil
+			childTrie, err := t.state.GetChild(keyToChild)
+			if err != nil {
+				if errors.Is(err, trie.ErrChildTrieDoesNotExist) {
+					return nextKey, nil
+				}
+				return nil, err
+			}
+
+			nextKeyOnState := childTrie.PrefixedIter(key).NextKeyFunc(func(nextKey []byte) bool {
+				_, deleted := childChanges.deletes[string(nextKey)]
+				return !deleted
+			})
+
+			if nextKeyOnState == nil {
+				return nextKey, nil
+			}
+
+			if nextKey == nil || bytes.Compare(nextKeyOnState, nextKey) < 0 {
+				return nextKeyOnState, nil
+			}
+
+			return nextKey, nil
 		}
 	}
 
 	child, err := t.state.GetChild(keyToChild)
-	if err != nil {
+	if err != nil || child == nil {
 		return nil, err
-	}
-	if child == nil {
-		return nil, nil
 	}
 
 	return child.NextKey(key), nil
