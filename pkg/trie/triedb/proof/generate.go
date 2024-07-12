@@ -129,8 +129,6 @@ func (e *stackEntry) encodeNode() ([]byte, error) {
 func (e *stackEntry) setChild(encodedChild []byte) {
 	var childRef triedb.ChildReference
 	switch n := e.node.(type) {
-	case codec.Empty, codec.Leaf:
-		panic("Empty and leaf nodes have no children, we cannot descend into")
 	case codec.Branch:
 		if e.childIndex >= codec.ChildrenCapacity {
 			panic("child index out of bounds")
@@ -138,6 +136,8 @@ func (e *stackEntry) setChild(encodedChild []byte) {
 		if n.Children[e.childIndex] != nil {
 			childRef = e.replaceChildRef(encodedChild, n.Children[e.childIndex])
 		}
+	default:
+		panic("Empty and leaf nodes have no children, we cannot descend into")
 	}
 	e.children[e.childIndex] = childRef
 	e.childIndex++
