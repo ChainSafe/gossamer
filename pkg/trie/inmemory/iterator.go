@@ -62,6 +62,7 @@ func (t *InMemoryTrieIterator) NextKey() []byte {
 	return nil
 }
 
+// NextKeyFunc advance the iterator until the predicate condition meets
 func (t *InMemoryTrieIterator) NextKeyFunc(predicate func(nextKey []byte) bool) (nextKey []byte) {
 	for entry := t.NextEntry(); entry != nil; entry = t.NextEntry() {
 		key := codec.NibblesToKeyLE(entry.Key)
@@ -72,9 +73,10 @@ func (t *InMemoryTrieIterator) NextKeyFunc(predicate func(nextKey []byte) bool) 
 	return nil
 }
 
-func (i *InMemoryTrieIterator) Seek(targetKey []byte) {
-	for key := i.NextKey(); bytes.Compare(key, targetKey) < 0; key = i.NextKey() {
-	}
+func (t *InMemoryTrieIterator) Seek(targetKey []byte) {
+	t.NextKeyFunc(func(nextKey []byte) bool {
+		return bytes.Compare(nextKey, targetKey) >= 0
+	})
 }
 
 // Entries returns all the key-value pairs in the trie as a map of keys to values
