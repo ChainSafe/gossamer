@@ -56,7 +56,7 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 				l.cache.SetNode(hash, nodeData)
 			}
 
-			l.recordAccess(EncodedNodeAccess{hash: common.BytesToHash(hash), encodedNode: nodeData})
+			l.recordAccess(encodedNodeAccess{hash: common.BytesToHash(hash), encodedNode: nodeData})
 		}
 
 	InlinedChildrenIterator:
@@ -79,7 +79,7 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 					return n, nil
 				}
 
-				l.recordAccess(NonExistingNodeAccess{fullKey: keyNibbles})
+				l.recordAccess(nonExistingNodeAccess{fullKey: keyNibbles})
 
 				return nil, nil
 			case codec.Branch:
@@ -89,7 +89,7 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 				// branch has a hashed child node that points to a node that
 				// doesn't share the prefix we are expecting
 				if !bytes.HasPrefix(partialKey, nodePartialKey) {
-					l.recordAccess(NonExistingNodeAccess{fullKey: keyNibbles})
+					l.recordAccess(nonExistingNodeAccess{fullKey: keyNibbles})
 					return nil, nil
 				}
 
@@ -99,7 +99,7 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 						return n, nil
 					}
 
-					l.recordAccess(NonExistingNodeAccess{fullKey: keyNibbles})
+					l.recordAccess(nonExistingNodeAccess{fullKey: keyNibbles})
 					return nil, nil
 				}
 
@@ -108,7 +108,7 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 				childIdx := int(partialKey[len(nodePartialKey)])
 				nextNode = n.Children[childIdx]
 				if nextNode == nil {
-					l.recordAccess(NonExistingNodeAccess{fullKey: keyNibbles})
+					l.recordAccess(nonExistingNodeAccess{fullKey: keyNibbles})
 					return nil, nil
 				}
 
@@ -169,7 +169,7 @@ func (l *TrieLookup) lookupValue(keyNibbles []byte) (value []byte, err error) {
 func (l *TrieLookup) fetchValue(prefix []byte, fullKey []byte, value codec.EncodedValue) ([]byte, error) {
 	switch v := value.(type) {
 	case codec.InlineValue:
-		l.recordAccess(InlineValueAccess{fullKey: fullKey})
+		l.recordAccess(inlineValueAccess{fullKey: fullKey})
 		return v.Data, nil
 	case codec.HashedValue:
 		prefixedKey := bytes.Join([][]byte{prefix, v.Data}, nil)
@@ -188,7 +188,7 @@ func (l *TrieLookup) fetchValue(prefix []byte, fullKey []byte, value codec.Encod
 			l.cache.SetValue(prefixedKey, nodeData)
 		}
 
-		l.recordAccess(ValueAccess{hash: prefixedKey, fullKey: fullKey, value: nodeData})
+		l.recordAccess(valueAccess{hash: prefixedKey, fullKey: fullKey, value: nodeData})
 
 		return nodeData, nil
 	default:
@@ -196,7 +196,7 @@ func (l *TrieLookup) fetchValue(prefix []byte, fullKey []byte, value codec.Encod
 	}
 }
 
-func (l *TrieLookup) recordAccess(access TrieAccess) {
+func (l *TrieLookup) recordAccess(access trieAccess) {
 	if l.recorder != nil {
 		l.recorder.record(access)
 	}

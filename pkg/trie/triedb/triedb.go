@@ -177,7 +177,7 @@ func (t *TrieDB) getRootNode() (codec.EncodedNode, error) {
 		return nil, err
 	}
 
-	t.recordAccess(EncodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
+	t.recordAccess(encodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
 
 	reader := bytes.NewReader(encodedNode)
 	return codec.Decode(reader)
@@ -207,7 +207,7 @@ func (t *TrieDB) getNode(
 		if err != nil {
 			return nil, err
 		}
-		t.recordAccess(EncodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
+		t.recordAccess(encodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
 
 		reader := bytes.NewReader(encodedNode)
 		return codec.Decode(reader)
@@ -713,7 +713,7 @@ func (t *TrieDB) lookupNode(hash common.Hash) (StorageHandle, error) {
 		return -1, ErrIncompleteDB
 	}
 
-	t.recordAccess(EncodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
+	t.recordAccess(encodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
 
 	node, err := newNodeFromEncoded(hash, encodedNode, t.storage)
 	if err != nil {
@@ -907,7 +907,7 @@ func (t *TrieDB) PrefixedIter(prefix []byte) trie.TrieIterator {
 	return NewPrefixedTrieDBIterator(t, prefix)
 }
 
-func (t *TrieDB) recordAccess(access TrieAccess) {
+func (t *TrieDB) recordAccess(access trieAccess) {
 	if t.recorder != nil {
 		t.recorder.record(access)
 	}
