@@ -10,13 +10,13 @@ import (
 
 func Test_GenerateProofForLeaf(t *testing.T) {
 	testCases := map[string]struct {
-		entries        []triedb.Entry
+		entries        []trie.Entry
 		storageVersion trie.TrieLayout
 		keys           []string
 		expectedProof  [][]byte
 	}{
 		"leaf": {
-			entries: []triedb.Entry{
+			entries: []trie.Entry{
 				{
 					Key:   []byte("a"),
 					Value: []byte("a"),
@@ -28,7 +28,7 @@ func Test_GenerateProofForLeaf(t *testing.T) {
 			},
 		},
 		"branch_and_leaf": {
-			entries: []triedb.Entry{
+			entries: []trie.Entry{
 				{
 					Key:   []byte("a"),
 					Value: []byte("a"),
@@ -44,7 +44,7 @@ func Test_GenerateProofForLeaf(t *testing.T) {
 			},
 		},
 		"complex_trie": {
-			entries: []triedb.Entry{
+			entries: []trie.Entry{
 				{
 					Key:   []byte("pol"),
 					Value: []byte("pol"),
@@ -85,7 +85,7 @@ func Test_GenerateProofForLeaf(t *testing.T) {
 			},
 		},
 		"complex_trie_multiple_keys": {
-			entries: []triedb.Entry{
+			entries: []trie.Entry{
 				{
 					Key:   []byte("pol"),
 					Value: []byte("pol"),

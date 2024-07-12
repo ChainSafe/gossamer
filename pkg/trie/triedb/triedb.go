@@ -25,11 +25,6 @@ var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "triedb"))
 )
 
-type Entry struct {
-	Key   []byte
-	Value []byte
-}
-
 type TrieDBOpts func(*TrieDB)
 
 var WithCache = func(c cache.TrieCache) TrieDBOpts {
@@ -182,7 +177,7 @@ func (t *TrieDB) getRootNode() (codec.EncodedNode, error) {
 		return nil, err
 	}
 
-	t.recordAccess(EncodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
+	t.recordAccess(encodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
 
 	reader := bytes.NewReader(encodedNode)
 	return codec.Decode(reader)
@@ -212,7 +207,7 @@ func (t *TrieDB) getNode(
 		if err != nil {
 			return nil, err
 		}
-		t.recordAccess(EncodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
+		t.recordAccess(encodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
 
 		reader := bytes.NewReader(encodedNode)
 		return codec.Decode(reader)
@@ -242,7 +237,6 @@ func (t *TrieDB) remove(keyNibbles []byte) error {
 
 // Delete deletes the given key from the trie
 func (t *TrieDB) Delete(key []byte) error {
-
 	keyNibbles := nibbles.KeyLEToNibbles(key)
 	return t.remove(keyNibbles)
 }
@@ -719,7 +713,7 @@ func (t *TrieDB) lookupNode(hash common.Hash) (StorageHandle, error) {
 		return -1, ErrIncompleteDB
 	}
 
-	t.recordAccess(EncodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
+	t.recordAccess(encodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
 
 	node, err := newNodeFromEncoded(hash, encodedNode, t.storage)
 	if err != nil {
@@ -905,7 +899,15 @@ func (t *TrieDB) commitChild(
 	}
 }
 
-func (t *TrieDB) recordAccess(access TrieAccess) {
+func (t *TrieDB) Iter() trie.TrieIterator {
+	return NewTrieDBIterator(t)
+}
+
+func (t *TrieDB) PrefixedIter(prefix []byte) trie.TrieIterator {
+	return NewPrefixedTrieDBIterator(t, prefix)
+}
+
+func (t *TrieDB) recordAccess(access trieAccess) {
 	if t.recorder != nil {
 		t.recorder.record(access)
 	}

@@ -8,37 +8,37 @@ import (
 	"github.com/tidwall/btree"
 )
 
-type TrieAccess interface {
+type trieAccess interface {
 	isTrieAccess()
 }
 
 type (
-	EncodedNodeAccess struct {
+	encodedNodeAccess struct {
 		hash        common.Hash
 		encodedNode []byte
 	}
-	ValueAccess struct {
+	valueAccess struct {
 		// We are not using common.Hash here since hash size could be > 32 bytes when we use prefixed keys
 		hash    []byte
 		value   []byte
 		fullKey []byte
 	}
-	InlineValueAccess struct {
+	inlineValueAccess struct {
 		fullKey []byte
 	}
-	HashAccess struct {
+	hashAccess struct {
 		fullKey []byte
 	}
-	NonExistingNodeAccess struct {
+	nonExistingNodeAccess struct {
 		fullKey []byte
 	}
 )
 
-func (EncodedNodeAccess) isTrieAccess()     {}
-func (ValueAccess) isTrieAccess()           {}
-func (InlineValueAccess) isTrieAccess()     {}
-func (HashAccess) isTrieAccess()            {}
-func (NonExistingNodeAccess) isTrieAccess() {}
+func (encodedNodeAccess) isTrieAccess()     {}
+func (valueAccess) isTrieAccess()           {}
+func (inlineValueAccess) isTrieAccess()     {}
+func (hashAccess) isTrieAccess()            {}
+func (nonExistingNodeAccess) isTrieAccess() {}
 
 type RecordedForKey int
 
@@ -91,20 +91,20 @@ func NewRecorder() *Recorder {
 	}
 }
 
-func (r *Recorder) record(access TrieAccess) {
+func (r *Recorder) record(access trieAccess) {
 	switch a := access.(type) {
-	case EncodedNodeAccess:
+	case encodedNodeAccess:
 		r.nodes = append(r.nodes, Record{Hash: a.hash.ToBytes(), Data: a.encodedNode})
-	case ValueAccess:
+	case valueAccess:
 		r.nodes = append(r.nodes, Record{Hash: a.hash, Data: a.value})
 		r.recordedKeys.Set(string(a.fullKey), RecordedValue)
-	case InlineValueAccess:
+	case inlineValueAccess:
 		r.recordedKeys.Set(string(a.fullKey), RecordedValue)
-	case HashAccess:
+	case hashAccess:
 		if _, ok := r.recordedKeys.Get(string(a.fullKey)); !ok {
 			r.recordedKeys.Set(string(a.fullKey), RecordedHash)
 		}
-	case NonExistingNodeAccess:
+	case nonExistingNodeAccess:
 		// We handle the non existing value/hash like having recorded the value
 		r.recordedKeys.Set(string(a.fullKey), RecordedValue)
 	}

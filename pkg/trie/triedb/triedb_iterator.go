@@ -6,6 +6,7 @@ package triedb
 import (
 	"bytes"
 
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	nibbles "github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 )
@@ -80,7 +81,7 @@ func (i *TrieDBIterator) nextState() *iteratorState {
 	return currentState
 }
 
-func (i *TrieDBIterator) NextEntry() *Entry {
+func (i *TrieDBIterator) NextEntry() *trie.Entry {
 	for len(i.nodeStack) > 0 {
 		currentState := i.nextState()
 		currentNode := currentState.node
@@ -89,7 +90,7 @@ func (i *TrieDBIterator) NextEntry() *Entry {
 		case codec.Leaf:
 			key := currentState.fullKeyNibbles(nil)
 			value := i.db.Get(key)
-			return &Entry{Key: key, Value: value}
+			return &trie.Entry{Key: key, Value: value}
 		case codec.Branch:
 			// Reverse iterate over children because we are using a LIFO stack
 			// and we want to visit the leftmost child first
@@ -106,7 +107,7 @@ func (i *TrieDBIterator) NextEntry() *Entry {
 			if n.GetValue() != nil {
 				key := currentState.fullKeyNibbles(nil)
 				value := i.db.Get(key)
-				return &Entry{Key: key, Value: value}
+				return &trie.Entry{Key: key, Value: value}
 			}
 		}
 	}
@@ -124,8 +125,18 @@ func (i *TrieDBIterator) NextKey() []byte {
 	return nil
 }
 
-// Seek moves the iterator to the first key that is greater than the target key.
+func (i *TrieDBIterator) NextKeyFunc(predicate func(nextKey []byte) bool) (nextKey []byte) {
+	for entry := i.NextEntry(); entry != nil; entry = i.NextEntry() {
+		if predicate(entry.Key) {
+			return entry.Key
+		}
+	}
+	return nil
+}
+
 func (i *TrieDBIterator) Seek(targetKey []byte) {
 	for key := i.NextKey(); bytes.Compare(key, targetKey) < 0; key = i.NextKey() {
 	}
 }
+
+var _ trie.TrieIterator = (*TrieDBIterator)(nil)
