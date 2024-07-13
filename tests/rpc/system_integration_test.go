@@ -5,7 +5,6 @@ package rpc
 
 import (
 	"context"
-	"github.com/ChainSafe/gossamer/tests/utils"
 	"testing"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/lib/common"
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
@@ -60,6 +60,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 			return
 		}
 	}
+
 	// wait until all nodes are connected
 	t.Log("waiting for all nodes to be connected")
 	peerTimeout, peerCancel := context.WithTimeout(context.Background(), 120*time.Second)
@@ -67,8 +68,10 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	err := retry.UntilOK(peerTimeout, 10*time.Second, func() (bool, error) {
 		for _, node := range nodes {
 			endpoint := rpc.NewEndpoint(node.RPCPort())
+			t.Logf("requesting node %s with port %s", node.String(), endpoint)
 			var response modules.SystemHealthResponse
 			fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", &response)
+			t.Logf("Response: %+v", response)
 			if response.Peers != len(nodes)-1 {
 				return false, nil
 			}
@@ -76,6 +79,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 		return true, nil
 	})
 	require.NoError(t, err)
+
 	// wait until all nodes are synced
 	t.Log("waiting for all nodes to be synced")
 	syncTimeout, syncCancel := context.WithTimeout(context.Background(), 120*time.Second)
@@ -97,11 +101,13 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 		return true, nil
 	})
 	require.NoError(t, err)
+
 	t.Logf("All nodes have %d peers and synced", len(nodes)-1)
 
 	// wait for a bit and then run the test suite to ensure that the nodes are still connected and synced
-	t.Logf("Waiting for 60 seconds before running the test suite at: %s", time.Now().String())
+	t.Logf("Waiting for 60 seconds before running the test suite")
 	time.Sleep(60 * time.Second)
+
 	for _, node := range nodes {
 		node := node
 		t.Run(node.String(), func(t *testing.T) {
@@ -114,10 +120,13 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 				t.Skip()
 			}
 			endpoint := rpc.NewEndpoint(node.RPCPort())
+
 			t.Run("system_health", func(t *testing.T) {
 				t.Parallel()
+
 				var response modules.SystemHealthResponse
 				fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", &response)
+
 				expectedResponse := modules.SystemHealthResponse{
 					Peers:           len(nodes) - 1,
 					IsSyncing:       false,
@@ -128,9 +137,11 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 
 			t.Run("system_networkState", func(t *testing.T) {
 				t.Parallel()
+
 				var response modules.SystemNetworkStateResponse
 
 				fetchWithTimeoutFromEndpoint(t, endpoint, "system_networkState", &response)
+
 				// TODO assert response
 			})
 
@@ -138,7 +149,9 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 				t.Parallel()
 
 				var response modules.SystemPeersResponse
+
 				fetchWithTimeoutFromEndpoint(t, endpoint, "system_peers", &response)
+
 				assert.GreaterOrEqual(t, len(response), len(nodes)-2)
 
 				// TODO assert response

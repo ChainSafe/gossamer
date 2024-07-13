@@ -202,40 +202,35 @@ func (n *Node) StartAndWait(ctx context.Context, args ...string) (
 func (n Node) InitAndStartTest(ctx context.Context, t *testing.T,
 	signalTestToStop context.CancelFunc, args ...string) {
 	t.Helper()
-	//fmt.Println("InitAndStartTest - 0000000000000000")
+
 	err := n.Init()
-	//fmt.Println("InitAndStartTest - 11111111111111111")
+
 	require.NoError(t, err)
 
 	nodeCtx, nodeCancel := context.WithCancel(ctx)
-	//fmt.Println("InitAndStartTest - 2222222222222")
+
 	waitErr, err := n.StartAndWait(nodeCtx, args...)
-	//fmt.Println("InitAndStartTest - 33333333333")
+
 	if err != nil {
 		t.Errorf("failed to start node %s: %s", n, err)
 		// Release resources and fail the test
-		//fmt.Println("InitAndStartTest - 444444444444")
+
 		nodeCancel()
-		//fmt.Println("InitAndStartTest - 55555555555")
+
 		t.FailNow()
-		//fmt.Println("InitAndStartTest - 66666666666666")
+
 	}
 
 	t.Logf("Node %s is ready", n)
-	//fmt.Println("InitAndStartTest - 777777777777777")
 	// watch for runtime fatal node error
 	watchDogCtx, watchDogCancel := context.WithCancel(ctx)
-	//fmt.Println("InitAndStartTest - 8888888888888888")
 	watchDogDone := make(chan struct{})
 	go func() {
-		//fmt.Println("InitAndStartTest - 99999999999999999")
 		defer close(watchDogDone)
 		select {
 		case <-watchDogCtx.Done():
-			//fmt.Println("InitAndStartTest - 101010101010101010101")
 			return
 		case err := <-waitErr: // the node crashed
-			//fmt.Println("InitAndStartTest - 11-11-11-11-11-11-11-11-11")
 			if watchDogCtx.Err() != nil {
 				// make sure the runtime watchdog is not meant
 				// to be disengaged, in case of signal racing.
@@ -243,30 +238,25 @@ func (n Node) InitAndStartTest(ctx context.Context, t *testing.T,
 			}
 			t.Errorf("node %s crashed: %s", n, err)
 			// Release resources
-			//fmt.Println("InitAndStartTest - 1212121212121212121")
 			nodeCancel()
-			//fmt.Println("InitAndStartTest - 13131313131313131313131")
 			// we cannot stop the test with t.FailNow() from a goroutine
 			// other than the test goroutine, so we call the following function
 			// to signal the test goroutine to stop the test.
 			signalTestToStop()
-			//fmt.Println("InitAndStartTest - 1414141414141414141141441")
+
 		}
 	}()
-	//fmt.Println("InitAndStartTest - 15151515151515151515151515151")
 	t.Cleanup(func() {
 		t.Helper()
-		//fmt.Println("InitAndStartTest - 1616161616161616161616161")
 		// Disengage node watchdog goroutine
 		watchDogCancel()
-		//fmt.Println("InitAndStartTest - 17171717171717171717177117")
 		<-watchDogDone
-		//fmt.Println("InitAndStartTest - 181818181818181818")
+
 		// Stop the node and wait for it to exit
 		nodeCancel()
-		//fmt.Println("InitAndStartTest - 191919191919191919199119")
+
 		<-waitErr
-		//fmt.Println("InitAndStartTest - 2020202020202020202020220")
+
 		t.Logf("Node %s terminated", n)
 	})
 }

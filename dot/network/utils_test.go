@@ -122,7 +122,7 @@ func TestReadLEB128ToUint64(t *testing.T) {
 			output: 130,
 		},
 		{
-			input:  []byte("\xB9"),
+			input:  []byte("\xB9\x64"),
 			output: 12857,
 		},
 

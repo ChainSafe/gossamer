@@ -627,6 +627,7 @@ func (s *Service) Peers() []common.PeerInfo {
 	s.notificationsMu.RLock()
 	np := s.notificationsProtocols[blockAnnounceMsgType]
 	s.notificationsMu.RUnlock()
+
 	for _, p := range s.host.peers() {
 		data := np.peersData.getInboundHandshakeData(p)
 		if data == nil || data.handshake == nil {
@@ -636,6 +637,7 @@ func (s *Service) Peers() []common.PeerInfo {
 
 			continue
 		}
+
 		peerHandshakeMessage := data.handshake
 		peers = append(peers, common.PeerInfo{
 			PeerID:     p.String(),
