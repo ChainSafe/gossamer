@@ -780,7 +780,7 @@ func (t *TrieDB) commit() error {
 					}
 
 					k = k[:mov]
-					return HashChildReference{hash: hash}, nil
+					return HashChildReference{Hash: hash}, nil
 				case trieNodeToEncode:
 					result, err := t.commitChild(dbBatch, n.child, k)
 					if err != nil {
@@ -830,12 +830,12 @@ func (t *TrieDB) commitChild(
 	switch nh := child.(type) {
 	case Persisted:
 		// Already persisted we have to do nothing
-		return HashChildReference(nh), nil
+		return HashChildReference{Hash: nh.hash}, nil
 	case InMemory:
 		stored := t.storage.destroy(nh.idx)
 		switch storedNode := stored.(type) {
 		case CachedStoredNode:
-			return HashChildReference{hash: storedNode.hash}, nil
+			return HashChildReference{Hash: storedNode.hash}, nil
 		case NewStoredNode:
 			// We have to store the node in the DB
 			commitChildFunc := func(node nodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error) {
@@ -860,7 +860,7 @@ func (t *TrieDB) commitChild(
 					}
 
 					prefixKey = prefixKey[:mov]
-					return HashChildReference{hash: valueHash}, nil
+					return HashChildReference{Hash: valueHash}, nil
 				case trieNodeToEncode:
 					result, err := t.commitChild(dbBatch, n.child, prefixKey)
 					if err != nil {
@@ -887,7 +887,7 @@ func (t *TrieDB) commitChild(
 					return nil, err
 				}
 
-				return HashChildReference{hash: hash}, nil
+				return HashChildReference{Hash: hash}, nil
 			} else {
 				return InlineChildReference{encoded}, nil
 			}

@@ -52,16 +52,16 @@ func NewEncodedValue(value nodeValue, partial []byte, childF onChildStoreFn) (co
 		// Check and get new new value hash
 		switch cr := childRef.(type) {
 		case HashChildReference:
-			if cr.hash == common.EmptyHash {
+			if cr.Hash == common.EmptyHash {
 				panic("new external value are always added before encoding a node")
 			}
 
 			if v.hash != common.EmptyHash {
-				if v.hash != cr.hash {
+				if v.hash != cr.Hash {
 					panic("hash mismatch")
 				}
 			} else {
-				v.hash = cr.hash
+				v.hash = cr.Hash
 			}
 		default:
 			panic("value node can never be inlined")
@@ -252,7 +252,7 @@ type ChildReference interface {
 type (
 	// HashChildReference is a reference to a child node that is not inlined
 	HashChildReference struct {
-		hash common.Hash
+		Hash common.Hash
 	}
 	// InlineChildReference is a reference to an inlined child node
 	InlineChildReference struct {
@@ -261,14 +261,14 @@ type (
 )
 
 func (h HashChildReference) getNodeData() []byte {
-	return h.hash.ToBytes()
+	return h.Hash.ToBytes()
 }
 func (i InlineChildReference) getNodeData() []byte {
 	return i.encodedNode
 }
 
 func NewHashChildReference(hash common.Hash) HashChildReference {
-	return HashChildReference{hash: hash}
+	return HashChildReference{Hash: hash}
 }
 
 func NewInlineChildReference(encodedNode []byte) InlineChildReference {
@@ -277,7 +277,7 @@ func NewInlineChildReference(encodedNode []byte) InlineChildReference {
 
 type onChildStoreFn = func(node nodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error)
 
-const emptyTrieBytes = byte(0)
+const EmptyTrieBytes = byte(0)
 
 // NewEncodedNode creates a new encoded node from a node and a child store function and return its bytes
 func NewEncodedNode(node Node, childF onChildStoreFn) (encodedNode []byte, err error) {
@@ -285,7 +285,7 @@ func NewEncodedNode(node Node, childF onChildStoreFn) (encodedNode []byte, err e
 
 	switch n := node.(type) {
 	case Empty:
-		return []byte{emptyTrieBytes}, nil
+		return []byte{EmptyTrieBytes}, nil
 	case Leaf:
 		pr := n.partialKey
 		value, err := NewEncodedValue(n.value, pr, childF)
