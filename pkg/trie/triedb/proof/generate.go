@@ -168,7 +168,7 @@ func (e *stackEntry) replaceChildRef(encodedChild []byte, child codec.MerkleValu
 	}
 }
 
-func GenerateProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash common.Hash, keys []string) (
+func Generate(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash common.Hash, keys []string) (
 	proof [][]byte, err error) {
 	// Sort and deduplicate keys
 	keys = sortAndDeduplicateKeys(keys)

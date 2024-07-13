@@ -144,7 +144,7 @@ func Test_GenerateProofForLeaf(t *testing.T) {
 			root := triedb.MustHash()
 
 			// Generate proof
-			proof, err := GenerateProof(inmemoryDB, testCase.storageVersion, root, testCase.keys)
+			proof, err := Generate(inmemoryDB, testCase.storageVersion, root, testCase.keys)
 			require.NoError(t, err)
 			require.Equal(t, testCase.expectedProof, proof)
 		})
