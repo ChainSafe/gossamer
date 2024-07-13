@@ -23,11 +23,6 @@ import (
 )
 
 func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
-	startTime := time.Now()
-	t.Cleanup(func() {
-		elapsedTime := time.Since(startTime)
-		t.Logf("TestStateRPCResponseValidation total test time: %v ----------------", elapsedTime)
-	})
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath
@@ -205,11 +200,6 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 }
 
 func TestStateRPCAPI(t *testing.T) {
-	startTime := time.Now()
-	t.Cleanup(func() {
-		elapsedTime := time.Since(startTime)
-		t.Logf("TestStateRPCAPI total test time: %v ---------------------------------", elapsedTime)
-	})
 	genesisPath := libutils.GetWestendLocalRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath
@@ -412,11 +402,6 @@ func TestStateRPCAPI(t *testing.T) {
 }
 
 func TestRPCStructParamUnmarshal(t *testing.T) {
-	startTime := time.Now()
-	t.Cleanup(func() {
-		elapsedTime := time.Since(startTime)
-		t.Logf("TestRPCStructParamUnmarshal total test time: %v -----------------------------", elapsedTime)
-	})
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath

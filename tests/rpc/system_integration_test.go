@@ -5,6 +5,7 @@ package rpc
 
 import (
 	"context"
+	"github.com/ChainSafe/gossamer/tests/utils"
 	"testing"
 	"time"
 
@@ -23,14 +24,9 @@ import (
 )
 
 func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
-	startTime := time.Now()
-	t.Cleanup(func() {
-		elapsedTime := time.Since(startTime)
-		t.Logf("TestStableNetworkRPC total test time: %v -------------------------", elapsedTime)
-	})
-	//if utils.MODE != "rpc" {
-	//t.Skip("RPC tests are disabled, going to skip.")
-	//}
+	if utils.MODE != "rpc" {
+		t.Skip("RPC tests are disabled, going to skip.")
+	}
 
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	con := config.Default()
@@ -43,6 +39,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	con.Log.Sync = "trace"
 
 	babeAuthorityNode := node.New(t, con, node.SetIndex(0))
+
 	peerConfig := cfg.Copy(&con)
 	peerConfig.Core.BabeAuthority = false
 	peer1 := node.New(t, peerConfig, node.SetIndex(1))
@@ -53,35 +50,25 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 	t.Cleanup(cancel)
 
 	for _, node := range nodes {
-		t.Logf("0000000000000000000000 at %s", time.Now().String())
 		node.InitAndStartTest(ctx, t, cancel)
 		const timeBetweenStart = 0 * time.Second
 		timer := time.NewTimer(timeBetweenStart)
 		select {
 		case <-timer.C:
-			t.Logf("111111111111111111111 at %s", time.Now().String())
 		case <-ctx.Done():
-			t.Logf("22222222222222 at %s", time.Now().String())
 			timer.Stop()
 			return
 		}
 	}
-	t.Logf("33333333333333333 at %s:", time.Now().String())
 	// wait until all nodes are connected
 	t.Log("waiting for all nodes to be connected")
 	peerTimeout, peerCancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer peerCancel()
 	err := retry.UntilOK(peerTimeout, 10*time.Second, func() (bool, error) {
-		t.Logf("44444444444444444444 at %s:", time.Now().String())
 		for _, node := range nodes {
-			t.Logf("555555555555555555555 at: %s", time.Now().String())
 			endpoint := rpc.NewEndpoint(node.RPCPort())
-			t.Logf("66666666666666666666 at %s", time.Now().String())
-			t.Logf("requesting node %s with port %s", node.String(), endpoint)
 			var response modules.SystemHealthResponse
 			fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", &response)
-			t.Logf("777777777777777777 at: %s", time.Now().String())
-			t.Logf("Response: %+v, len(nodes)=%d", response, len(nodes))
 			if response.Peers != len(nodes)-1 {
 				return false, nil
 			}
@@ -89,25 +76,20 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 		return true, nil
 	})
 	require.NoError(t, err)
-	t.Logf("888888888888888888888: at %s", time.Now().String())
 	// wait until all nodes are synced
 	t.Log("waiting for all nodes to be synced")
 	syncTimeout, syncCancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer syncCancel()
 	err = retry.UntilOK(syncTimeout, 10*time.Second, func() (bool, error) {
-		t.Logf("9999999999999999 at:%s", time.Now().String())
 		for _, node := range nodes {
-			t.Logf("10101010101010101010 at: %s", time.Now().String())
 			//TODO: remove this once the issue has been addressed
 			// https://github.com/ChainSafe/gossamer/issues/3030
 			if node.Key() == config.AliceKey {
 				continue
 			}
 			endpoint := rpc.NewEndpoint(node.RPCPort())
-			t.Logf(" 11-11-11-11-11-11-11-11-11-11 at: %s", time.Now().String())
 			var response modules.SystemHealthResponse
 			fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", &response)
-			t.Logf("121212121212121212 at: %s", time.Now().String())
 			if response.IsSyncing {
 				return false, nil
 			}
@@ -115,15 +97,12 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 		return true, nil
 	})
 	require.NoError(t, err)
-	t.Logf("131313131313131313131313131 at: %s", time.Now().String())
 	t.Logf("All nodes have %d peers and synced", len(nodes)-1)
 
 	// wait for a bit and then run the test suite to ensure that the nodes are still connected and synced
 	t.Logf("Waiting for 60 seconds before running the test suite at: %s", time.Now().String())
 	time.Sleep(60 * time.Second)
-	t.Logf("14141414141414141414141414 at %s", time.Now().String())
 	for _, node := range nodes {
-		t.Logf("1515151515151515151515151 at %s", time.Now().String())
 		node := node
 		t.Run(node.String(), func(t *testing.T) {
 			t.Parallel()
@@ -134,15 +113,11 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 				t.Logf("Skipping test for alice")
 				t.Skip()
 			}
-			t.Logf("1515151515151515151515151 at %s", time.Now().String())
 			endpoint := rpc.NewEndpoint(node.RPCPort())
-			t.Logf("1616161616161616161616161 at %s", time.Now().String())
 			t.Run("system_health", func(t *testing.T) {
 				t.Parallel()
-				t.Logf("171717171717171717171 at %s", time.Now().String())
 				var response modules.SystemHealthResponse
 				fetchWithTimeoutFromEndpoint(t, endpoint, "system_health", &response)
-				t.Logf("18181818181818181818181818181 at %s", time.Now().String())
 				expectedResponse := modules.SystemHealthResponse{
 					Peers:           len(nodes) - 1,
 					IsSyncing:       false,
@@ -153,11 +128,9 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 
 			t.Run("system_networkState", func(t *testing.T) {
 				t.Parallel()
-				t.Logf("19191919191919191919191919191919191 at: %s", time.Now().String())
 				var response modules.SystemNetworkStateResponse
 
 				fetchWithTimeoutFromEndpoint(t, endpoint, "system_networkState", &response)
-				t.Logf("20202020202020202020202020202020202 at %s", time.Now().String())
 				// TODO assert response
 			})
 
@@ -165,9 +138,7 @@ func TestStableNetworkRPC(t *testing.T) { //nolint:tparallel
 				t.Parallel()
 
 				var response modules.SystemPeersResponse
-				t.Logf("212121212121212121212121212121212121212121 at %s", time.Now().String())
 				fetchWithTimeoutFromEndpoint(t, endpoint, "system_peers", &response)
-				t.Logf("23-23-23-23-23-23-23-23-23-23-23-23-23-23  at %s", time.Now().String())
 				assert.GreaterOrEqual(t, len(response), len(nodes)-2)
 
 				// TODO assert response

@@ -49,7 +49,7 @@ it-grandpa: build
 
 it-rpc: build
 	@echo "  >  \033[32mRunning Integration Tests RPC Specs mode...\033[0m "
-	MODE=rpc go test ./tests/rpc/... -timeout=20m -v
+	MODE=rpc go test ./tests/rpc/... -timeout=10m -v
 
 it-network: build
 	@echo "  >  \033[32mRunning Integration Tests Kademlia...\033[0m "

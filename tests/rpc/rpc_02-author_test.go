@@ -25,11 +25,6 @@ import (
 // TODO: add test against latest dev runtime
 // See https://github.com/ChainSafe/gossamer/issues/2705
 func TestAuthorSubmitExtrinsic(t *testing.T) {
-	startTime := time.Now()
-	t.Cleanup(func() {
-		elapsedTime := time.Since(startTime)
-		t.Logf("TestAuthorSubmitExtrinsic total test time: %v --------------------", elapsedTime)
-	})
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.Account.Key = config.AliceKey
@@ -101,11 +96,6 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 }
 
 func TestAuthorRPC(t *testing.T) { //nolint:tparallel
-	startTime := time.Now()
-	t.Cleanup(func() {
-		elapsedTime := time.Since(startTime)
-		t.Logf("TestAuthorRPC total test time: %v ----------------", elapsedTime)
-	})
 	genesisPath := libutils.GetWestendDevRawGenesisPath(t)
 	tomlConfig := config.Default()
 	tomlConfig.ChainSpec = genesisPath

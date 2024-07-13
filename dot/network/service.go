@@ -630,7 +630,6 @@ func (s *Service) Peers() []common.PeerInfo {
 	for _, p := range s.host.peers() {
 		data := np.peersData.getInboundHandshakeData(p)
 		if data == nil || data.handshake == nil {
-			//types.WriteToFile(fmt.Sprintf("data is %v or data.handhsake is nil for peer: %s \n", data, p.String()))
 			peers = append(peers, common.PeerInfo{
 				PeerID: p.String(),
 			})
