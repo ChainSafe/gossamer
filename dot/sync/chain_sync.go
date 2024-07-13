@@ -652,20 +652,21 @@ taskResultLoop:
 					logger.Errorf("task result: peer(%s) error: %s",
 						taskResult.who, taskResult.err)
 
+					if errors.Is(taskResult.err, network.ErrNilBlockInResponse) {
+						cs.network.ReportPeer(peerset.ReputationChange{
+							Value:  peerset.BadMessageValue,
+							Reason: peerset.BadMessageReason,
+						}, who)
+					}
+
 					if strings.Contains(taskResult.err.Error(), "protocols not supported") {
 						cs.network.ReportPeer(peerset.ReputationChange{
 							Value:  peerset.BadProtocolValue,
 							Reason: peerset.BadProtocolReason,
 						}, who)
 					}
-				} else if errors.Is(taskResult.err, network.ErrNilBlockInResponse) {
-					cs.network.ReportPeer(peerset.ReputationChange{
-						Value:  peerset.BadMessageValue,
-						Reason: peerset.BadMessageReason,
-					}, who)
 				}
 
-				// TODO: avoid the same peer to get the same task
 				err := cs.submitRequest(request, nil, workersResults)
 				if err != nil {
 					return err
