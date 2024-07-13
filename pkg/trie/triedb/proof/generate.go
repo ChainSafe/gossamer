@@ -199,27 +199,15 @@ func Generate(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash common.Has
 		recordedNodes := triedb.NewRecordedNodesIterator(recorder.Drain())
 
 		// Skip over recorded nodes already on the stack.
-		stackIter := deque.New[*stackEntry]()
 		for i := 0; i < stack.Len(); i++ {
-			stackIter.PushBack(stack.At(i))
-		}
-
-		if stackIter.Len() > 0 {
-			nextEntry := stackIter.Back()
+			nextEntry := stack.At(i)
 			nextRecord := recordedNodes.Peek()
 
-			for stackIter.Len() > 0 && nextRecord != nil {
-				if !bytes.Equal(*nextEntry.nodeHash, nextRecord.Hash) {
-					break
-				}
-
-				recordedNodes.Next()
-				stackIter.PopBack()
-
-				if stackIter.Len() == 0 {
-					break
-				}
+			if nextRecord == nil || !bytes.Equal(*nextEntry.nodeHash, nextRecord.Hash) {
+				break
 			}
+
+			recordedNodes.Next()
 		}
 
 		// Descend in trie collecting nodes until find the value or the end of the path
