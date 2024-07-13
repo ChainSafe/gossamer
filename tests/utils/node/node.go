@@ -241,6 +241,7 @@ func (n Node) InitAndStartTest(ctx context.Context, t *testing.T,
 			signalTestToStop()
 		}
 	}()
+	
 	t.Cleanup(func() {
 		t.Helper()
 		// Disengage node watchdog goroutine
