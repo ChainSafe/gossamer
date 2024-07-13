@@ -127,7 +127,6 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 		t.Logf("comparing block number %d...", blockNumber)
 
 		nodeKeys, err := compareBlocksByNumber(ctx, nodes, fmt.Sprint(blockNumber))
-
 		require.NoError(t, err)
 		require.Equal(t, len(nodeKeys), numNodes)
 	}

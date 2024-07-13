@@ -204,24 +204,20 @@ func (n Node) InitAndStartTest(ctx context.Context, t *testing.T,
 	t.Helper()
 
 	err := n.Init()
-
 	require.NoError(t, err)
 
 	nodeCtx, nodeCancel := context.WithCancel(ctx)
 
 	waitErr, err := n.StartAndWait(nodeCtx, args...)
-
 	if err != nil {
 		t.Errorf("failed to start node %s: %s", n, err)
 		// Release resources and fail the test
-
 		nodeCancel()
-
 		t.FailNow()
-
 	}
 
 	t.Logf("Node %s is ready", n)
+
 	// watch for runtime fatal node error
 	watchDogCtx, watchDogCancel := context.WithCancel(ctx)
 	watchDogDone := make(chan struct{})
@@ -243,7 +239,6 @@ func (n Node) InitAndStartTest(ctx context.Context, t *testing.T,
 			// other than the test goroutine, so we call the following function
 			// to signal the test goroutine to stop the test.
 			signalTestToStop()
-
 		}
 	}()
 	t.Cleanup(func() {
@@ -251,12 +246,9 @@ func (n Node) InitAndStartTest(ctx context.Context, t *testing.T,
 		// Disengage node watchdog goroutine
 		watchDogCancel()
 		<-watchDogDone
-
 		// Stop the node and wait for it to exit
 		nodeCancel()
-
 		<-waitErr
-
 		t.Logf("Node %s terminated", n)
 	})
 }

@@ -44,5 +44,6 @@ func GetHealth(ctx context.Context, address string) (
 	if err != nil {
 		return health, fmt.Errorf("cannot decode RPC: %w", err)
 	}
+
 	return health, nil
 }

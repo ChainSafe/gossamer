@@ -125,7 +125,6 @@ func TestReadLEB128ToUint64(t *testing.T) {
 			input:  []byte("\xB9\x64"),
 			output: 12857,
 		},
-
 		{
 			input: []byte{'\xFF', '\xFF', '\xFF', '\xFF', '\xFF',
 				'\xFF', '\xFF', '\xFF', '\xFF', '\x01'},
