@@ -199,17 +199,26 @@ func Generate(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash common.Has
 		recordedNodes := triedb.NewRecordedNodesIterator(recorder.Drain())
 
 		// Skip over recorded nodes already on the stack.
-		if stack.Len() > 0 {
-			nextEntry := stack.Back()
+		stackIter := deque.New[*stackEntry]()
+		for i := 0; i < stack.Len(); i++ {
+			stackIter.PushBack(stack.At(i))
+		}
+
+		if stackIter.Len() > 0 {
+			nextEntry := stackIter.Back()
 			nextRecord := recordedNodes.Peek()
 
-			for nextEntry != nil && nextRecord != nil {
-				if nextEntry.nodeHash != &nextRecord.Hash {
+			for stackIter.Len() > 0 && nextRecord != nil {
+				if !bytes.Equal(*nextEntry.nodeHash, nextRecord.Hash) {
 					break
 				}
 
-				nextRecord = recordedNodes.Next()
-				nextEntry = stack.PopBack()
+				recordedNodes.Next()
+				stackIter.PopBack()
+
+				if stackIter.Len() == 0 {
+					break
+				}
 			}
 		}
 
@@ -282,6 +291,7 @@ func Generate(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash common.Has
 				}
 				stack.PushBack(childEntry)
 			default:
+				recordedNodes.Next()
 				break loop
 			}
 		}

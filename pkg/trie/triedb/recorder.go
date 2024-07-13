@@ -66,7 +66,6 @@ func (r *RecordedNodesIterator) Next() *Record {
 
 func (r *RecordedNodesIterator) Peek() *Record {
 	if r.index+1 < len(r.nodes)-1 {
-		r.index++
 		return &r.nodes[r.index+1]
 	}
 	return nil
