@@ -196,7 +196,7 @@ func Generate(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash common.Has
 		trie.SetVersion(trieVersion)
 		trie.Get(key)
 
-		recordedNodes := triedb.NewRecordedNodesIterator(recorder.Drain())
+		recordedNodes := NewIterator(recorder.Drain())
 
 		// Skip over recorded nodes already on the stack.
 		for i := 0; i < stack.Len(); i++ {
@@ -353,7 +353,7 @@ func matchKeyToNode(
 	childIndex *int,
 	key []byte,
 	prefixlen int,
-	recordedNodes *triedb.RecordedNodesIterator,
+	recordedNodes *Iterator[triedb.Record],
 ) (step, error) {
 	switch n := node.(type) {
 	case codec.Empty:
@@ -394,7 +394,7 @@ func matchKeyToBranchNode(
 	key []byte,
 	prefixlen int,
 	nodePartialKey []byte,
-	recordedNodes *triedb.RecordedNodesIterator,
+	recordedNodes *Iterator[triedb.Record],
 ) (step, error) {
 	if !bytes.Contains(key, nodePartialKey) {
 		return stepFoundValue{nil}, nil
@@ -440,7 +440,7 @@ func matchKeyToBranchNode(
 	return stepFoundValue{nil}, nil
 }
 
-func resolveValue(recordedNodes *triedb.RecordedNodesIterator) (step, error) {
+func resolveValue(recordedNodes *Iterator[triedb.Record]) (step, error) {
 	value := recordedNodes.Next()
 	if value != nil {
 		return stepFoundHashedValue{value.Data}, nil

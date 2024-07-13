@@ -47,30 +47,6 @@ const (
 	RecordedHash
 )
 
-type RecordedNodesIterator struct {
-	nodes []Record
-	index int
-}
-
-func NewRecordedNodesIterator(nodes []Record) *RecordedNodesIterator {
-	return &RecordedNodesIterator{nodes: nodes, index: -1}
-}
-
-func (r *RecordedNodesIterator) Next() *Record {
-	if r.index < len(r.nodes)-1 {
-		r.index++
-		return &r.nodes[r.index]
-	}
-	return nil
-}
-
-func (r *RecordedNodesIterator) Peek() *Record {
-	if r.index+1 < len(r.nodes)-1 {
-		return &r.nodes[r.index+1]
-	}
-	return nil
-}
-
 type Record struct {
 	// We are not using common.Hash here since Hash size could be > 32 bytes when we use prefixed keys.
 	// See ValueAccess.Hash
