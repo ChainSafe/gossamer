@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 
 	"github.com/libp2p/go-libp2p/core/crypto"
 	libp2pnetwork "github.com/libp2p/go-libp2p/core/network"
@@ -161,6 +162,10 @@ func ReadLEB128ToUint64(r io.Reader) (uint64, int, error) {
 		singleByte := []byte{0}
 		n, err := r.Read(singleByte)
 		if err != nil {
+			if err == io.EOF {
+				time.Sleep(100 * time.Millisecond)
+				continue
+			}
 			return 0, bytesRead, err
 		}
 

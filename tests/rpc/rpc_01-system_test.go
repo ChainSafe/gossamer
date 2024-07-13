@@ -85,6 +85,9 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 			}
 
 			ok = healthResponse.Peers == numberOfNodes-1 && !healthResponse.IsSyncing
+			if !ok {
+				t.Logf("healthResponse.Peers = %d  and IsSyncing: %v", healthResponse.Peers, healthResponse.IsSyncing)
+			}
 			return ok, nil
 		})
 		require.NoError(t, err)
@@ -104,7 +107,7 @@ func TestSystemRPC(t *testing.T) { //nolint:tparallel
 			}
 
 			if len(response) != numberOfNodes-1 {
-				t.Logf("TestSystemRPC/system_peers len(response) is different from numberOfNodes-1: %d", numberOfNodes-1)
+				t.Logf("TestSystemRPC/system_peers len(response)=%d is different from numberOfNodes-1: %d", len(response), numberOfNodes-1)
 				return false, nil // retry
 			}
 

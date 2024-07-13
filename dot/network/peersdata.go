@@ -59,6 +59,7 @@ func (p *peersData) setInboundHandshakeData(peerID peer.ID, data *handshakeData)
 func (p *peersData) deleteInboundHandshakeData(peerID peer.ID) {
 	p.inboundMu.Lock()
 	defer p.inboundMu.Unlock()
+	//types.WriteToFile(fmt.Sprintf("DELETE peer from inboundhandshake %s \n", peerID.String()))
 	delete(p.inbound, peerID)
 }
 

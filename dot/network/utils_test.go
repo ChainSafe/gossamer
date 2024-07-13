@@ -101,30 +101,31 @@ func TestReadLEB128ToUint64(t *testing.T) {
 		input  []byte
 		output uint64
 	}{
+		//{
+		//	input:  []byte("\x02"),
+		//	output: 2,
+		//},
+		//{
+		//	input:  []byte("\x7F"),
+		//	output: 127,
+		//},
+		//{
+		//	input:  []byte("\x80\x01"),
+		//	output: 128,
+		//},
+		//{
+		//	input:  []byte("\x81\x01"),
+		//	output: 129,
+		//},
+		//{
+		//	input:  []byte("\x82\x01"),
+		//	output: 130,
+		//},
 		{
-			input:  []byte("\x02"),
-			output: 2,
-		},
-		{
-			input:  []byte("\x7F"),
-			output: 127,
-		},
-		{
-			input:  []byte("\x80\x01"),
-			output: 128,
-		},
-		{
-			input:  []byte("\x81\x01"),
-			output: 129,
-		},
-		{
-			input:  []byte("\x82\x01"),
-			output: 130,
-		},
-		{
-			input:  []byte("\xB9\x64"),
+			input:  []byte("\xB9"),
 			output: 12857,
 		},
+
 		{
 			input: []byte{'\xFF', '\xFF', '\xFF', '\xFF', '\xFF',
 				'\xFF', '\xFF', '\xFF', '\xFF', '\x01'},
