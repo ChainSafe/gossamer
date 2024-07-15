@@ -16,7 +16,6 @@ require (
 	github.com/fatih/color v1.17.0
 	github.com/gammazero/deque v0.2.1
 	github.com/go-playground/validator/v10 v10.22.0
-	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
@@ -28,7 +27,6 @@ require (
 	github.com/jpillora/ipfilter v1.2.9
 	github.com/karlseguin/ccache/v3 v3.0.5
 	github.com/klauspost/compress v1.17.9
-	github.com/klauspost/reedsolomon v1.11.8
 	github.com/libp2p/go-libp2p v0.33.2
 	github.com/libp2p/go-libp2p-kad-dht v0.25.2
 	github.com/minio/sha256-simd v1.0.1
