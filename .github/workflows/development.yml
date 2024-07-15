@@ -1,0 +1,21 @@
+name: Trigger Multiple Gossamer Deployments
+
+on:
+  push:
+    branches:
+      - development
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        chain: [paseo, westend]  # List of chains to deploy
+    steps:
+      - name: Dispatch Repository Event for ${{ matrix.chain }}
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.PAT }}
+          repository: Chainsafe/infrastructure-general
+          event-type: deploy-gossamer-snapshot
+          client-payload: '{"ref": "refs/heads/main", "inputs": {"chain": "${{ matrix.chain }}"}}'
