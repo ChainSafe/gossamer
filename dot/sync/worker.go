@@ -71,7 +71,7 @@ func executeRequest(who peer.ID, requestMaker network.RequestMaker,
 	sharedGuard <- struct{}{} // Acquire a semaphore slot before starting the request
 
 	request := task.request
-	logger.Debugf("[EXECUTING] worker %s, block request: %s", who, request)
+	logger.Debugf("[EXECUTING] worker %s, block request: %s\n", who, request)
 	response := new(network.BlockResponseMessage)
 	err := requestMaker.Do(who, request, response)
 
