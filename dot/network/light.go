@@ -6,6 +6,7 @@ package network
 import (
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -19,7 +20,7 @@ func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
 	s.readStream(stream, s.decodeLightMessage, s.handleLightMsg, MaxBlockResponseSize)
 }
 
-func (s *Service) decodeLightMessage(in []byte, peer peer.ID, _ bool) (Message, error) {
+func (s *Service) decodeLightMessage(in []byte, peer peer.ID, _ bool) (messages.P2PMessage, error) {
 	s.lightRequestMu.RLock()
 	defer s.lightRequestMu.RUnlock()
 
@@ -33,7 +34,7 @@ func (s *Service) decodeLightMessage(in []byte, peer peer.ID, _ bool) (Message, 
 	return newLightRequestFromBytes(in)
 }
 
-func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) (err error) {
+func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg messages.P2PMessage) (err error) {
 	defer func() {
 		err := stream.Close()
 		if err != nil && err.Error() != ErrStreamReset.Error() {

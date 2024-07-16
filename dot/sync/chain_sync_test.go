@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -158,11 +159,11 @@ func Test_chainSync_onBlockAnnounce(t *testing.T) {
 					Return(block2AnnounceHeader, nil).
 					Times(2)
 
-				expectedRequest := network.NewBlockRequest(*variadic.MustNewUint32OrHash(block2AnnounceHeader.Hash()),
-					1, network.BootstrapRequestData, network.Descending)
+				expectedRequest := messages.NewBlockRequest(*variadic.MustNewUint32OrHash(block2AnnounceHeader.Hash()),
+					1, messages.BootstrapRequestData, messages.Descending)
 
 				fakeBlockBody := types.Body([]types.Extrinsic{})
-				mockedBlockResponse := &network.BlockResponseMessage{
+				mockedBlockResponse := &messages.BlockResponseMessage{
 					BlockData: []*types.BlockData{
 						{
 							Hash:   block2AnnounceHeader.Hash(),
@@ -177,9 +178,9 @@ func Test_chainSync_onBlockAnnounce(t *testing.T) {
 
 				requestMaker := NewMockRequestMaker(ctrl)
 				requestMaker.EXPECT().
-					Do(somePeer, expectedRequest, &network.BlockResponseMessage{}).
+					Do(somePeer, expectedRequest, &messages.BlockResponseMessage{}).
 					DoAndReturn(func(_, _, response any) any {
-						responsePtr := response.(*network.BlockResponseMessage)
+						responsePtr := response.(*messages.BlockResponseMessage)
 						*responsePtr = *mockedBlockResponse
 						return nil
 					})
@@ -275,9 +276,9 @@ func Test_chainSync_onBlockAnnounceHandshake_tipModeNeedToCatchup(t *testing.T) 
 
 	blockStateMock.EXPECT().IsPaused().Return(false).Times(2)
 
-	expectedRequest := network.NewAscendingBlockRequests(
+	expectedRequest := messages.NewAscendingBlockRequests(
 		block1AnnounceHeader.Number+1,
-		block2AnnounceHeader.Number, network.BootstrapRequestData)
+		block2AnnounceHeader.Number, messages.BootstrapRequestData)
 
 	networkMock := NewMockNetwork(ctrl)
 	networkMock.EXPECT().Peers().Return([]common.PeerInfo{}).
@@ -292,17 +293,17 @@ func Test_chainSync_onBlockAnnounceHandshake_tipModeNeedToCatchup(t *testing.T) 
 
 	requestMaker := NewMockRequestMaker(ctrl)
 	requestMaker.EXPECT().
-		Do(somePeer, expectedRequest[0], &network.BlockResponseMessage{}).
+		Do(somePeer, expectedRequest[0], &messages.BlockResponseMessage{}).
 		DoAndReturn(func(_, _, response any) any {
-			responsePtr := response.(*network.BlockResponseMessage)
+			responsePtr := response.(*messages.BlockResponseMessage)
 			*responsePtr = *firstMockedResponse
 			return nil
 		}).Times(2)
 
 	requestMaker.EXPECT().
-		Do(somePeer, expectedRequest[1], &network.BlockResponseMessage{}).
+		Do(somePeer, expectedRequest[1], &messages.BlockResponseMessage{}).
 		DoAndReturn(func(_, _, response any) any {
-			responsePtr := response.(*network.BlockResponseMessage)
+			responsePtr := response.(*messages.BlockResponseMessage)
 			*responsePtr = *secondMockedResponse
 			return nil
 		}).Times(2)
@@ -518,17 +519,17 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 
 	mockedRequestMaker := NewMockRequestMaker(ctrl)
 
-	expectedBlockRequestMessage := &network.BlockRequestMessage{
-		RequestedData: network.BootstrapRequestData,
+	expectedBlockRequestMessage := &messages.BlockRequestMessage{
+		RequestedData: messages.BootstrapRequestData,
 		StartingBlock: *startingBlock,
-		Direction:     network.Ascending,
+		Direction:     messages.Ascending,
 		Max:           &max,
 	}
 
 	mockedRequestMaker.EXPECT().
-		Do(workerPeerID, expectedBlockRequestMessage, &network.BlockResponseMessage{}).
+		Do(workerPeerID, expectedBlockRequestMessage, &messages.BlockResponseMessage{}).
 		DoAndReturn(func(_, _, response any) any {
-			responsePtr := response.(*network.BlockResponseMessage)
+			responsePtr := response.(*messages.BlockResponseMessage)
 			*responsePtr = *totalBlockResponse
 			return nil
 		})
@@ -600,7 +601,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	blockResponse := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 1, 256)
 
 	// here we split the whole set in two parts each one will be the "response" for each peer
-	worker1Response := &network.BlockResponseMessage{
+	worker1Response := &messages.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[:128],
 	}
 	const announceBlock = false
@@ -609,7 +610,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	ensureSuccessfulBlockImportFlow(t, mockedGenesisHeader, worker1Response.BlockData, mockBlockState,
 		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, networkInitialSync, announceBlock)
 
-	worker2Response := &network.BlockResponseMessage{
+	worker2Response := &messages.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[128:],
 	}
 	// the worker 2 will respond from block 129 to 256 so the ensureBlockImportFlow
@@ -622,17 +623,17 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	// but the first call to DoBlockRequest will return the first set and the second
 	// call will return the second set
 	mockRequestMaker.EXPECT().
-		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
+		Do(gomock.Any(), gomock.Any(), &messages.BlockResponseMessage{}).
 		DoAndReturn(func(_, _, response any) any {
-			responsePtr := response.(*network.BlockResponseMessage)
+			responsePtr := response.(*messages.BlockResponseMessage)
 			*responsePtr = *worker1Response
 			return nil
 		})
 
 	mockRequestMaker.EXPECT().
-		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
+		Do(gomock.Any(), gomock.Any(), &messages.BlockResponseMessage{}).
 		DoAndReturn(func(_, _, response any) any {
-			responsePtr := response.(*network.BlockResponseMessage)
+			responsePtr := response.(*messages.BlockResponseMessage)
 			*responsePtr = *worker2Response
 			return nil
 		})
@@ -691,7 +692,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 	const announceBlock = false
 
 	// here we split the whole set in two parts each one will be the "response" for each peer
-	worker1Response := &network.BlockResponseMessage{
+	worker1Response := &messages.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[:128],
 	}
 
@@ -700,7 +701,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 	ensureSuccessfulBlockImportFlow(t, mockedGenesisHeader, worker1Response.BlockData, mockBlockState,
 		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, networkInitialSync, announceBlock)
 
-	worker2Response := &network.BlockResponseMessage{
+	worker2Response := &messages.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[128:],
 	}
 	// the worker 2 will respond from block 129 to 256 so the ensureBlockImportFlow
@@ -714,13 +715,13 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 	// call will return the second set
 	doBlockRequestCount := atomic.Int32{}
 	mockRequestMaker.EXPECT().
-		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
+		Do(gomock.Any(), gomock.Any(), &messages.BlockResponseMessage{}).
 		DoAndReturn(func(peerID, _, response any) any {
 			// lets ensure that the DoBlockRequest is called by
 			// peer.ID(alice) and peer.ID(bob). When bob calls, this method will fail
 			// then alice should pick the failed request and re-execute it which will
 			// be the third call
-			responsePtr := response.(*network.BlockResponseMessage)
+			responsePtr := response.(*messages.BlockResponseMessage)
 			defer func() { doBlockRequestCount.Add(1) }()
 
 			switch doBlockRequestCount.Load() {
@@ -790,7 +791,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 	const announceBlock = false
 
 	// here we split the whole set in two parts each one will be the "response" for each peer
-	worker1Response := &network.BlockResponseMessage{
+	worker1Response := &messages.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[:128],
 	}
 
@@ -799,7 +800,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 	ensureSuccessfulBlockImportFlow(t, mockedGenesisHeader, worker1Response.BlockData, mockBlockState,
 		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, networkInitialSync, announceBlock)
 
-	worker2Response := &network.BlockResponseMessage{
+	worker2Response := &messages.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[128:],
 	}
 	// the worker 2 will respond from block 129 to 256 so the ensureBlockImportFlow
@@ -813,13 +814,13 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 	// call will return the second set
 	doBlockRequestCount := atomic.Int32{}
 	mockRequestMaker.EXPECT().
-		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
+		Do(gomock.Any(), gomock.Any(), &messages.BlockResponseMessage{}).
 		DoAndReturn(func(peerID, _, response any) any {
 			// lets ensure that the DoBlockRequest is called by
 			// peer.ID(alice) and peer.ID(bob). When bob calls, this method will fail
 			// then alice should pick the failed request and re-execute it which will
 			// be the third call
-			responsePtr := response.(*network.BlockResponseMessage)
+			responsePtr := response.(*messages.BlockResponseMessage)
 			defer func() { doBlockRequestCount.Add(1) }()
 
 			switch doBlockRequestCount.Load() {
@@ -895,7 +896,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 	const announceBlock = false
 
 	// here we split the whole set in two parts each one will be the "response" for each peer
-	worker1Response := &network.BlockResponseMessage{
+	worker1Response := &messages.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[:128],
 	}
 
@@ -904,7 +905,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 	ensureSuccessfulBlockImportFlow(t, mockedGenesisHeader, worker1Response.BlockData, mockBlockState,
 		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, networkInitialSync, announceBlock)
 
-	worker2Response := &network.BlockResponseMessage{
+	worker2Response := &messages.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[128:],
 	}
 	// the worker 2 will respond from block 129 to 256 so the ensureBlockImportFlow
@@ -918,12 +919,12 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 	// call will return the second set
 	doBlockRequestCount := atomic.Int32{}
 	mockRequestMaker.EXPECT().
-		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
+		Do(gomock.Any(), gomock.Any(), &messages.BlockResponseMessage{}).
 		DoAndReturn(func(peerID, _, response any) any {
 			// lets ensure that the DoBlockRequest is called by
 			// peer.ID(alice) and peer.ID(bob). When bob calls, this method return an
 			// response item but without header as was requested
-			responsePtr := response.(*network.BlockResponseMessage)
+			responsePtr := response.(*messages.BlockResponseMessage)
 			defer func() { doBlockRequestCount.Add(1) }()
 
 			switch doBlockRequestCount.Load() {
@@ -995,7 +996,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilBlockInResponse(t *testin
 	blockResponse := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 1, 128)
 	const announceBlock = false
 
-	workerResponse := &network.BlockResponseMessage{
+	workerResponse := &messages.BlockResponseMessage{
 		BlockData: blockResponse.BlockData,
 	}
 
@@ -1007,17 +1008,17 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilBlockInResponse(t *testin
 	doBlockRequestCount := atomic.Int32{}
 	mockRequestMaker := NewMockRequestMaker(ctrl)
 	mockRequestMaker.EXPECT().
-		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
+		Do(gomock.Any(), gomock.Any(), &messages.BlockResponseMessage{}).
 		DoAndReturn(func(peerID, _, response any) any {
 			// lets ensure that the DoBlockRequest is called by
 			// peer.ID(alice) and peer.ID(bob). When bob calls, this method return an
 			// response item but without header as was requested
-			responsePtr := response.(*network.BlockResponseMessage)
+			responsePtr := response.(*messages.BlockResponseMessage)
 			defer func() { doBlockRequestCount.Add(1) }()
 
 			switch doBlockRequestCount.Load() {
 			case 0:
-				return network.ErrNilBlockInResponse
+				return messages.ErrNilBlockInResponse
 			case 1:
 				*responsePtr = *workerResponse
 			}
@@ -1084,7 +1085,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 	const announceBlock = false
 
 	// here we split the whole set in two parts each one will be the "response" for each peer
-	worker1Response := &network.BlockResponseMessage{
+	worker1Response := &messages.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[:128],
 	}
 
@@ -1093,7 +1094,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 	ensureSuccessfulBlockImportFlow(t, mockedGenesisHeader, worker1Response.BlockData, mockBlockState,
 		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, networkInitialSync, announceBlock)
 
-	worker2Response := &network.BlockResponseMessage{
+	worker2Response := &messages.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[128:],
 	}
 	// the worker 2 will respond from block 129 to 256 so the ensureBlockImportFlow
@@ -1107,12 +1108,12 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 	// call will return the second set
 	doBlockRequestCount := atomic.Int32{}
 	mockRequestMaker.EXPECT().
-		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
+		Do(gomock.Any(), gomock.Any(), &messages.BlockResponseMessage{}).
 		DoAndReturn(func(peerID, _, response any) any {
 			// lets ensure that the DoBlockRequest is called by
 			// peer.ID(alice) and peer.ID(bob). When bob calls, this method return an
 			// response that does not form an chain
-			responsePtr := response.(*network.BlockResponseMessage)
+			responsePtr := response.(*messages.BlockResponseMessage)
 			defer func() { doBlockRequestCount.Add(1) }()
 
 			switch doBlockRequestCount.Load() {
@@ -1189,7 +1190,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 	const announceBlock = false
 
 	// here we split the whole set in two parts each one will be the "response" for each peer
-	worker1Response := &network.BlockResponseMessage{
+	worker1Response := &messages.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[:128],
 	}
 
@@ -1198,7 +1199,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 	ensureSuccessfulBlockImportFlow(t, mockedGenesisHeader, worker1Response.BlockData, mockBlockState,
 		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, networkInitialSync, announceBlock)
 
-	worker2Response := &network.BlockResponseMessage{
+	worker2Response := &messages.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[128:],
 	}
 	// the worker 2 will respond from block 129 to 256 so the ensureBlockImportFlow
@@ -1214,12 +1215,12 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 	// call will return the second set
 	doBlockRequestCount := atomic.Int32{}
 	mockRequestMaker.EXPECT().
-		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
+		Do(gomock.Any(), gomock.Any(), &messages.BlockResponseMessage{}).
 		DoAndReturn(func(peerID, _, response any) any {
 			// lets ensure that the DoBlockRequest is called by
 			// peer.ID(alice) and peer.ID(bob). When bob calls, this method return an
 			// response that contains a know bad block
-			responsePtr := response.(*network.BlockResponseMessage)
+			responsePtr := response.(*messages.BlockResponseMessage)
 			defer func() { doBlockRequestCount.Add(1) }()
 
 			switch doBlockRequestCount.Load() {
@@ -1314,7 +1315,7 @@ func TestChainSync_BootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testi
 	const announceBlock = false
 
 	// the worker will return a partial size of the set
-	worker1Response := &network.BlockResponseMessage{
+	worker1Response := &messages.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[:97],
 	}
 
@@ -1323,7 +1324,7 @@ func TestChainSync_BootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testi
 	ensureSuccessfulBlockImportFlow(t, mockedGenesisHeader, worker1Response.BlockData, mockBlockState,
 		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, networkInitialSync, announceBlock)
 
-	worker1MissingBlocksResponse := &network.BlockResponseMessage{
+	worker1MissingBlocksResponse := &messages.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[97:],
 	}
 
@@ -1334,12 +1335,12 @@ func TestChainSync_BootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testi
 
 	doBlockRequestCount := 0
 	mockRequestMaker.EXPECT().
-		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
+		Do(gomock.Any(), gomock.Any(), &messages.BlockResponseMessage{}).
 		DoAndReturn(func(peerID, _, response any) any {
 			// lets ensure that the DoBlockRequest is called by
 			// peer.ID(alice). The first call will return only 97 blocks
 			// the handler should issue another call to retrieve the missing blocks
-			responsePtr := response.(*network.BlockResponseMessage)
+			responsePtr := response.(*messages.BlockResponseMessage)
 			defer func() { doBlockRequestCount++ }()
 
 			if doBlockRequestCount == 0 {
@@ -1374,10 +1375,10 @@ func TestChainSync_BootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testi
 }
 
 func createSuccesfullBlockResponse(t *testing.T, parentHeader common.Hash,
-	startingAt, numBlocks int) *network.BlockResponseMessage {
+	startingAt, numBlocks int) *messages.BlockResponseMessage {
 	t.Helper()
 
-	response := new(network.BlockResponseMessage)
+	response := new(messages.BlockResponseMessage)
 	response.BlockData = make([]*types.BlockData, numBlocks)
 
 	emptyTrieState := storage.NewTrieState(inmemory_trie.NewEmptyTrie())
@@ -1489,7 +1490,7 @@ func TestChainSync_validateResponseFields(t *testing.T) {
 			wantErr: errNilHeaderInResponse,
 			errString: "expected header, received none: " +
 				block2Header.Hash().String(),
-			requestedData: network.BootstrapRequestData,
+			requestedData: messages.BootstrapRequestData,
 			blockData: &types.BlockData{
 				Hash:          block2Header.Hash(),
 				Header:        nil,
@@ -1517,7 +1518,7 @@ func TestChainSync_validateResponseFields(t *testing.T) {
 			wantErr: errNilBodyInResponse,
 			errString: "expected body, received none: " +
 				block2Header.Hash().String(),
-			requestedData: network.BootstrapRequestData,
+			requestedData: messages.BootstrapRequestData,
 			blockData: &types.BlockData{
 				Hash:          block2Header.Hash(),
 				Header:        block2Header,
@@ -1540,7 +1541,7 @@ func TestChainSync_validateResponseFields(t *testing.T) {
 			wantErr: errNilJustificationInResponse,
 			errString: "expected justification, received none: " +
 				block2Header.Hash().String(),
-			requestedData: network.RequestedDataJustification,
+			requestedData: messages.RequestedDataJustification,
 			blockData: &types.BlockData{
 				Hash:          block2Header.Hash(),
 				Header:        block2Header,
@@ -1837,7 +1838,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithInvalidJusticationBlock(t *t
 	invalidJustificationBlock.Justification = invalidJustification
 
 	// here we split the whole set in two parts each one will be the "response" for each peer
-	worker1Response := &network.BlockResponseMessage{
+	worker1Response := &messages.BlockResponseMessage{
 		BlockData: blockResponse.BlockData[:128],
 	}
 
@@ -1857,9 +1858,9 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithInvalidJusticationBlock(t *t
 	// but the first call to DoBlockRequest will return the first set and the second
 	// call will return the second set
 	mockRequestMaker.EXPECT().
-		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
+		Do(gomock.Any(), gomock.Any(), &messages.BlockResponseMessage{}).
 		DoAndReturn(func(peerID, _, response any) any {
-			responsePtr := response.(*network.BlockResponseMessage)
+			responsePtr := response.(*messages.BlockResponseMessage)
 			*responsePtr = *worker1Response
 
 			fmt.Println("mocked request maker")

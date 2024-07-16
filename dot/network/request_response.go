@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	libp2pnetwork "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -16,7 +17,7 @@ import (
 )
 
 type RequestMaker interface {
-	Do(to peer.ID, req Message, res ResponseMessage) error
+	Do(to peer.ID, req, res messages.P2PMessage) error
 }
 
 type RequestResponseProtocol struct {
@@ -29,7 +30,7 @@ type RequestResponseProtocol struct {
 	responseBuf     []byte
 }
 
-func (rrp *RequestResponseProtocol) Do(to peer.ID, req Message, res ResponseMessage) error {
+func (rrp *RequestResponseProtocol) Do(to peer.ID, req, res messages.P2PMessage) error {
 	rrp.host.p2pHost.ConnManager().Protect(to, "")
 	defer rrp.host.p2pHost.ConnManager().Unprotect(to, "")
 
@@ -55,7 +56,7 @@ func (rrp *RequestResponseProtocol) Do(to peer.ID, req Message, res ResponseMess
 	return rrp.receiveResponse(stream, res)
 }
 
-func (rrp *RequestResponseProtocol) receiveResponse(stream libp2pnetwork.Stream, msg ResponseMessage) error {
+func (rrp *RequestResponseProtocol) receiveResponse(stream libp2pnetwork.Stream, msg messages.P2PMessage) error {
 	// allocating a new (large) buffer every time slows down receiving response by a dramatic amount,
 	// as malloc is one of the most CPU intensive tasks.
 	// thus we should allocate buffers at startup and re-use them instead of allocating new ones each time.
@@ -83,10 +84,4 @@ func (rrp *RequestResponseProtocol) receiveResponse(stream libp2pnetwork.Stream,
 	}
 
 	return nil
-}
-
-type ResponseMessage interface {
-	String() string
-	Encode() ([]byte, error)
-	Decode(in []byte) (err error)
 }

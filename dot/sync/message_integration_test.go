@@ -8,7 +8,7 @@ package sync
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
@@ -49,44 +49,44 @@ func addTestBlocksToState(t *testing.T, depth uint, blockState BlockState) {
 
 func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	s := newTestSyncer(t)
-	addTestBlocksToState(t, network.MaxBlocksInResponse*2, s.blockState)
+	addTestBlocksToState(t, messages.MaxBlocksInResponse*2, s.blockState)
 
 	// test ascending
 	start, err := variadic.NewUint32OrHash(1)
 	require.NoError(t, err)
 
-	req := &network.BlockRequestMessage{
+	req := &messages.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		Direction:     network.Ascending,
+		Direction:     messages.Ascending,
 		Max:           nil,
 	}
 
 	resp, err := s.CreateBlockResponse(peer.ID("alice"), req)
 	require.NoError(t, err)
-	require.Equal(t, int(network.MaxBlocksInResponse), len(resp.BlockData))
+	require.Equal(t, int(messages.MaxBlocksInResponse), len(resp.BlockData))
 	require.Equal(t, uint(1), resp.BlockData[0].Number())
 	require.Equal(t, uint(128), resp.BlockData[127].Number())
 
-	max := uint32(network.MaxBlocksInResponse + 100)
-	req = &network.BlockRequestMessage{
+	max := uint32(messages.MaxBlocksInResponse + 100)
+	req = &messages.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		Direction:     network.Ascending,
+		Direction:     messages.Ascending,
 		Max:           &max,
 	}
 
 	resp, err = s.CreateBlockResponse(peer.ID("alice"), req)
 	require.NoError(t, err)
-	require.Equal(t, int(network.MaxBlocksInResponse), len(resp.BlockData))
+	require.Equal(t, int(messages.MaxBlocksInResponse), len(resp.BlockData))
 	require.Equal(t, uint(1), resp.BlockData[0].Number())
 	require.Equal(t, uint(128), resp.BlockData[127].Number())
 
 	max = uint32(16)
-	req = &network.BlockRequestMessage{
+	req = &messages.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		Direction:     network.Ascending,
+		Direction:     messages.Ascending,
 		Max:           &max,
 	}
 
@@ -100,41 +100,41 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	start, err = variadic.NewUint32OrHash(uint32(128))
 	require.NoError(t, err)
 
-	req = &network.BlockRequestMessage{
+	req = &messages.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		Direction:     network.Descending,
+		Direction:     messages.Descending,
 		Max:           nil,
 	}
 
 	resp, err = s.CreateBlockResponse(peer.ID("alice"), req)
 	require.NoError(t, err)
-	require.Equal(t, int(network.MaxBlocksInResponse), len(resp.BlockData))
+	require.Equal(t, int(messages.MaxBlocksInResponse), len(resp.BlockData))
 	require.Equal(t, uint(128), resp.BlockData[0].Number())
 	require.Equal(t, uint(1), resp.BlockData[127].Number())
 
-	max = uint32(network.MaxBlocksInResponse + 100)
+	max = uint32(messages.MaxBlocksInResponse + 100)
 	start, err = variadic.NewUint32OrHash(uint32(256))
 	require.NoError(t, err)
 
-	req = &network.BlockRequestMessage{
+	req = &messages.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		Direction:     network.Descending,
+		Direction:     messages.Descending,
 		Max:           &max,
 	}
 
 	resp, err = s.CreateBlockResponse(peer.ID("alice"), req)
 	require.NoError(t, err)
-	require.Equal(t, int(network.MaxBlocksInResponse), len(resp.BlockData))
+	require.Equal(t, int(messages.MaxBlocksInResponse), len(resp.BlockData))
 	require.Equal(t, uint(256), resp.BlockData[0].Number())
 	require.Equal(t, uint(129), resp.BlockData[127].Number())
 
 	max = uint32(16)
-	req = &network.BlockRequestMessage{
+	req = &messages.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		Direction:     network.Descending,
+		Direction:     messages.Descending,
 		Max:           &max,
 	}
 
@@ -147,7 +147,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 
 func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	s := newTestSyncer(t)
-	addTestBlocksToState(t, uint(network.MaxBlocksInResponse*2), s.blockState)
+	addTestBlocksToState(t, uint(messages.MaxBlocksInResponse*2), s.blockState)
 
 	// test ascending with nil endBlockHash
 	startHash, err := s.blockState.GetHashByNumber(1)
@@ -156,16 +156,16 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	start, err := variadic.NewUint32OrHash(startHash)
 	require.NoError(t, err)
 
-	req := &network.BlockRequestMessage{
+	req := &messages.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		Direction:     network.Ascending,
+		Direction:     messages.Ascending,
 		Max:           nil,
 	}
 
 	resp, err := s.CreateBlockResponse(peer.ID("alice"), req)
 	require.NoError(t, err)
-	require.Equal(t, int(network.MaxBlocksInResponse), len(resp.BlockData))
+	require.Equal(t, int(messages.MaxBlocksInResponse), len(resp.BlockData))
 	require.Equal(t, uint(1), resp.BlockData[0].Number())
 	require.Equal(t, uint(128), resp.BlockData[127].Number())
 
@@ -176,10 +176,10 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	start, err = variadic.NewUint32OrHash(startHash)
 	require.NoError(t, err)
 
-	req = &network.BlockRequestMessage{
+	req = &messages.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		Direction:     network.Descending,
+		Direction:     messages.Descending,
 		Max:           nil,
 	}
 
@@ -189,10 +189,10 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	require.Equal(t, uint(16), resp.BlockData[0].Number())
 	require.Equal(t, uint(1), resp.BlockData[15].Number())
 
-	req = &network.BlockRequestMessage{
+	req = &messages.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		Direction:     network.Descending,
+		Direction:     messages.Descending,
 		Max:           nil,
 	}
 
@@ -202,23 +202,23 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	require.Equal(t, uint(16), resp.BlockData[0].Number())
 	require.Equal(t, uint(1), resp.BlockData[15].Number())
 
-	// test descending with nil endBlockHash and start > network.MaxBlocksInResponse
+	// test descending with nil endBlockHash and start > messages.MaxBlocksInResponse
 	startHash, err = s.blockState.GetHashByNumber(256)
 	require.NoError(t, err)
 
 	start, err = variadic.NewUint32OrHash(startHash)
 	require.NoError(t, err)
 
-	req = &network.BlockRequestMessage{
+	req = &messages.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		Direction:     network.Descending,
+		Direction:     messages.Descending,
 		Max:           nil,
 	}
 
 	resp, err = s.CreateBlockResponse(peer.ID("alice"), req)
 	require.NoError(t, err)
-	require.Equal(t, int(network.MaxBlocksInResponse), len(resp.BlockData))
+	require.Equal(t, int(messages.MaxBlocksInResponse), len(resp.BlockData))
 	require.Equal(t, uint(256), resp.BlockData[0].Number())
 	require.Equal(t, uint(129), resp.BlockData[127].Number())
 
@@ -228,16 +228,16 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	start, err = variadic.NewUint32OrHash(startHash)
 	require.NoError(t, err)
 
-	req = &network.BlockRequestMessage{
+	req = &messages.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
-		Direction:     network.Descending,
+		Direction:     messages.Descending,
 		Max:           nil,
 	}
 
 	resp, err = s.CreateBlockResponse(peer.ID("alice"), req)
 	require.NoError(t, err)
-	require.Equal(t, network.MaxBlocksInResponse, len(resp.BlockData))
+	require.Equal(t, messages.MaxBlocksInResponse, len(resp.BlockData))
 	require.Equal(t, uint(128), resp.BlockData[0].Number())
 	require.Equal(t, uint(1), resp.BlockData[127].Number())
 }
@@ -364,18 +364,18 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 
 	testCases := []struct {
 		description      string
-		value            *network.BlockRequestMessage
-		expectedMsgValue *network.BlockResponseMessage
+		value            *messages.BlockRequestMessage
+		expectedMsgValue *messages.BlockResponseMessage
 	}{
 		{
 			description: "test get Header and Body",
-			value: &network.BlockRequestMessage{
+			value: &messages.BlockRequestMessage{
 				RequestedData: 3,
 				StartingBlock: *start,
-				Direction:     network.Ascending,
+				Direction:     messages.Ascending,
 				Max:           nil,
 			},
-			expectedMsgValue: &network.BlockResponseMessage{
+			expectedMsgValue: &messages.BlockResponseMessage{
 				BlockData: []*types.BlockData{
 					{
 						Hash:   bestHash,
@@ -387,13 +387,13 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 		},
 		{
 			description: "test get Header",
-			value: &network.BlockRequestMessage{
+			value: &messages.BlockRequestMessage{
 				RequestedData: 1,
 				StartingBlock: *start,
-				Direction:     network.Ascending,
+				Direction:     messages.Ascending,
 				Max:           nil,
 			},
-			expectedMsgValue: &network.BlockResponseMessage{
+			expectedMsgValue: &messages.BlockResponseMessage{
 				BlockData: []*types.BlockData{
 					{
 						Hash:   bestHash,
@@ -405,13 +405,13 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 		},
 		{
 			description: "test get Receipt",
-			value: &network.BlockRequestMessage{
+			value: &messages.BlockRequestMessage{
 				RequestedData: 4,
 				StartingBlock: *start,
-				Direction:     network.Ascending,
+				Direction:     messages.Ascending,
 				Max:           nil,
 			},
-			expectedMsgValue: &network.BlockResponseMessage{
+			expectedMsgValue: &messages.BlockResponseMessage{
 				BlockData: []*types.BlockData{
 					{
 						Hash:    bestHash,
@@ -424,13 +424,13 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 		},
 		{
 			description: "test get MessageQueue",
-			value: &network.BlockRequestMessage{
+			value: &messages.BlockRequestMessage{
 				RequestedData: 8,
 				StartingBlock: *start,
-				Direction:     network.Ascending,
+				Direction:     messages.Ascending,
 				Max:           nil,
 			},
-			expectedMsgValue: &network.BlockResponseMessage{
+			expectedMsgValue: &messages.BlockResponseMessage{
 				BlockData: []*types.BlockData{
 					{
 						Hash:         bestHash,

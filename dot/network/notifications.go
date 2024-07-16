@@ -9,6 +9,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -19,7 +20,7 @@ const handshakeTimeout = time.Second * 10
 
 // Handshake is the interface all handshakes for notifications protocols must implement
 type Handshake interface {
-	Message
+	messages.P2PMessage
 	IsValid() bool
 }
 
@@ -96,7 +97,7 @@ func newHandshakeData(received, validated bool, stream network.Stream) *handshak
 // peer, otherwise it decodes using the notification message decoder.
 func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder,
 	messageDecoder MessageDecoder) messageDecoder {
-	return func(in []byte, peer peer.ID, inbound bool) (Message, error) {
+	return func(in []byte, peer peer.ID, inbound bool) (messages.P2PMessage, error) {
 		// if we don't have handshake data on this peer, or we haven't received the handshake from them already,
 		// assume we are receiving the handshake
 
@@ -122,7 +123,7 @@ func (s *Service) createNotificationsMessageHandler(
 	notificationsMessageHandler NotificationsMessageHandler,
 	batchHandler NotificationsMessageBatchHandler,
 ) messageHandler {
-	return func(stream network.Stream, m Message) error {
+	return func(stream network.Stream, m messages.P2PMessage) error {
 		if m == nil || info == nil || info.handshakeValidator == nil || notificationsMessageHandler == nil {
 			return nil
 		}

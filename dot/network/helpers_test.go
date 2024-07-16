@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -32,14 +33,14 @@ const (
 )
 
 type testStreamHandler struct {
-	messages map[peer.ID][]Message
+	messages map[peer.ID][]messages.P2PMessage
 	decoder  messageDecoder
 	exit     bool
 }
 
 func newTestStreamHandler(decoder messageDecoder) *testStreamHandler {
 	return &testStreamHandler{
-		messages: make(map[peer.ID][]Message),
+		messages: make(map[peer.ID][]messages.P2PMessage),
 		decoder:  decoder,
 	}
 }
@@ -55,7 +56,7 @@ func (s *testStreamHandler) handleStream(stream libp2pnetwork.Stream) {
 	s.readStream(stream, peer, s.decoder, s.handleMessage)
 }
 
-func (s *testStreamHandler) handleMessage(stream libp2pnetwork.Stream, msg Message) error {
+func (s *testStreamHandler) handleMessage(stream libp2pnetwork.Stream, msg messages.P2PMessage) error {
 	msgs := s.messages[stream.Conn().RemotePeer()]
 	s.messages[stream.Conn().RemotePeer()] = append(msgs, msg)
 
@@ -65,7 +66,7 @@ func (s *testStreamHandler) handleMessage(stream libp2pnetwork.Stream, msg Messa
 	return s.writeToStream(stream, announceHandshake)
 }
 
-func (s *testStreamHandler) writeToStream(stream libp2pnetwork.Stream, msg Message) error {
+func (s *testStreamHandler) writeToStream(stream libp2pnetwork.Stream, msg messages.P2PMessage) error {
 	encMsg, err := msg.Encode()
 	if err != nil {
 		return err
@@ -124,24 +125,26 @@ var starting, _ = variadic.NewUint32OrHash(uint32(1))
 
 var one = uint32(1)
 
-func newTestBlockRequestMessage(t *testing.T) *BlockRequestMessage {
+func newTestBlockRequestMessage(t *testing.T) *messages.BlockRequestMessage {
 	t.Helper()
 
-	return &BlockRequestMessage{
-		RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
+	return &messages.BlockRequestMessage{
+		RequestedData: messages.RequestedDataHeader +
+			messages.RequestedDataBody +
+			messages.RequestedDataJustification,
 		StartingBlock: *starting,
 		Direction:     1,
 		Max:           &one,
 	}
 }
 
-func testBlockRequestMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
-	msg := new(BlockRequestMessage)
+func testBlockRequestMessageDecoder(in []byte, _ peer.ID, _ bool) (messages.P2PMessage, error) {
+	msg := new(messages.BlockRequestMessage)
 	err := msg.Decode(in)
 	return msg, err
 }
 
-func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
+func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID, _ bool) (messages.P2PMessage, error) {
 	msg := BlockAnnounceMessage{
 		Number: 0,
 		Digest: types.NewDigest(),
@@ -150,7 +153,7 @@ func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, err
 	return &msg, err
 }
 
-func testBlockAnnounceHandshakeDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
+func testBlockAnnounceHandshakeDecoder(in []byte, _ peer.ID, _ bool) (messages.P2PMessage, error) {
 	msg := new(BlockAnnounceHandshake)
 	err := msg.Decode(in)
 	return msg, err
@@ -280,11 +283,11 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	return srvc
 }
 
-func newTestBlockResponseMessage(t *testing.T) *BlockResponseMessage {
+func newTestBlockResponseMessage(t *testing.T) *messages.BlockResponseMessage {
 	t.Helper()
 
 	const blockRequestSize = 128
-	msg := &BlockResponseMessage{
+	msg := &messages.BlockResponseMessage{
 		BlockData: make([]*types.BlockData, blockRequestSize),
 	}
 

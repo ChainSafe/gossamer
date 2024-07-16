@@ -8,6 +8,7 @@ import (
 
 	"github.com/libp2p/go-libp2p/core/peer"
 
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -32,7 +33,7 @@ type Syncer interface {
 	IsSynced() bool
 
 	// CreateBlockResponse is called upon receipt of a BlockRequestMessage to create the response
-	CreateBlockResponse(peer.ID, *BlockRequestMessage) (*BlockResponseMessage, error)
+	CreateBlockResponse(peer.ID, *messages.BlockRequestMessage) (*messages.BlockResponseMessage, error)
 }
 
 // TransactionHandler is the interface used by the transactions sub-protocol

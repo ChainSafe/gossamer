@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -100,10 +101,10 @@ var (
 type (
 	// messageDecoder is passed on readStream to decode the data from the stream into a message.
 	// since messages are decoded based on context, this is different for every sub-protocol.
-	messageDecoder = func([]byte, peer.ID, bool) (Message, error)
+	messageDecoder = func([]byte, peer.ID, bool) (messages.P2PMessage, error)
 	// messageHandler is passed on readStream to handle the resulting message.
 	// It should return an error only if the stream is to be closed
-	messageHandler = func(stream libp2pnetwork.Stream, msg Message) error
+	messageHandler = func(stream libp2pnetwork.Stream, msg messages.P2PMessage) error
 )
 
 // Service describes a network service

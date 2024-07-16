@@ -4,6 +4,7 @@
 package network
 
 import (
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	libp2pnetwork "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -17,15 +18,15 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 	s.readStream(stream, decodeSyncMessage, s.handleSyncMessage, MaxBlockResponseSize)
 }
 
-func decodeSyncMessage(in []byte, _ peer.ID, _ bool) (Message, error) {
-	msg := new(BlockRequestMessage)
+func decodeSyncMessage(in []byte, _ peer.ID, _ bool) (messages.P2PMessage, error) {
+	msg := new(messages.BlockRequestMessage)
 	err := msg.Decode(in)
 	return msg, err
 }
 
 // handleSyncMessage handles inbound sync streams
 // the only messages we should receive over an inbound stream are BlockRequestMessages, so we only need to handle those
-func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) error {
+func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg messages.P2PMessage) error {
 	if msg == nil {
 		return nil
 	}
@@ -37,7 +38,7 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 		}
 	}()
 
-	if req, ok := msg.(*BlockRequestMessage); ok {
+	if req, ok := msg.(*messages.BlockRequestMessage); ok {
 		resp, err := s.syncer.CreateBlockResponse(stream.Conn().RemotePeer(), req)
 		if err != nil {
 			logger.Debugf("cannot create response for request: %s", err)

@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
@@ -23,7 +24,7 @@ func TestEncodeBlockRequestMessage(t *testing.T) {
 	genesisHash := common.MustHexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
 
 	var one uint32 = 1
-	bm := &BlockRequestMessage{
+	bm := &messages.BlockRequestMessage{
 		RequestedData: 1,
 		StartingBlock: *variadic.NewUint32OrHashFromBytes(append([]byte{0}, genesisHash...)),
 		Direction:     1,
@@ -35,7 +36,7 @@ func TestEncodeBlockRequestMessage(t *testing.T) {
 
 	require.Equal(t, expected, encMsg)
 
-	res := new(BlockRequestMessage)
+	res := new(messages.BlockRequestMessage)
 	err = res.Decode(encMsg)
 	require.NoError(t, err)
 	require.Equal(t, bm, res)
@@ -47,7 +48,7 @@ func TestEncodeBlockRequestMessage_BlockHash(t *testing.T) {
 	genesisHash := common.MustHexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
 
 	var one uint32 = 1
-	bm := &BlockRequestMessage{
+	bm := &messages.BlockRequestMessage{
 		RequestedData: 1,
 		StartingBlock: *variadic.NewUint32OrHashFromBytes(append([]byte{0}, genesisHash...)),
 		Direction:     1,
@@ -57,7 +58,7 @@ func TestEncodeBlockRequestMessage_BlockHash(t *testing.T) {
 	encMsg, err := bm.Encode()
 	require.NoError(t, err)
 
-	res := new(BlockRequestMessage)
+	res := new(messages.BlockRequestMessage)
 	err = res.Decode(encMsg)
 	require.NoError(t, err)
 	require.Equal(t, bm, res)
@@ -67,7 +68,7 @@ func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 	t.Parallel()
 
 	var one uint32 = 1
-	bm := &BlockRequestMessage{
+	bm := &messages.BlockRequestMessage{
 		RequestedData: 1,
 		StartingBlock: *variadic.NewUint32OrHashFromBytes([]byte{1, 1}),
 		Direction:     1,
@@ -77,7 +78,7 @@ func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 	encMsg, err := bm.Encode()
 	require.NoError(t, err)
 
-	res := new(BlockRequestMessage)
+	res := new(messages.BlockRequestMessage)
 	err = res.Decode(encMsg)
 	require.NoError(t, err)
 	require.Equal(t, bm, res)
@@ -88,7 +89,7 @@ func TestBlockRequestString(t *testing.T) {
 
 	genesisHash := common.MustHexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
 
-	bm := &BlockRequestMessage{
+	bm := &messages.BlockRequestMessage{
 		RequestedData: 1,
 		StartingBlock: *variadic.NewUint32OrHashFromBytes(append([]byte{0}, genesisHash...)),
 		Direction:     1,
@@ -107,7 +108,7 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 
 	genesisHash := common.MustHexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
 
-	bm := &BlockRequestMessage{
+	bm := &messages.BlockRequestMessage{
 		RequestedData: 1,
 		StartingBlock: *variadic.NewUint32OrHashFromBytes(append([]byte{0}, genesisHash...)),
 		Direction:     1,
@@ -117,7 +118,7 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 	encMsg, err := bm.Encode()
 	require.NoError(t, err)
 
-	res := new(BlockRequestMessage)
+	res := new(messages.BlockRequestMessage)
 	err = res.Decode(encMsg)
 	require.NoError(t, err)
 	require.Equal(t, bm, res)
@@ -130,7 +131,7 @@ func TestEncodeBlockResponseMessage_Empty(t *testing.T) {
 	bd.Header = types.NewEmptyHeader()
 	bd.Header.Hash()
 
-	bm := &BlockResponseMessage{
+	bm := &messages.BlockResponseMessage{
 		BlockData: []*types.BlockData{bd},
 	}
 
@@ -140,7 +141,7 @@ func TestEncodeBlockResponseMessage_Empty(t *testing.T) {
 	empty := types.NewEmptyBlockData()
 	empty.Header = types.NewEmptyHeader()
 
-	act := &BlockResponseMessage{
+	act := &messages.BlockResponseMessage{
 		BlockData: []*types.BlockData{empty},
 	}
 	err = act.Decode(enc)
@@ -179,7 +180,7 @@ func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 		Justification: nil,
 	}
 
-	bm := &BlockResponseMessage{
+	bm := &messages.BlockResponseMessage{
 		BlockData: []*types.BlockData{bd},
 	}
 
@@ -189,7 +190,7 @@ func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 	empty := types.NewEmptyBlockData()
 	empty.Header = types.NewEmptyHeader()
 
-	act := &BlockResponseMessage{
+	act := &messages.BlockResponseMessage{
 		BlockData: []*types.BlockData{empty},
 	}
 	err = act.Decode(enc)
@@ -230,7 +231,7 @@ func TestEncodeBlockResponseMessage_WithAll(t *testing.T) {
 		Justification: &[]byte{3},
 	}
 
-	bm := &BlockResponseMessage{
+	bm := &messages.BlockResponseMessage{
 		BlockData: []*types.BlockData{bd},
 	}
 
@@ -241,7 +242,7 @@ func TestEncodeBlockResponseMessage_WithAll(t *testing.T) {
 	empty := types.NewEmptyBlockData()
 	empty.Header = types.NewEmptyHeader()
 
-	act := &BlockResponseMessage{
+	act := &messages.BlockResponseMessage{
 		BlockData: []*types.BlockData{empty},
 	}
 	err = act.Decode(enc)
@@ -426,27 +427,27 @@ func TestDecodeConsensusMessage(t *testing.T) {
 func TestAscendingBlockRequest(t *testing.T) {
 	one := uint32(1)
 	three := uint32(3)
-	maxResponseSize := uint32(MaxBlocksInResponse)
+	maxResponseSize := uint32(messages.MaxBlocksInResponse)
 	cases := map[string]struct {
 		startNumber, targetNumber      uint
-		expectedBlockRequestMessage    []*BlockRequestMessage
+		expectedBlockRequestMessage    []*messages.BlockRequestMessage
 		expectedTotalOfBlocksRequested uint32
 	}{
 		"start_greater_than_target": {
 			startNumber:                    10,
 			targetNumber:                   0,
-			expectedBlockRequestMessage:    []*BlockRequestMessage{},
+			expectedBlockRequestMessage:    []*messages.BlockRequestMessage{},
 			expectedTotalOfBlocksRequested: 0,
 		},
 
 		"no_difference_between_start_and_target": {
 			startNumber:  10,
 			targetNumber: 10,
-			expectedBlockRequestMessage: []*BlockRequestMessage{
+			expectedBlockRequestMessage: []*messages.BlockRequestMessage{
 				{
-					RequestedData: BootstrapRequestData,
+					RequestedData: messages.BootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(uint32(10)),
-					Direction:     Ascending,
+					Direction:     messages.Ascending,
 					Max:           &one,
 				},
 			},
@@ -457,11 +458,11 @@ func TestAscendingBlockRequest(t *testing.T) {
 			startNumber:                    1,
 			targetNumber:                   128,
 			expectedTotalOfBlocksRequested: 128,
-			expectedBlockRequestMessage: []*BlockRequestMessage{
+			expectedBlockRequestMessage: []*messages.BlockRequestMessage{
 				{
-					RequestedData: BootstrapRequestData,
+					RequestedData: messages.BootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(uint32(1)),
-					Direction:     Ascending,
+					Direction:     messages.Ascending,
 					Max:           &maxResponseSize,
 				},
 			},
@@ -471,29 +472,29 @@ func TestAscendingBlockRequest(t *testing.T) {
 			startNumber:                    1,
 			targetNumber:                   128 * 4, // 512
 			expectedTotalOfBlocksRequested: 512,
-			expectedBlockRequestMessage: []*BlockRequestMessage{
+			expectedBlockRequestMessage: []*messages.BlockRequestMessage{
 				{
-					RequestedData: BootstrapRequestData,
+					RequestedData: messages.BootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(uint32(1)),
-					Direction:     Ascending,
+					Direction:     messages.Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
-					RequestedData: BootstrapRequestData,
+					RequestedData: messages.BootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(uint32(129)),
-					Direction:     Ascending,
+					Direction:     messages.Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
-					RequestedData: BootstrapRequestData,
+					RequestedData: messages.BootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(uint32(257)),
-					Direction:     Ascending,
+					Direction:     messages.Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
-					RequestedData: BootstrapRequestData,
+					RequestedData: messages.BootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(uint32(385)),
-					Direction:     Ascending,
+					Direction:     messages.Ascending,
 					Max:           &maxResponseSize,
 				},
 			},
@@ -503,35 +504,35 @@ func TestAscendingBlockRequest(t *testing.T) {
 			startNumber:                    1,
 			targetNumber:                   (128 * 4) + 3,
 			expectedTotalOfBlocksRequested: 515,
-			expectedBlockRequestMessage: []*BlockRequestMessage{
+			expectedBlockRequestMessage: []*messages.BlockRequestMessage{
 				{
-					RequestedData: BootstrapRequestData,
+					RequestedData: messages.BootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(uint32(1)),
-					Direction:     Ascending,
+					Direction:     messages.Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
-					RequestedData: BootstrapRequestData,
+					RequestedData: messages.BootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(uint32(129)),
-					Direction:     Ascending,
+					Direction:     messages.Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
-					RequestedData: BootstrapRequestData,
+					RequestedData: messages.BootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(uint32(257)),
-					Direction:     Ascending,
+					Direction:     messages.Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
-					RequestedData: BootstrapRequestData,
+					RequestedData: messages.BootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(uint32(385)),
-					Direction:     Ascending,
+					Direction:     messages.Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
-					RequestedData: BootstrapRequestData,
+					RequestedData: messages.BootstrapRequestData,
 					StartingBlock: *variadic.MustNewUint32OrHash(uint32(513)),
-					Direction:     Ascending,
+					Direction:     messages.Ascending,
 					Max:           &three,
 				},
 			},
@@ -542,7 +543,7 @@ func TestAscendingBlockRequest(t *testing.T) {
 		tt := tt
 
 		t.Run(tname, func(t *testing.T) {
-			requests := NewAscendingBlockRequests(tt.startNumber, tt.targetNumber, BootstrapRequestData)
+			requests := messages.NewAscendingBlockRequests(tt.startNumber, tt.targetNumber, messages.BootstrapRequestData)
 			require.Equal(t, tt.expectedBlockRequestMessage, requests)
 
 			acc := uint32(0)

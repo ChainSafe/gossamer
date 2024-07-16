@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/internal/pubip"
 	"github.com/dgraph-io/ristretto"
@@ -330,7 +331,7 @@ func (h *host) bootstrap() {
 
 // send creates a new outbound stream with the given peer and writes the message. It also returns
 // the newly created stream.
-func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (network.Stream, error) {
+func (h *host) send(p peer.ID, pid protocol.ID, msg messages.P2PMessage) (network.Stream, error) {
 	// open outbound stream with host protocol id
 	stream, err := h.p2pHost.NewStream(h.ctx, p, pid)
 	if err != nil {
@@ -354,7 +355,7 @@ func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (network.Stream, er
 	return stream, nil
 }
 
-func (h *host) writeToStream(s network.Stream, msg Message) error {
+func (h *host) writeToStream(s network.Stream, msg messages.P2PMessage) error {
 	encMsg, err := msg.Encode()
 	if err != nil {
 		return err

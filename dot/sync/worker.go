@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
@@ -72,7 +73,7 @@ func executeRequest(who peer.ID, requestMaker network.RequestMaker,
 
 	request := task.request
 	logger.Debugf("[EXECUTING] worker %s, block request: %s\n", who, request)
-	response := new(network.BlockResponseMessage)
+	response := new(messages.BlockResponseMessage)
 	err := requestMaker.Do(who, request, response)
 
 	task.resultCh <- &syncTaskResult{

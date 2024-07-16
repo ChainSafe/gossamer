@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -21,7 +21,7 @@ func TestWorker(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	m := uint32(60)
-	blockReq := &network.BlockRequestMessage{
+	blockReq := &messages.BlockRequestMessage{
 		RequestedData: 1,
 		Direction:     3,
 		Max:           &m,
@@ -35,7 +35,7 @@ func TestWorker(t *testing.T) {
 	reqMaker := NewMockRequestMaker(ctrl)
 	// define a mock expectation to peerA
 	reqMaker.EXPECT().
-		Do(peerA, blockReq, gomock.AssignableToTypeOf((*network.BlockResponseMessage)(nil))).
+		Do(peerA, blockReq, gomock.AssignableToTypeOf((*messages.BlockResponseMessage)(nil))).
 		DoAndReturn(func(_, _, _ any) any {
 			select {
 			case acquireOrFail <- struct{}{}:
@@ -52,7 +52,7 @@ func TestWorker(t *testing.T) {
 
 	// define a mock expectation to peerB
 	reqMaker.EXPECT().
-		Do(peerB, blockReq, gomock.AssignableToTypeOf((*network.BlockResponseMessage)(nil))).
+		Do(peerB, blockReq, gomock.AssignableToTypeOf((*messages.BlockResponseMessage)(nil))).
 		DoAndReturn(func(_, _, _ any) any {
 			select {
 			case acquireOrFail <- struct{}{}:
@@ -109,8 +109,8 @@ func TestWorker(t *testing.T) {
 	actual = append(actual, result)
 
 	expected := []*syncTaskResult{
-		{who: peerA, request: blockReq, response: new(network.BlockResponseMessage)},
-		{who: peerB, request: blockReq, response: new(network.BlockResponseMessage)},
+		{who: peerA, request: blockReq, response: new(messages.BlockResponseMessage)},
+		{who: peerB, request: blockReq, response: new(messages.BlockResponseMessage)},
 	}
 
 	sort.Slice(actual, func(i, j int) bool {

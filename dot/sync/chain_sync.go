@@ -18,6 +18,7 @@ import (
 	"golang.org/x/exp/slices"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -54,7 +55,7 @@ func (s chainSyncState) String() string {
 }
 
 var (
-	pendingBlocksLimit = network.MaxBlocksInResponse * 32
+	pendingBlocksLimit = messages.MaxBlocksInResponse * 32
 	isSyncedGauge      = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_network_syncer",
 		Name:      "is_synced",
@@ -240,7 +241,7 @@ func (cs *chainSync) stop() error {
 
 func (cs *chainSync) isBootstrapSync(currentBlockNumber uint) bool {
 	syncTarget := cs.peerViewSet.getTarget()
-	return currentBlockNumber+network.MaxBlocksInResponse < syncTarget
+	return currentBlockNumber+messages.MaxBlocksInResponse < syncTarget
 }
 
 func (cs *chainSync) bootstrapSync() {
@@ -397,12 +398,12 @@ func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.
 	startAtBlock := announcedHeader.Number
 	totalBlocks := uint32(1)
 
-	var request *network.BlockRequestMessage
+	var request *messages.BlockRequestMessage
 	startingBlock := *variadic.MustNewUint32OrHash(announcedHeader.Hash())
 
 	if gapLength > 1 {
-		request = network.NewBlockRequest(startingBlock, gapLength,
-			network.BootstrapRequestData, network.Descending)
+		request = messages.NewBlockRequest(startingBlock, gapLength,
+			messages.BootstrapRequestData, messages.Descending)
 
 		startAtBlock = announcedHeader.Number - uint(*request.Max) + 1
 		totalBlocks = *request.Max
@@ -410,7 +411,7 @@ func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.
 		logger.Infof("requesting %d blocks from peer: %v, descending request from #%d (%s)",
 			gapLength, peerWhoAnnounced, announcedHeader.Number, announcedHeader.Hash().Short())
 	} else {
-		request = network.NewBlockRequest(startingBlock, 1, network.BootstrapRequestData, network.Descending)
+		request = messages.NewBlockRequest(startingBlock, 1, messages.BootstrapRequestData, messages.Descending)
 		logger.Infof("requesting a single block from peer: %v with Number: #%d and Hash: (%s)",
 			peerWhoAnnounced, announcedHeader.Number, announcedHeader.Hash().Short())
 	}
@@ -442,15 +443,15 @@ func (cs *chainSync) requestForkBlocks(bestBlockHeader, highestFinalizedHeader, 
 	gapLength := uint32(1)
 	startAtBlock := announcedHeader.Number
 	announcedHash := announcedHeader.Hash()
-	var request *network.BlockRequestMessage
+	var request *messages.BlockRequestMessage
 	startingBlock := *variadic.MustNewUint32OrHash(announcedHash)
 
 	if parentExists {
-		request = network.NewBlockRequest(startingBlock, 1, network.BootstrapRequestData, network.Descending)
+		request = messages.NewBlockRequest(startingBlock, 1, messages.BootstrapRequestData, messages.Descending)
 	} else {
 		gapLength = uint32(announcedHeader.Number - highestFinalizedHeader.Number)
 		startAtBlock = highestFinalizedHeader.Number + 1
-		request = network.NewBlockRequest(startingBlock, gapLength, network.BootstrapRequestData, network.Descending)
+		request = messages.NewBlockRequest(startingBlock, gapLength, messages.BootstrapRequestData, messages.Descending)
 	}
 
 	logger.Infof("requesting %d fork blocks from peer: %v starting at #%d (%s)",
@@ -502,8 +503,8 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 			gapLength = 128
 		}
 
-		descendingGapRequest := network.NewBlockRequest(*variadic.MustNewUint32OrHash(pendingBlock.hash),
-			uint32(gapLength), network.BootstrapRequestData, network.Descending)
+		descendingGapRequest := messages.NewBlockRequest(*variadic.MustNewUint32OrHash(pendingBlock.hash),
+			uint32(gapLength), messages.BootstrapRequestData, messages.Descending)
 		startAtBlock := pendingBlock.number - uint(*descendingGapRequest.Max) + 1
 
 		// the `requests` in the tip sync are not related necessarily
@@ -538,8 +539,8 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header, origin 
 		targetBlockNumber = realTarget
 	}
 
-	requests := network.NewAscendingBlockRequests(startRequestAt, targetBlockNumber,
-		network.BootstrapRequestData)
+	requests := messages.NewAscendingBlockRequests(startRequestAt, targetBlockNumber,
+		messages.BootstrapRequestData)
 
 	var expectedAmountOfBlocks uint32
 	for _, request := range requests {
@@ -561,7 +562,7 @@ func (cs *chainSync) requestMaxBlocksFrom(bestBlockHeader *types.Header, origin 
 }
 
 func (cs *chainSync) submitRequest(
-	request *network.BlockRequestMessage,
+	request *messages.BlockRequestMessage,
 	who *peer.ID,
 	resultCh chan<- *syncTaskResult,
 ) error {
@@ -572,7 +573,7 @@ func (cs *chainSync) submitRequest(
 	return fmt.Errorf("submitting request: %w", errBlockStatePaused)
 }
 
-func (cs *chainSync) submitRequests(requests []*network.BlockRequestMessage) (
+func (cs *chainSync) submitRequests(requests []*messages.BlockRequestMessage) (
 	resultCh chan *syncTaskResult, err error) {
 	if !cs.blockState.IsPaused() {
 		return cs.workerPool.submitRequests(requests), nil
@@ -652,7 +653,7 @@ taskResultLoop:
 					logger.Errorf("task result: peer(%s) error: %s",
 						taskResult.who, taskResult.err)
 
-					if errors.Is(taskResult.err, network.ErrNilBlockInResponse) {
+					if errors.Is(taskResult.err, messages.ErrNilBlockInResponse) {
 						cs.network.ReportPeer(peerset.ReputationChange{
 							Value:  peerset.BadMessageValue,
 							Reason: peerset.BadMessageReason,
@@ -674,7 +675,7 @@ taskResultLoop:
 				continue
 			}
 
-			if request.Direction == network.Descending {
+			if request.Direction == messages.Descending {
 				// reverse blocks before pre-validating and placing in ready queue
 				reverseBlockData(response.BlockData)
 			}
@@ -759,10 +760,10 @@ taskResultLoop:
 					panic(err)
 				}
 
-				taskResult.request = &network.BlockRequestMessage{
-					RequestedData: network.BootstrapRequestData,
+				taskResult.request = &messages.BlockRequestMessage{
+					RequestedData: messages.BootstrapRequestData,
 					StartingBlock: *startAt,
-					Direction:     network.Ascending,
+					Direction:     messages.Ascending,
 					Max:           &difference,
 				}
 				err = cs.submitRequest(taskResult.request, nil, workersResults)
@@ -968,16 +969,16 @@ func validateResponseFields(requestedData byte, blocks []*types.BlockData) error
 			return errNilBlockData
 		}
 
-		if (requestedData&network.RequestedDataHeader) == network.RequestedDataHeader && bd.Header == nil {
+		if (requestedData&messages.RequestedDataHeader) == messages.RequestedDataHeader && bd.Header == nil {
 			return fmt.Errorf("%w: %s", errNilHeaderInResponse, bd.Hash)
 		}
 
-		if (requestedData&network.RequestedDataBody) == network.RequestedDataBody && bd.Body == nil {
+		if (requestedData&messages.RequestedDataBody) == messages.RequestedDataBody && bd.Body == nil {
 			return fmt.Errorf("%w: %s", errNilBodyInResponse, bd.Hash)
 		}
 
 		// if we requested strictly justification
-		if (requestedData|network.RequestedDataJustification) == network.RequestedDataJustification &&
+		if (requestedData|messages.RequestedDataJustification) == messages.RequestedDataJustification &&
 			bd.Justification == nil {
 			return fmt.Errorf("%w: %s", errNilJustificationInResponse, bd.Hash)
 		}
