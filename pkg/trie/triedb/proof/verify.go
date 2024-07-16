@@ -293,10 +293,9 @@ type proofItem struct {
 	value []byte
 }
 
-func Verify(
+func (proof MerkleProof) Verify(
 	trieVersion trie.TrieLayout,
 	root common.Hash,
-	proof [][]byte,
 	items []proofItem,
 ) error {
 	// sort items
