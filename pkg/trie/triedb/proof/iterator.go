@@ -21,7 +21,7 @@ func (it *Iterator[T]) Next() *T {
 }
 
 func (it *Iterator[T]) Peek() *T {
-	if it.index+1 < len(it.items)-1 {
+	if it.index+1 < len(it.items) {
 		return &it.items[it.index+1]
 	}
 	return nil

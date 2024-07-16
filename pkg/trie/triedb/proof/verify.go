@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 
+	nibbles "github.com/ChainSafe/gossamer/pkg/trie/codec"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
@@ -17,8 +19,8 @@ import (
 )
 
 var (
-	ErrExtraneusNode = errors.New("extraneous node in proof")
-	IncompleteProof  = errors.New("incomplete proof")
+	ErrExtraneusNode   = errors.New("extraneous node in proof")
+	ErrIncompleteProof = errors.New("incomplete proof")
 )
 
 type verifyProofStep interface {
@@ -60,6 +62,7 @@ func newVerifyProofStackEntry(
 	return &verifyProofStackEntry{
 		trieVersion:   trieVersion,
 		node:          node,
+		value:         node.GetValue(),
 		prefix:        prefix,
 		isInline:      isInline,
 		childIndex:    0,
@@ -74,7 +77,11 @@ func (e *verifyProofStackEntry) encodeNode() ([]byte, error) {
 		return []byte{triedb.EmptyTrieBytes}, nil
 	case codec.Leaf:
 		encodingBuffer := bytes.NewBuffer(nil)
-		err := triedb.NewEncodedLeaf(e.node.GetPartialKey(), e.value, encodingBuffer)
+		value := e.value
+		if value == nil {
+			value = codec.NewInlineValue(nil)
+		}
+		err := triedb.NewEncodedLeaf(e.node.GetPartialKey(), value, encodingBuffer)
 		if err != nil {
 			return nil, err
 		}
@@ -82,22 +89,23 @@ func (e *verifyProofStackEntry) encodeNode() ([]byte, error) {
 		return encodingBuffer.Bytes(), nil
 	case codec.Branch:
 		// Complete children
-
-		for e.childIndex < codec.ChildrenCapacity {
-			child := n.Children[e.childIndex]
+		childIndex := e.childIndex
+		children := e.children
+		for childIndex < codec.ChildrenCapacity {
+			child := n.Children[childIndex]
 			if child != nil {
-				switch n := child.(type) {
+				switch c := child.(type) {
 				case codec.InlineNode:
-					e.children[e.childIndex] = triedb.NewInlineChildReference(n.Data)
+					children[childIndex] = triedb.NewInlineChildReference(c.Data)
 				case codec.HashedNode:
-					e.children[e.childIndex] = triedb.NewHashChildReference(common.Hash(n.Data))
+					children[childIndex] = triedb.NewHashChildReference(common.Hash(c.Data))
 				}
 			}
-			e.childIndex++
+			childIndex++
 		}
 
 		encodingBuffer := bytes.NewBuffer(nil)
-		err := triedb.NewEncodedBranch(e.node.GetPartialKey(), e.children, n.Value, encodingBuffer)
+		err := triedb.NewEncodedBranch(e.node.GetPartialKey(), children, e.value, encodingBuffer)
 		if err != nil {
 			return nil, err
 		}
@@ -114,15 +122,16 @@ func (e *verifyProofStackEntry) advanceItem(itemsIter *Iterator[proofItem]) (ver
 			return verifyProofStepUnwindStackStep{}, nil
 		}
 
-		key, value := item.key, item.value
-		if bytes.HasPrefix(key, e.prefix) {
-			valueMatch := matchKeyToNode(key, len(e.prefix), e.node)
+		keyNibbles := nibbles.KeyLEToNibbles(item.key)
+		value := item.value
+		if bytes.HasPrefix(keyNibbles, e.prefix) {
+			valueMatch := matchKeyToNode(keyNibbles, len(e.prefix), e.node)
 			switch m := valueMatch.(type) {
 			case matchesLeaf:
 				if value != nil {
 					e.setValue(value)
 				} else {
-					return nil, fmt.Errorf("value mismatch %x", key)
+					return nil, fmt.Errorf("value mismatch for key: %x", item.key)
 				}
 			case matchesBranch:
 				if value != nil {
@@ -132,10 +141,10 @@ func (e *verifyProofStackEntry) advanceItem(itemsIter *Iterator[proofItem]) (ver
 				}
 			case notFound:
 				if value != nil {
-					return nil, fmt.Errorf("value mismatch %x", key)
+					return nil, fmt.Errorf("value mismatch for key: %x", item.key)
 				}
 			case notOmitted:
-				return nil, fmt.Errorf("extraneous value %x", key)
+				return nil, fmt.Errorf("extraneous value for key %x", item.key)
 			case isChild:
 				return verifyProofStepDescend(m), nil
 			}
@@ -143,6 +152,7 @@ func (e *verifyProofStackEntry) advanceItem(itemsIter *Iterator[proofItem]) (ver
 			itemsIter.Next()
 			continue
 		}
+		return verifyProofStepUnwindStackStep{}, nil
 	}
 }
 
@@ -182,10 +192,10 @@ func (e *verifyProofStackEntry) makeChildEntry(
 ) (*verifyProofStackEntry, error) {
 	switch c := child.(type) {
 	case codec.InlineNode:
-		if c.Data == nil {
+		if len(c.Data) == 0 {
 			nodeData := proofIter.Next()
 			if nodeData == nil {
-				return nil, IncompleteProof
+				return nil, ErrIncompleteProof
 			}
 			return newVerifyProofStackEntry(e.trieVersion, *nodeData, childPrefix, false)
 		}
@@ -236,13 +246,13 @@ func (notFound) isValueMatch()      {}
 func (notOmitted) isValueMatch()    {}
 func (isChild) isValueMatch()       {}
 
-func matchKeyToNode(key []byte, prefixLen int, node codec.EncodedNode) valueMatch {
+func matchKeyToNode(keyNibbles []byte, prefixLen int, node codec.EncodedNode) valueMatch {
 	switch n := node.(type) {
 	case codec.Empty:
 		return notFound{}
 	case codec.Leaf:
 		// TODO: check this
-		if bytes.Contains(key, n.PartialKey) && len(key) == prefixLen+len(n.PartialKey) {
+		if bytes.Contains(keyNibbles, n.PartialKey) && len(keyNibbles) == prefixLen+len(n.PartialKey) {
 			switch v := n.Value.(type) {
 			case codec.HashedValue:
 				return notOmitted{}
@@ -257,8 +267,8 @@ func matchKeyToNode(key []byte, prefixLen int, node codec.EncodedNode) valueMatc
 		return notFound{}
 	case codec.Branch:
 		// TODO: check this
-		if bytes.Contains(key, n.PartialKey) {
-			return matchKeyToBranchNode(key, prefixLen+len(n.PartialKey), n.Children, n.Value)
+		if bytes.Contains(keyNibbles, n.PartialKey) {
+			return matchKeyToBranchNode(keyNibbles, prefixLen+len(n.PartialKey), n.Children, n.Value)
 		} else {
 			return notFound{}
 		}
@@ -281,7 +291,6 @@ func matchKeyToBranchNode(
 	}
 	index := key[prefixPlusPartialLen]
 	if children[index] != nil {
-		// TODO: check this
 		return isChild{childPrefix: key[:prefixPlusPartialLen+1]}
 	}
 
@@ -327,7 +336,7 @@ func (proof MerkleProof) Verify(
 
 	rootNode := proofIter.Next()
 	if rootNode == nil {
-		return IncompleteProof
+		return ErrIncompleteProof
 	}
 
 	lastEntry, err := newVerifyProofStackEntry(trieVersion, *rootNode, []byte{}, false)
@@ -335,6 +344,7 @@ func (proof MerkleProof) Verify(
 		return err
 	}
 
+loop:
 	for {
 		step, err := lastEntry.advanceItem(itemsIter)
 		if err != nil {
@@ -361,7 +371,6 @@ func (proof MerkleProof) Verify(
 				if len(nodeData) > common.HashLength {
 					return fmt.Errorf("invalid child reference: %x", nodeData)
 				}
-				// TODO: check this, we are not sending the hash
 				childRef = triedb.NewInlineChildReference(nodeData)
 			} else {
 				hash := common.MustBlake2bHash(nodeData)
@@ -369,7 +378,8 @@ func (proof MerkleProof) Verify(
 			}
 
 			if stack.Len() > 0 {
-				lastEntry := stack.PopBack()
+				entry := stack.PopBack()
+				lastEntry = &entry
 				lastEntry.children[lastEntry.childIndex] = childRef
 				lastEntry.childIndex++
 			} else {
@@ -388,9 +398,10 @@ func (proof MerkleProof) Verify(
 				if !bytes.Equal(computedRoot.ToBytes(), root.ToBytes()) {
 					return fmt.Errorf("root hash mismatch: %x != %x", computedRoot, root)
 				}
-				break
+				break loop
 			}
 		}
-
 	}
+
+	return nil
 }

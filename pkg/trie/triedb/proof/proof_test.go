@@ -1,6 +1,3 @@
-// Copyright 2024 ChainSafe Systems (ON)
-// SPDX-License-Identifier: LGPL-3.0-only
-
 package proof
 
 import (
@@ -11,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_NewProof(t *testing.T) {
+func Test_GenerateAndVerify(t *testing.T) {
 	testCases := map[string]struct {
 		entries        []trie.Entry
 		storageVersion trie.TrieLayout
@@ -47,6 +44,7 @@ func Test_NewProof(t *testing.T) {
 			},
 		},
 		"complex_trie": {
+			storageVersion: trie.V0,
 			entries: []trie.Entry{
 				{
 					Key:   []byte("pol"),
@@ -150,6 +148,18 @@ func Test_NewProof(t *testing.T) {
 			proof, err := New(inmemoryDB, testCase.storageVersion, root, testCase.keys)
 			require.NoError(t, err)
 			require.Equal(t, testCase.expectedProof, proof)
+
+			// Verify proof
+			items := make([]proofItem, len(testCase.keys))
+			for i, key := range testCase.keys {
+				items[i] = proofItem{
+					key:   []byte(key),
+					value: triedb.Get([]byte(key)),
+				}
+			}
+			err = proof.Verify(testCase.storageVersion, root, items)
+
+			require.NoError(t, err)
 		})
 	}
 }
