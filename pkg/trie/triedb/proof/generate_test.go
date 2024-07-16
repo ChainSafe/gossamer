@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_GenerateProofForLeaf(t *testing.T) {
+func Test_NewProof(t *testing.T) {
 	testCases := map[string]struct {
 		entries        []trie.Entry
 		storageVersion trie.TrieLayout
