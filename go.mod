@@ -3,7 +3,7 @@ module github.com/ChainSafe/gossamer
 require (
 	github.com/ChainSafe/go-schnorrkel v1.1.0
 	github.com/OneOfOne/xxhash v1.2.8
-	github.com/adrg/xdg v0.4.0
+	github.com/adrg/xdg v0.5.0
 	github.com/btcsuite/btcd/btcutil v1.1.5
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.1.0
