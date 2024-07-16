@@ -14,6 +14,8 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+type MerkleProof [][]byte
+
 type nodeHandle interface {
 	isNodeHandle()
 }
@@ -168,8 +170,8 @@ func (e *stackEntry) replaceChildRef(encodedChild []byte, child codec.MerkleValu
 	}
 }
 
-func Generate(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash common.Hash, keys []string) (
-	proof [][]byte, err error) {
+func New(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash common.Hash, keys []string) (
+	proof MerkleProof, err error) {
 	// Sort and deduplicate keys
 	keys = sortAndDeduplicateKeys(keys)
 
@@ -178,7 +180,7 @@ func Generate(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash common.Has
 	stack := deque.New[*stackEntry]()
 
 	// final proof nodes
-	var proofNodes [][]byte
+	var proofNodes MerkleProof
 
 	// Iterate over the keys and build the proof nodes
 	for i := 0; i < len(keys); i = i + 1 {

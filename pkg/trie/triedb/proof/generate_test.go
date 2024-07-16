@@ -13,7 +13,7 @@ func Test_GenerateProofForLeaf(t *testing.T) {
 		entries        []trie.Entry
 		storageVersion trie.TrieLayout
 		keys           []string
-		expectedProof  [][]byte
+		expectedProof  MerkleProof
 	}{
 		"leaf": {
 			entries: []trie.Entry{
@@ -23,7 +23,7 @@ func Test_GenerateProofForLeaf(t *testing.T) {
 				},
 			},
 			keys: []string{"a"},
-			expectedProof: [][]byte{
+			expectedProof: MerkleProof{
 				{66, 97, 0}, // 'a' node without value
 			},
 		},
@@ -39,7 +39,7 @@ func Test_GenerateProofForLeaf(t *testing.T) {
 				},
 			},
 			keys: []string{"ab"},
-			expectedProof: [][]byte{
+			expectedProof: MerkleProof{
 				{194, 97, 64, 0, 4, 97, 12, 65, 2, 0},
 			},
 		},
@@ -71,7 +71,7 @@ func Test_GenerateProofForLeaf(t *testing.T) {
 				},
 			},
 			keys: []string{"go"},
-			expectedProof: [][]byte{
+			expectedProof: MerkleProof{
 				{
 					128, 192, 0, 0, 128, 114, 166, 121, 79, 225, 146, 229,
 					34, 68, 211, 54, 148, 205, 192, 58, 131, 95, 46, 239,
@@ -112,7 +112,7 @@ func Test_GenerateProofForLeaf(t *testing.T) {
 				},
 			},
 			keys: []string{"go", "polkadot"},
-			expectedProof: [][]byte{
+			expectedProof: MerkleProof{
 				{
 					128, 192, 0, 0, 0,
 				},
@@ -144,7 +144,7 @@ func Test_GenerateProofForLeaf(t *testing.T) {
 			root := triedb.MustHash()
 
 			// Generate proof
-			proof, err := Generate(inmemoryDB, testCase.storageVersion, root, testCase.keys)
+			proof, err := New(inmemoryDB, testCase.storageVersion, root, testCase.keys)
 			require.NoError(t, err)
 			require.Equal(t, testCase.expectedProof, proof)
 		})
