@@ -37,7 +37,7 @@ if err != nil {
     panic(err)
 }
 
-blockResponse := &network.BlockResponseMessage{}
+blockResponse := &messages.BlockResponseMessage{}
 err := blockResponse.Decode(rawBlockResponse)
 if err != nil {
     panic(err)
