@@ -205,7 +205,9 @@ func addRootFlags(cmd *cobra.Command) error {
 	}
 
 	// pprof Config
-	addPprofFlags(cmd)
+	if err := addPprofFlags(cmd); err != nil {
+		return fmt.Errorf("failed to add pprof flags: %s", err)
+	}
 
 	return nil
 }
@@ -543,23 +545,43 @@ func addStateFlags(cmd *cobra.Command) error {
 }
 
 // addPprofFlags adds pprof flags and binds to viper
-func addPprofFlags(cmd *cobra.Command) {
-	cmd.Flags().Bool("pprof.enabled",
-		config.Pprof.Enabled,
-		"enabled")
-	cmd.Flags().String("pprof.listening-address",
-		config.Pprof.ListeningAddress,
-		"Address to listen on for pprof")
-	cmd.Flags().Int("pprof.block-profile-rate",
-		config.Pprof.BlockProfileRate,
-		"The frequency at which the Go runtime samples the state of goroutines to generate block profile information.")
-	cmd.Flags().Int("pprof.mutex-profile-rate",
-		config.Pprof.MutexProfileRate,
-		"The frequency at which the Go runtime samples the state of mutexes to generate mutex profile information.")
+func addPprofFlags(cmd *cobra.Command) error {
+	if err := addBoolFlagBindViper(cmd,
+		"pprof.enabled", false,
+		"--pprof.enabled", "pprof.enabled"); err != nil {
+		return fmt.Errorf("failed to add --pprof.enabled flag: %w", err)
+	}
+
+	if err := addStringFlagBindViper(cmd,
+		"pprof.listening-address", ":6060",
+		"--pprof.listening-address", "pprof.listening-address"); err != nil {
+		return fmt.Errorf("failed to add --pprof.listening-address flag: %w", err)
+	}
+
+	if err := addIntFlagBindViper(cmd,
+		"pprof.block-profile-rate", 0,
+		"--pprof.block-profile-rate the frequency at which the Go "+
+			"runtime samples the state of goroutines to generate block profile information.",
+		"pprof.block-profile-rate"); err != nil {
+		return fmt.Errorf("failed to add --pprof.block-profile-rate flag: %w", err)
+	}
+
+	if err := addIntFlagBindViper(cmd,
+		"pprof.mutex-profile-rate", 0,
+		"--pprof.mutex-profile-rate the frequency at which the Go "+
+			"runtime samples the state of mutexes to generate mutex profile information.",
+		"pprof.mutex-profile-rate"); err != nil {
+		return fmt.Errorf("failed to add --pprof.mutex-profile-rate flag: %w", err)
+	}
+
+	return nil
 }
 
 // execRoot executes the root command
 func execRoot(cmd *cobra.Command) error {
+	fmt.Println(config.ChainSpec)
+	fmt.Printf("==> %v => %s\n", config.Pprof.Enabled, config.Pprof.ListeningAddress)
+
 	password, err := cmd.Flags().GetString("password")
 	if err != nil {
 		return fmt.Errorf("failed to get password: %s", err)
