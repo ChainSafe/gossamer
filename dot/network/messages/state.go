@@ -8,6 +8,7 @@ import (
 
 	pb "github.com/ChainSafe/gossamer/dot/network/proto"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -51,4 +52,18 @@ func (s *StateRequest) Decode(in []byte) error {
 	copy(s.Start, message.Start)
 	s.NoProof = message.NoProof
 	return nil
+}
+
+type StateResponse struct {
+	Entries []KeyValueStateEntry
+}
+
+func (s *StateResponse) Decode(in []byte) error {
+		
+}
+
+type KeyValueStateEntry struct {
+	StateRoot    []byte
+	StateEntries trie.Entries
+	Complete     bool
 }

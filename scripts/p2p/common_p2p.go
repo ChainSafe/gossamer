@@ -154,7 +154,7 @@ func ReadStream(stream lip2pnetwork.Stream) []byte {
 	return responseBuf[:tot]
 }
 
-func WriteStream(msg *messages.BlockRequestMessage, stream lip2pnetwork.Stream) {
+func WriteStream(msg messages.P2PMessage, stream lip2pnetwork.Stream) {
 	encMsg, err := msg.Encode()
 	if err != nil {
 		log.Fatalf("encoding message: %s", err.Error())
