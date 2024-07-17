@@ -774,7 +774,8 @@ func (t *TrieDB) commit() error {
 				switch n := node.(type) {
 				case newNodeToEncode:
 					hash := common.MustBlake2bHash(n.value)
-					err := dbBatch.Put(hash[:], n.value)
+					prefixedKey := bytes.Join([][]byte{n.partialKey, hash.ToBytes()}, nil)
+					err := dbBatch.Put(prefixedKey, n.value)
 					if err != nil {
 						return nil, err
 					}
