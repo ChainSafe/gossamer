@@ -211,7 +211,6 @@ func (e *verifyProofStackEntry) makeChildEntry(
 }
 
 func (e *verifyProofStackEntry) setValue(value []byte) {
-	// TODO: check this, maybe it is just < intead of <=
 	if len(value) <= e.trieVersion.MaxInlineValue() {
 		e.value = codec.NewInlineValue(value)
 	} else {
@@ -251,13 +250,11 @@ func matchKeyToNode(keyNibbles []byte, prefixLen int, node codec.EncodedNode) va
 	case codec.Empty:
 		return notFound{}
 	case codec.Leaf:
-		// TODO: check this
 		if bytes.Contains(keyNibbles, n.PartialKey) && len(keyNibbles) == prefixLen+len(n.PartialKey) {
 			switch v := n.Value.(type) {
 			case codec.HashedValue:
 				return notOmitted{}
 			case codec.InlineValue:
-				// TODO: check this
 				if len(v.Data) == 0 {
 					return matchesLeaf{}
 				}
@@ -266,7 +263,6 @@ func matchKeyToNode(keyNibbles []byte, prefixLen int, node codec.EncodedNode) va
 		}
 		return notFound{}
 	case codec.Branch:
-		// TODO: check this
 		if bytes.Contains(keyNibbles, n.PartialKey) {
 			return matchKeyToBranchNode(keyNibbles, prefixLen+len(n.PartialKey), n.Children, n.Value)
 		} else {
