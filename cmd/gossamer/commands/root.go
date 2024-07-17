@@ -579,9 +579,6 @@ func addPprofFlags(cmd *cobra.Command) error {
 
 // execRoot executes the root command
 func execRoot(cmd *cobra.Command) error {
-	fmt.Println(config.ChainSpec)
-	fmt.Printf("==> %v => %s\n", config.Pprof.Enabled, config.Pprof.ListeningAddress)
-
 	password, err := cmd.Flags().GetString("password")
 	if err != nil {
 		return fmt.Errorf("failed to get password: %s", err)
