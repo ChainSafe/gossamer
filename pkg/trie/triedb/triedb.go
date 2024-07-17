@@ -25,12 +25,25 @@ var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "triedb"))
 )
 
+type TrieDBOpts func(*TrieDB)
+
+var WithCache = func(c cache.TrieCache) TrieDBOpts {
+	return func(t *TrieDB) {
+		t.cache = c
+	}
+}
+
+var WithRecorder = func(r *Recorder) TrieDBOpts {
+	return func(t *TrieDB) {
+		t.recorder = r
+	}
+}
+
 // TrieDB is a DB-backed patricia merkle trie implementation
 // using lazy loading to fetch nodes
 type TrieDB struct {
 	rootHash common.Hash
 	db       db.RWDatabase
-	cache    cache.TrieCache
 	version  trie.TrieLayout
 	// rootHandle is an in-memory-trie-like representation of the node
 	// references and new inserted nodes in the trie
@@ -40,26 +53,35 @@ type TrieDB struct {
 	storage NodeStorage
 	// deathRow is a set of nodes that we want to delete from db
 	deathRow map[common.Hash]interface{}
+	// Optional cache to speed up the db lookups
+	cache cache.TrieCache
+	// Optional recorder for recording trie accesses
+	recorder *Recorder
 }
 
-func NewEmptyTrieDB(db db.RWDatabase, cache cache.TrieCache) *TrieDB {
+func NewEmptyTrieDB(db db.RWDatabase, opts ...TrieDBOpts) *TrieDB {
 	root := hashedNullNode
-	return NewTrieDB(root, db, cache)
+	return NewTrieDB(root, db)
 }
 
 // NewTrieDB creates a new TrieDB using the given root and db
-func NewTrieDB(rootHash common.Hash, db db.RWDatabase, cache cache.TrieCache) *TrieDB {
+func NewTrieDB(rootHash common.Hash, db db.RWDatabase, opts ...TrieDBOpts) *TrieDB {
 	rootHandle := Persisted{hash: rootHash}
 
-	return &TrieDB{
+	trieDB := &TrieDB{
 		rootHash:   rootHash,
-		cache:      cache,
 		version:    trie.V0,
 		db:         db,
 		storage:    NewNodeStorage(),
 		rootHandle: rootHandle,
 		deathRow:   make(map[common.Hash]interface{}),
 	}
+
+	for _, opt := range opts {
+		opt(trieDB)
+	}
+
+	return trieDB
 }
 
 func (t *TrieDB) SetVersion(v trie.TrieLayout) {
@@ -113,7 +135,7 @@ func (t *TrieDB) lookup(fullKey []byte, partialKey []byte, handle NodeHandle) ([
 		var partialIdx int
 		switch node := handle.(type) {
 		case Persisted:
-			lookup := NewTrieLookup(t.db, node.hash, t.cache)
+			lookup := NewTrieLookup(t.db, node.hash, t.cache, t.recorder)
 			val, err := lookup.lookupValue(fullKey)
 			if err != nil {
 				return nil, err
@@ -155,6 +177,8 @@ func (t *TrieDB) getRootNode() (codec.EncodedNode, error) {
 		return nil, err
 	}
 
+	t.recordAccess(encodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
+
 	reader := bytes.NewReader(encodedNode)
 	return codec.Decode(reader)
 }
@@ -162,7 +186,7 @@ func (t *TrieDB) getRootNode() (codec.EncodedNode, error) {
 // Internal methods
 
 func (t *TrieDB) getNodeAt(key []byte) (codec.EncodedNode, error) {
-	lookup := NewTrieLookup(t.db, t.rootHash, t.cache)
+	lookup := NewTrieLookup(t.db, t.rootHash, t.cache, t.recorder)
 	node, err := lookup.lookupNode(nibbles.KeyLEToNibbles(key))
 	if err != nil {
 		return nil, err
@@ -183,6 +207,8 @@ func (t *TrieDB) getNode(
 		if err != nil {
 			return nil, err
 		}
+		t.recordAccess(encodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
+
 		reader := bytes.NewReader(encodedNode)
 		return codec.Decode(reader)
 	default: // should never happen
@@ -687,6 +713,8 @@ func (t *TrieDB) lookupNode(hash common.Hash) (StorageHandle, error) {
 		return -1, ErrIncompleteDB
 	}
 
+	t.recordAccess(encodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
+
 	node, err := newNodeFromEncoded(hash, encodedNode, t.storage)
 	if err != nil {
 		return -1, err
@@ -877,6 +905,12 @@ func (t *TrieDB) Iter() trie.TrieIterator {
 
 func (t *TrieDB) PrefixedIter(prefix []byte) trie.TrieIterator {
 	return NewPrefixedTrieDBIterator(t, prefix)
+}
+
+func (t *TrieDB) recordAccess(access trieAccess) {
+	if t.recorder != nil {
+		t.recorder.record(access)
+	}
 }
 
 var _ trie.TrieRead = (*TrieDB)(nil)

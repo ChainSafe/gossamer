@@ -973,6 +973,88 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 	require.NoError(t, err)
 }
 
+func TestChainSync_BootstrapSync_SuccessfulSync_WithNilBlockInResponse(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(make(chan *types.FinalisationInfo))
+	mockBlockState.EXPECT().IsPaused().Return(false).Times(2)
+	mockBlockState.EXPECT().
+		GetHighestFinalisedHeader().
+		Return(types.NewEmptyHeader(), nil).
+		Times(1)
+	mockedGenesisHeader := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash,
+		trie.EmptyHash, 0, types.NewDigest())
+
+	mockBabeVerifier := NewMockBabeVerifier(ctrl)
+	mockStorageState := NewMockStorageState(ctrl)
+	mockImportHandler := NewMockBlockImportHandler(ctrl)
+	mockTelemetry := NewMockTelemetry(ctrl)
+
+	blockResponse := createSuccesfullBlockResponse(t, mockedGenesisHeader.Hash(), 1, 128)
+	const announceBlock = false
+
+	workerResponse := &network.BlockResponseMessage{
+		BlockData: blockResponse.BlockData,
+	}
+
+	// the first peer will respond the from the block 1 to 128 so the ensureBlockImportFlow
+	// will setup the expectations starting from the genesis header until block 128
+	ensureSuccessfulBlockImportFlow(t, mockedGenesisHeader, workerResponse.BlockData, mockBlockState,
+		mockBabeVerifier, mockStorageState, mockImportHandler, mockTelemetry, networkInitialSync, announceBlock)
+
+	doBlockRequestCount := atomic.Int32{}
+	mockRequestMaker := NewMockRequestMaker(ctrl)
+	mockRequestMaker.EXPECT().
+		Do(gomock.Any(), gomock.Any(), &network.BlockResponseMessage{}).
+		DoAndReturn(func(peerID, _, response any) any {
+			// lets ensure that the DoBlockRequest is called by
+			// peer.ID(alice) and peer.ID(bob). When bob calls, this method return an
+			// response item but without header as was requested
+			responsePtr := response.(*network.BlockResponseMessage)
+			defer func() { doBlockRequestCount.Add(1) }()
+
+			switch doBlockRequestCount.Load() {
+			case 0:
+				return network.ErrNilBlockInResponse
+			case 1:
+				*responsePtr = *workerResponse
+			}
+
+			return nil
+		}).Times(2)
+
+	mockNetwork := NewMockNetwork(ctrl)
+	mockNetwork.EXPECT().Peers().Return([]common.PeerInfo{})
+
+	// reputation will be affected and
+	mockNetwork.EXPECT().ReportPeer(peerset.ReputationChange{
+		Value:  peerset.BadMessageValue,
+		Reason: peerset.BadMessageReason,
+	}, gomock.AssignableToTypeOf(peer.ID("")))
+
+	const blocksAhead = 128
+	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
+		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
+		mockStorageState, mockImportHandler, mockTelemetry)
+
+	target := cs.peerViewSet.getTarget()
+	require.Equal(t, uint(blocksAhead), target)
+
+	// include a new worker in the worker pool set, this worker
+	// should be an available peer that will receive a block request
+	// the worker pool executes the workers management
+	cs.workerPool.fromBlockAnnounce(peer.ID("alice"))
+	cs.workerPool.fromBlockAnnounce(peer.ID("bob"))
+
+	err := cs.requestMaxBlocksFrom(mockedGenesisHeader, networkInitialSync)
+	require.NoError(t, err)
+
+	err = cs.workerPool.stop()
+	require.NoError(t, err)
+}
+
 func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testing.T) {
 	t.Parallel()
 
