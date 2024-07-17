@@ -71,17 +71,20 @@ func newVerifyProofStackEntry(
 	}, nil
 }
 
+func (e *verifyProofStackEntry) getValue() codec.EncodedValue {
+	if e.nextValueHash != common.EmptyHash {
+		return codec.NewHashedValue(e.nextValueHash.ToBytes())
+	}
+	return e.value
+}
+
 func (e *verifyProofStackEntry) encodeNode() ([]byte, error) {
 	switch n := e.node.(type) {
 	case codec.Empty:
 		return []byte{triedb.EmptyTrieBytes}, nil
 	case codec.Leaf:
 		encodingBuffer := bytes.NewBuffer(nil)
-		value := e.value
-		if value == nil {
-			value = codec.NewInlineValue(nil)
-		}
-		err := triedb.NewEncodedLeaf(e.node.GetPartialKey(), value, encodingBuffer)
+		err := triedb.NewEncodedLeaf(e.node.GetPartialKey(), e.getValue(), encodingBuffer)
 		if err != nil {
 			return nil, err
 		}
@@ -105,7 +108,7 @@ func (e *verifyProofStackEntry) encodeNode() ([]byte, error) {
 		}
 
 		encodingBuffer := bytes.NewBuffer(nil)
-		err := triedb.NewEncodedBranch(e.node.GetPartialKey(), children, e.value, encodingBuffer)
+		err := triedb.NewEncodedBranch(e.node.GetPartialKey(), children, e.getValue(), encodingBuffer)
 		if err != nil {
 			return nil, err
 		}

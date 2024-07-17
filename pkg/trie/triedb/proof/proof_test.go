@@ -1,6 +1,7 @@
 package proof
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/pkg/trie"
@@ -10,10 +11,9 @@ import (
 
 func Test_GenerateAndVerify(t *testing.T) {
 	testCases := map[string]struct {
-		entries        []trie.Entry
-		storageVersion trie.TrieLayout
-		keys           []string
-		expectedProof  MerkleProof
+		entries       []trie.Entry
+		keys          []string
+		expectedProof MerkleProof
 	}{
 		"leaf": {
 			entries: []trie.Entry{
@@ -44,7 +44,6 @@ func Test_GenerateAndVerify(t *testing.T) {
 			},
 		},
 		"complex_trie": {
-			storageVersion: trie.V0,
 			entries: []trie.Entry{
 				{
 					Key:   []byte("pol"),
@@ -133,33 +132,39 @@ func Test_GenerateAndVerify(t *testing.T) {
 	}
 
 	for name, testCase := range testCases {
-		t.Run(name, func(t *testing.T) {
-			// Build trie
-			inmemoryDB := NewMemoryDB(triedb.EmptyNode)
-			triedb := triedb.NewEmptyTrieDB(inmemoryDB)
+		trieVersions := []trie.TrieLayout{trie.V0, trie.V1}
 
-			for _, entry := range testCase.entries {
-				triedb.Put(entry.Key, entry.Value)
-			}
+		for _, trieVersion := range trieVersions {
+			t.Run(fmt.Sprintf("%s_%s", name, trieVersion.String()), func(t *testing.T) {
+				// Build trie
+				inmemoryDB := NewMemoryDB(triedb.EmptyNode)
+				triedb := triedb.NewEmptyTrieDB(inmemoryDB)
+				triedb.SetVersion(trieVersion)
 
-			root := triedb.MustHash()
-
-			// Generate proof
-			proof, err := New(inmemoryDB, testCase.storageVersion, root, testCase.keys)
-			require.NoError(t, err)
-			require.Equal(t, testCase.expectedProof, proof)
-
-			// Verify proof
-			items := make([]proofItem, len(testCase.keys))
-			for i, key := range testCase.keys {
-				items[i] = proofItem{
-					key:   []byte(key),
-					value: triedb.Get([]byte(key)),
+				for _, entry := range testCase.entries {
+					triedb.Put(entry.Key, entry.Value)
 				}
-			}
-			err = proof.Verify(testCase.storageVersion, root, items)
 
-			require.NoError(t, err)
-		})
+				root := triedb.MustHash()
+
+				// Generate proof
+				proof, err := New(inmemoryDB, trieVersion, root, testCase.keys)
+				require.NoError(t, err)
+				require.Equal(t, testCase.expectedProof, proof)
+
+				// Verify proof
+				items := make([]proofItem, len(testCase.keys))
+				for i, key := range testCase.keys {
+					items[i] = proofItem{
+						key:   []byte(key),
+						value: triedb.Get([]byte(key)),
+					}
+				}
+				err = proof.Verify(trieVersion, root, items)
+
+				require.NoError(t, err)
+			})
+		}
+
 	}
 }
