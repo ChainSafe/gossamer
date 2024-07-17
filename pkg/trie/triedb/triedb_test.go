@@ -654,7 +654,7 @@ func TestDBCommits(t *testing.T) {
 	t.Run("commit_leaf_with_hashed_value", func(t *testing.T) {
 		t.Parallel()
 
-		inmemoryDB := NewMemoryDB(emptyNode)
+		inmemoryDB := NewMemoryDB(EmptyNode)
 		tr := NewEmptyTrieDB(inmemoryDB)
 		tr.SetVersion(trie.V1)
 
@@ -676,7 +676,7 @@ func TestDBCommits(t *testing.T) {
 	t.Run("commit_leaf_with_hashed_value_then_remove_it", func(t *testing.T) {
 		t.Parallel()
 
-		inmemoryDB := NewMemoryDB(emptyNode)
+		inmemoryDB := NewMemoryDB(EmptyNode)
 		tr := NewEmptyTrieDB(inmemoryDB)
 		tr.SetVersion(trie.V1)
 
