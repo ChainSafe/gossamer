@@ -26,7 +26,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"sync"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -51,7 +50,6 @@ var (
 type CandidateBacking struct {
 	ctx    context.Context
 	cancel context.CancelFunc
-	wg     sync.WaitGroup
 
 	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any
@@ -209,11 +207,6 @@ func New(overseerChan chan<- any) *CandidateBacking {
 }
 
 func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan any, subSystemToOverseer chan any) {
-	cb.wg.Add(1)
-	go cb.runUtil()
-}
-
-func (cb *CandidateBacking) runUtil() {
 	chRelayParentAndCommand := make(chan relayParentAndCommand)
 
 	for {
@@ -231,7 +224,6 @@ func (cb *CandidateBacking) runUtil() {
 			if err := cb.ctx.Err(); err != nil {
 				logger.Errorf("ctx error: %s\n", err)
 			}
-			cb.wg.Done()
 			return
 		}
 	}
@@ -239,7 +231,6 @@ func (cb *CandidateBacking) runUtil() {
 
 func (cb *CandidateBacking) Stop() {
 	cb.cancel()
-	cb.wg.Wait()
 }
 
 func (*CandidateBacking) Name() parachaintypes.SubSystemName {

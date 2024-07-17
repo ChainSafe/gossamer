@@ -411,6 +411,15 @@ type HeadData struct {
 	Data []byte `scale:"1"`
 }
 
+func (hd HeadData) Hash() (common.Hash, error) {
+	bytes, err := scale.Marshal(hd)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("marshalling HeadData: %w", err)
+	}
+
+	return common.Blake2bHash(bytes)
+}
+
 // CoreIndex The unique (during session) index of a core.
 type CoreIndex struct {
 	Index uint32 `scale:"1"`
@@ -638,6 +647,15 @@ func (ch CandidateHash) String() string {
 // It contains the necessary data for the parachain specific state transition logic.
 type PoV struct {
 	BlockData BlockData `scale:"1"`
+}
+
+func (p PoV) Hash() (common.Hash, error) {
+	bytes, err := scale.Marshal(p)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("marshalling PoV: %w", err)
+	}
+
+	return common.Blake2bHash(bytes)
 }
 
 // NoSuchPoV indicates that the requested PoV was not found in the store.
