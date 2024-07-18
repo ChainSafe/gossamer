@@ -230,10 +230,9 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 		declareMsg         collatorprotocolmessages.Declare
 		peerData           map[peer.ID]PeerData
 		currentAssignments map[parachaintypes.ParaID]uint
-		// net                Network
-		expectedMessages []any
-		success          bool
-		errString        string
+		expectedMessages   []any
+		success            bool
+		errString          string
 	}{
 		{
 			description: "fail with unknown peer and report the sender if sender is not stored in our peerdata",

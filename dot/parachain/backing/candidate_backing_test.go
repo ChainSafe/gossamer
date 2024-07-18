@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
@@ -897,7 +898,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				}
 			},
 			signedStatementWithPVD: parachaintypes.SignedFullStatementWithPVD{},
-			err:                    "unsupported varying data type value",
+			err:                    scale.ErrUnsupportedVaryingDataTypeValue.Error(),
 		},
 		{
 			description: "getting_nil_summary_of_import_statement",
