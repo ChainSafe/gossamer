@@ -761,10 +761,10 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 							Data: parachaintypes.ValidationCode{1, 2, 3},
 						}
 					case candidatevalidation.ValidateFromExhaustive:
+						ci := candidatevalidation.ExecutionError
 						data.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
 							Data: candidatevalidation.ValidationResult{
-								IsValid: false,
-								Err:     errors.New("mock error validating candidate"),
+								InvalidResult: &ci,
 							},
 						}
 					default:
@@ -791,7 +791,7 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 					case candidatevalidation.ValidateFromExhaustive:
 						data.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
 							Data: candidatevalidation.ValidationResult{
-								IsValid: true,
+								ValidResult: &candidatevalidation.ValidValidationResult{},
 							},
 						}
 					case availabilitystore.StoreAvailableData:
