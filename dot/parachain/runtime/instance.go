@@ -18,6 +18,7 @@ var (
 	ErrCodeEmpty         = errors.New("code is empty")
 	ErrWASMDecompress    = errors.New("wasm decompression failed")
 	ErrInstanceIsStopped = errors.New("instance is stopped")
+	ErrHardTimeout       = errors.New("hard timeout")
 )
 
 // ValidationResult is result received from validate_block. It is  similar to CandidateCommitments, but different order.
@@ -86,6 +87,11 @@ func (in *Instance) ValidateBlock(params ValidationParameters) (
 		return nil, fmt.Errorf("scale decoding: %w", err)
 	}
 	return &validationResult, nil
+}
+
+type ValidationHost interface {
+	// ValidateBlock validates a block by calling parachain runtime's validate_block call and returns the result.
+	ValidateBlock(params ValidationParameters) (*ValidationResult, error)
 }
 
 // RuntimeInstance for runtime methods
