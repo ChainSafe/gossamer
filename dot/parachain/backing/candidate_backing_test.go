@@ -6,7 +6,6 @@ package backing
 import (
 	_ "embed"
 	"errors"
-	"fmt"
 	"testing"
 
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
@@ -15,78 +14,9 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
-	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
-	"gopkg.in/yaml.v3"
 )
-
-// go:embed ../../../lib/runtime/wazero/testdata/parachains_configuration_v190.yaml
-var parachainsConfigV190TestDataRaw string
-
-type Storage struct {
-	Name  string `yaml:"name"`
-	Key   string `yaml:"key"`
-	Value string `yaml:"value"`
-}
-
-type Data struct {
-	Storage  []Storage         `yaml:"storage"`
-	Expected map[string]string `yaml:"expected"`
-	Lookups  map[string]any    `yaml:"-"`
-}
-
-var parachainsConfigV190TestData Data
-
-func init() {
-	err := yaml.Unmarshal([]byte(parachainsConfigV190TestDataRaw), &parachainsConfigV190TestData)
-	if err != nil {
-		fmt.Println("Error unmarshalling test data:", err)
-		return
-	}
-	parachainsConfigV190TestData.Lookups = make(map[string]any)
-
-	for _, s := range parachainsConfigV190TestData.Storage {
-		if s.Name != "" {
-			parachainsConfigV190TestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
-		}
-	}
-}
-
-func getParachainHostTrie(t *testing.T, testDataStorage []Storage) *inmemory_trie.InMemoryTrie {
-
-	t.Helper()
-
-	tt := inmemory_trie.NewEmptyTrie()
-
-	for _, s := range testDataStorage {
-		key := common.MustHexToBytes(s.Key)
-		value := common.MustHexToBytes(s.Value)
-		err := tt.Put(key, value)
-		require.NoError(t, err)
-	}
-
-	return tt
-}
-
-func newTestBlockState(t *testing.T) *MockBlockState {
-	t.Helper()
-
-	tt := getParachainHostTrie(t, parachainsConfigV190TestData.Storage)
-	rt := wazero_runtime.NewTestInstance(t, runtime.WESTEND_RUNTIME_v190, wazero_runtime.TestWithTrie(tt))
-
-	ctrl := gomock.NewController(t)
-	mockBlockstate := NewMockBlockState(ctrl)
-
-	hash, err := common.HexToHash("0x0505050505050505050505050505050505050505050505050505050505050505")
-	require.NoError(t, err)
-
-	mockBlockstate.EXPECT().GetRuntime(hash).Return(rt, nil).AnyTimes()
-
-	return mockBlockstate
-}
 
 var tempSignature = common.MustHexToBytes("0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86") //nolint:lll
 
