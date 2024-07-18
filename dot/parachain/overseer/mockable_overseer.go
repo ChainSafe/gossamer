@@ -65,10 +65,6 @@ func (m *MockableOverseer) ExpectMessageWithAction(msg any, fn func(msg any)) {
 	m.expectedMessagesWithAction[msg] = fn
 }
 
-//	func test(msg any) {
-//		newMessage := msg.(parachaintypes.ProspectiveParachainsMessageIntroduceCandidate)
-//		newMessage.Ch <- errors.New("error")
-//	}
 func (m *MockableOverseer) processMessages(t *testing.T) {
 	for {
 		select {
