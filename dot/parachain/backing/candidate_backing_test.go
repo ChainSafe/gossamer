@@ -672,8 +672,6 @@ func TestKickOffValidationWork(t *testing.T) {
 func TestValidateAndMakeAvailable(t *testing.T) {
 	t.Parallel()
 
-	blockState := newTestBlockState(t)
-
 	var pvd parachaintypes.PersistedValidationData
 	candidateReceipt := getDummyCommittedCandidateReceipt(t).ToPlain()
 
@@ -684,10 +682,11 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 	relayParent := getDummyHash(t, 5)
 
 	testCases := []struct {
-		description  string
-		rpState      perRelayParentState
-		expectedErr  string
-		mockOverseer func(ch chan any)
+		description    string
+		rpState        perRelayParentState
+		expectedErr    string
+		mockOverseer   func(ch chan any)
+		mockBlockState func() *MockBlockState
 	}{
 		{
 			description: "validation_process_already_started_for_candidate",
@@ -699,6 +698,11 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 			},
 			expectedErr:  "",
 			mockOverseer: func(ch chan any) {},
+			mockBlockState: func() *MockBlockState {
+				ctrl := gomock.NewController(t)
+				mockBlockstate := NewMockBlockState(ctrl)
+				return mockBlockstate
+			},
 		},
 		{
 			description: "unable_to_get_validation_code",
@@ -706,20 +710,46 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
 				awaitingValidation: map[parachaintypes.CandidateHash]bool{},
 			},
-			expectedErr: "getting validation code by hash: ",
-			mockOverseer: func(ch chan any) {
-				data := <-ch
-				req, ok := data.(parachaintypes.RuntimeApiMessageRequest)
-				if !ok {
-					t.Errorf("invalid overseer message type: %T\n", data)
-				}
+			expectedErr:  "getting validation code by hash: ",
+			mockOverseer: func(ch chan any) {},
+			mockBlockState: func() *MockBlockState {
+				ctrl := gomock.NewController(t)
 
-				req.RuntimeApiRequest.(parachaintypes.RuntimeApiRequestValidationCodeByHash).
-					Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
-					Err: errors.New("mock error getting validation code"),
-				}
+				mockRuntime := NewMockInstance(ctrl)
+				mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
+					Return(nil, errors.New("mock error getting validation code"))
+
+				mockBlockstate := NewMockBlockState(ctrl)
+				mockBlockstate.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).Return(mockRuntime, nil)
+				return mockBlockstate
 			},
 		},
+
+		{
+			description: "unable_to_get_executor_parameters",
+			rpState: perRelayParentState{
+				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
+				awaitingValidation: map[parachaintypes.CandidateHash]bool{},
+			},
+			expectedErr:  "getting executor params for relay parent",
+			mockOverseer: func(ch chan any) {},
+			mockBlockState: func() *MockBlockState {
+				ctrl := gomock.NewController(t)
+
+				mockRuntime := NewMockInstance(ctrl)
+				mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
+					Return(&parachaintypes.ValidationCode{1, 2, 3}, nil)
+				mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
+					Return(parachaintypes.SessionIndex(1), nil)
+				mockRuntime.EXPECT().ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
+					Return(nil, errors.New("mock error getting executor params"))
+
+				mockBlockstate := NewMockBlockState(ctrl)
+				mockBlockstate.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).Return(mockRuntime, nil)
+				return mockBlockstate
+			},
+		},
+
 		{
 			description: "unable_to_get_validation_result",
 			rpState: perRelayParentState{
@@ -730,11 +760,6 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 			mockOverseer: func(ch chan any) {
 				for data := range ch {
 					switch data := data.(type) {
-					case parachaintypes.RuntimeApiMessageRequest:
-						data.RuntimeApiRequest.(parachaintypes.RuntimeApiRequestValidationCodeByHash).
-							Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
-							Data: parachaintypes.ValidationCode{1, 2, 3},
-						}
 					case candidatevalidation.ValidateFromExhaustive:
 						data.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
 							Err: errors.New("mock error getting validation result"),
@@ -744,7 +769,23 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 					}
 				}
 			},
+			mockBlockState: func() *MockBlockState {
+				ctrl := gomock.NewController(t)
+
+				mockRuntime := NewMockInstance(ctrl)
+				mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
+					Return(&parachaintypes.ValidationCode{1, 2, 3}, nil)
+				mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
+					Return(parachaintypes.SessionIndex(1), nil)
+				mockRuntime.EXPECT().ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
+					Return(&parachaintypes.ExecutorParams{}, nil)
+
+				mockBlockstate := NewMockBlockState(ctrl)
+				mockBlockstate.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).Return(mockRuntime, nil)
+				return mockBlockstate
+			},
 		},
+
 		{
 			description: "validation_result_is_invalid",
 			rpState: perRelayParentState{
@@ -755,11 +796,6 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 			mockOverseer: func(ch chan any) {
 				for data := range ch {
 					switch data := data.(type) {
-					case parachaintypes.RuntimeApiMessageRequest:
-						data.RuntimeApiRequest.(parachaintypes.RuntimeApiRequestValidationCodeByHash).
-							Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
-							Data: parachaintypes.ValidationCode{1, 2, 3},
-						}
 					case candidatevalidation.ValidateFromExhaustive:
 						data.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
 							Data: candidatevalidation.ValidationResult{
@@ -772,6 +808,21 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 					}
 				}
 			},
+			mockBlockState: func() *MockBlockState {
+				ctrl := gomock.NewController(t)
+
+				mockRuntime := NewMockInstance(ctrl)
+				mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
+					Return(&parachaintypes.ValidationCode{1, 2, 3}, nil)
+				mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
+					Return(parachaintypes.SessionIndex(1), nil)
+				mockRuntime.EXPECT().ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
+					Return(&parachaintypes.ExecutorParams{}, nil)
+
+				mockBlockstate := NewMockBlockState(ctrl)
+				mockBlockstate.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).Return(mockRuntime, nil)
+				return mockBlockstate
+			},
 		},
 		{
 			description: "validation_result_is_valid",
@@ -783,11 +834,6 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 			mockOverseer: func(ch chan any) {
 				for data := range ch {
 					switch data := data.(type) {
-					case parachaintypes.RuntimeApiMessageRequest:
-						data.RuntimeApiRequest.(parachaintypes.RuntimeApiRequestValidationCodeByHash).
-							Ch <- parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode]{
-							Data: parachaintypes.ValidationCode{1, 2, 3},
-						}
 					case candidatevalidation.ValidateFromExhaustive:
 						data.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
 							Data: candidatevalidation.ValidationResult{
@@ -800,6 +846,21 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 						t.Errorf("invalid overseer message type: %T\n", data)
 					}
 				}
+			},
+			mockBlockState: func() *MockBlockState {
+				ctrl := gomock.NewController(t)
+
+				mockRuntime := NewMockInstance(ctrl)
+				mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
+					Return(&parachaintypes.ValidationCode{1, 2, 3}, nil)
+				mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
+					Return(parachaintypes.SessionIndex(1), nil)
+				mockRuntime.EXPECT().ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
+					Return(&parachaintypes.ExecutorParams{}, nil)
+
+				mockBlockstate := NewMockBlockState(ctrl)
+				mockBlockstate.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).Return(mockRuntime, nil)
+				return mockBlockstate
 			},
 		},
 	}
@@ -818,7 +879,7 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 			}(chRelayParentAndCommand)
 
 			err := c.rpState.validateAndMakeAvailable(
-				blockState,
+				c.mockBlockState(),
 				subSystemToOverseer,
 				chRelayParentAndCommand,
 				candidateReceipt,
