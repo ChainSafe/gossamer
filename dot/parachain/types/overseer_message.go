@@ -8,7 +8,6 @@ import "github.com/ChainSafe/gossamer/lib/common"
 var (
 	_ ProvisionableData     = (*ProvisionableDataBackedCandidate)(nil)
 	_ ProvisionableData     = (*ProvisionableDataMisbehaviorReport)(nil)
-	_ RuntimeApiRequest     = (*RuntimeApiRequestValidationCodeByHash)(nil)
 	_ HypotheticalCandidate = (*HypotheticalCandidateIncomplete)(nil)
 	_ HypotheticalCandidate = (*HypotheticalCandidateComplete)(nil)
 )
@@ -181,25 +180,6 @@ type HypotheticalCandidateComplete struct {
 }
 
 func (HypotheticalCandidateComplete) isHypotheticalCandidate() {}
-
-type RuntimeApiMessageRequest struct {
-	RelayParent common.Hash
-	// Make a request of the runtime API against the post-state of the given relay-parent.
-	RuntimeApiRequest RuntimeApiRequest
-}
-
-type RuntimeApiRequest interface {
-	IsRuntimeApiRequest()
-}
-
-// RuntimeApiRequestValidationCodeByHash retrieves validation code by its hash. It can return
-// past, current, or future code as long as state is available.
-type RuntimeApiRequestValidationCodeByHash struct {
-	ValidationCodeHash ValidationCodeHash
-	Ch                 chan OverseerFuncRes[ValidationCode]
-}
-
-func (RuntimeApiRequestValidationCodeByHash) IsRuntimeApiRequest() {}
 
 // AvailabilityDistributionMessageFetchPoV represents a message instructing
 // availability distribution to fetch a remote Proof of Validity (PoV).

@@ -268,6 +268,10 @@ type OutboundHrmpMessage struct {
 // ValidationCode is Parachain validation code.
 type ValidationCode []byte
 
+func (vc ValidationCode) Hash() ValidationCodeHash {
+	return ValidationCodeHash(common.MustBlake2bHash(vc))
+}
+
 // CandidateCommitments are Commitments made in a `CandidateReceipt`. Many of these are outputs of validation.
 type CandidateCommitments struct {
 	// Messages destined to be interpreted by the Relay chain itself.
@@ -649,6 +653,7 @@ type PoV struct {
 	BlockData BlockData `scale:"1"`
 }
 
+// Hash returns the hash of the PoV
 func (p PoV) Hash() (common.Hash, error) {
 	bytes, err := scale.Marshal(p)
 	if err != nil {
