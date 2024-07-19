@@ -4,6 +4,7 @@
 package proof
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/pkg/trie"
@@ -11,12 +12,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_NewProof(t *testing.T) {
+func Test_GenerateAndVerify(t *testing.T) {
 	testCases := map[string]struct {
-		entries        []trie.Entry
-		storageVersion trie.TrieLayout
-		keys           []string
-		expectedProof  MerkleProof
+		entries       []trie.Entry
+		keys          []string
+		expectedProof MerkleProof
 	}{
 		"leaf": {
 			entries: []trie.Entry{
@@ -135,21 +135,39 @@ func Test_NewProof(t *testing.T) {
 	}
 
 	for name, testCase := range testCases {
-		t.Run(name, func(t *testing.T) {
-			// Build trie
-			inmemoryDB := NewMemoryDB(triedb.EmptyNode)
-			triedb := triedb.NewEmptyTrieDB(inmemoryDB)
+		trieVersions := []trie.TrieLayout{trie.V0, trie.V1}
 
-			for _, entry := range testCase.entries {
-				triedb.Put(entry.Key, entry.Value)
-			}
+		for _, trieVersion := range trieVersions {
+			t.Run(fmt.Sprintf("%s_%s", name, trieVersion.String()), func(t *testing.T) {
+				// Build trie
+				inmemoryDB := NewMemoryDB(triedb.EmptyNode)
+				triedb := triedb.NewEmptyTrieDB(inmemoryDB)
+				triedb.SetVersion(trieVersion)
 
-			root := triedb.MustHash()
+				for _, entry := range testCase.entries {
+					triedb.Put(entry.Key, entry.Value)
+				}
 
-			// Generate proof
-			proof, err := NewMerkleProof(inmemoryDB, testCase.storageVersion, root, testCase.keys)
-			require.NoError(t, err)
-			require.Equal(t, testCase.expectedProof, proof)
-		})
+				root := triedb.MustHash()
+
+				// Generate proof
+				proof, err := NewMerkleProof(inmemoryDB, trieVersion, root, testCase.keys)
+				require.NoError(t, err)
+				require.Equal(t, testCase.expectedProof, proof)
+
+				// Verify proof
+				items := make([]proofItem, len(testCase.keys))
+				for i, key := range testCase.keys {
+					items[i] = proofItem{
+						key:   []byte(key),
+						value: triedb.Get([]byte(key)),
+					}
+				}
+				err = proof.Verify(trieVersion, root, items)
+
+				require.NoError(t, err)
+			})
+		}
+
 	}
 }
