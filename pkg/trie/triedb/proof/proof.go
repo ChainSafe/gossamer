@@ -24,7 +24,7 @@ func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash comm
 
 	// The stack of nodes through a path in the trie.
 	// Each entry is a child node of the preceding entry.
-	stack := deque.New[*generateProofStackEntry]()
+	stack := deque.New[*genProofStackEntry]()
 
 	// final proof nodes
 	var proofNodes MerkleProof
@@ -62,8 +62,8 @@ func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash comm
 		// Descend in trie collecting nodes until find the value or the end of the path
 	loop:
 		for {
-			var nextStep generateProofStep
-			var entry *generateProofStackEntry
+			var nextStep genProofStep
+			var entry *genProofStackEntry
 			if stack.Len() > 0 {
 				entry = stack.Back()
 			}
@@ -71,7 +71,7 @@ func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash comm
 				nextStep = genProofStepDescend{childPrefixLen: 0, child: nodeHandleHash{hash: rootHash.ToBytes()}}
 			} else {
 				var err error
-				nextStep, err = generateProofMatchKeyToNode(
+				nextStep, err = genProofMatchKeyToNode(
 					entry.node,
 					&entry.omitValue,
 					&entry.childIndex,
@@ -88,7 +88,7 @@ func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash comm
 			switch s := nextStep.(type) {
 			case genProofStepDescend:
 				childPrefix := keyNibbles[:s.childPrefixLen]
-				var childEntry *generateProofStackEntry
+				var childEntry *genProofStackEntry
 				switch child := s.child.(type) {
 				case nodeHandleHash:
 					childRecord := recordedNodes.Next()
@@ -102,7 +102,7 @@ func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash comm
 					// Insert a placeholder into output which will be replaced when this
 					// new entry is popped from the stack.
 					proofNodes = append(proofNodes, []byte{})
-					childEntry, err = newGenerateProofStackEntry(
+					childEntry, err = newGenProofStackEntry(
 						childPrefix,
 						childRecord.Data,
 						&childRecord.Hash,
@@ -116,7 +116,7 @@ func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash comm
 					if len(child.data) > common.HashLength {
 						return nil, errors.New("invalid hash length")
 					}
-					childEntry, err = newGenerateProofStackEntry(
+					childEntry, err = newGenProofStackEntry(
 						childPrefix,
 						child.data,
 						nil,

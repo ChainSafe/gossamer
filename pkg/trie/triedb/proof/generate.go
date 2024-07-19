@@ -30,7 +30,7 @@ type (
 func (nodeHandleHash) isNodeHandle()   {}
 func (nodeHandleInline) isNodeHandle() {}
 
-type generateProofStep interface {
+type genProofStep interface {
 	isProofStep()
 }
 
@@ -51,7 +51,7 @@ func (genProofStepDescend) isProofStep()          {}
 func (genProofStepFoundValue) isProofStep()       {}
 func (genProofStepFoundHashedValue) isProofStep() {}
 
-type generateProofStackEntry struct {
+type genProofStackEntry struct {
 	// prefix is the nibble path to the node in the trie
 	prefix []byte
 	// node is the stacked node
@@ -70,17 +70,17 @@ type generateProofStackEntry struct {
 	outputIndex *int
 }
 
-func newGenerateProofStackEntry(
+func newGenProofStackEntry(
 	prefix []byte,
 	nodeData []byte,
 	nodeHash *[]byte,
-	outputIndex *int) (*generateProofStackEntry, error) {
+	outputIndex *int) (*genProofStackEntry, error) {
 	node, err := codec.Decode(bytes.NewReader(nodeData))
 	if err != nil {
 		return nil, err
 	}
 
-	return &generateProofStackEntry{
+	return &genProofStackEntry{
 		prefix:      prefix,
 		node:        node,
 		encodedNode: nodeData,
@@ -92,7 +92,7 @@ func newGenerateProofStackEntry(
 	}, nil
 }
 
-func (e *generateProofStackEntry) encodeNode() ([]byte, error) {
+func (e *genProofStackEntry) encodeNode() ([]byte, error) {
 	switch n := e.node.(type) {
 	case codec.Empty:
 		return e.encodedNode, nil
@@ -125,7 +125,7 @@ func (e *generateProofStackEntry) encodeNode() ([]byte, error) {
 	}
 }
 
-func (e *generateProofStackEntry) setChild(encodedChild []byte) {
+func (e *genProofStackEntry) setChild(encodedChild []byte) {
 	var childRef triedb.ChildReference
 	switch n := e.node.(type) {
 	case codec.Branch:
@@ -142,7 +142,7 @@ func (e *generateProofStackEntry) setChild(encodedChild []byte) {
 	e.childIndex++
 }
 
-func (e *generateProofStackEntry) completBranchChildren(
+func (e *genProofStackEntry) completBranchChildren(
 	childHandles [codec.ChildrenCapacity]codec.MerkleValue,
 	childIndex int,
 ) {
@@ -156,7 +156,7 @@ func (e *generateProofStackEntry) completBranchChildren(
 	}
 }
 
-func (e *generateProofStackEntry) replaceChildRef(encodedChild []byte, child codec.MerkleValue) triedb.ChildReference {
+func (e *genProofStackEntry) replaceChildRef(encodedChild []byte, child codec.MerkleValue) triedb.ChildReference {
 	switch child.(type) {
 	case codec.HashedNode:
 		return triedb.NewInlineChildReference(nil)
@@ -171,7 +171,7 @@ func (e *generateProofStackEntry) replaceChildRef(encodedChild []byte, child cod
 // / key is nil, unwind the stack completely. As entries are popped from the stack, they are
 // / encoded into proof nodes and added to the finalized proof.
 func unwindStack(
-	stack *deque.Deque[*generateProofStackEntry],
+	stack *deque.Deque[*genProofStackEntry],
 	proofNodes [][]byte,
 	maybeKey *[]byte,
 ) error {
@@ -211,14 +211,14 @@ func sortAndDeduplicateKeys(keys []string) []string {
 	return deduplicatedkeys
 }
 
-func generateProofMatchKeyToNode(
+func genProofMatchKeyToNode(
 	node codec.EncodedNode,
 	omitValue *bool,
 	childIndex *int,
 	key []byte,
 	prefixlen int,
 	recordedNodes *Iterator[triedb.Record],
-) (generateProofStep, error) {
+) (genProofStep, error) {
 	switch n := node.(type) {
 	case codec.Empty:
 		return genProofStepFoundValue{nil}, nil
@@ -235,7 +235,7 @@ func generateProofMatchKeyToNode(
 		}
 		return genProofStepFoundValue{nil}, nil
 	case codec.Branch:
-		return generateProofMatchKeyToBranchNode(
+		return genProofMatchKeyToBranchNode(
 			n.Value,
 			n.Children,
 			childIndex,
@@ -250,7 +250,7 @@ func generateProofMatchKeyToNode(
 	}
 }
 
-func generateProofMatchKeyToBranchNode(
+func genProofMatchKeyToBranchNode(
 	value codec.EncodedValue,
 	childHandles [codec.ChildrenCapacity]codec.MerkleValue,
 	childIndex *int,
@@ -259,7 +259,7 @@ func generateProofMatchKeyToBranchNode(
 	prefixlen int,
 	nodePartialKey []byte,
 	recordedNodes *Iterator[triedb.Record],
-) (generateProofStep, error) {
+) (genProofStep, error) {
 	if !bytes.Contains(key, nodePartialKey) {
 		return genProofStepFoundValue{nil}, nil
 	}
@@ -304,7 +304,7 @@ func generateProofMatchKeyToBranchNode(
 	return genProofStepFoundValue{nil}, nil
 }
 
-func resolveValue(recordedNodes *Iterator[triedb.Record]) (generateProofStep, error) {
+func resolveValue(recordedNodes *Iterator[triedb.Record]) (genProofStep, error) {
 	value := recordedNodes.Next()
 	if value != nil {
 		return genProofStepFoundHashedValue{value.Data}, nil
