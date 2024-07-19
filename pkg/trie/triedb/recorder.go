@@ -18,7 +18,6 @@ type (
 		encodedNode []byte
 	}
 	valueAccess struct {
-		// We are not using common.Hash here since hash size could be > 32 bytes when we use prefixed keys
 		hash    common.Hash
 		value   []byte
 		fullKey []byte
@@ -72,8 +71,6 @@ func (r *RecordedNodesIterator) Peek() *Record {
 }
 
 type Record struct {
-	// We are not using common.Hash here since Hash size could be > 32 bytes when we use prefixed keys.
-	// See ValueAccess.Hash
 	Hash common.Hash
 	Data []byte
 }
