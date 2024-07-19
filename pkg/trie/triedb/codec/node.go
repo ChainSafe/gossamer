@@ -22,27 +22,15 @@ type MerkleValue interface {
 
 type (
 	// InlineNode contains bytes of the encoded node data
-	InlineNode struct {
-		Data []byte
-	}
+	InlineNode []byte
 	// HashedNode contains a hash used to lookup in db for encoded node data
-	HashedNode struct {
-		Data common.Hash
-	}
+	HashedNode common.Hash
 )
 
 func (InlineNode) isMerkleValue() {}
 func (InlineNode) IsHashed() bool { return false }
 func (HashedNode) isMerkleValue() {}
 func (HashedNode) IsHashed() bool { return true }
-
-func NewInlineNode(data []byte) MerkleValue {
-	return InlineNode{Data: data}
-}
-
-func NewHashedNode(data common.Hash) MerkleValue {
-	return HashedNode{Data: data}
-}
 
 // EncodedValue is a helper enum to differentiate between inline and hashed values
 type EncodedValue interface {

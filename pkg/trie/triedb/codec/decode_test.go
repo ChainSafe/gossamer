@@ -195,9 +195,7 @@ func Test_decodeBranch(t *testing.T) {
 				Children: [ChildrenCapacity]MerkleValue{
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil,
-					HashedNode{
-						Data: childHash,
-					},
+					HashedNode(childHash),
 				},
 			},
 		},
@@ -227,9 +225,7 @@ func Test_decodeBranch(t *testing.T) {
 				Children: [ChildrenCapacity]MerkleValue{
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil,
-					HashedNode{
-						Data: childHash,
-					},
+					HashedNode(childHash),
 				},
 			},
 		},
@@ -245,9 +241,7 @@ func Test_decodeBranch(t *testing.T) {
 				PartialKey: []byte{1},
 				Value:      NewInlineValue([]byte{1}),
 				Children: [ChildrenCapacity]MerkleValue{
-					InlineNode{
-						Data: []byte{},
-					},
+					InlineNode{},
 				},
 			},
 		},
@@ -279,15 +273,15 @@ func Test_decodeBranch(t *testing.T) {
 			branch: Branch{
 				PartialKey: []byte{1},
 				Children: [ChildrenCapacity]MerkleValue{
-					InlineNode{
-						Data: bytes.Join([][]byte{
+					InlineNode(
+						bytes.Join([][]byte{
 							{leafVariant.bits | 1}, // partial key length of 1
 							{2},                    // key data
 							scaleEncodeBytes(t, 2), // storage value data
 						}, nil),
-					},
-					InlineNode{
-						Data: bytes.Join([][]byte{
+					),
+					InlineNode(
+						bytes.Join([][]byte{
 							{branchWithValueVariant.bits | 1}, // partial key length of 1
 							{3},                               // key data
 							{0b0000_0001, 0b0000_0000},        // children bitmap
@@ -299,7 +293,7 @@ func Test_decodeBranch(t *testing.T) {
 								scaleEncodeBytes(t, 4), // storage value data
 							}, nil)),
 						}, nil),
-					},
+					),
 				},
 			},
 		},
