@@ -97,7 +97,7 @@ func Test_Decode(t *testing.T) {
 			}, nil)),
 			n: Leaf{
 				PartialKey: []byte{9},
-				Value:      HashedValue(hashedValue.ToBytes()),
+				Value:      HashedValue(hashedValue),
 			},
 		},
 		"leaf_with_hashed_value_fail_too_short": {
@@ -118,7 +118,7 @@ func Test_Decode(t *testing.T) {
 			}, nil)),
 			n: Branch{
 				PartialKey: []byte{9},
-				Value:      HashedValue(hashedValue.ToBytes()),
+				Value:      HashedValue(hashedValue),
 			},
 		},
 		"branch_with_hashed_value_fail_too_short": {

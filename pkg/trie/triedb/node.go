@@ -66,7 +66,7 @@ func newEncodedValue(value nodeValue, partial []byte, childF onChildStoreFn) (co
 			panic("value node can never be inlined")
 		}
 
-		return codec.HashedValue(v.hash.ToBytes()), nil
+		return codec.HashedValue(v.hash), nil
 	default:
 		panic("unreachable")
 	}
