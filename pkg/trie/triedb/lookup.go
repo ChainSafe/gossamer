@@ -170,9 +170,9 @@ func (l *TrieLookup) fetchValue(prefix []byte, fullKey []byte, value codec.Encod
 	switch v := value.(type) {
 	case codec.InlineValue:
 		l.recordAccess(inlineValueAccess{fullKey: fullKey})
-		return v.Data, nil
+		return v, nil
 	case codec.HashedValue:
-		prefixedKey := bytes.Join([][]byte{prefix, v.Data}, nil)
+		prefixedKey := bytes.Join([][]byte{prefix, v[:]}, nil)
 		if l.cache != nil {
 			if value := l.cache.GetValue(prefixedKey); value != nil {
 				return value, nil

@@ -24,18 +24,12 @@ type NodeHandle interface {
 }
 
 type (
-	InMemory struct {
-		idx StorageHandle
-	}
+	InMemory  StorageHandle
 	Persisted common.Hash
 )
 
 func (InMemory) isNodeHandle()  {}
 func (Persisted) isNodeHandle() {}
-
-func newInMemoryNodeHandle(idx StorageHandle) NodeHandle {
-	return InMemory{idx}
-}
 
 func newFromEncodedMerkleValue(
 	parentHash common.Hash,
@@ -50,7 +44,7 @@ func newFromEncodedMerkleValue(
 		if err != nil {
 			return nil, err
 		}
-		return InMemory{storage.alloc(NewStoredNode{child})}, nil
+		return InMemory(storage.alloc(NewStoredNode{child})), nil
 	default:
 		panic("unreachable")
 	}

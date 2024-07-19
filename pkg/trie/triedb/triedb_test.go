@@ -29,7 +29,7 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 				},
@@ -49,15 +49,15 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("branch")},
+							value:      inline([]byte("branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
-								InMemory{StorageHandle(0)}, nil, nil, nil, nil, nil,
+								InMemory(0), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
 						},
@@ -83,9 +83,9 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("in between branch")},
+							value:      inline([]byte("in between branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
-								nil, InMemory{StorageHandle(1)}, nil, nil, nil, nil,
+								nil, InMemory(1), nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
 						},
@@ -93,15 +93,15 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("branch")},
+							value:      inline([]byte("branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
-								InMemory{StorageHandle(0)}, nil, nil, nil, nil, nil, nil,
+								InMemory(0), nil, nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
 						},
@@ -127,15 +127,15 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("branch")},
+							value:      inline([]byte("branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
-								nil, InMemory{StorageHandle(0)}, nil, nil, nil, nil, nil, nil,
+								nil, InMemory(0), nil, nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil,
 							},
 						},
@@ -143,9 +143,9 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("top branch")},
+							value:      inline([]byte("top branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
-								InMemory{StorageHandle(1)}, nil, nil, nil, nil, nil,
+								InMemory(1), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
 						},
@@ -171,15 +171,15 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("new branch")},
+							value:      inline([]byte("new branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
-								InMemory{StorageHandle(0)}, nil, nil, nil, nil, nil,
+								InMemory(0), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
 						},
@@ -205,15 +205,15 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("branch")},
+							value:      inline([]byte("branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
-								InMemory{StorageHandle(0)}, nil, nil, nil, nil, nil,
+								InMemory(0), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
 						},
@@ -239,9 +239,9 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("branch")},
+							value:      inline([]byte("branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
-								InMemory{StorageHandle(1)}, nil, nil, nil, nil, nil,
+								InMemory(1), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
 						},
@@ -249,7 +249,7 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 				},
@@ -269,7 +269,7 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("new leaf")},
+							value:      inline([]byte("new leaf")),
 						},
 					},
 				},
@@ -289,7 +289,7 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("same")},
+							value:      inline([]byte("same")),
 						},
 					},
 				},
@@ -309,13 +309,13 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{2},
-							value:      inline{Data: []byte("original leaf")},
+							value:      inline([]byte("original leaf")),
 						},
 					},
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{3},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
@@ -324,7 +324,7 @@ func TestInsertions(t *testing.T) {
 							value:      nil,
 							children: [codec.ChildrenCapacity]NodeHandle{
 								nil,
-								InMemory{StorageHandle(0)}, InMemory{StorageHandle(1)},
+								InMemory(0), InMemory(1),
 								nil, nil, nil, nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil,
 							},
@@ -378,7 +378,7 @@ func TestDeletes(t *testing.T) {
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 				},
@@ -420,7 +420,7 @@ func TestDeletes(t *testing.T) {
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{1, 0},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 				},
@@ -443,20 +443,20 @@ func TestDeletes(t *testing.T) {
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("leaf1")},
+							value:      inline([]byte("leaf1")),
 						},
 					},
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("leaf2")},
+							value:      inline([]byte("leaf2")),
 						},
 					},
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{1},
 							children: [codec.ChildrenCapacity]NodeHandle{
-								InMemory{StorageHandle(0)}, InMemory{StorageHandle(1)},
+								InMemory(0), InMemory(1),
 							},
 						},
 					},
@@ -511,7 +511,7 @@ func TestInsertAfterDelete(t *testing.T) {
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("new leaf")},
+							value:      inline([]byte("new leaf")),
 						},
 					},
 				},
@@ -535,15 +535,15 @@ func TestInsertAfterDelete(t *testing.T) {
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("new branch")},
+							value:      inline([]byte("new branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
-								InMemory{StorageHandle(0)},
+								InMemory(0),
 							},
 						},
 					},

@@ -89,13 +89,13 @@ func decodeBranch(reader io.Reader, variant variant, partialKey []byte) (
 			return Branch{}, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
 		}
 
-		node.Value = NewInlineValue(valueBytes)
+		node.Value = InlineValue(valueBytes)
 	case branchWithHashedValueVariant:
 		hashedValue, err := decodeHashedValue(reader)
 		if err != nil {
 			return Branch{}, err
 		}
-		node.Value = NewHashedValue(hashedValue)
+		node.Value = HashedValue(hashedValue)
 	default:
 		// Do nothing, branch without value
 	}
@@ -137,7 +137,7 @@ func decodeLeaf(reader io.Reader, variant variant, partialKey []byte) (node Leaf
 			return Leaf{}, err
 		}
 
-		node.Value = NewHashedValue(hashedValue)
+		node.Value = HashedValue(hashedValue)
 		return node, nil
 	}
 
@@ -147,7 +147,7 @@ func decodeLeaf(reader io.Reader, variant variant, partialKey []byte) (node Leaf
 		return Leaf{}, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
 	}
 
-	node.Value = NewInlineValue(valueBytes)
+	node.Value = InlineValue(valueBytes)
 
 	return node, nil
 }

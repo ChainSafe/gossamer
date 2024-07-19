@@ -67,7 +67,7 @@ func Test_Decode(t *testing.T) {
 			}, nil)),
 			n: Leaf{
 				PartialKey: []byte{9},
-				Value:      NewInlineValue([]byte{1, 2, 3}),
+				Value:      InlineValue([]byte{1, 2, 3}),
 			},
 		},
 		"branch_decoding_error": {
@@ -97,7 +97,7 @@ func Test_Decode(t *testing.T) {
 			}, nil)),
 			n: Leaf{
 				PartialKey: []byte{9},
-				Value:      NewHashedValue(hashedValue.ToBytes()),
+				Value:      HashedValue(hashedValue.ToBytes()),
 			},
 		},
 		"leaf_with_hashed_value_fail_too_short": {
@@ -118,7 +118,7 @@ func Test_Decode(t *testing.T) {
 			}, nil)),
 			n: Branch{
 				PartialKey: []byte{9},
-				Value:      NewHashedValue(hashedValue.ToBytes()),
+				Value:      HashedValue(hashedValue.ToBytes()),
 			},
 		},
 		"branch_with_hashed_value_fail_too_short": {
@@ -221,7 +221,7 @@ func Test_decodeBranch(t *testing.T) {
 			partialKey:  []byte{1},
 			branch: Branch{
 				PartialKey: []byte{1},
-				Value:      NewInlineValue([]byte{7, 8, 9}),
+				Value:      InlineValue([]byte{7, 8, 9}),
 				Children: [ChildrenCapacity]MerkleValue{
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil,
@@ -239,7 +239,7 @@ func Test_decodeBranch(t *testing.T) {
 			partialKey:  []byte{1},
 			branch: Branch{
 				PartialKey: []byte{1},
-				Value:      NewInlineValue([]byte{1}),
+				Value:      InlineValue([]byte{1}),
 				Children: [ChildrenCapacity]MerkleValue{
 					InlineNode{},
 				},
@@ -353,7 +353,7 @@ func Test_decodeLeaf(t *testing.T) {
 			partialKey: []byte{9},
 			leaf: Leaf{
 				PartialKey: []byte{9},
-				Value:      NewInlineValue([]byte{}),
+				Value:      InlineValue([]byte{}),
 			},
 		},
 		"success": {
@@ -364,7 +364,7 @@ func Test_decodeLeaf(t *testing.T) {
 			partialKey: []byte{9},
 			leaf: Leaf{
 				PartialKey: []byte{9},
-				Value:      NewInlineValue([]byte{1, 2, 3, 4, 5}),
+				Value:      InlineValue([]byte{1, 2, 3, 4, 5}),
 			},
 		},
 	}
