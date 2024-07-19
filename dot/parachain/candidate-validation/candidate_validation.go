@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/parachain/pvf"
 	"sync"
 
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
@@ -32,12 +33,14 @@ type CandidateValidation struct {
 	SubsystemToOverseer chan<- any
 	OverseerToSubsystem <-chan any
 	ValidationHost      parachainruntime.ValidationHost
+	pvfHost             *pvf.ValidationHost
 }
 
 // NewCandidateValidation creates a new CandidateValidation subsystem
 func NewCandidateValidation(overseerChan chan<- any) *CandidateValidation {
 	candidateValidation := CandidateValidation{
 		SubsystemToOverseer: overseerChan,
+		pvfHost:             pvf.NewValidationHost(),
 	}
 	return &candidateValidation
 }
@@ -45,6 +48,7 @@ func NewCandidateValidation(overseerChan chan<- any) *CandidateValidation {
 // Run starts the CandidateValidation subsystem
 func (cv *CandidateValidation) Run(context.Context, chan any, chan any) {
 	cv.wg.Add(1)
+	go cv.pvfHost.Start()
 	go cv.processMessages(&cv.wg)
 }
 
@@ -67,6 +71,7 @@ func (*CandidateValidation) ProcessBlockFinalizedSignal(parachaintypes.BlockFina
 
 // Stop stops the CandidateValidation subsystem
 func (cv *CandidateValidation) Stop() {
+	cv.pvfHost.Stop()
 	close(cv.stopChan)
 	cv.wg.Wait()
 }
@@ -82,6 +87,7 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 			case ValidateFromChainState:
 				// TODO: implement functionality to handle ValidateFromChainState, see issue #3919
 			case ValidateFromExhaustive:
+				rTest := cv.pvfHost.Validate(msg.ValidationCode)
 				result, err := validateFromExhaustive(cv.ValidationHost, msg.PersistedValidationData,
 					msg.ValidationCode, msg.CandidateReceipt, msg.PoV)
 				if err != nil {

@@ -1,6 +1,9 @@
 package pvf
 
-import "testing"
+import (
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"testing"
+)
 
 func Test_validationHost_start(t *testing.T) {
 	type fields struct {
@@ -17,10 +20,16 @@ func Test_validationHost_start(t *testing.T) {
 	for tname, tt := range tests {
 		tt := tt
 		t.Run(tname, func(t *testing.T) {
-			v := &validationHost{
+			v := &ValidationHost{
 				workerPool: tt.fields.workerPool,
 			}
-			v.start()
+			v.Start()
 		})
 	}
+}
+
+func TestValidationHost(t *testing.T) {
+	v := NewValidationHost()
+	v.workerPool.newValidationWorker(parachaintypes.ValidationCodeHash{1, 2, 3, 4})
+	v.Validate(parachaintypes.ValidationCodeHash{1, 2, 3, 4})
 }

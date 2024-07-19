@@ -1,7 +1,10 @@
 package pvf
 
 import (
+	"crypto/rand"
 	"fmt"
+	"golang.org/x/exp/maps"
+	"math/big"
 	"sync"
 	"time"
 
@@ -83,4 +86,47 @@ func (v *validationWorkerPool) newValidationWorker(who parachaintypes.Validation
 		queue:  workerQueue,
 	}
 	logger.Tracef("potential worker added, total in the pool %d", len(v.workers))
+}
+
+// submitRequest given a request, the worker pool will get the peer given the peer.ID
+// parameter or if nil the very first available worker or
+// to perform the request, the response will be dispatch in the resultCh.
+func (v *validationWorkerPool) submitRequest(request string,
+	who *parachaintypes.ValidationCodeHash, resultCh chan<- *validationTaskResult) {
+
+	task := &validationTask{
+		request:  request,
+		resultCh: resultCh,
+	}
+
+	// if the request is bounded to a specific peer then just
+	// request it and sent through its queue otherwise send
+	// the request in the general queue where all worker are
+	// listening on
+	v.mtx.RLock()
+	defer v.mtx.RUnlock()
+
+	if who != nil {
+		syncWorker, inMap := v.workers[*who]
+		if inMap {
+			if syncWorker == nil {
+				panic("sync worker should not be nil")
+			}
+			syncWorker.queue <- task
+			return
+		}
+	}
+
+	// if the exact peer is not specified then
+	// randomly select a worker and assign the
+	// task to it, if the amount of workers is
+	var selectedWorkerIdx int
+	workers := maps.Values(v.workers)
+	nBig, err := rand.Int(rand.Reader, big.NewInt(int64(len(workers))))
+	if err != nil {
+		panic(fmt.Errorf("fail to get a random number: %w", err))
+	}
+	selectedWorkerIdx = int(nBig.Int64())
+	selectedWorker := workers[selectedWorkerIdx]
+	selectedWorker.queue <- task
 }
