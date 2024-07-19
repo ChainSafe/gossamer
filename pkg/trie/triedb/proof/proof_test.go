@@ -151,7 +151,7 @@ func Test_GenerateAndVerify(t *testing.T) {
 				root := triedb.MustHash()
 
 				// Generate proof
-				proof, err := New(inmemoryDB, trieVersion, root, testCase.keys)
+				proof, err := NewMerkleProof(inmemoryDB, trieVersion, root, testCase.keys)
 				require.NoError(t, err)
 				require.Equal(t, testCase.expectedProof, proof)
 
