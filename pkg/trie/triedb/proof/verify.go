@@ -101,7 +101,7 @@ func (e *verifyProofStackEntry) encodeNode() ([]byte, error) {
 				case codec.InlineNode:
 					children[childIndex] = triedb.InlineChildReference(c.Data)
 				case codec.HashedNode:
-					children[childIndex] = triedb.NewHashChildReference(common.Hash(c.Data))
+					children[childIndex] = triedb.HashChildReference(common.Hash(c.Data))
 				}
 			}
 			childIndex++
@@ -176,7 +176,7 @@ func (e *verifyProofStackEntry) advanceChildIndex(
 				case codec.InlineNode:
 					e.children[e.childIndex] = triedb.InlineChildReference(c.Data)
 				case codec.HashedNode:
-					e.children[e.childIndex] = triedb.NewHashChildReference(common.Hash(c.Data))
+					e.children[e.childIndex] = triedb.HashChildReference(common.Hash(c.Data))
 				}
 			}
 			e.childIndex++
@@ -373,7 +373,7 @@ loop:
 				childRef = triedb.InlineChildReference(nodeData)
 			} else {
 				hash := common.MustBlake2bHash(nodeData)
-				childRef = triedb.NewHashChildReference(hash)
+				childRef = triedb.HashChildReference(hash)
 			}
 
 			if stack.Len() > 0 {
@@ -389,7 +389,7 @@ loop:
 				var computedRoot common.Hash
 				switch c := childRef.(type) {
 				case triedb.HashChildReference:
-					computedRoot = c.Hash
+					computedRoot = common.Hash(c)
 				case triedb.InlineChildReference:
 					panic("unreachable")
 				}

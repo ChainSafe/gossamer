@@ -151,7 +151,7 @@ func (e *genProofStackEntry) completBranchChildren(
 		case codec.InlineNode:
 			e.children[i] = triedb.InlineChildReference(n.Data)
 		case codec.HashedNode:
-			e.children[i] = triedb.NewHashChildReference(common.Hash(n.Data))
+			e.children[i] = triedb.HashChildReference(common.Hash(n.Data))
 		}
 	}
 }
