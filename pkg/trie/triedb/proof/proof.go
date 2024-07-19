@@ -52,7 +52,7 @@ func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash comm
 			nextEntry := stack.At(i)
 			nextRecord := recordedNodes.Peek()
 
-			if nextRecord == nil || !bytes.Equal(*nextEntry.nodeHash, nextRecord.Hash) {
+			if nextRecord == nil || !bytes.Equal(nextEntry.nodeHash[:], nextRecord.Hash[:]) {
 				break
 			}
 
@@ -93,7 +93,7 @@ func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash comm
 				case nodeHandleHash:
 					childRecord := recordedNodes.Next()
 
-					if !bytes.Equal(childRecord.Hash, child[:]) {
+					if !bytes.Equal(childRecord.Hash[:], child[:]) {
 						panic("hash mismatch")
 					}
 

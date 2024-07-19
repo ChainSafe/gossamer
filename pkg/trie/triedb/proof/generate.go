@@ -54,7 +54,7 @@ type genProofStackEntry struct {
 	// encodedNode is the encoded node data
 	encodedNode []byte
 	// nodeHash of the node or nil if the node is inlined
-	nodeHash *[]byte
+	nodeHash *common.Hash
 	// omitValue is a flag to know if the value should be omitted in the generated proof
 	omitValue bool
 	// childIndex is used for branch nodes
@@ -68,7 +68,7 @@ type genProofStackEntry struct {
 func newGenProofStackEntry(
 	prefix []byte,
 	nodeData []byte,
-	nodeHash *[]byte,
+	nodeHash *common.Hash,
 	outputIndex *int) (*genProofStackEntry, error) {
 	node, err := codec.Decode(bytes.NewReader(nodeData))
 	if err != nil {

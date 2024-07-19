@@ -73,7 +73,7 @@ func newVerifyProofStackEntry(
 
 func (e *verifyProofStackEntry) getValue() codec.EncodedValue {
 	if e.nextValueHash != common.EmptyHash {
-		return codec.HashedValue(e.nextValueHash.ToBytes())
+		return codec.HashedValue(e.nextValueHash)
 	}
 	return e.value
 }
@@ -394,7 +394,7 @@ loop:
 					panic("unreachable")
 				}
 
-				if !bytes.Equal(computedRoot.ToBytes(), root.ToBytes()) {
+				if !bytes.Equal(computedRoot[:], root[:]) {
 					return fmt.Errorf("root hash mismatch: %x != %x", computedRoot, root)
 				}
 				break loop

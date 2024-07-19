@@ -188,7 +188,7 @@ func (l *TrieLookup) fetchValue(prefix []byte, fullKey []byte, value codec.Encod
 			l.cache.SetValue(prefixedKey, nodeData)
 		}
 
-		l.recordAccess(valueAccess{hash: prefixedKey, fullKey: fullKey, value: nodeData})
+		l.recordAccess(valueAccess{hash: common.Hash(v), fullKey: fullKey, value: nodeData})
 
 		return nodeData, nil
 	default:
