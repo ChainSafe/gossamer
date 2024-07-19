@@ -116,7 +116,7 @@ func decodeBranch(reader io.Reader, variant variant, partialKey []byte) (
 		if len(hash) < hashLength {
 			node.Children[i] = InlineNode(hash)
 		} else {
-			node.Children[i] = HashedNode(common.Hash(hash))
+			node.Children[i] = HashedNode(hash)
 		}
 	}
 
