@@ -71,7 +71,7 @@ type generateProofStackEntry struct {
 	// childIndex is used for branch nodes
 	childIndex int
 	// children contains the child references to use in constructing the proof nodes.
-	children [codec.ChildrenCapacity]triedb.ChildReference
+	children triedb.ChildReferences
 	// outputIndex is the index into the proof vector that the encoding of this entry should be placed at.
 	outputIndex *int
 }
@@ -337,19 +337,8 @@ func unwindStack(
 
 func sortAndDeduplicateKeys(keys []string) []string {
 	slices.Sort(keys)
-
-	if len(keys) == 0 {
-		return keys
-	}
-
-	result := []string{keys[0]}
-	for i := 1; i < len(keys); i++ {
-		if keys[i] != keys[i-1] {
-			result = append(result, keys[i])
-		}
-	}
-
-	return result
+	deduplicatedkeys := slices.Compact(keys)
+	return deduplicatedkeys
 }
 
 func generateProofMatchKeyToNode(

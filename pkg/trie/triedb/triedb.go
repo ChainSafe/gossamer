@@ -774,7 +774,7 @@ func (t *TrieDB) commit() error {
 				switch n := node.(type) {
 				case newNodeToEncode:
 					hash := common.MustBlake2bHash(n.value)
-					prefixedKey := bytes.Join([][]byte{n.partialKey, hash.ToBytes()}, nil)
+					prefixedKey := append(n.partialKey, hash.ToBytes()...)
 					err := dbBatch.Put(prefixedKey, n.value)
 					if err != nil {
 						return nil, err
@@ -849,8 +849,8 @@ func (t *TrieDB) commitChild(
 
 				switch n := node.(type) {
 				case newNodeToEncode:
-					valueHash := common.MustBlake2bHash(n.value)
-					prefixedKey := bytes.Join([][]byte{n.partialKey, valueHash.ToBytes()}, nil)
+					hash := common.MustBlake2bHash(n.value)
+					prefixedKey := append(n.partialKey, hash.ToBytes()...)
 					err := dbBatch.Put(prefixedKey, n.value)
 					if err != nil {
 						panic("inserting in db")
@@ -861,7 +861,7 @@ func (t *TrieDB) commitChild(
 					}
 
 					prefixKey = prefixKey[:mov]
-					return HashChildReference{Hash: valueHash}, nil
+					return HashChildReference{Hash: hash}, nil
 				case trieNodeToEncode:
 					result, err := t.commitChild(dbBatch, n.child, prefixKey)
 					if err != nil {

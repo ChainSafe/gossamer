@@ -19,16 +19,12 @@ type MemoryDB struct {
 	nullNodeData   []byte
 }
 
-func memoryDBFromNullNode(nullKey, nullNodeData []byte) *MemoryDB {
+func NewMemoryDB(data []byte) *MemoryDB {
 	return &MemoryDB{
 		data:           make(map[common.Hash][]byte),
-		hashedNullNode: common.MustBlake2bHash(nullKey),
-		nullNodeData:   nullNodeData,
+		hashedNullNode: common.MustBlake2bHash(data),
+		nullNodeData:   data,
 	}
-}
-
-func NewMemoryDB(data []byte) *MemoryDB {
-	return memoryDBFromNullNode(data, data)
 }
 
 func (db *MemoryDB) emplace(key common.Hash, value []byte) {

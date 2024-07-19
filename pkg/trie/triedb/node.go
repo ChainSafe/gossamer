@@ -234,6 +234,11 @@ type ChildReferences [codec.ChildrenCapacity]ChildReference
 func NewChildReferences(encodedChildren [codec.ChildrenCapacity]codec.MerkleValue) ChildReferences {
 	children := ChildReferences{}
 	for i, child := range encodedChildren {
+		if child == nil {
+			children[i] = nil
+			continue
+		}
+
 		switch n := child.(type) {
 		case codec.InlineNode:
 			children[i] = NewInlineChildReference(n.Data)
