@@ -99,7 +99,7 @@ func (e *verifyProofStackEntry) encodeNode() ([]byte, error) {
 			if child != nil {
 				switch c := child.(type) {
 				case codec.InlineNode:
-					children[childIndex] = triedb.NewInlineChildReference(c.Data)
+					children[childIndex] = triedb.InlineChildReference(c.Data)
 				case codec.HashedNode:
 					children[childIndex] = triedb.NewHashChildReference(common.Hash(c.Data))
 				}
@@ -174,7 +174,7 @@ func (e *verifyProofStackEntry) advanceChildIndex(
 			if child != nil {
 				switch c := child.(type) {
 				case codec.InlineNode:
-					e.children[e.childIndex] = triedb.NewInlineChildReference(c.Data)
+					e.children[e.childIndex] = triedb.InlineChildReference(c.Data)
 				case codec.HashedNode:
 					e.children[e.childIndex] = triedb.NewHashChildReference(common.Hash(c.Data))
 				}
@@ -370,7 +370,7 @@ loop:
 				if len(nodeData) > common.HashLength {
 					return fmt.Errorf("invalid child reference: %x", nodeData)
 				}
-				childRef = triedb.NewInlineChildReference(nodeData)
+				childRef = triedb.InlineChildReference(nodeData)
 			} else {
 				hash := common.MustBlake2bHash(nodeData)
 				childRef = triedb.NewHashChildReference(hash)

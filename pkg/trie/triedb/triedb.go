@@ -890,7 +890,7 @@ func (t *TrieDB) commitChild(
 
 				return HashChildReference{Hash: hash}, nil
 			} else {
-				return InlineChildReference{encoded}, nil
+				return InlineChildReference(encoded), nil
 			}
 		default:
 			panic("unreachable")

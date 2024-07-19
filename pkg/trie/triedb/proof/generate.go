@@ -149,7 +149,7 @@ func (e *genProofStackEntry) completBranchChildren(
 	for i := childIndex; i < codec.ChildrenCapacity; i++ {
 		switch n := childHandles[i].(type) {
 		case codec.InlineNode:
-			e.children[i] = triedb.NewInlineChildReference(n.Data)
+			e.children[i] = triedb.InlineChildReference(n.Data)
 		case codec.HashedNode:
 			e.children[i] = triedb.NewHashChildReference(common.Hash(n.Data))
 		}
@@ -159,9 +159,9 @@ func (e *genProofStackEntry) completBranchChildren(
 func (e *genProofStackEntry) replaceChildRef(encodedChild []byte, child codec.MerkleValue) triedb.ChildReference {
 	switch child.(type) {
 	case codec.HashedNode:
-		return triedb.NewInlineChildReference(nil)
+		return triedb.InlineChildReference(nil)
 	case codec.InlineNode:
-		return triedb.NewInlineChildReference(encodedChild)
+		return triedb.InlineChildReference(encodedChild)
 	default:
 		panic("unreachable")
 	}

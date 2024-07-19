@@ -241,7 +241,7 @@ func NewChildReferences(encodedChildren [codec.ChildrenCapacity]codec.MerkleValu
 
 		switch n := child.(type) {
 		case codec.InlineNode:
-			children[i] = NewInlineChildReference(n.Data)
+			children[i] = InlineChildReference(n.Data)
 		case codec.HashedNode:
 			children[i] = NewHashChildReference(common.Hash(n.Data))
 		}
@@ -260,24 +260,18 @@ type (
 		Hash common.Hash
 	}
 	// InlineChildReference is a reference to an inlined child node
-	InlineChildReference struct {
-		encodedNode []byte
-	}
+	InlineChildReference []byte
 )
 
 func (h HashChildReference) getNodeData() []byte {
 	return h.Hash.ToBytes()
 }
 func (i InlineChildReference) getNodeData() []byte {
-	return i.encodedNode
+	return i
 }
 
 func NewHashChildReference(hash common.Hash) HashChildReference {
 	return HashChildReference{Hash: hash}
-}
-
-func NewInlineChildReference(encodedNode []byte) InlineChildReference {
-	return InlineChildReference{encodedNode: encodedNode}
 }
 
 type onChildStoreFn = func(node nodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error)
