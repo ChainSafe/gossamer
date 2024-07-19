@@ -337,19 +337,8 @@ func unwindStack(
 
 func sortAndDeduplicateKeys(keys []string) []string {
 	slices.Sort(keys)
-
-	if len(keys) == 0 {
-		return keys
-	}
-
-	result := []string{keys[0]}
-	for i := 1; i < len(keys); i++ {
-		if keys[i] != keys[i-1] {
-			result = append(result, keys[i])
-		}
-	}
-
-	return result
+	deduplicatedkeys := slices.Compact(keys)
+	return deduplicatedkeys
 }
 
 func matchKeyToNode(
