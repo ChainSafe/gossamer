@@ -73,7 +73,7 @@ func newVerifyProofStackEntry(
 
 func (e *verifyProofStackEntry) getValue() codec.EncodedValue {
 	if e.nextValueHash != common.EmptyHash {
-		return codec.NewHashedValue(e.nextValueHash.ToBytes())
+		return codec.HashedValue(e.nextValueHash.ToBytes())
 	}
 	return e.value
 }
@@ -99,9 +99,9 @@ func (e *verifyProofStackEntry) encodeNode() ([]byte, error) {
 			if child != nil {
 				switch c := child.(type) {
 				case codec.InlineNode:
-					children[childIndex] = triedb.InlineChildReference(c.Data)
+					children[childIndex] = triedb.InlineChildReference(c)
 				case codec.HashedNode:
-					children[childIndex] = triedb.HashChildReference(common.Hash(c.Data))
+					children[childIndex] = triedb.HashChildReference(common.Hash(c))
 				}
 			}
 			childIndex++
@@ -174,9 +174,9 @@ func (e *verifyProofStackEntry) advanceChildIndex(
 			if child != nil {
 				switch c := child.(type) {
 				case codec.InlineNode:
-					e.children[e.childIndex] = triedb.InlineChildReference(c.Data)
+					e.children[e.childIndex] = triedb.InlineChildReference(c)
 				case codec.HashedNode:
-					e.children[e.childIndex] = triedb.HashChildReference(common.Hash(c.Data))
+					e.children[e.childIndex] = triedb.HashChildReference(common.Hash(c))
 				}
 			}
 			e.childIndex++
@@ -195,19 +195,19 @@ func (e *verifyProofStackEntry) makeChildEntry(
 ) (*verifyProofStackEntry, error) {
 	switch c := child.(type) {
 	case codec.InlineNode:
-		if len(c.Data) == 0 {
+		if len(c) == 0 {
 			nodeData := proofIter.Next()
 			if nodeData == nil {
 				return nil, ErrIncompleteProof
 			}
 			return newVerifyProofStackEntry(e.trieVersion, *nodeData, childPrefix, false)
 		}
-		return newVerifyProofStackEntry(e.trieVersion, c.Data, childPrefix, true)
+		return newVerifyProofStackEntry(e.trieVersion, c, childPrefix, true)
 	case codec.HashedNode:
-		if len(c.Data) != common.HashLength {
-			return nil, fmt.Errorf("invalid hash length: %x", c.Data)
+		if len(c) != common.HashLength {
+			return nil, fmt.Errorf("invalid hash length: %x", c)
 		}
-		return nil, fmt.Errorf("extraneous hash reference: %x", c.Data)
+		return nil, fmt.Errorf("extraneous hash reference: %x", c)
 	default:
 		panic("unreachable")
 	}
@@ -215,7 +215,7 @@ func (e *verifyProofStackEntry) makeChildEntry(
 
 func (e *verifyProofStackEntry) setValue(value []byte) {
 	if len(value) <= e.trieVersion.MaxInlineValue() {
-		e.value = codec.NewInlineValue(value)
+		e.value = codec.InlineValue(value)
 	} else {
 		hashedValue := common.MustBlake2bHash(value)
 		e.nextValueHash = hashedValue
@@ -258,7 +258,7 @@ func matchKeyToNode(keyNibbles []byte, prefixLen int, node codec.EncodedNode) va
 			case codec.HashedValue:
 				return notOmitted{}
 			case codec.InlineValue:
-				if len(v.Data) == 0 {
+				if len(v) == 0 {
 					return matchesLeaf{}
 				}
 				return notOmitted{}

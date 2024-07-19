@@ -18,13 +18,8 @@ type nodeHandle interface {
 }
 
 type (
-	nodeHandleHash struct {
-		hash []byte
-	}
-
-	nodeHandleInline struct {
-		data []byte
-	}
+	nodeHandleHash   common.Hash
+	nodeHandleInline []byte
 )
 
 func (nodeHandleHash) isNodeHandle()   {}
@@ -102,7 +97,7 @@ func (e *genProofStackEntry) encodeNode() ([]byte, error) {
 		}
 
 		encodingBuffer := bytes.NewBuffer(nil)
-		err := triedb.NewEncodedLeaf(e.node.GetPartialKey(), codec.NewInlineValue([]byte{}), encodingBuffer)
+		err := triedb.NewEncodedLeaf(e.node.GetPartialKey(), codec.InlineValue{}, encodingBuffer)
 		if err != nil {
 			return nil, err
 		}
@@ -149,9 +144,9 @@ func (e *genProofStackEntry) completBranchChildren(
 	for i := childIndex; i < codec.ChildrenCapacity; i++ {
 		switch n := childHandles[i].(type) {
 		case codec.InlineNode:
-			e.children[i] = triedb.InlineChildReference(n.Data)
+			e.children[i] = triedb.InlineChildReference(n)
 		case codec.HashedNode:
-			e.children[i] = triedb.HashChildReference(common.Hash(n.Data))
+			e.children[i] = triedb.HashChildReference(common.Hash(n))
 		}
 	}
 }
@@ -227,7 +222,8 @@ func genProofMatchKeyToNode(
 			switch v := n.Value.(type) {
 			case codec.InlineValue:
 				*omitValue = true
-				return genProofStepFoundValue{&v.Data}, nil
+				value := []byte(v)
+				return genProofStepFoundValue{&value}, nil
 			case codec.HashedValue:
 				*omitValue = true
 				return resolveValue(recordedNodes)
@@ -272,7 +268,8 @@ func genProofMatchKeyToBranchNode(
 		switch v := value.(type) {
 		case codec.InlineValue:
 			*omitValue = true
-			return genProofStepFoundValue{&v.Data}, nil
+			value := []byte(v)
+			return genProofStepFoundValue{&value}, nil
 		case codec.HashedValue:
 			*omitValue = true
 			return resolveValue(recordedNodes)
@@ -291,9 +288,9 @@ func genProofMatchKeyToBranchNode(
 		var child nodeHandle
 		switch c := childHandles[newIndex].(type) {
 		case codec.HashedNode:
-			child = nodeHandleHash{hash: c.Data}
+			child = nodeHandleHash(c)
 		case codec.InlineNode:
-			child = nodeHandleInline{data: c.Data}
+			child = nodeHandleInline(c)
 		}
 
 		return genProofStepDescend{
