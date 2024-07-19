@@ -12,6 +12,7 @@ import (
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -274,21 +275,17 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	rpState.awaitingValidation[candidateHash] = true
 	validationCodeHash := candidateReceipt.Descriptor.ValidationCodeHash
 
-	chValidationCodeByHashRes := make(chan parachaintypes.OverseerFuncRes[parachaintypes.ValidationCode])
-	subSystemToOverseer <- parachaintypes.RuntimeApiMessageRequest{
-		RelayParent: relayParent,
-		RuntimeApiRequest: parachaintypes.RuntimeApiRequestValidationCodeByHash{
-			ValidationCodeHash: validationCodeHash,
-			Ch:                 chValidationCodeByHashRes,
-		},
+	rt, err := blockState.GetRuntime(relayParent)
+	if err != nil {
+		return fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
 	}
 
-	validationCodeByHashRes := <-chValidationCodeByHashRes
-	if validationCodeByHashRes.Err != nil {
-		return fmt.Errorf("getting validation code by hash: %w", validationCodeByHashRes.Err)
+	validationCode, err := rt.ParachainHostValidationCodeByHash(common.Hash(validationCodeHash))
+	if err != nil {
+		return fmt.Errorf("getting validation code by hash: %w", err)
 	}
 
-	executorParams, err := executorParamsAtRelayParent(blockState, relayParent)
+	executorParams, err := executorParamsAtRelayParent(rt, relayParent)
 	if err != nil {
 		return fmt.Errorf("getting executor params for relay parent %s: %w", relayParent, err)
 	}
@@ -302,7 +299,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	chValidationResultRes := make(chan parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult])
 	subSystemToOverseer <- candidatevalidation.ValidateFromExhaustive{
 		PersistedValidationData: pvd,
-		ValidationCode:          validationCodeByHashRes.Data,
+		ValidationCode:          *validationCode,
 		CandidateReceipt:        candidateReceipt,
 		PoV:                     pov,
 		ExecutorParams:          *executorParams,
@@ -316,8 +313,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	}
 
 	var bgValidationResult backgroundValidationResult
-
-	if validationResultRes.Data.IsValid { // Valid
+	if validationResultRes.Data.IsValid() { // Valid
 		// Important: the `av-store` subsystem will check if the erasure root of the `available_data`
 		// matches `expected_erasure_root` which was provided by the collator in the `CandidateReceipt`.
 		// This check is consensus critical and the `backing` subsystem relies on it for ensuring
@@ -343,8 +339,8 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 			bgValidationResult = backgroundValidationResult{
 				outputs: &backgroundValidationOutputs{
 					candidateReceipt:        candidateReceipt,
-					candidateCommitments:    validationResultRes.Data.CandidateCommitments,
-					persistedValidationData: validationResultRes.Data.PersistedValidationData,
+					candidateCommitments:    validationResultRes.Data.ValidResult.CandidateCommitments,
+					persistedValidationData: validationResultRes.Data.ValidResult.PersistedValidationData,
 				},
 				candidate: nil,
 				err:       nil,
@@ -361,11 +357,11 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		}
 
 	} else { // Invalid
-		logger.Error(validationResultRes.Data.Err.Error())
+		logger.Error(validationResultRes.Data.InvalidResult.Error())
 		bgValidationResult = backgroundValidationResult{
 			outputs:   nil,
 			candidate: &candidateReceipt,
-			err:       validationResultRes.Data.Err,
+			err:       fmt.Errorf(validationResultRes.Data.InvalidResult.Error()),
 		}
 	}
 
@@ -384,13 +380,8 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	return nil
 }
 
-func executorParamsAtRelayParent(blockState BlockState, relayParent common.Hash,
+func executorParamsAtRelayParent(rt runtime.Instance, relayParent common.Hash,
 ) (*parachaintypes.ExecutorParams, error) {
-	rt, err := blockState.GetRuntime(relayParent)
-	if err != nil {
-		return nil, fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
-	}
-
 	sessionIndex, err := rt.ParachainHostSessionIndexForChild()
 	if err != nil {
 		return nil, fmt.Errorf("getting session index for relay parent %s: %w", relayParent, err)

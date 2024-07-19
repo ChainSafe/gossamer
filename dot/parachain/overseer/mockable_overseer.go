@@ -1,3 +1,6 @@
+// Copyright 2024 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package overseer
 
 import (
@@ -8,7 +11,6 @@ import (
 )
 
 type MockableOverseer struct {
-	// TODO Is it okay to have a pointer to testing.T here? Figure out!!
 	t      *testing.T
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -22,50 +24,50 @@ type MockableOverseer struct {
 }
 
 func NewMockableOverseer(t *testing.T) *MockableOverseer {
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	return &MockableOverseer{
-		t:                    t,
-		ctx:                  ctx,
-		cancel:               cancel,
-		SubsystemsToOverseer: make(chan any),
-
+		t:                          t,
+		ctx:                        ctx,
+		cancel:                     cancel,
+		SubsystemsToOverseer:       make(chan any),
 		expectedMessagesWithAction: make(map[any]func(msg any)),
 	}
 }
+
 func (m *MockableOverseer) GetSubsystemToOverseerChannel() chan any {
 	return m.SubsystemsToOverseer
 }
+
 func (m *MockableOverseer) RegisterSubsystem(subsystem parachaintypes.Subsystem) chan any {
 	OverseerToSubSystem := make(chan any)
 	m.overseerToSubsystem = OverseerToSubSystem
 	m.subSystem = subsystem
 	return OverseerToSubSystem
 }
-func (m *MockableOverseer) Start() error {
-	go m.processMessages(m.t)
 
+func (m *MockableOverseer) Start() error {
+	go func(sub parachaintypes.Subsystem, overseerToSubSystem chan any) {
+		sub.Run(m.ctx, overseerToSubSystem, m.SubsystemsToOverseer)
+	}(m.subSystem, m.overseerToSubsystem)
+
+	go m.processMessages()
 	return nil
 }
+
 func (m *MockableOverseer) Stop() {
 	m.cancel()
-
 }
+
 func (m *MockableOverseer) ReceiveMessage(msg any) {
 	m.overseerToSubsystem <- msg
-}
-
-type InputOutput struct {
-	InputMessage  any
-	OutputMessage any
 }
 
 func (m *MockableOverseer) ExpectMessageWithAction(msg any, fn func(msg any)) {
 	m.expectedMessagesWithAction[msg] = fn
 }
 
-func (m *MockableOverseer) processMessages(t *testing.T) {
+func (m *MockableOverseer) processMessages() {
 	for {
 		select {
 		case msg := <-m.SubsystemsToOverseer:
@@ -74,14 +76,14 @@ func (m *MockableOverseer) processMessages(t *testing.T) {
 			}
 			action, ok := m.expectedMessagesWithAction[msg]
 			if !ok {
-				t.Errorf("unexpected message: %v", msg)
+				m.t.Errorf("unexpected message: %v", msg)
 				continue
 			}
 
 			action(msg)
 		case <-m.ctx.Done():
 			if err := m.ctx.Err(); err != nil {
-				logger.Errorf("ctx error: %v\n", err)
+				m.t.Logf("ctx error: %v\n", err)
 			}
 			return
 		}
