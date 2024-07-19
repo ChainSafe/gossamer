@@ -4,6 +4,7 @@
 package runtime
 
 import (
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -48,4 +49,28 @@ type Instance interface {
 	GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
 	) error
+	ParachainHostPersistedValidationData(
+		parachaidID uint32,
+		assumption parachaintypes.OccupiedCoreAssumption,
+	) (*parachaintypes.PersistedValidationData, error)
+	ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
+	) (*parachaintypes.ValidationCode, error)
+	ParachainHostValidationCodeByHash(validationCodeHash common.Hash) (*parachaintypes.ValidationCode, error)
+	ParachainHostValidators() ([]parachaintypes.ValidatorID, error)
+	ParachainHostValidatorGroups() (*parachaintypes.ValidatorGroups, error)
+	ParachainHostAvailabilityCores() ([]parachaintypes.CoreState, error)
+	ParachainHostCheckValidationOutputs(
+		parachainID parachaintypes.ParaID,
+		outputs parachaintypes.CandidateCommitments,
+	) (bool, error)
+	ParachainHostSessionIndexForChild() (parachaintypes.SessionIndex, error)
+	ParachainHostCandidatePendingAvailability(
+		parachainID parachaintypes.ParaID,
+	) (*parachaintypes.CommittedCandidateReceipt, error)
+	ParachainHostCandidateEvents() ([]parachaintypes.CandidateEvent, error)
+	ParachainHostSessionInfo(sessionIndex parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error)
+	ParachainHostAsyncBackingParams() (*parachaintypes.AsyncBackingParams, error)
+	ParachainHostMinimumBackingVotes() (uint32, error)
+	ParachainHostSessionExecutorParams(index parachaintypes.SessionIndex,
+	) (*parachaintypes.ExecutorParams, error)
 }

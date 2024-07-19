@@ -21,6 +21,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/core"
 	digest "github.com/ChainSafe/gossamer/dot/digest"
 	network "github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/parachain"
 	"github.com/ChainSafe/gossamer/dot/state"
 	dotsync "github.com/ChainSafe/gossamer/dot/sync"
 	system "github.com/ChainSafe/gossamer/dot/system"
@@ -88,7 +89,7 @@ func TestNewNode(t *testing.T) {
 	assert.NoError(t, err)
 
 	mockServiceRegistry := NewMockServiceRegisterer(ctrl)
-	mockServiceRegistry.EXPECT().RegisterService(gomock.Any()).Times(8)
+	mockServiceRegistry.EXPECT().RegisterService(gomock.Any()).Times(9)
 
 	m := NewMocknodeBuilderIface(ctrl)
 	m.EXPECT().createStateService(initConfig).DoAndReturn(func(config *cfg.Config) (*state.Service, error) {
@@ -121,6 +122,32 @@ func TestNewNode(t *testing.T) {
 		return stateSrvc, nil
 	})
 
+	tries := state.NewTries()
+	tries.SetEmptyTrie()
+
+	db := state.NewInMemoryDB(t)
+	prefix := []byte{98, 108, 111, 99, 107}
+
+	err = db.Put(append(prefix, []byte{104, 115, 104, 0, 0, 0, 0, 0, 0, 0, 0}...),
+		[]byte{98, 108, 111, 99, 107, 104, 115, 104})
+	require.NoError(t, err)
+	err = db.Put(append(prefix, []byte{104, 114, 115}...),
+		[]byte{98, 108, 111, 99, 107, 104, 115, 104, 98, 108, 111, 99, 107, 104, 115, 104})
+	require.NoError(t, err)
+	err = db.Put(append(prefix, []byte{102, 105, 110, 97, 108, 105, 115, 101, 100, 95, 104, 101, 97, 100, 98, 108, 111, 99, 107, 104, 115, 104, 98, 108, 111, 99, 107, 104, 115, 104}...), //nolint
+		[]byte{98, 108, 111, 99, 107, 104, 115, 104, 98, 108, 111, 99, 107, 104, 115, 104})
+	require.NoError(t, err)
+	err = db.Put(append(prefix, []byte{104, 100, 114, 98, 108, 111, 99, 107, 104, 115, 104, 98, 108, 111, 99, 107, 104, 115, 104, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}...), //nolint
+		[]byte{59, 69, 201, 194, 45, 206, 206, 117, 163, 10, 204, 156, 41, 104, 203, 49, 30, 107, 5, 87, 53, 15, 131, 180, 48, 244, 117, 89, 219, 120, 105, 117, 0, 9, 249, 202, 40, 223, 5, 96, 194, 41, 26, 161, 107, 86, 225, 94, 7, 209, 225, 146, 112, 136, 245, 19, 86, 213, 34, 114, 42, 169, 12, 167, 203, 218, 38, 220, 140, 20, 85, 248, 248, 28, 174, 18, 228, 252, 89, 226, 60, 233, 97, 178, 200, 55, 246, 211, 246, 100, 40, 58, 249, 6, 211, 68, 224, 0})
+
+	mockBlockState, err := state.NewBlockState(db, tries, nil)
+	require.NoError(t, err)
+	mockStateService := &state.Service{
+		Block: mockBlockState,
+	}
+	phs, err := parachain.NewService(testNetworkService, "random_fork_id", mockStateService, ks.Para)
+	require.NoError(t, err)
+
 	m.EXPECT().createRuntimeStorage(gomock.AssignableToTypeOf(&state.Service{})).Return(&runtime.
 		NodeStorage{}, nil)
 	m.EXPECT().loadRuntime(initConfig, &runtime.NodeStorage{}, gomock.AssignableToTypeOf(&state.Service{}),
@@ -151,6 +178,12 @@ func TestNewNode(t *testing.T) {
 		})
 	m.EXPECT().createNetworkService(initConfig, gomock.AssignableToTypeOf(&state.Service{}),
 		gomock.AssignableToTypeOf(&telemetry.Mailer{})).Return(testNetworkService, nil)
+	m.EXPECT().createParachainHostService(
+		gomock.AssignableToTypeOf(&network.Service{}),
+		gomock.AssignableToTypeOf("random_fork_id"),
+		gomock.AssignableToTypeOf(mockStateService),
+		gomock.AssignableToTypeOf(ks.Para),
+	).Return(phs, nil)
 
 	got, err := newNode(initConfig, ks, m, mockServiceRegistry)
 	assert.NoError(t, err)

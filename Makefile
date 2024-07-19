@@ -79,7 +79,7 @@ deps:
 	go mod download
 
 ## build: Builds application binary and stores it in `./bin/gossamer`
-build:
+build: compile-erasure
 	@echo "  >  \033[32mBuilding binary...\033[0m "
 	go build -trimpath -o ./bin/gossamer -ldflags="-s -w" ./cmd/gossamer
 
@@ -151,3 +151,6 @@ endif
 
 zombienet-test: install install-zombienet
 	zombienet test -p native zombienet_tests/functional/0001-basic-network.zndsl
+
+compile-erasure:
+	cargo build --release --manifest-path=lib/erasure/rustlib/Cargo.toml
