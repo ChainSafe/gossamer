@@ -230,24 +230,6 @@ func (trieNodeToEncode) isNodeToEncode() {}
 // ChildReferences is a slice of ChildReference
 type ChildReferences [codec.ChildrenCapacity]ChildReference
 
-func NewChildReferences(encodedChildren [codec.ChildrenCapacity]codec.MerkleValue) ChildReferences {
-	children := ChildReferences{}
-	for i, child := range encodedChildren {
-		if child == nil {
-			children[i] = nil
-			continue
-		}
-
-		switch n := child.(type) {
-		case codec.InlineNode:
-			children[i] = InlineChildReference(n)
-		case codec.HashedNode:
-			children[i] = HashChildReference(common.Hash(n))
-		}
-	}
-	return children
-}
-
 // ChildReference is a reference to a child node
 type ChildReference interface {
 	getNodeData() []byte
