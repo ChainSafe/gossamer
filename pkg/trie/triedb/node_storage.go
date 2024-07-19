@@ -15,36 +15,36 @@ var hashedNullNode = common.MustBlake2bHash(EmptyNode)
 // StorageHandle is a pointer to a node contained in `NodeStorage`
 type storageHandle int
 
-// NodeHandle is an enum for the different types of nodes that can be stored in
+// nodeHandle is an enum for the different types of nodes that can be stored in
 // in our trieDB before a commit is applied
 // This is useful to mantain the trie structure with nodes that could be loaded
 // in memory or are a hash to a node that is stored in the backed db
-type NodeHandle interface {
+type nodeHandle interface {
 	isNodeHandle()
 }
 
 type (
-	InMemory  storageHandle
-	Persisted common.Hash
+	inMemory  storageHandle
+	persisted common.Hash
 )
 
-func (InMemory) isNodeHandle()  {}
-func (Persisted) isNodeHandle() {}
+func (inMemory) isNodeHandle()  {}
+func (persisted) isNodeHandle() {}
 
 func newFromEncodedMerkleValue(
 	parentHash common.Hash,
 	encodedNodeHandle codec.MerkleValue,
 	storage nodeStorage,
-) (NodeHandle, error) {
+) (nodeHandle, error) {
 	switch encoded := encodedNodeHandle.(type) {
 	case codec.HashedNode:
-		return Persisted(encoded), nil
+		return persisted(encoded), nil
 	case codec.InlineNode:
 		child, err := newNodeFromEncoded(parentHash, encoded, storage)
 		if err != nil {
 			return nil, err
 		}
-		return InMemory(storage.alloc(NewStoredNode{child})), nil
+		return inMemory(storage.alloc(NewStoredNode{child})), nil
 	default:
 		panic("unreachable")
 	}
