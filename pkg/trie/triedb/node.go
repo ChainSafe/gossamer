@@ -30,7 +30,7 @@ type (
 	// newValueRef is a value that will be stored in the db
 	newValueRef struct {
 		hash common.Hash
-		Data []byte
+		data []byte
 	}
 )
 
@@ -43,7 +43,7 @@ func newEncodedValue(value nodeValue, partial []byte, childF onChildStoreFn) (co
 		return codec.HashedValue(v), nil
 	case newValueRef:
 		// Store value in db
-		childRef, err := childF(newNodeToEncode{partialKey: partial, value: v.Data}, partial, nil)
+		childRef, err := childF(newNodeToEncode{partialKey: partial, value: v.data}, partial, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -105,7 +105,7 @@ func (vr newValueRef) equal(other nodeValue) bool {
 
 func NewValue(data []byte, threshold int) nodeValue {
 	if len(data) >= threshold {
-		return newValueRef{Data: data}
+		return newValueRef{data: data}
 	}
 
 	return inline(data)
@@ -128,7 +128,7 @@ func inMemoryFetchedValue(value nodeValue, prefix []byte, db db.DBGetter) ([]byt
 	case inline:
 		return v, nil
 	case newValueRef:
-		return v.Data, nil
+		return v.data, nil
 	case valueRef:
 		prefixedKey := bytes.Join([][]byte{prefix, v[:]}, nil)
 		value, err := db.Get(prefixedKey)
