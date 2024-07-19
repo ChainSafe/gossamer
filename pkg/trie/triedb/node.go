@@ -156,7 +156,7 @@ type (
 	}
 	Branch struct {
 		partialKey []byte
-		children   [codec.ChildrenCapacity]nodeHandle
+		children   [codec.ChildrenCapacity]NodeHandle
 		value      nodeValue
 	}
 )
@@ -184,7 +184,7 @@ func newNodeFromEncoded(nodeHash common.Hash, data []byte, storage nodeStorage) 
 		encodedChildren := encoded.Children
 		value := encoded.Value
 
-		child := func(i int) (nodeHandle, error) {
+		child := func(i int) (NodeHandle, error) {
 			if encodedChildren[i] != nil {
 				newChild, err := newFromEncodedMerkleValue(nodeHash, encodedChildren[i], storage)
 				if err != nil {
@@ -195,7 +195,7 @@ func newNodeFromEncoded(nodeHash common.Hash, data []byte, storage nodeStorage) 
 			return nil, nil //nolint:nilnil
 		}
 
-		children := [codec.ChildrenCapacity]nodeHandle{}
+		children := [codec.ChildrenCapacity]NodeHandle{}
 		for i := 0; i < len(children); i++ {
 			child, err := child(i)
 			if err != nil {
@@ -220,7 +220,7 @@ type (
 		value      []byte
 	}
 	trieNodeToEncode struct {
-		child nodeHandle
+		child NodeHandle
 	}
 )
 

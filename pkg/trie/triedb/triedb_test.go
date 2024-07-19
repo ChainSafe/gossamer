@@ -56,7 +56,7 @@ func TestInsertions(t *testing.T) {
 						Branch{
 							partialKey: []byte{1},
 							value:      inline([]byte("branch")),
-							children: [codec.ChildrenCapacity]nodeHandle{
+							children: [codec.ChildrenCapacity]NodeHandle{
 								inMemory(0), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
@@ -84,7 +84,7 @@ func TestInsertions(t *testing.T) {
 						Branch{
 							partialKey: []byte{},
 							value:      inline([]byte("in between branch")),
-							children: [codec.ChildrenCapacity]nodeHandle{
+							children: [codec.ChildrenCapacity]NodeHandle{
 								nil, inMemory(1), nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
@@ -100,7 +100,7 @@ func TestInsertions(t *testing.T) {
 						Branch{
 							partialKey: []byte{1},
 							value:      inline([]byte("branch")),
-							children: [codec.ChildrenCapacity]nodeHandle{
+							children: [codec.ChildrenCapacity]NodeHandle{
 								inMemory(0), nil, nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
@@ -134,7 +134,7 @@ func TestInsertions(t *testing.T) {
 						Branch{
 							partialKey: []byte{},
 							value:      inline([]byte("branch")),
-							children: [codec.ChildrenCapacity]nodeHandle{
+							children: [codec.ChildrenCapacity]NodeHandle{
 								nil, inMemory(0), nil, nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil,
 							},
@@ -144,7 +144,7 @@ func TestInsertions(t *testing.T) {
 						Branch{
 							partialKey: []byte{1},
 							value:      inline([]byte("top branch")),
-							children: [codec.ChildrenCapacity]nodeHandle{
+							children: [codec.ChildrenCapacity]NodeHandle{
 								inMemory(1), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
@@ -178,7 +178,7 @@ func TestInsertions(t *testing.T) {
 						Branch{
 							partialKey: []byte{1},
 							value:      inline([]byte("new branch")),
-							children: [codec.ChildrenCapacity]nodeHandle{
+							children: [codec.ChildrenCapacity]NodeHandle{
 								inMemory(0), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
@@ -212,7 +212,7 @@ func TestInsertions(t *testing.T) {
 						Branch{
 							partialKey: []byte{1},
 							value:      inline([]byte("branch")),
-							children: [codec.ChildrenCapacity]nodeHandle{
+							children: [codec.ChildrenCapacity]NodeHandle{
 								inMemory(0), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
@@ -240,7 +240,7 @@ func TestInsertions(t *testing.T) {
 						Branch{
 							partialKey: []byte{1},
 							value:      inline([]byte("branch")),
-							children: [codec.ChildrenCapacity]nodeHandle{
+							children: [codec.ChildrenCapacity]NodeHandle{
 								inMemory(1), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
@@ -322,7 +322,7 @@ func TestInsertions(t *testing.T) {
 						Branch{
 							partialKey: []byte{},
 							value:      nil,
-							children: [codec.ChildrenCapacity]nodeHandle{
+							children: [codec.ChildrenCapacity]NodeHandle{
 								nil,
 								inMemory(0), inMemory(1),
 								nil, nil, nil, nil, nil, nil, nil, nil,
@@ -455,7 +455,7 @@ func TestDeletes(t *testing.T) {
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{1},
-							children: [codec.ChildrenCapacity]nodeHandle{
+							children: [codec.ChildrenCapacity]NodeHandle{
 								inMemory(0), inMemory(1),
 							},
 						},
@@ -542,7 +542,7 @@ func TestInsertAfterDelete(t *testing.T) {
 						Branch{
 							partialKey: []byte{1},
 							value:      inline([]byte("new branch")),
-							children: [codec.ChildrenCapacity]nodeHandle{
+							children: [codec.ChildrenCapacity]NodeHandle{
 								inMemory(0),
 							},
 						},

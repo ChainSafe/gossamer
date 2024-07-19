@@ -47,7 +47,7 @@ type TrieDB struct {
 	version  trie.TrieLayout
 	// rootHandle is an in-memory-trie-like representation of the node
 	// references and new inserted nodes in the trie
-	rootHandle nodeHandle
+	rootHandle NodeHandle
 	// Storage is an in memory storage for nodes that we need to use during this
 	// trieDB session (before nodes are committed to db)
 	storage nodeStorage
@@ -128,7 +128,7 @@ func (t *TrieDB) Get(key []byte) []byte {
 	return val
 }
 
-func (t *TrieDB) lookup(fullKey []byte, partialKey []byte, handle nodeHandle) ([]byte, error) {
+func (t *TrieDB) lookup(fullKey []byte, partialKey []byte, handle NodeHandle) ([]byte, error) {
 	prefix := fullKey
 
 	for {
@@ -263,7 +263,7 @@ func (t *TrieDB) Put(key, value []byte) error {
 // insertAt inserts the given key / value pair into the node referenced by the
 // node handle `handle`
 func (t *TrieDB) insertAt(
-	handle nodeHandle,
+	handle NodeHandle,
 	keyNibbles,
 	value []byte,
 	oldValue *nodeValue,
@@ -299,7 +299,7 @@ type RemoveAtResult struct {
 }
 
 func (t *TrieDB) removeAt(
-	handle nodeHandle,
+	handle NodeHandle,
 	keyNibbles []byte,
 	oldValue *nodeValue,
 ) (*RemoveAtResult, error) {
@@ -555,7 +555,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 			// If the common prefix is less than this leaf's key then we need to
 			// create a branch node. Then add this leaf and the new value to the
 			// branch
-			var children [codec.ChildrenCapacity]nodeHandle
+			var children [codec.ChildrenCapacity]NodeHandle
 
 			idx := existingKey[common]
 
@@ -579,7 +579,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 			// then we turn this leaf into a branch and add the new leaf as a child
 			var branch Node = Branch{
 				partialKey: n.partialKey,
-				children:   [codec.ChildrenCapacity]nodeHandle{},
+				children:   [codec.ChildrenCapacity]NodeHandle{},
 				value:      n.value,
 			}
 			// Use the inspector to add the new leaf as part of this branch
@@ -622,7 +622,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 			lowerBranch := Branch{branchPartial, n.children, n.value}
 			allocStorage := t.storage.alloc(NewStoredNode{node: lowerBranch})
 
-			children := [codec.ChildrenCapacity]nodeHandle{}
+			children := [codec.ChildrenCapacity]NodeHandle{}
 			ix := existingKey[common]
 			children[ix] = inMemory(allocStorage)
 
@@ -825,7 +825,7 @@ func (t *TrieDB) commit() error {
 // Commit a node by hashing it and writing it to the db.
 func (t *TrieDB) commitChild(
 	dbBatch database.Batch,
-	child nodeHandle,
+	child NodeHandle,
 	prefixKey []byte,
 ) (ChildReference, error) {
 	switch nh := child.(type) {
