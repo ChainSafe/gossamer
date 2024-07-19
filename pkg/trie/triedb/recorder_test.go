@@ -12,7 +12,7 @@ import (
 // Tests results are based on
 // https://github.com/dimartiro/substrate-trie-test/blob/master/src/substrate_trie_test.rs
 func TestRecorder(t *testing.T) {
-	inmemoryDB := NewMemoryDB(emptyNode)
+	inmemoryDB := NewMemoryDB(EmptyNode)
 
 	triedb := NewEmptyTrieDB(inmemoryDB)
 
@@ -35,7 +35,7 @@ func TestRecorder(t *testing.T) {
 		recordedNodes := recorder.Drain()
 		encodedNodes := [][]byte{}
 		for _, node := range recordedNodes {
-			encodedNodes = append(encodedNodes, node.data)
+			encodedNodes = append(encodedNodes, node.Data)
 		}
 
 		expectedNodes := [][]byte{
@@ -71,7 +71,7 @@ func TestRecorder(t *testing.T) {
 		recordedNodes := recorder.Drain()
 		encodedNodes := [][]byte{}
 		for _, node := range recordedNodes {
-			encodedNodes = append(encodedNodes, node.data)
+			encodedNodes = append(encodedNodes, node.Data)
 		}
 
 		expectedNodes := [][]byte{
