@@ -71,7 +71,7 @@ type stackEntry struct {
 	// childIndex is used for branch nodes
 	childIndex int
 	// children contains the child references to use in constructing the proof nodes.
-	children [codec.ChildrenCapacity]triedb.ChildReference
+	children triedb.ChildReferences
 	// outputIndex is the index into the proof vector that the encoding of this entry should be placed at.
 	outputIndex *int
 }
