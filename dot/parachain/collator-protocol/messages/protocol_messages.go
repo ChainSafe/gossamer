@@ -10,6 +10,8 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
 
+const MaxCollationMessageSize uint64 = 100 * 1024
+
 type CollationProtocolValues interface {
 	CollatorProtocolMessage
 }
@@ -153,8 +155,6 @@ type CollationSeconded struct {
 	RelayParent common.Hash                                 `scale:"1"`
 	Statement   parachaintypes.UncheckedSignedFullStatement `scale:"2"`
 }
-
-const MaxCollationMessageSize uint64 = 100 * 1024
 
 // Type returns CollationMsgType
 func (CollationProtocol) Type() network.MessageType {

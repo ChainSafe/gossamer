@@ -270,10 +270,8 @@ func TestProcessOverseerMessage(t *testing.T) {
 		t.Run(c.description, func(t *testing.T) {
 			t.Parallel()
 			cpvs := CollatorProtocolValidatorSide{
-				// perRelayParent: c.perRelayParent,
 				fetchedCandidates: c.fetchedCandidates,
 				peerData:          c.peerData,
-				// activeLeaves:   c.activeLeaves,
 			}
 
 			ctrl := gomock.NewController(t)
