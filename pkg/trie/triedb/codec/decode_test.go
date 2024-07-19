@@ -152,12 +152,8 @@ func Test_Decode(t *testing.T) {
 func Test_decodeBranch(t *testing.T) {
 	t.Parallel()
 
-	const childHashLength = 32
-	childHash := make([]byte, childHashLength)
-	for i := range childHash {
-		childHash[i] = byte(i)
-	}
-	scaleEncodedChildHash := scaleEncodeByteSlice(t, childHash)
+	childHash := common.EmptyHash
+	scaleEncodedChildHash := scaleEncodeByteSlice(t, childHash.ToBytes())
 
 	testCases := map[string]struct {
 		reader      io.Reader

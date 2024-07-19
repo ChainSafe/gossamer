@@ -46,7 +46,7 @@ func newFromEncodedMerkleValue(
 ) (NodeHandle, error) {
 	switch encoded := encodedNodeHandle.(type) {
 	case codec.HashedNode:
-		return Persisted{hash: common.NewHash(encoded.Data)}, nil
+		return Persisted{hash: encoded.Data}, nil
 	case codec.InlineNode:
 		child, err := newNodeFromEncoded(parentHash, encoded.Data, storage)
 		if err != nil {

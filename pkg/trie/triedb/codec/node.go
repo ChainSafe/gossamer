@@ -27,7 +27,7 @@ type (
 	}
 	// HashedNode contains a hash used to lookup in db for encoded node data
 	HashedNode struct {
-		Data []byte
+		Data common.Hash
 	}
 )
 
@@ -40,7 +40,7 @@ func NewInlineNode(data []byte) MerkleValue {
 	return InlineNode{Data: data}
 }
 
-func NewHashedNode(data []byte) MerkleValue {
+func NewHashedNode(data common.Hash) MerkleValue {
 	return HashedNode{Data: data}
 }
 

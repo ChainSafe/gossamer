@@ -203,7 +203,7 @@ func (t *TrieDB) getNode(
 		reader := bytes.NewReader(n.Data)
 		return codec.Decode(reader)
 	case codec.HashedNode:
-		encodedNode, err := t.db.Get(n.Data)
+		encodedNode, err := t.db.Get(n.Data.ToBytes())
 		if err != nil {
 			return nil, err
 		}

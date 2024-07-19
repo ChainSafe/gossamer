@@ -121,7 +121,7 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 			switch merkleValue := nextNode.(type) {
 			case codec.HashedNode:
 				// If it's hashed we set the hash to look for it in next loop
-				hash = merkleValue.Data
+				hash = merkleValue.Data.ToBytes()
 				break InlinedChildrenIterator
 			case codec.InlineNode:
 				// If it is inlined we just need to decode it in the next loop
