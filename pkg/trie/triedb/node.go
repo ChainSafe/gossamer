@@ -21,10 +21,13 @@ type nodeValue interface {
 }
 
 type (
+	// inline is an inlined value representation
 	inline []byte
 
+	// valueRef is a reference to a value stored in the db
 	valueRef common.Hash
 
+	// newValueRef is a value that will be stored in the db
 	newValueRef struct {
 		hash common.Hash
 		Data []byte
