@@ -52,16 +52,16 @@ func NewEncodedValue(value nodeValue, partial []byte, childF onChildStoreFn) (co
 		// Check and get new new value hash
 		switch cr := childRef.(type) {
 		case HashChildReference:
-			if cr.hash == common.EmptyHash {
+			if common.Hash(cr) == common.EmptyHash {
 				panic("new external value are always added before encoding a node")
 			}
 
 			if v.hash != common.EmptyHash {
-				if v.hash != cr.hash {
+				if v.hash != common.Hash(cr) {
 					panic("hash mismatch")
 				}
 			} else {
-				v.hash = cr.hash
+				v.hash = common.Hash(cr)
 			}
 		default:
 			panic("value node can never be inlined")
@@ -228,6 +228,27 @@ type (
 func (newNodeToEncode) isNodeToEncode()  {}
 func (trieNodeToEncode) isNodeToEncode() {}
 
+// ChildReferences is a slice of ChildReference
+type ChildReferences [codec.ChildrenCapacity]ChildReference
+
+func NewChildReferences(encodedChildren [codec.ChildrenCapacity]codec.MerkleValue) ChildReferences {
+	children := ChildReferences{}
+	for i, child := range encodedChildren {
+		if child == nil {
+			children[i] = nil
+			continue
+		}
+
+		switch n := child.(type) {
+		case codec.InlineNode:
+			children[i] = InlineChildReference(n.Data)
+		case codec.HashedNode:
+			children[i] = HashChildReference(common.Hash(n.Data))
+		}
+	}
+	return children
+}
+
 // ChildReference is a reference to a child node
 type ChildReference interface {
 	getNodeData() []byte
@@ -235,25 +256,21 @@ type ChildReference interface {
 
 type (
 	// HashChildReference is a reference to a child node that is not inlined
-	HashChildReference struct {
-		hash common.Hash
-	}
+	HashChildReference common.Hash
 	// InlineChildReference is a reference to an inlined child node
-	InlineChildReference struct {
-		encodedNode []byte
-	}
+	InlineChildReference []byte
 )
 
 func (h HashChildReference) getNodeData() []byte {
-	return h.hash.ToBytes()
+	return h[:]
 }
 func (i InlineChildReference) getNodeData() []byte {
-	return i.encodedNode
+	return i
 }
 
 type onChildStoreFn = func(node nodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error)
 
-const emptyTrieBytes = byte(0)
+const EmptyTrieBytes = byte(0)
 
 // NewEncodedNode creates a new encoded node from a node and a child store function and return its bytes
 func NewEncodedNode(node Node, childF onChildStoreFn) (encodedNode []byte, err error) {
@@ -261,7 +278,7 @@ func NewEncodedNode(node Node, childF onChildStoreFn) (encodedNode []byte, err e
 
 	switch n := node.(type) {
 	case Empty:
-		return []byte{emptyTrieBytes}, nil
+		return []byte{EmptyTrieBytes}, nil
 	case Leaf:
 		pr := n.partialKey
 		value, err := NewEncodedValue(n.value, pr, childF)

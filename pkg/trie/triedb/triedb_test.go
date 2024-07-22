@@ -341,8 +341,8 @@ func TestInsertions(t *testing.T) {
 			t.Parallel()
 
 			// Setup trie
-			inmemoryDB := NewMemoryDB(emptyNode)
-			trie := NewEmptyTrieDB(inmemoryDB, nil)
+			inmemoryDB := NewMemoryDB(EmptyNode)
+			trie := NewEmptyTrieDB(inmemoryDB)
 
 			for _, entry := range testCase.trieEntries {
 				assert.NoError(t, trie.insert(entry.Key, entry.Value))
@@ -471,8 +471,8 @@ func TestDeletes(t *testing.T) {
 			t.Parallel()
 
 			// Setup trie
-			inmemoryDB := NewMemoryDB(emptyNode)
-			trie := NewEmptyTrieDB(inmemoryDB, nil)
+			inmemoryDB := NewMemoryDB(EmptyNode)
+			trie := NewEmptyTrieDB(inmemoryDB)
 
 			for _, entry := range testCase.trieEntries {
 				assert.NoError(t, trie.insert(entry.Key, entry.Value))
@@ -558,8 +558,8 @@ func TestInsertAfterDelete(t *testing.T) {
 			t.Parallel()
 
 			// Setup trie
-			inmemoryDB := NewMemoryDB(emptyNode)
-			trie := NewEmptyTrieDB(inmemoryDB, nil)
+			inmemoryDB := NewMemoryDB(EmptyNode)
+			trie := NewEmptyTrieDB(inmemoryDB)
 
 			for _, entry := range testCase.trieEntries {
 				assert.NoError(t, trie.insert(entry.Key, entry.Value))
@@ -585,8 +585,8 @@ func TestDBCommits(t *testing.T) {
 	t.Run("commit_leaf", func(t *testing.T) {
 		t.Parallel()
 
-		inmemoryDB := NewMemoryDB(emptyNode)
-		trie := NewEmptyTrieDB(inmemoryDB, nil)
+		inmemoryDB := NewMemoryDB(EmptyNode)
+		trie := NewEmptyTrieDB(inmemoryDB)
 
 		err := trie.Put([]byte("leaf"), []byte("leafvalue"))
 		assert.NoError(t, err)
@@ -605,8 +605,8 @@ func TestDBCommits(t *testing.T) {
 	t.Run("commit_branch_and_inlined_leaf", func(t *testing.T) {
 		t.Parallel()
 
-		inmemoryDB := NewMemoryDB(emptyNode)
-		trie := NewEmptyTrieDB(inmemoryDB, nil)
+		inmemoryDB := NewMemoryDB(EmptyNode)
+		trie := NewEmptyTrieDB(inmemoryDB)
 
 		err := trie.Put([]byte("branchleaf"), []byte("leafvalue"))
 		assert.NoError(t, err)
@@ -629,8 +629,8 @@ func TestDBCommits(t *testing.T) {
 	t.Run("commit_branch_and_hashed_leaf", func(t *testing.T) {
 		t.Parallel()
 
-		inmemoryDB := NewMemoryDB(emptyNode)
-		tr := NewEmptyTrieDB(inmemoryDB, nil)
+		inmemoryDB := NewMemoryDB(EmptyNode)
+		tr := NewEmptyTrieDB(inmemoryDB)
 
 		err := tr.Put([]byte("branchleaf"), make([]byte, 40))
 		assert.NoError(t, err)
@@ -651,11 +651,57 @@ func TestDBCommits(t *testing.T) {
 		assert.Equal(t, make([]byte, 40), value)
 	})
 
+	t.Run("commit_leaf_with_hashed_value", func(t *testing.T) {
+		t.Parallel()
+
+		inmemoryDB := NewMemoryDB(EmptyNode)
+		tr := NewEmptyTrieDB(inmemoryDB)
+		tr.SetVersion(trie.V1)
+
+		err := tr.Put([]byte("leaf"), make([]byte, 40))
+		assert.NoError(t, err)
+
+		err = tr.commit()
+		assert.NoError(t, err)
+
+		// 1 hashed leaf with hashed value
+		// 1 hashed value
+		assert.Len(t, inmemoryDB.data, 2)
+
+		// Get values using lazy loading
+		value := tr.Get([]byte("leaf"))
+		assert.Equal(t, make([]byte, 40), value)
+	})
+
+	t.Run("commit_leaf_with_hashed_value_then_remove_it", func(t *testing.T) {
+		t.Parallel()
+
+		inmemoryDB := NewMemoryDB(EmptyNode)
+		tr := NewEmptyTrieDB(inmemoryDB)
+		tr.SetVersion(trie.V1)
+
+		err := tr.Put([]byte("leaf"), make([]byte, 40))
+		assert.NoError(t, err)
+
+		err = tr.commit()
+		assert.NoError(t, err)
+
+		// 1 hashed leaf with hashed value
+		// 1 hashed value
+		assert.Len(t, inmemoryDB.data, 2)
+
+		// Get values using lazy loading
+		err = tr.Delete([]byte("leaf"))
+		assert.NoError(t, err)
+		tr.commit()
+		assert.Len(t, inmemoryDB.data, 0)
+	})
+
 	t.Run("commit_branch_and_hashed_leaf_with_hashed_value", func(t *testing.T) {
 		t.Parallel()
 
-		inmemoryDB := NewMemoryDB(emptyNode)
-		tr := NewEmptyTrieDB(inmemoryDB, nil)
+		inmemoryDB := NewMemoryDB(EmptyNode)
+		tr := NewEmptyTrieDB(inmemoryDB)
 		tr.SetVersion(trie.V1)
 
 		err := tr.Put([]byte("branchleaf"), make([]byte, 40))
@@ -681,8 +727,8 @@ func TestDBCommits(t *testing.T) {
 	t.Run("commit_branch_and_hashed_leaf_with_hashed_value_then_delete_it", func(t *testing.T) {
 		t.Parallel()
 
-		inmemoryDB := NewMemoryDB(emptyNode)
-		tr := NewEmptyTrieDB(inmemoryDB, nil)
+		inmemoryDB := NewMemoryDB(EmptyNode)
+		tr := NewEmptyTrieDB(inmemoryDB)
 		tr.SetVersion(trie.V1)
 
 		err := tr.Put([]byte("branchleaf"), make([]byte, 40))
@@ -711,8 +757,8 @@ func TestDBCommits(t *testing.T) {
 	t.Run("commit_branch_with_leaf_then_delete_leaf", func(t *testing.T) {
 		t.Parallel()
 
-		inmemoryDB := NewMemoryDB(emptyNode)
-		trie := NewEmptyTrieDB(inmemoryDB, nil)
+		inmemoryDB := NewMemoryDB(EmptyNode)
+		trie := NewEmptyTrieDB(inmemoryDB)
 
 		err := trie.Put([]byte("branchleaf"), []byte("leafvalue"))
 		assert.NoError(t, err)
