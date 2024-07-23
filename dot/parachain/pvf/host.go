@@ -1,7 +1,7 @@
 package pvf
 
 import (
-	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -17,7 +17,7 @@ type ValidationHost struct {
 }
 
 func (v *ValidationHost) Start() {
-
+	fmt.Printf("v.wg %v\n", v)
 	v.wg.Add(1)
 	logger.Debug("Starting validation host")
 	go func() {
@@ -37,16 +37,13 @@ func NewValidationHost() *ValidationHost {
 	}
 }
 
-func (v *ValidationHost) Validate(workerID parachaintypes.ValidationCodeHash) {
-	logger.Debugf("Validating worker", "workerID", workerID)
+func (v *ValidationHost) Validate(msg *ValidationTask) {
+	logger.Debugf("Validating worker", "workerID", msg.WorkerID)
 
-	resultCh := make(chan *validationTaskResult)
-
-	//task := &validationTask{
-	//	request:  "test",
-	//	resultCh: resultCh,
-	//}
-	v.workerPool.submitRequest("test", &workerID, resultCh)
-
-	<-resultCh
+	logger.Debugf("submitting request for worker", "workerID", msg.WorkerID)
+	hasWorker := v.workerPool.containsWorker(*msg.WorkerID)
+	if !hasWorker {
+		v.workerPool.newValidationWorker(*msg.WorkerID)
+	}
+	v.workerPool.submitRequest(msg)
 }

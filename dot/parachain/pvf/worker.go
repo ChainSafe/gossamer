@@ -2,47 +2,43 @@ package pvf
 
 import (
 	"sync"
+	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
 
 type worker struct {
-	workerID    parachaintypes.ValidationCodeHash
-	sharedGuard chan struct{}
+	workerID parachaintypes.ValidationCodeHash
 }
 
-func newWorker(pID parachaintypes.ValidationCodeHash, sharedGuard chan struct{}) *worker {
+func newWorker(pID parachaintypes.ValidationCodeHash) *worker {
 	return &worker{
-		workerID:    pID,
-		sharedGuard: sharedGuard,
+		workerID: pID,
 	}
 }
 
-func (w *worker) run(queue chan *validationTask, wg *sync.WaitGroup) {
+func (w *worker) run(queue chan *ValidationTask, wg *sync.WaitGroup) {
 	defer func() {
 		logger.Debugf("[STOPPED] worker %x", w.workerID)
 		wg.Done()
 	}()
 
 	for task := range queue {
-		executeRequest(w.workerID, task, w.sharedGuard)
+		executeRequest(task)
 	}
 }
 
-func executeRequest(who parachaintypes.ValidationCodeHash, task *validationTask, sharedGuard chan struct{}) {
-	defer func() {
-		<-sharedGuard
-	}()
-
-	sharedGuard <- struct{}{}
-
-	request := task.request
-	logger.Debugf("[EXECUTING] worker %x, block request: %s", who, request)
-
-	task.resultCh <- &validationTaskResult{
-		who:    who,
-		result: request + " result",
+func executeRequest(task *ValidationTask) {
+	// WIP: This is a dummy implementation of the worker execution for the validation task.  The logic for
+	//  validating the parachain block request should be implemented here.
+	request := task.PoV
+	logger.Debugf("[EXECUTING] worker %x, block request: %s", task.WorkerID, request)
+	time.Sleep(500 * time.Millisecond)
+	dummyResult := &ValidationResult{}
+	task.ResultCh <- &ValidationTaskResult{
+		who:    *task.WorkerID,
+		result: dummyResult,
 	}
 
-	logger.Debugf("[FINISHED] worker %x", who)
+	logger.Debugf("[FINISHED] worker %x", task.WorkerID)
 }

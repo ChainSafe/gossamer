@@ -11,6 +11,7 @@ import (
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	"github.com/ChainSafe/gossamer/dot/parachain/pvf"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
@@ -296,7 +297,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		return fmt.Errorf("setting pvfExecTimeoutKind: %w", err)
 	}
 
-	chValidationResultRes := make(chan parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult])
+	chValidationResultRes := make(chan parachaintypes.OverseerFuncRes[pvf.ValidationResult])
 	subSystemToOverseer <- candidatevalidation.ValidateFromExhaustive{
 		PersistedValidationData: pvd,
 		ValidationCode:          *validationCode,

@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/parachain/pvf"
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -170,11 +171,11 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 	testValidationHost, err := parachainruntime.SetupVM(validationCode)
 	require.NoError(t, err)
 
-	povHashMismatch := PoVHashMismatch
-	paramsTooLarge := ParamsTooLarge
-	codeHashMismatch := CodeHashMismatch
-	paraHedHashMismatch := ParaHeadHashMismatch
-	commitmentsHashMismatch := CommitmentsHashMismatch
+	povHashMismatch := pvf.PoVHashMismatch
+	paramsTooLarge := pvf.ParamsTooLarge
+	codeHashMismatch := pvf.CodeHashMismatch
+	paraHedHashMismatch := pvf.ParaHeadHashMismatch
+	commitmentsHashMismatch := pvf.CommitmentsHashMismatch
 
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
@@ -214,7 +215,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 	}
 	tests := map[string]struct {
 		args          args
-		want          *ValidationResult
+		want          *pvf.ValidationResult
 		expectedError error
 		isValid       bool
 	}{
@@ -230,7 +231,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				candidateReceipt: candidateReceipt2,
 				pov:              pov,
 			},
-			want: &ValidationResult{
+			want: &pvf.ValidationResult{
 				InvalidResult: &povHashMismatch,
 			},
 			isValid: false,
@@ -247,7 +248,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				candidateReceipt: candidateReceipt,
 				pov:              pov,
 			},
-			want: &ValidationResult{
+			want: &pvf.ValidationResult{
 				InvalidResult: &paramsTooLarge,
 			},
 		},
@@ -263,7 +264,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				candidateReceipt: candidateReceipt,
 				pov:              pov,
 			},
-			want: &ValidationResult{
+			want: &pvf.ValidationResult{
 				InvalidResult: &codeHashMismatch,
 			},
 			isValid: false,
@@ -315,7 +316,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				candidateReceipt: candidateReceiptParaHeadMismatch,
 				pov:              pov,
 			},
-			want: &ValidationResult{
+			want: &pvf.ValidationResult{
 				InvalidResult: &paraHedHashMismatch,
 			},
 			isValid: false,
@@ -333,7 +334,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				candidateReceipt: candidateReceiptCommitmentsMismatch,
 				pov:              pov,
 			},
-			want: &ValidationResult{
+			want: &pvf.ValidationResult{
 				InvalidResult: &commitmentsHashMismatch,
 			},
 			isValid: false,
@@ -351,8 +352,8 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 				candidateReceipt: candidateReceipt,
 				pov:              pov,
 			},
-			want: &ValidationResult{
-				ValidResult: &ValidValidationResult{
+			want: &pvf.ValidationResult{
+				ValidResult: &pvf.ValidValidationResult{
 					CandidateCommitments: parachaintypes.CandidateCommitments{
 						UpwardMessages:     nil,
 						HorizontalMessages: nil,
@@ -408,9 +409,9 @@ func TestCandidateValidation_wasm_invalid_magic_number(t *testing.T) {
 }
 
 func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) {
-	povHashMismatch := PoVHashMismatch
-	paramsTooLarge := ParamsTooLarge
-	codeHashMismatch := CodeHashMismatch
+	povHashMismatch := pvf.PoVHashMismatch
+	paramsTooLarge := pvf.ParamsTooLarge
+	codeHashMismatch := pvf.CodeHashMismatch
 
 	candidateReceipt, validationCode := createTestCandidateReceiptAndValidationCode(t)
 	candidateReceipt2 := candidateReceipt
@@ -442,12 +443,13 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 	require.NoError(t, err)
 
 	toSubsystem := make(chan any)
-	sender := make(chan parachaintypes.OverseerFuncRes[ValidationResult])
+	sender := make(chan parachaintypes.OverseerFuncRes[pvf.ValidationResult])
 	stopChan := make(chan struct{})
 	candidateValidationSubsystem := CandidateValidation{
 		OverseerToSubsystem: toSubsystem,
 		stopChan:            stopChan,
 		ValidationHost:      testValidationHost,
+		pvfHost:             pvf.NewValidationHost(),
 	}
 	defer candidateValidationSubsystem.Stop()
 
@@ -455,7 +457,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 
 	tests := map[string]struct {
 		msg  ValidateFromExhaustive
-		want parachaintypes.OverseerFuncRes[ValidationResult]
+		want parachaintypes.OverseerFuncRes[pvf.ValidationResult]
 	}{
 		"invalid_pov_hash": {
 			msg: ValidateFromExhaustive{
@@ -470,8 +472,8 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 				PoV:              pov,
 				Ch:               sender,
 			},
-			want: parachaintypes.OverseerFuncRes[ValidationResult]{
-				Data: ValidationResult{
+			want: parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+				Data: pvf.ValidationResult{
 					InvalidResult: &povHashMismatch,
 				},
 				Err: nil,
@@ -490,8 +492,8 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 				PoV:              pov,
 				Ch:               sender,
 			},
-			want: parachaintypes.OverseerFuncRes[ValidationResult]{
-				Data: ValidationResult{
+			want: parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+				Data: pvf.ValidationResult{
 					InvalidResult: &paramsTooLarge,
 				},
 			},
@@ -509,8 +511,8 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 				PoV:              pov,
 				Ch:               sender,
 			},
-			want: parachaintypes.OverseerFuncRes[ValidationResult]{
-				Data: ValidationResult{
+			want: parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+				Data: pvf.ValidationResult{
 					InvalidResult: &codeHashMismatch,
 				},
 			},
@@ -528,9 +530,9 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 				PoV:              pov,
 				Ch:               sender,
 			},
-			want: parachaintypes.OverseerFuncRes[ValidationResult]{
-				Data: ValidationResult{
-					ValidResult: &ValidValidationResult{
+			want: parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+				Data: pvf.ValidationResult{
+					ValidResult: &pvf.ValidValidationResult{
 						CandidateCommitments: parachaintypes.CandidateCommitments{
 							HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123,
 								207, 206, 8, 219, 227, 136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245,
@@ -567,10 +569,10 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 }
 
 func Test_performBasicChecks(t *testing.T) {
-	paramsTooLarge := ParamsTooLarge
-	povHashMismatch := PoVHashMismatch
-	codeHashMismatch := CodeHashMismatch
-	badSignature := BadSignature
+	paramsTooLarge := pvf.ParamsTooLarge
+	povHashMismatch := pvf.PoVHashMismatch
+	codeHashMismatch := pvf.CodeHashMismatch
+	badSignature := pvf.BadSignature
 
 	pov := parachaintypes.PoV{
 		BlockData: []byte{1, 2, 3, 4, 5, 6, 7, 8},
@@ -620,7 +622,7 @@ func Test_performBasicChecks(t *testing.T) {
 	}
 	tests := map[string]struct {
 		args          args
-		expectedError *ReasonForInvalidity
+		expectedError *pvf.ReasonForInvalidity
 	}{
 		"params_too_large": {
 			args: args{

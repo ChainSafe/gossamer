@@ -11,6 +11,7 @@ import (
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	"github.com/ChainSafe/gossamer/dot/parachain/pvf"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -692,7 +693,7 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 				for data := range ch {
 					switch data := data.(type) {
 					case candidatevalidation.ValidateFromExhaustive:
-						data.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
+						data.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
 							Err: errors.New("mock error getting validation result"),
 						}
 					default:
@@ -728,9 +729,9 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 				for data := range ch {
 					switch data := data.(type) {
 					case candidatevalidation.ValidateFromExhaustive:
-						ci := candidatevalidation.ExecutionError
-						data.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
-							Data: candidatevalidation.ValidationResult{
+						ci := pvf.ExecutionError
+						data.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+							Data: pvf.ValidationResult{
 								InvalidResult: &ci,
 							},
 						}
@@ -766,9 +767,9 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 				for data := range ch {
 					switch data := data.(type) {
 					case candidatevalidation.ValidateFromExhaustive:
-						data.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
-							Data: candidatevalidation.ValidationResult{
-								ValidResult: &candidatevalidation.ValidValidationResult{},
+						data.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+							Data: pvf.ValidationResult{
+								ValidResult: &pvf.ValidValidationResult{},
 							},
 						}
 					case availabilitystore.StoreAvailableData:

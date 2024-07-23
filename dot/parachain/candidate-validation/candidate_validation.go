@@ -8,9 +8,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/parachain/pvf"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/dot/parachain/pvf"
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -87,16 +87,33 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 			case ValidateFromChainState:
 				// TODO: implement functionality to handle ValidateFromChainState, see issue #3919
 			case ValidateFromExhaustive:
-				rTest := cv.pvfHost.Validate(msg.ValidationCode)
+				// This is the skeleton to hook up the PVF host to the candidate validation subsystem
+				//  This is currently WIP, pending moving the validation logic to the PVF host
+				validationCodeHash := msg.ValidationCode.Hash()
+				taskResult := make(chan *pvf.ValidationTaskResult)
+				validationTask := &pvf.ValidationTask{
+					PersistedValidationData: parachaintypes.PersistedValidationData{},
+					WorkerID:                &validationCodeHash,
+					CandidateReceipt:        &msg.CandidateReceipt,
+					PoV:                     msg.PoV,
+					ExecutorParams:          nil,
+					PvfExecTimeoutKind:      parachaintypes.PvfExecTimeoutKind{},
+					ResultCh:                taskResult,
+				}
+				cv.pvfHost.Validate(validationTask)
+				fmt.Printf("Validation result: %v", <-taskResult)
+
+				//  WIP: This is the current implementation of the validation logic, it will be replaced by the PVF host
+				//   when the validation logic is moved to the PVF host
 				result, err := validateFromExhaustive(cv.ValidationHost, msg.PersistedValidationData,
 					msg.ValidationCode, msg.CandidateReceipt, msg.PoV)
 				if err != nil {
 					logger.Errorf("failed to validate from exhaustive: %w", err)
-					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+					msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
 						Err: err,
 					}
 				} else {
-					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+					msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
 						Data: *result,
 					}
 				}
@@ -244,7 +261,7 @@ func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
 	persistedValidationData parachaintypes.PersistedValidationData,
 	validationCode parachaintypes.ValidationCode,
 	candidateReceipt parachaintypes.CandidateReceipt, pov parachaintypes.PoV) (
-	*ValidationResult, error) {
+	*pvf.ValidationResult, error) {
 
 	validationCodeHash := validationCode.Hash()
 	// basic checks
@@ -256,7 +273,7 @@ func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
 	}
 
 	if validationErr != nil {
-		validationResult := &ValidationResult{
+		validationResult := &pvf.ValidationResult{
 			InvalidResult: validationErr,
 		}
 		return validationResult, nil //nolint: nilerr
@@ -281,8 +298,8 @@ func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
 	}
 
 	if headDataHash != candidateReceipt.Descriptor.ParaHead {
-		ci := ParaHeadHashMismatch
-		return &ValidationResult{InvalidResult: &ci}, nil
+		ci := pvf.ParaHeadHashMismatch
+		return &pvf.ValidationResult{InvalidResult: &ci}, nil
 	}
 	candidateCommitments := parachaintypes.CandidateCommitments{
 		UpwardMessages:            validationResult.UpwardMessages,
@@ -295,11 +312,11 @@ func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
 
 	// if validation produced a new set of commitments, we treat the candidate as invalid
 	if candidateReceipt.CommitmentsHash != candidateCommitments.Hash() {
-		ci := CommitmentsHashMismatch
-		return &ValidationResult{InvalidResult: &ci}, nil
+		ci := pvf.CommitmentsHashMismatch
+		return &pvf.ValidationResult{InvalidResult: &ci}, nil
 	}
-	return &ValidationResult{
-		ValidResult: &ValidValidationResult{
+	return &pvf.ValidationResult{
+		ValidResult: &pvf.ValidValidationResult{
 			CandidateCommitments:    candidateCommitments,
 			PersistedValidationData: persistedValidationData,
 		},
@@ -310,8 +327,8 @@ func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
 // performBasicChecks Does basic checks of a candidate. Provide the encoded PoV-block.
 // Returns ReasonForInvalidity and internal error if any.
 func performBasicChecks(candidate *parachaintypes.CandidateDescriptor, maxPoVSize uint32,
-	pov parachaintypes.PoV, validationCodeHash parachaintypes.ValidationCodeHash) (validationError *ReasonForInvalidity,
-	internalError error) {
+	pov parachaintypes.PoV, validationCodeHash parachaintypes.ValidationCodeHash) (validationError *pvf.
+	ReasonForInvalidity, internalError error) {
 	povHash, err := pov.Hash()
 	if err != nil {
 		return nil, fmt.Errorf("hashing PoV: %w", err)
@@ -324,23 +341,23 @@ func performBasicChecks(candidate *parachaintypes.CandidateDescriptor, maxPoVSiz
 	encodedPoVSize := uint32(len(encodedPoV))
 
 	if encodedPoVSize > maxPoVSize {
-		ci := ParamsTooLarge
+		ci := pvf.ParamsTooLarge
 		return &ci, nil
 	}
 
 	if povHash != candidate.PovHash {
-		ci := PoVHashMismatch
+		ci := pvf.PoVHashMismatch
 		return &ci, nil
 	}
 
 	if validationCodeHash != candidate.ValidationCodeHash {
-		ci := CodeHashMismatch
+		ci := pvf.CodeHashMismatch
 		return &ci, nil
 	}
 
 	err = candidate.CheckCollatorSignature()
 	if err != nil {
-		ci := BadSignature
+		ci := pvf.BadSignature
 		return &ci, nil
 	}
 	return nil, nil
