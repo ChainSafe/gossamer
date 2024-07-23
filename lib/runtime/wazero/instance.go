@@ -29,8 +29,8 @@ import (
 
 // Name represents the name of the interpreter
 const (
-	Name                = "wazero"
-	MaxWasmPages uint32 = 65536
+	Name                  = "wazero"
+	MemoryMinPages uint32 = 2070
 )
 
 type runtimeContextKeyType struct{}
@@ -120,7 +120,7 @@ func newRuntime(ctx context.Context,
 
 	hostCompiledModule, err := rt.NewHostModuleBuilder("env").
 		// values from newer kusama/polkadot runtimes
-		ExportMemory("memory", MaxWasmPages).
+		ExportMemory("memory", MemoryMinPages).
 		NewFunctionBuilder().
 		WithGoModuleFunction(
 			tripleArgFn(ext_logging_log_version_1),
