@@ -52,7 +52,7 @@ func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash comm
 			nextEntry := stack.At(i)
 			nextRecord := recordedNodes.Peek()
 
-			if nextRecord == nil || !bytes.Equal(*nextEntry.nodeHash, nextRecord.Hash) {
+			if nextRecord == nil || !bytes.Equal(nextEntry.nodeHash[:], nextRecord.Hash[:]) {
 				break
 			}
 
@@ -68,7 +68,7 @@ func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash comm
 				entry = stack.Back()
 			}
 			if entry == nil {
-				nextStep = genProofStepDescend{childPrefixLen: 0, child: nodeHandleHash{hash: rootHash.ToBytes()}}
+				nextStep = genProofStepDescend{childPrefixLen: 0, child: nodeHandleHash(rootHash)}
 			} else {
 				var err error
 				nextStep, err = genProofMatchKeyToNode(
@@ -93,7 +93,7 @@ func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash comm
 				case nodeHandleHash:
 					childRecord := recordedNodes.Next()
 
-					if !bytes.Equal(childRecord.Hash, child.hash) {
+					if !bytes.Equal(childRecord.Hash[:], child[:]) {
 						panic("hash mismatch")
 					}
 
@@ -113,12 +113,12 @@ func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash comm
 						return nil, err
 					}
 				case nodeHandleInline:
-					if len(child.data) > common.HashLength {
+					if len(child) > common.HashLength {
 						return nil, errors.New("invalid hash length")
 					}
 					childEntry, err = newGenProofStackEntry(
 						childPrefix,
-						child.data,
+						child,
 						nil,
 						nil,
 					)

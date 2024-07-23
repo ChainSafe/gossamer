@@ -121,11 +121,11 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 			switch merkleValue := nextNode.(type) {
 			case codec.HashedNode:
 				// If it's hashed we set the hash to look for it in next loop
-				hash = merkleValue.Data
+				hash = merkleValue[:]
 				break InlinedChildrenIterator
 			case codec.InlineNode:
 				// If it is inlined we just need to decode it in the next loop
-				nodeData = merkleValue.Data
+				nodeData = merkleValue
 			}
 		}
 	}
@@ -170,9 +170,9 @@ func (l *TrieLookup) fetchValue(prefix []byte, fullKey []byte, value codec.Encod
 	switch v := value.(type) {
 	case codec.InlineValue:
 		l.recordAccess(inlineValueAccess{fullKey: fullKey})
-		return v.Data, nil
+		return v, nil
 	case codec.HashedValue:
-		prefixedKey := bytes.Join([][]byte{prefix, v.Data}, nil)
+		prefixedKey := bytes.Join([][]byte{prefix, v[:]}, nil)
 		if l.cache != nil {
 			if value := l.cache.GetValue(prefixedKey); value != nil {
 				return value, nil
@@ -188,7 +188,7 @@ func (l *TrieLookup) fetchValue(prefix []byte, fullKey []byte, value codec.Encod
 			l.cache.SetValue(prefixedKey, nodeData)
 		}
 
-		l.recordAccess(valueAccess{hash: prefixedKey, fullKey: fullKey, value: nodeData})
+		l.recordAccess(valueAccess{hash: common.Hash(v), fullKey: fullKey, value: nodeData})
 
 		return nodeData, nil
 	default:
