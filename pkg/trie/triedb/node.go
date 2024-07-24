@@ -21,30 +21,29 @@ type nodeValue interface {
 }
 
 type (
-	inline struct {
-		Data []byte
-	}
+	// inline is an inlined value representation
+	inline []byte
 
-	valueRef struct {
-		hash common.Hash
-	}
+	// valueRef is a reference to a value stored in the db
+	valueRef common.Hash
 
+	// newValueRef is a value that will be stored in the db
 	newValueRef struct {
 		hash common.Hash
-		Data []byte
+		data []byte
 	}
 )
 
-// NewEncodedValue creates an EncodedValue from a nodeValue
-func NewEncodedValue(value nodeValue, partial []byte, childF onChildStoreFn) (codec.EncodedValue, error) {
+// newEncodedValue creates an EncodedValue from a nodeValue
+func newEncodedValue(value nodeValue, partial []byte, childF onChildStoreFn) (codec.EncodedValue, error) {
 	switch v := value.(type) {
 	case inline:
-		return codec.NewInlineValue(v.Data), nil
+		return codec.InlineValue(v), nil
 	case valueRef:
-		return codec.NewHashedValue(v.hash.ToBytes()), nil
+		return codec.HashedValue(v), nil
 	case newValueRef:
 		// Store value in db
-		childRef, err := childF(newNodeToEncode{partialKey: partial, value: v.Data}, partial, nil)
+		childRef, err := childF(newNodeToEncode{partialKey: partial, value: v.data}, partial, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +66,7 @@ func NewEncodedValue(value nodeValue, partial []byte, childF onChildStoreFn) (co
 			panic("value node can never be inlined")
 		}
 
-		return codec.NewHashedValue(v.hash.ToBytes()), nil
+		return codec.HashedValue(v.hash), nil
 	default:
 		panic("unreachable")
 	}
@@ -77,16 +76,16 @@ func (inline) getHash() common.Hash { return common.EmptyHash }
 func (n inline) equal(other nodeValue) bool {
 	switch otherValue := other.(type) {
 	case inline:
-		return bytes.Equal(n.Data, otherValue.Data)
+		return bytes.Equal(n, otherValue)
 	default:
 		return false
 	}
 }
-func (vr valueRef) getHash() common.Hash { return vr.hash }
+func (vr valueRef) getHash() common.Hash { return common.Hash(vr) }
 func (vr valueRef) equal(other nodeValue) bool {
 	switch otherValue := other.(type) {
 	case valueRef:
-		return vr.hash == otherValue.hash
+		return vr == otherValue
 	default:
 		return false
 	}
@@ -106,19 +105,19 @@ func (vr newValueRef) equal(other nodeValue) bool {
 
 func NewValue(data []byte, threshold int) nodeValue {
 	if len(data) >= threshold {
-		return newValueRef{Data: data}
+		return newValueRef{data: data}
 	}
 
-	return inline{Data: data}
+	return inline(data)
 }
 
 func NewValueFromEncoded(prefix []byte, encodedValue codec.EncodedValue) nodeValue {
-	switch encoded := encodedValue.(type) {
+	switch v := encodedValue.(type) {
 	case codec.InlineValue:
-		return inline{Data: encoded.Data}
+		return inline(v)
 	case codec.HashedValue:
-		prefixedKey := bytes.Join([][]byte{prefix, encoded.Data}, nil)
-		return valueRef{hash: common.NewHash(prefixedKey)}
+		prefixedKey := bytes.Join([][]byte{prefix, v[:]}, nil)
+		return valueRef(common.NewHash(prefixedKey))
 	}
 
 	return nil
@@ -127,11 +126,11 @@ func NewValueFromEncoded(prefix []byte, encodedValue codec.EncodedValue) nodeVal
 func inMemoryFetchedValue(value nodeValue, prefix []byte, db db.DBGetter) ([]byte, error) {
 	switch v := value.(type) {
 	case inline:
-		return v.Data, nil
+		return v, nil
 	case newValueRef:
-		return v.Data, nil
+		return v.data, nil
 	case valueRef:
-		prefixedKey := bytes.Join([][]byte{prefix, v.hash.ToBytes()}, nil)
+		prefixedKey := bytes.Join([][]byte{prefix, v[:]}, nil)
 		value, err := db.Get(prefixedKey)
 		if err != nil {
 			return nil, err
@@ -168,7 +167,7 @@ func (n Branch) getPartialKey() []byte { return n.partialKey }
 
 // Create a new node from the encoded data, decoding this data into a codec.Node
 // and mapping that with this node type
-func newNodeFromEncoded(nodeHash common.Hash, data []byte, storage NodeStorage) (Node, error) {
+func newNodeFromEncoded(nodeHash common.Hash, data []byte, storage nodeStorage) (Node, error) {
 	reader := bytes.NewReader(data)
 	encodedNode, err := codec.Decode(reader)
 	if err != nil {
@@ -231,24 +230,6 @@ func (trieNodeToEncode) isNodeToEncode() {}
 // ChildReferences is a slice of ChildReference
 type ChildReferences [codec.ChildrenCapacity]ChildReference
 
-func NewChildReferences(encodedChildren [codec.ChildrenCapacity]codec.MerkleValue) ChildReferences {
-	children := ChildReferences{}
-	for i, child := range encodedChildren {
-		if child == nil {
-			children[i] = nil
-			continue
-		}
-
-		switch n := child.(type) {
-		case codec.InlineNode:
-			children[i] = InlineChildReference(n.Data)
-		case codec.HashedNode:
-			children[i] = HashChildReference(common.Hash(n.Data))
-		}
-	}
-	return children
-}
-
 // ChildReference is a reference to a child node
 type ChildReference interface {
 	getNodeData() []byte
@@ -272,8 +253,8 @@ type onChildStoreFn = func(node nodeToEncode, partialKey []byte, childIndex *byt
 
 const EmptyTrieBytes = byte(0)
 
-// NewEncodedNode creates a new encoded node from a node and a child store function and return its bytes
-func NewEncodedNode(node Node, childF onChildStoreFn) (encodedNode []byte, err error) {
+// newEncodedNode creates a new encoded node from a node and a child store function and return its bytes
+func newEncodedNode(node Node, childF onChildStoreFn) (encodedNode []byte, err error) {
 	encodingBuffer := bytes.NewBuffer(nil)
 
 	switch n := node.(type) {
@@ -281,7 +262,7 @@ func NewEncodedNode(node Node, childF onChildStoreFn) (encodedNode []byte, err e
 		return []byte{EmptyTrieBytes}, nil
 	case Leaf:
 		pr := n.partialKey
-		value, err := NewEncodedValue(n.value, pr, childF)
+		value, err := newEncodedValue(n.value, pr, childF)
 		if err != nil {
 			return nil, err
 		}
@@ -293,7 +274,7 @@ func NewEncodedNode(node Node, childF onChildStoreFn) (encodedNode []byte, err e
 	case Branch:
 		var value codec.EncodedValue
 		if n.value != nil {
-			value, err = NewEncodedValue(n.value, n.partialKey, childF)
+			value, err = newEncodedValue(n.value, n.partialKey, childF)
 			if err != nil {
 				return nil, err
 			}

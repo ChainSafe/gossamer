@@ -18,8 +18,7 @@ type (
 		encodedNode []byte
 	}
 	valueAccess struct {
-		// We are not using common.Hash here since hash size could be > 32 bytes when we use prefixed keys
-		hash    []byte
+		hash    common.Hash
 		value   []byte
 		fullKey []byte
 	}
@@ -72,9 +71,7 @@ func (r *RecordedNodesIterator) Peek() *Record {
 }
 
 type Record struct {
-	// We are not using common.Hash here since Hash size could be > 32 bytes when we use prefixed keys.
-	// See ValueAccess.Hash
-	Hash []byte
+	Hash common.Hash
 	Data []byte
 }
 
@@ -93,7 +90,7 @@ func NewRecorder() *Recorder {
 func (r *Recorder) record(access trieAccess) {
 	switch a := access.(type) {
 	case encodedNodeAccess:
-		r.nodes = append(r.nodes, Record{Hash: a.hash.ToBytes(), Data: a.encodedNode})
+		r.nodes = append(r.nodes, Record{Hash: a.hash, Data: a.encodedNode})
 	case valueAccess:
 		r.nodes = append(r.nodes, Record{Hash: a.hash, Data: a.value})
 		r.recordedKeys.Set(string(a.fullKey), RecordedValue)
