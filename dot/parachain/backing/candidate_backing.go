@@ -78,9 +78,9 @@ type CandidateBacking struct {
 	perLeaf map[common.Hash]*activeLeafState
 	// The utility for managing the implicit and explicit views in a consistent way.
 	// We only feed leaves which have prospective parachains enabled to this view.
-	implicitView ImplicitView
-	// The handle to the keystore used for signing.
-	keystore   keystore.Keystore
+	ImplicitView ImplicitView
+	// The handle to the Keystore used for signing.
+	Keystore   keystore.Keystore
 	BlockState BlockState
 }
 
@@ -203,11 +203,12 @@ func New(overseerChan chan<- any) *CandidateBacking {
 		SubSystemToOverseer: overseerChan,
 		perRelayParent:      map[common.Hash]*perRelayParentState{},
 		perCandidate:        map[parachaintypes.CandidateHash]*perCandidateState{},
+		perLeaf:             map[common.Hash]*activeLeafState{},
 	}
 }
 
 func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan any, subSystemToOverseer chan any) {
-	chRelayParentAndCommand := make(chan relayParentAndCommand)
+	chRelayParentAndCommand := make(chan relayParentAndCommand, 1)
 
 	for {
 		select {
@@ -219,9 +220,9 @@ func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan an
 			if err := cb.processMessage(msg, chRelayParentAndCommand); err != nil {
 				logger.Errorf("processing message: %s", err.Error())
 			}
-		case <-cb.ctx.Done():
+		case <-ctx.Done():
 			close(chRelayParentAndCommand)
-			if err := cb.ctx.Err(); err != nil {
+			if err := ctx.Err(); err != nil {
 				logger.Errorf("ctx error: %s\n", err)
 			}
 			return

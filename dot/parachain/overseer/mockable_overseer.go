@@ -22,9 +22,7 @@ type MockableOverseer struct {
 	expectedMessagesWithAction map[any]func(msg any)
 }
 
-func NewMockableOverseer(t *testing.T) *MockableOverseer {
-	ctx, cancel := context.WithCancel(context.Background())
-
+func NewMockableOverseer(t *testing.T, ctx context.Context, cancel context.CancelFunc) *MockableOverseer {
 	return &MockableOverseer{
 		t:                          t,
 		ctx:                        ctx,
@@ -50,7 +48,7 @@ func (m *MockableOverseer) Start() error {
 		sub.Run(m.ctx, overseerToSubSystem, m.SubsystemsToOverseer)
 	}(m.subSystem, m.overseerToSubsystem)
 
-	go m.processMessages()
+	// go m.processMessages()
 	return nil
 }
 
@@ -58,6 +56,7 @@ func (m *MockableOverseer) Stop() {
 	m.cancel()
 }
 
+// ReceiveMessage method is to receive overseer messages in a subsystem which we are testing
 func (m *MockableOverseer) ReceiveMessage(msg any) {
 	m.overseerToSubsystem <- msg
 }
