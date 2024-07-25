@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -16,20 +17,37 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "new-sync"))
 
 type Network interface {
 	AllConnectedPeersIDs() []peer.ID
+	ReportPeer(change peerset.ReputationChange, p peer.ID)
 	BlockAnnounceHandshake(*types.Header) error
+	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
+		maxResponseSize uint64) *network.RequestResponseProtocol
 }
 
 type BlockState interface {
 	BestBlockHeader() (*types.Header, error)
 }
 
-type Strategy interface {
-	OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) error
-	NextActions() ([]*syncTask, error)
-	IsFinished() (bool, error)
+type Change struct {
+	who peer.ID
+	rep peerset.ReputationChange
 }
 
+type Strategy interface {
+	OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) error
+	OnBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error
+	NextActions() ([]*syncTask, error)
+	IsFinished(results []*syncTaskResult) (done bool, repChanges []Change, blocks []peer.ID, err error)
+}
+
+type BlockOrigin byte
+
+const (
+	networkInitialSync BlockOrigin = iota
+	networkBroadcast
+)
+
 type SyncService struct {
+	mu         sync.Mutex
 	wg         sync.WaitGroup
 	network    Network
 	blockState BlockState
@@ -44,7 +62,8 @@ type SyncService struct {
 	stopCh chan struct{}
 }
 
-func NewSyncService(network Network, blockState BlockState,
+func NewSyncService(network Network,
+	blockState BlockState,
 	currentStrategy, defaultStrategy Strategy) *SyncService {
 	return &SyncService{
 		network:           network,
@@ -53,7 +72,7 @@ func NewSyncService(network Network, blockState BlockState,
 		defaultStrategy:   defaultStrategy,
 		workerPool:        newSyncWorkerPool(network),
 		waitPeersDuration: 2 * time.Second,
-		minPeers:          5,
+		minPeers:          3,
 		stopCh:            make(chan struct{}),
 	}
 }
@@ -107,6 +126,10 @@ func (s *SyncService) Stop() error {
 func (s *SyncService) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error {
 	logger.Infof("receiving a block announce handshake: %s", from.String())
 	s.workerPool.fromBlockAnnounceHandshake(from, msg.BestBlockHash, uint(msg.BestBlockNumber))
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.currentStrategy.OnBlockAnnounceHandshake(from, msg)
 	return nil
 }
 
@@ -136,6 +159,7 @@ func (s *SyncService) runSyncEngine() {
 	defer s.wg.Done()
 
 	logger.Infof("starting sync engine with strategy: %T", s.currentStrategy)
+
 	// TODO: need to handle stop channel
 	for {
 		tasks, err := s.currentStrategy.NextActions()
@@ -143,11 +167,20 @@ func (s *SyncService) runSyncEngine() {
 			panic(fmt.Sprintf("current sync strategy next actions failed with: %s", err.Error()))
 		}
 
-		s.workerPool.submitRequests(tasks)
+		logger.Infof("sending %d tasks", len(tasks))
+		results := s.workerPool.submitRequests(tasks)
 
-		done, err := s.currentStrategy.IsFinished()
+		done, repChanges, blocks, err := s.currentStrategy.IsFinished(results)
 		if err != nil {
 			panic(fmt.Sprintf("current sync strategy failed with: %s", err.Error()))
+		}
+
+		for _, change := range repChanges {
+			s.network.ReportPeer(change.rep, change.who)
+		}
+
+		for _, block := range blocks {
+			s.workerPool.ignorePeerAsWorker(block)
 		}
 
 		if done {
@@ -155,8 +188,9 @@ func (s *SyncService) runSyncEngine() {
 				panic("nil default strategy")
 			}
 
+			s.mu.Lock()
 			s.currentStrategy = s.defaultStrategy
-			s.defaultStrategy = nil
+			s.mu.Unlock()
 		}
 	}
 }

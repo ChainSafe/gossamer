@@ -17,14 +17,11 @@ var (
 	errRequestStartTooHigh     = errors.New("request start number is higher than our best block")
 
 	// chainSync errors
-	errNilBlockData               = errors.New("block data is nil")
-	errNilHeaderInResponse        = errors.New("expected header, received none")
-	errNilBodyInResponse          = errors.New("expected body, received none")
-	errNilJustificationInResponse = errors.New("expected justification, received none")
-	errNoPeers                    = errors.New("no peers to sync with")
-	errPeerOnInvalidFork          = errors.New("peer is on an invalid fork")
-	errFailedToGetParent          = errors.New("failed to get parent header")
-	errStartAndEndMismatch        = errors.New("request start and end hash are not on the same chain")
-	errFailedToGetDescendant      = errors.New("failed to find descendant block")
-	errAlreadyInDisjointSet       = errors.New("already in disjoint set")
+
+	errNoPeers               = errors.New("no peers to sync with")
+	errPeerOnInvalidFork     = errors.New("peer is on an invalid fork")
+	errFailedToGetParent     = errors.New("failed to get parent header")
+	errStartAndEndMismatch   = errors.New("request start and end hash are not on the same chain")
+	errFailedToGetDescendant = errors.New("failed to find descendant block")
+	errAlreadyInDisjointSet  = errors.New("already in disjoint set")
 )

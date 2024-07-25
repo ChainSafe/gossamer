@@ -24,67 +24,41 @@ type worker struct {
 	// ID of the peer this worker is associated with
 	peerID peer.ID
 
-	// Channel used as a semaphore to limit concurrent tasks. By making the channel buffered with some size,
-	// the creator of the channel can control how many workers can work concurrently and send requests.
-	sharedGuard chan struct{}
-
 	stopCh chan struct{}
 }
 
 // newWorker creates and returns a new worker instance.
-func newWorker(pID peer.ID, sharedGuard chan struct{}, stopCh chan struct{}) *worker {
+func newWorker(pID peer.ID) *worker {
 	return &worker{
-		peerID:      pID,
-		sharedGuard: sharedGuard,
-		status:      available,
-		stopCh:      stopCh,
+		peerID: pID,
+		status: available,
 	}
 }
 
-// run starts the worker to process tasks from the queue.
-// queue: Channel from which the worker receives tasks
-// wg: WaitGroup to signal when the worker has finished processing
-func (w *worker) run(queue chan *syncTask, wg *sync.WaitGroup) {
+func executeRequest(wg *sync.WaitGroup, who *worker, task *syncTask, resCh chan<- *syncTaskResult) {
 	defer func() {
-		logger.Debugf("[STOPPED] worker %s", w.peerID)
+		who.status = available
 		wg.Done()
 	}()
 
-	for {
-		select {
-		case <-w.stopCh:
-			return
-		case task := <-queue:
-			executeRequest(w.peerID, task, w.sharedGuard)
-		}
-	}
-}
-
-// executeRequest processes a sync task by making a network request to a peer.
-// who: ID of the peer making the request
-// requestMaker: Interface to make the network request
-// task: Sync task to be processed
-// sharedGuard: Channel used for concurrency control
-func executeRequest(who peer.ID, task *syncTask, sharedGuard chan struct{}) {
-	defer func() {
-		<-sharedGuard // Release the semaphore slot after the request is processed
-	}()
-
-	sharedGuard <- struct{}{} // Acquire a semaphore slot before starting the request
-
 	request := task.request
 	logger.Debugf("[EXECUTING] worker %s, block request: %s", who, request)
-	err := task.requestMaker.Do(who, request, task.response)
+	err := task.requestMaker.Do(who.peerID, request, task.response)
 	if err != nil {
 		logger.Debugf("[ERR] worker %s, err: %s", who, err)
-	}
-
-	task.resultCh <- &syncTaskResult{
-		who:      who,
-		request:  request,
-		response: task.response,
-		err:      err,
+		resCh <- &syncTaskResult{
+			who:      who.peerID,
+			request:  request,
+			err:      err,
+			response: nil,
+		}
+		return
 	}
 
 	logger.Debugf("[FINISHED] worker %s, response: %s", who, task.response.String())
+	resCh <- &syncTaskResult{
+		who:      who.peerID,
+		request:  request,
+		response: task.response,
+	}
 }
