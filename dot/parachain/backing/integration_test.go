@@ -2,7 +2,6 @@ package backing_test
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"sync"
 	"testing"
@@ -23,72 +22,6 @@ import (
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 )
-
-/*
-var tempSignature = common.MustHexToBytes("0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86") //nolint:lll
-
-func dummyCandidateReceipt(t *testing.T) parachaintypes.CandidateReceipt {
-	t.Helper()
-
-	cr := getDummyCommittedCandidateReceipt(t).ToPlain()
-
-	// blake2bhash of PVD in dummyPVD(t *testing.T) function
-	cr.Descriptor.PersistedValidationDataHash =
-		common.MustHexToHash("0x3544fbcdcb094751a5e044a30b994b2586ffc0b50e8b88c381461fe023a7242f")
-
-	return cr
-}
-
-func getDummyCommittedCandidateReceipt(t *testing.T) parachaintypes.CommittedCandidateReceipt {
-	t.Helper()
-	hash5 := getDummyHash(t, 6)
-
-	var collatorID parachaintypes.CollatorID
-	tempCollatID := common.MustHexToBytes("0x48215b9d322601e5b1a95164cea0dc4626f545f98343d07f1551eb9543c4b147")
-	copy(collatorID[:], tempCollatID)
-
-	var collatorSignature parachaintypes.CollatorSignature
-	copy(collatorSignature[:], tempSignature)
-
-	ccr := parachaintypes.CommittedCandidateReceipt{
-		Descriptor: parachaintypes.CandidateDescriptor{
-			ParaID:                      uint32(1),
-			RelayParent:                 hash5,
-			Collator:                    collatorID,
-			PersistedValidationDataHash: hash5,
-			PovHash:                     hash5,
-			ErasureRoot:                 hash5,
-			Signature:                   collatorSignature,
-			ParaHead:                    hash5,
-			ValidationCodeHash:          parachaintypes.ValidationCodeHash(hash5),
-		},
-		Commitments: parachaintypes.CandidateCommitments{
-			UpwardMessages:    []parachaintypes.UpwardMessage{{1, 2, 3}},
-			NewValidationCode: &parachaintypes.ValidationCode{1, 2, 3},
-			HeadData: parachaintypes.HeadData{
-				Data: []byte{1, 2, 3},
-			},
-			ProcessedDownwardMessages: uint32(5),
-			HrmpWatermark:             uint32(0),
-		},
-	}
-
-	return ccr
-}
-
-func dummyPVD(t *testing.T) parachaintypes.PersistedValidationData {
-	t.Helper()
-
-	return parachaintypes.PersistedValidationData{
-		ParentHead: parachaintypes.HeadData{
-			Data: []byte{1, 2, 3},
-		},
-		RelayParentNumber:      5,
-		RelayParentStorageRoot: getDummyHash(t, 5),
-		MaxPovSize:             3,
-	}
-}
-*/
 
 // register the backing subsystem, run backing subsystem, start overseer
 func initBackingAndOverseerMock(t *testing.T, ctx context.Context, cancel context.CancelFunc) (*backing.CandidateBacking, *overseer.MockableOverseer) {
@@ -495,8 +428,6 @@ func TestSecondsValidCandidate(t *testing.T) {
 			return
 		case msg = <-subToOverseer:
 			// we have seconded a candidate and shared to peers
-			msg = <-subToOverseer
-			fmt.Printf("msg type is: %T\n", msg)
 			share, ok := msg.(parachaintypes.StatementDistributionMessageShare)
 			require.True(t, ok)
 			if !ok {
@@ -522,7 +453,6 @@ func TestSecondsValidCandidate(t *testing.T) {
 			return
 		case msg = <-subToOverseer:
 			_, ok := msg.(collatorprotocolmessages.Seconded)
-			fmt.Printf("msg type is: %T\n", msg)
 			require.True(t, ok)
 			if !ok {
 				overseer.Stop()
@@ -551,12 +481,4 @@ func requireEqual(t *testing.T, expected any, actual any) (isEqual bool) {
 		return false
 	}
 	return true
-}
-
-// customised to return the bool, So that we can stop the overseer in case of value mismatch
-func requireTrue(t *testing.T, condition bool) (isTrue bool) {
-	t.Helper()
-
-	require.True(t, condition)
-	return condition
 }
