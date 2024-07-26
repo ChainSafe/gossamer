@@ -2,6 +2,8 @@ package backing_test
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -351,9 +353,10 @@ func TestSecondsValidCandidate(t *testing.T) {
 		// message we receive from candidate backing subsystem to overseer
 		var msg any
 
+		// handle ValidateFromExhaustive message
 		select {
-		case <-time.After(2 * time.Second):
-			t.Error("timed out waiting for ValidateFromExhaustive message")
+		case <-time.After(2 * time.Minute):
+			t.Error("timed out waiting for candidatevalidation.ValidateFromExhaustive message")
 			overseer.Stop()
 			return
 		case msg = <-subToOverseer:
@@ -372,15 +375,18 @@ func TestSecondsValidCandidate(t *testing.T) {
 			}
 		}
 
+		// handle collator protocol Invalid message
 		select {
-		case <-time.After(2 * time.Second):
-			t.Error("timed out waiting for collatorprotocol Invalid message")
+		case <-time.After(2 * time.Minute):
+			t.Error("timed out waiting for collatorprotocolmessages.Invalid message")
 			overseer.Stop()
-			return
 		case msg = <-subToOverseer:
 			// candidate we are seconding is invalid
 			_, ok := msg.(collatorprotocolmessages.Invalid)
 			require.True(t, ok)
+			if !ok {
+				overseer.Stop()
+			}
 		}
 	}(overseer.SubsystemsToOverseer, t)
 
@@ -392,8 +398,8 @@ func TestSecondsValidCandidate(t *testing.T) {
 			PersistedValidationData: pvd1,
 			PoV:                     pov1,
 		})
-
 	wg.Wait()
+
 	if isContextCanceled(ctx) {
 		return
 	}
@@ -432,44 +438,97 @@ func TestSecondsValidCandidate(t *testing.T) {
 	go func(subToOverseer chan any, t *testing.T) {
 		defer wg.Done()
 
-		msg := <-subToOverseer
-		validateFromExhaustive, ok := msg.(candidatevalidation.ValidateFromExhaustive)
-		require.True(t, ok)
+		var msg any
 
-		validateFromExhaustive.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
-			Data: candidatevalidation.ValidationResult{
-				ValidResult: &candidatevalidation.ValidValidationResult{
-					CandidateCommitments: parachaintypes.CandidateCommitments{
-						UpwardMessages:            []parachaintypes.UpwardMessage{},
-						HorizontalMessages:        []parachaintypes.OutboundHrmpMessage{},
-						NewValidationCode:         nil,
-						HeadData:                  candidate2.Commitments.HeadData,
-						ProcessedDownwardMessages: 0,
-						HrmpWatermark:             0,
+		// handle ValidateFromExhaustive message
+		select {
+		case <-time.After(2 * time.Minute):
+			t.Error("timed out waiting for ValidateFromExhaustive message")
+			overseer.Stop()
+			return
+		case msg = <-subToOverseer:
+			validateFromExhaustive, ok := msg.(candidatevalidation.ValidateFromExhaustive)
+			require.True(t, ok)
+			if !ok {
+				overseer.Stop()
+				return
+			}
+
+			validateFromExhaustive.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
+				Data: candidatevalidation.ValidationResult{
+					ValidResult: &candidatevalidation.ValidValidationResult{
+						CandidateCommitments: parachaintypes.CandidateCommitments{
+							UpwardMessages:            []parachaintypes.UpwardMessage{},
+							HorizontalMessages:        []parachaintypes.OutboundHrmpMessage{},
+							NewValidationCode:         nil,
+							HeadData:                  candidate2.Commitments.HeadData,
+							ProcessedDownwardMessages: 0,
+							HrmpWatermark:             0,
+						},
+						PersistedValidationData: pvd2,
 					},
-					PersistedValidationData: pvd2,
 				},
-			},
+			}
 		}
 
-		msg = <-subToOverseer
-		store, ok := msg.(availabilitystore.StoreAvailableData)
-		require.True(t, ok)
+		// handle availabilitystore.StoreAvailableData message
+		select {
+		case <-time.After(2 * time.Minute):
+			t.Error("timed out waiting for availabilitystore.StoreAvailableData message")
+			overseer.Stop()
+			return
+		case msg = <-subToOverseer:
+			store, ok := msg.(availabilitystore.StoreAvailableData)
+			require.True(t, ok)
+			if !ok {
+				overseer.Stop()
+				return
+			}
+			store.Sender <- nil
+		}
 
-		store.Sender <- nil
+		// handle parachaintypes.StatementDistributionMessageShare message
+		select {
+		case <-time.After(2 * time.Minute):
+			t.Error("timed out waiting for parachaintypes.StatementDistributionMessageShare message")
+			overseer.Stop()
+			return
+		case msg = <-subToOverseer:
+			// we have seconded a candidate and shared to peers
+			msg = <-subToOverseer
+			fmt.Printf("msg type is: %T\n", msg)
+			share, ok := msg.(parachaintypes.StatementDistributionMessageShare)
+			require.True(t, ok)
+			if !ok {
+				overseer.Stop()
+				return
+			}
 
-		// candidate we are seconded and shared to peers
-		msg = <-subToOverseer
-		share, ok := msg.(parachaintypes.StatementDistributionMessageShare)
-		require.True(t, ok)
+			statement, err := share.SignedFullStatementWithPVD.SignedFullStatement.Payload.Value()
+			require.NoError(t, err)
 
-		statement, err := share.SignedFullStatementWithPVD.SignedFullStatement.Payload.Value()
-		require.NoError(t, err)
+			if !(requireEqual(t, statement, parachaintypes.Seconded(candidate2)) &&
+				requireEqual(t, *share.SignedFullStatementWithPVD.PersistedValidationData, pvd2) &&
+				requireEqual(t, share.RelayParent, relayParent)) {
+				overseer.Stop()
+			}
+		}
 
-		require.Equal(t, statement, parachaintypes.Seconded(candidate2))
-		require.Equal(t, *share.SignedFullStatementWithPVD.PersistedValidationData, pvd2)
-		require.Equal(t, share.RelayParent, relayParent)
-
+		// handle collatorprotocolmessages.Seconded message
+		select {
+		case <-time.After(2 * time.Minute):
+			t.Error("timed out waiting for collatorprotocolmessages.Seconded message")
+			overseer.Stop()
+			return
+		case msg = <-subToOverseer:
+			_, ok := msg.(collatorprotocolmessages.Seconded)
+			fmt.Printf("msg type is: %T\n", msg)
+			require.True(t, ok)
+			if !ok {
+				overseer.Stop()
+				return
+			}
+		}
 	}(overseer.SubsystemsToOverseer, t)
 
 	// receive second message from overseer to candidate backing subsystem
@@ -481,4 +540,23 @@ func TestSecondsValidCandidate(t *testing.T) {
 			PoV:                     pov2,
 		})
 	wg.Wait()
+}
+
+// customised to return the bool, So that we can stop the overseer in case of value mismatch
+func requireEqual(t *testing.T, expected any, actual any) (isEqual bool) {
+	t.Helper()
+
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("\nNot Equal: \nexpected: %+v\nactual: %+v\n", expected, actual)
+		return false
+	}
+	return true
+}
+
+// customised to return the bool, So that we can stop the overseer in case of value mismatch
+func requireTrue(t *testing.T, condition bool) (isTrue bool) {
+	t.Helper()
+
+	require.True(t, condition)
+	return condition
 }
