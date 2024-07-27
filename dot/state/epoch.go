@@ -8,6 +8,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -28,11 +30,13 @@ var (
 )
 
 var (
-	epochPrefix      = "epoch"
-	currentEpochKey  = []byte("current")
-	epochDataPrefix  = []byte("epochinfo")
-	configDataPrefix = []byte("configinfo")
-	skipToKey        = []byte("skipto")
+	epochPrefix          = "epoch"
+	currentEpochKey      = []byte("current")
+	epochDataPrefix      = []byte("epochinfo")
+	configDataPrefix     = []byte("configinfo")
+	skipToKey            = []byte("skipto")
+	nextEpochDataPrefix  = []byte("nextepochdata")
+	nextConfigDataPrefix = []byte("nextconfigdata")
 )
 
 func epochDataKey(epoch uint64) []byte {
@@ -45,6 +49,18 @@ func configDataKey(epoch uint64) []byte {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, epoch)
 	return append(configDataPrefix, buf...)
+}
+
+func nextEpochDataKey(epoch uint64, hash common.Hash) []byte {
+	// we add a "-" to the key to avoid conflicts with composite keys
+	key := fmt.Sprintf("-%d:%s", epoch, hash)
+	return append(nextEpochDataPrefix, []byte(key)...)
+}
+
+func nextConfigDataKey(epoch uint64, hash common.Hash) []byte {
+	// we add a "-" to the key to avoid conflicts with composite keys
+	key := fmt.Sprintf("-%d:%s", epoch, hash)
+	return append(nextConfigDataPrefix, []byte(key)...)
 }
 
 // GenesisEpochDescriptor is the informations provided by calling
@@ -115,6 +131,88 @@ func NewEpochStateFromGenesis(db database.Database, blockState *BlockState,
 	return s, nil
 }
 
+func getNextEpochDataFromDisk(db database.Database) (nextEpochMap[types.NextEpochData], error) {
+	nextEpochData := make(nextEpochMap[types.NextEpochData])
+
+	iter, err := db.NewPrefixIterator(nextEpochDataPrefix)
+	if err != nil {
+		return nil, err
+	}
+	defer iter.Release()
+
+	for iter.First(); iter.Valid(); iter.Next() {
+		key := string(iter.Key())
+		value := iter.Value()
+
+		// Remove the prefix
+		keyWithoutPrefix := strings.TrimPrefix(key, string(nextEpochDataPrefix)+"-")
+
+		// Split the key into epoch and fork
+		parts := strings.Split(keyWithoutPrefix, ":")
+
+		epoch, err := strconv.ParseUint(parts[0], 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		var fork common.Hash
+		part1 := []byte(parts[1])
+		// Copy the hash to the fork
+		copy(fork[:], part1)
+
+		nexEpochvalue := new(types.NextEpochData)
+		if err = scale.Unmarshal(value, nexEpochvalue); err != nil {
+			return nil, err
+		}
+
+		// Add data to the map
+		nextEpochData[epoch][fork] = *nexEpochvalue
+	}
+
+	return nextEpochData, nil
+}
+
+func getNextConfigDataFromDisk(db database.Database) (nextEpochMap[types.NextConfigDataV1], error) {
+	nextConfigData := make(nextEpochMap[types.NextConfigDataV1])
+
+	iter, err := db.NewPrefixIterator(nextConfigDataPrefix)
+	if err != nil {
+		return nil, err
+	}
+	defer iter.Release()
+
+	for iter.First(); iter.Valid(); iter.Next() {
+		key := string(iter.Key())
+		value := iter.Value()
+
+		keyWithoutPrefix := strings.TrimPrefix(key, string(nextConfigDataPrefix)+"-")
+
+		// Split the key into epoch and fork
+		parts := strings.Split(keyWithoutPrefix, ":")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("invalid key format: %s", key)
+		}
+		epoch, err := strconv.ParseUint(parts[0], 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		var fork common.Hash
+		part1 := []byte(parts[1])
+
+		copy(fork[:], part1)
+
+		nexEpochvalue := new(types.NextConfigDataV1)
+		if err = scale.Unmarshal(value, nexEpochvalue); err != nil {
+			return nil, err
+		}
+
+		nextConfigData[epoch][fork] = *nexEpochvalue
+	}
+
+	return nextConfigData, nil
+}
+
 // NewEpochState returns a new EpochState
 func NewEpochState(db database.Database, blockState *BlockState,
 	genesisConfig *types.BabeConfiguration) (*EpochState, error) {
@@ -128,6 +226,16 @@ func NewEpochState(db database.Database, blockState *BlockState,
 		return nil, err
 	}
 
+	nextEpochData, err := getNextEpochDataFromDisk(db)
+	if err != nil {
+		return nil, err
+	}
+
+	nextConfigData, err := getNextConfigDataFromDisk(db)
+	if err != nil {
+		return nil, err
+	}
+
 	return &EpochState{
 		baseState:      baseState,
 		blockState:     blockState,
@@ -135,8 +243,8 @@ func NewEpochState(db database.Database, blockState *BlockState,
 		epochLength:    genesisConfig.EpochLength,
 		slotDuration:   genesisConfig.SlotDuration,
 		skipToEpoch:    skipToEpoch,
-		nextEpochData:  make(nextEpochMap[types.NextEpochData]),
-		nextConfigData: make(nextEpochMap[types.NextConfigDataV1]),
+		nextEpochData:  nextEpochData,
+		nextConfigData: nextConfigData,
 		genesisEpochDescriptor: &GenesisEpochDescriptor{
 			EpochData: &types.EpochDataRaw{
 				Authorities: genesisConfig.GenesisAuthorities,
@@ -579,6 +687,13 @@ func getEpochDefinitionFromDatabase[T types.ConfigData | types.EpochDataRaw](
 	return info, nil
 }
 
+// Case A) where we store the epoc info here
+// 0->b1(epoch 1)->b2(epoch 1)->->->b15(epoch 1)->b16(epoch 2)->b17(epoch 2)
+// nextEpoch
+// asdas-epoch3:fork1
+// asdas-epoch3:fork2
+// asdas-epoch3:fork3
+// remove prefix and split  :
 func (s *EpochState) HandleBABEDigest(header *types.Header, digest types.BabeConsensusDigest) error {
 	headerHash := header.Hash()
 
@@ -596,6 +711,9 @@ func (s *EpochState) HandleBABEDigest(header *types.Header, digest types.BabeCon
 
 		nextEpoch := currEpoch + 1
 		s.storeBABENextEpochData(nextEpoch, headerHash, val)
+
+		s.setBABENextEpochDataInDB(nextEpoch, headerHash, val)
+
 		logger.Debugf("stored BABENextEpochData data: %v for hash: %s to epoch: %d", digest, headerHash, nextEpoch)
 		return nil
 
@@ -616,6 +734,9 @@ func (s *EpochState) HandleBABEDigest(header *types.Header, digest types.BabeCon
 			}
 			nextEpoch := currEpoch + 1
 			s.storeBABENextConfigData(nextEpoch, headerHash, nextConfigData)
+
+			s.setBABENextConfigData(nextEpoch, headerHash, nextConfigData)
+
 			logger.Debugf("stored BABENextConfigData data: %v for hash: %s to epoch: %d", digest, headerHash, nextEpoch)
 			return nil
 		default:
@@ -823,6 +944,18 @@ func (s *EpochState) storeBABENextEpochData(epoch uint64, hash common.Hash, next
 	s.nextEpochData[epoch][hash] = nextEpochData
 }
 
+// setBABENextEpochDataInDB stores the types.NextEpochData under epoch and hash keys
+func (s *EpochState) setBABENextEpochDataInDB(epoch uint64, forkHash common.Hash, nextEpochData types.NextEpochData) error {
+	encodedEpochData, err := scale.Marshal(nextEpochData)
+	if err != nil {
+		return err
+	}
+
+	key := nextEpochDataKey(epoch, forkHash)
+
+	return s.db.Put([]byte(key), encodedEpochData)
+}
+
 // StoreBABENextConfigData stores the types.NextConfigData under epoch and hash keys
 func (s *EpochState) storeBABENextConfigData(epoch uint64, hash common.Hash, nextConfigData types.NextConfigDataV1) {
 	s.nextConfigDataLock.Lock()
@@ -835,6 +968,17 @@ func (s *EpochState) storeBABENextConfigData(epoch uint64, hash common.Hash, nex
 		s.nextConfigData[epoch] = make(map[common.Hash]types.NextConfigDataV1)
 	}
 	s.nextConfigData[epoch][hash] = nextConfigData
+}
+
+// setBABENextConfigData stores the types.NextConfigData under epoch and hash keys
+func (s *EpochState) setBABENextConfigData(epoch uint64, forkHash common.Hash, nextConfigData types.NextConfigDataV1) error {
+	encodedConfigData, err := scale.Marshal(nextConfigData)
+	if err != nil {
+		return err
+	}
+
+	key := nextConfigDataKey(epoch, forkHash)
+	return s.db.Put([]byte(key), encodedConfigData)
 }
 
 // FinalizeBABENextEpochData stores the right types.NextEpochData by
@@ -888,10 +1032,22 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 	for e := range s.nextEpochData {
 		if e <= nextEpoch {
 			delete(s.nextEpochData, e)
+			// remove the epoch data from the database
+			s.deleteEpochDataFromDisk(e, finalizedHeader.Hash())
 		}
 	}
 
 	return nil
+}
+
+func (s *EpochState) deleteEpochDataFromDisk(epoch uint64, hash common.Hash) error {
+	key := append(nextEpochDataPrefix, []byte(fmt.Sprintf("-%d:%s", epoch, hash))...)
+	err := s.db.NewBatch().Del(key)
+	if err != nil {
+		return fmt.Errorf("cannot delete next epoch data from the database: %w", err)
+	}
+	return nil
+
 }
 
 // FinalizeBABENextConfigData stores the right types.NextConfigData by
@@ -950,7 +1106,19 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 	for e := range s.nextConfigData {
 		if e <= nextEpoch {
 			delete(s.nextConfigData, e)
+			// remove the config data from the database
+			s.deleteNextConfigDataFromDisk(e, finalizedHeader.Hash())
 		}
+	}
+
+	return nil
+}
+
+func (s *EpochState) deleteNextConfigDataFromDisk(epoch uint64, hash common.Hash) error {
+	key := append(nextConfigDataPrefix, []byte(fmt.Sprintf("-%d:%s", epoch, hash))...)
+	err := s.db.NewBatch().Del(key)
+	if err != nil {
+		return fmt.Errorf("cannot delete next config data from the database: %w", err)
 	}
 
 	return nil
