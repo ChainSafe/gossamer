@@ -712,7 +712,9 @@ func (s *EpochState) HandleBABEDigest(header *types.Header, digest types.BabeCon
 		nextEpoch := currEpoch + 1
 		s.storeBABENextEpochData(nextEpoch, headerHash, val)
 
-		s.setBABENextEpochDataInDB(nextEpoch, headerHash, val)
+		if err = s.setBABENextEpochDataInDB(nextEpoch, headerHash, val); err != nil {
+			return fmt.Errorf("setting next epoch data in db: %w", err)
+		}
 
 		logger.Debugf("stored BABENextEpochData data: %v for hash: %s to epoch: %d", digest, headerHash, nextEpoch)
 		return nil
@@ -735,7 +737,9 @@ func (s *EpochState) HandleBABEDigest(header *types.Header, digest types.BabeCon
 			nextEpoch := currEpoch + 1
 			s.storeBABENextConfigData(nextEpoch, headerHash, nextConfigData)
 
-			s.setBABENextConfigData(nextEpoch, headerHash, nextConfigData)
+			if err := s.setBABENextConfigData(nextEpoch, headerHash, nextConfigData); err != nil {
+				return fmt.Errorf("setting next config data in db: %w", err)
+			}
 
 			logger.Debugf("stored BABENextConfigData data: %v for hash: %s to epoch: %d", digest, headerHash, nextEpoch)
 			return nil
@@ -953,7 +957,7 @@ func (s *EpochState) setBABENextEpochDataInDB(epoch uint64, forkHash common.Hash
 
 	key := nextEpochDataKey(epoch, forkHash)
 
-	return s.db.Put([]byte(key), encodedEpochData)
+	return s.db.Put(key, encodedEpochData)
 }
 
 // StoreBABENextConfigData stores the types.NextConfigData under epoch and hash keys
@@ -978,7 +982,7 @@ func (s *EpochState) setBABENextConfigData(epoch uint64, forkHash common.Hash, n
 	}
 
 	key := nextConfigDataKey(epoch, forkHash)
-	return s.db.Put([]byte(key), encodedConfigData)
+	return s.db.Put(key, encodedConfigData)
 }
 
 // FinalizeBABENextEpochData stores the right types.NextEpochData by
@@ -1033,7 +1037,9 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 		if e <= nextEpoch {
 			delete(s.nextEpochData, e)
 			// remove the epoch data from the database
-			s.deleteEpochDataFromDisk(e, finalizedHeader.Hash())
+			if err = s.deleteEpochDataFromDisk(e, finalizedHeader.Hash()); err != nil {
+				return fmt.Errorf("cannot delete next epoch data from the database: %w", err)
+			}
 		}
 	}
 
@@ -1107,7 +1113,9 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 		if e <= nextEpoch {
 			delete(s.nextConfigData, e)
 			// remove the config data from the database
-			s.deleteNextConfigDataFromDisk(e, finalizedHeader.Hash())
+			if err = s.deleteNextConfigDataFromDisk(e, finalizedHeader.Hash()); err != nil {
+				return fmt.Errorf("cannot delete next config data from the database: %w", err)
+			}
 		}
 	}
 
