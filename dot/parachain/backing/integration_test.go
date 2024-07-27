@@ -24,7 +24,8 @@ import (
 )
 
 // register the backing subsystem, run backing subsystem, start overseer
-func initBackingAndOverseerMock(t *testing.T, ctx context.Context, cancel context.CancelFunc) (*backing.CandidateBacking, *overseer.MockableOverseer) {
+func initBackingAndOverseerMock(t *testing.T, ctx context.Context, cancel context.CancelFunc,
+) (*backing.CandidateBacking, *overseer.MockableOverseer) {
 	t.Helper()
 
 	overseerMock := overseer.NewMockableOverseer(t, ctx, cancel)
@@ -81,6 +82,8 @@ func makeErasureRoot(
 	require.NoError(t, err)
 
 	trie, err := erasure.ChunksToTrie(chunks)
+	require.NoError(t, err)
+
 	root, err := trie.Hash()
 	require.NoError(t, err)
 
@@ -314,7 +317,7 @@ func TestSecondsValidCandidate(t *testing.T) {
 			t.Error("timed out waiting for collatorprotocolmessages.Invalid message")
 			overseer.Stop()
 		case msg = <-subToOverseer:
-			// candidate we are seconding is invalid
+			// reported to collator protocol about invalid candidate
 			_, ok := msg.(collatorprotocolmessages.Invalid)
 			require.True(t, ok)
 			if !ok {
@@ -427,7 +430,7 @@ func TestSecondsValidCandidate(t *testing.T) {
 			overseer.Stop()
 			return
 		case msg = <-subToOverseer:
-			// we have seconded a candidate and shared to peers
+			// we have seconded a candidate and shared the statement to peers
 			share, ok := msg.(parachaintypes.StatementDistributionMessageShare)
 			require.True(t, ok)
 			if !ok {
@@ -452,6 +455,7 @@ func TestSecondsValidCandidate(t *testing.T) {
 			overseer.Stop()
 			return
 		case msg = <-subToOverseer:
+			// informed collator protocol that we have seconded the candidate
 			_, ok := msg.(collatorprotocolmessages.Seconded)
 			require.True(t, ok)
 			if !ok {

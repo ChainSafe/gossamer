@@ -48,7 +48,7 @@ var (
 
 // CandidateBacking represents the state of the subsystem responsible for managing candidate backing.
 type CandidateBacking struct {
-	ctx    context.Context
+	ctx    context.Context //nolint:unused
 	cancel context.CancelFunc
 
 	SubSystemToOverseer chan<- any

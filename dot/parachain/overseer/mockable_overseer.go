@@ -65,7 +65,7 @@ func (m *MockableOverseer) ExpectMessageWithAction(msg any, fn func(msg any)) {
 	m.expectedMessagesWithAction[msg] = fn
 }
 
-func (m *MockableOverseer) processMessages() {
+func (m *MockableOverseer) processMessages() { //nolint:unused
 	for {
 		select {
 		case msg := <-m.SubsystemsToOverseer:
