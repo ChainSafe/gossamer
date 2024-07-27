@@ -48,7 +48,7 @@ var (
 
 // CandidateBacking represents the state of the subsystem responsible for managing candidate backing.
 type CandidateBacking struct {
-	ctx    context.Context //nolint:unused
+	ctx    context.Context
 	cancel context.CancelFunc
 
 	SubSystemToOverseer chan<- any
@@ -199,7 +199,10 @@ type StatementMessage struct {
 
 // New creates a new CandidateBacking instance and initialises it with the provided overseer channel.
 func New(overseerChan chan<- any) *CandidateBacking {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &CandidateBacking{
+		ctx:                 ctx,
+		cancel:              cancel,
 		SubSystemToOverseer: overseerChan,
 		perRelayParent:      map[common.Hash]*perRelayParentState{},
 		perCandidate:        map[parachaintypes.CandidateHash]*perCandidateState{},
@@ -220,9 +223,9 @@ func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan an
 			if err := cb.processMessage(msg, chRelayParentAndCommand); err != nil {
 				logger.Errorf("processing message: %s", err.Error())
 			}
-		case <-ctx.Done():
+		case <-cb.ctx.Done():
 			close(chRelayParentAndCommand)
-			if err := ctx.Err(); err != nil {
+			if err := cb.ctx.Err(); err != nil {
 				logger.Errorf("ctx error: %s\n", err)
 			}
 			return
