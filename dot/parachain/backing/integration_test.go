@@ -197,16 +197,6 @@ func availabilityCores(t *testing.T) []parachaintypes.CoreState {
 	return cores
 }
 
-// isContextCanceled checks if the given context is canceled
-func isContextCanceled(ctx context.Context) bool {
-	select {
-	case <-ctx.Done():
-		return true
-	default:
-		return false
-	}
-}
-
 func TestSecondsValidCandidate(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	candidateBacking, overseer := initBackingAndOverseerMock(t, ctx, cancel)
