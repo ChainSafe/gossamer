@@ -54,6 +54,7 @@ func (m *MockableOverseer) Start() error {
 
 func (m *MockableOverseer) Stop() {
 	m.cancel()
+	close(m.overseerToSubsystem)
 }
 
 // ReceiveMessage method is to receive overseer messages in a subsystem which we are testing
