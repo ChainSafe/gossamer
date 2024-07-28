@@ -219,7 +219,10 @@ func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan an
 			if err := cb.processValidatedCandidateCommand(rpAndCmd, chRelayParentAndCommand); err != nil {
 				logger.Errorf("processing validated candidated command: %s", err.Error())
 			}
-		case msg := <-cb.OverseerToSubSystem:
+		case msg, ok := <-cb.OverseerToSubSystem:
+			if !ok {
+				return
+			}
 			if err := cb.processMessage(msg, chRelayParentAndCommand); err != nil {
 				logger.Errorf("processing message: %s", err.Error())
 			}

@@ -297,9 +297,9 @@ func TestSecondsValidCandidate(t *testing.T) {
 			return
 		case msg = <-subToOverseer:
 			validateFromExhaustive, ok := msg.(candidatevalidation.ValidateFromExhaustive)
-			require.True(t, ok)
 			if !ok {
 				overseer.Stop()
+				t.Error("Should be true")
 				return
 			}
 
@@ -319,9 +319,9 @@ func TestSecondsValidCandidate(t *testing.T) {
 		case msg = <-subToOverseer:
 			// reported to collator protocol about invalid candidate
 			_, ok := msg.(collatorprotocolmessages.Invalid)
-			require.True(t, ok)
 			if !ok {
 				overseer.Stop()
+				t.Error("Should be true")
 			}
 		}
 	}(overseer.SubsystemsToOverseer, t)
@@ -335,10 +335,6 @@ func TestSecondsValidCandidate(t *testing.T) {
 			PoV:                     pov1,
 		})
 	wg.Wait()
-
-	if isContextCanceled(ctx) {
-		return
-	}
 
 	pov2 := parachaintypes.PoV{BlockData: []byte{45, 46, 47}}
 
@@ -384,9 +380,9 @@ func TestSecondsValidCandidate(t *testing.T) {
 			return
 		case msg = <-subToOverseer:
 			validateFromExhaustive, ok := msg.(candidatevalidation.ValidateFromExhaustive)
-			require.True(t, ok)
 			if !ok {
 				overseer.Stop()
+				t.Error("Should be true")
 				return
 			}
 
@@ -415,9 +411,9 @@ func TestSecondsValidCandidate(t *testing.T) {
 			return
 		case msg = <-subToOverseer:
 			store, ok := msg.(availabilitystore.StoreAvailableData)
-			require.True(t, ok)
 			if !ok {
 				overseer.Stop()
+				t.Error("Should be true")
 				return
 			}
 			store.Sender <- nil
@@ -432,9 +428,9 @@ func TestSecondsValidCandidate(t *testing.T) {
 		case msg = <-subToOverseer:
 			// we have seconded a candidate and shared the statement to peers
 			share, ok := msg.(parachaintypes.StatementDistributionMessageShare)
-			require.True(t, ok)
 			if !ok {
 				overseer.Stop()
+				t.Error("Should be true")
 				return
 			}
 
@@ -457,10 +453,9 @@ func TestSecondsValidCandidate(t *testing.T) {
 		case msg = <-subToOverseer:
 			// informed collator protocol that we have seconded the candidate
 			_, ok := msg.(collatorprotocolmessages.Seconded)
-			require.True(t, ok)
 			if !ok {
 				overseer.Stop()
-				return
+				t.Error("Should be true")
 			}
 		}
 	}(overseer.SubsystemsToOverseer, t)
