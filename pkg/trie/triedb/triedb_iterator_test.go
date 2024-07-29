@@ -36,7 +36,7 @@ func TestIterator(t *testing.T) {
 	root, err := inMemoryTrie.Hash()
 	assert.NoError(t, err)
 
-	trieDB := NewTrieDB(root, db, nil)
+	trieDB := NewTrieDB(root, db)
 	t.Run("iterate_over_all_entries", func(t *testing.T) {
 		iter := NewTrieDBIterator(trieDB)
 

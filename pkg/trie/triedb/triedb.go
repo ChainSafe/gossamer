@@ -25,41 +25,63 @@ var (
 	logger = log.NewFromGlobal(log.AddContext("pkg", "triedb"))
 )
 
+type TrieDBOpts func(*TrieDB)
+
+var WithCache = func(c cache.TrieCache) TrieDBOpts {
+	return func(t *TrieDB) {
+		t.cache = c
+	}
+}
+
+var WithRecorder = func(r *Recorder) TrieDBOpts {
+	return func(t *TrieDB) {
+		t.recorder = r
+	}
+}
+
 // TrieDB is a DB-backed patricia merkle trie implementation
 // using lazy loading to fetch nodes
 type TrieDB struct {
 	rootHash common.Hash
 	db       db.RWDatabase
-	cache    cache.TrieCache
 	version  trie.TrieLayout
 	// rootHandle is an in-memory-trie-like representation of the node
 	// references and new inserted nodes in the trie
 	rootHandle NodeHandle
 	// Storage is an in memory storage for nodes that we need to use during this
 	// trieDB session (before nodes are committed to db)
-	storage NodeStorage
+	storage nodeStorage
 	// deathRow is a set of nodes that we want to delete from db
 	deathRow map[common.Hash]interface{}
+	// Optional cache to speed up the db lookups
+	cache cache.TrieCache
+	// Optional recorder for recording trie accesses
+	recorder *Recorder
 }
 
-func NewEmptyTrieDB(db db.RWDatabase, cache cache.TrieCache) *TrieDB {
+func NewEmptyTrieDB(db db.RWDatabase, opts ...TrieDBOpts) *TrieDB {
 	root := hashedNullNode
-	return NewTrieDB(root, db, cache)
+	return NewTrieDB(root, db)
 }
 
 // NewTrieDB creates a new TrieDB using the given root and db
-func NewTrieDB(rootHash common.Hash, db db.RWDatabase, cache cache.TrieCache) *TrieDB {
-	rootHandle := Persisted{hash: rootHash}
+func NewTrieDB(rootHash common.Hash, db db.RWDatabase, opts ...TrieDBOpts) *TrieDB {
+	rootHandle := persisted(rootHash)
 
-	return &TrieDB{
+	trieDB := &TrieDB{
 		rootHash:   rootHash,
-		cache:      cache,
 		version:    trie.V0,
 		db:         db,
-		storage:    NewNodeStorage(),
+		storage:    newNodeStorage(),
 		rootHandle: rootHandle,
 		deathRow:   make(map[common.Hash]interface{}),
 	}
+
+	for _, opt := range opts {
+		opt(trieDB)
+	}
+
+	return trieDB
 }
 
 func (t *TrieDB) SetVersion(v trie.TrieLayout) {
@@ -112,15 +134,15 @@ func (t *TrieDB) lookup(fullKey []byte, partialKey []byte, handle NodeHandle) ([
 	for {
 		var partialIdx int
 		switch node := handle.(type) {
-		case Persisted:
-			lookup := NewTrieLookup(t.db, node.hash, t.cache)
+		case persisted:
+			lookup := NewTrieLookup(t.db, common.Hash(node), t.cache, t.recorder)
 			val, err := lookup.lookupValue(fullKey)
 			if err != nil {
 				return nil, err
 			}
 			return val, nil
-		case InMemory:
-			switch n := t.storage.get(node.idx).(type) {
+		case inMemory:
+			switch n := t.storage.get(storageHandle(node)).(type) {
 			case Empty:
 				return nil, nil
 			case Leaf:
@@ -155,6 +177,8 @@ func (t *TrieDB) getRootNode() (codec.EncodedNode, error) {
 		return nil, err
 	}
 
+	t.recordAccess(encodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
+
 	reader := bytes.NewReader(encodedNode)
 	return codec.Decode(reader)
 }
@@ -162,7 +186,7 @@ func (t *TrieDB) getRootNode() (codec.EncodedNode, error) {
 // Internal methods
 
 func (t *TrieDB) getNodeAt(key []byte) (codec.EncodedNode, error) {
-	lookup := NewTrieLookup(t.db, t.rootHash, t.cache)
+	lookup := NewTrieLookup(t.db, t.rootHash, t.cache, t.recorder)
 	node, err := lookup.lookupNode(nibbles.KeyLEToNibbles(key))
 	if err != nil {
 		return nil, err
@@ -176,13 +200,15 @@ func (t *TrieDB) getNode(
 ) (node codec.EncodedNode, err error) {
 	switch n := merkleValue.(type) {
 	case codec.InlineNode:
-		reader := bytes.NewReader(n.Data)
+		reader := bytes.NewReader(n)
 		return codec.Decode(reader)
 	case codec.HashedNode:
-		encodedNode, err := t.db.Get(n.Data)
+		encodedNode, err := t.db.Get(n[:])
 		if err != nil {
 			return nil, err
 		}
+		t.recordAccess(encodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
+
 		reader := bytes.NewReader(encodedNode)
 		return codec.Decode(reader)
 	default: // should never happen
@@ -200,9 +226,9 @@ func (t *TrieDB) remove(keyNibbles []byte) error {
 		return err
 	}
 	if removeResult != nil {
-		t.rootHandle = InMemory{idx: removeResult.handle}
+		t.rootHandle = inMemory(removeResult.handle)
 	} else {
-		t.rootHandle = Persisted{hashedNullNode}
+		t.rootHandle = persisted(hashedNullNode)
 		t.rootHash = hashedNullNode
 	}
 
@@ -223,7 +249,7 @@ func (t *TrieDB) insert(keyNibbles, value []byte) error {
 	if err != nil {
 		return err
 	}
-	t.rootHandle = InMemory{idx: newHandle}
+	t.rootHandle = inMemory(newHandle)
 
 	return nil
 }
@@ -241,18 +267,18 @@ func (t *TrieDB) insertAt(
 	keyNibbles,
 	value []byte,
 	oldValue *nodeValue,
-) (storageHandle StorageHandle, changed bool, err error) {
+) (strgHandle storageHandle, changed bool, err error) {
 	switch h := handle.(type) {
-	case InMemory:
-		storageHandle = h.idx
-	case Persisted:
-		storageHandle, err = t.lookupNode(h.hash)
+	case inMemory:
+		strgHandle = storageHandle(h)
+	case persisted:
+		strgHandle, err = t.lookupNode(common.Hash(h))
 		if err != nil {
 			return -1, false, err
 		}
 	}
 
-	stored := t.storage.destroy(storageHandle)
+	stored := t.storage.destroy(strgHandle)
 	result, err := t.inspect(stored, keyNibbles, func(node Node, keyNibbles []byte) (action, error) {
 		return t.insertInspector(node, keyNibbles, value, oldValue)
 	})
@@ -268,7 +294,7 @@ func (t *TrieDB) insertAt(
 }
 
 type RemoveAtResult struct {
-	handle  StorageHandle
+	handle  storageHandle
 	changed bool
 }
 
@@ -279,10 +305,10 @@ func (t *TrieDB) removeAt(
 ) (*RemoveAtResult, error) {
 	var stored StoredNode
 	switch h := handle.(type) {
-	case InMemory:
-		stored = t.storage.destroy(h.idx)
-	case Persisted:
-		handle, err := t.lookupNode(h.hash)
+	case inMemory:
+		stored = t.storage.destroy(storageHandle(h))
+	case persisted:
+		handle, err := t.lookupNode(common.Hash(h))
 		if err != nil {
 			return nil, err
 		}
@@ -326,9 +352,9 @@ func (t *TrieDB) inspect(
 		}
 		switch a := res.(type) {
 		case restoreNode:
-			return &InspectResult{BuildNewStoredNode(a.node), false}, nil
+			return &InspectResult{NewStoredNode(a), false}, nil
 		case replaceNode:
-			return &InspectResult{BuildNewStoredNode(a.node), true}, nil
+			return &InspectResult{NewStoredNode(a), true}, nil
 		case deleteNode:
 			return nil, nil
 		default:
@@ -344,7 +370,7 @@ func (t *TrieDB) inspect(
 			return &InspectResult{CachedStoredNode{a.node, n.hash}, false}, nil
 		case replaceNode:
 			t.deathRow[n.hash] = nil
-			return &InspectResult{BuildNewStoredNode(a.node), true}, nil
+			return &InspectResult{NewStoredNode(a), true}, nil
 		case deleteNode:
 			t.deathRow[n.hash] = nil
 			return nil, nil
@@ -386,10 +412,10 @@ func (t *TrieDB) fix(branch Branch) (Node, error) {
 
 		var stored StoredNode
 		switch n := child.(type) {
-		case InMemory:
-			stored = t.storage.destroy(n.idx)
-		case Persisted:
-			handle, err := t.lookupNode(n.hash)
+		case inMemory:
+			stored = t.storage.destroy(storageHandle(n))
+		case persisted:
+			handle, err := t.lookupNode(common.Hash(n))
 			if err != nil {
 				return nil, fmt.Errorf("looking up node: %w", err)
 			}
@@ -481,7 +507,7 @@ func (t *TrieDB) removeInspector(stored Node, keyNibbles []byte, oldValue *nodeV
 		}
 
 		if removeAtResult != nil {
-			n.children[idx] = newInMemoryNodeHandle(removeAtResult.handle)
+			n.children[idx] = inMemory(removeAtResult.handle)
 			if removeAtResult.changed {
 				return replaceNode{n}, nil
 			}
@@ -535,7 +561,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 
 			// Modify the existing leaf partial key and add it as a child
 			newLeaf := Leaf{existingKey[common+1:], n.value}
-			children[idx] = newInMemoryNodeHandle(t.storage.alloc(NewStoredNode{node: newLeaf}))
+			children[idx] = inMemory(t.storage.alloc(NewStoredNode{node: newLeaf}))
 			branch := Branch{
 				partialKey: partial[:common],
 				children:   children,
@@ -598,7 +624,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 
 			children := [codec.ChildrenCapacity]NodeHandle{}
 			ix := existingKey[common]
-			children[ix] = newInMemoryNodeHandle(allocStorage)
+			children[ix] = inMemory(allocStorage)
 
 			value := NewValue(value, t.version.MaxInlineValue())
 
@@ -617,7 +643,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 				leaf := t.storage.alloc(NewStoredNode{node: storedLeaf})
 
 				ix = partial[common]
-				children[ix] = newInMemoryNodeHandle(leaf)
+				children[ix] = inMemory(leaf)
 				return replaceNode{
 					Branch{
 						existingKey[:common],
@@ -637,7 +663,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 				if err != nil {
 					return nil, err
 				}
-				n.children[idx] = newInMemoryNodeHandle(newChild)
+				n.children[idx] = inMemory(newChild)
 				if !changed {
 					// Our branch is untouched so we can restore it
 					branch := Branch{
@@ -652,7 +678,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 				// Original has nothing here so we have to create a new leaf
 				value := NewValue(value, t.version.MaxInlineValue())
 				leaf := t.storage.alloc(NewStoredNode{node: Leaf{keyNibbles, value}})
-				n.children[idx] = newInMemoryNodeHandle(leaf)
+				n.children[idx] = inMemory(leaf)
 			}
 			return replaceNode{Branch{
 				existingKey,
@@ -681,11 +707,13 @@ func (t *TrieDB) replaceOldValue(
 
 // lookup node in DB and add it in storage, return storage handle
 // TODO: implement cache to improve performance
-func (t *TrieDB) lookupNode(hash common.Hash) (StorageHandle, error) {
+func (t *TrieDB) lookupNode(hash common.Hash) (storageHandle, error) {
 	encodedNode, err := t.db.Get(hash[:])
 	if err != nil {
 		return -1, ErrIncompleteDB
 	}
+
+	t.recordAccess(encodedNodeAccess{hash: t.rootHash, encodedNode: encodedNode})
 
 	node, err := newNodeFromEncoded(hash, encodedNode, t.storage)
 	if err != nil {
@@ -720,12 +748,12 @@ func (t *TrieDB) commit() error {
 	// Reset deathRow
 	t.deathRow = make(map[common.Hash]interface{})
 
-	var handle StorageHandle
+	var handle storageHandle
 	switch h := t.rootHandle.(type) {
-	case Persisted:
+	case persisted:
 		return nil // nothing to commit since the root is already in db
-	case InMemory:
-		handle = h.idx
+	case inMemory:
+		handle = storageHandle(h)
 	}
 
 	switch stored := t.storage.destroy(handle).(type) {
@@ -733,7 +761,7 @@ func (t *TrieDB) commit() error {
 		// Reconstructs the full key for root node
 		var k []byte
 
-		encodedNode, err := NewEncodedNode(
+		encodedNode, err := newEncodedNode(
 			stored.node,
 			func(node nodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error) {
 				k = append(k, partialKey...)
@@ -746,13 +774,14 @@ func (t *TrieDB) commit() error {
 				switch n := node.(type) {
 				case newNodeToEncode:
 					hash := common.MustBlake2bHash(n.value)
-					err := dbBatch.Put(hash[:], n.value)
+					prefixedKey := append(n.partialKey, hash.ToBytes()...)
+					err := dbBatch.Put(prefixedKey, n.value)
 					if err != nil {
 						return nil, err
 					}
 
 					k = k[:mov]
-					return HashChildReference{hash: hash}, nil
+					return HashChildReference(hash), nil
 				case trieNodeToEncode:
 					result, err := t.commitChild(dbBatch, n.child, k)
 					if err != nil {
@@ -778,15 +807,15 @@ func (t *TrieDB) commit() error {
 		}
 
 		t.rootHash = hash
-		t.rootHandle = Persisted{t.rootHash}
+		t.rootHandle = persisted(t.rootHash)
 
 		// Flush all db changes
 		return dbBatch.Flush()
 	case CachedStoredNode:
 		t.rootHash = stored.hash
-		t.rootHandle = InMemory{
+		t.rootHandle = inMemory(
 			t.storage.alloc(CachedStoredNode{stored.node, stored.hash}),
-		}
+		)
 		return nil
 	default:
 		panic("unreachable")
@@ -800,14 +829,14 @@ func (t *TrieDB) commitChild(
 	prefixKey []byte,
 ) (ChildReference, error) {
 	switch nh := child.(type) {
-	case Persisted:
+	case persisted:
 		// Already persisted we have to do nothing
 		return HashChildReference(nh), nil
-	case InMemory:
-		stored := t.storage.destroy(nh.idx)
+	case inMemory:
+		stored := t.storage.destroy(storageHandle(nh))
 		switch storedNode := stored.(type) {
 		case CachedStoredNode:
-			return HashChildReference{hash: storedNode.hash}, nil
+			return HashChildReference(storedNode.hash), nil
 		case NewStoredNode:
 			// We have to store the node in the DB
 			commitChildFunc := func(node nodeToEncode, partialKey []byte, childIndex *byte) (ChildReference, error) {
@@ -820,8 +849,8 @@ func (t *TrieDB) commitChild(
 
 				switch n := node.(type) {
 				case newNodeToEncode:
-					valueHash := common.MustBlake2bHash(n.value)
-					prefixedKey := bytes.Join([][]byte{n.partialKey, valueHash.ToBytes()}, nil)
+					hash := common.MustBlake2bHash(n.value)
+					prefixedKey := append(n.partialKey, hash.ToBytes()...)
 					err := dbBatch.Put(prefixedKey, n.value)
 					if err != nil {
 						panic("inserting in db")
@@ -832,7 +861,7 @@ func (t *TrieDB) commitChild(
 					}
 
 					prefixKey = prefixKey[:mov]
-					return HashChildReference{hash: valueHash}, nil
+					return HashChildReference(hash), nil
 				case trieNodeToEncode:
 					result, err := t.commitChild(dbBatch, n.child, prefixKey)
 					if err != nil {
@@ -846,7 +875,7 @@ func (t *TrieDB) commitChild(
 				}
 			}
 
-			encoded, err := NewEncodedNode(storedNode.node, commitChildFunc)
+			encoded, err := newEncodedNode(storedNode.node, commitChildFunc)
 			if err != nil {
 				panic("encoding node")
 			}
@@ -859,9 +888,9 @@ func (t *TrieDB) commitChild(
 					return nil, err
 				}
 
-				return HashChildReference{hash: hash}, nil
+				return HashChildReference(hash), nil
 			} else {
-				return InlineChildReference{encoded}, nil
+				return InlineChildReference(encoded), nil
 			}
 		default:
 			panic("unreachable")
@@ -877,6 +906,12 @@ func (t *TrieDB) Iter() trie.TrieIterator {
 
 func (t *TrieDB) PrefixedIter(prefix []byte) trie.TrieIterator {
 	return NewPrefixedTrieDBIterator(t, prefix)
+}
+
+func (t *TrieDB) recordAccess(access trieAccess) {
+	if t.recorder != nil {
+		t.recorder.record(access)
+	}
 }
 
 var _ trie.TrieRead = (*TrieDB)(nil)

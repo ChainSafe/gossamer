@@ -113,6 +113,7 @@ func (t *TrieState) Put(key, value []byte) (err error) {
 	// if not, we apply the changes directly on our state trie
 	if t.getCurrentTransaction() != nil {
 		t.getCurrentTransaction().upsert(string(key), value)
+		return nil
 	}
 
 	return t.state.Put(key, value)
@@ -166,6 +167,7 @@ func (t *TrieState) Delete(key []byte) (err error) {
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		t.getCurrentTransaction().delete(string(key))
+		return nil
 	}
 
 	return t.state.Delete(key)
