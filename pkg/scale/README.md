@@ -77,39 +77,6 @@ SCALE uses a compact encoding for variable width unsigned integers.
 | `Compact<u64>`      | `uint`                  |
 | `Compact<u128>`     | `*big.Int`              |
 
-### BitVec
-
-SCALE uses a bit vector to encode a sequence of booleans.  The bit vector is encoded as a compact length followed by a byte array.  
-The byte array is a sequence of bytes where each bit represents a boolean value.
-
-**Note: This is a work in progress.**
-The current implementation of BitVec is just bare bones.  It does not implement any of the methods of the `BitVec` type in Rust.
-
-```go
-import (
-    "fmt"
-    "github.com/ChainSafe/gossamer/pkg/scale"
-)
-
-func ExampleBitVec() {
-	bitvec := NewBitVec([]bool{true, false, true, false, true, false, true, false})
-	bytes, err := scale.Marshal(bitvec)
-	if err != nil {
-        panic(err)
-    }
-	
-	var unmarshaled BitVec
-	err = scale.Unmarshal(bytes, &unmarshaled)
-	if err != nil {
-        panic(err)
-    }
-	
-	// [true false true false true false true false]
-	fmt.Printf("%v", unmarshaled.Bits())
-}
-```
-
-
 ## Usage
 
 ### Basic Example
