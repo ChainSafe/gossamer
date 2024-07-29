@@ -5,7 +5,6 @@ package overseer
 
 import (
 	"context"
-	"sync"
 	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -15,7 +14,6 @@ type MockableOverseer struct {
 	t      *testing.T
 	ctx    context.Context
 	cancel context.CancelFunc
-	wg     *sync.WaitGroup
 
 	SubsystemsToOverseer chan any
 	overseerToSubsystem  chan any
@@ -30,11 +28,10 @@ func NewMockableOverseer(t *testing.T) *MockableOverseer {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &MockableOverseer{
-		t:                          t,
-		ctx:                        ctx,
-		cancel:                     cancel,
-		wg:                         new(sync.WaitGroup),
-		SubsystemsToOverseer:       make(chan any),
+		t:                    t,
+		ctx:                  ctx,
+		cancel:               cancel,
+		SubsystemsToOverseer: make(chan any),
 	}
 }
 
