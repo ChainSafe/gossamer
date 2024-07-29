@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -97,6 +98,9 @@ type FullSyncStrategy struct {
 	finalityGadget     FinalityGadget
 	blockImportHandler BlockImportHandler
 	telemetry          Telemetry
+
+	startedAt    time.Time
+	syncedBlocks int
 }
 
 func NewFullSyncStrategy(cfg *FullSyncConfig) *FullSyncStrategy {
@@ -123,6 +127,8 @@ func (f *FullSyncStrategy) incompleteBlocksSync() ([]*syncTask, error) {
 }
 
 func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
+	f.startedAt = time.Now()
+
 	if len(f.missingRequests) > 0 {
 		return f.createTasks(f.missingRequests), nil
 	}
@@ -179,7 +185,6 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 
 	if len(blocksToImport) > 0 {
 		for _, blockToImport := range blocksToImport {
-			fmt.Printf("handling block #%d (%s)\n", blockToImport.Header.Number, blockToImport.Hash.Short())
 			err := f.handleReadyBlock(blockToImport, networkInitialSync)
 			if err != nil {
 				return false, nil, nil, fmt.Errorf("while handling ready block: %w", err)
@@ -188,9 +193,16 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 		}
 	}
 
-	fmt.Printf("best block #%d (%s)\n", f.bestBlockHeader.Number, f.bestBlockHeader.Hash().String())
-
+	f.syncedBlocks = len(blocksToImport)
 	return false, repChanges, blocks, nil
+}
+
+func (f *FullSyncStrategy) ShowMetrics() {
+	totalSyncAndImportSeconds := time.Since(f.startedAt).Seconds()
+	bps := float64(f.syncedBlocks) / totalSyncAndImportSeconds
+	logger.Infof("⛓️ synced %d blocks, "+
+		"took: %.2f seconds, bps: %.2f blocks/second, target block number #%d",
+		f.syncedBlocks, totalSyncAndImportSeconds, bps, f.peers.getTarget())
 }
 
 func (f *FullSyncStrategy) OnBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error {

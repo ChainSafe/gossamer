@@ -14,12 +14,6 @@ import (
 )
 
 const (
-	available byte = iota
-	busy
-	punished
-)
-
-const (
 	punishmentBaseTimeout      = 5 * time.Minute
 	maxRequestsAllowed    uint = 60
 )
@@ -42,7 +36,7 @@ type syncWorkerPool struct {
 	wg  sync.WaitGroup
 
 	network     Network
-	workers     map[peer.ID]*worker
+	workers     map[peer.ID]struct{}
 	ignorePeers map[peer.ID]struct{}
 
 	sharedGuard chan struct{}
@@ -51,7 +45,7 @@ type syncWorkerPool struct {
 func newSyncWorkerPool(net Network) *syncWorkerPool {
 	swp := &syncWorkerPool{
 		network:     net,
-		workers:     make(map[peer.ID]*worker),
+		workers:     make(map[peer.ID]struct{}),
 		ignorePeers: make(map[peer.ID]struct{}),
 		sharedGuard: make(chan struct{}, maxRequestsAllowed),
 	}
@@ -72,23 +66,17 @@ func (s *syncWorkerPool) fromBlockAnnounceHandshake(who peer.ID, bestBlockHash c
 		return
 	}
 
-	s.workers[who] = newWorker(who)
+	s.workers[who] = struct{}{}
 	logger.Tracef("potential worker added, total in the pool %d", len(s.workers))
-}
-
-func (s *syncWorkerPool) removeWorker(who peer.ID) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-	delete(s.workers, who)
 }
 
 // submitRequests takes an set of requests and will submit to the pool through submitRequest
 // the response will be dispatch in the resultCh
 func (s *syncWorkerPool) submitRequests(tasks []*syncTask) []*syncTaskResult {
 	peers := s.network.AllConnectedPeersIDs()
-	connectedPeers := make(map[peer.ID]*worker, len(peers))
+	connectedPeers := make(map[peer.ID]struct{}, len(peers))
 	for _, peer := range peers {
-		connectedPeers[peer] = newWorker(peer)
+		connectedPeers[peer] = struct{}{}
 	}
 
 	s.mtx.RLock()
@@ -105,7 +93,7 @@ func (s *syncWorkerPool) submitRequests(tasks []*syncTask) []*syncTaskResult {
 		connectedPeers[pid] = w
 	}
 
-	allWorkers := maps.Values(connectedPeers)
+	allWorkers := maps.Keys(connectedPeers)
 	if len(allWorkers) == 0 {
 		panic("TODO: no peers to sync, what should we do?")
 	}
@@ -140,6 +128,13 @@ func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) {
 
 	delete(s.workers, who)
 	s.ignorePeers[who] = struct{}{}
+}
+
+func (s *syncWorkerPool) removeWorker(who peer.ID) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	delete(s.workers, who)
 }
 
 // totalWorkers only returns available or busy workers

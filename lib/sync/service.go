@@ -62,6 +62,7 @@ type Strategy interface {
 	OnBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error
 	NextActions() ([]*syncTask, error)
 	IsFinished(results []*syncTaskResult) (done bool, repChanges []Change, blocks []peer.ID, err error)
+	ShowMetrics()
 }
 
 type BlockOrigin byte
@@ -187,6 +188,20 @@ func (s *SyncService) runSyncEngine() {
 
 	// TODO: need to handle stop channel
 	for {
+		finalisedHeader, err := s.blockState.GetHighestFinalisedHeader()
+		if err != nil {
+			logger.Criticalf("getting highest finalized header: %w", err)
+			return
+		}
+
+		logger.Infof(
+			"🚣 currently syncing, %d peers connected, last finalised #%d (%s) ",
+			len(s.network.AllConnectedPeersIDs()),
+			s.workerPool.totalWorkers(),
+			finalisedHeader.Number,
+			finalisedHeader.Hash().Short(),
+		)
+
 		tasks, err := s.currentStrategy.NextActions()
 		if err != nil {
 			panic(fmt.Sprintf("current sync strategy next actions failed with: %s", err.Error()))
@@ -207,6 +222,8 @@ func (s *SyncService) runSyncEngine() {
 		for _, block := range blocks {
 			s.workerPool.ignorePeerAsWorker(block)
 		}
+
+		s.currentStrategy.ShowMetrics()
 
 		if done {
 			if s.defaultStrategy == nil {
