@@ -1,8 +1,8 @@
 package backing_test
 
 import (
+	"fmt"
 	"reflect"
-	"sync"
 	"testing"
 	"time"
 
@@ -199,7 +199,6 @@ func TestSecondsValidCandidate(t *testing.T) {
 	candidateBacking, overseer := initBackingAndOverseerMock(t)
 	defer overseer.Stop()
 
-	wg := new(sync.WaitGroup)
 	paraValidators := parachainValidators(t, candidateBacking.Keystore)
 	numOfValidators := uint(len(paraValidators))
 	relayParent := getDummyHash(t, 5)
@@ -268,50 +267,29 @@ func TestSecondsValidCandidate(t *testing.T) {
 	mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
 		Return(&validationCode1, nil)
 
-	wg.Add(1)
-	// mock the actions of overseer messages
-	go func(subToOverseer chan any, t *testing.T) {
-		defer wg.Done()
-
-		// message we receive from candidate backing subsystem to overseer
-		var msg any
-
-		// handle ValidateFromExhaustive message
-		select {
-		case <-time.After(2 * time.Minute):
-			t.Error("timed out waiting for candidatevalidation.ValidateFromExhaustive message")
-			overseer.Stop()
-			return
-		case msg = <-subToOverseer:
-			validateFromExhaustive, ok := msg.(candidatevalidation.ValidateFromExhaustive)
-			if !ok {
-				overseer.Stop()
-				t.Error("Should be true")
-				return
-			}
-
-			badReturn := candidatevalidation.BadReturn
-			validateFromExhaustive.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
-				Data: candidatevalidation.ValidationResult{
-					InvalidResult: &badReturn,
-				},
-			}
+	validate := func(msg any) bool {
+		validateFromExhaustive, ok := msg.(candidatevalidation.ValidateFromExhaustive)
+		if !ok {
+			return false
 		}
 
-		// handle collator protocol Invalid message
-		select {
-		case <-time.After(2 * time.Minute):
-			t.Error("timed out waiting for collatorprotocolmessages.Invalid message")
-			overseer.Stop()
-		case msg = <-subToOverseer:
-			// reported to collator protocol about invalid candidate
-			_, ok := msg.(collatorprotocolmessages.Invalid)
-			if !ok {
-				overseer.Stop()
-				t.Error("Should be true")
-			}
+		badReturn := candidatevalidation.BadReturn
+		validateFromExhaustive.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
+			Data: candidatevalidation.ValidationResult{
+				InvalidResult: &badReturn,
+			},
 		}
-	}(overseer.SubsystemsToOverseer, t)
+		return true
+	}
+
+	reportInvalid := func(msg any) bool {
+		// reported to collator protocol about invalid candidate
+		_, ok := msg.(collatorprotocolmessages.Invalid)
+		return ok
+	}
+
+	// set expected actions for overseer messages we send from the subsystem.
+	overseer.ExpectActions(validate, reportInvalid)
 
 	// receive second message from overseer to candidate backing subsystem
 	overseer.ReceiveMessage(
@@ -321,7 +299,6 @@ func TestSecondsValidCandidate(t *testing.T) {
 			PersistedValidationData: pvd1,
 			PoV:                     pov1,
 		})
-	wg.Wait()
 
 	pov2 := parachaintypes.PoV{BlockData: []byte{45, 46, 47}}
 
@@ -352,100 +329,66 @@ func TestSecondsValidCandidate(t *testing.T) {
 	mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
 		Return(&validationCode2, nil)
 
-	wg.Add(1)
-	// mock the actions of overseer messages
-	go func(subToOverseer chan any, t *testing.T) {
-		defer wg.Done()
+	validate = func(msg any) bool {
+		validateFromExhaustive, ok := msg.(candidatevalidation.ValidateFromExhaustive)
+		if !ok {
+			return false
+		}
 
-		var msg any
-
-		// handle ValidateFromExhaustive message
-		select {
-		case <-time.After(2 * time.Minute):
-			t.Error("timed out waiting for ValidateFromExhaustive message")
-			overseer.Stop()
-			return
-		case msg = <-subToOverseer:
-			validateFromExhaustive, ok := msg.(candidatevalidation.ValidateFromExhaustive)
-			if !ok {
-				overseer.Stop()
-				t.Error("Should be true")
-				return
-			}
-
-			validateFromExhaustive.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
-				Data: candidatevalidation.ValidationResult{
-					ValidResult: &candidatevalidation.ValidValidationResult{
-						CandidateCommitments: parachaintypes.CandidateCommitments{
-							UpwardMessages:            []parachaintypes.UpwardMessage{},
-							HorizontalMessages:        []parachaintypes.OutboundHrmpMessage{},
-							NewValidationCode:         nil,
-							HeadData:                  candidate2.Commitments.HeadData,
-							ProcessedDownwardMessages: 0,
-							HrmpWatermark:             0,
-						},
-						PersistedValidationData: pvd2,
+		validateFromExhaustive.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
+			Data: candidatevalidation.ValidationResult{
+				ValidResult: &candidatevalidation.ValidValidationResult{
+					CandidateCommitments: parachaintypes.CandidateCommitments{
+						UpwardMessages:            []parachaintypes.UpwardMessage{},
+						HorizontalMessages:        []parachaintypes.OutboundHrmpMessage{},
+						NewValidationCode:         nil,
+						HeadData:                  candidate2.Commitments.HeadData,
+						ProcessedDownwardMessages: 0,
+						HrmpWatermark:             0,
 					},
+					PersistedValidationData: pvd2,
 				},
-			}
+			},
+		}
+		return true
+	}
+
+	storeAvailableData := func(msg any) bool {
+		store, ok := msg.(availabilitystore.StoreAvailableData)
+		if !ok {
+			return false
+		}
+		store.Sender <- nil
+		return true
+	}
+
+	distribute := func(msg any) bool {
+		// we have seconded a candidate and shared the statement to peers
+		share, ok := msg.(parachaintypes.StatementDistributionMessageShare)
+		if !ok {
+			return false
 		}
 
-		// handle availabilitystore.StoreAvailableData message
-		select {
-		case <-time.After(2 * time.Minute):
-			t.Error("timed out waiting for availabilitystore.StoreAvailableData message")
+		statement, err := share.SignedFullStatementWithPVD.SignedFullStatement.Payload.Value()
+		require.NoError(t, err)
+
+		if !(requireEqual(t, statement, parachaintypes.Seconded(candidate2)) &&
+			requireEqual(t, *share.SignedFullStatementWithPVD.PersistedValidationData, pvd2) &&
+			requireEqual(t, share.RelayParent, relayParent)) {
 			overseer.Stop()
-			return
-		case msg = <-subToOverseer:
-			store, ok := msg.(availabilitystore.StoreAvailableData)
-			if !ok {
-				overseer.Stop()
-				t.Error("Should be true")
-				return
-			}
-			store.Sender <- nil
 		}
+		return true
+	}
 
-		// handle parachaintypes.StatementDistributionMessageShare message
-		select {
-		case <-time.After(2 * time.Minute):
-			t.Error("timed out waiting for parachaintypes.StatementDistributionMessageShare message")
-			overseer.Stop()
-			return
-		case msg = <-subToOverseer:
-			// we have seconded a candidate and shared the statement to peers
-			share, ok := msg.(parachaintypes.StatementDistributionMessageShare)
-			if !ok {
-				overseer.Stop()
-				t.Error("Should be true")
-				return
-			}
+	informSeconded := func(msg any) bool {
+		// informed collator protocol that we have seconded the candidate
+		_, ok := msg.(collatorprotocolmessages.Seconded)
+		fmt.Println("==> Seconded Candidate <==")
+		return ok
+	}
 
-			statement, err := share.SignedFullStatementWithPVD.SignedFullStatement.Payload.Value()
-			require.NoError(t, err)
-
-			if !(requireEqual(t, statement, parachaintypes.Seconded(candidate2)) &&
-				requireEqual(t, *share.SignedFullStatementWithPVD.PersistedValidationData, pvd2) &&
-				requireEqual(t, share.RelayParent, relayParent)) {
-				overseer.Stop()
-			}
-		}
-
-		// handle collatorprotocolmessages.Seconded message
-		select {
-		case <-time.After(2 * time.Minute):
-			t.Error("timed out waiting for collatorprotocolmessages.Seconded message")
-			overseer.Stop()
-			return
-		case msg = <-subToOverseer:
-			// informed collator protocol that we have seconded the candidate
-			_, ok := msg.(collatorprotocolmessages.Seconded)
-			if !ok {
-				overseer.Stop()
-				t.Error("Should be true")
-			}
-		}
-	}(overseer.SubsystemsToOverseer, t)
+	// set expected actions for overseer messages we send from the subsystem.
+	overseer.ExpectActions(validate, storeAvailableData, distribute, informSeconded)
 
 	// receive second message from overseer to candidate backing subsystem
 	overseer.ReceiveMessage(
@@ -455,7 +398,8 @@ func TestSecondsValidCandidate(t *testing.T) {
 			PersistedValidationData: pvd2,
 			PoV:                     pov2,
 		})
-	wg.Wait()
+	fmt.Println("TestSecondsValidCandidate completed...")
+	time.Sleep(2 * time.Minute)
 }
 
 // customised to return the bool, So that we can stop the overseer in case of value mismatch

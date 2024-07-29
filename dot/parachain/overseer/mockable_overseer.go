@@ -5,7 +5,9 @@ package overseer
 
 import (
 	"context"
+	"sync"
 	"testing"
+	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
@@ -14,12 +16,17 @@ type MockableOverseer struct {
 	t      *testing.T
 	ctx    context.Context
 	cancel context.CancelFunc
+	wg     *sync.WaitGroup
 
 	SubsystemsToOverseer chan any
 	overseerToSubsystem  chan any
 	subSystem            parachaintypes.Subsystem
 
 	expectedMessagesWithAction map[any]func(msg any)
+
+	// expected actions for overseer messages we receive from the subsystem.
+	// need to return false if the message is unexpected
+	actions []func(msg any) bool
 }
 
 func NewMockableOverseer(t *testing.T) *MockableOverseer {
@@ -29,6 +36,7 @@ func NewMockableOverseer(t *testing.T) *MockableOverseer {
 		t:                          t,
 		ctx:                        ctx,
 		cancel:                     cancel,
+		wg:                         new(sync.WaitGroup),
 		SubsystemsToOverseer:       make(chan any),
 		expectedMessagesWithAction: make(map[any]func(msg any)),
 	}
@@ -50,7 +58,7 @@ func (m *MockableOverseer) Start() error {
 		sub.Run(m.ctx, overseerToSubSystem, m.SubsystemsToOverseer)
 	}(m.subSystem, m.overseerToSubsystem)
 
-	// go m.processMessages()
+	go m.processMessages()
 	return nil
 }
 
@@ -68,20 +76,37 @@ func (m *MockableOverseer) ExpectMessageWithAction(msg any, fn func(msg any)) {
 	m.expectedMessagesWithAction[msg] = fn
 }
 
+// ExpectActions method is to set expected actions for overseer messages we receive from the subsystem.
+// actions are expected in the order they are set.
+// all the functions in the arguments should return false if the message is unexpected.
+func (m *MockableOverseer) ExpectActions(fns ...func(msg any) bool) {
+	m.actions = append(m.actions, fns...)
+}
+
 func (m *MockableOverseer) processMessages() { //nolint:unused
+	actionIndex := 0
 	for {
 		select {
 		case msg := <-m.SubsystemsToOverseer:
 			if msg == nil {
 				continue
 			}
-			action, ok := m.expectedMessagesWithAction[msg]
-			if !ok {
-				m.t.Errorf("unexpected message: %v", msg)
-				continue
-			}
 
-			action(msg)
+			if actionIndex < len(m.actions) {
+				action := m.actions[actionIndex]
+				ok := action(msg)
+				if !ok {
+					m.Stop()
+					m.t.Errorf("unexpected message: %T", msg)
+					return
+				}
+
+				actionIndex = actionIndex + 1
+			}
+		case <-time.After(2 * time.Second):
+			m.Stop()
+			m.t.Error("timed out waiting for overseer message")
+			return
 		case <-m.ctx.Done():
 			if err := m.ctx.Err(); err != nil {
 				m.t.Logf("ctx error: %v\n", err)
