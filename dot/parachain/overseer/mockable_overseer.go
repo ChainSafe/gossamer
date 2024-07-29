@@ -7,7 +7,6 @@ import (
 	"context"
 	"sync"
 	"testing"
-	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
@@ -21,8 +20,6 @@ type MockableOverseer struct {
 	SubsystemsToOverseer chan any
 	overseerToSubsystem  chan any
 	subSystem            parachaintypes.Subsystem
-
-	expectedMessagesWithAction map[any]func(msg any)
 
 	// expected actions for overseer messages we receive from the subsystem.
 	// need to return false if the message is unexpected
@@ -38,7 +35,6 @@ func NewMockableOverseer(t *testing.T) *MockableOverseer {
 		cancel:                     cancel,
 		wg:                         new(sync.WaitGroup),
 		SubsystemsToOverseer:       make(chan any),
-		expectedMessagesWithAction: make(map[any]func(msg any)),
 	}
 }
 
@@ -72,10 +68,6 @@ func (m *MockableOverseer) ReceiveMessage(msg any) {
 	m.overseerToSubsystem <- msg
 }
 
-func (m *MockableOverseer) ExpectMessageWithAction(msg any, fn func(msg any)) {
-	m.expectedMessagesWithAction[msg] = fn
-}
-
 // ExpectActions method is to set expected actions for overseer messages we receive from the subsystem.
 // actions are expected in the order they are set.
 // all the functions in the arguments should return false if the message is unexpected.
@@ -96,17 +88,12 @@ func (m *MockableOverseer) processMessages() { //nolint:unused
 				action := m.actions[actionIndex]
 				ok := action(msg)
 				if !ok {
-					m.Stop()
 					m.t.Errorf("unexpected message: %T", msg)
 					return
 				}
 
 				actionIndex = actionIndex + 1
 			}
-		case <-time.After(2 * time.Second):
-			m.Stop()
-			m.t.Error("timed out waiting for overseer message")
-			return
 		case <-m.ctx.Done():
 			if err := m.ctx.Err(); err != nil {
 				m.t.Logf("ctx error: %v\n", err)

@@ -1,8 +1,6 @@
 package backing_test
 
 import (
-	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
@@ -300,6 +298,8 @@ func TestSecondsValidCandidate(t *testing.T) {
 			PoV:                     pov1,
 		})
 
+	time.Sleep(3 * time.Second)
+
 	pov2 := parachaintypes.PoV{BlockData: []byte{45, 46, 47}}
 
 	pov2Hash, err := pov2.Hash()
@@ -329,7 +329,7 @@ func TestSecondsValidCandidate(t *testing.T) {
 	mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
 		Return(&validationCode2, nil)
 
-	validate = func(msg any) bool {
+	validate2 := func(msg any) bool {
 		validateFromExhaustive, ok := msg.(candidatevalidation.ValidateFromExhaustive)
 		if !ok {
 			return false
@@ -372,23 +372,21 @@ func TestSecondsValidCandidate(t *testing.T) {
 		statement, err := share.SignedFullStatementWithPVD.SignedFullStatement.Payload.Value()
 		require.NoError(t, err)
 
-		if !(requireEqual(t, statement, parachaintypes.Seconded(candidate2)) &&
-			requireEqual(t, *share.SignedFullStatementWithPVD.PersistedValidationData, pvd2) &&
-			requireEqual(t, share.RelayParent, relayParent)) {
-			overseer.Stop()
-		}
+		require.Equal(t, statement, parachaintypes.Seconded(candidate2))
+		require.Equal(t, *share.SignedFullStatementWithPVD.PersistedValidationData, pvd2)
+		require.Equal(t, share.RelayParent, relayParent)
+
 		return true
 	}
 
 	informSeconded := func(msg any) bool {
 		// informed collator protocol that we have seconded the candidate
 		_, ok := msg.(collatorprotocolmessages.Seconded)
-		fmt.Println("==> Seconded Candidate <==")
 		return ok
 	}
 
 	// set expected actions for overseer messages we send from the subsystem.
-	overseer.ExpectActions(validate, storeAvailableData, distribute, informSeconded)
+	overseer.ExpectActions(validate2, storeAvailableData, distribute, informSeconded)
 
 	// receive second message from overseer to candidate backing subsystem
 	overseer.ReceiveMessage(
@@ -398,17 +396,6 @@ func TestSecondsValidCandidate(t *testing.T) {
 			PersistedValidationData: pvd2,
 			PoV:                     pov2,
 		})
-	fmt.Println("TestSecondsValidCandidate completed...")
-	time.Sleep(2 * time.Minute)
-}
 
-// customised to return the bool, So that we can stop the overseer in case of value mismatch
-func requireEqual(t *testing.T, expected any, actual any) (isEqual bool) {
-	t.Helper()
-
-	if !reflect.DeepEqual(expected, actual) {
-		t.Errorf("\nNot Equal: \nexpected: %+v\nactual: %+v\n", expected, actual)
-		return false
-	}
-	return true
+	time.Sleep(3 * time.Second)
 }
