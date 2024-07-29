@@ -62,7 +62,7 @@ func (mvdt WireMessage) ValueAt(index uint) (value any, err error) {
 }
 
 func (w WireMessage) Type() network.MessageType {
-	// TODO: create a wire message type and return that
+	// TODO: create a wire message type and return that #4108
 	return network.CollationMsgType
 }
 
@@ -93,9 +93,9 @@ type ViewUpdate View
 // Up to `N` (5?) chain heads.
 type View struct {
 	// a bounded amount of chain heads
-	heads []common.Hash
+	heads []common.Hash //nolint
 	// the highest known finalized number
-	finalizedNumber uint32
+	finalizedNumber uint32 //nolint
 }
 
 type SortableHeads []common.Hash

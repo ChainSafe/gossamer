@@ -8,7 +8,6 @@ import "github.com/ChainSafe/gossamer/lib/common"
 var (
 	_ ProvisionableData     = (*ProvisionableDataBackedCandidate)(nil)
 	_ ProvisionableData     = (*ProvisionableDataMisbehaviorReport)(nil)
-	_ RuntimeApiRequest     = (*RuntimeApiRequestValidationCodeByHash)(nil)
 	_ HypotheticalCandidate = (*HypotheticalCandidateIncomplete)(nil)
 	_ HypotheticalCandidate = (*HypotheticalCandidateComplete)(nil)
 )
@@ -181,47 +180,6 @@ type HypotheticalCandidateComplete struct {
 }
 
 func (HypotheticalCandidateComplete) isHypotheticalCandidate() {}
-
-type RuntimeApiMessageRequest struct {
-	RelayParent common.Hash
-	// Make a request of the runtime API against the post-state of the given relay-parent.
-	RuntimeApiRequest RuntimeApiRequest
-}
-
-type RuntimeApiRequest interface {
-	IsRuntimeApiRequest()
-}
-
-// RuntimeApiRequestValidationCodeByHash retrieves validation code by its hash. It can return
-// past, current, or future code as long as state is available.
-type RuntimeApiRequestValidationCodeByHash struct {
-	ValidationCodeHash ValidationCodeHash
-	Ch                 chan OverseerFuncRes[ValidationCode]
-}
-
-func (RuntimeApiRequestValidationCodeByHash) IsRuntimeApiRequest() {}
-
-// CandidateValidationMessageValidateFromExhaustive performs full validation of a candidate with provided parameters,
-// including `PersistedValidationData` and `ValidationCode`. It doesn't involve acceptance
-// criteria checking and is typically used when the candidate's validity is established
-// through prior relay-chain checks.
-type CandidateValidationMessageValidateFromExhaustive struct {
-	PersistedValidationData PersistedValidationData
-	ValidationCode          ValidationCode
-	CandidateReceipt        CandidateReceipt
-	PoV                     PoV
-	ExecutorParams          ExecutorParams
-	PvfExecTimeoutKind      PvfExecTimeoutKind
-	Ch                      chan OverseerFuncRes[ValidationResult]
-}
-
-// ValidationResult represents the result coming from the candidate validation subsystem.
-type ValidationResult struct {
-	IsValid                 bool
-	CandidateCommitments    CandidateCommitments
-	PersistedValidationData PersistedValidationData
-	Err                     error
-}
 
 // AvailabilityDistributionMessageFetchPoV represents a message instructing
 // availability distribution to fetch a remote Proof of Validity (PoV).
