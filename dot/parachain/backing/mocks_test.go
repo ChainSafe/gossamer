@@ -122,21 +122,6 @@ func (m *MockImplicitView) EXPECT() *MockImplicitViewMockRecorder {
 	return m.recorder
 }
 
-// ActiveLeaf mocks base method.
-func (m *MockImplicitView) ActiveLeaf(arg0 common.Hash) ([]parachaintypes.ParaID, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ActiveLeaf", arg0)
-	ret0, _ := ret[0].([]parachaintypes.ParaID)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ActiveLeaf indicates an expected call of ActiveLeaf.
-func (mr *MockImplicitViewMockRecorder) ActiveLeaf(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActiveLeaf", reflect.TypeOf((*MockImplicitView)(nil).ActiveLeaf), arg0)
-}
-
 // AllAllowedRelayParents mocks base method.
 func (m *MockImplicitView) AllAllowedRelayParents() []common.Hash {
 	m.ctrl.T.Helper()
@@ -151,30 +136,45 @@ func (mr *MockImplicitViewMockRecorder) AllAllowedRelayParents() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AllAllowedRelayParents", reflect.TypeOf((*MockImplicitView)(nil).AllAllowedRelayParents))
 }
 
-// DeactivateLeaf mocks base method.
-func (m *MockImplicitView) DeactivateLeaf(arg0 common.Hash) []common.Hash {
+// activeLeaf mocks base method.
+func (m *MockImplicitView) activeLeaf(arg0 common.Hash) ([]parachaintypes.ParaID, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeactivateLeaf", arg0)
+	ret := m.ctrl.Call(m, "activeLeaf", arg0)
+	ret0, _ := ret[0].([]parachaintypes.ParaID)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// activeLeaf indicates an expected call of activeLeaf.
+func (mr *MockImplicitViewMockRecorder) activeLeaf(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "activeLeaf", reflect.TypeOf((*MockImplicitView)(nil).activeLeaf), arg0)
+}
+
+// deactivateLeaf mocks base method.
+func (m *MockImplicitView) deactivateLeaf(arg0 common.Hash) []common.Hash {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "deactivateLeaf", arg0)
 	ret0, _ := ret[0].([]common.Hash)
 	return ret0
 }
 
-// DeactivateLeaf indicates an expected call of DeactivateLeaf.
-func (mr *MockImplicitViewMockRecorder) DeactivateLeaf(arg0 any) *gomock.Call {
+// deactivateLeaf indicates an expected call of deactivateLeaf.
+func (mr *MockImplicitViewMockRecorder) deactivateLeaf(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeactivateLeaf", reflect.TypeOf((*MockImplicitView)(nil).DeactivateLeaf), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "deactivateLeaf", reflect.TypeOf((*MockImplicitView)(nil).deactivateLeaf), arg0)
 }
 
-// KnownAllowedRelayParentsUnder mocks base method.
-func (m *MockImplicitView) KnownAllowedRelayParentsUnder(arg0 common.Hash, arg1 *parachaintypes.ParaID) []common.Hash {
+// knownAllowedRelayParentsUnder mocks base method.
+func (m *MockImplicitView) knownAllowedRelayParentsUnder(arg0 common.Hash, arg1 *parachaintypes.ParaID) []common.Hash {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "KnownAllowedRelayParentsUnder", arg0, arg1)
+	ret := m.ctrl.Call(m, "knownAllowedRelayParentsUnder", arg0, arg1)
 	ret0, _ := ret[0].([]common.Hash)
 	return ret0
 }
 
-// KnownAllowedRelayParentsUnder indicates an expected call of KnownAllowedRelayParentsUnder.
-func (mr *MockImplicitViewMockRecorder) KnownAllowedRelayParentsUnder(arg0, arg1 any) *gomock.Call {
+// knownAllowedRelayParentsUnder indicates an expected call of knownAllowedRelayParentsUnder.
+func (mr *MockImplicitViewMockRecorder) knownAllowedRelayParentsUnder(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "KnownAllowedRelayParentsUnder", reflect.TypeOf((*MockImplicitView)(nil).KnownAllowedRelayParentsUnder), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "knownAllowedRelayParentsUnder", reflect.TypeOf((*MockImplicitView)(nil).knownAllowedRelayParentsUnder), arg0, arg1)
 }

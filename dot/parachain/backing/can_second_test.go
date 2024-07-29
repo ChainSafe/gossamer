@@ -76,7 +76,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockImplicitView := NewMockImplicitView(ctrl)
 
-		mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
+		mockImplicitView.EXPECT().knownAllowedRelayParentsUnder(
 			gomock.AssignableToTypeOf(common.Hash{}),
 			gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
 		).Return([]common.Hash{msg.CandidateRelayParent})
@@ -151,7 +151,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockImplicitView := NewMockImplicitView(ctrl)
 
-		mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
+		mockImplicitView.EXPECT().knownAllowedRelayParentsUnder(
 			gomock.AssignableToTypeOf(common.Hash{}),
 			gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
 		).Return([]common.Hash{})
@@ -182,7 +182,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockImplicitView := NewMockImplicitView(ctrl)
 
-		mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
+		mockImplicitView.EXPECT().knownAllowedRelayParentsUnder(
 			gomock.AssignableToTypeOf(common.Hash{}),
 			gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
 		).Return([]common.Hash{hypotheticalCandidate.RelayParent})
@@ -236,7 +236,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockImplicitView := NewMockImplicitView(ctrl)
 
-		mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
+		mockImplicitView.EXPECT().knownAllowedRelayParentsUnder(
 			gomock.AssignableToTypeOf(common.Hash{}),
 			gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
 		).Return([]common.Hash{hypotheticalCandidate.RelayParent})

@@ -72,7 +72,7 @@ func (m *MockableOverseer) ExpectActions(fns ...func(msg any) bool) {
 	m.actions = append(m.actions, fns...)
 }
 
-func (m *MockableOverseer) processMessages() { //nolint:unused
+func (m *MockableOverseer) processMessages() {
 	actionIndex := 0
 	for {
 		select {

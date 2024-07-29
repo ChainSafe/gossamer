@@ -43,13 +43,13 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 
 		// activate in implicit view only if prospective parachains are enabled.
 		if prospectiveParachainsMode.IsEnabled {
-			_, implicitViewFetchError = cb.ImplicitView.ActiveLeaf(activatedLeaf.Hash)
+			_, implicitViewFetchError = cb.ImplicitView.activeLeaf(activatedLeaf.Hash)
 		}
 	}
 
 	for _, deactivated := range update.Deactivated {
 		delete(cb.perLeaf, deactivated)
-		cb.ImplicitView.DeactivateLeaf(deactivated)
+		cb.ImplicitView.deactivateLeaf(deactivated)
 	}
 
 	// clean up `perRelayParent` according to ancestry of leaves.
@@ -96,7 +96,7 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 			return fmt.Errorf("failed to load implicit view for leaf %s: %w", activatedLeaf.Hash, implicitViewFetchError)
 		}
 
-		freshRelayParents = cb.ImplicitView.KnownAllowedRelayParentsUnder(activatedLeaf.Hash, nil)
+		freshRelayParents = cb.ImplicitView.knownAllowedRelayParentsUnder(activatedLeaf.Hash, nil)
 
 		// At this point, all candidates outside of the implicit view
 		// have been cleaned up. For all which remain, which we've seconded,
