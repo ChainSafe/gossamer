@@ -57,9 +57,8 @@ func (bv BitVec) bitsToBytes() []byte {
 }
 
 // bytesToBits converts a slice of bytes to a slice of bits
-func (bv *BitVec) bytesToBits(b []byte) {
+func (bv *BitVec) bytesToBits(b []byte, size uint) {
 	var bits []bool
-	var size = uint(len(b))
 	for _, uint8val := range b {
 		end := size
 		if end > byteSize {
@@ -99,11 +98,19 @@ func (bv BitVec) MarshalSCALE() ([]byte, error) {
 // UnmarshalSCALE fulfils the SCALE interface for decoding
 func (bv *BitVec) UnmarshalSCALE(r io.Reader) error {
 	decoder := scale.NewDecoder(r)
-	var bytes []byte
-	err := decoder.Decode(&bytes)
+	var size uint
+	err := decoder.Decode(&size)
 	if err != nil {
 		return err
 	}
-	bv.bytesToBits(bytes)
+
+	numBytes := (size + (byteSize - 1)) / byteSize
+	b := make([]byte, numBytes)
+	_, err = r.Read(b)
+	if err != nil {
+		return err
+	}
+
+	bv.bytesToBits(b, size)
 	return nil
 }
