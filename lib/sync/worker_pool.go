@@ -4,14 +4,16 @@
 package sync
 
 import (
+	"errors"
 	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"golang.org/x/exp/maps"
 )
+
+var ErrNoPeersToMakeRequest = errors.New("no peers to make requests")
 
 const (
 	punishmentBaseTimeout      = 5 * time.Minute
@@ -33,7 +35,6 @@ type syncTaskResult struct {
 
 type syncWorkerPool struct {
 	mtx sync.RWMutex
-	wg  sync.WaitGroup
 
 	network     Network
 	workers     map[peer.ID]struct{}
@@ -53,7 +54,9 @@ func newSyncWorkerPool(net Network) *syncWorkerPool {
 	return swp
 }
 
-func (s *syncWorkerPool) fromBlockAnnounceHandshake(who peer.ID, bestBlockHash common.Hash, bestBlockNumber uint) {
+// fromBlockAnnounceHandshake stores the peer which send us a handshake as
+// a possible source for requesting blocks/state/warp proofs
+func (s *syncWorkerPool) fromBlockAnnounceHandshake(who peer.ID) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
@@ -72,7 +75,7 @@ func (s *syncWorkerPool) fromBlockAnnounceHandshake(who peer.ID, bestBlockHash c
 
 // submitRequests takes an set of requests and will submit to the pool through submitRequest
 // the response will be dispatch in the resultCh
-func (s *syncWorkerPool) submitRequests(tasks []*syncTask) []*syncTaskResult {
+func (s *syncWorkerPool) submitRequests(tasks []*syncTask) ([]*syncTaskResult, error) {
 	peers := s.network.AllConnectedPeersIDs()
 	connectedPeers := make(map[peer.ID]struct{}, len(peers))
 	for _, peer := range peers {
@@ -95,7 +98,7 @@ func (s *syncWorkerPool) submitRequests(tasks []*syncTask) []*syncTaskResult {
 
 	allWorkers := maps.Keys(connectedPeers)
 	if len(allWorkers) == 0 {
-		panic("TODO: no peers to sync, what should we do?")
+		return nil, ErrNoPeersToMakeRequest
 	}
 
 	guard := make(chan struct{}, len(allWorkers))
@@ -119,7 +122,7 @@ func (s *syncWorkerPool) submitRequests(tasks []*syncTask) []*syncTaskResult {
 		results = append(results, r)
 	}
 
-	return results
+	return results, nil
 }
 
 func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) {

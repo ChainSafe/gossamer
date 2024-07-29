@@ -113,8 +113,8 @@ func (s *SyncService) waitWorkers() {
 
 	for {
 		total := s.workerPool.totalWorkers()
-		logger.Info("waiting peers...")
-		logger.Infof("total workers: %d, min peers: %d", total, s.minPeers)
+		logger.Debugf("waiting peers...")
+		logger.Debugf("total workers: %d, min peers: %d", total, s.minPeers)
 		if total >= s.minPeers {
 			return
 		}
@@ -151,7 +151,7 @@ func (s *SyncService) Stop() error {
 
 func (s *SyncService) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error {
 	logger.Infof("receiving a block announce handshake: %s", from.String())
-	s.workerPool.fromBlockAnnounceHandshake(from, msg.BestBlockHash, uint(msg.BestBlockNumber))
+	s.workerPool.fromBlockAnnounceHandshake(from)
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -197,18 +197,21 @@ func (s *SyncService) runSyncEngine() {
 		logger.Infof(
 			"🚣 currently syncing, %d peers connected, last finalised #%d (%s) ",
 			len(s.network.AllConnectedPeersIDs()),
-			s.workerPool.totalWorkers(),
 			finalisedHeader.Number,
 			finalisedHeader.Hash().Short(),
 		)
 
 		tasks, err := s.currentStrategy.NextActions()
 		if err != nil {
-			panic(fmt.Sprintf("current sync strategy next actions failed with: %s", err.Error()))
+			logger.Criticalf("current sync strategy next actions failed with: %s", err.Error())
+			return
 		}
 
-		logger.Infof("sending %d tasks", len(tasks))
-		results := s.workerPool.submitRequests(tasks)
+		results, err := s.workerPool.submitRequests(tasks)
+		if err != nil {
+			logger.Criticalf("getting highest finalized header: %w", err)
+			return
+		}
 
 		done, repChanges, blocks, err := s.currentStrategy.IsFinished(results)
 		if err != nil {
@@ -227,7 +230,8 @@ func (s *SyncService) runSyncEngine() {
 
 		if done {
 			if s.defaultStrategy == nil {
-				panic("nil default strategy")
+				logger.Criticalf("nil default strategy")
+				return
 			}
 
 			s.mu.Lock()
