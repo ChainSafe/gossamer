@@ -64,12 +64,6 @@ func (p *peerViewSet) getTarget() uint32 {
 	return p.target
 }
 
-func (p *peerViewSet) len() int {
-	p.mtx.RLock()
-	defer p.mtx.RUnlock()
-	return len(p.view)
-}
-
 // nonOutliersSumCount calculates the sum and count of non-outlier elements
 // Explanation:
 // IQR outlier detection
