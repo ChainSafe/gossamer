@@ -60,7 +60,7 @@ func (mvdt WireMessage) ValueAt(index uint) (value any, err error) {
 }
 
 func (w WireMessage) Type() network.MessageType {
-	// TODO: create a wire message type and return that
+	// TODO: create a wire message type and return that #4108
 	return network.CollationMsgType
 }
 

@@ -9,7 +9,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-// NOTE: This is not same as corresponding rust structure
 // TODO: If need be, add ability to report multiple peers in batches
 type ReportPeer struct {
 	PeerID           peer.ID
