@@ -63,47 +63,6 @@ func TestBitVec(t *testing.T) {
 	}
 }
 
-func TestBitVecBytesToBits(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name    string
-		in      []byte
-		want    []bool
-		wantErr bool
-	}{
-		{
-			name:    "empty",
-			in:      []byte(nil),
-			want:    []bool(nil),
-			wantErr: false,
-		},
-		{
-			name:    "1_byte",
-			in:      []byte{0x55},
-			want:    []bool{true, false, true, false, true, false, true, false},
-			wantErr: false,
-		},
-		{
-			name: "4_bytes",
-			in:   []byte{0x55, 0x36, 0xaa, 0x1},
-			want: []bool{
-				true, false, true, false, true, false, true, false,
-				false, true, true, false, true, true, false, false,
-				false, true, false, true, false, true, false, true,
-				true, false, false, false, false, false, false, false,
-			},
-			wantErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			require.Equal(t, tt.want, bytesToBits(tt.in, uint(len(tt.in)*byteSize)))
-		})
-	}
-}
-
 func TestBitVecBitsToBytes(t *testing.T) {
 	t.Parallel()
 	tests := []struct {

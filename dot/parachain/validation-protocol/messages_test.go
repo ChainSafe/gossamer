@@ -245,7 +245,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	bitfieldDistribution.SetValue(Bitfield{
 		Hash: hashA,
 		UncheckedSignedAvailabilityBitfield: parachaintypes.UncheckedSignedAvailabilityBitfield{
-			Payload: scale.NewBitVec([]bool{true, true, true, true, true, true, true, true, true, true, true,
+			Payload: parachaintypes.NewBitVec([]bool{true, true, true, true, true, true, true, true, true, true, true,
 				true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
 				true, true, true, true}),
 			ValidatorIndex: 0,
