@@ -11,6 +11,8 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+const byteSize = 8
+
 // BitVec is the implementation of a bit vector
 type BitVec struct {
 	bits []bool
@@ -33,7 +35,6 @@ func NewBitVec(bits []bool) BitVec {
 // https://github.com/ChainSafe/gossamer/issues/3248
 func (bv BitVec) bitsToBytes() []byte {
 	bits := bv.bits
-	const byteSize = 8
 	bitLength := len(bits)
 	numOfBytes := (bitLength + (byteSize - 1)) / byteSize
 	bytes := make([]byte, numOfBytes)
@@ -58,7 +59,6 @@ func (bv BitVec) bitsToBytes() []byte {
 // bytesToBits converts a slice of bytes to a slice of bits
 func (bv *BitVec) bytesToBits(b []byte) {
 	var bits []bool
-	const byteSize = 8
 	var size = uint(len(b))
 	for _, uint8val := range b {
 		end := size
