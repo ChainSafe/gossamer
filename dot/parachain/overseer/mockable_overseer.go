@@ -22,7 +22,9 @@ type MockableOverseer struct {
 	expectedMessagesWithAction map[any]func(msg any)
 }
 
-func NewMockableOverseer(t *testing.T, ctx context.Context, cancel context.CancelFunc) *MockableOverseer {
+func NewMockableOverseer(t *testing.T) *MockableOverseer {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	return &MockableOverseer{
 		t:                          t,
 		ctx:                        ctx,

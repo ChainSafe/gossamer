@@ -1,7 +1,6 @@
 package backing_test
 
 import (
-	"context"
 	"reflect"
 	"sync"
 	"testing"
@@ -24,11 +23,10 @@ import (
 )
 
 // register the backing subsystem, run backing subsystem, start overseer
-func initBackingAndOverseerMock(t *testing.T, ctx context.Context, cancel context.CancelFunc,
-) (*backing.CandidateBacking, *overseer.MockableOverseer) {
+func initBackingAndOverseerMock(t *testing.T) (*backing.CandidateBacking, *overseer.MockableOverseer) {
 	t.Helper()
 
-	overseerMock := overseer.NewMockableOverseer(t, ctx, cancel)
+	overseerMock := overseer.NewMockableOverseer(t)
 
 	backing := backing.New(overseerMock.SubsystemsToOverseer)
 	backing.OverseerToSubSystem = overseerMock.RegisterSubsystem(backing)
@@ -198,8 +196,7 @@ func availabilityCores(t *testing.T) []parachaintypes.CoreState {
 }
 
 func TestSecondsValidCandidate(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	candidateBacking, overseer := initBackingAndOverseerMock(t, ctx, cancel)
+	candidateBacking, overseer := initBackingAndOverseerMock(t)
 	defer overseer.Stop()
 
 	wg := new(sync.WaitGroup)
