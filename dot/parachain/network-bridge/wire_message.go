@@ -91,9 +91,9 @@ type ViewUpdate View
 // Up to `N` (5?) chain heads.
 type View struct {
 	// a bounded amount of chain heads
-	heads []common.Hash
+	heads []common.Hash //nolint
 	// the highest known finalized number
-	finalizedNumber uint32
+	finalizedNumber uint32 //nolint
 }
 
 type ProtocolMessage struct{}
