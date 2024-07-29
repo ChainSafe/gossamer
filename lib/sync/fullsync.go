@@ -1,42 +1,116 @@
 package sync
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
 	"strings"
-	"time"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/internal/database"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	"github.com/ChainSafe/gossamer/lib/common"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
-
-const blockRequestTimeout = 30 * time.Second
 
 var _ Strategy = (*FullSyncStrategy)(nil)
 
 var (
+	errFailedToGetParent          = errors.New("failed to get parent header")
 	errNilBlockData               = errors.New("block data is nil")
 	errNilHeaderInResponse        = errors.New("expected header, received none")
 	errNilBodyInResponse          = errors.New("expected body, received none")
 	errNilJustificationInResponse = errors.New("expected justification, received none")
+
+	blockSizeGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_sync",
+		Name:      "block_size",
+		Help:      "represent the size of blocks synced",
+	})
 )
 
-type FullSyncStrategy struct {
-	bestBlockHeader *types.Header
-	peers           *peerViewSet
-	reqMaker        network.RequestMaker
-	stopCh          chan struct{}
+type (
+	// Telemetry is the telemetry client to send telemetry messages.
+	Telemetry interface {
+		SendMessage(msg json.Marshaler)
+	}
+
+	// StorageState is the interface for the storage state
+	StorageState interface {
+		TrieState(root *common.Hash) (*rtstorage.TrieState, error)
+		sync.Locker
+	}
+
+	// TransactionState is the interface for transaction queue methods
+	TransactionState interface {
+		RemoveExtrinsic(ext types.Extrinsic)
+	}
+
+	// BabeVerifier deals with BABE block verification
+	BabeVerifier interface {
+		VerifyBlock(header *types.Header) error
+	}
+
+	// FinalityGadget implements justification verification functionality
+	FinalityGadget interface {
+		VerifyBlockJustification(common.Hash, []byte) error
+	}
+
+	// BlockImportHandler is the interface for the handler of newly imported blocks
+	BlockImportHandler interface {
+		HandleBlockImport(block *types.Block, state *rtstorage.TrieState, announce bool) error
+	}
+)
+
+// Config is the configuration for the sync Service.
+type FullSyncConfig struct {
+	StartHeader        *types.Header
+	BlockState         BlockState
+	StorageState       StorageState
+	FinalityGadget     FinalityGadget
+	TransactionState   TransactionState
+	BlockImportHandler BlockImportHandler
+	BabeVerifier       BabeVerifier
+	Telemetry          Telemetry
+	BadBlocks          []string
+	RequestMaker       network.RequestMaker
 }
 
-func NewFullSyncStrategy(startHeader *types.Header, reqMaker network.RequestMaker) *FullSyncStrategy {
+type FullSyncStrategy struct {
+	bestBlockHeader    *types.Header
+	missingRequests    []*network.BlockRequestMessage
+	disjointBlocks     [][]*types.BlockData
+	peers              *peerViewSet
+	badBlocks          []string
+	reqMaker           network.RequestMaker
+	blockState         BlockState
+	storageState       StorageState
+	transactionState   TransactionState
+	babeVerifier       BabeVerifier
+	finalityGadget     FinalityGadget
+	blockImportHandler BlockImportHandler
+	telemetry          Telemetry
+}
+
+func NewFullSyncStrategy(cfg *FullSyncConfig) *FullSyncStrategy {
 	return &FullSyncStrategy{
-		bestBlockHeader: startHeader,
-		reqMaker:        reqMaker,
+		badBlocks:          cfg.BadBlocks,
+		bestBlockHeader:    cfg.StartHeader,
+		reqMaker:           cfg.RequestMaker,
+		blockState:         cfg.BlockState,
+		storageState:       cfg.StorageState,
+		transactionState:   cfg.TransactionState,
+		babeVerifier:       cfg.BabeVerifier,
+		finalityGadget:     cfg.FinalityGadget,
+		blockImportHandler: cfg.BlockImportHandler,
+		telemetry:          cfg.Telemetry,
 		peers: &peerViewSet{
 			view:   make(map[peer.ID]peerView),
 			target: 0,
@@ -49,6 +123,10 @@ func (f *FullSyncStrategy) incompleteBlocksSync() ([]*syncTask, error) {
 }
 
 func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
+	if len(f.missingRequests) > 0 {
+		return f.createTasks(f.missingRequests), nil
+	}
+
 	currentTarget := f.peers.getTarget()
 	// our best block is equal or ahead of current target
 	// we're not legging behind, so let's set the set of
@@ -58,7 +136,7 @@ func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 	}
 
 	startRequestAt := f.bestBlockHeader.Number + 1
-	targetBlockNumber := startRequestAt + uint(f.peers.len())*128
+	targetBlockNumber := startRequestAt + 60*128
 
 	if targetBlockNumber > uint(currentTarget) {
 		targetBlockNumber = uint(currentTarget)
@@ -66,7 +144,10 @@ func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 
 	requests := network.NewAscendingBlockRequests(startRequestAt, targetBlockNumber,
 		network.BootstrapRequestData)
+	return f.createTasks(requests), nil
+}
 
+func (f *FullSyncStrategy) createTasks(requests []*network.BlockRequestMessage) []*syncTask {
 	tasks := make([]*syncTask, len(requests))
 	for idx, req := range requests {
 		tasks[idx] = &syncTask{
@@ -75,12 +156,41 @@ func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 			requestMaker: f.reqMaker,
 		}
 	}
-
-	return tasks, nil
+	return tasks
 }
 
-func (*FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change, []peer.ID, error) {
-	return false, nil, nil, nil
+func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change, []peer.ID, error) {
+	repChanges, blocks, missingReq, validResp := validateResults(results, f.badBlocks)
+	f.missingRequests = missingReq
+
+	if f.disjointBlocks == nil {
+		f.disjointBlocks = make([][]*types.BlockData, 0)
+	}
+
+	// merge validResp with the current disjoint blocks
+	for _, resp := range validResp {
+		f.disjointBlocks = append(f.disjointBlocks, resp.BlockData)
+	}
+
+	// given the validResponses, can we start importing the blocks or
+	// we should wait for the missing requests to fill the gap?
+	blocksToImport, disjointBlocks := blocksAvailable(f.bestBlockHeader.Hash(), f.bestBlockHeader.Number, f.disjointBlocks)
+	f.disjointBlocks = disjointBlocks
+
+	if len(blocksToImport) > 0 {
+		for _, blockToImport := range blocksToImport {
+			fmt.Printf("handling block #%d (%s)\n", blockToImport.Header.Number, blockToImport.Hash.Short())
+			err := f.handleReadyBlock(blockToImport, networkInitialSync)
+			if err != nil {
+				return false, nil, nil, fmt.Errorf("while handling ready block: %w", err)
+			}
+			f.bestBlockHeader = blockToImport.Header
+		}
+	}
+
+	fmt.Printf("best block #%d (%s)\n", f.bestBlockHeader.Number, f.bestBlockHeader.Hash().String())
+
+	return false, repChanges, blocks, nil
 }
 
 func (f *FullSyncStrategy) OnBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error {
@@ -101,16 +211,158 @@ func (*FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounc
 
 var ErrResultsTimeout = errors.New("waiting results reached timeout")
 
-// handleWorkersResults, every time we submit requests to workers they results should be computed here
-// and every cicle we should endup with a complete chain, whenever we identify
-// any error from a worker we should evaluate the error and re-insert the request
-// in the queue and wait for it to completes
-// TODO: handle only justification requests
-func (cs *FullSyncStrategy) handleWorkersResults(results []*syncTaskResult, origin BlockOrigin) error {
-	repChanges := make([]Change, 0)
-	blocks := make([]peer.ID, 0)
+func (f *FullSyncStrategy) handleReadyBlock(bd *types.BlockData, origin BlockOrigin) error {
+	err := f.processBlockData(*bd, origin)
+	if err != nil {
+		// depending on the error, we might want to save this block for later
+		logger.Errorf("processing block #%d (%s) failed: %s", bd.Header.Number, bd.Hash, err)
+		return err
+	}
 
+	return nil
+}
+
+// processBlockData processes the BlockData from a BlockResponse and
+// returns the index of the last BlockData it handled on success,
+// or the index of the block data that errored on failure.
+// TODO: https://github.com/ChainSafe/gossamer/issues/3468
+func (f *FullSyncStrategy) processBlockData(blockData types.BlockData, origin BlockOrigin) error {
+	// while in bootstrap mode we don't need to broadcast block announcements
+	// TODO: set true if not in initial sync setup
+	announceImportedBlock := false
+
+	if blockData.Header != nil {
+		if blockData.Body != nil {
+			err := f.processBlockDataWithHeaderAndBody(blockData, origin, announceImportedBlock)
+			if err != nil {
+				return fmt.Errorf("processing block data with header and body: %w", err)
+			}
+		}
+
+		if blockData.Justification != nil && len(*blockData.Justification) > 0 {
+			err := f.handleJustification(blockData.Header, *blockData.Justification)
+			if err != nil {
+				return fmt.Errorf("handling justification: %w", err)
+			}
+		}
+	}
+
+	err := f.blockState.CompareAndSetBlockData(&blockData)
+	if err != nil {
+		return fmt.Errorf("comparing and setting block data: %w", err)
+	}
+
+	return nil
+}
+
+func (f *FullSyncStrategy) processBlockDataWithHeaderAndBody(blockData types.BlockData,
+	origin BlockOrigin, announceImportedBlock bool) (err error) {
+
+	if origin != networkInitialSync {
+		err = f.babeVerifier.VerifyBlock(blockData.Header)
+		if err != nil {
+			return fmt.Errorf("babe verifying block: %w", err)
+		}
+	}
+
+	f.handleBody(blockData.Body)
+
+	block := &types.Block{
+		Header: *blockData.Header,
+		Body:   *blockData.Body,
+	}
+
+	err = f.handleBlock(block, announceImportedBlock)
+	if err != nil {
+		return fmt.Errorf("handling block: %w", err)
+	}
+
+	return nil
+}
+
+// handleHeader handles block bodies included in BlockResponses
+func (f *FullSyncStrategy) handleBody(body *types.Body) {
+	acc := 0
+	for _, ext := range *body {
+		acc += len(ext)
+		f.transactionState.RemoveExtrinsic(ext)
+	}
+
+	blockSizeGauge.Set(float64(acc))
+}
+
+// handleHeader handles blocks (header+body) included in BlockResponses
+func (f *FullSyncStrategy) handleBlock(block *types.Block, announceImportedBlock bool) error {
+	parent, err := f.blockState.GetHeader(block.Header.ParentHash)
+	if err != nil {
+		return fmt.Errorf("%w: %s", errFailedToGetParent, err)
+	}
+
+	f.storageState.Lock()
+	defer f.storageState.Unlock()
+
+	ts, err := f.storageState.TrieState(&parent.StateRoot)
+	if err != nil {
+		return err
+	}
+
+	root := ts.MustRoot()
+	if !bytes.Equal(parent.StateRoot[:], root[:]) {
+		panic("parent state root does not match snapshot state root")
+	}
+
+	rt, err := f.blockState.GetRuntime(parent.Hash())
+	if err != nil {
+		return err
+	}
+
+	rt.SetContextStorage(ts)
+
+	_, err = rt.ExecuteBlock(block)
+	if err != nil {
+		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
+	}
+
+	if err = f.blockImportHandler.HandleBlockImport(block, ts, announceImportedBlock); err != nil {
+		return err
+	}
+
+	blockHash := block.Header.Hash()
+	f.telemetry.SendMessage(telemetry.NewBlockImport(
+		&blockHash,
+		block.Header.Number,
+		"NetworkInitialSync"))
+
+	return nil
+}
+
+func (f *FullSyncStrategy) handleJustification(header *types.Header, justification []byte) (err error) {
+	headerHash := header.Hash()
+	err = f.finalityGadget.VerifyBlockJustification(headerHash, justification)
+	if err != nil {
+		return fmt.Errorf("verifying block number %d justification: %w", header.Number, err)
+	}
+
+	err = f.blockState.SetJustification(headerHash, justification)
+	if err != nil {
+		return fmt.Errorf("setting justification for block number %d: %w", header.Number, err)
+	}
+
+	return nil
+}
+
+func validateResults(results []*syncTaskResult, badBlocks []string) (repChanges []Change, blocks []peer.ID,
+	missingReqs []*network.BlockRequestMessage, validRes []*network.BlockResponseMessage) {
+	repChanges = make([]Change, 0)
+	blocks = make([]peer.ID, 0)
+
+	missingReqs = make([]*network.BlockRequestMessage, 0, len(results))
+	validRes = make([]*network.BlockResponseMessage, 0, len(results))
+
+resultLoop:
 	for _, result := range results {
+		request := result.request.(*network.BlockRequestMessage)
+
 		if result.err != nil {
 			if !errors.Is(result.err, network.ErrReceivedEmptyMessage) {
 				blocks = append(blocks, result.who)
@@ -135,15 +387,15 @@ func (cs *FullSyncStrategy) handleWorkersResults(results []*syncTaskResult, orig
 					})
 				}
 			}
+
+			missingReqs = append(missingReqs, request)
 			continue
 		}
 
-		request := result.request.(*network.BlockRequestMessage)
 		response := result.response.(*network.BlockResponseMessage)
-
 		if request.Direction == network.Descending {
 			// reverse blocks before pre-validating and placing in ready queue
-			reverseBlockData(response.BlockData)
+			slices.Reverse(response.BlockData)
 		}
 
 		err := validateResponseFields(request.RequestedData, response.BlockData)
@@ -161,232 +413,103 @@ func (cs *FullSyncStrategy) handleWorkersResults(results []*syncTaskResult, orig
 				})
 			}
 
-			err = cs.submitRequest(taskResult.request, nil, workersResults)
-			if err != nil {
-				return err
-			}
-			continue taskResultLoop
+			missingReqs = append(missingReqs, request)
+			continue
 		}
-	}
 
-taskResultLoop:
-	for waitingBlocks > 0 {
-		// in a case where we don't handle workers results we should check the pool
-		idleDuration := time.Minute
-		idleTimer := time.NewTimer(idleDuration)
+		if !isResponseAChain(response.BlockData) {
+			logger.Criticalf("response from %s is not a chain", result.who)
+			missingReqs = append(missingReqs, request)
+			continue
+		}
 
-		select {
-		case <-cs.stopCh:
-			return nil
+		for _, block := range response.BlockData {
+			if slices.Contains(badBlocks, block.Hash.String()) {
+				logger.Criticalf("%s sent a known bad block: #%d (%s)",
+					result.who, block.Number(), block.Hash.String())
 
-		case <-idleTimer.C:
-			return ErrResultsTimeout
-
-		case taskResult := <-workersResults:
-			if !idleTimer.Stop() {
-				<-idleTimer.C
-			}
-
-			who := taskResult.who
-			request := taskResult.request
-			response := taskResult.response
-
-			logger.Debugf("task result: peer(%s), with error: %v, with response: %v",
-				taskResult.who, taskResult.err != nil, taskResult.response != nil)
-
-			if taskResult.err != nil {
-				if !errors.Is(taskResult.err, network.ErrReceivedEmptyMessage) {
-					cs.workerPool.ignorePeerAsWorker(taskResult.who)
-
-					logger.Errorf("task result: peer(%s) error: %s",
-						taskResult.who, taskResult.err)
-
-					if strings.Contains(taskResult.err.Error(), "protocols not supported") {
-						cs.network.ReportPeer(peerset.ReputationChange{
-							Value:  peerset.BadProtocolValue,
-							Reason: peerset.BadProtocolReason,
-						}, who)
-					}
-
-					if errors.Is(taskResult.err, network.ErrNilBlockInResponse) {
-						cs.network.ReportPeer(peerset.ReputationChange{
-							Value:  peerset.BadMessageValue,
-							Reason: peerset.BadMessageReason,
-						}, who)
-					}
-				}
-
-				// TODO: avoid the same peer to get the same task
-				err := cs.submitRequest(request, nil, workersResults)
-				if err != nil {
-					return err
-				}
-				continue
-			}
-
-			if request.Direction == network.Descending {
-				// reverse blocks before pre-validating and placing in ready queue
-				reverseBlockData(response.BlockData)
-			}
-
-			err := validateResponseFields(request.RequestedData, response.BlockData)
-			if err != nil {
-				logger.Criticalf("validating fields: %s", err)
-				// TODO: check the reputation change for nil body in response
-				// and nil justification in response
-				if errors.Is(err, errNilHeaderInResponse) {
-					cs.network.ReportPeer(peerset.ReputationChange{
-						Value:  peerset.IncompleteHeaderValue,
-						Reason: peerset.IncompleteHeaderReason,
-					}, who)
-				}
-
-				err = cs.submitRequest(taskResult.request, nil, workersResults)
-				if err != nil {
-					return err
-				}
-				continue taskResultLoop
-			}
-
-			isChain := isResponseAChain(response.BlockData)
-			if !isChain {
-				logger.Criticalf("response from %s is not a chain", who)
-				err = cs.submitRequest(taskResult.request, nil, workersResults)
-				if err != nil {
-					return err
-				}
-				continue taskResultLoop
-			}
-
-			grows := doResponseGrowsTheChain(response.BlockData, syncingChain,
-				startAtBlock, expectedSyncedBlocks)
-			if !grows {
-				logger.Criticalf("response from %s does not grows the ongoing chain", who)
-				err = cs.submitRequest(taskResult.request, nil, workersResults)
-				if err != nil {
-					return err
-				}
-				continue taskResultLoop
-			}
-
-			for _, blockInResponse := range response.BlockData {
-				if slices.Contains(cs.badBlocks, blockInResponse.Hash.String()) {
-					logger.Criticalf("%s sent a known bad block: %s (#%d)",
-						who, blockInResponse.Hash.String(), blockInResponse.Number())
-
-					cs.network.ReportPeer(peerset.ReputationChange{
+				blocks = append(blocks, result.who)
+				repChanges = append(repChanges, Change{
+					who: result.who,
+					rep: peerset.ReputationChange{
 						Value:  peerset.BadBlockAnnouncementValue,
 						Reason: peerset.BadBlockAnnouncementReason,
-					}, who)
+					},
+				})
 
-					cs.workerPool.ignorePeerAsWorker(taskResult.who)
-					err = cs.submitRequest(taskResult.request, nil, workersResults)
-					if err != nil {
-						return err
-					}
-					continue taskResultLoop
-				}
-
-				blockExactIndex := blockInResponse.Header.Number - startAtBlock
-				if blockExactIndex < uint(expectedSyncedBlocks) {
-					syncingChain[blockExactIndex] = blockInResponse
-				}
-			}
-
-			// we need to check if we've filled all positions
-			// otherwise we should wait for more responses
-			waitingBlocks -= uint32(len(response.BlockData))
-
-			// we received a response without the desired amount of blocks
-			// we should include a new request to retrieve the missing blocks
-			if len(response.BlockData) < int(*request.Max) {
-				difference := uint32(int(*request.Max) - len(response.BlockData))
-				lastItem := response.BlockData[len(response.BlockData)-1]
-
-				startRequestNumber := uint32(lastItem.Header.Number + 1)
-				startAt, err := variadic.NewUint32OrHash(startRequestNumber)
-				if err != nil {
-					panic(err)
-				}
-
-				taskResult.request = &network.BlockRequestMessage{
-					RequestedData: network.BootstrapRequestData,
-					StartingBlock: *startAt,
-					Direction:     network.Ascending,
-					Max:           &difference,
-				}
-				err = cs.submitRequest(taskResult.request, nil, workersResults)
-				if err != nil {
-					return err
-				}
-				continue taskResultLoop
+				missingReqs = append(missingReqs, request)
+				continue resultLoop
 			}
 		}
+
+		validRes = append(validRes, response)
 	}
 
-	retreiveBlocksSeconds := time.Since(startTime).Seconds()
-	logger.Infof("🔽 retrieved %d blocks, took: %.2f seconds, starting process...",
-		expectedSyncedBlocks, retreiveBlocksSeconds)
-
-	// response was validated! place into ready block queue
-	for _, bd := range syncingChain {
-		// block is ready to be processed!
-		if err := cs.handleReadyBlock(bd, origin); err != nil {
-			return fmt.Errorf("while handling ready block: %w", err)
-		}
-	}
-
-	cs.showSyncStats(startTime, len(syncingChain))
-	return nil
+	return repChanges, blocks, missingReqs, validRes
 }
 
-func (cs *chainSync) handleReadyBlock(bd *types.BlockData, origin blockOrigin) error {
-	// if header was not requested, get it from the pending set
-	// if we're expecting headers, validate should ensure we have a header
-	if bd.Header == nil {
-		block := cs.pendingBlocks.getBlock(bd.Hash)
-		if block == nil {
-			// block wasn't in the pending set!
-			// let's check the db as maybe we already processed it
-			has, err := cs.blockState.HasHeader(bd.Hash)
-			if err != nil && !errors.Is(err, database.ErrNotFound) {
-				logger.Debugf("failed to check if header is known for hash %s: %s", bd.Hash, err)
-				return err
-			}
+// blocksAvailable given a set of responses, which are fragments of the chain we should
+// check if there is fragments that can be imported or fragments that are disjoint (cannot be imported yet)
+func blocksAvailable(blockHash common.Hash, blockNumber uint, responses [][]*types.BlockData) (
+	[]*types.BlockData, [][]*types.BlockData) {
+	if len(responses) == 0 {
+		return nil, nil
+	}
 
-			if has {
-				logger.Tracef("ignoring block we've already processed, hash=%s", bd.Hash)
-				return err
-			}
+	slices.SortFunc(responses, func(a, b []*types.BlockData) int {
+		if a[len(a)-1].Header.Number < b[0].Header.Number {
+			return -1
+		}
+		if a[len(a)-1].Header.Number == b[0].Header.Number {
+			return 0
+		}
+		return 1
+	})
 
-			// this is bad and shouldn't happen
-			logger.Errorf("block with unknown header is ready: hash=%s", bd.Hash)
-			return err
+	type hashAndNumber struct {
+		hash   common.Hash
+		number uint
+	}
+
+	compareWith := hashAndNumber{
+		hash:   blockHash,
+		number: blockNumber,
+	}
+
+	disjoints := false
+	lastIdx := 0
+
+	okFrag := make([]*types.BlockData, 0, len(responses))
+	for idx, chain := range responses {
+		if len(chain) == 0 {
+			panic("unreachable")
 		}
 
-		if block.header == nil {
-			logger.Errorf("new ready block number (unknown) with hash %s", bd.Hash)
-			return nil
+		incrementOne := (compareWith.number + 1) == chain[0].Header.Number
+		isParent := compareWith.hash == chain[0].Header.ParentHash
+
+		fmt.Printf("checking: in response %d, compare with %d\n", chain[0].Header.Number, compareWith.number+1)
+		fmt.Printf("checking: in response %s, compare with %s\n", chain[0].Header.ParentHash, compareWith.hash)
+
+		if incrementOne && isParent {
+			okFrag = append(okFrag, chain...)
+			compareWith = hashAndNumber{
+				hash:   chain[len(chain)-1].Hash,
+				number: chain[len(chain)-1].Header.Number,
+			}
+			continue
 		}
 
-		bd.Header = block.header
+		lastIdx = idx
+		disjoints = true
+		break
 	}
 
-	err := cs.processBlockData(*bd, origin)
-	if err != nil {
-		// depending on the error, we might want to save this block for later
-		logger.Errorf("block data processing for block with hash %s failed: %s", bd.Hash, err)
-		return err
+	if disjoints {
+		return okFrag, responses[lastIdx:]
 	}
 
-	cs.pendingBlocks.removeBlock(bd.Hash)
-	return nil
-}
-
-func reverseBlockData(data []*types.BlockData) {
-	for i, j := 0, len(data)-1; i < j; i, j = i+1, j-1 {
-		data[i], data[j] = data[j], data[i]
-	}
+	return okFrag, nil
 }
 
 // validateResponseFields checks that the expected fields are in the block data
@@ -428,64 +551,6 @@ func isResponseAChain(responseBlockData []*types.BlockData) bool {
 		}
 
 		previousBlockData = currBlockData
-	}
-
-	return true
-}
-
-// doResponseGrowsTheChain will check if the acquired blocks grows the current chain
-// matching their parent hashes
-func doResponseGrowsTheChain(response, ongoingChain []*types.BlockData, startAtBlock uint, expectedTotal uint32) bool {
-	// the ongoing chain does not have any element, we can safely insert an item in it
-	if len(ongoingChain) < 1 {
-		return true
-	}
-
-	compareParentHash := func(parent, child *types.BlockData) bool {
-		return parent.Header.Hash() == child.Header.ParentHash
-	}
-
-	firstBlockInResponse := response[0]
-	firstBlockExactIndex := firstBlockInResponse.Header.Number - startAtBlock
-	if firstBlockExactIndex != 0 && firstBlockExactIndex < uint(expectedTotal) {
-		leftElement := ongoingChain[firstBlockExactIndex-1]
-		if leftElement != nil && !compareParentHash(leftElement, firstBlockInResponse) {
-			return false
-		}
-	}
-
-	switch {
-	// if the response contains only one block then we should check both sides
-	// for example, if the response contains only one block called X we should
-	// check if its parent hash matches with the left element as well as we should
-	// check if the right element contains X hash as its parent hash
-	// ... W <- X -> Y ...
-	// we can skip left side comparison if X is in the 0 index and we can skip
-	// right side comparison if X is in the last index
-	case len(response) == 1:
-		if uint32(firstBlockExactIndex+1) < expectedTotal {
-			rightElement := ongoingChain[firstBlockExactIndex+1]
-			if rightElement != nil && !compareParentHash(firstBlockInResponse, rightElement) {
-				return false
-			}
-		}
-	// if the response contains more than 1 block then we need to compare
-	// only the start and the end of the acquired response, for example
-	// let's say we receive a response [C, D, E] and we need to check
-	// if those values fits correctly:
-	// ... B <- C D E -> F
-	// we skip the left check if its index is equals to 0 and we skip the right
-	// check if it ends in the latest position of the ongoing array
-	case len(response) > 1:
-		lastBlockInResponse := response[len(response)-1]
-		lastBlockExactIndex := lastBlockInResponse.Header.Number - startAtBlock
-
-		if uint32(lastBlockExactIndex+1) < expectedTotal {
-			rightElement := ongoingChain[lastBlockExactIndex+1]
-			if rightElement != nil && !compareParentHash(lastBlockInResponse, rightElement) {
-				return false
-			}
-		}
 	}
 
 	return true

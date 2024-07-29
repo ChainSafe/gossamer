@@ -18,9 +18,9 @@ var (
 
 	// chainSync errors
 
-	errNoPeers               = errors.New("no peers to sync with")
-	errPeerOnInvalidFork     = errors.New("peer is on an invalid fork")
-	errFailedToGetParent     = errors.New("failed to get parent header")
+	errNoPeers           = errors.New("no peers to sync with")
+	errPeerOnInvalidFork = errors.New("peer is on an invalid fork")
+
 	errStartAndEndMismatch   = errors.New("request start and end hash are not on the same chain")
 	errFailedToGetDescendant = errors.New("failed to find descendant block")
 	errAlreadyInDisjointSet  = errors.New("already in disjoint set")

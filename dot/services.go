@@ -505,10 +505,10 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg Bloc
 	// 	return nil, err
 	// }
 
-	// genesisData, err := st.Base.LoadGenesisData()
-	// if err != nil {
-	// 	return nil, err
-	// }
+	genesisData, err := st.Base.LoadGenesisData()
+	if err != nil {
+		return nil, err
+	}
 
 	// syncLogLevel, err := log.ParseLevel(config.Log.Sync)
 	// if err != nil {
@@ -521,29 +521,25 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg Bloc
 		blockRequestTimeout,
 		network.MaxBlockResponseSize)
 
-	// syncCfg := &sync.Config{
-	// 	LogLvl:             syncLogLevel,
-	// 	Network:            net,
-	// 	BlockState:         st.Block,
-	// 	StorageState:       st.Storage,
-	// 	TransactionState:   st.Transaction,
-	// 	FinalityGadget:     fg,
-	// 	BabeVerifier:       verifier,
-	// 	BlockImportHandler: cs,
-	// 	MinPeers:           config.Network.MinPeers,
-	// 	MaxPeers:           config.Network.MaxPeers,
-	// 	SlotDuration:       slotDuration,
-	// 	Telemetry:          telemetryMailer,
-	// 	BadBlocks:          genesisData.BadBlocks,
-	// 	RequestMaker:       requestMaker,
-	// }
-
 	genesisHeader, err := st.Block.BestBlockHeader()
 	if err != nil {
 		return nil, fmt.Errorf("cannot get genesis header: %w", err)
 	}
 
-	defaultStrategy := libsync.NewFullSyncStrategy(genesisHeader, requestMaker)
+	syncCfg := &libsync.FullSyncConfig{
+		StartHeader:        genesisHeader,
+		BlockState:         st.Block,
+		StorageState:       st.Storage,
+		TransactionState:   st.Transaction,
+		FinalityGadget:     fg,
+		BabeVerifier:       verifier,
+		BlockImportHandler: cs,
+		Telemetry:          telemetryMailer,
+		BadBlocks:          genesisData.BadBlocks,
+		RequestMaker:       requestMaker,
+	}
+
+	defaultStrategy := libsync.NewFullSyncStrategy(syncCfg)
 	return libsync.NewSyncService(net, st.Block,
 		defaultStrategy,
 		defaultStrategy), nil

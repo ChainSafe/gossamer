@@ -85,23 +85,40 @@ func (s *syncWorkerPool) removeWorker(who peer.ID) {
 // submitRequests takes an set of requests and will submit to the pool through submitRequest
 // the response will be dispatch in the resultCh
 func (s *syncWorkerPool) submitRequests(tasks []*syncTask) []*syncTaskResult {
+	peers := s.network.AllConnectedPeersIDs()
+	connectedPeers := make(map[peer.ID]*worker, len(peers))
+	for _, peer := range peers {
+		connectedPeers[peer] = newWorker(peer)
+	}
+
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
 	wg := sync.WaitGroup{}
 	resCh := make(chan *syncTaskResult, len(tasks))
 
-	allWorkers := maps.Values(s.workers)
-	for idx, task := range tasks {
-		workerID := idx % len(allWorkers)
-		worker := allWorkers[workerID]
-		if worker.status != available {
+	for pid, w := range s.workers {
+		_, ok := connectedPeers[pid]
+		if ok {
 			continue
 		}
+		connectedPeers[pid] = w
+	}
 
-		worker.status = busy
+	allWorkers := maps.Values(connectedPeers)
+	if len(allWorkers) == 0 {
+		panic("TODO: no peers to sync, what should we do?")
+	}
+
+	guard := make(chan struct{}, len(allWorkers))
+	for idx, task := range tasks {
+		guard <- struct{}{}
+
+		workerID := idx % len(allWorkers)
+		worker := allWorkers[workerID]
+
 		wg.Add(1)
-		go executeRequest(&wg, worker, task, resCh)
+		go executeRequest(&wg, worker, task, guard, resCh)
 	}
 
 	go func() {

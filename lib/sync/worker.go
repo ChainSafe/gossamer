@@ -23,8 +23,6 @@ type worker struct {
 
 	// ID of the peer this worker is associated with
 	peerID peer.ID
-
-	stopCh chan struct{}
 }
 
 // newWorker creates and returns a new worker instance.
@@ -35,17 +33,18 @@ func newWorker(pID peer.ID) *worker {
 	}
 }
 
-func executeRequest(wg *sync.WaitGroup, who *worker, task *syncTask, resCh chan<- *syncTaskResult) {
+func executeRequest(wg *sync.WaitGroup, who *worker, task *syncTask, guard chan struct{}, resCh chan<- *syncTaskResult) {
 	defer func() {
 		who.status = available
+		<-guard
 		wg.Done()
 	}()
 
 	request := task.request
-	logger.Debugf("[EXECUTING] worker %s, block request: %s", who, request)
+	logger.Infof("[EXECUTING] worker %s, block request: %s", who.peerID, request)
 	err := task.requestMaker.Do(who.peerID, request, task.response)
 	if err != nil {
-		logger.Debugf("[ERR] worker %s, err: %s", who, err)
+		logger.Infof("[ERR] worker %s, err: %s", who.peerID, err)
 		resCh <- &syncTaskResult{
 			who:      who.peerID,
 			request:  request,
@@ -55,7 +54,7 @@ func executeRequest(wg *sync.WaitGroup, who *worker, task *syncTask, resCh chan<
 		return
 	}
 
-	logger.Debugf("[FINISHED] worker %s, response: %s", who, task.response.String())
+	logger.Debugf("[FINISHED] worker %s, response: %s", who.peerID, task.response.String())
 	resCh <- &syncTaskResult{
 		who:      who.peerID,
 		request:  request,
