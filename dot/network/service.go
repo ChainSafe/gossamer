@@ -720,6 +720,10 @@ func (s *Service) ReportPeer(change peerset.ReputationChange, p peer.ID) {
 	s.host.cm.peerSetHandler.ReportPeer(change, p)
 }
 
+func (s *Service) DisconnectPeer(setID int, p peer.ID) {
+	s.host.cm.peerSetHandler.DisconnectPeer(setID, p)
+}
+
 func (s *Service) startPeerSetHandler() {
 	s.host.cm.peerSetHandler.Start(s.ctx)
 	// wait for peerSetHandler to start.

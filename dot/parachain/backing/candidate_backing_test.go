@@ -14,6 +14,7 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -888,7 +889,7 @@ func TestHandleStatementMessage(t *testing.T) {
 				}
 			},
 			signedStatementWithPVD: parachaintypes.SignedFullStatementWithPVD{},
-			err:                    "unsupported VaryingDataTypeValue",
+			err:                    scale.ErrUnsupportedVaryingDataTypeValue.Error(),
 		},
 		{
 			description: "getting_nil_summary_of_import_statement",

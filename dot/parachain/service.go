@@ -10,8 +10,12 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	availability_store "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
-	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
+	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
+	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
+
+	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -43,6 +47,9 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	}
 	genesisHash := st.Block.GenesisHash()
 
+	networkBridge := networkbridge.Register(overseer.SubsystemsToOverseer, net)
+	overseer.RegisterSubsystem(networkBridge)
+
 	availabilityStore, err := availability_store.Register(overseer.GetSubsystemToOverseerChannel(), st.DB(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("registering availability store: %w", err)
@@ -53,34 +60,9 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 		ValidationProtocolName, forkID, genesisHash, ValidationProtocolVersion)
 
 	// register validation protocol
-	err = net.RegisterNotificationsProtocol(
-		protocol.ID(validationProtocolID),
-		network.ValidationMsgType,
-		getValidationHandshake,
-		decodeValidationHandshake,
-		validateValidationHandshake,
-		decodeValidationMessage,
-		handleValidationMessage,
-		nil,
-		MaxValidationMessageSize,
-	)
+	err = validationprotocol.Register(net, protocol.ID(validationProtocolID))
 	if err != nil {
-		// try with legacy protocol id
-		err1 := net.RegisterNotificationsProtocol(
-			protocol.ID(legacyValidationProtocolV1),
-			network.ValidationMsgType,
-			getValidationHandshake,
-			decodeValidationHandshake,
-			validateValidationHandshake,
-			decodeValidationMessage,
-			handleValidationMessage,
-			nil,
-			MaxValidationMessageSize,
-		)
-
-		if err1 != nil {
-			return nil, fmt.Errorf("registering validation protocol, new: %w, legacy:%w", err, err1)
-		}
+		return nil, fmt.Errorf("registering validation protocol: %w", err)
 	}
 
 	collationProtocolID := GeneratePeersetProtocolName(
@@ -134,16 +116,18 @@ func (s Service) run(blockState *state.BlockState) {
 	//
 	time.Sleep(time.Second * 15)
 	// let's try sending a collation message  and validation message to a peer and see what happens
-	collatorProtocolMessage := collatorprotocol.NewCollatorProtocolMessage()
+	collatorProtocolMessage := collatorprotocolmessages.NewCollatorProtocolMessage()
 	// NOTE: This is just to test. We should not be sending declare messages, since we are not a collator, just a validator
-	_ = collatorProtocolMessage.SetValue(collatorprotocol.Declare{})
-	collationMessage := collatorprotocol.NewCollationProtocol()
+	_ = collatorProtocolMessage.SetValue(collatorprotocolmessages.Declare{})
+	collationMessage := collatorprotocolmessages.NewCollationProtocol()
 
 	_ = collationMessage.SetValue(collatorProtocolMessage)
 	s.Network.GossipMessage(&collationMessage)
 
-	statementDistributionLargeStatement := StatementDistribution{NewStatementDistributionMessage()}
-	err := statementDistributionLargeStatement.SetValue(LargePayload{
+	statementDistributionLargeStatement := validationprotocol.StatementDistribution{
+		StatementDistributionMessage: validationprotocol.NewStatementDistributionMessage(),
+	}
+	err := statementDistributionLargeStatement.SetValue(validationprotocol.LargePayload{
 		RelayParent:   common.Hash{},
 		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{}},
 		SignedBy:      5,
@@ -153,7 +137,7 @@ func (s Service) run(blockState *state.BlockState) {
 		logger.Errorf("creating test statement message: %w\n", err)
 	}
 
-	validationMessage := NewValidationProtocolVDT()
+	validationMessage := validationprotocol.NewValidationProtocolVDT()
 	err = validationMessage.SetValue(statementDistributionLargeStatement)
 	if err != nil {
 		logger.Errorf("creating test validation message: %w\n", err)
@@ -179,6 +163,7 @@ type Network interface {
 	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
 		maxResponseSize uint64) *network.RequestResponseProtocol
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
+	DisconnectPeer(setID int, p peer.ID)
 	GetNetworkEventsChannel() chan *network.NetworkEventInfo
 	FreeNetworkEventsChannel(ch chan *network.NetworkEventInfo)
 }
