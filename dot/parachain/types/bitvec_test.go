@@ -45,18 +45,22 @@ func TestBitVec(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		test := tt
-		t.Run(test.name, func(t *testing.T) {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			resultBytes, err := common.HexToBytes(test.in)
+			resultBytes, err := common.HexToBytes(tt.in)
 			require.NoError(t, err)
+
+			b, err := scale.Marshal(tt.wantBitVec)
+			require.NoError(t, err)
+			require.Equal(t, resultBytes, b)
 
 			bv := NewBitVec(nil)
 			err = scale.Unmarshal(resultBytes, &bv)
 			require.NoError(t, err)
-			require.Equal(t, test.wantBitVec.bits, bv.bits)
+			require.Equal(t, tt.wantBitVec.bits, bv.bits)
 
-			b, err := scale.Marshal(bv)
+			b, err = scale.Marshal(bv)
 			require.NoError(t, err)
 			require.Equal(t, resultBytes, b)
 		})

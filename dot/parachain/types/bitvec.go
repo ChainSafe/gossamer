@@ -12,6 +12,9 @@ import (
 )
 
 const byteSize = 8
+const bitVecMaxLength = 268435455
+
+var errBitVecTooLong = fmt.Errorf("bitvec too long")
 
 // BitVec is the implementation of a bit vector
 type BitVec struct {
@@ -33,7 +36,7 @@ func NewBitVec(bits []bool) BitVec {
 // Uses lsb ordering
 // TODO: Implement msb ordering
 // https://github.com/ChainSafe/gossamer/issues/3248
-func (bv BitVec) bitsToBytes() []byte {
+func (bv *BitVec) bitsToBytes() []byte {
 	bits := bv.bits
 	bitLength := len(bits)
 	numOfBytes := (bitLength + (byteSize - 1)) / byteSize
@@ -78,8 +81,8 @@ func (bv *BitVec) bytesToBits(b []byte, size uint) {
 func (bv BitVec) MarshalSCALE() ([]byte, error) {
 	buf := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buf)
-	if len(bv.bits) > 268435455 {
-		return nil, fmt.Errorf("bitvec too long")
+	if len(bv.bits) > bitVecMaxLength {
+		return nil, errBitVecTooLong
 	}
 	size := uint(len(bv.bits))
 	err := encoder.Encode(size)
@@ -102,6 +105,9 @@ func (bv *BitVec) UnmarshalSCALE(r io.Reader) error {
 	err := decoder.Decode(&size)
 	if err != nil {
 		return err
+	}
+	if size > bitVecMaxLength {
+		return errBitVecTooLong
 	}
 
 	numBytes := (size + (byteSize - 1)) / byteSize
