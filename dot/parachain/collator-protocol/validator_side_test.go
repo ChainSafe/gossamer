@@ -6,6 +6,7 @@ package collatorprotocol
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
@@ -480,6 +481,7 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 				<-overseerToNetworkBridgeSender
 			}()
 
+			time.Sleep(1 * time.Second)
 			lenBlackedAdvertisementsBefore := len(cpvs.BlockedAdvertisements)
 
 			err = cpvs.processMessage(c.msg)
