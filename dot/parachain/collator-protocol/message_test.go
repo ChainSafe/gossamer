@@ -4,6 +4,7 @@
 package collatorprotocol
 
 import (
+	context "context"
 	_ "embed"
 	"fmt"
 	"testing"
@@ -375,7 +376,10 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 		c := c
 		t.Run(c.description, func(t *testing.T) {
 			t.Parallel()
+			ctx, cancel := context.WithCancel(context.Background())
 			cpvs := CollatorProtocolValidatorSide{
+				ctx:                ctx,
+				cancel:             cancel,
 				peerData:           c.peerData,
 				currentAssignments: c.currentAssignments,
 			}
@@ -580,7 +584,11 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 		c := c
 		t.Run(c.description, func(t *testing.T) {
 			t.Parallel()
+
+			ctx, cancel := context.WithCancel(context.Background())
 			cpvs := CollatorProtocolValidatorSide{
+				ctx:            ctx,
+				cancel:         cancel,
 				net:            c.net,
 				perRelayParent: c.perRelayParent,
 				peerData:       c.peerData,
@@ -715,7 +723,6 @@ func TestInsertAdvertisement(t *testing.T) {
 		},
 		)
 	}
-
 }
 
 func TestFetchCollation(t *testing.T) {
