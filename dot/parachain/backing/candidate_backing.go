@@ -206,7 +206,10 @@ func New(overseerChan chan<- any) *CandidateBacking {
 	}
 }
 
-func (cb *CandidateBacking) Run(ctx context.Context, cancel context.CancelFunc, overseerToSubSystem chan any, subSystemToOverseer chan any) {
+func (cb *CandidateBacking) Run(
+	ctx context.Context, cancel context.CancelFunc,
+	overseerToSubSystem chan any, subSystemToOverseer chan any,
+) {
 	cb.ctx = ctx
 	cb.cancel = cancel
 	chRelayParentAndCommand := make(chan relayParentAndCommand)
