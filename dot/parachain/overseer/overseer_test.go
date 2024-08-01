@@ -26,7 +26,7 @@ func (s *TestSubsystem) Name() parachaintypes.SubSystemName {
 	return parachaintypes.SubSystemName(s.name)
 }
 
-func (s *TestSubsystem) Run(ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) {
+func (s *TestSubsystem) Run(ctx context.Context, cancel context.CancelFunc, OverseerToSubSystem chan any, SubSystemToOverseer chan any) {
 	counter := 0
 	for {
 		select {

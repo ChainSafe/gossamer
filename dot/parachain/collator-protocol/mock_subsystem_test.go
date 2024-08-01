@@ -83,15 +83,15 @@ func (mr *MockSubsystemMockRecorder) ProcessBlockFinalizedSignal(arg0 any) *gomo
 }
 
 // Run mocks base method.
-func (m *MockSubsystem) Run(arg0 context.Context, arg1, arg2 chan any) {
+func (m *MockSubsystem) Run(arg0 context.Context, arg1 context.CancelFunc, arg2, arg3 chan any) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Run", arg0, arg1, arg2)
+	m.ctrl.Call(m, "Run", arg0, arg1, arg2, arg3)
 }
 
 // Run indicates an expected call of Run.
-func (mr *MockSubsystemMockRecorder) Run(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockSubsystemMockRecorder) Run(arg0, arg1, arg2, arg3 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockSubsystem)(nil).Run), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockSubsystem)(nil).Run), arg0, arg1, arg2, arg3)
 }
 
 // Stop mocks base method.

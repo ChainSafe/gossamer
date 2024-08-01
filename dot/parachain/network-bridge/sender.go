@@ -17,9 +17,10 @@ type NetworkBridgeSender struct {
 	OverseerToSubSystem <-chan any
 }
 
-func (nbs *NetworkBridgeSender) Run(ctx context.Context, OverseerToSubSystem chan any,
-	SubSystemToOverseer chan any) {
-
+func (nbs *NetworkBridgeSender) Run(
+	_ context.Context, _ context.CancelFunc,
+	OverseerToSubSystem chan any, SubSystemToOverseer chan any,
+) {
 	for msg := range nbs.OverseerToSubSystem {
 		err := nbs.processMessage(msg)
 		if err != nil {

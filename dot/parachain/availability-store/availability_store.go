@@ -91,12 +91,7 @@ type AvailabilityStoreSubsystem struct {
 func NewAvailabilityStoreSubsystem(db database.Database) *AvailabilityStoreSubsystem {
 	availabilityStore := NewAvailabilityStore(db)
 
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-
 	availabilityStoreSubsystem := &AvailabilityStoreSubsystem{
-		ctx:                    ctx,
-		cancel:                 cancel,
 		pruningConfig:          defaultPruningConfig,
 		availabilityStore:      *availabilityStore,
 		knownUnfinalizedBlocks: *newKnownUnfinalizedBlock(),
@@ -420,8 +415,12 @@ func branchesFromChunks(chunks [][]byte) (branches, error) {
 }
 
 // Run runs the availability store subsystem
-func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, OverseerToSubsystem chan any,
-	SubsystemToOverseer chan any) {
+func (av *AvailabilityStoreSubsystem) Run(
+	ctx context.Context, cancel context.CancelFunc,
+	OverseerToSubsystem chan any, SubsystemToOverseer chan any,
+) {
+	av.ctx = ctx
+	av.cancel = cancel
 
 	av.wg.Add(1)
 	go av.processMessages()

@@ -43,9 +43,19 @@ func NewCandidateValidation(overseerChan chan<- any) *CandidateValidation {
 }
 
 // Run starts the CandidateValidation subsystem
-func (cv *CandidateValidation) Run(context.Context, chan any, chan any) {
-	cv.wg.Add(1)
-	go cv.processMessages(&cv.wg)
+func (cv *CandidateValidation) Run(context.Context, context.CancelFunc, chan any, chan any) {
+	for {
+		select {
+		case msg := <-cv.OverseerToSubsystem:
+			logger.Debugf("received message %v", msg)
+			err := cv.processMessages(msg)
+			if err != nil {
+				logger.Error(err.Error())
+			}
+		case <-cv.stopChan:
+			return
+		}
+	}
 }
 
 // Name returns the name of the subsystem
@@ -72,46 +82,37 @@ func (cv *CandidateValidation) Stop() {
 }
 
 // processMessages processes messages sent to the CandidateValidation subsystem
-func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
-	defer wg.Done()
-	for {
-		select {
-		case msg := <-cv.OverseerToSubsystem:
-			logger.Debugf("received message %v", msg)
-			switch msg := msg.(type) {
-			case ValidateFromChainState:
-				// TODO: implement functionality to handle ValidateFromChainState, see issue #3919
-			case ValidateFromExhaustive:
-				result, err := validateFromExhaustive(cv.ValidationHost, msg.PersistedValidationData,
-					msg.ValidationCode, msg.CandidateReceipt, msg.PoV)
-				if err != nil {
-					logger.Errorf("failed to validate from exhaustive: %w", err)
-					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
-						Err: err,
-					}
-				} else {
-					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
-						Data: *result,
-					}
-				}
-
-			case PreCheck:
-				// TODO: implement functionality to handle PreCheck, see issue #3921
-
-			case parachaintypes.ActiveLeavesUpdateSignal:
-				_ = cv.ProcessActiveLeavesUpdateSignal(msg)
-
-			case parachaintypes.BlockFinalizedSignal:
-				_ = cv.ProcessBlockFinalizedSignal(msg)
-
-			default:
-				logger.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
+func (cv *CandidateValidation) processMessages(msg any) error {
+	switch msg := msg.(type) {
+	case ValidateFromChainState:
+		// TODO: implement functionality to handle ValidateFromChainState, see issue #3919
+	case ValidateFromExhaustive:
+		result, err := validateFromExhaustive(cv.ValidationHost, msg.PersistedValidationData,
+			msg.ValidationCode, msg.CandidateReceipt, msg.PoV)
+		if err != nil {
+			logger.Errorf("failed to validate from exhaustive: %w", err)
+			msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+				Err: err,
 			}
-
-		case <-cv.stopChan:
-			return
+		} else {
+			msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+				Data: *result,
+			}
 		}
+
+	case PreCheck:
+		// TODO: implement functionality to handle PreCheck, see issue #3921
+
+	case parachaintypes.ActiveLeavesUpdateSignal:
+		_ = cv.ProcessActiveLeavesUpdateSignal(msg)
+
+	case parachaintypes.BlockFinalizedSignal:
+		_ = cv.ProcessBlockFinalizedSignal(msg)
+
+	default:
+		return fmt.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
 	}
+	return nil
 }
 
 // PoVRequestor gets proof of validity by issuing network requests to validators of the current backing group.

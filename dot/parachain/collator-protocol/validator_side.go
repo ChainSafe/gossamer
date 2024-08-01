@@ -58,7 +58,11 @@ var (
 )
 
 func (cpvs CollatorProtocolValidatorSide) Run(
-	ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) {
+	ctx context.Context, cancel context.CancelFunc,
+	OverseerToSubSystem chan any, SubSystemToOverseer chan any,
+) {
+	cpvs.ctx = ctx
+	cpvs.cancel = cancel
 	inactivityTicker := time.NewTicker(activityPoll)
 
 	for {
