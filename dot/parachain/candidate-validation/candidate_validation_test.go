@@ -677,12 +677,15 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 	candidateReceipt2.Descriptor.PovHash = common.MustHexToHash(
 		"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
 	candidateReceipt2.Descriptor.ParaID = 2
+
 	candidateReceipt3 := candidateReceipt
 	candidateReceipt3.Descriptor.ParaID = 3
+
 	candidateReceipt4 := candidateReceipt
 	candidateReceipt4.Descriptor.ParaID = 4
 	candidateReceipt4.Descriptor.ValidationCodeHash = parachaintypes.ValidationCodeHash(common.MustHexToHash(
 		"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"))
+
 	candidateReceipt5 := candidateReceipt
 	candidateReceipt5.Descriptor.ParaID = 5
 
@@ -727,19 +730,19 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 		ParachainHostPersistedValidationData(
 			uint32(1000),
 			gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&expectedPersistedValidationData, nil).AnyTimes()
+		Return(&expectedPersistedValidationData, nil).Times(1)
 	mockInstance.EXPECT().
 		ParachainHostValidationCode(uint32(1000), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&validationCode, nil).AnyTimes()
+		Return(&validationCode, nil).Times(1)
 
 	mockInstance.EXPECT().
 		ParachainHostPersistedValidationData(
 			uint32(2),
 			gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&expectedPersistedValidationData, nil).AnyTimes()
+		Return(&expectedPersistedValidationData, nil).Times(1)
 	mockInstance.EXPECT().
 		ParachainHostValidationCode(uint32(2), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&validationCode, nil).AnyTimes()
+		Return(&validationCode, nil).Times(1)
 
 	mockInstance.EXPECT().
 		ParachainHostPersistedValidationData(
@@ -748,25 +751,25 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 		Return(&expectedPersistedValidationDataSmallMax, nil).AnyTimes()
 	mockInstance.EXPECT().
 		ParachainHostValidationCode(uint32(3), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&validationCode, nil).AnyTimes()
+		Return(&validationCode, nil).Times(1)
 
 	mockInstance.EXPECT().
 		ParachainHostPersistedValidationData(
 			uint32(4),
 			gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&expectedPersistedValidationData, nil).AnyTimes()
+		Return(&expectedPersistedValidationData, nil).Times(1)
 	mockInstance.EXPECT().
 		ParachainHostValidationCode(uint32(4), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&validationCode, nil).AnyTimes()
+		Return(&validationCode, nil).Times(1)
 
 	mockInstance.EXPECT().
 		ParachainHostPersistedValidationData(
 			uint32(5),
 			gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&expectedPersistedValidationData, nil).AnyTimes()
+		Return(&expectedPersistedValidationData, nil).Times(1)
 	mockInstance.EXPECT().
 		ParachainHostValidationCode(uint32(5), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&validationCode, nil).AnyTimes()
+		Return(&validationCode, nil).Times(1)
 
 	bd, err := scale.Marshal(BlockDataInAdderParachain{
 		State: uint64(1),
@@ -777,72 +780,44 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 		BlockData: bd,
 	}
 
-	type args struct {
-		runtimeInstance  parachainruntime.RuntimeInstance
-		candidateReceipt parachaintypes.CandidateReceipt
-		pov              parachaintypes.PoV
-	}
 	tests := map[string]struct {
-		args          args
-		want          *ValidationResult
-		expectedError error
-		isValid       bool
+		candidateReceipt parachaintypes.CandidateReceipt
+		want             *ValidationResult
+		expectedError    error
+		isValid          bool
 	}{
 		"invalid_pov_hash": {
-			args: args{
-				runtimeInstance:  mockInstance,
-				candidateReceipt: candidateReceipt2,
-				pov:              pov,
-			},
+			candidateReceipt: candidateReceipt2,
 			want: &ValidationResult{
 				InvalidResult: &povHashMismatch,
 			},
 			isValid: false,
 		},
 		"invalid_pov_size": {
-			args: args{
-				runtimeInstance:  mockInstance,
-				candidateReceipt: candidateReceipt3,
-				pov:              pov,
-			},
+			candidateReceipt: candidateReceipt3,
 			want: &ValidationResult{
 				InvalidResult: &paramsTooLarge,
 			},
 		},
 		"code_mismatch": {
-			args: args{
-				runtimeInstance:  mockInstance,
-				candidateReceipt: candidateReceipt4,
-				pov:              pov,
-			},
+			candidateReceipt: candidateReceipt4,
 			want: &ValidationResult{
 				InvalidResult: &codeHashMismatch,
 			},
 			isValid: false,
 		},
 		"bad_signature": {
-			args: args{
-				runtimeInstance:  mockInstance,
-				candidateReceipt: candidateReceipt5,
-				pov:              pov,
-			},
+			candidateReceipt: candidateReceipt5,
 			want: &ValidationResult{
 				InvalidResult: &badSignature,
 			},
 			isValid: false,
 		},
 		"happy_path": {
-			args: args{
-				runtimeInstance:  mockInstance,
-				candidateReceipt: candidateReceipt,
-				pov:              pov,
-			},
+			candidateReceipt: candidateReceipt,
 			want: &ValidationResult{
 				ValidResult: &ValidValidationResult{
 					CandidateCommitments: parachaintypes.CandidateCommitments{
-						UpwardMessages:     nil,
-						HorizontalMessages: nil,
-						NewValidationCode:  nil,
 						HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123, 207, 206, 8, 219, 227,
 							136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245, 59, 106, 76, 168, 122, 109,
 							164, 169, 22, 46, 144, 39, 103, 92, 31, 78, 66, 72, 252, 64, 24, 194, 129, 162, 128, 1, 77, 147,
@@ -870,14 +845,14 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			got, err := validateFromChainState(tt.args.runtimeInstance, tt.args.pov, tt.args.candidateReceipt)
+			got, err := validateFromChainState(mockInstance, pov, tt.candidateReceipt)
 			if tt.expectedError != nil {
 				require.EqualError(t, err, tt.expectedError.Error())
 			} else {
 				require.NoError(t, err)
 			}
 			require.Equal(t, tt.isValid, got.IsValid())
-			require.Equal(t, tt.want, got)
+			require.Equal(t, *tt.want, *got)
 		})
 	}
 }
