@@ -1,7 +1,7 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package parachain
+package validationprotocol
 
 import (
 	_ "embed"
@@ -245,7 +245,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	bitfieldDistribution.SetValue(Bitfield{
 		Hash: hashA,
 		UncheckedSignedAvailabilityBitfield: parachaintypes.UncheckedSignedAvailabilityBitfield{
-			Payload: scale.NewBitVec([]bool{true, true, true, true, true, true, true, true, true, true, true,
+			Payload: parachaintypes.NewBitVec([]bool{true, true, true, true, true, true, true, true, true, true, true,
 				true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
 				true, true, true, true}),
 			ValidatorIndex: 0,

@@ -34,9 +34,14 @@ func (nbr *NetworkBridgeReceiver) Name() parachaintypes.SubSystemName {
 	return parachaintypes.NetworkBridgeReceiver
 }
 
-func (nbr *NetworkBridgeReceiver) ProcessActiveLeavesUpdateSignal() {}
+func (nbr *NetworkBridgeReceiver) ProcessActiveLeavesUpdateSignal(
+	signal parachaintypes.ActiveLeavesUpdateSignal) error {
+	return nil
+}
 
-func (nbr *NetworkBridgeReceiver) ProcessBlockFinalizedSignal() {}
+func (nbr *NetworkBridgeReceiver) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
+	return nil
+}
 
 func (nbr *NetworkBridgeReceiver) Stop() {}
 
