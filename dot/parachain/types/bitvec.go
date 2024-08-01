@@ -36,7 +36,7 @@ func NewBitVec(bits []bool) BitVec {
 // Uses lsb ordering
 // TODO: Implement msb ordering
 // https://github.com/ChainSafe/gossamer/issues/3248
-func (bv *BitVec) bitsToBytes() []byte {
+func (bv *BitVec) bytes() []byte {
 	bits := bv.bits
 	bitLength := len(bits)
 	numOfBytes := (bitLength + (byteSize - 1)) / byteSize
@@ -60,7 +60,7 @@ func (bv *BitVec) bitsToBytes() []byte {
 }
 
 // bytesToBits converts a slice of bytes to a slice of bits
-func (bv *BitVec) bytesToBits(b []byte, size uint) {
+func (bv *BitVec) setBits(b []byte, size uint) {
 	var bits []bool
 	for _, uint8val := range b {
 		end := size
@@ -90,7 +90,7 @@ func (bv BitVec) MarshalSCALE() ([]byte, error) {
 		return nil, err
 	}
 
-	bytes := bv.bitsToBytes()
+	bytes := bv.bytes()
 	_, err = buf.Write(bytes)
 	if err != nil {
 		return nil, err
@@ -117,6 +117,6 @@ func (bv *BitVec) UnmarshalSCALE(r io.Reader) error {
 		return err
 	}
 
-	bv.bytesToBits(b, size)
+	bv.setBits(b, size)
 	return nil
 }

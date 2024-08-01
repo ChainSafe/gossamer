@@ -67,7 +67,7 @@ func TestBitVec(t *testing.T) {
 	}
 }
 
-func TestBitVecBitsToBytes(t *testing.T) {
+func TestBitVec_bytes(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name    string
@@ -104,13 +104,13 @@ func TestBitVecBitsToBytes(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			bv := BitVec{tt.in}
-			bytes := bv.bitsToBytes()
+			bytes := bv.bytes()
 			require.Equal(t, tt.want, bytes)
 		})
 	}
 }
 
-func TestBitVecBytesToBits(t *testing.T) {
+func TestBitVec_setBits(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name    string
@@ -147,7 +147,7 @@ func TestBitVecBytesToBits(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			bv := BitVec{}
-			bv.bytesToBits(tt.want, uint(len(tt.in)))
+			bv.setBits(tt.want, uint(len(tt.in)))
 			require.Equal(t, tt.in, bv.bits)
 		})
 	}
