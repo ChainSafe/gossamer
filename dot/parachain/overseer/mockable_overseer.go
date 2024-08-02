@@ -19,19 +19,25 @@ type MockableOverseer struct {
 	overseerToSubsystem  chan any
 	subSystem            parachaintypes.Subsystem
 
-	// expected actions for overseer messages we receive from the subsystem.
+	// actionsForExpectedMessages stores overseer messages we receive from the subsystem.
 	// need to return false if the message is unexpected
-	actions []func(msg any) bool
+	// actions must be in the order that we expect them.
+	//
+	// At some point in future if we can't be sure of in which order messages will be sent
+	// (say multiple parallel tasks running that could emit messages at any time),
+	// we will need to modify this.
+	actionsForExpectedMessages []func(msg any) bool
 }
 
 func NewMockableOverseer(t *testing.T) *MockableOverseer {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &MockableOverseer{
-		t:                    t,
-		ctx:                  ctx,
-		cancel:               cancel,
-		SubsystemsToOverseer: make(chan any),
+		t:                          t,
+		ctx:                        ctx,
+		cancel:                     cancel,
+		SubsystemsToOverseer:       make(chan any),
+		actionsForExpectedMessages: []func(msg any) bool{},
 	}
 }
 
@@ -65,11 +71,11 @@ func (m *MockableOverseer) ReceiveMessage(msg any) {
 	m.overseerToSubsystem <- msg
 }
 
-// ExpectActions method is to set expected actions for overseer messages we receive from the subsystem.
+// ExpectActions is to set expected actions for overseer messages we receive from the subsystem.
 // actions are expected in the order they are set.
 // all the functions in the arguments should return false if the message is unexpected.
 func (m *MockableOverseer) ExpectActions(fns ...func(msg any) bool) {
-	m.actions = append(m.actions, fns...)
+	m.actionsForExpectedMessages = append(m.actionsForExpectedMessages, fns...)
 }
 
 func (m *MockableOverseer) processMessages() {
@@ -81,8 +87,8 @@ func (m *MockableOverseer) processMessages() {
 				continue
 			}
 
-			if actionIndex < len(m.actions) {
-				action := m.actions[actionIndex]
+			if actionIndex < len(m.actionsForExpectedMessages) {
+				action := m.actionsForExpectedMessages[actionIndex]
 				ok := action(msg)
 				if !ok {
 					m.t.Errorf("unexpected message: %T", msg)
