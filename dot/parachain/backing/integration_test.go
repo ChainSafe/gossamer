@@ -4,6 +4,7 @@
 package backing_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -194,6 +195,56 @@ func availabilityCores(t *testing.T) []parachaintypes.CoreState {
 
 	cores = append(cores, core1, core2)
 	return cores
+}
+
+// candidate reaches quorum.
+// in Legasy backing, we need 2 approvals to reach quorum.
+func TestCandidateReachesQuorum(t *testing.T) {
+	candidateBacking, overseer := initBackingAndOverseerMock(t)
+	defer overseer.Stop()
+
+	paraValidators := parachainValidators(t, candidateBacking.Keystore)
+	// numOfValidators := uint(len(paraValidators))
+	relayParent := getDummyHash(t, 5)
+	// paraID := uint32(1)
+
+	ctrl := gomock.NewController(t)
+	mockBlockState := backing.NewMockBlockState(ctrl)
+	mockRuntime := backing.NewMockInstance(ctrl)
+	mockImplicitView := backing.NewMockImplicitView(ctrl)
+
+	candidateBacking.BlockState = mockBlockState
+	candidateBacking.ImplicitView = mockImplicitView
+
+	// mock BlockState methods
+	mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).
+		Return(mockRuntime, nil).Times(2)
+
+	// mock Runtime Instance methods
+	mockRuntime.EXPECT().ParachainHostAsyncBackingParams().
+		Return(nil, wazero_runtime.ErrExportFunctionNotFound)
+	mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
+		Return(parachaintypes.SessionIndex(1), nil).Times(1)
+	mockRuntime.EXPECT().ParachainHostValidators().
+		Return(paraValidators, nil)
+	mockRuntime.EXPECT().ParachainHostValidatorGroups().
+		Return(validatorGroups(t), nil)
+	mockRuntime.EXPECT().ParachainHostAvailabilityCores().
+		Return(availabilityCores(t), nil)
+	mockRuntime.EXPECT().ParachainHostMinimumBackingVotes().
+		Return(backing.LEGACY_MIN_BACKING_VOTES, nil)
+
+	//mock ImplicitView
+	mockImplicitView.EXPECT().AllAllowedRelayParents().
+		Return([]common.Hash{})
+
+	// to make entry in perRelayParent map
+	overseer.ReceiveMessage(parachaintypes.ActiveLeavesUpdateSignal{
+		Activated: &parachaintypes.ActivatedLeaf{Hash: relayParent, Number: 1},
+	})
+
+	time.Sleep(5 * time.Second)
+	fmt.Printf("candidate backing: %+v\n", candidateBacking)
 }
 
 // we can second a valid candidate when the previous candidate has been found invalid
