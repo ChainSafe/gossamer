@@ -1,7 +1,7 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package parachain
+package validationprotocol
 
 import (
 	"fmt"
@@ -18,6 +18,11 @@ type StatementDistributionMessageValues interface {
 // StatementDistributionMessage represents network messages used by the statement distribution subsystem
 type StatementDistributionMessage struct {
 	inner any
+}
+
+// NewStatementDistributionMessage returns a new statement distribution message varying data type
+func NewStatementDistributionMessage() StatementDistributionMessage {
+	return StatementDistributionMessage{}
 }
 
 func setStatementDistributionMessage[Value StatementDistributionMessageValues](
@@ -68,11 +73,6 @@ func (mvdt StatementDistributionMessage) ValueAt(index uint) (value any, err err
 
 	}
 	return nil, scale.ErrUnknownVaryingDataTypeValue
-}
-
-// NewStatementDistributionMessage returns a new statement distribution message varying data type
-func NewStatementDistributionMessage() StatementDistributionMessage {
-	return StatementDistributionMessage{}
 }
 
 // Statement represents a signed full statement under a given relay-parent.

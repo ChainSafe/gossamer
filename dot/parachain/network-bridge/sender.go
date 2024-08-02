@@ -7,14 +7,21 @@ import (
 	"context"
 	"fmt"
 
-	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
+	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 type NetworkBridgeSender struct {
-	OverseerToSubSystem <-chan any
+	net                  Network
+	OverseerToSubSystem  <-chan any
+	SubsystemsToOverseer chan<- any
+}
+
+func Register(overseerChan chan<- any, net Network) *NetworkBridgeSender {
+	return &NetworkBridgeSender{
+		net:                  net,
+		SubsystemsToOverseer: overseerChan,
+	}
 }
 
 func (nbs *NetworkBridgeSender) Run(
@@ -33,70 +40,58 @@ func (nbs *NetworkBridgeSender) Name() parachaintypes.SubSystemName {
 	return parachaintypes.NetworkBridgeSender
 }
 
-func (nbs *NetworkBridgeSender) ProcessActiveLeavesUpdateSignal() {}
-
-func (nbs *NetworkBridgeSender) ProcessBlockFinalizedSignal() {}
-
-func (nbs *NetworkBridgeSender) Stop() {}
-
-func (nbs *NetworkBridgeSender) processMessage(msg any) error { //nolint
-	// run this function as a goroutine, ideally
-
-	switch msg := msg.(type) {
-	case SendCollationMessage:
-		// TODO
-		fmt.Println(msg)
-	case SendValidationMessage:
-		// TODO: add SendValidationMessages and SendCollationMessages to send multiple messages at the same time
-		// TODO: add ConnectTOResolvedValidators, SendRequests
-	case ConnectToValidators:
-		// TODO
-	case ReportPeer:
-		// TODO
-	case DisconnectPeer:
-		// TODO
-	}
-
+func (nbs *NetworkBridgeSender) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
+	// nothing to do here
 	return nil
 }
 
-// NOTE: This is not same as corresponding rust structure
-// TODO: If need be, add ability to report multiple peers in batches
-type ReportPeer struct {
-	peerID           peer.ID                  //nolint
-	reputationChange peerset.ReputationChange //nolint
+func (nbs *NetworkBridgeSender) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
+	// nothing to do here
+	return nil
 }
 
-type DisconnectPeer struct {
-	peer    peer.ID     //nolint
-	peerSet peerSetType //nolint
-}
+func (nbs *NetworkBridgeSender) Stop() {}
 
-type SendCollationMessage struct {
-	to []peer.ID //nolint
-	// TODO: make this versioned
-	collationProtocolMessage collatorprotocol.CollationProtocol //nolint
-}
+func (nbs *NetworkBridgeSender) processMessage(msg any) error {
+	// run this function as a goroutine, ideally
 
-type SendValidationMessage struct {
-	to []peer.ID //nolint
-	// TODO: move validation protocol to a new package to be able to be used here
-	// validationProtocolMessage
-}
+	switch msg := msg.(type) {
+	case networkbridgemessages.SendCollationMessage:
+		wireMessage := WireMessage{}
+		err := wireMessage.SetValue(msg.CollationProtocolMessage)
+		if err != nil {
+			return fmt.Errorf("setting wire message: %w", err)
+		}
 
-type peerSetType int //nolint
+		for _, to := range msg.To {
+			err = nbs.net.SendMessage(to, wireMessage)
+			if err != nil {
+				return fmt.Errorf("sending message: %w", err)
+			}
+		}
 
-const (
-	validationProtocol peerSetType = iota //nolint
-	collationProtocol                     //nolint
-)
+	case networkbridgemessages.SendValidationMessage:
+		wireMessage := WireMessage{}
+		err := wireMessage.SetValue(msg.ValidationProtocolMessage)
+		if err != nil {
+			return fmt.Errorf("setting wire message: %w", err)
+		}
 
-type ConnectToValidators struct {
-	// IDs of the validators to connect to.
-	validatorIDs []parachaintypes.AuthorityDiscoveryID //nolint
-	// The underlying protocol to use for this request.
-	peerSet peerSetType //nolint
-	// Sends back the number of `AuthorityDiscoveryId`s which
-	// authority discovery has failed to resolve.
-	failed chan<- uint //nolint
+		for _, to := range msg.To {
+			err = nbs.net.SendMessage(to, wireMessage)
+			if err != nil {
+				return fmt.Errorf("sending message: %w", err)
+			}
+		}
+		// TODO: add ConnectTOResolvedValidators, SendRequests
+	case networkbridgemessages.ConnectToValidators:
+		// TODO
+	case networkbridgemessages.ReportPeer:
+		nbs.net.ReportPeer(msg.ReputationChange, msg.PeerID)
+	case networkbridgemessages.DisconnectPeer:
+		// We are using set ID 1 for validation protocol and 2 for collation protocol
+		nbs.net.DisconnectPeer(int(msg.PeerSet)+1, msg.Peer)
+	}
+
+	return nil
 }

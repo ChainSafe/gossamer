@@ -172,7 +172,7 @@ type OccupiedCore struct {
 	// A bitfield with 1 bit for each validator in the set. `1` bits mean that the corresponding
 	// validators has attested to availability on-chain. A 2/3+ majority of `1` bits means that
 	// this will be available.
-	Availability scale.BitVec `scale:"5"`
+	Availability BitVec `scale:"5"`
 	// The group assigned to distribute availability pieces of this candidate.
 	GroupResponsible GroupIndex `scale:"6"`
 	// The hash of the candidate occupying the core.
@@ -693,7 +693,7 @@ type BackedCandidate struct {
 	// The validity votes themselves, expressed as signatures.
 	ValidityVotes []ValidityAttestation `scale:"2"`
 	// The indices of the validators within the group, expressed as a bitfield.
-	ValidatorIndices scale.BitVec `scale:"3"` // TODO: it's a bitvec in rust, figure out actual type
+	ValidatorIndices BitVec `scale:"3"` // TODO: it's a bitvec in rust, figure out actual type
 }
 
 // ProspectiveParachainsMode represents the mode of a relay parent in the context
@@ -721,7 +721,7 @@ type ProspectiveParachainsMode struct {
 type UncheckedSignedAvailabilityBitfield struct {
 	// The payload is part of the signed data. The rest is the signing context,
 	// which is known both at signing and at validation.
-	Payload scale.BitVec `scale:"1"`
+	Payload BitVec `scale:"1"`
 
 	// The index of the validator signing this statement.
 	ValidatorIndex ValidatorIndex `scale:"2"`

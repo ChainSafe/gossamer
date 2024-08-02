@@ -10,7 +10,6 @@ import (
 	"slices"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var errCandidateDataNotFound = errors.New("candidate data not found")
@@ -448,7 +447,7 @@ func (attested *attestedCandidate) toBackedCandidate(tableCtx *tableContext) *pa
 	return &parachaintypes.BackedCandidate{
 		Candidate:        attested.committedCandidateReceipt,
 		ValidityVotes:    validityAttestations,
-		ValidatorIndices: scale.NewBitVec(validatorIndices),
+		ValidatorIndices: parachaintypes.NewBitVec(validatorIndices),
 	}
 }
 

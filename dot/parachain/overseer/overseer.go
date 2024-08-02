@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
@@ -122,6 +123,11 @@ func (o *OverseerSystem) processMessages() {
 			var subsystem parachaintypes.Subsystem
 
 			switch msg := msg.(type) {
+			case networkbridgemessages.DisconnectPeer, networkbridgemessages.ConnectToValidators,
+				networkbridgemessages.ReportPeer, networkbridgemessages.SendCollationMessage,
+				networkbridgemessages.SendValidationMessage:
+				subsystem = o.nameToSubsystem[parachaintypes.NetworkBridgeSender]
+
 			case backing.GetBackableCandidatesMessage, backing.CanSecondMessage, backing.SecondMessage, backing.StatementMessage:
 				subsystem = o.nameToSubsystem[parachaintypes.CandidateBacking]
 

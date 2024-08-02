@@ -48,6 +48,7 @@ type PeerSetHandler interface {
 	PeerAdd
 	PeerRemove
 	Peer
+	DisconnectPeer(setID int, peers ...peer.ID)
 }
 
 // PeerAdd is the interface used by the PeerSetHandler to add peers in peerSet.
