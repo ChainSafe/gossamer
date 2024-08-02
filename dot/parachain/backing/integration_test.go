@@ -196,6 +196,7 @@ func availabilityCores(t *testing.T) []parachaintypes.CoreState {
 	return cores
 }
 
+// we can second a valid candidate when the previous candidate has been found invalid
 func TestSecondsValidCandidate(t *testing.T) {
 	candidateBacking, overseer := initBackingAndOverseerMock(t)
 	defer overseer.Stop()
