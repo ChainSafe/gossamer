@@ -120,17 +120,3 @@ func (mr *MockNetworkMockRecorder) ReportPeer(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportPeer", reflect.TypeOf((*MockNetwork)(nil).ReportPeer), arg0, arg1)
 }
-
-// SendMessage mocks base method.
-func (m *MockNetwork) SendMessage(arg0 peer.ID, arg1 network.NotificationsMessage) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendMessage", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SendMessage indicates an expected call of SendMessage.
-func (mr *MockNetworkMockRecorder) SendMessage(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockNetwork)(nil).SendMessage), arg0, arg1)
-}
