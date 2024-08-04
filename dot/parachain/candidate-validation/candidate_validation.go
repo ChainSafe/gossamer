@@ -84,8 +84,7 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 				if err != nil {
 					logger.Errorf("failed to validate from chain state: %w", err)
 					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
-						Data: *result,
-						Err:  err,
+						Err: err,
 					}
 				} else {
 					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
@@ -182,10 +181,11 @@ func validateFromChainState(runtimeInstance parachainruntime.RuntimeInstance, po
 	}
 
 	validationResults, err := validateFromExhaustive(parachainRuntimeInstance, *persistedValidationData,
-		*validationCode,
-		candidateReceipt, pov)
-
-	return validationResults, err
+		*validationCode, candidateReceipt, pov)
+	if err != nil {
+		return nil, fmt.Errorf("validating from exhaustive: %w", err)
+	}
+	return validationResults, nil
 }
 
 // validateFromExhaustive validates a candidate parachain block with provided parameters

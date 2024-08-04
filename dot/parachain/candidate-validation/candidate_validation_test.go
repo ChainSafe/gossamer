@@ -730,46 +730,46 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 		ParachainHostPersistedValidationData(
 			uint32(1000),
 			gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&expectedPersistedValidationData, nil).Times(1)
+		Return(&expectedPersistedValidationData, nil)
 	mockInstance.EXPECT().
 		ParachainHostValidationCode(uint32(1000), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&validationCode, nil).Times(1)
+		Return(&validationCode, nil)
 
 	mockInstance.EXPECT().
 		ParachainHostPersistedValidationData(
 			uint32(2),
 			gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&expectedPersistedValidationData, nil).Times(1)
+		Return(&expectedPersistedValidationData, nil)
 	mockInstance.EXPECT().
 		ParachainHostValidationCode(uint32(2), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&validationCode, nil).Times(1)
+		Return(&validationCode, nil)
 
 	mockInstance.EXPECT().
 		ParachainHostPersistedValidationData(
 			uint32(3),
 			gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&expectedPersistedValidationDataSmallMax, nil).AnyTimes()
+		Return(&expectedPersistedValidationDataSmallMax, nil)
 	mockInstance.EXPECT().
 		ParachainHostValidationCode(uint32(3), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&validationCode, nil).Times(1)
+		Return(&validationCode, nil)
 
 	mockInstance.EXPECT().
 		ParachainHostPersistedValidationData(
 			uint32(4),
 			gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&expectedPersistedValidationData, nil).Times(1)
+		Return(&expectedPersistedValidationData, nil)
 	mockInstance.EXPECT().
 		ParachainHostValidationCode(uint32(4), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&validationCode, nil).Times(1)
+		Return(&validationCode, nil)
 
 	mockInstance.EXPECT().
 		ParachainHostPersistedValidationData(
 			uint32(5),
 			gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&expectedPersistedValidationData, nil).Times(1)
+		Return(&expectedPersistedValidationData, nil)
 	mockInstance.EXPECT().
 		ParachainHostValidationCode(uint32(5), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&validationCode, nil).Times(1)
+		Return(&validationCode, nil)
 
 	bd, err := scale.Marshal(BlockDataInAdderParachain{
 		State: uint64(1),
