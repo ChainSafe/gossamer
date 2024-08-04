@@ -106,7 +106,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 					},
 				},
 			},
-			implicitView: mockImplicitView,
+			ImplicitView: mockImplicitView,
 		}
 
 		go func(subSystemToOverseer chan any) {
@@ -169,7 +169,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 					},
 				},
 			},
-			implicitView: mockImplicitView,
+			ImplicitView: mockImplicitView,
 		}
 
 		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
@@ -210,7 +210,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 					},
 				},
 			},
-			implicitView: mockImplicitView,
+			ImplicitView: mockImplicitView,
 		}
 
 		go func(subSystemToOverseer chan any) {
@@ -260,7 +260,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 					},
 				},
 			},
-			implicitView: mockImplicitView,
+			ImplicitView: mockImplicitView,
 		}
 
 		go func(subSystemToOverseer chan any) {
