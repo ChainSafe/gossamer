@@ -32,12 +32,6 @@ type NetworkBridgeReceiver struct {
 	BlockState *state.BlockState
 	Keystore   keystore.Keystore
 
-	// TODO: Tech Debt
-	// In polkadot-sdk (rust) code, following fields are common between validation protocol and collator protocol.
-	// They are kept in network bridge. Network bridge has common logic for both validation and collator protocol.
-	// I have kept it here for ease, since we don't have network bridge. Make a decision on this. Create a network
-	// bridge if that seems appropriate.
-	// And move these fields and some common logic there.
 	localView *View
 
 	// Parachains we're currently assigned to. With async backing enabled
