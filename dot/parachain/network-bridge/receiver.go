@@ -56,6 +56,8 @@ type NetworkBridgeReceiver struct {
 	finalizedNumber uint32
 
 	OverseerToSubSystem <-chan any
+
+	authorityDiscoveryService AuthorityDiscoveryService
 }
 
 type CollationStatus int
@@ -503,6 +505,11 @@ func (nbr *NetworkBridgeReceiver) processMessage(msg any) error { //nolint
 	switch msg := msg.(type) {
 	case NewGossipTopology:
 		// TODO
+
+		// get topology peers
+
+		newGossipTopology := NewGossipTopology{}
+		// dispatch validation event to all unbounded
 		fmt.Println(msg)
 	case UpdateAuthorityIDs:
 		// TODO
@@ -510,6 +517,19 @@ func (nbr *NetworkBridgeReceiver) processMessage(msg any) error { //nolint
 
 	return nil
 }
+
+func getTopologyPeers(authorityDiscoveryService AuthorityDiscoveryService, neighbours []canonicalShuffling) {
+
+	peers := make([]peer.ID, len(neighbours))
+
+	for _, neighbour := range neighbours {
+		peerID := authorityDiscoveryService.GetPeerIDByAuthorityID(neighbour.authorityDiscoveryID)
+		peers = append(peers, peerID)
+	}
+
+}
+
+// func getPeerIDByAuthorityDiscoveryID(authorityDiscoveryID parachaintypes.AuthorityDiscoveryID) peer.ID {}
 
 // Inform the distribution subsystems about the new
 // gossip network topology formed.
@@ -540,4 +560,8 @@ type UpdateAuthorityIDs struct {
 	peerID peer.ID //nolint
 	// The updated authority discovery keys of the peer.
 	authorityIDs []parachaintypes.AuthorityDiscoveryID //nolint
+}
+
+type AuthorityDiscoveryService interface {
+	GetPeerIDByAuthorityID(authorityID parachaintypes.AuthorityDiscoveryID) peer.ID
 }
