@@ -33,7 +33,7 @@ func Test_validationHost_start(t *testing.T) {
 func TestValidationHost(t *testing.T) {
 	v := NewValidationHost()
 	v.Start()
-	v.workerPool.newValidationWorker(parachaintypes.ValidationCodeHash{1, 2, 3, 4})
+	v.workerPool.newValidationWorker(parachaintypes.ValidationCode{1, 2, 3, 4})
 
 	resCh := make(chan *ValidationTaskResult)
 

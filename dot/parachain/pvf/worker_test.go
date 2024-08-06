@@ -1,6 +1,7 @@
 package pvf
 
 import (
+	"github.com/stretchr/testify/require"
 	"sync"
 	"testing"
 	"time"
@@ -9,12 +10,14 @@ import (
 )
 
 func TestWorker(t *testing.T) {
-	workerID1 := parachaintypes.ValidationCodeHash{1, 2, 3, 4}
+	workerID1 := parachaintypes.ValidationCode{1, 2, 3, 4}
 
-	w := newWorker(workerID1)
+	workerQueue := make(chan *workerTask, maxRequestsAllowed)
+	w, err := newWorker(workerID1, workerQueue)
+	require.NoError(t, err)
 
 	wg := sync.WaitGroup{}
-	queue := make(chan *ValidationTask, 2)
+	queue := make(chan *workerTask, 2)
 
 	wg.Add(1)
 	go w.run(queue, &wg)
@@ -22,11 +25,11 @@ func TestWorker(t *testing.T) {
 	resultCh := make(chan *ValidationTaskResult)
 	defer close(resultCh)
 
-	queue <- &ValidationTask{
+	queue <- &workerTask{
 		ResultCh: resultCh,
 	}
 
-	queue <- &ValidationTask{
+	queue <- &workerTask{
 		ResultCh: resultCh,
 	}
 

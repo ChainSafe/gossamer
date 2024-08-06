@@ -17,7 +17,7 @@ func TestValidationWorkerPool_newValidationWorker(t *testing.T) {
 		"add_one_worker": {
 			setupWorkerPool: func(t *testing.T) *validationWorkerPool {
 				pool := newValidationWorkerPool()
-				pool.newValidationWorker(parachaintypes.ValidationCodeHash{1, 2, 3, 4})
+				pool.newValidationWorker(parachaintypes.ValidationCode{1, 2, 3, 4})
 				return pool
 			},
 			expectedWorkers: []parachaintypes.ValidationCodeHash{

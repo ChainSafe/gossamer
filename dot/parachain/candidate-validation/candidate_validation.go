@@ -89,33 +89,36 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 			case ValidateFromExhaustive:
 				// This is the skeleton to hook up the PVF host to the candidate validation subsystem
 				//  This is currently WIP, pending moving the validation logic to the PVF host
-				validationCodeHash := msg.ValidationCode.Hash()
 				taskResult := make(chan *pvf.ValidationTaskResult)
 				validationTask := &pvf.ValidationTask{
-					PersistedValidationData: parachaintypes.PersistedValidationData{},
-					WorkerID:                &validationCodeHash,
-					CandidateReceipt:        &msg.CandidateReceipt,
-					PoV:                     msg.PoV,
-					ExecutorParams:          nil,
-					PvfExecTimeoutKind:      parachaintypes.PvfExecTimeoutKind{},
-					ResultCh:                taskResult,
+					PersistedValidationData: msg.PersistedValidationData,
+					//WorkerID:                &validationCodeHash,
+					ValidationCode:     &msg.ValidationCode,
+					CandidateReceipt:   &msg.CandidateReceipt,
+					PoV:                msg.PoV,
+					ExecutorParams:     nil,
+					PvfExecTimeoutKind: parachaintypes.PvfExecTimeoutKind{},
+					ResultCh:           taskResult,
 				}
-				cv.pvfHost.Validate(validationTask)
-				fmt.Printf("Validation result: %v", <-taskResult)
+				go cv.pvfHost.Validate(validationTask)
+
+				result := <-taskResult
+				fmt.Printf("Validation result: %v", result)
+				// TODO(ed): determine how to handle this error and result
 
 				//  WIP: This is the current implementation of the validation logic, it will be replaced by the PVF host
 				//   when the validation logic is moved to the PVF host
-				result, err := validateFromExhaustive(cv.ValidationHost, msg.PersistedValidationData,
-					msg.ValidationCode, msg.CandidateReceipt, msg.PoV)
-				if err != nil {
-					logger.Errorf("failed to validate from exhaustive: %w", err)
-					msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-						Err: err,
-					}
-				} else {
-					msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-						Data: *result,
-					}
+				//result, err := validateFromExhaustive(cv.ValidationHost, msg.PersistedValidationData,
+				//	msg.ValidationCode, msg.CandidateReceipt, msg.PoV)
+				//if err != nil {
+				//	logger.Errorf("failed to validate from exhaustive: %w", err)
+				//	msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+				//		Err: err,
+				//	}
+				//} else {
+				msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+					Data: *result.Result,
+					//}
 				}
 
 			case PreCheck:

@@ -1,14 +1,11 @@
 package pvf
 
 import (
-	"crypto/rand"
 	"fmt"
-	"math/big"
 	"sync"
 	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"golang.org/x/exp/maps"
 )
 
 const (
@@ -19,7 +16,7 @@ type validationWorkerPool struct {
 	mtx sync.RWMutex
 	wg  sync.WaitGroup
 
-	workers map[parachaintypes.ValidationCodeHash]*validationWorker
+	workers map[parachaintypes.ValidationCodeHash]*worker
 }
 
 type ValidationTask struct {
@@ -29,12 +26,13 @@ type ValidationTask struct {
 	PoV                     parachaintypes.PoV
 	ExecutorParams          parachaintypes.ExecutorParams
 	PvfExecTimeoutKind      parachaintypes.PvfExecTimeoutKind
+	ValidationCode          *parachaintypes.ValidationCode
 	ResultCh                chan<- *ValidationTaskResult
 }
 
 type ValidationTaskResult struct {
 	who    parachaintypes.ValidationCodeHash
-	result *ValidationResult
+	Result *ValidationResult
 }
 
 // ValidationResult represents the result coming from the candidate validation subsystem.
@@ -123,14 +121,14 @@ func (ci ReasonForInvalidity) Error() string {
 	}
 }
 
-type validationWorker struct {
-	worker *worker
-	queue  chan *ValidationTask
-}
+//type validationWorker struct {
+//	worker *worker
+//	queue  chan *workerTask
+//}
 
 func newValidationWorkerPool() *validationWorkerPool {
 	return &validationWorkerPool{
-		workers: make(map[parachaintypes.ValidationCodeHash]*validationWorker),
+		workers: make(map[parachaintypes.ValidationCodeHash]*worker),
 	}
 }
 
@@ -162,61 +160,42 @@ func (v *validationWorkerPool) stop() error {
 	}
 }
 
-func (v *validationWorkerPool) newValidationWorker(who parachaintypes.ValidationCodeHash) {
+func (v *validationWorkerPool) newValidationWorker(validationCode parachaintypes.ValidationCode) parachaintypes.ValidationCodeHash {
 
-	worker := newWorker(who)
-	workerQueue := make(chan *ValidationTask, maxRequestsAllowed)
-
+	workerQueue := make(chan *workerTask, maxRequestsAllowed)
+	worker, err := newWorker(validationCode, workerQueue)
+	if err != nil {
+		// TODO(ed): handle this error
+		logger.Errorf("failed to create a new worker: %w", err)
+	}
 	v.wg.Add(1)
 	go worker.run(workerQueue, &v.wg)
 
-	v.workers[who] = &validationWorker{
-		worker: worker,
-		queue:  workerQueue,
-	}
-	logger.Tracef("potential worker added, total in the pool %d", len(v.workers))
+	v.workers[worker.workerID] = worker
+
+	return worker.workerID
 }
 
 // submitRequest given a request, the worker pool will get the peer given the peer.ID
 // parameter or if nil the very first available worker or
 // to perform the request, the response will be dispatch in the resultCh.
-func (v *validationWorkerPool) submitRequest(request *ValidationTask) {
-
-	//task := &validationTask{
-	//	request:  request,
-	//	resultCh: resultCh,
-	//}
-
-	// if the request is bounded to a specific peer then just
-	// request it and sent through its queue otherwise send
-	// the request in the general queue where all worker are
-	// listening on
+func (v *validationWorkerPool) submitRequest(workerID parachaintypes.ValidationCodeHash, request *workerTask) {
 	v.mtx.RLock()
 	defer v.mtx.RUnlock()
+	logger.Debugf("pool submit request workerID %x", workerID)
 
-	if request.WorkerID != nil {
-		syncWorker, inMap := v.workers[*request.WorkerID]
-		if inMap {
-			if syncWorker == nil {
-				panic("sync worker should not be nil")
-			}
-			syncWorker.queue <- request
-			return
+	//if request.WorkerID != nil {
+	syncWorker, inMap := v.workers[workerID]
+	if inMap {
+		if syncWorker == nil {
+			panic("sync worker should not be nil")
 		}
+		logger.Debugf("sending request", workerID)
+		syncWorker.queue <- request
+		return
 	}
-
-	// if the exact peer is not specified then
-	// randomly select a worker and assign the
-	// task to it, if the amount of workers is
-	var selectedWorkerIdx int
-	workers := maps.Values(v.workers)
-	nBig, err := rand.Int(rand.Reader, big.NewInt(int64(len(workers))))
-	if err != nil {
-		panic(fmt.Errorf("fail to get a random number: %w", err))
-	}
-	selectedWorkerIdx = int(nBig.Int64())
-	selectedWorker := workers[selectedWorkerIdx]
-	selectedWorker.queue <- request
+	// TODO(ed): handle this case
+	logger.Errorf("workerID %x not found in the pool", workerID)
 }
 
 func (v *validationWorkerPool) containsWorker(workerID parachaintypes.ValidationCodeHash) bool {

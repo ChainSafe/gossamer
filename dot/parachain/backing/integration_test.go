@@ -4,6 +4,7 @@
 package backing_test
 
 import (
+	"github.com/ChainSafe/gossamer/dot/parachain/pvf"
 	"testing"
 	"time"
 
@@ -275,9 +276,9 @@ func TestSecondsValidCandidate(t *testing.T) {
 			return false
 		}
 
-		badReturn := candidatevalidation.BadReturn
-		validateFromExhaustive.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
-			Data: candidatevalidation.ValidationResult{
+		badReturn := pvf.BadReturn
+		validateFromExhaustive.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+			Data: pvf.ValidationResult{
 				InvalidResult: &badReturn,
 			},
 		}
@@ -339,9 +340,9 @@ func TestSecondsValidCandidate(t *testing.T) {
 			return false
 		}
 
-		validateFromExhaustive.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
-			Data: candidatevalidation.ValidationResult{
-				ValidResult: &candidatevalidation.ValidValidationResult{
+		validateFromExhaustive.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+			Data: pvf.ValidationResult{
+				ValidResult: &pvf.ValidValidationResult{
 					CandidateCommitments: parachaintypes.CandidateCommitments{
 						UpwardMessages:            []parachaintypes.UpwardMessage{},
 						HorizontalMessages:        []parachaintypes.OutboundHrmpMessage{},

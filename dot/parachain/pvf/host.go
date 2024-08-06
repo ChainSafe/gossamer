@@ -2,6 +2,9 @@ package pvf
 
 import (
 	"fmt"
+	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -40,10 +43,90 @@ func NewValidationHost() *ValidationHost {
 func (v *ValidationHost) Validate(msg *ValidationTask) {
 	logger.Debugf("Validating worker", "workerID", msg.WorkerID)
 
-	logger.Debugf("submitting request for worker", "workerID", msg.WorkerID)
-	hasWorker := v.workerPool.containsWorker(*msg.WorkerID)
-	if !hasWorker {
-		v.workerPool.newValidationWorker(*msg.WorkerID)
+	validationCodeHash := msg.ValidationCode.Hash()
+	// basic checks
+	validationErr, internalErr := performBasicChecks(&msg.CandidateReceipt.Descriptor,
+		msg.PersistedValidationData.MaxPovSize,
+		msg.PoV,
+		validationCodeHash)
+	// TODO(ed): confirm how to handle internal errors
+	if internalErr != nil {
+		logger.Errorf("performing basic checks: %w", internalErr)
 	}
-	v.workerPool.submitRequest(msg)
+
+	if validationErr != nil {
+		valErr := &ValidationTaskResult{
+			who: validationCodeHash,
+			Result: &ValidationResult{
+				InvalidResult: validationErr,
+			},
+		}
+		msg.ResultCh <- valErr
+		return
+	}
+
+	workerID := v.poolContainsWorker(msg)
+	validationParams := parachainruntime.ValidationParameters{
+		ParentHeadData:         msg.PersistedValidationData.ParentHead,
+		BlockData:              msg.PoV.BlockData,
+		RelayParentNumber:      msg.PersistedValidationData.RelayParentNumber,
+		RelayParentStorageRoot: msg.PersistedValidationData.RelayParentStorageRoot,
+	}
+	workTask := &workerTask{
+		work:       validationParams,
+		maxPoVSize: msg.PersistedValidationData.MaxPovSize,
+		ResultCh:   msg.ResultCh,
+	}
+	v.workerPool.submitRequest(workerID, workTask)
+}
+
+func (v *ValidationHost) poolContainsWorker(msg *ValidationTask) parachaintypes.ValidationCodeHash {
+	if msg.WorkerID != nil {
+		return *msg.WorkerID
+	}
+	if v.workerPool.containsWorker(msg.ValidationCode.Hash()) {
+		return msg.ValidationCode.Hash()
+	} else {
+		v.workerPool.newValidationWorker(*msg.ValidationCode)
+		return msg.ValidationCode.Hash()
+	}
+}
+
+// performBasicChecks Does basic checks of a candidate. Provide the encoded PoV-block.
+// Returns ReasonForInvalidity and internal error if any.
+func performBasicChecks(candidate *parachaintypes.CandidateDescriptor, maxPoVSize uint32,
+	pov parachaintypes.PoV, validationCodeHash parachaintypes.ValidationCodeHash) (
+	validationError *ReasonForInvalidity, internalError error) {
+	povHash, err := pov.Hash()
+	if err != nil {
+		return nil, fmt.Errorf("hashing PoV: %w", err)
+	}
+
+	encodedPoV, err := scale.Marshal(pov)
+	if err != nil {
+		return nil, fmt.Errorf("encoding PoV: %w", err)
+	}
+	encodedPoVSize := uint32(len(encodedPoV))
+
+	if encodedPoVSize > maxPoVSize {
+		ci := ParamsTooLarge
+		return &ci, nil
+	}
+
+	if povHash != candidate.PovHash {
+		ci := PoVHashMismatch
+		return &ci, nil
+	}
+
+	if validationCodeHash != candidate.ValidationCodeHash {
+		ci := CodeHashMismatch
+		return &ci, nil
+	}
+
+	err = candidate.CheckCollatorSignature()
+	if err != nil {
+		ci := BadSignature
+		return &ci, nil
+	}
+	return nil, nil
 }
