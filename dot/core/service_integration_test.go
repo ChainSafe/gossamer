@@ -15,7 +15,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -208,65 +207,6 @@ func TestHandleChainReorg_NoReorg(t *testing.T) {
 
 	err = s.handleChainReorg(head.ParentHash, head.Hash())
 	require.NoError(t, err)
-}
-
-func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
-	t.Skip() // TODO: tx fails to validate in handleChainReorg() with "Invalid transaction" (#1026)
-	s := NewTestService(t, nil)
-	bs := s.blockState
-
-	parent, err := bs.BestBlockHeader()
-	require.NoError(t, err)
-
-	bestBlockHash := s.blockState.BestBlockHash()
-	rt, err := s.blockState.GetRuntime(bestBlockHash)
-	require.NoError(t, err)
-
-	block1 := sync.BuildBlock(t, rt, parent, nil)
-	bs.StoreRuntime(block1.Header.Hash(), rt)
-	err = bs.AddBlock(block1)
-	require.NoError(t, err)
-
-	block2 := sync.BuildBlock(t, rt, &block1.Header, nil)
-	bs.StoreRuntime(block2.Header.Hash(), rt)
-	err = bs.AddBlock(block2)
-	require.NoError(t, err)
-
-	block3 := sync.BuildBlock(t, rt, &block2.Header, nil)
-	bs.StoreRuntime(block3.Header.Hash(), rt)
-	err = bs.AddBlock(block3)
-	require.NoError(t, err)
-
-	block4 := sync.BuildBlock(t, rt, &block3.Header, nil)
-	bs.StoreRuntime(block4.Header.Hash(), rt)
-	err = bs.AddBlock(block4)
-	require.NoError(t, err)
-
-	block5 := sync.BuildBlock(t, rt, &block4.Header, nil)
-	bs.StoreRuntime(block5.Header.Hash(), rt)
-	err = bs.AddBlock(block5)
-	require.NoError(t, err)
-
-	block31 := sync.BuildBlock(t, rt, &block2.Header, nil)
-	bs.StoreRuntime(block31.Header.Hash(), rt)
-	err = bs.AddBlock(block31)
-	require.NoError(t, err)
-
-	nonce := uint64(0)
-
-	// Add extrinsic to block `block41`
-	ext := createExtrinsic(t, rt, bs.(*state.BlockState).GenesisHash(), nonce)
-
-	block41 := sync.BuildBlock(t, rt, &block31.Header, ext)
-	bs.StoreRuntime(block41.Header.Hash(), rt)
-	err = bs.AddBlock(block41)
-	require.NoError(t, err)
-
-	err = s.handleChainReorg(block41.Header.Hash(), block5.Header.Hash())
-	require.NoError(t, err)
-
-	pending := s.transactionState.(*state.TransactionState).Pending()
-	require.Equal(t, 1, len(pending))
 }
 
 func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {

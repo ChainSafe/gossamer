@@ -95,3 +95,15 @@ func (mr *MockSyncerMockRecorder) IsSynced() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsSynced", reflect.TypeOf((*MockSyncer)(nil).IsSynced))
 }
+
+// OnConnectionClosed mocks base method.
+func (m *MockSyncer) OnConnectionClosed(arg0 peer.ID) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "OnConnectionClosed", arg0)
+}
+
+// OnConnectionClosed indicates an expected call of OnConnectionClosed.
+func (mr *MockSyncerMockRecorder) OnConnectionClosed(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnConnectionClosed", reflect.TypeOf((*MockSyncer)(nil).OnConnectionClosed), arg0)
+}
