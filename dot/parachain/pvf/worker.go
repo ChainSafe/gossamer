@@ -1,9 +1,10 @@
 package pvf
 
 import (
+	"sync"
+
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"sync"
 )
 
 type worker struct {

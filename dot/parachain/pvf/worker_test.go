@@ -1,12 +1,12 @@
 package pvf
 
 import (
-	"github.com/stretchr/testify/require"
 	"sync"
 	"testing"
 	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWorker(t *testing.T) {

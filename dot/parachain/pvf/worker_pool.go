@@ -160,7 +160,8 @@ func (v *validationWorkerPool) stop() error {
 	}
 }
 
-func (v *validationWorkerPool) newValidationWorker(validationCode parachaintypes.ValidationCode) parachaintypes.ValidationCodeHash {
+func (v *validationWorkerPool) newValidationWorker(validationCode parachaintypes.ValidationCode) parachaintypes.
+	ValidationCodeHash {
 
 	workerQueue := make(chan *workerTask, maxRequestsAllowed)
 	worker, err := newWorker(validationCode, workerQueue)

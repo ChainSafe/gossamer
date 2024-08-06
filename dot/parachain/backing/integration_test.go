@@ -4,7 +4,6 @@
 package backing_test
 
 import (
-	"github.com/ChainSafe/gossamer/dot/parachain/pvf"
 	"testing"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
+	"github.com/ChainSafe/gossamer/dot/parachain/pvf"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"

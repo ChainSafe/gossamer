@@ -2,12 +2,12 @@ package pvf
 
 import (
 	"fmt"
-	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
-	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"sync"
 
+	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "pvf"), log.SetLevel(log.Debug))
@@ -87,8 +87,7 @@ func (v *ValidationHost) poolContainsWorker(msg *ValidationTask) parachaintypes.
 	if v.workerPool.containsWorker(msg.ValidationCode.Hash()) {
 		return msg.ValidationCode.Hash()
 	} else {
-		v.workerPool.newValidationWorker(*msg.ValidationCode)
-		return msg.ValidationCode.Hash()
+		return v.workerPool.newValidationWorker(*msg.ValidationCode)
 	}
 }
 
