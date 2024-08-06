@@ -2,7 +2,6 @@ package sync
 
 import (
 	"container/list"
-	"os"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -12,7 +11,19 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"gopkg.in/yaml.v3"
+
+	_ "embed"
 )
+
+//go:embed testdata/westend_blocks.yaml
+var rawWestendBlocks []byte
+
+type WestendBlocks struct {
+	Blocks1To10    string `yaml:"blocks_1_to_10"`
+	Blocks129To256 string `yaml:"blocks_129_to_256"`
+	Blocks1To128   string `yaml:"blocks_1_to_128"`
+}
 
 func TestFullSyncNextActions(t *testing.T) {
 	t.Run("best_block_greater_or_equal_current_target", func(t *testing.T) {
@@ -161,18 +172,16 @@ func TestFullSyncNextActions(t *testing.T) {
 }
 
 func TestFullSyncIsFinished(t *testing.T) {
-	fstBlocksRaw, err := os.ReadFile("./test_data/westend_1_10_blocks.out")
+	westendBlocks := &WestendBlocks{}
+	err := yaml.Unmarshal(rawWestendBlocks, westendBlocks)
 	require.NoError(t, err)
 
 	fstTaskBlockResponse := &network.BlockResponseMessage{}
-	err = fstTaskBlockResponse.Decode(common.MustHexToBytes(string(fstBlocksRaw)))
-	require.NoError(t, err)
-
-	sndBlocksRaw, err := os.ReadFile("./test_data/westend_129_256_blocks.out")
+	err = fstTaskBlockResponse.Decode(common.MustHexToBytes(westendBlocks.Blocks1To10))
 	require.NoError(t, err)
 
 	sndTaskBlockResponse := &network.BlockResponseMessage{}
-	err = sndTaskBlockResponse.Decode(common.MustHexToBytes(string(sndBlocksRaw)))
+	err = sndTaskBlockResponse.Decode(common.MustHexToBytes(westendBlocks.Blocks129To256))
 	require.NoError(t, err)
 
 	t.Run("requested_max_but_received_less_blocks", func(t *testing.T) {
@@ -250,11 +259,8 @@ func TestFullSyncIsFinished(t *testing.T) {
 		require.Equal(t, expectedAncestorRequest, message)
 
 		// ancestor search response
-		ancestorSearchBlocksRaw, err := os.ReadFile("./test_data/westend_ancestor_blocks.out")
-		require.NoError(t, err)
-
 		ancestorSearchResponse := &network.BlockResponseMessage{}
-		err = ancestorSearchResponse.Decode(common.MustHexToBytes(string(ancestorSearchBlocksRaw)))
+		err = ancestorSearchResponse.Decode(common.MustHexToBytes(westendBlocks.Blocks1To128))
 		require.NoError(t, err)
 
 		syncTaskResults = []*syncTaskResult{

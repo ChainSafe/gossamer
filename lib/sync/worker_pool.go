@@ -5,7 +5,6 @@ package sync
 
 import (
 	"errors"
-	"math/rand"
 	"sync"
 	"time"
 
@@ -14,7 +13,10 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-var ErrNoPeersToMakeRequest = errors.New("no peers to make requests")
+var (
+	ErrNoPeersToMakeRequest = errors.New("no peers to make requests")
+	ErrPeerIgnored          = errors.New("peer ignored")
+)
 
 const (
 	punishmentBaseTimeout      = 5 * time.Minute
@@ -57,41 +59,33 @@ func newSyncWorkerPool(net Network) *syncWorkerPool {
 
 // fromBlockAnnounceHandshake stores the peer which send us a handshake as
 // a possible source for requesting blocks/state/warp proofs
-func (s *syncWorkerPool) fromBlockAnnounceHandshake(who peer.ID) {
+func (s *syncWorkerPool) fromBlockAnnounceHandshake(who peer.ID) error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
 	if _, ok := s.ignorePeers[who]; ok {
-		return
+		return ErrPeerIgnored
 	}
 
 	_, has := s.workers[who]
 	if has {
-		return
+		return nil
 	}
 
 	s.workers[who] = struct{}{}
 	logger.Tracef("potential worker added, total in the pool %d", len(s.workers))
+	return nil
 }
 
 // submitRequests takes an set of requests and will submit to the pool through submitRequest
 // the response will be dispatch in the resultCh
 func (s *syncWorkerPool) submitRequests(tasks []*syncTask) ([]*syncTaskResult, error) {
-	peers := s.network.AllConnectedPeersIDs()
-	connectedPeers := make(map[peer.ID]struct{}, len(peers))
-	for _, peer := range peers {
-		connectedPeers[peer] = struct{}{}
-	}
-
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
-	pids := append(maps.Keys(s.workers), peers...)
-	rand.Shuffle(len(pids), func(i, j int) {
-		pids[i], pids[j] = pids[j], pids[i]
-	})
-
+	pids := maps.Keys(s.workers)
 	results := make([]*syncTaskResult, 0, len(tasks))
+
 	for _, task := range tasks {
 		completed := false
 		for _, pid := range pids {

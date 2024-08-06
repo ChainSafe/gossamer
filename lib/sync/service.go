@@ -106,7 +106,6 @@ func NewSyncService(network Network,
 
 func (s *SyncService) waitWorkers() {
 	waitPeersTimer := time.NewTimer(s.waitPeersDuration)
-
 	bestBlockHeader, err := s.blockState.BestBlockHeader()
 	if err != nil {
 		panic(fmt.Sprintf("failed to get highest finalised header: %v", err))
@@ -152,10 +151,13 @@ func (s *SyncService) Stop() error {
 
 func (s *SyncService) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error {
 	logger.Infof("receiving a block announce handshake: %s", from.String())
-	s.workerPool.fromBlockAnnounceHandshake(from)
+	if err := s.workerPool.fromBlockAnnounceHandshake(from); err != nil {
+		return err
+	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
 	s.currentStrategy.OnBlockAnnounceHandshake(from, msg)
 	return nil
 }
