@@ -1,32 +1,35 @@
 package sync
 
 import (
-	"encoding/json"
+	"container/list"
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/common/variadic"
+
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
+const defaultNumOfTasks = 3
+
 var _ Strategy = (*FullSyncStrategy)(nil)
 
 var (
-	errFailedToGetParent          = errors.New("failed to get parent header")
-	errNilBlockData               = errors.New("block data is nil")
-	errNilHeaderInResponse        = errors.New("expected header, received none")
-	errNilBodyInResponse          = errors.New("expected body, received none")
-	errNilJustificationInResponse = errors.New("expected justification, received none")
+	errFailedToGetParent             = errors.New("failed to get parent header")
+	errNilHeaderInResponse           = errors.New("expected header, received none")
+	errNilBodyInResponse             = errors.New("expected body, received none")
+	errPeerOnInvalidFork             = errors.New("peer is on an invalid fork")
+	errMismatchBestBlockAnnouncement = errors.New("mismatch best block announcement")
 
 	blockSizeGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_sync",
@@ -35,84 +38,124 @@ var (
 	})
 )
 
-type (
-	// Telemetry is the telemetry client to send telemetry messages.
-	Telemetry interface {
-		SendMessage(msg json.Marshaler)
-	}
-
-	// StorageState is the interface for the storage state
-	StorageState interface {
-		TrieState(root *common.Hash) (*rtstorage.TrieState, error)
-		sync.Locker
-	}
-
-	// TransactionState is the interface for transaction queue methods
-	TransactionState interface {
-		RemoveExtrinsic(ext types.Extrinsic)
-	}
-
-	// BabeVerifier deals with BABE block verification
-	BabeVerifier interface {
-		VerifyBlock(header *types.Header) error
-	}
-
-	// FinalityGadget implements justification verification functionality
-	FinalityGadget interface {
-		VerifyBlockJustification(common.Hash, []byte) error
-	}
-
-	// BlockImportHandler is the interface for the handler of newly imported blocks
-	BlockImportHandler interface {
-		HandleBlockImport(block *types.Block, state *rtstorage.TrieState, announce bool) error
-	}
-)
-
 // Config is the configuration for the sync Service.
 type FullSyncConfig struct {
 	StartHeader        *types.Header
-	BlockState         BlockState
 	StorageState       StorageState
-	FinalityGadget     FinalityGadget
 	TransactionState   TransactionState
-	BlockImportHandler BlockImportHandler
 	BabeVerifier       BabeVerifier
+	FinalityGadget     FinalityGadget
+	BlockImportHandler BlockImportHandler
 	Telemetry          Telemetry
+	BlockState         BlockState
 	BadBlocks          []string
+	NumOfTasks         int
 	RequestMaker       network.RequestMaker
 }
 
-type FullSyncStrategy struct {
-	bestBlockHeader    *types.Header
-	missingRequests    []*network.BlockRequestMessage
-	disjointBlocks     [][]*types.BlockData
-	peers              *peerViewSet
-	badBlocks          []string
-	reqMaker           network.RequestMaker
-	blockState         BlockState
-	storageState       StorageState
-	transactionState   TransactionState
-	babeVerifier       BabeVerifier
-	finalityGadget     FinalityGadget
-	blockImportHandler BlockImportHandler
-	telemetry          Telemetry
+type unreadyBlocks struct {
+	mu               sync.Mutex
+	incompleteBlocks map[common.Hash]*types.BlockData
+	disjointChains   [][]*types.BlockData
+}
 
-	startedAt    time.Time
-	syncedBlocks int
+func (u *unreadyBlocks) newHeader(blockHeader *types.Header) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	blockHash := blockHeader.Hash()
+	u.incompleteBlocks[blockHash] = &types.BlockData{
+		Hash:   blockHash,
+		Header: blockHeader,
+	}
+}
+
+func (u *unreadyBlocks) newFragment(frag []*types.BlockData) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	u.disjointChains = append(u.disjointChains, frag)
+}
+
+func (u *unreadyBlocks) updateDisjointFragments(chain []*types.BlockData) ([]*types.BlockData, bool) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	indexToChange := -1
+	for idx, disjointChain := range u.disjointChains {
+		lastBlockArriving := chain[len(chain)-1]
+		firstDisjointBlock := disjointChain[0]
+		if formsSequence(lastBlockArriving, firstDisjointBlock) {
+			indexToChange = idx
+			break
+		}
+	}
+
+	if indexToChange >= 0 {
+		disjointChain := u.disjointChains[indexToChange]
+		u.disjointChains = append(u.disjointChains[:indexToChange], u.disjointChains[indexToChange+1:]...)
+		return append(chain, disjointChain...), true
+	}
+
+	return nil, false
+}
+
+func (u *unreadyBlocks) updateIncompleteBlocks(chain []*types.BlockData) []*types.BlockData {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	completeBlocks := make([]*types.BlockData, 0)
+	for _, blockData := range chain {
+		incomplete, ok := u.incompleteBlocks[blockData.Hash]
+		if !ok {
+			continue
+		}
+
+		incomplete.Body = blockData.Body
+		incomplete.Justification = blockData.Justification
+
+		delete(u.incompleteBlocks, blockData.Hash)
+		completeBlocks = append(completeBlocks, incomplete)
+	}
+
+	return completeBlocks
+}
+
+type Importer interface {
+	handle(*types.BlockData, BlockOrigin) (imported bool, err error)
+}
+
+type FullSyncStrategy struct {
+	requestQueue  *requestsQueue[*network.BlockRequestMessage]
+	unreadyBlocks *unreadyBlocks
+	peers         *peerViewSet
+	badBlocks     []string
+	reqMaker      network.RequestMaker
+	blockState    BlockState
+	numOfTasks    int
+	startedAt     time.Time
+	syncedBlocks  int
+	importer      Importer
 }
 
 func NewFullSyncStrategy(cfg *FullSyncConfig) *FullSyncStrategy {
+	if cfg.NumOfTasks == 0 {
+		cfg.NumOfTasks = defaultNumOfTasks
+	}
+
 	return &FullSyncStrategy{
-		badBlocks:          cfg.BadBlocks,
-		bestBlockHeader:    cfg.StartHeader,
-		reqMaker:           cfg.RequestMaker,
-		blockState:         cfg.BlockState,
-		storageState:       cfg.StorageState,
-		transactionState:   cfg.TransactionState,
-		babeVerifier:       cfg.BabeVerifier,
-		finalityGadget:     cfg.FinalityGadget,
-		blockImportHandler: cfg.BlockImportHandler,
-		telemetry:          cfg.Telemetry,
+		badBlocks:  cfg.BadBlocks,
+		reqMaker:   cfg.RequestMaker,
+		blockState: cfg.BlockState,
+		numOfTasks: cfg.NumOfTasks,
+		importer:   newBlockImporter(cfg),
+		unreadyBlocks: &unreadyBlocks{
+			incompleteBlocks: make(map[common.Hash]*types.BlockData),
+			disjointChains:   make([][]*types.BlockData, 0),
+		},
+		requestQueue: &requestsQueue[*network.BlockRequestMessage]{
+			queue: list.New(),
+		},
 		peers: &peerViewSet{
 			view:   make(map[peer.ID]peerView),
 			target: 0,
@@ -120,35 +163,44 @@ func NewFullSyncStrategy(cfg *FullSyncConfig) *FullSyncStrategy {
 	}
 }
 
-func (f *FullSyncStrategy) incompleteBlocksSync() ([]*syncTask, error) {
-	panic("incompleteBlocksSync not implemented yet")
-}
-
 func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 	f.startedAt = time.Now()
+	f.syncedBlocks = 0
 
-	if len(f.missingRequests) > 0 {
-		return f.createTasks(f.missingRequests), nil
+	if f.requestQueue.Len() > 0 {
+		message, _ := f.requestQueue.PopFront()
+		return f.createTasks([]*network.BlockRequestMessage{message}), nil
 	}
 
 	currentTarget := f.peers.getTarget()
-	// our best block is equal or ahead of current target
-	// we're not legging behind, so let's set the set of
-	// incomplete blocks and request them
-	if uint32(f.bestBlockHeader.Number) >= currentTarget {
-		return f.incompleteBlocksSync()
+	bestBlockHeader, err := f.blockState.BestBlockHeader()
+	if err != nil {
+		return nil, fmt.Errorf("while getting best block header")
 	}
 
-	startRequestAt := f.bestBlockHeader.Number + 1
-	targetBlockNumber := startRequestAt + 60*128
+	// our best block is equal or ahead of current target.
+	// in the nodes pov we are not legging behind so there's nothing to do
+	if uint32(bestBlockHeader.Number) >= currentTarget {
+		return nil, nil
+	}
+
+	startRequestAt := bestBlockHeader.Number + 1
+
+	// here is where we cap the amount of tasks we will create
+	// f.numOfTasks - len(requests) gives us the remaining amount
+	// of requests and we multiply by 128 which is the max amount
+	// of blocks a single request can ask
+	// 257 + 2 * 128 = 513
+	targetBlockNumber := startRequestAt + 128
 
 	if targetBlockNumber > uint(currentTarget) {
 		targetBlockNumber = uint(currentTarget)
 	}
 
-	requests := network.NewAscendingBlockRequests(startRequestAt, targetBlockNumber,
+	ascendingBlockRequests := network.NewAscendingBlockRequests(startRequestAt, targetBlockNumber,
 		network.BootstrapRequestData)
-	return f.createTasks(requests), nil
+
+	return f.createTasks(ascendingBlockRequests), nil
 }
 
 func (f *FullSyncStrategy) createTasks(requests []*network.BlockRequestMessage) []*syncTask {
@@ -164,99 +216,234 @@ func (f *FullSyncStrategy) createTasks(requests []*network.BlockRequestMessage) 
 }
 
 func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change, []peer.ID, error) {
-	repChanges, blocks, missingReq, validResp := validateResults(results, f.badBlocks)
-	f.missingRequests = missingReq
+	repChanges, peersToIgnore, validResp := validateResults(results, f.badBlocks)
 
-	if f.disjointBlocks == nil {
-		f.disjointBlocks = make([][]*types.BlockData, 0)
+	validBlocksUnderFragment := func(highestFinalizedNumber uint, fragmentBlocks []*types.BlockData) []*types.BlockData {
+		startFragmentFrom := -1
+		for idx, block := range fragmentBlocks {
+			if block.Header.Number > highestFinalizedNumber {
+				startFragmentFrom = idx
+				break
+			}
+		}
+
+		if startFragmentFrom < 0 {
+			return nil
+		}
+
+		return fragmentBlocks[startFragmentFrom:]
 	}
 
-	// merge validResp with the current disjoint blocks
-	for _, resp := range validResp {
-		f.disjointBlocks = append(f.disjointBlocks, resp.BlockData)
+	highestFinalized, err := f.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return false, nil, nil, fmt.Errorf("getting highest finalized header")
 	}
 
-	// given the validResponses, can we start importing the blocks or
-	// we should wait for the missing requests to fill the gap?
-	blocksToImport, disjointBlocks := blocksAvailable(f.bestBlockHeader.Hash(), f.bestBlockHeader.Number, f.disjointBlocks)
-	f.disjointBlocks = disjointBlocks
+	readyBlocks := make([][]*types.BlockData, 0, len(validResp))
+	for _, reqRespData := range validResp {
+		// if Gossamer requested the header, then the response data should
+		// contains the full bocks to be imported
+		// if Gossamer don't requested the header, then the response shoul
+		// only contains the missing parts the will complete the unreadyBlocks
+		// and then with the blocks completed we should be able to import them
 
-	if len(blocksToImport) > 0 {
-		for _, blockToImport := range blocksToImport {
-			err := f.handleReadyBlock(blockToImport, networkInitialSync)
+		if reqRespData.req.RequestField(network.RequestedDataHeader) {
+			updatedFragment, ok := f.unreadyBlocks.updateDisjointFragments(reqRespData.responseData)
+			if ok {
+				validBlocks := validBlocksUnderFragment(highestFinalized.Number, updatedFragment)
+				if len(validBlocks) > 0 {
+					readyBlocks = append(readyBlocks, validBlocks)
+				}
+			} else {
+				readyBlocks = append(readyBlocks, reqRespData.responseData)
+			}
+			continue
+		}
+
+		completedBlocks := f.unreadyBlocks.updateIncompleteBlocks(reqRespData.responseData)
+		readyBlocks = append(readyBlocks, completedBlocks)
+	}
+
+	// disjoint fragments are pieces of the chain that could not be imported rn
+	// because is blocks too far ahead or blocks that belongs to forks
+	orderedFragments := sortFragmentsOfChain(readyBlocks)
+	orderedFragments = mergeFragmentsOfChain(orderedFragments)
+
+	nextBlocksToImport := make([]*types.BlockData, 0)
+	disjointFragments := make([][]*types.BlockData, 0)
+	for _, fragment := range orderedFragments {
+		ok, err := f.blockState.HasHeader(fragment[0].Header.ParentHash)
+		if err != nil && !errors.Is(err, database.ErrNotFound) {
+			return false, nil, nil, fmt.Errorf("checking block parent header: %w", err)
+		}
+
+		if ok {
+			nextBlocksToImport = append(nextBlocksToImport, fragment...)
+			continue
+		}
+
+		disjointFragments = append(disjointFragments, fragment)
+	}
+
+	for len(nextBlocksToImport) > 0 || len(disjointFragments) > 0 {
+		for _, blockToImport := range nextBlocksToImport {
+			imported, err := f.importer.handle(blockToImport, networkInitialSync)
 			if err != nil {
 				return false, nil, nil, fmt.Errorf("while handling ready block: %w", err)
 			}
-			f.bestBlockHeader = blockToImport.Header
+
+			if imported {
+				f.syncedBlocks += 1
+			}
 		}
+
+		nextBlocksToImport = make([]*types.BlockData, 0)
+
+		// check if blocks from the disjoint set can be imported on their on forks
+		// given that fragment contains chains and these chains contains blocks
+		// check if the first block in the chain contains a parent known by us
+		for _, fragment := range disjointFragments {
+			highestFinalized, err := f.blockState.GetHighestFinalisedHeader()
+			if err != nil {
+				return false, nil, nil, fmt.Errorf("getting highest finalized header")
+			}
+
+			validFragment := validBlocksUnderFragment(highestFinalized.Number, fragment)
+			if len(validFragment) == 0 {
+				continue
+			}
+
+			ok, err := f.blockState.HasHeader(validFragment[0].Header.ParentHash)
+			if err != nil && !errors.Is(err, database.ErrNotFound) {
+				return false, nil, nil, err
+			}
+
+			if !ok {
+				logger.Infof("starting an acestor search from %s parent of #%d (%s)",
+					validFragment[0].Header.ParentHash,
+					validFragment[0].Header.Number,
+					validFragment[0].Header.Hash(),
+				)
+
+				f.unreadyBlocks.newFragment(validFragment)
+				request := network.NewBlockRequest(
+					*variadic.FromHash(validFragment[0].Header.ParentHash),
+					network.MaxBlocksInResponse,
+					network.BootstrapRequestData, network.Descending)
+
+				f.requestQueue.PushBack(request)
+			} else {
+				// inserting them in the queue to be processed after the main chain
+				nextBlocksToImport = append(nextBlocksToImport, validFragment...)
+			}
+		}
+
+		disjointFragments = nil
 	}
 
-	f.syncedBlocks = len(blocksToImport)
-	return false, repChanges, blocks, nil
+	return false, repChanges, peersToIgnore, nil
 }
 
 func (f *FullSyncStrategy) ShowMetrics() {
 	totalSyncAndImportSeconds := time.Since(f.startedAt).Seconds()
 	bps := float64(f.syncedBlocks) / totalSyncAndImportSeconds
-	logger.Infof("⛓️ synced %d blocks, "+
+	logger.Infof("⛓️ synced %d blocks, disjoint fragments %d, incomplete blocks %d, "+
 		"took: %.2f seconds, bps: %.2f blocks/second, target block number #%d",
-		f.syncedBlocks, totalSyncAndImportSeconds, bps, f.peers.getTarget())
+		f.syncedBlocks, len(f.unreadyBlocks.disjointChains), len(f.unreadyBlocks.incompleteBlocks),
+		totalSyncAndImportSeconds, bps, f.peers.getTarget())
 }
 
 func (f *FullSyncStrategy) OnBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error {
-	logger.Infof("received block announce from %s: #%d (%s)",
-		from,
-		msg.BestBlockNumber,
-		msg.BestBlockHash.Short(),
-	)
-
 	f.peers.update(from, msg.BestBlockHash, msg.BestBlockNumber)
 	return nil
 }
 
-func (*FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) error {
-	logger.Infof("received block announce: %d", msg.Number)
-	return nil
+func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) (repChange *Change, err error) {
+	if f.blockState.IsPaused() {
+		return nil, errors.New("blockstate service is paused")
+	}
+
+	if msg.BestBlock {
+		peerView := f.peers.get(from)
+		if uint(peerView.bestBlockNumber) != msg.Number {
+			repChange = &Change{
+				who: from,
+				rep: peerset.ReputationChange{
+					Value:  peerset.BadBlockAnnouncementValue,
+					Reason: peerset.BadBlockAnnouncementReason,
+				},
+			}
+			return repChange, fmt.Errorf("%w: peer %s, on handshake #%d, on announce #%d",
+				errMismatchBestBlockAnnouncement, from, peerView.bestBlockNumber, msg.Number)
+		}
+	}
+
+	currentTarget := f.peers.getTarget()
+	if msg.Number >= uint(currentTarget) {
+		return nil, nil
+	}
+
+	blockAnnounceHeader := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
+	blockAnnounceHeaderHash := blockAnnounceHeader.Hash()
+
+	logger.Infof("received block announce from %s: #%d (%s) best block: %v",
+		from,
+		blockAnnounceHeader.Number,
+		blockAnnounceHeaderHash,
+		msg.BestBlock,
+	)
+
+	// check if their best block is on an invalid chain, if it is,
+	// potentially downscore them for now, we can remove them from the syncing peers set
+	highestFinalized, err := f.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return nil, fmt.Errorf("get highest finalised header: %w", err)
+	}
+
+	if blockAnnounceHeader.Number <= highestFinalized.Number {
+		repChange = &Change{
+			who: from,
+			rep: peerset.ReputationChange{
+				Value:  peerset.BadBlockAnnouncementValue,
+				Reason: peerset.BadBlockAnnouncementReason,
+			},
+		}
+		return repChange, fmt.Errorf("%w: peer %s, block number #%d (%s)",
+			errPeerOnInvalidFork, from, blockAnnounceHeader.Number, blockAnnounceHeaderHash.String())
+	}
+
+	has, err := f.blockState.HasHeader(blockAnnounceHeaderHash)
+	if err != nil {
+		return nil, fmt.Errorf("checking if header exists: %w", err)
+	}
+
+	if !has {
+		f.unreadyBlocks.newHeader(blockAnnounceHeader)
+		request := network.NewBlockRequest(*variadic.FromHash(blockAnnounceHeaderHash),
+			1, network.RequestedDataBody+network.RequestedDataJustification, network.Ascending)
+		f.requestQueue.PushBack(request)
+	}
+
+	return nil, nil
 }
 
-func validateResults(results []*syncTaskResult, badBlocks []string) (repChanges []Change, blocks []peer.ID,
-	missingReqs []*network.BlockRequestMessage, validRes []*network.BlockResponseMessage) {
-	repChanges = make([]Change, 0)
-	blocks = make([]peer.ID, 0)
+type RequestResponseData struct {
+	req          *network.BlockRequestMessage
+	responseData []*types.BlockData
+}
 
-	missingReqs = make([]*network.BlockRequestMessage, 0, len(results))
-	validRes = make([]*network.BlockResponseMessage, 0, len(results))
+func validateResults(results []*syncTaskResult, badBlocks []string) (repChanges []Change,
+	peersToBlock []peer.ID, validRes []RequestResponseData) {
+
+	repChanges = make([]Change, 0)
+	peersToBlock = make([]peer.ID, 0)
+	validRes = make([]RequestResponseData, 0, len(results))
 
 resultLoop:
 	for _, result := range results {
 		request := result.request.(*network.BlockRequestMessage)
 
-		if result.err != nil {
-			if !errors.Is(result.err, network.ErrReceivedEmptyMessage) {
-				blocks = append(blocks, result.who)
-
-				if strings.Contains(result.err.Error(), "protocols not supported") {
-					repChanges = append(repChanges, Change{
-						who: result.who,
-						rep: peerset.ReputationChange{
-							Value:  peerset.BadProtocolValue,
-							Reason: peerset.BadProtocolReason,
-						},
-					})
-				}
-
-				if errors.Is(result.err, network.ErrNilBlockInResponse) {
-					repChanges = append(repChanges, Change{
-						who: result.who,
-						rep: peerset.ReputationChange{
-							Value:  peerset.BadMessageValue,
-							Reason: peerset.BadMessageReason,
-						},
-					})
-				}
-			}
-
-			missingReqs = append(missingReqs, request)
+		if !result.completed {
 			continue
 		}
 
@@ -266,7 +453,7 @@ resultLoop:
 			slices.Reverse(response.BlockData)
 		}
 
-		err := validateResponseFields(request.RequestedData, response.BlockData)
+		err := validateResponseFields(request, response.BlockData)
 		if err != nil {
 			logger.Criticalf("validating fields: %s", err)
 			// TODO: check the reputation change for nil body in response
@@ -281,13 +468,23 @@ resultLoop:
 				})
 			}
 
-			missingReqs = append(missingReqs, request)
+			//missingReqs = append(missingReqs, request)
 			continue
 		}
 
-		if !isResponseAChain(response.BlockData) {
+		// only check if the responses forms a chain if the response contains the headers
+		// of each block, othewise the response might only have the body/justification for
+		// a block
+		if request.RequestField(network.RequestedDataHeader) && !isResponseAChain(response.BlockData) {
 			logger.Criticalf("response from %s is not a chain", result.who)
-			missingReqs = append(missingReqs, request)
+			repChanges = append(repChanges, Change{
+				who: result.who,
+				rep: peerset.ReputationChange{
+					Value:  peerset.IncompleteHeaderValue,
+					Reason: peerset.IncompleteHeaderReason,
+				},
+			})
+			//missingReqs = append(missingReqs, request)
 			continue
 		}
 
@@ -296,7 +493,7 @@ resultLoop:
 				logger.Criticalf("%s sent a known bad block: #%d (%s)",
 					result.who, block.Number(), block.Hash.String())
 
-				blocks = append(blocks, result.who)
+				peersToBlock = append(peersToBlock, result.who)
 				repChanges = append(repChanges, Change{
 					who: result.who,
 					rep: peerset.ReputationChange{
@@ -305,97 +502,91 @@ resultLoop:
 					},
 				})
 
-				missingReqs = append(missingReqs, request)
+				//missingReqs = append(missingReqs, request)
 				continue resultLoop
 			}
 		}
 
-		validRes = append(validRes, response)
+		validRes = append(validRes, RequestResponseData{
+			req:          request,
+			responseData: response.BlockData,
+		})
 	}
 
-	return repChanges, blocks, missingReqs, validRes
+	return repChanges, peersToBlock, validRes
 }
 
-// blocksAvailable given a set of responses, which are fragments of the chain we should
-// check if there is fragments that can be imported or fragments that are disjoint (cannot be imported yet)
-func blocksAvailable(blockHash common.Hash, blockNumber uint, responses [][]*types.BlockData) (
-	[]*types.BlockData, [][]*types.BlockData) {
+// sortFragmentsOfChain will organize the fragments
+// in a way we can import the older blocks first also guaranting that
+// forks can be imported by organizing them to be after the main chain
+//
+// e.g: consider the following fragment of chains
+// [ {17} {1, 2, 3, 4, 5} {6, 7, 8, 9, 10} {8} {11, 12, 13, 14, 15, 16} ]
+//
+// note that we have fragments with single blocks, fragments with fork (in case of 8)
+// after sorting these fragments we end up with:
+// [ {1, 2, 3, 4, 5}  {6, 7, 8, 9, 10}  {8}  {11, 12, 13, 14, 15, 16}  {17} ]
+func sortFragmentsOfChain(responses [][]*types.BlockData) [][]*types.BlockData {
 	if len(responses) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	slices.SortFunc(responses, func(a, b []*types.BlockData) int {
-		if a[len(a)-1].Header.Number < b[0].Header.Number {
+		if a[0].Header.Number < b[0].Header.Number {
 			return -1
 		}
-		if a[len(a)-1].Header.Number == b[0].Header.Number {
+		if a[0].Header.Number == b[0].Header.Number {
 			return 0
 		}
 		return 1
 	})
 
-	type hashAndNumber struct {
-		hash   common.Hash
-		number uint
+	return responses
+}
+
+// mergeFragmentsOfChain merges a sorted slice of fragments that forms a valid
+// chain sequente which is the previous is the direct parent of the next block,
+// and keep untouch fragments that does not forms such sequence,
+// take as an example the following sorted slice.
+// [ {1, 2, 3, 4, 5}  {6, 7, 8, 9, 10}  {8}  {11, 12, 13, 14, 15, 16}  {17} ]
+// merge will transform it in the following slice:
+// [ {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17} {8} ]
+func mergeFragmentsOfChain(fragments [][]*types.BlockData) [][]*types.BlockData {
+	if len(fragments) == 0 {
+		return nil
 	}
 
-	compareWith := hashAndNumber{
-		hash:   blockHash,
-		number: blockNumber,
-	}
+	mergedFragments := [][]*types.BlockData{fragments[0]}
+	for i := 1; i < len(fragments); i++ {
+		lastMerged := mergedFragments[len(mergedFragments)-1]
+		current := fragments[i]
 
-	disjoints := false
-	lastIdx := 0
-
-	okFrag := make([]*types.BlockData, 0, len(responses))
-	for idx, chain := range responses {
-		if len(chain) == 0 {
-			panic("unreachable")
+		if formsSequence(lastMerged[len(lastMerged)-1], current[0]) {
+			mergedFragments[len(mergedFragments)-1] = append(lastMerged, current...)
+		} else {
+			mergedFragments = append(mergedFragments, current)
 		}
-
-		incrementOne := (compareWith.number + 1) == chain[0].Header.Number
-		isParent := compareWith.hash == chain[0].Header.ParentHash
-
-		if incrementOne && isParent {
-			okFrag = append(okFrag, chain...)
-			compareWith = hashAndNumber{
-				hash:   chain[len(chain)-1].Hash,
-				number: chain[len(chain)-1].Header.Number,
-			}
-			continue
-		}
-
-		lastIdx = idx
-		disjoints = true
-		break
 	}
 
-	if disjoints {
-		return okFrag, responses[lastIdx:]
-	}
+	return mergedFragments
+}
 
-	return okFrag, nil
+func formsSequence(last, curr *types.BlockData) bool {
+	incrementOne := (last.Header.Number + 1) == curr.Header.Number
+	isParent := last.Hash == curr.Header.ParentHash
+
+	return incrementOne && isParent
 }
 
 // validateResponseFields checks that the expected fields are in the block data
-func validateResponseFields(requestedData byte, blocks []*types.BlockData) error {
+func validateResponseFields(req *network.BlockRequestMessage, blocks []*types.BlockData) error {
 	for _, bd := range blocks {
-		if bd == nil {
-			return errNilBlockData
-		}
-
-		if (requestedData&network.RequestedDataHeader) == network.RequestedDataHeader && bd.Header == nil {
+		if req.RequestField(network.RequestedDataHeader) && bd.Header == nil {
 			return fmt.Errorf("%w: %s", errNilHeaderInResponse, bd.Hash)
 		}
 
-		if (requestedData&network.RequestedDataBody) == network.RequestedDataBody && bd.Body == nil {
+		if req.RequestField(network.RequestedDataBody) && bd.Body == nil {
 			return fmt.Errorf("%w: %s", errNilBodyInResponse, bd.Hash)
-		}
-
-		// if we requested strictly justification
-		if (requestedData|network.RequestedDataJustification) == network.RequestedDataJustification &&
-			bd.Justification == nil {
-			return fmt.Errorf("%w: %s", errNilJustificationInResponse, bd.Hash)
 		}
 	}
 

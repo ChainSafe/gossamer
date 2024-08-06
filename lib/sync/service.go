@@ -58,7 +58,7 @@ type Change struct {
 }
 
 type Strategy interface {
-	OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) error
+	OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) (repChange *Change, err error)
 	OnBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error
 	NextActions() ([]*syncTask, error)
 	IsFinished(results []*syncTaskResult) (done bool, repChanges []Change, blocks []peer.ID, err error)
@@ -84,6 +84,7 @@ type SyncService struct {
 	workerPool        *syncWorkerPool
 	waitPeersDuration time.Duration
 	minPeers          int
+	slotDuration      time.Duration
 
 	stopCh chan struct{}
 }
@@ -160,7 +161,16 @@ func (s *SyncService) HandleBlockAnnounceHandshake(from peer.ID, msg *network.Bl
 }
 
 func (s *SyncService) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) error {
-	return s.currentStrategy.OnBlockAnnounce(from, msg)
+	repChange, err := s.currentStrategy.OnBlockAnnounce(from, msg)
+	if repChange != nil {
+		s.network.ReportPeer(repChange.rep, repChange.who)
+	}
+
+	if err != nil {
+		return fmt.Errorf("while handling block announce: %w", err)
+	}
+
+	return nil
 }
 
 func (s *SyncService) OnConnectionClosed(who peer.ID) {
@@ -207,22 +217,29 @@ func (s *SyncService) runSyncEngine() {
 			return
 		}
 
+		if len(tasks) == 0 {
+			// sleep the amount of one slot and try
+			time.Sleep(s.slotDuration)
+			continue
+		}
+
 		results, err := s.workerPool.submitRequests(tasks)
 		if err != nil {
 			logger.Criticalf("getting highest finalized header: %w", err)
 			return
 		}
 
-		done, repChanges, blocks, err := s.currentStrategy.IsFinished(results)
+		done, repChanges, peersToIgnore, err := s.currentStrategy.IsFinished(results)
 		if err != nil {
-			panic(fmt.Sprintf("current sync strategy failed with: %s", err.Error()))
+			logger.Criticalf("current sync strategy failed with: %s", err.Error())
+			return
 		}
 
 		for _, change := range repChanges {
 			s.network.ReportPeer(change.rep, change.who)
 		}
 
-		for _, block := range blocks {
+		for _, block := range peersToIgnore {
 			s.workerPool.ignorePeerAsWorker(block)
 		}
 

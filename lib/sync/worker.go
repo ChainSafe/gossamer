@@ -20,20 +20,19 @@ func executeRequest(wg *sync.WaitGroup, who peer.ID, task *syncTask, guard chan 
 	}()
 
 	request := task.request
-	logger.Debugf("[EXECUTING] worker %s, block request: %s", who, request)
+	//logger.Infof("[EXECUTING] worker %s", who, request)
 	err := task.requestMaker.Do(who, request, task.response)
 	if err != nil {
-		logger.Debugf("[ERR] worker %s, err: %s", who, err)
+		logger.Infof("[ERR] worker %s, request: %s, err: %s", who, request, err.Error())
 		resCh <- &syncTaskResult{
 			who:      who,
 			request:  request,
-			err:      err,
 			response: nil,
 		}
 		return
 	}
 
-	logger.Debugf("[FINISHED] worker %s, response: %s", who, task.response.String())
+	logger.Infof("[FINISHED] worker %s, request: %s", who, request)
 	resCh <- &syncTaskResult{
 		who:      who,
 		request:  request,

@@ -2,49 +2,118 @@ package sync
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
+	"github.com/ChainSafe/gossamer/lib/common"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 )
 
-func (f *FullSyncStrategy) handleReadyBlock(bd *types.BlockData, origin BlockOrigin) error {
-	err := f.processBlockData(*bd, origin)
+type (
+	// Telemetry is the telemetry client to send telemetry messages.
+	Telemetry interface {
+		SendMessage(msg json.Marshaler)
+	}
+
+	// StorageState is the interface for the storage state
+	StorageState interface {
+		TrieState(root *common.Hash) (*rtstorage.TrieState, error)
+		sync.Locker
+	}
+
+	// TransactionState is the interface for transaction queue methods
+	TransactionState interface {
+		RemoveExtrinsic(ext types.Extrinsic)
+	}
+
+	// BabeVerifier deals with BABE block verification
+	BabeVerifier interface {
+		VerifyBlock(header *types.Header) error
+	}
+
+	// FinalityGadget implements justification verification functionality
+	FinalityGadget interface {
+		VerifyBlockJustification(common.Hash, []byte) error
+	}
+
+	// BlockImportHandler is the interface for the handler of newly imported blocks
+	BlockImportHandler interface {
+		HandleBlockImport(block *types.Block, state *rtstorage.TrieState, announce bool) error
+	}
+)
+
+type blockImporter struct {
+	blockState         BlockState
+	storageState       StorageState
+	transactionState   TransactionState
+	babeVerifier       BabeVerifier
+	finalityGadget     FinalityGadget
+	blockImportHandler BlockImportHandler
+	telemetry          Telemetry
+}
+
+func newBlockImporter(cfg *FullSyncConfig) *blockImporter {
+	return &blockImporter{
+		storageState:       cfg.StorageState,
+		transactionState:   cfg.TransactionState,
+		babeVerifier:       cfg.BabeVerifier,
+		finalityGadget:     cfg.FinalityGadget,
+		blockImportHandler: cfg.BlockImportHandler,
+		telemetry:          cfg.Telemetry,
+	}
+}
+
+func (b *blockImporter) handle(bd *types.BlockData, origin BlockOrigin) (imported bool, err error) {
+	blockAlreadyExists, err := b.blockState.HasHeader(bd.Hash)
+	if err != nil && !errors.Is(err, database.ErrNotFound) {
+		return false, err
+	}
+
+	if blockAlreadyExists {
+		return false, nil
+	}
+
+	err = b.processBlockData(*bd, origin)
 	if err != nil {
 		// depending on the error, we might want to save this block for later
 		logger.Errorf("processing block #%d (%s) failed: %s", bd.Header.Number, bd.Hash, err)
-		return err
+		return false, err
 	}
 
-	return nil
+	return true, nil
 }
 
 // processBlockData processes the BlockData from a BlockResponse and
 // returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
 // TODO: https://github.com/ChainSafe/gossamer/issues/3468
-func (f *FullSyncStrategy) processBlockData(blockData types.BlockData, origin BlockOrigin) error {
+func (b *blockImporter) processBlockData(blockData types.BlockData, origin BlockOrigin) error {
 	// while in bootstrap mode we don't need to broadcast block announcements
 	// TODO: set true if not in initial sync setup
 	announceImportedBlock := false
 
 	if blockData.Header != nil {
 		if blockData.Body != nil {
-			err := f.processBlockDataWithHeaderAndBody(blockData, origin, announceImportedBlock)
+			err := b.processBlockDataWithHeaderAndBody(blockData, origin, announceImportedBlock)
 			if err != nil {
 				return fmt.Errorf("processing block data with header and body: %w", err)
 			}
 		}
 
 		if blockData.Justification != nil && len(*blockData.Justification) > 0 {
-			err := f.handleJustification(blockData.Header, *blockData.Justification)
+			err := b.handleJustification(blockData.Header, *blockData.Justification)
 			if err != nil {
 				return fmt.Errorf("handling justification: %w", err)
 			}
 		}
 	}
 
-	err := f.blockState.CompareAndSetBlockData(&blockData)
+	err := b.blockState.CompareAndSetBlockData(&blockData)
 	if err != nil {
 		return fmt.Errorf("comparing and setting block data: %w", err)
 	}
@@ -52,24 +121,30 @@ func (f *FullSyncStrategy) processBlockData(blockData types.BlockData, origin Bl
 	return nil
 }
 
-func (f *FullSyncStrategy) processBlockDataWithHeaderAndBody(blockData types.BlockData,
+func (b *blockImporter) processBlockDataWithHeaderAndBody(blockData types.BlockData,
 	origin BlockOrigin, announceImportedBlock bool) (err error) {
 
 	if origin != networkInitialSync {
-		err = f.babeVerifier.VerifyBlock(blockData.Header)
+		err = b.babeVerifier.VerifyBlock(blockData.Header)
 		if err != nil {
 			return fmt.Errorf("babe verifying block: %w", err)
 		}
 	}
 
-	f.handleBody(blockData.Body)
+	accBlockSize := 0
+	for _, ext := range *blockData.Body {
+		accBlockSize += len(ext)
+		b.transactionState.RemoveExtrinsic(ext)
+	}
+
+	blockSizeGauge.Set(float64(accBlockSize))
 
 	block := &types.Block{
 		Header: *blockData.Header,
 		Body:   *blockData.Body,
 	}
 
-	err = f.handleBlock(block, announceImportedBlock)
+	err = b.handleBlock(block, announceImportedBlock)
 	if err != nil {
 		return fmt.Errorf("handling block: %w", err)
 	}
@@ -77,28 +152,17 @@ func (f *FullSyncStrategy) processBlockDataWithHeaderAndBody(blockData types.Blo
 	return nil
 }
 
-// handleHeader handles block bodies included in BlockResponses
-func (f *FullSyncStrategy) handleBody(body *types.Body) {
-	acc := 0
-	for _, ext := range *body {
-		acc += len(ext)
-		f.transactionState.RemoveExtrinsic(ext)
-	}
-
-	blockSizeGauge.Set(float64(acc))
-}
-
 // handleHeader handles blocks (header+body) included in BlockResponses
-func (f *FullSyncStrategy) handleBlock(block *types.Block, announceImportedBlock bool) error {
-	parent, err := f.blockState.GetHeader(block.Header.ParentHash)
+func (b *blockImporter) handleBlock(block *types.Block, announceImportedBlock bool) error {
+	parent, err := b.blockState.GetHeader(block.Header.ParentHash)
 	if err != nil {
 		return fmt.Errorf("%w: %s", errFailedToGetParent, err)
 	}
 
-	f.storageState.Lock()
-	defer f.storageState.Unlock()
+	b.storageState.Lock()
+	defer b.storageState.Unlock()
 
-	ts, err := f.storageState.TrieState(&parent.StateRoot)
+	ts, err := b.storageState.TrieState(&parent.StateRoot)
 	if err != nil {
 		return err
 	}
@@ -108,7 +172,7 @@ func (f *FullSyncStrategy) handleBlock(block *types.Block, announceImportedBlock
 		panic("parent state root does not match snapshot state root")
 	}
 
-	rt, err := f.blockState.GetRuntime(parent.Hash())
+	rt, err := b.blockState.GetRuntime(parent.Hash())
 	if err != nil {
 		return err
 	}
@@ -120,12 +184,12 @@ func (f *FullSyncStrategy) handleBlock(block *types.Block, announceImportedBlock
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
 
-	if err = f.blockImportHandler.HandleBlockImport(block, ts, announceImportedBlock); err != nil {
+	if err = b.blockImportHandler.HandleBlockImport(block, ts, announceImportedBlock); err != nil {
 		return err
 	}
 
 	blockHash := block.Header.Hash()
-	f.telemetry.SendMessage(telemetry.NewBlockImport(
+	b.telemetry.SendMessage(telemetry.NewBlockImport(
 		&blockHash,
 		block.Header.Number,
 		"NetworkInitialSync"))
@@ -133,14 +197,14 @@ func (f *FullSyncStrategy) handleBlock(block *types.Block, announceImportedBlock
 	return nil
 }
 
-func (f *FullSyncStrategy) handleJustification(header *types.Header, justification []byte) (err error) {
+func (b *blockImporter) handleJustification(header *types.Header, justification []byte) (err error) {
 	headerHash := header.Hash()
-	err = f.finalityGadget.VerifyBlockJustification(headerHash, justification)
+	err = b.finalityGadget.VerifyBlockJustification(headerHash, justification)
 	if err != nil {
 		return fmt.Errorf("verifying block number %d justification: %w", header.Number, err)
 	}
 
-	err = f.blockState.SetJustification(headerHash, justification)
+	err = b.blockState.SetJustification(headerHash, justification)
 	if err != nil {
 		return fmt.Errorf("setting justification for block number %d: %w", header.Number, err)
 	}

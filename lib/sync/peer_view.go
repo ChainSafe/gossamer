@@ -21,13 +21,19 @@ type peerViewSet struct {
 	target uint32
 }
 
-func (p *peerViewSet) update(peerID peer.ID, hash common.Hash, number uint32) {
+func (p *peerViewSet) get(peerID peer.ID) peerView {
+	p.mtx.RLock()
+	defer p.mtx.RUnlock()
+	return p.view[peerID]
+}
+
+func (p *peerViewSet) update(peerID peer.ID, bestHash common.Hash, bestNumber uint32) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
 
 	newView := peerView{
-		bestBlockHash:   hash,
-		bestBlockNumber: number,
+		bestBlockHash:   bestHash,
+		bestBlockNumber: bestNumber,
 	}
 
 	view, ok := p.view[peerID]

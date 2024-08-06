@@ -84,6 +84,10 @@ type BlockRequestMessage struct {
 	Max           *uint32
 }
 
+func (bm *BlockRequestMessage) RequestField(req byte) bool {
+	return (bm.RequestedData & req) == req
+}
+
 // String formats a BlockRequestMessage as a string
 func (bm *BlockRequestMessage) String() string {
 	max := uint32(0)
@@ -92,7 +96,7 @@ func (bm *BlockRequestMessage) String() string {
 	}
 	return fmt.Sprintf("BlockRequestMessage RequestedData=%d StartingBlock=%v Direction=%d Max=%d",
 		bm.RequestedData,
-		bm.StartingBlock,
+		bm.StartingBlock.String(),
 		bm.Direction,
 		max)
 }
@@ -380,7 +384,7 @@ func NewAscendingBlockRequests(startNumber, targetNumber uint, requestedData byt
 		return []*BlockRequestMessage{}
 	}
 
-	diff := targetNumber - (startNumber - 1)
+	diff := targetNumber - startNumber
 
 	// start and end block are the same, just request 1 block
 	if diff == 0 {
@@ -390,26 +394,10 @@ func NewAscendingBlockRequests(startNumber, targetNumber uint, requestedData byt
 	}
 
 	numRequests := diff / MaxBlocksInResponse
-	// we should check if the diff is in the maxResponseSize bounds
-	// otherwise we should increase the numRequests by one, take this
-	// example, we want to sync from 1 to 259, the diff is 259
-	// then the num of requests is 2 (uint(259)/uint(128)) however two requests will
-	// retrieve only 256 blocks (each request can retrieve a max of 128 blocks), so we should
-	// create one more request to retrieve those missing blocks, 3 in this example.
-	missingBlocks := diff % MaxBlocksInResponse
-	if missingBlocks != 0 {
-		numRequests++
-	}
 
 	reqs := make([]*BlockRequestMessage, numRequests)
 	for i := uint(0); i < numRequests; i++ {
 		max := uint32(MaxBlocksInResponse)
-
-		lastIteration := numRequests - 1
-		if i == lastIteration && missingBlocks != 0 {
-			max = uint32(missingBlocks)
-		}
-
 		start := variadic.MustNewUint32OrHash(startNumber)
 		reqs[i] = NewBlockRequest(*start, max, requestedData, Ascending)
 		startNumber += uint(max)

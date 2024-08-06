@@ -5,6 +5,7 @@ package sync
 
 import (
 	"errors"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -27,10 +28,10 @@ type syncTask struct {
 }
 
 type syncTaskResult struct {
-	who      peer.ID
-	err      error
-	request  network.Message
-	response network.ResponseMessage
+	who       peer.ID
+	completed bool
+	request   network.Message
+	response  network.ResponseMessage
 }
 
 type syncWorkerPool struct {
@@ -85,41 +86,40 @@ func (s *syncWorkerPool) submitRequests(tasks []*syncTask) ([]*syncTaskResult, e
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
-	wg := sync.WaitGroup{}
-	resCh := make(chan *syncTaskResult, len(tasks))
+	pids := append(maps.Keys(s.workers), peers...)
+	rand.Shuffle(len(pids), func(i, j int) {
+		pids[i], pids[j] = pids[j], pids[i]
+	})
 
-	for pid, w := range s.workers {
-		_, ok := connectedPeers[pid]
-		if ok {
-			continue
+	results := make([]*syncTaskResult, 0, len(tasks))
+	for _, task := range tasks {
+		completed := false
+		for _, pid := range pids {
+			logger.Infof("[EXECUTING] worker %s", pid)
+			err := task.requestMaker.Do(pid, task.request, task.response)
+			if err != nil {
+				logger.Infof("[ERR] worker %s, request: %s, err: %s", pid, task.request, err.Error())
+				continue
+			}
+
+			completed = true
+			results = append(results, &syncTaskResult{
+				who:       pid,
+				completed: completed,
+				request:   task.request,
+				response:  task.response,
+			})
+			logger.Infof("[FINISHED] worker %s, request: %s", pid, task.request)
+			break
 		}
-		connectedPeers[pid] = w
-	}
 
-	allWorkers := maps.Keys(connectedPeers)
-	if len(allWorkers) == 0 {
-		return nil, ErrNoPeersToMakeRequest
-	}
-
-	guard := make(chan struct{}, len(allWorkers))
-	for idx, task := range tasks {
-		guard <- struct{}{}
-
-		workerID := idx % len(allWorkers)
-		worker := allWorkers[workerID]
-
-		wg.Add(1)
-		go executeRequest(&wg, worker, task, guard, resCh)
-	}
-
-	go func() {
-		wg.Wait()
-		close(resCh)
-	}()
-
-	results := make([]*syncTaskResult, 0)
-	for r := range resCh {
-		results = append(results, r)
+		if !completed {
+			results = append(results, &syncTaskResult{
+				completed: completed,
+				request:   task.request,
+				response:  nil,
+			})
+		}
 	}
 
 	return results, nil

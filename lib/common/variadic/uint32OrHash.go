@@ -6,6 +6,7 @@ package variadic
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -14,6 +15,18 @@ import (
 // Uint32OrHash represents a variadic type that is either uint32 or common.Hash.
 type Uint32OrHash struct {
 	value interface{}
+}
+
+func FromHash(hash common.Hash) *Uint32OrHash {
+	return &Uint32OrHash{
+		value: hash,
+	}
+}
+
+func FromUint32(value uint32) *Uint32OrHash {
+	return &Uint32OrHash{
+		value: value,
+	}
 }
 
 // NewUint32OrHash returns a new variadic.Uint32OrHash given an int, uint32, or Hash
@@ -95,6 +108,14 @@ func (x *Uint32OrHash) Hash() common.Hash {
 	}
 
 	return x.value.(common.Hash)
+}
+
+func (x *Uint32OrHash) String() string {
+	if x.IsHash() {
+		return x.Hash().String()
+	}
+
+	return fmt.Sprintf("%d", x.value)
 }
 
 // IsUint32 returns true if the value is a uint32
