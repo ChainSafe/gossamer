@@ -228,12 +228,7 @@ func (s *SyncService) runSyncEngine() {
 			continue
 		}
 
-		results, err := s.workerPool.submitRequests(tasks)
-		if err != nil {
-			logger.Criticalf("getting highest finalized header: %w", err)
-			return
-		}
-
+		results := s.workerPool.submitRequests(tasks)
 		done, repChanges, peersToIgnore, err := s.currentStrategy.IsFinished(results)
 		if err != nil {
 			logger.Criticalf("current sync strategy failed with: %s", err.Error())

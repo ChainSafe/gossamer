@@ -79,7 +79,7 @@ func (s *syncWorkerPool) fromBlockAnnounceHandshake(who peer.ID) error {
 
 // submitRequests takes an set of requests and will submit to the pool through submitRequest
 // the response will be dispatch in the resultCh
-func (s *syncWorkerPool) submitRequests(tasks []*syncTask) ([]*syncTaskResult, error) {
+func (s *syncWorkerPool) submitRequests(tasks []*syncTask) []*syncTaskResult {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
@@ -116,7 +116,7 @@ func (s *syncWorkerPool) submitRequests(tasks []*syncTask) ([]*syncTaskResult, e
 		}
 	}
 
-	return results, nil
+	return results
 }
 
 func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) {

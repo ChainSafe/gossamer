@@ -298,8 +298,8 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 	}
 
 	if msg.BestBlock {
-		peerView := f.peers.get(from)
-		if uint(peerView.bestBlockNumber) != msg.Number {
+		pv := f.peers.get(from)
+		if uint(pv.bestBlockNumber) != msg.Number {
 			repChange = &Change{
 				who: from,
 				rep: peerset.ReputationChange{
@@ -308,7 +308,7 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 				},
 			}
 			return repChange, fmt.Errorf("%w: peer %s, on handshake #%d, on announce #%d",
-				errMismatchBestBlockAnnouncement, from, peerView.bestBlockNumber, msg.Number)
+				errMismatchBestBlockAnnouncement, from, pv.bestBlockNumber, msg.Number)
 		}
 	}
 
@@ -452,7 +452,7 @@ resultLoop:
 
 // sortFragmentsOfChain will organize the fragments
 // in a way we can import the older blocks first also guaranting that
-// forks can be imported by organizing them to be after the main chain
+// forks can be imported by organising them to be after the main chain
 //
 // e.g: consider the following fragment of chains
 // [ {17} {1, 2, 3, 4, 5} {6, 7, 8, 9, 10} {8} {11, 12, 13, 14, 15, 16} ]
