@@ -85,7 +85,8 @@ func NewFullSyncStrategy(cfg *FullSyncConfig) *FullSyncStrategy {
 		importer:   newBlockImporter(cfg),
 		unreadyBlocks: &unreadyBlocks{
 			incompleteBlocks: make(map[common.Hash]*types.BlockData),
-			disjointChains:   make([][]*types.BlockData, 0),
+			// TODO: cap disjoitChains to don't grows indefinitelly
+			disjointChains: make([][]*types.BlockData, 0),
 		},
 		requestQueue: &requestsQueue[*network.BlockRequestMessage]{
 			queue: list.New(),
@@ -119,12 +120,6 @@ func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 	}
 
 	startRequestAt := bestBlockHeader.Number + 1
-
-	// here is where we cap the amount of tasks we will create
-	// f.numOfTasks - len(requests) gives us the remaining amount
-	// of requests and we multiply by 128 which is the max amount
-	// of blocks a single request can ask
-	// 257 + 2 * 128 = 513
 	targetBlockNumber := startRequestAt + 128
 
 	if targetBlockNumber > uint(currentTarget) {
@@ -253,6 +248,12 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 			}
 
 			if !ok {
+				// if the parent of this valid fragment is behind our latest finalized number
+				// then we can discard the whole fragment since it is a invalid fork
+				if (validFragment[0].Header.Number - 1) <= highestFinalized.Number {
+					continue
+				}
+
 				logger.Infof("starting an acestor search from %s parent of #%d (%s)",
 					validFragment[0].Header.ParentHash,
 					validFragment[0].Header.Number,
@@ -264,7 +265,6 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 					*variadic.FromHash(validFragment[0].Header.ParentHash),
 					network.MaxBlocksInResponse,
 					network.BootstrapRequestData, network.Descending)
-
 				f.requestQueue.PushBack(request)
 			} else {
 				// inserting them in the queue to be processed after the main chain
@@ -450,7 +450,7 @@ resultLoop:
 	return repChanges, peersToBlock, validRes
 }
 
-// sortFragmentsOfChain will organize the fragments
+// sortFragmentsOfChain will organise the fragments
 // in a way we can import the older blocks first also guaranting that
 // forks can be imported by organising them to be after the main chain
 //
