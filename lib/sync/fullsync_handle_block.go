@@ -1,3 +1,6 @@
+// Copyright 2024 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package sync
 
 import (
@@ -80,7 +83,6 @@ func (b *blockImporter) handle(bd *types.BlockData, origin BlockOrigin) (importe
 
 	err = b.processBlockData(*bd, origin)
 	if err != nil {
-		// depending on the error, we might want to save this block for later
 		logger.Errorf("processing block #%d (%s) failed: %s", bd.Header.Number, bd.Hash, err)
 		return false, err
 	}
