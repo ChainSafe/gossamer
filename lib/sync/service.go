@@ -161,8 +161,7 @@ func (s *SyncService) HandleBlockAnnounceHandshake(from peer.ID, msg *network.Bl
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.currentStrategy.OnBlockAnnounceHandshake(from, msg)
-	return nil
+	return s.currentStrategy.OnBlockAnnounceHandshake(from, msg)
 }
 
 func (s *SyncService) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) error {

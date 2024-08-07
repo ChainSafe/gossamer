@@ -85,7 +85,7 @@ func NewFullSyncStrategy(cfg *FullSyncConfig) *FullSyncStrategy {
 		importer:   newBlockImporter(cfg),
 		unreadyBlocks: &unreadyBlocks{
 			incompleteBlocks: make(map[common.Hash]*types.BlockData),
-			// TODO: cap disjoitChains to don't grows indefinitelly
+			// TODO: cap disjoitChains to don't grows indefinitely
 			disjointChains: make([][]*types.BlockData, 0),
 		},
 		requestQueue: &requestsQueue[*network.BlockRequestMessage]{
