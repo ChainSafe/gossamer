@@ -11,6 +11,7 @@ import (
 
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -31,7 +32,7 @@ type CandidateValidation struct {
 	SubsystemToOverseer chan<- any
 	OverseerToSubsystem <-chan any
 	ValidationHost      parachainruntime.ValidationHost
-	RuntimeInstance     parachainruntime.RuntimeInstance
+	BlockState          state.BlockState
 }
 
 // NewCandidateValidation creates a new CandidateValidation subsystem
@@ -80,7 +81,14 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 			logger.Debugf("received message %v", msg)
 			switch msg := msg.(type) {
 			case ValidateFromChainState:
-				result, err := validateFromChainState(cv.RuntimeInstance, msg.Pov, msg.CandidateReceipt)
+				runtimeInstance, err := cv.BlockState.GetRuntime(msg.CandidateReceipt.Descriptor.ParaHead)
+				if err != nil {
+					logger.Errorf("failed to get runtime: %w", err)
+					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+						Err: err,
+					}
+				}
+				result, err := validateFromChainState(runtimeInstance, msg.Pov, msg.CandidateReceipt)
 				if err != nil {
 					logger.Errorf("failed to validate from chain state: %w", err)
 					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
