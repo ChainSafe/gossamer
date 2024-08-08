@@ -5,6 +5,12 @@
   description: Issue used to track development status of a complex feature, aggregates
     several issues
 
+- name: good first issue
+  color: "#7057ff"
+  aliases: []
+  description: issues that are suitable for first-time contributors.
+
+
 - name: Feature-branch
   color: "#8ceac8"
   aliases: []
@@ -15,13 +21,12 @@
   aliases: []
   description: pull request with next release changes.
 
+# Action/attention needed label. Marks that there is a specific action needed for issue/PR
 - name: A-tooBig
   color: "#FBCA04"
   aliases: []
-  description: Action needed label. Marks that there is a specific action needed for
-    issue/PR
+  description: issue or PR needs to be broken down to smaller parts.
 
-# Action/attention needed label. Marks that there is a specific action needed for issue/PR
 - name: A-stale
   color: "#FBCA04"
   aliases: []
@@ -72,6 +77,16 @@
   color: "#FEF2C0"
   aliases: []
   description: this issue/pr covers security sensitive problem.
+
+- name: T-research
+  color: "#FEF2C0"
+  aliases: []
+  description: this issue/pr is a research type issue.
+
+- name: T-investigation
+  color: "#FEF2C0"
+  aliases: []
+  description: this issue/pr is an investigation, probably related to some bug with unknown causes.
 
 - name: T-question
   color: "#FEF2C0"
