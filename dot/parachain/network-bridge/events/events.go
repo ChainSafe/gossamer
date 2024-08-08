@@ -20,24 +20,6 @@ type PeerDisconnected struct {
 	PeerID peer.ID
 }
 
-// // Inform the distribution subsystems about the new
-// // gossip network topology formed.
-// //
-// // The only reason to have this here, is the availability of the
-// // authority discovery service, otherwise, the `GossipSupport`
-// // subsystem would make more sense.
-// type NewGossipTopology struct {
-// 	// The session info this gossip topology is concerned with.
-// 	Session parachaintypes.SessionIndex //nolint
-// 	// Our validator index in the session, if any.
-// 	LocalIndex *parachaintypes.ValidatorIndex //nolint
-// 	//  The canonical shuffling of validators for the session.
-// 	CanonicalShuffling []CanonicalShuffling //nolint
-// 	// The reverse mapping of `canonical_shuffling`: from validator index
-// 	// to the index in `canonical_shuffling`
-// 	ShuffledIndices uint8 //nolint
-// }
-
 type CanonicalShuffling struct { //nolint
 	AuthorityDiscoveryID parachaintypes.AuthorityDiscoveryID
 	ValidatorIndex       parachaintypes.ValidatorIndex
@@ -74,36 +56,7 @@ type PeerMessage[Message collationprotocol.CollationProtocol | validationprotoco
 	Messaage Message
 }
 
-type UpdatedAuthorityIds struct {
+type UpdatedAuthorityIDs struct {
 	PeerID                peer.ID
 	AuthorityDiscoveryIDs []parachaintypes.AuthorityDiscoveryID
 }
-
-// pub enum NetworkBridgeEvent<M> {
-// 	/// A peer has connected.
-// 	PeerConnected(PeerId, ObservedRole, ProtocolVersion, Option<HashSet<AuthorityDiscoveryId>>),
-
-// 	/// A peer has disconnected.
-// 	PeerDisconnected(PeerId),
-
-// 	/// Our neighbors in the new gossip topology for the session.
-// 	/// We're not necessarily connected to all of them.
-// 	///
-// 	/// This message is issued only on the validation peer set.
-// 	///
-// 	/// Note, that the distribution subsystems need to handle the last
-// 	/// view update of the newly added gossip peers manually.
-// 	NewGossipTopology(NewGossipTopology),
-
-// 	/// Peer has sent a message.
-// 	PeerMessage(PeerId, M),
-
-// 	/// Peer's `View` has changed.
-// 	PeerViewChange(PeerId, View),
-
-// 	/// Our view has changed.
-// 	OurViewChange(OurView),
-
-// 	/// The authority discovery session key has been rotated.
-// 	UpdatedAuthorityIds(PeerId, HashSet<AuthorityDiscoveryId>),
-// }

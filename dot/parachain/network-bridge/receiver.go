@@ -13,6 +13,8 @@ import (
 	"strings"
 
 	events "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
+	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
+
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -506,7 +508,7 @@ func (nbr *NetworkBridgeReceiver) processMessage(msg any) error { //nolint
 	// run this function as a goroutine, ideally
 
 	switch msg := msg.(type) {
-	case NewGossipTopology:
+	case networkbridgemessages.NewGossipTopology:
 		peerTopologies := getTopologyPeers(nbr.authorityDiscoveryService, msg.CanonicalShuffling)
 
 		newGossipTopology := events.NewGossipTopology{
@@ -519,8 +521,14 @@ func (nbr *NetworkBridgeReceiver) processMessage(msg any) error { //nolint
 		}
 
 		nbr.SubsystemsToOverseer <- newGossipTopology
-	case UpdateAuthorityIDs:
-		// TODO
+	case networkbridgemessages.UpdateAuthorityIDs:
+		// TODO: Make sure that this does not cause a cycle of same events repeating.
+
+		// NOTE: This comes from the gossip support subsystem.
+		nbr.SubsystemsToOverseer <- events.UpdatedAuthorityIDs{
+			PeerID:                msg.PeerID,
+			AuthorityDiscoveryIDs: msg.AuthorityDiscoveryIDs,
+		}
 	}
 
 	return nil
@@ -539,32 +547,6 @@ func getTopologyPeers(authorityDiscoveryService AuthorityDiscoveryService, neigh
 	}
 
 	return peers
-}
-
-// Inform the distribution subsystems about the new
-// gossip network topology formed.
-//
-// The only reason to have this here, is the availability of the
-// authority discovery service, otherwise, the `GossipSupport`
-// subsystem would make more sense.
-type NewGossipTopology struct {
-	// The session info this gossip topology is concerned with.
-	Session parachaintypes.SessionIndex //nolint
-	// Our validator index in the session, if any.
-	LocalIndex *parachaintypes.ValidatorIndex //nolint
-	//  The canonical shuffling of validators for the session.
-	CanonicalShuffling []events.CanonicalShuffling //nolint
-	// The reverse mapping of `canonical_shuffling`: from validator index
-	// to the index in `canonical_shuffling`
-	ShuffledIndices []uint8 //nolint
-}
-
-// UpdateAuthorityIDs is used to inform the distribution subsystems about `AuthorityDiscoveryId` key rotations.
-type UpdateAuthorityIDs struct {
-	// The `PeerId` of the peer that updated its `AuthorityDiscoveryId`s.
-	peerID peer.ID //nolint
-	// The updated authority discovery keys of the peer.
-	authorityIDs []parachaintypes.AuthorityDiscoveryID //nolint
 }
 
 type AuthorityDiscoveryService interface {

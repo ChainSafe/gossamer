@@ -123,6 +123,9 @@ func (o *OverseerSystem) processMessages() {
 			var subsystem parachaintypes.Subsystem
 
 			switch msg := msg.(type) {
+			case networkbridgemessages.NewGossipTopology, networkbridgemessages.UpdateAuthorityIDs:
+				subsystem = o.nameToSubsystem[parachaintypes.NetworkBridgeReceiver]
+
 			case networkbridgemessages.DisconnectPeer, networkbridgemessages.ConnectToValidators,
 				networkbridgemessages.ReportPeer, networkbridgemessages.SendCollationMessage,
 				networkbridgemessages.SendValidationMessage:
