@@ -12,7 +12,9 @@ import (
 	"strconv"
 	"strings"
 
+	events "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -55,7 +57,8 @@ type NetworkBridgeReceiver struct {
 
 	finalizedNumber uint32
 
-	OverseerToSubSystem <-chan any
+	OverseerToSubSystem  <-chan any
+	SubsystemsToOverseer chan<- any
 
 	authorityDiscoveryService AuthorityDiscoveryService
 }
@@ -504,13 +507,18 @@ func (nbr *NetworkBridgeReceiver) processMessage(msg any) error { //nolint
 
 	switch msg := msg.(type) {
 	case NewGossipTopology:
-		// TODO
+		peerTopologies := getTopologyPeers(nbr.authorityDiscoveryService, msg.CanonicalShuffling)
 
-		// get topology peers
+		newGossipTopology := events.NewGossipTopology{
+			Session: msg.Session,
+			Topotogy: events.SessionGridTopology{
+				ShuffledIndices:    msg.ShuffledIndices,
+				CanonicalShuffling: peerTopologies,
+			},
+			LocalIndex: msg.LocalIndex,
+		}
 
-		newGossipTopology := NewGossipTopology{}
-		// dispatch validation event to all unbounded
-		fmt.Println(msg)
+		nbr.SubsystemsToOverseer <- newGossipTopology
 	case UpdateAuthorityIDs:
 		// TODO
 	}
@@ -518,18 +526,20 @@ func (nbr *NetworkBridgeReceiver) processMessage(msg any) error { //nolint
 	return nil
 }
 
-func getTopologyPeers(authorityDiscoveryService AuthorityDiscoveryService, neighbours []canonicalShuffling) {
-
-	peers := make([]peer.ID, len(neighbours))
+func getTopologyPeers(authorityDiscoveryService AuthorityDiscoveryService, neighbours []events.CanonicalShuffling) []events.TopologyPeerInfo {
+	peers := make([]events.TopologyPeerInfo, len(neighbours))
 
 	for _, neighbour := range neighbours {
-		peerID := authorityDiscoveryService.GetPeerIDByAuthorityID(neighbour.authorityDiscoveryID)
-		peers = append(peers, peerID)
+		peerID := authorityDiscoveryService.GetPeerIDByAuthorityID(neighbour.AuthorityDiscoveryID)
+		peers = append(peers, events.TopologyPeerInfo{
+			PeerID:         []peer.ID{peerID},
+			ValidatorIndex: neighbour.ValidatorIndex,
+			DiscoveryID:    neighbour.AuthorityDiscoveryID,
+		})
 	}
 
+	return peers
 }
-
-// func getPeerIDByAuthorityDiscoveryID(authorityDiscoveryID parachaintypes.AuthorityDiscoveryID) peer.ID {}
 
 // Inform the distribution subsystems about the new
 // gossip network topology formed.
@@ -539,19 +549,14 @@ func getTopologyPeers(authorityDiscoveryService AuthorityDiscoveryService, neigh
 // subsystem would make more sense.
 type NewGossipTopology struct {
 	// The session info this gossip topology is concerned with.
-	session parachaintypes.SessionIndex //nolint
+	Session parachaintypes.SessionIndex //nolint
 	// Our validator index in the session, if any.
-	localIndex *parachaintypes.ValidatorIndex //nolint
+	LocalIndex *parachaintypes.ValidatorIndex //nolint
 	//  The canonical shuffling of validators for the session.
-	canonicalShuffling []canonicalShuffling //nolint
+	CanonicalShuffling []events.CanonicalShuffling //nolint
 	// The reverse mapping of `canonical_shuffling`: from validator index
 	// to the index in `canonical_shuffling`
-	shuffledIndices uint8 //nolint
-}
-
-type canonicalShuffling struct { //nolint
-	authorityDiscoveryID parachaintypes.AuthorityDiscoveryID
-	validatorIndex       parachaintypes.ValidatorIndex
+	ShuffledIndices []uint8 //nolint
 }
 
 // UpdateAuthorityIDs is used to inform the distribution subsystems about `AuthorityDiscoveryId` key rotations.
