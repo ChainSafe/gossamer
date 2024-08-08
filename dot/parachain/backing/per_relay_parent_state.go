@@ -149,7 +149,6 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 	rpState.backed[candidateHash] = true
 
 	// Convert the attested candidate to a backed candidate.
-	// backedCandidate := attested.toBackedCandidate(&rpState.tableContext)
 	backedCandidate, err := attested.toBackedCandidate(&rpState.tableContext)
 	if err != nil {
 		logger.Errorf("converting attested candidate to backed candidate: %w", err)
