@@ -93,7 +93,7 @@ func makeErasureRoot(
 // newCommittedCandidate creates a new committed candidate receipt for testing purposes.
 func newCommittedCandidate(
 	t *testing.T,
-	paraID uint32,
+	paraID uint32, //nolint:unparam
 	headData parachaintypes.HeadData,
 	povHash, relayParent, erasureRoot, pvdHash common.Hash,
 	validationCode parachaintypes.ValidationCode,
