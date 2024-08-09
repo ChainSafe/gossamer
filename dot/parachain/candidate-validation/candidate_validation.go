@@ -81,7 +81,7 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 			logger.Debugf("received message %v", msg)
 			switch msg := msg.(type) {
 			case ValidateFromChainState:
-				runtimeInstance, err := cv.BlockState.GetRuntime(msg.CandidateReceipt.Descriptor.ParaHead)
+				runtimeInstance, err := cv.BlockState.GetRuntime(msg.CandidateReceipt.Descriptor.RelayParent)
 				if err != nil {
 					logger.Errorf("failed to get runtime: %w", err)
 					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
