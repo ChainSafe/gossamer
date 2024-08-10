@@ -14,9 +14,10 @@ type worker struct {
 }
 
 type workerTask struct {
-	work       parachainruntime.ValidationParameters
-	maxPoVSize uint32
-	ResultCh   chan<- *ValidationTaskResult
+	work             parachainruntime.ValidationParameters
+	maxPoVSize       uint32
+	candidateReceipt *parachaintypes.CandidateReceipt
+	ResultCh         chan<- *ValidationTaskResult
 }
 
 func newWorker(validationCode parachaintypes.ValidationCode, queue chan *workerTask) (*worker, error) {
@@ -44,28 +45,48 @@ func (w *worker) run(queue chan *workerTask, wg *sync.WaitGroup) {
 }
 
 func (w *worker) executeRequest(task *workerTask) {
-	// WIP: This is a dummy implementation of the worker execution for the validation task.  The logic for
-	//  validating the parachain block request should be implemented here.
 	logger.Debugf("[EXECUTING] worker %x task %v", w.workerID, task.work)
-
-	// todo do basic checks
 
 	validationResult, err := w.instance.ValidateBlock(task.work)
 
-	///////////////////////////////
-	//if err != nil {
-	//	return nil, fmt.Errorf("executing validate_block: %w", err)
-	//}
+	if err != nil {
+		logger.Errorf("executing validate_block: %w", err)
+		reasonForInvalidity := ExecutionError
+		errorResult := &ValidationResult{
+			InvalidResult: &reasonForInvalidity,
+		}
+		task.ResultCh <- &ValidationTaskResult{
+			who:    w.workerID,
+			Result: errorResult,
+		}
+		return
+	}
 
-	//headDataHash, err := validationResult.HeadData.Hash()
-	//if err != nil {
-	//	return nil, fmt.Errorf("hashing head data: %w", err)
-	//}
-	//
-	//if headDataHash != candidateReceipt.Descriptor.ParaHead {
-	//	ci := pvf.ParaHeadHashMismatch
-	//	return &pvf.ValidationResult{InvalidResult: &ci}, nil
-	//}
+	headDataHash, err := validationResult.HeadData.Hash()
+	if err != nil {
+		logger.Errorf("hashing head data: %w", err)
+		reasonForInvalidity := ExecutionError
+		errorResult := &ValidationResult{
+			InvalidResult: &reasonForInvalidity,
+		}
+		task.ResultCh <- &ValidationTaskResult{
+			who:    w.workerID,
+			Result: errorResult,
+		}
+		return
+	}
+
+	if headDataHash != task.candidateReceipt.Descriptor.ParaHead {
+		reasonForInvalidity := ParaHeadHashMismatch
+		errorResult := &ValidationResult{
+			InvalidResult: &reasonForInvalidity,
+		}
+		task.ResultCh <- &ValidationTaskResult{
+			who:    w.workerID,
+			Result: errorResult,
+		}
+		return
+	}
 	candidateCommitments := parachaintypes.CandidateCommitments{
 		UpwardMessages:            validationResult.UpwardMessages,
 		HorizontalMessages:        validationResult.HorizontalMessages,
@@ -76,30 +97,34 @@ func (w *worker) executeRequest(task *workerTask) {
 	}
 
 	// if validation produced a new set of commitments, we treat the candidate as invalid
-	//if candidateReceipt.CommitmentsHash != candidateCommitments.Hash() {
-	//	ci := CommitmentsHashMismatch
-	//	return &ValidationResult{InvalidResult: &ci}, nil
-	//}
+	if task.candidateReceipt.CommitmentsHash != candidateCommitments.Hash() {
+		reasonForInvalidity := CommitmentsHashMismatch
+		errorResult := &ValidationResult{
+			InvalidResult: &reasonForInvalidity,
+		}
+		task.ResultCh <- &ValidationTaskResult{
+			who:    w.workerID,
+			Result: errorResult,
+		}
+		return
+	}
 	pvd := parachaintypes.PersistedValidationData{
 		ParentHead:             task.work.ParentHeadData,
 		RelayParentNumber:      task.work.RelayParentNumber,
 		RelayParentStorageRoot: task.work.RelayParentStorageRoot,
 		MaxPovSize:             task.maxPoVSize,
 	}
-	dummyResilt := &ValidationResult{
+	validResult := &ValidationResult{
 		ValidResult: &ValidValidationResult{
 			CandidateCommitments:    candidateCommitments,
 			PersistedValidationData: pvd,
 		},
 	}
-	//////////////////////////
 
-	logger.Debugf("[RESULT] worker %x, result: %v, error: %s", w.workerID, dummyResilt, err)
+	logger.Debugf("[RESULT] worker %x, result: %v, error: %s", w.workerID, validResult, err)
 
 	task.ResultCh <- &ValidationTaskResult{
 		who:    w.workerID,
-		Result: dummyResilt,
+		Result: validResult,
 	}
-
-	//logger.Debugf("[FINISHED] worker %v, error: %s", validationResult, err)
 }

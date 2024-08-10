@@ -1,10 +1,7 @@
 package pvf
 
 import (
-	"fmt"
 	"testing"
-
-	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
 
 func Test_validationHost_start(t *testing.T) {
@@ -28,22 +25,4 @@ func Test_validationHost_start(t *testing.T) {
 			v.Start()
 		})
 	}
-}
-
-func TestValidationHost(t *testing.T) {
-	v := NewValidationHost()
-	v.Start()
-	v.workerPool.newValidationWorker(parachaintypes.ValidationCode{1, 2, 3, 4})
-
-	resCh := make(chan *ValidationTaskResult)
-
-	requestMsg := &ValidationTask{
-		WorkerID: &parachaintypes.ValidationCodeHash{1, 2, 3, 4},
-		ResultCh: resCh,
-	}
-
-	v.Validate(requestMsg)
-
-	res := <-resCh
-	fmt.Printf("Validation result: %v", res)
 }

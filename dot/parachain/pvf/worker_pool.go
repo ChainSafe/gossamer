@@ -31,8 +31,9 @@ type ValidationTask struct {
 }
 
 type ValidationTaskResult struct {
-	who    parachaintypes.ValidationCodeHash
-	Result *ValidationResult
+	who           parachaintypes.ValidationCodeHash
+	Result        *ValidationResult
+	InternalError error
 }
 
 // ValidationResult represents the result coming from the candidate validation subsystem.
@@ -160,21 +161,21 @@ func (v *validationWorkerPool) stop() error {
 	}
 }
 
-func (v *validationWorkerPool) newValidationWorker(validationCode parachaintypes.ValidationCode) parachaintypes.
-	ValidationCodeHash {
+func (v *validationWorkerPool) newValidationWorker(validationCode parachaintypes.ValidationCode) (*parachaintypes.
+	ValidationCodeHash, error) {
 
 	workerQueue := make(chan *workerTask, maxRequestsAllowed)
 	worker, err := newWorker(validationCode, workerQueue)
 	if err != nil {
-		// TODO(ed): handle this error
 		logger.Errorf("failed to create a new worker: %w", err)
+		return nil, err
 	}
 	v.wg.Add(1)
 	go worker.run(workerQueue, &v.wg)
 
 	v.workers[worker.workerID] = worker
 
-	return worker.workerID
+	return &worker.workerID, nil
 }
 
 // submitRequest given a request, the worker pool will get the peer given the peer.ID
@@ -185,7 +186,6 @@ func (v *validationWorkerPool) submitRequest(workerID parachaintypes.ValidationC
 	defer v.mtx.RUnlock()
 	logger.Debugf("pool submit request workerID %x", workerID)
 
-	//if request.WorkerID != nil {
 	syncWorker, inMap := v.workers[workerID]
 	if inMap {
 		if syncWorker == nil {
@@ -195,8 +195,12 @@ func (v *validationWorkerPool) submitRequest(workerID parachaintypes.ValidationC
 		syncWorker.queue <- request
 		return
 	}
-	// TODO(ed): handle this case
+
 	logger.Errorf("workerID %x not found in the pool", workerID)
+	request.ResultCh <- &ValidationTaskResult{
+		who:           workerID,
+		InternalError: fmt.Errorf("workerID %x not found in the pool", workerID),
+	}
 }
 
 func (v *validationWorkerPool) containsWorker(workerID parachaintypes.ValidationCodeHash) bool {
