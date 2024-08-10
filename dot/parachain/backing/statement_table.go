@@ -460,7 +460,9 @@ func (attested *attestedCandidate) toBackedCandidate(tableCtx *tableContext) (*p
 		}
 	}
 
-	// Return the constructed BackedCandidate
+	// The order of the validity votes in the backed candidate must match
+	// the order of bits set in the bitfield, which is not necessarily
+	// the order of the `validityAttestations` we got from the statement table.
 	return &parachaintypes.BackedCandidate{
 		Candidate:        attested.committedCandidateReceipt,
 		ValidityVotes:    sortedValidityVotes,
