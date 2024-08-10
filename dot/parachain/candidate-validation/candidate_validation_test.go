@@ -784,14 +784,12 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 		candidateReceipt parachaintypes.CandidateReceipt
 		want             *ValidationResult
 		expectedError    error
-		isValid          bool
 	}{
 		"invalid_pov_hash": {
 			candidateReceipt: candidateReceipt2,
 			want: &ValidationResult{
 				InvalidResult: &povHashMismatch,
 			},
-			isValid: false,
 		},
 		"invalid_pov_size": {
 			candidateReceipt: candidateReceipt3,
@@ -804,14 +802,12 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 			want: &ValidationResult{
 				InvalidResult: &codeHashMismatch,
 			},
-			isValid: false,
 		},
 		"bad_signature": {
 			candidateReceipt: candidateReceipt5,
 			want: &ValidationResult{
 				InvalidResult: &badSignature,
 			},
-			isValid: false,
 		},
 		"happy_path": {
 			candidateReceipt: candidateReceipt,
@@ -838,7 +834,6 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 					},
 				},
 			},
-			isValid: true,
 		},
 	}
 	for name, tt := range tests {
@@ -851,7 +846,6 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-			require.Equal(t, tt.isValid, got.IsValid())
 			require.Equal(t, *tt.want, *got)
 		})
 	}
