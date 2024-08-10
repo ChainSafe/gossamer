@@ -11,9 +11,9 @@ import (
 
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -32,13 +32,18 @@ type CandidateValidation struct {
 	SubsystemToOverseer chan<- any
 	OverseerToSubsystem <-chan any
 	ValidationHost      parachainruntime.ValidationHost
-	BlockState          state.BlockState
+	BlockState          BlockState
+}
+
+type BlockState interface {
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 }
 
 // NewCandidateValidation creates a new CandidateValidation subsystem
-func NewCandidateValidation(overseerChan chan<- any) *CandidateValidation {
+func NewCandidateValidation(overseerChan chan<- any, blockState BlockState) *CandidateValidation {
 	candidateValidation := CandidateValidation{
 		SubsystemToOverseer: overseerChan,
+		BlockState:          blockState,
 	}
 	return &candidateValidation
 }
