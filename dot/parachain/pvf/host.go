@@ -41,7 +41,7 @@ func NewValidationHost() *ValidationHost {
 }
 
 func (v *ValidationHost) Validate(msg *ValidationTask) {
-	logger.Debugf("Validating worker", "workerID", msg.WorkerID)
+	logger.Debugf("Validating worker %x", msg.WorkerID)
 
 	validationCodeHash := msg.ValidationCode.Hash()
 	// basic checks
@@ -73,9 +73,10 @@ func (v *ValidationHost) Validate(msg *ValidationTask) {
 		RelayParentStorageRoot: msg.PersistedValidationData.RelayParentStorageRoot,
 	}
 	workTask := &workerTask{
-		work:       validationParams,
-		maxPoVSize: msg.PersistedValidationData.MaxPovSize,
-		ResultCh:   msg.ResultCh,
+		work:             validationParams,
+		maxPoVSize:       msg.PersistedValidationData.MaxPovSize,
+		candidateReceipt: msg.CandidateReceipt,
+		ResultCh:         msg.ResultCh,
 	}
 	v.workerPool.submitRequest(workerID, workTask)
 }

@@ -55,7 +55,7 @@ func (mr *MockRuntimeInstanceMockRecorder) ParachainHostCandidateEvents() *gomoc
 }
 
 // ParachainHostCheckValidationOutputs mocks base method.
-func (m *MockRuntimeInstance) ParachainHostCheckValidationOutputs(arg0 uint32, arg1 parachaintypes.CandidateCommitments) (bool, error) {
+func (m *MockRuntimeInstance) ParachainHostCheckValidationOutputs(arg0 parachaintypes.ParaID, arg1 parachaintypes.CandidateCommitments) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostCheckValidationOutputs", arg0, arg1)
 	ret0, _ := ret[0].(bool)

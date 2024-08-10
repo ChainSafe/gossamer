@@ -89,18 +89,14 @@ func (in *Instance) ValidateBlock(params ValidationParameters) (
 	return &validationResult, nil
 }
 
-type ValidationHost interface {
-	// ValidateBlock validates a block by calling parachain runtime's validate_block call and returns the result.
-	ValidateBlock(params ValidationParameters) (*ValidationResult, error)
-}
-
 // RuntimeInstance for runtime methods
 type RuntimeInstance interface {
 	ParachainHostPersistedValidationData(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
 	) (*parachaintypes.PersistedValidationData, error)
 	ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
 	) (*parachaintypes.ValidationCode, error)
-	ParachainHostCheckValidationOutputs(parachainID uint32, outputs parachaintypes.CandidateCommitments) (bool, error)
+	ParachainHostCheckValidationOutputs(parachainID parachaintypes.ParaID, outputs parachaintypes.CandidateCommitments) (
+		bool, error)
 	ParachainHostCandidateEvents() ([]parachaintypes.CandidateEvent, error)
 }
 
