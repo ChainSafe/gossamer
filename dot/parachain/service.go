@@ -78,7 +78,7 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	cpvs.OverseerToSubSystem = overseer.RegisterSubsystem(cpvs)
 
 	// register candidate validation subsystem
-	candidateValidationSubsystem := candidatevalidation.NewCandidateValidation(overseer.SubsystemsToOverseer)
+	candidateValidationSubsystem := candidatevalidation.NewCandidateValidation(overseer.SubsystemsToOverseer, st.Block)
 
 	candidateValidationSubsystem.OverseerToSubsystem = overseer.RegisterSubsystem(candidateValidationSubsystem)
 
