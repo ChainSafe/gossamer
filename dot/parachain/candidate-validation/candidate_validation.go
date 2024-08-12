@@ -90,7 +90,6 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 			logger.Debugf("received message %v", msg)
 			switch msg := msg.(type) {
 			case ValidateFromChainState:
-				fmt.Printf("ValidateFromChainState: %v", msg)
 				cv.validateFromChainState(msg)
 
 			case ValidateFromExhaustive:
@@ -107,22 +106,15 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 				go cv.pvfHost.Validate(validationTask)
 
 				result := <-taskResult
-				fmt.Printf("Validation result: %v", result)
-				// TODO(ed): determine how to handle this error and result
-
-				//  WIP: This is the current implementation of the validation logic, it will be replaced by the PVF host
-				//   when the validation logic is moved to the PVF host
-				//result, err := validateFromExhaustive(cv.ValidationHost, msg.PersistedValidationData,
-				//	msg.ValidationCode, msg.CandidateReceipt, msg.PoV)
-				//if err != nil {
-				//	logger.Errorf("failed to validate from exhaustive: %w", err)
-				//	msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-				//		Err: err,
-				//	}
-				//} else {
-				msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-					Data: *result.Result,
-					//}
+				if result.InternalError != nil {
+					logger.Errorf("failed to validate from exhaustive: %w", result.InternalError)
+					msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+						Err: result.InternalError,
+					}
+				} else {
+					msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+						Data: *result.Result,
+					}
 				}
 
 			case PreCheck:
@@ -216,179 +208,17 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 	go cv.pvfHost.Validate(validationTask)
 
 	result := <-taskResult
-	msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-		Data: *result.Result,
+	if result.InternalError != nil {
+		logger.Errorf("failed to validate from chain state: %w", result.InternalError)
+		msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+			Err: result.InternalError,
+		}
+	} else {
+		msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+			Data: *result.Result,
+		}
 	}
 }
-
-// todo confirm that all the functionality of these has been implemented in pvf host
-// validateFromChainState validates a candidate parachain block with provided parameters using relay-chain
-// state and using the parachain runtime.
-//func validateFromChainState(runtimeInstance parachainruntime.RuntimeInstance, pov parachaintypes.PoV,
-//	candidateReceipt parachaintypes.CandidateReceipt) (*pvf.ValidationResult, error) {
-//
-//	persistedValidationData, validationCode, err := getValidationData(runtimeInstance,
-//	candidateReceipt.Descriptor.ParaID)
-//	if err != nil {
-//		return nil, fmt.Errorf("getting validation data: %w", err)
-//	}
-//
-//	parachainRuntimeInstance, err := parachainruntime.SetupVM(*validationCode)
-//	if err != nil {
-//		return nil, fmt.Errorf("setting up VM: %w", err)
-//	}
-//
-//	taskResult := make(chan *pvf.ValidationTaskResult)
-//	validationTask := &pvf.ValidationTask{
-//		PersistedValidationData: msg.PersistedValidationData,
-//		ValidationCode:          &msg.ValidationCode,
-//		CandidateReceipt:        &msg.CandidateReceipt,
-//		PoV:                     msg.PoV,
-//		ExecutorParams:          nil,
-//		PvfExecTimeoutKind:      parachaintypes.PvfExecTimeoutKind{},
-//		ResultCh:                taskResult,
-//	}
-//	go cv.pvfHost.Validate(validationTask)
-//
-//	result := <-taskResult
-//
-//	//validationResults, err := validateFromExhaustive
-//	//// check that the candidate does not exceed any parameters in the persisted validation data
-//	//pov := povRequestor.RequestPoV(candidateReceipt.Descriptor.PovHash)
-//	//
-//	//// basic checks
-//	//
-//	//// check if encoded size of pov is less than max pov size
-//	//buffer := bytes.NewBuffer(nil)
-//	//encoder := scale.NewEncoder(buffer)
-//	//err = encoder.Encode(pov)
-//	//if err != nil {
-//	//	return nil, nil, false, fmt.Errorf("encoding pov: %w", err)
-//	//}
-//	//encodedPoVSize := buffer.Len()
-//	//if encodedPoVSize > int(persistedValidationData.MaxPovSize) {
-//	//	return nil, nil, false, fmt.Errorf("%w, limit: %d, got: %d", ErrValidationInputOverLimit,
-//	//		persistedValidationData.MaxPovSize, encodedPoVSize)
-//	//}
-//	//
-//	//validationCodeHash, err := common.Blake2bHash([]byte(*validationCode))
-//	//if err != nil {
-//	//	return nil, nil, false, fmt.Errorf("hashing validation code: %w", err)
-//	//}
-//	//
-//	//if validationCodeHash != common.Hash(candidateReceipt.Descriptor.ValidationCodeHash) {
-//	//	return nil, nil, false, fmt.Errorf("%w, expected: %s, got %s", ErrValidationCodeMismatch,
-//	//		candidateReceipt.Descriptor.ValidationCodeHash, validationCodeHash)
-//	//}
-//	//
-//	//// check candidate signature
-//	//err = candidateReceipt.Descriptor.CheckCollatorSignature()
-//	//if err != nil {
-//	//	return nil, nil, false, fmt.Errorf("verifying collator signature: %w", err)
-//	//}
-//	//
-//	//validationParams := parachainruntime.ValidationParameters{
-//	//	ParentHeadData:         persistedValidationData.ParentHead,
-//	//	BlockData:              pov.BlockData,
-//	//	RelayParentNumber:      persistedValidationData.RelayParentNumber,
-//	//	RelayParentStorageRoot: persistedValidationData.RelayParentStorageRoot,
-//	//}
-//	//
-//	//parachainRuntimeInstance, err := parachainruntime.SetupVM(*validationCode)
-//	//if err != nil {
-//	//	return nil, nil, false, fmt.Errorf("setting up VM: %w", err)
-//	//}
-//	//
-//	//validationResults, err := parachainRuntimeInstance.ValidateBlock(validationParams)
-//	//if err != nil {
-//	//	return nil, nil, false, fmt.Errorf("executing validate_block: %w", err)
-//	//}
-//	//
-//	//candidateCommitments := parachaintypes.CandidateCommitments{
-//	//	UpwardMessages:            validationResults.UpwardMessages,
-//	//	HorizontalMessages:        validationResults.HorizontalMessages,
-//	//	NewValidationCode:         validationResults.NewValidationCode,
-//	//	HeadData:                  validationResults.HeadData,
-//	//	ProcessedDownwardMessages: validationResults.ProcessedDownwardMessages,
-//	//	HrmpWatermark:             validationResults.HrmpWatermark,
-//	//}
-//	//
-//	//isValid, err := runtimeInstance.ParachainHostCheckValidationOutputs(
-//	//	candidateReceipt.Descriptor.ParaID, candidateCommitments)
-//	//if err != nil {
-//	//	return nil, nil, false, fmt.Errorf("executing validate_block: %w", err)
-//	//}
-//	//
-//	//return &candidateCommitments, persistedValidationData, isValid, nil
-//}
-
-//// validateFromExhaustive validates a candidate parachain block with provided parameters
-//func validateFromExhaustive(validationHost parachainruntime.ValidationHost,
-//	persistedValidationData parachaintypes.PersistedValidationData,
-//	validationCode parachaintypes.ValidationCode,
-//	candidateReceipt parachaintypes.CandidateReceipt, pov parachaintypes.PoV) (
-//	*pvf.ValidationResult, error) {
-//
-//	validationCodeHash := validationCode.Hash()
-//	// basic checks
-//	validationErr, internalErr := performBasicChecks(&candidateReceipt.Descriptor, persistedValidationData.MaxPovSize,
-//		pov,
-//		validationCodeHash)
-//	if internalErr != nil {
-//		return nil, fmt.Errorf("performing basic checks: %w", internalErr)
-//	}
-//
-//	if validationErr != nil {
-//		validationResult := &pvf.ValidationResult{
-//			InvalidResult: validationErr,
-//		}
-//		return validationResult, nil //nolint: nilerr
-//	}
-//
-//	validationParams := parachainruntime.ValidationParameters{
-//		ParentHeadData:         persistedValidationData.ParentHead,
-//		BlockData:              pov.BlockData,
-//		RelayParentNumber:      persistedValidationData.RelayParentNumber,
-//		RelayParentStorageRoot: persistedValidationData.RelayParentStorageRoot,
-//	}
-//
-//	validationResult, err := validationHost.ValidateBlock(validationParams)
-//	// TODO: implement functionality to parse errors generated by the runtime when PVF host is implemented, issue #3934
-//	if err != nil {
-//		return nil, fmt.Errorf("executing validate_block: %w", err)
-//	}
-//
-//	headDataHash, err := validationResult.HeadData.Hash()
-//	if err != nil {
-//		return nil, fmt.Errorf("hashing head data: %w", err)
-//	}
-//
-//	if headDataHash != candidateReceipt.Descriptor.ParaHead {
-//		ci := pvf.ParaHeadHashMismatch
-//		return &pvf.ValidationResult{InvalidResult: &ci}, nil
-//	}
-//	candidateCommitments := parachaintypes.CandidateCommitments{
-//		UpwardMessages:            validationResult.UpwardMessages,
-//		HorizontalMessages:        validationResult.HorizontalMessages,
-//		NewValidationCode:         validationResult.NewValidationCode,
-//		HeadData:                  validationResult.HeadData,
-//		ProcessedDownwardMessages: validationResult.ProcessedDownwardMessages,
-//		HrmpWatermark:             validationResult.HrmpWatermark,
-//	}
-//
-//	// if validation produced a new set of commitments, we treat the candidate as invalid
-//	if candidateReceipt.CommitmentsHash != candidateCommitments.Hash() {
-//		ci := pvf.CommitmentsHashMismatch
-//		return &pvf.ValidationResult{InvalidResult: &ci}, nil
-//	}
-//	return &pvf.ValidationResult{
-//		ValidResult: &pvf.ValidValidationResult{
-//			CandidateCommitments:    candidateCommitments,
-//			PersistedValidationData: persistedValidationData,
-//		},
-//	}, nil
-//
-//}
 
 // performBasicChecks Does basic checks of a candidate. Provide the encoded PoV-block.
 // Returns ReasonForInvalidity and internal error if any.

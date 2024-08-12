@@ -581,8 +581,6 @@ func Test_performBasicChecks(t *testing.T) {
 }
 
 func TestCandidateValidation_validateFromChainState(t *testing.T) {
-	// todo figure out why this doesn't work with t.Parallel()
-	//t.Parallel()
 	candidateReceipt, validationCode := createTestCandidateReceiptAndValidationCode(t)
 	candidateReceipt2 := candidateReceipt
 	candidateReceipt2.Descriptor.PovHash = common.MustHexToHash(
@@ -696,7 +694,6 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 	}
 
 	toSubsystem := make(chan any)
-	sender := make(chan parachaintypes.OverseerFuncRes[pvf.ValidationResult])
 	stopChan := make(chan struct{})
 	candidateValidationSubsystem := CandidateValidation{
 		OverseerToSubsystem: toSubsystem,
@@ -717,7 +714,6 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 			msg: ValidateFromChainState{
 				CandidateReceipt: candidateReceipt2,
 				Pov:              pov,
-				Ch:               sender,
 			},
 			want: &pvf.ValidationResult{
 				InvalidResult: &povHashMismatch,
@@ -727,7 +723,6 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 			msg: ValidateFromChainState{
 				CandidateReceipt: candidateReceipt3,
 				Pov:              pov,
-				Ch:               sender,
 			},
 			want: &pvf.ValidationResult{
 				InvalidResult: &paramsTooLarge,
@@ -737,7 +732,6 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 			msg: ValidateFromChainState{
 				CandidateReceipt: candidateReceipt4,
 				Pov:              pov,
-				Ch:               sender,
 			},
 			want: &pvf.ValidationResult{
 				InvalidResult: &codeHashMismatch,
@@ -747,7 +741,6 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 			msg: ValidateFromChainState{
 				CandidateReceipt: candidateReceipt5,
 				Pov:              pov,
-				Ch:               sender,
 			},
 			want: &pvf.ValidationResult{
 				InvalidResult: &badSignature,
@@ -757,7 +750,6 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 			msg: ValidateFromChainState{
 				CandidateReceipt: candidateReceipt,
 				Pov:              pov,
-				Ch:               sender,
 			},
 			want: &pvf.ValidationResult{
 				ValidResult: &pvf.ValidValidationResult{
@@ -787,6 +779,9 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
+			sender := make(chan parachaintypes.OverseerFuncRes[pvf.ValidationResult])
+			defer close(sender)
+			tt.msg.Ch = sender
 			time.Sleep(100 * time.Millisecond)
 			toSubsystem <- tt.msg
 			time.Sleep(100 * time.Millisecond)

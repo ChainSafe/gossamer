@@ -20,7 +20,6 @@ type ValidationHost struct {
 }
 
 func (v *ValidationHost) Start() {
-	fmt.Printf("v.wg %v\n", v)
 	v.wg.Add(1)
 	logger.Debug("Starting validation host")
 	go func() {
@@ -49,9 +48,15 @@ func (v *ValidationHost) Validate(msg *ValidationTask) {
 		msg.PersistedValidationData.MaxPovSize,
 		msg.PoV,
 		validationCodeHash)
-	// TODO(ed): confirm how to handle internal errors
+
 	if internalErr != nil {
 		logger.Errorf("performing basic checks: %w", internalErr)
+		intErr := &ValidationTaskResult{
+			who:           validationCodeHash,
+			InternalError: internalErr,
+		}
+		msg.ResultCh <- intErr
+		return
 	}
 
 	if validationErr != nil {
@@ -65,7 +70,16 @@ func (v *ValidationHost) Validate(msg *ValidationTask) {
 		return
 	}
 
-	workerID := v.poolContainsWorker(msg)
+	workerID, err := v.poolContainsWorker(msg)
+	if err != nil {
+		logger.Errorf("pool contains worker: %w", err)
+		intErr := &ValidationTaskResult{
+			who:           validationCodeHash,
+			InternalError: err,
+		}
+		msg.ResultCh <- intErr
+		return
+	}
 	validationParams := parachainruntime.ValidationParameters{
 		ParentHeadData:         msg.PersistedValidationData.ParentHead,
 		BlockData:              msg.PoV.BlockData,
@@ -78,15 +92,17 @@ func (v *ValidationHost) Validate(msg *ValidationTask) {
 		candidateReceipt: msg.CandidateReceipt,
 		ResultCh:         msg.ResultCh,
 	}
-	v.workerPool.submitRequest(workerID, workTask)
+	v.workerPool.submitRequest(*workerID, workTask)
 }
 
-func (v *ValidationHost) poolContainsWorker(msg *ValidationTask) parachaintypes.ValidationCodeHash {
+func (v *ValidationHost) poolContainsWorker(msg *ValidationTask) (*parachaintypes.ValidationCodeHash, error) {
 	if msg.WorkerID != nil {
-		return *msg.WorkerID
+		return msg.WorkerID, nil
 	}
-	if v.workerPool.containsWorker(msg.ValidationCode.Hash()) {
-		return msg.ValidationCode.Hash()
+	validationCodeHash := msg.ValidationCode.Hash()
+	if v.workerPool.containsWorker(validationCodeHash) {
+
+		return &validationCodeHash, nil
 	} else {
 		return v.workerPool.newValidationWorker(*msg.ValidationCode)
 	}
