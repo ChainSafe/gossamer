@@ -268,12 +268,12 @@ func (cb *CandidateBacking) handleCommandAttest(
 		return nil
 	}
 
-	statement := parachaintypes.NewStatementVDT()
-	if err := statement.SetValue(parachaintypes.Valid(candidateHash)); err != nil {
-		return fmt.Errorf("setting statement: %w", err)
-	}
-
 	if bgValidationResult.err == nil {
+		statement := parachaintypes.NewStatementVDT()
+		if err := statement.SetValue(parachaintypes.Valid(candidateHash)); err != nil {
+			return fmt.Errorf("setting statement: %w", err)
+		}
+
 		if _, err := signImportAndDistributeStatement(
 			cb.SubSystemToOverseer, rpState, cb.perCandidate, statement, nil, cb.Keystore,
 		); err != nil {

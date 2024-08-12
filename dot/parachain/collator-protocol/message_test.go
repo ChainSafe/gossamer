@@ -4,7 +4,6 @@
 package collatorprotocol
 
 import (
-	context "context"
 	_ "embed"
 	"fmt"
 	"testing"
@@ -376,17 +375,13 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 		c := c
 		t.Run(c.description, func(t *testing.T) {
 			t.Parallel()
-			ctx, cancel := context.WithCancel(context.Background())
 			cpvs := CollatorProtocolValidatorSide{
-				ctx:                ctx,
-				cancel:             cancel,
 				peerData:           c.peerData,
 				currentAssignments: c.currentAssignments,
 			}
 
 			mockOverseer := overseer.NewMockableOverseer(t)
-			overseerToSubsystem := mockOverseer.RegisterSubsystem(&cpvs)
-			cpvs.OverseerToSubSystem = overseerToSubsystem
+			mockOverseer.RegisterSubsystem(&cpvs)
 			cpvs.SubSystemToOverseer = mockOverseer.GetSubsystemToOverseerChannel()
 
 			mockOverseer.Start()
@@ -579,10 +574,7 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 		t.Run(c.description, func(t *testing.T) {
 			t.Parallel()
 
-			ctx, cancel := context.WithCancel(context.Background())
 			cpvs := CollatorProtocolValidatorSide{
-				ctx:            ctx,
-				cancel:         cancel,
 				net:            c.net,
 				perRelayParent: c.perRelayParent,
 				peerData:       c.peerData,
@@ -590,8 +582,7 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			}
 
 			mockOverseer := overseer.NewMockableOverseer(t)
-			overseerToSubsystem := mockOverseer.RegisterSubsystem(&cpvs)
-			cpvs.OverseerToSubSystem = overseerToSubsystem
+			mockOverseer.RegisterSubsystem(&cpvs)
 			cpvs.SubSystemToOverseer = mockOverseer.GetSubsystemToOverseerChannel()
 
 			mockOverseer.Start()

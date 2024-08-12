@@ -59,29 +59,29 @@ func (rpState *perRelayParentState) importStatement(
 		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD.SignedFullStatement)
 	}
 
-	// PersistedValidationData should not be nil if the statementVDT is Seconded.
-	if signedStatementWithPVD.PersistedValidationData == nil {
-		return nil, errNilPersistedValidationData
-	}
-
-	statementVDTSeconded := statementVDT.(parachaintypes.Seconded)
-	hash, err := parachaintypes.CommittedCandidateReceipt(statementVDTSeconded).Hash()
+	committedCandidateReceipt := parachaintypes.CommittedCandidateReceipt(statementVDT.(parachaintypes.Seconded))
+	candidateHash, err := parachaintypes.GetCandidateHash(committedCandidateReceipt)
 	if err != nil {
 		return nil, fmt.Errorf("getting candidate hash: %w", err)
 	}
-
-	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	if _, ok := perCandidate[candidateHash]; ok {
 		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD.SignedFullStatement)
 	}
 
+	// PersistedValidationData should not be nil if the statementVDT is Seconded.
+	if signedStatementWithPVD.PersistedValidationData == nil {
+		return nil, errNilPersistedValidationData
+	}
+
+	paraID := parachaintypes.ParaID(committedCandidateReceipt.Descriptor.ParaID)
+
 	if rpState.prospectiveParachainsMode.IsEnabled {
 		chIntroduceCandidate := make(chan error)
 		subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageIntroduceCandidate{
 			IntroduceCandidateRequest: parachaintypes.IntroduceCandidateRequest{
-				CandidateParaID:           parachaintypes.ParaID(statementVDTSeconded.Descriptor.ParaID),
-				CommittedCandidateReceipt: parachaintypes.CommittedCandidateReceipt(statementVDTSeconded),
+				CandidateParaID:           paraID,
+				CommittedCandidateReceipt: committedCandidateReceipt,
 				PersistedValidationData:   *signedStatementWithPVD.PersistedValidationData,
 			},
 			Ch: chIntroduceCandidate,
@@ -99,7 +99,7 @@ func (rpState *perRelayParentState) importStatement(
 		}
 
 		subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageCandidateSeconded{
-			ParaID:        parachaintypes.ParaID(statementVDTSeconded.Descriptor.ParaID),
+			ParaID:        paraID,
 			CandidateHash: candidateHash,
 		}
 	}
@@ -108,8 +108,8 @@ func (rpState *perRelayParentState) importStatement(
 	perCandidate[candidateHash] = &perCandidateState{
 		persistedValidationData: *signedStatementWithPVD.PersistedValidationData,
 		secondedLocally:         false, // This is set after importing when seconding locally.
-		paraID:                  parachaintypes.ParaID(statementVDTSeconded.Descriptor.ParaID),
-		relayParent:             statementVDTSeconded.Descriptor.RelayParent,
+		paraID:                  paraID,
+		relayParent:             committedCandidateReceipt.Descriptor.RelayParent,
 	}
 
 	return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD.SignedFullStatement)
@@ -150,8 +150,9 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 	rpState.backed[candidateHash] = true
 
 	// Convert the attested candidate to a backed candidate.
-	backedCandidate := attested.toBackedCandidate(&rpState.tableContext)
-	if backedCandidate == nil {
+	backedCandidate, err := attested.toBackedCandidate(&rpState.tableContext)
+	if err != nil {
+		logger.Errorf("converting attested candidate to backed candidate: %w", err)
 		return
 	}
 
