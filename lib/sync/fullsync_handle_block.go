@@ -62,6 +62,7 @@ type blockImporter struct {
 
 func newBlockImporter(cfg *FullSyncConfig) *blockImporter {
 	return &blockImporter{
+		blockState:         cfg.BlockState,
 		storageState:       cfg.StorageState,
 		transactionState:   cfg.TransactionState,
 		babeVerifier:       cfg.BabeVerifier,

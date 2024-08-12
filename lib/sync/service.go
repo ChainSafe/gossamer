@@ -103,6 +103,7 @@ func NewSyncService(network Network,
 		workerPool:        newSyncWorkerPool(network),
 		waitPeersDuration: 2 * time.Second,
 		minPeers:          1,
+		slotDuration:      6 * time.Second,
 		stopCh:            make(chan struct{}),
 	}
 }
@@ -202,6 +203,12 @@ func (s *SyncService) runSyncEngine() {
 
 	// TODO: need to handle stop channel
 	for {
+		select {
+		case <-s.stopCh:
+			return
+		default:
+		}
+
 		finalisedHeader, err := s.blockState.GetHighestFinalisedHeader()
 		if err != nil {
 			logger.Criticalf("getting highest finalized header: %w", err)
