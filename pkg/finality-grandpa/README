@@ -1,7 +1,7 @@
 # finality-grandpa
 
 **GRANDPA**, **G**HOST-based **R**ecursive **AN**cestor **D**eriving **P**refix **A**greement, is a
-finality gadget for blockchains, implemented in Go, ported from the parity rust implementation. It 
+finality gadget for blockchains, implemented in Go, ported from the [parity rust implementation][rust-impl]. It 
 allows a set of nodes to come to BFT agreement on what is the canonical chain, which is produced by 
 some external block production mechanism. It works under the assumption of a partially synchronous 
 network model and with the presence of up to 1/3 Byzantine nodes.
@@ -9,7 +9,7 @@ network model and with the presence of up to 1/3 Byzantine nodes.
 ### Integration
 
 This package only implements the state machine for the GRANDPA protocol. In order to use this package it
-is necessary to implement some interfaces to do the integration which are responsible for providing
+is necessary to implement some interfaces to do the integration which are responsible for providing 
 access to the underyling blockchain and setting up all the network communication.
 
 #### `Chain`
@@ -34,7 +34,8 @@ As well as callbacks for notifying about block finality and voter misbehavior (e
 
 ## Resources
 
-- [White Paper][paper]
-- [Rust Implementation](https://github.com/paritytech/finality-grandpa)
+- [White paper][paper]
+- [Parity rust implementation][rust-impl]
 
 [paper]: https://github.com/w3f/consensus/blob/master/pdf/grandpa.pdf
+[rust-impl]: https://github.com/paritytech/finality-grandpa
