@@ -75,9 +75,8 @@ type votingRound[
 	ID constraints.Ordered,
 	E Environment[Hash, Number, Signature, ID],
 ] struct {
-	env    E
-	voting voting
-	// this is not an Option in the rust code. Using a pointer for copylocks
+	env               E
+	voting            voting
 	votes             *Round[ID, Hash, Number, Signature]
 	incoming          *wakerChan[SignedMessageError[Hash, Number, Signature, ID]]
 	outgoing          *buffered[Message[Hash, Number]]
@@ -162,7 +161,7 @@ func newVotingRoundCompleted[
 	}
 }
 
-// Poll the round. When the round is completable and messages have been flushed, it will return `Poll::Ready` but
+// Poll the round. When the round is completable and messages have been flushed, it will return `true` but
 // can continue to be polled.
 func (vr *votingRound[Hash, Number, Signature, ID, E]) poll(waker *waker) (bool, error) { //skipcq: GO-R1005
 	log.Tracef(
@@ -571,7 +570,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 
 				// since we haven't polled the future above yet we need to
 				// manually schedule the current task to be awoken so the
-				// `best_chain` future is then polled below after we switch the
+				// `bestChain` future is then polled below after we switch the
 				// state to `Prevoting`.
 				waker.wake()
 
@@ -718,7 +717,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) constructPrevote(lastRoun
 		// vote for best chain containing prior round-estimate.
 		findDescendentOf = lastRoundEstimate.Hash
 	default:
-		// we will vote for the best chain containing `p_hash` iff
+		// we will vote for the best chain containing `pHash` if
 		// the last round's prevote-GHOST included that block and
 		// that block is a strict descendent of the last round-estimate that we are
 		// aware of.

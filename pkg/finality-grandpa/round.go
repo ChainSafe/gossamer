@@ -488,7 +488,7 @@ func (r *Round[ID, H, N, S]) update() {
 	// could ever have enough precommits.
 	//
 	// the round-estimate is the highest block in the chain with head
-	// `prevote_ghost` that could have supermajority-commits.
+	// `prevoteGhost` that could have supermajority-commits.
 	if r.precommits.currentWeight >= VoteWeight(threshold) {
 		r.estimate = r.graph.FindAncestor(r.prevoteGhost.Hash, r.prevoteGhost.Number, possibleToPrecommit)
 	} else {
@@ -607,7 +607,7 @@ func (r *Round[ID, H, N, S]) FinalizingPrecommits(chain Chain[H, N]) *[]SignedPr
 	return &findValidPrecommits
 }
 
-// Estimate will fetch the "round-estimate": the best block which might have been finalized
+// Estimate will fetch the "round-estimate" which is the best block which might have been finalized
 // in this round.
 //
 // Returns `nil` when new new blocks could have been finalized in this round,

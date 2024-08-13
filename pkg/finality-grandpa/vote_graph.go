@@ -26,7 +26,7 @@ type voteGraphEntry[
 }
 
 // whether the given hash, number pair is a direct ancestor of this node.
-// `None` signifies that the graph must be traversed further back.
+// `nil` signifies that the graph must be traversed further back.
 func (vge voteGraphEntry[Hash, Number, voteNode, Vote]) inDirectAncestry(hash Hash, num Number) *bool {
 	h := vge.ancestorBlock(num)
 	if h == nil {
@@ -36,7 +36,7 @@ func (vge voteGraphEntry[Hash, Number, voteNode, Vote]) inDirectAncestry(hash Ha
 	return &b
 }
 
-// Get ancestor block by number. Returns `None` if there is no block
+// Get ancestor block by number. Returns `nil` if there is no block
 // by that number in the direct ancestry.
 func (vge voteGraphEntry[Hash, Number, voteNode, Vote]) ancestorBlock(num Number) (h *Hash) {
 	if num >= vge.number {
@@ -150,13 +150,12 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) append(
 	return
 }
 
-// From finality-grandpa:
 // introduce a branch to given vote-nodes.
 //
 // `descendents` is a list of nodes with ancestor-edges containing the given ancestor.
 //
 // This function panics if any member of `descendents` is not a vote-node
-// or does not have ancestor with given hash and number OR if `ancestor_hash`
+// or does not have ancestor with given hash and number OR if `ancestorHash`
 // is already a known entry.
 
 func (vg *VoteGraph[Hash, Number, voteNode, Vote]) introduceBranch(
@@ -187,7 +186,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) introduceBranch(
 		// before: [9 8 7 6 5 4 3 2 1]
 		// after: [9 8 7 6 5 4], [3 2 1]
 		// we ensure the `entry.ancestors` is drained regardless of whether
-		// the `new_entry` has already been constructed.
+		// the `newEntry` has already been constructed.
 		{
 			prevAncestor := entry.ancestorNode()
 			var offset uint
@@ -289,7 +288,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) Insert(
 
 // attempts to find the containing node keys for the given hash and number.
 //
-// returns `None` if there is a node by that key already, and a vector
+// returns `nil` if there is a node by that key already, and a slice
 // (potentially empty) of nodes with the given block in its ancestor-edge
 // otherwise.
 func (vg *VoteGraph[Hash, Number, voteNode, Vote]) findContainingNodes(hash Hash, num Number) (hashes []Hash) {
@@ -399,7 +398,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) ghostFindMergePoint( //skipcq
 	descendantBlocks := make([]hashvote[Hash, voteNode, Vote], 0)
 	hashes := []Hash{nodeKey}
 
-	// TODO: for long ranges of blocks this could get inefficient (copied from rust code)
+	// TODO: for long ranges of blocks this could get inefficient (also in parity impl)
 	var offset Number
 	for {
 		offset = offset + 1

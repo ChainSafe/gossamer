@@ -20,7 +20,6 @@ type blockRecord struct {
 	parent string
 }
 
-// dummyChain is translation of finality_grandpa::testing::chain::DummyChain
 type dummyChain struct {
 	inner     map[string]blockRecord
 	leaves    []blockRecord

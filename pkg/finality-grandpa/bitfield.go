@@ -121,7 +121,7 @@ func (b *bitfield) Iter1sMergedOdd(other bitfield) []bit1 { //skipcq: GO-W1029
 	return b.iter1sMerged(other, 1, 1)
 }
 
-// Turn an iterator over u64 words into an iterator over bits that
+// Turn an iterator over uint64 words into an iterator over bits that
 // are set (i.e. `1`) in these words, starting at bit position `start`
 // and moving in steps of size `2^step` per word.
 func iter1s(iter []uint64, start, step uint) (bit1s []bit1) {

@@ -44,7 +44,7 @@ func (b *bitfield) testBit(position uint) bool { //skipcq: GO-W1029
 func Test_SetBit(t *testing.T) {
 	f := func(a bitfield, idx uint) bool {
 		// let's bound the max bitfield index at 2^24. this is needed because when calling
-		// `set_bit` we will extend the backing vec to accommodate the given bitfield size, this
+		// `SetBit` we will extend the backing vec to accommodate the given bitfield size, this
 		// way we restrict the maximum allocation size to 16MB.
 		idx = uint(math.Min(float64(idx), 1<<24))
 		a.SetBit(idx)
@@ -55,8 +55,6 @@ func Test_SetBit(t *testing.T) {
 	}
 }
 
-// translated from bitor test in
-// https://github.com/paritytech/finality-grandpa/blob/fbe2404574f74713bccddfe4104d60c2a32d1fe6/src/bitfield.rs#L243
 func Test_Merge(t *testing.T) {
 	f := func(a, b bitfield) bool {
 		c := newBitfield()

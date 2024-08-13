@@ -267,7 +267,7 @@ func (b *buffered[I]) Close() {
 
 // Instantiates the given last round, to be backgrounded until its estimate is finalized.
 //
-// This round must be completable based on the passed votes (and if not, `None` will be returned),
+// This round must be completable based on the passed votes (and if not, `nil` will be returned),
 // but it may be the case that there are some more votes to propagate in order to push
 // the estimate backwards and conclude the round (i.e. finalize its estimate).
 //
@@ -312,7 +312,7 @@ func instantiateLastRound[
 
 // The inner state of a voter aggregating the currently running round state
 // (i.e. best and background rounds). This state exists separately since it's
-// useful to wrap in a `Arc<Mutex<_>>` for sharing.
+// useful for sharing.
 type innerVoterState[
 	Hash constraints.Ordered,
 	Number constraints.Unsigned,
@@ -813,8 +813,8 @@ loop:
 
 // process the logic of the best round.
 func (v *Voter[Hash, Number, Signature, ID]) processBestRound(waker *waker) (bool, error) {
-	// If the current `best_round` is completable and we've already precommitted,
-	// we start a new round at `best_round + 1`.
+	// If the current `bestRound` is completable and we've already precommitted,
+	// we start a new round at `bestRound + 1`.
 	{
 		v.inner.Lock()
 
@@ -1004,13 +1004,13 @@ func (v *Voter[Hash, Number, Signature, ID]) VoterState() VoterState[ID] {
 // VoterState interface for querying the state of the voter. Used by `Voter` to return a queryable object
 // without exposing too many data types.
 type VoterState[ID comparable] interface {
-	// Returns a plain data type, `report::VoterState`, describing the current state
+	// Returns a plain data type, `VoterStateReport`, describing the current state
 	// of the voter relevant to the voting process.
 	Get() VoterStateReport[ID]
 }
 
 // Validate the given catch up and return a completed round with all prevotes
-// and precommits from the catch up imported. If the catch up is invalid `None`
+// and precommits from the catch up imported. If the catch up is invalid `nil`
 // is returned instead.
 func validateCatchUp[ //skipcq: GO-R1005
 	Hash constraints.Ordered,

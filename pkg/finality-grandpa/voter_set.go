@@ -38,9 +38,9 @@ type IDWeight[ID constraints.Ordered] struct {
 // understood to be partial weights and are accumulated. As a result, the
 // order in which the iterator produces the weights is irrelevant.
 //
-// Returns `None` if the iterator does not yield a valid voter set, which is
+// Returns `nil` if the iterator does not yield a valid voter set, which is
 // the case if it either produced no non-zero weights or, i.e. the voter set
-// would be empty, or if the total voter weight exceeds `u64::MAX`.
+// would be empty, or if the total voter weight exceeds max `uint64`.
 func NewVoterSet[ID constraints.Ordered](weights []IDWeight[ID]) *VoterSet[ID] {
 	var totalWeight VoterWeight
 	var voters = btree.NewMap[ID, VoterInfo](2)
@@ -130,7 +130,7 @@ func (vs VoterSet[ID]) NthMod(n uint) IDVoterInfo[ID] {
 
 // Nth gets the nth voter in the set, if any.
 //
-// Returns `None` if `n >= len`.
+// Returns `nil` if `n >= len`.
 func (vs VoterSet[ID]) Nth(n uint) *IDVoterInfo[ID] {
 	if n >= uint(len(vs.voters)) {
 		return nil
@@ -142,7 +142,7 @@ func (vs VoterSet[ID]) Nth(n uint) *IDVoterInfo[ID] {
 }
 
 // Threshold returns the threshold vote weight required for supermajority
-// w.r.t. this set of voters.
+// with respect to this set of voters.
 func (vs VoterSet[ID]) Threshold() VoterWeight {
 	return vs.threshold
 }
