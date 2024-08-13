@@ -866,16 +866,19 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		return nil
 	}
 
+	// We are hitting this
 	logger.Infof("🔄 detected runtime code change, upgrading with block %s from previous code hash %s to new code hash %s...", //nolint:lll
 		bHash, parentCodeHash, currCodeHash)
 	code := newState.LoadCode()
 	if len(code) == 0 {
+		logger.Infof("new code is empty")
 		return errors.New("new :code is empty")
 	}
 
 	codeSubBlockHash := bs.baseState.LoadCodeSubstitutedBlockHash()
 
 	if codeSubBlockHash != (common.Hash{}) {
+		logger.Infof("codeSubBlockHash is not nil, entering conditional")
 		newVersion, err := wazero_runtime.GetRuntimeVersion(code)
 		if err != nil {
 			return err
@@ -884,6 +887,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		// only update runtime during code substitution if runtime SpecVersion is updated
 		previousVersion, err := parentRuntimeInstance.Version()
 		if err != nil {
+			logger.Infof("could not get runtime version from parent")
 			return err
 		}
 
@@ -897,6 +901,8 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 			"🔄 detected runtime code change, upgrading with block %s from previous code hash %s and spec %d to new code hash %s and spec %d...", //nolint:lll
 			bHash, parentCodeHash, previousVersion.SpecVersion, currCodeHash, newVersion.SpecVersion)
 	}
+
+	logger.Infof("codeSubBlockHash is nil, using current code hash: %v", currCodeHash)
 
 	rtCfg := wazero_runtime.Config{
 		Storage:     newState,
@@ -912,6 +918,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 
 	instance, err := wazero_runtime.NewInstance(code, rtCfg)
 	if err != nil {
+		logger.Errorf("failed to create new instance: %v", err)
 		return err
 	}
 
@@ -919,14 +926,17 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 
 	err = bs.baseState.StoreCodeSubstitutedBlockHash(common.Hash{})
 	if err != nil {
+		logger.Errorf("failed to update code substituted block hash: %v", err)
 		return fmt.Errorf("failed to update code substituted block hash: %w", err)
 	}
 
 	newVersion, err := instance.Version()
 	if err != nil {
+		logger.Errorf("failed to get new version: %v", err)
 		return err
 	}
 	go bs.notifyRuntimeUpdated(newVersion)
+	logger.Infof("done in handle runtime changes")
 	return nil
 }
 
