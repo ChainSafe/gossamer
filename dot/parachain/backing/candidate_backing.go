@@ -78,9 +78,9 @@ type CandidateBacking struct {
 	perLeaf map[common.Hash]*activeLeafState
 	// The utility for managing the implicit and explicit views in a consistent way.
 	// We only feed leaves which have prospective parachains enabled to this view.
-	implicitView ImplicitView
-	// The handle to the keystore used for signing.
-	keystore   keystore.Keystore
+	ImplicitView ImplicitView
+	// The handle to the Keystore used for signing.
+	Keystore   keystore.Keystore
 	BlockState BlockState
 }
 
@@ -199,10 +199,14 @@ type StatementMessage struct {
 
 // New creates a new CandidateBacking instance and initialises it with the provided overseer channel.
 func New(overseerChan chan<- any) *CandidateBacking {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &CandidateBacking{
+		ctx:                 ctx,
+		cancel:              cancel,
 		SubSystemToOverseer: overseerChan,
 		perRelayParent:      map[common.Hash]*perRelayParentState{},
 		perCandidate:        map[parachaintypes.CandidateHash]*perCandidateState{},
+		perLeaf:             map[common.Hash]*activeLeafState{},
 	}
 }
 
@@ -212,7 +216,7 @@ func (cb *CandidateBacking) Run(
 ) {
 	cb.ctx = ctx
 	cb.cancel = cancel
-	chRelayParentAndCommand := make(chan relayParentAndCommand)
+	chRelayParentAndCommand := make(chan relayParentAndCommand, 1)
 
 	for {
 		select {
@@ -220,7 +224,10 @@ func (cb *CandidateBacking) Run(
 			if err := cb.processValidatedCandidateCommand(rpAndCmd, chRelayParentAndCommand); err != nil {
 				logger.Errorf("processing validated candidated command: %s", err.Error())
 			}
-		case msg := <-cb.OverseerToSubSystem:
+		case msg, ok := <-cb.OverseerToSubSystem:
+			if !ok {
+				return
+			}
 			if err := cb.processMessage(msg, chRelayParentAndCommand); err != nil {
 				logger.Errorf("processing message: %s", err.Error())
 			}

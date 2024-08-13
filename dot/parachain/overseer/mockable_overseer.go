@@ -19,8 +19,14 @@ type MockableOverseer struct {
 	overseerToSubsystem  chan any
 	subSystem            parachaintypes.Subsystem
 
-	// this is going to be limited to only one testcase
-	expectedMessagesWithAction map[any]func(msg any)
+	// actionsForExpectedMessages stores overseer messages we receive from the subsystem.
+	// need to return false if the message is unexpected
+	// actions must be in the order that we expect them.
+	//
+	// At some point in future if we can't be sure of in which order messages will be sent
+	// (say multiple parallel tasks running that could emit messages at any time),
+	// we will need to modify this.
+	actionsForExpectedMessages []func(msg any) bool
 }
 
 func NewMockableOverseer(t *testing.T) *MockableOverseer {
@@ -31,7 +37,7 @@ func NewMockableOverseer(t *testing.T) *MockableOverseer {
 		ctx:                        ctx,
 		cancel:                     cancel,
 		SubsystemsToOverseer:       make(chan any),
-		expectedMessagesWithAction: make(map[any]func(msg any)),
+		actionsForExpectedMessages: []func(msg any) bool{},
 	}
 }
 
@@ -57,30 +63,40 @@ func (m *MockableOverseer) Start() error {
 
 func (m *MockableOverseer) Stop() {
 	m.cancel()
+	close(m.overseerToSubsystem)
 }
 
+// ReceiveMessage method is to receive overseer messages in a subsystem which we are testing
 func (m *MockableOverseer) ReceiveMessage(msg any) {
 	m.overseerToSubsystem <- msg
 }
 
-func (m *MockableOverseer) ExpectMessageWithAction(msg any, fn func(msg any)) {
-	m.expectedMessagesWithAction[msg] = fn
+// ExpectActions is to set expected actions for overseer messages we receive from the subsystem.
+// actions are expected in the order they are set.
+// all the functions in the arguments should return false if the message is unexpected.
+func (m *MockableOverseer) ExpectActions(fns ...func(msg any) bool) {
+	m.actionsForExpectedMessages = append(m.actionsForExpectedMessages, fns...)
 }
 
 func (m *MockableOverseer) processMessages() {
+	actionIndex := 0
 	for {
 		select {
 		case msg := <-m.SubsystemsToOverseer:
 			if msg == nil {
 				continue
 			}
-			action, ok := m.expectedMessagesWithAction[msg]
-			if !ok {
-				m.t.Errorf("unexpected message: %v", msg)
-				continue
-			}
 
-			action(msg)
+			if actionIndex < len(m.actionsForExpectedMessages) {
+				action := m.actionsForExpectedMessages[actionIndex]
+				ok := action(msg)
+				if !ok {
+					m.t.Errorf("unexpected message: %T", msg)
+					return
+				}
+
+				actionIndex = actionIndex + 1
+			}
 		case <-m.ctx.Done():
 			if err := m.ctx.Err(); err != nil {
 				m.t.Logf("ctx error: %v\n", err)

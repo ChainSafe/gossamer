@@ -206,7 +206,7 @@ func (cb *CandidateBacking) handleCommandSecond(
 	// If we get an errRejectedByProspectiveParachains,
 	// then the statement has not been distributed or imported into the table
 	signedFullStatementWithPVD, err := signImportAndDistributeStatement(
-		cb.SubSystemToOverseer, rpState, cb.perCandidate, statement, &pvd, cb.keystore)
+		cb.SubSystemToOverseer, rpState, cb.perCandidate, statement, &pvd, cb.Keystore)
 
 	if err != nil {
 		if errors.Is(err, errRejectedByProspectiveParachains) {
@@ -275,7 +275,7 @@ func (cb *CandidateBacking) handleCommandAttest(
 
 	if bgValidationResult.err == nil {
 		if _, err := signImportAndDistributeStatement(
-			cb.SubSystemToOverseer, rpState, cb.perCandidate, statement, nil, cb.keystore,
+			cb.SubSystemToOverseer, rpState, cb.perCandidate, statement, nil, cb.Keystore,
 		); err != nil {
 			return err
 		}
