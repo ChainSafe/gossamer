@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ChainSafe/gossamer/dot/network"
 	events "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "network-bridge"))
@@ -33,6 +35,8 @@ var (
 )
 
 type NetworkBridgeReceiver struct {
+	net Network
+
 	BlockState *state.BlockState
 	Keystore   keystore.Keystore
 
@@ -181,6 +185,24 @@ func (collations Collations) IsSecondedLimitReached(relayParentMode parachaintyp
 	}
 
 	return collations.secondedCount >= secondedLimit
+}
+
+func RegisterReceiver(overseerChan chan<- any, net Network, collationProtocolID protocol.ID, validationProtocolID protocol.ID) (*NetworkBridgeReceiver, error) {
+	nbr := &NetworkBridgeReceiver{
+		net:                  net,
+		SubsystemsToOverseer: overseerChan,
+	}
+
+	err := RegisterCollationProtocol(net, *nbr, collationProtocolID, overseerChan)
+	if err != nil {
+		return nil, fmt.Errorf("registering collation protocol: %w", err)
+	}
+
+	err = RegisterValidationProtocol(net, *nbr, validationProtocolID, overseerChan)
+	if err != nil {
+		return nil, fmt.Errorf("registering validation protocol: %w", err)
+	}
+	return nbr, nil
 }
 
 func (nbr *NetworkBridgeReceiver) Run(ctx context.Context, OverseerToSubSystem chan any,
@@ -401,6 +423,12 @@ func signingKeyAndIndex(validators []parachaintypes.ValidatorID, ks keystore.Key
 	}
 
 	return nil, 0
+}
+
+func (nbr *NetworkBridgeReceiver) handleCollationMessage(
+	sender peer.ID, msg network.NotificationsMessage) (bool, error) {
+	// TODO: fill this up
+	return false, nil
 }
 
 func (nbr *NetworkBridgeReceiver) assignIncoming(relayParent common.Hash, perRelayParent *PerRelayParent,

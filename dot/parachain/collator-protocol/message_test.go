@@ -587,9 +587,9 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 
 			ctx, cancel := context.WithCancel(context.Background())
 			cpvs := CollatorProtocolValidatorSide{
-				ctx:            ctx,
-				cancel:         cancel,
-				net:            c.net,
+				ctx:    ctx,
+				cancel: cancel,
+				// net:            c.net,
 				perRelayParent: c.perRelayParent,
 				peerData:       c.peerData,
 				activeLeaves:   c.activeLeaves,

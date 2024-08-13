@@ -149,7 +149,7 @@ func (cpvs *CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal(signal pa
 
 func (cpvs CollatorProtocolValidatorSide) Stop() {
 	cpvs.cancel()
-	cpvs.net.FreeNetworkEventsChannel(cpvs.networkEventInfoChan)
+	// cpvs.net.FreeNetworkEventsChannel(cpvs.networkEventInfoChan)
 }
 
 // requestCollation requests a collation from the network.
@@ -395,8 +395,8 @@ type CollatorProtocolValidatorSide struct {
 	cancel context.CancelFunc
 
 	BlockState *state.BlockState
-	net        Network
-	Keystore   keystore.Keystore
+	// net        Network
+	Keystore keystore.Keystore
 
 	SubSystemToOverseer  chan<- any
 	OverseerToSubSystem  <-chan any

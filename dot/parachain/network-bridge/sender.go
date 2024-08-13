@@ -17,7 +17,7 @@ type NetworkBridgeSender struct {
 	SubsystemsToOverseer chan<- any
 }
 
-func Register(overseerChan chan<- any, net Network) *NetworkBridgeSender {
+func RegisterSender(overseerChan chan<- any, net Network) *NetworkBridgeSender {
 	return &NetworkBridgeSender{
 		net:                  net,
 		SubsystemsToOverseer: overseerChan,

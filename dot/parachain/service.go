@@ -47,7 +47,7 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	}
 	genesisHash := st.Block.GenesisHash()
 
-	networkBridge := networkbridge.Register(overseer.SubsystemsToOverseer, net)
+	networkBridge := networkbridge.RegisterSender(overseer.SubsystemsToOverseer, net)
 	overseer.RegisterSubsystem(networkBridge)
 
 	availabilityStore, err := availability_store.Register(overseer.GetSubsystemToOverseerChannel(), st.DB(), nil)
