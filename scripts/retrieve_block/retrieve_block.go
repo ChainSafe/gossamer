@@ -62,13 +62,18 @@ func parseTargetBlock(arg string) variadic.Uint32OrHash {
 }
 
 func waitAndStoreResponse(stream lip2pnetwork.Stream, outputFile string) bool {
-	output := p2p.ReadStream(stream)
+	output, err := p2p.ReadStream(stream)
 	if len(output) == 0 {
 		return false
 	}
 
+	if err != nil {
+		log.Println(err.Error())
+		return false
+	}
+
 	blockResponse := &messages.BlockResponseMessage{}
-	err := blockResponse.Decode(output)
+	err = blockResponse.Decode(output)
 	if err != nil {
 		log.Fatalf("could not decode block response message: %s", err.Error())
 	}
@@ -125,7 +130,12 @@ func main() {
 		}
 
 		defer stream.Close() //nolint:errcheck
-		p2p.WriteStream(requestMessage, stream)
+		err = p2p.WriteStream(requestMessage, stream)
+		if err != nil {
+			log.Println(err.Error())
+			continue
+		}
+
 		if !waitAndStoreResponse(stream, os.Args[3]) {
 			continue
 		}

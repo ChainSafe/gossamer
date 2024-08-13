@@ -5,6 +5,7 @@ package p2p
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -117,20 +118,24 @@ func parsePeerAddress(arg string) peer.AddrInfo {
 	return *p
 }
 
-func ReadStream(stream lip2pnetwork.Stream) []byte {
+var (
+	errZeroLength = errors.New("zero length")
+)
+
+func ReadStream(stream lip2pnetwork.Stream) ([]byte, error) {
 	responseBuf := make([]byte, network.MaxBlockResponseSize)
 
 	length, _, err := network.ReadLEB128ToUint64(stream)
 	if err != nil {
-		log.Fatalf("reading response length: %s", err.Error())
+		return nil, fmt.Errorf("reading leb128: %w", err)
 	}
 
 	if length == 0 {
-		return nil
+		return nil, errZeroLength
 	}
 
 	if length > network.MaxBlockResponseSize {
-		log.Fatalf("%s: max %d, got %d", network.ErrGreaterThanMaxSize, network.MaxBlockResponseSize, length)
+		return nil, fmt.Errorf("%w: max %d, got %d", network.ErrGreaterThanMaxSize, network.MaxBlockResponseSize, length)
 	}
 
 	if length > uint64(len(responseBuf)) {
@@ -142,22 +147,22 @@ func ReadStream(stream lip2pnetwork.Stream) []byte {
 	for tot < int(length) {
 		n, err := stream.Read(responseBuf[tot:])
 		if err != nil {
-			log.Fatalf("reading stream: %s", err.Error())
+			return nil, fmt.Errorf("reading stream: %w", err)
 		}
 		tot += n
 	}
 
 	if tot != int(length) {
-		log.Fatalf("%s: expected %d bytes, received %d bytes", network.ErrFailedToReadEntireMessage, length, tot)
+		return nil, fmt.Errorf("%w: expected %d bytes, received %d bytes", network.ErrFailedToReadEntireMessage, length, tot)
 	}
 
-	return responseBuf[:tot]
+	return responseBuf[:tot], nil
 }
 
-func WriteStream(msg messages.P2PMessage, stream lip2pnetwork.Stream) {
+func WriteStream(msg messages.P2PMessage, stream lip2pnetwork.Stream) error {
 	encMsg, err := msg.Encode()
 	if err != nil {
-		log.Fatalf("encoding message: %s", err.Error())
+		return fmt.Errorf("encoding message: %w", err)
 	}
 
 	msgLen := uint64(len(encMsg))
@@ -166,6 +171,8 @@ func WriteStream(msg messages.P2PMessage, stream lip2pnetwork.Stream) {
 
 	_, err = stream.Write(encMsg)
 	if err != nil {
-		log.Fatalf("writing message: %s", err.Error())
+		return fmt.Errorf("writing message: %w", err)
 	}
+
+	return nil
 }

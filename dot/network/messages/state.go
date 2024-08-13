@@ -56,14 +56,45 @@ func (s *StateRequest) Decode(in []byte) error {
 
 type StateResponse struct {
 	Entries []KeyValueStateEntry
-}
-
-func (s *StateResponse) Decode(in []byte) error {
-		
+	Proof   []byte
 }
 
 type KeyValueStateEntry struct {
-	StateRoot    []byte
+	StateRoot    common.Hash
 	StateEntries trie.Entries
 	Complete     bool
+}
+
+func (s *StateResponse) Decode(in []byte) error {
+	decodedResponse := &pb.StateResponse{}
+	err := proto.Unmarshal(in, decodedResponse)
+	if err != nil {
+		return err
+	}
+
+	s.Proof = make([]byte, len(decodedResponse.Proof))
+	copy(s.Proof, decodedResponse.Proof)
+
+	s.Entries = make([]KeyValueStateEntry, len(decodedResponse.Entries))
+	for idx, entry := range decodedResponse.Entries {
+		s.Entries[idx] = KeyValueStateEntry{
+			Complete:  entry.Complete,
+			StateRoot: common.BytesToHash(entry.StateRoot),
+		}
+
+		trieFragment := make(trie.Entries, len(entry.Entries))
+		for stateEntryIdx, stateEntry := range entry.Entries {
+			trieFragment[stateEntryIdx] = trie.Entry{
+				Key:   make([]byte, len(stateEntry.Key)),
+				Value: make([]byte, len(stateEntry.Value)),
+			}
+
+			copy(trieFragment[stateEntryIdx].Key, stateEntry.Key)
+			copy(trieFragment[stateEntryIdx].Value, stateEntry.Value)
+		}
+
+		s.Entries[idx].StateEntries = trieFragment
+	}
+
+	return nil
 }
