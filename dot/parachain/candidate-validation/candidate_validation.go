@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -26,9 +25,6 @@ var (
 
 // CandidateValidation is a parachain subsystem that validates candidate parachain blocks
 type CandidateValidation struct {
-	wg       sync.WaitGroup
-	stopChan chan struct{}
-
 	SubsystemToOverseer chan<- any
 	OverseerToSubsystem <-chan any
 	ValidationHost      parachainruntime.ValidationHost
@@ -49,13 +45,16 @@ func NewCandidateValidation(overseerChan chan<- any, blockState BlockState) *Can
 }
 
 // Run starts the CandidateValidation subsystem
-func (cv *CandidateValidation) Run(context.Context, context.CancelFunc, chan any, chan any) {
+func (cv *CandidateValidation) Run(ctx context.Context, _ context.CancelFunc, _ chan any, _ chan any) {
 	for {
 		select {
 		case msg := <-cv.OverseerToSubsystem:
 			logger.Debugf("received message %v", msg)
 			cv.processMessages(msg)
-		case <-cv.stopChan:
+		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
+				logger.Errorf("ctx error: %s\n", err)
+			}
 			return
 		}
 	}
@@ -80,8 +79,6 @@ func (*CandidateValidation) ProcessBlockFinalizedSignal(parachaintypes.BlockFina
 
 // Stop stops the CandidateValidation subsystem
 func (cv *CandidateValidation) Stop() {
-	close(cv.stopChan)
-	cv.wg.Wait()
 }
 
 // processMessages processes messages sent to the CandidateValidation subsystem

@@ -435,10 +435,8 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 
 	toSubsystem := make(chan any)
 	sender := make(chan parachaintypes.OverseerFuncRes[ValidationResult])
-	stopChan := make(chan struct{})
 	candidateValidationSubsystem := CandidateValidation{
 		OverseerToSubsystem: toSubsystem,
-		stopChan:            stopChan,
 		ValidationHost:      testValidationHost,
 	}
 	defer candidateValidationSubsystem.Stop()
