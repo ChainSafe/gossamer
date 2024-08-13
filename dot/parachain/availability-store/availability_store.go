@@ -75,7 +75,6 @@ var defaultPruningConfig = pruningConfig{
 // AvailabilityStoreSubsystem is the struct that holds subsystem data for the availability store
 type AvailabilityStoreSubsystem struct {
 	subSystemToOverseer    chan<- any
-	OverseerToSubSystem    <-chan any
 	availabilityStore      availabilityStore
 	finalizedBlockNumber   parachaintypes.BlockNumber
 	knownUnfinalizedBlocks knownUnfinalizedBlocks
@@ -411,11 +410,11 @@ func branchesFromChunks(chunks [][]byte) (branches, error) {
 
 // Run runs the availability store subsystem
 func (av *AvailabilityStoreSubsystem) Run(
-	ctx context.Context, OverseerToSubsystem chan any, SubsystemToOverseer chan any,
+	ctx context.Context, overseerToSubsystem chan any, SubsystemToOverseer chan any,
 ) {
 	for {
 		select {
-		case msg := <-OverseerToSubsystem:
+		case msg := <-overseerToSubsystem:
 			logger.Infof("received message %T, %v", msg, msg)
 			av.processMessages(msg)
 		case <-time.After(av.pruningConfig.pruningInterval):

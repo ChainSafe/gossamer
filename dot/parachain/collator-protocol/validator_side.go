@@ -60,14 +60,14 @@ var (
 
 func (cpvs CollatorProtocolValidatorSide) Run(
 	ctx context.Context,
-	OverseerToSubSystem chan any, SubSystemToOverseer chan any,
+	overseerToSubSystem chan any, SubSystemToOverseer chan any,
 ) {
 	inactivityTicker := time.NewTicker(activityPoll)
 
 	for {
 		select {
 		// TODO: polkadot-rust changes reputation in batches, so we do the same?
-		case msg, ok := <-cpvs.OverseerToSubSystem:
+		case msg, ok := <-overseerToSubSystem:
 			if !ok {
 				return
 			}
@@ -697,7 +697,6 @@ type CollatorProtocolValidatorSide struct {
 	Keystore   keystore.Keystore
 
 	SubSystemToOverseer  chan<- any
-	OverseerToSubSystem  <-chan any
 	networkEventInfoChan chan *network.NetworkEventInfo
 
 	unfetchedCollation chan UnfetchedCollation

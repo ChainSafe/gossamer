@@ -968,7 +968,7 @@ func newTestHarness(t *testing.T) *testHarness {
 
 	require.NoError(t, err)
 
-	availabilityStore.OverseerToSubSystem = harness.overseer.RegisterSubsystem(availabilityStore)
+	harness.overseer.RegisterSubsystem(availabilityStore)
 
 	return harness
 }

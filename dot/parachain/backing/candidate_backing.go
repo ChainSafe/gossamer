@@ -49,7 +49,6 @@ var (
 // CandidateBacking represents the state of the subsystem responsible for managing candidate backing.
 type CandidateBacking struct {
 	SubSystemToOverseer chan<- any
-	OverseerToSubSystem <-chan any
 	// State tracked for all relay-parents backing work is ongoing for. This includes
 	// all active leaves.
 	//
@@ -216,7 +215,7 @@ func (cb *CandidateBacking) Run(
 			if err := cb.processValidatedCandidateCommand(rpAndCmd, chRelayParentAndCommand); err != nil {
 				logger.Errorf("processing validated candidated command: %s", err.Error())
 			}
-		case msg, ok := <-cb.OverseerToSubSystem:
+		case msg, ok := <-overseerToSubSystem:
 			if !ok {
 				return
 			}
