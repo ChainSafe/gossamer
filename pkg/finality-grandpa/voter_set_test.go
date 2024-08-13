@@ -62,7 +62,7 @@ func TestVoterSet_Equality(t *testing.T) {
 		if noValIDWeight == true {
 			return true
 		}
-		// or the total weight overflows a u64
+		// or the total weight overflows a uint64
 		sum := big.NewInt(0)
 		for _, iw := range v {
 			sum.Add(sum, new(big.Int).SetUint64(iw.Weight))
