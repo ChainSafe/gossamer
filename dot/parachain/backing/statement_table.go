@@ -453,7 +453,7 @@ func (attested *attestedCandidate) toBackedCandidate(tableCtx *tableContext) (*p
 	}
 
 	// Collect sorted validity votes
-	var sortedValidityVotes []parachaintypes.ValidityAttestation
+	sortedValidityVotes := make([]parachaintypes.ValidityAttestation, 0, len(group))
 	for i := 0; i < len(group); i++ {
 		if vote, exists := validityVotes[i]; exists {
 			sortedValidityVotes = append(sortedValidityVotes, vote)

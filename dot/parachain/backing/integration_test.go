@@ -415,7 +415,7 @@ func TestSecondsValidCandidate(t *testing.T) {
 }
 
 // candidate reaches quorum.
-// in legasy backing, we need 2 approvals to reach quorum.
+// in legacy backing, we need 2 approvals to reach quorum.
 func TestCandidateReachesQuorum(t *testing.T) {
 	candidateBacking, overseer := initBackingAndOverseerMock(t)
 	defer overseer.Stop()
