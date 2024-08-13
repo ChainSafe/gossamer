@@ -59,11 +59,9 @@ var (
 )
 
 func (cpvs CollatorProtocolValidatorSide) Run(
-	ctx context.Context, cancel context.CancelFunc,
+	ctx context.Context,
 	OverseerToSubSystem chan any, SubSystemToOverseer chan any,
 ) {
-	cpvs.ctx = ctx
-	cpvs.cancel = cancel
 	inactivityTicker := time.NewTicker(activityPoll)
 
 	for {
@@ -101,8 +99,8 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 				cpvs.fetchedCollations = append(cpvs.fetchedCollations, *collation)
 			}
 
-		case <-cpvs.ctx.Done():
-			if err := cpvs.ctx.Err(); err != nil {
+		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
 				logger.Errorf("ctx error: %v\n", err)
 			}
 		}
@@ -438,7 +436,6 @@ func (cpvs *CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal(signal pa
 }
 
 func (cpvs CollatorProtocolValidatorSide) Stop() {
-	cpvs.cancel()
 	cpvs.net.FreeNetworkEventsChannel(cpvs.networkEventInfoChan)
 }
 
@@ -695,9 +692,6 @@ type CollationEvent struct {
 }
 
 type CollatorProtocolValidatorSide struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-
 	BlockState *state.BlockState
 	net        Network
 	Keystore   keystore.Keystore

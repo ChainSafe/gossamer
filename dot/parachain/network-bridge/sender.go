@@ -25,13 +25,20 @@ func Register(overseerChan chan<- any, net Network) *NetworkBridgeSender {
 }
 
 func (nbs *NetworkBridgeSender) Run(
-	_ context.Context, _ context.CancelFunc,
-	OverseerToSubSystem chan any, SubSystemToOverseer chan any,
+	ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any,
 ) {
-	for msg := range nbs.OverseerToSubSystem {
-		err := nbs.processMessage(msg)
-		if err != nil {
-			logger.Errorf("processing overseer message: %w", err)
+	for {
+		select {
+		case msg := <-OverseerToSubSystem:
+			err := nbs.processMessage(msg)
+			if err != nil {
+				logger.Errorf("processing overseer message: %w", err)
+			}
+		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
+				logger.Errorf("ctx error: %s\n", err)
+			}
+			return
 		}
 	}
 }

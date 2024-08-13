@@ -8,7 +8,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
@@ -75,10 +74,6 @@ var defaultPruningConfig = pruningConfig{
 
 // AvailabilityStoreSubsystem is the struct that holds subsystem data for the availability store
 type AvailabilityStoreSubsystem struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
-
 	subSystemToOverseer    chan<- any
 	OverseerToSubSystem    <-chan any
 	availabilityStore      availabilityStore
@@ -416,14 +411,22 @@ func branchesFromChunks(chunks [][]byte) (branches, error) {
 
 // Run runs the availability store subsystem
 func (av *AvailabilityStoreSubsystem) Run(
-	ctx context.Context, cancel context.CancelFunc,
-	OverseerToSubsystem chan any, SubsystemToOverseer chan any,
+	ctx context.Context, OverseerToSubsystem chan any, SubsystemToOverseer chan any,
 ) {
-	av.ctx = ctx
-	av.cancel = cancel
-
-	av.wg.Add(1)
-	go av.processMessages()
+	for {
+		select {
+		case msg := <-OverseerToSubsystem:
+			logger.Infof("received message %T, %v", msg, msg)
+			av.processMessages(msg)
+		case <-time.After(av.pruningConfig.pruningInterval):
+			av.pruneAll()
+		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
+				logger.Errorf("ctx error: %v", err)
+			}
+			return
+		}
+	}
 }
 
 // Name returns the name of the availability store subsystem
@@ -431,77 +434,63 @@ func (*AvailabilityStoreSubsystem) Name() parachaintypes.SubSystemName {
 	return parachaintypes.AvailabilityStore
 }
 
-func (av *AvailabilityStoreSubsystem) processMessages() {
-	for {
-		select {
-		case msg := <-av.OverseerToSubSystem:
-			logger.Infof("received message %T, %v", msg, msg)
-			switch msg := msg.(type) {
-			case QueryAvailableData:
-				err := av.handleQueryAvailableData(msg)
-				if err != nil {
-					logger.Errorf("failed to handle available data: %w", err)
-				}
-			case QueryDataAvailability:
-				err := av.handleQueryDataAvailability(msg)
-				if err != nil {
-					logger.Errorf("failed to handle query data availability: %w", err)
-				}
-			case QueryChunk:
-				err := av.handleQueryChunk(msg)
-				if err != nil {
-					logger.Errorf("failed to handle query chunk: %w", err)
-				}
-			case QueryChunkSize:
-				err := av.handleQueryChunkSize(msg)
-				if err != nil {
-					logger.Errorf("failed to handle query chunk size: %w", err)
-				}
-			case QueryAllChunks:
-				err := av.handleQueryAllChunks(msg)
-				if err != nil {
-					logger.Errorf("failed to handle query all chunks: %w", err)
-				}
-			case QueryChunkAvailability:
-				err := av.handleQueryChunkAvailability(msg)
-				if err != nil {
-					logger.Errorf("failed to handle query chunk availability: %w", err)
-				}
-			case StoreChunk:
-				err := av.handleStoreChunk(msg)
-				if err != nil {
-					logger.Errorf("failed to handle store chunk: %w", err)
-				}
-			case StoreAvailableData:
-				err := av.handleStoreAvailableData(msg)
-				if err != nil {
-					logger.Errorf("failed to handle store available data: %w", err)
-				}
-			case parachaintypes.ActiveLeavesUpdateSignal:
-				err := av.ProcessActiveLeavesUpdateSignal(msg)
-				if err != nil {
-					logger.Errorf("failed to process active leaves update signal: %w", err)
-				}
-			case parachaintypes.BlockFinalizedSignal:
-				err := av.ProcessBlockFinalizedSignal(msg)
-				if err != nil {
-					logger.Errorf("failed to process block finalized signal: %w", err)
-				}
+func (av *AvailabilityStoreSubsystem) processMessages(msg any) {
+	switch msg := msg.(type) {
+	case QueryAvailableData:
+		err := av.handleQueryAvailableData(msg)
+		if err != nil {
+			logger.Errorf("failed to handle available data: %w", err)
+		}
+	case QueryDataAvailability:
+		err := av.handleQueryDataAvailability(msg)
+		if err != nil {
+			logger.Errorf("failed to handle query data availability: %w", err)
+		}
+	case QueryChunk:
+		err := av.handleQueryChunk(msg)
+		if err != nil {
+			logger.Errorf("failed to handle query chunk: %w", err)
+		}
+	case QueryChunkSize:
+		err := av.handleQueryChunkSize(msg)
+		if err != nil {
+			logger.Errorf("failed to handle query chunk size: %w", err)
+		}
+	case QueryAllChunks:
+		err := av.handleQueryAllChunks(msg)
+		if err != nil {
+			logger.Errorf("failed to handle query all chunks: %w", err)
+		}
+	case QueryChunkAvailability:
+		err := av.handleQueryChunkAvailability(msg)
+		if err != nil {
+			logger.Errorf("failed to handle query chunk availability: %w", err)
+		}
+	case StoreChunk:
+		err := av.handleStoreChunk(msg)
+		if err != nil {
+			logger.Errorf("failed to handle store chunk: %w", err)
+		}
+	case StoreAvailableData:
+		err := av.handleStoreAvailableData(msg)
+		if err != nil {
+			logger.Errorf("failed to handle store available data: %w", err)
+		}
+	case parachaintypes.ActiveLeavesUpdateSignal:
+		err := av.ProcessActiveLeavesUpdateSignal(msg)
+		if err != nil {
+			logger.Errorf("failed to process active leaves update signal: %w", err)
+		}
+	case parachaintypes.BlockFinalizedSignal:
+		err := av.ProcessBlockFinalizedSignal(msg)
+		if err != nil {
+			logger.Errorf("failed to process block finalized signal: %w", err)
+		}
 
-			default:
-				if msg != nil {
-					// this error shouldn't happen, so we'll panic to catch it during development
-					panic(fmt.Sprintf("%s: %T", parachaintypes.ErrUnknownOverseerMessage.Error(), msg))
-				}
-			}
-		case <-av.ctx.Done():
-			if err := av.ctx.Err(); err != nil {
-				logger.Errorf("ctx error: %v", err)
-			}
-			av.wg.Done()
-			return
-		case <-time.After(av.pruningConfig.pruningInterval):
-			av.pruneAll()
+	default:
+		if msg != nil {
+			// this error shouldn't happen, so we'll panic to catch it during development
+			panic(fmt.Sprintf("%s: %T", parachaintypes.ErrUnknownOverseerMessage.Error(), msg))
 		}
 	}
 }
@@ -927,8 +916,7 @@ func (av *AvailabilityStoreSubsystem) processPruneKey(key []byte) error {
 }
 
 func (av *AvailabilityStoreSubsystem) Stop() {
-	av.cancel()
-	av.wg.Wait()
+	logger.Infof("Stopping availability store subsystem")
 }
 
 func (av *AvailabilityStoreSubsystem) deleteUnfinalizedHeight(writer database.Writer,
