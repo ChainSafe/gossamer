@@ -4,7 +4,6 @@
 package candidatevalidation
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -14,6 +13,7 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -32,12 +32,18 @@ type CandidateValidation struct {
 	SubsystemToOverseer chan<- any
 	OverseerToSubsystem <-chan any
 	ValidationHost      parachainruntime.ValidationHost
+	BlockState          BlockState
+}
+
+type BlockState interface {
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 }
 
 // NewCandidateValidation creates a new CandidateValidation subsystem
-func NewCandidateValidation(overseerChan chan<- any) *CandidateValidation {
+func NewCandidateValidation(overseerChan chan<- any, blockState BlockState) *CandidateValidation {
 	candidateValidation := CandidateValidation{
 		SubsystemToOverseer: overseerChan,
+		BlockState:          blockState,
 	}
 	return &candidateValidation
 }
@@ -80,7 +86,24 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 			logger.Debugf("received message %v", msg)
 			switch msg := msg.(type) {
 			case ValidateFromChainState:
-				// TODO: implement functionality to handle ValidateFromChainState, see issue #3919
+				runtimeInstance, err := cv.BlockState.GetRuntime(msg.CandidateReceipt.Descriptor.RelayParent)
+				if err != nil {
+					logger.Errorf("failed to get runtime: %w", err)
+					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+						Err: err,
+					}
+				}
+				result, err := validateFromChainState(runtimeInstance, msg.Pov, msg.CandidateReceipt)
+				if err != nil {
+					logger.Errorf("failed to validate from chain state: %w", err)
+					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+						Err: err,
+					}
+				} else {
+					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+						Data: *result,
+					}
+				}
 			case ValidateFromExhaustive:
 				result, err := validateFromExhaustive(cv.ValidationHost, msg.PersistedValidationData,
 					msg.ValidationCode, msg.CandidateReceipt, msg.PoV)
@@ -155,82 +178,27 @@ func getValidationData(runtimeInstance parachainruntime.RuntimeInstance, paraID 
 
 // validateFromChainState validates a candidate parachain block with provided parameters using relay-chain
 // state and using the parachain runtime.
-func validateFromChainState(runtimeInstance parachainruntime.RuntimeInstance, povRequestor PoVRequestor,
+func validateFromChainState(runtimeInstance parachainruntime.RuntimeInstance, pov parachaintypes.PoV,
 	candidateReceipt parachaintypes.CandidateReceipt) (
-	*parachaintypes.CandidateCommitments, *parachaintypes.PersistedValidationData, bool, error) {
+	*ValidationResult, error) {
 
-	persistedValidationData, validationCode, err := getValidationData(runtimeInstance, candidateReceipt.Descriptor.ParaID)
+	persistedValidationData, validationCode, err := getValidationData(runtimeInstance,
+		candidateReceipt.Descriptor.ParaID)
 	if err != nil {
-		return nil, nil, false, fmt.Errorf("getting validation data: %w", err)
-	}
-
-	// check that the candidate does not exceed any parameters in the persisted validation data
-	pov := povRequestor.RequestPoV(candidateReceipt.Descriptor.PovHash)
-
-	// basic checks
-
-	// check if encoded size of pov is less than max pov size
-	buffer := bytes.NewBuffer(nil)
-	encoder := scale.NewEncoder(buffer)
-	err = encoder.Encode(pov)
-	if err != nil {
-		return nil, nil, false, fmt.Errorf("encoding pov: %w", err)
-	}
-	encodedPoVSize := buffer.Len()
-	if encodedPoVSize > int(persistedValidationData.MaxPovSize) {
-		return nil, nil, false, fmt.Errorf("%w, limit: %d, got: %d", ErrValidationInputOverLimit,
-			persistedValidationData.MaxPovSize, encodedPoVSize)
-	}
-
-	validationCodeHash, err := common.Blake2bHash([]byte(*validationCode))
-	if err != nil {
-		return nil, nil, false, fmt.Errorf("hashing validation code: %w", err)
-	}
-
-	if validationCodeHash != common.Hash(candidateReceipt.Descriptor.ValidationCodeHash) {
-		return nil, nil, false, fmt.Errorf("%w, expected: %s, got %s", ErrValidationCodeMismatch,
-			candidateReceipt.Descriptor.ValidationCodeHash, validationCodeHash)
-	}
-
-	// check candidate signature
-	err = candidateReceipt.Descriptor.CheckCollatorSignature()
-	if err != nil {
-		return nil, nil, false, fmt.Errorf("verifying collator signature: %w", err)
-	}
-
-	validationParams := parachainruntime.ValidationParameters{
-		ParentHeadData:         persistedValidationData.ParentHead,
-		BlockData:              pov.BlockData,
-		RelayParentNumber:      persistedValidationData.RelayParentNumber,
-		RelayParentStorageRoot: persistedValidationData.RelayParentStorageRoot,
+		return nil, fmt.Errorf("getting validation data: %w", err)
 	}
 
 	parachainRuntimeInstance, err := parachainruntime.SetupVM(*validationCode)
 	if err != nil {
-		return nil, nil, false, fmt.Errorf("setting up VM: %w", err)
+		return nil, fmt.Errorf("setting up VM: %w", err)
 	}
 
-	validationResults, err := parachainRuntimeInstance.ValidateBlock(validationParams)
+	validationResults, err := validateFromExhaustive(parachainRuntimeInstance, *persistedValidationData,
+		*validationCode, candidateReceipt, pov)
 	if err != nil {
-		return nil, nil, false, fmt.Errorf("executing validate_block: %w", err)
+		return nil, fmt.Errorf("validating from exhaustive: %w", err)
 	}
-
-	candidateCommitments := parachaintypes.CandidateCommitments{
-		UpwardMessages:            validationResults.UpwardMessages,
-		HorizontalMessages:        validationResults.HorizontalMessages,
-		NewValidationCode:         validationResults.NewValidationCode,
-		HeadData:                  validationResults.HeadData,
-		ProcessedDownwardMessages: validationResults.ProcessedDownwardMessages,
-		HrmpWatermark:             validationResults.HrmpWatermark,
-	}
-
-	isValid, err := runtimeInstance.ParachainHostCheckValidationOutputs(
-		candidateReceipt.Descriptor.ParaID, candidateCommitments)
-	if err != nil {
-		return nil, nil, false, fmt.Errorf("executing validate_block: %w", err)
-	}
-
-	return &candidateCommitments, persistedValidationData, isValid, nil
+	return validationResults, nil
 }
 
 // validateFromExhaustive validates a candidate parachain block with provided parameters

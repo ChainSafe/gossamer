@@ -14,7 +14,7 @@ type ValidateFromChainState struct {
 	Pov              parachaintypes.PoV
 	ExecutorParams   parachaintypes.ExecutorParams
 	ExecKind         parachaintypes.PvfExecTimeoutKind
-	Sender           chan ValidateFromExhaustive
+	Ch               chan parachaintypes.OverseerFuncRes[ValidationResult]
 }
 
 // ValidateFromExhaustive performs full validation of a candidate with provided parameters,
