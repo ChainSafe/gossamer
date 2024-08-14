@@ -875,9 +875,10 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		return errors.New("new :code is empty")
 	}
 
+	// I dont quite understand this still, but lets try it with storing actual hash instead of empty one
 	codeSubBlockHash := bs.baseState.LoadCodeSubstitutedBlockHash()
 
-	if codeSubBlockHash != (common.Hash{}) {
+	if !codeSubBlockHash.IsEmpty() {
 		logger.Infof("codeSubBlockHash is not nil, entering conditional")
 		newVersion, err := wazero_runtime.GetRuntimeVersion(code)
 		if err != nil {
@@ -900,9 +901,10 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 		logger.Infof(
 			"🔄 detected runtime code change, upgrading with block %s from previous code hash %s and spec %d to new code hash %s and spec %d...", //nolint:lll
 			bHash, parentCodeHash, previousVersion.SpecVersion, currCodeHash, newVersion.SpecVersion)
-	}
+	} else {
+		logger.Errorf("codeSubBlockHash is nil, using current code hash: %v", currCodeHash)
 
-	logger.Infof("codeSubBlockHash is nil, using current code hash: %v", currCodeHash)
+	}
 
 	rtCfg := wazero_runtime.Config{
 		Storage:     newState,
@@ -924,7 +926,8 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 
 	bs.StoreRuntime(bHash, instance)
 
-	err = bs.baseState.StoreCodeSubstitutedBlockHash(common.Hash{})
+	// WHy do we store this as just common hash??
+	err = bs.baseState.StoreCodeSubstitutedBlockHash(bHash)
 	if err != nil {
 		logger.Errorf("failed to update code substituted block hash: %v", err)
 		return fmt.Errorf("failed to update code substituted block hash: %w", err)

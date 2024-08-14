@@ -74,6 +74,7 @@ func (s *BaseState) StoreCodeSubstitutedBlockHash(hash common.Hash) error {
 func (s *BaseState) LoadCodeSubstitutedBlockHash() common.Hash {
 	hash, err := s.db.Get(common.CodeSubstitutedBlock)
 	if err != nil {
+		logger.Errorf("getting code substituted block : %v", err)
 		return common.Hash{}
 	}
 
