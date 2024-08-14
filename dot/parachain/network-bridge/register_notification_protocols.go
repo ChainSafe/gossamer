@@ -37,7 +37,7 @@ func RegisterValidationProtocol(net Network, nbr NetworkBridgeReceiver, protocol
 		decodeValidationHandshake,
 		validateValidationHandshake,
 		decodeValidationMessage,
-		handleValidationMessage,
+		nbr.handleValidationMessage,
 		nil,
 		MaxValidationMessageSize,
 	)

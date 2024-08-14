@@ -13,7 +13,10 @@ import (
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
+	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
+
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
@@ -130,6 +133,12 @@ func (o *OverseerSystem) processMessages() {
 				networkbridgemessages.ReportPeer, networkbridgemessages.SendCollationMessage,
 				networkbridgemessages.SendValidationMessage:
 				subsystem = o.nameToSubsystem[parachaintypes.NetworkBridgeSender]
+
+			case networkbridgeevents.PeerMessage[collatorprotocolmessages.CollationProtocol]:
+				subsystem = o.nameToSubsystem[parachaintypes.CollationProtocol]
+
+			case networkbridgeevents.PeerMessage[validationprotocol.ValidationProtocol]:
+				// TODO: relay it to relevant subsystem based on the message type.
 
 			case backing.GetBackableCandidatesMessage, backing.CanSecondMessage, backing.SecondMessage, backing.StatementMessage:
 				subsystem = o.nameToSubsystem[parachaintypes.CandidateBacking]

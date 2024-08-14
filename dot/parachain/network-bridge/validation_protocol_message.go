@@ -22,12 +22,6 @@ func decodeValidationMessage(in []byte) (network.NotificationsMessage, error) {
 	return &validationMessage, nil
 }
 
-func handleValidationMessage(_ peer.ID, msg network.NotificationsMessage) (bool, error) {
-	// TODO: Add things
-	fmt.Println("We got a validation message", msg)
-	return false, nil
-}
-
 func getValidationHandshake() (network.Handshake, error) {
 	return &validationHandshake{}, nil
 }

@@ -304,36 +304,20 @@ func getDeclareSignaturePayload(peerID peer.ID) []byte {
 	return payload
 }
 
-func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
-	sender peer.ID, msg network.NotificationsMessage) (bool, error) {
+func (cpvs CollatorProtocolValidatorSide) processCollatorProtocolMessage(sender peer.ID, msg collatorprotocolmessages.CollationProtocol) error {
 
-	// we don't propagate collation messages, so it will always be false
-	propagate := false
-
-	if msg.Type() != network.CollationMsgType {
-		return propagate, fmt.Errorf("%w, expected: %d, found:%d", ErrUnexpectedMessageOnCollationProtocol,
-			network.CollationMsgType, msg.Type())
-	}
-
-	collatorProtocol, ok := msg.(*collatorprotocolmessages.CollationProtocol)
-	if !ok {
-		return propagate, fmt.Errorf(
-			"failed to cast into collator protocol message, expected: *CollationProtocol, got: %T",
-			msg)
-	}
-
-	collatorProtocolV, err := collatorProtocol.Value()
+	collatorProtocolV, err := msg.Value()
 	if err != nil {
-		return propagate, fmt.Errorf("getting collator protocol value: %w", err)
+		return fmt.Errorf("getting collator protocol value: %w", err)
 	}
 	collatorProtocolMessage, ok := collatorProtocolV.(collatorprotocolmessages.CollatorProtocolMessage)
 	if !ok {
-		return propagate, errors.New("expected value to be collator protocol message")
+		return errors.New("expected value to be collator protocol message")
 	}
 
 	index, collatorProtocolMessageV, err := collatorProtocolMessage.IndexValue()
 	if err != nil {
-		return propagate, fmt.Errorf("getting collator protocol message value: %w", err)
+		return fmt.Errorf("getting collator protocol message value: %w", err)
 	}
 
 	switch index {
@@ -341,7 +325,7 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 	case 0: // Declare
 		declareMessage, ok := collatorProtocolMessageV.(collatorprotocolmessages.Declare)
 		if !ok {
-			return propagate, errors.New("expected message to be declare")
+			return errors.New("expected message to be declare")
 		}
 
 		// check if we already have the collator id declared in this message. If so, punish the
@@ -356,7 +340,7 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 				},
 			}
 
-			return propagate, nil
+			return nil
 		}
 
 		// NOTE: peerData for sender will be filled when it gets connected to us
@@ -370,7 +354,7 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 				},
 			}
 
-			return propagate, fmt.Errorf("%w: %s", ErrUnknownPeer, sender)
+			return fmt.Errorf("%w: %s", ErrUnknownPeer, sender)
 		}
 
 		if peerData.state.PeerState == Collating {
@@ -383,7 +367,7 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 				},
 			}
 
-			return propagate, nil
+			return nil
 		}
 
 		// check signature declareMessage.CollatorSignature
@@ -398,10 +382,10 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 				},
 			}
 
-			return propagate, fmt.Errorf("invalid signature: %w", err)
+			return fmt.Errorf("invalid signature: %w", err)
 		}
 		if err != nil {
-			return propagate, fmt.Errorf("verifying signature: %w", err)
+			return fmt.Errorf("verifying signature: %w", err)
 		}
 
 		// NOTE: assignments are setting when we handle view changes
@@ -433,12 +417,12 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 	case 1: // AdvertiseCollation
 		advertiseCollationMessage, ok := collatorProtocolMessageV.(collatorprotocolmessages.AdvertiseCollation)
 		if !ok {
-			return propagate, errors.New("expected message to be advertise collation")
+			return errors.New("expected message to be advertise collation")
 		}
 
 		err := cpvs.handleAdvertisement(common.Hash(advertiseCollationMessage), sender, nil)
 		if err != nil {
-			return propagate, fmt.Errorf("handling v1 advertisement: %w", err)
+			return fmt.Errorf("handling v1 advertisement: %w", err)
 		}
 		// TODO:
 		// - tracks advertisements received and the source (peer id) of the advertisement
@@ -455,7 +439,7 @@ func (cpvs CollatorProtocolValidatorSide) handleCollationMessage(
 		}
 	}
 
-	return propagate, nil
+	return nil
 }
 
 func getCollatorHandshake() (network.Handshake, error) {

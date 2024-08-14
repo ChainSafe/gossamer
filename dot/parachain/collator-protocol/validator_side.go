@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -523,6 +524,8 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 				Reason: peerset.ReportBadCollatorReason,
 			},
 		}
+	case networkbridgeevents.PeerMessage[collatorprotocolmessages.CollationProtocol]:
+		return cpvs.processCollatorProtocolMessage(msg.PeerID, msg.Messaage)
 	case collatorprotocolmessages.NetworkBridgeUpdate:
 		// TODO: handle network message https://github.com/ChainSafe/gossamer/issues/3515
 		// https://github.com/paritytech/polkadot-sdk/blob/db3fd687262c68b115ab6724dfaa6a71d4a48a59/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1457 //nolint

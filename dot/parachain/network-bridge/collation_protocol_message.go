@@ -10,6 +10,7 @@ import (
 )
 
 func decodeCollationMessage(in []byte) (network.NotificationsMessage, error) {
+	// TODO : Decode a wire message instead
 	collationMessage := collatorprotocolmessages.CollationProtocol{}
 
 	err := scale.Unmarshal(in, &collationMessage)

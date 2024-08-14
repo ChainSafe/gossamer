@@ -13,8 +13,10 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	events "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
+	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 
@@ -30,8 +32,10 @@ import (
 var logger = log.NewFromGlobal(log.AddContext("pkg", "network-bridge"))
 
 var (
-	ErrFinalizedNumber     = errors.New("finalized number is greater than or equal to the block number")
-	ErrInvalidStringFormat = errors.New("invalid string format for fetched collation info")
+	ErrFinalizedNumber                       = errors.New("finalized number is greater than or equal to the block number")
+	ErrInvalidStringFormat                   = errors.New("invalid string format for fetched collation info")
+	ErrUnexpectedMessageOnCollationProtocol  = errors.New("unexpected message on collation protocol")
+	ErrUnexpectedMessageOnValidationProtocol = errors.New("unexpected message on collation protocol")
 )
 
 type NetworkBridgeReceiver struct {
@@ -427,8 +431,56 @@ func signingKeyAndIndex(validators []parachaintypes.ValidatorID, ks keystore.Key
 
 func (nbr *NetworkBridgeReceiver) handleCollationMessage(
 	sender peer.ID, msg network.NotificationsMessage) (bool, error) {
-	// TODO: fill this up
-	return false, nil
+
+	// TODO: this notification has to be a WireMessage. Check if it is a WireMessage
+	// TODO: Handle ViewUpdate message. ViewUpdate happens on both protocols.
+
+	// we don't propagate collation messages, so it will always be false
+	propagate := false
+
+	if msg.Type() != network.CollationMsgType {
+		return propagate, fmt.Errorf("%w, expected: %d, found:%d", ErrUnexpectedMessageOnCollationProtocol,
+			network.CollationMsgType, msg.Type())
+	}
+
+	collatorProtocol, ok := msg.(*collatorprotocolmessages.CollationProtocol)
+	if !ok {
+		return propagate, fmt.Errorf(
+			"failed to cast into collator protocol message, expected: *CollationProtocol, got: %T",
+			msg)
+	}
+
+	nbr.SubsystemsToOverseer <- events.PeerMessage[collatorprotocolmessages.CollationProtocol]{
+		PeerID:   sender,
+		Messaage: *collatorProtocol,
+	}
+
+	return propagate, nil
+}
+
+func (nbr *NetworkBridgeReceiver) handleValidationMessage(
+	sender peer.ID, msg network.NotificationsMessage) (bool, error) {
+	// we don't propagate collation messages, so it will always be false
+	propagate := false
+
+	if msg.Type() != network.ValidationMsgType {
+		return propagate, fmt.Errorf("%w, expected: %d, found:%d", ErrUnexpectedMessageOnValidationProtocol,
+			network.ValidationMsgType, msg.Type())
+	}
+
+	validationProtocol, ok := msg.(*validationprotocol.ValidationProtocol)
+	if !ok {
+		return propagate, fmt.Errorf(
+			"failed to cast into collator protocol message, expected: *CollationProtocol, got: %T",
+			msg)
+	}
+
+	nbr.SubsystemsToOverseer <- events.PeerMessage[validationprotocol.ValidationProtocol]{
+		PeerID:   sender,
+		Messaage: *validationProtocol,
+	}
+
+	return propagate, nil
 }
 
 func (nbr *NetworkBridgeReceiver) assignIncoming(relayParent common.Hash, perRelayParent *PerRelayParent,
