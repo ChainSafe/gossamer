@@ -47,8 +47,20 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	}
 	genesisHash := st.Block.GenesisHash()
 
-	networkBridge := networkbridge.RegisterSender(overseer.SubsystemsToOverseer, net)
-	overseer.RegisterSubsystem(networkBridge)
+	networkBridgeSender := networkbridge.RegisterSender(overseer.SubsystemsToOverseer, net)
+	overseer.RegisterSubsystem(networkBridgeSender)
+
+	collationProtocolID := GeneratePeersetProtocolName(
+		CollationProtocolName, forkID, genesisHash, CollationProtocolVersion)
+
+	validationProtocolID := GeneratePeersetProtocolName(
+		ValidationProtocolName, forkID, genesisHash, ValidationProtocolVersion)
+
+	networkBridgeReceiver, err := networkbridge.RegisterReceiver(overseer.SubsystemsToOverseer, net, protocol.ID(collationProtocolID), protocol.ID(validationProtocolID))
+	if err != nil {
+		return nil, fmt.Errorf("registering network bridge receiver: %w", err)
+	}
+	overseer.RegisterSubsystem(networkBridgeReceiver)
 
 	availabilityStore, err := availability_store.Register(overseer.GetSubsystemToOverseerChannel(), st.DB(), nil)
 	if err != nil {
@@ -56,23 +68,8 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	}
 	availabilityStore.OverseerToSubSystem = overseer.RegisterSubsystem(availabilityStore)
 
-	validationProtocolID := GeneratePeersetProtocolName(
-		ValidationProtocolName, forkID, genesisHash, ValidationProtocolVersion)
-
-	// register validation protocol
-	err = validationprotocol.Register(net, protocol.ID(validationProtocolID))
-	if err != nil {
-		return nil, fmt.Errorf("registering validation protocol: %w", err)
-	}
-
-	collationProtocolID := GeneratePeersetProtocolName(
-		CollationProtocolName, forkID, genesisHash, CollationProtocolVersion)
-
 	// register collation protocol
-	cpvs, err := collatorprotocol.Register(net, protocol.ID(collationProtocolID), overseer.GetSubsystemToOverseerChannel())
-	if err != nil {
-		return nil, err
-	}
+	cpvs := collatorprotocol.New(net, protocol.ID(collationProtocolID), overseer.GetSubsystemToOverseerChannel())
 	cpvs.BlockState = st.Block
 	cpvs.Keystore = ks
 	cpvs.OverseerToSubSystem = overseer.RegisterSubsystem(cpvs)

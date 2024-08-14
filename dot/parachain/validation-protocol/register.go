@@ -5,19 +5,19 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
-func Register(net Network, protocolID protocol.ID) error {
-	return net.RegisterNotificationsProtocol(
-		protocolID,
-		network.ValidationMsgType,
-		getValidationHandshake,
-		decodeValidationHandshake,
-		validateValidationHandshake,
-		decodeValidationMessage,
-		handleValidationMessage,
-		nil,
-		MaxValidationMessageSize,
-	)
-}
+// func Register(net Network, protocolID protocol.ID) error {
+// 	return net.RegisterNotificationsProtocol(
+// 		protocolID,
+// 		network.ValidationMsgType,
+// 		getValidationHandshake,
+// 		decodeValidationHandshake,
+// 		validateValidationHandshake,
+// 		decodeValidationMessage,
+// 		handleValidationMessage,
+// 		nil,
+// 		MaxValidationMessageSize,
+// 	)
+// }
 
 // Network is the interface required by parachain service for the network
 type Network interface {
