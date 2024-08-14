@@ -381,8 +381,7 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 			}
 
 			mockOverseer := overseer.NewMockableOverseer(t)
-			overseerToSubsystem := mockOverseer.RegisterSubsystem(&cpvs)
-			cpvs.OverseerToSubSystem = overseerToSubsystem
+			mockOverseer.RegisterSubsystem(&cpvs)
 			cpvs.SubSystemToOverseer = mockOverseer.GetSubsystemToOverseerChannel()
 
 			mockOverseer.Start()
@@ -583,8 +582,7 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			}
 
 			mockOverseer := overseer.NewMockableOverseer(t)
-			overseerToSubsystem := mockOverseer.RegisterSubsystem(&cpvs)
-			cpvs.OverseerToSubSystem = overseerToSubsystem
+			mockOverseer.RegisterSubsystem(&cpvs)
 			cpvs.SubSystemToOverseer = mockOverseer.GetSubsystemToOverseerChannel()
 
 			mockOverseer.Start()

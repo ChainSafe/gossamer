@@ -433,16 +433,15 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 	})
 	require.NoError(t, err)
 
-	toSubsystem := make(chan any)
+	overseerToSubsystem := make(chan any)
 	sender := make(chan parachaintypes.OverseerFuncRes[ValidationResult])
 	candidateValidationSubsystem := CandidateValidation{
-		OverseerToSubsystem: toSubsystem,
-		ValidationHost:      testValidationHost,
+		ValidationHost: testValidationHost,
 	}
 	defer candidateValidationSubsystem.Stop()
 
 	ctx := context.Background()
-	go candidateValidationSubsystem.Run(ctx, nil, nil)
+	go candidateValidationSubsystem.Run(ctx, overseerToSubsystem, nil)
 
 	tests := map[string]struct {
 		msg  ValidateFromExhaustive
@@ -549,7 +548,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			time.Sleep(100 * time.Millisecond)
-			toSubsystem <- tt.msg
+			overseerToSubsystem <- tt.msg
 			time.Sleep(100 * time.Millisecond)
 			result := <-sender
 			require.Equal(t, tt.want, result)
