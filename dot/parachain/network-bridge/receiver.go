@@ -70,6 +70,8 @@ type NetworkBridgeReceiver struct {
 	OverseerToSubSystem  <-chan any
 	SubsystemsToOverseer chan<- any
 
+	networkEventInfoChan chan *network.NetworkEventInfo
+
 	authorityDiscoveryService AuthorityDiscoveryService
 }
 
@@ -212,10 +214,30 @@ func RegisterReceiver(overseerChan chan<- any, net Network,
 
 func (nbr *NetworkBridgeReceiver) Run(ctx context.Context, OverseerToSubSystem chan any,
 	SubSystemToOverseer chan any) {
-	for msg := range nbr.OverseerToSubSystem {
-		err := nbr.processMessage(msg)
-		if err != nil {
-			logger.Errorf("processing overseer message: %w", err)
+
+	for {
+		select {
+		case msg := <-OverseerToSubSystem:
+			err := nbr.processMessage(msg)
+			if err != nil {
+				logger.Errorf("processing overseer message: %w", err)
+			}
+		case event := <-nbr.networkEventInfoChan:
+			nbr.handleNetworkEvents(*event)
+		}
+	}
+}
+
+func (nbr *NetworkBridgeReceiver) handleNetworkEvents(event network.NetworkEventInfo) {
+	switch event.Event {
+	case network.Connected:
+		nbr.SubsystemsToOverseer <- events.PeerConnected{
+			PeerID: event.PeerID,
+			// TODO: Add remaining fields
+		}
+	case network.Disconnected:
+		nbr.SubsystemsToOverseer <- events.PeerDisconnected{
+			PeerID: event.PeerID,
 		}
 	}
 }

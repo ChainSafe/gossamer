@@ -54,6 +54,16 @@ var (
 	ErrFinalizedNumber     = errors.New("finalized number is greater than or equal to the block number")
 )
 
+func New(net Network, protocolID protocol.ID, overseerChan chan<- any) *CollatorProtocolValidatorSide {
+	collationFetchingReqResProtocol := net.GetRequestResponseProtocol(
+		string(protocolID), collationFetchingRequestTimeout, collationFetchingMaxResponseSize)
+
+	return &CollatorProtocolValidatorSide{
+		SubSystemToOverseer:             overseerChan,
+		collationFetchingReqResProtocol: collationFetchingReqResProtocol,
+	}
+}
+
 func (cpvs CollatorProtocolValidatorSide) Run(
 	ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) {
 	inactivityTicker := time.NewTicker(activityPoll)
@@ -71,8 +81,6 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 				logger.Errorf("processing overseer message: %w", err)
 			}
 
-		case event := <-cpvs.networkEventInfoChan:
-			cpvs.handleNetworkEvents(*event)
 		case <-inactivityTicker.C:
 			// TODO: disconnect inactive peers
 			// https://github.com/paritytech/polkadot/blob/8f05479e4bd61341af69f0721e617f01cbad8bb2/node/network/collator-protocol/src/validator_side/mod.rs#L1301
@@ -399,9 +407,8 @@ type CollatorProtocolValidatorSide struct {
 	// net        Network
 	Keystore keystore.Keystore
 
-	SubSystemToOverseer  chan<- any
-	OverseerToSubSystem  <-chan any
-	networkEventInfoChan chan *network.NetworkEventInfo
+	SubSystemToOverseer chan<- any
+	OverseerToSubSystem <-chan any
 
 	unfetchedCollation chan UnfetchedCollation
 
@@ -524,6 +531,18 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 				Reason: peerset.ReportBadCollatorReason,
 			},
 		}
+	case networkbridgeevents.PeerConnected:
+		_, ok := cpvs.peerData[msg.PeerID]
+		if !ok {
+			cpvs.peerData[msg.PeerID] = PeerData{
+				state: PeerStateInfo{
+					PeerState: Connected,
+					Instant:   time.Now(),
+				},
+			}
+		}
+	case networkbridgeevents.PeerDisconnected:
+		delete(cpvs.peerData, msg.PeerID)
 	case networkbridgeevents.PeerMessage[collatorprotocolmessages.CollationProtocol]:
 		return cpvs.processCollatorProtocolMessage(msg.PeerID, msg.Messaage)
 	case collatorprotocolmessages.NetworkBridgeUpdate:
