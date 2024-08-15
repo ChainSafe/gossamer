@@ -21,8 +21,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-const legacyCollationProtocolV1 = "/polkadot/collation/1"
-
 func decodeCollationMessage(in []byte) (network.NotificationsMessage, error) {
 	collationMessage := collatorprotocolmessages.CollationProtocol{}
 

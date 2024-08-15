@@ -113,23 +113,6 @@ func (CollatorProtocolValidatorSide) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CollationProtocol
 }
 
-func (cpvs CollatorProtocolValidatorSide) handleNetworkEvents(event network.NetworkEventInfo) {
-	switch event.Event {
-	case network.Connected:
-		_, ok := cpvs.peerData[event.PeerID]
-		if !ok {
-			cpvs.peerData[event.PeerID] = PeerData{
-				state: PeerStateInfo{
-					PeerState: Connected,
-					Instant:   time.Now(),
-				},
-			}
-		}
-	case network.Disconnected:
-		delete(cpvs.peerData, event.PeerID)
-	}
-}
-
 func (cpvs *CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(
 	signal parachaintypes.ActiveLeavesUpdateSignal) error {
 	// nothing to do
@@ -389,9 +372,6 @@ type Network interface {
 	) error
 	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
 		maxResponseSize uint64) *network.RequestResponseProtocol
-	GetNetworkEventsChannel() chan *network.NetworkEventInfo
-	FreeNetworkEventsChannel(ch chan *network.NetworkEventInfo)
-	ReportPeer(change peerset.ReputationChange, p peer.ID)
 }
 
 type CollationEvent struct {
@@ -404,8 +384,7 @@ type CollatorProtocolValidatorSide struct {
 	cancel context.CancelFunc
 
 	BlockState *state.BlockState
-	// net        Network
-	Keystore keystore.Keystore
+	Keystore   keystore.Keystore
 
 	SubSystemToOverseer chan<- any
 	OverseerToSubSystem <-chan any

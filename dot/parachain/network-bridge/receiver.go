@@ -198,6 +198,7 @@ func RegisterReceiver(overseerChan chan<- any, net Network,
 	nbr := &NetworkBridgeReceiver{
 		net:                  net,
 		SubsystemsToOverseer: overseerChan,
+		networkEventInfoChan: net.GetNetworkEventsChannel(),
 	}
 
 	err := RegisterCollationProtocol(net, *nbr, collationProtocolID, overseerChan)
@@ -603,7 +604,9 @@ func (nbr *NetworkBridgeReceiver) ProcessBlockFinalizedSignal(signal parachainty
 	return nil
 }
 
-func (nbr *NetworkBridgeReceiver) Stop() {}
+func (nbr *NetworkBridgeReceiver) Stop() {
+	nbr.net.FreeNetworkEventsChannel(nbr.networkEventInfoChan)
+}
 
 func (nbr *NetworkBridgeReceiver) processMessage(msg any) error { //nolint
 	// run this function as a goroutine, ideally
