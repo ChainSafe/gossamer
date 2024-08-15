@@ -211,8 +211,6 @@ func RegisterReceiver(overseerChan chan<- any, net Network, collationProtocolID 
 
 func (nbr *NetworkBridgeReceiver) Run(ctx context.Context, OverseerToSubSystem chan any,
 	SubSystemToOverseer chan any) {
-
-	// TODO: handle incoming messages from the network
 	for msg := range nbr.OverseerToSubSystem {
 		err := nbr.processMessage(msg)
 		if err != nil {

@@ -8,6 +8,9 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+
+	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 )
 
 type WireMessage struct {
@@ -126,4 +129,53 @@ func (v View) checkHeadsEqual(other View) bool {
 	return reflect.DeepEqual(localHeads, otherHeads)
 }
 
-type ProtocolMessage struct{}
+type ProtocolMessage struct {
+	inner any
+}
+
+type ProtocolMessageValues interface {
+	collatorprotocolmessages.CollationProtocol | validationprotocol.ValidationProtocol
+}
+
+func setProtocolMessageVaryingDataType[Value ProtocolMessageValues](pvdt *ProtocolMessage, value Value) {
+	pvdt.inner = value
+}
+
+func (pvdt *ProtocolMessage) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case collatorprotocolmessages.CollationProtocol:
+		setProtocolMessageVaryingDataType(pvdt, value)
+		return
+	case validationprotocol.ValidationProtocol:
+		setProtocolMessageVaryingDataType(pvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (pvdt ProtocolMessage) IndexValue() (index uint, value any, err error) {
+	switch pvdt.inner.(type) {
+	case collatorprotocolmessages.CollationProtocol:
+		return 1, pvdt.inner, nil
+	case validationprotocol.ValidationProtocol:
+		return 2, pvdt.inner, nil
+
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (pvdt ProtocolMessage) Value() (value any, err error) {
+	_, value, err = pvdt.IndexValue()
+	return
+}
+
+func (pvdt ProtocolMessage) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 1:
+		return collatorprotocolmessages.CollationProtocol{}, nil
+	case 2:
+		return validationprotocol.ValidationProtocol{}, nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
