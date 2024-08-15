@@ -56,7 +56,12 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	validationProtocolID := GeneratePeersetProtocolName(
 		ValidationProtocolName, forkID, genesisHash, ValidationProtocolVersion)
 
-	networkBridgeReceiver, err := networkbridge.RegisterReceiver(overseer.SubsystemsToOverseer, net, protocol.ID(collationProtocolID), protocol.ID(validationProtocolID))
+	networkBridgeReceiver, err := networkbridge.RegisterReceiver(
+		overseer.SubsystemsToOverseer,
+		net,
+		protocol.ID(collationProtocolID),
+		protocol.ID(validationProtocolID),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("registering network bridge receiver: %w", err)
 	}
