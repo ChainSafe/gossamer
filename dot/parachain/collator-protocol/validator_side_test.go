@@ -367,6 +367,7 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 	testCases := []struct {
 		description                 string
 		msg                         any
+		expectedActions             []func(msg any) bool
 		deletesBlockedAdvertisement bool
 		blockedAdvertisements       map[string][]blockedAdvertisement
 		canSecond                   bool
@@ -377,6 +378,18 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 			msg: collatorprotocolmessages.Backed{
 				ParaID:   parachaintypes.ParaID(6),
 				ParaHead: common.Hash{},
+			},
+			expectedActions: []func(msg any) bool{
+				func(msg any) bool {
+
+					canSecondMessage, ok := msg.(backing.CanSecondMessage)
+					if !ok {
+						return false
+					}
+					canSecondMessage.ResponseCh <- true
+
+					return true
+				},
 			},
 			canSecond:                   true,
 			deletesBlockedAdvertisement: true,
@@ -435,50 +448,26 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			mockBlockState := NewMockBlockState(ctrl)
-			finalizedNotifierChan := make(chan *types.FinalisationInfo)
-			importedBlockNotiferChan := make(chan *types.Block)
+			overseer := overseer.NewMockableOverseer(t)
 
-			mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(finalizedNotifierChan)
-			mockBlockState.EXPECT().GetImportedBlockNotifierChannel().Return(importedBlockNotiferChan)
-			mockBlockState.EXPECT().FreeFinalisedNotifierChannel(finalizedNotifierChan)
-			mockBlockState.EXPECT().FreeImportedBlockNotifierChannel(importedBlockNotiferChan)
+			collationProtocolID := "/6761727661676500000000000000000000000000000000000000000000000000/1/collations/1"
 
-			overseer := overseer.NewOverseer(mockBlockState)
+			net := NewMockNetwork(ctrl)
+			net.EXPECT().GetRequestResponseProtocol(gomock.Any(), collationFetchingRequestTimeout,
+				uint64(collationFetchingMaxResponseSize)).Return(&network.RequestResponseProtocol{})
+			cpvs := New(net, protocol.ID(collationProtocolID), overseer.GetSubsystemToOverseerChannel())
+
+			cpvs.BlockedAdvertisements = c.blockedAdvertisements
+
+			cpvs.OverseerToSubSystem = overseer.RegisterSubsystem(cpvs)
+
 			err := overseer.Start()
 			require.NoError(t, err)
 
 			defer overseer.Stop()
 
-			collationProtocolID := "/6761727661676500000000000000000000000000000000000000000000000000/1/collations/1"
-
-			net := NewMockNetwork(ctrl)
-			net.EXPECT().RegisterNotificationsProtocol(
-				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-				gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			net.EXPECT().GetRequestResponseProtocol(gomock.Any(), collationFetchingRequestTimeout,
-				uint64(collationFetchingMaxResponseSize)).Return(&network.RequestResponseProtocol{})
-			net.EXPECT().GetNetworkEventsChannel().Return(make(chan *network.NetworkEventInfo))
-			cpvs := New(net, protocol.ID(collationProtocolID), overseer.GetSubsystemToOverseerChannel())
-
-			cpvs.BlockedAdvertisements = c.blockedAdvertisements
-
-			mockBacking := NewMockSubsystem(ctrl)
-			mockBacking.EXPECT().Name().Return(parachaintypes.CandidateBacking)
-			overseerToBacking := overseer.RegisterSubsystem(mockBacking)
-
-			mockNetworkBridgeSender := NewMockSubsystem(ctrl)
-			mockNetworkBridgeSender.EXPECT().Name().Return(parachaintypes.NetworkBridgeSender)
-			overseerToNetworkBridgeSender := overseer.RegisterSubsystem(mockNetworkBridgeSender)
-
-			go func() {
-				msg, _ := (<-overseerToBacking).(backing.CanSecondMessage)
-				msg.ResponseCh <- c.canSecond
-			}()
-
-			go func() {
-				<-overseerToNetworkBridgeSender
-			}()
+			overseer.ReceiveMessage(c.msg)
+			overseer.ExpectActions(c.expectedActions...)
 
 			time.Sleep(1 * time.Second)
 			lenBlackedAdvertisementsBefore := len(cpvs.BlockedAdvertisements)

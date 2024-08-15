@@ -58,7 +58,10 @@ func New(net Network, protocolID protocol.ID, overseerChan chan<- any) *Collator
 	collationFetchingReqResProtocol := net.GetRequestResponseProtocol(
 		string(protocolID), collationFetchingRequestTimeout, collationFetchingMaxResponseSize)
 
+	ctx, cancel := context.WithCancel(context.Background())
 	return &CollatorProtocolValidatorSide{
+		ctx:                             ctx,
+		cancel:                          cancel,
 		SubSystemToOverseer:             overseerChan,
 		collationFetchingReqResProtocol: collationFetchingReqResProtocol,
 	}
