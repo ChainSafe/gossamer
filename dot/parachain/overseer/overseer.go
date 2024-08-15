@@ -29,7 +29,7 @@ var (
 
 type Overseer interface {
 	Start() error
-	RegisterSubsystem(subsystem parachaintypes.Subsystem) chan any
+	RegisterSubsystem(subsystem parachaintypes.Subsystem)
 	Stop() error
 	GetSubsystemToOverseerChannel() chan any
 }
@@ -83,12 +83,10 @@ func (o *OverseerSystem) GetSubsystemToOverseerChannel() chan any {
 
 // RegisterSubsystem registers a subsystem with the overseer,
 // Add OverseerToSubSystem channel to subsystem, which will be passed to subsystem's Run method.
-func (o *OverseerSystem) RegisterSubsystem(subsystem parachaintypes.Subsystem) chan any {
+func (o *OverseerSystem) RegisterSubsystem(subsystem parachaintypes.Subsystem) {
 	OverseerToSubSystem := make(chan any)
 	o.subsystems[subsystem] = OverseerToSubSystem
 	o.nameToSubsystem[subsystem.Name()] = subsystem
-
-	return OverseerToSubSystem
 }
 
 func (o *OverseerSystem) Start() error {
