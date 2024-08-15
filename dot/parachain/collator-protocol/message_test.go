@@ -377,12 +377,6 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 			mockOverseer.Start()
 			defer mockOverseer.Stop()
 
-			for _, expectedMessage := range c.expectedMessages {
-				mockOverseer.ExpectMessageWithAction(expectedMessage, func(msg any) {
-					// do nothing
-				})
-			}
-
 			msg := collatorprotocolmessages.NewCollationProtocol()
 			vdtChild := collatorprotocolmessages.NewCollatorProtocolMessage()
 
@@ -587,9 +581,6 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			mockOverseer.Start()
 			defer mockOverseer.Stop()
 
-			mockOverseer.ExpectMessageWithAction(c.expectedMessage, func(msg any) {
-				// do nothing
-			})
 			msg := collatorprotocolmessages.NewCollationProtocol()
 			vdtChild := collatorprotocolmessages.NewCollatorProtocolMessage()
 

@@ -92,8 +92,8 @@ type StoreAvailableData struct {
 
 // AvailableData is the data we keep available for each candidate included in the relay chain
 type AvailableData struct {
-	PoV            parachaintypes.PoV
-	ValidationData parachaintypes.PersistedValidationData
+	PoV            parachaintypes.PoV                     `scale:"1"`
+	ValidationData parachaintypes.PersistedValidationData `scale:"2"`
 }
 
 // CanidataMeta information about a candidate

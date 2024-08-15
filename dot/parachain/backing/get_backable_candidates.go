@@ -9,7 +9,7 @@ import (
 
 // handleGetBackableCandidatesMessage send back the backable candidates via the response channel
 func (cb *CandidateBacking) handleGetBackableCandidatesMessage(requestedCandidates GetBackableCandidatesMessage) {
-	var backedCandidates []*parachaintypes.BackedCandidate
+	backedCandidates := make([]*parachaintypes.BackedCandidate, 0, len(requestedCandidates.Candidates))
 
 	for _, candidate := range requestedCandidates.Candidates {
 		rpState, ok := cb.perRelayParent[candidate.CandidateRelayParent]
@@ -35,7 +35,11 @@ func (cb *CandidateBacking) handleGetBackableCandidatesMessage(requestedCandidat
 			continue
 		}
 
-		backed := attested.toBackedCandidate(&rpState.tableContext)
+		backed, err := attested.toBackedCandidate(&rpState.tableContext)
+		if err != nil {
+			logger.Debugf("converting attested candidate to backed candidate: %w", err)
+			continue
+		}
 		backedCandidates = append(backedCandidates, backed)
 	}
 

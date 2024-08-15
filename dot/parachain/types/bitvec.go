@@ -1,16 +1,22 @@
-// Copyright 2023 ChainSafe Systems (ON)
+// Copyright 2024 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package scale
+package parachaintypes
 
-const (
-	// maxLen equivalent of `ARCH32BIT_BITSLICE_MAX_BITS` in parity-scale-codec
-	maxLen = 268435455
-	// byteSize is the number of bits in a byte
-	byteSize = 8
+import (
+	"bytes"
+	"fmt"
+	"io"
+
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// BitVec is the implementation of the bit vector
+const byteSize = 8
+const bitVecMaxLength = 268435455
+
+var errBitVecTooLong = fmt.Errorf("bitvec too long")
+
+// BitVec is the implementation of a bit vector
 type BitVec struct {
 	bits []bool
 }
@@ -26,26 +32,12 @@ func NewBitVec(bits []bool) BitVec {
 	}
 }
 
-// Bits returns the bits in the BitVec
-func (bv *BitVec) Bits() []bool {
-	return bv.bits
-}
-
-// Bytes returns the byte representation of the BitVec.Bits
-func (bv *BitVec) Bytes() []byte {
-	return bitsToBytes(bv.bits)
-}
-
-// Size returns the number of bits in the BitVec
-func (bv *BitVec) Size() uint {
-	return uint(len(bv.bits))
-}
-
 // bitsToBytes converts a slice of bits to a slice of bytes
 // Uses lsb ordering
 // TODO: Implement msb ordering
 // https://github.com/ChainSafe/gossamer/issues/3248
-func bitsToBytes(bits []bool) []byte {
+func (bv *BitVec) bytes() []byte {
+	bits := bv.bits
 	bitLength := len(bits)
 	numOfBytes := (bitLength + (byteSize - 1)) / byteSize
 	bytes := make([]byte, numOfBytes)
@@ -68,7 +60,7 @@ func bitsToBytes(bits []bool) []byte {
 }
 
 // bytesToBits converts a slice of bytes to a slice of bits
-func bytesToBits(b []byte, size uint) []bool {
+func (bv *BitVec) setBits(b []byte, size uint) {
 	var bits []bool
 	for _, uint8val := range b {
 		end := size
@@ -82,6 +74,49 @@ func bytesToBits(b []byte, size uint) []bool {
 			bits = append(bits, bit)
 		}
 	}
+	bv.bits = bits
+}
 
-	return bits
+// MarshalSCALE fulfils the SCALE interface for encoding
+func (bv BitVec) MarshalSCALE() ([]byte, error) {
+	buf := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buf)
+	if len(bv.bits) > bitVecMaxLength {
+		return nil, errBitVecTooLong
+	}
+	size := uint(len(bv.bits))
+	err := encoder.Encode(size)
+	if err != nil {
+		return nil, err
+	}
+
+	bytes := bv.bytes()
+	_, err = buf.Write(bytes)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// UnmarshalSCALE fulfils the SCALE interface for decoding
+func (bv *BitVec) UnmarshalSCALE(r io.Reader) error {
+	decoder := scale.NewDecoder(r)
+	var size uint
+	err := decoder.Decode(&size)
+	if err != nil {
+		return err
+	}
+	if size > bitVecMaxLength {
+		return errBitVecTooLong
+	}
+
+	numBytes := (size + (byteSize - 1)) / byteSize
+	b := make([]byte, numBytes)
+	_, err = r.Read(b)
+	if err != nil {
+		return err
+	}
+
+	bv.setBits(b, size)
+	return nil
 }
