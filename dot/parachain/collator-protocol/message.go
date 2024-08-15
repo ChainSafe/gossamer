@@ -304,7 +304,8 @@ func getDeclareSignaturePayload(peerID peer.ID) []byte {
 	return payload
 }
 
-func (cpvs CollatorProtocolValidatorSide) processCollatorProtocolMessage(sender peer.ID, msg collatorprotocolmessages.CollationProtocol) error {
+func (cpvs CollatorProtocolValidatorSide) processCollatorProtocolMessage(sender peer.ID,
+	msg collatorprotocolmessages.CollationProtocol) error {
 
 	collatorProtocolV, err := msg.Value()
 	if err != nil {

@@ -191,7 +191,8 @@ func (collations Collations) IsSecondedLimitReached(relayParentMode parachaintyp
 	return collations.secondedCount >= secondedLimit
 }
 
-func RegisterReceiver(overseerChan chan<- any, net Network, collationProtocolID protocol.ID, validationProtocolID protocol.ID) (*NetworkBridgeReceiver, error) {
+func RegisterReceiver(overseerChan chan<- any, net Network,
+	collationProtocolID protocol.ID, validationProtocolID protocol.ID) (*NetworkBridgeReceiver, error) {
 	nbr := &NetworkBridgeReceiver{
 		net:                  net,
 		SubsystemsToOverseer: overseerChan,
@@ -612,7 +613,9 @@ func (nbr *NetworkBridgeReceiver) processMessage(msg any) error { //nolint
 	return nil
 }
 
-func getTopologyPeers(authorityDiscoveryService AuthorityDiscoveryService, neighbours []events.CanonicalShuffling) []events.TopologyPeerInfo {
+func getTopologyPeers(authorityDiscoveryService AuthorityDiscoveryService,
+	neighbours []events.CanonicalShuffling) []events.TopologyPeerInfo {
+
 	peers := make([]events.TopologyPeerInfo, len(neighbours))
 
 	for _, neighbour := range neighbours {

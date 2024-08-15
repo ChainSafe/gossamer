@@ -8,7 +8,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
-func RegisterCollationProtocol(net Network, nbr NetworkBridgeReceiver, protocolID protocol.ID, overseerChan chan<- any) error {
+func RegisterCollationProtocol(net Network, nbr NetworkBridgeReceiver, protocolID protocol.ID,
+	overseerChan chan<- any) error {
 	// register collation protocol
 	err := net.RegisterNotificationsProtocol(
 		protocolID,
@@ -28,7 +29,8 @@ func RegisterCollationProtocol(net Network, nbr NetworkBridgeReceiver, protocolI
 	return nil
 }
 
-func RegisterValidationProtocol(net Network, nbr NetworkBridgeReceiver, protocolID protocol.ID, overseerChan chan<- any) error {
+func RegisterValidationProtocol(net Network, nbr NetworkBridgeReceiver, protocolID protocol.ID,
+	overseerChan chan<- any) error {
 	// register validation protocol
 	err := net.RegisterNotificationsProtocol(
 		protocolID,
