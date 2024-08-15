@@ -5,6 +5,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -13,20 +15,19 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/ChainSafe/gossamer/scripts/p2p"
+	lip2pnetwork "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
-func buildStateRequestMessage(target common.Hash, start [][]byte, noProof bool) *messages.StateRequest {
-	return &messages.StateRequest{
-		Block:   target,
-		Start:   start,
-		NoProof: noProof,
-	}
-}
+var (
+	errZeroLengthResponse = errors.New("zero length response")
+	errEmptyStateEntries  = errors.New("empty state entries")
+)
 
 func buildTrieFromFolder(folder string) {
 	entries, err := os.ReadDir(folder)
@@ -61,114 +62,193 @@ func buildTrieFromFolder(folder string) {
 	fmt.Printf("=> %s\n", tt.MustHash().String())
 }
 
+type StateRequestProvider struct {
+	lastKeys           [][]byte
+	collectedResponses []*messages.StateResponse
+	targetHash         common.Hash
+	completed          bool
+}
+
+func NewStateRequestProvider(target common.Hash) *StateRequestProvider {
+	return &StateRequestProvider{
+		lastKeys:           [][]byte{},
+		targetHash:         target,
+		collectedResponses: make([]*messages.StateResponse, 0),
+	}
+}
+
+func (s *StateRequestProvider) buildRequest() *messages.StateRequest {
+	return &messages.StateRequest{
+		Block:   s.targetHash,
+		Start:   s.lastKeys,
+		NoProof: true,
+	}
+}
+
+func (s *StateRequestProvider) processResponse(stateResponse *messages.StateResponse) (err error) {
+	if len(stateResponse.Entries) == 0 {
+		return errEmptyStateEntries
+	}
+
+	log.Printf("retrieved %d entries\n", len(stateResponse.Entries))
+	for idx, entry := range stateResponse.Entries {
+		log.Printf("\t#%d with %d entries (complete: %v, root: %s)\n",
+			idx, len(entry.StateEntries), entry.Complete, entry.StateRoot.String())
+	}
+
+	s.collectedResponses = append(s.collectedResponses, stateResponse)
+
+	if len(s.lastKeys) == 2 && len(stateResponse.Entries[0].StateEntries) == 0 {
+		// pop last item and keep the first
+		// do not remove the parent trie position.
+		s.lastKeys = s.lastKeys[:len(s.lastKeys)-1]
+	} else {
+		s.lastKeys = [][]byte{}
+	}
+
+	for _, state := range stateResponse.Entries {
+		if !state.Complete {
+			lastItemInResponse := state.StateEntries[len(state.StateEntries)-1]
+			s.lastKeys = append(s.lastKeys, lastItemInResponse.Key)
+			s.completed = false
+		} else {
+			s.completed = true
+		}
+	}
+
+	return nil
+}
+
+func (s *StateRequestProvider) buildTrie(expectedStorageRootHash common.Hash, destination string) error {
+	tt := inmemory.NewEmptyTrie()
+	tt.SetVersion(trie.V1)
+
+	entries := make([]string, 0)
+
+	for _, stateResponse := range s.collectedResponses {
+		for _, stateEntry := range stateResponse.Entries {
+			for _, kv := range stateEntry.StateEntries {
+
+				trieEntry := trie.Entry{Key: kv.Key, Value: kv.Value}
+				encodedTrieEntry, err := scale.Marshal(trieEntry)
+				if err != nil {
+					return err
+				}
+				entries = append(entries, common.BytesToHex(encodedTrieEntry))
+
+				if err := tt.Put(kv.Key, kv.Value); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	rootHash := tt.MustHash()
+	if expectedStorageRootHash != rootHash {
+		return fmt.Errorf("\n\texpected root hash: %s\ngot root hash: %s\n",
+			expectedStorageRootHash.String(), rootHash.String())
+	}
+
+	fmt.Printf("=> trie root hash: %s\n", tt.MustHash().String())
+	encodedEntries, err := json.Marshal(entries)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(destination, encodedEntries, 0o600)
+	return err
+}
+
 func main() {
-	buildTrieFromFolder(filepath.Clean("./tmp"))
-	return
+	// buildTrieFromFolder(filepath.Clean("./tmp"))
+	// return
 
-	targetBlock := common.MustHexToHash("0xa603508126444a00249999a6d69d3a186377e1bb1b6c7ca9959d4bdb8f96ebb9")
+	if len(os.Args) != 5 {
+		log.Fatalf(`
+		script usage:
+			go run retrieve_state.go [hash] [expected storage root hash] [network chain spec] [output file]`)
+	}
 
-	p2pHost := p2p.SetupP2PClient()
-	chain := p2p.ParseChainSpec(os.Args[1])
-	bootnodes := p2p.ParseBootnodes(chain.Bootnodes)
+	targetBlockHash := common.MustHexToHash(os.Args[1])
+	expectedStorageRootHash := common.MustHexToHash(os.Args[2])
+	chain := p2p.ParseChainSpec(os.Args[3])
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	protocolID := protocol.ID(fmt.Sprintf("/%s/state/2", chain.ProtocolID))
 
-	requestMessage := buildStateRequestMessage(targetBlock, nil, true)
-	keepPID := false
-	var pid peer.AddrInfo
-	idx := 0
-	lastKeys := [][]byte{}
-	complete := false
+	p2pHost := p2p.SetupP2PClient()
+	bootnodes := p2p.ParseBootnodes(chain.Bootnodes)
+	provider := NewStateRequestProvider(targetBlockHash)
 
-	for !complete {
-		if !keepPID {
+	var (
+		pid           peer.AddrInfo
+		refreshPeerID bool = true
+	)
+
+	for !provider.completed {
+		if refreshPeerID {
 			pid = bootnodes[rand.Intn(len(bootnodes))]
 			err := p2pHost.Connect(ctx, pid)
 			if err != nil {
+				log.Printf("WARN: while connecting: %s\n", err.Error())
 				continue
 			}
-			log.Printf("requesting from peer %s\n", pid.String())
+
+			log.Printf("OK: requesting from peer %s\n", pid.String())
 		}
 
 		stream, err := p2pHost.NewStream(ctx, pid.ID, protocolID)
 		if err != nil {
 			log.Printf("WARN: failed to create stream using protocol %s: %s", protocolID, err.Error())
-			keepPID = false
+			refreshPeerID = false
 			continue
 		}
 
-		err = p2p.WriteStream(requestMessage, stream)
+		err = sendAndProcessResponse(provider, stream)
 		if err != nil {
-			log.Println(err.Error())
-			stream.Close()
-			keepPID = false
+			log.Printf("WARN: %s\n", err.Error())
+			refreshPeerID = true
 			continue
 		}
 
-		output, err := p2p.ReadStream(stream)
-		stream.Close()
-
-		if len(output) == 0 {
-			keepPID = false
-			continue
-		}
-
-		if err != nil {
-			log.Println(err.Error())
-			keepPID = false
-			continue
-		}
-
-		stateResponse := &messages.StateResponse{}
-		err = stateResponse.Decode(output)
-		if err != nil {
-			log.Println(err.Error())
-			keepPID = false
-			continue
-		}
-
-		if len(stateResponse.Entries) == 0 {
-			keepPID = false
-			log.Printf("received empty state response entries from %s\n", pid.String())
-			continue
-		}
-
-		log.Printf("retrieved %d entries\n", len(stateResponse.Entries))
-		for idx, entry := range stateResponse.Entries {
-			log.Printf("\t#%d with %d entries (complete: %v, root: %s)\n",
-				idx, len(entry.StateEntries), entry.Complete, entry.StateRoot.String())
-		}
-
-		outputFile := fmt.Sprintf("%d_%s.bin", idx, targetBlock.String())
-		err = os.WriteFile(filepath.Join("tmp", outputFile), []byte(common.BytesToHex(output)), os.ModePerm)
-		if err != nil {
-			log.Fatalf("failed to write %s: %s", outputFile, err.Error())
-		}
-
-		if len(lastKeys) == 2 && len(stateResponse.Entries[0].StateEntries) == 0 {
-			// pop last item and keep the first
-			// do not remove the parent trie position.
-			lastKeys = lastKeys[:len(lastKeys)-1]
-		} else {
-			lastKeys = [][]byte{}
-		}
-
-		for _, state := range stateResponse.Entries {
-			if !state.Complete {
-				lastItemInResponse := state.StateEntries[len(state.StateEntries)-1]
-				lastKeys = append(lastKeys, lastItemInResponse.Key)
-				complete = false
-			} else {
-				complete = true
-			}
-		}
-
-		requestMessage = buildStateRequestMessage(targetBlock, lastKeys, true)
-		idx++
-		keepPID = true
+		// keep using the same peer
+		refreshPeerID = false
 	}
 
+	if err := provider.buildTrie(expectedStorageRootHash, os.Args[4]); err != nil {
+		panic(err)
+	}
+}
+
+func sendAndProcessResponse(provider *StateRequestProvider, stream lip2pnetwork.Stream) error {
+	defer stream.Close()
+
+	err := p2p.WriteStream(provider.buildRequest(), stream)
+	if err != nil {
+		return err
+	}
+
+	output, err := p2p.ReadStream(stream)
+	if err != nil {
+		return err
+	}
+
+	if len(output) == 0 {
+		return errZeroLengthResponse
+	}
+
+	stateResponse := &messages.StateResponse{}
+	err = stateResponse.Decode(output)
+	if err != nil {
+		return err
+	}
+
+	err = provider.processResponse(stateResponse)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
