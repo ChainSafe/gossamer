@@ -160,9 +160,6 @@ func (s *StateRequestProvider) buildTrie(expectedStorageRootHash common.Hash, de
 }
 
 func main() {
-	// buildTrieFromFolder(filepath.Clean("./tmp"))
-	// return
-
 	if len(os.Args) != 5 {
 		log.Fatalf(`
 		script usage:
