@@ -53,13 +53,13 @@ func configDataKey(epoch uint64) []byte {
 
 func nextEpochDataKey(epoch uint64, hash common.Hash) []byte {
 	// we add a "-" to the key to avoid conflicts with composite keys
-	key := fmt.Sprintf("-%d:%s", epoch, hash)
+	key := fmt.Sprintf("-%d:%v", epoch, hash)
 	return append(nextEpochDataPrefix, []byte(key)...)
 }
 
 func nextConfigDataKey(epoch uint64, hash common.Hash) []byte {
 	// we add a "-" to the key to avoid conflicts with composite keys
-	key := fmt.Sprintf("-%d:%s", epoch, hash)
+	key := fmt.Sprintf("-%d:%v", epoch, hash)
 	return append(nextConfigDataPrefix, []byte(key)...)
 }
 
@@ -131,88 +131,6 @@ func NewEpochStateFromGenesis(db database.Database, blockState *BlockState,
 	return s, nil
 }
 
-func getNextEpochDataFromDisk(db database.Database) (nextEpochMap[types.NextEpochData], error) {
-	nextEpochData := make(nextEpochMap[types.NextEpochData])
-
-	iter, err := db.NewPrefixIterator(nextEpochDataPrefix)
-	if err != nil {
-		return nil, err
-	}
-	defer iter.Release()
-
-	for iter.First(); iter.Valid(); iter.Next() {
-		key := string(iter.Key())
-		value := iter.Value()
-
-		// Remove the prefix
-		keyWithoutPrefix := strings.TrimPrefix(key, string(nextEpochDataPrefix)+"-")
-
-		// Split the key into epoch and fork
-		parts := strings.Split(keyWithoutPrefix, ":")
-
-		epoch, err := strconv.ParseUint(parts[0], 10, 64)
-		if err != nil {
-			return nil, err
-		}
-
-		var fork common.Hash
-		part1 := []byte(parts[1])
-		// Copy the hash to the fork
-		copy(fork[:], part1)
-
-		nexEpochvalue := new(types.NextEpochData)
-		if err = scale.Unmarshal(value, nexEpochvalue); err != nil {
-			return nil, err
-		}
-
-		// Add data to the map
-		nextEpochData[epoch][fork] = *nexEpochvalue
-	}
-
-	return nextEpochData, nil
-}
-
-func getNextConfigDataFromDisk(db database.Database) (nextEpochMap[types.NextConfigDataV1], error) {
-	nextConfigData := make(nextEpochMap[types.NextConfigDataV1])
-
-	iter, err := db.NewPrefixIterator(nextConfigDataPrefix)
-	if err != nil {
-		return nil, err
-	}
-	defer iter.Release()
-
-	for iter.First(); iter.Valid(); iter.Next() {
-		key := string(iter.Key())
-		value := iter.Value()
-
-		keyWithoutPrefix := strings.TrimPrefix(key, string(nextConfigDataPrefix)+"-")
-
-		// Split the key into epoch and fork
-		parts := strings.Split(keyWithoutPrefix, ":")
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("invalid key format: %s", key)
-		}
-		epoch, err := strconv.ParseUint(parts[0], 10, 64)
-		if err != nil {
-			return nil, err
-		}
-
-		var fork common.Hash
-		part1 := []byte(parts[1])
-
-		copy(fork[:], part1)
-
-		nexEpochvalue := new(types.NextConfigDataV1)
-		if err = scale.Unmarshal(value, nexEpochvalue); err != nil {
-			return nil, err
-		}
-
-		nextConfigData[epoch][fork] = *nexEpochvalue
-	}
-
-	return nextConfigData, nil
-}
-
 // NewEpochState returns a new EpochState
 func NewEpochState(db database.Database, blockState *BlockState,
 	genesisConfig *types.BabeConfiguration) (*EpochState, error) {
@@ -226,12 +144,7 @@ func NewEpochState(db database.Database, blockState *BlockState,
 		return nil, err
 	}
 
-	nextEpochData, err := getNextEpochDataFromDisk(db)
-	if err != nil {
-		return nil, err
-	}
-
-	nextConfigData, err := getNextConfigDataFromDisk(db)
+	nextEpochData, nextConfigData, err := getNextEpochAndConfigDataFromDisk(db)
 	if err != nil {
 		return nil, err
 	}
@@ -257,6 +170,84 @@ func NewEpochState(db database.Database, blockState *BlockState,
 			},
 		},
 	}, nil
+}
+
+// getNextEpochAndConfigDataFromDisk retrieves the next epoch and config data maps from the database
+func getNextEpochAndConfigDataFromDisk(db database.Database) (nextEpochMap[types.NextEpochData], nextEpochMap[types.NextConfigDataV1], error) {
+	nextConfigData := make(nextEpochMap[types.NextConfigDataV1])
+	nextEpochData := make(nextEpochMap[types.NextEpochData])
+
+	configIter, err := db.NewPrefixIterator(nextConfigDataPrefix)
+	if err != nil {
+		return nextEpochMap[types.NextEpochData]{}, nextEpochMap[types.NextConfigDataV1]{}, err
+	}
+
+	defer configIter.Release()
+
+	for configIter.First(); configIter.Valid(); configIter.Next() {
+		nexEpochvalue := new(types.NextConfigDataV1)
+
+		nexEpochvalue, epoch, fork, err := getNextEpochOrConfigData(nexEpochvalue, nextConfigDataPrefix, configIter)
+		if err != nil {
+			return nextEpochMap[types.NextEpochData]{}, nextEpochMap[types.NextConfigDataV1]{}, err
+		}
+
+		// Add data to the map
+		nextConfigData[epoch][fork] = *nexEpochvalue
+	}
+
+	configIter.Close()
+
+	epochIter, err := db.NewPrefixIterator(nextEpochDataPrefix)
+	if err != nil {
+		return nextEpochMap[types.NextEpochData]{}, nextEpochMap[types.NextConfigDataV1]{}, err
+	}
+
+	defer epochIter.Release()
+
+	for epochIter.First(); epochIter.Valid(); epochIter.Next() {
+
+		nexEpochvalue := new(types.NextEpochData)
+		nexEpochvalue, epoch, fork, err := getNextEpochOrConfigData(nexEpochvalue, nextEpochDataPrefix, epochIter)
+		if err != nil {
+			return nextEpochMap[types.NextEpochData]{}, nextEpochMap[types.NextConfigDataV1]{}, err
+		}
+		// Add data to the map
+		nextEpochData[epoch][fork] = *nexEpochvalue
+	}
+
+	epochIter.Close()
+
+	return nextEpochData, nextConfigData, nil
+}
+
+// getNextEpochOrConfigData retrieves the next epoch or config data from the iterator
+func getNextEpochOrConfigData[T *types.NextConfigDataV1 | *types.NextEpochData](NextData T, nextDataPrefix []byte, iter database.Iterator) (T, uint64, common.Hash, error) {
+	key := string(iter.Key())
+	value := iter.Value()
+
+	keyWithoutPrefix := strings.TrimPrefix(key, string(nextDataPrefix)+"-")
+
+	// Split the key into epoch and fork
+	parts := strings.Split(keyWithoutPrefix, ":")
+	if len(parts) != 2 {
+		return nil, 0, common.Hash{}, fmt.Errorf("invalid key format: %s", key)
+	}
+	epoch, err := strconv.ParseUint(parts[0], 10, 64)
+	if err != nil {
+		return nil, 0, common.Hash{}, err
+	}
+
+	var fork common.Hash
+	part1 := []byte(parts[1])
+
+	copy(fork[:], part1)
+
+	if err = scale.Unmarshal(value, NextData); err != nil {
+		return nil, 0, common.Hash{}, err
+	}
+
+	return NextData, epoch, fork, nil
 }
 
 // GetEpochLength returns the length of an epoch in slots
@@ -687,13 +678,6 @@ func getEpochDefinitionFromDatabase[T types.ConfigData | types.EpochDataRaw](
 	return info, nil
 }
 
-// Case A) where we store the epoc info here
-// 0->b1(epoch 1)->b2(epoch 1)->->->b15(epoch 1)->b16(epoch 2)->b17(epoch 2)
-// nextEpoch
-// asdas-epoch3:fork1
-// asdas-epoch3:fork2
-// asdas-epoch3:fork3
-// remove prefix and split  :
 func (s *EpochState) HandleBABEDigest(header *types.Header, digest types.BabeConsensusDigest) error {
 	headerHash := header.Hash()
 
