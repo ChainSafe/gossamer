@@ -6,6 +6,7 @@ package grandpa
 import (
 	"testing"
 
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -177,3 +178,5 @@ func TestValidateCommit_PrecommitFromUnknownVoterIsIgnored(t *testing.T) {
 	// there is one invalid voter in the commit
 	assert.Equal(t, uint(1), result.NumInvalidVoters())
 }
+
+var _ scale.VaryingDataType = &Message[string, uint]{}

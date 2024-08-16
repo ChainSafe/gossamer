@@ -4,6 +4,7 @@
 package grandpa
 
 import (
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/tidwall/btree"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
@@ -52,14 +53,19 @@ type Equivocation[ID constraints.Ordered, Vote, Signature comparable] struct {
 	Second voteSignature[Vote, Signature]
 }
 
+// Messages is the interface constraint for `Message`
+type Messages[Hash, Number any] interface {
+	Prevote[Hash, Number] | Precommit[Hash, Number] | PrimaryPropose[Hash, Number]
+}
+
 // Message is a protocol message or vote.
 type Message[Hash, Number any] struct {
-	Value any
+	inner any
 }
 
 // Target returns the target block of the vote.
 func (m Message[H, N]) Target() HashNumber[H, N] {
-	switch message := m.Value.(type) {
+	switch message := m.inner.(type) {
 	case Prevote[H, N]:
 		return HashNumber[H, N]{
 			message.TargetHash,
@@ -80,13 +86,51 @@ func (m Message[H, N]) Target() HashNumber[H, N] {
 	}
 }
 
-// Messages is the interface constraint for `Message`
-type Messages[Hash, Number any] interface {
-	Prevote[Hash, Number] | Precommit[Hash, Number] | PrimaryPropose[Hash, Number]
+func (m *Message[H, N]) SetValue(value any) (err error) {
+	switch message := m.inner.(type) {
+	case Prevote[H, N]:
+		setMessage(m, message)
+	case Precommit[H, N]:
+		setMessage(m, message)
+	case PrimaryPropose[H, N]:
+		setMessage(m, message)
+	default:
+		return scale.ErrUnknownVaryingDataTypeValue
+	}
+	return nil
+}
+
+func (m Message[H, N]) IndexValue() (index uint, value any, err error) {
+	switch m.inner.(type) {
+	case Prevote[H, N]:
+		return 0, any(m.inner), nil
+	case Precommit[H, N]:
+		return 1, any(m.inner), nil
+	case PrimaryPropose[H, N]:
+		return 2, any(m.inner), nil
+	}
+	return 0, nil, scale.ErrUnknownVaryingDataTypeValue
+}
+
+func (m Message[H, N]) Value() (value any, err error) {
+	_, value, err = m.IndexValue()
+	return
+}
+
+func (m Message[H, N]) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return Prevote[H, N]{}, nil
+	case 1:
+		return Precommit[H, N]{}, nil
+	case 2:
+		return PrimaryPropose[H, N]{}, nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
 func setMessage[Hash, Number any, T Messages[Hash, Number]](m *Message[Hash, Number], val T) {
-	m.Value = val
+	m.inner = val
 }
 
 func NewMessage[Hash, Number any, T Messages[Hash, Number]](val T) (m Message[Hash, Number]) {
