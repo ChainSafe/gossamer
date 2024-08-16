@@ -44,7 +44,7 @@ func NewCandidateValidation(overseerChan chan<- any, blockState BlockState) *Can
 }
 
 // Run starts the CandidateValidation subsystem
-func (cv *CandidateValidation) Run(ctx context.Context, overseerToSubsystem chan any) {
+func (cv *CandidateValidation) Run(ctx context.Context, overseerToSubsystem <-chan any) {
 	for {
 		select {
 		case msg := <-overseerToSubsystem:

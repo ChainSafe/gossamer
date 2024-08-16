@@ -203,7 +203,7 @@ func New(overseerChan chan<- any) *CandidateBacking {
 	}
 }
 
-func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan any) {
+func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem <-chan any) {
 	chRelayParentAndCommand := make(chan relayParentAndCommand, 1)
 
 	for {

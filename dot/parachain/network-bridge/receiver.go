@@ -18,7 +18,7 @@ type NetworkBridgeReceiver struct {
 	OverseerToSubSystem <-chan any
 }
 
-func (nbr *NetworkBridgeReceiver) Run(ctx context.Context, overseerToSubSystem chan any) {
+func (nbr *NetworkBridgeReceiver) Run(ctx context.Context, overseerToSubSystem <-chan any) {
 	// TODO: handle incoming messages from the network
 	for {
 		select {

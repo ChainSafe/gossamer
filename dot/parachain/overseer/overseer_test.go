@@ -26,7 +26,7 @@ func (s *TestSubsystem) Name() parachaintypes.SubSystemName {
 	return parachaintypes.SubSystemName(s.name)
 }
 
-func (s *TestSubsystem) Run(ctx context.Context, overseerToSubSystem chan any) {
+func (s *TestSubsystem) Run(ctx context.Context, overseerToSubSystem <-chan any) {
 	for {
 		select {
 		case <-ctx.Done():
