@@ -422,33 +422,52 @@ type attestedCandidate struct {
 	validityAttestations []validatorIndexWithAttestation
 }
 
-func (attested *attestedCandidate) toBackedCandidate(tableCtx *tableContext) *parachaintypes.BackedCandidate {
-	group := tableCtx.groups[attested.groupID]
+func (attested *attestedCandidate) toBackedCandidate(tableCtx *tableContext) (*parachaintypes.BackedCandidate, error) {
+	if tableCtx == nil {
+		return nil, errors.New("table context is nil")
+	}
+
+	// Retrieve the group from tableContext
+	group, ok := tableCtx.groups[attested.groupID]
+	if !ok {
+		return nil, fmt.Errorf("validator group not found for the group-id: %d", attested.groupID)
+	}
+
+	// Create maps for validator index positions and validity votes
+	groupIndexMap := make(map[parachaintypes.ValidatorIndex]int)
+	for i, validator := range group {
+		groupIndexMap[validator] = i
+	}
+
 	validatorIndices := make([]bool, len(group))
-	var validityAttestations []parachaintypes.ValidityAttestation
+	validityVotes := make(map[int]parachaintypes.ValidityAttestation) // Map position in group to validity vote
+
+	// Separate ids and validity votes, and fill the map with the votes
+	for _, va := range attested.validityAttestations {
+		if pos, found := groupIndexMap[va.validatorIndex]; found {
+			validatorIndices[pos] = true
+			validityVotes[pos] = va.validityAttestation
+		} else {
+			return nil, errors.New("validity vote from unknown validator")
+		}
+	}
+
+	// Collect sorted validity votes
+	sortedValidityVotes := make([]parachaintypes.ValidityAttestation, 0, len(group))
+	for i := 0; i < len(group); i++ {
+		if vote, exists := validityVotes[i]; exists {
+			sortedValidityVotes = append(sortedValidityVotes, vote)
+		}
+	}
 
 	// The order of the validity votes in the backed candidate must match
 	// the order of bits set in the bitfield, which is not necessarily
-	// the order of the `validity_votes` we got from the table.
-	for positionInGroup, validatorIndex := range group {
-		for _, validityVote := range attested.validityAttestations {
-			if validityVote.validatorIndex == validatorIndex {
-				validatorIndices[positionInGroup] = true
-				validityAttestations = append(validityAttestations, validityVote.validityAttestation)
-			}
-		}
-
-		if !validatorIndices[positionInGroup] {
-			logger.Error("validity vote from unknown validator")
-			return nil
-		}
-	}
-
+	// the order of the `validityAttestations` we got from the statement table.
 	return &parachaintypes.BackedCandidate{
 		Candidate:        attested.committedCandidateReceipt,
-		ValidityVotes:    validityAttestations,
+		ValidityVotes:    sortedValidityVotes,
 		ValidatorIndices: parachaintypes.NewBitVec(validatorIndices),
-	}
+	}, nil
 }
 
 // validatorIndexWithAttestation represents a validity attestation for a candidate.
