@@ -526,9 +526,9 @@ func TestCandidateReachesQuorum(t *testing.T) {
 			return false
 		}
 
-		msgValidate.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
-			Data: candidatevalidation.ValidationResult{
-				ValidResult: &candidatevalidation.ValidValidationResult{
+		msgValidate.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+			Data: pvf.ValidationResult{
+				ValidResult: &pvf.ValidValidationResult{
 					CandidateCommitments: parachaintypes.CandidateCommitments{
 						HeadData:                  headData,
 						UpwardMessages:            []parachaintypes.UpwardMessage{},
@@ -744,7 +744,7 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 			return false
 		}
 
-		msgValidate.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
+		msgValidate.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
 			Err: errors.New("some internal error"),
 		}
 		return true

@@ -1,6 +1,7 @@
 package pvf
 
 import (
+	"os"
 	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -8,20 +9,42 @@ import (
 	"golang.org/x/exp/maps"
 )
 
+func createTestValidationCode(t *testing.T) parachaintypes.ValidationCode {
+	// this wasm was achieved by building polkadot's adder test parachain
+	runtimeFilePath := "./testdata/test_parachain_adder.wasm"
+	validationCodeBytes, err := os.ReadFile(runtimeFilePath)
+	require.NoError(t, err)
+
+	return parachaintypes.ValidationCode(validationCodeBytes)
+
+}
+
 func TestValidationWorkerPool_newValidationWorker(t *testing.T) {
 	t.Parallel()
+	testValidationCode := createTestValidationCode(t)
+
 	cases := map[string]struct {
 		setupWorkerPool func(t *testing.T) *validationWorkerPool
 		expectedWorkers []parachaintypes.ValidationCodeHash
 	}{
-		"add_one_worker": {
+		"add_one_invalid_worker": {
 			setupWorkerPool: func(t *testing.T) *validationWorkerPool {
 				pool := newValidationWorkerPool()
-				pool.newValidationWorker(parachaintypes.ValidationCode{1, 2, 3, 4})
+				_, err := pool.newValidationWorker(parachaintypes.ValidationCode{1, 2, 3, 4})
+				require.Error(t, err)
+				return pool
+			},
+			expectedWorkers: []parachaintypes.ValidationCodeHash{},
+		},
+		"add_one_valid_worker": {
+			setupWorkerPool: func(t *testing.T) *validationWorkerPool {
+				pool := newValidationWorkerPool()
+				_, err := pool.newValidationWorker(testValidationCode)
+				require.NoError(t, err)
 				return pool
 			},
 			expectedWorkers: []parachaintypes.ValidationCodeHash{
-				{1, 2, 3, 4},
+				testValidationCode.Hash(),
 			},
 		},
 	}
