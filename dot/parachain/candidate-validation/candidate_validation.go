@@ -90,6 +90,7 @@ func (cv *CandidateValidation) processMessages(msg any) {
 			msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 				Err: err,
 			}
+			return
 		}
 		result, err := validateFromChainState(runtimeInstance, msg.Pov, msg.CandidateReceipt)
 		if err != nil {
