@@ -159,6 +159,30 @@ Then start the three hosts:
 ./bin/gossamer --chain westend-local --charlie
 ```
 
+## Standalone Packages
+
+In addition to the core functionality provided by Gossamer, we have developed some standalone packages that can be used independently. These packages are located in the `pkg` directory and serve various utility purposes. Here’s an overview of some of these packages:
+
+### Scale
+
+To support parity's [scale type encoding](https://docs.substrate.io/reference/scale-codec/) in golang.  
+More details [here](./pkg/scale/README.md)
+
+### Trie
+
+The `trie` package includes multiple implementations of polkadot merkle tries. These implementations are useful for various applications requiring efficient data structures. Here are the key implementations:
+
+#### In-Memory Trie
+
+This implementation supports polkadot merkle tries that are stored entirely in memory. It includes features for backing up the trie using a database to ensure persistence.
+
+#### TrieDB
+
+An evolution of the in-memory trie, `TrieDB` introduces lazy loading capabilities from the underlying database. This approach optimizes performance and resource usage by loading data only as needed.
+
+For more details on how to use `TrieDB`, refer to the specific [README](pkg/trie/triedb/README.md)
+
+
 ## Contribute
 
 - Check out the [Contributing Guidelines](.github/CONTRIBUTING.md) and our
