@@ -38,7 +38,6 @@ func (s *TestSubsystem) Run(ctx context.Context, overseerToSubSystem chan any) {
 		case overseerSignal := <-overseerToSubSystem:
 			fmt.Printf("%s received from overseer %v\n", s.name, overseerSignal)
 			incrementCounters(overseerSignal, &s.finalizedCounter, &s.importedCounter)
-		default:
 		}
 	}
 }
