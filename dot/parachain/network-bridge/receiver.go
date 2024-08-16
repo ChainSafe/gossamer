@@ -20,10 +20,18 @@ type NetworkBridgeReceiver struct {
 
 func (nbr *NetworkBridgeReceiver) Run(ctx context.Context, overseerToSubSystem chan any) {
 	// TODO: handle incoming messages from the network
-	for msg := range nbr.OverseerToSubSystem {
-		err := nbr.processMessage(msg)
-		if err != nil {
-			logger.Errorf("processing overseer message: %w", err)
+	for {
+		select {
+		case msg := <-overseerToSubSystem:
+			err := nbr.processMessage(msg)
+			if err != nil {
+				logger.Errorf("processing overseer message: %w", err)
+			}
+		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
+				logger.Errorf("ctx error: %s\n", err)
+			}
+			return
 		}
 	}
 }
