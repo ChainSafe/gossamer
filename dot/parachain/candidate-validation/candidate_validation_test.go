@@ -441,7 +441,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 	defer candidateValidationSubsystem.Stop()
 
 	ctx := context.Background()
-	go candidateValidationSubsystem.Run(ctx, overseerToSubsystem, nil)
+	go candidateValidationSubsystem.Run(ctx, overseerToSubsystem)
 
 	tests := map[string]struct {
 		msg  ValidateFromExhaustive

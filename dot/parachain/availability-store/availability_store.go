@@ -409,9 +409,7 @@ func branchesFromChunks(chunks [][]byte) (branches, error) {
 }
 
 // Run runs the availability store subsystem
-func (av *AvailabilityStoreSubsystem) Run(
-	ctx context.Context, overseerToSubsystem chan any, SubsystemToOverseer chan any,
-) {
+func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, overseerToSubsystem chan any) {
 	for {
 		select {
 		case msg := <-overseerToSubsystem:

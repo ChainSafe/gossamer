@@ -23,9 +23,7 @@ func Register(overseerChan chan<- any, net Network) *NetworkBridgeSender {
 	}
 }
 
-func (nbs *NetworkBridgeSender) Run(
-	ctx context.Context, overseerToSubSystem chan any, SubSystemToOverseer chan any,
-) {
+func (nbs *NetworkBridgeSender) Run(ctx context.Context, overseerToSubSystem chan any) {
 	for {
 		select {
 		case msg := <-overseerToSubSystem:

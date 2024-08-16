@@ -101,7 +101,7 @@ func (o *OverseerSystem) Start() error {
 	for subsystem, overseerToSubSystem := range o.subsystems {
 		o.wg.Add(1)
 		go func(sub parachaintypes.Subsystem, overseerToSubSystem chan any) {
-			sub.Run(o.ctx, overseerToSubSystem, o.SubsystemsToOverseer)
+			sub.Run(o.ctx, overseerToSubSystem)
 			logger.Infof("subsystem %v stopped", sub)
 			o.wg.Done()
 		}(subsystem, overseerToSubSystem)

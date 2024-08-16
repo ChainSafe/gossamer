@@ -1150,7 +1150,7 @@ func (to *testOverseer) Start() error {
 	for subsystem, overseerToSubSystem := range to.subsystems {
 		to.wg.Add(1)
 		go func(sub parachaintypes.Subsystem, overseerToSubSystem chan any) {
-			sub.Run(to.ctx, overseerToSubSystem, to.SubsystemsToOverseer)
+			sub.Run(to.ctx, overseerToSubSystem)
 			logger.Infof("subsystem %v stopped", sub)
 			to.wg.Done()
 		}(subsystem, overseerToSubSystem)

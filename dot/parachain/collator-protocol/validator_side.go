@@ -58,10 +58,7 @@ var (
 	ErrFinalizedNumber     = errors.New("finalized number is greater than or equal to the block number")
 )
 
-func (cpvs CollatorProtocolValidatorSide) Run(
-	ctx context.Context,
-	overseerToSubSystem chan any, SubSystemToOverseer chan any,
-) {
+func (cpvs CollatorProtocolValidatorSide) Run(ctx context.Context, overseerToSubSystem chan any) {
 	inactivityTicker := time.NewTicker(activityPoll)
 
 	for {

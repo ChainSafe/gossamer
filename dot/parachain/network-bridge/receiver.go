@@ -18,9 +18,7 @@ type NetworkBridgeReceiver struct {
 	OverseerToSubSystem <-chan any
 }
 
-func (nbr *NetworkBridgeReceiver) Run(ctx context.Context, OverseerToSubSystem chan any,
-	SubSystemToOverseer chan any) {
-
+func (nbr *NetworkBridgeReceiver) Run(ctx context.Context, overseerToSubSystem chan any) {
 	// TODO: handle incoming messages from the network
 	for msg := range nbr.OverseerToSubSystem {
 		err := nbr.processMessage(msg)

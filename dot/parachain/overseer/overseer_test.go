@@ -26,10 +26,7 @@ func (s *TestSubsystem) Name() parachaintypes.SubSystemName {
 	return parachaintypes.SubSystemName(s.name)
 }
 
-func (s *TestSubsystem) Run(
-	ctx context.Context,
-	OverseerToSubSystem chan any, SubSystemToOverseer chan any,
-) {
+func (s *TestSubsystem) Run(ctx context.Context, overseerToSubSystem chan any) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -38,7 +35,7 @@ func (s *TestSubsystem) Run(
 			}
 			fmt.Printf("%s overseer stopping\n", s.name)
 			return
-		case overseerSignal := <-OverseerToSubSystem:
+		case overseerSignal := <-overseerToSubSystem:
 			fmt.Printf("%s received from overseer %v\n", s.name, overseerSignal)
 			incrementCounters(overseerSignal, &s.finalizedCounter, &s.importedCounter)
 		default:
