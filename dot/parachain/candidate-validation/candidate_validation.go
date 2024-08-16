@@ -118,7 +118,7 @@ func (cv *CandidateValidation) processMessages(msg any) {
 		}
 
 	case PreCheck:
-		// TODO: implement functionality to handle PreCheck, see issue #3921
+		panic("TODO: implement functionality to handle PreCheck, see issue #3921")
 
 	case parachaintypes.ActiveLeavesUpdateSignal:
 		_ = cv.ProcessActiveLeavesUpdateSignal(msg)
