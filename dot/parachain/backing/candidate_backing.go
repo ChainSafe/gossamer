@@ -48,11 +48,7 @@ var (
 
 // CandidateBacking represents the state of the subsystem responsible for managing candidate backing.
 type CandidateBacking struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-
 	SubSystemToOverseer chan<- any
-	OverseerToSubSystem <-chan any
 	// State tracked for all relay-parents backing work is ongoing for. This includes
 	// all active leaves.
 	//
@@ -199,10 +195,7 @@ type StatementMessage struct {
 
 // New creates a new CandidateBacking instance and initialises it with the provided overseer channel.
 func New(overseerChan chan<- any) *CandidateBacking {
-	ctx, cancel := context.WithCancel(context.Background())
 	return &CandidateBacking{
-		ctx:                 ctx,
-		cancel:              cancel,
 		SubSystemToOverseer: overseerChan,
 		perRelayParent:      map[common.Hash]*perRelayParentState{},
 		perCandidate:        map[parachaintypes.CandidateHash]*perCandidateState{},
@@ -210,7 +203,7 @@ func New(overseerChan chan<- any) *CandidateBacking {
 	}
 }
 
-func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan any, subSystemToOverseer chan any) {
+func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem <-chan any) {
 	chRelayParentAndCommand := make(chan relayParentAndCommand, 1)
 
 	for {
@@ -219,16 +212,16 @@ func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan an
 			if err := cb.processValidatedCandidateCommand(rpAndCmd, chRelayParentAndCommand); err != nil {
 				logger.Errorf("processing validated candidated command: %s", err.Error())
 			}
-		case msg, ok := <-cb.OverseerToSubSystem:
+		case msg, ok := <-overseerToSubSystem:
 			if !ok {
 				return
 			}
 			if err := cb.processMessage(msg, chRelayParentAndCommand); err != nil {
 				logger.Errorf("processing message: %s", err.Error())
 			}
-		case <-cb.ctx.Done():
+		case <-ctx.Done():
 			close(chRelayParentAndCommand)
-			if err := cb.ctx.Err(); err != nil {
+			if err := ctx.Err(); err != nil {
 				logger.Errorf("ctx error: %s\n", err)
 			}
 			return
@@ -236,9 +229,7 @@ func (cb *CandidateBacking) Run(ctx context.Context, overseerToSubSystem chan an
 	}
 }
 
-func (cb *CandidateBacking) Stop() {
-	cb.cancel()
-}
+func (cb *CandidateBacking) Stop() {}
 
 func (*CandidateBacking) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CandidateBacking
