@@ -16,8 +16,6 @@ const (
 	hashB = "hash_b"
 	hashC = "hash_c"
 	hashD = "hash_d"
-	// key   = dummyAuthID(1)
-	// key2  = dummyAuthID(2)
 )
 
 func staticIsDescendentOf[H comparable](value bool) IsDescendentOf[H] {
