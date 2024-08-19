@@ -414,7 +414,7 @@ func (av *AvailabilityStoreSubsystem) Run(ctx context.Context, overseerToSubsyst
 		select {
 		case msg := <-overseerToSubsystem:
 			logger.Infof("received message %T, %v", msg, msg)
-			av.processMessages(msg)
+			av.processMessage(msg)
 		case <-time.After(av.pruningConfig.pruningInterval):
 			av.pruneAll()
 		case <-ctx.Done():
@@ -431,7 +431,7 @@ func (*AvailabilityStoreSubsystem) Name() parachaintypes.SubSystemName {
 	return parachaintypes.AvailabilityStore
 }
 
-func (av *AvailabilityStoreSubsystem) processMessages(msg any) {
+func (av *AvailabilityStoreSubsystem) processMessage(msg any) {
 	switch msg := msg.(type) {
 	case QueryAvailableData:
 		err := av.handleQueryAvailableData(msg)

@@ -49,7 +49,7 @@ func (cv *CandidateValidation) Run(ctx context.Context, overseerToSubsystem <-ch
 		select {
 		case msg := <-overseerToSubsystem:
 			logger.Debugf("received message %v", msg)
-			cv.processMessages(msg)
+			cv.processMessage(msg)
 		case <-ctx.Done():
 			if err := ctx.Err(); err != nil {
 				logger.Errorf("ctx error: %s\n", err)
@@ -80,8 +80,8 @@ func (*CandidateValidation) ProcessBlockFinalizedSignal(parachaintypes.BlockFina
 func (cv *CandidateValidation) Stop() {
 }
 
-// processMessages processes messages sent to the CandidateValidation subsystem
-func (cv *CandidateValidation) processMessages(msg any) {
+// processMessage processes messages sent to the CandidateValidation subsystem
+func (cv *CandidateValidation) processMessage(msg any) {
 	switch msg := msg.(type) {
 	case ValidateFromChainState:
 		runtimeInstance, err := cv.BlockState.GetRuntime(msg.CandidateReceipt.Descriptor.RelayParent)
