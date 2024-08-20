@@ -208,7 +208,8 @@ func restoreMapFromDisk[T types.NextConfigDataV1 | types.NextEpochData](db datab
 }
 
 // getNextEpochOrConfigData retrieves the next epoch or config data from the iterator
-func getNextEpochOrConfigData[T types.NextConfigDataV1 | types.NextEpochData](iter database.Iterator) (*T, uint64, common.Hash, error) {
+func getNextEpochOrConfigData[T types.NextConfigDataV1 | types.NextEpochData](iter database.Iterator) (
+	*T, uint64, common.Hash, error) {
 	nextData := new(T)
 	key := string(iter.Key())
 	value := iter.Value()
