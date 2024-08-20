@@ -968,7 +968,7 @@ func newTestHarness(t *testing.T) *testHarness {
 
 	require.NoError(t, err)
 
-	availabilityStore.OverseerToSubSystem = harness.overseer.RegisterSubsystem(availabilityStore)
+	harness.overseer.RegisterSubsystem(availabilityStore)
 
 	return harness
 }
@@ -1115,18 +1115,20 @@ func buildAvailableDataBranchesRoot(t *testing.T, numValidators uint32, availabl
 }
 
 func newTestOverseer() *testOverseer {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 
 	return &testOverseer{
 		ctx:                  ctx,
+		cancel:               cancel,
 		subsystems:           make(map[parachaintypes.Subsystem]chan any),
 		SubsystemsToOverseer: make(chan any),
 	}
 }
 
 type testOverseer struct {
-	ctx context.Context
-	wg  sync.WaitGroup
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
 
 	subsystems           map[parachaintypes.Subsystem]chan any
 	SubsystemsToOverseer chan any
@@ -1148,7 +1150,7 @@ func (to *testOverseer) Start() error {
 	for subsystem, overseerToSubSystem := range to.subsystems {
 		to.wg.Add(1)
 		go func(sub parachaintypes.Subsystem, overseerToSubSystem chan any) {
-			sub.Run(to.ctx, overseerToSubSystem, to.SubsystemsToOverseer)
+			sub.Run(to.ctx, overseerToSubSystem)
 			logger.Infof("subsystem %v stopped", sub)
 			to.wg.Done()
 		}(subsystem, overseerToSubSystem)

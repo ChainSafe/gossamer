@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -26,11 +25,7 @@ var (
 
 // CandidateValidation is a parachain subsystem that validates candidate parachain blocks
 type CandidateValidation struct {
-	wg       sync.WaitGroup
-	stopChan chan struct{}
-
 	SubsystemToOverseer chan<- any
-	OverseerToSubsystem <-chan any
 	ValidationHost      parachainruntime.ValidationHost
 	BlockState          BlockState
 }
@@ -49,9 +44,19 @@ func NewCandidateValidation(overseerChan chan<- any, blockState BlockState) *Can
 }
 
 // Run starts the CandidateValidation subsystem
-func (cv *CandidateValidation) Run(context.Context, chan any, chan any) {
-	cv.wg.Add(1)
-	go cv.processMessages(&cv.wg)
+func (cv *CandidateValidation) Run(ctx context.Context, overseerToSubsystem <-chan any) {
+	for {
+		select {
+		case msg := <-overseerToSubsystem:
+			logger.Debugf("received message %v", msg)
+			cv.processMessage(msg)
+		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
+				logger.Errorf("ctx error: %s\n", err)
+			}
+			return
+		}
+	}
 }
 
 // Name returns the name of the subsystem
@@ -73,67 +78,57 @@ func (*CandidateValidation) ProcessBlockFinalizedSignal(parachaintypes.BlockFina
 
 // Stop stops the CandidateValidation subsystem
 func (cv *CandidateValidation) Stop() {
-	close(cv.stopChan)
-	cv.wg.Wait()
 }
 
-// processMessages processes messages sent to the CandidateValidation subsystem
-func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
-	defer wg.Done()
-	for {
-		select {
-		case msg := <-cv.OverseerToSubsystem:
-			logger.Debugf("received message %v", msg)
-			switch msg := msg.(type) {
-			case ValidateFromChainState:
-				runtimeInstance, err := cv.BlockState.GetRuntime(msg.CandidateReceipt.Descriptor.RelayParent)
-				if err != nil {
-					logger.Errorf("failed to get runtime: %w", err)
-					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
-						Err: err,
-					}
-				}
-				result, err := validateFromChainState(runtimeInstance, msg.Pov, msg.CandidateReceipt)
-				if err != nil {
-					logger.Errorf("failed to validate from chain state: %w", err)
-					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
-						Err: err,
-					}
-				} else {
-					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
-						Data: *result,
-					}
-				}
-			case ValidateFromExhaustive:
-				result, err := validateFromExhaustive(cv.ValidationHost, msg.PersistedValidationData,
-					msg.ValidationCode, msg.CandidateReceipt, msg.PoV)
-				if err != nil {
-					logger.Errorf("failed to validate from exhaustive: %w", err)
-					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
-						Err: err,
-					}
-				} else {
-					msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
-						Data: *result,
-					}
-				}
-
-			case PreCheck:
-				// TODO: implement functionality to handle PreCheck, see issue #3921
-
-			case parachaintypes.ActiveLeavesUpdateSignal:
-				_ = cv.ProcessActiveLeavesUpdateSignal(msg)
-
-			case parachaintypes.BlockFinalizedSignal:
-				_ = cv.ProcessBlockFinalizedSignal(msg)
-
-			default:
-				logger.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
+// processMessage processes messages sent to the CandidateValidation subsystem
+func (cv *CandidateValidation) processMessage(msg any) {
+	switch msg := msg.(type) {
+	case ValidateFromChainState:
+		runtimeInstance, err := cv.BlockState.GetRuntime(msg.CandidateReceipt.Descriptor.RelayParent)
+		if err != nil {
+			logger.Errorf("failed to get runtime: %w", err)
+			msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+				Err: err,
 			}
-
-		case <-cv.stopChan:
 			return
 		}
+		result, err := validateFromChainState(runtimeInstance, msg.Pov, msg.CandidateReceipt)
+		if err != nil {
+			logger.Errorf("failed to validate from chain state: %w", err)
+			msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+				Err: err,
+			}
+		} else {
+			msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+				Data: *result,
+			}
+		}
+
+	case ValidateFromExhaustive:
+		result, err := validateFromExhaustive(cv.ValidationHost, msg.PersistedValidationData,
+			msg.ValidationCode, msg.CandidateReceipt, msg.PoV)
+		if err != nil {
+			logger.Errorf("failed to validate from exhaustive: %w", err)
+			msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+				Err: err,
+			}
+		} else {
+			msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+				Data: *result,
+			}
+		}
+
+	case PreCheck:
+		panic("TODO: implement functionality to handle PreCheck, see issue #3921")
+
+	case parachaintypes.ActiveLeavesUpdateSignal:
+		_ = cv.ProcessActiveLeavesUpdateSignal(msg)
+
+	case parachaintypes.BlockFinalizedSignal:
+		_ = cv.ProcessBlockFinalizedSignal(msg)
+
+	default:
+		logger.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
 	}
 }
 
