@@ -173,7 +173,9 @@ func NewEpochState(db database.Database, blockState *BlockState,
 }
 
 // getNextEpochAndConfigDataFromDisk retrieves the next epoch and config data maps from the database
-func getNextEpochAndConfigDataFromDisk(db database.Database) (nextEpochMap[types.NextEpochData], nextEpochMap[types.NextConfigDataV1], error) {
+func getNextEpochAndConfigDataFromDisk(db database.Database) (
+	nextEpochMap[types.NextEpochData], nextEpochMap[types.NextConfigDataV1], error) {
+
 	nextConfigData := make(nextEpochMap[types.NextConfigDataV1])
 	nextEpochData := make(nextEpochMap[types.NextEpochData])
 
@@ -199,8 +201,6 @@ func getNextEpochAndConfigDataFromDisk(db database.Database) (nextEpochMap[types
 		nextConfigData[epoch][fork] = *nexEpochvalue
 	}
 
-	configIter.Close()
-
 	epochIter, err := db.NewPrefixIterator(nextEpochDataPrefix)
 	if err != nil {
 		return nextEpochMap[types.NextEpochData]{}, nextEpochMap[types.NextConfigDataV1]{}, err
@@ -224,13 +224,12 @@ func getNextEpochAndConfigDataFromDisk(db database.Database) (nextEpochMap[types
 
 	}
 
-	epochIter.Close()
-
 	return nextEpochData, nextConfigData, nil
 }
 
 // getNextEpochOrConfigData retrieves the next epoch or config data from the iterator
-func getNextEpochOrConfigData[T *types.NextConfigDataV1 | *types.NextEpochData](NextData T, nextDataPrefix []byte, iter database.Iterator) (T, uint64, common.Hash, error) {
+func getNextEpochOrConfigData[T *types.NextConfigDataV1 | *types.NextEpochData](
+	NextData T, nextDataPrefix []byte, iter database.Iterator) (T, uint64, common.Hash, error) {
 	key := string(iter.Key())
 	value := iter.Value()
 
@@ -941,7 +940,8 @@ func (s *EpochState) storeBABENextEpochData(epoch uint64, hash common.Hash, next
 }
 
 // setBABENextEpochDataInDB stores the types.NextEpochData under epoch and hash keys
-func (s *EpochState) setBABENextEpochDataInDB(epoch uint64, forkHash common.Hash, nextEpochData types.NextEpochData) error {
+func (s *EpochState) setBABENextEpochDataInDB(epoch uint64, forkHash common.Hash,
+	nextEpochData types.NextEpochData) error {
 	encodedEpochData, err := scale.Marshal(nextEpochData)
 	if err != nil {
 		return err
@@ -967,7 +967,8 @@ func (s *EpochState) storeBABENextConfigData(epoch uint64, hash common.Hash, nex
 }
 
 // setBABENextConfigData stores the types.NextConfigData under epoch and hash keys
-func (s *EpochState) setBABENextConfigData(epoch uint64, forkHash common.Hash, nextConfigData types.NextConfigDataV1) error {
+func (s *EpochState) setBABENextConfigData(epoch uint64,
+	forkHash common.Hash, nextConfigData types.NextConfigDataV1) error {
 	encodedConfigData, err := scale.Marshal(nextConfigData)
 	if err != nil {
 		return err
@@ -1056,7 +1057,10 @@ func (s *EpochState) deleteEpochDataFromDisk(epoch uint64) error {
 
 // getNextEpochOrConfigDataKeysFromDisk is a generic function that returns all the nextEpochData or  nextConfigData keys
 // for a given epoch from the database
-func getNextEpochOrConfigDataKeysFromDisk[T *types.NextEpochData | *types.NextConfigDataV1](db GetterPutterNewBatcherPrefixIter, value T, prefix []byte, currentEpoch uint64) ([]string, error) {
+func getNextEpochOrConfigDataKeysFromDisk[T *types.NextEpochData | *types.NextConfigDataV1](
+	db GetterPutterNewBatcherPrefixIter, value T, prefix []byte, currentEpoch uint64) (
+	[]string, error) {
+
 	dataKeys := []string{}
 
 	iter, err := db.NewPrefixIterator(prefix)
@@ -1078,8 +1082,6 @@ func getNextEpochOrConfigDataKeysFromDisk[T *types.NextEpochData | *types.NextCo
 		}
 
 	}
-
-	iter.Close()
 
 	return dataKeys, nil
 }
