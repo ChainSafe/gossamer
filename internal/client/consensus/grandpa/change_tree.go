@@ -54,7 +54,7 @@ func (ct *ChangeTree[H, N]) Roots() []*PendingChangeNode[H, N] { //skipcq: RVV-B
 
 // Import a new node into the roots.
 //
-// The given function `is_descendent_of` should return `true` if the second
+// The given function `isDescendentOf` should return `true` if the second
 // hash (target) is a descendent of the first hash (base).
 //
 // This method assumes that children in the same branch are imported in order.
@@ -62,7 +62,7 @@ func (ct *ChangeTree[H, N]) Roots() []*PendingChangeNode[H, N] { //skipcq: RVV-B
 // Returns `true` if the imported node is a root.
 // WARNING: some users of this method (i.e. consensus epoch changes roots) currently silently
 // rely on a **post-order DFS** traversal. If we are using instead a top-down traversal method
-// then the `is_descendent_of` closure, when used after a warp-sync, may end up querying the
+// then the `isDescendentOf` closure, when used after a warp-sync, may end up querying the
 // backend for a block (the one corresponding to the root) that is not present and thus will
 // return a wrong result.
 func (ct *ChangeTree[H, N]) Import(hash H,
@@ -127,7 +127,7 @@ func (ct *ChangeTree[H, N]) getPreOrderChangeNodes() []*PendingChangeNode[H, N] 
 // a root, *false if the node being finalized is not a root, and
 // nil if no node in the tree is finalized. The given `Predicate` is
 // checked on the prospective finalized root and must pass for finalisation
-// to occur. The given function `is_descendent_of` should return `true` if
+// to occur. The given function `isDescendentOf` should return `true` if
 // the second hash (target) is a descendent of the first hash (base). func(T) bool
 func (ct *ChangeTree[H, N]) FinalizesAnyWithDescendentIf(
 	hash *H,
@@ -249,7 +249,7 @@ type unchanged struct{}
 // being finalized isn't a descendent of (or equal to) any of the root's
 // children. The given `Predicate` is checked on the prospective finalized
 // root and must pass for finalisation to occur. The given function
-// `is_descendent_of` should return `true` if the second hash (target) is a
+// `isDescendentOf` should return `true` if the second hash (target) is a
 // descendent of the first hash (base).
 func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(
 	hash *H,

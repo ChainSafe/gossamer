@@ -149,7 +149,7 @@ func (sas *SharedAuthoritySet[H, N]) applyForcedChanges(bestHash H, //nolint //s
 // method ensures that if there are multiple changes in the same branch,
 // finalising this block won't finalise past multiple transitions (i.e.
 // transitions must be finalised in-order). The given function
-// `is_descendent_of` should return `true` if the second hash (target) is a
+// `isDescendentOf` should return `true` if the second hash (target) is a
 // descendent of the first hash (base).
 //
 // When the set has changed, the return value will be a status type where newSetBlockInfo
@@ -172,7 +172,7 @@ func (sas *SharedAuthoritySet[H, N]) applyStandardChanges(finalisedHash H, //nol
 // change that can be immediately applied, *false if the block being
 // finalised enacts a change but it cannot be applied yet since there are
 // other dependent changes, and nil if no change is enacted. The given
-// function `is_descendent_of` should return `true` if the second hash
+// function `isDescendentOf` should return `true` if the second hash
 // (target) is a descendent of the first hash (base).
 func (sas *SharedAuthoritySet[H, N]) EnactsStandardChange(finalisedHash H,
 	finalisedNumber N,
@@ -277,7 +277,7 @@ func (authSet *AuthoritySet[H, N]) revert() { //nolint //skipcq: SCC-U1000 //ski
 }
 
 // Returns the block hash and height at which the next pending HashNumber in
-// the given chain (i.e. it includes `best_hash`) was signalled, nil if
+// the given chain (i.e. it includes `bestHash`) was signalled, nil if
 // there are no pending changes for the given chain.
 func (authSet *AuthoritySet[H, N]) nextChange(bestHash H, //skipcq:  RVV-B0001
 	isDescendentOf IsDescendentOf[H]) (*HashNumber[H, N], error) {
@@ -432,7 +432,7 @@ func (authSet *AuthoritySet[H, N]) addForcedChange(
 // on the same branch can be added as long as they don't overlap. Forced
 // changes are restricted to one per fork. This method assumes that changes
 // on the same branch will be added in-order. The given function
-// `is_descendent_of` should return `true` if the second hash (target) is a
+// `isDescendentOf` should return `true` if the second hash (target) is a
 // descendent of the first hash (base).
 func (authSet *AuthoritySet[H, N]) addPendingChange(
 	pending PendingChange[H, N],
@@ -570,7 +570,7 @@ func (authSet *AuthoritySet[H, N]) applyForcedChanges(bestHash H, //skipcq:  RVV
 // method ensures that if there are multiple changes in the same branch,
 // finalising this block won't finalise past multiple transitions (i.e.
 // transitions must be finalised in-order). The given function
-// `is_descendent_of` should return `true` if the second hash (target) is a
+// `isDescendantOf` should return `true` if the second hash (target) is a
 // descendent of the first hash (base).
 //
 // When the set has changed, the return value will be a status type where newSetBlock
@@ -651,7 +651,7 @@ func (authSet *AuthoritySet[H, N]) applyStandardChanges( //skipcq:  RVV-B0001
 // HashNumber that can be immediately applied, *false if the block being
 // finalised enacts a HashNumber but it cannot be applied yet since there are
 // other dependent changes, and nil if no HashNumber is enacted. The given
-// function `is_descendent_of` should return `true` if the second hash
+// function `isDescendentOf` should return `true` if the second hash
 // (target) is a descendent of the first hash (base).
 func (authSet *AuthoritySet[H, N]) EnactsStandardChange( //skipcq:  RVV-B0001
 	finalisedHash H, finalisedNumber N, isDescendentOf IsDescendentOf[H]) (*bool, error) {
