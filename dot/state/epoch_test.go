@@ -855,3 +855,294 @@ func TestFirstSlotNumberFromDb(t *testing.T) {
 	require.EqualValuesf(t, predefinedSlotNumber, firstSlotNumber,
 		"expected: %d, got: %d", predefinedSlotNumber, firstSlotNumber)
 }
+
+func TestNextEpochDataAndConfigInDisk(t *testing.T) {
+	epochState := newEpochStateFromGenesis(t)
+	db := NewInMemoryDB(t)
+	epochState.db = db
+	slotDuration, err := epochState.GetSlotDuration()
+	require.NoError(t, err)
+
+	genesisHash := epochState.blockState.genesisHash
+	// setting a predefined slot number
+	predefinedSlotNumber := uint64(1000)
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, predefinedSlotNumber)
+	err = epochState.blockState.db.Put(firstSlotNumberKey, buf)
+	require.NoError(t, err)
+
+	slotNumber := currentSlot(uint64(time.Now().UnixNano()),
+		uint64(slotDuration.Nanoseconds()))
+
+	firstNonOrirginBlock := types.NewEmptyHeader()
+	firstNonOrirginBlock.ParentHash = genesisHash
+	firstNonOrirginBlock.Number = 1
+	firstNonOrirginBlock.Digest = buildBlockPrimaryDigest(t,
+		types.BabePrimaryPreDigest{AuthorityIndex: 0, SlotNumber: slotNumber})
+
+	err = epochState.blockState.AddBlock(
+		&types.Block{Header: *firstNonOrirginBlock, Body: *types.NewBody([]types.Extrinsic{})})
+	require.NoError(t, err)
+
+	digest := types.NewDigest()
+	preRuntimeDigest := types.PreRuntimeDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		// bytes for PreRuntimeDigest that was created in setupHeaderFile function
+		Data: []byte{1, 60, 0, 0, 0, 150, 89, 189, 15, 0, 0, 0, 0, 112, 237, 173, 28, 144, 100, 255,
+			247, 140, 177, 132, 53, 34, 61, 138, 218, 245, 234, 4, 194, 75, 26, 135, 102, 227, 220, 1, 235, 3, 204,
+			106, 12, 17, 183, 151, 147, 212, 227, 28, 192, 153, 8, 56, 34, 156, 68, 254, 209, 102, 154, 124, 124,
+			121, 225, 230, 208, 169, 99, 116, 214, 73, 103, 40, 6, 157, 30, 247, 57, 226, 144, 73, 122, 14, 59, 114,
+			143, 168, 143, 203, 221, 58, 85, 4, 224, 239, 222, 2, 66, 231, 168, 6, 221, 79, 169, 38, 12},
+	}
+
+	preRuntimeDigestItem := types.NewDigestItem()
+	err = preRuntimeDigestItem.SetValue(preRuntimeDigest)
+	require.NoError(t, err)
+	preRuntimeDigestItemValue, err := preRuntimeDigestItem.Value()
+	require.NoError(t, err)
+	digest.Add(preRuntimeDigestItemValue)
+
+	sealDigest := types.SealDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		// bytes for SealDigest that was created in setupHeaderFile function
+		Data: []byte{158, 127, 40, 221, 220, 242, 124, 30, 107, 50, 141, 86, 148, 195, 104, 213, 178, 236, 93, 190,
+			14, 65, 42, 225, 201, 143, 136, 213, 59, 228, 216, 80, 47, 172, 87, 31, 63, 25, 201, 202, 175, 40, 26,
+			103, 51, 25, 36, 30, 12, 80, 149, 166, 131, 173, 52, 49, 98, 4, 8, 138, 54, 164, 189, 134},
+	}
+
+	sealDigestItem := types.NewDigestItem()
+	err = sealDigestItem.SetValue(sealDigest)
+	require.NoError(t, err)
+
+	sealDigestItemValue, err := sealDigestItem.Value()
+	require.NoError(t, err)
+	digest.Add(sealDigestItemValue)
+
+	expectedHeader := &types.Header{
+		ParentHash:     common.MustHexToHash("0x3b45c9c22dcece75a30acc9c2968cb311e6b0557350f83b430f47559db786975"),
+		Number:         1482002,
+		StateRoot:      common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
+		ExtrinsicsRoot: common.MustHexToHash("0xda26dc8c1455f8f81cae12e4fc59e23ce961b2c837f6d3f664283af906d344e0"),
+		Digest:         digest,
+	}
+
+	keyring, _ := keystore.NewSr25519Keyring()
+
+	keyPairs := []*sr25519.Keypair{
+		keyring.KeyAlice, keyring.KeyBob, keyring.KeyCharlie,
+	}
+
+	authorities := make([]types.AuthorityRaw, len(keyPairs))
+	for i, keyPair := range keyPairs {
+		authorities[i] = types.AuthorityRaw{
+			Key: keyPair.Public().(*sr25519.PublicKey).AsBytes(),
+		}
+	}
+
+	genericNextEpochDigest := createBABEConsensusDigest(t, types.NextEpochData{
+		Authorities: authorities,
+		Randomness:  [32]byte{0, 1, 2, 3, 4, 5, 6, 7, 8},
+	})
+
+	versionedNextConfigData := types.NewVersionedNextConfigData()
+	versionedNextConfigData.SetValue(types.NextConfigDataV1{
+		C1:             9,
+		C2:             10,
+		SecondarySlots: 1,
+	})
+	genericNextConfigDataDigest := createBABEConsensusDigest(t, versionedNextConfigData)
+
+	consensusDigests := []types.ConsensusDigest{
+		genericNextEpochDigest, genericNextConfigDataDigest,
+	}
+
+	nextEpochData := types.NewBabeConsensusDigest()
+	err = scale.Unmarshal(consensusDigests[0].Data, &nextEpochData)
+	if err != nil {
+		t.Errorf("error unmarshalling next epoch data: %s", err)
+	}
+
+	// Handle config and epoch data digests
+	err = epochState.HandleBABEDigest(expectedHeader, nextEpochData)
+
+	require.NoError(t, err)
+
+	nextConfigData := types.NewBabeConsensusDigest()
+	err = scale.Unmarshal(consensusDigests[1].Data, &nextConfigData)
+	if err != nil {
+		t.Errorf("error unmarshalling next config data: %s", err)
+	}
+
+	err = epochState.HandleBABEDigest(expectedHeader, nextConfigData)
+	require.NoError(t, err)
+
+	// Making sure that we have available storeSkipToEpoch prop on disk
+	epochState.baseState.db = db
+	err = epochState.baseState.storeSkipToEpoch(0)
+
+	require.NoError(t, err)
+
+	// Check if the next epoch data and config data are stored in the database
+	epochState, err = NewEpochState(db, epochState.blockState, config.BABEConfigurationTestDefault)
+	require.NoError(t, err)
+	require.Equal(t, len(epochState.nextEpochData), 1)
+	require.Equal(t, len(epochState.nextConfigData), 1)
+
+}
+
+func createBABEConsensusDigest(t *testing.T, digestData any) types.ConsensusDigest {
+	t.Helper()
+
+	babeConsensusDigest := types.NewBabeConsensusDigest()
+	require.NoError(t, babeConsensusDigest.SetValue(digestData))
+
+	marshaledData, err := scale.Marshal(babeConsensusDigest)
+	require.NoError(t, err)
+
+	return types.ConsensusDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              marshaledData,
+	}
+}
+
+func TestDeleteNextEpochDataAndConfig(t *testing.T) {
+	epochState := newEpochStateFromGenesis(t)
+	db := NewInMemoryDB(t)
+	// defining the db in the right context
+	epochState.db = db
+	epochState.baseState.db = db
+
+	genesisHash := epochState.blockState.genesisHash
+	// setting a predefined slot number
+	predefinedSlotNumber := uint64(5)
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, predefinedSlotNumber)
+	err := epochState.blockState.db.Put(firstSlotNumberKey, buf)
+	require.NoError(t, err)
+
+	slotNumber := 0
+
+	firstNonOrirginBlock := types.NewEmptyHeader()
+	firstNonOrirginBlock.ParentHash = genesisHash
+	firstNonOrirginBlock.Number = 1
+	firstNonOrirginBlock.Digest = buildBlockPrimaryDigest(t,
+		types.BabePrimaryPreDigest{AuthorityIndex: 0, SlotNumber: uint64(slotNumber)})
+
+	err = epochState.blockState.AddBlock(
+		&types.Block{Header: *firstNonOrirginBlock, Body: *types.NewBody([]types.Extrinsic{})})
+	require.NoError(t, err)
+
+	babeHeader := types.NewBabeDigest()
+	err = babeHeader.SetValue(*types.NewBabePrimaryPreDigest(0, 5, [32]byte{}, [64]byte{}))
+	require.NoError(t, err)
+
+	enc, err := scale.Marshal(babeHeader)
+	require.NoError(t, err)
+	digest := types.NewDigest()
+	preRuntimeDigest := types.PreRuntimeDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data:              enc,
+	}
+
+	preRuntimeDigestItem := types.NewDigestItem()
+	err = preRuntimeDigestItem.SetValue(preRuntimeDigest)
+	require.NoError(t, err)
+	preRuntimeDigestItemValue, err := preRuntimeDigestItem.Value()
+	require.NoError(t, err)
+	digest.Add(preRuntimeDigestItemValue)
+
+	sealDigest := types.SealDigest{
+		ConsensusEngineID: types.BabeEngineID,
+		Data: []byte{158, 127, 40, 221, 220, 242, 124, 30, 107, 50, 141, 86, 148, 195, 104, 213, 178, 236, 93, 190,
+			14, 65, 42, 225, 201, 143, 136, 213, 59, 228, 216, 80, 47, 172, 87, 31, 63, 25, 201, 202, 175, 40, 26,
+			103, 51, 25, 36, 30, 12, 80, 149, 166, 131, 173, 52, 49, 98, 4, 8, 138, 54, 164, 189, 134},
+	}
+
+	sealDigestItem := types.NewDigestItem()
+	err = sealDigestItem.SetValue(sealDigest)
+	require.NoError(t, err)
+
+	sealDigestItemValue, err := sealDigestItem.Value()
+	require.NoError(t, err)
+	digest.Add(sealDigestItemValue)
+
+	expectedHeader := &types.Header{
+		ParentHash:     common.MustHexToHash("0x3b45c9c22dcece75a30acc9c2968cb311e6b0557350f83b430f47559db786975"),
+		Number:         5,
+		StateRoot:      common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),
+		ExtrinsicsRoot: common.MustHexToHash("0xda26dc8c1455f8f81cae12e4fc59e23ce961b2c837f6d3f664283af906d344e0"),
+		Digest:         digest,
+	}
+
+	keyring, _ := keystore.NewSr25519Keyring()
+
+	keyPairs := []*sr25519.Keypair{
+		keyring.KeyAlice, keyring.KeyBob, keyring.KeyCharlie,
+	}
+
+	authorities := make([]types.AuthorityRaw, len(keyPairs))
+	for i, keyPair := range keyPairs {
+		authorities[i] = types.AuthorityRaw{
+			Key: keyPair.Public().(*sr25519.PublicKey).AsBytes(),
+		}
+	}
+
+	genericNextEpochDigest := createBABEConsensusDigest(t, types.NextEpochData{
+		Authorities: authorities,
+		Randomness:  [32]byte{0, 1, 2, 3, 4, 5, 6, 7, 8},
+	})
+
+	versionedNextConfigData := types.NewVersionedNextConfigData()
+	versionedNextConfigData.SetValue(types.NextConfigDataV1{
+		C1:             9,
+		C2:             10,
+		SecondarySlots: 1,
+	})
+	genericNextConfigDataDigest := createBABEConsensusDigest(t, versionedNextConfigData)
+
+	consensusDigests := []types.ConsensusDigest{
+		genericNextEpochDigest, genericNextConfigDataDigest,
+	}
+
+	nextEpochData := types.NewBabeConsensusDigest()
+	err = scale.Unmarshal(consensusDigests[0].Data, &nextEpochData)
+	if err != nil {
+		t.Errorf("error unmarshalling next epoch data: %s", err)
+	}
+
+	// Handle config and epoch data digests
+	err = epochState.HandleBABEDigest(expectedHeader, nextEpochData)
+
+	require.NoError(t, err)
+
+	nextConfigData := types.NewBabeConsensusDigest()
+	err = scale.Unmarshal(consensusDigests[1].Data, &nextConfigData)
+	if err != nil {
+		t.Errorf("error unmarshalling next config data: %s", err)
+	}
+
+	err = epochState.HandleBABEDigest(expectedHeader, nextConfigData)
+	require.NoError(t, err)
+
+	// Making sure that we have available storeSkipToEpoch prop on disk
+	err = epochState.baseState.storeSkipToEpoch(0)
+	require.NoError(t, err)
+
+	epochState.blockState.SetHeader(expectedHeader)
+	require.NoError(t, err)
+
+	// Finalize the next epoch data and config data
+	err = epochState.FinalizeBABENextConfigData(expectedHeader)
+	require.NoError(t, err)
+
+	err = epochState.FinalizeBABENextEpochData(expectedHeader)
+	require.NoError(t, err)
+
+	// Check if iterators are invalid, making sure that the data was deleted
+	iter, err := epochState.db.NewPrefixIterator(nextConfigDataPrefix)
+	require.NoError(t, err)
+	require.Equal(t, iter.Valid(), false)
+	epochState.db.NewPrefixIterator(nextEpochDataPrefix)
+	require.NoError(t, err)
+	require.Equal(t, iter.Valid(), false)
+}

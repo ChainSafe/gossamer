@@ -72,7 +72,7 @@ type GenesisEpochDescriptor struct {
 
 // EpochState tracks information related to each epoch
 type EpochState struct {
-	db           GetterPutterNewBatcher
+	db           GetterPutterNewBatcherPrefixIter
 	baseState    *BaseState
 	blockState   *BlockState
 	epochLength  uint64 // measured in slots
@@ -192,6 +192,9 @@ func getNextEpochAndConfigDataFromDisk(db database.Database) (nextEpochMap[types
 			return nextEpochMap[types.NextEpochData]{}, nextEpochMap[types.NextConfigDataV1]{}, err
 		}
 
+		if _, ok := nextConfigData[epoch]; !ok {
+			nextConfigData[epoch] = make(map[common.Hash]types.NextConfigDataV1)
+		}
 		// Add data to the map
 		nextConfigData[epoch][fork] = *nexEpochvalue
 	}
@@ -213,7 +216,12 @@ func getNextEpochAndConfigDataFromDisk(db database.Database) (nextEpochMap[types
 			return nextEpochMap[types.NextEpochData]{}, nextEpochMap[types.NextConfigDataV1]{}, err
 		}
 		// Add data to the map
+		if _, ok := nextEpochData[epoch]; !ok {
+			nextEpochData[epoch] = make(map[common.Hash]types.NextEpochData)
+		}
+
 		nextEpochData[epoch][fork] = *nexEpochvalue
+
 	}
 
 	epochIter.Close()
@@ -615,7 +623,7 @@ type prefixedKeyBuilder func(epoch uint64) []byte
 // updateEpochDefinitionKey updates the informations from database
 // by querying the raw bytes from prefix + oldEpoch and inserting
 // at prefix + newEpoch and return the values stored at prefix + oldEpoch
-func updateEpochDefinitionKey(db GetterPutterNewBatcher,
+func updateEpochDefinitionKey(db GetterPutterNewBatcherPrefixIter,
 	oldEpoch, newEpoch uint64, usePrefix prefixedKeyBuilder) ([]byte, error) {
 	rawBytes, err := db.Get(usePrefix(oldEpoch))
 	if err != nil {
@@ -647,7 +655,7 @@ func updateEpochDefinitionKey(db GetterPutterNewBatcher,
 }
 
 func getAndUpdateEpochDefinitionKey[T types.ConfigData | types.EpochDataRaw](
-	db GetterPutterNewBatcher, oldEpoch, newEpoch uint64, usePrefix prefixedKeyBuilder) (*T, error) {
+	db GetterPutterNewBatcherPrefixIter, oldEpoch, newEpoch uint64, usePrefix prefixedKeyBuilder) (*T, error) {
 	rawBytes, err := updateEpochDefinitionKey(db, oldEpoch, newEpoch, usePrefix)
 	if err != nil {
 		return nil, fmt.Errorf("updating epoch key definition: %w", err)
@@ -1021,7 +1029,7 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 		if e <= nextEpoch {
 			delete(s.nextEpochData, e)
 			// remove the epoch data from the database
-			if err = s.deleteEpochDataFromDisk(e, finalizedHeader.Hash()); err != nil {
+			if err = s.deleteEpochDataFromDisk(e); err != nil {
 				return fmt.Errorf("cannot delete next epoch data from the database: %w", err)
 			}
 		}
@@ -1030,14 +1038,50 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 	return nil
 }
 
-func (s *EpochState) deleteEpochDataFromDisk(epoch uint64, hash common.Hash) error {
-	key := append(nextEpochDataPrefix, []byte(fmt.Sprintf("-%d:%s", epoch, hash))...)
-	err := s.db.NewBatch().Del(key)
+func (s *EpochState) deleteEpochDataFromDisk(epoch uint64) error {
+	nexEpochvalue := new(types.NextEpochData)
+	configKeysToDelete, err := getNextEpochOrConfigDataKeysFromDisk(s.db, nexEpochvalue, nextEpochDataPrefix, epoch)
 	if err != nil {
-		return fmt.Errorf("cannot delete next epoch data from the database: %w", err)
+		return fmt.Errorf("cannot get next config data keys from disk: %w", err)
+	}
+
+	for _, key := range configKeysToDelete {
+		err = s.db.NewBatch().Del([]byte(key))
+		if err != nil {
+			return fmt.Errorf("cannot delete next config data from the database: %w", err)
+		}
 	}
 	return nil
+}
 
+// getNextEpochOrConfigDataKeysFromDisk is a generic function that returns all the nextEpochData or  nextConfigData keys
+// for a given epoch from the database
+func getNextEpochOrConfigDataKeysFromDisk[T *types.NextEpochData | *types.NextConfigDataV1](db GetterPutterNewBatcherPrefixIter, value T, prefix []byte, currentEpoch uint64) ([]string, error) {
+	dataKeys := []string{}
+
+	iter, err := db.NewPrefixIterator(prefix)
+	if err != nil {
+		return dataKeys, err
+	}
+
+	defer iter.Release()
+
+	for iter.First(); iter.Valid(); iter.Next() {
+		_, epoch, fork, err := getNextEpochOrConfigData(value, prefix, iter)
+		if err != nil {
+			return dataKeys, err
+		}
+		// if the epoch is the current epoch, then we append the key to the dataKeys
+		if epoch == currentEpoch {
+			key := append(prefix, []byte(fmt.Sprintf("-%d:%s", epoch, fork))...)
+			dataKeys = append(dataKeys, string(key))
+		}
+
+	}
+
+	iter.Close()
+
+	return dataKeys, nil
 }
 
 // FinalizeBABENextConfigData stores the right types.NextConfigData by
@@ -1097,7 +1141,7 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 		if e <= nextEpoch {
 			delete(s.nextConfigData, e)
 			// remove the config data from the database
-			if err = s.deleteNextConfigDataFromDisk(e, finalizedHeader.Hash()); err != nil {
+			if err = s.deleteNextConfigDataFromDisk(e); err != nil {
 				return fmt.Errorf("cannot delete next config data from the database: %w", err)
 			}
 		}
@@ -1106,13 +1150,19 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 	return nil
 }
 
-func (s *EpochState) deleteNextConfigDataFromDisk(epoch uint64, hash common.Hash) error {
-	key := append(nextConfigDataPrefix, []byte(fmt.Sprintf("-%d:%s", epoch, hash))...)
-	err := s.db.NewBatch().Del(key)
+func (s *EpochState) deleteNextConfigDataFromDisk(epoch uint64) error {
+	nextConfigValue := new(types.NextConfigDataV1)
+	configKeysToDelete, err := getNextEpochOrConfigDataKeysFromDisk(s.db, nextConfigValue, nextConfigDataPrefix, epoch)
 	if err != nil {
-		return fmt.Errorf("cannot delete next config data from the database: %w", err)
+		return fmt.Errorf("cannot get next config data keys from disk: %w", err)
 	}
 
+	for _, key := range configKeysToDelete {
+		err = s.db.NewBatch().Del([]byte(key))
+		if err != nil {
+			return fmt.Errorf("cannot delete next config data from the database: %w", err)
+		}
+	}
 	return nil
 }
 

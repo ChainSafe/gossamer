@@ -34,7 +34,7 @@ type InmemoryStorageState struct {
 	blockState *BlockState
 	tries      *Tries
 
-	db GetterPutterNewBatcher
+	db GetterPutterNewBatcherPrefixIter
 	sync.RWMutex
 
 	// change notifiers

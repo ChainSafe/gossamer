@@ -59,3 +59,7 @@ func (t *table) NewBatch() Batch {
 func (t *table) NewIterator() (Iterator, error) {
 	return t.db.NewPrefixIterator(t.prefix)
 }
+
+func (t *table) NewPrefixIterator(prefix []byte) (Iterator, error) {
+	return t.db.NewPrefixIterator(append(t.prefix, prefix...))
+}
