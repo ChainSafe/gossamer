@@ -5,6 +5,7 @@ package backing_test
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -23,6 +24,12 @@ import (
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 )
+
+// Ensure overseer stops before test completion
+func stopOverseerAndWaitForCompletion(overseer *overseer.MockableOverseer) {
+	overseer.Stop()
+	time.Sleep(100 * time.Millisecond) // Give some time for any ongoing processes to finish
+}
 
 // register the backing subsystem, run backing subsystem, start overseer
 func initBackingAndOverseerMock(t *testing.T) (*backing.CandidateBacking, *overseer.MockableOverseer) {
@@ -252,7 +259,7 @@ func storeAvailableData(msg any) bool {
 // we can second a valid candidate when the previous candidate has been found invalid
 func TestSecondsValidCandidate(t *testing.T) {
 	candidateBacking, overseer := initBackingAndOverseerMock(t)
-	defer overseer.Stop()
+	defer stopOverseerAndWaitForCompletion(overseer)
 
 	paraValidators := parachainValidators(t, candidateBacking.Keystore)
 	numOfValidators := uint(len(paraValidators))
@@ -355,7 +362,7 @@ func TestSecondsValidCandidate(t *testing.T) {
 			PoV:                     pov1,
 		})
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 
 	pov2 := parachaintypes.PoV{BlockData: []byte{45, 46, 47}}
 
@@ -408,6 +415,7 @@ func TestSecondsValidCandidate(t *testing.T) {
 	informSeconded := func(msg any) bool {
 		// informed collator protocol that we have seconded the candidate
 		_, ok := msg.(collatorprotocolmessages.Seconded)
+		fmt.Println("==> informSeconded <==")
 		return ok
 	}
 
@@ -423,14 +431,14 @@ func TestSecondsValidCandidate(t *testing.T) {
 			PoV:                     pov2,
 		})
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(1 * time.Second)
 }
 
 // candidate reaches quorum.
 // in legacy backing, we need 2 approvals to reach quorum.
 func TestCandidateReachesQuorum(t *testing.T) {
 	candidateBacking, overseer := initBackingAndOverseerMock(t)
-	defer overseer.Stop()
+	defer stopOverseerAndWaitForCompletion(overseer)
 
 	paraValidators := parachainValidators(t, candidateBacking.Keystore)
 	numOfValidators := uint(len(paraValidators))
@@ -616,15 +624,13 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	// as it is a valid statement, we do not validate the candidate, just store into the statement table.
 	require.Len(t, backableCandidates, 1)
 	require.Len(t, backableCandidates[0].ValidityVotes, 3)
-
-	time.Sleep(3 * time.Second)
 }
 
 // if the validation of the candidate has failed this does not stop the work of this subsystem
 // and so it is not fatal to the node.
 func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 	candidateBacking, overseer := initBackingAndOverseerMock(t)
-	defer overseer.Stop()
+	defer stopOverseerAndWaitForCompletion(overseer)
 
 	paraValidators := parachainValidators(t, candidateBacking.Keystore)
 	numOfValidators := uint(len(paraValidators))
@@ -767,7 +773,7 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 // It's impossible to second multiple candidates per relay parent without prospective parachains.
 func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
 	candidateBacking, overseer := initBackingAndOverseerMock(t)
-	defer overseer.Stop()
+	defer stopOverseerAndWaitForCompletion(overseer)
 
 	paraValidators := parachainValidators(t, candidateBacking.Keystore)
 	numOfValidators := uint(len(paraValidators))
@@ -904,5 +910,5 @@ func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
 		PoV:                     pov,
 	})
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(1 * time.Second)
 }
