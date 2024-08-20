@@ -5,7 +5,6 @@ package backing_test
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
@@ -415,7 +414,6 @@ func TestSecondsValidCandidate(t *testing.T) {
 	informSeconded := func(msg any) bool {
 		// informed collator protocol that we have seconded the candidate
 		_, ok := msg.(collatorprotocolmessages.Seconded)
-		fmt.Println("==> informSeconded <==")
 		return ok
 	}
 
