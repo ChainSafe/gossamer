@@ -184,7 +184,7 @@ func proveFinality[
 				block)
 			return nil, nil //nolint
 		}
-		justification := justifications.IntoJustification(primitives.GrandpaEngineID)
+		justification := justifications.EncodedJustification(primitives.GrandpaEngineID)
 		if justification != nil {
 			encJustification = *justification
 			justBlock = val.inner.BlockNumber

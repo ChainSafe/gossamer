@@ -123,7 +123,7 @@ func TestJustification_fromCommit(t *testing.T) {
 		"",
 		runtime.Digest{})
 
-	client.EXPECT().Header(hash.H256("b")).Return(&header, nil)
+	client.EXPECT().Header(hash.H256("b")).Return(header, nil)
 	_, err = NewJustificationFromCommit[hash.H256, uint64](
 		client,
 		2,
@@ -142,7 +142,7 @@ func TestJustification_fromCommit(t *testing.T) {
 		runtime.Digest{})
 
 	client = mocks.NewHeaderBackend[hash.H256, uint64](t)
-	client.EXPECT().Header(hash.H256("b")).Return(&header, nil)
+	client.EXPECT().Header(hash.H256("b")).Return(header, nil)
 
 	expAncestries := make([]runtime.Header[uint64, hash.H256], 0)
 	expAncestries = append(expAncestries, generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](

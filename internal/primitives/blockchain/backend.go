@@ -10,10 +10,10 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 )
 
-// Blockchain database header backend. Does not perform any validation.
+// Header is the blockchain database header backend. Does not perform any validation.
 type HeaderBackend[Hash runtime.Hash, N runtime.Number] interface {
-	// Get block header. Returns `None` if block is not found.
-	Header(hash Hash) (*runtime.Header[N, Hash], error)
+	// Get block header. Returns `nil` if block is not found.
+	Header(hash Hash) (runtime.Header[N, Hash], error)
 
 	// Get blockchain info.
 	Info() Info[Hash, N]
@@ -21,10 +21,10 @@ type HeaderBackend[Hash runtime.Hash, N runtime.Number] interface {
 	// Get block status.
 	Status(hash Hash) (BlockStatus, error)
 
-	// Get block number by hash. Returns `None` if the header is not in the chain.
+	// Get block number by hash. Returns `nil` if the header is not in the chain.
 	Number(hash Hash) (*N, error)
 
-	// Get block hash by number. Returns `None` if the header is not in the chain.
+	// Get block hash by number. Returns `nil` if the header is not in the chain.
 	Hash(number N) (*Hash, error)
 
 	// Convert an arbitrary block ID into a block hash.
@@ -48,12 +48,12 @@ type HeaderBackend[Hash runtime.Hash, N runtime.Number] interface {
 // Blockchain database backend. Does not perform any validation.
 type Backend[Hash runtime.Hash, N runtime.Number] interface {
 	HeaderBackend[Hash, N]
-	// HeaderMetaData[Hash, N]
+	// HeaderMetadata[Hash, N]
 
-	// Get block body. Returns `None` if block is not found.
-	Body(hash Hash) (*[]runtime.Extrinsic, error)
-	// Get block justifications. Returns `None` if no justification exists.
-	Justifications(hash Hash) (*runtime.Justifications, error)
+	// Get block body. Returns `nil` if block is not found.
+	Body(hash Hash) ([]runtime.Extrinsic, error)
+	// Get block justifications. Returns `nil` if no justification exists.
+	Justifications(hash Hash) (runtime.Justifications, error)
 	// Get last finalized block hash.
 	LastFinalized() (Hash, error)
 
@@ -64,30 +64,29 @@ type Backend[Hash runtime.Hash, N runtime.Number] interface {
 
 	// Returns displaced leaves after the given block would be finalized.
 	//
-	// The returned leaves do not contain the leaves from the same height as `block_number`.
+	// The returned leaves do not contain the leaves from the same height as `blockNumber`.
 	DisplacedLeavesAfterFinalizing(blockNumber N) ([]Hash, error)
 
-	// Return hashes of all blocks that are children of the block with `parent_hash`.
+	// Return hashes of all blocks that are children of the block with `parentHash`.
 	Children(parentHash Hash) ([]Hash, error)
 
 	// Get the most recent block hash of the longest chain that contains
-	// a block with the given `base_hash`.
+	// a block with the given `baseHash`.
 	//
 	// The search space is always limited to blocks which are in the finalized
 	// chain or descendents of it.
 	//
-	// Returns `Ok(None)` if `base_hash` is not found in search space.
-	// TODO: document time complexity of this, see [#1444](https://github.com/paritytech/substrate/issues/1444)
+	// Returns `nil` if `basehash` is not found in search space.
 	LongestContaining(baseHash Hash, importLock *sync.RWMutex) (*Hash, error)
 
 	// Get single indexed transaction by content hash. Note that this will only fetch transactions
 	// that are indexed by the runtime with `storage_index_transaction`.
-	IndexedTransaction(hash Hash) (*[]byte, error)
+	IndexedTransaction(hash Hash) ([]byte, error)
 
 	// Check if indexed transaction exists.
 	HasIndexedTransaction(hash Hash) (bool, error)
 
-	BlockIndexedBody(hash Hash) (*[][]byte, error)
+	BlockIndexedBody(hash Hash) ([][]byte, error)
 }
 
 // Blockchain info
@@ -113,7 +112,7 @@ type Info[H, N any] struct {
 	BlockGap *[2]N
 }
 
-// Block status.
+// BlockStatus is block status.
 type BlockStatus uint
 
 const (

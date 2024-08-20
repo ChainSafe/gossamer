@@ -369,23 +369,23 @@ func (_c *HeaderBackend_Hash_Call[Hash, N]) RunAndReturn(run func(N) (*Hash, err
 }
 
 // Header provides a mock function with given fields: hash
-func (_m *HeaderBackend[Hash, N]) Header(hash Hash) (*runtime.Header[N, Hash], error) {
+func (_m *HeaderBackend[Hash, N]) Header(hash Hash) (runtime.Header[N, Hash], error) {
 	ret := _m.Called(hash)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Header")
 	}
 
-	var r0 *runtime.Header[N, Hash]
+	var r0 runtime.Header[N, Hash]
 	var r1 error
-	if rf, ok := ret.Get(0).(func(Hash) (*runtime.Header[N, Hash], error)); ok {
+	if rf, ok := ret.Get(0).(func(Hash) (runtime.Header[N, Hash], error)); ok {
 		return rf(hash)
 	}
-	if rf, ok := ret.Get(0).(func(Hash) *runtime.Header[N, Hash]); ok {
+	if rf, ok := ret.Get(0).(func(Hash) runtime.Header[N, Hash]); ok {
 		r0 = rf(hash)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*runtime.Header[N, Hash])
+			r0 = ret.Get(0).(runtime.Header[N, Hash])
 		}
 	}
 
@@ -416,12 +416,12 @@ func (_c *HeaderBackend_Header_Call[Hash, N]) Run(run func(hash Hash)) *HeaderBa
 	return _c
 }
 
-func (_c *HeaderBackend_Header_Call[Hash, N]) Return(_a0 *runtime.Header[N, Hash], _a1 error) *HeaderBackend_Header_Call[Hash, N] {
+func (_c *HeaderBackend_Header_Call[Hash, N]) Return(_a0 runtime.Header[N, Hash], _a1 error) *HeaderBackend_Header_Call[Hash, N] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *HeaderBackend_Header_Call[Hash, N]) RunAndReturn(run func(Hash) (*runtime.Header[N, Hash], error)) *HeaderBackend_Header_Call[Hash, N] {
+func (_c *HeaderBackend_Header_Call[Hash, N]) RunAndReturn(run func(Hash) (runtime.Header[N, Hash], error)) *HeaderBackend_Header_Call[Hash, N] {
 	_c.Call.Return(run)
 	return _c
 }

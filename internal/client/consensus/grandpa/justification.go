@@ -140,7 +140,7 @@ func NewJustificationFromCommit[
 					fmt.Errorf("%w: invalid precommits for target commit", errBadJustification)
 			}
 
-			currentHeader := *header
+			currentHeader := header
 
 			// NOTE: this should never happen as we pick the lowest block
 			// as base and only traverse backwards from the other blocks
