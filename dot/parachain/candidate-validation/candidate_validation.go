@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/pvf"
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
@@ -26,6 +27,8 @@ var (
 
 // CandidateValidation is a parachain subsystem that validates candidate parachain blocks
 type CandidateValidation struct {
+	wg                  sync.WaitGroup
+	stopChan            chan struct{}
 	SubsystemToOverseer chan<- any
 	OverseerToSubsystem <-chan any
 	BlockState          BlockState
@@ -125,12 +128,12 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 			default:
 				logger.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
 			}
-    case <-cv.stopChan:
-      return
+		case <-cv.stopChan:
+			return
 		}
-  }
+	}
 }
-	
+
 // PoVRequestor gets proof of validity by issuing network requests to validators of the current backing group.
 // TODO: Implement PoV requestor, issue #3919
 type PoVRequestor interface {
