@@ -2,7 +2,6 @@ package pvf
 
 import (
 	"fmt"
-	"sync"
 
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -12,96 +11,92 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "pvf"), log.SetLevel(log.Debug))
 
-type ValidationHost struct {
-	wg     sync.WaitGroup
+type Host struct {
 	stopCh chan struct{}
 
-	workerPool *validationWorkerPool
+	workerPool *workerPool
 }
 
-func (v *ValidationHost) Start() {
-	v.wg.Add(1)
-	logger.Debug("Starting validation host")
-	go func() {
-		defer v.wg.Done()
-	}()
-}
+//func (v *Host) Start() {
+//	v.wg.Add(1)
+//	logger.Debug("Starting validation host")
+//	go func() {
+//		defer v.wg.Done()
+//	}()
+//}
 
-func (v *ValidationHost) Stop() {
-	close(v.stopCh)
-	v.wg.Wait()
-}
+//func (v *Host) Stop() {
+//	close(v.stopCh)
+//	v.wg.Wait()
+//}
 
-func NewValidationHost() *ValidationHost {
-	return &ValidationHost{
+func NewValidationHost() *Host {
+	return &Host{
 		stopCh:     make(chan struct{}),
 		workerPool: newValidationWorkerPool(),
 	}
 }
 
-func (v *ValidationHost) Validate(msg *ValidationTask) {
-	logger.Debugf("Validating worker %x", msg.WorkerID)
+func (v *Host) Validate(msg *ValidationTask) <-chan *ValidationTaskResult {
+	resultCh := make(chan *ValidationTaskResult)
+	go func() {
+		defer close(resultCh)
+		logger.Debugf("Start Validating worker %x", msg.WorkerID)
+		validationCodeHash := msg.ValidationCode.Hash()
+		// performBasicChecks
+		validationErr, internalErr := performBasicChecks(&msg.CandidateReceipt.Descriptor,
+			msg.PersistedValidationData.MaxPovSize,
+			msg.PoV,
+			validationCodeHash)
 
-	validationCodeHash := msg.ValidationCode.Hash()
-	// basic checks
-	validationErr, internalErr := performBasicChecks(&msg.CandidateReceipt.Descriptor,
-		msg.PersistedValidationData.MaxPovSize,
-		msg.PoV,
-		validationCodeHash)
-
-	if internalErr != nil {
-		logger.Errorf("performing basic checks: %w", internalErr)
-		intErr := &ValidationTaskResult{
-			who:           validationCodeHash,
-			InternalError: internalErr,
+		if internalErr != nil {
+			resultCh <- &ValidationTaskResult{
+				who:           validationCodeHash,
+				InternalError: internalErr,
+			}
 		}
-		msg.ResultCh <- intErr
-		return
-	}
-
-	if validationErr != nil {
-		valErr := &ValidationTaskResult{
-			who: validationCodeHash,
-			Result: &ValidationResult{
-				InvalidResult: validationErr,
-			},
+		if validationErr != nil {
+			resultCh <- &ValidationTaskResult{
+				who:    validationCodeHash,
+				Result: &ValidationResult{InvalidResult: validationErr},
+			}
 		}
-		msg.ResultCh <- valErr
-		return
-	}
-
-	workerID, err := v.poolContainsWorker(msg)
-	if err != nil {
-		logger.Errorf("pool contains worker: %w", err)
-		intErr := &ValidationTaskResult{
-			who:           validationCodeHash,
-			InternalError: err,
+		// check if worker is in pool
+		workerID, err := v.poolContainsWorker(msg)
+		if err != nil {
+			resultCh <- &ValidationTaskResult{
+				who:           validationCodeHash,
+				InternalError: err,
+			}
 		}
-		msg.ResultCh <- intErr
-		return
-	}
-	validationParams := parachainruntime.ValidationParameters{
-		ParentHeadData:         msg.PersistedValidationData.ParentHead,
-		BlockData:              msg.PoV.BlockData,
-		RelayParentNumber:      msg.PersistedValidationData.RelayParentNumber,
-		RelayParentStorageRoot: msg.PersistedValidationData.RelayParentStorageRoot,
-	}
-	workTask := &workerTask{
-		work:             validationParams,
-		maxPoVSize:       msg.PersistedValidationData.MaxPovSize,
-		candidateReceipt: msg.CandidateReceipt,
-		ResultCh:         msg.ResultCh,
-	}
-	v.workerPool.submitRequest(*workerID, workTask)
+
+		// submit request
+		validationParams := parachainruntime.ValidationParameters{
+			ParentHeadData:         msg.PersistedValidationData.ParentHead,
+			BlockData:              msg.PoV.BlockData,
+			RelayParentNumber:      msg.PersistedValidationData.RelayParentNumber,
+			RelayParentStorageRoot: msg.PersistedValidationData.RelayParentStorageRoot,
+		}
+		workTask := &workerTask{
+			work:             validationParams,
+			maxPoVSize:       msg.PersistedValidationData.MaxPovSize,
+			candidateReceipt: msg.CandidateReceipt,
+		}
+		logger.Debugf("Working Validating worker %x", workerID)
+		resultWorkCh := v.workerPool.submitRequest(*workerID, workTask)
+
+		result := <-resultWorkCh
+		resultCh <- result
+	}()
+	return resultCh
 }
 
-func (v *ValidationHost) poolContainsWorker(msg *ValidationTask) (*parachaintypes.ValidationCodeHash, error) {
+func (v *Host) poolContainsWorker(msg *ValidationTask) (*parachaintypes.ValidationCodeHash, error) {
 	if msg.WorkerID != nil {
 		return msg.WorkerID, nil
 	}
 	validationCodeHash := msg.ValidationCode.Hash()
 	if v.workerPool.containsWorker(validationCodeHash) {
-
 		return &validationCodeHash, nil
 	} else {
 		return v.workerPool.newValidationWorker(*msg.ValidationCode)

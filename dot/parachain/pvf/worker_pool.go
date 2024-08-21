@@ -3,7 +3,6 @@ package pvf
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
@@ -12,10 +11,10 @@ const (
 	maxRequestsAllowed uint = 60
 )
 
-type validationWorkerPool struct {
+type workerPool struct {
 	mtx sync.RWMutex
-	wg  sync.WaitGroup
 
+	// todo, make sure other functions work with paraID
 	workers map[parachaintypes.ValidationCodeHash]*worker
 }
 
@@ -27,7 +26,6 @@ type ValidationTask struct {
 	ExecutorParams          parachaintypes.ExecutorParams
 	PvfExecTimeoutKind      parachaintypes.PvfExecTimeoutKind
 	ValidationCode          *parachaintypes.ValidationCode
-	ResultCh                chan<- *ValidationTaskResult
 }
 
 type ValidationTaskResult struct {
@@ -122,66 +120,30 @@ func (ci ReasonForInvalidity) Error() string {
 	}
 }
 
-//type validationWorker struct {
-//	worker *worker
-//	queue  chan *workerTask
-//}
-
-func newValidationWorkerPool() *validationWorkerPool {
-	return &validationWorkerPool{
+func newValidationWorkerPool() *workerPool {
+	return &workerPool{
 		workers: make(map[parachaintypes.ValidationCodeHash]*worker),
 	}
 }
 
-// stop will shutdown all the available workers goroutines
-func (v *validationWorkerPool) stop() error {
-	v.mtx.RLock()
-	defer v.mtx.RUnlock()
-
-	for _, sw := range v.workers {
-		close(sw.queue)
-	}
-
-	allWorkersDoneCh := make(chan struct{})
-	go func() {
-		defer close(allWorkersDoneCh)
-		v.wg.Wait()
-	}()
-
-	timeoutTimer := time.NewTimer(30 * time.Second)
-	select {
-	case <-timeoutTimer.C:
-		return fmt.Errorf("timeout reached while finishing workers")
-	case <-allWorkersDoneCh:
-		if !timeoutTimer.Stop() {
-			<-timeoutTimer.C
-		}
-
-		return nil
-	}
-}
-
-func (v *validationWorkerPool) newValidationWorker(validationCode parachaintypes.ValidationCode) (*parachaintypes.
+func (v *workerPool) newValidationWorker(validationCode parachaintypes.ValidationCode) (*parachaintypes.
 	ValidationCodeHash, error) {
 
 	workerQueue := make(chan *workerTask, maxRequestsAllowed)
 	worker, err := newWorker(validationCode, workerQueue)
 	if err != nil {
-		logger.Errorf("failed to create a new worker: %w", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to create a new worker: %w", err)
 	}
-	v.wg.Add(1)
-	go worker.run(workerQueue, &v.wg)
 
 	v.workers[worker.workerID] = worker
 
 	return &worker.workerID, nil
 }
 
-// submitRequest given a request, the worker pool will get the peer given the peer.ID
-// parameter or if nil the very first available worker or
-// to perform the request, the response will be dispatch in the resultCh.
-func (v *validationWorkerPool) submitRequest(workerID parachaintypes.ValidationCodeHash, request *workerTask) {
+// submitRequest given a request, the worker pool will get the worker for a given workerID
+// a channel in returned that the response will be dispatch on
+func (v *workerPool) submitRequest(workerID parachaintypes.ValidationCodeHash,
+	request *workerTask) chan *ValidationTaskResult {
 	v.mtx.RLock()
 	defer v.mtx.RUnlock()
 	logger.Debugf("pool submit request workerID %x", workerID)
@@ -192,18 +154,12 @@ func (v *validationWorkerPool) submitRequest(workerID parachaintypes.ValidationC
 			panic("sync worker should not be nil")
 		}
 		logger.Debugf("sending request", workerID)
-		syncWorker.queue <- request
-		return
+		return syncWorker.executeRequest(request)
 	}
-
-	logger.Errorf("workerID %x not found in the pool", workerID)
-	request.ResultCh <- &ValidationTaskResult{
-		who:           workerID,
-		InternalError: fmt.Errorf("workerID %x not found in the pool", workerID),
-	}
+	return nil
 }
 
-func (v *validationWorkerPool) containsWorker(workerID parachaintypes.ValidationCodeHash) bool {
+func (v *workerPool) containsWorker(workerID parachaintypes.ValidationCodeHash) bool {
 	v.mtx.RLock()
 	defer v.mtx.RUnlock()
 

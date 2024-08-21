@@ -113,8 +113,6 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 	executionError := pvf.ExecutionError
 
 	pvfHost := pvf.NewValidationHost()
-	pvfHost.Start()
-	defer pvfHost.Stop()
 
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
@@ -293,7 +291,7 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 
 			taskResult := make(chan *pvf.ValidationTaskResult)
 			defer close(taskResult)
-			tt.validationTask.ResultCh = taskResult
+			//tt.validationTask.ResultCh = taskResult
 
 			go pvfHost.Validate(tt.validationTask)
 
