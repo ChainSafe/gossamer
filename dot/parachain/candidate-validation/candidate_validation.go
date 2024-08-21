@@ -32,7 +32,7 @@ type CandidateValidation struct {
 	SubsystemToOverseer chan<- any
 	OverseerToSubsystem <-chan any
 	BlockState          BlockState
-	pvfHost             *pvf.ValidationHost
+	pvfHost             *pvf.Host
 }
 
 type BlockState interface {
@@ -50,7 +50,7 @@ func NewCandidateValidation(overseerChan chan<- any, blockState BlockState) *Can
 }
 
 // Run starts the CandidateValidation subsystem
-func (cv *CandidateValidation) Run(context.Context, chan any, chan any) {
+func (cv *CandidateValidation) Run(context.Context, <-chan any) {
 	cv.wg.Add(1)
 	go cv.pvfHost.Start()
 	go cv.processMessages(&cv.wg)

@@ -354,7 +354,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 	defer candidateValidationSubsystem.Stop()
 
 	ctx := context.Background()
-	go candidateValidationSubsystem.Run(ctx, toSubsystem, nil)
+	go candidateValidationSubsystem.Run(ctx, toSubsystem)
 
 	tests := map[string]struct {
 		msg  ValidateFromExhaustive
@@ -704,7 +704,7 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 	}
 	defer candidateValidationSubsystem.Stop()
 
-	candidateValidationSubsystem.Run(context.Background(), nil, nil)
+	candidateValidationSubsystem.Run(context.Background(), nil)
 
 	tests := map[string]struct {
 		msg           ValidateFromChainState

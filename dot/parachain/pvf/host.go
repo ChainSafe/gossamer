@@ -12,14 +12,14 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "pvf"), log.SetLevel(log.Debug))
 
-type ValidationHost struct {
+type Host struct {
 	wg     sync.WaitGroup
 	stopCh chan struct{}
 
-	workerPool *validationWorkerPool
+	workerPool *workerPool
 }
 
-func (v *ValidationHost) Start() {
+func (v *Host) Start() {
 	v.wg.Add(1)
 	logger.Debug("Starting validation host")
 	go func() {
@@ -27,19 +27,19 @@ func (v *ValidationHost) Start() {
 	}()
 }
 
-func (v *ValidationHost) Stop() {
+func (v *Host) Stop() {
 	close(v.stopCh)
 	v.wg.Wait()
 }
 
-func NewValidationHost() *ValidationHost {
-	return &ValidationHost{
+func NewValidationHost() *Host {
+	return &Host{
 		stopCh:     make(chan struct{}),
 		workerPool: newValidationWorkerPool(),
 	}
 }
 
-func (v *ValidationHost) Validate(msg *ValidationTask) {
+func (v *Host) Validate(msg *ValidationTask) {
 	logger.Debugf("Validating worker %x", msg.WorkerID)
 
 	validationCodeHash := msg.ValidationCode.Hash()
@@ -95,13 +95,12 @@ func (v *ValidationHost) Validate(msg *ValidationTask) {
 	v.workerPool.submitRequest(*workerID, workTask)
 }
 
-func (v *ValidationHost) poolContainsWorker(msg *ValidationTask) (*parachaintypes.ValidationCodeHash, error) {
+func (v *Host) poolContainsWorker(msg *ValidationTask) (*parachaintypes.ValidationCodeHash, error) {
 	if msg.WorkerID != nil {
 		return msg.WorkerID, nil
 	}
 	validationCodeHash := msg.ValidationCode.Hash()
 	if v.workerPool.containsWorker(validationCodeHash) {
-
 		return &validationCodeHash, nil
 	} else {
 		return v.workerPool.newValidationWorker(*msg.ValidationCode)

@@ -24,11 +24,11 @@ func TestValidationWorkerPool_newValidationWorker(t *testing.T) {
 	testValidationCode := createTestValidationCode(t)
 
 	cases := map[string]struct {
-		setupWorkerPool func(t *testing.T) *validationWorkerPool
+		setupWorkerPool func(t *testing.T) *workerPool
 		expectedWorkers []parachaintypes.ValidationCodeHash
 	}{
 		"add_one_invalid_worker": {
-			setupWorkerPool: func(t *testing.T) *validationWorkerPool {
+			setupWorkerPool: func(t *testing.T) *workerPool {
 				pool := newValidationWorkerPool()
 				_, err := pool.newValidationWorker(parachaintypes.ValidationCode{1, 2, 3, 4})
 				require.Error(t, err)
@@ -37,7 +37,7 @@ func TestValidationWorkerPool_newValidationWorker(t *testing.T) {
 			expectedWorkers: []parachaintypes.ValidationCodeHash{},
 		},
 		"add_one_valid_worker": {
-			setupWorkerPool: func(t *testing.T) *validationWorkerPool {
+			setupWorkerPool: func(t *testing.T) *workerPool {
 				pool := newValidationWorkerPool()
 				_, err := pool.newValidationWorker(testValidationCode)
 				require.NoError(t, err)

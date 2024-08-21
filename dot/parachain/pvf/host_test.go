@@ -6,7 +6,7 @@ import (
 
 func Test_validationHost_start(t *testing.T) {
 	type fields struct {
-		workerPool *validationWorkerPool
+		workerPool *workerPool
 	}
 	tests := map[string]struct {
 		name   string
@@ -19,7 +19,7 @@ func Test_validationHost_start(t *testing.T) {
 	for tname, tt := range tests {
 		tt := tt
 		t.Run(tname, func(t *testing.T) {
-			v := &ValidationHost{
+			v := &Host{
 				workerPool: tt.fields.workerPool,
 			}
 			v.Start()

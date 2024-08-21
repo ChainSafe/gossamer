@@ -33,13 +33,13 @@ func newWorker(validationCode parachaintypes.ValidationCode, queue chan *workerT
 	}, nil
 }
 
-func (w *worker) run(queue chan *workerTask, wg *sync.WaitGroup) {
+func (w *worker) run(wg *sync.WaitGroup) {
 	defer func() {
 		logger.Debugf("[STOPPED] worker %x", w.workerID)
 		wg.Done()
 	}()
 
-	for task := range queue {
+	for task := range w.queue {
 		w.executeRequest(task)
 	}
 }

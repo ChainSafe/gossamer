@@ -12,7 +12,7 @@ const (
 	maxRequestsAllowed uint = 60
 )
 
-type validationWorkerPool struct {
+type workerPool struct {
 	mtx sync.RWMutex
 	wg  sync.WaitGroup
 
@@ -122,19 +122,14 @@ func (ci ReasonForInvalidity) Error() string {
 	}
 }
 
-//type validationWorker struct {
-//	worker *worker
-//	queue  chan *workerTask
-//}
-
-func newValidationWorkerPool() *validationWorkerPool {
-	return &validationWorkerPool{
+func newValidationWorkerPool() *workerPool {
+	return &workerPool{
 		workers: make(map[parachaintypes.ValidationCodeHash]*worker),
 	}
 }
 
 // stop will shutdown all the available workers goroutines
-func (v *validationWorkerPool) stop() error {
+func (v *workerPool) stop() error {
 	v.mtx.RLock()
 	defer v.mtx.RUnlock()
 
@@ -161,7 +156,7 @@ func (v *validationWorkerPool) stop() error {
 	}
 }
 
-func (v *validationWorkerPool) newValidationWorker(validationCode parachaintypes.ValidationCode) (*parachaintypes.
+func (v *workerPool) newValidationWorker(validationCode parachaintypes.ValidationCode) (*parachaintypes.
 	ValidationCodeHash, error) {
 
 	workerQueue := make(chan *workerTask, maxRequestsAllowed)
@@ -171,7 +166,7 @@ func (v *validationWorkerPool) newValidationWorker(validationCode parachaintypes
 		return nil, err
 	}
 	v.wg.Add(1)
-	go worker.run(workerQueue, &v.wg)
+	go worker.run(&v.wg)
 
 	v.workers[worker.workerID] = worker
 
@@ -181,7 +176,7 @@ func (v *validationWorkerPool) newValidationWorker(validationCode parachaintypes
 // submitRequest given a request, the worker pool will get the peer given the peer.ID
 // parameter or if nil the very first available worker or
 // to perform the request, the response will be dispatch in the resultCh.
-func (v *validationWorkerPool) submitRequest(workerID parachaintypes.ValidationCodeHash, request *workerTask) {
+func (v *workerPool) submitRequest(workerID parachaintypes.ValidationCodeHash, request *workerTask) {
 	v.mtx.RLock()
 	defer v.mtx.RUnlock()
 	logger.Debugf("pool submit request workerID %x", workerID)
@@ -203,7 +198,7 @@ func (v *validationWorkerPool) submitRequest(workerID parachaintypes.ValidationC
 	}
 }
 
-func (v *validationWorkerPool) containsWorker(workerID parachaintypes.ValidationCodeHash) bool {
+func (v *workerPool) containsWorker(workerID parachaintypes.ValidationCodeHash) bool {
 	v.mtx.RLock()
 	defer v.mtx.RUnlock()
 
