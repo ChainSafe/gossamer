@@ -13,7 +13,6 @@ import (
 
 type NetworkBridgeSender struct {
 	net                  Network
-	OverseerToSubSystem  <-chan any
 	SubsystemsToOverseer chan<- any
 }
 
@@ -24,13 +23,19 @@ func Register(overseerChan chan<- any, net Network) *NetworkBridgeSender {
 	}
 }
 
-func (nbs *NetworkBridgeSender) Run(ctx context.Context, OverseerToSubSystem chan any,
-	SubSystemToOverseer chan any) {
-
-	for msg := range nbs.OverseerToSubSystem {
-		err := nbs.processMessage(msg)
-		if err != nil {
-			logger.Errorf("processing overseer message: %w", err)
+func (nbs *NetworkBridgeSender) Run(ctx context.Context, overseerToSubSystem <-chan any) {
+	for {
+		select {
+		case msg := <-overseerToSubSystem:
+			err := nbs.processMessage(msg)
+			if err != nil {
+				logger.Errorf("processing overseer message: %w", err)
+			}
+		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
+				logger.Errorf("ctx error: %s\n", err)
+			}
+			return
 		}
 	}
 }

@@ -353,7 +353,8 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 	}
 	defer candidateValidationSubsystem.Stop()
 
-	candidateValidationSubsystem.Run(context.Background(), nil, nil)
+	ctx := context.Background()
+	go candidateValidationSubsystem.Run(ctx, overseerToSubsystem)
 
 	tests := map[string]struct {
 		msg  ValidateFromExhaustive
@@ -460,7 +461,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			time.Sleep(100 * time.Millisecond)
-			toSubsystem <- tt.msg
+			overseerToSubsystem <- tt.msg
 			time.Sleep(100 * time.Millisecond)
 			result := <-sender
 			require.Equal(t, tt.want, result)

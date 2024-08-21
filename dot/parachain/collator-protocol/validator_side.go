@@ -58,14 +58,13 @@ var (
 	ErrFinalizedNumber     = errors.New("finalized number is greater than or equal to the block number")
 )
 
-func (cpvs CollatorProtocolValidatorSide) Run(
-	ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) {
+func (cpvs CollatorProtocolValidatorSide) Run(ctx context.Context, overseerToSubSystem <-chan any) {
 	inactivityTicker := time.NewTicker(activityPoll)
 
 	for {
 		select {
 		// TODO: polkadot-rust changes reputation in batches, so we do the same?
-		case msg, ok := <-cpvs.OverseerToSubSystem:
+		case msg, ok := <-overseerToSubSystem:
 			if !ok {
 				return
 			}
@@ -97,8 +96,8 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 				cpvs.fetchedCollations = append(cpvs.fetchedCollations, *collation)
 			}
 
-		case <-cpvs.ctx.Done():
-			if err := cpvs.ctx.Err(); err != nil {
+		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
 				logger.Errorf("ctx error: %v\n", err)
 			}
 		}
@@ -434,7 +433,6 @@ func (cpvs *CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal(signal pa
 }
 
 func (cpvs CollatorProtocolValidatorSide) Stop() {
-	cpvs.cancel()
 	cpvs.net.FreeNetworkEventsChannel(cpvs.networkEventInfoChan)
 }
 
@@ -691,15 +689,11 @@ type CollationEvent struct {
 }
 
 type CollatorProtocolValidatorSide struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-
 	BlockState *state.BlockState
 	net        Network
 	Keystore   keystore.Keystore
 
 	SubSystemToOverseer  chan<- any
-	OverseerToSubSystem  <-chan any
 	networkEventInfoChan chan *network.NetworkEventInfo
 
 	unfetchedCollation chan UnfetchedCollation

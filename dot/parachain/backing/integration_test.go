@@ -32,7 +32,7 @@ func initBackingAndOverseerMock(t *testing.T) (*backing.CandidateBacking, *overs
 	overseerMock := overseer.NewMockableOverseer(t)
 
 	backing := backing.New(overseerMock.SubsystemsToOverseer)
-	backing.OverseerToSubSystem = overseerMock.RegisterSubsystem(backing)
+	overseerMock.RegisterSubsystem(backing)
 	backing.SubSystemToOverseer = overseerMock.GetSubsystemToOverseerChannel()
 
 	backing.Keystore = keystore.NewBasicKeystore("test", crypto.Sr25519Type)
