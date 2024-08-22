@@ -2182,6 +2182,7 @@ func Test_ext_storage_read_version_1_OffsetLargerThanValue(t *testing.T) {
 func Test_ext_storage_root_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME, TestWithVersion(DefaultVersion))
 
+	inst.Context.Storage.StartTransaction()
 	ret, err := inst.Exec("rtm_ext_storage_root_version_1", []byte{})
 	require.NoError(t, err)
 
@@ -2200,6 +2201,7 @@ func Test_ext_storage_root_version_2(t *testing.T) {
 	encVersion, err := scale.Marshal(stateVersion)
 	require.NoError(t, err)
 
+	inst.Context.Storage.StartTransaction()
 	ret, err := inst.Exec("rtm_ext_storage_root_version_2", encVersion)
 	require.NoError(t, err)
 
