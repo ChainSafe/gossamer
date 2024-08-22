@@ -930,6 +930,7 @@ func (in *Instance) InitializeBlock(header *types.Header) error {
 		return fmt.Errorf("cannot encode header: %w", err)
 	}
 
+	in.Context.Storage.StartTransaction()
 	_, err = in.Exec(runtime.CoreInitializeBlock, encodedHeader)
 	return err
 }
