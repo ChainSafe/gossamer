@@ -31,11 +31,6 @@ type TrieState struct {
 // NewTrieState initialises and returns a new TrieState instance
 func NewTrieState(initialState trie.Trie) *TrieState {
 	transactions := list.New()
-	// start an changeset at the begining of the block execution
-	// then we can the clear prefix work correctly by ignoring
-	// keys included under current block execution
-	transactions.PushBack(newStorageDiff())
-
 	return &TrieState{
 		transactions: transactions,
 		state:        initialState,
