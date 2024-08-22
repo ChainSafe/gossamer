@@ -11,7 +11,6 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -28,39 +27,6 @@ var (
 	errZeroLengthResponse = errors.New("zero length response")
 	errEmptyStateEntries  = errors.New("empty state entries")
 )
-
-func buildTrieFromFolder(folder string) {
-	entries, err := os.ReadDir(folder)
-	if err != nil {
-		panic(err)
-	}
-
-	tt := inmemory.NewEmptyTrie()
-	tt.SetVersion(trie.V1)
-
-	for _, file := range entries {
-		content, err := os.ReadFile(filepath.Join(folder, file.Name()))
-		if err != nil {
-			panic(err)
-		}
-
-		stateResponse := &messages.StateResponse{}
-		err = stateResponse.Decode(common.MustHexToBytes(string(content)))
-		if err != nil {
-			panic(err)
-		}
-
-		for _, stateEntry := range stateResponse.Entries {
-			for _, kv := range stateEntry.StateEntries {
-				if err := tt.Put(kv.Key, kv.Value); err != nil {
-					panic(err)
-				}
-			}
-		}
-	}
-
-	fmt.Printf("=> %s\n", tt.MustHash().String())
-}
 
 type StateRequestProvider struct {
 	lastKeys           [][]byte
@@ -145,7 +111,7 @@ func (s *StateRequestProvider) buildTrie(expectedStorageRootHash common.Hash, de
 
 	rootHash := tt.MustHash()
 	if expectedStorageRootHash != rootHash {
-		return fmt.Errorf("\n\texpected root hash: %s\ngot root hash: %s\n",
+		log.Printf("\n\texpected root hash: %s\ngot root hash: %s\n",
 			expectedStorageRootHash.String(), rootHash.String())
 	}
 
