@@ -15,11 +15,10 @@ import (
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
-	types "github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p/core/peer"
-	protocol "github.com/libp2p/go-libp2p/core/protocol"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -270,35 +269,16 @@ func TestProcessOverseerMessage(t *testing.T) {
 		c := c
 		t.Run(c.description, func(t *testing.T) {
 			t.Parallel()
+
+			subSystemToOverseer := make(chan any)
 			cpvs := CollatorProtocolValidatorSide{
-				fetchedCandidates: c.fetchedCandidates,
-				peerData:          c.peerData,
+				SubSystemToOverseer: subSystemToOverseer,
+				fetchedCandidates:   c.fetchedCandidates,
+				peerData:            c.peerData,
 			}
 
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-
-			mockBlockState := NewMockBlockState(ctrl)
-			finalizedNotifierChan := make(chan *types.FinalisationInfo)
-			importedBlockNotiferChan := make(chan *types.Block)
-
-			mockBlockState.EXPECT().GetFinalisedNotifierChannel().Return(finalizedNotifierChan)
-			mockBlockState.EXPECT().GetImportedBlockNotifierChannel().Return(importedBlockNotiferChan)
-			mockBlockState.EXPECT().FreeFinalisedNotifierChannel(finalizedNotifierChan)
-			mockBlockState.EXPECT().FreeImportedBlockNotifierChannel(importedBlockNotiferChan)
-
-			overseer := overseer.NewOverseer(mockBlockState)
-			err := overseer.Start()
-			require.NoError(t, err)
-
-			defer overseer.Stop()
-
-			cpvs.SubSystemToOverseer = overseer.SubsystemsToOverseer
-			_ = overseer.RegisterSubsystem(&cpvs)
-
-			mockNetworkBridgeSender := NewMockSubsystem(ctrl)
-			mockNetworkBridgeSender.EXPECT().Name().Return(parachaintypes.NetworkBridgeSender)
-			overseerToNetworkBridgeSender := overseer.RegisterSubsystem(mockNetworkBridgeSender)
 
 			var wg sync.WaitGroup
 			wg.Add(1)
@@ -306,7 +286,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 			go func(expectedNetworkBridgeSenderMsgs []any) {
 				var actual []any
 				for i := 0; i < len(expectedNetworkBridgeSenderMsgs); i++ {
-					actual = append(actual, <-overseerToNetworkBridgeSender)
+					actual = append(actual, <-subSystemToOverseer)
 				}
 
 				testCompareNetworkBridgeMsgs(t, expectedNetworkBridgeSenderMsgs, actual)
@@ -315,7 +295,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 
 			lenFetchedCandidatesBefore := len(cpvs.fetchedCandidates)
 
-			err = cpvs.processMessage(c.msg)
+			err := cpvs.processMessage(c.msg)
 			if c.errString == "" {
 				require.NoError(t, err)
 			} else {

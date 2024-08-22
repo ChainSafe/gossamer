@@ -71,18 +71,18 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	if err != nil {
 		return nil, fmt.Errorf("registering availability store: %w", err)
 	}
-	availabilityStore.OverseerToSubSystem = overseer.RegisterSubsystem(availabilityStore)
+	overseer.RegisterSubsystem(availabilityStore)
 
 	// register collation protocol
 	cpvs := collatorprotocol.New(net, protocol.ID(collationProtocolID), overseer.GetSubsystemToOverseerChannel())
 	cpvs.BlockState = st.Block
 	cpvs.Keystore = ks
-	cpvs.OverseerToSubSystem = overseer.RegisterSubsystem(cpvs)
+	overseer.RegisterSubsystem(cpvs)
 
 	// register candidate validation subsystem
 	candidateValidationSubsystem := candidatevalidation.NewCandidateValidation(overseer.SubsystemsToOverseer, st.Block)
 
-	candidateValidationSubsystem.OverseerToSubsystem = overseer.RegisterSubsystem(candidateValidationSubsystem)
+	overseer.RegisterSubsystem(candidateValidationSubsystem)
 
 	parachainService := &Service{
 		Network:  net,
@@ -110,7 +110,7 @@ func (s Service) run(blockState *state.BlockState) {
 
 	candidateBacking := backing.New(overseer.GetSubsystemToOverseerChannel())
 	candidateBacking.BlockState = blockState
-	candidateBacking.OverseerToSubSystem = overseer.RegisterSubsystem(candidateBacking)
+	overseer.RegisterSubsystem(candidateBacking)
 
 	// TODO: Add `Prospective Parachains` Subsystem. create an issue.
 

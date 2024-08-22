@@ -213,12 +213,11 @@ func RegisterReceiver(overseerChan chan<- any, net Network,
 	return nbr, nil
 }
 
-func (nbr *NetworkBridgeReceiver) Run(ctx context.Context, OverseerToSubSystem chan any,
-	SubSystemToOverseer chan any) {
+func (nbr *NetworkBridgeReceiver) Run(ctx context.Context, overseerToSubSystem <-chan any) {
 
 	for {
 		select {
-		case msg := <-OverseerToSubSystem:
+		case msg := <-overseerToSubSystem:
 			err := nbr.processMessage(msg)
 			if err != nil {
 				logger.Errorf("processing overseer message: %w", err)

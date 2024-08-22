@@ -58,23 +58,20 @@ func New(net Network, protocolID protocol.ID, overseerChan chan<- any) *Collator
 	collationFetchingReqResProtocol := net.GetRequestResponseProtocol(
 		string(protocolID), collationFetchingRequestTimeout, collationFetchingMaxResponseSize)
 
-	ctx, cancel := context.WithCancel(context.Background())
 	return &CollatorProtocolValidatorSide{
-		ctx:                             ctx,
-		cancel:                          cancel,
 		SubSystemToOverseer:             overseerChan,
 		collationFetchingReqResProtocol: collationFetchingReqResProtocol,
 	}
 }
 
 func (cpvs CollatorProtocolValidatorSide) Run(
-	ctx context.Context, OverseerToSubSystem chan any, SubSystemToOverseer chan any) {
+	ctx context.Context, overseerToSubSystem <-chan any) {
 	inactivityTicker := time.NewTicker(activityPoll)
 
 	for {
 		select {
 		// TODO: polkadot-rust changes reputation in batches, so we do the same?
-		case msg, ok := <-cpvs.OverseerToSubSystem:
+		case msg, ok := <-overseerToSubSystem:
 			if !ok {
 				return
 			}
@@ -104,8 +101,8 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 				cpvs.fetchedCollations = append(cpvs.fetchedCollations, *collation)
 			}
 
-		case <-cpvs.ctx.Done():
-			if err := cpvs.ctx.Err(); err != nil {
+		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
 				logger.Errorf("ctx error: %v\n", err)
 			}
 		}
@@ -143,8 +140,6 @@ func (cpvs *CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal(signal pa
 }
 
 func (cpvs CollatorProtocolValidatorSide) Stop() {
-	cpvs.cancel()
-	// cpvs.net.FreeNetworkEventsChannel(cpvs.networkEventInfoChan)
 }
 
 // requestCollation requests a collation from the network.
@@ -383,9 +378,6 @@ type CollationEvent struct {
 }
 
 type CollatorProtocolValidatorSide struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-
 	BlockState *state.BlockState
 	Keystore   keystore.Keystore
 
