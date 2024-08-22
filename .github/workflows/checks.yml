@@ -40,7 +40,7 @@ jobs:
       - name: Up to date Go proto generated
         run: |
           go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28 && \
-          PROTOC_VERSION=21.10 && \
+          PROTOC_VERSION=24.4 && \
           curl -sL --output protoc.zip "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip" && \
           sudo unzip protoc.zip -d /usr/local && \
           rm protoc.zip && \
