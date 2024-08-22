@@ -146,7 +146,7 @@ func (t *TrieState) MustRoot() common.Hash {
 	return hash
 }
 
-// Root is executed in the block finalization
+// Root is executed in the block finalisation
 // when it is wrapping everything and needs to ensure
 // the root hash matches the expected one, in this case
 // we commit the changeset we started in the begining
