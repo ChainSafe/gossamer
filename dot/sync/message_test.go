@@ -7,7 +7,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
@@ -21,12 +21,12 @@ func TestService_CreateBlockResponse(t *testing.T) {
 	t.Parallel()
 
 	type args struct {
-		req *network.BlockRequestMessage
+		req *messages.BlockRequestMessage
 	}
 	tests := map[string]struct {
 		blockStateBuilder func(ctrl *gomock.Controller) BlockState
 		args              args
-		want              *network.BlockResponseMessage
+		want              *messages.BlockResponseMessage
 		err               error
 	}{
 		"invalid_block_request": {
@@ -34,7 +34,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				mockBlockState := NewMockBlockState(ctrl)
 				return mockBlockState
 			},
-			args: args{req: &network.BlockRequestMessage{}},
+			args: args{req: &messages.BlockRequestMessage{}},
 			err:  ErrInvalidBlockRequest,
 		},
 		"ascending_request_nil_startHash": {
@@ -44,11 +44,11 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				mockBlockState.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{1, 2}, nil)
 				return mockBlockState
 			},
-			args: args{req: &network.BlockRequestMessage{
+			args: args{req: &messages.BlockRequestMessage{
 				StartingBlock: *variadic.MustNewUint32OrHash(uint32(0)),
-				Direction:     network.Ascending,
+				Direction:     messages.Ascending,
 			}},
-			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{{
+			want: &messages.BlockResponseMessage{BlockData: []*types.BlockData{{
 				Hash: common.Hash{1, 2},
 			}}},
 		},
@@ -58,9 +58,9 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
 				return mockBlockState
 			},
-			args: args{req: &network.BlockRequestMessage{
+			args: args{req: &messages.BlockRequestMessage{
 				StartingBlock: *variadic.MustNewUint32OrHash(2),
-				Direction:     network.Ascending,
+				Direction:     messages.Ascending,
 			}},
 			err:  errRequestStartTooHigh,
 			want: nil,
@@ -71,11 +71,11 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
 				return mockBlockState
 			},
-			args: args{req: &network.BlockRequestMessage{
+			args: args{req: &messages.BlockRequestMessage{
 				StartingBlock: *variadic.MustNewUint32OrHash(0),
-				Direction:     network.Descending,
+				Direction:     messages.Descending,
 			}},
-			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{}},
+			want: &messages.BlockResponseMessage{BlockData: []*types.BlockData{}},
 		},
 		"descending_request_start_number_higher": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
@@ -84,12 +84,12 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				mockBlockState.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{1, 2}, nil)
 				return mockBlockState
 			},
-			args: args{req: &network.BlockRequestMessage{
+			args: args{req: &messages.BlockRequestMessage{
 				StartingBlock: *variadic.MustNewUint32OrHash(2),
-				Direction:     network.Descending,
+				Direction:     messages.Descending,
 			}},
 			err: nil,
-			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{{
+			want: &messages.BlockResponseMessage{BlockData: []*types.BlockData{{
 				Hash: common.Hash{1, 2},
 			}}},
 		},
@@ -108,11 +108,11 @@ func TestService_CreateBlockResponse(t *testing.T) {
 					nil)
 				return mockBlockState
 			},
-			args: args{req: &network.BlockRequestMessage{
+			args: args{req: &messages.BlockRequestMessage{
 				StartingBlock: *variadic.MustNewUint32OrHash(common.Hash{}),
-				Direction:     network.Ascending,
+				Direction:     messages.Ascending,
 			}},
-			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{{
+			want: &messages.BlockResponseMessage{BlockData: []*types.BlockData{{
 				Hash: common.Hash{1, 2},
 			}}},
 		},
@@ -130,11 +130,11 @@ func TestService_CreateBlockResponse(t *testing.T) {
 					common.Hash{}).Return([]common.Hash{{1, 2}}, nil)
 				return mockBlockState
 			},
-			args: args{req: &network.BlockRequestMessage{
+			args: args{req: &messages.BlockRequestMessage{
 				StartingBlock: *variadic.MustNewUint32OrHash(common.Hash{}),
-				Direction:     network.Descending,
+				Direction:     messages.Descending,
 			}},
-			want: &network.BlockResponseMessage{BlockData: []*types.BlockData{{
+			want: &messages.BlockResponseMessage{BlockData: []*types.BlockData{{
 				Hash: common.Hash{1, 2},
 			}}},
 		},
@@ -143,9 +143,9 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				return nil
 			},
 			args: args{
-				req: &network.BlockRequestMessage{
+				req: &messages.BlockRequestMessage{
 					StartingBlock: *variadic.MustNewUint32OrHash(common.Hash{}),
-					Direction:     network.SyncDirection(3),
+					Direction:     messages.SyncDirection(3),
 				}},
 			err: errInvalidRequestDirection,
 		},
@@ -267,7 +267,7 @@ func TestService_getBlockData(t *testing.T) {
 			},
 			args: args{
 				hash:          common.Hash{0},
-				requestedData: network.RequestedDataHeader,
+				requestedData: messages.RequestedDataHeader,
 			},
 			want: &types.BlockData{
 				Hash: common.Hash{},
@@ -283,7 +283,7 @@ func TestService_getBlockData(t *testing.T) {
 			},
 			args: args{
 				hash:          common.Hash{1},
-				requestedData: network.RequestedDataHeader,
+				requestedData: messages.RequestedDataHeader,
 			},
 			want: &types.BlockData{
 				Hash: common.Hash{1},
@@ -301,7 +301,7 @@ func TestService_getBlockData(t *testing.T) {
 
 			args: args{
 				hash:          common.Hash{},
-				requestedData: network.RequestedDataBody,
+				requestedData: messages.RequestedDataBody,
 			},
 			want: &types.BlockData{
 				Hash: common.Hash{},
@@ -315,7 +315,7 @@ func TestService_getBlockData(t *testing.T) {
 			},
 			args: args{
 				hash:          common.Hash{1},
-				requestedData: network.RequestedDataBody,
+				requestedData: messages.RequestedDataBody,
 			},
 			want: &types.BlockData{
 				Hash: common.Hash{1},
@@ -330,7 +330,7 @@ func TestService_getBlockData(t *testing.T) {
 			},
 			args: args{
 				hash:          common.Hash{1},
-				requestedData: network.RequestedDataReceipt,
+				requestedData: messages.RequestedDataReceipt,
 			},
 			want: &types.BlockData{
 				Hash:    common.Hash{1},
@@ -345,7 +345,7 @@ func TestService_getBlockData(t *testing.T) {
 			},
 			args: args{
 				hash:          common.Hash{2},
-				requestedData: network.RequestedDataMessageQueue,
+				requestedData: messages.RequestedDataMessageQueue,
 			},
 			want: &types.BlockData{
 				Hash:         common.Hash{2},
@@ -360,7 +360,7 @@ func TestService_getBlockData(t *testing.T) {
 			},
 			args: args{
 				hash:          common.Hash{3},
-				requestedData: network.RequestedDataJustification,
+				requestedData: messages.RequestedDataJustification,
 			},
 			want: &types.BlockData{
 				Hash:          common.Hash{3},
