@@ -149,7 +149,7 @@ func (t *TrieState) MustRoot() common.Hash {
 // Root is executed in the block finalisation
 // when it is wrapping everything and needs to ensure
 // the root hash matches the expected one, in this case
-// we commit the changeset we started in the begining
+// we commit the changeset we started in the beginning
 func (t *TrieState) Root() (common.Hash, error) {
 	t.CommitTransaction()
 
