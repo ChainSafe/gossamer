@@ -32,10 +32,10 @@ func (s *StateRequest) String() string {
 func (s *StateRequest) Encode() ([]byte, error) {
 	message := &pb.StateRequest{
 		Block:   s.Block.ToBytes(),
-		Start:   s.Start[:],
+		Start:   make([][]byte, len(s.Start)),
 		NoProof: s.NoProof,
 	}
-
+	copy(message.Start, s.Start)
 	return proto.Marshal(message)
 }
 
