@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"golang.org/x/exp/maps"
 )
@@ -27,14 +28,14 @@ const (
 )
 
 type syncTask struct {
-	request  *network.BlockRequestMessage
+	request  *messages.BlockRequestMessage
 	resultCh chan<- *syncTaskResult
 }
 
 type syncTaskResult struct {
 	who      peer.ID
-	request  *network.BlockRequestMessage
-	response *network.BlockResponseMessage
+	request  *messages.BlockRequestMessage
+	response *messages.BlockResponseMessage
 	err      error
 }
 
@@ -144,7 +145,7 @@ func (s *syncWorkerPool) newPeer(who peer.ID) {
 // submitRequest given a request, the worker pool will get the peer given the peer.ID
 // parameter or if nil the very first available worker or
 // to perform the request, the response will be dispatch in the resultCh.
-func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
+func (s *syncWorkerPool) submitRequest(request *messages.BlockRequestMessage,
 	who *peer.ID, resultCh chan<- *syncTaskResult) {
 
 	task := &syncTask{
@@ -186,7 +187,7 @@ func (s *syncWorkerPool) submitRequest(request *network.BlockRequestMessage,
 
 // submitRequests takes an set of requests and will submit to the pool through submitRequest
 // the response will be dispatch in the resultCh
-func (s *syncWorkerPool) submitRequests(requests []*network.BlockRequestMessage) (resultCh chan *syncTaskResult) {
+func (s *syncWorkerPool) submitRequests(requests []*messages.BlockRequestMessage) (resultCh chan *syncTaskResult) {
 	resultCh = make(chan *syncTaskResult, maxRequestsAllowed+1)
 
 	s.mtx.RLock()

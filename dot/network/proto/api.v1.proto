@@ -61,3 +61,25 @@ message BlockData {
 	// justification.
 	bool is_empty_justification = 7; // optional, false if absent
 }
+
+message StateRequest {
+	bytes block = 1;
+	repeated bytes start = 2;
+	bool no_proof = 3;
+}
+
+message StateResponse {
+	repeated KeyValueStateEntry entries = 1;
+	bytes proof = 2;
+}
+
+message KeyValueStateEntry {
+	bytes state_root = 1;
+	repeated StateEntry entries = 2;
+	bool complete = 3;
+}
+
+message StateEntry {
+	bytes key = 1;
+	bytes value = 2;
+}

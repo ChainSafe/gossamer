@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -17,8 +17,8 @@ import (
 const maxNumberOfSameRequestPerPeer uint = 2
 
 // CreateBlockResponse creates a block response message from a block request message
-func (s *Service) CreateBlockResponse(from peer.ID, req *network.BlockRequestMessage) (
-	*network.BlockResponseMessage, error) {
+func (s *Service) CreateBlockResponse(from peer.ID, req *messages.BlockRequestMessage) (
+	*messages.BlockResponseMessage, error) {
 	logger.Debugf("sync request from %s: %s", from, req.String())
 
 	if !req.StartingBlock.IsUint32() && !req.StartingBlock.IsHash() {
@@ -51,24 +51,24 @@ func (s *Service) CreateBlockResponse(from peer.ID, req *network.BlockRequestMes
 	s.seenBlockSyncRequests.Put(requestHash, numOfRequests+1)
 
 	switch req.Direction {
-	case network.Ascending:
+	case messages.Ascending:
 		return s.handleAscendingRequest(req)
-	case network.Descending:
+	case messages.Descending:
 		return s.handleDescendingRequest(req)
 	default:
 		return nil, errInvalidRequestDirection
 	}
 }
 
-func (s *Service) handleAscendingRequest(req *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
+func (s *Service) handleAscendingRequest(req *messages.BlockRequestMessage) (*messages.BlockResponseMessage, error) {
 	var (
-		max         uint = network.MaxBlocksInResponse
+		max         uint = messages.MaxBlocksInResponse
 		startHash   *common.Hash
 		startNumber uint
 	)
 
 	// determine maximum response size
-	if req.Max != nil && *req.Max < network.MaxBlocksInResponse {
+	if req.Max != nil && *req.Max < messages.MaxBlocksInResponse {
 		max = uint(*req.Max)
 	}
 
@@ -135,15 +135,15 @@ func (s *Service) handleAscendingRequest(req *network.BlockRequestMessage) (*net
 	return s.handleChainByHash(*startHash, *endHash, max, req.RequestedData, req.Direction)
 }
 
-func (s *Service) handleDescendingRequest(req *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
+func (s *Service) handleDescendingRequest(req *messages.BlockRequestMessage) (*messages.BlockResponseMessage, error) {
 	var (
 		startHash   *common.Hash
 		startNumber uint
-		max         uint = network.MaxBlocksInResponse
+		max         uint = messages.MaxBlocksInResponse
 	)
 
 	// determine maximum response size
-	if req.Max != nil && *req.Max < network.MaxBlocksInResponse {
+	if req.Max != nil && *req.Max < messages.MaxBlocksInResponse {
 		max = uint(*req.Max)
 	}
 
@@ -285,7 +285,7 @@ func (s *Service) checkOrGetDescendantHash(ancestor common.Hash,
 }
 
 func (s *Service) handleAscendingByNumber(start, end uint,
-	requestedData byte) (*network.BlockResponseMessage, error) {
+	requestedData byte) (*messages.BlockResponseMessage, error) {
 	var err error
 	data := make([]*types.BlockData, (end-start)+1)
 
@@ -297,13 +297,13 @@ func (s *Service) handleAscendingByNumber(start, end uint,
 		}
 	}
 
-	return &network.BlockResponseMessage{
+	return &messages.BlockResponseMessage{
 		BlockData: data,
 	}, nil
 }
 
 func (s *Service) handleDescendingByNumber(start, end uint,
-	requestedData byte) (*network.BlockResponseMessage, error) {
+	requestedData byte) (*messages.BlockResponseMessage, error) {
 	var err error
 	data := make([]*types.BlockData, (start-end)+1)
 
@@ -315,14 +315,14 @@ func (s *Service) handleDescendingByNumber(start, end uint,
 		}
 	}
 
-	return &network.BlockResponseMessage{
+	return &messages.BlockResponseMessage{
 		BlockData: data,
 	}, nil
 }
 
 func (s *Service) handleChainByHash(ancestor, descendant common.Hash,
-	max uint, requestedData byte, direction network.SyncDirection) (
-	*network.BlockResponseMessage, error) {
+	max uint, requestedData byte, direction messages.SyncDirection) (
+	*messages.BlockResponseMessage, error) {
 	subchain, err := s.blockState.Range(ancestor, descendant)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving range: %w", err)
@@ -331,7 +331,7 @@ func (s *Service) handleChainByHash(ancestor, descendant common.Hash,
 	// If the direction is descending, prune from the start.
 	// if the direction is ascending it should prune from the end.
 	if uint(len(subchain)) > max {
-		if direction == network.Ascending {
+		if direction == messages.Ascending {
 			subchain = subchain[:max]
 		} else {
 			subchain = subchain[uint(len(subchain))-max:]
@@ -348,11 +348,11 @@ func (s *Service) handleChainByHash(ancestor, descendant common.Hash,
 	}
 
 	// reverse BlockData, if descending request
-	if direction == network.Descending {
+	if direction == messages.Descending {
 		reverseBlockData(data)
 	}
 
-	return &network.BlockResponseMessage{
+	return &messages.BlockResponseMessage{
 		BlockData: data,
 	}, nil
 }
@@ -376,35 +376,35 @@ func (s *Service) getBlockData(hash common.Hash, requestedData byte) (*types.Blo
 		return blockData, nil
 	}
 
-	if (requestedData & network.RequestedDataHeader) == 1 {
+	if (requestedData & messages.RequestedDataHeader) == 1 {
 		blockData.Header, err = s.blockState.GetHeader(hash)
 		if err != nil {
 			logger.Debugf("failed to get header for block with hash %s: %s", hash, err)
 		}
 	}
 
-	if (requestedData&network.RequestedDataBody)>>1 == 1 {
+	if (requestedData&messages.RequestedDataBody)>>1 == 1 {
 		blockData.Body, err = s.blockState.GetBlockBody(hash)
 		if err != nil {
 			logger.Debugf("failed to get body for block with hash %s: %s", hash, err)
 		}
 	}
 
-	if (requestedData&network.RequestedDataReceipt)>>2 == 1 {
+	if (requestedData&messages.RequestedDataReceipt)>>2 == 1 {
 		retData, err := s.blockState.GetReceipt(hash)
 		if err == nil && retData != nil {
 			blockData.Receipt = &retData
 		}
 	}
 
-	if (requestedData&network.RequestedDataMessageQueue)>>3 == 1 {
+	if (requestedData&messages.RequestedDataMessageQueue)>>3 == 1 {
 		retData, err := s.blockState.GetMessageQueue(hash)
 		if err == nil && retData != nil {
 			blockData.MessageQueue = &retData
 		}
 	}
 
-	if (requestedData&network.RequestedDataJustification)>>4 == 1 {
+	if (requestedData&messages.RequestedDataJustification)>>4 == 1 {
 		retData, err := s.blockState.GetJustification(hash)
 		if err == nil && retData != nil {
 			blockData.Justification = &retData

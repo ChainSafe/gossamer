@@ -12,7 +12,7 @@ package sync
 import (
 	reflect "reflect"
 
-	network "github.com/ChainSafe/gossamer/dot/network"
+	messages "github.com/ChainSafe/gossamer/dot/network/messages"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -41,7 +41,7 @@ func (m *MockRequestMaker) EXPECT() *MockRequestMakerMockRecorder {
 }
 
 // Do mocks base method.
-func (m *MockRequestMaker) Do(arg0 peer.ID, arg1 network.Message, arg2 network.ResponseMessage) error {
+func (m *MockRequestMaker) Do(arg0 peer.ID, arg1, arg2 messages.P2PMessage) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Do", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)

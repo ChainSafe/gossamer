@@ -13,6 +13,7 @@ import (
 	reflect "reflect"
 
 	network "github.com/ChainSafe/gossamer/dot/network"
+	messages "github.com/ChainSafe/gossamer/dot/network/messages"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -41,10 +42,10 @@ func (m *MockSyncer) EXPECT() *MockSyncerMockRecorder {
 }
 
 // CreateBlockResponse mocks base method.
-func (m *MockSyncer) CreateBlockResponse(arg0 peer.ID, arg1 *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
+func (m *MockSyncer) CreateBlockResponse(arg0 peer.ID, arg1 *messages.BlockRequestMessage) (*messages.BlockResponseMessage, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateBlockResponse", arg0, arg1)
-	ret0, _ := ret[0].(*network.BlockResponseMessage)
+	ret0, _ := ret[0].(*messages.BlockResponseMessage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
