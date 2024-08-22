@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
@@ -130,9 +130,9 @@ func TestSyncWorkerPool_listenForRequests_submitRequest(t *testing.T) {
 	defer workerPool.stop()
 
 	blockHash := common.MustHexToHash("0x750646b852a29e5f3668959916a03d6243a3137e91d0cd36870364931030f707")
-	blockRequest := network.NewBlockRequest(*variadic.MustNewUint32OrHash(blockHash),
-		1, network.BootstrapRequestData, network.Descending)
-	mockedBlockResponse := &network.BlockResponseMessage{
+	blockRequest := messages.NewBlockRequest(*variadic.MustNewUint32OrHash(blockHash),
+		1, messages.BootstrapRequestData, messages.Ascending)
+	mockedBlockResponse := &messages.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
 				Hash: blockHash,
@@ -147,9 +147,9 @@ func TestSyncWorkerPool_listenForRequests_submitRequest(t *testing.T) {
 	// introduce a timeout of 5s then we can test the
 	// peer status change to busy
 	requestMakerMock.EXPECT().
-		Do(availablePeer, blockRequest, &network.BlockResponseMessage{}).
+		Do(availablePeer, blockRequest, &messages.BlockResponseMessage{}).
 		DoAndReturn(func(_, _, response any) any {
-			responsePtr := response.(*network.BlockResponseMessage)
+			responsePtr := response.(*messages.BlockResponseMessage)
 			*responsePtr = *mockedBlockResponse
 			return nil
 		})
@@ -178,14 +178,14 @@ func TestSyncWorkerPool_singleWorker_multipleRequests(t *testing.T) {
 	workerPool.newPeer(availablePeer)
 
 	firstRequestBlockHash := common.MustHexToHash("0x750646b852a29e5f3668959916a03d6243a3137e91d0cd36870364931030f707")
-	firstBlockRequest := network.NewBlockRequest(*variadic.MustNewUint32OrHash(firstRequestBlockHash),
-		1, network.BootstrapRequestData, network.Descending)
+	firstBlockRequest := messages.NewBlockRequest(*variadic.MustNewUint32OrHash(firstRequestBlockHash),
+		1, messages.BootstrapRequestData, messages.Ascending)
 
 	secondRequestBlockHash := common.MustHexToHash("0x897646b852a29e5f3668959916a03d6243a3137e91d0cd36870364931030f707")
-	secondBlockRequest := network.NewBlockRequest(*variadic.MustNewUint32OrHash(firstRequestBlockHash),
-		1, network.BootstrapRequestData, network.Descending)
+	secondBlockRequest := messages.NewBlockRequest(*variadic.MustNewUint32OrHash(firstRequestBlockHash),
+		1, messages.BootstrapRequestData, messages.Ascending)
 
-	firstMockedBlockResponse := &network.BlockResponseMessage{
+	firstMockedBlockResponse := &messages.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
 				Hash: firstRequestBlockHash,
@@ -197,7 +197,7 @@ func TestSyncWorkerPool_singleWorker_multipleRequests(t *testing.T) {
 		},
 	}
 
-	secondMockedBlockResponse := &network.BlockResponseMessage{
+	secondMockedBlockResponse := &messages.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
 				Hash: secondRequestBlockHash,
@@ -212,24 +212,24 @@ func TestSyncWorkerPool_singleWorker_multipleRequests(t *testing.T) {
 	// introduce a timeout of 5s then we can test the
 	// then we can simulate a busy peer
 	requestMakerMock.EXPECT().
-		Do(availablePeer, firstBlockRequest, &network.BlockResponseMessage{}).
+		Do(availablePeer, firstBlockRequest, &messages.BlockResponseMessage{}).
 		DoAndReturn(func(_, _, response any) any {
 			time.Sleep(5 * time.Second)
-			responsePtr := response.(*network.BlockResponseMessage)
+			responsePtr := response.(*messages.BlockResponseMessage)
 			*responsePtr = *firstMockedBlockResponse
 			return nil
 		})
 
 	requestMakerMock.EXPECT().
-		Do(availablePeer, firstBlockRequest, &network.BlockResponseMessage{}).
+		Do(availablePeer, firstBlockRequest, &messages.BlockResponseMessage{}).
 		DoAndReturn(func(_, _, response any) any {
-			responsePtr := response.(*network.BlockResponseMessage)
+			responsePtr := response.(*messages.BlockResponseMessage)
 			*responsePtr = *secondMockedBlockResponse
 			return nil
 		})
 
 	resultCh := workerPool.submitRequests(
-		[]*network.BlockRequestMessage{firstBlockRequest, secondBlockRequest})
+		[]*messages.BlockRequestMessage{firstBlockRequest, secondBlockRequest})
 
 	syncTaskResult := <-resultCh
 	require.NoError(t, syncTaskResult.err)
