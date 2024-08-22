@@ -992,7 +992,6 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 		return nil, err
 	}
 
-	in.Context.Storage.StartTransaction()
 	return in.Exec(runtime.CoreExecuteBlock, bdEnc)
 }
 
