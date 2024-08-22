@@ -136,20 +136,11 @@ func (t *TrieState) Get(key []byte) []byte {
 	return t.state.Get(key)
 }
 
-// MustRoot returns the trie's root hash. It panics if it fails to compute the root.
-func (t *TrieState) MustRoot() common.Hash {
-	hash, err := t.Root()
-	if err != nil {
-		panic(err)
-	}
-
-	return hash
-}
-
 // Root is executed in the block finalisation
 // when it is wrapping everything and needs to ensure
 // the root hash matches the expected one, in this case
 // we commit the changeset we started in the beginning
+// WARN: this function should be called only by ext_storage_root_version_1
 func (t *TrieState) Root() (common.Hash, error) {
 	t.CommitTransaction()
 
