@@ -31,6 +31,11 @@ type TrieState struct {
 // NewTrieState initialises and returns a new TrieState instance
 func NewTrieState(initialState trie.Trie) *TrieState {
 	transactions := list.New()
+	// start an changeset at the begining of the block execution
+	// then we can the clear prefix work correctly by ignoring
+	// keys included under current block execution
+	transactions.PushBack(newStorageDiff())
+
 	return &TrieState{
 		transactions: transactions,
 		state:        initialState,
@@ -146,8 +151,13 @@ func (t *TrieState) MustRoot() common.Hash {
 	return hash
 }
 
-// Root returns the trie's root hash
+// Root is executed in the block finalization
+// when it is wrapping everything and needs to ensure
+// the root hash matches the expected one, in this case
+// we commit the changeset we started in the begining
 func (t *TrieState) Root() (common.Hash, error) {
+	t.CommitTransaction()
+
 	// Since the Root function is called without running transactions we can do:
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		panic("cannot calculate root with running transactions")
