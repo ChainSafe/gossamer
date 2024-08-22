@@ -992,6 +992,10 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 		return nil, err
 	}
 
+	// start an changeset at the begining of the block execution
+	// then we can the clear prefix work correctly by ignoring
+	// keys included under current block execution
+	in.Context.Storage.StartTransaction()
 	return in.Exec(runtime.CoreExecuteBlock, bdEnc)
 }
 
