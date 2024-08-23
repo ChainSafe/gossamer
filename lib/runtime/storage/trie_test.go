@@ -588,8 +588,8 @@ func TestTrieState_Root(t *testing.T) {
 		ts.Put([]byte(tc), []byte(tc))
 	}
 
-	expected := ts.MustRoot()
-	require.Equal(t, expected, ts.MustRoot())
+	expected := ts.Trie().MustHash()
+	require.Equal(t, expected, ts.Trie().MustHash())
 }
 
 func TestTrieState_ChildRoot(t *testing.T) {
