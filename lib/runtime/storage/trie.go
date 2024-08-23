@@ -18,6 +18,8 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+var childStorageKeyPrefix = []byte(":child_storage:")
+
 // TrieState relies on `storageDiff` to perform changes over the current state.
 // It has support for transactions using "nested" storageDiff changes
 // If the execution of the call is successful, the changes will be applied to
@@ -206,10 +208,19 @@ func (t *TrieState) NextKey(key []byte) []byte {
 	return t.state.NextKey(key)
 }
 
+// Check if the given prefix starts with the child storage key prefix
+func startsWithChildStorageKey(prefix []byte) bool {
+	return bytes.HasPrefix(prefix, childStorageKeyPrefix)
+}
+
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
 func (t *TrieState) ClearPrefix(prefix []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
+
+	if startsWithChildStorageKey(prefix) {
+		return fmt.Errorf("cannot clear prefix that is part of or contains a child storage key")
+	}
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		keysOnState := make([]string, 0)
@@ -231,6 +242,10 @@ func (t *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
 	deleted uint32, allDeleted bool, err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
+
+	if startsWithChildStorageKey(prefix) {
+		return deleted, allDeleted, fmt.Errorf("cannot clear prefix that is part of or contains a child storage key")
+	}
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		keysOnState := make([]string, 0)
