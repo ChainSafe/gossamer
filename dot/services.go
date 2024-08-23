@@ -500,22 +500,17 @@ func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationMana
 func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg BlockJustificationVerifier,
 	verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer Telemetry) (
 	network.Syncer, error) {
-	// slotDuration, err := st.Epoch.GetSlotDuration()
-	// if err != nil {
-	// 	return nil, err
-	// }
+	slotDuration, err := st.Epoch.GetSlotDuration()
+	if err != nil {
+		return nil, err
+	}
 
 	genesisData, err := st.Base.LoadGenesisData()
 	if err != nil {
 		return nil, err
 	}
 
-	// syncLogLevel, err := log.ParseLevel(config.Log.Sync)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to parse sync log level: %w", err)
-	// }
-
-	const blockRequestTimeout = 30 * time.Second
+	const blockRequestTimeout = 20 * time.Second
 	requestMaker := net.GetRequestResponseProtocol(
 		network.SyncID,
 		blockRequestTimeout,
@@ -538,11 +533,14 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg Bloc
 		BadBlocks:          genesisData.BadBlocks,
 		RequestMaker:       requestMaker,
 	}
+	fullSync := libsync.NewFullSyncStrategy(syncCfg)
 
-	defaultStrategy := libsync.NewFullSyncStrategy(syncCfg)
-	return libsync.NewSyncService(net, st.Block,
-		defaultStrategy,
-		defaultStrategy), nil
+	return libsync.NewSyncService(
+		libsync.WithNetwork(net),
+		libsync.WithBlockState(st.Block),
+		libsync.WithSlotDuration(slotDuration),
+		libsync.WithStrategies(fullSync, fullSync),
+	), nil
 }
 
 func (nodeBuilder) createDigestHandler(st *state.Service) (*digest.Handler, error) {

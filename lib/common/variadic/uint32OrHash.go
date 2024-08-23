@@ -17,13 +17,8 @@ type Uint32OrHash struct {
 	value interface{}
 }
 
-func FromHash(hash common.Hash) *Uint32OrHash {
-	return &Uint32OrHash{
-		value: hash,
-	}
-}
-
-func FromUint32(value uint32) *Uint32OrHash {
+// Uint32OrHashFrom returns a new variadic.Uint32OrHash given an int, uint32, or Hash
+func Uint32OrHashFrom[T common.Hash | ~int | ~uint | ~uint32](value T) *Uint32OrHash {
 	return &Uint32OrHash{
 		value: value,
 	}
@@ -51,17 +46,6 @@ func NewUint32OrHash(value interface{}) (*Uint32OrHash, error) {
 	default:
 		return nil, errors.New("value is not uint32 or common.Hash")
 	}
-}
-
-// MustNewUint32OrHash returns a new variadic.Uint32OrHash given an int, uint32, or Hash
-// It panics if the input value is invalid
-func MustNewUint32OrHash(value interface{}) *Uint32OrHash {
-	val, err := NewUint32OrHash(value)
-	if err != nil {
-		panic(err)
-	}
-
-	return val
 }
 
 // NewUint32OrHashFromBytes returns a new variadic.Uint32OrHash from an encoded variadic uint32 or hash

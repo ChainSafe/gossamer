@@ -55,10 +55,13 @@ type FullSyncConfig struct {
 	RequestMaker       network.RequestMaker
 }
 
-type Importer interface {
+type importer interface {
 	handle(*types.BlockData, BlockOrigin) (imported bool, err error)
 }
 
+// FullSyncStrategy protocol is the "default" protocol.
+// Full sync works by listening to announced blocks and requesting the blocks
+// from the announcing peers.
 type FullSyncStrategy struct {
 	requestQueue  *requestsQueue[*network.BlockRequestMessage]
 	unreadyBlocks *unreadyBlocks
@@ -69,7 +72,7 @@ type FullSyncStrategy struct {
 	numOfTasks    int
 	startedAt     time.Time
 	syncedBlocks  int
-	importer      Importer
+	importer      importer
 }
 
 func NewFullSyncStrategy(cfg *FullSyncConfig) *FullSyncStrategy {
@@ -147,22 +150,6 @@ func (f *FullSyncStrategy) createTasks(requests []*network.BlockRequestMessage) 
 func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change, []peer.ID, error) {
 	repChanges, peersToIgnore, validResp := validateResults(results, f.badBlocks)
 
-	validBlocksUnderFragment := func(highestFinalizedNumber uint, fragmentBlocks []*types.BlockData) []*types.BlockData {
-		startFragmentFrom := -1
-		for idx, block := range fragmentBlocks {
-			if block.Header.Number > highestFinalizedNumber {
-				startFragmentFrom = idx
-				break
-			}
-		}
-
-		if startFragmentFrom < 0 {
-			return nil
-		}
-
-		return fragmentBlocks[startFragmentFrom:]
-	}
-
 	highestFinalized, err := f.blockState.GetHighestFinalisedHeader()
 	if err != nil {
 		return false, nil, nil, fmt.Errorf("getting highest finalized header")
@@ -171,11 +158,10 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 	readyBlocks := make([][]*types.BlockData, 0, len(validResp))
 	for _, reqRespData := range validResp {
 		// if Gossamer requested the header, then the response data should
-		// contains the full bocks to be imported
-		// if Gossamer don't requested the header, then the response shoul
-		// only contains the missing parts the will complete the unreadyBlocks
+		// contains the full blocks to be imported.
+		// if Gossamer didn't request the header, then the response should
+		// only contain the missing parts that will complete the unreadyBlocks
 		// and then with the blocks completed we should be able to import them
-
 		if reqRespData.req.RequestField(network.RequestedDataHeader) {
 			updatedFragment, ok := f.unreadyBlocks.updateDisjointFragments(reqRespData.responseData)
 			if ok {
@@ -186,6 +172,7 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 			} else {
 				readyBlocks = append(readyBlocks, reqRespData.responseData)
 			}
+
 			continue
 		}
 
@@ -193,7 +180,7 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 		readyBlocks = append(readyBlocks, completedBlocks)
 	}
 
-	// disjoint fragments are pieces of the chain that could not be imported rn
+	// disjoint fragments are pieces of the chain that could not be imported right now
 	// because is blocks too far ahead or blocks that belongs to forks
 	orderedFragments := sortFragmentsOfChain(readyBlocks)
 	orderedFragments = mergeFragmentsOfChain(orderedFragments)
@@ -262,7 +249,7 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 
 				f.unreadyBlocks.newFragment(validFragment)
 				request := network.NewBlockRequest(
-					*variadic.FromHash(validFragment[0].Header.ParentHash),
+					*variadic.Uint32OrHashFrom(validFragment[0].Header.ParentHash),
 					network.MaxBlocksInResponse,
 					network.BootstrapRequestData, network.Descending)
 				f.requestQueue.PushBack(request)
@@ -297,21 +284,6 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 		return nil, errors.New("blockstate service is paused")
 	}
 
-	if msg.BestBlock {
-		pv := f.peers.get(from)
-		if uint(pv.bestBlockNumber) != msg.Number {
-			repChange = &Change{
-				who: from,
-				rep: peerset.ReputationChange{
-					Value:  peerset.BadBlockAnnouncementValue,
-					Reason: peerset.BadBlockAnnouncementReason,
-				},
-			}
-			return repChange, fmt.Errorf("%w: peer %s, on handshake #%d, on announce #%d",
-				errMismatchBestBlockAnnouncement, from, pv.bestBlockNumber, msg.Number)
-		}
-	}
-
 	currentTarget := f.peers.getTarget()
 	if msg.Number >= uint(currentTarget) {
 		return nil, nil
@@ -319,6 +291,23 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 
 	blockAnnounceHeader := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
 	blockAnnounceHeaderHash := blockAnnounceHeader.Hash()
+
+	if msg.BestBlock {
+		pv := f.peers.get(from)
+		if uint(pv.bestBlockNumber) != msg.Number || blockAnnounceHeaderHash != pv.bestBlockHash {
+			repChange = &Change{
+				who: from,
+				rep: peerset.ReputationChange{
+					Value:  peerset.BadMessageValue,
+					Reason: peerset.BadMessageReason,
+				},
+			}
+			return repChange, fmt.Errorf("%w: peer %s, on handshake #%d (%s), on announce #%d (%s)",
+				errMismatchBestBlockAnnouncement, from,
+				pv.bestBlockNumber, pv.bestBlockHash.String(),
+				msg.Number, blockAnnounceHeaderHash.String())
+		}
+	}
 
 	logger.Infof("received block announce from %s: #%d (%s) best block: %v",
 		from,
@@ -353,7 +342,7 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 
 	if !has {
 		f.unreadyBlocks.newHeader(blockAnnounceHeader)
-		request := network.NewBlockRequest(*variadic.FromHash(blockAnnounceHeaderHash),
+		request := network.NewBlockRequest(*variadic.Uint32OrHashFrom(blockAnnounceHeaderHash),
 			1, network.RequestedDataBody+network.RequestedDataJustification, network.Ascending)
 		f.requestQueue.PushBack(request)
 	}
@@ -389,7 +378,7 @@ resultLoop:
 
 		err := validateResponseFields(request, response.BlockData)
 		if err != nil {
-			logger.Criticalf("validating fields: %s", err)
+			logger.Warnf("validating fields: %s", err)
 			// TODO: check the reputation change for nil body in response
 			// and nil justification in response
 			if errors.Is(err, errNilHeaderInResponse) {
@@ -402,7 +391,6 @@ resultLoop:
 				})
 			}
 
-			//missingReqs = append(missingReqs, request)
 			continue
 		}
 
@@ -410,7 +398,7 @@ resultLoop:
 		// of each block, othewise the response might only have the body/justification for
 		// a block
 		if request.RequestField(network.RequestedDataHeader) && !isResponseAChain(response.BlockData) {
-			logger.Criticalf("response from %s is not a chain", result.who)
+			logger.Warnf("response from %s is not a chain", result.who)
 			repChanges = append(repChanges, Change{
 				who: result.who,
 				rep: peerset.ReputationChange{
@@ -418,13 +406,12 @@ resultLoop:
 					Reason: peerset.IncompleteHeaderReason,
 				},
 			})
-			//missingReqs = append(missingReqs, request)
 			continue
 		}
 
 		for _, block := range response.BlockData {
 			if slices.Contains(badBlocks, block.Hash.String()) {
-				logger.Criticalf("%s sent a known bad block: #%d (%s)",
+				logger.Warnf("%s sent a known bad block: #%d (%s)",
 					result.who, block.Number(), block.Hash.String())
 
 				peersToBlock = append(peersToBlock, result.who)
@@ -436,7 +423,6 @@ resultLoop:
 					},
 				})
 
-				//missingReqs = append(missingReqs, request)
 				continue resultLoop
 			}
 		}
@@ -460,12 +446,12 @@ resultLoop:
 // note that we have fragments with single blocks, fragments with fork (in case of 8)
 // after sorting these fragments we end up with:
 // [ {1, 2, 3, 4, 5}  {6, 7, 8, 9, 10}  {8}  {11, 12, 13, 14, 15, 16}  {17} ]
-func sortFragmentsOfChain(responses [][]*types.BlockData) [][]*types.BlockData {
-	if len(responses) == 0 {
+func sortFragmentsOfChain(fragments [][]*types.BlockData) [][]*types.BlockData {
+	if len(fragments) == 0 {
 		return nil
 	}
 
-	slices.SortFunc(responses, func(a, b []*types.BlockData) int {
+	slices.SortFunc(fragments, func(a, b []*types.BlockData) int {
 		if a[0].Header.Number < b[0].Header.Number {
 			return -1
 		}
@@ -475,7 +461,7 @@ func sortFragmentsOfChain(responses [][]*types.BlockData) [][]*types.BlockData {
 		return 1
 	})
 
-	return responses
+	return fragments
 }
 
 // mergeFragmentsOfChain merges a sorted slice of fragments that forms a valid
@@ -505,9 +491,29 @@ func mergeFragmentsOfChain(fragments [][]*types.BlockData) [][]*types.BlockData 
 	return mergedFragments
 }
 
-func formsSequence(last, curr *types.BlockData) bool {
-	incrementOne := (last.Header.Number + 1) == curr.Header.Number
-	isParent := last.Hash == curr.Header.ParentHash
+// validBlocksUnderFragment ignore all blocks prior to the given last finalized number
+func validBlocksUnderFragment(highestFinalizedNumber uint, fragmentBlocks []*types.BlockData) []*types.BlockData {
+	startFragmentFrom := -1
+	for idx, block := range fragmentBlocks {
+		if block.Header.Number > highestFinalizedNumber {
+			startFragmentFrom = idx
+			break
+		}
+	}
+
+	if startFragmentFrom < 0 {
+		return nil
+	}
+
+	return fragmentBlocks[startFragmentFrom:]
+}
+
+// formsSequence given two fragments of blocks, check if they forms a sequence
+// by comparing the latest block from the prev fragment with the
+// first block of the next fragment
+func formsSequence(prev, next *types.BlockData) bool {
+	incrementOne := (prev.Header.Number + 1) == next.Header.Number
+	isParent := prev.Hash == next.Header.ParentHash
 
 	return incrementOne && isParent
 }

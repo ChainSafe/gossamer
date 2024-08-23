@@ -389,7 +389,7 @@ func NewAscendingBlockRequests(startNumber, targetNumber uint, requestedData byt
 	// start and end block are the same, just request 1 block
 	if diff == 0 {
 		return []*BlockRequestMessage{
-			NewBlockRequest(*variadic.MustNewUint32OrHash(uint32(startNumber)), 1, requestedData, Ascending),
+			NewBlockRequest(*variadic.Uint32OrHashFrom(uint32(startNumber)), 1, requestedData, Ascending),
 		}
 	}
 
@@ -398,7 +398,7 @@ func NewAscendingBlockRequests(startNumber, targetNumber uint, requestedData byt
 	reqs := make([]*BlockRequestMessage, numRequests)
 	for i := uint(0); i < numRequests; i++ {
 		max := uint32(MaxBlocksInResponse)
-		start := variadic.MustNewUint32OrHash(startNumber)
+		start := variadic.Uint32OrHashFrom(startNumber)
 		reqs[i] = NewBlockRequest(*start, max, requestedData, Ascending)
 		startNumber += uint(max)
 	}

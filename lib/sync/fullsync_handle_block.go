@@ -96,8 +96,6 @@ func (b *blockImporter) handle(bd *types.BlockData, origin BlockOrigin) (importe
 // or the index of the block data that errored on failure.
 // TODO: https://github.com/ChainSafe/gossamer/issues/3468
 func (b *blockImporter) processBlockData(blockData types.BlockData, origin BlockOrigin) error {
-	// while in bootstrap mode we don't need to broadcast block announcements
-	// TODO: set true if not in initial sync setup
 	announceImportedBlock := false
 
 	if blockData.Header != nil {

@@ -270,14 +270,14 @@ func main() {
 	protocolID := protocol.ID(fmt.Sprintf("/%s/sync/2", chain.ProtocolID))
 
 	for _, bootnodesAddr := range bootnodes {
-		fmt.Println("connecting...")
+		log.Println("connecting...")
 		err := p2pHost.Connect(ctx, bootnodesAddr)
 		if err != nil {
 			fmt.Printf("fail with: %s\n", err.Error())
 			continue
 		}
 
-		fmt.Printf("requesting from peer %s\n", bootnodesAddr.String())
+		log.Printf("requesting from peer %s\n", bootnodesAddr.String())
 		stream, err := p2pHost.NewStream(ctx, bootnodesAddr.ID, protocolID)
 		if err != nil {
 			fmt.Printf("WARN: failed to create stream using protocol %s: %s", protocolID, err.Error())

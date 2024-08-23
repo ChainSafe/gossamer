@@ -20,35 +20,35 @@ func TestBuildRequestMessage(t *testing.T) {
 		{
 			arg: "10",
 			expected: network.NewBlockRequest(
-				*variadic.MustNewUint32OrHash(uint(10)), 1,
+				*variadic.Uint32OrHashFrom(uint(10)), 1,
 				network.BootstrapRequestData, network.Ascending),
 		},
 		{
 			arg: "0x9b0211aadcef4bb65e69346cfd256ddd2abcb674271326b08f0975dac7c17bc7",
-			expected: network.NewBlockRequest(*variadic.MustNewUint32OrHash(
+			expected: network.NewBlockRequest(*variadic.Uint32OrHashFrom(
 				common.MustHexToHash("0x9b0211aadcef4bb65e69346cfd256ddd2abcb674271326b08f0975dac7c17bc7")),
 				1, network.BootstrapRequestData, network.Ascending),
 		},
 		{
 			arg: "0x9b0211aadcef4bb65e69346cfd256ddd2abcb674271326b08f0975dac7c17bc7,asc,20",
-			expected: network.NewBlockRequest(*variadic.MustNewUint32OrHash(
+			expected: network.NewBlockRequest(*variadic.Uint32OrHashFrom(
 				common.MustHexToHash("0x9b0211aadcef4bb65e69346cfd256ddd2abcb674271326b08f0975dac7c17bc7")),
 				20, network.BootstrapRequestData, network.Ascending),
 		},
 		{
 			arg: "1,asc,20",
-			expected: network.NewBlockRequest(*variadic.MustNewUint32OrHash(uint(1)),
+			expected: network.NewBlockRequest(*variadic.Uint32OrHashFrom(uint(1)),
 				20, network.BootstrapRequestData, network.Ascending),
 		},
 		{
 			arg: "0x9b0211aadcef4bb65e69346cfd256ddd2abcb674271326b08f0975dac7c17bc7,desc,20",
-			expected: network.NewBlockRequest(*variadic.MustNewUint32OrHash(
+			expected: network.NewBlockRequest(*variadic.Uint32OrHashFrom(
 				common.MustHexToHash("0x9b0211aadcef4bb65e69346cfd256ddd2abcb674271326b08f0975dac7c17bc7")),
 				20, network.BootstrapRequestData, network.Descending),
 		},
 		{
 			arg: "1,desc,20",
-			expected: network.NewBlockRequest(*variadic.MustNewUint32OrHash(uint(1)),
+			expected: network.NewBlockRequest(*variadic.Uint32OrHashFrom(uint(1)),
 				20, network.BootstrapRequestData, network.Descending),
 		},
 	}

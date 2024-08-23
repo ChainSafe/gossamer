@@ -18,6 +18,11 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
+const (
+	waitPeersDefaultTimeout = 2 * time.Second
+	minPeersDefault         = 3
+)
+
 var logger = log.NewFromGlobal(log.AddContext("pkg", "new-sync"))
 
 type Network interface {
@@ -92,20 +97,18 @@ type SyncService struct {
 	stopCh chan struct{}
 }
 
-func NewSyncService(network Network,
-	blockState BlockState,
-	currentStrategy, defaultStrategy Strategy) *SyncService {
-	return &SyncService{
-		network:           network,
-		blockState:        blockState,
-		currentStrategy:   currentStrategy,
-		defaultStrategy:   defaultStrategy,
-		workerPool:        newSyncWorkerPool(network),
-		waitPeersDuration: 2 * time.Second,
-		minPeers:          1,
-		slotDuration:      6 * time.Second,
+func NewSyncService(cfgs ...ServiceConfig) *SyncService {
+	svc := &SyncService{
+		minPeers:          minPeersDefault,
+		waitPeersDuration: waitPeersDefaultTimeout,
 		stopCh:            make(chan struct{}),
 	}
+
+	for _, cfg := range cfgs {
+		cfg(svc)
+	}
+
+	return svc
 }
 
 func (s *SyncService) waitWorkers() {
@@ -147,7 +150,6 @@ func (s *SyncService) Start() error {
 }
 
 func (s *SyncService) Stop() error {
-	// TODO: implement stop mechanism
 	close(s.stopCh)
 	s.wg.Wait()
 	return nil

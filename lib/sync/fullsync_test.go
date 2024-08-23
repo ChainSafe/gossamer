@@ -99,13 +99,13 @@ func TestFullSyncNextActions(t *testing.T) {
 				expectedTasks: []*network.BlockRequestMessage{
 					{
 						RequestedData: network.BootstrapRequestData,
-						StartingBlock: *variadic.FromUint32(129),
+						StartingBlock: *variadic.Uint32OrHashFrom(129),
 						Direction:     network.Ascending,
 						Max:           refTo(128),
 					},
 					{
 						RequestedData: network.BootstrapRequestData,
-						StartingBlock: *variadic.FromUint32(1),
+						StartingBlock: *variadic.Uint32OrHashFrom(1),
 						Direction:     network.Ascending,
 						Max:           refTo(128),
 					},
@@ -130,13 +130,13 @@ func TestFullSyncNextActions(t *testing.T) {
 				expectedTasks: []*network.BlockRequestMessage{
 					{
 						RequestedData: network.BootstrapRequestData,
-						StartingBlock: *variadic.FromUint32(129),
+						StartingBlock: *variadic.Uint32OrHashFrom(129),
 						Direction:     network.Ascending,
 						Max:           refTo(128),
 					},
 					{
 						RequestedData: network.BootstrapRequestData,
-						StartingBlock: *variadic.FromUint32(257),
+						StartingBlock: *variadic.Uint32OrHashFrom(257),
 						Direction:     network.Ascending,
 						Max:           refTo(128),
 					},
@@ -193,7 +193,7 @@ func TestFullSyncIsFinished(t *testing.T) {
 			// 1 -> 10
 			{
 				who: peer.ID("peerA"),
-				request: network.NewBlockRequest(*variadic.FromUint32(1), 128,
+				request: network.NewBlockRequest(*variadic.Uint32OrHashFrom(1), 128,
 					network.BootstrapRequestData, network.Ascending),
 				completed: true,
 				response:  fstTaskBlockResponse,
@@ -203,7 +203,7 @@ func TestFullSyncIsFinished(t *testing.T) {
 			// 129 -> 256
 			{
 				who: peer.ID("peerA"),
-				request: network.NewBlockRequest(*variadic.FromUint32(1), 128,
+				request: network.NewBlockRequest(*variadic.Uint32OrHashFrom(1), 128,
 					network.BootstrapRequestData, network.Ascending),
 				completed: true,
 				response:  sndTaskBlockResponse,
@@ -253,7 +253,7 @@ func TestFullSyncIsFinished(t *testing.T) {
 		require.Equal(t, fs.unreadyBlocks.disjointChains[0], sndTaskBlockResponse.BlockData)
 
 		expectedAncestorRequest := network.NewBlockRequest(
-			*variadic.FromHash(sndTaskBlockResponse.BlockData[0].Header.ParentHash),
+			*variadic.Uint32OrHashFrom(sndTaskBlockResponse.BlockData[0].Header.ParentHash),
 			network.MaxBlocksInResponse,
 			network.BootstrapRequestData, network.Descending)
 

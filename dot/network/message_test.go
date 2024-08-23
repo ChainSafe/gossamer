@@ -445,7 +445,7 @@ func TestAscendingBlockRequest(t *testing.T) {
 			expectedBlockRequestMessage: []*BlockRequestMessage{
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(10)),
+					StartingBlock: *variadic.Uint32OrHashFrom(uint32(10)),
 					Direction:     Ascending,
 					Max:           &one,
 				},
@@ -460,7 +460,7 @@ func TestAscendingBlockRequest(t *testing.T) {
 			expectedBlockRequestMessage: []*BlockRequestMessage{
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(1)),
+					StartingBlock: *variadic.Uint32OrHashFrom(uint32(1)),
 					Direction:     Ascending,
 					Max:           &maxResponseSize,
 				},
@@ -474,25 +474,25 @@ func TestAscendingBlockRequest(t *testing.T) {
 			expectedBlockRequestMessage: []*BlockRequestMessage{
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(1)),
+					StartingBlock: *variadic.Uint32OrHashFrom(uint32(1)),
 					Direction:     Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(129)),
+					StartingBlock: *variadic.Uint32OrHashFrom(uint32(129)),
 					Direction:     Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(257)),
+					StartingBlock: *variadic.Uint32OrHashFrom(uint32(257)),
 					Direction:     Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(385)),
+					StartingBlock: *variadic.Uint32OrHashFrom(uint32(385)),
 					Direction:     Ascending,
 					Max:           &maxResponseSize,
 				},
@@ -506,31 +506,31 @@ func TestAscendingBlockRequest(t *testing.T) {
 			expectedBlockRequestMessage: []*BlockRequestMessage{
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(1)),
+					StartingBlock: *variadic.Uint32OrHashFrom(uint32(1)),
 					Direction:     Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(129)),
+					StartingBlock: *variadic.Uint32OrHashFrom(uint32(129)),
 					Direction:     Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(257)),
+					StartingBlock: *variadic.Uint32OrHashFrom(uint32(257)),
 					Direction:     Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(385)),
+					StartingBlock: *variadic.Uint32OrHashFrom(uint32(385)),
 					Direction:     Ascending,
 					Max:           &maxResponseSize,
 				},
 				{
 					RequestedData: BootstrapRequestData,
-					StartingBlock: *variadic.MustNewUint32OrHash(uint32(513)),
+					StartingBlock: *variadic.Uint32OrHashFrom(uint32(513)),
 					Direction:     Ascending,
 					Max:           &three,
 				},
