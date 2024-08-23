@@ -96,6 +96,9 @@ func (m *MockableOverseer) processMessages() {
 				}
 
 				actionIndex = actionIndex + 1
+			} else {
+				m.t.Errorf("unexpected message: %T", msg)
+				return
 			}
 		case <-m.ctx.Done():
 			if err := m.ctx.Err(); err != nil {

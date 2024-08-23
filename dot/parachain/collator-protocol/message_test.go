@@ -19,7 +19,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
-	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 )
@@ -375,17 +374,22 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 		c := c
 		t.Run(c.description, func(t *testing.T) {
 			t.Parallel()
+
+			subsystemToOverseer := make(chan any)
 			cpvs := CollatorProtocolValidatorSide{
-				peerData:           c.peerData,
-				currentAssignments: c.currentAssignments,
+				SubSystemToOverseer: subsystemToOverseer,
+				peerData:            c.peerData,
+				currentAssignments:  c.currentAssignments,
 			}
 
-			mockOverseer := overseer.NewMockableOverseer(t)
-			mockOverseer.RegisterSubsystem(&cpvs)
-			cpvs.SubSystemToOverseer = mockOverseer.GetSubsystemToOverseerChannel()
-
-			mockOverseer.Start()
-			defer mockOverseer.Stop()
+			// ensure that the expected messages are sent to the overseer
+			if len(c.expectedMessages) > 0 {
+				go func() {
+					for _, expectedMessage := range c.expectedMessages {
+						require.Equal(t, expectedMessage, <-subsystemToOverseer)
+					}
+				}()
+			}
 
 			msg := collatorprotocolmessages.NewCollationProtocol()
 			vdtChild := collatorprotocolmessages.NewCollatorProtocolMessage()
@@ -444,7 +448,6 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			},
 			errString: ErrRelayParentUnknown.Error(),
 		},
-
 		{
 			description:        "fail with unknown peer if peer is not tracked in our list of active collators",
 			advertiseCollation: collatorprotocolmessages.AdvertiseCollation(testRelayParent),
@@ -574,19 +577,21 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 		t.Run(c.description, func(t *testing.T) {
 			t.Parallel()
 
+			subsystemToOverseer := make(chan any)
 			cpvs := CollatorProtocolValidatorSide{
-				net:            c.net,
-				perRelayParent: c.perRelayParent,
-				peerData:       c.peerData,
-				activeLeaves:   c.activeLeaves,
+				SubSystemToOverseer: subsystemToOverseer,
+				net:                 c.net,
+				perRelayParent:      c.perRelayParent,
+				peerData:            c.peerData,
+				activeLeaves:        c.activeLeaves,
 			}
 
-			mockOverseer := overseer.NewMockableOverseer(t)
-			mockOverseer.RegisterSubsystem(&cpvs)
-			cpvs.SubSystemToOverseer = mockOverseer.GetSubsystemToOverseerChannel()
-
-			mockOverseer.Start()
-			defer mockOverseer.Stop()
+			// ensure that the expected messages are sent to the overseer
+			if c.expectedMessage != nil {
+				go func() {
+					require.Equal(t, c.expectedMessage, <-subsystemToOverseer)
+				}()
+			}
 
 			msg := collatorprotocolmessages.NewCollationProtocol()
 			vdtChild := collatorprotocolmessages.NewCollatorProtocolMessage()
@@ -604,7 +609,6 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			} else {
 				require.ErrorContains(t, err, c.errString)
 			}
-
 		})
 	}
 }
