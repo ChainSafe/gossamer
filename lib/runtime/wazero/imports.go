@@ -37,6 +37,8 @@ var (
 	emptyByteVectorEncoded []byte = scale.MustMarshal([]byte{})
 	noneEncoded            []byte = []byte{0x00}
 	allZeroesBytes                = [32]byte{}
+
+	childStorageKeyPrefix = []byte(":child_storage:")
 )
 
 const (
@@ -2065,10 +2067,15 @@ func ext_storage_clear_prefix_version_1(ctx context.Context, m api.Module, prefi
 	prefix := read(m, prefixSpan)
 	logger.Debugf("prefix: 0x%x", prefix)
 
-	err := storage.ClearPrefix(prefix)
-	if err != nil {
-		panic(err)
+	if !bytes.HasPrefix(prefix, childStorageKeyPrefix) {
+		err := storage.ClearPrefix(prefix)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		logger.Warnf("cannot clear prefix that is part of or contains a child storage key")
 	}
+
 }
 
 // toKillStorageResultEnum encodes the `allRemoved` flag and
@@ -2117,25 +2124,30 @@ func ext_storage_clear_prefix_version_2(ctx context.Context, m api.Module, prefi
 		limitPtr = &maxLimit
 	}
 
-	numRemoved, all, err := storage.ClearPrefixLimit(prefix, *limitPtr)
-	if err != nil {
-		logger.Errorf("failed to clear prefix limit: %s", err)
-		panic(err)
-	}
+	if !bytes.HasPrefix(prefix, childStorageKeyPrefix) {
+		numRemoved, all, err := storage.ClearPrefixLimit(prefix, *limitPtr)
+		if err != nil {
+			logger.Errorf("failed to clear prefix limit: %s", err)
+			panic(err)
+		}
 
-	encBytes, err := toKillStorageResultEnum(all, numRemoved)
-	if err != nil {
-		logger.Errorf("failed to allocate memory: %s", err)
-		panic(err)
-	}
+		encBytes, err := toKillStorageResultEnum(all, numRemoved)
+		if err != nil {
+			logger.Errorf("failed to allocate memory: %s", err)
+			panic(err)
+		}
 
-	valueSpan, err := write(m, rtCtx.Allocator, encBytes)
-	if err != nil {
-		logger.Errorf("failed to allocate: %s", err)
-		panic(err)
-	}
+		valueSpan, err := write(m, rtCtx.Allocator, encBytes)
+		if err != nil {
+			logger.Errorf("failed to allocate: %s", err)
+			panic(err)
+		}
 
-	return valueSpan
+		return valueSpan
+	} else {
+		logger.Warnf("cannot clear prefix that is part of or contains a child storage key")
+	}
+	return 0
 }
 
 func ext_storage_exists_version_1(ctx context.Context, m api.Module, keySpan uint64) uint32 {
