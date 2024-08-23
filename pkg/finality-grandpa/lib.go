@@ -103,11 +103,11 @@ func (m *Message[H, N]) SetValue(value any) (err error) {
 func (m Message[H, N]) IndexValue() (index uint, value any, err error) {
 	switch m.inner.(type) {
 	case Prevote[H, N]:
-		return 0, any(m.inner), nil
+		return 0, m.inner, nil
 	case Precommit[H, N]:
-		return 1, any(m.inner), nil
+		return 1, m.inner, nil
 	case PrimaryPropose[H, N]:
-		return 2, any(m.inner), nil
+		return 2, m.inner, nil
 	}
 	return 0, nil, scale.ErrUnknownVaryingDataTypeValue
 }
