@@ -34,7 +34,7 @@ func (w *waker) channel() chan any {
 	return w.wakeCh
 }
 
-func (w *waker) register(waker *waker) {
+func (w *waker) register(waker *waker) { //nolint:unused //TODO: upgrading golang-ci-lint will fix this
 	w.Lock()
 	defer w.Unlock()
 	w.wakeCh = waker.wakeCh
@@ -48,7 +48,7 @@ type bridged[Hash, Number any] struct {
 	sync.RWMutex
 }
 
-func (b *bridged[H, N]) update(new RoundState[H, N]) {
+func (b *bridged[H, N]) update(new RoundState[H, N]) { //nolint:unused
 	b.Lock()
 	defer b.Unlock()
 	b.inner = new
@@ -56,7 +56,7 @@ func (b *bridged[H, N]) update(new RoundState[H, N]) {
 
 }
 
-func (b *bridged[H, N]) get(waker *waker) RoundState[H, N] {
+func (b *bridged[H, N]) get(waker *waker) RoundState[H, N] { //nolint:unused
 	b.RLock()
 	defer b.RUnlock()
 	b.waker.register(waker)
