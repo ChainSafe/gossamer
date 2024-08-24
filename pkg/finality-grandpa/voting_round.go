@@ -81,8 +81,8 @@ type votingRound[
 	incoming          *wakerChan[SignedMessageError[Hash, Number, Signature, ID]]
 	outgoing          *buffered[Message[Hash, Number]]
 	state             state
-	bridgedRoundState *priorView[Hash, Number]
-	lastRoundState    *latterView[Hash, Number]
+	bridgedRoundState priorView[Hash, Number]
+	lastRoundState    latterView[Hash, Number]
 	primaryBlock      *HashNumber[Hash, Number]
 	finalizedSender   chan finalizedNotification[Hash, Number, Signature, ID]
 	bestFinalized     *Commit[Hash, Number, Signature, ID]
@@ -94,7 +94,7 @@ func newVotingRound[
 	E Environment[Hash, Number, Signature, ID],
 ](
 	roundNumber uint64, voters VoterSet[ID], base HashNumber[Hash, Number],
-	lastRoundState *latterView[Hash, Number],
+	lastRoundState latterView[Hash, Number],
 	finalizedSender chan finalizedNotification[Hash, Number, Signature, ID], env E,
 ) votingRound[Hash, Number, Signature, ID, E] {
 	outgoing := make(chan Message[Hash, Number])
@@ -141,7 +141,7 @@ func newVotingRoundCompleted[
 ](
 	votes *Round[ID, Hash, Number, Signature],
 	finalizedSender chan finalizedNotification[Hash, Number, Signature, ID],
-	lastRoundState *latterView[Hash, Number],
+	lastRoundState latterView[Hash, Number],
 	env E,
 ) votingRound[Hash, Number, Signature, ID, E] {
 	outgoing := make(chan Message[Hash, Number])
@@ -365,14 +365,14 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) FinalizedSender() chan fi
 
 // call this when we build on top of a given round in order to get a handle
 // to updates to the latest round-state.
-func (vr *votingRound[Hash, Number, Signature, ID, E]) bridgeState() *latterView[Hash, Number] {
+func (vr *votingRound[Hash, Number, Signature, ID, E]) bridgeState() latterView[Hash, Number] {
 	priorView, latterView := bridgeState(vr.votes.State())
 	if vr.bridgedRoundState != nil {
 		log.Warnf("Bridged state from round %d more than once", vr.votes.Number())
 	}
 
-	vr.bridgedRoundState = &priorView
-	return &latterView
+	vr.bridgedRoundState = priorView
+	return latterView
 }
 
 // Get a commit justifying the best finalized block.

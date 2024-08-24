@@ -8,7 +8,7 @@ import (
 )
 
 type waker struct {
-	mtx    sync.RWMutex
+	sync.RWMutex
 	wakeCh chan any
 }
 
@@ -17,8 +17,8 @@ func newWaker() *waker {
 }
 
 func (w *waker) wake() {
-	w.mtx.RLock()
-	defer w.mtx.RUnlock()
+	w.RLock()
+	defer w.RUnlock()
 	if w.wakeCh == nil {
 		return
 	}
@@ -35,8 +35,8 @@ func (w *waker) channel() chan any {
 }
 
 func (w *waker) register(waker *waker) {
-	w.mtx.Lock()
-	defer w.mtx.Unlock()
+	w.Lock()
+	defer w.Unlock()
 	w.wakeCh = waker.wakeCh
 }
 
@@ -64,23 +64,13 @@ func (b *bridged[H, N]) get(waker *waker) RoundState[H, N] {
 }
 
 // A prior view of a round-state.
-type priorView[Hash, Number any] struct {
-	bridged *bridged[Hash, Number]
-}
-
-// Push an update to the latter view.
-func (pv *priorView[H, N]) update(new RoundState[H, N]) { //skipcq: RVV-B0001
-	pv.bridged.update(new)
+type priorView[Hash, Number any] interface {
+	update(new RoundState[Hash, Number])
 }
 
 // A latter view of a round-state.
-type latterView[Hash, Number any] struct {
-	bridged *bridged[Hash, Number]
-}
-
-// Fetch a handle to the last round-state.
-func (lv *latterView[H, N]) get(waker *waker) (state RoundState[H, N]) { //skipcq: RVV-B0001
-	return lv.bridged.get(waker)
+type latterView[Hash, Number any] interface {
+	get(waker *waker) (state RoundState[Hash, Number])
 }
 
 // Constructs two views of a bridged round-state.
@@ -98,5 +88,5 @@ func bridgeState[Hash, Number any](initial RoundState[Hash, Number]) (
 		inner: initial,
 		waker: newWaker(),
 	}
-	return priorView[Hash, Number]{&br}, latterView[Hash, Number]{&br}
+	return &br, &br
 }

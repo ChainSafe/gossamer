@@ -10,31 +10,31 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type uintvoteNode uint
+type uintVoteNode uint
 
-func (uvn *uintvoteNode) Add(other *uintvoteNode) {
+func (uvn *uintVoteNode) Add(other *uintVoteNode) {
 	*uvn += *other
 }
 
-func (uvn *uintvoteNode) AddVote(other int) {
-	*uvn += uintvoteNode(other)
+func (uvn *uintVoteNode) AddVote(other int) {
+	*uvn += uintVoteNode(other)
 }
 
-func (uvn *uintvoteNode) String() string {
+func (uvn *uintVoteNode) String() string {
 	return fmt.Sprintf("%+v", *uvn)
 }
 
-func (uvn *uintvoteNode) Copy() *uintvoteNode {
+func (uvn *uintVoteNode) Copy() *uintVoteNode {
 	copied := *uvn
 	return &copied
 }
 
-func createUintVoteNode(i int) *uintvoteNode {
-	vn := uintvoteNode(i)
+func createUintVoteNode(i int) *uintVoteNode {
+	vn := uintVoteNode(i)
 	return &vn
 }
 
-func newUintVoteNode() *uintvoteNode {
+func newUintVoteNode() *uintVoteNode {
 	return createUintVoteNode(0)
 }
 
@@ -44,8 +44,8 @@ func TestVoteGraph_GraphForkNotAtNode(t *testing.T) {
 	c.PushBlocks("C", []string{"D1", "E1", "F1"})
 	c.PushBlocks("C", []string{"D2", "E2", "F2"})
 
-	vn := uintvoteNode(0)
-	vg := NewVoteGraph[string, uint, *uintvoteNode, int](GenesisHash, uint(1), &vn, newUintVoteNode)
+	vn := uintVoteNode(0)
+	vg := NewVoteGraph[string, uint, *uintVoteNode, int](GenesisHash, uint(1), &vn, newUintVoteNode)
 	assert.NoError(t, vg.Insert("A", 2, createUintVoteNode(100), c))
 	assert.NoError(t, vg.Insert("E1", 6, createUintVoteNode(100), c))
 	assert.NoError(t, vg.Insert("F2", 7, createUintVoteNode(100), c))
@@ -54,7 +54,7 @@ func TestVoteGraph_GraphForkNotAtNode(t *testing.T) {
 	assert.Contains(t, vg.heads.Keys(), "F2")
 	assert.NotContains(t, vg.heads.Keys(), "A")
 
-	var getEntry = func(key string) voteGraphEntry[string, uint, *uintvoteNode, int] {
+	var getEntry = func(key string) voteGraphEntry[string, uint, *uintVoteNode, int] {
 		entry, _ := vg.entries.Get(key)
 		return entry
 	}
@@ -75,8 +75,8 @@ func TestVoteGraph_GraphForkNotAtNode1(t *testing.T) {
 	c.PushBlocks("C", []string{"D1", "E1", "F1"})
 	c.PushBlocks("C", []string{"D2", "E2", "F2"})
 
-	vn := uintvoteNode(0)
-	vg := NewVoteGraph[string, uint, *uintvoteNode, int](GenesisHash, uint(1), &vn, newUintVoteNode)
+	vn := uintVoteNode(0)
+	vg := NewVoteGraph[string, uint, *uintVoteNode, int](GenesisHash, uint(1), &vn, newUintVoteNode)
 	assert.NoError(t, vg.Insert("A", 2, 100, c))
 	assert.NoError(t, vg.Insert("E1", 6, 100, c))
 	assert.NoError(t, vg.Insert("F2", 7, 100, c))
@@ -85,7 +85,7 @@ func TestVoteGraph_GraphForkNotAtNode1(t *testing.T) {
 	assert.Contains(t, vg.heads.Keys(), "F2")
 	assert.NotContains(t, vg.heads.Keys(), "A")
 
-	var getEntry = func(key string) voteGraphEntry[string, uint, *uintvoteNode, int] {
+	var getEntry = func(key string) voteGraphEntry[string, uint, *uintVoteNode, int] {
 		entry, _ := vg.entries.Get(key)
 		return entry
 	}
@@ -106,21 +106,21 @@ func TestVoteGraph_GraphForkAtNode(t *testing.T) {
 	c.PushBlocks("C", []string{"D1", "E1", "F1"})
 	c.PushBlocks("C", []string{"D2", "E2", "F2"})
 
-	vn := uintvoteNode(0)
-	vg1 := NewVoteGraph[string, uint, *uintvoteNode, int](GenesisHash, uint(1), &vn, newUintVoteNode)
+	vn := uintVoteNode(0)
+	vg1 := NewVoteGraph[string, uint, *uintVoteNode, int](GenesisHash, uint(1), &vn, newUintVoteNode)
 	assert.NoError(t, vg1.Insert("C", 4, createUintVoteNode(100), c))
 	assert.NoError(t, vg1.Insert("E1", 6, createUintVoteNode(100), c))
 	assert.NoError(t, vg1.Insert("F2", 7, createUintVoteNode(100), c))
 
-	vn1 := uintvoteNode(0)
-	vg2 := NewVoteGraph[string, uint, *uintvoteNode, int](GenesisHash, uint(1), &vn1, newUintVoteNode)
+	vn1 := uintVoteNode(0)
+	vg2 := NewVoteGraph[string, uint, *uintVoteNode, int](GenesisHash, uint(1), &vn1, newUintVoteNode)
 	assert.NoError(t, vg2.Insert("E1", 6, createUintVoteNode(100), c))
 	assert.NoError(t, vg2.Insert("F2", 7, createUintVoteNode(100), c))
 	assert.NoError(t, vg2.Insert("C", 4, createUintVoteNode(100), c))
 
 	for _, test := range []struct {
 		name string
-		VoteGraph[string, uint, *uintvoteNode, int]
+		VoteGraph[string, uint, *uintVoteNode, int]
 	}{
 		{
 			name:      "vg1",
@@ -134,7 +134,7 @@ func TestVoteGraph_GraphForkAtNode(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			vg := test.VoteGraph
 
-			var getEntry = func(key string) voteGraphEntry[string, uint, *uintvoteNode, int] {
+			var getEntry = func(key string) voteGraphEntry[string, uint, *uintVoteNode, int] {
 				entry, _ := vg.entries.Get(key)
 				return entry
 			}
@@ -166,18 +166,18 @@ func TestVoteGraph_GhostMergeAtNode(t *testing.T) {
 	c.PushBlocks("C", []string{"D1", "E1", "F1"})
 	c.PushBlocks("C", []string{"D2", "E2", "F2"})
 
-	vn := uintvoteNode(0)
-	vg := NewVoteGraph[string, uint, *uintvoteNode, int](GenesisHash, uint(1), &vn, newUintVoteNode)
+	vn := uintVoteNode(0)
+	vg := NewVoteGraph[string, uint, *uintVoteNode, int](GenesisHash, uint(1), &vn, newUintVoteNode)
 	assert.NoError(t, vg.Insert("B", 3, createUintVoteNode(0), c))
 	assert.NoError(t, vg.Insert("C", 4, createUintVoteNode(100), c))
 	assert.NoError(t, vg.Insert("E1", 6, createUintVoteNode(100), c))
 	assert.NoError(t, vg.Insert("F2", 7, createUintVoteNode(100), c))
 
-	assert.Equal(t, &HashNumber[string, uint]{"C", 4}, vg.FindGHOST(nil, func(i *uintvoteNode) bool { return *i >= 250 }))
+	assert.Equal(t, &HashNumber[string, uint]{"C", 4}, vg.FindGHOST(nil, func(i *uintVoteNode) bool { return *i >= 250 }))
 	assert.Equal(t, &HashNumber[string, uint]{"C", 4},
-		vg.FindGHOST(&HashNumber[string, uint]{"C", 4}, func(i *uintvoteNode) bool { return *i >= 250 }))
+		vg.FindGHOST(&HashNumber[string, uint]{"C", 4}, func(i *uintVoteNode) bool { return *i >= 250 }))
 	assert.Equal(t, &HashNumber[string, uint]{"C", 4},
-		vg.FindGHOST(&HashNumber[string, uint]{"B", 3}, func(i *uintvoteNode) bool { return *i >= 250 }))
+		vg.FindGHOST(&HashNumber[string, uint]{"B", 3}, func(i *uintVoteNode) bool { return *i >= 250 }))
 }
 
 func TestVoteGraph_GhostMergeNoteAtNodeOneSideWeighted(t *testing.T) {
@@ -186,19 +186,19 @@ func TestVoteGraph_GhostMergeNoteAtNodeOneSideWeighted(t *testing.T) {
 	c.PushBlocks("F", []string{"G1", "H1", "I1"})
 	c.PushBlocks("F", []string{"G2", "H2", "I2"})
 
-	vn := uintvoteNode(0)
-	vg := NewVoteGraph[string, uint, *uintvoteNode, int](GenesisHash, uint(1), &vn, newUintVoteNode)
+	vn := uintVoteNode(0)
+	vg := NewVoteGraph[string, uint, *uintVoteNode, int](GenesisHash, uint(1), &vn, newUintVoteNode)
 	assert.NoError(t, vg.Insert("B", 3, createUintVoteNode(0), c))
 	assert.NoError(t, vg.Insert("G1", 8, createUintVoteNode(100), c))
 	assert.NoError(t, vg.Insert("H2", 9, createUintVoteNode(150), c))
 
-	assert.Equal(t, &HashNumber[string, uint]{"F", 7}, vg.FindGHOST(nil, func(i *uintvoteNode) bool { return *i >= 250 }))
+	assert.Equal(t, &HashNumber[string, uint]{"F", 7}, vg.FindGHOST(nil, func(i *uintVoteNode) bool { return *i >= 250 }))
 	assert.Equal(t, &HashNumber[string, uint]{"F", 7},
-		vg.FindGHOST(&HashNumber[string, uint]{"F", 7}, func(i *uintvoteNode) bool { return *i >= 250 }))
+		vg.FindGHOST(&HashNumber[string, uint]{"F", 7}, func(i *uintVoteNode) bool { return *i >= 250 }))
 	assert.Equal(t, &HashNumber[string, uint]{"F", 7},
-		vg.FindGHOST(&HashNumber[string, uint]{"C", 4}, func(i *uintvoteNode) bool { return *i >= 250 }))
+		vg.FindGHOST(&HashNumber[string, uint]{"C", 4}, func(i *uintVoteNode) bool { return *i >= 250 }))
 	assert.Equal(t, &HashNumber[string, uint]{"F", 7},
-		vg.FindGHOST(&HashNumber[string, uint]{"B", 3}, func(i *uintvoteNode) bool { return *i >= 250 }))
+		vg.FindGHOST(&HashNumber[string, uint]{"B", 3}, func(i *uintVoteNode) bool { return *i >= 250 }))
 }
 
 func TestVoteGraph_GhostIntroduceBranch(t *testing.T) {
@@ -207,17 +207,17 @@ func TestVoteGraph_GhostIntroduceBranch(t *testing.T) {
 	c.PushBlocks("E", []string{"EA", "EB", "EC", "ED"})
 	c.PushBlocks("F", []string{"FA", "FB", "FC"})
 
-	vn := uintvoteNode(0)
-	vg := NewVoteGraph[string, uint, *uintvoteNode, int](GenesisHash, uint(1), &vn, newUintVoteNode)
+	vn := uintVoteNode(0)
+	vg := NewVoteGraph[string, uint, *uintVoteNode, int](GenesisHash, uint(1), &vn, newUintVoteNode)
 	assert.NoError(t, vg.Insert("FC", 10, createUintVoteNode(5), c))
 	assert.NoError(t, vg.Insert("ED", 10, createUintVoteNode(7), c))
 
-	var getEntry = func(key string) voteGraphEntry[string, uint, *uintvoteNode, int] {
+	var getEntry = func(key string) voteGraphEntry[string, uint, *uintVoteNode, int] {
 		entry, _ := vg.entries.Get(key)
 		return entry
 	}
 
-	assert.Equal(t, &HashNumber[string, uint]{"E", 6}, vg.FindGHOST(nil, func(x *uintvoteNode) bool { return *x >= 10 }))
+	assert.Equal(t, &HashNumber[string, uint]{"E", 6}, vg.FindGHOST(nil, func(x *uintVoteNode) bool { return *x >= 10 }))
 	assert.Equal(t, []string{"FC", "ED"}, getEntry(GenesisHash).descendants)
 
 	// introduce a branch in the middle.
@@ -228,11 +228,11 @@ func TestVoteGraph_GhostIntroduceBranch(t *testing.T) {
 	assert.Contains(t, getEntry("E").descendants, "ED")
 	assert.Contains(t, getEntry("E").descendants, "FC")
 
-	assert.Equal(t, &HashNumber[string, uint]{"E", 6}, vg.FindGHOST(nil, func(x *uintvoteNode) bool { return *x >= 10 }))
+	assert.Equal(t, &HashNumber[string, uint]{"E", 6}, vg.FindGHOST(nil, func(x *uintVoteNode) bool { return *x >= 10 }))
 	assert.Equal(t, &HashNumber[string, uint]{"E", 6},
-		vg.FindGHOST(&HashNumber[string, uint]{"C", 4}, func(x *uintvoteNode) bool { return *x >= 10 }))
+		vg.FindGHOST(&HashNumber[string, uint]{"C", 4}, func(x *uintVoteNode) bool { return *x >= 10 }))
 	assert.Equal(t, &HashNumber[string, uint]{"E", 6},
-		vg.FindGHOST(&HashNumber[string, uint]{"E", 6}, func(x *uintvoteNode) bool { return *x >= 10 }))
+		vg.FindGHOST(&HashNumber[string, uint]{"E", 6}, func(x *uintVoteNode) bool { return *x >= 10 }))
 }
 
 func TestVoteGraph_WalkBackFromBlockInEdgeForkBelow(t *testing.T) {
@@ -241,8 +241,8 @@ func TestVoteGraph_WalkBackFromBlockInEdgeForkBelow(t *testing.T) {
 	c.PushBlocks("C", []string{"D1", "E1", "F1", "G1", "H1", "I1"})
 	c.PushBlocks("C", []string{"D2", "E2", "F2", "G2", "H2", "I2"})
 
-	vn := uintvoteNode(0)
-	vg := NewVoteGraph[string, uint, *uintvoteNode, int](GenesisHash, uint(1), &vn, newUintVoteNode)
+	vn := uintVoteNode(0)
+	vg := NewVoteGraph[string, uint, *uintVoteNode, int](GenesisHash, uint(1), &vn, newUintVoteNode)
 	assert.NoError(t, vg.Insert("B", 3, createUintVoteNode(10), c))
 	assert.NoError(t, vg.Insert("F1", 7, createUintVoteNode(5), c))
 	assert.NoError(t, vg.Insert("G2", 8, createUintVoteNode(5), c))
@@ -250,7 +250,7 @@ func TestVoteGraph_WalkBackFromBlockInEdgeForkBelow(t *testing.T) {
 	for _, block := range []string{"D1", "D2", "E1", "E2", "F1", "F2", "G2"} {
 		number := c.Number(block)
 		assert.Equal(t, &HashNumber[string, uint]{"C", 4},
-			vg.FindAncestor(block, uint(number), func(x *uintvoteNode) bool { return *x > 5 }))
+			vg.FindAncestor(block, uint(number), func(x *uintVoteNode) bool { return *x > 5 }))
 	}
 }
 
@@ -260,18 +260,18 @@ func TestVoteGraph_WalkBackFromForkBlockNodeBelow(t *testing.T) {
 	c.PushBlocks("D", []string{"E1", "F1", "G1", "H1", "I1"})
 	c.PushBlocks("D", []string{"E2", "F2", "G2", "H2", "I2"})
 
-	vn := uintvoteNode(0)
-	vg := NewVoteGraph[string, uint, *uintvoteNode, int](GenesisHash, uint(1), &vn, newUintVoteNode)
+	vn := uintVoteNode(0)
+	vg := NewVoteGraph[string, uint, *uintVoteNode, int](GenesisHash, uint(1), &vn, newUintVoteNode)
 	assert.NoError(t, vg.Insert("B", 3, createUintVoteNode(10), c))
 	assert.NoError(t, vg.Insert("F1", 7, createUintVoteNode(5), c))
 	assert.NoError(t, vg.Insert("G2", 8, createUintVoteNode(5), c))
 
 	assert.Equal(t, &HashNumber[string, uint]{"D", 5},
-		vg.FindAncestor("G2", 8, func(x *uintvoteNode) bool { return *x > 5 }))
+		vg.FindAncestor("G2", 8, func(x *uintVoteNode) bool { return *x > 5 }))
 	for _, block := range []string{"E1", "E2", "F1", "F2", "G2"} {
 		number := c.Number(block)
 		assert.Equal(t, &HashNumber[string, uint]{"D", 5},
-			vg.FindAncestor(block, uint(number), func(x *uintvoteNode) bool { return *x > 5 }))
+			vg.FindAncestor(block, uint(number), func(x *uintVoteNode) bool { return *x > 5 }))
 	}
 }
 
@@ -281,8 +281,8 @@ func TestVoteGraph_WalkBackAtNode(t *testing.T) {
 	c.PushBlocks("C", []string{"D1", "E1", "F1", "G1", "H1", "I1"})
 	c.PushBlocks("C", []string{"D2", "E2", "F2"})
 
-	vn := uintvoteNode(0)
-	vg := NewVoteGraph[string, uint, *uintvoteNode, int](GenesisHash, uint(1), &vn, newUintVoteNode)
+	vn := uintVoteNode(0)
+	vg := NewVoteGraph[string, uint, *uintVoteNode, int](GenesisHash, uint(1), &vn, newUintVoteNode)
 	assert.NoError(t, vg.Insert("C", 4, createUintVoteNode(10), c))
 	assert.NoError(t, vg.Insert("F1", 7, createUintVoteNode(5), c))
 	assert.NoError(t, vg.Insert("F2", 7, createUintVoteNode(5), c))
@@ -291,7 +291,7 @@ func TestVoteGraph_WalkBackAtNode(t *testing.T) {
 	for _, block := range []string{"C", "D1", "D2", "E1", "E2", "F1", "F2", "I1"} {
 		number := c.Number(block)
 		assert.Equal(t, &HashNumber[string, uint]{"C", 4},
-			vg.FindAncestor(block, uint(number), func(x *uintvoteNode) bool { return *x >= 20 }))
+			vg.FindAncestor(block, uint(number), func(x *uintVoteNode) bool { return *x >= 20 }))
 	}
 }
 
@@ -301,8 +301,8 @@ func TestVoteGraph_AdjustBase(t *testing.T) {
 	c.PushBlocks("E", []string{"EA", "EB", "EC", "ED"})
 	c.PushBlocks("F", []string{"FA", "FB", "FC"})
 
-	vn := uintvoteNode(0)
-	vg := NewVoteGraph[string, uint, *uintvoteNode, int]("E", uint(6), &vn, newUintVoteNode)
+	vn := uintVoteNode(0)
+	vg := NewVoteGraph[string, uint, *uintVoteNode, int]("E", uint(6), &vn, newUintVoteNode)
 	assert.NoError(t, vg.Insert("FC", 10, createUintVoteNode(5), c))
 	assert.NoError(t, vg.Insert("ED", 10, createUintVoteNode(7), c))
 
@@ -317,7 +317,7 @@ func TestVoteGraph_AdjustBase(t *testing.T) {
 	vg.AdjustBase([]string{GenesisHash})
 	assert.Equal(t, HashNumber[string, uint]{GenesisHash, 1}, vg.Base())
 
-	var getEntry = func(key string) voteGraphEntry[string, uint, *uintvoteNode, int] {
+	var getEntry = func(key string) voteGraphEntry[string, uint, *uintVoteNode, int] {
 		entry, _ := vg.entries.Get(key)
 		return entry
 	}
@@ -338,13 +338,13 @@ func TestVoteGraph_FindAncestorIsLargest(t *testing.T) {
 	c.PushBlocks("B", []string{"B1"})
 	c.PushBlocks("B", []string{"B2"})
 
-	vn := uintvoteNode(0)
-	vg := NewVoteGraph[string, uint, *uintvoteNode, int](GenesisHash, uint(0), &vn, newUintVoteNode)
+	vn := uintVoteNode(0)
+	vg := NewVoteGraph[string, uint, *uintVoteNode, int](GenesisHash, uint(0), &vn, newUintVoteNode)
 	assert.NoError(t, vg.Insert("B1", 2, createUintVoteNode(1), c))
 	assert.NoError(t, vg.Insert("B2", 2, createUintVoteNode(1), c))
 	assert.NoError(t, vg.Insert("A1", 2, createUintVoteNode(1), c))
 	assert.NoError(t, vg.Insert("A2", 2, createUintVoteNode(1), c))
 
 	assert.Equal(t, &HashNumber[string, uint]{"A", 1},
-		vg.FindAncestor("A", 1, func(x *uintvoteNode) bool { return *x >= 2 }))
+		vg.FindAncestor("A", 1, func(x *uintVoteNode) bool { return *x >= 2 }))
 }

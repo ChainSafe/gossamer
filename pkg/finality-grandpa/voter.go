@@ -576,7 +576,7 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 
 		if maybeCompletedLastRound != nil {
 			lastRound := *maybeCompletedLastRound
-			lastRoundState = *lastRound.bridgeState()
+			lastRoundState = lastRound.bridgeState()
 			pastRounds.Push(env, lastRound)
 		}
 
@@ -590,7 +590,7 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 		lastRoundNumber+1,
 		voters,
 		lastFinalized,
-		&lastRoundState,
+		lastRoundState,
 		finalizedSender,
 		env,
 	)

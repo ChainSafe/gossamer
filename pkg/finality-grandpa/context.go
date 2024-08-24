@@ -4,6 +4,8 @@
 package grandpa
 
 import (
+	"fmt"
+
 	"golang.org/x/exp/constraints"
 )
 
@@ -53,7 +55,7 @@ func (c context[ID]) Weight(n voteNode[ID], p Phase) VoteWeight {
 		case PrecommitPhase:
 			return weight(n.bits.Iter1sOdd(), c.voters)
 		default:
-			panic("invalid Phase")
+			panic(fmt.Sprintf("invalid Phase: %T", p))
 		}
 	} else {
 		switch p {
@@ -64,7 +66,7 @@ func (c context[ID]) Weight(n voteNode[ID], p Phase) VoteWeight {
 			bits := n.bits.Iter1sMergedOdd(c.equivocations)
 			return weight(bits, c.voters)
 		default:
-			panic("invalid Phase")
+			panic(fmt.Sprintf("invalid Phase: %T", p))
 		}
 	}
 }
