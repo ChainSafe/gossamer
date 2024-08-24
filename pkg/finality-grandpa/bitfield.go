@@ -15,7 +15,7 @@ func newBitfield() bitfield {
 	}
 }
 
-// IsBlank returns Whether the bitfield is blank or empty.
+// IsBlank returns whether the bitfield is blank or empty.
 func (b *bitfield) IsBlank() bool { //skipcq: GO-W1029
 	return len(b.bits) == 0
 }

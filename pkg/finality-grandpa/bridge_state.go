@@ -50,9 +50,10 @@ type bridged[Hash, Number any] struct {
 
 func (b *bridged[H, N]) update(new RoundState[H, N]) {
 	b.Lock()
+	defer b.Unlock()
 	b.inner = new
 	b.waker.wake()
-	b.Unlock()
+
 }
 
 func (b *bridged[H, N]) get(waker *waker) RoundState[H, N] {
