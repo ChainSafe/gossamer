@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
@@ -63,7 +64,7 @@ type importer interface {
 // Full sync works by listening to announced blocks and requesting the blocks
 // from the announcing peers.
 type FullSyncStrategy struct {
-	requestQueue  *requestsQueue[*network.BlockRequestMessage]
+	requestQueue  *requestsQueue[*messages.BlockRequestMessage]
 	unreadyBlocks *unreadyBlocks
 	peers         *peerViewSet
 	badBlocks     []string
@@ -91,7 +92,7 @@ func NewFullSyncStrategy(cfg *FullSyncConfig) *FullSyncStrategy {
 			// TODO: cap disjoitChains to don't grows indefinitely
 			disjointChains: make([][]*types.BlockData, 0),
 		},
-		requestQueue: &requestsQueue[*network.BlockRequestMessage]{
+		requestQueue: &requestsQueue[*messages.BlockRequestMessage]{
 			queue: list.New(),
 		},
 		peers: &peerViewSet{
@@ -107,7 +108,7 @@ func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 
 	if f.requestQueue.Len() > 0 {
 		message, _ := f.requestQueue.PopFront()
-		return f.createTasks([]*network.BlockRequestMessage{message}), nil
+		return f.createTasks([]*messages.BlockRequestMessage{message}), nil
 	}
 
 	currentTarget := f.peers.getTarget()
@@ -129,18 +130,18 @@ func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 		targetBlockNumber = uint(currentTarget)
 	}
 
-	ascendingBlockRequests := network.NewAscendingBlockRequests(startRequestAt, targetBlockNumber,
-		network.BootstrapRequestData)
+	ascendingBlockRequests := messages.NewAscendingBlockRequests(startRequestAt, targetBlockNumber,
+		messages.BootstrapRequestData)
 
 	return f.createTasks(ascendingBlockRequests), nil
 }
 
-func (f *FullSyncStrategy) createTasks(requests []*network.BlockRequestMessage) []*syncTask {
+func (f *FullSyncStrategy) createTasks(requests []*messages.BlockRequestMessage) []*syncTask {
 	tasks := make([]*syncTask, len(requests))
 	for idx, req := range requests {
 		tasks[idx] = &syncTask{
 			request:      req,
-			response:     &network.BlockResponseMessage{},
+			response:     &messages.BlockResponseMessage{},
 			requestMaker: f.reqMaker,
 		}
 	}
@@ -162,7 +163,7 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 		// if Gossamer didn't request the header, then the response should
 		// only contain the missing parts that will complete the unreadyBlocks
 		// and then with the blocks completed we should be able to import them
-		if reqRespData.req.RequestField(network.RequestedDataHeader) {
+		if reqRespData.req.RequestField(messages.RequestedDataHeader) {
 			updatedFragment, ok := f.unreadyBlocks.updateDisjointFragments(reqRespData.responseData)
 			if ok {
 				validBlocks := validBlocksUnderFragment(highestFinalized.Number, updatedFragment)
@@ -248,10 +249,10 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 				)
 
 				f.unreadyBlocks.newFragment(validFragment)
-				request := network.NewBlockRequest(
+				request := messages.NewBlockRequest(
 					*variadic.Uint32OrHashFrom(validFragment[0].Header.ParentHash),
-					network.MaxBlocksInResponse,
-					network.BootstrapRequestData, network.Descending)
+					messages.MaxBlocksInResponse,
+					messages.BootstrapRequestData, messages.Descending)
 				f.requestQueue.PushBack(request)
 			} else {
 				// inserting them in the queue to be processed after the main chain
@@ -342,8 +343,8 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 
 	if !has {
 		f.unreadyBlocks.newHeader(blockAnnounceHeader)
-		request := network.NewBlockRequest(*variadic.Uint32OrHashFrom(blockAnnounceHeaderHash),
-			1, network.RequestedDataBody+network.RequestedDataJustification, network.Ascending)
+		request := messages.NewBlockRequest(*variadic.Uint32OrHashFrom(blockAnnounceHeaderHash),
+			1, messages.RequestedDataBody+messages.RequestedDataJustification, messages.Ascending)
 		f.requestQueue.PushBack(request)
 	}
 
@@ -351,7 +352,7 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 }
 
 type RequestResponseData struct {
-	req          *network.BlockRequestMessage
+	req          *messages.BlockRequestMessage
 	responseData []*types.BlockData
 }
 
@@ -364,14 +365,14 @@ func validateResults(results []*syncTaskResult, badBlocks []string) (repChanges 
 
 resultLoop:
 	for _, result := range results {
-		request := result.request.(*network.BlockRequestMessage)
+		request := result.request.(*messages.BlockRequestMessage)
 
 		if !result.completed {
 			continue
 		}
 
-		response := result.response.(*network.BlockResponseMessage)
-		if request.Direction == network.Descending {
+		response := result.response.(*messages.BlockResponseMessage)
+		if request.Direction == messages.Descending {
 			// reverse blocks before pre-validating and placing in ready queue
 			slices.Reverse(response.BlockData)
 		}
@@ -397,7 +398,7 @@ resultLoop:
 		// only check if the responses forms a chain if the response contains the headers
 		// of each block, othewise the response might only have the body/justification for
 		// a block
-		if request.RequestField(network.RequestedDataHeader) && !isResponseAChain(response.BlockData) {
+		if request.RequestField(messages.RequestedDataHeader) && !isResponseAChain(response.BlockData) {
 			logger.Warnf("response from %s is not a chain", result.who)
 			repChanges = append(repChanges, Change{
 				who: result.who,
@@ -519,13 +520,13 @@ func formsSequence(prev, next *types.BlockData) bool {
 }
 
 // validateResponseFields checks that the expected fields are in the block data
-func validateResponseFields(req *network.BlockRequestMessage, blocks []*types.BlockData) error {
+func validateResponseFields(req *messages.BlockRequestMessage, blocks []*types.BlockData) error {
 	for _, bd := range blocks {
-		if req.RequestField(network.RequestedDataHeader) && bd.Header == nil {
+		if req.RequestField(messages.RequestedDataHeader) && bd.Header == nil {
 			return fmt.Errorf("%w: %s", errNilHeaderInResponse, bd.Hash)
 		}
 
-		if req.RequestField(network.RequestedDataBody) && bd.Body == nil {
+		if req.RequestField(messages.RequestedDataBody) && bd.Body == nil {
 			return fmt.Errorf("%w: %s", errNilBodyInResponse, bd.Hash)
 		}
 	}

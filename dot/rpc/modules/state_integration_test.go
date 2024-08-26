@@ -574,7 +574,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	err = ts.SetChildStorage([]byte(`:child1`), []byte(`:key1`), []byte(`:childValue1`))
 	require.NoError(t, err)
 
-	sr1, err := ts.Root()
+	sr1, err := ts.Trie().Hash()
 	require.NoError(t, err)
 	err = chain.Storage.StoreTrie(ts, nil)
 	require.NoError(t, err)

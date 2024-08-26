@@ -168,7 +168,7 @@ func (b *blockImporter) handleBlock(block *types.Block, announceImportedBlock bo
 		return err
 	}
 
-	root := ts.MustRoot()
+	root := ts.Trie().MustHash()
 	if !bytes.Equal(parent.StateRoot[:], root[:]) {
 		panic("parent state root does not match snapshot state root")
 	}

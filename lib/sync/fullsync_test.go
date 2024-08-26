@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
@@ -63,11 +64,11 @@ func TestFullSyncNextActions(t *testing.T) {
 		// the we should have 2 requests start from 1 and request 128 and another
 		// request starting from 129 and requesting 128
 		require.Len(t, task, 2)
-		request := task[0].request.(*network.BlockRequestMessage)
+		request := task[0].request.(*messages.BlockRequestMessage)
 		require.Equal(t, uint32(1), request.StartingBlock.Uint32())
 		require.Equal(t, uint32(128), *request.Max)
 
-		request = task[1].request.(*network.BlockRequestMessage)
+		request = task[1].request.(*messages.BlockRequestMessage)
 		require.Equal(t, uint32(129), request.StartingBlock.Uint32())
 		require.Equal(t, uint32(128), *request.Max)
 	})
@@ -78,35 +79,35 @@ func TestFullSyncNextActions(t *testing.T) {
 		}
 
 		cases := map[string]struct {
-			setupRequestQueue func(*testing.T) *requestsQueue[*network.BlockRequestMessage]
+			setupRequestQueue func(*testing.T) *requestsQueue[*messages.BlockRequestMessage]
 			expectedTasksLen  int
-			expectedTasks     []*network.BlockRequestMessage
+			expectedTasks     []*messages.BlockRequestMessage
 		}{
 			"should_have_one_from_request_queue_and_one_from_target_chasing": {
-				setupRequestQueue: func(t *testing.T) *requestsQueue[*network.BlockRequestMessage] {
-					request := network.NewAscendingBlockRequests(
+				setupRequestQueue: func(t *testing.T) *requestsQueue[*messages.BlockRequestMessage] {
+					request := messages.NewAscendingBlockRequests(
 						129, 129+128,
-						network.BootstrapRequestData)
+						messages.BootstrapRequestData)
 					require.Len(t, request, 1)
 
-					rq := &requestsQueue[*network.BlockRequestMessage]{queue: list.New()}
+					rq := &requestsQueue[*messages.BlockRequestMessage]{queue: list.New()}
 					for _, req := range request {
 						rq.PushBack(req)
 					}
 					return rq
 				},
 				expectedTasksLen: 2,
-				expectedTasks: []*network.BlockRequestMessage{
+				expectedTasks: []*messages.BlockRequestMessage{
 					{
-						RequestedData: network.BootstrapRequestData,
+						RequestedData: messages.BootstrapRequestData,
 						StartingBlock: *variadic.Uint32OrHashFrom(129),
-						Direction:     network.Ascending,
+						Direction:     messages.Ascending,
 						Max:           refTo(128),
 					},
 					{
-						RequestedData: network.BootstrapRequestData,
+						RequestedData: messages.BootstrapRequestData,
 						StartingBlock: *variadic.Uint32OrHashFrom(1),
-						Direction:     network.Ascending,
+						Direction:     messages.Ascending,
 						Max:           refTo(128),
 					},
 				},
@@ -114,30 +115,30 @@ func TestFullSyncNextActions(t *testing.T) {
 			// creating a amount of 4 requests, but since we have a max num of
 			// request set to 2 (see FullSyncConfig) we should only have 2 tasks
 			"should_have_two_tasks": {
-				setupRequestQueue: func(t *testing.T) *requestsQueue[*network.BlockRequestMessage] {
-					request := network.NewAscendingBlockRequests(
+				setupRequestQueue: func(t *testing.T) *requestsQueue[*messages.BlockRequestMessage] {
+					request := messages.NewAscendingBlockRequests(
 						129, 129+(4*128),
-						network.BootstrapRequestData)
+						messages.BootstrapRequestData)
 					require.Len(t, request, 4)
 
-					rq := &requestsQueue[*network.BlockRequestMessage]{queue: list.New()}
+					rq := &requestsQueue[*messages.BlockRequestMessage]{queue: list.New()}
 					for _, req := range request {
 						rq.PushBack(req)
 					}
 					return rq
 				},
 				expectedTasksLen: 2,
-				expectedTasks: []*network.BlockRequestMessage{
+				expectedTasks: []*messages.BlockRequestMessage{
 					{
-						RequestedData: network.BootstrapRequestData,
+						RequestedData: messages.BootstrapRequestData,
 						StartingBlock: *variadic.Uint32OrHashFrom(129),
-						Direction:     network.Ascending,
+						Direction:     messages.Ascending,
 						Max:           refTo(128),
 					},
 					{
-						RequestedData: network.BootstrapRequestData,
+						RequestedData: messages.BootstrapRequestData,
 						StartingBlock: *variadic.Uint32OrHashFrom(257),
-						Direction:     network.Ascending,
+						Direction:     messages.Ascending,
 						Max:           refTo(128),
 					},
 				},
@@ -179,11 +180,11 @@ func TestFullSyncIsFinished(t *testing.T) {
 	err := yaml.Unmarshal(rawWestendBlocks, westendBlocks)
 	require.NoError(t, err)
 
-	fstTaskBlockResponse := &network.BlockResponseMessage{}
+	fstTaskBlockResponse := &messages.BlockResponseMessage{}
 	err = fstTaskBlockResponse.Decode(common.MustHexToBytes(westendBlocks.Blocks1To10))
 	require.NoError(t, err)
 
-	sndTaskBlockResponse := &network.BlockResponseMessage{}
+	sndTaskBlockResponse := &messages.BlockResponseMessage{}
 	err = sndTaskBlockResponse.Decode(common.MustHexToBytes(westendBlocks.Blocks129To256))
 	require.NoError(t, err)
 
@@ -193,8 +194,8 @@ func TestFullSyncIsFinished(t *testing.T) {
 			// 1 -> 10
 			{
 				who: peer.ID("peerA"),
-				request: network.NewBlockRequest(*variadic.Uint32OrHashFrom(1), 128,
-					network.BootstrapRequestData, network.Ascending),
+				request: messages.NewBlockRequest(*variadic.Uint32OrHashFrom(1), 128,
+					messages.BootstrapRequestData, messages.Ascending),
 				completed: true,
 				response:  fstTaskBlockResponse,
 			},
@@ -203,8 +204,8 @@ func TestFullSyncIsFinished(t *testing.T) {
 			// 129 -> 256
 			{
 				who: peer.ID("peerA"),
-				request: network.NewBlockRequest(*variadic.Uint32OrHashFrom(1), 128,
-					network.BootstrapRequestData, network.Ascending),
+				request: messages.NewBlockRequest(*variadic.Uint32OrHashFrom(1), 128,
+					messages.BootstrapRequestData, messages.Ascending),
 				completed: true,
 				response:  sndTaskBlockResponse,
 			},
@@ -252,17 +253,17 @@ func TestFullSyncIsFinished(t *testing.T) {
 		require.Len(t, fs.unreadyBlocks.disjointChains, 1)
 		require.Equal(t, fs.unreadyBlocks.disjointChains[0], sndTaskBlockResponse.BlockData)
 
-		expectedAncestorRequest := network.NewBlockRequest(
+		expectedAncestorRequest := messages.NewBlockRequest(
 			*variadic.Uint32OrHashFrom(sndTaskBlockResponse.BlockData[0].Header.ParentHash),
-			network.MaxBlocksInResponse,
-			network.BootstrapRequestData, network.Descending)
+			messages.MaxBlocksInResponse,
+			messages.BootstrapRequestData, messages.Descending)
 
 		message, ok := fs.requestQueue.PopFront()
 		require.True(t, ok)
 		require.Equal(t, expectedAncestorRequest, message)
 
 		// ancestor search response
-		ancestorSearchResponse := &network.BlockResponseMessage{}
+		ancestorSearchResponse := &messages.BlockResponseMessage{}
 		err = ancestorSearchResponse.Decode(common.MustHexToBytes(westendBlocks.Blocks1To128))
 		require.NoError(t, err)
 

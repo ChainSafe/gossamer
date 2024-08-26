@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -185,8 +186,8 @@ func (s *SyncService) OnConnectionClosed(who peer.ID) {
 	s.workerPool.removeWorker(who)
 }
 
-func (s *SyncService) CreateBlockResponse(who peer.ID, req *network.BlockRequestMessage) (
-	*network.BlockResponseMessage, error) {
+func (s *SyncService) CreateBlockResponse(who peer.ID, req *messages.BlockRequestMessage) (
+	*messages.BlockResponseMessage, error) {
 	return nil, nil
 }
 

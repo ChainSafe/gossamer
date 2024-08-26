@@ -33,7 +33,7 @@ func createTestTrieState(t *testing.T) (trie.Trie, common.Hash) {
 	err = tr.SetChildStorage([]byte(":child_storage_key"), []byte(":another_child"), []byte("value"))
 	require.NoError(t, err)
 
-	stateRoot, err := tr.Root()
+	stateRoot, err := tr.Trie().Hash()
 	require.NoError(t, err)
 
 	return tr.Trie(), stateRoot

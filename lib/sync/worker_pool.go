@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"golang.org/x/exp/maps"
 )
@@ -25,15 +26,15 @@ const (
 
 type syncTask struct {
 	requestMaker network.RequestMaker
-	request      network.Message
-	response     network.ResponseMessage
+	request      messages.P2PMessage
+	response     messages.P2PMessage
 }
 
 type syncTaskResult struct {
 	who       peer.ID
 	completed bool
-	request   network.Message
-	response  network.ResponseMessage
+	request   messages.P2PMessage
+	response  messages.P2PMessage
 }
 
 type syncWorkerPool struct {
