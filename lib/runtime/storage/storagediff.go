@@ -143,7 +143,11 @@ func (cs *storageDiff) clearPrefixInChild(keyToChild string, prefix []byte,
 func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) (deleted uint32, allDeleted bool) {
 	allKeys := slices.Clone(trieKeys)
 	newKeys := maps.Keys(cs.upserts)
-	allKeys = append(allKeys, newKeys...)
+	for _, k := range newKeys {
+		if !slices.Contains(allKeys, k) {
+			allKeys = append(allKeys, k)
+		}
+	}
 
 	deleted = 0
 	sort.Strings(allKeys)
