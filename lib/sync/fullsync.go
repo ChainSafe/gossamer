@@ -280,7 +280,8 @@ func (f *FullSyncStrategy) OnBlockAnnounceHandshake(from peer.ID, msg *network.B
 	return nil
 }
 
-func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) (repChange *Change, err error) {
+func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) (
+	repChange *Change, err error) {
 	if f.blockState.IsPaused() {
 		return nil, errors.New("blockstate service is paused")
 	}
