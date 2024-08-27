@@ -1138,11 +1138,10 @@ func TestDeleteNextEpochDataAndConfig(t *testing.T) {
 	err = epochState.FinalizeBABENextEpochData(expectedHeader)
 	require.NoError(t, err)
 
-	// Check if iterators are invalid, making sure that the data was deleted
-	iter, err := epochState.db.NewPrefixIterator(nextConfigDataPrefix)
+	// Check if the next epoch data and config data are not stored in the database
+	// after finalization
+	epochState, err = NewEpochState(db, epochState.blockState, config.BABEConfigurationTestDefault)
 	require.NoError(t, err)
-	require.Equal(t, iter.Valid(), false)
-	epochState.db.NewPrefixIterator(nextEpochDataPrefix)
-	require.NoError(t, err)
-	require.Equal(t, iter.Valid(), false)
+	require.Equal(t, 0, len(epochState.nextEpochData))
+	require.Equal(t, 0, len(epochState.nextConfigData))
 }

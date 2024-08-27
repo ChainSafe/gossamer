@@ -31,11 +31,10 @@ type GetPutter interface {
 
 // GetterPutterNewBatcher has methods to get values and create a
 // new batch.
-type GetterPutterNewBatcherPrefixIter interface {
+type GetterPutterNewBatcher interface {
 	Getter
 	Putter
 	NewBatcher
-	NewPrefixIterator
 }
 
 // Getter gets a value corresponding to the given key.
@@ -71,8 +70,4 @@ type BabeConfigurer interface {
 // Telemetry is the telemetry client to send telemetry messages.
 type Telemetry interface {
 	SendMessage(msg json.Marshaler)
-}
-
-type NewPrefixIterator interface {
-	NewPrefixIterator(prefix []byte) (database.Iterator, error)
 }
