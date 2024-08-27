@@ -146,6 +146,8 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 		MaxBlocks: max,
 	}
 
+	bm.StartingBlock.Encode()
+
 	if bm.StartingBlock.IsHash() {
 		hash := bm.StartingBlock.Hash()
 		msg.FromBlock = &pb.BlockRequest_Hash{

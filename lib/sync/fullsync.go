@@ -56,7 +56,7 @@ type FullSyncConfig struct {
 	RequestMaker       network.RequestMaker
 }
 
-type importer interface {
+type Importer interface {
 	handle(*types.BlockData, BlockOrigin) (imported bool, err error)
 }
 
@@ -73,7 +73,7 @@ type FullSyncStrategy struct {
 	numOfTasks    int
 	startedAt     time.Time
 	syncedBlocks  int
-	importer      importer
+	importer      Importer
 }
 
 func NewFullSyncStrategy(cfg *FullSyncConfig) *FullSyncStrategy {

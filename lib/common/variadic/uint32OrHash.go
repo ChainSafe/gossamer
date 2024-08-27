@@ -4,6 +4,7 @@
 package variadic
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
+
+var ErrUnsupportedType = errors.New("unsupported type")
 
 // Uint32OrHash represents a variadic type that is either uint32 or common.Hash.
 type Uint32OrHash struct {
@@ -104,35 +107,52 @@ func (x *Uint32OrHash) String() string {
 
 // IsUint32 returns true if the value is a uint32
 func (x *Uint32OrHash) IsUint32() bool {
-	if x == nil {
+	switch x.Value().(type) {
+	case int, uint, uint32:
+		return true
+	default:
 		return false
 	}
-
-	_, is := x.value.(uint32)
-	return is
 }
 
 // Uint32 returns the value as a uint32. It panics if the value is not a uint32.
 func (x *Uint32OrHash) Uint32() uint32 {
-	if !x.IsUint32() {
+	var blockNumber uint32
+
+	switch c := x.Value().(type) {
+	case uint32:
+		blockNumber = c
+	case int:
+		blockNumber = uint32(c)
+	case uint:
+		blockNumber = uint32(c)
+	default:
 		panic("value is not uint32")
 	}
 
-	return x.value.(uint32)
+	return blockNumber
 }
 
 // Encode will encode a Uint32OrHash using SCALE
 func (x *Uint32OrHash) Encode() ([]byte, error) {
-	var encMsg []byte
+	var blockNumber uint32
+
 	switch c := x.Value().(type) {
-	case uint32:
-		startingBlockByteArray := make([]byte, 4)
-		binary.LittleEndian.PutUint32(startingBlockByteArray, c)
-		encMsg = append(encMsg, append([]byte{1}, startingBlockByteArray...)...)
 	case common.Hash:
-		encMsg = append(encMsg, append([]byte{0}, c.ToBytes()...)...)
+		return bytes.Join([][]byte{{0}, c.ToBytes()}, nil), nil
+	case uint32:
+		blockNumber = c
+	case int:
+		blockNumber = uint32(c)
+	case uint:
+		blockNumber = uint32(c)
+	default:
+		return nil, fmt.Errorf("%w: %T", ErrUnsupportedType, c)
 	}
-	return encMsg, nil
+
+	startingBlockByteArray := make([]byte, 4)
+	binary.LittleEndian.PutUint32(startingBlockByteArray, blockNumber)
+	return bytes.Join([][]byte{{1}, startingBlockByteArray}, nil), nil
 }
 
 // Decode decodes a value into a Uint32OrHash
