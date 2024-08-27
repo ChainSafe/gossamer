@@ -1139,7 +1139,7 @@ func TestDeleteNextEpochDataAndConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	// Check if the next epoch data and config data are not stored in the database
-	// after finalization
+	// after finalisation
 	epochState, err = NewEpochState(db, epochState.blockState, config.BABEConfigurationTestDefault)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(epochState.nextEpochData))
