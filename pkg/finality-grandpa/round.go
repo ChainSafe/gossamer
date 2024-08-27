@@ -215,7 +215,7 @@ type RoundParams[ID constraints.Ordered, Hash comparable, Number constraints.Uns
 // Round stores data for a round.
 type Round[ID constraints.Ordered, Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable] struct {
 	number          uint64
-	context         context[ID]
+	context         roundContext[ID]
 	graph           VoteGraph[Hash, Number, *voteNode[ID], vote[ID]]    // DAG of blocks which have been voted on.
 	prevotes        voteTracker[ID, Prevote[Hash, Number], Signature]   // tracks prevotes that have been counted
 	precommits      voteTracker[ID, Precommit[Hash, Number], Signature] // tracks precommits
@@ -244,7 +244,7 @@ func NewRound[ID constraints.Ordered, Hash constraints.Ordered, Number constrain
 	}
 	return &Round[ID, Hash, Number, Signature]{
 		number:  roundParams.RoundNumber,
-		context: newContext(roundParams.Voters),
+		context: newRoundContext(roundParams.Voters),
 		graph: NewVoteGraph[Hash, Number, *voteNode[ID], vote[ID]](
 			roundParams.Base.Hash,
 			roundParams.Base.Number,

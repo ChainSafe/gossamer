@@ -17,7 +17,7 @@ func (Phase) Generate(rand *rand.Rand, _ int) reflect.Value {
 	return reflect.ValueOf([]Phase{PrevotePhase, PrecommitPhase}[index])
 }
 
-func (context[ID]) Generate(rand *rand.Rand, size int) reflect.Value {
+func (roundContext[ID]) Generate(rand *rand.Rand, size int) reflect.Value {
 	vs := VoterSet[ID]{}.Generate(rand, size).Interface().(VoterSet[ID])
 
 	n := rand.Int() % len(vs.voters)
@@ -27,7 +27,7 @@ func (context[ID]) Generate(rand *rand.Rand, size int) reflect.Value {
 		equivocators[i] = ivi.VoterInfo
 	}
 
-	c := context[ID]{
+	c := roundContext[ID]{
 		voters: vs,
 	}
 	for _, v := range equivocators {
@@ -54,7 +54,7 @@ func TestVote_voter(t *testing.T) {
 }
 
 func TestWeights(t *testing.T) {
-	f := func(ctx context[uint], phase Phase, voters []uint) bool {
+	f := func(ctx roundContext[uint], phase Phase, voters []uint) bool {
 		ew := ctx.EquivocationWeight(phase)
 		tw := ctx.voters.TotalWeight()
 

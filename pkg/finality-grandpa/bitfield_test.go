@@ -41,7 +41,7 @@ func (b *bitfield) testBit(position uint) bool { //skipcq: GO-W1029
 	return testBit(b.bits[wordOff], position%64)
 }
 
-func Test_SetBit(t *testing.T) {
+func TestBitfield_SetBit(t *testing.T) {
 	f := func(a bitfield, idx uint) bool {
 		// let's bound the max bitfield index at 2^24. this is needed because when calling
 		// `SetBit` we will extend the backing vec to accommodate the given bitfield size, this
@@ -55,7 +55,7 @@ func Test_SetBit(t *testing.T) {
 	}
 }
 
-func Test_Merge(t *testing.T) {
+func TestBitfield_iter1s_bitor(t *testing.T) {
 	f := func(a, b bitfield) bool {
 		c := newBitfield()
 		copy(a.bits, c.bits)

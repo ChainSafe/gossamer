@@ -43,7 +43,6 @@ func (w *waker) register(waker *waker) { //nolint:unused //TODO: upgrading golan
 // round state bridged across rounds.
 type bridged[Hash, Number any] struct {
 	inner RoundState[Hash, Number]
-	// registered map[chan State[Hash, Number]]any
 	waker *waker
 	sync.RWMutex
 }

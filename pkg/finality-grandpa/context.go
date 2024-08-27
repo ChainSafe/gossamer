@@ -10,26 +10,26 @@ import (
 )
 
 // The context of a `Round` in which vote weights are calculated.
-type context[ID constraints.Ordered] struct {
+type roundContext[ID constraints.Ordered] struct {
 	voters        VoterSet[ID]
 	equivocations bitfield
 }
 
 // newContext will create a new context for a round with the given set of voters.
-func newContext[ID constraints.Ordered](voters VoterSet[ID]) context[ID] {
-	return context[ID]{
+func newRoundContext[ID constraints.Ordered](voters VoterSet[ID]) roundContext[ID] {
+	return roundContext[ID]{
 		voters:        voters,
 		equivocations: newBitfield(),
 	}
 }
 
 // Voters will return the set of voters.
-func (c context[ID]) Voters() VoterSet[ID] {
+func (c roundContext[ID]) Voters() VoterSet[ID] {
 	return c.voters
 }
 
 // EquivocationWeight returns the weight of observed equivocations in phase `p`.
-func (c context[ID]) EquivocationWeight(p Phase) VoteWeight {
+func (c roundContext[ID]) EquivocationWeight(p Phase) VoteWeight {
 	switch p {
 	case PrevotePhase:
 		return weight(c.equivocations.Iter1sEven(), c.voters)
@@ -41,13 +41,13 @@ func (c context[ID]) EquivocationWeight(p Phase) VoteWeight {
 }
 
 // Equivocated will record voter `v` as an equivocator in phase `p`.
-func (c *context[ID]) Equivocated(v VoterInfo, p Phase) {
+func (c *roundContext[ID]) Equivocated(v VoterInfo, p Phase) {
 	c.equivocations.SetBit(newVote[ID](v, p).bit.position)
 }
 
 // Weight computes the vote weight on node `n` in phase `p`, taking into account
 // equivocations.
-func (c context[ID]) Weight(n voteNode[ID], p Phase) VoteWeight {
+func (c roundContext[ID]) Weight(n voteNode[ID], p Phase) VoteWeight {
 	if c.equivocations.IsBlank() {
 		switch p {
 		case PrevotePhase:
