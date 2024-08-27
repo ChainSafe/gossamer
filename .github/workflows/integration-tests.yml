@@ -32,7 +32,7 @@ jobs:
             github.com/ChainSafe/gossamer/dot/state,
             github.com/ChainSafe/gossamer/dot/digest,
             github.com/ChainSafe/gossamer/dot/network,
-            github.com/ChainSafe/gossamer/dot/sync,
+            github.com/ChainSafe/gossamer/lib/sync,
             github.com/ChainSafe/gossamer/lib/babe,
             github.com/ChainSafe/gossamer/lib/grandpa,
           ]
