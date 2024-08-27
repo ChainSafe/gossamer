@@ -429,7 +429,7 @@ func TestAscendingBlockRequest(t *testing.T) {
 	three := uint32(3)
 	maxResponseSize := uint32(messages.MaxBlocksInResponse)
 	cases := map[string]struct {
-		startNumber, targetNumber      uint
+		startNumber, targetNumber      uint32
 		expectedBlockRequestMessage    []*messages.BlockRequestMessage
 		expectedTotalOfBlocksRequested uint32
 	}{

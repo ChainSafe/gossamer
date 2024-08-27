@@ -130,7 +130,8 @@ func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 		targetBlockNumber = uint(currentTarget)
 	}
 
-	ascendingBlockRequests := messages.NewAscendingBlockRequests(startRequestAt, targetBlockNumber,
+	ascendingBlockRequests := messages.NewAscendingBlockRequests(
+		uint32(startRequestAt), uint32(targetBlockNumber),
 		messages.BootstrapRequestData)
 
 	return f.createTasks(ascendingBlockRequests), nil
