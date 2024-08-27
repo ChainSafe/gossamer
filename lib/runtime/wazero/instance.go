@@ -930,6 +930,7 @@ func (in *Instance) InitializeBlock(header *types.Header) error {
 		return fmt.Errorf("cannot encode header: %w", err)
 	}
 
+	in.Context.Storage.StartTransaction()
 	_, err = in.Exec(runtime.CoreInitializeBlock, encodedHeader)
 	return err
 }
@@ -992,6 +993,10 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 		return nil, err
 	}
 
+	// start an changeset at the beginning of the block execution
+	// then clear prefix can work correctly by ignoring
+	// keys included under current block execution
+	in.Context.Storage.StartTransaction()
 	return in.Exec(runtime.CoreExecuteBlock, bdEnc)
 }
 
