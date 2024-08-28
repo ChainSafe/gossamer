@@ -72,6 +72,7 @@ type Strategy interface {
 	NextActions() ([]*syncTask, error)
 	IsFinished(results []*syncTaskResult) (done bool, repChanges []Change, blocks []peer.ID, err error)
 	ShowMetrics()
+	IsSynced() bool
 }
 
 type BlockOrigin byte
@@ -190,11 +191,20 @@ func (s *SyncService) OnConnectionClosed(who peer.ID) {
 }
 
 func (s *SyncService) IsSynced() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.currentStrategy.IsSynced()
 	return false
 }
 
 func (s *SyncService) HighestBlock() uint {
-	return 0
+	highestBlock, err := s.blockState.BestBlockNumber()
+	if err != nil {
+		logger.Warnf("failed to get the highest block: %s", err)
+		return 0
+	}
+	return highestBlock
 }
 
 func (s *SyncService) runSyncEngine() {

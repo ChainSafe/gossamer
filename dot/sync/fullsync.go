@@ -353,6 +353,17 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 	return nil, nil
 }
 
+func (f *FullSyncStrategy) IsSynced() bool {
+	highestBlock, err := f.blockState.BestBlockNumber()
+	if err != nil {
+		logger.Criticalf("cannot get best block number")
+		return false
+	}
+
+	// TODO: research a better rule
+	return uint32(highestBlock) >= (f.peers.getTarget() - 128)
+}
+
 type RequestResponseData struct {
 	req          *messages.BlockRequestMessage
 	responseData []*types.BlockData
