@@ -1018,8 +1018,11 @@ func TestNewLeafDoesNotClobberOld(t *testing.T) {
 	}
 
 	// If the old leaf view is clobbered, the candidate will be ignored and in that case,
-	// overseer should not expect `StatementDistributionMessageShare` and `collatorprotocolmessages.Seconded`
-	// overseer messages.
+	// overseer does not expect `StatementDistributionMessageShare` and `collatorprotocolmessages.Seconded`
+	// overseer messages. So, test will fail.
+	//
+	// But, when the old leaf view is not clobbered, the candidate will be seconded.
+	// so, oversee expects all four overseer messages.
 	overseer.ExpectActions(validate, storeAvailableData, distribute, informSeconded)
 
 	overseer.ReceiveMessage(backing.SecondMessage{
