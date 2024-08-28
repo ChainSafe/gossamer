@@ -910,3 +910,124 @@ func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
 
 	time.Sleep(1 * time.Second)
 }
+
+// The new leaf view doesn't clobber the old view when we update active leaves.
+func TestNewLeafDoesNotClobberOld(t *testing.T) {
+	candidateBacking, overseer := initBackingAndOverseerMock(t)
+	defer stopOverseerAndWaitForCompletion(overseer)
+
+	paraValidators := parachainValidators(t, candidateBacking.Keystore)
+	numOfValidators := uint(len(paraValidators))
+	relayParent1 := getDummyHash(t, 5)
+	relayParent2 := getDummyHash(t, 6)
+	paraID := uint32(1)
+	validationCode := parachaintypes.ValidationCode{1, 2, 3}
+
+	ctrl := gomock.NewController(t)
+	mockBlockState := backing.NewMockBlockState(ctrl)
+	mockRuntime := backing.NewMockInstance(ctrl)
+	mockImplicitView := backing.NewMockImplicitView(ctrl)
+
+	candidateBacking.BlockState = mockBlockState
+	candidateBacking.ImplicitView = mockImplicitView
+
+	// mock BlockState methods
+	mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).
+		Return(mockRuntime, nil).Times(5)
+
+	// mock Runtime Instance methods
+	mockRuntime.EXPECT().ParachainHostAsyncBackingParams().
+		Return(nil, wazero_runtime.ErrExportFunctionNotFound).Times(2)
+	mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
+		Return(parachaintypes.SessionIndex(1), nil).Times(3)
+	mockRuntime.EXPECT().ParachainHostValidators().
+		Return(paraValidators, nil).Times(2)
+	mockRuntime.EXPECT().ParachainHostValidatorGroups().
+		Return(validatorGroups(t), nil).Times(2)
+	mockRuntime.EXPECT().ParachainHostAvailabilityCores().
+		Return(availabilityCores(t), nil).Times(2)
+	mockRuntime.EXPECT().ParachainHostMinimumBackingVotes().
+		Return(backing.LEGACY_MIN_BACKING_VOTES, nil).Times(2)
+	mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
+		Return(&validationCode, nil)
+	mockRuntime.EXPECT().
+		ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(0))).
+		Return(nil, wazero_runtime.ErrExportFunctionNotFound).Times(1)
+
+	//mock ImplicitView
+	mockImplicitView.EXPECT().AllAllowedRelayParents().
+		Return([]common.Hash{}).Times(2)
+
+	// add relay parent 1 to active leaves
+	overseer.ReceiveMessage(parachaintypes.ActiveLeavesUpdateSignal{
+		Activated: &parachaintypes.ActivatedLeaf{Hash: relayParent1, Number: 1},
+	})
+	time.Sleep(500 * time.Millisecond)
+
+	// add relay parent 2 to active leaves that does not clobber relay parent 1
+	// and still allows seconding of candidates for relay parent 1
+	overseer.ReceiveMessage(parachaintypes.ActiveLeavesUpdateSignal{
+		Activated: &parachaintypes.ActivatedLeaf{Hash: relayParent2, Number: 1},
+	})
+	time.Sleep(500 * time.Millisecond)
+
+	headData := parachaintypes.HeadData{Data: []byte{4, 5, 6}}
+
+	pov := parachaintypes.PoV{BlockData: []byte{1, 2, 3}}
+	povHash, err := pov.Hash()
+	require.NoError(t, err)
+
+	pvd := dummyPVD(t)
+	pvdHash, err := pvd.Hash()
+	require.NoError(t, err)
+
+	// candidate with relay parent 1
+	candidate := newCommittedCandidate(t,
+		paraID,
+		headData,
+		povHash,
+		relayParent1,
+		makeErasureRoot(t, numOfValidators, pov, pvd),
+		pvdHash,
+		validationCode,
+	)
+
+	validate := validResponseForValidateFromExhaustive(headData, pvd)
+
+	distribute := func(msg any) bool {
+		// we have seconded a candidate and shared the statement to peers
+		share, ok := msg.(parachaintypes.StatementDistributionMessageShare)
+		if !ok {
+			return false
+		}
+
+		statement, err := share.SignedFullStatementWithPVD.SignedFullStatement.Payload.Value()
+		require.NoError(t, err)
+
+		require.Equal(t, statement, parachaintypes.Seconded(candidate))
+		require.Equal(t, *share.SignedFullStatementWithPVD.PersistedValidationData, pvd)
+		require.Equal(t, share.RelayParent, relayParent1)
+
+		return true
+	}
+
+	informSeconded := func(msg any) bool {
+		// informed collator protocol that we have seconded the candidate
+		_, ok := msg.(collatorprotocolmessages.Seconded)
+		return ok
+	}
+
+	// If the old leaf view is clobbered, the candidate will be ignored and in that case,
+	// overseer should not expect `StatementDistributionMessageShare` and `collatorprotocolmessages.Seconded`
+	// overseer messages.
+	overseer.ExpectActions(validate, storeAvailableData, distribute, informSeconded)
+
+	overseer.ReceiveMessage(backing.SecondMessage{
+		RelayParent:             relayParent1,
+		CandidateReceipt:        candidate.ToPlain(),
+		PersistedValidationData: pvd,
+		PoV:                     pov,
+	})
+
+	time.Sleep(1 * time.Second)
+}
