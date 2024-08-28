@@ -71,7 +71,8 @@ func (s *SyncService) CreateBlockResponse(from peer.ID, req *messages.BlockReque
 	}
 }
 
-func (s *SyncService) handleAscendingRequest(req *messages.BlockRequestMessage) (*messages.BlockResponseMessage, error) {
+func (s *SyncService) handleAscendingRequest(req *messages.BlockRequestMessage) (
+	*messages.BlockResponseMessage, error) {
 	var (
 		max         uint = messages.MaxBlocksInResponse
 		startHash   *common.Hash
@@ -147,7 +148,8 @@ func (s *SyncService) handleAscendingRequest(req *messages.BlockRequestMessage) 
 	return s.handleChainByHash(*startHash, *endHash, max, req.RequestedData, req.Direction)
 }
 
-func (s *SyncService) handleDescendingRequest(req *messages.BlockRequestMessage) (*messages.BlockResponseMessage, error) {
+func (s *SyncService) handleDescendingRequest(req *messages.BlockRequestMessage) (
+	*messages.BlockResponseMessage, error) {
 	var (
 		startHash   *common.Hash
 		startNumber uint

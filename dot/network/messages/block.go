@@ -104,7 +104,7 @@ func NewAscendingBlockRequests(startNumber, targetNumber uint32, requestedData b
 
 		lastIteration := numRequests - 1
 		if i == lastIteration && missingBlocks != 0 {
-			max = uint32(missingBlocks)
+			max = missingBlocks
 		}
 
 		start := variadic.Uint32OrHashFrom(startNumber)
