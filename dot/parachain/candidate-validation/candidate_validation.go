@@ -52,7 +52,6 @@ func NewCandidateValidation(overseerChan chan<- any, blockState BlockState) *Can
 // Run starts the CandidateValidation subsystem
 func (cv *CandidateValidation) Run(context.Context, <-chan any) {
 	cv.wg.Add(1)
-	go cv.pvfHost.Start()
 	go cv.processMessages(&cv.wg)
 }
 
@@ -75,7 +74,6 @@ func (*CandidateValidation) ProcessBlockFinalizedSignal(parachaintypes.BlockFina
 
 // Stop stops the CandidateValidation subsystem
 func (cv *CandidateValidation) Stop() {
-	cv.pvfHost.Stop()
 	close(cv.stopChan)
 	cv.wg.Wait()
 }
@@ -92,7 +90,6 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 				cv.validateFromChainState(msg)
 
 			case ValidateFromExhaustive:
-				taskResult := make(chan *pvf.ValidationTaskResult)
 				validationTask := &pvf.ValidationTask{
 					PersistedValidationData: msg.PersistedValidationData,
 					ValidationCode:          &msg.ValidationCode,
@@ -100,22 +97,24 @@ func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
 					PoV:                     msg.PoV,
 					ExecutorParams:          msg.ExecutorParams,
 					PvfExecTimeoutKind:      msg.PvfExecTimeoutKind,
-					ResultCh:                taskResult,
-				}
-				go cv.pvfHost.Validate(validationTask)
-
-				result := <-taskResult
-				if result.InternalError != nil {
-					logger.Errorf("failed to validate from exhaustive: %w", result.InternalError)
-					msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-						Err: result.InternalError,
-					}
-				} else {
-					msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-						Data: *result.Result,
-					}
 				}
 
+				taskResultChan := cv.pvfHost.Validate(validationTask)
+
+				go func() {
+
+					result := <-taskResultChan
+					if result.InternalError != nil {
+						logger.Errorf("failed to validate from exhaustive: %w", result.InternalError)
+						msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+							Err: result.InternalError,
+						}
+					} else {
+						msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+							Data: *result.Result,
+						}
+					}
+				}()
 			case PreCheck:
 				// TODO: implement functionality to handle PreCheck, see issue #3921
 
@@ -193,7 +192,6 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 		return
 	}
 
-	taskResult := make(chan *pvf.ValidationTaskResult)
 	validationTask := &pvf.ValidationTask{
 		PersistedValidationData: *persistedValidationData,
 		ValidationCode:          validationCode,
@@ -201,11 +199,10 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 		PoV:                     msg.Pov,
 		ExecutorParams:          msg.ExecutorParams,
 		PvfExecTimeoutKind:      parachaintypes.PvfExecTimeoutKind{},
-		ResultCh:                taskResult,
 	}
-	go cv.pvfHost.Validate(validationTask)
 
-	result := <-taskResult
+	taskResultChan := cv.pvfHost.Validate(validationTask)
+	result := <-taskResultChan
 	if result.InternalError != nil {
 		logger.Errorf("failed to validate from chain state: %w", result.InternalError)
 		msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{

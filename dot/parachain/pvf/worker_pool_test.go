@@ -55,7 +55,6 @@ func TestValidationWorkerPool_newValidationWorker(t *testing.T) {
 			t.Parallel()
 
 			workerPool := tt.setupWorkerPool(t)
-			defer workerPool.stop()
 
 			require.ElementsMatch(t,
 				maps.Keys(workerPool.workers),

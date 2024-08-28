@@ -226,9 +226,9 @@ func validResponseForValidateFromExhaustive(
 			return false
 		}
 
-		msgValidate.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
-			Data: candidatevalidation.ValidationResult{
-				ValidResult: &candidatevalidation.ValidValidationResult{
+		msgValidate.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+			Data: pvf.ValidationResult{
+				ValidResult: &pvf.ValidValidationResult{
 					CandidateCommitments: parachaintypes.CandidateCommitments{
 						HeadData:                  headData,
 						UpwardMessages:            []parachaintypes.UpwardMessage{},
@@ -393,38 +393,7 @@ func TestSecondsValidCandidate(t *testing.T) {
 	mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
 		Return(&validationCode2, nil)
 
-	validate2 := func(msg any) bool {
-		validateFromExhaustive, ok := msg.(candidatevalidation.ValidateFromExhaustive)
-		if !ok {
-			return false
-		}
-
-		validateFromExhaustive.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-			Data: pvf.ValidationResult{
-				ValidResult: &pvf.ValidValidationResult{
-					CandidateCommitments: parachaintypes.CandidateCommitments{
-						UpwardMessages:            []parachaintypes.UpwardMessage{},
-						HorizontalMessages:        []parachaintypes.OutboundHrmpMessage{},
-						NewValidationCode:         nil,
-						HeadData:                  candidate2.Commitments.HeadData,
-						ProcessedDownwardMessages: 0,
-						HrmpWatermark:             0,
-					},
-					PersistedValidationData: pvd2,
-				},
-			},
-		}
-		return true
-	}
-
-	storeAvailableData := func(msg any) bool {
-		store, ok := msg.(availabilitystore.StoreAvailableData)
-		if !ok {
-			return false
-		}
-		store.Sender <- nil
-		return true
-	}
+	validate2 := validResponseForValidateFromExhaustive(candidate2.Commitments.HeadData, pvd2)
 
 	distribute := func(msg any) bool {
 		// we have seconded a candidate and shared the statement to peers
@@ -568,39 +537,7 @@ func TestCandidateReachesQuorum(t *testing.T) {
 		return true
 	}
 
-	validate1 := func(msg any) bool {
-		msgValidate, ok := msg.(candidatevalidation.ValidateFromExhaustive)
-		if !ok {
-			return false
-		}
-
-		msgValidate.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-			Data: pvf.ValidationResult{
-				ValidResult: &pvf.ValidValidationResult{
-					CandidateCommitments: parachaintypes.CandidateCommitments{
-						HeadData:                  headData,
-						UpwardMessages:            []parachaintypes.UpwardMessage{},
-						HorizontalMessages:        []parachaintypes.OutboundHrmpMessage{},
-						NewValidationCode:         nil,
-						ProcessedDownwardMessages: 0,
-						HrmpWatermark:             0,
-					},
-					PersistedValidationData: pvd,
-				},
-			},
-		}
-		return true
-	}
-
-	storeData := func(msg any) bool {
-		store, ok := msg.(availabilitystore.StoreAvailableData)
-		if !ok {
-			return false
-		}
-
-		store.Sender <- nil
-		return true
-	}
+	validate := validResponseForValidateFromExhaustive(headData, pvd)
 
 	distribute := func(msg any) bool {
 		_, ok := msg.(parachaintypes.StatementDistributionMessageShare)

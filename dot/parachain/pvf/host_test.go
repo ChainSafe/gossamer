@@ -22,7 +22,7 @@ func Test_validationHost_start(t *testing.T) {
 			v := &Host{
 				workerPool: tt.fields.workerPool,
 			}
-			v.Start()
+			v.Validate(&ValidationTask{})
 		})
 	}
 }
