@@ -20,10 +20,6 @@ type DistributeCollation struct {
 
 type ReportCollator parachaintypes.CollatorID
 
-type NetworkBridgeUpdate struct {
-	// TODO: not quite sure if we would need this or something similar to this
-}
-
 // Seconded represents that the candidate we recommended to be seconded was validated
 // successfully.
 type Seconded struct {

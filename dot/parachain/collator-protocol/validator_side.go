@@ -392,9 +392,6 @@ type CollatorProtocolValidatorSide struct {
 	// track all active collators and their data
 	peerData map[peer.ID]PeerData
 
-	// validationPeers []peer.ID
-	// collationPeers []peer.ID
-
 	// Parachains we're currently assigned to. With async backing enabled
 	// this includes assignments from the implicit view.
 	currentAssignments map[parachaintypes.ParaID]uint
@@ -484,6 +481,34 @@ func (cpvs CollatorProtocolValidatorSide) getPeerIDFromCollatorID(collatorID par
 	return "", false
 }
 
+func (cpvs CollatorProtocolValidatorSide) handleNetworkBridgeEvents(msg any) error {
+	switch msg := msg.(type) {
+	case networkbridgeevents.PeerConnected:
+		_, ok := cpvs.peerData[msg.PeerID]
+		if !ok {
+			cpvs.peerData[msg.PeerID] = PeerData{
+				state: PeerStateInfo{
+					PeerState: Connected,
+					Instant:   time.Now(),
+				},
+			}
+		}
+	case networkbridgeevents.PeerDisconnected:
+		delete(cpvs.peerData, msg.PeerID)
+	case networkbridgeevents.NewGossipTopology:
+		// NOTE: This won't happen
+	case networkbridgeevents.PeerViewChange:
+		// TODO
+	case networkbridgeevents.OurViewChange:
+		// TODO
+	case networkbridgeevents.UpdatedAuthorityIDs:
+		// NOTE: The validator side doesn't deal with AuthorityDiscovery IDs
+	case networkbridgeevents.PeerMessage[collatorprotocolmessages.CollationProtocol]:
+		return cpvs.processCollatorProtocolMessage(msg.PeerID, msg.Messaage)
+	}
+	return nil
+}
+
 func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 	// run this function as a goroutine, ideally
 
@@ -505,23 +530,14 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 				Reason: peerset.ReportBadCollatorReason,
 			},
 		}
-	case networkbridgeevents.PeerConnected:
-		_, ok := cpvs.peerData[msg.PeerID]
-		if !ok {
-			cpvs.peerData[msg.PeerID] = PeerData{
-				state: PeerStateInfo{
-					PeerState: Connected,
-					Instant:   time.Now(),
-				},
-			}
-		}
-	case networkbridgeevents.PeerDisconnected:
-		delete(cpvs.peerData, msg.PeerID)
-	case networkbridgeevents.PeerMessage[collatorprotocolmessages.CollationProtocol]:
-		return cpvs.processCollatorProtocolMessage(msg.PeerID, msg.Messaage)
-	case collatorprotocolmessages.NetworkBridgeUpdate:
-		// TODO: handle network message https://github.com/ChainSafe/gossamer/issues/3515
-		// https://github.com/paritytech/polkadot-sdk/blob/db3fd687262c68b115ab6724dfaa6a71d4a48a59/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1457 //nolint
+	case networkbridgeevents.PeerConnected,
+		networkbridgeevents.PeerDisconnected,
+		networkbridgeevents.PeerMessage[collatorprotocolmessages.CollationProtocol],
+		networkbridgeevents.NewGossipTopology,
+		networkbridgeevents.PeerViewChange,
+		networkbridgeevents.OurViewChange,
+		networkbridgeevents.UpdatedAuthorityIDs:
+		return cpvs.handleNetworkBridgeEvents(msg)
 	case collatorprotocolmessages.Seconded:
 		index, statementV, err := msg.Stmt.Payload.IndexValue()
 		if err != nil {

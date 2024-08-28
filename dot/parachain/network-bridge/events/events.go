@@ -9,6 +9,14 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
+// NOTE: Not adding PeerMessage here to make this a bit simpler.
+// TODO: Add Event in overseer
+// We will use it someday, since it helps us group all the network events together. For now, let's just
+// use them seperately.
+type Event interface {
+	PeerConnected | PeerDisconnected | NewGossipTopology | PeerViewChange | OurViewChange | UpdatedAuthorityIDs
+}
+
 type PeerConnected struct {
 	PeerID                peer.ID
 	OverservedRole        common.NetworkRole
