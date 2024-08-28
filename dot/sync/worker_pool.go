@@ -110,7 +110,7 @@ func (s *syncWorkerPool) submitRequests(tasks []*syncTask) []*syncTaskResult {
 
 		if !completed {
 			results = append(results, &syncTaskResult{
-				completed: completed,
+				completed: false,
 				request:   task.request,
 				response:  nil,
 			})

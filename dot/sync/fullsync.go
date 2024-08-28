@@ -43,7 +43,6 @@ var (
 
 // Config is the configuration for the sync Service.
 type FullSyncConfig struct {
-	StartHeader        *types.Header
 	StorageState       StorageState
 	TransactionState   TransactionState
 	BabeVerifier       BabeVerifier
@@ -124,7 +123,7 @@ func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 	}
 
 	startRequestAt := bestBlockHeader.Number + 1
-	targetBlockNumber := startRequestAt + 128
+	targetBlockNumber := startRequestAt + 127
 
 	if targetBlockNumber > uint(currentTarget) {
 		targetBlockNumber = uint(currentTarget)
@@ -189,6 +188,7 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 
 	nextBlocksToImport := make([]*types.BlockData, 0)
 	disjointFragments := make([][]*types.BlockData, 0)
+
 	for _, fragment := range orderedFragments {
 		ok, err := f.blockState.HasHeader(fragment[0].Header.ParentHash)
 		if err != nil && !errors.Is(err, database.ErrNotFound) {

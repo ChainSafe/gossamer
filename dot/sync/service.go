@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
@@ -95,14 +95,17 @@ type SyncService struct {
 	minPeers          int
 	slotDuration      time.Duration
 
+	seenBlockSyncRequests *lrucache.LRUCache[common.Hash, uint]
+
 	stopCh chan struct{}
 }
 
 func NewSyncService(cfgs ...ServiceConfig) *SyncService {
 	svc := &SyncService{
-		minPeers:          minPeersDefault,
-		waitPeersDuration: waitPeersDefaultTimeout,
-		stopCh:            make(chan struct{}),
+		minPeers:              minPeersDefault,
+		waitPeersDuration:     waitPeersDefaultTimeout,
+		stopCh:                make(chan struct{}),
+		seenBlockSyncRequests: lrucache.NewLRUCache[common.Hash, uint](100),
 	}
 
 	for _, cfg := range cfgs {
@@ -184,11 +187,6 @@ func (s *SyncService) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnoun
 func (s *SyncService) OnConnectionClosed(who peer.ID) {
 	logger.Tracef("removing peer worker: %s", who.String())
 	s.workerPool.removeWorker(who)
-}
-
-func (s *SyncService) CreateBlockResponse(who peer.ID, req *messages.BlockRequestMessage) (
-	*messages.BlockResponseMessage, error) {
-	return nil, nil
 }
 
 func (s *SyncService) IsSynced() bool {

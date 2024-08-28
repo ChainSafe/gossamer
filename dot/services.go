@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
@@ -34,7 +35,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
-	libsync "github.com/ChainSafe/gossamer/lib/sync"
 )
 
 // BlockProducer to produce blocks
@@ -516,13 +516,7 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg Bloc
 		blockRequestTimeout,
 		network.MaxBlockResponseSize)
 
-	genesisHeader, err := st.Block.BestBlockHeader()
-	if err != nil {
-		return nil, fmt.Errorf("cannot get genesis header: %w", err)
-	}
-
-	syncCfg := &libsync.FullSyncConfig{
-		StartHeader:        genesisHeader,
+	syncCfg := &sync.FullSyncConfig{
 		BlockState:         st.Block,
 		StorageState:       st.Storage,
 		TransactionState:   st.Transaction,
@@ -533,13 +527,13 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg Bloc
 		BadBlocks:          genesisData.BadBlocks,
 		RequestMaker:       requestMaker,
 	}
-	fullSync := libsync.NewFullSyncStrategy(syncCfg)
+	fullSync := sync.NewFullSyncStrategy(syncCfg)
 
-	return libsync.NewSyncService(
-		libsync.WithNetwork(net),
-		libsync.WithBlockState(st.Block),
-		libsync.WithSlotDuration(slotDuration),
-		libsync.WithStrategies(fullSync, fullSync),
+	return sync.NewSyncService(
+		sync.WithNetwork(net),
+		sync.WithBlockState(st.Block),
+		sync.WithSlotDuration(slotDuration),
+		sync.WithStrategies(fullSync, nil),
 	), nil
 }
 

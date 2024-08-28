@@ -31,8 +31,15 @@ type WestendBlocks struct {
 
 func TestFullSyncNextActions(t *testing.T) {
 	t.Run("best_block_greater_or_equal_current_target", func(t *testing.T) {
+		// current target is 0 and best block is 0, then we should
+		// get an empty set of tasks
+
+		mockBlockState := NewMockBlockState(gomock.NewController(t))
+		mockBlockState.EXPECT().BestBlockHeader().Return(
+			types.NewEmptyHeader(), nil)
+
 		cfg := &FullSyncConfig{
-			StartHeader: types.NewEmptyHeader(),
+			BlockState: mockBlockState,
 		}
 
 		fs := NewFullSyncStrategy(cfg)
@@ -42,9 +49,12 @@ func TestFullSyncNextActions(t *testing.T) {
 	})
 
 	t.Run("target_block_greater_than_best_block", func(t *testing.T) {
+		mockBlockState := NewMockBlockState(gomock.NewController(t))
+		mockBlockState.EXPECT().BestBlockHeader().Return(
+			types.NewEmptyHeader(), nil)
+
 		cfg := &FullSyncConfig{
-			StartHeader: types.NewEmptyHeader(),
-			NumOfTasks:  2,
+			BlockState: mockBlockState,
 		}
 
 		fs := NewFullSyncStrategy(cfg)
@@ -59,17 +69,9 @@ func TestFullSyncNextActions(t *testing.T) {
 		task, err := fs.NextActions()
 		require.NoError(t, err)
 
-		// the current target is block 1024 (see the OnBlockAnnounceHandshake)
-		// since we cap the request to the max blocks we can retrieve which is 128
-		// the we should have 2 requests start from 1 and request 128 and another
-		// request starting from 129 and requesting 128
-		require.Len(t, task, 2)
+		require.Len(t, task, 1)
 		request := task[0].request.(*messages.BlockRequestMessage)
 		require.Equal(t, uint32(1), request.StartingBlock.Uint32())
-		require.Equal(t, uint32(128), *request.Max)
-
-		request = task[1].request.(*messages.BlockRequestMessage)
-		require.Equal(t, uint32(129), request.StartingBlock.Uint32())
 		require.Equal(t, uint32(128), *request.Max)
 	})
 
@@ -80,13 +82,13 @@ func TestFullSyncNextActions(t *testing.T) {
 
 		cases := map[string]struct {
 			setupRequestQueue func(*testing.T) *requestsQueue[*messages.BlockRequestMessage]
-			expectedTasksLen  int
+			expectedQueueLen  int
 			expectedTasks     []*messages.BlockRequestMessage
 		}{
-			"should_have_one_from_request_queue_and_one_from_target_chasing": {
+			"should_have_one_from_request_queue": {
 				setupRequestQueue: func(t *testing.T) *requestsQueue[*messages.BlockRequestMessage] {
 					request := messages.NewAscendingBlockRequests(
-						129, 129+128,
+						129, 129+127,
 						messages.BootstrapRequestData)
 					require.Len(t, request, 1)
 
@@ -96,17 +98,11 @@ func TestFullSyncNextActions(t *testing.T) {
 					}
 					return rq
 				},
-				expectedTasksLen: 2,
+				expectedQueueLen: 0,
 				expectedTasks: []*messages.BlockRequestMessage{
 					{
 						RequestedData: messages.BootstrapRequestData,
-						StartingBlock: *variadic.Uint32OrHashFrom(129),
-						Direction:     messages.Ascending,
-						Max:           refTo(128),
-					},
-					{
-						RequestedData: messages.BootstrapRequestData,
-						StartingBlock: *variadic.Uint32OrHashFrom(1),
+						StartingBlock: *variadic.Uint32OrHashFrom(uint32(129)),
 						Direction:     messages.Ascending,
 						Max:           refTo(128),
 					},
@@ -114,10 +110,10 @@ func TestFullSyncNextActions(t *testing.T) {
 			},
 			// creating a amount of 4 requests, but since we have a max num of
 			// request set to 2 (see FullSyncConfig) we should only have 2 tasks
-			"should_have_two_tasks": {
+			"four_items_on_queue_should_pop_only_one": {
 				setupRequestQueue: func(t *testing.T) *requestsQueue[*messages.BlockRequestMessage] {
 					request := messages.NewAscendingBlockRequests(
-						129, 129+(4*128),
+						129, 129+(4*127),
 						messages.BootstrapRequestData)
 					require.Len(t, request, 4)
 
@@ -127,17 +123,11 @@ func TestFullSyncNextActions(t *testing.T) {
 					}
 					return rq
 				},
-				expectedTasksLen: 2,
+				expectedQueueLen: 3,
 				expectedTasks: []*messages.BlockRequestMessage{
 					{
 						RequestedData: messages.BootstrapRequestData,
-						StartingBlock: *variadic.Uint32OrHashFrom(129),
-						Direction:     messages.Ascending,
-						Max:           refTo(128),
-					},
-					{
-						RequestedData: messages.BootstrapRequestData,
-						StartingBlock: *variadic.Uint32OrHashFrom(257),
+						StartingBlock: *variadic.Uint32OrHashFrom(uint32(129)),
 						Direction:     messages.Ascending,
 						Max:           refTo(128),
 					},
@@ -148,11 +138,7 @@ func TestFullSyncNextActions(t *testing.T) {
 		for tname, tt := range cases {
 			tt := tt
 			t.Run(tname, func(t *testing.T) {
-				cfg := &FullSyncConfig{
-					StartHeader: types.NewEmptyHeader(),
-					NumOfTasks:  2,
-				}
-				fs := NewFullSyncStrategy(cfg)
+				fs := NewFullSyncStrategy(&FullSyncConfig{})
 				fs.requestQueue = tt.setupRequestQueue(t)
 
 				// introduce a peer and a target
@@ -164,12 +150,11 @@ func TestFullSyncNextActions(t *testing.T) {
 				})
 				require.NoError(t, err)
 
-				tasks, err := fs.NextActions()
+				task, err := fs.NextActions()
 				require.NoError(t, err)
-				require.Len(t, tasks, tt.expectedTasksLen)
-				for idx, task := range tasks {
-					require.Equal(t, task.request, tt.expectedTasks[idx])
-				}
+
+				require.Equal(t, task[0].request, tt.expectedTasks[0])
+				require.Equal(t, fs.requestQueue.Len(), tt.expectedQueueLen)
 			})
 		}
 	})
@@ -238,8 +223,7 @@ func TestFullSyncIsFinished(t *testing.T) {
 			Times(10 + 128 + 128)
 
 		cfg := &FullSyncConfig{
-			StartHeader: types.NewEmptyHeader(),
-			BlockState:  mockBlockState,
+			BlockState: mockBlockState,
 		}
 
 		fs := NewFullSyncStrategy(cfg)

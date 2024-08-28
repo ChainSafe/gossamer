@@ -4,3 +4,4 @@
 package sync
 
 //go:generate mockgen -destination=mocks_test.go -package=$GOPACKAGE . Telemetry,BlockState,StorageState,TransactionState,BabeVerifier,FinalityGadget,BlockImportHandler,Network,Importer
+//go:generate mockgen -destination=mock_request_maker.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/network RequestMaker
