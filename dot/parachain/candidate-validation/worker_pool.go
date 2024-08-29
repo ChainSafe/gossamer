@@ -1,4 +1,4 @@
-package pvf
+package candidatevalidation
 
 import (
 	"fmt"
@@ -114,8 +114,7 @@ func newValidationWorkerPool() *workerPool {
 	}
 }
 
-func (v *workerPool) newValidationWorker(validationCode parachaintypes.ValidationCode) (*parachaintypes.
-	ValidationCodeHash, error) {
+func (v *workerPool) newValidationWorker(validationCode parachaintypes.ValidationCode) (*worker, error) {
 
 	worker, err := newWorker(validationCode)
 	if err != nil {
@@ -124,7 +123,7 @@ func (v *workerPool) newValidationWorker(validationCode parachaintypes.Validatio
 
 	v.workers[worker.workerID] = worker
 
-	return &worker.workerID, nil
+	return worker, nil
 }
 
 // submitRequest given a request, the worker pool will get the worker for a given workerID

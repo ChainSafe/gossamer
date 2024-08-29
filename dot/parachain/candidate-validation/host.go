@@ -1,4 +1,4 @@
-package pvf
+package candidatevalidation
 
 import (
 	"fmt"
@@ -22,7 +22,6 @@ func NewValidationHost() *Host {
 }
 
 func (v *Host) Validate(msg *ValidationTask) (*ValidationResult, error) {
-	logger.Debugf("Start Validating worker %x", msg.WorkerID)
 	validationCodeHash := msg.ValidationCode.Hash()
 	// performBasicChecks
 	validationErr, internalErr := performBasicChecks(&msg.CandidateReceipt.Descriptor,
@@ -36,11 +35,17 @@ func (v *Host) Validate(msg *ValidationTask) (*ValidationResult, error) {
 	if validationErr != nil {
 		return &ValidationResult{InvalidResult: validationErr}, nil //nolint
 	}
-	// check if worker is in pool
-	workerID, internalErr := v.poolContainsWorker(msg)
-	if internalErr != nil {
-		return nil, internalErr
+	// create worker if not in pool
+	if !v.workerPool.containsWorker(validationCodeHash) {
+		worker, err := v.workerPool.newValidationWorker(*msg.ValidationCode)
+		if err != nil {
+			return nil, err
+		}
 
+		// sanity check
+		if worker.workerID != validationCodeHash {
+			return nil, fmt.Errorf("workerID does not match validationCodeHash")
+		}
 	}
 
 	// submit request
@@ -55,21 +60,7 @@ func (v *Host) Validate(msg *ValidationTask) (*ValidationResult, error) {
 		maxPoVSize:       msg.PersistedValidationData.MaxPovSize,
 		candidateReceipt: msg.CandidateReceipt,
 	}
-	logger.Debugf("Working Validating worker %x", workerID)
-	return v.workerPool.submitRequest(*workerID, workTask)
-
-}
-
-func (v *Host) poolContainsWorker(msg *ValidationTask) (*parachaintypes.ValidationCodeHash, error) {
-	if msg.WorkerID != nil {
-		return msg.WorkerID, nil
-	}
-	validationCodeHash := msg.ValidationCode.Hash()
-	if v.workerPool.containsWorker(validationCodeHash) {
-		return &validationCodeHash, nil
-	} else {
-		return v.workerPool.newValidationWorker(*msg.ValidationCode)
-	}
+	return v.workerPool.submitRequest(validationCodeHash, workTask)
 }
 
 // performBasicChecks Does basic checks of a candidate. Provide the encoded PoV-block.

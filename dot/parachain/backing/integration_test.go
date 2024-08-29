@@ -13,7 +13,6 @@ import (
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
-	"github.com/ChainSafe/gossamer/dot/parachain/pvf"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -226,9 +225,9 @@ func validResponseForValidateFromExhaustive(
 			return false
 		}
 
-		msgValidate.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-			Data: pvf.ValidationResult{
-				ValidResult: &pvf.ValidValidationResult{
+		msgValidate.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
+			Data: candidatevalidation.ValidationResult{
+				ValidResult: &candidatevalidation.ValidValidationResult{
 					CandidateCommitments: parachaintypes.CandidateCommitments{
 						HeadData:                  headData,
 						UpwardMessages:            []parachaintypes.UpwardMessage{},
@@ -335,9 +334,9 @@ func TestSecondsValidCandidate(t *testing.T) {
 			return false
 		}
 
-		badReturn := pvf.BadReturn
-		validateFromExhaustive.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-			Data: pvf.ValidationResult{
+		badReturn := candidatevalidation.BadReturn
+		validateFromExhaustive.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
+			Data: candidatevalidation.ValidationResult{
 				InvalidResult: &badReturn,
 			},
 		}
@@ -732,7 +731,7 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 			return false
 		}
 
-		msgValidate.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+		msgValidate.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
 			Err: errors.New("some internal error"),
 		}
 		return true

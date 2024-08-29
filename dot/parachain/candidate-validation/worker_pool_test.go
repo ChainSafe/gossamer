@@ -1,4 +1,4 @@
-package pvf
+package candidatevalidation
 
 import (
 	"os"

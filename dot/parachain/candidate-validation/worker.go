@@ -1,4 +1,4 @@
-package pvf
+package candidatevalidation
 
 import (
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
