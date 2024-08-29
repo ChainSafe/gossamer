@@ -41,6 +41,8 @@ func NewMMR(size uint64, batch *MMRBatch, hasher hash.Hash) *MMR {
 	}
 }
 
+// Root returns the root of the MMR.
+// This is doing by bagging the peaks and merging them.
 func (mmr *MMR) Root() (MMRElement, error) {
 	if mmr.size == 0 {
 		return nil, errorGetRootOnEmpty
@@ -66,6 +68,7 @@ func (mmr *MMR) Root() (MMRElement, error) {
 	return mmr.bagPeaks(peaks), nil
 }
 
+// Push adds a new leaf to the MMR returning its position.
 func (mmr *MMR) Push(leaf MMRElement) (uint64, error) {
 	elements := []MMRElement{leaf}
 	peakMap := mmr.peakMap()
@@ -120,6 +123,10 @@ func (mmr *MMR) merge(left, right MMRElement) MMRElement {
 	return mmr.hasher.Sum(nil)
 }
 
+/*
+Returns a bitmap of the peaks in the MMR.
+Eg: 0b11 means that the MMR has 2 peaks at position 0 and at position 1
+*/
 func (mmr *MMR) peakMap() uint64 {
 	if mmr.size == 0 {
 		return 0
@@ -141,6 +148,9 @@ func (mmr *MMR) peakMap() uint64 {
 	return peakMap
 }
 
+/*
+getPeaks() the positions of the peaks in the MMR.
+*/
 func (mmr *MMR) getPeaks() []uint64 {
 	if mmr.size == 0 {
 		return []uint64{}
