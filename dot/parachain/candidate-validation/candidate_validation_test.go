@@ -289,15 +289,11 @@ func TestCandidateValidation_validateFromExhaustive(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			taskResult := make(chan *pvf.ValidationTaskResult)
-			defer close(taskResult)
-			//tt.validationTask.ResultCh = taskResult
+			taskResult, err := pvfHost.Validate(tt.validationTask)
 
-			go pvfHost.Validate(tt.validationTask)
-
-			result := <-taskResult
-			require.Equal(t, tt.want, result.Result)
-			require.Equal(t, tt.isValid, result.Result.IsValid())
+			require.NoError(t, err)
+			require.Equal(t, tt.want, taskResult)
+			require.Equal(t, tt.isValid, taskResult.IsValid())
 		})
 	}
 }
@@ -341,18 +337,15 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 	})
 	require.NoError(t, err)
 
-	toSubsystem := make(chan any)
+	overseerToSubsystem := make(chan any)
 	sender := make(chan parachaintypes.OverseerFuncRes[pvf.ValidationResult])
-	stopChan := make(chan struct{})
 	candidateValidationSubsystem := CandidateValidation{
-		OverseerToSubsystem: toSubsystem,
-		stopChan:            stopChan,
-		pvfHost:             pvf.NewValidationHost(),
+		pvfHost: pvf.NewValidationHost(),
 	}
 	defer candidateValidationSubsystem.Stop()
 
 	ctx := context.Background()
-	go candidateValidationSubsystem.Run(ctx, toSubsystem)
+	go candidateValidationSubsystem.Run(ctx, overseerToSubsystem)
 
 	tests := map[string]struct {
 		msg  ValidateFromExhaustive
@@ -459,7 +452,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
 			time.Sleep(100 * time.Millisecond)
-			toSubsystem <- tt.msg
+			overseerToSubsystem <- tt.msg
 			time.Sleep(100 * time.Millisecond)
 			result := <-sender
 			require.Equal(t, tt.want, result)
@@ -693,16 +686,13 @@ func TestCandidateValidation_validateFromChainState(t *testing.T) {
 	}
 
 	toSubsystem := make(chan any)
-	stopChan := make(chan struct{})
 	candidateValidationSubsystem := CandidateValidation{
-		OverseerToSubsystem: toSubsystem,
-		stopChan:            stopChan,
-		pvfHost:             pvf.NewValidationHost(),
-		BlockState:          mockBlockState,
+		pvfHost:    pvf.NewValidationHost(),
+		BlockState: mockBlockState,
 	}
 	defer candidateValidationSubsystem.Stop()
 
-	candidateValidationSubsystem.Run(context.Background(), nil)
+	go candidateValidationSubsystem.Run(context.Background(), toSubsystem)
 
 	tests := map[string]struct {
 		msg           ValidateFromChainState

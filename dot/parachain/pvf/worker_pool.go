@@ -2,17 +2,11 @@ package pvf
 
 import (
 	"fmt"
-	"sync"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
 
-const (
-	maxRequestsAllowed uint = 60
-)
-
 type workerPool struct {
-	mtx sync.RWMutex
 
 	// todo, make sure other functions work with paraID
 	workers map[parachaintypes.ValidationCodeHash]*worker
@@ -26,12 +20,6 @@ type ValidationTask struct {
 	ExecutorParams          parachaintypes.ExecutorParams
 	PvfExecTimeoutKind      parachaintypes.PvfExecTimeoutKind
 	ValidationCode          *parachaintypes.ValidationCode
-}
-
-type ValidationTaskResult struct {
-	who           parachaintypes.ValidationCodeHash
-	Result        *ValidationResult
-	InternalError error
 }
 
 // ValidationResult represents the result coming from the candidate validation subsystem.
@@ -129,8 +117,7 @@ func newValidationWorkerPool() *workerPool {
 func (v *workerPool) newValidationWorker(validationCode parachaintypes.ValidationCode) (*parachaintypes.
 	ValidationCodeHash, error) {
 
-	workerQueue := make(chan *workerTask, maxRequestsAllowed)
-	worker, err := newWorker(validationCode, workerQueue)
+	worker, err := newWorker(validationCode)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a new worker: %w", err)
 	}
@@ -143,9 +130,7 @@ func (v *workerPool) newValidationWorker(validationCode parachaintypes.Validatio
 // submitRequest given a request, the worker pool will get the worker for a given workerID
 // a channel in returned that the response will be dispatch on
 func (v *workerPool) submitRequest(workerID parachaintypes.ValidationCodeHash,
-	request *workerTask) chan *ValidationTaskResult {
-	v.mtx.RLock()
-	defer v.mtx.RUnlock()
+	request *workerTask) (*ValidationResult, error) {
 	logger.Debugf("pool submit request workerID %x", workerID)
 
 	syncWorker, inMap := v.workers[workerID]
@@ -156,13 +141,10 @@ func (v *workerPool) submitRequest(workerID parachaintypes.ValidationCodeHash,
 		logger.Debugf("sending request", workerID)
 		return syncWorker.executeRequest(request)
 	}
-	return nil
+	return nil, fmt.Errorf("worker not found")
 }
 
 func (v *workerPool) containsWorker(workerID parachaintypes.ValidationCodeHash) bool {
-	v.mtx.RLock()
-	defer v.mtx.RUnlock()
-
 	_, inMap := v.workers[workerID]
 	return inMap
 }

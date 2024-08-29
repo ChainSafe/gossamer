@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/pvf"
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
@@ -27,10 +26,7 @@ var (
 
 // CandidateValidation is a parachain subsystem that validates candidate parachain blocks
 type CandidateValidation struct {
-	wg                  sync.WaitGroup
-	stopChan            chan struct{}
 	SubsystemToOverseer chan<- any
-	OverseerToSubsystem <-chan any
 	BlockState          BlockState
 	pvfHost             *pvf.Host
 }
@@ -100,22 +96,19 @@ func (cv *CandidateValidation) processMessage(msg any) {
 			PvfExecTimeoutKind:      msg.PvfExecTimeoutKind,
 		}
 
-		taskResultChan := cv.pvfHost.Validate(validationTask)
+		result, err := cv.pvfHost.Validate(validationTask)
 
-		go func() {
-
-			result := <-taskResultChan
-			if result.InternalError != nil {
-				logger.Errorf("failed to validate from exhaustive: %w", result.InternalError)
-				msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-					Err: result.InternalError,
-				}
-			} else {
-				msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-					Data: *result.Result,
-				}
+		if err != nil {
+			logger.Errorf("failed to validate from exhaustive: %w", err)
+			msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+				Err: err,
 			}
-		}()
+		} else {
+			msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
+				Data: *result,
+			}
+		}
+
 	case PreCheck:
 		panic("TODO: implement functionality to handle PreCheck, see issue #3921")
 
@@ -198,16 +191,15 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 		PvfExecTimeoutKind:      parachaintypes.PvfExecTimeoutKind{},
 	}
 
-	taskResultChan := cv.pvfHost.Validate(validationTask)
-	result := <-taskResultChan
-	if result.InternalError != nil {
-		logger.Errorf("failed to validate from chain state: %w", result.InternalError)
+	result, err := cv.pvfHost.Validate(validationTask)
+	if err != nil {
+		logger.Errorf("failed to validate from chain state: %w", err)
 		msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-			Err: result.InternalError,
+			Err: err,
 		}
 	} else {
 		msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-			Data: *result.Result,
+			Data: *result,
 		}
 	}
 }
