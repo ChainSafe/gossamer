@@ -4,7 +4,7 @@
 /*
 	Package inspired in:
 	https://github.com/paritytech/merkle-mountain-range/blob/8a8a2dd5d172545faac314f3e7b6a43a85395c03/src/mmr.rs
-	https://github.com/mimblewimble/grin/blob/845c41de13e9bdeb0f0b4667fbc7ef8be921a2f4/core/src/core/pmmr.rs
+	https://github.com/mimblewimble/grin/blob/845c41de13e9bdeb0f0b4667fbc7ef8be921a2f4/core/src/core/pmmr/pmmr.rs
 */
 
 package mmr
