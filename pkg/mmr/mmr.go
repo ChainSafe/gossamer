@@ -72,7 +72,7 @@ func (mmr *MMR) Push(leaf MMRElement) (uint64, error) {
 	for (peakMap & peak) != 0 {
 		peak <<= 1
 		position += 1
-		leftPosition := uint64(position - peak)
+		leftPosition := position - peak
 		leftElement, err := mmr.findElement(leftPosition, elements)
 
 		if err != nil {
@@ -149,7 +149,7 @@ func (mmr *MMR) getPeaks() []uint64 {
 	for peakSize > 0 {
 		if pos >= peakSize {
 			pos -= peakSize
-			peaks = append(peaks, uint64(peaksSum)+peakSize-1)
+			peaks = append(peaks, peaksSum+peakSize-1)
 			peaksSum += peakSize
 		}
 		peakSize >>= 1
@@ -160,12 +160,19 @@ func (mmr *MMR) getPeaks() []uint64 {
 
 func (mmr *MMR) bagPeaks(peaks []MMRElement) MMRElement {
 	for len(peaks) > 1 {
-		rightPeak, peaks := peaks[len(peaks)-1], peaks[:len(peaks)-1]
-		leftPeak, peaks := peaks[len(peaks)-1], peaks[:len(peaks)-1]
+		var rightPeak, leftPeak MMRElement
+
+		rightPeak, peaks = peaks[len(peaks)-1], peaks[:len(peaks)-1]
+		leftPeak, peaks = peaks[len(peaks)-1], peaks[:len(peaks)-1]
 
 		mergedPeak := mmr.merge(leftPeak, rightPeak)
 		peaks = append(peaks, mergedPeak)
 	}
 
+	if len(peaks) < 1 {
+		return nil
+	}
+
+	// #nosec G602
 	return peaks[0]
 }

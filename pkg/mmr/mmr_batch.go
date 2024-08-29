@@ -33,10 +33,10 @@ func (b *MMRBatch) getElement(pos uint64) (*MMRElement, error) {
 	revNodes := b.nodes[:]
 	slices.Reverse(revNodes)
 	for _, node := range revNodes {
-		if pos < uint64(node.pos) {
+		if pos < node.pos {
 			continue
 		} else if pos < node.pos-uint64(len(node.elements)) {
-			elementPosition := pos - uint64(node.pos)
+			elementPosition := pos - node.pos
 			if elementPosition < uint64(len(node.elements)) {
 				return &node.elements[int(pos-node.pos)], nil
 			}
