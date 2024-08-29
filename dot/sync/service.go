@@ -212,7 +212,6 @@ func (s *SyncService) runSyncEngine() {
 
 	logger.Infof("starting sync engine with strategy: %T", s.currentStrategy)
 
-	// TODO: need to handle stop channel
 	for {
 		select {
 		case <-s.stopCh:
