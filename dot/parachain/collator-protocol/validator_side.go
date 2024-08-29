@@ -530,14 +530,8 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 				Reason: peerset.ReportBadCollatorReason,
 			},
 		}
-	case networkbridgeevents.PeerConnected,
-		networkbridgeevents.PeerDisconnected,
-		networkbridgeevents.PeerMessage[collatorprotocolmessages.CollationProtocol],
-		networkbridgeevents.NewGossipTopology,
-		networkbridgeevents.PeerViewChange,
-		networkbridgeevents.OurViewChange,
-		networkbridgeevents.UpdatedAuthorityIDs:
-		return cpvs.handleNetworkBridgeEvents(msg)
+	case networkbridgeevents.Event[collatorprotocolmessages.CollationProtocol]:
+		return cpvs.handleNetworkBridgeEvents(msg.Inner)
 	case collatorprotocolmessages.Seconded:
 		index, statementV, err := msg.Stmt.Payload.IndexValue()
 		if err != nil {

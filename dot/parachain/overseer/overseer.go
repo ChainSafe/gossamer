@@ -121,6 +121,7 @@ func (o *OverseerSystem) processMessages() {
 	for {
 		select {
 		case msg := <-o.SubsystemsToOverseer:
+
 			var subsystem parachaintypes.Subsystem
 
 			switch msg := msg.(type) {
@@ -132,11 +133,14 @@ func (o *OverseerSystem) processMessages() {
 				networkbridgemessages.SendValidationMessage:
 				subsystem = o.nameToSubsystem[parachaintypes.NetworkBridgeSender]
 
-			case networkbridgeevents.PeerMessage[collatorprotocolmessages.CollationProtocol]:
+			case networkbridgeevents.Event[collatorprotocolmessages.CollationProtocol]:
 				subsystem = o.nameToSubsystem[parachaintypes.CollationProtocol]
 
-			case networkbridgeevents.PeerMessage[validationprotocol.ValidationProtocol]:
+			case networkbridgeevents.Event[validationprotocol.ValidationProtocol]:
 				// TODO: relay it to relevant subsystem based on the message type.
+				// statement distribution
+				// approval distribution
+				// bitfield distribution
 
 			case backing.GetBackableCandidatesMessage, backing.CanSecondMessage, backing.SecondMessage, backing.StatementMessage:
 				subsystem = o.nameToSubsystem[parachaintypes.CandidateBacking]

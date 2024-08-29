@@ -13,8 +13,12 @@ import (
 // TODO: Add Event in overseer
 // We will use it someday, since it helps us group all the network events together. For now, let's just
 // use them seperately.
-type Event interface {
-	PeerConnected | PeerDisconnected | NewGossipTopology | PeerViewChange | OurViewChange | UpdatedAuthorityIDs
+type Event[Message collationprotocol.CollationProtocol | validationprotocol.ValidationProtocol] struct {
+	Inner any
+}
+
+type EventValues[Message collationprotocol.CollationProtocol | validationprotocol.ValidationProtocol] interface {
+	PeerConnected | PeerDisconnected | NewGossipTopology | PeerViewChange | OurViewChange | UpdatedAuthorityIDs | PeerMessage[Message]
 }
 
 type PeerConnected struct {
