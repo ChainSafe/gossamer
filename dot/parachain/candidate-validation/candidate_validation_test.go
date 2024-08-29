@@ -281,8 +281,8 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 
-	//NOTE: adder parachain internally compares postState with bd.State in it's validate_block,
-	//so following is necessary.
+	// NOTE: adder parachain internally compares postState with bd.State in it's validate_block,
+	// so following is necessary.
 	encodedState, err := scale.Marshal(uint64(1))
 	require.NoError(t, err)
 	postState, err := common.Keccak256(encodedState)

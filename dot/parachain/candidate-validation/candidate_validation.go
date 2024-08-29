@@ -68,7 +68,7 @@ func (*CandidateValidation) ProcessBlockFinalizedSignal(parachaintypes.BlockFina
 }
 
 // Stop stops the CandidateValidation subsystem
-func (cv *CandidateValidation) Stop() {
+func (*CandidateValidation) Stop() {
 }
 
 // processMessage processes messages sent to the CandidateValidation subsystem
