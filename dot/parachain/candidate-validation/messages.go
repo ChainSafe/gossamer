@@ -4,7 +4,6 @@
 package candidatevalidation
 
 import (
-	"github.com/ChainSafe/gossamer/dot/parachain/pvf"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -15,7 +14,7 @@ type ValidateFromChainState struct {
 	Pov              parachaintypes.PoV
 	ExecutorParams   parachaintypes.ExecutorParams
 	ExecKind         parachaintypes.PvfExecTimeoutKind
-	Ch               chan parachaintypes.OverseerFuncRes[pvf.ValidationResult]
+	Ch               chan parachaintypes.OverseerFuncRes[ValidationResult]
 }
 
 // ValidateFromExhaustive performs full validation of a candidate with provided parameters,
@@ -29,7 +28,7 @@ type ValidateFromExhaustive struct {
 	PoV                     parachaintypes.PoV
 	ExecutorParams          parachaintypes.ExecutorParams
 	PvfExecTimeoutKind      parachaintypes.PvfExecTimeoutKind
-	Ch                      chan parachaintypes.OverseerFuncRes[pvf.ValidationResult]
+	Ch                      chan parachaintypes.OverseerFuncRes[ValidationResult]
 }
 
 // PreCheck try to compile the given validation code and return the result

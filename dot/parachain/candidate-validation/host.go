@@ -1,9 +1,8 @@
-package pvf
+package candidatevalidation
 
 import (
 	"fmt"
 
-	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -11,18 +10,17 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "pvf"), log.SetLevel(log.Debug))
 
-type Host struct {
+type host struct {
 	workerPool *workerPool
 }
 
-func NewValidationHost() *Host {
-	return &Host{
+func newValidationHost() *host {
+	return &host{
 		workerPool: newValidationWorkerPool(),
 	}
 }
 
-func (v *Host) Validate(msg *ValidationTask) (*ValidationResult, error) {
-	logger.Debugf("Start Validating worker %x", msg.WorkerID)
+func (v *host) validate(msg *ValidationTask) (*ValidationResult, error) {
 	validationCodeHash := msg.ValidationCode.Hash()
 	// performBasicChecks
 	validationErr, internalErr := performBasicChecks(&msg.CandidateReceipt.Descriptor,
@@ -36,40 +34,9 @@ func (v *Host) Validate(msg *ValidationTask) (*ValidationResult, error) {
 	if validationErr != nil {
 		return &ValidationResult{InvalidResult: validationErr}, nil //nolint
 	}
-	// check if worker is in pool
-	workerID, internalErr := v.poolContainsWorker(msg)
-	if internalErr != nil {
-		return nil, internalErr
-
-	}
 
 	// submit request
-	validationParams := parachainruntime.ValidationParameters{
-		ParentHeadData:         msg.PersistedValidationData.ParentHead,
-		BlockData:              msg.PoV.BlockData,
-		RelayParentNumber:      msg.PersistedValidationData.RelayParentNumber,
-		RelayParentStorageRoot: msg.PersistedValidationData.RelayParentStorageRoot,
-	}
-	workTask := &workerTask{
-		work:             validationParams,
-		maxPoVSize:       msg.PersistedValidationData.MaxPovSize,
-		candidateReceipt: msg.CandidateReceipt,
-	}
-	logger.Debugf("Working Validating worker %x", workerID)
-	return v.workerPool.submitRequest(*workerID, workTask)
-
-}
-
-func (v *Host) poolContainsWorker(msg *ValidationTask) (*parachaintypes.ValidationCodeHash, error) {
-	if msg.WorkerID != nil {
-		return msg.WorkerID, nil
-	}
-	validationCodeHash := msg.ValidationCode.Hash()
-	if v.workerPool.containsWorker(validationCodeHash) {
-		return &validationCodeHash, nil
-	} else {
-		return v.workerPool.newValidationWorker(*msg.ValidationCode)
-	}
+	return v.workerPool.submitRequest(msg)
 }
 
 // performBasicChecks Does basic checks of a candidate. Provide the encoded PoV-block.

@@ -1,4 +1,4 @@
-package pvf
+package candidatevalidation
 
 import (
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
@@ -7,10 +7,9 @@ import (
 
 // TODO(ed): figure out a better name for this that describes what it does
 type worker struct {
-	workerID parachaintypes.ValidationCodeHash
-	instance *parachainruntime.Instance
-	// TODO(ed): determine if wasProcessed is stored here or in host
-	isProcessed map[parachaintypes.CandidateHash]struct{}
+	workerID    parachaintypes.ValidationCodeHash
+	instance    *parachainruntime.Instance
+	isProcessed map[parachaintypes.CandidateHash]*ValidationResult
 }
 
 type workerTask struct {
@@ -26,8 +25,9 @@ func newWorker(validationCode parachaintypes.ValidationCode) (*worker, error) {
 		return nil, err
 	}
 	return &worker{
-		workerID: validationCode.Hash(),
-		instance: validationRuntime,
+		workerID:    validationCode.Hash(),
+		instance:    validationRuntime,
+		isProcessed: make(map[parachaintypes.CandidateHash]*ValidationResult),
 	}, nil
 }
 
@@ -39,13 +39,11 @@ func (w *worker) executeRequest(task *workerTask) (*ValidationResult, error) {
 	}
 
 	// do isProcessed check here
-	if _, ok := w.isProcessed[candidateHash]; ok {
-		// TODO: determine what the isPreccessed check should return, and if re-trying is allowed
-		//  get a better understanding of what the isProcessed check should be checking for
+	if processed, ok := w.isProcessed[candidateHash]; ok {
 		logger.Debugf("candidate %x already processed", candidateHash)
+		return processed, nil
 	}
 	validationResult, err := w.instance.ValidateBlock(task.work)
-
 	if err != nil {
 		logger.Errorf("executing validate_block: %w", err)
 		reasonForInvalidity := ExecutionError
@@ -83,11 +81,12 @@ func (w *worker) executeRequest(task *workerTask) (*ValidationResult, error) {
 		RelayParentStorageRoot: task.work.RelayParentStorageRoot,
 		MaxPovSize:             task.maxPoVSize,
 	}
-	return &ValidationResult{
-		ValidResult: &ValidValidationResult{
+	result := &ValidationResult{
+		ValidResult: &Valid{
 			CandidateCommitments:    candidateCommitments,
 			PersistedValidationData: pvd,
 		},
-	}, nil
-
+	}
+	w.isProcessed[candidateHash] = result
+	return result, nil
 }

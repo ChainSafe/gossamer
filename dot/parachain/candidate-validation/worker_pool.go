@@ -1,8 +1,9 @@
-package pvf
+package candidatevalidation
 
 import (
 	"fmt"
 
+	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
 
@@ -23,15 +24,15 @@ type ValidationTask struct {
 }
 
 // ValidationResult represents the result coming from the candidate validation subsystem.
-// Validation results can be either a ValidValidationResult or InvalidValidationResult.
+// Validation results can be either a Valid or InvalidValidationResult.
 //
 // If the result is invalid,
 // store the reason for invalidity in the InvalidResult field of ValidationResult.
 //
 // If the result is valid,
-// set the values of the ValidResult field of ValidValidationResult.
+// set the values of the ValidResult field of Valid.
 type ValidationResult struct {
-	ValidResult   *ValidValidationResult
+	ValidResult   *Valid
 	InvalidResult *ReasonForInvalidity
 }
 
@@ -39,7 +40,7 @@ func (vr ValidationResult) IsValid() bool {
 	return vr.ValidResult != nil
 }
 
-type ValidValidationResult struct {
+type Valid struct {
 	CandidateCommitments    parachaintypes.CandidateCommitments
 	PersistedValidationData parachaintypes.PersistedValidationData
 }
@@ -114,34 +115,48 @@ func newValidationWorkerPool() *workerPool {
 	}
 }
 
-func (v *workerPool) newValidationWorker(validationCode parachaintypes.ValidationCode) (*parachaintypes.
-	ValidationCodeHash, error) {
+func (v *workerPool) newValidationWorker(validationCode parachaintypes.ValidationCode) error {
 
 	worker, err := newWorker(validationCode)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create a new worker: %w", err)
+		return fmt.Errorf("failed to create a new worker: %w", err)
 	}
 
 	v.workers[worker.workerID] = worker
 
-	return &worker.workerID, nil
+	return nil
 }
 
-// submitRequest given a request, the worker pool will get the worker for a given workerID
-// a channel in returned that the response will be dispatch on
-func (v *workerPool) submitRequest(workerID parachaintypes.ValidationCodeHash,
-	request *workerTask) (*ValidationResult, error) {
-	logger.Debugf("pool submit request workerID %x", workerID)
+// submitRequest given a request, the worker pool will get the worker for a given task and submit the request
+// to the worker. The worker will execute the request and return the result. If the worker does not exist, a new worker
+// will be created and the request will be submitted to the worker.
+func (v *workerPool) submitRequest(msg *ValidationTask) (*ValidationResult, error) {
+	validationCodeHash := msg.ValidationCode.Hash()
 
-	syncWorker, inMap := v.workers[workerID]
-	if inMap {
-		if syncWorker == nil {
-			panic("sync worker should not be nil")
+	// create worker if not in pool
+	if !v.containsWorker(validationCodeHash) {
+		err := v.newValidationWorker(*msg.ValidationCode)
+		if err != nil {
+			return nil, err
 		}
-		logger.Debugf("sending request", workerID)
-		return syncWorker.executeRequest(request)
 	}
-	return nil, fmt.Errorf("worker not found")
+	syncWorker := v.workers[validationCodeHash]
+
+	logger.Debugf("sending request", validationCodeHash)
+
+	validationParams := parachainruntime.ValidationParameters{
+		ParentHeadData:         msg.PersistedValidationData.ParentHead,
+		BlockData:              msg.PoV.BlockData,
+		RelayParentNumber:      msg.PersistedValidationData.RelayParentNumber,
+		RelayParentStorageRoot: msg.PersistedValidationData.RelayParentStorageRoot,
+	}
+	workTask := &workerTask{
+		work:             validationParams,
+		maxPoVSize:       msg.PersistedValidationData.MaxPovSize,
+		candidateReceipt: msg.CandidateReceipt,
+	}
+	return syncWorker.executeRequest(workTask)
+
 }
 
 func (v *workerPool) containsWorker(workerID parachaintypes.ValidationCodeHash) bool {
