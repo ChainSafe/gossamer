@@ -20,8 +20,6 @@ var (
 	errorGetRootOnEmpty    = errors.New("get root on empty MMR")
 )
 
-type MMRMergeFunction func(left, right MMRElement) (MMRElement, error)
-
 type MMRElement []byte
 
 type MMRNode struct {
