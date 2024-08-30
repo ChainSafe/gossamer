@@ -38,6 +38,11 @@ const (
 	// GoodTransactionReason is the reason for used for good transaction.
 	GoodTransactionReason = "Good Transaction"
 
+	// NotRelevantBlockAnnounce when peer sends us a not relevant block
+	NotRelevantBlockAnnounceValue Reputation = -(1 << 2)
+	// BadTransactionReason when transaction import was not performed.
+	NotRelevantBlockAnnounceReason = "Not Relevant Block Announce"
+
 	// BadTransactionValue used when transaction import was not performed.
 	BadTransactionValue Reputation = -(1 << 12)
 	// BadTransactionReason when transaction import was not performed.

@@ -96,11 +96,9 @@ func (b *blockImporter) handle(bd *types.BlockData, origin BlockOrigin) (importe
 // or the index of the block data that errored on failure.
 // TODO: https://github.com/ChainSafe/gossamer/issues/3468
 func (b *blockImporter) processBlockData(blockData types.BlockData, origin BlockOrigin) error {
-	announceImportedBlock := false
-
 	if blockData.Header != nil {
 		if blockData.Body != nil {
-			err := b.processBlockDataWithHeaderAndBody(blockData, origin, announceImportedBlock)
+			err := b.processBlockDataWithHeaderAndBody(blockData, origin)
 			if err != nil {
 				return fmt.Errorf("processing block data with header and body: %w", err)
 			}
@@ -123,7 +121,7 @@ func (b *blockImporter) processBlockData(blockData types.BlockData, origin Block
 }
 
 func (b *blockImporter) processBlockDataWithHeaderAndBody(blockData types.BlockData,
-	origin BlockOrigin, announceImportedBlock bool) (err error) {
+	origin BlockOrigin) (err error) {
 
 	if origin != networkInitialSync {
 		err = b.babeVerifier.VerifyBlock(blockData.Header)
@@ -145,7 +143,7 @@ func (b *blockImporter) processBlockDataWithHeaderAndBody(blockData types.BlockD
 		Body:   *blockData.Body,
 	}
 
-	err = b.handleBlock(block, announceImportedBlock)
+	err = b.handleBlock(block)
 	if err != nil {
 		return fmt.Errorf("handling block: %w", err)
 	}
@@ -154,7 +152,7 @@ func (b *blockImporter) processBlockDataWithHeaderAndBody(blockData types.BlockD
 }
 
 // handleHeader handles blocks (header+body) included in BlockResponses
-func (b *blockImporter) handleBlock(block *types.Block, announceImportedBlock bool) error {
+func (b *blockImporter) handleBlock(block *types.Block) error {
 	parent, err := b.blockState.GetHeader(block.Header.ParentHash)
 	if err != nil {
 		return fmt.Errorf("%w: %s", errFailedToGetParent, err)
@@ -185,6 +183,7 @@ func (b *blockImporter) handleBlock(block *types.Block, announceImportedBlock bo
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
 
+	announceImportedBlock := false
 	if err = b.blockImportHandler.HandleBlockImport(block, ts, announceImportedBlock); err != nil {
 		return err
 	}

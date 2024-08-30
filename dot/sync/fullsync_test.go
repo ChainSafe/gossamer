@@ -234,8 +234,8 @@ func TestFullSyncIsFinished(t *testing.T) {
 		require.False(t, done)
 
 		require.Len(t, fs.unreadyBlocks.incompleteBlocks, 0)
-		require.Len(t, fs.unreadyBlocks.disjointChains, 1)
-		require.Equal(t, fs.unreadyBlocks.disjointChains[0], sndTaskBlockResponse.BlockData)
+		require.Len(t, fs.unreadyBlocks.disjointFragments, 1)
+		require.Equal(t, fs.unreadyBlocks.disjointFragments[0], sndTaskBlockResponse.BlockData)
 
 		expectedAncestorRequest := messages.NewBlockRequest(
 			*variadic.Uint32OrHashFrom(sndTaskBlockResponse.BlockData[0].Header.ParentHash),
@@ -267,6 +267,59 @@ func TestFullSyncIsFinished(t *testing.T) {
 		require.False(t, done)
 
 		require.Len(t, fs.unreadyBlocks.incompleteBlocks, 0)
-		require.Len(t, fs.unreadyBlocks.disjointChains, 0)
+		require.Len(t, fs.unreadyBlocks.disjointFragments, 0)
+	})
+}
+
+func TestFullSyncBlockAnnounce(t *testing.T) {
+	t.Run("announce_a_block_without_any_commom_ancestor", func(t *testing.T) {
+		highestFinalizedHeader := &types.Header{
+			ParentHash:     common.BytesToHash([]byte{0}),
+			StateRoot:      common.BytesToHash([]byte{3, 3, 3, 3}),
+			ExtrinsicsRoot: common.BytesToHash([]byte{4, 4, 4, 4}),
+			Number:         0,
+			Digest:         types.NewDigest(),
+		}
+
+		ctrl := gomock.NewController(t)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().IsPaused().Return(false)
+		mockBlockState.EXPECT().
+			GetHighestFinalisedHeader().
+			Return(highestFinalizedHeader, nil)
+
+		mockBlockState.EXPECT().
+			HasHeader(gomock.AnyOf(common.Hash{})).
+			Return(false, nil)
+
+		fsCfg := &FullSyncConfig{
+			BlockState: mockBlockState,
+		}
+
+		fs := NewFullSyncStrategy(fsCfg)
+
+		firstPeer := peer.ID("fst-peer")
+		firstHandshake := &network.BlockAnnounceHandshake{
+			Roles:           1,
+			BestBlockNumber: 1024,
+			BestBlockHash:   common.BytesToHash([]byte{0, 1, 2}),
+			GenesisHash:     common.BytesToHash([]byte{1, 1, 1, 1}),
+		}
+
+		err := fs.OnBlockAnnounceHandshake(firstPeer, firstHandshake)
+		require.NoError(t, err)
+
+		firstBlockAnnounce := &network.BlockAnnounceMessage{
+			ParentHash:     common.BytesToHash([]byte{0, 1, 2}),
+			Number:         1024,
+			StateRoot:      common.BytesToHash([]byte{3, 3, 3, 3}),
+			ExtrinsicsRoot: common.BytesToHash([]byte{4, 4, 4, 4}),
+			Digest:         types.NewDigest(),
+			BestBlock:      true,
+		}
+
+		_, rep, err := fs.OnBlockAnnounce(firstPeer, firstBlockAnnounce)
+		require.NoError(t, err)
+		require.Nil(t, rep)
 	})
 }

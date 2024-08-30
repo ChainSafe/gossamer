@@ -24,7 +24,7 @@ const (
 	minPeersDefault         = 3
 )
 
-var logger = log.NewFromGlobal(log.AddContext("pkg", "new-sync"))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "sync"))
 
 type Network interface {
 	AllConnectedPeersIDs() []peer.ID
@@ -32,6 +32,7 @@ type Network interface {
 	BlockAnnounceHandshake(*types.Header) error
 	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
 		maxResponseSize uint64) *network.RequestResponseProtocol
+	GossipMessage(network.NotificationsMessage)
 }
 
 type BlockState interface {
@@ -67,7 +68,7 @@ type Change struct {
 }
 
 type Strategy interface {
-	OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) (repChange *Change, err error)
+	OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) (gossip bool, repChange *Change, err error)
 	OnBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error
 	NextActions() ([]*syncTask, error)
 	IsFinished(results []*syncTaskResult) (done bool, repChanges []Change, blocks []peer.ID, err error)
@@ -173,13 +174,17 @@ func (s *SyncService) HandleBlockAnnounceHandshake(from peer.ID, msg *network.Bl
 }
 
 func (s *SyncService) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) error {
-	repChange, err := s.currentStrategy.OnBlockAnnounce(from, msg)
+	gossip, repChange, err := s.currentStrategy.OnBlockAnnounce(from, msg)
+	if err != nil {
+		return fmt.Errorf("while handling block announce: %w", err)
+	}
+
 	if repChange != nil {
 		s.network.ReportPeer(repChange.rep, repChange.who)
 	}
 
-	if err != nil {
-		return fmt.Errorf("while handling block announce: %w", err)
+	if gossip {
+		s.network.GossipMessage(msg)
 	}
 
 	return nil
@@ -225,11 +230,19 @@ func (s *SyncService) runSyncEngine() {
 			return
 		}
 
+		bestBlockHeader, err := s.blockState.BestBlockHeader()
+		if err != nil {
+			logger.Criticalf("getting best block header: %w", err)
+			return
+		}
+
 		logger.Infof(
-			"🚣 currently syncing, %d peers connected, last finalised #%d (%s) ",
+			"🚣 currently syncing, %d peers connected, finalized #%d (%s), best #%d (%s)",
 			len(s.network.AllConnectedPeersIDs()),
 			finalisedHeader.Number,
 			finalisedHeader.Hash().Short(),
+			bestBlockHeader.Number,
+			bestBlockHeader.Hash().Short(),
 		)
 
 		tasks, err := s.currentStrategy.NextActions()

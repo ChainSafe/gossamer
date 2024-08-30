@@ -692,6 +692,18 @@ func (mr *MockNetworkMockRecorder) GetRequestResponseProtocol(arg0, arg1, arg2 a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRequestResponseProtocol", reflect.TypeOf((*MockNetwork)(nil).GetRequestResponseProtocol), arg0, arg1, arg2)
 }
 
+// GossipMessage mocks base method.
+func (m *MockNetwork) GossipMessage(arg0 network.NotificationsMessage) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "GossipMessage", arg0)
+}
+
+// GossipMessage indicates an expected call of GossipMessage.
+func (mr *MockNetworkMockRecorder) GossipMessage(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GossipMessage", reflect.TypeOf((*MockNetwork)(nil).GossipMessage), arg0)
+}
+
 // ReportPeer mocks base method.
 func (m *MockNetwork) ReportPeer(arg0 peerset.ReputationChange, arg1 peer.ID) {
 	m.ctrl.T.Helper()

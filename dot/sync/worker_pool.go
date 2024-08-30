@@ -21,7 +21,7 @@ var (
 
 const (
 	punishmentBaseTimeout      = 5 * time.Minute
-	maxRequestsAllowed    uint = 60
+	maxRequestsAllowed    uint = 3
 )
 
 type syncTask struct {
@@ -81,43 +81,91 @@ func (s *syncWorkerPool) fromBlockAnnounceHandshake(who peer.ID) error {
 // submitRequests takes an set of requests and will submit to the pool through submitRequest
 // the response will be dispatch in the resultCh
 func (s *syncWorkerPool) submitRequests(tasks []*syncTask) []*syncTaskResult {
+	if len(tasks) == 0 {
+		return nil
+	}
+
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
 	pids := maps.Keys(s.workers)
-	results := make([]*syncTaskResult, 0, len(tasks))
-
-	for _, task := range tasks {
-		completed := false
-		for _, pid := range pids {
-			logger.Infof("[EXECUTING] worker %s", pid)
-			err := task.requestMaker.Do(pid, task.request, task.response)
-			if err != nil {
-				logger.Infof("[ERR] worker %s, request: %s, err: %s", pid, task.request, err.Error())
-				continue
-			}
-
-			completed = true
-			results = append(results, &syncTaskResult{
-				who:       pid,
-				completed: completed,
-				request:   task.request,
-				response:  task.response,
-			})
-			logger.Infof("[FINISHED] worker %s, request: %s", pid, task.request)
-			break
-		}
-
-		if !completed {
-			results = append(results, &syncTaskResult{
-				completed: false,
-				request:   task.request,
-				response:  nil,
-			})
-		}
+	workerPool := make(chan peer.ID, len(pids))
+	for _, worker := range pids {
+		workerPool <- worker
 	}
 
-	return results
+	failedTasks := make(chan *syncTask, len(tasks))
+	results := make(chan *syncTaskResult, len(tasks))
+
+	var wg sync.WaitGroup
+	for _, task := range tasks {
+		wg.Add(1)
+		go func(t *syncTask) {
+			defer wg.Done()
+			executeTask(t, workerPool, failedTasks, results)
+		}(task)
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for task := range failedTasks {
+			if len(workerPool) > 0 {
+				wg.Add(1)
+				go func(t *syncTask) {
+					defer wg.Done()
+					executeTask(t, workerPool, failedTasks, results)
+				}(task)
+			} else {
+				results <- &syncTaskResult{
+					completed: false,
+					request:   task.request,
+					response:  nil,
+				}
+			}
+		}
+	}()
+
+	allResults := make(chan []*syncTaskResult, 1)
+	wg.Add(1)
+	go func(expectedResults int) {
+		defer wg.Done()
+		var taskResults []*syncTaskResult
+		for result := range results {
+			taskResults = append(taskResults, result)
+			if len(taskResults) == expectedResults {
+				close(failedTasks)
+				break
+			}
+		}
+
+		allResults <- taskResults
+	}(len(tasks))
+
+	wg.Wait()
+	close(workerPool)
+	close(results)
+
+	return <-allResults
+}
+
+func executeTask(task *syncTask, workerPool chan peer.ID, failedTasks chan *syncTask, results chan *syncTaskResult) {
+	worker := <-workerPool
+	logger.Infof("[EXECUTING] worker %s", worker)
+
+	err := task.requestMaker.Do(worker, task.request, task.response)
+	if err != nil {
+		logger.Infof("[ERR] worker %s, request: %s, err: %s", worker, task.request, err.Error())
+		failedTasks <- task
+	} else {
+		logger.Infof("[FINISHED] worker %s, request: %s", worker, task.request)
+		results <- &syncTaskResult{
+			who:       worker,
+			completed: true,
+			request:   task.request,
+			response:  task.response,
+		}
+	}
 }
 
 func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) {

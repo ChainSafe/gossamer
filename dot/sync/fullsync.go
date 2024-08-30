@@ -15,7 +15,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -28,11 +27,10 @@ const defaultNumOfTasks = 3
 var _ Strategy = (*FullSyncStrategy)(nil)
 
 var (
-	errFailedToGetParent             = errors.New("failed to get parent header")
-	errNilHeaderInResponse           = errors.New("expected header, received none")
-	errNilBodyInResponse             = errors.New("expected body, received none")
-	errPeerOnInvalidFork             = errors.New("peer is on an invalid fork")
-	errMismatchBestBlockAnnouncement = errors.New("mismatch best block announcement")
+	errFailedToGetParent   = errors.New("failed to get parent header")
+	errNilHeaderInResponse = errors.New("expected header, received none")
+	errNilBodyInResponse   = errors.New("expected body, received none")
+	errPeerOnInvalidFork   = errors.New("peer is on an invalid fork")
 
 	blockSizeGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_sync",
@@ -81,16 +79,12 @@ func NewFullSyncStrategy(cfg *FullSyncConfig) *FullSyncStrategy {
 	}
 
 	return &FullSyncStrategy{
-		badBlocks:  cfg.BadBlocks,
-		reqMaker:   cfg.RequestMaker,
-		blockState: cfg.BlockState,
-		numOfTasks: cfg.NumOfTasks,
-		importer:   newBlockImporter(cfg),
-		unreadyBlocks: &unreadyBlocks{
-			incompleteBlocks: make(map[common.Hash]*types.BlockData),
-			// TODO: cap disjoitChains to don't grows indefinitely
-			disjointChains: make([][]*types.BlockData, 0),
-		},
+		badBlocks:     cfg.BadBlocks,
+		reqMaker:      cfg.RequestMaker,
+		blockState:    cfg.BlockState,
+		numOfTasks:    cfg.NumOfTasks,
+		importer:      newBlockImporter(cfg),
+		unreadyBlocks: newUnreadyBlocks(),
 		requestQueue: &requestsQueue[*messages.BlockRequestMessage]{
 			queue: list.New(),
 		},
@@ -105,9 +99,12 @@ func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 	f.startedAt = time.Now()
 	f.syncedBlocks = 0
 
-	if f.requestQueue.Len() > 0 {
-		message, _ := f.requestQueue.PopFront()
-		return f.createTasks([]*messages.BlockRequestMessage{message}), nil
+	messagesToSend := []*messages.BlockRequestMessage{}
+	for f.requestQueue.Len() > 0 {
+		msg, ok := f.requestQueue.PopFront()
+		if ok {
+			messagesToSend = append(messagesToSend, msg)
+		}
 	}
 
 	currentTarget := f.peers.getTarget()
@@ -117,13 +114,22 @@ func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 	}
 
 	// our best block is equal or ahead of current target.
-	// in the nodes pov we are not legging behind so there's nothing to do
+	// in the node's pov we are not legging behind so there's nothing to do
+	// or we didn't receive block announces, so lets ask for more blocks
 	if uint32(bestBlockHeader.Number) >= currentTarget {
-		return nil, nil
+		ascendingBlockRequests := messages.NewBlockRequest(
+			*variadic.Uint32OrHashFrom(bestBlockHeader.Hash()),
+			messages.MaxBlocksInResponse,
+			messages.BootstrapRequestData,
+			messages.Ascending,
+		)
+
+		messagesToSend = append(messagesToSend, ascendingBlockRequests)
+		return f.createTasks(messagesToSend), nil
 	}
 
 	startRequestAt := bestBlockHeader.Number + 1
-	targetBlockNumber := startRequestAt + 127
+	targetBlockNumber := startRequestAt + maxRequestsAllowed*127
 
 	if targetBlockNumber > uint(currentTarget) {
 		targetBlockNumber = uint(currentTarget)
@@ -150,7 +156,9 @@ func (f *FullSyncStrategy) createTasks(requests []*messages.BlockRequestMessage)
 
 func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change, []peer.ID, error) {
 	repChanges, peersToIgnore, validResp := validateResults(results, f.badBlocks)
+	logger.Debugf("evaluating %d task results, %d valid responses", len(results), len(validResp))
 
+	var highestFinalized *types.Header
 	highestFinalized, err := f.blockState.GetHighestFinalisedHeader()
 	if err != nil {
 		return false, nil, nil, fmt.Errorf("getting highest finalized header")
@@ -203,6 +211,10 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 		disjointFragments = append(disjointFragments, fragment)
 	}
 
+	logger.Debugf("blocks to import: %d, disjoint fragments: %d", len(nextBlocksToImport), len(disjointFragments))
+
+	// this loop goal is to import ready blocks as well as
+	// update the highestFinalized header
 	for len(nextBlocksToImport) > 0 || len(disjointFragments) > 0 {
 		for _, blockToImport := range nextBlocksToImport {
 			imported, err := f.importer.handle(blockToImport, networkInitialSync)
@@ -216,16 +228,15 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 		}
 
 		nextBlocksToImport = make([]*types.BlockData, 0)
+		highestFinalized, err = f.blockState.GetHighestFinalisedHeader()
+		if err != nil {
+			return false, nil, nil, fmt.Errorf("getting highest finalized header")
+		}
 
 		// check if blocks from the disjoint set can be imported on their on forks
 		// given that fragment contains chains and these chains contains blocks
 		// check if the first block in the chain contains a parent known by us
 		for _, fragment := range disjointFragments {
-			highestFinalized, err := f.blockState.GetHighestFinalisedHeader()
-			if err != nil {
-				return false, nil, nil, fmt.Errorf("getting highest finalized header")
-			}
-
 			validFragment := validBlocksUnderFragment(highestFinalized.Number, fragment)
 			if len(validFragment) == 0 {
 				continue
@@ -249,7 +260,7 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 					validFragment[0].Header.Hash(),
 				)
 
-				f.unreadyBlocks.newFragment(validFragment)
+				f.unreadyBlocks.newDisjointFragemnt(validFragment)
 				request := messages.NewBlockRequest(
 					*variadic.Uint32OrHashFrom(validFragment[0].Header.ParentHash),
 					messages.MaxBlocksInResponse,
@@ -264,6 +275,7 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 		disjointFragments = nil
 	}
 
+	f.unreadyBlocks.removeIrrelevantFragments(highestFinalized.Number)
 	return false, repChanges, peersToIgnore, nil
 }
 
@@ -272,7 +284,7 @@ func (f *FullSyncStrategy) ShowMetrics() {
 	bps := float64(f.syncedBlocks) / totalSyncAndImportSeconds
 	logger.Infof("⛓️ synced %d blocks, disjoint fragments %d, incomplete blocks %d, "+
 		"took: %.2f seconds, bps: %.2f blocks/second, target block number #%d",
-		f.syncedBlocks, len(f.unreadyBlocks.disjointChains), len(f.unreadyBlocks.incompleteBlocks),
+		f.syncedBlocks, len(f.unreadyBlocks.disjointFragments), len(f.unreadyBlocks.incompleteBlocks),
 		totalSyncAndImportSeconds, bps, f.peers.getTarget())
 }
 
@@ -282,35 +294,13 @@ func (f *FullSyncStrategy) OnBlockAnnounceHandshake(from peer.ID, msg *network.B
 }
 
 func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) (
-	repChange *Change, err error) {
+	gossip bool, repChange *Change, err error) {
 	if f.blockState.IsPaused() {
-		return nil, errors.New("blockstate service is paused")
-	}
-
-	currentTarget := f.peers.getTarget()
-	if msg.Number >= uint(currentTarget) {
-		return nil, nil
+		return false, nil, errors.New("blockstate service is paused")
 	}
 
 	blockAnnounceHeader := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
 	blockAnnounceHeaderHash := blockAnnounceHeader.Hash()
-
-	if msg.BestBlock {
-		pv := f.peers.get(from)
-		if uint(pv.bestBlockNumber) != msg.Number || blockAnnounceHeaderHash != pv.bestBlockHash {
-			repChange = &Change{
-				who: from,
-				rep: peerset.ReputationChange{
-					Value:  peerset.BadMessageValue,
-					Reason: peerset.BadMessageReason,
-				},
-			}
-			return repChange, fmt.Errorf("%w: peer %s, on handshake #%d (%s), on announce #%d (%s)",
-				errMismatchBestBlockAnnouncement, from,
-				pv.bestBlockNumber, pv.bestBlockHash.String(),
-				msg.Number, blockAnnounceHeaderHash.String())
-		}
-	}
 
 	logger.Infof("received block announce from %s: #%d (%s) best block: %v",
 		from,
@@ -319,38 +309,76 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 		msg.BestBlock,
 	)
 
-	// check if their best block is on an invalid chain, if it is,
-	// potentially downscore them for now, we can remove them from the syncing peers set
-	highestFinalized, err := f.blockState.GetHighestFinalisedHeader()
-	if err != nil {
-		return nil, fmt.Errorf("get highest finalised header: %w", err)
-	}
-
-	if blockAnnounceHeader.Number <= highestFinalized.Number {
-		repChange = &Change{
+	if slices.Contains(f.badBlocks, blockAnnounceHeaderHash.String()) {
+		return false, &Change{
 			who: from,
 			rep: peerset.ReputationChange{
 				Value:  peerset.BadBlockAnnouncementValue,
 				Reason: peerset.BadBlockAnnouncementReason,
 			},
+		}, nil
+	}
+
+	highestFinalized, err := f.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return false, nil, fmt.Errorf("get highest finalised header: %w", err)
+	}
+
+	// check if the announced block is relevant
+	if blockAnnounceHeader.Number <= highestFinalized.Number || f.blockAlreadyTracked(blockAnnounceHeader) {
+		logger.Debugf("announced block irrelevant #%d (%s)", blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
+		repChange = &Change{
+			who: from,
+			rep: peerset.ReputationChange{
+				Value:  peerset.NotRelevantBlockAnnounceValue,
+				Reason: peerset.NotRelevantBlockAnnounceReason,
+			},
 		}
-		return repChange, fmt.Errorf("%w: peer %s, block number #%d (%s)",
+
+		return false, repChange, fmt.Errorf("%w: peer %s, block number #%d (%s)",
 			errPeerOnInvalidFork, from, blockAnnounceHeader.Number, blockAnnounceHeaderHash.String())
+	}
+
+	logger.Debugf("relevant announced block #%d (%s)", blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
+	bestBlockHeader, err := f.blockState.BestBlockHeader()
+	if err != nil {
+		return false, nil, fmt.Errorf("get best block header: %w", err)
+	}
+
+	// if we still far from aproaching the calculated target
+	// then we can ignore the block announce
+	ratioOfCompleteness := (bestBlockHeader.Number / uint(f.peers.getTarget())) * 100
+	logger.Infof("ratio of completeness: %d", ratioOfCompleteness)
+	if ratioOfCompleteness < 80 {
+		return true, nil, nil
 	}
 
 	has, err := f.blockState.HasHeader(blockAnnounceHeaderHash)
 	if err != nil {
-		return nil, fmt.Errorf("checking if header exists: %w", err)
+		return false, nil, fmt.Errorf("checking if header exists: %w", err)
 	}
 
 	if !has {
-		f.unreadyBlocks.newHeader(blockAnnounceHeader)
+		f.unreadyBlocks.newIncompleteBlock(blockAnnounceHeader)
+		logger.Infof("requesting announced block body #%d (%s)", blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
 		request := messages.NewBlockRequest(*variadic.Uint32OrHashFrom(blockAnnounceHeaderHash),
 			1, messages.RequestedDataBody+messages.RequestedDataJustification, messages.Ascending)
 		f.requestQueue.PushBack(request)
 	}
 
-	return nil, nil
+	logger.Infof("block announced already exists #%d (%s)", blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
+	return true, &Change{
+		who: from,
+		rep: peerset.ReputationChange{
+			Value:  peerset.NotRelevantBlockAnnounceValue,
+			Reason: peerset.NotRelevantBlockAnnounceReason,
+		},
+	}, nil
+}
+
+func (f *FullSyncStrategy) blockAlreadyTracked(announcedHeader *types.Header) bool {
+	return f.unreadyBlocks.isIncomplete(announcedHeader.Hash()) ||
+		f.unreadyBlocks.inDisjointFragment(announcedHeader.Hash(), announcedHeader.Number)
 }
 
 func (f *FullSyncStrategy) IsSynced() bool {
