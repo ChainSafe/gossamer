@@ -417,10 +417,10 @@ type CollatorProtocolValidatorSide struct {
 	// ancestry of some active leaf, then it does support prospective parachains.
 	implicitView ImplicitView
 
-	/// All active leaves observed by us, including both that do and do not
-	/// support prospective parachains. This mapping works as a replacement for
-	/// [`polkadot_node_network_protocol::View`] and can be dropped once the transition
-	/// to asynchronous backing is done.
+	// All active leaves observed by us, including both that do and do not
+	// support prospective parachains. This mapping works as a replacement for
+	// [`polkadot_node_network_protocol::View`] and can be dropped once the transition
+	// to asynchronous backing is done.
 	activeLeaves map[common.Hash]parachaintypes.ProspectiveParachainsMode
 
 	// Collations that we have successfully requested from peers and waiting
@@ -498,9 +498,9 @@ func (cpvs CollatorProtocolValidatorSide) handleNetworkBridgeEvents(msg any) err
 	case networkbridgeevents.NewGossipTopology:
 		// NOTE: This won't happen
 	case networkbridgeevents.PeerViewChange:
-		// TODO
+		// TODO #4155
 	case networkbridgeevents.OurViewChange:
-		// TODO
+		// TODO #4156
 	case networkbridgeevents.UpdatedAuthorityIDs:
 		// NOTE: The validator side doesn't deal with AuthorityDiscovery IDs
 	case networkbridgeevents.PeerMessage[collatorprotocolmessages.CollationProtocol]:
@@ -653,12 +653,10 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 				Reason: peerset.ReportBadCollatorReason,
 			},
 		}
-
 	case parachaintypes.ActiveLeavesUpdateSignal:
 		return cpvs.ProcessActiveLeavesUpdateSignal(msg)
 	case parachaintypes.BlockFinalizedSignal:
 		return cpvs.ProcessBlockFinalizedSignal(msg)
-
 	default:
 		return parachaintypes.ErrUnknownOverseerMessage
 	}

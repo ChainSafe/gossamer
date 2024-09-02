@@ -35,7 +35,7 @@ var (
 	ErrFinalizedNumber                       = errors.New("finalized number is greater than or equal to the block number")
 	ErrInvalidStringFormat                   = errors.New("invalid string format for fetched collation info")
 	ErrUnexpectedMessageOnCollationProtocol  = errors.New("unexpected message on collation protocol")
-	ErrUnexpectedMessageOnValidationProtocol = errors.New("unexpected message on collation protocol")
+	ErrUnexpectedMessageOnValidationProtocol = errors.New("unexpected message on validation protocol")
 )
 
 type NetworkBridgeReceiver struct {
@@ -50,10 +50,10 @@ type NetworkBridgeReceiver struct {
 	// this includes assignments from the implicit view.
 	currentAssignments map[parachaintypes.ParaID]uint
 
-	/// All active leaves observed by us, including both that do and do not
-	/// support prospective parachains. This mapping works as a replacement for
-	/// [`polkadot_node_network_protocol::View`] and can be dropped once the transition
-	/// to asynchronous backing is done.
+	// All active leaves observed by us, including both that do and do not
+	// support prospective parachains. This mapping works as a replacement for
+	// [`polkadot_node_network_protocol::View`] and can be dropped once the transition
+	// to asynchronous backing is done.
 	activeLeaves map[common.Hash]parachaintypes.ProspectiveParachainsMode
 
 	// state tracked per relay parent
