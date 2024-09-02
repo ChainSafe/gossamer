@@ -29,17 +29,17 @@ type MMRNode struct {
 }
 
 type MMR struct {
-	size   uint64
-	batch  *MMRBatch
-	hasher hash.Hash
-	mtx    sync.Mutex
+	size    uint64
+	storage MMRStorage
+	hasher  hash.Hash
+	mtx     sync.Mutex
 }
 
-func NewMMR(size uint64, batch *MMRBatch, hasher hash.Hash) *MMR {
+func NewMMR(size uint64, storage MMRStorage, hasher hash.Hash) *MMR {
 	return &MMR{
-		size:   size,
-		batch:  batch,
-		hasher: hasher,
+		size:    size,
+		storage: storage,
+		hasher:  hasher,
 	}
 }
 
@@ -72,7 +72,7 @@ func (mmr *MMR) Push(leaf MMRElement) (uint64, error) {
 		elements = append(elements, parentElement)
 	}
 
-	mmr.batch.append(elemPosition, elements)
+	mmr.storage.append(elemPosition, elements)
 	mmr.size = position + 1
 	return position, nil
 }
@@ -83,7 +83,7 @@ func (mmr *MMR) Root() (MMRElement, error) {
 	if mmr.size == 0 {
 		return nil, errorGetRootOnEmpty
 	} else if mmr.size == 1 {
-		root, err := mmr.batch.getElement(0)
+		root, err := mmr.storage.getElement(0)
 		if err != nil || root == nil {
 			return nil, errorInconsistentStore
 		}
@@ -94,7 +94,7 @@ func (mmr *MMR) Root() (MMRElement, error) {
 	peaks := make([]MMRElement, 0)
 
 	for _, pos := range peaksPosition {
-		peak, err := mmr.batch.getElement(pos)
+		peak, err := mmr.storage.getElement(pos)
 		if err != nil || peak == nil {
 			return nil, errorInconsistentStore
 		}
@@ -105,7 +105,7 @@ func (mmr *MMR) Root() (MMRElement, error) {
 }
 
 func (mmr *MMR) Commit() error {
-	return mmr.batch.commit()
+	return mmr.storage.commit()
 }
 
 func (mmr *MMR) findElement(position uint64, values []MMRElement) (MMRElement, error) {
@@ -114,7 +114,7 @@ func (mmr *MMR) findElement(position uint64, values []MMRElement) (MMRElement, e
 		return values[positionOffset], nil
 	}
 
-	value, err := mmr.batch.getElement(position)
+	value, err := mmr.storage.getElement(position)
 	if err != nil || value == nil {
 		return nil, errorInconsistentStore
 	}

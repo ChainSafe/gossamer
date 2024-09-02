@@ -7,7 +7,8 @@ import "slices"
 
 type MMRStorage interface {
 	getElement(pos uint64) (*MMRElement, error)
-	append(pos uint64, items []MMRElement) error
+	append(pos uint64, elements []MMRElement) error
+	commit() error
 }
 
 type MMRBatch struct {
@@ -22,15 +23,16 @@ func NewMMRBatch(storage MMRStorage) *MMRBatch {
 	}
 }
 
-func (b *MMRBatch) append(pos uint64, elements []MMRElement) {
+func (b *MMRBatch) append(pos uint64, elements []MMRElement) error {
 	b.nodes = append(b.nodes, MMRNode{
 		pos:      pos,
 		elements: elements,
 	})
+	return nil
 }
 
 func (b *MMRBatch) getElement(pos uint64) (*MMRElement, error) {
-	revNodes := b.nodes[:]
+	revNodes := b.nodes
 	slices.Reverse(revNodes)
 	for _, node := range revNodes {
 		if pos < node.pos {
@@ -64,3 +66,5 @@ func (b *MMRBatch) drain() []MMRNode {
 
 	return nodes
 }
+
+var _ MMRStorage = (*MMRBatch)(nil)

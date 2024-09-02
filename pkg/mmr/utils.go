@@ -33,6 +33,12 @@ func (s *MemStorage) append(pos uint64, elements []MMRElement) error {
 	return nil
 }
 
+func (s *MemStorage) commit() error {
+	// Do nothing since all changes are automatically commited
+	return nil
+}
+
 func NewInMemMMR(hasher hash.Hash) *MMR {
-	return NewMMR(0, NewMMRBatch(NewMemStorage()), hasher)
+	storage := NewMemStorage()
+	return NewMMR(0, storage, hasher)
 }
