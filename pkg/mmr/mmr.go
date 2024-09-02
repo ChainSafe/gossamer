@@ -13,6 +13,7 @@ import (
 	"errors"
 	"hash"
 	"math/bits"
+	"sync"
 )
 
 var (
@@ -31,6 +32,7 @@ type MMR struct {
 	size   uint64
 	batch  *MMRBatch
 	hasher hash.Hash
+	mtx    sync.Mutex
 }
 
 func NewMMR(size uint64, batch *MMRBatch, hasher hash.Hash) *MMR {
@@ -39,33 +41,6 @@ func NewMMR(size uint64, batch *MMRBatch, hasher hash.Hash) *MMR {
 		batch:  batch,
 		hasher: hasher,
 	}
-}
-
-// Root returns the root of the MMR.
-// This is doing by bagging the peaks and merging them.
-func (mmr *MMR) Root() (MMRElement, error) {
-	if mmr.size == 0 {
-		return nil, errorGetRootOnEmpty
-	} else if mmr.size == 1 {
-		root, err := mmr.batch.getElement(0)
-		if err != nil || root == nil {
-			return nil, errorInconsistentStore
-		}
-		return *root, nil
-	}
-
-	peaksPosition := mmr.getPeaks()
-	peaks := make([]MMRElement, 0)
-
-	for _, pos := range peaksPosition {
-		peak, err := mmr.batch.getElement(pos)
-		if err != nil || peak == nil {
-			return nil, errorInconsistentStore
-		}
-		peaks = append(peaks, *peak)
-	}
-
-	return mmr.bagPeaks(peaks), nil
 }
 
 // Push adds a new leaf to the MMR returning its position.
@@ -102,6 +77,33 @@ func (mmr *MMR) Push(leaf MMRElement) (uint64, error) {
 	return position, nil
 }
 
+// Root returns the root of the MMR.
+// This is doing by bagging the peaks and merging them.
+func (mmr *MMR) Root() (MMRElement, error) {
+	if mmr.size == 0 {
+		return nil, errorGetRootOnEmpty
+	} else if mmr.size == 1 {
+		root, err := mmr.batch.getElement(0)
+		if err != nil || root == nil {
+			return nil, errorInconsistentStore
+		}
+		return *root, nil
+	}
+
+	peaksPosition := mmr.getPeaks()
+	peaks := make([]MMRElement, 0)
+
+	for _, pos := range peaksPosition {
+		peak, err := mmr.batch.getElement(pos)
+		if err != nil || peak == nil {
+			return nil, errorInconsistentStore
+		}
+		peaks = append(peaks, *peak)
+	}
+
+	return mmr.bagPeaks(peaks), nil
+}
+
 func (mmr *MMR) findElement(position uint64, values []MMRElement) (MMRElement, error) {
 	if position > mmr.size {
 		positionOffset := position - mmr.size
@@ -117,6 +119,10 @@ func (mmr *MMR) findElement(position uint64, values []MMRElement) (MMRElement, e
 }
 
 func (mmr *MMR) merge(left, right MMRElement) MMRElement {
+	// Since we could share mmr.hash instance in multiple goroutines
+	defer mmr.mtx.Unlock()
+	mmr.mtx.Lock()
+
 	mmr.hasher.Reset()
 	mmr.hasher.Write(left)
 	mmr.hasher.Write(right)
