@@ -23,9 +23,10 @@ var (
 
 type MMRElement []byte
 
-type MMRNode struct {
-	pos      uint64
-	elements []MMRElement
+type MMRStorage interface {
+	getElement(pos uint64) (*MMRElement, error)
+	append(pos uint64, elements []MMRElement) error
+	commit() error
 }
 
 type MMR struct {
@@ -193,7 +194,7 @@ func (mmr *MMR) bagPeaks(peaks []MMRElement) MMRElement {
 		rightPeak, peaks = peaks[len(peaks)-1], peaks[:len(peaks)-1]
 		leftPeak, peaks = peaks[len(peaks)-1], peaks[:len(peaks)-1]
 
-		mergedPeak := mmr.merge(leftPeak, rightPeak)
+		mergedPeak := mmr.merge(rightPeak, leftPeak)
 		peaks = append(peaks, mergedPeak)
 	}
 

@@ -1,11 +1,6 @@
-// Copyright 2024 ChainSafe Systems (ON)
-// SPDX-License-Identifier: LGPL-3.0-only
-
 package mmr
 
 import (
-	"hash"
-
 	"github.com/tidwall/btree"
 )
 
@@ -36,9 +31,4 @@ func (s *MemStorage) append(pos uint64, elements []MMRElement) error {
 func (s *MemStorage) commit() error {
 	// Do nothing since all changes are automatically committed
 	return nil
-}
-
-func NewInMemMMR(hasher hash.Hash) *MMR {
-	storage := NewMemStorage()
-	return NewMMR(0, storage, hasher)
 }
