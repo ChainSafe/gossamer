@@ -41,9 +41,8 @@ func (b *MMRBatch) getElement(pos uint64) (*MMRElement, error) {
 				return &node.elements[int(pos-node.pos)], nil
 			}
 			return nil, nil
-		} else {
-			break
 		}
+		break
 	}
 
 	return b.storage.getElement(pos)
