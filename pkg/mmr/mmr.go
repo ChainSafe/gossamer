@@ -72,7 +72,11 @@ func (mmr *MMR) Push(leaf MMRElement) (uint64, error) {
 		elements = append(elements, parentElement)
 	}
 
-	mmr.storage.append(elemPosition, elements)
+	err := mmr.storage.append(elemPosition, elements)
+	if err != nil {
+		return 0, err
+	}
+
 	mmr.size = position + 1
 	return position, nil
 }

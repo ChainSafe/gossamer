@@ -34,7 +34,7 @@ func (s *MemStorage) append(pos uint64, elements []MMRElement) error {
 }
 
 func (s *MemStorage) commit() error {
-	// Do nothing since all changes are automatically commited
+	// Do nothing since all changes are automatically committed
 	return nil
 }
 
