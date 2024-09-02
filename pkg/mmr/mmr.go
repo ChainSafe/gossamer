@@ -104,6 +104,10 @@ func (mmr *MMR) Root() (MMRElement, error) {
 	return mmr.bagPeaks(peaks), nil
 }
 
+func (mmr *MMR) Commit() error {
+	return mmr.batch.commit()
+}
+
 func (mmr *MMR) findElement(position uint64, values []MMRElement) (MMRElement, error) {
 	if position > mmr.size {
 		positionOffset := position - mmr.size

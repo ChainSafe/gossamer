@@ -48,3 +48,20 @@ func (b *MMRBatch) getElement(pos uint64) (*MMRElement, error) {
 
 	return b.storage.getElement(pos)
 }
+
+func (b *MMRBatch) commit() error {
+	for _, node := range b.drain() {
+		err := b.storage.append(node.pos, node.elements)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (b *MMRBatch) drain() []MMRNode {
+	nodes := b.nodes
+	b.nodes = make([]MMRNode, 0)
+
+	return nodes
+}
