@@ -16,33 +16,18 @@ const ChildrenCapacity = 16
 // MerkleValue is a helper enum to differentiate between inline and hashed nodes
 // https://spec.polkadot.network/chap-state#defn-merkle-value
 type MerkleValue interface {
-	isMerkleValue()
 	IsHashed() bool
 }
 
 type (
 	// InlineNode contains bytes of the encoded node data
-	InlineNode struct {
-		Data []byte
-	}
+	InlineNode []byte
 	// HashedNode contains a hash used to lookup in db for encoded node data
-	HashedNode struct {
-		Data []byte
-	}
+	HashedNode common.Hash
 )
 
-func (InlineNode) isMerkleValue() {}
 func (InlineNode) IsHashed() bool { return false }
-func (HashedNode) isMerkleValue() {}
 func (HashedNode) IsHashed() bool { return true }
-
-func NewInlineNode(data []byte) MerkleValue {
-	return InlineNode{Data: data}
-}
-
-func NewHashedNode(data []byte) MerkleValue {
-	return HashedNode{Data: data}
-}
 
 // EncodedValue is a helper enum to differentiate between inline and hashed values
 type EncodedValue interface {
@@ -52,19 +37,15 @@ type EncodedValue interface {
 
 type (
 	// InlineValue contains bytes for the value in this node
-	InlineValue struct {
-		Data []byte
-	}
+	InlineValue []byte
 	// HashedValue contains a hash used to lookup in db for real value
-	HashedValue struct {
-		Data []byte
-	}
+	HashedValue common.Hash
 )
 
 func (InlineValue) IsHashed() bool { return false }
 func (v InlineValue) Write(writer io.Writer) error {
 	encoder := scale.NewEncoder(writer)
-	err := encoder.Encode(v.Data)
+	err := encoder.Encode(v)
 	if err != nil {
 		return fmt.Errorf("scale encoding storage value: %w", err)
 	}
@@ -73,23 +54,15 @@ func (v InlineValue) Write(writer io.Writer) error {
 
 func (HashedValue) IsHashed() bool { return true }
 func (v HashedValue) Write(writer io.Writer) error {
-	if len(v.Data) != common.HashLength {
+	if len(v) != common.HashLength {
 		panic("invalid hash length")
 	}
 
-	_, err := writer.Write(v.Data)
+	_, err := writer.Write(v[:])
 	if err != nil {
 		return fmt.Errorf("writing hashed storage value: %w", err)
 	}
 	return nil
-}
-
-func NewInlineValue(data []byte) InlineValue {
-	return InlineValue{Data: data}
-}
-
-func NewHashedValue(data []byte) HashedValue {
-	return HashedValue{Data: data}
 }
 
 // EncodedNode is the object representation of a encoded node
@@ -109,7 +82,7 @@ type (
 	// Branch could has or not has values
 	Branch struct {
 		PartialKey []byte
-		Children   [16]MerkleValue
+		Children   [ChildrenCapacity]MerkleValue
 		Value      EncodedValue
 	}
 )

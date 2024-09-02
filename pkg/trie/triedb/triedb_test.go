@@ -18,18 +18,18 @@ func TestInsertions(t *testing.T) {
 		trieEntries []trie.Entry
 		key         []byte
 		value       []byte
-		stored      NodeStorage
+		stored      nodeStorage
 	}{
 		"nil_parent": {
 			trieEntries: []trie.Entry{},
 			key:         []byte{1},
 			value:       []byte("leaf"),
-			stored: NodeStorage{
+			stored: nodeStorage{
 				nodes: []StoredNode{
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 				},
@@ -44,20 +44,20 @@ func TestInsertions(t *testing.T) {
 			},
 			key:   []byte{1, 0},
 			value: []byte("leaf"),
-			stored: NodeStorage{
+			stored: nodeStorage{
 				nodes: []StoredNode{
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("branch")},
+							value:      inline([]byte("branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
-								InMemory{StorageHandle(0)}, nil, nil, nil, nil, nil,
+								inMemory(0), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
 						},
@@ -78,14 +78,14 @@ func TestInsertions(t *testing.T) {
 			},
 			key:   []byte{1, 0},
 			value: []byte("in between branch"),
-			stored: NodeStorage{
+			stored: nodeStorage{
 				nodes: []StoredNode{
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("in between branch")},
+							value:      inline([]byte("in between branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
-								nil, InMemory{StorageHandle(1)}, nil, nil, nil, nil,
+								nil, inMemory(1), nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
 						},
@@ -93,15 +93,15 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("branch")},
+							value:      inline([]byte("branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
-								InMemory{StorageHandle(0)}, nil, nil, nil, nil, nil, nil,
+								inMemory(0), nil, nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
 						},
@@ -122,20 +122,20 @@ func TestInsertions(t *testing.T) {
 			},
 			key:   []byte{1},
 			value: []byte("top branch"),
-			stored: NodeStorage{
+			stored: nodeStorage{
 				nodes: []StoredNode{
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("branch")},
+							value:      inline([]byte("branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
-								nil, InMemory{StorageHandle(0)}, nil, nil, nil, nil, nil, nil,
+								nil, inMemory(0), nil, nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil,
 							},
 						},
@@ -143,9 +143,9 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("top branch")},
+							value:      inline([]byte("top branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
-								InMemory{StorageHandle(1)}, nil, nil, nil, nil, nil,
+								inMemory(1), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
 						},
@@ -166,20 +166,20 @@ func TestInsertions(t *testing.T) {
 			},
 			key:   []byte{1},
 			value: []byte("new branch"),
-			stored: NodeStorage{
+			stored: nodeStorage{
 				nodes: []StoredNode{
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("new branch")},
+							value:      inline([]byte("new branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
-								InMemory{StorageHandle(0)}, nil, nil, nil, nil, nil,
+								inMemory(0), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
 						},
@@ -200,20 +200,20 @@ func TestInsertions(t *testing.T) {
 			},
 			key:   []byte{1},
 			value: []byte("branch"),
-			stored: NodeStorage{
+			stored: nodeStorage{
 				nodes: []StoredNode{
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("branch")},
+							value:      inline([]byte("branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
-								InMemory{StorageHandle(0)}, nil, nil, nil, nil, nil,
+								inMemory(0), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
 						},
@@ -234,14 +234,14 @@ func TestInsertions(t *testing.T) {
 			},
 			key:   []byte{1, 0},
 			value: []byte("leaf"),
-			stored: NodeStorage{
+			stored: nodeStorage{
 				nodes: []StoredNode{
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("branch")},
+							value:      inline([]byte("branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
-								InMemory{StorageHandle(1)}, nil, nil, nil, nil, nil,
+								inMemory(1), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 							},
 						},
@@ -249,7 +249,7 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 				},
@@ -264,12 +264,12 @@ func TestInsertions(t *testing.T) {
 			},
 			key:   []byte{1},
 			value: []byte("new leaf"),
-			stored: NodeStorage{
+			stored: nodeStorage{
 				nodes: []StoredNode{
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("new leaf")},
+							value:      inline([]byte("new leaf")),
 						},
 					},
 				},
@@ -284,12 +284,12 @@ func TestInsertions(t *testing.T) {
 			},
 			key:   []byte{1},
 			value: []byte("same"),
-			stored: NodeStorage{
+			stored: nodeStorage{
 				nodes: []StoredNode{
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("same")},
+							value:      inline([]byte("same")),
 						},
 					},
 				},
@@ -304,18 +304,18 @@ func TestInsertions(t *testing.T) {
 			},
 			key:   []byte{2, 3},
 			value: []byte("leaf"),
-			stored: NodeStorage{
+			stored: nodeStorage{
 				nodes: []StoredNode{
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{2},
-							value:      inline{Data: []byte("original leaf")},
+							value:      inline([]byte("original leaf")),
 						},
 					},
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{3},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
@@ -324,7 +324,7 @@ func TestInsertions(t *testing.T) {
 							value:      nil,
 							children: [codec.ChildrenCapacity]NodeHandle{
 								nil,
-								InMemory{StorageHandle(0)}, InMemory{StorageHandle(1)},
+								inMemory(0), inMemory(1),
 								nil, nil, nil, nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil,
 							},
@@ -341,8 +341,8 @@ func TestInsertions(t *testing.T) {
 			t.Parallel()
 
 			// Setup trie
-			inmemoryDB := NewMemoryDB(emptyNode)
-			trie := NewEmptyTrieDB(inmemoryDB, nil)
+			inmemoryDB := NewMemoryDB(EmptyNode)
+			trie := NewEmptyTrieDB(inmemoryDB)
 
 			for _, entry := range testCase.trieEntries {
 				assert.NoError(t, trie.insert(entry.Key, entry.Value))
@@ -364,7 +364,7 @@ func TestDeletes(t *testing.T) {
 	testCases := map[string]struct {
 		trieEntries []trie.Entry
 		key         []byte
-		expected    NodeStorage
+		expected    nodeStorage
 	}{
 		"nil_key": {
 			trieEntries: []trie.Entry{
@@ -373,12 +373,12 @@ func TestDeletes(t *testing.T) {
 					Value: []byte("leaf"),
 				},
 			},
-			expected: NodeStorage{
+			expected: nodeStorage{
 				nodes: []StoredNode{
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 				},
@@ -386,7 +386,7 @@ func TestDeletes(t *testing.T) {
 		},
 		"empty_trie": {
 			key: []byte{1},
-			expected: NodeStorage{
+			expected: nodeStorage{
 				nodes: []StoredNode{nil},
 			},
 		},
@@ -398,7 +398,7 @@ func TestDeletes(t *testing.T) {
 				},
 			},
 			key: []byte{1},
-			expected: NodeStorage{
+			expected: nodeStorage{
 				nodes: []StoredNode{nil},
 			},
 		},
@@ -414,13 +414,13 @@ func TestDeletes(t *testing.T) {
 				},
 			},
 			key: []byte{1},
-			expected: NodeStorage{
+			expected: nodeStorage{
 				nodes: []StoredNode{
 					nil,
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{1, 0},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 				},
@@ -438,25 +438,25 @@ func TestDeletes(t *testing.T) {
 				},
 			},
 			key: []byte{1},
-			expected: NodeStorage{
+			expected: nodeStorage{
 				nodes: []StoredNode{
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("leaf1")},
+							value:      inline([]byte("leaf1")),
 						},
 					},
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("leaf2")},
+							value:      inline([]byte("leaf2")),
 						},
 					},
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{1},
 							children: [codec.ChildrenCapacity]NodeHandle{
-								InMemory{StorageHandle(0)}, InMemory{StorageHandle(1)},
+								inMemory(0), inMemory(1),
 							},
 						},
 					},
@@ -471,8 +471,8 @@ func TestDeletes(t *testing.T) {
 			t.Parallel()
 
 			// Setup trie
-			inmemoryDB := NewMemoryDB(emptyNode)
-			trie := NewEmptyTrieDB(inmemoryDB, nil)
+			inmemoryDB := NewMemoryDB(EmptyNode)
+			trie := NewEmptyTrieDB(inmemoryDB)
 
 			for _, entry := range testCase.trieEntries {
 				assert.NoError(t, trie.insert(entry.Key, entry.Value))
@@ -495,7 +495,7 @@ func TestInsertAfterDelete(t *testing.T) {
 		trieEntries []trie.Entry
 		key         []byte
 		value       []byte
-		expected    NodeStorage
+		expected    nodeStorage
 	}{
 		"insert_leaf_after_delete": {
 			trieEntries: []trie.Entry{
@@ -506,12 +506,12 @@ func TestInsertAfterDelete(t *testing.T) {
 			},
 			key:   []byte{1},
 			value: []byte("new leaf"),
-			expected: NodeStorage{
+			expected: nodeStorage{
 				nodes: []StoredNode{
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("new leaf")},
+							value:      inline([]byte("new leaf")),
 						},
 					},
 				},
@@ -530,20 +530,20 @@ func TestInsertAfterDelete(t *testing.T) {
 			},
 			key:   []byte{1},
 			value: []byte("new branch"),
-			expected: NodeStorage{
+			expected: nodeStorage{
 				nodes: []StoredNode{
 					NewStoredNode{
 						Leaf{
 							partialKey: []byte{},
-							value:      inline{Data: []byte("leaf")},
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
 						Branch{
 							partialKey: []byte{1},
-							value:      inline{Data: []byte("new branch")},
+							value:      inline([]byte("new branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
-								InMemory{StorageHandle(0)},
+								inMemory(0),
 							},
 						},
 					},
@@ -558,8 +558,8 @@ func TestInsertAfterDelete(t *testing.T) {
 			t.Parallel()
 
 			// Setup trie
-			inmemoryDB := NewMemoryDB(emptyNode)
-			trie := NewEmptyTrieDB(inmemoryDB, nil)
+			inmemoryDB := NewMemoryDB(EmptyNode)
+			trie := NewEmptyTrieDB(inmemoryDB)
 
 			for _, entry := range testCase.trieEntries {
 				assert.NoError(t, trie.insert(entry.Key, entry.Value))
@@ -585,8 +585,8 @@ func TestDBCommits(t *testing.T) {
 	t.Run("commit_leaf", func(t *testing.T) {
 		t.Parallel()
 
-		inmemoryDB := NewMemoryDB(emptyNode)
-		trie := NewEmptyTrieDB(inmemoryDB, nil)
+		inmemoryDB := NewMemoryDB(EmptyNode)
+		trie := NewEmptyTrieDB(inmemoryDB)
 
 		err := trie.Put([]byte("leaf"), []byte("leafvalue"))
 		assert.NoError(t, err)
@@ -605,8 +605,8 @@ func TestDBCommits(t *testing.T) {
 	t.Run("commit_branch_and_inlined_leaf", func(t *testing.T) {
 		t.Parallel()
 
-		inmemoryDB := NewMemoryDB(emptyNode)
-		trie := NewEmptyTrieDB(inmemoryDB, nil)
+		inmemoryDB := NewMemoryDB(EmptyNode)
+		trie := NewEmptyTrieDB(inmemoryDB)
 
 		err := trie.Put([]byte("branchleaf"), []byte("leafvalue"))
 		assert.NoError(t, err)
@@ -629,8 +629,8 @@ func TestDBCommits(t *testing.T) {
 	t.Run("commit_branch_and_hashed_leaf", func(t *testing.T) {
 		t.Parallel()
 
-		inmemoryDB := NewMemoryDB(emptyNode)
-		tr := NewEmptyTrieDB(inmemoryDB, nil)
+		inmemoryDB := NewMemoryDB(EmptyNode)
+		tr := NewEmptyTrieDB(inmemoryDB)
 
 		err := tr.Put([]byte("branchleaf"), make([]byte, 40))
 		assert.NoError(t, err)
@@ -651,11 +651,57 @@ func TestDBCommits(t *testing.T) {
 		assert.Equal(t, make([]byte, 40), value)
 	})
 
+	t.Run("commit_leaf_with_hashed_value", func(t *testing.T) {
+		t.Parallel()
+
+		inmemoryDB := NewMemoryDB(EmptyNode)
+		tr := NewEmptyTrieDB(inmemoryDB)
+		tr.SetVersion(trie.V1)
+
+		err := tr.Put([]byte("leaf"), make([]byte, 40))
+		assert.NoError(t, err)
+
+		err = tr.commit()
+		assert.NoError(t, err)
+
+		// 1 hashed leaf with hashed value
+		// 1 hashed value
+		assert.Len(t, inmemoryDB.data, 2)
+
+		// Get values using lazy loading
+		value := tr.Get([]byte("leaf"))
+		assert.Equal(t, make([]byte, 40), value)
+	})
+
+	t.Run("commit_leaf_with_hashed_value_then_remove_it", func(t *testing.T) {
+		t.Parallel()
+
+		inmemoryDB := NewMemoryDB(EmptyNode)
+		tr := NewEmptyTrieDB(inmemoryDB)
+		tr.SetVersion(trie.V1)
+
+		err := tr.Put([]byte("leaf"), make([]byte, 40))
+		assert.NoError(t, err)
+
+		err = tr.commit()
+		assert.NoError(t, err)
+
+		// 1 hashed leaf with hashed value
+		// 1 hashed value
+		assert.Len(t, inmemoryDB.data, 2)
+
+		// Get values using lazy loading
+		err = tr.Delete([]byte("leaf"))
+		assert.NoError(t, err)
+		tr.commit()
+		assert.Len(t, inmemoryDB.data, 0)
+	})
+
 	t.Run("commit_branch_and_hashed_leaf_with_hashed_value", func(t *testing.T) {
 		t.Parallel()
 
-		inmemoryDB := NewMemoryDB(emptyNode)
-		tr := NewEmptyTrieDB(inmemoryDB, nil)
+		inmemoryDB := NewMemoryDB(EmptyNode)
+		tr := NewEmptyTrieDB(inmemoryDB)
 		tr.SetVersion(trie.V1)
 
 		err := tr.Put([]byte("branchleaf"), make([]byte, 40))
@@ -681,8 +727,8 @@ func TestDBCommits(t *testing.T) {
 	t.Run("commit_branch_and_hashed_leaf_with_hashed_value_then_delete_it", func(t *testing.T) {
 		t.Parallel()
 
-		inmemoryDB := NewMemoryDB(emptyNode)
-		tr := NewEmptyTrieDB(inmemoryDB, nil)
+		inmemoryDB := NewMemoryDB(EmptyNode)
+		tr := NewEmptyTrieDB(inmemoryDB)
 		tr.SetVersion(trie.V1)
 
 		err := tr.Put([]byte("branchleaf"), make([]byte, 40))
@@ -711,8 +757,8 @@ func TestDBCommits(t *testing.T) {
 	t.Run("commit_branch_with_leaf_then_delete_leaf", func(t *testing.T) {
 		t.Parallel()
 
-		inmemoryDB := NewMemoryDB(emptyNode)
-		trie := NewEmptyTrieDB(inmemoryDB, nil)
+		inmemoryDB := NewMemoryDB(EmptyNode)
+		trie := NewEmptyTrieDB(inmemoryDB)
 
 		err := trie.Put([]byte("branchleaf"), []byte("leafvalue"))
 		assert.NoError(t, err)

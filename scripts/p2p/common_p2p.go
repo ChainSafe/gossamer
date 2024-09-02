@@ -118,9 +118,7 @@ func parsePeerAddress(arg string) peer.AddrInfo {
 	return *p
 }
 
-var (
-	errZeroLength = errors.New("zero length")
-)
+var errZeroLength = errors.New("zero length")
 
 func ReadStream(stream lip2pnetwork.Stream) ([]byte, error) {
 	responseBuf := make([]byte, network.MaxBlockResponseSize)

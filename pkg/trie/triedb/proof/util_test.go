@@ -1,7 +1,7 @@
 // Copyright 2024 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package triedb
+package proof
 
 import (
 	"bytes"
@@ -19,12 +19,16 @@ type MemoryDB struct {
 	nullNodeData   []byte
 }
 
-func NewMemoryDB(data []byte) *MemoryDB {
+func memoryDBFromNullNode(nullKey, nullNodeData []byte) *MemoryDB {
 	return &MemoryDB{
 		data:           make(map[common.Hash][]byte),
-		hashedNullNode: common.MustBlake2bHash(data),
-		nullNodeData:   data,
+		hashedNullNode: common.MustBlake2bHash(nullKey),
+		nullNodeData:   nullNodeData,
 	}
+}
+
+func NewMemoryDB(data []byte) *MemoryDB {
+	return memoryDBFromNullNode(data, data)
 }
 
 func (db *MemoryDB) emplace(key common.Hash, value []byte) {

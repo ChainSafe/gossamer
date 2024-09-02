@@ -1,14 +1,13 @@
 ## Labels
 
-
-
 Below is the list of labels and their descriptions used in Gossamer repository.
 
 
 - **Epic** - Issue used to track development status of a complex feature, aggregates several issues.
 - **Feature-branch** - pull request from feature branch to origin.
 - **Release** - pull request with next release changes.
-- **`A-`**  Action needed label. Marks that there is a specific action needed for issue/PR
+- **good first issue** - issues that are suitable for first-time contributors.
+- **`A-`**  Action needed label. Marks that there is a specific action needed for issue/PR.
   - **A-tooBig** - issue or PR needs to be broken down to smaller parts.
   - **A-stale** - issue or PR is deprecated and needs to be closed. 
   - **A-blocked** - issue or PR is blocked  until something else changes.
@@ -20,7 +19,9 @@ Below is the list of labels and their descriptions used in Gossamer repository.
   - **T-feat** - this issue/pr is a new feature or functionality.
   - **T-enhancement** - this issue/pr covers improvement of existing functionality. 
   - **T-refactor** - this issue/pr covers refactoring of existing code.  
-  - **T-security** - this issue/pr covers security sensitive problem. 
+  - **T-security** - this issue/pr covers security sensitive problem.
+  - **T-research** - this issue/pr is a research type issue.
+  - **T-investigation** - this issue/pr is an investigation, probably related to some bug with unknown causes.
 - **`C-`** Complexity label. We operate only 3 complexity levels.
   - **C-simple** -  Minor changes changes, no additional research needed. Good first issue/review.
   - **C-complex** - Complex changes across multiple modules. Possibly will require additional research.

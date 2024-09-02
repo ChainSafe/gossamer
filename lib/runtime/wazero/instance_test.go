@@ -1013,8 +1013,7 @@ func TestInstance_ExecuteBlock_PaseoRuntime_PaseoBlock1008649(t *testing.T) {
 	require.NoError(t, err)
 
 	expectedRootNew := common.MustHexToHash("0xc75b6a15438acb997f925a09714092fc463af3ba44ab93654c89b775c44dfe13")
-	require.Equal(t, expectedRootNew, state.MustRoot())
-
+	require.Equal(t, expectedRootNew, state.Trie().MustHash())
 }
 
 func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
