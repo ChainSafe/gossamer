@@ -5,11 +5,12 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
-	"math/rand"
+	"math/big"
 	"os"
 
 	"github.com/ChainSafe/gossamer/dot/network/messages"
@@ -152,8 +153,13 @@ func main() {
 
 	for !provider.completed {
 		if refreshPeerID {
-			pid = bootnodes[rand.Intn(len(bootnodes))]
-			err := p2pHost.Connect(ctx, pid)
+			rng, err := rand.Int(rand.Reader, big.NewInt(int64(len(bootnodes))))
+			if err != nil {
+				panic(err)
+			}
+
+			pid = bootnodes[rng.Uint64()]
+			err = p2pHost.Connect(ctx, pid)
 			if err != nil {
 				log.Printf("WARN: while connecting: %s\n", err.Error())
 				continue
@@ -186,7 +192,7 @@ func main() {
 }
 
 func sendAndProcessResponse(provider *StateRequestProvider, stream lip2pnetwork.Stream) error {
-	defer stream.Close()
+	defer stream.Close() //nolint:errcheck
 
 	err := p2p.WriteStream(provider.buildRequest(), stream)
 	if err != nil {
