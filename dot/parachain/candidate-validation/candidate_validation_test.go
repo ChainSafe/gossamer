@@ -222,7 +222,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 			},
 			want: parachaintypes.OverseerFuncRes[ValidationResult]{
 				Data: ValidationResult{
-					ValidResult: &ValidValidationResult{
+					ValidResult: &Valid{
 						CandidateCommitments: parachaintypes.CandidateCommitments{
 							HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123,
 								207, 206, 8, 219, 227, 136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245,
@@ -430,7 +430,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Ch:               sender,
 			},
 			want: &ValidationResult{
-				ValidResult: &ValidValidationResult{
+				ValidResult: &Valid{
 					CandidateCommitments: parachaintypes.CandidateCommitments{
 						HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123, 207, 206, 8, 219, 227,
 							136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245, 59, 106, 76, 168, 122, 109,

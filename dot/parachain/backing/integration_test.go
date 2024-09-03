@@ -227,7 +227,7 @@ func validResponseForValidateFromExhaustive(
 
 		msgValidate.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
 			Data: candidatevalidation.ValidationResult{
-				ValidResult: &candidatevalidation.ValidValidationResult{
+				ValidResult: &candidatevalidation.Valid{
 					CandidateCommitments: parachaintypes.CandidateCommitments{
 						HeadData:                  headData,
 						UpwardMessages:            []parachaintypes.UpwardMessage{},

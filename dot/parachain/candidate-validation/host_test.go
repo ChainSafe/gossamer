@@ -171,7 +171,7 @@ func TestHost_validate(t *testing.T) {
 				PoV:              pov,
 			},
 			want: &ValidationResult{
-				ValidResult: &ValidValidationResult{
+				ValidResult: &Valid{
 					CandidateCommitments: parachaintypes.CandidateCommitments{
 						UpwardMessages:     nil,
 						HorizontalMessages: nil,

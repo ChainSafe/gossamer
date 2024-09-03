@@ -3,7 +3,6 @@ package candidatevalidation
 import (
 	"fmt"
 
-	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -35,32 +34,9 @@ func (v *Host) Validate(msg *ValidationTask) (*ValidationResult, error) {
 	if validationErr != nil {
 		return &ValidationResult{InvalidResult: validationErr}, nil //nolint
 	}
-	// create worker if not in pool
-	if !v.workerPool.containsWorker(validationCodeHash) {
-		worker, err := v.workerPool.newValidationWorker(*msg.ValidationCode)
-		if err != nil {
-			return nil, err
-		}
-
-		// sanity check
-		if worker.workerID != validationCodeHash {
-			return nil, fmt.Errorf("workerID does not match validationCodeHash")
-		}
-	}
 
 	// submit request
-	validationParams := parachainruntime.ValidationParameters{
-		ParentHeadData:         msg.PersistedValidationData.ParentHead,
-		BlockData:              msg.PoV.BlockData,
-		RelayParentNumber:      msg.PersistedValidationData.RelayParentNumber,
-		RelayParentStorageRoot: msg.PersistedValidationData.RelayParentStorageRoot,
-	}
-	workTask := &workerTask{
-		work:             validationParams,
-		maxPoVSize:       msg.PersistedValidationData.MaxPovSize,
-		candidateReceipt: msg.CandidateReceipt,
-	}
-	return v.workerPool.submitRequest(validationCodeHash, workTask)
+	return v.workerPool.submitRequest(msg)
 }
 
 // performBasicChecks Does basic checks of a candidate. Provide the encoded PoV-block.

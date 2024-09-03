@@ -768,7 +768,7 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 					case candidatevalidation.ValidateFromExhaustive:
 						data.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
 							Data: candidatevalidation.ValidationResult{
-								ValidResult: &candidatevalidation.ValidValidationResult{},
+								ValidResult: &candidatevalidation.Valid{},
 							},
 						}
 					case availabilitystore.StoreAvailableData:
