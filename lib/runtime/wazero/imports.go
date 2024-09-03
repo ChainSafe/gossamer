@@ -37,6 +37,8 @@ var (
 	emptyByteVectorEncoded []byte = scale.MustMarshal([]byte{})
 	noneEncoded            []byte = []byte{0x00}
 	allZeroesBytes                = [32]byte{}
+
+	childStorageKeyPrefix = []byte(":child_storage:")
 )
 
 const (
@@ -2065,10 +2067,15 @@ func ext_storage_clear_prefix_version_1(ctx context.Context, m api.Module, prefi
 	prefix := read(m, prefixSpan)
 	logger.Debugf("prefix: 0x%x", prefix)
 
-	err := storage.ClearPrefix(prefix)
-	if err != nil {
-		panic(err)
+	if !bytes.HasPrefix(prefix, childStorageKeyPrefix) {
+		err := storage.ClearPrefix(prefix)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		logger.Warnf("cannot clear prefix that is part of or contains a child storage key")
 	}
+
 }
 
 // toKillStorageResultEnum encodes the `allRemoved` flag and
@@ -2117,6 +2124,17 @@ func ext_storage_clear_prefix_version_2(ctx context.Context, m api.Module, prefi
 		limitPtr = &maxLimit
 	}
 
+	if bytes.HasPrefix(prefix, childStorageKeyPrefix) {
+		logger.Warnf("cannot clear child prefix: 0x%x", prefix)
+		encBytes, err := toKillStorageResultEnum(false, 0)
+		if err != nil {
+			panic(err)
+		}
+
+		valueSpan := mustWrite(m, rtCtx.Allocator, encBytes)
+		return valueSpan
+	}
+
 	numRemoved, all, err := storage.ClearPrefixLimit(prefix, *limitPtr)
 	if err != nil {
 		logger.Errorf("failed to clear prefix limit: %s", err)
@@ -2134,7 +2152,6 @@ func ext_storage_clear_prefix_version_2(ctx context.Context, m api.Module, prefi
 		logger.Errorf("failed to allocate: %s", err)
 		panic(err)
 	}
-
 	return valueSpan
 }
 
