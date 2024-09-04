@@ -30,7 +30,7 @@ func TestHost_validate(t *testing.T) {
 	commitmentsHashMismatch := CommitmentsHashMismatch
 	executionError := ExecutionError
 
-	pvfHost := NewValidationHost()
+	pvfHost := newValidationHost()
 
 	bd, err := scale.Marshal(BlockDataInAdderParachain{
 		State: uint64(1),
@@ -204,7 +204,7 @@ func TestHost_validate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			taskResult, err := pvfHost.Validate(tt.validationTask)
+			taskResult, err := pvfHost.validate(tt.validationTask)
 
 			require.NoError(t, err)
 			require.Equal(t, tt.want, taskResult)

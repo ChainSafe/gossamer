@@ -44,7 +44,6 @@ func (w *worker) executeRequest(task *workerTask) (*ValidationResult, error) {
 		return processed, nil
 	}
 	validationResult, err := w.instance.ValidateBlock(task.work)
-
 	if err != nil {
 		logger.Errorf("executing validate_block: %w", err)
 		reasonForInvalidity := ExecutionError

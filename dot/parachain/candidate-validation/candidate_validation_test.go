@@ -137,7 +137,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 	overseerToSubsystem := make(chan any)
 	sender := make(chan parachaintypes.OverseerFuncRes[ValidationResult])
 	candidateValidationSubsystem := CandidateValidation{
-		pvfHost: NewValidationHost(),
+		pvfHost: newValidationHost(),
 	}
 
 	t.Cleanup(candidateValidationSubsystem.Stop)
@@ -371,7 +371,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 	sender := make(chan parachaintypes.OverseerFuncRes[ValidationResult])
 	toSubsystem := make(chan any)
 	candidateValidationSubsystem := CandidateValidation{
-		pvfHost:    NewValidationHost(),
+		pvfHost:    newValidationHost(),
 		BlockState: mockBlockState,
 	}
 	defer candidateValidationSubsystem.Stop()

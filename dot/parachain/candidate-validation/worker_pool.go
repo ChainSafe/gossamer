@@ -127,8 +127,9 @@ func (v *workerPool) newValidationWorker(validationCode parachaintypes.Validatio
 	return nil
 }
 
-// submitRequest given a request, the worker pool will get the worker for a given workerID
-// a channel in returned that the response will be dispatch on
+// submitRequest given a request, the worker pool will get the worker for a given task and submit the request
+// to the worker. The worker will execute the request and return the result. If the worker does not exist, a new worker
+// will be created and the request will be submitted to the worker.
 func (v *workerPool) submitRequest(msg *ValidationTask) (*ValidationResult, error) {
 	validationCodeHash := msg.ValidationCode.Hash()
 

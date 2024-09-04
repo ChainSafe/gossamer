@@ -10,17 +10,17 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "pvf"), log.SetLevel(log.Debug))
 
-type Host struct {
+type host struct {
 	workerPool *workerPool
 }
 
-func NewValidationHost() *Host {
-	return &Host{
+func newValidationHost() *host {
+	return &host{
 		workerPool: newValidationWorkerPool(),
 	}
 }
 
-func (v *Host) Validate(msg *ValidationTask) (*ValidationResult, error) {
+func (v *host) validate(msg *ValidationTask) (*ValidationResult, error) {
 	validationCodeHash := msg.ValidationCode.Hash()
 	// performBasicChecks
 	validationErr, internalErr := performBasicChecks(&msg.CandidateReceipt.Descriptor,

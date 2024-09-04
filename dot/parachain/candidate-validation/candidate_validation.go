@@ -18,7 +18,7 @@ import (
 type CandidateValidation struct {
 	SubsystemToOverseer chan<- any
 	BlockState          BlockState
-	pvfHost             *Host
+	pvfHost             *host
 }
 
 type BlockState interface {
@@ -29,7 +29,7 @@ type BlockState interface {
 func NewCandidateValidation(overseerChan chan<- any, blockState BlockState) *CandidateValidation {
 	candidateValidation := CandidateValidation{
 		SubsystemToOverseer: overseerChan,
-		pvfHost:             NewValidationHost(),
+		pvfHost:             newValidationHost(),
 		BlockState:          blockState,
 	}
 	return &candidateValidation
@@ -86,7 +86,7 @@ func (cv *CandidateValidation) processMessage(msg any) {
 			PvfExecTimeoutKind:      msg.PvfExecTimeoutKind,
 		}
 
-		result, err := cv.pvfHost.Validate(validationTask)
+		result, err := cv.pvfHost.validate(validationTask)
 
 		if err != nil {
 			logger.Errorf("failed to validate from exhaustive: %w", err)
@@ -183,7 +183,7 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 		PvfExecTimeoutKind: parachaintypes.PvfExecTimeoutKind{},
 	}
 
-	result, err := cv.pvfHost.Validate(validationTask)
+	result, err := cv.pvfHost.validate(validationTask)
 	if err != nil {
 		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 			Err: err,
