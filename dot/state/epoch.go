@@ -1011,7 +1011,7 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 		if e <= nextEpoch {
 			delete(s.nextEpochData, e)
 			// remove the epoch data from the database
-			if err = s.deleteEpochDataFromDisk(e); err != nil {
+			if err = deleteDataFromDisk[types.NextEpochData](s.db, e, nextEpochDataPrefix); err != nil {
 				return fmt.Errorf("cannot delete next epoch data from the database: %w", err)
 			}
 		}
@@ -1020,13 +1020,15 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 	return nil
 }
 
-func (s *EpochState) deleteEpochDataFromDisk(epoch uint64) error {
-	configKeysToDelete, err := getDataKeysFromDisk[types.NextEpochData](s.db, nextEpochDataPrefix, epoch)
+// deleteDataFromDisk is a generic function that deletes all the nextEpochData or nextConfigData
+// for a given epoch from the database
+func deleteDataFromDisk[T types.NextEpochData | types.NextConfigDataV1](db database.Table, epoch uint64, prefix []byte) error {
+	keysToDelete, err := getDataKeysFromDisk[T](db, prefix, epoch)
 	if err != nil {
 		return fmt.Errorf("cannot get next config data keys from disk: %w", err)
 	}
-	batch := s.db.NewBatch()
-	for _, key := range configKeysToDelete {
+	batch := db.NewBatch()
+	for _, key := range keysToDelete {
 		err = batch.Del([]byte(key))
 		if err != nil {
 			return fmt.Errorf("cannot delete next config data from the database: %w", err)
@@ -1129,31 +1131,10 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 		if e <= nextEpoch {
 			delete(s.nextConfigData, e)
 			// remove the config data from the database
-			if err = s.deleteNextConfigDataFromDisk(e); err != nil {
+			if err = deleteDataFromDisk[types.NextConfigDataV1](s.db, e, nextConfigDataPrefix); err != nil {
 				return fmt.Errorf("cannot delete next config data from the database: %w", err)
 			}
 		}
-	}
-
-	return nil
-}
-
-func (s *EpochState) deleteNextConfigDataFromDisk(epoch uint64) error {
-	configKeysToDelete, err := getDataKeysFromDisk[types.NextConfigDataV1](s.db, nextConfigDataPrefix, epoch)
-	if err != nil {
-		return fmt.Errorf("cannot get next config data keys from disk: %w", err)
-	}
-
-	batch := s.db.NewBatch()
-	for _, key := range configKeysToDelete {
-		err = batch.Del([]byte(key))
-		if err != nil {
-			return fmt.Errorf("cannot delete next config data from the database: %w", err)
-		}
-	}
-
-	if err := batch.Flush(); err != nil {
-		return fmt.Errorf("cannot flush deletion batch: %w", err)
 	}
 
 	return nil
