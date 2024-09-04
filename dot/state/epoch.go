@@ -1022,7 +1022,8 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 
 // deleteDataFromDisk is a generic function that deletes all the nextEpochData or nextConfigData
 // for a given epoch from the database
-func deleteDataFromDisk[T types.NextEpochData | types.NextConfigDataV1](db database.Table, epoch uint64, prefix []byte) error {
+func deleteDataFromDisk[T types.NextEpochData | types.NextConfigDataV1](
+	db database.Table, epoch uint64, prefix []byte) error {
 	keysToDelete, err := getDataKeysFromDisk[T](db, prefix, epoch)
 	if err != nil {
 		return fmt.Errorf("cannot get next config data keys from disk: %w", err)
