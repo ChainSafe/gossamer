@@ -12,7 +12,6 @@ import (
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
-
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"

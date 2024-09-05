@@ -16,17 +16,15 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "provisioner"))
 const INHERENT_TIMEOUT = time.Millisecond * 2000
 
 type Provisioner struct {
-	// TODO This doesn't have to be a channel with buffer.
+	// TODO #4162
+	// This doesn't have to be a channel with buffer.
 	// The idea is to send a relay parent hash on this channel after INHERENT_TIMEOUT, open to design changes
 	inherentAfterDelay chan common.Hash
 }
 
 func (p Provisioner) Run(ctx context.Context, overseerToSubSystem <-chan any) {
-	// TODO https://github.com/paritytech/polkadot-sdk/blob/e1460b5ee5f4490b428035aa4a72c1c99a262459/polkadot/node/core/provisioner/src/lib.rs#L177
-
 	for {
 		select {
-		// TODO: polkadot-rust changes reputation in batches, so we do the same?
 		case msg, ok := <-overseerToSubSystem:
 			if !ok {
 				return
@@ -37,7 +35,7 @@ func (p Provisioner) Run(ctx context.Context, overseerToSubSystem <-chan any) {
 			}
 		case <-p.inherentAfterDelay:
 			// This inherentAfterDelay gets populated while handling active leaves update signal
-			// TODO https://github.com/paritytech/polkadot-sdk/blob/e1460b5ee5f4490b428035aa4a72c1c99a262459/polkadot/node/core/provisioner/src/lib.rs#L181
+			// TODO #4162
 		}
 
 	}
@@ -46,9 +44,9 @@ func (p Provisioner) Run(ctx context.Context, overseerToSubSystem <-chan any) {
 func (p Provisioner) processMessage(msg any) error {
 	switch msg.(type) {
 	case provisionermessages.RequestInherentData:
-		// TODO https://github.com/paritytech/polkadot-sdk/blob/e1460b5ee5f4490b428035aa4a72c1c99a262459/polkadot/node/core/provisioner/src/lib.rs#L253
+		// TODO #4159
 	case provisionermessages.ProvisionableData:
-		// TODO https://github.com/paritytech/polkadot-sdk/blob/e1460b5ee5f4490b428035aa4a72c1c99a262459/polkadot/node/core/provisioner/src/lib.rs#L271
+		// TODO #4160
 	default:
 		return parachaintypes.ErrUnknownOverseerMessage
 	}
@@ -62,8 +60,7 @@ func (p Provisioner) Name() parachaintypes.SubSystemName {
 }
 
 func (p Provisioner) ProcessActiveLeavesUpdateSignal(parachaintypes.ActiveLeavesUpdateSignal) error {
-	// TODO https://github.com/paritytech/polkadot-sdk/blob/e1460b5ee5f4490b428035aa4a72c1c99a262459/polkadot/node/core/provisioner/src/lib.rs#L173
-	// https://github.com/paritytech/polkadot-sdk/blob/e1460b5ee5f4490b428035aa4a72c1c99a262459/polkadot/node/core/provisioner/src/lib.rs#L201
+	// TODO #4061
 	return nil
 }
 
@@ -73,15 +70,3 @@ func (p Provisioner) ProcessBlockFinalizedSignal(parachaintypes.BlockFinalizedSi
 }
 
 func (p Provisioner) Stop() {}
-
-type RequestInherentData struct {
-	RelayParent             common.Hash
-	ProvisionerInherentData chan ProvisionerInherentData
-}
-
-type ProvisionerInherentData struct {
-}
-
-type ProvisionableData struct {
-	RelayParent common.Hash
-}

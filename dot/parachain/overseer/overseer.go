@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
+	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
@@ -144,6 +145,8 @@ func (o *OverseerSystem) processMessages() {
 
 			case chainapi.ChainAPIMessage[util.Ancestors], chainapi.ChainAPIMessage[chainapi.BlockHeader]:
 				subsystem = o.nameToSubsystem[parachaintypes.ChainAPI]
+			case provisionermessages.RequestInherentData, provisionermessages.ProvisionableData:
+				subsystem = o.nameToSubsystem[parachaintypes.Provisioner]
 
 			case parachain.RuntimeAPIMessage:
 				// TODO: this should be handled by the parachain runtime subsystem, see issue #3940
