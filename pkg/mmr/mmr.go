@@ -33,7 +33,7 @@ type MMR struct {
 	mtx     sync.Mutex
 }
 
-// NewMMR initializes and returns a new MMR instance.
+// NewMMR initialises and returns a new MMR instance.
 func NewMMR(size uint64, storage MMRStorage, hasher hash.Hash) *MMR {
 	return &MMR{
 		size:    size,

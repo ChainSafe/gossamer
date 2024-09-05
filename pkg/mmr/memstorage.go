@@ -12,7 +12,7 @@ type MemStorage struct {
 	storage *btree.Map[uint64, MMRElement]
 }
 
-// NewMemStorage initializes a new instance of MemStorage with an empty storage.
+// NewMemStorage initialises a new instance of MemStorage with an empty storage.
 func NewMemStorage() *MemStorage {
 	return &MemStorage{
 		storage: btree.NewMap[uint64, MMRElement](0),
