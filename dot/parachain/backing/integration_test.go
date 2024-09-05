@@ -13,6 +13,7 @@ import (
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
+	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -544,7 +545,7 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	}
 
 	provisionerMessageProvisionableData := func(msg any) bool {
-		_, ok := msg.(parachaintypes.ProvisionerMessageProvisionableData)
+		_, ok := msg.(provisionermessages.ProvisionableData)
 		return ok
 	}
 

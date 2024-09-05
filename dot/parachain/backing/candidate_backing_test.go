@@ -11,6 +11,8 @@ import (
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
+
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -80,7 +82,7 @@ func mockOverseer(t *testing.T, subsystemToOverseer chan any) {
 		case parachaintypes.ProspectiveParachainsMessageIntroduceCandidate:
 			data.Ch <- nil
 		case parachaintypes.ProspectiveParachainsMessageCandidateSeconded,
-			parachaintypes.ProvisionerMessageProvisionableData,
+			provisionermessages.ProvisionableData,
 			parachaintypes.ProspectiveParachainsMessageCandidateBacked,
 			collatorprotocolmessages.Backed,
 			parachaintypes.StatementDistributionMessageBacked:

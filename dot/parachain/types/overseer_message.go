@@ -6,8 +6,6 @@ package parachaintypes
 import "github.com/ChainSafe/gossamer/lib/common"
 
 var (
-	_ ProvisionableData     = (*ProvisionableDataBackedCandidate)(nil)
-	_ ProvisionableData     = (*ProvisionableDataMisbehaviorReport)(nil)
 	_ HypotheticalCandidate = (*HypotheticalCandidateIncomplete)(nil)
 	_ HypotheticalCandidate = (*HypotheticalCandidateComplete)(nil)
 )
@@ -17,32 +15,6 @@ type OverseerFuncRes[T any] struct {
 	Err  error
 	Data T
 }
-
-// ProvisionerMessageProvisionableData is a provisioner message.
-// This data should become part of a relay chain block.
-type ProvisionerMessageProvisionableData struct {
-	RelayParent       common.Hash
-	ProvisionableData ProvisionableData
-}
-
-// ProvisionableData becomes intrinsics or extrinsics which should be included in a future relay chain block.
-type ProvisionableData interface {
-	IsProvisionableData()
-}
-
-// ProvisionableDataBackedCandidate is a provisionable data.
-// The Candidate Backing subsystem believes that this candidate is valid, pending availability.
-type ProvisionableDataBackedCandidate CandidateReceipt
-
-func (ProvisionableDataBackedCandidate) IsProvisionableData() {}
-
-// ProvisionableDataMisbehaviorReport represents self-contained proofs of validator misbehaviour.
-type ProvisionableDataMisbehaviorReport struct {
-	ValidatorIndex ValidatorIndex
-	Misbehaviour   Misbehaviour
-}
-
-func (ProvisionableDataMisbehaviorReport) IsProvisionableData() {}
 
 // StatementDistributionMessageBacked is a statement distribution message.
 // it represents a message indicating that a candidate has received sufficient
