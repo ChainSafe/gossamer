@@ -232,8 +232,9 @@ func (nbr *NetworkBridgeReceiver) handleNetworkEvents(event network.NetworkEvent
 	switch event.Event {
 	case network.Connected:
 		nbr.SubsystemsToOverseer <- events.PeerConnected{
-			PeerID: event.PeerID,
-			// TODO: Add remaining fields
+			PeerID:         event.PeerID,
+			OverservedRole: event.Role,
+			// TODO: Add protocol versions when we have them
 		}
 	case network.Disconnected:
 		nbr.SubsystemsToOverseer <- events.PeerDisconnected{
@@ -270,7 +271,6 @@ func (nbr *NetworkBridgeReceiver) ProcessActiveLeavesUpdateSignal(
 	}
 
 	sort.Sort(SortableActivatedLeaves(newLiveHeads))
-	// TODO: do I need to store these live heads or just pass them to update view?
 	nbr.liveHeads = newLiveHeads
 
 	if !majorSyncing {
