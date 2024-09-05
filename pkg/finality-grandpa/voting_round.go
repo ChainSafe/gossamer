@@ -13,9 +13,9 @@ type stateStart[T any] [2]T
 
 type stateProposed[T any] [2]T
 
-type statePrevoting[T, W any] struct {
+type statePrevoting[T, U any] struct {
 	T T
-	W W
+	U U
 }
 
 type statePrevoted[T any] [1]T
@@ -638,7 +638,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 	case stateProposed[Timer]:
 		return startPrevoting(state[0], state[1], true, w)
 	case statePrevoting[Timer, hashBestChain[Hash, Number]]:
-		return finishPrevoting(state.T, state.W.Hash, state.W.BestChain, w)
+		return finishPrevoting(state.T, state.U.Hash, state.U.BestChain, w)
 	default:
 		vr.state = state
 	}
