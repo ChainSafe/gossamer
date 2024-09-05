@@ -8,8 +8,6 @@ import (
 )
 
 type workerPool struct {
-
-	// todo, make sure other functions work with paraID
 	workers map[parachaintypes.ValidationCodeHash]*worker
 }
 
@@ -150,10 +148,12 @@ func (v *workerPool) submitRequest(msg *ValidationTask) (*ValidationResult, erro
 		RelayParentNumber:      msg.PersistedValidationData.RelayParentNumber,
 		RelayParentStorageRoot: msg.PersistedValidationData.RelayParentStorageRoot,
 	}
+
 	workTask := &workerTask{
 		work:             validationParams,
 		maxPoVSize:       msg.PersistedValidationData.MaxPovSize,
 		candidateReceipt: msg.CandidateReceipt,
+		timeoutKind:      msg.PvfExecTimeoutKind,
 	}
 	return syncWorker.executeRequest(workTask)
 
