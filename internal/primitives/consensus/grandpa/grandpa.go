@@ -79,7 +79,7 @@ func CheckMessageSignature[H comparable, N constraints.Unsigned](
 	round RoundNumber,
 	setID SetID) bool {
 
-	buf := LocalizedPayload(round, setID, message)
+	buf := NewLocalizedPayload(round, setID, message)
 	valid := id.Verify(signature, buf)
 
 	if !valid {
@@ -89,7 +89,7 @@ func CheckMessageSignature[H comparable, N constraints.Unsigned](
 }
 
 // LocalizedPayload will encode round message localised to a given round and set id.
-func LocalizedPayload(round RoundNumber, setID SetID, message any) []byte {
+func NewLocalizedPayload(round RoundNumber, setID SetID, message any) []byte {
 	return scale.MustMarshal(struct {
 		Message any
 		RoundNumber
