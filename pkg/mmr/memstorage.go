@@ -7,10 +7,12 @@ import (
 	"github.com/tidwall/btree"
 )
 
+// MemStorage provides an in-memory storage mechanism for an MMR.
 type MemStorage struct {
 	storage *btree.Map[uint64, MMRElement]
 }
 
+// NewMemStorage initializes a new instance of MemStorage with an empty storage.
 func NewMemStorage() *MemStorage {
 	return &MemStorage{
 		storage: btree.NewMap[uint64, MMRElement](0),

@@ -21,6 +21,7 @@ var (
 	errorGetRootOnEmpty    = errors.New("get root on empty MMR")
 )
 
+// MMRElement is an alias to easily change the MMR element type in case we need it
 type MMRElement []byte
 
 type MMRStorage interface {
@@ -29,6 +30,9 @@ type MMRStorage interface {
 	commit() error
 }
 
+// MMR represents a Merkle Mountain Range (MMR) which is a persistent,
+// append-only data structure that allows for efficient cryptographic proofs of
+// inclusion for any piece of data added to it.
 type MMR struct {
 	size    uint64
 	storage MMRStorage
@@ -36,6 +40,7 @@ type MMR struct {
 	mtx     sync.Mutex
 }
 
+// NewMMR initializes and returns a new MMR instance.
 func NewMMR(size uint64, storage MMRStorage, hasher hash.Hash) *MMR {
 	return &MMR{
 		size:    size,
@@ -62,7 +67,7 @@ func (mmr *MMR) Push(leaf MMRElement) (uint64, error) {
 			return 0, err
 		}
 
-		rightElement := elements[len(elements)-1] // TODO: check this wont fail
+		rightElement := elements[len(elements)-1]
 
 		parentElement := mmr.merge(leftElement, rightElement)
 
@@ -82,8 +87,7 @@ func (mmr *MMR) Push(leaf MMRElement) (uint64, error) {
 	return position, nil
 }
 
-// Root returns the root of the MMR.
-// This is doing by bagging the peaks and merging them.
+// Root returns the root of the MMR by merging the peaks.
 func (mmr *MMR) Root() (MMRElement, error) {
 	if mmr.size == 0 {
 		return nil, errorGetRootOnEmpty
@@ -109,6 +113,7 @@ func (mmr *MMR) Root() (MMRElement, error) {
 	return mmr.bagPeaks(peaks), nil
 }
 
+// Commit commits the current state of the MMR to underlying storage.
 func (mmr *MMR) Commit() error {
 	return mmr.storage.commit()
 }
