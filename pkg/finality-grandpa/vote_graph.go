@@ -398,7 +398,7 @@ func (vg *VoteGraph[Hash, Number, voteNode, Vote]) ghostFindMergePoint( //skipcq
 	descendantBlocks := make([]hashvote[Hash, voteNode, Vote], 0)
 	hashes := []Hash{nodeKey}
 
-	// TODO: for long ranges of blocks this could get inefficient (also in parity impl)
+	// TODO: for long ranges of blocks this could get inefficient
 	var offset Number
 	for {
 		offset = offset + 1
