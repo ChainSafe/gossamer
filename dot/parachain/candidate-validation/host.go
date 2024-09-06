@@ -36,7 +36,7 @@ func (v *host) validate(msg *ValidationTask) (*ValidationResult, error) {
 	}
 
 	// submit request
-	return v.workerPool.submitRequest(msg)
+	return v.workerPool.executeRequest(msg)
 }
 
 // performBasicChecks Does basic checks of a candidate. Provide the encoded PoV-block.
