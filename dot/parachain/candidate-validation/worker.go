@@ -1,6 +1,7 @@
 package candidatevalidation
 
 import (
+	"fmt"
 	"time"
 
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
@@ -9,7 +10,7 @@ import (
 
 type worker struct {
 	workerID    parachaintypes.ValidationCodeHash
-	instance    *parachainruntime.Instance
+	instance    parachainruntime.ValidatorInstance
 	isProcessed map[parachaintypes.CandidateHash]*ValidationResult
 }
 
@@ -54,6 +55,9 @@ func determineTimeout(timeoutKind parachaintypes.PvfExecTimeoutKind) time.Durati
 }
 
 func (w *worker) executeRequest(task *workerTask) (*ValidationResult, error) {
+	if task == nil {
+		return nil, fmt.Errorf("task is nil")
+	}
 	logger.Debugf("[EXECUTING] worker %x task %v", w.workerID, task.work)
 	candidateHash, err := parachaintypes.GetCandidateHash(task.candidateReceipt)
 	if err != nil {
