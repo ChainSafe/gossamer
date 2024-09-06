@@ -13,12 +13,18 @@ var (
 	errorNotEnoughPeeks    = errors.New("not enough peaks")
 )
 
+// MMRStorage is an interface that defines the necessary methods for a
+// storage mechanism in a Merkle Mountain Range (MMR). It allows for
+// retrieving, appending, and committing elements to the MMR structure.
 type MMRStorage[T any] interface {
 	getElement(pos uint64) (*T, error)
 	append(pos uint64, elements []T) error
 	commit() error
 }
 
+// MergeFunc defines a function type used to merge two elements in the MMR.
+// It takes two elements, `left` and `right`, and returns a pointer to the
+// merged result or an error if the merge operation fails.
 type MergeFunc[T any] func(left, right T) (*T, error)
 
 // MMR represents a Merkle Mountain Range (MMR) which is a persistent,
