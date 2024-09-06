@@ -8,32 +8,34 @@ import (
 )
 
 // MemStorage provides an in-memory storage mechanism for an MMR.
-type MemStorage struct {
-	storage *btree.Map[uint64, MMRElement]
+type MemStorage[T any] struct {
+	storage *btree.Map[uint64, T]
 }
 
 // NewMemStorage initialises a new instance of MemStorage with an empty storage.
-func NewMemStorage() *MemStorage {
-	return &MemStorage{
-		storage: btree.NewMap[uint64, MMRElement](0),
+func NewMemStorage[T any]() *MemStorage[T] {
+	return &MemStorage[T]{
+		storage: btree.NewMap[uint64, T](0),
 	}
 }
 
-func (s *MemStorage) getElement(pos uint64) (*MMRElement, error) {
+//nolint:unparam
+func (s *MemStorage[T]) getElement(pos uint64) (*T, error) {
 	if element, ok := s.storage.Get(pos); ok {
 		return &element, nil
 	}
 	return nil, nil
 }
 
-func (s *MemStorage) append(pos uint64, elements []MMRElement) error {
+func (s *MemStorage[T]) append(pos uint64, elements []T) error {
 	for i, element := range elements {
 		s.storage.Set(pos+uint64(i), element)
 	}
 	return nil
 }
 
-func (s *MemStorage) commit() error {
+//nolint:unused
+func (s *MemStorage[T]) commit() error {
 	// Do nothing since all changes are automatically committed
 	return nil
 }

@@ -10,8 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type MMRElement []byte
+
 func TestGetElement(t *testing.T) {
-	memStorage := NewMemStorage()
+	memStorage := NewMemStorage[MMRElement]()
 	elements := make(map[uint64]MMRElement)
 
 	for i := uint64(1); i < 100; i++ {
@@ -30,7 +32,7 @@ func TestGetElement(t *testing.T) {
 }
 
 func TestGetNotFoundElement(t *testing.T) {
-	memStorage := NewMemStorage()
+	memStorage := NewMemStorage[MMRElement]()
 
 	element, err := memStorage.getElement(100)
 	assert.NoError(t, err)
