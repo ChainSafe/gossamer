@@ -113,6 +113,33 @@ func (s *StatementVDT) Sign(
 	return &valSign, nil
 }
 
+// VerifySignature verifies the validator signature for the statement.
+func (s *StatementVDT) VerifySignature(
+	validator ValidatorID,
+	signingContext SigningContext,
+	validatorSignature ValidatorSignature,
+) (bool, error) {
+	encodedMsg, err := scale.Marshal(s)
+	if err != nil {
+		return false, fmt.Errorf("marshalling statementVDT: %w", err)
+	}
+
+	signingContextBytes, err := scale.Marshal(signingContext)
+	if err != nil {
+		return false, fmt.Errorf("marshalling signing context: %w", err)
+	}
+
+	encodedMsg = append(encodedMsg, signingContextBytes...)
+
+	publicKey, err := sr25519.NewPublicKey(validator[:])
+	if err != nil {
+		return false, fmt.Errorf("getting public key: %w", err)
+	}
+
+	ok, err := publicKey.Verify(encodedMsg, validatorSignature[:])
+	return ok, err
+}
+
 // UncheckedSignedFullStatement is a Variant of `SignedFullStatement` where the signature has not yet been verified.
 type UncheckedSignedFullStatement struct {
 	// The payload is part of the signed data. The rest is the signing context,
@@ -143,6 +170,9 @@ type SignedFullStatement UncheckedSignedFullStatement
 
 // SignedFullStatementWithPVD represents a signed full statement along with associated Persisted Validation Data (PVD).
 type SignedFullStatementWithPVD struct {
-	SignedFullStatement     SignedFullStatement
+	SignedFullStatement SignedFullStatement
+
+	// PersistedValidationData must be set only for `Seconded` statement.
+	// otherwise, it should be nil.
 	PersistedValidationData *PersistedValidationData
 }
