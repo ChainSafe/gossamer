@@ -131,10 +131,8 @@ func (mmr *MMR[T]) findElement(position uint64, values []T) (*T, error) {
 	return value, nil
 }
 
-/*
-Returns a bitmap of the peaks in the MMR.
-Eg: 0b11 means that the MMR has 2 peaks at position 0 and at position 1
-*/
+// peakMap returns a bitmap of the peaks in the MMR.
+// Eg: 0b11 means that the MMR has 2 peaks at position 0 and at position 1
 func (mmr *MMR[T]) peakMap() uint64 {
 	if mmr.size == 0 {
 		return 0
