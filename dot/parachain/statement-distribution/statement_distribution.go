@@ -16,31 +16,23 @@ type StatementDistribution struct {
 
 func (s StatementDistribution) Run(ctx context.Context, overseerToSubSystem <-chan any) {
 
-	for {
-		select {
-		case msg, ok := <-overseerToSubSystem:
-			if !ok {
-				return
-			}
-
-			err := s.processMessage(msg)
-			if err != nil {
-				logger.Errorf("processing overseer message: %w", err)
-			}
+	for msg := range overseerToSubSystem {
+		err := s.processMessage(msg)
+		if err != nil {
+			logger.Errorf("processing overseer message: %w", err)
 		}
 	}
-
 }
 
 func (s StatementDistribution) processMessage(msg any) error {
 
 	switch msg := msg.(type) {
 	case statementedistributionmessages.Backed:
-		// todo
+		// TODO #4171
 	case statementedistributionmessages.Share:
-		// todo
+		// TODO #4170
 	// case statementedistributionmessages.NetworkBridgeUpdate
-	// TODO this above case would need to wait
+	// TODO #4172 this above case would need to wait until network bridge receiver side is merged
 	case parachaintypes.ActiveLeavesUpdateSignal:
 		return s.ProcessActiveLeavesUpdateSignal(msg)
 	case parachaintypes.BlockFinalizedSignal:
@@ -58,7 +50,7 @@ func (s StatementDistribution) Name() parachaintypes.SubSystemName {
 }
 
 func (s StatementDistribution) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
-	// todo
+	// TODO #4173
 	return nil
 }
 
