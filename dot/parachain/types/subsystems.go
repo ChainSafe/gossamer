@@ -18,6 +18,7 @@ const (
 	NetworkBridgeReceiver SubSystemName = "NetworkBridgeReceiver"
 	ChainAPI              SubSystemName = "ChainAPI"
 	CandidateValidation   SubSystemName = "CandidateValidation"
+	StatementDistribution SubSystemName = "StatementDistribution"
 )
 
 var SubsystemRequestTimeout = 1 * time.Second

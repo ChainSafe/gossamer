@@ -11,6 +11,7 @@ import (
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	statementedistributionmessages "github.com/ChainSafe/gossamer/dot/parachain/statement-distribution/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
@@ -172,7 +173,7 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		}
 
 		// Notify statement distribution of backed candidate.
-		subSystemToOverseer <- parachaintypes.StatementDistributionMessageBacked(candidateHash)
+		subSystemToOverseer <- statementedistributionmessages.Backed(candidateHash)
 
 	} else {
 		// TODO: figure out what this comment means by 'avoid cycles'.
