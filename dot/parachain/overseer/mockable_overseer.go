@@ -96,8 +96,15 @@ func (m *MockableOverseer) processMessages() {
 				}
 
 				actionIndex = actionIndex + 1
+			} else {
+				m.t.Errorf("unexpected message: %T", msg)
+				return
 			}
 		case <-m.ctx.Done():
+			if actionIndex < len(m.actionsForExpectedMessages) {
+				m.t.Errorf("expected %d overseer actions, but got only %d", len(m.actionsForExpectedMessages), actionIndex)
+			}
+
 			if err := m.ctx.Err(); err != nil {
 				m.t.Logf("ctx error: %v\n", err)
 			}
