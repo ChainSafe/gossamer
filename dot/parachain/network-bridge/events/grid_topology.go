@@ -5,7 +5,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-// Topology representation for a session.
+// SessionGridTopology is topology representation for a session.
 type SessionGridTopology struct {
 	// An array mapping validator indices to their indices in the
 	// shuffling itself. This has the same size as the number of validators
