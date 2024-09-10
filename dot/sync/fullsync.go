@@ -366,7 +366,7 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 		f.requestQueue.PushBack(request)
 	}
 
-	logger.Infof("block announced already exists #%d (%s)", blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
+	logger.Infof("announced block already exists #%d (%s)", blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
 	return true, &Change{
 		who: from,
 		rep: peerset.ReputationChange{

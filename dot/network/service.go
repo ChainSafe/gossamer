@@ -562,6 +562,31 @@ func (s *Service) GossipMessage(msg NotificationsMessage) {
 	logger.Errorf("message type %d not supported by any notifications protocol", msg.Type())
 }
 
+// GossipMessage gossips a notifications protocol message to our peers
+func (s *Service) GossipMessageExcluding(msg NotificationsMessage, excluding peer.ID) {
+	if s.host == nil || msg == nil || s.IsStopped() {
+		return
+	}
+
+	logger.Infof("gossiping from host %s message of type %d: %s",
+		s.host.id(), msg.Type(), msg)
+
+	// check if the message is part of a notifications protocol
+	s.notificationsMu.Lock()
+	defer s.notificationsMu.Unlock()
+
+	for msgID, prtl := range s.notificationsProtocols {
+		if msg.Type() != msgID || prtl == nil {
+			continue
+		}
+
+		s.broadcastExcluding(prtl, excluding, msg)
+		return
+	}
+
+	logger.Errorf("message type %d not supported by any notifications protocol", msg.Type())
+}
+
 // SendMessage sends a message to the given peer
 func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 	s.notificationsMu.Lock()

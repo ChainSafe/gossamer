@@ -272,21 +272,21 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 	stream, err := s.sendHandshake(peer, hs, info)
 	if err != nil {
-		logger.Debugf("failed to send handshake to peer %s on protocol %s: %s", peer, info.protocolID, err)
+		logger.Infof("failed to send handshake to peer %s on protocol %s: %s", peer, info.protocolID, err)
 		return
 	}
 
 	_, isConsensusMsg := msg.(*ConsensusMessage)
 
 	if s.host.messageCache != nil && s.host.messageCache.exists(peer, msg) && !isConsensusMsg {
-		logger.Tracef("message has already been sent, ignoring: peer=%s msg=%s", peer, msg)
+		logger.Infof("message has already been sent, ignoring: peer=%s msg=%s", peer, msg)
 		return
 	}
 
 	// we've completed the handshake with the peer, send message directly
-	logger.Tracef("sending message to peer %s using protocol %s: %s", peer, info.protocolID, msg)
+	logger.Infof("sending message to peer %s using protocol %s: %s", peer, info.protocolID, msg)
 	if err := s.host.writeToStream(stream, msg); err != nil {
-		logger.Debugf("failed to send message to peer %s: %s", peer, err)
+		logger.Errorf("failed to send message to peer %s: %s", peer, err)
 
 		// the stream was closed or reset, close it on our end and delete it from our peer's data
 		if errors.Is(err, io.EOF) || errors.Is(err, network.ErrReset) {
@@ -300,7 +300,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		}
 	}
 
-	logger.Tracef("successfully sent message on protocol %s to peer %s: message=", info.protocolID, peer, msg)
+	logger.Infof("successfully sent message on protocol %s to peer %s: message= %v", info.protocolID, peer, msg)
 	s.host.cm.peerSetHandler.ReportPeer(peerset.ReputationChange{
 		Value:  peerset.GossipSuccessValue,
 		Reason: peerset.GossipSuccessReason,

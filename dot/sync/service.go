@@ -32,7 +32,7 @@ type Network interface {
 	BlockAnnounceHandshake(*types.Header) error
 	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
 		maxResponseSize uint64) *network.RequestResponseProtocol
-	GossipMessage(network.NotificationsMessage)
+	GossipMessageExcluding(network.NotificationsMessage, peer.ID)
 }
 
 type BlockState interface {
@@ -162,7 +162,7 @@ func (s *SyncService) Stop() error {
 }
 
 func (s *SyncService) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error {
-	logger.Infof("receiving a block announce handshake: %s", from.String())
+	logger.Infof("receiving a block announce handshake from %s", from.String())
 	if err := s.workerPool.fromBlockAnnounceHandshake(from); err != nil {
 		return err
 	}
@@ -184,7 +184,8 @@ func (s *SyncService) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnoun
 	}
 
 	if gossip {
-		s.network.GossipMessage(msg)
+		logger.Infof("propagating block announcement #%d excluding %s", msg.Number, from.String())
+		s.network.GossipMessageExcluding(msg, from)
 	}
 
 	return nil
