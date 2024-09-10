@@ -13,7 +13,7 @@ import (
 )
 
 func Test_worker_executeRequest(t *testing.T) {
-	candidateReceipt, validationCode := createTestCandidateReceiptAndValidationCode(t)
+	candidateReceipt, validationCode := createTestCandidateReceiptAndValidationCodeWParaId(t, 1000)
 
 	validationRuntime, err := parachain.SetupVM(validationCode)
 	require.NoError(t, err)
