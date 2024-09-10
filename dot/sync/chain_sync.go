@@ -843,28 +843,18 @@ func (cs *chainSync) processBlockData(blockData types.BlockData, origin blockOri
 	announceImportedBlock := cs.getSyncMode() == tip
 
 	if blockData.Header != nil {
-		var setFinalisedHash func() error = nil
-		if blockData.Justification != nil && len(*blockData.Justification) > 0 {
-			round, setID, err := cs.finalityGadget.VerifyBlockJustification(
+		var (
+			hasJustification = blockData.Justification != nil && len(*blockData.Justification) > 0
+			round            uint64
+			setID            uint64
+		)
+
+		if hasJustification {
+			var err error
+			round, setID, err = cs.finalityGadget.VerifyBlockJustification(
 				blockData.Header.Hash(), blockData.Header.Number, *blockData.Justification)
 			if err != nil {
 				return fmt.Errorf("verifying justification: %w", err)
-			}
-
-			setFinalisedHash = func() error {
-				header := blockData.Header
-
-				err = cs.blockState.SetFinalisedHash(header.Hash(), round, setID)
-				if err != nil {
-					return fmt.Errorf("setting finalised hash: %w", err)
-				}
-
-				err = cs.blockState.SetJustification(header.Hash(), *blockData.Justification)
-				if err != nil {
-					return fmt.Errorf("setting justification for block number %d: %w", header.Number, err)
-				}
-
-				return nil
 			}
 		}
 
@@ -875,10 +865,18 @@ func (cs *chainSync) processBlockData(blockData types.BlockData, origin blockOri
 			}
 		}
 
-		if setFinalisedHash != nil {
-			if err := setFinalisedHash(); err != nil {
-				return err
+		if hasJustification {
+			header := blockData.Header
+			err := cs.blockState.SetFinalisedHash(header.Hash(), round, setID)
+			if err != nil {
+				return fmt.Errorf("setting finalised hash: %w", err)
 			}
+			err = cs.blockState.SetJustification(header.Hash(), *blockData.Justification)
+			if err != nil {
+				return fmt.Errorf("setting justification for block number %d: %w", header.Number, err)
+			}
+
+			return nil
 		}
 	}
 
