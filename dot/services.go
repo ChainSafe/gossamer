@@ -497,7 +497,7 @@ func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationMana
 	return babe.NewVerificationManager(st.Block, st.Slot, st.Epoch)
 }
 
-func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg BlockJustificationVerifier,
+func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync.FinalityGadget,
 	verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer Telemetry) (
 	*sync.Service, error) {
 	slotDuration, err := st.Epoch.GetSlotDuration()

@@ -1851,6 +1851,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithInvalidJusticationBlock(t *t
 	mockFinalityGadget.EXPECT().
 		VerifyBlockJustification(
 			invalidJustificationBlock.Header.Hash(),
+			invalidJustificationBlock.Header.Number,
 			*invalidJustification).
 		Return(uint64(0), uint64(0), errVerifyBlockJustification)
 
