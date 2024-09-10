@@ -165,6 +165,7 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 
 	persistedValidationData, validationCode, err := getValidationData(runtimeInstance,
 		msg.CandidateReceipt.Descriptor.ParaID)
+
 	if err != nil {
 		logger.Errorf("getting validation data: %w", err)
 		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
@@ -173,6 +174,16 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 		return
 	}
 
+	if persistedValidationData == nil {
+		badParent := BadParent
+		reason := ValidationResult{
+			InvalidResult: &badParent,
+		}
+		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+			Data: reason,
+		}
+		return
+	}
 	validationTask := &ValidationTask{
 		PersistedValidationData: *persistedValidationData,
 		ValidationCode:          validationCode,
@@ -188,9 +199,33 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 			Err: err,
 		}
-	} else {
+		return
+	}
+	if !result.IsValid() {
 		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 			Data: *result,
 		}
+		return
+	}
+	valid, err := runtimeInstance.ParachainHostCheckValidationOutputs(parachaintypes.ParaID(msg.CandidateReceipt.
+		Descriptor.ParaID), result.ValidResult.CandidateCommitments)
+	if err != nil {
+		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+			Err: fmt.Errorf("check validation outputs: Bad request: %w", err),
+		}
+		return
+	}
+	if !valid {
+		invalidOutput := InvalidOutputs
+		reason := &ValidationResult{
+			InvalidResult: &invalidOutput,
+		}
+		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+			Data: *reason,
+		}
+		return
+	}
+	msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+		Data: *result,
 	}
 }
