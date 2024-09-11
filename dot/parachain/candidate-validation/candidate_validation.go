@@ -7,33 +7,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 
-	"github.com/ChainSafe/gossamer/dot/parachain/pvf"
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/pkg/scale"
-)
-
-var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-candidate-validation"))
-
-var (
-	ErrValidationCodeMismatch   = errors.New("validation code hash does not match")
-	ErrValidationInputOverLimit = errors.New("validation input is over the limit")
 )
 
 // CandidateValidation is a parachain subsystem that validates candidate parachain blocks
 type CandidateValidation struct {
-	wg       sync.WaitGroup
-	stopChan chan struct{}
-
 	SubsystemToOverseer chan<- any
-	OverseerToSubsystem <-chan any
 	BlockState          BlockState
-	pvfHost             *pvf.Host
+	pvfHost             *host // pvfHost is the host for the parachain validation function
 }
 
 type BlockState interface {
@@ -44,16 +29,25 @@ type BlockState interface {
 func NewCandidateValidation(overseerChan chan<- any, blockState BlockState) *CandidateValidation {
 	candidateValidation := CandidateValidation{
 		SubsystemToOverseer: overseerChan,
-		pvfHost:             pvf.NewValidationHost(),
+		pvfHost:             newValidationHost(),
 		BlockState:          blockState,
 	}
 	return &candidateValidation
 }
 
 // Run starts the CandidateValidation subsystem
-func (cv *CandidateValidation) Run(context.Context, <-chan any) {
-	cv.wg.Add(1)
-	go cv.processMessages(&cv.wg)
+func (cv *CandidateValidation) Run(ctx context.Context, overseerToSubsystem <-chan any) {
+	for {
+		select {
+		case msg := <-overseerToSubsystem:
+			cv.processMessage(msg)
+		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
+				logger.Errorf("ctx error: %s\n", err)
+			}
+			return
+		}
+	}
 }
 
 // Name returns the name of the subsystem
@@ -74,64 +68,47 @@ func (*CandidateValidation) ProcessBlockFinalizedSignal(parachaintypes.BlockFina
 }
 
 // Stop stops the CandidateValidation subsystem
-func (cv *CandidateValidation) Stop() {
-	close(cv.stopChan)
-	cv.wg.Wait()
+func (*CandidateValidation) Stop() {
 }
 
-// processMessages processes messages sent to the CandidateValidation subsystem
-func (cv *CandidateValidation) processMessages(wg *sync.WaitGroup) {
-	defer wg.Done()
-	for {
-		select {
-		case msg := <-cv.OverseerToSubsystem:
-			logger.Debugf("received message %v", msg)
-			switch msg := msg.(type) {
-			case ValidateFromChainState:
-				cv.validateFromChainState(msg)
-
-			case ValidateFromExhaustive:
-				validationTask := &pvf.ValidationTask{
-					PersistedValidationData: msg.PersistedValidationData,
-					ValidationCode:          &msg.ValidationCode,
-					CandidateReceipt:        &msg.CandidateReceipt,
-					PoV:                     msg.PoV,
-					ExecutorParams:          msg.ExecutorParams,
-					PvfExecTimeoutKind:      msg.PvfExecTimeoutKind,
-				}
-
-				taskResultChan := cv.pvfHost.Validate(validationTask)
-
-				go func() {
-
-					result := <-taskResultChan
-					if result.InternalError != nil {
-						logger.Errorf("failed to validate from exhaustive: %w", result.InternalError)
-						msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-							Err: result.InternalError,
-						}
-					} else {
-						msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-							Data: *result.Result,
-						}
-					}
-				}()
-			case PreCheck:
-				// TODO: implement functionality to handle PreCheck, see issue #3921
-
-			case parachaintypes.ActiveLeavesUpdateSignal:
-				_ = cv.ProcessActiveLeavesUpdateSignal(msg)
-
-			case parachaintypes.BlockFinalizedSignal:
-				_ = cv.ProcessBlockFinalizedSignal(msg)
-
-			default:
-				logger.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
-			}
-
-		case <-cv.stopChan:
-			return
+// processMessage processes messages sent to the CandidateValidation subsystem
+func (cv *CandidateValidation) processMessage(msg any) {
+	switch msg := msg.(type) {
+	case ValidateFromChainState:
+		cv.validateFromChainState(msg)
+	case ValidateFromExhaustive:
+		validationTask := &ValidationTask{
+			PersistedValidationData: msg.PersistedValidationData,
+			ValidationCode:          &msg.ValidationCode,
+			CandidateReceipt:        &msg.CandidateReceipt,
+			PoV:                     msg.PoV,
+			ExecutorParams:          msg.ExecutorParams,
+			PvfExecTimeoutKind:      msg.PvfExecTimeoutKind,
 		}
+
+		result, err := cv.pvfHost.validate(validationTask)
+		if err != nil {
+			logger.Errorf("failed to validate from exhaustive: %w", err)
+			msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+				Err: err,
+			}
+		} else {
+			msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+				Data: *result,
+			}
+		}
+
+	case PreCheck:
+		panic("TODO: implement functionality to handle PreCheck, see issue #3921")
+
+	case parachaintypes.ActiveLeavesUpdateSignal:
+		_ = cv.ProcessActiveLeavesUpdateSignal(msg)
+
+	case parachaintypes.BlockFinalizedSignal:
+		_ = cv.ProcessBlockFinalizedSignal(msg)
+
+	default:
+		logger.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
 	}
 }
 
@@ -174,84 +151,78 @@ func getValidationData(runtimeInstance parachainruntime.RuntimeInstance, paraID 
 	return nil, nil, fmt.Errorf("getting persisted validation data: %w", mergedError)
 }
 
+// validateFromChainState validates a parachain block from chain state message
 func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState) {
 	runtimeInstance, err := cv.BlockState.GetRuntime(msg.CandidateReceipt.Descriptor.RelayParent)
 	if err != nil {
 		logger.Errorf("getting runtime instance: %w", err)
-		msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-			Err: err,
+		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+			Err: fmt.Errorf("getting runtime instance: %w", err),
 		}
 		return
 	}
 
 	persistedValidationData, validationCode, err := getValidationData(runtimeInstance,
 		msg.CandidateReceipt.Descriptor.ParaID)
+
 	if err != nil {
 		logger.Errorf("getting validation data: %w", err)
-		msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-			Err: err,
+		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+			Err: fmt.Errorf("getting validation data: %w", err),
 		}
 		return
 	}
 
-	validationTask := &pvf.ValidationTask{
+	if persistedValidationData == nil {
+		badParent := BadParent
+		reason := ValidationResult{
+			Invalid: &badParent,
+		}
+		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+			Data: reason,
+		}
+		return
+	}
+	validationTask := &ValidationTask{
 		PersistedValidationData: *persistedValidationData,
 		ValidationCode:          validationCode,
 		CandidateReceipt:        &msg.CandidateReceipt,
 		PoV:                     msg.Pov,
 		ExecutorParams:          msg.ExecutorParams,
-		PvfExecTimeoutKind:      parachaintypes.PvfExecTimeoutKind{},
 	}
 
-	taskResultChan := cv.pvfHost.Validate(validationTask)
-	result := <-taskResultChan
-	if result.InternalError != nil {
-		logger.Errorf("failed to validate from chain state: %w", result.InternalError)
-		msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-			Err: result.InternalError,
+	result, err := cv.pvfHost.validate(validationTask)
+	if err != nil {
+		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+			Err: err,
 		}
-	} else {
-		msg.Ch <- parachaintypes.OverseerFuncRes[pvf.ValidationResult]{
-			Data: *result.Result,
+		return
+	}
+	if !result.IsValid() {
+		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+			Data: *result,
 		}
+		return
 	}
-}
-
-// performBasicChecks Does basic checks of a candidate. Provide the encoded PoV-block.
-// Returns ReasonForInvalidity and internal error if any.
-func performBasicChecks(candidate *parachaintypes.CandidateDescriptor, maxPoVSize uint32,
-	pov parachaintypes.PoV, validationCodeHash parachaintypes.ValidationCodeHash) (validationError *pvf.
-	ReasonForInvalidity, internalError error) {
-	povHash, err := pov.Hash()
+	valid, err := runtimeInstance.ParachainHostCheckValidationOutputs(parachaintypes.ParaID(msg.CandidateReceipt.
+		Descriptor.ParaID), result.Valid.CandidateCommitments)
 	if err != nil {
-		return nil, fmt.Errorf("hashing PoV: %w", err)
+		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+			Err: fmt.Errorf("check validation outputs: Bad request: %w", err),
+		}
+		return
 	}
-
-	encodedPoV, err := scale.Marshal(pov)
-	if err != nil {
-		return nil, fmt.Errorf("encoding PoV: %w", err)
+	if !valid {
+		invalidOutput := InvalidOutputs
+		reason := &ValidationResult{
+			Invalid: &invalidOutput,
+		}
+		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+			Data: *reason,
+		}
+		return
 	}
-	encodedPoVSize := uint32(len(encodedPoV))
-
-	if encodedPoVSize > maxPoVSize {
-		ci := pvf.ParamsTooLarge
-		return &ci, nil
+	msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+		Data: *result,
 	}
-
-	if povHash != candidate.PovHash {
-		ci := pvf.PoVHashMismatch
-		return &ci, nil
-	}
-
-	if validationCodeHash != candidate.ValidationCodeHash {
-		ci := pvf.CodeHashMismatch
-		return &ci, nil
-	}
-
-	err = candidate.CheckCollatorSignature()
-	if err != nil {
-		ci := pvf.BadSignature
-		return &ci, nil
-	}
-	return nil, nil
 }

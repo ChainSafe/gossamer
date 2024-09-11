@@ -89,14 +89,14 @@ func (w *worker) executeRequest(task *workerTask) (*ValidationResult, error) {
 		if validationResultWErr.err != nil {
 			logger.Errorf("executing validate_block: %w", err)
 			reasonForInvalidity := ExecutionError
-			return &ValidationResult{InvalidResult: &reasonForInvalidity}, nil //nolint
+			return &ValidationResult{Invalid: &reasonForInvalidity}, nil //nolint
 		}
 		validationResult = validationResultWErr.result
 
 	case <-time.After(timeoutDuration):
 		logger.Errorf("validation timed out")
 		reasonForInvalidity := Timeout
-		return &ValidationResult{InvalidResult: &reasonForInvalidity}, nil
+		return &ValidationResult{Invalid: &reasonForInvalidity}, nil
 	}
 
 	headDataHash, err := validationResult.HeadData.Hash()

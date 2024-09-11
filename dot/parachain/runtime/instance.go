@@ -91,6 +91,7 @@ func (in *Instance) ValidateBlock(params ValidationParameters) (
 
 // ValidatorInstance
 type ValidatorInstance interface {
+	// ValidateBlock validates a block by calling parachain runtime's validate_block call and returns the result.
 	ValidateBlock(params ValidationParameters) (*ValidationResult, error)
 }
 

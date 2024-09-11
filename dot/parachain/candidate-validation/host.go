@@ -8,21 +8,21 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("pkg", "pvf"), log.SetLevel(log.Debug))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "candidatevalidation"), log.SetLevel(log.Debug))
 
+// host is the struct that holds the workerPool which is responsible for executing the validation tasks
 type host struct {
 	workerPool *workerPool
 }
 
 func newValidationHost() *host {
 	return &host{
-		workerPool: newValidationWorkerPool(),
+		workerPool: newWorkerPool(),
 	}
 }
 
 func (v *host) validate(msg *ValidationTask) (*ValidationResult, error) {
 	validationCodeHash := msg.ValidationCode.Hash()
-	// performBasicChecks
 	validationErr, internalErr := performBasicChecks(&msg.CandidateReceipt.Descriptor,
 		msg.PersistedValidationData.MaxPovSize,
 		msg.PoV,
@@ -32,15 +32,15 @@ func (v *host) validate(msg *ValidationTask) (*ValidationResult, error) {
 		return nil, internalErr
 	}
 	if validationErr != nil {
-		return &ValidationResult{InvalidResult: validationErr}, nil //nolint
+		return &ValidationResult{Invalid: validationErr}, nil //nolint
 	}
 
 	// submit request
 	return v.workerPool.executeRequest(msg)
 }
 
-// performBasicChecks Does basic checks of a candidate. Provide the encoded PoV-block.
-// Returns ReasonForInvalidity and internal error if any.
+// performBasicChecks does basic checks of a candidate. Provided the encoded PoV-block it returns ReasonForInvalidity
+// and internal error if any.
 func performBasicChecks(candidate *parachaintypes.CandidateDescriptor, maxPoVSize uint32,
 	pov parachaintypes.PoV, validationCodeHash parachaintypes.ValidationCodeHash) (
 	validationError *ReasonForInvalidity, internalError error) {
@@ -75,5 +75,6 @@ func performBasicChecks(candidate *parachaintypes.CandidateDescriptor, maxPoVSiz
 		ci := BadSignature
 		return &ci, nil
 	}
+
 	return nil, nil
 }
