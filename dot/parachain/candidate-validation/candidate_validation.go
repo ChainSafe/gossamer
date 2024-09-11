@@ -190,8 +190,6 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 		CandidateReceipt:        &msg.CandidateReceipt,
 		PoV:                     msg.Pov,
 		ExecutorParams:          msg.ExecutorParams,
-		// todo: implement PvfExecTimeoutKind, so that validate can be called with a timeout see issue: #3429
-		PvfExecTimeoutKind: parachaintypes.PvfExecTimeoutKind{},
 	}
 
 	result, err := cv.pvfHost.validate(validationTask)
