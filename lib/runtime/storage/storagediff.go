@@ -141,13 +141,17 @@ func (cs *storageDiff) clearPrefixInChild(keyToChild string, prefix []byte,
 // optional limit. It returns the number of keys deleted and a boolean
 // indicating if all keys with the prefix were removed.
 func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) (deleted uint32, allDeleted bool) {
-	allKeys := slices.Clone(trieKeys)
 	newKeys := maps.Keys(cs.upserts)
-	allKeys = append(allKeys, newKeys...)
+	keysToClear := maps.Keys(cs.upserts)
+	for _, k := range trieKeys {
+		if _, ok := cs.upserts[k]; !ok {
+			keysToClear = append(keysToClear, k)
+		}
+	}
 
 	deleted = 0
-	sort.Strings(allKeys)
-	for _, k := range allKeys {
+	sort.Strings(keysToClear)
+	for _, k := range keysToClear {
 		if limit == 0 {
 			break
 		}
@@ -161,7 +165,7 @@ func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) 
 		}
 	}
 
-	return deleted, deleted == uint32(len(allKeys))
+	return deleted, deleted == uint32(len(keysToClear))
 }
 
 // getFromChild attempts to retrieve a value associated with a specific key
