@@ -10,6 +10,7 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "pvf"), log.SetLevel(log.Debug))
 
+// host is the struct that holds the workerPool which is responsible for executing the validation tasks
 type host struct {
 	workerPool *workerPool
 }

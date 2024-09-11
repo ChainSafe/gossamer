@@ -5,7 +5,6 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
 
-// TODO(ed): figure out a better name for this that describes what it does
 type worker struct {
 	workerID    parachaintypes.ValidationCodeHash
 	instance    *parachainruntime.Instance

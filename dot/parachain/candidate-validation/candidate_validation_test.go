@@ -368,7 +368,6 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 		BlockData: bd,
 	}
 
-	sender := make(chan parachaintypes.OverseerFuncRes[ValidationResult])
 	toSubsystem := make(chan any)
 	candidateValidationSubsystem := CandidateValidation{
 		pvfHost:    newValidationHost(),
@@ -387,7 +386,6 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 			msg: ValidateFromChainState{
 				CandidateReceipt: candidateReceipt2,
 				Pov:              pov,
-				Ch:               sender,
 			},
 			want: &ValidationResult{
 				InvalidResult: &povHashMismatch,
@@ -397,7 +395,6 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 			msg: ValidateFromChainState{
 				CandidateReceipt: candidateReceipt3,
 				Pov:              pov,
-				Ch:               sender,
 			},
 			want: &ValidationResult{
 				InvalidResult: &paramsTooLarge,
@@ -407,7 +404,6 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 			msg: ValidateFromChainState{
 				CandidateReceipt: candidateReceipt4,
 				Pov:              pov,
-				Ch:               sender,
 			},
 			want: &ValidationResult{
 				InvalidResult: &codeHashMismatch,
@@ -417,7 +413,6 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 			msg: ValidateFromChainState{
 				CandidateReceipt: candidateReceipt5,
 				Pov:              pov,
-				Ch:               sender,
 			},
 			want: &ValidationResult{
 				InvalidResult: &badSignature,
@@ -427,7 +422,6 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 			msg: ValidateFromChainState{
 				CandidateReceipt: candidateReceipt,
 				Pov:              pov,
-				Ch:               sender,
 			},
 			want: &ValidationResult{
 				ValidResult: &Valid{
@@ -458,6 +452,9 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 		tt := tt
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+
+			sender := make(chan parachaintypes.OverseerFuncRes[ValidationResult])
+			tt.msg.Ch = sender
 
 			toSubsystem <- tt.msg
 			result := <-sender

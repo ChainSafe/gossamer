@@ -18,7 +18,7 @@ import (
 type CandidateValidation struct {
 	SubsystemToOverseer chan<- any
 	BlockState          BlockState
-	pvfHost             *host
+	pvfHost             *host // pvfHost is the host for the parachain validation function
 }
 
 type BlockState interface {

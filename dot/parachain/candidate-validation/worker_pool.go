@@ -8,8 +8,6 @@ import (
 )
 
 type workerPool struct {
-
-	// todo, make sure other functions work with paraID
 	workers map[parachaintypes.ValidationCodeHash]*worker
 }
 

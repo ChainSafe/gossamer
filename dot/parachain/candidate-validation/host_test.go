@@ -214,6 +214,7 @@ func TestHost_validate(t *testing.T) {
 }
 
 func TestHost_performBasicChecks(t *testing.T) {
+	t.Parallel()
 	paramsTooLarge := ParamsTooLarge
 	povHashMismatch := PoVHashMismatch
 	codeHashMismatch := CodeHashMismatch
@@ -313,9 +314,12 @@ func TestHost_performBasicChecks(t *testing.T) {
 		},
 	}
 	for name, tt := range tests {
+		tt := tt
 		t.Run(name, func(t *testing.T) {
-			validationError, _ := performBasicChecks(tt.args.candidate, tt.args.maxPoVSize, tt.args.pov,
+			t.Parallel()
+			validationError, internalError := performBasicChecks(tt.args.candidate, tt.args.maxPoVSize, tt.args.pov,
 				tt.args.validationCodeHash)
+			require.NoError(t, internalError)
 			if tt.expectedError != nil {
 				require.EqualError(t, validationError, tt.expectedError.Error())
 			} else {
