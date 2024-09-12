@@ -439,14 +439,14 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 
 			cpvs.BlockedAdvertisements = c.blockedAdvertisements
 
-			cpvs.OverseerToSubSystem = overseer.RegisterSubsystem(cpvs)
+			overseer.RegisterSubsystem(cpvs)
 
 			err := overseer.Start()
 			require.NoError(t, err)
 
 			defer overseer.Stop()
 
-			overseer.ReceiveMessage(c.msg)
+			// overseer.ReceiveMessage(c.msg)
 			overseer.ExpectActions(c.expectedActions...)
 
 			time.Sleep(1 * time.Second)

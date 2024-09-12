@@ -382,9 +382,7 @@ type CollatorProtocolValidatorSide struct {
 	Keystore   keystore.Keystore
 
 	SubSystemToOverseer chan<- any
-	OverseerToSubSystem <-chan any
-
-	unfetchedCollation chan UnfetchedCollation
+	unfetchedCollation  chan UnfetchedCollation
 
 	collationFetchingReqResProtocol *network.RequestResponseProtocol
 
