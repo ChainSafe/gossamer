@@ -152,7 +152,6 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 }
 
 func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) error {
-	logger.Info("validating block announce handshake")
 	bhs, ok := hs.(*BlockAnnounceHandshake)
 	if !ok {
 		return errors.New("invalid handshake type")
