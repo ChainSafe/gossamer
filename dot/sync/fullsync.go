@@ -310,6 +310,9 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 	)
 
 	if slices.Contains(f.badBlocks, blockAnnounceHeaderHash.String()) {
+		logger.Infof("bad block receive from %s: #%d (%s) is a bad block",
+			from, blockAnnounceHeader.Number, blockAnnounceHeaderHash)
+
 		return false, &Change{
 			who: from,
 			rep: peerset.ReputationChange{
@@ -319,6 +322,10 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 		}, nil
 	}
 
+	if msg.BestBlock {
+		f.peers.update(from, blockAnnounceHeaderHash, uint32(blockAnnounceHeader.Number))
+	}
+
 	highestFinalized, err := f.blockState.GetHighestFinalisedHeader()
 	if err != nil {
 		return false, nil, fmt.Errorf("get highest finalised header: %w", err)
@@ -326,7 +333,7 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 
 	// check if the announced block is relevant
 	if blockAnnounceHeader.Number <= highestFinalized.Number || f.blockAlreadyTracked(blockAnnounceHeader) {
-		logger.Debugf("announced block irrelevant #%d (%s)", blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
+		logger.Infof("announced block irrelevant #%d (%s)", blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
 		repChange = &Change{
 			who: from,
 			rep: peerset.ReputationChange{
@@ -339,7 +346,7 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 			errPeerOnInvalidFork, from, blockAnnounceHeader.Number, blockAnnounceHeaderHash.String())
 	}
 
-	logger.Debugf("relevant announced block #%d (%s)", blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
+	logger.Infof("relevant announced block #%d (%s)", blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
 	bestBlockHeader, err := f.blockState.BestBlockHeader()
 	if err != nil {
 		return false, nil, fmt.Errorf("get best block header: %w", err)
@@ -348,7 +355,7 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 	// if we still far from aproaching the calculated target
 	// then we can ignore the block announce
 	ratioOfCompleteness := (bestBlockHeader.Number / uint(f.peers.getTarget())) * 100
-	logger.Infof("ratio of completeness: %d", ratioOfCompleteness)
+	logger.Infof("sync: ratio of completeness: %d", ratioOfCompleteness)
 	if ratioOfCompleteness < 80 {
 		return true, nil, nil
 	}

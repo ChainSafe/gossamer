@@ -9,7 +9,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
@@ -153,6 +152,7 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 }
 
 func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) error {
+	logger.Info("validating block announce handshake")
 	bhs, ok := hs.(*BlockAnnounceHandshake)
 	if !ok {
 		return errors.New("invalid handshake type")
@@ -186,33 +186,18 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 		np.peersData.setInboundHandshakeData(from, data)
 	}
 
-	// if peer has higher best block than us, begin syncing
-	latestHeader, err := s.blockState.BestBlockHeader()
-	if err != nil {
-		return err
-	}
-
-	// check if peer block number is greater than host block number
-	if latestHeader.Number >= uint(bhs.BestBlockNumber) {
-		return nil
-	}
-
 	return s.syncer.HandleBlockAnnounceHandshake(from, bhs)
 }
 
 // handleBlockAnnounceMessage handles BlockAnnounce messages
 // if some more blocks are required to sync the announced block, the node will open a sync stream
 // with its peer and send a BlockRequest message
-func (s *Service) handleBlockAnnounceMessage(from peer.ID, msg NotificationsMessage) (propagate bool, err error) {
+func (s *Service) handleBlockAnnounceMessage(from peer.ID, msg NotificationsMessage) (bool, error) {
 	bam, ok := msg.(*BlockAnnounceMessage)
 	if !ok {
 		return false, errors.New("invalid message")
 	}
 
-	err = s.syncer.HandleBlockAnnounce(from, bam)
-	if errors.Is(err, blocktree.ErrBlockExists) {
-		return true, nil
-	}
-
-	return false, err
+	err := s.syncer.HandleBlockAnnounce(from, bam)
+	return true, err
 }

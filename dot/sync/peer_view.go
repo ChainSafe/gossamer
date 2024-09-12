@@ -24,12 +24,6 @@ type peerViewSet struct {
 	target uint32
 }
 
-func (p *peerViewSet) get(peerID peer.ID) peerView {
-	p.mtx.RLock()
-	defer p.mtx.RUnlock()
-	return p.view[peerID]
-}
-
 func (p *peerViewSet) update(peerID peer.ID, bestHash common.Hash, bestNumber uint32) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
@@ -44,6 +38,7 @@ func (p *peerViewSet) update(peerID peer.ID, bestHash common.Hash, bestNumber ui
 		return
 	}
 
+	logger.Infof("updating peer %s view to #%d (%s)", peerID.String(), bestNumber, bestHash.Short())
 	p.view[peerID] = newView
 }
 
@@ -56,10 +51,10 @@ func (p *peerViewSet) getTarget() uint32 {
 		return p.target
 	}
 
-	numbers := make([]uint32, 0, len(p.view))
+	numbers := make([]uint32, len(p.view))
 	// we are going to sort the data and remove the outliers then we will return the avg of all the valid elements
-	for _, view := range maps.Values(p.view) {
-		numbers = append(numbers, view.bestBlockNumber)
+	for idx, view := range maps.Values(p.view) {
+		numbers[idx] = view.bestBlockNumber
 	}
 
 	sum, count := nonOutliersSumCount(numbers)

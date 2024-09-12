@@ -94,7 +94,7 @@ func (u *unreadyBlocks) updateIncompleteBlocks(chain []*types.BlockData) []*type
 
 func (u *unreadyBlocks) isIncomplete(blockHash common.Hash) bool {
 	u.mtx.RLock()
-	defer u.mtx.Lock()
+	defer u.mtx.RUnlock()
 
 	_, ok := u.incompleteBlocks[blockHash]
 	return ok

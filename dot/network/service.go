@@ -787,36 +787,20 @@ func (s *Service) BlockAnnounceHandshake(header *types.Header) error {
 		return ErrNoPeersConnected
 	}
 
+	msg := &BlockAnnounceMessage{
+		ParentHash:     header.ParentHash,
+		Number:         header.Number,
+		StateRoot:      header.StateRoot,
+		ExtrinsicsRoot: header.ExtrinsicsRoot,
+		Digest:         header.Digest,
+		BestBlock:      true,
+	}
+
 	protocol, ok := s.notificationsProtocols[blockAnnounceMsgType]
 	if !ok {
 		panic("block announce message type not found")
 	}
 
-	handshake, err := protocol.getHandshake()
-	if err != nil {
-		return fmt.Errorf("getting handshake: %w", err)
-	}
-
-	wg := sync.WaitGroup{}
-	wg.Add(len(peers))
-	for _, p := range peers {
-		protocol.peersData.setMutex(p)
-
-		go func(p peer.ID) {
-			defer wg.Done()
-			stream, err := s.sendHandshake(p, handshake, protocol)
-			if err != nil {
-				logger.Tracef("sending block announce handshake: %s", err)
-				return
-			}
-
-			response := protocol.peersData.getOutboundHandshakeData(p)
-			if response.received && response.validated {
-				closeOutboundStream(protocol, p, stream)
-			}
-		}(p)
-	}
-
-	wg.Wait()
+	s.broadcastExcluding(protocol, peer.ID(""), msg)
 	return nil
 }

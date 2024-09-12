@@ -132,9 +132,14 @@ func (s *SyncService) waitWorkers() {
 			return
 		}
 
-		err := s.network.BlockAnnounceHandshake(bestBlockHeader)
-		if err != nil && !errors.Is(err, network.ErrNoPeersConnected) {
-			logger.Errorf("retrieving target info from peers: %v", err)
+		err = s.network.BlockAnnounceHandshake(bestBlockHeader)
+		if err != nil {
+			if errors.Is(err, network.ErrNoPeersConnected) {
+				continue
+			}
+
+			logger.Criticalf("waiting workers: %s", err.Error())
+			break
 		}
 
 		select {
@@ -174,18 +179,16 @@ func (s *SyncService) HandleBlockAnnounceHandshake(from peer.ID, msg *network.Bl
 }
 
 func (s *SyncService) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) error {
-	gossip, repChange, err := s.currentStrategy.OnBlockAnnounce(from, msg)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	_, repChange, err := s.currentStrategy.OnBlockAnnounce(from, msg)
 	if err != nil {
 		return fmt.Errorf("while handling block announce: %w", err)
 	}
 
 	if repChange != nil {
 		s.network.ReportPeer(repChange.rep, repChange.who)
-	}
-
-	if gossip {
-		logger.Infof("propagating block announcement #%d excluding %s", msg.Number, from.String())
-		s.network.GossipMessageExcluding(msg, from)
 	}
 
 	return nil
@@ -215,49 +218,54 @@ func (s *SyncService) HighestBlock() uint {
 
 func (s *SyncService) runSyncEngine() {
 	defer s.wg.Done()
-
 	logger.Infof("starting sync engine with strategy: %T", s.currentStrategy)
 
-	for {
-		select {
-		case <-s.stopCh:
-			return
-		default:
-		}
+	goto lockAndStart
 
-		finalisedHeader, err := s.blockState.GetHighestFinalisedHeader()
-		if err != nil {
-			logger.Criticalf("getting highest finalized header: %w", err)
-			return
-		}
+lockAndStart:
+	s.mu.Lock()
+	logger.Info("starting process to acquire more blocks")
 
-		bestBlockHeader, err := s.blockState.BestBlockHeader()
-		if err != nil {
-			logger.Criticalf("getting best block header: %w", err)
-			return
-		}
+	select {
+	case <-s.stopCh:
+		return
+	default:
+	}
 
-		logger.Infof(
-			"🚣 currently syncing, %d peers connected, finalized #%d (%s), best #%d (%s)",
-			len(s.network.AllConnectedPeersIDs()),
-			finalisedHeader.Number,
-			finalisedHeader.Hash().Short(),
-			bestBlockHeader.Number,
-			bestBlockHeader.Hash().Short(),
-		)
+	finalisedHeader, err := s.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		logger.Criticalf("getting highest finalized header: %w", err)
+		return
+	}
 
-		tasks, err := s.currentStrategy.NextActions()
-		if err != nil {
-			logger.Criticalf("current sync strategy next actions failed with: %s", err.Error())
-			return
-		}
+	bestBlockHeader, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		logger.Criticalf("getting best block header: %w", err)
+		return
+	}
 
-		if len(tasks) == 0 {
-			// sleep the amount of one slot and try
-			time.Sleep(s.slotDuration)
-			continue
-		}
+	logger.Infof(
+		"🚣 currently syncing, %d peers connected, finalized #%d (%s), best #%d (%s)",
+		len(s.network.AllConnectedPeersIDs()),
+		finalisedHeader.Number,
+		finalisedHeader.Hash().Short(),
+		bestBlockHeader.Number,
+		bestBlockHeader.Hash().Short(),
+	)
 
+	tasks, err := s.currentStrategy.NextActions()
+	if err != nil {
+		logger.Criticalf("current sync strategy next actions failed with: %s", err.Error())
+		return
+	}
+
+	if len(tasks) == 0 {
+		// sleep the amount of one slot and try
+		time.Sleep(s.slotDuration)
+		goto loopBack
+	}
+
+	{
 		results := s.workerPool.submitRequests(tasks)
 		done, repChanges, peersToIgnore, err := s.currentStrategy.IsFinished(results)
 		if err != nil {
@@ -281,9 +289,12 @@ func (s *SyncService) runSyncEngine() {
 				return
 			}
 
-			s.mu.Lock()
 			s.currentStrategy = s.defaultStrategy
-			s.mu.Unlock()
 		}
 	}
+
+loopBack:
+	logger.Info("finish process to acquire more blocks")
+	s.mu.Unlock()
+	goto lockAndStart
 }

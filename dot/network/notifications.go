@@ -227,9 +227,9 @@ func (s *Service) handleHandshake(info *notificationsProtocol, stream network.St
 
 	logger.Tracef("receiver: sent handshake to peer %s using protocol %s", peer, info.protocolID)
 
-	if err := stream.CloseWrite(); err != nil {
-		return fmt.Errorf("failed to close stream for writing: %s", err)
-	}
+	// if err := stream.CloseWrite(); err != nil {
+	// 	return fmt.Errorf("failed to close stream for writing: %s", err)
+	// }
 
 	return nil
 }
@@ -297,6 +297,12 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		if _, err := s.host.messageCache.put(peer, msg); err != nil {
 			logger.Errorf("failed to add message to cache for peer %s: %w", peer, err)
 			return
+		}
+	}
+
+	if info.protocolID == blockAnnounceID {
+		if err := stream.Close(); err != nil {
+			logger.Errorf("failed to close block announce notification stream: %w", err)
 		}
 	}
 
