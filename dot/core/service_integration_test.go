@@ -209,6 +209,139 @@ func TestHandleChainReorg_NoReorg(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
+	t.Skip() // TODO: tx fails to validate in handleChainReorg() with "Invalid transaction" (#1026)
+	s := NewTestService(t, nil)
+	bs := s.blockState
+
+	parent, err := bs.BestBlockHeader()
+	require.NoError(t, err)
+
+	bestBlockHash := s.blockState.BestBlockHash()
+	rt, err := s.blockState.GetRuntime(bestBlockHash)
+	require.NoError(t, err)
+
+	block1 := BuildBlock(t, rt, parent, nil)
+	bs.StoreRuntime(block1.Header.Hash(), rt)
+	err = bs.AddBlock(block1)
+	require.NoError(t, err)
+
+	block2 := BuildBlock(t, rt, &block1.Header, nil)
+	bs.StoreRuntime(block2.Header.Hash(), rt)
+	err = bs.AddBlock(block2)
+	require.NoError(t, err)
+
+	block3 := BuildBlock(t, rt, &block2.Header, nil)
+	bs.StoreRuntime(block3.Header.Hash(), rt)
+	err = bs.AddBlock(block3)
+	require.NoError(t, err)
+
+	block4 := BuildBlock(t, rt, &block3.Header, nil)
+	bs.StoreRuntime(block4.Header.Hash(), rt)
+	err = bs.AddBlock(block4)
+	require.NoError(t, err)
+
+	block5 := BuildBlock(t, rt, &block4.Header, nil)
+	bs.StoreRuntime(block5.Header.Hash(), rt)
+	err = bs.AddBlock(block5)
+	require.NoError(t, err)
+
+	block31 := BuildBlock(t, rt, &block2.Header, nil)
+	bs.StoreRuntime(block31.Header.Hash(), rt)
+	err = bs.AddBlock(block31)
+	require.NoError(t, err)
+
+	nonce := uint64(0)
+
+	// Add extrinsic to block `block41`
+	ext := createExtrinsic(t, rt, bs.(*state.BlockState).GenesisHash(), nonce)
+
+	block41 := BuildBlock(t, rt, &block31.Header, ext)
+	bs.StoreRuntime(block41.Header.Hash(), rt)
+	err = bs.AddBlock(block41)
+	require.NoError(t, err)
+
+	err = s.handleChainReorg(block41.Header.Hash(), block5.Header.Hash())
+	require.NoError(t, err)
+
+	pending := s.transactionState.(*state.TransactionState).Pending()
+	require.Equal(t, 1, len(pending))
+}
+
+func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, ext types.Extrinsic) *types.Block {
+	digest := types.NewDigest()
+	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
+	require.NoError(t, err)
+	err = digest.Add(*prd)
+	require.NoError(t, err)
+	header := &types.Header{
+		ParentHash: parent.Hash(),
+		Number:     parent.Number + 1,
+		Digest:     digest,
+	}
+
+	err = instance.InitializeBlock(header)
+	require.NoError(t, err)
+
+	idata := types.NewInherentData()
+	err = idata.SetInherent(types.Timstap0, uint64(time.Now().Unix()))
+	require.NoError(t, err)
+
+	err = idata.SetInherent(types.Babeslot, uint64(1))
+	require.NoError(t, err)
+
+	ienc, err := idata.Encode()
+	require.NoError(t, err)
+
+	// Call BlockBuilder_inherent_extrinsics which returns the inherents as encoded extrinsics
+	inherentExts, err := instance.InherentExtrinsics(ienc)
+	require.NoError(t, err)
+
+	// decode inherent extrinsics
+	cp := make([]byte, len(inherentExts))
+	copy(cp, inherentExts)
+	var inExts [][]byte
+	err = scale.Unmarshal(cp, &inExts)
+	require.NoError(t, err)
+
+	// apply each inherent extrinsic
+	for _, inherent := range inExts {
+		in, err := scale.Marshal(inherent)
+		require.NoError(t, err)
+
+		ret, err := instance.ApplyExtrinsic(in)
+		require.NoError(t, err)
+		require.Equal(t, ret, []byte{0, 0})
+	}
+
+	body := types.Body(types.BytesArrayToExtrinsics(inExts))
+
+	if ext != nil {
+		// validate and apply extrinsic
+		var ret []byte
+
+		externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+		_, err = instance.ValidateTransaction(externalExt)
+		require.NoError(t, err)
+
+		ret, err = instance.ApplyExtrinsic(ext)
+		require.NoError(t, err)
+		require.Equal(t, ret, []byte{0, 0})
+
+		body = append(body, ext)
+	}
+
+	res, err := instance.FinalizeBlock()
+	require.NoError(t, err)
+	res.Number = header.Number
+	res.Hash()
+
+	return &types.Block{
+		Header: *res,
+		Body:   body,
+	}
+}
+
 func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
 	s := NewTestService(t, nil)
 	const height = 5
