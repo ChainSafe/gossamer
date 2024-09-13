@@ -5,9 +5,10 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
 
+// worker is the thing that can execute a validation request
 type worker struct {
 	workerID    parachaintypes.ValidationCodeHash
-	instance    *parachainruntime.Instance
+	instance    parachainruntime.ValidatorInstance
 	isProcessed map[parachaintypes.CandidateHash]*ValidationResult
 }
 
@@ -18,14 +19,15 @@ type workerTask struct {
 }
 
 func newWorker(validationCode parachaintypes.ValidationCode) (*worker, error) {
-	validationRuntime, err := parachainruntime.SetupVM(validationCode)
+	parachainRuntime, err := parachainruntime.SetupVM(validationCode)
 
 	if err != nil {
 		return nil, err
 	}
+
 	return &worker{
 		workerID:    validationCode.Hash(),
-		instance:    validationRuntime,
+		instance:    parachainRuntime,
 		isProcessed: make(map[parachaintypes.CandidateHash]*ValidationResult),
 	}, nil
 }
@@ -37,7 +39,6 @@ func (w *worker) executeRequest(task *workerTask) (*ValidationResult, error) {
 		return nil, err
 	}
 
-	// do isProcessed check here
 	if processed, ok := w.isProcessed[candidateHash]; ok {
 		logger.Debugf("candidate %x already processed", candidateHash)
 		return processed, nil
@@ -46,19 +47,19 @@ func (w *worker) executeRequest(task *workerTask) (*ValidationResult, error) {
 	if err != nil {
 		logger.Errorf("executing validate_block: %w", err)
 		reasonForInvalidity := ExecutionError
-		return &ValidationResult{InvalidResult: &reasonForInvalidity}, nil
+		return &ValidationResult{Invalid: &reasonForInvalidity}, nil
 	}
 
 	headDataHash, err := validationResult.HeadData.Hash()
 	if err != nil {
 		logger.Errorf("hashing head data: %w", err)
 		reasonForInvalidity := ExecutionError
-		return &ValidationResult{InvalidResult: &reasonForInvalidity}, nil
+		return &ValidationResult{Invalid: &reasonForInvalidity}, nil
 	}
 
 	if headDataHash != task.candidateReceipt.Descriptor.ParaHead {
 		reasonForInvalidity := ParaHeadHashMismatch
-		return &ValidationResult{InvalidResult: &reasonForInvalidity}, nil
+		return &ValidationResult{Invalid: &reasonForInvalidity}, nil
 	}
 	candidateCommitments := parachaintypes.CandidateCommitments{
 		UpwardMessages:            validationResult.UpwardMessages,
@@ -72,7 +73,7 @@ func (w *worker) executeRequest(task *workerTask) (*ValidationResult, error) {
 	// if validation produced a new set of commitments, we treat the candidate as invalid
 	if task.candidateReceipt.CommitmentsHash != candidateCommitments.Hash() {
 		reasonForInvalidity := CommitmentsHashMismatch
-		return &ValidationResult{InvalidResult: &reasonForInvalidity}, nil
+		return &ValidationResult{Invalid: &reasonForInvalidity}, nil
 	}
 	pvd := parachaintypes.PersistedValidationData{
 		ParentHead:             task.work.ParentHeadData,
@@ -81,7 +82,7 @@ func (w *worker) executeRequest(task *workerTask) (*ValidationResult, error) {
 		MaxPovSize:             task.maxPoVSize,
 	}
 	result := &ValidationResult{
-		ValidResult: &Valid{
+		Valid: &Valid{
 			CandidateCommitments:    candidateCommitments,
 			PersistedValidationData: pvd,
 		},

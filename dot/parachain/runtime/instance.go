@@ -89,6 +89,11 @@ func (in *Instance) ValidateBlock(params ValidationParameters) (
 	return &validationResult, nil
 }
 
+// ValidatorInstance for candidate validation methods
+type ValidatorInstance interface {
+	ValidateBlock(params ValidationParameters) (*ValidationResult, error)
+}
+
 // RuntimeInstance for runtime methods
 type RuntimeInstance interface {
 	ParachainHostPersistedValidationData(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,

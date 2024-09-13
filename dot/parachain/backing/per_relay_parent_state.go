@@ -340,8 +340,8 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 			bgValidationResult = backgroundValidationResult{
 				outputs: &backgroundValidationOutputs{
 					candidateReceipt:        candidateReceipt,
-					candidateCommitments:    validationResultRes.Data.ValidResult.CandidateCommitments,
-					persistedValidationData: validationResultRes.Data.ValidResult.PersistedValidationData,
+					candidateCommitments:    validationResultRes.Data.Valid.CandidateCommitments,
+					persistedValidationData: validationResultRes.Data.Valid.PersistedValidationData,
 				},
 				candidate: nil,
 				err:       nil,
@@ -358,11 +358,11 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		}
 
 	} else { // Invalid
-		logger.Error(validationResultRes.Data.InvalidResult.Error())
+		logger.Error(validationResultRes.Data.Invalid.Error())
 		bgValidationResult = backgroundValidationResult{
 			outputs:   nil,
 			candidate: &candidateReceipt,
-			err:       fmt.Errorf(validationResultRes.Data.InvalidResult.Error()),
+			err:       fmt.Errorf(validationResultRes.Data.Invalid.Error()),
 		}
 	}
 

@@ -22,20 +22,18 @@ type ValidationTask struct {
 }
 
 // ValidationResult represents the result coming from the candidate validation subsystem.
-// Validation results can be either a Valid or InvalidValidationResult.
+// Validation results can be either valid or invalid.
 //
-// If the result is invalid,
-// store the reason for invalidity in the InvalidResult field of ValidationResult.
+// If the result is invalid, store the reason for invalidity.
 //
-// If the result is valid,
-// set the values of the ValidResult field of Valid.
+// If the result is valid, store persisted validation data and candidate commitments.
 type ValidationResult struct {
-	ValidResult   *Valid
-	InvalidResult *ReasonForInvalidity
+	Valid   *Valid
+	Invalid *ReasonForInvalidity
 }
 
 func (vr ValidationResult) IsValid() bool {
-	return vr.ValidResult != nil
+	return vr.Valid != nil
 }
 
 type Valid struct {
@@ -107,20 +105,23 @@ func (ci ReasonForInvalidity) Error() string {
 	}
 }
 
-func newValidationWorkerPool() *workerPool {
+func newWorkerPool() *workerPool {
 	return &workerPool{
 		workers: make(map[parachaintypes.ValidationCodeHash]*worker),
 	}
 }
 
-func (v *workerPool) newValidationWorker(validationCode parachaintypes.ValidationCode) error {
+func (v *workerPool) addNewWorker(validationCode parachaintypes.ValidationCode) error {
+	workerID := validationCode.Hash()
+	if !v.containsWorker(workerID) {
+		worker, err := newWorker(validationCode)
+		if err != nil {
+			return fmt.Errorf("failed to create a new worker: %w", err)
+		}
 
-	worker, err := newWorker(validationCode)
-	if err != nil {
-		return fmt.Errorf("failed to create a new worker: %w", err)
+		v.workers[workerID] = worker
+
 	}
-
-	v.workers[worker.workerID] = worker
 
 	return nil
 }
@@ -133,7 +134,7 @@ func (v *workerPool) executeRequest(msg *ValidationTask) (*ValidationResult, err
 
 	// create worker if not in pool
 	if !v.containsWorker(validationCodeHash) {
-		err := v.newValidationWorker(*msg.ValidationCode)
+		err := v.addNewWorker(*msg.ValidationCode)
 		if err != nil {
 			return nil, err
 		}

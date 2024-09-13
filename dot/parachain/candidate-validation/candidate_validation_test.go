@@ -164,7 +164,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 			},
 			want: parachaintypes.OverseerFuncRes[ValidationResult]{
 				Data: ValidationResult{
-					InvalidResult: &povHashMismatch,
+					Invalid: &povHashMismatch,
 				},
 				Err: nil,
 			},
@@ -184,7 +184,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 			},
 			want: parachaintypes.OverseerFuncRes[ValidationResult]{
 				Data: ValidationResult{
-					InvalidResult: &paramsTooLarge,
+					Invalid: &paramsTooLarge,
 				},
 			},
 		},
@@ -203,7 +203,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 			},
 			want: parachaintypes.OverseerFuncRes[ValidationResult]{
 				Data: ValidationResult{
-					InvalidResult: &codeHashMismatch,
+					Invalid: &codeHashMismatch,
 				},
 			},
 		},
@@ -222,7 +222,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 			},
 			want: parachaintypes.OverseerFuncRes[ValidationResult]{
 				Data: ValidationResult{
-					ValidResult: &Valid{
+					Valid: &Valid{
 						CandidateCommitments: parachaintypes.CandidateCommitments{
 							HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123,
 								207, 206, 8, 219, 227, 136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245,
@@ -388,7 +388,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Pov:              pov,
 			},
 			want: &ValidationResult{
-				InvalidResult: &povHashMismatch,
+				Invalid: &povHashMismatch,
 			},
 		},
 		"invalid_pov_size": {
@@ -397,7 +397,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Pov:              pov,
 			},
 			want: &ValidationResult{
-				InvalidResult: &paramsTooLarge,
+				Invalid: &paramsTooLarge,
 			},
 		},
 		"code_mismatch": {
@@ -406,7 +406,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Pov:              pov,
 			},
 			want: &ValidationResult{
-				InvalidResult: &codeHashMismatch,
+				Invalid: &codeHashMismatch,
 			},
 		},
 		"bad_signature": {
@@ -415,7 +415,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Pov:              pov,
 			},
 			want: &ValidationResult{
-				InvalidResult: &badSignature,
+				Invalid: &badSignature,
 			},
 		},
 		"happy_path": {
@@ -424,7 +424,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Pov:              pov,
 			},
 			want: &ValidationResult{
-				ValidResult: &Valid{
+				Valid: &Valid{
 					CandidateCommitments: parachaintypes.CandidateCommitments{
 						HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123, 207, 206, 8, 219, 227,
 							136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245, 59, 106, 76, 168, 122, 109,

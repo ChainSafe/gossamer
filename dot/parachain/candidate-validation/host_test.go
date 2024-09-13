@@ -74,7 +74,7 @@ func TestHost_validate(t *testing.T) {
 				ValidationCode:     &validationCode,
 			},
 			want: &ValidationResult{
-				InvalidResult: &povHashMismatch,
+				Invalid: &povHashMismatch,
 			},
 			isValid: false,
 		},
@@ -91,7 +91,7 @@ func TestHost_validate(t *testing.T) {
 				PoV:              pov,
 			},
 			want: &ValidationResult{
-				InvalidResult: &paramsTooLarge,
+				Invalid: &paramsTooLarge,
 			},
 		},
 		"code_mismatch": {
@@ -107,7 +107,7 @@ func TestHost_validate(t *testing.T) {
 				PoV:              pov,
 			},
 			want: &ValidationResult{
-				InvalidResult: &codeHashMismatch,
+				Invalid: &codeHashMismatch,
 			},
 			isValid: false,
 		},
@@ -121,7 +121,7 @@ func TestHost_validate(t *testing.T) {
 				PoV:              pov,
 			},
 			want: &ValidationResult{
-				InvalidResult: &executionError,
+				Invalid: &executionError,
 			},
 		},
 		"para_head_hash_mismatch": {
@@ -137,7 +137,7 @@ func TestHost_validate(t *testing.T) {
 				PoV:              pov,
 			},
 			want: &ValidationResult{
-				InvalidResult: &paraHedHashMismatch,
+				Invalid: &paraHedHashMismatch,
 			},
 			isValid: false,
 		},
@@ -154,7 +154,7 @@ func TestHost_validate(t *testing.T) {
 				PoV:              pov,
 			},
 			want: &ValidationResult{
-				InvalidResult: &commitmentsHashMismatch,
+				Invalid: &commitmentsHashMismatch,
 			},
 			isValid: false,
 		},
@@ -171,7 +171,7 @@ func TestHost_validate(t *testing.T) {
 				PoV:              pov,
 			},
 			want: &ValidationResult{
-				ValidResult: &Valid{
+				Valid: &Valid{
 					CandidateCommitments: parachaintypes.CandidateCommitments{
 						UpwardMessages:     nil,
 						HorizontalMessages: nil,
@@ -323,7 +323,7 @@ func TestHost_performBasicChecks(t *testing.T) {
 			if tt.expectedError != nil {
 				require.EqualError(t, validationError, tt.expectedError.Error())
 			} else {
-				require.Nil(t, validationError)
+				require.NoError(t, validationError)
 			}
 		})
 	}
