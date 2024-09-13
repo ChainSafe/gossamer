@@ -80,7 +80,7 @@ func NewAscendingBlockRequests(startNumber, targetNumber uint32, requestedData b
 	diff := targetNumber - (startNumber - 1)
 
 	// start and end block are the same, just request 1 block
-	if diff == 0 {
+	if diff == 1 {
 		return []*BlockRequestMessage{
 			NewBlockRequest(*variadic.Uint32OrHashFrom(startNumber), 1, requestedData, Ascending),
 		}

@@ -69,7 +69,7 @@ func TestFullSyncNextActions(t *testing.T) {
 		task, err := fs.NextActions()
 		require.NoError(t, err)
 
-		require.Len(t, task, 1)
+		require.Len(t, task, int(maxRequestsAllowed))
 		request := task[0].request.(*messages.BlockRequestMessage)
 		require.Equal(t, uint32(1), request.StartingBlock.Uint32())
 		require.Equal(t, uint32(128), *request.Max)
@@ -85,51 +85,61 @@ func TestFullSyncNextActions(t *testing.T) {
 			expectedQueueLen  int
 			expectedTasks     []*messages.BlockRequestMessage
 		}{
-			"should_have_one_from_request_queue": {
+			"should_get_all_from_request_queue": {
 				setupRequestQueue: func(t *testing.T) *requestsQueue[*messages.BlockRequestMessage] {
-					request := messages.NewAscendingBlockRequests(
-						129, 129+127,
-						messages.BootstrapRequestData)
+					// insert a task to retrieve the block body of a single block
+					request := messages.NewAscendingBlockRequests(129, 129, messages.RequestedDataBody)
 					require.Len(t, request, 1)
 
 					rq := &requestsQueue[*messages.BlockRequestMessage]{queue: list.New()}
-					for _, req := range request {
-						rq.PushBack(req)
-					}
+					rq.PushBack(request[0])
 					return rq
 				},
 				expectedQueueLen: 0,
 				expectedTasks: []*messages.BlockRequestMessage{
 					{
-						RequestedData: messages.BootstrapRequestData,
+						RequestedData: messages.RequestedDataBody,
 						StartingBlock: *variadic.Uint32OrHashFrom(uint32(129)),
 						Direction:     messages.Ascending,
-						Max:           refTo(128),
+						Max:           refTo(1),
+					},
+					{
+						RequestedData: messages.BootstrapRequestData,
+						StartingBlock: *variadic.Uint32OrHashFrom(uint32(1)),
+						Direction:     messages.Ascending,
+						Max:           refTo(127),
 					},
 				},
 			},
-			// creating a amount of 4 requests, but since we have a max num of
-			// request set to 2 (see FullSyncConfig) we should only have 2 tasks
-			"four_items_on_queue_should_pop_only_one": {
+			"should_remain_1_in_request_queue": {
 				setupRequestQueue: func(t *testing.T) *requestsQueue[*messages.BlockRequestMessage] {
-					request := messages.NewAscendingBlockRequests(
-						129, 129+(4*127),
-						messages.BootstrapRequestData)
-					require.Len(t, request, 4)
-
 					rq := &requestsQueue[*messages.BlockRequestMessage]{queue: list.New()}
-					for _, req := range request {
-						rq.PushBack(req)
-					}
+
+					fstReqByHash := messages.NewBlockRequest(
+						*variadic.Uint32OrHashFrom(common.BytesToHash([]byte{0, 1, 1, 2})),
+						1, messages.RequestedDataBody, messages.Ascending)
+					rq.PushBack(fstReqByHash)
+
+					sndReqByHash := messages.NewBlockRequest(
+						*variadic.Uint32OrHashFrom(common.BytesToHash([]byte{1, 2, 2, 4})),
+						1, messages.RequestedDataBody, messages.Ascending)
+					rq.PushBack(sndReqByHash)
+
 					return rq
 				},
-				expectedQueueLen: 3,
+				expectedQueueLen: 1,
 				expectedTasks: []*messages.BlockRequestMessage{
 					{
-						RequestedData: messages.BootstrapRequestData,
-						StartingBlock: *variadic.Uint32OrHashFrom(uint32(129)),
+						RequestedData: messages.RequestedDataBody,
+						StartingBlock: *variadic.Uint32OrHashFrom(common.BytesToHash([]byte{0, 1, 1, 2})),
 						Direction:     messages.Ascending,
-						Max:           refTo(128),
+						Max:           refTo(1),
+					},
+					{
+						RequestedData: messages.BootstrapRequestData,
+						StartingBlock: *variadic.Uint32OrHashFrom(uint32(1)),
+						Direction:     messages.Ascending,
+						Max:           refTo(127),
 					},
 				},
 			},
@@ -140,6 +150,14 @@ func TestFullSyncNextActions(t *testing.T) {
 			t.Run(tname, func(t *testing.T) {
 				fs := NewFullSyncStrategy(&FullSyncConfig{})
 				fs.requestQueue = tt.setupRequestQueue(t)
+				fs.numOfTasks = 1
+
+				ctrl := gomock.NewController(t)
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().
+					BestBlockHeader().
+					Return(&types.Header{Number: 0}, nil)
+				fs.blockState = mockBlockState
 
 				// introduce a peer and a target
 				err := fs.OnBlockAnnounceHandshake(peer.ID("peer-A"), &network.BlockAnnounceHandshake{

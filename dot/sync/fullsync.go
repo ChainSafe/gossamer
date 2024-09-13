@@ -99,12 +99,14 @@ func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 	f.startedAt = time.Now()
 	f.syncedBlocks = 0
 
-	messagesToSend := []*messages.BlockRequestMessage{}
-	for f.requestQueue.Len() > 0 {
+	reqsFromQueue := []*messages.BlockRequestMessage{}
+	for i := 0; i < int(f.numOfTasks); i++ {
 		msg, ok := f.requestQueue.PopFront()
-		if ok {
-			messagesToSend = append(messagesToSend, msg)
+		if !ok {
+			break
 		}
+
+		reqsFromQueue = append(reqsFromQueue, msg)
 	}
 
 	currentTarget := f.peers.getTarget()
@@ -117,11 +119,11 @@ func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 	// in the node's pov we are not legging behind so there's nothing to do
 	// or we didn't receive block announces, so lets ask for more blocks
 	if uint32(bestBlockHeader.Number) >= currentTarget {
-		return f.createTasks(messagesToSend), nil
+		return f.createTasks(reqsFromQueue), nil
 	}
 
 	startRequestAt := bestBlockHeader.Number + 1
-	targetBlockNumber := startRequestAt + maxRequestsAllowed*127
+	targetBlockNumber := startRequestAt + uint(f.numOfTasks)*127
 
 	if targetBlockNumber > uint(currentTarget) {
 		targetBlockNumber = uint(currentTarget)
@@ -130,8 +132,9 @@ func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 	ascendingBlockRequests := messages.NewAscendingBlockRequests(
 		uint32(startRequestAt), uint32(targetBlockNumber),
 		messages.BootstrapRequestData)
+	reqsFromQueue = append(reqsFromQueue, ascendingBlockRequests...)
 
-	return f.createTasks(ascendingBlockRequests), nil
+	return f.createTasks(reqsFromQueue), nil
 }
 
 func (f *FullSyncStrategy) createTasks(requests []*messages.BlockRequestMessage) []*syncTask {
