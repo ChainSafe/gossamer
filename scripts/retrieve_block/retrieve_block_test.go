@@ -20,7 +20,7 @@ func TestBuildRequestMessage(t *testing.T) {
 		{
 			arg: "10",
 			expected: messages.NewBlockRequest(
-				*variadic.Uint32OrHashFrom(uint(10)), 1,
+				*variadic.Uint32OrHashFrom(uint32(10)), 1,
 				messages.BootstrapRequestData, messages.Ascending),
 		},
 		{
@@ -37,7 +37,7 @@ func TestBuildRequestMessage(t *testing.T) {
 		},
 		{
 			arg: "1,asc,20",
-			expected: messages.NewBlockRequest(*variadic.Uint32OrHashFrom(uint(1)),
+			expected: messages.NewBlockRequest(*variadic.Uint32OrHashFrom(uint32(1)),
 				20, messages.BootstrapRequestData, messages.Ascending),
 		},
 		{
@@ -48,7 +48,7 @@ func TestBuildRequestMessage(t *testing.T) {
 		},
 		{
 			arg: "1,desc,20",
-			expected: messages.NewBlockRequest(*variadic.Uint32OrHashFrom(uint(1)),
+			expected: messages.NewBlockRequest(*variadic.Uint32OrHashFrom(uint32(1)),
 				20, messages.BootstrapRequestData, messages.Descending),
 		},
 	}
