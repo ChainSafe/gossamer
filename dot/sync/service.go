@@ -220,8 +220,6 @@ func (s *SyncService) runSyncEngine() {
 	defer s.wg.Done()
 	logger.Infof("starting sync engine with strategy: %T", s.currentStrategy)
 
-	goto lockAndStart
-
 lockAndStart:
 	s.mu.Lock()
 	logger.Info("starting process to acquire more blocks")
