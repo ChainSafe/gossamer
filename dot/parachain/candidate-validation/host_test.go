@@ -1,7 +1,6 @@
 package candidatevalidation
 
 import (
-	"fmt"
 	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -324,7 +323,6 @@ func TestHost_performBasicChecks(t *testing.T) {
 			if tt.expectedError != nil {
 				require.EqualError(t, validationError, tt.expectedError.Error())
 			} else {
-				fmt.Printf("validationError: %v\n", validationError)
 				require.Nil(t, validationError)
 			}
 		})
