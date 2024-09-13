@@ -138,29 +138,25 @@ func (u *unreadyBlocks) removeIrrelevantFragments(finalisedNumber uint) {
 		return value.Header.Number <= finalisedNumber
 	})
 
-	idxsToRemove := make([]int, 0, len(u.disjointFragments))
-	for fragmentIdx, fragment := range u.disjointFragments {
+	fragmentIdx := 0
+	for _, fragment := range u.disjointFragments {
 		// the fragments are sorted in ascending order
 		// starting from the latest item and going backwards
 		// we have a higher chance to find the idx that has
 		// a block with number lower or equal the finalised one
 		idx := len(fragment) - 1
-		for idx >= 0 {
+		for ; idx >= 0; idx-- {
 			if fragment[idx].Header.Number <= finalisedNumber {
 				break
 			}
-			idx--
 		}
 
 		updatedFragment := fragment[idx+1:]
-		if len(updatedFragment) == 0 {
-			idxsToRemove = append(idxsToRemove, fragmentIdx)
-		} else {
+		if len(updatedFragment) != 0 {
 			u.disjointFragments[fragmentIdx] = updatedFragment
+			fragmentIdx++
 		}
 	}
 
-	for _, idx := range idxsToRemove {
-		u.disjointFragments = append(u.disjointFragments[:idx], u.disjointFragments[idx+1:]...)
-	}
+	u.disjointFragments = u.disjointFragments[:fragmentIdx]
 }

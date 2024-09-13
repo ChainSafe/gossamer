@@ -692,16 +692,16 @@ func (mr *MockNetworkMockRecorder) GetRequestResponseProtocol(arg0, arg1, arg2 a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRequestResponseProtocol", reflect.TypeOf((*MockNetwork)(nil).GetRequestResponseProtocol), arg0, arg1, arg2)
 }
 
-// GossipMessage mocks base method.
-func (m *MockNetwork) GossipMessage(arg0 network.NotificationsMessage) {
+// GossipMessageExcluding mocks base method.
+func (m *MockNetwork) GossipMessageExcluding(arg0 network.NotificationsMessage, arg1 peer.ID) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "GossipMessage", arg0)
+	m.ctrl.Call(m, "GossipMessageExcluding", arg0, arg1)
 }
 
-// GossipMessage indicates an expected call of GossipMessage.
-func (mr *MockNetworkMockRecorder) GossipMessage(arg0 any) *gomock.Call {
+// GossipMessageExcluding indicates an expected call of GossipMessageExcluding.
+func (mr *MockNetworkMockRecorder) GossipMessageExcluding(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GossipMessage", reflect.TypeOf((*MockNetwork)(nil).GossipMessage), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GossipMessageExcluding", reflect.TypeOf((*MockNetwork)(nil).GossipMessageExcluding), arg0, arg1)
 }
 
 // ReportPeer mocks base method.

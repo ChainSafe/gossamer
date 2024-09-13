@@ -118,7 +118,6 @@ func main() {
 
 	protocolID := protocol.ID(fmt.Sprintf("/%s/sync/2", chain.ProtocolID))
 	for _, bootnodesAddr := range bootnodes {
-		log.Println("connecting...")
 		err := p2pHost.Connect(ctx, bootnodesAddr)
 		if err != nil {
 			log.Printf("fail with: %s\n", err.Error())
