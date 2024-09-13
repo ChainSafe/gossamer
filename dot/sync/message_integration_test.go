@@ -129,10 +129,11 @@ func newFullSyncService(t *testing.T) *SyncService {
 	mockBabeVerifier.EXPECT().VerifyBlock(gomock.AssignableToTypeOf(&types.Header{})).AnyTimes()
 
 	mockFinalityGadget := NewMockFinalityGadget(ctrl)
-	mockFinalityGadget.EXPECT().VerifyBlockJustification(gomock.AssignableToTypeOf(common.Hash{}),
-		gomock.AssignableToTypeOf([]byte{})).DoAndReturn(func(hash common.Hash, justification []byte) error {
-		return nil
-	}).AnyTimes()
+	mockFinalityGadget.EXPECT().
+		VerifyBlockJustification(gomock.AssignableToTypeOf(common.Hash{}),
+			gomock.AssignableToTypeOf(uint(0)), gomock.AssignableToTypeOf([]byte{})).
+		Return(uint64(1), uint64(1), nil).
+		AnyTimes()
 
 	mockNetwork := NewMockNetwork(ctrl)
 

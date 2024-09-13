@@ -18,6 +18,7 @@ import (
 	network "github.com/ChainSafe/gossamer/dot/network"
 	rpc "github.com/ChainSafe/gossamer/dot/rpc"
 	state "github.com/ChainSafe/gossamer/dot/state"
+	sync "github.com/ChainSafe/gossamer/dot/sync"
 	system "github.com/ChainSafe/gossamer/dot/system"
 	types "github.com/ChainSafe/gossamer/dot/types"
 	babe "github.com/ChainSafe/gossamer/lib/babe"
@@ -228,11 +229,7 @@ func (mr *MocknodeBuilderIfaceMockRecorder) loadRuntime(config, ns, stateSrvc, k
 }
 
 // newSyncService mocks base method.
-<<<<<<< HEAD
-func (m *MocknodeBuilderIface) newSyncService(config *config.Config, st *state.Service, finalityGadget BlockJustificationVerifier, verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer Telemetry) (network.Syncer, error) {
-=======
-func (m *MocknodeBuilderIface) newSyncService(config *config.Config, st *state.Service, finalityGadget sync.FinalityGadget, verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer Telemetry) (*sync.Service, error) {
->>>>>>> development
+func (m *MocknodeBuilderIface) newSyncService(config *config.Config, st *state.Service, finalityGadget sync.FinalityGadget, verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer Telemetry) (network.Syncer, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "newSyncService", config, st, finalityGadget, verifier, cs, net, telemetryMailer)
 	ret0, _ := ret[0].(network.Syncer)

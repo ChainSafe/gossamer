@@ -41,7 +41,7 @@ type (
 
 	// FinalityGadget implements justification verification functionality
 	FinalityGadget interface {
-		VerifyBlockJustification(common.Hash, []byte) error
+		VerifyBlockJustification(common.Hash, uint, []byte) (round uint64, setID uint64, err error)
 	}
 
 	// BlockImportHandler is the interface for the handler of newly imported blocks
@@ -94,9 +94,23 @@ func (b *blockImporter) handle(bd *types.BlockData, origin BlockOrigin) (importe
 // processBlockData processes the BlockData from a BlockResponse and
 // returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
-// TODO: https://github.com/ChainSafe/gossamer/issues/3468
 func (b *blockImporter) processBlockData(blockData types.BlockData, origin BlockOrigin) error {
 	if blockData.Header != nil {
+		var (
+			hasJustification = blockData.Justification != nil && len(*blockData.Justification) > 0
+			round            uint64
+			setID            uint64
+		)
+
+		if hasJustification {
+			var err error
+			round, setID, err = b.finalityGadget.VerifyBlockJustification(
+				blockData.Header.Hash(), blockData.Header.Number, *blockData.Justification)
+			if err != nil {
+				return fmt.Errorf("verifying justification: %w", err)
+			}
+		}
+
 		if blockData.Body != nil {
 			err := b.processBlockDataWithHeaderAndBody(blockData, origin)
 			if err != nil {
@@ -104,14 +118,20 @@ func (b *blockImporter) processBlockData(blockData types.BlockData, origin Block
 			}
 		}
 
-		if blockData.Justification != nil && len(*blockData.Justification) > 0 {
-			err := b.handleJustification(blockData.Header, *blockData.Justification)
+		if hasJustification {
+			header := blockData.Header
+			err := b.blockState.SetFinalisedHash(header.Hash(), round, setID)
 			if err != nil {
-				return fmt.Errorf("handling justification: %w", err)
+				return fmt.Errorf("setting finalised hash: %w", err)
 			}
+			err = b.blockState.SetJustification(header.Hash(), *blockData.Justification)
+			if err != nil {
+				return fmt.Errorf("setting justification for block number %d: %w", header.Number, err)
+			}
+
+			return nil
 		}
 	}
-
 	err := b.blockState.CompareAndSetBlockData(&blockData)
 	if err != nil {
 		return fmt.Errorf("comparing and setting block data: %w", err)
@@ -193,21 +213,6 @@ func (b *blockImporter) handleBlock(block *types.Block) error {
 		&blockHash,
 		block.Header.Number,
 		"NetworkInitialSync"))
-
-	return nil
-}
-
-func (b *blockImporter) handleJustification(header *types.Header, justification []byte) (err error) {
-	headerHash := header.Hash()
-	err = b.finalityGadget.VerifyBlockJustification(headerHash, justification)
-	if err != nil {
-		return fmt.Errorf("verifying block number %d justification: %w", header.Number, err)
-	}
-
-	err = b.blockState.SetJustification(headerHash, justification)
-	if err != nil {
-		return fmt.Errorf("setting justification for block number %d: %w", header.Number, err)
-	}
 
 	return nil
 }
