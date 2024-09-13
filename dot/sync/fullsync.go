@@ -354,7 +354,9 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 
 	has, err := f.blockState.HasHeader(blockAnnounceHeaderHash)
 	if err != nil {
-		return false, nil, fmt.Errorf("checking if header exists: %w", err)
+		if !errors.Is(err, database.ErrNotFound) {
+			return false, nil, fmt.Errorf("checking if header exists: %w", err)
+		}
 	}
 
 	if !has {
