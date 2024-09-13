@@ -17,6 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	rpc "github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -373,7 +374,7 @@ func Test_nodeBuilder_newSyncService(t *testing.T) {
 	require.NoError(t, err)
 
 	type args struct {
-		fg              BlockJustificationVerifier
+		fg              sync.FinalityGadget
 		verifier        *babe.VerificationManager
 		cs              *core.Service
 		net             *network.Service

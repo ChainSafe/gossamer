@@ -15,7 +15,7 @@ require (
 	github.com/ethereum/go-ethereum v1.14.8
 	github.com/fatih/color v1.17.0
 	github.com/gammazero/deque v0.2.1
-	github.com/go-playground/validator/v10 v10.22.0
+	github.com/go-playground/validator/v10 v10.22.1
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
@@ -32,7 +32,7 @@ require (
 	github.com/minio/sha256-simd v1.0.1
 	github.com/multiformats/go-multiaddr v0.13.0
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
-	github.com/prometheus/client_golang v1.20.2
+	github.com/prometheus/client_golang v1.20.3
 	github.com/prometheus/client_model v0.6.1
 	github.com/qdm12/gotree v0.2.0
 	github.com/spf13/cobra v1.8.1
@@ -40,10 +40,11 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/tetratelabs/wazero v1.1.0
 	github.com/tidwall/btree v1.7.0
+	github.com/tyler-smith/go-bip39 v1.1.0
 	go.uber.org/mock v0.4.0
-	golang.org/x/crypto v0.26.0
+	golang.org/x/crypto v0.27.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
-	golang.org/x/term v0.23.0
+	golang.org/x/term v0.24.0
 	google.golang.org/protobuf v1.34.2
 )
 
@@ -208,8 +209,8 @@ require (
 	golang.org/x/mod v0.19.0 // indirect
 	golang.org/x/net v0.27.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.23.0 // indirect
-	golang.org/x/text v0.17.0 // indirect
+	golang.org/x/sys v0.25.0 // indirect
+	golang.org/x/text v0.18.0 // indirect
 	golang.org/x/tools v0.23.0 // indirect
 	gonum.org/v1/gonum v0.15.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect

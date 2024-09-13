@@ -228,7 +228,11 @@ func (mr *MocknodeBuilderIfaceMockRecorder) loadRuntime(config, ns, stateSrvc, k
 }
 
 // newSyncService mocks base method.
+<<<<<<< HEAD
 func (m *MocknodeBuilderIface) newSyncService(config *config.Config, st *state.Service, finalityGadget BlockJustificationVerifier, verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer Telemetry) (network.Syncer, error) {
+=======
+func (m *MocknodeBuilderIface) newSyncService(config *config.Config, st *state.Service, finalityGadget sync.FinalityGadget, verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer Telemetry) (*sync.Service, error) {
+>>>>>>> development
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "newSyncService", config, st, finalityGadget, verifier, cs, net, telemetryMailer)
 	ret0, _ := ret[0].(network.Syncer)
