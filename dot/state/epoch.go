@@ -52,12 +52,12 @@ func configDataKey(epoch uint64) []byte {
 }
 
 func nextEpochDataKey(epoch uint64, hash common.Hash) []byte {
-	partialKey := fmt.Sprintf("-%d:%v", epoch, hash)
+	partialKey := fmt.Sprintf("-%d:%s", epoch, hash.String())
 	return append(nextEpochDataPrefix, []byte(partialKey)...)
 }
 
 func nextConfigDataKey(epoch uint64, hash common.Hash) []byte {
-	partialKey := fmt.Sprintf("-%d:%v", epoch, hash)
+	partialKey := fmt.Sprintf("-%d:%s", epoch, hash.String())
 	return append(nextConfigDataPrefix, []byte(partialKey)...)
 }
 
@@ -141,13 +141,13 @@ func NewEpochState(db database.Database, blockState *BlockState,
 	if err != nil {
 		return nil, err
 	}
-
-	nextEpochData, err := restoreMapFromDisk[types.NextEpochData](db, nextEpochDataPrefix)
+	epochTable := database.NewTable(db, epochPrefix)
+	nextEpochData, err := restoreMapFromDisk[types.NextEpochData](epochTable, nextEpochDataPrefix)
 	if err != nil {
 		return nil, err
 	}
 
-	nextConfigData, err := restoreMapFromDisk[types.NextConfigDataV1](db, nextConfigDataPrefix)
+	nextConfigData, err := restoreMapFromDisk[types.NextConfigDataV1](epochTable, nextConfigDataPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func NewEpochState(db database.Database, blockState *BlockState,
 	return &EpochState{
 		baseState:      baseState,
 		blockState:     blockState,
-		db:             database.NewTable(db, epochPrefix),
+		db:             epochTable,
 		epochLength:    genesisConfig.EpochLength,
 		slotDuration:   genesisConfig.SlotDuration,
 		skipToEpoch:    skipToEpoch,
@@ -176,7 +176,7 @@ func NewEpochState(db database.Database, blockState *BlockState,
 }
 
 // restoreMapFromDisk retrieves the next epoch and config data maps from the database
-func restoreMapFromDisk[T types.NextConfigDataV1 | types.NextEpochData](db database.Database, prefix []byte) (
+func restoreMapFromDisk[T types.NextConfigDataV1 | types.NextEpochData](db database.Table, prefix []byte) (
 	nextEpochMap[T], error) {
 
 	resMap := make(nextEpochMap[T])
@@ -227,7 +227,10 @@ func getNextEpochOrConfigData[T types.NextConfigDataV1 | types.NextEpochData](it
 	}
 
 	var fork common.Hash
-	part1 := []byte(parts[1])
+	part1, err := common.HexToBytes(parts[1])
+	if err != nil {
+		return nil, 0, common.Hash{}, fmt.Errorf("while converting bytes to hash: %w", err)
+	}
 
 	copy(fork[:], part1)
 
@@ -274,7 +277,7 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 	//  actually the epoch number for block number #1 is epoch 0,
 	// epochs start from 0 and are incremented (almost, given that epochs might be skipped)
 	// sequentially 0...1...2, so the block number #1 belongs to epoch 0
-	if header.Number == 1 {
+	if header.Number == 0 || header.Number == 1 {
 		return 0, nil
 	}
 
@@ -1035,9 +1038,11 @@ func deleteDataFromDisk[T types.NextEpochData | types.NextConfigDataV1](
 			return fmt.Errorf("cannot delete next config data from the database: %w", err)
 		}
 	}
+
 	if err := batch.Flush(); err != nil {
 		return fmt.Errorf("cannot flush deletion batch: %w", err)
 	}
+
 	return nil
 }
 
@@ -1048,8 +1053,9 @@ func getDataKeysFromDisk[T types.NextEpochData | types.NextConfigDataV1](
 	[]string, error) {
 
 	dataKeys := []string{}
+	currentEpochPrefix := fmt.Sprintf("%s-%d", prefix, currentEpoch)
 
-	iter, err := db.NewPrefixIterator(prefix)
+	iter, err := db.NewPrefixIterator([]byte(currentEpochPrefix))
 	if err != nil {
 		return dataKeys, err
 	}
@@ -1058,17 +1064,9 @@ func getDataKeysFromDisk[T types.NextEpochData | types.NextConfigDataV1](
 
 	for iter.First(); iter.Valid(); iter.Next() {
 		key := string(iter.Key())
-
-		keyWithoutPrefix := strings.Split(key, "-")[1]
-		epochPart := strings.Split(keyWithoutPrefix, ":")[0]
-		epoch, err := strconv.ParseUint(epochPart, 10, 64)
-		if err != nil {
-			return dataKeys, err
-		}
-
-		if epoch == currentEpoch {
-			dataKeys = append(dataKeys, key)
-		}
+		index := strings.Index(key, epochPrefix)
+		secondPart := key[index+len(epochPrefix):]
+		dataKeys = append(dataKeys, secondPart)
 
 	}
 

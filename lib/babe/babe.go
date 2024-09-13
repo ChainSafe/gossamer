@@ -300,11 +300,15 @@ func (b *Service) initiateAndGetEpochHandler(epoch uint64) (*epochHandler, error
 }
 
 func (b *Service) runEngine() error {
-	epoch, err := b.epochState.GetCurrentEpoch()
+	bestBlock, err := b.blockState.BestBlockHeader()
+	if err != nil {
+		return fmt.Errorf("getting best block: %w", err)
+	}
+
+	epoch, err := b.epochState.GetEpochForBlock(bestBlock)
 	if err != nil {
 		return fmt.Errorf("failed to get current epoch: %s", err)
 	}
-
 	for {
 		next, err := b.handleEpoch(epoch)
 		if errors.Is(err, errServicePaused) || errors.Is(err, context.Canceled) {

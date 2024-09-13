@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -859,7 +860,8 @@ func TestFirstSlotNumberFromDb(t *testing.T) {
 func TestNextEpochDataAndConfigInDisk(t *testing.T) {
 	epochState := newEpochStateFromGenesis(t)
 	db := NewInMemoryDB(t)
-	epochState.db = db
+	dbTable := database.NewTable(db, epochPrefix)
+	epochState.db = dbTable
 	slotDuration, err := epochState.GetSlotDuration()
 	require.NoError(t, err)
 
@@ -1009,8 +1011,8 @@ func TestDeleteNextEpochDataAndConfig(t *testing.T) {
 	epochState := newEpochStateFromGenesis(t)
 	db := NewInMemoryDB(t)
 	// defining the db in the right context
-	epochState.db = db
-	epochState.baseState.db = db
+	dbTable := database.NewTable(db, epochPrefix)
+	epochState.db = dbTable
 
 	genesisHash := epochState.blockState.genesisHash
 	// setting a predefined slot number
@@ -1125,8 +1127,15 @@ func TestDeleteNextEpochDataAndConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	// Making sure that we have available storeSkipToEpoch prop on disk
+	epochState.baseState.db = db
 	err = epochState.baseState.storeSkipToEpoch(0)
 	require.NoError(t, err)
+
+	// Check if the next epoch data and config data are stored in the database
+	epochState, err = NewEpochState(db, epochState.blockState, config.BABEConfigurationTestDefault)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(epochState.nextEpochData))
+	require.Equal(t, 1, len(epochState.nextConfigData))
 
 	epochState.blockState.SetHeader(expectedHeader)
 	require.NoError(t, err)
@@ -1137,7 +1146,6 @@ func TestDeleteNextEpochDataAndConfig(t *testing.T) {
 
 	err = epochState.FinalizeBABENextEpochData(expectedHeader)
 	require.NoError(t, err)
-
 	// Check if the next epoch data and config data are not stored in the database
 	// after finalisation
 	epochState, err = NewEpochState(db, epochState.blockState, config.BABEConfigurationTestDefault)
