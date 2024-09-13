@@ -260,8 +260,6 @@ lockAndStart:
 	}
 
 	if len(tasks) == 0 {
-		// sleep the amount of one slot and try
-		time.Sleep(s.slotDuration)
 		goto loopBack
 	}
 
@@ -296,5 +294,6 @@ lockAndStart:
 loopBack:
 	logger.Info("finish process to acquire more blocks")
 	s.mu.Unlock()
+	time.Sleep(s.slotDuration)
 	goto lockAndStart
 }

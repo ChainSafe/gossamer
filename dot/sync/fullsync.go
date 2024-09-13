@@ -117,14 +117,6 @@ func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 	// in the node's pov we are not legging behind so there's nothing to do
 	// or we didn't receive block announces, so lets ask for more blocks
 	if uint32(bestBlockHeader.Number) >= currentTarget {
-		ascendingBlockRequests := messages.NewBlockRequest(
-			*variadic.Uint32OrHashFrom(bestBlockHeader.Hash()),
-			messages.MaxBlocksInResponse,
-			messages.BootstrapRequestData,
-			messages.Ascending,
-		)
-
-		messagesToSend = append(messagesToSend, ascendingBlockRequests)
 		return f.createTasks(messagesToSend), nil
 	}
 
@@ -143,13 +135,13 @@ func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 }
 
 func (f *FullSyncStrategy) createTasks(requests []*messages.BlockRequestMessage) []*syncTask {
-	tasks := make([]*syncTask, len(requests))
-	for idx, req := range requests {
-		tasks[idx] = &syncTask{
+	tasks := make([]*syncTask, 0, len(requests))
+	for _, req := range requests {
+		tasks = append(tasks, &syncTask{
 			request:      req,
 			response:     &messages.BlockResponseMessage{},
 			requestMaker: f.reqMaker,
-		}
+		})
 	}
 	return tasks
 }
