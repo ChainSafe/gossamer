@@ -11,7 +11,7 @@ import (
 )
 
 func TestUnreadyBlocks_removeIrrelevantFragments(t *testing.T) {
-	t.Run("removing all disjoint fragment", func(t *testing.T) {
+	t.Run("removing_all_disjoint_fragment", func(t *testing.T) {
 		ub := newUnreadyBlocks()
 		ub.disjointFragments = [][]*types.BlockData{
 			{
@@ -40,7 +40,7 @@ func TestUnreadyBlocks_removeIrrelevantFragments(t *testing.T) {
 		require.Empty(t, ub.disjointFragments)
 	})
 
-	t.Run("removing irrelevant fragments", func(t *testing.T) {
+	t.Run("removing_irrelevant_fragments", func(t *testing.T) {
 		ub := newUnreadyBlocks()
 		ub.disjointFragments = [][]*types.BlockData{
 			// first fragment
@@ -150,7 +150,7 @@ func TestUnreadyBlocks_removeIrrelevantFragments(t *testing.T) {
 		require.Equal(t, ub.disjointFragments[1], expectedThirdFragment)
 	})
 
-	t.Run("keep all fragments", func(t *testing.T) {
+	t.Run("keep_all_fragments", func(t *testing.T) {
 		ub := newUnreadyBlocks()
 		ub.disjointFragments = [][]*types.BlockData{
 			{
