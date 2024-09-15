@@ -80,22 +80,26 @@ type Seconded CommittedCandidateReceipt
 // Valid represents a statement that a validator has deemed a candidate valid.
 type Valid CandidateHash
 
+// statementVDTAndSigningContext is just a wrapper struct to hold both the statement and the signing context.
+type statementVDTAndSigningContext struct {
+	Statement StatementVDT
+	Context   SigningContext
+}
+
 func (s *StatementVDT) Sign(
 	keystore keystore.Keystore,
 	signingContext SigningContext,
 	key ValidatorID,
 ) (*ValidatorSignature, error) {
-	encodedData, err := scale.Marshal(*s)
-	if err != nil {
-		return nil, fmt.Errorf("marshalling payload: %w", err)
+	statementVDTAndSigningContext := statementVDTAndSigningContext{
+		Statement: *s,
+		Context:   signingContext,
 	}
 
-	encodedSigningContext, err := scale.Marshal(signingContext)
+	encodedData, err := scale.Marshal(statementVDTAndSigningContext)
 	if err != nil {
-		return nil, fmt.Errorf("marshalling signing context: %w", err)
+		return nil, fmt.Errorf("marshalling statement and signing-context: %w", err)
 	}
-
-	encodedData = append(encodedData, encodedSigningContext...)
 
 	validatorPublicKey, err := sr25519.NewPublicKey(key[:])
 	if err != nil {
@@ -119,25 +123,22 @@ func (s *StatementVDT) VerifySignature(
 	signingContext SigningContext,
 	validatorSignature ValidatorSignature,
 ) (bool, error) {
-	encodedMsg, err := scale.Marshal(s)
-	if err != nil {
-		return false, fmt.Errorf("marshalling statementVDT: %w", err)
+	statementVDTAndSigningContext := statementVDTAndSigningContext{
+		Statement: *s,
+		Context:   signingContext,
 	}
 
-	signingContextBytes, err := scale.Marshal(signingContext)
+	encodedMsg, err := scale.Marshal(statementVDTAndSigningContext)
 	if err != nil {
-		return false, fmt.Errorf("marshalling signing context: %w", err)
+		return false, fmt.Errorf("marshalling statement and signing-context: %w", err)
 	}
-
-	encodedMsg = append(encodedMsg, signingContextBytes...)
 
 	publicKey, err := sr25519.NewPublicKey(validator[:])
 	if err != nil {
 		return false, fmt.Errorf("getting public key: %w", err)
 	}
 
-	ok, err := publicKey.Verify(encodedMsg, validatorSignature[:])
-	return ok, err
+	return publicKey.Verify(encodedMsg, validatorSignature[:])
 }
 
 // UncheckedSignedFullStatement is a Variant of `SignedFullStatement` where the signature has not yet been verified.

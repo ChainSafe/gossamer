@@ -1181,11 +1181,11 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 		}
 
 		require.Equal(t, relayParent, provisionerMessage.RelayParent)
-		misbehvaiorReport, ok := provisionerMessage.ProvisionableData.(parachaintypes.ProvisionableDataMisbehaviorReport)
+		misbehaviorReport, ok := provisionerMessage.ProvisionableData.(parachaintypes.ProvisionableDataMisbehaviorReport)
 		require.True(t, ok)
 
-		require.Equal(t, parachaintypes.ValidatorIndex(2), misbehvaiorReport.ValidatorIndex)
-		doubleVote, ok := misbehvaiorReport.Misbehaviour.(parachaintypes.ValidityDoubleVoteIssuedAndValidity)
+		require.Equal(t, parachaintypes.ValidatorIndex(2), misbehaviorReport.ValidatorIndex)
+		doubleVote, ok := misbehaviorReport.Misbehaviour.(parachaintypes.ValidityDoubleVoteIssuedAndValidity)
 		require.True(t, ok)
 
 		signForSeconded := doubleVote.CommittedCandidateReceiptAndSign.Signature
