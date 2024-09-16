@@ -109,6 +109,10 @@ func (t *TrieState) Put(key, value []byte) (err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
+	if bytes.Equal(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef734abf5cb34d6244378cddbf18e849d96"), key) {
+		fmt.Println("putting our key!")
+	}
+
 	// If we have running transactions we apply the change there,
 	// if not, we apply the changes directly on our state trie
 	if t.getCurrentTransaction() != nil {
@@ -161,6 +165,10 @@ func (t *TrieState) Delete(key []byte) (err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
+	if bytes.Equal(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef734abf5cb34d6244378cddbf18e849d96"), key) {
+		fmt.Println("deleteing our key!")
+	}
+
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		t.getCurrentTransaction().delete(string(key))
 		return nil
@@ -211,6 +219,8 @@ func (t *TrieState) ClearPrefix(prefix []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
+	fmt.Println("clear pref")
+
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		keysOnState := make([]string, 0)
 
@@ -231,6 +241,8 @@ func (t *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
 	deleted uint32, allDeleted bool, err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
+
+	fmt.Println("clear pref lim")
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		keysOnState := make([]string, 0)
@@ -463,6 +475,8 @@ func (t *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 func (t *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit uint32) (uint32, bool, error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
+
+	fmt.Println("clear pre in chil lim")
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		child, err := t.state.GetChild(keyToChild)
