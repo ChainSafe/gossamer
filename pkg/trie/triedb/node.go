@@ -111,13 +111,12 @@ func NewValue(data []byte, threshold int) nodeValue {
 	return inline(data)
 }
 
-func NewValueFromEncoded(prefix []byte, encodedValue codec.EncodedValue) nodeValue {
+func NewValueFromEncoded(encodedValue codec.EncodedValue) nodeValue {
 	switch v := encodedValue.(type) {
 	case codec.InlineValue:
 		return inline(v)
 	case codec.HashedValue:
-		prefixedKey := bytes.Join([][]byte{prefix, v[:]}, nil)
-		return valueRef(common.NewHash(prefixedKey))
+		return valueRef(v)
 	}
 
 	return nil
@@ -178,7 +177,7 @@ func newNodeFromEncoded(nodeHash common.Hash, data []byte, storage nodeStorage) 
 	case codec.Empty:
 		return Empty{}, nil
 	case codec.Leaf:
-		return Leaf{partialKey: encoded.PartialKey, value: NewValueFromEncoded(encoded.PartialKey, encoded.Value)}, nil
+		return Leaf{partialKey: encoded.PartialKey, value: NewValueFromEncoded(encoded.Value)}, nil
 	case codec.Branch:
 		key := encoded.PartialKey
 		encodedChildren := encoded.Children
@@ -204,7 +203,7 @@ func newNodeFromEncoded(nodeHash common.Hash, data []byte, storage nodeStorage) 
 			children[i] = child
 		}
 
-		return Branch{partialKey: key, children: children, value: NewValueFromEncoded(encoded.PartialKey, value)}, nil
+		return Branch{partialKey: key, children: children, value: NewValueFromEncoded(value)}, nil
 	default:
 		panic("unreachable")
 	}
