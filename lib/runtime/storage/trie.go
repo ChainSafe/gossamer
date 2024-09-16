@@ -109,15 +109,15 @@ func (t *TrieState) Put(key, value []byte) (err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	if bytes.Equal(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef734abf5cb34d6244378cddbf18e849d96"), key) {
-		fmt.Println("putting our key!")
-	}
-
 	// If we have running transactions we apply the change there,
 	// if not, we apply the changes directly on our state trie
 	if t.getCurrentTransaction() != nil {
 		t.getCurrentTransaction().upsert(string(key), value)
 		return nil
+	}
+
+	if bytes.Equal(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef734abf5cb34d6244378cddbf18e849d96"), key) {
+		fmt.Printf("upserting our key with value: %v\n", common.BytesToHex(value))
 	}
 
 	return t.state.Put(key, value)
@@ -172,6 +172,11 @@ func (t *TrieState) Delete(key []byte) (err error) {
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		t.getCurrentTransaction().delete(string(key))
 		return nil
+	}
+
+	err = t.state.Delete(key)
+	if err != nil {
+		return err
 	}
 
 	return t.state.Delete(key)

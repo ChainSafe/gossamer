@@ -1097,6 +1097,8 @@ func TestInstance_ExecuteBlock_PaseoRuntime_PaseoBlock1789153(t *testing.T) {
 		}
 	}
 
+	// 0x0000000007a9b3851a0966360500
+
 	//require.Equal(t, paseoTrieActual.Entries(), state.Trie().Entries())
 
 	expectedRootNew := common.MustHexToHash("0xc29a9d4465400c980cca388963461755040f2ba4c5ed722afc204014426e9080")

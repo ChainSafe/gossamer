@@ -5,6 +5,8 @@ package storage
 
 import (
 	"bytes"
+	"fmt"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"sort"
 	"strings"
 
@@ -64,6 +66,10 @@ func (cs *storageDiff) upsert(key string, value []byte) {
 	// If we previously deleted this trie we have to undo that deletion
 	if cs.deletes[key] {
 		delete(cs.deletes, key)
+	}
+
+	if string(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef734abf5cb34d6244378cddbf18e849d96")) == key {
+		fmt.Printf("upserting our key with value: %v\n", common.BytesToHex(value))
 	}
 
 	cs.upserts[key] = value
