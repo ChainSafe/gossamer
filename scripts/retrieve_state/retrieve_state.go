@@ -88,7 +88,7 @@ func (s *StateRequestProvider) processResponse(stateResponse *messages.StateResp
 
 func (s *StateRequestProvider) buildTrie(expectedStorageRootHash common.Hash, destination string) error {
 	tt := inmemory.NewEmptyTrie()
-	tt.SetVersion(trie.V1)
+	tt.SetVersion(trie.V0)
 
 	entries := make([]string, 0)
 
@@ -125,6 +125,8 @@ func (s *StateRequestProvider) buildTrie(expectedStorageRootHash common.Hash, de
 	err = os.WriteFile(destination, encodedEntries, 0o600)
 	return err
 }
+
+// go run ./scripts/retrieve_state/retrieve_state.go 0x89dbf7d702484000b3b22f06e497e4b1babeebdebffd34104e7becda11f77ada 0xb03d27b34073a61cb18f384a7858fb0742fed760e39a3ecc11aac41154b71fc2 ./chain/paseo/chain-spec-raw.json ./lib/runtime/test_data/paseo/block1789151.out
 
 func main() {
 	if len(os.Args) != 5 {
