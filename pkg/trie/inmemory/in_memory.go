@@ -272,6 +272,10 @@ func (t *InMemoryTrie) Put(keyLE, value []byte) (err error) {
 		t.HandleTrackedDeltas(success, pendingDeltas)
 	}()
 
+	if bytes.Equal(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef734abf5cb34d6244378cddbf18e849d96"), keyLE) {
+		fmt.Println("here")
+	}
+
 	err = t.InsertKeyLE(keyLE, value, pendingDeltas)
 	if err != nil {
 		return err

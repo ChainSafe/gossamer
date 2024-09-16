@@ -275,6 +275,7 @@ func (t *TrieState) SetChildStorage(keyToChild, key, value []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
+	fmt.Println("set child")
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		keyToChildStr := string(keyToChild)
 		keyString := string(key)
@@ -318,6 +319,8 @@ func (t *TrieState) DeleteChild(keyToChild []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
+	fmt.Println("del child")
+
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		currentTx.delete(string(keyToChild))
 		return nil
@@ -331,6 +334,8 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 	deleted uint32, allDeleted bool, err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
+
+	fmt.Println("del child lim")
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		deleteLimit := -1
@@ -399,6 +404,8 @@ func (t *TrieState) ClearChildStorage(keyToChild, key []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
+	fmt.Println("clear child")
+
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		keyToChildStr := string(keyToChild)
 		keyStr := string(key)
@@ -418,6 +425,8 @@ func (t *TrieState) ClearChildStorage(keyToChild, key []byte) error {
 func (t *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
+
+	fmt.Println("clear child prefix")
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		child, err := t.state.GetChild(keyToChild)

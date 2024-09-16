@@ -6,6 +6,7 @@ package wazero_runtime
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -1043,7 +1044,10 @@ func TestInstance_ExecuteBlock_PaseoRuntime_PaseoBlock1789153(t *testing.T) {
 	expectedRoot := common.MustHexToHash("0xf74a4a94758ac505a0bacdd52d7739d62b616eb03840d24d4a2df42df295c31d")
 	require.Equal(t, expectedRoot, trie.V1.MustHash(paseoTrie))
 
-	// set state to genesis state
+	paseoTrieActual := newTrieFromKeyValueListV1(t, "../test_data/paseo/block1789153.out")
+	expectedRootActual := common.MustHexToHash("0xc29a9d4465400c980cca388963461755040f2ba4c5ed722afc204014426e9080")
+	require.Equal(t, expectedRootActual, trie.V1.MustHash(paseoTrieActual))
+
 	state := storage.NewTrieState(paseoTrie)
 
 	db, err := database.NewPebble("", true)
@@ -1072,7 +1076,28 @@ func TestInstance_ExecuteBlock_PaseoRuntime_PaseoBlock1789153(t *testing.T) {
 	}
 
 	_, err = instance.ExecuteBlock(block)
-	require.NoError(t, err)
+	//require.NoError(t, err)
+
+	badEntries := state.Trie().Entries()
+	goodEntries := paseoTrieActual.Entries()
+
+	require.Equal(t, len(goodEntries), len(badEntries))
+
+	fmt.Println("go through good")
+	for key, val := range goodEntries {
+		badVal, ok := badEntries[key]
+		if !ok {
+			fmt.Println("Not okay")
+		}
+
+		if !bytes.Equal(badVal, val) {
+			fmt.Printf("%x\n", key)
+			fmt.Println(common.BytesToHex(val))
+			fmt.Println(common.BytesToHex(badVal))
+		}
+	}
+
+	//require.Equal(t, paseoTrieActual.Entries(), state.Trie().Entries())
 
 	expectedRootNew := common.MustHexToHash("0xc29a9d4465400c980cca388963461755040f2ba4c5ed722afc204014426e9080")
 	require.Equal(t, expectedRootNew, state.Trie().MustHash())
