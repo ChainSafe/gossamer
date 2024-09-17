@@ -165,14 +165,7 @@ func TestStatementVDT_Sign(t *testing.T) {
 	valSign, err := statement.Sign(ks, signingContext, validatorID)
 	require.NoError(t, err)
 
-	encodedMsg, err := scale.Marshal(statement)
-	require.NoError(t, err)
-
-	signingContextBytes, err := scale.Marshal(signingContext)
-	require.NoError(t, err)
-
-	encodedMsg = append(encodedMsg, signingContextBytes...)
-	ok, err := keyPair.Public().Verify(encodedMsg, valSign[:])
+	ok, err := statement.VerifySignature(validatorID, signingContext, *valSign)
 	require.NoError(t, err)
 	require.True(t, ok)
 }
