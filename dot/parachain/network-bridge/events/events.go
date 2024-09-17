@@ -12,13 +12,14 @@ import (
 // NOTE: Not adding PeerMessage here to make this a bit simpler.
 // TODO: Add Event in overseer
 // We will use it someday, since it helps us group all the network events together. For now, let's just
-// use them seperately.
+// use them separately.
 type Event[Message collationprotocol.CollationProtocol | validationprotocol.ValidationProtocol] struct {
 	Inner any
 }
 
 type EventValues[Message collationprotocol.CollationProtocol | validationprotocol.ValidationProtocol] interface {
-	PeerConnected | PeerDisconnected | NewGossipTopology | PeerViewChange | OurViewChange | UpdatedAuthorityIDs | PeerMessage[Message]
+	PeerConnected | PeerDisconnected | NewGossipTopology | PeerViewChange | OurViewChange |
+		UpdatedAuthorityIDs | PeerMessage[Message]
 }
 
 type PeerConnected struct {
@@ -32,7 +33,7 @@ type PeerDisconnected struct {
 	PeerID peer.ID
 }
 
-type CanonicalShuffling struct { //nolint
+type CanonicalShuffling struct {
 	AuthorityDiscoveryID parachaintypes.AuthorityDiscoveryID
 	ValidatorIndex       parachaintypes.ValidatorIndex
 }

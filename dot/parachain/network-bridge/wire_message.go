@@ -99,9 +99,9 @@ type ViewUpdate View
 // Up to `N` (5?) chain heads.
 type View struct {
 	// a bounded amount of chain heads
-	heads []common.Hash //nolint
+	heads []common.Hash
 	// the highest known finalized number
-	finalizedNumber uint32 //nolint
+	finalizedNumber uint32
 }
 
 type SortableHeads []common.Hash

@@ -14,20 +14,20 @@ import (
 // subsystem would make more sense.
 type NewGossipTopology struct {
 	// The session info this gossip topology is concerned with.
-	Session parachaintypes.SessionIndex //nolint
+	Session parachaintypes.SessionIndex
 	// Our validator index in the session, if any.
-	LocalIndex *parachaintypes.ValidatorIndex //nolint
+	LocalIndex *parachaintypes.ValidatorIndex
 	//  The canonical shuffling of validators for the session.
-	CanonicalShuffling []events.CanonicalShuffling //nolint
+	CanonicalShuffling []events.CanonicalShuffling
 	// The reverse mapping of `canonical_shuffling`: from validator index
 	// to the index in `canonical_shuffling`
-	ShuffledIndices []uint8 //nolint
+	ShuffledIndices []uint8
 }
 
 // UpdateAuthorityIDs is used to inform the distribution subsystems about `AuthorityDiscoveryId` key rotations.
 type UpdateAuthorityIDs struct {
 	// The `PeerId` of the peer that updated its `AuthorityDiscoveryId`s.
-	PeerID peer.ID //nolint
+	PeerID peer.ID
 	// The updated authority discovery keys of the peer.
-	AuthorityDiscoveryIDs []parachaintypes.AuthorityDiscoveryID //nolint
+	AuthorityDiscoveryIDs []parachaintypes.AuthorityDiscoveryID
 }

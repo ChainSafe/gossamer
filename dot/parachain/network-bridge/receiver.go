@@ -151,16 +151,6 @@ func fetchedCandidateFromString(str string) (fetchedCollationInfo, error) {
 type PerRelayParent struct {
 	prospectiveParachainMode parachaintypes.ProspectiveParachainsMode
 	assignment               *parachaintypes.ParaID
-	collations               Collations
-}
-
-type Collations struct {
-	// What is the current status in regards to a collation for this relay parent?
-	status CollationStatus
-	// how many collations have been seconded
-	secondedCount uint
-	// Collation that were advertised to us, but we did not yet fetch.
-	waitingQueue []UnfetchedCollation // : VecDeque<(PendingCollation, CollatorId)>,
 }
 
 type UnfetchedCollation struct {
@@ -179,18 +169,6 @@ type PendingCollation struct {
 type ProspectiveCandidate struct {
 	CandidateHash      parachaintypes.CandidateHash
 	ParentHeadDataHash common.Hash
-}
-
-// IsSecondedLimitReached check the limit of seconded candidates for a given para has been reached.
-func (collations Collations) IsSecondedLimitReached(relayParentMode parachaintypes.ProspectiveParachainsMode) bool {
-	var secondedLimit uint
-	if relayParentMode.IsEnabled {
-		secondedLimit = relayParentMode.MaxCandidateDepth + 1
-	} else {
-		secondedLimit = 1
-	}
-
-	return collations.secondedCount >= secondedLimit
 }
 
 func RegisterReceiver(overseerChan chan<- any, net Network,
