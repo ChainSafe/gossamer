@@ -19,7 +19,7 @@ type Provisioner struct {
 	// TODO #4162
 	// This doesn't have to be a channel with buffer.
 	// The idea is to send a relay parent hash on this channel after INHERENT_TIMEOUT, open to design changes
-	inherentAfterDelay chan common.Hash
+	availableInherent chan common.Hash
 }
 
 func (p Provisioner) Run(ctx context.Context, overseerToSubSystem <-chan any) {
