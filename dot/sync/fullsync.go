@@ -375,8 +375,8 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 	return true, &Change{
 		who: from,
 		rep: peerset.ReputationChange{
-			Value:  peerset.NotRelevantBlockAnnounceValue,
-			Reason: peerset.NotRelevantBlockAnnounceReason,
+			Value:  peerset.GossipSuccessValue,
+			Reason: peerset.GossipSuccessReason,
 		},
 	}, nil
 }

@@ -290,7 +290,7 @@ func TestFullSyncIsFinished(t *testing.T) {
 }
 
 func TestFullSyncBlockAnnounce(t *testing.T) {
-	t.Run("announce_a_block_without_any_commom_ancestor", func(t *testing.T) {
+	t.Run("announce_a_far_block_without_any_commom_ancestor", func(t *testing.T) {
 		highestFinalizedHeader := &types.Header{
 			ParentHash:     common.BytesToHash([]byte{0}),
 			StateRoot:      common.BytesToHash([]byte{3, 3, 3, 3}),
@@ -307,8 +307,12 @@ func TestFullSyncBlockAnnounce(t *testing.T) {
 			Return(highestFinalizedHeader, nil)
 
 		mockBlockState.EXPECT().
-			HasHeader(gomock.AnyOf(common.Hash{})).
-			Return(false, nil)
+			BestBlockHeader().
+			Return(highestFinalizedHeader, nil)
+
+		// mockBlockState.EXPECT().
+		// 	HasHeader(gomock.AnyOf(common.Hash{})).
+		// 	Return(false, nil)
 
 		fsCfg := &FullSyncConfig{
 			BlockState: mockBlockState,
@@ -327,6 +331,8 @@ func TestFullSyncBlockAnnounce(t *testing.T) {
 		err := fs.OnBlockAnnounceHandshake(firstPeer, firstHandshake)
 		require.NoError(t, err)
 
+		// still far from aproaching the calculated target
+		// then we can ignore the block announce
 		firstBlockAnnounce := &network.BlockAnnounceMessage{
 			ParentHash:     common.BytesToHash([]byte{0, 1, 2}),
 			Number:         1024,
@@ -339,5 +345,67 @@ func TestFullSyncBlockAnnounce(t *testing.T) {
 		_, rep, err := fs.OnBlockAnnounce(firstPeer, firstBlockAnnounce)
 		require.NoError(t, err)
 		require.Nil(t, rep)
+		require.Zero(t, fs.requestQueue.Len())
 	})
+
+	t.Run("announce_closer_valid_block_without_any_commom_ancestor", func(t *testing.T) {
+		highestFinalizedHeader := &types.Header{
+			ParentHash:     common.BytesToHash([]byte{0}),
+			StateRoot:      common.BytesToHash([]byte{3, 3, 3, 3}),
+			ExtrinsicsRoot: common.BytesToHash([]byte{4, 4, 4, 4}),
+			Number:         0,
+			Digest:         types.NewDigest(),
+		}
+
+		ctrl := gomock.NewController(t)
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().IsPaused().Return(false)
+		mockBlockState.EXPECT().
+			GetHighestFinalisedHeader().
+			Return(highestFinalizedHeader, nil)
+
+		mockBlockState.EXPECT().
+			BestBlockHeader().
+			Return(highestFinalizedHeader, nil)
+
+		mockBlockState.EXPECT().
+			HasHeader(gomock.AssignableToTypeOf(common.Hash{})).
+			Return(false, nil)
+
+		fsCfg := &FullSyncConfig{
+			BlockState: mockBlockState,
+		}
+
+		fs := NewFullSyncStrategy(fsCfg)
+
+		firstPeer := peer.ID("fst-peer")
+		firstHandshake := &network.BlockAnnounceHandshake{
+			Roles:           1,
+			BestBlockNumber: 17,
+			BestBlockHash:   common.BytesToHash([]byte{0, 1, 2}),
+			GenesisHash:     common.BytesToHash([]byte{1, 1, 1, 1}),
+		}
+
+		err := fs.OnBlockAnnounceHandshake(firstPeer, firstHandshake)
+		require.NoError(t, err)
+
+		// still far from aproaching the calculated target
+		// then we can ignore the block announce
+		firstBlockAnnounce := &network.BlockAnnounceMessage{
+			ParentHash:     common.BytesToHash([]byte{0, 1, 2}),
+			Number:         17,
+			StateRoot:      common.BytesToHash([]byte{3, 3, 3, 3}),
+			ExtrinsicsRoot: common.BytesToHash([]byte{4, 4, 4, 4}),
+			Digest:         types.NewDigest(),
+			BestBlock:      true,
+		}
+
+		// the announced block 17 is not far from our best block (0) then
+		// we will consider it and start a ancestor search
+		_, rep, err := fs.OnBlockAnnounce(firstPeer, firstBlockAnnounce)
+		require.NoError(t, err)
+		require.Nil(t, rep)
+		require.Equal(t, 1, fs.requestQueue.Len())
+	})
+
 }
