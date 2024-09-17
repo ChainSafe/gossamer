@@ -224,7 +224,9 @@ func (t *TrieState) ClearPrefix(prefix []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	fmt.Println("clear pref")
+	if bytes.HasPrefix(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef734abf5cb34d6244378cddbf18e849d96"), prefix) {
+		fmt.Println("clearing prefix with our value!!!")
+	}
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		keysOnState := make([]string, 0)
@@ -247,7 +249,9 @@ func (t *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
-	fmt.Println("clear pref lim")
+	if bytes.HasPrefix(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef734abf5cb34d6244378cddbf18e849d96"), prefix) {
+		fmt.Println("clearing prefix lim with our value!!!")
+	}
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		keysOnState := make([]string, 0)

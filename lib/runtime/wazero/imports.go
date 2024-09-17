@@ -1627,8 +1627,6 @@ func ext_offchain_index_set_version_1(ctx context.Context, m api.Module, keySpan
 		panic("nil runtime context")
 	}
 
-	fmt.Println("offchain index set")
-
 	storageKey := read(m, keySpan)
 	newValue := read(m, valueSpan)
 	cp := make([]byte, len(newValue))
