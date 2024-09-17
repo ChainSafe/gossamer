@@ -20,7 +20,6 @@ type workerTask struct {
 
 func newWorker(validationCode parachaintypes.ValidationCode) (*worker, error) {
 	parachainRuntime, err := parachainruntime.SetupVM(validationCode)
-
 	if err != nil {
 		return nil, err
 	}

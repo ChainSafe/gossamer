@@ -87,7 +87,6 @@ func (cv *CandidateValidation) processMessage(msg any) {
 		}
 
 		result, err := cv.pvfHost.validate(validationTask)
-
 		if err != nil {
 			logger.Errorf("failed to validate from exhaustive: %w", err)
 			msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{

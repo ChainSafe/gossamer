@@ -139,7 +139,7 @@ func (v *workerPool) executeRequest(msg *ValidationTask) (*ValidationResult, err
 			return nil, err
 		}
 	}
-	syncWorker := v.workers[validationCodeHash]
+	worker := v.workers[validationCodeHash]
 
 	logger.Debugf("sending request", validationCodeHash)
 
@@ -154,7 +154,7 @@ func (v *workerPool) executeRequest(msg *ValidationTask) (*ValidationResult, err
 		maxPoVSize:       msg.PersistedValidationData.MaxPovSize,
 		candidateReceipt: msg.CandidateReceipt,
 	}
-	return syncWorker.executeRequest(workTask)
+	return worker.executeRequest(workTask)
 
 }
 
