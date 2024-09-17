@@ -52,7 +52,8 @@ type TrieDB struct {
 	// trieDB session (before nodes are committed to db)
 	storage nodeStorage
 	// deathRow is a set of nodes that we want to delete from db
-	deathRow map[common.Hash]interface{}
+	// uses string since it's comparable []byte
+	deathRow map[string]interface{}
 	// Optional cache to speed up the db lookups
 	cache cache.TrieCache
 	// Optional recorder for recording trie accesses
@@ -74,7 +75,7 @@ func NewTrieDB(rootHash common.Hash, db db.RWDatabase, opts ...TrieDBOpts) *Trie
 		db:         db,
 		storage:    newNodeStorage(),
 		rootHandle: rootHandle,
-		deathRow:   make(map[common.Hash]interface{}),
+		deathRow:   make(map[string]interface{}),
 	}
 
 	for _, opt := range opts {
@@ -369,10 +370,10 @@ func (t *TrieDB) inspect(
 		case restoreNode:
 			return &InspectResult{CachedStoredNode{a.node, n.hash}, false}, nil
 		case replaceNode:
-			t.deathRow[n.hash] = nil
+			t.deathRow[string(n.hash.ToBytes())] = nil
 			return &InspectResult{NewStoredNode(a), true}, nil
 		case deleteNode:
-			t.deathRow[n.hash] = nil
+			t.deathRow[string(n.hash.ToBytes())] = nil
 			return nil, nil
 		default:
 			panic("unreachable")
@@ -427,7 +428,7 @@ func (t *TrieDB) fix(branch Branch) (Node, error) {
 		case NewStoredNode:
 			childNode = n.node
 		case CachedStoredNode:
-			t.deathRow[n.hash] = nil
+			t.deathRow[string(n.hash.ToBytes())] = nil
 			childNode = n.node
 		}
 
@@ -456,8 +457,9 @@ func (t *TrieDB) removeInspector(stored Node, keyNibbles []byte, oldValue *nodeV
 		return deleteNode{}, nil
 	case Leaf:
 		if bytes.Equal(n.partialKey, partial) {
+
 			// This is the node we are looking for so we delete it
-			t.replaceOldValue(oldValue, n.value)
+			t.replaceOldValue(oldValue, n.value, partial)
 			return deleteNode{}, nil
 		}
 		// Wrong partial, so we return the node as is
@@ -469,7 +471,7 @@ func (t *TrieDB) removeInspector(stored Node, keyNibbles []byte, oldValue *nodeV
 				return restoreNode{n}, nil
 			}
 			// The branch contains the value so we delete it
-			t.replaceOldValue(oldValue, n.value)
+			t.replaceOldValue(oldValue, n.value, partial)
 			newNode, err := t.fix(Branch{n.partialKey, n.children, nil})
 			if err != nil {
 				return nil, err
@@ -483,7 +485,7 @@ func (t *TrieDB) removeInspector(stored Node, keyNibbles []byte, oldValue *nodeV
 		if common == existingLength && common == len(partial) {
 			// Replace value
 			if n.value != nil {
-				t.replaceOldValue(oldValue, n.value)
+				t.replaceOldValue(oldValue, n.value, partial)
 				newNode, err := t.fix(Branch{n.partialKey, n.children, nil})
 				return replaceNode{newNode}, err
 			}
@@ -543,7 +545,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 			// to replace the value
 			value := NewValue(value, t.version.MaxInlineValue())
 			unchanged := n.value.equal(value)
-			t.replaceOldValue(oldValue, n.value)
+			t.replaceOldValue(oldValue, n.value, partial)
 			leaf := Leaf{partialKey: n.partialKey, value: value}
 			if unchanged {
 				// If the value didn't change we can restore this leaf previously
@@ -605,7 +607,7 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 			}
 			branch := Branch{existingKey, n.children, value}
 
-			t.replaceOldValue(oldValue, n.value)
+			t.replaceOldValue(oldValue, n.value, partial)
 			if unchanged {
 				// If the value didn't change we can restore this leaf previously
 				// taken from storage
@@ -694,12 +696,14 @@ func (t *TrieDB) insertInspector(stored Node, keyNibbles []byte, value []byte, o
 func (t *TrieDB) replaceOldValue(
 	oldValue *nodeValue,
 	storedValue nodeValue,
+	prefix []byte,
 ) {
 	switch oldv := storedValue.(type) {
 	case valueRef, newValueRef:
 		hash := oldv.getHash()
 		if hash != common.EmptyHash {
-			t.deathRow[oldv.getHash()] = nil
+			prefixedKey := append(prefix, oldv.getHash().ToBytes()...)
+			t.deathRow[string(prefixedKey)] = nil
 		}
 	}
 	*oldValue = storedValue
@@ -739,14 +743,14 @@ func (t *TrieDB) commit() error {
 	}()
 
 	for hash := range t.deathRow {
-		err := dbBatch.Del(hash[:])
+		err := dbBatch.Del([]byte(hash))
 		if err != nil {
 			return err
 		}
 	}
 
 	// Reset deathRow
-	t.deathRow = make(map[common.Hash]interface{})
+	t.deathRow = make(map[string]interface{})
 
 	var handle storageHandle
 	switch h := t.rootHandle.(type) {
