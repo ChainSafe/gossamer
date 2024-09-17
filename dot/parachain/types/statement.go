@@ -91,12 +91,12 @@ func (s *StatementVDT) Sign(
 	signingContext SigningContext,
 	key ValidatorID,
 ) (*ValidatorSignature, error) {
-	statementVDTAndSigningContext := statementVDTAndSigningContext{
+	statementAndSigningCtx := statementVDTAndSigningContext{
 		Statement: *s,
 		Context:   signingContext,
 	}
 
-	encodedData, err := scale.Marshal(statementVDTAndSigningContext)
+	encodedData, err := scale.Marshal(statementAndSigningCtx)
 	if err != nil {
 		return nil, fmt.Errorf("marshalling statement and signing-context: %w", err)
 	}
@@ -123,12 +123,12 @@ func (s *StatementVDT) VerifySignature(
 	signingContext SigningContext,
 	validatorSignature ValidatorSignature,
 ) (bool, error) {
-	statementVDTAndSigningContext := statementVDTAndSigningContext{
+	statementAndSigningCtx := statementVDTAndSigningContext{
 		Statement: *s,
 		Context:   signingContext,
 	}
 
-	encodedMsg, err := scale.Marshal(statementVDTAndSigningContext)
+	encodedMsg, err := scale.Marshal(statementAndSigningCtx)
 	if err != nil {
 		return false, fmt.Errorf("marshalling statement and signing-context: %w", err)
 	}
