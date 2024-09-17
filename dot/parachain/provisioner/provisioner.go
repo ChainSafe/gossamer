@@ -13,7 +13,7 @@ import (
 var logger = log.NewFromGlobal(log.AddContext("pkg", "provisioner"))
 
 // we expect an inherent to be ready after this time.
-const INHERENT_TIMEOUT = time.Millisecond * 2000
+const InherentTimeout = 2 * time.Second
 
 type Provisioner struct {
 	// TODO #4162
