@@ -32,10 +32,8 @@ func (r *requestsQueue[M]) PopFront() (value M, ok bool) {
 	return e.Value.(M), true
 }
 
-func (r *requestsQueue[M]) PushBack(message ...M) {
+func (r *requestsQueue[M]) PushBack(message M) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	for _, m := range message {
-		r.queue.PushBack(m)
-	}
+	r.queue.PushBack(message)
 }

@@ -131,6 +131,7 @@ func (s *syncWorkerPool) submitRequests(tasks []*syncTask) []*syncTaskResult {
 	go func(expectedResults int) {
 		defer wg.Done()
 		var taskResults []*syncTaskResult
+
 		for result := range results {
 			taskResults = append(taskResults, result)
 			if len(taskResults) == expectedResults {
@@ -159,6 +160,7 @@ func executeTask(task *syncTask, workerPool chan peer.ID, failedTasks chan *sync
 		failedTasks <- task
 	} else {
 		logger.Infof("[FINISHED] worker %s, request: %s", worker, task.request)
+		workerPool <- worker
 		results <- &syncTaskResult{
 			who:       worker,
 			completed: true,

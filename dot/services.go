@@ -37,6 +37,8 @@ import (
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 )
 
+const blockRequestTimeout = 20 * time.Second
+
 // BlockProducer to produce blocks
 type BlockProducer interface {
 	Pause() error
@@ -510,11 +512,8 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 		return nil, err
 	}
 
-	const blockRequestTimeout = 20 * time.Second
-	requestMaker := net.GetRequestResponseProtocol(
-		network.SyncID,
-		blockRequestTimeout,
-		network.MaxBlockResponseSize)
+	requestMaker := net.GetRequestResponseProtocol(network.SyncID,
+		blockRequestTimeout, network.MaxBlockResponseSize)
 
 	syncCfg := &sync.FullSyncConfig{
 		BlockState:         st.Block,

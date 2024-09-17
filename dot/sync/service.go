@@ -154,8 +154,6 @@ func (s *SyncService) waitWorkers() {
 }
 
 func (s *SyncService) Start() error {
-	s.waitWorkers()
-
 	s.wg.Add(1)
 	go s.runSyncEngine()
 	return nil
@@ -219,17 +217,26 @@ func (s *SyncService) HighestBlock() uint {
 
 func (s *SyncService) runSyncEngine() {
 	defer s.wg.Done()
+	s.waitWorkers()
+
 	logger.Infof("starting sync engine with strategy: %T", s.currentStrategy)
 
-lockAndStart:
-	s.mu.Lock()
-	logger.Info("starting process to acquire more blocks")
+	for {
+		select {
+		case <-s.stopCh:
+			return
+		case <-time.After(s.slotDuration):
+		}
 
-	select {
-	case <-s.stopCh:
-		return
-	default:
+		s.runStrategy()
 	}
+}
+
+func (s *SyncService) runStrategy() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	logger.Tracef("running strategy: %T", s.currentStrategy)
 
 	finalisedHeader, err := s.blockState.GetHighestFinalisedHeader()
 	if err != nil {
@@ -258,41 +265,30 @@ lockAndStart:
 		return
 	}
 
+	logger.Tracef("amount of tasks to process: %d", len(tasks))
 	if len(tasks) == 0 {
-		goto loopBack
+		return
 	}
 
-	{
-		results := s.workerPool.submitRequests(tasks)
-		done, repChanges, peersToIgnore, err := s.currentStrategy.IsFinished(results)
-		if err != nil {
-			logger.Criticalf("current sync strategy failed with: %s", err.Error())
-			return
-		}
-
-		for _, change := range repChanges {
-			s.network.ReportPeer(change.rep, change.who)
-		}
-
-		for _, block := range peersToIgnore {
-			s.workerPool.ignorePeerAsWorker(block)
-		}
-
-		s.currentStrategy.ShowMetrics()
-
-		if done {
-			if s.defaultStrategy == nil {
-				logger.Criticalf("nil default strategy")
-				return
-			}
-
-			s.currentStrategy = s.defaultStrategy
-		}
+	results := s.workerPool.submitRequests(tasks)
+	done, repChanges, peersToIgnore, err := s.currentStrategy.IsFinished(results)
+	if err != nil {
+		logger.Criticalf("current sync strategy failed with: %s", err.Error())
+		return
 	}
 
-loopBack:
-	logger.Info("finish process to acquire more blocks")
-	s.mu.Unlock()
-	time.Sleep(s.slotDuration)
-	goto lockAndStart
+	for _, change := range repChanges {
+		s.network.ReportPeer(change.rep, change.who)
+	}
+
+	for _, block := range peersToIgnore {
+		s.workerPool.ignorePeerAsWorker(block)
+	}
+
+	s.currentStrategy.ShowMetrics()
+	logger.Trace("finish process to acquire more blocks")
+
+	if done {
+		s.currentStrategy = s.defaultStrategy
+	}
 }

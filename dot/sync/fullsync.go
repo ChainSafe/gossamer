@@ -100,7 +100,7 @@ func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 	f.syncedBlocks = 0
 
 	reqsFromQueue := []*messages.BlockRequestMessage{}
-	for i := 0; i < int(f.numOfTasks); i++ {
+	for i := 0; i < f.numOfTasks; i++ {
 		msg, ok := f.requestQueue.PopFront()
 		if !ok {
 			break
@@ -277,9 +277,9 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 func (f *FullSyncStrategy) ShowMetrics() {
 	totalSyncAndImportSeconds := time.Since(f.startedAt).Seconds()
 	bps := float64(f.syncedBlocks) / totalSyncAndImportSeconds
-	logger.Infof("⛓️ synced %d blocks, disjoint fragments %d, incomplete blocks %d, "+
+	logger.Infof("⛓️ synced %d blocks, tasks on queue %d, disjoint fragments %d, incomplete blocks %d, "+
 		"took: %.2f seconds, bps: %.2f blocks/second, target block number #%d",
-		f.syncedBlocks, len(f.unreadyBlocks.disjointFragments), len(f.unreadyBlocks.incompleteBlocks),
+		f.syncedBlocks, f.requestQueue.Len(), len(f.unreadyBlocks.disjointFragments), len(f.unreadyBlocks.incompleteBlocks),
 		totalSyncAndImportSeconds, bps, f.peers.getTarget())
 }
 
@@ -349,9 +349,9 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 
 	// if we still far from aproaching the calculated target
 	// then we can ignore the block announce
-	ratioOfCompleteness := (bestBlockHeader.Number / uint(f.peers.getTarget())) * 100
-	logger.Infof("sync: ratio of completeness: %d", ratioOfCompleteness)
-	if ratioOfCompleteness < 80 {
+	mx := max(blockAnnounceHeader.Number, bestBlockHeader.Number)
+	mn := min(blockAnnounceHeader.Number, bestBlockHeader.Number)
+	if (mx - mn) > messages.MaxBlocksInResponse {
 		return true, nil, nil
 	}
 
@@ -368,9 +368,10 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 		request := messages.NewBlockRequest(*variadic.Uint32OrHashFrom(blockAnnounceHeaderHash),
 			1, messages.RequestedDataBody+messages.RequestedDataJustification, messages.Ascending)
 		f.requestQueue.PushBack(request)
+	} else {
+		logger.Infof("announced block already exists #%d (%s)", blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
 	}
 
-	logger.Infof("announced block already exists #%d (%s)", blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
 	return true, &Change{
 		who: from,
 		rep: peerset.ReputationChange{
