@@ -18,7 +18,7 @@ func TestDecodeWarpSyncMessage(t *testing.T) {
 	t.Parallel()
 
 	testWarpReqMessage := &messages.WarpProofRequest{
-		Begin: common.EmptyHash,
+		Begin: common.MustBlake2bHash([]byte("test")),
 	}
 
 	testPeer := peer.ID("me")

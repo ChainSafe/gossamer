@@ -18,8 +18,7 @@ type WarpProofRequest struct {
 func (wsr *WarpProofRequest) Decode(in []byte) error {
 	reader := bytes.NewReader(in)
 	sd := scale.NewDecoder(reader)
-	reqProof := &WarpProofRequest{}
-	err := sd.Decode(&reqProof)
+	err := sd.Decode(&wsr)
 	if err != nil {
 		return err
 	}
