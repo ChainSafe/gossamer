@@ -96,21 +96,21 @@ func ext_logging_log_version_1(_ context.Context, m api.Module, level int32, tar
 	msg := string(read(m, msgData))
 
 	line := fmt.Sprintf("target=%s message=%s", target, msg)
-	fmt.Println(line)
-	//switch int(level) {
-	//case 0:
-	//	logger.Critical(line)
-	//case 1:
-	//	logger.Warn(line)
-	//case 2:
-	//	logger.Info(line)
-	//case 3:
-	//	logger.Debug(line)
-	//case 4:
-	//	logger.Trace(line)
-	//default:
-	//	logger.Errorf("level=%d target=%s message=%s", int(level), target, msg)
-	//}
+	//fmt.Println(line)
+	switch int(level) {
+	case 0:
+		logger.Critical(line)
+	case 1:
+		logger.Warn(line)
+	case 2:
+		logger.Info(line)
+	case 3:
+		logger.Debug(line)
+	case 4:
+		logger.Trace(line)
+	default:
+		logger.Errorf("level=%d target=%s message=%s", int(level), target, msg)
+	}
 }
 
 func ext_crypto_ecdsa_generate_version_1(ctx context.Context, m api.Module, _ uint32, _ uint64) uint32 {
@@ -832,6 +832,7 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 }
 
 func ext_trie_blake2_256_ordered_root_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
+	// Why is this hardcoded to 0??
 	return ext_trie_blake2_256_ordered_root_version_2(ctx, m, dataSpan, 0)
 }
 
@@ -858,7 +859,6 @@ func ext_trie_blake2_256_ordered_root_version_2(
 	}
 
 	var entries trie.Entries
-
 	for i, value := range values {
 		key, err := scale.Marshal(big.NewInt(int64(i)))
 		if err != nil {

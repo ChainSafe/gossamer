@@ -68,10 +68,6 @@ func (cs *storageDiff) upsert(key string, value []byte) {
 		delete(cs.deletes, key)
 	}
 
-	if string(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef734abf5cb34d6244378cddbf18e849d96")) == key {
-		fmt.Printf("upserting our key with value: %v\n", common.BytesToHex(value))
-	}
-
 	cs.upserts[key] = value
 	cs.insertSortedKey(key)
 }
@@ -259,8 +255,13 @@ func (cs *storageDiff) applyToTrie(t trie.Trie) {
 		panic("trying to apply nil change set")
 	}
 
+	fmt.Println("TIME TO APPLY: we need to make sure all updates here reflect what was put in")
+
 	// Apply trie upserts
 	for k, v := range cs.upserts {
+		if bytes.Equal(common.MustHexToBytes("0x0000000007a9b3851a0966360500"), v) {
+			fmt.Println("val in upsert")
+		}
 		err := t.Put([]byte(k), v)
 		if err != nil {
 			panic("Error applying upserts changes to trie")
@@ -269,6 +270,7 @@ func (cs *storageDiff) applyToTrie(t trie.Trie) {
 
 	// Apply child trie upserts
 	for childKeyString, childChangeSet := range cs.childChangeSet {
+		fmt.Println("there are some kids")
 		childKey := []byte(childKeyString)
 
 		for k, v := range childChangeSet.upserts {

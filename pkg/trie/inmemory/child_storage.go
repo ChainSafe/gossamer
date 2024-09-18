@@ -4,6 +4,7 @@
 package inmemory
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 
@@ -69,6 +70,9 @@ func (t *InMemoryTrie) GetChildTries() map[common.Hash]trie.Trie {
 
 // PutIntoChild puts a key-value pair into the child trie located in the main trie at key :child_storage:[keyToChild]
 func (t *InMemoryTrie) PutIntoChild(keyToChild, key, value []byte) error {
+	if bytes.Equal(common.MustHexToBytes("0x0000000007a9b3851a0966360500"), value) {
+		fmt.Println("INSERTING OUR VALUE INTO CHILD")
+	}
 	child, err := t.getInternalChildTrie(keyToChild)
 	if err != nil {
 		if errors.Is(err, trie.ErrChildTrieDoesNotExist) {
