@@ -13,13 +13,9 @@ type WarpSyncProvider interface {
 	generate(start common.Hash) (encodedProof []byte, err error)
 }
 
-type WarpSyncRequestHandler struct {
-	backend WarpSyncProvider
-}
-
-func (w *WarpSyncRequestHandler) handleRequest(req messages.WarpProofRequest) ([]byte, error) {
+func (s *Service) handleWarpSyncRequest(req messages.WarpProofRequest) ([]byte, error) {
 	// use the backend to generate the warp proof
-	proof, err := w.backend.generate(req.Begin)
+	proof, err := s.warpSyncProvider.generate(req.Begin)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +50,7 @@ func (s *Service) handleWarpSyncMessage(stream libp2pnetwork.Stream, msg message
 	}()
 
 	if req, ok := msg.(*messages.WarpProofRequest); ok {
-		resp, err := s.warpSyncHandler.handleRequest(*req)
+		resp, err := s.handleWarpSyncRequest(*req)
 		if err != nil {
 			logger.Debugf("cannot create response for request: %s", err)
 			return nil

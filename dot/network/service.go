@@ -130,7 +130,7 @@ type Service struct {
 	blockState         BlockState
 	syncer             Syncer
 	transactionHandler TransactionHandler
-	warpSyncHandler    WarpSyncRequestHandler
+	warpSyncProvider   WarpSyncProvider
 
 	// Configuration options
 	noBootstrap bool
@@ -217,7 +217,7 @@ func NewService(cfg *Config) (*Service, error) {
 		noBootstrap:            cfg.NoBootstrap,
 		noMDNS:                 cfg.NoMDNS,
 		syncer:                 cfg.Syncer,
-		warpSyncHandler:        cfg.warpSyncHandler,
+		warpSyncProvider:       cfg.warpSyncProvider,
 		notificationsProtocols: make(map[MessageType]*notificationsProtocol),
 		lightRequest:           make(map[peer.ID]struct{}),
 		telemetryInterval:      cfg.telemetryInterval,
