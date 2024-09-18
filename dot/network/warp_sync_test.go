@@ -17,14 +17,17 @@ import (
 func TestDecodeWarpSyncMessage(t *testing.T) {
 	t.Parallel()
 
+	// Basic WarpProofRequest
 	testWarpReqMessage := &messages.WarpProofRequest{
 		Begin: common.MustBlake2bHash([]byte("test")),
 	}
 
-	testPeer := peer.ID("me")
+	// Test encoding
 	reqEnc, err := testWarpReqMessage.Encode()
 	require.NoError(t, err)
 
+	// Test decoding
+	testPeer := peer.ID("me")
 	msg, err := decodeWarpSyncMessage(reqEnc, testPeer, true)
 	require.NoError(t, err)
 
@@ -33,6 +36,7 @@ func TestDecodeWarpSyncMessage(t *testing.T) {
 	require.Equal(t, testWarpReqMessage, req)
 }
 
+// createServiceWithWarpSyncHelper creates a basic service with warp sync handler support
 func createServiceWithWarpSyncHelper(t *testing.T, warpSyncProvider WarpSyncProvider) *Service {
 	t.Helper()
 
@@ -55,15 +59,17 @@ func createServiceWithWarpSyncHelper(t *testing.T, warpSyncProvider WarpSyncProv
 func TestHandleWarpSyncRequestOk(t *testing.T) {
 	t.Parallel()
 
+	// Creates warp sync provider mock to generate proofs with the expected result
 	expectedProof := []byte{0x01}
 
 	ctrl := gomock.NewController(t)
-
 	warpSyncProvider := NewMockWarpSyncProvider(ctrl)
 	warpSyncProvider.EXPECT().generate(common.EmptyHash).Return(expectedProof, nil).Times(1)
 
+	// Initiate service using the warp sync provider mock
 	srvc := createServiceWithWarpSyncHelper(t, warpSyncProvider)
 
+	// Handle request and check resulting proof
 	req := messages.WarpProofRequest{
 		Begin: common.EmptyHash,
 	}
@@ -76,14 +82,17 @@ func TestHandleWarpSyncRequestOk(t *testing.T) {
 func TestHandleWarpSyncRequestError(t *testing.T) {
 	t.Parallel()
 
+	// Creates warp sync provider mock to generate proofs with the expected erro
 	expectedError := fmt.Errorf("error generating proof")
 	ctrl := gomock.NewController(t)
 
 	warpSyncProvider := NewMockWarpSyncProvider(ctrl)
 	warpSyncProvider.EXPECT().generate(common.EmptyHash).Return(nil, expectedError).Times(1)
 
+	// Initiate service using the warp sync provider mock
 	srvc := createServiceWithWarpSyncHelper(t, warpSyncProvider)
 
+	// Handle request and check resulting error
 	req := messages.WarpProofRequest{
 		Begin: common.EmptyHash,
 	}

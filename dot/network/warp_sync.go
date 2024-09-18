@@ -10,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
+// WarpSyncProvider is an interface for generating warp sync proofs
 type WarpSyncProvider interface {
 	// Generate proof starting at given block hash. The proof is accumulated until maximum proof
 	// size is reached.

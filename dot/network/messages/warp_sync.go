@@ -11,10 +11,12 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+// WarpProofRequest is a struct for p2p warp proof request
 type WarpProofRequest struct {
 	Begin common.Hash
 }
 
+// Decode decodes the message into a WarpProofRequest
 func (wsr *WarpProofRequest) Decode(in []byte) error {
 	reader := bytes.NewReader(in)
 	sd := scale.NewDecoder(reader)
@@ -26,6 +28,7 @@ func (wsr *WarpProofRequest) Decode(in []byte) error {
 	return nil
 }
 
+// Encode encodes the warp sync request
 func (wsr *WarpProofRequest) Encode() ([]byte, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
@@ -36,6 +39,7 @@ func (wsr *WarpProofRequest) Encode() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
+// String returns the string representation of a WarpProofRequest
 func (wsr *WarpProofRequest) String() string {
 	if wsr == nil {
 		return "WarpProofRequest=nil"
