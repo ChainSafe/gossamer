@@ -436,6 +436,7 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			overseer := overseer.NewMockableOverseer(t)
+			overseer.ExpectActions(c.expectedActions...)
 
 			collationProtocolID := "/6761727661676500000000000000000000000000000000000000000000000000/1/collations/1"
 
@@ -452,9 +453,6 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 			require.NoError(t, err)
 
 			defer overseer.Stop()
-
-			// overseer.ReceiveMessage(c.msg)
-			overseer.ExpectActions(c.expectedActions...)
 
 			time.Sleep(1 * time.Second)
 			lenBlackedAdvertisementsBefore := len(cpvs.BlockedAdvertisements)
