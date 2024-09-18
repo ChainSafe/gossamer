@@ -563,9 +563,10 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 
 			subsystemToOverseer := make(chan any)
 			cpvs := CollatorProtocolValidatorSide{
-				perRelayParent: c.perRelayParent,
-				peerData:       c.peerData,
-				activeLeaves:   c.activeLeaves,
+				perRelayParent:      c.perRelayParent,
+				peerData:            c.peerData,
+				activeLeaves:        c.activeLeaves,
+				SubSystemToOverseer: subsystemToOverseer,
 			}
 
 			// ensure that the expected messages are sent to the overseer
