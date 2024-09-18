@@ -35,7 +35,7 @@ func (s *Service) handleWarpSyncStream(stream libp2pnetwork.Stream) {
 	s.readStream(stream, decodeSyncMessage, s.handleWarpSyncMessage, MaxBlockResponseSize)
 }
 
-func decodeWarpSyncMessage(in []byte, peer peer.ID, _ bool) (messages.P2PMessage, error) {
+func decodeWarpSyncMessage(in []byte, _ peer.ID, _ bool) (messages.P2PMessage, error) {
 	msg := new(messages.WarpProofRequest)
 	err := msg.Decode(in)
 	return msg, err
