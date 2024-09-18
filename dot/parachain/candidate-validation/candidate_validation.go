@@ -176,7 +176,7 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 	if persistedValidationData == nil {
 		badParent := BadParent
 		reason := ValidationResult{
-			InvalidResult: &badParent,
+			Invalid: &badParent,
 		}
 		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 			Data: reason,
@@ -205,7 +205,7 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 		return
 	}
 	valid, err := runtimeInstance.ParachainHostCheckValidationOutputs(parachaintypes.ParaID(msg.CandidateReceipt.
-		Descriptor.ParaID), result.ValidResult.CandidateCommitments)
+		Descriptor.ParaID), result.Valid.CandidateCommitments)
 	if err != nil {
 		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 			Err: fmt.Errorf("check validation outputs: Bad request: %w", err),
@@ -215,7 +215,7 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 	if !valid {
 		invalidOutput := InvalidOutputs
 		reason := &ValidationResult{
-			InvalidResult: &invalidOutput,
+			Invalid: &invalidOutput,
 		}
 		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 			Data: *reason,

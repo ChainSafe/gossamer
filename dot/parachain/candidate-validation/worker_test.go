@@ -22,7 +22,7 @@ func Test_worker_executeRequest(t *testing.T) {
 	t.Cleanup(ctrl.Finish)
 
 	expectedValidationResult := &ValidationResult{
-		ValidResult: &Valid{
+		Valid: &Valid{
 			CandidateCommitments: parachaintypes.CandidateCommitments{
 				HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123, 207, 206, 8, 219, 227,
 					136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245, 59, 106, 76, 168, 122, 109,
@@ -108,7 +108,7 @@ func Test_worker_executeRequest(t *testing.T) {
 				candidateReceipt: &candidateReceiptCommitmentsMismatch,
 			},
 			want: &ValidationResult{
-				InvalidResult: &commitmentsHashMismatch,
+				Invalid: &commitmentsHashMismatch,
 			},
 		},
 		"execution_timeout": {
@@ -117,7 +117,7 @@ func Test_worker_executeRequest(t *testing.T) {
 				candidateReceipt: &candidateReceipt,
 			},
 			want: &ValidationResult{
-				InvalidResult: &timeout,
+				Invalid: &timeout,
 			},
 		},
 		"long_timeout_ok": {

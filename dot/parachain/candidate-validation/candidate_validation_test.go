@@ -456,20 +456,18 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 			msg: ValidateFromChainState{
 				CandidateReceipt: candidateReceipt6,
 				Pov:              pov,
-				Ch:               sender,
 			},
 			want: &ValidationResult{
-				InvalidResult: &invalidOutputs,
+				Invalid: &invalidOutputs,
 			},
 		},
 		"bad_parent": {
 			msg: ValidateFromChainState{
 				CandidateReceipt: candidateReceipt7,
 				Pov:              pov,
-				Ch:               sender,
 			},
 			want: &ValidationResult{
-				InvalidResult: &badParent,
+				Invalid: &badParent,
 			},
 		},
 		"happy_path": {
@@ -478,7 +476,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Pov:              pov,
 			},
 			want: &ValidationResult{
-				ValidResult: &Valid{
+				Valid: &Valid{
 					CandidateCommitments: validCandidateCommitments,
 					PersistedValidationData: parachaintypes.PersistedValidationData{
 						ParentHead: parachaintypes.HeadData{Data: []byte{1, 0, 0, 0, 0, 0, 0, 0, 1,
