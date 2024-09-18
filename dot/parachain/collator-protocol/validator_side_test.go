@@ -350,7 +350,6 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 		expectedActions             []func(msg any) bool
 		deletesBlockedAdvertisement bool
 		blockedAdvertisements       map[string][]blockedAdvertisement
-		canSecond                   bool
 		errString                   string
 	}{
 		{
@@ -361,7 +360,6 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 			},
 			expectedActions: []func(msg any) bool{
 				func(msg any) bool {
-
 					canSecondMessage, ok := msg.(backing.CanSecondMessage)
 					if !ok {
 						return false
@@ -371,7 +369,6 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 					return true
 				},
 			},
-			canSecond:                   true,
 			deletesBlockedAdvertisement: true,
 			blockedAdvertisements: map[string][]blockedAdvertisement{
 				"para_id:_6,_para_head:_0x0000000000000000000000000000000000000000000000000000000000000000": {
@@ -399,7 +396,17 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 				ParaID:   parachaintypes.ParaID(6),
 				ParaHead: common.Hash{},
 			},
-			canSecond: false,
+			expectedActions: []func(msg any) bool{
+				func(msg any) bool {
+					canSecondMessage, ok := msg.(backing.CanSecondMessage)
+					if !ok {
+						return false
+					}
+					canSecondMessage.ResponseCh <- false
+
+					return true
+				},
+			},
 			blockedAdvertisements: map[string][]blockedAdvertisement{
 				"para_id:_6,_para_head:_0x0000000000000000000000000000000000000000000000000000000000000000": {
 					{
