@@ -166,7 +166,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 			},
 			want: parachaintypes.OverseerFuncRes[ValidationResult]{
 				Data: ValidationResult{
-					InvalidResult: &povHashMismatch,
+					Invalid: &povHashMismatch,
 				},
 				Err: nil,
 			},
@@ -186,7 +186,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 			},
 			want: parachaintypes.OverseerFuncRes[ValidationResult]{
 				Data: ValidationResult{
-					InvalidResult: &paramsTooLarge,
+					Invalid: &paramsTooLarge,
 				},
 			},
 		},
@@ -205,7 +205,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 			},
 			want: parachaintypes.OverseerFuncRes[ValidationResult]{
 				Data: ValidationResult{
-					InvalidResult: &codeHashMismatch,
+					Invalid: &codeHashMismatch,
 				},
 			},
 		},
@@ -224,7 +224,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 			},
 			want: parachaintypes.OverseerFuncRes[ValidationResult]{
 				Data: ValidationResult{
-					ValidResult: &Valid{
+					Valid: &Valid{
 						CandidateCommitments: parachaintypes.CandidateCommitments{
 							HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123,
 								207, 206, 8, 219, 227, 136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245,
@@ -402,7 +402,6 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 		BlockData: bd,
 	}
 
-	sender := make(chan parachaintypes.OverseerFuncRes[ValidationResult])
 	toSubsystem := make(chan any)
 	candidateValidationSubsystem := CandidateValidation{
 		pvfHost:    newValidationHost(),
@@ -421,40 +420,36 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 			msg: ValidateFromChainState{
 				CandidateReceipt: candidateReceipt2,
 				Pov:              pov,
-				Ch:               sender,
 			},
 			want: &ValidationResult{
-				InvalidResult: &povHashMismatch,
+				Invalid: &povHashMismatch,
 			},
 		},
 		"invalid_pov_size": {
 			msg: ValidateFromChainState{
 				CandidateReceipt: candidateReceipt3,
 				Pov:              pov,
-				Ch:               sender,
 			},
 			want: &ValidationResult{
-				InvalidResult: &paramsTooLarge,
+				Invalid: &paramsTooLarge,
 			},
 		},
 		"code_mismatch": {
 			msg: ValidateFromChainState{
 				CandidateReceipt: candidateReceipt4,
 				Pov:              pov,
-				Ch:               sender,
 			},
 			want: &ValidationResult{
-				InvalidResult: &codeHashMismatch,
+				Invalid: &codeHashMismatch,
 			},
 		},
 		"bad_signature": {
 			msg: ValidateFromChainState{
 				CandidateReceipt: candidateReceipt5,
 				Pov:              pov,
-				Ch:               sender,
 			},
 			want: &ValidationResult{
-				InvalidResult: &badSignature,
+				Invalid: &badSignature,
 			},
 		},
 		"invalid_outputs": {
@@ -481,7 +476,6 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 			msg: ValidateFromChainState{
 				CandidateReceipt: candidateReceipt,
 				Pov:              pov,
-				Ch:               sender,
 			},
 			want: &ValidationResult{
 				ValidResult: &Valid{
@@ -505,6 +499,9 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 		tt := tt
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+
+			sender := make(chan parachaintypes.OverseerFuncRes[ValidationResult])
+			tt.msg.Ch = sender
 
 			toSubsystem <- tt.msg
 			result := <-sender

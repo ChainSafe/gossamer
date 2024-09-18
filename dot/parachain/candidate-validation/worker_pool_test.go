@@ -29,8 +29,8 @@ func TestValidationWorkerPool_newValidationWorker(t *testing.T) {
 	}{
 		"add_one_invalid_worker": {
 			setupWorkerPool: func(t *testing.T) *workerPool {
-				pool := newValidationWorkerPool()
-				err := pool.newValidationWorker(parachaintypes.ValidationCode{1, 2, 3, 4})
+				pool := newWorkerPool()
+				err := pool.addNewWorker(parachaintypes.ValidationCode{1, 2, 3, 4})
 				require.Error(t, err)
 				return pool
 			},
@@ -38,8 +38,8 @@ func TestValidationWorkerPool_newValidationWorker(t *testing.T) {
 		},
 		"add_one_valid_worker": {
 			setupWorkerPool: func(t *testing.T) *workerPool {
-				pool := newValidationWorkerPool()
-				err := pool.newValidationWorker(testValidationCode)
+				pool := newWorkerPool()
+				err := pool.addNewWorker(testValidationCode)
 				require.NoError(t, err)
 				return pool
 			},
