@@ -33,6 +33,7 @@ const (
 
 	// the following are sub-protocols used by the node
 	SyncID          = "/sync/2"
+	WarpSyncID      = "/sync/warp"
 	lightID         = "/light/2"
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
@@ -129,6 +130,7 @@ type Service struct {
 	blockState         BlockState
 	syncer             Syncer
 	transactionHandler TransactionHandler
+	warpSyncHandler    WarpSyncRequestHandler
 
 	// Configuration options
 	noBootstrap bool
@@ -253,6 +255,7 @@ func (s *Service) Start() error {
 	}
 
 	s.host.registerStreamHandler(s.host.protocolID+SyncID, s.handleSyncStream)
+	s.host.registerStreamHandler(s.host.protocolID+WarpSyncID, s.handleWarpSyncStream)
 	s.host.registerStreamHandler(s.host.protocolID+lightID, s.handleLightStream)
 
 	// register block announce protocol
