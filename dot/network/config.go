@@ -66,6 +66,7 @@ type Config struct {
 	// Service interfaces
 	BlockState         BlockState
 	Syncer             Syncer
+	warpSyncHandler    WarpSyncRequestHandler
 	TransactionHandler TransactionHandler
 
 	// Used to specify the address broadcasted to other peers, and avoids using pubip.Get
