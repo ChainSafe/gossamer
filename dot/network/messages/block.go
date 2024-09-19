@@ -49,7 +49,6 @@ var (
 
 var (
 	errBlockRequestFromNumberInvalid = errors.New("block request message From number is not valid")
-	errInvalidStartingBlockType      = errors.New("invalid StartingBlock in messsage")
 	ErrNilBlockInResponse            = errors.New("nil block in response")
 )
 

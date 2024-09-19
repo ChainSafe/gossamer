@@ -154,7 +154,7 @@ func (s *Service) handleDescendingRequest(req *messages.BlockRequestMessage) (*m
 		if bestBlockNumber < startBlock {
 			startNumber = bestBlockNumber
 		} else {
-			startNumber = uint(startBlock)
+			startNumber = startBlock
 		}
 	case common.Hash:
 		startHash = &startBlock
