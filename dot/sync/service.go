@@ -182,14 +182,14 @@ func (s *SyncService) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnoun
 	defer s.mu.Unlock()
 
 	repChange, err := s.currentStrategy.OnBlockAnnounce(from, msg)
-	if err != nil {
-		return fmt.Errorf("while handling block announce: %w", err)
-	}
 
 	if repChange != nil {
 		s.network.ReportPeer(repChange.rep, repChange.who)
 	}
 
+	if err != nil {
+		return fmt.Errorf("while handling block announce: %w", err)
+	}
 	return nil
 }
 
@@ -202,8 +202,7 @@ func (s *SyncService) IsSynced() bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.currentStrategy.IsSynced()
-	return false
+	return s.currentStrategy.IsSynced()
 }
 
 func (s *SyncService) HighestBlock() uint {

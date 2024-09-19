@@ -78,8 +78,8 @@ func (s *syncWorkerPool) fromBlockAnnounceHandshake(who peer.ID) error {
 	return nil
 }
 
-// submitRequests takes an set of requests and will submit to the pool through submitRequest
-// the response will be dispatch in the resultCh
+// submitRequests blocks until all tasks have been completed or there are no workers
+// left in the pool to retry failed tasks
 func (s *syncWorkerPool) submitRequests(tasks []*syncTask) []*syncTaskResult {
 	if len(tasks) == 0 {
 		return nil

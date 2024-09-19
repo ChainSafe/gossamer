@@ -198,5 +198,5 @@ func (s *Service) handleBlockAnnounceMessage(from peer.ID, msg NotificationsMess
 	}
 
 	err := s.syncer.HandleBlockAnnounce(from, bam)
-	return true, err
+	return err == nil, err
 }

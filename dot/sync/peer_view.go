@@ -40,7 +40,7 @@ func (p *peerViewSet) update(peerID peer.ID, bestHash common.Hash, bestNumber ui
 	p.view[peerID] = newView
 }
 
-// getTarget takes the average of all peer views best number
+// getTarget returns the highest block number received from connected peers
 func (p *peerViewSet) getTarget() uint32 {
 	p.mtx.RLock()
 	defer p.mtx.RUnlock()

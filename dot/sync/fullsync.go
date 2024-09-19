@@ -31,6 +31,7 @@ var (
 	errNilHeaderInResponse = errors.New("expected header, received none")
 	errNilBodyInResponse   = errors.New("expected body, received none")
 	errPeerOnInvalidFork   = errors.New("peer is on an invalid fork")
+	errBadBlockReceived    = errors.New("bad block received")
 
 	blockSizeGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Namespace: "gossamer_sync",
@@ -255,7 +256,7 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 					validFragment[0].Header.Hash(),
 				)
 
-				f.unreadyBlocks.newDisjointFragemnt(validFragment)
+				f.unreadyBlocks.newDisjointFragment(validFragment)
 				request := messages.NewBlockRequest(
 					*variadic.Uint32OrHashFrom(validFragment[0].Header.ParentHash),
 					messages.MaxBlocksInResponse,
@@ -305,7 +306,7 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 	)
 
 	if slices.Contains(f.badBlocks, blockAnnounceHeaderHash.String()) {
-		logger.Infof("bad block receive from %s: #%d (%s) is a bad block",
+		logger.Infof("bad block received from %s: #%d (%s) is a bad block",
 			from, blockAnnounceHeader.Number, blockAnnounceHeaderHash)
 
 		return &Change{
@@ -314,7 +315,7 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 				Value:  peerset.BadBlockAnnouncementValue,
 				Reason: peerset.BadBlockAnnouncementReason,
 			},
-		}, nil
+		}, errBadBlockReceived
 	}
 
 	if msg.BestBlock {
@@ -393,8 +394,7 @@ func (f *FullSyncStrategy) IsSynced() bool {
 		return false
 	}
 
-	// TODO: research a better rule
-	return uint32(highestBlock) >= (f.peers.getTarget() - 128)
+	return uint32(highestBlock) >= f.peers.getTarget()
 }
 
 type RequestResponseData struct {
@@ -511,12 +511,13 @@ func sortFragmentsOfChain(fragments [][]*types.BlockData) [][]*types.BlockData {
 	return fragments
 }
 
-// mergeFragmentsOfChain merges a sorted slice of fragments that forms a valid
-// chain sequente which is the previous is the direct parent of the next block,
-// and keep untouch fragments that does not forms such sequence,
-// take as an example the following sorted slice.
+// mergeFragmentsOfChain expects a sorted slice of fragments and merges those
+// fragments for which the last block of the previous fragment is the direct parent of
+// the first block of the next fragment.
+// Fragments that are not part of this sequence (e.g. from forks) are left untouched.
+// Take as an example the following sorted slice:
 // [ {1, 2, 3, 4, 5}  {6, 7, 8, 9, 10}  {8}  {11, 12, 13, 14, 15, 16}  {17} ]
-// merge will transform it in the following slice:
+// merge will transform it to the following slice:
 // [ {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17} {8} ]
 func mergeFragmentsOfChain(fragments [][]*types.BlockData) [][]*types.BlockData {
 	if len(fragments) == 0 {
@@ -525,13 +526,15 @@ func mergeFragmentsOfChain(fragments [][]*types.BlockData) [][]*types.BlockData 
 
 	mergedFragments := [][]*types.BlockData{fragments[0]}
 	for i := 1; i < len(fragments); i++ {
-		lastMerged := mergedFragments[len(mergedFragments)-1]
-		current := fragments[i]
+		lastMergedFragment := mergedFragments[len(mergedFragments)-1]
+		currentFragment := fragments[i]
 
-		if formsSequence(lastMerged[len(lastMerged)-1], current[0]) {
-			mergedFragments[len(mergedFragments)-1] = append(lastMerged, current...)
+		lastBlock := lastMergedFragment[len(lastMergedFragment)-1]
+
+		if lastBlock.IsParent(currentFragment[0]) {
+			mergedFragments[len(mergedFragments)-1] = append(lastMergedFragment, currentFragment...)
 		} else {
-			mergedFragments = append(mergedFragments, current)
+			mergedFragments = append(mergedFragments, currentFragment)
 		}
 	}
 
@@ -553,16 +556,6 @@ func validBlocksUnderFragment(highestFinalizedNumber uint, fragmentBlocks []*typ
 	}
 
 	return fragmentBlocks[startFragmentFrom:]
-}
-
-// formsSequence given two fragments of blocks, check if they forms a sequence
-// by comparing the latest block from the prev fragment with the
-// first block of the next fragment
-func formsSequence(prev, next *types.BlockData) bool {
-	incrementOne := (prev.Header.Number + 1) == next.Header.Number
-	isParent := prev.Hash == next.Header.ParentHash
-
-	return incrementOne && isParent
 }
 
 // validateResponseFields checks that the expected fields are in the block data
@@ -587,9 +580,7 @@ func isResponseAChain(responseBlockData []*types.BlockData) bool {
 
 	previousBlockData := responseBlockData[0]
 	for _, currBlockData := range responseBlockData[1:] {
-		previousHash := previousBlockData.Header.Hash()
-		isParent := previousHash == currBlockData.Header.ParentHash
-		if !isParent {
+		if !previousBlockData.IsParent(currBlockData) {
 			return false
 		}
 

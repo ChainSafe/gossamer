@@ -36,7 +36,7 @@ func (u *unreadyBlocks) newIncompleteBlock(blockHeader *types.Header) {
 	}
 }
 
-func (u *unreadyBlocks) newDisjointFragemnt(frag []*types.BlockData) {
+func (u *unreadyBlocks) newDisjointFragment(frag []*types.BlockData) {
 	u.mtx.Lock()
 	defer u.mtx.Unlock()
 	u.disjointFragments = append(u.disjointFragments, frag)
@@ -53,7 +53,8 @@ func (u *unreadyBlocks) updateDisjointFragments(chain []*types.BlockData) ([]*ty
 	for idx, disjointChain := range u.disjointFragments {
 		lastBlockArriving := chain[len(chain)-1]
 		firstDisjointBlock := disjointChain[0]
-		if formsSequence(lastBlockArriving, firstDisjointBlock) {
+
+		if lastBlockArriving.IsParent(firstDisjointBlock) {
 			indexToChange = idx
 			break
 		}

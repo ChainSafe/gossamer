@@ -6,10 +6,10 @@
 package network
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	gomock "go.uber.org/mock/gomock"
@@ -131,22 +131,33 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 	t.Parallel()
 
 	testCases := map[string]struct {
-		propagate  bool
-		mockSyncer func(*testing.T, peer.ID, *BlockAnnounceMessage) Syncer
+		propagate   bool
+		expectError bool
+		mockSyncer  func(*testing.T, peer.ID, *BlockAnnounceMessage) Syncer
 	}{
-		"block_already_exists": {
+		"should_propagate": {
 			mockSyncer: func(t *testing.T, peer peer.ID, blockAnnounceMessage *BlockAnnounceMessage) Syncer {
 				ctrl := gomock.NewController(t)
 				syncer := NewMockSyncer(ctrl)
 				syncer.EXPECT().
 					HandleBlockAnnounce(peer, blockAnnounceMessage).
-					Return(blocktree.ErrBlockExists)
+					Return(nil)
 				return syncer
 			},
-			propagate: true,
+			expectError: false,
+			propagate:   true,
 		},
-		"block_does_not_exists": {
-			propagate: false,
+		"should_not_propagate": {
+			mockSyncer: func(t *testing.T, peer peer.ID, blockAnnounceMessage *BlockAnnounceMessage) Syncer {
+				ctrl := gomock.NewController(t)
+				syncer := NewMockSyncer(ctrl)
+				syncer.EXPECT().
+					HandleBlockAnnounce(peer, blockAnnounceMessage).
+					Return(errors.New("mocked error"))
+				return syncer
+			},
+			expectError: true,
+			propagate:   false,
 		},
 	}
 
@@ -175,8 +186,11 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 
 			service := createTestService(t, config)
 			gotPropagate, err := service.handleBlockAnnounceMessage(peerID, msg)
-
-			require.NoError(t, err)
+			if tt.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
 			require.Equal(t, tt.propagate, gotPropagate)
 		})
 	}
