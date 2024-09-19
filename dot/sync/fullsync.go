@@ -288,10 +288,9 @@ func (f *FullSyncStrategy) OnBlockAnnounceHandshake(from peer.ID, msg *network.B
 	return nil
 }
 
-func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) (
-	gossip bool, repChange *Change, err error) {
+func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) (repChange *Change, err error) {
 	if f.blockState.IsPaused() {
-		return false, nil, errors.New("blockstate service is paused")
+		return nil, errors.New("blockstate service is paused")
 	}
 
 	blockAnnounceHeader := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
@@ -308,7 +307,7 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 		logger.Infof("bad block receive from %s: #%d (%s) is a bad block",
 			from, blockAnnounceHeader.Number, blockAnnounceHeaderHash)
 
-		return false, &Change{
+		return &Change{
 			who: from,
 			rep: peerset.ReputationChange{
 				Value:  peerset.BadBlockAnnouncementValue,
@@ -323,12 +322,12 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 
 	highestFinalized, err := f.blockState.GetHighestFinalisedHeader()
 	if err != nil {
-		return false, nil, fmt.Errorf("get highest finalised header: %w", err)
+		return nil, fmt.Errorf("get highest finalised header: %w", err)
 	}
 
 	// check if the announced block is relevant
 	if blockAnnounceHeader.Number <= highestFinalized.Number || f.blockAlreadyTracked(blockAnnounceHeader) {
-		logger.Infof("announced block irrelevant #%d (%s)", blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
+		logger.Infof("ignoring announced block #%d (%s)", blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
 		repChange = &Change{
 			who: from,
 			rep: peerset.ReputationChange{
@@ -337,28 +336,28 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 			},
 		}
 
-		return false, repChange, fmt.Errorf("%w: peer %s, block number #%d (%s)",
+		return repChange, fmt.Errorf("%w: peer %s, block number #%d (%s)",
 			errPeerOnInvalidFork, from, blockAnnounceHeader.Number, blockAnnounceHeaderHash.String())
 	}
 
 	logger.Infof("relevant announced block #%d (%s)", blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
 	bestBlockHeader, err := f.blockState.BestBlockHeader()
 	if err != nil {
-		return false, nil, fmt.Errorf("get best block header: %w", err)
+		return nil, fmt.Errorf("get best block header: %w", err)
 	}
 
-	// if we still far from aproaching the calculated target
+	// if we still far from aproaching the announced block
 	// then we can ignore the block announce
 	mx := max(blockAnnounceHeader.Number, bestBlockHeader.Number)
 	mn := min(blockAnnounceHeader.Number, bestBlockHeader.Number)
 	if (mx - mn) > messages.MaxBlocksInResponse {
-		return true, nil, nil
+		return nil, nil
 	}
 
 	has, err := f.blockState.HasHeader(blockAnnounceHeaderHash)
 	if err != nil {
 		if !errors.Is(err, database.ErrNotFound) {
-			return false, nil, fmt.Errorf("checking if header exists: %w", err)
+			return nil, fmt.Errorf("checking if header exists: %w", err)
 		}
 	}
 
@@ -372,7 +371,7 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 		logger.Infof("announced block already exists #%d (%s)", blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
 	}
 
-	return true, &Change{
+	return &Change{
 		who: from,
 		rep: peerset.ReputationChange{
 			Value:  peerset.GossipSuccessValue,

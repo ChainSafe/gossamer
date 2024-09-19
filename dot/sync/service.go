@@ -69,7 +69,7 @@ type Change struct {
 }
 
 type Strategy interface {
-	OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) (gossip bool, repChange *Change, err error)
+	OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) (repChange *Change, err error)
 	OnBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error
 	NextActions() ([]*syncTask, error)
 	IsFinished(results []*syncTaskResult) (done bool, repChanges []Change, blocks []peer.ID, err error)
@@ -181,7 +181,7 @@ func (s *SyncService) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnoun
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	_, repChange, err := s.currentStrategy.OnBlockAnnounce(from, msg)
+	repChange, err := s.currentStrategy.OnBlockAnnounce(from, msg)
 	if err != nil {
 		return fmt.Errorf("while handling block announce: %w", err)
 	}

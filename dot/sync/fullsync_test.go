@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/network/messages"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
@@ -310,10 +311,6 @@ func TestFullSyncBlockAnnounce(t *testing.T) {
 			BestBlockHeader().
 			Return(highestFinalizedHeader, nil)
 
-		// mockBlockState.EXPECT().
-		// 	HasHeader(gomock.AnyOf(common.Hash{})).
-		// 	Return(false, nil)
-
 		fsCfg := &FullSyncConfig{
 			BlockState: mockBlockState,
 		}
@@ -342,7 +339,7 @@ func TestFullSyncBlockAnnounce(t *testing.T) {
 			BestBlock:      true,
 		}
 
-		_, rep, err := fs.OnBlockAnnounce(firstPeer, firstBlockAnnounce)
+		rep, err := fs.OnBlockAnnounce(firstPeer, firstBlockAnnounce)
 		require.NoError(t, err)
 		require.Nil(t, rep)
 		require.Zero(t, fs.requestQueue.Len())
@@ -359,39 +356,25 @@ func TestFullSyncBlockAnnounce(t *testing.T) {
 
 		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
-		mockBlockState.EXPECT().IsPaused().Return(false)
+		mockBlockState.EXPECT().IsPaused().Return(false).Times(2)
 		mockBlockState.EXPECT().
 			GetHighestFinalisedHeader().
-			Return(highestFinalizedHeader, nil)
+			Return(highestFinalizedHeader, nil).Times(2)
 
 		mockBlockState.EXPECT().
 			BestBlockHeader().
-			Return(highestFinalizedHeader, nil)
+			Return(highestFinalizedHeader, nil).Times(2)
 
 		mockBlockState.EXPECT().
 			HasHeader(gomock.AssignableToTypeOf(common.Hash{})).
 			Return(false, nil)
-
 		fsCfg := &FullSyncConfig{
 			BlockState: mockBlockState,
 		}
 
 		fs := NewFullSyncStrategy(fsCfg)
 
-		firstPeer := peer.ID("fst-peer")
-		firstHandshake := &network.BlockAnnounceHandshake{
-			Roles:           1,
-			BestBlockNumber: 17,
-			BestBlockHash:   common.BytesToHash([]byte{0, 1, 2}),
-			GenesisHash:     common.BytesToHash([]byte{1, 1, 1, 1}),
-		}
-
-		err := fs.OnBlockAnnounceHandshake(firstPeer, firstHandshake)
-		require.NoError(t, err)
-
-		// still far from aproaching the calculated target
-		// then we can ignore the block announce
-		firstBlockAnnounce := &network.BlockAnnounceMessage{
+		announceOfBlock17 := &network.BlockAnnounceMessage{
 			ParentHash:     common.BytesToHash([]byte{0, 1, 2}),
 			Number:         17,
 			StateRoot:      common.BytesToHash([]byte{3, 3, 3, 3}),
@@ -400,12 +383,103 @@ func TestFullSyncBlockAnnounce(t *testing.T) {
 			BestBlock:      true,
 		}
 
-		// the announced block 17 is not far from our best block (0) then
-		// we will consider it and start a ancestor search
-		_, rep, err := fs.OnBlockAnnounce(firstPeer, firstBlockAnnounce)
-		require.NoError(t, err)
-		require.Nil(t, rep)
-		require.Equal(t, 1, fs.requestQueue.Len())
+		t.Run("peer_announces_block_17", func(t *testing.T) {
+			firstPeer := peer.ID("fst-peer")
+			firstHandshake := &network.BlockAnnounceHandshake{
+				Roles:           1,
+				BestBlockNumber: 17,
+				BestBlockHash:   common.BytesToHash([]byte{0, 1, 2}),
+				GenesisHash:     common.BytesToHash([]byte{1, 1, 1, 1}),
+			}
+
+			err := fs.OnBlockAnnounceHandshake(firstPeer, firstHandshake)
+			require.NoError(t, err)
+
+			// still far from aproaching the calculated target
+			// then we can ignore the block announce
+
+			// the announced block 17 is not far from our best block (0) then
+			// we will consider it and start a ancestor search
+			rep, err := fs.OnBlockAnnounce(firstPeer, announceOfBlock17)
+			require.NoError(t, err)
+
+			expectedReputation := &Change{
+				who: firstPeer,
+				rep: peerset.ReputationChange{
+					Value:  peerset.GossipSuccessValue,
+					Reason: peerset.GossipSuccessReason,
+				},
+			}
+			require.Equal(t, expectedReputation, rep)
+			require.Equal(t, 1, fs.requestQueue.Len())
+		})
+
+		t.Run("peer_B_announces_a_tracked_block", func(t *testing.T) {
+			sndPeer := peer.ID("snd-peer")
+			firstHandshake := &network.BlockAnnounceHandshake{
+				Roles:           1,
+				BestBlockNumber: 17,
+				BestBlockHash:   common.BytesToHash([]byte{0, 1, 2}),
+				GenesisHash:     common.BytesToHash([]byte{1, 1, 1, 1}),
+			}
+
+			err := fs.OnBlockAnnounceHandshake(sndPeer, firstHandshake)
+			require.NoError(t, err)
+
+			// the announced block 17 is already tracked by our node
+			// then we will ignore it
+			rep, err := fs.OnBlockAnnounce(sndPeer, announceOfBlock17)
+			require.ErrorIs(t, err, errPeerOnInvalidFork)
+
+			expectedReputation := &Change{
+				who: sndPeer,
+				rep: peerset.ReputationChange{
+					Value:  peerset.NotRelevantBlockAnnounceValue,
+					Reason: peerset.NotRelevantBlockAnnounceReason,
+				},
+			}
+			require.Equal(t, expectedReputation, rep)
+
+			// the queue should not change
+			require.Equal(t, 1, fs.requestQueue.Len())
+		})
+
+		t.Run("call_fullsync_next_actions_should_have_request_for_block_body", func(t *testing.T) {
+			refTo := func(v uint32) *uint32 {
+				return &v
+			}
+
+			tasks, err := fs.NextActions()
+			require.NoError(t, err)
+			require.Len(t, tasks, 2)
+
+			requests := make([]messages.P2PMessage, len(tasks))
+			for idx, task := range tasks {
+				requests[idx] = task.request
+			}
+
+			block17 := types.NewHeader(announceOfBlock17.ParentHash,
+				announceOfBlock17.StateRoot, announceOfBlock17.ExtrinsicsRoot,
+				announceOfBlock17.Number, announceOfBlock17.Digest)
+			block17Hash := block17.Hash()
+
+			expectedRequests := []messages.P2PMessage{
+				&messages.BlockRequestMessage{
+					RequestedData: messages.RequestedDataBody + messages.RequestedDataJustification,
+					StartingBlock: *variadic.Uint32OrHashFrom(block17Hash),
+					Direction:     messages.Ascending,
+					Max:           refTo(1),
+				},
+				&messages.BlockRequestMessage{
+					RequestedData: messages.BootstrapRequestData,
+					StartingBlock: *variadic.Uint32OrHashFrom(uint32(1)),
+					Direction:     messages.Ascending,
+					Max:           refTo(17),
+				},
+			}
+
+			require.Equal(t, expectedRequests, requests)
+		})
 	})
 
 }

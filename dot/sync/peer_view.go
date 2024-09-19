@@ -51,20 +51,15 @@ func (p *peerViewSet) getTarget() uint32 {
 		return p.target
 	}
 
-	numbers := make([]uint32, len(p.view))
+	currMax := p.target
 	// we are going to sort the data and remove the outliers then we will return the avg of all the valid elements
-	for idx, view := range maps.Values(p.view) {
-		numbers[idx] = view.bestBlockNumber
+	for _, view := range maps.Values(p.view) {
+		if view.bestBlockNumber > currMax {
+			currMax = view.bestBlockNumber
+		}
 	}
 
-	sum, count := nonOutliersSumCount(numbers)
-	quotientBigInt := uint32(big.NewInt(0).Div(sum, big.NewInt(int64(count))).Uint64())
-
-	if p.target >= quotientBigInt {
-		return p.target
-	}
-
-	p.target = quotientBigInt // cache latest calculated target
+	p.target = currMax // cache latest calculated target
 	return p.target
 }
 
