@@ -149,12 +149,10 @@ func (v *workerPool) executeRequest(msg *ValidationTask) (*ValidationResult, err
 		RelayParentNumber:      msg.PersistedValidationData.RelayParentNumber,
 		RelayParentStorageRoot: msg.PersistedValidationData.RelayParentStorageRoot,
 	}
-
 	workTask := &workerTask{
 		work:             validationParams,
 		maxPoVSize:       msg.PersistedValidationData.MaxPovSize,
 		candidateReceipt: msg.CandidateReceipt,
-		timeoutKind:      msg.PvfExecTimeoutKind,
 	}
 	return worker.executeRequest(workTask)
 

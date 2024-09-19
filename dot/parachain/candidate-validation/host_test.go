@@ -12,7 +12,7 @@ import (
 
 func TestHost_validate(t *testing.T) {
 	t.Parallel()
-	candidateReceipt, validationCode := createTestCandidateReceiptAndValidationCodeWParaId(t, 1000)
+	candidateReceipt, validationCode := createTestCandidateReceiptAndValidationCode(t)
 	candidateReceipt2 := candidateReceipt
 	candidateReceipt2.Descriptor.PovHash = common.MustHexToHash(
 		"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
