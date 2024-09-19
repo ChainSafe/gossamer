@@ -2186,6 +2186,11 @@ func ext_storage_get_version_1(ctx context.Context, m api.Module, keySpan uint64
 	value := storage.Get(key)
 	logger.Debugf("value: 0x%x", value)
 
+	if bytes.Equal(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef734abf5cb34d6244378cddbf18e849d96"), key) {
+		//fmt.Println("performing storage get on our key")
+		fmt.Printf("get on our key, with value: %v\n", common.BytesToHex(value))
+	}
+
 	var encodedOption []byte
 	if value != nil {
 		encodedOption = scale.MustMarshal(&value)
