@@ -171,7 +171,7 @@ func (b *blockImporter) processBlockDataWithHeaderAndBody(blockData types.BlockD
 	return nil
 }
 
-// handleHeader handles blocks (header+body) included in BlockResponses
+// handleBlock executes blocks and writes them to disk
 func (b *blockImporter) handleBlock(block *types.Block) error {
 	parent, err := b.blockState.GetHeader(block.Header.ParentHash)
 	if err != nil {
