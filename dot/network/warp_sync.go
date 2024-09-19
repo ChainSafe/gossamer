@@ -67,7 +67,10 @@ func (s *Service) handleWarpSyncMessage(stream libp2pnetwork.Stream, msg message
 			return err
 		}
 
-		logger.Debugf("successfully respond with WarpSyncResponse message to peer %s with proof %v", stream.Conn().RemotePeer(), resp)
+		logger.Debugf("successfully respond with WarpSyncResponse message to peer %s with proof %v",
+			stream.Conn().RemotePeer(),
+			resp,
+		)
 	}
 
 	return nil
