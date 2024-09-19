@@ -162,11 +162,10 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 
 	readyBlocks := make([][]*types.BlockData, 0, len(validResp))
 	for _, reqRespData := range validResp {
-		// if Gossamer requested the header, then the response data should
-		// contains the full blocks to be imported.
-		// if Gossamer didn't request the header, then the response should
-		// only contain the missing parts that will complete the unreadyBlocks
-		// and then with the blocks completed we should be able to import them
+		// if Gossamer requested the header, then the response data should contains
+		// the full blocks to be imported. If Gossamer didn't request the header,
+		// then the response should only contain the missing parts that will complete
+		// the unreadyBlocks and then with the blocks completed we should be able to import them
 		if reqRespData.req.RequestField(messages.RequestedDataHeader) {
 			updatedFragment, ok := f.unreadyBlocks.updateDisjointFragments(reqRespData.responseData)
 			if ok {
@@ -207,10 +206,9 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 		disjointFragments = append(disjointFragments, fragment)
 	}
 
-	logger.Debugf("blocks to import: %d, disjoint fragments: %d", len(nextBlocksToImport), len(disjointFragments))
+	fmt.Printf("blocks to import: %d, disjoint fragments: %d\n", len(nextBlocksToImport), len(disjointFragments))
 
-	// this loop goal is to import ready blocks as well as
-	// update the highestFinalized header
+	// this loop goal is to import ready blocks as well as update the highestFinalized header
 	for len(nextBlocksToImport) > 0 || len(disjointFragments) > 0 {
 		for _, blockToImport := range nextBlocksToImport {
 			imported, err := f.importer.handle(blockToImport, networkInitialSync)

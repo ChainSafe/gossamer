@@ -198,7 +198,7 @@ func TestFullSyncIsFinished(t *testing.T) {
 			// 1 -> 10
 			{
 				who: peer.ID("peerA"),
-				request: messages.NewBlockRequest(*variadic.Uint32OrHashFrom(1), 128,
+				request: messages.NewBlockRequest(*variadic.Uint32OrHashFrom(1), 127,
 					messages.BootstrapRequestData, messages.Ascending),
 				completed: true,
 				response:  fstTaskBlockResponse,
@@ -208,7 +208,7 @@ func TestFullSyncIsFinished(t *testing.T) {
 			// 129 -> 256
 			{
 				who: peer.ID("peerA"),
-				request: messages.NewBlockRequest(*variadic.Uint32OrHashFrom(1), 128,
+				request: messages.NewBlockRequest(*variadic.Uint32OrHashFrom(129), 127,
 					messages.BootstrapRequestData, messages.Ascending),
 				completed: true,
 				response:  sndTaskBlockResponse,
@@ -223,7 +223,7 @@ func TestFullSyncIsFinished(t *testing.T) {
 
 		mockBlockState.EXPECT().GetHighestFinalisedHeader().
 			Return(genesisHeader, nil).
-			Times(3)
+			Times(4)
 
 		mockBlockState.EXPECT().
 			HasHeader(fstTaskBlockResponse.BlockData[0].Header.ParentHash).
@@ -252,9 +252,11 @@ func TestFullSyncIsFinished(t *testing.T) {
 		require.NoError(t, err)
 		require.False(t, done)
 
+		require.Equal(t, fs.requestQueue.Len(), 1)
 		require.Len(t, fs.unreadyBlocks.incompleteBlocks, 0)
 		require.Len(t, fs.unreadyBlocks.disjointFragments, 1)
 		require.Equal(t, fs.unreadyBlocks.disjointFragments[0], sndTaskBlockResponse.BlockData)
+		require.Equal(t, len(fs.unreadyBlocks.disjointFragments[0]), len(sndTaskBlockResponse.BlockData))
 
 		expectedAncestorRequest := messages.NewBlockRequest(
 			*variadic.Uint32OrHashFrom(sndTaskBlockResponse.BlockData[0].Header.ParentHash),
@@ -285,6 +287,7 @@ func TestFullSyncIsFinished(t *testing.T) {
 		require.NoError(t, err)
 		require.False(t, done)
 
+		require.Equal(t, fs.requestQueue.Len(), 0)
 		require.Len(t, fs.unreadyBlocks.incompleteBlocks, 0)
 		require.Len(t, fs.unreadyBlocks.disjointFragments, 0)
 	})
