@@ -271,10 +271,6 @@ func (t *InMemoryTrie) Put(keyLE, value []byte) (err error) {
 		t.HandleTrackedDeltas(success, pendingDeltas)
 	}()
 
-	//if bytes.Equal(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef734abf5cb34d6244378cddbf18e849d96"), keyLE) {
-	//	fmt.Println("applying our upsert")
-	//}
-
 	err = t.InsertKeyLE(keyLE, value, pendingDeltas)
 	if err != nil {
 		return err
@@ -292,12 +288,6 @@ func (t *InMemoryTrie) InsertKeyLE(keyLE, value []byte,
 		value = []byte{}
 	}
 
-	//if bytes.Equal(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef734abf5cb34d6244378cddbf18e849d96"), keyLE) {
-	//	fmt.Println("they call me mr nibbles")
-	//	fmt.Println(common.BytesToHex(nibblesKey))
-	//	fmt.Println(common.BytesToHex(value))
-	//}
-
 	root, _, _, err := t.insert(t.root, nibblesKey, value, pendingDeltas)
 	if err != nil {
 		return err
@@ -312,14 +302,6 @@ func (t *InMemoryTrie) insert(parent *node.Node, key, value []byte,
 	pendingDeltas tracking.DeltaRecorder) (newParent *node.Node,
 	mutated bool, nodesCreated uint32, err error) {
 
-	if bytes.Equal(common.MustHexToBytes("0x0000000007a9b3851a0966360500"), value) {
-		fmt.Println("INSERTING OUR VALUE")
-		fmt.Println(common.MustBlake2bHash(value))
-	}
-
-	if bytes.Equal(common.MustHexToBytes("0x02060a0a0309040e0e0a050603000e00070c04080a0e000c090505080c0e0f0703040a0b0f050c0b03040d060204040307080c0d0d0b0f01080e0804090d0906"), key) {
-		fmt.Println("INSERTING OUR KEY")
-	}
 	if parent == nil {
 		mutated = true
 		nodesCreated = 1
@@ -356,9 +338,6 @@ func (t *InMemoryTrie) insert(parent *node.Node, key, value []byte,
 func (t *InMemoryTrie) insertInLeaf(parentLeaf *node.Node, key, value []byte,
 	pendingDeltas tracking.DeltaRecorder) (
 	newParent *node.Node, mutated bool, nodesCreated uint32, err error) {
-	if bytes.Equal(common.MustHexToBytes("0x0000000007a9b3851a0966360500"), value) {
-		fmt.Println("value found 5")
-	}
 
 	if bytes.Equal(parentLeaf.PartialKey, key) {
 		nodesCreated = 0
@@ -484,21 +463,10 @@ func (t *InMemoryTrie) insertInBranch(parentBranch *node.Node, key, value []byte
 	}
 
 	if bytes.HasPrefix(key, parentBranch.PartialKey) {
-		if bytes.Equal(common.MustHexToBytes("0x02060a0a0309040e0e0a050603000e00070c04080a0e000c090505080c0e0f0703040a0b0f050c0b03040d060204040307080c0d0d0b0f01080e0804090d0906"), key) {
-			fmt.Println("insert in branch: has prefix")
-			fmt.Println(parentBranch.PartialKey)
-		}
-		// key is included in parent branch key
 		commonPrefixLength := lenCommonPrefix(key, parentBranch.PartialKey)
 		childIndex := key[commonPrefixLength]
 		remainingKey := key[commonPrefixLength+1:]
 		child := parentBranch.Children[childIndex]
-
-		if bytes.Equal(common.MustHexToBytes("0x02060a0a0309040e0e0a050603000e00070c04080a0e000c090505080c0e0f0703040a0b0f050c0b03040d060204040307080c0d0d0b0f01080e0804090d0906"), key) {
-			fmt.Printf("prefLen: %v\n", commonPrefixLength)
-			fmt.Printf("chiInd: %v\n", childIndex)
-			fmt.Printf("remKey: %v\n", common.BytesToHex(remainingKey))
-		}
 
 		if child == nil {
 			child = &node.Node{
@@ -1185,10 +1153,6 @@ func (t *InMemoryTrie) deleteAtNode(parent *node.Node, key []byte,
 	if parent == nil {
 		const nodesRemoved = 0
 		return nil, false, nodesRemoved, nil
-	}
-
-	if bytes.Equal(common.MustHexToBytes("0x02060a0a0309040e0e0a050603000e00070c04080a0e000c090505080c0e0f0703040a0b0f050c0b03040d060204040307080c0d0d0b0f01080e0804090d0906"), key) {
-		fmt.Println("Deleting our key")
 	}
 
 	if parent.Kind() == node.Leaf {

@@ -5,8 +5,6 @@ package storage
 
 import (
 	"bytes"
-	"fmt"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"sort"
 	"strings"
 
@@ -143,7 +141,7 @@ func (cs *storageDiff) clearPrefixInChild(keyToChild string, prefix []byte,
 // optional limit. It returns the number of keys deleted and a boolean
 // indicating if all keys with the prefix were removed.
 func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) (deleted uint32, allDeleted bool) {
-	newKeys := maps.Keys(cs.upserts)
+	//newKeys := maps.Keys(cs.upserts)
 	keysToClear := maps.Keys(cs.upserts)
 	for _, k := range trieKeys {
 		if _, ok := cs.upserts[k]; !ok {
@@ -161,7 +159,8 @@ func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) 
 		if bytes.HasPrefix(keyBytes, prefix) {
 			cs.delete(k)
 			deleted++
-			if !slices.Contains(newKeys, k) {
+			_, ok := cs.upserts[k]
+			if !ok {
 				limit--
 			}
 		}
@@ -255,13 +254,8 @@ func (cs *storageDiff) applyToTrie(t trie.Trie) {
 		panic("trying to apply nil change set")
 	}
 
-	fmt.Println("TIME TO APPLY: we need to make sure all updates here reflect what was put in")
-
 	// Apply trie upserts
 	for k, v := range cs.upserts {
-		if bytes.Equal(common.MustHexToBytes("0x0000000007a9b3851a0966360500"), v) {
-			fmt.Println("val in upsert")
-		}
 		err := t.Put([]byte(k), v)
 		if err != nil {
 			panic("Error applying upserts changes to trie")
@@ -270,7 +264,6 @@ func (cs *storageDiff) applyToTrie(t trie.Trie) {
 
 	// Apply child trie upserts
 	for childKeyString, childChangeSet := range cs.childChangeSet {
-		fmt.Println("there are some kids")
 		childKey := []byte(childKeyString)
 
 		for k, v := range childChangeSet.upserts {

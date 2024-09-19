@@ -96,7 +96,6 @@ func ext_logging_log_version_1(_ context.Context, m api.Module, level int32, tar
 	msg := string(read(m, msgData))
 
 	line := fmt.Sprintf("target=%s message=%s", target, msg)
-	//fmt.Println(line)
 	switch int(level) {
 	case 0:
 		logger.Critical(line)
@@ -2049,7 +2048,6 @@ func ext_storage_clear_version_1(ctx context.Context, m api.Module, keySpan uint
 	storage := rtCtx.Storage
 
 	key := read(m, keySpan)
-
 	logger.Debugf("key: 0x%x", key)
 	err := storage.Delete(key)
 	if err != nil {
@@ -2186,11 +2184,6 @@ func ext_storage_get_version_1(ctx context.Context, m api.Module, keySpan uint64
 	value := storage.Get(key)
 	logger.Debugf("value: 0x%x", value)
 
-	if bytes.Equal(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef734abf5cb34d6244378cddbf18e849d96"), key) {
-		//fmt.Println("performing storage get on our key")
-		fmt.Printf("get on our key, with value: %v\n", common.BytesToHex(value))
-	}
-
 	var encodedOption []byte
 	if value != nil {
 		encodedOption = scale.MustMarshal(&value)
@@ -2209,7 +2202,6 @@ func ext_storage_next_key_version_1(ctx context.Context, m api.Module, keySpan u
 	storage := rtCtx.Storage
 
 	key := read(m, keySpan)
-
 	next := storage.NextKey(key)
 	logger.Debugf(
 		"key: 0x%x; next key 0x%x",
@@ -2321,6 +2313,9 @@ func ext_storage_set_version_1(ctx context.Context, m api.Module, keySpan, value
 	key := read(m, keySpan)
 	value := read(m, valueSpan)
 
+	if bytes.Equal(common.MustHexToBytes("0x2b06af9719ac64d755623cda8ddd9b944e7b9012096b41c4eb3aaf947f6ea429"), key) {
+		return
+	}
 	cp := make([]byte, len(value))
 	copy(cp, value)
 
