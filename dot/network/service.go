@@ -255,8 +255,10 @@ func (s *Service) Start() error {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
 
+	genesisHashProtocolId := protocol.ID(s.cfg.BlockState.GenesisHash().String())
+
 	s.host.registerStreamHandler(s.host.protocolID+SyncID, s.handleSyncStream)
-	s.host.registerStreamHandler(s.host.protocolID+WarpSyncID, s.handleWarpSyncStream)
+	s.host.registerStreamHandler(genesisHashProtocolId+WarpSyncID, s.handleWarpSyncStream)
 	s.host.registerStreamHandler(s.host.protocolID+lightID, s.handleLightStream)
 
 	// register block announce protocol
