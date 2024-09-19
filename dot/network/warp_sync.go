@@ -4,6 +4,8 @@
 package network
 
 import (
+	"errors"
+
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/lib/common"
 	libp2pnetwork "github.com/libp2p/go-libp2p/core/network"
@@ -48,7 +50,7 @@ func (s *Service) handleWarpSyncMessage(stream libp2pnetwork.Stream, msg message
 
 	defer func() {
 		err := stream.Close()
-		if err != nil && err.Error() != ErrStreamReset.Error() {
+		if err != nil && errors.Is(err, ErrStreamReset) {
 			logger.Warnf("failed to close stream: %s", err)
 		}
 	}()
