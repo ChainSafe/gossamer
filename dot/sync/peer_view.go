@@ -50,7 +50,6 @@ func (p *peerViewSet) getTarget() uint32 {
 	}
 
 	currMax := p.target
-	// we are going to sort the data and remove the outliers then we will return the avg of all the valid elements
 	for _, view := range maps.Values(p.view) {
 		if view.bestBlockNumber > currMax {
 			currMax = view.bestBlockNumber
