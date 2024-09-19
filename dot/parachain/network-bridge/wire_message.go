@@ -8,16 +8,17 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
+	"github.com/ChainSafe/gossamer/dot/network"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 )
 
 type WireMessage struct {
-	inner any
+	inner       any
+	messageType network.MessageType
 }
 
 type WireMessageValues interface {
@@ -67,9 +68,13 @@ func (mvdt WireMessage) ValueAt(index uint) (value any, err error) {
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
+func (w *WireMessage) SetType(messageType network.MessageType) {
+	w.messageType = messageType
+}
+
 func (w WireMessage) Type() network.MessageType {
 	// TODO: create a wire message type and return that #4108
-	return network.CollationMsgType
+	return w.messageType
 }
 
 func (w WireMessage) Hash() (common.Hash, error) {

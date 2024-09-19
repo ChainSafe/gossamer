@@ -12,11 +12,24 @@ import (
 const MaxValidationMessageSize uint64 = 100 * 1024
 
 func decodeValidationMessage(in []byte) (network.NotificationsMessage, error) {
-	validationMessage := validationprotocol.ValidationProtocol{}
+	wireMessage := WireMessage{}
+	err := wireMessage.SetValue(validationprotocol.ValidationProtocol{})
+	if err != nil {
+		return nil, fmt.Errorf("cannot set validation protocol message: %w", err)
+	}
 
-	err := scale.Unmarshal(in, &validationMessage)
+	err = scale.Unmarshal(in, &wireMessage)
 	if err != nil {
 		return nil, fmt.Errorf("cannot decode message: %w", err)
+	}
+
+	validationMessageV, err := wireMessage.Value()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get validation protocol message value: %w", err)
+	}
+	validationMessage, ok := validationMessageV.(validationprotocol.ValidationProtocol)
+	if !ok {
+		return nil, fmt.Errorf("failed to cast to validation protocol message")
 	}
 
 	return &validationMessage, nil
