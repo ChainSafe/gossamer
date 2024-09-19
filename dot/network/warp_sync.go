@@ -32,7 +32,7 @@ func (s *Service) handleWarpSyncStream(stream libp2pnetwork.Stream) {
 		return
 	}
 
-	s.readStream(stream, decodeSyncMessage, s.handleWarpSyncMessage, MaxBlockResponseSize)
+	s.readStream(stream, decodeWarpSyncMessage, s.handleWarpSyncMessage, MaxBlockResponseSize)
 }
 
 func decodeWarpSyncMessage(in []byte, _ peer.ID, _ bool) (messages.P2PMessage, error) {
