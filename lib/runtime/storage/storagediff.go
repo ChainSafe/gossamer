@@ -141,7 +141,6 @@ func (cs *storageDiff) clearPrefixInChild(keyToChild string, prefix []byte,
 // optional limit. It returns the number of keys deleted and a boolean
 // indicating if all keys with the prefix were removed.
 func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) (deleted uint32, allDeleted bool) {
-	//newKeys := maps.Keys(cs.upserts)
 	keysToClear := maps.Keys(cs.upserts)
 	for _, k := range trieKeys {
 		if _, ok := cs.upserts[k]; !ok {

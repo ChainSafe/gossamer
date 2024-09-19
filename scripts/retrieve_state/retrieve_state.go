@@ -126,8 +126,6 @@ func (s *StateRequestProvider) buildTrie(expectedStorageRootHash common.Hash, de
 	return err
 }
 
-// go run ./scripts/retrieve_state/retrieve_state.go 0x00ab8c6e55a9951698052d9d999eb0c440c525af05867df39cb55863632b4ad9 0x804403dad405e595bdca5f068ae91a75d455c90f3e7672a2ee62d3b506a93c21 ./chain/paseo/chain-spec-raw.json ./lib/runtime/test_data/paseo/block1789153.out
-
 func main() {
 	if len(os.Args) != 5 {
 		log.Fatalf(`

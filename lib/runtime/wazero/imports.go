@@ -96,6 +96,7 @@ func ext_logging_log_version_1(_ context.Context, m api.Module, level int32, tar
 	msg := string(read(m, msgData))
 
 	line := fmt.Sprintf("target=%s message=%s", target, msg)
+
 	switch int(level) {
 	case 0:
 		logger.Critical(line)
@@ -858,6 +859,7 @@ func ext_trie_blake2_256_ordered_root_version_2(
 	}
 
 	var entries trie.Entries
+
 	for i, value := range values {
 		key, err := scale.Marshal(big.NewInt(int64(i)))
 		if err != nil {
@@ -2048,6 +2050,7 @@ func ext_storage_clear_version_1(ctx context.Context, m api.Module, keySpan uint
 	storage := rtCtx.Storage
 
 	key := read(m, keySpan)
+
 	logger.Debugf("key: 0x%x", key)
 	err := storage.Delete(key)
 	if err != nil {
@@ -2202,6 +2205,7 @@ func ext_storage_next_key_version_1(ctx context.Context, m api.Module, keySpan u
 	storage := rtCtx.Storage
 
 	key := read(m, keySpan)
+
 	next := storage.NextKey(key)
 	logger.Debugf(
 		"key: 0x%x; next key 0x%x",

@@ -6,13 +6,14 @@ package inmemory
 import (
 	"bytes"
 	"fmt"
+	"reflect"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/node"
 	"github.com/ChainSafe/gossamer/pkg/trie/tracking"
-	"reflect"
 )
 
 // InMemoryTrie is a base 16 modified Merkle Patricia trie.
@@ -463,6 +464,7 @@ func (t *InMemoryTrie) insertInBranch(parentBranch *node.Node, key, value []byte
 	}
 
 	if bytes.HasPrefix(key, parentBranch.PartialKey) {
+		// key is included in parent branch key
 		commonPrefixLength := lenCommonPrefix(key, parentBranch.PartialKey)
 		childIndex := key[commonPrefixLength]
 		remainingKey := key[commonPrefixLength+1:]

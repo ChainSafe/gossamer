@@ -165,11 +165,6 @@ func (t *TrieState) Delete(key []byte) (err error) {
 		return nil
 	}
 
-	err = t.state.Delete(key)
-	if err != nil {
-		return err
-	}
-
 	return t.state.Delete(key)
 }
 
