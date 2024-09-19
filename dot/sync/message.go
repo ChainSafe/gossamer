@@ -21,10 +21,6 @@ func (s *Service) CreateBlockResponse(from peer.ID, req *messages.BlockRequestMe
 	*messages.BlockResponseMessage, error) {
 	logger.Debugf("sync request from %s: %s", from, req.String())
 
-	if !req.StartingBlock.IsUint32() && !req.StartingBlock.IsHash() {
-		return nil, ErrInvalidBlockRequest
-	}
-
 	encodedRequest, err := req.Encode()
 	if err != nil {
 		return nil, fmt.Errorf("encoding request: %w", err)
@@ -77,18 +73,18 @@ func (s *Service) handleAscendingRequest(req *messages.BlockRequestMessage) (*me
 		return nil, fmt.Errorf("getting best block for request: %w", err)
 	}
 
-	switch startBlock := req.StartingBlock.Value().(type) {
-	case uint32:
+	switch startBlock := req.StartingBlock.RawValue().(type) {
+	case uint:
 		if startBlock == 0 {
 			startBlock = 1
 		}
 
 		// if request start is higher than our best block, return error
-		if bestBlockNumber < uint(startBlock) {
+		if bestBlockNumber < startBlock {
 			return nil, errRequestStartTooHigh
 		}
 
-		startNumber = uint(startBlock)
+		startNumber = startBlock
 	case common.Hash:
 		startHash = &startBlock
 
@@ -147,15 +143,15 @@ func (s *Service) handleDescendingRequest(req *messages.BlockRequestMessage) (*m
 		max = uint(*req.Max)
 	}
 
-	switch startBlock := req.StartingBlock.Value().(type) {
-	case uint32:
+	switch startBlock := req.StartingBlock.RawValue().(type) {
+	case uint:
 		bestBlockNumber, err := s.blockState.BestBlockNumber()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get best block %d for request: %w", bestBlockNumber, err)
 		}
 
 		// if request start is higher than our best block, only return blocks from our best block and below
-		if bestBlockNumber < uint(startBlock) {
+		if bestBlockNumber < startBlock {
 			startNumber = bestBlockNumber
 		} else {
 			startNumber = uint(startBlock)

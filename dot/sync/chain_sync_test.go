@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
@@ -159,7 +158,7 @@ func Test_chainSync_onBlockAnnounce(t *testing.T) {
 					Return(block2AnnounceHeader, nil).
 					Times(2)
 
-				expectedRequest := messages.NewBlockRequest(*variadic.MustNewUint32OrHash(block2AnnounceHeader.Hash()),
+				expectedRequest := messages.NewBlockRequest(*messages.NewFromBlock(block2AnnounceHeader.Hash()),
 					1, messages.BootstrapRequestData, messages.Descending)
 
 				fakeBlockBody := types.Body([]types.Extrinsic{})
@@ -514,7 +513,7 @@ func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 	mockedNetwork := NewMockNetwork(ctrl)
 
 	workerPeerID := peer.ID("noot")
-	startingBlock := variadic.MustNewUint32OrHash(1)
+	startingBlock := messages.NewFromBlock(uint(1))
 	max := uint32(128)
 
 	mockedRequestMaker := NewMockRequestMaker(ctrl)

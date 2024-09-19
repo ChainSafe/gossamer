@@ -10,7 +10,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -130,7 +129,7 @@ func TestSyncWorkerPool_listenForRequests_submitRequest(t *testing.T) {
 	defer workerPool.stop()
 
 	blockHash := common.MustHexToHash("0x750646b852a29e5f3668959916a03d6243a3137e91d0cd36870364931030f707")
-	blockRequest := messages.NewBlockRequest(*variadic.MustNewUint32OrHash(blockHash),
+	blockRequest := messages.NewBlockRequest(*messages.NewFromBlock(blockHash),
 		1, messages.BootstrapRequestData, messages.Ascending)
 	mockedBlockResponse := &messages.BlockResponseMessage{
 		BlockData: []*types.BlockData{
@@ -178,11 +177,11 @@ func TestSyncWorkerPool_singleWorker_multipleRequests(t *testing.T) {
 	workerPool.newPeer(availablePeer)
 
 	firstRequestBlockHash := common.MustHexToHash("0x750646b852a29e5f3668959916a03d6243a3137e91d0cd36870364931030f707")
-	firstBlockRequest := messages.NewBlockRequest(*variadic.MustNewUint32OrHash(firstRequestBlockHash),
+	firstBlockRequest := messages.NewBlockRequest(*messages.NewFromBlock(firstRequestBlockHash),
 		1, messages.BootstrapRequestData, messages.Ascending)
 
 	secondRequestBlockHash := common.MustHexToHash("0x897646b852a29e5f3668959916a03d6243a3137e91d0cd36870364931030f707")
-	secondBlockRequest := messages.NewBlockRequest(*variadic.MustNewUint32OrHash(firstRequestBlockHash),
+	secondBlockRequest := messages.NewBlockRequest(*messages.NewFromBlock(firstRequestBlockHash),
 		1, messages.BootstrapRequestData, messages.Ascending)
 
 	firstMockedBlockResponse := &messages.BlockResponseMessage{
