@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
 
 	pb "github.com/ChainSafe/gossamer/dot/network/proto"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -74,27 +75,30 @@ type FromBlock struct {
 	value any
 }
 
-// NewUintOrHash returns a new variadic.Uint32OrHash given an int, uint32, or Hash
+// NewFromBlock returns a new FromBlock given an uint or Hash
+// to be used  while issuing a block request or while decoding
+// a received block request message
 func NewFromBlock[T common.Hash | ~uint](value T) *FromBlock {
 	return &FromBlock{
 		value: value,
 	}
 }
 
-// Encode will encode a Uint32OrHash using SCALE
+// RawValue returns the inner uint or hash value
 func (x *FromBlock) RawValue() any {
 	return x.value
 }
 
-// Encode will encode a Uint32OrHash using SCALE
-func (x *FromBlock) ToProto() (fromBlockType, []byte) {
+// Encode will encode a FromBlock into a 4 bytes representation
+func (x *FromBlock) Encode() (fromBlockType, []byte) {
 	switch rawValue := x.value.(type) {
 	case uint:
-		startingBlockByteArray := make([]byte, 4)
-		// the protobuf number type only support 4 bytes number
-		// so we bound rawValue to the max uint32
-		binary.LittleEndian.PutUint32(startingBlockByteArray, uint32(rawValue&0x11111111))
-		return fromBlockNumber, startingBlockByteArray
+		encoded := make([]byte, 4)
+		if rawValue > uint(math.MaxUint32) {
+			rawValue = math.MaxUint32
+		}
+		binary.LittleEndian.PutUint32(encoded, uint32(rawValue))
+		return fromBlockNumber, encoded
 	case common.Hash:
 		return fromBlockHash, rawValue.ToBytes()
 	default:
@@ -105,7 +109,10 @@ func (x *FromBlock) ToProto() (fromBlockType, []byte) {
 // BlockRequestMessage is sent to request some blocks from a peer
 type BlockRequestMessage struct {
 	RequestedData byte
-	StartingBlock FromBlock     // first byte 0 = block hash (32 byte), first byte 1 = block number (uint32)
+
+	// starting block represents a protobuf "oneof" data type
+	// which means that this field can be either a number or hash
+	StartingBlock FromBlock
 	Direction     SyncDirection // 0 = ascending, 1 = descending
 	Max           *uint32
 }
@@ -188,7 +195,7 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 		MaxBlocks: max,
 	}
 
-	protoType, encoded := bm.StartingBlock.ToProto()
+	protoType, encoded := bm.StartingBlock.Encode()
 	switch protoType {
 	case fromBlockHash:
 		msg.FromBlock = &pb.BlockRequest_Hash{
