@@ -6,6 +6,7 @@ package sync
 import (
 	"bytes"
 	"fmt"
+	"slices"
 
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -20,6 +21,10 @@ const maxNumberOfSameRequestPerPeer uint = 2
 func (s *Service) CreateBlockResponse(from peer.ID, req *messages.BlockRequestMessage) (
 	*messages.BlockResponseMessage, error) {
 	logger.Debugf("sync request from %s: %s", from, req.String())
+
+	if req.RequestedData == 0 {
+		return nil, fmt.Errorf("%w: invalid requested data %v", ErrInvalidBlockRequest, req.RequestedData)
+	}
 
 	encodedRequest, err := req.Encode()
 	if err != nil {
@@ -188,15 +193,15 @@ func (s *Service) handleDescendingRequest(req *messages.BlockRequestMessage) (*m
 	}
 
 	if startHash == nil || endHash == nil {
-		logger.Debugf("handling BlockRequestMessage with direction %s "+
-			"from start block with number %d to end block with number %d",
-			req.Direction, startNumber, endNumber)
+		logger.Infof("handling block request message with direction %s "+
+			"from number %d to number %d\n",
+			req.Direction.String(), startNumber, endNumber)
 		return s.handleDescendingByNumber(startNumber, endNumber, req.RequestedData)
 	}
 
-	logger.Debugf("handling block request message with direction %s "+
-		"from start block with hash %s to end block with hash %s",
-		req.Direction, *startHash, *endHash)
+	logger.Infof("handling block request message with direction %s "+
+		"from hash %s to end block with hash %s",
+		req.Direction.String(), *startHash, *endHash)
 	return s.handleChainByHash(*endHash, *startHash, max, req.RequestedData, req.Direction)
 }
 
@@ -301,19 +306,20 @@ func (s *Service) handleAscendingByNumber(start, end uint,
 func (s *Service) handleDescendingByNumber(start, end uint,
 	requestedData byte) (*messages.BlockResponseMessage, error) {
 	var err error
-	data := make([]*types.BlockData, (start-end)+1)
+
+	response := &messages.BlockResponseMessage{
+		BlockData: make([]*types.BlockData, (start-end)+1),
+	}
 
 	for i := uint(0); start-i >= end; i++ {
 		blockNumber := start - i
-		data[i], err = s.getBlockDataByNumber(blockNumber, requestedData)
+		response.BlockData[i], err = s.getBlockDataByNumber(blockNumber, requestedData)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return &messages.BlockResponseMessage{
-		BlockData: data,
-	}, nil
+	return response, nil
 }
 
 func (s *Service) handleChainByHash(ancestor, descendant common.Hash,
@@ -334,10 +340,12 @@ func (s *Service) handleChainByHash(ancestor, descendant common.Hash,
 		}
 	}
 
-	data := make([]*types.BlockData, len(subchain))
+	response := &messages.BlockResponseMessage{
+		BlockData: make([]*types.BlockData, len(subchain)),
+	}
 
 	for i, hash := range subchain {
-		data[i], err = s.getBlockData(hash, requestedData)
+		response.BlockData[i], err = s.getBlockData(hash, requestedData)
 		if err != nil {
 			return nil, err
 		}
@@ -345,12 +353,10 @@ func (s *Service) handleChainByHash(ancestor, descendant common.Hash,
 
 	// reverse BlockData, if descending request
 	if direction == messages.Descending {
-		reverseBlockData(data)
+		slices.Reverse(response.BlockData)
 	}
 
-	return &messages.BlockResponseMessage{
-		BlockData: data,
-	}, nil
+	return response, nil
 }
 
 func (s *Service) getBlockDataByNumber(num uint, requestedData byte) (*types.BlockData, error) {
@@ -366,10 +372,6 @@ func (s *Service) getBlockData(hash common.Hash, requestedData byte) (*types.Blo
 	var err error
 	blockData := &types.BlockData{
 		Hash: hash,
-	}
-
-	if requestedData == 0 {
-		return blockData, nil
 	}
 
 	if (requestedData & messages.RequestedDataHeader) == 1 {

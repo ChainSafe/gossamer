@@ -29,6 +29,17 @@ const (
 	Descending
 )
 
+func (s SyncDirection) String() string {
+	switch s {
+	case Ascending:
+		return "ascending"
+	case Descending:
+		return "descending"
+	default:
+		return "undefined direction"
+	}
+}
+
 // The following defines the fields that will needs to be
 // in the response message
 const (
