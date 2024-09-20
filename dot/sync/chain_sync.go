@@ -24,7 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
 )
 
 var _ ChainSync = (*chainSync)(nil)
@@ -399,7 +398,7 @@ func (cs *chainSync) requestChainBlocks(announcedHeader, bestBlockHeader *types.
 	totalBlocks := uint32(1)
 
 	var request *messages.BlockRequestMessage
-	startingBlock := *variadic.MustNewUint32OrHash(announcedHeader.Hash())
+	startingBlock := *messages.NewFromBlock(announcedHeader.Hash())
 
 	if gapLength > 1 {
 		request = messages.NewBlockRequest(startingBlock, gapLength,
@@ -444,7 +443,7 @@ func (cs *chainSync) requestForkBlocks(bestBlockHeader, highestFinalizedHeader, 
 	startAtBlock := announcedHeader.Number
 	announcedHash := announcedHeader.Hash()
 	var request *messages.BlockRequestMessage
-	startingBlock := *variadic.MustNewUint32OrHash(announcedHash)
+	startingBlock := *messages.NewFromBlock(announcedHash)
 
 	if parentExists {
 		request = messages.NewBlockRequest(startingBlock, 1, messages.BootstrapRequestData, messages.Descending)
@@ -503,7 +502,7 @@ func (cs *chainSync) requestPendingBlocks(highestFinalizedHeader *types.Header) 
 			gapLength = 128
 		}
 
-		descendingGapRequest := messages.NewBlockRequest(*variadic.MustNewUint32OrHash(pendingBlock.hash),
+		descendingGapRequest := messages.NewBlockRequest(*messages.NewFromBlock(pendingBlock.hash),
 			uint32(gapLength), messages.BootstrapRequestData, messages.Descending)
 		startAtBlock := pendingBlock.number - uint(*descendingGapRequest.Max) + 1
 
@@ -754,11 +753,8 @@ taskResultLoop:
 				difference := uint32(int(*request.Max) - len(response.BlockData))
 				lastItem := response.BlockData[len(response.BlockData)-1]
 
-				startRequestNumber := uint32(lastItem.Header.Number + 1)
-				startAt, err := variadic.NewUint32OrHash(startRequestNumber)
-				if err != nil {
-					panic(err)
-				}
+				startRequestNumber := lastItem.Header.Number + 1
+				startAt := messages.NewFromBlock(startRequestNumber)
 
 				taskResult.request = &messages.BlockRequestMessage{
 					RequestedData: messages.BootstrapRequestData,
