@@ -99,7 +99,9 @@ func (cv *CandidateValidation) processMessage(msg any) {
 		}
 
 	case PreCheck:
-		panic("TODO: implement functionality to handle PreCheck, see issue #3921")
+		outcome := cv.precheckPvF(msg.RelayParent, msg.ValidationCodeHash)
+		logger.Debugf("Precheck outcome: %v", outcome)
+		msg.ResponseSender <- outcome
 
 	case parachaintypes.ActiveLeavesUpdateSignal:
 		_ = cv.ProcessActiveLeavesUpdateSignal(msg)
@@ -225,4 +227,24 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 	msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 		Data: *result,
 	}
+}
+
+func (cv *CandidateValidation) requestValidationCodeByHash(relayParent common.Hash,
+	validationCodeHash parachaintypes.ValidationCodeHash) (*parachaintypes.ValidationCode, error) {
+	runtimeInstance, err := cv.BlockState.GetRuntime(relayParent)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime instance: %w", err)
+	}
+	return runtimeInstance.ParachainHostValidationCodeByHash(common.Hash(validationCodeHash))
+}
+
+func (cv *CandidateValidation) precheckPvF(relayParent common.Hash, validationCodeHash parachaintypes.
+	ValidationCodeHash) PreCheckOutcome {
+	code, err := cv.requestValidationCodeByHash(relayParent, validationCodeHash)
+	if err != nil {
+		logger.Errorf("failed to get validation code by hash: %w", err)
+		return PreCheckOutcomeFailed
+	}
+	fmt.Printf("Validation code: %v\n", len(*code))
+	return PreCheckOutcomeValid
 }

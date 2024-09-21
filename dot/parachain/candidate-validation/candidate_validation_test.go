@@ -5,6 +5,7 @@ package candidatevalidation
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -504,6 +505,63 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 			toSubsystem <- tt.msg
 			result := <-sender
 			require.Equal(t, tt.want, &result.Data)
+		})
+	}
+}
+
+func Test_precheckPvF(t *testing.T) {
+	t.Parallel()
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+
+	mockInstance := NewMockInstance(ctrl)
+	mockInstance.EXPECT().ParachainHostValidationCodeByHash(common.MustHexToHash("0x03")).Return(&parachaintypes.
+		ValidationCode{}, nil)
+
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x01")).Return(nil, fmt.Errorf("runtime not found"))
+	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x02")).Return(mockInstance, nil)
+
+	toSubsystem := make(chan any)
+	candidateValidationSubsystem := CandidateValidation{
+		pvfHost:    newValidationHost(),
+		BlockState: mockBlockState,
+	}
+	defer candidateValidationSubsystem.Stop()
+
+	go candidateValidationSubsystem.Run(context.Background(), toSubsystem)
+
+	tests := map[string]struct {
+		msg            PreCheck
+		expectedResult PreCheckOutcome
+	}{
+		"validation_code_not_found": {
+			msg: PreCheck{
+				RelayParent: common.MustHexToHash("0x01"),
+			},
+			expectedResult: PreCheckOutcomeFailed,
+		},
+		"happy_path": {
+			msg: PreCheck{
+				RelayParent:        common.MustHexToHash("0x02"),
+				ValidationCodeHash: parachaintypes.ValidationCodeHash(common.MustHexToHash("0x03")),
+			},
+			expectedResult: PreCheckOutcomeValid,
+		},
+	}
+	for name, tt := range tests {
+		tt := tt
+
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			sender := make(chan PreCheckOutcome)
+			tt.msg.ResponseSender = sender
+
+			toSubsystem <- tt.msg
+			result := <-sender
+
+			require.Equal(t, tt.expectedResult, result)
 		})
 	}
 }

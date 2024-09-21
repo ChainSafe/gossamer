@@ -37,7 +37,7 @@ type ValidateFromExhaustive struct {
 type PreCheck struct {
 	RelayParent        common.Hash
 	ValidationCodeHash parachaintypes.ValidationCodeHash
-	PreCheckOutcome    chan PreCheckOutcome
+	ResponseSender     chan PreCheckOutcome
 }
 
 // PreCheckOutcome represents the outcome of the candidate-validation pre-check request
