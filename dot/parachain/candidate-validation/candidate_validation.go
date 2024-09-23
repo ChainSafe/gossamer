@@ -10,6 +10,7 @@ import (
 
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 )
@@ -229,22 +230,31 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 	}
 }
 
-func (cv *CandidateValidation) requestValidationCodeByHash(relayParent common.Hash,
-	validationCodeHash parachaintypes.ValidationCodeHash) (*parachaintypes.ValidationCode, error) {
-	runtimeInstance, err := cv.BlockState.GetRuntime(relayParent)
-	if err != nil {
-		return nil, fmt.Errorf("getting runtime instance: %w", err)
-	}
-	return runtimeInstance.ParachainHostValidationCodeByHash(common.Hash(validationCodeHash))
-}
-
 func (cv *CandidateValidation) precheckPvF(relayParent common.Hash, validationCodeHash parachaintypes.
 	ValidationCodeHash) PreCheckOutcome {
-	code, err := cv.requestValidationCodeByHash(relayParent, validationCodeHash)
+	runtimeInstance, err := cv.BlockState.GetRuntime(relayParent)
+	if err != nil {
+		logger.Errorf("failed to get runtime instance: %w", err)
+		return PreCheckOutcomeFailed
+	}
+
+	code, err := runtimeInstance.ParachainHostValidationCodeByHash(common.Hash(validationCodeHash))
 	if err != nil {
 		logger.Errorf("failed to get validation code by hash: %w", err)
 		return PreCheckOutcomeFailed
 	}
 	fmt.Printf("Validation code: %v\n", len(*code))
+	executorParams, err := util.ExecutorParamsAtRelayParent(runtimeInstance, relayParent)
+	if err != nil {
+		logger.Errorf("failed to acquire params for the session, thus voting against: %w", err)
+		return PreCheckOutcomeInvalid
+	}
+	fmt.Printf("Executor params: %v\n", executorParams)
+
+	// todo: pvf_prep_timeout
+
+	// todo: sp_maybe_compressed_blob
+
+	// todo: call validation_backend.precheck_pvf
 	return PreCheckOutcomeValid
 }

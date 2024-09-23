@@ -517,10 +517,21 @@ func Test_precheckPvF(t *testing.T) {
 	mockInstance := NewMockInstance(ctrl)
 	mockInstance.EXPECT().ParachainHostValidationCodeByHash(common.MustHexToHash("0x03")).Return(&parachaintypes.
 		ValidationCode{}, nil)
+	mockInstance.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(1), nil)
+	mockInstance.EXPECT().ParachainHostSessionExecutorParams(parachaintypes.SessionIndex(1)).Return(&parachaintypes.
+		ExecutorParams{}, nil)
+
+	mockInstanceExecutorError := NewMockInstance(ctrl)
+	mockInstanceExecutorError.EXPECT().ParachainHostValidationCodeByHash(common.MustHexToHash("0x04")).Return(
+		&parachaintypes.ValidationCode{}, nil)
+	mockInstanceExecutorError.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(2), nil)
+	mockInstanceExecutorError.EXPECT().ParachainHostSessionExecutorParams(parachaintypes.SessionIndex(2)).Return(
+		nil, fmt.Errorf("executor params not found"))
 
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x01")).Return(nil, fmt.Errorf("runtime not found"))
 	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x02")).Return(mockInstance, nil)
+	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x03")).Return(mockInstanceExecutorError, nil)
 
 	toSubsystem := make(chan any)
 	candidateValidationSubsystem := CandidateValidation{
@@ -540,6 +551,13 @@ func Test_precheckPvF(t *testing.T) {
 				RelayParent: common.MustHexToHash("0x01"),
 			},
 			expectedResult: PreCheckOutcomeFailed,
+		},
+		"invalid_executor_params": {
+			msg: PreCheck{
+				RelayParent:        common.MustHexToHash("0x03"),
+				ValidationCodeHash: parachaintypes.ValidationCodeHash(common.MustHexToHash("0x04")),
+			},
+			expectedResult: PreCheckOutcomeInvalid,
 		},
 		"happy_path": {
 			msg: PreCheck{
