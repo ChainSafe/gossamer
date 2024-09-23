@@ -17,11 +17,11 @@ type WarpProofRequest struct {
 
 // Decode decodes the message into a WarpProofRequest
 func (wpr *WarpProofRequest) Decode(in []byte) error {
-	return scale.Unmarshal(in, &wpr)
+	return scale.Unmarshal(in, wpr)
 }
 
 // Encode encodes the warp sync request
-func (wpr *WarpProofRequest) Encode() ([]byte, error) {
+func (wpr WarpProofRequest) Encode() ([]byte, error) {
 	return scale.Marshal(wpr)
 }
 
