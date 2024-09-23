@@ -257,6 +257,10 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 			CreateBlockResponse(gomock.Any(), gomock.Any()).
 			Return(newTestBlockResponseMessage(t), nil).AnyTimes()
 
+		syncer.EXPECT().
+			OnConnectionClosed(gomock.AssignableToTypeOf(peer.ID(string("")))).
+			AnyTimes()
+
 		syncer.EXPECT().IsSynced().Return(false).AnyTimes()
 		cfg.Syncer = syncer
 	}
