@@ -26,7 +26,6 @@ type BlockStateDatabase interface {
 	GetPutDeleter
 	Haser
 	NewBatcher
-	NewPrefixIterator(prefix []byte) (database.Iterator, error)
 }
 
 // GetPutter has methods to get and put key values.
