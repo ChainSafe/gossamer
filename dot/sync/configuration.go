@@ -32,3 +32,9 @@ func WithSlotDuration(slotDuration time.Duration) ServiceConfig {
 		svc.slotDuration = slotDuration
 	}
 }
+
+func WithMinPeers(min int) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.minPeers = min
+	}
+}

@@ -341,8 +341,7 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 			},
 		}
 
-		return repChange, fmt.Errorf("%w: peer %s, block number #%d (%s)",
-			errPeerOnInvalidFork, from, blockAnnounceHeader.Number, blockAnnounceHeaderHash.String())
+		return repChange, nil
 	}
 
 	logger.Infof("relevant announced block #%d (%s)", blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
@@ -397,6 +396,7 @@ func (f *FullSyncStrategy) IsSynced() bool {
 		return false
 	}
 
+	logger.Infof("highest block: %d target %d", highestBlock, f.peers.getTarget())
 	return uint32(highestBlock) >= f.peers.getTarget()
 }
 

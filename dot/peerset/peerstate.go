@@ -85,6 +85,7 @@ func newNode(n int) *node {
 
 	return &node{
 		state:         sets,
+		reputation:    0,
 		lastConnected: lastConnected,
 	}
 }

@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	waitPeersDefaultTimeout = 2 * time.Second
+	waitPeersDefaultTimeout = 10 * time.Second
 	minPeersDefault         = 3
 )
 
@@ -119,7 +119,6 @@ func NewSyncService(cfgs ...ServiceConfig) *SyncService {
 }
 
 func (s *SyncService) waitWorkers() {
-	waitPeersTimer := time.NewTimer(s.waitPeersDuration)
 	bestBlockHeader, err := s.blockState.BestBlockHeader()
 	if err != nil {
 		panic(fmt.Sprintf("failed to get highest finalised header: %v", err))
@@ -127,8 +126,6 @@ func (s *SyncService) waitWorkers() {
 
 	for {
 		total := s.workerPool.totalWorkers()
-		logger.Debugf("waiting peers...")
-		logger.Debugf("total workers: %d, min peers: %d", total, s.minPeers)
 		if total >= s.minPeers {
 			return
 		}
@@ -143,6 +140,7 @@ func (s *SyncService) waitWorkers() {
 			break
 		}
 
+		waitPeersTimer := time.NewTimer(s.waitPeersDuration)
 		select {
 		case <-waitPeersTimer.C:
 			waitPeersTimer.Reset(s.waitPeersDuration)
