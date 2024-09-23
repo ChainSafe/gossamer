@@ -4,14 +4,18 @@
 package candidatevalidation
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
+	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/klauspost/compress/zstd"
 )
 
 // CandidateValidation is a parachain subsystem that validates candidate parachain blocks
@@ -174,14 +178,23 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 		return
 	}
 
+	if persistedValidationData == nil {
+		badParent := BadParent
+		reason := ValidationResult{
+			Invalid: &badParent,
+		}
+		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+			Data: reason,
+		}
+		return
+	}
 	validationTask := &ValidationTask{
 		PersistedValidationData: *persistedValidationData,
 		ValidationCode:          validationCode,
 		CandidateReceipt:        &msg.CandidateReceipt,
 		PoV:                     msg.Pov,
 		ExecutorParams:          msg.ExecutorParams,
-		// todo: implement PvfExecTimeoutKind, so that validate can be called with a timeout see issue: #3429
-		PvfExecTimeoutKind: parachaintypes.PvfExecTimeoutKind{},
+		PvfExecTimeoutKind:      msg.ExecKind,
 	}
 
 	result, err := cv.pvfHost.validate(validationTask)
@@ -189,29 +202,90 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 			Err: err,
 		}
-	} else {
+		return
+	}
+	if !result.IsValid() {
 		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 			Data: *result,
 		}
+		return
 	}
-}
-
-func (cv *CandidateValidation) requestValidationCodeByHash(relayParent common.Hash,
-	validationCodeHash parachaintypes.ValidationCodeHash) (*parachaintypes.ValidationCode, error) {
-	runtimeInstance, err := cv.BlockState.GetRuntime(relayParent)
+	valid, err := runtimeInstance.ParachainHostCheckValidationOutputs(parachaintypes.ParaID(msg.CandidateReceipt.
+		Descriptor.ParaID), result.Valid.CandidateCommitments)
 	if err != nil {
-		return nil, fmt.Errorf("getting runtime instance: %w", err)
+		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+			Err: fmt.Errorf("check validation outputs: Bad request: %w", err),
+		}
+		return
 	}
-	return runtimeInstance.ParachainHostValidationCodeByHash(common.Hash(validationCodeHash))
+	if !valid {
+		invalidOutput := InvalidOutputs
+		reason := &ValidationResult{
+			Invalid: &invalidOutput,
+		}
+		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+			Data: *reason,
+		}
+		return
+	}
+	msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+		Data: *result,
+	}
 }
 
 func (cv *CandidateValidation) precheckPvF(relayParent common.Hash, validationCodeHash parachaintypes.
 	ValidationCodeHash) PreCheckOutcome {
-	code, err := cv.requestValidationCodeByHash(relayParent, validationCodeHash)
+	runtimeInstance, err := cv.BlockState.GetRuntime(relayParent)
+	if err != nil {
+		logger.Errorf("failed to get runtime instance: %w", err)
+		return PreCheckOutcomeFailed
+	}
+
+	code, err := runtimeInstance.ParachainHostValidationCodeByHash(common.Hash(validationCodeHash))
 	if err != nil {
 		logger.Errorf("failed to get validation code by hash: %w", err)
 		return PreCheckOutcomeFailed
 	}
-	fmt.Printf("Validation code: %v\n", len(*code))
+
+	executorParams, err := util.ExecutorParamsAtRelayParent(runtimeInstance, relayParent)
+	if err != nil {
+		logger.Errorf("failed to acquire params for the session, thus voting against: %w", err)
+		return PreCheckOutcomeInvalid
+	}
+	fmt.Printf("Executor params: %v\n", executorParams)
+
+	// todo: pvf_prep_timeout
+
+	codeDecompressed, err := maybeCompressedBlobDecompress(*code, validationprotocol.MaxValidationMessageSize)
+	if err != nil {
+		logger.Errorf("failed to decompress code: %w", err)
+		return PreCheckOutcomeInvalid
+	}
+	fmt.Printf("Decompressed code: %v\n", len(codeDecompressed))
+
+	// todo: call validation_backend.precheck_pvf
 	return PreCheckOutcomeValid
+}
+
+// An arbitrary prefix, that indicates a blob beginning with should be decompressed with
+// Zstd compression.
+//
+// This differs from the WASM magic bytes, so real WASM blobs will not have this prefix.
+var zstdPrefix = []byte{82, 188, 83, 118, 70, 219, 142, 5}
+
+func maybeCompressedBlobDecompress(blob []byte, bombLimit uint64) ([]byte, error) {
+	// todo handle check for bombLimit
+	if len(blob) < len(zstdPrefix) {
+		return nil, fmt.Errorf("blob is too short")
+	}
+	if bytes.Equal(blob[0:len(zstdPrefix)], zstdPrefix) {
+		decoder, err := zstd.NewReader(nil)
+		if err != nil {
+			return nil, fmt.Errorf("creating zstd decoder: %w", err)
+		}
+		defer decoder.Close()
+		return decoder.DecodeAll(blob[len(zstdPrefix):], nil)
+	} else {
+		return blob, nil
+	}
 }

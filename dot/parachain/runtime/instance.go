@@ -105,6 +105,8 @@ type RuntimeInstance interface {
 	ParachainHostCheckValidationOutputs(parachainID parachaintypes.ParaID, outputs parachaintypes.CandidateCommitments) (
 		bool, error)
 	ParachainHostCandidateEvents() ([]parachaintypes.CandidateEvent, error)
+	ParachainHostSessionIndexForChild() (parachaintypes.SessionIndex, error)
+	ParachainHostSessionExecutorParams(index parachaintypes.SessionIndex) (*parachaintypes.ExecutorParams, error)
 }
 
 type RuntimeAPIMessage struct {
