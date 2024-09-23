@@ -32,7 +32,9 @@ type BlockState interface {
 	FreeImportedBlockNotifierChannel(ch chan *types.Block)
 	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
 	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
+	GetJustification(hash common.Hash) ([]byte, error)
 	SetJustification(hash common.Hash, data []byte) error
+	GetAuthoritesChangesFromBlock(blockNumber uint) ([]uint, error)
 	BestBlockNumber() (blockNumber uint, err error)
 	GetHighestRoundAndSetID() (uint64, uint64, error)
 	BestBlockHash() common.Hash

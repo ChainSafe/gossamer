@@ -126,6 +126,21 @@ func (mr *MockBlockStateMockRecorder) GenesisHash() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenesisHash", reflect.TypeOf((*MockBlockState)(nil).GenesisHash))
 }
 
+// GetAuthoritesChangesFromBlock mocks base method.
+func (m *MockBlockState) GetAuthoritesChangesFromBlock(arg0 uint) ([]uint, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAuthoritesChangesFromBlock", arg0)
+	ret0, _ := ret[0].([]uint)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAuthoritesChangesFromBlock indicates an expected call of GetAuthoritesChangesFromBlock.
+func (mr *MockBlockStateMockRecorder) GetAuthoritesChangesFromBlock(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthoritesChangesFromBlock", reflect.TypeOf((*MockBlockState)(nil).GetAuthoritesChangesFromBlock), arg0)
+}
+
 // GetFinalisedHash mocks base method.
 func (m *MockBlockState) GetFinalisedHash(arg0, arg1 uint64) (common.Hash, error) {
 	m.ctrl.T.Helper()
@@ -243,6 +258,21 @@ func (m *MockBlockState) GetImportedBlockNotifierChannel() chan *types.Block {
 func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).GetImportedBlockNotifierChannel))
+}
+
+// GetJustification mocks base method.
+func (m *MockBlockState) GetJustification(arg0 common.Hash) ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetJustification", arg0)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetJustification indicates an expected call of GetJustification.
+func (mr *MockBlockStateMockRecorder) GetJustification(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJustification", reflect.TypeOf((*MockBlockState)(nil).GetJustification), arg0)
 }
 
 // GetRoundAndSetID mocks base method.

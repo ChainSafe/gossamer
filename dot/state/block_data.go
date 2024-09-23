@@ -86,3 +86,9 @@ func (bs *BlockState) GetJustification(hash common.Hash) ([]byte, error) {
 
 	return data, nil
 }
+
+// GetAuthoritesChangesFromBlock retrieves blocks numbers where authority set changes happened
+func (bs *BlockState) GetAuthoritesChangesFromBlock(blockNumber uint) ([]uint, error) {
+	// TODO: complete me
+	panic("not implemented")
+}
