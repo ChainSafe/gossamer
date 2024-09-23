@@ -45,7 +45,7 @@ func createServiceWithWarpSyncHelper(t *testing.T, warpSyncProvider WarpSyncProv
 		Port:             availablePort(t),
 		NoBootstrap:      true,
 		NoMDNS:           true,
-		warpSyncProvider: warpSyncProvider,
+		WarpSyncProvider: warpSyncProvider,
 	}
 
 	srvc := createTestService(t, config)
