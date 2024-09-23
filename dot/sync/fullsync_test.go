@@ -72,7 +72,7 @@ func TestFullSyncNextActions(t *testing.T) {
 		require.Len(t, task, int(maxRequestsAllowed))
 		request := task[0].request.(*messages.BlockRequestMessage)
 		require.Equal(t, uint(1), request.StartingBlock.RawValue())
-		require.Equal(t, uint(128), *request.Max)
+		require.Equal(t, uint32(128), *request.Max)
 	})
 
 	t.Run("having_requests_in_the_queue", func(t *testing.T) {
