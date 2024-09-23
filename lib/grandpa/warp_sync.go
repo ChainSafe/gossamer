@@ -45,7 +45,6 @@ func (np *NetworkProvider) Generate(start common.Hash) ([]byte, error) {
 		// the header should contains a standard scheduled change
 		// otherwise  the set must have changed through a forced changed,
 		// in which case we stop collecting proofs as the chain of trust in authority handoffs was broken.
-
 		header, err := np.backend.GetHeaderByNumber(blockNumber)
 		if err != nil {
 			return nil, err
