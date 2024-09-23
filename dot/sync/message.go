@@ -110,7 +110,7 @@ func (s *SyncService) handleAscendingRequest(req *messages.BlockRequestMessage) 
 			return nil, errRequestStartTooHigh
 		}
 
-		startNumber = uint(startBlock)
+		startNumber = startBlock
 	default:
 		return nil, fmt.Errorf("%w, unexpected from block type: %T", ErrInvalidBlockRequest,
 			req.StartingBlock.RawValue())
