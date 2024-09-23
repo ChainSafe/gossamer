@@ -71,6 +71,8 @@ func (s *Service) handleWarpSyncMessage(stream libp2pnetwork.Stream, msg message
 			stream.Conn().RemotePeer(),
 			resp,
 		)
+	} else {
+		logger.Debugf("received invalid message in warp sync handler: %v", msg)
 	}
 
 	return nil
