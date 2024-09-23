@@ -77,13 +77,6 @@ type Strategy interface {
 	IsSynced() bool
 }
 
-type BlockOrigin byte
-
-const (
-	networkInitialSync BlockOrigin = iota
-	networkBroadcast
-)
-
 type SyncService struct {
 	mu         sync.Mutex
 	wg         sync.WaitGroup

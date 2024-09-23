@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -195,8 +194,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	addTestBlocksToState(t, messages.MaxBlocksInResponse*2, s.blockState)
 
 	// test ascending
-	start, err := variadic.NewUint32OrHash(1)
-	require.NoError(t, err)
+	start := messages.NewFromBlock(uint(1))
 
 	req := &messages.BlockRequestMessage{
 		RequestedData: 3,
@@ -240,9 +238,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	require.Equal(t, uint(16), resp.BlockData[15].Number())
 
 	// test descending
-	start, err = variadic.NewUint32OrHash(uint32(128))
-	require.NoError(t, err)
-
+	start = messages.NewFromBlock(uint(128))
 	req = &messages.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,
@@ -257,8 +253,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	require.Equal(t, uint(1), resp.BlockData[127].Number())
 
 	max = uint32(messages.MaxBlocksInResponse + 100)
-	start, err = variadic.NewUint32OrHash(uint32(256))
-	require.NoError(t, err)
+	start = messages.NewFromBlock(uint(256))
 
 	req = &messages.BlockRequestMessage{
 		RequestedData: 3,
@@ -296,12 +291,9 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	startHash, err := s.blockState.GetHashByNumber(1)
 	require.NoError(t, err)
 
-	start, err := variadic.NewUint32OrHash(startHash)
-	require.NoError(t, err)
-
 	req := &messages.BlockRequestMessage{
 		RequestedData: 3,
-		StartingBlock: *start,
+		StartingBlock: *messages.NewFromBlock(startHash),
 		Direction:     messages.Ascending,
 		Max:           nil,
 	}
@@ -316,8 +308,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	startHash, err = s.blockState.GetHashByNumber(16)
 	require.NoError(t, err)
 
-	start, err = variadic.NewUint32OrHash(startHash)
-	require.NoError(t, err)
+	start := messages.NewFromBlock(startHash)
 
 	req = &messages.BlockRequestMessage{
 		RequestedData: 3,
@@ -349,8 +340,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	startHash, err = s.blockState.GetHashByNumber(256)
 	require.NoError(t, err)
 
-	start, err = variadic.NewUint32OrHash(startHash)
-	require.NoError(t, err)
+	start = messages.NewFromBlock(startHash)
 
 	req = &messages.BlockRequestMessage{
 		RequestedData: 3,
@@ -368,8 +358,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	startHash, err = s.blockState.GetHashByNumber(128)
 	require.NoError(t, err)
 
-	start, err = variadic.NewUint32OrHash(startHash)
-	require.NoError(t, err)
+	start = messages.NewFromBlock(startHash)
 
 	req = &messages.BlockRequestMessage{
 		RequestedData: 3,
@@ -499,9 +488,7 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 		Justification: &c,
 	}
 
-	start, err := variadic.NewUint32OrHash(uint32(1))
-	require.NoError(t, err)
-
+	start := messages.NewFromBlock(uint(1))
 	err = s.blockState.CompareAndSetBlockData(bds)
 	require.NoError(t, err)
 

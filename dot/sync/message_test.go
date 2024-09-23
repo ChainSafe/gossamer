@@ -11,7 +11,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
@@ -35,22 +34,28 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				mockBlockState := NewMockBlockState(ctrl)
 				return mockBlockState
 			},
-			args: args{req: &messages.BlockRequestMessage{}},
-			err:  ErrInvalidBlockRequest,
+			args: args{req: &messages.BlockRequestMessage{
+				StartingBlock: *messages.NewFromBlock(uint(0)),
+			}},
+			err: fmt.Errorf("%w: invalid requested data %v", ErrInvalidBlockRequest, 0),
 		},
 		"ascending_request_nil_startHash": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				dummyHeader := &types.Header{Number: 2}
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
 				mockBlockState.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{1, 2}, nil)
+				mockBlockState.EXPECT().GetHeader(common.Hash{1, 2}).Return(dummyHeader, nil)
 				return mockBlockState
 			},
 			args: args{req: &messages.BlockRequestMessage{
-				StartingBlock: *variadic.Uint32OrHashFrom(uint32(0)),
+				RequestedData: messages.RequestedDataHeader,
+				StartingBlock: *messages.NewFromBlock(uint(0)),
 				Direction:     messages.Ascending,
 			}},
 			want: &messages.BlockResponseMessage{BlockData: []*types.BlockData{{
-				Hash: common.Hash{1, 2},
+				Hash:   common.Hash{1, 2},
+				Header: &types.Header{Number: 2},
 			}}},
 		},
 		"ascending_request_start_number_higher": {
@@ -60,7 +65,8 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				return mockBlockState
 			},
 			args: args{req: &messages.BlockRequestMessage{
-				StartingBlock: *variadic.Uint32OrHashFrom(2),
+				RequestedData: messages.BootstrapRequestData,
+				StartingBlock: *messages.NewFromBlock(uint(2)),
 				Direction:     messages.Ascending,
 			}},
 			err:  errRequestStartTooHigh,
@@ -73,29 +79,48 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				return mockBlockState
 			},
 			args: args{req: &messages.BlockRequestMessage{
-				StartingBlock: *variadic.Uint32OrHashFrom(0),
+				RequestedData: messages.BootstrapRequestData,
+				StartingBlock: *messages.NewFromBlock(uint(0)),
 				Direction:     messages.Descending,
 			}},
 			want: &messages.BlockResponseMessage{BlockData: []*types.BlockData{}},
 		},
 		"descending_request_start_number_higher": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				dummyBody := types.NewBody([]types.Extrinsic{
+					{0, 1, 2, 3},
+					{5, 5, 5, 5},
+				})
+
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
 				mockBlockState.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{1, 2}, nil)
+				mockBlockState.EXPECT().
+					GetBlockBody(common.Hash{1, 2}).
+					Return(dummyBody, nil)
 				return mockBlockState
 			},
 			args: args{req: &messages.BlockRequestMessage{
-				StartingBlock: *variadic.Uint32OrHashFrom(2),
+				RequestedData: messages.RequestedDataBody,
+				StartingBlock: *messages.NewFromBlock(uint(2)),
 				Direction:     messages.Descending,
 			}},
 			err: nil,
 			want: &messages.BlockResponseMessage{BlockData: []*types.BlockData{{
 				Hash: common.Hash{1, 2},
+				Body: types.NewBody([]types.Extrinsic{
+					{0, 1, 2, 3},
+					{5, 5, 5, 5},
+				}),
 			}}},
 		},
 		"ascending_request_startHash": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				dummyBody := types.NewBody([]types.Extrinsic{
+					{0, 1, 2, 3},
+					{5, 5, 5, 5},
+				})
+
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{
 					Number: 1,
@@ -104,21 +129,34 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				mockBlockState.EXPECT().GetHashByNumber(uint(2)).Return(common.Hash{1, 2, 3}, nil)
 				mockBlockState.EXPECT().IsDescendantOf(common.Hash{}, common.Hash{1, 2, 3}).Return(true,
 					nil)
-				mockBlockState.EXPECT().Range(common.Hash{}, common.Hash{1, 2, 3}).Return([]common.Hash{{1,
-					2}},
-					nil)
+				mockBlockState.EXPECT().
+					Range(common.Hash{}, common.Hash{1, 2, 3}).
+					Return([]common.Hash{{1, 2}}, nil)
+				mockBlockState.EXPECT().
+					GetBlockBody(common.Hash{1, 2}).
+					Return(dummyBody, nil)
 				return mockBlockState
 			},
 			args: args{req: &messages.BlockRequestMessage{
-				StartingBlock: *variadic.Uint32OrHashFrom(common.Hash{}),
+				RequestedData: messages.RequestedDataBody,
+				StartingBlock: *messages.NewFromBlock(common.Hash{}),
 				Direction:     messages.Ascending,
 			}},
 			want: &messages.BlockResponseMessage{BlockData: []*types.BlockData{{
 				Hash: common.Hash{1, 2},
+				Body: types.NewBody([]types.Extrinsic{
+					{0, 1, 2, 3},
+					{5, 5, 5, 5},
+				}),
 			}}},
 		},
 		"descending_request_startHash": {
 			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+				dummyBody := types.NewBody([]types.Extrinsic{
+					{0, 1, 2, 3},
+					{5, 5, 5, 5},
+				})
+
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{
 					Number: 1,
@@ -129,14 +167,23 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				mockBlockState.EXPECT().Range(common.MustHexToHash(
 					"0x6443a0b46e0412e626363028115a9f2cf963eeed526b8b33e5316f08b50d0dc3"),
 					common.Hash{}).Return([]common.Hash{{1, 2}}, nil)
+
+				mockBlockState.EXPECT().
+					GetBlockBody(common.Hash{1, 2}).
+					Return(dummyBody, nil)
 				return mockBlockState
 			},
 			args: args{req: &messages.BlockRequestMessage{
-				StartingBlock: *variadic.Uint32OrHashFrom(common.Hash{}),
+				RequestedData: messages.RequestedDataBody,
+				StartingBlock: *messages.NewFromBlock(common.Hash{}),
 				Direction:     messages.Descending,
 			}},
 			want: &messages.BlockResponseMessage{BlockData: []*types.BlockData{{
 				Hash: common.Hash{1, 2},
+				Body: types.NewBody([]types.Extrinsic{
+					{0, 1, 2, 3},
+					{5, 5, 5, 5},
+				}),
 			}}},
 		},
 		"invalid_direction": {
@@ -145,7 +192,8 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			},
 			args: args{
 				req: &messages.BlockRequestMessage{
-					StartingBlock: *variadic.Uint32OrHashFrom(common.Hash{}),
+					RequestedData: messages.BootstrapRequestData,
+					StartingBlock: *messages.NewFromBlock(common.Hash{}),
 					Direction:     messages.SyncDirection(3),
 				}},
 			err: fmt.Errorf("%w: 3", errInvalidRequestDirection),

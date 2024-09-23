@@ -14,7 +14,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	libp2pnetwork "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
@@ -121,7 +120,7 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream,
 	}
 }
 
-var starting, _ = variadic.NewUint32OrHash(uint32(1))
+var starting = messages.NewFromBlock(uint(1))
 
 var one = uint32(1)
 

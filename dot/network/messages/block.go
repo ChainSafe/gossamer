@@ -7,11 +7,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
 
 	pb "github.com/ChainSafe/gossamer/dot/network/proto"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"google.golang.org/protobuf/proto"
 )
@@ -29,6 +29,17 @@ const (
 	// Descending is used when block response data is in descending order (ie child to parent)
 	Descending
 )
+
+func (s SyncDirection) String() string {
+	switch s {
+	case Ascending:
+		return "ascending"
+	case Descending:
+		return "descending"
+	default:
+		return "undefined direction"
+	}
+}
 
 // The following defines the fields that will needs to be
 // in the response message
@@ -50,19 +61,63 @@ var (
 
 var (
 	errBlockRequestFromNumberInvalid = errors.New("block request message From number is not valid")
-	errInvalidStartingBlockType      = errors.New("invalid StartingBlock in messsage")
 	ErrNilBlockInResponse            = errors.New("nil block in response")
 )
+
+type fromBlockType byte
+
+const (
+	fromBlockNumber fromBlockType = iota
+	fromBlockHash
+)
+
+type FromBlock struct {
+	value any
+}
+
+// NewFromBlock returns a new FromBlock given an uint or Hash
+// to be used  while issuing a block request or while decoding
+// a received block request message
+func NewFromBlock[T common.Hash | ~uint](value T) *FromBlock {
+	return &FromBlock{
+		value: value,
+	}
+}
+
+// RawValue returns the inner uint or hash value
+func (x *FromBlock) RawValue() any {
+	return x.value
+}
+
+// Encode will encode a FromBlock into a 4 bytes representation
+func (x *FromBlock) Encode() (fromBlockType, []byte) {
+	switch rawValue := x.value.(type) {
+	case uint:
+		encoded := make([]byte, 4)
+		if rawValue > uint(math.MaxUint32) {
+			rawValue = math.MaxUint32
+		}
+		binary.LittleEndian.PutUint32(encoded, uint32(rawValue))
+		return fromBlockNumber, encoded
+	case common.Hash:
+		return fromBlockHash, rawValue.ToBytes()
+	default:
+		panic(fmt.Sprintf("unsupported FromBlock type: %T", x.value))
+	}
+}
 
 // BlockRequestMessage is sent to request some blocks from a peer
 type BlockRequestMessage struct {
 	RequestedData byte
-	StartingBlock variadic.Uint32OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (uint32)
-	Direction     SyncDirection         // 0 = ascending, 1 = descending
+
+	// starting block represents a protobuf "oneof" data type
+	// which means that this field can be either a number or hash
+	StartingBlock FromBlock
+	Direction     SyncDirection // 0 = ascending, 1 = descending
 	Max           *uint32
 }
 
-func NewBlockRequest(startingBlock variadic.Uint32OrHash, amount uint32,
+func NewBlockRequest(startingBlock FromBlock, amount uint32,
 	requestedData byte, direction SyncDirection) *BlockRequestMessage {
 	return &BlockRequestMessage{
 		RequestedData: requestedData,
@@ -72,7 +127,7 @@ func NewBlockRequest(startingBlock variadic.Uint32OrHash, amount uint32,
 	}
 }
 
-func NewAscendingBlockRequests(startNumber, targetNumber uint32, requestedData byte) []*BlockRequestMessage {
+func NewAscendingBlockRequests(startNumber, targetNumber uint, requestedData byte) []*BlockRequestMessage {
 	if startNumber > targetNumber {
 		return []*BlockRequestMessage{}
 	}
@@ -82,7 +137,7 @@ func NewAscendingBlockRequests(startNumber, targetNumber uint32, requestedData b
 	// start and end block are the same, just request 1 block
 	if diff == 1 {
 		return []*BlockRequestMessage{
-			NewBlockRequest(*variadic.Uint32OrHashFrom(startNumber), 1, requestedData, Ascending),
+			NewBlockRequest(*NewFromBlock(startNumber), 1, requestedData, Ascending),
 		}
 	}
 
@@ -99,17 +154,16 @@ func NewAscendingBlockRequests(startNumber, targetNumber uint32, requestedData b
 	}
 
 	reqs := make([]*BlockRequestMessage, numRequests)
-	for i := uint32(0); i < numRequests; i++ {
+	for i := uint(0); i < numRequests; i++ {
 		max := uint32(MaxBlocksInResponse)
 
 		lastIteration := numRequests - 1
 		if i == lastIteration && missingBlocks != 0 {
-			max = missingBlocks
+			max = uint32(missingBlocks)
 		}
 
-		start := variadic.Uint32OrHashFrom(startNumber)
-		reqs[i] = NewBlockRequest(*start, max, requestedData, Ascending)
-		startNumber += max
+		reqs[i] = NewBlockRequest(*NewFromBlock(startNumber), max, requestedData, Ascending)
+		startNumber += uint(max)
 	}
 
 	return reqs
@@ -146,19 +200,16 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 		MaxBlocks: max,
 	}
 
-	if bm.StartingBlock.IsHash() {
-		hash := bm.StartingBlock.Hash()
+	protoType, encoded := bm.StartingBlock.Encode()
+	switch protoType {
+	case fromBlockHash:
 		msg.FromBlock = &pb.BlockRequest_Hash{
-			Hash: hash[:],
+			Hash: encoded,
 		}
-	} else if bm.StartingBlock.IsUint32() {
-		buf := make([]byte, 4)
-		binary.LittleEndian.PutUint32(buf, bm.StartingBlock.Uint32())
+	case fromBlockNumber:
 		msg.FromBlock = &pb.BlockRequest_Number{
-			Number: buf,
+			Number: encoded,
 		}
-	} else {
-		return nil, errInvalidStartingBlockType
 	}
 
 	return proto.Marshal(msg)
@@ -173,20 +224,20 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 	}
 
 	var (
-		startingBlock *variadic.Uint32OrHash
+		startingBlock *FromBlock
 		max           *uint32
 	)
 
 	switch from := msg.FromBlock.(type) {
 	case *pb.BlockRequest_Hash:
-		startingBlock, err = variadic.NewUint32OrHash(common.BytesToHash(from.Hash))
+		startingBlock = NewFromBlock(common.BytesToHash(from.Hash))
 	case *pb.BlockRequest_Number:
 		if len(from.Number) != 4 {
 			return fmt.Errorf("%w expected 4 bytes, got %d bytes", errBlockRequestFromNumberInvalid, len(from.Number))
 		}
 
-		number := binary.LittleEndian.Uint32(from.Number)
-		startingBlock, err = variadic.NewUint32OrHash(number)
+		number := uint(binary.LittleEndian.Uint32(from.Number))
+		startingBlock = NewFromBlock(number)
 	default:
 		err = errors.New("invalid StartingBlock")
 	}

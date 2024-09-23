@@ -13,7 +13,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/scripts/p2p"
 	lip2pnetwork "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/protocol"
@@ -46,19 +45,17 @@ func buildRequestMessage(arg string) *messages.BlockRequestMessage {
 	return nil
 }
 
-func parseTargetBlock(arg string) variadic.Uint32OrHash {
-	var value any
+func parseTargetBlock(arg string) messages.FromBlock {
+	if strings.HasPrefix(arg, "0x") {
+		return *messages.NewFromBlock(common.MustHexToHash(arg))
+	}
+
 	value, err := strconv.Atoi(arg)
 	if err != nil {
-		value = common.MustHexToHash(arg)
+		log.Fatalf("\ntrying to convert %v to number: %s", arg, err.Error())
 	}
 
-	v, err := variadic.NewUint32OrHash(value)
-	if err != nil {
-		log.Fatalf("\ncannot parse variadic type: %s", err.Error())
-	}
-
-	return *v
+	return *messages.NewFromBlock(uint(value))
 }
 
 func waitAndStoreResponse(stream lip2pnetwork.Stream, outputFile string) bool {

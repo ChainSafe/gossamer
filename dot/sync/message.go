@@ -32,8 +32,8 @@ func (s *SyncService) CreateBlockResponse(from peer.ID, req *messages.BlockReque
 	*messages.BlockResponseMessage, error) {
 	logger.Debugf("sync request from %s: %s", from, req.String())
 
-	if !req.StartingBlock.IsUint32() && !req.StartingBlock.IsHash() {
-		return nil, ErrInvalidBlockRequest
+	if req.RequestedData == 0 {
+		return nil, fmt.Errorf("%w: invalid requested data %v", ErrInvalidBlockRequest, req.RequestedData)
 	}
 
 	encodedRequest, err := req.Encode()
@@ -89,31 +89,31 @@ func (s *SyncService) handleAscendingRequest(req *messages.BlockRequestMessage) 
 		return nil, fmt.Errorf("getting best block for request: %w", err)
 	}
 
-	if req.StartingBlock.IsHash() {
-		startingBlockHash := req.StartingBlock.Hash()
-		startHash = &startingBlockHash
+	switch start := req.StartingBlock.RawValue().(type) {
+	case common.Hash:
+		startHash = &start
 
 		// make sure we actually have the starting block
-		header, err := s.blockState.GetHeader(startingBlockHash)
+		header, err := s.blockState.GetHeader(start)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get start block %s for request: %w", startHash, err)
 		}
-
 		startNumber = header.Number
-	} else if req.StartingBlock.IsUint32() {
-		startBlock := req.StartingBlock.Uint32()
+	case uint:
+		startBlock := start
 		if startBlock == 0 {
 			startBlock = 1
 		}
 
 		// if request start is higher than our best block, return error
-		if bestBlockNumber < uint(startBlock) {
+		if bestBlockNumber < startBlock {
 			return nil, errRequestStartTooHigh
 		}
 
 		startNumber = uint(startBlock)
-	} else {
-		return nil, ErrInvalidBlockRequest
+	default:
+		return nil, fmt.Errorf("%w, unexpected from block type: %T", ErrInvalidBlockRequest,
+			req.StartingBlock.RawValue())
 	}
 
 	endNumber := startNumber + max - 1
@@ -161,32 +161,33 @@ func (s *SyncService) handleDescendingRequest(req *messages.BlockRequestMessage)
 		max = uint(*req.Max)
 	}
 
-	if req.StartingBlock.IsHash() {
-		startingBlockHash := req.StartingBlock.Hash()
-		startHash = &startingBlockHash
+	switch start := req.StartingBlock.RawValue().(type) {
+	case common.Hash:
+		startHash = &start
 
 		// make sure we actually have the starting block
-		header, err := s.blockState.GetHeader(*startHash)
+		header, err := s.blockState.GetHeader(start)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get start block %s for request: %w", startHash, err)
 		}
 
 		startNumber = header.Number
-	} else if req.StartingBlock.IsUint32() {
-		startBlock := req.StartingBlock.Uint32()
+	case uint:
+		startBlock := start
 		bestBlockNumber, err := s.blockState.BestBlockNumber()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get best block %d for request: %w", bestBlockNumber, err)
 		}
 
 		// if request start is higher than our best block, only return blocks from our best block and below
-		if bestBlockNumber < uint(startBlock) {
+		if bestBlockNumber < startBlock {
 			startNumber = bestBlockNumber
 		} else {
-			startNumber = uint(startBlock)
+			startNumber = startBlock
 		}
-	} else {
-		return nil, ErrInvalidBlockRequest
+	default:
+		return nil, fmt.Errorf("%w, unexpected from block type: %T", ErrInvalidBlockRequest,
+			req.StartingBlock.RawValue())
 	}
 
 	endNumber := uint(1)
@@ -207,15 +208,15 @@ func (s *SyncService) handleDescendingRequest(req *messages.BlockRequestMessage)
 	}
 
 	if startHash == nil || endHash == nil {
-		logger.Debugf("handling BlockRequestMessage with direction %s "+
-			"from start block with number %d to end block with number %d",
-			req.Direction, startNumber, endNumber)
+		logger.Infof("handling block request message with direction %s "+
+			"from number %d to number %d\n",
+			req.Direction.String(), startNumber, endNumber)
 		return s.handleDescendingByNumber(startNumber, endNumber, req.RequestedData)
 	}
 
-	logger.Debugf("handling block request message with direction %s "+
-		"from start block with hash %s to end block with hash %s",
-		req.Direction, *startHash, *endHash)
+	logger.Infof("handling block request message with direction %s "+
+		"from hash %s to end block with hash %s",
+		req.Direction.String(), *startHash, *endHash)
 	return s.handleChainByHash(*endHash, *startHash, max, req.RequestedData, req.Direction)
 }
 
@@ -320,19 +321,20 @@ func (s *SyncService) handleAscendingByNumber(start, end uint,
 func (s *SyncService) handleDescendingByNumber(start, end uint,
 	requestedData byte) (*messages.BlockResponseMessage, error) {
 	var err error
-	data := make([]*types.BlockData, (start-end)+1)
+
+	response := &messages.BlockResponseMessage{
+		BlockData: make([]*types.BlockData, (start-end)+1),
+	}
 
 	for i := uint(0); start-i >= end; i++ {
 		blockNumber := start - i
-		data[i], err = s.getBlockDataByNumber(blockNumber, requestedData)
+		response.BlockData[i], err = s.getBlockDataByNumber(blockNumber, requestedData)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return &messages.BlockResponseMessage{
-		BlockData: data,
-	}, nil
+	return response, nil
 }
 
 func (s *SyncService) handleChainByHash(ancestor, descendant common.Hash,
@@ -353,10 +355,12 @@ func (s *SyncService) handleChainByHash(ancestor, descendant common.Hash,
 		}
 	}
 
-	data := make([]*types.BlockData, len(subchain))
+	response := &messages.BlockResponseMessage{
+		BlockData: make([]*types.BlockData, len(subchain)),
+	}
 
 	for i, hash := range subchain {
-		data[i], err = s.getBlockData(hash, requestedData)
+		response.BlockData[i], err = s.getBlockData(hash, requestedData)
 		if err != nil {
 			return nil, err
 		}
@@ -364,12 +368,10 @@ func (s *SyncService) handleChainByHash(ancestor, descendant common.Hash,
 
 	// reverse BlockData, if descending request
 	if direction == messages.Descending {
-		slices.Reverse(data)
+		slices.Reverse(response.BlockData)
 	}
 
-	return &messages.BlockResponseMessage{
-		BlockData: data,
-	}, nil
+	return response, nil
 }
 
 func (s *SyncService) getBlockDataByNumber(num uint, requestedData byte) (*types.BlockData, error) {
@@ -385,10 +387,6 @@ func (s *SyncService) getBlockData(hash common.Hash, requestedData byte) (*types
 	var err error
 	blockData := &types.BlockData{
 		Hash: hash,
-	}
-
-	if requestedData == 0 {
-		return blockData, nil
 	}
 
 	if (requestedData & messages.RequestedDataHeader) == 1 {
