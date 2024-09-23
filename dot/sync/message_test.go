@@ -196,7 +196,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 					StartingBlock: *messages.NewFromBlock(common.Hash{}),
 					Direction:     messages.SyncDirection(3),
 				}},
-			err: fmt.Errorf("%w: 3", errInvalidRequestDirection),
+			err: fmt.Errorf("%w: undefined direction: 3", errInvalidRequestDirection),
 		},
 	}
 	for name, tt := range tests {

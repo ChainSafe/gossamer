@@ -37,7 +37,7 @@ func (s SyncDirection) String() string {
 	case Descending:
 		return "descending"
 	default:
-		return "undefined direction"
+		return fmt.Sprintf("undefined direction: %d", s)
 	}
 }
 
