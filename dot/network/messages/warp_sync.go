@@ -17,10 +17,10 @@ type WarpProofRequest struct {
 }
 
 // Decode decodes the message into a WarpProofRequest
-func (wsr *WarpProofRequest) Decode(in []byte) error {
+func (wpr *WarpProofRequest) Decode(in []byte) error {
 	reader := bytes.NewReader(in)
 	sd := scale.NewDecoder(reader)
-	err := sd.Decode(&wsr)
+	err := sd.Decode(&wpr)
 	if err != nil {
 		return err
 	}
@@ -29,10 +29,10 @@ func (wsr *WarpProofRequest) Decode(in []byte) error {
 }
 
 // Encode encodes the warp sync request
-func (wsr *WarpProofRequest) Encode() ([]byte, error) {
+func (wpr *WarpProofRequest) Encode() ([]byte, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
-	err := encoder.Encode(wsr)
+	err := encoder.Encode(wpr)
 	if err != nil {
 		return nil, err
 	}
@@ -40,12 +40,12 @@ func (wsr *WarpProofRequest) Encode() ([]byte, error) {
 }
 
 // String returns the string representation of a WarpProofRequest
-func (wsr *WarpProofRequest) String() string {
-	if wsr == nil {
+func (wpr *WarpProofRequest) String() string {
+	if wpr == nil {
 		return "WarpProofRequest=nil"
 	}
 
-	return fmt.Sprintf("WarpProofRequest begin=%v", wsr.Begin)
+	return fmt.Sprintf("WarpProofRequest begin=%v", wpr.Begin)
 }
 
 var _ P2PMessage = (*WarpProofRequest)(nil)
