@@ -12,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -72,8 +71,8 @@ func TestFullSyncNextActions(t *testing.T) {
 
 		require.Len(t, task, int(maxRequestsAllowed))
 		request := task[0].request.(*messages.BlockRequestMessage)
-		require.Equal(t, uint32(1), request.StartingBlock.Uint32())
-		require.Equal(t, uint32(128), *request.Max)
+		require.Equal(t, uint(1), request.StartingBlock.RawValue())
+		require.Equal(t, uint(128), *request.Max)
 	})
 
 	t.Run("having_requests_in_the_queue", func(t *testing.T) {
@@ -100,13 +99,13 @@ func TestFullSyncNextActions(t *testing.T) {
 				expectedTasks: []*messages.BlockRequestMessage{
 					{
 						RequestedData: messages.RequestedDataBody,
-						StartingBlock: *variadic.Uint32OrHashFrom(uint32(129)),
+						StartingBlock: *messages.NewFromBlock(uint(129)),
 						Direction:     messages.Ascending,
 						Max:           refTo(1),
 					},
 					{
 						RequestedData: messages.BootstrapRequestData,
-						StartingBlock: *variadic.Uint32OrHashFrom(uint32(1)),
+						StartingBlock: *messages.NewFromBlock(uint(1)),
 						Direction:     messages.Ascending,
 						Max:           refTo(127),
 					},
@@ -117,12 +116,12 @@ func TestFullSyncNextActions(t *testing.T) {
 					rq := &requestsQueue[*messages.BlockRequestMessage]{queue: list.New()}
 
 					fstReqByHash := messages.NewBlockRequest(
-						*variadic.Uint32OrHashFrom(common.BytesToHash([]byte{0, 1, 1, 2})),
+						*messages.NewFromBlock(common.BytesToHash([]byte{0, 1, 1, 2})),
 						1, messages.RequestedDataBody, messages.Ascending)
 					rq.PushBack(fstReqByHash)
 
 					sndReqByHash := messages.NewBlockRequest(
-						*variadic.Uint32OrHashFrom(common.BytesToHash([]byte{1, 2, 2, 4})),
+						*messages.NewFromBlock(common.BytesToHash([]byte{1, 2, 2, 4})),
 						1, messages.RequestedDataBody, messages.Ascending)
 					rq.PushBack(sndReqByHash)
 
@@ -132,13 +131,13 @@ func TestFullSyncNextActions(t *testing.T) {
 				expectedTasks: []*messages.BlockRequestMessage{
 					{
 						RequestedData: messages.RequestedDataBody,
-						StartingBlock: *variadic.Uint32OrHashFrom(common.BytesToHash([]byte{0, 1, 1, 2})),
+						StartingBlock: *messages.NewFromBlock(common.BytesToHash([]byte{0, 1, 1, 2})),
 						Direction:     messages.Ascending,
 						Max:           refTo(1),
 					},
 					{
 						RequestedData: messages.BootstrapRequestData,
-						StartingBlock: *variadic.Uint32OrHashFrom(uint32(1)),
+						StartingBlock: *messages.NewFromBlock(uint(1)),
 						Direction:     messages.Ascending,
 						Max:           refTo(127),
 					},
@@ -198,7 +197,7 @@ func TestFullSyncIsFinished(t *testing.T) {
 			// 1 -> 10
 			{
 				who: peer.ID("peerA"),
-				request: messages.NewBlockRequest(*variadic.Uint32OrHashFrom(1), 127,
+				request: messages.NewBlockRequest(*messages.NewFromBlock(uint(1)), 127,
 					messages.BootstrapRequestData, messages.Ascending),
 				completed: true,
 				response:  fstTaskBlockResponse,
@@ -208,7 +207,7 @@ func TestFullSyncIsFinished(t *testing.T) {
 			// 129 -> 256
 			{
 				who: peer.ID("peerA"),
-				request: messages.NewBlockRequest(*variadic.Uint32OrHashFrom(129), 127,
+				request: messages.NewBlockRequest(*messages.NewFromBlock(uint(129)), 127,
 					messages.BootstrapRequestData, messages.Ascending),
 				completed: true,
 				response:  sndTaskBlockResponse,
@@ -259,7 +258,7 @@ func TestFullSyncIsFinished(t *testing.T) {
 		require.Equal(t, len(fs.unreadyBlocks.disjointFragments[0]), len(sndTaskBlockResponse.BlockData))
 
 		expectedAncestorRequest := messages.NewBlockRequest(
-			*variadic.Uint32OrHashFrom(sndTaskBlockResponse.BlockData[0].Header.ParentHash),
+			*messages.NewFromBlock(sndTaskBlockResponse.BlockData[0].Header.ParentHash),
 			messages.MaxBlocksInResponse,
 			messages.BootstrapRequestData, messages.Descending)
 
@@ -469,13 +468,13 @@ func TestFullSyncBlockAnnounce(t *testing.T) {
 			expectedRequests := []messages.P2PMessage{
 				&messages.BlockRequestMessage{
 					RequestedData: messages.RequestedDataBody + messages.RequestedDataJustification,
-					StartingBlock: *variadic.Uint32OrHashFrom(block17Hash),
+					StartingBlock: *messages.NewFromBlock(block17Hash),
 					Direction:     messages.Ascending,
 					Max:           refTo(1),
 				},
 				&messages.BlockRequestMessage{
 					RequestedData: messages.BootstrapRequestData,
-					StartingBlock: *variadic.Uint32OrHashFrom(uint32(1)),
+					StartingBlock: *messages.NewFromBlock(uint(1)),
 					Direction:     messages.Ascending,
 					Max:           refTo(17),
 				},

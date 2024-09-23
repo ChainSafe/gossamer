@@ -15,7 +15,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
 
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
@@ -131,7 +130,7 @@ func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 	}
 
 	ascendingBlockRequests := messages.NewAscendingBlockRequests(
-		uint32(startRequestAt), uint32(targetBlockNumber),
+		startRequestAt, targetBlockNumber,
 		messages.BootstrapRequestData)
 	reqsFromQueue = append(reqsFromQueue, ascendingBlockRequests...)
 
@@ -256,7 +255,7 @@ func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change
 
 				f.unreadyBlocks.newDisjointFragment(validFragment)
 				request := messages.NewBlockRequest(
-					*variadic.Uint32OrHashFrom(validFragment[0].Header.ParentHash),
+					*messages.NewFromBlock(validFragment[0].Header.ParentHash),
 					messages.MaxBlocksInResponse,
 					messages.BootstrapRequestData, messages.Descending)
 				f.requestQueue.PushBack(request)
@@ -364,7 +363,7 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 	if !has {
 		f.unreadyBlocks.newIncompleteBlock(blockAnnounceHeader)
 		logger.Infof("requesting announced block body #%d (%s)", blockAnnounceHeader.Number, blockAnnounceHeaderHash.Short())
-		request := messages.NewBlockRequest(*variadic.Uint32OrHashFrom(blockAnnounceHeaderHash),
+		request := messages.NewBlockRequest(*messages.NewFromBlock(blockAnnounceHeaderHash),
 			1, messages.RequestedDataBody+messages.RequestedDataJustification, messages.Ascending)
 		f.requestQueue.PushBack(request)
 	} else {

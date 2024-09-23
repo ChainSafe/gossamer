@@ -26,6 +26,13 @@ const (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "sync"))
 
+type BlockOrigin byte
+
+const (
+	networkInitialSync BlockOrigin = iota
+	networkBroadcast
+)
+
 type Network interface {
 	AllConnectedPeersIDs() []peer.ID
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
