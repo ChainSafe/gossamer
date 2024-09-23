@@ -4,7 +4,6 @@
 package messages
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -18,25 +17,12 @@ type WarpProofRequest struct {
 
 // Decode decodes the message into a WarpProofRequest
 func (wpr *WarpProofRequest) Decode(in []byte) error {
-	reader := bytes.NewReader(in)
-	sd := scale.NewDecoder(reader)
-	err := sd.Decode(&wpr)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return scale.Unmarshal(in, &wpr)
 }
 
 // Encode encodes the warp sync request
 func (wpr *WarpProofRequest) Encode() ([]byte, error) {
-	buffer := bytes.NewBuffer(nil)
-	encoder := scale.NewEncoder(buffer)
-	err := encoder.Encode(wpr)
-	if err != nil {
-		return nil, err
-	}
-	return buffer.Bytes(), nil
+	return scale.Marshal(wpr)
 }
 
 // String returns the string representation of a WarpProofRequest
