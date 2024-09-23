@@ -46,8 +46,6 @@ func determineTimeout(timeoutKind parachaintypes.PvfExecTimeoutKind) time.Durati
 		return 2 * time.Second
 	}
 	switch value.(type) {
-	case parachaintypes.Backing:
-		return 2 * time.Second
 	case parachaintypes.Approval:
 		return 12 * time.Second
 	default:

@@ -28,6 +28,7 @@ var (
 
 func createTestCandidateReceiptAndValidationCodeWParaId(t *testing.T, id uint32) (
 	parachaintypes.CandidateReceipt, parachaintypes.ValidationCode) {
+	t.Helper()
 	// this wasm was achieved by building polkadot's adder test parachain
 	runtimeFilePath := "./testdata/test_parachain_adder.wasm"
 	validationCodeBytes, err := os.ReadFile(runtimeFilePath)

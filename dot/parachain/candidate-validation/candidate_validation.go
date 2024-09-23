@@ -189,6 +189,7 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 		CandidateReceipt:        &msg.CandidateReceipt,
 		PoV:                     msg.Pov,
 		ExecutorParams:          msg.ExecutorParams,
+		PvfExecTimeoutKind:      msg.ExecKind,
 	}
 
 	result, err := cv.pvfHost.validate(validationTask)
