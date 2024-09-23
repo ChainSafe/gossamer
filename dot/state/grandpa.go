@@ -7,6 +7,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 
 	"github.com/ChainSafe/gossamer/dot/telemetry"
@@ -37,7 +38,7 @@ var (
 
 // GrandpaState tracks information related to grandpa
 type GrandpaState struct {
-	db         GetPutDeleter
+	db         GrandpaDatabase
 	blockState *BlockState
 
 	forcedChanges        *orderedPendingChanges
@@ -601,4 +602,24 @@ func (s *GrandpaState) GetPrecommits(round, setID uint64) ([]types.GrandpaSigned
 	}
 
 	return pcs, nil
+}
+
+// GetAuthoritesChangesFromBlock retrieves blocks numbers where authority set changes happened
+func (s *GrandpaState) GetAuthoritesChangesFromBlock(initialBlockNumber uint) ([]uint, error) {
+	blockNumbers := make([]uint, 0)
+	iter, err := s.db.NewPrefixIterator(setIDChangePrefix)
+	if err != nil {
+		return nil, err
+	}
+
+	for iter.Next() {
+		blockNumber := common.BytesToUint(iter.Value())
+		if blockNumber >= initialBlockNumber {
+			blockNumbers = append(blockNumbers, blockNumber)
+		}
+	}
+
+	// To ensure the order of the blocks
+	slices.Sort(blockNumbers)
+	return blockNumbers, nil
 }

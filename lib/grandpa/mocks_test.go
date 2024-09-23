@@ -126,21 +126,6 @@ func (mr *MockBlockStateMockRecorder) GenesisHash() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenesisHash", reflect.TypeOf((*MockBlockState)(nil).GenesisHash))
 }
 
-// GetAuthoritesChangesFromBlock mocks base method.
-func (m *MockBlockState) GetAuthoritesChangesFromBlock(arg0 uint) ([]uint, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAuthoritesChangesFromBlock", arg0)
-	ret0, _ := ret[0].([]uint)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetAuthoritesChangesFromBlock indicates an expected call of GetAuthoritesChangesFromBlock.
-func (mr *MockBlockStateMockRecorder) GetAuthoritesChangesFromBlock(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthoritesChangesFromBlock", reflect.TypeOf((*MockBlockState)(nil).GetAuthoritesChangesFromBlock), arg0)
-}
-
 // GetFinalisedHash mocks base method.
 func (m *MockBlockState) GetFinalisedHash(arg0, arg1 uint64) (common.Hash, error) {
 	m.ctrl.T.Helper()
@@ -414,6 +399,21 @@ func NewMockGrandpaState(ctrl *gomock.Controller) *MockGrandpaState {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockGrandpaState) EXPECT() *MockGrandpaStateMockRecorder {
 	return m.recorder
+}
+
+// GetAuthoritesChangesFromBlock mocks base method.
+func (m *MockGrandpaState) GetAuthoritesChangesFromBlock(arg0 uint) ([]uint, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAuthoritesChangesFromBlock", arg0)
+	ret0, _ := ret[0].([]uint)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAuthoritesChangesFromBlock indicates an expected call of GetAuthoritesChangesFromBlock.
+func (mr *MockGrandpaStateMockRecorder) GetAuthoritesChangesFromBlock(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthoritesChangesFromBlock", reflect.TypeOf((*MockGrandpaState)(nil).GetAuthoritesChangesFromBlock), arg0)
 }
 
 // GetAuthorities mocks base method.

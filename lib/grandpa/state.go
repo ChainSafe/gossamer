@@ -34,7 +34,6 @@ type BlockState interface {
 	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
 	GetJustification(hash common.Hash) ([]byte, error)
 	SetJustification(hash common.Hash, data []byte) error
-	GetAuthoritesChangesFromBlock(blockNumber uint) ([]uint, error)
 	BestBlockNumber() (blockNumber uint, err error)
 	GetHighestRoundAndSetID() (uint64, uint64, error)
 	BestBlockHash() common.Hash
@@ -53,6 +52,7 @@ type GrandpaState interface {
 	GetPrevotes(round, setID uint64) ([]SignedVote, error)
 	GetPrecommits(round, setID uint64) ([]SignedVote, error)
 	NextGrandpaAuthorityChange(bestBlockHash common.Hash, bestBlockNumber uint) (blockHeight uint, err error)
+	GetAuthoritesChangesFromBlock(blockNumber uint) ([]uint, error)
 }
 
 // Network is the interface required by GRANDPA for the network

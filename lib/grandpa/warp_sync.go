@@ -24,16 +24,17 @@ type WarpSyncProof struct {
 }
 
 type NetworkProvider struct {
-	backend BlockState
+	blockState   BlockState
+	grandpaState GrandpaState
 }
 
 func (np *NetworkProvider) Generate(start common.Hash) ([]byte, error) {
 	//Generate proof
-	beginBlockHeader, err := np.backend.GetHeader(start)
+	beginBlockHeader, err := np.blockState.GetHeader(start)
 	if err != nil {
 		return nil, err
 	}
-	authoritySetChanges, err := np.backend.GetAuthoritesChangesFromBlock(beginBlockHeader.Number)
+	authoritySetChanges, err := np.grandpaState.GetAuthoritesChangesFromBlock(beginBlockHeader.Number)
 	if err != nil {
 		return nil, err
 	}
@@ -45,12 +46,12 @@ func (np *NetworkProvider) Generate(start common.Hash) ([]byte, error) {
 		// the header should contains a standard scheduled change
 		// otherwise  the set must have changed through a forced changed,
 		// in which case we stop collecting proofs as the chain of trust in authority handoffs was broken.
-		header, err := np.backend.GetHeaderByNumber(blockNumber)
+		header, err := np.blockState.GetHeaderByNumber(blockNumber)
 		if err != nil {
 			return nil, err
 		}
 
-		justification, err := np.backend.GetJustification(header.Hash()) // get the justification of such block
+		justification, err := np.blockState.GetJustification(header.Hash()) // get the justification of such block
 		if err != nil {
 			return nil, err
 		}
@@ -75,11 +76,11 @@ func (np *NetworkProvider) Generate(start common.Hash) ([]byte, error) {
 	// If the limit is not reached then they retrieve the latest (best) justification
 	// and append in the proofs
 	if !limitReached {
-		bestLastBlockHeader, err := np.backend.BestBlockHeader()
+		bestLastBlockHeader, err := np.blockState.BestBlockHeader()
 		if err != nil {
 			return nil, err
 		}
-		latestJustification, err := np.backend.GetJustification(bestLastBlockHeader.Hash())
+		latestJustification, err := np.blockState.GetJustification(bestLastBlockHeader.Hash())
 		if err != nil {
 			return nil, err
 		}

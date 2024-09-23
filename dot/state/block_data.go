@@ -5,7 +5,6 @@ package state
 
 import (
 	"github.com/ChainSafe/gossamer/lib/common"
-	"golang.org/x/exp/slices"
 )
 
 // prefixKey = prefix + hash
@@ -86,24 +85,4 @@ func (bs *BlockState) GetJustification(hash common.Hash) ([]byte, error) {
 	}
 
 	return data, nil
-}
-
-// GetAuthoritesChangesFromBlock retrieves blocks numbers where authority set changes happened
-func (bs *BlockState) GetAuthoritesChangesFromBlock(initialBlockNumber uint) ([]uint, error) {
-	blockNumbers := make([]uint, 0)
-	iter, err := bs.db.NewPrefixIterator(setIDChangePrefix)
-	if err != nil {
-		return nil, err
-	}
-
-	for iter.Next() {
-		blockNumber := common.BytesToUint(iter.Value())
-		if blockNumber >= initialBlockNumber {
-			blockNumbers = append(blockNumbers, blockNumber)
-		}
-	}
-
-	// To ensure the order of the blocks
-	slices.Sort(blockNumbers)
-	return blockNumbers, nil
 }

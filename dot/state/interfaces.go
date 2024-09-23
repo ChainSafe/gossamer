@@ -10,6 +10,11 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 )
 
+type GrandpaDatabase interface {
+	GetPutDeleter
+	NewPrefixIterator(prefix []byte) (database.Iterator, error)
+}
+
 // GetPutDeleter has methods to get, put and delete key values.
 type GetPutDeleter interface {
 	GetPutter
