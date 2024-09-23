@@ -431,7 +431,7 @@ func TestFullSyncBlockAnnounce(t *testing.T) {
 			// the announced block 17 is already tracked by our node
 			// then we will ignore it
 			rep, err := fs.OnBlockAnnounce(sndPeer, announceOfBlock17)
-			require.ErrorIs(t, err, errPeerOnInvalidFork)
+			require.NoError(t, err)
 
 			expectedReputation := &Change{
 				who: sndPeer,
