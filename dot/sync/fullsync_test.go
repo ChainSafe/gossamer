@@ -178,7 +178,7 @@ func TestFullSyncNextActions(t *testing.T) {
 	})
 }
 
-func TestFullSyncIsFinished(t *testing.T) {
+func TestFullSyncProcess(t *testing.T) {
 	westendBlocks := &WestendBlocks{}
 	err := yaml.Unmarshal(rawWestendBlocks, westendBlocks)
 	require.NoError(t, err)
@@ -247,7 +247,7 @@ func TestFullSyncIsFinished(t *testing.T) {
 		fs := NewFullSyncStrategy(cfg)
 		fs.importer = mockImporter
 
-		done, _, _, err := fs.IsFinished(syncTaskResults)
+		done, _, _, err := fs.Process(syncTaskResults)
 		require.NoError(t, err)
 		require.False(t, done)
 
@@ -282,7 +282,7 @@ func TestFullSyncIsFinished(t *testing.T) {
 			},
 		}
 
-		done, _, _, err = fs.IsFinished(syncTaskResults)
+		done, _, _, err = fs.Process(syncTaskResults)
 		require.NoError(t, err)
 		require.False(t, done)
 

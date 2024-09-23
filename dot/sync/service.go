@@ -79,7 +79,7 @@ type Strategy interface {
 	OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) (repChange *Change, err error)
 	OnBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error
 	NextActions() ([]*syncTask, error)
-	IsFinished(results []*syncTaskResult) (done bool, repChanges []Change, blocks []peer.ID, err error)
+	Process(results []*syncTaskResult) (done bool, repChanges []Change, blocks []peer.ID, err error)
 	ShowMetrics()
 	IsSynced() bool
 }
@@ -270,7 +270,7 @@ func (s *SyncService) runStrategy() {
 	}
 
 	results := s.workerPool.submitRequests(tasks)
-	done, repChanges, peersToIgnore, err := s.currentStrategy.IsFinished(results)
+	done, repChanges, peersToIgnore, err := s.currentStrategy.Process(results)
 	if err != nil {
 		logger.Criticalf("current sync strategy failed with: %s", err.Error())
 		return

@@ -149,12 +149,18 @@ func (f *FullSyncStrategy) createTasks(requests []*messages.BlockRequestMessage)
 	return tasks
 }
 
-func (f *FullSyncStrategy) IsFinished(results []*syncTaskResult) (bool, []Change, []peer.ID, error) {
+// Process receives as arguments the peer-to-peer block request responses
+// and will check if the blocks data in the response can be imported to the state
+// or complete an incomplete block or is part of a disjoint block set which will
+// as a result it returns the if the strategy is finished, the peer reputations to change,
+// peers to block/ban, or an error. FullSyncStrategy is intended to run as long as the node lives.
+func (f *FullSyncStrategy) Process(results []*syncTaskResult) (
+	isFinished bool, reputations []Change, bans []peer.ID, err error) {
 	repChanges, peersToIgnore, validResp := validateResults(results, f.badBlocks)
 	logger.Debugf("evaluating %d task results, %d valid responses", len(results), len(validResp))
 
 	var highestFinalized *types.Header
-	highestFinalized, err := f.blockState.GetHighestFinalisedHeader()
+	highestFinalized, err = f.blockState.GetHighestFinalisedHeader()
 	if err != nil {
 		return false, nil, nil, fmt.Errorf("getting highest finalized header")
 	}
