@@ -31,6 +31,8 @@ type MessageHandler struct {
 	grandpa    *Service
 	blockState BlockState
 	telemetry  Telemetry
+
+	isStart bool // This is a temp hacky way
 }
 
 // NewMessageHandler returns a new MessageHandler
@@ -39,6 +41,7 @@ func NewMessageHandler(grandpa *Service, blockState BlockState, telemetryMailer 
 		grandpa:    grandpa,
 		blockState: blockState,
 		telemetry:  telemetryMailer,
+		isStart:    true,
 	}
 }
 
@@ -82,8 +85,28 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	}
 }
 
-func (*MessageHandler) handleNeighbourMessage(_ *NeighbourPacketV1) error {
+func (h *MessageHandler) handleNeighbourMessage(packet *NeighbourPacketV1) error {
 	// TODO(#2931)
+	// This should be the receiver side of the handling messages, NOT GOSSIP
+	if h.isStart {
+		logger.Errorf("Received initial neighbor msg")
+		neighbourMessage := &NeighbourPacketV1{
+			Round:  packet.Round,
+			SetID:  packet.SetID,
+			Number: packet.Number,
+		}
+
+		cm, err := neighbourMessage.ToConsensusMessage()
+		if err != nil {
+			return fmt.Errorf("converting neighbour message to network message: %w", err)
+		}
+
+		logger.Errorf("sending neighbour message: %v", neighbourMessage)
+		h.grandpa.network.GossipMessage(cm)
+		h.isStart = false
+	}
+
+	// TODO handle in normal case?
 	return nil
 }
 

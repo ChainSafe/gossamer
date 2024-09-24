@@ -22,6 +22,9 @@ type tracker struct {
 	in         chan *types.Block // receive imported block from BlockState
 	stopped    chan struct{}
 
+	neighborIn      chan NeighbourPacketV1 // trigger the sending of a neighbor message
+	stoppedNeighbor chan struct{}
+
 	catchUpResponseMessageMutex sync.Mutex
 	// round(uint64) is used as key and *CatchUpResponse as value
 	catchUpResponseMessages map[uint64]*CatchUpResponse
@@ -33,22 +36,28 @@ func newTracker(bs BlockState, handler *MessageHandler) *tracker {
 		commitsCapacity = 1000
 	)
 	return &tracker{
-		blockState:              bs,
-		handler:                 handler,
-		votes:                   newVotesTracker(votesCapacity),
-		commits:                 newCommitsTracker(commitsCapacity),
-		in:                      bs.GetImportedBlockNotifierChannel(),
-		stopped:                 make(chan struct{}),
+		blockState: bs,
+		handler:    handler,
+		votes:      newVotesTracker(votesCapacity),
+		commits:    newCommitsTracker(commitsCapacity),
+		in:         bs.GetImportedBlockNotifierChannel(),
+		stopped:    make(chan struct{}),
+
+		neighborIn:      make(chan NeighbourPacketV1),
+		stoppedNeighbor: make(chan struct{}),
+
 		catchUpResponseMessages: make(map[uint64]*CatchUpResponse),
 	}
 }
 
 func (t *tracker) start() {
 	go t.handleBlocks()
+	go t.handleNeighborMessage()
 }
 
 func (t *tracker) stop() {
 	close(t.stopped)
+	close(t.stoppedNeighbor)
 	t.blockState.FreeImportedBlockNotifierChannel(t.in)
 }
 
@@ -62,6 +71,11 @@ func (t *tracker) addVote(peerID peer.ID, message *VoteMessage) {
 
 func (t *tracker) addCommit(cm *CommitMessage) {
 	t.commits.add(cm)
+	t.neighborIn <- NeighbourPacketV1{
+		Round:  cm.Round + 1,
+		SetID:  cm.SetID, // need to hceck for set changes
+		Number: 0,        // This gets modified later
+	}
 }
 
 func (t *tracker) addCatchUpResponse(_ *CatchUpResponse) {
@@ -87,6 +101,30 @@ func (t *tracker) handleBlocks() {
 		case <-ticker.C:
 			t.handleTick()
 		case <-t.stopped:
+			return
+		}
+	}
+}
+
+func (t *tracker) handleNeighborMessage() {
+	// https://github.com/paritytech/polkadot-sdk/blob/08498f5473351c3d2f8eacbe1bfd7bc6d3a2ef8d/substrate/client/consensus/grandpa/src/communication/mod.rs#L73
+	const duration = time.Minute * 2
+	ticker := time.NewTicker(duration)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case msg := <-t.neighborIn:
+			logger.Warnf("Event Channel handleNeighborMessage Triggered")
+			err := t.handler.grandpa.handleNeighborMessage(msg.Round, msg.SetID)
+			if err != nil {
+				logger.Errorf("handling neighbor message: %v", err)
+			}
+
+			ticker.Reset(duration)
+		case <-ticker.C:
+			logger.Warnf("Tick handleNeighborMessage")
+		case <-t.stoppedNeighbor:
 			return
 		}
 	}
