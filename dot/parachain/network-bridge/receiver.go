@@ -285,11 +285,15 @@ func (nbr *NetworkBridgeReceiver) updateOurView() error {
 		finalizedNumber: nbr.finalizedNumber,
 	}
 
+	// If this is the first view update since becoming active, but our view is empty,
+	// there is no need to send anything.
 	if nbr.localView == nil {
 		*nbr.localView = newView
 		return nil
 	}
 
+	// we only want to send a view update if the heads have changed.
+	// A change in finalized block is not enough to trigger a view update.
 	if nbr.localView.checkHeadsEqual(newView) {
 		// nothing to update
 		return nil

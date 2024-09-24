@@ -55,9 +55,9 @@ type PeerViewChange struct {
 // Up to `N` (5?) chain heads.
 type View struct {
 	// a bounded amount of chain heads
-	heads []common.Hash //nolint
+	Heads []common.Hash //nolint
 	// the highest known finalized number
-	finalizedNumber uint32 //nolint
+	FinalizedNumber uint32 //nolint
 }
 
 type OurViewChange struct {
