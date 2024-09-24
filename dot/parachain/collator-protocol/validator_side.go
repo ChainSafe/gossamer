@@ -748,7 +748,7 @@ func (cpvs CollatorProtocolValidatorSide) handleNetworkBridgeEvents(msg any) err
 		// TODO #4155
 	case networkbridgeevents.OurViewChange:
 		// TODO #4156
-		cpvs.handleOurViewChange(msg.View)
+		return cpvs.handleOurViewChange(msg.View)
 	case networkbridgeevents.UpdatedAuthorityIDs:
 		// NOTE: The validator side doesn't deal with AuthorityDiscovery IDs
 	case networkbridgeevents.PeerMessage[collatorprotocolmessages.CollationProtocol]:
