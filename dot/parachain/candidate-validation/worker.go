@@ -76,9 +76,10 @@ func (w *worker) executeRequest(task *workerTask) (*ValidationResult, error) {
 		result, err := w.instance.ValidateBlock(task.work)
 		if err != nil {
 			validationResultCh <- &resultWithError{result: nil, err: err}
-		}
-		validationResultCh <- &resultWithError{
-			result: result,
+		} else {
+			validationResultCh <- &resultWithError{
+				result: result,
+			}
 		}
 	}()
 

@@ -164,7 +164,6 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 
 	persistedValidationData, validationCode, err := getValidationData(runtimeInstance,
 		msg.CandidateReceipt.Descriptor.ParaID)
-
 	if err != nil {
 		logger.Errorf("getting validation data: %w", err)
 		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
