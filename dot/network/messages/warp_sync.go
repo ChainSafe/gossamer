@@ -21,8 +21,11 @@ func (wpr *WarpProofRequest) Decode(in []byte) error {
 }
 
 // Encode encodes the warp sync request
-func (wpr WarpProofRequest) Encode() ([]byte, error) {
-	return scale.Marshal(wpr)
+func (wpr *WarpProofRequest) Encode() ([]byte, error) {
+	if wpr == nil {
+		return nil, fmt.Errorf("cannot encode nil WarpProofRequest")
+	}
+	return scale.Marshal(*wpr)
 }
 
 // String returns the string representation of a WarpProofRequest
