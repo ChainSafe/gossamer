@@ -1139,8 +1139,30 @@ func (s *Service) handleVoteMessage(from peer.ID, vote *VoteMessage) (err error)
 	return nil
 }
 
+func (s *Service) handleNeighborMessage(round uint64, setID uint64) error {
+	// TODO sender side of neighbor msg
+	highestHeader, err := s.blockState.GetHighestFinalisedHeader()
+	if err != nil {
+		return err
+	}
+	neighbourMessage := &NeighbourPacketV1{
+		Round:  round,
+		SetID:  setID,
+		Number: uint32(highestHeader.Number),
+	}
+
+	cm, err := neighbourMessage.ToConsensusMessage()
+	if err != nil {
+		return fmt.Errorf("converting neighbour message to network message: %w", err)
+	}
+
+	logger.Errorf("sending neighbour message: %v", neighbourMessage)
+	s.network.GossipMessage(cm)
+	return nil
+}
+
 func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
-	logger.Debugf("received commit message: %+v", commitMessage)
+	logger.Warnf("received commit message: %+v", commitMessage)
 
 	err := verifyBlockHashAgainstBlockNumber(s.blockState,
 		commitMessage.Vote.Hash, uint(commitMessage.Vote.Number))
