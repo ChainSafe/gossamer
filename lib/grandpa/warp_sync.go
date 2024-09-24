@@ -26,12 +26,12 @@ type WarpSyncProof struct {
 	isFinished bool
 }
 
-type NetworkProvider struct {
+type WarpSyncProofProvider struct {
 	blockState   BlockState
 	grandpaState GrandpaState
 }
 
-func (np *NetworkProvider) Generate(start common.Hash) ([]byte, error) {
+func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 	//Generate proof
 	beginBlockHeader, err := np.blockState.GetHeader(start)
 	if err != nil {
