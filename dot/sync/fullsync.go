@@ -29,7 +29,6 @@ var (
 	errFailedToGetParent   = errors.New("failed to get parent header")
 	errNilHeaderInResponse = errors.New("expected header, received none")
 	errNilBodyInResponse   = errors.New("expected body, received none")
-	errPeerOnInvalidFork   = errors.New("peer is on an invalid fork")
 	errBadBlockReceived    = errors.New("bad block received")
 
 	blockSizeGauge = promauto.NewGauge(prometheus.GaugeOpts{
