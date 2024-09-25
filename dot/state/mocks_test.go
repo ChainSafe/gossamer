@@ -133,21 +133,6 @@ func (mr *MockBlockStateDatabaseMockRecorder) NewBatch() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewBatch", reflect.TypeOf((*MockBlockStateDatabase)(nil).NewBatch))
 }
 
-// NewPrefixIterator mocks base method.
-func (m *MockBlockStateDatabase) NewPrefixIterator(arg0 []byte) (database.Iterator, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewPrefixIterator", arg0)
-	ret0, _ := ret[0].(database.Iterator)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// NewPrefixIterator indicates an expected call of NewPrefixIterator.
-func (mr *MockBlockStateDatabaseMockRecorder) NewPrefixIterator(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewPrefixIterator", reflect.TypeOf((*MockBlockStateDatabase)(nil).NewPrefixIterator), arg0)
-}
-
 // Put mocks base method.
 func (m *MockBlockStateDatabase) Put(arg0, arg1 []byte) error {
 	m.ctrl.T.Helper()
