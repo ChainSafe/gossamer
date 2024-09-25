@@ -192,6 +192,10 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 	}
 
 	chainFirstSlotNumber, err := s.retrieveFirstNonOriginBlockSlot(header.Hash())
+	if errors.Is(err, database.ErrNotFound) {
+		chainFirstSlotNumber, err = s.retrieveFirstNonOriginBlockSlot(header.ParentHash)
+	}
+
 	if err != nil {
 		return 0, fmt.Errorf("retrieving very first slot number: %w", err)
 	}

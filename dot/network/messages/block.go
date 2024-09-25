@@ -89,6 +89,17 @@ func (x *FromBlock) RawValue() any {
 	return x.value
 }
 
+func (x *FromBlock) String() string {
+	switch rawValue := x.value.(type) {
+	case uint:
+		return fmt.Sprintf("%d", rawValue)
+	case common.Hash:
+		return rawValue.String()
+	default:
+		panic(fmt.Sprintf("unsupported FromBlock type: %T", x.value))
+	}
+}
+
 // Encode will encode a FromBlock into a 4 bytes representation
 func (x *FromBlock) Encode() (FromBlockType, []byte) {
 	switch rawValue := x.value.(type) {
@@ -180,9 +191,9 @@ func (bm *BlockRequestMessage) String() string {
 	if bm.Max != nil {
 		max = *bm.Max
 	}
-	return fmt.Sprintf("BlockRequestMessage RequestedData=%d StartingBlock=%v Direction=%d Max=%d",
+	return fmt.Sprintf("BlockRequestMessage RequestedData=%d StartingBlock=%s Direction=%d Max=%d",
 		bm.RequestedData,
-		bm.StartingBlock,
+		bm.StartingBlock.String(),
 		bm.Direction,
 		max)
 }
