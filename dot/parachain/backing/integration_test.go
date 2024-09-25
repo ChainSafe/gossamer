@@ -34,7 +34,7 @@ func stopOverseerAndWaitForCompletion(overseer *overseer.MockableOverseer) {
 func initBackingAndOverseerMock(t *testing.T) (*backing.CandidateBacking, *overseer.MockableOverseer) {
 	t.Helper()
 
-	overseerMock := overseer.NewMockableOverseer(t)
+	overseerMock := overseer.NewMockableOverseer(t, true)
 
 	backing := backing.New(overseerMock.SubsystemsToOverseer)
 	overseerMock.RegisterSubsystem(backing)

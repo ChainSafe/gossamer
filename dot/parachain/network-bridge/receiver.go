@@ -67,7 +67,6 @@ type NetworkBridgeReceiver struct {
 
 	finalizedNumber uint32
 
-	OverseerToSubSystem  <-chan any
 	SubsystemsToOverseer chan<- any
 
 	networkEventInfoChan chan *network.NetworkEventInfo
@@ -202,6 +201,11 @@ func (nbr *NetworkBridgeReceiver) Run(ctx context.Context, overseerToSubSystem <
 			}
 		case event := <-nbr.networkEventInfoChan:
 			nbr.handleNetworkEvents(*event)
+		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
+				logger.Errorf("ctx error: %s\n", err)
+			}
+			return
 		}
 	}
 }
@@ -227,8 +231,6 @@ func (nbr *NetworkBridgeReceiver) Name() parachaintypes.SubSystemName {
 
 func (nbr *NetworkBridgeReceiver) ProcessActiveLeavesUpdateSignal(
 	signal parachaintypes.ActiveLeavesUpdateSignal) error {
-
-	// TODO update cpvs.activeLeaves by adding new active leaves and removing deactivated ones
 
 	// TODO: get the value for majorSyncing for syncing package
 	// majorSyncing means you are 5 blocks behind the tip of the chain and thus more aggressively
