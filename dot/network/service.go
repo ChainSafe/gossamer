@@ -33,6 +33,7 @@ const (
 
 	// the following are sub-protocols used by the node
 	SyncID          = "/sync/2"
+	WarpSyncID      = "/sync/warp"
 	lightID         = "/light/2"
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
@@ -129,6 +130,7 @@ type Service struct {
 	blockState         BlockState
 	syncer             Syncer
 	transactionHandler TransactionHandler
+	warpSyncProvider   WarpSyncProvider
 
 	// Configuration options
 	noBootstrap bool
@@ -215,6 +217,7 @@ func NewService(cfg *Config) (*Service, error) {
 		noBootstrap:            cfg.NoBootstrap,
 		noMDNS:                 cfg.NoMDNS,
 		syncer:                 cfg.Syncer,
+		warpSyncProvider:       cfg.WarpSyncProvider,
 		notificationsProtocols: make(map[MessageType]*notificationsProtocol),
 		lightRequest:           make(map[peer.ID]struct{}),
 		telemetryInterval:      cfg.telemetryInterval,
@@ -252,8 +255,11 @@ func (s *Service) Start() error {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
 
+	genesisHashProtocolId := protocol.ID(s.cfg.BlockState.GenesisHash().String())
+
 	s.host.registerStreamHandler(s.host.protocolID+SyncID, s.handleSyncStream)
 	s.host.registerStreamHandler(s.host.protocolID+lightID, s.handleLightStream)
+	s.host.registerStreamHandler(genesisHashProtocolId+WarpSyncID, s.handleWarpSyncStream)
 
 	// register block announce protocol
 	err := s.RegisterNotificationsProtocol(
