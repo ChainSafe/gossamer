@@ -52,6 +52,9 @@ func newNetworkService(t *testing.T) *network.Service {
 	blockStateMock.EXPECT().
 		GetHighestFinalisedHeader().
 		Return(types.NewEmptyHeader(), nil).AnyTimes()
+	blockStateMock.EXPECT().
+		GenesisHash().
+		Return(common.MustBlake2bHash([]byte("genesis"))).AnyTimes()
 
 	syncerMock := NewMockSyncer(ctrl)
 
