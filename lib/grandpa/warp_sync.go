@@ -31,8 +31,9 @@ type WarpSyncProofProvider struct {
 	grandpaState GrandpaState
 }
 
+// Generate build a warp sync encoded proof starting from the given block hash
 func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
-	//Generate proof
+	// Get and traverse all GRANDPA authorities changes from the given block hash
 	beginBlockHeader, err := np.blockState.GetHeader(start)
 	if err != nil {
 		return nil, err
@@ -46,9 +47,6 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 	proofs := make([]WarpSyncFragment, 0)
 	limitReached := false
 	for _, blockNumber := range authoritySetChanges {
-		// the header should contains a standard scheduled change
-		// otherwise  the set must have changed through a forced changed,
-		// in which case we stop collecting proofs as the chain of trust in authority handoffs was broken.
 		header, err := np.blockState.GetHeaderByNumber(blockNumber)
 		if err != nil {
 			return nil, err
@@ -76,7 +74,7 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 	}
 
 	isFinished := false
-	// If the limit is not reached then they retrieve the latest (best) justification
+	// If the limit is not reached then retrieve the latest (best) justification
 	// and append in the proofs
 	if !limitReached {
 		bestLastBlockHeader, err := np.blockState.BestBlockHeader()
@@ -93,7 +91,7 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 		isFinished = true
 	}
 
-	//Encode proof
+	// Encode and return the proof
 	finalProof := WarpSyncProof{proofs: proofs, isFinished: isFinished}
 	encodedProof, err := scale.Marshal(finalProof)
 	if err != nil {
