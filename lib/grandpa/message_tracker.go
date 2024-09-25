@@ -73,7 +73,7 @@ func (t *tracker) addCommit(cm *CommitMessage) {
 	t.commits.add(cm)
 	t.neighborIn <- NeighbourPacketV1{
 		Round:  cm.Round + 1,
-		SetID:  cm.SetID, // need to hceck for set changes
+		SetID:  cm.SetID, // need to check for set changes
 		Number: 0,        // This gets modified later
 	}
 }
