@@ -172,14 +172,23 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 		return
 	}
 
+	if persistedValidationData == nil {
+		badParent := BadParent
+		reason := ValidationResult{
+			Invalid: &badParent,
+		}
+		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+			Data: reason,
+		}
+		return
+	}
 	validationTask := &ValidationTask{
 		PersistedValidationData: *persistedValidationData,
 		ValidationCode:          validationCode,
 		CandidateReceipt:        &msg.CandidateReceipt,
 		PoV:                     msg.Pov,
 		ExecutorParams:          msg.ExecutorParams,
-		// todo: implement PvfExecTimeoutKind, so that validate can be called with a timeout see issue: #3429
-		PvfExecTimeoutKind: parachaintypes.PvfExecTimeoutKind{},
+		PvfExecTimeoutKind:      msg.ExecKind,
 	}
 
 	result, err := cv.pvfHost.validate(validationTask)
@@ -187,9 +196,33 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 			Err: err,
 		}
-	} else {
+		return
+	}
+	if !result.IsValid() {
 		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 			Data: *result,
 		}
+		return
+	}
+	valid, err := runtimeInstance.ParachainHostCheckValidationOutputs(parachaintypes.ParaID(msg.CandidateReceipt.
+		Descriptor.ParaID), result.Valid.CandidateCommitments)
+	if err != nil {
+		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+			Err: fmt.Errorf("check validation outputs: Bad request: %w", err),
+		}
+		return
+	}
+	if !valid {
+		invalidOutput := InvalidOutputs
+		reason := &ValidationResult{
+			Invalid: &invalidOutput,
+		}
+		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+			Data: *reason,
+		}
+		return
+	}
+	msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
+		Data: *result,
 	}
 }
