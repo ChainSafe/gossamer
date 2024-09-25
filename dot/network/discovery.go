@@ -9,7 +9,7 @@ import (
 	"time"
 
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
-	badger "github.com/ipfs/go-ds-badger2"
+	badger "github.com/ipfs/go-ds-badger4"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	libp2phost "github.com/libp2p/go-libp2p/core/host"
