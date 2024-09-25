@@ -21,7 +21,7 @@ import (
 
 const (
 	waitPeersDefaultTimeout = 10 * time.Second
-	minPeersDefault         = 3
+	minPeersDefault         = 1
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "sync"))
