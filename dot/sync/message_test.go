@@ -187,7 +187,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			}}},
 		},
 		"invalid_direction": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(_ *gomock.Controller) BlockState {
 				return nil
 			},
 			args: args{

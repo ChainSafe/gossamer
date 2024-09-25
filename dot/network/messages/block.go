@@ -64,11 +64,11 @@ var (
 	ErrNilBlockInResponse            = errors.New("nil block in response")
 )
 
-type fromBlockType byte
+type FromBlockType byte
 
 const (
-	fromBlockNumber fromBlockType = iota
-	fromBlockHash
+	FromBlockNumber FromBlockType = iota
+	FromBlockHash
 )
 
 type FromBlock struct {
@@ -90,7 +90,7 @@ func (x *FromBlock) RawValue() any {
 }
 
 // Encode will encode a FromBlock into a 4 bytes representation
-func (x *FromBlock) Encode() (fromBlockType, []byte) {
+func (x *FromBlock) Encode() (FromBlockType, []byte) {
 	switch rawValue := x.value.(type) {
 	case uint:
 		encoded := make([]byte, 4)
@@ -98,9 +98,9 @@ func (x *FromBlock) Encode() (fromBlockType, []byte) {
 			rawValue = math.MaxUint32
 		}
 		binary.LittleEndian.PutUint32(encoded, uint32(rawValue))
-		return fromBlockNumber, encoded
+		return FromBlockNumber, encoded
 	case common.Hash:
-		return fromBlockHash, rawValue.ToBytes()
+		return FromBlockHash, rawValue.ToBytes()
 	default:
 		panic(fmt.Sprintf("unsupported FromBlock type: %T", x.value))
 	}
@@ -202,11 +202,11 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 
 	protoType, encoded := bm.StartingBlock.Encode()
 	switch protoType {
-	case fromBlockHash:
+	case FromBlockHash:
 		msg.FromBlock = &pb.BlockRequest_Hash{
 			Hash: encoded,
 		}
-	case fromBlockNumber:
+	case FromBlockNumber:
 		msg.FromBlock = &pb.BlockRequest_Number{
 			Number: encoded,
 		}

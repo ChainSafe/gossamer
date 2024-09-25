@@ -82,7 +82,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	}
 }
 
-func (h *MessageHandler) handleNeighbourMessage(_ *NeighbourPacketV1) error {
+func (*MessageHandler) handleNeighbourMessage(_ *NeighbourPacketV1) error {
 	// TODO(#2931)
 	return nil
 }

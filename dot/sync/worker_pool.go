@@ -24,13 +24,13 @@ const (
 	maxRequestsAllowed    uint = 3
 )
 
-type syncTask struct {
+type SyncTask struct {
 	requestMaker network.RequestMaker
 	request      messages.P2PMessage
 	response     messages.P2PMessage
 }
 
-type syncTaskResult struct {
+type SyncTaskResult struct {
 	who       peer.ID
 	completed bool
 	request   messages.P2PMessage
@@ -43,8 +43,6 @@ type syncWorkerPool struct {
 	network     Network
 	workers     map[peer.ID]struct{}
 	ignorePeers map[peer.ID]struct{}
-
-	sharedGuard chan struct{}
 }
 
 func newSyncWorkerPool(net Network) *syncWorkerPool {
@@ -52,7 +50,6 @@ func newSyncWorkerPool(net Network) *syncWorkerPool {
 		network:     net,
 		workers:     make(map[peer.ID]struct{}),
 		ignorePeers: make(map[peer.ID]struct{}),
-		sharedGuard: make(chan struct{}, maxRequestsAllowed),
 	}
 
 	return swp
@@ -80,7 +77,7 @@ func (s *syncWorkerPool) fromBlockAnnounceHandshake(who peer.ID) error {
 
 // submitRequests blocks until all tasks have been completed or there are no workers
 // left in the pool to retry failed tasks
-func (s *syncWorkerPool) submitRequests(tasks []*syncTask) []*syncTaskResult {
+func (s *syncWorkerPool) submitRequests(tasks []*SyncTask) []*SyncTaskResult {
 	if len(tasks) == 0 {
 		return nil
 	}
@@ -94,13 +91,13 @@ func (s *syncWorkerPool) submitRequests(tasks []*syncTask) []*syncTaskResult {
 		workerPool <- worker
 	}
 
-	failedTasks := make(chan *syncTask, len(tasks))
-	results := make(chan *syncTaskResult, len(tasks))
+	failedTasks := make(chan *SyncTask, len(tasks))
+	results := make(chan *SyncTaskResult, len(tasks))
 
 	var wg sync.WaitGroup
 	for _, task := range tasks {
 		wg.Add(1)
-		go func(t *syncTask) {
+		go func(t *SyncTask) {
 			defer wg.Done()
 			executeTask(t, workerPool, failedTasks, results)
 		}(task)
@@ -112,12 +109,12 @@ func (s *syncWorkerPool) submitRequests(tasks []*syncTask) []*syncTaskResult {
 		for task := range failedTasks {
 			if len(workerPool) > 0 {
 				wg.Add(1)
-				go func(t *syncTask) {
+				go func(t *SyncTask) {
 					defer wg.Done()
 					executeTask(t, workerPool, failedTasks, results)
 				}(task)
 			} else {
-				results <- &syncTaskResult{
+				results <- &SyncTaskResult{
 					completed: false,
 					request:   task.request,
 					response:  nil,
@@ -126,11 +123,11 @@ func (s *syncWorkerPool) submitRequests(tasks []*syncTask) []*syncTaskResult {
 		}
 	}()
 
-	allResults := make(chan []*syncTaskResult, 1)
+	allResults := make(chan []*SyncTaskResult, 1)
 	wg.Add(1)
 	go func(expectedResults int) {
 		defer wg.Done()
-		var taskResults []*syncTaskResult
+		var taskResults []*SyncTaskResult
 
 		for result := range results {
 			taskResults = append(taskResults, result)
@@ -150,7 +147,7 @@ func (s *syncWorkerPool) submitRequests(tasks []*syncTask) []*syncTaskResult {
 	return <-allResults
 }
 
-func executeTask(task *syncTask, workerPool chan peer.ID, failedTasks chan *syncTask, results chan *syncTaskResult) {
+func executeTask(task *SyncTask, workerPool chan peer.ID, failedTasks chan *SyncTask, results chan *SyncTaskResult) {
 	worker := <-workerPool
 	logger.Infof("[EXECUTING] worker %s", worker)
 
@@ -161,7 +158,7 @@ func executeTask(task *syncTask, workerPool chan peer.ID, failedTasks chan *sync
 	} else {
 		logger.Infof("[FINISHED] worker %s, request: %s", worker, task.request)
 		workerPool <- worker
-		results <- &syncTaskResult{
+		results <- &SyncTaskResult{
 			who:       worker,
 			completed: true,
 			request:   task.request,

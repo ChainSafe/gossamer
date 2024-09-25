@@ -29,7 +29,8 @@ func buildRequestMessage(arg string) *messages.BlockRequestMessage {
 
 	amount, err := strconv.Atoi(params[2])
 	if err != nil || amount < 0 {
-		log.Fatalf("could not parse the amount of blocks, expected positive number got: %s", params[2])
+		log.Printf("could not parse the amount of blocks, expected positive number got: %s\n", params[2])
+		return nil
 	}
 
 	switch strings.ToLower(params[1]) {
@@ -41,7 +42,7 @@ func buildRequestMessage(arg string) *messages.BlockRequestMessage {
 			messages.BootstrapRequestData, messages.Descending)
 	}
 
-	log.Fatalf("not supported direction: %s, use 'asc' for ascending or 'desc' for descending", params[1])
+	log.Printf("not supported direction: %s, use 'asc' for ascending or 'desc' for descending\n", params[1])
 	return nil
 }
 
@@ -52,7 +53,8 @@ func parseTargetBlock(arg string) messages.FromBlock {
 
 	value, err := strconv.Atoi(arg)
 	if err != nil {
-		log.Fatalf("\ntrying to convert %v to number: %s", arg, err.Error())
+		log.Printf("\ntrying to convert %v to number: %s\n", arg, err.Error())
+		return messages.FromBlock{}
 	}
 
 	return *messages.NewFromBlock(uint(value))
@@ -72,7 +74,8 @@ func waitAndStoreResponse(stream lip2pnetwork.Stream, outputFile string) bool {
 	blockResponse := &messages.BlockResponseMessage{}
 	err = blockResponse.Decode(output)
 	if err != nil {
-		log.Fatalf("could not decode block response message: %s", err.Error())
+		log.Printf("could not decode block response message: %s\n", err.Error())
+		return false
 	}
 
 	resultOutput := strings.Builder{}
@@ -85,8 +88,10 @@ func waitAndStoreResponse(stream lip2pnetwork.Stream, outputFile string) bool {
 	log.Println(resultOutput.String())
 	err = os.WriteFile(outputFile, []byte(common.BytesToHex(output)), os.ModePerm)
 	if err != nil {
-		log.Fatalf("failed to write response to file %s: %s", outputFile, err.Error())
+		log.Printf("failed to write response to file %s: %s\n", outputFile, err.Error())
+		return false
 	}
+
 	return true
 }
 

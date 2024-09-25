@@ -562,7 +562,7 @@ func (s *Service) GossipMessage(msg NotificationsMessage) {
 	logger.Errorf("message type %d not supported by any notifications protocol", msg.Type())
 }
 
-// GossipMessage gossips a notifications protocol message to our peers
+// GossipMessageExcluding gossips a notifications protocol message to our peers
 func (s *Service) GossipMessageExcluding(msg NotificationsMessage, excluding peer.ID) {
 	if s.host == nil || msg == nil || s.IsStopped() {
 		return

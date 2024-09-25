@@ -94,11 +94,12 @@ func NewFullSyncStrategy(cfg *FullSyncConfig) *FullSyncStrategy {
 	}
 }
 
-func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
+func (f *FullSyncStrategy) NextActions() ([]*SyncTask, error) {
 	f.startedAt = time.Now()
 	f.syncedBlocks = 0
 
-	reqsFromQueue := []*messages.BlockRequestMessage{}
+	var reqsFromQueue []*messages.BlockRequestMessage
+
 	for i := 0; i < f.numOfTasks; i++ {
 		msg, ok := f.requestQueue.PopFront()
 		if !ok {
@@ -136,10 +137,10 @@ func (f *FullSyncStrategy) NextActions() ([]*syncTask, error) {
 	return f.createTasks(reqsFromQueue), nil
 }
 
-func (f *FullSyncStrategy) createTasks(requests []*messages.BlockRequestMessage) []*syncTask {
-	tasks := make([]*syncTask, 0, len(requests))
+func (f *FullSyncStrategy) createTasks(requests []*messages.BlockRequestMessage) []*SyncTask {
+	tasks := make([]*SyncTask, 0, len(requests))
 	for _, req := range requests {
-		tasks = append(tasks, &syncTask{
+		tasks = append(tasks, &SyncTask{
 			request:      req,
 			response:     &messages.BlockResponseMessage{},
 			requestMaker: f.reqMaker,
@@ -153,7 +154,7 @@ func (f *FullSyncStrategy) createTasks(requests []*messages.BlockRequestMessage)
 // or complete an incomplete block or is part of a disjoint block set which will
 // as a result it returns the if the strategy is finished, the peer reputations to change,
 // peers to block/ban, or an error. FullSyncStrategy is intended to run as long as the node lives.
-func (f *FullSyncStrategy) Process(results []*syncTaskResult) (
+func (f *FullSyncStrategy) Process(results []*SyncTaskResult) (
 	isFinished bool, reputations []Change, bans []peer.ID, err error) {
 	repChanges, peersToIgnore, validResp := validateResults(results, f.badBlocks)
 	logger.Debugf("evaluating %d task results, %d valid responses", len(results), len(validResp))
@@ -404,7 +405,7 @@ type RequestResponseData struct {
 	responseData []*types.BlockData
 }
 
-func validateResults(results []*syncTaskResult, badBlocks []string) (repChanges []Change,
+func validateResults(results []*SyncTaskResult, badBlocks []string) (repChanges []Change,
 	peersToBlock []peer.ID, validRes []RequestResponseData) {
 
 	repChanges = make([]Change, 0)

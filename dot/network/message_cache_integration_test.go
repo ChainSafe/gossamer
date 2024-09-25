@@ -24,7 +24,7 @@ func TestMessageCache(t *testing.T) {
 		NumCounters: int64(float64(cacheSize) * 0.05 * 2),
 		MaxCost:     int64(float64(cacheSize) * 0.95),
 		BufferItems: 64,
-		Cost: func(value interface{}) int64 {
+		Cost: func(_ interface{}) int64 {
 			return int64(1)
 		},
 	}, 800*time.Millisecond)

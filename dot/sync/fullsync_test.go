@@ -112,7 +112,7 @@ func TestFullSyncNextActions(t *testing.T) {
 				},
 			},
 			"should_remain_1_in_request_queue": {
-				setupRequestQueue: func(t *testing.T) *requestsQueue[*messages.BlockRequestMessage] {
+				setupRequestQueue: func(_ *testing.T) *requestsQueue[*messages.BlockRequestMessage] {
 					rq := &requestsQueue[*messages.BlockRequestMessage]{queue: list.New()}
 
 					fstReqByHash := messages.NewBlockRequest(
@@ -192,7 +192,7 @@ func TestFullSyncProcess(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("requested_max_but_received_less_blocks", func(t *testing.T) {
-		syncTaskResults := []*syncTaskResult{
+		syncTaskResults := []*SyncTaskResult{
 			// first task
 			// 1 -> 10
 			{
@@ -271,7 +271,7 @@ func TestFullSyncProcess(t *testing.T) {
 		err = ancestorSearchResponse.Decode(common.MustHexToBytes(westendBlocks.Blocks1To128))
 		require.NoError(t, err)
 
-		syncTaskResults = []*syncTaskResult{
+		syncTaskResults = []*SyncTaskResult{
 			// ancestor search task
 			// 128 -> 1
 			{

@@ -78,8 +78,8 @@ type Change struct {
 type Strategy interface {
 	OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) (repChange *Change, err error)
 	OnBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error
-	NextActions() ([]*syncTask, error)
-	Process(results []*syncTaskResult) (done bool, repChanges []Change, blocks []peer.ID, err error)
+	NextActions() ([]*SyncTask, error)
+	Process(results []*SyncTaskResult) (done bool, repChanges []Change, blocks []peer.ID, err error)
 	ShowMetrics()
 	IsSynced() bool
 }

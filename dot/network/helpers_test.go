@@ -65,7 +65,7 @@ func (s *testStreamHandler) handleMessage(stream libp2pnetwork.Stream, msg messa
 	return s.writeToStream(stream, announceHandshake)
 }
 
-func (s *testStreamHandler) writeToStream(stream libp2pnetwork.Stream, msg messages.P2PMessage) error {
+func (*testStreamHandler) writeToStream(stream libp2pnetwork.Stream, msg messages.P2PMessage) error {
 	encMsg, err := msg.Encode()
 	if err != nil {
 		return err
