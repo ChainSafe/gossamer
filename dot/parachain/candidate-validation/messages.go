@@ -48,3 +48,17 @@ const (
 	PreCheckOutcomeInvalid
 	PreCheckOutcomeFailed
 )
+
+const (
+	// Maximum compressed code size we support right now.
+	// At the moment we have runtime upgrade on chain, which restricts scalability severely. If we want
+	// to have bigger values, we should fix that first.
+	//
+	// Used for:
+	// * initial genesis for the Parachains configuration
+	// * checking updates to this stored runtime configuration do not exceed this limit
+	// * when detecting a code decompression bomb in the client
+	// NOTE: This value is used in the runtime so be careful when changing it.
+	MoxCodeSize             = 3 * 1024 * 1024
+	ValidationCodeBobmLimit = MoxCodeSize * 4
+)

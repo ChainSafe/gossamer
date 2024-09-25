@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -513,13 +514,20 @@ func Test_precheckPvF(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
+	_, validationCode := createTestCandidateReceiptAndValidationCodeWParaId(t, 1000)
+	encoder, err := zstd.NewWriter(nil)
+	require.NoError(t, err)
+	compressed := encoder.EncodeAll(validationCode, make([]byte, 0, len(validationCode)))
+	compressedCode := append(zstdPrefix, compressed...)
+	compressedValidationCode := parachaintypes.ValidationCode(compressedCode)
 
 	mockInstance := NewMockInstance(ctrl)
-	mockInstance.EXPECT().ParachainHostValidationCodeByHash(common.MustHexToHash("0x03")).Return(&parachaintypes.
-		ValidationCode{}, nil)
-	mockInstance.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(1), nil)
+	mockInstance.EXPECT().ParachainHostValidationCodeByHash(common.MustHexToHash("0x03")).Return(&validationCode, nil)
+	mockInstance.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(1), nil).Times(2)
 	mockInstance.EXPECT().ParachainHostSessionExecutorParams(parachaintypes.SessionIndex(1)).Return(&parachaintypes.
-		ExecutorParams{}, nil)
+		ExecutorParams{}, nil).Times(2)
+	mockInstance.EXPECT().ParachainHostValidationCodeByHash(common.MustHexToHash("0x05")).Return(
+		&compressedValidationCode, nil)
 
 	mockInstanceExecutorError := NewMockInstance(ctrl)
 	mockInstanceExecutorError.EXPECT().ParachainHostValidationCodeByHash(common.MustHexToHash("0x04")).Return(
@@ -530,7 +538,7 @@ func Test_precheckPvF(t *testing.T) {
 
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x01")).Return(nil, fmt.Errorf("runtime not found"))
-	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x02")).Return(mockInstance, nil)
+	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x02")).Return(mockInstance, nil).Times(2)
 	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x03")).Return(mockInstanceExecutorError, nil)
 
 	toSubsystem := make(chan any)
@@ -563,6 +571,13 @@ func Test_precheckPvF(t *testing.T) {
 			msg: PreCheck{
 				RelayParent:        common.MustHexToHash("0x02"),
 				ValidationCodeHash: parachaintypes.ValidationCodeHash(common.MustHexToHash("0x03")),
+			},
+			expectedResult: PreCheckOutcomeValid,
+		},
+		"happy_path_compressed": {
+			msg: PreCheck{
+				RelayParent:        common.MustHexToHash("0x02"),
+				ValidationCodeHash: parachaintypes.ValidationCodeHash(common.MustHexToHash("0x05")),
 			},
 			expectedResult: PreCheckOutcomeValid,
 		},

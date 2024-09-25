@@ -4,6 +4,7 @@
 package candidatevalidation
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -11,8 +12,10 @@ import (
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
+	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/klauspost/compress/zstd"
 )
 
 // CandidateValidation is a parachain subsystem that validates candidate parachain blocks
@@ -243,7 +246,7 @@ func (cv *CandidateValidation) precheckPvF(relayParent common.Hash, validationCo
 		logger.Errorf("failed to get validation code by hash: %w", err)
 		return PreCheckOutcomeFailed
 	}
-	fmt.Printf("Validation code: %v\n", len(*code))
+
 	executorParams, err := util.ExecutorParamsAtRelayParent(runtimeInstance, relayParent)
 	if err != nil {
 		logger.Errorf("failed to acquire params for the session, thus voting against: %w", err)
@@ -253,8 +256,36 @@ func (cv *CandidateValidation) precheckPvF(relayParent common.Hash, validationCo
 
 	// todo: pvf_prep_timeout
 
-	// todo: sp_maybe_compressed_blob
+	codeDecompressed, err := maybeCompressedBlobDecompress(*code, validationprotocol.MaxValidationMessageSize)
+	if err != nil {
+		logger.Errorf("failed to decompress code: %w", err)
+		return PreCheckOutcomeInvalid
+	}
+	fmt.Printf("Decompressed code: %v\n", len(codeDecompressed))
 
 	// todo: call validation_backend.precheck_pvf
 	return PreCheckOutcomeValid
+}
+
+// An arbitrary prefix, that indicates a blob beginning with should be decompressed with
+// Zstd compression.
+//
+// This differs from the WASM magic bytes, so real WASM blobs will not have this prefix.
+var zstdPrefix = []byte{82, 188, 83, 118, 70, 219, 142, 5}
+
+func maybeCompressedBlobDecompress(blob []byte, bombLimit uint64) ([]byte, error) {
+	// todo handle check for bombLimit
+	if len(blob) < len(zstdPrefix) {
+		return nil, fmt.Errorf("blob is too short")
+	}
+	if bytes.Equal(blob[0:len(zstdPrefix)], zstdPrefix) {
+		decoder, err := zstd.NewReader(nil)
+		if err != nil {
+			return nil, fmt.Errorf("creating zstd decoder: %w", err)
+		}
+		defer decoder.Close()
+		return decoder.DecodeAll(blob[len(zstdPrefix):], nil)
+	} else {
+		return blob, nil
+	}
 }
