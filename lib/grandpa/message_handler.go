@@ -67,7 +67,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 		return nil, nil //nolint:nilnil
 	case *NeighbourPacketV1:
 		// we can afford to not retry handling neighbour message, if it errors.
-		return nil, h.handleNeighbourMessage(msg)
+		return nil, h.handleNeighbourMessage(msg, from)
 	case *CatchUpRequest:
 		return h.handleCatchUpRequest(msg)
 	case *CatchUpResponse:
@@ -85,25 +85,14 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	}
 }
 
-func (h *MessageHandler) handleNeighbourMessage(packet *NeighbourPacketV1) error {
+func (h *MessageHandler) handleNeighbourMessage(packet *NeighbourPacketV1, from peer.ID) error {
 	// TODO(#2931)
 	// This should be the receiver side of the handling messages, NOT GOSSIP
-	if h.isStart {
-		logger.Errorf("Received initial neighbor msg")
-		neighbourMessage := &NeighbourPacketV1{
-			Round:  packet.Round,
-			SetID:  packet.SetID,
-			Number: packet.Number,
-		}
-
-		cm, err := neighbourMessage.ToConsensusMessage()
+	if h.grandpa.state.round < packet.Round {
+		err := h.grandpa.catchUp.tryCatchUp(packet.Round, packet.SetID, from)
 		if err != nil {
-			return fmt.Errorf("converting neighbour message to network message: %w", err)
+			return err
 		}
-
-		logger.Errorf("sending neighbour message: %v", neighbourMessage)
-		h.grandpa.network.GossipMessage(cm)
-		h.isStart = false
 	}
 
 	// TODO handle in normal case?
@@ -142,7 +131,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
 		return nil
 	}
 
-	logger.Debugf(
+	logger.Warnf(
 		"received catch up response with hash %s for round %d and set id %d",
 		msg.Hash, msg.Round, msg.SetID)
 
