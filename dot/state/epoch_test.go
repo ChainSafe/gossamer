@@ -736,7 +736,7 @@ func TestRetrieveAndUpdate(t *testing.T) {
 	epochState := newEpochStateFromGenesis(t)
 	blockState := epochState.blockState
 
-	nem := nextEpochMap[types.NextEpochData]{}
+	nem := InMemoryEpochMap[types.NextEpochData]{}
 
 	// setup 2 headers
 	headerA := types.NewHeader(
@@ -854,4 +854,8 @@ func TestFirstSlotNumberFromDb(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValuesf(t, predefinedSlotNumber, firstSlotNumber,
 		"expected: %d, got: %d", predefinedSlotNumber, firstSlotNumber)
+}
+
+func TestOnDisabledBABEConsensusDigest(t *testing.T) {
+
 }

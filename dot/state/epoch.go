@@ -65,11 +65,11 @@ type EpochState struct {
 
 	nextEpochDataLock sync.RWMutex
 	// nextEpochData follows the format map[epoch]map[block hash]next epoch data
-	nextEpochData nextEpochMap[types.NextEpochData]
+	nextEpochData InMemoryEpochMap[types.NextEpochData]
 
 	nextConfigDataLock sync.RWMutex
 	// nextConfigData follows the format map[epoch]map[block hash]next config data
-	nextConfigData nextEpochMap[types.NextConfigDataV1]
+	nextConfigData InMemoryEpochMap[types.NextConfigDataV1]
 
 	genesisEpochDescriptor *GenesisEpochDescriptor
 }
@@ -87,8 +87,8 @@ func NewEpochStateFromGenesis(db database.Database, blockState *BlockState,
 		db:             database.NewTable(db, epochPrefix),
 		epochLength:    genesisConfig.EpochLength,
 		slotDuration:   genesisConfig.SlotDuration,
-		nextEpochData:  make(nextEpochMap[types.NextEpochData]),
-		nextConfigData: make(nextEpochMap[types.NextConfigDataV1]),
+		nextEpochData:  make(InMemoryEpochMap[types.NextEpochData]),
+		nextConfigData: make(InMemoryEpochMap[types.NextConfigDataV1]),
 
 		genesisEpochDescriptor: &GenesisEpochDescriptor{
 			EpochData: &types.EpochDataRaw{
@@ -135,8 +135,8 @@ func NewEpochState(db database.Database, blockState *BlockState,
 		epochLength:    genesisConfig.EpochLength,
 		slotDuration:   genesisConfig.SlotDuration,
 		skipToEpoch:    skipToEpoch,
-		nextEpochData:  make(nextEpochMap[types.NextEpochData]),
-		nextConfigData: make(nextEpochMap[types.NextConfigDataV1]),
+		nextEpochData:  make(InMemoryEpochMap[types.NextEpochData]),
+		nextConfigData: make(InMemoryEpochMap[types.NextConfigDataV1]),
 		genesisEpochDescriptor: &GenesisEpochDescriptor{
 			EpochData: &types.EpochDataRaw{
 				Authorities: genesisConfig.GenesisAuthorities,
@@ -622,9 +622,14 @@ func (s *EpochState) HandleBABEDigest(header *types.Header, digest types.BabeCon
 	return errors.New("invalid consensus digest data")
 }
 
-type nextEpochMap[T types.NextEpochData | types.NextConfigDataV1] map[uint64]map[common.Hash]T
+// InMemoryEpochMap handles information about the epoch that are not canonical yet
+// basically this data structue is double map (epoch -> hash -> information)
+// and when needed to perform any fetch or update the caller must provide the epoch
+// and a descendant hash then will be possible to find the correct information
+// based on an ancestry check
+type InMemoryEpochMap[T types.NextEpochData | types.NextConfigDataV1] map[uint64]map[common.Hash]T
 
-func (nem nextEpochMap[T]) RetrieveAndUpdate(blockState *BlockState,
+func (nem InMemoryEpochMap[T]) RetrieveAndUpdate(blockState *BlockState,
 	oldEpoch, newEpoch uint64, header *types.Header) (*T, error) {
 	oldEpochHashes, has := nem[oldEpoch]
 	if !has {
@@ -651,7 +656,7 @@ func (nem nextEpochMap[T]) RetrieveAndUpdate(blockState *BlockState,
 	return value, nil
 }
 
-func (nem nextEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header *types.Header) (*T, error) {
+func (nem InMemoryEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header *types.Header) (*T, error) {
 	atEpoch, has := nem[epoch]
 	if !has {
 		return nil, fmt.Errorf("%w: %d", ErrEpochNotInMemory, epoch)
@@ -956,8 +961,8 @@ func (s *EpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) e
 // for a database persisted hash (belonging to the finalized chain)
 // which contains the right configuration or data to be persisted and safely used
 func findFinalizedHeaderForEpoch[T types.NextConfigDataV1 | types.NextEpochData](
-	nextEpochMap map[uint64]map[common.Hash]T, es *EpochState, epoch uint64) (next *T, err error) {
-	hashes, has := nextEpochMap[epoch]
+	inMemEpochMap InMemoryEpochMap[T], es *EpochState, epoch uint64) (next *T, err error) {
+	hashes, has := inMemEpochMap[epoch]
 	if !has {
 		return nil, ErrEpochNotInMemory
 	}
