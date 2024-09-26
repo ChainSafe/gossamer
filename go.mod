@@ -12,7 +12,7 @@ require (
 	github.com/dgraph-io/badger/v2 v2.2007.4
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/disiqueira/gotree v1.0.0
-	github.com/ethereum/go-ethereum v1.14.8
+	github.com/ethereum/go-ethereum v1.14.9
 	github.com/fatih/color v1.17.0
 	github.com/gammazero/deque v0.2.1
 	github.com/go-playground/validator/v10 v10.22.1
@@ -219,7 +219,9 @@ require (
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
 
-go 1.21
+go 1.22
+
+toolchain go1.22.5
 
 replace github.com/tetratelabs/wazero => github.com/ChainSafe/wazero v0.0.0-20240319130522-78b21a59bd5f
 
