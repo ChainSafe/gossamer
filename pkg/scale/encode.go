@@ -360,7 +360,7 @@ func (es *encodeState) encodeFixedWidthInt(i interface{}) (err error) {
 func (es *encodeState) encodeStruct(in interface{}) (err error) {
 	v, indices, err := es.fieldScaleIndices(in)
 	if err != nil {
-		return
+		return err
 	}
 	for _, i := range indices {
 		field := v.Field(i.fieldIndex)
@@ -369,7 +369,7 @@ func (es *encodeState) encodeStruct(in interface{}) (err error) {
 		}
 		err = es.marshal(field.Interface())
 		if err != nil {
-			return
+			return err
 		}
 	}
 	return

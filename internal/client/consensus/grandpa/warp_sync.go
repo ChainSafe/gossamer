@@ -4,26 +4,53 @@
 package grandpa
 
 import (
+	"fmt"
+
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 const MAX_WARP_SYNC_PROOF_SIZE = 8 * 1024 * 1024
 
+var (
+	errMissingStartBlock      = fmt.Errorf("Missing start block")
+	errStartBlockNotFinalized = fmt.Errorf("Start block is not finalized")
+)
+
+type BlockState interface {
+	GetHeader(hash common.Hash) (*types.Header, error)
+	BestBlockHeader() (*types.Header, error)
+	GetHeaderByNumber(num uint) (*types.Header, error)
+	GetJustification(hash common.Hash) ([]byte, error)
+}
+
+type GrandpaState interface {
+	GetAuthoritesChangesFromBlock(blockNumber uint) ([]uint, error)
+}
+
 type WarpSyncFragment struct {
 	// The last block that the given authority set finalized. This block should contain a digest
 	// signalling an authority set change from which we can fetch the next authority set.
-	header types.Header
+	Header types.Header
 	// A justification for the header above which proves its finality. In order to validate it the
 	// verifier must be aware of the authorities and set id for which the justification refers to.
-	justification []byte
+	Justification GrandpaJustification[hash.H256, uint]
 }
 
 type WarpSyncProof struct {
-	proofs []WarpSyncFragment
+	Proofs []WarpSyncFragment
 	// indicates whether the warp sync has been completed
-	isFinished bool
+	IsFinished bool
+}
+
+func (w *WarpSyncProof) Encode() ([]byte, error) {
+	if w == nil {
+		return nil, fmt.Errorf("cannot encode nil WarpSyncProof")
+	}
+	return scale.Marshal(*w)
 }
 
 type WarpSyncProofProvider struct {
@@ -36,8 +63,18 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 	// Get and traverse all GRANDPA authorities changes from the given block hash
 	beginBlockHeader, err := np.blockState.GetHeader(start)
 	if err != nil {
+		return nil, errMissingStartBlock
+	}
+
+	bestLastBlockHeader, err := np.blockState.BestBlockHeader()
+	if err != nil {
 		return nil, err
 	}
+
+	if beginBlockHeader.Number > bestLastBlockHeader.Number {
+		return nil, errStartBlockNotFinalized
+	}
+
 	authoritySetChanges, err := np.grandpaState.GetAuthoritesChangesFromBlock(beginBlockHeader.Number)
 	if err != nil {
 		return nil, err
@@ -52,11 +89,17 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
-		justification, err := np.blockState.GetJustification(header.Hash()) // get the justification of such block
+		encJustification, err := np.blockState.GetJustification(header.Hash()) // get the justification of such block
 		if err != nil {
 			return nil, err
 		}
-		fragment := WarpSyncFragment{header: *header, justification: justification}
+
+		justification, err := decodeJustification[hash.H256, uint, runtime.BlakeTwo256](encJustification)
+		if err != nil {
+			return nil, err
+		}
+
+		fragment := WarpSyncFragment{Header: *header, Justification: *justification}
 
 		// check the proof size
 		encodedFragment, err := scale.Marshal(fragment)
@@ -86,16 +129,17 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
-		fragment := WarpSyncFragment{header: *bestLastBlockHeader, justification: latestJustification}
+		justification, err := decodeJustification[hash.H256, uint, runtime.BlakeTwo256](latestJustification)
+		if err != nil {
+			return nil, err
+		}
+
+		fragment := WarpSyncFragment{Header: *bestLastBlockHeader, Justification: *justification}
 		proofs = append(proofs, fragment)
 		isFinished = true
 	}
 
 	// Encode and return the proof
-	finalProof := WarpSyncProof{proofs: proofs, isFinished: isFinished}
-	encodedProof, err := scale.Marshal(finalProof)
-	if err != nil {
-		return nil, err
-	}
-	return encodedProof, nil
+	finalProof := WarpSyncProof{Proofs: proofs, IsFinished: isFinished}
+	return finalProof.Encode()
 }

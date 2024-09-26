@@ -245,21 +245,6 @@ func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).GetImportedBlockNotifierChannel))
 }
 
-// GetJustification mocks base method.
-func (m *MockBlockState) GetJustification(arg0 common.Hash) ([]byte, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetJustification", arg0)
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetJustification indicates an expected call of GetJustification.
-func (mr *MockBlockStateMockRecorder) GetJustification(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJustification", reflect.TypeOf((*MockBlockState)(nil).GetJustification), arg0)
-}
-
 // GetRoundAndSetID mocks base method.
 func (m *MockBlockState) GetRoundAndSetID() (uint64, uint64) {
 	m.ctrl.T.Helper()
@@ -399,21 +384,6 @@ func NewMockGrandpaState(ctrl *gomock.Controller) *MockGrandpaState {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockGrandpaState) EXPECT() *MockGrandpaStateMockRecorder {
 	return m.recorder
-}
-
-// GetAuthoritesChangesFromBlock mocks base method.
-func (m *MockGrandpaState) GetAuthoritesChangesFromBlock(arg0 uint) ([]uint, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAuthoritesChangesFromBlock", arg0)
-	ret0, _ := ret[0].([]uint)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetAuthoritesChangesFromBlock indicates an expected call of GetAuthoritesChangesFromBlock.
-func (mr *MockGrandpaStateMockRecorder) GetAuthoritesChangesFromBlock(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthoritesChangesFromBlock", reflect.TypeOf((*MockGrandpaState)(nil).GetAuthoritesChangesFromBlock), arg0)
 }
 
 // GetAuthorities mocks base method.
