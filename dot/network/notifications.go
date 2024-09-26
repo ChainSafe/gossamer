@@ -227,10 +227,6 @@ func (s *Service) handleHandshake(info *notificationsProtocol, stream network.St
 
 	logger.Tracef("receiver: sent handshake to peer %s using protocol %s", peer, info.protocolID)
 
-	// if err := stream.CloseWrite(); err != nil {
-	// 	return fmt.Errorf("failed to close stream for writing: %s", err)
-	// }
-
 	return nil
 }
 

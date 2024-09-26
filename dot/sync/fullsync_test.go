@@ -20,6 +20,8 @@ import (
 	_ "embed"
 )
 
+type mockBlockImporter struct{}
+
 //go:embed testdata/westend_blocks.yaml
 var rawWestendBlocks []byte
 
@@ -234,9 +236,9 @@ func TestFullSyncProcess(t *testing.T) {
 			Return(false, nil).
 			Times(2)
 
-		mockImporter := NewMockImporter(ctrl)
+		mockImporter := NewMockimporter(ctrl)
 		mockImporter.EXPECT().
-			handle(gomock.AssignableToTypeOf(&types.BlockData{}), networkInitialSync).
+			importBlock(gomock.AssignableToTypeOf(&types.BlockData{}), networkInitialSync).
 			Return(true, nil).
 			Times(10 + 128 + 128)
 
@@ -245,7 +247,7 @@ func TestFullSyncProcess(t *testing.T) {
 		}
 
 		fs := NewFullSyncStrategy(cfg)
-		fs.importer = mockImporter
+		fs.blockImporter = mockImporter
 
 		done, _, _, err := fs.Process(syncTaskResults)
 		require.NoError(t, err)

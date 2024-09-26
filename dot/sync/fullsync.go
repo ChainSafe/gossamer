@@ -44,8 +44,8 @@ type FullSyncConfig struct {
 	RequestMaker       network.RequestMaker
 }
 
-type Importer interface {
-	handle(*types.BlockData, BlockOrigin) (imported bool, err error)
+type importer interface {
+	importBlock(*types.BlockData, BlockOrigin) (imported bool, err error)
 }
 
 // FullSyncStrategy protocol is the "default" protocol.
@@ -61,7 +61,7 @@ type FullSyncStrategy struct {
 	numOfTasks    int
 	startedAt     time.Time
 	syncedBlocks  int
-	importer      Importer
+	blockImporter importer
 }
 
 func NewFullSyncStrategy(cfg *FullSyncConfig) *FullSyncStrategy {
@@ -74,7 +74,7 @@ func NewFullSyncStrategy(cfg *FullSyncConfig) *FullSyncStrategy {
 		reqMaker:      cfg.RequestMaker,
 		blockState:    cfg.BlockState,
 		numOfTasks:    cfg.NumOfTasks,
-		importer:      newBlockImporter(cfg),
+		blockImporter: newBlockImporter(cfg),
 		unreadyBlocks: newUnreadyBlocks(),
 		requestQueue: &requestsQueue[*messages.BlockRequestMessage]{
 			queue: list.New(),
@@ -183,8 +183,8 @@ func (f *FullSyncStrategy) Process(results []*SyncTaskResult) (
 
 	// disjoint fragments are pieces of the chain that could not be imported right now
 	// because is blocks too far ahead or blocks that belongs to forks
-	orderedFragments := sortFragmentsOfChain(readyBlocks)
-	orderedFragments = mergeFragmentsOfChain(orderedFragments)
+	sortFragmentsOfChain(readyBlocks)
+	orderedFragments := mergeFragmentsOfChain(readyBlocks)
 
 	nextBlocksToImport := make([]*types.BlockData, 0)
 	disjointFragments := make([][]*types.BlockData, 0)
@@ -206,7 +206,7 @@ func (f *FullSyncStrategy) Process(results []*SyncTaskResult) (
 	// this loop goal is to import ready blocks as well as update the highestFinalized header
 	for len(nextBlocksToImport) > 0 || len(disjointFragments) > 0 {
 		for _, blockToImport := range nextBlocksToImport {
-			imported, err := f.importer.handle(blockToImport, networkInitialSync)
+			imported, err := f.blockImporter.importBlock(blockToImport, networkInitialSync)
 			if err != nil {
 				return false, nil, nil, fmt.Errorf("while handling ready block: %w", err)
 			}
@@ -486,9 +486,9 @@ resultLoop:
 // note that we have fragments with single blocks, fragments with fork (in case of 8)
 // after sorting these fragments we end up with:
 // [ {1, 2, 3, 4, 5}  {6, 7, 8, 9, 10}  {8}  {11, 12, 13, 14, 15, 16}  {17} ]
-func sortFragmentsOfChain(fragments [][]*types.BlockData) [][]*types.BlockData {
+func sortFragmentsOfChain(fragments [][]*types.BlockData) {
 	if len(fragments) == 0 {
-		return nil
+		return
 	}
 
 	slices.SortFunc(fragments, func(a, b []*types.BlockData) int {
@@ -500,8 +500,6 @@ func sortFragmentsOfChain(fragments [][]*types.BlockData) [][]*types.BlockData {
 		}
 		return 1
 	})
-
-	return fragments
 }
 
 // mergeFragmentsOfChain expects a sorted slice of fragments and merges those

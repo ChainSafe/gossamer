@@ -80,7 +80,7 @@ func newBlockImporter(cfg *FullSyncConfig) *blockImporter {
 	}
 }
 
-func (b *blockImporter) handle(bd *types.BlockData, origin BlockOrigin) (imported bool, err error) {
+func (b *blockImporter) importBlock(bd *types.BlockData, origin BlockOrigin) (imported bool, err error) {
 	blockAlreadyExists, err := b.blockState.HasHeader(bd.Hash)
 	if err != nil && !errors.Is(err, database.ErrNotFound) {
 		return false, err
