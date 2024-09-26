@@ -120,6 +120,10 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 	// If the limit is not reached then retrieve the latest (best) justification
 	// and append in the proofs
 	if !limitReached {
+		// the existing best justification must be for a block higher than the
+		// last authority set change. if we didn't prove any authority set
+		// change then we fallback to make sure it's higher or equal to the
+		// initial warp sync block.
 		bestLastBlockHeader, err := np.blockState.BestBlockHeader()
 		if err != nil {
 			return nil, err
@@ -134,8 +138,13 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
-		fragment := WarpSyncFragment{Header: *bestLastBlockHeader, Justification: *justification}
-		proofs = append(proofs, fragment)
+		limit := proofs[len(proofs)-1].Justification.Justification.Commit.TargetNumber + 1
+
+		if justification.Justification.Commit.TargetNumber >= limit {
+			fragment := WarpSyncFragment{Header: *bestLastBlockHeader, Justification: *justification}
+			proofs = append(proofs, fragment)
+		}
+
 		isFinished = true
 	}
 
