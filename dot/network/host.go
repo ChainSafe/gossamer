@@ -239,7 +239,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		NumCounters: int64(float64(cacheSize) * 0.05 * 2),
 		MaxCost:     int64(float64(cacheSize) * 0.95),
 		BufferItems: 64,
-		Cost: func(value string) int64 {
+		Cost: func(_ string) int64 {
 			return int64(1)
 		},
 	}
