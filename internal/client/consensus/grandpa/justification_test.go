@@ -62,7 +62,7 @@ func TestJustificationEncoding(t *testing.T) {
 	)
 
 	expected := primitives.GrandpaJustification[hash.H256, uint64]{
-		Round: 3,
+		Round: 2,
 		Commit: primitives.Commit[hash.H256, uint64]{
 			TargetHash: hash.H256(
 				"b\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", //nolint:lll
@@ -74,8 +74,6 @@ func TestJustificationEncoding(t *testing.T) {
 	}
 
 	encodedJustification, err := scale.Marshal(expected)
-
-	require.Equal(t, []byte{}, encodedJustification)
 	require.NoError(t, err)
 
 	justification, err := decodeJustification[hash.H256, uint64, runtime.BlakeTwo256](encodedJustification)
