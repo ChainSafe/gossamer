@@ -20,8 +20,6 @@ import (
 	_ "embed"
 )
 
-type mockBlockImporter struct{}
-
 //go:embed testdata/westend_blocks.yaml
 var rawWestendBlocks []byte
 
