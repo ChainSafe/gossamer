@@ -37,7 +37,7 @@ type WarpSyncFragment struct {
 	Header types.Header
 	// A justification for the header above which proves its finality. In order to validate it the
 	// verifier must be aware of the authorities and set id for which the justification refers to.
-	Justification GrandpaJustification[hash.H256, uint]
+	Justification GrandpaJustification[hash.H256, uint64]
 }
 
 type WarpSyncProof struct {
@@ -94,7 +94,7 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
-		justification, err := decodeJustification[hash.H256, uint, runtime.BlakeTwo256](encJustification)
+		justification, err := decodeJustification[hash.H256, uint64, runtime.BlakeTwo256](encJustification)
 		if err != nil {
 			return nil, err
 		}
@@ -129,7 +129,7 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
-		justification, err := decodeJustification[hash.H256, uint, runtime.BlakeTwo256](latestJustification)
+		justification, err := decodeJustification[hash.H256, uint64, runtime.BlakeTwo256](latestJustification)
 		if err != nil {
 			return nil, err
 		}
