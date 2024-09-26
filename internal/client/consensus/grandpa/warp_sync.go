@@ -16,8 +16,8 @@ import (
 const MAX_WARP_SYNC_PROOF_SIZE = 8 * 1024 * 1024
 
 var (
-	errMissingStartBlock      = fmt.Errorf("Missing start block")
-	errStartBlockNotFinalized = fmt.Errorf("Start block is not finalized")
+	errMissingStartBlock      = fmt.Errorf("missing start block")
+	errStartBlockNotFinalized = fmt.Errorf("start block is not finalized")
 )
 
 type BlockState interface {
