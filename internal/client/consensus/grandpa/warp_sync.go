@@ -43,14 +43,43 @@ type WarpSyncFragment struct {
 type WarpSyncProof struct {
 	Proofs []WarpSyncFragment
 	// indicates whether the warp sync has been completed
-	IsFinished bool
+	IsFinished   bool
+	proofsLength int
 }
 
-func (w *WarpSyncProof) Encode() ([]byte, error) {
+func NewWarpSyncProof() *WarpSyncProof {
+	return &WarpSyncProof{
+		Proofs:       make([]WarpSyncFragment, 0),
+		IsFinished:   false,
+		proofsLength: 0,
+	}
+}
+
+func (w *WarpSyncProof) encode() ([]byte, error) {
 	if w == nil {
 		return nil, fmt.Errorf("cannot encode nil WarpSyncProof")
 	}
 	return scale.Marshal(*w)
+}
+
+func (w *WarpSyncProof) addFragment(fragment WarpSyncFragment) (limitReached bool, err error) {
+	encodedFragment, err := scale.Marshal(fragment)
+	if err != nil {
+		return false, err
+	}
+
+	if w.proofsLength+len(encodedFragment) >= MAX_WARP_SYNC_PROOF_SIZE {
+		return true, nil
+	}
+
+	w.proofsLength += len(encodedFragment)
+	w.Proofs = append(w.Proofs, fragment)
+
+	return false, nil
+}
+
+func (w *WarpSyncProof) lastProofBlockNumber() uint64 {
+	return w.Proofs[len(w.Proofs)-1].Justification.Justification.Commit.TargetNumber + 1
 }
 
 type WarpSyncProofProvider struct {
@@ -80,9 +109,8 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 		return nil, err
 	}
 
-	proofsEncodedLen := 0
-	proofs := make([]WarpSyncFragment, 0)
 	limitReached := false
+	finalProof := NewWarpSyncProof()
 	for _, blockNumber := range authoritySetChanges {
 		header, err := np.blockState.GetHeaderByNumber(blockNumber)
 		if err != nil {
@@ -102,21 +130,16 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 		fragment := WarpSyncFragment{Header: *header, Justification: *justification}
 
 		// check the proof size
-		encodedFragment, err := scale.Marshal(fragment)
+		limitReached, err = finalProof.addFragment(fragment)
 		if err != nil {
 			return nil, err
 		}
 
-		if proofsEncodedLen+len(encodedFragment) >= MAX_WARP_SYNC_PROOF_SIZE {
-			limitReached = true
+		if limitReached {
 			break
 		}
-
-		proofsEncodedLen += len(encodedFragment)
-		proofs = append(proofs, fragment)
 	}
 
-	isFinished := false
 	// If the limit is not reached then retrieve the latest (best) justification
 	// and append in the proofs
 	if !limitReached {
@@ -138,17 +161,17 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
-		limit := proofs[len(proofs)-1].Justification.Justification.Commit.TargetNumber + 1
-
-		if justification.Justification.Commit.TargetNumber >= limit {
+		if justification.Justification.Commit.TargetNumber >= finalProof.lastProofBlockNumber() {
 			fragment := WarpSyncFragment{Header: *bestLastBlockHeader, Justification: *justification}
-			proofs = append(proofs, fragment)
+			_, err = finalProof.addFragment(fragment)
+			if err != nil {
+				return nil, err
+			}
 		}
 
-		isFinished = true
+		finalProof.IsFinished = true
 	}
 
 	// Encode and return the proof
-	finalProof := WarpSyncProof{Proofs: proofs, IsFinished: isFinished}
-	return finalProof.Encode()
+	return finalProof.encode()
 }
