@@ -15,7 +15,15 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
+
+var blockSizeGauge = promauto.NewGauge(prometheus.GaugeOpts{
+	Namespace: "gossamer_sync",
+	Name:      "block_size",
+	Help:      "represent the size of blocks synced",
+})
 
 type (
 	// Telemetry is the telemetry client to send telemetry messages.

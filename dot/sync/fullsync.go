@@ -17,8 +17,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const defaultNumOfTasks = 3
@@ -30,12 +28,6 @@ var (
 	errNilHeaderInResponse = errors.New("expected header, received none")
 	errNilBodyInResponse   = errors.New("expected body, received none")
 	errBadBlockReceived    = errors.New("bad block received")
-
-	blockSizeGauge = promauto.NewGauge(prometheus.GaugeOpts{
-		Namespace: "gossamer_sync",
-		Name:      "block_size",
-		Help:      "represent the size of blocks synced",
-	})
 )
 
 // Config is the configuration for the sync Service.
@@ -210,8 +202,6 @@ func (f *FullSyncStrategy) Process(results []*SyncTaskResult) (
 
 		disjointFragments = append(disjointFragments, fragment)
 	}
-
-	fmt.Printf("blocks to import: %d, disjoint fragments: %d\n", len(nextBlocksToImport), len(disjointFragments))
 
 	// this loop goal is to import ready blocks as well as update the highestFinalized header
 	for len(nextBlocksToImport) > 0 || len(disjointFragments) > 0 {
@@ -397,7 +387,7 @@ func (f *FullSyncStrategy) IsSynced() bool {
 	}
 
 	logger.Infof("highest block: %d target %d", highestBlock, f.peers.getTarget())
-	return uint32(highestBlock) >= f.peers.getTarget()
+	return uint32(highestBlock)+messages.MaxBlocksInResponse >= f.peers.getTarget()
 }
 
 type RequestResponseData struct {

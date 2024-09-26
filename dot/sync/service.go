@@ -17,6 +17,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const (
@@ -24,7 +26,15 @@ const (
 	minPeersDefault         = 1
 )
 
-var logger = log.NewFromGlobal(log.AddContext("pkg", "sync"))
+var (
+	isSyncedGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Namespace: "gossamer_network_syncer",
+		Name:      "is_synced",
+		Help:      "bool representing whether the node is synced to the head of the chain",
+	})
+
+	logger = log.NewFromGlobal(log.AddContext("pkg", "sync"))
+)
 
 type BlockOrigin byte
 
@@ -226,6 +236,12 @@ func (s *SyncService) runSyncEngine() {
 		}
 
 		s.runStrategy()
+
+		if s.IsSynced() {
+			isSyncedGauge.Set(1)
+		} else {
+			isSyncedGauge.Set(0)
+		}
 	}
 }
 
