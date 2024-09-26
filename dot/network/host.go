@@ -18,7 +18,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/internal/pubip"
 	"github.com/dgraph-io/ristretto"
-	badger "github.com/ipfs/go-ds-badger2"
+	badger "github.com/ipfs/go-ds-badger4"
 	"github.com/libp2p/go-libp2p"
 	libp2phost "github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/metrics"
@@ -235,11 +235,11 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	cacheSize := 64 << 20 // 64 MB
-	config := ristretto.Config{
+	config := ristretto.Config[[]byte, string]{
 		NumCounters: int64(float64(cacheSize) * 0.05 * 2),
 		MaxCost:     int64(float64(cacheSize) * 0.95),
 		BufferItems: 64,
-		Cost: func(value interface{}) int64 {
+		Cost: func(_ string) int64 {
 			return int64(1)
 		},
 	}

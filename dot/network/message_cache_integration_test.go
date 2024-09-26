@@ -20,11 +20,11 @@ func TestMessageCache(t *testing.T) {
 	t.Parallel()
 
 	cacheSize := 64 << 20 // 64 MB
-	msgCache, err := newMessageCache(ristretto.Config{
+	msgCache, err := newMessageCache(ristretto.Config[[]byte, string]{
 		NumCounters: int64(float64(cacheSize) * 0.05 * 2),
 		MaxCost:     int64(float64(cacheSize) * 0.95),
 		BufferItems: 64,
-		Cost: func(value interface{}) int64 {
+		Cost: func(value string) int64 {
 			return int64(1)
 		},
 	}, 800*time.Millisecond)

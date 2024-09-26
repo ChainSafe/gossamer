@@ -17,12 +17,12 @@ var msgCacheTTL = 5 * time.Minute
 
 // messageCache is used to detect duplicated messages per peer.
 type messageCache struct {
-	cache *ristretto.Cache
+	cache *ristretto.Cache[[]byte, string]
 	ttl   time.Duration
 }
 
 // newMessageCache creates a new messageCache which takes config and TTL duration.
-func newMessageCache(config ristretto.Config, ttl time.Duration) (*messageCache, error) {
+func newMessageCache(config ristretto.Config[[]byte, string], ttl time.Duration) (*messageCache, error) {
 	cache, err := ristretto.NewCache(&config)
 	if err != nil {
 		return nil, err
