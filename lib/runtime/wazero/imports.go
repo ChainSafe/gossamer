@@ -832,6 +832,7 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 }
 
 func ext_trie_blake2_256_ordered_root_version_1(ctx context.Context, m api.Module, dataSpan uint64) uint32 {
+	// Why is this hardcoded to 0??
 	return ext_trie_blake2_256_ordered_root_version_2(ctx, m, dataSpan, 0)
 }
 
@@ -2316,6 +2317,9 @@ func ext_storage_set_version_1(ctx context.Context, m api.Module, keySpan, value
 	key := read(m, keySpan)
 	value := read(m, valueSpan)
 
+	if bytes.Equal(common.MustHexToBytes("0x2b06af9719ac64d755623cda8ddd9b944e7b9012096b41c4eb3aaf947f6ea429"), key) {
+		return
+	}
 	cp := make([]byte, len(value))
 	copy(cp, value)
 

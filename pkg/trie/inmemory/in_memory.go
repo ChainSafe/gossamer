@@ -302,6 +302,7 @@ func (t *InMemoryTrie) InsertKeyLE(keyLE, value []byte,
 func (t *InMemoryTrie) insert(parent *node.Node, key, value []byte,
 	pendingDeltas tracking.DeltaRecorder) (newParent *node.Node,
 	mutated bool, nodesCreated uint32, err error) {
+
 	if parent == nil {
 		mutated = true
 		nodesCreated = 1

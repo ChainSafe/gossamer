@@ -9,13 +9,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"sort"
-	"sync"
-
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
+	"sort"
+	"sync"
 )
 
 // TrieState relies on `storageDiff` to perform changes over the current state.
