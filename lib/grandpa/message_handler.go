@@ -89,7 +89,7 @@ func (h *MessageHandler) handleNeighbourMessage(packet *NeighbourPacketV1, from 
 	// TODO(#2931)
 	// This should be the receiver side of the handling messages, NOT GOSSIP
 	if h.grandpa.state.round < packet.Round {
-		err := h.grandpa.catchUp.tryCatchUp(packet.Round, packet.SetID, from)
+		err := h.grandpa.catchUp.tryCatchUp(1, packet.SetID, from)
 		if err != nil {
 			return err
 		}
@@ -127,6 +127,9 @@ func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest) (*ConsensusMe
 }
 
 func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
+	logger.Warnf(
+		"received catch up response with hash %s for round %d and set id %d",
+		msg.Hash, msg.Round, msg.SetID)
 	if !h.grandpa.authority {
 		return nil
 	}
