@@ -68,7 +68,7 @@ func (w *WarpSyncProof) addFragment(fragment WarpSyncFragment) (limitReached boo
 		return false, err
 	}
 
-	if w.proofsLength+len(encodedFragment) >= MAX_WARP_SYNC_PROOF_SIZE {
+	if w.proofsLength+len(encodedFragment) >= MaxWarpSyncProofSize {
 		return true, nil
 	}
 
@@ -79,6 +79,9 @@ func (w *WarpSyncProof) addFragment(fragment WarpSyncFragment) (limitReached boo
 }
 
 func (w *WarpSyncProof) lastProofBlockNumber() uint64 {
+	if len(w.Proofs) == 0 {
+		return 0
+	}
 	return w.Proofs[len(w.Proofs)-1].Justification.Justification.Commit.TargetNumber + 1
 }
 
