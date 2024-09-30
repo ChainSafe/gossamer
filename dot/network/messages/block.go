@@ -37,7 +37,7 @@ func (s SyncDirection) String() string {
 	case Descending:
 		return "descending"
 	default:
-		return "undefined direction"
+		return fmt.Sprintf("undefined direction: %d", s)
 	}
 }
 
@@ -64,11 +64,11 @@ var (
 	ErrNilBlockInResponse            = errors.New("nil block in response")
 )
 
-type fromBlockType byte
+type FromBlockType byte
 
 const (
-	fromBlockNumber fromBlockType = iota
-	fromBlockHash
+	FromBlockNumber FromBlockType = iota
+	FromBlockHash
 )
 
 type FromBlock struct {
@@ -89,8 +89,19 @@ func (x *FromBlock) RawValue() any {
 	return x.value
 }
 
+func (x *FromBlock) String() string {
+	switch rawValue := x.value.(type) {
+	case uint:
+		return fmt.Sprintf("%d", rawValue)
+	case common.Hash:
+		return rawValue.String()
+	default:
+		panic(fmt.Sprintf("unsupported FromBlock type: %T", x.value))
+	}
+}
+
 // Encode will encode a FromBlock into a 4 bytes representation
-func (x *FromBlock) Encode() (fromBlockType, []byte) {
+func (x *FromBlock) Encode() (FromBlockType, []byte) {
 	switch rawValue := x.value.(type) {
 	case uint:
 		encoded := make([]byte, 4)
@@ -98,9 +109,9 @@ func (x *FromBlock) Encode() (fromBlockType, []byte) {
 			rawValue = math.MaxUint32
 		}
 		binary.LittleEndian.PutUint32(encoded, uint32(rawValue))
-		return fromBlockNumber, encoded
+		return FromBlockNumber, encoded
 	case common.Hash:
-		return fromBlockHash, rawValue.ToBytes()
+		return FromBlockHash, rawValue.ToBytes()
 	default:
 		panic(fmt.Sprintf("unsupported FromBlock type: %T", x.value))
 	}
@@ -135,7 +146,7 @@ func NewAscendingBlockRequests(startNumber, targetNumber uint, requestedData byt
 	diff := targetNumber - (startNumber - 1)
 
 	// start and end block are the same, just request 1 block
-	if diff == 0 {
+	if diff == 1 {
 		return []*BlockRequestMessage{
 			NewBlockRequest(*NewFromBlock(startNumber), 1, requestedData, Ascending),
 		}
@@ -169,15 +180,20 @@ func NewAscendingBlockRequests(startNumber, targetNumber uint, requestedData byt
 	return reqs
 }
 
+// RequestField returns true the field passed as argument exists in the request data
+func (bm *BlockRequestMessage) RequestField(field byte) bool {
+	return (bm.RequestedData & field) == field
+}
+
 // String formats a BlockRequestMessage as a string
 func (bm *BlockRequestMessage) String() string {
 	max := uint32(0)
 	if bm.Max != nil {
 		max = *bm.Max
 	}
-	return fmt.Sprintf("BlockRequestMessage RequestedData=%d StartingBlock=%v Direction=%d Max=%d",
+	return fmt.Sprintf("BlockRequestMessage RequestedData=%d StartingBlock=%s Direction=%d Max=%d",
 		bm.RequestedData,
-		bm.StartingBlock,
+		bm.StartingBlock.String(),
 		bm.Direction,
 		max)
 }
@@ -197,11 +213,11 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 
 	protoType, encoded := bm.StartingBlock.Encode()
 	switch protoType {
-	case fromBlockHash:
+	case FromBlockHash:
 		msg.FromBlock = &pb.BlockRequest_Hash{
 			Hash: encoded,
 		}
-	case fromBlockNumber:
+	case FromBlockNumber:
 		msg.FromBlock = &pb.BlockRequest_Number{
 			Number: encoded,
 		}

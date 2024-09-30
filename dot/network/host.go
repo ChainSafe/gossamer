@@ -370,6 +370,10 @@ func (h *host) writeToStream(s network.Stream, msg messages.P2PMessage) error {
 		return err
 	}
 
+	if len(encMsg) != sent {
+		logger.Errorf("full message not sent: sent %d, message size %d", sent, len(encMsg))
+	}
+
 	h.bwc.LogSentMessage(int64(sent))
 
 	return nil

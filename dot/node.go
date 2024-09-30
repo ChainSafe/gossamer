@@ -64,7 +64,7 @@ type nodeBuilderIface interface {
 		net *network.Service, telemetryMailer Telemetry) (*grandpa.Service, error)
 	newSyncService(config *cfg.Config, st *state.Service, finalityGadget dotsync.FinalityGadget,
 		verifier *babe.VerificationManager, cs *core.Service, net *network.Service,
-		telemetryMailer Telemetry) (*dotsync.Service, error)
+		telemetryMailer Telemetry) (network.Syncer, error)
 	createBABEService(config *cfg.Config, st *state.Service, ks KeyStore, cs *core.Service,
 		telemetryMailer Telemetry) (service *babe.Service, err error)
 	createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error)
@@ -382,7 +382,7 @@ func newNode(config *cfg.Config,
 		networkSrvc.SetSyncer(syncer)
 		networkSrvc.SetTransactionHandler(coreSrvc)
 	}
-	nodeSrvcs = append(nodeSrvcs, syncer)
+	nodeSrvcs = append(nodeSrvcs, syncer.(service))
 
 	bp, err := builder.createBABEService(config, stateSrvc, ks.Babe, coreSrvc, telemetryMailer)
 	if err != nil {
@@ -402,7 +402,7 @@ func newNode(config *cfg.Config,
 			blockProducer: bp,
 			system:        sysSrvc,
 			blockFinality: fg,
-			syncer:        syncer,
+			syncer:        syncer.(rpc.SyncAPI),
 		}
 		rpcSrvc, err = builder.createRPCService(cRPCParams)
 		if err != nil {

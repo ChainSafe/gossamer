@@ -65,7 +65,7 @@ func (s *testStreamHandler) handleMessage(stream libp2pnetwork.Stream, msg messa
 	return s.writeToStream(stream, announceHandshake)
 }
 
-func (s *testStreamHandler) writeToStream(stream libp2pnetwork.Stream, msg messages.P2PMessage) error {
+func (*testStreamHandler) writeToStream(stream libp2pnetwork.Stream, msg messages.P2PMessage) error {
 	encMsg, err := msg.Encode()
 	if err != nil {
 		return err
@@ -256,6 +256,10 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 		syncer.EXPECT().
 			CreateBlockResponse(gomock.Any(), gomock.Any()).
 			Return(newTestBlockResponseMessage(t), nil).AnyTimes()
+
+		syncer.EXPECT().
+			OnConnectionClosed(gomock.AssignableToTypeOf(peer.ID(string("")))).
+			AnyTimes()
 
 		syncer.EXPECT().IsSynced().Return(false).AnyTimes()
 		cfg.Syncer = syncer

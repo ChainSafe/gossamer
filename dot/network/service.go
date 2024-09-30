@@ -568,6 +568,31 @@ func (s *Service) GossipMessage(msg NotificationsMessage) {
 	logger.Errorf("message type %d not supported by any notifications protocol", msg.Type())
 }
 
+// GossipMessageExcluding gossips a notifications protocol message to our peers
+func (s *Service) GossipMessageExcluding(msg NotificationsMessage, excluding peer.ID) {
+	if s.host == nil || msg == nil || s.IsStopped() {
+		return
+	}
+
+	logger.Infof("gossiping from host %s message of type %d: %s",
+		s.host.id(), msg.Type(), msg)
+
+	// check if the message is part of a notifications protocol
+	s.notificationsMu.Lock()
+	defer s.notificationsMu.Unlock()
+
+	for msgID, prtl := range s.notificationsProtocols {
+		if msg.Type() != msgID || prtl == nil {
+			continue
+		}
+
+		s.broadcastExcluding(prtl, excluding, msg)
+		return
+	}
+
+	logger.Errorf("message type %d not supported by any notifications protocol", msg.Type())
+}
+
 // SendMessage sends a message to the given peer
 func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 	s.notificationsMu.Lock()
@@ -741,6 +766,7 @@ func (s *Service) processMessage(msg peerset.Message) {
 			return
 		}
 		logger.Debugf("connection dropped successfully for peer %s", peerID)
+		s.syncer.OnConnectionClosed(peerID)
 	}
 }
 
@@ -767,36 +793,20 @@ func (s *Service) BlockAnnounceHandshake(header *types.Header) error {
 		return ErrNoPeersConnected
 	}
 
+	msg := &BlockAnnounceMessage{
+		ParentHash:     header.ParentHash,
+		Number:         header.Number,
+		StateRoot:      header.StateRoot,
+		ExtrinsicsRoot: header.ExtrinsicsRoot,
+		Digest:         header.Digest,
+		BestBlock:      true,
+	}
+
 	protocol, ok := s.notificationsProtocols[blockAnnounceMsgType]
 	if !ok {
 		panic("block announce message type not found")
 	}
 
-	handshake, err := protocol.getHandshake()
-	if err != nil {
-		return fmt.Errorf("getting handshake: %w", err)
-	}
-
-	wg := sync.WaitGroup{}
-	wg.Add(len(peers))
-	for _, p := range peers {
-		protocol.peersData.setMutex(p)
-
-		go func(p peer.ID) {
-			defer wg.Done()
-			stream, err := s.sendHandshake(p, handshake, protocol)
-			if err != nil {
-				logger.Tracef("sending block announce handshake: %s", err)
-				return
-			}
-
-			response := protocol.peersData.getOutboundHandshakeData(p)
-			if response.received && response.validated {
-				closeOutboundStream(protocol, p, stream)
-			}
-		}(p)
-	}
-
-	wg.Wait()
+	s.broadcastExcluding(protocol, peer.ID(""), msg)
 	return nil
 }

@@ -187,7 +187,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			}}},
 		},
 		"invalid_direction": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(_ *gomock.Controller) BlockState {
 				return nil
 			},
 			args: args{
@@ -196,7 +196,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 					StartingBlock: *messages.NewFromBlock(common.Hash{}),
 					Direction:     messages.SyncDirection(3),
 				}},
-			err: errInvalidRequestDirection,
+			err: fmt.Errorf("%w: undefined direction: 3", errInvalidRequestDirection),
 		},
 	}
 	for name, tt := range tests {
@@ -204,7 +204,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
-			s := &Service{
+			s := &SyncService{
 				blockState:            tt.blockStateBuilder(ctrl),
 				seenBlockSyncRequests: lrucache.NewLRUCache[common.Hash, uint](100),
 			}
@@ -271,7 +271,7 @@ func TestService_checkOrGetDescendantHash(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
-			s := &Service{
+			s := &SyncService{
 				blockState: tt.blockStateBuilder(ctrl),
 			}
 			got, err := s.checkOrGetDescendantHash(tt.args.ancestor, tt.args.descendant, tt.args.descendantNumber)
@@ -422,7 +422,7 @@ func TestService_getBlockData(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
-			s := &Service{
+			s := &SyncService{
 				blockState: tt.blockStateBuilder(ctrl),
 			}
 			got, err := s.getBlockData(tt.args.hash, tt.args.requestedData)

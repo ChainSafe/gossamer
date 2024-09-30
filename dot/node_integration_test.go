@@ -22,7 +22,7 @@ import (
 	digest "github.com/ChainSafe/gossamer/dot/digest"
 	network "github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
-	dotsync "github.com/ChainSafe/gossamer/dot/sync"
+	"github.com/ChainSafe/gossamer/dot/sync"
 	system "github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -139,7 +139,7 @@ func TestNewNode(t *testing.T) {
 	m.EXPECT().newSyncService(initConfig, gomock.AssignableToTypeOf(&state.Service{}), &grandpa.Service{},
 		&babe.VerificationManager{}, &core.Service{}, gomock.AssignableToTypeOf(&network.Service{}),
 		gomock.AssignableToTypeOf(&telemetry.Mailer{})).
-		Return(&dotsync.Service{}, nil)
+		Return(&sync.SyncService{}, nil)
 	m.EXPECT().createBABEService(initConfig, gomock.AssignableToTypeOf(&state.Service{}), ks.Babe,
 		&core.Service{}, gomock.AssignableToTypeOf(&telemetry.Mailer{})).
 		Return(&babe.Service{}, nil)

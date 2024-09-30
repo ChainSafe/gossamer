@@ -82,49 +82,8 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	}
 }
 
-func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourPacketV1) error {
-	// TODO(#2931): this is a simple hack to ensure that the neighbour messages
-	// sent by gossamer are being received by substrate nodes
-	// not intended to be production code
-	round, setID := h.blockState.GetRoundAndSetID()
-	neighbourMessage := &NeighbourPacketV1{
-		Round:  round,
-		SetID:  setID,
-		Number: uint32(h.grandpa.head.Number),
-	}
-
-	cm, err := neighbourMessage.ToConsensusMessage()
-	if err != nil {
-		return fmt.Errorf("converting neighbour message to network message: %w", err)
-	}
-
-	logger.Debugf("sending neighbour message: %v", neighbourMessage)
-	h.grandpa.network.GossipMessage(cm)
-
-	currFinalized, err := h.blockState.GetFinalisedHeader(round, setID)
-	if err != nil {
-		return err
-	}
-
-	// ignore neighbour messages where our best finalised number is greater than theirs
-	if currFinalized.Number >= uint(msg.Number) {
-		return nil
-	}
-
-	// TODO; determine if there is some reason we don't receive justifications in responses near the head (usually),
-	// and remove the following code if it's fixed. (#1815)
-	head, err := h.blockState.BestBlockNumber()
-	if err != nil {
-		return err
-	}
-
-	// ignore neighbour messages that are above our head
-	if uint(msg.Number) > head {
-		return nil
-	}
-
-	logger.Debugf("got neighbour message with number %d, set id %d and round %d", msg.Number, msg.SetID, msg.Round)
-	// TODO: should we send a justification request here? potentially re-connect this to sync package? (#1815)
+func (*MessageHandler) handleNeighbourMessage(_ *NeighbourPacketV1) error {
+	// TODO(#2931)
 	return nil
 }
 

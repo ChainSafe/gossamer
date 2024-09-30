@@ -37,6 +37,8 @@ import (
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 )
 
+const blockRequestTimeout = 20 * time.Second
+
 // BlockProducer to produce blocks
 type BlockProducer interface {
 	Pause() error
@@ -54,7 +56,7 @@ type rpcServiceSettings struct {
 	blockProducer BlockProducer
 	system        *system.Service
 	blockFinality *grandpa.Service
-	syncer        *sync.Service
+	syncer        rpc.SyncAPI
 }
 
 func newInMemoryDB() (database.Database, error) {
@@ -499,7 +501,7 @@ func (nodeBuilder) createBlockVerifier(st *state.Service) *babe.VerificationMana
 
 func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync.FinalityGadget,
 	verifier *babe.VerificationManager, cs *core.Service, net *network.Service, telemetryMailer Telemetry) (
-	*sync.Service, error) {
+	network.Syncer, error) {
 	slotDuration, err := st.Epoch.GetSlotDuration()
 	if err != nil {
 		return nil, err
@@ -510,35 +512,29 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 		return nil, err
 	}
 
-	syncLogLevel, err := log.ParseLevel(config.Log.Sync)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse sync log level: %w", err)
-	}
+	requestMaker := net.GetRequestResponseProtocol(network.SyncID,
+		blockRequestTimeout, network.MaxBlockResponseSize)
 
-	const blockRequestTimeout = time.Second * 20
-	requestMaker := net.GetRequestResponseProtocol(
-		network.SyncID,
-		blockRequestTimeout,
-		network.MaxBlockResponseSize)
-
-	syncCfg := &sync.Config{
-		LogLvl:             syncLogLevel,
-		Network:            net,
+	syncCfg := &sync.FullSyncConfig{
 		BlockState:         st.Block,
 		StorageState:       st.Storage,
 		TransactionState:   st.Transaction,
 		FinalityGadget:     fg,
 		BabeVerifier:       verifier,
 		BlockImportHandler: cs,
-		MinPeers:           config.Network.MinPeers,
-		MaxPeers:           config.Network.MaxPeers,
-		SlotDuration:       slotDuration,
 		Telemetry:          telemetryMailer,
 		BadBlocks:          genesisData.BadBlocks,
 		RequestMaker:       requestMaker,
 	}
+	fullSync := sync.NewFullSyncStrategy(syncCfg)
 
-	return sync.NewService(syncCfg)
+	return sync.NewSyncService(
+		sync.WithNetwork(net),
+		sync.WithBlockState(st.Block),
+		sync.WithSlotDuration(slotDuration),
+		sync.WithStrategies(fullSync, nil),
+		sync.WithMinPeers(config.Network.MinPeers),
+	), nil
 }
 
 func (nodeBuilder) createDigestHandler(st *state.Service) (*digest.Handler, error) {

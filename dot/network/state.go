@@ -34,6 +34,10 @@ type Syncer interface {
 
 	// CreateBlockResponse is called upon receipt of a BlockRequestMessage to create the response
 	CreateBlockResponse(peer.ID, *messages.BlockRequestMessage) (*messages.BlockResponseMessage, error)
+
+	// OnConnectionClosed should be trigged whenever Gossamer closes a connection with another
+	// peer, normally used when the peer reputation is too low.
+	OnConnectionClosed(peer.ID)
 }
 
 // TransactionHandler is the interface used by the transactions sub-protocol

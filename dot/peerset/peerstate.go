@@ -85,6 +85,7 @@ func newNode(n int) *node {
 
 	return &node{
 		state:         sets,
+		reputation:    0,
 		lastConnected: lastConnected,
 	}
 }
@@ -240,7 +241,8 @@ func (ps *PeersState) addReputation(peerID peer.ID, change ReputationChange) (
 
 	node, has := ps.nodes[peerID]
 	if !has {
-		return 0, fmt.Errorf("%w: for peer id %s", ErrPeerDoesNotExist, peerID)
+		ps.insertPeer(0, peerID)
+		node = ps.nodes[peerID]
 	}
 
 	newReputation = node.addReputation(change.Value)

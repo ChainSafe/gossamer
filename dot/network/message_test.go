@@ -389,7 +389,6 @@ func TestAscendingBlockRequest(t *testing.T) {
 				},
 			},
 		},
-
 		"requesting_4_chunks_of_128_plus_3_blocks": {
 			startNumber:                    1,
 			targetNumber:                   (128 * 4) + 3,
@@ -433,7 +432,8 @@ func TestAscendingBlockRequest(t *testing.T) {
 		tt := tt
 
 		t.Run(tname, func(t *testing.T) {
-			requests := messages.NewAscendingBlockRequests(tt.startNumber, tt.targetNumber, messages.BootstrapRequestData)
+			requests := messages.NewAscendingBlockRequests(tt.startNumber, tt.targetNumber,
+				messages.BootstrapRequestData)
 			require.Equal(t, tt.expectedBlockRequestMessage, requests)
 
 			acc := uint32(0)

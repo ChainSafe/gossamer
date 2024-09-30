@@ -6,16 +6,159 @@
 package sync
 
 import (
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
+	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/genesis"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"go.uber.org/mock/gomock"
+
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 
 	"github.com/stretchr/testify/require"
 )
+
+func newWestendDevGenesisWithTrieAndHeader(t *testing.T) (
+	gen genesis.Genesis, genesisTrie trie.Trie, genesisHeader types.Header) {
+	t.Helper()
+
+	genesisPath := utils.GetWestendDevRawGenesisPath(t)
+	genesisPtr, err := genesis.NewGenesisFromJSONRaw(genesisPath)
+	require.NoError(t, err)
+	gen = *genesisPtr
+
+	genesisTrie, err = runtime.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	parentHash := common.NewHash([]byte{0})
+	stateRoot := genesisTrie.MustHash()
+	extrinsicRoot := trie.EmptyHash
+	const number = 0
+	digest := types.NewDigest()
+	genesisHeaderPtr := types.NewHeader(parentHash,
+		stateRoot, extrinsicRoot, number, digest)
+	genesisHeader = *genesisHeaderPtr
+
+	return gen, genesisTrie, genesisHeader
+}
+
+func newFullSyncService(t *testing.T) *SyncService {
+	ctrl := gomock.NewController(t)
+
+	mockTelemetryClient := NewMockTelemetry(ctrl)
+	mockTelemetryClient.EXPECT().SendMessage(gomock.Any()).AnyTimes()
+
+	wazero_runtime.DefaultTestLogLvl = log.Warn
+
+	testDatadirPath := t.TempDir()
+
+	scfg := state.Config{
+		Path:              testDatadirPath,
+		LogLevel:          log.Info,
+		Telemetry:         mockTelemetryClient,
+		GenesisBABEConfig: config.BABEConfigurationTestDefault,
+	}
+	stateSrvc := state.NewService(scfg)
+	stateSrvc.UseMemDB()
+
+	gen, genTrie, genHeader := newWestendDevGenesisWithTrieAndHeader(t)
+	err := stateSrvc.Initialise(&gen, &genHeader, genTrie)
+	require.NoError(t, err)
+
+	err = stateSrvc.Start()
+	require.NoError(t, err)
+
+	// initialise runtime
+	genState := rtstorage.NewTrieState(genTrie)
+
+	rtCfg := wazero_runtime.Config{
+		Storage: genState,
+		LogLvl:  log.Critical,
+	}
+
+	if stateSrvc != nil {
+		rtCfg.NodeStorage.BaseDB = stateSrvc.Base
+	} else {
+		rtCfg.NodeStorage.BaseDB, err = database.LoadDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+		require.NoError(t, err)
+	}
+
+	rtCfg.CodeHash, err = stateSrvc.Storage.LoadCodeHash(nil)
+	require.NoError(t, err)
+
+	instance, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
+	require.NoError(t, err)
+
+	bestBlockHash := stateSrvc.Block.BestBlockHash()
+	stateSrvc.Block.StoreRuntime(bestBlockHash, instance)
+
+	blockImportHandler := NewMockBlockImportHandler(ctrl)
+	blockImportHandler.EXPECT().HandleBlockImport(gomock.AssignableToTypeOf(&types.Block{}),
+		gomock.AssignableToTypeOf(&rtstorage.TrieState{}), false).DoAndReturn(
+		func(block *types.Block, ts *rtstorage.TrieState, _ bool) error {
+			// store updates state trie nodes in database
+			if err = stateSrvc.Storage.StoreTrie(ts, &block.Header); err != nil {
+				logger.Warnf("failed to store state trie for imported block %s: %s", block.Header.Hash(), err)
+				return err
+			}
+
+			// store block in database
+			err = stateSrvc.Block.AddBlock(block)
+			require.NoError(t, err)
+
+			stateSrvc.Block.StoreRuntime(block.Header.Hash(), instance)
+			logger.Debugf("imported block %s and stored state trie with root %s",
+				block.Header.Hash(), ts.Trie().MustHash())
+			return nil
+		}).AnyTimes()
+
+	mockBabeVerifier := NewMockBabeVerifier(ctrl)
+	mockBabeVerifier.EXPECT().VerifyBlock(gomock.AssignableToTypeOf(&types.Header{})).AnyTimes()
+
+	mockFinalityGadget := NewMockFinalityGadget(ctrl)
+	mockFinalityGadget.EXPECT().
+		VerifyBlockJustification(gomock.AssignableToTypeOf(common.Hash{}),
+			gomock.AssignableToTypeOf(uint(0)), gomock.AssignableToTypeOf([]byte{})).
+		Return(uint64(1), uint64(1), nil).
+		AnyTimes()
+
+	mockNetwork := NewMockNetwork(ctrl)
+
+	fullSyncCfg := &FullSyncConfig{
+		BlockState:         stateSrvc.Block,
+		StorageState:       stateSrvc.Storage,
+		BlockImportHandler: blockImportHandler,
+		TransactionState:   stateSrvc.Transaction,
+		BabeVerifier:       mockBabeVerifier,
+		FinalityGadget:     mockFinalityGadget,
+		Telemetry:          mockTelemetryClient,
+		RequestMaker:       NewMockRequestMaker(ctrl),
+	}
+
+	fullSync := NewFullSyncStrategy(fullSyncCfg)
+
+	serviceCfg := []ServiceConfig{
+		WithBlockState(stateSrvc.Block),
+		WithNetwork(mockNetwork),
+		WithSlotDuration(6 * time.Second),
+		WithStrategies(fullSync, nil),
+	}
+
+	syncer := NewSyncService(serviceCfg...)
+	return syncer
+}
 
 func addTestBlocksToState(t *testing.T, depth uint, blockState BlockState) {
 	previousHash := blockState.(*state.BlockState).BestBlockHash()
@@ -47,7 +190,7 @@ func addTestBlocksToState(t *testing.T, depth uint, blockState BlockState) {
 }
 
 func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
-	s := newTestSyncer(t)
+	s := newFullSyncService(t)
 	addTestBlocksToState(t, messages.MaxBlocksInResponse*2, s.blockState)
 
 	// test ascending
@@ -141,7 +284,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 }
 
 func TestService_CreateBlockResponse_StartHash(t *testing.T) {
-	s := newTestSyncer(t)
+	s := newFullSyncService(t)
 	addTestBlocksToState(t, uint(messages.MaxBlocksInResponse*2), s.blockState)
 
 	// test ascending with nil endBlockHash
@@ -233,7 +376,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 
 func TestService_checkOrGetDescendantHash_integration(t *testing.T) {
 	t.Parallel()
-	s := newTestSyncer(t)
+	s := newFullSyncService(t)
 	branches := map[uint]int{
 		8: 1,
 	}
@@ -316,7 +459,7 @@ func TestService_checkOrGetDescendantHash_integration(t *testing.T) {
 }
 
 func TestService_CreateBlockResponse_Fields(t *testing.T) {
-	s := newTestSyncer(t)
+	s := newFullSyncService(t)
 	addTestBlocksToState(t, 2, s.blockState)
 
 	bestHash := s.blockState.(*state.BlockState).BestBlockHash()

@@ -4,7 +4,6 @@
 package sync
 
 import (
-	"math/big"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -12,21 +11,37 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-// peerView tracks our peers's best reported blocks
 type peerView struct {
-	who    peer.ID
-	hash   common.Hash
-	number uint
+	bestBlockNumber uint32
+	bestBlockHash   common.Hash
 }
 
 type peerViewSet struct {
 	mtx    sync.RWMutex
 	view   map[peer.ID]peerView
-	target uint
+	target uint32
 }
 
-// getTarget takes the average of all peer views best number
-func (p *peerViewSet) getTarget() uint {
+func (p *peerViewSet) update(peerID peer.ID, bestHash common.Hash, bestNumber uint32) {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+
+	newView := peerView{
+		bestBlockHash:   bestHash,
+		bestBlockNumber: bestNumber,
+	}
+
+	view, ok := p.view[peerID]
+	if ok && view.bestBlockNumber >= newView.bestBlockNumber {
+		return
+	}
+
+	logger.Infof("updating peer %s view to #%d (%s)", peerID.String(), bestNumber, bestHash.Short())
+	p.view[peerID] = newView
+}
+
+// getTarget returns the highest block number received from connected peers
+func (p *peerViewSet) getTarget() uint32 {
 	p.mtx.RLock()
 	defer p.mtx.RUnlock()
 
@@ -34,65 +49,13 @@ func (p *peerViewSet) getTarget() uint {
 		return p.target
 	}
 
-	numbers := make([]uint, 0, len(p.view))
-	// we are going to sort the data and remove the outliers then we will return the avg of all the valid elements
+	currMax := p.target
 	for _, view := range maps.Values(p.view) {
-		numbers = append(numbers, view.number)
+		if view.bestBlockNumber > currMax {
+			currMax = view.bestBlockNumber
+		}
 	}
 
-	sum, count := nonOutliersSumCount(numbers)
-	quotientBigInt := uint(big.NewInt(0).Div(sum, big.NewInt(int64(count))).Uint64())
-
-	if p.target >= quotientBigInt {
-		return p.target
-	}
-
-	p.target = quotientBigInt // cache latest calculated target
+	p.target = currMax // cache latest calculated target
 	return p.target
-}
-
-func (p *peerViewSet) find(pID peer.ID) (view peerView, ok bool) {
-	p.mtx.RLock()
-	defer p.mtx.RUnlock()
-
-	view, ok = p.view[pID]
-	return view, ok
-}
-
-func (p *peerViewSet) size() int {
-	p.mtx.RLock()
-	defer p.mtx.RUnlock()
-
-	return len(p.view)
-}
-
-func (p *peerViewSet) values() []peerView {
-	p.mtx.RLock()
-	defer p.mtx.RUnlock()
-
-	return maps.Values(p.view)
-}
-
-func (p *peerViewSet) update(peerID peer.ID, hash common.Hash, number uint) {
-	p.mtx.Lock()
-	defer p.mtx.Unlock()
-
-	newView := peerView{
-		who:    peerID,
-		hash:   hash,
-		number: number,
-	}
-
-	view, ok := p.view[peerID]
-	if ok && view.number >= newView.number {
-		return
-	}
-
-	p.view[peerID] = newView
-}
-
-func newPeerViewSet(cap int) *peerViewSet {
-	return &peerViewSet{
-		view: make(map[peer.ID]peerView, cap),
-	}
 }

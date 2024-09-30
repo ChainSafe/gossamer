@@ -31,6 +31,12 @@ func (bd *BlockData) Number() uint {
 	return bd.Header.Number
 }
 
+func (bd *BlockData) IsParent(other *BlockData) bool {
+	incrementOne := (bd.Header.Number + 1) == other.Header.Number
+	isParent := bd.Hash == other.Header.ParentHash
+	return incrementOne && isParent
+}
+
 func (bd *BlockData) String() string {
 	str := fmt.Sprintf("Hash=%s ", bd.Hash)
 
