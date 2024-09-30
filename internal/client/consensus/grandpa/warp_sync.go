@@ -95,12 +95,12 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 	// Get and traverse all GRANDPA authorities changes from the given block hash
 	beginBlockHeader, err := np.blockState.GetHeader(start)
 	if err != nil {
-		return nil, errMissingStartBlock
+		return nil, fmt.Errorf("%w: %w", errMissingStartBlock, err)
 	}
 
 	bestLastBlockHeader, err := np.blockState.BestBlockHeader()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting best block header: %w", err)
 	}
 
 	if beginBlockHeader.Number > bestLastBlockHeader.Number {
@@ -152,7 +152,7 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 		// initial warp sync block.
 		bestLastBlockHeader, err := np.blockState.BestBlockHeader()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("getting best block header: %w", err)
 		}
 		latestJustification, err := np.blockState.GetJustification(bestLastBlockHeader.Hash())
 		if err != nil {
