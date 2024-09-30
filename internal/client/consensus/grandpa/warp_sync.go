@@ -13,7 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-const MAX_WARP_SYNC_PROOF_SIZE = 8 * 1024 * 1024
+const MaxWarpSyncProofSize = 8 * 1024 * 1024
 
 var (
 	errMissingStartBlock      = fmt.Errorf("missing start block")
