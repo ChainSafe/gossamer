@@ -6,7 +6,6 @@ package collatorprotocol
 import (
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
@@ -347,7 +346,7 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 	testCases := []struct {
 		description                 string
 		msg                         any
-		expectedActions             []func(msg any) bool
+		canSecond                   bool
 		deletesBlockedAdvertisement bool
 		blockedAdvertisements       map[string][]blockedAdvertisement
 		errString                   string
@@ -358,17 +357,7 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 				ParaID:   parachaintypes.ParaID(6),
 				ParaHead: common.Hash{},
 			},
-			expectedActions: []func(msg any) bool{
-				func(msg any) bool {
-					canSecondMessage, ok := msg.(backing.CanSecondMessage)
-					if !ok {
-						return false
-					}
-					canSecondMessage.ResponseCh <- true
-
-					return true
-				},
-			},
+			canSecond:                   true,
 			deletesBlockedAdvertisement: true,
 			blockedAdvertisements: map[string][]blockedAdvertisement{
 				"para_id:_6,_para_head:_0x0000000000000000000000000000000000000000000000000000000000000000": {
@@ -396,17 +385,7 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 				ParaID:   parachaintypes.ParaID(6),
 				ParaHead: common.Hash{},
 			},
-			expectedActions: []func(msg any) bool{
-				func(msg any) bool {
-					canSecondMessage, ok := msg.(backing.CanSecondMessage)
-					if !ok {
-						return false
-					}
-					canSecondMessage.ResponseCh <- false
-
-					return true
-				},
-			},
+			canSecond: false,
 			blockedAdvertisements: map[string][]blockedAdvertisement{
 				"para_id:_6,_para_head:_0x0000000000000000000000000000000000000000000000000000000000000000": {
 					{
@@ -435,8 +414,18 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			overseer := overseer.NewMockableOverseer(t)
-			overseer.ExpectActions(c.expectedActions...)
+			overseer := overseer.NewMockableOverseer(t, false)
+			overseer.ExpectActions([]func(msg any) bool{
+				func(msg any) bool {
+					canSecondMessage, ok := msg.(backing.CanSecondMessage)
+					if !ok {
+						return false
+					}
+					canSecondMessage.ResponseCh <- false
+
+					return true
+				},
+			}...)
 
 			collationProtocolID := "/6761727661676500000000000000000000000000000000000000000000000000/1/collations/1"
 
@@ -454,7 +443,6 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 
 			defer overseer.Stop()
 
-			time.Sleep(1 * time.Second)
 			lenBlackedAdvertisementsBefore := len(cpvs.BlockedAdvertisements)
 
 			err = cpvs.processMessage(c.msg)
