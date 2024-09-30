@@ -371,7 +371,7 @@ func (h *host) writeToStream(s network.Stream, msg messages.P2PMessage) error {
 	}
 
 	if len(encMsg) != sent {
-		logger.Criticalf("full message not sent: sent %d, message size %d", sent, len(encMsg))
+		logger.Errorf("full message not sent: sent %d, message size %d", sent, len(encMsg))
 	}
 
 	h.bwc.LogSentMessage(int64(sent))
