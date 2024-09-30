@@ -28,12 +28,12 @@ func newCatchUp(grandpa *Service) *catchUp {
 
 func (c *catchUp) tryCatchUp(round uint64, setID uint64, peer peer.ID) error {
 	logger.Warnf("Trying to catch up")
-	c.lock.Lock()
+	//c.lock.Lock()
 	if !c.readyToCatchUp.Load() {
 		// Fine we just skip
 		return nil
 	}
-	c.lock.Lock()
+	//c.lock.Lock()
 	catchUpRequest := newCatchUpRequest(round, setID)
 	cm, err := catchUpRequest.ToConsensusMessage()
 	if err != nil {
