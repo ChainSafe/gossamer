@@ -200,7 +200,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view events.View)
 			}
 		}
 
-		// TODO
+		// TODO #4204
 		// Remove blocked advertisements that left the view. cpvs.BlockedAdvertisements
 		// Re-trigger previously failed requests again. requestUnBlockedCollations
 		// prune old advertisements
@@ -227,7 +227,6 @@ func (cpvs *CollatorProtocolValidatorSide) removeOutgoing(perRelayParent PerRela
 
 func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Hash, perRelayParent *PerRelayParent,
 ) error {
-	// TODO: get this instance using relay parent
 	instance, err := cpvs.BlockState.GetRuntime(relayParent)
 	if err != nil {
 		return fmt.Errorf("getting runtime instance: %w", err)
@@ -250,7 +249,6 @@ func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Has
 
 	validator, validatorIndex := signingKeyAndIndex(validators, cpvs.Keystore)
 	if validator == nil {
-		// return with an error?
 		return nil
 	}
 
@@ -267,7 +265,7 @@ func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Has
 	}
 	var paraNow *parachaintypes.ParaID
 
-	switch c := coreNow.(type) /*coreNow.Index()*/ {
+	switch c := coreNow.(type) {
 	case parachaintypes.OccupiedCore:
 		*paraNow = parachaintypes.ParaID(c.CandidateDescriptor.ParaID)
 	case parachaintypes.ScheduledCore:
@@ -747,7 +745,6 @@ func (cpvs CollatorProtocolValidatorSide) handleNetworkBridgeEvents(msg any) err
 	case networkbridgeevents.PeerViewChange:
 		// TODO #4155
 	case networkbridgeevents.OurViewChange:
-		// TODO #4156
 		return cpvs.handleOurViewChange(msg.View)
 	case networkbridgeevents.UpdatedAuthorityIDs:
 		// NOTE: The validator side doesn't deal with AuthorityDiscovery IDs
