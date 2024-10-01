@@ -47,19 +47,12 @@ type WarpSyncProof struct {
 	proofsLength int
 }
 
-func NewWarpSyncProof() *WarpSyncProof {
-	return &WarpSyncProof{
+func NewWarpSyncProof() WarpSyncProof {
+	return WarpSyncProof{
 		Proofs:       make([]WarpSyncFragment, 0),
 		IsFinished:   false,
 		proofsLength: 0,
 	}
-}
-
-func (w *WarpSyncProof) encode() ([]byte, error) {
-	if w == nil {
-		return nil, fmt.Errorf("cannot encode nil WarpSyncProof")
-	}
-	return scale.Marshal(*w)
 }
 
 func (w *WarpSyncProof) addFragment(fragment WarpSyncFragment) (limitReached bool, err error) {
@@ -176,5 +169,5 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 	}
 
 	// Encode and return the proof
-	return finalProof.encode()
+	return scale.Marshal(finalProof)
 }
