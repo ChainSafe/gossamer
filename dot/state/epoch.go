@@ -52,12 +52,12 @@ func configDataKey(epoch uint64) []byte {
 }
 
 func nextEpochDataKey(epoch uint64, hash common.Hash) []byte {
-	partialKey := fmt.Sprintf("-%d:%s", epoch, hash.String())
+	partialKey := fmt.Sprintf("%d:%s", epoch, hash.String())
 	return append(nextEpochDataPrefix, []byte(partialKey)...)
 }
 
 func nextConfigDataKey(epoch uint64, hash common.Hash) []byte {
-	partialKey := fmt.Sprintf("-%d:%s", epoch, hash.String())
+	partialKey := fmt.Sprintf("%d:%s", epoch, hash.String())
 	return append(nextConfigDataPrefix, []byte(partialKey)...)
 }
 
@@ -188,7 +188,7 @@ func restoreMapFromDisk[T types.NextConfigDataV1 | types.NextEpochData](db datab
 	defer iter.Release()
 
 	for iter.First(); iter.Valid(); iter.Next() {
-		mapValue, epoch, fork, err := getNextEpochOrConfigData[T](iter)
+		mapValue, epoch, fork, err := getNextEpochOrConfigData[T](iter, prefix)
 
 		if err != nil {
 			return resMap, err
@@ -208,13 +208,13 @@ func restoreMapFromDisk[T types.NextConfigDataV1 | types.NextEpochData](db datab
 }
 
 // getNextEpochOrConfigData retrieves the next epoch or config data from the iterator
-func getNextEpochOrConfigData[T types.NextConfigDataV1 | types.NextEpochData](iter database.Iterator) (
+func getNextEpochOrConfigData[T types.NextConfigDataV1 | types.NextEpochData](iter database.Iterator, prefix []byte) (
 	*T, uint64, common.Hash, error) {
 	nextData := new(T)
 	key := string(iter.Key())
 	value := iter.Value()
 
-	keyWithoutPrefix := strings.Split(key, "-")[1]
+	keyWithoutPrefix := strings.Split(key, string(prefix))[1]
 
 	// Split the key into epoch and fork
 	parts := strings.Split(keyWithoutPrefix, ":")
@@ -1052,8 +1052,8 @@ func getDataKeysFromDisk[T types.NextEpochData | types.NextConfigDataV1](
 	db database.Table, prefix []byte, currentEpoch uint64) (
 	[]string, error) {
 
-	dataKeys := []string{}
-	currentEpochPrefix := fmt.Sprintf("%s-%d", prefix, currentEpoch)
+	var dataKeys []string
+	currentEpochPrefix := fmt.Sprintf("%s%d", prefix, currentEpoch)
 
 	iter, err := db.NewPrefixIterator([]byte(currentEpochPrefix))
 	if err != nil {

@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newEpochStateFromGenesis(t *testing.T) *EpochState {
+func newTestEpochStateFromGenesis(t *testing.T) *EpochState {
 	db := NewInMemoryDB(t)
 	blockState := newTestBlockState(t, newTriesEmpty())
 	s, err := NewEpochStateFromGenesis(db, blockState, config.BABEConfigurationTestDefault)
@@ -28,11 +28,11 @@ func newEpochStateFromGenesis(t *testing.T) *EpochState {
 }
 
 func TestNewEpochStateFromGenesis(t *testing.T) {
-	_ = newEpochStateFromGenesis(t)
+	_ = newTestEpochStateFromGenesis(t)
 }
 
 func TestEpochState_CurrentEpoch(t *testing.T) {
-	s := newEpochStateFromGenesis(t)
+	s := newTestEpochStateFromGenesis(t)
 	epoch, err := s.GetCurrentEpoch()
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), epoch)
@@ -45,7 +45,7 @@ func TestEpochState_CurrentEpoch(t *testing.T) {
 }
 
 func TestEpochState_EpochData(t *testing.T) {
-	s := newEpochStateFromGenesis(t)
+	s := newTestEpochStateFromGenesis(t)
 
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
@@ -72,7 +72,7 @@ func TestEpochState_EpochData(t *testing.T) {
 }
 
 func TestEpochState_GetStartSlotForEpoch(t *testing.T) {
-	s := newEpochStateFromGenesis(t)
+	s := newTestEpochStateFromGenesis(t)
 
 	// let's say first slot is 1 second after January 1, 1970 UTC
 	startAtTime := time.Unix(1, 0)
@@ -112,7 +112,7 @@ func TestEpochState_GetStartSlotForEpoch(t *testing.T) {
 }
 
 func TestEpochState_ConfigData(t *testing.T) {
-	s := newEpochStateFromGenesis(t)
+	s := newTestEpochStateFromGenesis(t)
 
 	data := &types.ConfigData{
 		C1:             1,
@@ -154,7 +154,7 @@ func createAndImportBlockOne(t *testing.T, slotNumber uint64, blockState *BlockS
 }
 
 func TestEpochState_GetEpochForBlock(t *testing.T) {
-	s := newEpochStateFromGenesis(t)
+	s := newTestEpochStateFromGenesis(t)
 
 	firstSlot := uint64(1)
 	blockOneHeader := createAndImportBlockOne(t, firstSlot, s.blockState)
@@ -211,7 +211,7 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 }
 
 func TestEpochState_SetAndGetSlotDuration(t *testing.T) {
-	s := newEpochStateFromGenesis(t)
+	s := newTestEpochStateFromGenesis(t)
 	expected := time.Millisecond * time.Duration(config.BABEConfigurationTestDefault.SlotDuration)
 
 	ret, err := s.GetSlotDuration()
@@ -378,7 +378,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 
 	for testName, tt := range tests {
 		t.Run(testName, func(t *testing.T) {
-			epochState := newEpochStateFromGenesis(t)
+			epochState := newTestEpochStateFromGenesis(t)
 
 			for _, e := range tt.inMemoryEpoch {
 				for i, hash := range e.hashes {
@@ -561,7 +561,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 
 	for testName, tt := range tests {
 		t.Run(testName, func(t *testing.T) {
-			epochState := newEpochStateFromGenesis(t)
+			epochState := newTestEpochStateFromGenesis(t)
 
 			for _, finalized := range finalizedHeaders {
 				// mapping number #1 to the block hash
@@ -642,7 +642,7 @@ func TestRetrieveChainFirstSlot(t *testing.T) {
 	// epoch calculation, same for blocks on X
 	// when finalisation happens Gossamer should retrieve the chain first
 	// slot for the finalized chain, given that the other chain will be pruned
-	singleEpochState := newEpochStateFromGenesis(t)
+	singleEpochState := newTestEpochStateFromGenesis(t)
 
 	// calling without any block it must return error
 	_, err := singleEpochState.retrieveFirstNonOriginBlockSlot(common.Hash{})
@@ -734,7 +734,7 @@ func TestRetrieveChainFirstSlot(t *testing.T) {
 }
 
 func TestRetrieveAndUpdate(t *testing.T) {
-	epochState := newEpochStateFromGenesis(t)
+	epochState := newTestEpochStateFromGenesis(t)
 	blockState := epochState.blockState
 
 	nem := nextEpochMap[types.NextEpochData]{}
@@ -824,7 +824,7 @@ func TestRetrieveAndUpdate(t *testing.T) {
 
 func TestFirstSlotNumberFromDb(t *testing.T) {
 	// test case to check whether we have the correct first slot number in the database
-	epochState := newEpochStateFromGenesis(t)
+	epochState := newTestEpochStateFromGenesis(t)
 	slotDuration, err := epochState.GetSlotDuration()
 	require.NoError(t, err)
 
@@ -858,7 +858,7 @@ func TestFirstSlotNumberFromDb(t *testing.T) {
 }
 
 func TestNextEpochDataAndConfigInDisk(t *testing.T) {
-	epochState := newEpochStateFromGenesis(t)
+	epochState := newTestEpochStateFromGenesis(t)
 	db := NewInMemoryDB(t)
 	dbTable := database.NewTable(db, epochPrefix)
 	epochState.db = dbTable
@@ -1008,7 +1008,7 @@ func createBABEConsensusDigest(t *testing.T, digestData any) types.ConsensusDige
 }
 
 func TestDeleteNextEpochDataAndConfig(t *testing.T) {
-	epochState := newEpochStateFromGenesis(t)
+	epochState := newTestEpochStateFromGenesis(t)
 	db := NewInMemoryDB(t)
 	// defining the db in the right context
 	dbTable := database.NewTable(db, epochPrefix)
