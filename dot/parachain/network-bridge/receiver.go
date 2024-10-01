@@ -148,7 +148,7 @@ func (nbr *NetworkBridgeReceiver) Name() parachaintypes.SubSystemName {
 func (nbr *NetworkBridgeReceiver) ProcessActiveLeavesUpdateSignal(
 	signal parachaintypes.ActiveLeavesUpdateSignal) error {
 
-	// TODO: get the value for majorSyncing for syncing package
+	// TODO: #4207 get the value for majorSyncing for syncing package
 	// majorSyncing means you are 5 blocks behind the tip of the chain and thus more aggressively
 	// download blocks etc to reach the tip of the chain faster.
 	var majorSyncing bool
@@ -219,7 +219,7 @@ func (nbr *NetworkBridgeReceiver) updateOurView() error { //nolint
 
 	*nbr.localView = newView
 
-	// TODO: send ViewUpdate to all the collation peers and validation peers (v1, v2, v3)
+	// TODO: #4156 send ViewUpdate to all the collation peers and validation peers (v1, v2, v3)
 	// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/network/bridge/src/rx/mod.rs#L969-L1013
 
 	// TODO #4156 Create our view and send collation events to all subsystems about our view change
@@ -250,8 +250,8 @@ func (nbr *NetworkBridgeReceiver) handleCollationMessage(
 	}
 
 	nbr.SubsystemsToOverseer <- events.PeerMessage[collatorprotocolmessages.CollationProtocol]{
-		PeerID:   sender,
-		Messaage: *collatorProtocol,
+		PeerID:  sender,
+		Message: *collatorProtocol,
 	}
 
 	return propagate, nil
@@ -275,8 +275,8 @@ func (nbr *NetworkBridgeReceiver) handleValidationMessage(
 	}
 
 	nbr.SubsystemsToOverseer <- events.PeerMessage[validationprotocol.ValidationProtocol]{
-		PeerID:   sender,
-		Messaage: *validationProtocol,
+		PeerID:  sender,
+		Message: *validationProtocol,
 	}
 
 	return propagate, nil

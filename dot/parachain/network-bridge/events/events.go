@@ -65,8 +65,8 @@ type OurViewChange struct {
 }
 
 type PeerMessage[Message collationprotocol.CollationProtocol | validationprotocol.ValidationProtocol] struct {
-	PeerID   peer.ID
-	Messaage Message
+	PeerID  peer.ID
+	Message Message
 }
 
 type UpdatedAuthorityIDs struct {

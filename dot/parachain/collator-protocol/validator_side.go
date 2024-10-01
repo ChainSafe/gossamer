@@ -749,7 +749,7 @@ func (cpvs CollatorProtocolValidatorSide) handleNetworkBridgeEvents(msg any) err
 	case networkbridgeevents.UpdatedAuthorityIDs:
 		// NOTE: The validator side doesn't deal with AuthorityDiscovery IDs
 	case networkbridgeevents.PeerMessage[collatorprotocolmessages.CollationProtocol]:
-		return cpvs.processCollatorProtocolMessage(msg.PeerID, msg.Messaage)
+		return cpvs.processCollatorProtocolMessage(msg.PeerID, msg.Message)
 	}
 	return nil
 }
