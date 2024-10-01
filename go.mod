@@ -26,7 +26,7 @@ require (
 	github.com/jpillora/backoff v1.0.0
 	github.com/jpillora/ipfilter v1.2.9
 	github.com/karlseguin/ccache/v3 v3.0.5
-	github.com/klauspost/compress v1.17.9
+	github.com/klauspost/compress v1.17.10
 	github.com/libp2p/go-libp2p v0.36.2
 	github.com/libp2p/go-libp2p-kad-dht v0.26.1
 	github.com/minio/sha256-simd v1.0.1
@@ -46,6 +46,7 @@ require (
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	golang.org/x/term v0.24.0
 	google.golang.org/protobuf v1.34.2
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -214,7 +215,6 @@ require (
 	gonum.org/v1/gonum v0.15.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
 
