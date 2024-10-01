@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -252,18 +253,33 @@ func (cv *CandidateValidation) precheckPvF(relayParent common.Hash, validationCo
 		logger.Errorf("failed to acquire params for the session, thus voting against: %w", err)
 		return PreCheckOutcomeInvalid
 	}
-	fmt.Printf("Executor params: %v\n", executorParams)
-
-	// todo: pvf_prep_timeout
 
 	codeDecompressed, err := maybeCompressedBlobDecompress(*code, validationprotocol.MaxValidationMessageSize)
 	if err != nil {
 		logger.Errorf("failed to decompress code: %w", err)
 		return PreCheckOutcomeInvalid
 	}
-	fmt.Printf("Decompressed code: %v\n", len(codeDecompressed))
+	kind := parachaintypes.NewPvfPrepTimeoutKind()
+	err = kind.SetValue(parachaintypes.Precheck{})
+	if err != nil {
+		logger.Errorf("failed to set value: %w", err)
+		return PreCheckOutcomeFailed
+	}
 
-	// todo: call validation_backend.precheck_pvf
+	prepTimeout := pvfPrepTimeout(*executorParams, kind)
+
+	pvf := PvFPrepData{
+		code:           codeDecompressed,
+		codeHash:       validationCodeHash,
+		executorParams: *executorParams,
+		prepTimeout:    prepTimeout,
+		prepKind:       kind,
+	}
+	err = cv.pvfHost.precheck(pvf)
+	if err != nil {
+		logger.Errorf("failed to precheck: %w", err)
+		return PreCheckOutcomeFailed
+	}
 	return PreCheckOutcomeValid
 }
 
@@ -288,4 +304,35 @@ func maybeCompressedBlobDecompress(blob []byte, bombLimit uint64) ([]byte, error
 	} else {
 		return blob, nil
 	}
+}
+
+// To determine the amount of timeout time for the pvf execution.
+//
+// Precheck
+//
+//	The time period after which the preparation worker is considered
+//
+// unresponsive and will be killed.
+//
+// Prepare
+// The time period after which the preparation worker is considered
+// unresponsive and will be killed.
+func pvfPrepTimeout(params parachaintypes.ExecutorParams, kind parachaintypes.PvfPrepTimeoutKind) time.Duration {
+	for i, param := range params {
+		val, err := param.Value()
+		if err != nil {
+			fmt.Printf("some error %v", err)
+		}
+		switch val := val.(type) {
+		case parachaintypes.PvfPrepTimeout:
+			// TODO: determine if we need to covert millisec to nano seconds for duration
+			return time.Duration(val.Millisec)
+		default:
+			fmt.Printf("default\n")
+		}
+		fmt.Printf("i %v, p %v", i, param)
+	}
+
+	// todo: handle case for getting default time from kind
+	return time.Second
 }
