@@ -20,6 +20,9 @@ func newValidationHost() *host {
 		workerPool: newWorkerPool(),
 	}
 }
+func (v *host) precheck(data PvFPrepData) error {
+	return v.workerPool.handlePrecheckPvF(data)
+}
 
 func (v *host) validate(msg *ValidationTask) (*ValidationResult, error) {
 	validationCodeHash := msg.ValidationCode.Hash()

@@ -2,6 +2,7 @@ package candidatevalidation
 
 import (
 	"fmt"
+	"time"
 
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -9,6 +10,14 @@ import (
 
 type workerPool struct {
 	workers map[parachaintypes.ValidationCodeHash]*worker
+}
+
+type PvFPrepData struct {
+	code           parachaintypes.ValidationCode
+	codeHash       parachaintypes.ValidationCodeHash
+	executorParams parachaintypes.ExecutorParams
+	prepTimeout    time.Duration
+	prepKind       parachaintypes.PvfPrepTimeoutKind
 }
 
 type ValidationTask struct {
@@ -122,7 +131,16 @@ func (v *workerPool) addNewWorker(validationCode parachaintypes.ValidationCode) 
 		v.workers[workerID] = worker
 
 	}
+	return nil
+}
 
+func (v *workerPool) handlePrecheckPvF(data PvFPrepData) error {
+	if !v.containsWorker(data.codeHash) {
+		err := v.addNewWorker(data.code)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

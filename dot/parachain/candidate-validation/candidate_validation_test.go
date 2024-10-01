@@ -515,7 +515,7 @@ func Test_precheckPvF(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
-	_, validationCode := createTestCandidateReceiptAndValidationCodeWParaId(t, 1000)
+	candidate, validationCode := createTestCandidateReceiptAndValidationCodeWParaId(t, 1000)
 	encoder, err := zstd.NewWriter(nil)
 	require.NoError(t, err)
 	compressed := encoder.EncodeAll(validationCode, make([]byte, 0, len(validationCode)))
@@ -523,10 +523,28 @@ func Test_precheckPvF(t *testing.T) {
 	compressedValidationCode := parachaintypes.ValidationCode(compressedCode)
 
 	mockInstance := NewMockInstance(ctrl)
-	mockInstance.EXPECT().ParachainHostValidationCodeByHash(common.MustHexToHash("0x03")).Return(&validationCode, nil)
+	mockInstance.EXPECT().ParachainHostValidationCodeByHash(common.Hash(candidate.Descriptor.ValidationCodeHash)).
+		Return(&validationCode, nil)
 	mockInstance.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(1), nil).Times(2)
-	mockInstance.EXPECT().ParachainHostSessionExecutorParams(parachaintypes.SessionIndex(1)).Return(&parachaintypes.
-		ExecutorParams{}, nil).Times(2)
+	executionParams := parachaintypes.ExecutorParams{}
+	timeout := parachaintypes.PvfPrepTimeout{
+		PvfPrepTimeoutKind: func() parachaintypes.PvfPrepTimeoutKind {
+			kind := parachaintypes.NewPvfPrepTimeoutKind()
+			if err := kind.SetValue(parachaintypes.Precheck{}); err != nil {
+				panic(err)
+			}
+			return kind
+		}(),
+		Millisec: 5,
+	}
+	timeoutParam := parachaintypes.NewExecutorParam()
+	err = timeoutParam.SetValue(timeout)
+	require.NoError(t, err)
+
+	executionParams = append(executionParams, timeoutParam)
+
+	mockInstance.EXPECT().ParachainHostSessionExecutorParams(parachaintypes.SessionIndex(1)).Return(&executionParams,
+		nil).Times(2)
 	mockInstance.EXPECT().ParachainHostValidationCodeByHash(common.MustHexToHash("0x05")).Return(
 		&compressedValidationCode, nil)
 
@@ -571,7 +589,7 @@ func Test_precheckPvF(t *testing.T) {
 		"happy_path": {
 			msg: PreCheck{
 				RelayParent:        common.MustHexToHash("0x02"),
-				ValidationCodeHash: parachaintypes.ValidationCodeHash(common.MustHexToHash("0x03")),
+				ValidationCodeHash: candidate.Descriptor.ValidationCodeHash,
 			},
 			expectedResult: PreCheckOutcomeValid,
 		},
