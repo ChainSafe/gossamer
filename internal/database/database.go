@@ -60,6 +60,7 @@ type Table interface {
 	Path() string
 	NewBatch() Batch
 	NewIterator() (Iterator, error)
+	NewPrefixIterator(prefix []byte) (Iterator, error)
 }
 
 const DefaultDatabaseDir = "db"
