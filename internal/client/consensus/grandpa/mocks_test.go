@@ -40,21 +40,6 @@ func (m *MockBlockState) EXPECT() *MockBlockStateMockRecorder {
 	return m.recorder
 }
 
-// BestBlockHeader mocks base method.
-func (m *MockBlockState) BestBlockHeader() (*types.Header, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BestBlockHeader")
-	ret0, _ := ret[0].(*types.Header)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// BestBlockHeader indicates an expected call of BestBlockHeader.
-func (mr *MockBlockStateMockRecorder) BestBlockHeader() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BestBlockHeader", reflect.TypeOf((*MockBlockState)(nil).BestBlockHeader))
-}
-
 // GetHeader mocks base method.
 func (m *MockBlockState) GetHeader(arg0 common.Hash) (*types.Header, error) {
 	m.ctrl.T.Helper()
@@ -83,6 +68,21 @@ func (m *MockBlockState) GetHeaderByNumber(arg0 uint) (*types.Header, error) {
 func (mr *MockBlockStateMockRecorder) GetHeaderByNumber(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHeaderByNumber", reflect.TypeOf((*MockBlockState)(nil).GetHeaderByNumber), arg0)
+}
+
+// GetHighestFinalisedHeader mocks base method.
+func (m *MockBlockState) GetHighestFinalisedHeader() (*types.Header, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHighestFinalisedHeader")
+	ret0, _ := ret[0].(*types.Header)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetHighestFinalisedHeader indicates an expected call of GetHighestFinalisedHeader.
+func (mr *MockBlockStateMockRecorder) GetHighestFinalisedHeader() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHighestFinalisedHeader", reflect.TypeOf((*MockBlockState)(nil).GetHighestFinalisedHeader))
 }
 
 // GetJustification mocks base method.

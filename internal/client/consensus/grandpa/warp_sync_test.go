@@ -52,7 +52,7 @@ func TestGenerateWarpSyncProofBlockNotFinalized(t *testing.T) {
 
 	blockStateMock := NewMockBlockState(ctrl)
 	blockStateMock.EXPECT().GetHeader(notFinalizedBlockHeader.Hash()).Return(notFinalizedBlockHeader, nil).AnyTimes()
-	blockStateMock.EXPECT().BestBlockHeader().Return(bestBlockHeader, nil).AnyTimes()
+	blockStateMock.EXPECT().GetHighestFinalisedHeader().Return(bestBlockHeader, nil).AnyTimes()
 
 	provider := &WarpSyncProofProvider{
 		blockState: blockStateMock,
@@ -108,7 +108,7 @@ func TestGenerateWarpSyncProofOk(t *testing.T) {
 		}
 	}
 
-	blockStateMock.EXPECT().BestBlockHeader().Return(blockHeaders[len(blockHeaders)-1], nil).AnyTimes()
+	blockStateMock.EXPECT().GetHighestFinalisedHeader().Return(blockHeaders[len(blockHeaders)-1], nil).AnyTimes()
 	blockStateMock.EXPECT().GetJustification(blockHeaders[len(blockHeaders)-1].Hash()).Return(encodedJustification2, nil).AnyTimes()
 
 	provider := &WarpSyncProofProvider{

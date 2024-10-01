@@ -22,7 +22,7 @@ var (
 
 type BlockState interface {
 	GetHeader(hash common.Hash) (*types.Header, error)
-	BestBlockHeader() (*types.Header, error)
+	GetHighestFinalisedHeader() (*types.Header, error)
 	GetHeaderByNumber(num uint) (*types.Header, error)
 	GetJustification(hash common.Hash) ([]byte, error)
 }
@@ -98,12 +98,12 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 		return nil, fmt.Errorf("%w: %w", errMissingStartBlock, err)
 	}
 
-	bestLastBlockHeader, err := np.blockState.BestBlockHeader()
+	lastFinalizedBlockHeader, err := np.blockState.GetHighestFinalisedHeader()
 	if err != nil {
 		return nil, fmt.Errorf("getting best block header: %w", err)
 	}
 
-	if beginBlockHeader.Number > bestLastBlockHeader.Number {
+	if beginBlockHeader.Number > lastFinalizedBlockHeader.Number {
 		return nil, errStartBlockNotFinalized
 	}
 
@@ -150,11 +150,11 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 		// last authority set change. if we didn't prove any authority set
 		// change then we fallback to make sure it's higher or equal to the
 		// initial warp sync block.
-		bestLastBlockHeader, err := np.blockState.BestBlockHeader()
+		lastFinalizedBlockHeader, err := np.blockState.GetHighestFinalisedHeader()
 		if err != nil {
 			return nil, fmt.Errorf("getting best block header: %w", err)
 		}
-		latestJustification, err := np.blockState.GetJustification(bestLastBlockHeader.Hash())
+		latestJustification, err := np.blockState.GetJustification(lastFinalizedBlockHeader.Hash())
 		if err != nil {
 			return nil, err
 		}
@@ -165,7 +165,7 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 		}
 
 		if justification.Justification.Commit.TargetNumber >= finalProof.lastProofBlockNumber() {
-			fragment := WarpSyncFragment{Header: *bestLastBlockHeader, Justification: *justification}
+			fragment := WarpSyncFragment{Header: *lastFinalizedBlockHeader, Justification: *justification}
 			_, err = finalProof.addFragment(fragment)
 			if err != nil {
 				return nil, err
