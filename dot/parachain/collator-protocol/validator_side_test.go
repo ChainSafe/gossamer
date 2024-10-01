@@ -421,7 +421,7 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 					if !ok {
 						return false
 					}
-					canSecondMessage.ResponseCh <- false
+					canSecondMessage.ResponseCh <- c.canSecond
 
 					return true
 				},

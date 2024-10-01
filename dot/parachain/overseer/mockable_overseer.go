@@ -84,24 +84,35 @@ func (m *MockableOverseer) ExpectActions(fns ...func(msg any) bool) {
 
 func (m *MockableOverseer) processMessages() {
 	actionIndex := 0
-	for msg := range m.SubsystemsToOverseer {
-		if msg == nil {
-			continue
-		}
+	for {
+		select {
+		case msg := <-m.SubsystemsToOverseer:
+			if msg == nil {
+				continue
+			}
 
-		if actionIndex < len(m.actionsForExpectedMessages) {
-			action := m.actionsForExpectedMessages[actionIndex]
-			ok := action(msg)
-			if !ok {
+			if actionIndex < len(m.actionsForExpectedMessages) {
+				action := m.actionsForExpectedMessages[actionIndex]
+				ok := action(msg)
+				if !ok {
+					m.t.Errorf("unexpected message: %T", msg)
+					return
+				}
+
+				actionIndex = actionIndex + 1
+			} else {
 				m.t.Errorf("unexpected message: %T", msg)
 				return
 			}
+		case <-m.ctx.Done():
+			if actionIndex < len(m.actionsForExpectedMessages) {
+				m.t.Errorf("expected %d overseer actions, but got only %d", len(m.actionsForExpectedMessages), actionIndex)
+			}
 
-			actionIndex = actionIndex + 1
-		} else {
-			m.t.Errorf("unexpected message: %T", msg)
+			if err := m.ctx.Err(); err != nil {
+				m.t.Logf("ctx error: %v\n", err)
+			}
 			return
 		}
-
 	}
 }
