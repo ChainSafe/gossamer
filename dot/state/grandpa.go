@@ -604,8 +604,8 @@ func (s *GrandpaState) GetPrecommits(round, setID uint64) ([]types.GrandpaSigned
 	return pcs, nil
 }
 
-// GetAuthoritesChangesFromBlock retrieves blocks numbers where authority set changes happened
-func (s *GrandpaState) GetAuthoritesChangesFromBlock(initialBlockNumber uint) ([]uint, error) {
+// GetAuthoritiesChangesFromBlock retrieves blocks numbers where authority set changes happened
+func (s *GrandpaState) GetAuthoritiesChangesFromBlock(initialBlockNumber uint) ([]uint, error) {
 	blockNumbers := make([]uint, 0)
 	iter, err := s.db.NewPrefixIterator(setIDChangePrefix)
 	if err != nil {

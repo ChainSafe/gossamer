@@ -123,17 +123,17 @@ func (m *MockGrandpaState) EXPECT() *MockGrandpaStateMockRecorder {
 	return m.recorder
 }
 
-// GetAuthoritesChangesFromBlock mocks base method.
-func (m *MockGrandpaState) GetAuthoritesChangesFromBlock(arg0 uint) ([]uint, error) {
+// GetAuthoritiesChangesFromBlock mocks base method.
+func (m *MockGrandpaState) GetAuthoritiesChangesFromBlock(arg0 uint) ([]uint, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAuthoritesChangesFromBlock", arg0)
+	ret := m.ctrl.Call(m, "GetAuthoritiesChangesFromBlock", arg0)
 	ret0, _ := ret[0].([]uint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetAuthoritesChangesFromBlock indicates an expected call of GetAuthoritesChangesFromBlock.
-func (mr *MockGrandpaStateMockRecorder) GetAuthoritesChangesFromBlock(arg0 any) *gomock.Call {
+// GetAuthoritiesChangesFromBlock indicates an expected call of GetAuthoritiesChangesFromBlock.
+func (mr *MockGrandpaStateMockRecorder) GetAuthoritiesChangesFromBlock(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthoritesChangesFromBlock", reflect.TypeOf((*MockGrandpaState)(nil).GetAuthoritesChangesFromBlock), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthoritiesChangesFromBlock", reflect.TypeOf((*MockGrandpaState)(nil).GetAuthoritiesChangesFromBlock), arg0)
 }

@@ -28,7 +28,7 @@ type BlockState interface {
 }
 
 type GrandpaState interface {
-	GetAuthoritesChangesFromBlock(blockNumber uint) ([]uint, error)
+	GetAuthoritiesChangesFromBlock(blockNumber uint) ([]uint, error)
 }
 
 type WarpSyncFragment struct {
@@ -107,7 +107,7 @@ func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 		return nil, errStartBlockNotFinalized
 	}
 
-	authoritySetChanges, err := np.grandpaState.GetAuthoritesChangesFromBlock(beginBlockHeader.Number)
+	authoritySetChanges, err := np.grandpaState.GetAuthoritiesChangesFromBlock(beginBlockHeader.Number)
 	if err != nil {
 		return nil, err
 	}

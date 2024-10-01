@@ -100,11 +100,11 @@ func TestGenerateWarpSyncProofOk(t *testing.T) {
 
 		// authorities set changes happens only in block 5
 		if blockNumber < 5 {
-			grandpaStateMock.EXPECT().GetAuthoritesChangesFromBlock(blockNumber).Return([]uint{5}, nil).AnyTimes()
+			grandpaStateMock.EXPECT().GetAuthoritiesChangesFromBlock(blockNumber).Return([]uint{5}, nil).AnyTimes()
 		} else if blockNumber == 5 {
 			blockStateMock.EXPECT().GetJustification(header.Hash()).Return(encodedJustification1, nil).AnyTimes()
 		} else {
-			grandpaStateMock.EXPECT().GetAuthoritesChangesFromBlock(blockNumber).Return([]uint{}, nil).AnyTimes()
+			grandpaStateMock.EXPECT().GetAuthoritiesChangesFromBlock(blockNumber).Return([]uint{}, nil).AnyTimes()
 		}
 	}
 
