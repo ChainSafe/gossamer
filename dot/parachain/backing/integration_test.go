@@ -227,7 +227,7 @@ func validResponseForValidateFromExhaustive(
 
 		msgValidate.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
 			Data: candidatevalidation.ValidationResult{
-				ValidResult: &candidatevalidation.ValidValidationResult{
+				Valid: &candidatevalidation.Valid{
 					CandidateCommitments: parachaintypes.CandidateCommitments{
 						HeadData:                  headData,
 						UpwardMessages:            []parachaintypes.UpwardMessage{},
@@ -337,7 +337,7 @@ func TestSecondsValidCandidate(t *testing.T) {
 		badReturn := candidatevalidation.BadReturn
 		validateFromExhaustive.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
 			Data: candidatevalidation.ValidationResult{
-				InvalidResult: &badReturn,
+				Invalid: &badReturn,
 			},
 		}
 		return true
