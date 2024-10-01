@@ -34,7 +34,7 @@ func stopOverseerAndWaitForCompletion(overseer *overseer.MockableOverseer) {
 func initBackingAndOverseerMock(t *testing.T) (*backing.CandidateBacking, *overseer.MockableOverseer) {
 	t.Helper()
 
-	overseerMock := overseer.NewMockableOverseer(t)
+	overseerMock := overseer.NewMockableOverseer(t, true)
 
 	backing := backing.New(overseerMock.SubsystemsToOverseer)
 	overseerMock.RegisterSubsystem(backing)
@@ -227,7 +227,7 @@ func validResponseForValidateFromExhaustive(
 
 		msgValidate.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
 			Data: candidatevalidation.ValidationResult{
-				ValidResult: &candidatevalidation.ValidValidationResult{
+				Valid: &candidatevalidation.Valid{
 					CandidateCommitments: parachaintypes.CandidateCommitments{
 						HeadData:                  headData,
 						UpwardMessages:            []parachaintypes.UpwardMessage{},
@@ -337,7 +337,7 @@ func TestSecondsValidCandidate(t *testing.T) {
 		badReturn := candidatevalidation.BadReturn
 		validateFromExhaustive.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
 			Data: candidatevalidation.ValidationResult{
-				InvalidResult: &badReturn,
+				Invalid: &badReturn,
 			},
 		}
 		return true

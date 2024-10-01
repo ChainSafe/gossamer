@@ -18,6 +18,7 @@ type MockableOverseer struct {
 	SubsystemsToOverseer chan any
 	overseerToSubsystem  chan any
 	subSystem            parachaintypes.Subsystem
+	run                  bool
 
 	// actionsForExpectedMessages stores overseer messages we receive from the subsystem.
 	// need to return false if the message is unexpected
@@ -29,13 +30,14 @@ type MockableOverseer struct {
 	actionsForExpectedMessages []func(msg any) bool
 }
 
-func NewMockableOverseer(t *testing.T) *MockableOverseer {
+func NewMockableOverseer(t *testing.T, run bool) *MockableOverseer {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &MockableOverseer{
 		t:                          t,
 		ctx:                        ctx,
 		cancel:                     cancel,
+		run:                        run,
 		SubsystemsToOverseer:       make(chan any),
 		actionsForExpectedMessages: []func(msg any) bool{},
 	}
@@ -53,9 +55,11 @@ func (m *MockableOverseer) RegisterSubsystem(subsystem parachaintypes.Subsystem)
 }
 
 func (m *MockableOverseer) Start() error {
-	go func(sub parachaintypes.Subsystem, overseerToSubSystem chan any) {
-		sub.Run(m.ctx, overseerToSubSystem)
-	}(m.subSystem, m.overseerToSubsystem)
+	if m.run {
+		go func(sub parachaintypes.Subsystem, overseerToSubSystem chan any) {
+			sub.Run(m.ctx, overseerToSubSystem)
+		}(m.subSystem, m.overseerToSubsystem)
+	}
 
 	go m.processMessages()
 	return nil
@@ -80,24 +84,35 @@ func (m *MockableOverseer) ExpectActions(fns ...func(msg any) bool) {
 
 func (m *MockableOverseer) processMessages() {
 	actionIndex := 0
-	for msg := range m.SubsystemsToOverseer {
-		if msg == nil {
-			continue
-		}
+	for {
+		select {
+		case msg := <-m.SubsystemsToOverseer:
+			if msg == nil {
+				continue
+			}
 
-		if actionIndex < len(m.actionsForExpectedMessages) {
-			action := m.actionsForExpectedMessages[actionIndex]
-			ok := action(msg)
-			if !ok {
+			if actionIndex < len(m.actionsForExpectedMessages) {
+				action := m.actionsForExpectedMessages[actionIndex]
+				ok := action(msg)
+				if !ok {
+					m.t.Errorf("unexpected message: %T", msg)
+					return
+				}
+
+				actionIndex = actionIndex + 1
+			} else {
 				m.t.Errorf("unexpected message: %T", msg)
 				return
 			}
+		case <-m.ctx.Done():
+			if actionIndex < len(m.actionsForExpectedMessages) {
+				m.t.Errorf("expected %d overseer actions, but got only %d", len(m.actionsForExpectedMessages), actionIndex)
+			}
 
-			actionIndex = actionIndex + 1
-		} else {
-			m.t.Errorf("unexpected message: %T", msg)
+			if err := m.ctx.Err(); err != nil {
+				m.t.Logf("ctx error: %v\n", err)
+			}
 			return
 		}
-
 	}
 }
