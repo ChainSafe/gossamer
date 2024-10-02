@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	statementedistributionmessages "github.com/ChainSafe/gossamer/dot/parachain/statement-distribution/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -345,7 +346,7 @@ func signImportAndDistributeStatement(
 	}
 
 	// `Share` must always be sent before `Backed`. We send the latter in `postImportStatement` below.
-	subSystemToOverseer <- parachaintypes.StatementDistributionMessageShare{
+	subSystemToOverseer <- statementedistributionmessages.Share{
 		RelayParent:                rpState.relayParent,
 		SignedFullStatementWithPVD: signedStatementWithPVD,
 	}
