@@ -83,6 +83,13 @@ type WarpSyncProofProvider struct {
 	grandpaState GrandpaState
 }
 
+func NewWarpSyncProofProvider(blockState BlockState, grandpaState GrandpaState) *WarpSyncProofProvider {
+	return &WarpSyncProofProvider{
+		blockState:   blockState,
+		grandpaState: grandpaState,
+	}
+}
+
 // Generate build a warp sync encoded proof starting from the given block hash
 func (np *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 	// Get and traverse all GRANDPA authorities changes from the given block hash

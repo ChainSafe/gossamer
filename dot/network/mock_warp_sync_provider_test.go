@@ -39,17 +39,17 @@ func (m *MockWarpSyncProvider) EXPECT() *MockWarpSyncProviderMockRecorder {
 	return m.recorder
 }
 
-// generate mocks base method.
-func (m *MockWarpSyncProvider) generate(arg0 common.Hash) ([]byte, error) {
+// Generate mocks base method.
+func (m *MockWarpSyncProvider) Generate(arg0 common.Hash) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "generate", arg0)
+	ret := m.ctrl.Call(m, "Generate", arg0)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// generate indicates an expected call of generate.
-func (mr *MockWarpSyncProviderMockRecorder) generate(arg0 any) *gomock.Call {
+// Generate indicates an expected call of Generate.
+func (mr *MockWarpSyncProviderMockRecorder) Generate(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "generate", reflect.TypeOf((*MockWarpSyncProvider)(nil).generate), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Generate", reflect.TypeOf((*MockWarpSyncProvider)(nil).Generate), arg0)
 }

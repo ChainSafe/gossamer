@@ -20,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
+	consensus_grandpa "github.com/ChainSafe/gossamer/internal/client/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
@@ -348,6 +349,11 @@ func (nodeBuilder) createNetworkService(config *cfg.Config, stateSrvc *state.Ser
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse network log level: %w", err)
 	}
+
+	warpSyncProvider := consensus_grandpa.NewWarpSyncProofProvider(
+		stateSrvc.Block, stateSrvc.Grandpa,
+	)
+
 	// network service configuation
 	networkConfig := network.Config{
 		LogLvl:            networkLogLevel,
@@ -370,6 +376,7 @@ func (nodeBuilder) createNetworkService(config *cfg.Config, stateSrvc *state.Ser
 		Metrics:           metrics.NewIntervalConfig(config.PrometheusExternal),
 		NodeKey:           config.Network.NodeKey,
 		ListenAddress:     config.Network.ListenAddress,
+		WarpSyncProvider:  warpSyncProvider,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)
