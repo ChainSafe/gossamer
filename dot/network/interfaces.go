@@ -6,6 +6,9 @@ package network
 import (
 	"encoding/json"
 	"io"
+
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // Telemetry is the telemetry client to send telemetry messages.
@@ -26,4 +29,9 @@ type Logger interface {
 type MDNS interface {
 	Start() error
 	io.Closer
+}
+
+type RateLimiter interface {
+	AddRequest(peer peer.ID, hashedRequest common.Hash)
+	IsLimitExceeded(peer peer.ID, hashedRequest common.Hash) bool
 }

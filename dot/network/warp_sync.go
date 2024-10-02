@@ -12,6 +12,8 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
+const MaxAllowedRequestsPerPeer = 10
+
 // WarpSyncProvider is an interface for generating warp sync proofs
 type WarpSyncProvider interface {
 	// Generate proof starting at given block hash. The proof is accumulated until maximum proof
@@ -55,7 +57,20 @@ func (s *Service) handleWarpSyncMessage(stream libp2pnetwork.Stream, msg message
 		}
 	}()
 
+	peerId := stream.Conn().RemotePeer()
+	hashedReq := common.MustBlake2bHash([]byte(msg.String()))
+
 	if req, ok := msg.(*messages.WarpProofRequest); ok {
+		// Check if this peer has exceeded the limit of requests
+		if !s.warpSyncSpamLimiter.IsLimitExceeded(peerId, hashedReq) {
+			logger.Debugf("same warp sync request exceeded for peer: %s", peerId)
+			return nil
+		}
+
+		// Add the request to the spam limiter
+		s.warpSyncSpamLimiter.AddRequest(peerId, hashedReq)
+
+		// Handle request
 		resp, err := s.handleWarpSyncRequest(*req)
 		if err != nil {
 			logger.Debugf("cannot create response for request: %s", err)
