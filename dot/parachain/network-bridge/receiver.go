@@ -199,8 +199,8 @@ func (nbr *NetworkBridgeReceiver) updateOurView() error { //nolint
 		headHashes = append(headHashes, head.Hash)
 	}
 	newView := View{
-		heads:           headHashes,
-		finalizedNumber: nbr.finalizedNumber,
+		Heads:           headHashes,
+		FinalizedNumber: nbr.finalizedNumber,
 	}
 
 	// If this is the first view update since becoming active, but our view is empty,
