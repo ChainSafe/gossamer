@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSpamLimiter_AddRequestAndIsLimitExceeded(t *testing.T) {
+func TestSpamLimiter_AddRequestAndCheckLimitExceeded(t *testing.T) {
 	t.Parallel()
 
 	// Create a SpamLimiter with a limit of 5 requests and a time window of 10 seconds
@@ -60,6 +60,8 @@ func TestSpamLimiter_WindowExpiry(t *testing.T) {
 }
 
 func TestSpamLimiter_DifferentPeersAndHashes(t *testing.T) {
+	t.Parallel()
+
 	// Create a SpamLimiter with a limit of 2 requests and a time window of 5 seconds
 	limiter := NewSpamLimiter(2, 5*time.Second)
 
