@@ -73,7 +73,6 @@ func (w *WireMessage) SetType(messageType network.MessageType) {
 }
 
 func (w WireMessage) Type() network.MessageType {
-	// TODO: create a wire message type and return that #4108
 	return w.messageType
 }
 
