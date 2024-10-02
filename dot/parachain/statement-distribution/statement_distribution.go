@@ -15,11 +15,20 @@ type StatementDistribution struct {
 }
 
 func (s StatementDistribution) Run(ctx context.Context, overseerToSubSystem <-chan any) {
-
-	for msg := range overseerToSubSystem {
-		err := s.processMessage(msg)
-		if err != nil {
-			logger.Errorf("processing overseer message: %w", err)
+	for {
+		select {
+		case msg, ok := <-overseerToSubSystem:
+			if !ok {
+				return
+			}
+			err := s.processMessage(msg)
+			if err != nil {
+				logger.Errorf("processing overseer message: %w", err)
+			}
+		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
+				logger.Errorf("ctx error: %v\n", err)
+			}
 		}
 	}
 }
