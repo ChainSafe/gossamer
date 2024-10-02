@@ -1,6 +1,7 @@
 package candidatevalidation
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -22,10 +23,26 @@ type workerTask struct {
 	timeoutKind      parachaintypes.PvfExecTimeoutKind
 }
 
-func newWorker(validationCode parachaintypes.ValidationCode) (*worker, error) {
-	parachainRuntime, err := parachainruntime.SetupVM(validationCode)
-	if err != nil {
-		return nil, err
+var ErrorPreCheckTimeout = errors.New("precheck timed out")
+
+func newWorker(validationCode parachaintypes.ValidationCode, setupTimeout time.Duration) (*worker, error) {
+	runtimeSetupResultCh := make(chan *resultWithError)
+	var parachainRuntime *parachainruntime.Instance
+	go func() {
+		rt, err := parachainruntime.SetupVM(validationCode)
+		runtimeSetupResultCh <- &resultWithError{result: rt, err: err}
+	}()
+
+	select {
+	case validationResultWErr := <-runtimeSetupResultCh:
+		if validationResultWErr.err != nil {
+			logger.Errorf("setting up runtime instance: %w", validationResultWErr.err)
+			return nil, validationResultWErr.err
+		}
+		parachainRuntime = validationResultWErr.result.(*parachainruntime.Instance)
+
+	case <-time.After(setupTimeout):
+		return nil, ErrorPreCheckTimeout
 	}
 
 	return &worker{
@@ -36,7 +53,7 @@ func newWorker(validationCode parachaintypes.ValidationCode) (*worker, error) {
 }
 
 type resultWithError struct {
-	result *parachainruntime.ValidationResult
+	result any
 	err    error
 }
 
@@ -69,7 +86,7 @@ func (w *worker) executeRequest(task *workerTask) (*ValidationResult, error) {
 	}
 
 	var validationResult *parachainruntime.ValidationResult
-	validationResultCh := make(chan (*resultWithError))
+	validationResultCh := make(chan *resultWithError)
 	timeoutDuration := determineTimeout(task.timeoutKind)
 
 	go func() {
@@ -90,7 +107,7 @@ func (w *worker) executeRequest(task *workerTask) (*ValidationResult, error) {
 			reasonForInvalidity := ExecutionError
 			return &ValidationResult{Invalid: &reasonForInvalidity}, nil //nolint
 		}
-		validationResult = validationResultWErr.result
+		validationResult = validationResultWErr.result.(*parachainruntime.ValidationResult)
 
 	case <-time.After(timeoutDuration):
 		logger.Errorf("validation timed out")

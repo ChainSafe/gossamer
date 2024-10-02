@@ -13,6 +13,7 @@ import (
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
+	statementedistributionmessages "github.com/ChainSafe/gossamer/dot/parachain/statement-distribution/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -34,7 +35,7 @@ func stopOverseerAndWaitForCompletion(overseer *overseer.MockableOverseer) {
 func initBackingAndOverseerMock(t *testing.T) (*backing.CandidateBacking, *overseer.MockableOverseer) {
 	t.Helper()
 
-	overseerMock := overseer.NewMockableOverseer(t)
+	overseerMock := overseer.NewMockableOverseer(t, true)
 
 	backing := backing.New(overseerMock.SubsystemsToOverseer)
 	overseerMock.RegisterSubsystem(backing)
@@ -396,7 +397,7 @@ func TestSecondsValidCandidate(t *testing.T) {
 
 	distribute := func(msg any) bool {
 		// we have seconded a candidate and shared the statement to peers
-		share, ok := msg.(parachaintypes.StatementDistributionMessageShare)
+		share, ok := msg.(statementedistributionmessages.Share)
 		if !ok {
 			return false
 		}
@@ -539,7 +540,7 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	validate := validResponseForValidateFromExhaustive(headData, pvd)
 
 	distribute := func(msg any) bool {
-		_, ok := msg.(parachaintypes.StatementDistributionMessageShare)
+		_, ok := msg.(statementedistributionmessages.Share)
 		return ok
 	}
 
@@ -844,7 +845,7 @@ func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
 
 	distribute := func(msg any) bool {
 		// we have seconded a candidate and shared the statement to peers
-		share, ok := msg.(parachaintypes.StatementDistributionMessageShare)
+		share, ok := msg.(statementedistributionmessages.Share)
 		if !ok {
 			return false
 		}
@@ -996,7 +997,7 @@ func TestNewLeafDoesNotClobberOld(t *testing.T) {
 
 	distribute := func(msg any) bool {
 		// we have seconded a candidate and shared the statement to peers
-		share, ok := msg.(parachaintypes.StatementDistributionMessageShare)
+		share, ok := msg.(statementedistributionmessages.Share)
 		if !ok {
 			return false
 		}
@@ -1137,7 +1138,7 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 	validate := validResponseForValidateFromExhaustive(headData, pvd)
 
 	distribute := func(msg any) bool {
-		_, ok := msg.(parachaintypes.StatementDistributionMessageShare)
+		_, ok := msg.(statementedistributionmessages.Share)
 		return ok
 	}
 

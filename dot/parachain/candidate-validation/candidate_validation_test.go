@@ -14,7 +14,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/klauspost/compress/zstd"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -516,16 +515,12 @@ func Test_precheckPvF(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 	candidate, validationCode := createTestCandidateReceiptAndValidationCodeWParaId(t, 1000)
-	encoder, err := zstd.NewWriter(nil)
-	require.NoError(t, err)
-	compressed := encoder.EncodeAll(validationCode, make([]byte, 0, len(validationCode)))
-	compressedCode := append(zstdPrefix, compressed...)
-	compressedValidationCode := parachaintypes.ValidationCode(compressedCode)
 
 	mockInstance := NewMockInstance(ctrl)
 	mockInstance.EXPECT().ParachainHostValidationCodeByHash(common.Hash(candidate.Descriptor.ValidationCodeHash)).
 		Return(&validationCode, nil)
-	mockInstance.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(1), nil).Times(2)
+	mockInstance.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(1), nil)
+
 	executionParams := parachaintypes.ExecutorParams{}
 	timeout := parachaintypes.PvfPrepTimeout{
 		PvfPrepTimeoutKind: func() parachaintypes.PvfPrepTimeoutKind {
@@ -535,18 +530,14 @@ func Test_precheckPvF(t *testing.T) {
 			}
 			return kind
 		}(),
-		Millisec: 5,
+		Millisec: 1000,
 	}
 	timeoutParam := parachaintypes.NewExecutorParam()
-	err = timeoutParam.SetValue(timeout)
+	err := timeoutParam.SetValue(timeout)
 	require.NoError(t, err)
-
 	executionParams = append(executionParams, timeoutParam)
-
 	mockInstance.EXPECT().ParachainHostSessionExecutorParams(parachaintypes.SessionIndex(1)).Return(&executionParams,
-		nil).Times(2)
-	mockInstance.EXPECT().ParachainHostValidationCodeByHash(common.MustHexToHash("0x05")).Return(
-		&compressedValidationCode, nil)
+		nil)
 
 	mockInstanceExecutorError := NewMockInstance(ctrl)
 	mockInstanceExecutorError.EXPECT().ParachainHostValidationCodeByHash(common.MustHexToHash("0x04")).Return(
@@ -555,19 +546,33 @@ func Test_precheckPvF(t *testing.T) {
 	mockInstanceExecutorError.EXPECT().ParachainHostSessionExecutorParams(parachaintypes.SessionIndex(2)).Return(
 		nil, fmt.Errorf("executor params not found"))
 
+	mockInstanceShortTimeout := NewMockInstance(ctrl)
+	mockInstanceShortTimeout.EXPECT().ParachainHostValidationCodeByHash(common.MustHexToHash("0x0404")).Return(
+		&validationCode, nil)
+	mockInstanceShortTimeout.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(3), nil)
+	executionParamsShortTimeout := parachaintypes.ExecutorParams{}
+	timeoutShort := parachaintypes.PvfPrepTimeout{
+		PvfPrepTimeoutKind: func() parachaintypes.PvfPrepTimeoutKind {
+			kind := parachaintypes.NewPvfPrepTimeoutKind()
+			if err := kind.SetValue(parachaintypes.Precheck{}); err != nil {
+				panic(err)
+			}
+			return kind
+		}(),
+		Millisec: 1,
+	}
+	timeoutShortParam := parachaintypes.NewExecutorParam()
+	err = timeoutShortParam.SetValue(timeoutShort)
+	require.NoError(t, err)
+	executionParamsShortTimeout = append(executionParamsShortTimeout, timeoutShortParam)
+	mockInstanceShortTimeout.EXPECT().ParachainHostSessionExecutorParams(parachaintypes.SessionIndex(3)).Return(
+		&executionParamsShortTimeout, nil)
+
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x01")).Return(nil, fmt.Errorf("runtime not found"))
-	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x02")).Return(mockInstance, nil).Times(2)
+	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x02")).Return(mockInstance, nil)
 	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x03")).Return(mockInstanceExecutorError, nil)
-
-	toSubsystem := make(chan any)
-	candidateValidationSubsystem := CandidateValidation{
-		pvfHost:    newValidationHost(),
-		BlockState: mockBlockState,
-	}
-	defer candidateValidationSubsystem.Stop()
-
-	go candidateValidationSubsystem.Run(context.Background(), toSubsystem)
+	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x04")).Return(mockInstanceShortTimeout, nil)
 
 	tests := map[string]struct {
 		msg            PreCheck
@@ -586,17 +591,17 @@ func Test_precheckPvF(t *testing.T) {
 			},
 			expectedResult: PreCheckOutcomeInvalid,
 		},
+		"precheck_timeout": {
+			msg: PreCheck{
+				RelayParent:        common.MustHexToHash("0x04"),
+				ValidationCodeHash: parachaintypes.ValidationCodeHash(common.MustHexToHash("0x0404")),
+			},
+			expectedResult: PreCheckOutcomeFailed,
+		},
 		"happy_path": {
 			msg: PreCheck{
 				RelayParent:        common.MustHexToHash("0x02"),
 				ValidationCodeHash: candidate.Descriptor.ValidationCodeHash,
-			},
-			expectedResult: PreCheckOutcomeValid,
-		},
-		"happy_path_compressed": {
-			msg: PreCheck{
-				RelayParent:        common.MustHexToHash("0x02"),
-				ValidationCodeHash: parachaintypes.ValidationCodeHash(common.MustHexToHash("0x05")),
 			},
 			expectedResult: PreCheckOutcomeValid,
 		},
@@ -606,6 +611,15 @@ func Test_precheckPvF(t *testing.T) {
 
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+
+			toSubsystem := make(chan any)
+			candidateValidationSubsystem := CandidateValidation{
+				pvfHost:    newValidationHost(),
+				BlockState: mockBlockState,
+			}
+			defer candidateValidationSubsystem.Stop()
+
+			go candidateValidationSubsystem.Run(context.Background(), toSubsystem)
 
 			sender := make(chan PreCheckOutcome)
 			tt.msg.ResponseSender = sender

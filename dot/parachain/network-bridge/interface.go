@@ -30,4 +30,6 @@ type Network interface {
 		maxResponseSize uint64) *network.RequestResponseProtocol
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
 	DisconnectPeer(setID int, p peer.ID)
+	GetNetworkEventsChannel() chan *network.NetworkEventInfo
+	FreeNetworkEventsChannel(ch chan *network.NetworkEventInfo)
 }

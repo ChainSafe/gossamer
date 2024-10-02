@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 
-	"github.com/ChainSafe/gossamer/dot/network"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -184,23 +183,9 @@ func TestHandleCollationMessageCommon(t *testing.T) {
 
 	peerID := peer.ID("testPeerID")
 
-	// fail with wrong message type
-	msg1 := &network.BlockAnnounceMessage{}
-	propagate, err := cpvs.handleCollationMessage(peerID, msg1)
-	require.False(t, propagate)
-	require.ErrorIs(t, err, ErrUnexpectedMessageOnCollationProtocol)
-
-	// fail if we can't cast the message to type `*CollationProtocol`
-	msg2 := collatorprotocolmessages.NewCollationProtocol()
-	propagate, err = cpvs.handleCollationMessage(peerID, msg2)
-	require.False(t, propagate)
-	require.ErrorContains(t, err, "failed to cast into collator protocol message, "+
-		"expected: *CollationProtocol, got: messages.CollationProtocol")
-
 	// fail if no value set in the collator protocol message
-	msg3 := collatorprotocolmessages.NewCollationProtocol()
-	propagate, err = cpvs.handleCollationMessage(peerID, &msg3)
-	require.False(t, propagate)
+	msg := collatorprotocolmessages.NewCollationProtocol()
+	err := cpvs.processCollatorProtocolMessage(peerID, msg)
 	require.ErrorContains(t, err, "getting collator protocol value: unsupported varying data type value")
 }
 
@@ -400,8 +385,7 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 			err = msg.SetValue(vdtChild)
 			require.NoError(t, err)
 
-			propagate, err := cpvs.handleCollationMessage(peerID, &msg)
-			require.False(t, propagate)
+			err := cpvs.processCollatorProtocolMessage(peerID, msg)
 			if c.errString == "" {
 				require.NoError(t, err)
 			} else {
@@ -579,11 +563,10 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 
 			subsystemToOverseer := make(chan any)
 			cpvs := CollatorProtocolValidatorSide{
-				SubSystemToOverseer: subsystemToOverseer,
-				net:                 c.net,
 				perRelayParent:      c.perRelayParent,
 				peerData:            c.peerData,
 				activeLeaves:        c.activeLeaves,
+				SubSystemToOverseer: subsystemToOverseer,
 			}
 
 			// ensure that the expected messages are sent to the overseer
@@ -602,8 +585,7 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			err = msg.SetValue(vdtChild)
 			require.NoError(t, err)
 
-			propagate, err := cpvs.handleCollationMessage(peerID, &msg)
-			require.False(t, propagate)
+			err = cpvs.processCollatorProtocolMessage(peerID, msg)
 			if c.errString == "" {
 				require.NoError(t, err)
 			} else {

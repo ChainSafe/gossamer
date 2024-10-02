@@ -18,6 +18,9 @@ type MockableOverseer struct {
 	SubsystemsToOverseer chan any
 	overseerToSubsystem  chan any
 	subSystem            parachaintypes.Subsystem
+	// run is a flag to control whether the subsystem being tested should run or not
+	// if run is false, we will not call the Run method of the subsystem
+	run bool
 
 	// actionsForExpectedMessages stores overseer messages we receive from the subsystem.
 	// need to return false if the message is unexpected
@@ -29,13 +32,14 @@ type MockableOverseer struct {
 	actionsForExpectedMessages []func(msg any) bool
 }
 
-func NewMockableOverseer(t *testing.T) *MockableOverseer {
+func NewMockableOverseer(t *testing.T, run bool) *MockableOverseer {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &MockableOverseer{
 		t:                          t,
 		ctx:                        ctx,
 		cancel:                     cancel,
+		run:                        run,
 		SubsystemsToOverseer:       make(chan any),
 		actionsForExpectedMessages: []func(msg any) bool{},
 	}
@@ -53,9 +57,11 @@ func (m *MockableOverseer) RegisterSubsystem(subsystem parachaintypes.Subsystem)
 }
 
 func (m *MockableOverseer) Start() error {
-	go func(sub parachaintypes.Subsystem, overseerToSubSystem chan any) {
-		sub.Run(m.ctx, overseerToSubSystem)
-	}(m.subSystem, m.overseerToSubsystem)
+	if m.run {
+		go func(sub parachaintypes.Subsystem, overseerToSubSystem chan any) {
+			sub.Run(m.ctx, overseerToSubSystem)
+		}(m.subSystem, m.overseerToSubsystem)
+	}
 
 	go m.processMessages()
 	return nil

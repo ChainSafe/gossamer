@@ -4,7 +4,6 @@
 package candidatevalidation
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -13,10 +12,8 @@ import (
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
-	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/klauspost/compress/zstd"
 )
 
 // CandidateValidation is a parachain subsystem that validates candidate parachain blocks
@@ -234,6 +231,8 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 	}
 }
 
+// precheckPvF prechecks the parachain validation function by retrieving the validation code from the runtime instance
+// and calling the precheck method on the pvf host. It returns the precheck outcome.
 func (cv *CandidateValidation) precheckPvF(relayParent common.Hash, validationCodeHash parachaintypes.
 	ValidationCodeHash) PreCheckOutcome {
 	runtimeInstance, err := cv.BlockState.GetRuntime(relayParent)
@@ -254,11 +253,6 @@ func (cv *CandidateValidation) precheckPvF(relayParent common.Hash, validationCo
 		return PreCheckOutcomeInvalid
 	}
 
-	codeDecompressed, err := maybeCompressedBlobDecompress(*code, validationprotocol.MaxValidationMessageSize)
-	if err != nil {
-		logger.Errorf("failed to decompress code: %w", err)
-		return PreCheckOutcomeInvalid
-	}
 	kind := parachaintypes.NewPvfPrepTimeoutKind()
 	err = kind.SetValue(parachaintypes.Precheck{})
 	if err != nil {
@@ -269,7 +263,7 @@ func (cv *CandidateValidation) precheckPvF(relayParent common.Hash, validationCo
 	prepTimeout := pvfPrepTimeout(*executorParams, kind)
 
 	pvf := PvFPrepData{
-		code:           codeDecompressed,
+		code:           *code,
 		codeHash:       validationCodeHash,
 		executorParams: *executorParams,
 		prepTimeout:    prepTimeout,
@@ -283,56 +277,33 @@ func (cv *CandidateValidation) precheckPvF(relayParent common.Hash, validationCo
 	return PreCheckOutcomeValid
 }
 
-// An arbitrary prefix, that indicates a blob beginning with should be decompressed with
-// Zstd compression.
-//
-// This differs from the WASM magic bytes, so real WASM blobs will not have this prefix.
-var zstdPrefix = []byte{82, 188, 83, 118, 70, 219, 142, 5}
-
-func maybeCompressedBlobDecompress(blob []byte, bombLimit uint64) ([]byte, error) {
-	// todo handle check for bombLimit
-	if len(blob) < len(zstdPrefix) {
-		return nil, fmt.Errorf("blob is too short")
-	}
-	if bytes.Equal(blob[0:len(zstdPrefix)], zstdPrefix) {
-		decoder, err := zstd.NewReader(nil)
-		if err != nil {
-			return nil, fmt.Errorf("creating zstd decoder: %w", err)
-		}
-		defer decoder.Close()
-		return decoder.DecodeAll(blob[len(zstdPrefix):], nil)
-	} else {
-		return blob, nil
-	}
-}
-
-// To determine the amount of timeout time for the pvf execution.
-//
-// Precheck
+// pvfPrepTimeout To determine the amount of timeout time for the pvf execution.
 //
 //	The time period after which the preparation worker is considered
 //
 // unresponsive and will be killed.
-//
-// Prepare
-// The time period after which the preparation worker is considered
-// unresponsive and will be killed.
 func pvfPrepTimeout(params parachaintypes.ExecutorParams, kind parachaintypes.PvfPrepTimeoutKind) time.Duration {
-	for i, param := range params {
+	for _, param := range params {
 		val, err := param.Value()
 		if err != nil {
-			fmt.Printf("some error %v", err)
+			logger.Errorf("determining parameter values %w", err)
 		}
 		switch val := val.(type) {
 		case parachaintypes.PvfPrepTimeout:
-			// TODO: determine if we need to covert millisec to nano seconds for duration
-			return time.Duration(val.Millisec)
-		default:
-			fmt.Printf("default\n")
+			return time.Duration(val.Millisec * 1000000)
 		}
-		fmt.Printf("i %v, p %v", i, param)
 	}
 
-	// todo: handle case for getting default time from kind
-	return time.Second
+	timeoutKind, err := kind.Value()
+	if err != nil {
+		return time.Second * 2
+	}
+	switch timeoutKind.(type) {
+	case parachaintypes.Precheck:
+		return time.Second * 2
+	case parachaintypes.Lenient:
+		return time.Second * 10
+	default:
+		return time.Second * 2
+	}
 }
