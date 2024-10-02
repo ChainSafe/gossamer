@@ -1,191 +1,358 @@
-// Copyright 2023 ChainSafe Systems (ON)
+// Copyright 2024 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
 package sync
 
 import (
+	"container/list"
+	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"golang.org/x/exp/maps"
 )
+
+const defaultWorkerPoolCapacity = 100
 
 var (
-	ErrNoPeersToMakeRequest = errors.New("no peers to make requests")
-	ErrPeerIgnored          = errors.New("peer ignored")
+	ErrNoPeers     = errors.New("no peers available")
+	ErrPeerIgnored = errors.New("peer ignored")
 )
 
-const (
-	punishmentBaseTimeout      = 5 * time.Minute
-	maxRequestsAllowed    uint = 3
-)
+type TaskID string
+type Result any
 
-type SyncTask struct {
-	requestMaker network.RequestMaker
-	request      messages.P2PMessage
-	response     messages.P2PMessage
+type Task interface {
+	ID() TaskID
+	Do(p peer.ID) (Result, error)
 }
 
-type SyncTaskResult struct {
-	who       peer.ID
-	completed bool
-	request   messages.P2PMessage
-	response  messages.P2PMessage
+type TaskResult struct {
+	Task      Task
+	Completed bool
+	Result    Result
+	Error     error
+	Retries   uint
+	Who       peer.ID
 }
 
-type syncWorkerPool struct {
-	mtx sync.RWMutex
-
-	network     Network
-	workers     map[peer.ID]struct{}
-	ignorePeers map[peer.ID]struct{}
+func (t TaskResult) Failed() bool {
+	return t.Error != nil
 }
 
-func newSyncWorkerPool(net Network) *syncWorkerPool {
-	swp := &syncWorkerPool{
-		network:     net,
-		workers:     make(map[peer.ID]struct{}),
-		ignorePeers: make(map[peer.ID]struct{}),
+type BatchStatus struct {
+	Failed  map[TaskID]TaskResult
+	Success map[TaskID]TaskResult
+}
+
+func (bs BatchStatus) Completed(todo int) bool {
+	if len(bs.Failed)+len(bs.Success) < todo {
+		return false
 	}
 
-	return swp
+	for _, tr := range bs.Failed {
+		if !tr.Completed {
+			return false
+		}
+	}
+
+	for _, tr := range bs.Success {
+		if !tr.Completed {
+			return false
+		}
+	}
+
+	return true
 }
 
-// fromBlockAnnounceHandshake stores the peer which send us a handshake as
-// a possible source for requesting blocks/state/warp proofs
-func (s *syncWorkerPool) fromBlockAnnounceHandshake(who peer.ID) error {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
+type BatchID string
 
-	if _, ok := s.ignorePeers[who]; ok {
+type WorkerPool interface {
+	SubmitBatch(tasks []Task) (id BatchID, err error)
+	GetBatch(id BatchID) (status BatchStatus, ok bool)
+	Results() chan TaskResult
+	AddPeer(p peer.ID) error
+	RemovePeer(p peer.ID)
+	IgnorePeer(p peer.ID)
+	NumPeers() int
+	Shutdown()
+}
+
+type WorkerPoolConfig struct {
+	Capacity   uint
+	MaxRetries uint
+}
+
+// NewWorkerPool creates a new worker pool with the given configuration.
+func NewWorkerPool(cfg WorkerPoolConfig) WorkerPool {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	if cfg.Capacity == 0 {
+		cfg.Capacity = defaultWorkerPoolCapacity
+	}
+
+	return &workerPool{
+		maxRetries:   cfg.MaxRetries,
+		ignoredPeers: make(map[peer.ID]struct{}),
+		statuses:     make(map[BatchID]BatchStatus),
+		resChan:      make(chan TaskResult, cfg.Capacity),
+		ctx:          ctx,
+		cancel:       cancel,
+	}
+}
+
+type workerPool struct {
+	mtx sync.RWMutex
+	wg  sync.WaitGroup
+
+	maxRetries   uint
+	peers        list.List
+	ignoredPeers map[peer.ID]struct{}
+	statuses     map[BatchID]BatchStatus
+	resChan      chan TaskResult
+	ctx          context.Context
+	cancel       context.CancelFunc
+}
+
+// SubmitBatch accepts a list of tasks and immediately returns a batch ID. The batch ID can be used to query the status
+// of the batch using [GetBatchStatus].
+// TODO
+// If tasks are submitted faster than they are completed, resChan will run full, blocking the calling goroutine.
+// Ideally this method would provide backpressure to the caller in that case. The rejected tasks should then stay in
+// FullSyncStrategy.requestQueue until the next round. But this would need to be supported in all sync strategies.
+func (w *workerPool) SubmitBatch(tasks []Task) (id BatchID, err error) {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	bID := BatchID(fmt.Sprintf("%d", time.Now().UnixNano()))
+
+	w.statuses[bID] = BatchStatus{
+		Failed:  make(map[TaskID]TaskResult),
+		Success: make(map[TaskID]TaskResult),
+	}
+
+	w.wg.Add(1)
+	go func() {
+		defer w.wg.Done()
+		w.executeBatch(tasks, bID)
+	}()
+
+	return bID, nil
+}
+
+// GetBatch returns the status of a batch previously submitted using [SubmitBatch].
+func (w *workerPool) GetBatch(id BatchID) (status BatchStatus, ok bool) {
+	w.mtx.RLock()
+	defer w.mtx.RUnlock()
+
+	status, ok = w.statuses[id]
+	return
+}
+
+// Results returns a channel that can be used to receive the results of completed tasks.
+func (w *workerPool) Results() chan TaskResult {
+	return w.resChan
+}
+
+// AddPeer adds a peer to the worker pool unless it has been ignored previously.
+func (w *workerPool) AddPeer(who peer.ID) error {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	if _, ok := w.ignoredPeers[who]; ok {
 		return ErrPeerIgnored
 	}
 
-	_, has := s.workers[who]
-	if has {
-		return nil
+	for e := w.peers.Front(); e != nil; e = e.Next() {
+		if e.Value.(peer.ID) == who {
+			return nil
+		}
 	}
 
-	s.workers[who] = struct{}{}
-	logger.Tracef("potential worker added, total in the pool %d", len(s.workers))
+	w.peers.PushBack(who)
+	logger.Tracef("peer added, total in the pool %d", w.peers.Len())
 	return nil
 }
 
-// submitRequests blocks until all tasks have been completed or there are no workers
-// left in the pool to retry failed tasks
-func (s *syncWorkerPool) submitRequests(tasks []*SyncTask) []*SyncTaskResult {
-	if len(tasks) == 0 {
-		return nil
+// RemovePeer removes a peer from the worker pool.
+func (w *workerPool) RemovePeer(who peer.ID) {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	w.removePeer(who)
+}
+
+// IgnorePeer removes a peer from the worker pool and prevents it from being added again.
+func (w *workerPool) IgnorePeer(who peer.ID) {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	w.removePeer(who)
+	w.ignoredPeers[who] = struct{}{}
+}
+
+// NumPeers returns the number of peers in the worker pool, both busy and free.
+func (w *workerPool) NumPeers() int {
+	w.mtx.RLock()
+	defer w.mtx.RUnlock()
+
+	return w.peers.Len()
+}
+
+// Shutdown stops the worker pool and waits for all tasks to complete.
+func (w *workerPool) Shutdown() {
+	w.cancel()
+	w.wg.Wait()
+}
+
+func (w *workerPool) executeBatch(tasks []Task, bID BatchID) {
+	batchResults := make(chan TaskResult, len(tasks))
+
+	for _, t := range tasks {
+		w.wg.Add(1)
+		go func(t Task) {
+			defer w.wg.Done()
+			w.executeTask(t, batchResults)
+		}(t)
 	}
 
-	s.mtx.RLock()
-	defer s.mtx.RUnlock()
+	for {
+		select {
+		case <-w.ctx.Done():
+			return
 
-	pids := maps.Keys(s.workers)
-	workerPool := make(chan peer.ID, len(pids))
-	for _, worker := range pids {
-		workerPool <- worker
-	}
-
-	failedTasks := make(chan *SyncTask, len(tasks))
-	results := make(chan *SyncTaskResult, len(tasks))
-
-	var wg sync.WaitGroup
-	for _, task := range tasks {
-		wg.Add(1)
-		go func(t *SyncTask) {
-			defer wg.Done()
-			executeTask(t, workerPool, failedTasks, results)
-		}(task)
-	}
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for task := range failedTasks {
-			if len(workerPool) > 0 {
-				wg.Add(1)
-				go func(t *SyncTask) {
-					defer wg.Done()
-					executeTask(t, workerPool, failedTasks, results)
-				}(task)
+		case tr := <-batchResults:
+			if tr.Failed() {
+				w.handleFailedTask(tr, bID, batchResults)
 			} else {
-				results <- &SyncTaskResult{
-					completed: false,
-					request:   task.request,
-					response:  nil,
-				}
+				w.handleSuccessfulTask(tr, bID)
 			}
-		}
-	}()
 
-	allResults := make(chan []*SyncTaskResult, 1)
-	wg.Add(1)
-	go func(expectedResults int) {
-		defer wg.Done()
-		var taskResults []*SyncTaskResult
-
-		for result := range results {
-			taskResults = append(taskResults, result)
-			if len(taskResults) == expectedResults {
-				close(failedTasks)
-				break
+			if w.batchCompleted(bID, len(tasks)) {
+				return
 			}
-		}
-
-		allResults <- taskResults
-	}(len(tasks))
-
-	wg.Wait()
-	close(workerPool)
-	close(results)
-
-	return <-allResults
-}
-
-func executeTask(task *SyncTask, workerPool chan peer.ID, failedTasks chan *SyncTask, results chan *SyncTaskResult) {
-	worker := <-workerPool
-	logger.Infof("[EXECUTING] worker %s", worker)
-
-	err := task.requestMaker.Do(worker, task.request, task.response)
-	if err != nil {
-		logger.Infof("[ERR] worker %s, request: %s, err: %s", worker, task.request.String(), err.Error())
-		failedTasks <- task
-	} else {
-		logger.Infof("[FINISHED] worker %s, request: %s", worker, task.request.String())
-		workerPool <- worker
-		results <- &SyncTaskResult{
-			who:       worker,
-			completed: true,
-			request:   task.request,
-			response:  task.response,
 		}
 	}
 }
 
-func (s *syncWorkerPool) ignorePeerAsWorker(who peer.ID) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
+func (w *workerPool) executeTask(task Task, ch chan TaskResult) {
+	if errors.Is(w.ctx.Err(), context.Canceled) {
+		logger.Tracef("[CANCELED] task=%s, shutting down", task.ID())
+		return
+	}
 
-	delete(s.workers, who)
-	s.ignorePeers[who] = struct{}{}
+	who, err := w.reservePeer()
+	if errors.Is(err, ErrNoPeers) {
+		logger.Tracef("no peers available for task=%s", task.ID())
+		ch <- TaskResult{Task: task, Error: ErrNoPeers}
+		return
+	}
+
+	logger.Infof("[EXECUTING] task=%s", task.ID())
+
+	result, err := task.Do(who)
+	if err != nil {
+		logger.Tracef("[FAILED] task=%s peer=%s, err=%s", task.ID(), who, err.Error())
+	} else {
+		logger.Tracef("[FINISHED] task=%s peer=%s", task.ID(), who)
+	}
+
+	w.mtx.Lock()
+	w.peers.PushBack(who)
+	w.mtx.Unlock()
+
+	ch <- TaskResult{
+		Task:    task,
+		Who:     who,
+		Result:  result,
+		Error:   err,
+		Retries: 0,
+	}
 }
 
-func (s *syncWorkerPool) removeWorker(who peer.ID) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
+func (w *workerPool) reservePeer() (who peer.ID, err error) {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
 
-	delete(s.workers, who)
+	peerElement := w.peers.Front()
+
+	if peerElement == nil {
+		return who, ErrNoPeers
+	}
+
+	w.peers.Remove(peerElement)
+	return peerElement.Value.(peer.ID), nil
 }
 
-// totalWorkers only returns available or busy workers
-func (s *syncWorkerPool) totalWorkers() (total int) {
-	s.mtx.RLock()
-	defer s.mtx.RUnlock()
+func (w *workerPool) removePeer(who peer.ID) {
+	var toRemove *list.Element
+	for e := w.peers.Front(); e != nil; e = e.Next() {
+		if e.Value.(peer.ID) == who {
+			toRemove = e
+			break
+		}
+	}
 
-	return len(s.workers)
+	if toRemove != nil {
+		w.peers.Remove(toRemove)
+	}
+}
+
+func (w *workerPool) handleSuccessfulTask(tr TaskResult, batchID BatchID) {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	tID := tr.Task.ID()
+
+	if failedTr, ok := w.statuses[batchID].Failed[tID]; ok {
+		tr.Retries = failedTr.Retries + 1
+		delete(w.statuses[batchID].Failed, tID)
+	}
+
+	tr.Completed = true
+	w.statuses[batchID].Success[tID] = tr
+	logger.Infof("handleSuccessfulTask(): len(w.resChan)=%d", len(w.resChan)) // TODO: remove
+	w.resChan <- tr
+}
+
+func (w *workerPool) handleFailedTask(tr TaskResult, batchID BatchID, batchResults chan TaskResult) {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	tID := tr.Task.ID()
+
+	if oldTr, ok := w.statuses[batchID].Failed[tID]; ok {
+		// It is only considered a retry if the task was actually executed.
+		if errors.Is(oldTr.Error, ErrNoPeers) {
+			// TODO Should we sleep a bit to wait for peers?
+		} else {
+			tr.Retries = oldTr.Retries + 1
+			tr.Completed = tr.Retries >= w.maxRetries
+		}
+	}
+
+	w.statuses[batchID].Failed[tID] = tr
+
+	if tr.Completed {
+		logger.Infof("handleFailedTask(): len(w.resChan)=%d", len(w.resChan)) // TODO: remove
+		w.resChan <- tr
+		return
+	}
+
+	// retry task
+	w.wg.Add(1)
+	go func() {
+		defer w.wg.Done()
+		w.executeTask(tr.Task, batchResults)
+	}()
+}
+
+func (w *workerPool) batchCompleted(id BatchID, todo int) bool {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	b, ok := w.statuses[id]
+	return !ok || b.Completed(todo)
 }
