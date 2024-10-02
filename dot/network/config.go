@@ -159,7 +159,7 @@ func (c *Config) build() error {
 
 	// set warp sync spam limiter to default
 	if c.warpSyncSpamLimiter == nil {
-		c.warpSyncSpamLimiter = NewSpamLimiter(MaxAllowedRequestsPerPeer, MaxTimeWindow)
+		c.warpSyncSpamLimiter = NewSpamLimiter(MaxAllowedSameRequestPerPeer, MaxTimeWindow)
 	}
 
 	return nil

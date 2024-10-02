@@ -12,7 +12,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-const MaxAllowedRequestsPerPeer = 10
+const MaxAllowedSameRequestPerPeer = 5
 
 // WarpSyncProvider is an interface for generating warp sync proofs
 type WarpSyncProvider interface {
