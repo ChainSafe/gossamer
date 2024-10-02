@@ -230,9 +230,7 @@ func (nbr *NetworkBridgeReceiver) updateOurView() error { //nolint
 
 func (nbr *NetworkBridgeReceiver) handleCollationMessage(
 	sender peer.ID, msg network.NotificationsMessage) (bool, error) {
-
-	// TODO: this notification has to be a WireMessage. Check if it is a WireMessage
-	// TODO: Handle ViewUpdate message. ViewUpdate happens on both protocols.
+	// TODO: Handle ViewUpdate message. ViewUpdate happens on both protocols. #4156 #4155
 
 	// we don't propagate collation messages, so it will always be false
 	propagate := false

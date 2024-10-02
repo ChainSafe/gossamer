@@ -10,14 +10,24 @@ import (
 )
 
 func decodeCollationMessage(in []byte) (network.NotificationsMessage, error) {
-	// TODO : Decode a wire message instead #4108
-	collationMessage := collatorprotocolmessages.CollationProtocol{}
-
-	err := scale.Unmarshal(in, &collationMessage)
+	wireMessage := WireMessage{}
+	err := wireMessage.SetValue(collatorprotocolmessages.CollationProtocol{})
 	if err != nil {
-		return nil, fmt.Errorf("cannot decode message: %w", err)
+		return nil, fmt.Errorf("setting collation protocol message: %w", err)
+	}
+	err = scale.Unmarshal(in, &wireMessage)
+	if err != nil {
+		return nil, fmt.Errorf("decoding message: %w", err)
 	}
 
+	collationMessageV, err := wireMessage.Value()
+	if err != nil {
+		return nil, fmt.Errorf("getting collation protocol message value: %w", err)
+	}
+	collationMessage, ok := collationMessageV.(collatorprotocolmessages.CollationProtocol)
+	if !ok {
+		return nil, fmt.Errorf("casting to collation protocol message")
+	}
 	return &collationMessage, nil
 }
 
