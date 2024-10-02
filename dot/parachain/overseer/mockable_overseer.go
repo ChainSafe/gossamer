@@ -18,7 +18,9 @@ type MockableOverseer struct {
 	SubsystemsToOverseer chan any
 	overseerToSubsystem  chan any
 	subSystem            parachaintypes.Subsystem
-	run                  bool
+	// run is a flag to control whether the subsystem being tested should run or not
+	// if run is false, we will not call the Run method of the subsystem
+	run bool
 
 	// actionsForExpectedMessages stores overseer messages we receive from the subsystem.
 	// need to return false if the message is unexpected
