@@ -71,7 +71,7 @@ func TestHandleWarpSyncRequestOk(t *testing.T) {
 
 	ctrl := gomock.NewController(t)
 	warpSyncProvider := NewMockWarpSyncProvider(ctrl)
-	warpSyncProvider.EXPECT().generate(common.EmptyHash).Return(expectedProof, nil).Times(1)
+	warpSyncProvider.EXPECT().Generate(common.EmptyHash).Return(expectedProof, nil).Times(1)
 
 	// Initiate service using the warp sync provider mock
 	srvc := createServiceWithWarpSyncHelper(t, warpSyncProvider)
@@ -94,7 +94,7 @@ func TestHandleWarpSyncRequestError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 
 	warpSyncProvider := NewMockWarpSyncProvider(ctrl)
-	warpSyncProvider.EXPECT().generate(common.EmptyHash).Return(nil, expectedError).Times(1)
+	warpSyncProvider.EXPECT().Generate(common.EmptyHash).Return(nil, expectedError).Times(1)
 
 	// Initiate service using the warp sync provider mock
 	srvc := createServiceWithWarpSyncHelper(t, warpSyncProvider)

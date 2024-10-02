@@ -16,12 +16,12 @@ import (
 type WarpSyncProvider interface {
 	// Generate proof starting at given block hash. The proof is accumulated until maximum proof
 	// size is reached.
-	generate(start common.Hash) (encodedProof []byte, err error)
+	Generate(start common.Hash) (encodedProof []byte, err error)
 }
 
 func (s *Service) handleWarpSyncRequest(req messages.WarpProofRequest) ([]byte, error) {
 	// use the backend to generate the warp proof
-	proof, err := s.warpSyncProvider.generate(req.Begin)
+	proof, err := s.warpSyncProvider.Generate(req.Begin)
 	if err != nil {
 		return nil, err
 	}
