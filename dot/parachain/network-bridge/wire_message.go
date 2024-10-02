@@ -13,6 +13,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	events "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 )
 
@@ -95,18 +96,9 @@ func (w WireMessage) Encode() ([]byte, error) {
 	return enc, nil
 }
 
-type ViewUpdate View
+type ViewUpdate events.View
 
-// View is a succinct representation of a peer's view. This consists of a bounded amount of chain heads
-// and the highest known finalized block number.
-//
-// Up to `N` (5?) chain heads.
-type View struct {
-	// a bounded amount of chain heads
-	heads []common.Hash
-	// the highest known finalized number
-	finalizedNumber uint32
-}
+type View events.View
 
 type SortableHeads []common.Hash
 
@@ -124,13 +116,13 @@ func (s SortableHeads) Swap(i, j int) {
 
 // checkHeadsEqual checks if the heads of the view are equal to the heads of the other view.
 func (v View) checkHeadsEqual(other View) bool {
-	if len(v.heads) != len(other.heads) {
+	if len(v.Heads) != len(other.Heads) {
 		return false
 	}
 
-	localHeads := v.heads
+	localHeads := v.Heads
 	sort.Sort(SortableHeads(localHeads))
-	otherHeads := other.heads
+	otherHeads := other.Heads
 	sort.Sort(SortableHeads(otherHeads))
 
 	return reflect.DeepEqual(localHeads, otherHeads)

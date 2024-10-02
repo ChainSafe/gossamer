@@ -184,8 +184,8 @@ func TestHandleCollationMessageCommon(t *testing.T) {
 	peerID := peer.ID("testPeerID")
 
 	// fail if no value set in the collator protocol message
-	msg3 := collatorprotocolmessages.NewCollationProtocol()
-	err := cpvs.processCollatorProtocolMessage(peerID, msg3)
+	msg := collatorprotocolmessages.NewCollationProtocol()
+	err := cpvs.processCollatorProtocolMessage(peerID, msg)
 	require.ErrorContains(t, err, "getting collator protocol value: unsupported varying data type value")
 }
 
