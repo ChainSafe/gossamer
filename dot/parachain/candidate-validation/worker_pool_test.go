@@ -3,6 +3,7 @@ package candidatevalidation
 import (
 	"os"
 	"testing"
+	"time"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestValidationWorkerPool_newValidationWorker(t *testing.T) {
 		"add_one_invalid_worker": {
 			setupWorkerPool: func(t *testing.T) *workerPool {
 				pool := newWorkerPool()
-				err := pool.addNewWorker(parachaintypes.ValidationCode{1, 2, 3, 4})
+				err := pool.addNewWorker(parachaintypes.ValidationCode{1, 2, 3, 4}, time.Second)
 				require.Error(t, err)
 				return pool
 			},
@@ -39,7 +40,7 @@ func TestValidationWorkerPool_newValidationWorker(t *testing.T) {
 		"add_one_valid_worker": {
 			setupWorkerPool: func(t *testing.T) *workerPool {
 				pool := newWorkerPool()
-				err := pool.addNewWorker(testValidationCode)
+				err := pool.addNewWorker(testValidationCode, time.Second)
 				require.NoError(t, err)
 				return pool
 			},

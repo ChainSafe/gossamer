@@ -319,21 +319,27 @@ func maybeCompressedBlobDecompress(blob []byte, bombLimit uint64) ([]byte, error
 // The time period after which the preparation worker is considered
 // unresponsive and will be killed.
 func pvfPrepTimeout(params parachaintypes.ExecutorParams, kind parachaintypes.PvfPrepTimeoutKind) time.Duration {
-	for i, param := range params {
+	for _, param := range params {
 		val, err := param.Value()
 		if err != nil {
-			fmt.Printf("some error %v", err)
+			logger.Errorf("determining parameter values %w", err)
 		}
 		switch val := val.(type) {
 		case parachaintypes.PvfPrepTimeout:
-			// TODO: determine if we need to covert millisec to nano seconds for duration
-			return time.Duration(val.Millisec)
-		default:
-			fmt.Printf("default\n")
+			return time.Duration(val.Millisec * 1000000)
 		}
-		fmt.Printf("i %v, p %v", i, param)
 	}
 
-	// todo: handle case for getting default time from kind
-	return time.Second
+	timeoutKind, err := kind.Value()
+	if err != nil {
+		return time.Second * 2
+	}
+	switch timeoutKind.(type) {
+	case parachaintypes.Precheck:
+		return time.Second * 2
+	case parachaintypes.Lenient:
+		return time.Second * 10
+	default:
+		return time.Second * 2
+	}
 }

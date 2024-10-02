@@ -526,6 +526,7 @@ func Test_precheckPvF(t *testing.T) {
 	mockInstance.EXPECT().ParachainHostValidationCodeByHash(common.Hash(candidate.Descriptor.ValidationCodeHash)).
 		Return(&validationCode, nil)
 	mockInstance.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(1), nil).Times(2)
+
 	executionParams := parachaintypes.ExecutorParams{}
 	timeout := parachaintypes.PvfPrepTimeout{
 		PvfPrepTimeoutKind: func() parachaintypes.PvfPrepTimeoutKind {
@@ -535,16 +536,15 @@ func Test_precheckPvF(t *testing.T) {
 			}
 			return kind
 		}(),
-		Millisec: 5,
+		Millisec: 1000,
 	}
 	timeoutParam := parachaintypes.NewExecutorParam()
 	err = timeoutParam.SetValue(timeout)
 	require.NoError(t, err)
-
 	executionParams = append(executionParams, timeoutParam)
-
 	mockInstance.EXPECT().ParachainHostSessionExecutorParams(parachaintypes.SessionIndex(1)).Return(&executionParams,
 		nil).Times(2)
+
 	mockInstance.EXPECT().ParachainHostValidationCodeByHash(common.MustHexToHash("0x05")).Return(
 		&compressedValidationCode, nil)
 
@@ -555,19 +555,33 @@ func Test_precheckPvF(t *testing.T) {
 	mockInstanceExecutorError.EXPECT().ParachainHostSessionExecutorParams(parachaintypes.SessionIndex(2)).Return(
 		nil, fmt.Errorf("executor params not found"))
 
+	mockInstanceShortTimeout := NewMockInstance(ctrl)
+	mockInstanceShortTimeout.EXPECT().ParachainHostValidationCodeByHash(common.MustHexToHash("0x0404")).Return(
+		&validationCode, nil)
+	mockInstanceShortTimeout.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(3), nil)
+	executionParamsShortTimeout := parachaintypes.ExecutorParams{}
+	timeoutShort := parachaintypes.PvfPrepTimeout{
+		PvfPrepTimeoutKind: func() parachaintypes.PvfPrepTimeoutKind {
+			kind := parachaintypes.NewPvfPrepTimeoutKind()
+			if err := kind.SetValue(parachaintypes.Precheck{}); err != nil {
+				panic(err)
+			}
+			return kind
+		}(),
+		Millisec: 1,
+	}
+	timeoutShortParam := parachaintypes.NewExecutorParam()
+	err = timeoutShortParam.SetValue(timeoutShort)
+	require.NoError(t, err)
+	executionParamsShortTimeout = append(executionParamsShortTimeout, timeoutShortParam)
+	mockInstanceShortTimeout.EXPECT().ParachainHostSessionExecutorParams(parachaintypes.SessionIndex(3)).Return(
+		&executionParamsShortTimeout, nil)
+
 	mockBlockState := NewMockBlockState(ctrl)
 	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x01")).Return(nil, fmt.Errorf("runtime not found"))
 	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x02")).Return(mockInstance, nil).Times(2)
 	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x03")).Return(mockInstanceExecutorError, nil)
-
-	toSubsystem := make(chan any)
-	candidateValidationSubsystem := CandidateValidation{
-		pvfHost:    newValidationHost(),
-		BlockState: mockBlockState,
-	}
-	defer candidateValidationSubsystem.Stop()
-
-	go candidateValidationSubsystem.Run(context.Background(), toSubsystem)
+	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x04")).Return(mockInstanceShortTimeout, nil)
 
 	tests := map[string]struct {
 		msg            PreCheck
@@ -585,6 +599,13 @@ func Test_precheckPvF(t *testing.T) {
 				ValidationCodeHash: parachaintypes.ValidationCodeHash(common.MustHexToHash("0x04")),
 			},
 			expectedResult: PreCheckOutcomeInvalid,
+		},
+		"precheck_timeout": {
+			msg: PreCheck{
+				RelayParent:        common.MustHexToHash("0x04"),
+				ValidationCodeHash: parachaintypes.ValidationCodeHash(common.MustHexToHash("0x0404")),
+			},
+			expectedResult: PreCheckOutcomeFailed,
 		},
 		"happy_path": {
 			msg: PreCheck{
@@ -606,6 +627,15 @@ func Test_precheckPvF(t *testing.T) {
 
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
+
+			toSubsystem := make(chan any)
+			candidateValidationSubsystem := CandidateValidation{
+				pvfHost:    newValidationHost(),
+				BlockState: mockBlockState,
+			}
+			defer candidateValidationSubsystem.Stop()
+
+			go candidateValidationSubsystem.Run(context.Background(), toSubsystem)
 
 			sender := make(chan PreCheckOutcome)
 			tt.msg.ResponseSender = sender

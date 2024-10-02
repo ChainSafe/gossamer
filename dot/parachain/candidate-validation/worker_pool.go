@@ -120,23 +120,21 @@ func newWorkerPool() *workerPool {
 	}
 }
 
-func (v *workerPool) addNewWorker(validationCode parachaintypes.ValidationCode) error {
+func (v *workerPool) addNewWorker(validationCode parachaintypes.ValidationCode, setupTimeout time.Duration) error {
 	workerID := validationCode.Hash()
 	if !v.containsWorker(workerID) {
-		worker, err := newWorker(validationCode)
+		worker, err := newWorker(validationCode, setupTimeout)
 		if err != nil {
 			return fmt.Errorf("failed to create a new worker: %w", err)
 		}
-
 		v.workers[workerID] = worker
-
 	}
 	return nil
 }
 
 func (v *workerPool) handlePrecheckPvF(data PvFPrepData) error {
 	if !v.containsWorker(data.codeHash) {
-		err := v.addNewWorker(data.code)
+		err := v.addNewWorker(data.code, data.prepTimeout)
 		if err != nil {
 			return err
 		}
@@ -152,7 +150,7 @@ func (v *workerPool) executeRequest(msg *ValidationTask) (*ValidationResult, err
 
 	// create worker if not in pool
 	if !v.containsWorker(validationCodeHash) {
-		err := v.addNewWorker(*msg.ValidationCode)
+		err := v.addNewWorker(*msg.ValidationCode, determineTimeout(msg.PvfExecTimeoutKind))
 		if err != nil {
 			return nil, err
 		}
