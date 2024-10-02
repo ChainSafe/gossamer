@@ -18,6 +18,7 @@ import (
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
+	statementedistributionmessages "github.com/ChainSafe/gossamer/dot/parachain/statement-distribution/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -157,6 +158,9 @@ func (o *OverseerSystem) processMessages() {
 				availability_store.StoreAvailableData:
 
 				subsystem = o.nameToSubsystem[parachaintypes.AvailabilityStore]
+
+			case statementedistributionmessages.Share, statementedistributionmessages.Backed:
+				subsystem = o.nameToSubsystem[parachaintypes.StatementDistribution]
 
 			case chainapi.ChainAPIMessage[util.Ancestors], chainapi.ChainAPIMessage[chainapi.BlockHeader]:
 				subsystem = o.nameToSubsystem[parachaintypes.ChainAPI]
