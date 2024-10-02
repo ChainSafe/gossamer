@@ -1138,7 +1138,7 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 	validate := validResponseForValidateFromExhaustive(headData, pvd)
 
 	distribute := func(msg any) bool {
-		_, ok := msg.(parachaintypes.StatementDistributionMessageShare)
+		_, ok := msg.(statementedistributionmessages.Share)
 		return ok
 	}
 
