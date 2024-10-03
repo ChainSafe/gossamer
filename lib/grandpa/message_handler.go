@@ -86,16 +86,8 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 }
 
 func (h *MessageHandler) handleNeighbourMessage(packet *NeighbourPacketV1, from peer.ID) error {
-	// TODO(#2931)
-	// This should be the receiver side of the handling messages, NOT GOSSIP
-	if h.grandpa.state.round < packet.Round {
-		err := h.grandpa.catchUp.tryCatchUp(1, packet.SetID, from)
-		if err != nil {
-			return err
-		}
-	}
-
-	// TODO handle in normal case?
+	// TODO figure out if i need to do anything more than this, i suspect no
+	h.grandpa.neighborTracker.UpdatePeer(from, packet.SetID, packet.Round)
 	return nil
 }
 
