@@ -19,6 +19,7 @@ const (
 	ChainAPI              SubSystemName = "ChainAPI"
 	CandidateValidation   SubSystemName = "CandidateValidation"
 	Provisioner           SubSystemName = "Provisioner"
+	StatementDistribution SubSystemName = "StatementDistribution"
 )
 
 var SubsystemRequestTimeout = 1 * time.Second

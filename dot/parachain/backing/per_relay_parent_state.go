@@ -12,6 +12,7 @@ import (
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
+	statementedistributionmessages "github.com/ChainSafe/gossamer/dot/parachain/statement-distribution/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
@@ -173,7 +174,7 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		}
 
 		// Notify statement distribution of backed candidate.
-		subSystemToOverseer <- parachaintypes.StatementDistributionMessageBacked(candidateHash)
+		subSystemToOverseer <- statementedistributionmessages.Backed(candidateHash)
 
 	} else {
 		// TODO: figure out what this comment means by 'avoid cycles'.
@@ -341,8 +342,8 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 			bgValidationResult = backgroundValidationResult{
 				outputs: &backgroundValidationOutputs{
 					candidateReceipt:        candidateReceipt,
-					candidateCommitments:    validationResultRes.Data.ValidResult.CandidateCommitments,
-					persistedValidationData: validationResultRes.Data.ValidResult.PersistedValidationData,
+					candidateCommitments:    validationResultRes.Data.Valid.CandidateCommitments,
+					persistedValidationData: validationResultRes.Data.Valid.PersistedValidationData,
 				},
 				candidate: nil,
 				err:       nil,
@@ -359,11 +360,11 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		}
 
 	} else { // Invalid
-		logger.Error(validationResultRes.Data.InvalidResult.Error())
+		logger.Error(validationResultRes.Data.Invalid.Error())
 		bgValidationResult = backgroundValidationResult{
 			outputs:   nil,
 			candidate: &candidateReceipt,
-			err:       fmt.Errorf(validationResultRes.Data.InvalidResult.Error()),
+			err:       fmt.Errorf(validationResultRes.Data.Invalid.Error()),
 		}
 	}
 

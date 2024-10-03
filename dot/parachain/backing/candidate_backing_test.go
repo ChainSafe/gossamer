@@ -12,6 +12,7 @@ import (
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
+	statementdistributionmessages "github.com/ChainSafe/gossamer/dot/parachain/statement-distribution/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -84,7 +85,7 @@ func mockOverseer(t *testing.T, subsystemToOverseer chan any) {
 			provisionermessages.ProvisionableData,
 			parachaintypes.ProspectiveParachainsMessageCandidateBacked,
 			collatorprotocolmessages.Backed,
-			parachaintypes.StatementDistributionMessageBacked:
+			statementdistributionmessages.Backed:
 			continue
 		default:
 			t.Errorf("unknown type: %T\n", data)
@@ -732,7 +733,7 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 						ci := candidatevalidation.ExecutionError
 						data.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
 							Data: candidatevalidation.ValidationResult{
-								InvalidResult: &ci,
+								Invalid: &ci,
 							},
 						}
 					default:
@@ -769,7 +770,7 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 					case candidatevalidation.ValidateFromExhaustive:
 						data.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
 							Data: candidatevalidation.ValidationResult{
-								ValidResult: &candidatevalidation.ValidValidationResult{},
+								Valid: &candidatevalidation.Valid{},
 							},
 						}
 					case availabilitystore.StoreAvailableData:

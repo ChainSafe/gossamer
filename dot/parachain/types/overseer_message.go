@@ -16,20 +16,31 @@ type OverseerFuncRes[T any] struct {
 	Data T
 }
 
-// StatementDistributionMessageBacked is a statement distribution message.
-// it represents a message indicating that a candidate has received sufficient
-// validity votes from the backing group. If backed as a result of a local statement,
-// it must be preceded by a `Share` message for that statement to ensure awareness of
-// full candidates before the `Backed` notification, even in groups of size 1.
-type StatementDistributionMessageBacked CandidateHash
-
-// StatementDistributionMessageShare is a statement distribution message.
-// It is a signed statement in the context of
-// given relay-parent hash and it should be distributed to other validators.
-type StatementDistributionMessageShare struct {
-	RelayParent                common.Hash
-	SignedFullStatementWithPVD SignedFullStatementWithPVD
+// ProvisionerMessageProvisionableData is a provisioner message.
+// This data should become part of a relay chain block.
+type ProvisionerMessageProvisionableData struct {
+	RelayParent       common.Hash
+	ProvisionableData ProvisionableData
 }
+
+// ProvisionableData becomes intrinsics or extrinsics which should be included in a future relay chain block.
+type ProvisionableData interface {
+	IsProvisionableData()
+}
+
+// ProvisionableDataBackedCandidate is a provisionable data.
+// The Candidate Backing subsystem believes that this candidate is valid, pending availability.
+type ProvisionableDataBackedCandidate CandidateReceipt
+
+func (ProvisionableDataBackedCandidate) IsProvisionableData() {}
+
+// ProvisionableDataMisbehaviorReport represents self-contained proofs of validator misbehaviour.
+type ProvisionableDataMisbehaviorReport struct {
+	ValidatorIndex ValidatorIndex
+	Misbehaviour   Misbehaviour
+}
+
+func (ProvisionableDataMisbehaviorReport) IsProvisionableData() {}
 
 // ProspectiveParachainsMessageGetTreeMembership is a prospective parachains message.
 // It is intended for retrieving the membership of a candidate in all fragment trees
