@@ -8,14 +8,14 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
-func (t *TrieDB) GetChild(keyToChild []byte) (trie.Trie, error) {
+func (t *TrieDB[H, Hasher]) GetChild(keyToChild []byte) (trie.Trie, error) {
 	panic("not implemented yet")
 }
 
-func (t *TrieDB) GetFromChild(keyToChild, key []byte) ([]byte, error) {
+func (t *TrieDB[H, Hasher]) GetFromChild(keyToChild, key []byte) ([]byte, error) {
 	panic("not implemented yet")
 }
 
-func (t *TrieDB) GetChildTries() map[common.Hash]trie.Trie {
+func (t *TrieDB[H, Hasher]) GetChildTries() map[common.Hash]trie.Trie {
 	panic("not implemented yet")
 }

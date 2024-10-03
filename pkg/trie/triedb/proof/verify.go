@@ -8,12 +8,11 @@ import (
 	"errors"
 	"fmt"
 
-	nibbles "github.com/ChainSafe/gossamer/pkg/trie/codec"
-
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/hash"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibbles"
 	"github.com/gammazero/deque"
 	"golang.org/x/exp/slices"
 )
@@ -29,7 +28,7 @@ type verifyProofStep interface {
 
 type (
 	verifyProofStepDescend struct {
-		childPrefix []byte
+		childPrefix nibbles.LeftNibbles
 	}
 	verifyProofStepUnwindStackStep struct{}
 )
@@ -37,29 +36,30 @@ type (
 func (verifyProofStepDescend) isProofStep()         {}
 func (verifyProofStepUnwindStackStep) isProofStep() {}
 
-type verifyProofStackEntry struct {
+type verifyProofStackEntry[H hash.Hash, Hasher hash.Hasher[H]] struct {
 	trieVersion   trie.TrieLayout
-	prefix        []byte
+	prefix        nibbles.LeftNibbles
 	node          codec.EncodedNode
 	value         codec.EncodedValue
 	isInline      bool
 	childIndex    int
 	children      [codec.ChildrenCapacity]triedb.ChildReference
-	nextValueHash common.Hash
+	nextValueHash H
+	emptyHash     H
 }
 
-func newVerifyProofStackEntry(
+func newVerifyProofStackEntry[H hash.Hash, Hasher hash.Hasher[H]](
 	trieVersion trie.TrieLayout,
 	nodeData []byte,
-	prefix []byte,
+	prefix nibbles.LeftNibbles,
 	isInline bool,
-) (*verifyProofStackEntry, error) {
-	node, err := codec.Decode(bytes.NewReader(nodeData))
+) (*verifyProofStackEntry[H, Hasher], error) {
+	node, err := codec.Decode[H](bytes.NewReader(nodeData))
 	if err != nil {
 		return nil, err
 	}
 
-	return &verifyProofStackEntry{
+	return &verifyProofStackEntry[H, Hasher]{
 		trieVersion:   trieVersion,
 		node:          node,
 		value:         node.GetValue(),
@@ -67,24 +67,25 @@ func newVerifyProofStackEntry(
 		isInline:      isInline,
 		childIndex:    0,
 		children:      [codec.ChildrenCapacity]triedb.ChildReference{},
-		nextValueHash: common.EmptyHash,
+		nextValueHash: (*new(Hasher)).Hash([]byte{0}),
+		emptyHash:     (*new(Hasher)).Hash([]byte{0}),
 	}, nil
 }
 
-func (e *verifyProofStackEntry) getValue() codec.EncodedValue {
-	if e.nextValueHash != common.EmptyHash {
-		return codec.HashedValue(e.nextValueHash)
+func (e *verifyProofStackEntry[H, Hasher]) getValue() codec.EncodedValue {
+	if e.nextValueHash != e.emptyHash {
+		return codec.HashedValue[H]{Hash: e.nextValueHash}
 	}
 	return e.value
 }
 
-func (e *verifyProofStackEntry) encodeNode() ([]byte, error) {
+func (e *verifyProofStackEntry[H, Hasher]) encodeNode() ([]byte, error) {
 	switch n := e.node.(type) {
 	case codec.Empty:
 		return []byte{triedb.EmptyTrieBytes}, nil
 	case codec.Leaf:
 		encodingBuffer := bytes.NewBuffer(nil)
-		err := triedb.NewEncodedLeaf(e.node.GetPartialKey(), e.getValue(), encodingBuffer)
+		err := triedb.NewEncodedLeaf(n.PartialKey.Right(), n.PartialKey.Len(), e.getValue(), encodingBuffer)
 		if err != nil {
 			return nil, err
 		}
@@ -100,15 +101,15 @@ func (e *verifyProofStackEntry) encodeNode() ([]byte, error) {
 				switch c := child.(type) {
 				case codec.InlineNode:
 					children[childIndex] = triedb.InlineChildReference(c)
-				case codec.HashedNode:
-					children[childIndex] = triedb.HashChildReference(common.Hash(c))
+				case codec.HashedNode[H]:
+					children[childIndex] = triedb.HashChildReference[H](c)
 				}
 			}
 			childIndex++
 		}
 
 		encodingBuffer := bytes.NewBuffer(nil)
-		err := triedb.NewEncodedBranch(e.node.GetPartialKey(), children, e.getValue(), encodingBuffer)
+		err := triedb.NewEncodedBranch(n.PartialKey.Right(), n.PartialKey.Len(), children, e.getValue(), encodingBuffer)
 		if err != nil {
 			return nil, err
 		}
@@ -118,17 +119,18 @@ func (e *verifyProofStackEntry) encodeNode() ([]byte, error) {
 	}
 }
 
-func (e *verifyProofStackEntry) advanceItem(itemsIter *Iterator[proofItem]) (verifyProofStep, error) {
+func (e *verifyProofStackEntry[H, Hasher]) advanceItem(itemsIter *Iterator[proofItem]) (verifyProofStep, error) {
 	for {
 		item := itemsIter.Peek()
 		if item == nil {
 			return verifyProofStepUnwindStackStep{}, nil
 		}
 
-		keyNibbles := nibbles.KeyLEToNibbles(item.key)
+		// keyNibbles := nibbles.KeyLEToNibbles(item.key)
+		keyNibbles := nibbles.NewLeftNibbles(item.key)
 		value := item.value
-		if bytes.HasPrefix(keyNibbles, e.prefix) {
-			valueMatch := matchKeyToNode(keyNibbles, len(e.prefix), e.node)
+		if keyNibbles.StartsWith(e.prefix) {
+			valueMatch := matchKeyToNode[H](keyNibbles, e.prefix.Len(), e.node)
 			switch m := valueMatch.(type) {
 			case matchesLeaf:
 				if value != nil {
@@ -159,24 +161,24 @@ func (e *verifyProofStackEntry) advanceItem(itemsIter *Iterator[proofItem]) (ver
 	}
 }
 
-func (e *verifyProofStackEntry) advanceChildIndex(
-	childPrefix []byte,
+func (e *verifyProofStackEntry[H, Hasher]) advanceChildIndex(
+	childPrefix nibbles.LeftNibbles,
 	proofIter *Iterator[[]byte],
-) (*verifyProofStackEntry, error) {
+) (*verifyProofStackEntry[H, Hasher], error) {
 	switch n := e.node.(type) {
 	case codec.Branch:
-		if len(childPrefix) <= 0 {
+		if childPrefix.Len() <= 0 {
 			panic("child prefix should be greater than 0")
 		}
-		childIndex := childPrefix[len(childPrefix)-1]
+		childIndex := *childPrefix.At(childPrefix.Len() - 1)
 		for e.childIndex < int(childIndex) {
 			child := n.Children[e.childIndex]
 			if child != nil {
 				switch c := child.(type) {
 				case codec.InlineNode:
 					e.children[e.childIndex] = triedb.InlineChildReference(c)
-				case codec.HashedNode:
-					e.children[e.childIndex] = triedb.HashChildReference(common.Hash(c))
+				case codec.HashedNode[H]:
+					e.children[e.childIndex] = triedb.HashChildReference[H](c)
 				}
 			}
 			e.childIndex++
@@ -188,11 +190,11 @@ func (e *verifyProofStackEntry) advanceChildIndex(
 	}
 }
 
-func (e *verifyProofStackEntry) makeChildEntry(
+func (e *verifyProofStackEntry[H, Hasher]) makeChildEntry(
 	proofIter *Iterator[[]byte],
 	child codec.MerkleValue,
-	childPrefix []byte,
-) (*verifyProofStackEntry, error) {
+	childPrefix nibbles.LeftNibbles,
+) (*verifyProofStackEntry[H, Hasher], error) {
 	switch c := child.(type) {
 	case codec.InlineNode:
 		if len(c) == 0 {
@@ -200,24 +202,25 @@ func (e *verifyProofStackEntry) makeChildEntry(
 			if nodeData == nil {
 				return nil, ErrIncompleteProof
 			}
-			return newVerifyProofStackEntry(e.trieVersion, *nodeData, childPrefix, false)
+			return newVerifyProofStackEntry[H, Hasher](e.trieVersion, *nodeData, childPrefix, false)
 		}
-		return newVerifyProofStackEntry(e.trieVersion, c, childPrefix, true)
-	case codec.HashedNode:
-		if len(c) != common.HashLength {
-			return nil, fmt.Errorf("invalid hash length: %x", c)
+		return newVerifyProofStackEntry[H, Hasher](e.trieVersion, c, childPrefix, true)
+	case codec.HashedNode[H]:
+		if len(c.Hash.Bytes()) != (*new(H)).Length() {
+			return nil, fmt.Errorf("invalid hash length: %x", c.Hash.Bytes())
 		}
-		return nil, fmt.Errorf("extraneous hash reference: %x", c)
+		return nil, fmt.Errorf("extraneous hash reference: %x", c.Hash.Bytes())
 	default:
 		panic("unreachable")
 	}
 }
 
-func (e *verifyProofStackEntry) setValue(value []byte) {
+func (e *verifyProofStackEntry[H, Hasher]) setValue(value []byte) {
 	if len(value) <= e.trieVersion.MaxInlineValue() {
 		e.value = codec.InlineValue(value)
 	} else {
-		hashedValue := common.MustBlake2bHash(value)
+		// hashedValue := common.MustBlake2bHash(value).ToBytes()
+		hashedValue := (*(new(Hasher))).Hash(value)
 		e.nextValueHash = hashedValue
 		e.value = nil
 	}
@@ -238,7 +241,7 @@ type (
 	notOmitted struct{}
 	// The key may match below a child of this node. Parameter is the prefix of the child node.
 	isChild struct {
-		childPrefix []byte
+		childPrefix nibbles.LeftNibbles
 	}
 )
 
@@ -248,14 +251,15 @@ func (notFound) isValueMatch()      {}
 func (notOmitted) isValueMatch()    {}
 func (isChild) isValueMatch()       {}
 
-func matchKeyToNode(keyNibbles []byte, prefixLen int, node codec.EncodedNode) valueMatch {
+func matchKeyToNode[H hash.Hash](keyNibbles nibbles.LeftNibbles, prefixLen uint, node codec.EncodedNode) valueMatch {
 	switch n := node.(type) {
 	case codec.Empty:
 		return notFound{}
 	case codec.Leaf:
-		if bytes.Contains(keyNibbles, n.PartialKey) && len(keyNibbles) == prefixLen+len(n.PartialKey) {
+		if keyNibbles.Contains(n.PartialKey, prefixLen) && keyNibbles.Len() == prefixLen+n.PartialKey.Len() {
+			// if bytes.Contains(keyNibbles.Data(), n.PartialKey.Data()) && len(keyNibbles) == prefixLen+len(n.PartialKey) {
 			switch v := n.Value.(type) {
-			case codec.HashedValue:
+			case codec.HashedValue[H]:
 				return notOmitted{}
 			case codec.InlineValue:
 				if len(v) == 0 {
@@ -266,8 +270,8 @@ func matchKeyToNode(keyNibbles []byte, prefixLen int, node codec.EncodedNode) va
 		}
 		return notFound{}
 	case codec.Branch:
-		if bytes.Contains(keyNibbles, n.PartialKey) {
-			return matchKeyToBranchNode(keyNibbles, prefixLen+len(n.PartialKey), n.Children, n.Value)
+		if keyNibbles.Contains(n.PartialKey, prefixLen) {
+			return matchKeyToBranchNode(keyNibbles, prefixLen+n.PartialKey.Len(), n.Children, n.Value)
 		} else {
 			return notFound{}
 		}
@@ -277,20 +281,20 @@ func matchKeyToNode(keyNibbles []byte, prefixLen int, node codec.EncodedNode) va
 }
 
 func matchKeyToBranchNode(
-	key []byte,
-	prefixPlusPartialLen int,
+	key nibbles.LeftNibbles,
+	prefixPlusPartialLen uint,
 	children [codec.ChildrenCapacity]codec.MerkleValue,
 	value codec.EncodedValue,
 ) valueMatch {
-	if len(key) == prefixPlusPartialLen {
+	if key.Len() == prefixPlusPartialLen {
 		if value == nil {
 			return matchesBranch{}
 		}
 		return notOmitted{}
 	}
-	index := key[prefixPlusPartialLen]
+	index := *key.At(prefixPlusPartialLen)
 	if children[index] != nil {
-		return isChild{childPrefix: key[:prefixPlusPartialLen+1]}
+		return isChild{childPrefix: key.Truncate(prefixPlusPartialLen + 1)}
 	}
 
 	return notFound{}
@@ -301,9 +305,9 @@ type proofItem struct {
 	value []byte
 }
 
-func (proof MerkleProof) Verify(
+func (proof MerkleProof[H, Hasher]) Verify(
 	trieVersion trie.TrieLayout,
-	root common.Hash,
+	root []byte,
 	items []proofItem,
 ) error {
 	// sort items
@@ -331,14 +335,14 @@ func (proof MerkleProof) Verify(
 
 	// A stack of child references to fill in omitted branch children for later trie nodes in the
 	// proof.
-	stack := deque.New[verifyProofStackEntry]()
+	stack := deque.New[verifyProofStackEntry[H, Hasher]]()
 
 	rootNode := proofIter.Next()
 	if rootNode == nil {
 		return ErrIncompleteProof
 	}
 
-	lastEntry, err := newVerifyProofStackEntry(trieVersion, *rootNode, []byte{}, false)
+	lastEntry, err := newVerifyProofStackEntry[H, Hasher](trieVersion, *rootNode, nibbles.NewLeftNibbles(nil), false)
 	if err != nil {
 		return err
 	}
@@ -367,13 +371,13 @@ loop:
 
 			var childRef triedb.ChildReference
 			if isInline {
-				if len(nodeData) > common.HashLength {
+				if len(nodeData) > (*new(H)).Length() {
 					return fmt.Errorf("invalid child reference: %x", nodeData)
 				}
 				childRef = triedb.InlineChildReference(nodeData)
 			} else {
-				hash := common.MustBlake2bHash(nodeData)
-				childRef = triedb.HashChildReference(hash)
+				hash := (*new(Hasher)).Hash(nodeData)
+				childRef = triedb.HashChildReference[H]{Hash: hash}
 			}
 
 			if stack.Len() > 0 {
@@ -386,10 +390,10 @@ loop:
 				if nextProof != nil {
 					return ErrExtraneusNode
 				}
-				var computedRoot common.Hash
+				var computedRoot []byte
 				switch c := childRef.(type) {
-				case triedb.HashChildReference:
-					computedRoot = common.Hash(c)
+				case triedb.HashChildReference[H]:
+					computedRoot = c.Hash.Bytes()
 				case triedb.InlineChildReference:
 					panic("unreachable")
 				}

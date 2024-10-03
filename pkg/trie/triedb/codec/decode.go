@@ -9,8 +9,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/hash"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibbles"
 )
 
 var (
@@ -25,13 +26,11 @@ var (
 	ErrDecodeStorageValue = errors.New("cannot decode storage value")
 )
 
-const hashLength = common.HashLength
-
 // Decode decodes a node from a reader.
 // The encoding format is documented in the README.md
 // of this package, and specified in the Polkadot spec at
 // https://spec.polkadot.network/chap-state#defn-node-header
-func Decode(reader io.Reader) (n EncodedNode, err error) {
+func Decode[H hash.Hash](reader io.Reader) (n EncodedNode, err error) {
 	variant, partialKeyLength, err := decodeHeader(reader)
 	if err != nil {
 		return nil, fmt.Errorf("decoding header: %w", err)
@@ -48,13 +47,13 @@ func Decode(reader io.Reader) (n EncodedNode, err error) {
 
 	switch variant {
 	case leafVariant, leafWithHashedValueVariant:
-		n, err = decodeLeaf(reader, variant, partialKey)
+		n, err = decodeLeaf[H](reader, variant, partialKey)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode leaf: %w", err)
 		}
 		return n, nil
 	case branchVariant, branchWithValueVariant, branchWithHashedValueVariant:
-		n, err = decodeBranch(reader, variant, partialKey)
+		n, err = decodeBranch[H](reader, variant, partialKey)
 		if err != nil {
 			return nil, fmt.Errorf("cannot decode branch: %w", err)
 		}
@@ -67,7 +66,7 @@ func Decode(reader io.Reader) (n EncodedNode, err error) {
 
 // decodeBranch reads from a reader and decodes to a node branch.
 // Note that we are not decoding the children nodes.
-func decodeBranch(reader io.Reader, variant variant, partialKey []byte) (
+func decodeBranch[H hash.Hash](reader io.Reader, variant variant, partialKey nibbles.Nibbles) (
 	node Branch, err error) {
 	node = Branch{
 		PartialKey: partialKey,
@@ -91,11 +90,11 @@ func decodeBranch(reader io.Reader, variant variant, partialKey []byte) (
 
 		node.Value = InlineValue(valueBytes)
 	case branchWithHashedValueVariant:
-		hashedValue, err := decodeHashedValue(reader)
+		hashedValue, err := decodeHashedValue[H](reader)
 		if err != nil {
 			return Branch{}, err
 		}
-		node.Value = HashedValue(hashedValue)
+		node.Value = HashedValue[H]{hashedValue}
 	default:
 		// Do nothing, branch without value
 	}
@@ -113,10 +112,15 @@ func decodeBranch(reader io.Reader, variant variant, partialKey []byte) (
 				ErrDecodeChildHash, i, err)
 		}
 
-		if len(hash) < hashLength {
+		if len(hash) < (*new(H)).Length() {
 			node.Children[i] = InlineNode(hash)
 		} else {
-			node.Children[i] = HashedNode(hash)
+			var h H
+			err := scale.Unmarshal(hash, &h)
+			if err != nil {
+				panic(err)
+			}
+			node.Children[i] = HashedNode[H]{h}
 		}
 	}
 
@@ -124,7 +128,7 @@ func decodeBranch(reader io.Reader, variant variant, partialKey []byte) (
 }
 
 // decodeLeaf reads from a reader and decodes to a leaf node.
-func decodeLeaf(reader io.Reader, variant variant, partialKey []byte) (node Leaf, err error) {
+func decodeLeaf[H hash.Hash](reader io.Reader, variant variant, partialKey nibbles.Nibbles) (node Leaf, err error) {
 	node = Leaf{
 		PartialKey: partialKey,
 	}
@@ -132,12 +136,12 @@ func decodeLeaf(reader io.Reader, variant variant, partialKey []byte) (node Leaf
 	sd := scale.NewDecoder(reader)
 
 	if variant == leafWithHashedValueVariant {
-		hashedValue, err := decodeHashedValue(reader)
+		hashedValue, err := decodeHashedValue[H](sd)
 		if err != nil {
 			return Leaf{}, err
 		}
 
-		node.Value = HashedValue(hashedValue)
+		node.Value = HashedValue[H]{hashedValue}
 		return node, nil
 	}
 
@@ -152,15 +156,18 @@ func decodeLeaf(reader io.Reader, variant variant, partialKey []byte) (node Leaf
 	return node, nil
 }
 
-func decodeHashedValue(reader io.Reader) ([]byte, error) {
-	buffer := make([]byte, hashLength)
+func decodeHashedValue[H hash.Hash](reader io.Reader) (hash H, err error) {
+	buffer := make([]byte, (*new(H)).Length())
 	n, err := reader.Read(buffer)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
+		return hash, fmt.Errorf("%w: %s", ErrDecodeStorageValue, err)
 	}
-	if n < hashLength {
-		return nil, fmt.Errorf("%w: expected %d, got: %d", ErrDecodeHashedValueTooShort, hashLength, n)
+	if n < (*new(H)).Length() {
+		return hash, fmt.Errorf("%w: expected %d, got: %d", ErrDecodeHashedValueTooShort, (*new(H)).Length(), n)
 	}
 
-	return buffer, nil
+	// return buffer, nil
+	h := new(H)
+	err = scale.Unmarshal(buffer, h)
+	return *h, err
 }

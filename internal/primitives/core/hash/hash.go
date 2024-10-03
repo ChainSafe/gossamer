@@ -25,6 +25,11 @@ func (h256 H256) String() string {
 	return fmt.Sprintf("%v", h256.Bytes())
 }
 
+// Length returns the byte length of H256
+func (h256 H256) Length() int {
+	return 32
+}
+
 // MarshalSCALE fulfils the SCALE interface for encoding
 func (h256 H256) MarshalSCALE() ([]byte, error) {
 	var arr [32]byte

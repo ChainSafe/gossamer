@@ -5,39 +5,41 @@ package triedb
 
 import (
 	"bytes"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/internal/database"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/hash"
+	"github.com/stretchr/testify/assert"
 )
 
 // MemoryDB is an in-memory implementation of the Database interface backed by a
 // map. It uses blake2b as hashing algorithm
 type MemoryDB struct {
-	data           map[common.Hash][]byte
-	hashedNullNode common.Hash
+	data           map[string][]byte
+	hashedNullNode string
 	nullNodeData   []byte
 }
 
-func NewMemoryDB(data []byte) *MemoryDB {
+func NewMemoryDB[H hash.Hash, Hasher hash.Hasher[H]](data []byte) *MemoryDB {
 	return &MemoryDB{
-		data:           make(map[common.Hash][]byte),
-		hashedNullNode: common.MustBlake2bHash(data),
+		data:           make(map[string][]byte),
+		hashedNullNode: string((*new(Hasher)).Hash(data).Bytes()),
 		nullNodeData:   data,
 	}
 }
 
-func (db *MemoryDB) emplace(key common.Hash, value []byte) {
+func (db *MemoryDB) emplace(key []byte, value []byte) {
 	if bytes.Equal(value, db.nullNodeData) {
 		return
 	}
 
-	db.data[key] = value
+	db.data[string(key)] = value
 }
 
 func (db *MemoryDB) Get(key []byte) ([]byte, error) {
-	dbKey := common.NewHash(key)
-	if dbKey == db.hashedNullNode {
+	dbKey := string(key)
+	if strings.Contains(dbKey, db.hashedNullNode) {
 		return db.nullNodeData, nil
 	}
 	if value, has := db.data[dbKey]; has {
@@ -48,13 +50,12 @@ func (db *MemoryDB) Get(key []byte) ([]byte, error) {
 }
 
 func (db *MemoryDB) Put(key []byte, value []byte) error {
-	dbKey := common.NewHash(key)
-	db.emplace(dbKey, value)
+	db.emplace(key, value)
 	return nil
 }
 
 func (db *MemoryDB) Del(key []byte) error {
-	dbKey := common.NewHash(key)
+	dbKey := string(key)
 	delete(db.data, dbKey)
 	return nil
 }
@@ -84,3 +85,9 @@ func (b *MemoryBatch) ValueSize() int {
 }
 
 var _ database.Batch = &MemoryBatch{}
+
+func newTestDB(t assert.TestingT) database.Table {
+	db, err := database.NewPebble("", true)
+	assert.NoError(t, err)
+	return database.NewTable(db, "trie")
+}
