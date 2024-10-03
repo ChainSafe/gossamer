@@ -168,7 +168,6 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 
 	persistedValidationData, validationCode, err := getValidationData(runtimeInstance,
 		msg.CandidateReceipt.Descriptor.ParaID)
-
 	if err != nil {
 		logger.Errorf("getting validation data: %w", err)
 		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
@@ -232,6 +231,8 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 	}
 }
 
+// precheckPvF prechecks the parachain validation function by retrieving the validation code from the runtime instance
+// and calling the precheck method on the pvf host. It returns the precheck outcome.
 func (cv *CandidateValidation) precheckPvF(relayParent common.Hash, validationCodeHash parachaintypes.
 	ValidationCodeHash) PreCheckOutcome {
 	runtimeInstance, err := cv.BlockState.GetRuntime(relayParent)
@@ -276,16 +277,10 @@ func (cv *CandidateValidation) precheckPvF(relayParent common.Hash, validationCo
 	return PreCheckOutcomeValid
 }
 
-// To determine the amount of timeout time for the pvf execution.
-//
-// Precheck
+// pvfPrepTimeout To determine the amount of timeout time for the pvf execution.
 //
 //	The time period after which the preparation worker is considered
 //
-// unresponsive and will be killed.
-//
-// Prepare
-// The time period after which the preparation worker is considered
 // unresponsive and will be killed.
 func pvfPrepTimeout(params parachaintypes.ExecutorParams, kind parachaintypes.PvfPrepTimeoutKind) time.Duration {
 	for _, param := range params {

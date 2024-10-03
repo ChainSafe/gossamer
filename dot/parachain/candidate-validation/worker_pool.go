@@ -132,6 +132,8 @@ func (v *workerPool) addNewWorker(validationCode parachaintypes.ValidationCode, 
 	return nil
 }
 
+// handlePrecheckPvF handles the precheck of the parachain validation function. It checks if the worker for the given
+// code hash exists. If not, it creates a new worker.
 func (v *workerPool) handlePrecheckPvF(data PvFPrepData) error {
 	if !v.containsWorker(data.codeHash) {
 		err := v.addNewWorker(data.code, data.prepTimeout)
