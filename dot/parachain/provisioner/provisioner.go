@@ -33,7 +33,7 @@ func (p Provisioner) Run(ctx context.Context, overseerToSubSystem <-chan any) {
 			if err != nil {
 				logger.Errorf("processing overseer message: %w", err)
 			}
-		case <-p.inherentAfterDelay:
+		case <-p.availableInherent:
 			// This inherentAfterDelay gets populated while handling active leaves update signal
 			// TODO #4162
 		}
