@@ -18,7 +18,7 @@ type RequestInherentData struct {
 type ProvisionerInherentData struct {
 }
 
-// ProvisionerMessageProvisionableData is a provisioner message.
+// ProvisionableData is a provisioner message.
 // This data should become part of a relay chain block.
 type ProvisionableData struct {
 	RelayParent common.Hash
