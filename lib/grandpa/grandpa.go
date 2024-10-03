@@ -81,8 +81,7 @@ type Service struct {
 
 	telemetry Telemetry
 
-	//catchUp *catchUp
-	catchUp *catchUp
+	neighborTracker *NeighborTracker
 }
 
 // Config represents a GRANDPA service configuration
@@ -154,13 +153,12 @@ func NewService(cfg *Config) (*Service, error) {
 		finalisedCh:        finalisedCh,
 		interval:           cfg.Interval,
 		telemetry:          cfg.Telemetry,
+		neighborTracker:    NewNeighborTracker(cfg.Network),
 	}
 
 	if err := s.registerProtocol(); err != nil {
 		return nil, err
 	}
-
-	s.catchUp = newCatchUp(s)
 
 	s.messageHandler = NewMessageHandler(s, s.blockState, cfg.Telemetry)
 	s.tracker = newTracker(s.blockState, s.messageHandler)
@@ -171,7 +169,6 @@ func NewService(cfg *Config) (*Service, error) {
 
 // Start begins the GRANDPA finality service
 func (s *Service) Start() error {
-	go s.catchUp.initCatchUp()
 	// if we're not an authority, we don't need to worry about the voting process.
 	// the grandpa service is only used to verify incoming block justifications
 	if !s.authority {
@@ -197,7 +194,6 @@ func (s *Service) Stop() error {
 
 	s.cancel()
 	s.blockState.FreeFinalisedNotifierChannel(s.finalisedCh)
-	close(s.catchUp.shutdownCatchup)
 
 	if !s.authority {
 		return nil
