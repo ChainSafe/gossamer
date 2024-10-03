@@ -260,7 +260,7 @@ func InitializeRuntimeToTest(t *testing.T, instance Instance, parentHeader *type
 	require.NoError(t, err)
 
 	slotDuration := babeConfig.SlotDuration
-	timestamp := uint64(time.Now().UnixMilli())
+	timestamp := uint64(time.Now().UnixMilli()) //nolint:gosec
 	currentSlot := timestamp / slotDuration
 
 	babeDigest := types.NewBabeDigest()

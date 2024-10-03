@@ -406,7 +406,7 @@ func (t *TrieDB) fix(branch Branch) (Node, error) {
 		return Leaf{branch.partialKey, branch.value}, nil
 	} else if len(usedIndex) == 1 && branch.value == nil {
 		// Only one onward node. use child instead
-		idx := usedIndex[0] //nolint:gosec
+		idx := usedIndex[0]
 		// take child and replace it to nil
 		child := branch.children[idx]
 		branch.children[idx] = nil

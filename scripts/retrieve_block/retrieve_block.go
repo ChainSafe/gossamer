@@ -35,10 +35,10 @@ func buildRequestMessage(arg string) *messages.BlockRequestMessage {
 
 	switch strings.ToLower(params[1]) {
 	case "asc":
-		return messages.NewBlockRequest(targetBlock, uint32(amount),
+		return messages.NewBlockRequest(targetBlock, uint32(amount), //nolint:gosec
 			messages.BootstrapRequestData, messages.Ascending)
 	case "desc":
-		return messages.NewBlockRequest(targetBlock, uint32(amount),
+		return messages.NewBlockRequest(targetBlock, uint32(amount), //nolint:gosec
 			messages.BootstrapRequestData, messages.Descending)
 	}
 
@@ -57,7 +57,7 @@ func parseTargetBlock(arg string) messages.FromBlock {
 		return messages.FromBlock{}
 	}
 
-	return *messages.NewFromBlock(uint(value))
+	return *messages.NewFromBlock(uint(value)) //nolint:gosec
 }
 
 func waitAndStoreResponse(stream lip2pnetwork.Stream, outputFile string) bool {
@@ -86,7 +86,7 @@ func waitAndStoreResponse(stream lip2pnetwork.Stream, outputFile string) bool {
 	}
 
 	log.Println(resultOutput.String())
-	err = os.WriteFile(outputFile, []byte(common.BytesToHex(output)), os.ModePerm)
+	err = os.WriteFile(outputFile, []byte(common.BytesToHex(output)), os.ModePerm) //nolint:gosec
 	if err != nil {
 		log.Printf("failed to write response to file %s: %s\n", outputFile, err.Error())
 		return false

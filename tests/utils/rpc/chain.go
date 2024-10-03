@@ -69,7 +69,7 @@ func GetFinalizedHead(ctx context.Context, rpcPort string) (
 // TODO: add setID, hard-coded at 1 for now
 func GetFinalizedHeadByRound(ctx context.Context, rpcPort string, round uint64) (
 	hash common.Hash, err error) {
-	p := strconv.Itoa(int(round))
+	p := strconv.Itoa(int(round)) //nolint:gosec
 	endpoint := NewEndpoint(rpcPort)
 	const method = "chain_getFinalizedHeadByRound"
 	params := "[" + p + ",1]"

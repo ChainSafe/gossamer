@@ -753,7 +753,7 @@ func (i *Instance) Exec(function string, data []byte) ([]byte, error) {
 		panic("nil memory")
 	}
 
-	dataLength := uint32(len(data))
+	dataLength := uint32(len(data)) //nolint:gosec
 	inputPtr, err := i.Context.Allocator.Allocate(memory, dataLength)
 	if err != nil {
 		return nil, fmt.Errorf("allocating input memory: %w", err)
@@ -1007,7 +1007,7 @@ func (in *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
 
 // PaymentQueryInfo returns information of a given extrinsic
 func (in *Instance) PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, error) {
-	encLen, err := scale.Marshal(uint32(len(ext)))
+	encLen, err := scale.Marshal(uint32(len(ext))) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
@@ -1027,7 +1027,7 @@ func (in *Instance) PaymentQueryInfo(ext []byte) (*types.RuntimeDispatchInfo, er
 
 // QueryCallInfo returns information of a given extrinsic
 func (in *Instance) QueryCallInfo(ext []byte) (*types.RuntimeDispatchInfo, error) {
-	encLen, err := scale.Marshal(uint32(len(ext)))
+	encLen, err := scale.Marshal(uint32(len(ext))) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}
@@ -1047,7 +1047,7 @@ func (in *Instance) QueryCallInfo(ext []byte) (*types.RuntimeDispatchInfo, error
 
 // QueryCallFeeDetails returns call fee details for given call
 func (in *Instance) QueryCallFeeDetails(ext []byte) (*types.FeeDetails, error) {
-	encLen, err := scale.Marshal(uint32(len(ext)))
+	encLen, err := scale.Marshal(uint32(len(ext))) //nolint:gosec
 	if err != nil {
 		return nil, err
 	}

@@ -307,7 +307,7 @@ func Test_unmarshal_optionality_nil_case(t *testing.T) {
 
 		temp := reflect.New(reflect.TypeOf(t.in))
 		// create a new pointer to type of temp
-		tempv := reflect.New(reflect.PtrTo(temp.Type()).Elem())
+		tempv := reflect.New(reflect.PointerTo(temp.Type()).Elem())
 		// set zero value to elem of **temp so that is nil
 		tempv.Elem().Set(reflect.Zero(tempv.Elem().Type()))
 		// set test.in to *temp

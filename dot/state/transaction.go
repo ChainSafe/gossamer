@@ -93,7 +93,7 @@ func (s *TransactionState) AddToPool(vt *transaction.ValidTransaction) common.Ha
 	hash := s.pool.Insert(vt)
 
 	s.telemetry.SendMessage(
-		telemetry.NewTxpoolImport(uint(s.queue.Len()), uint(s.pool.Len())),
+		telemetry.NewTxpoolImport(uint(s.queue.Len()), uint(s.pool.Len())), //nolint:gosec
 	)
 
 	return hash
