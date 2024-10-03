@@ -13,6 +13,7 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/libp2p/go-libp2p/core/crypto"
 
+	"github.com/ChainSafe/gossamer/dot/network/ratelimiters"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -159,7 +160,10 @@ func (c *Config) build() error {
 
 	// set warp sync spam limiter to default
 	if c.warpSyncSpamLimiter == nil {
-		c.warpSyncSpamLimiter = NewSpamLimiter(MaxAllowedSameRequestPerPeer, MaxTimeWindow)
+		c.warpSyncSpamLimiter = ratelimiters.NewSlidingWindowRateLimiter(
+			ratelimiters.DefaultMaxCachedRequestSize,
+			ratelimiters.DefaultMaxSlidingWindowTime,
+		)
 	}
 
 	return nil

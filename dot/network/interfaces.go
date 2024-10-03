@@ -8,7 +8,6 @@ import (
 	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // Telemetry is the telemetry client to send telemetry messages.
@@ -33,6 +32,6 @@ type MDNS interface {
 
 // RateLimiter is the interface for rate limiting requests.
 type RateLimiter interface {
-	AddRequest(peer peer.ID, hashedRequest common.Hash)
-	IsLimitExceeded(peer peer.ID, hashedRequest common.Hash) bool
+	AddRequest(id common.Hash)
+	IsLimitExceeded(id common.Hash) bool
 }
