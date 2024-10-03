@@ -12,10 +12,14 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-const MaxTimeWindow = 10 * time.Second
-const MaxCachedPeers = 100
-const MaxCachedRequests = 100
+const MaxTimeWindow = 1 * time.Minute
+const MaxCachedPeers = 50
+const MaxCachedRequestPerPeer = 10
 
+// SpamLimiter is a rate limiter implementation designed to prevent peers from spamming requests.
+// It uses a sliding window to track the recent requests from each peer.
+// If the number of requests exceeds the set limit, the peer is considered spamming,
+// and subsequent requests will be rejected.
 type SpamLimiter struct {
 	mu         sync.Mutex
 	limits     *lrucache.LRUCache[peer.ID, *lrucache.LRUCache[common.Hash, []time.Time]]
@@ -40,7 +44,7 @@ func (rl *SpamLimiter) AddRequest(peer peer.ID, hashedRequest common.Hash) {
 	// Get or create the internal cache for the peer
 	peerCache := rl.limits.Get(peer)
 	if peerCache == nil {
-		peerCache = lrucache.NewLRUCache[common.Hash, []time.Time](MaxCachedRequests)
+		peerCache = lrucache.NewLRUCache[common.Hash, []time.Time](MaxCachedRequestPerPeer)
 		rl.limits.Put(peer, peerCache)
 	}
 

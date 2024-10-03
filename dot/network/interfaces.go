@@ -31,6 +31,7 @@ type MDNS interface {
 	io.Closer
 }
 
+// RateLimiter is the interface for rate limiting requests.
 type RateLimiter interface {
 	AddRequest(peer peer.ID, hashedRequest common.Hash)
 	IsLimitExceeded(peer peer.ID, hashedRequest common.Hash) bool
