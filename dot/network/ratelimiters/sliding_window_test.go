@@ -19,7 +19,7 @@ func TestSlidingWindowRateLimiter_AddRequestAndCheckLimitExceeded(t *testing.T) 
 
 	hash := common.Hash{0x01}
 
-	// Add 5 requests for the same peer and hash
+	// Add 5 requests for the same hash
 	for i := 0; i < 5; i++ {
 		limiter.AddRequest(hash)
 	}
@@ -56,7 +56,7 @@ func TestSlidingWindowRateLimiter_WindowExpiry(t *testing.T) {
 	assert.False(t, limiter.IsLimitExceeded(hash))
 }
 
-func TestSlidingWindowRateLimiter_DifferentPeersAndHashes(t *testing.T) {
+func TestSlidingWindowRateLimiter_DifferentHashes(t *testing.T) {
 	t.Parallel()
 
 	// Create a SlidingWindowRateLimiter with a limit of 2 requests and a time window of 5 seconds
@@ -65,11 +65,11 @@ func TestSlidingWindowRateLimiter_DifferentPeersAndHashes(t *testing.T) {
 	hash1 := common.Hash{0x01}
 	hash2 := common.Hash{0x02}
 
-	// Add requests for peerID1 and hash1
+	// Add requests for hash1
 	limiter.AddRequest(hash1)
 	limiter.AddRequest(hash1)
 
-	// Add requests for peerID2 and hash2
+	// Add requests for hash2
 	limiter.AddRequest(hash2)
 	limiter.AddRequest(hash2)
 
