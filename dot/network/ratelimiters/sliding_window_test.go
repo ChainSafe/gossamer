@@ -35,7 +35,7 @@ func TestSlidingWindowRateLimiter_AddRequestAndCheckLimitExceeded(t *testing.T) 
 func TestSlidingWindowRateLimiter_WindowExpiry(t *testing.T) {
 	t.Parallel()
 
-	// Create a SlidingWindowRateLimiter with a limit of 3 requests and a time window of 2 seconds
+	// Create a SlidingWindowRateLimiter with a limit of 3 requests and a time window of 1 second
 	limiter := NewSlidingWindowRateLimiter(3, 1*time.Second)
 
 	hash := common.Hash{0x02}
