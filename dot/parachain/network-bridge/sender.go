@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/dot/network"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
@@ -16,7 +17,7 @@ type NetworkBridgeSender struct {
 	SubsystemsToOverseer chan<- any
 }
 
-func Register(overseerChan chan<- any, net Network) *NetworkBridgeSender {
+func RegisterSender(overseerChan chan<- any, net Network) *NetworkBridgeSender {
 	return &NetworkBridgeSender{
 		net:                  net,
 		SubsystemsToOverseer: overseerChan,
@@ -67,6 +68,8 @@ func (nbs *NetworkBridgeSender) processMessage(msg any) error {
 			return fmt.Errorf("setting wire message: %w", err)
 		}
 
+		wireMessage.SetType(network.CollationMsgType)
+
 		for _, to := range msg.To {
 			err = nbs.net.SendMessage(to, wireMessage)
 			if err != nil {
@@ -80,6 +83,8 @@ func (nbs *NetworkBridgeSender) processMessage(msg any) error {
 		if err != nil {
 			return fmt.Errorf("setting wire message: %w", err)
 		}
+
+		wireMessage.SetType(network.ValidationMsgType)
 
 		for _, to := range msg.To {
 			err = nbs.net.SendMessage(to, wireMessage)

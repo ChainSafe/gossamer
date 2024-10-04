@@ -7,14 +7,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
+	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -58,7 +58,18 @@ var (
 	ErrFinalizedNumber     = errors.New("finalized number is greater than or equal to the block number")
 )
 
-func (cpvs CollatorProtocolValidatorSide) Run(ctx context.Context, overseerToSubSystem <-chan any) {
+func New(net Network, protocolID protocol.ID, overseerChan chan<- any) *CollatorProtocolValidatorSide {
+	collationFetchingReqResProtocol := net.GetRequestResponseProtocol(
+		string(protocolID), collationFetchingRequestTimeout, collationFetchingMaxResponseSize)
+
+	return &CollatorProtocolValidatorSide{
+		SubSystemToOverseer:             overseerChan,
+		collationFetchingReqResProtocol: collationFetchingReqResProtocol,
+	}
+}
+
+func (cpvs CollatorProtocolValidatorSide) Run(
+	ctx context.Context, overseerToSubSystem <-chan any) {
 	inactivityTicker := time.NewTicker(activityPoll)
 
 	for {
@@ -74,8 +85,6 @@ func (cpvs CollatorProtocolValidatorSide) Run(ctx context.Context, overseerToSub
 				logger.Errorf("processing overseer message: %w", err)
 			}
 
-		case event := <-cpvs.networkEventInfoChan:
-			cpvs.handleNetworkEvents(*event)
 		case <-inactivityTicker.C:
 			// TODO: disconnect inactive peers
 			// https://github.com/paritytech/polkadot/blob/8f05479e4bd61341af69f0721e617f01cbad8bb2/node/network/collator-protocol/src/validator_side/mod.rs#L1301
@@ -108,102 +117,13 @@ func (CollatorProtocolValidatorSide) Name() parachaintypes.SubSystemName {
 	return parachaintypes.CollationProtocol
 }
 
-func (cpvs CollatorProtocolValidatorSide) handleNetworkEvents(event network.NetworkEventInfo) {
-	switch event.Event {
-	case network.Connected:
-		_, ok := cpvs.peerData[event.PeerID]
-		if !ok {
-			cpvs.peerData[event.PeerID] = PeerData{
-				state: PeerStateInfo{
-					PeerState: Connected,
-					Instant:   time.Now(),
-				},
-			}
-		}
-	case network.Disconnected:
-		delete(cpvs.peerData, event.PeerID)
-	}
-}
-
 func (cpvs *CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(
 	signal parachaintypes.ActiveLeavesUpdateSignal) error {
-	// I might need to separate the collator protocol into two parts, one that deals with the
-	// network and other that deals with other subsystems.
-	// Make everythin less messing.
-	// https://github.com/paritytech/polkadot-sdk/blob/1b5f4243d159fbb7cf7067241aca8a37f3dbf7ed/polkadot/node/network/bridge/src/rx/mod.rs#L798
-
-	// this active leaves are handled in bridge in rust, read the code of bridge properly
-
-	// TODO update cpvs.activeLeaves by adding new active leaves and removing deactivated ones
-
-	// TODO: get the value for majorSyncing for syncing package
-	// majorSyncing means you are 5 blocks behind the tip of the chain and thus more aggressively
-	// download blocks etc to reach the tip of the chain faster.
-	var majorSyncing bool
-
-	cpvs.liveHeads = append(cpvs.liveHeads, parachaintypes.ActivatedLeaf{
-		Hash:   signal.Activated.Hash,
-		Number: signal.Activated.Number,
-	})
-
-	newLiveHeads := []parachaintypes.ActivatedLeaf{}
-
-	for _, head := range cpvs.liveHeads {
-		if slices.Contains(signal.Deactivated, head.Hash) {
-			newLiveHeads = append(newLiveHeads, head)
-		}
-	}
-
-	sort.Sort(SortableActivatedLeaves(newLiveHeads))
-	// TODO: do I need to store these live heads or just pass them to update view?
-	cpvs.liveHeads = newLiveHeads
-
-	if !majorSyncing {
-		// update our view
-		err := cpvs.updateOurView()
-		if err != nil {
-			return fmt.Errorf("updating our view: %w", err)
-		}
-	}
+	// nothing to do
 	return nil
 }
 
-func (cpvs *CollatorProtocolValidatorSide) updateOurView() error {
-	headHashes := []common.Hash{}
-	for _, head := range cpvs.liveHeads {
-		headHashes = append(headHashes, head.Hash)
-	}
-	newView := View{
-		heads:           headHashes,
-		finalizedNumber: cpvs.finalizedNumber,
-	}
-
-	if cpvs.localView == nil {
-		*cpvs.localView = newView
-		return nil
-	}
-
-	if cpvs.localView.checkHeadsEqual(newView) {
-		// nothing to update
-		return nil
-	}
-
-	*cpvs.localView = newView
-
-	// TODO: send ViewUpdate to all the collation peers and validation peers (v1, v2, v3)
-	// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/network/bridge/src/rx/mod.rs#L969-L1013
-
-	// TODO: Create our view and send collation events to all subsystems about our view change
-	// Just create the network bridge and do both of these tasks as part of those. That's the only way it makes sense.
-
-	err := cpvs.handleOurViewChange(newView)
-	if err != nil {
-		return fmt.Errorf("handling our view change: %w", err)
-	}
-	return nil
-}
-
-func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view View) error {
+func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view events.View) error {
 	// 1. Find out removed leaves (hashes) and newly added leaves
 	// 2. Go over each new leaves,
 	// - check if perspective parachain mode is enabled
@@ -213,13 +133,13 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view View) error 
 
 	removed := []common.Hash{}
 	for activeLeaf := range activeLeaves {
-		if !slices.Contains(view.heads, activeLeaf) {
+		if !slices.Contains(view.Heads, activeLeaf) {
 			removed = append(removed, activeLeaf)
 		}
 	}
 
 	newlyAdded := []common.Hash{}
-	for _, head := range view.heads {
+	for _, head := range view.Heads {
 		if _, ok := activeLeaves[head]; !ok {
 			newlyAdded = append(newlyAdded, head)
 		}
@@ -280,7 +200,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view View) error 
 			}
 		}
 
-		// TODO
+		// TODO #4204
 		// Remove blocked advertisements that left the view. cpvs.BlockedAdvertisements
 		// Re-trigger previously failed requests again. requestUnBlockedCollations
 		// prune old advertisements
@@ -307,7 +227,6 @@ func (cpvs *CollatorProtocolValidatorSide) removeOutgoing(perRelayParent PerRela
 
 func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Hash, perRelayParent *PerRelayParent,
 ) error {
-	// TODO: get this instance using relay parent
 	instance, err := cpvs.BlockState.GetRuntime(relayParent)
 	if err != nil {
 		return fmt.Errorf("getting runtime instance: %w", err)
@@ -330,7 +249,6 @@ func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Has
 
 	validator, validatorIndex := signingKeyAndIndex(validators, cpvs.Keystore)
 	if validator == nil {
-		// return with an error?
 		return nil
 	}
 
@@ -347,7 +265,7 @@ func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Has
 	}
 	var paraNow *parachaintypes.ParaID
 
-	switch c := coreNow.(type) /*coreNow.Index()*/ {
+	switch c := coreNow.(type) {
 	case parachaintypes.OccupiedCore:
 		*paraNow = parachaintypes.ParaID(c.CandidateDescriptor.ParaID)
 	case parachaintypes.ScheduledCore:
@@ -424,16 +342,11 @@ func (s SortableActivatedLeaves) Swap(i, j int) {
 
 func (cpvs *CollatorProtocolValidatorSide) ProcessBlockFinalizedSignal(signal parachaintypes.
 	BlockFinalizedSignal) error {
-	if cpvs.finalizedNumber >= signal.BlockNumber {
-		// error
-		return ErrFinalizedNumber
-	}
-	cpvs.finalizedNumber = signal.BlockNumber
+	// nothing to do
 	return nil
 }
 
 func (cpvs CollatorProtocolValidatorSide) Stop() {
-	cpvs.net.FreeNetworkEventsChannel(cpvs.networkEventInfoChan)
 }
 
 // requestCollation requests a collation from the network.
@@ -633,20 +546,6 @@ func (s SortableHeads) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-// checkHeadsEqual checks if the heads of the view are equal to the heads of the other view.
-func (v View) checkHeadsEqual(other View) bool {
-	if len(v.heads) != len(other.heads) {
-		return false
-	}
-
-	localHeads := v.heads
-	sort.Sort(SortableHeads(localHeads))
-	otherHeads := other.heads
-	sort.Sort(SortableHeads(otherHeads))
-
-	return reflect.DeepEqual(localHeads, otherHeads)
-}
-
 func ConstructView(liveHeads map[common.Hash]struct{}, finalizedNumber uint32) View {
 	heads := make([]common.Hash, 0, len(liveHeads))
 	for head := range liveHeads {
@@ -678,9 +577,6 @@ type Network interface {
 	) error
 	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
 		maxResponseSize uint64) *network.RequestResponseProtocol
-	GetNetworkEventsChannel() chan *network.NetworkEventInfo
-	FreeNetworkEventsChannel(ch chan *network.NetworkEventInfo)
-	ReportPeer(change peerset.ReputationChange, p peer.ID)
 }
 
 type CollationEvent struct {
@@ -690,29 +586,16 @@ type CollationEvent struct {
 
 type CollatorProtocolValidatorSide struct {
 	BlockState *state.BlockState
-	net        Network
 	Keystore   keystore.Keystore
 
-	SubSystemToOverseer  chan<- any
-	networkEventInfoChan chan *network.NetworkEventInfo
-
-	unfetchedCollation chan UnfetchedCollation
+	SubSystemToOverseer chan<- any
+	unfetchedCollation  chan UnfetchedCollation
 
 	collationFetchingReqResProtocol *network.RequestResponseProtocol
 
 	fetchedCollations []parachaintypes.Collation
 	// track all active collators and their data
 	peerData map[peer.ID]PeerData
-
-	// TODO: Tech Debt
-	// In polkadot-sdk (rust) code, following fields are common between validation protocol and collator protocol.
-	// They are kept in network bridge. Network bridge has common logic for both validation and collator protocol.
-	// I have kept it here for ease, since we don't have network bridge. Make a decision on this. Create a network
-	// bridge if that seems appropriate.
-	// And move these fields and some common logic there.
-	localView *View
-	// validationPeers []peer.ID
-	// collationPeers []peer.ID
 
 	// Parachains we're currently assigned to. With async backing enabled
 	// this includes assignments from the implicit view.
@@ -739,20 +622,15 @@ type CollatorProtocolValidatorSide struct {
 	// ancestry of some active leaf, then it does support prospective parachains.
 	implicitView ImplicitView
 
-	/// All active leaves observed by us, including both that do and do not
-	/// support prospective parachains. This mapping works as a replacement for
-	/// [`polkadot_node_network_protocol::View`] and can be dropped once the transition
-	/// to asynchronous backing is done.
+	// All active leaves observed by us, including both that do and do not
+	// support prospective parachains. This mapping works as a replacement for
+	// [`polkadot_node_network_protocol::View`] and can be dropped once the transition
+	// to asynchronous backing is done.
 	activeLeaves map[common.Hash]parachaintypes.ProspectiveParachainsMode
 
 	// Collations that we have successfully requested from peers and waiting
 	// on validation.
 	fetchedCandidates map[string]CollationEvent
-
-	// heads are sorted in descending order by block number
-	liveHeads []parachaintypes.ActivatedLeaf
-
-	finalizedNumber uint32
 }
 
 // Identifier of a fetched collation
@@ -848,6 +726,34 @@ func (cpvs CollatorProtocolValidatorSide) getPeerIDFromCollatorID(collatorID par
 	return "", false
 }
 
+func (cpvs CollatorProtocolValidatorSide) handleNetworkBridgeEvents(msg any) error {
+	switch msg := msg.(type) {
+	case networkbridgeevents.PeerConnected:
+		_, ok := cpvs.peerData[msg.PeerID]
+		if !ok {
+			cpvs.peerData[msg.PeerID] = PeerData{
+				state: PeerStateInfo{
+					PeerState: Connected,
+					Instant:   time.Now(),
+				},
+			}
+		}
+	case networkbridgeevents.PeerDisconnected:
+		delete(cpvs.peerData, msg.PeerID)
+	case networkbridgeevents.NewGossipTopology:
+		// NOTE: This won't happen
+	case networkbridgeevents.PeerViewChange:
+		// TODO #4155
+	case networkbridgeevents.OurViewChange:
+		return cpvs.handleOurViewChange(msg.View)
+	case networkbridgeevents.UpdatedAuthorityIDs:
+		// NOTE: The validator side doesn't deal with AuthorityDiscovery IDs
+	case networkbridgeevents.PeerMessage[collatorprotocolmessages.CollationProtocol]:
+		return cpvs.processCollatorProtocolMessage(msg.PeerID, msg.Message)
+	}
+	return nil
+}
+
 func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 	// run this function as a goroutine, ideally
 
@@ -869,9 +775,8 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 				Reason: peerset.ReportBadCollatorReason,
 			},
 		}
-	case collatorprotocolmessages.NetworkBridgeUpdate:
-		// TODO: handle network message https://github.com/ChainSafe/gossamer/issues/3515
-		// https://github.com/paritytech/polkadot-sdk/blob/db3fd687262c68b115ab6724dfaa6a71d4a48a59/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1457 //nolint
+	case networkbridgeevents.Event[collatorprotocolmessages.CollationProtocol]:
+		return cpvs.handleNetworkBridgeEvents(msg.Inner)
 	case collatorprotocolmessages.Seconded:
 		index, statementV, err := msg.Stmt.Payload.IndexValue()
 		if err != nil {
@@ -993,12 +898,10 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 				Reason: peerset.ReportBadCollatorReason,
 			},
 		}
-
 	case parachaintypes.ActiveLeavesUpdateSignal:
 		return cpvs.ProcessActiveLeavesUpdateSignal(msg)
 	case parachaintypes.BlockFinalizedSignal:
 		return cpvs.ProcessBlockFinalizedSignal(msg)
-
 	default:
 		return parachaintypes.ErrUnknownOverseerMessage
 	}

@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -37,7 +38,13 @@ func (cpcs CollatorProtocolCollatorSide) processMessage(msg any) error { //nolin
 		// TODO: handle distribute collation message #3824
 	case collatorprotocolmessages.ReportCollator:
 		return fmt.Errorf("report collator %w", ErrNotExpectedOnCollatorSide)
-	case collatorprotocolmessages.NetworkBridgeUpdate:
+	case networkbridgeevents.PeerConnected,
+		networkbridgeevents.PeerDisconnected,
+		networkbridgeevents.PeerMessage[collatorprotocolmessages.CollationProtocol],
+		networkbridgeevents.NewGossipTopology,
+		networkbridgeevents.PeerViewChange,
+		networkbridgeevents.OurViewChange,
+		networkbridgeevents.UpdatedAuthorityIDs:
 		// TODO: handle network message #3824
 		// https://github.com/paritytech/polkadot-sdk/blob/db3fd687262c68b115ab6724dfaa6a71d4a48a59/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1457 //nolint
 	case collatorprotocolmessages.Seconded:
