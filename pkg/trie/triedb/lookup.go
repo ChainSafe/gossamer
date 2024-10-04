@@ -12,10 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibbles"
 )
 
-// Description of what kind of query will be made to the trie.
-type Query[Item any] func(data []byte) Item
-
-type TrieLookup[H hash.Hash, Hasher hash.Hasher[H], QueryItem any] struct {
+type TrieLookup[H hash.Hash, Hasher hash.Hasher[H]] struct {
 	// db to query from
 	db db.DBGetter
 	// hash to start at
@@ -26,13 +23,13 @@ type TrieLookup[H hash.Hash, Hasher hash.Hasher[H], QueryItem any] struct {
 	recorder TrieRecorder
 }
 
-func NewTrieLookup[H hash.Hash, Hasher hash.Hasher[H], QueryItem any](
+func NewTrieLookup[H hash.Hash, Hasher hash.Hasher[H]](
 	db db.DBGetter,
 	hash H,
 	cache Cache,
 	recorder TrieRecorder,
-) TrieLookup[H, Hasher, QueryItem] {
-	return TrieLookup[H, Hasher, QueryItem]{
+) TrieLookup[H, Hasher] {
+	return TrieLookup[H, Hasher]{
 		db:       db,
 		hash:     hash,
 		cache:    cache,
@@ -40,7 +37,7 @@ func NewTrieLookup[H hash.Hash, Hasher hash.Hasher[H], QueryItem any](
 	}
 }
 
-func (l *TrieLookup[H, Hasher, QueryItem]) lookupNode(
+func (l *TrieLookup[H, Hasher]) lookupNode(
 	nibbleKey nibbles.Nibbles, fullKey []byte,
 ) (codec.EncodedNode, error) {
 	// Start from root node and going downwards
@@ -132,7 +129,7 @@ func (l *TrieLookup[H, Hasher, QueryItem]) lookupNode(
 	}
 }
 
-func (l *TrieLookup[H, Hasher, QueryItem]) lookupValue(
+func (l *TrieLookup[H, Hasher]) lookupValue(
 	fullKey []byte, keyNibbles nibbles.Nibbles,
 ) (value []byte, err error) {
 	node, err := l.lookupNode(keyNibbles, fullKey)
@@ -158,7 +155,7 @@ func (l *TrieLookup[H, Hasher, QueryItem]) lookupValue(
 
 // fetchValue gets the value from the node, if it is inlined we can return it
 // directly. But if it is hashed (V1) we have to look up for its value in the DB
-func (l *TrieLookup[H, Hasher, QueryItem]) fetchValue(
+func (l *TrieLookup[H, Hasher]) fetchValue(
 	prefix nibbles.Prefix, fullKey []byte, value codec.EncodedValue,
 ) ([]byte, error) {
 	switch v := value.(type) {
@@ -181,7 +178,7 @@ func (l *TrieLookup[H, Hasher, QueryItem]) fetchValue(
 	}
 }
 
-func (l *TrieLookup[H, Hasher, QueryItem]) recordAccess(access TrieAccess) {
+func (l *TrieLookup[H, Hasher]) recordAccess(access TrieAccess) {
 	if l.recorder != nil {
 		l.recorder.Record(access)
 	}

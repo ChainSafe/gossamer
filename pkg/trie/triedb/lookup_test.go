@@ -16,7 +16,7 @@ func TestTrieDB_Lookup(t *testing.T) {
 	t.Run("root_not_exists_in_db", func(t *testing.T) {
 		db := newTestDB(t)
 		empty := runtime.BlakeTwo256{}.Hash([]byte{0})
-		lookup := NewTrieLookup[hash.H256, runtime.BlakeTwo256, []byte](db, empty, nil, nil)
+		lookup := NewTrieLookup[hash.H256, runtime.BlakeTwo256](db, empty, nil, nil)
 
 		value, err := lookup.lookupValue([]byte("test"), nibbles.NewNibbles([]byte("test")))
 		assert.Nil(t, value)

@@ -140,7 +140,7 @@ func (t *TrieDB[H, Hasher]) lookup(fullKey []byte, partialKey nibbles.Nibbles, h
 		var partialIdx uint
 		switch node := handle.(type) {
 		case persisted[H]:
-			lookup := NewTrieLookup[H, Hasher, []byte](t.db, node.hash, t.cache, t.recorder)
+			lookup := NewTrieLookup[H, Hasher](t.db, node.hash, t.cache, t.recorder)
 			val, err := lookup.lookupValue(fullKey, partialKey)
 			if err != nil {
 				return nil, err
