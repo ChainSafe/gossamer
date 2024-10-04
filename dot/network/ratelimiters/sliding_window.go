@@ -23,7 +23,7 @@ type SlidingWindowRateLimiter struct {
 	windowSize time.Duration
 }
 
-// NewSlidingWindowRateLimiter creates a new SpamLimiter with the given maximum number of requests
+// NewSlidingWindowRateLimiter creates a new SlidingWindowRateLimiter with the given maximum number of requests
 func NewSlidingWindowRateLimiter(maxReqs uint32, windowSize time.Duration) *SlidingWindowRateLimiter {
 	return &SlidingWindowRateLimiter{
 		limits:     lrucache.NewLRUCache[common.Hash, []time.Time](DefaultMaxCachedRequestSize),
@@ -32,7 +32,7 @@ func NewSlidingWindowRateLimiter(maxReqs uint32, windowSize time.Duration) *Slid
 	}
 }
 
-// AddRequest adds a request to the SpamLimiter
+// AddRequest adds a request to the SlidingWindowRateLimiter
 func (rl *SlidingWindowRateLimiter) AddRequest(id common.Hash) {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()

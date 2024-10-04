@@ -11,10 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSpamLimiter_AddRequestAndCheckLimitExceeded(t *testing.T) {
+func TestSlidingWindowRateLimiter_AddRequestAndCheckLimitExceeded(t *testing.T) {
 	t.Parallel()
 
-	// Create a SpamLimiter with a limit of 5 requests and a time window of 10 seconds
+	// Create a SlidingWindowRateLimiter with a limit of 5 requests and a time window of 10 seconds
 	limiter := NewSlidingWindowRateLimiter(5, 10*time.Second)
 
 	hash := common.Hash{0x01}
@@ -32,10 +32,10 @@ func TestSpamLimiter_AddRequestAndCheckLimitExceeded(t *testing.T) {
 	assert.True(t, limiter.IsLimitExceeded(hash))
 }
 
-func TestSpamLimiter_WindowExpiry(t *testing.T) {
+func TestSlidingWindowRateLimiter_WindowExpiry(t *testing.T) {
 	t.Parallel()
 
-	// Create a SpamLimiter with a limit of 3 requests and a time window of 2 seconds
+	// Create a SlidingWindowRateLimiter with a limit of 3 requests and a time window of 2 seconds
 	limiter := NewSlidingWindowRateLimiter(3, 1*time.Second)
 
 	hash := common.Hash{0x02}
@@ -56,10 +56,10 @@ func TestSpamLimiter_WindowExpiry(t *testing.T) {
 	assert.False(t, limiter.IsLimitExceeded(hash))
 }
 
-func TestSpamLimiter_DifferentPeersAndHashes(t *testing.T) {
+func TestSlidingWindowRateLimiter_DifferentPeersAndHashes(t *testing.T) {
 	t.Parallel()
 
-	// Create a SpamLimiter with a limit of 2 requests and a time window of 5 seconds
+	// Create a SlidingWindowRateLimiter with a limit of 2 requests and a time window of 5 seconds
 	limiter := NewSlidingWindowRateLimiter(2, 5*time.Second)
 
 	hash1 := common.Hash{0x01}
