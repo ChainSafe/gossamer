@@ -63,7 +63,7 @@ func (s *Service) handleWarpSyncMessage(stream libp2pnetwork.Stream, msg message
 
 	if req, ok := msg.(*messages.WarpProofRequest); ok {
 		// Check if this peer has exceeded the limit of requests
-		if !s.warpSyncSpamLimiter.IsLimitExceeded(hashedreqId) {
+		if s.warpSyncSpamLimiter.IsLimitExceeded(hashedreqId) {
 			logger.Debugf("same warp sync request exceeded for peer: %s", stream.Conn().RemotePeer())
 			return nil
 		}
