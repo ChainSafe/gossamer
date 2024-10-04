@@ -213,7 +213,7 @@ func (l *TrieLookup[H, Hasher, QueryItem]) lookupValueWithCache(fullKey []byte, 
 			data, err := loadValueOwned[H](
 				// If we only have the hash cached, this can only be a value node.
 				// For inline nodes we cache them directly as `CachedValue::Existing`.
-				codec.ValueOwned(codec.ValueOwnedNode[H]{Hash: cachedVal.Hash}),
+				ValueOwned(ValueOwnedNode[H]{Hash: cachedVal.Hash}),
 				keyNibbles, // nibble_key.original_data_as_prefix(),
 				fullKey,
 				cache,
@@ -265,7 +265,7 @@ func (l *TrieLookup[H, Hasher, QueryItem]) lookupValueWithCache(fullKey []byte, 
 }
 
 type loadValueFunc[H hash.Hash, R any] func(
-	v codec.ValueOwned,
+	v ValueOwned,
 	prefix nibbles.Nibbles,
 	fullKey []byte,
 	cache TrieCache[H],
@@ -284,9 +284,12 @@ func lookupValueWithCacheInternal[H hash.Hash, Hasher hash.Hasher[H], R, QueryIt
 	hash := l.hash
 	var keyNibbles uint
 
+	// TODO: remove this
+	_ = partial
+
 	var depth uint
 	for {
-		node, err := cache.GetOrInsertNode(hash, func() (codec.NodeOwned, error) {
+		node, err := cache.GetOrInsertNode(hash, func() (NodeOwned, error) {
 			prefixedKey := append(nibbleKey.Mid(keyNibbles).Left().JoinedBytes(), hash.Bytes()...)
 			nodeData, err := l.db.Get(prefixedKey)
 			if err != nil {
@@ -302,7 +305,7 @@ func lookupValueWithCacheInternal[H hash.Hash, Hasher hash.Hasher[H], R, QueryIt
 				return nil, err
 			}
 
-			return codec.NodeOwnedFromNode[H, Hasher](decoded)
+			return NodeOwnedFromNode[H, Hasher](decoded)
 		})
 		if err != nil {
 			return nil, err
@@ -314,9 +317,9 @@ func lookupValueWithCacheInternal[H hash.Hash, Hasher hash.Hasher[H], R, QueryIt
 		// this loop iterates through all inline children (usually max 1)
 		// without incrementing the depth.
 		for {
-			var nextNode codec.NodeHandleOwned
+			var nextNode NodeHandleOwned
 			switch node := node.(type) {
-			case codec.NodeOwnedLeaf[H]:
+			case NodeOwnedLeaf[H]:
 				if partial.Equal(node.PartialKey) {
 					value := node.Value
 					r, err := loadValue(value, nibbleKey, fullKey, cache, l.db, l.recorder)
@@ -328,7 +331,7 @@ func lookupValueWithCacheInternal[H hash.Hash, Hasher hash.Hasher[H], R, QueryIt
 					l.recordAccess(NonExistingNodeAccess{fullKey})
 					return nil, nil
 				}
-			case codec.NodeOwnedBranch[H]:
+			case NodeOwnedBranch[H]:
 				if partial.Len() == 0 {
 					value := node.Value
 					r, err := loadValue(value, nibbleKey, fullKey, cache, l.db, l.recorder)
@@ -347,7 +350,7 @@ func lookupValueWithCacheInternal[H hash.Hash, Hasher hash.Hasher[H], R, QueryIt
 						return nil, nil
 					}
 				}
-			case codec.NodeOwnedEmpty:
+			case NodeOwnedEmpty:
 				l.recordAccess(NonExistingNodeAccess{FullKey: fullKey})
 			default:
 				panic("unreachable")
@@ -355,10 +358,10 @@ func lookupValueWithCacheInternal[H hash.Hash, Hasher hash.Hasher[H], R, QueryIt
 
 			// check if new node data is inline or hash.
 			switch nextNode := nextNode.(type) {
-			case codec.NodeHandleOwnedHash[H]:
+			case NodeHandleOwnedHash[H]:
 				hash = nextNode.Hash
 				break inlineLoop
-			case codec.NodeHandleOwnedInline[H]:
+			case NodeHandleOwnedInline[H]:
 				node = nextNode.NodeOwned
 			default:
 				panic("unreachable")
@@ -391,7 +394,7 @@ func (vh *valueHash[H]) CachedValue() CachedValue {
 //
 // Returns the bytes representing the value and its hash.
 func loadValueOwned[H hash.Hash](
-	v codec.ValueOwned,
+	v ValueOwned,
 	prefix nibbles.Nibbles,
 	fullKey []byte,
 	cache TrieCache[H],
@@ -399,7 +402,7 @@ func loadValueOwned[H hash.Hash](
 	recorder TrieRecorder) (valueHash[H], error) {
 
 	switch v := v.(type) {
-	case codec.ValueOwnedInline[H]:
+	case ValueOwnedInline[H]:
 		if recorder != nil {
 			recorder.Record(InlineValueAccess{fullKey})
 		}
@@ -407,14 +410,14 @@ func loadValueOwned[H hash.Hash](
 			Value: v.Value,
 			Hash:  v.Hash,
 		}, nil
-	case codec.ValueOwnedNode[H]:
-		node, err := cache.GetOrInsertNode(v.Hash, func() (codec.NodeOwned, error) {
+	case ValueOwnedNode[H]:
+		node, err := cache.GetOrInsertNode(v.Hash, func() (NodeOwned, error) {
 			prefixedKey := append(prefix.Left().JoinedBytes(), v.Hash.Bytes()...)
 			val, err := db.Get(prefixedKey)
 			if err != nil {
 				return nil, err
 			}
-			return codec.NodeOwnedValue[H]{Value: val, Hash: v.Hash}, nil
+			return NodeOwnedValue[H]{Value: val, Hash: v.Hash}, nil
 		})
 		if err != nil {
 			return valueHash[H]{}, err
@@ -422,7 +425,7 @@ func loadValueOwned[H hash.Hash](
 
 		var value []byte
 		switch node := node.(type) {
-		case codec.NodeOwnedValue[H]:
+		case NodeOwnedValue[H]:
 			value = node.Value
 		default:
 			panic("we are caching a `NodeOwnedValue` for a value node hash and this cached node has always data attached")

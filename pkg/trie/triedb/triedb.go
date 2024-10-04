@@ -1102,5 +1102,5 @@ type TrieCache[H hash.Hash] interface {
 	/// the particular node.
 	///
 	/// Returns the [`NodeOwned`] or an error that happened on fetching the node.
-	GetOrInsertNode(hash H, fetchNode func() (codec.NodeOwned, error)) (codec.NodeOwned, error)
+	GetOrInsertNode(hash H, fetchNode func() (NodeOwned, error)) (NodeOwned, error)
 }
