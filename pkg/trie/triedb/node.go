@@ -54,7 +54,6 @@ func newEncodedValue[H hash.Hash](
 		// Check and get new new value hash
 		switch cr := childRef.(type) {
 		case HashChildReference[H]:
-			// if bytes.Equal(cr, common.EmptyHash.ToBytes()) {
 			empty := *new(H)
 			if cr.Hash == empty {
 				panic("new external value are always added before encoding a node")

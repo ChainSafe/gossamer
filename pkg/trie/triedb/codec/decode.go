@@ -166,7 +166,6 @@ func decodeHashedValue[H hash.Hash](reader io.Reader) (hash H, err error) {
 		return hash, fmt.Errorf("%w: expected %d, got: %d", ErrDecodeHashedValueTooShort, (*new(H)).Length(), n)
 	}
 
-	// return buffer, nil
 	h := new(H)
 	err = scale.Unmarshal(buffer, h)
 	return *h, err
