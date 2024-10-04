@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
+	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -345,9 +346,9 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 	testCases := []struct {
 		description                 string
 		msg                         any
+		canSecond                   bool
 		deletesBlockedAdvertisement bool
 		blockedAdvertisements       map[string][]blockedAdvertisement
-		canSecond                   bool
 		errString                   string
 	}{
 		{
@@ -411,29 +412,36 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 		t.Run(c.description, func(t *testing.T) {
 			t.Parallel()
 
-			subsystemToOverseer := make(chan any)
-
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
+			overseer := overseer.NewMockableOverseer(t, false)
+			overseer.ExpectActions([]func(msg any) bool{
+				func(msg any) bool {
+					canSecondMessage, ok := msg.(backing.CanSecondMessage)
+					if !ok {
+						return false
+					}
+					canSecondMessage.ResponseCh <- c.canSecond
+
+					return true
+				},
+			}...)
 
 			collationProtocolID := "/6761727661676500000000000000000000000000000000000000000000000000/1/collations/1"
 
 			net := NewMockNetwork(ctrl)
-			net.EXPECT().RegisterNotificationsProtocol(
-				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-				gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			net.EXPECT().GetRequestResponseProtocol(gomock.Any(), collationFetchingRequestTimeout,
 				uint64(collationFetchingMaxResponseSize)).Return(&network.RequestResponseProtocol{})
-			net.EXPECT().GetNetworkEventsChannel().Return(make(chan *network.NetworkEventInfo))
-			cpvs, err := Register(net, protocol.ID(collationProtocolID), subsystemToOverseer)
-			require.NoError(t, err)
+			cpvs := New(net, protocol.ID(collationProtocolID), overseer.GetSubsystemToOverseerChannel())
 
 			cpvs.BlockedAdvertisements = c.blockedAdvertisements
 
-			go func() {
-				msg, _ := (<-subsystemToOverseer).(backing.CanSecondMessage)
-				msg.ResponseCh <- c.canSecond
-			}()
+			overseer.RegisterSubsystem(cpvs)
+
+			err := overseer.Start()
+			require.NoError(t, err)
+
+			defer overseer.Stop()
 
 			lenBlackedAdvertisementsBefore := len(cpvs.BlockedAdvertisements)
 
