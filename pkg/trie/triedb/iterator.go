@@ -372,7 +372,7 @@ func (ri *rawIterator[H, Hasher]) nextRawItem(fwd bool) (*rawItem[H], error) {
 		case statusAftExiting:
 			ri.trail = ri.trail[:len(ri.trail)-1]
 			if len(ri.trail) > 0 {
-				crumb := &ri.trail[len(ri.trail)-1] //nolint:govet
+				crumb := &ri.trail[len(ri.trail)-1]
 				crumb.step(fwd)
 			}
 		case statusExiting:
@@ -383,7 +383,7 @@ func (ri *rawIterator[H, Hasher]) nextRawItem(fwd bool) (*rawItem[H], error) {
 			default:
 				panic("unreachable")
 			}
-			crumb := &ri.trail[len(ri.trail)-1] //nolint:govet
+			crumb := &ri.trail[len(ri.trail)-1]
 			crumb.step(fwd)
 			if !fwd {
 				return &rawItem[H]{ri.keyNibbles, crumb.hash, crumb.node}, nil
