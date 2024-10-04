@@ -4,6 +4,7 @@
 package triedb
 
 import (
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 	"github.com/tidwall/btree"
 )
 
@@ -12,6 +13,10 @@ type TrieAccess interface {
 }
 
 type (
+	NodeOwnedAccess[H any] struct {
+		Hash H
+		Node codec.NodeOwned
+	}
 	EncodedNodeAccess[H any] struct {
 		Hash        H
 		EncodedNode []byte
@@ -32,6 +37,7 @@ type (
 	}
 )
 
+func (NodeOwnedAccess[H]) isTrieAccess()    {}
 func (EncodedNodeAccess[H]) isTrieAccess()  {}
 func (ValueAccess[H]) isTrieAccess()        {}
 func (InlineValueAccess) isTrieAccess()     {}
