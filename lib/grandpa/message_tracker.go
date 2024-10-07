@@ -33,13 +33,12 @@ func newTracker(bs BlockState, handler *MessageHandler) *tracker {
 		commitsCapacity = 1000
 	)
 	return &tracker{
-		blockState: bs,
-		handler:    handler,
-		votes:      newVotesTracker(votesCapacity),
-		commits:    newCommitsTracker(commitsCapacity),
-		in:         bs.GetImportedBlockNotifierChannel(),
-		stopped:    make(chan struct{}),
-
+		blockState:              bs,
+		handler:                 handler,
+		votes:                   newVotesTracker(votesCapacity),
+		commits:                 newCommitsTracker(commitsCapacity),
+		in:                      bs.GetImportedBlockNotifierChannel(),
+		stopped:                 make(chan struct{}),
 		catchUpResponseMessages: make(map[uint64]*CatchUpResponse),
 	}
 }
