@@ -1222,7 +1222,7 @@ func Test_marshal_optionality_nil_cases(t *testing.T) {
 		// create a new pointer to new zero value of t.in
 		temp := reflect.New(reflect.TypeOf(t.in))
 		// create a new pointer to type of temp
-		tempv := reflect.New(reflect.PtrTo(temp.Type()).Elem())
+		tempv := reflect.New(reflect.PointerTo(temp.Type()).Elem())
 		// set zero value to elem of **temp so that is nil
 		tempv.Elem().Set(reflect.Zero(tempv.Elem().Type()))
 		// set test.in to *temp

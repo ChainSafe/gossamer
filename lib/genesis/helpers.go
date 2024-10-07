@@ -294,14 +294,14 @@ func buildRawStructInterface(m interface{}, kv *keyValue) error {
 			kv.value = kv.value + fmt.Sprintf("%x", tba)
 			kv.iVal = append(kv.iVal, tba)
 		case int64:
-			encVal, err := scale.Marshal(uint64(v2))
+			encVal, err := scale.Marshal(uint64(v2)) //nolint:gosec
 			if err != nil {
 				return err
 			}
 			kv.value = kv.value + fmt.Sprintf("%x", encVal)
 			kv.iVal = append(kv.iVal, big.NewInt(v2))
 		case int:
-			encVal, err := scale.Marshal(uint64(v2))
+			encVal, err := scale.Marshal(uint64(v2)) //nolint:gosec
 			if err != nil {
 				return err
 			}
@@ -313,7 +313,7 @@ func buildRawStructInterface(m interface{}, kv *keyValue) error {
 				return err
 			}
 			kv.value = kv.value + fmt.Sprintf("%x", encVal)
-			kv.iVal = append(kv.iVal, big.NewInt(int64(v2)))
+			kv.iVal = append(kv.iVal, big.NewInt(int64(v2))) //nolint:gosec
 		case float64:
 			encVal, err := scale.Marshal(uint64(v2))
 			if err != nil {
@@ -357,7 +357,7 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) error {
 	for _, v := range a {
 		switch v2 := v.(type) {
 		case int:
-			encVal, err := scale.Marshal(uint64(v2))
+			encVal, err := scale.Marshal(uint64(v2)) //nolint:gosec
 			if err != nil {
 				return err
 			}

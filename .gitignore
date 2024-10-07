@@ -26,3 +26,6 @@ tmp
 # node_modules used by polkadot.js/api tests
 tests/polkadotjs_test/node_modules
 !tests/polkadotjs_test/test/*.wasm
+
+# mac specific
+.DS_Store

@@ -45,7 +45,7 @@ func SlotDuration(ctx context.Context, rpcPort string) (
 
 	slotDurationUint64 := binary.LittleEndian.Uint64(b)
 
-	slotDuration = time.Millisecond * time.Duration(slotDurationUint64)
+	slotDuration = time.Millisecond * time.Duration(slotDurationUint64) //nolint:gosec
 
 	return slotDuration, nil
 }

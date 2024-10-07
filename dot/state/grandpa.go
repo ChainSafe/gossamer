@@ -490,7 +490,7 @@ func (s *GrandpaState) GetSetIDByBlockNumber(blockNumber uint) (uint64, error) {
 
 		curr = curr - 1
 
-		if int(curr) < 0 {
+		if int(curr) < 0 { //nolint:gosec
 			return 0, nil
 		}
 	}
