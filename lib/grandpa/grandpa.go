@@ -172,8 +172,7 @@ func NewService(cfg *Config) (*Service, error) {
 
 // Start begins the GRANDPA finality service
 func (s *Service) Start() error {
-	// Start the neighbor message tracker
-	s.neighborTracker.Start() // TODO fix
+	s.neighborTracker.Start()
 
 	// if we're not an authority, we don't need to worry about the voting process.
 	// the grandpa service is only used to verify incoming block justifications
@@ -1151,30 +1150,8 @@ func (s *Service) handleVoteMessage(from peer.ID, vote *VoteMessage) (err error)
 	return nil
 }
 
-func (s *Service) handleNeighborMessage(round uint64, setID uint64) error {
-	// TODO sender side of neighbor msg
-	highestHeader, err := s.blockState.GetHighestFinalisedHeader()
-	if err != nil {
-		return err
-	}
-	neighbourMessage := &NeighbourPacketV1{
-		Round:  round,
-		SetID:  setID,
-		Number: uint32(highestHeader.Number),
-	}
-
-	cm, err := neighbourMessage.ToConsensusMessage()
-	if err != nil {
-		return fmt.Errorf("converting neighbour message to network message: %w", err)
-	}
-
-	logger.Errorf("sending neighbour message: %v", neighbourMessage)
-	s.network.GossipMessage(cm)
-	return nil
-}
-
 func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
-	logger.Warnf("received commit message: %+v", commitMessage)
+	logger.Debugf("received commit message: %+v", commitMessage)
 
 	err := verifyBlockHashAgainstBlockNumber(s.blockState,
 		commitMessage.Vote.Hash, uint(commitMessage.Vote.Number))

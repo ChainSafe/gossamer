@@ -22,17 +22,11 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-var (
-	ErrNeighbourVersionNotSupported = errors.New("neighbour version not supported")
-)
-
 // MessageHandler handles GRANDPA consensus messages
 type MessageHandler struct {
 	grandpa    *Service
 	blockState BlockState
 	telemetry  Telemetry
-
-	isStart bool // This is a temp hacky way
 }
 
 // NewMessageHandler returns a new MessageHandler
@@ -41,7 +35,6 @@ func NewMessageHandler(grandpa *Service, blockState BlockState, telemetryMailer 
 		grandpa:    grandpa,
 		blockState: blockState,
 		telemetry:  telemetryMailer,
-		isStart:    true,
 	}
 }
 
@@ -122,14 +115,11 @@ func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest) (*ConsensusMe
 }
 
 func (h *MessageHandler) handleCatchUpResponse(msg *CatchUpResponse) error {
-	logger.Warnf(
-		"received catch up response with hash %s for round %d and set id %d",
-		msg.Hash, msg.Round, msg.SetID)
 	if !h.grandpa.authority {
 		return nil
 	}
 
-	logger.Warnf(
+	logger.Debugf(
 		"received catch up response with hash %s for round %d and set id %d",
 		msg.Hash, msg.Round, msg.SetID)
 
