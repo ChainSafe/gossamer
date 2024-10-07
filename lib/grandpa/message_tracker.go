@@ -22,8 +22,6 @@ type tracker struct {
 	in         chan *types.Block // receive imported block from BlockState
 	stopped    chan struct{}
 
-	neighborIn chan NeighbourPacketV1 // trigger the sending of a neighbor message
-
 	catchUpResponseMessageMutex sync.Mutex
 	// round(uint64) is used as key and *CatchUpResponse as value
 	catchUpResponseMessages map[uint64]*CatchUpResponse
@@ -41,8 +39,6 @@ func newTracker(bs BlockState, handler *MessageHandler) *tracker {
 		commits:    newCommitsTracker(commitsCapacity),
 		in:         bs.GetImportedBlockNotifierChannel(),
 		stopped:    make(chan struct{}),
-
-		neighborIn: make(chan NeighbourPacketV1),
 
 		catchUpResponseMessages: make(map[uint64]*CatchUpResponse),
 	}
@@ -67,11 +63,6 @@ func (t *tracker) addVote(peerID peer.ID, message *VoteMessage) {
 
 func (t *tracker) addCommit(cm *CommitMessage) {
 	t.commits.add(cm)
-	t.neighborIn <- NeighbourPacketV1{
-		Round:  cm.Round + 1,
-		SetID:  cm.SetID, // need to check for set changes
-		Number: 0,        // This gets modified later
-	}
 }
 
 func (t *tracker) addCatchUpResponse(_ *CatchUpResponse) {
