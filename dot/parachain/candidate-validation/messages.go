@@ -59,6 +59,6 @@ const (
 	// * checking updates to this stored runtime configuration do not exceed this limit
 	// * when detecting a code decompression bomb in the client
 	// NOTE: This value is used in the runtime so be careful when changing it.
-	MoxCodeSize             = 3 * 1024 * 1024
-	ValidationCodeBobmLimit = MoxCodeSize * 4
+	MaxCodeSize             = 3 * 1024 * 1024
+	ValidationCodeBobmLimit = MaxCodeSize * 4
 )

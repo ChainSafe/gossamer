@@ -164,7 +164,7 @@ func ExecutorParamsAtRelayParent(rt runtime.Instance, relayParent common.Hash,
 
 	if executorParams == nil {
 		// should never happen
-		return nil, fmt.Errorf("executor params for relay parent %s is nil", relayParent)
+		panic(fmt.Sprintf("executor params for relay parent %s is nil", relayParent))
 	}
 
 	return executorParams, nil
