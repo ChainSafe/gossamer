@@ -86,8 +86,11 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 }
 
 func (h *MessageHandler) handleNeighbourMessage(packet *NeighbourPacketV1, from peer.ID) error {
-	// TODO figure out if i need to do anything more than this, i suspect no
-	h.grandpa.neighborTracker.UpdatePeer(from, packet.SetID, packet.Round)
+	logger.Debugf("handleing neighbor message from peer %v with set id %v and round %v", from, packet.SetID, packet.Round)
+	h.grandpa.neighborMsgChan <- neighborData{
+		peer:        from,
+		neighborMsg: packet,
+	}
 	return nil
 }
 
