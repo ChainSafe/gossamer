@@ -77,7 +77,8 @@ type Service struct {
 	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
 
 	// channels for communication with other services
-	finalisedCh chan *types.FinalisationInfo
+	finalisedCh     chan *types.FinalisationInfo
+	neighborMsgChan chan neighborData
 
 	telemetry Telemetry
 
@@ -153,8 +154,10 @@ func NewService(cfg *Config) (*Service, error) {
 		finalisedCh:        finalisedCh,
 		interval:           cfg.Interval,
 		telemetry:          cfg.Telemetry,
-		neighborTracker:    NewNeighborTracker(cfg.Network),
+		neighborMsgChan:    make(chan neighborData),
 	}
+
+	s.neighborTracker = NewNeighborTracker(s, s.neighborMsgChan)
 
 	if err := s.registerProtocol(); err != nil {
 		return nil, err
@@ -169,6 +172,9 @@ func NewService(cfg *Config) (*Service, error) {
 
 // Start begins the GRANDPA finality service
 func (s *Service) Start() error {
+	// Start the neighbor message tracker
+	s.neighborTracker.Start() // TODO fix
+
 	// if we're not an authority, we don't need to worry about the voting process.
 	// the grandpa service is only used to verify incoming block justifications
 	if !s.authority {
@@ -194,6 +200,8 @@ func (s *Service) Stop() error {
 
 	s.cancel()
 	s.blockState.FreeFinalisedNotifierChannel(s.finalisedCh)
+
+	s.neighborTracker.Stop()
 
 	if !s.authority {
 		return nil
