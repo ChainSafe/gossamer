@@ -52,7 +52,7 @@ func (rl *SlidingWindowRateLimiter) IsLimitExceeded(id common.Hash) bool {
 	recentRequests := rl.recentRequests(id)
 	rl.limits.Put(id, recentRequests)
 
-	return uint32(len(recentRequests)) > rl.maxReqs
+	return uint32(len(recentRequests)) > rl.maxReqs //nolint:gosec
 }
 
 func (rl *SlidingWindowRateLimiter) recentRequests(id common.Hash) []time.Time {
