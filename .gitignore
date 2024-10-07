@@ -22,7 +22,6 @@
 test_data
 trie_putandget_failed_test_data_*
 tmp
-lib/erasure
 
 # node_modules used by polkadot.js/api tests
 tests/polkadotjs_test/node_modules
