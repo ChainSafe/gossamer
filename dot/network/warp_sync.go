@@ -5,12 +5,15 @@ package network
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/lib/common"
 	libp2pnetwork "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
+
+const MaxAllowedSameRequestPerPeer = 5
 
 // WarpSyncProvider is an interface for generating warp sync proofs
 type WarpSyncProvider interface {
@@ -55,7 +58,20 @@ func (s *Service) handleWarpSyncMessage(stream libp2pnetwork.Stream, msg message
 		}
 	}()
 
+	reqId := fmt.Sprintf("%s-%s", stream.Conn().RemotePeer(), msg.String())
+	hashedreqId := common.MustBlake2bHash([]byte(reqId))
+
 	if req, ok := msg.(*messages.WarpProofRequest); ok {
+		// Check if this peer has exceeded the limit of requests
+		if s.warpSyncSpamLimiter.IsLimitExceeded(hashedreqId) {
+			logger.Debugf("same warp sync request exceeded for peer: %s", stream.Conn().RemotePeer())
+			return nil
+		}
+
+		// Add the request to the spam limiter
+		s.warpSyncSpamLimiter.AddRequest(hashedreqId)
+
+		// Handle request
 		resp, err := s.handleWarpSyncRequest(*req)
 		if err != nil {
 			logger.Debugf("cannot create response for request: %s", err)

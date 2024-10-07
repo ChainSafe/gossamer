@@ -13,6 +13,7 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/libp2p/go-libp2p/core/crypto"
 
+	"github.com/ChainSafe/gossamer/dot/network/ratelimiters"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -113,6 +114,9 @@ type Config struct {
 
 	Telemetry Telemetry
 	Metrics   metrics.IntervalConfig
+
+	// Spam limiters configuration
+	warpSyncSpamLimiter RateLimiter
 }
 
 // build checks the configuration, sets up the private key for the network service,
@@ -152,6 +156,14 @@ func (c *Config) build() error {
 	// set telemetryInterval to default
 	if c.telemetryInterval.Microseconds() == 0 {
 		c.telemetryInterval = time.Second * 5
+	}
+
+	// set warp sync spam limiter to default
+	if c.warpSyncSpamLimiter == nil {
+		c.warpSyncSpamLimiter = ratelimiters.NewSlidingWindowRateLimiter(
+			ratelimiters.DefaultMaxCachedRequestSize,
+			ratelimiters.DefaultMaxSlidingWindowTime,
+		)
 	}
 
 	return nil

@@ -6,6 +6,8 @@ package network
 import (
 	"encoding/json"
 	"io"
+
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // Telemetry is the telemetry client to send telemetry messages.
@@ -26,4 +28,10 @@ type Logger interface {
 type MDNS interface {
 	Start() error
 	io.Closer
+}
+
+// RateLimiter is the interface for rate limiting requests.
+type RateLimiter interface {
+	AddRequest(id common.Hash)
+	IsLimitExceeded(id common.Hash) bool
 }

@@ -145,6 +145,9 @@ type Service struct {
 	closeCh           chan struct{}
 
 	telemetry Telemetry
+
+	// Spam control
+	warpSyncSpamLimiter RateLimiter
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -226,6 +229,7 @@ func NewService(cfg *Config) (*Service, error) {
 		streamManager:          newStreamManager(ctx),
 		telemetry:              cfg.Telemetry,
 		Metrics:                cfg.Metrics,
+		warpSyncSpamLimiter:    cfg.warpSyncSpamLimiter,
 	}
 
 	return network, nil
