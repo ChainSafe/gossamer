@@ -13,8 +13,11 @@ import (
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
+	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
+
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	statementedistributionmessages "github.com/ChainSafe/gossamer/dot/parachain/statement-distribution/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -120,13 +123,26 @@ func (o *OverseerSystem) processMessages() {
 	for {
 		select {
 		case msg := <-o.SubsystemsToOverseer:
+
 			var subsystem parachaintypes.Subsystem
 
 			switch msg := msg.(type) {
+			case networkbridgemessages.NewGossipTopology, networkbridgemessages.UpdateAuthorityIDs:
+				subsystem = o.nameToSubsystem[parachaintypes.NetworkBridgeReceiver]
+
 			case networkbridgemessages.DisconnectPeer, networkbridgemessages.ConnectToValidators,
 				networkbridgemessages.ReportPeer, networkbridgemessages.SendCollationMessage,
 				networkbridgemessages.SendValidationMessage:
 				subsystem = o.nameToSubsystem[parachaintypes.NetworkBridgeSender]
+
+			case networkbridgeevents.Event[collatorprotocolmessages.CollationProtocol]:
+				subsystem = o.nameToSubsystem[parachaintypes.CollationProtocol]
+
+			case networkbridgeevents.Event[validationprotocol.ValidationProtocol]:
+				// TODO: relay it to relevant subsystem based on the message type.
+				// statement distribution
+				// approval distribution
+				// bitfield distribution
 
 			case backing.GetBackableCandidatesMessage, backing.CanSecondMessage, backing.SecondMessage, backing.StatementMessage:
 				subsystem = o.nameToSubsystem[parachaintypes.CandidateBacking]
