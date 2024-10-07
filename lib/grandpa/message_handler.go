@@ -79,7 +79,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 }
 
 func (h *MessageHandler) handleNeighbourMessage(packet *NeighbourPacketV1, from peer.ID) error {
-	logger.Debugf("handleing neighbor message from peer %v with set id %v and round %v", from, packet.SetID, packet.Round)
+	logger.Debugf("handling neighbor message from peer %v with set id %v and round %v", from.ShortString(), packet.SetID, packet.Round)
 	h.grandpa.neighborMsgChan <- neighborData{
 		peer:        from,
 		neighborMsg: packet,

@@ -13,9 +13,9 @@ type neighborData struct {
 }
 
 type neighborState struct {
-	setID uint64
-	round uint64
-	//highestFinalized uint32 not sure if i need this or not
+	setID            uint64
+	round            uint64
+	highestFinalized uint32
 }
 
 type NeighborTracker struct {
@@ -68,15 +68,17 @@ func (nt *NeighborTracker) run() {
 			}
 
 		case block := <-nt.finalizationCha:
-			nt.UpdateState(block.SetID, block.Round, uint32(block.Header.Number))
-			err := nt.BroadcastNeighborMsg()
-			if err != nil {
-				logger.Errorf("broadcasting neighbor message: %v", err)
+			if block != nil {
+				nt.UpdateState(block.SetID, block.Round, uint32(block.Header.Number))
+				err := nt.BroadcastNeighborMsg()
+				if err != nil {
+					logger.Errorf("broadcasting neighbor message: %v", err)
+				}
+				ticker.Reset(duration)
 			}
-			ticker.Reset(duration)
 		case neighborData := <-nt.neighborMsgChan:
-			if neighborData.neighborMsg != nil {
-				nt.UpdatePeer(neighborData.peer, neighborData.neighborMsg.SetID, neighborData.neighborMsg.Round)
+			if neighborData.neighborMsg.Number > nt.peerview[neighborData.peer].highestFinalized {
+				nt.UpdatePeer(neighborData.peer, neighborData.neighborMsg.SetID, neighborData.neighborMsg.Round, neighborData.neighborMsg.Number)
 			}
 		case <-nt.stoppedNeighbor:
 			logger.Info("stopping neighbor tracker")
@@ -91,15 +93,15 @@ func (nt *NeighborTracker) UpdateState(setID uint64, round uint64, highestFinali
 	nt.highestFinalized = highestFinalized
 }
 
-func (nt *NeighborTracker) UpdatePeer(p peer.ID, setID uint64, round uint64) {
-	peerState := neighborState{setID, round}
+func (nt *NeighborTracker) UpdatePeer(p peer.ID, setID uint64, round uint64, highestFinalized uint32) {
+	peerState := neighborState{setID, round, highestFinalized}
 	nt.peerview[p] = peerState
 }
 
 func (nt *NeighborTracker) BroadcastNeighborMsg() error {
 	logger.Warnf("braodcasting neighbor message to relevant peers")
 	for id, peerState := range nt.peerview {
-		if !(peerState.round < nt.currentRound || peerState.setID < nt.currentSetID) {
+		if peerState.setID > nt.currentSetID || peerState.round > nt.currentRound {
 			packet := NeighbourPacketV1{
 				Round:  nt.currentRound,
 				SetID:  nt.currentSetID,
