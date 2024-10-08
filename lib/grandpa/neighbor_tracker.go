@@ -70,8 +70,11 @@ func (nt *NeighborTracker) run() {
 
 		case block := <-nt.finalizationCha:
 			if block != nil {
-				nt.UpdateState(block.SetID, block.Round, uint32(block.Header.Number))
-				err := nt.BroadcastNeighborMsg()
+				err := nt.UpdateState(block.SetID, block.Round, uint32(block.Header.Number))
+				if err != nil {
+					logger.Errorf("updating neighbor state: %v", err)
+				}
+				err = nt.BroadcastNeighborMsg()
 				if err != nil {
 					logger.Errorf("broadcasting neighbor message: %v", err)
 				}
@@ -79,7 +82,10 @@ func (nt *NeighborTracker) run() {
 			}
 		case neighborData := <-nt.neighborMsgChan:
 			if neighborData.neighborMsg.Number > nt.peerview[neighborData.peer].highestFinalized {
-				nt.UpdatePeer(neighborData.peer, neighborData.neighborMsg.SetID, neighborData.neighborMsg.Round, neighborData.neighborMsg.Number)
+				err := nt.UpdatePeer(neighborData.peer, neighborData.neighborMsg.SetID, neighborData.neighborMsg.Round, neighborData.neighborMsg.Number)
+				if err != nil {
+					logger.Errorf("updating neighbor: %v", err)
+				}
 			}
 		case <-nt.stoppedNeighbor:
 			logger.Info("stopping neighbor tracker")
@@ -88,15 +94,26 @@ func (nt *NeighborTracker) run() {
 	}
 }
 
-func (nt *NeighborTracker) UpdateState(setID uint64, round uint64, highestFinalized uint32) {
+func (nt *NeighborTracker) UpdateState(setID uint64, round uint64, highestFinalized uint32) error {
+	if nt == nil {
+		return fmt.Errorf("neighbor tracker is nil")
+	}
 	nt.currentSetID = setID
 	nt.currentRound = round
 	nt.highestFinalized = highestFinalized
+	return nil
 }
 
-func (nt *NeighborTracker) UpdatePeer(p peer.ID, setID uint64, round uint64, highestFinalized uint32) {
+func (nt *NeighborTracker) UpdatePeer(p peer.ID, setID uint64, round uint64, highestFinalized uint32) error {
+	if nt == nil {
+		return fmt.Errorf("neighbor tracker is nil")
+	}
+	if nt.peerview == nil {
+		return fmt.Errorf("neighbour tracker has nil peer tracker")
+	}
 	peerState := neighborState{setID, round, highestFinalized}
 	nt.peerview[p] = peerState
+	return nil
 }
 
 func (nt *NeighborTracker) BroadcastNeighborMsg() error {
