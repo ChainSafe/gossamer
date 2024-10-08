@@ -25,7 +25,7 @@ require (
 	github.com/ipfs/go-ds-badger4 v0.1.5
 	github.com/jpillora/backoff v1.0.0
 	github.com/jpillora/ipfilter v1.2.9
-	github.com/karlseguin/ccache/v3 v3.0.5
+	github.com/karlseguin/ccache/v3 v3.0.6
 	github.com/klauspost/compress v1.17.10
 	github.com/libp2p/go-libp2p v0.36.2
 	github.com/libp2p/go-libp2p-kad-dht v0.27.0
