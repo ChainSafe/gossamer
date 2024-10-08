@@ -101,7 +101,10 @@ func (cv *CandidateValidation) processMessage(msg any) {
 		}
 
 	case PreCheck:
-		outcome := cv.precheckPvF(msg.RelayParent, msg.ValidationCodeHash)
+		outcome, err := cv.precheckPvF(msg.RelayParent, msg.ValidationCodeHash)
+		if err != nil {
+			logger.Errorf("failed to precheck: %w", err)
+		}
 		logger.Debugf("Precheck outcome: %v", outcome)
 		msg.ResponseSender <- outcome
 
@@ -234,30 +237,26 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 // precheckPvF prechecks the parachain validation function by retrieving the validation code from the runtime instance
 // and calling the precheck method on the pvf host. It returns the precheck outcome.
 func (cv *CandidateValidation) precheckPvF(relayParent common.Hash, validationCodeHash parachaintypes.
-	ValidationCodeHash) PreCheckOutcome {
+	ValidationCodeHash) (PreCheckOutcome, error) {
 	runtimeInstance, err := cv.BlockState.GetRuntime(relayParent)
 	if err != nil {
-		logger.Errorf("failed to get runtime instance: %w", err)
-		return PreCheckOutcomeFailed
+		return PreCheckOutcomeFailed, fmt.Errorf("failed to get runtime instance: %w", err)
 	}
 
 	code, err := runtimeInstance.ParachainHostValidationCodeByHash(common.Hash(validationCodeHash))
 	if err != nil {
-		logger.Errorf("failed to get validation code by hash: %w", err)
-		return PreCheckOutcomeFailed
+		return PreCheckOutcomeFailed, fmt.Errorf("failed to get validation code by hash: %w", err)
 	}
 
 	executorParams, err := util.ExecutorParamsAtRelayParent(runtimeInstance, relayParent)
 	if err != nil {
-		logger.Errorf("failed to acquire params for the session, thus voting against: %w", err)
-		return PreCheckOutcomeInvalid
+		return PreCheckOutcomeInvalid, fmt.Errorf("failed to acquire params for the session, thus voting against: %w", err)
 	}
 
 	kind := parachaintypes.NewPvfPrepTimeoutKind()
 	err = kind.SetValue(parachaintypes.Precheck{})
 	if err != nil {
-		logger.Errorf("failed to set value: %w", err)
-		return PreCheckOutcomeFailed
+		return PreCheckOutcomeFailed, fmt.Errorf("failed to set value: %w", err)
 	}
 
 	prepTimeout := pvfPrepTimeout(*executorParams, kind)
@@ -271,10 +270,9 @@ func (cv *CandidateValidation) precheckPvF(relayParent common.Hash, validationCo
 	}
 	err = cv.pvfHost.precheck(pvf)
 	if err != nil {
-		logger.Errorf("failed to precheck: %w", err)
-		return PreCheckOutcomeFailed
+		return PreCheckOutcomeFailed, fmt.Errorf("failed to precheck: %w", err)
 	}
-	return PreCheckOutcomeValid
+	return PreCheckOutcomeValid, nil
 }
 
 // pvfPrepTimeout To determine the amount of timeout time for the pvf execution.
@@ -290,6 +288,7 @@ func pvfPrepTimeout(params parachaintypes.ExecutorParams, kind parachaintypes.Pv
 		}
 		switch val := val.(type) {
 		case parachaintypes.PvfPrepTimeout:
+			// convert milliseconds to nanoseconds and cast to time.Duration.
 			return time.Duration(val.Millisec * 1000000)
 		}
 	}

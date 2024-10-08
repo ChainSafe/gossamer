@@ -36,7 +36,6 @@ func newWorker(validationCode parachaintypes.ValidationCode, setupTimeout time.D
 	select {
 	case validationResultWErr := <-runtimeSetupResultCh:
 		if validationResultWErr.err != nil {
-			logger.Errorf("setting up runtime instance: %w", validationResultWErr.err)
 			return nil, validationResultWErr.err
 		}
 		parachainRuntime = validationResultWErr.result.(*parachainruntime.Instance)
