@@ -108,7 +108,7 @@ func newVotingRound[
 	votes := NewRound[ID, Hash, Number, Signature](roundParams)
 
 	primaryVoterID, _ := votes.PrimaryVoter()
-	var voting voting //nolint:govet
+	var voting voting
 	if roundData.VoterID != nil && *roundData.VoterID == primaryVoterID {
 		voting = votingPrimary
 	} else if roundData.VoterID != nil && votes.Voters().Contains(*roundData.VoterID) {

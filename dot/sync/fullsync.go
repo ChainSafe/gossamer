@@ -110,12 +110,12 @@ func (f *FullSyncStrategy) NextActions() ([]*SyncTask, error) {
 	// our best block is equal or ahead of current target.
 	// in the node's pov we are not legging behind so there's nothing to do
 	// or we didn't receive block announces, so lets ask for more blocks
-	if uint32(bestBlockHeader.Number) >= currentTarget {
+	if uint32(bestBlockHeader.Number) >= currentTarget { //nolint:gosec
 		return f.createTasks(reqsFromQueue), nil
 	}
 
 	startRequestAt := bestBlockHeader.Number + 1
-	targetBlockNumber := startRequestAt + uint(f.numOfTasks)*127
+	targetBlockNumber := startRequestAt + uint(f.numOfTasks)*127 //nolint:gosec
 
 	if targetBlockNumber > uint(currentTarget) {
 		targetBlockNumber = uint(currentTarget)
@@ -312,7 +312,7 @@ func (f *FullSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 	}
 
 	if msg.BestBlock {
-		f.peers.update(from, blockAnnounceHeaderHash, uint32(blockAnnounceHeader.Number))
+		f.peers.update(from, blockAnnounceHeaderHash, uint32(blockAnnounceHeader.Number)) //nolint:gosec
 	}
 
 	highestFinalized, err := f.blockState.GetHighestFinalisedHeader()
@@ -387,7 +387,7 @@ func (f *FullSyncStrategy) IsSynced() bool {
 	}
 
 	logger.Infof("highest block: %d target %d", highestBlock, f.peers.getTarget())
-	return uint32(highestBlock)+messages.MaxBlocksInResponse >= f.peers.getTarget()
+	return uint32(highestBlock)+messages.MaxBlocksInResponse >= f.peers.getTarget() //nolint:gosec
 }
 
 type RequestResponseData struct {

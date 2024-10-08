@@ -136,7 +136,7 @@ func iter1s(iter []uint64, start, step uint) (bit1s []bit1) {
 		for j := uint(0); j < steps; j++ {
 			bitPos := start + (j << step)
 			if testBit(word, bitPos) {
-				bit1s = append(bit1s, bit1{uint(i)*64 + bitPos})
+				bit1s = append(bit1s, bit1{uint(i)*64 + bitPos}) //nolint:gosec
 			}
 		}
 	}

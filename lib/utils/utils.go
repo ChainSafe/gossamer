@@ -75,7 +75,7 @@ func KeystoreDir(basepath string) (keystorepath string, err error) {
 
 	// if basepath does not exist, create it
 	if _, err = os.Stat(keystorepath); os.IsNotExist(err) {
-		err = os.Mkdir(keystorepath, os.ModePerm)
+		err = os.Mkdir(keystorepath, os.ModePerm) //nolint:gosec
 		if err != nil {
 			return "", fmt.Errorf("failed to create data directory: %s", err)
 		}
@@ -83,7 +83,7 @@ func KeystoreDir(basepath string) (keystorepath string, err error) {
 
 	// if basepath/keystore does not exist, create it
 	if _, err = os.Stat(keystorepath); os.IsNotExist(err) {
-		err = os.Mkdir(keystorepath, os.ModePerm)
+		err = os.Mkdir(keystorepath, os.ModePerm) //nolint:gosec
 		if err != nil {
 			return "", fmt.Errorf("failed to create keystore directory: %s", err)
 		}

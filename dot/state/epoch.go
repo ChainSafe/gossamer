@@ -475,7 +475,7 @@ func (s *EpochState) GetConfigData(epoch uint64, header *types.Header) (configDa
 		}
 	}
 
-	for tryEpoch := int(epoch); tryEpoch >= 0; tryEpoch-- {
+	for tryEpoch := int(epoch); tryEpoch >= 0; tryEpoch-- { //nolint:gosec
 		if tryEpoch == 0 {
 			return s.genesisEpochDescriptor.ConfigData, nil
 		}
@@ -819,7 +819,7 @@ func (s *EpochState) GetStartSlotForEpoch(epoch uint64, bestBlockHash common.Has
 				if err != nil {
 					return 0, fmt.Errorf("getting slot duration: %w", err)
 				}
-				return uint64(time.Now().UnixNano()) / uint64(slotDuration.Nanoseconds()), nil
+				return uint64(time.Now().UnixNano()) / uint64(slotDuration.Nanoseconds()), nil //nolint:gosec
 			}
 
 			return 0, fmt.Errorf(
