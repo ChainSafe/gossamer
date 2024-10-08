@@ -201,6 +201,7 @@ func (s *Service) Stop() error {
 	s.blockState.FreeFinalisedNotifierChannel(s.finalisedCh)
 
 	s.neighborTracker.Stop()
+	close(s.neighborTracker.neighborMsgChan)
 
 	if !s.authority {
 		return nil

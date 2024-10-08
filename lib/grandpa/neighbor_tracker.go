@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+// NeighborBroadcastPeriod See https://github.com/paritytech/polkadot-sdk/blob/08498f5473351c3d2f8eacbe1bfd7bc6d3a2ef8d/substrate/client/consensus/grandpa/src/communication/mod.rs#L73
+const NeighborBroadcastPeriod = time.Minute * 2
+
 type neighborData struct {
 	peer        peer.ID
 	neighborMsg *NeighbourPacketV1
@@ -47,14 +50,12 @@ func (nt *NeighborTracker) Start() {
 
 func (nt *NeighborTracker) Stop() {
 	nt.grandpa.blockState.FreeFinalisedNotifierChannel(nt.finalizationCha)
-	nt.stoppedNeighbor <- struct{}{}
-	close(nt.neighborMsgChan)
+	close(nt.stoppedNeighbor)
 }
 
 func (nt *NeighborTracker) run() {
 	logger.Info("starting neighbor tracker")
-	// https://github.com/paritytech/polkadot-sdk/blob/08498f5473351c3d2f8eacbe1bfd7bc6d3a2ef8d/substrate/client/consensus/grandpa/src/communication/mod.rs#L73
-	const duration = time.Minute * 2
+	const duration = NeighborBroadcastPeriod
 	ticker := time.NewTicker(duration)
 	defer ticker.Stop()
 
@@ -100,19 +101,18 @@ func (nt *NeighborTracker) UpdatePeer(p peer.ID, setID uint64, round uint64, hig
 
 func (nt *NeighborTracker) BroadcastNeighborMsg() error {
 	logger.Warnf("braodcasting neighbor message to relevant peers")
+	packet := NeighbourPacketV1{
+		Round:  nt.currentRound,
+		SetID:  nt.currentSetID,
+		Number: nt.highestFinalized,
+	}
+
+	cm, err := packet.ToConsensusMessage()
+	if err != nil {
+		return fmt.Errorf("converting NeighbourPacketV1 to network message: %w", err)
+	}
 	for id, peerState := range nt.peerview {
-		if peerState.setID > nt.currentSetID || peerState.round > nt.currentRound {
-			packet := NeighbourPacketV1{
-				Round:  nt.currentRound,
-				SetID:  nt.currentSetID,
-				Number: nt.highestFinalized,
-			}
-
-			cm, err := packet.ToConsensusMessage()
-			if err != nil {
-				return fmt.Errorf("converting NeighbourPacketV1 to network message: %w", err)
-			}
-
+		if peerState.round >= nt.currentRound && peerState.setID >= nt.currentSetID {
 			err = nt.grandpa.network.SendMessage(id, cm)
 			if err != nil {
 				return fmt.Errorf("sending message to peer: %v", id)
