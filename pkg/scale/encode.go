@@ -86,7 +86,7 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 
 	switch in := in.(type) {
 	case int:
-		err = es.encodeUint(uint(in))
+		err = es.encodeUint(uint(in)) //nolint:gosec
 	case uint:
 		err = es.encodeUint(in)
 	case int8, uint8, int16, uint16, int32, uint32, int64, uint64:
@@ -279,14 +279,14 @@ func (es *encodeState) encodeBigInt(i *big.Int) (err error) {
 	case i == nil:
 		err = fmt.Errorf("%w", errBigIntIsNil)
 	case i.Cmp(new(big.Int).Lsh(big.NewInt(1), 6)) < 0:
-		err = binary.Write(es, binary.LittleEndian, uint8(i.Int64()<<2))
+		err = binary.Write(es, binary.LittleEndian, uint8(i.Int64()<<2)) //nolint:gosec
 	case i.Cmp(new(big.Int).Lsh(big.NewInt(1), 14)) < 0:
-		err = binary.Write(es, binary.LittleEndian, uint16(i.Int64()<<2)+1)
+		err = binary.Write(es, binary.LittleEndian, uint16(i.Int64()<<2)+1) //nolint:gosec
 	case i.Cmp(new(big.Int).Lsh(big.NewInt(1), 30)) < 0:
-		err = binary.Write(es, binary.LittleEndian, uint32(i.Int64()<<2)+2)
+		err = binary.Write(es, binary.LittleEndian, uint32(i.Int64()<<2)+2) //nolint:gosec
 	default:
 		numBytes := len(i.Bytes())
-		topSixBits := uint8(numBytes - 4)
+		topSixBits := uint8(numBytes - 4) //nolint:gosec
 		lengthByte := topSixBits<<2 + 3
 
 		// write byte which encodes mode and length
@@ -337,15 +337,15 @@ func (es *encodeState) encodeFixedWidthInt(i interface{}) (err error) {
 	case uint8:
 		err = binary.Write(es, binary.LittleEndian, i)
 	case int16:
-		err = binary.Write(es, binary.LittleEndian, uint16(i))
+		err = binary.Write(es, binary.LittleEndian, uint16(i)) //nolint:gosec
 	case uint16:
 		err = binary.Write(es, binary.LittleEndian, i)
 	case int32:
-		err = binary.Write(es, binary.LittleEndian, uint32(i))
+		err = binary.Write(es, binary.LittleEndian, uint32(i)) //nolint:gosec
 	case uint32:
 		err = binary.Write(es, binary.LittleEndian, i)
 	case int64:
-		err = binary.Write(es, binary.LittleEndian, uint64(i))
+		err = binary.Write(es, binary.LittleEndian, uint64(i)) //nolint:gosec
 	case uint64:
 		err = binary.Write(es, binary.LittleEndian, i)
 	default:
@@ -377,7 +377,7 @@ func (es *encodeState) encodeStruct(in interface{}) (err error) {
 
 // encodeLength is a helper function that calls encodeUint, which is the scale length encoding
 func (es *encodeState) encodeLength(l int) (err error) {
-	return es.encodeUint(uint(l))
+	return es.encodeUint(uint(l)) //nolint:gosec
 }
 
 // encodeUint performs the following on integer i:
@@ -394,9 +394,9 @@ func (es *encodeState) encodeUint(i uint) (err error) {
 	case i < 1<<6:
 		err = binary.Write(es, binary.LittleEndian, byte(i)<<2)
 	case i < 1<<14:
-		err = binary.Write(es, binary.LittleEndian, uint16(i<<2)+1)
+		err = binary.Write(es, binary.LittleEndian, uint16(i<<2)+1) //nolint:gosec
 	case i < 1<<30:
-		err = binary.Write(es, binary.LittleEndian, uint32(i<<2)+2)
+		err = binary.Write(es, binary.LittleEndian, uint32(i<<2)+2) //nolint:gosec
 	default:
 		o := make([]byte, 8)
 		m := i
@@ -409,7 +409,7 @@ func (es *encodeState) encodeUint(i uint) (err error) {
 			m = m >> 8
 		}
 
-		topSixBits := uint8(numBytes - 4)
+		topSixBits := uint8(numBytes - 4) //nolint:gosec
 		lengthByte := topSixBits<<2 + 3
 
 		err = binary.Write(es, binary.LittleEndian, lengthByte)

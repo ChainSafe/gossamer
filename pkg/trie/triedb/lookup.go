@@ -72,7 +72,7 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 
 			switch n := decodedNode.(type) {
 			case codec.Empty:
-				return nil, nil
+				return nil, nil //nolint:nilnil
 			case codec.Leaf:
 				// We are in the node we were looking for
 				if bytes.Equal(partialKey, n.PartialKey) {
@@ -81,7 +81,7 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 
 				l.recordAccess(nonExistingNodeAccess{fullKey: keyNibbles})
 
-				return nil, nil
+				return nil, nil //nolint:nilnil
 			case codec.Branch:
 				nodePartialKey := n.PartialKey
 
@@ -90,7 +90,7 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 				// doesn't share the prefix we are expecting
 				if !bytes.HasPrefix(partialKey, nodePartialKey) {
 					l.recordAccess(nonExistingNodeAccess{fullKey: keyNibbles})
-					return nil, nil
+					return nil, nil //nolint:nilnil
 				}
 
 				// We are in the node we were looking for
@@ -100,7 +100,7 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 					}
 
 					l.recordAccess(nonExistingNodeAccess{fullKey: keyNibbles})
-					return nil, nil
+					return nil, nil //nolint:nilnil
 				}
 
 				// This is not the node we were looking for but it might be in
@@ -109,7 +109,7 @@ func (l *TrieLookup) lookupNode(keyNibbles []byte) (codec.EncodedNode, error) {
 				nextNode = n.Children[childIdx]
 				if nextNode == nil {
 					l.recordAccess(nonExistingNodeAccess{fullKey: keyNibbles})
-					return nil, nil
+					return nil, nil //nolint:nilnil
 				}
 
 				// Advance the partial key consuming the part we already checked

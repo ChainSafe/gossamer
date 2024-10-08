@@ -88,7 +88,7 @@ func generateKey(seed int64, fp string) (crypto.PrivKey, error) {
 func loadKey(fp string) (crypto.PrivKey, error) {
 	pth := path.Join(filepath.Clean(fp), DefaultKeyFile)
 	if _, err := os.Stat(pth); os.IsNotExist(err) {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 	keyData, err := os.ReadFile(filepath.Clean(pth))
 	if err != nil {
@@ -106,7 +106,7 @@ func loadKey(fp string) (crypto.PrivKey, error) {
 func makeDir(fp string) error {
 	_, e := os.Stat(fp)
 	if os.IsNotExist(e) {
-		e = os.Mkdir(fp, os.ModePerm)
+		e = os.Mkdir(fp, os.ModePerm) //nolint:gosec
 		if e != nil {
 			return e
 		}
@@ -136,7 +136,7 @@ func saveKey(priv crypto.PrivKey, fp string) (err error) {
 func Uint64ToLEB128(in uint64) []byte {
 	var out []byte
 	for {
-		b := uint8(in & 0x7f)
+		b := uint8(in & 0x7f) //nolint:gosec
 		in >>= 7
 		if in != 0 {
 			b |= 0x80
@@ -200,7 +200,7 @@ func readStream(stream libp2pnetwork.Stream, bufPointer *[]byte, maxSize uint64)
 	buf := *bufPointer
 	if length > uint64(len(buf)) {
 		logger.Warnf("received message with size %d greater than allocated message buffer size %d", length, len(buf))
-		extraBytes := int(length) - len(buf)
+		extraBytes := int(length) - len(buf) //nolint:gosec
 		*bufPointer = append(buf, make([]byte, extraBytes)...)
 		buf = *bufPointer
 	}
@@ -210,7 +210,7 @@ func readStream(stream libp2pnetwork.Stream, bufPointer *[]byte, maxSize uint64)
 		return 0, fmt.Errorf("%w: max %d, got %d", ErrGreaterThanMaxSize, maxSize, length)
 	}
 
-	for tot < int(length) {
+	for tot < int(length) { //nolint:gosec
 		n, err := stream.Read(buf[tot:])
 		if err != nil {
 			return n + tot, err
@@ -219,7 +219,7 @@ func readStream(stream libp2pnetwork.Stream, bufPointer *[]byte, maxSize uint64)
 		tot += n
 	}
 
-	if tot != int(length) {
+	if tot != int(length) { //nolint:gosec
 		return tot, fmt.Errorf("%w: expected %d bytes, received %d bytes", ErrFailedToReadEntireMessage, length, tot)
 	}
 

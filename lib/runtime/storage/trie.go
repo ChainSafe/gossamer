@@ -362,7 +362,7 @@ func (t *TrieState) DeleteChildLimit(key []byte, limit *[]byte) (
 	}
 
 	childTrieEntries := child.Entries()
-	qtyEntries := uint32(len(childTrieEntries))
+	qtyEntries := uint32(len(childTrieEntries)) //nolint:gosec
 	if limit == nil {
 		err = t.state.DeleteChild(key)
 		if err != nil {

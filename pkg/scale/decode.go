@@ -688,7 +688,7 @@ func (ds *decodeState) decodeFixedWidthInt(dstv reflect.Value) (err error) {
 		if err != nil {
 			return
 		}
-		out = int16(binary.LittleEndian.Uint16(buf))
+		out = int16(binary.LittleEndian.Uint16(buf)) //nolint:gosec
 	case uint16:
 		buf := make([]byte, 2)
 		_, err = ds.Read(buf)
@@ -702,7 +702,7 @@ func (ds *decodeState) decodeFixedWidthInt(dstv reflect.Value) (err error) {
 		if err != nil {
 			return
 		}
-		out = int32(binary.LittleEndian.Uint32(buf))
+		out = int32(binary.LittleEndian.Uint32(buf)) //nolint:gosec
 	case uint32:
 		buf := make([]byte, 4)
 		_, err = ds.Read(buf)
@@ -716,7 +716,7 @@ func (ds *decodeState) decodeFixedWidthInt(dstv reflect.Value) (err error) {
 		if err != nil {
 			return
 		}
-		out = int64(binary.LittleEndian.Uint64(buf))
+		out = int64(binary.LittleEndian.Uint64(buf)) //nolint:gosec
 	case uint64:
 		buf := make([]byte, 8)
 		_, err = ds.Read(buf)

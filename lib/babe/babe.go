@@ -176,7 +176,7 @@ func (b *Service) Start() error {
 
 // SlotDuration returns the current service slot duration in milliseconds
 func (b *Service) SlotDuration() uint64 {
-	return uint64(b.constants.slotDuration.Milliseconds())
+	return uint64(b.constants.slotDuration.Milliseconds()) //nolint:gosec
 }
 
 // EpochLength returns the current service epoch duration
@@ -266,7 +266,7 @@ func (b *Service) getAuthorityIndex(authorities []types.AuthorityRaw) (uint32, e
 
 	for i, auth := range authorities {
 		if bytes.Equal(pub.Encode(), auth.Key[:]) {
-			return uint32(i), nil
+			return uint32(i), nil //nolint:gosec
 		}
 	}
 
@@ -473,9 +473,9 @@ func (b *Service) handleSlot(epoch uint64, slot Slot,
 }
 
 func getCurrentSlot(slotDuration time.Duration) uint64 {
-	return uint64(time.Now().UnixNano()) / uint64(slotDuration.Nanoseconds())
+	return uint64(time.Now().UnixNano()) / uint64(slotDuration.Nanoseconds()) //nolint:gosec
 }
 
 func getSlotStartTime(slot uint64, slotDuration time.Duration) time.Time {
-	return time.Unix(0, int64(slot)*slotDuration.Nanoseconds())
+	return time.Unix(0, int64(slot)*slotDuration.Nanoseconds()) //nolint:gosec
 }

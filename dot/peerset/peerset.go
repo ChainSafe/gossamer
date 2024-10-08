@@ -359,7 +359,7 @@ func (ps *PeerSet) reportPeer(change ReputationChange, peers ...peer.ID) error {
 
 			ps.resultMsgCh <- Message{
 				Status: Drop,
-				setID:  uint64(i),
+				setID:  uint64(i), //nolint:gosec
 				PeerID: pid,
 			}
 
@@ -406,7 +406,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 
 		ps.resultMsgCh <- Message{
 			Status: Connect,
-			setID:  uint64(setIdx),
+			setID:  uint64(setIdx), //nolint:gosec
 			PeerID: reservePeer,
 		}
 	}
@@ -444,7 +444,7 @@ func (ps *PeerSet) allocSlots(setIdx int) error {
 
 		ps.resultMsgCh <- Message{
 			Status: Connect,
-			setID:  uint64(setIdx),
+			setID:  uint64(setIdx), //nolint:gosec
 			PeerID: peerID,
 		}
 
@@ -507,7 +507,7 @@ func (ps *PeerSet) removeReservedPeers(setID int, peers ...peer.ID) error {
 
 			ps.resultMsgCh <- Message{
 				Status: Drop,
-				setID:  uint64(setID),
+				setID:  uint64(setID), //nolint:gosec
 				PeerID: peerID,
 			}
 		}
@@ -577,7 +577,7 @@ func (ps *PeerSet) removePeer(setID int, peers ...peer.ID) error {
 		if status := ps.peerState.peerStatus(setID, pid); status == connectedPeer {
 			ps.resultMsgCh <- Message{
 				Status: Drop,
-				setID:  uint64(setID),
+				setID:  uint64(setID), //nolint:gosec
 				PeerID: pid,
 			}
 
@@ -614,7 +614,7 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 			if !has {
 				ps.resultMsgCh <- Message{
 					Status: Reject,
-					setID:  uint64(setID),
+					setID:  uint64(setID), //nolint:gosec
 					PeerID: pid,
 				}
 				continue
@@ -643,7 +643,7 @@ func (ps *PeerSet) incoming(setID int, peers ...peer.ID) error {
 		state.RUnlock()
 
 		message := Message{
-			setID:  uint64(setID),
+			setID:  uint64(setID), //nolint:gosec
 			PeerID: pid,
 		}
 
@@ -707,7 +707,7 @@ func (ps *PeerSet) disconnect(setIdx int, reason DropReason, peers ...peer.ID) e
 
 		ps.resultMsgCh <- Message{
 			Status: Drop,
-			setID:  uint64(setIdx),
+			setID:  uint64(setIdx), //nolint:gosec
 			PeerID: pid,
 		}
 

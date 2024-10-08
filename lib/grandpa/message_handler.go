@@ -54,14 +54,14 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 		if err != nil {
 			return nil, fmt.Errorf("handling vote message: %w", err)
 		}
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	case *CommitMessage:
 		err := h.grandpa.handleCommitMessage(msg)
 		if err != nil {
 			return nil, fmt.Errorf("handling commit message: %w", err)
 		}
 
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	case *NeighbourPacketV1:
 		// we can afford to not retry handling neighbour message, if it errors.
 		return nil, h.handleNeighbourMessage(msg)
@@ -389,7 +389,7 @@ func (s *Service) VerifyBlockJustification(finalizedHash common.Hash, finalizedN
 	voters := finality_grandpa.NewVoterSet(idsAndWeights)
 	target := client_grandpa.HashNumber[hash.H256, uint32]{
 		Hash:   hash.H256(finalizedHash.ToBytes()),
-		Number: uint32(finalizedNumber),
+		Number: uint32(finalizedNumber), //nolint:gosec
 	}
 
 	justification, err := client_grandpa.DecodeGrandpaJustificationVerifyFinalizes[hash.H256, uint32, runtime.BlakeTwo256](

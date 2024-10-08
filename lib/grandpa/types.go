@@ -71,7 +71,7 @@ func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
 // threshold returns the 2/3 |voters| threshold value
 // rounding is currently set to floor, which is ok since we check for strictly greater than the threshold
 func (s *State) threshold() uint64 {
-	return uint64(2 * len(s.voters) / 3)
+	return uint64(2 * len(s.voters) / 3) //nolint:gosec
 }
 
 // NewVote returns a new Vote given a block hash and number
@@ -86,7 +86,7 @@ func NewVote(hash common.Hash, number uint32) *Vote {
 func NewVoteFromHeader(h *types.Header) *Vote {
 	return &Vote{
 		Hash:   h.Hash(),
-		Number: uint32(h.Number),
+		Number: uint32(h.Number), //nolint:gosec
 	}
 }
 
