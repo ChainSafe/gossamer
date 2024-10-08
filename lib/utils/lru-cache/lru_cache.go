@@ -79,7 +79,7 @@ func (c *LRUCache[K, V]) Put(key K, value V) {
 	}
 
 	// If the cache is full, remove the least recently used item (from the back of the list).
-	if len(c.cache) >= int(c.capacity) {
+	if len(c.cache) >= int(c.capacity) { //nolint:gosec
 		// Get the least recently used item (back of the list).
 		lastElem := c.lruList.Back()
 		if lastElem != nil {

@@ -25,7 +25,7 @@ func getSecondarySlotAuthor(slot uint64, numAuths int, randomness Randomness) (u
 	num := big.NewInt(int64(numAuths))
 
 	idx := new(big.Int).Mod(randBig, num)
-	return uint32(idx.Uint64()), nil
+	return uint32(idx.Uint64()), nil //nolint:gosec
 }
 
 // see https://github.com/paritytech/substrate/blob/master/client/consensus/babe/src/authorship.rs#L108

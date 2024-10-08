@@ -95,17 +95,17 @@ func (n *Node) setDefaults(t *testing.T) {
 
 	if n.tomlConfig.Network.Port == 0 {
 		const basePort uint16 = 7004
-		n.tomlConfig.Network.Port = basePort + uint16(*n.index)
+		n.tomlConfig.Network.Port = basePort + uint16(*n.index) //nolint:gosec
 	}
 
 	if n.tomlConfig.RPC.IsRPCEnabled() && n.tomlConfig.RPC.Port == 0 {
 		const basePort uint32 = 8540
-		n.tomlConfig.RPC.Port = basePort + uint32(*n.index)
+		n.tomlConfig.RPC.Port = basePort + uint32(*n.index) //nolint:gosec
 	}
 
 	if n.tomlConfig.RPC.IsWSEnabled() && n.tomlConfig.RPC.WSPort == 0 {
 		const basePort uint32 = 8546
-		n.tomlConfig.RPC.WSPort = basePort + uint32(*n.index)
+		n.tomlConfig.RPC.WSPort = basePort + uint32(*n.index) //nolint:gosec
 	}
 
 	userSetWriter := n.writer != nil && n.writer != io.Discard

@@ -54,7 +54,7 @@ func newPointerSize(ptr, size uint32) (pointerSize uint64) {
 // splitPointerSize converts a 64bit pointer size to an
 // uint32 pointer and a uint32 size.
 func splitPointerSize(pointerSize uint64) (ptr uint32, size uint64) {
-	return uint32(pointerSize), pointerSize >> 32
+	return uint32(pointerSize), pointerSize >> 32 //nolint:gosec
 }
 
 // read will read from 64 bit pointer size and return a byte slice
@@ -70,7 +70,7 @@ func read(m api.Module, pointerSize uint64) (data []byte) {
 // copies a Go byte slice to wasm memory and returns the corresponding
 // 64 bit pointer size.
 func write(m api.Module, allocator runtime.Allocator, data []byte) (pointerSize uint64, err error) {
-	size := uint32(len(data))
+	size := uint32(len(data)) //nolint:gosec
 	pointer, err := allocator.Allocate(m.Memory(), size)
 	if err != nil {
 		return 0, fmt.Errorf("allocating: %w", err)
@@ -169,7 +169,7 @@ func ext_crypto_ed25519_generate_version_1(
 	}
 
 	logger.Debug("generated ed25519 keypair with public key: " + kp.Public().Hex())
-	return uint32(ret)
+	return uint32(ret) //nolint:gosec
 }
 
 func ext_crypto_ed25519_public_keys_version_1(ctx context.Context, m api.Module, keyTypeID uint32) uint64 {
@@ -798,7 +798,7 @@ func ext_trie_blake2_256_root_version_2(ctx context.Context, m api.Module, dataS
 		panic("nil runtime context")
 	}
 
-	stateVersion, err := trie.ParseVersion(uint8(version))
+	stateVersion, err := trie.ParseVersion(uint8(version)) //nolint:gosec
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
@@ -844,7 +844,7 @@ func ext_trie_blake2_256_ordered_root_version_2(
 
 	data := read(m, dataSpan)
 
-	stateVersion, err := trie.ParseVersion(uint8(version))
+	stateVersion, err := trie.ParseVersion(uint8(version)) //nolint:gosec
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
@@ -926,7 +926,7 @@ func ext_trie_blake2_256_verify_proof_version_2(
 		panic("nil runtime context")
 	}
 
-	_, err := trie.ParseVersion(uint8(version))
+	_, err := trie.ParseVersion(uint8(version)) //nolint:gosec
 	if err != nil {
 		logger.Errorf("failed parsing state version: %s", err)
 		return 0
@@ -963,7 +963,7 @@ func ext_misc_print_hex_version_1(_ context.Context, m api.Module, dataSpan uint
 }
 
 func ext_misc_print_num_version_1(_ context.Context, _ api.Module, data uint64) {
-	logger.Debugf("num: %d", int64(data))
+	logger.Debugf("num: %d", int64(data)) //nolint:gosec
 }
 
 func ext_misc_print_utf8_version_1(_ context.Context, m api.Module, dataSpan uint64) {
@@ -1041,7 +1041,7 @@ func ext_default_child_storage_read_version_1(
 		panic("write overflow")
 	}
 
-	size := uint32(len(value[offset:]))
+	size := uint32(len(value[offset:])) //nolint:gosec
 	sizeBuf := make([]byte, 4)
 	binary.LittleEndian.PutUint32(sizeBuf, size)
 
@@ -1849,11 +1849,11 @@ func ext_offchain_submit_transaction_version_1(ctx context.Context, m api.Module
 
 func ext_offchain_timestamp_version_1(_ context.Context, _ api.Module) uint64 {
 	now := time.Now().Unix()
-	return uint64(now)
+	return uint64(now) //nolint:gosec
 }
 
 func ext_offchain_sleep_until_version_1(_ context.Context, _ api.Module, deadline uint64) {
-	dur := time.Until(time.UnixMilli(int64(deadline)))
+	dur := time.Until(time.UnixMilli(int64(deadline))) //nolint:gosec
 	if dur > 0 {
 		time.Sleep(dur)
 	}
@@ -1911,7 +1911,7 @@ func ext_offchain_http_request_add_header_version_1(
 	name := read(m, nameSpan)
 	value := read(m, valueSpan)
 
-	offchainReq := rtCtx.OffchainHTTPSet.Get(int16(reqID))
+	offchainReq := rtCtx.OffchainHTTPSet.Get(int16(reqID)) //nolint:gosec
 
 	result := scale.NewResult(nil, nil)
 	resultMode := scale.OK
@@ -2239,7 +2239,7 @@ func ext_storage_read_version_1(ctx context.Context, m api.Module, keySpan, valu
 
 	var data []byte
 	switch {
-	case offset <= uint32(len(value)):
+	case offset <= uint32(len(value)): //nolint:gosec
 		data = value[offset:]
 	default:
 		data = value[len(value):]
@@ -2258,7 +2258,7 @@ func ext_storage_read_version_1(ctx context.Context, m api.Module, keySpan, valu
 		panic("write overflow")
 	}
 
-	size := uint32(len(data))
+	size := uint32(len(data)) //nolint:gosec
 	return mustWrite(m, rtCtx.Allocator, scale.MustMarshal(&size))
 }
 

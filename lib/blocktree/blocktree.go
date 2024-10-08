@@ -285,7 +285,7 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	}
 	canonicalChainBlock := n
 	newCanonicalChainBlockHashes := make([]common.Hash, newCanonicalChainBlocksCount)
-	for i := int(newCanonicalChainBlocksCount) - 1; i >= 0; i-- {
+	for i := int(newCanonicalChainBlocksCount) - 1; i >= 0; i-- { //nolint:gosec
 		newCanonicalChainBlockHashes[i] = canonicalChainBlock.hash
 		canonicalChainBlock = canonicalChainBlock.parent
 	}
@@ -565,5 +565,5 @@ func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, error)
 		currentNode = currentNode.parent
 	}
 
-	return nil, nil
+	return nil, nil //nolint:nilnil
 }

@@ -79,7 +79,7 @@ func (v *VerificationManager) SetOnDisabled(index uint32, header *types.Header) 
 	}
 
 	// check that index is valid
-	if index >= uint32(len(v.epochInfo[epoch].authorities)) {
+	if index >= uint32(len(v.epochInfo[epoch].authorities)) { //nolint:gosec
 		return ErrInvalidBlockProducerIndex
 	}
 

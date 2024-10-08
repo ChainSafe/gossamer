@@ -129,7 +129,7 @@ func orderFromSize(size uint32) (Order, error) {
 	// Compute the number of trailing zeroes to get the order. We adjust it by the number of
 	// trailing zeroes in the minimum possible allocation.
 	value := bits.TrailingZeros32(powerOfTwoSize) - bits.TrailingZeros32(MinPossibleAllocations)
-	return Order(value), nil
+	return Order(value), nil //nolint:gosec
 }
 
 // NilMarker is a special magic value for a pointer in a link that denotes the end of the linked list.
@@ -234,7 +234,7 @@ func readHeaderFromMemory(mem runtime.Memory, headerPtr uint32) (Header, error) 
 	// check if the header represents an occupied or free allocation
 	// and extract the header data by timing (and discarding) the high bits
 	occupied := rawHeader&0x00000001_00000000 != 0
-	headerData := uint32(rawHeader)
+	headerData := uint32(rawHeader) //nolint:gosec
 
 	if occupied {
 		order, err := orderFromRaw(headerData)

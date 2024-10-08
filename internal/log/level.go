@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/fatih/color" //nolint:misspell
+	"github.com/fatih/color"
 )
 
 // Level is the level of the logger.

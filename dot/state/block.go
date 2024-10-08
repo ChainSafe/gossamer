@@ -748,7 +748,7 @@ func (bs *BlockState) retrieveRangeFromDatabase(startHash common.Hash,
 	lastPosition := blocksInRange - 1
 
 	inLoopHash := endHeader.Hash()
-	for currentPosition := int(lastPosition); currentPosition >= 0; currentPosition-- {
+	for currentPosition := int(lastPosition); currentPosition >= 0; currentPosition-- { //nolint:gosec
 		hashes[currentPosition] = inLoopHash
 
 		inLoopHeader, err := bs.loadHeaderFromDatabase(inLoopHash)
@@ -840,12 +840,12 @@ func (bs *BlockState) GetArrivalTime(hash common.Hash) (time.Time, error) {
 	}
 
 	ns := binary.LittleEndian.Uint64(arrivalTime)
-	return time.Unix(0, int64(ns)), nil
+	return time.Unix(0, int64(ns)), nil //nolint:gosec
 }
 
 func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime time.Time) error {
 	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, uint64(arrivalTime.UnixNano()))
+	binary.LittleEndian.PutUint64(buf, uint64(arrivalTime.UnixNano())) //nolint:gosec
 	return bs.db.Put(arrivalTimeKey(hash), buf)
 }
 

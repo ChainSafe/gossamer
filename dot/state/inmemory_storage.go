@@ -69,7 +69,8 @@ func (s *InmemoryStorageState) StoreTrie(ts *storage.TrieState, header *types.He
 			return fmt.Errorf("getting trie changed node hashes for block hash %s: %w", header.Hash(), err)
 		}
 
-		err = s.pruner.StoreJournalRecord(deletedNodeHashes, insertedNodeHashes, header.Hash(), int64(header.Number))
+		err = s.pruner.StoreJournalRecord(
+			deletedNodeHashes, insertedNodeHashes, header.Hash(), int64(header.Number)) //nolint:gosec
 		if err != nil {
 			return fmt.Errorf("storing journal record: %w", err)
 		}

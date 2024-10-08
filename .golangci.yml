@@ -6,14 +6,10 @@ run:
   build-tags:
     - integration
 
-  skip-files:
-    - .*mock_.*\.go
-    - .*mocks\/.*\.go
-
 linters-settings:
   govet:
     # report about shadowed variables
-    check-shadowing: true
+    shadow: true
 
   revive:
     severity: warning
@@ -41,12 +37,12 @@ linters-settings:
       - finalized
       - finalize
       - initialize
+      - color
 
 linters:
   enable:
     - bodyclose
     - errcheck
-    - exportloopref
     - goconst
     - gocyclo
     - gofmt
@@ -70,6 +66,10 @@ linters:
     - unused
 
 issues:
+  exclude-files:
+    - .*mock_.*\.go
+    - .*mocks\/.*\.go
+
   exclude-rules:
     - path: _test\.go
       linters:
