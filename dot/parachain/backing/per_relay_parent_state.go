@@ -11,6 +11,7 @@ import (
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
 	statementedistributionmessages "github.com/ChainSafe/gossamer/dot/parachain/statement-distribution/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
@@ -181,9 +182,9 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		//
 		// Backed candidates are bounded by the number of validators,
 		// parachains, and the block production rate of the relay chain.
-		subSystemToOverseer <- parachaintypes.ProvisionerMessageProvisionableData{
-			RelayParent:       rpState.relayParent,
-			ProvisionableData: parachaintypes.ProvisionableDataBackedCandidate(backedCandidate.Candidate.ToPlain()),
+		subSystemToOverseer <- provisionermessages.ProvisionableData{
+			RelayParent: rpState.relayParent,
+			Data:        provisionermessages.ProvisionableDataBackedCandidate(backedCandidate.Candidate.ToPlain()),
 		}
 	}
 }
@@ -202,9 +203,9 @@ func issueNewMisbehaviors(subSystemToOverseer chan<- any, relayParent common.Has
 		// Misbehaviors are bounded by the number of validators and
 		// the block production protocol.
 		for _, misbehaviour := range misbehaviours {
-			subSystemToOverseer <- parachaintypes.ProvisionerMessageProvisionableData{
+			subSystemToOverseer <- provisionermessages.ProvisionableData{
 				RelayParent: relayParent,
-				ProvisionableData: parachaintypes.ProvisionableDataMisbehaviorReport{
+				Data: provisionermessages.ProvisionableDataMisbehaviorReport{
 					ValidatorIndex: validatorIndex,
 					Misbehaviour:   misbehaviour,
 				},
