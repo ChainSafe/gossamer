@@ -52,7 +52,7 @@ func (n *NibbleSlice) Push(nibble uint8) {
 	n.len++
 }
 
-// Try to pop a nibble off the NibbleSlice. Fails if len == 0.
+// Try to pop a nibble off the [NibbleSlice]. Fails if len == 0.
 func (n *NibbleSlice) Pop() *uint8 {
 	if n.IsEmpty() {
 		return nil
@@ -66,6 +66,32 @@ func (n *NibbleSlice) Pop() *uint8 {
 	}
 	popped := atLeft(uint8(iNew), b)
 	return &popped
+}
+
+// / Append another [NibbleSlice]. Can be slow (alignment of second slice).
+func (n *NibbleSlice) Append(v NibbleSlice) {
+	if v.len == 0 {
+		return
+	}
+
+	finalLen := n.len + v.len
+	offset := n.len % NibblesPerByte
+	finalOffset := finalLen % NibblesPerByte
+	lastIndex := n.len / NibblesPerByte
+	if offset > 0 {
+		n.inner[lastIndex] = PadLeft(n.inner[lastIndex]) | v.inner[0]>>4
+		for i := uint(0); i < uint(len(v.inner))-1; i++ {
+			n.inner = append(n.inner, v.inner[i]<<4|v.inner[i+1]>>4)
+		}
+		if finalOffset > 0 {
+			n.inner = append(n.inner, v.inner[len(v.inner)-1]<<4)
+		}
+	} else {
+		for i := uint(0); i < uint(len(v.inner)); i++ {
+			n.inner = append(n.inner, v.inner[i])
+		}
+	}
+	n.len += v.len
 }
 
 // Append a [Partial]. Can be slow (alignement of partial).
@@ -158,4 +184,54 @@ func (n NibbleSlice) Clone() NibbleSlice {
 		inner: slices.Clone(n.inner),
 		len:   n.len,
 	}
+}
+
+func (n NibbleSlice) Len() uint {
+	return n.len
+}
+
+func (n NibbleSlice) asNibbles() *Nibbles {
+	if n.len%NibblesPerByte == 0 {
+		nibbles := NewNibbles(n.inner)
+		return &nibbles
+	}
+	return nil
+}
+
+func (n NibbleSlice) Right() []byte {
+	requirePadding := n.Len()%NibblesPerByte != 0
+	var ix uint
+
+	b := make([]byte, 0)
+	for {
+		if requirePadding && ix < uint(len(n.inner)) {
+			if ix == 0 {
+				ix++
+				b = append(b, n.inner[ix-1]>>4)
+			} else {
+				ix++
+				b = append(b, n.inner[ix-2]<<4|n.inner[ix-1]>>4)
+			}
+		} else if ix < uint(len(n.inner)) {
+			ix++
+			b = append(b, n.inner[ix-1])
+		} else {
+			break
+		}
+	}
+	return b
+}
+
+func (n NibbleSlice) NodeKey() NodeKey {
+	if nibbles := n.asNibbles(); nibbles != nil {
+		return nibbles.NodeKey()
+	}
+	return NodeKey{
+		Offset: 1,
+		Data:   n.Right(),
+	}
+}
+
+func (n NibbleSlice) Inner() []byte {
+	return n.inner
 }
