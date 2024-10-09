@@ -16,32 +16,6 @@ type OverseerFuncRes[T any] struct {
 	Data T
 }
 
-// ProvisionerMessageProvisionableData is a provisioner message.
-// This data should become part of a relay chain block.
-type ProvisionerMessageProvisionableData struct {
-	RelayParent       common.Hash
-	ProvisionableData ProvisionableData
-}
-
-// ProvisionableData becomes intrinsics or extrinsics which should be included in a future relay chain block.
-type ProvisionableData interface {
-	IsProvisionableData()
-}
-
-// ProvisionableDataBackedCandidate is a provisionable data.
-// The Candidate Backing subsystem believes that this candidate is valid, pending availability.
-type ProvisionableDataBackedCandidate CandidateReceipt
-
-func (ProvisionableDataBackedCandidate) IsProvisionableData() {}
-
-// ProvisionableDataMisbehaviorReport represents self-contained proofs of validator misbehaviour.
-type ProvisionableDataMisbehaviorReport struct {
-	ValidatorIndex ValidatorIndex
-	Misbehaviour   Misbehaviour
-}
-
-func (ProvisionableDataMisbehaviorReport) IsProvisionableData() {}
-
 // ProspectiveParachainsMessageGetTreeMembership is a prospective parachains message.
 // It is intended for retrieving the membership of a candidate in all fragment trees
 type ProspectiveParachainsMessageGetTreeMembership struct {

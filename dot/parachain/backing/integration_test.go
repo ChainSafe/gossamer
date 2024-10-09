@@ -1144,7 +1144,7 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 	}
 
 	provisionerMessageProvisionableData := func(msg any) bool {
-		_, ok := msg.(parachaintypes.ProvisionerMessageProvisionableData)
+		_, ok := msg.(provisionermessages.ProvisionableData)
 		return ok
 	}
 
@@ -1177,13 +1177,13 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 	}
 
 	reportMisbehavior := func(msg any) bool {
-		provisionerMessage, ok := msg.(parachaintypes.ProvisionerMessageProvisionableData)
+		provisionerMessage, ok := msg.(provisionermessages.ProvisionableData)
 		if !ok {
 			return false
 		}
 
 		require.Equal(t, relayParent, provisionerMessage.RelayParent)
-		misbehaviorReport, ok := provisionerMessage.ProvisionableData.(parachaintypes.ProvisionableDataMisbehaviorReport)
+		misbehaviorReport, ok := provisionerMessage.Data.(provisionermessages.ProvisionableDataMisbehaviorReport)
 		require.True(t, ok)
 
 		require.Equal(t, parachaintypes.ValidatorIndex(2), misbehaviorReport.ValidatorIndex)

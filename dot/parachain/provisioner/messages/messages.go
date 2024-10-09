@@ -27,14 +27,14 @@ type ProvisionableData struct {
 
 // Data becomes intrinsics or extrinsics which should be included in a future relay chain block.
 type Data interface {
-	IsProvisionableData()
+	IsData()
 }
 
 // ProvisionableDataBackedCandidate is a provisionable data.
 // The Candidate Backing subsystem believes that this candidate is valid, pending availability.
 type ProvisionableDataBackedCandidate parachaintypes.CandidateReceipt
 
-func (ProvisionableDataBackedCandidate) IsProvisionableData() {}
+func (ProvisionableDataBackedCandidate) IsData() {}
 
 // ProvisionableDataMisbehaviorReport represents self-contained proofs of validator misbehaviour.
 type ProvisionableDataMisbehaviorReport struct {
@@ -42,4 +42,4 @@ type ProvisionableDataMisbehaviorReport struct {
 	Misbehaviour   parachaintypes.Misbehaviour
 }
 
-func (ProvisionableDataMisbehaviorReport) IsProvisionableData() {}
+func (ProvisionableDataMisbehaviorReport) IsData() {}
