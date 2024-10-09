@@ -625,6 +625,8 @@ func Test_precheckPvF(t *testing.T) {
 			require.Equal(t, tt.expectedResult, result)
 			if tt.expectedError != nil {
 				require.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				require.NoError(t, err)
 			}
 		})
 	}
