@@ -74,8 +74,7 @@ func PadRight(b uint8) uint8 {
 	return b & PaddingBitmask
 }
 
-// A trie node prefix, it is the nibble path from the trie root
-// to the trie node.
+// A trie node prefix, it is the nibble path from the trie root to the trie node.
 // For a node containing no partial key value it is the full key.
 // For a value node or node containing a partial key, it is the full key minus its node partial
 // nibbles (the node key can be split into prefix and node partial).
@@ -199,8 +198,7 @@ func (n Nibbles) NodeKey() NodeKey {
 }
 
 // Helper function to create a [NodeKey] for a given number of nibbles.
-// Warning this method can be slow (number of nibble does not align the
-// original padding).
+// Warning this method can be slow (number of nibble does not align the original padding).
 func (n Nibbles) NodeKeyRange(nb uint) NodeKey {
 	if nb >= n.Len() {
 		return n.NodeKey()
@@ -236,8 +234,7 @@ func NumberPadding(i uint) uint {
 
 // Representation of a nible slice (right aligned).
 // It contains a right aligned padded first byte (first pair element is the number of nibbles
-// (0 to max nb nibble - 1), second pair element is the padded nibble), and a slice over
-// the remaining bytes.
+// (0 to max nb nibble - 1), second pair element is the padded nibble), and a slice over the remaining bytes.
 type Partial struct {
 	First        uint8
 	PaddedNibble uint8
@@ -326,6 +323,36 @@ func (nb Nibbles) Compare(other Nibbles) int {
 	} else {
 		return 0
 	}
+}
+
+func (n Nibbles) EqualNibbleSlice(other NibbleSlice) bool {
+	if n.Len() != other.Len() {
+		return false
+	}
+
+	for i := uint(0); i < n.Len(); i++ {
+		if n.At(i) != other.At(i) {
+			return false
+		}
+	}
+	return true
+}
+
+func (n Nibbles) StartsWithNibbleSlice(other NibbleSlice) bool {
+	if n.Len() < other.Len() {
+		return false
+	}
+
+	if other := other.asNibbles(); other != nil {
+		return n.StartsWith(*other)
+	}
+
+	for i := uint(0); i < other.Len(); i++ {
+		if n.At(i) != other.At(i) {
+			return false
+		}
+	}
+	return true
 }
 
 // Partial node key type: offset and value.

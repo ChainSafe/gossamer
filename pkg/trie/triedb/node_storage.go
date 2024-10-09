@@ -30,10 +30,10 @@ type (
 func (inMemory) isNodeHandle()     {}
 func (persisted[H]) isNodeHandle() {}
 
-func newFromEncodedMerkleValue[H hash.Hash](
+func newNodeHandleFromMerkleValue[H hash.Hash](
 	parentHash H,
 	encodedNodeHandle codec.MerkleValue,
-	storage nodeStorage[H],
+	storage *nodeStorage[H],
 ) (NodeHandle, error) {
 	switch encoded := encodedNodeHandle.(type) {
 	case codec.HashedNode[H]:
@@ -44,6 +44,21 @@ func newFromEncodedMerkleValue[H hash.Hash](
 			return nil, err
 		}
 		return inMemory(storage.alloc(NewStoredNode{child})), nil
+	default:
+		panic("unreachable")
+	}
+}
+
+func newNodeHandleFromNodeHandleOwned[H hash.Hash](
+	child NodeHandleOwned,
+	storage *nodeStorage[H],
+) NodeHandle {
+	switch child := child.(type) {
+	case NodeHandleOwnedHash[H]:
+		return persisted[H]{child.Hash}
+	case NodeHandleOwnedInline[H]:
+		ch := newNodeFromNodeOwned(child.NodeOwned, storage)
+		return inMemory(storage.alloc(NewStoredNode{node: ch}))
 	default:
 		panic("unreachable")
 	}
