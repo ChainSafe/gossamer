@@ -4,6 +4,7 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -13,6 +14,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 )
 
 type HashHeader struct {
@@ -139,4 +142,30 @@ func GetBlockAncestors(
 	}
 
 	return response.Ancestors, nil
+}
+
+func ExecutorParamsAtRelayParent(rt runtime.Instance, relayParent common.Hash,
+) (*parachaintypes.ExecutorParams, error) {
+	sessionIndex, err := rt.ParachainHostSessionIndexForChild()
+	if err != nil {
+		return nil, fmt.Errorf("getting session index for relay parent %s: %w", relayParent, err)
+	}
+
+	executorParams, err := rt.ParachainHostSessionExecutorParams(sessionIndex)
+	if err != nil {
+		if errors.Is(err, wazero_runtime.ErrExportFunctionNotFound) {
+			// Runtime doesn't yet support the api requested,
+			// should execute anyway with default set of parameters.
+			defaultExecutorParams := parachaintypes.NewExecutorParams()
+			return &defaultExecutorParams, nil
+		}
+		return nil, err
+	}
+
+	if executorParams == nil {
+		// should never happen
+		panic(fmt.Sprintf("executor params for relay parent %s is nil", relayParent))
+	}
+
+	return executorParams, nil
 }

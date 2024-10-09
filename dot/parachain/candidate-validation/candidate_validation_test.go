@@ -5,6 +5,7 @@ package candidatevalidation
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -505,6 +506,128 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 			toSubsystem <- tt.msg
 			result := <-sender
 			require.Equal(t, tt.want, &result.Data)
+		})
+	}
+}
+
+func Test_precheckPvF(t *testing.T) {
+	t.Parallel()
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+	candidate, validationCode := createTestCandidateReceiptAndValidationCodeWParaId(t, 1000)
+
+	mockInstance := NewMockInstance(ctrl)
+	mockInstance.EXPECT().ParachainHostValidationCodeByHash(common.Hash(candidate.Descriptor.ValidationCodeHash)).
+		Return(&validationCode, nil)
+	mockInstance.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(1), nil)
+
+	executionParams := parachaintypes.ExecutorParams{}
+	timeout := parachaintypes.PvfPrepTimeout{
+		PvfPrepTimeoutKind: func() parachaintypes.PvfPrepTimeoutKind {
+			kind := parachaintypes.NewPvfPrepTimeoutKind()
+			if err := kind.SetValue(parachaintypes.Precheck{}); err != nil {
+				panic(err)
+			}
+			return kind
+		}(),
+		Millisec: 1000,
+	}
+	timeoutParam := parachaintypes.NewExecutorParam()
+	err := timeoutParam.SetValue(timeout)
+	require.NoError(t, err)
+	executionParams = append(executionParams, timeoutParam)
+	mockInstance.EXPECT().ParachainHostSessionExecutorParams(parachaintypes.SessionIndex(1)).Return(&executionParams,
+		nil)
+
+	mockInstanceExecutorError := NewMockInstance(ctrl)
+	mockInstanceExecutorError.EXPECT().ParachainHostValidationCodeByHash(common.MustHexToHash("0x04")).Return(
+		&parachaintypes.ValidationCode{}, nil)
+	mockInstanceExecutorError.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(2), nil)
+	mockInstanceExecutorError.EXPECT().ParachainHostSessionExecutorParams(parachaintypes.SessionIndex(2)).Return(
+		nil, fmt.Errorf("executor params not found"))
+
+	mockInstanceShortTimeout := NewMockInstance(ctrl)
+	mockInstanceShortTimeout.EXPECT().ParachainHostValidationCodeByHash(common.MustHexToHash("0x0404")).Return(
+		&validationCode, nil)
+	mockInstanceShortTimeout.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(3), nil)
+	executionParamsShortTimeout := parachaintypes.ExecutorParams{}
+	timeoutShort := parachaintypes.PvfPrepTimeout{
+		PvfPrepTimeoutKind: func() parachaintypes.PvfPrepTimeoutKind {
+			kind := parachaintypes.NewPvfPrepTimeoutKind()
+			if err := kind.SetValue(parachaintypes.Precheck{}); err != nil {
+				panic(err)
+			}
+			return kind
+		}(),
+		Millisec: 1,
+	}
+	timeoutShortParam := parachaintypes.NewExecutorParam()
+	err = timeoutShortParam.SetValue(timeoutShort)
+	require.NoError(t, err)
+	executionParamsShortTimeout = append(executionParamsShortTimeout, timeoutShortParam)
+	mockInstanceShortTimeout.EXPECT().ParachainHostSessionExecutorParams(parachaintypes.SessionIndex(3)).Return(
+		&executionParamsShortTimeout, nil)
+
+	mockBlockState := NewMockBlockState(ctrl)
+	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x01")).Return(nil, fmt.Errorf("runtime not found"))
+	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x02")).Return(mockInstance, nil)
+	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x03")).Return(mockInstanceExecutorError, nil)
+	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash("0x04")).Return(mockInstanceShortTimeout, nil)
+
+	tests := map[string]struct {
+		msg            PreCheck
+		expectedResult PreCheckOutcome
+		expectedError  error
+	}{
+		"validation_code_not_found": {
+			msg: PreCheck{
+				RelayParent: common.MustHexToHash("0x01"),
+			},
+			expectedResult: PreCheckOutcomeFailed,
+			expectedError:  fmt.Errorf("failed to get runtime instance: runtime not found"),
+		},
+		"invalid_executor_params": {
+			msg: PreCheck{
+				RelayParent:        common.MustHexToHash("0x03"),
+				ValidationCodeHash: parachaintypes.ValidationCodeHash(common.MustHexToHash("0x04")),
+			},
+			expectedResult: PreCheckOutcomeInvalid,
+			expectedError: fmt.Errorf("failed to acquire params for the session, thus voting against: " +
+				"executor params not found"),
+		},
+		"precheck_timeout": {
+			msg: PreCheck{
+				RelayParent:        common.MustHexToHash("0x04"),
+				ValidationCodeHash: parachaintypes.ValidationCodeHash(common.MustHexToHash("0x0404")),
+			},
+			expectedResult: PreCheckOutcomeFailed,
+			expectedError:  fmt.Errorf("failed to precheck: failed to create a new worker: precheck timed out"),
+		},
+		"happy_path": {
+			msg: PreCheck{
+				RelayParent:        common.MustHexToHash("0x02"),
+				ValidationCodeHash: candidate.Descriptor.ValidationCodeHash,
+			},
+			expectedResult: PreCheckOutcomeValid,
+		},
+	}
+	for name, tt := range tests {
+		tt := tt
+
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			candidateValidationSubsystem := CandidateValidation{
+				pvfHost:    newValidationHost(),
+				BlockState: mockBlockState,
+			}
+			result, err := candidateValidationSubsystem.precheckPvF(tt.msg.RelayParent, tt.msg.ValidationCodeHash)
+			require.Equal(t, tt.expectedResult, result)
+			if tt.expectedError != nil {
+				require.EqualError(t, err, tt.expectedError.Error())
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }

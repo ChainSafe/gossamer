@@ -2,6 +2,7 @@ package candidatevalidation
 
 import (
 	"fmt"
+	"time"
 
 	parachainruntime "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -9,6 +10,14 @@ import (
 
 type workerPool struct {
 	workers map[parachaintypes.ValidationCodeHash]*worker
+}
+
+type PvFPrepData struct {
+	code           parachaintypes.ValidationCode
+	codeHash       parachaintypes.ValidationCodeHash
+	executorParams parachaintypes.ExecutorParams
+	prepTimeout    time.Duration
+	prepKind       parachaintypes.PvfPrepTimeoutKind
 }
 
 type ValidationTask struct {
@@ -111,19 +120,25 @@ func newWorkerPool() *workerPool {
 	}
 }
 
-func (v *workerPool) addNewWorker(validationCode parachaintypes.ValidationCode) error {
+func (v *workerPool) addNewWorker(validationCode parachaintypes.ValidationCode, setupTimeout time.Duration) error {
 	workerID := validationCode.Hash()
 	if !v.containsWorker(workerID) {
-		worker, err := newWorker(validationCode)
+		worker, err := newWorker(validationCode, setupTimeout)
 		if err != nil {
 			return fmt.Errorf("failed to create a new worker: %w", err)
 		}
-
 		v.workers[workerID] = worker
-
 	}
-
 	return nil
+}
+
+// handlePrecheckPvF handles the precheck of the parachain validation function. It checks if the worker for the given
+// code hash exists. If not, it creates a new worker.
+func (v *workerPool) handlePrecheckPvF(data PvFPrepData) error {
+	if v.containsWorker(data.codeHash) {
+		return nil
+	}
+	return v.addNewWorker(data.code, data.prepTimeout)
 }
 
 // executeRequest given a request, the worker pool will get the worker for a given task and submit the request
@@ -134,7 +149,7 @@ func (v *workerPool) executeRequest(msg *ValidationTask) (*ValidationResult, err
 
 	// create worker if not in pool
 	if !v.containsWorker(validationCodeHash) {
-		err := v.addNewWorker(*msg.ValidationCode)
+		err := v.addNewWorker(*msg.ValidationCode, determineTimeout(msg.PvfExecTimeoutKind))
 		if err != nil {
 			return nil, err
 		}

@@ -14,9 +14,7 @@ import (
 	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
 	statementedistributionmessages "github.com/ChainSafe/gossamer/dot/parachain/statement-distribution/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
-
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -288,7 +286,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		return fmt.Errorf("getting validation code by hash: %w", err)
 	}
 
-	executorParams, err := executorParamsAtRelayParent(rt, relayParent)
+	executorParams, err := util.ExecutorParamsAtRelayParent(rt, relayParent)
 	if err != nil {
 		return fmt.Errorf("getting executor params for relay parent %s: %w", relayParent, err)
 	}
@@ -381,32 +379,6 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		candidateHash: candidateHashAccordingToCommand,
 	}
 	return nil
-}
-
-func executorParamsAtRelayParent(rt runtime.Instance, relayParent common.Hash,
-) (*parachaintypes.ExecutorParams, error) {
-	sessionIndex, err := rt.ParachainHostSessionIndexForChild()
-	if err != nil {
-		return nil, fmt.Errorf("getting session index for relay parent %s: %w", relayParent, err)
-	}
-
-	executorParams, err := rt.ParachainHostSessionExecutorParams(sessionIndex)
-	if err != nil {
-		if errors.Is(err, wazero_runtime.ErrExportFunctionNotFound) {
-			// Runtime doesn't yet support the api requested,
-			// should execute anyway with default set of parameters.
-			defaultExecutorParams := parachaintypes.NewExecutorParams()
-			return &defaultExecutorParams, nil
-		}
-		return nil, err
-	}
-
-	if executorParams == nil {
-		// should never happen
-		return nil, fmt.Errorf("executor params for relay parent %s is nil", relayParent)
-	}
-
-	return executorParams, nil
 }
 
 func getPovFromValidator(
