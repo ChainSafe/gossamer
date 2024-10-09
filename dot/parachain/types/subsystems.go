@@ -18,6 +18,7 @@ const (
 	NetworkBridgeReceiver SubSystemName = "NetworkBridgeReceiver"
 	ChainAPI              SubSystemName = "ChainAPI"
 	CandidateValidation   SubSystemName = "CandidateValidation"
+	Provisioner           SubSystemName = "Provisioner"
 	StatementDistribution SubSystemName = "StatementDistribution"
 )
 
