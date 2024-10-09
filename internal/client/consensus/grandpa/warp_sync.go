@@ -168,6 +168,15 @@ func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
+		// the last block in a set is the one that triggers a change to the next set,
+		// therefore the block must have a digest that signals the authority set change
+		if findScheduledChange(headerToGenericHeader(*header)) == nil {
+			// if it doesn't contain a signal for standard change then the set must have changed
+			// through a forced changed, in which case we stop collecting proofs as the chain of
+			// trust in authority handoffs was broken.
+			break
+		}
+
 		encJustification, err := p.blockState.GetJustification(header.Hash()) // get the justification of such block
 		if err != nil {
 			return nil, err
