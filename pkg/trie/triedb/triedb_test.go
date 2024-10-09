@@ -4,6 +4,8 @@
 package triedb
 
 import (
+	"bytes"
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
@@ -34,7 +36,7 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf[hash.H256]{
 							partialKey: nodeKey{Data: []byte{0x01}, Offset: 0},
-							value:      inline[hash.H256]([]byte("leaf")),
+							value:      inline([]byte("leaf")),
 						},
 					},
 				},
@@ -54,13 +56,13 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf[hash.H256]{
 							partialKey: nodeKey{Data: []byte{0x01}, Offset: 1},
-							value:      inline[hash.H256]([]byte("leaf")),
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
 						Branch[hash.H256]{
 							partialKey: nodeKey{Data: []byte{0x01}},
-							value:      inline[hash.H256]([]byte("branch")),
+							value:      inline([]byte("branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
 								inMemory(0), nil, nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil,
@@ -88,7 +90,7 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Branch[hash.H256]{
 							partialKey: nodeKey{Data: []byte{0}, Offset: 1},
-							value:      inline[hash.H256]([]byte("in between branch")),
+							value:      inline([]byte("in between branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
 								inMemory(1), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
@@ -98,13 +100,13 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf[hash.H256]{
 							partialKey: nodeKey{Data: []byte{0x01}, Offset: 1},
-							value:      inline[hash.H256]([]byte("leaf")),
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
 						Branch[hash.H256]{
 							partialKey: nodeKey{Data: []byte{1}, Offset: 0},
-							value:      inline[hash.H256]([]byte("branch")),
+							value:      inline([]byte("branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
 								inMemory(0), nil, nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil,
@@ -132,13 +134,13 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf[hash.H256]{
 							partialKey: nodeKey{Data: []byte{1}, Offset: 1},
-							value:      inline[hash.H256]([]byte("leaf")),
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
 						Branch[hash.H256]{
 							partialKey: nodeKey{Data: []byte{0}, Offset: 1},
-							value:      inline[hash.H256]([]byte("branch")),
+							value:      inline([]byte("branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
 								inMemory(0), nil, nil, nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil,
@@ -148,7 +150,7 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Branch[hash.H256]{
 							partialKey: nodeKey{Data: []byte{1}},
-							value:      inline[hash.H256]([]byte("top branch")),
+							value:      inline([]byte("top branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
 								inMemory(1), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
@@ -176,13 +178,13 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf[hash.H256]{
 							partialKey: nodeKey{Data: []byte{0}, Offset: 1},
-							value:      inline[hash.H256]([]byte("leaf")),
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
 						Branch[hash.H256]{
 							partialKey: nodeKey{Data: []byte{1}},
-							value:      inline[hash.H256]([]byte("new branch")),
+							value:      inline([]byte("new branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
 								inMemory(0), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
@@ -211,13 +213,13 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf[hash.H256]{
 							partialKey: nodeKey{Data: []byte{0}, Offset: 1},
-							value:      inline[hash.H256]([]byte("leaf")),
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
 						Branch[hash.H256]{
 							partialKey: nodeKey{Data: []byte{1}},
-							value:      inline[hash.H256]([]byte("branch")),
+							value:      inline([]byte("branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
 								inMemory(0), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
@@ -245,7 +247,7 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Branch[hash.H256]{
 							partialKey: nodeKey{Data: []byte{1}},
-							value:      inline[hash.H256]([]byte("branch")),
+							value:      inline([]byte("branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
 								inMemory(1), nil, nil, nil, nil, nil,
 								nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
@@ -255,7 +257,7 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf[hash.H256]{
 							partialKey: nodeKey{Data: []byte{0}, Offset: 1},
-							value:      inline[hash.H256]([]byte("leaf")),
+							value:      inline([]byte("leaf")),
 						},
 					},
 				},
@@ -275,7 +277,7 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf[hash.H256]{
 							partialKey: nodeKey{Data: []byte{1}},
-							value:      inline[hash.H256]([]byte("new leaf")),
+							value:      inline([]byte("new leaf")),
 						},
 					},
 				},
@@ -296,7 +298,7 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf[hash.H256]{
 							partialKey: nodeKey{Data: []byte{1}},
-							value:      inline[hash.H256]([]byte("same")),
+							value:      inline([]byte("same")),
 						},
 					},
 				},
@@ -316,13 +318,13 @@ func TestInsertions(t *testing.T) {
 					NewStoredNode{
 						Leaf[hash.H256]{
 							partialKey: nodeKey{Data: []byte{0x02}},
-							value:      inline[hash.H256]([]byte("original leaf")),
+							value:      inline([]byte("original leaf")),
 						},
 					},
 					NewStoredNode{
 						Leaf[hash.H256]{
 							partialKey: nodeKey{Data: []byte{0x03}},
-							value:      inline[hash.H256]([]byte("leaf")),
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
@@ -394,7 +396,7 @@ func TestDeletes(t *testing.T) {
 					NewStoredNode{
 						Leaf[hash.H256]{
 							partialKey: nodeKey{Data: []byte{1}},
-							value:      inline[hash.H256]([]byte("leaf")),
+							value:      inline([]byte("leaf")),
 						},
 					},
 				},
@@ -436,7 +438,7 @@ func TestDeletes(t *testing.T) {
 					NewStoredNode{
 						Leaf[hash.H256]{
 							partialKey: nodeKey{Data: []byte{1, 0}},
-							value:      inline[hash.H256]([]byte("leaf")),
+							value:      inline([]byte("leaf")),
 						},
 					},
 				},
@@ -459,13 +461,13 @@ func TestDeletes(t *testing.T) {
 					NewStoredNode{
 						Leaf[hash.H256]{
 							partialKey: nodeKey{Data: make([]byte, 0)},
-							value:      inline[hash.H256]([]byte("leaf1")),
+							value:      inline([]byte("leaf1")),
 						},
 					},
 					NewStoredNode{
 						Leaf[hash.H256]{
 							partialKey: nodeKey{Data: make([]byte, 0)},
-							value:      inline[hash.H256]([]byte("leaf2")),
+							value:      inline([]byte("leaf2")),
 						},
 					},
 					NewStoredNode{
@@ -527,7 +529,7 @@ func TestInsertAfterDelete(t *testing.T) {
 					NewStoredNode{
 						Leaf[hash.H256]{
 							partialKey: nodeKey{Data: []byte{1}},
-							value:      inline[hash.H256]([]byte("new leaf")),
+							value:      inline([]byte("new leaf")),
 						},
 					},
 				},
@@ -551,13 +553,13 @@ func TestInsertAfterDelete(t *testing.T) {
 					NewStoredNode{
 						Leaf[hash.H256]{
 							partialKey: nodeKey{Data: []byte{0}, Offset: 1},
-							value:      inline[hash.H256]([]byte("leaf")),
+							value:      inline([]byte("leaf")),
 						},
 					},
 					NewStoredNode{
 						Branch[hash.H256]{
 							partialKey: nodeKey{Data: []byte{1}},
-							value:      inline[hash.H256]([]byte("new branch")),
+							value:      inline([]byte("new branch")),
 							children: [codec.ChildrenCapacity]NodeHandle{
 								inMemory(0),
 							},
@@ -799,4 +801,212 @@ func TestDBCommits(t *testing.T) {
 		v = trie.Get([]byte("branchleaf"))
 		assert.Nil(t, v)
 	})
+}
+
+func Test_TrieDB(t *testing.T) {
+	for _, version := range []trie.TrieLayout{trie.V0, trie.V1} {
+		t.Run(fmt.Sprintf("recorder_%v", version), func(t *testing.T) {
+			keyValues := []struct {
+				key   []byte
+				value []byte
+			}{
+				{[]byte("A"), bytes.Repeat([]byte{1}, 64)},
+				{[]byte("AA"), bytes.Repeat([]byte{2}, 64)},
+				{[]byte("AB"), bytes.Repeat([]byte{3}, 64)},
+				{[]byte("B"), bytes.Repeat([]byte{4}, 64)},
+			}
+
+			// Add some initial data to the trie
+			db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+			trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
+			trie.SetVersion(version)
+
+			for _, entry := range keyValues[:1] {
+				require.NoError(t, trie.Put(entry.key, entry.value))
+			}
+			err := trie.commit()
+			require.NoError(t, err)
+			require.NotEmpty(t, trie.rootHash)
+			root := trie.rootHash
+
+			// Add more data, but this time only to the overlay.
+			// While doing that we record all trie accesses to replay this operation.
+			recorder := NewRecorder[hash.H256]()
+			overlay := db.Clone()
+			newRoot := root
+			{
+				trie := NewTrieDB(newRoot, overlay,
+					WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
+				)
+				trie.SetVersion(version)
+				for _, entry := range keyValues[1:] {
+					require.NoError(t, trie.Put(entry.key, entry.value))
+				}
+				err := trie.commit()
+				require.NoError(t, err)
+				require.NotEmpty(t, trie.rootHash)
+				newRoot = trie.rootHash
+			}
+
+			partialDB := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+			for _, record := range recorder.Drain() {
+				key := runtime.BlakeTwo256{}.Hash(record.Data).Bytes()
+				require.NoError(t, partialDB.Put(key, record.Data))
+			}
+
+			// Replay the it, but this time we use the proof.
+			var validatedRoot hash.H256
+			{
+				trie := NewTrieDB[hash.H256, runtime.BlakeTwo256](root, partialDB)
+				trie.SetVersion(version)
+				for _, entry := range keyValues[1:] {
+					require.NoError(t, trie.Put(entry.key, entry.value))
+				}
+				err := trie.commit()
+				require.NoError(t, err)
+				require.NotEmpty(t, trie.rootHash)
+				validatedRoot = trie.rootHash
+			}
+			assert.Equal(t, validatedRoot, newRoot)
+		})
+
+		t.Run(fmt.Sprintf("recorder_with_cache_%v", version), func(t *testing.T) {
+			keyValues := []struct {
+				key   []byte
+				value []byte
+			}{
+				{[]byte("A"), bytes.Repeat([]byte{1}, 64)},
+				{[]byte("AA"), bytes.Repeat([]byte{2}, 64)},
+				{[]byte("AB"), bytes.Repeat([]byte{3}, 64)},
+				{[]byte("B"), bytes.Repeat([]byte{4}, 64)},
+			}
+
+			// Add some initial data to the trie
+			db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+			trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
+			trie.SetVersion(version)
+
+			for _, entry := range keyValues[:1] {
+				require.NoError(t, trie.Put(entry.key, entry.value))
+			}
+			err := trie.commit()
+			require.NoError(t, err)
+			require.NotEmpty(t, trie.rootHash)
+			root := trie.rootHash
+
+			cache := NewTestTrieCache[hash.H256]()
+
+			{
+				trie := NewTrieDB(trie.rootHash, db, WithCache[hash.H256, runtime.BlakeTwo256](cache))
+				trie.SetVersion(version)
+				// Only read one entry.
+				assert.Equal(t, keyValues[0].value, trie.Get(keyValues[0].key))
+			}
+
+			// Root should now be cached.
+			require.NotNil(t, cache.GetNode(trie.rootHash))
+
+			// Add more data, but this time only to the overlay.
+			// While doing that we record all trie accesses to replay this operation.
+			recorder := NewRecorder[hash.H256]()
+			overlay := db.Clone()
+			var newRoot hash.H256
+			{
+				trie := NewTrieDB(trie.rootHash, overlay,
+					WithCache[hash.H256, runtime.BlakeTwo256](cache),
+					WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
+				)
+				trie.SetVersion(version)
+				for _, entry := range keyValues[1:] {
+					require.NoError(t, trie.Put(entry.key, entry.value))
+				}
+				err := trie.commit()
+				require.NoError(t, err)
+				require.NotEmpty(t, trie.rootHash)
+				newRoot = trie.rootHash
+			}
+
+			for i, entry := range keyValues[1:] {
+				cachedValue := cache.GetValue(entry.key)
+				require.Equal(t, ExistingCachedValue[hash.H256]{
+					Hash: runtime.BlakeTwo256{}.Hash(keyValues[i+1].value),
+					Data: keyValues[i+1].value,
+				}, cachedValue)
+			}
+
+			partialDB := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+			for _, record := range recorder.Drain() {
+				key := runtime.BlakeTwo256{}.Hash(record.Data).Bytes()
+				require.NoError(t, partialDB.Put(key, record.Data))
+			}
+
+			// Replay the it, but this time we use the proof.
+			var validatedRoot hash.H256
+			{
+				trie := NewTrieDB[hash.H256, runtime.BlakeTwo256](root, partialDB)
+				trie.SetVersion(version)
+				for _, entry := range keyValues[1:] {
+					require.NoError(t, trie.Put(entry.key, entry.value))
+				}
+				err := trie.commit()
+				require.NoError(t, err)
+				require.NotEmpty(t, trie.rootHash)
+				validatedRoot = trie.rootHash
+			}
+			assert.Equal(t, validatedRoot, newRoot)
+		})
+
+		t.Run(fmt.Sprintf("insert_remove_with_cache_%v", version), func(t *testing.T) {
+			keyValues := []struct {
+				key   []byte
+				value []byte
+			}{
+				{[]byte("A"), bytes.Repeat([]byte{1}, 64)},
+				{[]byte("AA"), bytes.Repeat([]byte{2}, 64)},
+				// Should be inlined
+				{[]byte("AC"), bytes.Repeat([]byte{7}, 4)},
+				{[]byte("AB"), bytes.Repeat([]byte{3}, 64)},
+				{[]byte("B"), bytes.Repeat([]byte{4}, 64)},
+			}
+
+			cache := NewTestTrieCache[hash.H256]()
+			recorder := NewRecorder[hash.H256]()
+			db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+			{
+				trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db,
+					WithCache[hash.H256, runtime.BlakeTwo256](cache),
+					WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
+				)
+				trie.SetVersion(version)
+
+				// Add all values
+				for _, entry := range keyValues {
+					require.NoError(t, trie.Put(entry.key, entry.value))
+				}
+
+				// Remove only the last 2 elements
+				for _, entry := range keyValues[3:] {
+					require.NoError(t, trie.Delete(entry.key))
+				}
+
+				err := trie.commit()
+				require.NoError(t, err)
+				require.NotEmpty(t, trie.rootHash)
+			}
+
+			// Then only the first 3 elements should be in the cache and the last
+			// two ones should not be there.
+			for _, entry := range keyValues[:3] {
+				cachedValue := cache.GetValue(entry.key)
+				require.NotNil(t, cachedValue)
+
+				require.Equal(t, entry.value, cachedValue.data())
+				require.Equal(t, runtime.BlakeTwo256{}.Hash(entry.value), *cachedValue.hash())
+			}
+
+			for _, entry := range keyValues[3:] {
+				require.Nil(t, cache.GetValue(entry.key))
+			}
+		})
+	}
 }

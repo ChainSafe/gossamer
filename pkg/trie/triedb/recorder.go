@@ -14,7 +14,7 @@ type TrieAccess interface {
 type (
 	NodeOwnedAccess[H any] struct {
 		Hash H
-		Node NodeOwned
+		Node NodeOwned[H]
 	}
 	EncodedNodeAccess[H any] struct {
 		Hash        H
@@ -134,6 +134,8 @@ func (r *Recorder[H]) Record(access TrieAccess) {
 	switch a := access.(type) {
 	case EncodedNodeAccess[H]:
 		r.nodes = append(r.nodes, Record[H]{Hash: a.Hash, Data: a.EncodedNode})
+	case NodeOwnedAccess[H]:
+		r.nodes = append(r.nodes, Record[H]{Hash: a.Hash, Data: a.Node.encoded()})
 	case ValueAccess[H]:
 		r.nodes = append(r.nodes, Record[H]{Hash: a.Hash, Data: a.Value})
 		r.recordedKeys.Set(string(a.FullKey), RecordedValue)
@@ -146,6 +148,8 @@ func (r *Recorder[H]) Record(access TrieAccess) {
 	case NonExistingNodeAccess:
 		// We handle the non existing value/hash like having recorded the value
 		r.recordedKeys.Set(string(a.FullKey), RecordedValue)
+	default:
+		panic("unreachable")
 	}
 }
 
@@ -157,7 +161,11 @@ func (r *Recorder[H]) Drain() []Record[H] {
 }
 
 func (r *Recorder[H]) TrieNodesRecordedForKey(key []byte) RecordedForKey {
-	panic("unimpl")
+	rfk, ok := r.recordedKeys.Get(string(key))
+	if !ok {
+		return RecordedNone
+	}
+	return rfk
 }
 
 var _ TrieRecorder = &Recorder[string]{}

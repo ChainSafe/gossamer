@@ -22,7 +22,7 @@ func (h256 H256) Bytes() []byte {
 
 // String returns string representation of H256
 func (h256 H256) String() string {
-	return fmt.Sprintf("%v", h256.Bytes())
+	return fmt.Sprintf("%x", h256.Bytes())
 }
 
 // Length returns the byte length of H256

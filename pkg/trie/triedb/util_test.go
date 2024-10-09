@@ -8,9 +8,11 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/gossamer/internal/database"
+	chash "github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/hash"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/exp/maps"
 )
 
 // MemoryDB is an in-memory implementation of the Database interface backed by a
@@ -68,6 +70,14 @@ func (db *MemoryDB) NewBatch() database.Batch {
 	return &MemoryBatch{db}
 }
 
+func (db *MemoryDB) Clone() *MemoryDB {
+	return &MemoryDB{
+		data:           maps.Clone(db.data),
+		hashedNullNode: db.hashedNullNode,
+		nullNodeData:   db.nullNodeData,
+	}
+}
+
 var _ db.RWDatabase = &MemoryDB{}
 
 type MemoryBatch struct {
@@ -91,3 +101,50 @@ func newTestDB(t assert.TestingT) database.Table {
 	assert.NoError(t, err)
 	return database.NewTable(db, "trie")
 }
+
+type TestTrieCache[H hash.Hash] struct {
+	valueCache map[string]CachedValue[H]
+	nodeCache  map[H]NodeOwned[H]
+}
+
+func NewTestTrieCache[H hash.Hash]() *TestTrieCache[H] {
+	return &TestTrieCache[H]{
+		valueCache: make(map[string]CachedValue[H]),
+		nodeCache:  make(map[H]NodeOwned[H]),
+	}
+}
+
+func (ttc *TestTrieCache[H]) GetValue(key []byte) CachedValue[H] {
+	cv, ok := ttc.valueCache[string(key)]
+	if !ok {
+		return nil
+	}
+	return cv
+}
+
+func (ttc *TestTrieCache[H]) SetValue(key []byte, value CachedValue[H]) {
+	ttc.valueCache[string(key)] = value
+}
+
+func (ttc *TestTrieCache[H]) GetOrInsertNode(hash H, fetchNode func() (NodeOwned[H], error)) (NodeOwned[H], error) {
+	node, ok := ttc.nodeCache[hash]
+	if !ok {
+		var err error
+		node, err = fetchNode()
+		if err != nil {
+			return nil, err
+		}
+		ttc.nodeCache[hash] = node
+	}
+	return node, nil
+}
+
+func (ttc *TestTrieCache[H]) GetNode(hash H) NodeOwned[H] {
+	node, ok := ttc.nodeCache[hash]
+	if !ok {
+		return nil
+	}
+	return node
+}
+
+var _ TrieCache[chash.H256] = &TestTrieCache[chash.H256]{}

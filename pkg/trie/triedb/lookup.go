@@ -17,6 +17,7 @@ import (
 // Description of what kind of query will be made to the trie.
 type Query[Item any] func(data []byte) Item
 
+// / Trie lookup helper object.
 type TrieLookup[H hash.Hash, Hasher hash.Hasher[H], QueryItem any] struct {
 	// db to query from
 	db db.DBGetter
@@ -32,137 +33,49 @@ type TrieLookup[H hash.Hash, Hasher hash.Hasher[H], QueryItem any] struct {
 	query Query[QueryItem]
 }
 
+// NewTrieLookup is constructor for [TrieLookup]
 func NewTrieLookup[H hash.Hash, Hasher hash.Hasher[H], QueryItem any](
 	db db.DBGetter,
 	hash H,
 	cache TrieCache[H],
 	recorder TrieRecorder,
+	query Query[QueryItem],
 ) TrieLookup[H, Hasher, QueryItem] {
 	return TrieLookup[H, Hasher, QueryItem]{
 		db:       db,
 		hash:     hash,
 		cache:    cache,
 		recorder: recorder,
+		query:    query,
 	}
 }
 
-func (l *TrieLookup[H, Hasher, QueryItem]) lookupNode(
-	nibbleKey nibbles.Nibbles, fullKey []byte,
-) (codec.EncodedNode, error) {
-	// Start from root node and going downwards
-	partialKey := nibbleKey.Clone()
-	hash := l.hash
-	var keyNibbles uint
-
-	// Iterates through non inlined nodes
-	for {
-		// Get node from DB
-		prefixedKey := append(nibbleKey.Mid(keyNibbles).Left().JoinedBytes(), hash.Bytes()...)
-		nodeData, err := l.db.Get(prefixedKey)
-		if err != nil {
-			return nil, ErrIncompleteDB
-		}
-
-		l.recordAccess(EncodedNodeAccess[H]{Hash: hash, EncodedNode: nodeData})
-
-	InlinedChildrenIterator:
-		for {
-			// Decode node
-			reader := bytes.NewReader(nodeData)
-			decodedNode, err := codec.Decode[H](reader)
-			if err != nil {
-				return nil, err
-			}
-
-			var nextNode codec.MerkleValue
-
-			switch n := decodedNode.(type) {
-			case codec.Empty:
-				return nil, nil //nolint:nilnil
-			case codec.Leaf:
-				// We are in the node we were looking for
-				if partialKey.Equal(n.PartialKey) {
-					return n, nil
-				}
-
-				l.recordAccess(NonExistingNodeAccess{FullKey: fullKey})
-
-				return nil, nil //nolint:nilnil
-			case codec.Branch:
-				nodePartialKey := n.PartialKey
-
-				// This is unusual but could happen if for some reason one
-				// branch has a hashed child node that points to a node that
-				// doesn't share the prefix we are expecting
-				if !partialKey.StartsWith(nodePartialKey) {
-					l.recordAccess(NonExistingNodeAccess{FullKey: fullKey})
-					return nil, nil //nolint:nilnil
-				}
-
-				// We are in the node we were looking for
-				if partialKey.Equal(n.PartialKey) {
-					if n.Value != nil {
-						return n, nil
-					}
-
-					l.recordAccess(NonExistingNodeAccess{FullKey: fullKey})
-					return nil, nil //nolint:nilnil
-				}
-
-				// This is not the node we were looking for but it might be in
-				// one of its children
-				childIdx := int(partialKey.At(nodePartialKey.Len()))
-				nextNode = n.Children[childIdx]
-				if nextNode == nil {
-					l.recordAccess(NonExistingNodeAccess{FullKey: fullKey})
-					return nil, nil //nolint:nilnil
-				}
-
-				// Advance the partial key consuming the part we already checked
-				partialKey = partialKey.Mid(nodePartialKey.Len() + 1)
-				keyNibbles += nodePartialKey.Len() + 1
-			}
-
-			// Next node could be inlined or hashed (pointer to a node)
-			// https://spec.polkadot.network/chap-state#defn-merkle-value
-			switch merkleValue := nextNode.(type) {
-			case codec.HashedNode[H]:
-				// If it's hashed we set the hash to look for it in next loop
-				hash = merkleValue.Hash
-				break InlinedChildrenIterator
-			case codec.InlineNode:
-				// If it is inlined we just need to decode it in the next loop
-				nodeData = merkleValue
-			}
-		}
+func (l *TrieLookup[H, Hasher, QueryItem]) recordAccess(access TrieAccess) {
+	if l.recorder != nil {
+		l.recorder.Record(access)
 	}
 }
 
-func (l *TrieLookup[H, Hasher, QueryItem]) lookupValue(
-	fullKey []byte, keyNibbles nibbles.Nibbles,
-) (value []byte, err error) {
-	node, err := l.lookupNode(keyNibbles, fullKey)
-	if err != nil {
-		return nil, err
+// / Look up the given `nibble_key`.
+// /
+// / If the value is found, it will be passed to the given function to decode or copy.
+// /
+// / The given `full_key` should be the full key to the data that is requested. This will
+// / be used when there is a cache to potentially speed up the lookup.
+func (l *TrieLookup[H, Hasher, QueryItem]) Lookup(fullKey []byte, nibbleKey nibbles.Nibbles) (*QueryItem, error) {
+	if l.cache != nil {
+		return l.lookupWithCache(fullKey, nibbleKey)
 	}
-
-	// node not found so we return nil
-	if node == nil {
-		return nil, nil
-	}
-
-	if nodeValue := node.GetValue(); nodeValue != nil {
-		value, err = l.fetchValue(keyNibbles.OriginalDataPrefix(), fullKey, nodeValue)
-		if err != nil {
-			return nil, err
-		}
-		return value, nil
-	}
-
-	return nil, nil
+	return lookupWithoutCache(l, nibbleKey, fullKey, loadValue[H, QueryItem])
 }
 
-func (l *TrieLookup[H, Hasher, QueryItem]) lookupValueWithCache(fullKey []byte, keyNibbles nibbles.Nibbles, cache TrieCache[H]) (*QueryItem, error) {
+// / Look up the given key. If the value is found, it will be passed to the given
+// / function to decode or copy.
+// /
+// / It uses the given cache to speed-up lookups.
+func (l *TrieLookup[H, Hasher, QueryItem]) lookupWithCache(
+	fullKey []byte, nibbleKey nibbles.Nibbles,
+) (*QueryItem, error) {
 	var trieNodesRecorded *RecordedForKey
 	if l.recorder != nil {
 		recorded := l.recorder.TrieNodesRecordedForKey(fullKey)
@@ -194,36 +107,39 @@ func (l *TrieLookup[H, Hasher, QueryItem]) lookupValueWithCache(fullKey []byte, 
 	}
 
 	var lookupData = func() ([]byte, error) {
-		data, err := lookupValueWithCacheInternal[H, Hasher](l, fullKey, keyNibbles, cache, loadValueOwned[H])
+		data, err := lookupWithCacheInternal[H, Hasher](l, fullKey, nibbleKey, l.cache, loadValueOwned[H])
 		if err != nil {
 			return nil, err
 		}
 
-		cache.SetValue(fullKey, data.CachedValue())
-		return data.Value, nil
+		l.cache.SetValue(fullKey, data.CachedValue())
+		if data != nil {
+			return data.Value, nil
+		}
+		return nil, nil
 	}
 
 	var res []byte
 	if valueCacheAllowed {
-		cachedVal := cache.GetValue(fullKey)
+		cachedVal := l.cache.GetValue(fullKey)
 		switch cachedVal := cachedVal.(type) {
-		case NonExistingCachedValue:
+		case NonExistingCachedValue[H]:
 			res = nil
 		case ExistingHashCachedValue[H]:
 			data, err := loadValueOwned[H](
 				// If we only have the hash cached, this can only be a value node.
 				// For inline nodes we cache them directly as `CachedValue::Existing`.
-				ValueOwned(ValueOwnedNode[H]{Hash: cachedVal.Hash}),
-				keyNibbles, // nibble_key.original_data_as_prefix(),
+				ValueOwned[H](ValueOwnedNode[H]{Hash: cachedVal.Hash}),
+				nibbleKey.OriginalDataPrefix(), // nibble_key.original_data_as_prefix(),
 				fullKey,
-				cache,
+				l.cache,
 				l.db,
 				l.recorder,
 			)
 			if err != nil {
 				break
 			}
-			cache.SetValue(fullKey, data.CachedValue())
+			l.cache.SetValue(fullKey, data.CachedValue())
 			res = data.Value
 		case ExistingCachedValue[H]:
 			data := cachedVal.Data
@@ -264,39 +180,38 @@ func (l *TrieLookup[H, Hasher, QueryItem]) lookupValueWithCache(fullKey []byte, 
 	return nil, nil
 }
 
-type loadValueFunc[H hash.Hash, R any] func(
-	v ValueOwned,
-	prefix nibbles.Nibbles,
+type loadValueOwnedFunc[H hash.Hash, R any] func(
+	v ValueOwned[H],
+	prefix nibbles.Prefix,
 	fullKey []byte,
 	cache TrieCache[H],
 	db db.DBGetter,
 	recorder TrieRecorder,
 ) (R, error)
 
-func lookupValueWithCacheInternal[H hash.Hash, Hasher hash.Hasher[H], R, QueryItem any](
+// / When modifying any logic inside this function, you also need to do the same in
+// / lookupWithoutCache.
+func lookupWithCacheInternal[H hash.Hash, Hasher hash.Hasher[H], R, QueryItem any](
 	l *TrieLookup[H, Hasher, QueryItem],
 	fullKey []byte,
 	nibbleKey nibbles.Nibbles,
 	cache TrieCache[H],
-	loadValue loadValueFunc[H, R],
+	loadValue loadValueOwnedFunc[H, R],
 ) (*R, error) {
 	partial := nibbleKey
 	hash := l.hash
 	var keyNibbles uint
 
-	// TODO: remove this
-	_ = partial
-
 	var depth uint
 	for {
-		node, err := cache.GetOrInsertNode(hash, func() (NodeOwned, error) {
+		node, err := cache.GetOrInsertNode(hash, func() (NodeOwned[H], error) {
 			prefixedKey := append(nibbleKey.Mid(keyNibbles).Left().JoinedBytes(), hash.Bytes()...)
 			nodeData, err := l.db.Get(prefixedKey)
 			if err != nil {
 				if depth == 0 {
-					return nil, fmt.Errorf("invalid state root")
+					return nil, ErrInvalidStateRoot
 				} else {
-					return nil, fmt.Errorf("incomplete database")
+					return nil, ErrIncompleteDB
 				}
 			}
 			reader := bytes.NewReader(nodeData)
@@ -320,9 +235,9 @@ func lookupValueWithCacheInternal[H hash.Hash, Hasher hash.Hasher[H], R, QueryIt
 			var nextNode NodeHandleOwned
 			switch node := node.(type) {
 			case NodeOwnedLeaf[H]:
-				if partial.Equal(node.PartialKey) {
+				if partial.EqualNibbleSlice(node.PartialKey) {
 					value := node.Value
-					r, err := loadValue(value, nibbleKey, fullKey, cache, l.db, l.recorder)
+					r, err := loadValue(value, nibbleKey.OriginalDataPrefix(), fullKey, cache, l.db, l.recorder)
 					if err != nil {
 						return nil, err
 					}
@@ -332,26 +247,36 @@ func lookupValueWithCacheInternal[H hash.Hash, Hasher hash.Hasher[H], R, QueryIt
 					return nil, nil
 				}
 			case NodeOwnedBranch[H]:
-				if partial.Len() == 0 {
+				if !partial.StartsWithNibbleSlice(node.PartialKey) {
+					l.recordAccess(NonExistingNodeAccess{fullKey})
+					return nil, nil
+				}
+
+				if partial.Len() == node.PartialKey.Len() {
+					if node.Value == nil {
+						l.recordAccess(NonExistingNodeAccess{fullKey})
+						return nil, nil
+					}
 					value := node.Value
-					r, err := loadValue(value, nibbleKey, fullKey, cache, l.db, l.recorder)
+					r, err := loadValue(value, nibbleKey.OriginalDataPrefix(), fullKey, cache, l.db, l.recorder)
 					if err != nil {
 						return nil, err
 					}
 					return &r, nil
-				} else {
-					child := node.Children[partial.At(0)]
-					if child != nil {
-						partial = partial.Mid(1)
-						keyNibbles += 1
-						nextNode = child
-					} else {
-						l.recordAccess(NonExistingNodeAccess{fullKey})
-						return nil, nil
-					}
 				}
-			case NodeOwnedEmpty:
+
+				child := node.Children[partial.At(node.PartialKey.Len())]
+				if child != nil {
+					partial = partial.Mid(node.PartialKey.Len() + 1)
+					keyNibbles += node.PartialKey.Len() + 1
+					nextNode = child
+				} else {
+					l.recordAccess(NonExistingNodeAccess{fullKey})
+					return nil, nil
+				}
+			case NodeOwnedEmpty[H]:
 				l.recordAccess(NonExistingNodeAccess{FullKey: fullKey})
+				return nil, nil
 			default:
 				panic("unreachable")
 			}
@@ -371,15 +296,139 @@ func lookupValueWithCacheInternal[H hash.Hash, Hasher hash.Hasher[H], R, QueryIt
 	}
 }
 
+type loadValueFunc[H hash.Hash, QueryItem, R any] func(
+	v codec.EncodedValue,
+	prefix nibbles.Prefix,
+	fullKey []byte,
+	db db.DBGetter,
+	recorder TrieRecorder,
+	query Query[QueryItem],
+) (R, error)
+
+// / Look up the given key. If the value is found, it will be passed to the given
+// / function to decode or copy.
+// /
+// / When modifying any logic inside this function, you also need to do the same in
+// / lookupWithCacheInternal.
+func lookupWithoutCache[H hash.Hash, Hasher hash.Hasher[H], QueryItem, R any](
+	l *TrieLookup[H, Hasher, QueryItem],
+	nibbleKey nibbles.Nibbles,
+	fullKey []byte,
+	loadValue loadValueFunc[H, QueryItem, R],
+) (*R, error) {
+	partial := nibbleKey
+	hash := l.hash
+	var keyNibbles uint
+
+	var depth uint
+	for {
+		prefixedKey := append(nibbleKey.Mid(keyNibbles).Left().JoinedBytes(), hash.Bytes()...)
+		nodeData, err := l.db.Get(prefixedKey)
+		if err != nil {
+			if depth == 0 {
+				return nil, ErrInvalidStateRoot
+			} else {
+				return nil, fmt.Errorf("incomplete database")
+			}
+		}
+
+		l.recordAccess(EncodedNodeAccess[H]{Hash: hash, EncodedNode: nodeData})
+
+	inlineLoop:
+		// this loop iterates through all inline children (usually max 1)
+		// without incrementing the depth.
+		for {
+			reader := bytes.NewReader(nodeData)
+			decoded, err := codec.Decode[H](reader)
+			if err != nil {
+				return nil, err
+			}
+
+			var nextNode codec.MerkleValue
+			switch decoded := decoded.(type) {
+			case codec.Leaf:
+				leaf := decoded
+				if partial.Equal(leaf.PartialKey) {
+					r, err := loadValue(
+						leaf.Value,
+						nibbleKey.OriginalDataPrefix(),
+						fullKey,
+						l.db,
+						l.recorder,
+						l.query,
+					)
+					if err != nil {
+						return nil, err
+					}
+					return &r, nil
+				}
+				l.recordAccess(NonExistingNodeAccess{FullKey: fullKey})
+				return nil, nil
+			case codec.Branch:
+				branch := decoded
+				if !partial.StartsWith(branch.PartialKey) {
+					l.recordAccess(NonExistingNodeAccess{fullKey})
+					return nil, nil
+				}
+
+				if partial.Len() == branch.PartialKey.Len() {
+					if branch.Value != nil {
+						r, err := loadValue(
+							branch.Value,
+							nibbleKey.OriginalDataPrefix(),
+							fullKey,
+							l.db,
+							l.recorder,
+							l.query,
+						)
+						if err != nil {
+							return nil, err
+						}
+						return &r, nil
+					}
+					l.recordAccess(NonExistingNodeAccess{fullKey})
+					return nil, nil
+				}
+
+				child := branch.Children[partial.At(branch.PartialKey.Len())]
+				if child != nil {
+					partial = partial.Mid(branch.PartialKey.Len() + 1)
+					keyNibbles += branch.PartialKey.Len() + 1
+					nextNode = child
+				} else {
+					l.recordAccess(NonExistingNodeAccess{fullKey})
+					return nil, nil
+				}
+			case codec.Empty:
+				l.recordAccess(NonExistingNodeAccess{FullKey: fullKey})
+			default:
+				panic("unreachable")
+			}
+
+			// check if new node data is inline or hash.
+			switch nextNode := nextNode.(type) {
+			case codec.HashedNode[H]:
+				hash = nextNode.Hash
+				break inlineLoop
+			case codec.InlineNode:
+				nodeData = nextNode
+			default:
+				panic("unreachable")
+			}
+		}
+		depth++
+	}
+}
+
 type valueHash[H any] struct {
 	Value []byte
 	Hash  H
 }
 
-func (vh *valueHash[H]) CachedValue() CachedValue {
+func (vh *valueHash[H]) CachedValue() CachedValue[H] {
 	// valid case since this is supposed to be optional
 	if vh == nil {
-		return NonExistingCachedValue{}
+		return NonExistingCachedValue[H]{}
 	}
 	return ExistingCachedValue[H]{
 		Hash: vh.Hash,
@@ -394,13 +443,13 @@ func (vh *valueHash[H]) CachedValue() CachedValue {
 //
 // Returns the bytes representing the value and its hash.
 func loadValueOwned[H hash.Hash](
-	v ValueOwned,
-	prefix nibbles.Nibbles,
+	v ValueOwned[H],
+	prefix nibbles.Prefix,
 	fullKey []byte,
 	cache TrieCache[H],
 	db db.DBGetter,
-	recorder TrieRecorder) (valueHash[H], error) {
-
+	recorder TrieRecorder,
+) (valueHash[H], error) {
 	switch v := v.(type) {
 	case ValueOwnedInline[H]:
 		if recorder != nil {
@@ -411,8 +460,8 @@ func loadValueOwned[H hash.Hash](
 			Hash:  v.Hash,
 		}, nil
 	case ValueOwnedNode[H]:
-		node, err := cache.GetOrInsertNode(v.Hash, func() (NodeOwned, error) {
-			prefixedKey := append(prefix.Left().JoinedBytes(), v.Hash.Bytes()...)
+		node, err := cache.GetOrInsertNode(v.Hash, func() (NodeOwned[H], error) {
+			prefixedKey := append(prefix.JoinedBytes(), v.Hash.Bytes()...)
 			val, err := db.Get(prefixedKey)
 			if err != nil {
 				return nil, err
@@ -428,7 +477,8 @@ func loadValueOwned[H hash.Hash](
 		case NodeOwnedValue[H]:
 			value = node.Value
 		default:
-			panic("we are caching a `NodeOwnedValue` for a value node hash and this cached node has always data attached")
+			panic("we are caching a `NodeOwnedValue` for a value node hash and this " +
+				"cached node has always data attached")
 		}
 
 		if recorder != nil {
@@ -449,33 +499,163 @@ func loadValueOwned[H hash.Hash](
 	}
 }
 
-// fetchValue gets the value from the node, if it is inlined we can return it
-// directly. But if it is hashed (V1) we have to look up for its value in the DB
-func (l *TrieLookup[H, Hasher, QueryItem]) fetchValue(
-	prefix nibbles.Prefix, fullKey []byte, value codec.EncodedValue,
-) ([]byte, error) {
-	switch v := value.(type) {
+// / Load the given value.
+// /
+// / This will access the `db` if the value is not already in memory, but then it will put it
+// / into the given `cache` as `NodeOwned::Value`.
+// /
+// / Returns the bytes representing the value.
+func loadValue[H hash.Hash, QueryItem any](
+	v codec.EncodedValue,
+	prefix nibbles.Prefix,
+	fullKey []byte,
+	db db.DBGetter,
+	recorder TrieRecorder,
+	query Query[QueryItem],
+) (qi QueryItem, err error) {
+	switch v := v.(type) {
 	case codec.InlineValue:
-		l.recordAccess(InlineValueAccess{FullKey: fullKey})
-		return v, nil
+		if recorder != nil {
+			recorder.Record(InlineValueAccess{FullKey: fullKey})
+		}
+		return query(v), nil
 	case codec.HashedValue[H]:
-		prefixedKey := bytes.Join([][]byte{prefix.JoinedBytes(), v.Hash.Bytes()}, nil)
-
-		nodeData, err := l.db.Get(prefixedKey)
+		prefixedKey := append(prefix.JoinedBytes(), v.Hash.Bytes()...)
+		val, err := db.Get(prefixedKey)
 		if err != nil {
-			return nil, ErrIncompleteDB
+			return qi, err
+		}
+		if val == nil {
+			return qi, fmt.Errorf("incomplete database for key: %s", prefixedKey)
 		}
 
-		l.recordAccess(ValueAccess[H]{Hash: v.Hash, FullKey: fullKey, Value: nodeData})
-
-		return nodeData, nil
+		if recorder != nil {
+			recorder.Record(ValueAccess[H]{
+				Hash:    v.Hash,
+				Value:   val,
+				FullKey: fullKey,
+			})
+		}
+		return query(val), nil
 	default:
 		panic("unreachable")
 	}
 }
 
-func (l *TrieLookup[H, Hasher, QueryItem]) recordAccess(access TrieAccess) {
-	if l.recorder != nil {
-		l.recorder.Record(access)
+// / Look up the value hash for the given `nibble_key`.
+// /
+// / The given `full_key` should be the full key to the data that is requested. This will
+// / be used when there is a cache to potentially speed up the lookup.
+func (l *TrieLookup[H, Hasher, QueryItem]) LookupHash(fullKey []byte, nibbleKey nibbles.Nibbles) (*H, error) {
+	if l.cache != nil {
+		return l.lookupHashWithCache(fullKey, nibbleKey)
 	}
+	return lookupWithoutCache(
+		l, nibbleKey, fullKey,
+		func(
+			v codec.EncodedValue,
+			_ nibbles.Prefix,
+			fullKey []byte,
+			_ db.DBGetter,
+			recorder TrieRecorder,
+			_ Query[QueryItem],
+		) (H, error) {
+			switch v := v.(type) {
+			case codec.InlineValue:
+				if recorder != nil {
+					// We can record this as `InlineValue`, even we are just returning
+					// the `hash`. This is done to prevent requiring to re-record this
+					// key.
+					recorder.Record(InlineValueAccess{FullKey: fullKey})
+				}
+				return (*new(Hasher)).Hash(v), nil
+			case codec.HashedValue[H]:
+				if recorder != nil {
+					// We can record this as `InlineValue`, even we are just returning
+					// the `hash`. This is done to prevent requiring to re-record this
+					// key.
+					recorder.Record(InlineValueAccess{FullKey: fullKey})
+				}
+				return v.Hash, nil
+			default:
+				panic("unreachable")
+			}
+		},
+	)
+
+}
+
+// / Look up the value hash for the given key.
+// /
+// / It uses the given cache to speed-up lookups.
+func (l *TrieLookup[H, Hasher, QueryItem]) lookupHashWithCache(
+	fullKey []byte,
+	nibbleKey nibbles.Nibbles,
+) (*H, error) {
+	// If there is no recorder, we can always use the value cache.
+	var valueCacheAllowed bool = true
+	if l.recorder != nil {
+		// Check if the recorder has the trie nodes already recorded for this key.
+		valueCacheAllowed = l.recorder.TrieNodesRecordedForKey(fullKey) != RecordedNone
+	}
+
+	var res *H
+	if valueCacheAllowed {
+		val := l.cache.GetValue(fullKey)
+		if val != nil {
+			switch val := val.(type) {
+			case ExistingHashCachedValue[H]:
+				res = &val.Hash
+			case ExistingCachedValue[H]:
+				res = &val.Hash
+			}
+		}
+	} else {
+		vh, err := lookupWithCacheInternal(l, fullKey, nibbleKey, l.cache, func(
+			value ValueOwned[H],
+			_ nibbles.Prefix,
+			fullKey []byte,
+			_ TrieCache[H],
+			_ db.DBGetter,
+			recorder TrieRecorder,
+		) (valueHash[H], error) {
+			switch value := value.(type) {
+			case ValueOwnedInline[H]:
+				if recorder != nil {
+					// We can record this as `InlineValue`, even we are just returning
+					// the `hash`. This is done to prevent requiring to re-record this
+					// key.
+					recorder.Record(InlineValueAccess{FullKey: fullKey})
+				}
+				return valueHash[H]{
+					Value: value.Value,
+					Hash:  value.Hash,
+				}, nil
+			case ValueOwnedNode[H]:
+				if recorder != nil {
+					recorder.Record(HashAccess{FullKey: fullKey})
+				}
+				return valueHash[H]{
+					Hash: value.Hash,
+				}, nil
+			default:
+				panic("unreachable")
+			}
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if vh != nil {
+			if vh.Value != nil {
+				l.cache.SetValue(fullKey, vh.CachedValue())
+			} else {
+				l.cache.SetValue(fullKey, ExistingHashCachedValue[H]{Hash: vh.Hash})
+			}
+			res = &vh.Hash
+		} else {
+			l.cache.SetValue(fullKey, NonExistingCachedValue[H]{})
+		}
+	}
+	return res, nil
 }

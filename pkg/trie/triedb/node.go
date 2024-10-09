@@ -15,13 +15,13 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibbles"
 )
 
-type nodeValue[H hash.Hash] interface {
-	equal(other nodeValue[H]) bool
+type nodeValue interface {
+	equal(other nodeValue) bool
 }
 
 type (
 	// inline is an inlined value representation
-	inline[H hash.Hash] []byte
+	inline []byte
 
 	// valueRef is a reference to a value stored in the db
 	valueRef[H hash.Hash] struct {
@@ -37,10 +37,10 @@ type (
 
 // newEncodedValue creates an EncodedValue from a nodeValue
 func newEncodedValue[H hash.Hash](
-	value nodeValue[H], partial *nibbles.Nibbles, childF onChildStoreFn,
+	value nodeValue, partial *nibbles.Nibbles, childF onChildStoreFn,
 ) (codec.EncodedValue, error) {
 	switch v := value.(type) {
-	case inline[H]:
+	case inline:
 		return codec.InlineValue(v), nil
 	case valueRef[H]:
 		return codec.HashedValue[H]{Hash: v.hash}, nil
@@ -76,9 +76,9 @@ func newEncodedValue[H hash.Hash](
 	}
 }
 
-func (n inline[H]) equal(other nodeValue[H]) bool {
+func (n inline) equal(other nodeValue) bool {
 	switch otherValue := other.(type) {
-	case inline[H]:
+	case inline:
 		return bytes.Equal(n, otherValue)
 	default:
 		return false
@@ -86,7 +86,7 @@ func (n inline[H]) equal(other nodeValue[H]) bool {
 }
 
 func (vr valueRef[H]) getHash() H { return vr.hash }
-func (vr valueRef[H]) equal(other nodeValue[H]) bool {
+func (vr valueRef[H]) equal(other nodeValue) bool {
 	switch otherValue := other.(type) {
 	case valueRef[H]:
 		return vr.hash == otherValue.hash
@@ -98,7 +98,7 @@ func (vr valueRef[H]) equal(other nodeValue[H]) bool {
 func (vr newValueRef[H]) getHash() H {
 	return vr.hash
 }
-func (vr newValueRef[H]) equal(other nodeValue[H]) bool {
+func (vr newValueRef[H]) equal(other nodeValue) bool {
 	switch otherValue := other.(type) {
 	case newValueRef[H]:
 		return vr.hash == otherValue.hash
@@ -107,7 +107,7 @@ func (vr newValueRef[H]) equal(other nodeValue[H]) bool {
 	}
 }
 
-func NewValue[H hash.Hash](data []byte, threshold int) nodeValue[H] {
+func NewValue[H hash.Hash](data []byte, threshold int) nodeValue {
 	if len(data) >= threshold {
 		return newValueRef[H]{
 			hash: *new(H),
@@ -115,13 +115,13 @@ func NewValue[H hash.Hash](data []byte, threshold int) nodeValue[H] {
 		}
 	}
 
-	return inline[H](data)
+	return inline(data)
 }
 
-func NewValueFromEncoded[H hash.Hash](encodedValue codec.EncodedValue) nodeValue[H] {
+func NewValueFromEncoded[H hash.Hash](encodedValue codec.EncodedValue) nodeValue {
 	switch v := encodedValue.(type) {
 	case codec.InlineValue:
-		return inline[H](v)
+		return inline(v)
 	case codec.HashedValue[H]:
 		return valueRef[H]{v.Hash}
 	}
@@ -129,9 +129,20 @@ func NewValueFromEncoded[H hash.Hash](encodedValue codec.EncodedValue) nodeValue
 	return nil
 }
 
-func inMemoryFetchedValue[H hash.Hash](value nodeValue[H], prefix []byte, db db.DBGetter) ([]byte, error) {
+func newValueFromValueOwned[H hash.Hash](val ValueOwned[H]) nodeValue {
+	switch val := val.(type) {
+	case ValueOwnedInline[H]:
+		return inline(val.Value)
+	case ValueOwnedNode[H]:
+		return valueRef[H]{val.Hash}
+	default:
+		panic("unreachable")
+	}
+}
+
+func inMemoryFetchedValue[H hash.Hash](value nodeValue, prefix []byte, db db.DBGetter) ([]byte, error) {
 	switch v := value.(type) {
-	case inline[H]:
+	case inline:
 		return v, nil
 	case newValueRef[H]:
 		return v.data, nil
@@ -164,12 +175,12 @@ type (
 	Empty             struct{}
 	Leaf[H hash.Hash] struct {
 		partialKey nodeKey
-		value      nodeValue[H]
+		value      nodeValue
 	}
 	Branch[H hash.Hash] struct {
 		partialKey nodeKey
 		children   [codec.ChildrenCapacity]NodeHandle
-		value      nodeValue[H]
+		value      nodeValue
 	}
 )
 
@@ -179,7 +190,7 @@ func (n Branch[H]) getPartialKey() *nodeKey { return &n.partialKey }
 
 // Create a new node from the encoded data, decoding this data into a codec.Node
 // and mapping that with this node type
-func newNodeFromEncoded[H hash.Hash](nodeHash H, data []byte, storage nodeStorage[H]) (Node, error) {
+func newNodeFromEncoded[H hash.Hash](nodeHash H, data []byte, storage *nodeStorage[H]) (Node, error) {
 	reader := bytes.NewReader(data)
 	encodedNode, err := codec.Decode[H](reader)
 	if err != nil {
@@ -201,7 +212,7 @@ func newNodeFromEncoded[H hash.Hash](nodeHash H, data []byte, storage nodeStorag
 
 		child := func(i int) (NodeHandle, error) {
 			if encodedChildren[i] != nil {
-				newChild, err := newFromEncodedMerkleValue[H](nodeHash, encodedChildren[i], storage)
+				newChild, err := newNodeHandleFromMerkleValue[H](nodeHash, encodedChildren[i], storage)
 				if err != nil {
 					return nil, err
 				}
@@ -220,6 +231,47 @@ func newNodeFromEncoded[H hash.Hash](nodeHash H, data []byte, storage nodeStorag
 		}
 
 		return Branch[H]{partialKey: key.NodeKey(), children: children, value: NewValueFromEncoded[H](value)}, nil
+	default:
+		panic("unreachable")
+	}
+}
+
+func newNodeFromNodeOwned[H hash.Hash](
+	nodeOwned NodeOwned[H], storage *nodeStorage[H],
+) Node {
+	switch nodeOwned := nodeOwned.(type) {
+	case NodeOwnedEmpty[H]:
+		return Empty{}
+	case NodeOwnedLeaf[H]:
+		leaf := nodeOwned
+		return Leaf[H]{
+			partialKey: leaf.PartialKey.NodeKey(),
+			value:      newValueFromValueOwned[H](leaf.Value),
+		}
+	case NodeOwnedBranch[H]:
+		k := nodeOwned.PartialKey
+		encodedChildren := nodeOwned.Children
+		val := nodeOwned.Value
+
+		child := func(i uint) NodeHandle {
+			if encodedChildren[i] != nil {
+				newChild := newNodeHandleFromNodeHandleOwned(encodedChildren[i], storage)
+				return newChild
+			}
+			return nil
+		}
+
+		children := [codec.ChildrenCapacity]NodeHandle{}
+		for i := uint(0); i < codec.ChildrenCapacity; i++ {
+			children[i] = child(i)
+		}
+		return Branch[H]{
+			partialKey: k.NodeKey(),
+			children:   children,
+			value:      newValueFromValueOwned[H](val),
+		}
+	case NodeOwnedValue[H]:
+		panic("NodeOwnedValue can only be returned for the hash of a value")
 	default:
 		panic("unreachable")
 	}
