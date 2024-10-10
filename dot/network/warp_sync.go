@@ -8,10 +8,8 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/network/messages"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
-	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
-	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	"github.com/ChainSafe/gossamer/lib/common"
 	libp2pnetwork "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -21,8 +19,8 @@ const MaxAllowedSameRequestPerPeer = 5
 
 type WarpSyncVerificationResult struct {
 	SetId         grandpa.SetID
-	AuthorityList grandpa.AuthorityList
-	Header        generic.Header[uint, hash.H256, runtime.BlakeTwo256]
+	AuthorityList types.AuthorityList
+	Header        types.Header
 	Completed     bool
 }
 
@@ -34,7 +32,7 @@ type WarpSyncProvider interface {
 	Verify(
 		encodedProof []byte,
 		setId grandpa.SetID,
-		authorities grandpa.AuthorityList,
+		authorities types.AuthorityList,
 	) (*WarpSyncVerificationResult, error)
 }
 

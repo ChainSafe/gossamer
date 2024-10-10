@@ -4,14 +4,15 @@
 package grandpa
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -37,7 +38,7 @@ type GrandpaState interface {
 type WarpSyncFragment struct {
 	// The last block that the given authority set finalized. This block should contain a digest
 	// signalling an authority set change from which we can fetch the next authority set.
-	Header generic.Header[uint, hash.H256, runtime.BlakeTwo256]
+	Header types.Header
 	// A justification for the header above which proves its finality. In order to validate it the
 	// verifier must be aware of the authorities and set id for which the justification refers to.
 	Justification GrandpaJustification[hash.H256, uint]
@@ -83,7 +84,7 @@ func (w *WarpSyncProof) lastProofBlockNumber() uint {
 
 func (w *WarpSyncProof) verify(
 	setId grandpa.SetID,
-	authorities grandpa.AuthorityList,
+	authorities types.AuthorityList,
 	hardForks map[string]SetIdAuthorityList,
 ) (*SetIdAuthorityList, error) {
 	currentSetId := setId
@@ -91,26 +92,44 @@ func (w *WarpSyncProof) verify(
 
 	for fragmentNumber, proof := range w.Proofs {
 		hash := proof.Header.Hash()
-		number := proof.Header.Number()
+		number := proof.Header.Number
 
 		hardForkKey := fmt.Sprintf("%v-%v", hash, number)
 		if fork, ok := hardForks[hardForkKey]; ok {
 			currentSetId = fork.SetID
 			currentAuthorities = fork.AuthorityList
 		} else {
-			err := proof.Justification.Verify(uint64(currentSetId), currentAuthorities)
+			// Convert authorities to the format expected by the justification
+			var authorities primitives.AuthorityList
+			for _, auth := range currentAuthorities {
+				authorities = append(authorities, primitives.AuthorityIDWeight{
+					AuthorityID:     auth.ToRaw().Key,
+					AuthorityWeight: primitives.AuthorityWeight(auth.Weight),
+				})
+			}
+
+			err := proof.Justification.Verify(uint64(currentSetId), authorities)
 			if err != nil {
 				return nil, err
 			}
 
-			if proof.Justification.Target().Hash != hash {
+			if !bytes.Equal(proof.Justification.Target().Hash.Bytes(), hash.ToBytes()) {
 				return nil, fmt.Errorf("mismatch between header and justification")
 			}
 
-			scheduledChange := findScheduledChange(proof.Header)
+			scheduledChange, err := findScheduledChange(proof.Header)
+			if err != nil {
+				return nil, fmt.Errorf("finding scheduled change: %w", err)
+			}
+
 			if scheduledChange != nil {
+				auths, err := types.GrandpaAuthoritiesRawToAuthorities(scheduledChange.Auths)
+				if err != nil {
+					return nil, fmt.Errorf("cannot parse GRANPDA raw authorities: %w", err)
+				}
+
 				currentSetId += 1
-				currentAuthorities = scheduledChange.NextAuthorities
+				currentAuthorities = auths
 			} else if fragmentNumber != len(w.Proofs)-1 || !w.IsFinished {
 				return nil, fmt.Errorf("Header is missing authority set change digest")
 			}
@@ -122,7 +141,7 @@ func (w *WarpSyncProof) verify(
 
 type SetIdAuthorityList struct {
 	grandpa.SetID
-	grandpa.AuthorityList
+	types.AuthorityList
 }
 
 type WarpSyncProofProvider struct {
@@ -168,9 +187,14 @@ func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
+		scheduledChange, err := findScheduledChange(*header)
+		if err != nil {
+			return nil, fmt.Errorf("finding scheduled change: %w", err)
+		}
+
 		// the last block in a set is the one that triggers a change to the next set,
 		// therefore the block must have a digest that signals the authority set change
-		if findScheduledChange(headerToGenericHeader(*header)) == nil {
+		if scheduledChange == nil {
 			// if it doesn't contain a signal for standard change then the set must have changed
 			// through a forced changed, in which case we stop collecting proofs as the chain of
 			// trust in authority handoffs was broken.
@@ -187,7 +211,7 @@ func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
-		fragment := WarpSyncFragment{Header: headerToGenericHeader(*header), Justification: *justification}
+		fragment := WarpSyncFragment{Header: *header, Justification: *justification}
 
 		// check the proof size
 		limitReached, err = finalProof.addFragment(fragment)
@@ -223,7 +247,7 @@ func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 		}
 
 		if justification.Justification.Commit.TargetNumber >= finalProof.lastProofBlockNumber() {
-			fragment := WarpSyncFragment{Header: headerToGenericHeader(*lastFinalizedBlockHeader), Justification: *justification}
+			fragment := WarpSyncFragment{Header: *lastFinalizedBlockHeader, Justification: *justification}
 			_, err = finalProof.addFragment(fragment)
 			if err != nil {
 				return nil, err
@@ -241,7 +265,7 @@ func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 func (p *WarpSyncProofProvider) Verify(
 	encodedProof []byte,
 	setId grandpa.SetID,
-	authorities grandpa.AuthorityList,
+	authorities types.AuthorityList,
 ) (*network.WarpSyncVerificationResult, error) {
 	var proof WarpSyncProof
 	err := scale.Unmarshal(encodedProof, proof)
@@ -279,22 +303,18 @@ func (p *WarpSyncProofProvider) Verify(
 }
 
 func findScheduledChange(
-	header generic.Header[uint, hash.H256, runtime.BlakeTwo256],
-) *grandpa.ScheduledChange[uint] {
-	panic("not implemented")
-}
-
-func headerToGenericHeader(header types.Header) generic.Header[uint, hash.H256, runtime.BlakeTwo256] {
-	digest := runtime.Digest{}
+	header types.Header,
+) (*types.GrandpaScheduledChange, error) {
 	for _, digestItem := range header.Digest {
-		digest.Push(digestItem)
-	}
+		digestValue, err := digestItem.Value()
+		if err != nil {
+			return nil, fmt.Errorf("getting digest value: %w", err)
+		}
 
-	return *generic.NewHeader[uint, hash.H256, runtime.BlakeTwo256](
-		header.Number,
-		hash.H256(header.ExtrinsicsRoot.String()),
-		hash.H256(header.StateRoot.String()),
-		hash.H256(header.ParentHash.String()),
-		digest,
-	)
+		switch val := digestValue.(type) {
+		case types.GrandpaScheduledChange:
+			return &val, nil
+		}
+	}
+	return nil, nil
 }
