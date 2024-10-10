@@ -5,7 +5,7 @@ package triedb
 
 import (
 	"bytes"
-	"fmt"
+	"slices"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
@@ -804,209 +804,638 @@ func TestDBCommits(t *testing.T) {
 }
 
 func Test_TrieDB(t *testing.T) {
-	for _, version := range []trie.TrieLayout{trie.V0, trie.V1} {
-		t.Run(fmt.Sprintf("recorder_%v", version), func(t *testing.T) {
-			keyValues := []struct {
-				key   []byte
-				value []byte
-			}{
-				{[]byte("A"), bytes.Repeat([]byte{1}, 64)},
-				{[]byte("AA"), bytes.Repeat([]byte{2}, 64)},
-				{[]byte("AB"), bytes.Repeat([]byte{3}, 64)},
-				{[]byte("B"), bytes.Repeat([]byte{4}, 64)},
-			}
+	t.Run("recorder", func(t *testing.T) {
+		for _, version := range []trie.TrieLayout{trie.V0, trie.V1} {
+			t.Run(version.String(), func(t *testing.T) {
+				keyValues := []struct {
+					key   []byte
+					value []byte
+				}{
+					{[]byte("A"), bytes.Repeat([]byte{1}, 64)},
+					{[]byte("AA"), bytes.Repeat([]byte{2}, 64)},
+					{[]byte("AB"), bytes.Repeat([]byte{3}, 64)},
+					{[]byte("B"), bytes.Repeat([]byte{4}, 64)},
+				}
 
-			// Add some initial data to the trie
-			db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
-			trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
-			trie.SetVersion(version)
-
-			for _, entry := range keyValues[:1] {
-				require.NoError(t, trie.Put(entry.key, entry.value))
-			}
-			err := trie.commit()
-			require.NoError(t, err)
-			require.NotEmpty(t, trie.rootHash)
-			root := trie.rootHash
-
-			// Add more data, but this time only to the overlay.
-			// While doing that we record all trie accesses to replay this operation.
-			recorder := NewRecorder[hash.H256]()
-			overlay := db.Clone()
-			newRoot := root
-			{
-				trie := NewTrieDB(newRoot, overlay,
-					WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
-				)
+				// Add some initial data to the trie
+				db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+				trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
 				trie.SetVersion(version)
-				for _, entry := range keyValues[1:] {
+
+				for _, entry := range keyValues[:1] {
 					require.NoError(t, trie.Put(entry.key, entry.value))
 				}
 				err := trie.commit()
 				require.NoError(t, err)
 				require.NotEmpty(t, trie.rootHash)
-				newRoot = trie.rootHash
-			}
+				root := trie.rootHash
 
-			partialDB := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
-			for _, record := range recorder.Drain() {
-				key := runtime.BlakeTwo256{}.Hash(record.Data).Bytes()
-				require.NoError(t, partialDB.Put(key, record.Data))
-			}
+				// Add more data, but this time only to the overlay.
+				// While doing that we record all trie accesses to replay this operation.
+				recorder := NewRecorder[hash.H256]()
+				overlay := db.Clone()
+				newRoot := root
+				{
+					trie := NewTrieDB(newRoot, overlay,
+						WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
+					)
+					trie.SetVersion(version)
+					for _, entry := range keyValues[1:] {
+						require.NoError(t, trie.Put(entry.key, entry.value))
+					}
+					err := trie.commit()
+					require.NoError(t, err)
+					require.NotEmpty(t, trie.rootHash)
+					newRoot = trie.rootHash
+				}
 
-			// Replay the it, but this time we use the proof.
-			var validatedRoot hash.H256
-			{
-				trie := NewTrieDB[hash.H256, runtime.BlakeTwo256](root, partialDB)
+				partialDB := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+				for _, record := range recorder.Drain() {
+					key := runtime.BlakeTwo256{}.Hash(record.Data).Bytes()
+					require.NoError(t, partialDB.Put(key, record.Data))
+				}
+
+				// Replay the it, but this time we use the proof.
+				var validatedRoot hash.H256
+				{
+					trie := NewTrieDB[hash.H256, runtime.BlakeTwo256](root, partialDB)
+					trie.SetVersion(version)
+					for _, entry := range keyValues[1:] {
+						require.NoError(t, trie.Put(entry.key, entry.value))
+					}
+					err := trie.commit()
+					require.NoError(t, err)
+					require.NotEmpty(t, trie.rootHash)
+					validatedRoot = trie.rootHash
+				}
+				assert.Equal(t, validatedRoot, newRoot)
+			})
+		}
+	})
+
+	t.Run("recorder_with_cache", func(t *testing.T) {
+		for _, version := range []trie.TrieLayout{trie.V0, trie.V1} {
+			t.Run(version.String(), func(t *testing.T) {
+				keyValues := []struct {
+					key   []byte
+					value []byte
+				}{
+					{[]byte("A"), bytes.Repeat([]byte{1}, 64)},
+					{[]byte("AA"), bytes.Repeat([]byte{2}, 64)},
+					{[]byte("AB"), bytes.Repeat([]byte{3}, 64)},
+					{[]byte("B"), bytes.Repeat([]byte{4}, 64)},
+				}
+
+				// Add some initial data to the trie
+				db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+				trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
 				trie.SetVersion(version)
-				for _, entry := range keyValues[1:] {
+
+				for _, entry := range keyValues[:1] {
 					require.NoError(t, trie.Put(entry.key, entry.value))
 				}
 				err := trie.commit()
 				require.NoError(t, err)
 				require.NotEmpty(t, trie.rootHash)
-				validatedRoot = trie.rootHash
-			}
-			assert.Equal(t, validatedRoot, newRoot)
-		})
+				root := trie.rootHash
 
-		t.Run(fmt.Sprintf("recorder_with_cache_%v", version), func(t *testing.T) {
-			keyValues := []struct {
-				key   []byte
-				value []byte
-			}{
-				{[]byte("A"), bytes.Repeat([]byte{1}, 64)},
-				{[]byte("AA"), bytes.Repeat([]byte{2}, 64)},
-				{[]byte("AB"), bytes.Repeat([]byte{3}, 64)},
-				{[]byte("B"), bytes.Repeat([]byte{4}, 64)},
-			}
+				cache := NewTestTrieCache[hash.H256]()
 
-			// Add some initial data to the trie
-			db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
-			trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
-			trie.SetVersion(version)
-
-			for _, entry := range keyValues[:1] {
-				require.NoError(t, trie.Put(entry.key, entry.value))
-			}
-			err := trie.commit()
-			require.NoError(t, err)
-			require.NotEmpty(t, trie.rootHash)
-			root := trie.rootHash
-
-			cache := NewTestTrieCache[hash.H256]()
-
-			{
-				trie := NewTrieDB(trie.rootHash, db, WithCache[hash.H256, runtime.BlakeTwo256](cache))
-				trie.SetVersion(version)
-				// Only read one entry.
-				assert.Equal(t, keyValues[0].value, trie.Get(keyValues[0].key))
-			}
-
-			// Root should now be cached.
-			require.NotNil(t, cache.GetNode(trie.rootHash))
-
-			// Add more data, but this time only to the overlay.
-			// While doing that we record all trie accesses to replay this operation.
-			recorder := NewRecorder[hash.H256]()
-			overlay := db.Clone()
-			var newRoot hash.H256
-			{
-				trie := NewTrieDB(trie.rootHash, overlay,
-					WithCache[hash.H256, runtime.BlakeTwo256](cache),
-					WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
-				)
-				trie.SetVersion(version)
-				for _, entry := range keyValues[1:] {
-					require.NoError(t, trie.Put(entry.key, entry.value))
-				}
-				err := trie.commit()
-				require.NoError(t, err)
-				require.NotEmpty(t, trie.rootHash)
-				newRoot = trie.rootHash
-			}
-
-			for i, entry := range keyValues[1:] {
-				cachedValue := cache.GetValue(entry.key)
-				require.Equal(t, ExistingCachedValue[hash.H256]{
-					Hash: runtime.BlakeTwo256{}.Hash(keyValues[i+1].value),
-					Data: keyValues[i+1].value,
-				}, cachedValue)
-			}
-
-			partialDB := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
-			for _, record := range recorder.Drain() {
-				key := runtime.BlakeTwo256{}.Hash(record.Data).Bytes()
-				require.NoError(t, partialDB.Put(key, record.Data))
-			}
-
-			// Replay the it, but this time we use the proof.
-			var validatedRoot hash.H256
-			{
-				trie := NewTrieDB[hash.H256, runtime.BlakeTwo256](root, partialDB)
-				trie.SetVersion(version)
-				for _, entry := range keyValues[1:] {
-					require.NoError(t, trie.Put(entry.key, entry.value))
-				}
-				err := trie.commit()
-				require.NoError(t, err)
-				require.NotEmpty(t, trie.rootHash)
-				validatedRoot = trie.rootHash
-			}
-			assert.Equal(t, validatedRoot, newRoot)
-		})
-
-		t.Run(fmt.Sprintf("insert_remove_with_cache_%v", version), func(t *testing.T) {
-			keyValues := []struct {
-				key   []byte
-				value []byte
-			}{
-				{[]byte("A"), bytes.Repeat([]byte{1}, 64)},
-				{[]byte("AA"), bytes.Repeat([]byte{2}, 64)},
-				// Should be inlined
-				{[]byte("AC"), bytes.Repeat([]byte{7}, 4)},
-				{[]byte("AB"), bytes.Repeat([]byte{3}, 64)},
-				{[]byte("B"), bytes.Repeat([]byte{4}, 64)},
-			}
-
-			cache := NewTestTrieCache[hash.H256]()
-			recorder := NewRecorder[hash.H256]()
-			db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
-			{
-				trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db,
-					WithCache[hash.H256, runtime.BlakeTwo256](cache),
-					WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
-				)
-				trie.SetVersion(version)
-
-				// Add all values
-				for _, entry := range keyValues {
-					require.NoError(t, trie.Put(entry.key, entry.value))
+				{
+					trie := NewTrieDB(trie.rootHash, db, WithCache[hash.H256, runtime.BlakeTwo256](cache))
+					trie.SetVersion(version)
+					// Only read one entry, using GetWith which should cache the root node
+					_, err := GetWith(trie, keyValues[0].key, func([]byte) any { return nil })
+					assert.NoError(t, err)
 				}
 
-				// Remove only the last 2 elements
+				// Root should now be cached.
+				require.NotNil(t, cache.GetNode(trie.rootHash))
+
+				// Add more data, but this time only to the overlay.
+				// While doing that we record all trie accesses to replay this operation.
+				recorder := NewRecorder[hash.H256]()
+				overlay := db.Clone()
+				var newRoot hash.H256
+				{
+					trie := NewTrieDB(trie.rootHash, overlay,
+						WithCache[hash.H256, runtime.BlakeTwo256](cache),
+						WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
+					)
+					trie.SetVersion(version)
+					for _, entry := range keyValues[1:] {
+						require.NoError(t, trie.Put(entry.key, entry.value))
+					}
+					err := trie.commit()
+					require.NoError(t, err)
+					require.NotEmpty(t, trie.rootHash)
+					newRoot = trie.rootHash
+				}
+
+				for i, entry := range keyValues[1:] {
+					cachedValue := cache.GetValue(entry.key)
+					require.Equal(t, ExistingCachedValue[hash.H256]{
+						Hash: runtime.BlakeTwo256{}.Hash(keyValues[i+1].value),
+						Data: keyValues[i+1].value,
+					}, cachedValue)
+				}
+
+				partialDB := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+				for _, record := range recorder.Drain() {
+					key := runtime.BlakeTwo256{}.Hash(record.Data).Bytes()
+					require.NoError(t, partialDB.Put(key, record.Data))
+				}
+
+				// Replay the it, but this time we use the proof.
+				var validatedRoot hash.H256
+				{
+					trie := NewTrieDB[hash.H256, runtime.BlakeTwo256](root, partialDB)
+					trie.SetVersion(version)
+					for _, entry := range keyValues[1:] {
+						require.NoError(t, trie.Put(entry.key, entry.value))
+					}
+					err := trie.commit()
+					require.NoError(t, err)
+					require.NotEmpty(t, trie.rootHash)
+					validatedRoot = trie.rootHash
+				}
+				assert.Equal(t, validatedRoot, newRoot)
+			})
+		}
+	})
+
+	t.Run("insert_remove_with_cache", func(t *testing.T) {
+		for _, version := range []trie.TrieLayout{trie.V0, trie.V1} {
+			t.Run(version.String(), func(t *testing.T) {
+				keyValues := []struct {
+					key   []byte
+					value []byte
+				}{
+					{[]byte("A"), bytes.Repeat([]byte{1}, 64)},
+					{[]byte("AA"), bytes.Repeat([]byte{2}, 64)},
+					// Should be inlined in v1
+					{[]byte("AC"), bytes.Repeat([]byte{7}, 4)},
+					{[]byte("AB"), bytes.Repeat([]byte{3}, 64)},
+					{[]byte("B"), bytes.Repeat([]byte{4}, 64)},
+				}
+
+				cache := NewTestTrieCache[hash.H256]()
+				recorder := NewRecorder[hash.H256]()
+				db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+				var root hash.H256
+				{
+					trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db,
+						WithCache[hash.H256, runtime.BlakeTwo256](cache),
+						WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
+					)
+					trie.SetVersion(version)
+
+					// Add all values
+					for _, entry := range keyValues {
+						require.NoError(t, trie.Put(entry.key, entry.value))
+					}
+
+					// Remove only the last 2 elements
+					for _, entry := range keyValues[3:] {
+						require.NoError(t, trie.Delete(entry.key))
+					}
+
+					err := trie.commit()
+					require.NoError(t, err)
+					require.NotEmpty(t, trie.rootHash)
+					root = trie.rootHash
+				}
+
+				// Then only the first 3 elements should be in the cache and the last
+				// two ones should not be there.
+				for _, entry := range keyValues[:3] {
+					cachedValue := cache.GetValue(entry.key)
+					require.NotNil(t, cachedValue)
+
+					require.Equal(t, entry.value, cachedValue.data())
+					require.Equal(t, runtime.BlakeTwo256{}.Hash(entry.value), *cachedValue.hash())
+				}
+
 				for _, entry := range keyValues[3:] {
-					require.NoError(t, trie.Delete(entry.key))
+					require.Nil(t, cache.GetValue(entry.key))
 				}
 
-				err := trie.commit()
-				require.NoError(t, err)
-				require.NotEmpty(t, trie.rootHash)
-			}
+				// get values again using cache
+				for _, entry := range keyValues[:3] {
+					trie := NewTrieDB[hash.H256, runtime.BlakeTwo256](root, db,
+						WithCache[hash.H256, runtime.BlakeTwo256](cache),
+						WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
+					)
+					trie.SetVersion(version)
+					val, err := GetWith(trie, entry.key, func(d []byte) []byte { return d })
+					require.NoError(t, err)
+					require.NotNil(t, val)
+					require.Equal(t, entry.value, *val)
+				}
+			})
+		}
+	})
 
-			// Then only the first 3 elements should be in the cache and the last
-			// two ones should not be there.
-			for _, entry := range keyValues[:3] {
-				cachedValue := cache.GetValue(entry.key)
-				require.NotNil(t, cachedValue)
+	t.Run("insert_with_cache_more_nodes", func(t *testing.T) {
+		for _, version := range []trie.TrieLayout{trie.V0, trie.V1} {
+			t.Run(version.String(), func(t *testing.T) {
+				keyValues := []struct {
+					key   []byte
+					value []byte
+				}{
+					{[]byte("A"), bytes.Repeat([]byte{1}, 1)},
+					{[]byte("AA"), bytes.Repeat([]byte{2}, 2)},
+					{[]byte("AAA"), bytes.Repeat([]byte{3}, 3)},
+					{[]byte("AAAA"), bytes.Repeat([]byte{4}, 4)},
+					{[]byte("AB"), bytes.Repeat([]byte{5}, 5)},
+					{[]byte("ABA"), bytes.Repeat([]byte{6}, 6)},
+					{[]byte("ABB"), bytes.Repeat([]byte{7}, 7)},
+					{[]byte("AC"), bytes.Repeat([]byte{8}, 8)},
+				}
 
-				require.Equal(t, entry.value, cachedValue.data())
-				require.Equal(t, runtime.BlakeTwo256{}.Hash(entry.value), *cachedValue.hash())
-			}
+				cache := NewTestTrieCache[hash.H256]()
+				recorder := NewRecorder[hash.H256]()
+				db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+				var root hash.H256
+				{
+					trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db,
+						WithCache[hash.H256, runtime.BlakeTwo256](cache),
+						WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
+					)
+					trie.SetVersion(version)
 
-			for _, entry := range keyValues[3:] {
-				require.Nil(t, cache.GetValue(entry.key))
-			}
-		})
-	}
+					// Add all values
+					for _, entry := range keyValues {
+						require.NoError(t, trie.Put(slices.Clone(entry.key), entry.value))
+					}
+
+					err := trie.commit()
+					require.NoError(t, err)
+					require.NotEmpty(t, trie.rootHash)
+					root = trie.rootHash
+				}
+
+				// Then only the first 3 elements should be in the cache and the last
+				// two ones should not be there.
+				for _, entry := range keyValues {
+					cachedValue := cache.GetValue(entry.key)
+					require.NotNil(t, cachedValue)
+
+					require.Equal(t, entry.value, cachedValue.data())
+					require.Equal(t, runtime.BlakeTwo256{}.Hash(entry.value), *cachedValue.hash())
+				}
+
+				// get values again using cache
+				for _, entry := range keyValues {
+					trie := NewTrieDB(root, db,
+						WithCache[hash.H256, runtime.BlakeTwo256](cache),
+						WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
+					)
+					trie.SetVersion(version)
+					val, err := GetWith(trie, entry.key, func(d []byte) []byte { return d })
+					require.NoError(t, err)
+					require.NotNil(t, val)
+					require.Equal(t, entry.value, *val)
+				}
+			})
+		}
+	})
+
+	t.Run("insert_with_cache_insert_after_commit", func(t *testing.T) {
+		for _, version := range []trie.TrieLayout{trie.V0, trie.V1} {
+			t.Run(version.String(), func(t *testing.T) {
+				keyValues := []struct {
+					key   []byte
+					value []byte
+				}{
+					{[]byte("A"), bytes.Repeat([]byte{1}, 1)},
+					{[]byte("AA"), bytes.Repeat([]byte{2}, 2)},
+					{[]byte("AAA"), bytes.Repeat([]byte{3}, 3)},
+					{[]byte("AAAA"), bytes.Repeat([]byte{4}, 4)},
+					{[]byte("AB"), bytes.Repeat([]byte{5}, 5)},
+					{[]byte("ABA"), bytes.Repeat([]byte{6}, 6)},
+					{[]byte("ABB"), bytes.Repeat([]byte{7}, 7)},
+					{[]byte("AC"), bytes.Repeat([]byte{8}, 8)},
+				}
+
+				cache := NewTestTrieCache[hash.H256]()
+				recorder := NewRecorder[hash.H256]()
+				db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+				var root hash.H256
+				{
+					trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db,
+						WithCache[hash.H256, runtime.BlakeTwo256](cache),
+						WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
+					)
+					trie.SetVersion(version)
+
+					// Add all values
+					for _, entry := range keyValues {
+						require.NoError(t, trie.Put(slices.Clone(entry.key), entry.value))
+					}
+
+					err := trie.commit()
+					require.NoError(t, err)
+					require.NotEmpty(t, trie.rootHash)
+					root = trie.rootHash
+				}
+
+				// Then only the first 3 elements should be in the cache and the last
+				// two ones should not be there.
+				for _, entry := range keyValues {
+					cachedValue := cache.GetValue(entry.key)
+					require.NotNil(t, cachedValue)
+
+					require.Equal(t, entry.value, cachedValue.data())
+					require.Equal(t, runtime.BlakeTwo256{}.Hash(entry.value), *cachedValue.hash())
+				}
+
+				// get values again using cache
+				for _, entry := range keyValues {
+					trie := NewTrieDB(root, db,
+						WithCache[hash.H256, runtime.BlakeTwo256](cache),
+						WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
+					)
+					trie.SetVersion(version)
+					val, err := GetWith(trie, entry.key, func(d []byte) []byte { return d })
+					require.NoError(t, err)
+					require.NotNil(t, val)
+					require.Equal(t, entry.value, *val)
+				}
+
+				// ensure we can insert a new leaf node on a new triedb
+				// use lookup functions to validate we're using cached version
+				{
+					trie := NewTrieDB(root, db,
+						WithCache[hash.H256, runtime.BlakeTwo256](cache),
+						WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
+					)
+					trie.SetVersion(version)
+
+					require.NoError(t, trie.Put([]byte("AAB"), []byte{1, 1, 1, 1}))
+
+					val := trie.Get([]byte("AAB"))
+					require.NotNil(t, val)
+					require.Equal(t, []byte{1, 1, 1, 1}, val)
+
+					err := trie.commit()
+					require.NoError(t, err)
+
+					val = trie.Get([]byte("AAB"))
+					require.NotNil(t, val)
+					require.Equal(t, []byte{1, 1, 1, 1}, val)
+
+					oVal, err := GetWith(trie, []byte("AAB"), func(d []byte) []byte { return d })
+					require.NoError(t, err)
+					require.NotNil(t, oVal)
+					require.Equal(t, []byte{1, 1, 1, 1}, *oVal)
+				}
+			})
+		}
+	})
+
+	t.Run("insert_into_cache_and_lookup_using_cache", func(t *testing.T) {
+		for _, version := range []trie.TrieLayout{trie.V0, trie.V1} {
+			t.Run(version.String(), func(t *testing.T) {
+				keyValues := []struct {
+					key   []byte
+					value []byte
+				}{
+					{[]byte("A"), bytes.Repeat([]byte{1}, 1)},
+					{[]byte("AA"), bytes.Repeat([]byte{2}, 2)},
+					{[]byte("AAA"), bytes.Repeat([]byte{3}, 3)},
+					{[]byte("AAAA"), bytes.Repeat([]byte{4}, 4)},
+					{[]byte("AB"), bytes.Repeat([]byte{5}, 5)},
+					{[]byte("ABA"), bytes.Repeat([]byte{6}, 6)},
+					{[]byte("ABB"), bytes.Repeat([]byte{7}, 7)},
+					{[]byte("AC"), bytes.Repeat([]byte{8}, 8)},
+				}
+
+				db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+				var root hash.H256
+				{
+					trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
+					trie.SetVersion(version)
+
+					// Add all values
+					for _, entry := range keyValues {
+						require.NoError(t, trie.Put(slices.Clone(entry.key), entry.value))
+					}
+
+					err := trie.commit()
+					require.NoError(t, err)
+					require.NotEmpty(t, trie.rootHash)
+					root = trie.rootHash
+				}
+
+				cache := NewTestTrieCache[hash.H256]()
+
+				// get all keys to populate cache
+				{
+					trie := NewTrieDB(root, db,
+						WithCache[hash.H256, runtime.BlakeTwo256](cache),
+					)
+					trie.SetVersion(version)
+					// get values again using cache
+					for _, entry := range keyValues {
+						val, err := GetWith(trie, entry.key, func(d []byte) []byte { return d })
+						require.NoError(t, err)
+						require.NotNil(t, val)
+						require.Equal(t, entry.value, *val)
+					}
+				}
+
+				// ensure all values are cached
+				for _, entry := range keyValues {
+					cachedValue := cache.GetValue(entry.key)
+					require.NotNil(t, cachedValue)
+
+					require.Equal(t, entry.value, cachedValue.data())
+					require.Equal(t, runtime.BlakeTwo256{}.Hash(entry.value), *cachedValue.hash())
+				}
+
+				// get all keys again from cache, by passing in brand new db
+				{
+					db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+					trie := NewTrieDB(root, db,
+						WithCache[hash.H256, runtime.BlakeTwo256](cache),
+					)
+					trie.SetVersion(version)
+					// get values again using cache
+					for _, entry := range keyValues {
+						val, err := GetWith(trie, entry.key, func(d []byte) []byte { return d })
+						require.NoError(t, err)
+						require.NotNil(t, val)
+						require.Equal(t, entry.value, *val)
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("insert_into_cache_and_lookup_hash_using_cache", func(t *testing.T) {
+		for _, version := range []trie.TrieLayout{trie.V0, trie.V1} {
+			t.Run(version.String(), func(t *testing.T) {
+				keyValues := []struct {
+					key   []byte
+					value []byte
+				}{
+					{[]byte("A"), bytes.Repeat([]byte{1}, 1)},
+					{[]byte("AA"), bytes.Repeat([]byte{2}, 2)},
+					{[]byte("AAA"), bytes.Repeat([]byte{3}, 3)},
+					{[]byte("AAAA"), bytes.Repeat([]byte{4}, 4)},
+					{[]byte("AB"), bytes.Repeat([]byte{5}, 5)},
+					{[]byte("ABA"), bytes.Repeat([]byte{6}, 6)},
+					{[]byte("ABB"), bytes.Repeat([]byte{7}, 7)},
+					{[]byte("AC"), bytes.Repeat([]byte{8}, 8)},
+				}
+
+				db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+				var root hash.H256
+				{
+					trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
+					trie.SetVersion(version)
+
+					// Add all values
+					for _, entry := range keyValues {
+						require.NoError(t, trie.Put(slices.Clone(entry.key), entry.value))
+					}
+
+					err := trie.commit()
+					require.NoError(t, err)
+					require.NotEmpty(t, trie.rootHash)
+					root = trie.rootHash
+				}
+
+				cache := NewTestTrieCache[hash.H256]()
+
+				// get all keys to populate cache
+				{
+					trie := NewTrieDB(root, db,
+						WithCache[hash.H256, runtime.BlakeTwo256](cache),
+					)
+
+					trie.SetVersion(version)
+					// get hashes for all entries populating cache
+					for _, entry := range keyValues {
+						h, err := trie.GetHash(entry.key)
+						require.NoError(t, err)
+						require.NotNil(t, h)
+					}
+				}
+
+				// get all keys again from cache, by passing in brand new db
+				{
+					db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+					trie := NewTrieDB(root, db,
+						WithCache[hash.H256, runtime.BlakeTwo256](cache),
+					)
+					trie.SetVersion(version)
+					// get hashes for all entries from cache
+					for _, entry := range keyValues {
+						h, err := trie.GetHash(entry.key)
+						require.NoError(t, err)
+						require.NotNil(t, h)
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("trie_nodes_recorded", func(t *testing.T) {
+		for _, version := range []trie.TrieLayout{trie.V0, trie.V1} {
+			t.Run(version.String(), func(t *testing.T) {
+				keyValues := []struct {
+					key   []byte
+					value []byte
+				}{
+					{[]byte("A"), bytes.Repeat([]byte{1}, 64)},
+					{[]byte("AA"), bytes.Repeat([]byte{2}, 64)},
+					{[]byte("AB"), bytes.Repeat([]byte{3}, 64)},
+					{[]byte("B"), bytes.Repeat([]byte{4}, 64)},
+					{[]byte("BC"), bytes.Repeat([]byte{4}, 64)},
+				}
+
+				db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+				var root hash.H256
+				{
+					trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
+					trie.SetVersion(version)
+					for _, entry := range keyValues {
+						require.NoError(t, trie.Put(entry.key, entry.value))
+					}
+					err := trie.commit()
+					require.NoError(t, err)
+					require.NotEmpty(t, trie.rootHash)
+					root = trie.rootHash
+				}
+
+				for _, cache := range []TrieCache[hash.H256]{NewTestTrieCache[hash.H256](), nil} {
+					for _, getHash := range []bool{
+						true,
+						false,
+					} {
+						recorder := NewRecorder[hash.H256]()
+						{
+							trie := NewTrieDB(
+								root, db,
+								WithCache[hash.H256, runtime.BlakeTwo256](cache),
+								WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
+							)
+							trie.SetVersion(version)
+
+							for _, entry := range keyValues {
+								if getHash {
+									h, err := trie.GetHash(entry.key)
+									assert.NoError(t, err)
+									assert.NotNil(t, h)
+								} else {
+									val, err := GetWith(trie, entry.key, func(d []byte) []byte { return d })
+									require.NoError(t, err)
+									require.NotNil(t, val)
+									require.Equal(t, entry.value, *val)
+								}
+							}
+
+							if getHash {
+								h, err := trie.GetHash([]byte("nonexistent"))
+								require.Nil(t, h)
+								require.NoError(t, err)
+							} else {
+								val, err := GetWith(trie, []byte("nonexistent"), func(d []byte) []byte { return d })
+								require.NoError(t, err)
+								require.Nil(t, val)
+							}
+						}
+
+						for _, entry := range keyValues {
+							recorded := recorder.TrieNodesRecordedForKey(entry.key)
+
+							var isInline bool
+							switch version {
+							case trie.V0:
+								isInline = true
+							case trie.V1:
+								if len(entry.value) > 32 {
+									isInline = false
+								} else {
+									isInline = true
+								}
+							}
+
+							var expected RecordedForKey
+							if getHash && !isInline {
+								expected = RecordedHash
+							} else {
+								expected = RecordedValue
+							}
+							require.Equal(t, expected, recorded)
+						}
+
+					}
+				}
+			})
+		}
+	})
+
 }

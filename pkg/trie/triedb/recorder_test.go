@@ -30,7 +30,7 @@ func TestRecorder(t *testing.T) {
 
 	t.Run("Record_pol_access_should_record_2_node", func(t *testing.T) {
 		recorder := NewRecorder[hash.H256]()
-		trie := NewTrieDB[hash.H256, runtime.BlakeTwo256](
+		trie := NewTrieDB(
 			root, inmemoryDB, WithRecorder[hash.H256, runtime.BlakeTwo256](recorder))
 
 		trie.Get([]byte("pol"))

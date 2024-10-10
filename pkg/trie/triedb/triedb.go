@@ -141,9 +141,15 @@ func (t *TrieDB[H, Hasher]) lookup(fullKey []byte, partialKey nibbles.Nibbles, h
 		switch node := handle.(type) {
 		case persisted[H]:
 			lookup := NewTrieLookup[H, Hasher, []byte](
-				t.db, node.hash, t.cache, t.recorder, func(data []byte) []byte {
+				t.db,
+				node.hash,
+				// t.cache,
+				nil,
+				t.recorder,
+				func(data []byte) []byte {
 					return data
-				})
+				},
+			)
 			qi, err := lookup.Lookup(fullKey, partialKey)
 			if err != nil {
 				return nil, err
@@ -349,7 +355,7 @@ func (t *TrieDB[H, Hasher]) removeAt(
 	}, err
 }
 
-type InspectResult struct {
+type inspectResult struct {
 	stored  StoredNode
 	changed bool
 }
@@ -360,7 +366,7 @@ func (t *TrieDB[H, Hasher]) inspect(
 	stored StoredNode,
 	key *nibbles.Nibbles,
 	inspector func(Node, *nibbles.Nibbles) (action, error),
-) (*InspectResult, error) {
+) (*inspectResult, error) {
 	// shallow copy since key will change offset through inspector
 	currentKey := *key
 	switch n := stored.(type) {
@@ -371,9 +377,9 @@ func (t *TrieDB[H, Hasher]) inspect(
 		}
 		switch a := res.(type) {
 		case restoreNode:
-			return &InspectResult{NewStoredNode(a), false}, nil
+			return &inspectResult{NewStoredNode(a), false}, nil
 		case replaceNode:
-			return &InspectResult{NewStoredNode(a), true}, nil
+			return &inspectResult{NewStoredNode(a), true}, nil
 		case deleteNode:
 			return nil, nil
 		default:
@@ -386,11 +392,11 @@ func (t *TrieDB[H, Hasher]) inspect(
 		}
 		switch a := res.(type) {
 		case restoreNode:
-			return &InspectResult{CachedStoredNode[H]{a.node, n.hash}, false}, nil
+			return &inspectResult{CachedStoredNode[H]{a.node, n.hash}, false}, nil
 		case replaceNode:
 			prefixedKey := append(currentKey.Left().JoinedBytes(), n.hash.Bytes()...)
 			t.deathRow[string(prefixedKey)] = nil
-			return &InspectResult{NewStoredNode(a), true}, nil
+			return &inspectResult{NewStoredNode(a), true}, nil
 		case deleteNode:
 			prefixedKey := append(currentKey.Left().JoinedBytes(), n.hash.Bytes()...)
 			t.deathRow[string(prefixedKey)] = nil
@@ -1038,6 +1044,46 @@ func (t *TrieDB[H, Hasher]) commitChild(
 	}
 }
 
+type valueToCache[H any] struct {
+	KeyBytes []byte
+	CachedValue[H]
+}
+
+func cacheChildValues[H hash.Hash](
+	node NodeOwned[H],
+	valuesToCache *[]valueToCache[H],
+	fullKey nibbles.NibbleSlice,
+) {
+	for _, child := range node.children() {
+		switch nho := child.NodeHandleOwned.(type) {
+		case NodeHandleOwnedInline[H]:
+			n := child.nibble
+			c := nho.NodeOwned
+			key := fullKey.Clone()
+			if n != nil {
+				key.Push(*n)
+			}
+			if pk := c.partialKey(); pk != nil {
+				key.Append(*pk)
+			}
+
+			if d := c.data(); d != nil {
+				if h := c.dataHash(); h != nil {
+					*valuesToCache = append(*valuesToCache, valueToCache[H]{
+						KeyBytes: key.Inner(),
+						CachedValue: ExistingCachedValue[H]{
+							Hash: *h,
+							Data: d,
+						},
+					})
+				}
+			}
+
+			cacheChildValues(c, valuesToCache, key)
+		}
+	}
+}
+
 // / Cache the given `encoded` node.
 func (t *TrieDB[H, Hasher]) cacheNode(hash H, encoded []byte, fullKey *nibbles.NibbleSlice) {
 	if t.cache == nil {
@@ -1055,17 +1101,12 @@ func (t *TrieDB[H, Hasher]) cacheNode(hash H, encoded []byte, fullKey *nibbles.N
 		panic("Just encoded the node, so it should decode without any errors; qed")
 	}
 
-	type valueToCache struct {
-		KeyBytes []byte
-		CachedValue[H]
-	}
-	valuesToCache := []valueToCache{}
-
+	valuesToCache := []valueToCache[H]{}
 	// If the given node has data attached, the `full_key` is the full key to this node.
 	if fullKey != nil {
 		if v := node.data(); v != nil {
 			if h := node.dataHash(); h != nil {
-				valuesToCache = append(valuesToCache, valueToCache{
+				valuesToCache = append(valuesToCache, valueToCache[H]{
 					KeyBytes: fullKey.Inner(),
 					CachedValue: NewCachedValue[H](
 						ExistingCachedValue[H]{
@@ -1077,42 +1118,8 @@ func (t *TrieDB[H, Hasher]) cacheNode(hash H, encoded []byte, fullKey *nibbles.N
 			}
 		}
 
-		var cacheChildValues = func(
-			node NodeOwned[H],
-			valuesToCache []valueToCache,
-			fullKey nibbles.NibbleSlice,
-		) []valueToCache {
-			for _, child := range node.children() {
-				switch nho := child.NodeHandleOwned.(type) {
-				case NodeHandleOwnedInline[H]:
-					n := child.nibble
-					c := nho.NodeOwned
-					key := fullKey.Clone()
-					if n != nil {
-						key.Push(*n)
-					}
-					if pk := c.partialKey(); pk != nil {
-						key.Append(*pk)
-					}
-
-					if d := c.data(); d != nil {
-						if h := c.dataHash(); h != nil {
-							valuesToCache = append(valuesToCache, valueToCache{
-								KeyBytes: key.Inner(),
-								CachedValue: ExistingCachedValue[H]{
-									Hash: *h,
-									Data: d,
-								},
-							})
-						}
-					}
-				}
-			}
-			return valuesToCache
-		}
-
 		// Also cache values of inline nodes.
-		valuesToCache = cacheChildValues(node, valuesToCache, *fullKey)
+		cacheChildValues(node, &valuesToCache, *fullKey)
 	}
 
 	for _, valueToCache := range valuesToCache {
@@ -1158,7 +1165,19 @@ func (t *TrieDB[H, Hasher]) recordAccess(access TrieAccess) {
 }
 
 func (t *TrieDB[H, Hasher]) GetHash(key []byte) (*H, error) {
-	panic("unimpl")
-	// TODO: work on this
-	// TODO: recreate test at https://github.com/paritytech/trie/blob/2edd0a18959e046c8e75559fa4678f7b8877cf91/trie-db/test/src/triedb.rs#L1141
+	// TODO: look into moving query into Lookup method
+	lookup := NewTrieLookup[H, Hasher](
+		t.db, t.rootHash, t.cache, t.recorder,
+		func([]byte) any { return nil },
+	)
+	return lookup.LookupHash(key, nibbles.NewNibbles(slices.Clone(key)))
+}
+
+func GetWith[H hash.Hash, Hasher hash.Hasher[H], QueryItem any](
+	t *TrieDB[H, Hasher], key []byte, query Query[QueryItem],
+) (*QueryItem, error) {
+	lookup := NewTrieLookup[H, Hasher](
+		t.db, t.rootHash, t.cache, t.recorder, query,
+	)
+	return lookup.Lookup(key, nibbles.NewNibbles(key))
 }

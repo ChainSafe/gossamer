@@ -265,10 +265,14 @@ func newNodeFromNodeOwned[H hash.Hash](
 		for i := uint(0); i < codec.ChildrenCapacity; i++ {
 			children[i] = child(i)
 		}
+		var value nodeValue
+		if val != nil {
+			value = newValueFromValueOwned(val)
+		}
 		return Branch[H]{
 			partialKey: k.NodeKey(),
 			children:   children,
-			value:      newValueFromValueOwned[H](val),
+			value:      value,
 		}
 	case NodeOwnedValue[H]:
 		panic("NodeOwnedValue can only be returned for the hash of a value")

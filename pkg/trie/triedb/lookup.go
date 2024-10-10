@@ -171,6 +171,12 @@ func (l *TrieLookup[H, Hasher, QueryItem]) lookupWithCache(
 				return nil, err
 			}
 		}
+	} else {
+		var err error
+		res, err = lookupData()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if res != nil {
@@ -574,7 +580,7 @@ func (l *TrieLookup[H, Hasher, QueryItem]) LookupHash(fullKey []byte, nibbleKey 
 					// We can record this as `InlineValue`, even we are just returning
 					// the `hash`. This is done to prevent requiring to re-record this
 					// key.
-					recorder.Record(InlineValueAccess{FullKey: fullKey})
+					recorder.Record(HashAccess{FullKey: fullKey})
 				}
 				return v.Hash, nil
 			default:
@@ -606,56 +612,59 @@ func (l *TrieLookup[H, Hasher, QueryItem]) lookupHashWithCache(
 			switch val := val.(type) {
 			case ExistingHashCachedValue[H]:
 				res = &val.Hash
+				return res, nil
 			case ExistingCachedValue[H]:
 				res = &val.Hash
+				return res, nil
 			}
-		}
-	} else {
-		vh, err := lookupWithCacheInternal(l, fullKey, nibbleKey, l.cache, func(
-			value ValueOwned[H],
-			_ nibbles.Prefix,
-			fullKey []byte,
-			_ TrieCache[H],
-			_ db.DBGetter,
-			recorder TrieRecorder,
-		) (valueHash[H], error) {
-			switch value := value.(type) {
-			case ValueOwnedInline[H]:
-				if recorder != nil {
-					// We can record this as `InlineValue`, even we are just returning
-					// the `hash`. This is done to prevent requiring to re-record this
-					// key.
-					recorder.Record(InlineValueAccess{FullKey: fullKey})
-				}
-				return valueHash[H]{
-					Value: value.Value,
-					Hash:  value.Hash,
-				}, nil
-			case ValueOwnedNode[H]:
-				if recorder != nil {
-					recorder.Record(HashAccess{FullKey: fullKey})
-				}
-				return valueHash[H]{
-					Hash: value.Hash,
-				}, nil
-			default:
-				panic("unreachable")
-			}
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		if vh != nil {
-			if vh.Value != nil {
-				l.cache.SetValue(fullKey, vh.CachedValue())
-			} else {
-				l.cache.SetValue(fullKey, ExistingHashCachedValue[H]{Hash: vh.Hash})
-			}
-			res = &vh.Hash
-		} else {
-			l.cache.SetValue(fullKey, NonExistingCachedValue[H]{})
 		}
 	}
+
+	vh, err := lookupWithCacheInternal(l, fullKey, nibbleKey, l.cache, func(
+		value ValueOwned[H],
+		_ nibbles.Prefix,
+		fullKey []byte,
+		_ TrieCache[H],
+		_ db.DBGetter,
+		recorder TrieRecorder,
+	) (valueHash[H], error) {
+		switch value := value.(type) {
+		case ValueOwnedInline[H]:
+			if recorder != nil {
+				// We can record this as `InlineValue`, even we are just returning
+				// the `hash`. This is done to prevent requiring to re-record this
+				// key.
+				recorder.Record(InlineValueAccess{FullKey: fullKey})
+			}
+			return valueHash[H]{
+				Value: value.Value,
+				Hash:  value.Hash,
+			}, nil
+		case ValueOwnedNode[H]:
+			if recorder != nil {
+				recorder.Record(HashAccess{FullKey: fullKey})
+			}
+			return valueHash[H]{
+				Hash: value.Hash,
+			}, nil
+		default:
+			panic("unreachable")
+		}
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if vh != nil {
+		if vh.Value != nil {
+			l.cache.SetValue(fullKey, vh.CachedValue())
+		} else {
+			l.cache.SetValue(fullKey, ExistingHashCachedValue[H]{Hash: vh.Hash})
+		}
+		res = &vh.Hash
+	} else {
+		l.cache.SetValue(fullKey, NonExistingCachedValue[H]{})
+	}
+
 	return res, nil
 }
