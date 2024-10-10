@@ -37,10 +37,10 @@ type GrandpaState interface {
 type WarpSyncFragment struct {
 	// The last block that the given authority set finalized. This block should contain a digest
 	// signalling an authority set change from which we can fetch the next authority set.
-	Header generic.Header[uint64, hash.H256, runtime.BlakeTwo256]
+	Header generic.Header[uint, hash.H256, runtime.BlakeTwo256]
 	// A justification for the header above which proves its finality. In order to validate it the
 	// verifier must be aware of the authorities and set id for which the justification refers to.
-	Justification GrandpaJustification[hash.H256, uint64]
+	Justification GrandpaJustification[hash.H256, uint]
 }
 
 type WarpSyncProof struct {
@@ -74,7 +74,7 @@ func (w *WarpSyncProof) addFragment(fragment WarpSyncFragment) (limitReached boo
 	return false, nil
 }
 
-func (w *WarpSyncProof) lastProofBlockNumber() uint64 {
+func (w *WarpSyncProof) lastProofBlockNumber() uint {
 	if len(w.Proofs) == 0 {
 		return 0
 	}
@@ -182,7 +182,7 @@ func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
-		justification, err := decodeJustification[hash.H256, uint64, runtime.BlakeTwo256](encJustification)
+		justification, err := decodeJustification[hash.H256, uint, runtime.BlakeTwo256](encJustification)
 		if err != nil {
 			return nil, err
 		}
@@ -217,7 +217,7 @@ func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
-		justification, err := decodeJustification[hash.H256, uint64, runtime.BlakeTwo256](latestJustification)
+		justification, err := decodeJustification[hash.H256, uint, runtime.BlakeTwo256](latestJustification)
 		if err != nil {
 			return nil, err
 		}
@@ -279,19 +279,19 @@ func (p *WarpSyncProofProvider) Verify(
 }
 
 func findScheduledChange(
-	header generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
-) *grandpa.ScheduledChange[uint64] {
+	header generic.Header[uint, hash.H256, runtime.BlakeTwo256],
+) *grandpa.ScheduledChange[uint] {
 	panic("not implemented")
 }
 
-func headerToGenericHeader(header types.Header) generic.Header[uint64, hash.H256, runtime.BlakeTwo256] {
+func headerToGenericHeader(header types.Header) generic.Header[uint, hash.H256, runtime.BlakeTwo256] {
 	digest := runtime.Digest{}
 	for _, digestItem := range header.Digest {
 		digest.Push(digestItem)
 	}
 
-	return *generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
-		uint64(header.Number),
+	return *generic.NewHeader[uint, hash.H256, runtime.BlakeTwo256](
+		header.Number,
 		hash.H256(header.ExtrinsicsRoot.String()),
 		hash.H256(header.StateRoot.String()),
 		hash.H256(header.ParentHash.String()),

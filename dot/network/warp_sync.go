@@ -22,7 +22,7 @@ const MaxAllowedSameRequestPerPeer = 5
 type WarpSyncVerificationResult struct {
 	SetId         grandpa.SetID
 	AuthorityList grandpa.AuthorityList
-	Header        generic.Header[uint64, hash.H256, runtime.BlakeTwo256]
+	Header        generic.Header[uint, hash.H256, runtime.BlakeTwo256]
 	Completed     bool
 }
 
