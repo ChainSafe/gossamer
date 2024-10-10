@@ -87,7 +87,7 @@ func (nho NodeHandleOwnedHash[H]) ChildReference() ChildReference {
 func (nho NodeHandleOwnedInline[H]) ChildReference() ChildReference {
 	encoded := nho.NodeOwned.encoded()
 	store := (*new(H))
-	if store.Length() > len(encoded) {
+	if len(encoded) > store.Length() {
 		panic("Invalid inline node handle")
 	}
 	return InlineChildReference(encoded)
@@ -186,11 +186,13 @@ func (no NodeOwnedLeaf[H]) children() []child[H] { return nil }
 func (no NodeOwnedBranch[H]) children() []child[H] {
 	r := []child[H]{}
 	for i, ch := range no.Children {
-		nibble := uint8(i)
-		r = append(r, child[H]{
-			nibble:          &nibble,
-			NodeHandleOwned: ch,
-		})
+		if ch != nil {
+			nibble := uint8(i)
+			r = append(r, child[H]{
+				nibble:          &nibble,
+				NodeHandleOwned: ch,
+			})
+		}
 	}
 	return r
 }
@@ -221,7 +223,16 @@ func (no NodeOwnedBranch[H]) encoded() []byte {
 		}
 		children[i] = ch.ChildReference()
 	}
-	err := NewEncodedBranch(no.PartialKey.Right(), no.PartialKey.Len(), children, no.Value.EncodedValue(), encodingBuffer)
+	var encodedVal codec.EncodedValue
+	if no.Value != nil {
+		encodedVal = no.Value.EncodedValue()
+	}
+	err := NewEncodedBranch(
+		no.PartialKey.Right(),
+		no.PartialKey.Len(),
+		children,
+		encodedVal,
+		encodingBuffer)
 	if err != nil {
 		panic(err)
 	}
