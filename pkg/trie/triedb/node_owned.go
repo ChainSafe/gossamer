@@ -33,14 +33,12 @@ type (
 	}
 )
 
-func (vo ValueOwnedInline[H]) data() []byte                     { return vo.Value }
-func (vo ValueOwnedNode[H]) data() []byte                       { return nil }
-func (vo ValueOwnedInline[H]) dataHash() *H                     { return &vo.Hash }
-func (vo ValueOwnedNode[H]) dataHash() *H                       { return &vo.Hash }
+func (vo ValueOwnedInline[H]) data() []byte                     { return vo.Value } //nolint:unused
+func (vo ValueOwnedNode[H]) data() []byte                       { return nil }      //nolint:unused
+func (vo ValueOwnedInline[H]) dataHash() *H                     { return &vo.Hash } //nolint:unused
+func (vo ValueOwnedNode[H]) dataHash() *H                       { return &vo.Hash } //nolint:unused
 func (vo ValueOwnedInline[H]) EncodedValue() codec.EncodedValue { return codec.InlineValue(vo.Value) }
-func (vo ValueOwnedNode[H]) EncodedValue() codec.EncodedValue {
-	return codec.HashedValue[H]{Hash: vo.Hash}
-}
+func (vo ValueOwnedNode[H]) EncodedValue() codec.EncodedValue   { return codec.HashedValue[H](vo) }
 
 func newValueOwnedFromEncodedValue[H hash.Hash, Hasher hash.Hasher[H]](encVal codec.EncodedValue) ValueOwned[H] {
 	switch encVal := encVal.(type) {
@@ -79,7 +77,7 @@ type (
 )
 
 func (nho NodeHandleOwnedHash[H]) ChildReference() ChildReference {
-	return HashChildReference[H]{Hash: nho.Hash}
+	return HashChildReference[H](nho)
 }
 func (nho NodeHandleOwnedInline[H]) ChildReference() ChildReference {
 	encoded := nho.NodeOwned.encoded()
@@ -90,7 +88,9 @@ func (nho NodeHandleOwnedInline[H]) ChildReference() ChildReference {
 	return InlineChildReference(encoded)
 }
 
-func newNodeHandleOwnedFromMerkleValue[H hash.Hash, Hasher hash.Hasher[H]](mv codec.MerkleValue) (NodeHandleOwned, error) {
+func newNodeHandleOwnedFromMerkleValue[H hash.Hash, Hasher hash.Hasher[H]](
+	mv codec.MerkleValue,
+) (NodeHandleOwned, error) {
 	switch mv := mv.(type) {
 	case codec.HashedNode[H]:
 		return NodeHandleOwnedHash[H](mv), nil
@@ -156,33 +156,33 @@ type (
 	}
 )
 
-func (NodeOwnedEmpty[H]) data() []byte   { return nil }
-func (no NodeOwnedLeaf[H]) data() []byte { return no.Value.data() }
-func (no NodeOwnedBranch[H]) data() []byte {
+func (NodeOwnedEmpty[H]) data() []byte   { return nil }             //nolint:unused
+func (no NodeOwnedLeaf[H]) data() []byte { return no.Value.data() } //nolint:unused
+func (no NodeOwnedBranch[H]) data() []byte { //nolint:unused
 	if no.Value != nil {
 		return no.Value.data()
 	}
 	return nil
 }
-func (no NodeOwnedValue[H]) data() []byte { return no.Value }
+func (no NodeOwnedValue[H]) data() []byte { return no.Value } //nolint:unused
 
-func (NodeOwnedEmpty[H]) dataHash() *H   { return nil }
-func (no NodeOwnedLeaf[H]) dataHash() *H { return no.Value.dataHash() }
-func (no NodeOwnedBranch[H]) dataHash() *H {
+func (NodeOwnedEmpty[H]) dataHash() *H   { return nil }                 //nolint:unused
+func (no NodeOwnedLeaf[H]) dataHash() *H { return no.Value.dataHash() } //nolint:unused
+func (no NodeOwnedBranch[H]) dataHash() *H { //nolint:unused
 	if no.Value != nil {
 		return no.Value.dataHash()
 	}
 	return nil
 }
-func (no NodeOwnedValue[H]) dataHash() *H { return &no.Hash }
+func (no NodeOwnedValue[H]) dataHash() *H { return &no.Hash } //nolint:unused
 
-func (NodeOwnedEmpty[H]) children() []child[H]   { return nil }
-func (no NodeOwnedLeaf[H]) children() []child[H] { return nil }
-func (no NodeOwnedBranch[H]) children() []child[H] {
+func (NodeOwnedEmpty[H]) children() []child[H]   { return nil } //nolint:unused
+func (no NodeOwnedLeaf[H]) children() []child[H] { return nil } //nolint:unused
+func (no NodeOwnedBranch[H]) children() []child[H] { //nolint:unused
 	r := []child[H]{}
 	for i, ch := range no.Children {
 		if ch != nil {
-			nibble := uint8(i)
+			nibble := uint8(i) //nolint:gosec
 			r = append(r, child[H]{
 				nibble:          &nibble,
 				NodeHandleOwned: ch,
@@ -191,17 +191,15 @@ func (no NodeOwnedBranch[H]) children() []child[H] {
 	}
 	return r
 }
-func (no NodeOwnedValue[H]) children() []child[H] { return nil }
+func (no NodeOwnedValue[H]) children() []child[H] { return nil } //nolint:unused
 
-func (NodeOwnedEmpty[H]) partialKey() *nibbles.NibbleSlice     { return nil }
-func (no NodeOwnedLeaf[H]) partialKey() *nibbles.NibbleSlice   { return &no.PartialKey }
-func (no NodeOwnedBranch[H]) partialKey() *nibbles.NibbleSlice { return &no.PartialKey }
-func (no NodeOwnedValue[H]) partialKey() *nibbles.NibbleSlice  { return nil }
+func (NodeOwnedEmpty[H]) partialKey() *nibbles.NibbleSlice     { return nil }            //nolint:unused
+func (no NodeOwnedLeaf[H]) partialKey() *nibbles.NibbleSlice   { return &no.PartialKey } //nolint:unused
+func (no NodeOwnedBranch[H]) partialKey() *nibbles.NibbleSlice { return &no.PartialKey } //nolint:unused
+func (no NodeOwnedValue[H]) partialKey() *nibbles.NibbleSlice  { return nil }            //nolint:unused
 
-func (NodeOwnedEmpty[H]) encoded() []byte {
-	return []byte{EmptyTrieBytes}
-}
-func (no NodeOwnedLeaf[H]) encoded() []byte {
+func (NodeOwnedEmpty[H]) encoded() []byte { return []byte{EmptyTrieBytes} } //nolint:unused
+func (no NodeOwnedLeaf[H]) encoded() []byte { //nolint:unused
 	encodingBuffer := bytes.NewBuffer(nil)
 	err := NewEncodedLeaf(no.PartialKey.Right(), no.PartialKey.Len(), no.Value.EncodedValue(), encodingBuffer)
 	if err != nil {
@@ -209,7 +207,7 @@ func (no NodeOwnedLeaf[H]) encoded() []byte {
 	}
 	return encodingBuffer.Bytes()
 }
-func (no NodeOwnedBranch[H]) encoded() []byte {
+func (no NodeOwnedBranch[H]) encoded() []byte { //nolint:unused
 	encodingBuffer := bytes.NewBuffer(nil)
 	children := [16]ChildReference{}
 	for i, ch := range no.Children {
@@ -233,7 +231,7 @@ func (no NodeOwnedBranch[H]) encoded() []byte {
 	}
 	return encodingBuffer.Bytes()
 }
-func (no NodeOwnedValue[H]) encoded() []byte { return no.Value }
+func (no NodeOwnedValue[H]) encoded() []byte { return no.Value } //nolint:unused
 
 func newNodeOwnedFromNode[H hash.Hash, Hasher hash.Hasher[H]](n codec.EncodedNode) (NodeOwned[H], error) {
 	switch n := n.(type) {

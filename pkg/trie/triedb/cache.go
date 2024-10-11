@@ -22,16 +22,16 @@ func NewCachedValue[H any, CV CachedValues[H]](cv CV) CachedValue[H] {
 // The value doesn't exist in the trie.
 type NonExistingCachedValue[H any] struct{}
 
-func (NonExistingCachedValue[H]) data() []byte { return nil }
-func (NonExistingCachedValue[H]) hash() *H     { return nil }
+func (NonExistingCachedValue[H]) data() []byte { return nil } //nolint:unused
+func (NonExistingCachedValue[H]) hash() *H     { return nil } //nolint:unused
 
 // The hash is cached and not the data because it was not accessed.
 type ExistingHashCachedValue[H any] struct {
 	Hash H
 }
 
-func (ExistingHashCachedValue[H]) data() []byte  { return nil }
-func (ehcv ExistingHashCachedValue[H]) hash() *H { return &ehcv.Hash }
+func (ExistingHashCachedValue[H]) data() []byte  { return nil }        //nolint:unused
+func (ehcv ExistingHashCachedValue[H]) hash() *H { return &ehcv.Hash } //nolint:unused
 
 // The value exists in the trie.
 type ExistingCachedValue[H any] struct {
@@ -41,8 +41,8 @@ type ExistingCachedValue[H any] struct {
 	Data []byte
 }
 
-func (ecv ExistingCachedValue[H]) data() []byte { return ecv.Data }
-func (ecv ExistingCachedValue[H]) hash() *H     { return &ecv.Hash }
+func (ecv ExistingCachedValue[H]) data() []byte { return ecv.Data }  //nolint:unused
+func (ecv ExistingCachedValue[H]) hash() *H     { return &ecv.Hash } //nolint:unused
 
 // A cache that can be used to speed-up certain operations when accessing [TrieDB].
 //
