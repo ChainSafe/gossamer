@@ -49,14 +49,14 @@ func newNodeHandleFromMerkleValue[H hash.Hash](
 	}
 }
 
-func newNodeHandleFromNodeHandleOwned[H hash.Hash](
-	child NodeHandleOwned,
+func newNodeHandleFromCachedNodeHandle[H hash.Hash](
+	child CachedNodeHandle,
 	storage *nodeStorage[H],
 ) NodeHandle {
 	switch child := child.(type) {
-	case NodeHandleOwnedHash[H]:
+	case HashCachedNodeHandle[H]:
 		return persisted[H]{child.Hash}
-	case NodeHandleOwnedInline[H]:
+	case InlineCachedNodeHandle[H]:
 		ch := newNodeFromCachedNode(child.CachedNode, storage)
 		return inMemory(storage.alloc(NewStoredNode{node: ch}))
 	default:

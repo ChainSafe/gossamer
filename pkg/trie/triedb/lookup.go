@@ -237,7 +237,7 @@ func lookupWithCacheInternal[H hash.Hash, Hasher hash.Hasher[H], R, QueryItem an
 		// this loop iterates through all inline children (usually max 1)
 		// without incrementing the depth.
 		for {
-			var nextNode NodeHandleOwned
+			var nextNode CachedNodeHandle
 			switch node := node.(type) {
 			case LeafCachedNode[H]:
 				if partial.EqualNibbleSlice(node.PartialKey) {
@@ -288,10 +288,10 @@ func lookupWithCacheInternal[H hash.Hash, Hasher hash.Hasher[H], R, QueryItem an
 
 			// check if new node data is inline or hash.
 			switch nextNode := nextNode.(type) {
-			case NodeHandleOwnedHash[H]:
+			case HashCachedNodeHandle[H]:
 				hash = nextNode.Hash
 				break inlineLoop
-			case NodeHandleOwnedInline[H]:
+			case InlineCachedNodeHandle[H]:
 				node = nextNode.CachedNode
 			default:
 				panic("unreachable")

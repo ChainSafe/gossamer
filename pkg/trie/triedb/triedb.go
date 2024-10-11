@@ -1053,8 +1053,8 @@ func cacheChildValues[H hash.Hash](
 	fullKey nibbles.NibbleSlice,
 ) {
 	for _, child := range node.children() {
-		switch nho := child.NodeHandleOwned.(type) {
-		case NodeHandleOwnedInline[H]:
+		switch nho := child.CachedNodeHandle.(type) {
+		case InlineCachedNodeHandle[H]:
 			n := child.nibble
 			c := nho.CachedNode
 			key := fullKey.Clone()

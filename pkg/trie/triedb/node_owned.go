@@ -62,29 +62,29 @@ func newCachedNodeValueFromEncodedValue[H hash.Hash, Hasher hash.Hasher[H]](encV
 }
 
 // Cached version of [codec.MerkleValue] interface constraint.
-type NodeHandleOwnedTypes[H hash.Hash] interface {
-	NodeHandleOwnedHash[H] | NodeHandleOwnedInline[H]
+type CachedNodeHandleTypes[H hash.Hash] interface {
+	HashCachedNodeHandle[H] | InlineCachedNodeHandle[H]
 }
 
 // Cached version of [codec.MerkleValue].
-type NodeHandleOwned interface {
-	/// Returns [NodeHandleOwned] as a [ChildReference].
+type CachedNodeHandle interface {
+	/// Returns [CachedNodeHandle] as a [ChildReference].
 	ChildReference() ChildReference
 }
 
 type (
-	NodeHandleOwnedHash[H hash.Hash] struct {
+	HashCachedNodeHandle[H hash.Hash] struct {
 		Hash H
 	}
-	NodeHandleOwnedInline[H hash.Hash] struct {
+	InlineCachedNodeHandle[H hash.Hash] struct {
 		CachedNode[H]
 	}
 )
 
-func (nho NodeHandleOwnedHash[H]) ChildReference() ChildReference {
+func (nho HashCachedNodeHandle[H]) ChildReference() ChildReference {
 	return HashChildReference[H](nho)
 }
-func (nho NodeHandleOwnedInline[H]) ChildReference() ChildReference {
+func (nho InlineCachedNodeHandle[H]) ChildReference() ChildReference {
 	encoded := nho.CachedNode.encoded()
 	store := (*new(H))
 	if len(encoded) > store.Length() {
@@ -93,12 +93,12 @@ func (nho NodeHandleOwnedInline[H]) ChildReference() ChildReference {
 	return InlineChildReference(encoded)
 }
 
-func newNodeHandleOwnedFromMerkleValue[H hash.Hash, Hasher hash.Hasher[H]](
+func newCachedNodeHandleFromMerkleValue[H hash.Hash, Hasher hash.Hasher[H]](
 	mv codec.MerkleValue,
-) (NodeHandleOwned, error) {
+) (CachedNodeHandle, error) {
 	switch mv := mv.(type) {
 	case codec.HashedNode[H]:
-		return NodeHandleOwnedHash[H](mv), nil
+		return HashCachedNodeHandle[H](mv), nil
 	case codec.InlineNode:
 		buf := bytes.NewBuffer(mv)
 		node, err := codec.Decode[H](buf)
@@ -109,7 +109,7 @@ func newNodeHandleOwnedFromMerkleValue[H hash.Hash, Hasher hash.Hasher[H]](
 		if err != nil {
 			return nil, err
 		}
-		return NodeHandleOwnedInline[H]{nodeOwned}, nil
+		return InlineCachedNodeHandle[H]{nodeOwned}, nil
 	default:
 		panic("unreachable")
 	}
@@ -117,7 +117,7 @@ func newNodeHandleOwnedFromMerkleValue[H hash.Hash, Hasher hash.Hasher[H]](
 
 type child[H any] struct {
 	nibble *uint8
-	NodeHandleOwned
+	CachedNodeHandle
 }
 
 // Cached nodes interface constraint.
@@ -147,7 +147,7 @@ type (
 	// and an optional value.
 	BranchCachedNode[H any] struct {
 		PartialKey nibbles.NibbleSlice
-		Children   [codec.ChildrenCapacity]NodeHandleOwned // can be nil to represent no child
+		Children   [codec.ChildrenCapacity]CachedNodeHandle // can be nil to represent no child
 		Value      CachedNodeValue[H]
 	}
 	// Node that represents a value.
@@ -188,8 +188,8 @@ func (no BranchCachedNode[H]) children() []child[H] { //nolint:unused
 		if ch != nil {
 			nibble := uint8(i) //nolint:gosec
 			r = append(r, child[H]{
-				nibble:          &nibble,
-				NodeHandleOwned: ch,
+				nibble:           &nibble,
+				CachedNodeHandle: ch,
 			})
 		}
 	}
@@ -247,13 +247,13 @@ func newCachedNodeFromNode[H hash.Hash, Hasher hash.Hasher[H]](n codec.EncodedNo
 			Value:      newCachedNodeValueFromEncodedValue[H, Hasher](n.Value),
 		}, nil
 	case codec.Branch:
-		var childrenOwned [codec.ChildrenCapacity]NodeHandleOwned
+		var childrenOwned [codec.ChildrenCapacity]CachedNodeHandle
 		for i, child := range n.Children {
 			if child == nil {
 				continue
 			}
 			var err error
-			childrenOwned[i], err = newNodeHandleOwnedFromMerkleValue[H, Hasher](child)
+			childrenOwned[i], err = newCachedNodeHandleFromMerkleValue[H, Hasher](child)
 			if err != nil {
 				return nil, err
 			}
