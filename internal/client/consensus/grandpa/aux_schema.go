@@ -193,7 +193,7 @@ func UpdateAuthoritySet[H comparable, N constraints.Unsigned, ID primitives.Auth
 // We always keep around the justification for the best finalized block and overwrite it
 // as we finalize new blocks, this makes sure that we don't store useless justifications
 // but can always prove finality of the latest block.
-func updateBestJustification[
+func updateBestJustification[ //nolint:unused
 	Hash runtime.Hash,
 	N runtime.Number,
 ](

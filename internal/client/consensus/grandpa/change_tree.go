@@ -459,12 +459,10 @@ func (ct *ChangeTree[H, N]) swapRemove(roots []*PendingChangeNode[H, N], index N
 		panic("swap_remove index out of bounds")
 	}
 
-	val := PendingChangeNode[H, N]{}
-	if roots[index] != nil {
-		val = *roots[index]
-	} else {
+	if roots[index] == nil {
 		panic("nil pending HashNumber node")
 	}
+	val := *roots[index]
 
 	lastElem := roots[len(roots)-1]
 
