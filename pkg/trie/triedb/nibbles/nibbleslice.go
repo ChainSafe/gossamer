@@ -179,6 +179,7 @@ func (n *NibbleSlice) DropLasts(num uint) {
 	}
 }
 
+// Clones the underlying data in the returned [NibbleSlice].
 func (n NibbleSlice) Clone() NibbleSlice {
 	return NibbleSlice{
 		inner: slices.Clone(n.inner),
@@ -186,6 +187,7 @@ func (n NibbleSlice) Clone() NibbleSlice {
 	}
 }
 
+// Length of the [NibbleSlice].
 func (n NibbleSlice) Len() uint {
 	return n.len
 }
@@ -198,6 +200,7 @@ func (n NibbleSlice) asNibbles() *Nibbles {
 	return nil
 }
 
+// Return an iterator over [Partial] bytes representation.
 func (n NibbleSlice) Right() []byte {
 	requirePadding := n.Len()%NibblesPerByte != 0
 	var ix uint
@@ -222,6 +225,7 @@ func (n NibbleSlice) Right() []byte {
 	return b
 }
 
+// Returns a [NodeKey] representation
 func (n NibbleSlice) NodeKey() NodeKey {
 	if nibbles := n.asNibbles(); nibbles != nil {
 		return nibbles.NodeKey()
@@ -232,6 +236,7 @@ func (n NibbleSlice) NodeKey() NodeKey {
 	}
 }
 
+// Returns the inner bytes
 func (n NibbleSlice) Inner() []byte {
 	return n.inner
 }
