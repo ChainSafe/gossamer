@@ -3,6 +3,8 @@
 
 package triedb
 
+import "github.com/ChainSafe/gossamer/pkg/trie/triedb/hash"
+
 // Used to report the trie access to the [TrieRecorder].
 //
 // As the trie can use a [TrieCache], there are multiple kinds of accesses.
@@ -12,12 +14,12 @@ type TrieAccess interface {
 
 type (
 	// The given [CachedNode] was accessed using its hash.
-	CachedNodeAccess[H any] struct {
+	CachedNodeAccess[H hash.Hash] struct {
 		Hash H
 		Node CachedNode[H]
 	}
 	// The given EncodedNode was accessed using its hash.
-	EncodedNodeAccess[H any] struct {
+	EncodedNodeAccess[H hash.Hash] struct {
 		Hash        H
 		EncodedNode []byte
 	}
@@ -26,7 +28,7 @@ type (
 	// The given FullKey is the key to access this value in the trie.
 	//
 	// Should map to [RecordedValue] when checking the recorder.
-	ValueAccess[H any] struct {
+	ValueAccess[H hash.Hash] struct {
 		Hash    H
 		Value   []byte
 		FullKey []byte
@@ -108,19 +110,19 @@ const (
 )
 
 // The record of a visited node.
-type Record[H any] struct {
+type Record[H hash.Hash] struct {
 	Hash H
 	Data []byte
 }
 
 // Records trie nodes as they pass it.
-type Recorder[H any] struct {
+type Recorder[H hash.Hash] struct {
 	nodes        []Record[H]
 	recordedKeys map[string]RecordedForKey
 }
 
 // Constructor for [Recorder]
-func NewRecorder[H any]() *Recorder[H] {
+func NewRecorder[H hash.Hash]() *Recorder[H] {
 	return &Recorder[H]{
 		nodes:        []Record[H]{},
 		recordedKeys: make(map[string]RecordedForKey),
@@ -172,5 +174,3 @@ func (r *Recorder[H]) TrieNodesRecordedForKey(key []byte) RecordedForKey {
 	}
 	return rfk
 }
-
-var _ TrieRecorder = &Recorder[string]{}
