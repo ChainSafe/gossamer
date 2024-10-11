@@ -239,7 +239,7 @@ func lookupWithCacheInternal[H hash.Hash, Hasher hash.Hasher[H], R, QueryItem an
 		for {
 			var nextNode NodeHandleOwned
 			switch node := node.(type) {
-			case CachedNodeLeaf[H]:
+			case LeafCachedNode[H]:
 				if partial.EqualNibbleSlice(node.PartialKey) {
 					value := node.Value
 					r, err := loadValue(value, nibbleKey.OriginalDataPrefix(), fullKey, cache, l.db, l.recorder)
@@ -251,7 +251,7 @@ func lookupWithCacheInternal[H hash.Hash, Hasher hash.Hasher[H], R, QueryItem an
 					l.recordAccess(NonExistingNodeAccess{fullKey})
 					return nil, nil
 				}
-			case CachedNodeBranch[H]:
+			case BranchCachedNode[H]:
 				if !partial.StartsWithNibbleSlice(node.PartialKey) {
 					l.recordAccess(NonExistingNodeAccess{fullKey})
 					return nil, nil
@@ -279,7 +279,7 @@ func lookupWithCacheInternal[H hash.Hash, Hasher hash.Hasher[H], R, QueryItem an
 					l.recordAccess(NonExistingNodeAccess{fullKey})
 					return nil, nil
 				}
-			case CachedNodeEmpty[H]:
+			case EmptyCachedNode[H]:
 				l.recordAccess(NonExistingNodeAccess{FullKey: fullKey})
 				return nil, nil
 			default:
@@ -444,7 +444,7 @@ func (vh *valueHash[H]) CachedValue() CachedValue[H] {
 // Load the given value.
 //
 // This will access the db if the value is not already in memory, but then it will put it
-// into the given cache as [CachedNodeValue].
+// into the given cache as [ValueCachedNode].
 //
 // Returns the bytes representing the value and its hash.
 func loadValueOwned[H hash.Hash](
@@ -468,7 +468,7 @@ func loadValueOwned[H hash.Hash](
 			if err != nil {
 				return nil, err
 			}
-			return CachedNodeValue[H]{Value: val, Hash: v.Hash}, nil
+			return ValueCachedNode[H]{Value: val, Hash: v.Hash}, nil
 		})
 		if err != nil {
 			return valueHash[H]{}, err
@@ -476,10 +476,10 @@ func loadValueOwned[H hash.Hash](
 
 		var value []byte
 		switch node := node.(type) {
-		case CachedNodeValue[H]:
+		case ValueCachedNode[H]:
 			value = node.Value
 		default:
-			panic("we are caching a `CachedNodeValue` for a value node hash and this " +
+			panic("we are caching a `ValueCachedNode` for a value node hash and this " +
 				"cached node has always data attached")
 		}
 
@@ -504,7 +504,7 @@ func loadValueOwned[H hash.Hash](
 // Load the given value.
 //
 // This will access the db if the value is not already in memory, but then it will put it
-// into the given cache as [CachedNodeValue].
+// into the given cache as [ValueCachedNode].
 func loadValue[H hash.Hash, QueryItem any](
 	v codec.EncodedValue,
 	prefix nibbles.Prefix,

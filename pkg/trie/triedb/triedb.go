@@ -1136,7 +1136,7 @@ func (t *TrieDB[H, Hasher]) cacheValue(fullKey []byte, value []byte, hash H) {
 	}
 	var val []byte
 	node, err := t.cache.GetOrInsertNode(hash, func() (CachedNode[H], error) {
-		return CachedNodeValue[H]{
+		return ValueCachedNode[H]{
 			Value: value,
 			Hash:  hash,
 		}, nil
