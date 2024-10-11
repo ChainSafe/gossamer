@@ -120,7 +120,7 @@ type child[H any] struct {
 
 // Cached nodes interface constraint.
 type CachedNodeTypes[H hash.Hash] interface {
-	CachedNodeEmpty[H] | CachedNodeLeaf[H] | CachedNodeBranch[H] | CachedNodeValue[H]
+	EmptyCachedNode[H] | LeafCachedNode[H] | BranchCachedNode[H] | ValueCachedNode[H]
 	CachedNode[H]
 }
 
@@ -135,15 +135,15 @@ type CachedNode[H any] interface {
 
 type (
 	// Empty trie node; could be an empty root or an empty branch entry.
-	CachedNodeEmpty[H hash.Hash] struct{}
+	EmptyCachedNode[H hash.Hash] struct{}
 	// Leaf node; has key slice and value. Value may not be empty.
-	CachedNodeLeaf[H any] struct {
+	LeafCachedNode[H any] struct {
 		PartialKey nibbles.NibbleSlice
 		Value      ValueOwned[H]
 	}
 	// Branch node; has slice of child nodes (each possibly null)
 	// and an optional value.
-	CachedNodeBranch[H any] struct {
+	BranchCachedNode[H any] struct {
 		PartialKey nibbles.NibbleSlice
 		Children   [codec.ChildrenCapacity]NodeHandleOwned // can be nil to represent no child
 		Value      ValueOwned[H]
@@ -152,35 +152,35 @@ type (
 	//
 	// This variant is only constructed when working with a [TrieCache]. It is only
 	// used to cache a raw value.
-	CachedNodeValue[H any] struct {
+	ValueCachedNode[H any] struct {
 		Value []byte
 		Hash  H
 	}
 )
 
-func (CachedNodeEmpty[H]) data() []byte   { return nil }             //nolint:unused
-func (no CachedNodeLeaf[H]) data() []byte { return no.Value.data() } //nolint:unused
-func (no CachedNodeBranch[H]) data() []byte { //nolint:unused
+func (EmptyCachedNode[H]) data() []byte   { return nil }             //nolint:unused
+func (no LeafCachedNode[H]) data() []byte { return no.Value.data() } //nolint:unused
+func (no BranchCachedNode[H]) data() []byte { //nolint:unused
 	if no.Value != nil {
 		return no.Value.data()
 	}
 	return nil
 }
-func (no CachedNodeValue[H]) data() []byte { return no.Value } //nolint:unused
+func (no ValueCachedNode[H]) data() []byte { return no.Value } //nolint:unused
 
-func (CachedNodeEmpty[H]) dataHash() *H   { return nil }                 //nolint:unused
-func (no CachedNodeLeaf[H]) dataHash() *H { return no.Value.dataHash() } //nolint:unused
-func (no CachedNodeBranch[H]) dataHash() *H { //nolint:unused
+func (EmptyCachedNode[H]) dataHash() *H   { return nil }                 //nolint:unused
+func (no LeafCachedNode[H]) dataHash() *H { return no.Value.dataHash() } //nolint:unused
+func (no BranchCachedNode[H]) dataHash() *H { //nolint:unused
 	if no.Value != nil {
 		return no.Value.dataHash()
 	}
 	return nil
 }
-func (no CachedNodeValue[H]) dataHash() *H { return &no.Hash } //nolint:unused
+func (no ValueCachedNode[H]) dataHash() *H { return &no.Hash } //nolint:unused
 
-func (CachedNodeEmpty[H]) children() []child[H]   { return nil } //nolint:unused
-func (no CachedNodeLeaf[H]) children() []child[H] { return nil } //nolint:unused
-func (no CachedNodeBranch[H]) children() []child[H] { //nolint:unused
+func (EmptyCachedNode[H]) children() []child[H]   { return nil } //nolint:unused
+func (no LeafCachedNode[H]) children() []child[H] { return nil } //nolint:unused
+func (no BranchCachedNode[H]) children() []child[H] { //nolint:unused
 	r := []child[H]{}
 	for i, ch := range no.Children {
 		if ch != nil {
@@ -193,15 +193,15 @@ func (no CachedNodeBranch[H]) children() []child[H] { //nolint:unused
 	}
 	return r
 }
-func (no CachedNodeValue[H]) children() []child[H] { return nil } //nolint:unused
+func (no ValueCachedNode[H]) children() []child[H] { return nil } //nolint:unused
 
-func (CachedNodeEmpty[H]) partialKey() *nibbles.NibbleSlice     { return nil }            //nolint:unused
-func (no CachedNodeLeaf[H]) partialKey() *nibbles.NibbleSlice   { return &no.PartialKey } //nolint:unused
-func (no CachedNodeBranch[H]) partialKey() *nibbles.NibbleSlice { return &no.PartialKey } //nolint:unused
-func (no CachedNodeValue[H]) partialKey() *nibbles.NibbleSlice  { return nil }            //nolint:unused
+func (EmptyCachedNode[H]) partialKey() *nibbles.NibbleSlice     { return nil }            //nolint:unused
+func (no LeafCachedNode[H]) partialKey() *nibbles.NibbleSlice   { return &no.PartialKey } //nolint:unused
+func (no BranchCachedNode[H]) partialKey() *nibbles.NibbleSlice { return &no.PartialKey } //nolint:unused
+func (no ValueCachedNode[H]) partialKey() *nibbles.NibbleSlice  { return nil }            //nolint:unused
 
-func (CachedNodeEmpty[H]) encoded() []byte { return []byte{EmptyTrieBytes} } //nolint:unused
-func (no CachedNodeLeaf[H]) encoded() []byte { //nolint:unused
+func (EmptyCachedNode[H]) encoded() []byte { return []byte{EmptyTrieBytes} } //nolint:unused
+func (no LeafCachedNode[H]) encoded() []byte { //nolint:unused
 	encodingBuffer := bytes.NewBuffer(nil)
 	err := NewEncodedLeaf(no.PartialKey.Right(), no.PartialKey.Len(), no.Value.EncodedValue(), encodingBuffer)
 	if err != nil {
@@ -209,7 +209,7 @@ func (no CachedNodeLeaf[H]) encoded() []byte { //nolint:unused
 	}
 	return encodingBuffer.Bytes()
 }
-func (no CachedNodeBranch[H]) encoded() []byte { //nolint:unused
+func (no BranchCachedNode[H]) encoded() []byte { //nolint:unused
 	encodingBuffer := bytes.NewBuffer(nil)
 	children := [16]ChildReference{}
 	for i, ch := range no.Children {
@@ -233,14 +233,14 @@ func (no CachedNodeBranch[H]) encoded() []byte { //nolint:unused
 	}
 	return encodingBuffer.Bytes()
 }
-func (no CachedNodeValue[H]) encoded() []byte { return no.Value } //nolint:unused
+func (no ValueCachedNode[H]) encoded() []byte { return no.Value } //nolint:unused
 
 func newCachedNodeFromNode[H hash.Hash, Hasher hash.Hasher[H]](n codec.EncodedNode) (CachedNode[H], error) {
 	switch n := n.(type) {
 	case codec.Empty:
-		return CachedNodeEmpty[H]{}, nil
+		return EmptyCachedNode[H]{}, nil
 	case codec.Leaf:
-		return CachedNodeLeaf[H]{
+		return LeafCachedNode[H]{
 			PartialKey: nibbles.NewNibbleSliceFromNibbles(n.PartialKey),
 			Value:      newValueOwnedFromEncodedValue[H, Hasher](n.Value),
 		}, nil
@@ -256,7 +256,7 @@ func newCachedNodeFromNode[H hash.Hash, Hasher hash.Hasher[H]](n codec.EncodedNo
 				return nil, err
 			}
 		}
-		return CachedNodeBranch[H]{
+		return BranchCachedNode[H]{
 			PartialKey: nibbles.NewNibbleSliceFromNibbles(n.PartialKey),
 			Children:   childrenOwned,
 			Value:      newValueOwnedFromEncodedValue[H, Hasher](n.Value),
