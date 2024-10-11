@@ -128,7 +128,7 @@ func (l *TrieLookup[H, Hasher, QueryItem]) lookupWithCache(
 			data, err := loadValueOwned[H](
 				// If we only have the hash cached, this can only be a value node.
 				// For inline nodes we cache them directly as [ExistingCachedValue].
-				ValueOwned[H](ValueOwnedNode[H]{Hash: cachedVal.Hash}),
+				ValueOwnedNode[H](cachedVal),
 				nibbleKey.OriginalDataPrefix(),
 				fullKey,
 				l.cache,
@@ -460,10 +460,7 @@ func loadValueOwned[H hash.Hash](
 		if recorder != nil {
 			recorder.Record(InlineValueAccess{fullKey})
 		}
-		return valueHash[H]{
-			Value: v.Value,
-			Hash:  v.Hash,
-		}, nil
+		return valueHash[H](v), nil
 	case ValueOwnedNode[H]:
 		node, err := cache.GetOrInsertNode(v.Hash, func() (NodeOwned[H], error) {
 			prefixedKey := append(prefix.JoinedBytes(), v.Hash.Bytes()...)
@@ -630,10 +627,7 @@ func (l *TrieLookup[H, Hasher, QueryItem]) lookupHashWithCache(
 				// the hash. This is done to prevent requiring to re-record this key.
 				recorder.Record(InlineValueAccess{FullKey: fullKey})
 			}
-			return valueHash[H]{
-				Value: value.Value,
-				Hash:  value.Hash,
-			}, nil
+			return valueHash[H](value), nil
 		case ValueOwnedNode[H]:
 			if recorder != nil {
 				recorder.Record(HashAccess{FullKey: fullKey})

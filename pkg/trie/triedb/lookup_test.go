@@ -77,7 +77,7 @@ func Test_TrieLookup_lookupValueWithCache(t *testing.T) {
 		bytes, err := lookup.lookupWithCache([]byte(k), nibbles.NewNibbles([]byte(k)))
 		require.NoError(t, err)
 		require.NotNil(t, bytes)
-		require.Equal(t, []byte(v), *bytes)
+		require.Equal(t, v, *bytes)
 	}
 }
 
