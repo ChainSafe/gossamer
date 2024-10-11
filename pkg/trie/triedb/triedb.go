@@ -1142,7 +1142,7 @@ func (t *TrieDB[H, Hasher]) cacheValue(fullKey []byte, value []byte, hash H) {
 		}, nil
 	})
 	if err != nil {
-		panic("this should never happend")
+		panic("this should never happen")
 	}
 	if node != nil {
 		val = node.data()
