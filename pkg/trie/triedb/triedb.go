@@ -203,9 +203,9 @@ func (t *TrieDB[H, Hasher]) getNodeOrLookup(
 		}
 		if len(nodeData) == 0 {
 			if partialKey.Key == nil && partialKey.Padded == nil {
-				return nil, nil, fmt.Errorf("invalid state root: %v", nodeHandle.Hash)
+				return nil, nil, fmt.Errorf("%w: %v", ErrInvalidStateRoot, nodeHandle.Hash)
 			}
-			return nil, nil, fmt.Errorf("incomplete database: %v", nodeHandle.Hash)
+			return nil, nil, fmt.Errorf("%w: %v", ErrIncompleteDB, nodeHandle.Hash)
 		}
 		nodeHash = &nodeHandle.Hash
 	case codec.InlineNode:
@@ -232,7 +232,7 @@ func (t *TrieDB[H, Hasher]) fetchValue(hash H, prefix nibbles.Prefix) ([]byte, e
 		return nil, err
 	}
 	if value == nil {
-		return nil, fmt.Errorf("incomplete database: %v", hash)
+		return nil, fmt.Errorf("%w: %v", ErrIncompleteDB, hash)
 	}
 	t.recordAccess(ValueAccess[H]{Hash: t.rootHash, Value: value, FullKey: prefix.Key})
 	return value, nil
