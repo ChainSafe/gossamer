@@ -113,7 +113,7 @@ func (n Nibbles) Len() uint {
 
 // Advance the view on the slice by i nibbles.
 func (n *Nibbles) Advance(i uint) {
-	if !(n.Len() >= i) {
+	if n.Len() < i {
 		panic("not enough nibbles to advance")
 	}
 	n.offset += i
