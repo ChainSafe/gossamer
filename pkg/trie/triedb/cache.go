@@ -45,7 +45,8 @@ func (vo InlineCachedNodeValue[H]) EncodedValue() codec.EncodedValue {
 }
 func (vo NodeCachedNodeValue[H]) EncodedValue() codec.EncodedValue { return codec.HashedValue[H](vo) }
 
-func newCachedNodeValueFromEncodedValue[H hash.Hash, Hasher hash.Hasher[H]](encVal codec.EncodedValue) CachedNodeValue[H] {
+func newCachedNodeValueFromEncodedValue[H hash.Hash, Hasher hash.Hasher[H]](
+	encVal codec.EncodedValue) CachedNodeValue[H] {
 	switch encVal := encVal.(type) {
 	case codec.InlineValue:
 		return InlineCachedNodeValue[H]{
