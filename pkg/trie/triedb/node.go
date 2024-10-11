@@ -129,11 +129,11 @@ func NewValueFromEncoded[H hash.Hash](encodedValue codec.EncodedValue) nodeValue
 	return nil
 }
 
-func newValueFromValueOwned[H hash.Hash](val ValueOwned[H]) nodeValue {
+func newValueFromCachedNodeValue[H hash.Hash](val CachedNodeValue[H]) nodeValue {
 	switch val := val.(type) {
-	case ValueOwnedInline[H]:
+	case InlineCachedNodeValue[H]:
 		return inline(val.Value)
-	case ValueOwnedNode[H]:
+	case NodeCachedNodeValue[H]:
 		return valueRef[H]{val.Hash}
 	default:
 		panic("unreachable")
@@ -246,7 +246,7 @@ func newNodeFromCachedNode[H hash.Hash](
 		leaf := nodeOwned
 		return Leaf[H]{
 			partialKey: leaf.PartialKey.NodeKey(),
-			value:      newValueFromValueOwned[H](leaf.Value),
+			value:      newValueFromCachedNodeValue[H](leaf.Value),
 		}
 	case BranchCachedNode[H]:
 		k := nodeOwned.PartialKey
@@ -267,7 +267,7 @@ func newNodeFromCachedNode[H hash.Hash](
 		}
 		var value nodeValue
 		if val != nil {
-			value = newValueFromValueOwned(val)
+			value = newValueFromCachedNodeValue(val)
 		}
 		return Branch[H]{
 			partialKey: k.NodeKey(),

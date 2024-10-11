@@ -12,13 +12,13 @@ import (
 )
 
 // Value representation used in [CachedNode] interface constraint
-type ValueOwnedTypes[H hash.Hash] interface {
-	ValueOwnedInline[H] | ValueOwnedNode[H]
-	ValueOwned[H]
+type CachedNodeValueTypes[H hash.Hash] interface {
+	InlineCachedNodeValue[H] | NodeCachedNodeValue[H]
+	CachedNodeValue[H]
 }
 
 // Value representation used in [CachedNode]
-type ValueOwned[H any] interface {
+type CachedNodeValue[H any] interface {
 	data() []byte // nil means there is no data
 	dataHash() *H
 	EncodedValue() codec.EncodedValue
@@ -26,32 +26,34 @@ type ValueOwned[H any] interface {
 
 type (
 	// Value bytes as stored in a trie node and its hash.
-	ValueOwnedInline[H hash.Hash] struct {
+	InlineCachedNodeValue[H hash.Hash] struct {
 		Value []byte
 		Hash  H
 	}
 	// Hash stored in a trie node.
-	ValueOwnedNode[H hash.Hash] struct {
+	NodeCachedNodeValue[H hash.Hash] struct {
 		Hash H
 	}
 )
 
-func (vo ValueOwnedInline[H]) data() []byte                     { return vo.Value } //nolint:unused
-func (vo ValueOwnedNode[H]) data() []byte                       { return nil }      //nolint:unused
-func (vo ValueOwnedInline[H]) dataHash() *H                     { return &vo.Hash } //nolint:unused
-func (vo ValueOwnedNode[H]) dataHash() *H                       { return &vo.Hash } //nolint:unused
-func (vo ValueOwnedInline[H]) EncodedValue() codec.EncodedValue { return codec.InlineValue(vo.Value) }
-func (vo ValueOwnedNode[H]) EncodedValue() codec.EncodedValue   { return codec.HashedValue[H](vo) }
+func (vo InlineCachedNodeValue[H]) data() []byte { return vo.Value } //nolint:unused
+func (vo NodeCachedNodeValue[H]) data() []byte   { return nil }      //nolint:unused
+func (vo InlineCachedNodeValue[H]) dataHash() *H { return &vo.Hash } //nolint:unused
+func (vo NodeCachedNodeValue[H]) dataHash() *H   { return &vo.Hash } //nolint:unused
+func (vo InlineCachedNodeValue[H]) EncodedValue() codec.EncodedValue {
+	return codec.InlineValue(vo.Value)
+}
+func (vo NodeCachedNodeValue[H]) EncodedValue() codec.EncodedValue { return codec.HashedValue[H](vo) }
 
-func newValueOwnedFromEncodedValue[H hash.Hash, Hasher hash.Hasher[H]](encVal codec.EncodedValue) ValueOwned[H] {
+func newCachedNodeValueFromEncodedValue[H hash.Hash, Hasher hash.Hasher[H]](encVal codec.EncodedValue) CachedNodeValue[H] {
 	switch encVal := encVal.(type) {
 	case codec.InlineValue:
-		return ValueOwnedInline[H]{
+		return InlineCachedNodeValue[H]{
 			Value: encVal,
 			Hash:  (*(new(Hasher))).Hash(encVal),
 		}
 	case codec.HashedValue[H]:
-		return ValueOwnedNode[H](encVal)
+		return NodeCachedNodeValue[H](encVal)
 	case nil:
 		return nil
 	default:
@@ -139,14 +141,14 @@ type (
 	// Leaf node; has key slice and value. Value may not be empty.
 	LeafCachedNode[H any] struct {
 		PartialKey nibbles.NibbleSlice
-		Value      ValueOwned[H]
+		Value      CachedNodeValue[H]
 	}
 	// Branch node; has slice of child nodes (each possibly null)
 	// and an optional value.
 	BranchCachedNode[H any] struct {
 		PartialKey nibbles.NibbleSlice
 		Children   [codec.ChildrenCapacity]NodeHandleOwned // can be nil to represent no child
-		Value      ValueOwned[H]
+		Value      CachedNodeValue[H]
 	}
 	// Node that represents a value.
 	//
@@ -242,7 +244,7 @@ func newCachedNodeFromNode[H hash.Hash, Hasher hash.Hasher[H]](n codec.EncodedNo
 	case codec.Leaf:
 		return LeafCachedNode[H]{
 			PartialKey: nibbles.NewNibbleSliceFromNibbles(n.PartialKey),
-			Value:      newValueOwnedFromEncodedValue[H, Hasher](n.Value),
+			Value:      newCachedNodeValueFromEncodedValue[H, Hasher](n.Value),
 		}, nil
 	case codec.Branch:
 		var childrenOwned [codec.ChildrenCapacity]NodeHandleOwned
@@ -259,7 +261,7 @@ func newCachedNodeFromNode[H hash.Hash, Hasher hash.Hasher[H]](n codec.EncodedNo
 		return BranchCachedNode[H]{
 			PartialKey: nibbles.NewNibbleSliceFromNibbles(n.PartialKey),
 			Children:   childrenOwned,
-			Value:      newValueOwnedFromEncodedValue[H, Hasher](n.Value),
+			Value:      newCachedNodeValueFromEncodedValue[H, Hasher](n.Value),
 		}, nil
 	default:
 		panic("unreachable")
