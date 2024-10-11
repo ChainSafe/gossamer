@@ -6,6 +6,7 @@ package triedb
 import (
 	"bytes"
 	"fmt"
+	"slices"
 
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
@@ -17,7 +18,7 @@ import (
 // Description of what kind of query will be made to the trie.
 type Query[Item any] func(data []byte) Item
 
-// / Trie lookup helper object.
+// Trie lookup helper object.
 type TrieLookup[H hash.Hash, Hasher hash.Hasher[H], QueryItem any] struct {
 	// db to query from
 	db db.DBGetter
@@ -56,23 +57,21 @@ func (l *TrieLookup[H, Hasher, QueryItem]) recordAccess(access TrieAccess) {
 	}
 }
 
-// / Look up the given `nibble_key`.
-// /
-// / If the value is found, it will be passed to the given function to decode or copy.
-// /
-// / The given `full_key` should be the full key to the data that is requested. This will
-// / be used when there is a cache to potentially speed up the lookup.
-func (l *TrieLookup[H, Hasher, QueryItem]) Lookup(fullKey []byte, nibbleKey nibbles.Nibbles) (*QueryItem, error) {
+// Look up the given fullKey.
+// If the value is found, it will be passed to the [Query] associated to [TrieLookup].
+//
+// The given fullKey should be the full key to the data that is requested. This will
+// be used when there is a cache to potentially speed up the lookup.
+func (l *TrieLookup[H, Hasher, QueryItem]) Lookup(fullKey []byte) (*QueryItem, error) {
+	nibbleKey := nibbles.NewNibbles(slices.Clone(fullKey))
 	if l.cache != nil {
 		return l.lookupWithCache(fullKey, nibbleKey)
 	}
 	return lookupWithoutCache(l, nibbleKey, fullKey, loadValue[H, QueryItem])
 }
 
-// / Look up the given key. If the value is found, it will be passed to the given
-// / function to decode or copy.
-// /
-// / It uses the given cache to speed-up lookups.
+// Look up the given key. If the value is found, it will be passed to the [Query] associated to [TrieLookup].
+// It uses the given cache to speed-up lookups.
 func (l *TrieLookup[H, Hasher, QueryItem]) lookupWithCache(
 	fullKey []byte, nibbleKey nibbles.Nibbles,
 ) (*QueryItem, error) {
@@ -128,7 +127,7 @@ func (l *TrieLookup[H, Hasher, QueryItem]) lookupWithCache(
 		case ExistingHashCachedValue[H]:
 			data, err := loadValueOwned[H](
 				// If we only have the hash cached, this can only be a value node.
-				// For inline nodes we cache them directly as `CachedValue::Existing`.
+				// For inline nodes we cache them directly as [ExistingCachedValue].
 				ValueOwned[H](ValueOwnedNode[H]{Hash: cachedVal.Hash}),
 				nibbleKey.OriginalDataPrefix(),
 				fullKey,
@@ -195,8 +194,8 @@ type loadValueOwnedFunc[H hash.Hash, R any] func(
 	recorder TrieRecorder,
 ) (R, error)
 
-// / When modifying any logic inside this function, you also need to do the same in
-// / lookupWithoutCache.
+// When modifying any logic inside this function, you also need to do the same in
+// lookupWithoutCache.
 func lookupWithCacheInternal[H hash.Hash, Hasher hash.Hasher[H], R, QueryItem any](
 	l *TrieLookup[H, Hasher, QueryItem],
 	fullKey []byte,
@@ -311,11 +310,11 @@ type loadValueFunc[H hash.Hash, QueryItem, R any] func(
 	query Query[QueryItem],
 ) (R, error)
 
-// / Look up the given key. If the value is found, it will be passed to the given
-// / function to decode or copy.
-// /
-// / When modifying any logic inside this function, you also need to do the same in
-// / lookupWithCacheInternal.
+// Look up the given key. If the value is found, it will be passed to the given
+// function to decode or copy.
+//
+// When modifying any logic inside this function, you also need to do the same in
+// lookupWithCacheInternal.
 func lookupWithoutCache[H hash.Hash, Hasher hash.Hasher[H], QueryItem, R any](
 	l *TrieLookup[H, Hasher, QueryItem],
 	nibbleKey nibbles.Nibbles,
@@ -444,8 +443,8 @@ func (vh *valueHash[H]) CachedValue() CachedValue[H] {
 
 // Load the given value.
 //
-// This will access the `db` if the value is not already in memory, but then it will put it
-// into the given `cache` as `NodeOwned::Value`.
+// This will access the db if the value is not already in memory, but then it will put it
+// into the given cache as [NodeOwnedValue].
 //
 // Returns the bytes representing the value and its hash.
 func loadValueOwned[H hash.Hash](
@@ -505,12 +504,10 @@ func loadValueOwned[H hash.Hash](
 	}
 }
 
-// / Load the given value.
-// /
-// / This will access the `db` if the value is not already in memory, but then it will put it
-// / into the given `cache` as `NodeOwned::Value`.
-// /
-// / Returns the bytes representing the value.
+// Load the given value.
+//
+// This will access the db if the value is not already in memory, but then it will put it
+// into the given cache as [NodeOwnedValue].
 func loadValue[H hash.Hash, QueryItem any](
 	v codec.EncodedValue,
 	prefix nibbles.Prefix,
@@ -548,11 +545,12 @@ func loadValue[H hash.Hash, QueryItem any](
 	}
 }
 
-// / Look up the value hash for the given `nibble_key`.
-// /
-// / The given `full_key` should be the full key to the data that is requested. This will
-// / be used when there is a cache to potentially speed up the lookup.
-func (l *TrieLookup[H, Hasher, QueryItem]) LookupHash(fullKey []byte, nibbleKey nibbles.Nibbles) (*H, error) {
+// Look up the value hash for the given fullKey.
+//
+// The given fullKey should be the full key to the data that is requested. This will
+// be used when there is a cache to potentially speed up the lookup.
+func (l *TrieLookup[H, Hasher, QueryItem]) LookupHash(fullKey []byte) (*H, error) {
+	nibbleKey := nibbles.NewNibbles(slices.Clone(fullKey))
 	if l.cache != nil {
 		return l.lookupHashWithCache(fullKey, nibbleKey)
 	}
@@ -569,17 +567,14 @@ func (l *TrieLookup[H, Hasher, QueryItem]) LookupHash(fullKey []byte, nibbleKey 
 			switch v := v.(type) {
 			case codec.InlineValue:
 				if recorder != nil {
-					// We can record this as `InlineValue`, even we are just returning
-					// the `hash`. This is done to prevent requiring to re-record this
-					// key.
+					// We can record this as [InlineValueAccess], eventhough we are just
+					// returning the hash. This is done to prevent requiring to re-record
+					// this key.
 					recorder.Record(InlineValueAccess{FullKey: fullKey})
 				}
 				return (*new(Hasher)).Hash(v), nil
 			case codec.HashedValue[H]:
 				if recorder != nil {
-					// We can record this as `InlineValue`, even we are just returning
-					// the `hash`. This is done to prevent requiring to re-record this
-					// key.
 					recorder.Record(HashAccess{FullKey: fullKey})
 				}
 				return v.Hash, nil
@@ -591,9 +586,9 @@ func (l *TrieLookup[H, Hasher, QueryItem]) LookupHash(fullKey []byte, nibbleKey 
 
 }
 
-// / Look up the value hash for the given key.
-// /
-// / It uses the given cache to speed-up lookups.
+// Look up the value hash for the given key.
+//
+// It uses the given cache to speed-up lookups.
 func (l *TrieLookup[H, Hasher, QueryItem]) lookupHashWithCache(
 	fullKey []byte,
 	nibbleKey nibbles.Nibbles,
@@ -631,9 +626,8 @@ func (l *TrieLookup[H, Hasher, QueryItem]) lookupHashWithCache(
 		switch value := value.(type) {
 		case ValueOwnedInline[H]:
 			if recorder != nil {
-				// We can record this as `InlineValue`, even we are just returning
-				// the `hash`. This is done to prevent requiring to re-record this
-				// key.
+				// We can record this as [InlineValueAccess], even we are just returning
+				// the hash. This is done to prevent requiring to re-record this key.
 				recorder.Record(InlineValueAccess{FullKey: fullKey})
 			}
 			return valueHash[H]{
