@@ -52,7 +52,7 @@ func (n *NibbleSlice) Push(nibble uint8) {
 	n.len++
 }
 
-// Try to pop a nibble off the NibbleVec. Fails if len == 0.
+// Try to pop a nibble off the NibbleSlice. Fails if len == 0.
 func (n *NibbleSlice) Pop() *uint8 {
 	if n.IsEmpty() {
 		return nil
