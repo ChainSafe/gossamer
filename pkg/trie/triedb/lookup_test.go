@@ -30,7 +30,9 @@ type trieCacheImpl struct{}
 
 func (trieCacheImpl) GetValue(key []byte) CachedValue[hash.H256]         { return nil }
 func (*trieCacheImpl) SetValue(key []byte, value CachedValue[hash.H256]) {}
-func (*trieCacheImpl) GetOrInsertNode(hash hash.H256, fetchNode func() (NodeOwned[hash.H256], error)) (NodeOwned[hash.H256], error) {
+func (*trieCacheImpl) GetOrInsertNode(
+	hash hash.H256, fetchNode func() (NodeOwned[hash.H256], error),
+) (NodeOwned[hash.H256], error) {
 	return fetchNode()
 }
 func (*trieCacheImpl) GetNode(hash hash.H256) NodeOwned[hash.H256] { return nil }
@@ -79,14 +81,13 @@ func Test_TrieLookup_lookupValueWithCache(t *testing.T) {
 	}
 }
 
-// TODO: restore after implementing node level caching
-// func Test_valueHash_CachedValue(t *testing.T) {
-// 	var vh *valueHash[hash.H256]
-// 	assert.Equal(t, NonExistingCachedValue{}, vh.CachedValue())
+func Test_valueHash_CachedValue(t *testing.T) {
+	var vh *valueHash[hash.H256]
+	assert.Equal(t, NonExistingCachedValue[hash.H256]{}, vh.CachedValue())
 
-// 	vh = &valueHash[hash.H256]{
-// 		Value: []byte("someValue"),
-// 		Hash:  hash.NewRandomH256(),
-// 	}
-// 	assert.Equal(t, ExistingCachedValue[hash.H256]{vh.Hash, vh.Value}, vh.CachedValue())
-// }
+	vh = &valueHash[hash.H256]{
+		Value: []byte("someValue"),
+		Hash:  hash.NewRandomH256(),
+	}
+	assert.Equal(t, ExistingCachedValue[hash.H256]{vh.Hash, vh.Value}, vh.CachedValue())
+}

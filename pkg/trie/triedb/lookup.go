@@ -130,7 +130,7 @@ func (l *TrieLookup[H, Hasher, QueryItem]) lookupWithCache(
 				// If we only have the hash cached, this can only be a value node.
 				// For inline nodes we cache them directly as `CachedValue::Existing`.
 				ValueOwned[H](ValueOwnedNode[H]{Hash: cachedVal.Hash}),
-				nibbleKey.OriginalDataPrefix(), // nibble_key.original_data_as_prefix(),
+				nibbleKey.OriginalDataPrefix(),
 				fullKey,
 				l.cache,
 				l.db,
@@ -226,7 +226,7 @@ func lookupWithCacheInternal[H hash.Hash, Hasher hash.Hasher[H], R, QueryItem an
 				return nil, err
 			}
 
-			return NodeOwnedFromNode[H, Hasher](decoded)
+			return newNodeOwnedFromNode[H, Hasher](decoded)
 		})
 		if err != nil {
 			return nil, err

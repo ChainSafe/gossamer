@@ -13,7 +13,6 @@ type ValueOwnedTypes[H hash.Hash] interface {
 	ValueOwned[H]
 }
 type ValueOwned[H any] interface {
-	// isValueOwned()
 	data() []byte // nil means there is no data
 	dataHash() *H
 	EncodedValue() codec.EncodedValue
@@ -40,12 +39,7 @@ func (vo ValueOwnedNode[H]) EncodedValue() codec.EncodedValue {
 	return codec.HashedValue[H]{Hash: vo.Hash}
 }
 
-// var (
-// 	_ ValueOwned[string] = ValueOwnedInline[string]{}
-// 	_ ValueOwned[string] = ValueOwnedNode[string]{}
-// )
-
-func ValueOwnedFromEncodedValue[H hash.Hash, Hasher hash.Hasher[H]](encVal codec.EncodedValue) ValueOwned[H] {
+func newValueOwnedFromEncodedValue[H hash.Hash, Hasher hash.Hasher[H]](encVal codec.EncodedValue) ValueOwned[H] {
 	switch encVal := encVal.(type) {
 	case codec.InlineValue:
 		return ValueOwnedInline[H]{
@@ -93,12 +87,7 @@ func (nho NodeHandleOwnedInline[H]) ChildReference() ChildReference {
 	return InlineChildReference(encoded)
 }
 
-// var (
-// 	_ NodeHandleOwned = NodeHandleOwnedHash[string]{}
-// 	_ NodeHandleOwned = NodeHandleOwnedInline[string]{}
-// )
-
-func NodeHandleOwnedFromMerkleValue[H hash.Hash, Hasher hash.Hasher[H]](mv codec.MerkleValue) (NodeHandleOwned, error) {
+func newNodeHandleOwnedFromMerkleValue[H hash.Hash, Hasher hash.Hasher[H]](mv codec.MerkleValue) (NodeHandleOwned, error) {
 	switch mv := mv.(type) {
 	case codec.HashedNode[H]:
 		return NodeHandleOwnedHash[H](mv), nil
@@ -108,7 +97,7 @@ func NodeHandleOwnedFromMerkleValue[H hash.Hash, Hasher hash.Hasher[H]](mv codec
 		if err != nil {
 			return nil, err
 		}
-		nodeOwned, err := NodeOwnedFromNode[H, Hasher](node)
+		nodeOwned, err := newNodeOwnedFromNode[H, Hasher](node)
 		if err != nil {
 			return nil, err
 		}
@@ -240,21 +229,14 @@ func (no NodeOwnedBranch[H]) encoded() []byte {
 }
 func (no NodeOwnedValue[H]) encoded() []byte { return no.Value }
 
-// var (
-// 	_ NodeOwned[string] = NodeOwnedEmpty[string]{}
-// 	_ NodeOwned[string] = NodeOwnedLeaf[string]{}
-// 	_ NodeOwned[string] = NodeOwnedBranch[string]{}
-// 	_ NodeOwned[string] = NodeOwnedValue[string]{}
-// )
-
-func NodeOwnedFromNode[H hash.Hash, Hasher hash.Hasher[H]](n codec.EncodedNode) (NodeOwned[H], error) {
+func newNodeOwnedFromNode[H hash.Hash, Hasher hash.Hasher[H]](n codec.EncodedNode) (NodeOwned[H], error) {
 	switch n := n.(type) {
 	case codec.Empty:
 		return NodeOwnedEmpty[H]{}, nil
 	case codec.Leaf:
 		return NodeOwnedLeaf[H]{
 			PartialKey: nibbles.NewNibbleSliceFromNibbles(n.PartialKey),
-			Value:      ValueOwnedFromEncodedValue[H, Hasher](n.Value),
+			Value:      newValueOwnedFromEncodedValue[H, Hasher](n.Value),
 		}, nil
 	case codec.Branch:
 		var childrenOwned [codec.ChildrenCapacity]NodeHandleOwned
@@ -263,7 +245,7 @@ func NodeOwnedFromNode[H hash.Hash, Hasher hash.Hasher[H]](n codec.EncodedNode) 
 				continue
 			}
 			var err error
-			childrenOwned[i], err = NodeHandleOwnedFromMerkleValue[H, Hasher](child)
+			childrenOwned[i], err = newNodeHandleOwnedFromMerkleValue[H, Hasher](child)
 			if err != nil {
 				return nil, err
 			}
@@ -271,7 +253,7 @@ func NodeOwnedFromNode[H hash.Hash, Hasher hash.Hasher[H]](n codec.EncodedNode) 
 		return NodeOwnedBranch[H]{
 			PartialKey: nibbles.NewNibbleSliceFromNibbles(n.PartialKey),
 			Children:   childrenOwned,
-			Value:      ValueOwnedFromEncodedValue[H, Hasher](n.Value),
+			Value:      newValueOwnedFromEncodedValue[H, Hasher](n.Value),
 		}, nil
 	default:
 		panic("unreachable")

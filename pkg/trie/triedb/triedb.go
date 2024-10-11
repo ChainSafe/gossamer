@@ -143,8 +143,7 @@ func (t *TrieDB[H, Hasher]) lookup(fullKey []byte, partialKey nibbles.Nibbles, h
 			lookup := NewTrieLookup[H, Hasher, []byte](
 				t.db,
 				node.hash,
-				// t.cache,
-				nil,
+				nil, // no cache intentionally
 				t.recorder,
 				func(data []byte) []byte {
 					return data
@@ -1095,7 +1094,7 @@ func (t *TrieDB[H, Hasher]) cacheNode(hash H, encoded []byte, fullKey *nibbles.N
 		if err != nil {
 			return nil, err
 		}
-		return NodeOwnedFromNode[H, Hasher](decoded)
+		return newNodeOwnedFromNode[H, Hasher](decoded)
 	})
 	if err != nil {
 		panic("Just encoded the node, so it should decode without any errors; qed")
