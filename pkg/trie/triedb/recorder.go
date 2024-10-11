@@ -3,10 +3,6 @@
 
 package triedb
 
-import (
-	"github.com/tidwall/btree"
-)
-
 type TrieAccess interface {
 	isTrieAccess()
 }
@@ -119,16 +115,14 @@ type Record[H any] struct {
 }
 
 type Recorder[H any] struct {
-	nodes           []Record[H]
-	recordedKeys    btree.Map[string, RecordedForKey]
-	recordedKeysMap map[string]RecordedForKey
+	nodes        []Record[H]
+	recordedKeys map[string]RecordedForKey
 }
 
 func NewRecorder[H any]() *Recorder[H] {
 	return &Recorder[H]{
-		nodes:           []Record[H]{},
-		recordedKeys:    *btree.NewMap[string, RecordedForKey](0),
-		recordedKeysMap: make(map[string]RecordedForKey),
+		nodes:        []Record[H]{},
+		recordedKeys: make(map[string]RecordedForKey),
 	}
 }
 
@@ -140,35 +134,30 @@ func (r *Recorder[H]) Record(access TrieAccess) {
 		r.nodes = append(r.nodes, Record[H]{Hash: a.Hash, Data: a.Node.encoded()})
 	case ValueAccess[H]:
 		r.nodes = append(r.nodes, Record[H]{Hash: a.Hash, Data: a.Value})
-		r.recordedKeys.Set(string(a.FullKey), RecordedValue)
-		r.recordedKeysMap[string(a.FullKey)] = RecordedValue
+		r.recordedKeys[string(a.FullKey)] = RecordedValue
 	case InlineValueAccess:
-		r.recordedKeys.Set(string(a.FullKey), RecordedValue)
-		r.recordedKeysMap[string(a.FullKey)] = RecordedValue
+		r.recordedKeys[string(a.FullKey)] = RecordedValue
 	case HashAccess:
-		if _, ok := r.recordedKeys.Get(string(a.FullKey)); !ok {
-			r.recordedKeys.Set(string(a.FullKey), RecordedHash)
-			r.recordedKeysMap[string(a.FullKey)] = RecordedHash
+		if _, ok := r.recordedKeys[string(a.FullKey)]; !ok {
+			r.recordedKeys[string(a.FullKey)] = RecordedHash
 		}
-
 	case NonExistingNodeAccess:
 		// We handle the non existing value/hash like having recorded the value
-		r.recordedKeys.Set(string(a.FullKey), RecordedValue)
-		r.recordedKeysMap[string(a.FullKey)] = RecordedValue
+		r.recordedKeys[string(a.FullKey)] = RecordedValue
 	default:
 		panic("unreachable")
 	}
 }
 
 func (r *Recorder[H]) Drain() []Record[H] {
-	r.recordedKeys.Clear()
+	r.recordedKeys = make(map[string]RecordedForKey)
 	nodes := r.nodes
 	r.nodes = []Record[H]{}
 	return nodes
 }
 
 func (r *Recorder[H]) TrieNodesRecordedForKey(key []byte) RecordedForKey {
-	rfk, ok := r.recordedKeys.Get(string(key))
+	rfk, ok := r.recordedKeys[string(key)]
 	if !ok {
 		return RecordedNone
 	}
