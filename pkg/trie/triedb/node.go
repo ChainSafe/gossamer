@@ -236,19 +236,19 @@ func newNodeFromEncoded[H hash.Hash](nodeHash H, data []byte, storage *nodeStora
 	}
 }
 
-func newNodeFromNodeOwned[H hash.Hash](
-	nodeOwned NodeOwned[H], storage *nodeStorage[H],
+func newNodeFromCachedNode[H hash.Hash](
+	nodeOwned CachedNode[H], storage *nodeStorage[H],
 ) Node {
 	switch nodeOwned := nodeOwned.(type) {
-	case NodeOwnedEmpty[H]:
+	case CachedNodeEmpty[H]:
 		return Empty{}
-	case NodeOwnedLeaf[H]:
+	case CachedNodeLeaf[H]:
 		leaf := nodeOwned
 		return Leaf[H]{
 			partialKey: leaf.PartialKey.NodeKey(),
 			value:      newValueFromValueOwned[H](leaf.Value),
 		}
-	case NodeOwnedBranch[H]:
+	case CachedNodeBranch[H]:
 		k := nodeOwned.PartialKey
 		encodedChildren := nodeOwned.Children
 		val := nodeOwned.Value
@@ -274,8 +274,8 @@ func newNodeFromNodeOwned[H hash.Hash](
 			children:   children,
 			value:      value,
 		}
-	case NodeOwnedValue[H]:
-		panic("NodeOwnedValue can only be returned for the hash of a value")
+	case CachedNodeValue[H]:
+		panic("CachedNodeValue can only be returned for the hash of a value")
 	default:
 		panic("unreachable")
 	}

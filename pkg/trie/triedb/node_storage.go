@@ -57,7 +57,7 @@ func newNodeHandleFromNodeHandleOwned[H hash.Hash](
 	case NodeHandleOwnedHash[H]:
 		return persisted[H]{child.Hash}
 	case NodeHandleOwnedInline[H]:
-		ch := newNodeFromNodeOwned(child.NodeOwned, storage)
+		ch := newNodeFromCachedNode(child.CachedNode, storage)
 		return inMemory(storage.alloc(NewStoredNode{node: ch}))
 	default:
 		panic("unreachable")

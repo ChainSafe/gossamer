@@ -846,8 +846,8 @@ func (t *TrieDB[H, Hasher]) lookupNode(hash H, key nibbles.Prefix) (storageHandl
 				return -1, err
 			}
 		} else {
-			t.recordAccess(NodeOwnedAccess[H]{Hash: hash, Node: nodeOwned})
-			node = newNodeFromNodeOwned(nodeOwned, &t.storage)
+			t.recordAccess(CachedNodeAccess[H]{Hash: hash, Node: nodeOwned})
+			node = newNodeFromCachedNode(nodeOwned, &t.storage)
 		}
 	} else {
 		var err error
@@ -1048,7 +1048,7 @@ type valueToCache[H any] struct {
 }
 
 func cacheChildValues[H hash.Hash](
-	node NodeOwned[H],
+	node CachedNode[H],
 	valuesToCache *[]valueToCache[H],
 	fullKey nibbles.NibbleSlice,
 ) {
@@ -1056,7 +1056,7 @@ func cacheChildValues[H hash.Hash](
 		switch nho := child.NodeHandleOwned.(type) {
 		case NodeHandleOwnedInline[H]:
 			n := child.nibble
-			c := nho.NodeOwned
+			c := nho.CachedNode
 			key := fullKey.Clone()
 			if n != nil {
 				key.Push(*n)
@@ -1087,13 +1087,13 @@ func (t *TrieDB[H, Hasher]) cacheNode(hash H, encoded []byte, fullKey *nibbles.N
 	if t.cache == nil {
 		return
 	}
-	node, err := t.cache.GetOrInsertNode(hash, func() (NodeOwned[H], error) {
+	node, err := t.cache.GetOrInsertNode(hash, func() (CachedNode[H], error) {
 		buf := bytes.NewBuffer(encoded)
 		decoded, err := codec.Decode[H](buf)
 		if err != nil {
 			return nil, err
 		}
-		return newNodeOwnedFromNode[H, Hasher](decoded)
+		return newCachedNodeFromNode[H, Hasher](decoded)
 	})
 	if err != nil {
 		panic("Just encoded the node, so it should decode without any errors; qed")
@@ -1135,8 +1135,8 @@ func (t *TrieDB[H, Hasher]) cacheValue(fullKey []byte, value []byte, hash H) {
 		return
 	}
 	var val []byte
-	node, err := t.cache.GetOrInsertNode(hash, func() (NodeOwned[H], error) {
-		return NodeOwnedValue[H]{
+	node, err := t.cache.GetOrInsertNode(hash, func() (CachedNode[H], error) {
+		return CachedNodeValue[H]{
 			Value: value,
 			Hash:  hash,
 		}, nil

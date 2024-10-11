@@ -104,13 +104,13 @@ func newTestDB(t assert.TestingT) database.Table {
 
 type TestTrieCache[H hash.Hash] struct {
 	valueCache map[string]CachedValue[H]
-	nodeCache  map[H]NodeOwned[H]
+	nodeCache  map[H]CachedNode[H]
 }
 
 func NewTestTrieCache[H hash.Hash]() *TestTrieCache[H] {
 	return &TestTrieCache[H]{
 		valueCache: make(map[string]CachedValue[H]),
-		nodeCache:  make(map[H]NodeOwned[H]),
+		nodeCache:  make(map[H]CachedNode[H]),
 	}
 }
 
@@ -126,7 +126,7 @@ func (ttc *TestTrieCache[H]) SetValue(key []byte, value CachedValue[H]) {
 	ttc.valueCache[string(key)] = value
 }
 
-func (ttc *TestTrieCache[H]) GetOrInsertNode(hash H, fetchNode func() (NodeOwned[H], error)) (NodeOwned[H], error) {
+func (ttc *TestTrieCache[H]) GetOrInsertNode(hash H, fetchNode func() (CachedNode[H], error)) (CachedNode[H], error) {
 	node, ok := ttc.nodeCache[hash]
 	if !ok {
 		var err error
@@ -139,7 +139,7 @@ func (ttc *TestTrieCache[H]) GetOrInsertNode(hash H, fetchNode func() (NodeOwned
 	return node, nil
 }
 
-func (ttc *TestTrieCache[H]) GetNode(hash H) NodeOwned[H] {
+func (ttc *TestTrieCache[H]) GetNode(hash H) CachedNode[H] {
 	node, ok := ttc.nodeCache[hash]
 	if !ok {
 		return nil

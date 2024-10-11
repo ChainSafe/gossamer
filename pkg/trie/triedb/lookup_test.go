@@ -31,11 +31,11 @@ type trieCacheImpl struct{}
 func (trieCacheImpl) GetValue(key []byte) CachedValue[hash.H256]         { return nil }
 func (*trieCacheImpl) SetValue(key []byte, value CachedValue[hash.H256]) {}
 func (*trieCacheImpl) GetOrInsertNode(
-	hash hash.H256, fetchNode func() (NodeOwned[hash.H256], error),
-) (NodeOwned[hash.H256], error) {
+	hash hash.H256, fetchNode func() (CachedNode[hash.H256], error),
+) (CachedNode[hash.H256], error) {
 	return fetchNode()
 }
-func (*trieCacheImpl) GetNode(hash hash.H256) NodeOwned[hash.H256] { return nil }
+func (*trieCacheImpl) GetNode(hash hash.H256) CachedNode[hash.H256] { return nil }
 
 func Test_TrieLookup_lookupValueWithCache(t *testing.T) {
 	cache := &trieCacheImpl{}
