@@ -23,8 +23,8 @@ type NodeHandle interface {
 }
 
 type (
-	inMemory         storageHandle
-	persisted[H any] struct{ hash H }
+	inMemory               storageHandle
+	persisted[H hash.Hash] struct{ hash H }
 )
 
 func (inMemory) isNodeHandle()     {}
@@ -77,7 +77,7 @@ type (
 	NewStoredNode struct {
 		node Node
 	}
-	CachedStoredNode[H any] struct {
+	CachedStoredNode[H hash.Hash] struct {
 		node Node
 		hash H
 	}
@@ -92,12 +92,12 @@ func (n CachedStoredNode[H]) getNode() Node {
 
 // nodeStorage is a struct that contains all the temporal nodes that are stored
 // in the trieDB before being written to the backed db
-type nodeStorage[H any] struct {
+type nodeStorage[H hash.Hash] struct {
 	nodes       []StoredNode
 	freeIndices *deque.Deque[int]
 }
 
-func newNodeStorage[H any]() nodeStorage[H] {
+func newNodeStorage[H hash.Hash]() nodeStorage[H] {
 	return nodeStorage[H]{
 		nodes:       make([]StoredNode, 0),
 		freeIndices: deque.New[int](0),
