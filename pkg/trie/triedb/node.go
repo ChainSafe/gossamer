@@ -237,21 +237,21 @@ func newNodeFromEncoded[H hash.Hash](nodeHash H, data []byte, storage *nodeStora
 }
 
 func newNodeFromCachedNode[H hash.Hash](
-	nodeOwned CachedNode[H], storage *nodeStorage[H],
+	node CachedNode[H], storage *nodeStorage[H],
 ) Node {
-	switch nodeOwned := nodeOwned.(type) {
+	switch node := node.(type) {
 	case EmptyCachedNode[H]:
 		return Empty{}
 	case LeafCachedNode[H]:
-		leaf := nodeOwned
+		leaf := node
 		return Leaf[H]{
 			partialKey: leaf.PartialKey.NodeKey(),
 			value:      newValueFromCachedNodeValue[H](leaf.Value),
 		}
 	case BranchCachedNode[H]:
-		k := nodeOwned.PartialKey
-		encodedChildren := nodeOwned.Children
-		val := nodeOwned.Value
+		k := node.PartialKey
+		encodedChildren := node.Children
+		val := node.Value
 
 		child := func(i uint) NodeHandle {
 			if encodedChildren[i] != nil {

@@ -838,16 +838,16 @@ func (t *TrieDB[H, Hasher]) lookupNode(hash H, key nibbles.Prefix) (storageHandl
 	// to have it being cached.
 	var node Node
 	if t.cache != nil {
-		nodeOwned := t.cache.GetNode(hash)
-		if nodeOwned == nil {
+		cachedNode := t.cache.GetNode(hash)
+		if cachedNode == nil {
 			var err error
 			node, err = newNode()
 			if err != nil {
 				return -1, err
 			}
 		} else {
-			t.recordAccess(CachedNodeAccess[H]{Hash: hash, Node: nodeOwned})
-			node = newNodeFromCachedNode(nodeOwned, &t.storage)
+			t.recordAccess(CachedNodeAccess[H]{Hash: hash, Node: cachedNode})
+			node = newNodeFromCachedNode(cachedNode, &t.storage)
 		}
 	} else {
 		var err error
