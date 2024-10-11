@@ -79,7 +79,7 @@ type extractedKey struct {
 	Value   codec.EncodedValue
 }
 
-type rawItem[H any] struct {
+type rawItem[H hash.Hash] struct {
 	nibbles.NibbleSlice
 	hash *H
 	codec.EncodedNode

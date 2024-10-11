@@ -24,7 +24,7 @@ type (
 	// InlineNode contains bytes of the encoded node data
 	InlineNode []byte
 	// HashedNode contains a hash used to lookup in db for encoded node data
-	HashedNode[H any] struct{ Hash H }
+	HashedNode[H hash.Hash] struct{ Hash H }
 )
 
 func (InlineNode) IsHashed() bool    { return false }

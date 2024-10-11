@@ -18,7 +18,7 @@ type CachedNodeValueTypes[H hash.Hash] interface {
 }
 
 // Value representation used in [CachedNode]
-type CachedNodeValue[H any] interface {
+type CachedNodeValue[H hash.Hash] interface {
 	data() []byte // nil means there is no data
 	dataHash() *H
 	EncodedValue() codec.EncodedValue
@@ -116,7 +116,7 @@ func newCachedNodeHandleFromMerkleValue[H hash.Hash, Hasher hash.Hasher[H]](
 	}
 }
 
-type child[H any] struct {
+type child[H hash.Hash] struct {
 	nibble *uint8
 	CachedNodeHandle
 }
@@ -128,7 +128,7 @@ type CachedNodeTypes[H hash.Hash] interface {
 }
 
 // Cached nodes.
-type CachedNode[H any] interface {
+type CachedNode[H hash.Hash] interface {
 	data() []byte // nil means there is no data
 	dataHash() *H
 	children() []child[H]
@@ -140,13 +140,13 @@ type (
 	// Empty trie node; could be an empty root or an empty branch entry.
 	EmptyCachedNode[H hash.Hash] struct{}
 	// Leaf node; has key slice and value. Value may not be empty.
-	LeafCachedNode[H any] struct {
+	LeafCachedNode[H hash.Hash] struct {
 		PartialKey nibbles.NibbleSlice
 		Value      CachedNodeValue[H]
 	}
 	// Branch node; has slice of child nodes (each possibly null)
 	// and an optional value.
-	BranchCachedNode[H any] struct {
+	BranchCachedNode[H hash.Hash] struct {
 		PartialKey nibbles.NibbleSlice
 		Children   [codec.ChildrenCapacity]CachedNodeHandle // can be nil to represent no child
 		Value      CachedNodeValue[H]
@@ -155,7 +155,7 @@ type (
 	//
 	// This variant is only constructed when working with a [TrieCache]. It is only
 	// used to cache a raw value.
-	ValueCachedNode[H any] struct {
+	ValueCachedNode[H hash.Hash] struct {
 		Value []byte
 		Hash  H
 	}
@@ -270,30 +270,30 @@ func newCachedNodeFromNode[H hash.Hash, Hasher hash.Hasher[H]](n codec.EncodedNo
 }
 
 // The values cached by [TrieCache].
-type CachedValues[H any] interface {
+type CachedValues[H hash.Hash] interface {
 	NonExistingCachedValue[H] | ExistingHashCachedValue[H] | ExistingCachedValue[H]
 	CachedValue[H]
 }
 
 // A value cached by [TrieCache].
-type CachedValue[H any] interface {
+type CachedValue[H hash.Hash] interface {
 	data() []byte
 	hash() *H
 }
 
 // Constructor for [CachedValue]
-func NewCachedValue[H any, CV CachedValues[H]](cv CV) CachedValue[H] {
+func NewCachedValue[H hash.Hash, CV CachedValues[H]](cv CV) CachedValue[H] {
 	return cv
 }
 
 // The value doesn't exist in the trie.
-type NonExistingCachedValue[H any] struct{}
+type NonExistingCachedValue[H hash.Hash] struct{}
 
 func (NonExistingCachedValue[H]) data() []byte { return nil } //nolint:unused
 func (NonExistingCachedValue[H]) hash() *H     { return nil } //nolint:unused
 
 // The hash is cached and not the data because it was not accessed.
-type ExistingHashCachedValue[H any] struct {
+type ExistingHashCachedValue[H hash.Hash] struct {
 	Hash H
 }
 
@@ -301,7 +301,7 @@ func (ExistingHashCachedValue[H]) data() []byte  { return nil }        //nolint:
 func (ehcv ExistingHashCachedValue[H]) hash() *H { return &ehcv.Hash } //nolint:unused
 
 // The value exists in the trie.
-type ExistingCachedValue[H any] struct {
+type ExistingCachedValue[H hash.Hash] struct {
 	// The hash of the value.
 	Hash H
 	// The actual data of the value.

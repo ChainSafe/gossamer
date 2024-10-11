@@ -427,7 +427,7 @@ func lookupWithoutCache[H hash.Hash, Hasher hash.Hasher[H], QueryItem, R any](
 	}
 }
 
-type valueHash[H any] struct {
+type valueHash[H hash.Hash] struct {
 	Value []byte
 	Hash  H
 }

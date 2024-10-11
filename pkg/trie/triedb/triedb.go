@@ -1042,7 +1042,7 @@ func (t *TrieDB[H, Hasher]) commitChild(
 	}
 }
 
-type valueToCache[H any] struct {
+type valueToCache[H hash.Hash] struct {
 	KeyBytes []byte
 	CachedValue[H]
 }
