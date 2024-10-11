@@ -333,7 +333,7 @@ func lookupWithoutCache[H hash.Hash, Hasher hash.Hasher[H], QueryItem, R any](
 			if depth == 0 {
 				return nil, ErrInvalidStateRoot
 			} else {
-				return nil, fmt.Errorf("incomplete database")
+				return nil, ErrIncompleteDB
 			}
 		}
 
@@ -526,7 +526,7 @@ func loadValue[H hash.Hash, QueryItem any](
 			return qi, err
 		}
 		if val == nil {
-			return qi, fmt.Errorf("incomplete database for key: %s", prefixedKey)
+			return qi, fmt.Errorf("%w: %s", ErrIncompleteDB, prefixedKey)
 		}
 
 		if recorder != nil {
