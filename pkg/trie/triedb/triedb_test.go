@@ -1338,6 +1338,21 @@ func Test_TrieDB(t *testing.T) {
 						require.NotNil(t, h)
 					}
 				}
+
+				// get all values, by using cache and previous db
+				{
+					trie := NewTrieDB(root, db,
+						WithCache[hash.H256, runtime.BlakeTwo256](cache),
+					)
+					trie.SetVersion(version)
+					// get hashes for all entries from cache
+					for _, entry := range keyValues {
+						val, err := GetWith(trie, entry.key, func(d []byte) []byte { return d })
+						require.NoError(t, err)
+						require.NotNil(t, val)
+						require.Equal(t, entry.value, *val)
+					}
+				}
 			})
 		}
 	})
@@ -1434,6 +1449,83 @@ func Test_TrieDB(t *testing.T) {
 
 					}
 				}
+			})
+		}
+	})
+
+	t.Run("trie_nodes_recorded_get_hashes_and_values", func(t *testing.T) {
+		for _, version := range []trie.TrieLayout{trie.V0, trie.V1} {
+			t.Run(version.String(), func(t *testing.T) {
+				keyValues := []struct {
+					key   []byte
+					value []byte
+				}{
+					{[]byte("A"), bytes.Repeat([]byte{1}, 64)},
+					{[]byte("AA"), bytes.Repeat([]byte{2}, 64)},
+					{[]byte("AB"), bytes.Repeat([]byte{3}, 64)},
+					{[]byte("B"), bytes.Repeat([]byte{4}, 64)},
+					{[]byte("BC"), bytes.Repeat([]byte{4}, 64)},
+				}
+
+				db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+				var root hash.H256
+				{
+					trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
+					trie.SetVersion(version)
+					for _, entry := range keyValues {
+						require.NoError(t, trie.Put(entry.key, entry.value))
+					}
+					err := trie.commit()
+					require.NoError(t, err)
+					require.NotEmpty(t, trie.rootHash)
+					root = trie.rootHash
+				}
+
+				cache := NewTestTrieCache[hash.H256]()
+				recorder := NewRecorder[hash.H256]()
+				{
+					trie := NewTrieDB(
+						root, db,
+						WithCache[hash.H256, runtime.BlakeTwo256](cache),
+						WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
+					)
+					trie.SetVersion(version)
+					for _, entry := range keyValues {
+						h, err := trie.GetHash(entry.key)
+						assert.NoError(t, err)
+						assert.NotNil(t, h)
+					}
+				}
+
+				// get all values, by using cache and previous db
+				{
+					trie := NewTrieDB(root, db,
+						WithCache[hash.H256, runtime.BlakeTwo256](cache),
+					)
+					trie.SetVersion(version)
+					// get values for all entries from cache
+					for _, entry := range keyValues {
+						val, err := GetWith(trie, entry.key, func(d []byte) []byte { return d })
+						require.NoError(t, err)
+						require.NotNil(t, val)
+						require.Equal(t, entry.value, *val)
+					}
+				}
+
+				// get all hashes, without using cache and previous db
+				// pass in the recorder as well
+				{
+					trie := NewTrieDB(root, db,
+						WithRecorder[hash.H256, runtime.BlakeTwo256](recorder),
+					)
+					trie.SetVersion(version)
+					for _, entry := range keyValues {
+						h, err := trie.GetHash(entry.key)
+						assert.NoError(t, err)
+						assert.NotNil(t, h)
+					}
+				}
+
 			})
 		}
 	})
