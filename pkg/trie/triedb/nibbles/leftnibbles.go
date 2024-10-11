@@ -81,9 +81,7 @@ func (ln LeftNibbles) compare(other LeftNibbles) int {
 
 	// Quickly compare the common prefix of the byte slices.
 	c := bytes.Compare(ln.bytes[:commonByteLen], other.bytes[:commonByteLen])
-	switch c {
-	case 0:
-	default:
+	if c != 0 {
 		return c
 	}
 
