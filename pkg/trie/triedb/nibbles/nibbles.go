@@ -325,6 +325,7 @@ func (nb Nibbles) Compare(other Nibbles) int {
 	}
 }
 
+// Returns whether or not the other [NibbleSlice] is equal
 func (n Nibbles) EqualNibbleSlice(other NibbleSlice) bool {
 	if n.Len() != other.Len() {
 		return false
@@ -338,6 +339,7 @@ func (n Nibbles) EqualNibbleSlice(other NibbleSlice) bool {
 	return true
 }
 
+// Returns whether or not the other [NibbleSlice] is contained at the start
 func (n Nibbles) StartsWithNibbleSlice(other NibbleSlice) bool {
 	if n.Len() < other.Len() {
 		return false

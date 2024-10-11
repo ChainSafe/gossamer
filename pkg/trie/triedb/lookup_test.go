@@ -20,7 +20,7 @@ func TestTrieDB_Lookup(t *testing.T) {
 		empty := runtime.BlakeTwo256{}.Hash([]byte{0})
 		lookup := NewTrieLookup[hash.H256, runtime.BlakeTwo256, []byte](db, empty, nil, nil, nil)
 
-		value, err := lookup.Lookup([]byte("test"), nibbles.NewNibbles([]byte("test")))
+		value, err := lookup.Lookup([]byte("test"))
 		assert.Nil(t, value)
 		assert.ErrorIs(t, err, ErrInvalidStateRoot)
 	})

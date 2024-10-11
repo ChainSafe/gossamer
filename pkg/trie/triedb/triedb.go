@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"slices"
 
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
@@ -125,7 +124,7 @@ func (t *TrieDB[H, Hasher]) MustHash() H {
 // which matches its key with the key given.
 // Note the key argument is given in little Endian format.
 func (t *TrieDB[H, Hasher]) Get(key []byte) []byte {
-	val, err := t.lookup(key, nibbles.NewNibbles(slices.Clone(key)), t.rootHandle)
+	val, err := t.lookup(key, t.rootHandle)
 	if err != nil {
 		return nil
 	}
@@ -133,9 +132,9 @@ func (t *TrieDB[H, Hasher]) Get(key []byte) []byte {
 	return val
 }
 
-func (t *TrieDB[H, Hasher]) lookup(fullKey []byte, partialKey nibbles.Nibbles, handle NodeHandle) ([]byte, error) {
+func (t *TrieDB[H, Hasher]) lookup(fullKey []byte, handle NodeHandle) ([]byte, error) {
 	prefix := fullKey
-
+	partialKey := nibbles.NewNibbles(fullKey)
 	for {
 		var partialIdx uint
 		switch node := handle.(type) {
@@ -149,7 +148,7 @@ func (t *TrieDB[H, Hasher]) lookup(fullKey []byte, partialKey nibbles.Nibbles, h
 					return data
 				},
 			)
-			qi, err := lookup.Lookup(fullKey, partialKey)
+			qi, err := lookup.Lookup(fullKey)
 			if err != nil {
 				return nil, err
 			}
@@ -1083,7 +1082,7 @@ func cacheChildValues[H hash.Hash](
 	}
 }
 
-// / Cache the given `encoded` node.
+// Cache the given encoded node.
 func (t *TrieDB[H, Hasher]) cacheNode(hash H, encoded []byte, fullKey *nibbles.NibbleSlice) {
 	if t.cache == nil {
 		return
@@ -1101,7 +1100,7 @@ func (t *TrieDB[H, Hasher]) cacheNode(hash H, encoded []byte, fullKey *nibbles.N
 	}
 
 	valuesToCache := []valueToCache[H]{}
-	// If the given node has data attached, the `full_key` is the full key to this node.
+	// If the given node has data attached, the fullKey is the full key to this node.
 	if fullKey != nil {
 		if v := node.data(); v != nil {
 			if h := node.dataHash(); h != nil {
@@ -1128,9 +1127,9 @@ func (t *TrieDB[H, Hasher]) cacheNode(hash H, encoded []byte, fullKey *nibbles.N
 	}
 }
 
-// / Cache the given `value`.
-// /
-// / `hash` is the hash of `value`.
+// Cache the given value.
+//
+// The supplied hash should be the hash of value.
 func (t *TrieDB[H, Hasher]) cacheValue(fullKey []byte, value []byte, hash H) {
 	if t.cache == nil {
 		return
@@ -1163,20 +1162,22 @@ func (t *TrieDB[H, Hasher]) recordAccess(access TrieAccess) {
 	}
 }
 
+// Returns the hash of the value for key.
 func (t *TrieDB[H, Hasher]) GetHash(key []byte) (*H, error) {
 	// TODO: look into moving query into Lookup method
 	lookup := NewTrieLookup[H, Hasher](
 		t.db, t.rootHash, t.cache, t.recorder,
 		func([]byte) any { return nil },
 	)
-	return lookup.LookupHash(key, nibbles.NewNibbles(slices.Clone(key)))
+	return lookup.LookupHash(key)
 }
 
+// Search for the key with the given query parameter.
 func GetWith[H hash.Hash, Hasher hash.Hasher[H], QueryItem any](
 	t *TrieDB[H, Hasher], key []byte, query Query[QueryItem],
 ) (*QueryItem, error) {
 	lookup := NewTrieLookup[H, Hasher](
 		t.db, t.rootHash, t.cache, t.recorder, query,
 	)
-	return lookup.Lookup(key, nibbles.NewNibbles(key))
+	return lookup.Lookup(key)
 }

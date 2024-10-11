@@ -8,10 +8,13 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibbles"
 )
 
+// Value representation used in [NodeOwned] interface constraint
 type ValueOwnedTypes[H hash.Hash] interface {
 	ValueOwnedInline[H] | ValueOwnedNode[H]
 	ValueOwned[H]
 }
+
+// Value representation used in [NodeOwned]
 type ValueOwned[H any] interface {
 	data() []byte // nil means there is no data
 	dataHash() *H
@@ -24,7 +27,7 @@ type (
 		Value []byte
 		Hash  H
 	}
-	// Hash byte slice as stored in a trie node.
+	// Hash stored in a trie node.
 	ValueOwnedNode[H hash.Hash] struct {
 		Hash H
 	}
@@ -55,13 +58,15 @@ func newValueOwnedFromEncodedValue[H hash.Hash, Hasher hash.Hasher[H]](encVal co
 	}
 }
 
+// Cached version of [codec.MerkleValue] interface constraint.
 type NodeHandleOwnedTypes[H hash.Hash] interface {
 	NodeHandleOwnedHash[H] | NodeHandleOwnedInline[H]
 }
 
+// Cached version of [codec.MerkleValue].
 type NodeHandleOwned interface {
+	/// Returns [NodeHandleOwned] as a [ChildReference].
 	ChildReference() ChildReference
-	isNodeHandleOwned()
 }
 
 type (
@@ -73,8 +78,6 @@ type (
 	}
 )
 
-func (NodeHandleOwnedHash[H]) isNodeHandleOwned()   {}
-func (NodeHandleOwnedInline[H]) isNodeHandleOwned() {}
 func (nho NodeHandleOwnedHash[H]) ChildReference() ChildReference {
 	return HashChildReference[H]{Hash: nho.Hash}
 }
@@ -107,15 +110,18 @@ func newNodeHandleOwnedFromMerkleValue[H hash.Hash, Hasher hash.Hasher[H]](mv co
 	}
 }
 
+type child[H any] struct {
+	nibble *uint8
+	NodeHandleOwned
+}
+
+// Cached nodes interface constraint.
 type NodeOwnedTypes[H hash.Hash] interface {
 	NodeOwnedEmpty[H] | NodeOwnedLeaf[H] | NodeOwnedBranch[H] | NodeOwnedValue[H]
 	NodeOwned[H]
 }
 
-type child[H any] struct {
-	nibble *uint8
-	NodeHandleOwned
-}
+// Cached nodes.
 type NodeOwned[H any] interface {
 	// isNodeOwned()
 	data() []byte // nil means there is no data
@@ -126,7 +132,7 @@ type NodeOwned[H any] interface {
 }
 
 type (
-	// Null trie node; could be an empty root or an empty branch entry.
+	// Empty trie node; could be an empty root or an empty branch entry.
 	NodeOwnedEmpty[H hash.Hash] struct{}
 	// Leaf node; has key slice and value. Value may not be empty.
 	NodeOwnedLeaf[H any] struct {
@@ -134,7 +140,7 @@ type (
 		Value      ValueOwned[H]
 	}
 	// Branch node; has slice of child nodes (each possibly null)
-	// and an optional immediate node data.
+	// and an optional value.
 	NodeOwnedBranch[H any] struct {
 		PartialKey nibbles.NibbleSlice
 		Children   [codec.ChildrenCapacity]NodeHandleOwned // can be nil to represent no child
@@ -142,7 +148,7 @@ type (
 	}
 	// Node that represents a value.
 	//
-	// This variant is only constructed when working with a [`crate::TrieCache`]. It is only
+	// This variant is only constructed when working with a [TrieCache]. It is only
 	// used to cache a raw value.
 	NodeOwnedValue[H any] struct {
 		Value []byte
