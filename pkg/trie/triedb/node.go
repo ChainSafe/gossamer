@@ -255,7 +255,7 @@ func newNodeFromCachedNode[H hash.Hash](
 
 		child := func(i uint) NodeHandle {
 			if encodedChildren[i] != nil {
-				newChild := newNodeHandleFromNodeHandleOwned(encodedChildren[i], storage)
+				newChild := newNodeHandleFromCachedNodeHandle(encodedChildren[i], storage)
 				return newChild
 			}
 			return nil
