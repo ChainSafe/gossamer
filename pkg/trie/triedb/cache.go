@@ -56,7 +56,7 @@ func (ecv ExistingCachedValue[H]) hash() *H     { return &ecv.Hash } //nolint:un
 // needs to implement this interface.
 //
 // The interface consists of two cache levels, first the trie nodes cache and then the value cache.
-// The trie nodes cache, as the name indicates, is for caching trie nodes as [NodeOwned]. These
+// The trie nodes cache, as the name indicates, is for caching trie nodes as [CachedNode]. These
 // trie nodes are referenced by their hash. The value cache is caching [CachedValue]'s and these
 // are referenced by the key to look them up in the trie. As multiple different tries can have
 // different values under the same key, it up to the cache implementation to ensure that the
@@ -79,13 +79,13 @@ type TrieCache[H hash.Hash] interface {
 	// trie root.
 	SetValue(key []byte, value CachedValue[H])
 
-	// Get or insert a [NodeOwned].
+	// Get or insert a [CachedNode].
 	// The cache implementation should look up based on the given hash if the node is already
 	// known. If the node is not yet known, the given fetchNode function can be used to fetch
 	// the particular node.
-	// Returns the [NodeOwned] or an error that happened on fetching the node.
-	GetOrInsertNode(hash H, fetchNode func() (NodeOwned[H], error)) (NodeOwned[H], error)
+	// Returns the [CachedNode] or an error that happened on fetching the node.
+	GetOrInsertNode(hash H, fetchNode func() (CachedNode[H], error)) (CachedNode[H], error)
 
-	// Get the [NodeOwned] that corresponds to the given hash.
-	GetNode(hash H) NodeOwned[H]
+	// Get the [CachedNode] that corresponds to the given hash.
+	GetNode(hash H) CachedNode[H]
 }

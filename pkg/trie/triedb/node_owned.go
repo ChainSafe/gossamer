@@ -11,13 +11,13 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibbles"
 )
 
-// Value representation used in [NodeOwned] interface constraint
+// Value representation used in [CachedNode] interface constraint
 type ValueOwnedTypes[H hash.Hash] interface {
 	ValueOwnedInline[H] | ValueOwnedNode[H]
 	ValueOwned[H]
 }
 
-// Value representation used in [NodeOwned]
+// Value representation used in [CachedNode]
 type ValueOwned[H any] interface {
 	data() []byte // nil means there is no data
 	dataHash() *H
@@ -75,7 +75,7 @@ type (
 		Hash H
 	}
 	NodeHandleOwnedInline[H hash.Hash] struct {
-		NodeOwned[H]
+		CachedNode[H]
 	}
 )
 
@@ -83,7 +83,7 @@ func (nho NodeHandleOwnedHash[H]) ChildReference() ChildReference {
 	return HashChildReference[H](nho)
 }
 func (nho NodeHandleOwnedInline[H]) ChildReference() ChildReference {
-	encoded := nho.NodeOwned.encoded()
+	encoded := nho.CachedNode.encoded()
 	store := (*new(H))
 	if len(encoded) > store.Length() {
 		panic("Invalid inline node handle")
@@ -103,7 +103,7 @@ func newNodeHandleOwnedFromMerkleValue[H hash.Hash, Hasher hash.Hasher[H]](
 		if err != nil {
 			return nil, err
 		}
-		nodeOwned, err := newNodeOwnedFromNode[H, Hasher](node)
+		nodeOwned, err := newCachedNodeFromNode[H, Hasher](node)
 		if err != nil {
 			return nil, err
 		}
@@ -119,14 +119,13 @@ type child[H any] struct {
 }
 
 // Cached nodes interface constraint.
-type NodeOwnedTypes[H hash.Hash] interface {
-	NodeOwnedEmpty[H] | NodeOwnedLeaf[H] | NodeOwnedBranch[H] | NodeOwnedValue[H]
-	NodeOwned[H]
+type CachedNodeTypes[H hash.Hash] interface {
+	CachedNodeEmpty[H] | CachedNodeLeaf[H] | CachedNodeBranch[H] | CachedNodeValue[H]
+	CachedNode[H]
 }
 
 // Cached nodes.
-type NodeOwned[H any] interface {
-	// isNodeOwned()
+type CachedNode[H any] interface {
 	data() []byte // nil means there is no data
 	dataHash() *H
 	children() []child[H]
@@ -136,15 +135,15 @@ type NodeOwned[H any] interface {
 
 type (
 	// Empty trie node; could be an empty root or an empty branch entry.
-	NodeOwnedEmpty[H hash.Hash] struct{}
+	CachedNodeEmpty[H hash.Hash] struct{}
 	// Leaf node; has key slice and value. Value may not be empty.
-	NodeOwnedLeaf[H any] struct {
+	CachedNodeLeaf[H any] struct {
 		PartialKey nibbles.NibbleSlice
 		Value      ValueOwned[H]
 	}
 	// Branch node; has slice of child nodes (each possibly null)
 	// and an optional value.
-	NodeOwnedBranch[H any] struct {
+	CachedNodeBranch[H any] struct {
 		PartialKey nibbles.NibbleSlice
 		Children   [codec.ChildrenCapacity]NodeHandleOwned // can be nil to represent no child
 		Value      ValueOwned[H]
@@ -153,35 +152,35 @@ type (
 	//
 	// This variant is only constructed when working with a [TrieCache]. It is only
 	// used to cache a raw value.
-	NodeOwnedValue[H any] struct {
+	CachedNodeValue[H any] struct {
 		Value []byte
 		Hash  H
 	}
 )
 
-func (NodeOwnedEmpty[H]) data() []byte   { return nil }             //nolint:unused
-func (no NodeOwnedLeaf[H]) data() []byte { return no.Value.data() } //nolint:unused
-func (no NodeOwnedBranch[H]) data() []byte { //nolint:unused
+func (CachedNodeEmpty[H]) data() []byte   { return nil }             //nolint:unused
+func (no CachedNodeLeaf[H]) data() []byte { return no.Value.data() } //nolint:unused
+func (no CachedNodeBranch[H]) data() []byte { //nolint:unused
 	if no.Value != nil {
 		return no.Value.data()
 	}
 	return nil
 }
-func (no NodeOwnedValue[H]) data() []byte { return no.Value } //nolint:unused
+func (no CachedNodeValue[H]) data() []byte { return no.Value } //nolint:unused
 
-func (NodeOwnedEmpty[H]) dataHash() *H   { return nil }                 //nolint:unused
-func (no NodeOwnedLeaf[H]) dataHash() *H { return no.Value.dataHash() } //nolint:unused
-func (no NodeOwnedBranch[H]) dataHash() *H { //nolint:unused
+func (CachedNodeEmpty[H]) dataHash() *H   { return nil }                 //nolint:unused
+func (no CachedNodeLeaf[H]) dataHash() *H { return no.Value.dataHash() } //nolint:unused
+func (no CachedNodeBranch[H]) dataHash() *H { //nolint:unused
 	if no.Value != nil {
 		return no.Value.dataHash()
 	}
 	return nil
 }
-func (no NodeOwnedValue[H]) dataHash() *H { return &no.Hash } //nolint:unused
+func (no CachedNodeValue[H]) dataHash() *H { return &no.Hash } //nolint:unused
 
-func (NodeOwnedEmpty[H]) children() []child[H]   { return nil } //nolint:unused
-func (no NodeOwnedLeaf[H]) children() []child[H] { return nil } //nolint:unused
-func (no NodeOwnedBranch[H]) children() []child[H] { //nolint:unused
+func (CachedNodeEmpty[H]) children() []child[H]   { return nil } //nolint:unused
+func (no CachedNodeLeaf[H]) children() []child[H] { return nil } //nolint:unused
+func (no CachedNodeBranch[H]) children() []child[H] { //nolint:unused
 	r := []child[H]{}
 	for i, ch := range no.Children {
 		if ch != nil {
@@ -194,15 +193,15 @@ func (no NodeOwnedBranch[H]) children() []child[H] { //nolint:unused
 	}
 	return r
 }
-func (no NodeOwnedValue[H]) children() []child[H] { return nil } //nolint:unused
+func (no CachedNodeValue[H]) children() []child[H] { return nil } //nolint:unused
 
-func (NodeOwnedEmpty[H]) partialKey() *nibbles.NibbleSlice     { return nil }            //nolint:unused
-func (no NodeOwnedLeaf[H]) partialKey() *nibbles.NibbleSlice   { return &no.PartialKey } //nolint:unused
-func (no NodeOwnedBranch[H]) partialKey() *nibbles.NibbleSlice { return &no.PartialKey } //nolint:unused
-func (no NodeOwnedValue[H]) partialKey() *nibbles.NibbleSlice  { return nil }            //nolint:unused
+func (CachedNodeEmpty[H]) partialKey() *nibbles.NibbleSlice     { return nil }            //nolint:unused
+func (no CachedNodeLeaf[H]) partialKey() *nibbles.NibbleSlice   { return &no.PartialKey } //nolint:unused
+func (no CachedNodeBranch[H]) partialKey() *nibbles.NibbleSlice { return &no.PartialKey } //nolint:unused
+func (no CachedNodeValue[H]) partialKey() *nibbles.NibbleSlice  { return nil }            //nolint:unused
 
-func (NodeOwnedEmpty[H]) encoded() []byte { return []byte{EmptyTrieBytes} } //nolint:unused
-func (no NodeOwnedLeaf[H]) encoded() []byte { //nolint:unused
+func (CachedNodeEmpty[H]) encoded() []byte { return []byte{EmptyTrieBytes} } //nolint:unused
+func (no CachedNodeLeaf[H]) encoded() []byte { //nolint:unused
 	encodingBuffer := bytes.NewBuffer(nil)
 	err := NewEncodedLeaf(no.PartialKey.Right(), no.PartialKey.Len(), no.Value.EncodedValue(), encodingBuffer)
 	if err != nil {
@@ -210,7 +209,7 @@ func (no NodeOwnedLeaf[H]) encoded() []byte { //nolint:unused
 	}
 	return encodingBuffer.Bytes()
 }
-func (no NodeOwnedBranch[H]) encoded() []byte { //nolint:unused
+func (no CachedNodeBranch[H]) encoded() []byte { //nolint:unused
 	encodingBuffer := bytes.NewBuffer(nil)
 	children := [16]ChildReference{}
 	for i, ch := range no.Children {
@@ -234,14 +233,14 @@ func (no NodeOwnedBranch[H]) encoded() []byte { //nolint:unused
 	}
 	return encodingBuffer.Bytes()
 }
-func (no NodeOwnedValue[H]) encoded() []byte { return no.Value } //nolint:unused
+func (no CachedNodeValue[H]) encoded() []byte { return no.Value } //nolint:unused
 
-func newNodeOwnedFromNode[H hash.Hash, Hasher hash.Hasher[H]](n codec.EncodedNode) (NodeOwned[H], error) {
+func newCachedNodeFromNode[H hash.Hash, Hasher hash.Hasher[H]](n codec.EncodedNode) (CachedNode[H], error) {
 	switch n := n.(type) {
 	case codec.Empty:
-		return NodeOwnedEmpty[H]{}, nil
+		return CachedNodeEmpty[H]{}, nil
 	case codec.Leaf:
-		return NodeOwnedLeaf[H]{
+		return CachedNodeLeaf[H]{
 			PartialKey: nibbles.NewNibbleSliceFromNibbles(n.PartialKey),
 			Value:      newValueOwnedFromEncodedValue[H, Hasher](n.Value),
 		}, nil
@@ -257,7 +256,7 @@ func newNodeOwnedFromNode[H hash.Hash, Hasher hash.Hasher[H]](n codec.EncodedNod
 				return nil, err
 			}
 		}
-		return NodeOwnedBranch[H]{
+		return CachedNodeBranch[H]{
 			PartialKey: nibbles.NewNibbleSliceFromNibbles(n.PartialKey),
 			Children:   childrenOwned,
 			Value:      newValueOwnedFromEncodedValue[H, Hasher](n.Value),

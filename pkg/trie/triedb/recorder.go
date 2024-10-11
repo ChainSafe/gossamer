@@ -11,10 +11,10 @@ type TrieAccess interface {
 }
 
 type (
-	// The given [NodeOwned] was accessed using its hash.
-	NodeOwnedAccess[H any] struct {
+	// The given [CachedNode] was accessed using its hash.
+	CachedNodeAccess[H any] struct {
 		Hash H
-		Node NodeOwned[H]
+		Node CachedNode[H]
 	}
 	// The given EncodedNode was accessed using its hash.
 	EncodedNodeAccess[H any] struct {
@@ -54,7 +54,7 @@ type (
 	}
 )
 
-func (NodeOwnedAccess[H]) isTrieAccess()    {}
+func (CachedNodeAccess[H]) isTrieAccess()   {}
 func (EncodedNodeAccess[H]) isTrieAccess()  {}
 func (ValueAccess[H]) isTrieAccess()        {}
 func (InlineValueAccess) isTrieAccess()     {}
@@ -143,7 +143,7 @@ func (r *Recorder[H]) Record(access TrieAccess) {
 	switch a := access.(type) {
 	case EncodedNodeAccess[H]:
 		r.nodes = append(r.nodes, Record[H]{Hash: a.Hash, Data: a.EncodedNode})
-	case NodeOwnedAccess[H]:
+	case CachedNodeAccess[H]:
 		r.nodes = append(r.nodes, Record[H]{Hash: a.Hash, Data: a.Node.encoded()})
 	case ValueAccess[H]:
 		r.nodes = append(r.nodes, Record[H]{Hash: a.Hash, Data: a.Value})
