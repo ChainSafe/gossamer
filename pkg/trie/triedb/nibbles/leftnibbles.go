@@ -89,9 +89,7 @@ func (ln LeftNibbles) compare(other LeftNibbles) int {
 	for i := commonByteLen * NibblesPerByte; i < commonLen; i++ {
 		a := *ln.At(i)
 		b := *other.At(i)
-		switch c := cmp.Compare(a, b); c {
-		case 0:
-		default:
+		if c := cmp.Compare(a, b); c != 0 {
 			return c
 		}
 	}
