@@ -195,10 +195,7 @@ func (n Nibbles) CommonPrefix(them Nibbles) uint {
 func (n Nibbles) NodeKey() NodeKey {
 	split := n.offset / NibblesPerByte
 	offset := n.offset % NibblesPerByte
-	return struct {
-		Offset uint
-		Data   []byte
-	}{offset, n.data[split:]}
+	return NodeKey{offset, n.data[split:]}
 }
 
 // Helper function to create a [NodeKey] for a given number of nibbles.

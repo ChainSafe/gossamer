@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNibbles(t *testing.T) {
@@ -72,4 +73,20 @@ func TestNibbles_Compare(t *testing.T) {
 	m = NewNibbles([]byte{3, 35})
 	assert.Equal(t, -1, n.Compare(m))
 	assert.Equal(t, 1, m.Compare(n))
+}
+
+func TestNibbles_Advance(t *testing.T) {
+	n := NewNibbles([]byte{1, 35})
+	n.Advance(1)
+	n.Advance(1)
+	n.Advance(1)
+	n.Advance(1)
+	require.Panics(t, func() { n.Advance(1) })
+
+	n = NewNibbles([]byte{1, 35})
+	require.Panics(t, func() { n.Advance(5) })
+
+	n = NewNibbles([]byte{1, 35})
+	n.Advance(4)
+	require.Panics(t, func() { n.Advance(1) })
 }
