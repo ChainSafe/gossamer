@@ -169,6 +169,8 @@ func (l *TrieLookup[H, Hasher, QueryItem]) lookupWithCache(
 			if err != nil {
 				return nil, err
 			}
+		default:
+			panic("unreachable")
 		}
 	} else {
 		var err error
