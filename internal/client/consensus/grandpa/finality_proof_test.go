@@ -299,7 +299,7 @@ func TestFinalityProof_UsingAuthoritySetChangesWorks(t *testing.T) {
 		ConsensusEngineID:    primitives.GrandpaEngineID,
 		EncodedJustification: scale.MustMarshal(grandpaJust8),
 	}
-	blockchainBackend.EXPECT().Justifications(block8.Hash()).Return(&runtime.Justifications{justification}, nil)
+	blockchainBackend.EXPECT().Justifications(block8.Hash()).Return(runtime.Justifications{justification}, nil)
 
 	blockchainBackend.EXPECT().ExpectBlockHashFromID(uint64(7)).Return(block7.Hash(), nil)
 	blockchainBackend.EXPECT().ExpectHeader(block7.Hash()).Return(block7.Header(), nil)

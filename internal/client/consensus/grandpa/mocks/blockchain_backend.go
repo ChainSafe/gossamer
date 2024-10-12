@@ -85,23 +85,23 @@ func (_c *BlockchainBackend_BlockHashFromID_Call[Hash, N]) RunAndReturn(run func
 }
 
 // BlockIndexedBody provides a mock function with given fields: hash
-func (_m *BlockchainBackend[Hash, N]) BlockIndexedBody(hash Hash) (*[][]byte, error) {
+func (_m *BlockchainBackend[Hash, N]) BlockIndexedBody(hash Hash) ([][]byte, error) {
 	ret := _m.Called(hash)
 
 	if len(ret) == 0 {
 		panic("no return value specified for BlockIndexedBody")
 	}
 
-	var r0 *[][]byte
+	var r0 [][]byte
 	var r1 error
-	if rf, ok := ret.Get(0).(func(Hash) (*[][]byte, error)); ok {
+	if rf, ok := ret.Get(0).(func(Hash) ([][]byte, error)); ok {
 		return rf(hash)
 	}
-	if rf, ok := ret.Get(0).(func(Hash) *[][]byte); ok {
+	if rf, ok := ret.Get(0).(func(Hash) [][]byte); ok {
 		r0 = rf(hash)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*[][]byte)
+			r0 = ret.Get(0).([][]byte)
 		}
 	}
 
@@ -132,12 +132,12 @@ func (_c *BlockchainBackend_BlockIndexedBody_Call[Hash, N]) Run(run func(hash Ha
 	return _c
 }
 
-func (_c *BlockchainBackend_BlockIndexedBody_Call[Hash, N]) Return(_a0 *[][]byte, _a1 error) *BlockchainBackend_BlockIndexedBody_Call[Hash, N] {
+func (_c *BlockchainBackend_BlockIndexedBody_Call[Hash, N]) Return(_a0 [][]byte, _a1 error) *BlockchainBackend_BlockIndexedBody_Call[Hash, N] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *BlockchainBackend_BlockIndexedBody_Call[Hash, N]) RunAndReturn(run func(Hash) (*[][]byte, error)) *BlockchainBackend_BlockIndexedBody_Call[Hash, N] {
+func (_c *BlockchainBackend_BlockIndexedBody_Call[Hash, N]) RunAndReturn(run func(Hash) ([][]byte, error)) *BlockchainBackend_BlockIndexedBody_Call[Hash, N] {
 	_c.Call.Return(run)
 	return _c
 }
@@ -201,23 +201,23 @@ func (_c *BlockchainBackend_BlockNumberFromID_Call[Hash, N]) RunAndReturn(run fu
 }
 
 // Body provides a mock function with given fields: hash
-func (_m *BlockchainBackend[Hash, N]) Body(hash Hash) (*[]runtime.Extrinsic, error) {
+func (_m *BlockchainBackend[Hash, N]) Body(hash Hash) ([]runtime.Extrinsic, error) {
 	ret := _m.Called(hash)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Body")
 	}
 
-	var r0 *[]runtime.Extrinsic
+	var r0 []runtime.Extrinsic
 	var r1 error
-	if rf, ok := ret.Get(0).(func(Hash) (*[]runtime.Extrinsic, error)); ok {
+	if rf, ok := ret.Get(0).(func(Hash) ([]runtime.Extrinsic, error)); ok {
 		return rf(hash)
 	}
-	if rf, ok := ret.Get(0).(func(Hash) *[]runtime.Extrinsic); ok {
+	if rf, ok := ret.Get(0).(func(Hash) []runtime.Extrinsic); ok {
 		r0 = rf(hash)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*[]runtime.Extrinsic)
+			r0 = ret.Get(0).([]runtime.Extrinsic)
 		}
 	}
 
@@ -248,12 +248,12 @@ func (_c *BlockchainBackend_Body_Call[Hash, N]) Run(run func(hash Hash)) *Blockc
 	return _c
 }
 
-func (_c *BlockchainBackend_Body_Call[Hash, N]) Return(_a0 *[]runtime.Extrinsic, _a1 error) *BlockchainBackend_Body_Call[Hash, N] {
+func (_c *BlockchainBackend_Body_Call[Hash, N]) Return(_a0 []runtime.Extrinsic, _a1 error) *BlockchainBackend_Body_Call[Hash, N] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *BlockchainBackend_Body_Call[Hash, N]) RunAndReturn(run func(Hash) (*[]runtime.Extrinsic, error)) *BlockchainBackend_Body_Call[Hash, N] {
+func (_c *BlockchainBackend_Body_Call[Hash, N]) RunAndReturn(run func(Hash) ([]runtime.Extrinsic, error)) *BlockchainBackend_Body_Call[Hash, N] {
 	_c.Call.Return(run)
 	return _c
 }
@@ -659,23 +659,23 @@ func (_c *BlockchainBackend_Hash_Call[Hash, N]) RunAndReturn(run func(N) (*Hash,
 }
 
 // Header provides a mock function with given fields: hash
-func (_m *BlockchainBackend[Hash, N]) Header(hash Hash) (*runtime.Header[N, Hash], error) {
+func (_m *BlockchainBackend[Hash, N]) Header(hash Hash) (runtime.Header[N, Hash], error) {
 	ret := _m.Called(hash)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Header")
 	}
 
-	var r0 *runtime.Header[N, Hash]
+	var r0 runtime.Header[N, Hash]
 	var r1 error
-	if rf, ok := ret.Get(0).(func(Hash) (*runtime.Header[N, Hash], error)); ok {
+	if rf, ok := ret.Get(0).(func(Hash) (runtime.Header[N, Hash], error)); ok {
 		return rf(hash)
 	}
-	if rf, ok := ret.Get(0).(func(Hash) *runtime.Header[N, Hash]); ok {
+	if rf, ok := ret.Get(0).(func(Hash) runtime.Header[N, Hash]); ok {
 		r0 = rf(hash)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*runtime.Header[N, Hash])
+			r0 = ret.Get(0).(runtime.Header[N, Hash])
 		}
 	}
 
@@ -706,34 +706,34 @@ func (_c *BlockchainBackend_Header_Call[Hash, N]) Run(run func(hash Hash)) *Bloc
 	return _c
 }
 
-func (_c *BlockchainBackend_Header_Call[Hash, N]) Return(_a0 *runtime.Header[N, Hash], _a1 error) *BlockchainBackend_Header_Call[Hash, N] {
+func (_c *BlockchainBackend_Header_Call[Hash, N]) Return(_a0 runtime.Header[N, Hash], _a1 error) *BlockchainBackend_Header_Call[Hash, N] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *BlockchainBackend_Header_Call[Hash, N]) RunAndReturn(run func(Hash) (*runtime.Header[N, Hash], error)) *BlockchainBackend_Header_Call[Hash, N] {
+func (_c *BlockchainBackend_Header_Call[Hash, N]) RunAndReturn(run func(Hash) (runtime.Header[N, Hash], error)) *BlockchainBackend_Header_Call[Hash, N] {
 	_c.Call.Return(run)
 	return _c
 }
 
 // IndexedTransaction provides a mock function with given fields: hash
-func (_m *BlockchainBackend[Hash, N]) IndexedTransaction(hash Hash) (*[]byte, error) {
+func (_m *BlockchainBackend[Hash, N]) IndexedTransaction(hash Hash) ([]byte, error) {
 	ret := _m.Called(hash)
 
 	if len(ret) == 0 {
 		panic("no return value specified for IndexedTransaction")
 	}
 
-	var r0 *[]byte
+	var r0 []byte
 	var r1 error
-	if rf, ok := ret.Get(0).(func(Hash) (*[]byte, error)); ok {
+	if rf, ok := ret.Get(0).(func(Hash) ([]byte, error)); ok {
 		return rf(hash)
 	}
-	if rf, ok := ret.Get(0).(func(Hash) *[]byte); ok {
+	if rf, ok := ret.Get(0).(func(Hash) []byte); ok {
 		r0 = rf(hash)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*[]byte)
+			r0 = ret.Get(0).([]byte)
 		}
 	}
 
@@ -764,12 +764,12 @@ func (_c *BlockchainBackend_IndexedTransaction_Call[Hash, N]) Run(run func(hash 
 	return _c
 }
 
-func (_c *BlockchainBackend_IndexedTransaction_Call[Hash, N]) Return(_a0 *[]byte, _a1 error) *BlockchainBackend_IndexedTransaction_Call[Hash, N] {
+func (_c *BlockchainBackend_IndexedTransaction_Call[Hash, N]) Return(_a0 []byte, _a1 error) *BlockchainBackend_IndexedTransaction_Call[Hash, N] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *BlockchainBackend_IndexedTransaction_Call[Hash, N]) RunAndReturn(run func(Hash) (*[]byte, error)) *BlockchainBackend_IndexedTransaction_Call[Hash, N] {
+func (_c *BlockchainBackend_IndexedTransaction_Call[Hash, N]) RunAndReturn(run func(Hash) ([]byte, error)) *BlockchainBackend_IndexedTransaction_Call[Hash, N] {
 	_c.Call.Return(run)
 	return _c
 }
@@ -820,23 +820,23 @@ func (_c *BlockchainBackend_Info_Call[Hash, N]) RunAndReturn(run func() blockcha
 }
 
 // Justifications provides a mock function with given fields: hash
-func (_m *BlockchainBackend[Hash, N]) Justifications(hash Hash) (*runtime.Justifications, error) {
+func (_m *BlockchainBackend[Hash, N]) Justifications(hash Hash) (runtime.Justifications, error) {
 	ret := _m.Called(hash)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Justifications")
 	}
 
-	var r0 *runtime.Justifications
+	var r0 runtime.Justifications
 	var r1 error
-	if rf, ok := ret.Get(0).(func(Hash) (*runtime.Justifications, error)); ok {
+	if rf, ok := ret.Get(0).(func(Hash) (runtime.Justifications, error)); ok {
 		return rf(hash)
 	}
-	if rf, ok := ret.Get(0).(func(Hash) *runtime.Justifications); ok {
+	if rf, ok := ret.Get(0).(func(Hash) runtime.Justifications); ok {
 		r0 = rf(hash)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*runtime.Justifications)
+			r0 = ret.Get(0).(runtime.Justifications)
 		}
 	}
 
@@ -867,12 +867,12 @@ func (_c *BlockchainBackend_Justifications_Call[Hash, N]) Run(run func(hash Hash
 	return _c
 }
 
-func (_c *BlockchainBackend_Justifications_Call[Hash, N]) Return(_a0 *runtime.Justifications, _a1 error) *BlockchainBackend_Justifications_Call[Hash, N] {
+func (_c *BlockchainBackend_Justifications_Call[Hash, N]) Return(_a0 runtime.Justifications, _a1 error) *BlockchainBackend_Justifications_Call[Hash, N] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *BlockchainBackend_Justifications_Call[Hash, N]) RunAndReturn(run func(Hash) (*runtime.Justifications, error)) *BlockchainBackend_Justifications_Call[Hash, N] {
+func (_c *BlockchainBackend_Justifications_Call[Hash, N]) RunAndReturn(run func(Hash) (runtime.Justifications, error)) *BlockchainBackend_Justifications_Call[Hash, N] {
 	_c.Call.Return(run)
 	return _c
 }
