@@ -53,6 +53,11 @@ type NetworkBridgeReceiver struct {
 	networkEventInfoChan chan *network.NetworkEventInfo
 
 	authorityDiscoveryService AuthorityDiscoveryService
+
+	peerData map[peer.ID]struct {
+		view            View
+		protocolVersion uint32
+	}
 }
 
 type CollationStatus int
@@ -240,16 +245,37 @@ func (nbr *NetworkBridgeReceiver) handleCollationMessage(
 			network.CollationMsgType, msg.Type())
 	}
 
-	collatorProtocol, ok := msg.(*collatorprotocolmessages.CollationProtocol)
+	wireMessage, ok := msg.(*WireMessage)
 	if !ok {
-		return propagate, fmt.Errorf(
-			"failed to cast into collator protocol message, expected: *CollationProtocol, got: %T",
-			msg)
+		return propagate, fmt.Errorf("failed to cast into wire message, expected: *WireMessage, got: %T", msg)
 	}
 
-	nbr.SubsystemsToOverseer <- events.PeerMessage[collatorprotocolmessages.CollationProtocol]{
-		PeerID:  sender,
-		Message: *collatorProtocol,
+	index, value, err := wireMessage.IndexValue()
+	if err != nil {
+		return propagate, fmt.Errorf("getting index value: %w", err)
+	}
+
+	switch index {
+	case 1:
+		collatorProtocol, ok := value.(*collatorprotocolmessages.CollationProtocol)
+		if !ok {
+			return propagate, fmt.Errorf(
+				"failed to cast into collator protocol message, expected: *CollationProtocol, got: %T",
+				value)
+		}
+		nbr.SubsystemsToOverseer <- events.PeerMessage[collatorprotocolmessages.CollationProtocol]{
+			PeerID:  sender,
+			Message: *collatorProtocol,
+		}
+	case 2:
+		viewUpdate, ok := value.(*ViewUpdate)
+		if !ok {
+			return propagate, fmt.Errorf(
+				"failed to cast into view update, expected: *ViewUpdate, got: %T",
+				value)
+		}
+		nbr.handleViewUpdate(*viewUpdate)
+
 	}
 
 	return propagate, nil
@@ -257,7 +283,7 @@ func (nbr *NetworkBridgeReceiver) handleCollationMessage(
 
 func (nbr *NetworkBridgeReceiver) handleValidationMessage(
 	sender peer.ID, msg network.NotificationsMessage) (bool, error) {
-	// we don't propagate collation messages, so it will always be false
+
 	propagate := false
 
 	if msg.Type() != network.ValidationMsgType {
@@ -265,19 +291,43 @@ func (nbr *NetworkBridgeReceiver) handleValidationMessage(
 			network.ValidationMsgType, msg.Type())
 	}
 
-	validationProtocol, ok := msg.(*validationprotocol.ValidationProtocol)
+	wireMessage, ok := msg.(*WireMessage)
 	if !ok {
-		return propagate, fmt.Errorf(
-			"failed to cast into collator protocol message, expected: *CollationProtocol, got: %T",
-			msg)
+		return propagate, fmt.Errorf("failed to cast into wire message, expected: *WireMessage, got: %T", msg)
 	}
 
-	nbr.SubsystemsToOverseer <- events.PeerMessage[validationprotocol.ValidationProtocol]{
-		PeerID:  sender,
-		Message: *validationProtocol,
+	index, value, err := wireMessage.IndexValue()
+	if err != nil {
+		return propagate, fmt.Errorf("getting index value: %w", err)
+	}
+
+	switch index {
+	case 1:
+		validationProtocol, ok := msg.(*validationprotocol.ValidationProtocol)
+		if !ok {
+			return propagate, fmt.Errorf(
+				"failed to cast into validation protocol message, expected: *ValidationProtocol, got: %T",
+				value)
+		}
+		nbr.SubsystemsToOverseer <- events.PeerMessage[validationprotocol.ValidationProtocol]{
+			PeerID:  sender,
+			Message: *validationProtocol,
+		}
+	case 2:
+		viewUpdate, ok := value.(*ViewUpdate)
+		if !ok {
+			return propagate, fmt.Errorf(
+				"failed to cast into view update, expected: *ViewUpdate, got: %T",
+				value)
+		}
+		nbr.handleViewUpdate(*viewUpdate)
 	}
 
 	return propagate, nil
+}
+
+func (nbr *NetworkBridgeReceiver) handleViewUpdate(view ViewUpdate) {
+
 }
 
 func (nbr *NetworkBridgeReceiver) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
