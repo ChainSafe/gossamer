@@ -96,7 +96,7 @@ func TestGenerateWarpSyncProofOk(t *testing.T) {
 			})
 
 			digestAddArgs := make([]any, 1)
-			digestAddArgs[0] = types.ConsensusDigest(scheduledChange)
+			digestAddArgs[0] = scheduledChange
 			digest.Add(digestAddArgs...)
 		}
 
@@ -154,7 +154,7 @@ func TestFindScheduledChange(t *testing.T) {
 
 	digest := types.NewDigest()
 	digestAddArgs := make([]any, 1)
-	digestAddArgs[0] = types.ConsensusDigest(scheduledChange)
+	digestAddArgs[0] = scheduledChange
 	digest.Add(digestAddArgs...)
 
 	blockHeader := &types.Header{
