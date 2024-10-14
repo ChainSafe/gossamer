@@ -15,6 +15,7 @@ import (
 	events "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 
@@ -27,6 +28,8 @@ import (
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "network-bridge"))
+
+const newMaxHeads = 5
 
 var (
 	ErrFinalizedNumber                       = errors.New("finalized number is greater than or equal to the block number")
@@ -274,7 +277,7 @@ func (nbr *NetworkBridgeReceiver) handleCollationMessage(
 				"failed to cast into view update, expected: *ViewUpdate, got: %T",
 				value)
 		}
-		nbr.handleViewUpdate(*viewUpdate)
+		nbr.handleViewUpdate(sender, *viewUpdate)
 
 	}
 
@@ -320,14 +323,50 @@ func (nbr *NetworkBridgeReceiver) handleValidationMessage(
 				"failed to cast into view update, expected: *ViewUpdate, got: %T",
 				value)
 		}
-		nbr.handleViewUpdate(*viewUpdate)
+		nbr.handleViewUpdate(sender, *viewUpdate)
 	}
 
 	return propagate, nil
 }
 
-func (nbr *NetworkBridgeReceiver) handleViewUpdate(view ViewUpdate) {
+func (nbr *NetworkBridgeReceiver) handleViewUpdate(peer peer.ID, view ViewUpdate) error {
 
+	peerData, ok := nbr.peerData[peer]
+	if !ok {
+		return errors.New("peer not found")
+	}
+	if len(view.Heads) > newMaxHeads || view.FinalizedNumber < peerData.view.FinalizedNumber {
+		nbr.net.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.CostMajor,
+			Reason: "malformed view",
+		}, peer)
+	} else if len(view.Heads) == 0 {
+		nbr.net.ReportPeer(peerset.ReputationChange{
+			Value:  peerset.CostMinor,
+			Reason: "peer sent us empty view",
+		}, peer)
+	} else if events.View(view).Equals(events.View(peerData.view)) {
+		// nothing
+	} else {
+		peerData.view = View(view)
+		nbr.peerData[peer] = peerData
+
+		nbr.SubsystemsToOverseer <- events.Event[collatorprotocolmessages.CollationProtocol]{
+			Inner: events.PeerViewChange{
+				PeerID: peer,
+				View:   events.View(view),
+			},
+		}
+
+		nbr.SubsystemsToOverseer <- events.Event[validationprotocol.ValidationProtocol]{
+			Inner: events.PeerViewChange{
+				PeerID: peer,
+				View:   events.View(view),
+			},
+		}
+	}
+
+	return nil
 }
 
 func (nbr *NetworkBridgeReceiver) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {

@@ -60,6 +60,20 @@ type View struct {
 	FinalizedNumber uint32
 }
 
+func (v View) Equals(v2 View) bool {
+	if v.FinalizedNumber != v.FinalizedNumber {
+		return false
+	}
+
+	for i, head := range v.Heads {
+		if head != v2.Heads[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
 type OurViewChange struct {
 	View View
 }
