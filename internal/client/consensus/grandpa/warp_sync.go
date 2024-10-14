@@ -312,8 +312,22 @@ func findScheduledChange(
 		}
 
 		switch val := digestValue.(type) {
-		case types.GrandpaScheduledChange:
-			return &val, nil
+		case types.ConsensusDigest:
+			consensusDigest := types.GrandpaConsensusDigest{}
+			if val.ConsensusEngineID == types.GrandpaEngineID {
+				err := scale.Unmarshal(val.Data, &consensusDigest)
+				if err != nil {
+					return nil, err
+				}
+
+				scheduledChange, err := consensusDigest.Value()
+				if err != nil {
+					return nil, err
+				}
+
+				parsedScheduledChange, _ := scheduledChange.(types.GrandpaScheduledChange)
+				return &parsedScheduledChange, nil
+			}
 		}
 	}
 	return nil, nil
