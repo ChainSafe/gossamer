@@ -95,9 +95,7 @@ func TestGenerateWarpSyncProofOk(t *testing.T) {
 				Delay: 2,
 			})
 
-			digestAddArgs := make([]any, 1)
-			digestAddArgs[0] = scheduledChange
-			digest.Add(digestAddArgs...)
+			digest.Add(scheduledChange)
 		}
 
 		header = types.NewHeader(
@@ -153,9 +151,7 @@ func TestFindScheduledChange(t *testing.T) {
 	})
 
 	digest := types.NewDigest()
-	digestAddArgs := make([]any, 1)
-	digestAddArgs[0] = scheduledChange
-	digest.Add(digestAddArgs...)
+	digest.Add(scheduledChange)
 
 	blockHeader := &types.Header{
 		ParentHash: common.Hash{0x00},
