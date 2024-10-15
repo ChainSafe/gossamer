@@ -2,13 +2,14 @@ package grandpa
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"time"
 )
 
-// NeighborBroadcastPeriod See https://github.com/paritytech/polkadot-sdk/blob/08498f5473351c3d2f8eacbe1bfd7bc6d3a2ef8d/substrate/client/consensus/grandpa/src/communication/mod.rs#L73
-const NeighborBroadcastPeriod = time.Minute * 2
+// https://github.com/paritytech/polkadot-sdk/blob/08498f5473351c3d2f8eacbe1bfd7bc6d3a2ef8d/substrate/client/consensus/grandpa/src/communication/mod.rs#L73 //nolint
+const neighbourBroadcastPeriod = time.Minute * 2
 
 type neighborData struct {
 	peer        peer.ID
@@ -54,59 +55,54 @@ func (nt *NeighborTracker) Stop() {
 }
 
 func (nt *NeighborTracker) run() {
-	logger.Info("starting neighbor tracker")
-	ticker := time.NewTicker(NeighborBroadcastPeriod)
+	logger.Info("starting neighbour tracker")
+	ticker := time.NewTicker(neighbourBroadcastPeriod)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			logger.Debugf("neighbor message broadcast triggered by ticker")
+			logger.Debugf("neighbour message broadcast triggered by ticker")
 			err := nt.BroadcastNeighborMsg()
 			if err != nil {
-				logger.Errorf("broadcasting neighbor message: %v", err)
+				logger.Errorf("broadcasting neighbour message: %v", err)
 			}
 
 		case block := <-nt.finalizationCha:
 			if block != nil {
-				err := nt.UpdateState(block.SetID, block.Round, uint32(block.Header.Number))
+				nt.UpdateState(block.SetID, block.Round, uint32(block.Header.Number)) //nolint
+				err := nt.BroadcastNeighborMsg()
 				if err != nil {
-					logger.Errorf("updating neighbor state: %v", err)
+					logger.Errorf("broadcasting neighbour message: %v", err)
 				}
-				err = nt.BroadcastNeighborMsg()
-				if err != nil {
-					logger.Errorf("broadcasting neighbor message: %v", err)
-				}
-				ticker.Reset(NeighborBroadcastPeriod)
+				ticker.Reset(neighbourBroadcastPeriod)
 			}
 		case neighborData := <-nt.neighborMsgChan:
 			if neighborData.neighborMsg.Number > nt.peerview[neighborData.peer].highestFinalized {
-				err := nt.UpdatePeer(neighborData.peer, neighborData.neighborMsg.SetID, neighborData.neighborMsg.Round, neighborData.neighborMsg.Number)
+				err := nt.UpdatePeer(
+					neighborData.peer,
+					neighborData.neighborMsg.SetID,
+					neighborData.neighborMsg.Round,
+					neighborData.neighborMsg.Number,
+				)
 				if err != nil {
-					logger.Errorf("updating neighbor: %v", err)
+					logger.Errorf("updating neighbour: %v", err)
 				}
 			}
 		case <-nt.stoppedNeighbor:
-			logger.Info("stopping neighbor tracker")
+			logger.Info("stopping neighbour tracker")
 			return
 		}
 	}
 }
 
-func (nt *NeighborTracker) UpdateState(setID uint64, round uint64, highestFinalized uint32) error {
-	if nt == nil {
-		return fmt.Errorf("neighbor tracker is nil")
-	}
+func (nt *NeighborTracker) UpdateState(setID uint64, round uint64, highestFinalized uint32) {
 	nt.currentSetID = setID
 	nt.currentRound = round
 	nt.highestFinalized = highestFinalized
-	return nil
 }
 
 func (nt *NeighborTracker) UpdatePeer(p peer.ID, setID uint64, round uint64, highestFinalized uint32) error {
-	if nt == nil {
-		return fmt.Errorf("neighbor tracker is nil")
-	}
 	if nt.peerview == nil {
 		return fmt.Errorf("neighbour tracker has nil peer tracker")
 	}
@@ -116,7 +112,6 @@ func (nt *NeighborTracker) UpdatePeer(p peer.ID, setID uint64, round uint64, hig
 }
 
 func (nt *NeighborTracker) BroadcastNeighborMsg() error {
-	logger.Warnf("braodcasting neighbor message to relevant peers")
 	packet := NeighbourPacketV1{
 		Round:  nt.currentRound,
 		SetID:  nt.currentSetID,
