@@ -278,21 +278,12 @@ func (p *WarpSyncProofProvider) Verify(
 		return nil, fmt.Errorf("verifying warp sync proof: %w", err)
 	}
 
-	if proof.IsFinished {
-		return &network.WarpSyncVerificationResult{
-			SetId:         nextSetAndAuthorities.SetID,
-			AuthorityList: nextSetAndAuthorities.AuthorityList,
-			Header:        lastHeader,
-			Completed:     true,
-		}, nil
-	} else {
-		return &network.WarpSyncVerificationResult{
-			SetId:         nextSetAndAuthorities.SetID,
-			AuthorityList: nextSetAndAuthorities.AuthorityList,
-			Header:        lastHeader,
-			Completed:     false,
-		}, nil
-	}
+	return &network.WarpSyncVerificationResult{
+		SetId:         nextSetAndAuthorities.SetID,
+		AuthorityList: nextSetAndAuthorities.AuthorityList,
+		Header:        lastHeader,
+		Completed:     proof.IsFinished,
+	}, nil
 }
 
 func findScheduledChange(
