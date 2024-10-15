@@ -55,8 +55,7 @@ func (nt *NeighborTracker) Stop() {
 
 func (nt *NeighborTracker) run() {
 	logger.Info("starting neighbor tracker")
-	const duration = NeighborBroadcastPeriod
-	ticker := time.NewTicker(duration)
+	ticker := time.NewTicker(NeighborBroadcastPeriod)
 	defer ticker.Stop()
 
 	for {
@@ -78,7 +77,7 @@ func (nt *NeighborTracker) run() {
 				if err != nil {
 					logger.Errorf("broadcasting neighbor message: %v", err)
 				}
-				ticker.Reset(duration)
+				ticker.Reset(NeighborBroadcastPeriod)
 			}
 		case neighborData := <-nt.neighborMsgChan:
 			if neighborData.neighborMsg.Number > nt.peerview[neighborData.peer].highestFinalized {
