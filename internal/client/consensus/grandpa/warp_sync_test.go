@@ -74,6 +74,9 @@ func TestGenerateWarpSyncProofBlockNotFinalized(t *testing.T) {
 	require.ErrorIs(t, err, errStartBlockNotFinalized)
 }
 
+// This test generates a small blockchain with authority set changes and expected
+// justifications to create a warp sync proof and verify it.
+//
 //nolint:lll
 func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 	t.Parallel()
@@ -81,12 +84,14 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 	type signedPrecommit = grandpa.SignedPrecommit[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID]
 	type preCommit = grandpa.Precommit[hash.H256, uint64]
 
+	// Initialize mocks
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	blockStateMock := NewMockBlockState(ctrl)
 	grandpaStateMock := NewMockGrandpaState(ctrl)
 
+	// Set authorities
 	availableAuthorities := ed25519.AvailableAuthorities
 	genesisAuthorities := primitives.AuthorityList{
 		primitives.AuthorityIDWeight{
@@ -94,29 +99,36 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 			AuthorityWeight: 1,
 		},
 	}
-
 	currentAuthorities := []ed25519.Keyring{ed25519.Alice}
+
+	// Set initial values for the scheduled changes
 	currentSetId := primitives.SetID(0)
 	authoritySetChanges := []uint{}
 
-	lastBlockHeader := &types.Header{
+	// Genesis block
+	genesis := &types.Header{
 		ParentHash: common.MustBlake2bHash([]byte("genesis")),
 		Number:     1,
 	}
 
+	// All blocks headers
 	headers := []*types.Header{
-		lastBlockHeader,
+		genesis,
 	}
 
 	const maxBlocks = 100
 
+	// Create blocks with their scheduled changes and justifications
 	for n := uint(1); n <= maxBlocks; n++ {
+		lastBlockHeader := headers[len(headers)-1]
+
 		newAuthorities := []ed25519.Keyring{}
 
 		digest := types.NewDigest()
 
 		// Authority set change happens every 10 blocks
 		if n != 0 && n%10 == 0 {
+			// Pick new random authorities
 			nAuthorities := rand.Intn(len(availableAuthorities)-1) + 1
 			require.GreaterOrEqual(t, nAuthorities, 1)
 
@@ -124,11 +136,10 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 				availableAuthorities[i], availableAuthorities[j] = availableAuthorities[j], availableAuthorities[i]
 			})
 
-			selectedAuthorities := availableAuthorities[:nAuthorities]
-			newAuthorities = selectedAuthorities
+			newAuthorities = availableAuthorities[:nAuthorities]
 
+			// Map new authorities to GRANDPA raw authorities format
 			nextAuthorities := []types.GrandpaAuthoritiesRaw{}
-
 			for _, key := range newAuthorities {
 				nextAuthorities = append(nextAuthorities,
 					types.GrandpaAuthoritiesRaw{
@@ -138,14 +149,15 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 				)
 			}
 
+			// Create scheduled change
 			scheduledChange := createGRANDPAConsensusDigest(t, types.GrandpaScheduledChange{
 				Auths: nextAuthorities,
 				Delay: 0,
 			})
-
 			digest.Add(scheduledChange)
 		}
 
+		// Create new block header
 		header := &types.Header{
 			ParentHash: lastBlockHeader.Hash(),
 			Number:     lastBlockHeader.Number + 1,
@@ -154,14 +166,13 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 
 		headers = append(headers, header)
 
-		lastBlockHeader = header
-
+		// If we have an authority set change, create a justification
 		if len(newAuthorities) > 0 {
 			targetHash := hash.H256(string(header.Hash().ToBytes()))
 			targetNumber := uint64(header.Number)
 
+			// Create precommits for current voters
 			precommits := []signedPrecommit{}
-
 			for _, voter := range currentAuthorities {
 				precommit := preCommit{
 					TargetHash:   targetHash,
@@ -184,6 +195,7 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 				precommits = append(precommits, signedPreCommit)
 			}
 
+			// Create justification
 			justification := primitives.GrandpaJustification[hash.H256, uint64]{
 				Round: 1,
 				Commit: primitives.Commit[hash.H256, uint64]{
@@ -197,22 +209,18 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 			encodedJustification, err := scale.Marshal(justification)
 			require.NoError(t, err)
 
-			decodedJustification, err := decodeJustification[hash.H256, uint64, runtime.BlakeTwo256](encodedJustification)
-			require.NoError(t, err)
-			require.Equal(t, justification, decodedJustification.Justification)
-
 			blockStateMock.EXPECT().GetJustification(header.Hash()).Return(encodedJustification, nil).AnyTimes()
 			blockStateMock.EXPECT().GetHighestFinalisedHeader().Return(header, nil).AnyTimes()
 
+			// Update authorities and set id
 			authoritySetChanges = append(authoritySetChanges, header.Number)
-			currentSetId++
-
-			// Update authorities for the new ones
 			currentAuthorities = slices.Clone(newAuthorities)
+			currentSetId++
 		}
 
 	}
 
+	// Return expected authority changes for each block
 	authChanges := []uint{}
 	for n := uint(1); n <= maxBlocks; n++ {
 		for _, change := range authoritySetChanges {
@@ -223,27 +231,21 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 		grandpaStateMock.EXPECT().GetAuthoritiesChangesFromBlock(n).Return(authChanges, nil).AnyTimes()
 	}
 
+	// Mock responses
 	for _, header := range headers {
 		blockStateMock.EXPECT().GetHeaderByNumber(header.Number).Return(header, nil).AnyTimes()
 		blockStateMock.EXPECT().GetHeader(header.Hash()).Return(header, nil).AnyTimes()
 	}
 
-	provider := &WarpSyncProofProvider{
-		blockState:   blockStateMock,
-		grandpaState: grandpaStateMock,
-	}
+	// Initialize warp sync provider
+	provider := NewWarpSyncProofProvider(blockStateMock, grandpaStateMock)
 
 	// Generate proof
 	proof, err := provider.Generate(headers[0].Hash())
 	require.NoError(t, err)
 
 	// Verify proof
-	result, err := provider.Verify(proof, 0, genesisAuthorities)
-	require.NoError(t, err)
-	require.Equal(t, currentSetId, result.SetId)
-
 	expectedAuthorities := primitives.AuthorityList{}
-
 	for _, key := range currentAuthorities {
 		expectedAuthorities = append(expectedAuthorities,
 			primitives.AuthorityIDWeight{
@@ -253,6 +255,9 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 		)
 	}
 
+	result, err := provider.Verify(proof, 0, genesisAuthorities)
+	require.NoError(t, err)
+	require.Equal(t, currentSetId, result.SetId)
 	require.Equal(t, expectedAuthorities, result.AuthorityList)
 }
 
