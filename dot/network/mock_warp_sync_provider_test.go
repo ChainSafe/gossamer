@@ -12,7 +12,6 @@ package network
 import (
 	reflect "reflect"
 
-	types "github.com/ChainSafe/gossamer/dot/types"
 	grandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	gomock "go.uber.org/mock/gomock"
@@ -57,7 +56,7 @@ func (mr *MockWarpSyncProviderMockRecorder) Generate(arg0 any) *gomock.Call {
 }
 
 // Verify mocks base method.
-func (m *MockWarpSyncProvider) Verify(arg0 []byte, arg1 grandpa.SetID, arg2 types.AuthorityList) (*WarpSyncVerificationResult, error) {
+func (m *MockWarpSyncProvider) Verify(arg0 []byte, arg1 grandpa.SetID, arg2 grandpa.AuthorityList) (*WarpSyncVerificationResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Verify", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*WarpSyncVerificationResult)
