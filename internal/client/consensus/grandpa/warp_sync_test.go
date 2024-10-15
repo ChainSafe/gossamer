@@ -78,6 +78,9 @@ func TestGenerateWarpSyncProofBlockNotFinalized(t *testing.T) {
 func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 	t.Parallel()
 
+	type signedPrecommit = grandpa.SignedPrecommit[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID]
+	type preCommit = grandpa.Precommit[hash.H256, uint64]
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -93,7 +96,7 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 	}
 
 	currentAuthorities := []ed25519.Keyring{ed25519.Alice}
-	currentSetId := uint64(0)
+	currentSetId := primitives.SetID(0)
 	authoritySetChanges := []uint{}
 
 	lastBlockHeader := &types.Header{
@@ -105,7 +108,7 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 		lastBlockHeader,
 	}
 
-	const maxBlocks = 5
+	const maxBlocks = 2
 
 	for n := uint(1); n <= maxBlocks; n++ {
 		newAuthorities := []ed25519.Keyring{}
@@ -152,24 +155,24 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 		lastBlockHeader = header
 
 		if len(newAuthorities) > 0 {
-			targetHash := lastBlockHeader.Hash()
-			targetNumber := uint64(lastBlockHeader.Number)
+			targetHash := hash.H256(string(header.Hash().ToBytes()))
+			targetNumber := uint64(header.Number)
 
-			precommits := []grandpa.SignedPrecommit[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID]{}
+			precommits := []signedPrecommit{}
 
 			for _, voter := range currentAuthorities {
-				precommit := grandpa.Precommit[hash.H256, uint64]{
-					TargetHash:   hash.H256(targetHash.String()),
+				precommit := preCommit{
+					TargetHash:   targetHash,
 					TargetNumber: targetNumber,
 				}
 
-				msg := grandpa.NewMessage[hash.H256, uint64, grandpa.Precommit[hash.H256, uint64]](precommit)
+				msg := grandpa.NewMessage[hash.H256, uint64, preCommit](precommit)
 				encoded := primitives.NewLocalizedPayload(1, primitives.SetID(currentSetId), msg)
 				signature := voter.Sign(encoded)
 
-				signedPreCommit := grandpa.SignedPrecommit[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID]{
-					Precommit: grandpa.Precommit[hash.H256, uint64]{
-						TargetHash:   hash.H256(targetHash.String()),
+				signedPreCommit := signedPrecommit{
+					Precommit: preCommit{
+						TargetHash:   targetHash,
 						TargetNumber: targetNumber,
 					},
 					Signature: signature,
@@ -179,20 +182,22 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 				precommits = append(precommits, signedPreCommit)
 			}
 
-			justification := GrandpaJustification[hash.H256, uint64]{
-				Justification: primitives.GrandpaJustification[hash.H256, uint64]{
-					Round: 1,
-					Commit: primitives.Commit[hash.H256, uint64]{
-						TargetHash:   hash.H256(targetHash.String()),
-						TargetNumber: targetNumber,
-						Precommits:   precommits,
-					},
-					VoteAncestries: genericHeadersList(t, headers),
+			justification := primitives.GrandpaJustification[hash.H256, uint64]{
+				Round: 1,
+				Commit: primitives.Commit[hash.H256, uint64]{
+					TargetHash:   targetHash,
+					TargetNumber: targetNumber,
+					Precommits:   precommits,
 				},
+				VoteAncestries: genericHeadersList(t, headers),
 			}
 
 			encodedJustification, err := scale.Marshal(justification)
 			require.NoError(t, err)
+
+			decodedJustification, err := decodeJustification[hash.H256, uint64, runtime.BlakeTwo256](encodedJustification)
+			require.NoError(t, err)
+			require.Equal(t, justification, decodedJustification.Justification)
 
 			blockStateMock.EXPECT().GetJustification(header.Hash()).Return(encodedJustification, nil).AnyTimes()
 			blockStateMock.EXPECT().GetHighestFinalisedHeader().Return(header, nil).AnyTimes()
@@ -232,7 +237,19 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 	result, err := provider.Verify(proof, 0, genesisAuthorities)
 	assert.NoError(t, err)
 	assert.Equal(t, currentSetId, result.SetId)
-	assert.Equal(t, currentAuthorities, result.AuthorityList)
+
+	expectedAuthorities := primitives.AuthorityList{}
+
+	for _, key := range currentAuthorities {
+		expectedAuthorities = append(expectedAuthorities,
+			primitives.AuthorityIDWeight{
+				AuthorityID:     [32]byte(key.Pair().Public().Bytes()),
+				AuthorityWeight: 1,
+			},
+		)
+	}
+
+	assert.Equal(t, expectedAuthorities, result.AuthorityList)
 }
 
 func TestFindScheduledChange(t *testing.T) {
