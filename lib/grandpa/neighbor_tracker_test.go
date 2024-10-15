@@ -1,3 +1,6 @@
+// Copyright 2024 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package grandpa
 
 import (
@@ -29,7 +32,7 @@ func TestNeighborTracker_UpdatePeer(t *testing.T) {
 		expectedErr   error
 	}{
 		{
-			name: "simple update",
+			name: "simple_update",
 			tracker: &NeighborTracker{
 				peerview: map[peer.ID]neighborState{},
 			},
@@ -46,7 +49,7 @@ func TestNeighborTracker_UpdatePeer(t *testing.T) {
 			},
 		},
 		{
-			name:    "nil peerview",
+			name:    "nil_peerview",
 			tracker: &NeighborTracker{},
 			args: args{
 				p:                "testPeer",
@@ -57,7 +60,7 @@ func TestNeighborTracker_UpdatePeer(t *testing.T) {
 			expectedErr: fmt.Errorf("neighbour tracker has nil peer tracker"),
 		},
 		{
-			name: "updating existing peer",
+			name: "updating_existing_peer",
 			tracker: &NeighborTracker{
 				peerview: map[peer.ID]neighborState{},
 			},
@@ -96,7 +99,7 @@ func TestNeighborTracker_UpdateState(t *testing.T) {
 		args    args
 	}{
 		{
-			name:    "happy path",
+			name:    "happy_path",
 			tracker: &NeighborTracker{},
 			args: args{
 				setID:            1,
