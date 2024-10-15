@@ -33,7 +33,7 @@ type WarpSyncProvider interface {
 	Verify(
 		encodedProof []byte,
 		setId grandpa.SetID,
-		authorities types.AuthorityList,
+		authorities primitives.AuthorityList,
 	) (*WarpSyncVerificationResult, error)
 }
 

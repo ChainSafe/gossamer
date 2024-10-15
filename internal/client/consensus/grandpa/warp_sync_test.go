@@ -167,7 +167,7 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 				}
 
 				msg := grandpa.NewMessage[hash.H256, uint64, preCommit](precommit)
-				encoded := primitives.NewLocalizedPayload(1, primitives.SetID(currentSetId), msg)
+				encoded := primitives.NewLocalizedPayload(1, currentSetId, msg)
 				signature := voter.Sign(encoded)
 
 				signedPreCommit := signedPrecommit{

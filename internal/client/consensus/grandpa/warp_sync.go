@@ -329,6 +329,10 @@ func grandpaAuthoritiesRawToAuthorities(adr []types.GrandpaAuthoritiesRaw) (prim
 
 		keyBytes := key.AsBytes()
 		pkey, err := app.NewPublic(keyBytes[:])
+		if err != nil {
+			return nil, err
+		}
+
 		ad[i].AuthorityID = pkey
 		ad[i].AuthorityWeight = primitives.AuthorityWeight(r.ID)
 	}
