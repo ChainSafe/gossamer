@@ -117,7 +117,7 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 
 		// Authority set change happens every 10 blocks
 		if n != 0 && n%10 == 0 {
-			nAuthorities := rand.Intn(2-1) + 1
+			nAuthorities := rand.Intn(len(availableAuthorities)-1) + 1
 			require.GreaterOrEqual(t, nAuthorities, 1)
 
 			rand.Shuffle(len(availableAuthorities), func(i, j int) {
