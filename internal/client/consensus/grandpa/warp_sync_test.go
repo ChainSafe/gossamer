@@ -6,6 +6,7 @@ package grandpa
 import (
 	"errors"
 	"math/rand"
+	"slices"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -18,7 +19,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -39,8 +39,8 @@ func TestGenerateWarpSyncProofBlockNotFound(t *testing.T) {
 
 	// Check errMissingStartBlock returned by provider
 	_, err := provider.Generate(common.EmptyHash)
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, errMissingStartBlock)
+	require.Error(t, err)
+	require.ErrorIs(t, err, errMissingStartBlock)
 }
 
 func TestGenerateWarpSyncProofBlockNotFinalized(t *testing.T) {
@@ -70,8 +70,8 @@ func TestGenerateWarpSyncProofBlockNotFinalized(t *testing.T) {
 
 	// Check errMissingStartBlock returned by provider
 	_, err := provider.Generate(notFinalizedBlockHeader.Hash())
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, errStartBlockNotFinalized)
+	require.Error(t, err)
+	require.ErrorIs(t, err, errStartBlockNotFinalized)
 }
 
 //nolint:lll
@@ -108,7 +108,7 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 		lastBlockHeader,
 	}
 
-	const maxBlocks = 2
+	const maxBlocks = 100
 
 	for n := uint(1); n <= maxBlocks; n++ {
 		newAuthorities := []ed25519.Keyring{}
@@ -116,8 +116,10 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 		digest := types.NewDigest()
 
 		// Authority set change happens every 10 blocks
-		if n != 0 && n%2 == 0 {
-			nAuthorities := rand.Intn(len(availableAuthorities))
+		if n != 0 && n%10 == 0 {
+			nAuthorities := rand.Intn(2-1) + 1
+			require.GreaterOrEqual(t, nAuthorities, 1)
+
 			rand.Shuffle(len(availableAuthorities), func(i, j int) {
 				availableAuthorities[i], availableAuthorities[j] = availableAuthorities[j], availableAuthorities[i]
 			})
@@ -127,7 +129,7 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 
 			nextAuthorities := []types.GrandpaAuthoritiesRaw{}
 
-			for _, key := range selectedAuthorities {
+			for _, key := range newAuthorities {
 				nextAuthorities = append(nextAuthorities,
 					types.GrandpaAuthoritiesRaw{
 						Key: [32]byte(key.Pair().Public().Bytes()),
@@ -202,9 +204,11 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 			blockStateMock.EXPECT().GetJustification(header.Hash()).Return(encodedJustification, nil).AnyTimes()
 			blockStateMock.EXPECT().GetHighestFinalisedHeader().Return(header, nil).AnyTimes()
 
-			authoritySetChanges = append(authoritySetChanges, n)
+			authoritySetChanges = append(authoritySetChanges, header.Number)
 			currentSetId++
-			currentAuthorities = newAuthorities
+
+			// Update authorities for the new ones
+			currentAuthorities = slices.Clone(newAuthorities)
 		}
 
 	}
@@ -231,12 +235,12 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 
 	// Generate proof
 	proof, err := provider.Generate(headers[0].Hash())
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Verify proof
 	result, err := provider.Verify(proof, 0, genesisAuthorities)
-	assert.NoError(t, err)
-	assert.Equal(t, currentSetId, result.SetId)
+	require.NoError(t, err)
+	require.Equal(t, currentSetId, result.SetId)
 
 	expectedAuthorities := primitives.AuthorityList{}
 
@@ -249,7 +253,7 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 		)
 	}
 
-	assert.Equal(t, expectedAuthorities, result.AuthorityList)
+	require.Equal(t, expectedAuthorities, result.AuthorityList)
 }
 
 func TestFindScheduledChange(t *testing.T) {
@@ -271,18 +275,18 @@ func TestFindScheduledChange(t *testing.T) {
 
 	// Find scheduled change in block header
 	scheduledChangeDigest, err := findScheduledChange(*blockHeader)
-	assert.NoError(t, err)
-	assert.NotNil(t, scheduledChangeDigest)
+	require.NoError(t, err)
+	require.NotNil(t, scheduledChangeDigest)
 }
 
 func createGRANDPAConsensusDigest(t *testing.T, digestData any) types.ConsensusDigest {
 	t.Helper()
 
 	grandpaConsensusDigest := types.NewGrandpaConsensusDigest()
-	assert.NoError(t, grandpaConsensusDigest.SetValue(digestData))
+	require.NoError(t, grandpaConsensusDigest.SetValue(digestData))
 
 	marshaledData, err := scale.Marshal(grandpaConsensusDigest)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	return types.ConsensusDigest{
 		ConsensusEngineID: types.GrandpaEngineID,

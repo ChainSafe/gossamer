@@ -101,7 +101,7 @@ func (w *WarpSyncProof) verify(
 			currentSetId = fork.SetID
 			currentAuthorities = fork.AuthorityList
 		} else {
-			err := proof.Justification.Verify(uint64(currentSetId), authorities)
+			err := proof.Justification.Verify(uint64(currentSetId), currentAuthorities)
 			if err != nil {
 				return nil, err
 			}
