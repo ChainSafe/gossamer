@@ -59,8 +59,8 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 
 		return nil, nil //nolint:nilnil
 	case *NeighbourPacketV1:
-		// we can afford to not retry handling neighbour message, if it errors.
-		return nil, h.handleNeighbourMessage(msg, from)
+		h.handleNeighbourMessage(msg, from)
+		return nil, nil //nolint:nilnil
 	case *CatchUpRequest:
 		return h.handleCatchUpRequest(msg)
 	case *CatchUpResponse:
@@ -78,14 +78,13 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	}
 }
 
-func (h *MessageHandler) handleNeighbourMessage(packet *NeighbourPacketV1, from peer.ID) error { //nolint
+func (h *MessageHandler) handleNeighbourMessage(packet *NeighbourPacketV1, from peer.ID) {
 	logger.Debugf("handling neighbour message from peer %v with set id %v and round %v",
 		from.ShortString(), packet.SetID, packet.Round)
 	h.grandpa.neighborMsgChan <- neighborData{
 		peer:        from,
 		neighborMsg: packet,
 	}
-	return nil
 }
 
 func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest) (*ConsensusMessage, error) {
