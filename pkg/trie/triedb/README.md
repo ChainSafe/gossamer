@@ -10,7 +10,7 @@ It offers functionalities for writing and reading operations and uses lazy loadi
 - **Reads**: Basic functions to get data from the trie.
 - **Lazy Loading**: Load data on demand.
 - **Caching**: Enhances search performance.
-- **Compatibility**: Works with any database implementing the `db.RWDatabase` interface and any cache implementing the `cache.TrieCache` interface.
+- **Compatibility**: Works with any database implementing the `db.RWDatabase` interface and any cache implementing the `Cache` interface (wip).
 - **Merkle proofs**: Create and verify merkle proofs.
 - **Iterator**: Traverse the trie keys in order.
 

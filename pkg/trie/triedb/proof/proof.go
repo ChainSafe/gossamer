@@ -7,32 +7,33 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	nibbles "github.com/ChainSafe/gossamer/pkg/trie/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/hash"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibbles"
 	"github.com/gammazero/deque"
 )
 
-type MerkleProof [][]byte
+type MerkleProof[H hash.Hash, Hasher hash.Hasher[H]] [][]byte
 
-func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash common.Hash, keys []string) (
-	proof MerkleProof, err error) {
+func NewMerkleProof[H hash.Hash, Hasher hash.Hasher[H]](
+	db db.RWDatabase, trieVersion trie.TrieLayout, rootHash H, keys []string) (
+	proof MerkleProof[H, Hasher], err error) {
 	// Sort and deduplicate keys
 	keys = sortAndDeduplicateKeys(keys)
 
 	// The stack of nodes through a path in the trie.
 	// Each entry is a child node of the preceding entry.
-	stack := deque.New[*genProofStackEntry]()
+	stack := deque.New[*genProofStackEntry[H]]()
 
 	// final proof nodes
-	var proofNodes MerkleProof
+	var proofNodes MerkleProof[H, Hasher]
 
 	// Iterate over the keys and build the proof nodes
 	for i := 0; i < len(keys); i = i + 1 {
 		var key = []byte(keys[i])
-		var keyNibbles = nibbles.KeyLEToNibbles(key)
+		var keyNibbles = nibbles.NewLeftNibbles(key)
 
 		err := unwindStack(stack, proofNodes, &keyNibbles)
 		if err != nil {
@@ -40,8 +41,8 @@ func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash comm
 		}
 
 		// Traverse the trie recording the visited nodes
-		recorder := triedb.NewRecorder()
-		trie := triedb.NewTrieDB(rootHash, db, triedb.WithRecorder(recorder))
+		recorder := triedb.NewRecorder[H]()
+		trie := triedb.NewTrieDB[H, Hasher](rootHash, db, triedb.WithRecorder[H, Hasher](recorder))
 		trie.SetVersion(trieVersion)
 		trie.Get(key)
 
@@ -52,7 +53,7 @@ func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash comm
 			nextEntry := stack.At(i)
 			nextRecord := recordedNodes.Peek()
 
-			if nextRecord == nil || !bytes.Equal(nextEntry.nodeHash[:], nextRecord.Hash[:]) {
+			if nextRecord == nil || !bytes.Equal(nextEntry.nodeHash[:], nextRecord.Hash.Bytes()) {
 				break
 			}
 
@@ -63,12 +64,12 @@ func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash comm
 	loop:
 		for {
 			var nextStep genProofStep
-			var entry *genProofStackEntry
+			var entry *genProofStackEntry[H]
 			if stack.Len() > 0 {
 				entry = stack.Back()
 			}
 			if entry == nil {
-				nextStep = genProofStepDescend{childPrefixLen: 0, child: nodeHandleHash(rootHash)}
+				nextStep = genProofStepDescend{childPrefixLen: 0, child: nodeHandleHash[H]{rootHash}}
 			} else {
 				var err error
 				nextStep, err = genProofMatchKeyToNode(
@@ -76,7 +77,7 @@ func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash comm
 					&entry.omitValue,
 					&entry.childIndex,
 					keyNibbles,
-					len(entry.prefix),
+					entry.prefix.Len(),
 					recordedNodes,
 				)
 
@@ -87,25 +88,26 @@ func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash comm
 
 			switch s := nextStep.(type) {
 			case genProofStepDescend:
-				childPrefix := keyNibbles[:s.childPrefixLen]
-				var childEntry *genProofStackEntry
+				childPrefix := keyNibbles.Truncate(s.childPrefixLen)
+				var childEntry *genProofStackEntry[H]
 				switch child := s.child.(type) {
-				case nodeHandleHash:
+				case nodeHandleHash[H]:
 					childRecord := recordedNodes.Next()
 
-					if !bytes.Equal(childRecord.Hash[:], child[:]) {
+					// if !bytes.Equal(childRecord.Hash[:], child[:]) {
+					if childRecord.Hash != child.hash {
 						panic("hash mismatch")
 					}
 
-					outputIndex := len(proofNodes)
+					outputIndex := uint(len(proofNodes))
 
 					// Insert a placeholder into output which will be replaced when this
 					// new entry is popped from the stack.
 					proofNodes = append(proofNodes, []byte{})
-					childEntry, err = newGenProofStackEntry(
+					childEntry, err = newGenProofStackEntry[H](
 						childPrefix,
 						childRecord.Data,
-						&childRecord.Hash,
+						childRecord.Hash.Bytes(),
 						&outputIndex,
 					)
 
@@ -113,10 +115,10 @@ func NewMerkleProof(db db.RWDatabase, trieVersion trie.TrieLayout, rootHash comm
 						return nil, err
 					}
 				case nodeHandleInline:
-					if len(child) > common.HashLength {
+					if len(child) > (*new(H)).Length() {
 						return nil, errors.New("invalid hash length")
 					}
-					childEntry, err = newGenProofStackEntry(
+					childEntry, err = newGenProofStackEntry[H](
 						childPrefix,
 						child,
 						nil,

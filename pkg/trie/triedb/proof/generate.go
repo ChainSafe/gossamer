@@ -6,9 +6,10 @@ package proof
 import (
 	"bytes"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/hash"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibbles"
 	"github.com/gammazero/deque"
 	"golang.org/x/exp/slices"
 )
@@ -18,12 +19,14 @@ type nodeHandle interface {
 }
 
 type (
-	nodeHandleHash   common.Hash
+	nodeHandleHash[H any] struct {
+		hash H
+	}
 	nodeHandleInline []byte
 )
 
-func (nodeHandleHash) isNodeHandle()   {}
-func (nodeHandleInline) isNodeHandle() {}
+func (nodeHandleHash[H]) isNodeHandle() {}
+func (nodeHandleInline) isNodeHandle()  {}
 
 type genProofStep interface {
 	isProofStep()
@@ -31,7 +34,7 @@ type genProofStep interface {
 
 type (
 	genProofStepDescend struct {
-		childPrefixLen int
+		childPrefixLen uint
 		child          nodeHandle
 	}
 	genProofStepFoundValue struct {
@@ -46,36 +49,36 @@ func (genProofStepDescend) isProofStep()          {}
 func (genProofStepFoundValue) isProofStep()       {}
 func (genProofStepFoundHashedValue) isProofStep() {}
 
-type genProofStackEntry struct {
+type genProofStackEntry[H hash.Hash] struct {
 	// prefix is the nibble path to the node in the trie
-	prefix []byte
+	prefix nibbles.LeftNibbles
 	// node is the stacked node
 	node codec.EncodedNode
 	// encodedNode is the encoded node data
 	encodedNode []byte
 	// nodeHash of the node or nil if the node is inlined
-	nodeHash *common.Hash
+	nodeHash []byte
 	// omitValue is a flag to know if the value should be omitted in the generated proof
 	omitValue bool
 	// childIndex is used for branch nodes
-	childIndex int
+	childIndex uint
 	// children contains the child references to use in constructing the proof nodes.
 	children triedb.ChildReferences
 	// outputIndex is the index into the proof vector that the encoding of this entry should be placed at.
-	outputIndex *int
+	outputIndex *uint
 }
 
-func newGenProofStackEntry(
-	prefix []byte,
+func newGenProofStackEntry[H hash.Hash](
+	prefix nibbles.LeftNibbles,
 	nodeData []byte,
-	nodeHash *common.Hash,
-	outputIndex *int) (*genProofStackEntry, error) {
-	node, err := codec.Decode(bytes.NewReader(nodeData))
+	nodeHash []byte,
+	outputIndex *uint) (*genProofStackEntry[H], error) {
+	node, err := codec.Decode[H](bytes.NewReader(nodeData))
 	if err != nil {
 		return nil, err
 	}
 
-	return &genProofStackEntry{
+	return &genProofStackEntry[H]{
 		prefix:      prefix,
 		node:        node,
 		encodedNode: nodeData,
@@ -87,7 +90,7 @@ func newGenProofStackEntry(
 	}, nil
 }
 
-func (e *genProofStackEntry) encodeNode() ([]byte, error) {
+func (e *genProofStackEntry[H]) encodeNode() ([]byte, error) {
 	switch n := e.node.(type) {
 	case codec.Empty:
 		return e.encodedNode, nil
@@ -97,7 +100,7 @@ func (e *genProofStackEntry) encodeNode() ([]byte, error) {
 		}
 
 		encodingBuffer := bytes.NewBuffer(nil)
-		err := triedb.NewEncodedLeaf(e.node.GetPartialKey(), codec.InlineValue{}, encodingBuffer)
+		err := triedb.NewEncodedLeaf(n.PartialKey.Right(), n.PartialKey.Len(), codec.InlineValue{}, encodingBuffer)
 		if err != nil {
 			return nil, err
 		}
@@ -110,7 +113,7 @@ func (e *genProofStackEntry) encodeNode() ([]byte, error) {
 		}
 		e.completBranchChildren(n.Children, e.childIndex)
 		encodingBuffer := bytes.NewBuffer(nil)
-		err := triedb.NewEncodedBranch(e.node.GetPartialKey(), e.children, value, encodingBuffer)
+		err := triedb.NewEncodedBranch(n.PartialKey.Right(), n.PartialKey.Len(), e.children, value, encodingBuffer)
 		if err != nil {
 			return nil, err
 		}
@@ -120,7 +123,7 @@ func (e *genProofStackEntry) encodeNode() ([]byte, error) {
 	}
 }
 
-func (e *genProofStackEntry) setChild(encodedChild []byte) {
+func (e *genProofStackEntry[H]) setChild(encodedChild []byte) {
 	var childRef triedb.ChildReference
 	switch n := e.node.(type) {
 	case codec.Branch:
@@ -137,23 +140,23 @@ func (e *genProofStackEntry) setChild(encodedChild []byte) {
 	e.childIndex++
 }
 
-func (e *genProofStackEntry) completBranchChildren(
+func (e *genProofStackEntry[H]) completBranchChildren(
 	childHandles [codec.ChildrenCapacity]codec.MerkleValue,
-	childIndex int,
+	childIndex uint,
 ) {
 	for i := childIndex; i < codec.ChildrenCapacity; i++ {
 		switch n := childHandles[i].(type) {
 		case codec.InlineNode:
 			e.children[i] = triedb.InlineChildReference(n)
-		case codec.HashedNode:
-			e.children[i] = triedb.HashChildReference(common.Hash(n))
+		case codec.HashedNode[H]:
+			e.children[i] = triedb.HashChildReference[H](n)
 		}
 	}
 }
 
-func (e *genProofStackEntry) replaceChildRef(encodedChild []byte, child codec.MerkleValue) triedb.ChildReference {
+func (e *genProofStackEntry[H]) replaceChildRef(encodedChild []byte, child codec.MerkleValue) triedb.ChildReference {
 	switch child.(type) {
-	case codec.HashedNode:
+	case codec.HashedNode[H]:
 		return triedb.InlineChildReference(nil)
 	case codec.InlineNode:
 		return triedb.InlineChildReference(encodedChild)
@@ -162,17 +165,17 @@ func (e *genProofStackEntry) replaceChildRef(encodedChild []byte, child codec.Me
 	}
 }
 
-// / Unwind the stack until the given key is prefixed by the entry at the top of the stack. If the
-// / key is nil, unwind the stack completely. As entries are popped from the stack, they are
-// / encoded into proof nodes and added to the finalized proof.
-func unwindStack(
-	stack *deque.Deque[*genProofStackEntry],
+// Unwind the stack until the given key is prefixed by the entry at the top of the stack. If the
+// key is nil, unwind the stack completely. As entries are popped from the stack, they are
+// encoded into proof nodes and added to the finalized proof.
+func unwindStack[H hash.Hash](
+	stack *deque.Deque[*genProofStackEntry[H]],
 	proofNodes [][]byte,
-	maybeKey *[]byte,
+	maybeKey *nibbles.LeftNibbles,
 ) error {
 	for stack.Len() > 0 {
 		entry := stack.PopBack()
-		if maybeKey != nil && bytes.HasPrefix(*maybeKey, entry.prefix) {
+		if maybeKey != nil && maybeKey.StartsWith(entry.prefix) {
 			stack.PushBack(entry)
 			break
 		}
@@ -206,25 +209,25 @@ func sortAndDeduplicateKeys(keys []string) []string {
 	return deduplicatedkeys
 }
 
-func genProofMatchKeyToNode(
+func genProofMatchKeyToNode[H hash.Hash](
 	node codec.EncodedNode,
 	omitValue *bool,
-	childIndex *int,
-	key []byte,
-	prefixlen int,
-	recordedNodes *Iterator[triedb.Record],
+	childIndex *uint,
+	key nibbles.LeftNibbles,
+	prefixlen uint,
+	recordedNodes *Iterator[triedb.Record[H]],
 ) (genProofStep, error) {
 	switch n := node.(type) {
 	case codec.Empty:
 		return genProofStepFoundValue{nil}, nil
 	case codec.Leaf:
-		if bytes.Contains(key, n.PartialKey) && len(key) == prefixlen+len(n.PartialKey) {
+		if key.Contains(n.PartialKey, prefixlen) && key.Len() == prefixlen+n.PartialKey.Len() {
 			switch v := n.Value.(type) {
 			case codec.InlineValue:
 				*omitValue = true
 				value := []byte(v)
 				return genProofStepFoundValue{&value}, nil
-			case codec.HashedValue:
+			case codec.HashedValue[H]:
 				*omitValue = true
 				return resolveValue(recordedNodes)
 			}
@@ -246,21 +249,21 @@ func genProofMatchKeyToNode(
 	}
 }
 
-func genProofMatchKeyToBranchNode(
+func genProofMatchKeyToBranchNode[H hash.Hash](
 	value codec.EncodedValue,
 	childHandles [codec.ChildrenCapacity]codec.MerkleValue,
-	childIndex *int,
+	childIndex *uint,
 	omitValue *bool,
-	key []byte,
-	prefixlen int,
-	nodePartialKey []byte,
-	recordedNodes *Iterator[triedb.Record],
+	key nibbles.LeftNibbles,
+	prefixlen uint,
+	nodePartialKey nibbles.Nibbles,
+	recordedNodes *Iterator[triedb.Record[H]],
 ) (genProofStep, error) {
-	if !bytes.Contains(key, nodePartialKey) {
+	if !key.Contains(nodePartialKey, prefixlen) {
 		return genProofStepFoundValue{nil}, nil
 	}
 
-	if len(key) == prefixlen+len(nodePartialKey) {
+	if key.Len() == prefixlen+nodePartialKey.Len() {
 		if value == nil {
 			return genProofStepFoundValue{nil}, nil
 		}
@@ -270,38 +273,38 @@ func genProofMatchKeyToBranchNode(
 			*omitValue = true
 			value := []byte(v)
 			return genProofStepFoundValue{&value}, nil
-		case codec.HashedValue:
+		case codec.HashedValue[H]:
 			*omitValue = true
 			return resolveValue(recordedNodes)
 		}
 	}
 
-	newIndex := int(key[prefixlen+len(nodePartialKey)])
+	newIndex := *key.At(prefixlen + nodePartialKey.Len())
 
-	if newIndex < *childIndex {
+	if uint(newIndex) < *childIndex {
 		panic("newIndex out of bounds")
 	}
 
-	*childIndex = newIndex
+	*childIndex = uint(newIndex)
 
 	if childHandles[newIndex] != nil {
 		var child nodeHandle
 		switch c := childHandles[newIndex].(type) {
-		case codec.HashedNode:
-			child = nodeHandleHash(c)
+		case codec.HashedNode[H]:
+			child = nodeHandleHash[H]{c.Hash}
 		case codec.InlineNode:
 			child = nodeHandleInline(c)
 		}
 
 		return genProofStepDescend{
-			childPrefixLen: len(nodePartialKey) + prefixlen + 1,
+			childPrefixLen: nodePartialKey.Len() + prefixlen + 1,
 			child:          child,
 		}, nil
 	}
 	return genProofStepFoundValue{nil}, nil
 }
 
-func resolveValue(recordedNodes *Iterator[triedb.Record]) (genProofStep, error) {
+func resolveValue[H hash.Hash](recordedNodes *Iterator[triedb.Record[H]]) (genProofStep, error) {
 	value := recordedNodes.Next()
 	if value != nil {
 		return genProofStepFoundHashedValue{value.Data}, nil

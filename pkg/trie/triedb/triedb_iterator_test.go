@@ -6,6 +6,8 @@ package triedb
 import (
 	"testing"
 
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/assert"
@@ -29,36 +31,60 @@ func TestIterator(t *testing.T) {
 	for k, v := range entries {
 		inMemoryTrie.Put([]byte(k), v)
 	}
-
 	err := inMemoryTrie.WriteDirty(db)
 	assert.NoError(t, err)
 
 	root, err := inMemoryTrie.Hash()
 	assert.NoError(t, err)
 
-	trieDB := NewTrieDB(root, db)
+	inmemoryDB := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+	trieDB := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](inmemoryDB)
+
+	for k, v := range entries {
+		err := trieDB.Put([]byte(k), v)
+		assert.NoError(t, err)
+	}
+	assert.NoError(t, trieDB.commit())
+
+	// check that the root hashes are the same
+	assert.Equal(t, root.ToBytes(), trieDB.rootHash.Bytes())
+
 	t.Run("iterate_over_all_entries", func(t *testing.T) {
-		iter := NewTrieDBIterator(trieDB)
+		iter, err := newRawIterator(trieDB)
+		assert.NoError(t, err)
 
 		expected := inMemoryTrie.NextKey([]byte{})
 		i := 0
-		for key := iter.NextKey(); key != nil; key = iter.NextKey() {
-			assert.Equal(t, expected, key)
+		for {
+			item, err := iter.NextItem()
+			assert.NoError(t, err)
+			if item == nil {
+				break
+			}
+			assert.Equal(t, expected, item.Key)
 			expected = inMemoryTrie.NextKey(expected)
 			i++
 		}
-
 		assert.Equal(t, len(entries), i)
 	})
 
-	t.Run("iterate_from_given_key", func(t *testing.T) {
-		iter := NewTrieDBIterator(trieDB)
+	t.Run("iterate_after_seeking", func(t *testing.T) {
+		iter, err := newRawIterator(trieDB)
+		assert.NoError(t, err)
 
-		iter.Seek([]byte("not"))
+		found, err := iter.seek([]byte("not"), true)
+		assert.NoError(t, err)
+		assert.True(t, found)
 
 		expected := inMemoryTrie.NextKey([]byte("not"))
-		actual := iter.NextKey()
+		actual, err := iter.NextItem()
+		assert.NoError(t, err)
+		assert.NotNil(t, actual)
 
-		assert.Equal(t, expected, actual)
+		assert.Equal(t, []byte("not"), actual.Key)
+		actual, err = iter.NextItem()
+		assert.NoError(t, err)
+		assert.NotNil(t, actual)
+		assert.Equal(t, expected, actual.Key)
 	})
 }
