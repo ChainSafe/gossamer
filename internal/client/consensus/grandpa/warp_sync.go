@@ -93,10 +93,10 @@ func (w *WarpSyncProof) verify(
 	currentAuthorities := authorities
 
 	for fragmentNumber, proof := range w.Proofs {
-		hash := proof.Header.Hash()
+		headerHash := proof.Header.Hash()
 		number := proof.Header.Number
 
-		hardForkKey := fmt.Sprintf("%v-%v", hash, number)
+		hardForkKey := fmt.Sprintf("%v-%v", headerHash, number)
 		if fork, ok := hardForks[hardForkKey]; ok {
 			currentSetId = fork.SetID
 			currentAuthorities = fork.AuthorityList
@@ -106,7 +106,7 @@ func (w *WarpSyncProof) verify(
 				return nil, err
 			}
 
-			if !bytes.Equal(proof.Justification.Target().Hash.Bytes(), hash.ToBytes()) {
+			if !bytes.Equal(proof.Justification.Target().Hash.Bytes(), headerHash.ToBytes()) {
 				return nil, fmt.Errorf("mismatch between header and justification")
 			}
 
