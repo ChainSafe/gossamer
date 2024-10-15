@@ -22,6 +22,17 @@ const (
 	Two
 )
 
+var AvailableAuthorities = []Keyring{
+	Alice,
+	Bob,
+	Charlie,
+	Dave,
+	Eve,
+	Ferdie,
+	One,
+	Two,
+}
+
 func (k Keyring) Sign(msg []byte) ed25519.Signature {
 	return k.Pair().Sign(msg)
 }

@@ -11,9 +11,11 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa/app"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -84,7 +86,7 @@ func (w *WarpSyncProof) lastProofBlockNumber() uint64 {
 
 func (w *WarpSyncProof) verify(
 	setId grandpa.SetID,
-	authorities types.AuthorityList,
+	authorities primitives.AuthorityList,
 	hardForks map[string]SetIdAuthorityList,
 ) (*SetIdAuthorityList, error) {
 	currentSetId := setId
@@ -99,15 +101,6 @@ func (w *WarpSyncProof) verify(
 			currentSetId = fork.SetID
 			currentAuthorities = fork.AuthorityList
 		} else {
-			// Convert authorities to the format expected by the justification
-			var authorities primitives.AuthorityList
-			for _, auth := range currentAuthorities {
-				authorities = append(authorities, primitives.AuthorityIDWeight{
-					AuthorityID:     auth.ToRaw().Key,
-					AuthorityWeight: primitives.AuthorityWeight(auth.Weight),
-				})
-			}
-
 			err := proof.Justification.Verify(uint64(currentSetId), authorities)
 			if err != nil {
 				return nil, err
@@ -123,7 +116,7 @@ func (w *WarpSyncProof) verify(
 			}
 
 			if scheduledChange != nil {
-				auths, err := types.GrandpaAuthoritiesRawToAuthorities(scheduledChange.Auths)
+				auths, err := grandpaAuthoritiesRawToAuthorities(scheduledChange.Auths)
 				if err != nil {
 					return nil, fmt.Errorf("cannot parse GRANPDA raw authorities: %w", err)
 				}
@@ -154,7 +147,7 @@ func NewWarpSyncProofProvider(blockState BlockState, grandpaState GrandpaState) 
 
 type SetIdAuthorityList struct {
 	grandpa.SetID
-	types.AuthorityList
+	primitives.AuthorityList
 }
 
 // Generate build a warp sync encoded proof starting from the given block hash
@@ -265,10 +258,10 @@ func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 func (p *WarpSyncProofProvider) Verify(
 	encodedProof []byte,
 	setId grandpa.SetID,
-	authorities types.AuthorityList,
+	authorities primitives.AuthorityList,
 ) (*network.WarpSyncVerificationResult, error) {
 	var proof WarpSyncProof
-	err := scale.Unmarshal(encodedProof, proof)
+	err := scale.Unmarshal(encodedProof, &proof)
 	if err != nil {
 		return nil, fmt.Errorf("decoding warp sync proof: %w", err)
 	}
@@ -331,4 +324,23 @@ func findScheduledChange(
 		}
 	}
 	return nil, nil
+}
+
+func grandpaAuthoritiesRawToAuthorities(adr []types.GrandpaAuthoritiesRaw) (primitives.AuthorityList, error) {
+	ad := make([]primitives.AuthorityIDWeight, len(adr))
+	for i, r := range adr {
+		ad[i] = primitives.AuthorityIDWeight{}
+
+		key, err := ed25519.NewPublicKey(r.Key[:])
+		if err != nil {
+			return nil, err
+		}
+
+		keyBytes := key.AsBytes()
+		pkey, err := app.NewPublic(keyBytes[:])
+		ad[i].AuthorityID = pkey
+		ad[i].AuthorityWeight = primitives.AuthorityWeight(r.ID)
+	}
+
+	return ad, nil
 }
