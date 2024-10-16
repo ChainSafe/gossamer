@@ -265,7 +265,10 @@ func (nbr *NetworkBridgeReceiver) handleCollationMessage(
 			Message: *v,
 		}
 	case *ViewUpdate:
-		nbr.handleViewUpdate(sender, *v)
+		err = nbr.handleViewUpdate(sender, *v)
+		if err != nil {
+			return propagate, fmt.Errorf("handling view update: %w", err)
+		}
 	default:
 		return propagate, fmt.Errorf("unexpected message type: %T", value)
 	}
@@ -288,31 +291,22 @@ func (nbr *NetworkBridgeReceiver) handleValidationMessage(
 		return propagate, fmt.Errorf("failed to cast into wire message, expected: *WireMessage, got: %T", msg)
 	}
 
-	index, value, err := wireMessage.IndexValue()
+	_, value, err := wireMessage.IndexValue()
 	if err != nil {
 		return propagate, fmt.Errorf("getting index value: %w", err)
 	}
 
-	switch index {
-	case 1:
-		validationProtocol, ok := msg.(*validationprotocol.ValidationProtocol)
-		if !ok {
-			return propagate, fmt.Errorf(
-				"failed to cast into validation protocol message, expected: *ValidationProtocol, got: %T",
-				value)
-		}
+	switch v := value.(type) {
+	case *validationprotocol.ValidationProtocol:
 		nbr.SubsystemsToOverseer <- events.PeerMessage[validationprotocol.ValidationProtocol]{
 			PeerID:  sender,
-			Message: *validationProtocol,
+			Message: *v,
 		}
-	case 2:
-		viewUpdate, ok := value.(*ViewUpdate)
-		if !ok {
-			return propagate, fmt.Errorf(
-				"failed to cast into view update, expected: *ViewUpdate, got: %T",
-				value)
+	case *ViewUpdate:
+		err = nbr.handleViewUpdate(sender, *v)
+		if err != nil {
+			return propagate, fmt.Errorf("handling view update: %w", err)
 		}
-		nbr.handleViewUpdate(sender, *viewUpdate)
 	}
 
 	return propagate, nil
