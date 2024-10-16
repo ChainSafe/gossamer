@@ -253,32 +253,21 @@ func (nbr *NetworkBridgeReceiver) handleCollationMessage(
 		return propagate, fmt.Errorf("failed to cast into wire message, expected: *WireMessage, got: %T", msg)
 	}
 
-	index, value, err := wireMessage.IndexValue()
+	_, value, err := wireMessage.IndexValue()
 	if err != nil {
 		return propagate, fmt.Errorf("getting index value: %w", err)
 	}
 
-	switch index {
-	case 1:
-		collatorProtocol, ok := value.(*collatorprotocolmessages.CollationProtocol)
-		if !ok {
-			return propagate, fmt.Errorf(
-				"failed to cast into collator protocol message, expected: *CollationProtocol, got: %T",
-				value)
-		}
+	switch v := value.(type) {
+	case *collatorprotocolmessages.CollationProtocol:
 		nbr.SubsystemsToOverseer <- events.PeerMessage[collatorprotocolmessages.CollationProtocol]{
 			PeerID:  sender,
-			Message: *collatorProtocol,
+			Message: *v,
 		}
-	case 2:
-		viewUpdate, ok := value.(*ViewUpdate)
-		if !ok {
-			return propagate, fmt.Errorf(
-				"failed to cast into view update, expected: *ViewUpdate, got: %T",
-				value)
-		}
-		nbr.handleViewUpdate(sender, *viewUpdate)
-
+	case *ViewUpdate:
+		nbr.handleViewUpdate(sender, *v)
+	default:
+		return propagate, fmt.Errorf("unexpected message type: %T", value)
 	}
 
 	return propagate, nil
@@ -345,7 +334,7 @@ func (nbr *NetworkBridgeReceiver) handleViewUpdate(peer peer.ID, view ViewUpdate
 			Value:  peerset.CostMinor,
 			Reason: "peer sent us empty view",
 		}, peer)
-	} else if events.View(view).Equals(events.View(peerData.view)) {
+	} else if View(view).checkHeadsEqual(peerData.view) {
 		// nothing
 	} else {
 		peerData.view = View(view)

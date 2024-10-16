@@ -10,25 +10,12 @@ import (
 
 func decodeCollationMessage(in []byte) (network.NotificationsMessage, error) {
 	wireMessage := WireMessage{}
-	// err := wireMessage.SetValue(collatorprotocolmessages.CollationProtocol{})
-	// if err != nil {
-	// 	return nil, fmt.Errorf("setting collation protocol message: %w", err)
-	// }
 	err := scale.Unmarshal(in, &wireMessage)
 	if err != nil {
 		return nil, fmt.Errorf("decoding message: %w", err)
 	}
 
 	wireMessage.SetType(network.CollationMsgType)
-	// collationMessageV, err := wireMessage.Value()
-	// if err != nil {
-	// 	return nil, fmt.Errorf("getting collation protocol message value: %w", err)
-	// }
-	// collationMessage, ok := collationMessageV.(collatorprotocolmessages.CollationProtocol)
-	// if !ok {
-	// 	return nil, fmt.Errorf("casting to collation protocol message")
-	// }
-	// return &collationMessage, nil
 	return wireMessage, nil
 }
 
