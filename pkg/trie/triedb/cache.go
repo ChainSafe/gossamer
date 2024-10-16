@@ -323,7 +323,7 @@ func (ecv ExistingCachedValue[H]) hash() *H     { return &ecv.Hash } //nolint:un
 // The trie nodes cache, as the name indicates, is for caching trie nodes as [CachedNode]. These
 // trie nodes are referenced by their hash. The value cache is caching [CachedValue]'s and these
 // are referenced by the key to look them up in the trie. As multiple different tries can have
-// different values under the same key, it up to the cache implementation to ensure that the
+// different values under the same key, it is up to the cache implementation to ensure that the
 // correct value is returned. As each trie has a different root, this root can be used to
 // differentiate values under the same key.
 type TrieCache[H hash.Hash] interface {
