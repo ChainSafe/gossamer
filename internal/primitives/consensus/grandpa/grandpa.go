@@ -55,6 +55,7 @@ type SignedMessage[H, N any] grandpa.SignedMessage[H, N, AuthoritySignature, Aut
 // Commit is a commit message for this chain's block type.
 type Commit[H, N any] grandpa.Commit[H, N, AuthoritySignature, AuthorityID]
 
+// ScheduledChange is a scheduled authority change.
 type ScheduledChange[N runtime.Number] struct {
 	NextAuthorities AuthorityList
 	Delay           N
