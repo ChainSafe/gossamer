@@ -74,6 +74,10 @@ func (w *WarpSyncProof) lastProofBlockNumber() uint64 {
 	return w.Proofs[len(w.Proofs)-1].Justification.Justification.Commit.TargetNumber + 1
 }
 
+// The warp proof is verified by traversing the warp proof fragments,
+// then we verify the justifications against the authorities based on the
+// genesis authorities and the scheduled changes.
+// If we are able to verify all the fragments, then the warp proof is valid.
 func (w *WarpSyncProof) verify(
 	setId grandpa.SetID,
 	authorities primitives.AuthorityList,
