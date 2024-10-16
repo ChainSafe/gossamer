@@ -30,12 +30,12 @@ func Test_chainSyncState_String(t *testing.T) {
 
 	tests := []struct {
 		name string
-		s    chainSyncState
+		s    ChainSyncState
 		want string
 	}{
 		{
 			name: "case_bootstrap",
-			s:    bootstrap,
+			s:    Bootstrap,
 			want: "bootstrap",
 		},
 		{
@@ -78,7 +78,7 @@ func Test_chainSync_onBlockAnnounce(t *testing.T) {
 		blockAnnounceHeader *types.Header
 		errWrapped          error
 		errMessage          string
-		expectedSyncMode    chainSyncState
+		expectedSyncMode    ChainSyncState
 	}{
 		"announced_block_already_exists_in_disjoint_set": {
 			chainSyncBuilder: func(ctrl *gomock.Controller) *chainSync {
@@ -122,7 +122,7 @@ func Test_chainSync_onBlockAnnounce(t *testing.T) {
 				pendingBlocks.EXPECT().addHeader(block2AnnounceHeader).Return(nil)
 
 				state := atomic.Value{}
-				state.Store(bootstrap)
+				state.Store(Bootstrap)
 
 				return &chainSync{
 					stopCh:        make(chan struct{}),
@@ -368,7 +368,7 @@ func TestChainSync_onBlockAnnounceHandshake_onBootstrapMode(t *testing.T) {
 				workerPool := newSyncWorkerPool(networkMock, NewMockRequestMaker(nil))
 
 				cs := newChainSyncTest(t, ctrl)
-				cs.syncMode.Store(bootstrap)
+				cs.syncMode.Store(Bootstrap)
 				cs.workerPool = workerPool
 				return cs
 			},
@@ -387,7 +387,7 @@ func TestChainSync_onBlockAnnounceHandshake_onBootstrapMode(t *testing.T) {
 				}
 
 				cs := newChainSyncTest(t, ctrl)
-				cs.syncMode.Store(bootstrap)
+				cs.syncMode.Store(Bootstrap)
 				cs.workerPool = workerPool
 				return cs
 			},
@@ -407,7 +407,7 @@ func TestChainSync_onBlockAnnounceHandshake_onBootstrapMode(t *testing.T) {
 				}
 
 				cs := newChainSyncTest(t, ctrl)
-				cs.syncMode.Store(bootstrap)
+				cs.syncMode.Store(Bootstrap)
 				cs.workerPool = workerPool
 				return cs
 			},
@@ -496,7 +496,7 @@ func setupChainSyncToBootstrapMode(t *testing.T, blocksAhead uint,
 
 	chainSync := newChainSync(cfg)
 	chainSync.peerViewSet = &peerViewSet{view: peerViewMap}
-	chainSync.syncMode.Store(bootstrap)
+	chainSync.syncMode.Store(Bootstrap)
 
 	return chainSync
 }

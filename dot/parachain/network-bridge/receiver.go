@@ -11,6 +11,7 @@ import (
 	"sort"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	events "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
@@ -40,6 +41,7 @@ type NetworkBridgeReceiver struct {
 
 	BlockState *state.BlockState
 	Keystore   keystore.Keystore
+	sync       Sync
 
 	localView *View
 
@@ -148,10 +150,9 @@ func (nbr *NetworkBridgeReceiver) Name() parachaintypes.SubSystemName {
 func (nbr *NetworkBridgeReceiver) ProcessActiveLeavesUpdateSignal(
 	signal parachaintypes.ActiveLeavesUpdateSignal) error {
 
-	// TODO: #4207 get the value for majorSyncing for syncing package
 	// majorSyncing means you are 5 blocks behind the tip of the chain and thus more aggressively
 	// download blocks etc to reach the tip of the chain faster.
-	var majorSyncing bool
+	majorSyncing := nbr.sync.IsSynced()
 
 	nbr.liveHeads = append(nbr.liveHeads, parachaintypes.ActivatedLeaf{
 		Hash:   signal.Activated.Hash,
@@ -341,4 +342,8 @@ func getTopologyPeers(authorityDiscoveryService AuthorityDiscoveryService,
 
 type AuthorityDiscoveryService interface {
 	GetPeerIDByAuthorityID(authorityID parachaintypes.AuthorityDiscoveryID) peer.ID
+}
+
+type Sync interface {
+	IsSynced() bool
 }

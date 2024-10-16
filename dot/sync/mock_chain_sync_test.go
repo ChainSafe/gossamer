@@ -56,10 +56,10 @@ func (mr *MockChainSyncMockRecorder) getHighestBlock() *gomock.Call {
 }
 
 // getSyncMode mocks base method.
-func (m *MockChainSync) getSyncMode() chainSyncState {
+func (m *MockChainSync) getSyncMode() ChainSyncState {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "getSyncMode")
-	ret0, _ := ret[0].(chainSyncState)
+	ret0, _ := ret[0].(ChainSyncState)
 	return ret0
 }
 

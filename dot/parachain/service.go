@@ -39,7 +39,7 @@ type Service struct {
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain"))
 
-func NewService(net Network, forkID string, st *state.Service, ks keystore.Keystore) (*Service, error) {
+func NewService(net Network, forkID string, st *state.Service, ks keystore.Keystore, syncer Sync) (*Service, error) {
 	overseer := overseer.NewOverseer(st.Block)
 	err := overseer.Start()
 	if err != nil {
@@ -168,4 +168,8 @@ type Network interface {
 	DisconnectPeer(setID int, p peer.ID)
 	GetNetworkEventsChannel() chan *network.NetworkEventInfo
 	FreeNetworkEventsChannel(ch chan *network.NetworkEventInfo)
+}
+
+type Sync interface {
+	IsSynced() bool
 }
