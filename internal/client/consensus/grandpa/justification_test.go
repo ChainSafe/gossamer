@@ -76,7 +76,7 @@ func TestJustificationEncoding(t *testing.T) {
 	encodedJustification, err := scale.Marshal(expected)
 	require.NoError(t, err)
 
-	justification, err := decodeJustification[hash.H256, uint64, runtime.BlakeTwo256](encodedJustification)
+	justification, err := DecodeJustification[hash.H256, uint64, runtime.BlakeTwo256](encodedJustification)
 	require.NoError(t, err)
 	require.Equal(t, expected, justification.Justification)
 }

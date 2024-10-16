@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
+	consensus_grandpa "github.com/ChainSafe/gossamer/internal/client/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa/app"
@@ -26,24 +27,13 @@ var (
 	errStartBlockNotFinalized = fmt.Errorf("start block is not finalized")
 )
 
-type BlockState interface {
-	GetHeader(hash common.Hash) (*types.Header, error)
-	GetHighestFinalisedHeader() (*types.Header, error)
-	GetHeaderByNumber(num uint) (*types.Header, error)
-	GetJustification(hash common.Hash) ([]byte, error)
-}
-
-type GrandpaState interface {
-	GetAuthoritiesChangesFromBlock(blockNumber uint) ([]uint, error)
-}
-
 type WarpSyncFragment struct {
 	// The last block that the given authority set finalized. This block should contain a digest
 	// signalling an authority set change from which we can fetch the next authority set.
 	Header types.Header
 	// A justification for the header above which proves its finality. In order to validate it the
 	// verifier must be aware of the authorities and set id for which the justification refers to.
-	Justification GrandpaJustification[hash.H256, uint64]
+	Justification consensus_grandpa.GrandpaJustification[hash.H256, uint64]
 }
 
 type WarpSyncProof struct {
@@ -199,7 +189,7 @@ func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
-		justification, err := decodeJustification[hash.H256, uint64, runtime.BlakeTwo256](encJustification)
+		justification, err := consensus_grandpa.DecodeJustification[hash.H256, uint64, runtime.BlakeTwo256](encJustification)
 		if err != nil {
 			return nil, err
 		}
@@ -234,7 +224,9 @@ func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
-		justification, err := decodeJustification[hash.H256, uint64, runtime.BlakeTwo256](latestJustification)
+		justification, err := consensus_grandpa.DecodeJustification[hash.H256, uint64, runtime.BlakeTwo256](
+			latestJustification,
+		)
 		if err != nil {
 			return nil, err
 		}
