@@ -200,7 +200,7 @@ func (n NibbleSlice) asNibbles() *Nibbles {
 	return nil
 }
 
-// Return an iterator over [Partial] bytes representation.
+// Return an iterator over [NibbleSlice] bytes representation.
 func (n NibbleSlice) Right() []byte {
 	requirePadding := n.Len()%NibblesPerByte != 0
 	var ix uint
