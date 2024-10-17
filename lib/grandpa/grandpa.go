@@ -133,6 +133,8 @@ func NewService(cfg *Config) (*Service, error) {
 		cfg.Interval = defaultGrandpaInterval
 	}
 
+	neighborMsgChan := make(chan neighborData)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &Service{
 		ctx:                ctx,
@@ -154,10 +156,10 @@ func NewService(cfg *Config) (*Service, error) {
 		finalisedCh:        finalisedCh,
 		interval:           cfg.Interval,
 		telemetry:          cfg.Telemetry,
-		neighborMsgChan:    make(chan neighborData),
+		neighborMsgChan:    neighborMsgChan,
 	}
 
-	s.neighborTracker = newNeighborTracker(s, s.neighborMsgChan)
+	s.neighborTracker = newNeighborTracker(s, neighborMsgChan)
 
 	if err := s.registerProtocol(); err != nil {
 		return nil, err

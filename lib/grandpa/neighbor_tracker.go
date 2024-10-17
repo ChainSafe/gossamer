@@ -91,7 +91,6 @@ func (nt *neighborTracker) run() {
 			}
 		case <-nt.stoppedNeighbor:
 			logger.Info("stopping neighbour tracker")
-			nt.Stop()
 			return
 		}
 	}
