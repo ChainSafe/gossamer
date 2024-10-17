@@ -25,7 +25,7 @@ type neighborState struct {
 	highestFinalized uint32
 }
 
-type NeighborTracker struct {
+type neighborTracker struct {
 	grandpa *Service
 
 	peerview         map[peer.ID]neighborState
@@ -38,8 +38,8 @@ type NeighborTracker struct {
 	stoppedNeighbor chan struct{}
 }
 
-func NewNeighborTracker(grandpa *Service, neighborChan chan neighborData) *NeighborTracker {
-	return &NeighborTracker{
+func newNeighborTracker(grandpa *Service, neighborChan chan neighborData) *neighborTracker {
+	return &neighborTracker{
 		grandpa:         grandpa,
 		peerview:        make(map[peer.ID]neighborState),
 		finalizationCha: grandpa.blockState.GetFinalisedNotifierChannel(),
@@ -48,16 +48,16 @@ func NewNeighborTracker(grandpa *Service, neighborChan chan neighborData) *Neigh
 	}
 }
 
-func (nt *NeighborTracker) Start() {
+func (nt *neighborTracker) Start() {
 	go nt.run()
 }
 
-func (nt *NeighborTracker) Stop() {
+func (nt *neighborTracker) Stop() {
 	nt.grandpa.blockState.FreeFinalisedNotifierChannel(nt.finalizationCha)
 	close(nt.stoppedNeighbor)
 }
 
-func (nt *NeighborTracker) run() {
+func (nt *neighborTracker) run() {
 	logger.Info("starting neighbour tracker")
 	ticker := time.NewTicker(neighbourBroadcastPeriod)
 	defer ticker.Stop()
@@ -82,15 +82,12 @@ func (nt *NeighborTracker) run() {
 			}
 		case neighborData := <-nt.neighborMsgChan:
 			if neighborData.neighborMsg.Number > nt.peerview[neighborData.peer].highestFinalized {
-				err := nt.UpdatePeer(
+				nt.UpdatePeer(
 					neighborData.peer,
 					neighborData.neighborMsg.SetID,
 					neighborData.neighborMsg.Round,
 					neighborData.neighborMsg.Number,
 				)
-				if err != nil {
-					logger.Errorf("updating neighbour: %v", err)
-				}
 			}
 		case <-nt.stoppedNeighbor:
 			logger.Info("stopping neighbour tracker")
@@ -99,22 +96,18 @@ func (nt *NeighborTracker) run() {
 	}
 }
 
-func (nt *NeighborTracker) UpdateState(setID uint64, round uint64, highestFinalized uint32) {
+func (nt *neighborTracker) UpdateState(setID uint64, round uint64, highestFinalized uint32) {
 	nt.currentSetID = setID
 	nt.currentRound = round
 	nt.highestFinalized = highestFinalized
 }
 
-func (nt *NeighborTracker) UpdatePeer(p peer.ID, setID uint64, round uint64, highestFinalized uint32) error {
-	if nt.peerview == nil {
-		return fmt.Errorf("neighbour tracker has nil peer tracker")
-	}
+func (nt *neighborTracker) UpdatePeer(p peer.ID, setID uint64, round uint64, highestFinalized uint32) {
 	peerState := neighborState{setID, round, highestFinalized}
 	nt.peerview[p] = peerState
-	return nil
 }
 
-func (nt *NeighborTracker) BroadcastNeighborMsg() error {
+func (nt *neighborTracker) BroadcastNeighborMsg() error {
 	packet := NeighbourPacketV1{
 		Round:  nt.currentRound,
 		SetID:  nt.currentSetID,
