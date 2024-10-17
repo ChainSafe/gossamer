@@ -212,6 +212,8 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 
 	gs, st := newTestService(t, aliceKeyPair)
 
+	gs.neighborTracker.Start()
+
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
 
@@ -250,6 +252,8 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	out, err := h.handleMessage("", NeighbourPacketV1)
 	require.NoError(t, err)
 	require.Nil(t, out)
+
+	gs.neighborTracker.Stop()
 }
 
 func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
