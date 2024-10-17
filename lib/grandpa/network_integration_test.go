@@ -42,8 +42,10 @@ func TestHandleNetworkMessage(t *testing.T) {
 
 	gs, st := newTestService(t, aliceKeyPair)
 
-	err = gs.Start()
-	require.NoError(t, err)
+	//err = gs.Start()
+	//require.NoError(t, err)
+
+	gs.neighborTracker.Start()
 
 	just := []SignedVote{
 		{
@@ -79,5 +81,6 @@ func TestHandleNetworkMessage(t *testing.T) {
 	propagate, err = gs.handleNetworkMessage(peer.ID(""), cm)
 	require.NoError(t, err)
 	require.False(t, propagate)
-	err = gs.Stop()
+
+	gs.neighborTracker.Stop()
 }
