@@ -5,14 +5,15 @@ package grandpa
 
 import (
 	"fmt"
-	"go.uber.org/mock/gomock"
-	"testing"
-
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+	"testing"
+	"time"
 )
 
-func TestNeighborTracker_UpdatePeer(t *testing.T) {
+func TestNeighbourTracker_UpdatePeer(t *testing.T) {
 	initPeerview := map[peer.ID]neighborState{}
 	initPeerview["testPeer"] = neighborState{
 		setID:            1,
@@ -75,7 +76,7 @@ func TestNeighborTracker_UpdatePeer(t *testing.T) {
 	}
 }
 
-func TestNeighborTracker_UpdateState(t *testing.T) {
+func TestNeighbourTracker_UpdateState(t *testing.T) {
 	type args struct {
 		setID            uint64
 		round            uint64
@@ -107,7 +108,7 @@ func TestNeighborTracker_UpdateState(t *testing.T) {
 	}
 }
 
-func TestNeighborTracker_BroadcastNeighborMsg(t *testing.T) {
+func TestNeighbourTracker_BroadcastNeighborMsg(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	// Err path
 	mockNetworkErr := NewMockNetwork(ctrl)
@@ -127,13 +128,13 @@ func TestNeighborTracker_BroadcastNeighborMsg(t *testing.T) {
 		setID: 5,
 	}
 
-	neighborTrackerErr := neighborTracker{
+	neighbourTrackerErr := neighborTracker{
 		grandpa:      grandpaServiceErr,
 		peerview:     peerViewErr,
 		currentRound: 5,
 		currentSetID: 5,
 	}
-	err = neighborTrackerErr.BroadcastNeighborMsg()
+	err = neighbourTrackerErr.BroadcastNeighborMsg()
 	require.Error(t, err)
 
 	// Happy path
@@ -160,12 +161,83 @@ func TestNeighborTracker_BroadcastNeighborMsg(t *testing.T) {
 		round: 7,
 		setID: 5,
 	}
-	neighborTrackerOk := neighborTracker{
+	neighbourTrackerOk := neighborTracker{
 		grandpa:      grandpaService,
 		peerview:     peerViewOk,
 		currentRound: 5,
 		currentSetID: 5,
 	}
-	err = neighborTrackerOk.BroadcastNeighborMsg()
+	err = neighbourTrackerOk.BroadcastNeighborMsg()
 	require.NoError(t, err)
+}
+
+func TestNeighbourTracker_StartStop_viaFunctionCall(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	finalizationChan := make(chan *types.FinalisationInfo)
+	blockStateMock := NewMockBlockState(ctrl)
+	blockStateMock.EXPECT().
+		GetFinalisedNotifierChannel().
+		Return(finalizationChan)
+	blockStateMock.EXPECT().
+		FreeFinalisedNotifierChannel(finalizationChan)
+
+	grandpaService := &Service{
+		blockState: blockStateMock,
+	}
+	nt := newNeighborTracker(grandpaService, make(chan neighborData))
+	nt.Start()
+	nt.Stop()
+}
+
+func TestNeighbourTracker_StartStop_viaChannel(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	finalizationChan := make(chan *types.FinalisationInfo)
+	blockStateMock := NewMockBlockState(ctrl)
+	blockStateMock.EXPECT().
+		GetFinalisedNotifierChannel().
+		Return(finalizationChan)
+	blockStateMock.EXPECT().
+		FreeFinalisedNotifierChannel(finalizationChan)
+
+	grandpaService := &Service{
+		blockState: blockStateMock,
+	}
+	nt := newNeighborTracker(grandpaService, make(chan neighborData))
+	nt.Start()
+	nt.stoppedNeighbor <- struct{}{}
+}
+
+func TestNeighbourTracker_UpdatePeer_viaChannel(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	finalizationChan := make(chan *types.FinalisationInfo)
+	blockStateMock := NewMockBlockState(ctrl)
+	blockStateMock.EXPECT().
+		GetFinalisedNotifierChannel().
+		Return(finalizationChan)
+	blockStateMock.EXPECT().
+		FreeFinalisedNotifierChannel(finalizationChan)
+
+	grandpaService := &Service{
+		blockState: blockStateMock,
+	}
+	neighbourChan := make(chan neighborData)
+	nt := newNeighborTracker(grandpaService, neighbourChan)
+	nt.Start()
+
+	neighbourChan <- neighborData{
+		peer: "testPeer",
+		neighborMsg: &NeighbourPacketV1{
+			Round:  5,
+			SetID:  6,
+			Number: 7,
+		},
+	}
+	
+	time.Sleep(100 * time.Millisecond)
+
+	require.Equal(t, uint64(5), nt.peerview["testPeer"].round)
+	require.Equal(t, uint64(6), nt.peerview["testPeer"].setID)
+	require.Equal(t, uint32(7), nt.peerview["testPeer"].highestFinalized)
+
+	nt.Stop()
 }
