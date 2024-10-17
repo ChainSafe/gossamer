@@ -196,8 +196,6 @@ func TestNeighbourTracker_StartStop_viaChannel(t *testing.T) {
 	blockStateMock.EXPECT().
 		GetFinalisedNotifierChannel().
 		Return(finalizationChan)
-	blockStateMock.EXPECT().
-		FreeFinalisedNotifierChannel(finalizationChan)
 
 	grandpaService := &Service{
 		blockState: blockStateMock,
@@ -232,7 +230,7 @@ func TestNeighbourTracker_UpdatePeer_viaChannel(t *testing.T) {
 			Number: 7,
 		},
 	}
-	
+
 	time.Sleep(100 * time.Millisecond)
 
 	require.Equal(t, uint64(5), nt.peerview["testPeer"].round)
