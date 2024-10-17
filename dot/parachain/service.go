@@ -61,6 +61,7 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 		net,
 		protocol.ID(collationProtocolID),
 		protocol.ID(validationProtocolID),
+		syncer,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("registering network bridge receiver: %w", err)

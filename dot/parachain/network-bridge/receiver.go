@@ -97,11 +97,12 @@ type ProspectiveCandidate struct {
 }
 
 func RegisterReceiver(overseerChan chan<- any, net Network,
-	collationProtocolID protocol.ID, validationProtocolID protocol.ID) (*NetworkBridgeReceiver, error) {
+	collationProtocolID protocol.ID, validationProtocolID protocol.ID, syncer Sync) (*NetworkBridgeReceiver, error) {
 	nbr := &NetworkBridgeReceiver{
 		net:                  net,
 		SubsystemsToOverseer: overseerChan,
 		networkEventInfoChan: net.GetNetworkEventsChannel(),
+		sync:                 syncer,
 	}
 
 	err := RegisterCollationProtocol(net, *nbr, collationProtocolID, overseerChan)
@@ -158,10 +159,6 @@ func (nbr *NetworkBridgeReceiver) Name() parachaintypes.SubSystemName {
 func (nbr *NetworkBridgeReceiver) ProcessActiveLeavesUpdateSignal(
 	signal parachaintypes.ActiveLeavesUpdateSignal) error {
 
-	// majorSyncing means you are 5 blocks behind the tip of the chain and thus more aggressively
-	// download blocks etc to reach the tip of the chain faster.
-	majorSyncing := nbr.sync.IsSynced()
-
 	nbr.liveHeads = append(nbr.liveHeads, parachaintypes.ActivatedLeaf{
 		Hash:   signal.Activated.Hash,
 		Number: signal.Activated.Number,
@@ -178,7 +175,7 @@ func (nbr *NetworkBridgeReceiver) ProcessActiveLeavesUpdateSignal(
 	sort.Sort(SortableActivatedLeaves(newLiveHeads))
 	nbr.liveHeads = newLiveHeads
 
-	if !majorSyncing {
+	if nbr.sync.IsSynced() {
 		// update our view
 		err := nbr.updateOurView()
 		if err != nil {
