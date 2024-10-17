@@ -82,7 +82,7 @@ type Service struct {
 
 	telemetry Telemetry
 
-	neighborTracker *NeighborTracker
+	neighborTracker *neighborTracker
 }
 
 // Config represents a GRANDPA service configuration
@@ -157,7 +157,7 @@ func NewService(cfg *Config) (*Service, error) {
 		neighborMsgChan:    make(chan neighborData),
 	}
 
-	s.neighborTracker = NewNeighborTracker(s, s.neighborMsgChan)
+	s.neighborTracker = newNeighborTracker(s, s.neighborMsgChan)
 
 	if err := s.registerProtocol(); err != nil {
 		return nil, err

@@ -5,6 +5,7 @@ package grandpa
 
 import (
 	"fmt"
+	"go.uber.org/mock/gomock"
 	"testing"
 
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -26,14 +27,13 @@ func TestNeighborTracker_UpdatePeer(t *testing.T) {
 	}
 	tests := []struct {
 		name          string
-		tracker       *NeighborTracker
+		tracker       *neighborTracker
 		args          args
 		expectedState neighborState
-		expectedErr   error
 	}{
 		{
 			name: "simple_update",
-			tracker: &NeighborTracker{
+			tracker: &neighborTracker{
 				peerview: map[peer.ID]neighborState{},
 			},
 			args: args{
@@ -49,19 +49,8 @@ func TestNeighborTracker_UpdatePeer(t *testing.T) {
 			},
 		},
 		{
-			name:    "nil_peerview",
-			tracker: &NeighborTracker{},
-			args: args{
-				p:                "testPeer",
-				setID:            1,
-				round:            2,
-				highestFinalized: 3,
-			},
-			expectedErr: fmt.Errorf("neighbour tracker has nil peer tracker"),
-		},
-		{
 			name: "updating_existing_peer",
-			tracker: &NeighborTracker{
+			tracker: &neighborTracker{
 				peerview: map[peer.ID]neighborState{},
 			},
 			args: args{
@@ -80,8 +69,7 @@ func TestNeighborTracker_UpdatePeer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			nt := tt.tracker
-			err := nt.UpdatePeer(tt.args.p, tt.args.setID, tt.args.round, tt.args.highestFinalized)
-			require.Equal(t, err, tt.expectedErr)
+			nt.UpdatePeer(tt.args.p, tt.args.setID, tt.args.round, tt.args.highestFinalized)
 			require.Equal(t, tt.expectedState, nt.peerview[tt.args.p])
 		})
 	}
@@ -95,12 +83,12 @@ func TestNeighborTracker_UpdateState(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		tracker *NeighborTracker
+		tracker *neighborTracker
 		args    args
 	}{
 		{
 			name:    "happy_path",
-			tracker: &NeighborTracker{},
+			tracker: &neighborTracker{},
 			args: args{
 				setID:            1,
 				round:            2,
@@ -117,4 +105,67 @@ func TestNeighborTracker_UpdateState(t *testing.T) {
 			require.Equal(t, nt.highestFinalized, tt.args.highestFinalized)
 		})
 	}
+}
+
+func TestNeighborTracker_BroadcastNeighborMsg(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	// Err path
+	mockNetworkErr := NewMockNetwork(ctrl)
+	packet := NeighbourPacketV1{
+		Round: 5,
+		SetID: 5,
+	}
+	cm, err := packet.ToConsensusMessage()
+	mockNetworkErr.EXPECT().SendMessage(peer.ID("error"), cm).Return(fmt.Errorf("test error sending message"))
+
+	grandpaServiceErr := &Service{
+		network: mockNetworkErr,
+	}
+	peerViewErr := make(map[peer.ID]neighborState)
+	peerViewErr["error"] = neighborState{
+		round: 5,
+		setID: 5,
+	}
+
+	neighborTrackerErr := neighborTracker{
+		grandpa:      grandpaServiceErr,
+		peerview:     peerViewErr,
+		currentRound: 5,
+		currentSetID: 5,
+	}
+	err = neighborTrackerErr.BroadcastNeighborMsg()
+	require.Error(t, err)
+
+	// Happy path
+	mockNetworkOk := NewMockNetwork(ctrl)
+	mockNetworkOk.EXPECT().SendMessage(peer.ID("equal"), cm).Return(nil)
+	mockNetworkOk.EXPECT().SendMessage(peer.ID("ahead"), cm).Return(nil)
+
+	grandpaService := &Service{
+		network: mockNetworkOk,
+	}
+
+	peerViewOk := make(map[peer.ID]neighborState)
+	peerViewOk["lowSet"] = neighborState{
+		setID: 1,
+	}
+	peerViewOk["lowRound"] = neighborState{
+		round: 1,
+	}
+	peerViewOk["equal"] = neighborState{
+		round: 5,
+		setID: 5,
+	}
+	peerViewOk["ahead"] = neighborState{
+		round: 7,
+		setID: 5,
+	}
+	neighborTrackerOk := neighborTracker{
+		grandpa:      grandpaService,
+		peerview:     peerViewOk,
+		currentRound: 5,
+		currentSetID: 5,
+	}
+	err = neighborTrackerOk.BroadcastNeighborMsg()
+	require.NoError(t, err)
 }
