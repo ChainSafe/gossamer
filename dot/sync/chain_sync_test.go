@@ -72,7 +72,7 @@ func Test_chainSync_onBlockAnnounce(t *testing.T) {
 		common.Hash{}, 2, nil)
 
 	testCases := map[string]struct {
-		waitbootstrapSync   bool
+		waitBootstrapSync   bool
 		chainSyncBuilder    func(ctrl *gomock.Controller) *chainSync
 		peerID              peer.ID
 		blockAnnounceHeader *types.Header
@@ -237,7 +237,7 @@ func Test_chainSync_onBlockAnnounce(t *testing.T) {
 				assert.EqualError(t, err, tt.errMessage)
 			}
 
-			if tt.waitbootstrapSync {
+			if tt.waitBootstrapSync {
 				chainSync.wg.Wait()
 				err = chainSync.workerPool.stop()
 				require.NoError(t, err)
@@ -350,7 +350,7 @@ func Test_chainSync_onBlockAnnounceHandshake_tipModeNeedToCatchup(t *testing.T) 
 	require.Equal(t, chainSync.getSyncMode(), tip)
 }
 
-func TestChainSync_onBlockAnnounceHandshake_onbootstrapMode(t *testing.T) {
+func TestChainSync_onBlockAnnounceHandshake_onBootstrapMode(t *testing.T) {
 	const randomHashString = "0x580d77a9136035a0bc3c3cd86286172f7f81291164c5914266073a30466fba21"
 	randomHash := common.MustHexToHash(randomHashString)
 
@@ -461,7 +461,7 @@ func newChainSyncTest(t *testing.T, ctrl *gomock.Controller) *chainSync {
 	return newChainSync(cfg)
 }
 
-func setupChainSyncTobootstrapMode(t *testing.T, blocksAhead uint,
+func setupChainSyncToBootstrapMode(t *testing.T, blocksAhead uint,
 	bs BlockState, net Network, reqMaker network.RequestMaker, babeVerifier BabeVerifier,
 	storageState StorageState, blockImportHandler BlockImportHandler, telemetry Telemetry) *chainSync {
 	t.Helper()
@@ -555,7 +555,7 @@ func TestChainSync_bootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 	// We start this test with genesis block being our best block, so
 	// we're far behind by X blocks, we should execute a bootstrap
 	// sync request those blocks
-	cs := setupChainSyncTobootstrapMode(t, blocksAhead,
+	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
 		mockedBlockState, mockedNetwork, mockedRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
 
@@ -574,7 +574,7 @@ func TestChainSync_bootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestChainSync_bootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
+func TestChainSync_BootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -643,7 +643,7 @@ func TestChainSync_bootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	// we're far behind by 128 blocks, we should execute a bootstrap
 	// sync request those blocks
 	const blocksAhead = 256
-	cs := setupChainSyncTobootstrapMode(t, blocksAhead,
+	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
 
@@ -663,7 +663,7 @@ func TestChainSync_bootstrapSync_SuccessfulSync_WithTwoWorkers(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestChainSync_bootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.T) {
+func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -741,7 +741,7 @@ func TestChainSync_bootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 	// we're far behind by 128 blocks, we should execute a bootstrap
 	// sync request those blocks
 	const blocksAhead = 256
-	cs := setupChainSyncTobootstrapMode(t, blocksAhead,
+	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
 
@@ -761,7 +761,7 @@ func TestChainSync_bootstrapSync_SuccessfulSync_WithOneWorkerFailing(t *testing.
 	require.NoError(t, err)
 }
 
-func TestChainSync_bootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *testing.T) {
+func TestChainSync_BootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -846,7 +846,7 @@ func TestChainSync_bootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 	// we're far behind by 128 blocks, we should execute a bootstrap
 	// sync request those blocks
 	const blocksAhead = 256
-	cs := setupChainSyncTobootstrapMode(t, blocksAhead,
+	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
 
@@ -866,7 +866,7 @@ func TestChainSync_bootstrapSync_SuccessfulSync_WithProtocolNotSupported(t *test
 	require.NoError(t, err)
 }
 
-func TestChainSync_bootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testing.T) {
+func TestChainSync_BootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -953,7 +953,7 @@ func TestChainSync_bootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 	// we're far behind by 128 blocks, we should execute a bootstrap
 	// sync request those blocks
 	const blocksAhead = 256
-	cs := setupChainSyncTobootstrapMode(t, blocksAhead,
+	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
 
@@ -973,7 +973,7 @@ func TestChainSync_bootstrapSync_SuccessfulSync_WithNilHeaderInResponse(t *testi
 	require.NoError(t, err)
 }
 
-func TestChainSync_bootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testing.T) {
+func TestChainSync_BootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -1056,7 +1056,7 @@ func TestChainSync_bootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 	// we're far behind by 128 blocks, we should execute a bootstrap
 	// sync request those blocks
 	const blocksAhead = 256
-	cs := setupChainSyncTobootstrapMode(t, blocksAhead,
+	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
 
@@ -1077,7 +1077,7 @@ func TestChainSync_bootstrapSync_SuccessfulSync_WithResponseIsNotAChain(t *testi
 	require.NoError(t, err)
 }
 
-func TestChainSync_bootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.T) {
+func TestChainSync_BootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -1175,7 +1175,7 @@ func TestChainSync_bootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 	// we're far behind by 128 blocks, we should execute a bootstrap
 	// sync request those blocks
 	const blocksAhead = 256
-	cs := setupChainSyncTobootstrapMode(t, blocksAhead,
+	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
 
@@ -1202,7 +1202,7 @@ func TestChainSync_bootstrapSync_SuccessfulSync_WithReceivedBadBlock(t *testing.
 	require.Len(t, cs.workerPool.ignorePeers, 1)
 }
 
-func TestChainSync_bootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testing.T) {
+func TestChainSync_BootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
@@ -1270,7 +1270,7 @@ func TestChainSync_bootstrapSync_SucessfulSync_ReceivedPartialBlockData(t *testi
 		}).Times(2)
 
 	const blocksAhead = 128
-	cs := setupChainSyncTobootstrapMode(t, blocksAhead,
+	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
 
@@ -1725,7 +1725,7 @@ func TestChainSync_getHighestBlock(t *testing.T) {
 		})
 	}
 }
-func TestChainSync_bootstrapSync_SuccessfulSync_WithInvalidJusticationBlock(t *testing.T) {
+func TestChainSync_BootstrapSync_SuccessfulSync_WithInvalidJusticationBlock(t *testing.T) {
 	// TODO: https://github.com/ChainSafe/gossamer/issues/3468
 	t.Skip()
 	t.Parallel()
@@ -1790,7 +1790,7 @@ func TestChainSync_bootstrapSync_SuccessfulSync_WithInvalidJusticationBlock(t *t
 	// we're far behind by 128 blocks, we should execute a bootstrap
 	// sync request those blocks
 	const blocksAhead = 128
-	cs := setupChainSyncTobootstrapMode(t, blocksAhead,
+	cs := setupChainSyncToBootstrapMode(t, blocksAhead,
 		mockBlockState, mockNetwork, mockRequestMaker, mockBabeVerifier,
 		mockStorageState, mockImportHandler, mockTelemetry)
 
