@@ -7,6 +7,10 @@ import (
 	"container/list"
 	"testing"
 
+	"gopkg.in/yaml.v3"
+
+	_ "embed"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -15,9 +19,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"gopkg.in/yaml.v3"
-
-	_ "embed"
 )
 
 //go:embed testdata/westend_blocks.yaml
@@ -69,8 +70,7 @@ func TestFullSyncNextActions(t *testing.T) {
 		task, err := fs.NextActions()
 		require.NoError(t, err)
 
-		require.Len(t, task, int(maxRequestsAllowed))
-		request := task[0].request.(*messages.BlockRequestMessage)
+		request := task[0].(*syncTask).request.(*messages.BlockRequestMessage)
 		require.Equal(t, uint(1), request.StartingBlock.RawValue())
 		require.Equal(t, uint32(128), *request.Max)
 	})
@@ -171,7 +171,7 @@ func TestFullSyncNextActions(t *testing.T) {
 				task, err := fs.NextActions()
 				require.NoError(t, err)
 
-				require.Equal(t, task[0].request, tt.expectedTasks[0])
+				require.Equal(t, task[0].(*syncTask).request, tt.expectedTasks[0])
 				require.Equal(t, fs.requestQueue.Len(), tt.expectedQueueLen)
 			})
 		}
@@ -192,37 +192,45 @@ func TestFullSyncProcess(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("requested_max_but_received_less_blocks", func(t *testing.T) {
-		syncTaskResults := []*SyncTaskResult{
+		ctrl := gomock.NewController(t)
+		requestMaker := NewMockRequestMaker(ctrl)
+
+		syncTaskResults := []TaskResult{
 			// first task
 			// 1 -> 10
 			{
-				who: peer.ID("peerA"),
-				request: messages.NewBlockRequest(*messages.NewFromBlock(uint(1)), 127,
-					messages.BootstrapRequestData, messages.Ascending),
-				completed: true,
-				response:  fstTaskBlockResponse,
+				Who: peer.ID("peerA"),
+				Task: &syncTask{
+					request: messages.NewBlockRequest(*messages.NewFromBlock(uint(1)), 127,
+						messages.BootstrapRequestData, messages.Ascending),
+					requestMaker: requestMaker,
+				},
+				Completed: true,
+				Result:    fstTaskBlockResponse,
 			},
 			// there is gap from 11 -> 128
 			// second task
 			// 129 -> 256
 			{
-				who: peer.ID("peerA"),
-				request: messages.NewBlockRequest(*messages.NewFromBlock(uint(129)), 127,
-					messages.BootstrapRequestData, messages.Ascending),
-				completed: true,
-				response:  sndTaskBlockResponse,
+				Who: peer.ID("peerA"),
+				Task: &syncTask{
+					request: messages.NewBlockRequest(*messages.NewFromBlock(uint(129)), 127,
+						messages.BootstrapRequestData, messages.Ascending),
+					requestMaker: requestMaker,
+				},
+				Completed: true,
+				Result:    sndTaskBlockResponse,
 			},
 		}
 
 		genesisHeader := types.NewHeader(fstTaskBlockResponse.BlockData[0].Header.ParentHash,
 			common.Hash{}, common.Hash{}, 0, types.NewDigest())
 
-		ctrl := gomock.NewController(t)
 		mockBlockState := NewMockBlockState(ctrl)
 
 		mockBlockState.EXPECT().GetHighestFinalisedHeader().
 			Return(genesisHeader, nil).
-			Times(4)
+			Times(5)
 
 		mockBlockState.EXPECT().
 			HasHeader(fstTaskBlockResponse.BlockData[0].Header.ParentHash).
@@ -247,7 +255,12 @@ func TestFullSyncProcess(t *testing.T) {
 		fs := NewFullSyncStrategy(cfg)
 		fs.blockImporter = mockImporter
 
-		done, _, _, err := fs.Process(syncTaskResults)
+		results := make(chan TaskResult, len(syncTaskResults))
+		for _, result := range syncTaskResults {
+			results <- result
+		}
+
+		done, _, _, err := fs.Process(results)
 		require.NoError(t, err)
 		require.False(t, done)
 
@@ -271,18 +284,19 @@ func TestFullSyncProcess(t *testing.T) {
 		err = ancestorSearchResponse.Decode(common.MustHexToBytes(westendBlocks.Blocks1To128))
 		require.NoError(t, err)
 
-		syncTaskResults = []*SyncTaskResult{
+		results <- TaskResult{
 			// ancestor search task
 			// 128 -> 1
-			{
-				who:       peer.ID("peerA"),
-				request:   expectedAncestorRequest,
-				completed: true,
-				response:  ancestorSearchResponse,
+			Who: peer.ID("peerA"),
+			Task: &syncTask{
+				request:      expectedAncestorRequest,
+				requestMaker: requestMaker,
 			},
+			Completed: true,
+			Result:    ancestorSearchResponse,
 		}
 
-		done, _, _, err = fs.Process(syncTaskResults)
+		done, _, _, err = fs.Process(results)
 		require.NoError(t, err)
 		require.False(t, done)
 
@@ -293,7 +307,7 @@ func TestFullSyncProcess(t *testing.T) {
 }
 
 func TestFullSyncBlockAnnounce(t *testing.T) {
-	t.Run("announce_a_far_block_without_any_commom_ancestor", func(t *testing.T) {
+	t.Run("announce_a_far_block_without_any_common_ancestor", func(t *testing.T) {
 		highestFinalizedHeader := &types.Header{
 			ParentHash:     common.BytesToHash([]byte{0}),
 			StateRoot:      common.BytesToHash([]byte{3, 3, 3, 3}),
@@ -347,7 +361,7 @@ func TestFullSyncBlockAnnounce(t *testing.T) {
 		require.Zero(t, fs.requestQueue.Len())
 	})
 
-	t.Run("announce_closer_valid_block_without_any_commom_ancestor", func(t *testing.T) {
+	t.Run("announce_closer_valid_block_without_any_common_ancestor", func(t *testing.T) {
 		highestFinalizedHeader := &types.Header{
 			ParentHash:     common.BytesToHash([]byte{0}),
 			StateRoot:      common.BytesToHash([]byte{3, 3, 3, 3}),
@@ -457,7 +471,7 @@ func TestFullSyncBlockAnnounce(t *testing.T) {
 
 			requests := make([]messages.P2PMessage, len(tasks))
 			for idx, task := range tasks {
-				requests[idx] = task.request
+				requests[idx] = task.(*syncTask).request
 			}
 
 			block17 := types.NewHeader(announceOfBlock17.ParentHash,

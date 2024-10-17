@@ -17,7 +17,7 @@ func WithStrategies(currentStrategy, defaultStrategy Strategy) ServiceConfig {
 func WithNetwork(net Network) ServiceConfig {
 	return func(svc *SyncService) {
 		svc.network = net
-		svc.workerPool = newSyncWorkerPool(net)
+		//svc.workerPool = newSyncWorkerPool(net)
 	}
 }
 
