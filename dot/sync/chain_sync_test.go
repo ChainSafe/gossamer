@@ -501,7 +501,7 @@ func setupChainSyncToBootstrapMode(t *testing.T, blocksAhead uint,
 	return chainSync
 }
 
-func TestChainSync_bootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
+func TestChainSync_BootstrapSync_SuccessfulSync_WithOneWorker(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 
