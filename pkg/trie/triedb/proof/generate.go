@@ -19,7 +19,7 @@ type nodeHandle interface {
 }
 
 type (
-	nodeHandleHash[H any] struct {
+	nodeHandleHash[H hash.Hash] struct {
 		hash H
 	}
 	nodeHandleInline []byte
