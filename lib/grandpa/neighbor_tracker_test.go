@@ -71,7 +71,7 @@ func TestNeighbourTracker_UpdatePeer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			nt := tt.tracker
-			nt.UpdatePeer(tt.args.p, tt.args.setID, tt.args.round, tt.args.highestFinalized)
+			nt.updatePeer(tt.args.p, tt.args.setID, tt.args.round, tt.args.highestFinalized)
 			require.Equal(t, tt.expectedState, nt.peerview[tt.args.p])
 		})
 	}
@@ -101,7 +101,7 @@ func TestNeighbourTracker_UpdateState(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			nt := tt.tracker
-			nt.UpdateState(tt.args.setID, tt.args.round, tt.args.highestFinalized)
+			nt.updateState(tt.args.setID, tt.args.round, tt.args.highestFinalized)
 			require.Equal(t, nt.currentSetID, tt.args.setID)
 			require.Equal(t, nt.currentRound, tt.args.round)
 			require.Equal(t, nt.highestFinalized, tt.args.highestFinalized)
@@ -235,9 +235,10 @@ func TestNeighbourTracker_UpdatePeer_viaChannel(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	require.Equal(t, uint64(5), nt.peerview["testPeer"].round)
-	require.Equal(t, uint64(6), nt.peerview["testPeer"].setID)
-	require.Equal(t, uint32(7), nt.peerview["testPeer"].highestFinalized)
+	testPeer := nt.getPeer("testPeer")
+	require.Equal(t, uint64(5), testPeer.round)
+	require.Equal(t, uint64(6), testPeer.setID)
+	require.Equal(t, uint32(7), testPeer.highestFinalized)
 
 	nt.Stop()
 }
