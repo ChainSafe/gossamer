@@ -5,6 +5,7 @@ package grandpa
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -26,6 +27,7 @@ type neighborState struct {
 }
 
 type neighborTracker struct {
+	sync.Mutex
 	grandpa *Service
 
 	peerview         map[peer.ID]neighborState
@@ -73,7 +75,7 @@ func (nt *neighborTracker) run() {
 
 		case block := <-nt.finalizationCha:
 			if block != nil {
-				nt.UpdateState(block.SetID, block.Round, uint32(block.Header.Number)) //nolint
+				nt.updateState(block.SetID, block.Round, uint32(block.Header.Number)) //nolint
 				err := nt.BroadcastNeighborMsg()
 				if err != nil {
 					logger.Errorf("broadcasting neighbour message: %v", err)
@@ -82,7 +84,7 @@ func (nt *neighborTracker) run() {
 			}
 		case neighborData := <-nt.neighborMsgChan:
 			if neighborData.neighborMsg.Number > nt.peerview[neighborData.peer].highestFinalized {
-				nt.UpdatePeer(
+				nt.updatePeer(
 					neighborData.peer,
 					neighborData.neighborMsg.SetID,
 					neighborData.neighborMsg.Round,
@@ -96,15 +98,26 @@ func (nt *neighborTracker) run() {
 	}
 }
 
-func (nt *neighborTracker) UpdateState(setID uint64, round uint64, highestFinalized uint32) {
+func (nt *neighborTracker) updateState(setID uint64, round uint64, highestFinalized uint32) {
+	nt.Lock()
+	defer nt.Unlock()
+
 	nt.currentSetID = setID
 	nt.currentRound = round
 	nt.highestFinalized = highestFinalized
 }
 
-func (nt *neighborTracker) UpdatePeer(p peer.ID, setID uint64, round uint64, highestFinalized uint32) {
+func (nt *neighborTracker) updatePeer(p peer.ID, setID uint64, round uint64, highestFinalized uint32) {
+	nt.Lock()
+	defer nt.Unlock()
 	peerState := neighborState{setID, round, highestFinalized}
 	nt.peerview[p] = peerState
+}
+
+func (nt *neighborTracker) getPeer(p peer.ID) neighborState {
+	nt.Lock()
+	defer nt.Unlock()
+	return nt.peerview[p]
 }
 
 func (nt *neighborTracker) BroadcastNeighborMsg() error {
