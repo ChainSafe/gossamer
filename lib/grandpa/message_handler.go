@@ -22,10 +22,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-var (
-	ErrNeighbourVersionNotSupported = errors.New("neighbour version not supported")
-)
-
 // MessageHandler handles GRANDPA consensus messages
 type MessageHandler struct {
 	grandpa    *Service
@@ -63,8 +59,8 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 
 		return nil, nil //nolint:nilnil
 	case *NeighbourPacketV1:
-		// we can afford to not retry handling neighbour message, if it errors.
-		return nil, h.handleNeighbourMessage(msg)
+		h.handleNeighbourMessage(msg, from)
+		return nil, nil //nolint:nilnil
 	case *CatchUpRequest:
 		return h.handleCatchUpRequest(msg)
 	case *CatchUpResponse:
@@ -82,9 +78,13 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	}
 }
 
-func (*MessageHandler) handleNeighbourMessage(_ *NeighbourPacketV1) error {
-	// TODO(#2931)
-	return nil
+func (h *MessageHandler) handleNeighbourMessage(packet *NeighbourPacketV1, from peer.ID) {
+	logger.Debugf("handling neighbour message from peer %v with set id %v and round %v",
+		from.ShortString(), packet.SetID, packet.Round)
+	h.grandpa.neighborMsgChan <- neighborData{
+		peer:        from,
+		neighborMsg: packet,
+	}
 }
 
 func (h *MessageHandler) handleCatchUpRequest(msg *CatchUpRequest) (*ConsensusMessage, error) {
