@@ -183,7 +183,7 @@ func TestNewNode(t *testing.T) {
 		gomock.AssignableToTypeOf("random_fork_id"),
 		gomock.AssignableToTypeOf(mockStateService),
 		gomock.AssignableToTypeOf(ks.Para),
-		gomock.AssignableToTypeOf(dotsync.Service{}),
+		gomock.AssignableToTypeOf(&dotsync.Service{}),
 	).Return(phs, nil)
 
 	got, err := newNode(initConfig, ks, m, mockServiceRegistry)
