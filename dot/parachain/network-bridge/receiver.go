@@ -11,6 +11,7 @@ import (
 	"sort"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	events "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
@@ -43,6 +44,7 @@ type NetworkBridgeReceiver struct {
 
 	BlockState *state.BlockState
 	Keystore   keystore.Keystore
+	sync       Sync
 
 	localView *View
 
@@ -95,11 +97,12 @@ type ProspectiveCandidate struct {
 }
 
 func RegisterReceiver(overseerChan chan<- any, net Network,
-	collationProtocolID protocol.ID, validationProtocolID protocol.ID) (*NetworkBridgeReceiver, error) {
+	collationProtocolID protocol.ID, validationProtocolID protocol.ID, syncer Sync) (*NetworkBridgeReceiver, error) {
 	nbr := &NetworkBridgeReceiver{
 		net:                  net,
 		SubsystemsToOverseer: overseerChan,
 		networkEventInfoChan: net.GetNetworkEventsChannel(),
+		sync:                 syncer,
 	}
 
 	err := RegisterCollationProtocol(net, *nbr, collationProtocolID, overseerChan)
@@ -156,11 +159,6 @@ func (nbr *NetworkBridgeReceiver) Name() parachaintypes.SubSystemName {
 func (nbr *NetworkBridgeReceiver) ProcessActiveLeavesUpdateSignal(
 	signal parachaintypes.ActiveLeavesUpdateSignal) error {
 
-	// TODO: #4207 get the value for majorSyncing for syncing package
-	// majorSyncing means you are 5 blocks behind the tip of the chain and thus more aggressively
-	// download blocks etc to reach the tip of the chain faster.
-	var majorSyncing bool
-
 	nbr.liveHeads = append(nbr.liveHeads, parachaintypes.ActivatedLeaf{
 		Hash:   signal.Activated.Hash,
 		Number: signal.Activated.Number,
@@ -177,7 +175,7 @@ func (nbr *NetworkBridgeReceiver) ProcessActiveLeavesUpdateSignal(
 	sort.Sort(SortableActivatedLeaves(newLiveHeads))
 	nbr.liveHeads = newLiveHeads
 
-	if !majorSyncing {
+	if nbr.sync.IsSynced() {
 		// update our view
 		err := nbr.updateOurView()
 		if err != nil {
@@ -413,4 +411,8 @@ func getTopologyPeers(authorityDiscoveryService AuthorityDiscoveryService,
 
 type AuthorityDiscoveryService interface {
 	GetPeerIDByAuthorityID(authorityID parachaintypes.AuthorityDiscoveryID) peer.ID
+}
+
+type Sync interface {
+	IsSynced() bool
 }
