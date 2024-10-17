@@ -5,12 +5,13 @@ package grandpa
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"testing"
-	"time"
 )
 
 func TestNeighbourTracker_UpdatePeer(t *testing.T) {
@@ -117,6 +118,7 @@ func TestNeighbourTracker_BroadcastNeighborMsg(t *testing.T) {
 		SetID: 5,
 	}
 	cm, err := packet.ToConsensusMessage()
+	require.NoError(t, err)
 	mockNetworkErr.EXPECT().SendMessage(peer.ID("error"), cm).Return(fmt.Errorf("test error sending message"))
 
 	grandpaServiceErr := &Service{
