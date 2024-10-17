@@ -68,7 +68,7 @@ func (n *NibbleSlice) Pop() *uint8 {
 	return &popped
 }
 
-// / Append another [NibbleSlice]. Can be slow (alignment of second slice).
+// Append another [NibbleSlice]. Can be slow (alignment of second slice).
 func (n *NibbleSlice) Append(v NibbleSlice) {
 	if v.len == 0 {
 		return

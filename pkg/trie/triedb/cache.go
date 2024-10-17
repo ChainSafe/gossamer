@@ -69,7 +69,7 @@ type CachedNodeHandleTypes[H hash.Hash] interface {
 
 // Cached version of [codec.MerkleValue].
 type CachedNodeHandle interface {
-	/// Returns [CachedNodeHandle] as a [ChildReference].
+	// Returns [CachedNodeHandle] as a [ChildReference].
 	ChildReference() ChildReference
 }
 
@@ -321,7 +321,7 @@ func (ecv ExistingCachedValue[H]) hash() *H     { return &ecv.Hash } //nolint:un
 //
 // The interface consists of two cache levels, first the trie nodes cache and then the value cache.
 // The trie nodes cache, as the name indicates, is for caching trie nodes as [CachedNode]. These
-// trie nodes are referenced by their hash. The value cache is caching [CachedValue]'s and these
+// trie nodes are referenced by their hash. The value cache is caching [CachedValue]s and these
 // are referenced by the key to look them up in the trie. As multiple different tries can have
 // different values under the same key, it is up to the cache implementation to ensure that the
 // correct value is returned. As each trie has a different root, this root can be used to
