@@ -14,7 +14,6 @@ import (
 	time "time"
 
 	network "github.com/ChainSafe/gossamer/dot/network"
-	peerset "github.com/ChainSafe/gossamer/dot/peerset"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 	protocol "github.com/libp2p/go-libp2p/core/protocol"
 	gomock "go.uber.org/mock/gomock"
@@ -41,32 +40,6 @@ func NewMockNetwork(ctrl *gomock.Controller) *MockNetwork {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockNetwork) EXPECT() *MockNetworkMockRecorder {
 	return m.recorder
-}
-
-// FreeNetworkEventsChannel mocks base method.
-func (m *MockNetwork) FreeNetworkEventsChannel(arg0 chan *network.NetworkEventInfo) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "FreeNetworkEventsChannel", arg0)
-}
-
-// FreeNetworkEventsChannel indicates an expected call of FreeNetworkEventsChannel.
-func (mr *MockNetworkMockRecorder) FreeNetworkEventsChannel(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeNetworkEventsChannel", reflect.TypeOf((*MockNetwork)(nil).FreeNetworkEventsChannel), arg0)
-}
-
-// GetNetworkEventsChannel mocks base method.
-func (m *MockNetwork) GetNetworkEventsChannel() chan *network.NetworkEventInfo {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetNetworkEventsChannel")
-	ret0, _ := ret[0].(chan *network.NetworkEventInfo)
-	return ret0
-}
-
-// GetNetworkEventsChannel indicates an expected call of GetNetworkEventsChannel.
-func (mr *MockNetworkMockRecorder) GetNetworkEventsChannel() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNetworkEventsChannel", reflect.TypeOf((*MockNetwork)(nil).GetNetworkEventsChannel))
 }
 
 // GetRequestResponseProtocol mocks base method.
@@ -107,16 +80,4 @@ func (m *MockNetwork) RegisterNotificationsProtocol(arg0 protocol.ID, arg1 netwo
 func (mr *MockNetworkMockRecorder) RegisterNotificationsProtocol(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterNotificationsProtocol", reflect.TypeOf((*MockNetwork)(nil).RegisterNotificationsProtocol), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
-}
-
-// ReportPeer mocks base method.
-func (m *MockNetwork) ReportPeer(arg0 peerset.ReputationChange, arg1 peer.ID) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ReportPeer", arg0, arg1)
-}
-
-// ReportPeer indicates an expected call of ReportPeer.
-func (mr *MockNetworkMockRecorder) ReportPeer(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportPeer", reflect.TypeOf((*MockNetwork)(nil).ReportPeer), arg0, arg1)
 }
