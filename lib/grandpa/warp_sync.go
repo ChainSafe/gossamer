@@ -163,7 +163,7 @@ func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 
 	authoritySetChanges, err := p.grandpaState.GetAuthoritiesChangesFromBlock(beginBlockHeader.Number)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting auth changes: %w", err)
 	}
 
 	limitReached := false
