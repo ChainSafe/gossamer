@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -88,10 +89,25 @@ type Change struct {
 type Strategy interface {
 	OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) (repChange *Change, err error)
 	OnBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error
-	NextActions() ([]*SyncTask, error)
-	Process(results []*SyncTaskResult) (done bool, repChanges []Change, blocks []peer.ID, err error)
+	NextActions() ([]Task, error)
+	Process(results <-chan TaskResult) (done bool, repChanges []Change, blocks []peer.ID, err error)
 	ShowMetrics()
 	IsSynced() bool
+}
+
+type syncTask struct {
+	requestMaker network.RequestMaker
+	request      messages.P2PMessage
+}
+
+func (s *syncTask) ID() TaskID {
+	return TaskID(s.request.String())
+}
+
+func (s *syncTask) Do(p peer.ID) (Result, error) {
+	response := messages.BlockResponseMessage{}
+	err := s.requestMaker.Do(p, s.request, &response)
+	return &response, err
 }
 
 type SyncService struct {
@@ -103,7 +119,7 @@ type SyncService struct {
 	currentStrategy Strategy
 	defaultStrategy Strategy
 
-	workerPool        *syncWorkerPool
+	workerPool        WorkerPool
 	waitPeersDuration time.Duration
 	minPeers          int
 	slotDuration      time.Duration
@@ -119,6 +135,11 @@ func NewSyncService(cfgs ...ServiceConfig) *SyncService {
 		waitPeersDuration:     waitPeersDefaultTimeout,
 		stopCh:                make(chan struct{}),
 		seenBlockSyncRequests: lrucache.NewLRUCache[common.Hash, uint](100),
+		workerPool: NewWorkerPool(WorkerPoolConfig{
+			MaxRetries: 5,
+			// TODO: This should depend on the actual configuration of the currently used sync strategy.
+			Capacity: defaultNumOfTasks * 10,
+		}),
 	}
 
 	for _, cfg := range cfgs {
@@ -135,7 +156,7 @@ func (s *SyncService) waitWorkers() {
 	}
 
 	for {
-		total := s.workerPool.totalWorkers()
+		total := s.workerPool.NumPeers()
 		if total >= s.minPeers {
 			return
 		}
@@ -168,6 +189,7 @@ func (s *SyncService) Start() error {
 }
 
 func (s *SyncService) Stop() error {
+	s.workerPool.Shutdown()
 	close(s.stopCh)
 	s.wg.Wait()
 	return nil
@@ -175,7 +197,9 @@ func (s *SyncService) Stop() error {
 
 func (s *SyncService) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error {
 	logger.Infof("receiving a block announce handshake from %s", from.String())
-	if err := s.workerPool.fromBlockAnnounceHandshake(from); err != nil {
+	logger.Infof("len(s.workerPool.Results())=%d", len(s.workerPool.Results())) // TODO: remove
+	if err := s.workerPool.AddPeer(from); err != nil {
+		logger.Warnf("failed to add peer to worker pool: %s", err)
 		return err
 	}
 
@@ -203,7 +227,7 @@ func (s *SyncService) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnoun
 
 func (s *SyncService) OnConnectionClosed(who peer.ID) {
 	logger.Tracef("removing peer worker: %s", who.String())
-	s.workerPool.removeWorker(who)
+	s.workerPool.RemovePeer(who)
 }
 
 func (s *SyncService) IsSynced() bool {
@@ -253,19 +277,20 @@ func (s *SyncService) runStrategy() {
 
 	finalisedHeader, err := s.blockState.GetHighestFinalisedHeader()
 	if err != nil {
-		logger.Criticalf("getting highest finalized header: %w", err)
+		logger.Criticalf("getting highest finalized header: %s", err)
 		return
 	}
 
 	bestBlockHeader, err := s.blockState.BestBlockHeader()
 	if err != nil {
-		logger.Criticalf("getting best block header: %w", err)
+		logger.Criticalf("getting best block header: %s", err)
 		return
 	}
 
 	logger.Infof(
-		"🚣 currently syncing, %d peers connected, finalized #%d (%s), best #%d (%s)",
+		"🚣 currently syncing, %d peers connected, %d peers in the worker pool, finalized #%d (%s), best #%d (%s)",
 		len(s.network.AllConnectedPeersIDs()),
+		s.workerPool.NumPeers(),
 		finalisedHeader.Number,
 		finalisedHeader.Hash().Short(),
 		bestBlockHeader.Number,
@@ -283,8 +308,13 @@ func (s *SyncService) runStrategy() {
 		return
 	}
 
-	results := s.workerPool.submitRequests(tasks)
-	done, repChanges, peersToIgnore, err := s.currentStrategy.Process(results)
+	_, err = s.workerPool.SubmitBatch(tasks)
+	if err != nil {
+		logger.Criticalf("current sync strategy next actions failed with: %s", err.Error())
+		return
+	}
+
+	done, repChanges, peersToIgnore, err := s.currentStrategy.Process(s.workerPool.Results())
 	if err != nil {
 		logger.Criticalf("current sync strategy failed with: %s", err.Error())
 		return
@@ -295,7 +325,7 @@ func (s *SyncService) runStrategy() {
 	}
 
 	for _, block := range peersToIgnore {
-		s.workerPool.ignorePeerAsWorker(block)
+		s.workerPool.IgnorePeer(block)
 	}
 
 	s.currentStrategy.ShowMetrics()
