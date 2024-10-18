@@ -245,6 +245,21 @@ func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).GetImportedBlockNotifierChannel))
 }
 
+// GetJustification mocks base method.
+func (m *MockBlockState) GetJustification(arg0 common.Hash) ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetJustification", arg0)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetJustification indicates an expected call of GetJustification.
+func (mr *MockBlockStateMockRecorder) GetJustification(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJustification", reflect.TypeOf((*MockBlockState)(nil).GetJustification), arg0)
+}
+
 // GetRoundAndSetID mocks base method.
 func (m *MockBlockState) GetRoundAndSetID() (uint64, uint64) {
 	m.ctrl.T.Helper()
@@ -399,6 +414,21 @@ func (m *MockGrandpaState) GetAuthorities(arg0 uint64) ([]types.GrandpaVoter, er
 func (mr *MockGrandpaStateMockRecorder) GetAuthorities(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthorities", reflect.TypeOf((*MockGrandpaState)(nil).GetAuthorities), arg0)
+}
+
+// GetAuthoritiesChangesFromBlock mocks base method.
+func (m *MockGrandpaState) GetAuthoritiesChangesFromBlock(arg0 uint) ([]uint, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAuthoritiesChangesFromBlock", arg0)
+	ret0, _ := ret[0].([]uint)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAuthoritiesChangesFromBlock indicates an expected call of GetAuthoritiesChangesFromBlock.
+func (mr *MockGrandpaStateMockRecorder) GetAuthoritiesChangesFromBlock(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthoritiesChangesFromBlock", reflect.TypeOf((*MockGrandpaState)(nil).GetAuthoritiesChangesFromBlock), arg0)
 }
 
 // GetCurrentSetID mocks base method.
