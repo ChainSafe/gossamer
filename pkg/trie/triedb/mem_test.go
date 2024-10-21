@@ -6,10 +6,13 @@ package triedb
 import (
 	"testing"
 
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	inmemory_cache "github.com/ChainSafe/gossamer/pkg/trie/cache/inmemory"
 	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Benchmark_ValueCache(b *testing.B) {
@@ -38,7 +41,7 @@ func Benchmark_ValueCache(b *testing.B) {
 	assert.NoError(b, err)
 
 	b.Run("get_value_without_cache", func(b *testing.B) {
-		trieDB := NewTrieDB(root, db)
+		trieDB := NewTrieDB[hash.H256, runtime.BlakeTwo256](hash.H256(root.ToBytes()), db)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			// Use the deepest key to ensure the trie is traversed fully
@@ -48,7 +51,8 @@ func Benchmark_ValueCache(b *testing.B) {
 
 	b.Run("get_value_with_cache", func(b *testing.B) {
 		cache := inmemory_cache.NewTrieInMemoryCache()
-		trieDB := NewTrieDB(root, db, WithCache(cache))
+		trieDB := NewTrieDB[hash.H256, runtime.BlakeTwo256](
+			hash.H256(root.ToBytes()), db, WithCache[hash.H256, runtime.BlakeTwo256](cache))
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			// Use the deepest key to ensure the trie is traversed fully
@@ -83,12 +87,13 @@ func Benchmark_NodesCache(b *testing.B) {
 	assert.NoError(b, err)
 
 	b.Run("iterate_all_entries_without_cache", func(b *testing.B) {
-		trieDB := NewTrieDB(root, db)
+		trieDB := NewTrieDB[hash.H256, runtime.BlakeTwo256](hash.H256(root.ToBytes()), db)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			// Iterate through all keys
-			iter := NewTrieDBIterator(trieDB)
-			for entry := iter.NextEntry(); entry != nil; entry = iter.NextEntry() {
+			iter, err := newRawIterator(trieDB)
+			require.NoError(b, err)
+			for entry, err := iter.NextItem(); entry != nil && err == nil; entry, err = iter.NextItem() {
 			}
 		}
 	})
@@ -98,12 +103,14 @@ func Benchmark_NodesCache(b *testing.B) {
 	// cache the decoded node instead and avoid decoding it every time.
 	b.Run("iterate_all_entries_with_cache", func(b *testing.B) {
 		cache := inmemory_cache.NewTrieInMemoryCache()
-		trieDB := NewTrieDB(root, db, WithCache(cache))
+		trieDB := NewTrieDB[hash.H256, runtime.BlakeTwo256](
+			hash.H256(root.ToBytes()), db, WithCache[hash.H256, runtime.BlakeTwo256](cache))
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			// Iterate through all keys
-			iter := NewTrieDBIterator(trieDB)
-			for entry := iter.NextEntry(); entry != nil; entry = iter.NextEntry() {
+			iter, err := newRawIterator(trieDB)
+			require.NoError(b, err)
+			for entry, err := iter.NextItem(); entry != nil && err == nil; entry, err = iter.NextItem() {
 			}
 		}
 	})

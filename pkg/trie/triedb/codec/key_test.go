@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibbles"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
@@ -57,20 +58,20 @@ func Test_decodeKey(t *testing.T) {
 	testCases := map[string]struct {
 		reads            []readCall
 		partialKeyLength uint16
-		b                []byte
+		b                nibbles.Nibbles
 		errWrapped       error
 		errMessage       string
 	}{
 		"zero_key_length": {
 			partialKeyLength: 0,
-			b:                []byte{},
+			b:                nibbles.NewNibbles(nil),
 		},
 		"short_key_length": {
 			reads: []readCall{
 				{buffArgCap: 3, read: []byte{1, 2, 3}, n: 3},
 			},
 			partialKeyLength: 5,
-			b:                []byte{0x1, 0x0, 0x2, 0x0, 0x3},
+			b:                nibbles.NewNibbles([]byte{1, 2, 3}, 1),
 		},
 		"key_read_error": {
 			reads: []readCall{
@@ -94,14 +95,7 @@ func Test_decodeKey(t *testing.T) {
 				{buffArgCap: 35, read: bytes.Repeat([]byte{7}, 35), n: 35}, // key data
 			},
 			partialKeyLength: 70,
-			b: []byte{
-				0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7,
-				0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7,
-				0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7,
-				0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7,
-				0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7,
-				0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7,
-				0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7, 0x0, 0x7},
+			b:                nibbles.NewNibbles(bytes.Repeat([]byte{7}, 35)),
 		},
 	}
 
