@@ -4,6 +4,7 @@
 package sync
 
 import (
+	"iter"
 	"maps"
 	"slices"
 	"sync"
@@ -12,16 +13,94 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+type Fragment struct {
+	chain  []*types.BlockData
+	pinned bool
+}
+
+func NewFragment(chain []*types.BlockData) *Fragment {
+	return &Fragment{chain, false}
+}
+
+func (f *Fragment) Pin() {
+	f.pinned = true
+}
+
+func (f *Fragment) Unpin() {
+	f.pinned = false
+}
+
+func (f *Fragment) IsPinned() bool {
+	return f.pinned
+}
+
+func (f *Fragment) Filter(p func(*types.BlockData) bool) *Fragment {
+	filtered := make([]*types.BlockData, 0, len(f.chain))
+	for _, bd := range f.chain {
+		if p(bd) {
+			filtered = append(filtered, bd)
+		}
+	}
+	return NewFragment(filtered)
+}
+
+// Find return the first occurrence of a types.BlockData that
+// satisfies the predicate p
+func (f *Fragment) Find(p func(*types.BlockData) bool) *types.BlockData {
+	for _, bd := range f.chain {
+		if p(bd) {
+			return bd
+		}
+	}
+
+	return nil
+}
+
+func (f *Fragment) Last() *types.BlockData {
+	if len(f.chain) > 0 {
+		return f.chain[len(f.chain)-1]
+	}
+
+	return nil
+}
+
+func (f *Fragment) Len() int {
+	return len(f.chain)
+}
+
+func (f *Fragment) Iter() iter.Seq[*types.BlockData] {
+	return func(yield func(*types.BlockData) bool) {
+		for _, bd := range f.chain {
+			yield(bd)
+		}
+	}
+}
+
+func (f *Fragment) First() *types.BlockData {
+	if len(f.chain) > 0 {
+		return f.chain[0]
+	}
+
+	return nil
+}
+
+func (f *Fragment) Concat(snd *Fragment) *Fragment {
+	return &Fragment{
+		pinned: f.pinned,
+		chain:  slices.Concat(f.chain, snd.chain),
+	}
+}
+
 type unreadyBlocks struct {
 	mtx               sync.RWMutex
 	incompleteBlocks  map[common.Hash]*types.BlockData
-	disjointFragments [][]*types.BlockData
+	disjointFragments []*Fragment
 }
 
 func newUnreadyBlocks() *unreadyBlocks {
 	return &unreadyBlocks{
 		incompleteBlocks:  make(map[common.Hash]*types.BlockData),
-		disjointFragments: make([][]*types.BlockData, 0),
+		disjointFragments: make([]*Fragment, 0),
 	}
 }
 
@@ -36,34 +115,27 @@ func (u *unreadyBlocks) newIncompleteBlock(blockHeader *types.Header) {
 	}
 }
 
-func (u *unreadyBlocks) newDisjointFragment(frag []*types.BlockData) {
+func (u *unreadyBlocks) newDisjointFragment(frag *Fragment) {
 	u.mtx.Lock()
 	defer u.mtx.Unlock()
 	u.disjointFragments = append(u.disjointFragments, frag)
 }
 
 // updateDisjointFragments given a set of blocks check if it
-// connects to a disjoint fragment, if so we remove the fragment from the
-// disjoint set and return the fragment concatenated with the chain argument
-func (u *unreadyBlocks) updateDisjointFragments(chain []*types.BlockData) ([]*types.BlockData, bool) {
+// connects to a disjoint fragment, and returns a ne fragment
+// containing both fragments concatenated, removes the old one if not pinned
+func (u *unreadyBlocks) updateDisjointFragments(chain *Fragment) (*Fragment, bool) {
 	u.mtx.Lock()
 	defer u.mtx.Unlock()
 
-	indexToChange := -1
 	for idx, disjointChain := range u.disjointFragments {
-		lastBlockArriving := chain[len(chain)-1]
-		firstDisjointBlock := disjointChain[0]
-
-		if lastBlockArriving.IsParent(firstDisjointBlock) {
-			indexToChange = idx
-			break
+		if chain.Last().IsParent(disjointChain.First()) {
+			outFragment := chain.Concat(disjointChain)
+			if !disjointChain.IsPinned() {
+				u.disjointFragments = slices.Delete(u.disjointFragments, idx, idx+1)
+			}
+			return outFragment, true
 		}
-	}
-
-	if indexToChange >= 0 {
-		disjointChain := u.disjointFragments[indexToChange]
-		u.disjointFragments = append(u.disjointFragments[:indexToChange], u.disjointFragments[indexToChange+1:]...)
-		return append(chain, disjointChain...), true
 	}
 
 	return nil, false
@@ -72,12 +144,13 @@ func (u *unreadyBlocks) updateDisjointFragments(chain []*types.BlockData) ([]*ty
 // updateIncompleteBlocks given a set of blocks check if they can fullfil
 // incomplete blocks, the blocks that can be completed will be removed from
 // the incompleteBlocks map and returned
-func (u *unreadyBlocks) updateIncompleteBlocks(chain []*types.BlockData) []*types.BlockData {
+func (u *unreadyBlocks) updateIncompleteBlocks(chain *Fragment) []*Fragment {
 	u.mtx.Lock()
 	defer u.mtx.Unlock()
 
-	completeBlocks := make([]*types.BlockData, 0)
-	for _, blockData := range chain {
+	completeBlocks := make([]*Fragment, 0)
+
+	for blockData := range chain.Iter() {
 		incomplete, ok := u.incompleteBlocks[blockData.Hash]
 		if !ok {
 			continue
@@ -87,7 +160,7 @@ func (u *unreadyBlocks) updateIncompleteBlocks(chain []*types.BlockData) []*type
 		incomplete.Justification = blockData.Justification
 
 		delete(u.incompleteBlocks, blockData.Hash)
-		completeBlocks = append(completeBlocks, incomplete)
+		completeBlocks = append(completeBlocks, NewFragment([]*types.BlockData{incomplete}))
 	}
 
 	return completeBlocks
@@ -102,26 +175,17 @@ func (u *unreadyBlocks) isIncomplete(blockHash common.Hash) bool {
 }
 
 // inDisjointFragment iterate through the disjoint fragments and
-// check if the block hash an number already exists in one of them
+// check if the block hash and number already exists in one of them
 func (u *unreadyBlocks) inDisjointFragment(blockHash common.Hash, blockNumber uint) bool {
 	u.mtx.RLock()
 	defer u.mtx.RUnlock()
 
 	for _, frag := range u.disjointFragments {
-		target := &types.BlockData{Header: &types.Header{Number: blockNumber}}
-		idx, found := slices.BinarySearchFunc(frag, target,
-			func(a, b *types.BlockData) int {
-				switch {
-				case a.Header.Number == b.Header.Number:
-					return 0
-				case a.Header.Number < b.Header.Number:
-					return -1
-				default:
-					return 1
-				}
-			})
+		bd := frag.Find(func(bd *types.BlockData) bool {
+			return bd.Header.Number == blockNumber && bd.Hash == blockHash
+		})
 
-		if found && frag[idx].Hash == blockHash {
+		if bd != nil {
 			return true
 		}
 	}
@@ -129,35 +193,30 @@ func (u *unreadyBlocks) inDisjointFragment(blockHash common.Hash, blockNumber ui
 	return false
 }
 
-// removeIrrelevantFragments checks if there is blocks in the fragments that can be pruned
-// given the finalised block number
-func (u *unreadyBlocks) removeIrrelevantFragments(finalisedNumber uint) {
+func (u *unreadyBlocks) removeIncompleteBlocks(del func(key common.Hash, value *types.BlockData) bool) {
 	u.mtx.Lock()
 	defer u.mtx.Unlock()
 
-	maps.DeleteFunc(u.incompleteBlocks, func(_ common.Hash, value *types.BlockData) bool {
-		return value.Header.Number <= finalisedNumber
+	maps.DeleteFunc(u.incompleteBlocks, del)
+}
+
+// pruneFragments will iterate over the disjoint fragments and check if they
+// can be removed based on the del param
+func (u *unreadyBlocks) pruneDisjointFragments(del func(*Fragment) bool) {
+	u.mtx.Lock()
+	defer u.mtx.Unlock()
+
+	u.disjointFragments = slices.DeleteFunc(u.disjointFragments, func(f *Fragment) bool {
+		return !f.IsPinned() && del(f)
 	})
+}
 
-	fragmentIdx := 0
-	for _, fragment := range u.disjointFragments {
-		// the fragments are sorted in ascending order
-		// starting from the latest item and going backwards
-		// we have a higher chance to find the idx that has
-		// a block with number lower or equal the finalised one
-		idx := len(fragment) - 1
-		for ; idx >= 0; idx-- {
-			if fragment[idx].Header.Number <= finalisedNumber {
-				break
-			}
-		}
-
-		updatedFragment := fragment[idx+1:]
-		if len(updatedFragment) != 0 {
-			u.disjointFragments[fragmentIdx] = updatedFragment
-			fragmentIdx++
-		}
+// LowerThanOrEqHighestFinalized returns true if the fragment contains
+// a block that has a number lower than highest finalized number
+func LowerThanOrEqHighestFinalized(highestFinalizedNumber uint) func(*Fragment) bool {
+	return func(f *Fragment) bool {
+		return f.Find(func(bd *types.BlockData) bool {
+			return bd.Header.Number <= highestFinalizedNumber
+		}) != nil
 	}
-
-	u.disjointFragments = u.disjointFragments[:fragmentIdx]
 }
