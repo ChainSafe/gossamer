@@ -55,6 +55,12 @@ type SignedMessage[H, N any] grandpa.SignedMessage[H, N, AuthoritySignature, Aut
 // Commit is a commit message for this chain's block type.
 type Commit[H, N any] grandpa.Commit[H, N, AuthoritySignature, AuthorityID]
 
+// ScheduledChange is a scheduled authority change.
+type ScheduledChange[N runtime.Number] struct {
+	NextAuthorities AuthorityList
+	Delay           N
+}
+
 // GrandpaJustification is A GRANDPA justification for block finality, it includes
 // a commit message and an ancestry proof including all headers routing all
 // precommit target blocks to the commit target block. Due to the current voting

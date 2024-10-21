@@ -42,7 +42,7 @@ type decodeGrandpaJustification[
 	Hasher runtime.Hasher[Hash],
 ] GrandpaJustification[Hash, N]
 
-func decodeJustification[
+func DecodeJustification[
 	Hash runtime.Hash,
 	N runtime.Number,
 	Hasher runtime.Hasher[Hash],
@@ -100,7 +100,7 @@ func DecodeGrandpaJustificationVerifyFinalizes[
 	setID uint64,
 	voters grandpa.VoterSet[string],
 ) (GrandpaJustification[Hash, N], error) {
-	justification, err := decodeJustification[Hash, N, Hasher](encoded)
+	justification, err := DecodeJustification[Hash, N, Hasher](encoded)
 	if err != nil {
 		return GrandpaJustification[Hash, N]{}, fmt.Errorf("error decoding justification for header: %s", err)
 	}
