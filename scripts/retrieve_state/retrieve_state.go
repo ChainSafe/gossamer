@@ -91,7 +91,8 @@ func (s *StateRequestProvider) processResponse(stateResponse *messages.StateResp
 	return nil
 }
 
-func (s *StateRequestProvider) buildTrie(expectedStorageRootHash common.Hash, destination string, v trie.TrieLayout) error {
+func (s *StateRequestProvider) buildTrie(expectedStorageRootHash common.Hash,
+	destination string, v trie.TrieLayout) error {
 	tt := inmemory.NewEmptyTrie()
 	tt.SetVersion(v)
 
@@ -133,7 +134,8 @@ func (s *StateRequestProvider) buildTrie(expectedStorageRootHash common.Hash, de
 
 func main() {
 	if len(os.Args) != 6 {
-		log.Fatalf("script usage: \n\tgo run retrieve_state.go [block hash] [expected state root hash] [network chain spec] [v0|v1] [output file]\n")
+		log.Fatalf(`script usage:
+	go run retrieve_state.go [block hash] [expected state root hash] [network chain spec] [v0|v1] [output file]`)
 	}
 
 	version, ok := supportedVersions[os.Args[4]]
