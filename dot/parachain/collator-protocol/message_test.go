@@ -61,7 +61,7 @@ func TestCollationProtocol(t *testing.T) {
 
 	secondedEnumValue := parachaintypes.Seconded{
 		Descriptor: parachaintypes.CandidateDescriptor{
-			ParaID:                      uint32(1),
+			ParaID:                      1,
 			RelayParent:                 hash5,
 			Collator:                    collatorID,
 			PersistedValidationDataHash: hash5,
@@ -95,7 +95,7 @@ func TestCollationProtocol(t *testing.T) {
 			name: "Declare",
 			enumValue: collatorprotocolmessages.Declare{
 				CollatorId:        collatorID,
-				ParaID:            uint32(5),
+				ParaID:            5,
 				CollatorSignature: collatorSignature,
 			},
 			encodingValue: common.MustHexToBytes(testDataCollationProtocol["declare"]),
@@ -263,7 +263,7 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 			description: "fail if collator signature could not be verified",
 			declareMsg: collatorprotocolmessages.Declare{
 				CollatorId:        collatorID.AsBytes(),
-				ParaID:            uint32(5),
+				ParaID:            5,
 				CollatorSignature: parachaintypes.CollatorSignature{},
 			},
 			peerData: map[peer.ID]PeerData{
@@ -280,7 +280,7 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 			description: "fail if collator signature is invalid and report the sender",
 			declareMsg: collatorprotocolmessages.Declare{
 				CollatorId:        collatorID.AsBytes(),
-				ParaID:            uint32(5),
+				ParaID:            5,
 				CollatorSignature: invalidCollatorSignature,
 			},
 			peerData: map[peer.ID]PeerData{
@@ -307,7 +307,7 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 			description: "fail if paraID in Declare message is not assigned to our peer and report the sender",
 			declareMsg: collatorprotocolmessages.Declare{
 				CollatorId:        collatorID.AsBytes(),
-				ParaID:            uint32(5),
+				ParaID:            5,
 				CollatorSignature: collatorSignature,
 			},
 			peerData: map[peer.ID]PeerData{
@@ -337,7 +337,7 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 			description: "success case: check if PeerState of the sender has changed to Collating from Connected",
 			declareMsg: collatorprotocolmessages.Declare{
 				CollatorId:        collatorID.AsBytes(),
-				ParaID:            uint32(5),
+				ParaID:            5,
 				CollatorSignature: collatorSignature,
 			},
 			peerData: map[peer.ID]PeerData{
@@ -349,7 +349,7 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 				},
 			},
 			currentAssignments: map[parachaintypes.ParaID]uint{
-				parachaintypes.ParaID(5): 1,
+				5: 1,
 			},
 			success: true,
 		},
@@ -479,7 +479,7 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 					state: PeerStateInfo{
 						PeerState: Collating,
 						CollatingPeerState: CollatingPeerState{
-							ParaID: parachaintypes.ParaID(6),
+							ParaID: 6,
 						},
 					},
 				},
@@ -643,7 +643,7 @@ func TestInsertAdvertisement(t *testing.T) {
 				state: PeerStateInfo{
 					PeerState: Collating,
 					CollatingPeerState: CollatingPeerState{
-						ParaID: parachaintypes.ParaID(5),
+						ParaID: 5,
 						advertisements: map[common.Hash][]parachaintypes.CandidateHash{
 							relayParent: {},
 						},
@@ -666,7 +666,7 @@ func TestInsertAdvertisement(t *testing.T) {
 				state: PeerStateInfo{
 					PeerState: Collating,
 					CollatingPeerState: CollatingPeerState{
-						ParaID:         parachaintypes.ParaID(5),
+						ParaID:         5,
 						advertisements: map[common.Hash][]parachaintypes.CandidateHash{},
 					},
 				},

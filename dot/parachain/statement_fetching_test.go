@@ -101,7 +101,7 @@ func TestStatementFetchingResponse(t *testing.T) {
 
 	missingDataInStatement := MissingDataInStatement{
 		Descriptor: parachaintypes.CandidateDescriptor{
-			ParaID:                      uint32(1),
+			ParaID:                      1,
 			RelayParent:                 testHash,
 			Collator:                    collatorID,
 			PersistedValidationDataHash: testHash,

@@ -43,7 +43,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 
 	testCandidateReceipt := parachaintypes.CandidateReceipt{
 		Descriptor: parachaintypes.CandidateDescriptor{
-			ParaID:                      uint32(1000),
+			ParaID:                      1000,
 			RelayParent:                 common.MustHexToHash("0xded542bacb3ca6c033a57676f94ae7c8f36834511deb44e3164256fd3b1c0de0"), //nolint:lll
 			Collator:                    testCollatorID,
 			PersistedValidationDataHash: common.MustHexToHash("0x690d8f252ef66ab0f969c3f518f90012b849aa5ac94e1752c5e5ae5a8996de37"), //nolint:lll
@@ -109,7 +109,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 						PeerState: Collating,
 						CollatingPeerState: CollatingPeerState{
 							CollatorID: testCollatorID,
-							ParaID:     parachaintypes.ParaID(6),
+							ParaID:     6,
 						},
 					},
 				},
@@ -173,7 +173,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 						PeerState: Collating,
 						CollatingPeerState: CollatingPeerState{
 							CollatorID: testCollatorID,
-							ParaID:     parachaintypes.ParaID(6),
+							ParaID:     6,
 						},
 					},
 				},
@@ -255,7 +255,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 						PeerState: Collating,
 						CollatingPeerState: CollatingPeerState{
 							CollatorID: testCollatorID,
-							ParaID:     parachaintypes.ParaID(6),
+							ParaID:     6,
 						},
 					},
 				},
@@ -354,7 +354,7 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 		{
 			description: "Backed message fails with unknown relay parent",
 			msg: collatorprotocolmessages.Backed{
-				ParaID:   parachaintypes.ParaID(6),
+				ParaID:   6,
 				ParaHead: common.Hash{},
 			},
 			canSecond:                   true,
@@ -382,7 +382,7 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 		{
 			description: "Backed message gets processed successfully when seconding is not allowed",
 			msg: collatorprotocolmessages.Backed{
-				ParaID:   parachaintypes.ParaID(6),
+				ParaID:   6,
 				ParaHead: common.Hash{},
 			},
 			canSecond: false,

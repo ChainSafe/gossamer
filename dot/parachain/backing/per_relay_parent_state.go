@@ -73,7 +73,7 @@ func (rpState *perRelayParentState) importStatement(
 		return nil, errNilPersistedValidationData
 	}
 
-	paraID := parachaintypes.ParaID(committedCandidateReceipt.Descriptor.ParaID)
+	paraID := committedCandidateReceipt.Descriptor.ParaID
 
 	if rpState.prospectiveParachainsMode.IsEnabled {
 		chIntroduceCandidate := make(chan error)
@@ -161,13 +161,13 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 
 		// Inform the prospective parachains subsystem that the candidate is now backed.
 		subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageCandidateBacked{
-			ParaID:        parachaintypes.ParaID(paraID),
+			ParaID:        paraID,
 			CandidateHash: candidateHash,
 		}
 
 		// Backed candidate potentially unblocks new advertisements, notify collator protocol.
 		subSystemToOverseer <- collatorprotocolmessages.Backed{
-			ParaID:   parachaintypes.ParaID(paraID),
+			ParaID:   paraID,
 			ParaHead: backedCandidate.Candidate.Descriptor.ParaHead,
 		}
 
@@ -393,7 +393,7 @@ func getPovFromValidator(
 	fetchPov := parachaintypes.AvailabilityDistributionMessageFetchPoV{
 		RelayParent:   relayParent,
 		FromValidator: attesting.fromValidator,
-		ParaID:        parachaintypes.ParaID(attesting.candidate.Descriptor.ParaID),
+		ParaID:        attesting.candidate.Descriptor.ParaID,
 		CandidateHash: candidateHash,
 		PovHash:       attesting.povHash,
 		PovCh:         make(chan parachaintypes.OverseerFuncRes[parachaintypes.PoV]),

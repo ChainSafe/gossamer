@@ -97,9 +97,11 @@ type ValidatorInstance interface {
 
 // RuntimeInstance for runtime methods
 type RuntimeInstance interface {
-	ParachainHostPersistedValidationData(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
+	ParachainHostPersistedValidationData(
+		parachaidID parachaintypes.ParaID,
+		assumption parachaintypes.OccupiedCoreAssumption,
 	) (*parachaintypes.PersistedValidationData, error)
-	ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
+	ParachainHostValidationCode(parachaidID parachaintypes.ParaID, assumption parachaintypes.OccupiedCoreAssumption,
 	) (*parachaintypes.ValidationCode, error)
 	ParachainHostValidationCodeByHash(validationCodeHash common.Hash) (*parachaintypes.ValidationCode, error)
 	ParachainHostCheckValidationOutputs(parachainID parachaintypes.ParaID, outputs parachaintypes.CandidateCommitments) (
