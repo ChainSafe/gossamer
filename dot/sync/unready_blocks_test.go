@@ -158,46 +158,4 @@ func TestUnreadyBlocks_removeIrrelevantFragments(t *testing.T) {
 		ub.pruneDisjointFragments(LowerThanOrEqHighestFinalized(100))
 		require.Len(t, ub.disjointFragments, 3)
 	})
-
-	t.Run("keep_pinned_fragments_and_removed_unpinned", func(t *testing.T) {
-		pinnedFrag := NewFragment([]*types.BlockData{
-			{
-				Header: &types.Header{
-					Number: 101,
-				},
-			},
-		})
-		pinnedFrag.Pin()
-
-		ub := newUnreadyBlocks()
-		ub.disjointFragments = []*Fragment{
-			pinnedFrag,
-			NewFragment([]*types.BlockData{
-				{
-					Header: &types.Header{
-						Number: 103,
-					},
-				},
-			}),
-			NewFragment([]*types.BlockData{
-				{
-					Header: &types.Header{
-						Number: 104,
-					},
-				},
-			}),
-		}
-		ub.pruneDisjointFragments(LowerThanOrEqHighestFinalized(105))
-		require.Len(t, ub.disjointFragments, 1)
-		require.Equal(t, ub.disjointFragments[0], &Fragment{
-			chain: []*types.BlockData{
-				{
-					Header: &types.Header{
-						Number: 101,
-					},
-				},
-			},
-			pinned: true,
-		})
-	})
 }

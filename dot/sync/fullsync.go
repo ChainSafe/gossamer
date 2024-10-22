@@ -167,7 +167,7 @@ func (f *FullSyncStrategy) Process(results []*SyncTaskResult) (
 		// then the response should only contain the missing parts that will complete
 		// the unreadyBlocks and then with the blocks completed we should be able to import them
 		if reqRespData.req.RequestField(messages.RequestedDataHeader) {
-			updatedFragment, ok := f.unreadyBlocks.updateDisjointFragments(responseFragment)
+			updatedFragment, ok := f.unreadyBlocks.updateDisjointFragment(responseFragment)
 			if ok {
 				validFragment := updatedFragment.Filter(func(bd *types.BlockData) bool {
 					return bd.Header.Number > highestFinalized.Number
@@ -247,7 +247,6 @@ func (f *FullSyncStrategy) Process(results []*SyncTaskResult) (
 
 			if !ok {
 				firstFragmentBlock := validFragment.First()
-
 				// if the parent of this valid fragment is behind our latest finalized number
 				// then we can discard the whole fragment since it is a invalid fork
 				if (firstFragmentBlock.Header.Number - 1) <= highestFinalized.Number {

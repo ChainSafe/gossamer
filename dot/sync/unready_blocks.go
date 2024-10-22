@@ -14,24 +14,11 @@ import (
 )
 
 type Fragment struct {
-	chain  []*types.BlockData
-	pinned bool
+	chain []*types.BlockData
 }
 
 func NewFragment(chain []*types.BlockData) *Fragment {
-	return &Fragment{chain, false}
-}
-
-func (f *Fragment) Pin() {
-	f.pinned = true
-}
-
-func (f *Fragment) Unpin() {
-	f.pinned = false
-}
-
-func (f *Fragment) IsPinned() bool {
-	return f.pinned
+	return &Fragment{chain}
 }
 
 func (f *Fragment) Filter(p func(*types.BlockData) bool) *Fragment {
@@ -86,8 +73,7 @@ func (f *Fragment) First() *types.BlockData {
 
 func (f *Fragment) Concat(snd *Fragment) *Fragment {
 	return &Fragment{
-		pinned: f.pinned,
-		chain:  slices.Concat(f.chain, snd.chain),
+		chain: slices.Concat(f.chain, snd.chain),
 	}
 }
 
@@ -124,16 +110,22 @@ func (u *unreadyBlocks) newDisjointFragment(frag *Fragment) {
 // updateDisjointFragments given a set of blocks check if it
 // connects to a disjoint fragment, and returns a ne fragment
 // containing both fragments concatenated, removes the old one if not pinned
-func (u *unreadyBlocks) updateDisjointFragments(chain *Fragment) (*Fragment, bool) {
+func (u *unreadyBlocks) updateDisjointFragment(chain *Fragment) (*Fragment, bool) {
 	u.mtx.Lock()
 	defer u.mtx.Unlock()
 
 	for idx, disjointChain := range u.disjointFragments {
+		var outFragment *Fragment
 		if chain.Last().IsParent(disjointChain.First()) {
-			outFragment := chain.Concat(disjointChain)
-			if !disjointChain.IsPinned() {
-				u.disjointFragments = slices.Delete(u.disjointFragments, idx, idx+1)
-			}
+			outFragment = chain.Concat(disjointChain)
+		}
+
+		if disjointChain.Last().IsParent(chain.First()) {
+			outFragment = disjointChain.Concat(chain)
+		}
+
+		if outFragment != nil {
+			u.disjointFragments = slices.Delete(u.disjointFragments, idx, idx+1)
 			return outFragment, true
 		}
 	}
@@ -206,9 +198,7 @@ func (u *unreadyBlocks) pruneDisjointFragments(del func(*Fragment) bool) {
 	u.mtx.Lock()
 	defer u.mtx.Unlock()
 
-	u.disjointFragments = slices.DeleteFunc(u.disjointFragments, func(f *Fragment) bool {
-		return !f.IsPinned() && del(f)
-	})
+	u.disjointFragments = slices.DeleteFunc(u.disjointFragments, del)
 }
 
 // LowerThanOrEqHighestFinalized returns true if the fragment contains
