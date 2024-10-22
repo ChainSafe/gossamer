@@ -108,7 +108,7 @@ func (f *FullSyncStrategy) NextActions() ([]*SyncTask, error) {
 	}
 
 	// our best block is equal or ahead of current target.
-	// in the node's pov we are not legging behind so there's nothing to do
+	// in the node's pov we are not lagging behind so there's nothing to do
 	// or we didn't receive block announces, so lets ask for more blocks
 	if uint32(bestBlockHeader.Number) >= currentTarget { //nolint:gosec
 		return f.createTasks(reqsFromQueue), nil

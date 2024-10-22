@@ -301,6 +301,7 @@ func (s *SyncService) runStrategy() {
 	s.currentStrategy.ShowMetrics()
 	logger.Trace("finish process to acquire more blocks")
 
+	// TODO: why not use s.currentStrategy.IsSynced()?
 	if done {
 		s.currentStrategy = s.defaultStrategy
 	}
