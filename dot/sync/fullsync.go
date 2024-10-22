@@ -53,7 +53,7 @@ type importer interface {
 type syncTask struct {
 	id           TaskID
 	requestMaker network.RequestMaker
-	request      messages.P2PMessage
+	request      *messages.BlockRequestMessage
 }
 
 func (s *syncTask) ID() TaskID {
@@ -446,7 +446,7 @@ func validateResult(result TaskResult, badBlocks []string) (repChange *Change,
 		return
 	}
 
-	request := task.request.(*messages.BlockRequestMessage)
+	request := task.request
 	response := result.Result.(*messages.BlockResponseMessage)
 	if request.Direction == messages.Descending {
 		// reverse blocks before pre-validating and placing in ready queue

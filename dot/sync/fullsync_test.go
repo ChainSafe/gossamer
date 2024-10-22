@@ -70,7 +70,7 @@ func TestFullSyncNextActions(t *testing.T) {
 		task, err := fs.NextActions()
 		require.NoError(t, err)
 
-		request := task[0].(*syncTask).request.(*messages.BlockRequestMessage)
+		request := task[0].(*syncTask).request
 		require.Equal(t, uint(1), request.StartingBlock.RawValue())
 		require.Equal(t, uint32(128), *request.Max)
 	})
