@@ -10,6 +10,8 @@ import (
 	"slices"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -49,12 +51,21 @@ type importer interface {
 }
 
 type syncTask struct {
+	id           TaskID
 	requestMaker network.RequestMaker
 	request      messages.P2PMessage
 }
 
 func (s *syncTask) ID() TaskID {
-	return TaskID(s.request.String())
+	if s.id == "" {
+		id := uuid.New()
+		s.id = TaskID(id.String())
+	}
+	return s.id
+}
+
+func (s *syncTask) String() string {
+	return fmt.Sprintf("%s %s", s.id, s.request.String())
 }
 
 func (s *syncTask) Do(p peer.ID) (Result, error) {

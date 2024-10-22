@@ -27,6 +27,7 @@ type Result any
 type Task interface {
 	ID() TaskID
 	Do(p peer.ID) (Result, error)
+	String() string
 }
 
 type TaskResult struct {
@@ -239,24 +240,24 @@ func (w *workerPool) executeBatch(tasks []Task, bID BatchID) {
 
 func (w *workerPool) executeTask(task Task, ch chan TaskResult) {
 	if errors.Is(w.ctx.Err(), context.Canceled) {
-		logger.Tracef("[CANCELED] task=%s, shutting down", task.ID())
+		logger.Tracef("[CANCELED] task=%s, shutting down", task.String())
 		return
 	}
 
 	who, err := w.reservePeer()
 	if errors.Is(err, ErrNoPeers) {
-		logger.Tracef("no peers available for task=%s", task.ID())
+		logger.Tracef("no peers available for task=%s", task.String())
 		ch <- TaskResult{Task: task, Error: ErrNoPeers}
 		return
 	}
 
-	logger.Infof("[EXECUTING] task=%s", task.ID())
+	logger.Infof("[EXECUTING] task=%s", task.String())
 
 	result, err := task.Do(who)
 	if err != nil {
-		logger.Tracef("[FAILED] task=%s peer=%s, err=%s", task.ID(), who, err.Error())
+		logger.Tracef("[FAILED] task=%s peer=%s, err=%s", task.String(), who, err.Error())
 	} else {
-		logger.Tracef("[FINISHED] task=%s peer=%s", task.ID(), who)
+		logger.Tracef("[FINISHED] task=%s peer=%s", task.String(), who)
 	}
 
 	w.mtx.Lock()
