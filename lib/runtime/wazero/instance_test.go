@@ -1339,3 +1339,41 @@ func TestInstance_GrandpaSubmitReportEquivocationUnsignedExtrinsic(t *testing.T)
 	err = runtime.GrandpaSubmitReportEquivocationUnsignedExtrinsic(equivocationProof, opaqueKeyOwnershipProof)
 	require.NoError(t, err)
 }
+
+func TestInstance_ExecuteBlock_WndBlock2316689(t *testing.T) {
+	wnd2316688Trie := newTrieFromKeyValueList(t, "./testdata/westend/state2316688.bin")
+	expectedRoot := common.MustHexToHash("0x1bbbcf9373c45a1e94cbd62d594843f96fac0ee1a7ec2cf6da46fd229cef2273")
+	require.Equal(t, expectedRoot, wnd2316688Trie.MustHash())
+
+	state := storage.NewTrieState(wnd2316688Trie)
+	inMemoryDB, err := database.NewPebble("", true)
+	require.NoError(t, err)
+
+	cfg := Config{
+		Storage: state,
+		LogLvl:  log.Critical,
+		NodeStorage: runtime.NodeStorage{
+			LocalStorage:      inMemoryDB,
+			PersistentStorage: inMemoryDB,
+			BaseDB:            inMemoryDB,
+		},
+	}
+
+	instance, err := NewInstanceFromTrie(wnd2316688Trie, cfg)
+	require.NoError(t, err)
+
+	rawBlock2316689, err := os.ReadFile("./testdata/westend/block2316689.bin")
+	require.NoError(t, err)
+
+	blockResponse := &messages.BlockResponseMessage{}
+	err = blockResponse.Decode(common.MustHexToBytes(string(rawBlock2316689)))
+	require.NoError(t, err)
+
+	block2316689 := blockResponse.BlockData[0]
+	_, err = instance.ExecuteBlock(&types.Block{
+		Header: *block2316689.Header,
+		Body:   *block2316689.Body,
+	})
+
+	require.NoError(t, err)
+}
