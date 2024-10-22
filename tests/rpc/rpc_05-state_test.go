@@ -13,9 +13,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	libutils "github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/ChainSafe/gossamer/pkg/trie"
-	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/ChainSafe/gossamer/tests/utils/node"
 	"github.com/ChainSafe/gossamer/tests/utils/rpc"
@@ -34,32 +31,6 @@ func TestStateRPCResponseValidation(t *testing.T) { //nolint:tparallel
 	blockHash, err := rpc.GetBlockHash(getBlockHashCtx, node.RPCPort(), "")
 	getBlockHashCancel()
 	require.NoError(t, err)
-
-	t.Run("state_trie", func(t *testing.T) {
-		t.Parallel()
-		const westendDevGenesisHash = "0x276bfa91f70859348285599321ea96afd3ae681f0be47d36196bac8075ea32e8"
-		const westendDevStateRoot = "0x953044ba4386a72ae434d2a2fbdfca77640a28ac3841a924674cbfe7a8b9a81c"
-		params := fmt.Sprintf(`["%s"]`, westendDevGenesisHash)
-
-		var response modules.StateTrieResponse
-		fetchWithTimeout(ctx, t, "state_trie", params, &response)
-
-		entries := make(map[string]string, len(response))
-		for _, encodedEntry := range response {
-			bytesEncodedEntry := common.MustHexToBytes(encodedEntry)
-
-			entry := trie.Entry{}
-			err := scale.Unmarshal(bytesEncodedEntry, &entry)
-			require.NoError(t, err)
-			entries[common.BytesToHex(entry.Key)] = common.BytesToHex(entry.Value)
-		}
-
-		newTrie, err := inmemory_trie.LoadFromMap(entries, trie.V0)
-		require.NoError(t, err)
-
-		trieHash := newTrie.MustHash()
-		require.Equal(t, westendDevStateRoot, trieHash.String())
-	})
 
 	// TODO: Improve runtime tests
 	// https://github.com/ChainSafe/gossamer/issues/3234

@@ -54,7 +54,7 @@ func (n *Node) String() string {
 
 // StringNode returns a gotree compatible node for String methods.
 func (n *Node) StringNode() (stringNode *gotree.Node) {
-	stringNode = gotree.New(n.Kind().String()) //nolint:govet
+	stringNode = gotree.New(n.Kind().String())
 	stringNode.Appendf("Generation: %d", n.Generation)
 	stringNode.Appendf("Dirty: %t", n.Dirty)
 	stringNode.Appendf("Key: " + bytesToString(n.PartialKey))              //nolint:govet

@@ -167,3 +167,5 @@ func AuthoritiesRawToAuthorityAsAddress(authsRaw []AuthorityRaw, kt crypto.KeyTy
 	}
 	return auths, nil
 }
+
+type AuthorityList []Authority

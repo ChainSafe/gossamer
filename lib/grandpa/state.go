@@ -37,6 +37,7 @@ type BlockState interface {
 	GetHighestRoundAndSetID() (uint64, uint64, error)
 	BestBlockHash() common.Hash
 	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
+	GetJustification(hash common.Hash) ([]byte, error)
 }
 
 // GrandpaState is the interface required by grandpa into the grandpa state
@@ -51,6 +52,7 @@ type GrandpaState interface {
 	GetPrevotes(round, setID uint64) ([]SignedVote, error)
 	GetPrecommits(round, setID uint64) ([]SignedVote, error)
 	NextGrandpaAuthorityChange(bestBlockHash common.Hash, bestBlockNumber uint) (blockHeight uint, err error)
+	GetAuthoritiesChangesFromBlock(blockNumber uint) ([]uint, error)
 }
 
 // Network is the interface required by GRANDPA for the network
