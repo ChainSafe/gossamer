@@ -48,6 +48,21 @@ type importer interface {
 	importBlock(*types.BlockData, BlockOrigin) (imported bool, err error)
 }
 
+type syncTask struct {
+	requestMaker network.RequestMaker
+	request      messages.P2PMessage
+}
+
+func (s *syncTask) ID() TaskID {
+	return TaskID(s.request.String())
+}
+
+func (s *syncTask) Do(p peer.ID) (Result, error) {
+	response := messages.BlockResponseMessage{}
+	err := s.requestMaker.Do(p, s.request, &response)
+	return &response, err
+}
+
 // FullSyncStrategy protocol is the "default" protocol.
 // Full sync works by listening to announced blocks and requesting the blocks
 // from the announcing peers.

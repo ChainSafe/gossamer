@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -93,21 +92,6 @@ type Strategy interface {
 	Process(results <-chan TaskResult) (done bool, repChanges []Change, blocks []peer.ID, err error)
 	ShowMetrics()
 	IsSynced() bool
-}
-
-type syncTask struct {
-	requestMaker network.RequestMaker
-	request      messages.P2PMessage
-}
-
-func (s *syncTask) ID() TaskID {
-	return TaskID(s.request.String())
-}
-
-func (s *syncTask) Do(p peer.ID) (Result, error) {
-	response := messages.BlockResponseMessage{}
-	err := s.requestMaker.Do(p, s.request, &response)
-	return &response, err
 }
 
 type SyncService struct {
