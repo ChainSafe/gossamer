@@ -7,22 +7,22 @@ import (
 	"bytes"
 
 	"github.com/ChainSafe/gossamer/internal/database"
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 )
 
 // MemoryDB is an in-memory implementation of the Database interface backed by a
 // map. It uses blake2b as hashing algorithm
 type MemoryDB struct {
-	data           map[common.Hash][]byte
-	hashedNullNode common.Hash
+	data           map[string][]byte
+	hashedNullNode []byte
 	nullNodeData   []byte
 }
 
 func memoryDBFromNullNode(nullKey, nullNodeData []byte) *MemoryDB {
 	return &MemoryDB{
-		data:           make(map[common.Hash][]byte),
-		hashedNullNode: common.MustBlake2bHash(nullKey),
+		data:           make(map[string][]byte),
+		hashedNullNode: runtime.BlakeTwo256{}.Hash(nullKey).Bytes(),
 		nullNodeData:   nullNodeData,
 	}
 }
@@ -31,20 +31,20 @@ func NewMemoryDB(data []byte) *MemoryDB {
 	return memoryDBFromNullNode(data, data)
 }
 
-func (db *MemoryDB) emplace(key common.Hash, value []byte) {
+func (db *MemoryDB) emplace(key []byte, value []byte) {
 	if bytes.Equal(value, db.nullNodeData) {
 		return
 	}
 
-	db.data[key] = value
+	db.data[string(key)] = value
 }
 
 func (db *MemoryDB) Get(key []byte) ([]byte, error) {
-	dbKey := common.NewHash(key)
-	if dbKey == db.hashedNullNode {
+	dbKey := key
+	if bytes.Equal(dbKey, db.hashedNullNode) {
 		return db.nullNodeData, nil
 	}
-	if value, has := db.data[dbKey]; has {
+	if value, has := db.data[string(dbKey)]; has {
 		return value, nil
 	}
 
@@ -52,14 +52,14 @@ func (db *MemoryDB) Get(key []byte) ([]byte, error) {
 }
 
 func (db *MemoryDB) Put(key []byte, value []byte) error {
-	dbKey := common.NewHash(key)
+	dbKey := key
 	db.emplace(dbKey, value)
 	return nil
 }
 
 func (db *MemoryDB) Del(key []byte) error {
-	dbKey := common.NewHash(key)
-	delete(db.data, dbKey)
+	dbKey := key
+	delete(db.data, string(dbKey))
 	return nil
 }
 

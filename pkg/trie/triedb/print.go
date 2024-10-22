@@ -5,12 +5,10 @@ package triedb
 
 import (
 	"fmt"
-
-	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-func (t *TrieDB) String() string {
-	if t.rootHash == common.EmptyHash {
+func (t *TrieDB[H, Hasher]) String() string {
+	if t.rootHash == (*new(H)) {
 		return "empty"
 	}
 

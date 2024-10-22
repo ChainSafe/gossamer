@@ -8,8 +8,10 @@ import (
 	"io"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibbles"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,8 +29,7 @@ func scaleEncodeByteSlice(t *testing.T, b []byte) (encoded []byte) {
 func Test_Decode(t *testing.T) {
 	t.Parallel()
 
-	hashedValue, err := common.Blake2bHash([]byte("test"))
-	assert.NoError(t, err)
+	hashedValue := runtime.BlakeTwo256{}.Hash([]byte("test"))
 
 	testCases := map[string]struct {
 		reader     io.Reader
@@ -66,7 +67,7 @@ func Test_Decode(t *testing.T) {
 				scaleEncodeBytes(t, 1, 2, 3),
 			}, nil)),
 			n: Leaf{
-				PartialKey: []byte{9},
+				PartialKey: nibbles.NewNibbles([]byte{9}, 1),
 				Value:      InlineValue([]byte{1, 2, 3}),
 			},
 		},
@@ -86,18 +87,18 @@ func Test_Decode(t *testing.T) {
 				{0b0000_0000, 0b0000_0000}, // no children bitmap
 			}, nil)),
 			n: Branch{
-				PartialKey: []byte{9},
+				PartialKey: nibbles.NewNibbles([]byte{0x09}, 1),
 			},
 		},
 		"leaf_with_hashed_value_success": {
 			reader: bytes.NewReader(bytes.Join([][]byte{
 				{leafWithHashedValueVariant.bits | 1}, // partial key length 1
 				{9},                                   // key data
-				hashedValue.ToBytes(),
+				hashedValue.Bytes(),
 			}, nil)),
 			n: Leaf{
-				PartialKey: []byte{9},
-				Value:      HashedValue(hashedValue),
+				PartialKey: nibbles.NewNibbles([]byte{9}, 1),
+				Value:      HashedValue[hash.H256]{hashedValue},
 			},
 		},
 		"leaf_with_hashed_value_fail_too_short": {
@@ -114,11 +115,11 @@ func Test_Decode(t *testing.T) {
 				{branchWithHashedValueVariant.bits | 1}, // partial key length 1
 				{9},                                     // key data
 				{0b0000_0000, 0b0000_0000},              // no children bitmap
-				hashedValue.ToBytes(),
+				hashedValue.Bytes(),
 			}, nil)),
 			n: Branch{
-				PartialKey: []byte{9},
-				Value:      HashedValue(hashedValue),
+				PartialKey: nibbles.NewNibbles([]byte{9}, 1),
+				Value:      HashedValue[hash.H256]{hashedValue},
 			},
 		},
 		"branch_with_hashed_value_fail_too_short": {
@@ -138,7 +139,7 @@ func Test_Decode(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			n, err := Decode(testCase.reader)
+			n, err := Decode[hash.H256](testCase.reader)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if err != nil {
@@ -152,13 +153,13 @@ func Test_Decode(t *testing.T) {
 func Test_decodeBranch(t *testing.T) {
 	t.Parallel()
 
-	childHash := common.EmptyHash
-	scaleEncodedChildHash := scaleEncodeByteSlice(t, childHash.ToBytes())
+	var childHash hash.H256 = runtime.BlakeTwo256{}.Hash([]byte{0})
+	scaleEncodedChildHash := scaleEncodeByteSlice(t, childHash.Bytes())
 
 	testCases := map[string]struct {
 		reader      io.Reader
 		nodeVariant variant
-		partialKey  []byte
+		partialKey  nibbles.Nibbles
 		branch      Branch
 		errWrapped  error
 		errMessage  string
@@ -177,7 +178,7 @@ func Test_decodeBranch(t *testing.T) {
 				// missing children scale encoded data
 			}),
 			nodeVariant: branchVariant,
-			partialKey:  []byte{1},
+			partialKey:  nibbles.NewNibbles([]byte{1}),
 			errWrapped:  ErrDecodeChildHash,
 			errMessage:  "cannot decode child hash: at index 10: decoding uint: reading byte: EOF",
 		},
@@ -189,13 +190,13 @@ func Test_decodeBranch(t *testing.T) {
 				}, nil),
 			),
 			nodeVariant: branchVariant,
-			partialKey:  []byte{1},
+			partialKey:  nibbles.NewNibbles([]byte{1}),
 			branch: Branch{
-				PartialKey: []byte{1},
+				PartialKey: nibbles.NewNibbles([]byte{1}),
 				Children: [ChildrenCapacity]MerkleValue{
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil,
-					HashedNode(childHash),
+					HashedNode[hash.H256]{childHash},
 				},
 			},
 		},
@@ -207,7 +208,7 @@ func Test_decodeBranch(t *testing.T) {
 				}, nil),
 			),
 			nodeVariant: branchWithValueVariant,
-			partialKey:  []byte{1},
+			partialKey:  nibbles.NewNibbles([]byte{1}),
 			errWrapped:  ErrDecodeStorageValue,
 			errMessage:  "cannot decode storage value: decoding uint: reading byte: EOF",
 		},
@@ -218,14 +219,14 @@ func Test_decodeBranch(t *testing.T) {
 				scaleEncodedChildHash,
 			}, nil)),
 			nodeVariant: branchWithValueVariant,
-			partialKey:  []byte{1},
+			partialKey:  nibbles.NewNibbles([]byte{1}),
 			branch: Branch{
-				PartialKey: []byte{1},
+				PartialKey: nibbles.NewNibbles([]byte{1}),
 				Value:      InlineValue([]byte{7, 8, 9}),
 				Children: [ChildrenCapacity]MerkleValue{
 					nil, nil, nil, nil, nil,
 					nil, nil, nil, nil, nil,
-					HashedNode(childHash),
+					HashedNode[hash.H256]{childHash},
 				},
 			},
 		},
@@ -236,9 +237,9 @@ func Test_decodeBranch(t *testing.T) {
 				{0},                        // garbage inlined node
 			}, nil)),
 			nodeVariant: branchWithValueVariant,
-			partialKey:  []byte{1},
+			partialKey:  nibbles.NewNibbles([]byte{1}),
 			branch: Branch{
-				PartialKey: []byte{1},
+				PartialKey: nibbles.NewNibbles([]byte{1}),
 				Value:      InlineValue([]byte{1}),
 				Children: [ChildrenCapacity]MerkleValue{
 					InlineNode{},
@@ -269,9 +270,9 @@ func Test_decodeBranch(t *testing.T) {
 				}, nil)),
 			}, nil)),
 			nodeVariant: branchVariant,
-			partialKey:  []byte{1},
+			partialKey:  nibbles.NewNibbles([]byte{1}),
 			branch: Branch{
-				PartialKey: []byte{1},
+				PartialKey: nibbles.NewNibbles([]byte{1}),
 				Children: [ChildrenCapacity]MerkleValue{
 					InlineNode(
 						bytes.Join([][]byte{
@@ -304,7 +305,7 @@ func Test_decodeBranch(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			branch, err := decodeBranch(testCase.reader,
+			branch, err := decodeBranch[hash.H256](testCase.reader,
 				testCase.nodeVariant, testCase.partialKey)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
@@ -322,7 +323,7 @@ func Test_decodeLeaf(t *testing.T) {
 	testCases := map[string]struct {
 		reader     io.Reader
 		variant    variant
-		partialKey []byte
+		partialKey nibbles.Nibbles
 		leaf       Leaf
 		errWrapped error
 		errMessage string
@@ -332,7 +333,7 @@ func Test_decodeLeaf(t *testing.T) {
 				{255, 255}, // bad storage value data
 			}, nil)),
 			variant:    leafVariant,
-			partialKey: []byte{9},
+			partialKey: nibbles.NewNibbles([]byte{9}),
 			errWrapped: ErrDecodeStorageValue,
 			errMessage: "cannot decode storage value: decoding uint: unknown prefix for compact uint: 255",
 		},
@@ -341,7 +342,7 @@ func Test_decodeLeaf(t *testing.T) {
 				// missing storage value data
 			}),
 			variant:    leafVariant,
-			partialKey: []byte{9},
+			partialKey: nibbles.NewNibbles([]byte{9}),
 			errWrapped: ErrDecodeStorageValue,
 			errMessage: "cannot decode storage value: decoding uint: reading byte: EOF",
 		},
@@ -350,9 +351,9 @@ func Test_decodeLeaf(t *testing.T) {
 				scaleEncodeByteSlice(t, []byte{}), // results to []byte{0}
 			}, nil)),
 			variant:    leafVariant,
-			partialKey: []byte{9},
+			partialKey: nibbles.NewNibbles([]byte{9}),
 			leaf: Leaf{
-				PartialKey: []byte{9},
+				PartialKey: nibbles.NewNibbles([]byte{9}),
 				Value:      InlineValue([]byte{}),
 			},
 		},
@@ -361,9 +362,9 @@ func Test_decodeLeaf(t *testing.T) {
 				scaleEncodeBytes(t, 1, 2, 3, 4, 5), // storage value data
 			}, nil)),
 			variant:    leafVariant,
-			partialKey: []byte{9},
+			partialKey: nibbles.NewNibbles([]byte{9}),
 			leaf: Leaf{
-				PartialKey: []byte{9},
+				PartialKey: nibbles.NewNibbles([]byte{9}),
 				Value:      InlineValue([]byte{1, 2, 3, 4, 5}),
 			},
 		},
@@ -374,7 +375,7 @@ func Test_decodeLeaf(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			leaf, err := decodeLeaf(testCase.reader, testCase.variant, testCase.partialKey)
+			leaf, err := decodeLeaf[hash.H256](testCase.reader, testCase.variant, testCase.partialKey)
 
 			assert.ErrorIs(t, err, testCase.errWrapped)
 			if err != nil {

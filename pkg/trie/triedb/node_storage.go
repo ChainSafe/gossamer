@@ -4,13 +4,12 @@
 package triedb
 
 import (
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/hash"
 	"github.com/gammazero/deque"
 )
 
 var EmptyNode = []byte{0}
-var hashedNullNode = common.MustBlake2bHash(EmptyNode)
 
 // StorageHandle is a pointer to a node contained in `NodeStorage`
 type storageHandle int
@@ -24,21 +23,21 @@ type NodeHandle interface {
 }
 
 type (
-	inMemory  storageHandle
-	persisted common.Hash
+	inMemory         storageHandle
+	persisted[H any] struct{ hash H }
 )
 
-func (inMemory) isNodeHandle()  {}
-func (persisted) isNodeHandle() {}
+func (inMemory) isNodeHandle()     {}
+func (persisted[H]) isNodeHandle() {}
 
-func newFromEncodedMerkleValue(
-	parentHash common.Hash,
+func newFromEncodedMerkleValue[H hash.Hash](
+	parentHash H,
 	encodedNodeHandle codec.MerkleValue,
-	storage nodeStorage,
+	storage nodeStorage[H],
 ) (NodeHandle, error) {
 	switch encoded := encodedNodeHandle.(type) {
-	case codec.HashedNode:
-		return persisted(encoded), nil
+	case codec.HashedNode[H]:
+		return persisted[H]{encoded.Hash}, nil
 	case codec.InlineNode:
 		child, err := newNodeFromEncoded(parentHash, encoded, storage)
 		if err != nil {
@@ -63,34 +62,34 @@ type (
 	NewStoredNode struct {
 		node Node
 	}
-	CachedStoredNode struct {
+	CachedStoredNode[H any] struct {
 		node Node
-		hash common.Hash
+		hash H
 	}
 )
 
 func (n NewStoredNode) getNode() Node {
 	return n.node
 }
-func (n CachedStoredNode) getNode() Node {
+func (n CachedStoredNode[H]) getNode() Node {
 	return n.node
 }
 
 // nodeStorage is a struct that contains all the temporal nodes that are stored
 // in the trieDB before being written to the backed db
-type nodeStorage struct {
+type nodeStorage[H any] struct {
 	nodes       []StoredNode
 	freeIndices *deque.Deque[int]
 }
 
-func newNodeStorage() nodeStorage {
-	return nodeStorage{
+func newNodeStorage[H any]() nodeStorage[H] {
+	return nodeStorage[H]{
 		nodes:       make([]StoredNode, 0),
 		freeIndices: deque.New[int](0),
 	}
 }
 
-func (ns *nodeStorage) alloc(stored StoredNode) storageHandle {
+func (ns *nodeStorage[H]) alloc(stored StoredNode) storageHandle {
 	if ns.freeIndices.Len() > 0 {
 		idx := ns.freeIndices.PopFront()
 		ns.nodes[idx] = stored
@@ -101,7 +100,7 @@ func (ns *nodeStorage) alloc(stored StoredNode) storageHandle {
 	return storageHandle(len(ns.nodes) - 1)
 }
 
-func (ns *nodeStorage) destroy(handle storageHandle) StoredNode {
+func (ns *nodeStorage[H]) destroy(handle storageHandle) StoredNode {
 	idx := int(handle)
 	ns.freeIndices.PushBack(idx)
 	oldNode := ns.nodes[idx]
@@ -110,11 +109,11 @@ func (ns *nodeStorage) destroy(handle storageHandle) StoredNode {
 	return oldNode
 }
 
-func (ns *nodeStorage) get(handle storageHandle) Node {
+func (ns *nodeStorage[H]) get(handle storageHandle) Node {
 	switch n := ns.nodes[handle].(type) {
 	case NewStoredNode:
 		return n.node
-	case CachedStoredNode:
+	case CachedStoredNode[H]:
 		return n.node
 	default:
 		panic("unreachable")

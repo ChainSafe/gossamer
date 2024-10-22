@@ -6,8 +6,11 @@ package proof
 import (
 	"testing"
 
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,7 +19,7 @@ func Test_NewProof(t *testing.T) {
 		entries        []trie.Entry
 		storageVersion trie.TrieLayout
 		keys           []string
-		expectedProof  MerkleProof
+		expectedProof  MerkleProof[hash.H256, runtime.BlakeTwo256]
 	}{
 		"leaf": {
 			entries: []trie.Entry{
@@ -26,7 +29,7 @@ func Test_NewProof(t *testing.T) {
 				},
 			},
 			keys: []string{"a"},
-			expectedProof: MerkleProof{
+			expectedProof: MerkleProof[hash.H256, runtime.BlakeTwo256]{
 				{66, 97, 0}, // 'a' node without value
 			},
 		},
@@ -42,7 +45,7 @@ func Test_NewProof(t *testing.T) {
 				},
 			},
 			keys: []string{"ab"},
-			expectedProof: MerkleProof{
+			expectedProof: MerkleProof[hash.H256, runtime.BlakeTwo256]{
 				{194, 97, 64, 0, 4, 97, 12, 65, 2, 0},
 			},
 		},
@@ -74,7 +77,7 @@ func Test_NewProof(t *testing.T) {
 				},
 			},
 			keys: []string{"go"},
-			expectedProof: MerkleProof{
+			expectedProof: MerkleProof[hash.H256, runtime.BlakeTwo256]{
 				{
 					128, 192, 0, 0, 128, 114, 166, 121, 79, 225, 146, 229,
 					34, 68, 211, 54, 148, 205, 192, 58, 131, 95, 46, 239,
@@ -115,7 +118,7 @@ func Test_NewProof(t *testing.T) {
 				},
 			},
 			keys: []string{"go", "polkadot"},
-			expectedProof: MerkleProof{
+			expectedProof: MerkleProof[hash.H256, runtime.BlakeTwo256]{
 				{
 					128, 192, 0, 0, 0,
 				},
@@ -138,7 +141,7 @@ func Test_NewProof(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			// Build trie
 			inmemoryDB := NewMemoryDB(triedb.EmptyNode)
-			triedb := triedb.NewEmptyTrieDB(inmemoryDB)
+			triedb := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](inmemoryDB)
 
 			for _, entry := range testCase.entries {
 				triedb.Put(entry.Key, entry.Value)
@@ -147,9 +150,11 @@ func Test_NewProof(t *testing.T) {
 			root := triedb.MustHash()
 
 			// Generate proof
-			proof, err := NewMerkleProof(inmemoryDB, testCase.storageVersion, root, testCase.keys)
+			proof, err := NewMerkleProof[hash.H256, runtime.BlakeTwo256](
+				inmemoryDB, testCase.storageVersion, root, testCase.keys)
 			require.NoError(t, err)
-			require.Equal(t, testCase.expectedProof, proof)
+			assert.Equal(t, len(testCase.expectedProof), len(proof))
+			assert.Equal(t, testCase.expectedProof, proof)
 		})
 	}
 }

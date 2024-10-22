@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ChainSafe/gossamer/pkg/trie/codec"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibbles"
 )
 
 const maxPartialKeyLength = ^uint16(0)
@@ -16,22 +16,23 @@ const maxPartialKeyLength = ^uint16(0)
 var ErrReaderMismatchCount = errors.New("read unexpected number of bytes from reader")
 
 // decodeKey decodes a key from a reader.
-func decodeKey(reader io.Reader, partialKeyLength uint16) (b []byte, err error) {
+func decodeKey(reader io.Reader, partialKeyLength uint16) (b nibbles.Nibbles, err error) {
 	if partialKeyLength == 0 {
-		return []byte{}, nil
+		return b, nil
 	}
 
 	key := make([]byte, partialKeyLength/2+partialKeyLength%2)
 	n, err := reader.Read(key)
 	if err != nil {
-		return nil, fmt.Errorf("reading from reader: %w", err)
+		return b, fmt.Errorf("reading from reader: %w", err)
 	} else if n != len(key) {
-		return nil, fmt.Errorf("%w: read %d bytes instead of expected %d bytes",
+		return b, fmt.Errorf("%w: read %d bytes instead of expected %d bytes",
 			ErrReaderMismatchCount, n, len(key))
 	}
 
 	// if the partialKeyLength is an odd number means that when parsing the key
 	// to nibbles it will contains a useless 0 in the first index, otherwise
 	// we can use the entire nibbles
-	return codec.KeyLEToNibbles(key)[partialKeyLength%2:], nil
+	offset := uint(partialKeyLength) % 2
+	return nibbles.NewNibbles(key, offset), nil
 }
