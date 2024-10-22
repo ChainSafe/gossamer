@@ -24,6 +24,7 @@ import (
 const (
 	waitPeersDefaultTimeout = 10 * time.Second
 	minPeersDefault         = 1
+	maxTaskRetries          = 5
 )
 
 var (
@@ -120,7 +121,7 @@ func NewSyncService(cfgs ...ServiceConfig) *SyncService {
 		stopCh:                make(chan struct{}),
 		seenBlockSyncRequests: lrucache.NewLRUCache[common.Hash, uint](100),
 		workerPool: NewWorkerPool(WorkerPoolConfig{
-			MaxRetries: 5,
+			MaxRetries: maxTaskRetries,
 			// TODO: This should depend on the actual configuration of the currently used sync strategy.
 			Capacity: defaultNumOfTasks * 10,
 		}),
