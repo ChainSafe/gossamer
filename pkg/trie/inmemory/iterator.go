@@ -74,9 +74,18 @@ func (t *InMemoryTrieIterator) NextKeyFunc(predicate func(nextKey []byte) bool) 
 }
 
 func (t *InMemoryTrieIterator) Seek(targetKey []byte) {
-	t.NextKeyFunc(func(nextKey []byte) bool {
-		return bytes.Compare(nextKey, targetKey) >= 0
-	})
+	var prevEntry *trie.Entry
+	for entry := t.NextEntry(); entry != nil; entry = t.NextEntry() {
+		if bytes.Compare(entry.Key, targetKey) >= 0 {
+			break
+		}
+		prevEntry = entry
+	}
+	if prevEntry != nil {
+		t.cursorAtKey = prevEntry.Key
+		return
+	}
+	t.cursorAtKey = nil
 }
 
 // Entries returns all the key-value pairs in the trie as a map of keys to values

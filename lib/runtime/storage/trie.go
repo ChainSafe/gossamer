@@ -190,7 +190,7 @@ func (t *TrieState) NextKey(key []byte) []byte {
 
 		nextKeyOnState := t.state.PrefixedIter(key).NextKeyFunc(func(nextKey []byte) bool {
 			_, deleted := currentTx.deletes[string(nextKey)]
-			return !deleted
+			return !deleted && !bytes.Equal(nextKey, key)
 		})
 		if nextKeyOnState == nil {
 			return nextKey
