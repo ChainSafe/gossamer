@@ -235,4 +235,8 @@ func (w *WarpSyncStrategy) IsSynced() bool {
 	return w.phase == Completed
 }
 
+func (w *WarpSyncStrategy) Result() any {
+	return w.result
+}
+
 var _ Strategy = (*WarpSyncStrategy)(nil)

@@ -390,6 +390,11 @@ func (f *FullSyncStrategy) IsSynced() bool {
 	return uint32(highestBlock)+messages.MaxBlocksInResponse >= f.peers.getTarget() //nolint:gosec
 }
 
+func (f *FullSyncStrategy) Result() any {
+	logger.Debug("trying to get a result from full sync strategy which is supposed to run forever")
+	return nil
+}
+
 type RequestResponseData struct {
 	req          *messages.BlockRequestMessage
 	responseData []*types.BlockData
