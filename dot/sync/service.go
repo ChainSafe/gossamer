@@ -92,6 +92,7 @@ type Strategy interface {
 	Process(results []*SyncTaskResult) (done bool, repChanges []Change, blocks []peer.ID, err error)
 	ShowMetrics()
 	IsSynced() bool
+	Result() any
 }
 
 type SyncService struct {
@@ -100,8 +101,9 @@ type SyncService struct {
 	network    Network
 	blockState BlockState
 
-	currentStrategy Strategy
-	defaultStrategy Strategy
+	currentStrategy  Strategy
+	fullSyncStrategy Strategy
+	warpStrategy     Strategy
 
 	workerPool        *syncWorkerPool
 	waitPeersDuration time.Duration
@@ -301,7 +303,11 @@ func (s *SyncService) runStrategy() {
 	s.currentStrategy.ShowMetrics()
 	logger.Trace("finish process to acquire more blocks")
 
+	// TODO: why not use s.currentStrategy.IsSynced()?
 	if done {
-		s.currentStrategy = s.defaultStrategy
+		// Switch to full sync when warp sync finishes
+		if s.warpStrategy != nil {
+			s.currentStrategy = s.fullSyncStrategy
+		}
 	}
 }
