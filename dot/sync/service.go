@@ -279,21 +279,23 @@ func (s *SyncService) runStrategy() {
 		bestBlockHeader.Hash().Short(),
 	)
 
-	tasks, err := s.currentStrategy.NextActions()
-	if err != nil {
-		logger.Criticalf("current sync strategy next actions failed with: %s", err.Error())
-		return
-	}
+	if s.workerPool.Capacity() > s.currentStrategy.NumOfTasks() {
+		tasks, err := s.currentStrategy.NextActions()
+		if err != nil {
+			logger.Criticalf("current sync strategy next actions failed with: %s", err.Error())
+			return
+		}
 
-	logger.Tracef("amount of tasks to process: %d", len(tasks))
-	if len(tasks) == 0 {
-		return
-	}
+		logger.Tracef("amount of tasks to process: %d", len(tasks))
+		if len(tasks) == 0 {
+			return
+		}
 
-	_, err = s.workerPool.SubmitBatch(tasks)
-	if err != nil {
-		logger.Criticalf("current sync strategy next actions failed with: %s", err.Error())
-		return
+		_, err = s.workerPool.SubmitBatch(tasks)
+		if err != nil {
+			logger.Criticalf("current sync strategy next actions failed with: %s", err.Error())
+			return
+		}
 	}
 
 	done, repChanges, peersToIgnore, err := s.currentStrategy.Process(s.workerPool.Results())

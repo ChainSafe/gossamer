@@ -74,6 +74,7 @@ type WorkerPool interface {
 	SubmitBatch(tasks []Task) (id BatchID, err error)
 	GetBatch(id BatchID) (status BatchStatus, ok bool)
 	Results() chan TaskResult
+	Capacity() int
 	AddPeer(p peer.ID) error
 	RemovePeer(p peer.ID)
 	IgnorePeer(p peer.ID)
@@ -119,10 +120,6 @@ type workerPool struct {
 
 // SubmitBatch accepts a list of tasks and immediately returns a batch ID. The batch ID can be used to query the status
 // of the batch using [GetBatchStatus].
-// TODO
-// If tasks are submitted faster than they are completed, resChan will run full, blocking the calling goroutine.
-// Ideally this method would provide backpressure to the caller in that case. The rejected tasks should then stay in
-// FullSyncStrategy.requestQueue until the next round. But this would need to be supported in all sync strategies.
 func (w *workerPool) SubmitBatch(tasks []Task) (id BatchID, err error) {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
@@ -155,6 +152,13 @@ func (w *workerPool) GetBatch(id BatchID) (status BatchStatus, ok bool) {
 // Results returns a channel that can be used to receive the results of completed tasks.
 func (w *workerPool) Results() chan TaskResult {
 	return w.resChan
+}
+
+// Capacity returns the number of tasks the worker pool can currently accept.
+func (w *workerPool) Capacity() int {
+	w.mtx.RLock()
+	defer w.mtx.RUnlock()
+	return len(w.resChan)
 }
 
 // AddPeer adds a peer to the worker pool unless it has been ignored previously.
