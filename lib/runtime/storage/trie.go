@@ -211,6 +211,10 @@ func (t *TrieState) ClearPrefix(prefix []byte) error {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
+	if fmt.Sprintf("%x", prefix) == "d699c21ba7f727a6cc2abc054d390b12e601a78caffde57e00752be8864bc48e" {
+		fmt.Println("found it")
+	}
+
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		keysOnState := make([]string, 0)
 
@@ -219,8 +223,15 @@ func (t *TrieState) ClearPrefix(prefix []byte) error {
 			keysOnState = append(keysOnState, string(key))
 		}
 
+		if val := t.state.Get(prefix); val != nil && !slices.Contains(keysOnState, string(prefix)) {
+			keysOnState = append(keysOnState, string(prefix))
+		}
+
+		// deleted, _ := currentTx.clearPrefix(prefix, keysOnState, -1)
 		currentTx.clearPrefix(prefix, keysOnState, -1)
-		return nil
+		//if deleted > 0 {
+		//	return nil
+		//}
 	}
 
 	return t.state.ClearPrefix(prefix)
