@@ -46,14 +46,6 @@ func NewInMemoryTrieIterator(opts ...IterOpts) *InMemoryTrieIterator {
 	return iter
 }
 
-func (t *InMemoryTrieIterator) PeekNextKey() []byte {
-	entry := findNextNode(t.trie.root, []byte(nil), t.cursorAtKey)
-	if entry != nil {
-		return codec.NibblesToKeyLE(entry.Key)
-	}
-	return nil
-}
-
 func (t *InMemoryTrieIterator) NextEntry() *trie.Entry {
 	found := findNextNode(t.trie.root, []byte(nil), t.cursorAtKey)
 	if found != nil {
