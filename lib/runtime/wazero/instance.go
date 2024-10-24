@@ -1121,7 +1121,7 @@ func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
 
 // ParachainHostPersistedValidationData returns persisted validation data for the given parachain id.
 func (in *Instance) ParachainHostPersistedValidationData(
-	parachaidID uint32,
+	parachaidID parachaintypes.ParaID,
 	assumption parachaintypes.OccupiedCoreAssumption,
 ) (*parachaintypes.PersistedValidationData, error) {
 	buffer := bytes.NewBuffer(nil)
@@ -1150,7 +1150,9 @@ func (in *Instance) ParachainHostPersistedValidationData(
 }
 
 // ParachainHostValidationCode returns validation code for the given parachain id.
-func (in *Instance) ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
+func (in *Instance) ParachainHostValidationCode(
+	parachaidID parachaintypes.ParaID,
+	assumption parachaintypes.OccupiedCoreAssumption,
 ) (*parachaintypes.ValidationCode, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)

@@ -88,7 +88,7 @@ func (cb *CandidateBacking) secondingSanityCheck(
 		candidateRelayParent = v.RelayParent
 		candidateHash = v.CandidateHash
 	case parachaintypes.HypotheticalCandidateComplete:
-		candidateParaID = parachaintypes.ParaID(v.CommittedCandidateReceipt.Descriptor.ParaID)
+		candidateParaID = v.CommittedCandidateReceipt.Descriptor.ParaID
 		candidateRelayParent = v.CommittedCandidateReceipt.Descriptor.RelayParent
 		candidateHash = v.CandidateHash
 	}

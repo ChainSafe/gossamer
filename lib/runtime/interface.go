@@ -50,10 +50,10 @@ type Instance interface {
 		equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
 	) error
 	ParachainHostPersistedValidationData(
-		parachaidID uint32,
+		parachaidID parachaintypes.ParaID,
 		assumption parachaintypes.OccupiedCoreAssumption,
 	) (*parachaintypes.PersistedValidationData, error)
-	ParachainHostValidationCode(parachaidID uint32, assumption parachaintypes.OccupiedCoreAssumption,
+	ParachainHostValidationCode(parachaidID parachaintypes.ParaID, assumption parachaintypes.OccupiedCoreAssumption,
 	) (*parachaintypes.ValidationCode, error)
 	ParachainHostValidationCodeByHash(validationCodeHash common.Hash) (*parachaintypes.ValidationCode, error)
 	ParachainHostValidators() ([]parachaintypes.ValidatorID, error)

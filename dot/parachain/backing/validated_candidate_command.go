@@ -234,10 +234,10 @@ func (cb *CandidateBacking) handleCommandSecond(
 			continue
 		}
 
-		secondedAtDepth, ok := leafState.secondedAtDepth[parachaintypes.ParaID(candidate.Descriptor.ParaID)]
+		secondedAtDepth, ok := leafState.secondedAtDepth[candidate.Descriptor.ParaID]
 		if !ok {
 			var btreeMap btree.Map[uint, parachaintypes.CandidateHash]
-			leafState.secondedAtDepth[parachaintypes.ParaID(candidate.Descriptor.ParaID)] = &btreeMap
+			leafState.secondedAtDepth[candidate.Descriptor.ParaID] = &btreeMap
 			secondedAtDepth = &btreeMap
 		}
 

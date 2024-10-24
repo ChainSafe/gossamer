@@ -27,7 +27,7 @@ var (
 	badParent        = BadParent
 )
 
-func createTestCandidateReceiptAndValidationCodeWParaId(t *testing.T, id uint32) (
+func createTestCandidateReceiptAndValidationCodeWParaId(t *testing.T, id parachaintypes.ParaID) (
 	parachaintypes.CandidateReceipt, parachaintypes.ValidationCode) {
 	t.Helper()
 	// this wasm was achieved by building polkadot's adder test parachain
@@ -58,7 +58,7 @@ func createTestCandidateReceiptAndValidationCodeWParaId(t *testing.T, id uint32)
 	return candidateReceipt, validationCode
 }
 
-func makeValidCandidateDescriptor(t *testing.T, paraID uint32, relayParent common.Hash,
+func makeValidCandidateDescriptor(t *testing.T, paraID parachaintypes.ParaID, relayParent common.Hash,
 	persistedValidationDataHash common.Hash, povHash common.Hash,
 	validationCodeHash parachaintypes.ValidationCodeHash, paraHead common.Hash, erasureRoot common.Hash,
 	collator sr25519.Keypair,

@@ -1399,7 +1399,7 @@ func TestInstance_ParachainHostPersistedValidationData(t *testing.T) {
 	tt := getParachainHostTrie(t, parachainTestData.Storage)
 	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0942, TestWithTrie(tt))
 
-	parachainID := uint32(1000)
+	parachainID := parachaintypes.ParaID(1000)
 	assumption := parachaintypes.NewOccupiedCoreAssumption()
 	err := assumption.SetValue(parachaintypes.IncludedOccupiedCoreAssumption{})
 	require.NoError(t, err)
@@ -1425,7 +1425,7 @@ func TestInstance_ParachainHostValidationCode(t *testing.T) {
 	tt := getParachainHostTrie(t, parachainTestData.Storage)
 	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v0942, TestWithTrie(tt))
 
-	parachainID := uint32(1000)
+	parachainID := parachaintypes.ParaID(1000)
 	assumption := parachaintypes.NewOccupiedCoreAssumption()
 	err := assumption.SetValue(parachaintypes.IncludedOccupiedCoreAssumption{})
 	require.NoError(t, err)

@@ -51,7 +51,7 @@ func getDummyCommittedCandidateReceipt(t *testing.T) parachaintypes.CommittedCan
 
 	ccr := parachaintypes.CommittedCandidateReceipt{
 		Descriptor: parachaintypes.CandidateDescriptor{
-			ParaID:                      uint32(1),
+			ParaID:                      1,
 			RelayParent:                 hash5,
 			Collator:                    collatorID,
 			PersistedValidationDataHash: hash5,

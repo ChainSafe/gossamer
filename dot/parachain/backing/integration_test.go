@@ -101,7 +101,7 @@ func makeErasureRoot(
 // newCommittedCandidate creates a new committed candidate receipt for testing purposes.
 func newCommittedCandidate(
 	t *testing.T,
-	paraID uint32, //nolint:unparam
+	paraID parachaintypes.ParaID, //nolint:unparam
 	headData parachaintypes.HeadData,
 	povHash, relayParent, erasureRoot, pvdHash common.Hash,
 	validationCode parachaintypes.ValidationCode,
@@ -265,7 +265,7 @@ func TestSecondsValidCandidate(t *testing.T) {
 	paraValidators := parachainValidators(t, candidateBacking.Keystore)
 	numOfValidators := uint(len(paraValidators))
 	relayParent := getDummyHash(t, 5)
-	paraID := uint32(1)
+	paraID := parachaintypes.ParaID(1)
 
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
@@ -443,7 +443,7 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	paraValidators := parachainValidators(t, candidateBacking.Keystore)
 	numOfValidators := uint(len(paraValidators))
 	relayParent := getDummyHash(t, 5)
-	paraID := uint32(1)
+	paraID := parachaintypes.ParaID(1)
 
 	pov := parachaintypes.PoV{BlockData: []byte{1, 2, 3}}
 	povHash, err := pov.Hash()
@@ -635,7 +635,7 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 	paraValidators := parachainValidators(t, candidateBacking.Keystore)
 	numOfValidators := uint(len(paraValidators))
 	relayParent := getDummyHash(t, 5)
-	paraID := uint32(1)
+	paraID := parachaintypes.ParaID(1)
 
 	pov := parachaintypes.PoV{BlockData: []byte{1, 2, 3}}
 	povHash, err := pov.Hash()
@@ -778,7 +778,7 @@ func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
 	paraValidators := parachainValidators(t, candidateBacking.Keystore)
 	numOfValidators := uint(len(paraValidators))
 	relayParent := getDummyHash(t, 5)
-	paraID := uint32(1)
+	paraID := parachaintypes.ParaID(1)
 
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
@@ -922,7 +922,7 @@ func TestNewLeafDoesNotClobberOld(t *testing.T) {
 	numOfValidators := uint(len(paraValidators))
 	relayParent1 := getDummyHash(t, 5)
 	relayParent2 := getDummyHash(t, 6)
-	paraID := uint32(1)
+	paraID := parachaintypes.ParaID(1)
 	validationCode := parachaintypes.ValidationCode{1, 2, 3}
 
 	ctrl := gomock.NewController(t)
@@ -1045,7 +1045,7 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 	paraValidators := parachainValidators(t, candidateBacking.Keystore)
 	numOfValidators := uint(len(paraValidators))
 	relayParent := getDummyHash(t, 5)
-	paraID := uint32(1)
+	paraID := parachaintypes.ParaID(1)
 
 	pov := parachaintypes.PoV{BlockData: []byte{1, 2, 3}}
 	povHash, err := pov.Hash()

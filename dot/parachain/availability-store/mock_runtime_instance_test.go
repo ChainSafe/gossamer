@@ -71,7 +71,7 @@ func (mr *MockRuntimeInstanceMockRecorder) ParachainHostCheckValidationOutputs(a
 }
 
 // ParachainHostPersistedValidationData mocks base method.
-func (m *MockRuntimeInstance) ParachainHostPersistedValidationData(arg0 uint32, arg1 parachaintypes.OccupiedCoreAssumption) (*parachaintypes.PersistedValidationData, error) {
+func (m *MockRuntimeInstance) ParachainHostPersistedValidationData(arg0 parachaintypes.ParaID, arg1 parachaintypes.OccupiedCoreAssumption) (*parachaintypes.PersistedValidationData, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostPersistedValidationData", arg0, arg1)
 	ret0, _ := ret[0].(*parachaintypes.PersistedValidationData)
@@ -116,7 +116,7 @@ func (mr *MockRuntimeInstanceMockRecorder) ParachainHostSessionIndexForChild() *
 }
 
 // ParachainHostValidationCode mocks base method.
-func (m *MockRuntimeInstance) ParachainHostValidationCode(arg0 uint32, arg1 parachaintypes.OccupiedCoreAssumption) (*parachaintypes.ValidationCode, error) {
+func (m *MockRuntimeInstance) ParachainHostValidationCode(arg0 parachaintypes.ParaID, arg1 parachaintypes.OccupiedCoreAssumption) (*parachaintypes.ValidationCode, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostValidationCode", arg0, arg1)
 	ret0, _ := ret[0].(*parachaintypes.ValidationCode)
