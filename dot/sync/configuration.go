@@ -7,10 +7,9 @@ import "time"
 
 type ServiceConfig func(svc *SyncService)
 
-func WithStrategies(currentStrategy, defaultStrategy Strategy) ServiceConfig {
+func WithStrategy(currentStrategy Strategy) ServiceConfig {
 	return func(svc *SyncService) {
 		svc.currentStrategy = currentStrategy
-		svc.defaultStrategy = defaultStrategy
 	}
 }
 
