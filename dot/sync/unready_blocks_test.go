@@ -13,38 +13,32 @@ import (
 func TestUnreadyBlocks_removeIrrelevantFragments(t *testing.T) {
 	t.Run("removing_all_disjoint_fragment", func(t *testing.T) {
 		ub := newUnreadyBlocks()
-		ub.disjointFragments = [][]*types.BlockData{
-			{
-				{
-					Header: &types.Header{
-						Number: 100,
-					},
-				},
-			},
-			{
+		ub.disjointFragments = []*Fragment{
+			NewFragment([]*types.BlockData{
 				{
 					Header: &types.Header{
 						Number: 99,
 					},
 				},
-			},
-			{
+			}),
+			NewFragment([]*types.BlockData{
 				{
 					Header: &types.Header{
 						Number: 92,
 					},
 				},
-			},
+			}),
 		}
-		ub.removeIrrelevantFragments(100)
+
+		ub.pruneDisjointFragments(LowerThanOrEqHighestFinalized(100))
 		require.Empty(t, ub.disjointFragments)
 	})
 
 	t.Run("removing_irrelevant_fragments", func(t *testing.T) {
 		ub := newUnreadyBlocks()
-		ub.disjointFragments = [][]*types.BlockData{
+		ub.disjointFragments = []*Fragment{
 			// first fragment
-			{
+			NewFragment([]*types.BlockData{
 				{
 					Header: &types.Header{
 						Number: 192,
@@ -62,10 +56,10 @@ func TestUnreadyBlocks_removeIrrelevantFragments(t *testing.T) {
 						Number: 190,
 					},
 				},
-			},
+			}),
 
 			// second fragment
-			{
+			NewFragment([]*types.BlockData{
 				{
 					Header: &types.Header{
 						Number: 253,
@@ -83,10 +77,10 @@ func TestUnreadyBlocks_removeIrrelevantFragments(t *testing.T) {
 						Number: 255,
 					},
 				},
-			},
+			}),
 
 			// third fragment
-			{
+			NewFragment([]*types.BlockData{
 				{
 					Header: &types.Header{
 						Number: 1022,
@@ -104,30 +98,16 @@ func TestUnreadyBlocks_removeIrrelevantFragments(t *testing.T) {
 						Number: 1024,
 					},
 				},
-			},
+			}),
 		}
 
 		// the first fragment should be removed
 		// the second fragment should have only 2 items
 		// the third frament shold not be affected
-		ub.removeIrrelevantFragments(253)
-		require.Len(t, ub.disjointFragments, 2)
+		ub.pruneDisjointFragments(LowerThanOrEqHighestFinalized(253))
+		require.Len(t, ub.disjointFragments, 1)
 
-		expectedSecondFrag := []*types.BlockData{
-			{
-				Header: &types.Header{
-					Number: 254,
-				},
-			},
-
-			{
-				Header: &types.Header{
-					Number: 255,
-				},
-			},
-		}
-
-		expectedThirdFragment := []*types.BlockData{
+		expectedThirdFragment := NewFragment([]*types.BlockData{
 			{
 				Header: &types.Header{
 					Number: 1022,
@@ -145,37 +125,37 @@ func TestUnreadyBlocks_removeIrrelevantFragments(t *testing.T) {
 					Number: 1024,
 				},
 			},
-		}
-		require.Equal(t, ub.disjointFragments[0], expectedSecondFrag)
-		require.Equal(t, ub.disjointFragments[1], expectedThirdFragment)
+		})
+
+		require.Equal(t, ub.disjointFragments[0], expectedThirdFragment)
 	})
 
 	t.Run("keep_all_fragments", func(t *testing.T) {
 		ub := newUnreadyBlocks()
-		ub.disjointFragments = [][]*types.BlockData{
-			{
+		ub.disjointFragments = []*Fragment{
+			NewFragment([]*types.BlockData{
 				{
 					Header: &types.Header{
 						Number: 101,
 					},
 				},
-			},
-			{
+			}),
+			NewFragment([]*types.BlockData{
 				{
 					Header: &types.Header{
 						Number: 103,
 					},
 				},
-			},
-			{
+			}),
+			NewFragment([]*types.BlockData{
 				{
 					Header: &types.Header{
 						Number: 104,
 					},
 				},
-			},
+			}),
 		}
-		ub.removeIrrelevantFragments(100)
+		ub.pruneDisjointFragments(LowerThanOrEqHighestFinalized(100))
 		require.Len(t, ub.disjointFragments, 3)
 	})
 }

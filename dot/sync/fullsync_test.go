@@ -254,8 +254,8 @@ func TestFullSyncProcess(t *testing.T) {
 		require.Equal(t, fs.requestQueue.Len(), 1)
 		require.Len(t, fs.unreadyBlocks.incompleteBlocks, 0)
 		require.Len(t, fs.unreadyBlocks.disjointFragments, 1)
-		require.Equal(t, fs.unreadyBlocks.disjointFragments[0], sndTaskBlockResponse.BlockData)
-		require.Equal(t, len(fs.unreadyBlocks.disjointFragments[0]), len(sndTaskBlockResponse.BlockData))
+		require.Equal(t, fs.unreadyBlocks.disjointFragments[0], NewFragment(sndTaskBlockResponse.BlockData))
+		require.Equal(t, fs.unreadyBlocks.disjointFragments[0].Len(), len(sndTaskBlockResponse.BlockData))
 
 		expectedAncestorRequest := messages.NewBlockRequest(
 			*messages.NewFromBlock(sndTaskBlockResponse.BlockData[0].Header.ParentHash),
