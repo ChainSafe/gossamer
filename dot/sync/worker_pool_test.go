@@ -94,7 +94,7 @@ func TestWorkerPoolHappyPath(t *testing.T) {
 			result := <-wp.Results()
 			assert.True(t, result.Completed)
 			assert.False(t, result.Failed())
-			assert.Equal(t, uint(0), result.Retries)
+			assert.Equal(t, 0, result.Retries)
 
 			results = append(results, result)
 			if len(results) == numTasks {
@@ -172,7 +172,7 @@ func TestWorkerPoolTaskFailures(t *testing.T) {
 	numTasks := 3
 	taskErr := errors.New("kaput")
 
-	setup := func(maxRetries uint) (failOnce *mockTask, failTwice *mockTask, batchID BatchID, wp WorkerPool) {
+	setup := func(maxRetries int) (failOnce *mockTask, failTwice *mockTask, batchID BatchID, wp WorkerPool) {
 		tasks, peers := makeTasksAndPeers(numTasks, 0)
 
 		failOnce = tasks[1].(*mockTask)
@@ -206,10 +206,10 @@ func TestWorkerPoolTaskFailures(t *testing.T) {
 		assert.Equal(t, 0, len(status.Failed))
 
 		assert.Nil(t, status.Failed[failOnce.ID()].Error)
-		assert.Equal(t, uint(1), status.Success[failOnce.ID()].Retries)
+		assert.Equal(t, 1, status.Success[failOnce.ID()].Retries)
 
 		assert.Nil(t, status.Failed[failTwice.ID()].Error)
-		assert.Equal(t, uint(2), status.Success[failTwice.ID()].Retries)
+		assert.Equal(t, 2, status.Success[failTwice.ID()].Retries)
 	})
 
 	t.Run("honours_max_retries", func(t *testing.T) {
@@ -223,10 +223,10 @@ func TestWorkerPoolTaskFailures(t *testing.T) {
 		assert.Equal(t, 1, len(status.Failed))
 
 		assert.Nil(t, status.Failed[failOnce.ID()].Error)
-		assert.Equal(t, uint(1), status.Success[failOnce.ID()].Retries)
+		assert.Equal(t, 1, status.Success[failOnce.ID()].Retries)
 
 		assert.ErrorIs(t, taskErr, status.Failed[failTwice.ID()].Error)
-		assert.Equal(t, uint(1), status.Failed[failTwice.ID()].Retries)
+		assert.Equal(t, 1, status.Failed[failTwice.ID()].Retries)
 	})
 }
 

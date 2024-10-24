@@ -93,6 +93,7 @@ type Strategy interface {
 	Process(results <-chan TaskResult) (done bool, repChanges []Change, blocks []peer.ID, err error)
 	ShowMetrics()
 	IsSynced() bool
+	NumOfTasks() int
 }
 
 type SyncService struct {
@@ -120,11 +121,7 @@ func NewSyncService(cfgs ...ServiceConfig) *SyncService {
 		waitPeersDuration:     waitPeersDefaultTimeout,
 		stopCh:                make(chan struct{}),
 		seenBlockSyncRequests: lrucache.NewLRUCache[common.Hash, uint](100),
-		workerPool: NewWorkerPool(WorkerPoolConfig{
-			MaxRetries: maxTaskRetries,
-			// TODO: This should depend on the actual configuration of the currently used sync strategy.
-			Capacity: defaultNumOfTasks * 10,
-		}),
+		workerPool:            nil,
 	}
 
 	for _, cfg := range cfgs {

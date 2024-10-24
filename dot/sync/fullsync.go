@@ -428,6 +428,10 @@ func (f *FullSyncStrategy) IsSynced() bool {
 	return uint32(highestBlock)+messages.MaxBlocksInResponse >= f.peers.getTarget() //nolint:gosec
 }
 
+func (f *FullSyncStrategy) NumOfTasks() int {
+	return f.numOfTasks
+}
+
 type RequestResponseData struct {
 	req          *messages.BlockRequestMessage
 	responseData []*types.BlockData

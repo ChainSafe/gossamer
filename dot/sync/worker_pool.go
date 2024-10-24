@@ -35,7 +35,7 @@ type TaskResult struct {
 	Completed bool
 	Result    Result
 	Error     error
-	Retries   uint
+	Retries   int
 	Who       peer.ID
 }
 
@@ -82,15 +82,15 @@ type WorkerPool interface {
 }
 
 type WorkerPoolConfig struct {
-	Capacity   uint
-	MaxRetries uint
+	Capacity   int
+	MaxRetries int
 }
 
 // NewWorkerPool creates a new worker pool with the given configuration.
 func NewWorkerPool(cfg WorkerPoolConfig) WorkerPool {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	if cfg.Capacity == 0 {
+	if cfg.Capacity <= 0 {
 		cfg.Capacity = defaultWorkerPoolCapacity
 	}
 
@@ -108,7 +108,7 @@ type workerPool struct {
 	mtx sync.RWMutex
 	wg  sync.WaitGroup
 
-	maxRetries   uint
+	maxRetries   int
 	peers        list.List
 	ignoredPeers map[peer.ID]struct{}
 	statuses     map[BatchID]BatchStatus
