@@ -73,10 +73,19 @@ func (t *InMemoryTrieIterator) NextKeyFunc(predicate func(nextKey []byte) bool) 
 	return nil
 }
 
+// Seek moves the iterator to the first key that is greater than or equal to the target key.
 func (t *InMemoryTrieIterator) Seek(targetKey []byte) {
-	t.NextKeyFunc(func(nextKey []byte) bool {
-		return bytes.Compare(nextKey, targetKey) >= 0
-	})
+	// Reset iterator cursor
+	t.cursorAtKey = nil
+
+	// Find the lexicographically greatest key that is lower than the target key
+	var prevKey []byte = nil
+	for entry := t.NextEntry(); entry != nil && bytes.Compare(entry.Key, targetKey) < 0; entry = t.NextEntry() {
+		prevKey = entry.Key
+	}
+
+	// Move the cursor to that key
+	t.cursorAtKey = prevKey
 }
 
 // Entries returns all the key-value pairs in the trie as a map of keys to values

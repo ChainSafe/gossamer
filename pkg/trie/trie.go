@@ -47,7 +47,7 @@ type TrieIterator interface {
 	// that satisfies the predicate based on the current state of the iterator.
 	NextKeyFunc(predicate func(nextKey []byte) bool) (nextKey []byte)
 
-	// Seek moves the iterator to the first key that is greater than the target key.
+	// Seek moves the iterator to the first key that is greater or equal than the target key.
 	Seek(targetKey []byte)
 }
 

@@ -55,7 +55,9 @@ func (t *InMemoryTrie) Iter() trie.TrieIterator {
 }
 
 func (t *InMemoryTrie) PrefixedIter(prefix []byte) trie.TrieIterator {
-	return NewInMemoryTrieIterator(WithTrie(t), WithCursorAt(codec.KeyLEToNibbles(prefix)))
+	iter := t.Iter()
+	iter.Seek(codec.KeyLEToNibbles(prefix))
+	return iter
 }
 
 func (t *InMemoryTrie) SetVersion(v trie.TrieLayout) {
