@@ -3,35 +3,60 @@
 
 package triedb
 
-import (
-	"github.com/tidwall/btree"
-)
+import "github.com/ChainSafe/gossamer/pkg/trie/triedb/hash"
 
+// Used to report the trie access to the [TrieRecorder].
+//
+// As the trie can use a [TrieCache], there are multiple kinds of accesses.
 type TrieAccess interface {
 	isTrieAccess()
 }
 
 type (
-	EncodedNodeAccess[H any] struct {
+	// The given [CachedNode] was accessed using its hash.
+	CachedNodeAccess[H hash.Hash] struct {
+		Hash H
+		Node CachedNode[H]
+	}
+	// The given EncodedNode was accessed using its hash.
+	EncodedNodeAccess[H hash.Hash] struct {
 		Hash        H
 		EncodedNode []byte
 	}
-	ValueAccess[H any] struct {
+	// The given Value was accessed using its hash.
+	//
+	// The given FullKey is the key to access this value in the trie.
+	//
+	// Should map to [RecordedValue] when checking the recorder.
+	ValueAccess[H hash.Hash] struct {
 		Hash    H
 		Value   []byte
 		FullKey []byte
 	}
+	// A value was accessed that is stored inline a node.
+	//
+	// As the value is stored inline there is no need to separately record the value as it is part
+	// of a node. The given FullKey is the key to access this value in the trie.
+	//
+	// Should map to [RecordedValue] when checking the recorder.
 	InlineValueAccess struct {
 		FullKey []byte
 	}
+	// The hash of the value for the given FullKey was accessed.
+	//
+	// Should map to [RecordedHash] when checking the recorder.
 	HashAccess struct {
 		FullKey []byte
 	}
+	// The value/hash for FullKey was accessed, but it couldn't be found in the trie.
+	//
+	// Should map to [RecordedValue] when checking the recorder.
 	NonExistingNodeAccess struct {
 		FullKey []byte
 	}
 )
 
+func (CachedNodeAccess[H]) isTrieAccess()   {}
 func (EncodedNodeAccess[H]) isTrieAccess()  {}
 func (ValueAccess[H]) isTrieAccess()        {}
 func (InlineValueAccess) isTrieAccess()     {}
@@ -84,75 +109,68 @@ const (
 	RecordedNone
 )
 
-type RecordedNodesIterator[H any] struct {
-	nodes []Record[H]
-	index int
-}
-
-func NewRecordedNodesIterator[H any](nodes []Record[H]) *RecordedNodesIterator[H] {
-	return &RecordedNodesIterator[H]{nodes: nodes, index: -1}
-}
-
-func (r *RecordedNodesIterator[H]) Next() *Record[H] {
-	if r.index < len(r.nodes)-1 {
-		r.index++
-		return &r.nodes[r.index]
-	}
-	return nil
-}
-
-func (r *RecordedNodesIterator[H]) Peek() *Record[H] {
-	if r.index+1 < len(r.nodes)-1 {
-		return &r.nodes[r.index+1]
-	}
-	return nil
-}
-
-type Record[H any] struct {
+// The record of a visited node.
+type Record[H hash.Hash] struct {
 	Hash H
 	Data []byte
 }
 
-type Recorder[H any] struct {
+// Records trie nodes as they pass it.
+type Recorder[H hash.Hash] struct {
 	nodes        []Record[H]
-	recordedKeys btree.Map[string, RecordedForKey]
+	recordedKeys map[string]RecordedForKey
 }
 
-func NewRecorder[H any]() *Recorder[H] {
+// Constructor for [Recorder]
+func NewRecorder[H hash.Hash]() *Recorder[H] {
 	return &Recorder[H]{
 		nodes:        []Record[H]{},
-		recordedKeys: *btree.NewMap[string, RecordedForKey](0),
+		recordedKeys: make(map[string]RecordedForKey),
 	}
 }
 
-func (r *Recorder[H]) Record(access TrieAccess) {
-	switch a := access.(type) {
-	case EncodedNodeAccess[H]:
-		r.nodes = append(r.nodes, Record[H]{Hash: a.Hash, Data: a.EncodedNode})
-	case ValueAccess[H]:
-		r.nodes = append(r.nodes, Record[H]{Hash: a.Hash, Data: a.Value})
-		r.recordedKeys.Set(string(a.FullKey), RecordedValue)
-	case InlineValueAccess:
-		r.recordedKeys.Set(string(a.FullKey), RecordedValue)
-	case HashAccess:
-		if _, ok := r.recordedKeys.Get(string(a.FullKey)); !ok {
-			r.recordedKeys.Set(string(a.FullKey), RecordedHash)
-		}
-	case NonExistingNodeAccess:
-		// We handle the non existing value/hash like having recorded the value
-		r.recordedKeys.Set(string(a.FullKey), RecordedValue)
-	}
-}
-
+// Drain all visited records.
 func (r *Recorder[H]) Drain() []Record[H] {
-	r.recordedKeys.Clear()
+	r.recordedKeys = make(map[string]RecordedForKey)
 	nodes := r.nodes
 	r.nodes = []Record[H]{}
 	return nodes
 }
 
-func (r *Recorder[H]) TrieNodesRecordedForKey(key []byte) RecordedForKey {
-	panic("unimpl")
+// Record the given [TrieAccess].
+//
+// Depending on the [TrieAccess] a call to [TrieRecorder.TrieNodesRecordedForKey] afterwards
+// must return the correct recorded state.
+func (r *Recorder[H]) Record(access TrieAccess) {
+	switch a := access.(type) {
+	case EncodedNodeAccess[H]:
+		r.nodes = append(r.nodes, Record[H]{Hash: a.Hash, Data: a.EncodedNode})
+	case CachedNodeAccess[H]:
+		r.nodes = append(r.nodes, Record[H]{Hash: a.Hash, Data: a.Node.encoded()})
+	case ValueAccess[H]:
+		r.nodes = append(r.nodes, Record[H]{Hash: a.Hash, Data: a.Value})
+		r.recordedKeys[string(a.FullKey)] = RecordedValue
+	case InlineValueAccess:
+		r.recordedKeys[string(a.FullKey)] = RecordedValue
+	case HashAccess:
+		if _, ok := r.recordedKeys[string(a.FullKey)]; !ok {
+			r.recordedKeys[string(a.FullKey)] = RecordedHash
+		}
+	case NonExistingNodeAccess:
+		// We handle the non existing value/hash like having recorded the value
+		r.recordedKeys[string(a.FullKey)] = RecordedValue
+	default:
+		panic("unreachable")
+	}
 }
 
-var _ TrieRecorder = &Recorder[string]{}
+// Check if we have recorded any trie nodes for the given key.
+//
+// Returns [RecordedForKey] to express the state of the recorded trie nodes.
+func (r *Recorder[H]) TrieNodesRecordedForKey(key []byte) RecordedForKey {
+	rfk, ok := r.recordedKeys[string(key)]
+	if !ok {
+		return RecordedNone
+	}
+	return rfk
+}
