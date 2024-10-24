@@ -6,6 +6,7 @@ package wazero_runtime
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -1349,9 +1350,13 @@ func TestInstance_ExecuteBlock_WndBlock2316689(t *testing.T) {
 	inMemoryDB, err := database.NewPebble("", true)
 	require.NoError(t, err)
 
+	wnd2316689Trie := newTrieFromKeyValueList(t, "./testdata/westend/state2316689.bin")
+	expected2316689Root := common.MustHexToHash("0x4690193fdac0d8cfc6193eb82bb75da590ca52c85ffd1253052acfc16e455466")
+	require.Equal(t, expected2316689Root, wnd2316689Trie.MustHash())
+
 	cfg := Config{
 		Storage: state,
-		LogLvl:  log.Critical,
+		LogLvl:  log.Trace,
 		NodeStorage: runtime.NodeStorage{
 			LocalStorage:      inMemoryDB,
 			PersistentStorage: inMemoryDB,
@@ -1374,6 +1379,19 @@ func TestInstance_ExecuteBlock_WndBlock2316689(t *testing.T) {
 		Header: *block2316689.Header,
 		Body:   *block2316689.Body,
 	})
+
+	actual := state.Trie().Entries()
+	expected := wnd2316689Trie.Entries()
+
+	//key not found in expected trie: d699c21ba7f727a6cc2abc054d390b12e601a78caffde57e00752be8864bc48e
+	//key not found in expected trie: d699c21ba7f727a6cc2abc054d390b125dc343d23cd94fbd78691870eb70fbec
+	for key, value := range actual {
+		if exv, ok := expected[key]; !ok {
+			fmt.Printf("key not found in expected trie: %x value: %x\n", key, value)
+		} else if !bytes.Equal(exv, value) {
+			fmt.Printf("unexpected value. key: %x expected: %x actual: %x\n", key, exv, value)
+		}
+	}
 
 	require.NoError(t, err)
 }
