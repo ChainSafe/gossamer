@@ -11,7 +11,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
-	consensus_grandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -31,28 +30,33 @@ type WarpSyncStrategy struct {
 	badBlocks        []string
 	reqMaker         network.RequestMaker
 	warpSyncProvider grandpa.WarpSyncProofProvider
+	blockState       BlockState
 
 	// Warp sync state
 	startedAt       time.Time
 	phase           WarpSyncPhase
 	syncedFragments int
-	setId           consensus_grandpa.SetID
+	setId           primitives.SetID
 	authorities     primitives.AuthorityList
-	lastBlock       types.Header
+	lastBlock       *types.Header
 	result          types.BlockData
 }
 
 type WarpSyncConfig struct {
-	Telemetry    Telemetry
-	BadBlocks    []string
-	RequestMaker network.RequestMaker
+	Telemetry        Telemetry
+	BadBlocks        []string
+	RequestMaker     network.RequestMaker
+	warpSyncProvider grandpa.WarpSyncProofProvider
+	BlockState       BlockState
 }
 
 // NewWarpSyncStrategy returns a new warp sync strategy
 func NewWarpSyncStrategy(cfg *WarpSyncConfig) *WarpSyncStrategy {
 	return &WarpSyncStrategy{
-		badBlocks: cfg.BadBlocks,
-		reqMaker:  cfg.RequestMaker,
+		warpSyncProvider: cfg.warpSyncProvider,
+		blockState:       cfg.BlockState,
+		badBlocks:        cfg.BadBlocks,
+		reqMaker:         cfg.RequestMaker,
 		peers: &peerViewSet{
 			view:   make(map[peer.ID]peerView),
 			target: 0,
@@ -111,17 +115,22 @@ func (w *WarpSyncStrategy) OnBlockAnnounceHandshake(from peer.ID, msg *network.B
 func (w *WarpSyncStrategy) NextActions() ([]*SyncTask, error) {
 	w.startedAt = time.Now()
 
+	lastBlock, err := w.lastBlockHeader()
+	if err != nil {
+		return nil, err
+	}
+
 	var task SyncTask
 	switch w.phase {
 	case WarpProof:
 		task = SyncTask{
-			request:      messages.NewWarpProofRequest(w.lastBlock.Hash()),
+			request:      messages.NewWarpProofRequest(lastBlock.Hash()),
 			response:     &messages.WarpSyncProof{},
 			requestMaker: w.reqMaker,
 		}
 	case TargetBlock:
 		req := messages.NewBlockRequest(
-			*messages.NewFromBlock(w.lastBlock.Hash()),
+			*messages.NewFromBlock(lastBlock.Hash()),
 			1,
 			messages.RequestedDataHeader+
 				messages.RequestedDataBody+
@@ -151,10 +160,10 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 			// Partial warp proof
 			w.setId = warpProofResult.SetId
 			w.authorities = warpProofResult.AuthorityList
-			w.lastBlock = warpProofResult.Header
+			w.lastBlock = &warpProofResult.Header
 		} else {
 			w.phase = TargetBlock
-			w.lastBlock = warpProofResult.Header
+			w.lastBlock = &warpProofResult.Header
 		}
 	case TargetBlock:
 		var validRes []RequestResponseData
@@ -237,6 +246,16 @@ func (w *WarpSyncStrategy) IsSynced() bool {
 
 func (w *WarpSyncStrategy) Result() any {
 	return w.result
+}
+
+func (w *WarpSyncStrategy) lastBlockHeader() (header *types.Header, err error) {
+	if w.lastBlock == nil {
+		w.lastBlock, err = w.blockState.GetHighestFinalisedHeader()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return w.lastBlock, nil
 }
 
 var _ Strategy = (*WarpSyncStrategy)(nil)
