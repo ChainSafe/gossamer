@@ -50,6 +50,24 @@ func TestWarpSyncBlockAnnounce(t *testing.T) {
 		require.Equal(t, blockAnnounce.Number, uint(peersView.getTarget()))
 	})
 
+	t.Run("successful_block_announce_handshake", func(t *testing.T) {
+		peersView := NewPeerViewSet()
+
+		strategy := NewWarpSyncStrategy(&WarpSyncConfig{
+			Peers: peersView,
+		})
+
+		handshake := &network.BlockAnnounceHandshake{
+			Roles:           1,
+			BestBlockNumber: 17,
+			BestBlockHash:   common.BytesToHash([]byte{0, 1, 2}),
+			GenesisHash:     common.BytesToHash([]byte{1, 1, 1, 1}),
+		}
+		err := strategy.OnBlockAnnounceHandshake(peer, handshake)
+		require.NoError(t, err)
+		require.Equal(t, handshake.BestBlockNumber, peersView.getTarget())
+	})
+
 	t.Run("successful_block_announce", func(t *testing.T) {
 		peersView := NewPeerViewSet()
 
@@ -85,7 +103,6 @@ func TestWarpSyncBlockAnnounce(t *testing.T) {
 		require.Equal(t, expectedRepChange, rep)
 		require.Equal(t, 0, int(peersView.getTarget()))
 	})
-
 }
 
 func TestWarpSyncNextActions(t *testing.T) {

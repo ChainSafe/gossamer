@@ -169,6 +169,7 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 	case TargetBlock:
 		var validRes []RequestResponseData
 
+		// Reuse same validator than in fullsync
 		repChanges, bans, validRes = validateResults(results, w.badBlocks)
 
 		// TODO: check if this can cause an issue
