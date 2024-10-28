@@ -544,7 +544,7 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 		sync.WithNetwork(net),
 		sync.WithBlockState(st.Block),
 		sync.WithSlotDuration(slotDuration),
-		sync.WithStrategy(fullSync),
+		sync.WithFullSyncStrategy(fullSync),
 		sync.WithMinPeers(config.Network.MinPeers),
 	), nil
 }
