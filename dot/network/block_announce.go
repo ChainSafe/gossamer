@@ -99,7 +99,7 @@ func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
 // BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol
 type BlockAnnounceHandshake struct {
 	Roles           common.NetworkRole
-	BestBlockNumber uint32
+	BestBlockNumber uint32 // TODO: change to uint64
 	BestBlockHash   common.Hash
 	GenesisHash     common.Hash
 }
