@@ -1,0 +1,55 @@
+name: Dispatch workflow to deploy baremetal Gossamer nodes
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: 'commit'
+        required: true
+      nodeType:
+        description: 'Node type'
+        required: true
+        default: 'genesis'
+        type: choice 
+        options:
+          - snapshot 
+          - genesis
+      chain:
+        description: 'Chain'
+        required: true
+        default: 'westend'
+        type: choice
+        options:
+          - paseo
+          - westend
+      gossamerStartArgs:
+        description: 'Arguments'
+        required: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Token
+        id: get_workflow_token
+        uses: peter-murray/workflow-application-token-action@v4
+        with:
+          application_id: ${{ vars.APPLICATION_ID }}
+          application_private_key: ${{ secrets.APPLICATION_PRIVATE_KEY }}
+
+      - name: Dispatch Repository Event for ${{ github.event.inputs.chain }}
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ steps.get_workflow_token.outputs.token }}
+          repository: Chainsafe/infrastructure-general
+          event-type: deploy-baremetal-gossamer-${{ github.event.inputs.nodeType }}
+          client-payload: |
+            {
+              "ref": "refs/heads/main",
+              "inputs": {
+                "commit": "${{ github.event.inputs.commit }}",
+                "nodeType": "${{ github.event.inputs.nodeType }}",
+                "chain": "${{ github.event.inputs.chain }}",
+                "gossamerStartArgs": "${{ github.event.inputs.gossamerStartArgs }}"
+              }
+            }
