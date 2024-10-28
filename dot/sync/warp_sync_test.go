@@ -6,13 +6,89 @@ package sync
 import (
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/network/messages"
+	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
-func TestNextActions(t *testing.T) {
+func TestWarpSyncBlockAnnounce(t *testing.T) {
+	peer := peer.ID("peer")
+
+	t.Run("successful_block_announce", func(t *testing.T) {
+		peersView := NewPeerViewSet()
+
+		strategy := NewWarpSyncStrategy(&WarpSyncConfig{
+			Peers: peersView,
+		})
+
+		blockAnnounce := &network.BlockAnnounceMessage{
+			ParentHash:     common.BytesToHash([]byte{0, 1, 2}),
+			Number:         1024,
+			StateRoot:      common.BytesToHash([]byte{3, 3, 3, 3}),
+			ExtrinsicsRoot: common.BytesToHash([]byte{4, 4, 4, 4}),
+			Digest:         types.NewDigest(),
+			BestBlock:      true,
+		}
+
+		expectedRepChange := &Change{
+			who: peer,
+			rep: peerset.ReputationChange{
+				Value:  peerset.GossipSuccessValue,
+				Reason: peerset.GossipSuccessReason,
+			},
+		}
+
+		rep, err := strategy.OnBlockAnnounce(peer, blockAnnounce)
+		require.NoError(t, err)
+		require.NotNil(t, rep)
+		require.Equal(t, expectedRepChange, rep)
+		require.Equal(t, blockAnnounce.Number, uint(peersView.getTarget()))
+	})
+
+	t.Run("successful_block_announce", func(t *testing.T) {
+		peersView := NewPeerViewSet()
+
+		blockAnnounce := &network.BlockAnnounceMessage{
+			ParentHash:     common.BytesToHash([]byte{0, 1, 2}),
+			Number:         1024,
+			StateRoot:      common.BytesToHash([]byte{3, 3, 3, 3}),
+			ExtrinsicsRoot: common.BytesToHash([]byte{4, 4, 4, 4}),
+			Digest:         types.NewDigest(),
+			BestBlock:      true,
+		}
+
+		blockAnnounceHash, err := blockAnnounce.Hash()
+		require.NoError(t, err)
+
+		strategy := NewWarpSyncStrategy(&WarpSyncConfig{
+			Peers:     peersView,
+			BadBlocks: []string{blockAnnounceHash.String()},
+		})
+
+		expectedRepChange := &Change{
+			who: peer,
+			rep: peerset.ReputationChange{
+				Value:  peerset.BadBlockAnnouncementValue,
+				Reason: peerset.BadBlockAnnouncementReason,
+			},
+		}
+
+		rep, err := strategy.OnBlockAnnounce(peer, blockAnnounce)
+		require.NotNil(t, err)
+		require.ErrorIs(t, err, errBadBlockReceived)
+		require.NotNil(t, rep)
+		require.Equal(t, expectedRepChange, rep)
+		require.Equal(t, 0, int(peersView.getTarget()))
+	})
+
+}
+
+func TestWarpSyncNextActions(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
 

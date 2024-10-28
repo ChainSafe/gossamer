@@ -68,19 +68,22 @@ func NewWarpSyncStrategy(cfg *WarpSyncConfig) *WarpSyncStrategy {
 // And peers target block
 func (w *WarpSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) (
 	repChange *Change, err error) {
-	blockAnnounceHeader := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
-	blockAnnounceHeaderHash := blockAnnounceHeader.Hash()
+
+	blockAnnounceHeaderHash, err := msg.Hash()
+	if err != nil {
+		return nil, err
+	}
 
 	logger.Infof("received block announce from %s: #%d (%s) best block: %v",
 		from,
-		blockAnnounceHeader.Number,
+		msg.Number,
 		blockAnnounceHeaderHash,
 		msg.BestBlock,
 	)
 
 	if slices.Contains(w.badBlocks, blockAnnounceHeaderHash.String()) {
 		logger.Infof("bad block received from %s: #%d (%s) is a bad block",
-			from, blockAnnounceHeader.Number, blockAnnounceHeaderHash)
+			from, msg.Number, blockAnnounceHeaderHash)
 
 		return &Change{
 			who: from,
@@ -92,7 +95,7 @@ func (w *WarpSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 	}
 
 	if msg.BestBlock {
-		w.peers.update(from, blockAnnounceHeaderHash, uint32(blockAnnounceHeader.Number)) //nolint:gosec
+		w.peers.update(from, blockAnnounceHeaderHash, uint32(msg.Number)) //nolint:gosec
 	}
 
 	return &Change{
