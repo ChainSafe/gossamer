@@ -30,7 +30,10 @@ type WestendBlocks struct {
 }
 
 func TestFullSyncNextActions(t *testing.T) {
+	t.Parallel()
+
 	t.Run("best_block_greater_or_equal_current_target", func(t *testing.T) {
+		t.Parallel()
 		// current target is 0 and best block is 0, then we should
 		// get an empty set of tasks
 
@@ -40,6 +43,7 @@ func TestFullSyncNextActions(t *testing.T) {
 
 		cfg := &FullSyncConfig{
 			BlockState: mockBlockState,
+			Peers:      NewPeerViewSet(),
 		}
 
 		fs := NewFullSyncStrategy(cfg)
@@ -49,12 +53,15 @@ func TestFullSyncNextActions(t *testing.T) {
 	})
 
 	t.Run("target_block_greater_than_best_block", func(t *testing.T) {
+		t.Parallel()
+
 		mockBlockState := NewMockBlockState(gomock.NewController(t))
 		mockBlockState.EXPECT().BestBlockHeader().Return(
 			types.NewEmptyHeader(), nil)
 
 		cfg := &FullSyncConfig{
 			BlockState: mockBlockState,
+			Peers:      NewPeerViewSet(),
 		}
 
 		fs := NewFullSyncStrategy(cfg)
@@ -76,6 +83,8 @@ func TestFullSyncNextActions(t *testing.T) {
 	})
 
 	t.Run("having_requests_in_the_queue", func(t *testing.T) {
+		t.Parallel()
+
 		refTo := func(v uint32) *uint32 {
 			return &v
 		}
@@ -148,7 +157,11 @@ func TestFullSyncNextActions(t *testing.T) {
 		for tname, tt := range cases {
 			tt := tt
 			t.Run(tname, func(t *testing.T) {
-				fs := NewFullSyncStrategy(&FullSyncConfig{})
+				t.Parallel()
+
+				fs := NewFullSyncStrategy(&FullSyncConfig{
+					Peers: NewPeerViewSet(),
+				})
 				fs.requestQueue = tt.setupRequestQueue(t)
 				fs.numOfTasks = 1
 
@@ -179,6 +192,8 @@ func TestFullSyncNextActions(t *testing.T) {
 }
 
 func TestFullSyncProcess(t *testing.T) {
+	t.Parallel()
+
 	westendBlocks := &WestendBlocks{}
 	err := yaml.Unmarshal(rawWestendBlocks, westendBlocks)
 	require.NoError(t, err)
@@ -192,6 +207,8 @@ func TestFullSyncProcess(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("requested_max_but_received_less_blocks", func(t *testing.T) {
+		t.Parallel()
+
 		syncTaskResults := []*SyncTaskResult{
 			// first task
 			// 1 -> 10
@@ -294,6 +311,8 @@ func TestFullSyncProcess(t *testing.T) {
 
 func TestFullSyncBlockAnnounce(t *testing.T) {
 	t.Run("announce_a_far_block_without_any_commom_ancestor", func(t *testing.T) {
+		t.Parallel()
+
 		highestFinalizedHeader := &types.Header{
 			ParentHash:     common.BytesToHash([]byte{0}),
 			StateRoot:      common.BytesToHash([]byte{3, 3, 3, 3}),
@@ -315,6 +334,7 @@ func TestFullSyncBlockAnnounce(t *testing.T) {
 
 		fsCfg := &FullSyncConfig{
 			BlockState: mockBlockState,
+			Peers:      NewPeerViewSet(),
 		}
 
 		fs := NewFullSyncStrategy(fsCfg)
@@ -372,6 +392,7 @@ func TestFullSyncBlockAnnounce(t *testing.T) {
 			Return(false, nil)
 		fsCfg := &FullSyncConfig{
 			BlockState: mockBlockState,
+			Peers:      NewPeerViewSet(),
 		}
 
 		fs := NewFullSyncStrategy(fsCfg)

@@ -526,6 +526,9 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 	requestMaker := net.GetRequestResponseProtocol(network.SyncID,
 		blockRequestTimeout, network.MaxBlockResponseSize)
 
+	// Should be shared between all sync strategies
+	peersView := sync.NewPeerViewSet()
+
 	syncCfg := &sync.FullSyncConfig{
 		BlockState:         st.Block,
 		StorageState:       st.Storage,
@@ -536,6 +539,7 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 		Telemetry:          telemetryMailer,
 		BadBlocks:          genesisData.BadBlocks,
 		RequestMaker:       requestMaker,
+		Peers:              peersView,
 	}
 	fullSync := sync.NewFullSyncStrategy(syncCfg)
 

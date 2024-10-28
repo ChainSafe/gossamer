@@ -48,6 +48,7 @@ type WarpSyncConfig struct {
 	RequestMaker     network.RequestMaker
 	warpSyncProvider grandpa.WarpSyncProofProvider
 	BlockState       BlockState
+	Peers            *peerViewSet
 }
 
 // NewWarpSyncStrategy returns a new warp sync strategy
@@ -57,11 +58,8 @@ func NewWarpSyncStrategy(cfg *WarpSyncConfig) *WarpSyncStrategy {
 		blockState:       cfg.BlockState,
 		badBlocks:        cfg.BadBlocks,
 		reqMaker:         cfg.RequestMaker,
-		peers: &peerViewSet{
-			view:   make(map[peer.ID]peerView),
-			target: 0,
-		},
-		startedAt: time.Now(),
+		peers:            cfg.Peers,
+		startedAt:        time.Now(),
 	}
 }
 
