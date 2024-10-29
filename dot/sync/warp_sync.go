@@ -59,7 +59,6 @@ func NewWarpSyncStrategy(cfg *WarpSyncConfig) *WarpSyncStrategy {
 		badBlocks:        cfg.BadBlocks,
 		reqMaker:         cfg.RequestMaker,
 		peers:            cfg.Peers,
-		startedAt:        time.Now(),
 	}
 }
 
