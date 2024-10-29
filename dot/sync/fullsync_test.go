@@ -310,6 +310,7 @@ func TestFullSyncProcess(t *testing.T) {
 }
 
 func TestFullSyncBlockAnnounce(t *testing.T) {
+	t.Parallel()
 	t.Run("announce_a_far_block_without_any_commom_ancestor", func(t *testing.T) {
 		t.Parallel()
 
