@@ -529,6 +529,23 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 	// Should be shared between all sync strategies
 	peersView := sync.NewPeerViewSet()
 
+	var warpSyncStrategy sync.Strategy
+
+	if config.Core.Sync == "warp" {
+		warpSyncProvider := grandpa.NewWarpSyncProofProvider(st.Block, st.Grandpa)
+
+		warpSyncCfg := &sync.WarpSyncConfig{
+			Telemetry:        telemetryMailer,
+			BadBlocks:        genesisData.BadBlocks,
+			WarpSyncProvider: *warpSyncProvider,
+			RequestMaker:     requestMaker,
+			BlockState:       st.Block,
+			Peers:            peersView,
+		}
+
+		warpSyncStrategy = sync.NewWarpSyncStrategy(warpSyncCfg)
+	}
+
 	syncCfg := &sync.FullSyncConfig{
 		BlockState:         st.Block,
 		StorageState:       st.Storage,
@@ -548,6 +565,7 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 		sync.WithNetwork(net),
 		sync.WithBlockState(st.Block),
 		sync.WithSlotDuration(slotDuration),
+		sync.WithWarpSyncStrategy(warpSyncStrategy),
 		sync.WithFullSyncStrategy(fullSync),
 		sync.WithMinPeers(config.Network.MinPeers),
 	), nil

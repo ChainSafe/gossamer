@@ -61,6 +61,9 @@ const (
 	DefaultSystemName = "Gossamer"
 	// DefaultSystemVersion is the default system version
 	DefaultSystemVersion = "0.0.0"
+
+	// DefaultSyncMode is the default block sync mode
+	DefaultSyncMode = "full"
 )
 
 // DefaultRPCModules the default RPC modules
@@ -78,7 +81,7 @@ var DefaultRPCModules = []string{
 }
 
 // Config defines the configuration for the gossamer node
-type Config struct {
+type  Config struct {
 	BaseConfig `mapstructure:",squash"`
 	Log        *LogConfig     `mapstructure:"log"`
 	Account    *AccountConfig `mapstructure:"account"`
@@ -188,6 +191,7 @@ type CoreConfig struct {
 	GrandpaAuthority bool               `mapstructure:"grandpa-authority"`
 	WasmInterpreter  string             `mapstructure:"wasm-interpreter,omitempty"`
 	GrandpaInterval  time.Duration      `mapstructure:"grandpa-interval,omitempty"`
+	Sync             string             `mapstructure:"sync,omitempty"`
 }
 
 // StateConfig contains the configuration for the state.
@@ -363,6 +367,7 @@ func DefaultConfig() *Config {
 			GrandpaAuthority: true,
 			WasmInterpreter:  DefaultWasmInterpreter,
 			GrandpaInterval:  DefaultDiscoveryInterval,
+			Sync:             DefaultSyncMode,
 		},
 		Network: &NetworkConfig{
 			Port:              DefaultNetworkPort,
@@ -444,6 +449,7 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 			GrandpaAuthority: true,
 			WasmInterpreter:  DefaultWasmInterpreter,
 			GrandpaInterval:  DefaultDiscoveryInterval,
+			Sync:             DefaultSyncMode,
 		},
 		Network: &NetworkConfig{
 			Port:              DefaultNetworkPort,
@@ -525,6 +531,7 @@ func Copy(c *Config) Config {
 			GrandpaAuthority: c.Core.GrandpaAuthority,
 			WasmInterpreter:  c.Core.WasmInterpreter,
 			GrandpaInterval:  c.Core.GrandpaInterval,
+			Sync:             c.Core.Sync,
 		},
 		Network: &NetworkConfig{
 			Port:              c.Network.Port,

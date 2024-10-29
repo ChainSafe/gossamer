@@ -46,7 +46,7 @@ type WarpSyncConfig struct {
 	Telemetry        Telemetry
 	BadBlocks        []string
 	RequestMaker     network.RequestMaker
-	warpSyncProvider grandpa.WarpSyncProofProvider
+	WarpSyncProvider grandpa.WarpSyncProofProvider
 	BlockState       BlockState
 	Peers            *peerViewSet
 }
@@ -54,7 +54,7 @@ type WarpSyncConfig struct {
 // NewWarpSyncStrategy returns a new warp sync strategy
 func NewWarpSyncStrategy(cfg *WarpSyncConfig) *WarpSyncStrategy {
 	return &WarpSyncStrategy{
-		warpSyncProvider: cfg.warpSyncProvider,
+		warpSyncProvider: cfg.WarpSyncProvider,
 		blockState:       cfg.BlockState,
 		badBlocks:        cfg.BadBlocks,
 		reqMaker:         cfg.RequestMaker,
