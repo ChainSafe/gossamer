@@ -12,7 +12,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-// https://github.com/paritytech/polkadot-sdk/blob/08498f5473351c3d2f8eacbe1bfd7bc6d3a2ef8d/substrate/client/consensus/grandpa/src/communication/mod.rs#L73 //nolint
+// How often neighbor messages should be rebroadcast in the case where no new packets are created
 const neighbourBroadcastPeriod = time.Minute * 2
 
 type neighborData struct {

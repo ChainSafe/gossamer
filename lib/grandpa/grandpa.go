@@ -168,7 +168,6 @@ func NewService(cfg *Config) (*Service, error) {
 	s.messageHandler = NewMessageHandler(s, s.blockState, cfg.Telemetry)
 	s.tracker = newTracker(s.blockState, s.messageHandler)
 	s.paused.Store(false)
-
 	return s, nil
 }
 
