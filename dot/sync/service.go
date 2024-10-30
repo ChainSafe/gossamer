@@ -141,11 +141,7 @@ func (s *SyncService) waitWorkers() {
 		}
 
 		err = s.network.BlockAnnounceHandshake(bestBlockHeader)
-		if err != nil {
-			if errors.Is(err, network.ErrNoPeersConnected) {
-				continue
-			}
-
+		if err != nil && !errors.Is(err, network.ErrNoPeersConnected) {
 			logger.Criticalf("waiting workers: %s", err.Error())
 			break
 		}
