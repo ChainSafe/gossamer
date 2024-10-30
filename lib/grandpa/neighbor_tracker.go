@@ -38,6 +38,7 @@ type neighborTracker struct {
 	finalizationCha chan *types.FinalisationInfo
 	neighborMsgChan chan neighborData
 	stoppedNeighbor chan struct{}
+	wg              sync.WaitGroup
 }
 
 func newNeighborTracker(grandpa *Service, neighborChan chan neighborData) *neighborTracker {
@@ -51,12 +52,20 @@ func newNeighborTracker(grandpa *Service, neighborChan chan neighborData) *neigh
 }
 
 func (nt *neighborTracker) Start() {
-	go nt.run()
+	//go nt.run()
+
+	nt.wg.Add(1)
+	go func() {
+		nt.run()
+		nt.wg.Done()
+	}()
 }
 
 func (nt *neighborTracker) Stop() {
 	nt.grandpa.blockState.FreeFinalisedNotifierChannel(nt.finalizationCha)
 	close(nt.stoppedNeighbor)
+
+	nt.wg.Wait()
 }
 
 func (nt *neighborTracker) run() {

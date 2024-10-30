@@ -41,7 +41,7 @@ func TestHandleNetworkMessage(t *testing.T) {
 	aliceKeyPair := kr.Alice().(*ed25519.Keypair)
 
 	gs, st := newTestService(t, aliceKeyPair)
-	
+
 	gs.neighborTracker.Start()
 
 	just := []SignedVote{
