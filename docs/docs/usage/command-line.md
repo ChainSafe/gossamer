@@ -32,7 +32,7 @@ These are the flags that can be used with the `gossamer` command
 	    By default, all modules log 'info'.
 	    The global log level can be set with --log global=debug
 --max-peers Maximum number of peers to connect to (default 50)
---min-peers Minimum number of peers to connect to (default 0)
+--min-peers Minimum number of peers to connect to (default 5)
 --name Name of the node
 --no-bootstrap Disables network bootstrapping (mdns still enabled)
 --no-mdns Disables network mdns discovery
