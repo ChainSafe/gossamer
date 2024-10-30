@@ -7,16 +7,16 @@ chain = "westend-local"
 name = "alice"
 command = "gossamer"
 validator = true
-args = ["--key alice"]
+args = ["--key alice", "--min-peers 0"]
 
 [[relaychain.nodes]]
 name = "bob"
 command = "gossamer"
 validator = true
-args = ["--key bob"]
+args = ["--key bob", "--min-peers 0"]
 
 [[relaychain.nodes]]
 name = "charlie"
 command = "gossamer"
 validator = true
-args = ["--key charlie"]
+args = ["--key charlie", "--min-peers 0"]
