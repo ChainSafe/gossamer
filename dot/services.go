@@ -523,9 +523,6 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 		return nil, fmt.Errorf("failed to parse sync log level: %w", err)
 	}
 
-	requestMaker := net.GetRequestResponseProtocol(network.SyncID,
-		blockRequestTimeout, network.MaxBlockResponseSize)
-
 	// Should be shared between all sync strategies
 	peersView := sync.NewPeerViewSet()
 
@@ -538,9 +535,10 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 			Telemetry:        telemetryMailer,
 			BadBlocks:        genesisData.BadBlocks,
 			WarpSyncProvider: *warpSyncProvider,
-			RequestMaker:     requestMaker,
-			BlockState:       st.Block,
-			Peers:            peersView,
+			RequestMaker: net.GetRequestResponseProtocol(network.WarpSyncID,
+				blockRequestTimeout, network.MaxBlockResponseSize),
+			BlockState: st.Block,
+			Peers:      peersView,
 		}
 
 		warpSyncStrategy = sync.NewWarpSyncStrategy(warpSyncCfg)
@@ -555,8 +553,9 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 		BlockImportHandler: cs,
 		Telemetry:          telemetryMailer,
 		BadBlocks:          genesisData.BadBlocks,
-		RequestMaker:       requestMaker,
-		Peers:              peersView,
+		RequestMaker: net.GetRequestResponseProtocol(network.SyncID,
+			blockRequestTimeout, network.MaxBlockResponseSize),
+		Peers: peersView,
 	}
 	fullSync := sync.NewFullSyncStrategy(syncCfg)
 
