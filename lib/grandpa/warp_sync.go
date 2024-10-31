@@ -117,7 +117,7 @@ func (w *WarpSyncProof) verify(
 				currentSetId += 1
 				currentAuthorities = auths
 			} else if fragmentNumber != len(w.Proofs)-1 || !w.IsFinished {
-				return nil, fmt.Errorf("Header is missing authority set change digest")
+				return nil, fmt.Errorf("header is missing authority set change digest")
 			}
 		}
 	}
