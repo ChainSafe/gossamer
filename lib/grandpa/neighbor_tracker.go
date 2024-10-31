@@ -12,7 +12,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-// How often neighbor messages should be rebroadcast in the case where no new packets are created
+// How often neighbour messages should be rebroadcast in the case where no new packets are created
 const neighbourBroadcastPeriod = time.Minute * 2
 
 type neighborData struct {
@@ -52,13 +52,8 @@ func newNeighborTracker(grandpa *Service, neighborChan chan neighborData) *neigh
 }
 
 func (nt *neighborTracker) Start() {
-	//go nt.run()
-
 	nt.wg.Add(1)
-	go func() {
-		nt.run()
-		nt.wg.Done()
-	}()
+	go nt.run()
 }
 
 func (nt *neighborTracker) Stop() {
@@ -71,7 +66,10 @@ func (nt *neighborTracker) Stop() {
 func (nt *neighborTracker) run() {
 	logger.Info("starting neighbour tracker")
 	ticker := time.NewTicker(neighbourBroadcastPeriod)
-	defer ticker.Stop()
+	defer func() {
+		ticker.Stop()
+		nt.wg.Done()
+	}()
 
 	for {
 		select {
