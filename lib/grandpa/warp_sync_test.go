@@ -9,7 +9,6 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/types"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	ced25519 "github.com/ChainSafe/gossamer/internal/primitives/core/ed25519"

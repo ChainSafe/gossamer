@@ -12,6 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -120,11 +121,16 @@ func (w *WarpSyncStrategy) NextActions() ([]*SyncTask, error) {
 		return nil, err
 	}
 
+	lastBlockHash := common.Hash([]byte{
+		0x85, 0xa2, 0x97, 0xea, 0xd2, 0x0a, 0xd1, 0x9d, 0x96, 0x6d, 0x87, 0x69, 0xc3, 0x79, 0xc9, 0xf0, 0xc4, 0xa4, 0xe5, 0x16, 0xc8, 0xa3,
+		0xd9, 0x7f, 0x6f, 0xf6, 0xba, 0xb3, 0x8a, 0x0e, 0x31, 0xb3,
+	})
+
 	var task SyncTask
 	switch w.phase {
 	case WarpProof:
 		task = SyncTask{
-			request:      messages.NewWarpProofRequest(lastBlock.Hash()),
+			request:      messages.NewWarpProofRequest(lastBlockHash),
 			response:     &messages.WarpSyncProof{},
 			requestMaker: w.reqMaker,
 		}
