@@ -4,7 +4,9 @@
 package sync
 
 import (
+	"encoding/hex"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -74,7 +76,7 @@ func (w *WarpSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 		return nil, err
 	}
 
-	logger.Infof("received block announce from %s: #%d (%s) best block: %v",
+	logger.Debugf("received block announce from %s: #%d (%s) best block: %v",
 		from,
 		msg.Number,
 		blockAnnounceHeaderHash,
@@ -82,7 +84,7 @@ func (w *WarpSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 	)
 
 	if slices.Contains(w.badBlocks, blockAnnounceHeaderHash.String()) {
-		logger.Infof("bad block received from %s: #%d (%s) is a bad block",
+		logger.Debugf("bad block received from %s: #%d (%s) is a bad block",
 			from, msg.Number, blockAnnounceHeaderHash)
 
 		return &Change{
@@ -121,16 +123,19 @@ func (w *WarpSyncStrategy) NextActions() ([]*SyncTask, error) {
 		return nil, err
 	}
 
-	lastBlockHash := common.Hash([]byte{
-		0x85, 0xa2, 0x97, 0xea, 0xd2, 0x0a, 0xd1, 0x9d, 0x96, 0x6d, 0x87, 0x69, 0xc3, 0x79, 0xc9, 0xf0, 0xc4, 0xa4, 0xe5, 0x16, 0xc8, 0xa3,
-		0xd9, 0x7f, 0x6f, 0xf6, 0xba, 0xb3, 0x8a, 0x0e, 0x31, 0xb3,
-	})
+	hexString := "0xa2a29c0e8089ab43ac20327aecc9015b3a34596c7b2bb7490fa56fd05fe13be7"
+	hexString = strings.TrimPrefix(hexString, "0x")
+
+	lastBlockHash, err := hex.DecodeString(hexString)
+	if err != nil {
+		return nil, err
+	}
 
 	var task SyncTask
 	switch w.phase {
 	case WarpProof:
 		task = SyncTask{
-			request:      messages.NewWarpProofRequest(lastBlockHash),
+			request:      messages.NewWarpProofRequest(common.Hash(lastBlockHash)),
 			response:     &messages.WarpSyncProof{},
 			requestMaker: w.reqMaker,
 		}
@@ -157,6 +162,9 @@ func (w *WarpSyncStrategy) NextActions() ([]*SyncTask, error) {
 // Updating our block state
 func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 	done bool, repChanges []Change, bans []peer.ID, err error) {
+
+	logger.Infof("[WARP SYNC] processing %d warp sync results", len(results))
+
 	switch w.phase {
 	case WarpProof:
 		var warpProofResult *network.WarpSyncVerificationResult
@@ -182,11 +190,16 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 		w.phase = Completed
 	}
 
+	logger.Infof("[WARP SYNC] finishing processing")
+
 	return w.IsSynced(), repChanges, bans, nil
 }
 
 func (w *WarpSyncStrategy) validateWarpSyncResults(results []*SyncTaskResult) (
 	repChanges []Change, peersToBlock []peer.ID, result *network.WarpSyncVerificationResult) {
+
+	logger.Infof("[WARP SYNC] validating warp sync results")
+
 	repChanges = make([]Change, 0)
 	peersToBlock = make([]peer.ID, 0)
 	bestProof := &messages.WarpSyncProof{}
@@ -242,9 +255,9 @@ func (w *WarpSyncStrategy) ShowMetrics() {
 	totalSyncSeconds := time.Since(w.startedAt).Seconds()
 
 	fps := float64(w.syncedFragments) / totalSyncSeconds
-	logger.Infof("⛓️ synced %d warp sync fragments "+
-		"took: %.2f seconds, fps: %.2f fragments/second, target best block number #%d",
-		w.syncedFragments, totalSyncSeconds, fps, w.lastBlock.Number)
+	logger.Infof("⏩ Warping, downloading finality proofs, fragments %d, best %x "+
+		"took: %.2f seconds, fps: %.2f fragments/second",
+		w.syncedFragments, w.lastBlock.Number, totalSyncSeconds, fps)
 }
 
 func (w *WarpSyncStrategy) IsSynced() bool {

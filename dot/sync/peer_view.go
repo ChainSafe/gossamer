@@ -42,7 +42,7 @@ func (p *peerViewSet) update(peerID peer.ID, bestHash common.Hash, bestNumber ui
 		return
 	}
 
-	logger.Infof("updating peer %s view to #%d (%s)", peerID.String(), bestNumber, bestHash.Short())
+	logger.Debugf("updating peer %s view to #%d (%s)", peerID.String(), bestNumber, bestHash.Short())
 	p.view[peerID] = newView
 }
 
