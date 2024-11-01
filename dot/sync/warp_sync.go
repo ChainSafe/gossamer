@@ -208,15 +208,11 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 		w.phase = Completed
 	}
 
-	logger.Infof("[WARP SYNC] finishing processing")
-
 	return w.IsSynced(), repChanges, bans, nil
 }
 
 func (w *WarpSyncStrategy) validateWarpSyncResults(results []*SyncTaskResult) (
 	repChanges []Change, peersToBlock []peer.ID, result *network.WarpSyncVerificationResult) {
-
-	logger.Infof("[WARP SYNC] validating warp sync results")
 
 	repChanges = make([]Change, 0)
 	peersToBlock = make([]peer.ID, 0)
