@@ -206,6 +206,8 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 		}
 	}
 
+	logger.Infof("[WARP SYNC] finishing processing")
+
 	return w.IsSynced(), repChanges, bans, nil
 }
 
