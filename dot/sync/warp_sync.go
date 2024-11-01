@@ -220,6 +220,17 @@ func (w *WarpSyncStrategy) validateWarpSyncResults(results []*SyncTaskResult) (
 	var bestResult *warpsync.WarpSyncVerificationResult
 
 	for _, result := range results {
+		if !result.completed {
+			repChanges = append(repChanges, Change{
+				who: result.who,
+				rep: peerset.ReputationChange{
+					Value:  peerset.UnexpectedResponseValue,
+					Reason: peerset.UnexpectedResponseReason,
+				}})
+			peersToBlock = append(peersToBlock, result.who)
+			continue
+		}
+
 		switch response := result.response.(type) {
 		case *warpsync.WarpSyncProof:
 			if !result.completed {
