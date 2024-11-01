@@ -81,8 +81,8 @@ func TestGenerateWarpSyncProofBlockNotFinalized(t *testing.T) {
 func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 	t.Parallel()
 
-	type signedPrecommit = grandpa.SignedPrecommit[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID]
-	type preCommit = grandpa.Precommit[hash.H256, uint64]
+	type signedPrecommit = grandpa.SignedPrecommit[hash.H256, uint32, primitives.AuthoritySignature, primitives.AuthorityID]
+	type preCommit = grandpa.Precommit[hash.H256, uint32]
 
 	// Initialize mocks
 	ctrl := gomock.NewController(t)
@@ -169,7 +169,7 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 		// If we have an authority set change, create a justification
 		if len(newAuthorities) > 0 {
 			targetHash := hash.H256(string(header.Hash().ToBytes()))
-			targetNumber := uint64(header.Number)
+			targetNumber := uint32(header.Number)
 
 			// Create precommits for current voters
 			precommits := []signedPrecommit{}
@@ -179,7 +179,7 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 					TargetNumber: targetNumber,
 				}
 
-				msg := grandpa.NewMessage[hash.H256, uint64, preCommit](precommit)
+				msg := grandpa.NewMessage[hash.H256, uint32, preCommit](precommit)
 				encoded := primitives.NewLocalizedPayload(1, currentSetId, msg)
 				signature := voter.Sign(encoded)
 
@@ -196,9 +196,9 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 			}
 
 			// Create justification
-			justification := primitives.GrandpaJustification[hash.H256, uint64]{
+			justification := primitives.GrandpaJustification[hash.H256, uint32]{
 				Round: 1,
-				Commit: primitives.Commit[hash.H256, uint64]{
+				Commit: primitives.Commit[hash.H256, uint32]{
 					TargetHash:   targetHash,
 					TargetNumber: targetNumber,
 					Precommits:   precommits,
@@ -299,10 +299,10 @@ func createGRANDPAConsensusDigest(t *testing.T, digestData any) types.ConsensusD
 	}
 }
 
-func genericHeadersList(t *testing.T, headers []*types.Header) []runtime.Header[uint64, hash.H256] {
+func genericHeadersList(t *testing.T, headers []*types.Header) []runtime.Header[uint32, hash.H256] {
 	t.Helper()
 
-	headerList := []runtime.Header[uint64, hash.H256]{}
+	headerList := []runtime.Header[uint32, hash.H256]{}
 	for _, header := range headers {
 		if header == nil {
 			continue

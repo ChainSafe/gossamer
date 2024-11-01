@@ -17,13 +17,22 @@ import (
 )
 
 func TestWarpSyncBlockAnnounce(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	warpSyncProvider := NewMockWarpSyncProofProvider(ctrl)
+	warpSyncProvider.EXPECT().CurrentAuthorities().Return(nil, nil).AnyTimes()
+
 	peer := peer.ID("peer")
 
 	t.Run("successful_block_announce", func(t *testing.T) {
 		peersView := NewPeerViewSet()
 
 		strategy := NewWarpSyncStrategy(&WarpSyncConfig{
-			Peers: peersView,
+			Peers:            peersView,
+			WarpSyncProvider: warpSyncProvider,
 		})
 
 		blockAnnounce := &network.BlockAnnounceMessage{
@@ -54,7 +63,8 @@ func TestWarpSyncBlockAnnounce(t *testing.T) {
 		peersView := NewPeerViewSet()
 
 		strategy := NewWarpSyncStrategy(&WarpSyncConfig{
-			Peers: peersView,
+			Peers:            peersView,
+			WarpSyncProvider: warpSyncProvider,
 		})
 
 		handshake := &network.BlockAnnounceHandshake{
@@ -84,8 +94,9 @@ func TestWarpSyncBlockAnnounce(t *testing.T) {
 		require.NoError(t, err)
 
 		strategy := NewWarpSyncStrategy(&WarpSyncConfig{
-			Peers:     peersView,
-			BadBlocks: []string{blockAnnounceHash.String()},
+			Peers:            peersView,
+			WarpSyncProvider: warpSyncProvider,
+			BadBlocks:        []string{blockAnnounceHash.String()},
 		})
 
 		expectedRepChange := &Change{
@@ -108,6 +119,9 @@ func TestWarpSyncBlockAnnounce(t *testing.T) {
 func TestWarpSyncNextActions(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockBlockState := NewMockBlockState(ctrl)
+
+	warpSyncProvider := NewMockWarpSyncProofProvider(ctrl)
+	warpSyncProvider.EXPECT().CurrentAuthorities().Return(nil, nil).AnyTimes()
 
 	genesisHeader := &types.Header{
 		Number: 1,
@@ -135,7 +149,8 @@ func TestWarpSyncNextActions(t *testing.T) {
 	for name, c := range tc {
 		t.Run(name, func(t *testing.T) {
 			strategy := NewWarpSyncStrategy(&WarpSyncConfig{
-				BlockState: mockBlockState,
+				BlockState:       mockBlockState,
+				WarpSyncProvider: warpSyncProvider,
 			})
 
 			strategy.phase = c.phase

@@ -15,7 +15,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
@@ -27,12 +26,18 @@ const (
 	Completed
 )
 
+type WarpSyncProofProvider interface {
+	CurrentAuthorities() (primitives.AuthorityList, error)
+	Verify(encodedProof []byte, setId primitives.SetID, authorities primitives.AuthorityList) (
+		*network.WarpSyncVerificationResult, error)
+}
+
 type WarpSyncStrategy struct {
 	// Strategy dependencies and config
 	peers            *peerViewSet
 	badBlocks        []string
 	reqMaker         network.RequestMaker
-	warpSyncProvider grandpa.WarpSyncProofProvider
+	warpSyncProvider WarpSyncProofProvider
 	blockState       BlockState
 
 	// Warp sync state
@@ -49,7 +54,7 @@ type WarpSyncConfig struct {
 	Telemetry        Telemetry
 	BadBlocks        []string
 	RequestMaker     network.RequestMaker
-	WarpSyncProvider grandpa.WarpSyncProofProvider
+	WarpSyncProvider WarpSyncProofProvider
 	BlockState       BlockState
 	Peers            *peerViewSet
 }
@@ -170,15 +175,11 @@ func (w *WarpSyncStrategy) NextActions() ([]*SyncTask, error) {
 func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 	done bool, repChanges []Change, bans []peer.ID, err error) {
 
-	logger.Infof("[WARP SYNC] processing %d warp sync results", len(results))
-
 	switch w.phase {
 	case WarpProof:
 		var warpProofResult *network.WarpSyncVerificationResult
 
 		repChanges, bans, warpProofResult = w.validateWarpSyncResults(results)
-
-		logger.Infof("[WARP SYNC] validation result repChanges=%v bans=%v result=%v", repChanges, bans, warpProofResult)
 
 		if warpProofResult != nil {
 			if !warpProofResult.Completed {
@@ -223,6 +224,17 @@ func (w *WarpSyncStrategy) validateWarpSyncResults(results []*SyncTaskResult) (
 	var bestResult *network.WarpSyncVerificationResult
 
 	for _, result := range results {
+		if !result.completed {
+			repChanges = append(repChanges, Change{
+				who: result.who,
+				rep: peerset.ReputationChange{
+					Value:  peerset.UnexpectedResponseValue,
+					Reason: peerset.UnexpectedResponseReason,
+				}})
+			peersToBlock = append(peersToBlock, result.who)
+			continue
+		}
+
 		switch response := result.response.(type) {
 		case *messages.WarpSyncProof:
 			if !result.completed {
@@ -237,10 +249,11 @@ func (w *WarpSyncStrategy) validateWarpSyncResults(results []*SyncTaskResult) (
 			}
 
 			// Best proof will be the finished proof or the proof with more fragments
-			logger.Infof("[WARP SYNC] verifying warp proof using authorities %v", w.authorities)
 			res, err := w.warpSyncProvider.Verify(encodedProof, w.setId, w.authorities)
 
 			if err != nil {
+				logger.Errorf("[WARP SYNC] bad warp proof: %s", err)
+
 				repChanges = append(repChanges, Change{
 					who: result.who,
 					rep: peerset.ReputationChange{

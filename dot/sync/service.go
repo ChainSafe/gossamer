@@ -293,9 +293,6 @@ func (s *SyncService) runStrategy() {
 	results := s.workerPool.submitRequests(tasks)
 	done, repChanges, peersToIgnore, err := s.currentStrategy.Process(results)
 
-	logger.Infof("Sync process results: done=%t, repChanges=%d, peersToIgnore=%d",
-		done, len(repChanges), len(peersToIgnore))
-
 	if err != nil {
 		logger.Criticalf("current sync strategy failed with: %s", err.Error())
 		return

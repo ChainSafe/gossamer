@@ -534,7 +534,7 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 		warpSyncCfg := &sync.WarpSyncConfig{
 			Telemetry:        telemetryMailer,
 			BadBlocks:        genesisData.BadBlocks,
-			WarpSyncProvider: *warpSyncProvider,
+			WarpSyncProvider: warpSyncProvider,
 			RequestMaker: net.GetRequestResponseProtocol(network.WarpSyncID,
 				blockRequestTimeout, network.MaxBlockResponseSize),
 			BlockState: st.Block,
