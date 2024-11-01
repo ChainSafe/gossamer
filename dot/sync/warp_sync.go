@@ -56,12 +56,19 @@ type WarpSyncConfig struct {
 
 // NewWarpSyncStrategy returns a new warp sync strategy
 func NewWarpSyncStrategy(cfg *WarpSyncConfig) *WarpSyncStrategy {
+	authorities, err := cfg.WarpSyncProvider.CurrentAuthorities()
+	if err != nil {
+		panic("failed to get current authorities")
+	}
+
 	return &WarpSyncStrategy{
 		warpSyncProvider: cfg.WarpSyncProvider,
 		blockState:       cfg.BlockState,
 		badBlocks:        cfg.BadBlocks,
 		reqMaker:         cfg.RequestMaker,
 		peers:            cfg.Peers,
+		setId:            0,
+		authorities:      authorities,
 	}
 }
 
@@ -173,19 +180,22 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 
 		logger.Infof("[WARP SYNC] validation result repChanges=%v bans=%v result=%v", repChanges, bans, warpProofResult)
 
-		if !warpProofResult.Completed {
-			logger.Infof("[WARP SYNC] partial warp sync", len(results))
+		if warpProofResult != nil {
+			if !warpProofResult.Completed {
+				logger.Infof("[WARP SYNC] partial warp sync")
 
-			// Partial warp proof
-			w.setId = warpProofResult.SetId
-			w.authorities = warpProofResult.AuthorityList
-			w.lastBlock = &warpProofResult.Header
-		} else {
-			logger.Infof("[WARP SYNC] complete warp sync", len(results))
+				// Partial warp proof
+				w.setId = warpProofResult.SetId
+				w.authorities = warpProofResult.AuthorityList
+				w.lastBlock = &warpProofResult.Header
+			} else {
+				logger.Infof("[WARP SYNC] complete warp sync")
 
-			w.phase = TargetBlock
-			w.lastBlock = &warpProofResult.Header
+				w.phase = TargetBlock
+				w.lastBlock = &warpProofResult.Header
+			}
 		}
+
 	case TargetBlock:
 		var validRes []RequestResponseData
 
@@ -210,7 +220,7 @@ func (w *WarpSyncStrategy) validateWarpSyncResults(results []*SyncTaskResult) (
 	repChanges = make([]Change, 0)
 	peersToBlock = make([]peer.ID, 0)
 	bestProof := &messages.WarpSyncProof{}
-	bestResult := &network.WarpSyncVerificationResult{}
+	var bestResult *network.WarpSyncVerificationResult
 
 	for _, result := range results {
 		switch response := result.response.(type) {
@@ -227,6 +237,7 @@ func (w *WarpSyncStrategy) validateWarpSyncResults(results []*SyncTaskResult) (
 			}
 
 			// Best proof will be the finished proof or the proof with more fragments
+			logger.Infof("[WARP SYNC] verifying warp proof using authorities %v", w.authorities)
 			res, err := w.warpSyncProvider.Verify(encodedProof, w.setId, w.authorities)
 
 			if err != nil {
@@ -237,6 +248,8 @@ func (w *WarpSyncStrategy) validateWarpSyncResults(results []*SyncTaskResult) (
 						Reason: peerset.BadWarpProofReason,
 					}})
 				peersToBlock = append(peersToBlock, result.who)
+
+				return repChanges, peersToBlock, nil
 			}
 
 			if response.IsFinished || len(response.Proofs) > len(bestProof.Proofs) {

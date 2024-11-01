@@ -143,6 +143,33 @@ type SetIdAuthorityList struct {
 	grandpa.AuthorityList
 }
 
+func (p *WarpSyncProofProvider) CurrentAuthorities() (primitives.AuthorityList, error) {
+	currentSetid, err := p.grandpaState.GetCurrentSetID()
+	if err != nil {
+		return nil, err
+	}
+
+	authorities, err := p.grandpaState.GetAuthorities(currentSetid)
+	if err != nil {
+		return nil, err
+	}
+
+	var authorityList primitives.AuthorityList
+	for _, auth := range authorities {
+		key, err := app.NewPublic(auth.Key[:])
+		if err != nil {
+			return nil, err
+		}
+
+		authorityList = append(authorityList, primitives.AuthorityIDWeight{
+			AuthorityID:     key,
+			AuthorityWeight: primitives.AuthorityWeight(auth.ID),
+		})
+	}
+
+	return authorityList, nil
+}
+
 // Generate build a warp sync encoded proof starting from the given block hash
 func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 	// Get and traverse all GRANDPA authorities changes from the given block hash
