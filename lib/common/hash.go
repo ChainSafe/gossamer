@@ -62,7 +62,7 @@ func (h Hash) String() string { //skipcq: GO-W1029
 
 // Short returns the first 4 bytes and the last 4 bytes of the hex string for the hash
 func (h Hash) Short() string { //skipcq: GO-W1029
-	const nBytes = 4
+	const nBytes = 2
 	return fmt.Sprintf("0x%x...%x", h[:nBytes], h[len(h)-nBytes:])
 }
 

@@ -4,9 +4,7 @@
 package sync
 
 import (
-	"encoding/hex"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -14,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
@@ -135,19 +132,11 @@ func (w *WarpSyncStrategy) NextActions() ([]*SyncTask, error) {
 		return nil, err
 	}
 
-	hexString := "0xa2a29c0e8089ab43ac20327aecc9015b3a34596c7b2bb7490fa56fd05fe13be7"
-	hexString = strings.TrimPrefix(hexString, "0x")
-
-	lastBlockHash, err := hex.DecodeString(hexString)
-	if err != nil {
-		return nil, err
-	}
-
 	var task SyncTask
 	switch w.phase {
 	case WarpProof:
 		task = SyncTask{
-			request:      messages.NewWarpProofRequest(common.Hash(lastBlockHash)),
+			request:      messages.NewWarpProofRequest(lastBlock.Hash()),
 			response:     &messages.WarpSyncProof{},
 			requestMaker: w.reqMaker,
 		}
