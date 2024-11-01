@@ -28,6 +28,8 @@ func TestWarpSyncBlockAnnounce(t *testing.T) {
 	peer := peer.ID("peer")
 
 	t.Run("successful_block_announce", func(t *testing.T) {
+		t.Parallel()
+
 		peersView := NewPeerViewSet()
 
 		strategy := NewWarpSyncStrategy(&WarpSyncConfig{
@@ -60,6 +62,8 @@ func TestWarpSyncBlockAnnounce(t *testing.T) {
 	})
 
 	t.Run("successful_block_announce_handshake", func(t *testing.T) {
+		t.Parallel()
+
 		peersView := NewPeerViewSet()
 
 		strategy := NewWarpSyncStrategy(&WarpSyncConfig{
@@ -79,6 +83,8 @@ func TestWarpSyncBlockAnnounce(t *testing.T) {
 	})
 
 	t.Run("successful_block_announce", func(t *testing.T) {
+		t.Parallel()
+
 		peersView := NewPeerViewSet()
 
 		blockAnnounce := &network.BlockAnnounceMessage{
