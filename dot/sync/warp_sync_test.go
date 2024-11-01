@@ -20,7 +20,7 @@ func TestWarpSyncBlockAnnounce(t *testing.T) {
 	t.Parallel()
 
 	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+	t.Cleanup(ctrl.Finish)
 
 	warpSyncProvider := NewMockWarpSyncProofProvider(ctrl)
 	warpSyncProvider.EXPECT().CurrentAuthorities().Return(nil, nil).AnyTimes()
