@@ -170,12 +170,19 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 		var warpProofResult *network.WarpSyncVerificationResult
 
 		repChanges, bans, warpProofResult = w.validateWarpSyncResults(results)
+
+		logger.Infof("[WARP SYNC] validation result repChanges=%v bans=%v result=%v", repChanges, bans, warpProofResult)
+
 		if !warpProofResult.Completed {
+			logger.Infof("[WARP SYNC] partial warp sync", len(results))
+
 			// Partial warp proof
 			w.setId = warpProofResult.SetId
 			w.authorities = warpProofResult.AuthorityList
 			w.lastBlock = &warpProofResult.Header
 		} else {
+			logger.Infof("[WARP SYNC] complete warp sync", len(results))
+
 			w.phase = TargetBlock
 			w.lastBlock = &warpProofResult.Header
 		}

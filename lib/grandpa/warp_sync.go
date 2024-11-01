@@ -32,7 +32,7 @@ type WarpSyncFragment struct {
 	Header types.Header
 	// A justification for the header above which proves its finality. In order to validate it the
 	// verifier must be aware of the authorities and set id for which the justification refers to.
-	Justification consensus_grandpa.GrandpaJustification[hash.H256, uint64]
+	Justification consensus_grandpa.GrandpaJustification[hash.H256, uint32]
 }
 
 type WarpSyncProof struct {
@@ -66,7 +66,7 @@ func (w *WarpSyncProof) addFragment(fragment WarpSyncFragment) (limitReached boo
 	return false, nil
 }
 
-func (w *WarpSyncProof) lastProofBlockNumber() uint64 {
+func (w *WarpSyncProof) lastProofBlockNumber() uint32 {
 	if len(w.Proofs) == 0 {
 		return 0
 	}
@@ -192,7 +192,7 @@ func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
-		justification, err := consensus_grandpa.DecodeJustification[hash.H256, uint64, runtime.BlakeTwo256](encJustification)
+		justification, err := consensus_grandpa.DecodeJustification[hash.H256, uint32, runtime.BlakeTwo256](encJustification)
 		if err != nil {
 			return nil, err
 		}
@@ -227,7 +227,7 @@ func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
-		justification, err := consensus_grandpa.DecodeJustification[hash.H256, uint64, runtime.BlakeTwo256](
+		justification, err := consensus_grandpa.DecodeJustification[hash.H256, uint32, runtime.BlakeTwo256](
 			latestJustification,
 		)
 		if err != nil {
