@@ -49,7 +49,7 @@ func (wpr *WarpProofRequest) String() string {
 
 type WarpSyncFragment struct {
 	Header        types.Header
-	Justification grandpa.GrandpaJustification[hash.H256, uint64]
+	Justification grandpa.GrandpaJustification[hash.H256, uint32]
 }
 
 type WarpSyncProof struct {
@@ -63,6 +63,10 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "network"))
 
 func (wsp *WarpSyncProof) Decode(in []byte) error {
 	logger.Infof("decoding WarpSyncProof bytes: %x", in)
+
+	if len(in) == 0 {
+		return fmt.Errorf("cannot decode empty bytes")
+	}
 	return scale.Unmarshal(in, wsp)
 }
 
