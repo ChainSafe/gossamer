@@ -8,7 +8,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/client/consensus/grandpa"
-	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -59,14 +58,7 @@ type WarpSyncProof struct {
 	proofsLength int
 }
 
-var logger = log.NewFromGlobal(log.AddContext("pkg", "network"))
-
 func (wsp *WarpSyncProof) Decode(in []byte) error {
-	logger.Infof("decoding WarpSyncProof bytes: %x", in)
-
-	if len(in) == 0 {
-		return fmt.Errorf("cannot decode empty bytes")
-	}
 	return scale.Unmarshal(in, wsp)
 }
 
