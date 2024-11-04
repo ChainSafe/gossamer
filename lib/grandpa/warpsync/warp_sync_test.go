@@ -4,6 +4,7 @@
 package warpsync
 
 import (
+	"encoding/hex"
 	"errors"
 	"log"
 	"math/rand"
