@@ -162,6 +162,7 @@ func (w *WarpSyncProof) verify(
 				setIdAuth.SetID += 1
 				setIdAuth.AuthorityList = auths
 			} else if fragmentNumber != len(w.Proofs)-1 || !w.IsFinished {
+				logger.Errorf("missing scheduled change in fragment %d, for proof with fragments %d, block %d, finished %v", fragmentNumber, len(w.Proofs), proof.Header.Number, w.IsFinished)
 				return nil, fmt.Errorf("header is missing authority set change digest")
 			}
 		}
