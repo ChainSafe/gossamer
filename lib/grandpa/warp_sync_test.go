@@ -4,7 +4,6 @@
 package grandpa
 
 import (
-	"encoding/hex"
 	"errors"
 	"math/rand"
 	"slices"

@@ -172,14 +172,14 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 
 		if warpProofResult != nil {
 			if !warpProofResult.Completed {
-				logger.Infof("[WARP SYNC] partial warp sync received")
+				logger.Debug("partial warp sync received")
 
 				// Partial warp proof
 				w.setId = warpProofResult.SetId
 				w.authorities = warpProofResult.AuthorityList
 				w.lastBlock = &warpProofResult.Header
 			} else {
-				logger.Infof("[WARP SYNC] complete warp sync received")
+				logger.Debug("complete warp sync received")
 
 				w.phase = TargetBlock
 				w.lastBlock = &warpProofResult.Header
@@ -226,7 +226,7 @@ func (w *WarpSyncStrategy) validateWarpSyncResults(results []*SyncTaskResult) (
 			res, err := w.warpSyncProvider.Verify(encodedProof, w.setId, w.authorities)
 
 			if err != nil {
-				logger.Errorf("[WARP SYNC] bad warp proof: %s", err)
+				logger.Warnf("bad warp proof response: %s", err)
 
 				repChanges = append(repChanges, Change{
 					who: result.who,
@@ -266,9 +266,9 @@ func (w *WarpSyncStrategy) ShowMetrics() {
 
 		logger.Infof("⏩ Warping, downloading finality proofs, fragments %d, best #%d (%s) "+
 			"took: %.2f seconds",
-			w.syncedFragments, w.lastBlock.Number, w.lastBlock.Hash().String(), totalSyncSeconds)
+			w.syncedFragments, w.lastBlock.Number, w.lastBlock.Hash().Short(), totalSyncSeconds)
 	case TargetBlock:
-		logger.Infof("⏩ Warping, downloading target block #%d (%x)",
+		logger.Infof("⏩ Warping, downloading target block #%d (%s)",
 			w.lastBlock.Number, w.lastBlock.Hash().String())
 	}
 
