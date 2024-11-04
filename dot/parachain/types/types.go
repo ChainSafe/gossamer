@@ -96,7 +96,7 @@ type ValidationCodeHash common.Hash
 // CandidateDescriptor is a unique descriptor of the candidate receipt.
 type CandidateDescriptor struct {
 	// The ID of the para this is a candidate for.
-	ParaID uint32 `scale:"1"`
+	ParaID ParaID `scale:"1"`
 
 	// RelayParent is the hash of the relay-chain block this should be executed in
 	// the context of.

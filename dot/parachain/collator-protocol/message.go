@@ -388,11 +388,11 @@ func (cpvs CollatorProtocolValidatorSide) processCollatorProtocolMessage(sender 
 		}
 
 		// NOTE: assignments are setting when we handle view changes
-		_, ok = cpvs.currentAssignments[parachaintypes.ParaID(declareMessage.ParaID)]
+		_, ok = cpvs.currentAssignments[declareMessage.ParaID]
 		if ok {
 			logger.Errorf("declared as collator for current para: %d", declareMessage.ParaID)
 
-			peerData.SetCollating(declareMessage.CollatorId, parachaintypes.ParaID(declareMessage.ParaID))
+			peerData.SetCollating(declareMessage.CollatorId, declareMessage.ParaID)
 			cpvs.peerData[sender] = peerData
 		} else {
 			logger.Errorf("declared as collator for unneeded para: %d", declareMessage.ParaID)

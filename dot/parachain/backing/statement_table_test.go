@@ -255,7 +255,7 @@ func TestStatementTable_importCandidate(t *testing.T) {
 			expectedMisehaviour: nil,
 			expectedSummary: &Summary{
 				Candidate:     candidateHash,
-				GroupID:       parachaintypes.ParaID(candidate.Descriptor.ParaID),
+				GroupID:       candidate.Descriptor.ParaID,
 				ValidityVotes: 1,
 			},
 		},
@@ -327,7 +327,7 @@ func TestStatementTable_importCandidate(t *testing.T) {
 			expectedMisehaviour: nil,
 			expectedSummary: &Summary{
 				Candidate:     candidateHash,
-				GroupID:       parachaintypes.ParaID(candidate.Descriptor.ParaID),
+				GroupID:       candidate.Descriptor.ParaID,
 				ValidityVotes: 1,
 			},
 		},
@@ -362,7 +362,7 @@ func TestStatementTable_importCandidate(t *testing.T) {
 			expectedMisehaviour: nil,
 			expectedSummary: &Summary{
 				Candidate:     candidateHash,
-				GroupID:       parachaintypes.ParaID(candidate.Descriptor.ParaID),
+				GroupID:       candidate.Descriptor.ParaID,
 				ValidityVotes: 1,
 			},
 		},
@@ -461,7 +461,7 @@ func TestStatementTable_validityVote(t *testing.T) {
 			expectedMisehaviour: nil,
 			expectedSummary: &Summary{
 				Candidate:     candidateHash,
-				GroupID:       parachaintypes.ParaID(committedCandidate.Descriptor.ParaID),
+				GroupID:       committedCandidate.Descriptor.ParaID,
 				ValidityVotes: 1,
 			},
 		},

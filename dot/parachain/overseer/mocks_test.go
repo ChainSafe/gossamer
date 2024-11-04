@@ -147,11 +147,9 @@ func (mr *MockOverseerMockRecorder) GetSubsystemToOverseerChannel() *gomock.Call
 }
 
 // RegisterSubsystem mocks base method.
-func (m *MockOverseer) RegisterSubsystem(arg0 parachaintypes.Subsystem) chan any {
+func (m *MockOverseer) RegisterSubsystem(arg0 parachaintypes.Subsystem) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterSubsystem", arg0)
-	ret0, _ := ret[0].(chan any)
-	return ret0
+	m.ctrl.Call(m, "RegisterSubsystem", arg0)
 }
 
 // RegisterSubsystem indicates an expected call of RegisterSubsystem.

@@ -180,7 +180,7 @@ func (table *statementTable) importCandidate(
 	signature parachaintypes.ValidatorSignature,
 	tableCtx *tableContext,
 ) (*Summary, parachaintypes.Misbehaviour, error) {
-	paraID := parachaintypes.ParaID(candidate.Descriptor.ParaID)
+	paraID := candidate.Descriptor.ParaID
 
 	if !tableCtx.isMemberOf(authority, paraID) {
 		statementSeconded := parachaintypes.NewStatementVDT()

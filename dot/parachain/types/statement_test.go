@@ -54,7 +54,7 @@ func TestStatementVDT(t *testing.T) {
 
 	secondedEnumValue := Seconded{
 		Descriptor: CandidateDescriptor{
-			ParaID:                      uint32(1),
+			ParaID:                      1,
 			RelayParent:                 hash5,
 			Collator:                    collatorID,
 			PersistedValidationDataHash: hash5,

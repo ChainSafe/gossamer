@@ -40,7 +40,7 @@ func TestCollationFetchingResponse(t *testing.T) {
 	collation := parachaintypes.Collation{
 		CandidateReceipt: parachaintypes.CandidateReceipt{
 			Descriptor: parachaintypes.CandidateDescriptor{
-				ParaID:                      uint32(1),
+				ParaID:                      1,
 				RelayParent:                 testHash,
 				Collator:                    collatorID,
 				PersistedValidationDataHash: testHash,

@@ -143,7 +143,7 @@ func NewCollatorProtocolMessage() CollatorProtocolMessage {
 // signature of the `PeerId` of the node using the given collator ID key.
 type Declare struct {
 	CollatorId        parachaintypes.CollatorID        `scale:"1"`
-	ParaID            uint32                           `scale:"2"`
+	ParaID            parachaintypes.ParaID            `scale:"2"`
 	CollatorSignature parachaintypes.CollatorSignature `scale:"3"`
 }
 

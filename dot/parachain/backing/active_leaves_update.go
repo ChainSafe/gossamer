@@ -337,7 +337,7 @@ func constructPerRelayParentState(
 		case parachaintypes.OccupiedCore:
 			if mode.IsEnabled {
 				// Async backing makes it legal to build on top of occupied core.
-				coreParaID = parachaintypes.ParaID(v.CandidateDescriptor.ParaID)
+				coreParaID = v.CandidateDescriptor.ParaID
 			} else {
 				continue
 			}

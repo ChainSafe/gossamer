@@ -126,7 +126,7 @@ type PoVRequestor interface {
 }
 
 // getValidationData gets validation data for a parachain block from the runtime instance
-func getValidationData(runtimeInstance parachainruntime.RuntimeInstance, paraID uint32,
+func getValidationData(runtimeInstance parachainruntime.RuntimeInstance, paraID parachaintypes.ParaID,
 ) (*parachaintypes.PersistedValidationData, *parachaintypes.ValidationCode, error) {
 
 	var mergedError error
@@ -211,8 +211,9 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 		}
 		return
 	}
-	valid, err := runtimeInstance.ParachainHostCheckValidationOutputs(parachaintypes.ParaID(msg.CandidateReceipt.
-		Descriptor.ParaID), result.Valid.CandidateCommitments)
+	valid, err := runtimeInstance.ParachainHostCheckValidationOutputs(
+		msg.CandidateReceipt.Descriptor.ParaID,
+		result.Valid.CandidateCommitments)
 	if err != nil {
 		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 			Err: fmt.Errorf("check validation outputs: Bad request: %w", err),

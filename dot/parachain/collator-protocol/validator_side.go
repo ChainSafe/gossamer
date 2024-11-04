@@ -267,7 +267,7 @@ func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Has
 
 	switch c := coreNow.(type) {
 	case parachaintypes.OccupiedCore:
-		*paraNow = parachaintypes.ParaID(c.CandidateDescriptor.ParaID)
+		*paraNow = c.CandidateDescriptor.ParaID
 	case parachaintypes.ScheduledCore:
 		*paraNow = c.ParaID
 	case parachaintypes.Free:
@@ -960,7 +960,7 @@ func newFetchedCollationInfo(candidateReceipt parachaintypes.CandidateReceipt) (
 		return nil, fmt.Errorf("getting candidate hash: %w", err)
 	}
 	return &fetchedCollationInfo{
-		paraID:      parachaintypes.ParaID(candidateReceipt.Descriptor.ParaID),
+		paraID:      candidateReceipt.Descriptor.ParaID,
 		relayParent: candidateReceipt.Descriptor.RelayParent,
 		collatorID:  candidateReceipt.Descriptor.Collator,
 		candidateHash: parachaintypes.CandidateHash{

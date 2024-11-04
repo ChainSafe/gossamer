@@ -27,7 +27,7 @@ var (
 	badParent        = BadParent
 )
 
-func createTestCandidateReceiptAndValidationCodeWParaId(t *testing.T, id uint32) (
+func createTestCandidateReceiptAndValidationCodeWParaId(t *testing.T, id parachaintypes.ParaID) (
 	parachaintypes.CandidateReceipt, parachaintypes.ValidationCode) {
 	t.Helper()
 	// this wasm was achieved by building polkadot's adder test parachain
@@ -58,7 +58,7 @@ func createTestCandidateReceiptAndValidationCodeWParaId(t *testing.T, id uint32)
 	return candidateReceipt, validationCode
 }
 
-func makeValidCandidateDescriptor(t *testing.T, paraID uint32, relayParent common.Hash,
+func makeValidCandidateDescriptor(t *testing.T, paraID parachaintypes.ParaID, relayParent common.Hash,
 	persistedValidationDataHash common.Hash, povHash common.Hash,
 	validationCodeHash parachaintypes.ValidationCodeHash, paraHead common.Hash, erasureRoot common.Hash,
 	collator sr25519.Keypair,
@@ -287,9 +287,6 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 	candidateReceipt7 := candidateReceipt
 	candidateReceipt7.Descriptor.ParaID = 7
 
-	ctrl := gomock.NewController(t)
-	t.Cleanup(ctrl.Finish)
-
 	// NOTE: adder parachain internally compares postState with bd.State in it's validate_block,
 	// so following is necessary.
 	encodedState, err := scale.Marshal(uint64(1))
@@ -318,15 +315,6 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 		MaxPovSize:             uint32(10),
 	}
 
-	mockInstance := NewMockInstance(ctrl)
-	mockInstance.EXPECT().
-		ParachainHostPersistedValidationData(
-			uint32(1000),
-			gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&expectedPersistedValidationData, nil)
-	mockInstance.EXPECT().
-		ParachainHostValidationCode(uint32(1000), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&validationCode, nil)
 	validCandidateCommitments := parachaintypes.CandidateCommitments{
 		HeadData: parachaintypes.HeadData{Data: []byte{2, 0, 0, 0, 0, 0, 0, 0, 123, 207, 206, 8, 219, 227,
 			136, 82, 236, 169, 14, 100, 45, 100, 31, 177, 154, 160, 220, 245, 59, 106, 76, 168, 122, 109,
@@ -335,65 +323,6 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 		ProcessedDownwardMessages: 0,
 		HrmpWatermark:             1,
 	}
-	mockInstance.EXPECT().ParachainHostCheckValidationOutputs(parachaintypes.ParaID(1000),
-		validCandidateCommitments).Return(true, nil)
-
-	mockInstance.EXPECT().
-		ParachainHostPersistedValidationData(
-			uint32(2),
-			gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&expectedPersistedValidationData, nil)
-	mockInstance.EXPECT().
-		ParachainHostValidationCode(uint32(2), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&validationCode, nil)
-
-	mockInstance.EXPECT().
-		ParachainHostPersistedValidationData(
-			uint32(3),
-			gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&expectedPersistedValidationDataSmallMax, nil)
-	mockInstance.EXPECT().
-		ParachainHostValidationCode(uint32(3), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&validationCode, nil)
-
-	mockInstance.EXPECT().
-		ParachainHostPersistedValidationData(
-			uint32(4),
-			gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&expectedPersistedValidationData, nil)
-	mockInstance.EXPECT().
-		ParachainHostValidationCode(uint32(4), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&validationCode, nil)
-
-	mockInstance.EXPECT().
-		ParachainHostPersistedValidationData(
-			uint32(5),
-			gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&expectedPersistedValidationData, nil)
-	mockInstance.EXPECT().
-		ParachainHostValidationCode(uint32(5), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&validationCode, nil)
-
-	mockInstance.EXPECT().
-		ParachainHostPersistedValidationData(uint32(6), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&expectedPersistedValidationData, nil)
-	mockInstance.EXPECT().
-		ParachainHostValidationCode(uint32(6), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&validationCode, nil)
-	mockInstance.EXPECT().ParachainHostCheckValidationOutputs(parachaintypes.ParaID(6),
-		validCandidateCommitments).Return(false, nil)
-
-	mockInstance.EXPECT().
-		ParachainHostPersistedValidationData(uint32(7), gomock.AssignableToTypeOf(parachaintypes.
-			OccupiedCoreAssumption{})).
-		Return(nil, nil)
-	mockInstance.EXPECT().
-		ParachainHostValidationCode(uint32(7), gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
-		Return(&validationCode, nil)
-
-	mockBlockState := NewMockBlockState(ctrl)
-	mockBlockState.EXPECT().GetRuntime(common.MustHexToHash(
-		"0xded542bacb3ca6c033a57676f94ae7c8f36834511deb44e3164256fd3b1c0de0")).Return(mockInstance, nil).Times(7)
 
 	bd, err := scale.Marshal(BlockDataInAdderParachain{
 		State: uint64(1),
@@ -404,19 +333,37 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 		BlockData: bd,
 	}
 
-	toSubsystem := make(chan any)
-	candidateValidationSubsystem := CandidateValidation{
-		pvfHost:    newValidationHost(),
-		BlockState: mockBlockState,
-	}
-	defer candidateValidationSubsystem.Stop()
+	setup := func(
+		t *testing.T,
+		msg *ValidateFromChainState,
+		configMockInstance func(*MockInstance),
+	) (*CandidateValidation, chan any) {
 
-	go candidateValidationSubsystem.Run(context.Background(), toSubsystem)
+		ctrl := gomock.NewController(t)
+		mockInstance := NewMockInstance(ctrl)
+		configMockInstance(mockInstance)
+
+		msg.Ch = make(chan parachaintypes.OverseerFuncRes[ValidationResult])
+
+		mockBlockState := NewMockBlockState(ctrl)
+		mockBlockState.EXPECT().GetRuntime(common.MustHexToHash(
+			"0xded542bacb3ca6c033a57676f94ae7c8f36834511deb44e3164256fd3b1c0de0")).Return(mockInstance, nil).Times(1)
+
+		cv := CandidateValidation{
+			pvfHost:    newValidationHost(),
+			BlockState: mockBlockState,
+		}
+
+		t.Cleanup(cv.Stop)
+		toSubsystem := make(chan any)
+		return &cv, toSubsystem
+	}
 
 	tests := map[string]struct {
-		msg           ValidateFromChainState
-		want          *ValidationResult
-		expectedError error
+		msg                ValidateFromChainState
+		want               *ValidationResult
+		expectedError      error
+		configMockInstance func(*MockInstance)
 	}{
 		"invalid_pov_hash": {
 			msg: ValidateFromChainState{
@@ -425,6 +372,17 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 			},
 			want: &ValidationResult{
 				Invalid: &povHashMismatch,
+			},
+			configMockInstance: func(mi *MockInstance) {
+				mi.EXPECT().
+					ParachainHostPersistedValidationData(
+						parachaintypes.ParaID(2),
+						gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
+					Return(&expectedPersistedValidationData, nil)
+				mi.EXPECT().
+					ParachainHostValidationCode(parachaintypes.ParaID(2),
+						gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
+					Return(&validationCode, nil)
 			},
 		},
 		"invalid_pov_size": {
@@ -435,6 +393,17 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 			want: &ValidationResult{
 				Invalid: &paramsTooLarge,
 			},
+			configMockInstance: func(mi *MockInstance) {
+				mi.EXPECT().
+					ParachainHostPersistedValidationData(
+						parachaintypes.ParaID(3),
+						gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
+					Return(&expectedPersistedValidationDataSmallMax, nil)
+				mi.EXPECT().
+					ParachainHostValidationCode(parachaintypes.ParaID(3),
+						gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
+					Return(&validationCode, nil)
+			},
 		},
 		"code_mismatch": {
 			msg: ValidateFromChainState{
@@ -443,6 +412,17 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 			},
 			want: &ValidationResult{
 				Invalid: &codeHashMismatch,
+			},
+			configMockInstance: func(mi *MockInstance) {
+				mi.EXPECT().
+					ParachainHostPersistedValidationData(
+						parachaintypes.ParaID(4),
+						gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
+					Return(&expectedPersistedValidationData, nil)
+				mi.EXPECT().
+					ParachainHostValidationCode(parachaintypes.ParaID(4),
+						gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
+					Return(&validationCode, nil)
 			},
 		},
 		"bad_signature": {
@@ -453,6 +433,17 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 			want: &ValidationResult{
 				Invalid: &badSignature,
 			},
+			configMockInstance: func(mi *MockInstance) {
+				mi.EXPECT().
+					ParachainHostPersistedValidationData(
+						parachaintypes.ParaID(5),
+						gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
+					Return(&expectedPersistedValidationData, nil)
+				mi.EXPECT().
+					ParachainHostValidationCode(parachaintypes.ParaID(5),
+						gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
+					Return(&validationCode, nil)
+			},
 		},
 		"invalid_outputs": {
 			msg: ValidateFromChainState{
@@ -462,6 +453,18 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 			want: &ValidationResult{
 				Invalid: &invalidOutputs,
 			},
+			configMockInstance: func(mi *MockInstance) {
+				mi.EXPECT().
+					ParachainHostPersistedValidationData(parachaintypes.ParaID(6),
+						gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
+					Return(&expectedPersistedValidationData, nil)
+				mi.EXPECT().
+					ParachainHostValidationCode(parachaintypes.ParaID(6),
+						gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
+					Return(&validationCode, nil)
+				mi.EXPECT().ParachainHostCheckValidationOutputs(parachaintypes.ParaID(6),
+					validCandidateCommitments).Return(false, nil)
+			},
 		},
 		"bad_parent": {
 			msg: ValidateFromChainState{
@@ -470,6 +473,16 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 			},
 			want: &ValidationResult{
 				Invalid: &badParent,
+			},
+			configMockInstance: func(mi *MockInstance) {
+				mi.EXPECT().
+					ParachainHostPersistedValidationData(parachaintypes.ParaID(7), gomock.AssignableToTypeOf(parachaintypes.
+						OccupiedCoreAssumption{})).
+					Return(nil, nil)
+				mi.EXPECT().
+					ParachainHostValidationCode(parachaintypes.ParaID(7),
+						gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
+					Return(&validationCode, nil)
 			},
 		},
 		"happy_path": {
@@ -493,6 +506,20 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 					},
 				},
 			},
+			configMockInstance: func(mi *MockInstance) {
+				mi.EXPECT().
+					ParachainHostPersistedValidationData(
+						parachaintypes.ParaID(1000),
+						gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
+					Return(&expectedPersistedValidationData, nil)
+				mi.EXPECT().
+					ParachainHostValidationCode(parachaintypes.ParaID(1000),
+						gomock.AssignableToTypeOf(parachaintypes.OccupiedCoreAssumption{})).
+					Return(&validationCode, nil)
+				mi.EXPECT().ParachainHostCheckValidationOutputs(parachaintypes.ParaID(1000),
+					validCandidateCommitments).Return(true, nil)
+
+			},
 		},
 	}
 	for name, tt := range tests {
@@ -500,11 +527,12 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			sender := make(chan parachaintypes.OverseerFuncRes[ValidationResult])
-			tt.msg.Ch = sender
+			candidateValidationSubsystem, toSubsystem := setup(t, &tt.msg, tt.configMockInstance)
+
+			go candidateValidationSubsystem.Run(context.Background(), toSubsystem)
 
 			toSubsystem <- tt.msg
-			result := <-sender
+			result := <-tt.msg.Ch
 			require.Equal(t, tt.want, &result.Data)
 		})
 	}

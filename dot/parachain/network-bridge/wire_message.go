@@ -70,6 +70,7 @@ func (mvdt WireMessage) ValueAt(index uint) (value any, err error) {
 }
 
 func (w *WireMessage) SetType(messageType network.MessageType) {
+	// NOTE: We need a message type only to know where to send it
 	w.messageType = messageType
 }
 

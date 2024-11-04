@@ -6,6 +6,8 @@ package genesis
 import (
 	"encoding/json"
 
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -197,7 +199,7 @@ type hrmp struct {
 }
 
 type registrar struct {
-	NextFreeParaID *uint `json:"nextFreeParaId,omitempty"`
+	NextFreeParaID *parachaintypes.ParaID `json:"nextFreeParaId,omitempty"`
 }
 
 type xcmPallet struct {
