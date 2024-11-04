@@ -13,7 +13,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
-	events "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 )
 
@@ -97,9 +97,9 @@ func (w WireMessage) Encode() ([]byte, error) {
 	return enc, nil
 }
 
-type ViewUpdate events.View
+type ViewUpdate parachaintypes.View
 
-type View events.View
+type View parachaintypes.View
 
 type SortableHeads []common.Hash
 

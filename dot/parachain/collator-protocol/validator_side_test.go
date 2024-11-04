@@ -104,7 +104,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 			}},
 			peerData: map[peer.ID]PeerData{
 				peerID: {
-					view: View{},
+					view: parachaintypes.View{},
 					state: PeerStateInfo{
 						PeerState: Collating,
 						CollatingPeerState: CollatingPeerState{
@@ -168,7 +168,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 			}(),
 			peerData: map[peer.ID]PeerData{
 				peerID: {
-					view: View{},
+					view: parachaintypes.View{},
 					state: PeerStateInfo{
 						PeerState: Collating,
 						CollatingPeerState: CollatingPeerState{
@@ -250,7 +250,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 			}(),
 			peerData: map[peer.ID]PeerData{
 				peerID: {
-					view: View{},
+					view: parachaintypes.View{},
 					state: PeerStateInfo{
 						PeerState: Collating,
 						CollatingPeerState: CollatingPeerState{

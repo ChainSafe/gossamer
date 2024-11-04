@@ -335,14 +335,14 @@ func (nbr *NetworkBridgeReceiver) handleViewUpdate(peer peer.ID, view ViewUpdate
 		nbr.SubsystemsToOverseer <- events.Event[collatorprotocolmessages.CollationProtocol]{
 			Inner: events.PeerViewChange{
 				PeerID: peer,
-				View:   events.View(view),
+				View:   parachaintypes.View(view),
 			},
 		}
 
 		nbr.SubsystemsToOverseer <- events.Event[validationprotocol.ValidationProtocol]{
 			Inner: events.PeerViewChange{
 				PeerID: peer,
-				View:   events.View(view),
+				View:   parachaintypes.View(view),
 			},
 		}
 	}
