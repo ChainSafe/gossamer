@@ -100,7 +100,7 @@ func (n Nibbles) Left() Prefix {
 	split := n.offset / NibblesPerByte
 	ix := uint8(n.offset % NibblesPerByte) //nolint:gosec
 	if ix == 0 {
-		return Prefix{Key: n.data[:split]}
+		return Prefix{Key: slices.Clone(n.data[:split])}
 	}
 	padded := PadLeft(n.data[split])
 	return Prefix{Key: slices.Clone(n.data[:split]), Padded: &padded}

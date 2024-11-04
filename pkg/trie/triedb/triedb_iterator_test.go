@@ -6,12 +6,19 @@ package triedb
 import (
 	"testing"
 
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/stretchr/testify/assert"
 )
+
+func newTestDB(t assert.TestingT) database.Table {
+	db, err := database.NewPebble("", true)
+	assert.NoError(t, err)
+	return database.NewTable(db, "trie")
+}
 
 func TestIterator(t *testing.T) {
 	db := newTestDB(t)
@@ -37,11 +44,11 @@ func TestIterator(t *testing.T) {
 	root, err := inMemoryTrie.Hash()
 	assert.NoError(t, err)
 
-	inmemoryDB := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+	inmemoryDB := NewMemoryDB()
 	trieDB := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](inmemoryDB)
 
 	for k, v := range entries {
-		err := trieDB.Put([]byte(k), v)
+		err := trieDB.Set([]byte(k), v)
 		assert.NoError(t, err)
 	}
 	assert.NoError(t, trieDB.commit())
@@ -50,7 +57,7 @@ func TestIterator(t *testing.T) {
 	assert.Equal(t, root.ToBytes(), trieDB.rootHash.Bytes())
 
 	t.Run("iterate_over_all_entries", func(t *testing.T) {
-		iter, err := newRawIterator(trieDB)
+		iter, err := NewTrieDBRawIterator(trieDB)
 		assert.NoError(t, err)
 
 		expected := inMemoryTrie.NextKey([]byte{})
@@ -69,7 +76,7 @@ func TestIterator(t *testing.T) {
 	})
 
 	t.Run("iterate_after_seeking", func(t *testing.T) {
-		iter, err := newRawIterator(trieDB)
+		iter, err := NewTrieDBRawIterator(trieDB)
 		assert.NoError(t, err)
 
 		found, err := iter.seek([]byte("not"), true)

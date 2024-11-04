@@ -119,7 +119,7 @@ func (ns *nodeStorage[H]) destroy(handle storageHandle) StoredNode {
 	idx := int(handle)
 	ns.freeIndices.PushBack(idx)
 	oldNode := ns.nodes[idx]
-	ns.nodes[idx] = nil
+	ns.nodes[idx] = NewStoredNode{Empty{}}
 
 	return oldNode
 }
