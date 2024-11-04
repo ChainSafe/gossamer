@@ -82,8 +82,10 @@ func (w *WarpSyncProof) verify(
 	authorities grandpa.AuthorityList,
 	hardForks map[string]SetIdAuthorityList,
 ) (*SetIdAuthorityList, error) {
-	currentSetId := setId
-	currentAuthorities := authorities
+	setIdAuth := &SetIdAuthorityList{
+		SetID:         setId,
+		AuthorityList: authorities,
+	}
 
 	for fragmentNumber, proof := range w.Proofs {
 		headerHash := proof.Header.Hash()
@@ -91,10 +93,10 @@ func (w *WarpSyncProof) verify(
 
 		hardForkKey := fmt.Sprintf("%v-%v", headerHash, number)
 		if fork, ok := hardForks[hardForkKey]; ok {
-			currentSetId = fork.SetID
-			currentAuthorities = fork.AuthorityList
+			setIdAuth.SetID = fork.SetID
+			setIdAuth.AuthorityList = fork.AuthorityList
 		} else {
-			err := proof.Justification.Verify(uint64(currentSetId), currentAuthorities)
+			err := proof.Justification.Verify(uint64(setIdAuth.SetID), setIdAuth.AuthorityList)
 			if err != nil {
 				logger.Debugf("failed to verify justification %s", err)
 				return nil, err
@@ -115,15 +117,16 @@ func (w *WarpSyncProof) verify(
 					return nil, fmt.Errorf("cannot parse GRANPDA raw authorities: %w", err)
 				}
 
-				currentSetId += 1
-				currentAuthorities = auths
+				setIdAuth.SetID += 1
+				setIdAuth.AuthorityList = auths
 			} else if fragmentNumber != len(w.Proofs)-1 || !w.IsFinished {
+				logger.Errorf("missing scheduled change in fragment %d, for proof with fragments %d, block %d, finished %v", fragmentNumber, len(w.Proofs), proof.Header.Number, w.IsFinished)
 				return nil, fmt.Errorf("header is missing authority set change digest")
 			}
 		}
 	}
 
-	return &SetIdAuthorityList{currentSetId, currentAuthorities}, nil
+	return setIdAuth, nil
 }
 
 type WarpSyncProofProvider struct {
@@ -333,11 +336,9 @@ func findScheduledChange(
 				}
 
 				parsedScheduledChange, ok := scheduledChange.(types.GrandpaScheduledChange)
-				if !ok {
-					return nil, nil
+				if ok {
+					return &parsedScheduledChange, nil
 				}
-
-				return &parsedScheduledChange, nil
 			}
 		}
 	}

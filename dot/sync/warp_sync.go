@@ -172,14 +172,14 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 
 		if warpProofResult != nil {
 			if !warpProofResult.Completed {
-				logger.Infof("[WARP SYNC] partial warp sync")
+				logger.Infof("[WARP SYNC] partial warp sync received")
 
 				// Partial warp proof
 				w.setId = warpProofResult.SetId
 				w.authorities = warpProofResult.AuthorityList
 				w.lastBlock = &warpProofResult.Header
 			} else {
-				logger.Infof("[WARP SYNC] complete warp sync")
+				logger.Infof("[WARP SYNC] complete warp sync received")
 
 				w.phase = TargetBlock
 				w.lastBlock = &warpProofResult.Header
@@ -209,17 +209,6 @@ func (w *WarpSyncStrategy) validateWarpSyncResults(results []*SyncTaskResult) (
 	var bestResult *network.WarpSyncVerificationResult
 
 	for _, result := range results {
-		if !result.completed {
-			repChanges = append(repChanges, Change{
-				who: result.who,
-				rep: peerset.ReputationChange{
-					Value:  peerset.UnexpectedResponseValue,
-					Reason: peerset.UnexpectedResponseReason,
-				}})
-			peersToBlock = append(peersToBlock, result.who)
-			continue
-		}
-
 		switch response := result.response.(type) {
 		case *messages.WarpSyncProof:
 			if !result.completed {
@@ -246,8 +235,7 @@ func (w *WarpSyncStrategy) validateWarpSyncResults(results []*SyncTaskResult) (
 						Reason: peerset.BadWarpProofReason,
 					}})
 				peersToBlock = append(peersToBlock, result.who)
-
-				return repChanges, peersToBlock, nil
+				continue
 			}
 
 			if response.IsFinished || len(response.Proofs) > len(bestProof.Proofs) {
@@ -266,16 +254,24 @@ func (w *WarpSyncStrategy) validateWarpSyncResults(results []*SyncTaskResult) (
 		}
 	}
 
+	w.syncedFragments += len(bestProof.Proofs)
+
 	return repChanges, peersToBlock, bestResult
 }
 
 func (w *WarpSyncStrategy) ShowMetrics() {
-	totalSyncSeconds := time.Since(w.startedAt).Seconds()
+	switch w.phase {
+	case WarpProof:
+		totalSyncSeconds := time.Since(w.startedAt).Seconds()
 
-	fps := float64(w.syncedFragments) / totalSyncSeconds
-	logger.Infof("⏩ Warping, downloading finality proofs, fragments %d, best %x "+
-		"took: %.2f seconds, fps: %.2f fragments/second",
-		w.syncedFragments, w.lastBlock.Number, totalSyncSeconds, fps)
+		logger.Infof("⏩ Warping, downloading finality proofs, fragments %d, best #%d (%s) "+
+			"took: %.2f seconds",
+			w.syncedFragments, w.lastBlock.Number, w.lastBlock.Hash().String(), totalSyncSeconds)
+	case TargetBlock:
+		logger.Infof("⏩ Warping, downloading target block #%d (%x)",
+			w.lastBlock.Number, w.lastBlock.Hash().String())
+	}
+
 }
 
 func (w *WarpSyncStrategy) IsSynced() bool {
