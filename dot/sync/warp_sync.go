@@ -187,17 +187,14 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 		}
 
 	case TargetBlock:
-		logger.Debug("getting target block")
-
 		var validRes []RequestResponseData
 
 		// Reuse same validator than in fullsync
 		repChanges, bans, validRes = validateResults(results, w.badBlocks)
 
-		if len(validRes) > 0 && len(validRes[0].responseData) > 0 {
-			w.result = *validRes[0].responseData[0]
-			w.phase = Completed
-		}
+		// TODO: check if this can cause an issue
+		w.result = *validRes[0].responseData[0]
+		w.phase = Completed
 	}
 
 	return w.IsSynced(), repChanges, bans, nil
@@ -225,7 +222,6 @@ func (w *WarpSyncStrategy) validateWarpSyncResults(results []*SyncTaskResult) (
 				panic("fail to encode warp proof")
 			}
 
-			// Best proof will be the finished proof or the proof with more fragments
 			res, err := w.warpSyncProvider.Verify(encodedProof, w.setId, w.authorities)
 
 			if err != nil {
