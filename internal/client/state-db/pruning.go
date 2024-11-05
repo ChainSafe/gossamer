@@ -24,10 +24,10 @@ const defaultMaxBlockConstraint uint32 = 256
 // the death list.
 // The changes are journaled in the DB.
 type pruningWindow[BlockHash Hash, Key Hash] struct {
-	/// A queue of blocks keep tracking keys that should be deleted for each block in the
-	/// pruning window.
+	// A queue of blocks keep tracking keys that should be deleted for each block in the
+	// pruning window.
 	queue deathRowQueue[BlockHash, Key]
-	/// Block number that is next to be pruned.
+	// Block number that is next to be pruned.
 	base uint64
 }
 
@@ -156,9 +156,9 @@ type deathRowQueue[BlockHash Hash, Key Hash] interface {
 }
 
 type inMemDeathRowQueue[BlockHash Hash, Key Hash] struct {
-	/// A queue of keys that should be deleted for each block in the pruning window.
+	// A queue of keys that should be deleted for each block in the pruning window.
 	deathRows deque.Deque[deathRow[BlockHash, Key]]
-	/// An index that maps each key from `death_rows` to block number.
+	// An index that maps each key from `death_rows` to block number.
 	deathIndex map[Key]uint64
 }
 
@@ -276,8 +276,8 @@ func toPruningJournalKey(block uint64) []byte {
 type haveBlock uint
 
 const (
-	/// Definitely don't have this block.
+	// Definitely don't have this block.
 	haveBlockNo haveBlock = iota
-	/// Definitely has this block
+	// Definitely has this block
 	haveBlockYes
 )

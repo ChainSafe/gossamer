@@ -1171,23 +1171,23 @@ type MerkleValues[H any] interface {
 	MerkleValue[H]
 }
 
-// / Either the `hash` or `value` of a node depending on its size.
-// /
-// / If the size of the node `value` is bigger or equal than `MAX_INLINE_VALUE` the `hash` is
-// / returned.
+// Either the `hash` or `value` of a node depending on its size.
+//
+// If the size of the node `value` is bigger or equal than `MAX_INLINE_VALUE` the `hash` is
+// returned.
 type MerkleValue[H any] interface {
 	isMerkleValue()
 }
 
-// / The merkle value is the node data itself when the
-// / node data is smaller than `MAX_INLINE_VALUE`.
-// /
-// / Note: The case of inline nodes.
+// The merkle value is the node data itself when the
+// node data is smaller than `MAX_INLINE_VALUE`.
+//
+// Note: The case of inline nodes.
 type NodeMerkleValue []byte
 
 func (NodeMerkleValue) isMerkleValue() {}
 
-// / The merkle value is the hash of the node.
+// The merkle value is the hash of the node.
 type HashMerkleValue[H any] struct {
 	Hash H
 }

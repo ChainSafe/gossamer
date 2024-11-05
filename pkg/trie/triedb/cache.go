@@ -70,7 +70,7 @@ type CachedNodeHandleTypes[H hash.Hash] interface {
 
 // Cached version of [codec.MerkleValue].
 type CachedNodeHandle interface {
-	/// Returns [CachedNodeHandle] as a [ChildReference].
+	// Returns [CachedNodeHandle] as a [ChildReference].
 	ChildReference() ChildReference
 }
 

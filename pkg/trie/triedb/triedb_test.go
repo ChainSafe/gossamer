@@ -617,7 +617,7 @@ func TestDBCommits(t *testing.T) {
 		err = trie.commit()
 		assert.NoError(t, err)
 
-		// // 1 leaf
+		// 1 leaf
 		assert.Len(t, inmemoryDB.Keys(), 1)
 
 		// Get values using lazy loading
@@ -639,7 +639,7 @@ func TestDBCommits(t *testing.T) {
 		err = trie.commit()
 		assert.NoError(t, err)
 
-		// // 1 branch with its inlined leaf
+		// 1 branch with its inlined leaf
 		assert.Len(t, inmemoryDB.Keys(), 1)
 
 		// Get values using lazy loading
@@ -663,8 +663,8 @@ func TestDBCommits(t *testing.T) {
 		err = tr.commit()
 		assert.NoError(t, err)
 
-		// // 1 branch with 1 hashed leaf child
-		// // 1 hashed leaf
+		// 1 branch with 1 hashed leaf child
+		// 1 hashed leaf
 		assert.Len(t, inmemoryDB.Keys(), 2)
 
 		// Get values using lazy loading
