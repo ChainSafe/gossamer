@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -464,6 +465,48 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 func TestPeerViewChange(t *testing.T) {
 	t.Parallel()
 
-	// test that relay parent advertisement if it went out of implicit view gets removed
+	// test that relay parent advertisement gets removed if it went out of implicit view
 
+	cpvs := CollatorProtocolValidatorSide{
+		activeLeaves: map[common.Hash]parachaintypes.ProspectiveParachainsMode{},
+		perRelayParent: map[common.Hash]PerRelayParent{
+			{0x01}: {
+				prospectiveParachainMode: parachaintypes.ProspectiveParachainsMode{
+					IsEnabled: false,
+				},
+			},
+		},
+		peerData: map[peer.ID]PeerData{
+			peer.ID("peer1"): {
+				// this shows our current view of peer1
+				view: parachaintypes.View{
+					Heads: []common.Hash{{0x01}},
+				},
+				state: PeerStateInfo{
+					PeerState: Collating,
+					CollatingPeerState: CollatingPeerState{
+						advertisements: map[common.Hash][]parachaintypes.CandidateHash{
+							{0x01}: {},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	msg := networkbridgeevents.PeerViewChange{
+		PeerID: peer.ID("peer1"),
+		// this shows the new view of peer1, since the new view does not contain relay parent {0x01},
+		// we will remove the advertisement for that relay parent
+		View: parachaintypes.View{
+			Heads: []common.Hash{{0x02}},
+		},
+	}
+
+	err := cpvs.handleNetworkBridgeEvents(msg)
+	require.NoError(t, err)
+
+	// advertisement for relay parent {0x01} should be removed
+	_, ok := cpvs.peerData[peer.ID("peer1")].state.CollatingPeerState.advertisements[common.Hash{0x01}]
+	require.False(t, ok)
 }
