@@ -727,13 +727,11 @@ func (cpvs CollatorProtocolValidatorSide) handleNetworkBridgeEvents(msg any) err
 	case networkbridgeevents.NewGossipTopology:
 		// NOTE: This won't happen
 	case networkbridgeevents.PeerViewChange:
-		// - ongoing collation requests have to be canceled
 		// - advertisements by this peer that are no longer relevant have to be removed
 		peerData, ok := cpvs.peerData[msg.PeerID]
 		if ok {
 			peerData.UpdateView(cpvs.implicitView, cpvs.activeLeaves, cpvs.perRelayParent, msg.View)
 			cpvs.peerData[msg.PeerID] = peerData
-			// TODO: Cancel ongoing collation requests
 		}
 
 	case networkbridgeevents.OurViewChange:

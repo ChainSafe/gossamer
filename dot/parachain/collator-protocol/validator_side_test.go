@@ -460,3 +460,10 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 		})
 	}
 }
+
+func TestPeerViewChange(t *testing.T) {
+	t.Parallel()
+
+	// test that relay parent advertisement if it went out of implicit view gets removed
+
+}

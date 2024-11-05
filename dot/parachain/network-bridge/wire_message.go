@@ -5,8 +5,6 @@ package networkbridge
 
 import (
 	"fmt"
-	"reflect"
-	"sort"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -98,36 +96,6 @@ func (w WireMessage) Encode() ([]byte, error) {
 }
 
 type ViewUpdate parachaintypes.View
-
-type View parachaintypes.View
-
-type SortableHeads []common.Hash
-
-func (s SortableHeads) Len() int {
-	return len(s)
-}
-
-func (s SortableHeads) Less(i, j int) bool {
-	return s[i].String() > s[j].String()
-}
-
-func (s SortableHeads) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-// checkHeadsEqual checks if the heads of the view are equal to the heads of the other view.
-func (v View) checkHeadsEqual(other View) bool {
-	if len(v.Heads) != len(other.Heads) {
-		return false
-	}
-
-	localHeads := v.Heads
-	sort.Sort(SortableHeads(localHeads))
-	otherHeads := other.Heads
-	sort.Sort(SortableHeads(otherHeads))
-
-	return reflect.DeepEqual(localHeads, otherHeads)
-}
 
 type ProtocolMessage struct {
 	inner any
