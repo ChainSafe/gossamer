@@ -171,18 +171,16 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 		repChanges, bans, warpProofResult = w.validateWarpSyncResults(results)
 
 		if warpProofResult != nil {
+			w.lastBlock = &warpProofResult.Header
+
 			if !warpProofResult.Completed {
 				logger.Debug("partial warp sync received")
 
-				// Partial warp proof
 				w.setId = warpProofResult.SetId
 				w.authorities = warpProofResult.AuthorityList
-				w.lastBlock = &warpProofResult.Header
 			} else {
 				logger.Debug("complete warp sync received")
-
 				w.phase = TargetBlock
-				w.lastBlock = &warpProofResult.Header
 			}
 		}
 
