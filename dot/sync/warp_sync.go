@@ -74,9 +74,9 @@ func NewWarpSyncStrategy(cfg *WarpSyncConfig) *WarpSyncStrategy {
 	}
 }
 
-// OnBlockAnnounce on every new block announce received
-// Synce it is a warp sync strategy, we are going to only update the peerset reputation
-// And peers target block
+// OnBlockAnnounce on every new block announce received.
+// Since it is a warp sync strategy, we are going to only update the peerset reputation
+// And peers target block.
 func (w *WarpSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) (
 	repChange *Change, err error) {
 
