@@ -4,6 +4,7 @@
 package sync
 
 import (
+	"fmt"
 	"slices"
 	"time"
 
@@ -60,7 +61,7 @@ type WarpSyncConfig struct {
 func NewWarpSyncStrategy(cfg *WarpSyncConfig) *WarpSyncStrategy {
 	authorities, err := cfg.WarpSyncProvider.CurrentAuthorities()
 	if err != nil {
-		panic("failed to get current authorities")
+		panic(fmt.Sprintf("failed to get current authorities %s", err))
 	}
 
 	return &WarpSyncStrategy{
