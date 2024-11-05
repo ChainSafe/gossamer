@@ -187,14 +187,17 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 		}
 
 	case TargetBlock:
+		logger.Debug("getting target block")
+
 		var validRes []RequestResponseData
 
 		// Reuse same validator than in fullsync
 		repChanges, bans, validRes = validateResults(results, w.badBlocks)
 
-		// TODO: check if this can cause an issue
-		w.result = *validRes[0].responseData[0]
-		w.phase = Completed
+		if len(validRes) > 0 && len(validRes[0].responseData) > 0 {
+			w.result = *validRes[0].responseData[0]
+			w.phase = Completed
+		}
 	}
 
 	return w.IsSynced(), repChanges, bans, nil
