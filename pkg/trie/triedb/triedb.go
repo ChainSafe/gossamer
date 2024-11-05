@@ -283,7 +283,7 @@ func (t *TrieDB[H, Hasher]) Set(key, value []byte) error {
 }
 
 // insertAt inserts the given key / value pair into the node referenced by the
-// node handle `handle`
+// node handle
 func (t *TrieDB[H, Hasher]) insertAt(
 	handle NodeHandle,
 	keyNibbles *nibbles.Nibbles,
@@ -359,7 +359,7 @@ type inspectResult struct {
 	changed bool
 }
 
-// inspect inspects the given node `stored` and calls the `inspector` function
+// inspect inspects the given node stored and calls the inspector function
 // then returns the new node and a boolean indicating if the node has changed
 func (t *TrieDB[H, Hasher]) inspect(
 	stored StoredNode,
@@ -536,7 +536,7 @@ func combineKey(start nodeKey, end nodeKey) nodeKey {
 	return start
 }
 
-// removeInspector removes the key node from the given node `stored`
+// removeInspector removes the key node from the given node stored
 func (t *TrieDB[H, Hasher]) removeInspector(
 	stored Node, keyNibbles *nibbles.Nibbles, oldValue *nodeValue,
 ) (action, error) {
@@ -624,7 +624,7 @@ func (t *TrieDB[H, Hasher]) removeInspector(
 	}
 }
 
-// insertInspector inserts the new key / value pair into the given node `stored`
+// insertInspector inserts the new key / value pair into the given node stored
 func (t *TrieDB[H, Hasher]) insertInspector(
 	stored Node, keyNibbles *nibbles.Nibbles, value []byte, oldValue *nodeValue,
 ) (action, error) {
@@ -833,7 +833,7 @@ func (t *TrieDB[H, Hasher]) lookupNode(hash H, key nibbles.Prefix) (storageHandl
 
 		return newNodeFromEncoded[H](hash, encodedNode, &t.storage)
 	}
-	// We only check the `cache` for a node with `get_node` and don't insert
+	// We only check the cache for a node with GetNode and don't insert
 	// the node if it wasn't there, because in substrate we only access the node while computing
 	// a new trie (aka some branch). We assume that this node isn't that important
 	// to have it being cached.
@@ -1171,16 +1171,16 @@ type MerkleValues[H any] interface {
 	MerkleValue[H]
 }
 
-// Either the `hash` or `value` of a node depending on its size.
+// Either the hash or value of a node depending on its size.
 //
-// If the size of the node `value` is bigger or equal than `MAX_INLINE_VALUE` the `hash` is
+// If the size of the node value is bigger or equal than 32 bytes the hash is
 // returned.
 type MerkleValue[H any] interface {
 	isMerkleValue()
 }
 
 // The merkle value is the node data itself when the
-// node data is smaller than `MAX_INLINE_VALUE`.
+// node data byte length is less than or equal to 32 bytes.
 //
 // Note: The case of inline nodes.
 type NodeMerkleValue []byte

@@ -11,7 +11,7 @@ import (
 
 var EmptyNode = []byte{0}
 
-// StorageHandle is a pointer to a node contained in `NodeStorage`
+// StorageHandle is a pointer to a node contained in nodeStorage
 type storageHandle int
 
 // NodeHandle is an enum for the different types of nodes that can be stored in

@@ -468,9 +468,9 @@ func (ri *TrieDBRawIterator[H, Hasher]) NextItem() (*TrieItem, error) {
 	}
 }
 
-// / Fetches the next key.
-// /
-// / Must be called with the same `db` as when the iterator was created.
+// Fetches the next key.
+//
+// Must be called with the same `db` as when the iterator was created.
 func (ri *TrieDBRawIterator[H, Hasher]) NextKey() ([]byte, error) {
 	for {
 		rawItem, err := ri.nextRawItem(true)
@@ -499,20 +499,20 @@ type TrieItem struct {
 	Value []byte
 }
 
-// / A trie iterator that also supports random access (`seek()`).
+// A trie iterator that also supports random access (`seek()`).
 type TrieIterator[H hash.Hash, Item any] interface {
 	Seek(key []byte) error
 	Next() (Item, error)
 	// Items() iter.Seq2[Item, error]
 }
 
-// / Iterator for going through all values in the trie in pre-order traversal order.
+// Iterator for going through all values in the trie in pre-order traversal order.
 type TrieDBIterator[H hash.Hash, Hasher hash.Hasher[H]] struct {
 	db      *TrieDB[H, Hasher]
 	rawIter TrieDBRawIterator[H, Hasher]
 }
 
-// / Create a new iterator.
+// Create a new iterator.
 func NewTrieDBIterator[H hash.Hash, Hasher hash.Hasher[H]](
 	db *TrieDB[H, Hasher],
 ) (*TrieDBIterator[H, Hasher], error) {
@@ -526,7 +526,7 @@ func NewTrieDBIterator[H hash.Hash, Hasher hash.Hasher[H]](
 	}, nil
 }
 
-// / Create a new iterator, but limited to a given prefix.
+// Create a new iterator, but limited to a given prefix.
 func NewPrefixedTrieDBIterator[H hash.Hash, Hasher hash.Hasher[H]](
 	db *TrieDB[H, Hasher], prefix []byte,
 ) (*TrieDBIterator[H, Hasher], error) {
@@ -540,9 +540,9 @@ func NewPrefixedTrieDBIterator[H hash.Hash, Hasher hash.Hasher[H]](
 	}, nil
 }
 
-// / Create a new iterator, but limited to a given prefix.
-// / It then do a seek operation from prefixed context (using `seek` lose
-// / prefix context by default).
+// Create a new iterator, but limited to a given prefix.
+// It then do a seek operation from prefixed context (using `seek` lose
+// prefix context by default).
 func NewPrefixedTrieDBIteratorThenSeek[H hash.Hash, Hasher hash.Hasher[H]](
 	db *TrieDB[H, Hasher], prefix []byte, startAt []byte,
 ) (*TrieDBIterator[H, Hasher], error) {
@@ -582,12 +582,12 @@ func (tdbi *TrieDBIterator[H, Hasher]) Items() iter.Seq2[TrieItem, error] {
 	}
 }
 
-// / Iterator for going through all of key with values in the trie in pre-order traversal order.
+// Iterator for going through all of key with values in the trie in pre-order traversal order.
 type TrieDBKeyIterator[H hash.Hash, Hasher hash.Hasher[H]] struct {
 	rawIter TrieDBRawIterator[H, Hasher]
 }
 
-// / Create a new iterator.
+// Create a new iterator.
 func NewTrieDBKeyIterator[H hash.Hash, Hasher hash.Hasher[H]](
 	db *TrieDB[H, Hasher],
 ) (*TrieDBKeyIterator[H, Hasher], error) {
@@ -600,7 +600,7 @@ func NewTrieDBKeyIterator[H hash.Hash, Hasher hash.Hasher[H]](
 	}, nil
 }
 
-// / Create a new iterator, but limited to a given prefix.
+// Create a new iterator, but limited to a given prefix.
 func NewPrefixedTrieDBKeyIterator[H hash.Hash, Hasher hash.Hasher[H]](
 	db *TrieDB[H, Hasher], prefix []byte,
 ) (*TrieDBKeyIterator[H, Hasher], error) {
@@ -613,9 +613,9 @@ func NewPrefixedTrieDBKeyIterator[H hash.Hash, Hasher hash.Hasher[H]](
 	}, nil
 }
 
-// / Create a new iterator, but limited to a given prefix.
-// / It then do a seek operation from prefixed context (using `seek` lose
-// / prefix context by default).
+// Create a new iterator, but limited to a given prefix.
+// It then do a seek operation from prefixed context (using `seek` lose
+// prefix context by default).
 func NewPrefixedTrieDBKeyIteratorThenSeek[H hash.Hash, Hasher hash.Hasher[H]](
 	db *TrieDB[H, Hasher], prefix []byte, startAt []byte,
 ) (*TrieDBKeyIterator[H, Hasher], error) {
