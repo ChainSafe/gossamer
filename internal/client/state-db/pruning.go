@@ -207,11 +207,11 @@ func (drqim *inMemDeathRowQueue[BlockHash, Key]) Import(
 		block, ok := drqim.deathIndex[k]
 		if ok {
 			delete(drqim.deathIndex, k)
-			delete(drqim.deathRows.At(int(block-base)).deleted, k)
+			delete(drqim.deathRows.At(int(block-base)).deleted, k) //nolint:gosec
 		}
 	}
 	// add new keys
-	importedBlock := base + uint64(drqim.deathRows.Len())
+	importedBlock := base + uint64(drqim.deathRows.Len()) //nolint:gosec
 	deletedMap := make(map[Key]any)
 	for _, k := range deleted {
 		drqim.deathIndex[k] = importedBlock
@@ -236,7 +236,7 @@ func (drqim *inMemDeathRowQueue[BlockHash, Key]) PopFront(base uint64) (*deathRo
 // Check if the block at the given `index` of the queue exist
 // it is the caller's responsibility to ensure `index` won't be out of bounds
 func (drqim *inMemDeathRowQueue[BlockHash, Key]) HaveBlock(hash BlockHash, index uint) haveBlock {
-	if drqim.deathRows.At(int(index)).hash == hash {
+	if drqim.deathRows.At(int(index)).hash == hash { //nolint:gosec
 		return haveBlockYes
 	}
 	return haveBlockNo
@@ -244,7 +244,7 @@ func (drqim *inMemDeathRowQueue[BlockHash, Key]) HaveBlock(hash BlockHash, index
 
 // Return the number of block in the pruning window
 func (drqim *inMemDeathRowQueue[BlockHash, Key]) Len(base uint64) uint64 {
-	return uint64(drqim.deathRows.Len())
+	return uint64(drqim.deathRows.Len()) //nolint:gosec
 }
 
 // Get the hash of the next pruning block

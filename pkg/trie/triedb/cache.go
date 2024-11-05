@@ -163,15 +163,15 @@ type (
 	}
 )
 
-func (EmptyCachedNode[H]) Data() []byte   { return nil }             //nolint:unused
-func (no LeafCachedNode[H]) Data() []byte { return no.Value.data() } //nolint:unused
-func (no BranchCachedNode[H]) Data() []byte { //nolint:unused
+func (EmptyCachedNode[H]) Data() []byte   { return nil }
+func (no LeafCachedNode[H]) Data() []byte { return no.Value.data() }
+func (no BranchCachedNode[H]) Data() []byte {
 	if no.Value != nil {
 		return no.Value.data()
 	}
 	return nil
 }
-func (no ValueCachedNode[H]) Data() []byte { return no.Value } //nolint:unused
+func (no ValueCachedNode[H]) Data() []byte { return no.Value }
 
 func (EmptyCachedNode[H]) dataHash() *H   { return nil }                 //nolint:unused
 func (no LeafCachedNode[H]) dataHash() *H { return no.Value.dataHash() } //nolint:unused
@@ -205,8 +205,8 @@ func (no LeafCachedNode[H]) partialKey() *nibbles.NibbleSlice   { return &no.Par
 func (no BranchCachedNode[H]) partialKey() *nibbles.NibbleSlice { return &no.PartialKey } //nolint:unused
 func (no ValueCachedNode[H]) partialKey() *nibbles.NibbleSlice  { return nil }            //nolint:unused
 
-func (EmptyCachedNode[H]) Encoded() []byte { return []byte{EmptyTrieBytes} } //nolint:unused
-func (no LeafCachedNode[H]) Encoded() []byte { //nolint:unused
+func (EmptyCachedNode[H]) Encoded() []byte { return []byte{EmptyTrieBytes} }
+func (no LeafCachedNode[H]) Encoded() []byte {
 	encodingBuffer := bytes.NewBuffer(nil)
 	err := NewEncodedLeaf(no.PartialKey.Right(), no.PartialKey.Len(), no.Value.EncodedValue(), encodingBuffer)
 	if err != nil {
@@ -214,7 +214,7 @@ func (no LeafCachedNode[H]) Encoded() []byte { //nolint:unused
 	}
 	return encodingBuffer.Bytes()
 }
-func (no BranchCachedNode[H]) Encoded() []byte { //nolint:unused
+func (no BranchCachedNode[H]) Encoded() []byte {
 	encodingBuffer := bytes.NewBuffer(nil)
 	children := [16]ChildReference{}
 	for i, ch := range no.Children {
@@ -238,11 +238,11 @@ func (no BranchCachedNode[H]) Encoded() []byte { //nolint:unused
 	}
 	return encodingBuffer.Bytes()
 }
-func (no ValueCachedNode[H]) Encoded() []byte { return no.Value } //nolint:unused
+func (no ValueCachedNode[H]) Encoded() []byte { return no.Value }
 
 func (no EmptyCachedNode[H]) ByteSize() uint { return (uint)(unsafe.Sizeof(no)) }
 func (no LeafCachedNode[H]) ByteSize() uint {
-	return (uint)(unsafe.Sizeof(no)) + uint(len(no.PartialKey.Inner())+len(no.Value.data()))
+	return (uint)(unsafe.Sizeof(no)) + uint(len(no.PartialKey.Inner())+len(no.Value.data())) //nolint:gosec
 }
 func (no BranchCachedNode[H]) ByteSize() uint {
 	selfSize := (uint)(unsafe.Sizeof(no))

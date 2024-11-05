@@ -63,7 +63,9 @@ func (l *TrieLookup[H, Hasher, QueryItem]) recordAccess(access TrieAccess) {
 // / When the provided key leads to a node, then the merkle value (hash) of that node
 // / is returned. However, if the key does not lead to a node, then the merkle value
 // / of the closest descendant is returned. `None` if no such descendant exists.
-func (l *TrieLookup[H, Hasher, QueryItem]) LookupFirstDescendant(fullKey []byte, nibbleKey nibbles.Nibbles) (MerkleValue[H], error) {
+func (l *TrieLookup[H, Hasher, QueryItem]) LookupFirstDescendant(
+	fullKey []byte, nibbleKey nibbles.Nibbles,
+) (MerkleValue[H], error) {
 	partial := nibbleKey
 	hash := l.hash
 	var keyNibbles uint
@@ -128,7 +130,7 @@ func (l *TrieLookup[H, Hasher, QueryItem]) LookupFirstDescendant(fullKey []byte,
 				// (descendent), but not the other way around.
 				if !node.PartialKey.StartsWithNibbles(partial) {
 					l.recordAccess(NonExistingNodeAccess{FullKey: fullKey})
-					return nil, nil
+					return nil, nil //nolint:nilnil
 				}
 
 				if partial.Len() != node.PartialKey.Len() {
@@ -152,14 +154,14 @@ func (l *TrieLookup[H, Hasher, QueryItem]) LookupFirstDescendant(fullKey []byte,
 						}
 						return HashMerkleValue[H]{Hash: hash}, nil
 					}
-					return nil, nil
+					return nil, nil //nolint:nilnil
 				}
 
 				// Partial key is longer or equal than the branch slice.
 				// Ensure partial key starts with the branch slice.
 				if !partial.StartsWithNibbleSlice(node.PartialKey) {
 					l.recordAccess(NonExistingNodeAccess{FullKey: fullKey})
-					return nil, nil
+					return nil, nil //nolint:nilnil
 				}
 
 				// Partial key starts with the branch slice.
@@ -181,11 +183,11 @@ func (l *TrieLookup[H, Hasher, QueryItem]) LookupFirstDescendant(fullKey []byte,
 					nextNode = child
 				} else {
 					l.recordAccess(NonExistingNodeAccess{fullKey})
-					return nil, nil
+					return nil, nil //nolint:nilnil
 				}
 			case EmptyCachedNode[H]:
 				l.recordAccess(NonExistingNodeAccess{FullKey: fullKey})
-				return nil, nil
+				return nil, nil //nolint:nilnil
 			default:
 				panic("unreachable")
 			}

@@ -44,7 +44,10 @@ func NewMerkleProof[H hash.Hash, Hasher hash.Hasher[H]](
 		recorder := triedb.NewRecorder[H]()
 		trie := triedb.NewTrieDB[H, Hasher](rootHash, db, triedb.WithRecorder[H, Hasher](recorder))
 		trie.SetVersion(trieVersion)
-		trie.Get(key)
+		_, err = trie.Get(key)
+		if err != nil {
+			return nil, err
+		}
 
 		recordedNodes := NewIterator(recorder.Drain())
 
