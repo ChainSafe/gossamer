@@ -504,13 +504,12 @@ func (peerData *PeerData) UpdateView(implicitView ImplicitView,
 		// remove relay parent advertisement if it went out of implicit view
 		diff := oldView.Difference(newView)
 		for _, relayParent := range diff {
-			var keep bool
 			_, ok := perRelayParent[relayParent]
 			if !ok {
 				delete(peerData.state.CollatingPeerState.advertisements, relayParent)
 			}
 
-			keep = IsRelayParentInImplicitView(relayParent, perRelayParent[relayParent].prospectiveParachainMode,
+			keep := IsRelayParentInImplicitView(relayParent, perRelayParent[relayParent].prospectiveParachainMode,
 				implicitView, activeLeaves, peerData.state.CollatingPeerState.ParaID)
 
 			if !keep {
