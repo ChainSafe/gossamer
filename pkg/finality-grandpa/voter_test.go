@@ -18,6 +18,7 @@ func TestVoter_TalkingToMyself(t *testing.T) {
 	})
 
 	network := NewNetwork()
+	defer network.Stop()
 
 	env := newEnvironment(network, localID)
 
@@ -64,6 +65,7 @@ func TestVoter_FinalizingAtFaultThreshold(t *testing.T) {
 	voters := NewVoterSet(weights)
 
 	network := NewNetwork()
+	defer network.Stop()
 
 	var wg sync.WaitGroup
 	// 3 voters offline.
@@ -115,6 +117,7 @@ func TestVoter_ExposingVoterState(t *testing.T) {
 	voterSet := NewVoterSet(weights)
 
 	network := NewNetwork()
+	defer network.Stop()
 
 	var wg sync.WaitGroup
 	voters := make([]*Voter[string, uint32, Signature, ID], votersOnline)
@@ -204,6 +207,7 @@ func TestVoter_BroadcastCommit(t *testing.T) {
 	voterSet := NewVoterSet([]IDWeight[ID]{{localID, 100}})
 
 	network := NewNetwork()
+	defer network.Stop()
 
 	env := newEnvironment(network, localID)
 
@@ -243,6 +247,7 @@ func TestVoter_BroadcastCommitOnlyIfNewer(t *testing.T) {
 	voterSet := NewVoterSet([]IDWeight[ID]{{localID, 100}, {testID, 201}})
 
 	network := NewNetwork()
+	defer network.Stop()
 
 	commitsOut := make(chan CommunicationOut)
 	commitsIn := network.MakeGlobalComms(commitsOut)
@@ -345,6 +350,8 @@ func TestVoter_ImportCommitForAnyRound(t *testing.T) {
 	voterSet := NewVoterSet([]IDWeight[ID]{{localID, 100}, {testID, 201}})
 
 	network := NewNetwork()
+	defer network.Stop()
+
 	commitsOut := make(chan CommunicationOut)
 	_ = network.MakeGlobalComms(commitsOut)
 
@@ -414,6 +421,7 @@ func TestVoter_SkipsToLatestRoundAfterCatchUp(t *testing.T) {
 	thresholdWeight := voterSet.Threshold()
 
 	network := NewNetwork()
+	defer network.Stop()
 
 	// initialize unsynced voter at round 0
 	localID := ID(4)
@@ -528,6 +536,7 @@ func TestVoter_PickUpFromPriorWithoutGrandparentState(t *testing.T) {
 	voterSet := NewVoterSet([]IDWeight[ID]{{localID, 100}})
 
 	network := NewNetwork()
+	defer network.Stop()
 
 	env := newEnvironment(network, localID)
 
@@ -571,6 +580,7 @@ func TestVoter_PickUpFromPriorWithGrandparentStatus(t *testing.T) {
 	voterSet := NewVoterSet(weights)
 
 	network := NewNetwork()
+	defer network.Stop()
 
 	env := newEnvironment(network, localID)
 

@@ -205,13 +205,14 @@ type BroadcastNetwork[M, N any] struct {
 	senders  []chan M
 	history  []M
 	routing  bool
+	wg       sync.WaitGroup
 }
 
-func NewBroadcastNetwork[M, N any]() BroadcastNetwork[M, N] {
+func NewBroadcastNetwork[M, N any]() *BroadcastNetwork[M, N] {
 	bn := BroadcastNetwork[M, N]{
 		receiver: make(chan M, 10000),
 	}
-	return bn
+	return &bn
 }
 
 func (bm *BroadcastNetwork[M, N]) SendMessage(message M) {
@@ -231,6 +232,7 @@ func (bm *BroadcastNetwork[M, N]) AddNode(f func(N) M, out chan N) (in chan M) {
 
 	if !bm.routing {
 		bm.routing = true
+		bm.wg.Add(1)
 		go bm.route()
 	}
 
@@ -243,6 +245,7 @@ func (bm *BroadcastNetwork[M, N]) AddNode(f func(N) M, out chan N) (in chan M) {
 }
 
 func (bm *BroadcastNetwork[M, N]) route() {
+	defer bm.wg.Done()
 	for msg := range bm.receiver {
 		bm.history = append(bm.history, msg)
 		for _, sender := range bm.senders {
@@ -251,8 +254,13 @@ func (bm *BroadcastNetwork[M, N]) route() {
 	}
 }
 
+func (bm *BroadcastNetwork[M, N]) Stop() {
+	close(bm.receiver)
+	bm.wg.Wait()
+}
+
 type RoundNetwork struct {
-	BroadcastNetwork[SignedMessageError[string, uint32, Signature, ID], Message[string, uint32]]
+	*BroadcastNetwork[SignedMessageError[string, uint32, Signature, ID], Message[string, uint32]]
 }
 
 func NewRoundNetwork() *RoundNetwork {
@@ -269,7 +277,7 @@ func (rn *RoundNetwork) AddNode(
 }
 
 type GlobalMessageNetwork struct {
-	BroadcastNetwork[globalInItem, CommunicationOut]
+	*BroadcastNetwork[globalInItem, CommunicationOut]
 }
 
 func NewGlobalMessageNetwork() *GlobalMessageNetwork {
@@ -297,6 +305,13 @@ func NewNetwork() *Network {
 		rounds:         make(map[uint64]*RoundNetwork),
 		globalMessages: *NewGlobalMessageNetwork(),
 	}
+}
+
+func (n *Network) Stop() {
+	for _, rn := range n.rounds {
+		rn.Stop()
+	}
+	n.globalMessages.Stop()
 }
 
 func (n *Network) MakeRoundComms(
