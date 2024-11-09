@@ -34,7 +34,8 @@ type WarpSyncStrategy struct {
 	// Strategy dependencies and config
 	peers            *peerViewSet
 	badBlocks        []string
-	reqMaker         network.RequestMaker
+	warpSyncReqMaker network.RequestMaker
+	syncReqMaker     network.RequestMaker
 	warpSyncProvider WarpSyncProofProvider
 	blockState       BlockState
 
@@ -49,12 +50,13 @@ type WarpSyncStrategy struct {
 }
 
 type WarpSyncConfig struct {
-	Telemetry        Telemetry
-	BadBlocks        []string
-	RequestMaker     network.RequestMaker
-	WarpSyncProvider WarpSyncProofProvider
-	BlockState       BlockState
-	Peers            *peerViewSet
+	Telemetry            Telemetry
+	BadBlocks            []string
+	WarpSyncRequestMaker network.RequestMaker
+	SyncRequestMaker     network.RequestMaker
+	WarpSyncProvider     WarpSyncProofProvider
+	BlockState           BlockState
+	Peers                *peerViewSet
 }
 
 // NewWarpSyncStrategy returns a new warp sync strategy
@@ -68,7 +70,8 @@ func NewWarpSyncStrategy(cfg *WarpSyncConfig) *WarpSyncStrategy {
 		warpSyncProvider: cfg.WarpSyncProvider,
 		blockState:       cfg.BlockState,
 		badBlocks:        cfg.BadBlocks,
-		reqMaker:         cfg.RequestMaker,
+		warpSyncReqMaker: cfg.WarpSyncRequestMaker,
+		syncReqMaker:     cfg.SyncRequestMaker,
 		peers:            cfg.Peers,
 		setId:            0,
 		authorities:      authorities,
@@ -139,7 +142,7 @@ func (w *WarpSyncStrategy) NextActions() ([]*SyncTask, error) {
 		task = SyncTask{
 			request:      messages.NewWarpProofRequest(lastBlock.Hash()),
 			response:     &messages.WarpSyncProof{},
-			requestMaker: w.reqMaker,
+			requestMaker: w.warpSyncReqMaker,
 		}
 	case TargetBlock:
 		req := messages.NewBlockRequest(
@@ -153,7 +156,7 @@ func (w *WarpSyncStrategy) NextActions() ([]*SyncTask, error) {
 		task = SyncTask{
 			request:      req,
 			response:     &messages.BlockResponseMessage{},
-			requestMaker: w.reqMaker,
+			requestMaker: w.syncReqMaker,
 		}
 	}
 
@@ -167,6 +170,8 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 
 	switch w.phase {
 	case WarpProof:
+		logger.Debug("processing warp sync proof results")
+
 		var warpProofResult *network.WarpSyncVerificationResult
 
 		repChanges, bans, warpProofResult = w.validateWarpSyncResults(results)
@@ -186,14 +191,17 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 		}
 
 	case TargetBlock:
+		logger.Debug("processing warp sync target block results")
+
 		var validRes []RequestResponseData
 
 		// Reuse same validator than in fullsync
 		repChanges, bans, validRes = validateResults(results, w.badBlocks)
 
-		// TODO: check if this can cause an issue
-		w.result = *validRes[0].responseData[0]
-		w.phase = Completed
+		if len(validRes) > 0 && validRes[0].responseData != nil && len(validRes[0].responseData) > 0 {
+			w.result = *validRes[0].responseData[0]
+			w.phase = Completed
+		}
 	}
 
 	return w.IsSynced(), repChanges, bans, nil
