@@ -86,4 +86,9 @@ const (
 	BadWarpProofValue Reputation = -(1 << 29)
 	// BadWarpProofReason is used when peer send invalid warp sync proof.
 	BadWarpProofReason = "Bad warp proof"
+
+	// BadStateValue is used when peer send invalid state response.
+	BadStateValue Reputation = -(1 << 29)
+	// BadStateReason is used when peer send invalid state response.
+	BadStateReason = "Bad state"
 )

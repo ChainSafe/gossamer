@@ -279,7 +279,6 @@ func (w *WarpSyncStrategy) ShowMetrics() {
 		logger.Infof("⏩ Warping, downloading target block #%d (%s)",
 			w.lastBlock.Number, w.lastBlock.Hash().String())
 	}
-
 }
 
 func (w *WarpSyncStrategy) IsSynced() bool {
