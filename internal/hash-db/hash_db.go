@@ -19,7 +19,7 @@ type Prefix struct {
 }
 
 // An empty prefix constant.
-// Can be use when the prefix is not use dinternally or for root nodes.
+// Can be use when the prefix is not used internally or for root nodes.
 var EmptyPrefix = Prefix{}
 
 // Hasher is an interface describing an object that can hash a slice of bytes. Used to abstract
