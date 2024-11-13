@@ -275,7 +275,7 @@ func (t *TrieDB[H, Hasher]) insert(keyNibbles nibbles.Nibbles, value []byte) err
 	return nil
 }
 
-// Put inserts the given key / value pair into the trie
+// Set inserts the given key / value pair into the trie
 func (t *TrieDB[H, Hasher]) Set(key, value []byte) error {
 	copiedKey := append([]byte{}, key...)
 	copiedValue := append([]byte{}, value...)
