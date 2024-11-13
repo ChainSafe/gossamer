@@ -367,7 +367,6 @@ func (t *TrieDB[H, Hasher]) inspect(
 	inspector func(Node, *nibbles.Nibbles) (action, error),
 ) (*inspectResult, error) {
 	// shallow copy since key will change offset through inspector
-	// currentKey := *key
 	currentKey := key.Clone()
 	switch n := stored.(type) {
 	case NewStoredNode:
