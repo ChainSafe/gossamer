@@ -24,12 +24,12 @@ func Benchmark_ValueCache(b *testing.B) {
 	}
 	version := trie.V1
 
-	db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+	db := NewMemoryDB()
 	trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
 	trie.SetVersion(version)
 
 	for k, v := range entries {
-		require.NoError(b, trie.Put([]byte(k), v))
+		require.NoError(b, trie.Set([]byte(k), v))
 	}
 	err := trie.commit()
 	require.NoError(b, err)
@@ -73,12 +73,12 @@ func Benchmark_NodesCache(b *testing.B) {
 	}
 	version := trie.V1
 
-	db := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+	db := NewMemoryDB()
 	trie := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](db)
 	trie.SetVersion(version)
 
 	for k, v := range entries {
-		require.NoError(b, trie.Put([]byte(k), v))
+		require.NoError(b, trie.Set([]byte(k), v))
 	}
 	err := trie.commit()
 	require.NoError(b, err)
@@ -90,7 +90,7 @@ func Benchmark_NodesCache(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			// Iterate through all keys
-			iter, err := newRawIterator(trieDB)
+			iter, err := NewTrieDBRawIterator(trieDB)
 			require.NoError(b, err)
 			for entry, err := iter.NextItem(); entry != nil && err == nil; entry, err = iter.NextItem() {
 			}
@@ -104,7 +104,7 @@ func Benchmark_NodesCache(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			// Iterate through all keys
-			iter, err := newRawIterator(trieDB)
+			iter, err := NewTrieDBRawIterator(trieDB)
 			require.NoError(b, err)
 			for entry, err := iter.NextItem(); entry != nil && err == nil; entry, err = iter.NextItem() {
 			}

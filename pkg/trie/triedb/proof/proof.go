@@ -7,8 +7,8 @@ import (
 	"bytes"
 	"errors"
 
+	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/hash"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/nibbles"
@@ -18,7 +18,7 @@ import (
 type MerkleProof[H hash.Hash, Hasher hash.Hasher[H]] [][]byte
 
 func NewMerkleProof[H hash.Hash, Hasher hash.Hasher[H]](
-	db db.RWDatabase, trieVersion trie.TrieLayout, rootHash H, keys []string) (
+	db hashdb.HashDB[H], trieVersion trie.TrieLayout, rootHash H, keys []string) (
 	proof MerkleProof[H, Hasher], err error) {
 	// Sort and deduplicate keys
 	keys = sortAndDeduplicateKeys(keys)
@@ -44,7 +44,10 @@ func NewMerkleProof[H hash.Hash, Hasher hash.Hasher[H]](
 		recorder := triedb.NewRecorder[H]()
 		trie := triedb.NewTrieDB[H, Hasher](rootHash, db, triedb.WithRecorder[H, Hasher](recorder))
 		trie.SetVersion(trieVersion)
-		trie.Get(key)
+		_, err = trie.Get(key)
+		if err != nil {
+			return nil, err
+		}
 
 		recordedNodes := NewIterator(recorder.Drain())
 
