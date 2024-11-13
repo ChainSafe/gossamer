@@ -146,10 +146,10 @@ func (nco *nonCanonicalOverlay[BlockHash, Key]) Insert(
 		})
 		nco.lastCanonicalized = &lastCanonicalized
 	} else if nco.lastCanonicalized != nil {
-		if number < frontBlockNumber || number > frontBlockNumber+uint64(nco.levels.Len()) {
+		if number < frontBlockNumber || number > frontBlockNumber+uint64(nco.levels.Len()) { //nolint:gosec
 			log.Printf(
 				"TRACE: Failed to insert block %v, current is %v .. %v)\n",
-				number, frontBlockNumber, frontBlockNumber+uint64(nco.levels.Len()))
+				number, frontBlockNumber, frontBlockNumber+uint64(nco.levels.Len())) //nolint:gosec
 			return CommitSet[Key]{}, ErrInvalidBlockNumber
 		}
 		// check for valid parent if inserting on second level or higher
@@ -163,13 +163,13 @@ func (nco *nonCanonicalOverlay[BlockHash, Key]) Insert(
 	}
 	var level overlayLevel[BlockHash, Key] = newOverlayLevel[BlockHash, Key]()
 	var levelIndex int
-	if nco.levels.Len() == 0 || number == frontBlockNumber+uint64(nco.levels.Len()) {
+	if nco.levels.Len() == 0 || number == frontBlockNumber+uint64(nco.levels.Len()) { //nolint:gosec
 		nco.levels.PushBack(newOverlayLevel[BlockHash, Key]())
 		level = nco.levels.Back()
 		levelIndex = nco.levels.Len() - 1
 	} else {
-		level = nco.levels.At(int(number - frontBlockNumber))
-		levelIndex = int(number - frontBlockNumber)
+		level = nco.levels.At(int(number - frontBlockNumber)) //nolint:gosec
+		levelIndex = int(number - frontBlockNumber)           //nolint:gosec
 	}
 
 	if len(level.blocks) >= int(maxBlocksPerLevel) {
@@ -221,10 +221,10 @@ func (nco *nonCanonicalOverlay[BlockHash, Key]) Insert(
 
 func (nco *nonCanonicalOverlay[BlockHash, Key]) discardJournals(
 	levelIndex uint, discardedJournals *[][]byte, hash BlockHash) {
-	if levelIndex >= uint(nco.levels.Len()) {
+	if levelIndex >= uint(nco.levels.Len()) { //nolint:gosec
 		return
 	}
-	level := nco.levels.At(int(levelIndex))
+	level := nco.levels.At(int(levelIndex)) //nolint:gosec
 	for _, overlay := range level.blocks {
 		parent, ok := nco.parents[overlay.hash]
 		if !ok {
@@ -418,7 +418,7 @@ func (nco *nonCanonicalOverlay[BlockHash, Key]) Remove(hash BlockHash) *CommitSe
 				}
 			}
 		}
-		overlay := level.remove(uint(index))
+		overlay := level.remove(uint(index)) //nolint:gosec
 		nco.levels.Set(levelIndex, level)
 		commit.Meta.Deleted = append(commit.Meta.Deleted, overlay.journalKey)
 		delete(nco.parents, overlay.hash)
@@ -496,7 +496,7 @@ func (ol *overlayLevel[BlockHash, Key]) push(overlay blockOverlay[BlockHash, Key
 }
 
 func (ol *overlayLevel[BlockHash, Key]) availableIndex() uint64 {
-	return uint64(bits.TrailingZeros64(^ol.usedIndices))
+	return uint64(bits.TrailingZeros64(^ol.usedIndices)) //nolint:gosec
 }
 
 func (ol *overlayLevel[BlockHash, Key]) remove(index uint) blockOverlay[BlockHash, Key] {
@@ -639,7 +639,7 @@ func discardDescendants[BlockHash Hash, Key Hash](
 					panic("there is a parent entry for each entry in levels; qed")
 				}
 				if h == hash {
-					index = uint(i)
+					index = uint(i) //nolint:gosec
 					overlay := level.remove(index)
 					numPinned := discardDescendants(remainder, values, parents, pinned, pinnedInsertions, overlay.hash)
 					if _, ok := pinned[overlay.hash]; ok {
