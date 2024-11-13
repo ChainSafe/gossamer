@@ -284,3 +284,107 @@ func TestParachainInherents(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expectedInherentsBytes, actualInherentsBytes)
 }
+
+func TestAnswerMinimumRelayParentsRequest_WithActiveRelayParentAndFragmentChains(t *testing.T) {
+	t.Parallel()
+
+	// Set up test data with an active relay parent that has fragment chains
+	view := &View{
+		ActiveLeaves: map[common.Hash]struct{}{
+			common.MustBlake2bHash([]byte("relay_parent_hash")): {},
+		},
+		PerRelayParent: map[common.Hash]*RelayParentData{
+			common.MustBlake2bHash([]byte("relay_parent_hash")): {
+				FragmentChains: map[uint32]*FragmentChain{
+					1: {earliestRelayParent: 100},
+					2: {earliestRelayParent: 200},
+				},
+			},
+		},
+	}
+
+	tx := make(chan []struct {
+		ParaID      uint32
+		BlockNumber uint32
+	}, 1)
+
+	// Execute the function
+	answerMinimumRelayParentsRequest(view, common.MustBlake2bHash([]byte("relay_parent_hash")), tx)
+
+	// Retrieve the result from the channel
+	result := <-tx
+
+	// Expected output
+	expected := []struct {
+		ParaID      uint32
+		BlockNumber uint32
+	}{
+		{ParaID: 1, BlockNumber: 100},
+		{ParaID: 2, BlockNumber: 200},
+	}
+
+	// Validate the result
+	assert.Equal(t, expected, result)
+}
+
+func TestAnswerMinimumRelayParentsRequest_WithInactiveRelayParent(t *testing.T) {
+	t.Parallel()
+
+	// Set up test data with an inactive relay parent
+	view := &View{
+		ActiveLeaves: map[common.Hash]struct{}{
+			common.MustBlake2bHash([]byte("another_relay_parent_hash")): {},
+		},
+		PerRelayParent: map[common.Hash]*RelayParentData{
+			common.MustBlake2bHash([]byte("relay_parent_hash")): {
+				FragmentChains: map[uint32]*FragmentChain{
+					1: {earliestRelayParent: 100},
+				},
+			},
+		},
+	}
+
+	tx := make(chan []struct {
+		ParaID      uint32
+		BlockNumber uint32
+	}, 1)
+
+	// Execute the function
+	answerMinimumRelayParentsRequest(view, common.MustBlake2bHash([]byte("relay_parent_hash")), tx)
+
+	// Retrieve the result from the channel
+	result := <-tx
+
+	// Verify that the result is empty since the relay parent is inactive
+	require.Empty(t, result)
+}
+
+func TestAnswerMinimumRelayParentsRequest_WithNoFragmentChains(t *testing.T) {
+	t.Parallel()
+
+	// Set up test data with an active relay parent but no fragment chains
+	view := &View{
+		ActiveLeaves: map[common.Hash]struct{}{
+			common.MustBlake2bHash([]byte("relay_parent_hash")): {},
+		},
+		PerRelayParent: map[common.Hash]*RelayParentData{
+			common.MustBlake2bHash([]byte("relay_parent_hash")): {
+				FragmentChains: map[uint32]*FragmentChain{},
+			},
+		},
+	}
+
+	tx := make(chan []struct {
+		ParaID      uint32
+		BlockNumber uint32
+	}, 1)
+
+	// Execute the function
+	answerMinimumRelayParentsRequest(view, common.MustBlake2bHash([]byte("relay_parent_hash")), tx)
+
+	// Retrieve the result from the channel
+	result := <-tx
+
+	// Verify that the result is empty as there are no fragment chains for the relay parent
+	require.Empty(t, result)
+}

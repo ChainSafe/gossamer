@@ -318,6 +318,56 @@ func newDisputeStatement() disputeStatement { //skipcq
 	return disputeStatement{}
 }
 
+// answerMinimumRelayParentsRequest sends the minimum number of relay parents through the channel
+func answerMinimumRelayParentsRequest(view *View, relayParent common.Hash, tx chan<- []struct {
+	ParaID      uint32
+	BlockNumber uint32
+}) {
+	var result []struct {
+		ParaID      uint32
+		BlockNumber uint32
+	}
+
+	// Check if relayParent is in ActiveLeaves
+	if _, exists := view.ActiveLeaves[relayParent]; exists {
+		// Check if relayParent has associated data in PerRelayParent
+		if leafData, found := view.PerRelayParent[relayParent]; found {
+			// Iterate over fragment_chains and extract ParaID and the earliest relay parent number
+			for paraID, fragmentChain := range leafData.FragmentChains {
+				result = append(result, struct {
+					ParaID      uint32
+					BlockNumber uint32
+				}{
+					ParaID:      paraID,
+					BlockNumber: fragmentChain.Scope(),
+				})
+			}
+		}
+	}
+
+	// Send the result through the tx channel
+	tx <- result
+}
+
+// View structure representing a view with active leaves and relay parent data
+type View struct {
+	ActiveLeaves   map[common.Hash]struct{}         // set of active relay parents
+	PerRelayParent map[common.Hash]*RelayParentData // relay parent data
+}
+
+type RelayParentData struct {
+	FragmentChains map[uint32]*FragmentChain
+}
+
+type FragmentChain struct {
+	earliestRelayParent uint32
+}
+
+// Scope returns the earliest relay parent in the chain
+func (fc *FragmentChain) Scope() uint32 {
+	return fc.earliestRelayParent
+}
+
 // collatorID is the collator's relay-chain account ID
 type collatorID []byte
 
