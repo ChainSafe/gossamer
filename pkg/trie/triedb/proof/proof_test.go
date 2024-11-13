@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -142,12 +143,12 @@ func Test_GenerateAndVerify(t *testing.T) {
 		for _, trieVersion := range trieVersions {
 			t.Run(fmt.Sprintf("%s_%s", name, trieVersion.String()), func(t *testing.T) {
 				// Build trie
-				inmemoryDB := NewMemoryDB(triedb.EmptyNode)
+				inmemoryDB := NewMemoryDB()
 				triedb := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](inmemoryDB)
 				triedb.SetVersion(trieVersion)
 
 				for _, entry := range testCase.entries {
-					triedb.Put(entry.Key, entry.Value)
+					triedb.Set(entry.Key, entry.Value)
 				}
 
 				root := triedb.MustHash()
@@ -160,9 +161,11 @@ func Test_GenerateAndVerify(t *testing.T) {
 				// Verify proof
 				items := make([]proofItem, len(testCase.keys))
 				for i, key := range testCase.keys {
+					val, err := triedb.Get([]byte(key))
+					require.NoError(t, err)
 					items[i] = proofItem{
 						key:   []byte(key),
-						value: triedb.Get([]byte(key)),
+						value: val,
 					}
 				}
 				err = proof.Verify(trieVersion, root.Bytes(), items)

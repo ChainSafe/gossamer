@@ -5,6 +5,7 @@ package triedb
 
 import (
 	"bytes"
+	"unsafe"
 
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/codec"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb/hash"
@@ -86,7 +87,7 @@ func (nho HashCachedNodeHandle[H]) ChildReference() ChildReference {
 	return HashChildReference[H](nho)
 }
 func (nho InlineCachedNodeHandle[H]) ChildReference() ChildReference {
-	encoded := nho.CachedNode.encoded()
+	encoded := nho.CachedNode.Encoded()
 	store := (*new(H))
 	if len(encoded) > store.Length() {
 		panic("Invalid inline node handle")
@@ -106,7 +107,7 @@ func newCachedNodeHandleFromMerkleValue[H hash.Hash, Hasher hash.Hasher[H]](
 		if err != nil {
 			return nil, err
 		}
-		cachedNode, err := newCachedNodeFromNode[H, Hasher](node)
+		cachedNode, err := NewCachedNodeFromNode[H, Hasher](node)
 		if err != nil {
 			return nil, err
 		}
@@ -129,11 +130,12 @@ type CachedNodeTypes[H hash.Hash] interface {
 
 // Cached nodes.
 type CachedNode[H hash.Hash] interface {
-	data() []byte // nil means there is no data
+	Data() []byte // nil means there is no data
 	dataHash() *H
 	children() []child[H]
 	partialKey() *nibbles.NibbleSlice
-	encoded() []byte
+	Encoded() []byte
+	ByteSize() uint
 }
 
 type (
@@ -161,15 +163,15 @@ type (
 	}
 )
 
-func (EmptyCachedNode[H]) data() []byte   { return nil }             //nolint:unused
-func (no LeafCachedNode[H]) data() []byte { return no.Value.data() } //nolint:unused
-func (no BranchCachedNode[H]) data() []byte { //nolint:unused
+func (EmptyCachedNode[H]) Data() []byte   { return nil }
+func (no LeafCachedNode[H]) Data() []byte { return no.Value.data() }
+func (no BranchCachedNode[H]) Data() []byte {
 	if no.Value != nil {
 		return no.Value.data()
 	}
 	return nil
 }
-func (no ValueCachedNode[H]) data() []byte { return no.Value } //nolint:unused
+func (no ValueCachedNode[H]) Data() []byte { return no.Value }
 
 func (EmptyCachedNode[H]) dataHash() *H   { return nil }                 //nolint:unused
 func (no LeafCachedNode[H]) dataHash() *H { return no.Value.dataHash() } //nolint:unused
@@ -203,8 +205,8 @@ func (no LeafCachedNode[H]) partialKey() *nibbles.NibbleSlice   { return &no.Par
 func (no BranchCachedNode[H]) partialKey() *nibbles.NibbleSlice { return &no.PartialKey } //nolint:unused
 func (no ValueCachedNode[H]) partialKey() *nibbles.NibbleSlice  { return nil }            //nolint:unused
 
-func (EmptyCachedNode[H]) encoded() []byte { return []byte{EmptyTrieBytes} } //nolint:unused
-func (no LeafCachedNode[H]) encoded() []byte { //nolint:unused
+func (EmptyCachedNode[H]) Encoded() []byte { return []byte{EmptyTrieBytes} }
+func (no LeafCachedNode[H]) Encoded() []byte {
 	encodingBuffer := bytes.NewBuffer(nil)
 	err := NewEncodedLeaf(no.PartialKey.Right(), no.PartialKey.Len(), no.Value.EncodedValue(), encodingBuffer)
 	if err != nil {
@@ -212,7 +214,7 @@ func (no LeafCachedNode[H]) encoded() []byte { //nolint:unused
 	}
 	return encodingBuffer.Bytes()
 }
-func (no BranchCachedNode[H]) encoded() []byte { //nolint:unused
+func (no BranchCachedNode[H]) Encoded() []byte {
 	encodingBuffer := bytes.NewBuffer(nil)
 	children := [16]ChildReference{}
 	for i, ch := range no.Children {
@@ -236,9 +238,38 @@ func (no BranchCachedNode[H]) encoded() []byte { //nolint:unused
 	}
 	return encodingBuffer.Bytes()
 }
-func (no ValueCachedNode[H]) encoded() []byte { return no.Value } //nolint:unused
+func (no ValueCachedNode[H]) Encoded() []byte { return no.Value }
 
-func newCachedNodeFromNode[H hash.Hash, Hasher hash.Hasher[H]](n codec.EncodedNode) (CachedNode[H], error) {
+func (no EmptyCachedNode[H]) ByteSize() uint { return (uint)(unsafe.Sizeof(no)) }
+func (no LeafCachedNode[H]) ByteSize() uint {
+	return (uint)(unsafe.Sizeof(no)) + uint(len(no.PartialKey.Inner())+len(no.Value.data())) //nolint:gosec
+}
+func (no BranchCachedNode[H]) ByteSize() uint {
+	selfSize := (uint)(unsafe.Sizeof(no))
+	var childSize = func(children [16]CachedNodeHandle) (size uint) {
+		for _, child := range children {
+			if child == nil {
+				continue
+			}
+			switch child := child.(type) {
+			case HashCachedNodeHandle[H]:
+			case InlineCachedNodeHandle[H]:
+				size = size + child.CachedNode.ByteSize()
+			default:
+				panic("unreachable")
+			}
+		}
+		return
+	}
+	size := selfSize + uint(len(no.PartialKey.Inner())) + childSize(no.Children)
+	if no.Value != nil {
+		size = size + uint(len(no.Value.data()))
+	}
+	return size
+}
+func (no ValueCachedNode[H]) ByteSize() uint { return (uint)(unsafe.Sizeof(no)) + uint(len(no.Value)) }
+
+func NewCachedNodeFromNode[H hash.Hash, Hasher hash.Hasher[H]](n codec.EncodedNode) (CachedNode[H], error) {
 	switch n := n.(type) {
 	case codec.Empty:
 		return EmptyCachedNode[H]{}, nil
@@ -321,7 +352,7 @@ func (ecv ExistingCachedValue[H]) hash() *H     { return &ecv.Hash } //nolint:un
 //
 // The interface consists of two cache levels, first the trie nodes cache and then the value cache.
 // The trie nodes cache, as the name indicates, is for caching trie nodes as [CachedNode]. These
-// trie nodes are referenced by their hash. The value cache is caching [CachedValue]s and these
+// trie nodes are referenced by their hash. The value cache is caching [CachedValue]'s and these
 // are referenced by the key to look them up in the trie. As multiple different tries can have
 // different values under the same key, it is up to the cache implementation to ensure that the
 // correct value is returned. As each trie has a different root, this root can be used to
