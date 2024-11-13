@@ -24,10 +24,10 @@ const defaultMaxBlockConstraint uint32 = 256
 // the death list.
 // The changes are journaled in the DB.
 type pruningWindow[BlockHash Hash, Key Hash] struct {
-	/// A queue of blocks keep tracking keys that should be deleted for each block in the
-	/// pruning window.
+	// A queue of blocks keep tracking keys that should be deleted for each block in the
+	// pruning window.
 	queue deathRowQueue[BlockHash, Key]
-	/// Block number that is next to be pruned.
+	// Block number that is next to be pruned.
 	base uint64
 }
 
@@ -156,9 +156,9 @@ type deathRowQueue[BlockHash Hash, Key Hash] interface {
 }
 
 type inMemDeathRowQueue[BlockHash Hash, Key Hash] struct {
-	/// A queue of keys that should be deleted for each block in the pruning window.
+	// A queue of keys that should be deleted for each block in the pruning window.
 	deathRows deque.Deque[deathRow[BlockHash, Key]]
-	/// An index that maps each key from `death_rows` to block number.
+	// An index that maps each key from `death_rows` to block number.
 	deathIndex map[Key]uint64
 }
 
@@ -207,11 +207,11 @@ func (drqim *inMemDeathRowQueue[BlockHash, Key]) Import(
 		block, ok := drqim.deathIndex[k]
 		if ok {
 			delete(drqim.deathIndex, k)
-			delete(drqim.deathRows.At(int(block-base)).deleted, k)
+			delete(drqim.deathRows.At(int(block-base)).deleted, k) //nolint:gosec
 		}
 	}
 	// add new keys
-	importedBlock := base + uint64(drqim.deathRows.Len())
+	importedBlock := base + uint64(drqim.deathRows.Len()) //nolint:gosec
 	deletedMap := make(map[Key]any)
 	for _, k := range deleted {
 		drqim.deathIndex[k] = importedBlock
@@ -236,7 +236,7 @@ func (drqim *inMemDeathRowQueue[BlockHash, Key]) PopFront(base uint64) (*deathRo
 // Check if the block at the given `index` of the queue exist
 // it is the caller's responsibility to ensure `index` won't be out of bounds
 func (drqim *inMemDeathRowQueue[BlockHash, Key]) HaveBlock(hash BlockHash, index uint) haveBlock {
-	if drqim.deathRows.At(int(index)).hash == hash {
+	if drqim.deathRows.At(int(index)).hash == hash { //nolint:gosec
 		return haveBlockYes
 	}
 	return haveBlockNo
@@ -244,7 +244,7 @@ func (drqim *inMemDeathRowQueue[BlockHash, Key]) HaveBlock(hash BlockHash, index
 
 // Return the number of block in the pruning window
 func (drqim *inMemDeathRowQueue[BlockHash, Key]) Len(base uint64) uint64 {
-	return uint64(drqim.deathRows.Len())
+	return uint64(drqim.deathRows.Len()) //nolint:gosec
 }
 
 // Get the hash of the next pruning block
@@ -276,8 +276,8 @@ func toPruningJournalKey(block uint64) []byte {
 type haveBlock uint
 
 const (
-	/// Definitely don't have this block.
+	// Definitely don't have this block.
 	haveBlockNo haveBlock = iota
-	/// Definitely has this block
+	// Definitely has this block
 	haveBlockYes
 )
