@@ -48,7 +48,7 @@ type HashDB[Hash comparable] interface {
 	Emplace(key Hash, prefix Prefix, value []byte)
 
 	// Remove a datum previously inserted. Insertions can be "owed" such that the same number of
-	// inserts may happen without the data being eventually being inserted into the DB.
+	// inserts may happen without the data eventually being inserted into the DB.
 	// It can be "owed" more than once.
 	Remove(key Hash, prefix Prefix)
 }
