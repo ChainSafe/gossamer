@@ -52,35 +52,35 @@ func (mdb *MemDB[H]) Commit(transaction Transaction[H]) error {
 			if !ok {
 				mdb.inner[change.ColumnID] = make(map[string]refCountValue)
 			}
-			cv, ok := mdb.inner[change.ColumnID][change.Hash.String()]
+			cv, ok := mdb.inner[change.ColumnID][string(change.Hash.Bytes())]
 			if ok {
 				cv.refCount += 1
-				mdb.inner[change.ColumnID][change.Hash.String()] = cv
+				mdb.inner[change.ColumnID][string(change.Hash.Bytes())] = cv
 			} else {
-				mdb.inner[change.ColumnID][change.Hash.String()] = refCountValue{1, change.Preimage}
+				mdb.inner[change.ColumnID][string(change.Hash.Bytes())] = refCountValue{1, change.Preimage}
 			}
 		case Reference[H]:
 			_, ok := mdb.inner[change.ColumnID]
 			if !ok {
 				mdb.inner[change.ColumnID] = make(map[string]refCountValue)
 			}
-			cv, ok := mdb.inner[change.ColumnID][change.Hash.String()]
+			cv, ok := mdb.inner[change.ColumnID][string(change.Hash.Bytes())]
 			if ok {
 				cv.refCount += 1
-				mdb.inner[change.ColumnID][change.Hash.String()] = cv
+				mdb.inner[change.ColumnID][string(change.Hash.Bytes())] = cv
 			}
 		case Release[H]:
 			_, ok := mdb.inner[change.ColumnID]
 			if !ok {
 				mdb.inner[change.ColumnID] = make(map[string]refCountValue)
 			}
-			cv, ok := mdb.inner[change.ColumnID][change.Hash.String()]
+			cv, ok := mdb.inner[change.ColumnID][string(change.Hash.Bytes())]
 			if ok {
 				cv.refCount -= 1
 				if cv.refCount == 0 {
-					delete(mdb.inner[change.ColumnID], change.Hash.String())
+					delete(mdb.inner[change.ColumnID], string(change.Hash.Bytes()))
 				} else {
-					mdb.inner[change.ColumnID][change.Hash.String()] = cv
+					mdb.inner[change.ColumnID][string(change.Hash.Bytes())] = cv
 				}
 			}
 		}
