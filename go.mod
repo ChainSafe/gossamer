@@ -12,6 +12,8 @@ require (
 	github.com/dgraph-io/badger/v4 v4.5.1
 	github.com/dgraph-io/ristretto/v2 v2.1.0
 	github.com/disiqueira/gotree v1.0.0
+	github.com/dolthub/maphash v0.1.0
+	github.com/elastic/go-freelru v0.15.0
 	github.com/ethereum/go-ethereum v1.15.0
 	github.com/fatih/color v1.18.0
 	github.com/gammazero/deque v1.0.0

@@ -68,3 +68,9 @@ func NewRandomH256() H256 {
 	}
 	return H256(token)
 }
+
+// NewH256 is constructor for a zero case H256
+func NewH256() H256 {
+	token := make([]byte, 32)
+	return H256(token)
+}
