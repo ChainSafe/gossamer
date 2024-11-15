@@ -1,117 +1,35 @@
 package prospective_parachains
 
 import (
-	"fmt"
-
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 type ProspectiveParachainMessageValues interface {
-	IntroduceSecondedCandidate | CandidateBacked | GetBackableCandidates | GetHypotheticalMembership |
+	CandidateBacked | GetBackableCandidates | GetHypotheticalMembership |
 		GetMinimumRelayParents
 }
 
 // ProspectiveParachainsMessage Messages sent to the Prospective Parachains subsystem.
-type ProspectiveParachainsMessage struct {
-	inner any
+type ProspectiveParachainsMessage interface {
+	isProspectiveParachainsMessage()
 }
 
-func setProspectiveParachainMessage[Value ProspectiveParachainMessageValues](ppm *ProspectiveParachainsMessage,
-	value Value) {
-	ppm.inner = value
-}
-
-func (ppm *ProspectiveParachainsMessage) SetValue(value any) (err error) {
-	switch value := value.(type) {
-	case IntroduceSecondedCandidate:
-		setProspectiveParachainMessage(ppm, value)
-		return
-
-	case CandidateBacked:
-		setProspectiveParachainMessage(ppm, value)
-		return
-
-	case GetBackableCandidates:
-		setProspectiveParachainMessage(ppm, value)
-		return
-
-	case GetHypotheticalMembership:
-		setProspectiveParachainMessage(ppm, value)
-		return
-
-	case GetMinimumRelayParents:
-		setProspectiveParachainMessage(ppm, value)
-		return
-
-	default:
-		return fmt.Errorf("unsupported type")
-	}
-}
-
-func (ppm ProspectiveParachainsMessage) IndexValue() (index uint, value any, err error) {
-	switch ppm.inner.(type) {
-	case IntroduceSecondedCandidate:
-		return 0, ppm.inner, nil
-
-	case CandidateBacked:
-		return 1, ppm.inner, nil
-
-	case GetBackableCandidates:
-		return 2, ppm.inner, nil
-
-	case GetHypotheticalMembership:
-		return 3, ppm.inner, nil
-
-	case GetMinimumRelayParents:
-		return 4, ppm.inner, nil
-	}
-
-	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
-}
-
-func (ppm ProspectiveParachainsMessage) Value() (value any, err error) {
-	_, value, err = ppm.IndexValue()
-	return
-}
-
-func (ppm ProspectiveParachainsMessage) ValueAt(index uint) (value any, err error) {
-	switch index {
-	case 0:
-		return *new(IntroduceSecondedCandidate), nil
-
-	case 1:
-		return *new(CandidateBacked), nil
-
-	case 2:
-		return *new(GetBackableCandidates), nil
-
-	case 3:
-		return *new(GetHypotheticalMembership), nil
-
-	case 4:
-		return *new(GetMinimumRelayParents), nil
-
-	}
-	return nil, scale.ErrUnknownVaryingDataTypeValue
-}
-
-// NewCollatorProtocolMessage returns a new collator protocol message varying data type
-func NewProspectiveParachainMessage() ProspectiveParachainsMessage {
-	return ProspectiveParachainsMessage{}
-}
-
+// IntroduceSecondedCandidate Inform the Prospective Parachains Subsystem of a new seconded candidate.
+// The response is false if the candidate was rejected by prospective parachains,
+// true otherwise (if it was accepted or already present)
 type IntroduceSecondedCandidate struct {
 	IntroduceSecondedCandidateRequest
-	Sender chan bool
+	Response chan bool
 }
+
+func (IntroduceSecondedCandidate) isProspectiveParachainsMessage() {}
 
 // IntroduceSecondedCandidateRequest Request introduction of a seconded candidate into the prospective parachains
 // subsystem.
 type IntroduceSecondedCandidateRequest struct {
 	// The para-id of the candidate.
-	CandidatePara parachaintypes.ParaID
+	CandidateParaID parachaintypes.ParaID
 	// The candidate receipt itself.
 	CandidateReceipt parachaintypes.CommittedCandidateReceipt
 	// The persisted validation data of the candidate.
@@ -126,26 +44,29 @@ type CandidateBacked struct {
 	CandidateHash parachaintypes.CandidateHash
 }
 
-// GetBackableCandidates Try getting N backable candidate hashes along with their relay parents for the given
-// parachain, under the given relay-parent hash, which is a descendant of the given ancestors.
+func (CandidateBacked) isProspectiveParachainsMessage() {}
+
+// GetBackableCandidates Try getting requested quantity of backable candidate hashes along with their relay parents
+// for the given parachain, under the given relay-parent hash, which is a descendant of the given ancestors.
 // Timed out ancestors should not be included in the collection.
-// N should represent the number of scheduled cores of this ParaId.
+// RequestedQty should represent the number of scheduled cores of this ParaId.
 // A timed out ancestor frees the cores of all of its descendants, so if there's a hole in the
 // supplied ancestor path, we'll get candidates that backfill those timed out slots first. It
 // may also return less/no candidates, if there aren't enough backable candidates recorded.
 type GetBackableCandidates struct {
-	Hash      common.Hash
-	ParaId    parachaintypes.ParaID
-	N         uint32
-	Ancestors Ancestors
-	Sender    chan []struct {
+	RelayParentHash common.Hash
+	ParaId          parachaintypes.ParaID
+	RequestedQty    uint32
+	Ancestors       Ancestors
+	Response        chan []struct {
 		CandidateHash parachaintypes.CandidateHash
 		RelayParent   common.Hash
 	}
 }
 
+func (GetBackableCandidates) isProspectiveParachainsMessage() {}
+
 // Ancestors A collection of ancestor candidates of a parachain.
-// TODO: is this correct?  Rust code has 'Ancestors' as pub type Ancestors = HashSet<CandidateHash>;
 type Ancestors []parachaintypes.CandidateHash
 
 // GetHypotheticalMembership Get the hypothetical or actual membership of candidates with the given properties
@@ -163,15 +84,19 @@ type Ancestors []parachaintypes.CandidateHash
 // contain this relay parent (or none).
 type GetHypotheticalMembership struct {
 	HypotheticalMembershipRequest HypotheticalMembershipRequest
-	Sender                        chan []struct {
-		HypotheticalCandidate  parachaintypes.HypotheticalCandidate
-		HypotheticalMembership HypotheticalMembership
-	}
+	Response                      chan []HypotheticalMembershipResponseItem
+}
+
+func (GetHypotheticalMembership) isProspectiveParachainsMessage() {}
+
+type HypotheticalMembershipResponseItem struct {
+	HypotheticalCandidate  parachaintypes.HypotheticalCandidate
+	HypotheticalMembership HypotheticalMembership
 }
 
 // HypotheticalMembershipRequest Request specifying which candidates are either already included
 // or might become included in fragment chain under a given active leaf (or any active leaf if
-// `fragment_chain_relay_parent` is `None`).
+// `fragmentChainRelayParent` is `nil`).
 type HypotheticalMembershipRequest struct {
 	// Candidates, in arbitrary order, which should be checked for
 	// hypothetical/actual membership in fragment chains.
@@ -198,12 +123,14 @@ type HypotheticalMembership []common.Hash
 //
 // Para-IDs are returned in no particular order.
 type GetMinimumRelayParents struct {
-	Hash   common.Hash
-	Sender chan []struct {
+	RelayChainBlockHash common.Hash
+	Sender              chan []struct {
 		ParaId      parachaintypes.ParaID
 		BlockNumber parachaintypes.BlockNumber
 	}
 }
+
+func (GetMinimumRelayParents) isProspectiveParachainsMessage() {}
 
 // GetProspectiveValidationData Get the validation data of some prospective candidate. The candidate doesn't need
 // to be part of any fragment chain, but this only succeeds if the parent head-data and
@@ -226,67 +153,21 @@ type ProspectiveValidationDataRequest struct {
 	ParentHeadData ParentHeadData
 }
 
-type ParentHeadDataValues interface {
-	OnlyHash | WithData
-}
-
 // ParentHeadData The parent head-data hash with optional data itself.
-type ParentHeadData struct {
-	inner any
+type ParentHeadData interface {
+	isParentHeadData()
 }
 
-func setParentHeadData[Value ParentHeadDataValues](phd *ParentHeadData, value Value) {
-	phd.inner = value
-}
+// ParentHeadDataHash Parent head-data hash.
+type ParentHeadDataHash common.Hash
 
-func (phd *ParentHeadData) SetValue(value any) (err error) {
-	switch value := value.(type) {
-	case OnlyHash:
-		setParentHeadData(phd, value)
-		return
+func (ParentHeadDataHash) isParentHeadData() {}
 
-	case WithData:
-		setParentHeadData(phd, value)
-		return
-
-	default:
-		return fmt.Errorf("unsupported type")
-	}
-}
-
-func (phd ParentHeadData) IndexValue() (index uint, value any, err error) {
-	switch phd.inner.(type) {
-	case OnlyHash:
-		return 0, phd.inner, nil
-
-	case WithData:
-		return 1, phd.inner, nil
-	}
-	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
-}
-
-func (phd ParentHeadData) Value() (value any, err error) {
-	_, value, err = phd.IndexValue()
-	return
-}
-
-func (phd ParentHeadData) ValueAt(index uint) (value any, err error) {
-	switch index {
-	case 0:
-		return *new(OnlyHash), nil
-
-	case 1:
-		return *new(WithData), nil
-	}
-	return nil, scale.ErrUnknownVaryingDataTypeValue
-}
-
-// OnlyHash Parent head-data hash.
-type OnlyHash common.Hash
-
-type WithData struct {
-	/// This will be provided for collations with elastic scaling enabled.
-	HeadData parachaintypes.HeadData
+type ParentHeadDataWithHash struct {
+	// This will be provided for collations with elastic scaling enabled.
+	Data parachaintypes.HeadData
 	// Parent head-data hash.
-	Hash common.Hash
+	Hash ParentHeadDataHash
 }
+
+func (ParentHeadDataWithHash) isParentHeadData() {}

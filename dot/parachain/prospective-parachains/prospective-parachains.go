@@ -44,7 +44,6 @@ func (pp *ProspectiveParachains) Run(ctx context.Context, overseerToSubsystem <-
 func (*ProspectiveParachains) Stop() {}
 
 func (pp *ProspectiveParachains) processMessage(msg any) {
-
 	switch msg := msg.(type) {
 	case parachaintypes.Conclude:
 		pp.Stop()
@@ -53,17 +52,17 @@ func (pp *ProspectiveParachains) processMessage(msg any) {
 	case parachaintypes.BlockFinalizedSignal:
 		_ = pp.ProcessBlockFinalizedSignal(msg)
 	case IntroduceSecondedCandidate:
-		panic("not implemented yet")
+		panic("not implemented yet: see issue #4308")
 	case CandidateBacked:
-		panic("not implemented yet")
+		panic("not implemented yet: see issue #4309")
 	case GetBackableCandidates:
-		panic("not implemented yet")
+		panic("not implemented yet: see issue #4310")
 	case GetHypotheticalMembership:
-		panic("not implemented yet")
+		panic("not implemented yet: see issue #4311")
 	case GetMinimumRelayParents:
-		panic("not implemented yet")
+		panic("not implemented yet: see issue #4312")
 	case GetProspectiveValidationData:
-		panic("not implemented yet")
+		panic("not implemented yet: see issue #4313")
 	default:
 		logger.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
 	}
