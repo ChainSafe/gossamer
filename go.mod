@@ -14,7 +14,7 @@ require (
 	github.com/disiqueira/gotree v1.0.0
 	github.com/ethereum/go-ethereum v1.14.11
 	github.com/fatih/color v1.18.0
-	github.com/gammazero/deque v0.2.1
+	github.com/gammazero/deque v1.0.0
 	github.com/go-playground/validator/v10 v10.23.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
