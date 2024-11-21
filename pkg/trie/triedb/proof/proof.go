@@ -25,7 +25,7 @@ func NewMerkleProof[H hash.Hash, Hasher hash.Hasher[H]](
 
 	// The stack of nodes through a path in the trie.
 	// Each entry is a child node of the preceding entry.
-	stack := deque.New[*genProofStackEntry[H]]()
+	stack := new(deque.Deque[*genProofStackEntry[H]])
 
 	// final proof nodes
 	var proofNodes MerkleProof[H, Hasher]

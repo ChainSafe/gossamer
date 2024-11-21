@@ -100,7 +100,7 @@ type nodeStorage[H hash.Hash] struct {
 func newNodeStorage[H hash.Hash]() nodeStorage[H] {
 	return nodeStorage[H]{
 		nodes:       make([]StoredNode, 0),
-		freeIndices: deque.New[int](0),
+		freeIndices: new(deque.Deque[int]),
 	}
 }
 

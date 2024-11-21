@@ -335,7 +335,7 @@ func (proof MerkleProof[H, Hasher]) Verify(
 
 	// A stack of child references to fill in omitted branch children for later trie nodes in the
 	// proof.
-	stack := deque.New[verifyProofStackEntry[H, Hasher]]()
+	stack := new(deque.Deque[verifyProofStackEntry[H, Hasher]])
 
 	rootNode := proofIter.Next()
 	if rootNode == nil {
