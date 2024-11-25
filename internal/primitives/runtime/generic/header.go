@@ -94,11 +94,13 @@ func (h Header[N, H, Hasher]) MarshalSCALE() ([]byte, error) {
 // UnmarshalSCALE implements custom SCALE decoding.
 func (h *Header[N, H, Hasher]) UnmarshalSCALE(r io.Reader) error {
 	var header encodingHelper[H]
-	decoder := scale.NewDecoder(r)
-	err := decoder.Decode(&header)
+	var data []byte
+	_, err := r.Read(data)
 	if err != nil {
 		return err
 	}
+	scale.Unmarshal(data, &header)
+
 	h.parentHash = header.ParentHash
 	h.number = N(header.Number)
 	h.stateRoot = header.StateRoot
