@@ -1,7 +1,8 @@
-package prospective_parachains
+package prospectiveparachains
 
 import (
 	"context"
+	"errors"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -26,14 +27,14 @@ func NewProspectiveParachains(overseerChan chan<- any) *ProspectiveParachains {
 	return &prospectiveParachain
 }
 
-// Run starts the CandidateValidation subsystem
+// Run starts the ProspectiveParachains subsystem
 func (pp *ProspectiveParachains) Run(ctx context.Context, overseerToSubsystem <-chan any) {
 	for {
 		select {
 		case msg := <-overseerToSubsystem:
 			pp.processMessage(msg)
 		case <-ctx.Done():
-			if err := ctx.Err(); err != nil {
+			if err := ctx.Err(); err != nil && !errors.Is(err, context.Canceled) {
 				logger.Errorf("ctx error: %s\n", err)
 			}
 			return
@@ -71,7 +72,7 @@ func (pp *ProspectiveParachains) processMessage(msg any) {
 
 // ProcessActiveLeavesUpdateSignal processes active leaves update signal
 func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(parachaintypes.ActiveLeavesUpdateSignal) error {
-	panic("not implemented yet")
+	panic("not implemented yet: see issue #4305")
 }
 
 // ProcessBlockFinalizedSignal processes block finalized signal

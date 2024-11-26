@@ -8,14 +8,14 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	availability_store "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
+	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
-	prospective_parachains "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains"
+	prospectiveparachains "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 	"github.com/ChainSafe/gossamer/dot/peerset"
@@ -68,7 +68,7 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	}
 	overseer.RegisterSubsystem(networkBridgeReceiver)
 
-	availabilityStore, err := availability_store.Register(overseer.GetSubsystemToOverseerChannel(), st.DB(), nil)
+	availabilityStore, err := availabilitystore.Register(overseer.GetSubsystemToOverseerChannel(), st.DB(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("registering availability store: %w", err)
 	}
@@ -86,7 +86,7 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	overseer.RegisterSubsystem(candidateValidationSubsystem)
 
 	// register prospective parachains subsystem
-	prospectiveParachainsSubsystem := prospective_parachains.NewProspectiveParachains(overseer.SubsystemsToOverseer)
+	prospectiveParachainsSubsystem := prospectiveparachains.NewProspectiveParachains(overseer.SubsystemsToOverseer)
 	overseer.RegisterSubsystem(prospectiveParachainsSubsystem)
 
 	parachainService := &Service{

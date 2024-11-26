@@ -154,13 +154,8 @@ func (v validator) sign(keystore keystore.Keystore, payload parachaintypes.State
 // GetBackableCandidatesMessage is a message received from overseer that requests a set of backable
 // candidates that could be backed in a child of the given relay-parent.
 type GetBackableCandidatesMessage struct {
-	Candidates []*CandidateHashAndRelayParent
+	Candidates []*parachaintypes.CandidateHashAndRelayParent
 	ResCh      chan []*parachaintypes.BackedCandidate
-}
-
-type CandidateHashAndRelayParent struct {
-	CandidateHash        parachaintypes.CandidateHash
-	CandidateRelayParent common.Hash
 }
 
 // CanSecondMessage is a request made to the candidate backing subsystem to determine whether it is permissible

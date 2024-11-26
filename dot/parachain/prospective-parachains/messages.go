@@ -1,14 +1,9 @@
-package prospective_parachains
+package prospectiveparachains
 
 import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
-
-type ProspectiveParachainMessageValues interface {
-	CandidateBacked | GetBackableCandidates | GetHypotheticalMembership |
-		GetMinimumRelayParents
-}
 
 // ProspectiveParachainsMessage Messages sent to the Prospective Parachains subsystem.
 type ProspectiveParachainsMessage interface {
@@ -58,16 +53,13 @@ type GetBackableCandidates struct {
 	ParaId          parachaintypes.ParaID
 	RequestedQty    uint32
 	Ancestors       Ancestors
-	Response        chan []struct {
-		CandidateHash parachaintypes.CandidateHash
-		RelayParent   common.Hash
-	}
+	Response        chan []parachaintypes.CandidateHashAndRelayParent
 }
 
 func (GetBackableCandidates) isProspectiveParachainsMessage() {}
 
 // Ancestors A collection of ancestor candidates of a parachain.
-type Ancestors []parachaintypes.CandidateHash
+type Ancestors map[parachaintypes.CandidateHash]struct{}
 
 // GetHypotheticalMembership Get the hypothetical or actual membership of candidates with the given properties
 // under the specified active leave's fragment chain.
@@ -80,7 +72,7 @@ type Ancestors []parachaintypes.CandidateHash
 // If an active leaf is not in the vector, it means that there's no
 // chance this candidate will become valid under that leaf in the future.
 //
-// If `fragment_chain_relay_parent` in the request is `Some()`, the return vector can only
+// If `RragmentChainRelayParent` in the request is not `nil`, the return vector can only
 // contain this relay parent (or none).
 type GetHypotheticalMembership struct {
 	HypotheticalMembershipRequest HypotheticalMembershipRequest
@@ -96,13 +88,13 @@ type HypotheticalMembershipResponseItem struct {
 
 // HypotheticalMembershipRequest Request specifying which candidates are either already included
 // or might become included in fragment chain under a given active leaf (or any active leaf if
-// `fragmentChainRelayParent` is `nil`).
+// `FragmentChainRelayParent` is `nil`).
 type HypotheticalMembershipRequest struct {
 	// Candidates, in arbitrary order, which should be checked for
 	// hypothetical/actual membership in fragment chains.
 	Candidates []parachaintypes.HypotheticalCandidate
 	// Either a specific fragment chain to check, otherwise all.
-	FragmentChainRelayParent common.Hash
+	FragmentChainRelayParent *common.Hash
 }
 
 // HypotheticalMembership Indicates the relay-parents whose fragment chain a candidate
@@ -124,10 +116,12 @@ type HypotheticalMembership []common.Hash
 // Para-IDs are returned in no particular order.
 type GetMinimumRelayParents struct {
 	RelayChainBlockHash common.Hash
-	Sender              chan []struct {
-		ParaId      parachaintypes.ParaID
-		BlockNumber parachaintypes.BlockNumber
-	}
+	Sender              chan []ParaIDBlockNumber
+}
+
+type ParaIDBlockNumber struct {
+	ParaId      parachaintypes.ParaID
+	BlockNumber parachaintypes.BlockNumber
 }
 
 func (GetMinimumRelayParents) isProspectiveParachainsMessage() {}
