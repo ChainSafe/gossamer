@@ -10,7 +10,7 @@ require (
 	github.com/cockroachdb/pebble v1.1.2
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/dgraph-io/badger/v4 v4.4.0
-	github.com/dgraph-io/ristretto v1.0.0
+	github.com/dgraph-io/ristretto/v2 v2.0.0
 	github.com/disiqueira/gotree v1.0.0
 	github.com/ethereum/go-ethereum v1.14.11
 	github.com/fatih/color v1.18.0
@@ -70,7 +70,6 @@ require (
 	github.com/decred/base58 v1.0.5 // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.0.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
-	github.com/dgraph-io/ristretto/v2 v2.0.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/elastic/gosigar v0.14.3 // indirect

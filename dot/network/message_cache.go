@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/dgraph-io/ristretto"
+	"github.com/dgraph-io/ristretto/v2"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
