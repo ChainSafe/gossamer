@@ -1,0 +1,67 @@
+# Prospective Parachains
+
+[The prospective parachains subsystem](https://paritytech.github.io/polkadot-sdk/book/node/backing/prospective-parachains.html)
+tracks and handles prospective parachain fragments and inform other backing-subsystems of work to be done.
+of work within 
+
+## Subsystem Structure
+
+The implementation must conform to the `Subsystem` interface defined in the `parachaintypes` package. It should live in
+a package named `prospectiveparachains` under `dot/parachain/prospective-parachains`.
+
+### Messages Received
+
+The subsystem must be registered with the overseer and handle two subsystem-specific messages from it:
+
+1. [`prospectiveparachains.IntroduceSecondedCandidate`](https://github.com/paritytech/polkadot-sdk/blob/2ef2723126584dfcd6d2a9272282ee78375dbcd3/polkadot/node/subsystem-types/src/messages.rs#L1379)
+
+Inform the prospective parachains subsystem of a new seconded candidate, the response is either false if the candidate was rejected by prospective parachains, true otherwise (if it was accepted or already present)
+
+2. [`prospectiveparachains.CandidateBacked`](https://github.com/paritytech/polkadot-sdk/blob/2ef2723126584dfcd6d2a9272282ee78375dbcd3/polkadot/node/subsystem-types/src/messages.rs#L1383)
+
+Inform the prospective parachains subsystem that a previously introduced candidate has been backed. This requires that the candidate was successfully introduced in the past.
+
+3. [`prospectiveparachains.GetBackableCandidates`](https://github.com/paritytech/polkadot-sdk/blob/2ef2723126584dfcd6d2a9272282ee78375dbcd3/polkadot/node/subsystem-types/src/messages.rs#L1391C2-L1391C23)
+
+Try getting N backable candidate hashes along with their relay parents for the given parachain, under the given relay-parent hash, which is a descendant of the given ancestors. Timed out ancestors should not be included in the collection. N should represent the number of scheduled cores of this ParaId. A timed out ancestor frees the cores of all of its descendants, so if there's a hole in the supplied ancestor path, we'll get candidates that backfill those timed out slots first. It may also return less/no candidates, if there aren't enough backable candidates recorded.
+
+4. [`prospectiveparachains.GetHypotheticalMembership`](https://github.com/paritytech/polkadot-sdk/blob/2ef2723126584dfcd6d2a9272282ee78375dbcd3/polkadot/node/subsystem-types/src/messages.rs#L1411)
+
+Get the hypothetical or actual membership of candidates with the given properties under the specified active leave's fragment chain. For each candidate, we return a vector of leaves where the candidate is present or could be added. "Could be added" either means that the candidate can be added to the chain right now or could be added in the future (we may not have its ancestors yet). Note that even if we think it could be added in the future, we may find out that it was invalid, as time passes. If an active leaf is not in the vector, it means that there's no chance this candidate will become valid under that leaf in the future. If `fragment_chain_relay_parent` in the request is `Some()`, the return vector can only contain this relay parent (or none).
+
+5. [`prospectiveparachains.GetMinimumRelayParents`](https://github.com/paritytech/polkadot-sdk/blob/2ef2723126584dfcd6d2a9272282ee78375dbcd3/polkadot/node/subsystem-types/src/messages.rs#L1428C2-L1428C24)
+
+Get the minimum accepted relay-parent number for each para in the fragment chain for the given relay-chain block hash. That is, if the block hash is known and is an active leaf, this returns the minimum relay-parent block number in the same branch of the relay chain which is accepted in the fragment chain for each para-id. If the block hash is not an active leaf, this will return an empty vector. Para-IDs which are omitted from this list can be assumed to have no valid candidate relay-parents under the given relay-chain block hash. Para-IDs are returned in no particular order.
+
+6. [`prospectiveparachains.GetProspectiveValidationData`](https://github.com/paritytech/polkadot-sdk/blob/2ef2723126584dfcd6d2a9272282ee78375dbcd3/polkadot/node/subsystem-types/src/messages.rs#L1434C2-L1434C30)
+
+Get the validation data of some prospective candidate. The candidate doesn't need to be part of any fragment chain, but this only succeeds if the parent head-data and relay-parent are part of the `CandidateStorage` (meaning that it's a candidate which is part of some fragment chain or which prospective-parachains predicted will become part of some fragment chain).
+
+Additionally, the subsystem must handle the following general network bridge events and overseer signals:
+
+1. `overseer.Conclude` -> should halt the subsystem
+2. `overseer.ActiveLeaves` -> update the new activated leaf to the new scheduled paras, pre-populate the candidate storage with pending availability candidates and candidates from the parent leaf, populate the fragment chain, add it to the implicit view. Then mark the newly-deactivated leaves as deactivated and update the implicit view. Finally, remove any relay parents that are no longer part of the implicit view.
+
+The overseer must be modified to forward these messages to the subsystem.
+
+### Messages Sent
+
+When handling `ProspectiveParachainsMessage` messages, the subsystem sometimes need to retrieve informations from Runtime API Subsystem and sends a `RuntimeApiMessage::Request` message to the overseer to reach the subsystem requesting:
+
+- `RuntimeApiRequest::ParaBackingState`.
+- `RuntimeApiRequest::AvailabilityCores`
+
+Also the prospective parachains subsystems needs informations from the relay chain, that is done through sending a message to Chain API Subsystem, the message goes to the overseer to reach the subsystem and we request:
+
+- `ChainApiMessage::Ancestors`
+- `ChainApiMessage::BlockHeader`
+
+## Subsystem State
+
+The subsystem state stores: 
+- A relay chain block view data per-relay-parent hash. The relay chain block view data contains a hash map per parachain id of their fragment chains.
+- Active leaves, which is a subset of the keys in the per-relay-parent view.
+- Implicity View
+
+
+
