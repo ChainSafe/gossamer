@@ -69,6 +69,8 @@ nav:
     - SCALE Examples: ./advanced/scale-examples.md
   - Designs:
     - Parachain Protocol Overview: ./designs/parachain-protocol-overview.md
+    - Candidate Backing: ./designs/candidate-backing.md
+    - Availability Subsystems: ./designs/availability-subsystems.md
   - Contributing: 
     - Overview: ./contributing.md
 extra_css:
