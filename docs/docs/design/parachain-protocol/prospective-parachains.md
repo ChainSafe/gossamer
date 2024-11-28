@@ -63,5 +63,11 @@ The subsystem state stores:
 - Active leaves, which is a subset of the keys in the per-relay-parent view.
 - Implicity View
 
+## Message Handling Logic
 
+- [`handle_active_leaves_update`](https://github.com/paritytech/polkadot-sdk/blob/fdb264d0df6fdbed32f001ba43c3282a01dd3d65/polkadot/node/core/prospective-parachains/src/lib.rs#L183C10-L183C37)
+
+Whenever a new relay chain block is imported, we should handle the `OverseerSignal::ActiveLeaves` message that contains the relay chain block of interest and a list of relay chains blocks hashes no longer of interest, a.k.a deactivated.
+
+Here the handler should retrieve the `prospective_parachain_mode`, which is a runtime call asking for the async backing configurations of `max_candidate_depth` and `allowed_ancestry_len`. After that we should get the scheduled parachains throught the function `fetch_upcoming_paras` which should return a set of parachain ids, the call 
 
