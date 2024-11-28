@@ -8,16 +8,16 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	availability_store "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
+	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
+	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
-	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
-
-	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
+	prospectiveparachains "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -68,7 +68,7 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	}
 	overseer.RegisterSubsystem(networkBridgeReceiver)
 
-	availabilityStore, err := availability_store.Register(overseer.GetSubsystemToOverseerChannel(), st.DB(), nil)
+	availabilityStore, err := availabilitystore.Register(overseer.GetSubsystemToOverseerChannel(), st.DB(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("registering availability store: %w", err)
 	}
@@ -84,6 +84,10 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	candidateValidationSubsystem := candidatevalidation.NewCandidateValidation(overseer.SubsystemsToOverseer, st.Block)
 
 	overseer.RegisterSubsystem(candidateValidationSubsystem)
+
+	// register prospective parachains subsystem
+	prospectiveParachainsSubsystem := prospectiveparachains.NewProspectiveParachains(overseer.SubsystemsToOverseer)
+	overseer.RegisterSubsystem(prospectiveParachainsSubsystem)
 
 	parachainService := &Service{
 		Network:  net,

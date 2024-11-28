@@ -739,3 +739,9 @@ type Subsystem interface {
 	ProcessBlockFinalizedSignal(BlockFinalizedSignal) error
 	Stop()
 }
+
+// CandidateHashAndRelayParent is a pair of candidate hash and relay parent hash
+type CandidateHashAndRelayParent struct {
+	CandidateHash        CandidateHash
+	CandidateRelayParent common.Hash
+}

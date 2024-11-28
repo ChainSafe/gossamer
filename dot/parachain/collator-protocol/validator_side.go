@@ -13,7 +13,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
-	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -86,7 +85,7 @@ func (cpvs CollatorProtocolValidatorSide) Run(
 			}
 
 		case <-inactivityTicker.C:
-			// TODO: disconnect inactive peers
+			// TODO: disconnect inactive peers, Issue #4256
 			// https://github.com/paritytech/polkadot/blob/8f05479e4bd61341af69f0721e617f01cbad8bb2/node/network/collator-protocol/src/validator_side/mod.rs#L1301
 
 		case unfetchedCollation := <-cpvs.unfetchedCollation:
@@ -123,7 +122,7 @@ func (cpvs *CollatorProtocolValidatorSide) ProcessActiveLeavesUpdateSignal(
 	return nil
 }
 
-func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view events.View) error {
+func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view parachaintypes.View) error {
 	// 1. Find out removed leaves (hashes) and newly added leaves
 	// 2. Go over each new leaves,
 	// - check if perspective parachain mode is enabled
@@ -162,7 +161,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view events.View)
 
 		//nolint:staticcheck
 		if mode.IsEnabled {
-			// TODO: Add it when we have async backing
+			// TODO: Add it when we have async backing, Issue #4253
 			// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1303 //nolint
 		}
 	}
@@ -174,7 +173,7 @@ func (cpvs *CollatorProtocolValidatorSide) handleOurViewChange(view events.View)
 		mode := prospectiveParachainMode()
 		pruned := []common.Hash{}
 		if mode.IsEnabled {
-			// TODO: Do this when we have async backing
+			// TODO: Do this when we have async backing,  Issue #4253
 			// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1340 //nolint
 		} else {
 			pruned = append(pruned, leaf)
@@ -318,7 +317,7 @@ func signingKeyAndIndex(validators []parachaintypes.ValidatorID, ks keystore.Key
 }
 
 func prospectiveParachainMode() parachaintypes.ProspectiveParachainsMode {
-	// TODO: complete this method by calling the runtime function
+	// TODO: complete this method by calling the runtime function Issue #4254
 	// https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/node/subsystem-util/src/runtime/mod.rs#L496 //nolint
 	// NOTE: We will return false until we have support for async backing
 	return parachaintypes.ProspectiveParachainsMode{
@@ -400,7 +399,7 @@ type PendingCollation struct {
 }
 
 type PeerData struct {
-	view  View
+	view  parachaintypes.View
 	state PeerStateInfo
 }
 
@@ -495,6 +494,31 @@ func (peerData *PeerData) InsertAdvertisement(
 	return true, nil
 }
 
+// UpdateView updates the view clearing all advertisements that are no longer in the current view.
+func (peerData *PeerData) UpdateView(implicitView ImplicitView,
+	activeLeaves map[common.Hash]parachaintypes.ProspectiveParachainsMode, perRelayParent map[common.Hash]PerRelayParent,
+	newView parachaintypes.View) {
+
+	oldView := peerData.view
+	if peerData.state.PeerState == Collating {
+		// remove relay parent advertisement if it went out of implicit view
+		diff := oldView.Difference(newView)
+		for _, relayParent := range diff {
+			_, ok := perRelayParent[relayParent]
+			if !ok {
+				delete(peerData.state.CollatingPeerState.advertisements, relayParent)
+			}
+
+			keep := IsRelayParentInImplicitView(relayParent, perRelayParent[relayParent].prospectiveParachainMode,
+				implicitView, activeLeaves, peerData.state.CollatingPeerState.ParaID)
+
+			if !keep {
+				delete(peerData.state.CollatingPeerState.advertisements, relayParent)
+			}
+		}
+	}
+}
+
 type PeerStateInfo struct {
 	PeerState PeerState
 	// instant at which peer got connected
@@ -520,47 +544,6 @@ const (
 // The maximum amount of heads a peer is allowed to have in their view at any time.
 // We use the same limit to compute the view sent to peers locally.
 const MaxViewHeads uint8 = 5
-
-// A succinct representation of a peer's view. This consists of a bounded amount of chain heads
-// and the highest known finalized block number.
-//
-// Up to `N` (5?) chain heads.
-type View struct {
-	// a bounded amount of chain heads
-	heads []common.Hash
-	// the highest known finalized number
-	finalizedNumber uint32
-}
-
-type SortableHeads []common.Hash
-
-func (s SortableHeads) Len() int {
-	return len(s)
-}
-
-func (s SortableHeads) Less(i, j int) bool {
-	return s[i].String() > s[j].String()
-}
-
-func (s SortableHeads) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func ConstructView(liveHeads map[common.Hash]struct{}, finalizedNumber uint32) View {
-	heads := make([]common.Hash, 0, len(liveHeads))
-	for head := range liveHeads {
-		heads = append(heads, head)
-	}
-
-	if len(heads) >= 5 {
-		heads = heads[:5]
-	}
-
-	return View{
-		heads:           heads,
-		finalizedNumber: finalizedNumber,
-	}
-}
 
 // Network is the interface required by parachain service for the network
 type Network interface {
@@ -743,7 +726,13 @@ func (cpvs CollatorProtocolValidatorSide) handleNetworkBridgeEvents(msg any) err
 	case networkbridgeevents.NewGossipTopology:
 		// NOTE: This won't happen
 	case networkbridgeevents.PeerViewChange:
-		// TODO #4155
+		// - advertisements by this peer that are no longer relevant have to be removed
+		peerData, ok := cpvs.peerData[msg.PeerID]
+		if ok {
+			peerData.UpdateView(cpvs.implicitView, cpvs.activeLeaves, cpvs.perRelayParent, msg.View)
+			cpvs.peerData[msg.PeerID] = peerData
+		}
+
 	case networkbridgeevents.OurViewChange:
 		return cpvs.handleOurViewChange(msg.View)
 	case networkbridgeevents.UpdatedAuthorityIDs:
@@ -852,7 +841,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 				cpvs.perRelayParent[msg.Parent] = perRelayParent
 			}
 
-			// TODO: Few more things for async backing, but we don't have async backing yet
+			// TODO: Few more things for async backing, but we don't have async backing yet Issue #4255
 			// https://github.com/paritytech/polkadot-sdk/blob/7035034710ecb9c6a786284e5f771364c520598d/polkadot/node/network/collator-protocol/src/validator_side/mod.rs#L1531-L1532
 		}
 	case collatorprotocolmessages.Backed:

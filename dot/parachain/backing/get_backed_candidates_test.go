@@ -101,7 +101,7 @@ func TestHandleGetBackedCandidatesMessage(t *testing.T) {
 			defer close(resCh)
 
 			requestedCandidates := GetBackableCandidatesMessage{
-				Candidates: []*CandidateHashAndRelayParent{
+				Candidates: []*parachaintypes.CandidateHashAndRelayParent{
 					{
 						CandidateHash:        dummyCandidateHash(t),
 						CandidateRelayParent: getDummyHash(t, 2),
