@@ -99,7 +99,6 @@ func (h *Header[N, H, Hasher]) UnmarshalSCALE(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-
 	h.parentHash = header.ParentHash
 	h.number = N(header.Number)
 	h.stateRoot = header.StateRoot
