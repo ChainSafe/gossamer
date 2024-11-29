@@ -11,7 +11,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	consensus_grandpa "github.com/ChainSafe/gossamer/internal/client/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
-	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa/app"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
@@ -80,7 +79,7 @@ func (w *WarpSyncProof) lastProofBlockNumber() uint64 {
 // If we are able to verify all the fragments, then the warp proof is valid.
 func (w *WarpSyncProof) verify(
 	setId grandpa.SetID,
-	authorities primitives.AuthorityList,
+	authorities grandpa.AuthorityList,
 	hardForks map[string]SetIdAuthorityList,
 ) (*SetIdAuthorityList, error) {
 	currentSetId := setId
@@ -141,7 +140,7 @@ func NewWarpSyncProofProvider(blockState BlockState, grandpaState GrandpaState) 
 
 type SetIdAuthorityList struct {
 	grandpa.SetID
-	primitives.AuthorityList
+	grandpa.AuthorityList
 }
 
 // Generate build a warp sync encoded proof starting from the given block hash
@@ -254,7 +253,7 @@ func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 func (p *WarpSyncProofProvider) Verify(
 	encodedProof []byte,
 	setId grandpa.SetID,
-	authorities primitives.AuthorityList,
+	authorities grandpa.AuthorityList,
 ) (*network.WarpSyncVerificationResult, error) {
 	var proof WarpSyncProof
 	err := scale.Unmarshal(encodedProof, &proof)
@@ -313,10 +312,10 @@ func findScheduledChange(
 	return nil, nil
 }
 
-func grandpaAuthoritiesRawToAuthorities(adr []types.GrandpaAuthoritiesRaw) (primitives.AuthorityList, error) {
-	ad := make([]primitives.AuthorityIDWeight, len(adr))
+func grandpaAuthoritiesRawToAuthorities(adr []types.GrandpaAuthoritiesRaw) (grandpa.AuthorityList, error) {
+	ad := make([]grandpa.AuthorityIDWeight, len(adr))
 	for i, r := range adr {
-		ad[i] = primitives.AuthorityIDWeight{}
+		ad[i] = grandpa.AuthorityIDWeight{}
 
 		key, err := ed25519.NewPublicKey(r.Key[:])
 		if err != nil {
@@ -330,7 +329,7 @@ func grandpaAuthoritiesRawToAuthorities(adr []types.GrandpaAuthoritiesRaw) (prim
 		}
 
 		ad[i].AuthorityID = pkey
-		ad[i].AuthorityWeight = primitives.AuthorityWeight(r.ID)
+		ad[i].AuthorityWeight = grandpa.AuthorityWeight(r.ID)
 	}
 
 	return ad, nil
