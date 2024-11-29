@@ -310,6 +310,7 @@ func genericHeadersList(t *testing.T, headers []*types.Header) []runtime.Header[
 		newHeader := generic.Header[uint64, hash.H256, runtime.BlakeTwo256]{}
 		newHeader.SetParentHash(hash.H256(header.ParentHash.String()))
 		newHeader.SetNumber(uint64(header.Number))
+
 		newHeader.DigestMut().Push(header.Digest)
 	}
 

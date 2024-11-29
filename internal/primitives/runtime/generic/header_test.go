@@ -17,10 +17,10 @@ func TestEncodeDecodeHeader(t *testing.T) {
 		hash.H256(""),
 		runtime.Digest{
 			Logs: []runtime.DigestItem{
-				runtime.PreRuntime{
+				runtime.NewDigestItem(runtime.PreRuntime{
 					ConsensusEngineID: runtime.ConsensusEngineID{'F', 'R', 'N', 'K'},
 					Bytes:             []byte("test"),
-				},
+				}),
 			},
 		},
 	)
