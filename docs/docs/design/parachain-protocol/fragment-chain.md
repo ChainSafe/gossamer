@@ -10,7 +10,7 @@ This structure does not care if candidates form a chain, it only stores candidat
 
 The parent head data hash is simply the parent block of that candidate, the output head data hash is the hash of the resultant `HeadData` after an execution, you can think of the output head data as the raw head of the parachain block that we get after validating the inputs against the parachain runtime.
 
-`input -> execution -> head data (parachain block head)`, it is called head data because it is a `Vec<u8>`, what this head data contains is not for the validator, what we care is the hash of it!
+`input -> execution -> head data (parachain block head)`, it is called head data because it is a `Vec<u8>`, what this head data contains is not for the validator, what we care is the *hash* of it.
 
 ### Scope
 
