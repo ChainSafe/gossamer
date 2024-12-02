@@ -59,7 +59,7 @@ This is a method from `FragmentChain` where given a scope and a Candidate Storag
 
 - Does not introduce a cycle: That means, its output head data hash is not the parent head data hash of another candidate in the BackedChain.
 - Its parent hash is correct: matches the previous output hash, forming a coherent chain
-- Relay parent does not move backwards: given our earliest relay parent (the earliest ancestor that a candidate can use as its context) the current candidate's relay parent should not be befor it.
+- Relay parent does not move backwards: given our earliest relay parent (the earliest ancestor that a candidate can use as its context) the current candidate's relay parent should not be before it.
 - All non-pending-availability has a parent in the current scope.
 - Candidates outputs fullfils the constraint.
 
