@@ -84,7 +84,7 @@ Now lets trim the unelegible forks out, but first we need to define the steps:
     3.1. is the child in the unconnected hash set?
         - **true**:  go to next step
         - **false**: go to step 1
-    3.2. did we already visited this children?
+    3.2. did we already visited this child?
         - **true**: go to step 1
         - **false**: go to next step
     3.3. is the candidate and the child potentials?
