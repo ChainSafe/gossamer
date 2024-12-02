@@ -18,7 +18,7 @@ Scope is the context of a fragment chain, it contains constraints and ancestors 
 
 ### Fragment Node
 
-This is a node that is part of a `BackedChain`. When we create a new fragment we should make sure that the candidate is valid under the operating constraints. We use the constraints to build an expected persisted validation data and compare with the one we got from the candidate. A fragment node is always backed and it is generated from a `Candidate Entry`
+This is a node that is part of a `BackedChain`. When we create a new fragment we should make sure that the candidate is valid under the operating constraints. We use the constraints to build an expected persisted validation data and compare with the one we got from the candidate. A fragment node is always backed and it is generated from a `CandidateEntry`.
 
 ### BackedChain
 
