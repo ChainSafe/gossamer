@@ -1420,6 +1420,36 @@ func (in *Instance) ParachainHostSessionExecutorParams(index parachaintypes.Sess
 	return &params, nil
 }
 
+func (in *Instance) ParachainHostClaimQueue() (parachaintypes.ClaimQueue, error) {
+	encodedClaimQueue, err := in.Exec(runtime.ParachainHostClaimQueue, []byte{})
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	claimQueue := make(parachaintypes.ClaimQueue)
+	err = scale.Unmarshal(encodedClaimQueue, &claimQueue)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling claim queue: %w", err)
+	}
+
+	return claimQueue, nil
+}
+
+func (in *Instance) ParachainHostNodeFeatures() (parachaintypes.BitVec, error) {
+	encodedNodeFeatures, err := in.Exec(runtime.ParachainHostNodeFeatures, []byte{})
+	if err != nil {
+		return parachaintypes.BitVec{}, fmt.Errorf("exec: %w", err)
+	}
+
+	nodeFeatures := parachaintypes.NewBitVec([]bool{})
+	err = scale.Unmarshal(encodedNodeFeatures, &nodeFeatures)
+	if err != nil {
+		return parachaintypes.BitVec{}, fmt.Errorf("unmarshalling node features: %w", err)
+	}
+
+	return nodeFeatures, nil
+}
+
 func (*Instance) RandomSeed() {
 	panic("unimplemented")
 }
