@@ -20,7 +20,7 @@ assignees: ''
 - workshop or knowledge sharing session should be conducted to share outcomes
 -->
 [] add open questions here..
-[] Summary, research paper or meta knowledge written and merged to main repo
+[] Summary, research paper or meta knowledge written and merged to main repo (if applicable)
 [] Tech lead sign off
 [] Team member sign off (mention who)
 [] Workshop or knowledge session conducted
