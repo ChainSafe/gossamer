@@ -22,15 +22,14 @@ assignees: ''
 
 ## Acceptance criteria
 <!-- Acceptance criteria in terms of design or architecture usually (but not only) should consist of:
-- list of open questions that need to be answered 
-- some summary, research paper or meta knowledge as an outcome of research or investigation
 - at least two people sign off. One of them is the Tech lead second should be decided with team
-- workshop or knowledge sharing session should be conducted to share outcomes
+- workshop or knowledge sharing session should be conducted to share outcomes of Design
 - Software design artifacts provided (eg  flow chart, use case, pseudocode)
+- After design have been confirmed issues should be created and estimated
 -->
-[] add question here..
-[] Summary, research paper or meta knowledge written and merged to main repo
+[] Summary, design paper or meta knowledge written and merged to main repo
+[] Artifacts produced
 [] Tech lead sign off
 [] Team member sign off (mention who)
-[] Artifacts produced
 [] Workshop or knowledge session conducted
+[] Issues created and estimated (if necessary)
