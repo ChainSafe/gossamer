@@ -9,7 +9,7 @@ require (
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.1.0
 	github.com/cockroachdb/pebble v1.1.2
 	github.com/cosmos/go-bip39 v1.0.0
-	github.com/dgraph-io/badger/v4 v4.4.0
+	github.com/dgraph-io/badger/v4 v4.5.0
 	github.com/dgraph-io/ristretto/v2 v2.0.0
 	github.com/disiqueira/gotree v1.0.0
 	github.com/ethereum/go-ethereum v1.14.12
@@ -86,7 +86,6 @@ require (
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
 	github.com/google/flatbuffers v24.3.25+incompatible // indirect
 	github.com/google/gopacket v1.1.19 // indirect
@@ -206,7 +205,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/mod v0.19.0 // indirect
-	golang.org/x/net v0.30.0 // indirect
+	golang.org/x/net v0.31.0 // indirect
 	golang.org/x/sync v0.9.0 // indirect
 	golang.org/x/sys v0.27.0 // indirect
 	golang.org/x/text v0.20.0 // indirect
