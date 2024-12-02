@@ -12,7 +12,7 @@ require (
 	github.com/dgraph-io/badger/v4 v4.4.0
 	github.com/dgraph-io/ristretto/v2 v2.0.0
 	github.com/disiqueira/gotree v1.0.0
-	github.com/ethereum/go-ethereum v1.14.11
+	github.com/ethereum/go-ethereum v1.14.12
 	github.com/fatih/color v1.18.0
 	github.com/gammazero/deque v1.0.0
 	github.com/go-playground/validator/v10 v10.23.0
@@ -55,7 +55,6 @@ require (
 	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/btcsuite/btcd/btcec/v2 v2.3.4 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cockroachdb/errors v1.11.3 // indirect
 	github.com/cockroachdb/fifo v0.0.0-20240606204812-0bbfbd93a7ce // indirect
