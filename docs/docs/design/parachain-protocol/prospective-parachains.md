@@ -23,7 +23,7 @@ Inform the prospective parachains subsystem that a previously introduced candida
 
 3. [`prospectiveparachains.GetBackableCandidates`](https://github.com/paritytech/polkadot-sdk/blob/2ef2723126584dfcd6d2a9272282ee78375dbcd3/polkadot/node/subsystem-types/src/messages.rs#L1391C2-L1391C23)
 
-Try getting N backable candidate hashes along with their relay parents for the given parachain, under the given relay-parent hash, which is a descendant of the given ancestors. Timed out ancestors should not be included in the collection. N should represent the number of scheduled cores of this ParaId. A timed out ancestor frees the cores of all of its descendants, so if there's a hole in the supplied ancestor path, we'll get candidates that backfill those timed out slots first. It may also return less/no candidates, if there aren't enough backable candidates recorded.
+Try getting N backable candidate hashes along with their relay parents for the given parachain, under the given relay-parent hash, which is a descendant of the given ancestors. Timed out ancestors should not be included in the collection. N should represent the number of scheduled cores of this `ParaId`. A timed out ancestor frees the cores of all of its descendants, so if there's a hole in the supplied ancestor path, we'll get candidates that backfill those timed out slots first. It may also return less/no candidates, if there aren't enough backable candidates recorded.
 
 4. [`prospectiveparachains.GetHypotheticalMembership`](https://github.com/paritytech/polkadot-sdk/blob/2ef2723126584dfcd6d2a9272282ee78375dbcd3/polkadot/node/subsystem-types/src/messages.rs#L1411)
 
