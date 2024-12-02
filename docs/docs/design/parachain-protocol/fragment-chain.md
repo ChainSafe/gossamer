@@ -76,7 +76,7 @@ Consider the following chain, the green letters forms the `BackedChain` while th
 
 Now lets trim the unelegible forks out, but first we need to define the steps:
 
-1. Lets build a queue of candidates in the backed chain (a.k.a green letters) and we will use an extra info called has potential, saying that the candidate is good to stay connected (even if they form a fork).
+1. Lets build a queue of candidates in the backed chain (a.k.a green letters) and we will use an extra info called "has potential", which means that the candidate is good to stay connected (even if they form a fork).
 
 2. queue is empty, the goto step 5, queue is not empty, pop the item from the start of the queue, mark it as visited and iterate over its children.
 
