@@ -24,7 +24,7 @@ This is a node that is part of a `BackedChain`. When we create a new fragment we
 
 It holds a chain of backed nodes (fragments), in rust they store the fragments.
 
-###### RevertToParentHash
+#### RevertToParentHash
 
 This is a method where given a chain of fragments we need to remove all the fragments that descend a certain parent head data hash (this is the hash of the parachain block that is parent of another parachain block).
 
