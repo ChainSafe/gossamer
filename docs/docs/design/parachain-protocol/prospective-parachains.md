@@ -40,7 +40,7 @@ Get the validation data of some prospective candidate. The candidate doesn't nee
 Additionally, the subsystem must handle the following general network bridge events and overseer signals:
 
 1. `overseer.Conclude` -> should halt the subsystem
-2. `overseer.ActiveLeaves` -> update the new activated leaf to the new scheduled paras, pre-populate the candidate storage with pending availability candidates and candidates from the parent leaf, populate the fragment chain, add it to the implicit view. Then mark the newly-deactivated leaves as deactivated and update the implicit view. Finally, remove any relay parents that are no longer part of the implicit view.
+2. `overseer.ActiveLeaves` -> update the new activated leaf to the new scheduled paras, pre-populate the candidate storage with pending availability candidates and candidates from the parent leaf, populate the fragment chain, add it to the implicit view. Then mark the newly deactivated leaves as deactivated and update the implicit view. Finally, remove any relay parents that are no longer part of the implicit view.
 
 The overseer must be modified to forward these messages to the subsystem.
 
