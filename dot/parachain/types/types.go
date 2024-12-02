@@ -739,3 +739,13 @@ type Subsystem interface {
 	ProcessBlockFinalizedSignal(BlockFinalizedSignal) error
 	Stop()
 }
+
+type ClaimQueue map[CoreIndex][]ParaID
+
+// NodeFeatureIndex represents the index of a feature in a bitvector of node features.
+type NodeFeatureIndex byte
+
+// This feature enables the extension of `BackedCandidate.ValidatorIndices` by 8 bits.
+// The value stored there represents the assumed core index where the candidates
+// are backed. This is needed for the elastic scaling MVP.
+const ElasticScalingMVP NodeFeatureIndex = 1

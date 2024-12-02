@@ -108,4 +108,8 @@ const (
 	ParachainHostMinimumBackingVotes = "ParachainHost_minimum_backing_votes"
 	// ParachainHostSessionExecutorParams is the runtime API call ParachainHost_session_executor_params
 	ParachainHostSessionExecutorParams = "ParachainHost_session_executor_params"
+	// ParachainHostClaimQueue is the runtime API call ParachainHost_claim_queue
+	ParachainHostClaimQueue = "ParachainHost_claim_queue"
+	// ParachainHostNodeFeatures is the runtime API call ParachainHost_node_features
+	ParachainHostNodeFeatures = "ParachainHost_node_features"
 )

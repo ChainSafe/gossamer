@@ -1693,7 +1693,7 @@ func TestInstance_ParachainHostAsyncBackingParams(t *testing.T) {
 	params, err := rt.ParachainHostAsyncBackingParams()
 	require.NoError(t, err)
 	require.Equal(t, uint32(2), params.AllowedAncestryLen)
-	require.Equal(t, uint32(3), params.MaxCandidateDepth)
+	require.Equal(t, uint32(6), params.MaxCandidateDepth)
 }
 
 func TestInstance_ParachainHostSessionExecutorParams(t *testing.T) {
@@ -1708,6 +1708,19 @@ func TestInstance_ParachainHostSessionExecutorParams(t *testing.T) {
 	params, err := rt.ParachainHostSessionExecutorParams(index)
 	require.NoError(t, err)
 	require.Empty(t, params)
+}
+
+func TestInstance_ParachainHostNodeFeatures(t *testing.T) {
+	t.Parallel()
+
+	tt := getParachainHostTrie(t, parachainsConfigV190TestData.Storage)
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v190, TestWithTrie(tt))
+
+	expectedNodeFeatures := parachaintypes.NewBitVec([]bool{false, true})
+
+	actualNodeFeatures, err := rt.ParachainHostNodeFeatures()
+	require.NoError(t, err)
+	require.Equal(t, expectedNodeFeatures, actualNodeFeatures)
 }
 
 func getParachainHostTrie(t *testing.T, testDataStorage []Storage) *inmemory_trie.InMemoryTrie {
