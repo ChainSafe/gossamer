@@ -79,7 +79,7 @@ This handler receives the candidate and the parachain id it belongs to, so the h
 
 - [`handle_candidate_backed`](https://github.com/paritytech/polkadot-sdk/blob/fdb264d0df6fdbed32f001ba43c3282a01dd3d65/polkadot/node/core/prospective-parachains/src/lib.rs#L595C10-L595C33)
 
-This handler receives the candidate hash and its parachain id and will try to mark the candidate hash as backed, the candidate should already exists in the parachain fragment chain otherwise this handler will fail, if the candidate is already marked as backed nothing happens.
+This handler receives the candidate hash and its parachain id and will try to mark the candidate hash as backed, the candidate should already exist in the parachain fragment chain otherwise this handler will fail, if the candidate is already marked as backed nothing happens.
 
 - [`answer_get_backable_candidates`](https://github.com/paritytech/polkadot-sdk/blob/fdb264d0df6fdbed32f001ba43c3282a01dd3d65/polkadot/node/core/prospective-parachains/src/lib.rs#L670C4-L670C34)
 
