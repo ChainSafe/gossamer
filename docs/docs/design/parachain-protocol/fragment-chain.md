@@ -87,7 +87,7 @@ Now lets trim the unelegible forks out, but first we need to define the steps:
     3.2. did we already visited this child?
         - **true**: go to step 1
         - **false**: go to next step
-    3.3. is the candidate and the child potentials?
+    3.3. does the candidate and the child have potential?
         - **true**:  add to the queue as (child hash, true)
         - **false**: mark to remove, add to the queue as (child hash, false)
 
