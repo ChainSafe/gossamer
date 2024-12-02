@@ -61,7 +61,7 @@ Also the prospective parachains subsystems needs informations from the relay cha
 The subsystem state stores: 
 - A relay chain block view data per-relay-parent hash. The relay chain block view data contains a hash map per parachain id of their fragment chains.
 - Active leaves, which is a subset of the keys in the per-relay-parent view.
-- Implicity View
+- Implicit View
 
 ## Message Handling Logic
 
