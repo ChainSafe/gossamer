@@ -80,7 +80,7 @@ Now lets trim the unelegible forks out, but first we need to define the steps:
 
 2. queue is empty, the goto step 5, queue is not empty, pop the item from the start of the queue, mark it as visited and iterate over its children.
 
-3. for each children:
+3. for each child:
     3.1. is the children in the unconnected hash?
         - **true**:  go to next step
         - **false**: go to step 1
