@@ -1,14 +1,14 @@
 # Fragment Chain 
 
 
-### Candidate Storage
+### [Candidate Storage](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L189)
 
-This structure does not care if candidates form a chain, it only stores candidates and holds "links" to a `CandidateEntry`, those links are
+This structure does not care if candidates form a chain, it only stores candidates and holds "links" to a [`CandidateEntry`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L346), those links are
 
 `Parent Head Data Hash` to `Set<Candidate Hash>`
 `Output Head Data Hash` to `Set<Candidate Hash>`
 
-The parent head data hash is simply the parent block of that candidate, the output head data hash is the hash of the resultant `HeadData` after an execution, you can think of the output head data as the raw head of the parachain block that we get after validating the inputs against the parachain runtime.
+The parent head data hash is simply the parent block of that candidate, the output head data hash is the hash of the resultant [`HeadData`](https://github.com/paritytech/polkadot-sdk/blob/8f1606e9f9bd6269a4c2631a161dcc73e969a302/polkadot/parachain/src/primitives.rs#L51) after an execution, you can think of the output head data as the raw head of the parachain block that we get after validating the inputs against the parachain runtime.
 
 `input -> execution -> head data (parachain block head)`, it is called head data because it is a `Vec<u8>`, what this head data contains is not for the validator, what we care is the *hash* of it.
 
@@ -18,7 +18,7 @@ Scope is the context of a fragment chain, it contains constraints and ancestors 
 
 ### Fragment Node
 
-This is a node that is part of a `BackedChain`. When we create a new fragment we should make sure that the candidate is valid under the operating constraints. We use the constraints to build an expected persisted validation data and compare with the one we got from the candidate. A fragment node is always backed and it is generated from a `CandidateEntry`.
+This is a node that is part of a [`BackedChain`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L596). When we create a new fragment we should make sure that the candidate is valid under the operating constraints. We use the constraints to build an expected persisted validation data and compare with the one we got from the candidate. A fragment node is always backed and it is generated from a [`CandidateEntry`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L346).
 
 ### BackedChain
 
@@ -28,7 +28,7 @@ It holds a chain of backed nodes (fragments), in rust they store the fragments.
 
 This is a method where given a chain of fragments we need to remove all the fragments that descend a certain parent head data hash (this is the hash of the parachain block that is parent of another parachain block).
 
-Let's say that we have the following `BackedChain`
+Let's say that we have the following [`BackedChain`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L596)
 
 ```
 {Parent Head Hash (0) | Output Head Data Hash (1)}
@@ -49,13 +49,13 @@ V
 If we want to revert to `ParentHeadDataHash (3)` we search for a node that outputs such head data hash, in this case is the node at position 2, knowing the index we should remove its children (nodes at position 3 and 4) and clear their informations from the tables `byParentHead`, `byOutputHead` and `Candidates`, and we return the removed nodes.
 
 
-### Fragment Chain
+### [Fragment Chain](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L663)
 
 The fragment chain is a struct that an active leaf holds, also it should avoid cycles or paths in the three.
 
 ##### Populate Chain
 
-This is a method from `FragmentChain` where given a scope and a Candidate Storage it will try to build a `BackedChain` with the candidates that follow the conditions:
+This is a method from [`FragmentChain`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L663) where given a scope and a Candidate Storage it will try to build a [`BackedChain`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L596) with the candidates that follow the conditions:
 
 - Does not introduce a cycle: That means, its output head data hash is not the parent head data hash of another candidate in the BackedChain.
 - Its parent hash is correct: matches the previous output hash, forming a coherent chain
@@ -63,14 +63,14 @@ This is a method from `FragmentChain` where given a scope and a Candidate Storag
 - All non-pending-availability has a parent in the current scope.
 - Candidates outputs fullfils the constraint.
 
-If those conditions follows for 1 or more candidates we consider them possible backed/backable, however since the `BackedChain` does not allow forks we need to resolve that if there is more than one candidates, and the fork selection rule is: compare the hashes and the lowest hash will be chosen and pushed into the `BackedChain` and removed from the Candidate Storage
+If those conditions follows for 1 or more candidates we consider them possible backed/backable, however since the [`BackedChain`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L596) does not allow forks we need to resolve that if there is more than one candidates, and the fork selection rule is: compare the hashes and the lowest hash will be chosen and pushed into the [`BackedChain`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L596) and removed from the Candidate Storage
 
 
 ##### Trim Unelegible Forks
 
 What is does is a deapth breadth-first search looking for candidates in the Candidate Storage that has no potential that is children of valid backed candidates.
 
-Consider the following chain, the green letters forms the `BackedChain` while the red letters are candidates placed in the `Unconnected` candidate storage, drawing them (without all the maps and hashes here and there) we can have something similar to the image bellow.
+Consider the following chain, the green letters forms the [`BackedChain`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L596) while the red letters are candidates placed in the `Unconnected` candidate storage, drawing them (without all the maps and hashes here and there) we can have something similar to the image bellow.
 
 ![IMG_944F8C1D62F0-1](https://hackmd.io/_uploads/SJ3KA0m7kg.jpg)
 

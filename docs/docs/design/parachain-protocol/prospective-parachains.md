@@ -23,7 +23,7 @@ Inform the prospective parachains subsystem that a previously introduced candida
 
 3. [`prospectiveparachains.GetBackableCandidates`](https://github.com/paritytech/polkadot-sdk/blob/2ef2723126584dfcd6d2a9272282ee78375dbcd3/polkadot/node/subsystem-types/src/messages.rs#L1391C2-L1391C23)
 
-Try getting N backable candidate hashes along with their relay parents for the given parachain, under the given relay-parent hash, which is a descendant of the given ancestors. Timed out ancestors should not be included in the collection. N should represent the number of scheduled cores of this `ParaId`. A timed out ancestor frees the cores of all of its descendants, so if there's a hole in the supplied ancestor path, we'll get candidates that backfill those timed out slots first. It may also return less/no candidates, if there aren't enough backable candidates recorded.
+Try getting N backable candidate hashes along with their relay parents for the given parachain, under the given relay-parent hash, which is a descendant of the given ancestors. Timed out ancestors should not be included in the collection. N should represent the number of scheduled cores of this `ParaID`. A timed out ancestor frees the cores of all of its descendants, so if there's a hole in the supplied ancestor path, we'll get candidates that backfill those timed out slots first. It may also return less/no candidates, if there aren't enough backable candidates recorded.
 
 4. [`prospectiveparachains.GetHypotheticalMembership`](https://github.com/paritytech/polkadot-sdk/blob/2ef2723126584dfcd6d2a9272282ee78375dbcd3/polkadot/node/subsystem-types/src/messages.rs#L1411)
 
@@ -31,7 +31,7 @@ Get the hypothetical or actual membership of candidates with the given propertie
 
 5. [`prospectiveparachains.GetMinimumRelayParents`](https://github.com/paritytech/polkadot-sdk/blob/2ef2723126584dfcd6d2a9272282ee78375dbcd3/polkadot/node/subsystem-types/src/messages.rs#L1428C2-L1428C24)
 
-Get the minimum accepted relay-parent number for each para in the fragment chain for the given relay-chain block hash. That is, if the block hash is known and is an active leaf, this returns the minimum relay-parent block number in the same branch of the relay chain which is accepted in the fragment chain for each para-id. If the block hash is not an active leaf, this will return an empty vector. Para-IDs which are omitted from this list can be assumed to have no valid candidate relay-parents under the given relay-chain block hash. Para-IDs are returned in no particular order.
+Get the minimum accepted relay-parent number for each para in the fragment chain for the given relay-chain block hash. That is, if the block hash is known and is an active leaf, this returns the minimum relay-parent block number in the same branch of the relay chain which is accepted in the fragment chain for each ParaID. If the block hash is not an active leaf, this will return an empty vector. ParaIDs which are omitted from this list can be assumed to have no valid candidate relay-parents under the given relay-chain block hash. ParaIDs are returned in no particular order.
 
 6. [`prospectiveparachains.GetProspectiveValidationData`](https://github.com/paritytech/polkadot-sdk/blob/2ef2723126584dfcd6d2a9272282ee78375dbcd3/polkadot/node/subsystem-types/src/messages.rs#L1434C2-L1434C30)
 
