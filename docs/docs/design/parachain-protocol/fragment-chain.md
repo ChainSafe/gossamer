@@ -141,7 +141,7 @@ VISITED   -> [ A, B ]
 TO_REMOVE -> [ B1, C2 ]
 ```
 
-as there is no more children... lets pop `(C, true)` from the queue, mark it as visited and iterate over its children!
+as there are no more children... lets pop `(C, true)` from the queue, mark it as visited and iterate over its children!
 
 ```
 QUEUE     -> [ (D, true), (B1, false), (C2, false) ]
