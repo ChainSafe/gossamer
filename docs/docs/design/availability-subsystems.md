@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Availability Subsystems
-permalink: /designs/availability-subsystems/
+permalink: /design/availability-subsystems/
 ---
 
 # Availability

@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Parachain Protocol Overview
-permalink: /designs/parachain-protocol-overview/
+permalink: /design/parachain-protocol-overview/
 ---
 
 # Introduction

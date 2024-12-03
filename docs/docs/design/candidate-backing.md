@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Candidate Backing
-permalink: /designs/candidate-backing/
+permalink: /design/candidate-backing/
 ---
 
 # Candidate backing subsystem
