@@ -67,6 +67,10 @@ nav:
     - Debugging: ./testing-and-debugging/debugging.md
   - Advanced: 
     - SCALE Examples: ./advanced/scale-examples.md
+  - Design:
+    - Parachain Protocol Overview: ./design/parachain-protocol-overview.md
+    - Candidate Backing: ./design/candidate-backing.md
+    - Availability Subsystems: ./design/availability-subsystems.md
   - Contributing: 
     - Overview: ./contributing.md
 extra_css:
