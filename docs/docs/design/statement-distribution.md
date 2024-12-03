@@ -71,6 +71,14 @@ Sends request via normal network layer
 
 ## Subsystem State
 
-The Statement Distribution subsystem currently have 2 states to manager under current implementation but here we should focus under `v2::State` given that `v1::State` is legacy code and will be removed soon see https://github.com/paritytech/polkadot-sdk/issues/4447
+The Statement Distribution subsystem currently have 2 states to manager under current implementation but here we should focus under `v2::State` given that `v1::State` is legacy code and will be removed soon see https://github.com/paritytech/polkadot-sdk/issues/4447.
+
+The state holds the implicit view, candidates (a tracker for all knwon candidates in the view), per-relay-parent state, per-session state, unused topologies (topologies might be received before the first leaf update, so we should cache it), peers view and state, keystore, authorities (a map from authotity id to peer id), request and response manager
 
 ## Message Handling Logic
+
+- [handle_subsystem_message](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/lib.rs#L308)
+
+This handler deals with multiple kinds of messages from the overseer (also other subsystems):
+
+- **OverseerSignal::ActiveLeaves**: we should implement the [v2::handle_active_leaves_update](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L578) and also [v2::handle_deactivate_leaves](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L798)
