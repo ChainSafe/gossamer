@@ -95,7 +95,7 @@ Now lets trim the unelegible forks out, but first we need to define the steps:
 
 5. remove all items marked to be removed.
 
-Lets apply the chain from image against the steps defined above, first things first, we should build the queue from our `backed chain`.
+Lets apply the chain from image against the steps defined above, first things first, we should build the queue from our backed chain.
 
 ```
 QUEUE     -> [ (A, true), (B, true), (C, true), (D, true) ]
