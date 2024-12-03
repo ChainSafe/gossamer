@@ -313,3 +313,43 @@ func TestEarliestRelayParent(t *testing.T) {
 		})
 	}
 }
+
+func TestAnswerMinimumRelayParentsRequest(t *testing.T) {
+	storage := &CandidateStorage{
+		byParentHead:    make(map[common.Hash]map[parachaintypes.CandidateHash]any),
+		byOutputHead:    make(map[common.Hash]map[parachaintypes.CandidateHash]any),
+		byCandidateHash: make(map[parachaintypes.CandidateHash]*CandidateEntry),
+	}
+
+	candidateHash := parachaintypes.CandidateHash{
+		Value: common.Hash{0x01, 0x02, 0x03},
+	}
+
+	parentHeadHash := common.Hash{0x04, 0x05, 0x06}
+	outputHeadHash := common.Hash{0x07, 0x08, 0x09}
+
+	entry := &CandidateEntry{
+		candidateHash:      candidateHash,
+		parentHeadDataHash: parentHeadHash,
+		outputHeadDataHash: outputHeadHash,
+		state:              Backed,
+		candidate: inclusionemulator.ProspectiveCandidate{
+			Commitments: parachaintypes.CandidateCommitments{
+				HeadData: parachaintypes.HeadData{Data: []byte{10, 11, 12}},
+			},
+		},
+	}
+
+	storage.byCandidateHash[candidateHash] = entry
+	storage.byParentHead[parentHeadHash] = map[parachaintypes.CandidateHash]any{candidateHash: struct{}{}}
+	storage.byOutputHead[outputHeadHash] = map[parachaintypes.CandidateHash]any{candidateHash: struct{}{}}
+
+	requestedRelayParents := []common.Hash{
+		parentHeadHash,
+		common.Hash{0x10, 0x11, 0x12},
+	}
+
+	validRelayParents, err := storage.AnswerMinimumRelayParentsRequest(requestedRelayParents)
+	assert.NoError(t, err)
+	assert.Equal(t, []common.Hash{parentHeadHash}, validRelayParents)
+}

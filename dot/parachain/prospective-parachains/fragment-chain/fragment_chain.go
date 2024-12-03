@@ -335,3 +335,26 @@ type FragmentNode struct {
 	parentHeadDataHash      common.Hash
 	outputHeadDataHash      common.Hash
 }
+
+// AnswerMinimumRelayParentsRequest checks the requested relay parents
+// and returns those that have associated candidates stored.
+func (c *CandidateStorage) AnswerMinimumRelayParentsRequest(requestedRelayParents []common.Hash) ([]common.Hash, error) {
+	// Return an error if no relay parents are provided in the request
+	if len(requestedRelayParents) == 0 {
+		return nil, fmt.Errorf("no relay parents requested")
+	}
+
+	// Slice to store valid relay parents
+	validRelayParents := make([]common.Hash, 0)
+
+	// Iterate through the requested relay parents
+	for _, relayParent := range requestedRelayParents {
+		// Check if the relay parent has any associated candidates
+		if candidates, exists := c.byParentHead[relayParent]; exists && len(candidates) > 0 {
+			validRelayParents = append(validRelayParents, relayParent)
+		}
+	}
+
+	// Return the list of valid relay parents
+	return validRelayParents, nil
+}
