@@ -22,6 +22,11 @@
   description: pull request with next release changes.
 
 # Action/attention needed label. Marks that there is a specific action needed for issue/PR
+- name: A-in-QA-or-regression
+  color: "#8ceac8"
+  aliases: []
+  description: pull request or issues is currently in QA or regression testing phase.
+
 - name: A-tooBig
   color: "#FBCA04"
   aliases: []
@@ -71,7 +76,7 @@
 - name: T-design
   color: "#FEF2C0"
   aliases: [ ]
-description: this issue describes design requirements
+  description: this issue describes design requirements
 
 - name: T-enhancement
   color: "#FEF2C0"
