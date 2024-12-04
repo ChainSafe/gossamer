@@ -78,11 +78,6 @@
   aliases: [ ]
   description: this issue describes design requirements
 
-- name: T-enhancement
-  color: "#FEF2C0"
-  aliases: []
-  description: this issue/pr covers improvement of existing functionality.
-
 - name: T-refactor
   color: "#FEF2C0"
   aliases: []
