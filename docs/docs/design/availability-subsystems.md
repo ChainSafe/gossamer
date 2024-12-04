@@ -34,7 +34,7 @@ Availability is handled by these subsystems:
 - Validator with index i gets a chunk with the same index.
 - Validators sign statements when they receive their chunk.
 
-## Bitfield Distribution subsystem
+## [Bitfield Distribution subsystem](./bitfield-distribution.md)
 - Validators vote on the availability of a backed candidate by issuing signed bitfields. 
 This implements a gossip system.
 - Before gossiping incoming bitfields, check if signed by validator in current validation set, only accept bitfields relevant to our current view and only distribute bitfields to other peers when relevant to their most recent view.
