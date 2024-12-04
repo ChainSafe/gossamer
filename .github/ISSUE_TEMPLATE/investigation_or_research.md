@@ -23,4 +23,4 @@ assignees: ''
 [] Summary, research paper or meta knowledge written and merged to main repo (if applicable)
 [] Tech lead sign off
 [] Team member sign off (mention who)
-[] Workshop or knowledge session conducted
+[] Workshop or knowledge session conducted if needed
