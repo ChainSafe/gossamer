@@ -92,20 +92,59 @@ The subsystem also sends `networkbridgemessages.ReportPeer` during handling of v
 
 ## Subsystem State
 
-The subsystem should store the view of each peer the subsystem is informed about via the relevant network bridge events.
+The subsystem should store the [view of each peer](https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/node/network/protocol/src/lib.rs#L146)
+the subsystem is informed about via the relevant network bridge events.
 The Parity node also stores [the protocol version of the peer](https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/node/network/bitfield-distribution/src/lib.rs#L135).
 If our implementation only supports version 2 and 3 messages, the subsystem should probably ignore peers that still use
 version 1 instead.
 
 The subsystem also needs to know the current and previous network grid topologies and the view of the node ("our view").
+The grid topology is out of scope for this design document and the subsystem implementation. The `bitfielddistribution`
+package should contain an interface that covers the required methods of [`SessionBoundGridTopologyStorage` used in the
+Parity node](https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/node/network/protocol/src/grid_topology.rs#L421).
 
 [For each relay parent](https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/node/network/bitfield-distribution/src/lib.rs#L161)
 the subsystem is instructed by the overseer to work on, it needs to maintain the following data:
-- the signing context (retrieved from runtime once)
+- the [signing context](https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/primitives/src/v8/mod.rs#L1706) (retrieved from runtime once)
 - the validator set (retrieved from runtime once)
 - any valid bitfield messages received from a validator (we can probably just store the network messages, since it's v2/v3 only)
 - messages sent to a peer for this relay parent (store the validator ID instead of the message since there can only be one per validator)
 - messages received from a peer for this relay parent (again, store validator ID, this is to avoid sending this peer a message for this validator)
+
+This could be implemented roughly as follows:
+
+```go
+type SessionBoundGridTopologyStorage interface {
+	// ...
+}
+
+type view struct {
+	heads                []common.Hash
+	finalizedBlockNumber uint32
+}
+
+// methods on view ...
+
+type perRelayParentData struct {
+	sessionIndex            parachaintypes.SessionIndex // the required part of the signing context
+	validators              []parachaintypes.ValidatorID
+	onePerValidator         map[parachaintypes.ValidatorID]*validationprotocol.BitfieldDistributionMessage
+	messageSentToPeer       map[PeerID]map[parachaintypes.ValidatorID]struct{}
+	messageReceivedFromPeer map[PeerID]map[parachaintypes.ValidatorID]struct{}
+}
+
+type BitfieldDistribution struct {
+	peerViews      map[PeerID]view
+	ourView        view
+	topologies     SessionBoundGridTopologyStorage
+	perRelayParent map[common.Hash]*perRelayParentData
+}
+```
+
+The Parity node also uses a [`ReputationAggregator`](https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/node/subsystem-util/src/reputation.rs#L34).
+It is up to the implementer of this subsystem to either define an interface analogous to
+`SessionBoundGridTopologyStorage` or adjust peer reputation immediately. The subsystem can be modified to use a
+`ReputationAggregator` in a follow-up PR, once [it has been implemented](https://github.com/ChainSafe/gossamer/issues/4345).
 
 ## Message Handling Logic
 
