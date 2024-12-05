@@ -7,7 +7,8 @@ permalink: /design/availability-subsystems/
 # Availability
 
 After parachain block has been backed in the relay-chain it is considered pending availability.
-Make availability data (PoV and Persisted Validation Data) widely available within the validator set, without requiring every node to retain a full copy.
+Make availability data (PoV and Persisted Validation Data) widely available within the validator set, without requiring
+every node to retain a full copy.
 
 Distribute  erasure-coded chunks of availability data, and track distribution using signed bitfields.
 Enabling reassembling of complete PoV when required, for example when approval checker needs to validate a parachain block
