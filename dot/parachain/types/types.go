@@ -740,8 +740,6 @@ type Subsystem interface {
 	Stop()
 }
 
-type ClaimQueue map[CoreIndex][]ParaID
-
 // NodeFeatureIndex represents the index of a feature in a bitvector of node features.
 type NodeFeatureIndex byte
 
@@ -749,3 +747,69 @@ type NodeFeatureIndex byte
 // The value stored there represents the assumed core index where the candidates
 // are backed. This is needed for the elastic scaling MVP.
 const ElasticScalingMVP NodeFeatureIndex = 1
+
+type ClaimQueue map[CoreIndex][]Assignment
+
+// Assignment is a parachain assignment to a core.
+type Assignment struct {
+	inner any
+}
+
+// AssignmentValues are the possible values of an assignment.
+type AssignmentValues interface {
+	PoolAssignment | BulkAssignment
+}
+
+// PoolAssignment is a parachain assignment to a core as part of a pool assignment.
+type PoolAssignment struct {
+	ParaID    ParaID
+	CoreIndex CoreIndex
+}
+
+// BulkAssignment is a parachain assignment to a core as part of a bulk assignment
+// of multiple parachains to a core.
+type BulkAssignment struct {
+	ParaID ParaID
+}
+
+func setAssignment[Value AssignmentValues](a *Assignment, value Value) {
+	a.inner = value
+}
+
+func (a *Assignment) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case PoolAssignment:
+		setAssignment(a, value)
+		return
+	case BulkAssignment:
+		setAssignment(a, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (a Assignment) IndexValue() (index uint, value any, err error) {
+	switch a.inner.(type) {
+	case PoolAssignment:
+		return 0, a.inner, nil
+	case BulkAssignment:
+		return 1, a.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (a Assignment) Value() (value any, err error) {
+	_, value, err = a.IndexValue()
+	return
+}
+
+func (a Assignment) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return PoolAssignment{}, nil
+	case 1:
+		return BulkAssignment{}, nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
