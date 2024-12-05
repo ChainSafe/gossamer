@@ -1723,6 +1723,35 @@ func TestInstance_ParachainHostNodeFeatures(t *testing.T) {
 	require.Equal(t, expectedNodeFeatures, actualNodeFeatures)
 }
 
+// TODO: REMOVE THIS TEST
+func TestEncodeSome(t *testing.T) {
+	str := "0x1c000000000801e803000001e8030000010000000801e903000001e9030000020000000801ea03000001ea030000030000000801ec03000001ec030000040000000801ed03000001ed030000060000000801e607000001e60700000900000008016c080000016c080000"
+
+	strBytes, err := common.HexToBytes(str)
+	require.NoError(t, err)
+	require.NotEmpty(t, strBytes)
+
+	data := parachaintypes.ClaimQueue{}
+
+	err = scale.Unmarshal(strBytes, &data)
+	require.NoError(t, err)
+
+	fmt.Printf("data: %+v\n", data)
+}
+
+func TestInstance_ParachainHostClaimQueue(t *testing.T) {
+	t.Parallel()
+
+	tt := getParachainHostTrie(t, parachainsConfigV190TestData.Storage)
+
+	fmt.Printf("test data: %+v\n", parachainsConfigV190TestData.Storage)
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1140, TestWithTrie(tt))
+
+	claimQ, err := rt.ParachainHostClaimQueue()
+	require.NoError(t, err)
+	fmt.Printf("claimQ: %+v\n", claimQ)
+}
+
 func getParachainHostTrie(t *testing.T, testDataStorage []Storage) *inmemory_trie.InMemoryTrie {
 	tt := inmemory_trie.NewEmptyTrie()
 
