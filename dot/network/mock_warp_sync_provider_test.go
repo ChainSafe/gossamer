@@ -14,6 +14,7 @@ import (
 
 	grandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	common "github.com/ChainSafe/gossamer/lib/common"
+	warpsync "github.com/ChainSafe/gossamer/lib/grandpa/warpsync"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -56,10 +57,10 @@ func (mr *MockWarpSyncProviderMockRecorder) Generate(arg0 any) *gomock.Call {
 }
 
 // Verify mocks base method.
-func (m *MockWarpSyncProvider) Verify(arg0 []byte, arg1 grandpa.SetID, arg2 grandpa.AuthorityList) (*WarpSyncVerificationResult, error) {
+func (m *MockWarpSyncProvider) Verify(arg0 []byte, arg1 grandpa.SetID, arg2 grandpa.AuthorityList) (*warpsync.WarpSyncVerificationResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Verify", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*WarpSyncVerificationResult)
+	ret0, _ := ret[0].(*warpsync.WarpSyncVerificationResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

@@ -1,10 +1,11 @@
 // Copyright 2024 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package grandpa
+package warpsync
 
 import (
 	"errors"
+	"log"
 	"math/rand"
 	"slices"
 	"testing"
@@ -21,8 +22,38 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"gopkg.in/yaml.v3"
+
+	_ "embed"
 )
 
+//go:embed testdata/warp_sync_proofs.yaml
+var rawWarpSyncProofs []byte
+
+type WarpSyncProofs struct {
+	SubstrateWarpSyncProof1 string `yaml:"substrate_warp_sync_proof_1"`
+}
+
+func TestDecodeWarpSyncProof(t *testing.T) {
+	warpSyncProofs := &WarpSyncProofs{}
+	err := yaml.Unmarshal(rawWarpSyncProofs, warpSyncProofs)
+	require.NoError(t, err)
+
+	// Generated using substrate
+	expected := common.MustHexToBytes(warpSyncProofs.SubstrateWarpSyncProof1)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var proof WarpSyncProof
+
+	err = proof.Decode(expected)
+	require.NoError(t, err)
+
+	encoded, err := proof.Encode()
+	require.NoError(t, err)
+	require.Equal(t, expected, encoded)
+}
 func TestGenerateWarpSyncProofBlockNotFound(t *testing.T) {
 	t.Parallel()
 

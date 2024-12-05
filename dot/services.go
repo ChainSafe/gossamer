@@ -31,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
+	"github.com/ChainSafe/gossamer/lib/grandpa/warpsync"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -349,7 +350,7 @@ func (nodeBuilder) createNetworkService(config *cfg.Config, stateSrvc *state.Ser
 		return nil, fmt.Errorf("failed to parse network log level: %w", err)
 	}
 
-	warpSyncProvider := grandpa.NewWarpSyncProofProvider(
+	warpSyncProvider := warpsync.NewWarpSyncProofProvider(
 		stateSrvc.Block, stateSrvc.Grandpa,
 	)
 
@@ -529,7 +530,7 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 	var warpSyncStrategy sync.Strategy
 
 	if config.Core.Sync == "warp" {
-		warpSyncProvider := grandpa.NewWarpSyncProofProvider(st.Block, st.Grandpa)
+		warpSyncProvider := warpsync.NewWarpSyncProofProvider(st.Block, st.Grandpa)
 
 		warpSyncCfg := &sync.WarpSyncConfig{
 			Telemetry:        telemetryMailer,

@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/grandpa/warpsync"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -143,7 +144,7 @@ func TestWarpSyncNextActions(t *testing.T) {
 		"warp_sync_phase": {
 			phase:                WarpProof,
 			expectedRequestType:  &messages.WarpProofRequest{},
-			expectedResponseType: &messages.WarpSyncProof{},
+			expectedResponseType: &warpsync.WarpSyncProof{},
 		},
 		"target_block_phase": {
 			phase:                TargetBlock,

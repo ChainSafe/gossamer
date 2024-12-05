@@ -19,6 +19,7 @@ import (
 	types "github.com/ChainSafe/gossamer/dot/types"
 	grandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	common "github.com/ChainSafe/gossamer/lib/common"
+	warpsync "github.com/ChainSafe/gossamer/lib/grandpa/warpsync"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	peer "github.com/libp2p/go-libp2p/core/peer"
@@ -772,10 +773,10 @@ func (mr *MockWarpSyncProofProviderMockRecorder) CurrentAuthorities() *gomock.Ca
 }
 
 // Verify mocks base method.
-func (m *MockWarpSyncProofProvider) Verify(arg0 []byte, arg1 grandpa.SetID, arg2 grandpa.AuthorityList) (*network.WarpSyncVerificationResult, error) {
+func (m *MockWarpSyncProofProvider) Verify(arg0 []byte, arg1 grandpa.SetID, arg2 grandpa.AuthorityList) (*warpsync.WarpSyncVerificationResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Verify", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*network.WarpSyncVerificationResult)
+	ret0, _ := ret[0].(*warpsync.WarpSyncVerificationResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

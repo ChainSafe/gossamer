@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	"github.com/ChainSafe/gossamer/lib/grandpa/warpsync"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
@@ -27,7 +28,7 @@ const (
 type WarpSyncProofProvider interface {
 	CurrentAuthorities() (primitives.AuthorityList, error)
 	Verify(encodedProof []byte, setId primitives.SetID, authorities primitives.AuthorityList) (
-		*network.WarpSyncVerificationResult, error)
+		*warpsync.WarpSyncVerificationResult, error)
 }
 
 type WarpSyncStrategy struct {
@@ -141,7 +142,7 @@ func (w *WarpSyncStrategy) NextActions() ([]*SyncTask, error) {
 	case WarpProof:
 		task = SyncTask{
 			request:      messages.NewWarpProofRequest(lastBlock.Hash()),
-			response:     &messages.WarpSyncProof{},
+			response:     &warpsync.WarpSyncProof{},
 			requestMaker: w.warpSyncReqMaker,
 		}
 	case TargetBlock:
@@ -172,7 +173,7 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 	case WarpProof:
 		logger.Debug("processing warp sync proof results")
 
-		var warpProofResult *network.WarpSyncVerificationResult
+		var warpProofResult *warpsync.WarpSyncVerificationResult
 
 		repChanges, bans, warpProofResult = w.validateWarpSyncResults(results)
 
@@ -208,16 +209,16 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 }
 
 func (w *WarpSyncStrategy) validateWarpSyncResults(results []*SyncTaskResult) (
-	repChanges []Change, peersToBlock []peer.ID, result *network.WarpSyncVerificationResult) {
+	repChanges []Change, peersToBlock []peer.ID, result *warpsync.WarpSyncVerificationResult) {
 
 	repChanges = make([]Change, 0)
 	peersToBlock = make([]peer.ID, 0)
-	bestProof := &messages.WarpSyncProof{}
-	var bestResult *network.WarpSyncVerificationResult
+	bestProof := &warpsync.WarpSyncProof{}
+	var bestResult *warpsync.WarpSyncVerificationResult
 
 	for _, result := range results {
 		switch response := result.response.(type) {
-		case *messages.WarpSyncProof:
+		case *warpsync.WarpSyncProof:
 			if !result.completed {
 				continue
 			}

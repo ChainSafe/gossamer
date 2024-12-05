@@ -1,15 +1,15 @@
 // Copyright 2024 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package grandpa
+package warpsync
 
 import (
 	"bytes"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	consensus_grandpa "github.com/ChainSafe/gossamer/internal/client/consensus/grandpa"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa/app"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
@@ -22,9 +22,31 @@ import (
 const MaxWarpSyncProofSize = 8 * 1024 * 1024
 
 var (
+	logger = log.NewFromGlobal(log.AddContext("pkg", "warpsync"))
+
 	errMissingStartBlock      = fmt.Errorf("missing start block")
 	errStartBlockNotFinalized = fmt.Errorf("start block is not finalized")
 )
+
+type BlockState interface {
+	GetHeader(common.Hash) (*types.Header, error)
+	GetHeaderByNumber(uint) (*types.Header, error)
+	GetJustification(common.Hash) ([]byte, error)
+	GetHighestFinalisedHeader() (*types.Header, error)
+}
+
+type GrandpaState interface {
+	GetCurrentSetID() (uint64, error)
+	GetAuthorities(uint64) ([]types.GrandpaVoter, error)
+	GetAuthoritiesChangesFromBlock(uint) ([]uint, error)
+}
+
+type WarpSyncVerificationResult struct {
+	SetId         grandpa.SetID
+	AuthorityList primitives.AuthorityList
+	Header        types.Header
+	Completed     bool
+}
 
 type WarpSyncFragment struct {
 	// The last block that the given authority set finalized. This block should contain a digest
@@ -48,6 +70,26 @@ func NewWarpSyncProof() WarpSyncProof {
 		IsFinished:   false,
 		proofsLength: 0,
 	}
+}
+
+func (wsp *WarpSyncProof) Decode(in []byte) error {
+	return scale.Unmarshal(in, wsp)
+}
+
+func (wsp *WarpSyncProof) Encode() ([]byte, error) {
+	if wsp == nil {
+		return nil, fmt.Errorf("cannot encode nil WarpSyncProof")
+	}
+	return scale.Marshal(*wsp)
+}
+
+func (wsp *WarpSyncProof) String() string {
+	if wsp == nil {
+		return "WarpSyncProof=nil"
+	}
+
+	return fmt.Sprintf("WarpSyncProof proofs=%v isFinished=%v proofsLength=%v",
+		wsp.Proofs, wsp.IsFinished, wsp.proofsLength)
 }
 
 func (w *WarpSyncProof) addFragment(fragment WarpSyncFragment) (limitReached bool, err error) {
@@ -284,7 +326,7 @@ func (p *WarpSyncProofProvider) Verify(
 	encodedProof []byte,
 	setId grandpa.SetID,
 	authorities grandpa.AuthorityList,
-) (*network.WarpSyncVerificationResult, error) {
+) (*WarpSyncVerificationResult, error) {
 	var proof WarpSyncProof
 	err := scale.Unmarshal(encodedProof, &proof)
 	if err != nil {
@@ -303,7 +345,7 @@ func (p *WarpSyncProofProvider) Verify(
 		return nil, fmt.Errorf("verifying warp sync proof: %w", err)
 	}
 
-	return &network.WarpSyncVerificationResult{
+	return &WarpSyncVerificationResult{
 		SetId:         nextSetAndAuthorities.SetID,
 		AuthorityList: nextSetAndAuthorities.AuthorityList,
 		Header:        lastHeader,
