@@ -11,13 +11,13 @@ Make availability data (PoV and Persisted Validation Data) widely available with
 
 Distribute  erasure-coded chunks of availability data, and track distribution using signed bitfields.
 Enabling reassembling of complete PoV when required, for example when approval checker needs to validate a parachain block
-   
 
 Availability is handled by these subsystems:
+
 - Availability Distribution subsystem
 - Bitfield Signing subsystem
-- Bitfield Distribution subsystem
-- Availability Recovery subsystem
+- [Bitfield Distribution subsystem](./bitfield-distribution.md)
+- [Availability Recovery subsystem](./availability-recovery.md)
 - Availability Store subsystem 
 
 ## Availability Distribution subsystem
@@ -45,7 +45,7 @@ This implements a gossip system.
 
 ![](../assets/img/availability-thresholds.png)
 
-## Availability Recovery subsystem
+## [Availability Recovery subsystem](./availability-recovery.md)
 - Responsible for recovering data made available via the availability distribution subsystem.
 - Necessary for candidate validation during approval/disputes process
 Also used by collators to recover PoVs in adversarial scenarios where other collators of the parachain are censoring blocks.
