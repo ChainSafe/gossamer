@@ -31,3 +31,6 @@ type BlockFinalizedSignal struct {
 	Hash        common.Hash
 	BlockNumber uint32
 }
+
+// Conclude the work of the `Overseer` and all `Subsystem`s.
+type Conclude struct{}

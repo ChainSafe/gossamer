@@ -240,7 +240,7 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 			},
 			peerData: map[peer.ID]PeerData{
 				peerID: {
-					view: View{},
+					view: parachaintypes.View{},
 					state: PeerStateInfo{
 						PeerState: Collating,
 						CollatingPeerState: CollatingPeerState{
@@ -268,7 +268,7 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 			},
 			peerData: map[peer.ID]PeerData{
 				peerID: {
-					view: View{},
+					view: parachaintypes.View{},
 					state: PeerStateInfo{
 						PeerState: Connected,
 					},
@@ -285,7 +285,7 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 			},
 			peerData: map[peer.ID]PeerData{
 				peerID: {
-					view: View{},
+					view: parachaintypes.View{},
 					state: PeerStateInfo{
 						PeerState: Connected,
 					},
@@ -312,7 +312,7 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 			},
 			peerData: map[peer.ID]PeerData{
 				peerID: {
-					view: View{},
+					view: parachaintypes.View{},
 					state: PeerStateInfo{
 						PeerState: Connected,
 					},
@@ -342,7 +342,7 @@ func TestHandleCollationMessageDeclare(t *testing.T) {
 			},
 			peerData: map[peer.ID]PeerData{
 				peerID: {
-					view: View{},
+					view: parachaintypes.View{},
 					state: PeerStateInfo{
 						PeerState: Connected,
 					},
@@ -449,7 +449,7 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			},
 			peerData: map[peer.ID]PeerData{
 				peerID: {
-					view: View{},
+					view: parachaintypes.View{},
 					state: PeerStateInfo{
 						PeerState: Connected,
 					},
@@ -475,7 +475,7 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			},
 			peerData: map[peer.ID]PeerData{
 				peerID: {
-					view: View{},
+					view: parachaintypes.View{},
 					state: PeerStateInfo{
 						PeerState: Collating,
 						CollatingPeerState: CollatingPeerState{
@@ -510,7 +510,7 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			},
 			peerData: map[peer.ID]PeerData{
 				peerID: {
-					view: View{},
+					view: parachaintypes.View{},
 					state: PeerStateInfo{
 						PeerState: Collating,
 						CollatingPeerState: CollatingPeerState{
@@ -536,7 +536,7 @@ func TestHandleCollationMessageAdvertiseCollation(t *testing.T) {
 			},
 			peerData: map[peer.ID]PeerData{
 				peerID: {
-					view: View{},
+					view: parachaintypes.View{},
 					state: PeerStateInfo{
 						PeerState: Collating,
 						CollatingPeerState: CollatingPeerState{
@@ -616,7 +616,7 @@ func TestInsertAdvertisement(t *testing.T) {
 		{
 			description: "fail with undeclared collator",
 			peerData: PeerData{
-				view: View{},
+				view: parachaintypes.View{},
 				state: PeerStateInfo{
 					PeerState: Connected,
 				},
@@ -626,7 +626,7 @@ func TestInsertAdvertisement(t *testing.T) {
 		{
 			description: "fail with error out of view",
 			peerData: PeerData{
-				view: View{},
+				view: parachaintypes.View{},
 				state: PeerStateInfo{
 					PeerState: Collating,
 				},
@@ -639,7 +639,7 @@ func TestInsertAdvertisement(t *testing.T) {
 		{
 			description: "fail with error duplicate advertisement",
 			peerData: PeerData{
-				view: View{},
+				view: parachaintypes.View{},
 				state: PeerStateInfo{
 					PeerState: Collating,
 					CollatingPeerState: CollatingPeerState{
@@ -662,7 +662,7 @@ func TestInsertAdvertisement(t *testing.T) {
 		{
 			description: "success case",
 			peerData: PeerData{
-				view: View{},
+				view: parachaintypes.View{},
 				state: PeerStateInfo{
 					PeerState: Collating,
 					CollatingPeerState: CollatingPeerState{
