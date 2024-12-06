@@ -30,21 +30,10 @@ const LEGACY_MIN_BACKING_VOTES uint32 = 2
 // new relay-parents introduced by the update.
 func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintypes.ActiveLeavesUpdateSignal) error {
 	var implicitViewFetchError error
-	var prospectiveParachainsMode parachaintypes.ProspectiveParachainsMode
 	activatedLeaf := update.Activated
-
 	// activate in implicit view before deactivate, per the docs on ImplicitView, this is more efficient.
 	if activatedLeaf != nil {
-		var err error
-		prospectiveParachainsMode, err = getProspectiveParachainsMode(cb.BlockState, activatedLeaf.Hash)
-		if err != nil {
-			return fmt.Errorf("getting prospective parachains mode: %w", err)
-		}
-
-		// activate in implicit view only if prospective parachains are enabled.
-		if prospectiveParachainsMode.IsEnabled {
-			_, implicitViewFetchError = cb.ImplicitView.activeLeaf(activatedLeaf.Hash)
-		}
+		_, implicitViewFetchError = cb.ImplicitView.activeLeaf(activatedLeaf.Hash)
 	}
 
 	for _, deactivated := range update.Deactivated {
@@ -54,86 +43,25 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 
 	// clean up `perRelayParent` according to ancestry of leaves.
 	// we do this so we can clean up candidates right after as a result.
-	//
-	// when prospective parachains are disabled, the implicit view is empty,
-	// which means we'll clean up everything that's not a leaf - the expected behaviour
-	// for pre-asynchronous backing.
 	cb.cleanUpPerRelayParentByLeafAncestry()
 
 	// clean up `perCandidate` according to which relay-parents are known.
-	//
-	// when prospective parachains are disabled, we clean up all candidates
-	// because we've cleaned up all relay parents. this is correct.
 	cb.removeUnknownRelayParentsFromPerCandidate()
 
 	if activatedLeaf == nil {
 		return nil
 	}
 
+	if implicitViewFetchError != nil {
+		return fmt.Errorf("failed to load implicit view for leaf %s: %w", activatedLeaf.Hash, implicitViewFetchError)
+	}
+
 	// Get relay parents which might be fresh but might be known already
 	// that are explicit or implicit from the new active leaf.
-	var freshRelayParents []common.Hash
-
-	switch prospectiveParachainsMode.IsEnabled {
-	case false:
-		if _, ok := cb.perLeaf[activatedLeaf.Hash]; ok {
-			return nil
-		}
-
-		cb.perLeaf[activatedLeaf.Hash] = &activeLeafState{
-			prospectiveParachainsMode: prospectiveParachainsMode,
-
-			// This is empty because the only allowed relay-parent and depth
-			// when prospective parachains are disabled is the leaf hash and 0,
-			// respectively. We've just learned about the leaf hash, so we cannot
-			// have any candidates seconded with it as a relay-parent yet.
-			secondedAtDepth: make(map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]),
-		}
-
+	freshRelayParents := cb.ImplicitView.knownAllowedRelayParentsUnder(activatedLeaf.Hash, nil)
+	if len(freshRelayParents) == 0 {
+		logger.Warnf("implicit view gave no relay-parents under leaf-hash %s", activatedLeaf.Hash)
 		freshRelayParents = []common.Hash{activatedLeaf.Hash}
-	case true:
-		if implicitViewFetchError != nil {
-			return fmt.Errorf("failed to load implicit view for leaf %s: %w", activatedLeaf.Hash, implicitViewFetchError)
-		}
-
-		freshRelayParents = cb.ImplicitView.knownAllowedRelayParentsUnder(activatedLeaf.Hash, nil)
-
-		// At this point, all candidates outside of the implicit view
-		// have been cleaned up. For all which remain, which we've seconded,
-		// we ask the prospective parachains subsystem where they land in the fragment
-		// tree for the given active leaf. This comprises our `secondedAtDepth`.
-
-		remainingSeconded := make(map[parachaintypes.CandidateHash]parachaintypes.ParaID)
-		for candidateHash, candidateState := range cb.perCandidate {
-			if candidateState.secondedLocally {
-				remainingSeconded[candidateHash] = candidateState.paraID
-			}
-		}
-
-		// update the candidates seconded at various depths under new active leaves.
-		{
-			var wg sync.WaitGroup
-			var mut sync.Mutex
-			secondedAtDepth := make(map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash])
-
-			for candidateHash, paraID := range remainingSeconded {
-				wg.Add(1)
-				go updateCandidateSecondedAtDepth(
-					&wg, &mut, cb.SubSystemToOverseer, candidateHash, paraID, activatedLeaf.Hash, secondedAtDepth,
-				)
-			}
-			wg.Wait()
-
-			cb.perLeaf[activatedLeaf.Hash] = &activeLeafState{
-				prospectiveParachainsMode: prospectiveParachainsMode,
-				secondedAtDepth:           secondedAtDepth,
-			}
-		}
-
-		if len(freshRelayParents) == 0 {
-			logger.Warnf("implicit view gave no relay-parents under leaf-hash %s", activatedLeaf.Hash)
-			freshRelayParents = []common.Hash{activatedLeaf.Hash}
-		}
 	}
 
 	// add entries in `perRelayParent`. for all new relay-parents.
@@ -142,21 +70,8 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 			continue
 		}
 
-		var mode parachaintypes.ProspectiveParachainsMode
-		leaf, ok := cb.perLeaf[maybeNewRP]
-		if !ok {
-			// If the relay-parent isn't a leaf itself,
-			// then it is guaranteed by the prospective parachains
-			// subsystem that it is an ancestor of a leaf which
-			// has prospective parachains enabled and that the
-			// block itself did.
-			mode = prospectiveParachainsMode
-		} else {
-			mode = leaf.prospectiveParachainsMode
-		}
-
 		// construct a `PerRelayParent` from the runtime API and insert it.
-		rpState, err := constructPerRelayParentState(cb.BlockState, maybeNewRP, &cb.Keystore, mode)
+		rpState, err := constructPerRelayParentState(cb.BlockState, maybeNewRP, &cb.Keystore) // TODO: modify the function logic
 		if err != nil {
 			return fmt.Errorf("constructing per relay parent state for relay-parent %s: %w", maybeNewRP, err)
 		}
@@ -212,20 +127,16 @@ func updateCandidateSecondedAtDepth(
 }
 
 func (cb *CandidateBacking) cleanUpPerRelayParentByLeafAncestry() {
-	remaining := make(map[common.Hash]bool)
-
-	for hash := range cb.perLeaf {
-		remaining[hash] = true
-	}
-
 	allowedRelayParents := cb.ImplicitView.AllAllowedRelayParents()
+
+	uniqueAllowedRelayParents := make(map[common.Hash]struct{})
 	for _, relayParent := range allowedRelayParents {
-		remaining[relayParent] = true
+		uniqueAllowedRelayParents[relayParent] = struct{}{}
 	}
 
 	keysToDelete := []common.Hash{}
 	for rp := range cb.perRelayParent {
-		if _, ok := remaining[rp]; !ok {
+		if _, ok := uniqueAllowedRelayParents[rp]; !ok {
 			keysToDelete = append(keysToDelete, rp)
 		}
 	}
@@ -287,7 +198,6 @@ func constructPerRelayParentState(
 	blockstate BlockState,
 	relayParent common.Hash,
 	keystore *keystore.Keystore,
-	mode parachaintypes.ProspectiveParachainsMode,
 ) (*perRelayParentState, error) {
 	rt, err := blockstate.GetRuntime(relayParent)
 	if err != nil {
@@ -395,6 +305,27 @@ func minBackingVotes(rt runtime.Instance) (uint32, error) {
 		return LEGACY_MIN_BACKING_VOTES, nil
 	}
 	return votes, err
+}
+
+// TODO: to figiure out all required runtime method calls
+func fetchParachainHostData2(rt runtime.Instance) error {
+	sessionIndex, err := rt.ParachainHostSessionIndexForChild()
+	if err != nil {
+		return fmt.Errorf("getting session index: %w", err)
+	}
+
+	validatorGroups, err := rt.ParachainHostValidatorGroups()
+	if err != nil {
+		return fmt.Errorf("getting validator groups: %w", err)
+	}
+
+	validators, err := rt.ParachainHostValidators()
+	if err != nil {
+		return fmt.Errorf("getting validators: %w", err)
+	}
+	// ParachainHost_claim_queue runtime method call
+	// ParachainHost_node_features runtime method call
+	return nil
 }
 
 func fetchParachainHostData(rt runtime.Instance) (
