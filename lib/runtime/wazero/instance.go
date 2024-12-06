@@ -1426,6 +1426,9 @@ func (in *Instance) ParachainHostClaimQueue() (parachaintypes.ClaimQueue, error)
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
+	// TODO: remove this once the unit test passes
+	// fmt.Printf("encodedClaimQueue: %+v", encodedClaimQueue)
+
 	claimQueue := make(parachaintypes.ClaimQueue)
 	err = scale.Unmarshal(encodedClaimQueue, &claimQueue)
 	if err != nil {
