@@ -20,6 +20,7 @@ const (
 	CandidateValidation   SubSystemName = "CandidateValidation"
 	Provisioner           SubSystemName = "Provisioner"
 	StatementDistribution SubSystemName = "StatementDistribution"
+	ProspectiveParachains SubSystemName = "ProspectiveParachains"
 )
 
 var SubsystemRequestTimeout = 1 * time.Second

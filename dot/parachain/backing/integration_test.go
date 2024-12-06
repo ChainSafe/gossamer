@@ -562,7 +562,7 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	getBackable := backing.GetBackableCandidatesMessage{
-		Candidates: []*backing.CandidateHashAndRelayParent{
+		Candidates: []*parachaintypes.CandidateHashAndRelayParent{
 			{
 				CandidateHash:        candidateHash,
 				CandidateRelayParent: relayParent,
@@ -607,7 +607,7 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	getBackable = backing.GetBackableCandidatesMessage{
-		Candidates: []*backing.CandidateHashAndRelayParent{
+		Candidates: []*parachaintypes.CandidateHashAndRelayParent{
 			{
 				CandidateHash:        candidateHash,
 				CandidateRelayParent: relayParent,
@@ -753,7 +753,7 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 	require.NoError(t, err)
 
 	getBackable := backing.GetBackableCandidatesMessage{
-		Candidates: []*backing.CandidateHashAndRelayParent{
+		Candidates: []*parachaintypes.CandidateHashAndRelayParent{
 			{
 				CandidateHash:        candidateHash,
 				CandidateRelayParent: relayParent,

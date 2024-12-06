@@ -813,3 +813,9 @@ func (a Assignment) ValueAt(index uint) (value any, err error) {
 	}
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
+
+// CandidateHashAndRelayParent is a pair of candidate hash and relay parent hash
+type CandidateHashAndRelayParent struct {
+	CandidateHash        CandidateHash
+	CandidateRelayParent common.Hash
+}
