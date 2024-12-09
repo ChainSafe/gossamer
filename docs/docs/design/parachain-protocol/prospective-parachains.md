@@ -2,7 +2,6 @@
 
 [The prospective parachains subsystem](https://paritytech.github.io/polkadot-sdk/book/node/backing/prospective-parachains.html)
 tracks and handles prospective parachain fragments and inform other backing-subsystems of work to be done.
-of work within 
 
 ## Subsystem Structure
 
