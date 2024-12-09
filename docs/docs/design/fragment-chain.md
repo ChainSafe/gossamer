@@ -72,7 +72,7 @@ What is does is a deapth breadth-first search looking for candidates in the Cand
 
 Consider the following chain, the green letters forms the [`BackedChain`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L596) while the red letters are candidates placed in the `Unconnected` candidate storage, drawing them (without all the maps and hashes here and there) we can have something similar to the image bellow.
 
-![IMG_944F8C1D62F0-1](./assets/img/pp_1.jpeg)
+![IMG_944F8C1D62F0-1](./assets/img/parachain-protocol/pp_1.jpeg)
 
 Now lets trim the unelegible forks out, but first we need to define the steps:
 
@@ -111,7 +111,7 @@ VISITED   -> [ A ]
 TO_REMOVE -> []
 ```
 
-![IMG_88FB30D4B931-1](./assets/img/pp_2.jpeg)
+![IMG_88FB30D4B931-1](./assets/img/parachain-protocol/pp_2.jpeg)
 
 them, child `B1` is in the unconnected set, is not visited, its parent (`A`) is potential, however `B1` is not, them we should mark it to remove and add to the queue as (`B1`, `false`) 
 
@@ -131,7 +131,7 @@ VISITED   -> [ A, B ]
 TO_REMOVE -> [ B1 ]
 ```
 
-![IMG_319583A1BB18-1](./assets/img/pp_3.jpeg)
+![IMG_319583A1BB18-1](./assets/img/parachain-protocol/pp_3.jpeg)
 
 the node `B`, has children `C` and `C1`, starting with `C`, given `C` is in the `backed chain` it is not in the unconnected set, in this case we can go to the next child that is `C2`, that is in the unconnected set, was not visited, and has a parent (`B`) that is potential but `C2` itself is not, then lets push it to the queue as `(C2, false)` and mark it to remove.
 
@@ -149,7 +149,7 @@ VISITED   -> [ A, B, C ]
 TO_REMOVE -> [ B1, C2 ]
 ```
 
-![IMG_C0062D30EB11-1](./assets/img/pp_4.jpeg)
+![IMG_C0062D30EB11-1](./assets/img/parachain-protocol/pp_4.jpeg)
 
 the node `C` has only node `D` as its child, so since `D` is not in the unconnected set we can jump to step 1 again.
 
@@ -169,7 +169,7 @@ VISITED   -> [ A, B, C, D, B1 ]
 TO_REMOVE -> [ B1, C2 ]
 ```
 
-![IMG_86B6E79CE7E2-1](./assets/img/pp_5.jpeg)
+![IMG_86B6E79CE7E2-1](./assets/img/parachain-protocol/pp_5.jpeg)
 
 The node `B1` has just one child that is `C1`, the child is present in the unconnected set, and is not visited but its parent `B1` is not a potential candidate, in this case we can directly mark `C1` having no potential as well and pushing it to the queue, and marking it to remove too.
 
@@ -187,7 +187,7 @@ VISITED   -> [ A, B, C, D, B1, C2 ]
 TO_REMOVE -> [ B1, C2, C1 ]
 ```
 
-![IMG_B913444820A7-1](./assets/img/pp_6.jpeg)
+![IMG_B913444820A7-1](./assets/img/parachain-protocol/pp_6.jpeg)
 
 The node `C2` has just one child that is `D1`, the child is present in the unconnected set, and is not visited but its parent `C2` is not a potential candidate, in this case we can directly mark `D2` having no potential as well and pushing it to the queue, and marking it to remove too.
 
