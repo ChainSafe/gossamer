@@ -3,7 +3,7 @@
 
 ARG POLKADOT_VERSION=v0.9.37
 
-FROM golang:1.20 as openmetrics
+FROM golang:1.23 as openmetrics
 
 ARG METRICS_NAMESPACE=substrate.local.devnet
 
