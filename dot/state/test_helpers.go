@@ -222,7 +222,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 
 		for i := branch.depth; i < depth; i++ {
 			d, err := types.NewBabePrimaryPreDigest(
-				0, uint64(i+uint(j)+99), [32]byte{}, [64]byte{}).ToPreRuntimeDigest() //nolint:gosec
+				0, uint64(i+uint(j)+99), [32]byte{}, [64]byte{}).ToPreRuntimeDigest()
 			require.NoError(t, err)
 			require.NotNil(t, d)
 			digest := types.NewDigest()

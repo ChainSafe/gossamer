@@ -383,7 +383,7 @@ func (s *Service) handleIsPrimary() (bool, error) {
 
 	pv := &Vote{
 		Hash:   best.Hash(),
-		Number: uint32(best.Number), //nolint:gosec
+		Number: uint32(best.Number),
 	}
 
 	// send primary prevote message to network
@@ -462,7 +462,7 @@ func (s *Service) retrieveBestFinalCandidate() (bestFinalCandidate *types.Grandp
 		return nil, 0, fmt.Errorf("getting best final candidate: %w", err)
 	}
 
-	if bestFinalCandidate.Number < uint32(s.head.Number) { //nolint:gosec
+	if bestFinalCandidate.Number < uint32(s.head.Number) {
 		return nil, 0, fmt.Errorf("%w: candidate number %d, latest finalized block number %d",
 			errBeforeFinalizedBlock, bestFinalCandidate.Number, s.head.Number)
 	}
@@ -484,7 +484,7 @@ func (s *Service) attemptToFinalize() (isFinalizable bool, err error) {
 	}
 
 	// once we reach the threshold we should stop sending precommit messages to other peers
-	if bestFinalCandidate.Number < uint32(s.head.Number) || precommitCount <= s.state.threshold() { //nolint:gosec
+	if bestFinalCandidate.Number < uint32(s.head.Number) || precommitCount <= s.state.threshold() {
 		return false, nil
 	}
 
@@ -572,7 +572,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	// otherwise, we simply choose the head of our chain.
 	primary := s.derivePrimary()
 	prm, has := s.loadVote(primary.PublicKeyBytes(), prevote)
-	if has && prm.Vote.Number >= uint32(s.head.Number) { //nolint:gosec
+	if has && prm.Vote.Number >= uint32(s.head.Number) {
 		vote = &prm.Vote
 	} else {
 		vote = NewVoteFromHeader(bestBlockHeader)
@@ -836,7 +836,7 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 	// if there are multiple, find the one with the highest number and return it
 	highest := Vote{
 		Hash:   s.head.Hash(),
-		Number: uint32(s.head.Number), //nolint:gosec
+		Number: uint32(s.head.Number),
 	}
 
 	for h, n := range blocks {
@@ -881,7 +881,7 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 	// if there are multiple, find the one with the highest number and return it
 	highest := Vote{
 		Hash:   s.head.Hash(),
-		Number: uint32(s.head.Number), //nolint:gosec
+		Number: uint32(s.head.Number),
 	}
 
 	for h, n := range blocks {
@@ -976,7 +976,7 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash,
 				return nil, err
 			}
 
-			selected[pred] = uint32(h.Number) //nolint:gosec
+			selected[pred] = uint32(h.Number)
 		} else {
 			selected, err = s.getPossibleSelectedAncestors(votes, pred, selected, stage, threshold)
 			if err != nil {
@@ -1005,7 +1005,7 @@ func (s *Service) getTotalVotesForBlock(hash common.Hash, stage Subround) (uint6
 		ev = len(s.pcEquivocations)
 	}
 
-	return dv + uint64(ev), nil //nolint:gosec
+	return dv + uint64(ev), nil
 }
 
 // getVotesForBlock returns the number of observed votes for a block B.
@@ -1288,7 +1288,7 @@ func verifyCommitMessageJustification(commitMessage CommitMessage, setID uint64,
 		}
 	}
 
-	validAndEqv := uint64(totalValidPrecommits) + uint64(len(eqvVoters)) //nolint:gosec
+	validAndEqv := uint64(totalValidPrecommits) + uint64(len(eqvVoters))
 	// confirm total # signatures >= grandpa threshold
 	if validAndEqv < threshold {
 		return fmt.Errorf("%w: for finalisation message; need %d votes but received only %d valid votes",

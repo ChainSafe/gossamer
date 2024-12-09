@@ -31,7 +31,7 @@ func (ln LeftNibbles) Len() uint {
 }
 
 func leftNibbleAt(v1 []byte, ix uint) uint8 {
-	return atLeft(uint8(ix%NibblesPerByte), v1[ix/NibblesPerByte]) //nolint:gosec
+	return atLeft(uint8(ix%NibblesPerByte), v1[ix/NibblesPerByte])
 }
 
 // Get the nibble at a nibble index padding with a 0 nibble. Returns nil if the index is

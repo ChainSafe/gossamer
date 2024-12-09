@@ -48,7 +48,7 @@ func (s *slotHandler) waitForNextSlot(ctx context.Context) (Slot, error) {
 		}
 
 		currentSystemTime := time.Now()
-		currentSlotNumber := uint64(currentSystemTime.UnixNano()) / uint64(s.slotDuration.Nanoseconds()) //nolint:gosec
+		currentSlotNumber := uint64(currentSystemTime.UnixNano()) / uint64(s.slotDuration.Nanoseconds())
 		currentSlot := Slot{
 			start:    currentSystemTime,
 			duration: s.slotDuration,

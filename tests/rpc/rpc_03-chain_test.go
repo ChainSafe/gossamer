@@ -47,7 +47,7 @@ func TestChainRPC(t *testing.T) {
 		assert.Regexp(t, regex32BytesHex, finalizedHead)
 
 		var finalizedBlock modules.ChainBlockResponse
-		fetchWithTimeout(ctx, t, "chain_getBlock", fmt.Sprintf(`["`+finalizedHead+`"]`), &finalizedBlock) //nolint:govet
+		fetchWithTimeout(ctx, t, "chain_getBlock", fmt.Sprintf(`["`+finalizedHead+`"]`), &finalizedBlock)
 		finalizedNumber, err := common.HexToUint(finalizedBlock.Block.Header.Number)
 		if err != nil {
 			return false, fmt.Errorf("cannot convert header number to uint: %w", err)
@@ -68,7 +68,7 @@ func TestChainRPC(t *testing.T) {
 	assert.Regexp(t, regex32BytesHex, finalizedHash)
 
 	var finalizedBlock modules.ChainBlockResponse
-	fetchWithTimeout(ctx, t, "chain_getBlock", fmt.Sprintf(`["`+finalizedHash+`"]`), &finalizedBlock) //nolint:govet
+	fetchWithTimeout(ctx, t, "chain_getBlock", fmt.Sprintf(`["`+finalizedHash+`"]`), &finalizedBlock)
 
 	finalizedHeader := finalizedBlock.Block.Header
 
@@ -89,7 +89,7 @@ func TestChainRPC(t *testing.T) {
 
 	var parentBlock modules.ChainBlockResponse
 	fetchWithTimeout(ctx, t, "chain_getBlock",
-		fmt.Sprintf(`["`+finalizedHeader.ParentHash+`"]`), &parentBlock) //nolint:govet
+		fmt.Sprintf(`["`+finalizedHeader.ParentHash+`"]`), &parentBlock)
 
 	// Check and clear unpredictable fields
 	assert.Regexp(t, regex32BytesHex, parentBlock.Block.Header.ParentHash)

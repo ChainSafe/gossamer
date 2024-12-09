@@ -37,7 +37,7 @@ func (n NibbleSlice) IsEmpty() bool {
 func (n NibbleSlice) At(idx uint) uint8 {
 	ix := idx / NibblesPerByte
 	pad := idx % NibblesPerByte
-	return atLeft(uint8(pad), n.inner[ix]) //nolint:gosec
+	return atLeft(uint8(pad), n.inner[ix])
 }
 
 // Push a nibble onto the [NibbleSlice]. Ignores the high 4 bits.
@@ -47,7 +47,7 @@ func (n *NibbleSlice) Push(nibble uint8) {
 		n.inner = append(n.inner, PushAtLeft(0, nibble, 0))
 	} else {
 		output := n.inner[len(n.inner)-1]
-		n.inner[len(n.inner)-1] = PushAtLeft(uint8(i), nibble, output) //nolint:gosec
+		n.inner[len(n.inner)-1] = PushAtLeft(uint8(i), nibble, output)
 	}
 	n.len++
 }
@@ -135,7 +135,7 @@ func (n *NibbleSlice) AppendOptionalSliceAndNibble(oSlice *Nibbles, oIndex *uint
 // Get Prefix representation of this [NibbleSlice].
 func (n NibbleSlice) Prefix() Prefix {
 	split := n.len / NibblesPerByte
-	pos := uint8(n.len % NibblesPerByte) //nolint:gosec
+	pos := uint8(n.len % NibblesPerByte)
 	if pos == 0 {
 		return Prefix{
 			Key: n.inner[:split],

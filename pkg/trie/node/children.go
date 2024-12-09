@@ -15,7 +15,7 @@ func (n *Node) ChildrenBitmap() (bitmap uint16) {
 		if n.Children[i] == nil {
 			continue
 		}
-		bitmap |= 1 << uint(i) //nolint:gosec
+		bitmap |= 1 << uint(i)
 	}
 	return bitmap
 }
