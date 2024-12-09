@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -177,9 +178,23 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// format protocol id
 	pid := protocol.ID(cfg.ProtocolID)
 
-	ds, err := badger.NewDatastore(path.Join(cfg.BasePath, "libp2p-datastore"), &badger.DefaultOptions)
+	dsPath := path.Join(cfg.BasePath, "libp2p-datastore")
+	ds, err := badger.NewDatastore(dsPath, &badger.DefaultOptions)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create libp2p datastore: %w", err)
+		// unfortunately we have to use this brittle hack instead of errors.Is()
+		// https://github.com/ipfs/go-ds-badger4/blob/v0.1.5/datastore.go#L188
+		if strings.HasPrefix(err.Error(), "unsupported badger version") {
+			logger.Warn("unable to reuse libp2p datastore, recreating it")
+			if err := os.RemoveAll(dsPath); err != nil {
+				return nil, fmt.Errorf("removing libp2p datastore: %w", err)
+			}
+
+			if ds, err = badger.NewDatastore(dsPath, &badger.DefaultOptions); err != nil {
+				return nil, fmt.Errorf("failed to create libp2p datastore: %w", err)
+			}
+		} else {
+			return nil, fmt.Errorf("failed to create libp2p datastore: %w", err)
+		}
 	}
 
 	ps, err := mempstore.NewPeerstore()
