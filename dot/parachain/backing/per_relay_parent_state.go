@@ -362,7 +362,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		bgValidationResult = backgroundValidationResult{
 			outputs:   nil,
 			candidate: &candidateReceipt,
-			err:       fmt.Errorf(validationResultRes.Data.Invalid.Error()),
+			err:       validationResultRes.Data.Invalid,
 		}
 	}
 
