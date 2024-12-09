@@ -22,6 +22,11 @@
   description: pull request with next release changes.
 
 # Action/attention needed label. Marks that there is a specific action needed for issue/PR
+- name: A-in-QA-or-regression
+  color: "#8ceac8"
+  aliases: []
+  description: pull request or issues is currently in QA or regression testing phase.
+
 - name: A-tooBig
   color: "#FBCA04"
   aliases: []
@@ -47,36 +52,16 @@
   aliases: []
   description: issue requires detective debug work to figure out what's going wrong.
 
-- name: A-design
-  color: "#FBCA04"
-  aliases: []
-  description: issue requires design work to think about how it would best be accomplished.
-
 # Describes the type of issue or pull request.
 - name: T-bug
   color: "#FEF2C0"
   aliases: []
   description: this issue covers unexpected and/or wrong behaviour.
 
-- name: T-feat
+- name: T-implementation
   color: "#FEF2C0"
   aliases: []
   description: this issue/pr is a new feature or functionality.
-
-- name: T-enhancement
-  color: "#FEF2C0"
-  aliases: []
-  description: this issue/pr covers improvement of existing functionality.
-
-- name: T-refactor
-  color: "#FEF2C0"
-  aliases: []
-  description: this issue/pr covers refactoring of existing code.
-
-- name: T-security
-  color: "#FEF2C0"
-  aliases: []
-  description: this issue/pr covers security sensitive problem.
 
 - name: T-research
   color: "#FEF2C0"
@@ -87,6 +72,21 @@
   color: "#FEF2C0"
   aliases: []
   description: this issue/pr is an investigation, probably related to some bug with unknown causes.
+
+- name: T-design
+  color: "#FEF2C0"
+  aliases: [ ]
+  description: this issue describes design requirements
+
+- name: T-refactor
+  color: "#FEF2C0"
+  aliases: []
+  description: this issue/pr covers refactoring of existing code.
+
+- name: T-security
+  color: "#FEF2C0"
+  aliases: []
+  description: this issue/pr covers security sensitive problem.
 
 - name: T-question
   color: "#FEF2C0"
