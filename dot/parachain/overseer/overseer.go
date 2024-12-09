@@ -218,25 +218,26 @@ func (o *OverseerSystem) handleBlockEvents() {
 			o.activeLeaves[imported.Header.Hash()] = uint32(imported.Header.Number)
 			delete(o.activeLeaves, imported.Header.ParentHash)
 
+			var activeLeavesUpdate parachaintypes.ActiveLeavesUpdateSignal
+
 			supports, err := o.DoesHeadSupportsParachainConsensus(imported.Header.Hash())
 			if err != nil {
-				logger.Criticalf("checking head supports parachain: %s", err.Error())
-				return
+				panic(fmt.Sprintf("checking head supports parachain: %s", err.Error()))
 			}
 
-			if !supports {
-				return
+			if supports {
+				activeLeavesUpdate = parachaintypes.ActiveLeavesUpdateSignal{
+					Activated: &parachaintypes.ActivatedLeaf{
+						Hash:   imported.Header.Hash(),
+						Number: uint32(imported.Header.Number),
+					},
+					Deactivated: []common.Hash{imported.Header.ParentHash},
+				}
 			}
 
-			activeLeavesUpdate := parachaintypes.ActiveLeavesUpdateSignal{
-				Activated: &parachaintypes.ActivatedLeaf{
-					Hash:   imported.Header.Hash(),
-					Number: uint32(imported.Header.Number),
-				},
-				Deactivated: []common.Hash{imported.Header.ParentHash},
+			if !activeLeavesUpdate.IsEmpty() {
+				o.broadcast(activeLeavesUpdate)
 			}
-
-			o.broadcast(activeLeavesUpdate)
 
 		case finalised := <-o.finalised:
 			deactivated := make([]common.Hash, 0)
