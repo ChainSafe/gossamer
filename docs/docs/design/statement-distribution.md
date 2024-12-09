@@ -9,7 +9,7 @@ The subsystem needs to handle couple channels, beyond the overseer channel we al
 The responsability of these "responders" are to listen for incoming requests, foward them to inside the statement distribution (as they are spawned goroutines), which will reach the target function that will respond the request properly, the "responders" also act like a limiter on the amount of requests we are capable to handle.
  
 For V2:
-- Incoming request type [AttestedCandidateResponse](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/protocol/src/request_response/v2.rs#L32)
+- Incoming request type [AttestedCandidateRequest](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/protocol/src/request_response/v2.rs#L32)
 - Response type [AttestedCandidateResponse](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/protocol/src/request_response/v2.rs#L47)
 - The handler [answer_request](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/network/statement-distribution/src/v2/mod.rs#L3245)
 
@@ -23,15 +23,9 @@ The messages that validators can exchange are: `Statement`, contains only a sign
 
 ### Messages Received
 
-The subsystem must be registered with the overseer and handle two subsystem-specific messages from it:
+The subsystem must be registered with the overseer and handle subsystem-specific messages from it:
 
 1. [OverseerSignal::ActiveLeaves](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/lib.rs#L114)
-
-2. [OverseerSignal::BlockFinalized](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/lib.rs#L116)
-
-3. [OverseerSignal::Conclude](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/lib.rs#L118)
-
-Should stop the subsystem
 
 4. [StatementDistributionMessage::Share](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/messages.rs#L829)
 
