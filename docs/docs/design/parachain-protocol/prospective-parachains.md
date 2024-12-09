@@ -11,7 +11,7 @@ a package named `prospectiveparachains` under `dot/parachain/prospective-paracha
 
 ### Messages Received
 
-The subsystem must be registered with the overseer and handle two subsystem-specific messages from it:
+The subsystem must be registered with the overseer and handle six subsystem-specific messages from it:
 
 1. [`prospectiveparachains.IntroduceSecondedCandidate`](https://github.com/paritytech/polkadot-sdk/blob/2ef2723126584dfcd6d2a9272282ee78375dbcd3/polkadot/node/subsystem-types/src/messages.rs#L1379)
 
