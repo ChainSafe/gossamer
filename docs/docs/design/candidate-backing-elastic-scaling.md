@@ -94,7 +94,7 @@ If we don't find any leaf at which we can second the candidate, it is impossible
 - update ther logic to ensure the candidate is from our assignment
 
 ### Statement
-- Don't import statement if the sender is disabled
+- Don't import statement if the validator is disabled
 - in `kickOffValidationWork` method of `perRelayParentState`
     - Do nothing if the local validator is disabled or not a validator at all
 
