@@ -33,7 +33,7 @@ jobs:
           CHAIN: ${{ matrix.chain }}
           DD_API_KEY: ${{ secrets.DD_API_KEY }}
         run: |
-          docker build -f=Dockerfile.staging . --progress=plain -t=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --build-arg chain=$CHAIN --build-arg DD_API_KEY=$DD_API_KEY
+          docker build -f=Dockerfile.development . --progress=plain -t=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --build-arg chain=$CHAIN --build-arg DD_API_KEY=$DD_API_KEY
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
