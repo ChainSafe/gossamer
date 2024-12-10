@@ -1,6 +1,6 @@
 ---
 name: Investigation
-about: 
+about: Template for issues that requires investigation or research 
 title: ' Investigate/ Research on ...'
 labels: 'T-investigation'
 assignees: ''

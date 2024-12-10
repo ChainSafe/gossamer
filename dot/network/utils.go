@@ -33,7 +33,7 @@ func isInbound(stream libp2pnetwork.Stream) bool {
 	return stream.Stat().Direction == libp2pnetwork.DirInbound
 }
 
-// stringToAddrInfos converts a single string peer id to AddrInfo
+// stringToAddrInfo converts a single string peer id to AddrInfo
 func stringToAddrInfo(s string) (peer.AddrInfo, error) {
 	maddr, err := multiaddr.NewMultiaddr(s)
 	if err != nil {
