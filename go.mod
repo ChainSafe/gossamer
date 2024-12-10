@@ -200,7 +200,9 @@ require (
 	lukechampine.com/blake3 v1.2.1 // indirect
 )
 
-go 1.21
+go 1.23
+
+toolchain go1.23.2
 
 replace github.com/tetratelabs/wazero => github.com/ChainSafe/wazero v0.0.0-20240319130522-78b21a59bd5f
 

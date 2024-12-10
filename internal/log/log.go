@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fatih/color" //nolint:misspell
+	"github.com/fatih/color"
 )
 
 func (l *Logger) log(logLevel Level, s string, args ...interface{}) {
