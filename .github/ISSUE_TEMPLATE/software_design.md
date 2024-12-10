@@ -1,6 +1,6 @@
 ---
 name: Software Design
-about: 
+about: Template for issues that is a requirement for software design 
 title: 'Design ...'
 labels: 'T-design'
 assignees: ''

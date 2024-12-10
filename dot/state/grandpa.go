@@ -436,7 +436,7 @@ func (s *GrandpaState) IncrementSetID() (newSetID uint64, err error) {
 	return newSetID, nil
 }
 
-// setSetIDChangeAtBlock sets a set ID change at a certain block
+// setChangeSetIDAtBlock sets a set ID change at a certain block
 func (s *GrandpaState) setChangeSetIDAtBlock(setID uint64, number uint) error {
 	return s.db.Put(setIDChangeKey(setID), common.UintToBytes(number))
 }
