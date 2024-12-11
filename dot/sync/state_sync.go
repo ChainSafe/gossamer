@@ -7,26 +7,52 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/internal/primitives/trie"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 type StateSyncStrategy struct {
 	// Strategy dependencies and config
-	peers            *peerViewSet
-	badBlocks        []string
-	warpSyncReqMaker network.RequestMaker
-	syncReqMaker     network.RequestMaker
-	warpSyncProvider WarpSyncProofProvider
-	blockState       BlockState
+	peers      *peerViewSet
+	badBlocks  []string
+	reqMaker   network.RequestMaker
+	blockState BlockState
 
 	// State sync state
 	startedAt   time.Time
 	targetBlock common.Hash
 	lastKeys    [][]byte
-	skipProof   bool
+	completed   bool
+	state       trie.Trie
+}
+
+// TODO: handle merkle proofs
+
+type StateSyncStrategyConfig struct {
+	Telemetry   Telemetry
+	BadBlocks   []string
+	BlockState  BlockState
+	Peers       *peerViewSet
+	ReqMaker    network.RequestMaker
+	TargetBlock common.Hash
+}
+
+func NewStateSyncStrategy(
+	cfg *StateSyncStrategyConfig,
+) *StateSyncStrategy {
+	return &StateSyncStrategy{
+		peers:       cfg.Peers,
+		badBlocks:   cfg.BadBlocks,
+		blockState:  cfg.BlockState,
+		targetBlock: cfg.TargetBlock,
+		reqMaker:    cfg.ReqMaker,
+		state:       inmemory.NewEmptyTrie(),
+	}
+
+	// TODO: set right state version
+	// state.SetVersion(version)
 }
 
 // OnBlockAnnounce on every new block announce received.
@@ -79,7 +105,6 @@ func (s *StateSyncStrategy) OnBlockAnnounceHandshake(from peer.ID, msg *network.
 
 func (s *StateSyncStrategy) Process(results []*SyncTaskResult) (
 	done bool, repChanges []Change, peersToBlock []peer.ID, err error) {
-
 	repChanges = make([]Change, 0)
 	peersToBlock = make([]peer.ID, 0)
 
@@ -89,7 +114,7 @@ func (s *StateSyncStrategy) Process(results []*SyncTaskResult) (
 			logger.Infof("Importing state data from %s with %s keys",
 				result.who, len(response.Entries))
 
-			if len(response.Entries) == 0 && len(response.Proof) == 0 {
+			if len(response.Entries) == 0 {
 				logger.Infof("Bad state response")
 				peersToBlock = append(peersToBlock, result.who)
 				repChanges = append(repChanges, Change{
@@ -102,39 +127,23 @@ func (s *StateSyncStrategy) Process(results []*SyncTaskResult) (
 				continue
 			}
 
-			if !s.skipProof && len(response.Proof) == 0 {
-				logger.Infof("Missing proof")
-				peersToBlock = append(peersToBlock, result.who)
-				repChanges = append(repChanges, Change{
-					who: result.who,
-					rep: peerset.ReputationChange{
-						Value:  peerset.BadStateValue,
-						Reason: peerset.BadStateReason,
-					},
-				})
-				continue
+			if len(s.lastKeys) == 2 && len(response.Entries[0].StateEntries) == 0 {
+				s.lastKeys = s.lastKeys[:len(s.lastKeys)-1]
+			} else {
+				s.lastKeys = [][]byte{}
 			}
 
-			if !s.skipProof {
-				logger.Infof("Importing state from %d trie nodes", len(response.Proof))
-				proofSize := len(response.Proof)
-				var compactProof trie.CompactProof
-				err := scale.Unmarshal(response.Proof, &compactProof)
-				if err != nil {
-					logger.Infof("Error decoding proof: %w", err)
-					repChanges = append(repChanges, Change{
-						who: result.who,
-						rep: peerset.ReputationChange{
-							Value:  peerset.BadStateValue,
-							Reason: peerset.BadStateReason,
-						},
-					})
-					continue
+			for _, stateEntry := range response.Entries {
+				if !stateEntry.Complete {
+					lastItemInResponse := stateEntry.StateEntries[len(stateEntry.StateEntries)-1]
+					s.lastKeys = append(s.lastKeys, lastItemInResponse.Key)
+					s.completed = false
+				} else {
+					s.completed = true
 				}
-
-				
 			}
 
+			return s.completed, repChanges, peersToBlock, s.importState(*response)
 		default:
 			logger.Warnf("unexpected response type %T", response)
 			repChanges = append(repChanges, Change{
@@ -151,8 +160,18 @@ func (s *StateSyncStrategy) Process(results []*SyncTaskResult) (
 	return s.IsSynced(), repChanges, peersToBlock, nil
 }
 
+// importState imports the retreived state into our block state
 func (s *StateSyncStrategy) importState(response messages.StateResponse) error {
-	panic("not implemented")
+	for _, stateEntry := range response.Entries {
+		for _, kv := range stateEntry.StateEntries {
+			if err := s.state.Put(kv.Key, kv.Value); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+	// TODO: if we retrieved all the state flush in-memory trie to our block state
 }
 
 // NextActions returns the next actions to be taken by the sync service
@@ -160,9 +179,9 @@ func (s *StateSyncStrategy) NextActions() ([]*SyncTask, error) {
 	s.startedAt = time.Now()
 
 	task := &SyncTask{
-		request:      messages.NewStateRequest(s.targetBlock, s.lastKeys, s.noProof),
+		request:      messages.NewStateRequest(s.targetBlock, s.lastKeys, true),
 		response:     &messages.WarpSyncProof{},
-		requestMaker: s.warpSyncReqMaker,
+		requestMaker: s.reqMaker,
 	}
 
 	return []*SyncTask{task}, nil
@@ -177,7 +196,7 @@ func (w *StateSyncStrategy) Result() any {
 }
 
 func (s *StateSyncStrategy) IsSynced() bool {
-	panic("not implemented")
+	return s.completed
 }
 
 var _ Strategy = (*StateSyncStrategy)(nil)
