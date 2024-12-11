@@ -23,9 +23,9 @@ type LRU[K comparable, V any] struct {
 func New[K comparable, V any](
 	maxCost uint, hash freelru.HashKeyCallback[K], costFunc func(K, V) uint32,
 ) (*LRU[K, V], error) {
-	var capacity = uint32(math.MaxUint32)
-	if maxCost < math.MaxUint32 {
-		capacity = uint32(maxCost)
+	var capacity = uint32(math.MaxUint32) / 8
+	if (maxCost / 8) < uint(capacity) {
+		capacity = uint32(maxCost / 8)
 	}
 	lru, err := freelru.New[K, V](capacity, hash)
 	if err != nil {

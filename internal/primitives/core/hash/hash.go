@@ -17,6 +17,10 @@ type H256 string
 
 // Bytes returns a byte slice
 func (h256 H256) Bytes() []byte {
+	if h256 == "" {
+		arr := [32]byte{}
+		return []byte(arr[:])
+	}
 	return []byte(h256)
 }
 

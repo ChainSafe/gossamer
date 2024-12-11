@@ -26,12 +26,12 @@ func NewTestDB(inserted []uint64) TestDB {
 	}
 }
 
-func (tdb TestDB) GetMeta(key []byte) (*DBValue, error) {
+func (tdb TestDB) GetMeta(key []byte) (DBValue, error) {
 	val, ok := tdb.Meta[string(key)]
 	if !ok {
 		return nil, nil
 	}
-	return &val, nil
+	return val, nil
 }
 
 func (tdb *TestDB) Commit(commitSet CommitSet[hash.H256]) {

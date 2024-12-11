@@ -6,7 +6,6 @@ package statedb
 import (
 	"errors"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -36,13 +35,13 @@ type HashDBValue[H any] struct {
 // MetaDB is the backend database interface for metadata. Read-only.
 type MetaDB interface {
 	// Get meta value, such as the journal.
-	GetMeta(key []byte) (*DBValue, error)
+	GetMeta(key []byte) (DBValue, error)
 }
 
 // NodeDB is the backend database interface. Read-only.
 type NodeDB[Key comparable] interface {
 	// Get state trie node.
-	Get(key Key) (*DBValue, error)
+	Get(key Key) (DBValue, error)
 }
 
 var (
@@ -114,6 +113,10 @@ func NewPruningModeFromID(id []byte) PruningMode {
 
 // PruningModeConstrained will maintain a constrained pruning window.
 type PruningModeConstrained Constraints
+
+func NewPruningModeConstrained(numBlocks uint32) PruningModeConstrained {
+	return PruningModeConstrained{MaxBlocks: &numBlocks}
+}
 
 // IsArchive returns whether or not this mode will archive entire history.
 func (pmc PruningModeConstrained) IsArchive() bool {
@@ -386,7 +389,7 @@ func (sdbs *stateDBSync[BlockHash, Key]) pin(hash BlockHash, number uint64, hint
 		if haveBlock {
 			refs := sdbs.pinned[hash]
 			if refs == 0 {
-				log.Println("TRACE: Pinned block:", hash)
+				// log.Println("TRACE: Pinned block:", hash)
 				sdbs.nonCanonical.Pin(hash)
 			}
 			sdbs.pinned[hash] += 1
@@ -399,15 +402,15 @@ func (sdbs *stateDBSync[BlockHash, Key]) pin(hash BlockHash, number uint64, hint
 }
 
 func (sdbs *stateDBSync[BlockHash, Key]) unpin(hash BlockHash) {
-	entry, ok := sdbs.pinned[hash]
+	_, ok := sdbs.pinned[hash]
 	if ok {
 		sdbs.pinned[hash] -= 1
-		if entry == 0 {
-			log.Println("TRACE: Unpinned block:", hash)
+		if sdbs.pinned[hash] == 0 {
+			// log.Println("TRACE: Unpinned block:", hash)
 			delete(sdbs.pinned, hash)
 			sdbs.nonCanonical.Unpin(hash)
 		} else {
-			log.Println("TRACE: Releasing reference for ", hash)
+			// log.Println("TRACE: Releasing reference for ", hash)
 		}
 	}
 }
@@ -416,7 +419,7 @@ func (sdbs *stateDBSync[BlockHash, Key]) sync() {
 	sdbs.nonCanonical.Sync()
 }
 
-func (sdbs *stateDBSync[BlockHash, Key]) get(key Key, db NodeDB[Key]) (*DBValue, error) {
+func (sdbs *stateDBSync[BlockHash, Key]) get(key Key, db NodeDB[Key]) (DBValue, error) {
 	val := sdbs.nonCanonical.Get(key)
 	if val != nil {
 		return val, nil
@@ -568,7 +571,7 @@ func (sdb *StateDB[BlockHash, Key]) Sync() {
 }
 
 // Get a value from non-canonical/pruning overlay or the backing DB.
-func (sdb *StateDB[BlockHash, Key]) Get(key Key, db NodeDB[Key]) (*DBValue, error) {
+func (sdb *StateDB[BlockHash, Key]) Get(key Key, db NodeDB[Key]) (DBValue, error) {
 	sdb.RLock()
 	defer sdb.RUnlock()
 	return sdb.db.get(key, db)
@@ -670,9 +673,9 @@ func fetchStoredPruningMode(db MetaDB) (PruningMode, error) {
 	if val == nil {
 		return nil, nil //nolint: nilnil
 	}
-	mode := NewPruningModeFromID(*val)
+	mode := NewPruningModeFromID(val)
 	if mode != nil {
 		return mode, nil
 	}
-	return nil, fmt.Errorf("invalid value stored for PRUNING_MODE: %v", *val)
+	return nil, fmt.Errorf("invalid value stored for PRUNING_MODE: %v", val)
 }

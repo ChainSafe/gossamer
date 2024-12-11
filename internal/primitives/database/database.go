@@ -38,8 +38,8 @@ func (Remove) isChange() {}
 // Store will store the preimage of hash
 type Store[H any] struct {
 	ColumnID
-	Hash     H
-	Preimage []byte
+	Hash  H
+	Value []byte
 }
 
 func (Store[H]) isChange() {}

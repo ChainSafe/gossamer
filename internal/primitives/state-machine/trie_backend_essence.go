@@ -6,7 +6,6 @@ package statemachine
 import (
 	"bytes"
 	"errors"
-	"log"
 	"slices"
 	"sync"
 
@@ -525,7 +524,7 @@ func (tbe *trieBackendEssence[H, Hasher]) StorageRoot(
 			eph := newEphemeral[H, Hasher](tbe.BackendStorage(), writeOverlay)
 			root, err := trie.DeltaTrieRoot[H, Hasher](eph, tbe.root, delta, recorder, cache, stateVersion.TrieLayout())
 			if err != nil {
-				log.Printf("WARN: failed to write to trie: %v", err)
+				// log.Printf("WARN: failed to write to trie: %v", err)
 				return nil, tbe.root
 			}
 			return &root, root
@@ -545,7 +544,7 @@ func (tbe *trieBackendEssence[H, Hasher]) ChildStorageRoot(
 	var childRoot H
 	hash, err := tbe.childRoot(childInfo)
 	if err != nil {
-		log.Printf("WARN: Failed to read child storage root: %v", childInfo)
+		// log.Printf("WARN: Failed to read child storage root: %v", childInfo)
 	}
 	if hash == nil {
 		childRoot = defaultRoot
@@ -559,7 +558,7 @@ func (tbe *trieBackendEssence[H, Hasher]) ChildStorageRoot(
 			root, err := trie.ChildDeltaTrieRoot[H, Hasher](
 				childInfo.Keyspace(), eph, childRoot, delta, recorder, cache, stateVersion.TrieLayout())
 			if err != nil {
-				log.Printf("WARN: Failed to write to trie: %v", err)
+				// log.Printf("WARN: Failed to write to trie: %v", err)
 				return nil, childRoot
 			}
 			return &root, root
@@ -576,7 +575,7 @@ func (tbe *trieBackendEssence[H, Hasher]) Get(key H, prefix hashdb.Prefix) []byt
 	}
 	val, err := tbe.storage.Get(key, prefix)
 	if err != nil {
-		log.Printf("WARN: failed to write to trie: %v\n", err)
+		// log.Printf("WARN: failed to write to trie: %v\n", err)
 		return nil
 	}
 	return val
@@ -617,7 +616,7 @@ func (e *ephemeral[H, Hasher]) Get(key H, prefix hashdb.Prefix) []byte {
 	if val == nil {
 		val, err := e.storage.Get(key, prefix)
 		if err != nil {
-			log.Printf("WARN: failed to read from DB: %v\n", err)
+			// log.Printf("WARN: failed to read from DB: %v\n", err)
 			return nil
 		}
 		return val

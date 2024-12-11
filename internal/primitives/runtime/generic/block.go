@@ -4,12 +4,16 @@
 package generic
 
 import (
+	"fmt"
+
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 )
 
 // Something to identify a block.
-type BlockID any
+type BlockID interface {
+	isBlockID()
+}
 
 // BlockIDTypes is the interface constraint of `BlockID`.
 type BlockIDTypes[H, N any] interface {
@@ -23,12 +27,22 @@ func NewBlockID[H, N any, T BlockIDTypes[H, N]](blockID T) BlockID {
 
 // BlockIDHash is id by block header hash.
 type BlockIDHash[H any] struct {
-	Inner H
+	Hash H
+}
+
+func (BlockIDHash[H]) isBlockID() {}
+func (id BlockIDHash[H]) String() string {
+	return fmt.Sprintf("%s", id.Hash)
 }
 
 // BlockIDNumber is id by block number.
 type BlockIDNumber[N any] struct {
-	Inner N
+	Number N
+}
+
+func (BlockIDNumber[N]) isBlockID() {}
+func (id BlockIDNumber[H]) String() string {
+	return fmt.Sprintf("%d", id.Number)
 }
 
 // Block is a block.

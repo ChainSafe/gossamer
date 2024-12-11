@@ -3,6 +3,8 @@
 
 package runtime
 
+import "slices"
+
 // Justification is an abstraction over justification for a block's validity under a consensus algorithm.
 //
 // Essentially a finality proof. The exact formulation will vary between consensus algorithms. In the case where there
@@ -22,6 +24,24 @@ type EncodedJustification []byte
 // Justifications is a collection of justifications for a given block, multiple justifications may be provided by
 // different consensus engines for the same block.
 type Justifications []Justification
+
+func (j *Justifications) Append(justification Justification) bool {
+	if j.Get(justification.ConsensusEngineID) != nil {
+		return false
+	}
+	*j = append(*j, justification)
+	return true
+}
+
+func (j Justifications) Get(engineID ConsensusEngineID) *EncodedJustification {
+	index := slices.IndexFunc(j, func(j Justification) bool {
+		return j.ConsensusEngineID == engineID
+	})
+	if index >= 0 {
+		return &j[index].EncodedJustification
+	}
+	return nil
+}
 
 // EncodedJustification returns a copy of the encoded justification for the given consensus engine, if it exists
 func (j Justifications) EncodedJustification(engineID ConsensusEngineID) *EncodedJustification {

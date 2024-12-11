@@ -38,9 +38,10 @@ type FinalizationOutcome[H comparable, N runtime.Number] struct {
 // Leaves returns the leaves that were removed after a finalization action.
 func (fo FinalizationOutcome[H, N]) Leaves() []H {
 	leaves := make([]H, 0)
-	for _, hashes := range fo.removed.Values() {
-		leaves = append(leaves, hashes...)
-	}
+	fo.removed.Reverse(func(key N, value []H) bool {
+		leaves = append(leaves, value...)
+		return true
+	})
 	return leaves
 }
 
@@ -145,11 +146,15 @@ func (ls *LeafSet[H, N]) FinalizeHeight(number N) FinalizationOutcome[H, N] {
 	}
 	boundary := number - 1
 	belowBoundary := btree.NewMap[N, []H](0)
-	ls.storage.Ascend(boundary, func(key N, value []H) bool {
-		belowBoundary.Set(key, value)
-		ls.storage.Delete(key)
-		return false
+
+	ls.storage.Reverse(func(key N, value []H) bool {
+		if key <= boundary {
+			belowBoundary.Set(key, value)
+			ls.storage.Delete(key)
+		}
+		return true
 	})
+
 	return FinalizationOutcome[H, N]{removed: *belowBoundary}
 }
 
@@ -165,9 +170,9 @@ func (ls *LeafSet[H, N]) DisplacedByFinalHeight(number N) FinalizationOutcome[H,
 	}
 	boundary := number - 1
 	belowBoundary := btree.NewMap[N, []H](0)
-	ls.storage.Ascend(boundary, func(key N, value []H) bool {
+	ls.storage.Descend(boundary, func(key N, value []H) bool {
 		belowBoundary.Set(key, value)
-		return false
+		return true
 	})
 	return FinalizationOutcome[H, N]{removed: *belowBoundary}
 }

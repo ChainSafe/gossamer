@@ -5,9 +5,10 @@ package db
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
-	"log"
 	"math"
+	"reflect"
 
 	"github.com/ChainSafe/gossamer/internal/client/db/columns"
 	"github.com/ChainSafe/gossamer/internal/client/db/metakeys"
@@ -17,6 +18,10 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
+
+// / Number of columns in the db. Must be the same for both full && light dbs.
+// / Otherwise RocksDb will fail to open database && check its type.
+const NumColumns uint32 = 13
 
 // Meta column. The set of keys in the column is shared by full && light storages.
 const columnMeta = columns.Meta
@@ -61,6 +66,52 @@ func newNumberIndexKey[N runtime.Number](num N) (numberIndexKey, error) {
 	return numberIndexKey{byte(n >> 24), byte((n >> 16) & 0xff), byte((n >> 8) & 0xff), byte(n & 0xff)}, nil
 }
 
+// / Convert number and hash into long lookup key for blocks that are
+// / not in the canonical chain.
+func newLookupKey[N runtime.Number, H runtime.Hash](number N, hash H) ([]byte, error) {
+	lookupKey, err := newNumberIndexKey(number)
+	if err != nil {
+		return nil, err
+	}
+	key := append(lookupKey[:], hash.Bytes()...)
+	return key, nil
+}
+
+// / Delete number to hash mapping in DB transaction.
+func removeNumberToKeyMapping[N runtime.Number](transaction *database.Transaction[hash.H256], keyLookupCol uint32, number N) error {
+	lookupKey, err := newNumberIndexKey(number)
+	if err != nil {
+		return err
+	}
+	transaction.Remove(database.ColumnID(keyLookupCol), lookupKey[:])
+	return nil
+}
+
+// / Place a number mapping into the database. This maps number to current perceived
+// / block hash at that position.
+func insertNumberToKeyMapping[H runtime.Hash, N runtime.Number](transaction *database.Transaction[hash.H256], keyLookupCol uint32, number N, hash H) error {
+	numberIndexKey, err := newNumberIndexKey(number)
+	if err != nil {
+		return err
+	}
+	lookupKey, err := newLookupKey(number, hash)
+	if err != nil {
+		return err
+	}
+	transaction.Set(database.ColumnID(keyLookupCol), numberIndexKey[:], lookupKey)
+	return nil
+}
+
+// / Insert a hash to key mapping in the database.
+func insertHashToKeyMapping[H runtime.Hash, N runtime.Number](transaction *database.Transaction[hash.H256], keyLookupCol uint32, number N, hash H) error {
+	lookupKey, err := newLookupKey(number, hash)
+	if err != nil {
+		return err
+	}
+	transaction.Set(database.ColumnID(keyLookupCol), hash.Bytes(), lookupKey)
+	return nil
+}
+
 // Convert block id to block lookup key.
 // block lookup key is the DB-key header, block and justification are stored under.
 // looks up lookup key by hash from DB as necessary.
@@ -69,13 +120,13 @@ func blockIDToLookupKey[H runtime.Hash, N runtime.Number](
 ) ([]byte, error) {
 	switch id := id.(type) {
 	case generic.BlockIDNumber[N]:
-		key, err := newNumberIndexKey(id.Inner)
+		key, err := newNumberIndexKey(id.Number)
 		if err != nil {
 			return nil, err
 		}
 		return db.Get(keyLookupCol, key[:]), nil
 	case generic.BlockIDHash[H]:
-		return db.Get(keyLookupCol, id.Inner.Bytes()), nil
+		return db.Get(keyLookupCol, id.Hash.Bytes()), nil
 	default:
 		panic("unsupported generic.BlockID")
 	}
@@ -95,10 +146,28 @@ func readDB[H runtime.Hash, N runtime.Number](
 	return nil, nil
 }
 
+// / Remove database column entry for the given block.
+func removeFromDB[H runtime.Hash, N runtime.Number](
+	transaction *database.Transaction[hash.H256],
+	db database.Database[hash.H256],
+	colIndex uint32,
+	col uint32,
+	id generic.BlockID,
+) error {
+	key, err := blockIDToLookupKey[H, N](db, database.ColumnID(colIndex), id)
+	if err != nil {
+		return err
+	}
+	if key != nil {
+		transaction.Remove(database.ColumnID(col), key)
+	}
+	return nil
+}
+
 // Read a header from the database.
 func readHeader[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
 	db database.Database[hash.H256], colIndex, col database.ColumnID, id generic.BlockID,
-) (*runtime.Header[N, H], error) {
+) (*Header, error) {
 	headerBytes, err := readDB[H, N](db, colIndex, col, id)
 	if err != nil {
 		return nil, err
@@ -106,13 +175,14 @@ func readHeader[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
 	if headerBytes == nil {
 		return nil, nil
 	}
-	var header Header
-	err = scale.Unmarshal(headerBytes, &header)
+	t := reflect.TypeOf((*new(Header))).Elem()
+	header := reflect.New(t).Interface()
+	err = scale.Unmarshal(headerBytes, header)
 	if err != nil {
 		return nil, err
 	}
-	ret := runtime.Header[N, H](header)
-	return &ret, nil
+	h := header.(Header)
+	return &h, nil
 }
 
 func readMeta[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
@@ -135,14 +205,16 @@ func readMeta[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
 		if headerBytes == nil {
 			return
 		}
-		var header = new(Header)
+		t := reflect.TypeOf((*new(Header))).Elem()
+		header := reflect.New(t).Interface()
 		err = scale.Unmarshal(headerBytes, header)
 		if err != nil {
 			return
 		}
-		hash = (*header).Hash()
-		log.Printf("DEBUG: Opened blockchain db, fetched %v = %v (%v)\n", desc, hash, (*header).Number())
-		return hash, (*header).Number(), nil
+		h := header.(Header)
+		hash = h.Hash()
+		// log.Printf("DEBUG: Opened blockchain db, fetched %v = %v (%v)\n", desc, hash, h.Number())
+		return hash, h.Number(), nil
 	}
 
 	bestHash, bestNumber, err := loadMetaBlock("best", metakeys.BestBlock)
@@ -199,4 +271,20 @@ func readGenesisHash[H any](db database.Database[hash.H256]) (*H, error) {
 
 func joinInput(i1 []byte, i2 []byte) []byte {
 	return bytes.Join([][]byte{i1, i2}, nil)
+}
+
+var (
+	errDoesNotExist = errors.New("Database does not exist at given location")
+)
+
+func openDatabase(dbSource DatabaseSource, create bool) (database.Database[hash.H256], error) {
+	// Maybe migrate (copy) the database to a type specific subdirectory to make it
+	// possible that light and full databases coexist
+	// NOTE: This function can be removed in a few releases
+	// maybe_migrate_to_type_subdir::<Block>(db_source, db_type)?;
+	if dbSource.RequireCreateFlag && !create {
+		return nil, errDoesNotExist
+	}
+
+	return dbSource.DB, nil
 }

@@ -6,7 +6,9 @@ package storage
 import (
 	"strings"
 
+	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
 	"github.com/ChainSafe/gossamer/pkg/trie"
+	"github.com/tidwall/btree"
 )
 
 // Storage key.
@@ -14,6 +16,26 @@ type StorageKey []byte
 
 // Storage key of a child trie, it contains the prefix to the key.
 type PrefixedStorageKey []byte
+
+// / Child trie storage data.
+type StorageChild struct {
+	/// Child data for storage.
+	Data btree.Map[string, []byte]
+	/// Associated child info for a child
+	/// trie.
+	ChildInfo ChildInfo
+}
+
+// / Struct containing data needed for a storage.
+// #[cfg(feature = "std")]
+// #[derive(Default, Debug, Clone)]
+type Storage struct {
+	/// Top trie storage data.
+	Top btree.Map[string, []byte]
+	/// Children trie storage data. Key does not include prefix, only for the `default` trie kind,
+	/// of `ChildType::ParentKeyId` type.
+	ChildrenDefault map[string]StorageChild
+}
 
 // Information related to a child state.
 type ChildInfo interface {
@@ -105,15 +127,12 @@ func (ct ChildType) NewPrefixedKey(key []byte) PrefixedStorageKey {
 	return PrefixedStorageKey(result)
 }
 
-// Prefix of the default child storage keys in the top trie.
-var DefaultChildStorageKeyPrefix = []byte(":child_storage:default:")
-
 // Returns the location reserved for this child trie in their parent trie if there
 // is one.
 func (ct ChildType) ParentPrefix() []byte {
 	switch ct {
 	case ChildTypeParentKeyID:
-		return DefaultChildStorageKeyPrefix
+		return keys.DefaultChildStorageKeyPrefix
 	default:
 		panic("unreachable")
 	}

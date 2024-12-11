@@ -22,11 +22,11 @@ func (noopExtrinsic) IsSigned() *bool {
 
 // Check for interface fulfilment
 var (
-	_ blockchain.HeaderBackend[hash.H256, uint] = &blockchainDB[
+	_ blockchain.HeaderBackend[hash.H256, uint, *generic.Header[uint, hash.H256, runtime.BlakeTwo256]] = &blockchainDB[
 		hash.H256, uint, noopExtrinsic, *generic.Header[uint, hash.H256, runtime.BlakeTwo256]]{}
 	_ blockchain.HeaderMetadata[hash.H256, uint] = &blockchainDB[
 		hash.H256, uint, noopExtrinsic, *generic.Header[uint, hash.H256, runtime.BlakeTwo256]]{}
-	_ blockchain.Backend[hash.H256, uint] = &blockchainDB[
+	_ blockchain.Backend[hash.H256, uint, *generic.Header[uint, hash.H256, runtime.BlakeTwo256]] = &blockchainDB[
 		hash.H256, uint, noopExtrinsic, *generic.Header[uint, hash.H256, runtime.BlakeTwo256]]{}
 )
 

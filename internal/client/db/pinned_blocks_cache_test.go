@@ -17,6 +17,8 @@ func TestPinnedBlocksCache(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, pinnedBlocksCacheEntry{refCount: 1}, *value)
 
+	assert.True(t, cache.Contains(1))
+
 	cache.Pin(1)
 	value, ok = cache.cache.Peek(1)
 	assert.True(t, ok)

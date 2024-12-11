@@ -11,9 +11,9 @@ import (
 )
 
 // Header is the blockchain database header backend. Does not perform any validation.
-type HeaderBackend[Hash runtime.Hash, N runtime.Number] interface {
+type HeaderBackend[Hash runtime.Hash, N runtime.Number, Header runtime.Header[N, Hash]] interface {
 	// Get block header. Returns `nil` if block is not found.
-	Header(hash Hash) (runtime.Header[N, Hash], error)
+	Header(hash Hash) (*Header, error)
 
 	// Get blockchain info.
 	Info() Info[Hash, N]
@@ -35,8 +35,8 @@ type HeaderBackend[Hash runtime.Hash, N runtime.Number] interface {
 }
 
 // Blockchain database backend. Does not perform any validation.
-type Backend[Hash runtime.Hash, N runtime.Number] interface {
-	HeaderBackend[Hash, N]
+type Backend[Hash runtime.Hash, N runtime.Number, Header runtime.Header[N, Hash]] interface {
+	HeaderBackend[Hash, N, Header]
 	HeaderMetadata[Hash, N]
 
 	// Get block body. Returns `nil` if block is not found.

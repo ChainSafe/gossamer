@@ -57,7 +57,7 @@ func (mdb *MemDB[H]) Commit(transaction Transaction[H]) error {
 				cv.refCount += 1
 				mdb.inner[change.ColumnID][string(change.Hash.Bytes())] = cv
 			} else {
-				mdb.inner[change.ColumnID][string(change.Hash.Bytes())] = refCountValue{1, change.Preimage}
+				mdb.inner[change.ColumnID][string(change.Hash.Bytes())] = refCountValue{1, change.Value}
 			}
 		case Reference[H]:
 			_, ok := mdb.inner[change.ColumnID]

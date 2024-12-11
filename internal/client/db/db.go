@@ -5,7 +5,6 @@ package db
 
 import (
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
@@ -17,8 +16,11 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/li1234yun/gods-generic/maps/linkedhashmap"
+	"github.com/ugurcsen/gods-generic/maps/linkedhashmap"
 )
+
+// / Hash type that this backend uses for the database.
+type dbHash = hash.H256
 
 const numCachedHeaders = 8
 
@@ -33,6 +35,12 @@ type dbExtrinsicValues[E runtime.Extrinsic] interface {
 
 func setDbExtrinsic[E runtime.Extrinsic, Value dbExtrinsicValues[E]](mvdt *dbExtrinsic[E], value Value) {
 	mvdt.inner = value
+}
+
+func newDbExtrinsic[E runtime.Extrinsic, Value dbExtrinsicValues[E]](val Value) dbExtrinsic[E] {
+	dbe := dbExtrinsic[E]{}
+	setDbExtrinsic(&dbe, val)
+	return dbe
 }
 
 func (mvdt *dbExtrinsic[E]) SetValue(value any) (err error) {
@@ -92,6 +100,18 @@ type metaUpdate[H, N any] struct {
 	WithState   bool
 }
 
+// func cacheHeader[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](cache *linkedhashmap.Map[H, *Header], hash H, header *Header) {
+// 	cache.Put(hash, header)
+// 	for cache.Size() > 8 {
+// 		var firstKey H
+// 		cache.Any(func(key H, value *Header) bool {
+// 			firstKey = key
+// 			return true
+// 		})
+// 		cache.Remove(firstKey)
+// 	}
+// }
+
 // blockchainDB is the block database.
 type blockchainDB[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
 	db                   database.Database[hash.H256]
@@ -100,7 +120,7 @@ type blockchainDB[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, Header 
 	leaves               api.LeafSet[H, N]
 	leavesMtx            sync.RWMutex
 	headerMetadataCache  blockchain.HeaderMetadataCache[H, N]
-	headerCache          linkedhashmap.Map[H, *runtime.Header[N, H]]
+	headerCache          linkedhashmap.Map[H, *Header]
 	headerCacheMtx       sync.Mutex
 	pinnedBlocksCache    pinnedBlocksCache[H]
 	pinnedBlocksCacheMtx sync.RWMutex
@@ -122,7 +142,7 @@ func newBlockchainDB[
 		leaves:              leaves,
 		meta:                meta,
 		headerMetadataCache: blockchain.NewHeaderMetadataCache[H, N](),
-		headerCache:         *linkedhashmap.New[H, *runtime.Header[N, H]](),
+		headerCache:         *linkedhashmap.New[H, *Header](),
 		pinnedBlocksCache:   newPinnedBlocksCache[H](),
 	}, nil
 }
@@ -226,7 +246,7 @@ func (bdb *blockchainDB[H, N, E, Header]) unpin(hash H) {
 }
 
 func (bdb *blockchainDB[H, N, E, Header]) justificationsUncached(hash H) (runtime.Justifications, error) {
-	blockID := generic.NewBlockID[H, N](generic.BlockIDHash[H]{Inner: hash})
+	blockID := generic.NewBlockID[H, N](generic.BlockIDHash[H]{Hash: hash})
 	justificationsBytes, err := readDB[H, N](bdb.db, columns.KeyLookup, columns.Justifications, blockID)
 	if err != nil {
 		return nil, err
@@ -243,7 +263,7 @@ func (bdb *blockchainDB[H, N, E, Header]) justificationsUncached(hash H) (runtim
 }
 
 func (bdb *blockchainDB[H, N, E, Header]) bodyUncached(hash H) ([]runtime.Extrinsic, error) {
-	blockID := generic.NewBlockID[H, N](generic.BlockIDHash[H]{Inner: hash})
+	blockID := generic.NewBlockID[H, N](generic.BlockIDHash[H]{Hash: hash})
 	bodyBytes, err := readDB[H, N](bdb.db, columns.KeyLookup, columns.Body, blockID)
 	if err != nil {
 		return nil, err
@@ -269,7 +289,7 @@ func (bdb *blockchainDB[H, N, E, Header]) bodyUncached(hash H) ([]runtime.Extrin
 		return nil, nil
 	}
 	var index []dbExtrinsic[E]
-	err = scale.Unmarshal(indexBytes, index)
+	err = scale.Unmarshal(indexBytes, &index)
 	if err != nil {
 		return nil, err
 	}
@@ -287,11 +307,11 @@ func (bdb *blockchainDB[H, N, E, Header]) bodyUncached(hash H) ([]runtime.Extrin
 				var ex E
 				err := scale.Unmarshal(input, &ex)
 				if err != nil {
-					return nil, fmt.Errorf("Error decoding indexed extrinsic: %w", err)
+					return nil, fmt.Errorf("error decoding indexed extrinsic: %w", err)
 				}
 				body = append(body, ex)
 			} else {
-				return nil, fmt.Errorf("Missing indexed transaction %v", hash)
+				return nil, fmt.Errorf("missing indexed transaction %v", hash)
 			}
 		case dbExtrinsicFull[E]:
 			body = append(body, dbex.Extrinsic)
@@ -300,7 +320,9 @@ func (bdb *blockchainDB[H, N, E, Header]) bodyUncached(hash H) ([]runtime.Extrin
 	return body, nil
 }
 
-func (bdb *blockchainDB[H, N, E, Header]) cacheHeader(hash H, header *runtime.Header[N, H]) {
+func (bdb *blockchainDB[H, N, E, Header]) cacheHeader(hash H, header *Header) {
+	// bdb.headerCacheMtx.Lock()
+	// defer bdb.headerCacheMtx.Unlock()
 	bdb.headerCache.Put(hash, header)
 	for bdb.headerCache.Size() > numCachedHeaders {
 		iterator := bdb.headerCache.Iterator()
@@ -311,7 +333,7 @@ func (bdb *blockchainDB[H, N, E, Header]) cacheHeader(hash H, header *runtime.He
 	}
 }
 
-func (bdb *blockchainDB[H, N, E, Header]) Header(hash H) (runtime.Header[N, H], error) {
+func (bdb *blockchainDB[H, N, E, Header]) header(hash H) (*Header, error) {
 	bdb.headerCacheMtx.Lock()
 	defer bdb.headerCacheMtx.Unlock()
 	val, ok := bdb.headerCache.Get(hash)
@@ -319,19 +341,30 @@ func (bdb *blockchainDB[H, N, E, Header]) Header(hash H) (runtime.Header[N, H], 
 		// TODO: create issue to fork linkedhashmap, and add cache.get_refresh(&hash)
 		bdb.headerCache.Remove(hash)
 		bdb.headerCache.Put(hash, val)
-		return *val, nil
+		return val, nil
 	}
 	header, err := readHeader[H, N, Header](
 		bdb.db,
 		columns.KeyLookup,
 		columns.Header,
-		generic.BlockIDHash[H]{Inner: hash},
+		generic.BlockIDHash[H]{Hash: hash},
 	)
+	if err != nil {
+		return header, err
+	}
+	bdb.cacheHeader(hash, header)
+	return header, nil
+}
+
+func (bdb *blockchainDB[H, N, E, Header]) Header(hash H) (*Header, error) {
+	header, err := bdb.header(hash)
 	if err != nil {
 		return nil, err
 	}
-	bdb.cacheHeader(hash, header)
-	return *header, nil
+	if header != nil {
+		return header, nil
+	}
+	return nil, nil
 }
 
 func (bdb *blockchainDB[H, N, E, Header]) Info() blockchain.Info[H, N] {
@@ -343,12 +376,14 @@ func (bdb *blockchainDB[H, N, E, Header]) Info() blockchain.Info[H, N] {
 		GenesisHash:     bdb.meta.GenesisHash,
 		FinalizedHash:   bdb.meta.FinalizedHash,
 		FinalizedNumber: bdb.meta.FinalizedNumber,
-		FinalizedState: &struct {
+		NumberLeaves:    bdb.leaves.Count(),
+		BlockGap:        bdb.meta.BlockGap,
+	}
+	if bdb.meta.FinalizedState != nil {
+		info.FinalizedState = &struct {
 			Hash   H
 			Number N
-		}{bdb.meta.FinalizedState.Hash, bdb.meta.FinalizedState.Number},
-		NumberLeaves: bdb.leaves.Count(),
-		BlockGap:     bdb.meta.BlockGap,
+		}{bdb.meta.FinalizedState.Hash, bdb.meta.FinalizedState.Number}
 	}
 	return info
 }
@@ -377,24 +412,24 @@ func (bdb *blockchainDB[H, N, E, Header]) Hash(number N) (*H, error) {
 		bdb.db,
 		columns.KeyLookup,
 		columns.Header,
-		generic.BlockIDNumber[N]{Inner: number},
+		generic.BlockIDNumber[N]{Number: number},
 	)
 	if err != nil {
 		return nil, err
 	}
-	if header == nil {
-		return nil, nil
+	if header != nil {
+		h := (*header).Hash()
+		return &h, nil
 	}
-	h := (*header).Hash()
-	return &h, nil
+	return nil, nil
 }
 
 func (bdb *blockchainDB[H, N, E, Header]) BlockHashFromID(id generic.BlockID) (*H, error) {
 	switch id := id.(type) {
 	case generic.BlockIDHash[H]:
-		return &id.Inner, nil
+		return &id.Hash, nil
 	case generic.BlockIDNumber[N]:
-		return bdb.Hash(id.Inner)
+		return bdb.Hash(id.Number)
 	default:
 		panic("unsupported block id type")
 	}
@@ -403,9 +438,9 @@ func (bdb *blockchainDB[H, N, E, Header]) BlockHashFromID(id generic.BlockID) (*
 func (bdb *blockchainDB[H, N, E, Header]) BlockNumberFromID(id generic.BlockID) (*N, error) {
 	switch id := id.(type) {
 	case generic.BlockIDHash[H]:
-		return bdb.Number(id.Inner)
+		return bdb.Number(id.Hash)
 	case generic.BlockIDNumber[N]:
-		return &id.Inner, nil
+		return &id.Number, nil
 	default:
 		panic("unsupported block id type")
 	}
@@ -471,7 +506,7 @@ func (bdb *blockchainDB[H, N, E, Header]) LongestContaining(baseHash H, importLo
 		importLock.RLock()
 		defer importLock.RUnlock()
 		info := bdb.Info()
-		if info.FinalizedNumber > baseHeader.Number() {
+		if info.FinalizedNumber > (*baseHeader).Number() {
 			// `baseHeader` is on a dead fork.
 			return nil, nil
 		}
@@ -497,14 +532,14 @@ func (bdb *blockchainDB[H, N, E, Header]) LongestContaining(baseHash H, importLo
 				return nil, err
 			}
 			if currentHeader == nil {
-				return nil, fmt.Errorf("Failed to get header for hash %v", currentHash)
+				return nil, fmt.Errorf("failed to get header for hash %v", currentHash)
 			}
 
-			if currentHeader.Number() < baseHeader.Number() {
+			if (*currentHeader).Number() < (*baseHeader).Number() {
 				break
 			}
 
-			currentHash = currentHeader.ParentHash()
+			currentHash = (*currentHeader).ParentHash()
 		}
 	}
 
@@ -512,7 +547,7 @@ func (bdb *blockchainDB[H, N, E, Header]) LongestContaining(baseHash H, importLo
 	// those which can still be finalized.
 	//
 	// FIXME: substrate issue #1558 only issue this warning when not on a dead fork
-	log.Printf("WARN: Block %v exists in chain but not found when following all leaves backwards\n", baseHash)
+	// log.Printf("WARN: Block %v exists in chain but not found when following all leaves backwards\n", baseHash)
 	return nil, nil
 }
 
@@ -525,7 +560,7 @@ func (bdb *blockchainDB[H, N, E, Header]) HasIndexedTransaction(hash H) (bool, e
 }
 
 func (bdb *blockchainDB[H, N, E, Header]) BlockIndexedBody(hash H) ([][]byte, error) {
-	bodyBytes, err := readDB[H, N](bdb.db, columns.KeyLookup, columns.BodyIndex, generic.BlockIDHash[H]{Inner: hash})
+	bodyBytes, err := readDB[H, N](bdb.db, columns.KeyLookup, columns.BodyIndex, generic.BlockIDHash[H]{Hash: hash})
 	if err != nil {
 		return nil, err
 	}
@@ -535,13 +570,13 @@ func (bdb *blockchainDB[H, N, E, Header]) BlockIndexedBody(hash H) ([][]byte, er
 	index := make([]dbExtrinsic[E], 0)
 	err = scale.Unmarshal(bodyBytes, &index)
 	if err != nil {
-		return nil, fmt.Errorf("Error decoding body list %w", err)
+		return nil, fmt.Errorf("error decoding body list %w", err)
 	}
 	var transactions [][]byte
 	for _, ex := range index {
 		hash, err := ex.Value()
 		if err != nil {
-			return nil, fmt.Errorf("Error decoding body list %w", err)
+			return nil, fmt.Errorf("error decoding body list %w", err)
 		}
 		indexed, ok := hash.(dbExtrinsicIndexed)
 		if !ok {
@@ -549,7 +584,7 @@ func (bdb *blockchainDB[H, N, E, Header]) BlockIndexedBody(hash H) ([][]byte, er
 		}
 		t := bdb.db.Get(columns.Transaction, indexed.Hash.Bytes())
 		if t == nil {
-			return nil, fmt.Errorf("Missing indexed transaction %v", hash)
+			return nil, fmt.Errorf("missing indexed transaction %v", hash)
 		}
 		transactions = append(transactions, t)
 	}
@@ -566,9 +601,9 @@ func (bdb *blockchainDB[H, N, E, Header]) HeaderMetadata(hash H) (blockchain.Cac
 		return blockchain.CachedHeaderMetadata[H, N]{}, err
 	}
 	if header == nil {
-		return blockchain.CachedHeaderMetadata[H, N]{}, fmt.Errorf("Header was not found in the database: %v\n", hash)
+		return blockchain.CachedHeaderMetadata[H, N]{}, fmt.Errorf("header was not found in the database: %v", hash)
 	}
-	headerMetadata := blockchain.NewCachedHeaderMetadata(header)
+	headerMetadata := blockchain.NewCachedHeaderMetadata(*header)
 	bdb.headerMetadataCache.InsertHeaderMetadata(headerMetadata.Hash, headerMetadata)
 	return headerMetadata, nil
 }

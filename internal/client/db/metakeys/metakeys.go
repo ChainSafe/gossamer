@@ -14,7 +14,7 @@ var BestBlock = []byte("best")
 // FinalizedBlock is last finalized block key.
 var FinalizedBlock = []byte("final")
 
-// FinalizedStgate is last finalized state key.
+// FinalizedState is last finalized state key.
 var FinalizedState = []byte("fstate")
 
 // BlockGap key.
