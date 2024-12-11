@@ -88,10 +88,10 @@ func (p Pair) Seed() [32]byte {
 func (p Pair) Public() crypto.Public[Signature] {
 	pubKey, ok := p.public.(ed25519.PublicKey)
 	if !ok {
-		panic("huh?")
+		panic("unexpected type")
 	}
 	if len(pubKey) != 32 {
-		panic("huh?")
+		panic("unexpected length")
 	}
 	var pub Public
 	copy(pub[:], pubKey)
@@ -102,7 +102,7 @@ func (p Pair) Public() crypto.Public[Signature] {
 func (p Pair) Sign(message []byte) Signature {
 	signed := ed25519.Sign(p.secret, message)
 	if len(signed) != 64 {
-		panic("huh?")
+		panic("unexpected length")
 	}
 	var sig Signature
 	copy(sig[:], signed)
@@ -159,7 +159,7 @@ func NewPairFromPhrase(phrase string, password *string) (pair Pair, seed [32]byt
 	}
 
 	if !(32 <= len(bigSeed)) {
-		panic("huh?")
+		panic("unexpected length")
 	}
 
 	seedSlice := bigSeed[:][0:32]

@@ -58,7 +58,7 @@ func (l *LRU[K, V]) costRemove(key K, value V) (cost uint32, removed bool, canAd
 	for uint(cost)+l.currentCost > l.maxCost {
 		_, _, removed = l.LRU.RemoveOldest()
 		if !removed {
-			panic("huh?")
+			panic("should be removed")
 		}
 	}
 	return cost, removed, true

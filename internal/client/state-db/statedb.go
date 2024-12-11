@@ -298,7 +298,7 @@ func (sdbs *stateDBSync[BlockHash, Key]) isPruned(hash BlockHash, number uint64)
 		// We don't know for sure.
 		return IsPrunedMaybePruned
 	default:
-		panic("wtf?")
+		panic("unreachable")
 	}
 }
 
@@ -351,7 +351,7 @@ func (sdbs *stateDBSync[BlockHash, Key]) revertOne() *CommitSet[Key] {
 	case PruningModeArchiveCanonical, PruningModeConstrained:
 		return sdbs.nonCanonical.RevertOne()
 	default:
-		panic("wtf?")
+		panic("unreachable")
 	}
 }
 
@@ -362,7 +362,7 @@ func (sdbs *stateDBSync[BlockHash, Key]) remove(hash BlockHash) *CommitSet[Key] 
 	case PruningModeArchiveCanonical, PruningModeConstrained:
 		return sdbs.nonCanonical.Remove(hash)
 	default:
-		panic("wtf?")
+		panic("unreachable")
 	}
 }
 
@@ -397,7 +397,7 @@ func (sdbs *stateDBSync[BlockHash, Key]) pin(hash BlockHash, number uint64, hint
 		}
 		return ErrInvalidBlock
 	default:
-		panic("wtf?")
+		panic("unreachable")
 	}
 }
 
@@ -494,7 +494,7 @@ func NewStateDB[BlockHash Hash, Key Hash](
 		}
 		selectedMode = mode
 	default:
-		panic("wtf?")
+		panic("unreachable")
 	}
 
 	var dbInitCommitSet CommitSet[Key]

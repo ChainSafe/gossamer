@@ -279,7 +279,7 @@ func (tc *TrieCache[H]) MergeInto(local *LocalTrieCache[H], storageRoot H) {
 			vck.StorageKey = []byte(k)
 			ok, _ := local.valueCache.Add(vck.ValueCacheKeyComparable(), v)
 			if !ok {
-				panic("huh?")
+				panic("should be added")
 			}
 		}
 	}

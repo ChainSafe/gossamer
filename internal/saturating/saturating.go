@@ -18,7 +18,7 @@ func getMax(n uintptr) uint {
 	case 8:
 		return math.MaxUint64
 	default:
-		panic("huh?")
+		panic("unsupported")
 	}
 }
 
