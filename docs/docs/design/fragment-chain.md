@@ -70,7 +70,7 @@ If those conditions follows for 1 or more candidates we consider them possible b
 
 It does a depth breadth-first search looking for candidates in the Candidate Storage that have no potential and that are children of valid backed candidates.
 
-Consider the following chain, the green letters forms the [`BackedChain`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L596) while the red letters are candidates placed in the `Unconnected` candidate storage, drawing them (without all the maps and hashes here and there) we can have something similar to the image bellow.
+Consider the following chain, the green letters forms the [`BackedChain`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L596) while the red letters are candidates placed in the `Unconnected` candidate storage, drawing them (without all the maps and hashes here and there) we can have something similar to the image below.
 
 ![IMG_944F8C1D62F0-1](./assets/img/parachain-protocol/pp_1.jpeg)
 
