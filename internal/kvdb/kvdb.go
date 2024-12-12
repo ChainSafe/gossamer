@@ -101,13 +101,10 @@ func (dbt *DBTransaction) DeletePrefix(col uint32, prefix []byte) {
 
 // / Generic key-value database.
 // /
-// / The `KeyValueDB` deals with "column families", which can be thought of as distinct
+// / The KeyVablueDB deals with "column families", which can be thought of as distinct
 // / stores within a database. Keys written in one column family will not be accessible from
 // / any other. The number of column families must be specified at initialization, with a
 // / differing interface for each database.
-// /
-// / The API laid out here, along with the `Sync` bound implies interior synchronisation for
-// / implementation.
 type KeyValueDB interface {
 	/// Get a value by key.
 	Get(col uint32, key []byte) (DBValue, error)
@@ -116,49 +113,26 @@ type KeyValueDB interface {
 	PrefixGet(col uint32, prefix []byte) (DBValue, error)
 
 	/// Write a transaction of changes to the backing store.
-	// fn write(&self, transaction: DBTransaction) -> io::Result<()>;
 	Write(transaction DBTransaction) error
 
 	/// Iterate over the data for a given column.
-	// fn iter<'a>(&'a self, col: u32) -> Box<dyn Iterator<Item = io::Result<DBKeyValue>> + 'a>;
 	Iter(col uint32) iter.Seq2[DBKeyValue, error]
 
 	/// Iterate over the data for a given column, returning all key/value pairs
 	/// where the key starts with the given prefix.
-	// fn iter_with_prefix<'a>(
-	// 	&'a self,
-	// 	col: u32,
-	// 	prefix: &'a [u8],
-	// ) -> Box<dyn Iterator<Item = io::Result<DBKeyValue>> + 'a>;
 	PrefixIter(col uint32, prefix []byte) iter.Seq2[DBKeyValue, error]
 
-	/// Query statistics.
-	///
-	/// Not all kvdb implementations are able or expected to implement this, so by
-	/// default, empty statistics is returned. Also, not all kvdb implementations
-	/// can return every statistic or configured to do so (some statistics gathering
-	/// may impede the performance and might be off by default).
-	// fn io_stats(&self, _kind: IoStatsKind) -> IoStats {
-	// 	IoStats::empty()
-	// }
-
 	/// Check for the existence of a value by key.
-	// fn has_key(&self, col: u32, key: &[u8]) -> io::Result<bool> {
-	// 	self.get(col, key).map(|opt| opt.is_some())
-	// }
 	HasKey(col uint32, key []byte) (bool, error)
 
 	/// Check for the existence of a value by prefix.
-	// fn has_prefix(&self, col: u32, prefix: &[u8]) -> io::Result<bool> {
-	// 	self.get_by_prefix(col, prefix).map(|opt| opt.is_some())
-	// }
 	HasPrefix(col uint32, prefix []byte) (bool, error)
 }
 
 // / For a given start prefix (inclusive), returns the correct end prefix (non-inclusive).
 // / This assumes the key bytes are ordered in lexicographical order.
-// / Since key length is not limited, for some case we return `None` because there is
-// / no bounded limit (every keys in the serie `[]`, `[255]`, `[255, 255]` ...).
+// / Since key length is not limited, for some case we return nil because there is
+// / no bounded limit (every keys in the series `[]`, `[255]`, `[255, 255]` ...).
 func EndPrefix(prefix []byte) []byte {
 	for len(prefix) > 0 && prefix[len(prefix)-1] == 0xff {
 		prefix = prefix[:len(prefix)-1]

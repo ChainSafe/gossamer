@@ -14,7 +14,7 @@ import (
 	"github.com/tidwall/btree"
 )
 
-// / A key-value database fulfilling the `KeyValueDB` trait, living in memory.
+// / A key-value database fulfilling the KeyValueDB interface, living in memory.
 // / This is generally intended for tests and is not particularly optimised.
 type MemoryKVDB struct {
 	columns map[uint32]*btree.Map[string, []byte]

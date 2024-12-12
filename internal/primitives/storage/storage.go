@@ -21,19 +21,16 @@ type PrefixedStorageKey []byte
 type StorageChild struct {
 	/// Child data for storage.
 	Data btree.Map[string, []byte]
-	/// Associated child info for a child
-	/// trie.
+	/// Associated child info for a child trie.
 	ChildInfo ChildInfo
 }
 
 // / Struct containing data needed for a storage.
-// #[cfg(feature = "std")]
-// #[derive(Default, Debug, Clone)]
 type Storage struct {
 	/// Top trie storage data.
 	Top btree.Map[string, []byte]
-	/// Children trie storage data. Key does not include prefix, only for the `default` trie kind,
-	/// of `ChildType::ParentKeyId` type.
+	/// Children trie storage data. Key does not include prefix, only for the default trie kind,
+	/// of [ChildTypeParentKeyID] type.
 	ChildrenDefault map[string]StorageChild
 }
 
@@ -41,7 +38,7 @@ type Storage struct {
 type ChildInfo interface {
 	// Returns byte sequence (keyspace) that can be use by underlying db to isolate keys.
 	// This is a unique id of the child trie. The collision resistance of this value
-	// depends on the type of child info use. For `ChildInfo::Default` it is and need to be.
+	// depends on the type of child info use. For [ChildTypeParentKeyID] it is and need to be.
 	Keyspace() []byte
 	// Returns a reference to the location in the direct parent of
 	// this trie but without the common prefix for this kind of
@@ -83,7 +80,7 @@ func (cipkid ChildInfoParentKeyID) ChildType() ChildType {
 }
 
 // Instantiates child information for a default child trie
-// of kind `ChildType::ParentKeyId`, using an unprefixed parent
+// of kind ChildInfoParentKeyID, using an unprefixed parent
 // storage key.
 func NewDefaultChildInfo(storageKey []byte) ChildInfo {
 	return ChildInfoParentKeyID{

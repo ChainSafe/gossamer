@@ -115,7 +115,7 @@ type AuxStore interface {
 // /
 // / # State Pruning
 // /
-// / While an object from `state_at` is alive, the state
+// / While an object from StateAt is alive, the state
 // / should not be pruned. The backend should internally reference-count
 // / its state objects.
 // /

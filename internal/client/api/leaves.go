@@ -133,10 +133,10 @@ func (ls *LeafSet[H, N]) Remove(hash H, number N, parentHash *H) *RemoveOutcome[
 }
 
 // FinalizeHeight will note a block height finalized, displacing all leaves with number less than the finalized
-// block's.
+// block number.
 //
 // Although it would be more technically correct to also prune out leaves at the
-// same number as the finalized block, but with different hashes, the current behavior
+// same number as the finalized block with different hashes, the current behavior
 // is simpler and our assumptions about how finalization works means that those leaves
 // will be pruned soon afterwards anyway.
 func (ls *LeafSet[H, N]) FinalizeHeight(number N) FinalizationOutcome[H, N] {
@@ -158,7 +158,7 @@ func (ls *LeafSet[H, N]) FinalizeHeight(number N) FinalizationOutcome[H, N] {
 	return FinalizationOutcome[H, N]{removed: *belowBoundary}
 }
 
-// DisplacedByFinalHeight is the same as `FinalizeHeight()`, but it only simulates the operation.
+// DisplacedByFinalHeight is the same as FinalizeHeight(), but it only simulates the operation.
 //
 // This means that no changes are done.
 //
@@ -179,7 +179,7 @@ func (ls *LeafSet[H, N]) DisplacedByFinalHeight(number N) FinalizationOutcome[H,
 
 // Undo all pending operations.
 //
-// This returns an `Undo` struct, where any
+// This returns an [Undo] struct, where any
 // outcomes objects that have returned by previous method calls
 // should be passed to via the appropriate methods. Otherwise,
 // the on-disk state may get out of sync with in-memory state.

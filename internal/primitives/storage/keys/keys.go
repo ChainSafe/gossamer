@@ -15,8 +15,8 @@ var (
 
 // / Whether a key is a child storage key.
 // /
-// / This is convenience function which basically checks if the given `key` starts
-// / with `CHILD_STORAGE_KEY_PREFIX` and doesn't do anything apart from that.
+// / This is convenience function which basically checks if the given key starts
+// / with [DefaultChildStorageKeyPrefix].
 func IsChildStorageKey(key []byte) bool {
 	i := strings.Index(string(key), string(DefaultChildStorageKeyPrefix))
 	return i == 0

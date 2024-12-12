@@ -157,10 +157,8 @@ func NewTreeRoute[H runtime.Hash, N runtime.Number](
 // / Hash and number of a block.
 type HashNumber[H runtime.Hash, N runtime.Number] struct {
 	/// The number of the block.
-	// pub number: NumberFor<Block>,
 	Number N
 	/// The hash of the block.
-	// pub hash: Block::Hash,
 	Hash H
 }
 
@@ -193,43 +191,11 @@ type TreeRoute[H runtime.Hash, N runtime.Number] struct {
 	Pivot uint
 }
 
-// impl<Block: BlockT> TreeRoute<Block> {
-// 	/// Creates a new `TreeRoute`.
-// 	///
-// 	/// To preserve the structure safety invariats it is required that `pivot < route.len()`.
-// 	pub fn new(route: Vec<HashAndNumber<Block>>, pivot: usize) -> Result<Self, String> {
-// 		if pivot < route.len() {
-// 			Ok(TreeRoute { route, pivot })
-// 		} else {
-// 			Err(format!(
-// 				"TreeRoute pivot ({}) should be less than route length ({})",
-// 				pivot,
-// 				route.len()
-// 			))
-// 		}
-// 	}
-
 // / Get a slice of all retracted blocks in reverse order (towards common ancestor).
 func (tr TreeRoute[H, N]) Retracted() []HashNumber[H, N] {
 	return tr.Route[:tr.Pivot]
 }
 
-// 	/// Convert into all retracted blocks in reverse order (towards common ancestor).
-// 	pub fn into_retracted(mut self) -> Vec<HashAndNumber<Block>> {
-// 		self.route.truncate(self.pivot);
-// 		self.route
-// 	}
-
-// /// Get the common ancestor block. This might be one of the two blocks of the
-// /// route.
-//
-//	pub fn common_block(&self) -> &HashAndNumber<Block> {
-//		self.route.get(self.pivot).expect(
-//			"tree-routes are computed between blocks; \
-//			which are included in the route; \
-//			thus it is never empty; qed",
-//		)
-//	}
 func (tr TreeRoute[H, N]) CommonBlock() HashNumber[H, N] {
 	return tr.Route[tr.Pivot]
 }
@@ -238,12 +204,6 @@ func (tr TreeRoute[H, N]) CommonBlock() HashNumber[H, N] {
 func (tr TreeRoute[H, N]) Enacted() []HashNumber[H, N] {
 	return tr.Route[tr.Pivot+1:]
 }
-
-// 	/// Returns the last block.
-// 	pub fn last(&self) -> Option<&HashAndNumber<Block>> {
-// 		self.route.last()
-// 	}
-// }
 
 // Handles header metadata: hash, number, parent hash, etc.
 type HeaderMetadata[H, N any] interface {
@@ -273,7 +233,7 @@ func NewHeaderMetadataCache[H comparable, N any](capacity ...uint32) HeaderMetad
 	}
 }
 
-// HeaderMetadata returns the CachedHeaderMetadata for a given hash or `nil` if not found.
+// HeaderMetadata returns the CachedHeaderMetadata for a given hash or nil if not found.
 func (hmc *HeaderMetadataCache[H, N]) HeaderMetadata(hash H) *CachedHeaderMetadata[H, N] {
 	hmc.RLock()
 	defer hmc.RUnlock()
@@ -284,14 +244,14 @@ func (hmc *HeaderMetadataCache[H, N]) HeaderMetadata(hash H) *CachedHeaderMetada
 	return &val
 }
 
-// InsertHeaderMetadata inserts a supplied `metadata` for a `hash`.
+// InsertHeaderMetadata inserts a supplied metadata for a hash.
 func (hmc *HeaderMetadataCache[H, N]) InsertHeaderMetadata(hash H, metadata CachedHeaderMetadata[H, N]) {
 	hmc.Lock()
 	defer hmc.Unlock()
 	hmc.cache.Add(hash, metadata)
 }
 
-// RemoveHeaderMetadata removes the `metadata` for a `hash`.
+// RemoveHeaderMetadata removes the metadata for a hash.
 func (hmc *HeaderMetadataCache[H, N]) RemoveHeaderMetadata(hash H) {
 	hmc.Lock()
 	defer hmc.Unlock()

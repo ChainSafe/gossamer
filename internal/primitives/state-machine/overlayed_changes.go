@@ -21,14 +21,12 @@ type StorageKeyValue struct {
 type StorageCollection []StorageKeyValue
 
 // / In memory arrays of storage values for multiple child tries.
-// pub type ChildStorageCollection = Vec<(StorageKey, StorageCollection)>;
 type ChildStorageCollection []struct {
 	StorageKey
 	StorageCollection
 }
 
 // / In memory array of storage values.
-// pub type OffchainChangesCollection = Vec<((Vec<u8>, Vec<u8>), OffchainOverlayedChange)>;
 type OffchainChangesCollection []struct {
 	PrefixKey struct {
 		Prefix []byte
