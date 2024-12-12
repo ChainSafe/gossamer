@@ -20,13 +20,13 @@ type StorageKeyValue struct {
 // In memory array of storage values.
 type StorageCollection []StorageKeyValue
 
-// / In memory arrays of storage values for multiple child tries.
+// In memory arrays of storage values for multiple child tries.
 type ChildStorageCollection []struct {
 	StorageKey
 	StorageCollection
 }
 
-// / In memory array of storage values.
+// In memory array of storage values.
 type OffchainChangesCollection []struct {
 	PrefixKey struct {
 		Prefix []byte
@@ -35,31 +35,31 @@ type OffchainChangesCollection []struct {
 	ValueOperation offchain.OffchainOverlayedChange
 }
 
-// / Transaction index operation.
+// Transaction index operation.
 type IndexOperations interface {
 	IndexOperationInsert | IndexOperationRenew
 }
 
-// / Transaction index operation.
+// Transaction index operation.
 type IndexOperation interface {
 	isIndexOperation()
 }
 
-// / Insert transaction into index.
+// Insert transaction into index.
 type IndexOperationInsert struct {
-	/// Extrinsic index in the current block.
+	// Extrinsic index in the current block.
 	Extrinsic uint32
-	/// Data content hash.
+	// Data content hash.
 	Hash []byte
-	/// Indexed data size.
+	// Indexed data size.
 	Size uint32
 }
 
-// / Renew existing transaction storage.
+// Renew existing transaction storage.
 type IndexOperationRenew struct {
-	/// Extrinsic index in the current block.
+	// Extrinsic index in the current block.
 	Extrinsic uint32
-	/// Referenced index hash.
+	// Referenced index hash.
 	Hash []byte
 }
 

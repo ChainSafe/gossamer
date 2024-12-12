@@ -3,7 +3,7 @@
 
 package testing
 
-// / An opaque extrinsic wrapper type.
+// An opaque extrinsic wrapper type.
 type ExtrinsicsWrapper[T any] struct {
 	T T
 }

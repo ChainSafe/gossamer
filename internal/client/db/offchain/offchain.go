@@ -13,14 +13,14 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/database"
 )
 
-// / Offchain local storage
+// Offchain local storage
 type LocalStorage struct {
 	db       database.Database[hash.H256]
 	locks    map[string]*sync.Mutex
 	locksMtx sync.Mutex
 }
 
-// / Create offchain local storage with given backend.
+// Create offchain local storage with given backend.
 func NewLocalStorage(db database.Database[hash.H256]) *LocalStorage {
 	return &LocalStorage{
 		db:    db,
@@ -88,7 +88,7 @@ func (ls *LocalStorage) CompareAndSet(prefix, itemKey, oldValue, newValue []byte
 	return isSet
 }
 
-// / Concatenate the prefix and key to create an offchain key in the db.
+// Concatenate the prefix and key to create an offchain key in the db.
 func ConcatenatePrefixAndKey(prefix, key []byte) []byte {
 	return append(prefix, key...)
 }

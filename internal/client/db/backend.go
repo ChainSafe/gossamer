@@ -35,7 +35,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// / Block pruning settings.
+// Block pruning settings.
 type BlocksPruning interface {
 	isBlocksPruning()
 }
@@ -43,37 +43,37 @@ type BlocksPruningValues interface {
 	BlocksPruningKeepAll | BlocksPruningKeepFinalized | BlocksPruningSome
 }
 
-// / Keep full block history, of every block that was ever imported.
+// Keep full block history, of every block that was ever imported.
 type BlocksPruningKeepAll struct{}
 
-// / Keep full finalized block history.
+// Keep full finalized block history.
 type BlocksPruningKeepFinalized struct{}
 
-// / Keep N recent finalized blocks.
+// Keep N recent finalized blocks.
 type BlocksPruningSome uint32
 
 func (BlocksPruningKeepAll) isBlocksPruning()       {}
 func (BlocksPruningKeepFinalized) isBlocksPruning() {}
 func (BlocksPruningSome) isBlocksPruning()          {}
 
-// / Where to find the database..
-// / NOTE: only uses a custom already-open database.
+// Where to find the database..
+// NOTE: only uses a custom already-open database.
 type DatabaseSource struct {
-	/// the handle to the custom storage
+	// the handle to the custom storage
 	DB database.Database[hash.H256]
-	/// if set, the `create` flag will be required to open such datasource
+	// if set, the `create` flag will be required to open such datasource
 	RequireCreateFlag bool
 }
 
-// / DB-backed patricia trie state, transaction type is an overlay of changes to commit.
+// DB-backed patricia trie state, transaction type is an overlay of changes to commit.
 type DBState[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	*statemachine.TrieBackend[H, Hasher]
 }
 
-// / A reference tracking state.
-// /
-// / It makes sure that the hash we are using stays pinned in storage
-// / until this structure is dropped.
+// A reference tracking state.
+//
+// It makes sure that the hash we are using stays pinned in storage
+// until this structure is dropped.
 type refTrackingState[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	state      DBState[H, Hasher]
 	storage    storageDB[H]
@@ -86,19 +86,19 @@ func (rts *refTrackingState[H, Hasher]) Drop() {
 	}
 }
 
-// / Database settings.
+// Database settings.
 type DatabaseSettings struct {
-	/// The maximum trie cache size in bytes.
-	///
-	/// If nil is given, the cache is disabled.
+	// The maximum trie cache size in bytes.
+	//
+	// If nil is given, the cache is disabled.
 	TrieCacheMaximumSize *uint
-	/// Requested state pruning mode.
+	// Requested state pruning mode.
 	StatePruning statedb.PruningMode
-	/// Where to find the database.
+	// Where to find the database.
 	Source DatabaseSource
-	/// Block pruning mode.
-	///
-	/// NOTE: only finalized blocks are subject for removal!
+	// Block pruning mode.
+	//
+	// NOTE: only finalized blocks are subject for removal!
 	BlocksPruning BlocksPruning
 }
 
@@ -121,7 +121,7 @@ type finalizedBlock[H runtime.Hash] struct {
 	*runtime.Justification
 }
 
-// / [Backend] block import operation which represents a transaction
+// [Backend] block import operation which represents a transaction
 type BlockImportOperation[
 	H runtime.Hash,
 	Hasher runtime.Hasher[H],
@@ -364,10 +364,10 @@ func newEmptyStorage[H runtime.Hash, Hasher runtime.Hasher[H]]() emptyStorage[H]
 	return emptyStorage[H]{root}
 }
 
-// / Disk backend.
-// /
-// / Disk backend keeps data in a key-value store. In archive mode, trie nodes are kept from all
-// / blocks. Otherwise, trie nodes are kept only from some recent blocks.
+// Disk backend.
+//
+// Disk backend keeps data in a key-value store. In archive mode, trie nodes are kept from all
+// blocks. Otherwise, trie nodes are kept only from some recent blocks.
 type Backend[
 	H runtime.Hash,
 	Hasher runtime.Hasher[H],
@@ -389,9 +389,9 @@ type Backend[
 	// state_usage: Arc<StateUsageStats>,
 }
 
-// / Create a new instance of database backend.
-// /
-// / The pruning window is how old a block must be before the state is pruned.
+// Create a new instance of database backend.
+//
+// The pruning window is how old a block must be before the state is pruned.
 func NewBackend[
 	H runtime.Hash,
 	N runtime.Number,
@@ -495,7 +495,7 @@ func newBackendFromDatabase[
 	return &backend, nil
 }
 
-// / Reset the shared trie cache.
+// Reset the shared trie cache.
 func (b *Backend[H, Hasher, N, E, Header]) ResetTrieCache() {
 	if b.sharedTrieCache != nil {
 		b.sharedTrieCache.Reset()
@@ -507,13 +507,13 @@ type numberHash[H, N any] struct {
 	Hash   H
 }
 
-// / Handle setting head within a transaction. routeTo should be the last
-// / block that existed in the database. bestTo should be the best block
-// / to be set.
-// /
-// / In the case where the new best block is a block to be imported, routeTo
-// / should be the parent of bestTO. In the case where we set an existing block
-// / to be best, routTo should equal to bestTo.
+// Handle setting head within a transaction. routeTo should be the last
+// block that existed in the database. bestTo should be the best block
+// to be set.
+//
+// In the case where the new best block is a block to be imported, routeTo
+// should be the parent of bestTO. In the case where we set an existing block
+// to be best, routTo should equal to bestTo.
 func (b *Backend[H, Hasher, N, E, Header]) setHeadWithTransaction(
 	transaction *database.Transaction[hash.H256], routeTo H, bestTo numberHash[H, N],
 ) ([2][]H, error) {

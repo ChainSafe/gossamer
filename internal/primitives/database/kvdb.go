@@ -11,7 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 )
 
-// / A wrapper around [kvdb.KeyValueDB] that implements [Database] interface
+// A wrapper around [kvdb.KeyValueDB] that implements [Database] interface
 type DBAdapter[H runtime.Hash] struct {
 	db kvdb.KeyValueDB
 }

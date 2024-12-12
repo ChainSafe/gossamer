@@ -14,8 +14,8 @@ import (
 	"github.com/tidwall/btree"
 )
 
-// / A key-value database fulfilling the KeyValueDB interface, living in memory.
-// / This is generally intended for tests and is not particularly optimised.
+// A key-value database fulfilling the KeyValueDB interface, living in memory.
+// This is generally intended for tests and is not particularly optimised.
 type MemoryKVDB struct {
 	columns map[uint32]*btree.Map[string, []byte]
 	sync.RWMutex
@@ -23,8 +23,8 @@ type MemoryKVDB struct {
 
 var ErrInvalidColumn = errors.New("no such column family")
 
-// / Create an in-memory database with the given number of columns.
-// / Columns will be indexable by 0..numCols
+// Create an in-memory database with the given number of columns.
+// Columns will be indexable by 0..numCols
 func New(numCols uint32) *MemoryKVDB {
 	cols := make(map[uint32]*btree.Map[string, []byte])
 	for i := uint32(0); i < numCols; i++ {

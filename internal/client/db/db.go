@@ -20,7 +20,7 @@ import (
 	"github.com/ugurcsen/gods-generic/maps/linkedhashmap"
 )
 
-// / Hash type that this backend uses for the database.
+// Hash type that this backend uses for the database.
 type dbHash = hash.H256
 
 const numCachedHeaders = 8

@@ -17,20 +17,20 @@ type StorageKey []byte
 // Storage key of a child trie, it contains the prefix to the key.
 type PrefixedStorageKey []byte
 
-// / Child trie storage data.
+// Child trie storage data.
 type StorageChild struct {
-	/// Child data for storage.
+	// Child data for storage.
 	Data btree.Map[string, []byte]
-	/// Associated child info for a child trie.
+	// Associated child info for a child trie.
 	ChildInfo ChildInfo
 }
 
-// / Struct containing data needed for a storage.
+// Struct containing data needed for a storage.
 type Storage struct {
-	/// Top trie storage data.
+	// Top trie storage data.
 	Top btree.Map[string, []byte]
-	/// Children trie storage data. Key does not include prefix, only for the default trie kind,
-	/// of [ChildTypeParentKeyID] type.
+	// Children trie storage data. Key does not include prefix, only for the default trie kind,
+	// of [ChildTypeParentKeyID] type.
 	ChildrenDefault map[string]StorageChild
 }
 

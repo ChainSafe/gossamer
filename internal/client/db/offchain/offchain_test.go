@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// / Create new offchain storage for tests (backed by memorydb)
+// Create new offchain storage for tests (backed by memorydb)
 func NewTestLocalStorage(t *testing.T) *LocalStorage {
 	t.Helper()
 	kvdb := memorykvdb.New(13)

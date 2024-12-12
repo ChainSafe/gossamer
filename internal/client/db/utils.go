@@ -20,8 +20,8 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// / Number of columns in the db. Must be the same for both full && light dbs.
-// / Otherwise RocksDb will fail to open database && check its type.
+// Number of columns in the db. Must be the same for both full && light dbs.
+// Otherwise RocksDb will fail to open database && check its type.
 const NumColumns uint32 = 13
 
 // Meta column. The set of keys in the column is shared by full && light storages.
@@ -67,8 +67,8 @@ func newNumberIndexKey[N runtime.Number](num N) (numberIndexKey, error) {
 	return numberIndexKey{byte(n >> 24), byte((n >> 16) & 0xff), byte((n >> 8) & 0xff), byte(n & 0xff)}, nil
 }
 
-// / Convert number and hash into long lookup key for blocks that are
-// / not in the canonical chain.
+// Convert number and hash into long lookup key for blocks that are
+// not in the canonical chain.
 func newLookupKey[N runtime.Number, H runtime.Hash](number N, hash H) ([]byte, error) {
 	lookupKey, err := newNumberIndexKey(number)
 	if err != nil {
@@ -78,7 +78,7 @@ func newLookupKey[N runtime.Number, H runtime.Hash](number N, hash H) ([]byte, e
 	return key, nil
 }
 
-// / Delete number to hash mapping in DB transaction.
+// Delete number to hash mapping in DB transaction.
 func removeNumberToKeyMapping[N runtime.Number](
 	transaction *database.Transaction[hash.H256], keyLookupCol uint32, number N,
 ) error {
@@ -90,8 +90,8 @@ func removeNumberToKeyMapping[N runtime.Number](
 	return nil
 }
 
-// / Place a number mapping into the database. This maps number to current perceived
-// / block hash at that position.
+// Place a number mapping into the database. This maps number to current perceived
+// block hash at that position.
 func insertNumberToKeyMapping[H runtime.Hash, N runtime.Number](
 	transaction *database.Transaction[hash.H256], keyLookupCol uint32, number N, hash H,
 ) error {
@@ -107,7 +107,7 @@ func insertNumberToKeyMapping[H runtime.Hash, N runtime.Number](
 	return nil
 }
 
-// / Insert a hash to key mapping in the database.
+// Insert a hash to key mapping in the database.
 func insertHashToKeyMapping[H runtime.Hash, N runtime.Number](
 	transaction *database.Transaction[hash.H256], keyLookupCol uint32, number N, hash H,
 ) error {
@@ -153,7 +153,7 @@ func readDB[H runtime.Hash, N runtime.Number](
 	return nil, nil
 }
 
-// / Remove database column entry for the given block.
+// Remove database column entry for the given block.
 func removeFromDB[H runtime.Hash, N runtime.Number](
 	transaction *database.Transaction[hash.H256],
 	db database.Database[hash.H256],
@@ -192,7 +192,7 @@ func readHeader[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
 	return &h, nil
 }
 
-// / Read meta from the database.
+// Read meta from the database.
 func readMeta[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
 	db database.Database[hash.H256], colHeader database.ColumnID,
 ) (meta[H, N], error) {
