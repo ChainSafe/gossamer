@@ -18,13 +18,13 @@ type leafSetItem[H comparable, N runtime.Number] struct {
 	number N
 }
 
-// ImportOutcome privately contains the inserted and removed leaves after an import action.
+// ImportOutcome contains the inserted and removed leaves after an import action.
 type ImportOutcome[H comparable, N runtime.Number] struct {
 	inserted leafSetItem[H, N]
 	removed  *H
 }
 
-// RemoveOutcome privates contains the inserted and removed leaves after a remove action.
+// RemoveOutcome contains the inserted and removed leaves after a remove action.
 type RemoveOutcome[H comparable, N runtime.Number] struct {
 	inserted *H
 	removed  leafSetItem[H, N]
@@ -52,7 +52,7 @@ type LeafSet[H comparable, N runtime.Number] struct {
 	storage btree.Map[N, []H]
 }
 
-// NewLeafSet is constructor for a new, blank `LeafSet`.
+// NewLeafSet is constructor for a new, blank [LeafSet].
 func NewLeafSet[H comparable, N runtime.Number]() LeafSet[H, N] {
 	return LeafSet[H, N]{
 		storage: *btree.NewMap[N, []H](0),
@@ -105,11 +105,11 @@ func (ls *LeafSet[H, N]) Import(hash H, number N, parentHash H) ImportOutcome[H,
 // Remove will update the leaf list on removal.
 //
 // Note that the leaves set structure doesn't have the information to decide if the
-// leaf we're removing is the last children of the parent. Follows that this method requires
-// the caller to check this condition and optionally pass the `parentHash` if `hash` is
+// leaf we're removing is the last child of the parent. Follows that this method requires
+// the caller to check this condition and optionally pass the parentHash if hash is
 // its last child.
 //
-// Returns `nil` if no modifications are applied.
+// Returns nil if no modifications are applied.
 func (ls *LeafSet[H, N]) Remove(hash H, number N, parentHash *H) *RemoveOutcome[H, N] {
 	if !ls.removeLeaf(number, hash) {
 		return nil

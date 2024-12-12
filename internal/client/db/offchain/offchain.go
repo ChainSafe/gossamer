@@ -15,14 +15,12 @@ import (
 
 // / Offchain local storage
 type LocalStorage struct {
-	// db: Arc<dyn Database<DbHash>>,
-	db database.Database[hash.H256]
-	// locks: Arc<Mutex<HashMap<Vec<u8>, Arc<Mutex<()>>>>>,
+	db       database.Database[hash.H256]
 	locks    map[string]*sync.Mutex
 	locksMtx sync.Mutex
 }
 
-// / Create offchain local storage with given `KeyValueDB` backend.
+// / Create offchain local storage with given backend.
 func NewLocalStorage(db database.Database[hash.H256]) *LocalStorage {
 	return &LocalStorage{
 		db:    db,

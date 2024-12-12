@@ -1459,10 +1459,6 @@ func (b *Backend[H, Hasher, N, E, Header]) OffchainStorage() p_offchain.Offchain
 	return b.offchainStorage
 }
 
-func (b *Backend[H, Hasher, N, E, Header]) UsageInfo() *api.UsageInfo {
-	panic("unimpl")
-}
-
 func (b *Backend[H, Hasher, N, E, Header]) Revert(n N, revertFinalized bool) (N, map[H]any, error) {
 	revertedFinalized := make(map[H]any)
 
@@ -1789,8 +1785,10 @@ func (b *Backend[H, Hasher, N, E, Header]) RequiresFullSync() bool {
 		return true
 	case statedb.PruningModeArchiveCanonical:
 		return true
-	default:
+	case statedb.PruningModeConstrained:
 		return false
+	default:
+		panic("unreachable")
 	}
 }
 

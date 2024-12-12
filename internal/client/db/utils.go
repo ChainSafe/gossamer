@@ -192,6 +192,7 @@ func readHeader[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
 	return &h, nil
 }
 
+// / Read meta from the database.
 func readMeta[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
 	db database.Database[hash.H256], colHeader database.ColumnID,
 ) (meta[H, N], error) {
