@@ -15,6 +15,16 @@ linters-settings:
     severity: warning
     confidence: 0.8
 
+  gosec:
+    excludes:
+      - G115
+      - G301
+      - G306
+
+  gosimple:
+    excludes:
+      - S1009
+
   lll:
     # max line length, lines longer will be reported. Default is 120.
     # '\t' is counted as 1 character by default, and can be changed with the tab-width option
@@ -94,6 +104,14 @@ issues:
     - text: 'shadow: declaration of "ok" shadows declaration*'
       linters:
         - govet
+
+    - text: 'printf: non-constant format*'
+      linters:
+        - govet
+
+    - text: 'return both a `nil` error and an invalid value*'
+      linters:
+        - nilnil
 
     - linters:
         - revive

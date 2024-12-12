@@ -82,7 +82,7 @@ func (nt *neighborTracker) run() {
 
 		case block := <-nt.finalizationCha:
 			if block != nil {
-				nt.updateState(block.SetID, block.Round, uint32(block.Header.Number)) //nolint
+				nt.updateState(block.SetID, block.Round, uint32(block.Header.Number))
 				err := nt.BroadcastNeighborMsg()
 				if err != nil {
 					logger.Errorf("broadcasting neighbour message: %v", err)

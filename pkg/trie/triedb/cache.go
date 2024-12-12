@@ -187,7 +187,7 @@ func (no BranchCachedNode[H]) children() []child[H] { //nolint:unused
 	r := []child[H]{}
 	for i, ch := range no.Children {
 		if ch != nil {
-			nibble := uint8(i) //nolint:gosec
+			nibble := uint8(i)
 			r = append(r, child[H]{
 				nibble:           &nibble,
 				CachedNodeHandle: ch,

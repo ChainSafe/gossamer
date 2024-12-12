@@ -29,7 +29,7 @@ func NewPebble(path string, inMemory bool) (*PebbleDB, error) {
 	if inMemory {
 		opts = &pebble.Options{FS: vfs.NewMem()}
 	} else {
-		if err := os.MkdirAll(path, os.ModePerm); err != nil { //nolint:gosec
+		if err := os.MkdirAll(path, os.ModePerm); err != nil {
 			return nil, err
 		}
 	}

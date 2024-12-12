@@ -108,7 +108,7 @@ func (x *FromBlock) Encode() (FromBlockType, []byte) {
 		if rawValue > uint(math.MaxUint32) {
 			rawValue = math.MaxUint32
 		}
-		binary.LittleEndian.PutUint32(encoded, uint32(rawValue)) //nolint:gosec
+		binary.LittleEndian.PutUint32(encoded, uint32(rawValue))
 		return FromBlockNumber, encoded
 	case common.Hash:
 		return FromBlockHash, rawValue.ToBytes()

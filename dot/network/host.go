@@ -158,9 +158,9 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		// This needs to be explicitly mentioned
 
 		// maxInPeers is later used in peerstate only and defines available Incoming connection slots
-		uint32(cfg.MaxPeers-cfg.MinPeers), //nolint:gosec
+		uint32(cfg.MaxPeers-cfg.MinPeers),
 		// maxOutPeers is later used in peerstate only and defines available Outgoing connection slots
-		uint32(cfg.MaxPeers/2), //nolint:gosec
+		uint32(cfg.MaxPeers/2),
 		reservedOnly,
 		peerSetSlotAllocTime,
 	)
