@@ -281,7 +281,7 @@ func joinInput(i1 []byte, i2 []byte) []byte {
 }
 
 var (
-	errDoesNotExist = errors.New("Database does not exist at given location")
+	errDoesNotExist = errors.New("database does not exist at given location")
 )
 
 func openDatabase(dbSource DatabaseSource, create bool) (database.Database[hash.H256], error) {

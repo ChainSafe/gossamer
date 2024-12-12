@@ -28,7 +28,7 @@ func readChildren[H comparable](
 	var children []H
 	err := scale.Unmarshal(rawVal, &children)
 	if err != nil {
-		return nil, fmt.Errorf("Error decoding children: %w", err)
+		return nil, fmt.Errorf("error decoding children: %w", err)
 	}
 
 	return children, nil

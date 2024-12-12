@@ -66,9 +66,6 @@ type DatabaseSource struct {
 }
 
 // / DB-backed patricia trie state, transaction type is an overlay of changes to commit.
-// pub type DbState<B> =
-//
-//	sp_state_machine::TrieBackend<Arc<dyn sp_state_machine::Storage<HashingFor<B>>>, HashingFor<B>>;
 type DBState[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	*statemachine.TrieBackend[H, Hasher]
 }
@@ -77,17 +74,13 @@ type DBState[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 // /
 // / It makes sure that the hash we are using stays pinned in storage
 // / until this structure is dropped.
-// pub struct RefTrackingState<Block: BlockT> {
-type RefTrackingState[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
-	// state: DbState<Block>,
-	state DBState[H, Hasher]
-	// storage: Arc<StorageDb<Block>>,
-	storage storageDB[H]
-	// parent_hash: Option<Block::Hash>,
-	parentHash *H
+type refTrackingState[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
+	state      DBState[H, Hasher]
+	storage    storageDB[H]
+	parentHash *H // can be nil
 }
 
-func (rts *RefTrackingState[H, Hasher]) Drop() {
+func (rts *refTrackingState[H, Hasher]) Drop() {
 	if rts.parentHash != nil {
 		rts.storage.StateDB.Unpin(*rts.parentHash)
 	}
@@ -97,7 +90,7 @@ func (rts *RefTrackingState[H, Hasher]) Drop() {
 type DatabaseSettings struct {
 	/// The maximum trie cache size in bytes.
 	///
-	/// If `None` is given, the cache is disabled.
+	/// If nil is given, the cache is disabled.
 	TrieCacheMaximumSize *uint
 	/// Requested state pruning mode.
 	StatePruning statedb.PruningMode
@@ -128,8 +121,7 @@ type finalizedBlock[H runtime.Hash] struct {
 	*runtime.Justification
 }
 
-// / Database transaction
-// pub struct BlockImportOperation<Block: BlockT> {
+// / [Backend] block import operation which represents a transaction
 type BlockImportOperation[
 	H runtime.Hash,
 	Hasher runtime.Hasher[H],
@@ -137,28 +129,17 @@ type BlockImportOperation[
 	Header runtime.Header[N, H],
 	E runtime.Extrinsic,
 ] struct {
-	// old_state: RecordStatsState<RefTrackingState<Block>, Block>,
-	oldState recordStatsState[H, RefTrackingState[H, Hasher]]
-	// db_updates: PrefixedMemoryDB<HashingFor<Block>>,
-	dbUpdates trie.PrefixedMemoryDB[H, Hasher]
-	// storage_updates: StorageCollection,
-	storageUpdates statemachine.StorageCollection
-	// child_storage_updates: ChildStorageCollection,
-	childStorageUpdates statemachine.ChildStorageCollection
-	// offchain_storage_updates: OffchainChangesCollection,
+	oldState               refTrackingState[H, Hasher]
+	dbUpdates              trie.PrefixedMemoryDB[H, Hasher]
+	storageUpdates         statemachine.StorageCollection
+	childStorageUpdates    statemachine.ChildStorageCollection
 	offchainStorageUpdates statemachine.OffchainChangesCollection
-	// pending_block: Option<PendingBlock<Block>>,
-	pendingBlock *PendingBlock[H, N, Header, E]
-	// aux_ops: Vec<(Vec<u8>, Option<Vec<u8>>)>,
-	auxOps api.AuxDataOperations
-	// finalized_blocks: Vec<(Block::Hash, Option<Justification>)>,
-	finalizedBlocks []finalizedBlock[H]
-	// set_head: Option<Block::Hash>,
-	setHead *H
-	// commit_state: bool,
-	commitState bool
-	// index_ops: Vec<IndexOperation>,
-	indexOps []statemachine.IndexOperation
+	pendingBlock           *pendingBlock[H, N, Header, E] // can be nil to represent no pending block
+	auxOps                 api.AuxDataOperations
+	finalizedBlocks        []finalizedBlock[H]
+	setHead                *H // can be nil to represent no head
+	commitState            bool
+	indexOps               []statemachine.IndexOperation
 }
 
 func (bio *BlockImportOperation[H, Hasher, N, Header, E]) applyOffchain(transaction *database.Transaction[hash.H256]) {
@@ -234,13 +215,13 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) applyNewState(
 		return true
 	})
 
-	root, transaction := bio.oldState.state.state.FullStorageRoot(deltas, childDeltas, stateVersion)
+	root, transaction := bio.oldState.state.FullStorageRoot(deltas, childDeltas, stateVersion)
 	bio.dbUpdates = *transaction.PrefixedMemoryDB
 	return root, nil
 }
 
 func (bio *BlockImportOperation[H, Hasher, N, Header, E]) State() (statemachine.Backend[H, Hasher], error) {
-	return &bio.oldState.state.state, nil
+	return &bio.oldState.state, nil
 }
 
 func (bio *BlockImportOperation[H, Hasher, N, Header, E]) SetBlockData(
@@ -253,7 +234,7 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) SetBlockData(
 	if bio.pendingBlock != nil {
 		panic("only one block per operation is allowed")
 	}
-	bio.pendingBlock = &PendingBlock[H, N, Header, E]{
+	bio.pendingBlock = &pendingBlock[H, N, Header, E]{
 		header:         header,
 		body:           body,
 		indexedBody:    indexedBody,
@@ -334,18 +315,12 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) UpdateTransactionIndex
 	return nil
 }
 
-// struct PendingBlock<Block: BlockT> {
-type PendingBlock[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H], E runtime.Extrinsic] struct {
-	// header: Block::Header,
-	header Header
-	// justifications: Option<Justifications>,
-	justifications runtime.Justifications
-	// body: Option<Vec<Block::Extrinsic>>,
-	body []E
-	// indexed_body: Option<Vec<Vec<u8>>>,
-	indexedBody [][]byte
-	// leaf_state: NewBlockState,
-	leafState api.NewBlockState
+type pendingBlock[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H], E runtime.Extrinsic] struct {
+	header         Header
+	justifications runtime.Justifications // can be nil
+	body           []E                    // can be nil to reprsent no body
+	indexedBody    [][]byte               // can be nil to represent no indexed body
+	leafState      api.NewBlockState
 }
 
 type nodeDBStorageDB[H runtime.Hash] struct {
@@ -357,8 +332,7 @@ func (ndbsdb nodeDBStorageDB[H]) Get(key string) (statedb.DBValue, error) {
 }
 
 type storageDB[H runtime.Hash] struct {
-	db database.Database[hash.H256]
-	// TODO: use generic param for db key?
+	db         database.Database[hash.H256]
 	StateDB    *statedb.StateDB[H, string]
 	prefixKeys bool
 }
@@ -401,27 +375,18 @@ type Backend[
 	E runtime.Extrinsic,
 	Header runtime.Header[N, H],
 ] struct {
-	// storage: Arc<StorageDb<Block>>,
-	storage storageDB[H]
-	// offchain_storage: offchain::LocalStorage,
-	offchainStorage *offchain.LocalStorage
-	// blockchain: BlockchainDb<Block>,
-	blockchain *blockchainDB[H, N, E, Header]
-	// canonicalization_delay: u64,
+	storage               storageDB[H]
+	offchainStorage       *offchain.LocalStorage
+	blockchain            *blockchainDB[H, N, E, Header]
 	canonicalizationDelay uint64
-	// import_lock: Arc<RwLock<()>>,
-	importLock sync.RWMutex
-	// is_archive: bool,
-	isArchive bool
-	// blocks_pruning: BlocksPruning,
-	blocksPruning BlocksPruning
+	importLock            sync.RWMutex
+	isArchive             bool
+	blocksPruning         BlocksPruning
+	genesisState          *dbGenesisStorage[H, Hasher] // can be nil to represent no genesisState
+	genesisStateMtx       sync.RWMutex
+	sharedTrieCache       *cache.SharedTrieCache[H] // can be nil to respresent no shared trie cache
 	// io_stats: FrozenForDuration<(kvdb::IoStats, StateUsageInfo)>,
 	// state_usage: Arc<StateUsageStats>,
-	// genesis_state: RwLock<Option<Arc<DbGenesisStorage<Block>>>>,
-	genesisState    *dbGenesisStorage[H, Hasher]
-	genesisStateMtx sync.RWMutex
-	// shared_trie_cache: Option<sp_trie::cache::SharedTrieCache<HashFor<Block>>>,
-	sharedTrieCache *cache.SharedTrieCache[H]
 }
 
 // / Create a new instance of database backend.
@@ -437,12 +402,11 @@ func NewBackend[
 	dbConfig DatabaseSettings,
 	canonicalizationDelay uint64,
 ) (*Backend[H, Hasher, N, E, Header], error) {
-	dbSource := dbConfig.Source
-
 	var (
 		needsInit bool
 		db        database.Database[hash.H256]
 	)
+	dbSource := dbConfig.Source
 	db, err := openDatabase(dbSource, false)
 	if err != nil {
 		if errors.Is(err, errDoesNotExist) {
@@ -497,13 +461,10 @@ func newBackendFromDatabase[
 		StateDB:    stateDB,
 		prefixKeys: true,
 	}
-	// let offchain_storage = offchain::LocalStorage::new(db.clone());
-
-	offchainStorage := offchain.NewLocalStorage(db)
 
 	backend := Backend[H, Hasher, N, E, Header]{
 		storage:               storageDB,
-		offchainStorage:       offchainStorage,
+		offchainStorage:       offchain.NewLocalStorage(db),
 		blockchain:            blockchain,
 		canonicalizationDelay: canonicalizationDelay,
 		isArchive:             isArchivePruning,
@@ -536,29 +497,30 @@ func newBackendFromDatabase[
 
 // / Reset the shared trie cache.
 func (b *Backend[H, Hasher, N, E, Header]) ResetTrieCache() {
-	panic("unimplemented")
+	if b.sharedTrieCache != nil {
+		b.sharedTrieCache.Reset()
+	}
 }
 
-type NumberHash[H, N any] struct {
+type numberHash[H, N any] struct {
 	Number N
 	Hash   H
 }
 
-// / Handle setting head within a transaction. `route_to` should be the last
-// / block that existed in the database. `best_to` should be the best block
+// / Handle setting head within a transaction. routeTo should be the last
+// / block that existed in the database. bestTo should be the best block
 // / to be set.
 // /
-// / In the case where the new best block is a block to be imported, `route_to`
-// / should be the parent of `best_to`. In the case where we set an existing block
-// / to be best, `route_to` should equal to `best_to`.
+// / In the case where the new best block is a block to be imported, routeTo
+// / should be the parent of bestTO. In the case where we set an existing block
+// / to be best, routTo should equal to bestTo.
 func (b *Backend[H, Hasher, N, E, Header]) setHeadWithTransaction(
-	transaction *database.Transaction[hash.H256], routeTo H, bestTo NumberHash[H, N],
+	transaction *database.Transaction[hash.H256], routeTo H, bestTo numberHash[H, N],
 ) ([2][]H, error) {
 	var (
 		enacted   []H
 		retracted []H
 	)
-
 	bestNumber := bestTo.Number
 	bestHash := bestTo.Hash
 
@@ -646,7 +608,7 @@ func (b *Backend[H, Hasher, N, E, Header]) finalizeBlockWithTransaction(
 	justification *runtime.Justification,
 	currentTransactionJustifications map[H]runtime.Justification,
 ) (metaUpdate[H, N], error) {
-	// TODO: ensure best chain contains this block.
+	// TODO: ensure best chain contains this block. (from substrate as well)
 	number := (*header).Number()
 	err := b.ensureSequentialFinalization(*header, lastFinalized)
 	if err != nil {
@@ -797,7 +759,7 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation(
 		}
 
 		if pendingBlock.leafState.IsBest() {
-			_, err := b.setHeadWithTransaction(&transaction, parentHash, NumberHash[H, N]{
+			_, err := b.setHeadWithTransaction(&transaction, parentHash, numberHash[H, N]{
 				Number: number,
 				Hash:   hash,
 			})
@@ -889,24 +851,6 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation(
 					}
 				}
 			}
-			// self.state_usage.tally_writes_nodes(ops, bytes);
-			// self.state_usage.tally_removed_nodes(removal, bytes_removal);
-
-			// ops = 0
-			// bytes = 0
-
-			// for (key, value) in operation
-			// 	.storage_updates
-			// 	.iter()
-			// 	.chain(operation.child_storage_updates.iter().flat_map(|(_, s)| s.iter()))
-			// {
-			// 	ops += 1;
-			// 	bytes += key.len() as u64;
-			// 	if let Some(v) = value.as_ref() {
-			// 		bytes += v.len() as u64;
-			// 	}
-			// }
-			// self.state_usage.tally_writes(ops, bytes);
 
 			numberU64 := saturating.Into[N, uint64](number)
 			commit, err := b.storage.StateDB.InsertBlock(hash, numberU64, pendingBlock.header.ParentHash(), changeset)
@@ -942,14 +886,12 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation(
 			hash, number, isBest, operation.commitState, existingHeader, finalized,
 		)
 
-		// release state reference so that it can be finalized
-		// VERY IMPORTANT
-		// drop(operation.old_state)
-		operation.oldState.state.Drop()
-		// NOTE: this is supposed to merge the state usage
+		// VERY IMPORTANT: drop state reference so that it can be finalized
+		// NOTE: this is supposed to merge the state usage stats as well if we decide to implement that
+		operation.oldState.Drop()
 
 		if finalized {
-			// TODO: ensure best chain contains this block. (from substrate, do we still need this?)
+			// TODO: ensure best chain contains this block. (from substrate as well)
 			err := b.ensureSequentialFinalization(header, &lastFinalizedHash)
 			if err != nil {
 				return err
@@ -1039,7 +981,7 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation(
 			number := (*header).Number()
 			hash := (*header).Hash()
 
-			_, err := b.setHeadWithTransaction(&transaction, hash, NumberHash[H, N]{Number: number, Hash: hash})
+			_, err := b.setHeadWithTransaction(&transaction, hash, numberHash[H, N]{Number: number, Hash: hash})
 			if err != nil {
 				return err
 			}
@@ -1080,9 +1022,9 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation(
 	return nil
 }
 
-// write stuff to a transaction after a new block is finalized.
-// this canonicalizes finalized blocks. Fails if called with a block which
-// was not a child of the last finalized block.
+// Write to a transaction after a new block is finalized.
+// This canonicalizes finalized blocks. Fails if called with a block which
+// is not a child of the last finalized block.
 func (b *Backend[H, Hasher, N, E, Header]) noteFinalized(
 	transaction *database.Transaction[hash.H256],
 	fHeader Header,
@@ -1204,7 +1146,7 @@ func (b *Backend[H, Hasher, N, E, Header]) pruneDisplacedBranches(
 		treeRoute, err := blockchain.NewTreeRoute(b.blockchain, h, finalized)
 		if err != nil {
 			if errors.Is(err, blockchain.ErrUnknownBlock) {
-				// Sometimes routes can't be calculated. E.g. after warp sync.
+				// Sometimes routes can't be calculated. eg. after warp sync.
 				return nil
 			}
 			return err
@@ -1264,22 +1206,20 @@ func (b *Backend[H, Hasher, N, E, Header]) pruneBlock(
 	return nil
 }
 
-func (b *Backend[H, Hasher, N, E, Header]) emptyState() recordStatsState[H, RefTrackingState[H, Hasher]] {
+func (b *Backend[H, Hasher, N, E, Header]) emptyState() refTrackingState[H, Hasher] {
 	root := newEmptyStorage[H, Hasher]().root
-
 	var localCache *cache.LocalTrieCache[H]
 	if b.sharedTrieCache != nil {
 		lcc := b.sharedTrieCache.LocalTrieCache()
 		localCache = &lcc
 	}
 	dbState := statemachine.NewTrieBackend[H, Hasher](&b.storage, root, localCache, nil)
-	state := RefTrackingState[H, Hasher]{
+	state := refTrackingState[H, Hasher]{
 		state:      DBState[H, Hasher]{dbState},
 		storage:    b.storage,
 		parentHash: nil,
 	}
-	rss := newRecordStatsState[H](state, nil, nil)
-	return rss
+	return state
 }
 
 func applyStateCommit(transaction *database.Transaction[hash.H256], commit statedb.CommitSet[string]) {
@@ -1421,7 +1361,6 @@ func (b *Backend[H, Hasher, N, E, Header]) CommitOperation(
 	operation api.BlockImportOperation[N, H, Hasher, Header, E],
 ) error {
 	op := operation.(*BlockImportOperation[H, Hasher, N, Header, E])
-	// usage := op.oldState.usageInfo
 
 	err := b.tryCommitOperation(op)
 	if err != nil {
@@ -1474,7 +1413,7 @@ func (b *Backend[H, Hasher, N, E, Header]) AppendJustification(hash H, justifica
 		return err
 	}
 
-	// We can do a quick check first, before doing a proper but more expensive check
+	// We can do a quick check first, before doing a proper but more expensive check.
 	if number > b.blockchain.Info().FinalizedNumber {
 		return blockchain.ErrNotInFinalizedChain
 	}
@@ -1529,11 +1468,11 @@ func (b *Backend[H, Hasher, N, E, Header]) Revert(n N, revertFinalized bool) (N,
 
 	info := b.blockchain.Info()
 
-	var highestLeaf *NumberHash[H, N]
+	var highestLeaf *numberHash[H, N]
 	b.blockchain.leavesMtx.RLock()
 	numberHashes := b.blockchain.leaves.HighestLeaf()
 	if numberHashes != nil {
-		highestLeaf = &NumberHash[H, N]{
+		highestLeaf = &numberHash[H, N]{
 			Number: numberHashes.Number,
 			Hash:   numberHashes.Hashes[len(numberHashes.Hashes)-1],
 		}
@@ -1771,7 +1710,7 @@ func (b *Backend[H, Hasher, N, E, Header]) HaveStateAt(hash H, number N) bool {
 	}
 }
 
-func (b *Backend[H, Hasher, N, E, Header]) stateAt(hash H) (recordStatsState[H, RefTrackingState[H, Hasher]], error) {
+func (b *Backend[H, Hasher, N, E, Header]) stateAt(hash H) (refTrackingState[H, Hasher], error) {
 	b.blockchain.metaMtx.RLock()
 	if hash == b.blockchain.meta.GenesisHash {
 		b.genesisStateMtx.RLock()
@@ -1783,15 +1722,14 @@ func (b *Backend[H, Hasher, N, E, Header]) stateAt(hash H) (recordStatsState[H, 
 				localCache = &lcc
 			}
 			dbState := statemachine.NewTrieBackend[H, Hasher](&b.storage, root, localCache, nil)
-			state := RefTrackingState[H, Hasher]{
+			state := refTrackingState[H, Hasher]{
 				state:      DBState[H, Hasher]{dbState},
 				storage:    b.storage,
 				parentHash: nil,
 			}
-			rss := newRecordStatsState[H](state, nil, nil)
 			b.genesisStateMtx.RUnlock()
 			b.blockchain.metaMtx.RUnlock()
-			return rss, nil
+			return state, nil
 		}
 		b.genesisStateMtx.RUnlock()
 	}
@@ -1799,7 +1737,7 @@ func (b *Backend[H, Hasher, N, E, Header]) stateAt(hash H) (recordStatsState[H, 
 
 	hdr, err := b.blockchain.HeaderMetadata(hash)
 	if err != nil {
-		return recordStatsState[H, RefTrackingState[H, Hasher]]{}, err
+		return refTrackingState[H, Hasher]{}, err
 	}
 
 	var hint = func() bool {
@@ -1809,8 +1747,8 @@ func (b *Backend[H, Hasher, N, E, Header]) stateAt(hash H) (recordStatsState[H, 
 
 	err = b.storage.StateDB.Pin(hash, saturating.Into[N, uint64](hdr.Number), hint)
 	if err != nil {
-		return recordStatsState[H, RefTrackingState[H, Hasher]]{},
-			fmt.Errorf("%w: state already discarded for %s", blockchain.ErrUnknownBlock, hash)
+		return refTrackingState[H, Hasher]{},
+			fmt.Errorf("%w: State already discarded for %s", blockchain.ErrUnknownBlock, hash)
 	}
 	root := hdr.StateRoot
 	var localCache *cache.LocalTrieCache[H]
@@ -1819,13 +1757,12 @@ func (b *Backend[H, Hasher, N, E, Header]) stateAt(hash H) (recordStatsState[H, 
 		localCache = &lcc
 	}
 	dbState := statemachine.NewTrieBackend[H, Hasher](&b.storage, root, localCache, nil)
-	state := RefTrackingState[H, Hasher]{
+	state := refTrackingState[H, Hasher]{
 		state:      DBState[H, Hasher]{dbState},
 		storage:    b.storage,
 		parentHash: &hash,
 	}
-	rss := newRecordStatsState[H](state, &hash, nil)
-	return rss, nil
+	return state, nil
 }
 
 func (b *Backend[H, Hasher, N, E, Header]) StateAt(hash H) (statemachine.Backend[H, Hasher], error) {
@@ -1833,7 +1770,7 @@ func (b *Backend[H, Hasher, N, E, Header]) StateAt(hash H) (statemachine.Backend
 	if err != nil {
 		return nil, err
 	}
-	backend := state.state.state
+	backend := state.state
 	return &backend, nil
 }
 

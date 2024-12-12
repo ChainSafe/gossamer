@@ -342,6 +342,11 @@ func (stc *SharedTrieCache[H]) PeekValueByHash(
 	return nil
 }
 
+func (stc *SharedTrieCache[H]) Reset() {
+	stc.ResetNodeCache()
+	stc.ResetValueCache()
+}
+
 // Reset the node cache.
 func (stc *SharedTrieCache[H]) ResetNodeCache() {
 	stc.mtx.Lock()

@@ -14,7 +14,6 @@ import (
 	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
 	memorykvdb "github.com/ChainSafe/gossamer/internal/kvdb/memory-kvdb"
 	memorydb "github.com/ChainSafe/gossamer/internal/memory-db"
-	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	p_blockchain "github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/database"
@@ -151,7 +150,7 @@ func insertBlock(t *testing.T,
 	}
 
 	// Insert some fake data to ensure that the block can be found in the state column.
-	root, overlay := op.oldState.state.state.StorageRoot(
+	root, overlay := op.oldState.state.StorageRoot(
 		[]statemachine.Delta{{Key: blockHash.Bytes(), Value: blockHash.Bytes()}},
 		storage.StateVersionV1,
 	)
@@ -188,7 +187,7 @@ func insertHeaderNoHead(t *testing.T,
 	state, err := backend.StateAt(parentHash)
 	if err != nil {
 		if parentHash == hash.H256("") {
-			tb := backend.emptyState().state.state.TrieBackend
+			tb := backend.emptyState().state.TrieBackend
 			state = tb
 		} else {
 			t.Fail()
@@ -292,7 +291,7 @@ func TestBackend(t *testing.T) {
 						{Key: []byte{1, 2, 3}, Value: []byte{9, 9, 9}},
 					}
 
-					root, _ := op.oldState.state.state.StorageRoot(deltas, stateVersion)
+					root, _ := op.oldState.state.StorageRoot(deltas, stateVersion)
 					header.SetStateRoot(root)
 					h := header.Hash()
 
@@ -344,7 +343,7 @@ func TestBackend(t *testing.T) {
 						{Key: []byte{5, 5, 5}, Value: []byte{4, 5, 6}},
 					}
 
-					root, overlay := op.oldState.state.state.StorageRoot(deltas, stateVersion)
+					root, overlay := op.oldState.state.StorageRoot(deltas, stateVersion)
 					err = op.UpdateDBStorage(overlay)
 					require.NoError(t, err)
 					header.SetStateRoot(root)
@@ -400,7 +399,7 @@ func TestBackend(t *testing.T) {
 				runtime.Digest{},
 			)
 
-			root, _ := op.oldState.state.state.StorageRoot(nil, stateVersion)
+			root, _ := op.oldState.state.StorageRoot(nil, stateVersion)
 			header.SetStateRoot(root)
 			h := header.Hash()
 
@@ -436,7 +435,7 @@ func TestBackend(t *testing.T) {
 
 			deltas := []statemachine.Delta{}
 
-			root, _ := op.oldState.state.state.StorageRoot(deltas, stateVersion)
+			root, _ := op.oldState.state.StorageRoot(deltas, stateVersion)
 			header.SetStateRoot(root)
 			h := header.Hash()
 
@@ -471,7 +470,7 @@ func TestBackend(t *testing.T) {
 
 			deltas := []statemachine.Delta{}
 
-			root, _ := op.oldState.state.state.StorageRoot(deltas, stateVersion)
+			root, _ := op.oldState.state.StorageRoot(deltas, stateVersion)
 			header.SetStateRoot(root)
 			h := header.Hash()
 
@@ -504,7 +503,7 @@ func TestBackend(t *testing.T) {
 
 			deltas := []statemachine.Delta{}
 
-			root, _ := op.oldState.state.state.StorageRoot(deltas, stateVersion)
+			root, _ := op.oldState.state.StorageRoot(deltas, stateVersion)
 			header.SetStateRoot(root)
 			h := header.Hash()
 
@@ -536,7 +535,7 @@ func TestBackend(t *testing.T) {
 
 			deltas := []statemachine.Delta{}
 
-			root, _ := op.oldState.state.state.StorageRoot(deltas, stateVersion)
+			root, _ := op.oldState.state.StorageRoot(deltas, stateVersion)
 			header.SetStateRoot(root)
 			h := header.Hash()
 
@@ -878,7 +877,7 @@ func TestBackend(t *testing.T) {
 				{Key: []byte("test"), Value: []byte("test")},
 			}
 
-			root, _ := op.oldState.state.state.StorageRoot(deltas, stateVersion)
+			root, _ := op.oldState.state.StorageRoot(deltas, stateVersion)
 			header.SetStateRoot(root)
 			h := header.Hash()
 
@@ -924,7 +923,7 @@ func TestBackend(t *testing.T) {
 				{Key: []byte("test"), Value: []byte("test2")},
 			}
 
-			root, overlay := op.oldState.state.state.StorageRoot(deltas, stateVersion)
+			root, overlay := op.oldState.state.StorageRoot(deltas, stateVersion)
 			err = op.UpdateDBStorage(overlay)
 			require.NoError(t, err)
 			header.SetStateRoot(root)
@@ -1531,7 +1530,7 @@ func TestBackend(t *testing.T) {
 		err = op.SetBlockData(header, nil, nil, nil, api.NewBlockStateBest)
 		require.NoError(t, err)
 		err = backend.CommitOperation(op)
-		require.ErrorIs(t, err, blockchain.ErrSetHeadTooOld)
+		require.ErrorIs(t, err, p_blockchain.ErrSetHeadTooOld)
 
 		// Insert 2 as best again
 		header2, err := backend.Blockchain().Header(block2)
@@ -1556,7 +1555,7 @@ func TestBackend(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = insertBlock(t, backend, 1, genesis, nil, "", nil, nil)
-		require.ErrorIs(t, err, blockchain.ErrStateDatabase)
+		require.ErrorIs(t, err, p_blockchain.ErrStateDatabase)
 	})
 
 	t.Run("leaves_not_created_for_ancient_blocks", func(t *testing.T) {
@@ -1757,7 +1756,7 @@ func TestBackend(t *testing.T) {
 						{Key: []byte{5, 5, 5}, Value: []byte{4, 5, 6}},
 					}
 
-					root, overlay := op.oldState.state.state.StorageRoot(deltas, storage.StateVersionV1)
+					root, overlay := op.oldState.state.StorageRoot(deltas, storage.StateVersionV1)
 					err = op.UpdateDBStorage(overlay)
 					require.NoError(t, err)
 					header.SetStateRoot(root)
@@ -1808,7 +1807,7 @@ func TestBackend(t *testing.T) {
 						{Key: []byte{5, 5, 5}, Value: []byte{4, 5, 6, 2}},
 					}
 
-					root, overlay := op.oldState.state.state.StorageRoot(deltas, storage.StateVersionV1)
+					root, overlay := op.oldState.state.StorageRoot(deltas, storage.StateVersionV1)
 					err = op.UpdateDBStorage(overlay)
 					require.NoError(t, err)
 					header.SetStateRoot(root)
@@ -1859,7 +1858,7 @@ func TestBackend(t *testing.T) {
 						{Key: []byte{5, 5, 5}, Value: []byte{4, 5, 6, 3}},
 					}
 
-					root, overlay := op.oldState.state.state.StorageRoot(deltas, storage.StateVersionV1)
+					root, overlay := op.oldState.state.StorageRoot(deltas, storage.StateVersionV1)
 					err = op.UpdateDBStorage(overlay)
 					require.NoError(t, err)
 					header.SetStateRoot(root)
@@ -1909,7 +1908,7 @@ func TestBackend(t *testing.T) {
 						{Key: []byte{5, 5, 5}, Value: []byte{4, 5, 6, 4}},
 					}
 
-					root, overlay := op.oldState.state.state.StorageRoot(deltas, storage.StateVersionV1)
+					root, overlay := op.oldState.state.StorageRoot(deltas, storage.StateVersionV1)
 					err = op.UpdateDBStorage(overlay)
 					require.NoError(t, err)
 					header.SetStateRoot(root)
