@@ -286,10 +286,6 @@ var (
 )
 
 func openDatabase(dbSource DatabaseSource, create bool) (database.Database[hash.H256], error) {
-	// Maybe migrate (copy) the database to a type specific subdirectory to make it
-	// possible that light and full databases coexist
-	// NOTE: This function can be removed in a few releases
-	// maybe_migrate_to_type_subdir::<Block>(db_source, db_type)?;
 	if dbSource.RequireCreateFlag && !create {
 		return nil, errDoesNotExist
 	}

@@ -61,7 +61,7 @@ func (BlocksPruningSome) isBlocksPruning()          {}
 type DatabaseSource struct {
 	// the handle to the custom storage
 	DB database.Database[hash.H256]
-	// if set, the `create` flag will be required to open such datasource
+	// if set, the create flag will be required to open such datasource
 	RequireCreateFlag bool
 }
 
@@ -385,8 +385,6 @@ type Backend[
 	genesisState          *dbGenesisStorage[H, Hasher] // can be nil to represent no genesisState
 	genesisStateMtx       sync.RWMutex
 	sharedTrieCache       *cache.SharedTrieCache[H] // can be nil to respresent no shared trie cache
-	// io_stats: FrozenForDuration<(kvdb::IoStats, StateUsageInfo)>,
-	// state_usage: Arc<StateUsageStats>,
 }
 
 // Create a new instance of database backend.

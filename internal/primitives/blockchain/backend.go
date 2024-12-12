@@ -12,7 +12,7 @@ import (
 
 // Header is the blockchain database header backend. Does not perform any validation.
 type HeaderBackend[Hash runtime.Hash, N runtime.Number, Header runtime.Header[N, Hash]] interface {
-	// Get block header. Returns `nil` if block is not found.
+	// Get block header. Returns nil if block is not found.
 	Header(hash Hash) (*Header, error)
 
 	// Get blockchain info.
@@ -21,10 +21,10 @@ type HeaderBackend[Hash runtime.Hash, N runtime.Number, Header runtime.Header[N,
 	// Get block status.
 	Status(hash Hash) (BlockStatus, error)
 
-	// Get block number by hash. Returns `nil` if the header is not in the chain.
+	// Get block number by hash. Returns nil if the header is not in the chain.
 	Number(hash Hash) (*N, error)
 
-	// Get block hash by number. Returns `nil` if the header is not in the chain.
+	// Get block hash by number. Returns nil if the header is not in the chain.
 	Hash(number N) (*Hash, error)
 
 	// Convert an arbitrary block ID into a block hash.
@@ -39,9 +39,9 @@ type Backend[Hash runtime.Hash, N runtime.Number, Header runtime.Header[N, Hash]
 	HeaderBackend[Hash, N, Header]
 	HeaderMetadata[Hash, N]
 
-	// Get block body. Returns `nil` if block is not found.
+	// Get block body. Returns nil if block is not found.
 	Body(hash Hash) ([]runtime.Extrinsic, error)
-	// Get block justifications. Returns `nil` if no justification exists.
+	// Get block justifications. Returns nil if no justification exists.
 	Justifications(hash Hash) (runtime.Justifications, error)
 	// Get last finalized block hash.
 	LastFinalized() (Hash, error)
@@ -53,23 +53,23 @@ type Backend[Hash runtime.Hash, N runtime.Number, Header runtime.Header[N, Hash]
 
 	// Returns displaced leaves after the given block would be finalized.
 	//
-	// The returned leaves do not contain the leaves from the same height as `blockNumber`.
+	// The returned leaves do not contain the leaves from the same height as blockNumber.
 	DisplacedLeavesAfterFinalizing(blockNumber N) ([]Hash, error)
 
-	// Return hashes of all blocks that are children of the block with `parentHash`.
+	// Return hashes of all blocks that are children of the block with parentHash.
 	Children(parentHash Hash) ([]Hash, error)
 
 	// Get the most recent block hash of the longest chain that contains
-	// a block with the given `baseHash`.
+	// a block with the given baseHash.
 	//
 	// The search space is always limited to blocks which are in the finalized
 	// chain or descendents of it.
 	//
-	// Returns `nil` if `basehash` is not found in search space.
+	// Returns nil if basehash is not found in search space.
 	LongestContaining(baseHash Hash, importLock *sync.RWMutex) (*Hash, error)
 
 	// Get single indexed transaction by content hash. Note that this will only fetch transactions
-	// that are indexed by the runtime with `storage_index_transaction`.
+	// that are indexed by the runtime with storage_index_transaction.
 	IndexedTransaction(hash Hash) ([]byte, error)
 
 	// Check if indexed transaction exists.

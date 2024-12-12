@@ -13,7 +13,6 @@ import (
 
 var _ kvdb.KeyValueDB = &MemoryKVDB{}
 
-// The number of columns required to run `test_delete_prefix`.
 const DeletePrefixNumColumns uint32 = 7
 
 func Test_MemoryKVDB(t *testing.T) {

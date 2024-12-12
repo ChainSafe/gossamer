@@ -15,7 +15,7 @@ type refCountValue struct {
 	value    []byte
 }
 
-// MemDB implements `Database` as an in-memory hash map. `Commit` is not atomic.
+// MemDB implements Database as an in-memory hash map. Commit is not atomic.
 type MemDB[H runtime.Hash] struct {
 	inner map[ColumnID]map[string]refCountValue
 	sync.RWMutex
@@ -28,7 +28,7 @@ func NewMemDB[H runtime.Hash]() *MemDB[H] {
 	}
 }
 
-// Commit the `transaction` to the database atomically. Any further calls to `get` or `lookup`
+// Commit the transaction to the database atomically. Any further calls to get or lookup
 // will reflect the new state.
 func (mdb *MemDB[H]) Commit(transaction Transaction[H]) error {
 	mdb.Lock()
@@ -88,7 +88,7 @@ func (mdb *MemDB[H]) Commit(transaction Transaction[H]) error {
 	return nil
 }
 
-// Retrieve the value previously stored against `key` or `nil` if `key` is not currently in the database.
+// Retrieve the value previously stored against key or nil if key is not currently in the database.
 func (mdb *MemDB[H]) Get(col ColumnID, key []byte) []byte {
 	mdb.RLock()
 	defer mdb.RUnlock()

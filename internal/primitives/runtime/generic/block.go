@@ -15,12 +15,12 @@ type BlockID interface {
 	isBlockID()
 }
 
-// BlockIDTypes is the interface constraint of `BlockID`.
+// BlockIDTypes is the interface constraint of BlockID.
 type BlockIDTypes[H runtime.Hash, N runtime.Number] interface {
 	BlockIDHash[H] | BlockIDNumber[N]
 }
 
-// NewBlockID is the constructor for `BlockID`.
+// NewBlockID is the constructor for BlockID.
 func NewBlockID[H runtime.Hash, N runtime.Number, T BlockIDTypes[H, N]](blockID T) BlockID {
 	return BlockID(blockID)
 }
@@ -74,7 +74,7 @@ func (b Block[N, H, Hasher]) Hash() H {
 	return hasher.HashEncoded(b.header)
 }
 
-// NewBlock is the constructor for `Block`.
+// NewBlock is the constructor for Block.
 func NewBlock[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H]](
 	header runtime.Header[N, H], extrinsics []runtime.Extrinsic) Block[N, H, Hasher] {
 	return Block[N, H, Hasher]{

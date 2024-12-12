@@ -172,7 +172,7 @@ type HashNumber[H runtime.Hash, N runtime.Number] struct {
 // The ancestry sets will include the given blocks, and thus the tree-route is
 // never empty.
 //
-// ```text
+// “
 // Tree route from R1 to E2. Retracted is [R1, R2, R3], Common is C, enacted [E1, E2]
 //
 //	 <- R3 <- R2 <- R1
@@ -182,12 +182,12 @@ type HashNumber[H runtime.Hash, N runtime.Number] struct {
 //
 //	\-> E1 -> E2
 //
-// ```
+// “
 //
-// ```text
+// “
 // Tree route from C to E2. Retracted empty. Common is C, enacted [E1, E2]
 // C -> E1 -> E2
-// ```
+// “
 type TreeRoute[H runtime.Hash, N runtime.Number] struct {
 	// route: Vec<HashAndNumber<Block>>,
 	Route []HashNumber[H, N]

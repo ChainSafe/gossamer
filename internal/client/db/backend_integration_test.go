@@ -17,7 +17,7 @@ func TestBackend_Integration(t *testing.T) {
 	t.Run("tree_route_regression", func(t *testing.T) {
 		// NOTE: this is a test for a regression introduced in #3665, the result
 		// of tree_route would be erroneously computed, since it was taking into
-		// account the `ancestor` in `CachedHeaderMetadata` for the comparison.
+		// account the ancestor in CachedHeaderMetadata for the comparison.
 		// in this test we simulate the same behavior with the side-effect
 		// triggering the issue being eviction of a previously fetched record
 		// from the cache, therefore this test is dependent on the LRU cache
@@ -38,13 +38,13 @@ func TestBackend_Integration(t *testing.T) {
 		}
 		block7000 := parent
 
-		// This will cause the ancestor of `block100` to be set to `genesis` as a side-effect.
+		// This will cause the ancestor of block100 to be set to genesis as a side-effect.
 		_, err := p_blockchain.LowestCommonAncestor(blockchain, genesis, block100)
 		require.NoError(t, err)
 
 		// While traversing the tree we will have to do 6900 calls to
-		// `header_metadata`, which will make sure we will exhaust our cache
-		// which only takes 5000 elements. In particular, the `CachedHeaderMetadata` struct for
+		// HeaderMetadata, which will make sure we will exhaust our cache
+		// which only takes 5000 elements. In particular, the CachedHeaderMetadata struct for
 		// block #100 will be evicted and will get a new value (with ancestor set to its parent).
 		treeRoute, err := p_blockchain.NewTreeRoute(blockchain, block100, block7000)
 		require.NoError(t, err)

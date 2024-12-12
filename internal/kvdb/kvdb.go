@@ -132,7 +132,7 @@ type KeyValueDB interface {
 // For a given start prefix (inclusive), returns the correct end prefix (non-inclusive).
 // This assumes the key bytes are ordered in lexicographical order.
 // Since key length is not limited, for some case we return nil because there is
-// no bounded limit (every keys in the series `[]`, `[255]`, `[255, 255]` ...).
+// no bounded limit (every keys in the series [], [255], [255, 255] ...).
 func EndPrefix(prefix []byte) []byte {
 	for len(prefix) > 0 && prefix[len(prefix)-1] == 0xff {
 		prefix = prefix[:len(prefix)-1]

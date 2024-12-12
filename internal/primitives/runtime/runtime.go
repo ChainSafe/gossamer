@@ -9,7 +9,7 @@ import "slices"
 //
 // Essentially a finality proof. The exact formulation will vary between consensus algorithms. In the case where there
 // are multiple valid proofs, inclusion within the block itself would allow swapping justifications to change the
-// block's hash (and thus fork the chain). Sending a `Justification` alongside a block instead bypasses this problem.
+// block's hash (and thus fork the chain). Sending a Justification alongside a block instead bypasses this problem.
 //
 // Each justification is provided as an encoded blob, and is tagged with an ID to identify the consensus engine that
 // generated the proof (we might have multiple justifications from different engines for the same block).
