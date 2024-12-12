@@ -66,7 +66,7 @@ This is a method from [`FragmentChain`](https://github.com/paritytech/polkadot-s
 If those conditions follows for 1 or more candidates we consider them possible backed/backable, however since the [`BackedChain`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L596) does not allow forks we need to resolve that if there is more than one candidates, and the fork selection rule is: compare the hashes and the lowest hash will be chosen and pushed into the [`BackedChain`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/core/prospective-parachains/src/fragment_chain/mod.rs#L596) and removed from the Candidate Storage
 
 
-##### Trim Unelegible Forks
+##### Trim Inelegible Forks
 
 What is does is a deapth breadth-first search looking for candidates in the Candidate Storage that has no potential that is children of valid backed candidates.
 
