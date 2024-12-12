@@ -189,7 +189,7 @@ func insertHeaderNoHead(t *testing.T,
 	if err != nil {
 		if parentHash == hash.H256("") {
 			tb := backend.emptyState().state.state.TrieBackend
-			state = &tb
+			state = tb
 		} else {
 			t.Fail()
 		}

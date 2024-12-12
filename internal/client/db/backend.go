@@ -70,7 +70,7 @@ type DatabaseSource struct {
 //
 //	sp_state_machine::TrieBackend<Arc<dyn sp_state_machine::Storage<HashingFor<B>>>, HashingFor<B>>;
 type DBState[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
-	statemachine.TrieBackend[H, Hasher]
+	*statemachine.TrieBackend[H, Hasher]
 }
 
 // / A reference tracking state.
@@ -1274,7 +1274,7 @@ func (b *Backend[H, Hasher, N, E, Header]) emptyState() recordStatsState[H, RefT
 	}
 	dbState := statemachine.NewTrieBackend[H, Hasher](&b.storage, root, localCache, nil)
 	state := RefTrackingState[H, Hasher]{
-		state:      DBState[H, Hasher]{*dbState},
+		state:      DBState[H, Hasher]{dbState},
 		storage:    b.storage,
 		parentHash: nil,
 	}
@@ -1784,7 +1784,7 @@ func (b *Backend[H, Hasher, N, E, Header]) stateAt(hash H) (recordStatsState[H, 
 			}
 			dbState := statemachine.NewTrieBackend[H, Hasher](&b.storage, root, localCache, nil)
 			state := RefTrackingState[H, Hasher]{
-				state:      DBState[H, Hasher]{*dbState},
+				state:      DBState[H, Hasher]{dbState},
 				storage:    b.storage,
 				parentHash: nil,
 			}
@@ -1820,7 +1820,7 @@ func (b *Backend[H, Hasher, N, E, Header]) stateAt(hash H) (recordStatsState[H, 
 	}
 	dbState := statemachine.NewTrieBackend[H, Hasher](&b.storage, root, localCache, nil)
 	state := RefTrackingState[H, Hasher]{
-		state:      DBState[H, Hasher]{*dbState},
+		state:      DBState[H, Hasher]{dbState},
 		storage:    b.storage,
 		parentHash: &hash,
 	}
