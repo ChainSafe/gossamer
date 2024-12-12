@@ -28,16 +28,13 @@ network message as part of the message handling code.
 subsystem.)
 
 ```go
-package bitfielddistribution
+package parachaintypes
 
-import (
-	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-)
+import "github.com/ChainSafe/gossamer/lib/common"
 
 type DistributeBitfield struct {
 	RelayParent common.Hash
-	Bitfield    parachaintypes.UncheckedSignedAvailabilityBitfield
+	Bitfield    UncheckedSignedAvailabilityBitfield
 }
 ```
 
