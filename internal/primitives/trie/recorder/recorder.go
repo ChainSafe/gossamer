@@ -5,6 +5,7 @@ package recorder
 
 import (
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
@@ -293,7 +294,7 @@ func (tr *trieRecorder[H]) Record(access triedb.TrieAccess) {
 	var encodedSizeUpdate uint
 	switch access := access.(type) {
 	case triedb.CachedNodeAccess[H]:
-		// log.Printf("TRACE: Recording node: %v", access.Hash)
+		log.Printf("TRACE: Recording node: %v", access.Hash)
 		_, ok := tr.inner.accessedNodes[access.Hash]
 		if !ok {
 			node := access.Node.Encoded()
@@ -307,7 +308,7 @@ func (tr *trieRecorder[H]) Record(access triedb.TrieAccess) {
 			tr.inner.accessedNodes[access.Hash] = node
 		}
 	case triedb.EncodedNodeAccess[H]:
-		// log.Printf("TRACE: Recording node: %v", access.Hash)
+		log.Printf("TRACE: Recording node: %v", access.Hash)
 		_, ok := tr.inner.accessedNodes[access.Hash]
 		if !ok {
 			node := access.EncodedNode
@@ -321,7 +322,7 @@ func (tr *trieRecorder[H]) Record(access triedb.TrieAccess) {
 			tr.inner.accessedNodes[access.Hash] = node
 		}
 	case triedb.ValueAccess[H]:
-		// log.Printf("TRACE: Recording value {hash:%v value:%v}", access.Hash, access.FullKey)
+		log.Printf("TRACE: Recording value {hash:%v value:%v}", access.Hash, access.FullKey)
 		_, ok := tr.inner.accessedNodes[access.Hash]
 		if !ok {
 			value := access.Value
@@ -335,18 +336,18 @@ func (tr *trieRecorder[H]) Record(access triedb.TrieAccess) {
 		}
 		tr.updateRecordedKeys(access.FullKey, triedb.RecordedValue)
 	case triedb.HashAccess:
-		// log.Printf("TRACE: Recorded hash access for key: %s", access.FullKey)
+		log.Printf("TRACE: Recorded hash access for key: %s", access.FullKey)
 		// We don't need to update the encodedSizeUpdate as the hash was already
 		// accounted for by the recorded node that holds the hash.
 		tr.updateRecordedKeys(access.FullKey, triedb.RecordedHash)
 	case triedb.NonExistingNodeAccess:
-		// log.Printf("TRACE: Recorded non-existing value access for key for key: %s", access.FullKey)
+		log.Printf("TRACE: Recorded non-existing value access for key for key: %s", access.FullKey)
 		// Non-existing access means we recorded all trie nodes up to the value.
 		// Not the actual value, as it doesn't exist, but all trie nodes to know
 		// that the value doesn't exist in the trie.
 		tr.updateRecordedKeys(access.FullKey, triedb.RecordedValue)
 	case triedb.InlineValueAccess:
-		// log.Printf("TRACE: Recorded inline value access for key: %s", access.FullKey)
+		log.Printf("TRACE: Recorded inline value access for key: %s", access.FullKey)
 		// A value was accessed that is stored inline a node and we recorded all trie nodes
 		// to access this value.
 		tr.updateRecordedKeys(access.FullKey, triedb.RecordedValue)

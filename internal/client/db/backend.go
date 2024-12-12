@@ -6,6 +6,7 @@ package db
 import (
 	"errors"
 	"fmt"
+	"log"
 	"maps"
 	"sync"
 
@@ -114,7 +115,7 @@ type stateMetaDB struct {
 }
 
 func (smdb stateMetaDB) GetMeta(key []byte) (statedb.DBValue, error) {
-	val := smdb.db.Get(database.ColumnID(columns.StateMeta), key)
+	val := smdb.db.Get(columns.StateMeta, key)
 	if val == nil {
 		return nil, nil
 	}
@@ -129,7 +130,13 @@ type finalizedBlock[H runtime.Hash] struct {
 
 // / Database transaction
 // pub struct BlockImportOperation<Block: BlockT> {
-type BlockImportOperation[H runtime.Hash, Hasher runtime.Hasher[H], N runtime.Number, Header runtime.Header[N, H], E runtime.Extrinsic] struct {
+type BlockImportOperation[
+	H runtime.Hash,
+	Hasher runtime.Hasher[H],
+	N runtime.Number,
+	Header runtime.Header[N, H],
+	E runtime.Extrinsic,
+] struct {
 	// old_state: RecordStatsState<RefTrackingState<Block>, Block>,
 	oldState recordStatsState[H, RefTrackingState[H, Hasher]]
 	// db_updates: PrefixedMemoryDB<HashingFor<Block>>,
@@ -175,7 +182,7 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) applyOffchain(transact
 	}
 
 	if count > 0 {
-		// log.Printf("DEBUG: Applied %d offchain indexing changes.\n", count)
+		log.Printf("DEBUG: Applied %d offchain indexing changes.", count)
 	}
 }
 
@@ -192,7 +199,9 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) applyAux(transaction *
 	}
 }
 
-func (bio *BlockImportOperation[H, Hasher, N, Header, E]) applyNewState(storage storage.Storage, stateVersion storage.StateVersion) (root H, err error) {
+func (bio *BlockImportOperation[H, Hasher, N, Header, E]) applyNewState(
+	storage storage.Storage, stateVersion storage.StateVersion,
+) (root H, err error) {
 	contains := slices.ContainsFunc(storage.Top.Keys(), func(key string) bool {
 		return keys.IsChildStorageKey([]byte(key))
 	})
@@ -254,12 +263,16 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) SetBlockData(
 	return nil
 }
 
-func (bio *BlockImportOperation[H, Hasher, N, Header, E]) UpdateDBStorage(update statemachine.BackendTransaction[H, Hasher]) error {
+func (bio *BlockImportOperation[H, Hasher, N, Header, E]) UpdateDBStorage(
+	update statemachine.BackendTransaction[H, Hasher],
+) error {
 	bio.dbUpdates = *update.PrefixedMemoryDB
 	return nil
 }
 
-func (bio *BlockImportOperation[H, Hasher, N, Header, E]) SetGenesisState(storage storage.Storage, commit bool, stateVersion storage.StateVersion) (H, error) {
+func (bio *BlockImportOperation[H, Hasher, N, Header, E]) SetGenesisState(
+	storage storage.Storage, commit bool, stateVersion storage.StateVersion,
+) (H, error) {
 	root, err := bio.applyNewState(storage, stateVersion)
 	if err != nil {
 		return root, err
@@ -268,7 +281,9 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) SetGenesisState(storag
 	return root, err
 }
 
-func (bio *BlockImportOperation[H, Hasher, N, Header, E]) ResetStorage(storage storage.Storage, stateVersion storage.StateVersion) (H, error) {
+func (bio *BlockImportOperation[H, Hasher, N, Header, E]) ResetStorage(
+	storage storage.Storage, stateVersion storage.StateVersion,
+) (H, error) {
 	root, err := bio.applyNewState(storage, stateVersion)
 	if err != nil {
 		return root, err
@@ -277,13 +292,17 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) ResetStorage(storage s
 	return root, err
 }
 
-func (bio *BlockImportOperation[H, Hasher, N, Header, E]) UpdateStorage(update statemachine.StorageCollection, childUpdate statemachine.ChildStorageCollection) error {
+func (bio *BlockImportOperation[H, Hasher, N, Header, E]) UpdateStorage(
+	update statemachine.StorageCollection, childUpdate statemachine.ChildStorageCollection,
+) error {
 	bio.storageUpdates = update
 	bio.childStorageUpdates = childUpdate
 	return nil
 }
 
-func (bio *BlockImportOperation[H, Hasher, N, Header, E]) UpdateOffchainStorage(offchainUpdate statemachine.OffchainChangesCollection) error {
+func (bio *BlockImportOperation[H, Hasher, N, Header, E]) UpdateOffchainStorage(
+	offchainUpdate statemachine.OffchainChangesCollection,
+) error {
 	bio.offchainStorageUpdates = offchainUpdate
 	return nil
 }
@@ -293,7 +312,9 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) InsertAux(ops api.AuxD
 	return nil
 }
 
-func (bio *BlockImportOperation[H, Hasher, N, Header, E]) MarkFinalized(hash H, justification *runtime.Justification) error {
+func (bio *BlockImportOperation[H, Hasher, N, Header, E]) MarkFinalized(
+	hash H, justification *runtime.Justification,
+) error {
 	bio.finalizedBlocks = append(bio.finalizedBlocks, finalizedBlock[H]{hash, justification})
 	return nil
 }
@@ -306,7 +327,9 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) MarkHead(hash H) error
 	return nil
 }
 
-func (bio *BlockImportOperation[H, Hasher, N, Header, E]) UpdateTransactionIndex(indexOps []statemachine.IndexOperation) error {
+func (bio *BlockImportOperation[H, Hasher, N, Header, E]) UpdateTransactionIndex(
+	indexOps []statemachine.IndexOperation,
+) error {
 	bio.indexOps = indexOps
 	return nil
 }
@@ -371,7 +394,13 @@ func newEmptyStorage[H runtime.Hash, Hasher runtime.Hasher[H]]() emptyStorage[H]
 // /
 // / Disk backend keeps data in a key-value store. In archive mode, trie nodes are kept from all
 // / blocks. Otherwise, trie nodes are kept only from some recent blocks.
-type Backend[H runtime.Hash, Hasher runtime.Hasher[H], N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
+type Backend[
+	H runtime.Hash,
+	Hasher runtime.Hasher[H],
+	N runtime.Number,
+	E runtime.Extrinsic,
+	Header runtime.Header[N, H],
+] struct {
 	// storage: Arc<StorageDb<Block>>,
 	storage storageDB[H]
 	// offchain_storage: offchain::LocalStorage,
@@ -398,7 +427,13 @@ type Backend[H runtime.Hash, Hasher runtime.Hasher[H], N runtime.Number, E runti
 // / Create a new instance of database backend.
 // /
 // / The pruning window is how old a block must be before the state is pruned.
-func NewBackend[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, Hasher runtime.Hasher[H], Header runtime.Header[N, H]](
+func NewBackend[
+	H runtime.Hash,
+	N runtime.Number,
+	E runtime.Extrinsic,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+](
 	dbConfig DatabaseSettings,
 	canonicalizationDelay uint64,
 ) (Backend[H, Hasher, N, E, Header], error) {
@@ -426,7 +461,13 @@ func NewBackend[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, Hasher ru
 	return newBackendFromDatabase[H, N, E, Hasher, Header](db, canonicalizationDelay, dbConfig, needsInit)
 }
 
-func newBackendFromDatabase[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, Hasher runtime.Hasher[H], Header runtime.Header[N, H]](
+func newBackendFromDatabase[
+	H runtime.Hash,
+	N runtime.Number,
+	E runtime.Extrinsic,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+](
 	db database.Database[hash.H256],
 	canonicalizationDelay uint64,
 	config DatabaseSettings,
@@ -494,16 +535,6 @@ func newBackendFromDatabase[H runtime.Hash, N runtime.Number, E runtime.Extrinsi
 	return backend, nil
 }
 
-func newTestBackend[H runtime.Hash, Hasher runtime.Hasher[H], N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]](
-	blocksPruning uint32, canonicalizationDelay uint64) Backend[H, Hasher, N, E, Header] {
-	panic("unimplemented")
-}
-
-func newTestWithTxStorage[H runtime.Hash, Hasher runtime.Hasher[H], N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]](
-	blocksPruning uint32, canonicalizationDelay uint64) Backend[H, Hasher, N, E, Header] {
-	panic("unimplemented")
-}
-
 // / Reset the shared trie cache.
 func (b *Backend[H, Hasher, N, E, Header]) ResetTrieCache() {
 	panic("unimplemented")
@@ -521,7 +552,9 @@ type NumberHash[H, N any] struct {
 // / In the case where the new best block is a block to be imported, `route_to`
 // / should be the parent of `best_to`. In the case where we set an existing block
 // / to be best, `route_to` should equal to `best_to`.
-func (b *Backend[H, Hasher, N, E, Header]) setHeadWithTransaction(transaction *database.Transaction[hash.H256], routeTo H, bestTo NumberHash[H, N]) ([2][]H, error) {
+func (b *Backend[H, Hasher, N, E, Header]) setHeadWithTransaction(
+	transaction *database.Transaction[hash.H256], routeTo H, bestTo NumberHash[H, N],
+) ([2][]H, error) {
 	var (
 		enacted   []H
 		retracted []H
@@ -555,7 +588,7 @@ func (b *Backend[H, Hasher, N, E, Header]) setHeadWithTransaction(transaction *d
 		// point to these block hashes in the key mapping.
 		for _, r := range treeRoute.Retracted() {
 			if r.Hash == meta.FinalizedHash {
-				// log.Printf("WARN: Potential safety failure: reverting finalized block %+v", r)
+				log.Printf("WARN: Potential safety failure: reverting finalized block %+v", r)
 
 				return [2][]H{}, blockchain.ErrNotInFinalizedChain
 			}
@@ -646,7 +679,9 @@ func (b *Backend[H, Hasher, N, E, Header]) finalizeBlockWithTransaction(
 }
 
 // performs forced canonicalization with a delay after importing a non-finalized block.
-func (b *Backend[H, Hasher, N, E, Header]) forceDelayedCanonicalize(transaction *database.Transaction[hash.H256]) error {
+func (b *Backend[H, Hasher, N, E, Header]) forceDelayedCanonicalize(
+	transaction *database.Transaction[hash.H256],
+) error {
 	var bestCanonical uint64
 	switch lc := b.storage.StateDB.LastCanonicalized().(type) {
 	case statedb.LastCanonicalizedNone:
@@ -677,7 +712,7 @@ func (b *Backend[H, Hasher, N, E, Header]) forceDelayedCanonicalize(transaction 
 			return nil
 		}
 
-		// log.Printf("TRACE: Canonicalize block #%d (%s)\n", toCanonicalize, *hashToCanonicalize)
+		log.Printf("TRACE: Canonicalize block #%d (%s)", toCanonicalize, *hashToCanonicalize)
 		commit, err := b.storage.StateDB.CanonicalizeBlock(*hashToCanonicalize)
 		if err != nil {
 			return fmt.Errorf("%w: %v", blockchain.ErrStateDatabase, err)
@@ -688,7 +723,9 @@ func (b *Backend[H, Hasher, N, E, Header]) forceDelayedCanonicalize(transaction 
 	return nil
 }
 
-func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation(operation *BlockImportOperation[H, Hasher, N, Header, E]) error {
+func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation(
+	operation *BlockImportOperation[H, Hasher, N, Header, E],
+) error {
 	var transaction database.Transaction[hash.H256]
 
 	operation.applyAux(&transaction)
@@ -712,7 +749,14 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation(operation *BlockIm
 		if err != nil {
 			return err
 		}
-		meta, err := b.finalizeBlockWithTransaction(&transaction, finalizedBlock.Hash, blockHeader, &lastFinalizedHash, finalizedBlock.Justification, currentTransactionJustifications)
+		meta, err := b.finalizeBlockWithTransaction(
+			&transaction,
+			finalizedBlock.Hash,
+			blockHeader,
+			&lastFinalizedHash,
+			finalizedBlock.Justification,
+			currentTransactionJustifications,
+		)
 		if err != nil {
 			return err
 		}
@@ -816,7 +860,7 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation(operation *BlockIm
 			for key, update := range operation.dbUpdates.Drain() {
 				if rc := update.RC; rc > 0 {
 					ops += 1
-					bytes += uint64(len(key) + len(update.Data))
+					bytes += uint64(len(key) + len(update.Data)) //nolint:gosec
 					if rc == 1 {
 						changeset.Inserted = append(changeset.Inserted, statedb.HashDBValue[string]{
 							Hash:    key,
@@ -849,8 +893,9 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation(operation *BlockIm
 			// self.state_usage.tally_writes_nodes(ops, bytes);
 			// self.state_usage.tally_removed_nodes(removal, bytes_removal);
 
-			ops = 0
-			bytes = 0
+			// ops = 0
+			// bytes = 0
+
 			// for (key, value) in operation
 			// 	.storage_updates
 			// 	.iter()
@@ -893,10 +938,10 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation(operation *BlockIm
 		}
 
 		header := pendingBlock.header
-		// isBest := pendingBlock.leafState.IsBest()
-		// log.Printf("DEBUG: DB commit %s (%d), best=%v, state=%+v, existing=%+v, finalized=%v\n",
-		// 	hash, number, isBest, operation.commitState, existingHeader, finalized,
-		// )
+		isBest := pendingBlock.leafState.IsBest()
+		log.Printf("DEBUG: DB commit %s (%d), best=%v, state=%+v, existing=%+v, finalized=%v",
+			hash, number, isBest, operation.commitState, existingHeader, finalized,
+		)
 
 		// release state reference so that it can be finalized
 		// VERY IMPORTANT
@@ -953,10 +998,10 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation(operation *BlockIm
 				if start > end {
 					transaction.Remove(columns.Meta, metakeys.BlockGap)
 					blockGap = nil
-					// log.Printf("DEBUG: Removed block gap.\n")
+					log.Printf("DEBUG: Removed block gap.")
 				} else {
 					blockGap = &[2]N{start, end}
-					// log.Printf("DEBUG: Update block gap. %v\n", *blockGap)
+					log.Printf("DEBUG: Update block gap. %v", *blockGap)
 					transaction.Set(columns.Meta, metakeys.BlockGap, scale.MustMarshal(*blockGap))
 				}
 			} else if number > bestNum+1 && number > 1 {
@@ -968,7 +1013,7 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation(operation *BlockIm
 					gap := [2]N{bestNum + 1, number - 1}
 					transaction.Set(columns.Meta, metakeys.BlockGap, scale.MustMarshal(gap))
 					blockGap = &gap
-					// log.Printf("DEBUG: Detected block gap. %v\n", *blockGap)
+					log.Printf("DEBUG: Detected block gap. %v", *blockGap)
 				}
 			}
 		}
@@ -1022,7 +1067,7 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation(operation *BlockIm
 	if imported != nil {
 		header := &(imported.Header)
 		hash := imported.Hash
-		// log.Printf("TRACE: DB commit done %s\n", hash)
+		log.Printf("TRACE: DB commit done %s", hash)
 		headerMetadata := blockchain.NewCachedHeaderMetadata(*header)
 		b.blockchain.InsertHeaderMetadata(headerMetadata.Hash, headerMetadata)
 		b.blockchain.cacheHeader(hash, header)
@@ -1130,7 +1175,10 @@ func (b *Backend[H, Hasher, N, E, Header]) pruneBlocks(
 					}
 				}
 			}
-			b.pruneBlock(transaction, generic.BlockIDNumber[N]{Number: number})
+			err = b.pruneBlock(transaction, generic.BlockIDNumber[N]{Number: number})
+			if err != nil {
+				return err
+			}
 		}
 		err := b.pruneDisplacedBranches(transaction, finalizedHash, displaced)
 		if err != nil {
@@ -1180,7 +1228,7 @@ func (b *Backend[H, Hasher, N, E, Header]) pruneBlock(
 	transaction *database.Transaction[hash.H256],
 	id generic.BlockID,
 ) error {
-	// log.Printf("DEBUG: Removing block %s", id)
+	log.Printf("DEBUG: Removing block %s", id)
 	err := removeFromDB[H, N](transaction, b.storage.db, uint32(columns.KeyLookup), uint32(columns.Body), id)
 	if err != nil {
 		return err
@@ -1237,20 +1285,22 @@ func (b *Backend[H, Hasher, N, E, Header]) emptyState() recordStatsState[H, RefT
 
 func applyStateCommit(transaction *database.Transaction[hash.H256], commit statedb.CommitSet[string]) {
 	for _, hdbv := range commit.Data.Inserted {
-		transaction.Set(database.ColumnID(columns.State), []byte(hdbv.Hash), hdbv.DBValue)
+		transaction.Set(columns.State, []byte(hdbv.Hash), hdbv.DBValue)
 	}
 	for _, key := range commit.Data.Deleted {
-		transaction.Remove(database.ColumnID(columns.State), []byte(key))
+		transaction.Remove(columns.State, []byte(key))
 	}
 	for _, hdbv := range commit.Meta.Inserted {
-		transaction.Set(database.ColumnID(columns.StateMeta), hdbv.Hash, hdbv.DBValue)
+		transaction.Set(columns.StateMeta, hdbv.Hash, hdbv.DBValue)
 	}
 	for _, key := range commit.Meta.Deleted {
-		transaction.Remove(database.ColumnID(columns.StateMeta), key)
+		transaction.Remove(columns.StateMeta, key)
 	}
 }
 
-func applyIndexOps[E runtime.Extrinsic](transaction *database.Transaction[hash.H256], body []E, ops []statemachine.IndexOperation) []byte {
+func applyIndexOps[E runtime.Extrinsic](
+	transaction *database.Transaction[hash.H256], body []E, ops []statemachine.IndexOperation,
+) []byte {
 	var extrinsicIndex []dbExtrinsic[E]
 	indexMap := make(map[uint32]struct {
 		Hash []byte
@@ -1272,14 +1322,14 @@ func applyIndexOps[E runtime.Extrinsic](transaction *database.Transaction[hash.H
 	}
 	for index, extrinsic := range body {
 		var dbExtrinsic dbExtrinsic[E]
-		hash, ok := renewedMap[uint32(index)]
+		hash, ok := renewedMap[uint32(index)] //nolint:gosec
 		if ok {
 			// Bump ref counter
 			encoded := scale.MustMarshal(extrinsic)
 			transaction.Reference(columns.Transaction, hash)
 			dbExtrinsic = newDbExtrinsic[E](dbExtrinsicIndexed{Hash: hash, Header: encoded})
 		} else {
-			i, ok := indexMap[uint32(index)]
+			i, ok := indexMap[uint32(index)] //nolint:gosec
 			if ok {
 				encoded := scale.MustMarshal(extrinsic)
 				if int(i.Size) <= len(encoded) {
@@ -1296,8 +1346,8 @@ func applyIndexOps[E runtime.Extrinsic](transaction *database.Transaction[hash.H
 		}
 		extrinsicIndex = append(extrinsicIndex, dbExtrinsic)
 	}
-	// log.Printf("DEBUG: DB transaction index: %d inserted, %d renewed, %d full\n",
-	// len(indexMap), len(renewedMap), len(extrinsicIndex)-len(indexMap)-len(renewedMap))
+	log.Printf("DEBUG: DB transaction index: %d inserted, %d renewed, %d full",
+		len(indexMap), len(renewedMap), len(extrinsicIndex)-len(indexMap)-len(renewedMap))
 
 	return scale.MustMarshal(extrinsicIndex)
 }
@@ -1344,11 +1394,15 @@ func (b *Backend[H, Hasher, N, E, Header]) beginOperation() (*BlockImportOperati
 	}, nil
 }
 
-func (b *Backend[H, Hasher, N, E, Header]) BeginOperation() (api.BlockImportOperation[N, H, Hasher, Header, E], error) {
+func (b *Backend[H, Hasher, N, E, Header]) BeginOperation() (
+	api.BlockImportOperation[N, H, Hasher, Header, E], error,
+) {
 	return b.beginOperation()
 }
 
-func (b *Backend[H, Hasher, N, E, Header]) BeginStateOperation(operation api.BlockImportOperation[N, H, Hasher, Header, E], block H) error {
+func (b *Backend[H, Hasher, N, E, Header]) BeginStateOperation(
+	operation api.BlockImportOperation[N, H, Hasher, Header, E], block H,
+) error {
 	op := operation.(*BlockImportOperation[H, Hasher, N, Header, E])
 	if block == *(new(H)) {
 		op.oldState = b.emptyState()
@@ -1364,7 +1418,9 @@ func (b *Backend[H, Hasher, N, E, Header]) BeginStateOperation(operation api.Blo
 	return nil
 }
 
-func (b *Backend[H, Hasher, N, E, Header]) CommitOperation(operation api.BlockImportOperation[N, H, Hasher, Header, E]) error {
+func (b *Backend[H, Hasher, N, E, Header]) CommitOperation(
+	operation api.BlockImportOperation[N, H, Hasher, Header, E],
+) error {
 	op := operation.(*BlockImportOperation[H, Hasher, N, Header, E])
 	// usage := op.oldState.usageInfo
 
@@ -1389,7 +1445,9 @@ func (b *Backend[H, Hasher, N, E, Header]) FinalizeBlock(hash H, justification *
 		return err
 	}
 	currentTransactionJustifications := make(map[H]runtime.Justification)
-	m, err := b.finalizeBlockWithTransaction(&transaction, hash, header, nil, justification, currentTransactionJustifications)
+	m, err := b.finalizeBlockWithTransaction(
+		&transaction, hash, header, nil, justification, currentTransactionJustifications,
+	)
 	if err != nil {
 		return err
 	}
@@ -1433,6 +1491,9 @@ func (b *Backend[H, Hasher, N, E, Header]) AppendJustification(hash H, justifica
 
 	var justifications runtime.Justifications
 	storedJustifications, err := b.blockchain.Justifications(hash)
+	if err != nil {
+		return err
+	}
 	if storedJustifications != nil {
 		if !storedJustifications.Append(justification) {
 			return fmt.Errorf("%w: Duplicate consensus engine ID", blockchain.ErrBadJustification)
@@ -1473,7 +1534,10 @@ func (b *Backend[H, Hasher, N, E, Header]) Revert(n N, revertFinalized bool) (N,
 	b.blockchain.leavesMtx.RLock()
 	numberHashes := b.blockchain.leaves.HighestLeaf()
 	if numberHashes != nil {
-		highestLeaf = &NumberHash[H, N]{Number: numberHashes.Number, Hash: numberHashes.Hashes[len(numberHashes.Hashes)-1]}
+		highestLeaf = &NumberHash[H, N]{
+			Number: numberHashes.Number,
+			Hash:   numberHashes.Hashes[len(numberHashes.Hashes)-1],
+		}
 	}
 	b.blockchain.leavesMtx.RUnlock()
 	bestNumber := info.BestNumber
@@ -1485,8 +1549,6 @@ func (b *Backend[H, Hasher, N, E, Header]) Revert(n N, revertFinalized bool) (N,
 
 	if !revertFinalized && revertible < n {
 		n = revertible
-	} else {
-		n = n
 	}
 
 	var (
@@ -1498,7 +1560,6 @@ func (b *Backend[H, Hasher, N, E, Header]) Revert(n N, revertFinalized bool) (N,
 		numberToRevert = highestLeaf.Number
 		hashToRevert = highestLeaf.Hash
 	} else {
-		n = n
 		numberToRevert = bestNumber
 		hashToRevert = bestHash
 	}
@@ -1817,7 +1878,7 @@ func (b *Backend[H, Hasher, N, E, Header]) PinBlock(hash H) error {
 			return fmt.Errorf("%w: State already discarded for %s", blockchain.ErrUnknownBlock, hash)
 		}
 	} else {
-		return fmt.Errorf("%w: Can not pin block with hash %s. Block not found.", blockchain.ErrUnknownBlock, hash)
+		return fmt.Errorf("%w: Can not pin block with hash %s. Block not found", blockchain.ErrUnknownBlock, hash)
 	}
 
 	if _, ok := b.blocksPruning.(BlocksPruningKeepAll); !ok {

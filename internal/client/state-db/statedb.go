@@ -6,6 +6,7 @@ package statedb
 import (
 	"errors"
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -389,7 +390,7 @@ func (sdbs *stateDBSync[BlockHash, Key]) pin(hash BlockHash, number uint64, hint
 		if haveBlock {
 			refs := sdbs.pinned[hash]
 			if refs == 0 {
-				// log.Println("TRACE: Pinned block:", hash)
+				log.Println("TRACE: Pinned block:", hash)
 				sdbs.nonCanonical.Pin(hash)
 			}
 			sdbs.pinned[hash] += 1
@@ -406,11 +407,11 @@ func (sdbs *stateDBSync[BlockHash, Key]) unpin(hash BlockHash) {
 	if ok {
 		sdbs.pinned[hash] -= 1
 		if sdbs.pinned[hash] == 0 {
-			// log.Println("TRACE: Unpinned block:", hash)
+			log.Println("TRACE: Unpinned block:", hash)
 			delete(sdbs.pinned, hash)
 			sdbs.nonCanonical.Unpin(hash)
 		} else {
-			// log.Println("TRACE: Releasing reference for ", hash)
+			log.Println("TRACE: Releasing reference for ", hash)
 		}
 	}
 }

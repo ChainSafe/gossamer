@@ -5,6 +5,7 @@ package db
 
 import (
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
@@ -99,18 +100,6 @@ type metaUpdate[H, N any] struct {
 	IsFinalized bool
 	WithState   bool
 }
-
-// func cacheHeader[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](cache *linkedhashmap.Map[H, *Header], hash H, header *Header) {
-// 	cache.Put(hash, header)
-// 	for cache.Size() > 8 {
-// 		var firstKey H
-// 		cache.Any(func(key H, value *Header) bool {
-// 			firstKey = key
-// 			return true
-// 		})
-// 		cache.Remove(firstKey)
-// 	}
-// }
 
 // blockchainDB is the block database.
 type blockchainDB[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
@@ -547,7 +536,7 @@ func (bdb *blockchainDB[H, N, E, Header]) LongestContaining(baseHash H, importLo
 	// those which can still be finalized.
 	//
 	// FIXME: substrate issue #1558 only issue this warning when not on a dead fork
-	// log.Printf("WARN: Block %v exists in chain but not found when following all leaves backwards\n", baseHash)
+	log.Printf("WARN: Block %v exists in chain but not found when following all leaves backwards", baseHash)
 	return nil, nil
 }
 

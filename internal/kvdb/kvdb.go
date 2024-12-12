@@ -106,7 +106,7 @@ func (dbt *DBTransaction) DeletePrefix(col uint32, prefix []byte) {
 // / any other. The number of column families must be specified at initialization, with a
 // / differing interface for each database.
 // /
-// / The API laid out here, along with the `Sync` bound implies interior synchronization for
+// / The API laid out here, along with the `Sync` bound implies interior synchronisation for
 // / implementation.
 type KeyValueDB interface {
 	/// Get a value by key.

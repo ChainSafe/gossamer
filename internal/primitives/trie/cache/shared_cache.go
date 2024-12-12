@@ -4,6 +4,7 @@
 package cache
 
 import (
+	"log"
 	"sync"
 
 	costlru "github.com/ChainSafe/gossamer/internal/cost-lru"
@@ -87,10 +88,10 @@ func (snc *sharedNodeCache[H]) Update(list []updateItem[H]) {
 		}
 	}
 
-	// log.Printf(
-	// 	"DEBUG: Updated the shared node cache: %d accesses, %d new values, %d/%d evicted (length = %d, size=%d/%d)\n",
-	// 	accessCount, addCount, snc.itemsEvicted, maxItemsEvicted, snc.lru.Len(), snc.lru.Cost(), snc.lru.MaxCost(),
-	// )
+	log.Printf(
+		"DEBUG: Updated the shared node cache: %d accesses, %d new values, %d/%d evicted (length = %d, size=%d/%d)",
+		accessCount, addCount, snc.itemsEvicted, maxItemsEvicted, snc.lru.Len(), snc.lru.Cost(), snc.lru.MaxCost(),
+	)
 }
 
 // Reset clears the cache
@@ -211,10 +212,10 @@ func (svc *sharedValueCache[H]) Update(added []sharedValueCacheAdded[H], accesse
 		}
 	}
 
-	// log.Printf(
-	// 	"DEBUG: Updated the shared value cache: %d accesses, %d new values, %d/%d evicted (length = %d, size=%d/%d)\n",
-	// 	accessCount, addCount, svc.itemsEvicted, maxItemsEvicted, svc.lru.Len(), svc.lru.Cost(), svc.lru.MaxCost(),
-	// )
+	log.Printf(
+		"DEBUG: Updated the shared value cache: %d accesses, %d new values, %d/%d evicted (length = %d, size=%d/%d)",
+		accessCount, addCount, svc.itemsEvicted, maxItemsEvicted, svc.lru.Len(), svc.lru.Cost(), svc.lru.MaxCost(),
+	)
 }
 
 func (snc *sharedValueCache[H]) Reset() {

@@ -16,17 +16,17 @@ type BlockID interface {
 }
 
 // BlockIDTypes is the interface constraint of `BlockID`.
-type BlockIDTypes[H, N any] interface {
+type BlockIDTypes[H runtime.Hash, N runtime.Number] interface {
 	BlockIDHash[H] | BlockIDNumber[N]
 }
 
 // NewBlockID is the constructor for `BlockID`.
-func NewBlockID[H, N any, T BlockIDTypes[H, N]](blockID T) BlockID {
+func NewBlockID[H runtime.Hash, N runtime.Number, T BlockIDTypes[H, N]](blockID T) BlockID {
 	return BlockID(blockID)
 }
 
 // BlockIDHash is id by block header hash.
-type BlockIDHash[H any] struct {
+type BlockIDHash[H runtime.Hash] struct {
 	Hash H
 }
 
@@ -36,7 +36,7 @@ func (id BlockIDHash[H]) String() string {
 }
 
 // BlockIDNumber is id by block number.
-type BlockIDNumber[N any] struct {
+type BlockIDNumber[N runtime.Number] struct {
 	Number N
 }
 

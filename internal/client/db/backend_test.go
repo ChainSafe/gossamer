@@ -31,11 +31,27 @@ import (
 )
 
 var (
-	_ api.BlockImportOperation[uint32, hash.H256, runtime.BlakeTwo256, *generic.Header[uint32, hash.H256, runtime.BlakeTwo256], noopExtrinsic] = &BlockImportOperation[hash.H256, runtime.BlakeTwo256, uint32, *generic.Header[uint32, hash.H256, runtime.BlakeTwo256], noopExtrinsic]{}
-	_ api.Backend[hash.H256, uint32, runtime.BlakeTwo256, *generic.Header[uint32, hash.H256, runtime.BlakeTwo256], noopExtrinsic]              = &Backend[hash.H256, runtime.BlakeTwo256, uint32, noopExtrinsic, *generic.Header[uint32, hash.H256, runtime.BlakeTwo256]]{}
+	_ api.BlockImportOperation[
+		uint32, hash.H256, runtime.BlakeTwo256, *generic.Header[uint32, hash.H256, runtime.BlakeTwo256], noopExtrinsic,
+	] = &BlockImportOperation[
+		hash.H256, runtime.BlakeTwo256, uint32, *generic.Header[uint32, hash.H256, runtime.BlakeTwo256], noopExtrinsic,
+	]{}
+	_ api.Backend[
+		hash.H256, uint32, runtime.BlakeTwo256, *generic.Header[uint32, hash.H256, runtime.BlakeTwo256], noopExtrinsic,
+	] = &Backend[
+		hash.H256, runtime.BlakeTwo256, uint32, noopExtrinsic, *generic.Header[uint32, hash.H256, runtime.BlakeTwo256],
+	]{}
 )
 
-func NewTestBackend(t *testing.T, blocksPruning BlocksPruning, canonicalizationDelay uint64) *Backend[hash.H256, runtime.BlakeTwo256, uint64, rt_testing.ExtrinsicsWrapper[uint64], *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]] {
+func NewTestBackend(t *testing.T,
+	blocksPruning BlocksPruning, canonicalizationDelay uint64,
+) *Backend[
+	hash.H256,
+	runtime.BlakeTwo256,
+	uint64,
+	rt_testing.ExtrinsicsWrapper[uint64],
+	*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+] {
 	t.Helper()
 
 	kvdb := memorykvdb.New(13)
@@ -58,7 +74,13 @@ func NewTestBackend(t *testing.T, blocksPruning BlocksPruning, canonicalizationD
 		BlocksPruning:        blocksPruning,
 	}
 
-	backend, err := NewBackend[hash.H256, uint64, rt_testing.ExtrinsicsWrapper[uint64], runtime.BlakeTwo256, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]](dbSetting, canonicalizationDelay)
+	backend, err := NewBackend[
+		hash.H256,
+		uint64,
+		rt_testing.ExtrinsicsWrapper[uint64],
+		runtime.BlakeTwo256,
+		*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+	](dbSetting, canonicalizationDelay)
 	if err != nil {
 		panic(err)
 	}
@@ -66,30 +88,53 @@ func NewTestBackend(t *testing.T, blocksPruning BlocksPruning, canonicalizationD
 }
 
 func insertHeader(t *testing.T,
-	backend *Backend[hash.H256, runtime.BlakeTwo256, uint64, rt_testing.ExtrinsicsWrapper[uint64], *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]],
+	backend *Backend[
+		hash.H256,
+		runtime.BlakeTwo256,
+		uint64,
+		rt_testing.ExtrinsicsWrapper[uint64],
+		*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+	],
 	number uint64,
 	parentHash hash.H256,
-	changes []trie.KeyValue,
+	changes []trie.KeyValue, //nolint:unparam
 	extrinisicsRoot hash.H256,
 ) hash.H256 {
-	// t.Helper()
-	hash, err := insertBlock(t, backend, number, parentHash, changes, extrinisicsRoot, make([]rt_testing.ExtrinsicsWrapper[uint64], 0), nil)
+	t.Helper()
+	hash, err := insertBlock(
+		t,
+		backend,
+		number,
+		parentHash,
+		changes,
+		extrinisicsRoot,
+		make([]rt_testing.ExtrinsicsWrapper[uint64], 0),
+		nil,
+	)
 	require.NoError(t, err)
 	return hash
 }
 
 func insertBlock(t *testing.T,
-	backend *Backend[hash.H256, runtime.BlakeTwo256, uint64, rt_testing.ExtrinsicsWrapper[uint64], *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]],
+	backend *Backend[
+		hash.H256,
+		runtime.BlakeTwo256,
+		uint64,
+		rt_testing.ExtrinsicsWrapper[uint64],
+		*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+	],
 	number uint64,
 	parentHash hash.H256,
-	changes []trie.KeyValue,
+	_changes []trie.KeyValue,
 	extrinisicsRoot hash.H256,
 	body []rt_testing.ExtrinsicsWrapper[uint64],
 	transactionIndex []statemachine.IndexOperation,
 ) (hash.H256, error) {
-	// t.Helper()
+	t.Helper()
 	var digest runtime.Digest
-	header := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](number, extrinisicsRoot, hash.H256(""), parentHash, digest)
+	header := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		number, extrinisicsRoot, hash.H256(""), parentHash, digest,
+	)
 
 	var blockHash hash.H256
 	if number != 0 {
@@ -122,13 +167,21 @@ func insertBlock(t *testing.T,
 }
 
 func insertHeaderNoHead(t *testing.T,
-	backend *Backend[hash.H256, runtime.BlakeTwo256, uint64, rt_testing.ExtrinsicsWrapper[uint64], *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]],
+	backend *Backend[
+		hash.H256,
+		runtime.BlakeTwo256,
+		uint64,
+		rt_testing.ExtrinsicsWrapper[uint64],
+		*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+	],
 	number uint64,
 	parentHash hash.H256,
 	extrinisicsRoot hash.H256,
 ) hash.H256 {
 	var digest runtime.Digest
-	header := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](number, extrinisicsRoot, hash.H256(""), parentHash, digest)
+	header := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		number, extrinisicsRoot, hash.H256(""), parentHash, digest,
+	)
 	op, err := backend.beginOperation()
 	require.NoError(t, err)
 
@@ -141,7 +194,9 @@ func insertHeaderNoHead(t *testing.T,
 			t.Fail()
 		}
 	}
-	root, _ := state.StorageRoot([]statemachine.Delta{{Key: parentHash.Bytes(), Value: parentHash.Bytes()}}, storage.StateVersionV1)
+	root, _ := state.StorageRoot([]statemachine.Delta{
+		{Key: parentHash.Bytes(), Value: parentHash.Bytes()},
+	}, storage.StateVersionV1)
 	header.SetStateRoot(root)
 
 	err = op.SetBlockData(header, nil, nil, nil, api.NewBlockStateNormal)
@@ -177,7 +232,9 @@ func TestBackend(t *testing.T) {
 					require.NoError(t, err)
 					err = db.BeginStateOperation(op, hash)
 					require.NoError(t, err)
-					header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](i, dbHash(""), dbHash(""), hash, runtime.Digest{})
+					header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
+						i, dbHash(""), dbHash(""), hash, runtime.Digest{},
+					)
 
 					err = op.SetBlockData(header, nil, nil, nil, api.NewBlockStateBest)
 					require.NoError(t, err)
@@ -194,12 +251,21 @@ func TestBackend(t *testing.T) {
 		_ = backing
 
 		trieCacheMaxSize := uint(16 * 1024 * 1024)
-		backend, err := NewBackend[dbHash, uint64, noopExtrinsic, runtime.BlakeTwo256, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]](DatabaseSettings{
-			TrieCacheMaximumSize: &trieCacheMaxSize,
-			StatePruning:         statedb.NewPruningModeConstrained(1),
-			Source:               DatabaseSource{DB: backing, RequireCreateFlag: false},
-			BlocksPruning:        BlocksPruningKeepFinalized{},
-		}, 0)
+		backend, err := NewBackend[
+			dbHash,
+			uint64,
+			noopExtrinsic,
+			runtime.BlakeTwo256,
+			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+		](
+			DatabaseSettings{
+				TrieCacheMaximumSize: &trieCacheMaxSize,
+				StatePruning:         statedb.NewPruningModeConstrained(1),
+				Source:               DatabaseSource{DB: backing, RequireCreateFlag: false},
+				BlocksPruning:        BlocksPruningKeepFinalized{},
+			},
+			0,
+		)
 		require.NoError(t, err)
 		require.Equal(t, uint64(9), backend.Blockchain().Info().BestNumber)
 		for i := uint64(0); i < 10; i++ {
@@ -217,7 +283,9 @@ func TestBackend(t *testing.T) {
 				{
 					op, err := db.beginOperation()
 					require.NoError(t, err)
-					header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](0, dbHash(""), dbHash(""), dbHash(""), runtime.Digest{})
+					header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
+						0, dbHash(""), dbHash(""), dbHash(""), runtime.Digest{},
+					)
 
 					deltas := []statemachine.Delta{
 						{Key: []byte{1, 3, 5}, Value: []byte{2, 4, 6}},
@@ -1110,7 +1178,7 @@ func TestBackend(t *testing.T) {
 				parent,
 				nil,
 				hash.NewRandomH256(),
-				[]rt_testing.ExtrinsicsWrapper[uint64]{{val}},
+				[]rt_testing.ExtrinsicsWrapper[uint64]{{T: val}},
 				nil,
 			)
 			require.NoError(t, err)
@@ -1292,9 +1360,7 @@ func TestBackend(t *testing.T) {
 					Extrinsic: 0,
 					Hash:      x1Hash.Bytes(),
 				})
-			} else {
-				// stop renewing
-			}
+			} // else stop removing
 
 			hash, err := insertBlock(t, backend,
 				uint64(i),
@@ -1341,7 +1407,7 @@ func TestBackend(t *testing.T) {
 				prevHash,
 				nil,
 				"",
-				[]rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(i)}},
+				[]rt_testing.ExtrinsicsWrapper[uint64]{{T: i}},
 				nil,
 			)
 			require.NoError(t, err)
@@ -1355,7 +1421,7 @@ func TestBackend(t *testing.T) {
 				blocks[1],
 				nil,
 				hash.NewRandomH256(),
-				[]rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(i)}},
+				[]rt_testing.ExtrinsicsWrapper[uint64]{{T: i}},
 				nil,
 			)
 			require.NoError(t, err)
@@ -1449,7 +1515,9 @@ func TestBackend(t *testing.T) {
 
 		// Insert 1 as best again. This should fail because canonicalization_delay == 3
 		// and best == 5
-		trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256]())
+		trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](
+			trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](),
+		)
 		trie.SetVersion(triedb.V1)
 		header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 			1,
@@ -1529,7 +1597,9 @@ func TestBackend(t *testing.T) {
 			require.NoError(t, err)
 			err = backend.BeginStateOperation(op, block1)
 			require.NoError(t, err)
-			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256]())
+			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](
+				trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](),
+			)
 			trie.SetVersion(triedb.V1)
 			header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 				3,
@@ -1554,7 +1624,9 @@ func TestBackend(t *testing.T) {
 			require.NoError(t, err)
 			err = backend.BeginStateOperation(op, block2)
 			require.NoError(t, err)
-			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256]())
+			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](
+				trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](),
+			)
 			trie.SetVersion(triedb.V1)
 			header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 				4,
@@ -1579,7 +1651,9 @@ func TestBackend(t *testing.T) {
 			require.NoError(t, err)
 			err = backend.BeginStateOperation(op, block2)
 			require.NoError(t, err)
-			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256]())
+			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](
+				trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](),
+			)
 			trie.SetVersion(triedb.V1)
 			header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 				3,
@@ -1698,7 +1772,9 @@ func TestBackend(t *testing.T) {
 					}
 					err = op.UpdateStorage(copiedDeltas, nil)
 					require.NoError(t, err)
-					err = op.SetBlockData(header, []rt_testing.ExtrinsicsWrapper[uint64]{}, nil, nil, api.NewBlockStateNormal)
+					err = op.SetBlockData(
+						header, []rt_testing.ExtrinsicsWrapper[uint64]{}, nil, nil, api.NewBlockStateNormal,
+					)
 					require.NoError(t, err)
 
 					err = backend.CommitOperation(op)
@@ -1747,7 +1823,9 @@ func TestBackend(t *testing.T) {
 					}
 					err = op.UpdateStorage(copiedDeltas, nil)
 					require.NoError(t, err)
-					err = op.SetBlockData(header, []rt_testing.ExtrinsicsWrapper[uint64]{}, nil, nil, api.NewBlockStateNormal)
+					err = op.SetBlockData(
+						header, []rt_testing.ExtrinsicsWrapper[uint64]{}, nil, nil, api.NewBlockStateNormal,
+					)
 					require.NoError(t, err)
 
 					err = backend.CommitOperation(op)
@@ -1796,7 +1874,9 @@ func TestBackend(t *testing.T) {
 					}
 					err = op.UpdateStorage(copiedDeltas, nil)
 					require.NoError(t, err)
-					err = op.SetBlockData(header, []rt_testing.ExtrinsicsWrapper[uint64]{}, nil, nil, api.NewBlockStateBest)
+					err = op.SetBlockData(
+						header, []rt_testing.ExtrinsicsWrapper[uint64]{}, nil, nil, api.NewBlockStateBest,
+					)
 					require.NoError(t, err)
 
 					err = backend.CommitOperation(op)
@@ -1844,7 +1924,9 @@ func TestBackend(t *testing.T) {
 					}
 					err = op.UpdateStorage(copiedDeltas, nil)
 					require.NoError(t, err)
-					err = op.SetBlockData(header, []rt_testing.ExtrinsicsWrapper[uint64]{}, nil, nil, api.NewBlockStateBest)
+					err = op.SetBlockData(
+						header, []rt_testing.ExtrinsicsWrapper[uint64]{}, nil, nil, api.NewBlockStateBest,
+					)
 					require.NoError(t, err)
 
 					err = backend.CommitOperation(op)
@@ -2029,7 +2111,9 @@ func TestBackend(t *testing.T) {
 
 		// Block tree:
 		//   0 -> 1 -> 2 -> 3 -> 4 -> 5
-		hash, err := insertBlock(t, backend, 5, prevHash, nil, "", []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(5)}}, nil)
+		hash, err := insertBlock(
+			t, backend, 5, prevHash, nil, "", []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(5)}}, nil,
+		)
 		require.NoError(t, err)
 		blocks = append(blocks, hash)
 
@@ -2085,7 +2169,9 @@ func TestBackend(t *testing.T) {
 			EncodedJustification: []byte{42},
 		})
 
-		hash, err = insertBlock(t, backend, 6, blocks[5], nil, "", []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(6)}}, nil)
+		hash, err = insertBlock(
+			t, backend, 6, blocks[5], nil, "", []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(6)}}, nil,
+		)
 		require.NoError(t, err)
 		blocks = append(blocks, hash)
 
@@ -2217,7 +2303,10 @@ func TestBackend(t *testing.T) {
 		require.Nil(t, body)
 		body, err = bc.Body(forkHash3)
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: 3}, rt_testing.ExtrinsicsWrapper[uint64]{T: 11}}, body)
+		require.Equal(t, []runtime.Extrinsic{
+			rt_testing.ExtrinsicsWrapper[uint64]{T: 3},
+			rt_testing.ExtrinsicsWrapper[uint64]{T: 11},
+		}, body)
 
 		// Unpine all blocks, except the forked one
 		for _, block := range blocks {
@@ -2239,7 +2328,10 @@ func TestBackend(t *testing.T) {
 
 		body, err = bc.Body(forkHash3)
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: 3}, rt_testing.ExtrinsicsWrapper[uint64]{T: 11}}, body)
+		require.Equal(t, []runtime.Extrinsic{
+			rt_testing.ExtrinsicsWrapper[uint64]{T: 3},
+			rt_testing.ExtrinsicsWrapper[uint64]{T: 11},
+		}, body)
 		backend.UnpinBlock(forkHash3)
 		body, err = bc.Body(forkHash3)
 		require.NoError(t, err)

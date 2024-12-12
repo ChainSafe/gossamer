@@ -17,7 +17,9 @@ import (
 // / small branches, and because of our current query pattern:
 // / lca(best, final), lca(best + 1, final), lca(best + 2, final), etc.
 // / The first call is O(h) but the others are O(1).
-func LowestCommonAncestor[H runtime.Hash, N runtime.Number](backend HeaderMetadata[H, N], id1 H, id2 H) (HashNumber[H, N], error) {
+func LowestCommonAncestor[H runtime.Hash, N runtime.Number](
+	backend HeaderMetadata[H, N], id1 H, id2 H,
+) (HashNumber[H, N], error) {
 	header1, err := backend.HeaderMetadata(id1)
 	if err != nil {
 		return HashNumber[H, N]{}, err
@@ -92,7 +94,9 @@ func LowestCommonAncestor[H runtime.Hash, N runtime.Number](backend HeaderMetada
 }
 
 // / Compute a tree-route between two blocks. See tree-route docs for more details.
-func NewTreeRoute[H runtime.Hash, N runtime.Number](backend HeaderMetadata[H, N], from H, to H) (TreeRoute[H, N], error) {
+func NewTreeRoute[H runtime.Hash, N runtime.Number](
+	backend HeaderMetadata[H, N], from, to H,
+) (TreeRoute[H, N], error) {
 	fromMeta, err := backend.HeaderMetadata(from)
 	if err != nil {
 		return TreeRoute[H, N]{}, err

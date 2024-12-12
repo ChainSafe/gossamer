@@ -36,7 +36,13 @@ func (nbs NewBlockState) IsFinal() bool {
 // / Block insertion operation.
 // /
 // / Keeps hold if the inserted block state and data.
-type BlockImportOperation[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H], Header runtime.Header[N, H], E runtime.Extrinsic] interface {
+type BlockImportOperation[
+	N runtime.Number,
+	H runtime.Hash,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+	E runtime.Extrinsic,
+] interface {
 	/// Returns pending state.
 	///
 	/// Returns None for backends with locally-unavailable state data.
@@ -186,7 +192,13 @@ type AuxStore interface {
 // /
 // / The backend should internally reference count the number of pin / unpin calls.
 // pub trait Backend<Block: BlockT>: AuxStore + Send + Sync {
-type Backend[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H], Header runtime.Header[N, H], E runtime.Extrinsic] interface {
+type Backend[
+	H runtime.Hash,
+	N runtime.Number,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+	E runtime.Extrinsic,
+] interface {
 	AuxStore
 	// /// Associated block insertion operation type.
 	// type BlockImportOperation: BlockImportOperation<Block, State = Self::State>;

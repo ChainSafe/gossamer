@@ -19,7 +19,7 @@ type H256 string
 func (h256 H256) Bytes() []byte {
 	if h256 == "" {
 		arr := [32]byte{}
-		return []byte(arr[:])
+		return arr[:]
 	}
 	return []byte(h256)
 }

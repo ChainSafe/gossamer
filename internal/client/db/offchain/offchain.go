@@ -5,6 +5,7 @@ package offchain
 
 import (
 	"bytes"
+	"log"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/internal/client/db/columns"
@@ -35,7 +36,7 @@ func (ls *LocalStorage) Set(prefix, key, value []byte) {
 
 	err := ls.db.Commit(tx)
 	if err != nil {
-		// log.Printf("ERROR: error setting on local storage: %v\n", err)
+		log.Printf("ERROR: error setting on local storage: %v", err)
 	}
 }
 
@@ -45,7 +46,7 @@ func (ls *LocalStorage) Remove(prefix, key []byte) {
 
 	err := ls.db.Commit(tx)
 	if err != nil {
-		// log.Printf("ERROR: error removing on local storage: %v\n", err)
+		log.Printf("ERROR: error removing on local storage: %v", err)
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"reflect"
 
@@ -78,7 +79,9 @@ func newLookupKey[N runtime.Number, H runtime.Hash](number N, hash H) ([]byte, e
 }
 
 // / Delete number to hash mapping in DB transaction.
-func removeNumberToKeyMapping[N runtime.Number](transaction *database.Transaction[hash.H256], keyLookupCol uint32, number N) error {
+func removeNumberToKeyMapping[N runtime.Number](
+	transaction *database.Transaction[hash.H256], keyLookupCol uint32, number N,
+) error {
 	lookupKey, err := newNumberIndexKey(number)
 	if err != nil {
 		return err
@@ -89,7 +92,9 @@ func removeNumberToKeyMapping[N runtime.Number](transaction *database.Transactio
 
 // / Place a number mapping into the database. This maps number to current perceived
 // / block hash at that position.
-func insertNumberToKeyMapping[H runtime.Hash, N runtime.Number](transaction *database.Transaction[hash.H256], keyLookupCol uint32, number N, hash H) error {
+func insertNumberToKeyMapping[H runtime.Hash, N runtime.Number](
+	transaction *database.Transaction[hash.H256], keyLookupCol uint32, number N, hash H,
+) error {
 	numberIndexKey, err := newNumberIndexKey(number)
 	if err != nil {
 		return err
@@ -103,7 +108,9 @@ func insertNumberToKeyMapping[H runtime.Hash, N runtime.Number](transaction *dat
 }
 
 // / Insert a hash to key mapping in the database.
-func insertHashToKeyMapping[H runtime.Hash, N runtime.Number](transaction *database.Transaction[hash.H256], keyLookupCol uint32, number N, hash H) error {
+func insertHashToKeyMapping[H runtime.Hash, N runtime.Number](
+	transaction *database.Transaction[hash.H256], keyLookupCol uint32, number N, hash H,
+) error {
 	lookupKey, err := newLookupKey(number, hash)
 	if err != nil {
 		return err
@@ -213,7 +220,7 @@ func readMeta[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
 		}
 		h := header.(Header)
 		hash = h.Hash()
-		// log.Printf("DEBUG: Opened blockchain db, fetched %v = %v (%v)\n", desc, hash, h.Number())
+		log.Printf("DEBUG: Opened blockchain db, fetched %v = %v (%v)", desc, hash, h.Number())
 		return hash, h.Number(), nil
 	}
 
