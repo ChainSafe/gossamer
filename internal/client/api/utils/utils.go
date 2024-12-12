@@ -20,8 +20,8 @@ type HashParent[H runtime.Hash] struct {
 // represent the current block hash and its parent hash. if current is given, the
 // function that is returned will assume that current.Hash isn't part of the local DB
 // yet, and all searches in the DB will instead reference the parent.
-func IsDescendantOf[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
-	client blockchain.Backend[H, N, Header], current *HashParent[H],
+func IsDescendantOf[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H], E runtime.Extrinsic](
+	client blockchain.Backend[H, N, Header, E], current *HashParent[H],
 ) func(a H, b H) (bool, error) {
 	return func(base H, hash H) (bool, error) {
 		if base == hash {

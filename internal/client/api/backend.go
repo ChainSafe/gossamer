@@ -163,7 +163,7 @@ type Backend[
 	AppendJustification(hash H, justification runtime.Justification) error
 
 	// Returns reference to blockchain backend.
-	Blockchain() blockchain.Backend[H, N, Header]
+	Blockchain() blockchain.Backend[H, N, Header, E]
 
 	// Returns a pointer to offchain storage.
 	OffchainStorage() offchain.OffchainStorage

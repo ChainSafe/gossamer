@@ -111,7 +111,7 @@ type blockchainDB[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, Header 
 	headerMetadataCache  blockchain.HeaderMetadataCache[H, N]
 	headerCache          linkedhashmap.Map[H, *Header]
 	headerCacheMtx       sync.Mutex
-	pinnedBlocksCache    pinnedBlocksCache[H]
+	pinnedBlocksCache    pinnedBlocksCache[H, E]
 	pinnedBlocksCacheMtx sync.RWMutex
 }
 
@@ -132,7 +132,7 @@ func newBlockchainDB[
 		meta:                meta,
 		headerMetadataCache: blockchain.NewHeaderMetadataCache[H, N](),
 		headerCache:         *linkedhashmap.New[H, *Header](),
-		pinnedBlocksCache:   newPinnedBlocksCache[H](),
+		pinnedBlocksCache:   newPinnedBlocksCache[H, E](),
 	}, nil
 }
 
@@ -251,21 +251,17 @@ func (bdb *blockchainDB[H, N, E, Header]) justificationsUncached(hash H) (runtim
 	return nil, nil
 }
 
-func (bdb *blockchainDB[H, N, E, Header]) bodyUncached(hash H) ([]runtime.Extrinsic, error) {
+func (bdb *blockchainDB[H, N, E, Header]) bodyUncached(hash H) ([]E, error) {
 	blockID := generic.NewBlockID[H, N](generic.BlockIDHash[H]{Hash: hash})
 	bodyBytes, err := readDB[H, N](bdb.db, columns.KeyLookup, columns.Body, blockID)
 	if err != nil {
 		return nil, err
 	}
 	if bodyBytes != nil {
-		var extrinsics []E
-		err := scale.Unmarshal(bodyBytes, &extrinsics)
+		var body []E
+		err := scale.Unmarshal(bodyBytes, &body)
 		if err != nil {
 			return nil, err
-		}
-		var body []runtime.Extrinsic
-		for _, e := range extrinsics {
-			body = append(body, e)
 		}
 		return body, nil
 	}
@@ -282,7 +278,7 @@ func (bdb *blockchainDB[H, N, E, Header]) bodyUncached(hash H) ([]runtime.Extrin
 	if err != nil {
 		return nil, err
 	}
-	var body []runtime.Extrinsic
+	var body []E
 	for _, ex := range index {
 		dbex, err := ex.Value()
 		if err != nil {
@@ -435,7 +431,7 @@ func (bdb *blockchainDB[H, N, E, Header]) BlockNumberFromID(id generic.BlockID) 
 	}
 }
 
-func (bdb *blockchainDB[H, N, E, Header]) Body(hash H) ([]runtime.Extrinsic, error) {
+func (bdb *blockchainDB[H, N, E, Header]) Body(hash H) ([]E, error) {
 	bdb.pinnedBlocksCacheMtx.RLock()
 	defer bdb.pinnedBlocksCacheMtx.RUnlock()
 	body := bdb.pinnedBlocksCache.Body(hash)
@@ -451,7 +447,7 @@ func (bdb *blockchainDB[H, N, E, Header]) Justifications(hash H) (runtime.Justif
 	defer bdb.pinnedBlocksCacheMtx.RUnlock()
 	justifications := bdb.pinnedBlocksCache.Justifications(hash)
 	if justifications != nil {
-		return justifications, nil
+		return *justifications, nil
 	}
 
 	return bdb.justificationsUncached(hash)

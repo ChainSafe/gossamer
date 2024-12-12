@@ -26,7 +26,7 @@ var (
 		hash.H256, uint, noopExtrinsic, *generic.Header[uint, hash.H256, runtime.BlakeTwo256]]{}
 	_ blockchain.HeaderMetadata[hash.H256, uint] = &blockchainDB[
 		hash.H256, uint, noopExtrinsic, *generic.Header[uint, hash.H256, runtime.BlakeTwo256]]{}
-	_ blockchain.Backend[hash.H256, uint, *generic.Header[uint, hash.H256, runtime.BlakeTwo256]] = &blockchainDB[
+	_ blockchain.Backend[hash.H256, uint, *generic.Header[uint, hash.H256, runtime.BlakeTwo256], noopExtrinsic] = &blockchainDB[
 		hash.H256, uint, noopExtrinsic, *generic.Header[uint, hash.H256, runtime.BlakeTwo256]]{}
 )
 

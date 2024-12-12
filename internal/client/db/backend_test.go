@@ -1021,15 +1021,15 @@ func TestBackend(t *testing.T) {
 				require.Nil(t, body)
 				body, err = bc.Body(blocks[3])
 				require.NoError(t, err)
-				require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(3)}}, body)
+				require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(3)}}, body)
 				body, err = bc.Body(blocks[4])
 				require.NoError(t, err)
-				require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(4)}}, body)
+				require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(4)}}, body)
 			default:
 				for i := 0; i < 5; i++ {
 					body, err := bc.Body(blocks[i])
 					require.NoError(t, err)
-					require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(i)}}, body)
+					require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(i)}}, body)
 				}
 			}
 		}
@@ -1091,7 +1091,7 @@ func TestBackend(t *testing.T) {
 			bc := backend.Blockchain()
 			body, err := bc.Body(forkHashRoot)
 			require.NoError(t, err)
-			require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(2)}}, body)
+			require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(2)}}, body)
 
 			for i := 1; i < 5; i++ {
 				op, err := backend.BeginOperation()
@@ -1117,15 +1117,15 @@ func TestBackend(t *testing.T) {
 				require.Nil(t, body)
 				body, err = bc.Body(blocks[3])
 				require.NoError(t, err)
-				require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(3)}}, body)
+				require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(3)}}, body)
 				body, err = bc.Body(blocks[4])
 				require.NoError(t, err)
-				require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(4)}}, body)
+				require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(4)}}, body)
 			default:
 				for i := 0; i < 5; i++ {
 					body, err := bc.Body(blocks[i])
 					require.NoError(t, err)
-					require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(i)}}, body)
+					require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(i)}}, body)
 				}
 			}
 
@@ -1133,7 +1133,7 @@ func TestBackend(t *testing.T) {
 			case BlocksPruningKeepAll:
 				body, err := bc.Body(forkHashRoot)
 				require.NoError(t, err)
-				require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(2)}}, body)
+				require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(2)}}, body)
 			default:
 				body, err := bc.Body(forkHashRoot)
 				require.NoError(t, err)
@@ -1212,16 +1212,16 @@ func TestBackend(t *testing.T) {
 		require.Nil(t, body)
 		body, err = bc.Body(block0)
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(0x00)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(0x00)}}, body)
 		body, err = bc.Body(block1a)
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(0x1a)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(0x1a)}}, body)
 		body, err = bc.Body(block2a)
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(0x2a)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(0x2a)}}, body)
 		body, err = bc.Body(block3a)
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(0x3a)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(0x3a)}}, body)
 	})
 
 	t.Run("indexed_data_block_body", func(t *testing.T) {
@@ -1976,7 +1976,7 @@ func TestBackend(t *testing.T) {
 		// but no value.
 		body, err := bc.Body(blocks[1])
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(1)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(1)}}, body)
 
 		// Block 1 gets pinned three times
 		err = backend.PinBlock(blocks[1])
@@ -1999,32 +1999,32 @@ func TestBackend(t *testing.T) {
 		// Block 4 is inside the pruning window, its value is in db.
 		body, err = bc.Body(blocks[0])
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(0)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(0)}}, body)
 
 		body, err = bc.Body(blocks[1])
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(1)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(1)}}, body)
 		justifications, err := bc.Justifications(blocks[1])
 		require.NoError(t, err)
 		require.Equal(t, runtime.Justifications{*buildJustification(1)}, justifications)
 
 		body, err = bc.Body(blocks[2])
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(2)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(2)}}, body)
 		justifications, err = bc.Justifications(blocks[2])
 		require.NoError(t, err)
 		require.Equal(t, runtime.Justifications{*buildJustification(2)}, justifications)
 
 		body, err = bc.Body(blocks[3])
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(3)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(3)}}, body)
 		justifications, err = bc.Justifications(blocks[3])
 		require.NoError(t, err)
 		require.Equal(t, runtime.Justifications{*buildJustification(3)}, justifications)
 
 		body, err = bc.Body(blocks[4])
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(4)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(4)}}, body)
 		justifications, err = bc.Justifications(blocks[4])
 		require.NoError(t, err)
 		require.Equal(t, runtime.Justifications{*buildJustification(4)}, justifications)
@@ -2040,7 +2040,7 @@ func TestBackend(t *testing.T) {
 		// Block 1 was pinned twice, we expect it to be still cached
 		body, err = bc.Body(blocks[1])
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(1)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(1)}}, body)
 		justifications, err = bc.Justifications(blocks[1])
 		require.NoError(t, err)
 		require.Equal(t, runtime.Justifications{*buildJustification(1)}, justifications)
@@ -2065,7 +2065,7 @@ func TestBackend(t *testing.T) {
 		backend.UnpinBlock(blocks[1])
 		body, err = bc.Body(blocks[1])
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(1)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(1)}}, body)
 		justifications, err = bc.Justifications(blocks[1])
 		require.NoError(t, err)
 		require.Equal(t, runtime.Justifications{*buildJustification(1)}, justifications)
@@ -2080,7 +2080,7 @@ func TestBackend(t *testing.T) {
 		// Block 4 is inside the pruning window and still kept
 		body, err = bc.Body(blocks[4])
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(4)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(4)}}, body)
 		justifications, err = bc.Justifications(blocks[4])
 		require.NoError(t, err)
 		require.Equal(t, runtime.Justifications{*buildJustification(4)}, justifications)
@@ -2119,13 +2119,13 @@ func TestBackend(t *testing.T) {
 
 		body, err = bc.Body(blocks[4])
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(4)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(4)}}, body)
 		justifications, err = bc.Justifications(blocks[4])
 		require.NoError(t, err)
 		require.Equal(t, runtime.Justifications{*buildJustification(4)}, justifications)
 		body, err = bc.Body(blocks[5])
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(5)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(5)}}, body)
 		header, err = bc.Header(blocks[5])
 		require.NoError(t, err)
 		require.NotNil(t, header)
@@ -2166,7 +2166,7 @@ func TestBackend(t *testing.T) {
 
 		body, err = bc.Body(blocks[5])
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(5)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(5)}}, body)
 		expected := runtime.Justifications{
 			*buildJustification(5),
 			runtime.Justification{
@@ -2258,28 +2258,28 @@ func TestBackend(t *testing.T) {
 		bc := backend.Blockchain()
 		body, err := bc.Body(blocks[0])
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(0)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(0)}}, body)
 		body, err = bc.Body(blocks[1])
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(1)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(1)}}, body)
 		body, err = bc.Body(blocks[2])
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(2)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(2)}}, body)
 		body, err = bc.Body(blocks[3])
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(3)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(3)}}, body)
 		body, err = bc.Body(blocks[4])
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(4)}}, body)
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{{T: uint64(4)}}, body)
 		// Check the fork hashes.
 		body, err = bc.Body(forkHashRoot)
 		require.NoError(t, err)
 		require.Nil(t, body)
 		body, err = bc.Body(forkHash3)
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{
-			rt_testing.ExtrinsicsWrapper[uint64]{T: 3},
-			rt_testing.ExtrinsicsWrapper[uint64]{T: 11},
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{
+			{T: 3},
+			{T: 11},
 		}, body)
 
 		// Unpine all blocks, except the forked one
@@ -2302,9 +2302,9 @@ func TestBackend(t *testing.T) {
 
 		body, err = bc.Body(forkHash3)
 		require.NoError(t, err)
-		require.Equal(t, []runtime.Extrinsic{
-			rt_testing.ExtrinsicsWrapper[uint64]{T: 3},
-			rt_testing.ExtrinsicsWrapper[uint64]{T: 11},
+		require.Equal(t, []rt_testing.ExtrinsicsWrapper[uint64]{
+			{T: 3},
+			{T: 11},
 		}, body)
 		backend.UnpinBlock(forkHash3)
 		body, err = bc.Body(forkHash3)

@@ -35,12 +35,12 @@ type HeaderBackend[Hash runtime.Hash, N runtime.Number, Header runtime.Header[N,
 }
 
 // Blockchain database backend. Does not perform any validation.
-type Backend[Hash runtime.Hash, N runtime.Number, Header runtime.Header[N, Hash]] interface {
+type Backend[Hash runtime.Hash, N runtime.Number, Header runtime.Header[N, Hash], E runtime.Extrinsic] interface {
 	HeaderBackend[Hash, N, Header]
 	HeaderMetadata[Hash, N]
 
 	// Get block body. Returns nil if block is not found.
-	Body(hash Hash) ([]runtime.Extrinsic, error)
+	Body(hash Hash) ([]E, error)
 	// Get block justifications. Returns nil if no justification exists.
 	Justifications(hash Hash) (runtime.Justifications, error)
 	// Get last finalized block hash.
