@@ -404,9 +404,9 @@ type Backend[
 	// storage: Arc<StorageDb<Block>>,
 	storage storageDB[H]
 	// offchain_storage: offchain::LocalStorage,
-	offchainStorage offchain.LocalStorage
+	offchainStorage *offchain.LocalStorage
 	// blockchain: BlockchainDb<Block>,
-	blockchain blockchainDB[H, N, E, Header]
+	blockchain *blockchainDB[H, N, E, Header]
 	// canonicalization_delay: u64,
 	canonicalizationDelay uint64
 	// import_lock: Arc<RwLock<()>>,
@@ -436,7 +436,7 @@ func NewBackend[
 ](
 	dbConfig DatabaseSettings,
 	canonicalizationDelay uint64,
-) (Backend[H, Hasher, N, E, Header], error) {
+) (*Backend[H, Hasher, N, E, Header], error) {
 	dbSource := dbConfig.Source
 
 	var (
@@ -448,11 +448,11 @@ func NewBackend[
 		if errors.Is(err, errDoesNotExist) {
 			db, err = openDatabase(dbSource, true)
 			if err != nil {
-				return Backend[H, Hasher, N, E, Header]{}, err
+				return nil, err
 			}
 			needsInit = true
 		} else {
-			return Backend[H, Hasher, N, E, Header]{}, err
+			return nil, err
 		}
 	} else {
 		needsInit = false
@@ -472,16 +472,15 @@ func newBackendFromDatabase[
 	canonicalizationDelay uint64,
 	config DatabaseSettings,
 	shouldInit bool,
-) (Backend[H, Hasher, N, E, Header], error) {
+) (*Backend[H, Hasher, N, E, Header], error) {
 	var dbInitTransaction database.Transaction[hash.H256]
 
 	requestedStatePruning := config.StatePruning
 	stateMetaDB := stateMetaDB{db}
-	// var mapE error
 
 	stateDBInitCommitSet, stateDB, err := statedb.NewStateDB[H, string](stateMetaDB, requestedStatePruning, shouldInit)
 	if err != nil {
-		return Backend[H, Hasher, N, E, Header]{}, fmt.Errorf("%w: %v", blockchain.ErrStateDatabase, err)
+		return nil, fmt.Errorf("%w: %v", blockchain.ErrStateDatabase, err)
 	}
 
 	applyStateCommit(&dbInitTransaction, stateDBInitCommitSet)
@@ -490,7 +489,7 @@ func newBackendFromDatabase[
 	isArchivePruning := statePruningUsed.IsArchive()
 	blockchain, err := newBlockchainDB[H, N, Hasher, E, Header](db)
 	if err != nil {
-		return Backend[H, Hasher, N, E, Header]{}, err
+		return nil, err
 	}
 
 	storageDB := storageDB[H]{
@@ -504,8 +503,8 @@ func newBackendFromDatabase[
 
 	backend := Backend[H, Hasher, N, E, Header]{
 		storage:               storageDB,
-		offchainStorage:       *offchainStorage,
-		blockchain:            *blockchain,
+		offchainStorage:       offchainStorage,
+		blockchain:            blockchain,
 		canonicalizationDelay: canonicalizationDelay,
 		isArchive:             isArchivePruning,
 		blocksPruning:         config.BlocksPruning,
@@ -529,10 +528,10 @@ func newBackendFromDatabase[
 
 	err = db.Commit(dbInitTransaction)
 	if err != nil {
-		return Backend[H, Hasher, N, E, Header]{}, err
+		return nil, err
 	}
 
-	return backend, nil
+	return &backend, nil
 }
 
 // / Reset the shared trie cache.
@@ -579,7 +578,7 @@ func (b *Backend[H, Hasher, N, E, Header]) setHeadWithTransaction(
 
 	// Cannot find tree route with empty DB or when imported a detached block.
 	if meta.BestHash != (*new(H)) && parentExists {
-		treeRoute, err := blockchain.NewTreeRoute[H, N](&b.blockchain, meta.BestHash, routeTo)
+		treeRoute, err := blockchain.NewTreeRoute[H, N](b.blockchain, meta.BestHash, routeTo)
 		if err != nil {
 			return [2][]H{}, err
 		}
@@ -1202,7 +1201,7 @@ func (b *Backend[H, Hasher, N, E, Header]) pruneDisplacedBranches(
 ) error {
 	// Discard all blocks from displaced branches
 	for _, h := range displaced.Leaves() {
-		treeRoute, err := blockchain.NewTreeRoute(&b.blockchain, h, finalized)
+		treeRoute, err := blockchain.NewTreeRoute(b.blockchain, h, finalized)
 		if err != nil {
 			if errors.Is(err, blockchain.ErrUnknownBlock) {
 				// Sometimes routes can't be calculated. E.g. after warp sync.
@@ -1469,7 +1468,7 @@ func (b *Backend[H, Hasher, N, E, Header]) AppendJustification(hash H, justifica
 	number := (*header).Number()
 
 	// Check if the block is finalized first.
-	isDescendantOf := utils.IsDescendantOf[H, N](&b.blockchain, nil)
+	isDescendantOf := utils.IsDescendantOf[H, N](b.blockchain, nil)
 	lastFinalized, err := b.blockchain.LastFinalized()
 	if err != nil {
 		return err
@@ -1518,7 +1517,7 @@ func (b *Backend[H, Hasher, N, E, Header]) AppendJustification(hash H, justifica
 }
 
 func (b *Backend[H, Hasher, N, E, Header]) OffchainStorage() p_offchain.OffchainStorage {
-	return &b.offchainStorage
+	return b.offchainStorage
 }
 
 func (b *Backend[H, Hasher, N, E, Header]) UsageInfo() *api.UsageInfo {
@@ -1839,7 +1838,7 @@ func (b *Backend[H, Hasher, N, E, Header]) StateAt(hash H) (statemachine.Backend
 }
 
 func (b *Backend[H, Hasher, N, E, Header]) Blockchain() blockchain.Backend[H, N, Header] {
-	return &b.blockchain
+	return b.blockchain
 }
 
 func (b *Backend[H, Hasher, N, E, Header]) GetImportLock() *sync.RWMutex {

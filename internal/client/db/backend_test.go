@@ -84,7 +84,7 @@ func NewTestBackend(t *testing.T,
 	if err != nil {
 		panic(err)
 	}
-	return &backend
+	return backend
 }
 
 func insertHeader(t *testing.T,
@@ -567,7 +567,7 @@ func TestBackend(t *testing.T) {
 
 	t.Run("tree_route_works", func(t *testing.T) {
 		backend := NewTestBackend(t, BlocksPruningSome(1000), 100)
-		blockchain := &backend.blockchain
+		blockchain := backend.blockchain
 		block0 := insertHeader(t, backend, 0, hash.H256(""), nil, hash.H256(""))
 
 		// fork from genesis: 3 prong.
@@ -625,7 +625,7 @@ func TestBackend(t *testing.T) {
 
 	t.Run("tree_route_child", func(t *testing.T) {
 		backend := NewTestBackend(t, BlocksPruningSome(1000), 100)
-		blockchain := &backend.blockchain
+		blockchain := backend.blockchain
 
 		block0 := insertHeader(t, backend, 0, hash.H256(""), nil, hash.H256(""))
 		block1 := insertHeader(t, backend, 1, block0, nil, hash.H256(""))
@@ -646,7 +646,7 @@ func TestBackend(t *testing.T) {
 
 	t.Run("lowest_common_ancestor", func(t *testing.T) {
 		backend := NewTestBackend(t, BlocksPruningSome(1000), 100)
-		blockchain := &backend.blockchain
+		blockchain := backend.blockchain
 		block0 := insertHeader(t, backend, 0, hash.H256(""), nil, hash.H256(""))
 
 		// fork from genesis: 3 prong.
