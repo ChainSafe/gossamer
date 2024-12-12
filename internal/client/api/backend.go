@@ -152,7 +152,7 @@ type Backend[
 	// Commit block insertion.
 	CommitOperation(transaction BlockImportOperation[N, H, Hasher, Header, E]) error
 
-	// Finalize block with given `hash`.
+	// Finalize block with given hash.
 	//
 	// This should only be called if the parent of the given block has been finalized.
 	FinalizeBlock(hash H, justification *runtime.Justification) error

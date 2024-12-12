@@ -90,7 +90,7 @@ func (rw *pruningWindow[BlockHash, Key]) HaveBlock(hash BlockHash, number uint64
 	return rw.queue.HaveBlock(hash, uint(number-rw.base))
 }
 
-// Prune next block. Expects at least one block in the window. Adds changes to `commit`.
+// Prune next block. Expects at least one block in the window. Adds changes to commit.
 func (rw *pruningWindow[BlockHash, Key]) PruneOne(commit *CommitSet[Key]) error {
 	pruned, err := rw.queue.PopFront(rw.base)
 	if err != nil {
@@ -113,7 +113,7 @@ func (rw *pruningWindow[BlockHash, Key]) PruneOne(commit *CommitSet[Key]) error 
 	}
 }
 
-// Add a change set to the window. Creates a journal record and pushes it to `commit`
+// Add a change set to the window. Creates a journal record and pushes it to commit
 func (rw *pruningWindow[BlockHash, Key]) NoteCanonical(hash BlockHash, number uint64, commit *CommitSet[Key]) error {
 	if rw.base == 0 && rw.isEmpty() && number > 0 {
 		// This branch is taken if the node imports the target block of a warp sync.
@@ -159,7 +159,7 @@ type deathRowQueue[BlockHash Hash, Key Hash] interface {
 type inMemDeathRowQueue[BlockHash Hash, Key Hash] struct {
 	// A queue of keys that should be deleted for each block in the pruning window.
 	deathRows deque.Deque[deathRow[BlockHash, Key]]
-	// An index that maps each key from `death_rows` to block number.
+	// An index that maps each key from death_rows to block number.
 	deathIndex map[Key]uint64
 }
 
@@ -221,7 +221,7 @@ func (drqim *inMemDeathRowQueue[BlockHash, Key]) Import(
 	drqim.deathRows.PushBack(deathRow[BlockHash, Key]{hash, deletedMap})
 }
 
-// Pop out one block from the front of the queue, `base` is the block number
+// Pop out one block from the front of the queue, base is the block number
 // of the first block of the queue
 func (drqim *inMemDeathRowQueue[BlockHash, Key]) PopFront(base uint64) (*deathRow[BlockHash, Key], error) {
 	if drqim.deathRows.Len() == 0 {
@@ -234,8 +234,8 @@ func (drqim *inMemDeathRowQueue[BlockHash, Key]) PopFront(base uint64) (*deathRo
 	return &row, nil
 }
 
-// Check if the block at the given `index` of the queue exist
-// it is the caller's responsibility to ensure `index` won't be out of bounds
+// Check if the block at the given index of the queue exist
+// it is the caller's responsibility to ensure index won't be out of bounds
 func (drqim *inMemDeathRowQueue[BlockHash, Key]) HaveBlock(hash BlockHash, index uint) haveBlock {
 	if drqim.deathRows.At(int(index)).hash == hash {
 		return haveBlockYes

@@ -140,7 +140,7 @@ func TestBlockchainDB_insertPersistedJustificationsIfPinned(t *testing.T) {
 	db.insertPersistedJustificationsIfPinned(someHash)
 	assert.False(t, db.pinnedBlocksCache.Contains(someHash))
 
-	// nothing in the db, but will pin `runtime.Justifications(nil)`
+	// nothing in the db, but will pin runtime.Justifications(nil)
 	db.pinnedBlocksCache.Pin(someHash)
 	err = db.insertPersistedJustificationsIfPinned(someHash)
 	assert.NoError(t, err)
@@ -163,7 +163,7 @@ func TestBlockchainDB_insertPersistedBodyIfPinned(t *testing.T) {
 	db.insertPersistedBodyIfPinned(someHash)
 	assert.False(t, db.pinnedBlocksCache.Contains(someHash))
 
-	// nothing in the db, but will pin `[]runtime.Extrinsic(nil)`
+	// nothing in the db, but will pin []runtime.Extrinsic(nil)
 	db.pinnedBlocksCache.Pin(someHash)
 	err = db.insertPersistedBodyIfPinned(someHash)
 	assert.NoError(t, err)

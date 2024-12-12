@@ -17,7 +17,7 @@ var lastCanonical = []byte("last_canonical")
 const maxBlocksPerLevel uint64 = 32
 
 // nonCanonicalOverlay maintains trees of block overlays and allows discarding trees/roots.
-// The overlays are added in `Insert` and removed in `Canonicalize`.
+// The overlays are added in Insert and removed in Canonicalize.
 type nonCanonicalOverlay[BlockHash Hash, Key Hash] struct {
 	lastCanonicalized *hashBlock[BlockHash]
 	levels            deque.Deque[overlayLevel[BlockHash, Key]]
@@ -264,7 +264,7 @@ func (nco *nonCanonicalOverlay[BlockHash, Key]) Sync() {
 }
 
 // Canonicalize will select a top-level root and canonicalized it. Discards all sibling subtrees and the root.
-// Add a set of changes of the canonicalized block to a provided `CommitSet`
+// Add a set of changes of the canonicalized block to a provided CommitSet
 // Return the block number of the canonicalized block
 func (nco *nonCanonicalOverlay[BlockHash, Key]) Canonicalize(
 	hash BlockHash,
@@ -374,7 +374,7 @@ func (nco *nonCanonicalOverlay[BlockHash, Key]) HaveBlock(hash BlockHash) bool {
 	return ok
 }
 
-// RevertOne will revert a single level. Returns commit set that deletes the journal or `nil` if not
+// RevertOne will revert a single level. Returns commit set that deletes the journal or nil if not
 // possible.
 func (nco *nonCanonicalOverlay[BlockHash, Key]) RevertOne() *CommitSet[Key] {
 	if nco.levels.Len() == 0 {
@@ -390,7 +390,7 @@ func (nco *nonCanonicalOverlay[BlockHash, Key]) RevertOne() *CommitSet[Key] {
 	return &commit
 }
 
-// Remove will revert a single block. Returns commit set that deletes the journal or `nil` if not
+// Remove will revert a single block. Returns commit set that deletes the journal or nil if not
 // possible.
 func (nco *nonCanonicalOverlay[BlockHash, Key]) Remove(hash BlockHash) *CommitSet[Key] {
 	commit := CommitSet[Key]{}

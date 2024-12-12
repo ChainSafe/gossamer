@@ -1819,7 +1819,7 @@ func TestBackend(t *testing.T) {
 				}
 
 				// This should also not trigger it yet, because we import a best block, but the best
-				// block from the POV of the db is still at `0`.
+				// block from the POV of the db is still at 0.
 				var block3 hash.H256
 				{
 					op := backend.beginOperation()

@@ -496,7 +496,7 @@ func (bdb *blockchainDB[H, N, E, Header]) LongestContaining(baseHash H, importLo
 		defer importLock.RUnlock()
 		info := bdb.Info()
 		if info.FinalizedNumber > (*baseHeader).Number() {
-			// `baseHeader` is on a dead fork.
+			// baseHeader is on a dead fork.
 			return nil, nil
 		}
 		return bdb.Leaves()

@@ -227,9 +227,9 @@ func (sdbs *stateDBSync[BlockHash, Key]) insertBlock(
 }
 
 func (sdbs *stateDBSync[BlockHash, Key]) canonicalizeBlock(hash BlockHash) (CommitSet[Key], error) {
-	// NOTE: it is important that the change to `lastCanonical` (emit from
-	// `nonCanonicalOverlay.Canonicalize`) and the insert of the new pruning journal (emit from
-	// `pruningWindow.NoteCanonical`) are collected into the same `CommitSet` and are committed to
+	// NOTE: it is important that the change to lastCanonical (emit from
+	// nonCanonicalOverlay.Canonicalize) and the insert of the new pruning journal (emit from
+	// pruningWindow.NoteCanonical) are collected into the same CommitSet and are committed to
 	// the database atomically to keep their consistency when restarting the node
 	commit := CommitSet[Key]{}
 	if _, ok := sdbs.mode.(PruningModeArchiveAll); ok {
@@ -329,7 +329,7 @@ func (sdbs *stateDBSync[BlockHash, Key]) prune(commit *CommitSet[Key]) error {
 				}
 			}
 			err = sdbs.pruning.PruneOne(commit)
-			// this branch should not reach as previous `next_hash` don't return error
+			// this branch should not reach as previous next_hash don't return error
 			// keeping it for robustness
 			if err != nil {
 				if errors.Is(err, ErrBlockUnavailable) {
@@ -343,7 +343,7 @@ func (sdbs *stateDBSync[BlockHash, Key]) prune(commit *CommitSet[Key]) error {
 }
 
 // Revert all non-canonical blocks with the best block number.
-// Returns a database commit or `None` if not possible.
+// Returns a database commit or None if not possible.
 // For archive an empty commit set is returned.
 func (sdbs *stateDBSync[BlockHash, Key]) revertOne() *CommitSet[Key] {
 	switch sdbs.mode.(type) {
@@ -451,7 +451,7 @@ func (sdbs *stateDBSync[BlockHash, Key]) get(key Key, db NodeDB[Key]) (DBValue, 
 // unfinalized block may be forced.
 //
 // # Pruning.
-// See `pruningWindow` for pruning algorithm details. `StateDB` prunes on each canonicalization until
+// See pruningWindow for pruning algorithm details. StateDB prunes on each canonicalization until
 // pruning constraints are satisfied.
 type StateDB[BlockHash Hash, Key Hash] struct {
 	db stateDBSync[BlockHash, Key]
@@ -549,7 +549,7 @@ func (sdb *StateDB[BlockHash, Key]) CanonicalizeBlock(hash BlockHash) (CommitSet
 }
 
 // Pin prevents pruning of specified block and its descendants.
-// `hint` used for further checking if the given block exists
+// hint used for further checking if the given block exists
 func (sdb *StateDB[BlockHash, Key]) Pin(hash BlockHash, number uint64, hint func() bool) error {
 	sdb.Lock()
 	defer sdb.Unlock()
@@ -579,7 +579,7 @@ func (sdb *StateDB[BlockHash, Key]) Get(key Key, db NodeDB[Key]) (DBValue, error
 }
 
 // RevertOne will revert all non-canonical blocks with the best block number.
-// Returns a database commit or `nil` if not possible.
+// Returns a database commit or nil if not possible.
 // For archive an empty commit set is returned.
 func (sdb *StateDB[BlockHash, Key]) RevertOne() *CommitSet[Key] {
 	sdb.Lock()
@@ -588,7 +588,7 @@ func (sdb *StateDB[BlockHash, Key]) RevertOne() *CommitSet[Key] {
 }
 
 // Remove specified non-canonical block.
-// Returns a database commit or `nil` if not possible.
+// Returns a database commit or nil if not possible.
 func (sdb *StateDB[BlockHash, Key]) Remove(hash BlockHash) *CommitSet[Key] {
 	sdb.Lock()
 	defer sdb.Unlock()
@@ -621,7 +621,7 @@ func (sdb *StateDB[BlockHash, Key]) Reset(db MetaDB) error {
 	return nil
 }
 
-// The result returned by `StateDB.IsPruned()`
+// The result returned by StateDB.IsPruned()
 type IsPruned uint
 
 const (
