@@ -50,17 +50,17 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 		if err != nil {
 			return nil, fmt.Errorf("handling vote message: %w", err)
 		}
-		return nil, nil //nolint:nilnil
+		return nil, nil
 	case *CommitMessage:
 		err := h.grandpa.handleCommitMessage(msg)
 		if err != nil {
 			return nil, fmt.Errorf("handling commit message: %w", err)
 		}
 
-		return nil, nil //nolint:nilnil
+		return nil, nil
 	case *NeighbourPacketV1:
 		h.handleNeighbourMessage(msg, from)
-		return nil, nil //nolint:nilnil
+		return nil, nil
 	case *CatchUpRequest:
 		return h.handleCatchUpRequest(msg)
 	case *CatchUpResponse:
@@ -389,7 +389,7 @@ func (s *Service) VerifyBlockJustification(finalizedHash common.Hash, finalizedN
 	voters := finality_grandpa.NewVoterSet(idsAndWeights)
 	target := client_grandpa.HashNumber[hash.H256, uint32]{
 		Hash:   hash.H256(finalizedHash.ToBytes()),
-		Number: uint32(finalizedNumber), //nolint:gosec
+		Number: uint32(finalizedNumber),
 	}
 
 	justification, err := client_grandpa.DecodeGrandpaJustificationVerifyFinalizes[hash.H256, uint32, runtime.BlakeTwo256](
