@@ -201,7 +201,10 @@ func (s *StateSyncStrategy) NextActions() ([]*SyncTask, error) {
 }
 
 func (w *StateSyncStrategy) ShowMetrics() {
-	panic("not implemented")
+	cursor := int32(w.lastKeys[0][0])
+	percentDone := cursor * 100 / 256
+
+	logger.Infof("⚙️ State Sync, downloading state %d% ", percentDone)
 }
 
 func (w *StateSyncStrategy) Result() any {
