@@ -46,10 +46,10 @@ func Test_BlockTree_GetBlock(t *testing.T) {
 	bt, hashes := createFlatTree(t, 2)
 
 	n := bt.getNode(hashes[2])
-	if n == nil { //nolint:staticcheck
+	if n == nil {
 		t.Fatal("node is nil")
 	}
-	if !bytes.Equal(hashes[2][:], (*n).hash[:]) { //nolint:staticcheck
+	if !bytes.Equal(hashes[2][:], (*n).hash[:]) {
 		t.Fatalf("Fail: got %x expected %x", n.hash, hashes[2])
 	}
 

@@ -25,7 +25,7 @@ func New[K comparable, V any](
 ) (*LRU[K, V], error) {
 	var capacity = uint32(math.MaxUint32) / 8
 	if (maxCost / 8) < uint(capacity) {
-		capacity = uint32(maxCost / 8) //nolint:gosec
+		capacity = uint32(maxCost / 8)
 	}
 	lru, err := freelru.New[K, V](capacity, hash)
 	if err != nil {

@@ -29,7 +29,7 @@ type hasher[K comparable] struct {
 }
 
 func (h hasher[K]) Hash(key K) uint32 {
-	return uint32(h.Hasher.Hash(key)) //nolint:gosec
+	return uint32(h.Hasher.Hash(key))
 }
 
 // Constructor for [sharedNodeCache] with fixed size in number of bytes.
@@ -40,7 +40,7 @@ func newSharedNodeCache[H runtime.Hash](sizeBytes uint) *sharedNodeCache[H] {
 	var err error
 
 	snc.lru, err = costlru.New(sizeBytes, h.Hash, func(hash H, node triedb.CachedNode[H]) uint32 {
-		return uint32(node.ByteSize()) //nolint:gosec
+		return uint32(node.ByteSize())
 	})
 	if err != nil {
 		panic(err)
@@ -63,7 +63,7 @@ func (snc *sharedNodeCache[H]) Update(list []updateItem[H]) {
 	addCount := uint(0)
 
 	snc.itemsEvicted = 0
-	maxItemsEvicted := uint(snc.lru.Len()*100) / sharedNodeCacheMaxReplacePercent //nolint:gosec
+	maxItemsEvicted := uint(snc.lru.Len()*100) / sharedNodeCacheMaxReplacePercent
 	for _, ui := range list {
 		if ui.nodeCached.FromSharedCache {
 			_, ok := snc.lru.Get(ui.Hash)
@@ -143,14 +143,14 @@ func newSharedValueCache[H runtime.Hash](size uint) *sharedValueCache[H] {
 	h := hasher[ValueCacheKeyComparable[H]]{maphash.NewHasher[ValueCacheKeyComparable[H]]()}
 
 	svc.lru, err = costlru.New(size, h.Hash, func(key ValueCacheKeyComparable[H], value triedb.CachedValue[H]) uint32 {
-		keyCost := uint32(len(key.StorageKey)) //nolint:gosec
+		keyCost := uint32(len(key.StorageKey))
 		switch value := value.(type) {
 		case triedb.NonExistingCachedValue[H]:
 			return keyCost + 1
 		case triedb.ExistingHashCachedValue[H]:
-			return keyCost + uint32(value.Hash.Length()) //nolint:gosec
+			return keyCost + uint32(value.Hash.Length())
 		case triedb.ExistingCachedValue[H]:
-			return keyCost + uint32(value.Hash.Length()+len(value.Data)) //nolint:gosec
+			return keyCost + uint32(value.Hash.Length()+len(value.Data))
 		default:
 			panic("unreachable")
 		}
@@ -198,7 +198,7 @@ func (svc *sharedValueCache[H]) Update(added []sharedValueCacheAdded[H], accesse
 	// we don't evict the whole shared cache nor we keep spinning our wheels
 	// evicting items which we've added ourselves in previous iterations of this loop.
 	svc.itemsEvicted = 0
-	maxItemsEvicted := uint(svc.lru.Len()) * 100 / sharedValueCacheMaxReplacePercent //nolint:gosec
+	maxItemsEvicted := uint(svc.lru.Len()) * 100 / sharedValueCacheMaxReplacePercent
 
 	for _, svca := range added {
 		added, _ := svc.lru.Add(svca.ValueCacheKey.ValueCacheKeyComparable(), svca.CachedValue)
@@ -260,7 +260,7 @@ func NewSharedTrieCache[H runtime.Hash](size uint) *SharedTrieCache[H] {
 func (stc *SharedTrieCache[H]) LocalTrieCache() LocalTrieCache[H] {
 	h := hasher[H]{maphash.NewHasher[H]()}
 	nodeCache, err := costlru.New(localNodeCacheMaxSize, h.Hash, func(hash H, node nodeCached[H]) uint32 {
-		return uint32(node.ByteSize()) //nolint:gosec
+		return uint32(node.ByteSize())
 	})
 	if err != nil {
 		panic(err)
@@ -270,14 +270,14 @@ func (stc *SharedTrieCache[H]) LocalTrieCache() LocalTrieCache[H] {
 		localValueCacheMaxSize,
 		hasher[ValueCacheKeyComparable[H]]{maphash.NewHasher[ValueCacheKeyComparable[H]]()}.Hash,
 		func(key ValueCacheKeyComparable[H], value triedb.CachedValue[H]) uint32 {
-			keyCost := uint32(len(key.StorageKey)) //nolint:gosec
+			keyCost := uint32(len(key.StorageKey))
 			switch value := value.(type) {
 			case triedb.NonExistingCachedValue[H]:
 				return keyCost + 1
 			case triedb.ExistingHashCachedValue[H]:
-				return keyCost + uint32(value.Hash.Length()) //nolint:gosec
+				return keyCost + uint32(value.Hash.Length())
 			case triedb.ExistingCachedValue[H]:
-				return keyCost + uint32(value.Hash.Length()+len(value.Data)) //nolint:gosec
+				return keyCost + uint32(value.Hash.Length()+len(value.Data))
 			default:
 				panic("unreachable")
 			}

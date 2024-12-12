@@ -684,7 +684,7 @@ func (b *Backend[H, Hasher, N, E, Header]) forceDelayedCanonicalize(
 	return nil
 }
 
-func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation(
+func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation( //nolint:gocyclo
 	operation *BlockImportOperation[H, Hasher, N, Header, E],
 ) error {
 	var transaction database.Transaction[hash.H256]
@@ -821,7 +821,7 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation(
 			for key, update := range operation.dbUpdates.Drain() {
 				if rc := update.RC; rc > 0 {
 					ops += 1
-					bytes += uint64(len(key) + len(update.Data)) //nolint:gosec
+					bytes += uint64(len(key) + len(update.Data))
 					if rc == 1 {
 						changeset.Inserted = append(changeset.Inserted, statedb.HashDBValue[string]{
 							Hash:    key,
@@ -1261,14 +1261,14 @@ func applyIndexOps[E runtime.Extrinsic](
 	}
 	for index, extrinsic := range body {
 		var dbExtrinsic dbExtrinsic[E]
-		hash, ok := renewedMap[uint32(index)] //nolint:gosec
+		hash, ok := renewedMap[uint32(index)]
 		if ok {
 			// Bump ref counter
 			encoded := scale.MustMarshal(extrinsic)
 			transaction.Reference(columns.Transaction, hash)
 			dbExtrinsic = newDbExtrinsic[E](dbExtrinsicIndexed{Hash: hash, Header: encoded})
 		} else {
-			i, ok := indexMap[uint32(index)] //nolint:gosec
+			i, ok := indexMap[uint32(index)]
 			if ok {
 				encoded := scale.MustMarshal(extrinsic)
 				if int(i.Size) <= len(encoded) {
@@ -1317,7 +1317,7 @@ func (b *Backend[H, Hasher, N, E, Header]) GetAux(key []byte) ([]byte, error) {
 	return b.storage.db.Get(columns.Aux, key), nil
 }
 
-func (b *Backend[H, Hasher, N, E, Header]) beginOperation() (*BlockImportOperation[H, Hasher, N, Header, E], error) {
+func (b *Backend[H, Hasher, N, E, Header]) beginOperation() *BlockImportOperation[H, Hasher, N, Header, E] {
 	return &BlockImportOperation[H, Hasher, N, Header, E]{
 		pendingBlock:           nil,
 		oldState:               b.emptyState(),
@@ -1330,13 +1330,13 @@ func (b *Backend[H, Hasher, N, E, Header]) beginOperation() (*BlockImportOperati
 		setHead:                nil,
 		commitState:            false,
 		indexOps:               make([]statemachine.IndexOperation, 0),
-	}, nil
+	}
 }
 
 func (b *Backend[H, Hasher, N, E, Header]) BeginOperation() (
 	api.BlockImportOperation[N, H, Hasher, Header, E], error,
 ) {
-	return b.beginOperation()
+	return b.beginOperation(), nil
 }
 
 func (b *Backend[H, Hasher, N, E, Header]) BeginStateOperation(

@@ -140,9 +140,8 @@ func insertBlock(t *testing.T,
 		blockHash = parentHash
 	}
 
-	op, err := backend.beginOperation()
-	require.NoError(t, err)
-	err = backend.BeginStateOperation(op, blockHash)
+	op := backend.beginOperation()
+	err := backend.BeginStateOperation(op, blockHash)
 	require.NoError(t, err)
 	if transactionIndex != nil {
 		err = op.UpdateTransactionIndex(transactionIndex)
@@ -181,8 +180,7 @@ func insertHeaderNoHead(t *testing.T,
 	header := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
 		number, extrinisicsRoot, hash.H256(""), parentHash, digest,
 	)
-	op, err := backend.beginOperation()
-	require.NoError(t, err)
+	op := backend.beginOperation()
 
 	state, err := backend.StateAt(parentHash)
 	if err != nil {
@@ -280,8 +278,7 @@ func TestBackend(t *testing.T) {
 				db := NewTestBackend(t, BlocksPruningSome(2), 0)
 				var hash dbHash
 				{
-					op, err := db.beginOperation()
-					require.NoError(t, err)
+					op := db.beginOperation()
 					header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 						0, dbHash(""), dbHash(""), dbHash(""), runtime.Digest{},
 					)
@@ -299,7 +296,7 @@ func TestBackend(t *testing.T) {
 					for _, delta := range deltas {
 						top.Set(string(delta.Key), delta.Value)
 					}
-					_, err = op.ResetStorage(storage.Storage{
+					_, err := op.ResetStorage(storage.Storage{
 						Top: *top,
 					}, stateVersion)
 					require.NoError(t, err)
@@ -326,9 +323,8 @@ func TestBackend(t *testing.T) {
 				}
 
 				{
-					op, err := db.beginOperation()
-					require.NoError(t, err)
-					err = db.BeginStateOperation(op, hash)
+					op := db.beginOperation()
+					err := db.BeginStateOperation(op, hash)
 					require.NoError(t, err)
 					header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 						1,
@@ -387,9 +383,8 @@ func TestBackend(t *testing.T) {
 
 		var hash dbHash
 		{
-			op, err := backend.beginOperation()
-			require.NoError(t, err)
-			err = backend.BeginStateOperation(op, dbHash(""))
+			op := backend.beginOperation()
+			err := backend.BeginStateOperation(op, dbHash(""))
 			require.NoError(t, err)
 			header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 				0,
@@ -421,9 +416,8 @@ func TestBackend(t *testing.T) {
 
 		var hash1 dbHash
 		{
-			op, err := backend.beginOperation()
-			require.NoError(t, err)
-			err = backend.BeginStateOperation(op, hash)
+			op := backend.beginOperation()
+			err := backend.BeginStateOperation(op, hash)
 			require.NoError(t, err)
 			header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 				1,
@@ -456,9 +450,8 @@ func TestBackend(t *testing.T) {
 
 		var hash2 dbHash
 		{
-			op, err := backend.beginOperation()
-			require.NoError(t, err)
-			err = backend.BeginStateOperation(op, hash1)
+			op := backend.beginOperation()
+			err := backend.BeginStateOperation(op, hash1)
 			require.NoError(t, err)
 			header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 				2,
@@ -489,9 +482,8 @@ func TestBackend(t *testing.T) {
 
 		var hash3 dbHash
 		{
-			op, err := backend.beginOperation()
-			require.NoError(t, err)
-			err = backend.BeginStateOperation(op, hash2)
+			op := backend.beginOperation()
+			err := backend.BeginStateOperation(op, hash2)
 			require.NoError(t, err)
 			header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 				3,
@@ -521,9 +513,8 @@ func TestBackend(t *testing.T) {
 
 		var hash4 dbHash
 		{
-			op, err := backend.beginOperation()
-			require.NoError(t, err)
-			err = backend.BeginStateOperation(op, hash3)
+			op := backend.beginOperation()
+			err := backend.BeginStateOperation(op, hash3)
 			require.NoError(t, err)
 			header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 				4,
@@ -829,9 +820,8 @@ func TestBackend(t *testing.T) {
 		block4 := insertHeader(t, backend, 4, block3, nil, hash.H256(""))
 
 		{
-			op, err := backend.beginOperation()
-			require.NoError(t, err)
-			err = backend.BeginStateOperation(op, block0)
+			op := backend.beginOperation()
+			err := backend.BeginStateOperation(op, block0)
 			require.NoError(t, err)
 			err = op.MarkFinalized(block1, nil)
 			require.NoError(t, err)
@@ -842,9 +832,8 @@ func TestBackend(t *testing.T) {
 		}
 
 		{
-			op, err := backend.beginOperation()
-			require.NoError(t, err)
-			err = backend.BeginStateOperation(op, block2)
+			op := backend.beginOperation()
+			err := backend.BeginStateOperation(op, block2)
 			require.NoError(t, err)
 			err = op.MarkFinalized(block3, nil)
 			require.NoError(t, err)
@@ -861,9 +850,8 @@ func TestBackend(t *testing.T) {
 
 		var hash0 dbHash
 		{
-			op, err := backend.beginOperation()
-			require.NoError(t, err)
-			err = backend.BeginStateOperation(op, dbHash(""))
+			op := backend.beginOperation()
+			err := backend.BeginStateOperation(op, dbHash(""))
 			require.NoError(t, err)
 			header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 				0,
@@ -907,9 +895,8 @@ func TestBackend(t *testing.T) {
 
 		var hash1 dbHash
 		{
-			op, err := backend.beginOperation()
-			require.NoError(t, err)
-			err = backend.BeginStateOperation(op, hash0)
+			op := backend.beginOperation()
+			err := backend.BeginStateOperation(op, hash0)
 			require.NoError(t, err)
 			header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 				1,
@@ -976,9 +963,8 @@ func TestBackend(t *testing.T) {
 		block2 := insertHeader(t, backend, 2, block1, nil, hash.H256(""))
 
 		{
-			op, err := backend.beginOperation()
-			require.NoError(t, err)
-			err = backend.BeginStateOperation(op, block0)
+			op := backend.beginOperation()
+			err := backend.BeginStateOperation(op, block0)
 			require.NoError(t, err)
 			err = op.MarkFinalized(block2, nil)
 			require.NoError(t, err)
@@ -1010,9 +996,8 @@ func TestBackend(t *testing.T) {
 			}
 
 			{
-				op, err := backend.beginOperation()
-				require.NoError(t, err)
-				err = backend.BeginStateOperation(op, blocks[4])
+				op := backend.beginOperation()
+				err := backend.BeginStateOperation(op, blocks[4])
 				require.NoError(t, err)
 				for i := 1; i < 5; i++ {
 					err = op.MarkFinalized(blocks[i], nil)
@@ -1592,9 +1577,8 @@ func TestBackend(t *testing.T) {
 
 		var block3 hash.H256
 		{
-			op, err := backend.beginOperation()
-			require.NoError(t, err)
-			err = backend.BeginStateOperation(op, block1)
+			op := backend.beginOperation()
+			err := backend.BeginStateOperation(op, block1)
 			require.NoError(t, err)
 			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](
 				trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](),
@@ -1619,9 +1603,8 @@ func TestBackend(t *testing.T) {
 
 		var block4 hash.H256
 		{
-			op, err := backend.beginOperation()
-			require.NoError(t, err)
-			err = backend.BeginStateOperation(op, block2)
+			op := backend.beginOperation()
+			err := backend.BeginStateOperation(op, block2)
 			require.NoError(t, err)
 			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](
 				trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](),
@@ -1646,9 +1629,8 @@ func TestBackend(t *testing.T) {
 
 		var block3Fork hash.H256
 		{
-			op, err := backend.beginOperation()
-			require.NoError(t, err)
-			err = backend.BeginStateOperation(op, block2)
+			op := backend.beginOperation()
+			err := backend.BeginStateOperation(op, block2)
 			require.NoError(t, err)
 			trie := triedb.NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](
 				trie.NewPrefixedMemoryDB[hash.H256, runtime.BlakeTwo256](),
@@ -1739,9 +1721,8 @@ func TestBackend(t *testing.T) {
 
 				var block1 hash.H256
 				{
-					op, err := backend.beginOperation()
-					require.NoError(t, err)
-					err = backend.BeginStateOperation(op, genesis)
+					op := backend.beginOperation()
+					err := backend.BeginStateOperation(op, genesis)
 					require.NoError(t, err)
 					header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 						1,
@@ -1791,9 +1772,8 @@ func TestBackend(t *testing.T) {
 				// best block by now.
 				var block2 hash.H256
 				{
-					op, err := backend.beginOperation()
-					require.NoError(t, err)
-					err = backend.BeginStateOperation(op, block1)
+					op := backend.beginOperation()
+					err := backend.BeginStateOperation(op, block1)
 					require.NoError(t, err)
 					header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 						2,
@@ -1842,9 +1822,8 @@ func TestBackend(t *testing.T) {
 				// block from the POV of the db is still at `0`.
 				var block3 hash.H256
 				{
-					op, err := backend.beginOperation()
-					require.NoError(t, err)
-					err = backend.BeginStateOperation(op, block2)
+					op := backend.beginOperation()
+					err := backend.BeginStateOperation(op, block2)
 					require.NoError(t, err)
 					header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 						3,
@@ -1892,9 +1871,8 @@ func TestBackend(t *testing.T) {
 				// Now it should kick in.
 				var block4 hash.H256
 				{
-					op, err := backend.beginOperation()
-					require.NoError(t, err)
-					err = backend.BeginStateOperation(op, block3)
+					op := backend.beginOperation()
+					err := backend.BeginStateOperation(op, block3)
 					require.NoError(t, err)
 					header := generic.NewHeader[uint64, dbHash, runtime.BlakeTwo256](
 						4,
@@ -2007,8 +1985,7 @@ func TestBackend(t *testing.T) {
 		require.NoError(t, err)
 
 		// Finalize all blocks. This will trigger pruning.
-		op, err := backend.beginOperation()
-		require.NoError(t, err)
+		op := backend.beginOperation()
 		err = backend.BeginStateOperation(op, blocks[4])
 		require.NoError(t, err)
 		for i := 1; i < 5; i++ {
@@ -2119,8 +2096,7 @@ func TestBackend(t *testing.T) {
 		err = backend.PinBlock(blocks[4])
 		require.NoError(t, err)
 		// Mark block 5 as finalized.
-		op, err = backend.beginOperation()
-		require.NoError(t, err)
+		op = backend.beginOperation()
 		err = backend.BeginStateOperation(op, blocks[5])
 		require.NoError(t, err)
 		err = op.MarkFinalized(blocks[5], buildJustification(uint64(5)))
@@ -2180,8 +2156,7 @@ func TestBackend(t *testing.T) {
 
 		// Finalize block 6 so block 5 gets pruned. Since it is pinned both justifications should be
 		// in memory.
-		op, err = backend.beginOperation()
-		require.NoError(t, err)
+		op = backend.beginOperation()
 		err = backend.BeginStateOperation(op, blocks[6])
 		require.NoError(t, err)
 		err = op.MarkFinalized(blocks[6], nil)

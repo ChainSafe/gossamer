@@ -672,7 +672,7 @@ func fetchStoredPruningMode(db MetaDB) (PruningMode, error) {
 		return nil, err
 	}
 	if val == nil {
-		return nil, nil //nolint: nilnil
+		return nil, nil
 	}
 	mode := NewPruningModeFromID(val)
 	if mode != nil {
