@@ -7,11 +7,16 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
+
+type StateStorage interface {
+	StoreTrie(ts *storage.TrieState, header *types.Header) error
+}
 
 type StateSyncStrategy struct {
 	// Strategy dependencies and config
@@ -19,24 +24,26 @@ type StateSyncStrategy struct {
 	badBlocks  []string
 	reqMaker   network.RequestMaker
 	blockState BlockState
+	storage    StateStorage
 
 	// State sync state
 	startedAt   time.Time
-	targetBlock common.Hash
+	targetBlock types.Header
 	lastKeys    [][]byte
 	completed   bool
-	state       trie.Trie
+	state       trie.Trie //TODO: replace it to TrieState to handle transactions
 }
 
 // TODO: handle merkle proofs
 
 type StateSyncStrategyConfig struct {
-	Telemetry   Telemetry
-	BadBlocks   []string
-	BlockState  BlockState
-	Peers       *peerViewSet
-	ReqMaker    network.RequestMaker
-	TargetBlock common.Hash
+	Telemetry    Telemetry
+	BadBlocks    []string
+	BlockState   BlockState
+	Peers        *peerViewSet
+	ReqMaker     network.RequestMaker
+	TargetBlock  types.Header
+	StateStorage StateStorage
 }
 
 func NewStateSyncStrategy(
@@ -49,6 +56,7 @@ func NewStateSyncStrategy(
 		targetBlock: cfg.TargetBlock,
 		reqMaker:    cfg.ReqMaker,
 		state:       inmemory.NewEmptyTrie(),
+		storage:     cfg.StateStorage,
 	}
 
 	// TODO: set right state version
@@ -160,7 +168,7 @@ func (s *StateSyncStrategy) Process(results []*SyncTaskResult) (
 	return s.IsSynced(), repChanges, peersToBlock, nil
 }
 
-// importState imports the retreived state into our block state
+// importState imports the retreived state into our state storage
 func (s *StateSyncStrategy) importState(response messages.StateResponse) error {
 	for _, stateEntry := range response.Entries {
 		for _, kv := range stateEntry.StateEntries {
@@ -170,8 +178,13 @@ func (s *StateSyncStrategy) importState(response messages.StateResponse) error {
 		}
 	}
 
+	// Store state in our state storage
+	if s.completed {
+		trieState := storage.NewTrieState(s.state)
+		return s.storage.StoreTrie(trieState, &s.targetBlock)
+	}
+
 	return nil
-	// TODO: if we retrieved all the state flush in-memory trie to our block state
 }
 
 // NextActions returns the next actions to be taken by the sync service
@@ -179,7 +192,7 @@ func (s *StateSyncStrategy) NextActions() ([]*SyncTask, error) {
 	s.startedAt = time.Now()
 
 	task := &SyncTask{
-		request:      messages.NewStateRequest(s.targetBlock, s.lastKeys, true),
+		request:      messages.NewStateRequest(s.targetBlock.Hash(), s.lastKeys, true),
 		response:     &messages.WarpSyncProof{},
 		requestMaker: s.reqMaker,
 	}
@@ -192,7 +205,8 @@ func (w *StateSyncStrategy) ShowMetrics() {
 }
 
 func (w *StateSyncStrategy) Result() any {
-	panic("not implemented")
+	logger.Debug("unexpected call to Result() in StateSyncStrategy")
+	return nil
 }
 
 func (s *StateSyncStrategy) IsSynced() bool {
