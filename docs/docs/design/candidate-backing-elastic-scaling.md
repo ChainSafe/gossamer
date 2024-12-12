@@ -87,22 +87,30 @@ update logic of seconding sanity check:
 
 If we don't find any leaf at which we can second the candidate, it is impossible to second the candidate
 
-
-
 ### Second
-- make sure local validator is not disabled before processing the candidate.
-- update ther logic to ensure the candidate is from our assignment
+make sure local validator is not disabled before processing the candidate.
+
+update ther logic to ensure the candidate is from our assignment
+- using core index, validators can find parachains assigned to the core.(claim queue will provide this info)
+- candidate's parachain id should be in the list of parachains we get from claim queue.
 
 ### Statement
-- Don't import statement if the validator is disabled
-- in `kickOffValidationWork` method of `perRelayParentState`
-    - Do nothing if the local validator is disabled or not a validator at all
+Don't import statement if the sender is disabled.
+
+in `kickOffValidationWork` method of `perRelayParentState`.
+- Do nothing if the local validator is disabled or not a validator at all.
+
+in `rpState.postImportStatement` method 
+- remove the code under the branch of prospective parachain mode disabled.
+- in the code under the branch of prospective parachain mode enabled remove the code to send `collatorprotocolmessages.Backed` overseer message.
 
 ## Validated Candidate command
+modification in `signImportAndDistributeStatement` function
+- Need to provide core index as argument to `table.importStatement` method to use core index instead of paraID inside the method.
 
-### Second
-TODO
-### Attest
-TODO
-### AttestNoPov
-TODO
+No changes are needed in the logic to process `Attest` and `AttestNoPov` commands.
+
+changes we need in the logic to process `Second` command
+- there is some code seems to be not required. So remove this code where we compare
+persistedValidationData.ParentHead.Data hash with commitments.HeadData.Data hash.
+- remove the code to update seconded depths in active leaves, which is related to fragment tree.
