@@ -74,7 +74,7 @@ Consider the following chain, the green letters forms the [`BackedChain`](https:
 
 ![IMG_944F8C1D62F0-1](./assets/img/parachain-protocol/pp_1.jpeg)
 
-Now lets trim the unelegible forks out, but first we need to define the steps:
+Now lets trim the inelegible forks out, but first we need to define the steps:
 
 1. Lets build a queue of candidates in the backed chain (a.k.a green letters) and we will use an extra info called "has potential", which means that the candidate is good to stay connected (even if they form a fork).
 
