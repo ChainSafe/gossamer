@@ -28,19 +28,19 @@ The messages that validators can exchange are:
 
 The subsystem must be registered with the overseer and handle subsystem-specific messages from it:
 
-1. [OverseerSignal::ActiveLeaves](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/lib.rs#L114)
-
-2. [StatementDistributionMessage::Share](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/messages.rs#L829)
+1. [StatementDistributionMessage::Share](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/messages.rs#L829)
 
 - We have originated a signed statement in the context of given relay-parent hash and it should be distributed to other validators
 
-3. [StatementDistributionMessage::Backed](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/messages.rs#L836)
+2. [StatementDistributionMessage::Backed](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/messages.rs#L836)
 
 - The candidate received enough validity votes from the backing group. If the candidate is backed as a result of a local statement, this message MUST be preceded by a `Share` message for that statement. This ensures that Statement Distribution is always aware of full candidates prior to receiving the `Backed` notification, even when the group size is 1 and the candidate is seconded locally
 
-4. [StatementDistributionMessage::NetworkBridgeUpdate](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/messages.rs#L839)
+3. [StatementDistributionMessage::NetworkBridgeUpdate](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/messages.rs#L839)
 
 - Event from the network bridge.
+
+4. [OverseerSignal::ActiveLeaves](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/lib.rs#L114)
 
 ### Messages Sent
 
@@ -60,7 +60,7 @@ The subsystem must be registered with the overseer and handle subsystem-specific
 
 5. [ProspectiveParachainsMessage::GetHypotheticalMembership](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/subsystem-types/src/messages.rs#L1411)
 
-- Get the hypothetical or actual membership of candidates with the given properties under the specified active leave's fragment chain. For each candidate, we return a vector of leaves where the candidate is present or could be added. "Could be added" either means that the candidate can be added to the chain right now or could be added in the future (we may not have its ancestors yet). Note that even if we think it could be added in the future, we may find out that it was invalid, as time passes. If an active leaf is not in the vector, it means that there's no chance this candidate will become valid under that leaf in the future. If `fragment_chain_relay_parent` in the request is `Some()`, the return vector can only contain this relay parent (or none).
+- Get the hypothetical or actual membership of candidates with the given properties under the specified active leaf associated fragment chain. For each candidate, we return a vector of leaves where the candidate is present or could be added. "Could be added" either means that the candidate can be added to the chain right now or could be added in the future (we may not have its ancestors yet). Note that even if we think it could be added in the future, we may find out that it was invalid, as time passes. If an active leaf is not in the vector, it means that there's no chance this candidate will become valid under that leaf in the future. If `fragment_chain_relay_parent` in the request is `Some()`, the return vector can only contain this relay parent (or none).
 
 6. [NetworkBridgeTxMessage::SendRequests](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/subsystem-types/src/messages.rs#L433)
 
@@ -80,7 +80,7 @@ The state holds the implicit view, candidates (a tracker for all knwon candidate
 
 - **StatementDistributionMessage::Share**: this message is handled by [`v2::share_local_statement`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L1181), where a local originated statement is imported and need to be distributed to peers, calls [`v2::circulate_statement`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L1343-L1344)
 
-- **StatementDistributionMessage::NetworkBridgeUpdate**: messages comming from network bridge might labeled with its version. We should focus only on messages labeled `Version::V2` and `Version::V3` and for messages targeting the current protocol they are handled by [`v2::handle_network_update`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L428). The message from the network bridge can unwrap in one of the following messages:
+- **StatementDistributionMessage::NetworkBridgeUpdate**: messages coming from network bridge might labeled with its version. We should focus only on messages labeled `Version::V2` and `Version::V3` and for messages targeting the current protocol they are handled by [`v2::handle_network_update`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L428). The message from the network bridge can unwrap in one of the following messages:
 - `NetworkBridgeEvent::PeerConnected`: update the current subsystem state peer view
 - `NetworkBridgeEvent::PeerDisconnected`: update the current subsystem state peer view
 - `NetworkBridgeEvent::NewGossipTopology`: given the incoming topology checks if we already have such session index to supply the topology, otherwise keep it in the `unused_topology`
@@ -110,7 +110,7 @@ The state holds the implicit view, candidates (a tracker for all knwon candidate
 
 4. [dispatch_requests](https://github.com/paritytech/polkadot-sdk/blob/b8da8faa0a675afbed1c9ed5d524a674e93910b9/polkadot/node/network/statement-distribution/src/lib.rs#L303C8-L303C25)
 
-- This method is called in 2 situations: right after one of the above handles finishes execution, that is why while handling a message we might have produced a request to dispatch for example: we received a `Manifest` message and now we need to request the candidate so we build the candidate request and place them in the `RequestManager` queue and after handling the message we call `dispatch_requests`. The second situation is when we receive a `RetryRequest` message comming from `RequestManager`, meaning that we have failed requests in the queue to dispatch. 
+- This method is called in 2 situations: right after one of the above handles finishes execution, that is why while handling a message we might have produced a request to dispatch for example: we received a `Manifest` message and now we need to request the candidate so we build the candidate request and place them in the `RequestManager` queue and after handling the message we call `dispatch_requests`. The second situation is when we receive a `RetryRequest` message coming from `RequestManager`, meaning that we have failed requests in the queue to dispatch. 
 
 ## Grid Mode
 
@@ -126,7 +126,7 @@ Take the example:
 
 ![Grid Topology Example](../assets/img/sd_img1.jpeg)
 
-1) Considering that **J** is our validator index, we share X axis with **[I, K, J]** and Y axis with **[B, F, N]**, lets say that a message comming from `B` arrives, we can only propagate the message to validator `I`, as `K` and `L` are from the same group as `B`.
+1) Considering that **J** is our validator index, we share X axis with **[I, K, J]** and Y axis with **[B, F, N]**, lets say that a message coming from `B` arrives, we can only propagate the message to validator `I`, as `K` and `L` are from the same group as `B`.
 
 2) Considering that we, `J`, want to share a `Manifest` with our grid neighbors, we can send the message to **[I, K, J]** and **[B, F, N]** as they are not part of the group I belong to.
 
