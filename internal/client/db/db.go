@@ -306,8 +306,6 @@ func (bdb *blockchainDB[H, N, E, Header]) bodyUncached(hash H) ([]E, error) {
 }
 
 func (bdb *blockchainDB[H, N, E, Header]) cacheHeader(hash H, header *Header) {
-	// bdb.headerCacheMtx.Lock()
-	// defer bdb.headerCacheMtx.Unlock()
 	bdb.headerCache.Put(hash, header)
 	for bdb.headerCache.Size() > numCachedHeaders {
 		iterator := bdb.headerCache.Iterator()

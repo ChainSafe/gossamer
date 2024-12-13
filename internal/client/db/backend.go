@@ -1011,7 +1011,9 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation( //nolint:gocyclo
 		logger.Tracef("DB commit done %s", hash)
 		headerMetadata := blockchain.NewCachedHeaderMetadata(*header)
 		b.blockchain.InsertHeaderMetadata(headerMetadata.Hash, headerMetadata)
+		b.blockchain.headerCacheMtx.Lock()
 		b.blockchain.cacheHeader(hash, header)
+		b.blockchain.headerCacheMtx.Unlock()
 	}
 
 	for _, m := range metaUpdates {
