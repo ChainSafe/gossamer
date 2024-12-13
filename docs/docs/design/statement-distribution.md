@@ -120,7 +120,7 @@ The [`build_session_topology`](https://github.com/paritytech/polkadot-sdk/blob/4
 
 1. We should not send `Manifests` or `Acknowledgements` to validators in the same group as ours. They are already present in the Cluster topology. We should send those messages to peers in the same "row" and "column" as ours if they are not part of our group.
 
-2. if the validator is not in the same group, we should check if we share the same "row" or "column", if we share the same **ROW** then I expected to receive messages from him, and I will propagate his messages with my **COLUMN** neighbors that are not part of the sender's group. Is the same logic in the other way around if we share the same **COLUMN** then I expected to receive messages from him, and I will propagate his messages with my **ROW** neighbors that are not part of the sender's group.
+2. if the validator is not in the same group, we should check if we share the same "row" or "column". If we share the same **ROW** then I expect to receive messages from him, and I will propagate his messages with my **COLUMN** neighbors that are not part of the sender's group. It's the same logic the other way around. If we share the same **COLUMN** then I expect to receive messages from him, and I will propagate his messages with my **ROW** neighbors that are not part of the sender's group.
 
 Take the example:
 
