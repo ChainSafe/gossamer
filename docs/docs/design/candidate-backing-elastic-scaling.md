@@ -1,12 +1,18 @@
+---
+layout: default
+title: Candidate Backing - Elastic Scaling
+permalink: /design/candidate-backing-es/
+---
+
 # Candidate backing subsystem design update
 > Update Candidate backing subsystem to support Async backing + Elastic scaling
 
 ## overview of changes
 ### Remove use of ProspectiveParachainsMode
-We currently have both legacy backing code and async backing code. Now that the async backing parameters runtime API is live on all networks, the backing subsystem code can be simplified. We can remove the use of `ProspectiveParachainsMode` and keep only the parts under `ProspectiveParachainsMode.Enabled`
+We currently have both legacy backing code and async backing code. Now that the async backing parameters runtime API is live on all networks, the backing subsystem code can be simplified. We can remove the use of `ProspectiveParachainsMode` and keep only the parts under `ProspectiveParachainsMode` enabled.
 
 ### remove perLeaf field of CandidateBacking struct
-- Remove the perLeaf field of the `Candidatebacking` struct  as it keeps track of which Active leaf has ProspectiveParachainMode Enabled.
+- Remove the perLeaf field of the `CandidateBacking` struct  as it keeps track of which active leaf has ProspectiveParachainMode Enabled.
 - if we need active leaf data, we can get it from backing implicit view which we store in `CandidateBacking`. (Yet to implement)
 
 ### change GroupID from paraID to CoreIndex
@@ -23,7 +29,6 @@ However, in elastic scaling, multiple groups of validators(core) will be assigne
 
 ### Use fragment-chain
 Our async backing code uses `Fragment-tree`, which was introduced in Async backing and has now become `Fragment-chain`. So we need to update the code to use `Fragment-chain`.
-- TODO: What/Where/How to update the code?
 
 ## overseer messages
 
@@ -83,7 +88,7 @@ update logic of seconding sanity check:
 - now as we don't want to use prospective parachain mode anymore. instead of iterating over `perLeaf`, iterate over leaves in the implicit view.
 - get hypothetical membership of the candidates from prospective parachain[res: candidate and it's hypothetical membership(list of leaves where the candidate could be added)]
 - for each active leaf, check if they are present in the hypothetical membership. if present it's possible to second the candidate at that leaf.
-- return the list possible of active leaves where candidate can be seconded.(return type changed)
+- return the list of active leaves where candidate can be seconded.(return type changed)
 
 If we don't find any leaf at which we can second the candidate, it is impossible to second the candidate
 
