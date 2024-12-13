@@ -114,7 +114,7 @@ The state holds the implicit view, candidates (a tracker for all knwon candidate
 
 ## Grid Mode
 
-Here is a brief explanation around the function [`build_session_topology`](https://github.com/paritytech/polkadot-sdk/blob/41a5d8ec5f3d3d0ff82899be66113b223395ade5/polkadot/node/network/statement-distribution/src/v2/grid.rs#L118-L119) that is an important part to define our sender/receivers in the grid mode topology
+Here is a brief explanation of the function [`build_session_topology`](https://github.com/paritytech/polkadot-sdk/blob/41a5d8ec5f3d3d0ff82899be66113b223395ade5/polkadot/node/network/statement-distribution/src/v2/grid.rs#L118-L119) that is an important part to define our sender/receivers in the grid mode topology
 
 The method [`build_session_topology`](https://github.com/paritytech/polkadot-sdk/blob/41a5d8ec5f3d3d0ff82899be66113b223395ade5/polkadot/node/network/statement-distribution/src/v2/grid.rs#L118-L119) builds a view of the topology for the session. The network bridge gives us the entire grid topology for a certain session. In it, we know our neighbors in the X axis and Y axis (based on our validator index). So together with the [`Groups`](https://github.com/paritytech/polkadot-sdk/blob/5ca726750da563c46449f9aa915296e6c6967e61/polkadot/node/network/statement-distribution/src/v2/groups.rs#L28), which is the validator group within the session, we can define the peers we expect to receive messages and the peers we should send messages to.
 
