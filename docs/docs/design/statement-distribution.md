@@ -68,7 +68,7 @@ The subsystem must be registered with the overseer and handle subsystem-specific
 
 ## Subsystem State
 
-The Statement Distribution subsystem currently have 2 states to manager under current implementation but here we should focus under `v2::State` given that `v1::State` is legacy code and will be removed soon see https://github.com/paritytech/polkadot-sdk/issues/4447.
+The Statement Distribution subsystem currently has 2 states to manage under the current implementation but here we should focus on `v2::State` given that `v1::State` is legacy code and will be removed soon see https://github.com/paritytech/polkadot-sdk/issues/4447.
 
 The state holds the implicit view, candidates (a tracker for all knwon candidates in the view), per-relay-parent state, per-session state, unused topologies (topologies might be received before the first leaf update, so we should cache it), peers view and state, keystore, authorities (a map from authotity id to peer id), request and response manager
 
