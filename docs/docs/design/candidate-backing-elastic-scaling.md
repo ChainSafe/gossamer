@@ -12,7 +12,7 @@ permalink: /design/candidate-backing-es/
 We currently have both legacy backing code and async backing code. Now that the async backing parameters runtime API is live on all networks, the backing subsystem code can be simplified. We can remove the use of `ProspectiveParachainsMode` and keep only the parts under `ProspectiveParachainsMode` enabled.
 
 ### remove perLeaf field of CandidateBacking struct
-- Remove the perLeaf field of the `CandidateBacking` struct  as it keeps track of which active leaf has ProspectiveParachainMode Enabled.
+- Remove the perLeaf field of the `CandidateBacking` struct as it keeps track of which active leaf has `ProspectiveParachainMode` enabled.
 - if we need active leaf data, we can get it from backing implicit view which we store in `CandidateBacking`. (Yet to implement)
 
 ### change GroupID from paraID to CoreIndex
