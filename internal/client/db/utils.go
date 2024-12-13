@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"reflect"
 
@@ -221,7 +220,7 @@ func readMeta[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
 		}
 		h := header.(Header)
 		hash = h.Hash()
-		log.Printf("DEBUG: Opened blockchain db, fetched %v = %v (%v)", desc, hash, h.Number())
+		logger.Debugf("Opened blockchain db, fetched %v = %v (%v)", desc, hash, h.Number())
 		return hash, h.Number(), nil
 	}
 

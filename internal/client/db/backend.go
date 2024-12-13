@@ -6,7 +6,6 @@ package db
 import (
 	"errors"
 	"fmt"
-	"log"
 	"maps"
 	"sync"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/client/db/offchain"
 	statedb "github.com/ChainSafe/gossamer/internal/client/state-db"
 	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
+	"github.com/ChainSafe/gossamer/internal/log"
 	memorydb "github.com/ChainSafe/gossamer/internal/memory-db"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
@@ -34,6 +34,8 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 	"golang.org/x/exp/slices"
 )
+
+var logger = log.NewFromGlobal(log.AddContext("client", "db"))
 
 // Block pruning settings.
 type BlocksPruning interface {
@@ -163,7 +165,7 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) applyOffchain(transact
 	}
 
 	if count > 0 {
-		log.Printf("DEBUG: Applied %d offchain indexing changes.", count)
+		logger.Debugf("Applied %d offchain indexing changes.", count)
 	}
 }
 
@@ -547,7 +549,7 @@ func (b *Backend[H, Hasher, N, E, Header]) setHeadWithTransaction(
 		// point to these block hashes in the key mapping.
 		for _, r := range treeRoute.Retracted() {
 			if r.Hash == meta.FinalizedHash {
-				log.Printf("WARN: Potential safety failure: reverting finalized block %+v", r)
+				logger.Warnf("Potential safety failure: reverting finalized block %+v", r)
 
 				return [2][]H{}, blockchain.ErrNotInFinalizedChain
 			}
@@ -671,7 +673,7 @@ func (b *Backend[H, Hasher, N, E, Header]) forceDelayedCanonicalize(
 			return nil
 		}
 
-		log.Printf("TRACE: Canonicalize block #%d (%s)", toCanonicalize, *hashToCanonicalize)
+		logger.Tracef("Canonicalize block #%d (%s)", toCanonicalize, *hashToCanonicalize)
 		commit, err := b.storage.StateDB.CanonicalizeBlock(*hashToCanonicalize)
 		if err != nil {
 			return fmt.Errorf("%w: %v", blockchain.ErrStateDatabase, err)
@@ -880,7 +882,7 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation( //nolint:gocyclo
 
 		header := pendingBlock.header
 		isBest := pendingBlock.leafState.IsBest()
-		log.Printf("DEBUG: DB commit %s (%d), best=%v, state=%+v, existing=%+v, finalized=%v",
+		logger.Debugf("DB commit %s (%d), best=%v, state=%+v, existing=%+v, finalized=%v",
 			hash, number, isBest, operation.commitState, existingHeader, finalized,
 		)
 
@@ -937,10 +939,10 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation( //nolint:gocyclo
 				if start > end {
 					transaction.Remove(columns.Meta, metakeys.BlockGap)
 					blockGap = nil
-					log.Printf("DEBUG: Removed block gap.")
+					logger.Debugf("Removed block gap.")
 				} else {
 					blockGap = &[2]N{start, end}
-					log.Printf("DEBUG: Update block gap. %v", *blockGap)
+					logger.Debugf("Update block gap. %v", *blockGap)
 					transaction.Set(columns.Meta, metakeys.BlockGap, scale.MustMarshal(*blockGap))
 				}
 			} else if number > bestNum+1 && number > 1 {
@@ -952,7 +954,7 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation( //nolint:gocyclo
 					gap := [2]N{bestNum + 1, number - 1}
 					transaction.Set(columns.Meta, metakeys.BlockGap, scale.MustMarshal(gap))
 					blockGap = &gap
-					log.Printf("DEBUG: Detected block gap. %v", *blockGap)
+					logger.Debugf("Detected block gap. %v", *blockGap)
 				}
 			}
 		}
@@ -1006,7 +1008,7 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation( //nolint:gocyclo
 	if imported != nil {
 		header := &(imported.Header)
 		hash := imported.Hash
-		log.Printf("TRACE: DB commit done %s", hash)
+		logger.Tracef("DB commit done %s", hash)
 		headerMetadata := blockchain.NewCachedHeaderMetadata(*header)
 		b.blockchain.InsertHeaderMetadata(headerMetadata.Hash, headerMetadata)
 		b.blockchain.cacheHeader(hash, header)
@@ -1167,7 +1169,7 @@ func (b *Backend[H, Hasher, N, E, Header]) pruneBlock(
 	transaction *database.Transaction[hash.H256],
 	id generic.BlockID,
 ) error {
-	log.Printf("DEBUG: Removing block %s", id)
+	logger.Debugf("Removing block %s", id)
 	err := removeFromDB[H, N](transaction, b.storage.db, uint32(columns.KeyLookup), uint32(columns.Body), id)
 	if err != nil {
 		return err
@@ -1283,7 +1285,7 @@ func applyIndexOps[E runtime.Extrinsic](
 		}
 		extrinsicIndex = append(extrinsicIndex, dbExtrinsic)
 	}
-	log.Printf("DEBUG: DB transaction index: %d inserted, %d renewed, %d full",
+	logger.Debugf("DB transaction index: %d inserted, %d renewed, %d full",
 		len(indexMap), len(renewedMap), len(extrinsicIndex)-len(indexMap)-len(renewedMap))
 
 	return scale.MustMarshal(extrinsicIndex)

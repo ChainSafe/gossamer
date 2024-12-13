@@ -4,8 +4,6 @@
 package statedb
 
 import (
-	"log"
-
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/gammazero/deque"
@@ -50,9 +48,8 @@ func newPruningWindow[BlockHash Hash, Key Hash](
 	}
 
 	if windowSize > 1000 {
-		log.Printf(
-			"TRACE: Large pruning window of %d detected! "+
-				"THIS CAN LEAD TO HIGH MEMORY USAGE AND CRASHES. Reduce the pruning window.",
+		logger.Tracef("Large pruning window of %d detected! "+
+			"THIS CAN LEAD TO HIGH MEMORY USAGE AND CRASHES. Reduce the pruning window.",
 			windowSize)
 	}
 
@@ -97,7 +94,7 @@ func (rw *pruningWindow[BlockHash, Key]) PruneOne(commit *CommitSet[Key]) error 
 		return err
 	}
 	if pruned != nil {
-		log.Printf("TRACE: Pruning %v (%v deleted)", pruned.hash, len(pruned.deleted))
+		logger.Tracef("Pruning %v (%v deleted)", pruned.hash, len(pruned.deleted))
 		index := rw.base
 		commit.Data.Deleted = append(commit.Data.Deleted, maps.Keys(pruned.deleted)...)
 		commit.Meta.Inserted = append(commit.Meta.Inserted, HashDBValue[[]byte]{
@@ -108,7 +105,7 @@ func (rw *pruningWindow[BlockHash, Key]) PruneOne(commit *CommitSet[Key]) error 
 		rw.base += 1
 		return nil
 	} else {
-		log.Printf("TRACE: Trying to prune when there's nothing to prune")
+		logger.Tracef("Trying to prune when there's nothing to prune")
 		return ErrBlockUnavailable
 	}
 }
@@ -127,8 +124,7 @@ func (rw *pruningWindow[BlockHash, Key]) NoteCanonical(hash BlockHash, number ui
 	} else if (rw.base + rw.WindowSize()) != number {
 		return ErrInvalidBlockNumber
 	}
-	log.Printf(
-		"TRACE: Adding to pruning window: %v (%v inserted, %v deleted)",
+	logger.Tracef("Adding to pruning window: %v (%v inserted, %v deleted)",
 		hash, len(commit.Data.Inserted), len(commit.Data.Deleted),
 	)
 	var inserted []Key
@@ -168,7 +164,7 @@ func newInMemDeathRowQueue[BlockHash Hash, Key Hash](db MetaDB, base uint64) (de
 	queue := &inMemDeathRowQueue[BlockHash, Key]{
 		deathIndex: make(map[Key]uint64),
 	}
-	log.Printf("TRACE: Reading pruning journal for the memory queue. Pending #%v", base)
+	logger.Tracef("Reading pruning journal for the memory queue. Pending #%v", base)
 	for {
 		journalKey := toPruningJournalKey(block)
 		val, err := db.GetMeta(journalKey)
@@ -181,8 +177,7 @@ func newInMemDeathRowQueue[BlockHash Hash, Key Hash](db MetaDB, base uint64) (de
 			if err != nil {
 				return nil, err
 			}
-			log.Printf(
-				"TRACE: Pruning journal entry %v (%v inserted, %v deleted)",
+			logger.Tracef("Pruning journal entry %v (%v inserted, %v deleted)",
 				block, len(record.Inserted), len(record.Deleted))
 			queue.Import(base, block, record)
 		} else {
@@ -202,7 +197,7 @@ func (drqim *inMemDeathRowQueue[BlockHash, Key]) Import(
 		inserted = journalRecord.Inserted
 		deleted  = journalRecord.Deleted
 	)
-	log.Printf("TRACE: Importing %v, base=%v", num, base)
+	logger.Tracef("Importing %v, base=%v", num, base)
 	// remove all re-inserted keys from death rows
 	for _, k := range inserted {
 		block, ok := drqim.deathIndex[k]

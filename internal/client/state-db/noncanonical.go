@@ -5,12 +5,15 @@ package statedb
 
 import (
 	"fmt"
-	"log"
 	"math/bits"
+
+	"github.com/ChainSafe/gossamer/internal/log"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/gammazero/deque"
 )
+
+var logger = log.NewFromGlobal(log.AddContext("client", "state-db"))
 
 var lastCanonical = []byte("last_canonical")
 
@@ -64,7 +67,7 @@ func newNonCanonicalOverlay[BlockHash Hash, Key Hash](db MetaDB) (nonCanonicalOv
 	if lastCanonicalized != nil {
 		block := lastCanonicalized.Block
 		hash := lastCanonicalized.Hash
-		log.Printf("TRACE: Reading uncanonicalized journal. Last canonicalized %v (%v)", block, hash)
+		logger.Tracef("Reading uncanonicalized journal. Last canonicalized %v (%v)", block, hash)
 		var total uint64
 		block += 1
 		for {
@@ -94,7 +97,7 @@ func newNonCanonicalOverlay[BlockHash Hash, Key Hash](db MetaDB) (nonCanonicalOv
 						deleted:      record.Deleted,
 					}
 					insertValues(values, record.Inserted)
-					log.Printf("TRACE: Uncanonicalized journal entry %v.%v (%v) (%v inserted, %v deleted)",
+					logger.Tracef("Uncanonicalized journal entry %v.%v (%v) (%v inserted, %v deleted)",
 						block,
 						index,
 						record.Hash,
@@ -112,7 +115,7 @@ func newNonCanonicalOverlay[BlockHash Hash, Key Hash](db MetaDB) (nonCanonicalOv
 			levels.PushBack(level)
 			block += 1
 		}
-		log.Printf("TRACE: Finished reading uncanonicalized journal, %v entries", total)
+		logger.Tracef("Finished reading uncanonicalized journal, %v entries", total)
 	}
 	return nonCanonicalOverlay[BlockHash, Key]{
 		lastCanonicalized: lastCanonicalized,
@@ -147,8 +150,7 @@ func (nco *nonCanonicalOverlay[BlockHash, Key]) Insert(
 		nco.lastCanonicalized = &lastCanonicalized
 	} else if nco.lastCanonicalized != nil {
 		if number < frontBlockNumber || number > frontBlockNumber+uint64(nco.levels.Len()) {
-			log.Printf(
-				"TRACE: Failed to insert block %v, current is %v .. %v)",
+			logger.Tracef("Failed to insert block %v, current is %v .. %v)",
 				number, frontBlockNumber, frontBlockNumber+uint64(nco.levels.Len()))
 			return CommitSet[Key]{}, ErrInvalidBlockNumber
 		}
@@ -177,7 +179,7 @@ func (nco *nonCanonicalOverlay[BlockHash, Key]) Insert(
 		for _, block := range level.blocks {
 			hashes = append(hashes, block.hash)
 		}
-		log.Printf("TRACE: Too many sibling blocks at %v: %v", number, hashes)
+		logger.Tracef("Too many sibling blocks at %v: %v", number, hashes)
 		return CommitSet[Key]{}, fmt.Errorf("too many sibling blocks at %d inserted", number)
 	}
 	for _, block := range level.blocks {
@@ -211,7 +213,7 @@ func (nco *nonCanonicalOverlay[BlockHash, Key]) Insert(
 		Deleted:    changeset.Deleted,
 	}
 	commit.Meta.Inserted = append(commit.Meta.Inserted, HashDBValue[[]byte]{journalKey, scale.MustMarshal(journalRecord)})
-	log.Printf("TRACE: Inserted uncanonicalized changeset %v.%v %v (%v inserted, %v deleted)",
+	logger.Tracef("Inserted uncanonicalized changeset %v.%v %v (%v inserted, %v deleted)",
 		number, index, hash, len(journalRecord.Inserted), len(journalRecord.Deleted))
 	insertValues(nco.values, journalRecord.Inserted)
 	return commit, nil
@@ -270,7 +272,7 @@ func (nco *nonCanonicalOverlay[BlockHash, Key]) Canonicalize(
 	hash BlockHash,
 	commit *CommitSet[Key],
 ) (uint64, error) {
-	log.Printf("TRACE: Canonicalizing %v", hash)
+	logger.Tracef("Canonicalizing %v", hash)
 	if nco.levels.Len() == 0 {
 		return 0, ErrInvalidBlock
 	}
@@ -352,7 +354,7 @@ func (nco *nonCanonicalOverlay[BlockHash, Key]) Canonicalize(
 		Hash:    toMetaKey(lastCanonical, struct{}{}),
 		DBValue: scale.MustMarshal(canonicalized),
 	})
-	log.Printf("TRACE: Discarding %v records", len(commit.Meta.Deleted))
+	logger.Tracef("Discarding %v records", len(commit.Meta.Deleted))
 
 	num := canonicalized.Block
 	nco.lastCanonicalized = &canonicalized
@@ -411,7 +413,7 @@ func (nco *nonCanonicalOverlay[BlockHash, Key]) Remove(hash BlockHash) *CommitSe
 		if levelIndex != levelCount-1 {
 			for _, h := range nco.parents {
 				if h == hash {
-					log.Printf("DEBUG: Trying to remove block %v with children", hash)
+					logger.Debugf("Trying to remove block %v with children", hash)
 					return nil
 				}
 			}
@@ -436,7 +438,7 @@ func (nco *nonCanonicalOverlay[BlockHash, Key]) Remove(hash BlockHash) *CommitSe
 func (nco *nonCanonicalOverlay[BlockHash, Key]) Pin(hash BlockHash) {
 	refs := nco.pinned[hash]
 	if refs == 0 {
-		log.Println("TRACE: Pinned non-canon block:", hash)
+		logger.Tracef("Pinned non-canon block: %s", hash)
 	}
 	refs += 1
 	nco.pinned[hash] = refs
@@ -472,7 +474,7 @@ func (nco *nonCanonicalOverlay[BlockHash, Key]) Unpin(hash BlockHash) {
 				entry.count -= 1
 				if entry.count == 0 {
 					delete(nco.pinnedInsertions, hash)
-					log.Println("TRACE: Discarding unpinned non-canon block:", hash)
+					logger.Tracef("Discarding unpinned non-canon block:", hash)
 					discardValues(nco.values, entry.keys)
 					delete(nco.parents, hash)
 				}

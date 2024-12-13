@@ -4,7 +4,6 @@
 package db
 
 import (
-	"log"
 	"math"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
@@ -55,9 +54,9 @@ func newPinnedBlocksCache[H comparable, E runtime.Extrinsic]() pinnedBlocksCache
 		// Since the cache should be large enough for pinned items,
 		// we want to know about these evictions.
 		if value.refCount > 0 {
-			log.Printf("TRACE: Pinned block cache limit reached. Evicting value. hash = %v", key)
+			logger.Tracef("Pinned block cache limit reached. Evicting value. hash = %v", key)
 		} else {
-			log.Printf("TRACE: Evicting value from pinned block cache. hash = %v", key)
+			logger.Tracef("Evicting value from pinned block cache. hash = %v", key)
 		}
 	})
 	if err != nil {
@@ -72,10 +71,10 @@ func (pbc *pinnedBlocksCache[H, E]) Pin(hash H) {
 	prev, ok, _ := pbc.cache.PeekOrAdd(hash, &pinnedBlocksCacheEntry[E]{refCount: 1})
 	if ok {
 		prev.IncreaseRef()
-		log.Printf("TRACE: Bumped cache refcount. hash = %v, num_entries = %v", hash, pbc.cache.Len())
+		logger.Tracef("Bumped cache refcount. hash = %v, num_entries = %v", hash, pbc.cache.Len())
 		pbc.cache.Add(hash, prev)
 	} else {
-		log.Printf("TRACE: Unable to bump reference count. hash = %v", hash)
+		logger.Tracef("Unable to bump reference count. hash = %v", hash)
 	}
 }
 
@@ -94,9 +93,9 @@ func (pbc *pinnedBlocksCache[H, E]) InsertBody(hash H, extrinsics []E) {
 	val, ok := pbc.cache.Peek(hash)
 	if ok {
 		val.Body = &extrinsics
-		log.Printf("TRACE: Cached body. hash = %v, num_entries = %v", hash, pbc.cache.Len())
+		logger.Tracef("Cached body. hash = %v, num_entries = %v", hash, pbc.cache.Len())
 	} else {
-		log.Printf("TRACE: Unable to insert body for uncached item. hash = %v", hash)
+		logger.Tracef("Unable to insert body for uncached item. hash = %v", hash)
 	}
 }
 
@@ -105,9 +104,9 @@ func (pbc *pinnedBlocksCache[H, E]) InsertJustifications(hash H, justifications 
 	val, ok := pbc.cache.Peek(hash)
 	if ok {
 		val.Justifications = &justifications
-		log.Printf("TRACE: Cached justification. hash = %v, num_entries = %v", hash, pbc.cache.Len())
+		logger.Tracef("Cached justification. hash = %v, num_entries = %v", hash, pbc.cache.Len())
 	} else {
-		log.Printf("TRACE: Unable to insert justifications for uncached item. hash = %v", hash)
+		logger.Tracef("Unable to insert justifications for uncached item. hash = %v", hash)
 	}
 }
 

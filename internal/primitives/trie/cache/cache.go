@@ -4,14 +4,16 @@
 package cache
 
 import (
-	"log"
 	"sync"
 
 	costlru "github.com/ChainSafe/gossamer/internal/cost-lru"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 	"github.com/elastic/go-freelru"
 )
+
+var logger = log.NewFromGlobal(log.AddContext("trie", "cache"))
 
 // The maximum number of existing keys in the shared cache that a single local cache
 // can promote to the front of the LRU cache in one go.
@@ -300,17 +302,17 @@ func (tc *TrieCache[H]) GetOrInsertNode(
 		// It was not in the local cache; try the shared cache.
 		shared := tc.sharedCache.PeekNode(hash)
 		if shared != nil {
-			log.Printf("TRACE: Serving node from shared cache: %s\n", hash)
+			logger.Tracef("Serving node from shared cache: %s\n", hash)
 			node = nodeCached[H]{Node: shared, FromSharedCache: true}
 		} else {
 			// It was not in the shared cache; try fetching it from the database.
 			var fetched triedb.CachedNode[H]
 			fetched, err = fetchNode()
 			if err != nil {
-				log.Printf("TRACE: Serving node from database failed: %s\n", hash)
+				logger.Tracef("Serving node from database failed: %s\n", hash)
 				return nil, err
 			} else {
-				log.Printf("TRACE: Serving node from database: %s\n", hash)
+				logger.Tracef("Serving node from database: %s\n", hash)
 				node = nodeCached[H]{Node: fetched, FromSharedCache: false}
 			}
 		}
@@ -318,7 +320,7 @@ func (tc *TrieCache[H]) GetOrInsertNode(
 	}
 
 	if isLocalCacheHit {
-		log.Printf("TRACE: Serving node from local cache: %s\n", hash)
+		logger.Tracef("Serving node from local cache: %s\n", hash)
 	}
 
 	return node.Node, nil
@@ -336,10 +338,10 @@ func (tc *TrieCache[H]) GetNode(hash H) triedb.CachedNode[H] {
 		// It was not in the local cache; try the shared cache.
 		peeked := tc.sharedCache.PeekNode(hash)
 		if peeked != nil {
-			log.Printf("TRACE: Serving node from shared cache: %s\n", hash)
+			logger.Tracef("Serving node from shared cache: %s\n", hash)
 			node = &nodeCached[H]{Node: peeked, FromSharedCache: true}
 		} else {
-			log.Printf("TRACE: Serving node from cahe failed: %s\n", hash)
+			logger.Tracef("Serving node from cahe failed: %s\n", hash)
 			return nil
 		}
 	} else {
@@ -347,7 +349,7 @@ func (tc *TrieCache[H]) GetNode(hash H) triedb.CachedNode[H] {
 	}
 
 	if isLocalCacheHit {
-		log.Printf("TRACE: Serving node from local cache: %s\n", hash)
+		logger.Tracef("Serving node from local cache: %s\n", hash)
 	}
 
 	return node.Node
@@ -355,11 +357,11 @@ func (tc *TrieCache[H]) GetNode(hash H) triedb.CachedNode[H] {
 
 func (tc *TrieCache[H]) GetValue(key []byte) triedb.CachedValue[H] {
 	cached := tc.valueCache.get(key, tc.sharedCache)
-	log.Printf("TRACE: Looked up value for key: %x\n", key)
+	logger.Tracef("Looked up value for key: %x\n", key)
 	return cached
 }
 
 func (tc *TrieCache[H]) SetValue(key []byte, value triedb.CachedValue[H]) {
-	log.Printf("TRACE: Caching value for key: %x\n", key)
+	logger.Tracef("Caching value for key: %x\n", key)
 	tc.valueCache.insert(key, value)
 }
