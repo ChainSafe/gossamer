@@ -145,7 +145,7 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 
 	return &BlockAnnounceHandshake{
 		Roles:           s.cfg.Roles,
-		BestBlockNumber: uint32(latestBlock.Number), //nolint:gosec
+		BestBlockNumber: uint32(latestBlock.Number),
 		BestBlockHash:   latestBlock.Hash(),
 		GenesisHash:     s.blockState.GenesisHash(),
 	}, nil

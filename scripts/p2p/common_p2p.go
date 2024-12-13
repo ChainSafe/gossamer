@@ -142,7 +142,7 @@ func ReadStream(stream lip2pnetwork.Stream) ([]byte, error) {
 	}
 
 	var tot int
-	for tot < int(length) { //nolint:gosec
+	for tot < int(length) {
 		n, err := stream.Read(responseBuf[tot:])
 		if err != nil {
 			return nil, fmt.Errorf("reading stream: %w", err)
@@ -150,7 +150,7 @@ func ReadStream(stream lip2pnetwork.Stream) ([]byte, error) {
 		tot += n
 	}
 
-	if tot != int(length) { //nolint:gosec
+	if tot != int(length) {
 		return nil, fmt.Errorf("%w: expected %d bytes, received %d bytes", network.ErrFailedToReadEntireMessage, length, tot)
 	}
 

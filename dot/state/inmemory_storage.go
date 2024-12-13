@@ -70,7 +70,7 @@ func (s *InmemoryStorageState) StoreTrie(ts *storage.TrieState, header *types.He
 		}
 
 		err = s.pruner.StoreJournalRecord(
-			deletedNodeHashes, insertedNodeHashes, header.Hash(), int64(header.Number)) //nolint:gosec
+			deletedNodeHashes, insertedNodeHashes, header.Hash(), int64(header.Number))
 		if err != nil {
 			return fmt.Errorf("storing journal record: %w", err)
 		}

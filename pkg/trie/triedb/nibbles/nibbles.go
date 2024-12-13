@@ -44,7 +44,7 @@ func NewNibblesFromNodeKey(from NodeKey) Nibbles {
 // Get the nibble at position i.
 func (n Nibbles) At(i uint) uint8 {
 	ix := (n.offset + i) / NibblesPerByte
-	pad := uint8((n.offset + i) % NibblesPerByte) //nolint:gosec
+	pad := uint8((n.offset + i) % NibblesPerByte)
 	return atLeft(pad, n.data[ix])
 }
 
@@ -98,7 +98,7 @@ func (p Prefix) JoinedBytes() []byte {
 // the node.
 func (n Nibbles) Left() Prefix {
 	split := n.offset / NibblesPerByte
-	ix := uint8(n.offset % NibblesPerByte) //nolint:gosec
+	ix := uint8(n.offset % NibblesPerByte)
 	if ix == 0 {
 		return Prefix{Key: n.data[:split]}
 	}
@@ -150,10 +150,10 @@ func biggestDepth(v1 []uint8, v2 []uint8) uint {
 	}
 	for a := 0; a < upperBound; a++ {
 		if v1[a] != v2[a] {
-			return uint(a)*NibblesPerByte + leftCommon(v1[a], v2[a]) //nolint:gosec
+			return uint(a)*NibblesPerByte + leftCommon(v1[a], v2[a])
 		}
 	}
-	return uint(upperBound) * NibblesPerByte //nolint:gosec
+	return uint(upperBound) * NibblesPerByte
 }
 
 // How many of the same nibbles at the beginning do we match with them?
@@ -245,7 +245,7 @@ type Partial struct {
 // first encoded byte and following slice.
 func (n Nibbles) RightPartial() Partial {
 	split := n.offset / NibblesPerByte
-	nb := uint8(n.Len() % NibblesPerByte) //nolint:gosec
+	nb := uint8(n.Len() % NibblesPerByte)
 	if nb > 0 {
 		return Partial{
 			First:        nb,

@@ -100,7 +100,7 @@ func (cs *storageDiff) deleteChildLimit(keyToChild string,
 	if limit == -1 {
 		cs.delete(keyToChild)
 		deletedKeys := len(childChanges.upserts) + len(currentChildKeys)
-		return uint32(deletedKeys), true //nolint:gosec
+		return uint32(deletedKeys), true
 	}
 
 	allKeys := slices.Clone(currentChildKeys)
@@ -121,7 +121,7 @@ func (cs *storageDiff) deleteChildLimit(keyToChild string,
 	}
 	cs.childChangeSet[keyToChild] = childChanges
 
-	return deleted, deleted == uint32(len(allKeys)) //nolint:gosec
+	return deleted, deleted == uint32(len(allKeys))
 }
 
 // clearPrefixInChild clears keys with a specific prefix within a child trie.
@@ -165,7 +165,7 @@ func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) 
 		}
 	}
 
-	return deleted, deleted == uint32(len(keysToClear)) //nolint:gosec
+	return deleted, deleted == uint32(len(keysToClear))
 }
 
 // getFromChild attempts to retrieve a value associated with a specific key

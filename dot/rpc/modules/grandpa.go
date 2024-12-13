@@ -103,19 +103,19 @@ func (gm *GrandpaModule) RoundState(r *http.Request, req *EmptyRequest, res *Rou
 		return err
 	}
 
-	totalWeight := uint32(len(voters)) //nolint:gosec
+	totalWeight := uint32(len(voters))
 	roundstate := RoundStateResponse{
-		SetID: uint32(gm.blockFinalityAPI.GetSetID()), //nolint:gosec
+		SetID: uint32(gm.blockFinalityAPI.GetSetID()),
 		Best: RoundState{
-			Round:           uint32(gm.blockFinalityAPI.GetRound()), //nolint:gosec
+			Round:           uint32(gm.blockFinalityAPI.GetRound()),
 			ThresholdWeight: thresholdWeight(totalWeight),
 			TotalWeight:     totalWeight,
 			Prevotes: Votes{
-				CurrentWeight: uint32(len(votes)), //nolint:gosec
+				CurrentWeight: uint32(len(votes)),
 				Missing:       missingPrevotes,
 			},
 			Precommits: Votes{
-				CurrentWeight: uint32(len(commits)), //nolint:gosec
+				CurrentWeight: uint32(len(commits)),
 				Missing:       missingPrecommits,
 			},
 		},
