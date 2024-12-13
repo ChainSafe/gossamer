@@ -801,11 +801,11 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation( //nolint:gocyclo
 				// memory to bootstrap consensus. It is queried for an initial list of
 				// authorities, etc.
 				b.genesisStateMtx.Lock()
-				defer b.genesisStateMtx.Unlock()
 				b.genesisState = &dbGenesisStorage[H, Hasher]{
 					root:    pendingBlock.header.StateRoot(),
 					storage: operation.dbUpdates,
 				}
+				b.genesisStateMtx.Unlock()
 			}
 		}
 
