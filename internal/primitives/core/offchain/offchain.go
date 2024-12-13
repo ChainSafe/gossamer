@@ -3,33 +3,33 @@
 
 package offchain
 
-// / Offchain DB persistent (non-fork-aware) storage.
+// Offchain DB persistent (non-fork-aware) storage.
 type OffchainStorage interface {
-	/// Persist a value in storage under given key and prefix.
+	// Persist a value in storage under given key and prefix.
 	Set(prefix, key, value []byte)
 
-	/// Clear a storage entry under given key and prefix.
+	// Clear a storage entry under given key and prefix.
 	Remove(prefix, key []byte)
 
-	/// Retrieve a value from storage under given key and prefix.
+	// Retrieve a value from storage under given key and prefix.
 	Get(prefix, key []byte) []byte
 
-	/// Replace the value in storage if given old_value matches the current one.
-	///
-	/// Returns true if the value has been set and false otherwise.
+	// Replace the value in storage if given old_value matches the current one.
+	//
+	// Returns true if the value has been set and false otherwise.
 	CompareAndSet(prefix, key, oldValue, newValue []byte) bool
 }
 
-// / Change to be applied to the offchain worker db in regards to a key.
+// Change to be applied to the offchain worker db in regards to a key.
 type OffchainOverlayedChanges interface {
 	OffchainOverlayedChangeRemove | OffchainOverlayedChangeSetValue
 }
 
-// / Change to be applied to the offchain worker db in regards to a key.
+// Change to be applied to the offchain worker db in regards to a key.
 type OffchainOverlayedChange any
 
-// / Remove the data associated with the key
+// Remove the data associated with the key
 type OffchainOverlayedChangeRemove struct{}
 
-// / Overwrite the value of an associated key
+// Overwrite the value of an associated key
 type OffchainOverlayedChangeSetValue []byte
