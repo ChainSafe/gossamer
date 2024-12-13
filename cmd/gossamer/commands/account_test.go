@@ -99,7 +99,7 @@ func TestAccountImport(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestAccountImport test "gossamer account import-raw --password --key"
+// TestAccountImportRaw test "gossamer account import-raw --password --key"
 func TestAccountImportRaw(t *testing.T) {
 	testDir := t.TempDir()
 	directory := fmt.Sprintf("--keystore-path=%s", testDir)

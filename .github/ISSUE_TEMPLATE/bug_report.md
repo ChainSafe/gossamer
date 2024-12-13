@@ -2,12 +2,12 @@
 name: Bug report
 about: Create a report to help us improve
 title: ''
-labels: 'Type: Bug'
+labels: 'T-bug'
 assignees: ''
 
 ---
 
-## Describe the bug
+## Bug summary
 <!-- A clear and concise description of what the bug is. -->
 
 - 
@@ -95,6 +95,20 @@ specification section if a specification is not applicable):
 - gossamer commit hash:
 - operating system:
 - additional links:
+
+## Acceptance criteria
+<!-- Acceptance criteria establish conditions to fulfill for the item to be complete. Usually can be a list of checkboxes.
+Please refer to DOD for general implementation issue:
+- There should be at least one unit test
+- Recreate bug in deterministic way 
+- Regression test
+- Bug is not reproducible anymore both deterministically and non-deterministically 
+Acceptance criteria should be added as a check boxes (eg [] Do this) 
+-->
+[] Bug was recreated in deterministic manner
+[] Unit test that covers the problem
+[] Regression test done
+[] Bug is not reproducible anymore
 
 
 <!-- Thank you 🙏 -->
