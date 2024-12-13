@@ -19,7 +19,10 @@ For V1 (No need for handling such requests or implementing the handlers, will be
 
 The V2 brings a new advantage, the validators don't send each other heavy `CommitedCandidateReceipt`, but instead request them lazily through request/response protocols.
 
-The messages that validators can exchange are: `Statement`, contains only a signed compact statement, `BackedCandidateManifest`, advertise a description of a backed candidate and stored statements and `BackedCandidateAcknowledgement`, acknowledges that a backed candidate is fully known.
+The messages that validators can exchange are: 
+- `Statement`: contains only a signed compact statement;
+- `BackedCandidateManifest`: advertise a description of a backed candidate and stored statements;
+- `BackedCandidateAcknowledgement`: acknowledges that a backed candidate is fully known.
 
 ### Messages Received
 
@@ -27,41 +30,41 @@ The subsystem must be registered with the overseer and handle subsystem-specific
 
 1. [OverseerSignal::ActiveLeaves](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/lib.rs#L114)
 
-4. [StatementDistributionMessage::Share](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/messages.rs#L829)
+2. [StatementDistributionMessage::Share](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/messages.rs#L829)
 
-We have originated a signed statement in the context of given relay-parent hash and it should be distributed to other validators
+- We have originated a signed statement in the context of given relay-parent hash and it should be distributed to other validators
 
-5. [StatementDistributionMessage::Backed](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/messages.rs#L836)
+3. [StatementDistributionMessage::Backed](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/messages.rs#L836)
 
-The candidate received enough validity votes from the backing group. If the candidate is backed as a result of a local statement, this message MUST be preceded by a `Share` message for that statement. This ensures that Statement Distribution is always aware of full candidates prior to receiving the `Backed` notification, even when the group size is 1 and the candidate is seconded locally
+- The candidate received enough validity votes from the backing group. If the candidate is backed as a result of a local statement, this message MUST be preceded by a `Share` message for that statement. This ensures that Statement Distribution is always aware of full candidates prior to receiving the `Backed` notification, even when the group size is 1 and the candidate is seconded locally
 
-6. [StatementDistributionMessage::NetworkBridgeUpdate](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/messages.rs#L839)
+4. [StatementDistributionMessage::NetworkBridgeUpdate](https://github.com/paritytech/polkadot-sdk/blob/c0921339f9d486981b3681760ee83ba9237f2eaa/polkadot/node/subsystem-types/src/messages.rs#L839)
 
-Event from the network bridge.
+- Event from the network bridge.
 
 ### Messages Sent
 
 1. [NetworkBridgeTxMessage::SendValidationMessages](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/subsystem-types/src/messages.rs#L424)
 
-Send a batch of validation messages and they will be send in order
+- Send a batch of validation messages and they will be send in order
 
 2. [NetworkBridgeTxMessage::SendValidationMessage](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/subsystem-types/src/messages.rs#L416C2-L416C23)
 
-Send a message to one or more peers on the validation peer-set.
+- Send a message to one or more peers on the validation peer-set.
 
 3. [NetworkBridgeTxMessage::ReportPeer](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/subsystem-types/src/messages.rs#L410)
 
 4. [CandidateBackingMessage::Statement](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/subsystem-types/src/messages.rs#L112)
 
-Note a validator's statement about a particular candidate in the context of the given relay-parent. Disagreements about validity must be escalated to a broader check by the Disputes Subsystem, though that escalation is deferred until the approval voting stage to guarantee availability. Agreements are simply tallied until a quorum is reached.
+- Note a validator's statement about a particular candidate in the context of the given relay-parent. Disagreements about validity must be escalated to a broader check by the Disputes Subsystem, though that escalation is deferred until the approval voting stage to guarantee availability. Agreements are simply tallied until a quorum is reached.
 
 5. [ProspectiveParachainsMessage::GetHypotheticalMembership](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/subsystem-types/src/messages.rs#L1411)
 
-Get the hypothetical or actual membership of candidates with the given properties under the specified active leave's fragment chain. For each candidate, we return a vector of leaves where the candidate is present or could be added. "Could be added" either means that the candidate can be added to the chain right now or could be added in the future (we may not have its ancestors yet). Note that even if we think it could be added in the future, we may find out that it was invalid, as time passes. If an active leaf is not in the vector, it means that there's no chance this candidate will become valid under that leaf in the future. If `fragment_chain_relay_parent` in the request is `Some()`, the return vector can only contain this relay parent (or none).
+- Get the hypothetical or actual membership of candidates with the given properties under the specified active leave's fragment chain. For each candidate, we return a vector of leaves where the candidate is present or could be added. "Could be added" either means that the candidate can be added to the chain right now or could be added in the future (we may not have its ancestors yet). Note that even if we think it could be added in the future, we may find out that it was invalid, as time passes. If an active leaf is not in the vector, it means that there's no chance this candidate will become valid under that leaf in the future. If `fragment_chain_relay_parent` in the request is `Some()`, the return vector can only contain this relay parent (or none).
 
 6. [NetworkBridgeTxMessage::SendRequests](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/subsystem-types/src/messages.rs#L433)
 
-Sends request via normal network layer
+- Sends request via normal network layer
 
 ## Subsystem State
 
@@ -71,9 +74,7 @@ The state holds the implicit view, candidates (a tracker for all knwon candidate
 
 ## Message Handling Logic
 
-- [handle_subsystem_message](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/lib.rs#L308)
-
-This handler deals with multiple kinds of messages from the overseer (also other subsystems):
+1. [handle_subsystem_message](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/lib.rs#L308): This handler deals with multiple kinds of messages from the overseer (also other subsystems):
 
 - **OverseerSignal::ActiveLeaves**: we should implement the [`v2::handle_active_leaves_update`](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L578) and also [v2::handle_deactivate_leaves](https://github.com/paritytech/polkadot-sdk/blob/3d8da815ecd12b8f04daf87d6ffba5ec4a181806/polkadot/node/network/statement-distribution/src/v2/mod.rs#L798)
 
@@ -99,9 +100,17 @@ This handler deals with multiple kinds of messages from the overseer (also other
 
 - **StatementDistributionMessage::Backed**: handles the notification of a candidate being backed, the candidate should be known before to be handled correctly, if the candidate is not known the message is droped, this calls [`provide_candidate_to_grid`](https://github.com/paritytech/polkadot-sdk/blob/76a292b23bf6f35156fd3dd832e9c4ec31b24b2c/polkadot/node/network/statement-distribution/src/v2/mod.rs#L1983C10-L1983C35) which provides the a backable candidate to the grid and dispatchs backable candidates announcements and acknowledgments via grid topology, if the session topology is not yet available then it will be a noop. Next method used is [`prospective_backed_notification_fragment_chain_updates`](https://github.com/paritytech/polkadot-sdk/blob/76a292b23bf6f35156fd3dd832e9c4ec31b24b2c/polkadot/node/network/statement-distribution/src/v2/mod.rs#L2309) which retrieve hypothetical membership from Prospective-Parachains and send them to Candidate-Backing subsystem as fresh statements through the function [`send_backing_fresh_statements`](https://github.com/paritytech/polkadot-sdk/blob/41a5d8ec5f3d3d0ff82899be66113b223395ade5/polkadot/node/network/statement-distribution/src/v2/mod.rs#L1929).
 
-- [answer_request](https://github.com/paritytech/polkadot-sdk/blob/41a5d8ec5f3d3d0ff82899be66113b223395ade5/polkadot/node/network/statement-distribution/src/v2/mod.rs#L3245-L3246)
+2. [handle_response](https://github.com/paritytech/polkadot-sdk/blob/b8da8faa0a675afbed1c9ed5d524a674e93910b9/polkadot/node/network/statement-distribution/src/lib.rs#L287) 
 
-Given a [`AttestedCandidateRequest`](https://github.com/paritytech/polkadot-sdk/blob/82117ad53fc68e8097183e759926b62265ffff0a/polkadot/node/network/protocol/src/request_response/v2.rs#L32) request we should respond the request for the asked candidate hash.
+- After `ResponseManager` receives a message from the peer we're requesting some data this handler is triggered to handle the incoming response. 
+
+3. [answer_request](https://github.com/paritytech/polkadot-sdk/blob/41a5d8ec5f3d3d0ff82899be66113b223395ade5/polkadot/node/network/statement-distribution/src/v2/mod.rs#L3245-L3246)
+
+- Given a [`AttestedCandidateRequest`](https://github.com/paritytech/polkadot-sdk/blob/82117ad53fc68e8097183e759926b62265ffff0a/polkadot/node/network/protocol/src/request_response/v2.rs#L32) request we should respond the request for the asked candidate hash.
+
+4. [dispatch_requests](https://github.com/paritytech/polkadot-sdk/blob/b8da8faa0a675afbed1c9ed5d524a674e93910b9/polkadot/node/network/statement-distribution/src/lib.rs#L303C8-L303C25)
+
+- This method is called in 2 situations: right after one of the above handles finishes execution, that is why while handling a message we might have produced a request to dispatch for example: we received a `Manifest` message and now we need to request the candidate so we build the candidate request and place them in the `RequestManager` queue and after handling the message we call `dispatch_requests`. The second situation is when we receive a `RetryRequest` message comming from `RequestManager`, meaning that we have failed requests in the queue to dispatch. 
 
 ## Grid Mode
 
