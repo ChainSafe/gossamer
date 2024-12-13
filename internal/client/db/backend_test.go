@@ -1563,6 +1563,49 @@ func TestBackend(t *testing.T) {
 		require.Equal(t, []hash.H256{block2a}, leaves)
 	})
 
+	t.Run("revert_finalized_blocks", func(t *testing.T) {
+		pruningModes := []BlocksPruning{
+			BlocksPruningSome(10),
+			BlocksPruningKeepAll{},
+		}
+
+		// we will create a chain with 11 blocks, finalize block #8 and then
+		// attempt to revert 5 blocks.
+		for _, pruningMode := range pruningModes {
+			t.Run(fmt.Sprintf("%T", pruningMode), func(t *testing.T) {
+				backend := NewTestBackend(t, pruningMode, 1)
+
+				var parent hash.H256
+				for i := uint64(0); i <= 10; i++ {
+					var err error
+					parent, err = insertBlock(t, backend, i, parent, nil, "", nil, nil)
+					require.NoError(t, err)
+				}
+
+				require.Equal(t, uint64(10), backend.Blockchain().Info().BestNumber)
+
+				block8, err := backend.Blockchain().Hash(8)
+				require.NoError(t, err)
+				require.NotNil(t, block8)
+				err = backend.FinalizeBlock(*block8, nil)
+				require.NoError(t, err)
+				_, _, err = backend.Revert(5, true)
+				require.NoError(t, err)
+
+				_, ok := pruningMode.(BlocksPruningSome)
+				if ok {
+					// we can only revert to blocks for which we have state, if pruning is enabled
+					// then the last state available will be that of the latest finalized block
+					require.Equal(t, uint64(8), backend.Blockchain().Info().BestNumber)
+				} else {
+					// otherwise if we're not doing state pruning we can revert past finalized blocks
+					require.Equal(t, uint64(5), backend.Blockchain().Info().BestNumber)
+				}
+
+			})
+		}
+	})
+
 	t.Run("revert_non_best_blocks", func(t *testing.T) {
 		backend := NewTestBackend(t, BlocksPruningSome(10), 10)
 
