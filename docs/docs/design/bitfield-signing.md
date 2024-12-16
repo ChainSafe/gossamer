@@ -41,7 +41,9 @@ use it in `DistributeBitfield`.
 
 2. [`AvailabilityStore::QueryChunkAvailability(CandidateHash, ValidatorIndex, response_channel)`](https://github.com/paritytech/polkadot-sdk/blob/1e3b8e1639c1cf784eabf0a9afcab1f3987e0ca4/polkadot/node/subsystem-types/src/messages.rs#L556)
 
-This type is already defined as `availabilitystore.QueryChunkAvailability` in
+This message is sent once for each occupied core, whenever the subsystem is notified of a new active leaf.
+
+The type is already defined as `availabilitystore.QueryChunkAvailability` in
 `dot/parachain/availability-store/messages.go`.
 
 ## Subsystem State
@@ -72,6 +74,10 @@ type BitfieldSigning struct {
 }
 ```
 
+Ideally the implementation should avoid lock contention around the keystore. Since the signing key remains the same for
+the duration of the signing task, the subsystem could pass in the key pair or just the private key. The implementer
+should double-check that this approach is thread-safe.
+
 Again, this should probably use a (to be created) type `CheckedSignedAvailabilityBitfield`.  
 
 ## Message Handling Logic
@@ -91,6 +97,4 @@ for the given leaf from the runtime.
 3. For each core, concurrently check whether the core is occupied and if so, query the availability store using
 `QueryChunkAvailability`.
 
-4. Collect the results of the queries into a bitfield, sign it and send it to the subsystem.
-
-5. In the subsystem, receive the signed bitfield and send a `DistributeBitfield` message to the overseer.
+4. Collect the results of the queries into a bitfield, sign it and send a `DistributeBitfield` message to the overseer.
