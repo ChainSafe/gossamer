@@ -10,7 +10,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
@@ -18,23 +17,21 @@ type StateStorage interface {
 	StoreTrie(ts *storage.TrieState, header *types.Header) error
 }
 
+// TODO: re use or create a similar struct than StateRequestProvider in retrieve_state.go
 type StateSyncStrategy struct {
 	// Strategy dependencies and config
-	peers      *peerViewSet
-	badBlocks  []string
-	reqMaker   network.RequestMaker
-	blockState BlockState
-	storage    StateStorage
+	peers                *peerViewSet
+	badBlocks            []string
+	reqMaker             network.RequestMaker
+	blockState           BlockState
+	storage              StateStorage
+	stateRequestProvider *StateRequestProvider
 
 	// State sync state
 	startedAt   time.Time
 	targetBlock types.Header
-	lastKeys    [][]byte
 	completed   bool
-	state       trie.Trie //TODO: replace it to TrieState to handle transactions
 }
-
-// TODO: handle merkle proofs
 
 type StateSyncStrategyConfig struct {
 	Telemetry    Telemetry
@@ -55,12 +52,10 @@ func NewStateSyncStrategy(
 		blockState:  cfg.BlockState,
 		targetBlock: cfg.TargetBlock,
 		reqMaker:    cfg.ReqMaker,
-		state:       inmemory.NewEmptyTrie(),
 		storage:     cfg.StateStorage,
+		// TODO: set right state version
+		stateRequestProvider: NewStateRequestProvider(cfg.TargetBlock.Hash(), trie.V1),
 	}
-
-	// TODO: set right state version
-	// state.SetVersion(version)
 }
 
 // OnBlockAnnounce on every new block announce received.
@@ -113,47 +108,41 @@ func (s *StateSyncStrategy) OnBlockAnnounceHandshake(from peer.ID, msg *network.
 
 func (s *StateSyncStrategy) Process(results []*SyncTaskResult) (
 	done bool, repChanges []Change, peersToBlock []peer.ID, err error) {
+	// TODO: handle merkle proofs
 	repChanges = make([]Change, 0)
 	peersToBlock = make([]peer.ID, 0)
 
 	for _, result := range results {
 		switch response := result.response.(type) {
 		case *messages.StateResponse:
-			logger.Infof("Importing state data from %s with %s keys",
+			logger.Debugf("Retrieving state data from %s with %s keys",
 				result.who, len(response.Entries))
 
-			if len(response.Entries) == 0 {
-				logger.Infof("Bad state response")
-				peersToBlock = append(peersToBlock, result.who)
-				repChanges = append(repChanges, Change{
-					who: result.who,
-					rep: peerset.ReputationChange{
-						Value:  peerset.BadStateValue,
-						Reason: peerset.BadStateReason,
-					},
-				})
-				continue
-			}
-
-			if len(s.lastKeys) == 2 && len(response.Entries[0].StateEntries) == 0 {
-				s.lastKeys = s.lastKeys[:len(s.lastKeys)-1]
-			} else {
-				s.lastKeys = [][]byte{}
-			}
-
-			for _, stateEntry := range response.Entries {
-				if !stateEntry.Complete {
-					lastItemInResponse := stateEntry.StateEntries[len(stateEntry.StateEntries)-1]
-					s.lastKeys = append(s.lastKeys, lastItemInResponse.Key)
-					s.completed = false
-				} else {
-					s.completed = true
+			s.completed, err = s.stateRequestProvider.processResponse(response)
+			if err != nil {
+				switch err {
+				case errEmptyStateEntries:
+					logger.Infof("Bad state response")
+					peersToBlock = append(peersToBlock, result.who)
+					repChanges = append(repChanges, Change{
+						who: result.who,
+						rep: peerset.ReputationChange{
+							Value:  peerset.BadStateValue,
+							Reason: peerset.BadStateReason,
+						},
+					})
+					continue
 				}
 			}
 
-			return s.completed, repChanges, peersToBlock, s.importState(*response)
+			if s.completed {
+				return true, repChanges, peersToBlock, s.importState()
+			}
+
+			return false, repChanges, peersToBlock, nil
+
 		default:
-			logger.Warnf("unexpected response type %T", response)
+			logger.Warnf("unexpected response type %T for state request, banning peer: %s", result.who, response)
 			repChanges = append(repChanges, Change{
 				who: result.who,
 				rep: peerset.ReputationChange{
@@ -169,22 +158,15 @@ func (s *StateSyncStrategy) Process(results []*SyncTaskResult) (
 }
 
 // importState imports the retreived state into our state storage
-func (s *StateSyncStrategy) importState(response messages.StateResponse) error {
-	for _, stateEntry := range response.Entries {
-		for _, kv := range stateEntry.StateEntries {
-			if err := s.state.Put(kv.Key, kv.Value); err != nil {
-				return err
-			}
-		}
-	}
-
+func (s *StateSyncStrategy) importState() error {
 	// Store state in our state storage
-	if s.completed {
-		trieState := storage.NewTrieState(s.state)
-		return s.storage.StoreTrie(trieState, &s.targetBlock)
+	trieState, err := s.stateRequestProvider.buildTrie()
+	if err != nil {
+		return err
 	}
 
-	return nil
+	storageTrie := storage.NewTrieState(trieState)
+	return s.storage.StoreTrie(storageTrie, &s.targetBlock)
 }
 
 // NextActions returns the next actions to be taken by the sync service
@@ -192,7 +174,7 @@ func (s *StateSyncStrategy) NextActions() ([]*SyncTask, error) {
 	s.startedAt = time.Now()
 
 	task := &SyncTask{
-		request:      messages.NewStateRequest(s.targetBlock.Hash(), s.lastKeys, true),
+		request:      s.stateRequestProvider.buildRequest(),
 		response:     &messages.WarpSyncProof{},
 		requestMaker: s.reqMaker,
 	}
@@ -200,8 +182,8 @@ func (s *StateSyncStrategy) NextActions() ([]*SyncTask, error) {
 	return []*SyncTask{task}, nil
 }
 
-func (w *StateSyncStrategy) ShowMetrics() {
-	cursor := int32(w.lastKeys[0][0])
+func (s *StateSyncStrategy) ShowMetrics() {
+	cursor := int32(s.stateRequestProvider.getLastKeys()[0][0])
 	percentDone := cursor * 100 / 256
 
 	logger.Infof("⚙️ State Sync, downloading state %d% ", percentDone)
