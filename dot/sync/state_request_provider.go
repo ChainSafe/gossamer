@@ -30,7 +30,7 @@ func NewStateRequestProvider(target common.Hash, stateVersion trie.TrieLayout) *
 	}
 }
 
-func (s *StateRequestProvider) buildRequest() *messages.StateRequest {
+func (s *StateRequestProvider) BuildRequest() *messages.StateRequest {
 	return &messages.StateRequest{
 		Block:   s.targetHash,
 		Start:   s.lastKeys,
@@ -38,7 +38,7 @@ func (s *StateRequestProvider) buildRequest() *messages.StateRequest {
 	}
 }
 
-func (s *StateRequestProvider) processResponse(stateResponse *messages.StateResponse) (completed bool, err error) {
+func (s *StateRequestProvider) ProcessResponse(stateResponse *messages.StateResponse) (completed bool, err error) {
 	if len(stateResponse.Entries) == 0 {
 		return false, errEmptyStateEntries
 	}
@@ -72,7 +72,7 @@ func (s *StateRequestProvider) processResponse(stateResponse *messages.StateResp
 	return s.completed, nil
 }
 
-func (s *StateRequestProvider) buildTrie() (trie.Trie, error) {
+func (s *StateRequestProvider) BuildTrie() (trie.Trie, error) {
 	stateTrie := inmemory.NewEmptyTrie()
 	stateTrie.SetVersion(s.stateVersion)
 
@@ -86,16 +86,13 @@ func (s *StateRequestProvider) buildTrie() (trie.Trie, error) {
 		}
 	}
 
-	rootHash := stateTrie.MustHash()
-	if s.targetHash != rootHash {
-		logger.Errorf("root mismatch, expected root hash: %s, got root hash: %s",
-			s.targetHash.String(), rootHash.String())
-	}
-
 	return stateTrie, nil
 }
 
-func (s *StateRequestProvider) getLastKeys() [][]byte {
+func (s *StateRequestProvider) GetLastKeys() [][]byte {
 	return s.lastKeys
+}
 
+func (s *StateRequestProvider) IsCompleted() bool {
+	return s.completed
 }

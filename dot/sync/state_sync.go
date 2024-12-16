@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"fmt"
 	"slices"
 	"time"
 
@@ -118,7 +119,7 @@ func (s *StateSyncStrategy) Process(results []*SyncTaskResult) (
 			logger.Debugf("Retrieving state data from %s with %s keys",
 				result.who, len(response.Entries))
 
-			s.completed, err = s.stateRequestProvider.processResponse(response)
+			s.completed, err = s.stateRequestProvider.ProcessResponse(response)
 			if err != nil {
 				switch err {
 				case errEmptyStateEntries:
@@ -160,9 +161,13 @@ func (s *StateSyncStrategy) Process(results []*SyncTaskResult) (
 // importState imports the retreived state into our state storage
 func (s *StateSyncStrategy) importState() error {
 	// Store state in our state storage
-	trieState, err := s.stateRequestProvider.buildTrie()
+	trieState, err := s.stateRequestProvider.BuildTrie()
 	if err != nil {
 		return err
+	}
+
+	if trieState.MustHash() != s.targetBlock.StateRoot {
+		return fmt.Errorf("state root mismatch: got %s expected %s", trieState.MustHash(), s.targetBlock.StateRoot)
 	}
 
 	storageTrie := storage.NewTrieState(trieState)
@@ -174,7 +179,7 @@ func (s *StateSyncStrategy) NextActions() ([]*SyncTask, error) {
 	s.startedAt = time.Now()
 
 	task := &SyncTask{
-		request:      s.stateRequestProvider.buildRequest(),
+		request:      s.stateRequestProvider.BuildRequest(),
 		response:     &messages.WarpSyncProof{},
 		requestMaker: s.reqMaker,
 	}
@@ -183,7 +188,7 @@ func (s *StateSyncStrategy) NextActions() ([]*SyncTask, error) {
 }
 
 func (s *StateSyncStrategy) ShowMetrics() {
-	cursor := int32(s.stateRequestProvider.getLastKeys()[0][0])
+	cursor := int32(s.stateRequestProvider.GetLastKeys()[0][0])
 	percentDone := cursor * 100 / 256
 
 	logger.Infof("⚙️ State Sync, downloading state %d% ", percentDone)
