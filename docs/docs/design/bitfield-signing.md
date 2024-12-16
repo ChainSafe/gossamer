@@ -1,3 +1,9 @@
+---
+layout: default
+title: Bitfield Signing Subsystem
+permalink: /design/bitfield-signing/
+---
+
 # Bitfield Signing Subsystem
 
 [The bitfield signing subsystem](https://paritytech.github.io/polkadot-sdk/book/node/availability/bitfield-signing.html)
