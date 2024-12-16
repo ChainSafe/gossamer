@@ -77,7 +77,8 @@ The state holds
 - per-session state
 - unused topologies (topologies might be received before the first leaf update, so we should cache it)
 - peers view and state
-- keystore, authorities (a map from authotity id to peer id)
+- keystore
+- authorities (a map from authority id to peer id)
 - request and response manager
 
 ## Message Handling Logic
