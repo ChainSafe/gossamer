@@ -43,7 +43,7 @@ type GrandpaState interface {
 
 type WarpSyncVerificationResult struct {
 	SetId         grandpa.SetID
-	AuthorityList primitives.AuthorityList
+	AuthorityList grandpa.AuthorityList
 	Header        types.Header
 	Completed     bool
 }
@@ -188,7 +188,7 @@ type SetIdAuthorityList struct {
 	grandpa.AuthorityList
 }
 
-func (p *WarpSyncProofProvider) CurrentAuthorities() (primitives.AuthorityList, error) {
+func (p *WarpSyncProofProvider) CurrentAuthorities() (grandpa.AuthorityList, error) {
 	currentSetid, err := p.grandpaState.GetCurrentSetID()
 	if err != nil {
 		return nil, err
@@ -199,16 +199,16 @@ func (p *WarpSyncProofProvider) CurrentAuthorities() (primitives.AuthorityList, 
 		return nil, err
 	}
 
-	var authorityList primitives.AuthorityList
+	var authorityList grandpa.AuthorityList
 	for _, auth := range authorities {
 		key, err := app.NewPublic(auth.Key[:])
 		if err != nil {
 			return nil, err
 		}
 
-		authorityList = append(authorityList, primitives.AuthorityIDWeight{
+		authorityList = append(authorityList, grandpa.AuthorityIDWeight{
 			AuthorityID:     key,
-			AuthorityWeight: primitives.AuthorityWeight(auth.ID),
+			AuthorityWeight: grandpa.AuthorityWeight(auth.ID),
 		})
 	}
 

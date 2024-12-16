@@ -111,7 +111,7 @@ func (w *WarpSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnnou
 	}
 
 	if msg.BestBlock {
-		w.peers.update(from, blockAnnounceHeaderHash, uint32(msg.Number)) //nolint:gosec
+		w.peers.update(from, blockAnnounceHeaderHash, uint32(msg.Number))
 	}
 
 	return &Change{
