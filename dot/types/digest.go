@@ -26,7 +26,7 @@ type DigestItemValues interface {
 
 func newDigestItem[Value DigestItemValues](value Value) DigestItem {
 	item := DigestItem{}
-	setDigestItem[Value](&item, value)
+	setDigestItem(&item, value)
 	return item
 }
 

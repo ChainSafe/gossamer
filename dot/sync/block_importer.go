@@ -104,20 +104,7 @@ func (b *blockImporter) importBlock(bd *types.BlockData, origin BlockOrigin) (im
 // or the index of the block data that errored on failure.
 func (b *blockImporter) processBlockData(blockData types.BlockData, origin BlockOrigin) error {
 	if blockData.Header != nil {
-		var (
-			hasJustification = blockData.Justification != nil && len(*blockData.Justification) > 0
-			round            uint64
-			setID            uint64
-		)
-
-		if hasJustification {
-			var err error
-			round, setID, err = b.finalityGadget.VerifyBlockJustification(
-				blockData.Header.Hash(), blockData.Header.Number, *blockData.Justification)
-			if err != nil {
-				return fmt.Errorf("verifying justification: %w", err)
-			}
-		}
+		header := blockData.Header
 
 		if blockData.Body != nil {
 			err := b.processBlockDataWithHeaderAndBody(blockData, origin)
@@ -126,18 +113,22 @@ func (b *blockImporter) processBlockData(blockData types.BlockData, origin Block
 			}
 		}
 
-		if hasJustification {
-			header := blockData.Header
-			err := b.blockState.SetFinalisedHash(header.Hash(), round, setID)
+		if blockData.Justification != nil && len(*blockData.Justification) > 0 {
+			round, setID, err := b.finalityGadget.VerifyBlockJustification(
+				header.Hash(), header.Number, *blockData.Justification)
+			if err != nil {
+				return fmt.Errorf("verifying justification for block %s: %w", header.Hash().String(), err)
+			}
+
+			err = b.blockState.SetFinalisedHash(header.Hash(), round, setID)
 			if err != nil {
 				return fmt.Errorf("setting finalised hash: %w", err)
 			}
+
 			err = b.blockState.SetJustification(header.Hash(), *blockData.Justification)
 			if err != nil {
 				return fmt.Errorf("setting justification for block number %d: %w", header.Number, err)
 			}
-
-			return nil
 		}
 	}
 	err := b.blockState.CompareAndSetBlockData(&blockData)
