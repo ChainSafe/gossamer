@@ -307,11 +307,45 @@ func genericHeadersList(t *testing.T, headers []*types.Header) []runtime.Header[
 		if header == nil {
 			continue
 		}
-		newHeader := generic.Header[uint64, hash.H256, runtime.BlakeTwo256]{}
-		newHeader.SetParentHash(hash.H256(header.ParentHash.String()))
-		newHeader.SetNumber(uint64(header.Number))
-		newHeader.DigestMut().Push(header.Digest)
+
+		generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+			uint64(header.Number),
+			hash.H256(string(header.ExtrinsicsRoot.ToBytes())),
+			hash.H256(string(header.StateRoot.ToBytes())),
+			hash.H256(string(header.ParentHash.ToBytes())),
+			mapDigest(t, header.Digest),
+		)
 	}
 
 	return headerList
+}
+
+func mapDigest(t *testing.T, digest types.Digest) runtime.Digest {
+	newDigest := runtime.Digest{}
+	for _, log := range digest {
+		value, err := log.Value()
+		require.NoError(t, err)
+
+		switch v := value.(type) {
+		case types.PreRuntimeDigest:
+			newDigest.Push(runtime.NewDigestItem(runtime.PreRuntime{
+				ConsensusEngineID: runtime.ConsensusEngineID(v.ConsensusEngineID),
+				Bytes:             v.Data,
+			}))
+		case types.ConsensusDigest:
+			newDigest.Push(runtime.NewDigestItem(runtime.Consensus{
+				ConsensusEngineID: runtime.ConsensusEngineID(v.ConsensusEngineID),
+				Bytes:             v.Data,
+			}))
+		case types.SealDigest:
+			newDigest.Push(runtime.NewDigestItem(runtime.Seal{
+				ConsensusEngineID: runtime.ConsensusEngineID(v.ConsensusEngineID),
+				Bytes:             v.Data,
+			}))
+		case types.RuntimeEnvironmentUpdated:
+			newDigest.Push(runtime.NewDigestItem(runtime.RuntimeEnvironmentUpdated{}))
+		}
+	}
+
+	return newDigest
 }
