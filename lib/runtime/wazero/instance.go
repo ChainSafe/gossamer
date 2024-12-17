@@ -50,7 +50,6 @@ type wazeroMeta struct {
 // Instance backed by wazero.Runtime
 type Instance struct {
 	Runtime      wazero.Runtime
-	Module       api.Module
 	Context      *runtime.Context
 	wasmByteCode []byte
 	codeHash     common.Hash
