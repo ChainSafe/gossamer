@@ -42,6 +42,9 @@ var parachainTestDataRaw string
 //go:embed testdata/parachains_configuration_v190.yaml
 var parachainsConfigV190TestDataRaw string
 
+//go:embed testdata/parachains_host_para_backing_state.yaml
+var parachainsHostParaBackingState string
+
 type Storage struct {
 	Name  string `yaml:"name"`
 	Key   string `yaml:"key"`
@@ -1708,6 +1711,28 @@ func TestInstance_ParachainHostSessionExecutorParams(t *testing.T) {
 	params, err := rt.ParachainHostSessionExecutorParams(index)
 	require.NoError(t, err)
 	require.Empty(t, params)
+}
+
+func TestInstance_ParachainHostParaBackingState(t *testing.T) {
+	t.Parallel()
+
+	var backingStateData Data
+	err := yaml.Unmarshal([]byte(parachainsHostParaBackingState), &backingStateData)
+	require.NoError(t, err)
+
+	fmt.Println(backingStateData)
+
+	paraID := parachaintypes.ParaID(2096)
+
+	tt := getParachainHostTrie(t, backingStateData.Storage)
+	rt := NewTestInstance(t,
+		runtime.WESTEND_RUNTIME_v1017001,
+		TestWithTrie(tt))
+
+	backingState, err := rt.ParachainHostParaBackingState(paraID)
+	require.NoError(t, err)
+
+	fmt.Println(backingState)
 }
 
 func getParachainHostTrie(t *testing.T, testDataStorage []Storage) *inmemory_trie.InMemoryTrie {

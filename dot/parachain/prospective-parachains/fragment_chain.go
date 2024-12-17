@@ -272,7 +272,7 @@ type scope struct {
 	relayParent relayChainBlockInfo
 	// the other relay parents candidates are allowed to build upon,
 	// mapped by the block number
-	ancestors *btree.Map[uint, relayChainBlockInfo]
+	ancestors *btree.Map[uint32, relayChainBlockInfo]
 	// the other relay parents candidates are allowed to build upon,
 	// mapped by hash
 	ancestorsByHash map[common.Hash]relayChainBlockInfo
@@ -301,7 +301,7 @@ func newScopeWithAncestors(
 	maxDepth uint,
 	ancestors []relayChainBlockInfo,
 ) (*scope, error) {
-	ancestorsMap := btree.NewMap[uint, relayChainBlockInfo](100)
+	ancestorsMap := btree.NewMap[uint32, relayChainBlockInfo](100)
 	ancestorsByHash := make(map[common.Hash]relayChainBlockInfo)
 
 	prev := relayParent.Number
@@ -817,7 +817,7 @@ func (f *fragmentChain) checkPotential(candidate *candidateEntry) error {
 	// Try seeing if the parent candidate is in the current chain or if it is the latest
 	// included candidate. If so, get the constraints the candidate must satisfy
 	var constraints *parachaintypes.Constraints
-	var maybeMinRelayParentNumber *uint
+	var maybeMinRelayParentNumber *uint32
 
 	requiredParentHash, err := f.scope.baseConstraints.RequiredParent.Hash()
 	if err != nil {
@@ -1010,7 +1010,7 @@ func (f *fragmentChain) populateChain(storage *candidateStorage) {
 			// 5. candidate outputs fulfil constraints
 
 			var relayParent *relayChainBlockInfo
-			var minRelayParent uint
+			var minRelayParent uint32
 
 			pending := f.scope.getPendingAvailability(candidateEntry.candidateHash)
 			if pending != nil {

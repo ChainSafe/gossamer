@@ -29,7 +29,7 @@ type InboundHrmpLimitations struct {
 	//
 	// It's only expected to contain block numbers at which messages were
 	// previously sent to a para, excluding most recent head.
-	ValidWatermarks []uint
+	ValidWatermarks []uint32
 }
 
 // OutboundHrmpChannelLimitations constraints on outbound HRMP channels.
@@ -45,7 +45,7 @@ type OutboundHrmpChannelLimitations struct {
 // be apparent from usage.
 type Constraints struct {
 	// The minimum relay-parent number accepted under these constraints.
-	MinRelayParentNumber uint
+	MinRelayParentNumber uint32
 	// The maximum Proof-of-Validity size allowed, in bytes.
 	MaxPoVSize uint32
 	// The maximum new validation code size allowed, in bytes.
@@ -57,7 +57,7 @@ type Constraints struct {
 	// The maximum number of UMP messages allowed per candidate.
 	MaxUmpNumPerCandidate uint32
 	// Remaining DMP queue. Only includes sent-at block numbers.
-	DmpRemainingMessages []uint
+	DmpRemainingMessages []uint32
 	// The limitations of all registered inbound HRMP channels.
 	HrmpInbound InboundHrmpLimitations
 	// The limitations of all registered outbound HRMP channels.
@@ -77,7 +77,7 @@ type Constraints struct {
 
 // FutureValidationCode represents a tuple of BlockNumber and ValidationCodeHash
 type FutureValidationCode struct {
-	BlockNumber        uint
+	BlockNumber        uint32
 	ValidationCodeHash ValidationCodeHash
 }
 
@@ -108,4 +108,19 @@ func (c *Constraints) Clone() *Constraints {
 		UpgradeRestriction:     c.UpgradeRestriction,
 		FutureValidationCode:   futureValidationCode,
 	}
+}
+
+type CandidatePendingAvailability struct {
+	CandidateHash     CandidateHash
+	Descriptor        CandidateDescriptorV2
+	Commitments       CandidateCommitments
+	RelayParentNumber BlockNumber
+	MaxPoVSize        uint32
+}
+
+// BackingState holds the state of the backing system per-parachain, including
+// state-machine constraints and candidates pending availability
+type BackingState struct {
+	Constraints         Constraints
+	PendingAvailability []CandidatePendingAvailability
 }

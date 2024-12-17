@@ -115,7 +115,7 @@ func NewInstanceFromTrie(t trie.Trie, cfg Config) (*Instance, error) {
 func newRuntime(ctx context.Context,
 	code []byte,
 	config wazero.RuntimeConfig,
-) (api.Module, wazero.Runtime, wazero.CompiledModule, error) {
+) (wazero.Runtime, wazero.CompiledModule, error) {
 	rt := wazero.NewRuntimeWithConfig(ctx, config)
 
 	const i32, i64 = api.ValueTypeI32, api.ValueTypeI64
@@ -645,29 +645,25 @@ func newRuntime(ctx context.Context,
 		Compile(ctx)
 
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	_, err = rt.InstantiateModule(ctx, hostCompiledModule, wazero.NewModuleConfig())
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	code, err = decompressWasm(code)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	guestCompiledModule, err := rt.CompileModule(ctx, code)
 	if err != nil {
-		return nil, nil, nil, err
-	}
-	mod, err := rt.Instantiate(ctx, code)
-	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
-	return mod, rt, guestCompiledModule, nil
+	return rt, guestCompiledModule, nil
 }
 
 // NewInstance instantiates a runtime from raw wasm bytecode
@@ -679,7 +675,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	ctx := context.Background()
 	cache := wazero.NewCompilationCache()
 	config := wazero.NewRuntimeConfig().WithCompilationCache(cache)
-	mod, rt, guestCompiledModule, err := newRuntime(ctx, code, config)
+	rt, guestCompiledModule, err := newRuntime(ctx, code, config)
 	if err != nil {
 		return nil, fmt.Errorf("creating runtime instance: %w", err)
 	}
@@ -696,7 +692,6 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 			SigVerifier:     crypto.NewSignatureVerifier(logger),
 			OffchainHTTPSet: offchain.NewHTTPSet(),
 		},
-		Module:   mod,
 		codeHash: cfg.CodeHash,
 		metadata: wazeroMeta{
 			config:      config,
@@ -728,10 +723,7 @@ func (i *Instance) Exec(function string, data []byte) ([]byte, error) {
 	defer i.Unlock()
 
 	mod, err := i.Runtime.InstantiateModule(context.Background(), i.metadata.guestModule, wazero.NewModuleConfig())
-	if mod == nil {
-		return nil, fmt.Errorf("instantiate guest module: nil")
-	}
-	if err != nil {
+	if err != nil || mod == nil {
 		return nil, fmt.Errorf("instantiate guest module: %w", err)
 	}
 
@@ -1418,6 +1410,26 @@ func (in *Instance) ParachainHostSessionExecutorParams(index parachaintypes.Sess
 
 	params := executorParams
 	return &params, nil
+}
+
+func (in *Instance) ParachainHostParaBackingState(paraID parachaintypes.ParaID) (*parachaintypes.BackingState, error) {
+	encodedParaID, err := scale.Marshal(paraID)
+	if err != nil {
+		return nil, fmt.Errorf("encoding parachain ID: %w", err)
+	}
+
+	encodedBackingState, err := in.Exec(runtime.ParachainHostParaBackingState, encodedParaID)
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	var backingState *parachaintypes.BackingState
+	err = scale.Unmarshal(encodedBackingState, &backingState)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling backing state: %w", err)
+	}
+
+	return backingState, nil
 }
 
 func (*Instance) RandomSeed() {

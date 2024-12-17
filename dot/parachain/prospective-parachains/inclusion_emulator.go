@@ -27,7 +27,7 @@ type prospectiveCandidate struct {
 type relayChainBlockInfo struct {
 	Hash        common.Hash
 	StorageRoot common.Hash
-	Number      uint
+	Number      uint32
 }
 
 func checkModifications(c *parachaintypes.Constraints, modifications *constraintModifications) error {
@@ -192,7 +192,7 @@ type outboundHrmpChannelModification struct {
 // hrmpWatermarkUpdate represents an update to the HRMP Watermark.
 type hrmpWatermarkUpdate struct {
 	Type  hrmpWatermarkUpdateType
-	Block uint
+	Block uint32
 }
 
 // hrmpWatermarkUpdateType defines the type of HrmpWatermarkUpdate.
@@ -204,7 +204,7 @@ const (
 )
 
 // Watermark returns the block number of the HRMP Watermark update.
-func (h hrmpWatermarkUpdate) Watermark() uint {
+func (h hrmpWatermarkUpdate) Watermark() uint32 {
 	return h.Block
 }
 
@@ -346,10 +346,10 @@ func checkAgainstConstraints(
 
 	hrmpWatermark := hrmpWatermarkUpdate{
 		Type:  Trunk,
-		Block: uint(commitments.HrmpWatermark),
+		Block: commitments.HrmpWatermark,
 	}
 
-	if uint(commitments.HrmpWatermark) == relayParent.Number {
+	if commitments.HrmpWatermark == relayParent.Number {
 		hrmpWatermark.Type = Head
 	}
 

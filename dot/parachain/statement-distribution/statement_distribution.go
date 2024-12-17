@@ -5,6 +5,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/log"
 
+	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	statementedistributionmessages "github.com/ChainSafe/gossamer/dot/parachain/statement-distribution/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
@@ -45,7 +46,7 @@ func (s StatementDistribution) processMessage(msg any) error {
 		return s.ProcessActiveLeavesUpdateSignal(msg)
 	case parachaintypes.BlockFinalizedSignal:
 		return s.ProcessBlockFinalizedSignal(msg)
-
+	case backing.CandidateBacking:
 	default:
 		return parachaintypes.ErrUnknownOverseerMessage
 	}
