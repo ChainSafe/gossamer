@@ -27,7 +27,7 @@ However, in elastic scaling, multiple groups of validators(core) will be assigne
     - Structs containing groupID: `Summary`, `tableContext`, `attestedCandidate`, `candidateData`.
 - change `assignment *parachaintypes.ParaID` field to `assignedCore *parachaintypes.CoreIndex` in perRelayParentState which represents the core index assigned to the local validator at this relay parent.
 
-### Use fragment-chain
+### Update usage of [Prospective Parachains](./prospective-parachains.md) overseer message
 Our async backing code uses `Fragment-tree`, which was introduced in Async backing and has now become `Fragment-chain`. So we need to update the code to use `Fragment-chain`.
 - For sanity check if it is possible to second the candidate, in current code we are sending `ProspectiveParachainsMessageGetHypotheticalFrontier` overseer message to prospective parachain subsystem. we need to send `GetHypotheticalMembership` overseer message instead which will return the list of leaves where the candidate can be seconded.
 - While importing a statement, if it's a new candidate (statement is 'seconded' and candidate is unknown), We need to inform the prospective parachains subsystem of the seconded candidate. currently we are sending two separate message `ProspectiveParachainsMessageIntroduceCandidate` to introduce new candidate and `ProspectiveParachainsMessageCandidateSeconded` to inform about seconded candidate we can combine both messages and send a single message `IntroduceSecondedCandidate`.
