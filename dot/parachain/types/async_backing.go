@@ -18,8 +18,8 @@ type AsyncBackingParams struct {
 	AllowedAncestryLen uint32 `scale:"2"`
 }
 
-// InboundHrmpLimitations constraints on inbound HRMP channels.
-type InboundHrmpLimitations struct {
+// InboundHRMPLimitations constraints on inbound HRMP channels.
+type InboundHRMPLimitations struct {
 	// An exhaustive set of all valid watermarks, sorted ascending.
 	//
 	// It's only expected to contain block numbers at which messages were
@@ -27,8 +27,8 @@ type InboundHrmpLimitations struct {
 	ValidWatermarks []BlockNumber
 }
 
-// OutboundHrmpChannelLimitations constraints on outbound HRMP channels.
-type OutboundHrmpChannelLimitations struct {
+// OutboundHRMPChannelLimitations constraints on outbound HRMP channels.
+type OutboundHRMPChannelLimitations struct {
 	// The maximum bytes that can be written to the channel.
 	BytesRemaining uint32
 	// The maximum messages that can be written to the channel.
@@ -54,9 +54,9 @@ type Constraints struct {
 	// Remaining DMP queue. Only includes sent-at block numbers.
 	DmpRemainingMessages []uint32
 	// The limitations of all registered inbound HRMP channels.
-	HrmpInbound InboundHrmpLimitations
+	HrmpInbound InboundHRMPLimitations
 	// The limitations of all registered outbound HRMP channels.
-	HrmpChannelsOut map[ParaID]OutboundHrmpChannelLimitations
+	HrmpChannelsOut map[ParaID]OutboundHRMPChannelLimitations
 	// The maximum number of HRMP messages allowed per candidate.
 	MaxHrmpNumPerCandidate uint32
 	// The required parent head-data of the parachain.
