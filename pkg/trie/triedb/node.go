@@ -218,7 +218,7 @@ func newNodeFromEncoded[H hash.Hash](nodeHash H, data []byte, storage *nodeStora
 				}
 				return newChild, nil
 			}
-			return nil, nil //nolint:nilnil
+			return nil, nil
 		}
 
 		children := [codec.ChildrenCapacity]NodeHandle{}

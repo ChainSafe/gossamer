@@ -71,6 +71,8 @@ nav:
     - Parachain Protocol Overview: ./design/parachain-protocol-overview.md
     - Candidate Backing: ./design/candidate-backing.md
     - Availability Subsystems: ./design/availability-subsystems.md
+    - Prospective Parachains: ./design/prospective-parachains.md
+    - Prospective Parachains - Fragment Chain: ./design/fragment-chain.md
   - Contributing: 
     - Overview: ./contributing.md
 extra_css:

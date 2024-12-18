@@ -96,18 +96,18 @@ func (mr *MocknodeBuilderIfaceMockRecorder) createCoreService(config, ks, st, ne
 }
 
 // createDigestHandler mocks base method.
-func (m *MocknodeBuilderIface) createDigestHandler(st *state.Service) (*digest.Handler, error) {
+func (m *MocknodeBuilderIface) createDigestHandler(config *config.Config, st *state.Service) (*digest.Handler, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "createDigestHandler", st)
+	ret := m.ctrl.Call(m, "createDigestHandler", config, st)
 	ret0, _ := ret[0].(*digest.Handler)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // createDigestHandler indicates an expected call of createDigestHandler.
-func (mr *MocknodeBuilderIfaceMockRecorder) createDigestHandler(st any) *gomock.Call {
+func (mr *MocknodeBuilderIfaceMockRecorder) createDigestHandler(config, st any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createDigestHandler", reflect.TypeOf((*MocknodeBuilderIface)(nil).createDigestHandler), st)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "createDigestHandler", reflect.TypeOf((*MocknodeBuilderIface)(nil).createDigestHandler), config, st)
 }
 
 // createGRANDPAService mocks base method.
