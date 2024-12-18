@@ -24,15 +24,15 @@ type InboundHrmpLimitations struct {
 	//
 	// It's only expected to contain block numbers at which messages were
 	// previously sent to a para, excluding most recent head.
-	ValidWatermarks []BlockNumber `scale:"1"`
+	ValidWatermarks []BlockNumber
 }
 
 // OutboundHrmpChannelLimitations constraints on outbound HRMP channels.
 type OutboundHrmpChannelLimitations struct {
 	// The maximum bytes that can be written to the channel.
-	BytesRemaining uint32 `scale:"1"`
+	BytesRemaining uint32
 	// The maximum messages that can be written to the channel.
-	MessagesRemaining uint32 `scale:"2"`
+	MessagesRemaining uint32
 }
 
 // Constraints on the actions that can be taken by a new parachain block. These
@@ -40,53 +40,53 @@ type OutboundHrmpChannelLimitations struct {
 // be apparent from usage.
 type Constraints struct {
 	// The minimum relay-parent number accepted under these constraints.
-	MinRelayParentNumber BlockNumber `scale:"1"`
+	MinRelayParentNumber BlockNumber
 	// The maximum Proof-of-Validity size allowed, in bytes.
-	MaxPoVSize uint32 `scale:"2"`
+	MaxPoVSize uint32
 	// The maximum new validation code size allowed, in bytes.
-	MaxCodeSize uint32 `scale:"3"`
+	MaxCodeSize uint32
 	// The amount of UMP messages remaining.
-	UmpRemaining uint32 `scale:"4"`
+	UmpRemaining uint32
 	// The amount of UMP bytes remaining.
-	UmpRemainingBytes uint32 `scale:"5"`
+	UmpRemainingBytes uint32
 	// The maximum number of UMP messages allowed per candidate.
-	MaxUmpNumPerCandidate uint32 `scale:"6"`
+	MaxUmpNumPerCandidate uint32
 	// Remaining DMP queue. Only includes sent-at block numbers.
-	DmpRemainingMessages []uint32 `scale:"7"`
+	DmpRemainingMessages []uint32
 	// The limitations of all registered inbound HRMP channels.
-	HrmpInbound InboundHrmpLimitations `scale:"8"`
+	HrmpInbound InboundHrmpLimitations
 	// The limitations of all registered outbound HRMP channels.
-	HrmpChannelsOut map[ParaID]OutboundHrmpChannelLimitations `scale:"9"`
+	HrmpChannelsOut map[ParaID]OutboundHrmpChannelLimitations
 	// The maximum number of HRMP messages allowed per candidate.
-	MaxHrmpNumPerCandidate uint32 `scale:"10"`
+	MaxHrmpNumPerCandidate uint32
 	// The required parent head-data of the parachain.
-	RequiredParent HeadData `scale:"11"`
+	RequiredParent HeadData
 	// The expected validation-code-hash of this parachain.
-	ValidationCodeHash ValidationCodeHash `scale:"12"`
+	ValidationCodeHash ValidationCodeHash
 	// The code upgrade restriction signal as-of this parachain.
-	UpgradeRestriction *UpgradeRestriction `scale:"13"`
+	UpgradeRestriction *UpgradeRestriction
 	// The future validation code hash, if any, and at what relay-parent
 	// number the upgrade would be minimally applied.
-	FutureValidationCode *FutureValidationCode `scale:"15"`
+	FutureValidationCode *FutureValidationCode
 }
 
 // FutureValidationCode represents a tuple of BlockNumber and ValidationCodeHash
 type FutureValidationCode struct {
-	BlockNumber        BlockNumber        `scale:"1"`
-	ValidationCodeHash ValidationCodeHash `scale:"2"`
+	BlockNumber        BlockNumber
+	ValidationCodeHash ValidationCodeHash
 }
 
 type CandidatePendingAvailability struct {
-	CandidateHash     CandidateHash         `scale:"1"`
-	Descriptor        CandidateDescriptorV2 `scale:"2"`
-	Commitments       CandidateCommitments  `scale:"3"`
-	RelayParentNumber BlockNumber           `scale:"4"`
-	MaxPoVSize        uint32                `scale:"5"`
+	CandidateHash     CandidateHash
+	Descriptor        CandidateDescriptorV2
+	Commitments       CandidateCommitments
+	RelayParentNumber BlockNumber
+	MaxPoVSize        uint32
 }
 
 // BackingState holds the state of the backing system per-parachain, including
 // state-machine constraints and candidates pending availability
 type BackingState struct {
-	Constraints         Constraints                    `scale:"1"`
-	PendingAvailability []CandidatePendingAvailability `scale:"2"`
+	Constraints         Constraints
+	PendingAvailability []CandidatePendingAvailability
 }
