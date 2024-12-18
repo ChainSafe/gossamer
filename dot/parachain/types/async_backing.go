@@ -24,7 +24,7 @@ type InboundHrmpLimitations struct {
 	//
 	// It's only expected to contain block numbers at which messages were
 	// previously sent to a para, excluding most recent head.
-	ValidWatermarks []uint32
+	ValidWatermarks []BlockNumber
 }
 
 // OutboundHrmpChannelLimitations constraints on outbound HRMP channels.
@@ -40,7 +40,7 @@ type OutboundHrmpChannelLimitations struct {
 // be apparent from usage.
 type Constraints struct {
 	// The minimum relay-parent number accepted under these constraints.
-	MinRelayParentNumber uint32
+	MinRelayParentNumber BlockNumber
 	// The maximum Proof-of-Validity size allowed, in bytes.
 	MaxPoVSize uint32
 	// The maximum new validation code size allowed, in bytes.
@@ -72,7 +72,7 @@ type Constraints struct {
 
 // FutureValidationCode represents a tuple of BlockNumber and ValidationCodeHash
 type FutureValidationCode struct {
-	BlockNumber        uint32
+	BlockNumber        BlockNumber
 	ValidationCodeHash ValidationCodeHash
 }
 

@@ -1729,7 +1729,7 @@ func TestInstance_ParachainHostParaBackingState(t *testing.T) {
 	upgradeRestriction := &parachaintypes.UpgradeRestriction{}
 	require.NoError(t, upgradeRestriction.SetValue(parachaintypes.Present{}))
 
-	expectedBakingState := &parachaintypes.BackingState{
+	expectedBackingState := &parachaintypes.BackingState{
 		Constraints: parachaintypes.Constraints{
 			MinRelayParentNumber:   23920837,
 			MaxPoVSize:             5242880,
@@ -1792,7 +1792,7 @@ func TestInstance_ParachainHostParaBackingState(t *testing.T) {
 		},
 	}
 
-	require.Equal(t, expectedBakingState, backingState)
+	require.Equal(t, expectedBackingState, backingState)
 }
 
 func getParachainHostTrie(t *testing.T, testDataStorage []Storage) *inmemory_trie.InMemoryTrie {
