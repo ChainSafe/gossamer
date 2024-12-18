@@ -57,7 +57,7 @@ type nodeBuilderIface interface {
 	loadRuntime(config *cfg.Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore,
 		net *network.Service) error
 	createBlockVerifier(st *state.Service) *babe.VerificationManager
-	createDigestHandler(st *state.Service) (*digest.Handler, error)
+	createDigestHandler(config *cfg.Config, st *state.Service) (*digest.Handler, error)
 	createCoreService(config *cfg.Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service,
 	) (*core.Service, error)
 	createGRANDPAService(config *cfg.Config, st *state.Service, ks KeyStore,
@@ -355,7 +355,7 @@ func newNode(config *cfg.Config,
 
 	ver := builder.createBlockVerifier(stateSrvc)
 
-	dh, err := builder.createDigestHandler(stateSrvc)
+	dh, err := builder.createDigestHandler(config, stateSrvc)
 	if err != nil {
 		return nil, err
 	}

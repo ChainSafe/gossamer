@@ -156,7 +156,9 @@ func newFullSyncService(t *testing.T) *SyncService {
 		WithStrategies(fullSync, nil),
 	}
 
-	syncer := NewSyncService(serviceCfg...)
+	syncLogLvl := log.Info
+
+	syncer := NewSyncService(syncLogLvl, serviceCfg...)
 	return syncer
 }
 

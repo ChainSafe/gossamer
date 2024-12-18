@@ -838,6 +838,6 @@ func Test_createDigestHandler(t *testing.T) {
 	err = startStateService(*config.State, stateSrvc)
 	require.NoError(t, err)
 
-	_, err = builder.createDigestHandler(stateSrvc)
+	_, err = builder.createDigestHandler(config, stateSrvc)
 	require.NoError(t, err)
 }

@@ -113,7 +113,9 @@ type SyncService struct {
 	stopCh chan struct{}
 }
 
-func NewSyncService(cfgs ...ServiceConfig) *SyncService {
+func NewSyncService(logLvl log.Level, cfgs ...ServiceConfig) *SyncService {
+	logger.Patch(log.SetLevel(logLvl))
+
 	svc := &SyncService{
 		minPeers:              minPeersDefault,
 		waitPeersDuration:     waitPeersDefaultTimeout,

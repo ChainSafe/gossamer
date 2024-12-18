@@ -127,7 +127,7 @@ func TestNewNode(t *testing.T) {
 		ks, gomock.AssignableToTypeOf(&network.Service{})).Return(nil)
 	m.EXPECT().createBlockVerifier(gomock.AssignableToTypeOf(&state.Service{})).
 		Return(&babe.VerificationManager{})
-	m.EXPECT().createDigestHandler(gomock.AssignableToTypeOf(&state.Service{})).
+	m.EXPECT().createDigestHandler(initConfig, gomock.AssignableToTypeOf(&state.Service{})).
 		Return(&digest.Handler{}, nil)
 	m.EXPECT().createCoreService(initConfig, ks, gomock.AssignableToTypeOf(&state.Service{}),
 		gomock.AssignableToTypeOf(&network.Service{})).
