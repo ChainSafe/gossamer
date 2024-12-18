@@ -7,15 +7,15 @@ permalink: /design/candidate-backing-es/
 # Candidate backing subsystem design update
 > Update Candidate backing subsystem to support Async backing + Elastic scaling
 
-## overview of changes
+## Overview of Changes
 ### Remove use of ProspectiveParachainsMode
 We currently have both legacy backing code and async backing code. Now that the async backing parameters runtime API is live on all networks, the backing subsystem code can be simplified. We can remove the use of `ProspectiveParachainsMode` and keep only the parts under `ProspectiveParachainsMode` enabled.
 
-### remove perLeaf field of CandidateBacking struct
+### Remove perLeaf field of CandidateBacking struct
 - Remove the perLeaf field of the `CandidateBacking` struct as it keeps track of which active leaf has `ProspectiveParachainMode` enabled.
 - if we need active leaf data, we can get it from backing implicit view which we store in `CandidateBacking`. (Yet to implement)
 
-### change GroupID from paraID to CoreIndex
+### Change GroupID from paraID to CoreIndex
 Before elastic scaling, only a single group of validators was assigned to a parachain, so we assigned paraID to GroupID.
 ![single-group-assignment](../assets/img/single-group-assignment.png)
 
@@ -56,8 +56,8 @@ type perRelayParentState struct {
 ```
 
 runtime methods we will need
-- claim queue: ParachainHost_claim_queue
-- node features: ParachainHost_node_features
+- claim queue: `ParachainHost_claim_queue`
+- node features: `ParachainHost_node_features`
 
 ### GetBackableCandidates
 
@@ -73,7 +73,7 @@ type GetBackableCandidates struct {
 
 The order of candidates of the same parachain must be preserved in the response because candidates are supplied in dependency order. We must ensure that this dependency order is preserved.
 
- So, If a backable candidate of a parachain cannot be retrieved, the response should not contain any candidates of the same parachain that follow it in the input slice. 
+If a backable candidate of a parachain cannot be retrieved, the response should not contain any candidates of the same parachain that follow it in the input slice. 
  
  For example:
  Candidates => [A, B, C, D, E, F, G, H]
@@ -86,7 +86,7 @@ Remove all usage of ProspectiveParachainMode, perLeaf field of `CandidateBacking
 
 Logic of this function written in the context of fragment tree, need to remove this code. after removing this code we just need to perform seconding sanity check to find if it is possible to second a candidate.
 
-update logic of seconding sanity check:
+Update logic of seconding sanity check:
 - now as we don't want to use prospective parachain mode anymore. instead of iterating over `perLeaf`, iterate over leaves in the implicit view.
 - get hypothetical membership of the candidates from prospective parachain[res: candidate and it's hypothetical membership(list of leaves where the candidate could be added)]
 - for each active leaf, check if they are present in the hypothetical membership. if present it's possible to second the candidate at that leaf.
