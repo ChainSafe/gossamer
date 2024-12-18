@@ -43,7 +43,7 @@ func NewTestGenesisRawFile(t *testing.T, config *cfg.Config) (filename string) {
 	b, err := json.Marshal(gen)
 	require.NoError(t, err)
 
-	err = os.WriteFile(filename, b, os.ModePerm) //nolint:gosec
+	err = os.WriteFile(filename, b, os.ModePerm)
 	require.NoError(t, err)
 
 	return filename

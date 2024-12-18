@@ -3,6 +3,12 @@
 
 package runtime
 
+import (
+	"fmt"
+
+	"github.com/ChainSafe/gossamer/pkg/scale"
+)
+
 // Digest item that is able to encode/decode 'system' digest items and
 // provide opaque access to other items.
 type DigestItemTypes interface {
@@ -11,12 +17,82 @@ type DigestItemTypes interface {
 
 // Digest item that is able to encode/decode 'system' digest items and
 // provide opaque access to other items.
-// TODO: implement this as scale.VaryingDataType
-type DigestItem any
+type DigestItem struct {
+	inner any
+}
 
 // NewDigestItem is constructor for DigestItem
-func NewDigestItem[T DigestItemTypes](item T) DigestItem {
-	return NewDigestItem(item)
+func NewDigestItem[T DigestItemTypes](value T) DigestItem {
+	item := DigestItem{}
+	setDigestItem(&item, value)
+	return item
+}
+
+func setDigestItem[Value DigestItemTypes](mvdt *DigestItem, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *DigestItem) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case PreRuntime:
+		setDigestItem(mvdt, value)
+		return
+	case Consensus:
+		setDigestItem(mvdt, value)
+		return
+	case Seal:
+		setDigestItem(mvdt, value)
+		return
+	case RuntimeEnvironmentUpdated:
+		setDigestItem(mvdt, value)
+		return
+	case Other:
+		setDigestItem(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt DigestItem) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case Other:
+		return 0, mvdt.inner, nil
+	case Consensus:
+		return 4, mvdt.inner, nil
+	case Seal:
+		return 5, mvdt.inner, nil
+	case PreRuntime:
+		return 6, mvdt.inner, nil
+	case RuntimeEnvironmentUpdated:
+		return 8, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt DigestItem) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt DigestItem) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return Other{}, nil
+	case 4:
+		return Consensus{}, nil
+	case 5:
+		return Seal{}, nil
+	case 6:
+		return PreRuntime{}, nil
+	case 8:
+		return RuntimeEnvironmentUpdated{}, nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
+
+func (mvdt DigestItem) String() string {
+	return fmt.Sprintf("%s", mvdt.inner)
 }
 
 // A pre-runtime digest.
@@ -67,14 +143,4 @@ type Digest struct {
 // Push new digest item.
 func (d *Digest) Push(item DigestItem) {
 	d.Logs = append(d.Logs, item)
-}
-
-// Pop a digest item.
-func (d *Digest) Pop() DigestItem {
-	if len(d.Logs) == 0 {
-		return nil
-	}
-	item := d.Logs[len(d.Logs)-1]
-	d.Logs = d.Logs[:len(d.Logs)-1]
-	return item
 }

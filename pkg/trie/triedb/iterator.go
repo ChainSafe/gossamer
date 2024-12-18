@@ -411,7 +411,7 @@ func (ri *rawIterator[H, Hasher]) nextRawItem(fwd bool) (*rawItem[H], error) {
 			child := children[i]
 			if child != nil {
 				ri.keyNibbles.Pop()
-				ri.keyNibbles.Push(uint8(i)) //nolint:gosec
+				ri.keyNibbles.Push(uint8(i))
 
 				node, nodeHash, err := ri.db.getNodeOrLookup(children[i], ri.keyNibbles.Prefix(), true)
 				if err != nil {

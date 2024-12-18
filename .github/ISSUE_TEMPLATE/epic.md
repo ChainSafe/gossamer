@@ -1,6 +1,6 @@
 ---
 name: Epic
-about: 
+about: Template for Epic type of issue
 title: 'collection of business/tech scope'
 labels: 'Epic'
 assignees: ''

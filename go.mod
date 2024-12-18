@@ -10,7 +10,7 @@ require (
 	github.com/cockroachdb/pebble v1.1.2
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/dgraph-io/badger/v4 v4.5.0
-	github.com/dgraph-io/ristretto/v2 v2.0.0
+	github.com/dgraph-io/ristretto/v2 v2.0.1
 	github.com/disiqueira/gotree v1.0.0
 	github.com/ethereum/go-ethereum v1.14.12
 	github.com/fatih/color v1.18.0
@@ -42,7 +42,7 @@ require (
 	github.com/tidwall/btree v1.7.0
 	github.com/tyler-smith/go-bip39 v1.1.0
 	go.uber.org/mock v0.5.0
-	golang.org/x/crypto v0.30.0
+	golang.org/x/crypto v0.31.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	golang.org/x/term v0.27.0
 	google.golang.org/protobuf v1.35.2

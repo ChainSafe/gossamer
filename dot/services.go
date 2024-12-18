@@ -180,16 +180,16 @@ func createRuntime(config *cfg.Config, ns runtime.NodeStorage, st *state.Service
 		return nil, err
 	}
 
-	wasmerLogLevel, err := log.ParseLevel(config.Log.Wasmer)
+	runtimeLogLvl, err := log.ParseLevel(config.Log.Runtime)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse wasmer log level: %w", err)
+		return nil, fmt.Errorf("failed to parse runtime log level: %w", err)
 	}
 	switch config.Core.WasmInterpreter {
 	case wazero_runtime.Name:
 		rtCfg := wazero_runtime.Config{
 			Storage:     ts,
 			Keystore:    ks,
-			LogLvl:      wasmerLogLevel,
+			LogLvl:      runtimeLogLvl,
 			NodeStorage: ns,
 			Network:     net,
 			Transaction: st.Transaction,
@@ -518,6 +518,11 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 		return nil, err
 	}
 
+	syncLogLevel, err := log.ParseLevel(config.Log.Sync)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse sync log level: %w", err)
+	}
+
 	requestMaker := net.GetRequestResponseProtocol(network.SyncID,
 		blockRequestTimeout, network.MaxBlockResponseSize)
 
@@ -535,6 +540,7 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 	fullSync := sync.NewFullSyncStrategy(syncCfg)
 
 	return sync.NewSyncService(
+		syncLogLevel,
 		sync.WithNetwork(net),
 		sync.WithBlockState(st.Block),
 		sync.WithSlotDuration(slotDuration),
@@ -543,8 +549,13 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 	), nil
 }
 
-func (nodeBuilder) createDigestHandler(st *state.Service) (*digest.Handler, error) {
-	return digest.NewHandler(st.Block, st.Epoch, st.Grandpa)
+func (nodeBuilder) createDigestHandler(config *cfg.Config, st *state.Service) (*digest.Handler, error) {
+	digestLogLevel, err := log.ParseLevel(config.Log.Digest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse digest log level: %w", err)
+	}
+
+	return digest.NewHandler(digestLogLevel, st.Block, st.Epoch, st.Grandpa)
 }
 
 func createPprofService(config cfg.PprofConfig) (service *pprof.Service) {
