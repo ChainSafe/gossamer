@@ -16,9 +16,6 @@ storage:
   # paras current code hash for paraID 1001
   - key: "0xcd710b30bd2eab0352ddcc26417aa194e2d1c22ba0a888147714a3487bd51c63adc7217647a32b0be9030000"
     value: "0x59558a80dfcf74536b9f6fcba7416490211b22f29cc750a8bcb4993ea53cf347"
-  # paras upgrade restriction signal for paraID 1001
-  - key: "0xcd710b30bd2eab0352ddcc26417aa194f27bbb460270642b5bcaf032ea04d56aadc7217647a32b0be9030000"
-    value: "0x00"
   # dmp contents for paraID 1001
   - key: "0x63f78c98723ddc9073523ef3beefda0ca95dac46c07a40d91506e7637ec4ba57adc7217647a32b0be9030000"
     value: "0x00"
