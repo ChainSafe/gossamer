@@ -1731,10 +1731,10 @@ func TestInstance_ParachainHostParaBackingState(t *testing.T) {
 			MinRelayParentNumber:   23920837,
 			MaxPoVSize:             5242880,
 			MaxCodeSize:            3145728,
-			UmpRemaining:           1398101,
-			UmpRemainingBytes:      8388608,
-			MaxUmpNumPerCandidate:  512,
-			MaxHrmpNumPerCandidate: 10,
+			UMPRemaining:           1398101,
+			UMPRemainingBytes:      8388608,
+			MaxNumUMPPerCandidate:  512,
+			MaxNumHRMPPerCandidate: 10,
 			RequiredParent: parachaintypes.HeadData{
 				Data: common.MustHexToBytes("0x1b5270c5d767d30a43a1d3f66e4c8414bd9b9bd502d3620601a00b" +
 					"2d3484bf042a84aa0138b82ea524764ca4b2e88c7069dc898d23d1997e212b490a2349853161a7de" +

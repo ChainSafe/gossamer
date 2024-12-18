@@ -20,7 +20,7 @@ type AsyncBackingParams struct {
 
 // InboundHRMPLimitations constraints on inbound HRMP channels.
 type InboundHRMPLimitations struct {
-	// An exhaustive set of all valid watermarks, sorted ascending.
+	// An exhaustive set of all valid watermarks, sorted in ascending order.
 	//
 	// It's only expected to contain block numbers at which messages were
 	// previously sent to a para, excluding most recent head.
@@ -46,19 +46,19 @@ type Constraints struct {
 	// The maximum new validation code size allowed, in bytes.
 	MaxCodeSize uint32
 	// The amount of UMP messages remaining.
-	UmpRemaining uint32
+	UMPRemaining uint32
 	// The amount of UMP bytes remaining.
-	UmpRemainingBytes uint32
+	UMPRemainingBytes uint32
 	// The maximum number of UMP messages allowed per candidate.
-	MaxUmpNumPerCandidate uint32
+	MaxNumUMPPerCandidate uint32
 	// Remaining DMP queue. Only includes sent-at block numbers.
-	DmpRemainingMessages []uint32
+	DMPRemainingMessages []uint32
 	// The limitations of all registered inbound HRMP channels.
-	HrmpInbound InboundHRMPLimitations
+	HRMPInbound InboundHRMPLimitations
 	// The limitations of all registered outbound HRMP channels.
-	HrmpChannelsOut map[ParaID]OutboundHRMPChannelLimitations
+	HRMPChannelsOut map[ParaID]OutboundHRMPChannelLimitations
 	// The maximum number of HRMP messages allowed per candidate.
-	MaxHrmpNumPerCandidate uint32
+	MaxNumHRMPPerCandidate uint32
 	// The required parent head-data of the parachain.
 	RequiredParent HeadData
 	// The expected validation-code-hash of this parachain.
@@ -76,6 +76,7 @@ type FutureValidationCode struct {
 	ValidationCodeHash ValidationCodeHash
 }
 
+// CandidatePendingAvailability represents informations about one candidate pending availability
 type CandidatePendingAvailability struct {
 	CandidateHash     CandidateHash
 	Descriptor        CandidateDescriptorV2
