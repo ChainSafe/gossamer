@@ -18,7 +18,6 @@ type StateStorage interface {
 	StoreTrie(ts *storage.TrieState, header *types.Header) error
 }
 
-// TODO: re use or create a similar struct than StateRequestProvider in retrieve_state.go
 type StateSyncStrategy struct {
 	// Strategy dependencies and config
 	peers                *peerViewSet
