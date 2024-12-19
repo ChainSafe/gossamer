@@ -180,7 +180,7 @@ func (s *StateSyncStrategy) NextActions() ([]*SyncTask, error) {
 
 	task := &SyncTask{
 		request:      s.stateRequestProvider.BuildRequest(),
-		response:     &messages.WarpSyncProof{},
+		response:     &messages.StateResponse{},
 		requestMaker: s.reqMaker,
 	}
 
