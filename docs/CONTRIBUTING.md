@@ -2,7 +2,7 @@
 
 Thank you for your interest in our implementation of the Polkadot Runtime Environment Implementation! We're excited to get to know you and work with you on gossamer. We've put together these guidelines to help you figure out how you can help us.
 
-At any point in this process feel free to reach out on [Discord](https://discord.gg/Xdc5xjE) with any questions or to say Hello :)
+At any point in this process feel free to reach out on [Discord](https://discord.gg/M5XgXGRv) with any questions or to say Hello :)
 
 ## Getting Started
 
@@ -12,87 +12,45 @@ The Web3 Foundation has a [Polkadot Wiki](https://wiki.polkadot.network/docs/get
 
 The [Polkadot Runtime Specification](https://research.web3.foundation/en/latest/_static/pdfview/viewer.html?file=../pdf/polkadot_re_spec.pdf) serves as our primary specification, however it is currently in its draft status so things may be subject to change.
 
-One important distinction is that we are building the Polkadot Runtime Environment, not Polkadot itself. Given that, although a deep understanding of Polkadot is helpful, it's not critical to contribute to gossamer. To help understand how the Runtime Environment relates to Polkadot, check out this [talk that one of our team members gave at DotCon](https://www.youtube.com/watch?v=nYkbYhM5Yfk).
+To understand more about Parachain Protocol please refer to [The Polkadot Parachain Host Implementers Guide](https://paritytech.github.io/polkadot-sdk/book/index.html).
+Additionally information about design that is done by our team for some modules refer to our [design docs](https://github.com/ChainSafe/gossamer/tree/development/docs/docs/design)
+or [Gossamer blogposts](https://blog.chainsafe.io/gossamer/).
+
+And there are many more articles and videos that we are willing to share if you are interested. So please come by to our [Discord](https://discord.gg/M5XgXGRv) channel to ask for help or simply say hi.
 
 For coding style, you may refer to the [code style](CODE_STYLE.md) document which we keep up to date with coding style conventions we have for this repository.
 
 ## Contribution Steps
-
-1. **Fork the gossamer repo.**
-2. **Create a local clone of gossamer.**
-
-    ```sh
-    go get -u github.com/ChainSafe/gossamer
-    cd $GOPATH/src/github.com/ChainSafe/gossamer
-    git init
-    ```
-
-    You may encounter a `package github.com/ChainSafe/gossamer: no Go files in ...` message when doing `go get`. This is not an error, since there are no go files in the project root.
-
-3. **Link your local clone to the fork on your Github repo.**
-
-    ```sh
-    git remote add your-gossamer-repo https://github.com/<your_github_user_name>/gossamer.git
-    ```
-
-4. **Link your local clone to the ChainSafe Systems repo so that you can easily fetch future changes to the ChainSafe Systems repo.**
-
-    ```sh
-    git remote add gossamer https://github.com/ChainSafe/gossamer.git
-    git remote -v (you should see myrepo and gossamer in the list of remotes)
-    ```
-
-5. You can optionally setup Git hooks defined in this repository with `make githooks`.
-6. **Find something to work on.**
-
-    To start, check out our open issues. We recommend starting with an [issue labeled `Good First Issue`](https://github.com/ChainSafe/gossamer/issues?q=is%3Aopen+is%3Aissue+label%3A%22Good+First+Issue%22). Leave a comment to let us know that you would like to work on it.
-
-    Another option is to improve gossamer where you see fit based on your evaluation of our code. In order to best facilitate collaboration, please create an issue before you start working on it.
-
-7. **Make improvements to the code.**
-
-    Each time you work on the code be sure that you are working on the branch that you have created as opposed to your local copy of the gossamer repo. Keeping your changes segregated in this branch will make it easier to merge your changes into the repo later.
-
-    ```sh
-    git checkout -b feature-in-progress-branch
-    ```
-
-8. **Test your changes.**
-
-    Changes that only affect a single file can be tested with
+1. Make sure you're familiar with our contribution guidelines (this document)!
+2. Find an issue you want to work on. We have a ["good first issue" label on github](https://github.com/ChainSafe/gossamer/issues?q=is%3Aissue%20state%3Aopen%20label%3A"good%20first%20issue). To avoid duplicate efforts or working on outdated tasks, please clarify your intentions in the issue comments before starting. This step ensures there are no parallel executions of the same issue and confirms its validity for implementation.
+3. Create your own fork of this repository.
+4. Make your changes in your local fork.
+5. If you've made a code change, make sure to lint and test your changes.
+   Changes that only affect a single file can be tested with
 
     ```sh
     go test <file_you_are_working_on>
     ```
 
-    Sometimes you may need to create mocks for interfaces, in that case, add a go generate comment. For example, for interface `Client` in the `dot/telemetry` package, the comment would be:
+   Sometimes you may need to create mocks for interfaces, in that case, add a go generate comment. For example, for interface `Client` in the `dot/telemetry` package, the comment would be:
 
     ```go
     //go:generate mockgen -destination=mock_myinterface_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/telemetry Client
     ```
 
-    This will generate a Go file `mock_myinterface_test.go` with the `Client` mock. Note this is only accessible
-    in your current package since it's written to a `_test.go` file. We prefer to generate mocks locally where they are needed instead of sharing them to reduce package dependency and the Go API 'noise'.
+   This will generate a Go file `mock_myinterface_test.go` with the `Client` mock. Note this is only accessible
+   in your current package since it's written to a `_test.go` file. We prefer to generate mocks locally where they are needed instead of sharing them to reduce package dependency and the Go API 'noise'.
 
-    Generate the mock code with `go generate -run "mockgen" ./...` from your working directory. This will also update existing mocks. You can update all mocks by running `go generate -run "mockgen" ./...` from the repository root. Note this does not log anything out.
-
-    > To execute `//go:generate` commands that are placed at files with `//go:build integration` remember to add `-tags integration` in the `go generate` command eg. `go generate -tags integration ...`
-
-9. **Lint your changes.**
-
-    Before opening a pull request be sure to run the linter
+   Before opening a pull request be sure to run the linter
 
     ```sh
     make lint
     ```
-
-10. **Add licenses to new Go and Proto files**
-
+6. **Add licenses to new Go and Proto files**
     If you added any new file, run `make license` to setup all licenses on relevant files.
     If you do not have `make` available, you can copy paste the command from the Makefile's `license:` block and run that instead.
-11. **Create a pull request.**
-
-    Navigate your browser to [https://github.com/ChainSafe/gossamer](https://github.com/ChainSafe/gossamer) and click on the new pull request button. In the “base” box on the left, change the branch to “**base development**”, the branch that you want your changes to be applied to. In the “compare” box on the right, select feature-in-progress-branch, the branch containing the changes you want to apply. You will then be asked to answer a few questions about your pull request. After you complete the questionnaire, the pull request will appear in the list of pull requests at [https://github.com/ChainSafe/gossamer/pulls](https://github.com/ChainSafe/gossamer/pulls).
+7. Make an open pull request when you're ready for it to be reviewed. We review PRs on a regular basis. See Pull request etiquette for more information.
+8. You may be asked to sign a Contributor License Agreement (CLA). We make it relatively painless with CLA-bot.
 
 ## Note on memory intensive tests
 
@@ -175,7 +133,7 @@ If a change does not alter any logic (e.g. comments, dependencies, docs), then i
 ###  Labels
 
 The set of labels and their description can be found [labels.yml](/.github/labels.yml).
-To change update this file and CI will automatically add/remove changed labels. 
+To change update this file and CI will automatically add/remove changed labels.
 
 ### Process
 
@@ -204,21 +162,14 @@ Anyone can become a part-time contributor and help out on gossamer. Contribution
 - Engaging in Discord conversations, asking questions on how to contribute to the project
 - Opening up Github issues to contribute ideas on how the code can be improved
 - Opening up PRs referencing any open issue in the repo. PRs should include:
-  - Detailed context of what would be required for merge
-  - Tests that are consistent with how other tests are written in our implementation
+    - Detailed context of what would be required for merge
+    - Tests that are consistent with how other tests are written in our implementation
 - Proper labels, milestones, and projects (see other closed PRs for reference)
 - Follow up on open PRs
-  - Have an estimated timeframe to completion and let the core contributors know if a PR will take longer than expected
-
-We do not expect all part-time contributors to be experts on all the latest Polkadot documentation, but all contributors should at least be familiarized with the fundamentals of the [Polkadot Runtime Specification](https://research.web3.foundation/en/latest/polkadot/specifications/runtime.html).
+    - Have an estimated timeframe to completion and let the core contributors know if a PR will take longer than expected
 
 ### Core Contributors
+Core contributors are currently comprised of members of the ChainSafe Systems team.
 
-Core contributors are currently comprised of members of the ChainSafe Systems team. Core devs have all of the responsibilities of part-time contributors plus the majority of the following:
-
-- Participate in our software development process (standups, sprint planning, retrospectives, etc)
-- Stay up to date on the latest Polkadot research and updates
-- Commit high quality code on core functionality
-- Monitor github issues and PR’s to make sure owner, labels, descriptions are correct
-- Formulate independent ideas, suggest new work to do, point out improvements to existing approaches
-- Participate in code review, ensure code quality is excellent and test coverage is high
+### Join Core team
+If you have an intention of joining the core team, please 
