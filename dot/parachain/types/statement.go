@@ -177,3 +177,67 @@ type SignedFullStatementWithPVD struct {
 	// otherwise, it should be nil.
 	PersistedValidationData *PersistedValidationData
 }
+
+type SecondedCandidateHash CandidateHash
+
+type CompactStatementValues interface {
+	Valid | SecondedCandidateHash
+}
+
+// Statements that can be made about parachain candidates.
+// These are the actual values that are signed.
+type CompactStatement struct {
+	inner any
+}
+
+func setCompactStatement[Value CompactStatementValues](mvdt *CompactStatement, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *CompactStatement) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case Valid:
+		setCompactStatement(mvdt, value)
+		return
+	case SecondedCandidateHash:
+		setCompactStatement(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt CompactStatement) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case Valid:
+		return 2, mvdt.inner, nil
+	case SecondedCandidateHash:
+		return 1, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt CompactStatement) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt CompactStatement) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 2:
+		return Valid{}, nil
+	case 1:
+		return SecondedCandidateHash{}, nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
+}
+
+func (c *CompactStatement) Encode() ([]byte, error) {
+	// TODO: implement this
+	return nil, nil
+}
+
+func (c *CompactStatement) Decode(in []byte) error {
+	// TODO: implement this
+	return nil
+}
