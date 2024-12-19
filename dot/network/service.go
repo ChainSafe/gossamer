@@ -34,6 +34,7 @@ const (
 	// the following are sub-protocols used by the node
 	SyncID          = "/sync/2"
 	WarpSyncID      = "/sync/warp"
+	StateSyncID     = "/state/2"
 	lightID         = "/light/2"
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"

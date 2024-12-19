@@ -90,7 +90,7 @@ func (s *StateSyncStrategy) OnBlockAnnounce(from peer.ID, msg *network.BlockAnno
 	}
 
 	if msg.BestBlock {
-		s.peers.update(from, blockAnnounceHeaderHash, uint32(msg.Number)) //nolint:gosec
+		s.peers.update(from, blockAnnounceHeaderHash, uint32(msg.Number))
 	}
 
 	return &Change{

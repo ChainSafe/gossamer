@@ -528,6 +528,7 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 	peersView := sync.NewPeerViewSet()
 
 	var warpSyncStrategy sync.Strategy
+	var stateSyncStrategy sync.Strategy
 
 	if config.Core.Sync == "warp" {
 		warpSyncProvider := warpsync.NewWarpSyncProofProvider(st.Block, st.Grandpa)
@@ -545,6 +546,18 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 		}
 
 		warpSyncStrategy = sync.NewWarpSyncStrategy(warpSyncCfg)
+
+		stateSyncCfg := &sync.StateSyncStrategyConfig{
+			Telemetry:  telemetryMailer,
+			BadBlocks:  genesisData.BadBlocks,
+			BlockState: st.Block,
+			Peers:      peersView,
+			ReqMaker: net.GetRequestResponseProtocol(network.StateSyncID,
+				blockRequestTimeout, network.MaxBlockResponseSize),
+			StateStorage: st.Storage,
+		}
+
+		stateSyncStrategy = sync.NewStateSyncStrategy(stateSyncCfg)
 	}
 
 	syncCfg := &sync.FullSyncConfig{
@@ -569,6 +582,7 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 		sync.WithSlotDuration(slotDuration),
 		sync.WithWarpSyncStrategy(warpSyncStrategy),
 		sync.WithFullSyncStrategy(fullSync),
+		sync.WithStateSyncStrategy(stateSyncStrategy),
 		sync.WithMinPeers(config.Network.MinPeers),
 	), nil
 }

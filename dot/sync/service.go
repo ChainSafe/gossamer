@@ -101,9 +101,10 @@ type SyncService struct {
 	network    Network
 	blockState BlockState
 
-	currentStrategy  Strategy
-	fullSyncStrategy Strategy
-	warpSyncStrategy Strategy
+	currentStrategy   Strategy
+	fullSyncStrategy  Strategy
+	warpSyncStrategy  Strategy
+	stateSyncStrategy Strategy
 
 	workerPool        *syncWorkerPool
 	waitPeersDuration time.Duration
@@ -310,9 +311,15 @@ func (s *SyncService) runStrategy() {
 
 	// TODO: why not use s.currentStrategy.IsSynced()?
 	if done {
-		// Switch to full sync when warp sync finishes
+		// Switch to state sync when warp sync finishes
 		if s.warpSyncStrategy != nil {
+			s.currentStrategy = s.stateSyncStrategy
+			return
+		}
+		// Switch to full sync when state sync finishes
+		if s.stateSyncStrategy != nil {
 			s.currentStrategy = s.fullSyncStrategy
+			return
 		}
 	}
 }
