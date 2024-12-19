@@ -52,8 +52,6 @@ For coding style, you may refer to the [code style](CODE_STYLE.md) document whic
 7. Make an open pull request when you're ready for it to be reviewed. We review PRs on a regular basis. See Pull request etiquette for more information.
 8. You may be asked to sign a Contributor License Agreement (CLA). We make it relatively painless with CLA-bot.
 
-    Navigate your browser to [https://github.com/ChainSafe/gossamer](https://github.com/ChainSafe/gossamer) and click on the new pull request button. In the “base” box on the left, change the branch to “**base development**”, the branch that you want your changes to be applied to. In the “compare” box on the right, select feature-in-progress-branch, the branch containing the changes you want to apply. You will then be asked to answer a few questions about your pull request. After you complete the questionnaire, the pull request will appear in the list of pull requests at [https://github.com/ChainSafe/gossamer/pulls](https://github.com/ChainSafe/gossamer/pulls).
-
 ## Note on memory intensive tests
 
 Unfortunately, the free tier for CI's have a memory cap and some tests will cause the CI to experience an out of memory error.
