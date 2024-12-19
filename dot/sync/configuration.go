@@ -3,25 +3,71 @@
 
 package sync
 
-import "time"
+import (
+	"time"
+
+	"github.com/ChainSafe/gossamer/config"
+)
 
 type ServiceConfig func(svc *SyncService)
 
-func WithWarpSyncStrategy(warpSyncStrategy Strategy) ServiceConfig {
+func WithBlockState(bs BlockState) ServiceConfig {
 	return func(svc *SyncService) {
-		svc.warpSyncStrategy = warpSyncStrategy
+		svc.blockState = bs
 	}
 }
 
-func WithFullSyncStrategy(fullSyncStrategy Strategy) ServiceConfig {
+func WithGrandpaState(gs GrandpaState) ServiceConfig {
 	return func(svc *SyncService) {
-		svc.fullSyncStrategy = fullSyncStrategy
+		svc.grandpaState = gs
 	}
 }
 
-func WithStateSyncStrategy(stateSyncStrategy Strategy) ServiceConfig {
+func WithStorageState(ss StorageState) ServiceConfig {
 	return func(svc *SyncService) {
-		svc.stateSyncStrategy = stateSyncStrategy
+		svc.storageState = ss
+	}
+}
+
+func WithFinalityGadget(fg FinalityGadget) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.finalityGadget = fg
+	}
+}
+
+func WithBabeVerifier(bv BabeVerifier) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.babeVerifier = bv
+	}
+}
+
+func WithBlockImportHandler(bih BlockImportHandler) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.blockImportHandler = bih
+	}
+}
+
+func WithTelemetry(t Telemetry) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.telemetry = t
+	}
+}
+
+func WithBadBlocks(badBlocks []string) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.badBlocks = badBlocks
+	}
+}
+
+func WithSyncMethod(method config.SyncMode) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.syncStrategy = method
+	}
+}
+
+func WithTransactionState(ts TransactionState) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.transactionState = ts
 	}
 }
 
@@ -29,12 +75,6 @@ func WithNetwork(net Network) ServiceConfig {
 	return func(svc *SyncService) {
 		svc.network = net
 		svc.workerPool = newSyncWorkerPool(net)
-	}
-}
-
-func WithBlockState(bs BlockState) ServiceConfig {
-	return func(svc *SyncService) {
-		svc.blockState = bs
 	}
 }
 

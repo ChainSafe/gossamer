@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	cfg "github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -136,24 +137,11 @@ func newFullSyncService(t *testing.T) *SyncService {
 
 	mockNetwork := NewMockNetwork(ctrl)
 
-	fullSyncCfg := &FullSyncConfig{
-		BlockState:         stateSrvc.Block,
-		StorageState:       stateSrvc.Storage,
-		BlockImportHandler: blockImportHandler,
-		TransactionState:   stateSrvc.Transaction,
-		BabeVerifier:       mockBabeVerifier,
-		FinalityGadget:     mockFinalityGadget,
-		Telemetry:          mockTelemetryClient,
-		RequestMaker:       NewMockRequestMaker(ctrl),
-	}
-
-	fullSync := NewFullSyncStrategy(fullSyncCfg)
-
 	serviceCfg := []ServiceConfig{
 		WithBlockState(stateSrvc.Block),
 		WithNetwork(mockNetwork),
 		WithSlotDuration(6 * time.Second),
-		WithFullSyncStrategy(fullSync),
+		WithSyncMethod(cfg.FullSync),
 	}
 
 	syncLogLvl := log.Info
