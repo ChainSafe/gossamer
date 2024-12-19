@@ -47,7 +47,7 @@ type WarpSyncStrategy struct {
 	setId           primitives.SetID
 	authorities     primitives.AuthorityList
 	lastBlock       *types.Header
-	result          types.BlockData
+	result          types.Header
 }
 
 type WarpSyncConfig struct {
@@ -201,7 +201,7 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 		repChanges, bans, validRes = validateResults(results, w.badBlocks)
 
 		if len(validRes) > 0 && validRes[0].responseData != nil && len(validRes[0].responseData) > 0 {
-			w.result = *validRes[0].responseData[0]
+			w.result = *validRes[0].responseData[0].Header
 			w.phase = Completed
 		}
 	}

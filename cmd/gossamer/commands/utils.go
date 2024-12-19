@@ -407,6 +407,23 @@ func parseRole() error {
 	return nil
 }
 
+// parseSyncMode parses the sync mode from the command line flags
+func parseSyncMode() error {
+	var selectedSyncMode cfg.SyncMode
+	switch syncMode {
+	case cfg.FullSync.String():
+		selectedSyncMode = cfg.FullSync
+	case cfg.WarpSync.String():
+		selectedSyncMode = cfg.WarpSync
+	default:
+		return fmt.Errorf("invalid sync mode: %s", role)
+	}
+
+	config.Core.SyncMode = selectedSyncMode
+	viper.Set("core.syncMode", config.Core.SyncMode)
+	return nil
+}
+
 // parseTelemetryURL parses the telemetry-url from the command line flag
 func parseTelemetryURL() error {
 	if telemetryURLs == "" {
