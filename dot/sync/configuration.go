@@ -19,6 +19,12 @@ func WithFullSyncStrategy(fullSyncStrategy Strategy) ServiceConfig {
 	}
 }
 
+func WithStateSyncStrategy(stateSyncStrategy Strategy) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.stateSyncStrategy = stateSyncStrategy
+	}
+}
+
 func WithNetwork(net Network) ServiceConfig {
 	return func(svc *SyncService) {
 		svc.network = net
