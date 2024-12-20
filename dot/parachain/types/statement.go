@@ -4,13 +4,17 @@
 package parachaintypes
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
+
+var BACKING_STATEMENT_MAGIC = [4]byte{'B', 'K', 'N', 'G'}
 
 // Statement is a result of candidate validation. It could be either `Valid` or `Seconded`.
 type StatementVDTValues interface {
@@ -184,17 +188,16 @@ type CompactStatementValues interface {
 	Valid | SecondedCandidateHash
 }
 
-// Statements that can be made about parachain candidates.
-// These are the actual values that are signed.
-type CompactStatement struct {
+// compactStatementInner is a helper struct that is used to encode/decode CompactStatement.
+type compactStatementInner struct {
 	inner any
 }
 
-func setCompactStatement[Value CompactStatementValues](mvdt *CompactStatement, value Value) {
+func setCompactStatement[Value CompactStatementValues](mvdt *compactStatementInner, value Value) {
 	mvdt.inner = value
 }
 
-func (mvdt *CompactStatement) SetValue(value any) (err error) {
+func (mvdt *compactStatementInner) SetValue(value any) (err error) {
 	switch value := value.(type) {
 	case Valid:
 		setCompactStatement(mvdt, value)
@@ -207,7 +210,7 @@ func (mvdt *CompactStatement) SetValue(value any) (err error) {
 	}
 }
 
-func (mvdt CompactStatement) IndexValue() (index uint, value any, err error) {
+func (mvdt compactStatementInner) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
 	case Valid:
 		return 2, mvdt.inner, nil
@@ -217,12 +220,12 @@ func (mvdt CompactStatement) IndexValue() (index uint, value any, err error) {
 	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
 }
 
-func (mvdt CompactStatement) Value() (value any, err error) {
+func (mvdt compactStatementInner) Value() (value any, err error) {
 	_, value, err = mvdt.IndexValue()
 	return
 }
 
-func (mvdt CompactStatement) ValueAt(index uint) (value any, err error) {
+func (mvdt compactStatementInner) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 2:
 		return Valid{}, nil
@@ -232,12 +235,54 @@ func (mvdt CompactStatement) ValueAt(index uint) (value any, err error) {
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
-func (c *CompactStatement) Encode() ([]byte, error) {
-	// TODO: implement this
-	return nil, nil
+// Statements that can be made about parachain candidates.
+// These are the actual values that are signed.
+type CompactStatement[T CompactStatementValues] struct {
+	Value T
 }
 
-func (c *CompactStatement) Decode(in []byte) error {
-	// TODO: implement this
+func (c CompactStatement[CompactStatementValues]) MarshalSCALE() ([]byte, error) {
+	inner := compactStatementInner{}
+	err := inner.SetValue(c.Value)
+	if err != nil {
+		return nil, fmt.Errorf("setting value: %w", err)
+	}
+
+	buffer := bytes.NewBuffer(BACKING_STATEMENT_MAGIC[:])
+	encoder := scale.NewEncoder(buffer)
+
+	err = encoder.Encode(inner)
+	if err != nil {
+		return nil, err
+	}
+
+	return buffer.Bytes(), nil
+}
+
+func (c *CompactStatement[CompactStatementValues]) UnmarshalSCALE(reader io.Reader) error {
+	decoder := scale.NewDecoder(reader)
+
+	var magicBytes [4]byte
+	err := decoder.Decode(&magicBytes)
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(magicBytes[:], BACKING_STATEMENT_MAGIC[:]) {
+		return fmt.Errorf("invalid magic bytes")
+	}
+
+	var inner compactStatementInner
+	err = decoder.Decode(&inner)
+	if err != nil {
+		return fmt.Errorf("decoding compactStatementInner: %w", err)
+	}
+
+	value, err := inner.Value()
+	if err != nil {
+		return fmt.Errorf("getting value: %w", err)
+	}
+
+	c.Value = value.(CompactStatementValues)
 	return nil
 }
