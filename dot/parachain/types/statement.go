@@ -84,10 +84,42 @@ type Seconded CommittedCandidateReceipt
 // Valid represents a statement that a validator has deemed a candidate valid.
 type Valid CandidateHash
 
-// statementVDTAndSigningContext is just a wrapper struct to hold both the statement and the signing context.
-type statementVDTAndSigningContext struct {
-	Statement StatementVDT
-	Context   SigningContext
+// encodeSignData encodes the statement and signing context into a byte slice.
+func encodeSignData(statement StatementVDT, signingContext SigningContext) ([]byte, error) {
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+
+	compact, err := statement.CompactStatement()
+	if err != nil {
+		return nil, fmt.Errorf("getting compact statement: %w", err)
+	}
+
+	err = encoder.Encode(compact)
+	if err != nil {
+		return nil, fmt.Errorf("encoding compact statement: %w", err)
+	}
+
+	err = encoder.Encode(signingContext)
+	if err != nil {
+		return nil, fmt.Errorf("encoding signing context: %w", err)
+	}
+
+	return buffer.Bytes(), nil
+}
+
+// CompactStatement returns a compact representation of the statement.
+func (s StatementVDT) CompactStatement() (any, error) {
+	switch s := s.inner.(type) {
+	case Valid:
+		return CompactStatement[Valid]{Value: s}, nil
+	case Seconded:
+		hash, err := GetCandidateHash(CommittedCandidateReceipt(s))
+		if err != nil {
+			return nil, fmt.Errorf("getting candidate hash: %w", err)
+		}
+		return CompactStatement[SecondedCandidateHash]{Value: SecondedCandidateHash(hash)}, nil
+	}
+	return nil, fmt.Errorf("unsupported type")
 }
 
 func (s *StatementVDT) Sign(
@@ -95,14 +127,9 @@ func (s *StatementVDT) Sign(
 	signingContext SigningContext,
 	key ValidatorID,
 ) (*ValidatorSignature, error) {
-	statementAndSigningCtx := statementVDTAndSigningContext{
-		Statement: *s,
-		Context:   signingContext,
-	}
-
-	encodedData, err := scale.Marshal(statementAndSigningCtx)
+	data, err := encodeSignData(*s, signingContext)
 	if err != nil {
-		return nil, fmt.Errorf("marshalling statement and signing-context: %w", err)
+		return nil, fmt.Errorf("encoding data to sign: %w", err)
 	}
 
 	validatorPublicKey, err := sr25519.NewPublicKey(key[:])
@@ -110,7 +137,7 @@ func (s *StatementVDT) Sign(
 		return nil, fmt.Errorf("getting public key: %w", err)
 	}
 
-	signatureBytes, err := keystore.GetKeypair(validatorPublicKey).Sign(encodedData)
+	signatureBytes, err := keystore.GetKeypair(validatorPublicKey).Sign(data)
 	if err != nil {
 		return nil, fmt.Errorf("signing data: %w", err)
 	}
@@ -127,14 +154,9 @@ func (s *StatementVDT) VerifySignature(
 	signingContext SigningContext,
 	validatorSignature ValidatorSignature,
 ) (bool, error) {
-	statementAndSigningCtx := statementVDTAndSigningContext{
-		Statement: *s,
-		Context:   signingContext,
-	}
-
-	encodedMsg, err := scale.Marshal(statementAndSigningCtx)
+	data, err := encodeSignData(*s, signingContext)
 	if err != nil {
-		return false, fmt.Errorf("marshalling statement and signing-context: %w", err)
+		return false, fmt.Errorf("encoding signed data: %w", err)
 	}
 
 	publicKey, err := sr25519.NewPublicKey(validator[:])
@@ -142,7 +164,7 @@ func (s *StatementVDT) VerifySignature(
 		return false, fmt.Errorf("getting public key: %w", err)
 	}
 
-	return publicKey.Verify(encodedMsg, validatorSignature[:])
+	return publicKey.Verify(data, validatorSignature[:])
 }
 
 // UncheckedSignedFullStatement is a Variant of `SignedFullStatement` where the signature has not yet been verified.
