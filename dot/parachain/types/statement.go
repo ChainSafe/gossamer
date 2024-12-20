@@ -235,8 +235,8 @@ func (mvdt compactStatementInner) ValueAt(index uint) (value any, err error) {
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
-// Statements that can be made about parachain candidates.
-// These are the actual values that are signed.
+// CompactStatement is a compact representation of a statement that can be made about parachain candidates.
+// this is the actual value that is signed.
 type CompactStatement[T CompactStatementValues] struct {
 	Value T
 }

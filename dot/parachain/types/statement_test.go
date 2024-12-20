@@ -206,25 +206,25 @@ func TestCompactStatement(t *testing.T) {
 			t.Run("marshal", func(t *testing.T) {
 				t.Parallel()
 
-				bytes, err := scale.Marshal(c.compactStatement)
+				compactStatementBytes, err := scale.Marshal(c.compactStatement)
 				require.NoError(t, err)
-				require.Equal(t, c.encodingValue, bytes)
+				require.Equal(t, c.encodingValue, compactStatementBytes)
 			})
 
 			t.Run("unmarshal", func(t *testing.T) {
 				t.Parallel()
 
-				switch value := c.compactStatement.(type) {
+				switch expectedSatetement := c.compactStatement.(type) {
 				case CompactStatement[Valid]:
-					var statement CompactStatement[Valid]
-					err := scale.Unmarshal(c.encodingValue, &statement)
+					var actualStatement CompactStatement[Valid]
+					err := scale.Unmarshal(c.encodingValue, &actualStatement)
 					require.NoError(t, err)
-					require.EqualValues(t, value, statement)
+					require.EqualValues(t, expectedSatetement, actualStatement)
 				case CompactStatement[SecondedCandidateHash]:
-					var statement CompactStatement[SecondedCandidateHash]
-					err := scale.Unmarshal(c.encodingValue, &statement)
+					var actualStatement CompactStatement[SecondedCandidateHash]
+					err := scale.Unmarshal(c.encodingValue, &actualStatement)
 					require.NoError(t, err)
-					require.EqualValues(t, value, statement)
+					require.EqualValues(t, expectedSatetement, actualStatement)
 				}
 			})
 
