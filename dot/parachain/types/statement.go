@@ -14,7 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-var BACKING_STATEMENT_MAGIC = [4]byte{'B', 'K', 'N', 'G'}
+var backingStatementMagic = [4]byte{'B', 'K', 'N', 'G'}
 
 // Statement is a result of candidate validation. It could be either `Valid` or `Seconded`.
 type StatementVDTValues interface {
@@ -270,7 +270,7 @@ func (c CompactStatement[CompactStatementValues]) MarshalSCALE() ([]byte, error)
 		return nil, fmt.Errorf("setting value: %w", err)
 	}
 
-	buffer := bytes.NewBuffer(BACKING_STATEMENT_MAGIC[:])
+	buffer := bytes.NewBuffer(backingStatementMagic[:])
 	encoder := scale.NewEncoder(buffer)
 
 	err = encoder.Encode(inner)
@@ -290,7 +290,7 @@ func (c *CompactStatement[CompactStatementValues]) UnmarshalSCALE(reader io.Read
 		return err
 	}
 
-	if !bytes.Equal(magicBytes[:], BACKING_STATEMENT_MAGIC[:]) {
+	if !bytes.Equal(magicBytes[:], backingStatementMagic[:]) {
 		return fmt.Errorf("invalid magic bytes")
 	}
 
