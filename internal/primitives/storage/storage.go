@@ -17,7 +17,10 @@ type StorageKey []byte
 // PrefixedStorageKey is a storage key of a child trie, it contains the prefix to the key.
 type PrefixedStorageKey []byte
 
-// StorageChild is child trie storage data.
+// / Storage data associated to a [`StorageKey`].
+type StorageData []byte
+
+// Child trie storage data.
 type StorageChild struct {
 	Data      btree.Map[string, []byte] // Child data for storage.
 	ChildInfo ChildInfo                 // Associated child info for a child trie.
