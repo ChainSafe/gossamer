@@ -1,14 +1,15 @@
 package client
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
-	"github.com/ChainSafe/gossamer/internal/client/db"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
+	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("client", ""))
@@ -44,7 +45,9 @@ type Client[
 	E runtime.Extrinsic,
 	Header runtime.Header[N, H],
 ] struct {
-	backend *db.Backend[H, Hasher, N, E, Header]
+	backend api.Backend[H, N, Hasher, Header, E]
+
+	storageNotifications api.StorageNotifications[H]
 
 	importNotificationChansMtx      sync.Mutex
 	importNotificationChans         map[chan<- api.BlockImportNotification[H, N, Header]]any
@@ -68,6 +71,50 @@ type Client[
 	// importing_block: RwLock<Option<Block::Hash>>,
 	importingBlockMtx sync.RWMutex
 	importingBlock    *H
+
+	unpinWorkerChan chan<- api.UnpinWorkerMessage[H]
+}
+
+func New[
+	H runtime.Hash,
+	Hasher runtime.Hasher[H],
+	N runtime.Number,
+	E runtime.Extrinsic,
+	Header runtime.Header[N, H],
+](
+	backend api.Backend[H, N, Hasher, Header, E],
+) *Client[H, Hasher, N, E, Header] {
+
+	unpinWorkerChan := make(chan api.UnpinWorkerMessage[H])
+	npw := newNotificationPinningWorker(unpinWorkerChan, backend)
+	go npw.run()
+
+	return &Client[H, Hasher, N, E, Header]{
+		backend:                      backend,
+		storageNotifications:         api.NewStorageNotifications[H](),
+		importNotificationChans:      make(map[chan<- api.BlockImportNotification[H, N, Header]]any),
+		everyImportNotificationChans: make(map[chan<- api.BlockImportNotification[H, N, Header]]any),
+		finalityNotificationChans:    make(map[chan<- api.FinalityNotification[H, N, Header]]any),
+		unpinWorkerChan:              unpinWorkerChan,
+	}
+}
+
+func (c *Client[H, Hasher, N, E, Header]) announcePin(message api.AnnouncePin[H]) error {
+	select {
+	case c.unpinWorkerChan <- message:
+		return nil
+	default:
+		return fmt.Errorf("unable to send AnnouncePin message to Client.unpinWorkerChan")
+	}
+}
+
+func (c *Client[H, Hasher, N, E, Header]) unpin(message api.Unpin[H]) error {
+	select {
+	case c.unpinWorkerChan <- message:
+		return nil
+	default:
+		return fmt.Errorf("unable to send message to Client.unpinWorkerChan")
+	}
 }
 
 func (c *Client[H, Hasher, N, E, Header]) LockImportRun(f func(*api.ClientImportOperation[H, Hasher, N, Header, E]) error) error {
@@ -91,7 +138,7 @@ func (c *Client[H, Hasher, N, E, Header]) LockImportRun(f func(*api.ClientImport
 
 		var finalityNotification *api.FinalityNotification[H, N, Header]
 		if clientImportOp.NotifyFinalized != nil {
-			finalityNotification = api.NewFinalityNotificationFromSummary(*clientImportOp.NotifyFinalized)
+			finalityNotification = api.NewFinalityNotificationFromSummary(*clientImportOp.NotifyFinalized, c.unpin)
 		}
 
 		var (
@@ -103,7 +150,7 @@ func (c *Client[H, Hasher, N, E, Header]) LockImportRun(f func(*api.ClientImport
 			importNotificationAction api.ImportNotificationAction
 		)
 		if clientImportOp.NotifyImported != nil {
-			importNotification = api.NewBlockImportNotificationFromSummary(*clientImportOp.NotifyImported)
+			importNotification = api.NewBlockImportNotificationFromSummary(*clientImportOp.NotifyImported, c.unpin)
 			storageChanges = clientImportOp.NotifyImported.StorageChanges
 			importNotificationAction = clientImportOp.NotifyImported.ImportNotificationAction
 		} else {
@@ -145,7 +192,10 @@ func (c *Client[H, Hasher, N, E, Header]) LockImportRun(f func(*api.ClientImport
 				logger.Debugf("Unable to pin block for finality notification. hash: %s, Error: %v",
 					finalityNotification.Hash, err)
 			} else {
-				// TODO: figure out the unpinning
+				err := c.announcePin(api.AnnouncePin[H]{Hash: finalityNotification.Hash})
+				if err != nil {
+					logger.Errorf("Unable to send AnnouncePin worker message for finality: %s", err)
+				}
 			}
 		}
 
@@ -155,7 +205,10 @@ func (c *Client[H, Hasher, N, E, Header]) LockImportRun(f func(*api.ClientImport
 				logger.Debugf("Unable to pin block for import notification. hash: %s, Error: %v",
 					finalityNotification.Hash, err)
 			} else {
-				// TODO: figure out the unpinning
+				err := c.announcePin(api.AnnouncePin[H]{Hash: finalityNotification.Hash})
+				if err != nil {
+					logger.Errorf("Unable to send AnnouncePin worker message for import: %s", err)
+				}
 			}
 		}
 
@@ -258,7 +311,33 @@ func (c *Client[H, Hasher, N, E, Header]) notifyImported(
 
 	var triggerStorageChangesNotification = func() {
 		if storageChanges != nil {
-			panic("TODO: impl storage notifications")
+			// TODO [ToDr] How to handle re-orgs? Should we re-emit all storage changes? (from substrate)
+			changeset := make([]api.Change, len(storageChanges.StorageCollection))
+			for i, kv := range storageChanges.StorageCollection {
+				changeset[i] = api.Change{
+					Key:   storage.StorageKey(kv.StorageKey),
+					Value: storage.StorageData(kv.StorageValue),
+				}
+			}
+			childChangeset := make([]api.ChildChange, len(storageChanges.ChildStorageCollection))
+			for i, kc := range storageChanges.ChildStorageCollection {
+				changeset := make([]api.Change, len(kc.StorageCollection))
+				for i, kv := range kc.StorageCollection {
+					changeset[i] = api.Change{
+						Key:   storage.StorageKey(kv.StorageKey),
+						Value: storage.StorageData(kv.StorageValue),
+					}
+				}
+				childChangeset[i] = api.ChildChange{
+					StorageKey: storage.StorageKey(kc.StorageKey),
+					ChangeSet:  changeset,
+				}
+			}
+			c.storageNotifications.Trigger(
+				notification.Hash,
+				changeset,
+				childChangeset,
+			)
 		}
 	}
 

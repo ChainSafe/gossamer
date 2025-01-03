@@ -19,6 +19,63 @@ type AuxDataOperation struct {
 }
 type AuxDataOperations []AuxDataOperation
 
+// / Sends a message to the pinning-worker once dropped to unpin a block in the backend.
+type unpinHandleInner[H runtime.Hash] struct {
+	/// Hash of the block pinned by this handle
+	// hash: Block::Hash,
+	hash H
+	// unpin_worker_sender: TracingUnboundedSender<UnpinWorkerMessage<Block>>,
+	// unpinChan chan<- UnpinWorkerMessage[H]
+	unpin func(message Unpin[H]) error
+}
+
+func (uhi unpinHandleInner[H]) Drop() {
+	err := uhi.unpin(Unpin[H]{uhi.hash})
+	if err != nil {
+		logger.Debugf("Unable to unpin block with hash: %s, error: %v", uhi.hash, err)
+	}
+}
+
+// / Message that signals notification-based pinning actions to the pinning-worker.
+// /
+// / When the notification is dropped, an `Unpin` message should be sent to the worker.
+type UnpinWorkerMessage[H runtime.Hash] interface {
+	isUnpinWorkerMessage()
+}
+
+// / Should be sent when a import or finality notification is created.
+type AnnouncePin[H runtime.Hash] struct {
+	Hash H
+}
+
+// / Should be sent when a import or finality notification is dropped.
+type Unpin[H runtime.Hash] struct {
+	Hash H
+}
+
+func (AnnouncePin[H]) isUnpinWorkerMessage() {}
+func (Unpin[H]) isUnpinWorkerMessage()       {}
+
+// / Keeps a specific block pinned while the handle is alive.
+// / Once the last handle instance for a given block is dropped, the
+// / block is unpinned in the [`Backend`](crate::backend::Backend::unpin_block).
+type UnpinHandle[H runtime.Hash] struct {
+	unpinHandleInner[H]
+}
+
+func NewUnpinHandle[H runtime.Hash](hash H, unpin func(message Unpin[H]) error) UnpinHandle[H] {
+	return UnpinHandle[H]{
+		unpinHandleInner[H]{
+			hash:  hash,
+			unpin: unpin,
+		},
+	}
+}
+
+func (up UnpinHandle[H]) Hash() H {
+	return up.hash
+}
+
 // / Summary of an imported block
 type BlockImportNotification[
 	H runtime.Hash,
@@ -43,20 +100,25 @@ type BlockImportNotification[
 	TreeRoute *blockchain.TreeRoute[H, N]
 	/// Handle to unpin the block this notification is for
 	// unpin_handle: UnpinHandle<Block>,
-	unpinHandle any
+	unpinHandle UnpinHandle[H]
+}
+
+func (bin BlockImportNotification[H, N, Header]) Drop() {
+	bin.unpinHandle.Drop()
 }
 
 func NewBlockImportNotificationFromSummary[
 	H runtime.Hash,
 	N runtime.Number,
 	Header runtime.Header[N, H],
-](summary ImportSummary[H, N, Header]) *BlockImportNotification[H, N, Header] {
+](summary ImportSummary[H, N, Header], unpin func(message Unpin[H]) error) *BlockImportNotification[H, N, Header] {
 	return &BlockImportNotification[H, N, Header]{
-		Hash:      summary.Hash,
-		Origin:    summary.Origin,
-		Header:    summary.Header,
-		IsNewBest: summary.IsNewBest,
-		TreeRoute: summary.TreeRoute,
+		Hash:        summary.Hash,
+		Origin:      summary.Origin,
+		Header:      summary.Header,
+		IsNewBest:   summary.IsNewBest,
+		TreeRoute:   summary.TreeRoute,
+		unpinHandle: NewUnpinHandle[H](summary.Hash, unpin),
 	}
 }
 
@@ -84,22 +146,27 @@ type FinalityNotification[
 	// /// Handle to unpin the block this notification is for
 	// unpin_handle: UnpinHandle<Block>,
 	// Note: maybe move the unpin logic to the client
-	unpinHandle any
+	unpinHandle UnpinHandle[H]
+}
+
+func (fn FinalityNotification[H, N, Header]) Drop() {
+	fn.unpinHandle.Drop()
 }
 
 func NewFinalityNotificationFromSummary[
 	H runtime.Hash,
 	N runtime.Number,
 	Header runtime.Header[N, H],
-](summary FinalizeSummary[H, N, Header]) *FinalityNotification[H, N, Header] {
+](summary FinalizeSummary[H, N, Header], unpin func(message Unpin[H]) error) *FinalityNotification[H, N, Header] {
 	var hash H
 	if len(summary.Finalized) > 0 {
 		hash = summary.Finalized[len(summary.Finalized)-1]
 	}
 	return &FinalityNotification[H, N, Header]{
-		Hash:       hash,
-		Header:     summary.Header,
-		TreeRoute:  summary.Finalized,
-		StaleHeads: summary.StateHeads,
+		Hash:        hash,
+		Header:      summary.Header,
+		TreeRoute:   summary.Finalized,
+		StaleHeads:  summary.StateHeads,
+		unpinHandle: NewUnpinHandle[H](hash, unpin),
 	}
 }
