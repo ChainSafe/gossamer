@@ -35,7 +35,7 @@ func (nbs NewBlockState) IsFinal() bool {
 
 // Block insertion operation.
 //
-// Keeps hold if the inserted block state and data.
+// Keeps hold of the inserted block state and data.
 type BlockImportOperation[
 	N runtime.Number,
 	H runtime.Hash,

@@ -81,7 +81,7 @@ func (dbt *DBTransaction) Put(col uint32, key, value []byte) {
 	})
 }
 
-// Insert a key-value pair in the transaction. Any existing value will be overwritten upon write.
+// Delete the value at the given key.
 func (dbt *DBTransaction) Delete(col uint32, key []byte) {
 	dbt.Ops = append(dbt.Ops, DeleteDBOp{
 		col: col,
@@ -101,7 +101,7 @@ func (dbt *DBTransaction) DeletePrefix(col uint32, prefix []byte) {
 
 // Generic key-value database.
 //
-// The KeyVablueDB deals with "column families", which can be thought of as distinct
+// The KeyValueDB deals with "column families", which can be thought of as distinct
 // stores within a database. Keys written in one column family will not be accessible from
 // any other. The number of column families must be specified at initialization, with a
 // differing interface for each database.

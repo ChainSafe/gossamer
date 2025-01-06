@@ -155,7 +155,7 @@ type deathRowQueue[BlockHash Hash, Key Hash] interface {
 type inMemDeathRowQueue[BlockHash Hash, Key Hash] struct {
 	// A queue of keys that should be deleted for each block in the pruning window.
 	deathRows deque.Deque[deathRow[BlockHash, Key]]
-	// An index that maps each key from death_rows to block number.
+	// An index that maps each key from deathRows to block number.
 	deathIndex map[Key]uint64
 }
 
