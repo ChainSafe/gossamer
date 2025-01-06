@@ -14,30 +14,6 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("client", ""))
 
-// / Callback invoked before committing the operations created during block import.
-// / This gives the opportunity to perform auxiliary pre-commit actions and optionally
-// / enqueue further storage write operations to be atomically performed on commit.
-// pub type OnImportAction<Block> =
-//
-//	Box<dyn (Fn(&BlockImportNotification<Block>) -> AuxDataOperations) + Send>;
-type OnImportAction[
-	H runtime.Hash,
-	N runtime.Number,
-	Header runtime.Header[N, H],
-] func(api.BlockImportNotification[H, N, Header]) api.AuxDataOperations
-
-// / Callback invoked before committing the operations created during block finalization.
-// / This gives the opportunity to perform auxiliary pre-commit actions and optionally
-// / enqueue further storage write operations to be atomically performed on commit.
-// pub type OnFinalityAction<Block> =
-//
-//	Box<dyn (Fn(&FinalityNotification<Block>) -> AuxDataOperations) + Send>;
-type OnFinalityAction[
-	H runtime.Hash,
-	N runtime.Number,
-	Header runtime.Header[N, H],
-] func(api.FinalityNotification[H, N, Header]) api.AuxDataOperations
-
 type Client[
 	H runtime.Hash,
 	Hasher runtime.Hasher[H],
@@ -53,20 +29,19 @@ type Client[
 	importNotificationChans         map[chan<- api.BlockImportNotification[H, N, Header]]any
 	everyImportNotificationChansMtx sync.Mutex
 	everyImportNotificationChans    map[chan<- api.BlockImportNotification[H, N, Header]]any
-
-	finalityNotificationChansMtx sync.Mutex
-	finalityNotificationChans    map[chan<- api.FinalityNotification[H, N, Header]]any
+	finalityNotificationChansMtx    sync.Mutex
+	finalityNotificationChans       map[chan<- api.FinalityNotification[H, N, Header]]any
 
 	// Collects auxiliary operations to be performed atomically together with
 	// block import operations.
 	// import_actions: Mutex<Vec<OnImportAction<Block>>>,
 	importActionsMtx sync.Mutex
-	importActions    []OnImportAction[H, N, Header]
+	importActions    []api.OnImportAction[H, N, Header]
 	// Collects auxiliary operations to be performed atomically together with
 	// block finalization operations.
 	// finality_actions: Mutex<Vec<OnFinalityAction<Block>>>,
 	finalityActionsMtx sync.Mutex
-	finalityActions    []OnFinalityAction[H, N, Header]
+	finalityActions    []api.OnFinalityAction[H, N, Header]
 	// Holds the block hash currently being imported. TODO: replace this with block queue.
 	// importing_block: RwLock<Option<Block::Hash>>,
 	importingBlockMtx sync.RWMutex
@@ -280,7 +255,13 @@ func notifyChans[M any](msg M, chans map[chan<- M]any, timeout time.Duration) {
 		wg.Add(1)
 		go func(ch chan<- M) {
 			defer wg.Done()
-			ch <- msg
+			select {
+			case ch <- msg:
+			default:
+				// cleanup chan if not able to send
+				close(ch)
+				delete(chans, ch)
+			}
 		}(ch)
 	}
 	done := make(chan any)
@@ -369,4 +350,74 @@ func (c *Client[H, Hasher, N, E, Header]) notifyImported(
 	}
 
 	return nil
+}
+
+func (c *Client[H, Hasher, N, E, Header]) RegisterImportAction(op api.OnImportAction[H, N, Header]) {
+	c.importActionsMtx.Lock()
+	defer c.importActionsMtx.Unlock()
+	c.importActions = append(c.importActions, op)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) RegisterFinalityAction(op api.OnFinalityAction[H, N, Header]) {
+	c.finalityActionsMtx.Lock()
+	defer c.finalityActionsMtx.Unlock()
+	c.finalityActions = append(c.finalityActions, op)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) RegisterImportNotificationStream() api.ImportNotifications[H, N, Header] {
+	ch := make(chan api.BlockImportNotification[H, N, Header])
+	c.importNotificationChansMtx.Lock()
+	defer c.importNotificationChansMtx.Unlock()
+	c.importNotificationChans[ch] = nil
+	return ch
+}
+
+func (c *Client[H, Hasher, N, E, Header]) UnregisterImportNotificationStream(ch api.ImportNotifications[H, N, Header]) {
+	c.importNotificationChansMtx.Lock()
+	defer c.importNotificationChansMtx.Unlock()
+	_, ok := c.importNotificationChans[ch]
+	if ok {
+		close(ch)
+	}
+	delete(c.importNotificationChans, ch)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) RegisterEveryImportNotificationStream() api.ImportNotifications[H, N, Header] {
+	ch := make(chan api.BlockImportNotification[H, N, Header])
+	c.everyImportNotificationChansMtx.Lock()
+	defer c.everyImportNotificationChansMtx.Unlock()
+	c.everyImportNotificationChans[ch] = nil
+	return ch
+}
+
+func (c *Client[H, Hasher, N, E, Header]) UnregisterEveryImportNotificationStream(ch api.ImportNotifications[H, N, Header]) {
+	c.everyImportNotificationChansMtx.Lock()
+	defer c.everyImportNotificationChansMtx.Unlock()
+	_, ok := c.everyImportNotificationChans[ch]
+	if ok {
+		close(ch)
+	}
+	delete(c.everyImportNotificationChans, ch)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) RegisterFinalityNotificationStream() api.FinalityNotifications[H, N, Header] {
+	ch := make(chan api.FinalityNotification[H, N, Header])
+	c.finalityNotificationChansMtx.Lock()
+	defer c.finalityNotificationChansMtx.Unlock()
+	c.finalityNotificationChans[ch] = nil
+	return ch
+}
+
+func (c *Client[H, Hasher, N, E, Header]) UnregisterFinalityNotificationStream(ch api.FinalityNotifications[H, N, Header]) {
+	c.finalityNotificationChansMtx.Lock()
+	defer c.finalityNotificationChansMtx.Unlock()
+	_, ok := c.finalityNotificationChans[ch]
+	if ok {
+		close(ch)
+	}
+	delete(c.finalityNotificationChans, ch)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) StorageChangesNotificationStream(filterKeys []storage.StorageKey, childFilterKeys []api.ChildFilterKeys) api.StorageEventStream[H] {
+	return c.storageNotifications.Listen(filterKeys, childFilterKeys)
 }
