@@ -66,7 +66,7 @@ func NewTestBackend(t *testing.T,
 		t.Fatalf("unreachable")
 	}
 	trieCacheMaxSize := uint(16 * 1024 * 1024)
-	dbSetting := DatabaseSettings{
+	dbSetting := DatabaseConfig{
 		TrieCacheMaximumSize: &trieCacheMaxSize,
 		StatePruning:         statePruning,
 		Source:               DatabaseSource{DB: database.NewDBAdapter[hash.H256](kvdb), RequireCreateFlag: true},
@@ -255,7 +255,7 @@ func TestBackend(t *testing.T) {
 			runtime.BlakeTwo256,
 			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
 		](
-			DatabaseSettings{
+			DatabaseConfig{
 				TrieCacheMaximumSize: &trieCacheMaxSize,
 				StatePruning:         statedb.NewPruningModeConstrained(1),
 				Source:               DatabaseSource{DB: backing, RequireCreateFlag: false},

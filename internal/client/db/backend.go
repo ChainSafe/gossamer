@@ -88,8 +88,8 @@ func (rts *refTrackingState[H, Hasher]) Drop() {
 	}
 }
 
-// Database settings.
-type DatabaseSettings struct {
+// Database configuration.
+type DatabaseConfig struct {
 	// The maximum trie cache size in bytes.
 	//
 	// If nil is given, the cache is disabled.
@@ -391,7 +391,8 @@ type Backend[
 
 // Create a new instance of database backend.
 //
-// The pruning window is how old a block must be before the state is pruned.
+// dbConfig is of type [DatabaseConfig] and contains both state and block history pruning settings.
+// canonicalizationDelay represents the number of blocks it waits to canonicalize the block and initiate pruning based on canonicalization.
 func NewBackend[
 	H runtime.Hash,
 	N runtime.Number,
@@ -399,7 +400,7 @@ func NewBackend[
 	Hasher runtime.Hasher[H],
 	Header runtime.Header[N, H],
 ](
-	dbConfig DatabaseSettings,
+	dbConfig DatabaseConfig,
 	canonicalizationDelay uint64,
 ) (*Backend[H, Hasher, N, E, Header], error) {
 	var (
@@ -434,7 +435,7 @@ func newBackendFromDatabase[
 ](
 	db database.Database[hash.H256],
 	canonicalizationDelay uint64,
-	config DatabaseSettings,
+	config DatabaseConfig,
 	shouldInit bool,
 ) (*Backend[H, Hasher, N, E, Header], error) {
 	var dbInitTransaction database.Transaction[hash.H256]
