@@ -655,7 +655,7 @@ func (b *Backend[H, Hasher, N, E, Header]) forceDelayedCanonicalize(
 	}
 
 	info := b.blockchain.Info()
-	bestNumber := saturating.Into[N, uint64](b.blockchain.Info().BestNumber)
+	bestNumber := saturating.Into[N, uint64](info.BestNumber)
 
 	end := saturating.Sub(bestNumber, b.canonicalizationDelay)
 	for toCanonicalize := bestCanonical + 1; toCanonicalize <= end; toCanonicalize++ {
