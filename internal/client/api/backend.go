@@ -21,7 +21,7 @@ const (
 	NewBlockStateNormal NewBlockState = iota
 	// New best block.
 	NewBlockStateBest
-	// Newly finalized block (implicitly best).
+	// Newly finalized block.
 	NewBlockStateFinal
 )
 
@@ -48,7 +48,7 @@ type BlockImportOperation[
 	// Returns nil for backends with locally-unavailable state data.
 	State() (statemachine.Backend[H, Hasher], error)
 
-	// Append block data to the transaction.
+	// Set block data to the transaction.
 	SetBlockData(
 		header Header,
 		body []E,
@@ -81,8 +81,8 @@ type BlockImportOperation[
 	// Mark a block as finalized.
 	MarkFinalized(hash H, justification *runtime.Justification) error
 
-	// Mark a block as new head. If both block import and set head are specified, set head
-	// overrides block import's best block rule.
+	// Mark a block as new head. If the block import changes the head and MarkHead is called with a different
+	// block hash, MarkHead will override the changed head as a result of the block import.
 	MarkHead(hash H) error
 
 	// Add a transaction index operation.

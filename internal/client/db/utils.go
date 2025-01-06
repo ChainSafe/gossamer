@@ -20,7 +20,6 @@ import (
 )
 
 // Number of columns in the db. Must be the same for both full && light dbs.
-// Otherwise RocksDb will fail to open database && check its type.
 const NumColumns uint32 = 13
 
 // Meta column. The set of keys in the column is shared by full && light storages.

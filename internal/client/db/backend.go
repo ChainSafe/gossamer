@@ -234,7 +234,7 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) SetBlockData(
 	leafState api.NewBlockState,
 ) error {
 	if bio.pendingBlock != nil {
-		panic("only one block per operation is allowed")
+		return fmt.Errorf("only one block per operation is allowed")
 	}
 	bio.pendingBlock = &pendingBlock[H, N, Header, E]{
 		header:         header,
@@ -845,7 +845,7 @@ func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation( //nolint:gocyclo
 					if rc == -1 {
 						changeset.Deleted = append(changeset.Deleted, key)
 					} else {
-						for i := int32(0); i < rc; i++ {
+						for i := int32(0); i < (rc * -1); i++ {
 							changeset.Deleted = append(changeset.Deleted, key)
 						}
 					}
