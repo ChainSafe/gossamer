@@ -416,17 +416,15 @@ func TestProcessBackedOverseerMessage(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 			overseer := overseer.NewMockableOverseer(t, false)
-			overseer.ExpectActions([]func(msg any) bool{
-				func(msg any) bool {
-					canSecondMessage, ok := msg.(backing.CanSecondMessage)
-					if !ok {
-						return false
-					}
-					canSecondMessage.ResponseCh <- c.canSecond
+			overseer.ExpectActions(func(msg any) bool {
+				canSecondMessage, ok := msg.(backing.CanSecondMessage)
+				if !ok {
+					return false
+				}
+				canSecondMessage.ResponseCh <- c.canSecond
 
-					return true
-				},
-			}...)
+				return true
+			})
 
 			collationProtocolID := "/6761727661676500000000000000000000000000000000000000000000000000/1/collations/1"
 
