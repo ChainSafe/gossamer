@@ -181,12 +181,13 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 			w.lastBlock = &warpProofResult.Header
 
 			if !warpProofResult.Completed {
-				logger.Debug("partial warp sync received")
+				logger.Debug("partial warp sync proof received")
 
 				w.setId = warpProofResult.SetId
 				w.authorities = warpProofResult.AuthorityList
 			} else {
-				logger.Debug("complete warp sync received")
+				logger.Debugf("⏩ Warping, finish processing proofs, downloading target block #%d (%s)",
+					w.lastBlock.Number, w.lastBlock.Hash().String())
 				w.phase = TargetBlock
 			}
 		}
