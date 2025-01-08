@@ -630,15 +630,7 @@ func (s *Service) GetRequestResponseProtocol(subprotocol string, requestTimeout 
 	genesisHash = strings.TrimPrefix(genesisHash, "0x")
 	protocolId := fmt.Sprintf("/%s%s", genesisHash, subprotocol)
 
-	return &RequestResponseProtocol{
-		ctx:             s.ctx,
-		host:            s.host,
-		requestTimeout:  requestTimeout,
-		maxResponseSize: maxResponseSize,
-		protocolID:      protocol.ID(protocolId),
-		responseBuf:     make([]byte, maxResponseSize),
-		responseBufMu:   sync.Mutex{},
-	}
+	return NewRequestResponseProtocol(s.ctx, s.host, protocol.ID(protocolId), requestTimeout, maxResponseSize)
 }
 
 // Health returns information about host needed for the rpc server

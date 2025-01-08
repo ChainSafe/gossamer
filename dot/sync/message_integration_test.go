@@ -6,11 +6,13 @@
 package sync
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 	"time"
 
 	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -23,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"go.uber.org/mock/gomock"
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -136,6 +139,15 @@ func newFullSyncService(t *testing.T) *SyncService {
 		AnyTimes()
 
 	mockNetwork := NewMockNetwork(ctrl)
+	mockNetwork.EXPECT().GetRequestResponseProtocol(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+		network.NewRequestResponseProtocol(
+			context.Background(),
+			nil,
+			protocol.ID(network.SyncID),
+			20*time.Second,
+			1024*64,
+		),
+	).AnyTimes()
 
 	serviceCfg := []ServiceConfig{
 		WithBlockState(stateSrvc.Block),
