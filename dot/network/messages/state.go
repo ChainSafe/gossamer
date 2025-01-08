@@ -31,9 +31,9 @@ func NewStateRequest(block common.Hash, start [][]byte, noProof bool) *StateRequ
 }
 
 func (s *StateRequest) String() string {
-	return fmt.Sprintf("StateRequest Block=%s Start=[0x%x, 0x%x] NoProof=%v",
+	return fmt.Sprintf("StateRequest Block=%s Start=[%v] NoProof=%v",
 		s.Block.String(),
-		s.Start[0], s.Start[1],
+		s.Start,
 		s.NoProof,
 	)
 }
@@ -112,5 +112,8 @@ func (s *StateResponse) Encode() ([]byte, error) {
 }
 
 func (s *StateResponse) String() string {
-	panic("not implemented")
+	return fmt.Sprintf("StateResponse Entries=[%v] Proof=[%v]",
+		s.Entries,
+		s.Proof,
+	)
 }

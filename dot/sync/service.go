@@ -99,7 +99,7 @@ type Strategy interface {
 	OnBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error
 	NextActions() ([]*SyncTask, error)
 	Process(results []*SyncTaskResult) (done bool, repChanges []Change, blocks []peer.ID, err error)
-	ShowMetrics()
+	ShowStatus()
 	IsSynced() bool
 	Result() any
 }
@@ -289,7 +289,7 @@ func (s *SyncService) runSyncEngine() {
 	defer s.wg.Done()
 	s.waitWorkers()
 
-	logger.Infof("starting sync engine with strategy: %T", s.currentStrategy)
+	logger.Infof("starting sync engine with strategy: %s", s.syncStrategy)
 
 	for {
 		select {
@@ -312,28 +312,7 @@ func (s *SyncService) runStrategy() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	logger.Tracef("running strategy: %T", s.currentStrategy)
-
-	finalisedHeader, err := s.blockState.GetHighestFinalisedHeader()
-	if err != nil {
-		logger.Criticalf("getting highest finalized header: %w", err)
-		return
-	}
-
-	bestBlockHeader, err := s.blockState.BestBlockHeader()
-	if err != nil {
-		logger.Criticalf("getting best block header: %w", err)
-		return
-	}
-
-	logger.Infof(
-		"🚣 currently syncing, %d peers connected, finalized #%d (%s), best #%d (%s)",
-		len(s.network.AllConnectedPeersIDs()),
-		finalisedHeader.Number,
-		finalisedHeader.Hash().Short(),
-		bestBlockHeader.Number,
-		bestBlockHeader.Hash().Short(),
-	)
+	logger.Tracef("running strategy: %s", s.syncStrategy)
 
 	tasks, err := s.currentStrategy.NextActions()
 	if err != nil {
@@ -362,12 +341,13 @@ func (s *SyncService) runStrategy() {
 		s.workerPool.ignorePeerAsWorker(block)
 	}
 
-	s.currentStrategy.ShowMetrics()
+	s.currentStrategy.ShowStatus()
 
 	// TODO: why not use s.currentStrategy.IsSynced()?
 	if done {
 		switch s.syncStrategy {
 		case config.WarpSync:
+			logger.Debugf("Switching sync strategy: warp sync -> state sync")
 			// Switch to state sync when warp sync finishes
 			stateSyncCfg := &StateSyncStrategyConfig{
 				Telemetry:  s.telemetry,
@@ -381,8 +361,10 @@ func (s *SyncService) runStrategy() {
 			}
 
 			s.currentStrategy = NewStateSyncStrategy(stateSyncCfg)
-			s.syncStrategy = config.WarpSync
+			s.syncStrategy = config.StateSync
+
 		case config.StateSync:
+			logger.Debugf("Switching sync strategy: state sync -> full sync")
 			// Switch to full sync when state sync finishes
 			syncCfg := &FullSyncConfig{
 				BlockState:         s.blockState,
@@ -399,6 +381,7 @@ func (s *SyncService) runStrategy() {
 			}
 
 			s.currentStrategy = NewFullSyncStrategy(syncCfg)
+			s.syncStrategy = config.FullSync
 
 		case config.FullSync:
 			logger.Errorf("Full sync strategy should not finish")

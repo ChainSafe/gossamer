@@ -53,7 +53,7 @@ func NewStateSyncStrategy(
 		targetBlock: cfg.TargetBlock,
 		reqMaker:    cfg.ReqMaker,
 		storage:     cfg.StateStorage,
-		// TODO: set right state version
+		// TODO: we can asume that v1 is right for every chain but we need to find a way to set the right state version
 		stateRequestProvider: NewStateRequestProvider(cfg.TargetBlock.Hash(), trie.V1),
 	}
 }
@@ -108,14 +108,13 @@ func (s *StateSyncStrategy) OnBlockAnnounceHandshake(from peer.ID, msg *network.
 
 func (s *StateSyncStrategy) Process(results []*SyncTaskResult) (
 	done bool, repChanges []Change, peersToBlock []peer.ID, err error) {
-	// TODO: handle merkle proofs
 	repChanges = make([]Change, 0)
 	peersToBlock = make([]peer.ID, 0)
 
 	for _, result := range results {
 		switch response := result.response.(type) {
 		case *messages.StateResponse:
-			logger.Debugf("Retrieving state data from %s with %s keys",
+			logger.Debugf("Retrieving state data from %s with %d keys",
 				result.who, len(response.Entries))
 
 			s.completed, err = s.stateRequestProvider.ProcessResponse(response)
@@ -186,11 +185,33 @@ func (s *StateSyncStrategy) NextActions() ([]*SyncTask, error) {
 	return []*SyncTask{task}, nil
 }
 
-func (s *StateSyncStrategy) ShowMetrics() {
-	cursor := int32(s.stateRequestProvider.GetLastKeys()[0][0])
-	percentDone := cursor * 100 / 256
+func progressPercentage(slice []byte) float64 {
+	total := len(slice)
+	if total == 0 {
+		return 0.0
+	}
 
-	logger.Infof("⚙️ State Sync, downloading state %d% ", percentDone)
+	matching := 0
+	for _, value := range slice {
+		if value == 255 {
+			matching++
+		}
+	}
+
+	percentage := (float64(matching) / float64(total)) * 100
+	return percentage
+}
+
+func (s *StateSyncStrategy) ShowStatus() {
+	if len(s.stateRequestProvider.GetLastKeys()) == 0 {
+		return
+	}
+
+	lastKey := s.stateRequestProvider.GetLastKeys()[0]
+	cursor := float32(lastKey[0])
+	percentDone := cursor / 256 * 100
+
+	logger.Infof("⚙️ State Sync, downloading state %.2f%%, last key: 0x%x", percentDone, lastKey)
 }
 
 func (w *StateSyncStrategy) Result() any {

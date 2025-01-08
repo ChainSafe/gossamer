@@ -234,7 +234,7 @@ func (w *WarpSyncStrategy) validateWarpSyncResults(results []*SyncTaskResult) (
 			res, err := w.warpSyncProvider.Verify(encodedProof, w.setId, w.authorities)
 
 			if err != nil {
-				logger.Warnf("bad warp proof response: %s", err)
+				logger.Debugf("bad warp proof response: %s", err)
 
 				repChanges = append(repChanges, Change{
 					who: result.who,
@@ -267,7 +267,7 @@ func (w *WarpSyncStrategy) validateWarpSyncResults(results []*SyncTaskResult) (
 	return repChanges, peersToBlock, bestResult
 }
 
-func (w *WarpSyncStrategy) ShowMetrics() {
+func (w *WarpSyncStrategy) ShowStatus() {
 	switch w.phase {
 	case WarpProof:
 		totalSyncSeconds := time.Since(w.startedAt).Seconds()
