@@ -53,7 +53,7 @@ func NewStateSyncStrategy(
 		targetBlock: cfg.TargetBlock,
 		reqMaker:    cfg.ReqMaker,
 		storage:     cfg.StateStorage,
-		// TODO: we can asume that v1 is right for every chain but we need to find a way to set the right state version
+		// TODO: we can assume that v1 is right for every chain but we need to find a way to set the right state version
 		stateRequestProvider: NewStateRequestProvider(cfg.TargetBlock.Hash(), trie.V1),
 	}
 }
@@ -183,23 +183,6 @@ func (s *StateSyncStrategy) NextActions() ([]*SyncTask, error) {
 	}
 
 	return []*SyncTask{task}, nil
-}
-
-func progressPercentage(slice []byte) float64 {
-	total := len(slice)
-	if total == 0 {
-		return 0.0
-	}
-
-	matching := 0
-	for _, value := range slice {
-		if value == 255 {
-			matching++
-		}
-	}
-
-	percentage := (float64(matching) / float64(total)) * 100
-	return percentage
 }
 
 func (s *StateSyncStrategy) ShowStatus() {
