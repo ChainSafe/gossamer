@@ -30,7 +30,8 @@ type RequestResponseProtocol struct {
 	responseBuf     []byte
 }
 
-func NewRequestResponseProtocol(ctx context.Context, host *host, protocolID protocol.ID, requestTimeout time.Duration, maxResponseSize uint64) *RequestResponseProtocol {
+func NewRequestResponseProtocol(ctx context.Context, host *host, protocolID protocol.ID,
+	requestTimeout time.Duration, maxResponseSize uint64) *RequestResponseProtocol {
 	return &RequestResponseProtocol{
 		ctx:             ctx,
 		host:            host,
