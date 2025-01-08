@@ -766,7 +766,7 @@ func (s *Service) processMessage(msg peerset.Message) {
 		err := s.host.connect(addrInfo)
 		if err != nil {
 			// TODO: if error happens here outgoing (?) slot is occupied but no peer is really connected
-			logger.Warnf("failed to open connection for peer %s: %s", peerID, err)
+			logger.Debugf("failed to open connection for peer %s: %s", peerID, err)
 			return
 		}
 		logger.Debugf("connection successful with peer %s", peerID)

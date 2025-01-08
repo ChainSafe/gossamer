@@ -39,6 +39,8 @@ func (s *StateRequestProvider) BuildRequest() *messages.StateRequest {
 }
 
 func (s *StateRequestProvider) ProcessResponse(stateResponse *messages.StateResponse) (completed bool, err error) {
+	// TODO: handle merkle proofs to prevent accepting invalid state entries
+
 	if len(stateResponse.Entries) == 0 {
 		return false, errEmptyStateEntries
 	}
@@ -59,13 +61,13 @@ func (s *StateRequestProvider) ProcessResponse(stateResponse *messages.StateResp
 		s.lastKeys = [][]byte{}
 	}
 
+	s.completed = true
+
 	for _, state := range stateResponse.Entries {
 		if !state.Complete {
 			lastItemInResponse := state.StateEntries[len(state.StateEntries)-1]
 			s.lastKeys = append(s.lastKeys, lastItemInResponse.Key)
 			s.completed = false
-		} else {
-			s.completed = true
 		}
 	}
 

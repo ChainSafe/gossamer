@@ -119,6 +119,9 @@ func main() {
 func sendAndProcessResponse(provider *sync.StateRequestProvider, stream lip2pnetwork.Stream) error {
 	defer stream.Close() //nolint:errcheck
 
+	request := provider.BuildRequest()
+
+	fmt.Printf("Sending request to peer %s\n", request.String())
 	err := p2p.WriteStream(provider.BuildRequest(), stream)
 	if err != nil {
 		return err
