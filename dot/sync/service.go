@@ -347,7 +347,7 @@ func (s *SyncService) runStrategy() {
 	if done {
 		switch s.syncStrategy {
 		case config.WarpSync:
-			logger.Debugf("Switching sync strategy: warp sync -> state sync")
+			logger.Info("Switching sync strategy: warp sync -> state sync")
 			// Switch to state sync when warp sync finishes
 			stateSyncCfg := &StateSyncStrategyConfig{
 				Telemetry:  s.telemetry,
@@ -364,7 +364,7 @@ func (s *SyncService) runStrategy() {
 			s.syncStrategy = config.StateSync
 
 		case config.StateSync:
-			logger.Debugf("Switching sync strategy: state sync -> full sync")
+			logger.Info("Switching sync strategy: state sync -> full sync")
 			// Switch to full sync when state sync finishes
 			syncCfg := &FullSyncConfig{
 				BlockState:         s.blockState,

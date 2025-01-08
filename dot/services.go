@@ -533,6 +533,7 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 		sync.WithTelemetry(telemetryMailer),
 		sync.WithBadBlocks(genesisData.BadBlocks),
 		sync.WithSyncMethod(config.Core.SyncMode),
+		sync.WithTransactionState(st.Transaction),
 		sync.WithSlotDuration(slotDuration),
 		sync.WithMinPeers(config.Network.MinPeers),
 	), nil
