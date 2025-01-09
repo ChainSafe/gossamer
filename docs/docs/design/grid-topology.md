@@ -1,5 +1,49 @@
 # Grid Topology
 
+## Questions
+
+### What subsystem is in charge for create topology? 
+
+[Gossip Support Subsystem](https://github.com/paritytech/polkadot-sdk/blob/master/polkadot/node/network/gossip-support/src/lib.rs) is responsible to update the grid topology.
+
+While [handling active leaves](https://github.com/paritytech/polkadot-sdk/blob/4059282fc7b6ec965cc22a9a0df5920a4f3a4101/polkadot/node/network/gossip-support/src/lib.rs#L210) it checks if the session changes, if so it triggers a the function called [`update_gossip_topology`](https://github.com/paritytech/polkadot-sdk/blob/4059282fc7b6ec965cc22a9a0df5920a4f3a4101/polkadot/node/network/gossip-support/src/lib.rs#L674), so after generating the new topology, propagates it with:
+
+```rs
+sender.send_message(NetworkBridgeRxMessage::NewGossipTopology {...})
+```
+
+### How is the flow that leads to the grid topology creation?
+
+The [Gossip Support Subsystem](https://github.com/paritytech/polkadot-sdk/blob/master/polkadot/node/network/gossip-support/src/lib.rs), as any other subsystem, listens for [overseer active leaves updates](https://github.com/paritytech/polkadot-sdk/blob/4059282fc7b6ec965cc22a9a0df5920a4f3a4101/polkadot/node/network/gossip-support/src/lib.rs#L191) and that is the signal that might trigger a topology update.
+
+For a new leaf activated, the subsystem will retrieve its session index (that's made through a runtime call), also the subsystem holds the `last_session_index` within its state, and it compares if the leaf session index is greater than its latest session index, if it is true then the function `update_gossip_topology` will be called.
+
+
+### How is the new topology propagated?
+
+The new topology is propagated by the function `update_gossip_topology` using the message `NetworkBridgeRxMessage::NewGossipTopology`. Actually what is propagated is not the instance of the topology but the informations that is needed to produce the topology, which are: 
+- `Session Index`
+- `Local Index` (our validator index)
+- `Canonical Shuffling` (the validator indexes that were shuffled using [`fisher_yates_shuffle`](https://github.com/paritytech/polkadot-sdk/blob/4059282fc7b6ec965cc22a9a0df5920a4f3a4101/polkadot/node/network/gossip-support/src/lib.rs#L734))
+- `shuffled_indices` (a mapping to find the shuffled validators by its index)
+
+Now, this information is not propagated to all subsystems, [this event is being heard only by `Network Bridge Subsystem`](https://github.com/paritytech/polkadot-sdk/blob/cdf107de700388a52a17b2fb852c98420c78278e/polkadot/node/network/bridge/src/rx/mod.rs#L759). `Network Bridge Subsystem` will retrieve all the peer IDs for the new provided topology using the `Authority Discovery Service`, and once it get all it will create the `SessionGridTopology` instance and them dispatch it under the message `NetworkBridgeEvent::NewGossipTopology`
+
+The propagation happens like in the following chain:
+
+`Gossip Support Subsystem` sends `NetworkBridgeRxMessage::NewGossipTopology` to `Network Bridge Subsystem` that sends `NetworkBridgeEvent::NewGossipTopology` to all subsystems.
+
+### What informations are needed to produce the topology?
+
+Before generating the topology we need first all the authotities that will take place in the new session, this information can be retrieved from the runtime. The next information is the randomness used to shuffle these validator indices which is retrieved from the runtime BABE Current Epoch Randomness, besides that we also must have the current session index as well as our validator index a.k.a `local index`.
+
+### Is there any existing RFCs?
+
+No
+
+## Design
+
+
 * A validator producing a message sends it to its row-neighbors and its column-neighbors
 * A validator receiving a message originating from one of its row-neighbors sends it to its column-neighbors
 * A validator receiving a message originating from one of its column-neighbors sends it to its row-neighbors
@@ -13,3 +57,43 @@ Under a given session we should track for all the peers few informations, such a
 
 ### [Session Grid Topology](https://github.com/paritytech/polkadot-sdk/blob/586ab7f65ed64e46088466f3a90d0ac79513a6b4/polkadot/node/network/protocol/src/grid_topology.rs#L69)
 
+This struct represents the raw session grid topology and what are the validators that composes it.
+
+#### Functionalities
+
+- [Update Authority IDs](https://github.com/paritytech/polkadot-sdk/blob/645878a27115db52e5d63115699b4bbb89034067/polkadot/node/network/protocol/src/grid_topology.rs#L93)
+    Given a peer id and a set of authority discovery id updates the topology info to include the peer id for that auth id.
+
+- [Compute Grid Neighbors](https://github.com/paritytech/polkadot-sdk/blob/645878a27115db52e5d63115699b4bbb89034067/polkadot/node/network/protocol/src/grid_topology.rs#L115)
+    Given the validator index, it produces the outgoing routing logic for a particular peer
+
+- [Matrix Neighbors](https://github.com/paritytech/polkadot-sdk/blob/645878a27115db52e5d63115699b4bbb89034067/polkadot/node/network/protocol/src/grid_topology.rs#L155)
+    Given the validator index and the length of the whole peers set, returns the row neighbors and column neighbors
+
+#### Usage
+
+The session grid topology is instantiated by `Network Bridge Subsystem` when it receives the `NetworkBridgeRxMessage::NewGossipTopology` event.
+
+### [Grid Neighbors](https://github.com/paritytech/polkadot-sdk/blob/645878a27115db52e5d63115699b4bbb89034067/polkadot/node/network/protocol/src/grid_topology.rs#L186)
+
+This struct extract from the `Session Grid Topology` the acutal row and column neighbors for a specific validator index.
+
+#### Functionalities
+
+- Should Routing To
+    Given a peer id OR a validator index we should check if we should routing its message to our row OR column neighbor. That is made by checking if the received message cames from a row neighor or from a column neighbor.
+
+- Peers Diff
+    Given two topologies return difference in the set of peers
+
+### SessionBoundGridTopologyStorage
+
+This struct holds two topologies, `current` and `previous`.
+
+#### Functionalities
+
+- [Get Topology Or Fallback](https://github.com/paritytech/polkadot-sdk/blob/645878a27115db52e5d63115699b4bbb89034067/polkadot/node/network/protocol/src/grid_topology.rs#L454)
+    Given a session index returns the previous or current topology associated with it, return the current topology otherwise.
+
+- [Update Topology](https://github.com/paritytech/polkadot-sdk/blob/645878a27115db52e5d63115699b4bbb89034067/polkadot/node/network/protocol/src/grid_topology.rs#L474C9-L474C24)
+    Given a session index and a new topology, place the current one as previous and update the current one to be the new topology.
