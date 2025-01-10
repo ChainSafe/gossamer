@@ -15,7 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("trie", "recorder"))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "primitives/trie/recorder"))
 
 // Stores all the information per transaction.
 type transaction[H comparable] struct {

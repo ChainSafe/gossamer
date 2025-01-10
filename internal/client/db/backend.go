@@ -35,7 +35,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("client", "db"))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "client/db"))
 
 // Block pruning settings.
 type BlocksPruning interface {

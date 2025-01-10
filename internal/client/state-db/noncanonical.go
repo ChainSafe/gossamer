@@ -13,7 +13,7 @@ import (
 	"github.com/gammazero/deque"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("client", "state-db"))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "client/state-db"))
 
 var lastCanonical = []byte("last_canonical")
 
