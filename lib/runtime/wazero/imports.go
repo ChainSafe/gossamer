@@ -38,7 +38,10 @@ var (
 	noneEncoded            []byte = []byte{0x00}
 	allZeroesBytes                = [32]byte{}
 
-	childStorageKeyPrefix = []byte(":child_storage:")
+	childStorageKeyPrefix        = []byte(":child_storage:")
+	imOnlinePalletProblematicKey = []byte{0x2b, 0x06, 0xaf, 0x97, 0x19, 0xac, 0x64, 0xd7, 0x55, 0x62, 0x3c, 0xda,
+		0x8d, 0xdd, 0x9b, 0x94, 0x4e, 0x7b, 0x90, 0x12, 0x09, 0x6b, 0x41, 0xc4, 0xeb, 0x3a, 0xaf,
+		0x94, 0x7f, 0x6e, 0xa4, 0x29}
 )
 
 const (
@@ -2314,6 +2317,12 @@ func ext_storage_set_version_1(ctx context.Context, m api.Module, keySpan, value
 	storage := rtCtx.Storage
 
 	key := read(m, keySpan)
+
+	// TODO: temporal fix if key is pallet: "ImOnline" ++ ":__storage_version__:"
+	if bytes.Equal(key, imOnlinePalletProblematicKey) {
+		return
+	}
+
 	value := read(m, valueSpan)
 
 	cp := make([]byte, len(value))
