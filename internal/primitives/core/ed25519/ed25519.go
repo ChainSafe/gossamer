@@ -21,7 +21,7 @@ import (
 // A secret seed.
 type seed [32]byte
 
-// A Public key.
+// Public is a public key.
 type Public [32]byte
 
 // Bytes returns a byte slice

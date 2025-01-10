@@ -11,7 +11,7 @@ import (
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
-// Get lowest common ancestor between two blocks in the tree.
+// LowestCommonAncestor will get lowest common ancestor between two blocks in the tree.
 //
 // This implementation is efficient because our trees have very few and
 // small branches, and because of our current query pattern:
@@ -93,7 +93,7 @@ func LowestCommonAncestor[H runtime.Hash, N runtime.Number](
 	return HashNumber[H, N]{Hash: header1.Hash, Number: header1.Number}, nil
 }
 
-// Compute a tree-route between two blocks. See tree-route docs for more details.
+// NewTreeRoute computes a [TreeRoute] between two blocks. See [TreeRoute] docs for more details.
 func NewTreeRoute[H runtime.Hash, N runtime.Number](
 	backend HeaderMetadata[H, N], from, to H,
 ) (TreeRoute[H, N], error) {
@@ -154,7 +154,7 @@ func NewTreeRoute[H runtime.Hash, N runtime.Number](
 	return TreeRoute[H, N]{Route: fromBranch, Pivot: pivot}, nil
 }
 
-// Hash and number of a block.
+// HashNumber is the hash and number of a block.
 type HashNumber[H runtime.Hash, N runtime.Number] struct {
 	// The number of the block.
 	Number N
@@ -162,7 +162,7 @@ type HashNumber[H runtime.Hash, N runtime.Number] struct {
 	Hash H
 }
 
-// A tree-route from one block to another in the chain.
+// A TreeRoute from one block to another in the chain.
 //
 // All blocks prior to the pivot in the deque is the reverse-order unique ancestry
 // of the first block, the block at the pivot index is the common ancestor,
@@ -172,15 +172,14 @@ type HashNumber[H runtime.Hash, N runtime.Number] struct {
 // The ancestry sets will include the given blocks, and thus the tree-route is
 // never empty.
 //
-//   Tree route from R1 to E2. Retracted is [R1, R2, R3], Common is C, enacted [E1, E2]
-//     <- R3 <- R2 <- R1
-//    /
-//   C
-//    \-> E1 -> E2
+//	Tree route from R1 to E2. Retracted is [R1, R2, R3], Common is C, enacted [E1, E2]
+//	  <- R3 <- R2 <- R1
+//	 /
+//	C
+//	 \-> E1 -> E2
 //
-//   Tree route from C to E2. Retracted empty. Common is C, enacted [E1, E2]
-//   C -> E1 -> E2
-
+//	Tree route from C to E2. Retracted empty. Common is C, enacted [E1, E2]
+//	C -> E1 -> E2
 type TreeRoute[H runtime.Hash, N runtime.Number] struct {
 	// route: Vec<HashAndNumber<Block>>,
 	Route []HashNumber[H, N]
@@ -202,14 +201,14 @@ func (tr TreeRoute[H, N]) Enacted() []HashNumber[H, N] {
 	return tr.Route[tr.Pivot+1:]
 }
 
-// Handles header metadata: hash, number, parent hash, etc.
+// HeaderMetadata handles header metadata: hash, number, parent hash, etc.
 type HeaderMetadata[H, N any] interface {
 	HeaderMetadata(hash H) (CachedHeaderMetadata[H, N], error)
 	InsertHeaderMetadata(hash H, headerMetadata CachedHeaderMetadata[H, N])
 	RemoveHeaderMetadata(hash H)
 }
 
-// Caches header metadata in an in-memory LRU cache.
+// HeaderMetadataCache caches header metadata in an in-memory LRU cache.
 type HeaderMetadataCache[H comparable, N any] struct {
 	cache *lru.Cache[H, CachedHeaderMetadata[H, N]]
 	sync.RWMutex
@@ -269,7 +268,7 @@ type CachedHeaderMetadata[H, N any] struct {
 	ancestor H
 }
 
-// NewCachedHeaderMetadata is constructor for CachedHeaderMetadata
+// NewCachedHeaderMetadata is constructor for [CachedHeaderMetadata]
 func NewCachedHeaderMetadata[H runtime.Hash, N runtime.Number](header runtime.Header[N, H]) CachedHeaderMetadata[H, N] {
 	return CachedHeaderMetadata[H, N]{
 		Hash:      header.Hash(),

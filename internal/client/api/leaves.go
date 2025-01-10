@@ -45,9 +45,8 @@ func (fo FinalizationOutcome[H, N]) Leaves() []H {
 	return leaves
 }
 
-// list of leaf hashes ordered by number (descending).
-// stored in memory for fast access.
-// this allows very fast checking and modification of active leaves.
+// LeafSet is the list of leaf hashes ordered by number (descending) stored in memory for fast access.
+// This allows very fast checking and modification of active leaves.
 type LeafSet[H comparable, N runtime.Number] struct {
 	storage btree.Map[N, []H]
 }

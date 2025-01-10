@@ -24,7 +24,7 @@ type Value interface {
 	~[]byte
 }
 
-// Reference-counted memory-based [hashdb.HashDB] implementation.
+// MemoryDB is a reference-counted memory-based [hashdb.HashDB] implementation.
 type MemoryDB[H Hash, Hasher hashdb.Hasher[H], Key constraints.Ordered, KF KeyFunction[H, Key]] struct {
 	data           map[Key]dataRC
 	hashedNullNode H
@@ -65,7 +65,7 @@ func (mdb *MemoryDB[H, Hasher, Key, KF]) Purge() {
 	}
 }
 
-// Return the internal key-value Map, clearing the current state.
+// Drain returns the internal key-value Map, clearing the current state.
 func (mdb *MemoryDB[H, Hasher, Key, KF]) Drain() map[Key]dataRC {
 	data := mdb.data
 	mdb.data = make(map[Key]dataRC)
@@ -217,21 +217,21 @@ type KeyFunction[Hash constraints.Ordered, Key any] interface {
 	Key(hash Hash, prefix hashdb.Prefix) Key
 }
 
-// Key function that only uses the hash
+// HashKey is KeyFunction that only uses the hash
 type HashKey[H Hash] struct{}
 
 func (HashKey[Hash]) Key(hash Hash, prefix hashdb.Prefix) Hash {
 	return hash
 }
 
-// Key function that concatenates prefix and hash.
+// PrefixedKey is KeyFunction that concatenates prefix and hash.
 type PrefixedKey[H Hash] struct{}
 
 func (PrefixedKey[H]) Key(key H, prefix hashdb.Prefix) string {
 	return string(NewPrefixedKey(key, prefix))
 }
 
-// Derive a database key from hash value of the node (key) and the node prefix.
+// NewPrefixedKey derives a database key from hash value of the node (key) and the node prefix.
 func NewPrefixedKey[H Hash](key H, prefix hashdb.Prefix) []byte {
 	prefixedKey := prefix.Key
 	if prefix.Padded != nil {

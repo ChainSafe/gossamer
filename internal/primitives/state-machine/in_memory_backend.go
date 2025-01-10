@@ -14,7 +14,7 @@ type MemoryDBTrieBackend[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	*TrieBackend[H, Hasher]
 }
 
-// Create a new empty instance of in-memory backend.
+// NewMemoryDBTrieBackend creates a new empty instance of in-memory backend.
 func NewMemoryDBTrieBackend[H runtime.Hash, Hasher runtime.Hasher[H]]() MemoryDBTrieBackend[H, Hasher] {
 	mdb := trie.NewPrefixedMemoryDB[H, Hasher]()
 	root := (*new(Hasher)).Hash([]byte{0})

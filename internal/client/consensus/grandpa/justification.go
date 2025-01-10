@@ -22,14 +22,13 @@ var (
 	errBlockNotDescendentOfBase = errors.New("block not descendent of base")
 )
 
-// A GRANDPA justification for block finality, it includes a commit message and
-// an ancestry proof including all headers routing all precommit target blocks
-// to the commit target block. Due to the current voting strategy the precommit
-// targets should be the same as the commit target, since honest voters don't
-// vote past authority set change blocks.
+// GrandpaJustification is a GRANDPA justification for block finality, it includes a commit message and an ancestry
+// proof including all headers routing all precommit target blocks to the commit target block. Due to the current
+// voting strategy the precommit targets should be the same as the commit target, since honest voters don't vote past
+// authority set change blocks.
 //
-// This is meant to be stored in the db and passed around the network to other
-// nodes, and are used by syncing nodes to prove authority set handoffs.
+// This is meant to be stored in the db and passed around the network to other nodes, and are used by syncing nodes
+// to prove authority set handoffs.
 type GrandpaJustification[Hash runtime.Hash, N runtime.Number] struct {
 	// The GRANDPA justification for block finality.
 	Justification primitives.GrandpaJustification[Hash, N]

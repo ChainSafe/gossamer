@@ -9,7 +9,7 @@ import (
 	"github.com/tidwall/btree"
 )
 
-// A proof that some set of key-value pairs are included in the storage trie. The proof contains
+// StorageProof is proof that some set of key-value pairs are included in the storage trie. The proof contains
 // the storage values so that the partial storage backend can be reconstructed by a verifier that
 // does not already have access to the key-value pairs.
 //
@@ -20,7 +20,7 @@ type StorageProof struct {
 	trieNodes btree.Set[string]
 }
 
-// Constructs a [StorageProof] from a subset of encoded trie nodes.
+// NewStorageProof constructs a [StorageProof] from a subset of encoded trie nodes.
 func NewStorageProof(trieNodes [][]byte) StorageProof {
 	set := btree.Set[string]{}
 	for _, trieNode := range trieNodes {
@@ -31,12 +31,12 @@ func NewStorageProof(trieNodes [][]byte) StorageProof {
 	}
 }
 
-// Returns whether this is an empty proof.
+// Empty returns whether this is an empty proof.
 func (sp *StorageProof) Empty() bool {
 	return sp.trieNodes.Len() == 0
 }
 
-// Returns all the encoded trie ndoes in lexigraphical order from the proof.
+// Nodes returns all the encoded trie ndoes in lexigraphical order from the proof.
 func (sp *StorageProof) Nodes() [][]byte {
 	var ret [][]byte
 	sp.trieNodes.Scan(func(v string) bool {
@@ -46,7 +46,7 @@ func (sp *StorageProof) Nodes() [][]byte {
 	return ret
 }
 
-// Constructs a [MemoryDB] from a [StorageProof]
+// NewMemoryDBFromStorageProof constructs a [MemoryDB] from a [StorageProof]
 func NewMemoryDBFromStorageProof[H runtime.Hash, Hasher runtime.Hasher[H]](sp StorageProof) *MemoryDB[H, Hasher] {
 	db := NewMemoryDB[H, Hasher]()
 	sp.trieNodes.Scan(func(v string) bool {

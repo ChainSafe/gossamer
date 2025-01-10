@@ -1,9 +1,8 @@
 // Copyright 2024 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
+// package metakeys contain the keys of entries in meta column.
 package metakeys
-
-// Keys of entries in COLUMN_META.
 
 // Type of storage (full or light).
 var Type = []byte("type")

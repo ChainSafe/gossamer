@@ -19,7 +19,7 @@ type LRU[K comparable, V any] struct {
 	*freelru.LRU[K, V]
 }
 
-// Costructor for [LRU].
+// New is constructor for [LRU].
 func New[K comparable, V any](
 	maxCost uint, hash freelru.HashKeyCallback[K], costFunc func(K, V) uint32,
 ) (*LRU[K, V], error) {

@@ -37,7 +37,7 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "client/db"))
 
-// Block pruning settings.
+// BlocksPruning represent block pruning settings.
 type BlocksPruning interface {
 	isBlocksPruning()
 }
@@ -45,20 +45,20 @@ type BlocksPruningValues interface {
 	BlocksPruningKeepAll | BlocksPruningKeepFinalized | BlocksPruningSome
 }
 
-// Keep full block history, of every block that was ever imported.
+// BlocksPruningKeepAll keeps full block history, of every block that was ever imported.
 type BlocksPruningKeepAll struct{}
 
-// Keep full finalized block history.
+// BlocksPruningKeepFinalized keeps full finalized block history.
 type BlocksPruningKeepFinalized struct{}
 
-// Keep N recent finalized blocks.
+// BlocksPruningSome keep a defined number of recent finalized blocks.
 type BlocksPruningSome uint32
 
 func (BlocksPruningKeepAll) isBlocksPruning()       {}
 func (BlocksPruningKeepFinalized) isBlocksPruning() {}
 func (BlocksPruningSome) isBlocksPruning()          {}
 
-// Where to find the database..
+// DatabaseSource is the source of the database.
 // NOTE: only uses a custom already-open database.
 type DatabaseSource struct {
 	// the handle to the custom storage
@@ -67,12 +67,12 @@ type DatabaseSource struct {
 	RequireCreateFlag bool
 }
 
-// DB-backed patricia trie state, transaction type is an overlay of changes to commit.
+// DBState is a db backed patricia trie state, transaction type is an overlay of changes to commit.
 type DBState[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	*statemachine.TrieBackend[H, Hasher]
 }
 
-// A reference tracking state.
+// refTrackingState is a reference tracking state.
 //
 // It makes sure that the hash we are using stays pinned in storage
 // until this structure is dropped.
@@ -88,23 +88,21 @@ func (rts *refTrackingState[H, Hasher]) Drop() {
 	}
 }
 
-// Database configuration.
+// DatabaseConfig is the database configuration.
 type DatabaseConfig struct {
-	// The maximum trie cache size in bytes.
-	//
+	// TrieCacheMaximumSize is the maximum trie cache size in bytes.
 	// If nil is given, the cache is disabled.
 	TrieCacheMaximumSize *uint
-	// Requested state pruning mode.
+	// StatePruning is the requested state pruning mode.
 	StatePruning statedb.PruningMode
-	// Where to find the database.
+	// Source is the source of the database
 	Source DatabaseSource
-	// Block pruning mode.
-	//
+	// BlocksPruning is the block pruning mode.
 	// NOTE: only finalized blocks are subject for removal!
 	BlocksPruning BlocksPruning
 }
 
-// wrapper that implements trait required for state_db
+// wrapper around [database.Database] that implements [statedb.MetaDB]
 type stateMetaDB struct {
 	db database.Database[hash.H256]
 }
@@ -123,7 +121,7 @@ type finalizedBlock[H runtime.Hash] struct {
 	*runtime.Justification
 }
 
-// [Backend] block import operation which represents a transaction
+// BlockImportOperation is [Backend] block import operation which represents a transaction.
 type BlockImportOperation[
 	H runtime.Hash,
 	Hasher runtime.Hasher[H],
@@ -366,9 +364,7 @@ func newEmptyStorage[H runtime.Hash, Hasher runtime.Hasher[H]]() emptyStorage[H]
 	return emptyStorage[H]{root}
 }
 
-// Disk backend.
-//
-// Disk backend keeps data in a key-value store. In archive mode, trie nodes are kept from all
+// Backend keeps data in a key-value store. In archive mode, trie nodes are kept from all
 // blocks. Otherwise, trie nodes are kept only from some recent blocks.
 type Backend[
 	H runtime.Hash,
@@ -389,7 +385,7 @@ type Backend[
 	sharedTrieCache       *cache.SharedTrieCache[H] // can be nil to respresent no shared trie cache
 }
 
-// Create a new instance of database backend.
+// NewBackend creates a new instance of database backend.
 //
 // dbConfig is of type [DatabaseConfig] and contains both state and block history pruning settings.
 // canonicalizationDelay represents the number of blocks it waits to canonicalize the block and initiate
@@ -497,7 +493,7 @@ func newBackendFromDatabase[
 	return &backend, nil
 }
 
-// Reset the shared trie cache.
+// ResetTrieCache resets the shared trie cache.
 func (b *Backend[H, Hasher, N, E, Header]) ResetTrieCache() {
 	if b.sharedTrieCache != nil {
 		b.sharedTrieCache.Reset()
@@ -509,13 +505,13 @@ type numberHash[H, N any] struct {
 	Hash   H
 }
 
-// Handle setting head within a transaction. routeTo should be the last
+// Handles setting head within a transaction. routeTo should be the last
 // block that existed in the database. bestTo should be the best block
 // to be set.
 //
 // In the case where the new best block is a block to be imported, routeTo
 // should be the parent of bestTO. In the case where we set an existing block
-// to be best, routTo should equal to bestTo.
+// to be best, routeTo should equal to bestTo.
 func (b *Backend[H, Hasher, N, E, Header]) setHeadWithTransaction(
 	transaction *database.Transaction[hash.H256], routeTo H, bestTo numberHash[H, N],
 ) ([2][]H, error) {

@@ -11,21 +11,19 @@ import (
 	"github.com/tidwall/btree"
 )
 
-// Storage key.
+// StorageKey is a storage key.
 type StorageKey []byte
 
-// Storage key of a child trie, it contains the prefix to the key.
+// PrefixedStorageKey is a storage key of a child trie, it contains the prefix to the key.
 type PrefixedStorageKey []byte
 
-// Child trie storage data.
+// StorageChild is child trie storage data.
 type StorageChild struct {
-	// Child data for storage.
-	Data btree.Map[string, []byte]
-	// Associated child info for a child trie.
-	ChildInfo ChildInfo
+	Data      btree.Map[string, []byte] // Child data for storage.
+	ChildInfo ChildInfo                 // Associated child info for a child trie.
 }
 
-// Struct containing data needed for a storage.
+// Storage contains data needed for a storage.
 type Storage struct {
 	// Top trie storage data.
 	Top btree.Map[string, []byte]
@@ -34,52 +32,50 @@ type Storage struct {
 	ChildrenDefault map[string]StorageChild
 }
 
-// Information related to a child state.
+// ChildInfo is information related to a child state.
 type ChildInfo interface {
-	// Returns byte sequence (keyspace) that can be use by underlying db to isolate keys.
+	// Keyspace returns byte sequence (keyspace) that can be use by underlying db to isolate keys.
 	// This is a unique id of the child trie. The collision resistance of this value
 	// depends on the type of child info use. For [ChildTypeParentKeyID] it is and need to be.
 	Keyspace() []byte
-	// Returns a reference to the location in the direct parent of
-	// this trie but without the common prefix for this kind of
-	// child trie.
+	// StorageKey returns a reference to the location in the direct parent of
+	// this trie but without the common prefix for this kind of child trie.
 	StorageKey() StorageKey
-	// Return a the full location in the direct parent of
-	// this trie.
+	// PrefixedStorageKey returns the full location in the direct parent of this trie.
 	PrefixedStorageKey() PrefixedStorageKey
-	// Returns the type for this child info.
+	// ChildType returns the type for this child info.
 	ChildType() ChildType
 }
 
-// This is the one used by default.
+// ChildInfoParentKeyID is the default ChildTrieParentKeyID.
 type ChildInfoParentKeyID ChildTrieParentKeyID
 
-// Returns byte sequence (keyspace) that can be use by underlying db to isolate keys.
+// Keyspace returns byte sequence (keyspace) that can be use by underlying db to isolate keys.
 // This is a unique id of the child trie. The collision resistance of this value
 // depends on the type of child info use.
 func (cipkid ChildInfoParentKeyID) Keyspace() []byte {
 	return cipkid.StorageKey()
 }
 
-// Returns a reference to the location in the direct parent of
+// StorageKey returns a reference to the location in the direct parent of
 // this trie but without the common prefix for this kind of
 // child trie.
 func (cipkid ChildInfoParentKeyID) StorageKey() StorageKey {
 	return ChildTrieParentKeyID(cipkid).data
 }
 
-// Return a the full location in the direct parent of
+// PrefixedStorageKey returns a the full location in the direct parent of
 // this trie.
 func (cipkid ChildInfoParentKeyID) PrefixedStorageKey() PrefixedStorageKey {
 	return ChildTypeParentKeyID.NewPrefixedKey(cipkid.data)
 }
 
-// Returns the type for this child info.
+// ChildType returns the type for this child info.
 func (cipkid ChildInfoParentKeyID) ChildType() ChildType {
 	return ChildTypeParentKeyID
 }
 
-// Instantiates child information for a default child trie
+// NewDefaultChildInfo instantiates child information for a default child trie
 // of kind ChildInfoParentKeyID, using an unprefixed parent
 // storage key.
 func NewDefaultChildInfo(storageKey []byte) ChildInfo {
@@ -88,7 +84,7 @@ func NewDefaultChildInfo(storageKey []byte) ChildInfo {
 	}
 }
 
-// Type of child.
+// ChildType is the type of child.
 // It does not strictly define different child type, it can also
 // be related to technical consideration or api variant.
 type ChildType uint32
@@ -99,7 +95,7 @@ const (
 	ChildTypeParentKeyID ChildType = iota + 1
 )
 
-// Transform a prefixed key into a tuple of the child type
+// NewChildTypeFromPrefixedKey transforms a prefixed key into a tuple of the child type
 // and the unprefixed representation of the key.
 func NewChildTypeFromPrefixedKey(storageKey PrefixedStorageKey) *struct {
 	ChildType
@@ -117,14 +113,14 @@ func NewChildTypeFromPrefixedKey(storageKey PrefixedStorageKey) *struct {
 	}
 }
 
-// Produce a prefixed key for a given child type.
+// NewPrefixedKey produces a prefixed key for a given child type.
 func (ct ChildType) NewPrefixedKey(key []byte) PrefixedStorageKey {
 	parentPrefix := ct.ParentPrefix()
 	result := append(parentPrefix, key...)
 	return PrefixedStorageKey(result)
 }
 
-// Returns the location reserved for this child trie in their parent trie if there
+// ParentPrefix returns the location reserved for this child trie in their parent trie if there
 // is one.
 func (ct ChildType) ParentPrefix() []byte {
 	switch ct {
@@ -135,7 +131,7 @@ func (ct ChildType) ParentPrefix() []byte {
 	}
 }
 
-// A child trie of default type.
+// ChildTrieParentKeyID is a child trie of default type.
 //
 // It uses the same default implementation as the top trie, top trie being a child trie with no
 // keyspace and no storage key. Its keyspace is the variable (unprefixed) part of its storage key.
@@ -147,7 +143,7 @@ type ChildTrieParentKeyID struct {
 	data []byte
 }
 
-// Different possible state version.
+// StateVersion represents different possible state version.
 //
 // V0 and V1 uses a same trie implementation, but V1 will write external value node in the trie for
 // value with size greater than 32 bytes.

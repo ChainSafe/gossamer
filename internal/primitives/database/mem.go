@@ -88,7 +88,7 @@ func (mdb *MemDB[H]) Commit(transaction Transaction[H]) error {
 	return nil
 }
 
-// Retrieve the value previously stored against key or nil if key is not currently in the database.
+// Get retrieves the value previously stored against key or nil if key is not currently in the database.
 func (mdb *MemDB[H]) Get(col ColumnID, key []byte) []byte {
 	mdb.RLock()
 	defer mdb.RUnlock()
@@ -103,7 +103,7 @@ func (mdb *MemDB[H]) Get(col ColumnID, key []byte) []byte {
 	return nil
 }
 
-// Check if the value exists in the database without retrieving it.
+// Contains checks if the value exists in the database without retrieving it.
 func (mdb *MemDB[H]) Contains(col ColumnID, key []byte) bool {
 	return mdb.Get(col, key) != nil
 }

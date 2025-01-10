@@ -58,7 +58,7 @@ func (nc nodeCached[H]) ByteSize() uint {
 	return nc.Node.ByteSize()
 }
 
-// The local trie cache.
+// LocalTrieCache is a local trie cache.
 //
 // This cache should be used per state instance created by the backend. One state instance is
 // referring to the state of one block. It will cache all the accesses that are done to the state
@@ -137,7 +137,7 @@ func (ltc *LocalTrieCache[H]) Commit() {
 	sharedInner.valueCache.Update(added, accessed)
 }
 
-// Returns a [triedb.TrieDB] compatible [triedb.TrieCache].
+// TrieCache returns a [triedb.TrieDB] compatible [triedb.TrieCache].
 //
 // The given storageRoot needs to be the storage root of the trie this cache is used for.
 func (ltc *LocalTrieCache[H]) TrieCache(storageRoot H) (cache *TrieCache[H], unlock func()) {
@@ -162,7 +162,7 @@ func (ltc *LocalTrieCache[H]) TrieCache(storageRoot H) (cache *TrieCache[H], unl
 	}, unlock
 }
 
-// Returns a [triedb.TrieDB] compatible [triedb.TrieCache].
+// TrieCacheMut returns a [triedb.TrieDB] compatible [triedb.TrieCache].
 //
 // After finishing all operations with [triedb.TrieDB] and having obtained
 // the new storage root, [TrieCache.MergeInto] should be called to update this local
@@ -248,7 +248,7 @@ func (fsrvc forStorageRootValueCache[H]) insert(key []byte, value triedb.CachedV
 	fsrvc.localValueCache.Add(vck.ValueCacheKeyComparable(), value)
 }
 
-// The [triedb.TrieCache] implementation.
+// TrieCache is a [triedb.TrieCache] implementation.
 //
 // If this instance was created using [LocalTrieCache.TrieCacheMut], it needs to
 // be merged back into the [LocalTrieCache] with [LocalTrieCache.MergeInto] after all operations are
@@ -259,7 +259,7 @@ type TrieCache[H runtime.Hash] struct {
 	valueCache  valueCache[H]
 }
 
-// Merge this cache into the given [LocalTrieCache].
+// MergeInto merges this cache into the given [LocalTrieCache].
 //
 // This function is only required to be called when this instance was created through
 // [LocalTrieCache.TrieCacheMut], otherwise this method is a no-op. The given

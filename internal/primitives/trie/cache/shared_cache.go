@@ -98,7 +98,8 @@ func (snc *sharedNodeCache[H]) Reset() {
 	snc.lru.Purge()
 }
 
-// The comparable type that identifies this instance of storage root and storage key, used in [sharedValueCache] LRU.
+// ValueCacheKeyComparable is the comparable type that identifies this instance of storage root and storage key, used
+// in sharedValueCache LRU.
 type ValueCacheKeyComparable[H runtime.Hash] struct {
 	StorageRoot H
 	StorageKey  string
@@ -111,7 +112,7 @@ func (vckh ValueCacheKeyComparable[H]) ValueCacheKey() ValueCacheKey[H] {
 	}
 }
 
-// The key type that is being used to address a [CachedValue].
+// ValueCacheKey is the key type that is being used to address a [CachedValue].
 type ValueCacheKey[H runtime.Hash] struct {
 	// The storage root of the trie this key belongs to.
 	StorageRoot H
@@ -134,7 +135,7 @@ type sharedValueCache[H runtime.Hash] struct {
 	itemsEvicted uint
 }
 
-// Constructor for [sharedValueCache].
+// Constructor for sharedValueCache.
 func newSharedValueCache[H runtime.Hash](size uint) *sharedValueCache[H] {
 	var svc sharedValueCache[H]
 	itemsEvictedPtr := &svc.itemsEvicted
@@ -227,7 +228,7 @@ type sharedTrieCacheInner[H runtime.Hash] struct {
 	valueCache *sharedValueCache[H]
 }
 
-// The shared trie cache.
+// SharedTrieCache is a shared trie cache.
 //
 // It should be instantiated once per node. It will hold the trie nodes and values of all
 // operations to the state. To not use all available memory it will ensure to stay in the
@@ -239,7 +240,7 @@ type SharedTrieCache[H runtime.Hash] struct {
 	mtx   sync.RWMutex
 }
 
-// Create a new [SharedTrieCache].
+// NewSharedTrieCache creates a new [SharedTrieCache].
 func NewSharedTrieCache[H runtime.Hash](size uint) *SharedTrieCache[H] {
 	totalBudget := size
 
@@ -255,7 +256,7 @@ func NewSharedTrieCache[H runtime.Hash](size uint) *SharedTrieCache[H] {
 	}
 }
 
-// Create a new [LocalTrieCache] instance from this shared cache.
+// LocalTrieCache creates a new [LocalTrieCache] instance from this shared cache.
 func (stc *SharedTrieCache[H]) LocalTrieCache() LocalTrieCache[H] {
 	h := hasher[H]{maphash.NewHasher[H]()}
 	nodeCache, err := costlru.New(localNodeCacheMaxSize, h.Hash, func(hash H, node nodeCached[H]) uint32 {
@@ -309,7 +310,7 @@ func (stc *SharedTrieCache[H]) Unlock() {
 	stc.mtx.Unlock()
 }
 
-// Get a copy of the node for key.
+// PeekNode gets a copy of the node for key.
 //
 // This will temporarily lock the shared cache for reading.
 //
@@ -324,7 +325,7 @@ func (stc *SharedTrieCache[H]) PeekNode(key H) triedb.CachedNode[H] {
 	return nil
 }
 
-// Get a copy of the [triedb.CachedValue] for key.
+// PeekValueByHash gets a copy of the [triedb.CachedValue] for key.
 //
 // This will temporarily lock the shared cache for reading.
 //
@@ -346,14 +347,14 @@ func (stc *SharedTrieCache[H]) Reset() {
 	stc.ResetValueCache()
 }
 
-// Reset the node cache.
+// ResetNodeCache resets the node cache.
 func (stc *SharedTrieCache[H]) ResetNodeCache() {
 	stc.mtx.Lock()
 	defer stc.mtx.Unlock()
 	stc.inner.nodeCache.Reset()
 }
 
-// Reset the value cache.
+// ResetValueCache resets the value cache.
 func (stc *SharedTrieCache[H]) ResetValueCache() {
 	stc.mtx.Lock()
 	defer stc.mtx.Unlock()

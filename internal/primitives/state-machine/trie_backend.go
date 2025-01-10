@@ -18,9 +18,9 @@ import (
 	triedb "github.com/ChainSafe/gossamer/pkg/trie/triedb"
 )
 
-// A provider of trie caches that are compatible with [triedb.TrieDB].
+// TrieCacheProvider is a provider of trie caches that are compatible with [triedb.TrieDB].
 type TrieCacheProvider[H runtime.Hash, Cache triedb.TrieCache[H]] interface {
-	// Return a [triedb.TrieDB] compatible cache.
+	// TrieCache returns a [triedb.TrieDB] compatible cache.
 	//
 	// The storage_root parameter *must* be the storage root of the trie this cache is used for.
 	//
@@ -28,7 +28,7 @@ type TrieCacheProvider[H runtime.Hash, Cache triedb.TrieCache[H]] interface {
 	// may belong to different tries.
 	TrieCache(storageRoot H) (cache Cache, unlock func())
 
-	// Returns a cache that can be used with a [triedb.TrieDB] where mutations are performed.
+	// TrieCacheMut returns a cache that can be used with a [triedb.TrieDB] where mutations are performed.
 	//
 	// When finished with the operation on the trie, it is required to call [TrieCacheProvider.Merge] to
 	// merge the cached items for the correct storage root.
@@ -46,14 +46,14 @@ type cachedIter[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	iter    rawIter[H, Hasher]
 }
 
-// Patricia trie-based backend. Transaction type is an overlay of changes to commit.
+// TrieBackend is a patricia trie-based backend. Transaction type is an overlay of changes to commit.
 type TrieBackend[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	essence                trieBackendEssence[H, Hasher]
 	nextStorageKeyCache    *cachedIter[H, Hasher]
 	nextStorageKeyCacheMtx sync.Mutex
 }
 
-// Constructor for [TrieBackend].
+// NewTrieBackend is constructor for [TrieBackend].
 func NewTrieBackend[H runtime.Hash, Hasher runtime.Hasher[H]](
 	storage TrieBackendStorage[H],
 	root H,
@@ -65,7 +65,7 @@ func NewTrieBackend[H runtime.Hash, Hasher runtime.Hasher[H]](
 	}
 }
 
-// Wrap the given [TrieBackend].
+// NewWrappedTrieBackend will wrap the given [TrieBackend].
 //
 // This can be used for example if all accesses to the trie should
 // be recorded while some other functionality still uses the non-recording
@@ -85,7 +85,7 @@ func NewWrappedTrieBackend[H runtime.Hash, Hasher runtime.Hasher[H]](
 	)
 }
 
-// Create a backend used for checking the proof.
+// NewProofCheckTrieBackend creates a backend used for checking the proof.
 //
 // proof and root must match, i.e. root must be the correct root of proof nodes.
 func NewProofCheckTrieBackend[H runtime.Hash, Hasher runtime.Hasher[H]](

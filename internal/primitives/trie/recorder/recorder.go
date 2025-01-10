@@ -63,14 +63,14 @@ type Recorder[H runtime.Hash] struct {
 	encodedSizeEstimationMtx sync.Mutex
 }
 
-// Constructor for [Recorder].
+// NewRecorder is constructor for [Recorder].
 func NewRecorder[H runtime.Hash]() *Recorder[H] {
 	return &Recorder[H]{
 		inner: newRecorderInner[H](),
 	}
 }
 
-// Returns the recorder as an implementation of [triedb.TrieRecorder].
+// TrieRecorder returns the recorder as an implementation of [triedb.TrieRecorder].
 //
 // The storage root supplied is of the trie for which accesses are recorded.
 // This is important when recording access to different tries at once (like top and child tries).
@@ -83,7 +83,7 @@ func (r *Recorder[H]) TrieRecorder(storageRoot H) triedb.TrieRecorder {
 	}
 }
 
-// Drain the recording into a [StorageProof].
+// DrainStorageProof drains the recording into a [StorageProof].
 //
 // While a recorder can be cloned, all share the same internal state. After calling this
 // function, all other instances will have their internal state reset as well.
@@ -110,7 +110,7 @@ func (r *Recorder[H]) storageProof() trie.StorageProof {
 	return trie.NewStorageProof(values)
 }
 
-// Convert the recording to a [StorageProof].
+// StorageProof converts the recording to a [StorageProof].
 //
 // In contrast to [Recorder.DrainStorageProof] this doesn't consume and clear the
 // recordings.
@@ -122,7 +122,7 @@ func (r *Recorder[H]) StorageProof() trie.StorageProof {
 	return r.storageProof()
 }
 
-// Returns the estimated encoded size of the proof.
+// EstimateEncodedSize returns the estimated encoded size of the proof.
 //
 // The estimation is based on all the nodes that were accessed until now while
 // accessing the trie.
@@ -139,14 +139,14 @@ func (r *Recorder[H]) Reset() {
 	r.inner = newRecorderInner[H]()
 }
 
-// Start a new transaction.
+// StartTransaction starts a new transaction.
 func (r *Recorder[H]) StartTransaction() {
 	r.innerMtx.Lock()
 	defer r.innerMtx.Unlock()
 	r.inner.transactions = append(r.inner.transactions, newTransaction[H]())
 }
 
-// Rollback the latest transaction.
+// RollBackTransaction will rollback the latest transaction.
 //
 // Returns an error if there wasn't any active transaction.
 func (r *Recorder[H]) RollBackTransaction() error {
@@ -199,7 +199,7 @@ func (r *Recorder[H]) RollBackTransaction() error {
 	return nil
 }
 
-// Commit the latest transaction.
+// CommitTransaction commits the latest transaction.
 //
 // Returns an error if there wasn't any active transaction.
 func (r *Recorder[H]) CommitTransaction() error {

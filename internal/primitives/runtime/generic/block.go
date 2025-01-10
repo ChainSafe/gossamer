@@ -10,7 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 )
 
-// Something to identify a block.
+// BlockID is used to identify a block.
 type BlockID interface {
 	isBlockID()
 }
