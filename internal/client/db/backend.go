@@ -392,7 +392,8 @@ type Backend[
 // Create a new instance of database backend.
 //
 // dbConfig is of type [DatabaseConfig] and contains both state and block history pruning settings.
-// canonicalizationDelay represents the number of blocks it waits to canonicalize the block and initiate pruning based on canonicalization.
+// canonicalizationDelay represents the number of blocks it waits to canonicalize the block and initiate
+// pruning based on canonicalization.
 func NewBackend[
 	H runtime.Hash,
 	N runtime.Number,
