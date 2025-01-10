@@ -1410,7 +1410,7 @@ func (b *Backend[H, Hasher, N, E, Header]) AppendJustification(hash H, justifica
 	number := (*header).Number()
 
 	// Check if the block is finalized first.
-	isDescendantOf := utils.IsDescendantOf[H, N, Header](b.blockchain, nil)
+	isDescendantOf := utils.IsDescendantOf(b.blockchain, nil)
 	lastFinalized, err := b.blockchain.LastFinalized()
 	if err != nil {
 		return err

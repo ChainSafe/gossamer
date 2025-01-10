@@ -14,7 +14,7 @@ import (
 )
 
 // State of a new block.
-type NewBlockState uint
+type NewBlockState uint8
 
 const (
 	// Normal block.

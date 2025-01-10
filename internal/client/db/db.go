@@ -344,10 +344,7 @@ func (bdb *blockchainDB[H, N, E, Header]) Header(hash H) (*Header, error) {
 	if err != nil {
 		return nil, err
 	}
-	if header != nil {
-		return header, nil
-	}
-	return nil, nil
+	return header, nil
 }
 
 func (bdb *blockchainDB[H, N, E, Header]) Info() blockchain.Info[H, N] {

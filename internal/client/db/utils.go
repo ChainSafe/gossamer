@@ -20,6 +20,7 @@ import (
 )
 
 // Number of columns in the db. Must be the same for both full && light dbs.
+// There are currently 13 columns in columns package.
 const NumColumns uint32 = 13
 
 // Meta column. The set of keys in the column is shared by full && light storages.
