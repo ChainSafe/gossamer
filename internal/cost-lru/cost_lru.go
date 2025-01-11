@@ -19,13 +19,13 @@ type LRU[K comparable, V any] struct {
 	*freelru.LRU[K, V]
 }
 
-// Costructor for [LRU].
+// New is constructor for [LRU].
 func New[K comparable, V any](
 	maxCost uint, hash freelru.HashKeyCallback[K], costFunc func(K, V) uint32,
 ) (*LRU[K, V], error) {
-	var capacity = uint32(math.MaxUint32)
-	if maxCost < math.MaxUint32 {
-		capacity = uint32(maxCost)
+	var capacity = uint32(math.MaxUint32) / 8
+	if (maxCost / 8) < uint(capacity) {
+		capacity = uint32(maxCost / 8)
 	}
 	lru, err := freelru.New[K, V](capacity, hash)
 	if err != nil {
@@ -58,7 +58,7 @@ func (l *LRU[K, V]) costRemove(key K, value V) (cost uint32, removed bool, canAd
 	for uint(cost)+l.currentCost > l.maxCost {
 		_, _, removed = l.LRU.RemoveOldest()
 		if !removed {
-			panic("huh?")
+			panic("should be removed")
 		}
 	}
 	return cost, removed, true

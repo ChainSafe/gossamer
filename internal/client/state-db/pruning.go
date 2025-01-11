@@ -4,8 +4,6 @@
 package statedb
 
 import (
-	"log"
-
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/gammazero/deque"
@@ -42,7 +40,7 @@ func newPruningWindow[BlockHash Hash, Key Hash](
 		return pruningWindow[BlockHash, Key]{}, err
 	}
 	if val != nil {
-		err = scale.Unmarshal(*val, &base)
+		err = scale.Unmarshal(val, &base)
 		if err != nil {
 			return pruningWindow[BlockHash, Key]{}, err
 		}
@@ -50,8 +48,8 @@ func newPruningWindow[BlockHash Hash, Key Hash](
 	}
 
 	if windowSize > 1000 {
-		log.Printf(
-			"TRACE: Large pruning window of %d detected! THIS CAN LEAD TO HIGH MEMORY USAGE AND CRASHES. Reduce the pruning window.", //nolint:lll
+		logger.Tracef("Large pruning window of %d detected! "+
+			"THIS CAN LEAD TO HIGH MEMORY USAGE AND CRASHES. Reduce the pruning window.",
 			windowSize)
 	}
 
@@ -89,14 +87,14 @@ func (rw *pruningWindow[BlockHash, Key]) HaveBlock(hash BlockHash, number uint64
 	return rw.queue.HaveBlock(hash, uint(number-rw.base))
 }
 
-// Prune next block. Expects at least one block in the window. Adds changes to `commit`.
+// Prune next block. Expects at least one block in the window. Adds changes to commit.
 func (rw *pruningWindow[BlockHash, Key]) PruneOne(commit *CommitSet[Key]) error {
 	pruned, err := rw.queue.PopFront(rw.base)
 	if err != nil {
 		return err
 	}
 	if pruned != nil {
-		log.Printf("TRACE: Pruning %v (%v deleted)", pruned.hash, len(pruned.deleted))
+		logger.Tracef("Pruning %v (%v deleted)", pruned.hash, len(pruned.deleted))
 		index := rw.base
 		commit.Data.Deleted = append(commit.Data.Deleted, maps.Keys(pruned.deleted)...)
 		commit.Meta.Inserted = append(commit.Meta.Inserted, HashDBValue[[]byte]{
@@ -107,12 +105,12 @@ func (rw *pruningWindow[BlockHash, Key]) PruneOne(commit *CommitSet[Key]) error 
 		rw.base += 1
 		return nil
 	} else {
-		log.Printf("TRACE: Trying to prune when there's nothing to prune")
+		logger.Tracef("Trying to prune when there's nothing to prune")
 		return ErrBlockUnavailable
 	}
 }
 
-// Add a change set to the window. Creates a journal record and pushes it to `commit`
+// Add a change set to the window. Creates a journal record and pushes it to commit
 func (rw *pruningWindow[BlockHash, Key]) NoteCanonical(hash BlockHash, number uint64, commit *CommitSet[Key]) error {
 	if rw.base == 0 && rw.isEmpty() && number > 0 {
 		// This branch is taken if the node imports the target block of a warp sync.
@@ -126,8 +124,7 @@ func (rw *pruningWindow[BlockHash, Key]) NoteCanonical(hash BlockHash, number ui
 	} else if (rw.base + rw.WindowSize()) != number {
 		return ErrInvalidBlockNumber
 	}
-	log.Printf(
-		"TRACE: Adding to pruning window: %v (%v inserted, %v deleted)",
+	logger.Tracef("Adding to pruning window: %v (%v inserted, %v deleted)",
 		hash, len(commit.Data.Inserted), len(commit.Data.Deleted),
 	)
 	var inserted []Key
@@ -158,7 +155,7 @@ type deathRowQueue[BlockHash Hash, Key Hash] interface {
 type inMemDeathRowQueue[BlockHash Hash, Key Hash] struct {
 	// A queue of keys that should be deleted for each block in the pruning window.
 	deathRows deque.Deque[deathRow[BlockHash, Key]]
-	// An index that maps each key from `death_rows` to block number.
+	// An index that maps each key from deathRows to block number.
 	deathIndex map[Key]uint64
 }
 
@@ -167,7 +164,7 @@ func newInMemDeathRowQueue[BlockHash Hash, Key Hash](db MetaDB, base uint64) (de
 	queue := &inMemDeathRowQueue[BlockHash, Key]{
 		deathIndex: make(map[Key]uint64),
 	}
-	log.Printf("TRACE: Reading pruning journal for the memory queue. Pending #%v\n", base)
+	logger.Tracef("Reading pruning journal for the memory queue. Pending #%v", base)
 	for {
 		journalKey := toPruningJournalKey(block)
 		val, err := db.GetMeta(journalKey)
@@ -176,12 +173,11 @@ func newInMemDeathRowQueue[BlockHash Hash, Key Hash](db MetaDB, base uint64) (de
 		}
 		if val != nil {
 			var record pruningJournalRecord[BlockHash, Key]
-			err := scale.Unmarshal(*val, &record)
+			err := scale.Unmarshal(val, &record)
 			if err != nil {
 				return nil, err
 			}
-			log.Printf(
-				"TRACE: Pruning journal entry %v (%v inserted, %v deleted)",
+			logger.Tracef("Pruning journal entry %v (%v inserted, %v deleted)",
 				block, len(record.Inserted), len(record.Deleted))
 			queue.Import(base, block, record)
 		} else {
@@ -201,17 +197,17 @@ func (drqim *inMemDeathRowQueue[BlockHash, Key]) Import(
 		inserted = journalRecord.Inserted
 		deleted  = journalRecord.Deleted
 	)
-	log.Printf("TRACE: Importing %v, base=%v\n", num, base)
+	logger.Tracef("Importing %v, base=%v", num, base)
 	// remove all re-inserted keys from death rows
 	for _, k := range inserted {
 		block, ok := drqim.deathIndex[k]
 		if ok {
 			delete(drqim.deathIndex, k)
-			delete(drqim.deathRows.At(int(block-base)).deleted, k) //nolint:gosec
+			delete(drqim.deathRows.At(int(block-base)).deleted, k)
 		}
 	}
 	// add new keys
-	importedBlock := base + uint64(drqim.deathRows.Len()) //nolint:gosec
+	importedBlock := base + uint64(drqim.deathRows.Len())
 	deletedMap := make(map[Key]any)
 	for _, k := range deleted {
 		drqim.deathIndex[k] = importedBlock
@@ -220,7 +216,7 @@ func (drqim *inMemDeathRowQueue[BlockHash, Key]) Import(
 	drqim.deathRows.PushBack(deathRow[BlockHash, Key]{hash, deletedMap})
 }
 
-// Pop out one block from the front of the queue, `base` is the block number
+// Pop out one block from the front of the queue, base is the block number
 // of the first block of the queue
 func (drqim *inMemDeathRowQueue[BlockHash, Key]) PopFront(base uint64) (*deathRow[BlockHash, Key], error) {
 	if drqim.deathRows.Len() == 0 {
@@ -233,10 +229,10 @@ func (drqim *inMemDeathRowQueue[BlockHash, Key]) PopFront(base uint64) (*deathRo
 	return &row, nil
 }
 
-// Check if the block at the given `index` of the queue exist
-// it is the caller's responsibility to ensure `index` won't be out of bounds
+// Check if the block at the given index of the queue exist
+// it is the caller's responsibility to ensure index won't be out of bounds
 func (drqim *inMemDeathRowQueue[BlockHash, Key]) HaveBlock(hash BlockHash, index uint) haveBlock {
-	if drqim.deathRows.At(int(index)).hash == hash { //nolint:gosec
+	if drqim.deathRows.At(int(index)).hash == hash {
 		return haveBlockYes
 	}
 	return haveBlockNo
@@ -244,7 +240,7 @@ func (drqim *inMemDeathRowQueue[BlockHash, Key]) HaveBlock(hash BlockHash, index
 
 // Return the number of block in the pruning window
 func (drqim *inMemDeathRowQueue[BlockHash, Key]) Len(base uint64) uint64 {
-	return uint64(drqim.deathRows.Len()) //nolint:gosec
+	return uint64(drqim.deathRows.Len())
 }
 
 // Get the hash of the next pruning block

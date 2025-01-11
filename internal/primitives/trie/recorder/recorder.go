@@ -5,14 +5,17 @@ package recorder
 
 import (
 	"fmt"
-	"log"
 	"sync"
+
+	"github.com/ChainSafe/gossamer/internal/log"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 )
+
+var logger = log.NewFromGlobal(log.AddContext("pkg", "primitives/trie/recorder"))
 
 // Stores all the information per transaction.
 type transaction[H comparable] struct {
@@ -60,14 +63,14 @@ type Recorder[H runtime.Hash] struct {
 	encodedSizeEstimationMtx sync.Mutex
 }
 
-// Constructor for [Recorder].
+// NewRecorder is constructor for [Recorder].
 func NewRecorder[H runtime.Hash]() *Recorder[H] {
 	return &Recorder[H]{
 		inner: newRecorderInner[H](),
 	}
 }
 
-// Returns the recorder as an implementation of [triedb.TrieRecorder].
+// TrieRecorder returns the recorder as an implementation of [triedb.TrieRecorder].
 //
 // The storage root supplied is of the trie for which accesses are recorded.
 // This is important when recording access to different tries at once (like top and child tries).
@@ -80,7 +83,7 @@ func (r *Recorder[H]) TrieRecorder(storageRoot H) triedb.TrieRecorder {
 	}
 }
 
-// Drain the recording into a [StorageProof].
+// DrainStorageProof drains the recording into a [StorageProof].
 //
 // While a recorder can be cloned, all share the same internal state. After calling this
 // function, all other instances will have their internal state reset as well.
@@ -107,7 +110,7 @@ func (r *Recorder[H]) storageProof() trie.StorageProof {
 	return trie.NewStorageProof(values)
 }
 
-// Convert the recording to a [StorageProof].
+// StorageProof converts the recording to a [StorageProof].
 //
 // In contrast to [Recorder.DrainStorageProof] this doesn't consume and clear the
 // recordings.
@@ -119,7 +122,7 @@ func (r *Recorder[H]) StorageProof() trie.StorageProof {
 	return r.storageProof()
 }
 
-// Returns the estimated encoded size of the proof.
+// EstimateEncodedSize returns the estimated encoded size of the proof.
 //
 // The estimation is based on all the nodes that were accessed until now while
 // accessing the trie.
@@ -136,14 +139,14 @@ func (r *Recorder[H]) Reset() {
 	r.inner = newRecorderInner[H]()
 }
 
-// Start a new transaction.
+// StartTransaction starts a new transaction.
 func (r *Recorder[H]) StartTransaction() {
 	r.innerMtx.Lock()
 	defer r.innerMtx.Unlock()
 	r.inner.transactions = append(r.inner.transactions, newTransaction[H]())
 }
 
-// Rollback the latest transaction.
+// RollBackTransaction will rollback the latest transaction.
 //
 // Returns an error if there wasn't any active transaction.
 func (r *Recorder[H]) RollBackTransaction() error {
@@ -196,7 +199,7 @@ func (r *Recorder[H]) RollBackTransaction() error {
 	return nil
 }
 
-// Commit the latest transaction.
+// CommitTransaction commits the latest transaction.
 //
 // Returns an error if there wasn't any active transaction.
 func (r *Recorder[H]) CommitTransaction() error {
@@ -294,7 +297,7 @@ func (tr *trieRecorder[H]) Record(access triedb.TrieAccess) {
 	var encodedSizeUpdate uint
 	switch access := access.(type) {
 	case triedb.CachedNodeAccess[H]:
-		log.Printf("TRACE: Recording node: %v", access.Hash)
+		logger.Tracef("Recording node: %v", access.Hash)
 		_, ok := tr.inner.accessedNodes[access.Hash]
 		if !ok {
 			node := access.Node.Encoded()
@@ -308,7 +311,7 @@ func (tr *trieRecorder[H]) Record(access triedb.TrieAccess) {
 			tr.inner.accessedNodes[access.Hash] = node
 		}
 	case triedb.EncodedNodeAccess[H]:
-		log.Printf("TRACE: Recording node: %v", access.Hash)
+		logger.Tracef("Recording node: %v", access.Hash)
 		_, ok := tr.inner.accessedNodes[access.Hash]
 		if !ok {
 			node := access.EncodedNode
@@ -322,7 +325,7 @@ func (tr *trieRecorder[H]) Record(access triedb.TrieAccess) {
 			tr.inner.accessedNodes[access.Hash] = node
 		}
 	case triedb.ValueAccess[H]:
-		log.Printf("TRACE: Recording value {hash:%v value:%v}", access.Hash, access.FullKey)
+		logger.Tracef("Recording value {hash:%v value:%v}", access.Hash, access.FullKey)
 		_, ok := tr.inner.accessedNodes[access.Hash]
 		if !ok {
 			value := access.Value
@@ -336,18 +339,18 @@ func (tr *trieRecorder[H]) Record(access triedb.TrieAccess) {
 		}
 		tr.updateRecordedKeys(access.FullKey, triedb.RecordedValue)
 	case triedb.HashAccess:
-		log.Printf("TRACE: Recorded hash access for key: %s", access.FullKey)
+		logger.Tracef("Recorded hash access for key: %s", access.FullKey)
 		// We don't need to update the encodedSizeUpdate as the hash was already
 		// accounted for by the recorded node that holds the hash.
 		tr.updateRecordedKeys(access.FullKey, triedb.RecordedHash)
 	case triedb.NonExistingNodeAccess:
-		log.Printf("TRACE: Recorded non-existing value access for key for key: %s", access.FullKey)
+		logger.Tracef("Recorded non-existing value access for key for key: %s", access.FullKey)
 		// Non-existing access means we recorded all trie nodes up to the value.
 		// Not the actual value, as it doesn't exist, but all trie nodes to know
 		// that the value doesn't exist in the trie.
 		tr.updateRecordedKeys(access.FullKey, triedb.RecordedValue)
 	case triedb.InlineValueAccess:
-		log.Printf("TRACE: Recorded inline value access for key: %s", access.FullKey)
+		logger.Tracef("Recorded inline value access for key: %s", access.FullKey)
 		// A value was accessed that is stored inline a node and we recorded all trie nodes
 		// to access this value.
 		tr.updateRecordedKeys(access.FullKey, triedb.RecordedValue)

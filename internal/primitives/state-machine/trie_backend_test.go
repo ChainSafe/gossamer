@@ -856,10 +856,10 @@ func TestTrieBackend(t *testing.T) {
 		}
 	})
 
-	// Test to ensure that recording the same `key` for different tries works as expected.
+	// Test to ensure that recording the same key for different tries works as expected.
 	//
 	// Each trie stores a different value under the same key. The values are big enough to
-	// be not inlined with `StateVersion::V1`, this is important to test the expected behavior. The
+	// be not inlined with StateVersionV1, this is important to test the expected behavior. The
 	// trie recorder is expected to differentiate key access based on the different storage roots
 	// of the tries.
 	t.Run("recording_same_key_access_in_different_tries", func(t *testing.T) {

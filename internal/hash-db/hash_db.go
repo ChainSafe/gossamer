@@ -5,8 +5,7 @@ package hashdb
 
 import "golang.org/x/exp/constraints"
 
-// A trie node prefix, it is the nibble path from the trie root
-// to the trie node.
+// Prefix is a trie node prefix, it is the nibble path from the trie root to the trie node.
 // For a node containing no partial key value it is the full key.
 // For a value node or node containing a partial key, it is the full key minus its node partial
 // nibbles (the node key can be split into prefix and node partial).
@@ -18,7 +17,7 @@ type Prefix struct {
 	Padded *byte
 }
 
-// An empty prefix constant.
+// EmptyPrefix is the empty prefix constant.
 // Can be use when the prefix is not used internally or for root nodes.
 var EmptyPrefix = Prefix{}
 

@@ -12,26 +12,26 @@ import (
 	triedb "github.com/ChainSafe/gossamer/pkg/trie/triedb"
 )
 
-// Reexport from [memorydb.MemoryDB] where supplied [memorydb.KeyFunction] is [memorydb.PrefixedKey] for prefixing
-// keys internally (avoiding key conflict for non random keys).
+// PrefixedMemoryDB is reexport from [memorydb.MemoryDB] where supplied [memorydb.KeyFunction] is [memorydb.PrefixedKey]
+// for prefixing keys internally (avoiding key conflict for non random keys).
 type PrefixedMemoryDB[Hash runtime.Hash, Hasher hashdb.Hasher[Hash]] struct {
 	memorydb.MemoryDB[Hash, Hasher, string, memorydb.PrefixedKey[Hash]]
 }
 
-// Constructor for [PrefixedMemoryDB]
+// NewPrefixedMemoryDB is constructor for [PrefixedMemoryDB]
 func NewPrefixedMemoryDB[Hash runtime.Hash, Hasher hashdb.Hasher[Hash]]() *PrefixedMemoryDB[Hash, Hasher] {
 	return &PrefixedMemoryDB[Hash, Hasher]{
 		memorydb.NewMemoryDB[Hash, Hasher, string, memorydb.PrefixedKey[Hash]]([]byte{0}),
 	}
 }
 
-// Reexport from [memorydb.MemoryDB] where supplied [memorydb.KeyFunction] is [memorydb.HashKey] which is a noop
-// operation on the supplied prefix, and only uses the hash.
+// MemoryDB is reexport from [memorydb.MemoryDB] where supplied [memorydb.KeyFunction] is [memorydb.HashKey] which is
+// a noop operation on the supplied prefix, and only uses the hash.
 type MemoryDB[Hash runtime.Hash, Hasher runtime.Hasher[Hash]] struct {
 	memorydb.MemoryDB[Hash, Hasher, Hash, memorydb.HashKey[Hash]]
 }
 
-// Constructor for [MemoryDB].
+// NewMemoryDB is constructor for [MemoryDB].
 func NewMemoryDB[Hash runtime.Hash, Hasher runtime.Hasher[Hash]]() *MemoryDB[Hash, Hasher] {
 	return &MemoryDB[Hash, Hasher]{
 		MemoryDB: memorydb.NewMemoryDB[Hash, Hasher, Hash, memorydb.HashKey[Hash]]([]byte{0}),
@@ -44,7 +44,7 @@ type KeyValue struct {
 	Value []byte
 }
 
-// Determine a trie root given a hash DB and delta values.
+// DeltaTrieRoot determines a trie root given a hash DB and delta values.
 func DeltaTrieRoot[H runtime.Hash, Hasher runtime.Hasher[H]](
 	db hashdb.HashDB[H],
 	root H,
@@ -85,7 +85,7 @@ func DeltaTrieRoot[H runtime.Hash, Hasher runtime.Hasher[H]](
 	return hash, err
 }
 
-// Read a value from the trie.
+// ReadTrieValue reads a value from the trie.
 func ReadTrieValue[H runtime.Hash, Hasher runtime.Hasher[H]](
 	db hashdb.HashDB[H],
 	root H,
@@ -106,7 +106,7 @@ func ReadTrieValue[H runtime.Hash, Hasher runtime.Hasher[H]](
 	return nil, nil
 }
 
-// Read a value from the trie with given [triedb.Query].
+// ReadTrieValueWith reads a value from the trie with given [triedb.Query].
 func ReadTrieValueWith[H runtime.Hash, Hasher runtime.Hasher[H]](
 	db hashdb.HashDB[H],
 	root H,
@@ -128,7 +128,7 @@ func ReadTrieValueWith[H runtime.Hash, Hasher runtime.Hasher[H]](
 	return nil, nil
 }
 
-// Read the [triedb.MerkleValue] of the node that is the closest descendant for
+// ReadTrieFirstDescendantValue reads the [triedb.MerkleValue] of the node that is the closest descendant for
 // the provided key.
 func ReadTrieFirstDescendantValue[H runtime.Hash, Hasher runtime.Hasher[H]](
 	db hashdb.HashDB[H],
@@ -170,7 +170,7 @@ func ChildDeltaTrieRoot[H runtime.Hash, Hasher runtime.Hasher[H]](
 	return DeltaTrieRoot[H, Hasher](ksdb, root, delta, recorder, cache, stateVersion)
 }
 
-// Read a value from the child trie.
+// ReadChildTrieValue reads a value from the child trie.
 func ReadChildTrieValue[H runtime.Hash, Hasher runtime.Hasher[H]](
 	keyspace []byte,
 	db hashdb.HashDB[H],
@@ -194,7 +194,7 @@ func ReadChildTrieValue[H runtime.Hash, Hasher runtime.Hasher[H]](
 	return nil, nil
 }
 
-// Read a hash from the child trie.
+// ReadChildTrieHash reads a hash from the child trie.
 func ReadChildTrieHash[H runtime.Hash, Hasher runtime.Hasher[H]](
 	keyspace []byte,
 	db hashdb.HashDB[H],
@@ -211,7 +211,7 @@ func ReadChildTrieHash[H runtime.Hash, Hasher runtime.Hasher[H]](
 	return trieDB.GetHash(key)
 }
 
-// Read the [triedb.MerkleValue] of the node that is the closest descendant for
+// ReadChildTrieFirstDescendantValue reads the [triedb.MerkleValue] of the node that is the closest descendant for
 // the provided child key.
 func ReadChildTrieFirstDescendantValue[H runtime.Hash, Hasher runtime.Hasher[H]](
 	keyspace []byte,
@@ -236,7 +236,7 @@ type KeyspacedDB[Hash comparable] struct {
 	keySpace []byte
 }
 
-// Constructor for [KeyspacedDB]
+// NewKeyspacedDB is constructor for [KeyspacedDB]
 func NewKeyspacedDB[Hash comparable](db hashdb.HashDB[Hash], ks []byte) *KeyspacedDB[Hash] {
 	return &KeyspacedDB[Hash]{
 		db:       db,
