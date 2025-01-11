@@ -26,12 +26,12 @@ func NewTestDB(inserted []uint64) TestDB {
 	}
 }
 
-func (tdb TestDB) GetMeta(key []byte) (*DBValue, error) {
+func (tdb TestDB) GetMeta(key []byte) (DBValue, error) {
 	val, ok := tdb.Meta[string(key)]
 	if !ok {
 		return nil, nil
 	}
-	return &val, nil
+	return val, nil
 }
 
 func (tdb *TestDB) Commit(commitSet CommitSet[hash.H256]) {
@@ -164,7 +164,7 @@ func TestStateDB_BlockRecordUnavailable(t *testing.T) {
 	assert.Equal(t, IsPrunedPruned, stateDB.IsPruned(hash.NewH256FromLowUint64BigEndian(3), 3))
 
 	// canonicalize block 5 but not commit it to db, block 4 is not pruned due to it is not
-	// commit to db yet (unavailable), return `MaybePruned` here because `apply_pending` is not
+	// commit to db yet (unavailable), return MaybePruned here because apply_pending is not
 	// called and block 3 is still in cache
 	c2, err := stateDB.CanonicalizeBlock(hash.NewH256FromLowUint64BigEndian(5))
 	assert.NoError(t, err)

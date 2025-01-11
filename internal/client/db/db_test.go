@@ -22,12 +22,13 @@ func (noopExtrinsic) IsSigned() *bool {
 
 // Check for interface fulfilment
 var (
-	_ blockchain.HeaderBackend[hash.H256, uint] = &blockchainDB[
+	_ blockchain.HeaderBackend[hash.H256, uint, *generic.Header[uint, hash.H256, runtime.BlakeTwo256]] = &blockchainDB[
 		hash.H256, uint, noopExtrinsic, *generic.Header[uint, hash.H256, runtime.BlakeTwo256]]{}
 	_ blockchain.HeaderMetadata[hash.H256, uint] = &blockchainDB[
 		hash.H256, uint, noopExtrinsic, *generic.Header[uint, hash.H256, runtime.BlakeTwo256]]{}
-	_ blockchain.Backend[hash.H256, uint] = &blockchainDB[
-		hash.H256, uint, noopExtrinsic, *generic.Header[uint, hash.H256, runtime.BlakeTwo256]]{}
+	_ blockchain.Backend[
+		hash.H256, uint, *generic.Header[uint, hash.H256, runtime.BlakeTwo256], noopExtrinsic,
+	] = &blockchainDB[hash.H256, uint, noopExtrinsic, *generic.Header[uint, hash.H256, runtime.BlakeTwo256]]{}
 )
 
 func TestNewBlockchainDB(t *testing.T) {
@@ -140,7 +141,7 @@ func TestBlockchainDB_insertPersistedJustificationsIfPinned(t *testing.T) {
 	db.insertPersistedJustificationsIfPinned(someHash)
 	assert.False(t, db.pinnedBlocksCache.Contains(someHash))
 
-	// nothing in the db, but will pin `runtime.Justifications(nil)`
+	// nothing in the db, but will pin runtime.Justifications(nil)
 	db.pinnedBlocksCache.Pin(someHash)
 	err = db.insertPersistedJustificationsIfPinned(someHash)
 	assert.NoError(t, err)
@@ -163,7 +164,7 @@ func TestBlockchainDB_insertPersistedBodyIfPinned(t *testing.T) {
 	db.insertPersistedBodyIfPinned(someHash)
 	assert.False(t, db.pinnedBlocksCache.Contains(someHash))
 
-	// nothing in the db, but will pin `[]runtime.Extrinsic(nil)`
+	// nothing in the db, but will pin []runtime.Extrinsic(nil)
 	db.pinnedBlocksCache.Pin(someHash)
 	err = db.insertPersistedBodyIfPinned(someHash)
 	assert.NoError(t, err)

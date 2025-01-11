@@ -13,7 +13,7 @@ import (
 
 // Functionality for reading and storing children hashes from db.
 
-// Returns the hashes of the children blocks of the block with `parentHash`.
+// Returns the hashes of the children blocks of the block with parentHash.
 func readChildren[H comparable](
 	db database.Database[hash.H256], column database.ColumnID, prefix []byte, parentHash H,
 ) ([]H, error) {
@@ -28,13 +28,13 @@ func readChildren[H comparable](
 	var children []H
 	err := scale.Unmarshal(rawVal, &children)
 	if err != nil {
-		return nil, fmt.Errorf("Error decoding children: %w", err)
+		return nil, fmt.Errorf("error decoding children: %w", err)
 	}
 
 	return children, nil
 }
 
-// Insert the key-value pair (`parentHash`, `childrenHashes`) in the transaction.
+// Inserts parentHash and childrenHashes in the transaction.
 // Any existing value is overwritten upon write.
 func writeChildren[H comparable](
 	tx *database.Transaction[hash.H256], column database.ColumnID, prefix []byte, parentHash H, childrenHashes []H,
@@ -44,7 +44,7 @@ func writeChildren[H comparable](
 	tx.Set(column, key, scale.MustMarshal(childrenHashes))
 }
 
-// Prepare transaction to remove the children of `parent_hash`.
+// Prepare transaction to remove the children of parentHash.
 func removeChildren[H comparable](
 	tx *database.Transaction[hash.H256], column database.ColumnID, prefix []byte, parentHash H,
 ) {

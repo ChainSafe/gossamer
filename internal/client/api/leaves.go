@@ -18,13 +18,13 @@ type leafSetItem[H comparable, N runtime.Number] struct {
 	number N
 }
 
-// ImportOutcome privately contains the inserted and removed leaves after an import action.
+// ImportOutcome contains the inserted and removed leaves after an import action.
 type ImportOutcome[H comparable, N runtime.Number] struct {
 	inserted leafSetItem[H, N]
 	removed  *H
 }
 
-// RemoveOutcome privates contains the inserted and removed leaves after a remove action.
+// RemoveOutcome contains the inserted and removed leaves after a remove action.
 type RemoveOutcome[H comparable, N runtime.Number] struct {
 	inserted *H
 	removed  leafSetItem[H, N]
@@ -38,20 +38,20 @@ type FinalizationOutcome[H comparable, N runtime.Number] struct {
 // Leaves returns the leaves that were removed after a finalization action.
 func (fo FinalizationOutcome[H, N]) Leaves() []H {
 	leaves := make([]H, 0)
-	for _, hashes := range fo.removed.Values() {
-		leaves = append(leaves, hashes...)
-	}
+	fo.removed.Reverse(func(key N, value []H) bool {
+		leaves = append(leaves, value...)
+		return true
+	})
 	return leaves
 }
 
-// list of leaf hashes ordered by number (descending).
-// stored in memory for fast access.
-// this allows very fast checking and modification of active leaves.
+// LeafSet is the list of leaf hashes ordered by number (descending) stored in memory for fast access.
+// This allows very fast checking and modification of active leaves.
 type LeafSet[H comparable, N runtime.Number] struct {
 	storage btree.Map[N, []H]
 }
 
-// NewLeafSet is constructor for a new, blank `LeafSet`.
+// NewLeafSet is constructor for a new, blank [LeafSet].
 func NewLeafSet[H comparable, N runtime.Number]() LeafSet[H, N] {
 	return LeafSet[H, N]{
 		storage: *btree.NewMap[N, []H](0),
@@ -104,11 +104,11 @@ func (ls *LeafSet[H, N]) Import(hash H, number N, parentHash H) ImportOutcome[H,
 // Remove will update the leaf list on removal.
 //
 // Note that the leaves set structure doesn't have the information to decide if the
-// leaf we're removing is the last children of the parent. Follows that this method requires
-// the caller to check this condition and optionally pass the `parentHash` if `hash` is
+// leaf we're removing is the last child of the parent. Follows that this method requires
+// the caller to check this condition and optionally pass the parentHash if hash is
 // its last child.
 //
-// Returns `nil` if no modifications are applied.
+// Returns nil if no modifications are applied.
 func (ls *LeafSet[H, N]) Remove(hash H, number N, parentHash *H) *RemoveOutcome[H, N] {
 	if !ls.removeLeaf(number, hash) {
 		return nil
@@ -132,10 +132,10 @@ func (ls *LeafSet[H, N]) Remove(hash H, number N, parentHash *H) *RemoveOutcome[
 }
 
 // FinalizeHeight will note a block height finalized, displacing all leaves with number less than the finalized
-// block's.
+// block number.
 //
 // Although it would be more technically correct to also prune out leaves at the
-// same number as the finalized block, but with different hashes, the current behavior
+// same number as the finalized block with different hashes, the current behavior
 // is simpler and our assumptions about how finalization works means that those leaves
 // will be pruned soon afterwards anyway.
 func (ls *LeafSet[H, N]) FinalizeHeight(number N) FinalizationOutcome[H, N] {
@@ -145,15 +145,19 @@ func (ls *LeafSet[H, N]) FinalizeHeight(number N) FinalizationOutcome[H, N] {
 	}
 	boundary := number - 1
 	belowBoundary := btree.NewMap[N, []H](0)
-	ls.storage.Ascend(boundary, func(key N, value []H) bool {
-		belowBoundary.Set(key, value)
-		ls.storage.Delete(key)
-		return false
+
+	ls.storage.Reverse(func(key N, value []H) bool {
+		if key <= boundary {
+			belowBoundary.Set(key, value)
+			ls.storage.Delete(key)
+		}
+		return true
 	})
+
 	return FinalizationOutcome[H, N]{removed: *belowBoundary}
 }
 
-// DisplacedByFinalHeight is the same as `FinalizeHeight()`, but it only simulates the operation.
+// DisplacedByFinalHeight is the same as FinalizeHeight(), but it only simulates the operation.
 //
 // This means that no changes are done.
 //
@@ -165,16 +169,16 @@ func (ls *LeafSet[H, N]) DisplacedByFinalHeight(number N) FinalizationOutcome[H,
 	}
 	boundary := number - 1
 	belowBoundary := btree.NewMap[N, []H](0)
-	ls.storage.Ascend(boundary, func(key N, value []H) bool {
+	ls.storage.Descend(boundary, func(key N, value []H) bool {
 		belowBoundary.Set(key, value)
-		return false
+		return true
 	})
 	return FinalizationOutcome[H, N]{removed: *belowBoundary}
 }
 
 // Undo all pending operations.
 //
-// This returns an `Undo` struct, where any
+// This returns an [Undo] struct, where any
 // outcomes objects that have returned by previous method calls
 // should be passed to via the appropriate methods. Otherwise,
 // the on-disk state may get out of sync with in-memory state.

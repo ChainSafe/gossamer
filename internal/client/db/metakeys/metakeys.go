@@ -1,9 +1,8 @@
 // Copyright 2024 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
+// package metakeys contain the keys of entries in meta column.
 package metakeys
-
-// Keys of entries in COLUMN_META.
 
 // Type of storage (full or light).
 var Type = []byte("type")
@@ -14,7 +13,7 @@ var BestBlock = []byte("best")
 // FinalizedBlock is last finalized block key.
 var FinalizedBlock = []byte("final")
 
-// FinalizedStgate is last finalized state key.
+// FinalizedState is last finalized state key.
 var FinalizedState = []byte("fstate")
 
 // BlockGap key.

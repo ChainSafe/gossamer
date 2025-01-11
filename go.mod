@@ -30,7 +30,6 @@ require (
 	github.com/jpillora/ipfilter v1.2.9
 	github.com/karlseguin/ccache/v3 v3.0.6
 	github.com/klauspost/compress v1.17.11
-	github.com/li1234yun/gods-generic v0.0.0-20230420031820-5b9f08f4846b
 	github.com/libp2p/go-libp2p v0.38.2
 	github.com/libp2p/go-libp2p-kad-dht v0.29.0
 	github.com/minio/sha256-simd v1.0.1
@@ -45,6 +44,7 @@ require (
 	github.com/tetratelabs/wazero v1.1.0
 	github.com/tidwall/btree v1.7.0
 	github.com/tyler-smith/go-bip39 v1.1.0
+	github.com/ugurcsen/gods-generic v0.10.4
 	go.uber.org/mock v0.5.0
 	golang.org/x/crypto v0.33.0
 	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8
@@ -229,3 +229,7 @@ toolchain go1.23.2
 replace github.com/tetratelabs/wazero => github.com/ChainSafe/wazero v0.0.0-20240319130522-78b21a59bd5f
 
 replace github.com/centrifuge/go-substrate-rpc-client/v4 => github.com/timwu20/go-substrate-rpc-client/v4 v4.0.0-20231110032757-3d8e441b7303
+
+replace github.com/elastic/go-freelru => github.com/timwu20/go-freelru v0.0.0-20241023201517-deb64adeae4c
+
+replace github.com/ugurcsen/gods-generic => github.com/timwu20/gods-generic v0.0.0-20241206024616-791a209639f8

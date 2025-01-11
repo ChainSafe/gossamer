@@ -530,7 +530,7 @@ func TestVaryingDataType_EncodeArray(t *testing.T) {
 
 	bytes, err := Marshal(mvdtArray)
 	if err != nil {
-		t.Errorf("wtf %v", err)
+		t.Errorf("marshal error %v", err)
 	}
 	assert.NoError(t, err)
 	assert.Equal(t, expected, bytes)
