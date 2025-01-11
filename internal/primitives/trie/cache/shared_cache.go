@@ -4,7 +4,6 @@
 package cache
 
 import (
-	"log"
 	"sync"
 
 	costlru "github.com/ChainSafe/gossamer/internal/cost-lru"
@@ -29,7 +28,7 @@ type hasher[K comparable] struct {
 }
 
 func (h hasher[K]) Hash(key K) uint32 {
-	return uint32(h.Hasher.Hash(key)) //nolint:gosec
+	return uint32(h.Hasher.Hash(key))
 }
 
 // Constructor for [sharedNodeCache] with fixed size in number of bytes.
@@ -40,7 +39,7 @@ func newSharedNodeCache[H runtime.Hash](sizeBytes uint) *sharedNodeCache[H] {
 	var err error
 
 	snc.lru, err = costlru.New(sizeBytes, h.Hash, func(hash H, node triedb.CachedNode[H]) uint32 {
-		return uint32(node.ByteSize()) //nolint:gosec
+		return uint32(node.ByteSize())
 	})
 	if err != nil {
 		panic(err)
@@ -63,7 +62,7 @@ func (snc *sharedNodeCache[H]) Update(list []updateItem[H]) {
 	addCount := uint(0)
 
 	snc.itemsEvicted = 0
-	maxItemsEvicted := uint(snc.lru.Len()*100) / sharedNodeCacheMaxReplacePercent //nolint:gosec
+	maxItemsEvicted := uint(snc.lru.Len()*100) / sharedNodeCacheMaxReplacePercent
 	for _, ui := range list {
 		if ui.nodeCached.FromSharedCache {
 			_, ok := snc.lru.Get(ui.Hash)
@@ -88,8 +87,8 @@ func (snc *sharedNodeCache[H]) Update(list []updateItem[H]) {
 		}
 	}
 
-	log.Printf(
-		"DEBUG: Updated the shared node cache: %d accesses, %d new values, %d/%d evicted (length = %d, size=%d/%d)\n",
+	logger.Debugf(
+		"Updated the shared node cache: %d accesses, %d new values, %d/%d evicted (length = %d, size=%d/%d)",
 		accessCount, addCount, snc.itemsEvicted, maxItemsEvicted, snc.lru.Len(), snc.lru.Cost(), snc.lru.MaxCost(),
 	)
 }
@@ -99,7 +98,8 @@ func (snc *sharedNodeCache[H]) Reset() {
 	snc.lru.Purge()
 }
 
-// The comparable type that identifies this instance of storage root and storage key, used in [sharedValueCache] LRU.
+// ValueCacheKeyComparable is the comparable type that identifies this instance of storage root and storage key, used
+// in sharedValueCache LRU.
 type ValueCacheKeyComparable[H runtime.Hash] struct {
 	StorageRoot H
 	StorageKey  string
@@ -112,7 +112,7 @@ func (vckh ValueCacheKeyComparable[H]) ValueCacheKey() ValueCacheKey[H] {
 	}
 }
 
-// The key type that is being used to address a [CachedValue].
+// ValueCacheKey is the key type that is being used to address a [CachedValue].
 type ValueCacheKey[H runtime.Hash] struct {
 	// The storage root of the trie this key belongs to.
 	StorageRoot H
@@ -135,7 +135,7 @@ type sharedValueCache[H runtime.Hash] struct {
 	itemsEvicted uint
 }
 
-// Constructor for [sharedValueCache].
+// Constructor for sharedValueCache.
 func newSharedValueCache[H runtime.Hash](size uint) *sharedValueCache[H] {
 	var svc sharedValueCache[H]
 	itemsEvictedPtr := &svc.itemsEvicted
@@ -143,14 +143,14 @@ func newSharedValueCache[H runtime.Hash](size uint) *sharedValueCache[H] {
 	h := hasher[ValueCacheKeyComparable[H]]{maphash.NewHasher[ValueCacheKeyComparable[H]]()}
 
 	svc.lru, err = costlru.New(size, h.Hash, func(key ValueCacheKeyComparable[H], value triedb.CachedValue[H]) uint32 {
-		keyCost := uint32(len(key.StorageKey)) //nolint:gosec
+		keyCost := uint32(len(key.StorageKey))
 		switch value := value.(type) {
 		case triedb.NonExistingCachedValue[H]:
 			return keyCost + 1
 		case triedb.ExistingHashCachedValue[H]:
-			return keyCost + uint32(value.Hash.Length()) //nolint:gosec
+			return keyCost + uint32(value.Hash.Length())
 		case triedb.ExistingCachedValue[H]:
-			return keyCost + uint32(value.Hash.Length()+len(value.Data)) //nolint:gosec
+			return keyCost + uint32(value.Hash.Length()+len(value.Data))
 		default:
 			panic("unreachable")
 		}
@@ -198,7 +198,7 @@ func (svc *sharedValueCache[H]) Update(added []sharedValueCacheAdded[H], accesse
 	// we don't evict the whole shared cache nor we keep spinning our wheels
 	// evicting items which we've added ourselves in previous iterations of this loop.
 	svc.itemsEvicted = 0
-	maxItemsEvicted := uint(svc.lru.Len()) * 100 / sharedValueCacheMaxReplacePercent //nolint:gosec
+	maxItemsEvicted := uint(svc.lru.Len()) * 100 / sharedValueCacheMaxReplacePercent
 
 	for _, svca := range added {
 		added, _ := svc.lru.Add(svca.ValueCacheKey.ValueCacheKeyComparable(), svca.CachedValue)
@@ -212,8 +212,8 @@ func (svc *sharedValueCache[H]) Update(added []sharedValueCacheAdded[H], accesse
 		}
 	}
 
-	log.Printf(
-		"DEBUG: Updated the shared value cache: %d accesses, %d new values, %d/%d evicted (length = %d, size=%d/%d)\n",
+	logger.Debugf(
+		"Updated the shared value cache: %d accesses, %d new values, %d/%d evicted (length = %d, size=%d/%d)",
 		accessCount, addCount, svc.itemsEvicted, maxItemsEvicted, svc.lru.Len(), svc.lru.Cost(), svc.lru.MaxCost(),
 	)
 }
@@ -228,7 +228,7 @@ type sharedTrieCacheInner[H runtime.Hash] struct {
 	valueCache *sharedValueCache[H]
 }
 
-// The shared trie cache.
+// SharedTrieCache is a shared trie cache.
 //
 // It should be instantiated once per node. It will hold the trie nodes and values of all
 // operations to the state. To not use all available memory it will ensure to stay in the
@@ -240,7 +240,7 @@ type SharedTrieCache[H runtime.Hash] struct {
 	mtx   sync.RWMutex
 }
 
-// Create a new [SharedTrieCache].
+// NewSharedTrieCache creates a new [SharedTrieCache].
 func NewSharedTrieCache[H runtime.Hash](size uint) *SharedTrieCache[H] {
 	totalBudget := size
 
@@ -256,11 +256,11 @@ func NewSharedTrieCache[H runtime.Hash](size uint) *SharedTrieCache[H] {
 	}
 }
 
-// Create a new [LocalTrieCache] instance from this shared cache.
+// LocalTrieCache creates a new [LocalTrieCache] instance from this shared cache.
 func (stc *SharedTrieCache[H]) LocalTrieCache() LocalTrieCache[H] {
 	h := hasher[H]{maphash.NewHasher[H]()}
 	nodeCache, err := costlru.New(localNodeCacheMaxSize, h.Hash, func(hash H, node nodeCached[H]) uint32 {
-		return uint32(node.ByteSize()) //nolint:gosec
+		return uint32(node.ByteSize())
 	})
 	if err != nil {
 		panic(err)
@@ -270,14 +270,14 @@ func (stc *SharedTrieCache[H]) LocalTrieCache() LocalTrieCache[H] {
 		localValueCacheMaxSize,
 		hasher[ValueCacheKeyComparable[H]]{maphash.NewHasher[ValueCacheKeyComparable[H]]()}.Hash,
 		func(key ValueCacheKeyComparable[H], value triedb.CachedValue[H]) uint32 {
-			keyCost := uint32(len(key.StorageKey)) //nolint:gosec
+			keyCost := uint32(len(key.StorageKey))
 			switch value := value.(type) {
 			case triedb.NonExistingCachedValue[H]:
 				return keyCost + 1
 			case triedb.ExistingHashCachedValue[H]:
-				return keyCost + uint32(value.Hash.Length()) //nolint:gosec
+				return keyCost + uint32(value.Hash.Length())
 			case triedb.ExistingCachedValue[H]:
-				return keyCost + uint32(value.Hash.Length()+len(value.Data)) //nolint:gosec
+				return keyCost + uint32(value.Hash.Length()+len(value.Data))
 			default:
 				panic("unreachable")
 			}
@@ -310,7 +310,7 @@ func (stc *SharedTrieCache[H]) Unlock() {
 	stc.mtx.Unlock()
 }
 
-// Get a copy of the node for key.
+// PeekNode gets a copy of the node for key.
 //
 // This will temporarily lock the shared cache for reading.
 //
@@ -325,7 +325,7 @@ func (stc *SharedTrieCache[H]) PeekNode(key H) triedb.CachedNode[H] {
 	return nil
 }
 
-// Get a copy of the [triedb.CachedValue] for key.
+// PeekValueByHash gets a copy of the [triedb.CachedValue] for key.
 //
 // This will temporarily lock the shared cache for reading.
 //
@@ -342,14 +342,19 @@ func (stc *SharedTrieCache[H]) PeekValueByHash(
 	return nil
 }
 
-// Reset the node cache.
+func (stc *SharedTrieCache[H]) Reset() {
+	stc.ResetNodeCache()
+	stc.ResetValueCache()
+}
+
+// ResetNodeCache resets the node cache.
 func (stc *SharedTrieCache[H]) ResetNodeCache() {
 	stc.mtx.Lock()
 	defer stc.mtx.Unlock()
 	stc.inner.nodeCache.Reset()
 }
 
-// Reset the value cache.
+// ResetValueCache resets the value cache.
 func (stc *SharedTrieCache[H]) ResetValueCache() {
 	stc.mtx.Lock()
 	defer stc.mtx.Unlock()

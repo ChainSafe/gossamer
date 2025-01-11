@@ -130,7 +130,7 @@ func (l *TrieLookup[H, Hasher, QueryItem]) LookupFirstDescendant(
 				// (descendent), but not the other way around.
 				if !node.PartialKey.StartsWithNibbles(partial) {
 					l.recordAccess(NonExistingNodeAccess{FullKey: fullKey})
-					return nil, nil //nolint:nilnil
+					return nil, nil
 				}
 
 				if partial.Len() != node.PartialKey.Len() {
@@ -154,14 +154,14 @@ func (l *TrieLookup[H, Hasher, QueryItem]) LookupFirstDescendant(
 						}
 						return HashMerkleValue[H]{Hash: hash}, nil
 					}
-					return nil, nil //nolint:nilnil
+					return nil, nil
 				}
 
 				// Partial key is longer or equal than the branch slice.
 				// Ensure partial key starts with the branch slice.
 				if !partial.StartsWithNibbleSlice(node.PartialKey) {
 					l.recordAccess(NonExistingNodeAccess{FullKey: fullKey})
-					return nil, nil //nolint:nilnil
+					return nil, nil
 				}
 
 				// Partial key starts with the branch slice.
@@ -183,11 +183,11 @@ func (l *TrieLookup[H, Hasher, QueryItem]) LookupFirstDescendant(
 					nextNode = child
 				} else {
 					l.recordAccess(NonExistingNodeAccess{fullKey})
-					return nil, nil //nolint:nilnil
+					return nil, nil
 				}
 			case EmptyCachedNode[H]:
 				l.recordAccess(NonExistingNodeAccess{FullKey: fullKey})
-				return nil, nil //nolint:nilnil
+				return nil, nil
 			default:
 				panic("unreachable")
 			}

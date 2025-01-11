@@ -108,7 +108,7 @@ func (dc *dummyChain) PushBlocks(parent string, blocks []string) {
 		case b.number > a.number:
 			return 1
 		default:
-			panic("huh?")
+			panic("unreachable")
 		}
 	})
 
@@ -127,7 +127,7 @@ func (dc *dummyChain) PushBlocks(parent string, blocks []string) {
 func (dc *dummyChain) Number(hash string) uint32 {
 	e, ok := dc.inner[hash]
 	if !ok {
-		panic("huh?")
+		panic("should exist")
 	}
 	return e.number
 }

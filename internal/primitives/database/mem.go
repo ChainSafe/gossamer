@@ -15,7 +15,7 @@ type refCountValue struct {
 	value    []byte
 }
 
-// MemDB implements `Database` as an in-memory hash map. `Commit` is not atomic.
+// MemDB implements Database as an in-memory hash map. Commit is not atomic.
 type MemDB[H runtime.Hash] struct {
 	inner map[ColumnID]map[string]refCountValue
 	sync.RWMutex
@@ -28,7 +28,7 @@ func NewMemDB[H runtime.Hash]() *MemDB[H] {
 	}
 }
 
-// Commit the `transaction` to the database atomically. Any further calls to `get` or `lookup`
+// Commit the transaction to the database atomically. Any further calls to get or lookup
 // will reflect the new state.
 func (mdb *MemDB[H]) Commit(transaction Transaction[H]) error {
 	mdb.Lock()
@@ -57,7 +57,7 @@ func (mdb *MemDB[H]) Commit(transaction Transaction[H]) error {
 				cv.refCount += 1
 				mdb.inner[change.ColumnID][string(change.Hash.Bytes())] = cv
 			} else {
-				mdb.inner[change.ColumnID][string(change.Hash.Bytes())] = refCountValue{1, change.Preimage}
+				mdb.inner[change.ColumnID][string(change.Hash.Bytes())] = refCountValue{1, change.Value}
 			}
 		case Reference[H]:
 			_, ok := mdb.inner[change.ColumnID]
@@ -88,7 +88,7 @@ func (mdb *MemDB[H]) Commit(transaction Transaction[H]) error {
 	return nil
 }
 
-// Retrieve the value previously stored against `key` or `nil` if `key` is not currently in the database.
+// Get retrieves the value previously stored against key or nil if key is not currently in the database.
 func (mdb *MemDB[H]) Get(col ColumnID, key []byte) []byte {
 	mdb.RLock()
 	defer mdb.RUnlock()
@@ -103,7 +103,7 @@ func (mdb *MemDB[H]) Get(col ColumnID, key []byte) []byte {
 	return nil
 }
 
-// Check if the value exists in the database without retrieving it.
+// Contains checks if the value exists in the database without retrieving it.
 func (mdb *MemDB[H]) Contains(col ColumnID, key []byte) bool {
 	return mdb.Get(col, key) != nil
 }

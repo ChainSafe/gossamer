@@ -4,14 +4,16 @@
 package cache
 
 import (
-	"log"
 	"sync"
 
 	costlru "github.com/ChainSafe/gossamer/internal/cost-lru"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 	"github.com/elastic/go-freelru"
 )
+
+var logger = log.NewFromGlobal(log.AddContext("pkg", "primitives/cache"))
 
 // The maximum number of existing keys in the shared cache that a single local cache
 // can promote to the front of the LRU cache in one go.
@@ -56,7 +58,7 @@ func (nc nodeCached[H]) ByteSize() uint {
 	return nc.Node.ByteSize()
 }
 
-// The local trie cache.
+// LocalTrieCache is a local trie cache.
 //
 // This cache should be used per state instance created by the backend. One state instance is
 // referring to the state of one block. It will cache all the accesses that are done to the state
@@ -135,7 +137,7 @@ func (ltc *LocalTrieCache[H]) Commit() {
 	sharedInner.valueCache.Update(added, accessed)
 }
 
-// Returns a [triedb.TrieDB] compatible [triedb.TrieCache].
+// TrieCache returns a [triedb.TrieDB] compatible [triedb.TrieCache].
 //
 // The given storageRoot needs to be the storage root of the trie this cache is used for.
 func (ltc *LocalTrieCache[H]) TrieCache(storageRoot H) (cache *TrieCache[H], unlock func()) {
@@ -160,7 +162,7 @@ func (ltc *LocalTrieCache[H]) TrieCache(storageRoot H) (cache *TrieCache[H], unl
 	}, unlock
 }
 
-// Returns a [triedb.TrieDB] compatible [triedb.TrieCache].
+// TrieCacheMut returns a [triedb.TrieDB] compatible [triedb.TrieCache].
 //
 // After finishing all operations with [triedb.TrieDB] and having obtained
 // the new storage root, [TrieCache.MergeInto] should be called to update this local
@@ -246,7 +248,7 @@ func (fsrvc forStorageRootValueCache[H]) insert(key []byte, value triedb.CachedV
 	fsrvc.localValueCache.Add(vck.ValueCacheKeyComparable(), value)
 }
 
-// The [triedb.TrieCache] implementation.
+// TrieCache is a [triedb.TrieCache] implementation.
 //
 // If this instance was created using [LocalTrieCache.TrieCacheMut], it needs to
 // be merged back into the [LocalTrieCache] with [LocalTrieCache.MergeInto] after all operations are
@@ -257,7 +259,7 @@ type TrieCache[H runtime.Hash] struct {
 	valueCache  valueCache[H]
 }
 
-// Merge this cache into the given [LocalTrieCache].
+// MergeInto merges this cache into the given [LocalTrieCache].
 //
 // This function is only required to be called when this instance was created through
 // [LocalTrieCache.TrieCacheMut], otherwise this method is a no-op. The given
@@ -280,7 +282,7 @@ func (tc *TrieCache[H]) MergeInto(local *LocalTrieCache[H], storageRoot H) {
 			vck.StorageKey = []byte(k)
 			ok, _ := local.valueCache.Add(vck.ValueCacheKeyComparable(), v)
 			if !ok {
-				panic("huh?")
+				panic("should be added")
 			}
 		}
 	}
@@ -300,17 +302,17 @@ func (tc *TrieCache[H]) GetOrInsertNode(
 		// It was not in the local cache; try the shared cache.
 		shared := tc.sharedCache.PeekNode(hash)
 		if shared != nil {
-			log.Printf("TRACE: Serving node from shared cache: %s\n", hash)
+			logger.Tracef("Serving node from shared cache: %s\n", hash)
 			node = nodeCached[H]{Node: shared, FromSharedCache: true}
 		} else {
 			// It was not in the shared cache; try fetching it from the database.
 			var fetched triedb.CachedNode[H]
 			fetched, err = fetchNode()
 			if err != nil {
-				log.Printf("TRACE: Serving node from database failed: %s\n", hash)
+				logger.Tracef("Serving node from database failed: %s\n", hash)
 				return nil, err
 			} else {
-				log.Printf("TRACE: Serving node from database: %s\n", hash)
+				logger.Tracef("Serving node from database: %s\n", hash)
 				node = nodeCached[H]{Node: fetched, FromSharedCache: false}
 			}
 		}
@@ -318,7 +320,7 @@ func (tc *TrieCache[H]) GetOrInsertNode(
 	}
 
 	if isLocalCacheHit {
-		log.Printf("TRACE: Serving node from local cache: %s\n", hash)
+		logger.Tracef("Serving node from local cache: %s\n", hash)
 	}
 
 	return node.Node, nil
@@ -336,10 +338,10 @@ func (tc *TrieCache[H]) GetNode(hash H) triedb.CachedNode[H] {
 		// It was not in the local cache; try the shared cache.
 		peeked := tc.sharedCache.PeekNode(hash)
 		if peeked != nil {
-			log.Printf("TRACE: Serving node from shared cache: %s\n", hash)
+			logger.Tracef("Serving node from shared cache: %s\n", hash)
 			node = &nodeCached[H]{Node: peeked, FromSharedCache: true}
 		} else {
-			log.Printf("TRACE: Serving node from cahe failed: %s\n", hash)
+			logger.Tracef("Serving node from cahe failed: %s\n", hash)
 			return nil
 		}
 	} else {
@@ -347,7 +349,7 @@ func (tc *TrieCache[H]) GetNode(hash H) triedb.CachedNode[H] {
 	}
 
 	if isLocalCacheHit {
-		log.Printf("TRACE: Serving node from local cache: %s\n", hash)
+		logger.Tracef("Serving node from local cache: %s\n", hash)
 	}
 
 	return node.Node
@@ -355,11 +357,11 @@ func (tc *TrieCache[H]) GetNode(hash H) triedb.CachedNode[H] {
 
 func (tc *TrieCache[H]) GetValue(key []byte) triedb.CachedValue[H] {
 	cached := tc.valueCache.get(key, tc.sharedCache)
-	log.Printf("TRACE: Looked up value for key: %x\n", key)
+	logger.Tracef("Looked up value for key: %x\n", key)
 	return cached
 }
 
 func (tc *TrieCache[H]) SetValue(key []byte, value triedb.CachedValue[H]) {
-	log.Printf("TRACE: Caching value for key: %x\n", key)
+	logger.Tracef("Caching value for key: %x\n", key)
 	tc.valueCache.insert(key, value)
 }

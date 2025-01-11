@@ -204,7 +204,7 @@ func TestRefWindow_ReinsertedSurvivesPending(t *testing.T) {
 
 // Ensure that after warp syncing the state is stored correctly in the db. The warp sync target
 // block is imported with all its state at once. This test ensures that after a restart
-// `pruning` still knows that this block was imported.
+// pruning still knows that this block was imported.
 func TestRefWindow_StoreCorrectStateAfterWarpSyncing(t *testing.T) {
 	db := NewTestDB([]uint64{})
 	pruning, err := newPruningWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint)
@@ -221,7 +221,7 @@ func TestRefWindow_StoreCorrectStateAfterWarpSyncing(t *testing.T) {
 	assert.Equal(t, haveBlockYes, pruning.HaveBlock(h, block))
 
 	// load a new queue from db
-	// `cache` should be the same
+	// cache should be the same
 	pruning, err = newPruningWindow[hash.H256, hash.H256](db, defaultMaxBlockConstraint)
 	assert.NoError(t, err)
 	assert.Equal(t, haveBlockYes, pruning.HaveBlock(h, block))
