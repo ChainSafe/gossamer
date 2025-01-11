@@ -242,7 +242,7 @@ func (no ValueCachedNode[H]) Encoded() []byte { return no.Value }
 
 func (no EmptyCachedNode[H]) ByteSize() uint { return (uint)(unsafe.Sizeof(no)) }
 func (no LeafCachedNode[H]) ByteSize() uint {
-	return (uint)(unsafe.Sizeof(no)) + uint(len(no.PartialKey.Inner())+len(no.Value.data())) //nolint:gosec
+	return (uint)(unsafe.Sizeof(no)) + uint(len(no.PartialKey.Inner())+len(no.Value.data()))
 }
 func (no BranchCachedNode[H]) ByteSize() uint {
 	selfSize := (uint)(unsafe.Sizeof(no))

@@ -6,7 +6,6 @@ package statedb
 import (
 	"errors"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -36,13 +35,13 @@ type HashDBValue[H any] struct {
 // MetaDB is the backend database interface for metadata. Read-only.
 type MetaDB interface {
 	// Get meta value, such as the journal.
-	GetMeta(key []byte) (*DBValue, error)
+	GetMeta(key []byte) (DBValue, error)
 }
 
 // NodeDB is the backend database interface. Read-only.
 type NodeDB[Key comparable] interface {
 	// Get state trie node.
-	Get(key Key) (*DBValue, error)
+	Get(key Key) (DBValue, error)
 }
 
 var (
@@ -114,6 +113,10 @@ func NewPruningModeFromID(id []byte) PruningMode {
 
 // PruningModeConstrained will maintain a constrained pruning window.
 type PruningModeConstrained Constraints
+
+func NewPruningModeConstrained(numBlocks uint32) PruningModeConstrained {
+	return PruningModeConstrained{MaxBlocks: &numBlocks}
+}
 
 // IsArchive returns whether or not this mode will archive entire history.
 func (pmc PruningModeConstrained) IsArchive() bool {
@@ -223,9 +226,9 @@ func (sdbs *stateDBSync[BlockHash, Key]) insertBlock(
 }
 
 func (sdbs *stateDBSync[BlockHash, Key]) canonicalizeBlock(hash BlockHash) (CommitSet[Key], error) {
-	// NOTE: it is important that the change to `lastCanonical` (emit from
-	// `nonCanonicalOverlay.Canonicalize`) and the insert of the new pruning journal (emit from
-	// `pruningWindow.NoteCanonical`) are collected into the same `CommitSet` and are committed to
+	// NOTE: it is important that the change to lastCanonical (emit from
+	// nonCanonicalOverlay.Canonicalize) and the insert of the new pruning journal (emit from
+	// pruningWindow.NoteCanonical) are collected into the same CommitSet and are committed to
 	// the database atomically to keep their consistency when restarting the node
 	commit := CommitSet[Key]{}
 	if _, ok := sdbs.mode.(PruningModeArchiveAll); ok {
@@ -295,7 +298,7 @@ func (sdbs *stateDBSync[BlockHash, Key]) isPruned(hash BlockHash, number uint64)
 		// We don't know for sure.
 		return IsPrunedMaybePruned
 	default:
-		panic("wtf?")
+		panic("unreachable")
 	}
 }
 
@@ -325,7 +328,7 @@ func (sdbs *stateDBSync[BlockHash, Key]) prune(commit *CommitSet[Key]) error {
 				}
 			}
 			err = sdbs.pruning.PruneOne(commit)
-			// this branch should not reach as previous `next_hash` don't return error
+			// this branch should not reach as previous next_hash don't return error
 			// keeping it for robustness
 			if err != nil {
 				if errors.Is(err, ErrBlockUnavailable) {
@@ -339,7 +342,7 @@ func (sdbs *stateDBSync[BlockHash, Key]) prune(commit *CommitSet[Key]) error {
 }
 
 // Revert all non-canonical blocks with the best block number.
-// Returns a database commit or `None` if not possible.
+// Returns a database commit or None if not possible.
 // For archive an empty commit set is returned.
 func (sdbs *stateDBSync[BlockHash, Key]) revertOne() *CommitSet[Key] {
 	switch sdbs.mode.(type) {
@@ -348,7 +351,7 @@ func (sdbs *stateDBSync[BlockHash, Key]) revertOne() *CommitSet[Key] {
 	case PruningModeArchiveCanonical, PruningModeConstrained:
 		return sdbs.nonCanonical.RevertOne()
 	default:
-		panic("wtf?")
+		panic("unreachable")
 	}
 }
 
@@ -359,7 +362,7 @@ func (sdbs *stateDBSync[BlockHash, Key]) remove(hash BlockHash) *CommitSet[Key] 
 	case PruningModeArchiveCanonical, PruningModeConstrained:
 		return sdbs.nonCanonical.Remove(hash)
 	default:
-		panic("wtf?")
+		panic("unreachable")
 	}
 }
 
@@ -386,7 +389,7 @@ func (sdbs *stateDBSync[BlockHash, Key]) pin(hash BlockHash, number uint64, hint
 		if haveBlock {
 			refs := sdbs.pinned[hash]
 			if refs == 0 {
-				log.Println("TRACE: Pinned block:", hash)
+				logger.Tracef("Pinned block: %s", hash)
 				sdbs.nonCanonical.Pin(hash)
 			}
 			sdbs.pinned[hash] += 1
@@ -394,20 +397,20 @@ func (sdbs *stateDBSync[BlockHash, Key]) pin(hash BlockHash, number uint64, hint
 		}
 		return ErrInvalidBlock
 	default:
-		panic("wtf?")
+		panic("unreachable")
 	}
 }
 
 func (sdbs *stateDBSync[BlockHash, Key]) unpin(hash BlockHash) {
-	entry, ok := sdbs.pinned[hash]
+	_, ok := sdbs.pinned[hash]
 	if ok {
 		sdbs.pinned[hash] -= 1
-		if entry == 0 {
-			log.Println("TRACE: Unpinned block:", hash)
+		if sdbs.pinned[hash] == 0 {
+			logger.Tracef("Unpinned block: %s", hash)
 			delete(sdbs.pinned, hash)
 			sdbs.nonCanonical.Unpin(hash)
 		} else {
-			log.Println("TRACE: Releasing reference for ", hash)
+			logger.Tracef("Releasing reference for %s", hash)
 		}
 	}
 }
@@ -416,7 +419,7 @@ func (sdbs *stateDBSync[BlockHash, Key]) sync() {
 	sdbs.nonCanonical.Sync()
 }
 
-func (sdbs *stateDBSync[BlockHash, Key]) get(key Key, db NodeDB[Key]) (*DBValue, error) {
+func (sdbs *stateDBSync[BlockHash, Key]) get(key Key, db NodeDB[Key]) (DBValue, error) {
 	val := sdbs.nonCanonical.Get(key)
 	if val != nil {
 		return val, nil
@@ -447,7 +450,7 @@ func (sdbs *stateDBSync[BlockHash, Key]) get(key Key, db NodeDB[Key]) (*DBValue,
 // unfinalized block may be forced.
 //
 // # Pruning.
-// See `pruningWindow` for pruning algorithm details. `StateDB` prunes on each canonicalization until
+// See pruningWindow for pruning algorithm details. StateDB prunes on each canonicalization until
 // pruning constraints are satisfied.
 type StateDB[BlockHash Hash, Key Hash] struct {
 	db stateDBSync[BlockHash, Key]
@@ -491,7 +494,7 @@ func NewStateDB[BlockHash Hash, Key Hash](
 		}
 		selectedMode = mode
 	default:
-		panic("wtf?")
+		panic("unreachable")
 	}
 
 	var dbInitCommitSet CommitSet[Key]
@@ -545,7 +548,7 @@ func (sdb *StateDB[BlockHash, Key]) CanonicalizeBlock(hash BlockHash) (CommitSet
 }
 
 // Pin prevents pruning of specified block and its descendants.
-// `hint` used for further checking if the given block exists
+// hint used for further checking if the given block exists
 func (sdb *StateDB[BlockHash, Key]) Pin(hash BlockHash, number uint64, hint func() bool) error {
 	sdb.Lock()
 	defer sdb.Unlock()
@@ -568,14 +571,14 @@ func (sdb *StateDB[BlockHash, Key]) Sync() {
 }
 
 // Get a value from non-canonical/pruning overlay or the backing DB.
-func (sdb *StateDB[BlockHash, Key]) Get(key Key, db NodeDB[Key]) (*DBValue, error) {
+func (sdb *StateDB[BlockHash, Key]) Get(key Key, db NodeDB[Key]) (DBValue, error) {
 	sdb.RLock()
 	defer sdb.RUnlock()
 	return sdb.db.get(key, db)
 }
 
 // RevertOne will revert all non-canonical blocks with the best block number.
-// Returns a database commit or `nil` if not possible.
+// Returns a database commit or nil if not possible.
 // For archive an empty commit set is returned.
 func (sdb *StateDB[BlockHash, Key]) RevertOne() *CommitSet[Key] {
 	sdb.Lock()
@@ -584,7 +587,7 @@ func (sdb *StateDB[BlockHash, Key]) RevertOne() *CommitSet[Key] {
 }
 
 // Remove specified non-canonical block.
-// Returns a database commit or `nil` if not possible.
+// Returns a database commit or nil if not possible.
 func (sdb *StateDB[BlockHash, Key]) Remove(hash BlockHash) *CommitSet[Key] {
 	sdb.Lock()
 	defer sdb.Unlock()
@@ -617,7 +620,7 @@ func (sdb *StateDB[BlockHash, Key]) Reset(db MetaDB) error {
 	return nil
 }
 
-// The result returned by `StateDB.IsPruned()`
+// The result returned by StateDB.IsPruned()
 type IsPruned uint
 
 const (
@@ -668,11 +671,11 @@ func fetchStoredPruningMode(db MetaDB) (PruningMode, error) {
 		return nil, err
 	}
 	if val == nil {
-		return nil, nil //nolint: nilnil
+		return nil, nil
 	}
-	mode := NewPruningModeFromID(*val)
+	mode := NewPruningModeFromID(val)
 	if mode != nil {
 		return mode, nil
 	}
-	return nil, fmt.Errorf("invalid value stored for PRUNING_MODE: %v", *val)
+	return nil, fmt.Errorf("invalid value stored for PRUNING_MODE: %v", val)
 }

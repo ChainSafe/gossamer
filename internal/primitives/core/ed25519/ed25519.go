@@ -21,7 +21,7 @@ import (
 // A secret seed.
 type seed [32]byte
 
-// A Public key.
+// Public is a public key.
 type Public [32]byte
 
 // Bytes returns a byte slice
@@ -34,7 +34,7 @@ func (p Public) Verify(sig Signature, message []byte) bool {
 	return ed25519.Verify(p[:], message, sig[:])
 }
 
-// NewPublic creates a new instance from the given 32-byte `data`.
+// NewPublic creates a new instance from the given 32-byte data.
 //
 // NOTE: No checking goes on to ensure this is a real public key. Only use it if
 // you are certain that the array actually is a pubkey.
@@ -88,10 +88,10 @@ func (p Pair) Seed() [32]byte {
 func (p Pair) Public() crypto.Public[Signature] {
 	pubKey, ok := p.public.(ed25519.PublicKey)
 	if !ok {
-		panic("huh?")
+		panic("unexpected type")
 	}
 	if len(pubKey) != 32 {
-		panic("huh?")
+		panic("unexpected length")
 	}
 	var pub Public
 	copy(pub[:], pubKey)
@@ -102,7 +102,7 @@ func (p Pair) Public() crypto.Public[Signature] {
 func (p Pair) Sign(message []byte) Signature {
 	signed := ed25519.Sign(p.secret, message)
 	if len(signed) != 64 {
-		panic("huh?")
+		panic("unexpected length")
 	}
 	var sig Signature
 	copy(sig[:], signed)
@@ -112,7 +112,7 @@ func (p Pair) Sign(message []byte) Signature {
 // NewGeneratedPair will generate new secure (random) key pair.
 //
 // This is only for ephemeral keys really, since you won't have access to the secret key
-// for storage. If you want a persistent key pair, use `generate_with_phrase` instead.
+// for storage. If you want a persistent key pair, use [NewGeneratedPairWithPhrase] instead.
 func NewGeneratedPair() (Pair, [32]byte) {
 	seedSlice := make([]byte, 32)
 	_, err := rand.Read(seedSlice)
@@ -127,9 +127,9 @@ func NewGeneratedPair() (Pair, [32]byte) {
 
 // NewGeneratedPairWithPhrase will generate new secure (random) key pair and provide the recovery phrase.
 //
-// You can recover the same key later with `from_phrase`.
+// You can recover the same key later with NewPairFromPhrase.
 //
-// This is generally slower than `generate()`, so prefer that unless you need to persist
+// This is generally slower than generate(), so prefer that unless you need to persist
 // the key from the current session.
 func NewGeneratedPairWithPhrase(password *string) (Pair, string, [32]byte) {
 	entropy, err := bip39.NewEntropy(128)
@@ -147,7 +147,7 @@ func NewGeneratedPairWithPhrase(password *string) (Pair, string, [32]byte) {
 	return pair, phrase, seed
 }
 
-// NewPairFromPhrase returns the KeyPair from the English BIP39 seed `phrase`, or `None` if it's invalid.
+// NewPairFromPhrase returns the KeyPair from the English BIP39 seed phrase.
 func NewPairFromPhrase(phrase string, password *string) (pair Pair, seed [32]byte, err error) {
 	pass := ""
 	if password != nil {
@@ -159,7 +159,7 @@ func NewPairFromPhrase(phrase string, password *string) (pair Pair, seed [32]byt
 	}
 
 	if !(32 <= len(bigSeed)) {
-		panic("huh?")
+		panic("unexpected length")
 	}
 
 	seedSlice := bigSeed[:][0:32]
@@ -167,18 +167,17 @@ func NewPairFromPhrase(phrase string, password *string) (pair Pair, seed [32]byt
 	return NewPairFromSeedSlice(seedSlice), seed, nil
 }
 
-// NewPairFromSeed will generate new key pair from the provided `seed`.
+// NewPairFromSeed will generate new key pair from the provided seed.
 //
-// @WARNING: THIS WILL ONLY BE SECURE IF THE `seed` IS SECURE. If it can be guessed
+// @WARNING: THIS WILL ONLY BE SECURE IF THE seed IS SECURE. If it can be guessed
 // by an attacker then they can also derive your key.
 func NewPairFromSeed(seed [32]byte) Pair {
 	return NewPairFromSeedSlice(seed[:])
 }
 
-// NewPairFromSeedSlice will make a new key pair from secret seed material. The slice must be the correct size or
-// it will return `None`.
+// NewPairFromSeedSlice will make a new key pair from secret seed material.
 //
-// @WARNING: THIS WILL ONLY BE SECURE IF THE `seed` IS SECURE. If it can be guessed
+// @WARNING: THIS WILL ONLY BE SECURE IF THE seed IS SECURE. If it can be guessed
 // by an attacker then they can also derive your key.
 func NewPairFromSeedSlice(seedSlice []byte) Pair {
 	secret := ed25519.NewKeyFromSeed(seedSlice)
@@ -189,37 +188,37 @@ func NewPairFromSeedSlice(seedSlice []byte) Pair {
 	}
 }
 
-// NewPairFromStringWithSeed interprets the string `s` in order to generate a key Pair. Returns
+// NewPairFromStringWithSeed interprets the string s in order to generate a key Pair. Returns
 // both the pair and an optional seed, in the case that the pair can be expressed as a direct
 // derivation from a seed (some cases, such as Sr25519 derivations with path components, cannot).
 //
 // This takes a helper function to do the key generation from a phrase, password and
 // junction iterator.
 //
-// - If `s` is a possibly `0x` prefixed 64-digit hex string, then it will be interpreted
-// directly as a secret key (aka "seed" in `subkey`).
-// - If `s` is a valid BIP-39 key phrase of 12, 15, 18, 21 or 24 words, then the key will
+// - If s is a possibly "0x" prefixed 64-digit hex string, then it will be interpreted
+// directly as a secret key (aka "seed" in subkey).
+// - If s is a valid BIP-39 key phrase of 12, 15, 18, 21 or 24 words, then the key will
 // be derived from it. In this case:
-//   - the phrase may be followed by one or more items delimited by `/` characters.
-//   - the path may be followed by `///`, in which case everything after the `///` is treated
+//   - the phrase may be followed by one or more items delimited by "/" characters.
+//   - the path may be followed by "///", in which case everything after the "///" is treated
 //
 // as a password.
-//   - If `s` begins with a `/` character it is prefixed with the Substrate public `DevPhrase`
+//   - If s begins with a "/" character it is prefixed with the Substrate public DevPhrase
 //     and
 //
 // interpreted as above.
 //
 // In this case they are interpreted as HDKD junctions; purely numeric items are interpreted as
-// integers, non-numeric items as strings. Junctions prefixed with `/` are interpreted as soft
-// junctions, and with `//` as hard junctions.
+// integers, non-numeric items as strings. Junctions prefixed with "/" are interpreted as soft
+// junctions, and with "//" as hard junctions.
 //
 // There is no correspondence mapping between SURI strings and the keys they represent.
 // Two different non-identical strings can actually lead to the same secret being derived.
 // Notably, integer junction indices may be legally prefixed with arbitrary number of zeros.
-// Similarly an empty password (ending the SURI with `///`) is perfectly valid and will
+// Similarly an empty password (ending the SURI with "///") is perfectly valid and will
 // generally be equivalent to no password at all.
 //
-// `nil` is returned if no matches are found.
+// nil is returned if no matches are found.
 func NewPairFromStringWithSeed(s string, passwordOverride *string) (
 	pair crypto.Pair[[32]byte, Signature], seed [32]byte, err error,
 ) {
@@ -255,7 +254,7 @@ func NewPairFromStringWithSeed(s string, passwordOverride *string) (
 	return root.Derive(sURI.Junctions, &seed)
 }
 
-// NewPairFromString interprets the string `s` in order to generate a key pair.
+// NewPairFromString interprets the string s in order to generate a key pair.
 func NewPairFromString(s string, passwordOverride *string) (crypto.Pair[[32]byte, Signature], error) {
 	pair, _, err := NewPairFromStringWithSeed(s, passwordOverride)
 	return pair, err
@@ -266,7 +265,7 @@ var _ crypto.Pair[[32]byte, Signature] = Pair{}
 // Signature is a signature (a 512-bit value).
 type Signature [64]byte
 
-// NewSignatureFromRaw constructors a new instance from the given 64-byte `data`.
+// NewSignatureFromRaw constructors a new instance from the given 64-byte data.
 //
 // NOTE: No checking goes on to ensure this is a real signature. Only use it if
 // you are certain that the array actually is a signature.

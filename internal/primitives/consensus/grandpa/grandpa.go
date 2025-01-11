@@ -12,7 +12,7 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("consensus", "grandpa"))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "consensus/grandpa"))
 
 // AuthorityID is the identity of a Grandpa authority.
 type AuthorityID = app.Public
