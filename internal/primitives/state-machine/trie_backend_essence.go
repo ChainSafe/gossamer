@@ -444,7 +444,7 @@ func (tbe *trieBackendEssence[H, Hasher]) ChildClosestMerkleValue(
 		return nil, err
 	}
 	if root == nil {
-		return nil, nil //nolint:nilnil
+		return nil, nil
 	}
 	childRoot = *root
 

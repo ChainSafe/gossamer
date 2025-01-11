@@ -193,7 +193,7 @@ func TestRestoreFromJournalAfterCanonicalize(t *testing.T) {
 
 func contains(overlay nonCanonicalOverlay[hash.H256, hash.H256], key uint64) bool {
 	val := overlay.Get(hash.NewH256FromLowUint64BigEndian(key))
-	return val != nil && string(*val) == string(hash.NewH256FromLowUint64BigEndian(key))
+	return val != nil && string(val) == string(hash.NewH256FromLowUint64BigEndian(key))
 }
 
 func TestInsertCanonicalizeTwo(t *testing.T) {
