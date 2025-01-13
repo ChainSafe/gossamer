@@ -48,7 +48,7 @@ type Service interface {
 
 ### Core Service
 
-The **core service** is responsible for block production and finalisation (consensus) and processing messages received from the **network service**; it initialises <a target="_blank" rel="noopener noreferrer" href="https://research.web3.foundation/en/latest/polkadot/BABE/Babe/">BABE</a> sessions and <a target="_blank" rel="noopener noreferrer" href="https://github.com/w3f/consensus/blob/master/pdf/grandpa.pdf">GRANDPA</a> rounds and validates blocks and transactions before committing them to the **state service**. 
+The **core service** is responsible for block production and finalization (consensus) and processing messages received from the **network service**; it initializes<a target="_blank" rel="noopener noreferrer" href="https://research.web3.foundation/en/latest/polkadot/BABE/Babe/">BABE</a> sessions and <a target="_blank" rel="noopener noreferrer" href="https://github.com/w3f/consensus/blob/master/pdf/grandpa.pdf">GRANDPA</a> rounds and validates blocks and transactions before committing them to the **state service**. 
 
 - only the **core service** writes to block state
 - only the **core service** writes to storage state
@@ -94,9 +94,9 @@ The first step is to get information about the parent block, for new blocks, thi
 
 The **parent hash** and **state root** is added to the block header _(point 1 & 2)_
 
-We then need to process the **extrinsics** _(point 3)_, extrinsics is used to describe any additional information to include in the block that isn't explicitly required to produce a block, such as **signed transactions** from accounts, or additional information added by the block author, like a **timestamp**.
+We then need to process the **extrinsics** _(point 3)_, extrinsics are used to describe any additional information to include in the block that isn't explicitly required to produce a block, such as **signed transactions** from accounts, or additional information added by the block author, like a **timestamp**.
 
-Once processed, we get whats called an **extrinsic root** _(point 4)_, this is used to verify the extrinsics when publishing later on.
+Once processed, we get what's called an **extrinsic root** _(point 4)_, this is used to verify the extrinsics when publishing later on.
 
 Finally, once all the contents of the block are in place, we then create the **digest**_(point 5)_, this is used to verify the blocks contents.
 
