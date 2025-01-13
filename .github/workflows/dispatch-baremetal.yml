@@ -29,8 +29,8 @@ on:
         type: choice 
         options:
           - hetzner-gossamer-westend
-          - hetzner-gossamer-paseo
           - hetzner-gossamer-westend-2
+          - hetzner-gossamer-paseo
           - hetzner-gossamer-paseo-2 
           - hetzner-gossamer-polkadot
       gossamerStartArgs:
