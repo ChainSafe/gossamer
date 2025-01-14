@@ -76,7 +76,7 @@ The session grid topology is instantiated by `Network Bridge Subsystem` when it 
 
 ### [Grid Neighbors](https://github.com/paritytech/polkadot-sdk/blob/645878a27115db52e5d63115699b4bbb89034067/polkadot/node/network/protocol/src/grid_topology.rs#L186)
 
-This struct extract from the `Session Grid Topology` the acutal row and column neighbors for a specific validator index.
+This struct extracts the actual row and column neighbors for a specific validator index from the `Session Grid Topology`.
 
 #### Functionalities
 
