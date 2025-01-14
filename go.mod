@@ -7,10 +7,10 @@ require (
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.1.0
-	github.com/cockroachdb/pebble v1.1.2
+	github.com/cockroachdb/pebble v1.1.3
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/dgraph-io/badger/v4 v4.5.0
-	github.com/dgraph-io/ristretto/v2 v2.0.1
+	github.com/dgraph-io/ristretto/v2 v2.1.0
 	github.com/disiqueira/gotree v1.0.0
 	github.com/ethereum/go-ethereum v1.14.12
 	github.com/fatih/color v1.18.0
@@ -42,10 +42,10 @@ require (
 	github.com/tidwall/btree v1.7.0
 	github.com/tyler-smith/go-bip39 v1.1.0
 	go.uber.org/mock v0.5.0
-	golang.org/x/crypto v0.31.0
+	golang.org/x/crypto v0.32.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
-	golang.org/x/term v0.27.0
-	google.golang.org/protobuf v1.35.2
+	golang.org/x/term v0.28.0
+	google.golang.org/protobuf v1.36.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -207,7 +207,7 @@ require (
 	golang.org/x/mod v0.19.0 // indirect
 	golang.org/x/net v0.31.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/tools v0.23.0 // indirect
 	gonum.org/v1/gonum v0.15.0 // indirect
