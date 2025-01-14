@@ -86,14 +86,9 @@ This struct extract from the `Session Grid Topology` the acutal row and column n
 - Peers Diff
     Given two topologies return difference in the set of peers
 
-### SessionBoundGridTopologyStorage
 
-This struct holds two topologies, `current` and `previous`.
 
-#### Functionalities
 
-- [Get Topology Or Fallback](https://github.com/paritytech/polkadot-sdk/blob/645878a27115db52e5d63115699b4bbb89034067/polkadot/node/network/protocol/src/grid_topology.rs#L454)
-    Given a session index returns the previous or current topology associated with it, return the current topology otherwise.
+### Session Grid Topology Storage
 
-- [Update Topology](https://github.com/paritytech/polkadot-sdk/blob/645878a27115db52e5d63115699b4bbb89034067/polkadot/node/network/protocol/src/grid_topology.rs#L474C9-L474C24)
-    Given a session index and a new topology, place the current one as previous and update the current one to be the new topology.
+Its important to highligh that each for the subsystem that uses Session Grid Topology, each one stores it differently. For example `Bitfield Distribution` only needs to hold only the current and previous session grid topology, that is implemented under `SessionBoundGridTopologyStorage`, while `Approval Distribution` stores a map from session index to grid topology. I would recomend for each storage method be placed under the respective subsystem given that each subsystem uses and store the information in a specific way.
