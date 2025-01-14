@@ -27,7 +27,7 @@ The new topology is propagated by the function `update_gossip_topology` using th
 - `Canonical Shuffling` (the validator indexes that were shuffled using [`fisher_yates_shuffle`](https://github.com/paritytech/polkadot-sdk/blob/4059282fc7b6ec965cc22a9a0df5920a4f3a4101/polkadot/node/network/gossip-support/src/lib.rs#L734))
 - `shuffled_indices` (a mapping to find the shuffled validators by its index)
 
-Now, this information is not propagated to all subsystems, [this event is being heard only by `Network Bridge Subsystem`](https://github.com/paritytech/polkadot-sdk/blob/cdf107de700388a52a17b2fb852c98420c78278e/polkadot/node/network/bridge/src/rx/mod.rs#L759). `Network Bridge Subsystem` will retrieve all the peer IDs for the new provided topology using the `Authority Discovery Service`, and once it get all it will create the `SessionGridTopology` instance and them dispatch it under the message `NetworkBridgeEvent::NewGossipTopology`
+Now, this information is not propagated to all subsystems, [this event is being heard only by `Network Bridge Subsystem`](https://github.com/paritytech/polkadot-sdk/blob/cdf107de700388a52a17b2fb852c98420c78278e/polkadot/node/network/bridge/src/rx/mod.rs#L759). `Network Bridge Subsystem` will retrieve all the peer IDs for the new provided topology using the `Authority Discovery Service`, and once it get all it will create the `SessionGridTopology` instance and then dispatch it under the message `NetworkBridgeEvent::NewGossipTopology`
 
 The propagation happens like in the following chain:
 
