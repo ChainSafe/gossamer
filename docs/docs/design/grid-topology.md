@@ -21,7 +21,7 @@ For a new leaf activated, the subsystem will retrieve its session index (that's 
 
 ### How is the new topology propagated?
 
-The new topology is propagated by the function `update_gossip_topology` using the message `NetworkBridgeRxMessage::NewGossipTopology`. Actually what is propagated is not the instance of the topology but the informations that is needed to produce the topology, which are: 
+The new topology is propagated by the function `update_gossip_topology` using the message `NetworkBridgeRxMessage::NewGossipTopology`. Actually what is propagated is not the instance of the topology but the information that is needed to produce the topology, which are:
 - `Session Index`
 - `Local Index` (our validator index)
 - `Canonical Shuffling` (the validator indexes that were shuffled using [`fisher_yates_shuffle`](https://github.com/paritytech/polkadot-sdk/blob/4059282fc7b6ec965cc22a9a0df5920a4f3a4101/polkadot/node/network/gossip-support/src/lib.rs#L734))
