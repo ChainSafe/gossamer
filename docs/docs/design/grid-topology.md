@@ -81,7 +81,7 @@ This struct extracts the actual row and column neighbors for a specific validato
 #### Functionalities
 
 - Should Routing To
-    Given a peer id OR a validator index we should check if we should routing its message to our row OR column neighbor. That is made by checking if the received message cames from a row neighor or from a column neighbor.
+    Given a peer id OR a validator index, check if we should route its message to our row OR column neighbor. That is done by checking if the received message came from a row neighbor or from a column neighbor.
 
 - Peers Diff
     Given two topologies return difference in the set of peers
