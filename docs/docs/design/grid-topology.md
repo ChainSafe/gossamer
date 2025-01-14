@@ -35,7 +35,7 @@ The propagation happens like in the following chain:
 
 ### What information is needed to produce the topology?
 
-Before generating the topology we need first all the authotities that will take place in the new session, this information can be retrieved from the runtime. The next information is the randomness used to shuffle these validator indices which is retrieved from the runtime BABE Current Epoch Randomness, besides that we also must have the current session index as well as our validator index a.k.a `local index`.
+Before generating the topology we need first all the authorities that will take place in the new session. This information can be retrieved from the runtime. The next information is the randomness used to shuffle these validator indices which is retrieved from the runtime BABE Current Epoch Randomness. Besides that we also must have the current session index as well as our validator index a.k.a `local index`.
 
 ### Are there any existing RFCs?
 
