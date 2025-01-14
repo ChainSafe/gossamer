@@ -91,4 +91,4 @@ This struct extracts the actual row and column neighbors for a specific validato
 
 ### Session Grid Topology Storage
 
-Its important to highligh that each for the subsystem that uses Session Grid Topology, each one stores it differently. For example `Bitfield Distribution` only needs to hold only the current and previous session grid topology, that is implemented under `SessionBoundGridTopologyStorage`, while `Approval Distribution` stores a map from session index to grid topology. I would recomend for each storage method be placed under the respective subsystem given that each subsystem uses and store the information in a specific way.
+Its important to highlight that each of the subsystems that use Session Grid Topology stores it differently. For example `Bitfield Distribution` only needs to hold the current and previous session grid topology, implemented under `SessionBoundGridTopologyStorage`, while `Approval Distribution` stores a map from session index to grid topology. I would recommend to place each storage method under the respective subsystem, given that each subsystem uses and stores the information in a specific way.
