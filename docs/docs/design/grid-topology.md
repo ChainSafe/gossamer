@@ -6,7 +6,7 @@
 
 [Gossip Support Subsystem](https://github.com/paritytech/polkadot-sdk/blob/master/polkadot/node/network/gossip-support/src/lib.rs) is responsible to update the grid topology.
 
-While [handling active leaves](https://github.com/paritytech/polkadot-sdk/blob/4059282fc7b6ec965cc22a9a0df5920a4f3a4101/polkadot/node/network/gossip-support/src/lib.rs#L210) it checks if the session changes, if so it triggers a the function called [`update_gossip_topology`](https://github.com/paritytech/polkadot-sdk/blob/4059282fc7b6ec965cc22a9a0df5920a4f3a4101/polkadot/node/network/gossip-support/src/lib.rs#L674), so after generating the new topology, propagates it with:
+While [handling active leaves](https://github.com/paritytech/polkadot-sdk/blob/4059282fc7b6ec965cc22a9a0df5920a4f3a4101/polkadot/node/network/gossip-support/src/lib.rs#L210) it checks if the session changes, if so it triggers the function [`update_gossip_topology`](https://github.com/paritytech/polkadot-sdk/blob/4059282fc7b6ec965cc22a9a0df5920a4f3a4101/polkadot/node/network/gossip-support/src/lib.rs#L674). After generating the new topology, it is propagated with:
 
 ```rs
 sender.send_message(NetworkBridgeRxMessage::NewGossipTopology {...})
