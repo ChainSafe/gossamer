@@ -1367,10 +1367,6 @@ func TestInstance_ExecuteBlock_PaseoRuntime_PaseoBlock1789153(t *testing.T) {
 	expectedRoot := common.MustHexToHash("0xf74a4a94758ac505a0bacdd52d7739d62b616eb03840d24d4a2df42df295c31d")
 	require.Equal(t, expectedRoot, trie.V1.MustHash(paseoTrie))
 
-	//paseoTrieActual := newTrieFromKeyValueListV1(t, "../test_data/paseo/block1789153.out")
-	//expectedRootActual := common.MustHexToHash("0xc29a9d4465400c980cca388963461755040f2ba4c5ed722afc204014426e9080")
-	////require.Equal(t, expectedRootActual, trie.V1.MustHash(paseoTrieActual))
-
 	state := storage.NewTrieState(paseoTrie)
 	db, err := database.NewPebble("", true)
 	require.NoError(t, err)
