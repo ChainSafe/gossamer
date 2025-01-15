@@ -42,7 +42,7 @@ The overseer must be modified to forward these messages to the subsystem.
 
 ### Messages Sent
 
-1. [`NetworkBridgeTxMessage::SendRequests(Requests, IfDisconnected::TryConnect)`](https://github.com/paritytech/polkadot-sdk/blob/41b6915ecb4b5691cdeeb585e26d46c4897ae151/polkadot/node/subsystem-types/src/messages.rs#L433)
+1. [`NetworkBridgeTxMessage::SendRequests(Requests, IfDisconnected::ImmediateError)`](https://github.com/paritytech/polkadot-sdk/blob/41b6915ecb4b5691cdeeb585e26d46c4897ae151/polkadot/node/subsystem-types/src/messages.rs#L433)
 
 This network bridge message is used to request PoVs and erasure chunks from other validators in the core group. [It is
 not implemented](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/network-bridge/sender.go#L95-L96)
