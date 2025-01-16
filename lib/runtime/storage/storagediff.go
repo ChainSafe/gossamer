@@ -126,21 +126,22 @@ func (cs *storageDiff) deleteChildLimit(keyToChild string,
 
 // clearPrefixInChild clears keys with a specific prefix within a child trie.
 func (cs *storageDiff) clearPrefixInChild(keyToChild string, prefix []byte,
-	childKeys []string, limit int) (deleted uint32, allDeleted bool) {
+	childKeys []string, limit int) (loops, deleted uint32, allDeleted bool) {
 	childChanges := cs.childChangeSet[keyToChild]
 	if childChanges == nil {
 		childChanges = newStorageDiff()
 	}
-	deleted, allDeleted = childChanges.clearPrefix(prefix, childKeys, limit)
+	loops, deleted, allDeleted = childChanges.clearPrefix(prefix, childKeys, limit)
 	cs.childChangeSet[keyToChild] = childChanges
 
-	return deleted, allDeleted
+	return loops, deleted, allDeleted
 }
 
 // clearPrefix removes all keys matching a specified prefix, within an
-// optional limit. It returns the number of keys deleted and a boolean
-// indicating if all keys with the prefix were removed.
-func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) (deleted uint32, allDeleted bool) {
+// optional limit. It returns the amount of iterations we performed,
+// the number of keys deleted and a boolean indicating if all keys with the prefix were removed.
+func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) (
+	loops, deleted uint32, allDeleted bool) {
 	newKeys := maps.Keys(cs.upserts)
 	keysToClear := maps.Keys(cs.upserts)
 	for _, k := range trieKeys {
@@ -152,7 +153,7 @@ func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) 
 	deleted = 0
 	sort.Strings(keysToClear)
 	for _, k := range keysToClear {
-		if limit == 0 {
+		if loops == uint32(limit) {
 			break
 		}
 		keyBytes := []byte(k)
@@ -160,12 +161,12 @@ func (cs *storageDiff) clearPrefix(prefix []byte, trieKeys []string, limit int) 
 			cs.delete(k)
 			deleted++
 			if !slices.Contains(newKeys, k) {
-				limit--
+				loops++
 			}
 		}
 	}
 
-	return deleted, deleted == uint32(len(keysToClear))
+	return loops, deleted, deleted == uint32(len(keysToClear))
 }
 
 // getFromChild attempts to retrieve a value associated with a specific key

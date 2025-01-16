@@ -1149,13 +1149,13 @@ func ext_default_child_storage_clear_prefix_version_2(ctx context.Context, m api
 
 	limitUint := binary.LittleEndian.Uint32(limit)
 
-	deleted, allDeleted, err := storage.ClearPrefixInChildWithLimit(
+	loops, _, allDeleted, err := storage.ClearPrefixInChildWithLimit(
 		keyToChild, prefix, limitUint)
 	if err != nil {
 		logger.Errorf("failed to clear prefix in child with limit: %s", err)
 	}
 
-	killStorageResult := NewKillStorageResult(deleted, allDeleted)
+	killStorageResult := NewKillStorageResult(loops, allDeleted)
 
 	encodedKillStorageResult, err := scale.Marshal(killStorageResult)
 	if err != nil {
@@ -2135,13 +2135,13 @@ func ext_storage_clear_prefix_version_2(ctx context.Context, m api.Module, prefi
 		return valueSpan
 	}
 
-	numRemoved, all, err := storage.ClearPrefixLimit(prefix, *limitPtr)
+	loops, _, all, err := storage.ClearPrefixLimit(prefix, *limitPtr)
 	if err != nil {
 		logger.Errorf("failed to clear prefix limit: %s", err)
 		panic(err)
 	}
 
-	encBytes, err := toKillStorageResultEnum(all, numRemoved)
+	encBytes, err := toKillStorageResultEnum(all, loops)
 	if err != nil {
 		logger.Errorf("failed to allocate memory: %s", err)
 		panic(err)

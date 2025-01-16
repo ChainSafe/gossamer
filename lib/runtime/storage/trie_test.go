@@ -171,15 +171,17 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 				}
 			},
 			checks: func(t *testing.T, ts *TrieState, isTransactionRunning bool) {
-				deleted, allDeleted, err := ts.ClearPrefixLimit([]byte("noo"), uint32(1))
+				loops, deleted, allDeleted, err := ts.ClearPrefixLimit([]byte("noo"), uint32(1))
 				require.NoError(t, err)
 
 				if isTransactionRunning {
 					// New keys are not considered towards the limit
 					require.Equal(t, uint32(2), deleted)
+					require.Equal(t, uint32(0), loops)
 					require.False(t, allDeleted)
 				} else {
 					require.Equal(t, uint32(1), deleted)
+					require.Equal(t, uint32(0), loops)
 					require.False(t, allDeleted)
 				}
 			},
@@ -215,15 +217,17 @@ func TestTrieState_WithAndWithoutTransactions(t *testing.T) {
 
 			},
 			checks: func(t *testing.T, ts *TrieState, isTransactionRunning bool) {
-				deleted, allDeleted, err := ts.ClearPrefixInChildWithLimit(keyToChild, []byte("noo"), uint32(1))
+				loops, deleted, allDeleted, err := ts.ClearPrefixInChildWithLimit(keyToChild, []byte("noo"), uint32(1))
 
 				require.NoError(t, err)
 				require.False(t, allDeleted)
 
 				if isTransactionRunning {
 					require.Equal(t, uint32(2), deleted)
+					require.Equal(t, uint32(0), loops)
 				} else {
 					require.Equal(t, uint32(1), deleted)
+					require.Equal(t, uint32(0), loops)
 				}
 			},
 		},

@@ -69,7 +69,7 @@ func TestExternalAddrsPublicIP(t *testing.T) {
 
 	for i, addr := range addrInfo.Addrs {
 		switch i {
-		case len(addrInfo.Addrs) - 1:
+		case 0:
 			// would be blocked by privateIPs, but this address injected from Config.PublicIP
 			require.True(t, privateIPs.AddrBlocked(addr))
 		default:
@@ -78,8 +78,8 @@ func TestExternalAddrsPublicIP(t *testing.T) {
 	}
 
 	expected := []ma.Multiaddr{
-		mustNewMultiAddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port)),
 		mustNewMultiAddr(fmt.Sprintf("/ip4/10.0.5.2/tcp/%d", port)),
+		mustNewMultiAddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port)),
 	}
 	assert.Equal(t, addrInfo.Addrs, expected)
 }
