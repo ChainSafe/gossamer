@@ -559,7 +559,7 @@ type Network interface {
 		maxSize uint64,
 	) error
 	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
-		maxResponseSize uint64) *network.RequestResponseProtocol
+		maxResponseSize uint64) network.RequestMaker
 }
 
 type CollationEvent struct {
@@ -574,7 +574,7 @@ type CollatorProtocolValidatorSide struct {
 	SubSystemToOverseer chan<- any
 	unfetchedCollation  chan UnfetchedCollation
 
-	collationFetchingReqResProtocol *network.RequestResponseProtocol
+	collationFetchingReqResProtocol network.RequestMaker
 
 	fetchedCollations []parachaintypes.Collation
 	// track all active collators and their data

@@ -23,6 +23,7 @@ import (
 type MockNetwork struct {
 	ctrl     *gomock.Controller
 	recorder *MockNetworkMockRecorder
+	isgomock struct{}
 }
 
 // MockNetworkMockRecorder is the mock recorder for MockNetwork.
@@ -43,41 +44,41 @@ func (m *MockNetwork) EXPECT() *MockNetworkMockRecorder {
 }
 
 // GetRequestResponseProtocol mocks base method.
-func (m *MockNetwork) GetRequestResponseProtocol(arg0 string, arg1 time.Duration, arg2 uint64) *network.RequestResponseProtocol {
+func (m *MockNetwork) GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration, maxResponseSize uint64) network.RequestMaker {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRequestResponseProtocol", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*network.RequestResponseProtocol)
+	ret := m.ctrl.Call(m, "GetRequestResponseProtocol", subprotocol, requestTimeout, maxResponseSize)
+	ret0, _ := ret[0].(network.RequestMaker)
 	return ret0
 }
 
 // GetRequestResponseProtocol indicates an expected call of GetRequestResponseProtocol.
-func (mr *MockNetworkMockRecorder) GetRequestResponseProtocol(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockNetworkMockRecorder) GetRequestResponseProtocol(subprotocol, requestTimeout, maxResponseSize any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRequestResponseProtocol", reflect.TypeOf((*MockNetwork)(nil).GetRequestResponseProtocol), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRequestResponseProtocol", reflect.TypeOf((*MockNetwork)(nil).GetRequestResponseProtocol), subprotocol, requestTimeout, maxResponseSize)
 }
 
 // GossipMessage mocks base method.
-func (m *MockNetwork) GossipMessage(arg0 network.NotificationsMessage) {
+func (m *MockNetwork) GossipMessage(msg network.NotificationsMessage) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "GossipMessage", arg0)
+	m.ctrl.Call(m, "GossipMessage", msg)
 }
 
 // GossipMessage indicates an expected call of GossipMessage.
-func (mr *MockNetworkMockRecorder) GossipMessage(arg0 any) *gomock.Call {
+func (mr *MockNetworkMockRecorder) GossipMessage(msg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GossipMessage", reflect.TypeOf((*MockNetwork)(nil).GossipMessage), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GossipMessage", reflect.TypeOf((*MockNetwork)(nil).GossipMessage), msg)
 }
 
 // RegisterNotificationsProtocol mocks base method.
-func (m *MockNetwork) RegisterNotificationsProtocol(arg0 protocol.ID, arg1 network.MessageType, arg2 func() (network.Handshake, error), arg3 func([]byte) (network.Handshake, error), arg4 func(peer.ID, network.Handshake) error, arg5 func([]byte) (network.NotificationsMessage, error), arg6 func(peer.ID, network.NotificationsMessage) (bool, error), arg7 func(peer.ID, network.NotificationsMessage), arg8 uint64) error {
+func (m *MockNetwork) RegisterNotificationsProtocol(sub protocol.ID, messageID network.MessageType, handshakeGetter func() (network.Handshake, error), handshakeDecoder func([]byte) (network.Handshake, error), handshakeValidator func(peer.ID, network.Handshake) error, messageDecoder func([]byte) (network.NotificationsMessage, error), messageHandler func(peer.ID, network.NotificationsMessage) (bool, error), batchHandler func(peer.ID, network.NotificationsMessage), maxSize uint64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterNotificationsProtocol", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+	ret := m.ctrl.Call(m, "RegisterNotificationsProtocol", sub, messageID, handshakeGetter, handshakeDecoder, handshakeValidator, messageDecoder, messageHandler, batchHandler, maxSize)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RegisterNotificationsProtocol indicates an expected call of RegisterNotificationsProtocol.
-func (mr *MockNetworkMockRecorder) RegisterNotificationsProtocol(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8 any) *gomock.Call {
+func (mr *MockNetworkMockRecorder) RegisterNotificationsProtocol(sub, messageID, handshakeGetter, handshakeDecoder, handshakeValidator, messageDecoder, messageHandler, batchHandler, maxSize any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterNotificationsProtocol", reflect.TypeOf((*MockNetwork)(nil).RegisterNotificationsProtocol), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterNotificationsProtocol", reflect.TypeOf((*MockNetwork)(nil).RegisterNotificationsProtocol), sub, messageID, handshakeGetter, handshakeDecoder, handshakeValidator, messageDecoder, messageHandler, batchHandler, maxSize)
 }

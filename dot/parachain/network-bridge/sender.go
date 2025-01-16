@@ -6,6 +6,7 @@ package networkbridge
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
@@ -92,7 +93,9 @@ func (nbs *NetworkBridgeSender) processMessage(msg any) error {
 				return fmt.Errorf("sending message: %w", err)
 			}
 		}
-		// TODO: add ConnectTOResolvedValidators, SendRequests
+	case networkbridgemessages.SendRequests:
+		nbs.sendRequests(msg.Requests, msg.IfDisconnected)
+		// TODO: add ConnectTOResolvedValidators
 	case networkbridgemessages.ConnectToValidators:
 		// TODO
 	case networkbridgemessages.ReportPeer:
@@ -103,4 +106,34 @@ func (nbs *NetworkBridgeSender) processMessage(msg any) error {
 	}
 
 	return nil
+}
+
+const requestTimeout = 200 * time.Millisecond // TODO is this reasonable?
+
+// PoV is probably the largest message and is currently set at 5MB, but will likely be increased to 10MB in the future.
+// see: https://github.com/paritytech/polkadot-sdk/issues/5334
+// Maybe message types should have a MaxSize() method instead of using the same value for all messages.
+const maxResponseSize uint64 = 5 * 1024 * 1024
+
+func (nbs *NetworkBridgeSender) sendRequests(
+	requests []*networkbridgemessages.OutgoingRequest,
+	ifDisconnected networkbridgemessages.IfDisconnectedBehavior, //nolint:unparam
+) {
+	for _, request := range requests {
+		protoID := request.Payload.Protocol().String()
+		protocol := nbs.net.GetRequestResponseProtocol(protoID, requestTimeout, maxResponseSize)
+		response := request.Payload.Response()
+		result := networkbridgemessages.ReqRespResult{}
+
+		// TODO This should probably be done on a goroutine. Unclear how to deal with cancellation/shutdown though.
+		err := protocol.Do(request.Recipient, request.Payload, response)
+		if err != nil {
+			result.Error = err
+		} else {
+			result.Response = response
+		}
+
+		request.Result <- result
+		close(request.Result)
+	}
 }
