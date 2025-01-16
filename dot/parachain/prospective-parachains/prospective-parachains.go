@@ -146,7 +146,6 @@ func (pp *ProspectiveParachains) introduceSecondedCandidate(
 		paraScheduled = true
 
 		err = chain.tryAddingSecondedCandidate(entry)
-
 		if err != nil {
 			if errors.Is(err, errCandidateAlreadyKnown) {
 				logger.Tracef(
