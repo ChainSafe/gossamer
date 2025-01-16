@@ -62,11 +62,7 @@ func (pp *ProspectiveParachains) answerHypotheticalMembershipRequest(
 	view *view,
 	request HypotheticalMembershipRequest,
 	tx chan []HypotheticalCandidateMembership,
-	metrics *Metrics,
 ) {
-	timer := metrics.timeHypotheticalMembershipRequest()
-	defer timer.Stop()
-
 	response := make([]HypotheticalCandidateMembership, 0, len(request.Candidates))
 	for _, candidate := range request.Candidates {
 		response = append(response, HypotheticalCandidateMembership{Candidate: candidate, Membership: []common.Hash{}})
