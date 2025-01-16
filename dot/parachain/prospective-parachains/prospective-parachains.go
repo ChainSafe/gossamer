@@ -136,7 +136,6 @@ func (pp *ProspectiveParachains) introduceSecondedCandidate(
 
 	for relayParent, rpData := range view.perRelayParent {
 		chain, exists := rpData.fragmentChains[para]
-
 		if !exists {
 			continue
 		}
