@@ -89,6 +89,7 @@ type HypotheticalMembershipResponseItem struct {
 // HypotheticalMembershipRequest Request specifying which candidates are either already included
 // or might become included in fragment chain under a given active leaf (or any active leaf if
 // `FragmentChainRelayParent` is `nil`).
+
 type HypotheticalMembershipRequest struct {
 	// Candidates, in arbitrary order, which should be checked for
 	// hypothetical/actual membership in fragment chains.

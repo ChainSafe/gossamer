@@ -111,6 +111,10 @@ type FragmentTreeMembership struct {
 //     would have and are evaluated less strictly.
 type HypotheticalCandidate interface {
 	isHypotheticalCandidate()
+	CandidatePara() ParaID
+	GetCandidateHash() CandidateHash
+	GetCommittedCandidateReceipt() CommittedCandidateReceipt
+	GetPersistedValidationData() PersistedValidationData
 }
 
 // HypotheticalCandidateIncomplete represents an incomplete hypothetical candidate.
@@ -126,6 +130,23 @@ type HypotheticalCandidateIncomplete struct {
 	RelayParent common.Hash
 }
 
+// / Get the `ParaId` of the hypothetical candidate.
+func (c HypotheticalCandidateIncomplete) CandidatePara() ParaID {
+	return c.CandidateParaID
+}
+
+func (c HypotheticalCandidateIncomplete) GetCandidateHash() CandidateHash {
+	return c.CandidateHash
+}
+
+func (c HypotheticalCandidateIncomplete) GetCommittedCandidateReceipt() CommittedCandidateReceipt {
+	return CommittedCandidateReceipt{}
+}
+
+func (c HypotheticalCandidateIncomplete) GetPersistedValidationData() PersistedValidationData {
+	return PersistedValidationData{}
+}
+
 func (HypotheticalCandidateIncomplete) isHypotheticalCandidate() {}
 
 // HypotheticalCandidateComplete represents a complete candidate, including its hash, committed candidate receipt,
@@ -137,6 +158,23 @@ type HypotheticalCandidateComplete struct {
 }
 
 func (HypotheticalCandidateComplete) isHypotheticalCandidate() {}
+
+// / Get the `ParaId` of the hypothetical candidate.
+func (c HypotheticalCandidateComplete) CandidatePara() ParaID {
+	return c.CommittedCandidateReceipt.Descriptor.ParaID
+}
+
+func (c HypotheticalCandidateComplete) GetCandidateHash() CandidateHash {
+	return c.CandidateHash
+}
+
+func (c HypotheticalCandidateComplete) GetCommittedCandidateReceipt() CommittedCandidateReceipt {
+	return c.CommittedCandidateReceipt
+}
+
+func (c HypotheticalCandidateComplete) GetPersistedValidationData() PersistedValidationData {
+	return c.PersistedValidationData
+}
 
 // AvailabilityDistributionMessageFetchPoV represents a message instructing
 // availability distribution to fetch a remote Proof of Validity (PoV).

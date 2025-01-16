@@ -11,6 +11,11 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "prospective_parachains"), log.SetLevel(log.Debug))
 
+type HypotheticalCandidateMembership struct {
+	Candidate  parachaintypes.HypotheticalCandidate
+	Membership HypotheticalMembership
+}
+
 type ProspectiveParachains struct {
 	SubsystemToOverseer chan<- any
 	View                *view
@@ -51,6 +56,75 @@ func (pp *ProspectiveParachains) Run(ctx context.Context, overseerToSubsystem <-
 			return
 		}
 	}
+}
+
+func (pp *ProspectiveParachains) answerHypotheticalMembershipRequest(
+	view *view,
+	request HypotheticalMembershipRequest,
+	tx chan []HypotheticalCandidateMembership,
+	metrics *Metrics,
+) {
+	timer := metrics.timeHypotheticalMembershipRequest()
+	defer timer.Stop()
+
+	response := make([]HypotheticalCandidateMembership, 0, len(request.Candidates))
+	for _, candidate := range request.Candidates {
+		response = append(response, HypotheticalCandidateMembership{Candidate: candidate, Membership: []common.Hash{}})
+	}
+
+	requiredActiveLeaf := request.FragmentChainRelayParent
+	for activeLeaf := range view.activeLeaves {
+		if requiredActiveLeaf != nil && *requiredActiveLeaf != activeLeaf {
+			continue
+		}
+
+		leafView, found := view.perRelayParent[activeLeaf]
+		if !found {
+			continue
+		}
+
+		for i := range response {
+			candidate := &response[i].Candidate
+			membership := &response[i].Membership
+
+			paraID := (*candidate).CandidatePara()
+			fragmentChain, found := leafView.fragmentChains[paraID]
+			if !found {
+				continue
+			}
+
+			candidateHash := (*candidate).GetCandidateHash()
+
+			candidateEntry, err := newCandidateEntry(
+				candidateHash,
+				(*candidate).GetCommittedCandidateReceipt(),
+				(*candidate).GetPersistedValidationData(),
+				seconded,
+			)
+
+			if err != nil {
+				logger.Debugf(
+					"Candidate is not a hypothetical member: %v, para: %v, leaf: %v, candidate: %v",
+					err, paraID, activeLeaf, candidateHash,
+				)
+				continue
+			}
+
+			err = fragmentChain.canAddCandidateAsPotential(candidateEntry)
+
+			switch err {
+			case nil, errCandidateAlreadyKnown:
+				*membership = append(*membership, activeLeaf)
+			default:
+				logger.Debugf(
+					"Candidate is not a hypothetical member: %v, para: %v, leaf: %v, candidate: %v",
+					err, paraID, activeLeaf, candidateHash,
+				)
+			}
+		}
+	}
+
+	tx <- response
 }
 
 func (*ProspectiveParachains) Stop() {}
