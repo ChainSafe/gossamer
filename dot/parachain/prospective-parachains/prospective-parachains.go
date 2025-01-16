@@ -14,11 +14,12 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "prospective_parachains"), 
 
 // Initialize with empty values.
 func NewView() *view {
+	//nolint:lll
 	return &view{
 		perRelayParent: make(map[common.Hash]*relayParentData),
 		activeLeaves:   make(map[common.Hash]bool),
-		implicitView:   nil, // TODO: currently there's no implementation for ImplicitView, reference is:
-		//  https://github.com/paritytech/polkadot-sdk/blob/028e61be43f05f6f6c88c5cca94160f8db075585/polkadot/node/subsystem-util/src/backing_implicit_view.rs#L40
+		implicitView:   nil, // TODO: currently there's no implementation for ImplicitView, reference is: //nolint:lll
+		//  https://github.com/paritytech/polkadot-sdk/blob/028e61be43f05f6f6c88c5cca94160f8db075585/polkadot/node/subsystem-util/src/backing_implicit_view.rs#L40 //nolint:lll
 	}
 }
 
