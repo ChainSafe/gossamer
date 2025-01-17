@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package api
 
 import (
@@ -13,20 +16,20 @@ func Test_StorageNotifications(t *testing.T) {
 	t.Run("triggering_change_should_notify_wildcard_listeners", func(t *testing.T) {
 		notifications := NewStorageNotifications[hash.H256]()
 		childFilter := ChildFilterKeys{
-			Key:  []byte{4},
-			Keys: nil,
+			Key:        []byte{4},
+			FilterKeys: nil,
 		}
 		recv := notifications.Listen(nil, []ChildFilterKeys{childFilter})
 
-		changeset := []Change{
-			{Key: []byte{2}, Value: []byte{3}},
-			{Key: []byte{3}, Value: nil},
+		changeset := []StorageChange{
+			{StorageKey: []byte{2}, StorageData: []byte{3}},
+			{StorageKey: []byte{3}, StorageData: nil},
 		}
-		cChangeset1 := []Change{
-			{Key: []byte{5}, Value: []byte{4}},
-			{Key: []byte{6}, Value: nil},
+		cChangeset1 := []StorageChange{
+			{StorageKey: []byte{5}, StorageData: []byte{4}},
+			{StorageKey: []byte{6}, StorageData: nil},
 		}
-		cChangeset := []ChildChange{
+		cChangeset := []StorageChildChange{
 			{StorageKey: []byte{4}, ChangeSet: cChangeset1},
 		}
 
@@ -54,22 +57,22 @@ func Test_StorageNotifications(t *testing.T) {
 	t.Run("should_only_notify_interested_listeners", func(t *testing.T) {
 		notifications := NewStorageNotifications[hash.H256]()
 		childFilter := ChildFilterKeys{
-			Key:  []byte{4},
-			Keys: []storage.StorageKey{[]byte{5}},
+			Key:        []byte{4},
+			FilterKeys: []storage.StorageKey{[]byte{5}},
 		}
 		recv1 := notifications.Listen([]storage.StorageKey{{1}}, nil)
 		recv2 := notifications.Listen([]storage.StorageKey{{2}}, nil)
 		recv3 := notifications.Listen([]storage.StorageKey{}, []ChildFilterKeys{childFilter})
 
-		changeset := []Change{
-			{Key: []byte{2}, Value: []byte{3}},
-			{Key: []byte{1}, Value: nil},
+		changeset := []StorageChange{
+			{StorageKey: []byte{2}, StorageData: []byte{3}},
+			{StorageKey: []byte{1}, StorageData: nil},
 		}
-		cChangeset1 := []Change{
-			{Key: []byte{5}, Value: []byte{4}},
-			{Key: []byte{6}, Value: nil},
+		cChangeset1 := []StorageChange{
+			{StorageKey: []byte{5}, StorageData: []byte{4}},
+			{StorageKey: []byte{6}, StorageData: nil},
 		}
-		cChangeset := []ChildChange{
+		cChangeset := []StorageChildChange{
 			{StorageKey: []byte{4}, ChangeSet: cChangeset1},
 		}
 
@@ -98,17 +101,17 @@ func Test_StorageNotifications(t *testing.T) {
 		wg.Wait()
 
 		require.Equal(t, hash.NewH256FromLowUint64BigEndian(1), notif1.Block)
-		require.Equal(t, []Change{{Key: []byte{1}, Value: nil}}, notif1.StorageChangeSet.Changes)
-		require.Equal(t, []ChildChange(nil), notif1.StorageChangeSet.ChildChanges)
+		require.Equal(t, []StorageChange{{StorageKey: []byte{1}, StorageData: nil}}, notif1.StorageChangeSet.Changes)
+		require.Equal(t, []StorageChildChange(nil), notif1.StorageChangeSet.ChildChanges)
 
 		require.Equal(t, hash.NewH256FromLowUint64BigEndian(1), notif2.Block)
-		require.Equal(t, []Change{{Key: []byte{2}, Value: []byte{3}}}, notif2.StorageChangeSet.Changes)
-		require.Equal(t, []ChildChange(nil), notif2.StorageChangeSet.ChildChanges)
+		require.Equal(t, []StorageChange{{StorageKey: []byte{2}, StorageData: []byte{3}}}, notif2.StorageChangeSet.Changes)
+		require.Equal(t, []StorageChildChange(nil), notif2.StorageChangeSet.ChildChanges)
 
 		require.Equal(t, hash.NewH256FromLowUint64BigEndian(1), notif3.Block)
-		require.Equal(t, []Change(nil), notif3.StorageChangeSet.Changes)
-		require.Equal(t, []ChildChange{{StorageKey: []byte{4}, ChangeSet: []Change{
-			{Key: []byte{5}, Value: []byte{4}},
+		require.Equal(t, []StorageChange(nil), notif3.StorageChangeSet.Changes)
+		require.Equal(t, []StorageChildChange{{StorageKey: []byte{4}, ChangeSet: []StorageChange{
+			{StorageKey: []byte{5}, StorageData: []byte{4}},
 		}}}, notif3.StorageChangeSet.ChildChanges)
 
 		recv1.Drop()
@@ -121,8 +124,8 @@ func Test_StorageNotifications(t *testing.T) {
 		notifications := NewStorageNotifications[hash.H256]()
 		{
 			childFilter := ChildFilterKeys{
-				Key:  []byte{4},
-				Keys: []storage.StorageKey{[]byte{5}},
+				Key:        []byte{4},
+				FilterKeys: []storage.StorageKey{[]byte{5}},
 			}
 			recv1 := notifications.Listen([]storage.StorageKey{{1}}, nil)
 			recv2 := notifications.Listen([]storage.StorageKey{{2}}, nil)
@@ -139,11 +142,11 @@ func Test_StorageNotifications(t *testing.T) {
 			recv4.Drop()
 		}
 
-		changeset := []Change{
-			{Key: []byte{2}, Value: []byte{3}},
-			{Key: []byte{1}, Value: nil},
+		changeset := []StorageChange{
+			{StorageKey: []byte{2}, StorageData: []byte{3}},
+			{StorageKey: []byte{1}, StorageData: nil},
 		}
-		cChangeset := []ChildChange{}
+		cChangeset := []StorageChildChange{}
 		notifications.Trigger(hash.NewH256FromLowUint64BigEndian(1), changeset, cChangeset)
 
 		require.Equal(t, 0, len(notifications.Registry().listeners))
@@ -165,8 +168,8 @@ func Test_StorageNotifications(t *testing.T) {
 		notifications := NewStorageNotifications[hash.H256]()
 		recv := notifications.Listen(nil, nil)
 
-		changeset := []Change{}
-		cChangeset := []ChildChange{}
+		changeset := []StorageChange{}
+		cChangeset := []StorageChildChange{}
 
 		var notifCount int
 		done := make(chan any)

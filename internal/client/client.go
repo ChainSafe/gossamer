@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package client
 
 import (
@@ -8,7 +11,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 )
 
@@ -21,33 +23,24 @@ type Client[
 	E runtime.Extrinsic,
 	Header runtime.Header[N, H],
 ] struct {
-	backend api.Backend[H, N, Hasher, Header, E]
-
-	storageNotifications api.StorageNotifications[H]
-
+	backend                         api.Backend[H, N, Hasher, Header, E]
+	storageNotifications            api.StorageNotifications[H]
 	importNotificationChansMtx      sync.Mutex
 	importNotificationChans         map[chan<- api.BlockImportNotification[H, N, Header]]any
 	everyImportNotificationChansMtx sync.Mutex
 	everyImportNotificationChans    map[chan<- api.BlockImportNotification[H, N, Header]]any
 	finalityNotificationChansMtx    sync.Mutex
 	finalityNotificationChans       map[chan<- api.FinalityNotification[H, N, Header]]any
-
-	// Collects auxiliary operations to be performed atomically together with
-	// block import operations.
-	// import_actions: Mutex<Vec<OnImportAction<Block>>>,
+	// Collects auxiliary operations to be performed atomically together with block import operations.
 	importActionsMtx sync.Mutex
 	importActions    []api.OnImportAction[H, N, Header]
-	// Collects auxiliary operations to be performed atomically together with
-	// block finalization operations.
-	// finality_actions: Mutex<Vec<OnFinalityAction<Block>>>,
+	// Collects auxiliary operations to be performed atomically together with block finalization operations.
 	finalityActionsMtx sync.Mutex
 	finalityActions    []api.OnFinalityAction[H, N, Header]
-	// Holds the block hash currently being imported. TODO: replace this with block queue.
-	// importing_block: RwLock<Option<Block::Hash>>,
+	// Holds the block hash currently being imported.
 	importingBlockMtx sync.RWMutex
 	importingBlock    *H
-
-	unpinWorkerChan chan<- api.UnpinWorkerMessage[H]
+	unpinWorkerChan   chan<- api.UnpinWorkerMessage[H]
 }
 
 func New[
@@ -92,7 +85,9 @@ func (c *Client[H, Hasher, N, E, Header]) unpin(message api.Unpin[H]) error {
 	}
 }
 
-func (c *Client[H, Hasher, N, E, Header]) LockImportRun(f func(*api.ClientImportOperation[H, Hasher, N, Header, E]) error) error {
+func (c *Client[H, Hasher, N, E, Header]) LockImportRun(
+	f func(*api.ClientImportOperation[H, Hasher, N, Header, E]) error,
+) error {
 	var inner = func() error {
 		c.backend.GetImportLock().Lock()
 		defer c.backend.GetImportLock().Unlock()
@@ -117,11 +112,8 @@ func (c *Client[H, Hasher, N, E, Header]) LockImportRun(f func(*api.ClientImport
 		}
 
 		var (
-			importNotification *api.BlockImportNotification[H, N, Header]
-			storageChanges     *struct {
-				statemachine.StorageCollection
-				statemachine.ChildStorageCollection
-			}
+			importNotification       *api.BlockImportNotification[H, N, Header]
+			storageChanges           *api.StorageChanges
 			importNotificationAction api.ImportNotificationAction
 		)
 		if clientImportOp.NotifyImported != nil {
@@ -206,7 +198,7 @@ func (c *Client[H, Hasher, N, E, Header]) LockImportRun(f func(*api.ClientImport
 	return err
 }
 
-const notifyFinalizedTimeout = time.Duration(5 * time.Second)
+const notifyFinalizedTimeout = 5 * time.Second
 const notifyBlockImportTimout = notifyFinalizedTimeout
 
 func (c *Client[H, Hasher, N, E, Header]) notifyFinalized(notification *api.FinalityNotification[H, N, Header]) error {
@@ -217,13 +209,8 @@ func (c *Client[H, Hasher, N, E, Header]) notifyFinalized(notification *api.Fina
 		return nil
 	}
 
-	// telemetry!(
-	// 	self.telemetry;
-	// 	SUBSTRATE_INFO;
-	// 	"notify.finalized";
-	// 	"height" => format!("{}", notification.header.number()),
-	// 	"best" => ?notification.hash,
-	// );
+	// TODO: telemetry is implemented here.  See substrate code:
+	// https://github.com/paritytech/polkadot-sdk/blob/72fb8bd3cd4a5051bb855415b360657d7ce247fb/substrate/client/service/src/client/client.rs#L984
 
 	wg := sync.WaitGroup{}
 	for ch := range c.finalityNotificationChans {
@@ -281,10 +268,7 @@ func notifyChans[M any](msg M, chans map[chan<- M]any, timeout time.Duration) {
 func (c *Client[H, Hasher, N, E, Header]) notifyImported(
 	notification *api.BlockImportNotification[H, N, Header],
 	importNotificationAction api.ImportNotificationAction,
-	storageChanges *struct {
-		statemachine.StorageCollection
-		statemachine.ChildStorageCollection
-	},
+	storageChanges *api.StorageChanges,
 ) error {
 	if notification != nil {
 		return nil
@@ -293,23 +277,23 @@ func (c *Client[H, Hasher, N, E, Header]) notifyImported(
 	var triggerStorageChangesNotification = func() {
 		if storageChanges != nil {
 			// TODO [ToDr] How to handle re-orgs? Should we re-emit all storage changes? (from substrate)
-			changeset := make([]api.Change, len(storageChanges.StorageCollection))
+			changeset := make([]api.StorageChange, len(storageChanges.StorageCollection))
 			for i, kv := range storageChanges.StorageCollection {
-				changeset[i] = api.Change{
-					Key:   storage.StorageKey(kv.StorageKey),
-					Value: storage.StorageData(kv.StorageValue),
+				changeset[i] = api.StorageChange{
+					StorageKey:  storage.StorageKey(kv.StorageKey),
+					StorageData: storage.StorageData(kv.StorageValue),
 				}
 			}
-			childChangeset := make([]api.ChildChange, len(storageChanges.ChildStorageCollection))
+			childChangeset := make([]api.StorageChildChange, len(storageChanges.ChildStorageCollection))
 			for i, kc := range storageChanges.ChildStorageCollection {
-				changeset := make([]api.Change, len(kc.StorageCollection))
+				changeset := make([]api.StorageChange, len(kc.StorageCollection))
 				for i, kv := range kc.StorageCollection {
-					changeset[i] = api.Change{
-						Key:   storage.StorageKey(kv.StorageKey),
-						Value: storage.StorageData(kv.StorageValue),
+					changeset[i] = api.StorageChange{
+						StorageKey:  storage.StorageKey(kv.StorageKey),
+						StorageData: storage.StorageData(kv.StorageValue),
 					}
 				}
-				childChangeset[i] = api.ChildChange{
+				childChangeset[i] = api.StorageChildChange{
 					StorageKey: storage.StorageKey(kc.StorageKey),
 					ChangeSet:  changeset,
 				}
@@ -343,8 +327,7 @@ func (c *Client[H, Hasher, N, E, Header]) notifyImported(
 		notifyChans(*notification, c.everyImportNotificationChans, notifyBlockImportTimout)
 	case api.NoneBlockImportNotificationAction:
 		// This branch is unreachable in fact because the block import notification must be
-		// Some(_) instead of None (it's already handled at the beginning of this function)
-		// at this point.
+		// not nil (it's already handled at the beginning of this function) at this point.
 	default:
 		panic("unreachable")
 	}
@@ -372,7 +355,9 @@ func (c *Client[H, Hasher, N, E, Header]) RegisterImportNotificationStream() api
 	return ch
 }
 
-func (c *Client[H, Hasher, N, E, Header]) UnregisterImportNotificationStream(ch api.ImportNotifications[H, N, Header]) {
+func (c *Client[H, Hasher, N, E, Header]) UnregisterImportNotificationStream(
+	ch api.ImportNotifications[H, N, Header],
+) {
 	c.importNotificationChansMtx.Lock()
 	defer c.importNotificationChansMtx.Unlock()
 	_, ok := c.importNotificationChans[ch]
@@ -382,7 +367,7 @@ func (c *Client[H, Hasher, N, E, Header]) UnregisterImportNotificationStream(ch 
 	delete(c.importNotificationChans, ch)
 }
 
-func (c *Client[H, Hasher, N, E, Header]) RegisterEveryImportNotificationStream() api.ImportNotifications[H, N, Header] {
+func (c *Client[H, _, N, E, Header]) RegisterEveryImportNotificationStream() api.ImportNotifications[H, N, Header] {
 	ch := make(chan api.BlockImportNotification[H, N, Header])
 	c.everyImportNotificationChansMtx.Lock()
 	defer c.everyImportNotificationChansMtx.Unlock()
@@ -390,7 +375,9 @@ func (c *Client[H, Hasher, N, E, Header]) RegisterEveryImportNotificationStream(
 	return ch
 }
 
-func (c *Client[H, Hasher, N, E, Header]) UnregisterEveryImportNotificationStream(ch api.ImportNotifications[H, N, Header]) {
+func (c *Client[H, Hasher, N, E, Header]) UnregisterEveryImportNotificationStream(
+	ch api.ImportNotifications[H, N, Header],
+) {
 	c.everyImportNotificationChansMtx.Lock()
 	defer c.everyImportNotificationChansMtx.Unlock()
 	_, ok := c.everyImportNotificationChans[ch]
@@ -400,7 +387,7 @@ func (c *Client[H, Hasher, N, E, Header]) UnregisterEveryImportNotificationStrea
 	delete(c.everyImportNotificationChans, ch)
 }
 
-func (c *Client[H, Hasher, N, E, Header]) RegisterFinalityNotificationStream() api.FinalityNotifications[H, N, Header] {
+func (c *Client[H, _, N, E, Header]) RegisterFinalityNotificationStream() api.FinalityNotifications[H, N, Header] {
 	ch := make(chan api.FinalityNotification[H, N, Header])
 	c.finalityNotificationChansMtx.Lock()
 	defer c.finalityNotificationChansMtx.Unlock()
@@ -408,7 +395,9 @@ func (c *Client[H, Hasher, N, E, Header]) RegisterFinalityNotificationStream() a
 	return ch
 }
 
-func (c *Client[H, Hasher, N, E, Header]) UnregisterFinalityNotificationStream(ch api.FinalityNotifications[H, N, Header]) {
+func (c *Client[H, Hasher, N, E, Header]) UnregisterFinalityNotificationStream(
+	ch api.FinalityNotifications[H, N, Header],
+) {
 	c.finalityNotificationChansMtx.Lock()
 	defer c.finalityNotificationChansMtx.Unlock()
 	_, ok := c.finalityNotificationChans[ch]
@@ -418,6 +407,9 @@ func (c *Client[H, Hasher, N, E, Header]) UnregisterFinalityNotificationStream(c
 	delete(c.finalityNotificationChans, ch)
 }
 
-func (c *Client[H, Hasher, N, E, Header]) StorageChangesNotificationStream(filterKeys []storage.StorageKey, childFilterKeys []api.ChildFilterKeys) api.StorageEventStream[H] {
+func (c *Client[H, Hasher, N, E, Header]) StorageChangesNotificationStream(
+	filterKeys []storage.StorageKey,
+	childFilterKeys []api.ChildFilterKeys,
+) api.StorageEventStream[H] {
 	return c.storageNotifications.Listen(filterKeys, childFilterKeys)
 }

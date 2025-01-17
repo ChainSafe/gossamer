@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package client
 
 import (
@@ -12,6 +15,8 @@ type noopExtrinsic struct{}
 func (noopExtrinsic) IsSigned() *bool {
 	return nil
 }
+
+var _ runtime.Extrinsic = noopExtrinsic{}
 
 type TestClient struct {
 	Client[

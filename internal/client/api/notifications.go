@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package api
 
 import (
@@ -6,34 +9,32 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 )
 
-// / A type of a message delivered to the subscribers
+// StorageNotification is the message type delivered to subscribers.
 type StorageNotification[H runtime.Hash] struct {
-	/// The hash of the block
-	// pub block: Hash,
-	Block H
-
-	/// The set of changes
-	// pub changes: StorageChangeSet,
-	StorageChangeSet
+	Block            H // The hash of the block
+	StorageChangeSet   // The set of changes
 }
 
-type Change struct {
-	Key   storage.StorageKey
-	Value storage.StorageData // can be nil
+// StorageChange is a helper struct that contains a [storage.StorageKey] and [storage.StorageData].
+// A nil for StorageData represents that the key should be deleted.
+type StorageChange struct {
+	storage.StorageKey
+	storage.StorageData // can be nil
 }
 
-type ChildChange struct {
-	StorageKey storage.StorageKey
-	ChangeSet  []Change
+// StorageChildChange is a helper struct that contains a [storage.StorageKey] that represents the child key,
+// and a changeset which is a slice of [StorageChange].
+type StorageChildChange struct {
+	storage.StorageKey
+	ChangeSet []StorageChange
 }
 
-// / Storage change set
-// pub struct StorageChangeSet {
+// StorageChangeset is a type that represents a storage changeset.
 type StorageChangeSet struct {
 	// changes: Arc<[(StorageKey, Option<StorageData>)]>,
-	Changes []Change
+	Changes []StorageChange
 	// child_changes: Arc<[(StorageKey, Vec<(StorageKey, Option<StorageData>)>)]>,
-	ChildChanges []ChildChange
+	ChildChanges []StorageChildChange
 	// filter: Keys,
 	Filter Keys
 	// child_filters: ChildKeys,
@@ -43,13 +44,12 @@ type StorageChangeSet struct {
 type Keys map[string]any                 // can be nil
 type ChildKeys map[string]map[string]any // can be nil
 
-// / Manages storage listeners.
-// pub struct StorageNotifications<Block: BlockT>(Hub<StorageNotification<Block::Hash>, Registry>);
+// StorageNotifications manages storage listeners.
 type StorageNotifications[H runtime.Hash] struct {
-	*pubsub.Hub[SubscribeOp, Message[H], StorageNotification[H], *registry[H]]
+	*pubsub.Hub[SubscribeOp, SubscriberMessage[H], StorageNotification[H], *registry[H]]
 }
 
-// / Initialize a new StorageNotifications
+// NewStorageNotifications is constructor for [StorageNotifications].
 func NewStorageNotifications[H runtime.Hash]() StorageNotifications[H] {
 	registry := newRegistry[H]()
 	hub := pubsub.NewHub("mpsc_storage_notification_items", registry)
@@ -58,20 +58,22 @@ func NewStorageNotifications[H runtime.Hash]() StorageNotifications[H] {
 	}
 }
 
-// / Trigger notification to all listeners.
-// /
-// / Note the changes are going to be filtered by listener's filter key.
-// / In fact no event might be sent if clients are not interested in the changes.
-func (s StorageNotifications[H]) Trigger(hash H, changeset []Change, childChangeSet []ChildChange) {
-	s.Hub.Send(Message[H]{
+// Trigger notification to all listeners.
+// Note the changes are going to be filtered by listener's filter key.
+// In fact no event might be sent if clients are not interested in the changes.
+func (s StorageNotifications[H]) Trigger(hash H, changeset []StorageChange, childChangeSet []StorageChildChange) {
+	s.Hub.Send(SubscriberMessage[H]{
 		Hash:           hash,
 		ChangeSet:      changeset,
 		ChildChangeSet: childChangeSet,
 	})
 }
 
-// / Start listening for particular storage keys.
-func (s StorageNotifications[H]) Listen(filterKeys []storage.StorageKey, filterChildKeys []ChildFilterKeys) StorageEventStream[H] {
+// Listen will start listening for particular storage keys.
+func (s StorageNotifications[H]) Listen(
+	filterKeys []storage.StorageKey,
+	filterChildKeys []ChildFilterKeys,
+) StorageEventStream[H] {
 	receiver := s.Hub.Subscribe(SubscribeOp{
 		FilterKeys:      filterKeys,
 		FilterChildKeys: filterChildKeys,
@@ -81,8 +83,7 @@ func (s StorageNotifications[H]) Listen(filterKeys []storage.StorageKey, filterC
 	}
 }
 
-// / Type that implements `futures::Stream` of storage change events.
-// pub struct StorageEventStream<H>(Receiver<StorageNotification<H>, Registry>);
+// StorageEventStream is the receiving side of storage change events.
 type StorageEventStream[H runtime.Hash] struct {
 	*pubsub.Receiver[StorageNotification[H], *registry[H]]
 }

@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package api
 
 import (
@@ -10,20 +13,23 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("client", "api"))
 
+// ChildFilterKeys is a helper struct with child key and associated filter keys
 type ChildFilterKeys struct {
-	Key  storage.StorageKey
-	Keys []storage.StorageKey // can be nil
+	Key        storage.StorageKey
+	FilterKeys []storage.StorageKey // can be nil
 }
 
-// / A command to subscribe with the specified filters.
-// /
-// / Used by the implementation of [`Subscribe<Op>`] trait for [`Registry].
-// pub(super) struct SubscribeOp<'a> {
+// SubscribeOp is a a command to subscribe with the specified filters.
 type SubscribeOp struct {
-	// 	pub filter_keys: Option<&'a [StorageKey]>,
-	FilterKeys []storage.StorageKey // can be nil
-	// pub filter_child_keys: Option<&'a [(StorageKey, Option<Vec<StorageKey>>)]>,
+	FilterKeys      []storage.StorageKey // can be nil
 	FilterChildKeys []ChildFilterKeys
+}
+
+// SubscriberMessage is the message type returned based on a [SubscribeOp]
+type SubscriberMessage[H any] struct {
+	Hash           H
+	ChangeSet      []StorageChange
+	ChildChangeSet []StorageChildChange
 }
 
 type subscriberSink struct {
@@ -62,7 +68,7 @@ func (r *registry[H]) Subscribe(subsOp SubscribeOp, subsID uint64) {
 	if subsOp.FilterChildKeys != nil {
 		for _, fck := range subsOp.FilterChildKeys {
 			cKey := fck.Key
-			oKeys := fck.Keys
+			oKeys := fck.FilterKeys
 
 			_, ok := r.childListeners[string(cKey)]
 			if !ok {
@@ -77,13 +83,17 @@ func (r *registry[H]) Subscribe(subsOp SubscribeOp, subsID uint64) {
 			if childKeys == nil {
 				childKeys = make(map[string]map[string]any)
 			}
-			childKeys[string(cKey)] = r.listenFrom(subsID, oKeys, r.childListeners[string(cKey)].cListeners, r.childListeners[string(cKey)].cWildcards)
+			childKeys[string(cKey)] = r.listenFrom(
+				subsID,
+				oKeys,
+				r.childListeners[string(cKey)].cListeners,
+				r.childListeners[string(cKey)].cWildcards,
+			)
 		}
 	}
 
-	// if let Some(m) = self.metrics.as_ref() {
-	// 	m.with_label_values(&["added"]).inc();
-	// }
+	// TODO: metrics are added here see substrate code:
+	// https://github.com/paritytech/polkadot-sdk/blob/bc53b9a03a742f8b658806a01a7bf853cb9a86cd/substrate/client/api/src/notifications/registry.rs#L136
 
 	_, ok := r.sinks[subsID]
 	if ok {
@@ -116,7 +126,12 @@ func (r *registry[H]) removeSubscriber(subscriber uint64) *struct {
 		for cKey, filters := range sink.childKeys {
 			_, ok := r.childListeners[cKey]
 			if ok {
-				r.removeSubscriberFrom(subscriber, filters, r.childListeners[cKey].cListeners, r.childListeners[cKey].cWildcards)
+				r.removeSubscriberFrom(
+					subscriber,
+					filters,
+					r.childListeners[cKey].cListeners,
+					r.childListeners[cKey].cWildcards,
+				)
 			}
 
 			if len(r.childListeners[cKey].cListeners) == 0 && len(r.childListeners[cKey].cWildcards) == 0 {
@@ -126,9 +141,8 @@ func (r *registry[H]) removeSubscriber(subscriber uint64) *struct {
 		}
 	}
 
-	// if let Some(m) = self.metrics.as_ref() {
-	// 	m.with_label_values(&["removed"]).inc();
-	// }
+	// TODO: metrics are added here see substrate code:
+	// https://github.com/paritytech/polkadot-sdk/blob/bc53b9a03a742f8b658806a01a7bf853cb9a86cd/substrate/client/api/src/notifications/registry.rs#L285
 
 	return &struct {
 		Keys
@@ -139,7 +153,12 @@ func (r *registry[H]) removeSubscriber(subscriber uint64) *struct {
 	}
 }
 
-func (r *registry[H]) removeSubscriberFrom(subscriber uint64, filters Keys, listeners map[string]map[uint64]any, wildcards map[uint64]any) {
+func (r *registry[H]) removeSubscriberFrom(
+	subscriber uint64,
+	filters Keys,
+	listeners map[string]map[uint64]any,
+	wildcards map[uint64]any,
+) {
 	if filters == nil {
 		delete(wildcards, subscriber)
 	} else {
@@ -182,17 +201,16 @@ func (r *registry[H]) listenFrom(
 	return keys
 }
 
-type Message[H any] struct {
-	Hash           H
-	ChangeSet      []Change
-	ChildChangeSet []ChildChange
-}
-
-func (r *registry[H]) Dispatch(message Message[H], dispatch func(uint64, StorageNotification[H])) {
+func (r *registry[H]) Dispatch(message SubscriberMessage[H], dispatch func(uint64, StorageNotification[H])) {
 	r.trigger(message.Hash, message.ChangeSet, message.ChildChangeSet, dispatch)
 }
 
-func (r *registry[H]) trigger(hash H, changeset []Change, childChangeSet []ChildChange, dispatch func(uint64, StorageNotification[H])) {
+func (r *registry[H]) trigger( //nolint:gocyclo
+	hash H,
+	changeset []StorageChange,
+	childChangeSet []StorageChildChange,
+	dispatch func(uint64, StorageNotification[H]),
+) {
 	hasWildcard := len(r.wildcardListeners) != 0
 
 	// early exit if no listeners
@@ -201,12 +219,12 @@ func (r *registry[H]) trigger(hash H, changeset []Change, childChangeSet []Child
 	}
 
 	subscribers := maps.Clone(r.wildcardListeners)
-	var changes []Change
-	var childChanges []ChildChange
+	var changes []StorageChange
+	var childChanges []StorageChildChange
 
 	// collect subscribers and changes
 	for _, change := range changeset {
-		listeners, ok := r.listeners[string(change.Key)]
+		listeners, ok := r.listeners[string(change.StorageKey)]
 		if ok {
 			for listener := range listeners {
 				subscribers[listener] = nil
@@ -214,18 +232,15 @@ func (r *registry[H]) trigger(hash H, changeset []Change, childChangeSet []Child
 		}
 
 		if hasWildcard || len(listeners) > 0 {
-			changes = append(changes, Change{
-				Key:   change.Key,
-				Value: change.Value,
-			})
+			changes = append(changes, change)
 		}
 	}
 	for _, childChange := range childChangeSet {
 		childListener, ok := r.childListeners[string(childChange.StorageKey)]
 		if ok {
-			var changes []Change
+			var changes []StorageChange
 			for _, change := range childChange.ChangeSet {
-				listeners, ok := childListener.cListeners[string(change.Key)]
+				listeners, ok := childListener.cListeners[string(change.StorageKey)]
 
 				if ok {
 					for listener := range listeners {
@@ -238,14 +253,11 @@ func (r *registry[H]) trigger(hash H, changeset []Change, childChangeSet []Child
 				}
 
 				if len(childListener.cWildcards) > 0 || len(listeners) > 0 {
-					changes = append(changes, Change{
-						Key:   change.Key,
-						Value: change.Value,
-					})
+					changes = append(changes, change)
 				}
 			}
 			if len(changes) > 0 {
-				childChanges = append(childChanges, ChildChange{
+				childChanges = append(childChanges, StorageChildChange{
 					StorageKey: childChange.StorageKey,
 					ChangeSet:  changes,
 				})
@@ -265,13 +277,13 @@ func (r *registry[H]) trigger(hash H, changeset []Change, childChangeSet []Child
 			r.sinks[subsID] = sink
 
 			var (
-				filteredChanges      []Change
-				filteredChildChanges []ChildChange
+				filteredChanges      []StorageChange
+				filteredChildChanges []StorageChildChange
 			)
 
 			if sink.keys != nil {
 				for _, change := range changes {
-					_, ok := sink.keys[string(change.Key)]
+					_, ok := sink.keys[string(change.StorageKey)]
 					if ok {
 						filteredChanges = append(filteredChanges, change)
 					}
@@ -284,7 +296,7 @@ func (r *registry[H]) trigger(hash H, changeset []Change, childChangeSet []Child
 				for _, childChange := range childChanges {
 					filter, ok := sink.childKeys[string(childChange.StorageKey)]
 					if ok {
-						filteredChildChange := ChildChange{
+						filteredChildChange := StorageChildChange{
 							StorageKey: childChange.StorageKey,
 							ChangeSet:  nil,
 						}
@@ -292,7 +304,7 @@ func (r *registry[H]) trigger(hash H, changeset []Change, childChangeSet []Child
 							if filter == nil {
 								filteredChildChange.ChangeSet = append(filteredChildChange.ChangeSet, change)
 							} else {
-								_, ok := filter[string(change.Key)]
+								_, ok := filter[string(change.StorageKey)]
 								if ok {
 									filteredChildChange.ChangeSet = append(filteredChildChange.ChangeSet, change)
 								}

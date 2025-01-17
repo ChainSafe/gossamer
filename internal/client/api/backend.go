@@ -14,69 +14,62 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 )
 
-// / Describes which block import notification stream should be notified.
+// ImportNotificationAction describes which block import notification stream should be notified.
 type ImportNotificationAction uint
 
 const (
-	/// Notify only when the node has synced to the tip or there is a re-org.
+	// RecentBlockImportNotificationAction notifies only when the node has synced to the tip or there is a re-org.
 	RecentBlockImportNotificationAction ImportNotificationAction = iota
-	/// Notify for every single block no matter what the sync state is.
+	// EveryBlockImportNotificationAction notifies for every single block no matter what the sync state is.
 	EveryBlockImportNotificationAction
-	/// Both block import notifications above should be fired.
+	// BothBlockImportNotificationAction means both [RecentBlockImportNotificationAction] and
+	// [EveryBlockImportNotificationAction] should be fired.
 	BothBlockImportNotificationAction
-	/// No block import notification should be fired.
+	// NoneBlockImportNotificationAction means no block import notification should be fired.
 	NoneBlockImportNotificationAction
 )
 
-// / Import operation summary.
-// /
-// / Contains information about the block that just got imported,
-// / including storage changes, reorged blocks, etc.
+// StorageChanges contains a [statemachine.StorageCollection] and [statemachine.ChildStorageCollection]
+type StorageChanges struct {
+	statemachine.StorageCollection
+	statemachine.ChildStorageCollection
+}
+
+// ImportSummary contains information about the block that just got imported,
+// including storage changes, reorged blocks, etc.
 type ImportSummary[
 	H runtime.Hash,
 	N runtime.Number,
 	Header runtime.Header[N, H],
 ] struct {
-	/// Block hash of the imported block.
-	Hash H
-	/// Import origin.
-	Origin consensus.BlockOrigin
-	/// Header of the imported block.
-	Header Header
-	/// Is this block a new best block.
-	IsNewBest bool
-	/// Optional storage changes.
-	StorageChanges *struct {
-		statemachine.StorageCollection
-		statemachine.ChildStorageCollection
-	}
-	/// Tree route from old best to new best.
-	///
-	/// If `None`, there was no re-org while importing.
-	TreeRoute *blockchain.TreeRoute[H, N]
-	/// What notify action to take for this import.
-	ImportNotificationAction ImportNotificationAction
+	Hash           H                     // Block hash of the imported block.
+	Origin         consensus.BlockOrigin // Import origin.
+	Header         Header                // Header of the imported block.
+	IsNewBest      bool                  // Is this block a new best block.
+	StorageChanges *StorageChanges       // Optional storage changes.
+	// TreeRoute from old best to new best.
+	// If nil, there was no re-org while importing.
+	TreeRoute                *blockchain.TreeRoute[H, N]
+	ImportNotificationAction ImportNotificationAction // Which notify action to take for this import.
 }
 
-// / Finalization operation summary.
-// /
-// / Contains information about the block that just got finalized,
-// / including tree heads that became stale at the moment of finalization.
+// FinalizeSummary contains information about the block that just got finalized, including tree heads that became
+// stale at the moment of finalization.
 type FinalizeSummary[
 	H runtime.Hash,
 	N runtime.Number,
 	Header runtime.Header[N, H],
 ] struct {
-	/// Last finalized block header.
+	// Last finalized block header.
 	Header Header
-	/// Blocks that were finalized.
-	/// The last entry is the one that has been explicitly finalized.
+	// Blocks that were finalized.
+	// The last entry is the one that has been explicitly finalized.
 	Finalized []H
-	/// Heads that became stale during this finalization operation.
+	// Heads that became stale during this finalization operation.
 	StateHeads []H
 }
 
-// / Import operation wrapper.
+// ClientImportOperation is an import operation wrapper.
 type ClientImportOperation[
 	H runtime.Hash,
 	Hasher runtime.Hasher[H],
@@ -84,16 +77,13 @@ type ClientImportOperation[
 	Header runtime.Header[N, H],
 	E runtime.Extrinsic,
 ] struct {
-	/// DB Operation.
-	Op BlockImportOperation[N, H, Hasher, Header, E]
-	/// Summary of imported block.
-	NotifyImported *ImportSummary[H, N, Header]
-	// /// Summary of finalized block.
-	NotifyFinalized *FinalizeSummary[H, N, Header]
+	Op              BlockImportOperation[N, H, Hasher, Header, E] // DB Operation.
+	NotifyImported  *ImportSummary[H, N, Header]                  // Summary of imported block.
+	NotifyFinalized *FinalizeSummary[H, N, Header]                // Summary of finalized block.
 }
 
-// State of a new block.
-type NewBlockState uint
+// NewBlockState is the state of a new block.
+type NewBlockState uint8
 
 const (
 	// NewBlockStateNormal is a normal block.
