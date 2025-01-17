@@ -12,9 +12,24 @@ import (
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	types "github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
+
+var runtimeTestVersion = runtime.Version{
+	SpecName:         []byte{1},
+	ImplName:         []byte{2},
+	AuthoringVersion: 3,
+	SpecVersion:      4,
+	ImplVersion:      5,
+	APIItems: []runtime.APIItem{{
+		Name: common.MustBlake2b8([]byte("ParachainHost")),
+		Ver:  1,
+	}},
+	TransactionVersion: 7,
+}
 
 type TestSubsystem struct {
 	name             string
@@ -70,6 +85,14 @@ func TestHandleBlockEvents(t *testing.T) {
 	blockState.EXPECT().GetImportedBlockNotifierChannel().Return(importedBlockNotiferChan)
 	blockState.EXPECT().FreeFinalisedNotifierChannel(finalizedNotifierChan)
 	blockState.EXPECT().FreeImportedBlockNotifierChannel(importedBlockNotiferChan)
+
+	runtimeInstanceMock := NewMockInstance(ctrl)
+	runtimeInstanceMock.EXPECT().Version().
+		Return(runtimeTestVersion, nil)
+
+	blockState.EXPECT().
+		GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).
+		Return(runtimeInstanceMock, nil)
 
 	overseer := NewOverseer(blockState)
 

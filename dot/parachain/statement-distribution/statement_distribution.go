@@ -2,70 +2,76 @@ package statementdistribution
 
 import (
 	"context"
+	"fmt"
+	"time"
 
+	parachainutil "github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/internal/log"
-
-	statementedistributionmessages "github.com/ChainSafe/gossamer/dot/parachain/statement-distribution/messages"
-	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "statement-distribution"))
 
 type StatementDistribution struct {
+	SubSystemToOverseer chan<- any
 }
 
-func (s StatementDistribution) Run(ctx context.Context, overseerToSubSystem <-chan any) {
+type MuxedMessage interface {
+	isMuxedMessage()
+}
+
+type overseerMessage struct {
+	inner any
+}
+
+func (*overseerMessage) isMuxedMessage() {}
+
+type responderMessage struct {
+	inner any // should be replaced with AttestedCandidateRequest type
+}
+
+func (*responderMessage) isMuxedMessage() {}
+
+type reputationChangeMessage struct{}
+
+func (*reputationChangeMessage) isMuxedMessage() {}
+
+// Run just receives the ctx and a channel from the overseer to subsystem
+func (s *StatementDistribution) Run(ctx context.Context, overseerToSubSystem <-chan any) {
+	// Inside the method Run, we spawn a goroutine to handle network incoming requests
+	// TODO: https://github.com/ChainSafe/gossamer/issues/4285
+	responderCh := make(chan any, 1)
+	go taskResponder(responderCh)
+
+	// Timer for reputation aggregator trigger
+	reputationDelay := time.NewTicker(parachainutil.ReputationChangeInterval) // Adjust the duration as needed
+	defer reputationDelay.Stop()
+
 	for {
-		select {
-		case msg, ok := <-overseerToSubSystem:
-			if !ok {
-				return
-			}
-			err := s.processMessage(msg)
-			if err != nil {
-				logger.Errorf("processing overseer message: %w", err)
-			}
-		case <-ctx.Done():
-			if err := ctx.Err(); err != nil {
-				logger.Errorf("ctx error: %v\n", err)
-			}
+		message := s.awaitMessageFrom(overseerToSubSystem, responderCh, reputationDelay.C)
+
+		switch innerMessage := message.(type) {
+		case *reputationChangeMessage:
+			logger.Info("Reputation change triggered.")
+		default:
+			logger.Warn("Unhandled message type: " + fmt.Sprintf("%v", innerMessage))
 		}
 	}
 }
 
-func (s StatementDistribution) processMessage(msg any) error {
+func taskResponder(responderCh chan any) {}
 
-	switch msg := msg.(type) {
-	case statementedistributionmessages.Backed:
-		// TODO #4171
-	case statementedistributionmessages.Share:
-		// TODO #4170
-	// case statementedistributionmessages.NetworkBridgeUpdate
-	// TODO #4172 this above case would need to wait until network bridge receiver side is merged
-	case parachaintypes.ActiveLeavesUpdateSignal:
-		return s.ProcessActiveLeavesUpdateSignal(msg)
-	case parachaintypes.BlockFinalizedSignal:
-		return s.ProcessBlockFinalizedSignal(msg)
-
-	default:
-		return parachaintypes.ErrUnknownOverseerMessage
+// awaitMessageFrom waits for messages from either the overseerToSubSystem, responderCh, or reputationDelay
+func (s *StatementDistribution) awaitMessageFrom(
+	overseerToSubSystem <-chan any,
+	responderCh chan any,
+	reputationDelay <-chan time.Time,
+) MuxedMessage {
+	select {
+	case msg := <-overseerToSubSystem:
+		return &overseerMessage{inner: msg}
+	case msg := <-responderCh:
+		return &responderMessage{inner: msg}
+	case <-reputationDelay:
+		return &reputationChangeMessage{}
 	}
-
-	return nil
 }
-
-func (s StatementDistribution) Name() parachaintypes.SubSystemName {
-	return parachaintypes.StatementDistribution
-}
-
-func (s StatementDistribution) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
-	// TODO #4173
-	return nil
-}
-
-func (s StatementDistribution) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
-	// nothing to do here
-	return nil
-}
-
-func (s StatementDistribution) Stop() {}

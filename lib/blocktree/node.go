@@ -112,7 +112,7 @@ func (n *node) getLeaves(leaves []*node) []*node {
 		leaves = []*node{}
 	}
 
-	if n.children == nil || len(n.children) == 0 {
+	if len(n.children) == 0 {
 		leaves = append(leaves, n)
 	}
 

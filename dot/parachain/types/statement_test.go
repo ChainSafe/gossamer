@@ -169,3 +169,65 @@ func TestStatementVDT_Sign(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, ok)
 }
+
+func TestCompactStatement(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name             string
+		compactStatement any
+		encodingValue    []byte
+		expectedErr      error
+	}{
+		{
+			name: "SecondedCandidateHash",
+			compactStatement: CompactStatement[SecondedCandidateHash]{
+				Value: SecondedCandidateHash{Value: getDummyHash(6)},
+			},
+			encodingValue: []byte{66, 75, 78, 71, 1,
+				6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6},
+		},
+		{
+			name: "Valid",
+			compactStatement: CompactStatement[Valid]{
+				Value: Valid{Value: getDummyHash(7)},
+			},
+			encodingValue: []byte{
+				66, 75, 78, 71, 2,
+				7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7},
+		},
+	}
+
+	for _, c := range testCases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("marshal", func(t *testing.T) {
+				t.Parallel()
+
+				compactStatementBytes, err := scale.Marshal(c.compactStatement)
+				require.NoError(t, err)
+				require.Equal(t, c.encodingValue, compactStatementBytes)
+			})
+
+			t.Run("unmarshal", func(t *testing.T) {
+				t.Parallel()
+
+				switch expectedSatetement := c.compactStatement.(type) {
+				case CompactStatement[Valid]:
+					var actualStatement CompactStatement[Valid]
+					err := scale.Unmarshal(c.encodingValue, &actualStatement)
+					require.NoError(t, err)
+					require.EqualValues(t, expectedSatetement, actualStatement)
+				case CompactStatement[SecondedCandidateHash]:
+					var actualStatement CompactStatement[SecondedCandidateHash]
+					err := scale.Unmarshal(c.encodingValue, &actualStatement)
+					require.NoError(t, err)
+					require.EqualValues(t, expectedSatetement, actualStatement)
+				}
+			})
+
+		})
+	}
+}

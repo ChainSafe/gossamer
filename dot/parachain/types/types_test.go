@@ -475,3 +475,15 @@ func TestAssignment(t *testing.T) {
 		})
 	}
 }
+
+func TestUpgradeRestrictionEncodingDecoding(t *testing.T) {
+	presentVariant := []byte{0}
+	var restriction UpgradeRestriction
+
+	require.NoError(t, scale.Unmarshal(presentVariant, &restriction))
+
+	expectedRestriction := &UpgradeRestriction{}
+	require.NoError(t, expectedRestriction.SetValue(Present{}))
+
+	require.Equal(t, expectedRestriction, &restriction)
+}

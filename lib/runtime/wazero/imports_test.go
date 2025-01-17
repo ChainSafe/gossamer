@@ -31,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/inmemory/proof"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tetratelabs/wazero"
 )
 
 var DefaultVersion = &runtime.Version{
@@ -910,18 +911,22 @@ func Test_ext_misc_runtime_version_version_1(t *testing.T) {
 		}
 	}
 
+	mod, err := inst.Runtime.InstantiateModule(
+		context.Background(), inst.metadata.guestModule, wazero.NewModuleConfig())
+	require.NoError(t, err)
+
 	allocator := allocator.NewFreeingBumpHeapAllocator(0)
 	inst.Context.Allocator = allocator
 
 	data := bytes
 	dataLength := uint32(len(data))
-	inputPtr, err := inst.Context.Allocator.Allocate(inst.Module.Memory(), dataLength)
+	inputPtr, err := inst.Context.Allocator.Allocate(mod.Memory(), dataLength)
 	if err != nil {
 		t.Errorf("allocating input memory: %v", err)
 	}
 
 	// Store the data into memory
-	mem := inst.Module.Memory()
+	mem := mod.Memory()
 	ok := mem.Write(inputPtr, data)
 	if !ok {
 		panic("write overlow")
@@ -929,10 +934,10 @@ func Test_ext_misc_runtime_version_version_1(t *testing.T) {
 
 	dataSpan := newPointerSize(inputPtr, dataLength)
 	ctx := context.WithValue(context.Background(), runtimeContextKey, inst.Context)
-	versionPtr := ext_misc_runtime_version_version_1(ctx, inst.Module, dataSpan)
+	versionPtr := ext_misc_runtime_version_version_1(ctx, mod, dataSpan)
 
 	var option *[]byte
-	versionData := read(inst.Module, versionPtr)
+	versionData := read(mod, versionPtr)
 	err = scale.Unmarshal(versionData, &option)
 	require.NoError(t, err)
 	require.NotNil(t, option)

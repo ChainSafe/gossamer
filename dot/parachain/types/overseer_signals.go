@@ -26,6 +26,10 @@ type ActiveLeavesUpdateSignal struct {
 	Deactivated []common.Hash
 }
 
+func (a *ActiveLeavesUpdateSignal) IsEmpty() bool {
+	return a.Activated == nil && len(a.Deactivated) == 0
+}
+
 // BlockFinalized signal is used to inform subsystems of a finalized block.
 type BlockFinalizedSignal struct {
 	Hash        common.Hash
