@@ -10,7 +10,7 @@
 // - M — the type of a message that shall be delivered to the subscribers;
 // - Registry — implementation of the subscription/dispatch logic.
 //
-// A Registry is implemented by defining the following traits:
+// A Registry is implemented by implementing the following interfaces:
 // - [Subscribe]
 // - [Dispatch]
 // - [Unsubscribe]
@@ -38,7 +38,6 @@ type Unsubscribe interface {
 // Subscribe using a key of type K
 type Subscribe[K any] interface {
 	// Register subscriber with the ID `subs_id` as having interest to the key `K`.
-	// fn subscribe(&mut self, subs_key: K, subs_id: SeqID);
 	Subscribe(subKey K, subsID uint64)
 }
 
@@ -65,9 +64,7 @@ type Registry[K any, M, Item any] interface {
 // Does the subscription and dispatch.
 // The exact subscription and routing behaviour is to be implemented by the Registry (of type R).
 type Hub[K, M, Item any, R Registry[K, M, Item]] struct {
-	// 	tracing_key: &'static str,
 	tracingKey string
-	//	shared: Arc<ReentrantMutex<RefCell<Shared<M, R>>>>,
 	shared[Item, R]
 }
 
