@@ -16,6 +16,7 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("client", ""))
 
+// Client type that implements a number of client interfaces
 type Client[
 	H runtime.Hash,
 	Hasher runtime.Hasher[H],
@@ -43,6 +44,7 @@ type Client[
 	unpinWorkerChan   chan<- api.UnpinWorkerMessage[H]
 }
 
+// New is constructor for [Client]
 func New[
 	H runtime.Hash,
 	Hasher runtime.Hasher[H],
