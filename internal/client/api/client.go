@@ -15,14 +15,14 @@ type ImportNotifications[
 	H runtime.Hash,
 	N runtime.Number,
 	Header runtime.Header[N, H],
-] chan<- BlockImportNotification[H, N, Header]
+] chan BlockImportNotification[H, N, Header]
 
 // FinalityNotifications is a channel of block finality notifications.
 type FinalityNotifications[
 	H runtime.Hash,
 	N runtime.Number,
 	Header runtime.Header[N, H],
-] chan<- FinalityNotification[H, N, Header]
+] chan FinalityNotification[H, N, Header]
 
 // BlockchainEvents is the source of blockchain events.
 type BlockchainEvents[

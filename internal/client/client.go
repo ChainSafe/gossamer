@@ -27,11 +27,11 @@ type Client[
 	backend                         api.Backend[H, N, Hasher, Header, E]
 	storageNotifications            api.StorageNotifications[H]
 	importNotificationChansMtx      sync.Mutex
-	importNotificationChans         map[chan<- api.BlockImportNotification[H, N, Header]]any
+	importNotificationChans         map[chan api.BlockImportNotification[H, N, Header]]any
 	everyImportNotificationChansMtx sync.Mutex
-	everyImportNotificationChans    map[chan<- api.BlockImportNotification[H, N, Header]]any
+	everyImportNotificationChans    map[chan api.BlockImportNotification[H, N, Header]]any
 	finalityNotificationChansMtx    sync.Mutex
-	finalityNotificationChans       map[chan<- api.FinalityNotification[H, N, Header]]any
+	finalityNotificationChans       map[chan api.FinalityNotification[H, N, Header]]any
 	// Collects auxiliary operations to be performed atomically together with block import operations.
 	importActionsMtx sync.Mutex
 	importActions    []api.OnImportAction[H, N, Header]
@@ -62,9 +62,9 @@ func New[
 	return &Client[H, Hasher, N, E, Header]{
 		backend:                      backend,
 		storageNotifications:         api.NewStorageNotifications[H](),
-		importNotificationChans:      make(map[chan<- api.BlockImportNotification[H, N, Header]]any),
-		everyImportNotificationChans: make(map[chan<- api.BlockImportNotification[H, N, Header]]any),
-		finalityNotificationChans:    make(map[chan<- api.FinalityNotification[H, N, Header]]any),
+		importNotificationChans:      make(map[chan api.BlockImportNotification[H, N, Header]]any),
+		everyImportNotificationChans: make(map[chan api.BlockImportNotification[H, N, Header]]any),
+		finalityNotificationChans:    make(map[chan api.FinalityNotification[H, N, Header]]any),
 		unpinWorkerChan:              unpinWorkerChan,
 	}
 }
@@ -238,11 +238,11 @@ func (c *Client[H, Hasher, N, E, Header]) notifyFinalized(notification *api.Fina
 	return nil
 }
 
-func notifyChans[M any](msg M, chans map[chan<- M]any, timeout time.Duration) {
+func notifyChans[M any](msg M, chans map[chan M]any, timeout time.Duration) {
 	wg := sync.WaitGroup{}
 	for ch := range chans {
 		wg.Add(1)
-		go func(ch chan<- M) {
+		go func(ch chan M) {
 			defer wg.Done()
 			select {
 			case ch <- msg:
@@ -272,7 +272,7 @@ func (c *Client[H, Hasher, N, E, Header]) notifyImported(
 	importNotificationAction api.ImportNotificationAction,
 	storageChanges *api.StorageChanges,
 ) error {
-	if notification != nil {
+	if notification == nil {
 		return nil
 	}
 
