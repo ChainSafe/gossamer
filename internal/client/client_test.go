@@ -89,6 +89,9 @@ func TestNew(t *testing.T) {
 	require.NotNil(t, c)
 }
 
+type BlockImportOperation = api.BlockImportNotification[hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]] //nolint:lll
+type FinalityNotification = api.FinalityNotification[hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]    //nolint:lll
+
 func TestBlockchainEvents(t *testing.T) {
 	t.Run("register_unregister", func(t *testing.T) {
 		c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0))
@@ -151,7 +154,7 @@ func TestBlockchainEvents(t *testing.T) {
 		_, ok := c.importNotificationChans[blockImport]
 		require.True(t, ok)
 
-		var blockImportNotifications []api.BlockImportNotification[hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]
+		var blockImportNotifications []BlockImportOperation
 		wg := sync.WaitGroup{}
 		wg.Add(1)
 		go func() {
@@ -161,7 +164,7 @@ func TestBlockchainEvents(t *testing.T) {
 			wg.Done()
 		}()
 
-		var everyImportNotifications []api.BlockImportNotification[hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]
+		var everyImportNotifications []BlockImportOperation
 		everyImport := c.RegisterEveryImportNotificationStream()
 		require.NotNil(t, everyImport)
 		_, ok = c.everyImportNotificationChans[everyImport]
@@ -176,11 +179,11 @@ func TestBlockchainEvents(t *testing.T) {
 		}()
 
 		// sends to both
-		c.notifyImported(&api.BlockImportNotification[hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{}, api.BothBlockImportNotificationAction, nil)
+		c.notifyImported(&BlockImportOperation{}, api.BothBlockImportNotificationAction, nil)
 		// sends to import
-		c.notifyImported(&api.BlockImportNotification[hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{}, api.RecentBlockImportNotificationAction, nil)
+		c.notifyImported(&BlockImportOperation{}, api.RecentBlockImportNotificationAction, nil)
 		// sends to every
-		c.notifyImported(&api.BlockImportNotification[hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{}, api.EveryBlockImportNotificationAction, nil)
+		c.notifyImported(&BlockImportOperation{}, api.EveryBlockImportNotificationAction, nil)
 
 		c.UnregisterImportNotificationStream(blockImport)
 		_, ok = c.importNotificationChans[blockImport]
@@ -210,10 +213,7 @@ func TestBlockchainEvents(t *testing.T) {
 		}()
 
 		childStorage := c.StorageChangesNotificationStream([]storage.StorageKey{}, []api.ChildFilterKeys{
-			{
-				Key:        storage.StorageKey("child0"),
-				FilterKeys: []storage.StorageKey{storage.StorageKey("child0")},
-			},
+			{Key: storage.StorageKey("child0"), FilterKeys: []storage.StorageKey{storage.StorageKey("child0")}},
 		})
 		wg.Add(1)
 		go func() {
@@ -224,10 +224,7 @@ func TestBlockchainEvents(t *testing.T) {
 		}()
 
 		wildCard := c.StorageChangesNotificationStream(nil, []api.ChildFilterKeys{
-			{
-				Key:        storage.StorageKey("child0"),
-				FilterKeys: []storage.StorageKey{storage.StorageKey("child0")},
-			},
+			{Key: storage.StorageKey("child0"), FilterKeys: []storage.StorageKey{storage.StorageKey("child0")}},
 		})
 		wg.Add(1)
 		go func() {
@@ -239,11 +236,11 @@ func TestBlockchainEvents(t *testing.T) {
 
 		// sends to both
 		c.notifyImported(
-			&api.BlockImportNotification[hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{},
+			&BlockImportOperation{},
 			api.BothBlockImportNotificationAction,
 			&api.StorageChanges{
 				StorageCollection: statemachine.StorageCollection{
-					{statemachine.StorageKey("top0"), statemachine.StorageValue("top0")},
+					{StorageKey: statemachine.StorageKey("top0"), StorageValue: statemachine.StorageValue("top0")},
 				},
 				ChildStorageCollection: []struct {
 					statemachine.StorageKey
@@ -252,7 +249,7 @@ func TestBlockchainEvents(t *testing.T) {
 					{
 						StorageKey: statemachine.StorageKey("child0"),
 						StorageCollection: statemachine.StorageCollection{
-							{statemachine.StorageKey("child0"), statemachine.StorageValue("child0")},
+							{StorageKey: statemachine.StorageKey("child0"), StorageValue: statemachine.StorageValue("child0")},
 						},
 					},
 				},
@@ -262,7 +259,6 @@ func TestBlockchainEvents(t *testing.T) {
 		wg.Wait()
 		topStorage.Drop()
 		childStorage.Drop()
-
 	})
 
 	t.Run("register_receive_finality_unregister", func(t *testing.T) {
@@ -272,7 +268,7 @@ func TestBlockchainEvents(t *testing.T) {
 		_, ok := c.finalityNotificationChans[finality]
 		require.True(t, ok)
 
-		var finalityNotifications []api.FinalityNotification[hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]
+		var finalityNotifications []FinalityNotification
 		wg := sync.WaitGroup{}
 		wg.Add(1)
 		go func() {
@@ -282,7 +278,7 @@ func TestBlockchainEvents(t *testing.T) {
 			wg.Done()
 		}()
 
-		c.notifyFinalized(&api.FinalityNotification[hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{})
+		c.notifyFinalized(&FinalityNotification{})
 
 		c.UnregisterFinalityNotificationStream(finality)
 		_, ok = c.finalityNotificationChans[finality]
@@ -291,5 +287,46 @@ func TestBlockchainEvents(t *testing.T) {
 		wg.Wait()
 
 		require.Len(t, finalityNotifications, 1)
+	})
+}
+
+type ClientImportOperation = api.ClientImportOperation[
+	hash.H256,
+	runtime.BlakeTwo256,
+	uint64,
+	*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+	rt_testing.ExtrinsicsWrapper[uint64],
+]
+
+func TestLockImportRun(t *testing.T) {
+	c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0))
+	err := c.LockImportRun(func(cio *ClientImportOperation) error {
+		return nil
+	})
+	require.NoError(t, err)
+}
+
+func TestPreCommitActions(t *testing.T) {
+	t.Run("register_import_and_finality_actions", func(t *testing.T) {
+		c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0))
+
+		var count int
+		c.RegisterImportAction(func(bin BlockImportOperation) api.AuxDataOperations {
+			count++
+			return api.AuxDataOperations{}
+		})
+		c.RegisterFinalityAction(func(fn FinalityNotification) api.AuxDataOperations {
+			count++
+			return api.AuxDataOperations{}
+		})
+
+		err := c.LockImportRun(func(cio *ClientImportOperation) error {
+			cio.NotifyFinalized = &api.FinalizeSummary[hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{} //nolint:lll
+			cio.NotifyImported = &api.ImportSummary[hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{}    //nolint:lll
+			return nil
+		})
+		require.NoError(t, err)
+
+		require.Equal(t, 2, count)
 	})
 }

@@ -87,113 +87,115 @@ func (c *Client[H, Hasher, N, E, Header]) unpin(message api.Unpin[H]) error {
 	}
 }
 
+func (c *Client[H, Hasher, N, E, Header]) lockImportRun(
+	f func(*api.ClientImportOperation[H, Hasher, N, Header, E]) error,
+) error {
+	c.backend.GetImportLock().Lock()
+	defer c.backend.GetImportLock().Unlock()
+
+	blockImportOp, err := c.backend.BeginOperation()
+	if err != nil {
+		return err
+	}
+
+	clientImportOp := api.ClientImportOperation[H, Hasher, N, Header, E]{
+		Op: blockImportOp,
+	}
+
+	err = f(&clientImportOp)
+	if err != nil {
+		return err
+	}
+
+	var finalityNotification *api.FinalityNotification[H, N, Header]
+	if clientImportOp.NotifyFinalized != nil {
+		finalityNotification = api.NewFinalityNotificationFromSummary(*clientImportOp.NotifyFinalized, c.unpin)
+	}
+
+	var (
+		importNotification       *api.BlockImportNotification[H, N, Header]
+		storageChanges           *api.StorageChanges
+		importNotificationAction api.ImportNotificationAction
+	)
+	if clientImportOp.NotifyImported != nil {
+		importNotification = api.NewBlockImportNotificationFromSummary(*clientImportOp.NotifyImported, c.unpin)
+		storageChanges = clientImportOp.NotifyImported.StorageChanges
+		importNotificationAction = clientImportOp.NotifyImported.ImportNotificationAction
+	} else {
+		importNotificationAction = api.NoneBlockImportNotificationAction
+	}
+
+	if finalityNotification != nil {
+		c.finalityActionsMtx.Lock()
+		defer c.finalityActionsMtx.Unlock()
+		for _, action := range c.finalityActions {
+			err := clientImportOp.Op.InsertAux(action(*finalityNotification))
+			if err != nil {
+				return err
+			}
+		}
+	}
+	if importNotification != nil {
+		c.importActionsMtx.Lock()
+		defer c.importActionsMtx.Unlock()
+		for _, action := range c.importActions {
+			err := clientImportOp.Op.InsertAux(action(*importNotification))
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	err = c.backend.CommitOperation(clientImportOp.Op)
+	if err != nil {
+		return err
+	}
+
+	// We need to pin the block in the backend once
+	// for each notification. Once all notifications are
+	// dropped, the block will be unpinned automatically.
+	if finalityNotification != nil {
+		err := c.backend.PinBlock(finalityNotification.Hash)
+		if err != nil {
+			logger.Debugf("Unable to pin block for finality notification. hash: %s, Error: %v",
+				finalityNotification.Hash, err)
+		} else {
+			err := c.announcePin(api.AnnouncePin[H]{Hash: finalityNotification.Hash})
+			if err != nil {
+				logger.Errorf("Unable to send AnnouncePin worker message for finality: %s", err)
+			}
+		}
+	}
+
+	if importNotification != nil {
+		err := c.backend.PinBlock(importNotification.Hash)
+		if err != nil {
+			logger.Debugf("Unable to pin block for import notification. hash: %s, Error: %v",
+				importNotification.Hash, err)
+		} else {
+			err := c.announcePin(api.AnnouncePin[H]{Hash: importNotification.Hash})
+			if err != nil {
+				logger.Errorf("Unable to send AnnouncePin worker message for import: %s", err)
+			}
+		}
+	}
+
+	err = c.notifyFinalized(finalityNotification)
+	if err != nil {
+		return err
+	}
+	err = c.notifyImported(importNotification, importNotificationAction, storageChanges)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Client[H, Hasher, N, E, Header]) LockImportRun(
 	f func(*api.ClientImportOperation[H, Hasher, N, Header, E]) error,
 ) error {
-	var inner = func() error {
-		c.backend.GetImportLock().Lock()
-		defer c.backend.GetImportLock().Unlock()
-
-		blockImportOp, err := c.backend.BeginOperation()
-		if err != nil {
-			return err
-		}
-
-		clientImportOp := api.ClientImportOperation[H, Hasher, N, Header, E]{
-			Op: blockImportOp,
-		}
-
-		err = f(&clientImportOp)
-		if err != nil {
-			return err
-		}
-
-		var finalityNotification *api.FinalityNotification[H, N, Header]
-		if clientImportOp.NotifyFinalized != nil {
-			finalityNotification = api.NewFinalityNotificationFromSummary(*clientImportOp.NotifyFinalized, c.unpin)
-		}
-
-		var (
-			importNotification       *api.BlockImportNotification[H, N, Header]
-			storageChanges           *api.StorageChanges
-			importNotificationAction api.ImportNotificationAction
-		)
-		if clientImportOp.NotifyImported != nil {
-			importNotification = api.NewBlockImportNotificationFromSummary(*clientImportOp.NotifyImported, c.unpin)
-			storageChanges = clientImportOp.NotifyImported.StorageChanges
-			importNotificationAction = clientImportOp.NotifyImported.ImportNotificationAction
-		} else {
-			importNotificationAction = api.NoneBlockImportNotificationAction
-		}
-
-		if finalityNotification != nil {
-			c.finalityActionsMtx.Lock()
-			defer c.finalityActionsMtx.Unlock()
-			for _, action := range c.finalityActions {
-				err := clientImportOp.Op.InsertAux(action(*finalityNotification))
-				if err != nil {
-					return err
-				}
-			}
-		}
-		if importNotification != nil {
-			c.importActionsMtx.Lock()
-			defer c.importActionsMtx.Unlock()
-			for _, action := range c.importActions {
-				err := clientImportOp.Op.InsertAux(action(*importNotification))
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		err = c.backend.CommitOperation(clientImportOp.Op)
-		if err != nil {
-			return err
-		}
-
-		// We need to pin the block in the backend once
-		// for each notification. Once all notifications are
-		// dropped, the block will be unpinned automatically.
-		if finalityNotification != nil {
-			err := c.backend.PinBlock(finalityNotification.Hash)
-			if err != nil {
-				logger.Debugf("Unable to pin block for finality notification. hash: %s, Error: %v",
-					finalityNotification.Hash, err)
-			} else {
-				err := c.announcePin(api.AnnouncePin[H]{Hash: finalityNotification.Hash})
-				if err != nil {
-					logger.Errorf("Unable to send AnnouncePin worker message for finality: %s", err)
-				}
-			}
-		}
-
-		if importNotification != nil {
-			err := c.backend.PinBlock(importNotification.Hash)
-			if err != nil {
-				logger.Debugf("Unable to pin block for import notification. hash: %s, Error: %v",
-					finalityNotification.Hash, err)
-			} else {
-				err := c.announcePin(api.AnnouncePin[H]{Hash: finalityNotification.Hash})
-				if err != nil {
-					logger.Errorf("Unable to send AnnouncePin worker message for import: %s", err)
-				}
-			}
-		}
-
-		err = c.notifyFinalized(finalityNotification)
-		if err != nil {
-			return err
-		}
-		err = c.notifyImported(importNotification, importNotificationAction, storageChanges)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	err := inner()
+	err := c.lockImportRun(f)
 	c.importingBlockMtx.Lock()
 	c.importingBlock = nil
 	c.importingBlockMtx.Unlock()
