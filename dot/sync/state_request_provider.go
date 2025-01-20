@@ -39,7 +39,7 @@ func (s *StateRequestProvider) BuildRequest() *messages.StateRequest {
 }
 
 func (s *StateRequestProvider) ProcessResponse(stateResponse *messages.StateResponse) (completed bool, err error) {
-	// TODO: handle merkle proofs to prevent accepting invalid state entries
+	// TODO: handle merkle proofs to prevent accepting invalid state entries. Issue: #4481
 
 	if len(stateResponse.Entries) == 0 {
 		return false, errEmptyStateEntries
