@@ -1,6 +1,6 @@
-module haikoschol.com/mksnapshot
+module github.com/ChainSafe/gossamer/scripts/create_snapshot
 
-go 1.23.4
+go 1.23.2
 
 require (
 	github.com/Microsoft/go-winio v0.4.14 // indirect

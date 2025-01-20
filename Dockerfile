@@ -26,13 +26,21 @@ RUN go mod download
 # Copy gossamer sources
 COPY . .
 
-# Build
+# Build gossamer
 ARG GO_BUILD_FLAGS
 RUN go build \
     -trimpath \
     -o ./bin/gossamer \
     ${GO_BUILD_FLAGS} \
     ./cmd/gossamer
+
+# Build snapshot script
+RUN go build \
+    -C ./scripts/create_snapshot \
+    -trimpath \
+    -o ../../bin/create_snapshot \
+    ${GO_BUILD_FLAGS} \
+    .
 
 # Final stage based on Debian
 FROM debian:${DEBIAN_VERSION}
@@ -45,3 +53,4 @@ ENTRYPOINT [ "/gossamer/bin/gossamer" ]
 
 COPY chain /gossamer/chain
 COPY --from=builder /go/src/github.com/ChainSafe/gossamer/bin/gossamer /gossamer/bin/gossamer
+COPY --from=builder /go/src/github.com/ChainSafe/gossamer/bin/create_snapshot /gossamer/bin/create_snapshot
