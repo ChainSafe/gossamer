@@ -120,7 +120,7 @@ func (s *StateSyncStrategy) Process(results []*SyncTaskResult) (
 			s.completed, err = s.stateRequestProvider.ProcessResponse(response)
 			if err != nil {
 				switch err {
-				case errEmptyStateEntries:
+				case ErrEmptyStateEntries:
 					logger.Infof("Bad state response")
 					peersToBlock = append(peersToBlock, result.who)
 					repChanges = append(repChanges, Change{
