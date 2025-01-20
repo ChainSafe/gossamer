@@ -17,7 +17,7 @@ type StorageKey []byte
 // PrefixedStorageKey is a storage key of a child trie, it contains the prefix to the key.
 type PrefixedStorageKey []byte
 
-// StorageData is storage data associated to a [`StorageKey`].
+// StorageData is storage data associated to a [StorageKey].
 type StorageData []byte
 
 // Child trie storage data.
