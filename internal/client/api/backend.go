@@ -169,6 +169,8 @@ type LockImportRun[
 		f func(*ClientImportOperation[H, Hasher, N, Header, E]) error,
 	) error
 }
+
+// KeyValue is used in [AuxStore.InsertAux].  Key and Value should not be nil.
 type KeyValue struct {
 	Key   []byte
 	Value []byte
