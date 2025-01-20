@@ -11,7 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("client", "api"))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "client/api"))
 
 // ChildFilterKeys is a helper struct with child key and associated filter keys
 type ChildFilterKeys struct {

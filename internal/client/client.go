@@ -14,7 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("client", ""))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "client"))
 
 // Client type that implements a number of client interfaces
 type Client[

@@ -160,7 +160,6 @@ type BlockImportOperation[
 type LockImportRun[
 	H runtime.Hash,
 	N runtime.Number,
-
 	Hasher runtime.Hasher[H],
 	Header runtime.Header[N, H],
 	E runtime.Extrinsic,

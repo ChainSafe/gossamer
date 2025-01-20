@@ -27,7 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("client-utils", "pubsub"))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "client/utils/pubsub"))
 
 // Unsubscribe unregisters a previously created subscription.
 type Unsubscribe interface {
