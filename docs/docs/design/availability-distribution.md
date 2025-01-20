@@ -14,9 +14,7 @@ The subsystem must be registered with the overseer and handle three subsystem-sp
 
 1. [`parachain.ChunkFetchingRequest`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/chunk_fetching.go#L14)
 
-This is a network message received from other validators in the core group. Although request/response protocols are not
-yet supported by our network bridge implementation, the message type already exists. This should be enough to implement
-the subsystem including tests.
+This is a network message received from other validators in the core group.
 
 Protocol versions `v1` and `v2` exist for chunk fetching. The `ChunkFetchingRequest` message is identical in both
 versions. The `ChunkFetchingResponse` message in `v1` omits the chunks index. In `v2` it contains [the full
@@ -27,9 +25,7 @@ implementation, analogous the approach in other subsystems.
 
 2. [`parachain.PoVFetchingRequest`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/pov_fetching.go#L14)
 
-This is a network message received from other validators in the core group. Although request/response protocols are not
-yet supported by our network bridge implementation, the message type already exists. This should be enough to implement
-the subsystem including tests.
+This is a network message received from other validators in the core group.
 
 3. [`AvailabilityDistributionMessageFetchPoV`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/types/overseer_message.go#L143-L144)
 
@@ -44,10 +40,7 @@ The overseer must be modified to forward these messages to the subsystem.
 
 1. [`NetworkBridgeTxMessage::SendRequests(Requests, IfDisconnected::ImmediateError)`](https://github.com/paritytech/polkadot-sdk/blob/41b6915ecb4b5691cdeeb585e26d46c4897ae151/polkadot/node/subsystem-types/src/messages.rs#L433)
 
-This network bridge message is used to request PoVs and erasure chunks from other validators in the core group. [It is
-not implemented](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/network-bridge/sender.go#L95-L96)
-in our `NetworkBridgeSender` yet. The implementation is tracked in issue [#4448](https://github.com/ChainSafe/gossamer/issues/4448)
-and should be completed before work on the parts of the availability distribution subsystem that depend on it is started.
+This network bridge message is used to request PoVs and erasure chunks from other validators in the core group.
 
 2. [`availabilitystore.QueryChunk`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/availability-store/messages.go#L42)
 
