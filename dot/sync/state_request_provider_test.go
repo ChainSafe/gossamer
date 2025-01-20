@@ -90,7 +90,7 @@ func TestProcessResponse(t *testing.T) {
 	}
 }
 
-func TestBuilTrie(t *testing.T) {
+func TestBuildTrie(t *testing.T) {
 	targetHash := common.Hash{0x12, 0x23, 0x34}
 	provider := NewStateRequestProvider(targetHash, trie.V0)
 
