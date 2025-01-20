@@ -41,7 +41,7 @@ func TestProcessResponse(t *testing.T) {
 		"empty_response_entries": {
 			response:      &messages.StateResponse{},
 			completed:     false,
-			expectedError: errEmptyStateEntries,
+			expectedError: ErrEmptyStateEntries,
 		},
 		"uncomplete_successful_response": {
 			response: &messages.StateResponse{

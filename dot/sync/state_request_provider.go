@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	errEmptyStateEntries = errors.New("empty state entries")
+	ErrEmptyStateEntries = errors.New("empty state entries")
 )
 
 type StateRequestProvider struct {
@@ -42,7 +42,7 @@ func (s *StateRequestProvider) ProcessResponse(stateResponse *messages.StateResp
 	// TODO: handle merkle proofs to prevent accepting invalid state entries. Issue: #4481
 
 	if len(stateResponse.Entries) == 0 {
-		return false, errEmptyStateEntries
+		return false, ErrEmptyStateEntries
 	}
 
 	logger.Debugf("retrieved %d entries", len(stateResponse.Entries))
