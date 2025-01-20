@@ -366,23 +366,7 @@ func (s *SyncService) runStrategy() {
 		case config.StateSync:
 			logger.Info("Switching sync strategy: state sync -> full sync")
 			// Switch to full sync when state sync finishes
-			syncCfg := &FullSyncConfig{
-				BlockState:         s.blockState,
-				StorageState:       s.storageState,
-				TransactionState:   s.transactionState,
-				FinalityGadget:     s.finalityGadget,
-				BabeVerifier:       s.babeVerifier,
-				BlockImportHandler: s.blockImportHandler,
-				Telemetry:          s.telemetry,
-				BadBlocks:          s.badBlocks,
-				RequestMaker: s.network.GetRequestResponseProtocol(network.SyncID,
-					blockRequestTimeout, network.MaxBlockResponseSize),
-				Peers: s.peers,
-			}
-
-			s.currentStrategy = NewFullSyncStrategy(syncCfg)
-			s.syncStrategy = config.FullSync
-
+			s.useFullSyncStrategy()
 		case config.FullSync:
 			logger.Errorf("Full sync strategy should not finish")
 		}
