@@ -156,6 +156,20 @@ type BlockImportOperation[
 	UpdateTransactionIndex(index []statemachine.IndexOperation) error
 }
 
+// LockImportRun is the interface for performing operations on the backend.
+type LockImportRun[
+	H runtime.Hash,
+	N runtime.Number,
+
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+	E runtime.Extrinsic,
+] interface {
+	/// LockImportRun locks the import lock, and run operations inside.
+	LockImportRun(
+		f func(*ClientImportOperation[H, Hasher, N, Header, E]) error,
+	) error
+}
 type KeyValue struct {
 	Key   []byte
 	Value []byte

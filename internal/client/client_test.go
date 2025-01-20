@@ -36,8 +36,15 @@ type TestClient struct {
 }
 
 var (
-	_ api.BlockchainEvents[hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]] = &TestClient{}
-	_ api.PreCommitActions[hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]] = &TestClient{}
+	_ api.BlockchainEvents[
+		hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+	] = &TestClient{}
+	_ api.PreCommitActions[
+		hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+	] = &TestClient{}
+	_ api.LockImportRun[
+		hash.H256, uint64, runtime.BlakeTwo256, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256], noopExtrinsic,
+	] = &TestClient{}
 )
 
 func NewTestBackend(t *testing.T,
