@@ -461,3 +461,89 @@ func TestGetBackableCandidates(t *testing.T) {
 		})
 	}
 }
+
+func TestFailedMatchAnswerHypotheticalMembershipRequest(t *testing.T) {
+	candidateRelayParent1 := common.Hash{0x01}
+	parentHead1 := parachaintypes.HeadData{Data: bytes.Repeat([]byte{0x01}, 32)}
+	headData1 := parachaintypes.HeadData{Data: bytes.Repeat([]byte{0x01}, 32)}
+
+	candidateRelayParent2 := common.Hash{0x02}
+	parentHead2 := parachaintypes.HeadData{Data: bytes.Repeat([]byte{0x02}, 32)}
+	headData2 := parachaintypes.HeadData{Data: bytes.Repeat([]byte{0x02}, 32)}
+
+	validationCodeHash := parachaintypes.ValidationCodeHash{}
+
+	candidate1Receipt := makeCandidate(
+		candidateRelayParent1,
+		uint32(10),
+		parachaintypes.ParaID(1),
+		parentHead1,
+		headData1,
+		validationCodeHash,
+	)
+
+	candidate1Hash, err := candidate1Receipt.Hash()
+
+	if err != nil {
+		panic(err)
+	}
+
+	candidate2Receipt := makeCandidate(
+		candidateRelayParent2,
+		uint32(9),
+		parachaintypes.ParaID(2),
+		parentHead2,
+		headData2,
+		validationCodeHash,
+	)
+
+	candidate2Hash, err := candidate2Receipt.Hash()
+
+	if err != nil {
+		panic(err)
+	}
+
+	// Mock data
+	candidate1 := &parachaintypes.HypotheticalCandidateComplete{
+		CandidateHash:             parachaintypes.CandidateHash{Value: candidate1Hash},
+		CommittedCandidateReceipt: candidate1Receipt,
+		PersistedValidationData:   dummyPVD(parentHead1, 0),
+	}
+	candidate2 := &parachaintypes.HypotheticalCandidateComplete{
+		CandidateHash:             parachaintypes.CandidateHash{Value: candidate2Hash},
+		CommittedCandidateReceipt: candidate2Receipt,
+		PersistedValidationData:   dummyPVD(parentHead2, 0),
+	}
+
+	request := HypotheticalMembershipRequest{
+		Candidates: []parachaintypes.HypotheticalCandidate{candidate1, candidate2},
+	}
+
+	activeLeaf := common.Hash{0x01}
+	view := &view{
+		activeLeaves: map[common.Hash]bool{
+			activeLeaf: true,
+		},
+		perRelayParent: map[common.Hash]*relayParentData{
+			activeLeaf: {
+				fragmentChains: map[parachaintypes.ParaID]*fragmentChain{
+					candidate1.CandidatePara(): {},
+					candidate2.CandidatePara(): {},
+				},
+			},
+		},
+	}
+
+	tx := make(chan []HypotheticalCandidateMembership, 1)
+
+	pp := &ProspectiveParachains{}
+	pp.answerHypotheticalMembershipRequest(view, request, tx)
+
+	response := <-tx
+
+	assert.Len(t, response, 2)
+	assert.Equal(t, candidate1, response[0].Candidate)
+	assert.Equal(t, candidate2, response[1].Candidate)
+	assert.Contains(t, response[0].Membership, activeLeaf)
+	assert.Contains(t, response[1].Membership, activeLeaf)
+}
