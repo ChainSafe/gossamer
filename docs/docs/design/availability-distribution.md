@@ -12,7 +12,7 @@ a package named `availabilitydistribution` under `dot/parachain/availability-dis
 
 The subsystem must be registered with the overseer and handle three subsystem-specific messages from it:
 
-1. [`parachain.ChunkFetchingRequest`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/chunk_fetching.go#L14)
+#### [`parachain.ChunkFetchingRequest`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/chunk_fetching.go#L14)
 
 This is a network message received from other validators in the core group.
 
@@ -23,11 +23,11 @@ versions. The `ChunkFetchingResponse` message in `v1` omits the chunks index. In
 only covers `v1` so far. We should probably add the chunk index to this struct and only support `v2` for the initial
 implementation, analogous the approach in other subsystems.
 
-2. [`parachain.PoVFetchingRequest`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/pov_fetching.go#L14)
+#### [`parachain.PoVFetchingRequest`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/pov_fetching.go#L14)
 
 This is a network message received from other validators in the core group.
 
-3. [`AvailabilityDistributionMessageFetchPoV`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/types/overseer_message.go#L143-L144)
+#### [`AvailabilityDistributionMessageFetchPoV`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/types/overseer_message.go#L143-L144)
 
 This is an internal message from the backing subsystem, instructing the availability distribution subsystem to fetch a
 PoV for a given candidate from a specific validator in the core group.
@@ -38,20 +38,20 @@ The overseer must be modified to forward these messages to the subsystem.
 
 ### Messages Sent
 
-1. [`NetworkBridgeTxMessage::SendRequests(Requests, IfDisconnected::ImmediateError)`](https://github.com/paritytech/polkadot-sdk/blob/41b6915ecb4b5691cdeeb585e26d46c4897ae151/polkadot/node/subsystem-types/src/messages.rs#L433)
+#### [`NetworkBridgeTxMessage::SendRequests(Requests, IfDisconnected::ImmediateError)`](https://github.com/paritytech/polkadot-sdk/blob/41b6915ecb4b5691cdeeb585e26d46c4897ae151/polkadot/node/subsystem-types/src/messages.rs#L433)
 
 This network bridge message is used to request PoVs and erasure chunks from other validators in the core group.
 
-2. [`availabilitystore.QueryChunk`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/availability-store/messages.go#L42)
+#### [`availabilitystore.QueryChunk`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/availability-store/messages.go#L42)
 
 This is an internal message sent to the availability store subsystem for retrieving a previously stored erasure chunk.
 
-3. [`availabilitystore.StoreChunk`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/availability-store/messages.go#L72)
+#### [`availabilitystore.StoreChunk`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/availability-store/messages.go#L72)
 
 This is an internal message sent to the availability store subsystem containing an erasure chunk that has been fetched
 from another validator in the core group.
 
-4. [`availabilitystore.QueryAvailableData`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/availability-store/messages.go#L19)
+#### [`availabilitystore.QueryAvailableData`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/availability-store/messages.go#L19)
 
 This is an internal message sent to the availability store subsystem for retrieving [a PoV plus persisted validation
 data](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/dot/parachain/availability-store/messages.go#L94-L95).
@@ -59,8 +59,11 @@ data](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311
 ## Subsystem State
 
 The subsystem calls the following runtime functions:
+
 - [`ParachainHostSessionIndexForChild()`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/lib/runtime/wazero/instance.go#L1258)
+
 - [`ParachainHostSessionInfo()`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/lib/runtime/wazero/instance.go#L1316-L1317)
+
 - [`ParachainHostAvailabilityCores()`](https://github.com/ChainSafe/gossamer/blob/32256782470db15efb3b7b4ba687311dd4e7cdce/lib/runtime/wazero/instance.go#L1211-L1212)
 
 The Parity node implementation caches this data using an instance of [the `RuntimeInfo` struct](https://github.com/paritytech/polkadot-sdk/blob/4c618a83d33281fe96f0e2b68a111ed227af22c0/polkadot/node/subsystem-util/src/runtime/mod.rs#L75).
