@@ -227,7 +227,7 @@ func NewFinalityNotificationFromSummary[
 		Hash:        hash,
 		Header:      summary.Header,
 		TreeRoute:   summary.Finalized,
-		StaleHeads:  summary.StateHeads,
+		StaleHeads:  summary.StaleHeads,
 		unpinHandle: NewUnpinHandle[H](hash, unpin),
 	}
 }

@@ -315,20 +315,20 @@ func (c *Client[H, Hasher, N, E, Header]) notifyImported(
 		triggerStorageChangesNotification()
 		c.importNotificationChansMtx.Lock()
 		defer c.importNotificationChansMtx.Unlock()
-		notifyChans(*notification, c.importNotificationChans, notifyBlockImportTimout)
+		notifyChans(*notification, c.importNotificationChans, notifyBlockImportTimeout)
 
 		c.everyImportNotificationChansMtx.Lock()
 		defer c.everyImportNotificationChansMtx.Unlock()
-		notifyChans(*notification, c.everyImportNotificationChans, notifyBlockImportTimout)
+		notifyChans(*notification, c.everyImportNotificationChans, notifyBlockImportTimeout)
 	case api.RecentBlockImportNotificationAction:
 		triggerStorageChangesNotification()
 		c.importNotificationChansMtx.Lock()
 		defer c.importNotificationChansMtx.Unlock()
-		notifyChans(*notification, c.importNotificationChans, notifyBlockImportTimout)
+		notifyChans(*notification, c.importNotificationChans, notifyBlockImportTimeout)
 	case api.EveryBlockImportNotificationAction:
 		c.everyImportNotificationChansMtx.Lock()
 		defer c.everyImportNotificationChansMtx.Unlock()
-		notifyChans(*notification, c.everyImportNotificationChans, notifyBlockImportTimout)
+		notifyChans(*notification, c.everyImportNotificationChans, notifyBlockImportTimeout)
 	case api.NoneBlockImportNotificationAction:
 		// This branch is unreachable in fact because the block import notification must be
 		// not nil (it's already handled at the beginning of this function) at this point.

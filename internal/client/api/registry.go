@@ -272,62 +272,65 @@ func (r *registry[H]) trigger( //nolint:gocyclo
 
 	// Trigger the events
 	for subsID, sink := range r.sinks {
-		if _, ok := subscribers[subsID]; ok {
-			sink.wasTriggered = true
-			r.sinks[subsID] = sink
+		_, ok := subscribers[subsID]
+		if !ok {
+			continue
+		}
 
-			var (
-				filteredChanges      []StorageChange
-				filteredChildChanges []StorageChildChange
-			)
+		sink.wasTriggered = true
+		r.sinks[subsID] = sink
 
-			if sink.keys != nil {
-				for _, change := range changes {
-					_, ok := sink.keys[string(change.StorageKey)]
-					if ok {
-						filteredChanges = append(filteredChanges, change)
-					}
+		var (
+			filteredChanges      []StorageChange
+			filteredChildChanges []StorageChildChange
+		)
+
+		if sink.keys != nil {
+			for _, change := range changes {
+				_, ok := sink.keys[string(change.StorageKey)]
+				if ok {
+					filteredChanges = append(filteredChanges, change)
 				}
-			} else {
-				filteredChanges = changes
 			}
+		} else {
+			filteredChanges = changes
+		}
 
-			if sink.childKeys != nil {
-				for _, childChange := range childChanges {
-					filter, ok := sink.childKeys[string(childChange.StorageKey)]
-					if ok {
-						filteredChildChange := StorageChildChange{
-							StorageKey: childChange.StorageKey,
-							ChangeSet:  nil,
-						}
-						for _, change := range childChange.ChangeSet {
-							if filter == nil {
+		if sink.childKeys != nil {
+			for _, childChange := range childChanges {
+				filter, ok := sink.childKeys[string(childChange.StorageKey)]
+				if ok {
+					filteredChildChange := StorageChildChange{
+						StorageKey: childChange.StorageKey,
+						ChangeSet:  nil,
+					}
+					for _, change := range childChange.ChangeSet {
+						if filter == nil {
+							filteredChildChange.ChangeSet = append(filteredChildChange.ChangeSet, change)
+						} else {
+							_, ok := filter[string(change.StorageKey)]
+							if ok {
 								filteredChildChange.ChangeSet = append(filteredChildChange.ChangeSet, change)
-							} else {
-								_, ok := filter[string(change.StorageKey)]
-								if ok {
-									filteredChildChange.ChangeSet = append(filteredChildChange.ChangeSet, change)
-								}
 							}
 						}
-						filteredChildChanges = append(filteredChildChanges, filteredChildChange)
 					}
+					filteredChildChanges = append(filteredChildChanges, filteredChildChange)
 				}
 			}
-
-			storageChangeSet := StorageChangeSet{
-				Changes:      filteredChanges,
-				ChildChanges: filteredChildChanges,
-				Filter:       sink.keys,
-				ChildFilters: sink.childKeys,
-			}
-
-			notification := StorageNotification[H]{
-				Block:            hash,
-				StorageChangeSet: storageChangeSet,
-			}
-
-			dispatch(subsID, notification)
 		}
+
+		storageChangeSet := StorageChangeSet{
+			Changes:      filteredChanges,
+			ChildChanges: filteredChildChanges,
+			Filter:       sink.keys,
+			ChildFilters: sink.childKeys,
+		}
+
+		notification := StorageNotification[H]{
+			Block:            hash,
+			StorageChangeSet: storageChangeSet,
+		}
+
+		dispatch(subsID, notification)
 	}
 }
