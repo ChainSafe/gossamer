@@ -83,7 +83,7 @@ func (c *Client[H, Hasher, N, E, Header]) unpin(message api.Unpin[H]) error {
 	case c.unpinWorkerChan <- message:
 		return nil
 	default:
-		return fmt.Errorf("unable to send message to Client.unpinWorkerChan")
+		return fmt.Errorf("unable to send Unpin message to Client.unpinWorkerChan")
 	}
 }
 
@@ -203,7 +203,7 @@ func (c *Client[H, Hasher, N, E, Header]) LockImportRun(
 }
 
 const notifyFinalizedTimeout = 5 * time.Second
-const notifyBlockImportTimout = notifyFinalizedTimeout
+const notifyBlockImportTimeout = notifyFinalizedTimeout
 
 func (c *Client[H, Hasher, N, E, Header]) notifyFinalized(notification *api.FinalityNotification[H, N, Header]) error {
 	c.finalityNotificationChansMtx.Lock()

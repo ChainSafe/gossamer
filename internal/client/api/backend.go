@@ -66,7 +66,7 @@ type FinalizeSummary[
 	// The last entry is the one that has been explicitly finalized.
 	Finalized []H
 	// Heads that became stale during this finalization operation.
-	StateHeads []H
+	StaleHeads []H
 }
 
 // ClientImportOperation is an import operation wrapper.

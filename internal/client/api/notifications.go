@@ -29,7 +29,7 @@ type StorageChildChange struct {
 	ChangeSet []StorageChange
 }
 
-// StorageChangeset is a type that represents a storage changeset.
+// StorageChangeSet is a type that represents a storage changeset.
 type StorageChangeSet struct {
 	// changes: Arc<[(StorageKey, Option<StorageData>)]>,
 	Changes []StorageChange
