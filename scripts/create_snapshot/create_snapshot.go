@@ -24,15 +24,12 @@ func main() {
 	threshold, dbLocation, snapshotDestination := parseArgs(os.Args)
 
 	for {
-		fmt.Println("finding container...") // TODO remove
-
 		containerID, err := findContainerID("gossamer")
 		if err != nil {
 			fmt.Println(err)
 			time.Sleep(checkInterval)
 			continue
 		}
-		fmt.Println("found container:", containerID) // TODO remove
 
 		blockHeight, err := fetchMetric("gossamer_network_syncer_blocks_synced_total")
 		if err != nil {
@@ -40,35 +37,28 @@ func main() {
 			time.Sleep(checkInterval)
 			continue
 		}
-		fmt.Println("got metric:", blockHeight) // TODO remove
+		fmt.Println("Snapshotting at block height:", blockHeight)
 
 		if blockHeight >= threshold {
-			fmt.Println("stopping container...") // TODO remove
 
 			if err := stopContainer(containerID); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
-
-			fmt.Println("stopped container") // TODO remove
-			fmt.Println("copying db...")     // TODO remove
+			fmt.Printf("Stopped gossamer container (ID %s)\n", containerID)
 
 			dstDir := filepath.Join(snapshotDestination, fmt.Sprintf("block-%d", blockHeight), "db")
+			fmt.Printf("Copying DB to %s ...\n", dstDir)
 			if err := copyDirectory(dbLocation, dstDir); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
 
-			fmt.Println("copied db")             // TODO remove
-			fmt.Println("starting container...") // TODO remove
-
 			if err := startContainer(containerID); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
-
-			fmt.Println("started container") // TODO remove
-
+			fmt.Printf("Started gossamer container (ID %s)\n", containerID)
 			break
 		}
 
@@ -153,8 +143,6 @@ func stopContainer(containerID string) error {
 	if err := cli.ContainerStop(context.Background(), containerID, container.StopOptions{Timeout: &timeout}); err != nil {
 		return fmt.Errorf("stopping container: %w", err)
 	}
-
-	fmt.Printf("Stopped gossamer container (ID %s)\n", containerID)
 	return nil
 }
 
@@ -167,8 +155,6 @@ func startContainer(containerID string) error {
 	if err := cli.ContainerStart(context.Background(), containerID, container.StartOptions{}); err != nil {
 		return fmt.Errorf("starting container: %w", err)
 	}
-
-	fmt.Printf("Started gossamer container (ID %s)\n", containerID)
 	return nil
 }
 
@@ -219,14 +205,14 @@ func copyFile(srcFile, dstFile string) error {
 
 func parseArgs(args []string) (threshold uint32, dbLocation string, snapshotDestination string) {
 	if len(args) < 4 {
-		fmt.Printf("usage: %s <approximate block height> <db location> <snapshot destination>\n", path.Base(args[0]))
+		fmt.Printf("Usage: %s <approximate block height> <db location> <snapshot destination>\n", path.Base(args[0]))
 		os.Exit(1)
 	}
 
 	thresholdStr := args[1]
 	t, err := strconv.ParseUint(thresholdStr, 10, 32)
 	if err != nil {
-		fmt.Println("invalid threshold value")
+		fmt.Println("Invalid threshold value.")
 		os.Exit(1)
 	}
 	threshold = uint32(t)
@@ -235,12 +221,12 @@ func parseArgs(args []string) (threshold uint32, dbLocation string, snapshotDest
 	snapshotDestination = args[3]
 
 	if !isDirectory(dbLocation) {
-		fmt.Printf("db location is not a directory or not readable: %s\n", dbLocation)
+		fmt.Printf("DB location is not a directory or not readable: %s\n", dbLocation)
 		os.Exit(1)
 	}
 
 	if !isWritableDirectory(snapshotDestination) {
-		fmt.Printf("snapshot destination is not a writable directory: %s\n", snapshotDestination)
+		fmt.Printf("Snapshot destination is not a writable directory: %s\n", snapshotDestination)
 		os.Exit(1)
 	}
 
