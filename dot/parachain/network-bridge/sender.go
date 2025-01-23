@@ -120,20 +120,34 @@ func (nbs *NetworkBridgeSender) sendRequests(
 	ifDisconnected networkbridgemessages.IfDisconnectedBehavior, //nolint:unparam
 ) {
 	for _, request := range requests {
-		protoID := request.Payload.Protocol().String()
-		protocol := nbs.net.GetRequestResponseProtocol(protoID, requestTimeout, maxResponseSize)
-		response := request.Payload.Response()
-		result := networkbridgemessages.ReqRespResult{}
-
-		// TODO This should probably be done on a goroutine. Unclear how to deal with cancellation/shutdown though.
-		err := protocol.Do(request.Recipient, request.Payload, response)
-		if err != nil {
-			result.Error = err
-		} else {
-			result.Response = response
+		if request.IsCancelled() {
+			close(request.Result)
+			continue
 		}
 
-		request.Result <- result
+		result := nbs.sendRequest(request)
+
+		if !request.IsCancelled() {
+			request.Result <- result
+		}
 		close(request.Result)
 	}
+}
+
+func (nbs *NetworkBridgeSender) sendRequest(
+	request *networkbridgemessages.OutgoingRequest,
+) networkbridgemessages.ReqRespResult {
+	protoID := request.Payload.Protocol().String()
+	protocol := nbs.net.GetRequestResponseProtocol(protoID, requestTimeout, maxResponseSize)
+	response := request.Payload.Response()
+	result := networkbridgemessages.ReqRespResult{}
+
+	err := protocol.Do(request.Recipient, request.Payload, response)
+	if err != nil {
+		result.Error = err
+	} else {
+		result.Response = response
+	}
+
+	return result
 }

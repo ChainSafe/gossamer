@@ -1,6 +1,8 @@
 package messages
 
 import (
+	"context"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -55,14 +57,36 @@ type OutgoingRequest struct {
 	Recipient peer.ID // TODO use a type that can contain either a peer ID or an authority ID
 	Payload   ReqProtocolMessage
 	Result    chan ReqRespResult
+
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
+// Done returns a channel that is closed when the request is cancelled.
+func (or *OutgoingRequest) Done() <-chan struct{} {
+	return or.ctx.Done()
+}
+
+// Cancel cancels the request.
+func (or *OutgoingRequest) Cancel() {
+	or.cancel()
+}
+
+// IsCancelled returns true if the request has been cancelled.
+func (or *OutgoingRequest) IsCancelled() bool {
+	return or.ctx.Err() != nil
+}
+
+// NewOutgoingRequest creates a new outgoing request.
 func NewOutgoingRequest(recipient peer.ID, payload ReqProtocolMessage) *OutgoingRequest {
 	result := make(chan ReqRespResult, 1)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	return &OutgoingRequest{
 		Recipient: recipient,
 		Payload:   payload,
 		Result:    result,
+		ctx:       ctx,
+		cancel:    cancel,
 	}
 }

@@ -2,6 +2,8 @@ package networkbridge
 
 import (
 	"errors"
+	"testing"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -9,7 +11,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"testing"
 )
 
 func TestSendRequests(t *testing.T) {
@@ -90,6 +91,29 @@ func TestSendRequests(t *testing.T) {
 		require.Nil(t, result.Response)
 		requireClosed(t, request.Result)
 	})
+
+	t.Run("cancel_request", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		request := makeOutgoingRequest(t)
+		nbs := setUpNetworkBridgeSender(t, ctrl, request, nil, nil, nil)
+
+		sendRequests := networkbridgemessages.SendRequests{
+			Requests:       []*networkbridgemessages.OutgoingRequest{request},
+			IfDisconnected: networkbridgemessages.TryConnect,
+		}
+
+		request.Cancel()
+
+		err := nbs.processMessage(sendRequests)
+		require.NoError(t, err)
+
+		result := <-request.Result
+		require.Nil(t, result.Response)
+		require.NoError(t, result.Error)
+		requireClosed(t, request.Result)
+	})
 }
 
 // We arbitrarily use a ChunkFetchingRequest since it does not matter for testing SendRequests handling.
@@ -104,7 +128,9 @@ func makeOutgoingRequest(t *testing.T) *networkbridgemessages.OutgoingRequest {
 		})
 }
 
-// only one of response, rawResponse or reqErr should be non-nil
+// Expect calls to Network.GetRequestResponseProtocol() and RequestMaker.Do() when only one of response, rawResponse or
+// reqErr should be non-nil.
+// Expect no calls Network.GetRequestResponseProtocol() RequestMaker.Do() when all three are nil.
 func setUpNetworkBridgeSender(
 	t *testing.T,
 	ctrl *gomock.Controller,
@@ -115,30 +141,45 @@ func setUpNetworkBridgeSender(
 ) *NetworkBridgeSender {
 	t.Helper()
 
+	expectCancellation := response == nil && rawResponse == nil && reqErr == nil
 	reqMaker := NewMockRequestMaker(ctrl)
-	reqMaker.EXPECT().
-		Do(request.Recipient, request.Payload, gomock.AssignableToTypeOf(request.Payload.Response())).
-		DoAndReturn(func(to peer.ID, req network.Message, res network.ResponseMessage) error {
-			if reqErr != nil {
-				return reqErr
-			}
 
-			if response != nil {
-				var err error
-				rawResponse, err = response.Encode()
-				require.NoError(t, err)
-			}
+	if expectCancellation {
+		reqMaker.EXPECT().
+			Do(gomock.Any(), gomock.Any(), gomock.Any()).
+			Times(0)
+	} else {
+		reqMaker.EXPECT().
+			Do(request.Recipient, request.Payload, gomock.AssignableToTypeOf(request.Payload.Response())).
+			DoAndReturn(func(to peer.ID, req network.Message, res network.ResponseMessage) error {
+				if reqErr != nil {
+					return reqErr
+				}
 
-			if err := res.Decode(rawResponse); err != nil {
-				return err
-			}
-			return nil
-		})
+				if response != nil {
+					var err error
+					rawResponse, err = response.Encode()
+					require.NoError(t, err)
+				}
+
+				if err := res.Decode(rawResponse); err != nil {
+					return err
+				}
+				return nil
+			})
+	}
 
 	netService := NewMockNetwork(ctrl)
-	netService.EXPECT().
-		GetRequestResponseProtocol(request.Payload.Protocol().String(), gomock.Any(), gomock.Any()).
-		Return(reqMaker)
+
+	if expectCancellation {
+		netService.EXPECT().
+			GetRequestResponseProtocol(gomock.Any(), gomock.Any(), gomock.Any()).
+			Times(0)
+	} else {
+		netService.EXPECT().
+			GetRequestResponseProtocol(request.Payload.Protocol().String(), gomock.Any(), gomock.Any()).
+			Return(reqMaker)
+	}
 
 	return RegisterSender(nil, netService)
 }
