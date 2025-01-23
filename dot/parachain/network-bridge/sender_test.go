@@ -2,27 +2,27 @@ package networkbridge
 
 import (
 	"errors"
-	"testing"
-	"time"
-
 	"github.com/ChainSafe/gossamer/dot/network"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+	"testing"
 )
 
 func TestSendRequests(t *testing.T) {
 	t.Run("request_succeeds", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		request := makeOutgoingRequest(t)
 		response := &networkbridgemessages.ChunkFetchingResponse{}
 		expectedValue := networkbridgemessages.NoSuchChunk{}
 		require.NoError(t, response.SetValue(expectedValue))
 
-		nbs := setUpNetworkBridgeSender(t, response, nil, nil)
+		nbs := setUpNetworkBridgeSender(t, ctrl, request, response, nil, nil)
 
 		sendRequests := networkbridgemessages.SendRequests{
 			Requests:       []*networkbridgemessages.OutgoingRequest{request},
@@ -46,10 +46,13 @@ func TestSendRequests(t *testing.T) {
 	})
 
 	t.Run("request_fails", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		reqErr := errors.New("timeout")
 		request := makeOutgoingRequest(t)
 
-		nbs := setUpNetworkBridgeSender(t, nil, nil, reqErr)
+		nbs := setUpNetworkBridgeSender(t, ctrl, request, nil, nil, reqErr)
 
 		sendRequests := networkbridgemessages.SendRequests{
 			Requests:       []*networkbridgemessages.OutgoingRequest{request},
@@ -66,10 +69,13 @@ func TestSendRequests(t *testing.T) {
 	})
 
 	t.Run("decoding_fails", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
 		request := makeOutgoingRequest(t)
 		rawResponse := []byte("an invalid network response message")
 
-		nbs := setUpNetworkBridgeSender(t, nil, rawResponse, nil)
+		nbs := setUpNetworkBridgeSender(t, ctrl, request, nil, rawResponse, nil)
 
 		sendRequests := networkbridgemessages.SendRequests{
 			Requests:       []*networkbridgemessages.OutgoingRequest{request},
@@ -101,24 +107,38 @@ func makeOutgoingRequest(t *testing.T) *networkbridgemessages.OutgoingRequest {
 // only one of response, rawResponse or reqErr should be non-nil
 func setUpNetworkBridgeSender(
 	t *testing.T,
+	ctrl *gomock.Controller,
+	request *networkbridgemessages.OutgoingRequest,
 	response network.ResponseMessage,
 	rawResponse []byte,
 	reqErr error,
 ) *NetworkBridgeSender {
 	t.Helper()
 
-	if response != nil {
-		var err error
-		rawResponse, err = response.Encode()
-		require.NoError(t, err)
-	}
+	reqMaker := NewMockRequestMaker(ctrl)
+	reqMaker.EXPECT().
+		Do(request.Recipient, request.Payload, gomock.AssignableToTypeOf(request.Payload.Response())).
+		DoAndReturn(func(to peer.ID, req network.Message, res network.ResponseMessage) error {
+			if reqErr != nil {
+				return reqErr
+			}
 
-	netService := &mockNetworkService{
-		rrp: &mockRequestResponseProtocol{
-			rawResponse: rawResponse,
-			err:         reqErr,
-		},
-	}
+			if response != nil {
+				var err error
+				rawResponse, err = response.Encode()
+				require.NoError(t, err)
+			}
+
+			if err := res.Decode(rawResponse); err != nil {
+				return err
+			}
+			return nil
+		})
+
+	netService := NewMockNetwork(ctrl)
+	netService.EXPECT().
+		GetRequestResponseProtocol(request.Payload.Protocol().String(), gomock.Any(), gomock.Any()).
+		Return(reqMaker)
 
 	return RegisterSender(nil, netService)
 }
@@ -130,62 +150,3 @@ func requireClosed(t *testing.T, ch chan networkbridgemessages.ReqRespResult) {
 		t.Error("channel is not closed")
 	}
 }
-
-// TODO use gomock
-type mockRequestResponseProtocol struct {
-	rawResponse []byte
-	err         error
-}
-
-func (m *mockRequestResponseProtocol) Do(to peer.ID, req network.Message, response network.ResponseMessage) error {
-	if m.err != nil {
-		return m.err
-	}
-
-	if err := response.Decode(m.rawResponse); err != nil {
-		return err
-	}
-	return nil
-}
-
-// TODO use gomock
-type mockNetworkService struct {
-	rrp *mockRequestResponseProtocol
-}
-
-func (m *mockNetworkService) GossipMessage(msg network.NotificationsMessage) {}
-
-func (m *mockNetworkService) SendMessage(to peer.ID, msg network.NotificationsMessage) error {
-	return nil
-}
-
-func (m *mockNetworkService) RegisterNotificationsProtocol(sub protocol.ID,
-	messageID network.MessageType,
-	handshakeGetter network.HandshakeGetter,
-	handshakeDecoder network.HandshakeDecoder,
-	handshakeValidator network.HandshakeValidator,
-	messageDecoder network.MessageDecoder,
-	messageHandler network.NotificationsMessageHandler,
-	batchHandler network.NotificationsMessageBatchHandler,
-	maxSize uint64,
-) error {
-	return nil
-}
-
-func (m *mockNetworkService) GetRequestResponseProtocol(
-	subprotocol string,
-	requestTimeout time.Duration,
-	maxResponseSize uint64,
-) network.RequestMaker {
-	return m.rrp
-}
-
-func (m *mockNetworkService) ReportPeer(change peerset.ReputationChange, p peer.ID) {}
-
-func (m *mockNetworkService) DisconnectPeer(setID int, p peer.ID) {}
-
-func (m *mockNetworkService) GetNetworkEventsChannel() chan *network.NetworkEventInfo {
-	return nil
-}
-
-func (m *mockNetworkService) FreeNetworkEventsChannel(ch chan *network.NetworkEventInfo) {}
