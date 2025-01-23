@@ -10,7 +10,7 @@ RUN apt-get update && \
     wget
 
 # Install node source for polkadotjs tests
-RUN wget -qO- https://deb.nodesource.com/setup_14.x | bash - && \
+RUN wget -qO- https://deb.nodesource.com/setup_22.x | bash - && \
     apt-get install -y nodejs
 
 # Install subkey
