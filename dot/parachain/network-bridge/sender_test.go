@@ -14,7 +14,10 @@ import (
 )
 
 func TestSendRequests(t *testing.T) {
+	t.Parallel()
+
 	t.Run("request_succeeds", func(t *testing.T) {
+		t.Parallel()
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -47,6 +50,7 @@ func TestSendRequests(t *testing.T) {
 	})
 
 	t.Run("request_fails", func(t *testing.T) {
+		t.Parallel()
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -70,6 +74,7 @@ func TestSendRequests(t *testing.T) {
 	})
 
 	t.Run("decoding_fails", func(t *testing.T) {
+		t.Parallel()
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -93,6 +98,7 @@ func TestSendRequests(t *testing.T) {
 	})
 
 	t.Run("cancel_request", func(t *testing.T) {
+		t.Parallel()
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
