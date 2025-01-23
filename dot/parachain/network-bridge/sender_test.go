@@ -129,7 +129,7 @@ func makeOutgoingRequest(t *testing.T) *networkbridgemessages.OutgoingRequest {
 }
 
 // Expect calls to Network.GetRequestResponseProtocol() and RequestMaker.Do() when only one of response, rawResponse or
-// reqErr should be non-nil.
+// reqErr is non-nil.
 // Expect no calls Network.GetRequestResponseProtocol() RequestMaker.Do() when all three are nil.
 func setUpNetworkBridgeSender(
 	t *testing.T,
