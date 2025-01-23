@@ -1362,6 +1362,9 @@ func newTrieFromKeyValueListV1(t *testing.T, filename string) trie.Trie {
 	return tr
 }
 
+/*
+TODO: fix downloading the state and block in the CI
+
 func TestInstance_ExecuteBlock_PaseoRuntime_PaseoBlock3796856(t *testing.T) {
 	paseoTrie := newTrieFromKeyValueListV1(t, "../test_data/paseo/block3796855.out")
 	expectedRoot := common.MustHexToHash("0x420b69ab8c34629fc347acfdd4ac27ed8c5f7830b18387e8db03585265d02063")
@@ -1402,7 +1405,7 @@ func TestInstance_ExecuteBlock_PaseoRuntime_PaseoBlock3796856(t *testing.T) {
 
 	expectedRootNew := common.MustHexToHash("0xc6834534ce95a984926143ce7b5fa10c9fcf00727a6378690f8b2796544f2c85")
 	require.Equal(t, expectedRootNew, state.Trie().MustHash())
-}
+}*/
 
 func TestInstance_ExecuteBlock_PaseoRuntime_PaseoBlock1789153(t *testing.T) {
 	paseoTrie := newTrieFromKeyValueListV1(t, "../test_data/paseo/block1789152.out")
