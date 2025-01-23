@@ -24,7 +24,22 @@ docker run --network host --rm --name snapshotter \
   -v /var/run/docker.sock:/var/run/docker.sock \
   --entrypoint sh \
   gossamer:latest \
-  -c '/gossamer/bin/create_snapshot <approximate block height> /gossamer_data /snapshots'
+  -c '/gossamer/bin/create_snapshot <approximate block height> /gossamer_data/db /snapshots'
 ```
 
-Replace `<approximate block height>` and `<snapshot destination>` with the appropriate values.
+Not that the second parameter is the path to the database directory `db`, inside the container. Replace
+`<approximate block height>` and `<snapshot destination>` with the appropriate values. If you don't care about the exact
+block height and want to take a snapshot immediately, you can pass `1` as the first parameter.
+
+If the host uses the same OS and CPU architecture as the Gossamer image, you can also copy the binary to the host and
+run it directly:
+
+```bash
+$ CONTAINER_ID=$(docker create gossamer:latest)
+$ docker cp ${CONTAINER_ID}:/gossamer/bin/create_snapshot ./create_snapshot
+Successfully copied 10.2MB to /apps/gossamer/create_snapshot
+$ docker rm $CONTAINER_ID
+8c3f09bcab0b013c873382259094f65efc3fb679a0b129e01f9849c603a0ca85
+$ ./create_snapshot
+usage: create_snapshot <approximate block height> <db location> <snapshot destination>
+```
