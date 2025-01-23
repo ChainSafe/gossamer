@@ -129,6 +129,7 @@ func (nbs *NetworkBridgeSender) sendRequests(
 
 		if !request.IsCancelled() {
 			request.Result <- result
+			request.Cancel() // only called here to avoid resource leaks
 		}
 		close(request.Result)
 	}
