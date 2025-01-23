@@ -916,7 +916,7 @@ func TestCandidateStorageMethods(t *testing.T) {
 						possibleBackedCandidateHashes = append(possibleBackedCandidateHashes, entry.candidateHash)
 					}
 
-					require.Equal(t, []parachaintypes.CandidateHash{candidateHash}, possibleBackedCandidateHashes)
+					require.Contains(t, possibleBackedCandidateHashes, candidateHash)
 
 					// now mark it as backed
 					storage.markBacked(candidateHash2)
@@ -928,9 +928,10 @@ func TestCandidateStorageMethods(t *testing.T) {
 						possibleBackedCandidateHashes = append(possibleBackedCandidateHashes, entry.candidateHash)
 					}
 
-					require.Equal(t, []parachaintypes.CandidateHash{
-						candidateHash, candidateHash2}, possibleBackedCandidateHashes)
-
+					// The iterator returned by storage.possibleBackedParaChildren() takes values from a map.
+					// Therefore we must not assert on the order of elements in possibleBackedCandidateHashes.
+					require.Contains(t, possibleBackedCandidateHashes, candidateHash)
+					require.Contains(t, possibleBackedCandidateHashes, candidateHash2)
 				})
 			},
 		},

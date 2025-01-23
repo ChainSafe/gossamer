@@ -361,10 +361,14 @@ func TestGetMinimumRelayParents(t *testing.T) {
 			BlockNumber: 10,
 		},
 	}
-	// Validate the results
+
 	result := <-sender
-	assert.Len(t, result, 2)
-	assert.Equal(t, expected, result)
+	assert.Len(t, result, len(expected))
+
+	// Validate the results without asserting on the order of ParaIDBlockNumber values.
+	for _, ex := range expected {
+		assert.Contains(t, result, ex)
+	}
 }
 
 // TestGetMinimumRelayParents_NoActiveLeaves ensures that getMinimumRelayParents
