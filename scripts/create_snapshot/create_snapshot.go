@@ -24,12 +24,15 @@ func main() {
 	threshold, dbLocation, snapshotDestination := parseArgs(os.Args)
 
 	for {
+		fmt.Println("finding container...") // TODO remove
+
 		containerID, err := findContainerID("gossamer")
 		if err != nil {
 			fmt.Println(err)
 			time.Sleep(checkInterval)
 			continue
 		}
+		fmt.Println("found container:", containerID) // TODO remove
 
 		blockHeight, err := fetchMetric("gossamer_network_syncer_blocks_synced_total")
 		if err != nil {
@@ -37,12 +40,18 @@ func main() {
 			time.Sleep(checkInterval)
 			continue
 		}
+		fmt.Println("got metric:", blockHeight) // TODO remove
 
 		if blockHeight >= threshold {
+			fmt.Println("stopping container...") // TODO remove
+
 			if err := stopContainer(containerID); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
+
+			fmt.Println("stopped container") // TODO remove
+			fmt.Println("copying db...")     // TODO remove
 
 			dstDir := filepath.Join(snapshotDestination, fmt.Sprintf("block-%d", blockHeight), "db")
 			if err := copyDirectory(dbLocation, dstDir); err != nil {
@@ -50,10 +59,16 @@ func main() {
 				os.Exit(1)
 			}
 
+			fmt.Println("copied db")             // TODO remove
+			fmt.Println("starting container...") // TODO remove
+
 			if err := startContainer(containerID); err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
+
+			fmt.Println("started container") // TODO remove
+
 			break
 		}
 
