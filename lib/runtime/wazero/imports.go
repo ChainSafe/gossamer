@@ -977,6 +977,7 @@ func GetRuntimeVersion(code []byte) (version runtime.Version, err error) {
 	config := Config{
 		LogLvl: log.DoNotChange,
 	}
+
 	instance, err := NewInstance(code, config)
 	if err != nil {
 		return version, fmt.Errorf("creating runtime instance: %w", err)
