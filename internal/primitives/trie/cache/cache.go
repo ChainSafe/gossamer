@@ -13,7 +13,7 @@ import (
 	"github.com/elastic/go-freelru"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("pkg", "primitives/cache"))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "primitives/trie/cache"))
 
 // The maximum number of existing keys in the shared cache that a single local cache
 // can promote to the front of the LRU cache in one go.

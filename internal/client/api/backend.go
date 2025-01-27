@@ -6,12 +6,81 @@ package api
 import (
 	"sync"
 
+	"github.com/ChainSafe/gossamer/internal/client/consensus"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 )
+
+// ImportNotificationAction describes which block import notification stream should be notified.
+type ImportNotificationAction uint
+
+const (
+	// RecentBlockImportNotificationAction notifies only when the node has synced to the tip or there is a re-org.
+	RecentBlockImportNotificationAction ImportNotificationAction = iota
+	// EveryBlockImportNotificationAction notifies for every single block no matter what the sync state is.
+	EveryBlockImportNotificationAction
+	// BothBlockImportNotificationAction means both [RecentBlockImportNotificationAction] and
+	// [EveryBlockImportNotificationAction] should be fired.
+	BothBlockImportNotificationAction
+	// NoneBlockImportNotificationAction means no block import notification should be fired.
+	NoneBlockImportNotificationAction
+)
+
+// StorageChanges contains a [statemachine.StorageCollection] and [statemachine.ChildStorageCollection]
+type StorageChanges struct {
+	statemachine.StorageCollection
+	statemachine.ChildStorageCollection
+}
+
+// ImportSummary contains information about the block that just got imported,
+// including storage changes, reorged blocks, etc.
+type ImportSummary[
+	H runtime.Hash,
+	N runtime.Number,
+	Header runtime.Header[N, H],
+] struct {
+	Hash           H                     // Block hash of the imported block.
+	Origin         consensus.BlockOrigin // Import origin.
+	Header         Header                // Header of the imported block.
+	IsNewBest      bool                  // Is this block a new best block.
+	StorageChanges *StorageChanges       // Optional storage changes.
+	// TreeRoute from old best to new best.
+	// If nil, there was no re-org while importing.
+	TreeRoute                *blockchain.TreeRoute[H, N]
+	ImportNotificationAction ImportNotificationAction // Which notify action to take for this import.
+}
+
+// FinalizeSummary contains information about the block that just got finalized, including tree heads that became
+// stale at the moment of finalization.
+type FinalizeSummary[
+	H runtime.Hash,
+	N runtime.Number,
+	Header runtime.Header[N, H],
+] struct {
+	// Last finalized block header.
+	Header Header
+	// Blocks that were finalized.
+	// The last entry is the one that has been explicitly finalized.
+	Finalized []H
+	// Heads that became stale during this finalization operation.
+	StaleHeads []H
+}
+
+// ClientImportOperation is an import operation wrapper.
+type ClientImportOperation[
+	H runtime.Hash,
+	Hasher runtime.Hasher[H],
+	N runtime.Number,
+	Header runtime.Header[N, H],
+	E runtime.Extrinsic,
+] struct {
+	Op              BlockImportOperation[N, H, Hasher, Header, E] // DB Operation.
+	NotifyImported  *ImportSummary[H, N, Header]                  // Summary of imported block.
+	NotifyFinalized *FinalizeSummary[H, N, Header]                // Summary of finalized block.
+}
 
 // NewBlockState is the state of a new block.
 type NewBlockState uint8
@@ -87,6 +156,21 @@ type BlockImportOperation[
 	UpdateTransactionIndex(index []statemachine.IndexOperation) error
 }
 
+// LockImportRun is the interface for performing operations on the backend.
+type LockImportRun[
+	H runtime.Hash,
+	N runtime.Number,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+	E runtime.Extrinsic,
+] interface {
+	/// LockImportRun locks the import lock, and run operations inside.
+	LockImportRun(
+		f func(*ClientImportOperation[H, Hasher, N, Header, E]) error,
+	) error
+}
+
+// KeyValue is used in [AuxStore.InsertAux].  Key and Value should not be nil.
 type KeyValue struct {
 	Key   []byte
 	Value []byte
