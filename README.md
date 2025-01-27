@@ -35,6 +35,9 @@
 >
 > The Gossamer Polkadot Host is pre-production software [2022-12-01]
 
+>Developed by [ChainSafe](https://chainsafe.io) and funded by a Web3 Foundation grant and Polkadot [Treasury proposals](https://polkadot.polkassembly.io/treasury/808?tab=description).
+>
+
 Gossamer is a [Golang](https://go.dev/) implementation of the
 [Polkadot Host](https://wiki.polkadot.network/docs/learn-polkadot-host): an
 execution environment for the Polkadot runtime, which is materialized as a Web
@@ -42,6 +45,7 @@ Assembly (Wasm) blob. In addition to running an embedded Wasm executor, a
 Polkadot Host must orchestrate a number of interrelated services, such as
 [networking](dot/network/README.md), block production, block finalization, a
 JSON-RPC server, [and more](cmd/gossamer/README.md#client-components).
+
 
 ## Getting Started
 
