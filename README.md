@@ -26,7 +26,7 @@
     <img alt="Gossamer Blog" src="https://img.shields.io/badge/Medium-grey?style=for-the-badge&logo=medium" height="20" />
   </a>
     <a href="https://medium.com/chainsafe-systems/tagged/polkadot">
-    <img alt="Twitter" src="https://img.shields.io/x/follow/chainsafeth?color=blue&label=follow&logo=twitter&style=for-the-badge" height="20"/>
+    <img alt="Twitter" src="https://img.shields.io/twitter/follow/chainsafeth?color=blue&label=follow&logo=twitter&style=for-the-badge" height="20"/>
   </a>
 </div>
 <br />
