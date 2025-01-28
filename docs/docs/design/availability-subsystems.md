@@ -20,7 +20,7 @@ Availability is handled by these subsystems:
 - Availability Recovery subsystem
 - Availability Store subsystem 
 
-## Availability Distribution subsystem
+## [Availability Distribution subsystem](./availability-distribution.md)
 
 - This subsystem is responsible for distribution of availability data to peers via request response protocols.
 

@@ -31,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/inmemory/proof"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/tetratelabs/wazero"
 )
 
 var DefaultVersion = &runtime.Version{
@@ -875,18 +876,22 @@ func Test_ext_misc_runtime_version_version_1(t *testing.T) {
 		}
 	}
 
+	mod, err := inst.Runtime.InstantiateModule(context.Background(), inst.metadata.guestModule, wazero.NewModuleConfig())
+	require.NoError(t, err)
+
 	allocator := allocator.NewFreeingBumpHeapAllocator(0)
 	inst.Context.Allocator = allocator
 
 	data := bytes
 	dataLength := uint32(len(data))
-	inputPtr, err := inst.Context.Allocator.Allocate(inst.Module.Memory(), dataLength)
+	inputPtr, err := inst.Context.Allocator.Allocate(mod.Memory(), dataLength)
 	if err != nil {
 		t.Errorf("allocating input memory: %v", err)
 	}
 
 	// Store the data into memory
-	mem := inst.Module.Memory()
+
+	mem := mod.Memory()
 	ok := mem.Write(inputPtr, data)
 	if !ok {
 		panic("write overlow")
@@ -894,10 +899,10 @@ func Test_ext_misc_runtime_version_version_1(t *testing.T) {
 
 	dataSpan := newPointerSize(inputPtr, dataLength)
 	ctx := context.WithValue(context.Background(), runtimeContextKey, inst.Context)
-	versionPtr := ext_misc_runtime_version_version_1(ctx, inst.Module, dataSpan)
+	versionPtr := ext_misc_runtime_version_version_1(ctx, mod, dataSpan)
 
 	var option *[]byte
-	versionData := read(inst.Module, versionPtr)
+	versionData := read(mod, versionPtr)
 	err = scale.Unmarshal(versionData, &option)
 	require.NoError(t, err)
 	require.NotNil(t, option)
@@ -1970,10 +1975,10 @@ func Test_ext_storage_clear_prefix_version_2(t *testing.T) {
 	var decVal []byte
 	scale.Unmarshal(encValue, &decVal)
 
-	var numDeleted uint32
-	// numDeleted represents no. of actual keys deleted
-	scale.Unmarshal(decVal[1:], &numDeleted)
-	require.Equal(t, uint32(2), numDeleted)
+	var loops uint32
+	// loops represents no. of loops when deleting keys
+	scale.Unmarshal(decVal[1:], &loops)
+	require.Equal(t, uint32(0), loops)
 
 	var expectedAllDeleted byte
 	// expectedAllDeleted value 0 represents all keys deleted, 1 represents keys are pending with prefix in trie
@@ -1992,8 +1997,8 @@ func Test_ext_storage_clear_prefix_version_2(t *testing.T) {
 	require.NoError(t, err)
 
 	scale.Unmarshal(encValue, &decVal)
-	scale.Unmarshal(decVal[1:], &numDeleted)
-	require.Equal(t, uint32(2), numDeleted)
+	scale.Unmarshal(decVal[1:], &loops)
+	require.Equal(t, uint32(0), loops)
 
 	expectedAllDeleted = 0
 	require.Equal(t, expectedAllDeleted, decVal[0])

@@ -89,6 +89,7 @@ func Test_MainTrie(t *testing.T) {
 			prefix    []byte
 			limit     int
 			trieKeys  []string
+			loops     uint32
 			deleted   uint32
 			allDelted bool
 		}{
@@ -148,6 +149,7 @@ func Test_MainTrie(t *testing.T) {
 				prefix:    []byte("p"),
 				limit:     1,
 				trieKeys:  []string{"p"},
+				loops:     1,
 				deleted:   1, // the "p" key only
 				allDelted: false,
 			},
@@ -155,6 +157,7 @@ func Test_MainTrie(t *testing.T) {
 				prefix:    []byte("p"),
 				limit:     2,
 				trieKeys:  []string{"p"},
+				loops:     1,
 				deleted:   4, // Since keys during block exec does not count
 				allDelted: true,
 			},
@@ -162,6 +165,7 @@ func Test_MainTrie(t *testing.T) {
 				prefix:    []byte("p"),
 				limit:     3,
 				trieKeys:  []string{"p"},
+				loops:     1,
 				deleted:   4,
 				allDelted: true,
 			},
@@ -169,6 +173,7 @@ func Test_MainTrie(t *testing.T) {
 				prefix:    []byte("p"),
 				limit:     -1,
 				trieKeys:  []string{"p"},
+				loops:     1,
 				deleted:   4,
 				allDelted: true,
 			},
@@ -185,8 +190,9 @@ func Test_MainTrie(t *testing.T) {
 					changes.upsert(k, v)
 				}
 
-				deleted, allDeleted := changes.clearPrefix(tt.prefix, tt.trieKeys, tt.limit)
+				loops, deleted, allDeleted := changes.clearPrefix(tt.prefix, tt.trieKeys, tt.limit)
 				require.Equal(t, tt.deleted, deleted)
+				require.Equal(t, tt.loops, loops)
 				require.Equal(t, tt.allDelted, allDeleted)
 			})
 		}
@@ -365,6 +371,7 @@ func Test_ChildTrie(t *testing.T) {
 			prefix    []byte
 			limit     int
 			trieKeys  []string
+			loops     uint32
 			deleted   uint32
 			allDelted bool
 		}{
@@ -424,6 +431,7 @@ func Test_ChildTrie(t *testing.T) {
 				prefix:    []byte("p"),
 				limit:     1,
 				trieKeys:  []string{"p"},
+				loops:     1,
 				deleted:   1, // the "p" key only
 				allDelted: false,
 			},
@@ -431,6 +439,7 @@ func Test_ChildTrie(t *testing.T) {
 				prefix:    []byte("p"),
 				limit:     2,
 				trieKeys:  []string{"p"},
+				loops:     1,
 				deleted:   4, // Since keys during block exec does not count
 				allDelted: true,
 			},
@@ -438,6 +447,7 @@ func Test_ChildTrie(t *testing.T) {
 				prefix:    []byte("p"),
 				limit:     3,
 				trieKeys:  []string{"p"},
+				loops:     1,
 				deleted:   4,
 				allDelted: true,
 			},
@@ -445,6 +455,7 @@ func Test_ChildTrie(t *testing.T) {
 				prefix:    []byte("p"),
 				limit:     -1,
 				trieKeys:  []string{"p"},
+				loops:     1,
 				deleted:   4,
 				allDelted: true,
 			},
@@ -461,8 +472,9 @@ func Test_ChildTrie(t *testing.T) {
 					changes.upsertChild("child", k, v)
 				}
 
-				deleted, allDeleted := changes.clearPrefixInChild("child", tt.prefix, tt.trieKeys, tt.limit)
+				loops, deleted, allDeleted := changes.clearPrefixInChild("child", tt.prefix, tt.trieKeys, tt.limit)
 				require.Equal(t, tt.deleted, deleted)
+				require.Equal(t, tt.loops, loops)
 				require.Equal(t, tt.allDelted, allDeleted)
 			})
 		}
