@@ -1,3 +1,8 @@
+---
+layout: default
+title: Availability Recovery Subsystem Design
+permalink: /design/availability-recovery/
+---
 ## Availability Recovery Subsystem Design
 
 ### Intro
@@ -183,19 +188,16 @@ Assuming we have erasure coding:
 
 ## Strategies
 ###  FetchChunks
-_The least performant strategy but also the most comprehensive one. It's the only one that cannot fail under the byzantine threshold assumption,
+The least performant strategy (though apparently the most used one according to [this](https://github.com/paritytech/polkadot-sdk/issues/598#issuecomment-1792007099)) but also the most comprehensive one. It's the only one that cannot fail under the byzantine threshold assumption,
 so it's always added as the last one in the recovery_strategies queue. Performs parallel chunk requests to validators. When enough chunks were received, do the reconstruction.
-In the worst case, all validators will be tried._
-Implementation of this strategy requires implementation (or at least use binding for reed-solomon reconstruction)
-
-Reconstruct method is available to call from the `lib/erasure` module.
+In the worst case, all validators will be tried.
+The most expensive part of this algorithm (the same source as above) is reed solomon reconstruct algorithm. 
+Implementation of this strategy requires for reed-solomon reconstruction algorithm that is available to call from the `lib/erasure` module.
 
 In Parity implementation they assume that FetchChunks is always run as a last resort strategy, hence they do initially do some checks and remove all requested validators from list.
 
 **Main loop**
 - check amount of chunks recovered if >= threshold recover them.
-- Some unavailability check pretty simple in logic though no info why they run it.
-- get_desired_request_count
 - launch_parallel_chunk_requests
 - wait_for_chunks
 
@@ -212,7 +214,7 @@ That depends on `erasure_coding.obtain_chunks_v1` method and is available to cal
 
 
 **Main loop**
-- take naext validatorfrom array
+- take next validator from array
 - create data request
 - send message NetworkBridgeTxMessage::SendRequests with data request
 - awaits for full data to be returned if so data to be Reencoded and validated
@@ -227,6 +229,10 @@ We can only attempt systematic recovery if we received the core index of the can
 [RFC-47](https://github.com/polkadot-fellows/RFCs/blob/main/text/0047-assignment-of-availability-chunks.md).
 Must not be enabled unless all validators and collators have stopped using `req_chunk`
 protocol version 1. If it is enabled, validators can start systematic chunk recovery.
+
+**Additional related information:**
+- https://github.com/paritytech/polkadot-sdk/issues/598
+- https://github.com/polkadot-fellows/RFCs/blob/main/text/0047-assignment-of-availability-chunks.md
 
 ### General algorithm to choose a strategy
 If the estimated available data size is smaller than a configured constant (currently 1Mib for Polkadot or 4Mib for other networks), try doing FetchFull first.
@@ -297,14 +303,23 @@ is not getting read from, hence leading that newly added awaiter never get resol
 
 ```go
 type RecoverySubsystemState struct {
-    OngoingRecoveries map[string]*RecoveryHandle // key is the CandidateHash allows for O(1) lookups
+    OngoingRecoveries map[string]*RecoveryTask // key is the CandidateHash allows for O(1) lookups
 	mutex mutex.RWMutex
 }
 
-type RecoveryHandle struct {
-CandidateHash string
-Remote        chan RecoveryResult
-Awaiting      []chan RecoveryResult
+
+// RecoveryTask represents a recovery task for particular candidatehash
+type RecoveryTask struct {
+	params RecoveryParams // subsystem params necessary for recovery
+    CandidateHash string
+    ResultChan    chan RecoveryResult // channel to respond with recovery result (either PoV or error) to main routine
+	awaiting []chan RecoveryResult // array of channels that awaits recovery result
+}
+
+// RecoveryResult represents the result of a recovery operation.
+type RecoveryResult struct {
+    Data AvailableData
+    Err  error
 }
 ```
 For each recovery request we theoretically need to to try all three strategies one by one. _FullFetch_ first, then
@@ -312,6 +327,12 @@ _FetchSystematicChunks_, and then _FullFetch_. FullFetch is a fallback strategy 
 first two have their constraints that are described above. 
 Constraints are defined based on subsystem params, `chunk_size`, PoV size limit or as it called `CONSERVATIVE_FETCH_CHUNKS_THRESHOLD` 
 and `FETCH_CHUNKS_THRESHOLD`.
+
+Instead of keeping array of possible recovery strategies per recovery task we can just pipeline all of them, 
+including erasure reed solomon Reconstruct or Reencode.
+and call if constraints above are met returning `RecoveryResult` in the end
+
+
 
 
 
