@@ -12,8 +12,13 @@ Gossip support is a short subsystem that cares about handling active leaves and 
 
 - **Check connectivity**: The subsystem contains a timer that triggers every 600 seconds (10 minutes) a connectivity check that is a simple verification on the amount of authorities connected against the actual set of authorities, if the percentage of connected authorities is bellow 90% the node will issue WARN logs.
 
-- **Handle Active Leaves**:
+- **Handle Active Leaves**: 
+  - Given the current values in the state, **last failure** and **last connection request**, the subsystem should force new requests or re-resolve authorities
+  - Determine if the current session index has changed, if so determine relevant validators and issue connection request. The subsystem should change the **last sesison index** value only if it is possible to retrieve the new session info.
+  - If we notice that a new session is starting we should update our authority ids cache and send a `NetworkBridgeRxMessage::UpdatedAuthorityIds` message with informations about the new set of authorities.
 
+- **Handle Network Bridge Update**:
+  - In the above point, when handling active leaves, we issue connection requests and whenever a new connection is stablished or a disconnection happens for some reason. The subsytems listen on any network bridge update about `NetworkBridgeEvent::PeerConnected` and `NetworkBridgeEvent::PeerDisconnected`, other updates are not important.
 
 ## State
 
