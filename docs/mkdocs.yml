@@ -73,6 +73,7 @@ nav:
     - Availability Subsystems: ./design/availability-subsystems.md
     - Prospective Parachains: ./design/prospective-parachains.md
     - Prospective Parachains - Fragment Chain: ./design/fragment-chain.md
+    - Availability recovery: ./design/availability-recovery.md
   - Contributing: 
     - Overview: ./contributing.md
 extra_css:
