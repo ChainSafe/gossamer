@@ -74,6 +74,9 @@ nav:
     - Prospective Parachains: ./design/prospective-parachains.md
     - Prospective Parachains - Fragment Chain: ./design/fragment-chain.md
     - Authority Discovery: ./design/authority-discovery.md
+    - Statement Distribution: ./design/statement-distribution.md
+    - Grid Topology: ./design/grid-topology.md
+    - Gossip Support: ./design/gossip-support.md
   - Contributing: 
     - Overview: ./contributing.md
 extra_css:
