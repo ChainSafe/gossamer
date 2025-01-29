@@ -7,6 +7,7 @@ package network
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -396,12 +397,21 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 	}
 	require.NoError(t, err)
 
+	genesisHash := nodeA.blockState.GenesisHash().String()
+	genesisHash = strings.TrimPrefix(genesisHash, "0x")
+	fullSyncProtocolId := fmt.Sprintf("/%s%s", genesisHash, SyncID)
+	warpSyncProtocolId := fmt.Sprintf("/%s%s", genesisHash, WarpSyncID)
+
 	tests := []struct {
 		protocol protocol.ID
 		expect   bool
 	}{
 		{
-			protocol: protocol.ID("/gossamer/test/0/sync/2"),
+			protocol: protocol.ID(fullSyncProtocolId),
+			expect:   true,
+		},
+		{
+			protocol: protocol.ID(warpSyncProtocolId),
 			expect:   true,
 		},
 		{

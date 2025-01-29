@@ -7,10 +7,15 @@ import "time"
 
 type ServiceConfig func(svc *SyncService)
 
-func WithStrategies(currentStrategy, defaultStrategy Strategy) ServiceConfig {
+func WithWarpSyncStrategy(warpSyncStrategy Strategy) ServiceConfig {
 	return func(svc *SyncService) {
-		svc.currentStrategy = currentStrategy
-		svc.defaultStrategy = defaultStrategy
+		svc.warpSyncStrategy = warpSyncStrategy
+	}
+}
+
+func WithFullSyncStrategy(fullSyncStrategy Strategy) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.fullSyncStrategy = fullSyncStrategy
 	}
 }
 
