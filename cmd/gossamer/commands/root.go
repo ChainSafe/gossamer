@@ -529,6 +529,14 @@ func addCoreFlags(cmd *cobra.Command) error {
 		return fmt.Errorf("failed to add --grandpa-interval flag: %s", err)
 	}
 
+	if err := addStringFlagBindViper(cmd,
+		"sync",
+		config.Core.Sync,
+		"sync mode [warp | full]",
+		"core.sync"); err != nil {
+		return fmt.Errorf("failed to add --sync flag: %s", err)
+	}
+
 	return nil
 }
 
