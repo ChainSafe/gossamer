@@ -65,41 +65,10 @@ Subsystem has a state that holds:
 - availability_lru -  /// An LRU cache of recently recovered data. So we can avoid expensive data recoveries
 - runtime_info: RuntimeInfo, /// Also do not know why
 
-### Ongoing recoveries
-
-handle_recover function: Reads state.ongoing_recoveries to check for ongoing recoveries and update the awaiting vector.
-run function: Reads state.ongoing_recoveries to select the next completed recovery and process the result.
-
 ### availability LRU
 Implement availability_lru cache that is storing recently recovered availabilities.
 Add calls to LRU cache within handle recovery so in case if availability is already in cache return from it avoiding full recovery process.
 Put successfully recovered availability to LRU as soon as they correctly recovered
-
-
-### main loop
-1. The `futures::select!` macro in the run method is used to concurrently poll multiple futures and handle whichever one completes first
-   In this code, the futures::select! macro is used to handle the following events:
-
-erasure_task = erasure_task_rx.next(): Handles the next erasure task from the erasure_task_rx receiver.
-signal = ctx.recv().fuse(): Handles the next signal from the overseer.
-in_req = recv_req: Handles the next incoming request.
-output = state.ongoing_recoveries.select_next_some(): Handles the next completed recovery task.  
-The select_next_some method polls the next completed future from this collection and returns it. The result is then 
-processed to handle the completed recovery task, update the cache, and handle any errors that may have occurred.
-
-
-**FLOW**
-Runs loop and waits for next concurrent processes:
-- erasure_task_rx. Creates erasure_task channel.
-- signal = ctx.recv().fuse() Awaits signals from Overseer `AvailabilityRecoveryMessage::RecoverAvailableData`
-    - handle_recover()
-- in_req = recv_req => Awaits signals from `req_receiver` that is the network interface.
-- output = state.ongoing_recoveries.select_next_some()
-
-
-/// Queries the full `AvailableData` from av-store.
-`query_full_data`. Sends message to availability store to fetch fulldata. (Probably in case we keep full or achive node?)
-
 
 
 ### handle_recover
@@ -151,14 +120,8 @@ When the recovery is done, the result is sent to all awaiting receivers with ong
 and cached in the availability_lru cache. Here's a detailed explanation of the flow.
 
 
-
-## Availability recovery State
-
-
-
 ### Recovery task
 A RecoveryTask is a structure encapsulating all network tasks needed in order to recover the available data in respect to a candidate.
-
 
 ### run
 Recovery task is run by `launch_recovery_task` function and is run based on strategy that was defined.
@@ -181,9 +144,6 @@ These depends on the strategy we choose.
 FetchChunks need reconstruction, FullFetch reencode and FetchSystematicChunks does not need reedsalomon calculations
 
 - do so it sends an `ErasureTask` to the main loop via the `erasure_task` channel, and  ts for the results over a `oneshot` channel.
-
-Assuming we have erasure coding:
-
 
 
 ## Strategies
