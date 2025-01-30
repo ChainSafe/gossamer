@@ -32,6 +32,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
 	"github.com/tidwall/btree"
 )
 
@@ -47,7 +48,7 @@ var (
 )
 
 // CandidateBacking represents the state of the subsystem responsible for managing candidate backing.
-type CandidateBacking struct {
+type CandidateBacking struct { // TODO: Update comments in this struct
 	SubSystemToOverseer chan<- any
 	// State tracked for all relay-parents backing work is ongoing for. This includes
 	// all active leaves.
@@ -69,15 +70,18 @@ type CandidateBacking struct {
 	//
 	// This is guaranteed to have an entry for each candidate with a relay parent in the implicit
 	// or explicit view for which a `Seconded` statement has been successfully imported.
-	perCandidate map[parachaintypes.CandidateHash]*perCandidateState
+	perCandidate map[parachaintypes.CandidateHash]*perCandidateState // TODO: Remove paraID from perCandidateState struct
 	// State tracked for all active leaves, whether or not they have prospective parachains enabled.
-	perLeaf map[common.Hash]*activeLeafState
+	perLeaf map[common.Hash]*activeLeafState // TODO: Remove this field
 	// The utility for managing the implicit and explicit views in a consistent way.
 	// We only feed leaves which have prospective parachains enabled to this view.
 	ImplicitView ImplicitView
 	// The handle to the Keystore used for signing.
 	Keystore   keystore.Keystore
 	BlockState BlockState
+	// A local cache for storing per-session data. This cache helps to
+	// reduce repeated calls to the runtime and avoid redundant computations.
+	perSessionCache perSessionCache
 }
 
 type BlockState interface {
@@ -93,7 +97,6 @@ type activeLeafState struct {
 type perCandidateState struct {
 	persistedValidationData parachaintypes.PersistedValidationData
 	secondedLocally         bool
-	paraID                  parachaintypes.ParaID
 	relayParent             common.Hash
 }
 
@@ -113,19 +116,20 @@ type attestingData struct {
 // tableContext represents the contextual information associated with a validator and groups
 // for a table under a relay-parent.
 type tableContext struct {
-	validator  *validator
-	groups     map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex
-	validators []parachaintypes.ValidatorID
+	validator          *validator
+	groups             map[parachaintypes.CoreIndex][]parachaintypes.ValidatorIndex
+	validators         []parachaintypes.ValidatorID
+	disabledValidators []parachaintypes.ValidatorIndex
 }
 
 // isMemberOf returns true if the validator is a member of the group of validators assigned to the parachain.
-func (tc *tableContext) isMemberOf(validatorIndex parachaintypes.ValidatorIndex, paraID parachaintypes.ParaID) bool {
-	indexes, ok := tc.groups[paraID]
+func (tc *tableContext) isMemberOf(validatorIndex parachaintypes.ValidatorIndex, core parachaintypes.CoreIndex) bool {
+	validators, ok := tc.groups[core]
 	if !ok {
 		return false
 	}
 
-	return slices.Contains(indexes, validatorIndex)
+	return slices.Contains(validators, validatorIndex)
 }
 
 // validator represents local validator information.
@@ -134,6 +138,7 @@ type validator struct {
 	signingContext parachaintypes.SigningContext
 	key            parachaintypes.ValidatorID
 	index          parachaintypes.ValidatorIndex
+	disabled       bool
 }
 
 // sign method signs a given payload with the validator and returns a SignedFullStatement.
@@ -195,6 +200,7 @@ func New(overseerChan chan<- any) *CandidateBacking {
 		perRelayParent:      map[common.Hash]*perRelayParentState{},
 		perCandidate:        map[parachaintypes.CandidateHash]*perCandidateState{},
 		perLeaf:             map[common.Hash]*activeLeafState{},
+		perSessionCache:     newPerSessionCache(2),
 	}
 }
 
@@ -289,8 +295,8 @@ func (cb *CandidateBacking) handleStatementMessage(
 		return nil
 	}
 
-	if summary.GroupID != *rpState.assignment {
-		logger.Debugf("The ParaId: %d is not assigned to the local validator at relay parent: %s",
+	if uint32(summary.GroupID) != rpState.assignedCore.Index {
+		logger.Debugf("The GroupID: %d is not assigned to the local validator at relay parent: %s",
 			summary.GroupID, relayParent)
 		return nil
 	}
@@ -351,4 +357,134 @@ func (cb *CandidateBacking) handleStatementMessage(
 		pc.persistedValidationData,
 		attesting,
 	)
+}
+
+// perSessionCache is a cache for storing data per-session to reduce repeated runtime API calls
+// and avoid redundant computations.
+type perSessionCache struct {
+	// Cache for storing validators list, retrieved from the runtime.
+	validatorsCache *lrucache.LRUCache[parachaintypes.SessionIndex, []parachaintypes.ValidatorID]
+	// Cache for storing node features, retrieved from the runtime.
+	nodeFeaturesCache *lrucache.LRUCache[parachaintypes.SessionIndex, *parachaintypes.BitVec]
+	// Cache for storing executor parameters, retrieved from the runtime.
+	executorParamsCache *lrucache.LRUCache[parachaintypes.SessionIndex, parachaintypes.ExecutorParams]
+	// Cache for storing the minimum backing votes threshold, retrieved from the runtime.
+	minimumBackingVotesCache *lrucache.LRUCache[parachaintypes.SessionIndex, uint32]
+	// Cache for storing validator-to-group mappings, computed from validator groups.
+	validatorToGroupCache *lrucache.LRUCache[parachaintypes.SessionIndex,
+		map[parachaintypes.ValidatorIndex]parachaintypes.GroupIndex] // indexed vector in Rust
+}
+
+func newPerSessionCache(capacity uint) perSessionCache {
+	return perSessionCache{
+		validatorsCache:          lrucache.NewLRUCache[parachaintypes.SessionIndex, []parachaintypes.ValidatorID](capacity),
+		nodeFeaturesCache:        lrucache.NewLRUCache[parachaintypes.SessionIndex, *parachaintypes.BitVec](capacity),
+		executorParamsCache:      lrucache.NewLRUCache[parachaintypes.SessionIndex, parachaintypes.ExecutorParams](capacity),
+		minimumBackingVotesCache: lrucache.NewLRUCache[parachaintypes.SessionIndex, uint32](capacity),
+		validatorToGroupCache: lrucache.NewLRUCache[parachaintypes.SessionIndex,
+			map[parachaintypes.ValidatorIndex]parachaintypes.GroupIndex](capacity),
+	}
+}
+
+// getValidators retrieves validators from the cache or fetches them from the runtime if not present.
+func (cache *perSessionCache) getValidators(
+	sessionIndex parachaintypes.SessionIndex,
+	rt runtime.Instance,
+) ([]parachaintypes.ValidatorID, error) {
+	validators := cache.validatorsCache.Get(sessionIndex)
+	if validators != nil {
+		return validators, nil
+	}
+
+	validators, err := rt.ParachainHostValidators()
+	if err != nil {
+		return nil, err
+	}
+
+	cache.validatorsCache.Put(sessionIndex, validators)
+	return validators, nil
+}
+
+// getNodeFeatures retrieves the node features from the cache or fetches it from the runtime if not present.
+func (cache *perSessionCache) getNodeFeatures(
+	sessionIndex parachaintypes.SessionIndex,
+	rt runtime.Instance,
+) (*parachaintypes.BitVec, error) {
+	cachedNodeFeatures := cache.nodeFeaturesCache.Get(sessionIndex)
+	if cachedNodeFeatures != nil {
+		return cachedNodeFeatures, nil
+	}
+
+	nodeFeatures, err := rt.ParachainHostNodeFeatures()
+	if err != nil {
+		return nil, err
+	}
+
+	cache.nodeFeaturesCache.Put(sessionIndex, &nodeFeatures)
+	return &nodeFeatures, nil
+}
+
+// getExecutorParams retrieves the executor parameters from the cache or fetches them from the runtime if not present.
+func (cache *perSessionCache) getExecutorParams(
+	sessionIndex parachaintypes.SessionIndex,
+	rt runtime.Instance,
+) (parachaintypes.ExecutorParams, error) {
+	cachedExecParams := cache.executorParamsCache.Get(sessionIndex)
+	if cachedExecParams != nil {
+		return cachedExecParams, nil
+	}
+
+	params, err := rt.ParachainHostSessionExecutorParams(sessionIndex)
+	if err != nil {
+		return nil, err
+	}
+
+	cache.executorParamsCache.Put(sessionIndex, *params)
+	return *params, nil
+}
+
+// getMinimumBackingVotes retrieves the minimum backing votes threshold from the cache or
+// fetches it from the runtime if not present.
+func (cache *perSessionCache) getMinimumBackingVotes(
+	sessionIndex parachaintypes.SessionIndex,
+	rt runtime.Instance,
+) (uint32, error) {
+	minBackingVotes := cache.minimumBackingVotesCache.Get(sessionIndex)
+	if minBackingVotes != 0 {
+		return minBackingVotes, nil
+	}
+
+	minBackingVotes, err := rt.ParachainHostMinimumBackingVotes()
+	if err != nil {
+		return 0, err
+	}
+
+	cache.minimumBackingVotesCache.Put(sessionIndex, minBackingVotes)
+	return minBackingVotes, nil
+}
+
+// getValidatorToGroup retrieves a mapping of validators to their respective groups for a given session index.
+// If the mapping is already cached, it returns the cached value.
+// Otherwise, it constructs the mapping, caches it, and then returns it.
+func (cache *perSessionCache) getValidatorToGroup(
+	sessionIndex parachaintypes.SessionIndex,
+	validators []parachaintypes.ValidatorID,
+	validatorGroups [][]parachaintypes.ValidatorIndex,
+) map[parachaintypes.ValidatorIndex]parachaintypes.GroupIndex {
+	validatorToGroup := cache.validatorToGroupCache.Get(sessionIndex)
+	if validatorToGroup != nil {
+		return validatorToGroup
+	}
+
+	numOfValidators := len(validators)
+	validatorToGroup = make(map[parachaintypes.ValidatorIndex]parachaintypes.GroupIndex, numOfValidators)
+
+	for groupID, group := range validatorGroups {
+		for _, validator := range group {
+			validatorToGroup[validator] = parachaintypes.GroupIndex(groupID)
+		}
+	}
+
+	cache.validatorToGroupCache.Put(sessionIndex, validatorToGroup)
+	return validatorToGroup
 }

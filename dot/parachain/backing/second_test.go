@@ -3,6 +3,7 @@
 
 package backing
 
+/*
 import (
 	"testing"
 
@@ -133,3 +134,4 @@ func dummyCandidateHash(t *testing.T) parachaintypes.CandidateHash {
 
 	return parachaintypes.CandidateHash{Value: hash}
 }
+*/

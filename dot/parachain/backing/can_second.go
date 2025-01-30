@@ -13,11 +13,10 @@ import (
 )
 
 var (
-	errUnknwnRelayParent                 = errors.New("unknown relay parent")
-	errProspectiveParachainsModeDisabled = errors.New("async backing is disabled")
-	errCandidateNotRecognised            = errors.New("candidate not recognised by any fragment tree")
-	errLeafOccupied                      = errors.New("can't second the candidate, leaf is already occupied")
-	errDepthOccupied                     = errors.New("can't second the candidate, depth is already occupied")
+	errUnknwnRelayParent      = errors.New("unknown relay parent")
+	errCandidateNotRecognised = errors.New("candidate not recognised by any fragment tree")
+	errLeafOccupied           = errors.New("can't second the candidate, leaf is already occupied")
+	errDepthOccupied          = errors.New("can't second the candidate, depth is already occupied")
 )
 
 // handleCanSecondMessage performs seconding sanity check for an advertisement.
@@ -33,12 +32,6 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) error {
 		return fmt.Errorf("%w; relay parent: %s", errNilRelayParentState, msg.CandidateRelayParent.String())
 	}
 
-	ppMode := rpState.prospectiveParachainsMode
-	if !ppMode.IsEnabled {
-		msg.ResponseCh <- false
-		return fmt.Errorf("%w; relay parent: %s", errProspectiveParachainsModeDisabled, msg.CandidateRelayParent.String())
-	}
-
 	hypotheticalCandidate := parachaintypes.HypotheticalCandidateIncomplete{
 		CandidateHash:      msg.CandidateHash,
 		CandidateParaID:    msg.CandidateParaID,
@@ -52,16 +45,13 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) error {
 		return err
 	}
 
-	for _, fragmentTree := range membership {
-		// candidate should be recognised by at least some fragment tree.
-		if len(fragmentTree) != 0 {
-			msg.ResponseCh <- true
-			return nil
-		}
+	if len(membership) == 0 {
+		msg.ResponseCh <- false
+		return fmt.Errorf("%w; candidate hash: %s", errCandidateNotRecognised, msg.CandidateHash.Value)
 	}
 
-	msg.ResponseCh <- false
-	return fmt.Errorf("%w; candidate hash: %s", errCandidateNotRecognised, msg.CandidateHash.Value)
+	msg.ResponseCh <- true
+	return nil
 }
 
 // secondingSanityCheck checks whether a candidate can be seconded based on its

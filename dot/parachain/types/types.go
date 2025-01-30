@@ -780,7 +780,7 @@ type Subsystem interface {
 	Stop()
 }
 
-// NodeFeatureIndex represents the index of a feature in a bitvector of node features.
+// NodeFeatureIndex represents the index of a feature in a bitvector of node features fetched from runtime.
 type NodeFeatureIndex byte
 
 // This feature enables the extension of `BackedCandidate.ValidatorIndices` by 8 bits.
@@ -789,6 +789,30 @@ type NodeFeatureIndex byte
 const ElasticScalingMVP NodeFeatureIndex = 1
 
 type ClaimQueue map[CoreIndex][]Assignment
+
+func (c ClaimQueue) GetCoreToParasMap() (map[CoreIndex][]ParaID, error) {
+	coreToParas := make(map[CoreIndex][]ParaID)
+	for core, assignments := range c {
+		paras := []ParaID{}
+		for _, assignment := range assignments {
+			val, err := assignment.Value()
+			if err != nil {
+				return nil, fmt.Errorf("getting value of assignment: %w", err)
+			}
+
+			switch val := val.(type) {
+			case BulkAssignment:
+				paras = append(paras, val.ParaID)
+			case PoolAssignment:
+				paras = append(paras, val.ParaID)
+			}
+		}
+
+		coreToParas[core] = paras
+	}
+
+	return coreToParas, nil
+}
 
 // Assignment is a parachain assignment to a core.
 type Assignment struct {

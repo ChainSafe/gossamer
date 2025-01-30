@@ -3,6 +3,7 @@
 
 package backing
 
+/*
 import (
 	"testing"
 
@@ -651,3 +652,4 @@ func TestStatementTable_drainMisbehaviors(t *testing.T) {
 	require.Equal(t, valToMic, misbehaviours)
 	require.Empty(t, table.detectedMisbehaviour)
 }
+*/

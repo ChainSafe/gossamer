@@ -6,6 +6,7 @@ package backing
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
@@ -14,23 +15,159 @@ import (
 	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
 	statementedistributionmessages "github.com/ChainSafe/gossamer/dot/parachain/statement-distribution/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/dot/parachain/util"
+	parachainutil "github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 var errNilPersistedValidationData = errors.New("persisted validation data is nil")
 
+// TODO: Rename to constructPerRelayParentState, WRITE UNIT TEST FOR THIS FUNC,
+//
+// Load the data necessary to do backing work on top of a relay-parent.
+func (cb *CandidateBacking) constructPerRelayParentState2(relayParent common.Hash) (*perRelayParentState, error) {
+	rt, err := cb.BlockState.GetRuntime(relayParent)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
+	}
+
+	sessionIndex, err := rt.ParachainHostSessionIndexForChild()
+	if err != nil {
+		return nil, fmt.Errorf("getting session index: %w", err)
+	}
+
+	validators, err := cb.perSessionCache.getValidators(sessionIndex, rt)
+	if err != nil {
+		return nil, fmt.Errorf("getting validators: %w", err)
+	}
+
+	features, err := cb.perSessionCache.getNodeFeatures(sessionIndex, rt)
+	if err != nil {
+		return nil, fmt.Errorf("getting node features: %w", err)
+	}
+
+	if features == nil {
+		return nil, fmt.Errorf("invalid node features for relay parent %s", relayParent)
+	}
+
+	featuresBitVec := parachaintypes.BitVec(*features)
+	injectCoreIndex, err := featuresBitVec.Get(uint(parachaintypes.ElasticScalingMVP))
+	if err != nil {
+		return nil, fmt.Errorf("getting inject core index: %w", err)
+	}
+
+	executorParams, err := cb.perSessionCache.getExecutorParams(sessionIndex, rt)
+	if err != nil {
+		return nil, fmt.Errorf("getting executor params: %w", err)
+	}
+
+	validatorGroups, err := rt.ParachainHostValidatorGroups()
+	if err != nil {
+		return nil, fmt.Errorf("getting validator groups: %w", err)
+	}
+
+	minBackingVotes, err := cb.perSessionCache.getMinimumBackingVotes(sessionIndex, rt)
+	if err != nil {
+		return nil, fmt.Errorf("getting minimum backing votes: %w", err)
+	}
+
+	claimQueue, err := rt.ParachainHostClaimQueue()
+	if err != nil {
+		return nil, fmt.Errorf("getting claim queue: %w", err)
+	}
+
+	coreToParas, err := claimQueue.GetCoreToParasMap()
+	if err != nil {
+		return nil, fmt.Errorf("getting map of core index to assigned parachains: %w", err)
+	}
+
+	// TODO: call `ParachainHost_disabled_validators` runtime method
+	var disabledValidators []parachaintypes.ValidatorIndex
+
+	signingContext := parachaintypes.SigningContext{
+		SessionIndex: sessionIndex,
+		ParentHash:   relayParent,
+	}
+
+	var localValidator *validator
+
+	validatorID, validatorIndex := parachainutil.SigningKeyAndIndex(validators, cb.Keystore)
+	if validatorID != nil {
+		//  local node is a validator
+		localValidator = &validator{
+			signingContext: signingContext,
+			key:            *validatorID,
+			index:          validatorIndex,
+			disabled:       slices.Contains(disabledValidators, validatorIndex),
+		}
+	}
+
+	numOfCores := uint32(len(validatorGroups.Validators))
+
+	groups := make(map[parachaintypes.CoreIndex][]parachaintypes.ValidatorIndex)
+	var assignedCore parachaintypes.CoreIndex
+
+	for idx := uint32(0); idx < numOfCores; idx++ {
+		coreIndex := parachaintypes.CoreIndex{Index: uint32(idx)}
+
+		if _, ok := claimQueue[coreIndex]; !ok {
+			continue
+		}
+
+		groupIndex := validatorGroups.GroupRotationInfo.GroupForCore(coreIndex, uint(numOfCores))
+		if uint32(groupIndex) < numOfCores {
+			validatorsOfGroup := validatorGroups.Validators[groupIndex]
+			if localValidator != nil && slices.Contains(validatorsOfGroup, localValidator.index) {
+				assignedCore = coreIndex
+			}
+			groups[coreIndex] = validatorsOfGroup
+		}
+	}
+
+	validatorToGroup := cb.perSessionCache.getValidatorToGroup(sessionIndex, validators, validatorGroups.Validators)
+
+	tableCtx := tableContext{
+		validator:          localValidator,
+		groups:             groups,
+		validators:         validators,
+		disabledValidators: disabledValidators,
+	}
+
+	newPerRelayParentState := perRelayParentState{
+		relayParent:        relayParent,
+		nodeFeatures:       *features,
+		executorParams:     &executorParams,
+		assignedCore:       &assignedCore,
+		table:              newTable(),
+		tableContext:       tableCtx,
+		fallbacks:          make(map[parachaintypes.CandidateHash]attestingData),
+		awaitingValidation: make(map[parachaintypes.CandidateHash]bool),
+		issuedStatements:   make(map[parachaintypes.CandidateHash]bool),
+		backed:             make(map[parachaintypes.CandidateHash]bool),
+		minBackingVotes:    minBackingVotes,
+		injectCoreIndex:    injectCoreIndex,
+		numOfCores:         numOfCores,
+		claimQueue:         coreToParas,
+		validatorToGroup:   validatorToGroup,
+		groupRotationInfo:  validatorGroups.GroupRotationInfo,
+	}
+
+	return &newPerRelayParentState, nil
+}
+
 // PerRelayParentState represents the state information for a relay-parent in the subsystem.
 type perRelayParentState struct {
-	prospectiveParachainsMode parachaintypes.ProspectiveParachainsMode
-	// The hash of the relay parent on top of which this job is doing it's work.
+	// The hash of the relay parent on top of which this job is doing its work.
 	relayParent common.Hash
-	// The `ParaId` assigned to the local validator at this relay parent.
-	assignment *parachaintypes.ParaID
+	// The node features.
+	nodeFeatures parachaintypes.BitVec
+	// The executor parameters.
+	executorParams *parachaintypes.ExecutorParams
+	// The `CoreIndex` assigned to the local validator at this relay parent.
+	assignedCore *parachaintypes.CoreIndex
 	// The table of candidates and statements under this relay-parent.
 	table Table
 	// The table context, including groups.
-	tableContext tableContext
+	tableContext tableContext // need to remove existing tableContext, rename tableContext2 to tableContext2
 	// Data needed for retrying in case of `ValidatedCandidateCommand::AttestNoPoV`.
 	fallbacks map[parachaintypes.CandidateHash]attestingData
 	// These candidates are undergoing validation in the background.
@@ -41,6 +178,26 @@ type perRelayParentState struct {
 	backed map[parachaintypes.CandidateHash]bool
 	// The minimum backing votes threshold.
 	minBackingVotes uint32
+	// If true, we're appending extra bits in the BackedCandidate validator indices bitfield,
+	// which represent the assigned core index. True if ElasticScalingMVP is enabled.
+	injectCoreIndex bool
+	// The number of cores.
+	numOfCores uint32
+	// Claim queue state. If the runtime API is not available, it'll be populated with info from
+	// availability cores.
+	// claimQueue parachaintypes.ClaimQueue
+	claimQueue map[parachaintypes.CoreIndex][]parachaintypes.ParaID
+	// The validator index -> group mapping at this relay parent.
+	validatorToGroup map[parachaintypes.ValidatorIndex]parachaintypes.GroupIndex
+	// The associated group rotation information.
+	groupRotationInfo parachaintypes.GroupRotationInfo
+}
+
+func (rpState *perRelayParentState) coreIndexFromStatement(
+	statement parachaintypes.SignedFullStatementWithPVD,
+) (parachaintypes.CoreIndex, error) {
+	// TODO: Implement this #4324
+	return parachaintypes.CoreIndex{}, nil
 }
 
 // importStatement imports a statement into the statement table and returns the summary of the import.
@@ -55,17 +212,43 @@ func (rpState *perRelayParentState) importStatement(
 	}
 
 	if index != 1 { // Not Seconded
-		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD.SignedFullStatement)
+		return rpState.findCoreIndexAndImportStatement(signedStatementWithPVD)
 	}
 
-	committedCandidateReceipt := parachaintypes.CommittedCandidateReceipt(statementVDT.(parachaintypes.Seconded))
+	return rpState.importSecondedStatement(subSystemToOverseer, signedStatementWithPVD, perCandidate, statementVDT.(parachaintypes.Seconded))
+}
+
+// findCoreIndexAndImportStatement finds the core index from a statement and imports the statement into the statement table.
+func (rpState *perRelayParentState) findCoreIndexAndImportStatement(
+	signedStatementWithPVD parachaintypes.SignedFullStatementWithPVD,
+) (*Summary, error) {
+	core, err := rpState.coreIndexFromStatement(signedStatementWithPVD)
+	if err != nil {
+		return nil, fmt.Errorf("getting core index from statement: %w", err)
+	}
+
+	return rpState.table.importStatement( // TODO: modify this function to contain `coreIndexFromStatement` logic.
+		&rpState.tableContext,
+		parachaintypes.GroupIndex(core.Index),
+		signedStatementWithPVD.SignedFullStatement,
+	)
+}
+
+// importSecondedStatement imports a Seconded statement into the statement table and returns the summary of the import.
+func (rpState *perRelayParentState) importSecondedStatement(
+	subSystemToOverseer chan<- any,
+	signedStatementWithPVD parachaintypes.SignedFullStatementWithPVD,
+	perCandidate map[parachaintypes.CandidateHash]*perCandidateState,
+	statement parachaintypes.Seconded,
+) (*Summary, error) {
+	committedCandidateReceipt := parachaintypes.CommittedCandidateReceipt(statement)
 	candidateHash, err := parachaintypes.GetCandidateHash(committedCandidateReceipt)
 	if err != nil {
 		return nil, fmt.Errorf("getting candidate hash: %w", err)
 	}
 
 	if _, ok := perCandidate[candidateHash]; ok {
-		return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD.SignedFullStatement)
+		return rpState.findCoreIndexAndImportStatement(signedStatementWithPVD)
 	}
 
 	// PersistedValidationData should not be nil if the statementVDT is Seconded.
@@ -73,45 +256,48 @@ func (rpState *perRelayParentState) importStatement(
 		return nil, errNilPersistedValidationData
 	}
 
-	paraID := committedCandidateReceipt.Descriptor.ParaID
-
-	if rpState.prospectiveParachainsMode.IsEnabled {
-		chIntroduceCandidate := make(chan error)
-		subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageIntroduceCandidate{
-			IntroduceCandidateRequest: parachaintypes.IntroduceCandidateRequest{
-				CandidateParaID:           paraID,
-				CommittedCandidateReceipt: committedCandidateReceipt,
-				PersistedValidationData:   *signedStatementWithPVD.PersistedValidationData,
-			},
-			Ch: chIntroduceCandidate,
-		}
-
-		introduceCandidateErr, ok := <-chIntroduceCandidate
-		if !ok {
-			return nil, fmt.Errorf("%w: %s",
-				errRejectedByProspectiveParachains,
-				"Could not reach the Prospective Parachains subsystem.",
-			)
-		}
-		if introduceCandidateErr != nil {
-			return nil, fmt.Errorf("%w: %w", errRejectedByProspectiveParachains, introduceCandidateErr)
-		}
-
-		subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageCandidateSeconded{
-			ParaID:        paraID,
-			CandidateHash: candidateHash,
-		}
+	// Introduce candidate to the prospective parachain subsystem.
+	if err := rpState.introduceCandidate(
+		subSystemToOverseer, committedCandidateReceipt, signedStatementWithPVD.PersistedValidationData); err != nil {
+		return nil, err
 	}
 
-	// Only save the candidate if it was approved by prospective parachains.
 	perCandidate[candidateHash] = &perCandidateState{
 		persistedValidationData: *signedStatementWithPVD.PersistedValidationData,
-		secondedLocally:         false, // This is set after importing when seconding locally.
-		paraID:                  paraID,
+		secondedLocally:         false,
 		relayParent:             committedCandidateReceipt.Descriptor.RelayParent,
 	}
 
-	return rpState.table.importStatement(&rpState.tableContext, signedStatementWithPVD.SignedFullStatement)
+	return rpState.findCoreIndexAndImportStatement(signedStatementWithPVD)
+}
+
+// introduceCandidate sends a message to the Prospective Parachains subsystem to introduce a candidate.
+func (rpState *perRelayParentState) introduceCandidate(
+	subSystemToOverseer chan<- any,
+	committedCandidateReceipt parachaintypes.CommittedCandidateReceipt,
+	persistedValidationData *parachaintypes.PersistedValidationData,
+) error {
+	paraID := committedCandidateReceipt.Descriptor.ParaID
+
+	chIntroduceCandidate := make(chan error)
+	subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageIntroduceCandidate{
+		IntroduceCandidateRequest: parachaintypes.IntroduceCandidateRequest{
+			CandidateParaID:           paraID,
+			CommittedCandidateReceipt: committedCandidateReceipt,
+			PersistedValidationData:   *persistedValidationData,
+		},
+		Ch: chIntroduceCandidate,
+	}
+
+	introduceCandidateErr, ok := <-chIntroduceCandidate
+	if !ok {
+		return fmt.Errorf("%w: %s", errRejectedByProspectiveParachains, "Could not reach the Prospective Parachains subsystem.")
+	}
+	if introduceCandidateErr != nil {
+		return fmt.Errorf("%w: %w", errRejectedByProspectiveParachains, introduceCandidateErr)
+	}
+
+	return nil
 }
 
 // postImportStatement handles a summary received from importStatement func and dispatches `Backed` notifications and
@@ -157,36 +343,21 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 
 	paraID := backedCandidate.Candidate.Descriptor.ParaID
 
-	if rpState.prospectiveParachainsMode.IsEnabled {
-
-		// Inform the prospective parachains subsystem that the candidate is now backed.
-		subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageCandidateBacked{
-			ParaID:        paraID,
-			CandidateHash: candidateHash,
-		}
-
-		// Backed candidate potentially unblocks new advertisements, notify collator protocol.
-		subSystemToOverseer <- collatorprotocolmessages.Backed{
-			ParaID:   paraID,
-			ParaHead: backedCandidate.Candidate.Descriptor.ParaHead,
-		}
-
-		// Notify statement distribution of backed candidate.
-		subSystemToOverseer <- statementedistributionmessages.Backed(candidateHash)
-
-	} else {
-		// TODO: figure out what this comment means by 'avoid cycles'.
-		//
-		// The provisioner waits on candidate-backing, which means
-		// that we need to send unbounded messages to avoid cycles.
-		//
-		// Backed candidates are bounded by the number of validators,
-		// parachains, and the block production rate of the relay chain.
-		subSystemToOverseer <- provisionermessages.ProvisionableData{
-			RelayParent: rpState.relayParent,
-			Data:        provisionermessages.ProvisionableDataBackedCandidate(backedCandidate.Candidate.ToPlain()),
-		}
+	// Inform the prospective parachains subsystem that the candidate is now backed.
+	subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageCandidateBacked{
+		ParaID:        paraID,
+		CandidateHash: candidateHash,
 	}
+
+	// Backed candidate potentially unblocks new advertisements, notify collator protocol.
+	subSystemToOverseer <- collatorprotocolmessages.Backed{
+		ParaID:   paraID,
+		ParaHead: backedCandidate.Candidate.Descriptor.ParaHead,
+	}
+
+	// Notify statement distribution of backed candidate.
+	subSystemToOverseer <- statementedistributionmessages.Backed(candidateHash)
+
 }
 
 // issueNewMisbehaviors checks for new misbehaviors and sends necessary messages to the Overseer subsystem.
@@ -286,7 +457,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		return fmt.Errorf("getting validation code by hash: %w", err)
 	}
 
-	executorParams, err := util.ExecutorParamsAtRelayParent(rt, relayParent)
+	executorParams, err := parachainutil.ExecutorParamsAtRelayParent(rt, relayParent)
 	if err != nil {
 		return fmt.Errorf("getting executor params for relay parent %s: %w", relayParent, err)
 	}
