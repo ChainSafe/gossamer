@@ -18,7 +18,7 @@ In practice, there are various optimisations implemented in this subsystem which
 General flow is pretty straight forward. Subsystem awaits requests from Overseer to recover particular candidate for particular `CandidateReceiptV2`.
 The data is fist checked to exist in LRU cache or in Availability store if not recovery process starts.
 There are several possible strategies to recover availability data and they will be described below.
-When data is recovered is being sent back to `ongoing_recoveris` pull where it is processed by being written to LRU cache and returned to requestors via `response_sender` channel.
+When data is recovered is being sent back to `ongoing_recoveries` pull where it is processed by being written to LRU cache and returned to requestors via `response_sender` channel.
 Hence the flow is pretty straight forward and most details related to optimisations and possible strategies.
 
 ```mermaid
