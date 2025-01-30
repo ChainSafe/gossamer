@@ -289,7 +289,7 @@ type RecoveryParams struct {
 ### Interfaces
 We need to define interfaces for all 3 strategies (FetchFull, FetchSystematicChunks, FetchChunks)
 ```go
-type RecoveryStrategie interface {
+type RecoveryStrategy interface {
     DisplayName() string
     StrategyType() string
     Run(params RecoveryParams) (AvailableData, error)
