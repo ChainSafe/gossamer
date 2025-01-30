@@ -22,7 +22,7 @@ type WarpSyncPhase uint
 const (
 	WarpProof = iota
 	TargetBlock
-	Completed
+	WarpSyncCompleted
 )
 
 type WarpSyncProofProvider interface {
@@ -47,7 +47,7 @@ type WarpSyncStrategy struct {
 	setId           primitives.SetID
 	authorities     primitives.AuthorityList
 	lastBlock       *types.Header
-	result          types.Header
+	result          types.BlockData
 }
 
 type WarpSyncConfig struct {
@@ -201,8 +201,8 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 		repChanges, bans, validRes = validateResults(results, w.badBlocks)
 
 		if len(validRes) > 0 && validRes[0].responseData != nil && len(validRes[0].responseData) > 0 {
-			w.result = *validRes[0].responseData[0].Header
-			w.phase = Completed
+			w.result = *validRes[0].responseData[0]
+			w.phase = WarpSyncCompleted
 		}
 	}
 
@@ -277,12 +277,14 @@ func (w *WarpSyncStrategy) ShowStatus() {
 			w.syncedFragments, w.lastBlock.Number, w.lastBlock.Hash().Short(), totalSyncSeconds)
 	case TargetBlock:
 		logger.Infof("⏩ Warping, downloading target block #%d (%s)",
-			w.lastBlock.Number, w.lastBlock.Hash().String())
+			w.lastBlock.Number, w.lastBlock.Hash().Short())
+	case WarpSyncCompleted:
+		logger.Infof("⏩ Warping, completed")
 	}
 }
 
 func (w *WarpSyncStrategy) IsSynced() bool {
-	return w.phase == Completed
+	return w.phase == WarpSyncCompleted
 }
 
 func (w *WarpSyncStrategy) Result() any {

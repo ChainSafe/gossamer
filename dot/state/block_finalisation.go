@@ -243,7 +243,7 @@ func (bs *BlockState) handleFinalisedBlock(currentFinalizedHash common.Hash) err
 				return err
 			}
 
-			if err = bs.setFirstNonOriginSlotNumber(slotNumber); err != nil {
+			if err = bs.SetFirstNonOriginSlotNumber(slotNumber); err != nil {
 				return err
 			}
 		}

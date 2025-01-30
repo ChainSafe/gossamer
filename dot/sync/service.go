@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa/warpsync"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -84,6 +85,10 @@ type BlockState interface {
 	GetHeaderByNumber(num uint) (*types.Header, error)
 	GetAllBlocksAtNumber(num uint) ([]common.Hash, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
+	SetHeader(header *types.Header) error
+	SetFirstNonOriginSlotNumber(slotNumber uint64) error
+	// Meant to be used by warp sync process only
+	SetBlockTree(*blocktree.BlockTree)
 
 	IsPaused() bool
 	Pause() error
@@ -356,8 +361,13 @@ func (s *SyncService) runStrategy() {
 				Peers:      s.peers,
 				ReqMaker: s.network.GetRequestResponseProtocol(network.StateSyncID,
 					blockRequestTimeout, network.MaxBlockResponseSize),
-				StateStorage: s.storageState,
-				TargetBlock:  s.currentStrategy.Result().(types.Header),
+				BlockReqMaker: s.network.GetRequestResponseProtocol(network.SyncID,
+					blockRequestTimeout, network.MaxBlockResponseSize),
+				StateStorage:       s.storageState,
+				FinalityGadget:     s.finalityGadget,
+				TransactionState:   s.transactionState,
+				BlockImportHandler: s.blockImportHandler,
+				TargetBlock:        s.currentStrategy.Result().(types.BlockData),
 			}
 
 			s.currentStrategy = NewStateSyncStrategy(stateSyncCfg)

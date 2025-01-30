@@ -481,7 +481,7 @@ func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 }
 
 // SetFirstNonOriginSlotNumber saves the first non-origin slot number into the DB
-func (bs *BlockState) setFirstNonOriginSlotNumber(slotNumber uint64) error {
+func (bs *BlockState) SetFirstNonOriginSlotNumber(slotNumber uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, slotNumber)
 	return bs.db.Put(firstSlotNumberKey, buf)
@@ -959,4 +959,8 @@ func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {
 // GetNonFinalisedBlocks get all the blocks in the blocktree
 func (bs *BlockState) GetNonFinalisedBlocks() []common.Hash {
 	return bs.bt.GetAllBlocks()
+}
+
+func (bs *BlockState) SetBlockTree(blocktree *blocktree.BlockTree) {
+	bs.bt = blocktree
 }

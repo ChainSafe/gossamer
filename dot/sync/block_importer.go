@@ -35,6 +35,7 @@ type (
 	StorageState interface {
 		StoreTrie(ts *rtstorage.TrieState, header *types.Header) error
 		TrieState(root *common.Hash) (*rtstorage.TrieState, error)
+		LoadCodeHash(hash *common.Hash) (common.Hash, error)
 		sync.Locker
 	}
 
@@ -69,7 +70,17 @@ type blockImporter struct {
 	telemetry          Telemetry
 }
 
-func newBlockImporter(cfg *FullSyncConfig) *blockImporter {
+type BlockImporterConfig struct {
+	BlockState         BlockState
+	StorageState       StorageState
+	TransactionState   TransactionState
+	BabeVerifier       BabeVerifier
+	FinalityGadget     FinalityGadget
+	BlockImportHandler BlockImportHandler
+	Telemetry          Telemetry
+}
+
+func newBlockImporter(cfg *BlockImporterConfig) *blockImporter {
 	return &blockImporter{
 		blockState:         cfg.BlockState,
 		storageState:       cfg.StorageState,
