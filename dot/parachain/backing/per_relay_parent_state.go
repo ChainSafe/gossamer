@@ -313,10 +313,6 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 	attested, err := rpState.table.attestedCandidate(summary.Candidate, &rpState.tableContext, rpState.minBackingVotes)
 	if err != nil {
 		logger.Error(err.Error())
-	}
-
-	// Return, If the candidate is not attested.
-	if attested == nil {
 		return
 	}
 
