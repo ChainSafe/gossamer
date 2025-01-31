@@ -18,6 +18,7 @@ import (
 	peerset "github.com/ChainSafe/gossamer/dot/peerset"
 	types "github.com/ChainSafe/gossamer/dot/types"
 	grandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	blocktree "github.com/ChainSafe/gossamer/lib/blocktree"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	warpsync "github.com/ChainSafe/gossamer/lib/grandpa/warpsync"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
@@ -395,6 +396,18 @@ func (mr *MockBlockStateMockRecorder) RangeInMemory(arg0, arg1 any) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RangeInMemory", reflect.TypeOf((*MockBlockState)(nil).RangeInMemory), arg0, arg1)
 }
 
+// SetBlockTree mocks base method.
+func (m *MockBlockState) SetBlockTree(arg0 *blocktree.BlockTree) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetBlockTree", arg0)
+}
+
+// SetBlockTree indicates an expected call of SetBlockTree.
+func (mr *MockBlockStateMockRecorder) SetBlockTree(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBlockTree", reflect.TypeOf((*MockBlockState)(nil).SetBlockTree), arg0)
+}
+
 // SetFinalisedHash mocks base method.
 func (m *MockBlockState) SetFinalisedHash(arg0 common.Hash, arg1, arg2 uint64) error {
 	m.ctrl.T.Helper()
@@ -407,6 +420,34 @@ func (m *MockBlockState) SetFinalisedHash(arg0 common.Hash, arg1, arg2 uint64) e
 func (mr *MockBlockStateMockRecorder) SetFinalisedHash(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFinalisedHash", reflect.TypeOf((*MockBlockState)(nil).SetFinalisedHash), arg0, arg1, arg2)
+}
+
+// SetFirstNonOriginSlotNumber mocks base method.
+func (m *MockBlockState) SetFirstNonOriginSlotNumber(arg0 uint64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetFirstNonOriginSlotNumber", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetFirstNonOriginSlotNumber indicates an expected call of SetFirstNonOriginSlotNumber.
+func (mr *MockBlockStateMockRecorder) SetFirstNonOriginSlotNumber(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFirstNonOriginSlotNumber", reflect.TypeOf((*MockBlockState)(nil).SetFirstNonOriginSlotNumber), arg0)
+}
+
+// SetHeader mocks base method.
+func (m *MockBlockState) SetHeader(arg0 *types.Header) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetHeader", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetHeader indicates an expected call of SetHeader.
+func (mr *MockBlockStateMockRecorder) SetHeader(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetHeader", reflect.TypeOf((*MockBlockState)(nil).SetHeader), arg0)
 }
 
 // SetJustification mocks base method.
@@ -456,6 +497,21 @@ func NewMockStorageState(ctrl *gomock.Controller) *MockStorageState {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockStorageState) EXPECT() *MockStorageStateMockRecorder {
 	return m.recorder
+}
+
+// LoadCodeHash mocks base method.
+func (m *MockStorageState) LoadCodeHash(arg0 *common.Hash) (common.Hash, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LoadCodeHash", arg0)
+	ret0, _ := ret[0].(common.Hash)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LoadCodeHash indicates an expected call of LoadCodeHash.
+func (mr *MockStorageStateMockRecorder) LoadCodeHash(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadCodeHash", reflect.TypeOf((*MockStorageState)(nil).LoadCodeHash), arg0)
 }
 
 // Lock mocks base method.

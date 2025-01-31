@@ -294,7 +294,10 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 
 	// Store downloaded trie state
 	storageTrie := storage.NewTrieState(trieState)
-	s.storage.StoreTrie(storageTrie, blockHeader)
+	err = s.storage.StoreTrie(storageTrie, blockHeader)
+	if err != nil {
+		return fmt.Errorf("storing new state trie, err: %s", err)
+	}
 
 	// Get genesis runtime
 	genesisHeader, err := s.blockState.BestBlockHeader()
@@ -328,7 +331,10 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 	}
 
 	// Set block header in block state
-	s.blockState.SetHeader(blockHeader)
+	err = s.blockState.SetHeader(blockHeader)
+	if err != nil {
+		return fmt.Errorf("setting new block header, err: %s", err)
+	}
 
 	// Initialize runtime and set it in the new blocktree
 	blockTree := blocktree.NewBlockTreeFromRoot(blockHeader)
