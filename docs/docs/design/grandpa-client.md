@@ -1,4 +1,4 @@
-# GRANDPA Client Implementation
+# GRANDPA client implementation
 
 ## Context
 
@@ -6,19 +6,19 @@ The GRANDPA standalone package which is a port of the Parity `finality-grandpa` 
 
 Work on the client integration was started shortly after.  There have been a number of PRs merged to `feat/grandpa` branch that aim to replicate a lot of the client integration of the standalone GRANDPA package.  The client code is in `sc_consensus_grandpa` crate, which reference primitives found in `sp_consensus_grandpa`.  Some of the notable PRs which have primarily been authored by Jimmy are as follows:
 
-### client(consensus/grandpa): Implement ChangeTree and AuthoritySet logic (#3283)
+### client(consensus/grandpa): Implement ChangeTree and AuthoritySet logic ([#3283](https://github.com/ChainSafe/gossamer/pull/3283))
 
 Introduces `ChangeTree` which is a structure built to track pending changes across forks.  Introduces `AuthoritySet` which trackers the current authorities, as well associated any standard and/or forced authority set changes. 
 
-### client(consensus/grandpa): implement grandpaDb and environment types (#3383)
+### client(consensus/grandpa): implement grandpaDb and environment types ([#3383](https://github.com/ChainSafe/gossamer/pull/3383))
 
 Implements the auxiliary data portion of the client GRANDPA integration.  Functionality like persisting the `voterSetState`, current authority set, best block justification to disk is implemented in this PR.
 
-### client(consensus/grandpa): implement grandpa justification logic (#3454)
+### client(consensus/grandpa): implement grandpa justification logic ([#3454](https://github.com/ChainSafe/gossamer/pull/3454))
 
 Implements verification of GRANDPA justifications, and remaining auxiliary data persistance.
 
-### client(consensus/grandpa): implement finality proof logic (#3589)
+### client(consensus/grandpa): implement finality proof logic ([#3589](https://github.com/ChainSafe/gossamer/pull/3589))
 
 Implements creation and verification of GRANDPA finality proofs.
 
@@ -29,24 +29,24 @@ The following high level types, `BlockImport` trait implementation, and integrat
 
 ### `Environment`
 
-`Environment` is a type that utilizes already introduced dependencies (`VoterSet`, `SharedAuthoritySet`, etc.) to provide functionality to the `VoterWork` type.  It is a self contained type that encapsulates all dependencies of the `VoterWork` type.
+[`Environment`] is a type that utilizes already introduced dependencies (`VoterSet`, `SharedAuthoritySet`, etc.) to provide functionality to the [`VoterWork`] type.  It is a self contained type that encapsulates all dependencies of the [`VoterWork`] type.
 
 ### `VoterWork` functionality
 
-`sc_consensus_grandpa` main future is `VoterWork` type.  `VoterWork` uses `communication::NetworkBridge`, the grandpa `Voter` from the standalone GRANDPA package, and the `Environment` type as chief dependencies to process GRANDPA voter message and progress the standalone GRANDPA voter. Given the rust source utilizes async rust code, further exploration and prototyping needs to be done to implement it in a way that aligns with Go best practices with regards to concurrency.
+`sc_consensus_grandpa` main future is [`VoterWork`] type.  [`VoterWork`] uses `communication::NetworkBridge`, the grandpa `Voter` from the standalone GRANDPA package, and the [`Environment`] type as chief dependencies to process GRANDPA voter message and progress the standalone GRANDPA voter. Given the rust source utilizes async rust code, further exploration and prototyping needs to be done to implement it in a way that aligns with Go best practices with regards to concurrency.
 
 ### `NetworkBridge`
- `NetworkBridge` is the bridge between the underlying network service, gossiping consensus messages and GRANDPA. It contains an implementation of `Network` trait and an implementation of `Syncing` trait though these are just stored to instantiate `GossipEngine` which is a dependency.  There is also a `GossipValidator` type used as a dependency. 
+ [`NetworkBridge`] is the bridge between the underlying network service, gossiping consensus messages and GRANDPA. It contains an implementation of `Network` trait and an implementation of `Syncing` trait though these are just stored to instantiate [`GossipEngine`] which is a dependency.  There is also a [`GossipValidator`](https://github.com/paritytech/polkadot-sdk/blob/d2fd53645654d3b8e12cbf735b67b93078d70113/substrate/client/consensus/grandpa/src/communication/gossip.rs#L1486) type used as a dependency. 
  
- I propose replicating `NetworkBridge` given it's a good abstraction and a defined dependency of `VoterWork`.   We will also need to replicate `GossipEngine` given it's a depency of `NetworkBridge`. 
+ I propose replicating [`NetworkBridge`] given it's a good abstraction and a defined dependency of `VoterWork`.   We will also need to replicate [`GossipEngine`] given it's a depency of [`NetworkBridge`]. 
  
 ### `GossipEngine`
 
-`GossipEngine` is the main long running parallel process that provides generalized gossip functinonality in substrate.  It will also be required for BEEFY implementation. `GossipEngine` requires an implementation of the `Network` trait as well as the `Syncing` trait.
+[`GossipEngine`] is the main long running parallel process that provides generalized gossip functinonality in substrate.  It will also be required for BEEFY implementation. [`GossipEngine`] requires an implementation of the `Network` trait as well as the `Syncing` trait.
 
 #### `Network` trait
 
-The top level `Network` trait along with it's inherited traits are as follows:
+The top level [`Network`] trait along with it's inherited traits are as follows:
 ```rust
 // from sc_consensus_grandpa::communication
 
@@ -200,11 +200,11 @@ pub trait NetworkEventStream {
 	fn event_stream(&self, name: &'static str) -> Pin<Box<dyn Stream<Item = Event> + Send>>;
 }
 ```
-`GossipEngine` uses `add_set_reserved` and `remove_set_reserved`. Looks like Gossamer already support adding and removing reserved peers.  In substrate from what I gather, there are authorized peers, and there are reserved peers.  Reserved peers are peers that are in the authorized pool, that are assigned to a set for a given `ProtocolName`.  We should be able to add/remove from the reserved set.  Removing from the authorized set is done via peer reputation and I assume will be removed from any reserved sets if disconnected. `peer_role()` and `ObservedRole` are used qutie a bit in `GossipEngine`.  `report_peer` is also used in `GossipEngine`.  Doesn't seem like `NetworkEventStream` is actually used in GRANDPA client integration.
+[`GossipEngine`] uses `add_set_reserved` and `remove_set_reserved`. Looks like Gossamer already support adding and removing reserved peers.  In substrate from what I gather, there are authorized peers, and there are reserved peers.  Reserved peers are peers that are in the authorized pool, that are assigned to a set for a given `ProtocolName`.  We should be able to add/remove from the reserved set.  Removing from the authorized set is done via peer reputation and I assume will be removed from any reserved sets if disconnected. `peer_role()` and `ObservedRole` are used qutie a bit in [`GossipEngine`].  `report_peer` is also used in [`GossipEngine`].  Doesn't seem like `NetworkEventStream` is actually used in GRANDPA client integration.
 
 ##### `Syncing` trait
 
-The top level `Syncing` trait along with it's inherited traits are as follows:
+The top level [`Syncing`] trait along with it's inherited traits are as follows:
 ```rust
 // from sc_consensus_grandpa
 
@@ -252,12 +252,21 @@ pub trait SyncEventStream: Send + Sync {
 }
 ```
 
-`set_sync_fork_request` is called by `GossipEngine`.  `announce_block` is also called through `GossipEngine.announce()` via `OutgoingMessages` sink type in `communication` crate.  Doesn't look like `new_best_block_imported` is actually used. `event_stream` is used in `GossipEngine` constructor.
+`set_sync_fork_request` is called by [`GossipEngine`].  `announce_block` is also called through `GossipEngine.announce()` via `OutgoingMessages` sink type in `communication` crate.  Doesn't look like `new_best_block_imported` is actually used. `event_stream` is used in [`GossipEngine`] constructor.
 
 ### Implementation of `BlockImport`
 
-There is a [`BlockImport`](https://github.com/paritytech/polkadot-sdk/blob/030cb4a71b0b390626a586bfe7117b7c66b4700c/substrate/client/consensus/common/src/block_import.rs#L308) trait that `sc_consensus_grandpa` implements.  In substrate, the `BlockImport` trait is called through a pipelining type called [`BasicQueue`](https://github.com/paritytech/polkadot-sdk/blob/12d9052459ade7fc7588807bf0775d7c7d135e82/substrate/client/consensus/common/src/import_queue/basic_queue.rs#L44).  An instance of `BasicQueue` creates a pipeline of calls to a sequence of implementations of `BlockImport`.  [`BlockImportParams`](https://github.com/paritytech/polkadot-sdk/blob/030cb4a71b0b390626a586bfe7117b7c66b4700c/substrate/client/consensus/common/src/block_import.rs#L170) are provided to each implementation as it progresses through the pipeline for `BlockImport::import_block` function, and is expected to return an `ImportResult` which an enum where the [`ImportResult::Imported`](https://github.com/paritytech/polkadot-sdk/blob/030cb4a71b0b390626a586bfe7117b7c66b4700c/substrate/client/consensus/common/src/block_import.rs#L34) variant is of type [`ImportedAux`](https://github.com/paritytech/polkadot-sdk/blob/030cb4a71b0b390626a586bfe7117b7c66b4700c/substrate/client/consensus/common/src/block_import.rs#L47), which contains data associated with the imported block.  Given that this is the process in substrate, both BEEFY and GRANDPA client implementations currently implement this, and the final implementation in the pipeline is `Client`, I think it makes sense to replicate this functionality given we already already begun replicating the `Client` type.
+There is a [`BlockImport`](https://github.com/paritytech/polkadot-sdk/blob/030cb4a71b0b390626a586bfe7117b7c66b4700c/substrate/client/consensus/common/src/block_import.rs#L308) trait that `sc_consensus_grandpa` implements.  In substrate, the `BlockImport` trait is called through a pipelining type called [`BasicQueue`].  An instance of [`BasicQueue`] creates a pipeline of calls to a sequence of implementations of `BlockImport`.  [`BlockImportParams`](https://github.com/paritytech/polkadot-sdk/blob/030cb4a71b0b390626a586bfe7117b7c66b4700c/substrate/client/consensus/common/src/block_import.rs#L170) are provided to each implementation as it progresses through the pipeline for `BlockImport::import_block` function, and is expected to return an `ImportResult` which an enum where the [`ImportResult::Imported`](https://github.com/paritytech/polkadot-sdk/blob/030cb4a71b0b390626a586bfe7117b7c66b4700c/substrate/client/consensus/common/src/block_import.rs#L34) variant is of type [`ImportedAux`](https://github.com/paritytech/polkadot-sdk/blob/030cb4a71b0b390626a586bfe7117b7c66b4700c/substrate/client/consensus/common/src/block_import.rs#L47), which contains data associated with the imported block.  Given that this is the process in substrate, both BEEFY and GRANDPA client implementations currently implement this, and the final implementation in the pipeline is `Client`, I think it makes sense to replicate this functionality given we already already begun replicating the `Client` type.
 
 ### Integration tests
 
 There are tests found in `sc_consensus_grandpa` ([link](https://github.com/paritytech/polkadot-sdk/blob/feac7a521092c599d47df3e49084e6bff732c7db/substrate/client/consensus/grandpa/src/tests.rs#L19)) that create a mock network to test general functionality.  There are both startup, shutdown tests, as well as testing finalization of blocks and persistence of voter state.  I think it would be prudent to replicate the same tests minus the ones that utilize the `ObvserverWork`.   
+
+
+[`VoterWork`]:(https://github.com/paritytech/polkadot-sdk/blob/d2fd53645654d3b8e12cbf735b67b93078d70113/substrate/client/consensus/grandpa/src/lib.rs#L867)
+[`NetworkBridge`]:(https://github.com/paritytech/polkadot-sdk/blob/d2fd53645654d3b8e12cbf735b67b93078d70113/substrate/client/consensus/grandpa/src/communication/mod.rs#L212)
+[`Environment`]:(https://github.com/paritytech/polkadot-sdk/blob/dc4047c7d05f593757328394d1accf0eb382d709/substrate/client/consensus/grandpa/src/environment.rs#L425)
+[`GossipEngine`]:(https://github.com/paritytech/polkadot-sdk/blob/7c9e34b576ad91aba2575ddaaddca0ad1aecae83/substrate/client/network-gossip/src/bridge.rs#L48)
+[`Network`]:(https://github.com/paritytech/polkadot-sdk/blob/d2fd53645654d3b8e12cbf735b67b93078d70113/substrate/client/consensus/grandpa/src/communication/mod.rs#L167)
+[`Syncing`]:(https://github.com/paritytech/polkadot-sdk/blob/d2fd53645654d3b8e12cbf735b67b93078d70113/substrate/client/consensus/grandpa/src/communication/mod.rs#L179)
+[`BasicQueue`]:(https://github.com/paritytech/polkadot-sdk/blob/12d9052459ade7fc7588807bf0775d7c7d135e82/substrate/client/consensus/common/src/import_queue/basic_queue.rs#L44)
