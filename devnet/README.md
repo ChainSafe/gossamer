@@ -41,7 +41,7 @@ export $DD_API_KEY=YourKey
 
 ### Dockerfiles
 
-There are four Dockerfile s used in the devnet.  
+There are four Dockerfiles used in the devnet.  
 
 - `alice.Dockerfile` is the lead node.  
 - `bob.Dockerfile` is used for both `bob` and `charlie` and shares the same genesis as alice Dockerfile .
