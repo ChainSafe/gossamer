@@ -27,7 +27,7 @@ docker-compose down
 
 ## Prometheus Datadog Integration
 
-All Prometheus metrics from the nodes are piped to Datadog. You can set up our own dashboard and add additional tags by modifying the Dockerfiles.  Currently the metrics are prefixed with `gossamer.local.devnet` and are tagged (Prometheus label) with a `key` tag for `alice`, `bob`, and `charlie`.
+All Prometheus metrics from the nodes are piped to Datadog. You can set up your own dashboard and add additional tags by modifying the Dockerfiles.  Currently the metrics are prefixed with `gossamer.local.devnet` and are tagged (Prometheus label) with a `key` tag for `alice`, `bob`, and `charlie`.
 
 For metrics to be piped to Datadog, you will require a Datadog API key.  Please contact Elizabeth or myself (Tim) for access to datadog if you don't already have it.
 
