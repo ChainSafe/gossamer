@@ -14,10 +14,9 @@ import (
 	"os"
 
 	"github.com/ChainSafe/gossamer/dot/network/messages"
+	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
-	"github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 	"github.com/ChainSafe/gossamer/scripts/p2p"
 	lip2pnetwork "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -26,111 +25,12 @@ import (
 
 var (
 	errZeroLengthResponse = errors.New("zero length response")
-	errEmptyStateEntries  = errors.New("empty state entries")
 
 	supportedVersions = map[string]trie.TrieLayout{
 		"v0": trie.V0,
 		"v1": trie.V1,
 	}
 )
-
-type StateRequestProvider struct {
-	lastKeys           [][]byte
-	collectedResponses []*messages.StateResponse
-	targetHash         common.Hash
-	completed          bool
-}
-
-func NewStateRequestProvider(target common.Hash) *StateRequestProvider {
-	return &StateRequestProvider{
-		lastKeys:           [][]byte{},
-		targetHash:         target,
-		collectedResponses: make([]*messages.StateResponse, 0),
-	}
-}
-
-func (s *StateRequestProvider) buildRequest() *messages.StateRequest {
-	return &messages.StateRequest{
-		Block:   s.targetHash,
-		Start:   s.lastKeys,
-		NoProof: true,
-	}
-}
-
-func (s *StateRequestProvider) processResponse(stateResponse *messages.StateResponse) (err error) {
-	if len(stateResponse.Entries) == 0 {
-		return errEmptyStateEntries
-	}
-
-	log.Printf("retrieved %d entries\n", len(stateResponse.Entries))
-	for idx, entry := range stateResponse.Entries {
-		log.Printf("\t#%d with %d entries (complete: %v, root: %s)\n",
-			idx, len(entry.StateEntries), entry.Complete, entry.StateRoot.String())
-	}
-
-	s.collectedResponses = append(s.collectedResponses, stateResponse)
-
-	if len(s.lastKeys) == 2 && len(stateResponse.Entries[0].StateEntries) == 0 {
-		// pop last item and keep the first
-		// do not remove the parent trie position.
-		s.lastKeys = s.lastKeys[:len(s.lastKeys)-1]
-	} else {
-		s.lastKeys = [][]byte{}
-	}
-
-	for _, state := range stateResponse.Entries {
-		if !state.Complete {
-			lastItemInResponse := state.StateEntries[len(state.StateEntries)-1]
-			s.lastKeys = append(s.lastKeys, lastItemInResponse.Key)
-			s.completed = false
-		} else {
-			s.completed = true
-		}
-	}
-
-	return nil
-}
-
-func (s *StateRequestProvider) buildTrie(expectedStorageRootHash common.Hash,
-	destination string, v trie.TrieLayout) error {
-	tt := inmemory.NewEmptyTrie()
-	tt.SetVersion(v)
-
-	entries := make([]string, 0)
-
-	for _, stateResponse := range s.collectedResponses {
-		for _, stateEntry := range stateResponse.Entries {
-			for _, kv := range stateEntry.StateEntries {
-
-				trieEntry := trie.Entry{Key: kv.Key, Value: kv.Value}
-				encodedTrieEntry, err := scale.Marshal(trieEntry)
-				if err != nil {
-					return err
-				}
-				entries = append(entries, common.BytesToHex(encodedTrieEntry))
-
-				if err := tt.Put(kv.Key, kv.Value); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	rootHash := tt.MustHash()
-	if expectedStorageRootHash != rootHash {
-		log.Printf("\n\texpected root hash: %s\ngot root hash: %s\n",
-			expectedStorageRootHash.String(), rootHash.String())
-	}
-
-	fmt.Printf("=> trie root hash: %s\n", tt.MustHash().String())
-	encodedEntries, err := json.Marshal(entries)
-	if err != nil {
-		return err
-	}
-
-	err = os.WriteFile(destination, encodedEntries, 0o600)
-	return err
-}
 
 func main() {
 	if len(os.Args) != 6 {
@@ -154,14 +54,14 @@ func main() {
 
 	p2pHost := p2p.SetupP2PClient()
 	bootnodes := p2p.ParseBootnodes(chain.Bootnodes)
-	provider := NewStateRequestProvider(targetBlockHash)
+	provider := sync.NewStateRequestProvider(targetBlockHash, version)
 
 	var (
 		pid           peer.AddrInfo
 		refreshPeerID bool = true
 	)
 
-	for !provider.completed {
+	for !provider.IsCompleted() {
 		if refreshPeerID {
 			rng, err := rand.Int(rand.Reader, big.NewInt(int64(len(bootnodes))))
 			if err != nil {
@@ -196,15 +96,33 @@ func main() {
 		refreshPeerID = false
 	}
 
-	if err := provider.buildTrie(expectedStorageRootHash, os.Args[5], version); err != nil {
+	trie, err := provider.BuildTrie()
+	if err != nil {
+		panic(err)
+	}
+
+	if trie.MustHash() != expectedStorageRootHash {
+		panic(fmt.Errorf("ERR: state root mismatch: got %s expected %s", trie.MustHash(), expectedStorageRootHash))
+	}
+
+	encodedEntries, err := json.Marshal(trie.Entries())
+	if err != nil {
+		panic(err)
+	}
+
+	err = os.WriteFile(os.Args[5], encodedEntries, 0o600)
+	if err != nil {
 		panic(err)
 	}
 }
 
-func sendAndProcessResponse(provider *StateRequestProvider, stream lip2pnetwork.Stream) error {
+func sendAndProcessResponse(provider *sync.StateRequestProvider, stream lip2pnetwork.Stream) error {
 	defer stream.Close() //nolint:errcheck
 
-	err := p2p.WriteStream(provider.buildRequest(), stream)
+	request := provider.BuildRequest()
+
+	fmt.Printf("Sending request to peer %s\n", request.String())
+	err := p2p.WriteStream(provider.BuildRequest(), stream)
 	if err != nil {
 		return err
 	}
@@ -224,7 +142,7 @@ func sendAndProcessResponse(provider *StateRequestProvider, stream lip2pnetwork.
 		return err
 	}
 
-	err = provider.processResponse(stateResponse)
+	_, err = provider.ProcessResponse(stateResponse)
 	if err != nil {
 		return err
 	}

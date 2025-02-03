@@ -22,10 +22,18 @@ type StateRequest struct {
 	NoProof bool
 }
 
+func NewStateRequest(block common.Hash, start [][]byte, noProof bool) *StateRequest {
+	return &StateRequest{
+		Block:   block,
+		Start:   start,
+		NoProof: noProof,
+	}
+}
+
 func (s *StateRequest) String() string {
-	return fmt.Sprintf("StateRequest Block=%s Start=[0x%x, 0x%x] NoProof=%v",
+	return fmt.Sprintf("StateRequest Block=%s Start=[%v] NoProof=%v",
 		s.Block.String(),
-		s.Start[0], s.Start[1],
+		s.Start,
 		s.NoProof,
 	)
 }
@@ -97,4 +105,15 @@ func (s *StateResponse) Decode(in []byte) error {
 	}
 
 	return nil
+}
+
+func (s *StateResponse) Encode() ([]byte, error) {
+	panic("not implemented")
+}
+
+func (s *StateResponse) String() string {
+	return fmt.Sprintf("StateResponse Entries=[%v] Proof=[%v]",
+		s.Entries,
+		s.Proof,
+	)
 }

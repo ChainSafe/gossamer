@@ -47,7 +47,7 @@ type WarpSyncStrategy struct {
 	setId           primitives.SetID
 	authorities     primitives.AuthorityList
 	lastBlock       *types.Header
-	result          types.BlockData
+	result          types.Header
 }
 
 type WarpSyncConfig struct {
@@ -201,7 +201,7 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 		repChanges, bans, validRes = validateResults(results, w.badBlocks)
 
 		if len(validRes) > 0 && validRes[0].responseData != nil && len(validRes[0].responseData) > 0 {
-			w.result = *validRes[0].responseData[0]
+			w.result = *validRes[0].responseData[0].Header
 			w.phase = Completed
 		}
 	}
@@ -234,7 +234,7 @@ func (w *WarpSyncStrategy) validateWarpSyncResults(results []*SyncTaskResult) (
 			res, err := w.warpSyncProvider.Verify(encodedProof, w.setId, w.authorities)
 
 			if err != nil {
-				logger.Warnf("bad warp proof response: %s", err)
+				logger.Debugf("bad warp proof response: %s", err)
 
 				repChanges = append(repChanges, Change{
 					who: result.who,
@@ -267,7 +267,7 @@ func (w *WarpSyncStrategy) validateWarpSyncResults(results []*SyncTaskResult) (
 	return repChanges, peersToBlock, bestResult
 }
 
-func (w *WarpSyncStrategy) ShowMetrics() {
+func (w *WarpSyncStrategy) ShowStatus() {
 	switch w.phase {
 	case WarpProof:
 		totalSyncSeconds := time.Since(w.startedAt).Seconds()
@@ -279,7 +279,6 @@ func (w *WarpSyncStrategy) ShowMetrics() {
 		logger.Infof("⏩ Warping, downloading target block #%d (%s)",
 			w.lastBlock.Number, w.lastBlock.Hash().String())
 	}
-
 }
 
 func (w *WarpSyncStrategy) IsSynced() bool {

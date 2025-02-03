@@ -34,6 +34,7 @@ const (
 	// the following are sub-protocols used by the node
 	SyncID          = "/sync/2"
 	WarpSyncID      = "/sync/warp"
+	StateSyncID     = "/state/2"
 	lightID         = "/light/2"
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
@@ -629,15 +630,7 @@ func (s *Service) GetRequestResponseProtocol(subprotocol string, requestTimeout 
 	genesisHash = strings.TrimPrefix(genesisHash, "0x")
 	protocolId := fmt.Sprintf("/%s%s", genesisHash, subprotocol)
 
-	return &RequestResponseProtocol{
-		ctx:             s.ctx,
-		host:            s.host,
-		requestTimeout:  requestTimeout,
-		maxResponseSize: maxResponseSize,
-		protocolID:      protocol.ID(protocolId),
-		responseBuf:     make([]byte, maxResponseSize),
-		responseBufMu:   sync.Mutex{},
-	}
+	return NewRequestResponseProtocol(s.ctx, s.host, protocol.ID(protocolId), requestTimeout, maxResponseSize)
 }
 
 // Health returns information about host needed for the rpc server
@@ -765,7 +758,7 @@ func (s *Service) processMessage(msg peerset.Message) {
 		err := s.host.connect(addrInfo)
 		if err != nil {
 			// TODO: if error happens here outgoing (?) slot is occupied but no peer is really connected
-			logger.Warnf("failed to open connection for peer %s: %s", peerID, err)
+			logger.Debugf("failed to open connection for peer %s: %s", peerID, err)
 			return
 		}
 		logger.Debugf("connection successful with peer %s", peerID)
