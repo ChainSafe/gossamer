@@ -8,22 +8,15 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/network/messages"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/grandpa/warpsync"
 	libp2pnetwork "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 const MaxAllowedSameRequestPerPeer = 5
-
-type WarpSyncVerificationResult struct {
-	SetId         grandpa.SetID
-	AuthorityList primitives.AuthorityList
-	Header        types.Header
-	Completed     bool
-}
 
 // WarpSyncProvider is an interface for generating warp sync proofs
 type WarpSyncProvider interface {
@@ -34,7 +27,7 @@ type WarpSyncProvider interface {
 		encodedProof []byte,
 		setId grandpa.SetID,
 		authorities primitives.AuthorityList,
-	) (*WarpSyncVerificationResult, error)
+	) (*warpsync.WarpSyncVerificationResult, error)
 }
 
 func (s *Service) handleWarpSyncRequest(req messages.WarpProofRequest) ([]byte, error) {

@@ -22,6 +22,12 @@ type peerViewSet struct {
 	target uint32
 }
 
+func NewPeerViewSet() *peerViewSet {
+	return &peerViewSet{
+		view: make(map[peer.ID]peerView),
+	}
+}
+
 func (p *peerViewSet) update(peerID peer.ID, bestHash common.Hash, bestNumber uint32) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
@@ -36,7 +42,7 @@ func (p *peerViewSet) update(peerID peer.ID, bestHash common.Hash, bestNumber ui
 		return
 	}
 
-	logger.Infof("updating peer %s view to #%d (%s)", peerID.String(), bestNumber, bestHash.Short())
+	logger.Debugf("updating peer %s view to #%d (%s)", peerID.String(), bestNumber, bestHash.Short())
 	p.view[peerID] = newView
 }
 

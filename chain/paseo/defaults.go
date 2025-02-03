@@ -24,6 +24,7 @@ func DefaultConfig() *cfg.Config {
 	config.Core.GrandpaAuthority = false
 	config.Core.Role = 1
 	config.Network.NoMDNS = false
+	config.Core.SyncMode = cfg.FullSync
 
 	return config
 }

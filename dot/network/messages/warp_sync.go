@@ -15,6 +15,12 @@ type WarpProofRequest struct {
 	Begin common.Hash
 }
 
+func NewWarpProofRequest(from common.Hash) *WarpProofRequest {
+	return &WarpProofRequest{
+		Begin: from,
+	}
+}
+
 // Decode decodes the message into a WarpProofRequest
 func (wpr *WarpProofRequest) Decode(in []byte) error {
 	return scale.Unmarshal(in, wpr)
