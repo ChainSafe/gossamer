@@ -49,7 +49,7 @@ func TestSendRequests(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, expectedValue, actualValue)
-		requireClosed(t, request.Result)
+		requireEmptyAndClosed(t, request.Result)
 	})
 
 	t.Run("request_fails", func(t *testing.T) {
@@ -73,7 +73,7 @@ func TestSendRequests(t *testing.T) {
 		result := <-request.Result
 		require.Equal(t, reqErr, result.Error)
 		require.Nil(t, result.Response)
-		requireClosed(t, request.Result)
+		requireEmptyAndClosed(t, request.Result)
 	})
 
 	t.Run("decoding_fails", func(t *testing.T) {
@@ -97,7 +97,7 @@ func TestSendRequests(t *testing.T) {
 		result := <-request.Result
 		require.Error(t, result.Error)
 		require.Nil(t, result.Response)
-		requireClosed(t, request.Result)
+		requireEmptyAndClosed(t, request.Result)
 	})
 
 	t.Run("cancel_request", func(t *testing.T) {
@@ -121,7 +121,7 @@ func TestSendRequests(t *testing.T) {
 		result := <-request.Result
 		require.Nil(t, result.Response)
 		require.NoError(t, result.Error)
-		requireClosed(t, request.Result)
+		requireEmptyAndClosed(t, request.Result)
 	})
 }
 
@@ -193,9 +193,10 @@ func setUpNetworkBridgeSender(
 	return RegisterSender(nil, netService)
 }
 
-func requireClosed(t *testing.T, ch chan networkbridgemessages.ReqRespResult) {
+func requireEmptyAndClosed(t *testing.T, ch chan networkbridgemessages.ReqRespResult) {
 	select {
-	case <-ch:
+	case _, ok := <-ch:
+		require.False(t, ok, "channel was not empty")
 	default:
 		t.Error("channel is not closed")
 	}
