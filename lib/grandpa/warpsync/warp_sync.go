@@ -1,15 +1,15 @@
 // Copyright 2024 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package grandpa
+package warpsync
 
 import (
 	"bytes"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	consensus_grandpa "github.com/ChainSafe/gossamer/internal/client/consensus/grandpa"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa/app"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
@@ -22,9 +22,31 @@ import (
 const MaxWarpSyncProofSize = 8 * 1024 * 1024
 
 var (
+	logger = log.NewFromGlobal(log.AddContext("pkg", "warpsync"))
+
 	errMissingStartBlock      = fmt.Errorf("missing start block")
 	errStartBlockNotFinalized = fmt.Errorf("start block is not finalized")
 )
+
+type BlockState interface {
+	GetHeader(common.Hash) (*types.Header, error)
+	GetHeaderByNumber(uint) (*types.Header, error)
+	GetJustification(common.Hash) ([]byte, error)
+	GetHighestFinalisedHeader() (*types.Header, error)
+}
+
+type GrandpaState interface {
+	GetCurrentSetID() (uint64, error)
+	GetAuthorities(uint64) ([]types.GrandpaVoter, error)
+	GetAuthoritiesChangesFromBlock(uint) ([]uint, error)
+}
+
+type WarpSyncVerificationResult struct {
+	SetId         grandpa.SetID
+	AuthorityList grandpa.AuthorityList
+	Header        types.Header
+	Completed     bool
+}
 
 type WarpSyncFragment struct {
 	// The last block that the given authority set finalized. This block should contain a digest
@@ -32,7 +54,7 @@ type WarpSyncFragment struct {
 	Header types.Header
 	// A justification for the header above which proves its finality. In order to validate it the
 	// verifier must be aware of the authorities and set id for which the justification refers to.
-	Justification consensus_grandpa.GrandpaJustification[hash.H256, uint64]
+	Justification consensus_grandpa.GrandpaJustification[hash.H256, uint32]
 }
 
 type WarpSyncProof struct {
@@ -48,6 +70,26 @@ func NewWarpSyncProof() WarpSyncProof {
 		IsFinished:   false,
 		proofsLength: 0,
 	}
+}
+
+func (wsp *WarpSyncProof) Decode(in []byte) error {
+	return scale.Unmarshal(in, wsp)
+}
+
+func (wsp *WarpSyncProof) Encode() ([]byte, error) {
+	if wsp == nil {
+		return nil, fmt.Errorf("cannot encode nil WarpSyncProof")
+	}
+	return scale.Marshal(*wsp)
+}
+
+func (wsp *WarpSyncProof) String() string {
+	if wsp == nil {
+		return "WarpSyncProof=nil"
+	}
+
+	return fmt.Sprintf("WarpSyncProof proofs=%v isFinished=%v proofsLength=%v",
+		wsp.Proofs, wsp.IsFinished, wsp.proofsLength)
 }
 
 func (w *WarpSyncProof) addFragment(fragment WarpSyncFragment) (limitReached bool, err error) {
@@ -66,7 +108,7 @@ func (w *WarpSyncProof) addFragment(fragment WarpSyncFragment) (limitReached boo
 	return false, nil
 }
 
-func (w *WarpSyncProof) lastProofBlockNumber() uint64 {
+func (w *WarpSyncProof) lastProofBlockNumber() uint32 {
 	if len(w.Proofs) == 0 {
 		return 0
 	}
@@ -82,8 +124,10 @@ func (w *WarpSyncProof) verify(
 	authorities grandpa.AuthorityList,
 	hardForks map[string]SetIdAuthorityList,
 ) (*SetIdAuthorityList, error) {
-	currentSetId := setId
-	currentAuthorities := authorities
+	setIdAuth := &SetIdAuthorityList{
+		SetID:         setId,
+		AuthorityList: authorities,
+	}
 
 	for fragmentNumber, proof := range w.Proofs {
 		headerHash := proof.Header.Hash()
@@ -91,11 +135,12 @@ func (w *WarpSyncProof) verify(
 
 		hardForkKey := fmt.Sprintf("%v-%v", headerHash, number)
 		if fork, ok := hardForks[hardForkKey]; ok {
-			currentSetId = fork.SetID
-			currentAuthorities = fork.AuthorityList
+			setIdAuth.SetID = fork.SetID
+			setIdAuth.AuthorityList = fork.AuthorityList
 		} else {
-			err := proof.Justification.Verify(uint64(currentSetId), currentAuthorities)
+			err := proof.Justification.Verify(uint64(setIdAuth.SetID), setIdAuth.AuthorityList)
 			if err != nil {
+				logger.Debugf("failed to verify justification %s", err)
 				return nil, err
 			}
 
@@ -114,15 +159,15 @@ func (w *WarpSyncProof) verify(
 					return nil, fmt.Errorf("cannot parse GRANPDA raw authorities: %w", err)
 				}
 
-				currentSetId += 1
-				currentAuthorities = auths
+				setIdAuth.SetID += 1
+				setIdAuth.AuthorityList = auths
 			} else if fragmentNumber != len(w.Proofs)-1 || !w.IsFinished {
-				return nil, fmt.Errorf("Header is missing authority set change digest")
+				return nil, fmt.Errorf("header is missing authority set change digest")
 			}
 		}
 	}
 
-	return &SetIdAuthorityList{currentSetId, currentAuthorities}, nil
+	return setIdAuth, nil
 }
 
 type WarpSyncProofProvider struct {
@@ -141,6 +186,33 @@ func NewWarpSyncProofProvider(blockState BlockState, grandpaState GrandpaState) 
 type SetIdAuthorityList struct {
 	grandpa.SetID
 	grandpa.AuthorityList
+}
+
+func (p *WarpSyncProofProvider) CurrentAuthorities() (grandpa.AuthorityList, error) {
+	currentSetid, err := p.grandpaState.GetCurrentSetID()
+	if err != nil {
+		return nil, err
+	}
+
+	authorities, err := p.grandpaState.GetAuthorities(currentSetid)
+	if err != nil {
+		return nil, err
+	}
+
+	var authorityList grandpa.AuthorityList
+	for _, auth := range authorities {
+		key, err := app.NewPublic(auth.Key[:])
+		if err != nil {
+			return nil, err
+		}
+
+		authorityList = append(authorityList, grandpa.AuthorityIDWeight{
+			AuthorityID:     key,
+			AuthorityWeight: grandpa.AuthorityWeight(auth.ID),
+		})
+	}
+
+	return authorityList, nil
 }
 
 // Generate build a warp sync encoded proof starting from the given block hash
@@ -192,7 +264,7 @@ func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
-		justification, err := consensus_grandpa.DecodeJustification[hash.H256, uint64, runtime.BlakeTwo256](encJustification)
+		justification, err := consensus_grandpa.DecodeJustification[hash.H256, uint32, runtime.BlakeTwo256](encJustification)
 		if err != nil {
 			return nil, err
 		}
@@ -227,7 +299,7 @@ func (p *WarpSyncProofProvider) Generate(start common.Hash) ([]byte, error) {
 			return nil, err
 		}
 
-		justification, err := consensus_grandpa.DecodeJustification[hash.H256, uint64, runtime.BlakeTwo256](
+		justification, err := consensus_grandpa.DecodeJustification[hash.H256, uint32, runtime.BlakeTwo256](
 			latestJustification,
 		)
 		if err != nil {
@@ -254,7 +326,7 @@ func (p *WarpSyncProofProvider) Verify(
 	encodedProof []byte,
 	setId grandpa.SetID,
 	authorities grandpa.AuthorityList,
-) (*network.WarpSyncVerificationResult, error) {
+) (*WarpSyncVerificationResult, error) {
 	var proof WarpSyncProof
 	err := scale.Unmarshal(encodedProof, &proof)
 	if err != nil {
@@ -273,7 +345,7 @@ func (p *WarpSyncProofProvider) Verify(
 		return nil, fmt.Errorf("verifying warp sync proof: %w", err)
 	}
 
-	return &network.WarpSyncVerificationResult{
+	return &WarpSyncVerificationResult{
 		SetId:         nextSetAndAuthorities.SetID,
 		AuthorityList: nextSetAndAuthorities.AuthorityList,
 		Header:        lastHeader,
@@ -304,8 +376,10 @@ func findScheduledChange(
 					return nil, err
 				}
 
-				parsedScheduledChange, _ := scheduledChange.(types.GrandpaScheduledChange)
-				return &parsedScheduledChange, nil
+				parsedScheduledChange, ok := scheduledChange.(types.GrandpaScheduledChange)
+				if ok {
+					return &parsedScheduledChange, nil
+				}
 			}
 		}
 	}

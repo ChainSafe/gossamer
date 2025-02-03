@@ -76,4 +76,14 @@ const (
 	// SameBlockSyncRequest used when a peer send us more than the max number of the same request.
 	SameBlockSyncRequest       Reputation = math.MinInt32
 	SameBlockSyncRequestReason            = "same block sync request"
+
+	// UnexpectedResponseValue is used when peer send an unexpected response.
+	UnexpectedResponseValue Reputation = -(1 << 29)
+	// UnexpectedResponseReason is used when peer send an unexpected response.
+	UnexpectedResponseReason = "Unexpected response"
+
+	// BadWarpProofValue is used when peer send invalid warp sync proof.
+	BadWarpProofValue Reputation = -(1 << 29)
+	// BadWarpProofReason is used when peer send invalid warp sync proof.
+	BadWarpProofReason = "Bad warp proof"
 )
