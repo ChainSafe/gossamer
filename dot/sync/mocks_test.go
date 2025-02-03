@@ -470,6 +470,20 @@ func (mr *MockStorageStateMockRecorder) Lock() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Lock", reflect.TypeOf((*MockStorageState)(nil).Lock))
 }
 
+// StoreTrie mocks base method.
+func (m *MockStorageState) StoreTrie(arg0 *storage.TrieState, arg1 *types.Header) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StoreTrie", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// StoreTrie indicates an expected call of StoreTrie.
+func (mr *MockStorageStateMockRecorder) StoreTrie(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreTrie", reflect.TypeOf((*MockStorageState)(nil).StoreTrie), arg0, arg1)
+}
+
 // TrieState mocks base method.
 func (m *MockStorageState) TrieState(arg0 *common.Hash) (*storage.TrieState, error) {
 	m.ctrl.T.Helper()

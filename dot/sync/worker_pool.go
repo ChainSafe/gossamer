@@ -149,14 +149,14 @@ func (s *syncWorkerPool) submitRequests(tasks []*SyncTask) []*SyncTaskResult {
 
 func executeTask(task *SyncTask, workerPool chan peer.ID, failedTasks chan *SyncTask, results chan *SyncTaskResult) {
 	worker := <-workerPool
-	logger.Infof("[EXECUTING] worker %s", worker)
+	logger.Debugf("[EXECUTING] worker %s", worker)
 
 	err := task.requestMaker.Do(worker, task.request, task.response)
 	if err != nil {
-		logger.Infof("[ERR] worker %s, request: %s, err: %s", worker, task.request.String(), err.Error())
+		logger.Debugf("[ERR] worker %s, request: %s, err: %s", worker, task.request.String(), err.Error())
 		failedTasks <- task
 	} else {
-		logger.Infof("[FINISHED] worker %s, request: %s", worker, task.request.String())
+		logger.Debugf("[FINISHED] worker %s, request: %s", worker, task.request.String())
 		workerPool <- worker
 		results <- &SyncTaskResult{
 			who:       worker,

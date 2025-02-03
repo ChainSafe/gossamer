@@ -281,7 +281,7 @@ func (f *FullSyncStrategy) Process(results []*SyncTaskResult) (
 	return false, repChanges, peersToIgnore, nil
 }
 
-func (f *FullSyncStrategy) ShowMetrics() {
+func (f *FullSyncStrategy) ShowStatus() {
 	totalSyncAndImportSeconds := time.Since(f.startedAt).Seconds()
 	bps := float64(f.syncedBlocks) / totalSyncAndImportSeconds
 	logger.Infof("⛓️ synced %d blocks, tasks on queue %d, disjoint fragments %d, incomplete blocks %d, "+

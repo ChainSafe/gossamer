@@ -282,7 +282,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	// we've completed the handshake with the peer, send message directly
 	logger.Tracef("sending message to peer %s using protocol %s: %s", peer, info.protocolID, msg)
 	if err := s.host.writeToStream(stream, msg); err != nil {
-		logger.Errorf("failed to send message to peer %s: %s", peer, err)
+		logger.Debugf("failed to send message to peer %s: %s", peer, err)
 
 		// the stream was closed or reset, close it on our end and delete it from our peer's data
 		if errors.Is(err, io.EOF) || errors.Is(err, network.ErrReset) {
