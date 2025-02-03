@@ -108,7 +108,7 @@ func (nbs *NetworkBridgeSender) processMessage(msg any) error {
 	return nil
 }
 
-const requestTimeout = 200 * time.Millisecond // TODO is this reasonable?
+const requestTimeout = 2 * time.Second
 
 // PoV is probably the largest message and is currently set at 5MB, but will likely be increased to 10MB in the future.
 // see: https://github.com/paritytech/polkadot-sdk/issues/5334
