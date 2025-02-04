@@ -39,6 +39,8 @@ var (
 	role string
 	// validator when set, the node will be an authority
 	validator bool
+	// Sync mode [warp | full]
+	syncMode string
 
 	// Account Config
 	// key to use for the node
@@ -100,6 +102,10 @@ Usage:
 
 			if err := parseRole(); err != nil {
 				return fmt.Errorf("failed to parse role: %s", err)
+			}
+
+			if err := parseSyncMode(); err != nil {
+				return fmt.Errorf("failed to parse sync mode: %s", err)
 			}
 
 			if err := parseTelemetryURL(); err != nil {
@@ -528,6 +534,11 @@ func addCoreFlags(cmd *cobra.Command) error {
 		"core.grandpa-interval"); err != nil {
 		return fmt.Errorf("failed to add --grandpa-interval flag: %s", err)
 	}
+
+	cmd.Flags().StringVar(&syncMode,
+		"sync",
+		cfg.FullSync.String(),
+		"Sync mode. One of 'full' or 'warp'.")
 
 	return nil
 }

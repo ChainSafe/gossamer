@@ -61,6 +61,9 @@ const (
 	DefaultSystemName = "Gossamer"
 	// DefaultSystemVersion is the default system version
 	DefaultSystemVersion = "0.0.0"
+
+	// DefaultSyncMode is the default block sync mode
+	DefaultSyncMode = FullSync
 )
 
 // DefaultRPCModules the default RPC modules
@@ -188,6 +191,7 @@ type CoreConfig struct {
 	GrandpaAuthority bool               `mapstructure:"grandpa-authority"`
 	WasmInterpreter  string             `mapstructure:"wasm-interpreter,omitempty"`
 	GrandpaInterval  time.Duration      `mapstructure:"grandpa-interval,omitempty"`
+	SyncMode         SyncMode           `mapstructure:"sync,omitempty"`
 }
 
 // StateConfig contains the configuration for the state.
@@ -363,6 +367,7 @@ func DefaultConfig() *Config {
 			GrandpaAuthority: true,
 			WasmInterpreter:  DefaultWasmInterpreter,
 			GrandpaInterval:  DefaultDiscoveryInterval,
+			SyncMode:         DefaultSyncMode,
 		},
 		Network: &NetworkConfig{
 			Port:              DefaultNetworkPort,
@@ -444,6 +449,7 @@ func DefaultConfigFromSpec(nodeSpec *genesis.Genesis) *Config {
 			GrandpaAuthority: true,
 			WasmInterpreter:  DefaultWasmInterpreter,
 			GrandpaInterval:  DefaultDiscoveryInterval,
+			SyncMode:         DefaultSyncMode,
 		},
 		Network: &NetworkConfig{
 			Port:              DefaultNetworkPort,
@@ -525,6 +531,7 @@ func Copy(c *Config) Config {
 			GrandpaAuthority: c.Core.GrandpaAuthority,
 			WasmInterpreter:  c.Core.WasmInterpreter,
 			GrandpaInterval:  c.Core.GrandpaInterval,
+			SyncMode:         c.Core.SyncMode,
 		},
 		Network: &NetworkConfig{
 			Port:              c.Network.Port,
@@ -602,6 +609,19 @@ const (
 // String returns the string representation of the chain
 func (c Chain) String() string {
 	return string(c)
+}
+
+// SyncMode is a string representing a sync mode
+type SyncMode string
+
+const (
+	FullSync  SyncMode = "full"
+	WarpSync  SyncMode = "warp"
+	StateSync SyncMode = "state"
+)
+
+func (n SyncMode) String() string {
+	return string(n)
 }
 
 // NetworkRole is a string representing a network role

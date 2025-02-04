@@ -9,10 +9,10 @@ require (
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.1.0
 	github.com/cockroachdb/pebble v1.1.4
 	github.com/cosmos/go-bip39 v1.0.0
-	github.com/dgraph-io/badger/v4 v4.5.0
+	github.com/dgraph-io/badger/v4 v4.5.1
 	github.com/dgraph-io/ristretto/v2 v2.1.0
 	github.com/disiqueira/gotree v1.0.0
-	github.com/ethereum/go-ethereum v1.14.12
+	github.com/ethereum/go-ethereum v1.14.13
 	github.com/fatih/color v1.18.0
 	github.com/gammazero/deque v1.0.0
 	github.com/go-playground/validator/v10 v10.24.0
@@ -45,7 +45,7 @@ require (
 	golang.org/x/crypto v0.32.0
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67
 	golang.org/x/term v0.28.0
-	google.golang.org/protobuf v1.36.3
+	google.golang.org/protobuf v1.36.4
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -87,7 +87,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
-	github.com/google/flatbuffers v24.3.25+incompatible // indirect
+	github.com/google/flatbuffers v24.12.23+incompatible // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad // indirect
 	github.com/gtank/ristretto255 v0.1.2 // indirect

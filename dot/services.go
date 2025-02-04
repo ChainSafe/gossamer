@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	cfg "github.com/ChainSafe/gossamer/config"
 
@@ -31,13 +30,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
+	"github.com/ChainSafe/gossamer/lib/grandpa/warpsync"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 )
-
-const blockRequestTimeout = 20 * time.Second
 
 // BlockProducer to produce blocks
 type BlockProducer interface {
@@ -349,7 +347,7 @@ func (nodeBuilder) createNetworkService(config *cfg.Config, stateSrvc *state.Ser
 		return nil, fmt.Errorf("failed to parse network log level: %w", err)
 	}
 
-	warpSyncProvider := grandpa.NewWarpSyncProofProvider(
+	warpSyncProvider := warpsync.NewWarpSyncProofProvider(
 		stateSrvc.Block, stateSrvc.Grandpa,
 	)
 
@@ -523,28 +521,20 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 		return nil, fmt.Errorf("failed to parse sync log level: %w", err)
 	}
 
-	requestMaker := net.GetRequestResponseProtocol(network.SyncID,
-		blockRequestTimeout, network.MaxBlockResponseSize)
-
-	syncCfg := &sync.FullSyncConfig{
-		BlockState:         st.Block,
-		StorageState:       st.Storage,
-		TransactionState:   st.Transaction,
-		FinalityGadget:     fg,
-		BabeVerifier:       verifier,
-		BlockImportHandler: cs,
-		Telemetry:          telemetryMailer,
-		BadBlocks:          genesisData.BadBlocks,
-		RequestMaker:       requestMaker,
-	}
-	fullSync := sync.NewFullSyncStrategy(syncCfg)
-
 	return sync.NewSyncService(
 		syncLogLevel,
 		sync.WithNetwork(net),
 		sync.WithBlockState(st.Block),
+		sync.WithGrandpaState(st.Grandpa),
+		sync.WithStorageState(st.Storage),
+		sync.WithFinalityGadget(fg),
+		sync.WithBabeVerifier(verifier),
+		sync.WithBlockImportHandler(cs),
+		sync.WithTelemetry(telemetryMailer),
+		sync.WithBadBlocks(genesisData.BadBlocks),
+		sync.WithSyncMethod(config.Core.SyncMode),
+		sync.WithTransactionState(st.Transaction),
 		sync.WithSlotDuration(slotDuration),
-		sync.WithStrategies(fullSync, nil),
 		sync.WithMinPeers(config.Network.MinPeers),
 	), nil
 }
