@@ -57,6 +57,7 @@ type (
 	// BlockImportHandler is the interface for the handler of newly imported blocks
 	BlockImportHandler interface {
 		HandleBlockImport(block *types.Block, state *rtstorage.TrieState, announce bool) error
+		HandleDigests(header *types.Header) error
 	}
 )
 

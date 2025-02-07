@@ -40,10 +40,12 @@ type StateSyncStrategy struct {
 	blockReqMaker        network.RequestMaker
 	blockState           BlockState
 	grandpaState         GrandpaState
+	epochState           EpochState
 	storage              StorageState
 	stateRequestProvider *StateRequestProvider
 	finalityGadget       FinalityGadget
 	blockImporter        importer
+	blockImportHandler   BlockImportHandler
 
 	// State sync state
 	phase          WarpSyncPhase
@@ -58,6 +60,7 @@ type StateSyncStrategyConfig struct {
 	BadBlocks          []string
 	BlockState         BlockState
 	GrandpaState       GrandpaState
+	EpochState         EpochState
 	Peers              *peerViewSet
 	ReqMaker           network.RequestMaker
 	BlockReqMaker      network.RequestMaker
@@ -75,16 +78,18 @@ func NewStateSyncStrategy(
 	targetHeader := cfg.WarpSyncResult.Header
 
 	return &StateSyncStrategy{
-		peers:          cfg.Peers,
-		badBlocks:      cfg.BadBlocks,
-		blockState:     cfg.BlockState,
-		grandpaState:   cfg.GrandpaState,
-		targetHeader:   targetHeader,
-		warpSyncResult: cfg.WarpSyncResult,
-		reqMaker:       cfg.ReqMaker,
-		blockReqMaker:  cfg.BlockReqMaker,
-		storage:        cfg.StateStorage,
-		finalityGadget: cfg.FinalityGadget,
+		peers:              cfg.Peers,
+		badBlocks:          cfg.BadBlocks,
+		blockImportHandler: cfg.BlockImportHandler,
+		blockState:         cfg.BlockState,
+		grandpaState:       cfg.GrandpaState,
+		epochState:         cfg.EpochState,
+		targetHeader:       targetHeader,
+		warpSyncResult:     cfg.WarpSyncResult,
+		reqMaker:           cfg.ReqMaker,
+		blockReqMaker:      cfg.BlockReqMaker,
+		storage:            cfg.StateStorage,
+		finalityGadget:     cfg.FinalityGadget,
 		// TODO: we can assume that v1 is right for every chain but we need to find a way to set the right state version
 		stateRequestProvider: NewStateRequestProvider(targetHeader.Hash(), trie.V1),
 		phase:                DownloadState,
@@ -278,18 +283,18 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 	// Importing first block to set epochs
 	slotNumber, err := s.firstBlock.Header.SlotNumber()
 	if err != nil {
-		return fmt.Errorf("getting slot number, err: %s", err)
+		return fmt.Errorf("getting slot number, err: %w", err)
 	}
 
 	err = s.blockState.SetFirstNonOriginSlotNumber(slotNumber)
 	if err != nil {
-		return fmt.Errorf("setting non origin slot number, err: %s", err)
+		return fmt.Errorf("setting non origin slot number, err: %w", err)
 	}
 
 	// Get download trie state
 	trieState, err := s.stateRequestProvider.BuildTrie()
 	if err != nil {
-		return fmt.Errorf("building retrieved state, err: %s", err)
+		return fmt.Errorf("building retrieved state, err: %w", err)
 	}
 
 	// Check state is the expected
@@ -301,23 +306,23 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 	storageTrie := storage.NewTrieState(trieState)
 	err = s.storage.StoreTrie(storageTrie, &s.targetHeader)
 	if err != nil {
-		return fmt.Errorf("storing new state trie, err: %s", err)
+		return fmt.Errorf("storing new state trie, err: %w", err)
 	}
 
 	// Set new runtime based on genesis runtime configuration
 	genesisHeader, err := s.blockState.BestBlockHeader()
 	if err != nil {
-		return fmt.Errorf("getting genesis header, err: %s", err)
+		return fmt.Errorf("getting genesis header, err: %w", err)
 	}
 
 	genesisRuntime, err := s.blockState.GetRuntime(genesisHeader.Hash())
 	if err != nil {
-		return fmt.Errorf("getting genesis runtime, err: %s", err)
+		return fmt.Errorf("getting genesis runtime, err: %w", err)
 	}
 
 	codeHash, err := s.storage.LoadCodeHash(nil)
 	if err != nil {
-		return fmt.Errorf("getting genesis runtime code hash, err: %s", err)
+		return fmt.Errorf("getting genesis runtime code hash, err: %w", err)
 	}
 
 	rtCfg := wazero_runtime.Config{
@@ -332,7 +337,7 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 
 	instance, err := wazero_runtime.NewInstanceFromTrie(trieState, rtCfg)
 	if err != nil {
-		return fmt.Errorf("creating new runtime, err: %s", err)
+		return fmt.Errorf("creating new runtime, err: %w", err)
 	}
 
 	// Initialize runtime and set it in the new blocktree
@@ -344,7 +349,7 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 	// Set block header in block state
 	err = s.blockState.SetHeader(&s.targetHeader)
 	if err != nil {
-		return fmt.Errorf("setting new block header, err: %s", err)
+		return fmt.Errorf("setting new block header, err: %w", err)
 	}
 
 	// Update grandpa state with latest authorities
@@ -364,7 +369,7 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 
 	encodedJustification, err := scale.Marshal(justification)
 	if err != nil {
-		return fmt.Errorf("encoding justification %s", err)
+		return fmt.Errorf("encoding justification %w", err)
 	}
 
 	err = s.blockState.SetJustification(s.targetHeader.Hash(), encodedJustification)
@@ -372,8 +377,11 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 		return fmt.Errorf("setting justification for block %s: %w", s.targetHeader.Hash(), err)
 	}
 
-	//TODO:
-	// Set babe epoch data
+	// Handle header digests
+	err = s.blockImportHandler.HandleDigests(&s.targetHeader)
+	if err != nil {
+		return fmt.Errorf("handling header digests %w", err)
+	}
 
 	return nil
 }

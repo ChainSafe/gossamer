@@ -11,6 +11,12 @@ import (
 
 type ServiceConfig func(svc *SyncService)
 
+func WithEpochState(es EpochState) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.epochState = es
+	}
+}
+
 func WithBlockState(bs BlockState) ServiceConfig {
 	return func(svc *SyncService) {
 		svc.blockState = bs

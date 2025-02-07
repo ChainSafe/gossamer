@@ -47,6 +47,12 @@ const (
 	networkBroadcast
 )
 
+type EpochState interface {
+	SetEpochDataRaw(epoch uint64, raw *types.EpochDataRaw) error
+	StoreCurrentEpoch(epoch uint64) error
+	StoreConfigData(epoch uint64, info *types.ConfigData) error
+}
+
 type GrandpaState interface {
 	GetCurrentSetID() (uint64, error)
 	GetAuthorities(uint64) ([]types.GrandpaVoter, error)
@@ -116,6 +122,7 @@ type SyncService struct {
 	network            Network
 	blockState         BlockState
 	grandpaState       GrandpaState
+	epochState         EpochState
 	storageState       StorageState
 	transactionState   TransactionState
 	finalityGadget     FinalityGadget
@@ -364,6 +371,7 @@ func (s *SyncService) runStrategy() {
 					blockRequestTimeout, network.MaxBlockResponseSize),
 				StateStorage:       s.storageState,
 				GrandpaState:       s.grandpaState,
+				EpochState:         s.epochState,
 				FinalityGadget:     s.finalityGadget,
 				TransactionState:   s.transactionState,
 				BlockImportHandler: s.blockImportHandler,
