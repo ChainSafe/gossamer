@@ -8,10 +8,13 @@ import (
 	"slices"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/grandpa/warpsync"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -35,6 +38,7 @@ type StateSyncStrategy struct {
 	reqMaker             network.RequestMaker
 	blockReqMaker        network.RequestMaker
 	blockState           BlockState
+	grandpaState         GrandpaState
 	storage              StorageState
 	stateRequestProvider *StateRequestProvider
 	finalityGadget       FinalityGadget
@@ -52,6 +56,7 @@ type StateSyncStrategyConfig struct {
 	Telemetry          Telemetry
 	BadBlocks          []string
 	BlockState         BlockState
+	GrandpaState       GrandpaState
 	Peers              *peerViewSet
 	ReqMaker           network.RequestMaker
 	BlockReqMaker      network.RequestMaker
@@ -72,6 +77,7 @@ func NewStateSyncStrategy(
 		peers:          cfg.Peers,
 		badBlocks:      cfg.BadBlocks,
 		blockState:     cfg.BlockState,
+		grandpaState:   cfg.GrandpaState,
 		targetHeader:   targetHeader,
 		warpSyncResult: cfg.WarpSyncResult,
 		reqMaker:       cfg.ReqMaker,
@@ -348,16 +354,33 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 	}
 
 	/*
-		TODO: solve this later
+		TODO: solve this - we need to marshal encode the justification
 		err = s.blockState.SetJustification(blockHeader.Hash(), *justification)
 		if err != nil {
 			return fmt.Errorf("setting justification for block number %d: %w", blockHeader.Number, err)
-		}*/
+		}
+	*/
 
-	logger.Infof("block finalized successfully %s", s.targetHeader.Hash())
-	// TODO:
-	// update authorities set
+	err = s.grandpaState.SetAuthorities(uint64(s.warpSyncResult.SetId),
+		grandpaVotersFromAuthorities(s.warpSyncResult.AuthorityList))
+	if err != nil {
+		return fmt.Errorf("setting new authorities set: %w", err)
+	}
+
 	return nil
+}
+
+func grandpaVotersFromAuthorities(authorities grandpa.AuthorityList) []types.GrandpaVoter {
+	voters := make([]types.GrandpaVoter, len(authorities))
+
+	for _, auth := range authorities {
+		voters = append(voters, types.GrandpaVoter{
+			Key: ed25519.PublicKey(auth.AuthorityID[:]),
+			ID:  uint64(auth.AuthorityWeight),
+		})
+	}
+
+	return voters
 }
 
 var _ Strategy = (*StateSyncStrategy)(nil)

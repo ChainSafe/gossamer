@@ -50,6 +50,7 @@ const (
 type GrandpaState interface {
 	GetCurrentSetID() (uint64, error)
 	GetAuthorities(uint64) ([]types.GrandpaVoter, error)
+	SetAuthorities(setID uint64, authorities []types.GrandpaVoter) error
 	GetAuthoritiesChangesFromBlock(uint) ([]uint, error)
 }
 
