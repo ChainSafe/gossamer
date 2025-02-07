@@ -367,6 +367,9 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 		return fmt.Errorf("setting new authorities set: %w", err)
 	}
 
+	//TODO:
+	// Set babe epoch data
+
 	return nil
 }
 
