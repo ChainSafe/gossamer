@@ -19,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa/warpsync"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -303,7 +304,7 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 		return fmt.Errorf("storing new state trie, err: %s", err)
 	}
 
-	// Get genesis runtime
+	// Set new runtime based on genesis runtime configuration
 	genesisHeader, err := s.blockState.BestBlockHeader()
 	if err != nil {
 		return fmt.Errorf("getting genesis header, err: %s", err)
@@ -346,6 +347,14 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 		return fmt.Errorf("setting new block header, err: %s", err)
 	}
 
+	// Update grandpa state with latest authorities
+	err = s.grandpaState.SetAuthorities(uint64(s.warpSyncResult.SetId),
+		grandpaVotersFromAuthorities(s.warpSyncResult.AuthorityList))
+	if err != nil {
+		return fmt.Errorf("setting new authorities set: %w", err)
+	}
+
+	// Finalize block
 	justification := s.warpSyncResult.Justification
 	err = s.blockState.SetFinalisedHash(s.targetHeader.Hash(),
 		justification.Justification.Round, uint64(s.warpSyncResult.SetId), false)
@@ -353,18 +362,14 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 		return fmt.Errorf("setting finalised hash: %w", err)
 	}
 
-	/*
-		TODO: solve this - we need to marshal encode the justification
-		err = s.blockState.SetJustification(blockHeader.Hash(), *justification)
-		if err != nil {
-			return fmt.Errorf("setting justification for block number %d: %w", blockHeader.Number, err)
-		}
-	*/
-
-	err = s.grandpaState.SetAuthorities(uint64(s.warpSyncResult.SetId),
-		grandpaVotersFromAuthorities(s.warpSyncResult.AuthorityList))
+	encodedJustification, err := scale.Marshal(justification)
 	if err != nil {
-		return fmt.Errorf("setting new authorities set: %w", err)
+		return fmt.Errorf("encoding justification %s", err)
+	}
+
+	err = s.blockState.SetJustification(s.targetHeader.Hash(), encodedJustification)
+	if err != nil {
+		return fmt.Errorf("setting justification for block %s: %w", s.targetHeader.Hash(), err)
 	}
 
 	//TODO:
