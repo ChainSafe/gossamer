@@ -180,7 +180,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
-	err = gs.blockState.SetFinalisedHash(hash, round, setID)
+	err = gs.blockState.SetFinalisedHash(hash, round, setID, true)
 	require.NoError(t, err)
 	err = gs.blockState.(*state.BlockState).SetHeader(testHeader)
 	require.NoError(t, err)

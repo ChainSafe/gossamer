@@ -153,7 +153,7 @@ func NewBlockStateFromGenesis(db database.Database, trs *Tries, header *types.He
 	}
 
 	// set the latest finalised head to the genesis header
-	if err := bs.SetFinalisedHash(bs.genesisHash, 0, 0); err != nil {
+	if err := bs.SetFinalisedHash(bs.genesisHash, 0, 0, true); err != nil {
 		return nil, err
 	}
 

@@ -132,7 +132,7 @@ func (b *blockImporter) processBlockData(blockData types.BlockData, origin Block
 				return fmt.Errorf("verifying justification for block %s: %w", header.Hash().String(), err)
 			}
 
-			err = b.blockState.SetFinalisedHash(header.Hash(), round, setID)
+			err = b.blockState.SetFinalisedHash(header.Hash(), round, setID, true)
 			if err != nil {
 				return fmt.Errorf("setting finalised hash: %w", err)
 			}

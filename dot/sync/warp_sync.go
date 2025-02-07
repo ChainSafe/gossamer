@@ -47,7 +47,7 @@ type WarpSyncStrategy struct {
 	setId           primitives.SetID
 	authorities     primitives.AuthorityList
 	lastBlock       *types.Header
-	result          types.BlockData
+	result          warpsync.WarpSyncVerificationResult
 }
 
 type WarpSyncConfig struct {
@@ -188,12 +188,13 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 			} else {
 				logger.Debugf("⏩ Warping, finish processing proofs, downloading target block #%d (%s)",
 					w.lastBlock.Number, w.lastBlock.Hash().String())
-				w.phase = TargetBlock
+				w.result = *warpProofResult
+				w.phase = WarpSyncCompleted
 			}
 		}
 
 	case TargetBlock:
-		logger.Debug("processing warp sync target block results")
+		/*logger.Debug("processing warp sync target block results")
 
 		var validRes []RequestResponseData
 
@@ -201,9 +202,12 @@ func (w *WarpSyncStrategy) Process(results []*SyncTaskResult) (
 		repChanges, bans, validRes = validateResults(results, w.badBlocks)
 
 		if len(validRes) > 0 && validRes[0].responseData != nil && len(validRes[0].responseData) > 0 {
-			w.result = *validRes[0].responseData[0]
+			w.result = WarpSyncResult{
+				Block:         *validRes[0].responseData[0],
+				Justification: w.bestJustification,
+			}
 			w.phase = WarpSyncCompleted
-		}
+		}*/
 	}
 
 	return w.IsSynced(), repChanges, bans, nil

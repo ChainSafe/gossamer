@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/peerset"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
+	"github.com/ChainSafe/gossamer/lib/grandpa/warpsync"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/ChainSafe/gossamer/pkg/trie"
@@ -40,10 +41,11 @@ type StateSyncStrategy struct {
 	blockImporter        importer
 
 	// State sync state
-	phase       WarpSyncPhase
-	startedAt   time.Time
-	targetBlock types.BlockData
-	firstBlock  types.BlockData
+	phase          WarpSyncPhase
+	startedAt      time.Time
+	warpSyncResult warpsync.WarpSyncVerificationResult
+	targetHeader   types.Header
+	firstBlock     types.BlockData
 }
 
 type StateSyncStrategyConfig struct {
@@ -53,7 +55,7 @@ type StateSyncStrategyConfig struct {
 	Peers              *peerViewSet
 	ReqMaker           network.RequestMaker
 	BlockReqMaker      network.RequestMaker
-	TargetBlock        types.BlockData
+	WarpSyncResult     warpsync.WarpSyncVerificationResult
 	StateStorage       StorageState
 	FinalityGadget     FinalityGadget
 	TransactionState   TransactionState
@@ -64,17 +66,20 @@ type StateSyncStrategyConfig struct {
 func NewStateSyncStrategy(
 	cfg *StateSyncStrategyConfig,
 ) *StateSyncStrategy {
+	targetHeader := cfg.WarpSyncResult.Header
+
 	return &StateSyncStrategy{
 		peers:          cfg.Peers,
 		badBlocks:      cfg.BadBlocks,
 		blockState:     cfg.BlockState,
-		targetBlock:    cfg.TargetBlock,
+		targetHeader:   targetHeader,
+		warpSyncResult: cfg.WarpSyncResult,
 		reqMaker:       cfg.ReqMaker,
 		blockReqMaker:  cfg.BlockReqMaker,
 		storage:        cfg.StateStorage,
 		finalityGadget: cfg.FinalityGadget,
 		// TODO: we can assume that v1 is right for every chain but we need to find a way to set the right state version
-		stateRequestProvider: NewStateRequestProvider(cfg.TargetBlock.Header.Hash(), trie.V1),
+		stateRequestProvider: NewStateRequestProvider(targetHeader.Hash(), trie.V1),
 		phase:                DownloadState,
 		blockImporter: newBlockImporter(&BlockImporterConfig{
 			BlockState:         cfg.BlockState,
@@ -264,8 +269,6 @@ func (s *StateSyncStrategy) IsSynced() bool {
 // with some extra logic to skip validations
 func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 	// Importing first block to set epochs
-	logger.Infof("First block data: %+v", s.firstBlock)
-
 	slotNumber, err := s.firstBlock.Header.SlotNumber()
 	if err != nil {
 		return fmt.Errorf("getting slot number, err: %s", err)
@@ -276,11 +279,6 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 		return fmt.Errorf("setting non origin slot number, err: %s", err)
 	}
 
-	logger.Infof("First block imported successfully")
-
-	blockHeader := s.targetBlock.Header
-	justification := s.targetBlock.Justification
-
 	// Get download trie state
 	trieState, err := s.stateRequestProvider.BuildTrie()
 	if err != nil {
@@ -288,13 +286,13 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 	}
 
 	// Check state is the expected
-	if trieState.MustHash() != s.targetBlock.Header.StateRoot {
-		return fmt.Errorf("state root mismatch: got %s expected %s", trieState.MustHash(), s.targetBlock.Header.StateRoot)
+	if trieState.MustHash() != s.targetHeader.StateRoot {
+		return fmt.Errorf("state root mismatch: got %s expected %s", trieState.MustHash(), s.targetHeader.StateRoot)
 	}
 
 	// Store downloaded trie state
 	storageTrie := storage.NewTrieState(trieState)
-	err = s.storage.StoreTrie(storageTrie, blockHeader)
+	err = s.storage.StoreTrie(storageTrie, &s.targetHeader)
 	if err != nil {
 		return fmt.Errorf("storing new state trie, err: %s", err)
 	}
@@ -330,39 +328,33 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 		return fmt.Errorf("creating new runtime, err: %s", err)
 	}
 
+	// Initialize runtime and set it in the new blocktree
+	blockTree := blocktree.NewBlockTreeFromRoot(&s.targetHeader)
+
+	blockTree.StoreRuntime(s.targetHeader.Hash(), instance)
+	s.blockState.SetBlockTree(blockTree)
+
 	// Set block header in block state
-	err = s.blockState.SetHeader(blockHeader)
+	err = s.blockState.SetHeader(&s.targetHeader)
 	if err != nil {
 		return fmt.Errorf("setting new block header, err: %s", err)
 	}
 
-	// Initialize runtime and set it in the new blocktree
-	blockTree := blocktree.NewBlockTreeFromRoot(blockHeader)
-
-	blockTree.StoreRuntime(s.targetBlock.Header.Hash(), instance)
-	s.blockState.SetBlockTree(blockTree)
-
+	justification := s.warpSyncResult.Justification
+	err = s.blockState.SetFinalisedHash(s.targetHeader.Hash(),
+		justification.Justification.Round, uint64(s.warpSyncResult.SetId), false)
 	if err != nil {
-		return fmt.Errorf("setting new block tree, err: %s", err)
+		return fmt.Errorf("setting finalised hash: %w", err)
 	}
 
-	if justification != nil && len(*justification) > 0 {
-		round, setID, err := s.finalityGadget.VerifyBlockJustification(
-			blockHeader.Hash(), blockHeader.Number, *justification)
-		if err != nil {
-			return fmt.Errorf("verifying justification for block %s: %w", blockHeader.Hash().String(), err)
-		}
-
-		err = s.blockState.SetFinalisedHash(blockHeader.Hash(), round, setID)
-		if err != nil {
-			return fmt.Errorf("setting finalised hash: %w", err)
-		}
-
+	/*
+		TODO: solve this later
 		err = s.blockState.SetJustification(blockHeader.Hash(), *justification)
 		if err != nil {
 			return fmt.Errorf("setting justification for block number %d: %w", blockHeader.Number, err)
-		}
-	}
+		}*/
+
+	logger.Infof("block finalized successfully %s", s.targetHeader.Hash())
 	// TODO:
 	// update authorities set
 	return nil

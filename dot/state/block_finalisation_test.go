@@ -99,7 +99,7 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 	// set tries with some state root
 	bs.tries.softSet(someStateRoot, inmemory_trie.NewEmptyTrie())
 
-	err = bs.SetFinalisedHash(testhash, 1, 1)
+	err = bs.SetFinalisedHash(testhash, 1, 1, true)
 	require.NoError(t, err)
 
 	h, err = bs.GetFinalisedHash(1, 1)
@@ -148,7 +148,7 @@ func TestSetFinalisedHash_retrieveBlockNumber1SlotNumber(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = bs.SetFinalisedHash(header2.Hash(), 1, 1)
+	err = bs.SetFinalisedHash(header2.Hash(), 1, 1, true)
 	require.NoError(t, err)
 	require.Equal(t, header2.Hash(), bs.lastFinalised)
 

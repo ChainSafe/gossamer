@@ -468,7 +468,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
-	err = gs.blockState.SetFinalisedHash(testGenesisHeader.Hash(), round, setID)
+	err = gs.blockState.SetFinalisedHash(testGenesisHeader.Hash(), round, setID, true)
 	require.NoError(t, err)
 	err = gs.blockState.(*state.BlockState).SetHeader(&block.Header)
 	require.NoError(t, err)

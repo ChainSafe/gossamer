@@ -409,17 +409,17 @@ func (mr *MockBlockStateMockRecorder) SetBlockTree(arg0 any) *gomock.Call {
 }
 
 // SetFinalisedHash mocks base method.
-func (m *MockBlockState) SetFinalisedHash(arg0 common.Hash, arg1, arg2 uint64) error {
+func (m *MockBlockState) SetFinalisedHash(arg0 common.Hash, arg1, arg2 uint64, arg3 bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetFinalisedHash", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "SetFinalisedHash", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetFinalisedHash indicates an expected call of SetFinalisedHash.
-func (mr *MockBlockStateMockRecorder) SetFinalisedHash(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) SetFinalisedHash(arg0, arg1, arg2, arg3 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFinalisedHash", reflect.TypeOf((*MockBlockState)(nil).SetFinalisedHash), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFinalisedHash", reflect.TypeOf((*MockBlockState)(nil).SetFinalisedHash), arg0, arg1, arg2, arg3)
 }
 
 // SetFirstNonOriginSlotNumber mocks base method.

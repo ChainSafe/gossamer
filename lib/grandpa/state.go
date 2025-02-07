@@ -25,7 +25,7 @@ type BlockState interface {
 	GetFinalisedHeader(round, setID uint64) (*types.Header, error)
 	GetRoundAndSetID() (uint64, uint64)
 	GetFinalisedHash(round, setID uint64) (common.Hash, error)
-	SetFinalisedHash(common.Hash, uint64, uint64) error
+	SetFinalisedHash(common.Hash, uint64, uint64, bool) error
 	BestBlockHeader() (*types.Header, error)
 	GetHighestFinalisedHeader() (*types.Header, error)
 	GetImportedBlockNotifierChannel() chan *types.Block

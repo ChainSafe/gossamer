@@ -51,7 +51,7 @@ func TestFinalizedChannel(t *testing.T) {
 	chain, _ := AddBlocksToState(t, bs, 3, false)
 
 	for _, b := range chain {
-		bs.SetFinalisedHash(b.Hash(), 1, 0)
+		bs.SetFinalisedHash(b.Hash(), 1, 0, true)
 	}
 
 	for i := 0; i < 1; i++ {
@@ -124,7 +124,7 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 	}
 
 	time.Sleep(time.Millisecond * 10)
-	bs.SetFinalisedHash(chain[0].Hash(), 1, 0)
+	bs.SetFinalisedHash(chain[0].Hash(), 1, 0, true)
 	wg.Wait()
 
 	for _, ch := range chs {

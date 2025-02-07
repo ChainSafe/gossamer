@@ -74,7 +74,7 @@ type BlockState interface {
 	GetReceipt(common.Hash) ([]byte, error)
 	GetMessageQueue(common.Hash) ([]byte, error)
 	GetJustification(common.Hash) ([]byte, error)
-	SetFinalisedHash(hash common.Hash, round uint64, setID uint64) error
+	SetFinalisedHash(hash common.Hash, round uint64, setID uint64, finalizeAncestors bool) error
 	SetJustification(hash common.Hash, data []byte) error
 	GetHashByNumber(blockNumber uint) (common.Hash, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
@@ -367,7 +367,7 @@ func (s *SyncService) runStrategy() {
 				FinalityGadget:     s.finalityGadget,
 				TransactionState:   s.transactionState,
 				BlockImportHandler: s.blockImportHandler,
-				TargetBlock:        s.currentStrategy.Result().(types.BlockData),
+				WarpSyncResult:     s.currentStrategy.Result().(warpsync.WarpSyncVerificationResult),
 			}
 
 			s.currentStrategy = NewStateSyncStrategy(stateSyncCfg)
