@@ -715,6 +715,20 @@ func (mr *MockBlockImportHandlerMockRecorder) HandleBlockImport(arg0, arg1, arg2
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleBlockImport", reflect.TypeOf((*MockBlockImportHandler)(nil).HandleBlockImport), arg0, arg1, arg2)
 }
 
+// HandleDigests mocks base method.
+func (m *MockBlockImportHandler) HandleDigests(arg0 *types.Header) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HandleDigests", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// HandleDigests indicates an expected call of HandleDigests.
+func (mr *MockBlockImportHandlerMockRecorder) HandleDigests(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleDigests", reflect.TypeOf((*MockBlockImportHandler)(nil).HandleDigests), arg0)
+}
+
 // MockNetwork is a mock of Network interface.
 type MockNetwork struct {
 	ctrl     *gomock.Controller
