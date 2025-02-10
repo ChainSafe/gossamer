@@ -835,3 +835,8 @@ type CandidateHashAndRelayParent struct {
 	CandidateHash        CandidateHash
 	CandidateRelayParent common.Hash
 }
+
+type DistributeBitfield struct {
+	RelayParent common.Hash
+	Bitfield    UncheckedSignedAvailabilityBitfield
+}
