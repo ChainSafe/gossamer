@@ -338,7 +338,7 @@ func TestDecodeExtrinsicBody(t *testing.T) {
 }
 
 func TestBuildBlockTimeMonitor(t *testing.T) {
-	metrics.Enabled = true
+	metrics.Enable()
 	metrics.Unregister(buildBlockTimer)
 
 	genesis, genesisTrie, genesisHeader := newWestendDevGenesisWithTrieAndHeader(t)
