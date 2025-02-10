@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	consensus_grandpa "github.com/ChainSafe/gossamer/internal/client/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
@@ -126,12 +127,12 @@ func (w *WarpSyncProof) verify(
 }
 
 type WarpSyncProofProvider struct {
-	blockState   BlockState
+	blockState   state.BlockState
 	grandpaState GrandpaState
 	hardForks    map[string]SetIdAuthorityList
 }
 
-func NewWarpSyncProofProvider(blockState BlockState, grandpaState GrandpaState) *WarpSyncProofProvider {
+func NewWarpSyncProofProvider(blockState state.BlockState, grandpaState GrandpaState) *WarpSyncProofProvider {
 	return &WarpSyncProofProvider{
 		blockState:   blockState,
 		grandpaState: grandpaState,
