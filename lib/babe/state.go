@@ -4,7 +4,6 @@
 package babe
 
 import (
-	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -41,12 +40,6 @@ type BlockState interface {
 type ImportedBlockNotifierManager interface {
 	GetImportedBlockNotifierChannel() chan *types.Block
 	FreeImportedBlockNotifierChannel(ch chan *types.Block)
-}
-
-// StorageState interface for storage state methods
-type StorageState interface {
-	TrieState(hash *common.Hash) (*rtstorage.TrieState, error)
-	sync.Locker
 }
 
 // TransactionState is the interface for transaction queue methods

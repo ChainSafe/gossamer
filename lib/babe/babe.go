@@ -33,7 +33,7 @@ type Service struct {
 
 	// Storage interfaces
 	blockState       state.BlockState
-	storageState     StorageState
+	storageState     state.StorageState
 	transactionState TransactionState
 	epochState       EpochState
 
@@ -54,7 +54,7 @@ type Service struct {
 type ServiceConfig struct {
 	LogLvl             log.Level
 	BlockState         state.BlockState
-	StorageState       StorageState
+	StorageState       state.StorageState
 	TransactionState   TransactionState
 	EpochState         EpochState
 	BlockImportHandler BlockImportHandler

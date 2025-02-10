@@ -5,7 +5,6 @@ package core
 
 import (
 	"encoding/json"
-	"sync"
 
 	"github.com/libp2p/go-libp2p/core/peer"
 
@@ -14,21 +13,11 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
 type BlockImportDigestHandler interface {
 	HandleDigests(*types.Header) error
-}
-
-// StorageState interface for storage state methods
-type StorageState interface {
-	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
-	StoreTrie(*rtstorage.TrieState, *types.Header) error
-	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
-	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
-	sync.Locker
 }
 
 // EpochState is the interface for state.EpochState

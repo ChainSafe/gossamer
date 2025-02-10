@@ -45,7 +45,7 @@ type Service struct {
 
 	// Service interfaces
 	blockState       state.BlockState
-	storageState     StorageState
+	storageState     state.StorageState
 	transactionState TransactionState
 	grandpaState     GrandpaState
 	epochState       EpochState
@@ -65,7 +65,7 @@ type Config struct {
 	LogLvl log.Level
 
 	BlockState       state.BlockState
-	StorageState     StorageState
+	StorageState     state.StorageState
 	TransactionState TransactionState
 	GrandpaState     GrandpaState
 	EpochState       EpochState
@@ -667,7 +667,7 @@ func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrin
 	return types.Extrinsic(bytes.Join(extrinsicParts, nil)), nil
 }
 
-func prepareRuntime(blockHash *common.Hash, storageState StorageState,
+func prepareRuntime(blockHash *common.Hash, storageState state.StorageState,
 	blockState state.BlockState) (instance runtime.Instance, err error) {
 	var stateRootHash *common.Hash
 	if blockHash != nil {
