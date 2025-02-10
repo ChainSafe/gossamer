@@ -21,10 +21,9 @@ import (
 
 var errNilPersistedValidationData = errors.New("persisted validation data is nil")
 
-// TODO: Rename to constructPerRelayParentState, WRITE UNIT TEST FOR THIS FUNC,
-//
-// Load the data necessary to do backing work on top of a relay-parent.
-func (cb *CandidateBacking) constructPerRelayParentState2(relayParent common.Hash) (*perRelayParentState, error) {
+// constructPerRelayParentState constructs and returns the perRelayParentState for a given relay parent hash,
+// initializing various parameters and caches required for candidate backing.
+func (cb *CandidateBacking) constructPerRelayParentState(relayParent common.Hash) (*perRelayParentState, error) {
 	rt, err := cb.BlockState.GetRuntime(relayParent)
 	if err != nil {
 		return nil, fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
@@ -194,7 +193,7 @@ type perRelayParentState struct {
 }
 
 func (rpState *perRelayParentState) coreIndexFromStatement(
-	statement parachaintypes.SignedFullStatementWithPVD,
+	parachaintypes.SignedFullStatementWithPVD,
 ) (parachaintypes.CoreIndex, error) {
 	// TODO: Implement this #4324
 	return parachaintypes.CoreIndex{}, nil
@@ -227,7 +226,7 @@ func (rpState *perRelayParentState) findCoreIndexAndImportStatement(
 		return nil, fmt.Errorf("getting core index from statement: %w", err)
 	}
 
-	return rpState.table.importStatement( // TODO: modify this function to contain `coreIndexFromStatement` logic.
+	return rpState.table.importStatement(
 		&rpState.tableContext,
 		parachaintypes.GroupIndex(core.Index),
 		signedStatementWithPVD.SignedFullStatement,

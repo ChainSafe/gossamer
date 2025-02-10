@@ -58,7 +58,7 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 		}
 
 		// construct a `PerRelayParent` from the runtime API and insert it.
-		rpState, err := cb.constructPerRelayParentState2(maybeNewRP)
+		rpState, err := cb.constructPerRelayParentState(maybeNewRP)
 		if err != nil {
 			return fmt.Errorf("constructing per relay parent state for relay-parent %s: %w", maybeNewRP, err)
 		}

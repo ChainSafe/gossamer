@@ -3,7 +3,6 @@
 
 package backing
 
-/*
 import (
 	"testing"
 
@@ -314,4 +313,3 @@ func TestSecondingSanityCheck(t *testing.T) {
 		)
 	})
 }
-*/

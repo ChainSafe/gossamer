@@ -3,7 +3,6 @@
 
 package backing
 
-/*
 import (
 	"errors"
 	"testing"
@@ -124,4 +123,3 @@ func TestHandleGetBackedCandidatesMessage(t *testing.T) {
 	}
 
 }
-*/

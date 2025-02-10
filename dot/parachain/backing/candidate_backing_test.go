@@ -113,6 +113,8 @@ func secondedSignedFullStatementWithPVD(
 }
 
 func TestImportStatement(t *testing.T) {
+	t.Parallel()
+
 	statementVDTValid := parachaintypes.NewStatementVDT()
 	err := statementVDTValid.SetValue(parachaintypes.Valid{})
 	require.NoError(t, err)
@@ -332,6 +334,8 @@ func rpStateForSuccessfulPostImportStatement(t *testing.T, ctrl *gomock.Controll
 }
 
 func TestPostImportStatement(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		description string
 		rpState     func(*gomock.Controller) perRelayParentState
@@ -745,8 +749,6 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 
 func TestHandleStatementMessage(t *testing.T) {
 	t.Parallel()
-
-	// paraIDPtr4 := uint32ToParaIDPtr(t, 4)
 
 	relayParent := getDummyHash(t, 5)
 	chRelayParentAndCommand := make(chan relayParentAndCommand)
