@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -39,7 +40,7 @@ type FullSyncConfig struct {
 	FinalityGadget     FinalityGadget
 	BlockImportHandler BlockImportHandler
 	Telemetry          Telemetry
-	BlockState         BlockState
+	BlockState         state.BlockState
 	BadBlocks          []string
 	NumOfTasks         int
 	RequestMaker       network.RequestMaker
@@ -58,7 +59,7 @@ type FullSyncStrategy struct {
 	peers         *peerViewSet
 	badBlocks     []string
 	reqMaker      network.RequestMaker
-	blockState    BlockState
+	blockState    state.BlockState
 	numOfTasks    int
 	startedAt     time.Time
 	syncedBlocks  int
