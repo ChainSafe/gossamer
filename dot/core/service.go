@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
@@ -43,7 +44,7 @@ type Service struct {
 	lock       sync.Mutex        // lock for channel
 
 	// Service interfaces
-	blockState       BlockState
+	blockState       state.BlockState
 	storageState     StorageState
 	transactionState TransactionState
 	grandpaState     GrandpaState
@@ -63,7 +64,7 @@ type Service struct {
 type Config struct {
 	LogLvl log.Level
 
-	BlockState       BlockState
+	BlockState       state.BlockState
 	StorageState     StorageState
 	TransactionState TransactionState
 	GrandpaState     GrandpaState
@@ -667,7 +668,7 @@ func (s *Service) buildExternalTransaction(rt runtime.Instance, ext types.Extrin
 }
 
 func prepareRuntime(blockHash *common.Hash, storageState StorageState,
-	blockState BlockState) (instance runtime.Instance, err error) {
+	blockState state.BlockState) (instance runtime.Instance, err error) {
 	var stateRootHash *common.Hash
 	if blockHash != nil {
 		stateRootHash, err = storageState.GetStateRootFromBlock(blockHash)

@@ -28,7 +28,7 @@ var testGenesisHeader = &types.Header{
 	Digest:    types.NewDigest(),
 }
 
-func newTestBlockState(t *testing.T, tries *Tries) *BlockState {
+func newTestDefaultBlockState(t *testing.T, tries *Tries) *DefaultBlockState {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
@@ -36,7 +36,7 @@ func newTestBlockState(t *testing.T, tries *Tries) *BlockState {
 	db := NewInMemoryDB(t)
 	header := testGenesisHeader
 
-	bs, err := NewBlockStateFromGenesis(db, tries, header, telemetryMock)
+	bs, err := NewDefaultBlockStateFromGenesis(db, tries, header, telemetryMock)
 	require.NoError(t, err)
 
 	// loads in-memory tries with genesis state root, should be deleted
@@ -50,7 +50,7 @@ func newTestBlockState(t *testing.T, tries *Tries) *BlockState {
 }
 
 func TestSetAndGetHeader(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestDefaultBlockState(t, newTriesEmpty())
 
 	header := &types.Header{
 		Number:    0,
@@ -67,7 +67,7 @@ func TestSetAndGetHeader(t *testing.T) {
 }
 
 func TestHasHeader(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestDefaultBlockState(t, newTriesEmpty())
 
 	header := &types.Header{
 		Number:    0,
@@ -84,7 +84,7 @@ func TestHasHeader(t *testing.T) {
 }
 
 func TestGetBlockByNumber(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestDefaultBlockState(t, newTriesEmpty())
 
 	blockHeader := &types.Header{
 		ParentHash: testGenesisHeader.Hash(),
@@ -106,7 +106,7 @@ func TestGetBlockByNumber(t *testing.T) {
 }
 
 func TestAddBlock(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestDefaultBlockState(t, newTriesEmpty())
 
 	// Create header
 	header0 := &types.Header{
@@ -169,7 +169,7 @@ func TestAddBlock(t *testing.T) {
 }
 
 func TestGetSlotForBlock(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestDefaultBlockState(t, newTriesEmpty())
 	expectedSlot := uint64(77)
 
 	babeHeader := types.NewBabeDigest()
@@ -204,7 +204,7 @@ func TestGetHashesByNumber(t *testing.T) {
 
 	// create two blocks with the same block number and test if GetHashesByNumber gets us
 	// both the blocks
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestDefaultBlockState(t, newTriesEmpty())
 	slot := uint64(77)
 
 	babeHeader := types.NewBabeDigest()
@@ -258,7 +258,7 @@ func TestGetHashesByNumber(t *testing.T) {
 func TestGetAllDescendants(t *testing.T) {
 	t.Parallel()
 
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestDefaultBlockState(t, newTriesEmpty())
 	slot := uint64(77)
 
 	babeHeader := types.NewBabeDigest()
@@ -323,7 +323,7 @@ func TestGetBlockHashesBySlot(t *testing.T) {
 
 	// create two block in the same slot and test if GetBlockHashesBySlot gets us
 	// both the blocks
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestDefaultBlockState(t, newTriesEmpty())
 	slot := uint64(77)
 
 	babeHeader := types.NewBabeDigest()
@@ -375,7 +375,7 @@ func TestGetBlockHashesBySlot(t *testing.T) {
 }
 
 func TestIsBlockOnCurrentChain(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestDefaultBlockState(t, newTriesEmpty())
 	currChain, branchChains := AddBlocksToState(t, bs, 3, false)
 
 	for _, header := range currChain {
@@ -398,7 +398,7 @@ func TestIsBlockOnCurrentChain(t *testing.T) {
 }
 
 func TestAddBlock_BlockNumberToHash(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestDefaultBlockState(t, newTriesEmpty())
 	currChain, branchChains := AddBlocksToState(t, bs, 8, false)
 
 	bestHash := bs.BestBlockHash()
@@ -446,7 +446,7 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 }
 
 func TestFinalization_DeleteBlock(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestDefaultBlockState(t, newTriesEmpty())
 	AddBlocksToState(t, bs, 5, false)
 
 	btBefore := bs.bt.DeepCopy()
@@ -501,7 +501,7 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 }
 
 func TestGetHashByNumber(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestDefaultBlockState(t, newTriesEmpty())
 
 	res, err := bs.GetHashByNumber(0)
 	require.NoError(t, err)
@@ -528,7 +528,7 @@ func TestGetHashByNumber(t *testing.T) {
 
 func TestAddBlock_WithReOrg(t *testing.T) {
 	t.Skip() // TODO: this should be fixed after state refactor PR
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestDefaultBlockState(t, newTriesEmpty())
 
 	header1a := &types.Header{
 		Number:     1,
@@ -639,7 +639,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 func TestNumberIsFinalised(t *testing.T) {
 	tries := newTriesEmpty()
 
-	bs := newTestBlockState(t, tries)
+	bs := newTestDefaultBlockState(t, tries)
 	fin, err := bs.NumberIsFinalised(0)
 	require.NoError(t, err)
 	require.True(t, fin)
@@ -712,25 +712,25 @@ func TestRange(t *testing.T) {
 		blocksToPersistAtDisk int
 
 		newBlockState func(t *testing.T, ctrl *gomock.Controller,
-			genesisHeader *types.Header) *BlockState
+			genesisHeader *types.Header) BlockState
 		wantErr   error
 		stringErr string
 
 		expectedHashes   func(hashesCreated []common.Hash) (expected []common.Hash)
-		executeRangeCall func(blockState *BlockState,
+		executeRangeCall func(blockState BlockState,
 			hashesCreated []common.Hash) (retrievedHashes []common.Hash, err error)
 	}{
 		"all_blocks_stored_in_disk": {
 			blocksToCreate:        128,
 			blocksToPersistAtDisk: 128,
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
-				genesisHeader *types.Header) *BlockState {
+				genesisHeader *types.Header) BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
 				db := NewInMemoryDB(t)
 
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				blockState, err := NewDefaultBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -741,7 +741,7 @@ func TestRange(t *testing.T) {
 			expectedHashes: func(hashesCreated []common.Hash) (expected []common.Hash) {
 				return hashesCreated
 			},
-			executeRangeCall: func(blockState *BlockState,
+			executeRangeCall: func(blockState BlockState,
 				hashesCreated []common.Hash) (retrievedHashes []common.Hash, err error) {
 				startHash := hashesCreated[0]
 				endHash := hashesCreated[len(hashesCreated)-1]
@@ -754,13 +754,13 @@ func TestRange(t *testing.T) {
 			blocksToCreate:        128,
 			blocksToPersistAtDisk: 0,
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
-				genesisHeader *types.Header) *BlockState {
+				genesisHeader *types.Header) BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
 				telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 				db := NewInMemoryDB(t)
 
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				blockState, err := NewDefaultBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -771,7 +771,7 @@ func TestRange(t *testing.T) {
 			expectedHashes: func(hashesCreated []common.Hash) (expected []common.Hash) {
 				return hashesCreated
 			},
-			executeRangeCall: func(blockState *BlockState,
+			executeRangeCall: func(blockState BlockState,
 				hashesCreated []common.Hash) (retrievedHashes []common.Hash, err error) {
 				startHash := hashesCreated[0]
 				endHash := hashesCreated[len(hashesCreated)-1]
@@ -784,13 +784,13 @@ func TestRange(t *testing.T) {
 			blocksToCreate:        128,
 			blocksToPersistAtDisk: 64,
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
-				genesisHeader *types.Header) *BlockState {
+				genesisHeader *types.Header) BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
 				db := NewInMemoryDB(t)
 
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				blockState, err := NewDefaultBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -800,7 +800,7 @@ func TestRange(t *testing.T) {
 			expectedHashes: func(hashesCreated []common.Hash) (expected []common.Hash) {
 				return hashesCreated
 			},
-			executeRangeCall: func(blockState *BlockState,
+			executeRangeCall: func(blockState BlockState,
 				hashesCreated []common.Hash) (retrievedHashes []common.Hash, err error) {
 				startHash := hashesCreated[0]
 				endHash := hashesCreated[len(hashesCreated)-1]
@@ -816,12 +816,12 @@ func TestRange(t *testing.T) {
 			stringErr: "retrieving end hash from database: " +
 				"querying database: [mocked] cannot read, database closed ex",
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
-				genesisHeader *types.Header) *BlockState {
+				genesisHeader *types.Header) BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
 				telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 				db := NewInMemoryDB(t)
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				blockState, err := NewDefaultBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
 
 				mockedDb := NewMockBlockStateDatabase(ctrl)
 				// cannot assert the exact hash type since the block header
@@ -838,7 +838,7 @@ func TestRange(t *testing.T) {
 			expectedHashes: func(hashesCreated []common.Hash) (expected []common.Hash) {
 				return nil
 			},
-			executeRangeCall: func(blockState *BlockState,
+			executeRangeCall: func(blockState BlockState,
 				hashesCreated []common.Hash) (retrievedHashes []common.Hash, err error) {
 				startHash := hashesCreated[0]
 				endHash := hashesCreated[len(hashesCreated)-1]
@@ -851,13 +851,13 @@ func TestRange(t *testing.T) {
 			blocksToCreate:        128,
 			blocksToPersistAtDisk: 0,
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
-				genesisHeader *types.Header) *BlockState {
+				genesisHeader *types.Header) BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
 				telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 				db := NewInMemoryDB(t)
 
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				blockState, err := NewDefaultBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -868,7 +868,7 @@ func TestRange(t *testing.T) {
 			expectedHashes: func(hashesCreated []common.Hash) (expected []common.Hash) {
 				return []common.Hash{hashesCreated[0]}
 			},
-			executeRangeCall: func(blockState *BlockState,
+			executeRangeCall: func(blockState BlockState,
 				hashesCreated []common.Hash) (retrievedHashes []common.Hash, err error) {
 				startHash := hashesCreated[0]
 				endHash := hashesCreated[0]
@@ -883,13 +883,13 @@ func TestRange(t *testing.T) {
 			wantErr:               ErrStartGreaterThanEnd,
 			stringErr:             "start greater than end",
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
-				genesisHeader *types.Header) *BlockState {
+				genesisHeader *types.Header) BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
 				db := NewInMemoryDB(t)
 
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				blockState, err := NewDefaultBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -900,7 +900,7 @@ func TestRange(t *testing.T) {
 			expectedHashes: func(hashesCreated []common.Hash) (expected []common.Hash) {
 				return nil
 			},
-			executeRangeCall: func(blockState *BlockState,
+			executeRangeCall: func(blockState BlockState,
 				hashesCreated []common.Hash) (retrievedHashes []common.Hash, err error) {
 				startHash := hashesCreated[10]
 				endHash := hashesCreated[0]
@@ -916,13 +916,13 @@ func TestRange(t *testing.T) {
 			stringErr: "retrieving range from in-memory blocktree: " +
 				"getting blocks in range: start greater than end",
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
-				genesisHeader *types.Header) *BlockState {
+				genesisHeader *types.Header) BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
 				telemetryMock.EXPECT().SendMessage(gomock.Any())
 
 				db := NewInMemoryDB(t)
 
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				blockState, err := NewDefaultBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -933,7 +933,7 @@ func TestRange(t *testing.T) {
 			expectedHashes: func(hashesCreated []common.Hash) (expected []common.Hash) {
 				return nil
 			},
-			executeRangeCall: func(blockState *BlockState,
+			executeRangeCall: func(blockState BlockState,
 				hashesCreated []common.Hash) (retrievedHashes []common.Hash, err error) {
 				startHash := hashesCreated[10]
 				endHash := hashesCreated[0]
@@ -949,13 +949,13 @@ func TestRange(t *testing.T) {
 			stringErr: "range start should be in database: " +
 				"querying database: pebble: not found",
 			newBlockState: func(t *testing.T, ctrl *gomock.Controller,
-				genesisHeader *types.Header) *BlockState {
+				genesisHeader *types.Header) BlockState {
 				telemetryMock := NewMockTelemetry(ctrl)
 				telemetryMock.EXPECT().SendMessage(gomock.Any()).Times(2)
 
 				db := NewInMemoryDB(t)
 
-				blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+				blockState, err := NewDefaultBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
 				require.NoError(t, err)
 
 				return blockState
@@ -966,7 +966,7 @@ func TestRange(t *testing.T) {
 			expectedHashes: func(hashesCreated []common.Hash) (expected []common.Hash) {
 				return nil
 			},
-			executeRangeCall: func(blockState *BlockState,
+			executeRangeCall: func(blockState BlockState,
 				hashesCreated []common.Hash) (retrievedHashes []common.Hash, err error) {
 				startHash := hashesCreated[len(hashesCreated)-1]
 				// since we finalized 64 of 128 blocks the end hash is one of
@@ -1053,7 +1053,7 @@ func Test_loadHeaderFromDisk_WithGenesisBlock(t *testing.T) {
 		Digest:    types.NewDigest(),
 	}
 
-	blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+	blockState, err := NewDefaultBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
 	require.NoError(t, err)
 
 	header, err := blockState.loadHeaderFromDatabase(genesisHeader.Hash())
@@ -1075,7 +1075,7 @@ func Test_GetRuntime_StoreRuntime(t *testing.T) {
 		Digest:    types.NewDigest(),
 	}
 	genesisHash := genesisHeader.Hash()
-	blockState, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+	blockState, err := NewDefaultBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
 	require.NoError(t, err)
 
 	runtimeInstance := NewMockInstance(nil)
@@ -1116,7 +1116,7 @@ func Test_retrieveRangeFromDatabaseWithOneBlock(t *testing.T) {
 		StateRoot: trie.EmptyHash,
 		Digest:    types.NewDigest(),
 	}
-	bs, err := NewBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
+	bs, err := NewDefaultBlockStateFromGenesis(db, newTriesEmpty(), genesisHeader, telemetryMock)
 	require.NoError(t, err)
 
 	headerBytes, err := common.HexToBytes(headerHex)

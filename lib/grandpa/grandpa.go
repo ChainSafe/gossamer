@@ -48,7 +48,7 @@ type Service struct {
 	// preliminaries
 	ctx            context.Context
 	cancel         context.CancelFunc
-	blockState     BlockState
+	blockState     state.BlockState
 	grandpaState   GrandpaState
 	keypair        *ed25519.Keypair // TODO: change to grandpa keystore (#1870)
 	mapLock        sync.Mutex
@@ -88,7 +88,7 @@ type Service struct {
 // Config represents a GRANDPA service configuration
 type Config struct {
 	LogLvl       log.Level
-	BlockState   BlockState
+	BlockState   state.BlockState
 	GrandpaState GrandpaState
 	Network      Network
 	Voters       []Voter

@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -98,7 +99,7 @@ type SyncService struct {
 	mu         sync.Mutex
 	wg         sync.WaitGroup
 	network    Network
-	blockState BlockState
+	blockState state.BlockState
 
 	currentStrategy Strategy
 	defaultStrategy Strategy

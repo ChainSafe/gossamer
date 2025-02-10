@@ -160,8 +160,8 @@ func newFullSyncService(t *testing.T) *SyncService {
 	return syncer
 }
 
-func addTestBlocksToState(t *testing.T, depth uint, blockState BlockState) {
-	previousHash := blockState.(*state.BlockState).BestBlockHash()
+func addTestBlocksToState(t *testing.T, depth uint, blockState state.BlockState) {
+	previousHash := blockState.BestBlockHash()
 	previousNum, err := blockState.BestBlockNumber()
 	require.NoError(t, err)
 
@@ -184,7 +184,7 @@ func addTestBlocksToState(t *testing.T, depth uint, blockState BlockState) {
 
 		previousHash = block.Header.Hash()
 
-		err := blockState.(*state.BlockState).AddBlock(block)
+		err := blockState.AddBlock(block)
 		require.NoError(t, err)
 	}
 }
@@ -380,7 +380,7 @@ func TestService_checkOrGetDescendantHash_integration(t *testing.T) {
 	branches := map[uint]int{
 		8: 1,
 	}
-	state.AddBlocksToStateWithFixedBranches(t, s.blockState.(*state.BlockState), 16, branches)
+	state.AddBlocksToStateWithFixedBranches(t, s.blockState, 16, branches)
 
 	// base case
 	ancestor, err := s.blockState.GetHashByNumber(1)
@@ -394,7 +394,7 @@ func TestService_checkOrGetDescendantHash_integration(t *testing.T) {
 	require.Equal(t, descendant, res)
 
 	// supply descendant that's not on canonical chain
-	leaves := s.blockState.(*state.BlockState).Leaves()
+	leaves := s.blockState.Leaves()
 	require.Equal(t, 2, len(leaves))
 
 	ancestor, err = s.blockState.GetHashByNumber(1)
@@ -462,8 +462,8 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 	s := newFullSyncService(t)
 	addTestBlocksToState(t, 2, s.blockState)
 
-	bestHash := s.blockState.(*state.BlockState).BestBlockHash()
-	bestBlock, err := s.blockState.(*state.BlockState).GetBlockByNumber(1)
+	bestHash := s.blockState.BestBlockHash()
+	bestBlock, err := s.blockState.GetBlockByNumber(1)
 	require.NoError(t, err)
 
 	// set some nils and check no error is thrown

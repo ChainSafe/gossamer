@@ -3,7 +3,11 @@
 
 package sync
 
-import "time"
+import (
+	"time"
+
+	"github.com/ChainSafe/gossamer/dot/state"
+)
 
 type ServiceConfig func(svc *SyncService)
 
@@ -21,7 +25,7 @@ func WithNetwork(net Network) ServiceConfig {
 	}
 }
 
-func WithBlockState(bs BlockState) ServiceConfig {
+func WithBlockState(bs state.BlockState) ServiceConfig {
 	return func(svc *SyncService) {
 		svc.blockState = bs
 	}

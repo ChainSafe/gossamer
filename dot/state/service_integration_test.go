@@ -307,7 +307,7 @@ func TestService_PruneStorage(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	for _, v := range prunedArr {
-		tr := serv.Storage.blockState.tries.get(v.hash)
+		tr := serv.Storage.blockState.GetTries().get(v.hash)
 		require.Nil(t, tr)
 	}
 }
@@ -410,10 +410,7 @@ func TestService_Import(t *testing.T) {
 	// mapping number #1 to the block hash
 	// then we can retrieve the slot number
 	// using the block number
-	err = serv.Block.db.Put(
-		headerHashKey(uint64(blockNumber01.Number)),
-		blockNumber01.Hash().ToBytes(),
-	)
+	err = serv.Block.SetFinalizedHeader(blockNumber01)
 	require.NoError(t, err)
 
 	err = serv.Block.SetHeader(blockNumber01)

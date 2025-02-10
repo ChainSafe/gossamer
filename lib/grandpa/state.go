@@ -38,6 +38,9 @@ type BlockState interface {
 	BestBlockHash() common.Hash
 	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
 	GetJustification(hash common.Hash) ([]byte, error)
+	Leaves() []common.Hash
+	AddBlock(block *types.Block) error
+	BlocktreeAsString() string
 }
 
 // GrandpaState is the interface required by grandpa into the grandpa state
