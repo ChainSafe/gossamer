@@ -39,6 +39,8 @@ var (
 	role string
 	// validator when set, the node will be an authority
 	validator bool
+	// Sync mode [warp | full]
+	syncMode string
 
 	// Account Config
 	// key to use for the node
@@ -100,6 +102,10 @@ Usage:
 
 			if err := parseRole(); err != nil {
 				return fmt.Errorf("failed to parse role: %s", err)
+			}
+
+			if err := parseSyncMode(); err != nil {
+				return fmt.Errorf("failed to parse sync mode: %s", err)
 			}
 
 			if err := parseTelemetryURL(); err != nil {
@@ -174,7 +180,7 @@ func addRootFlags(cmd *cobra.Command) error {
 		`Set a logging filter.
 	Syntax is a list of 'module=logLevel' (comma separated)
 	e.g. --log sync=debug,core=trace
-	Modules are global, core, digest, sync, network, rpc, state, runtime, babe, grandpa, wasmer.
+	Modules are global, core, digest, sync, network, rpc, state, runtime, babe, grandpa.
 	Log levels (least to most verbose) are error, warn, info, debug, and trace.
 	By default, all modules log 'info'.
 	The global log level can be set with --log global=debug`)
@@ -528,6 +534,11 @@ func addCoreFlags(cmd *cobra.Command) error {
 		"core.grandpa-interval"); err != nil {
 		return fmt.Errorf("failed to add --grandpa-interval flag: %s", err)
 	}
+
+	cmd.Flags().StringVar(&syncMode,
+		"sync",
+		cfg.FullSync.String(),
+		"Sync mode. One of 'full' or 'warp'.")
 
 	return nil
 }

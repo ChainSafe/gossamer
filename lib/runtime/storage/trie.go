@@ -231,22 +231,22 @@ func (t *TrieState) ClearPrefix(prefix []byte) error {
 
 // ClearPrefixLimit deletes key-value pairs from the trie where the key starts with the given prefix till limit reached
 func (t *TrieState) ClearPrefixLimit(prefix []byte, limit uint32) (
-	deleted uint32, allDeleted bool, err error) {
+	loops uint32, deleted uint32, allDeleted bool, err error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
 	if currentTx := t.getCurrentTransaction(); currentTx != nil {
 		keysOnState := make([]string, 0)
-
 		for key := range t.state.PrefixedKeys(prefix) {
 			keysOnState = append(keysOnState, string(key))
 		}
 
-		deleted, allDeleted = currentTx.clearPrefix(prefix, keysOnState, int(limit))
-		return deleted, allDeleted, nil
+		loops, deleted, allDeleted = currentTx.clearPrefix(prefix, keysOnState, int(limit))
+		return loops, deleted, allDeleted, nil
 	}
 
-	return t.state.ClearPrefixLimit(prefix, limit)
+	deleted, allDeleted, err = t.state.ClearPrefixLimit(prefix, limit)
+	return 0, deleted, allDeleted, err
 }
 
 // TrieEntries returns every key-value pair in the trie
@@ -452,7 +452,7 @@ func (t *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 	return nil
 }
 
-func (t *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit uint32) (uint32, bool, error) {
+func (t *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit uint32) (uint32, uint32, bool, error) {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 
@@ -460,10 +460,10 @@ func (t *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit
 		child, err := t.state.GetChild(keyToChild)
 		if err != nil {
 			if errors.Is(err, trie.ErrChildTrieDoesNotExist) {
-				deleted, allDeleted := currentTx.clearPrefixInChild(string(keyToChild), prefix, []string{}, -1)
-				return deleted, allDeleted, nil
+				loops, deleted, allDeleted := currentTx.clearPrefixInChild(string(keyToChild), prefix, []string{}, -1)
+				return loops, deleted, allDeleted, nil
 			}
-			return 0, false, err
+			return 0, 0, false, err
 		}
 
 		var onStateKeys []string
@@ -471,16 +471,17 @@ func (t *TrieState) ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit
 			onStateKeys = append(onStateKeys, string(key))
 		}
 
-		deleted, allDeleted := currentTx.clearPrefixInChild(string(keyToChild), prefix, onStateKeys, int(limit))
-		return deleted, allDeleted, nil
+		loops, deleted, allDeleted := currentTx.clearPrefixInChild(string(keyToChild), prefix, onStateKeys, int(limit))
+		return loops, deleted, allDeleted, nil
 	}
 
 	child, err := t.state.GetChild(keyToChild)
 	if err != nil || child == nil {
-		return 0, false, err
+		return 0, 0, false, err
 	}
 
-	return child.ClearPrefixLimit(prefix, limit)
+	deleted, allDeleted, err := child.ClearPrefixLimit(prefix, limit)
+	return 0, deleted, allDeleted, err
 }
 
 // GetChildNextKey returns the next lexicographical larger key from child storage. If it does not exist, it returns nil.

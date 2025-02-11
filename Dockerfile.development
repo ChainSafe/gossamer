@@ -2,7 +2,6 @@ FROM golang:1.23
 
 ARG chain="polkadot"
 ARG basepath="~/.local/share/gossamer"
-ARG DD_API_KEY
 
 ENV chain=${chain}
 ENV GSSMRHOME=${basepath}
@@ -11,9 +10,12 @@ WORKDIR /gossamer
 
 COPY . .
 
-RUN go get ./...
-RUN go install -trimpath github.com/ChainSafe/gossamer/cmd/gossamer
+ARG GO_BUILD_FLAGS
+RUN go build \
+    -trimpath \
+    -o /gossamer/bin/gossamer \
+    ${GO_BUILD_FLAGS} \
+    ./cmd/gossamer
 
-RUN ["sh", "-c", "gossamer init --chain=${chain} --base-path=${basepath}/${chain}"]
-ENTRYPOINT ["sh", "-c", "gossamer --chain=${chain} --base-path=${basepath}/${chain} --rpc-external=true --unsafe-rpc=true --prometheus-external --prometheus-port=9876 --pprof.enabled --pprof.listening-address=\":6060\""]
 EXPOSE 7001 8545 8546 8540 9876 6060
+ENTRYPOINT [ "/gossamer/bin/gossamer" ]

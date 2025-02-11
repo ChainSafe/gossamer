@@ -20,7 +20,7 @@ Availability is handled by these subsystems:
 - Availability Recovery subsystem
 - Availability Store subsystem 
 
-## Availability Distribution subsystem
+## [Availability Distribution subsystem](./availability-distribution.md)
 
 - This subsystem is responsible for distribution of availability data to peers via request response protocols.
 
@@ -28,7 +28,7 @@ Availability is handled by these subsystems:
 - Requests chunks from backing validators to put them in their local Availability Store.
 - Validator with index i gets chunk with the same index.
 
-## Bitfield Signing subsystem
+## [Bitfield Signing subsystem](./bitfield-signing.md)
 
 - For each fresh leaf, wait a fixed period of time for availability distribution to make candidate available.
 - Validator with index i gets a chunk with the same index.

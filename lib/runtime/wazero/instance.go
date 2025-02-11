@@ -113,7 +113,7 @@ func NewInstanceFromTrie(t trie.Trie, cfg Config) (*Instance, error) {
 func newRuntime(ctx context.Context,
 	code []byte,
 	config wazero.RuntimeConfig,
-) (api.Module, wazero.Runtime, wazero.CompiledModule, error) {
+) (wazero.Runtime, wazero.CompiledModule, error) {
 	rt := wazero.NewRuntimeWithConfig(ctx, config)
 
 	const i32, i64 = api.ValueTypeI32, api.ValueTypeI64
@@ -643,29 +643,25 @@ func newRuntime(ctx context.Context,
 		Compile(ctx)
 
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	_, err = rt.InstantiateModule(ctx, hostCompiledModule, wazero.NewModuleConfig())
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	code, err = decompressWasm(code)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	guestCompiledModule, err := rt.CompileModule(ctx, code)
 	if err != nil {
-		return nil, nil, nil, err
-	}
-	mod, err := rt.Instantiate(ctx, code)
-	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
-	return mod, rt, guestCompiledModule, nil
+	return rt, guestCompiledModule, nil
 }
 
 // NewInstance instantiates a runtime from raw wasm bytecode
@@ -677,7 +673,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	ctx := context.Background()
 	cache := wazero.NewCompilationCache()
 	config := wazero.NewRuntimeConfig().WithCompilationCache(cache)
-	mod, rt, guestCompiledModule, err := newRuntime(ctx, code, config)
+	rt, guestCompiledModule, err := newRuntime(ctx, code, config)
 	if err != nil {
 		return nil, fmt.Errorf("creating runtime instance: %w", err)
 	}
@@ -694,7 +690,6 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 			SigVerifier:     crypto.NewSignatureVerifier(logger),
 			OffchainHTTPSet: offchain.NewHTTPSet(),
 		},
-		Module:   mod,
 		codeHash: cfg.CodeHash,
 		metadata: wazeroMeta{
 			config:      config,

@@ -22,6 +22,17 @@ on:
         options:
           - paseo
           - westend
+      instance:
+        description: 'Instance'
+        required: true
+        default: ''
+        type: choice 
+        options:
+          - hetzner-gossamer-westend
+          - hetzner-gossamer-westend-2
+          - hetzner-gossamer-paseo
+          - hetzner-gossamer-paseo-2 
+          - hetzner-gossamer-polkadot
       gossamerStartArgs:
         description: 'Arguments'
         required: false
@@ -50,6 +61,7 @@ jobs:
                 "commit": "${{ github.event.inputs.commit }}",
                 "nodeType": "${{ github.event.inputs.nodeType }}",
                 "chain": "${{ github.event.inputs.chain }}",
+                "instance": "${{ github.event.inputs.instance }}",
                 "gossamerStartArgs": "${{ github.event.inputs.gossamerStartArgs }}"
               }
             }

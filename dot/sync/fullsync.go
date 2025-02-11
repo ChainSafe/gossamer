@@ -44,6 +44,7 @@ type FullSyncConfig struct {
 	BadBlocks          []string
 	NumOfTasks         int
 	RequestMaker       network.RequestMaker
+	Peers              *peerViewSet
 }
 
 type importer interface {
@@ -76,14 +77,11 @@ func NewFullSyncStrategy(cfg *FullSyncConfig) *FullSyncStrategy {
 		reqMaker:      cfg.RequestMaker,
 		blockState:    cfg.BlockState,
 		numOfTasks:    cfg.NumOfTasks,
+		peers:         cfg.Peers,
 		blockImporter: newBlockImporter(cfg),
 		unreadyBlocks: newUnreadyBlocks(),
 		requestQueue: &requestsQueue[*messages.BlockRequestMessage]{
 			queue: list.New(),
-		},
-		peers: &peerViewSet{
-			view:   make(map[peer.ID]peerView),
-			target: 0,
 		},
 	}
 }
@@ -110,7 +108,7 @@ func (f *FullSyncStrategy) NextActions() ([]*SyncTask, error) {
 	}
 
 	// our best block is equal or ahead of current target.
-	// in the node's pov we are not legging behind so there's nothing to do
+	// in the node's pov we are not lagging behind so there's nothing to do
 	// or we didn't receive block announces, so lets ask for more blocks
 	if uint32(bestBlockHeader.Number) >= currentTarget {
 		return f.createTasks(reqsFromQueue), nil
@@ -284,7 +282,7 @@ func (f *FullSyncStrategy) Process(results []*SyncTaskResult) (
 	return false, repChanges, peersToIgnore, nil
 }
 
-func (f *FullSyncStrategy) ShowMetrics() {
+func (f *FullSyncStrategy) ShowStatus() {
 	totalSyncAndImportSeconds := time.Since(f.startedAt).Seconds()
 	bps := float64(f.syncedBlocks) / totalSyncAndImportSeconds
 	logger.Infof("⛓️ synced %d blocks, tasks on queue %d, disjoint fragments %d, incomplete blocks %d, "+
@@ -404,6 +402,11 @@ func (f *FullSyncStrategy) IsSynced() bool {
 
 	logger.Infof("highest block: %d target %d", highestBlock, f.peers.getTarget())
 	return uint32(highestBlock)+messages.MaxBlocksInResponse >= f.peers.getTarget()
+}
+
+func (f *FullSyncStrategy) Result() any {
+	logger.Debug("trying to get a result from full sync strategy which is supposed to run forever")
+	return nil
 }
 
 type RequestResponseData struct {

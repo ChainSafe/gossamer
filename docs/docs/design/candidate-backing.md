@@ -99,3 +99,8 @@ type GetBackableCandidatesMessage struct {
 **Functionality:**
 - from the list of candidate we have received in the message, identify those who have received enough supporting statement by the parachain validators. and return them using response channel.
 - Minimum supporting statements required in legasy backing(Before async): 2
+
+---
+<br/>
+
+**[Candidate Backing - Elastic Scaling](./candidate-backing-elastic-scaling.md) contains the updated design of candidate backing subsystem to support elastic scaling.**

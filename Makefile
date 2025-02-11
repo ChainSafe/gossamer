@@ -21,7 +21,7 @@ help: Makefile
 .PHONY: lint
 lint:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62
-	golangci-lint run
+	golangci-lint run --timeout 3m
 
 clean:
 	rm -fr ./bin

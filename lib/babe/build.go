@@ -36,7 +36,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot, rt Runtime,
 	)
 
 	// is necessary to enable ethmetrics to be possible register values
-	ethmetrics.Enabled = true
+	ethmetrics.Enable()
 
 	start := time.Now()
 	block, err := builder.buildBlock(parent, slot, rt)

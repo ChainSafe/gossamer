@@ -13,6 +13,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -49,7 +50,9 @@ func newTestHandler(t *testing.T) (*Handler, *BlockImportHandler, *state.Service
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	dh, err := NewHandler(stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa)
+	digestLogLvl := log.Info
+
+	dh, err := NewHandler(digestLogLvl, stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa)
 	require.NoError(t, err)
 
 	blockImportHandler := NewBlockImportHandler(stateSrvc.Epoch, stateSrvc.Grandpa)

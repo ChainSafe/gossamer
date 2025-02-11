@@ -34,9 +34,16 @@ type Handler struct {
 }
 
 // NewHandler returns a new Handler
-func NewHandler(blockState state.BlockState, epochState EpochState, grandpaState GrandpaState) (*Handler, error) {
+func NewHandler(
+	logLvl log.Level,
+	blockState state.BlockState,
+	epochState EpochState,
+	grandpaState GrandpaState,
+) (*Handler, error) {
 	imported := blockState.GetImportedBlockNotifierChannel()
 	finalised := blockState.GetFinalisedNotifierChannel()
+
+	logger.Patch(log.SetLevel(logLvl))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Handler{

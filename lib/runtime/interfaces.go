@@ -18,7 +18,7 @@ type Trie interface {
 	NextKey([]byte) []byte
 	ClearPrefix(prefix []byte) (err error)
 	ClearPrefixLimit(prefix []byte, limit uint32) (
-		deleted uint32, allDeleted bool, err error)
+		loops uint32, deleted uint32, allDeleted bool, err error)
 }
 
 // ChildTrie storage interface.S
@@ -31,7 +31,8 @@ type ChildTrie interface {
 		deleted uint32, allDeleted bool, err error)
 	ClearChildStorage(keyToChild, key []byte) error
 	ClearPrefixInChild(keyToChild, prefix []byte) error
-	ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit uint32) (uint32, bool, error)
+	ClearPrefixInChildWithLimit(keyToChild, prefix []byte, limit uint32) (
+		loops uint32, deleted uint32, allDeleted bool, err error)
 	GetChildNextKey(keyToChild, key []byte) ([]byte, error)
 }
 

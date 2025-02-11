@@ -34,6 +34,7 @@ type (
 
 	// StorageState is the interface for the storage state
 	StorageState interface {
+		StoreTrie(ts *rtstorage.TrieState, header *types.Header) error
 		TrieState(root *common.Hash) (*rtstorage.TrieState, error)
 		sync.Locker
 	}
