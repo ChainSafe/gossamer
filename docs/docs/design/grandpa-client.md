@@ -285,7 +285,11 @@ There is a [`BlockImport`](https://github.com/paritytech/polkadot-sdk/blob/030cb
 
 ### Integration tests
 
-There are tests found in `sc_consensus_grandpa` ([link](https://github.com/paritytech/polkadot-sdk/blob/feac7a521092c599d47df3e49084e6bff732c7db/substrate/client/consensus/grandpa/src/tests.rs#L19)) that create a mock network to test general functionality.  There are both startup, shutdown tests, as well as testing finalization of blocks and persistence of voter state.  I think it would be prudent to replicate the same tests minus the ones that utilize `ObserverWork`.   
+There are tests found in `sc_consensus_grandpa` ([link](https://github.com/paritytech/polkadot-sdk/blob/feac7a521092c599d47df3e49084e6bff732c7db/substrate/client/consensus/grandpa/src/tests.rs#L19)) that create a mock network to test general functionality.  There are both startup, shutdown tests, as well as testing finalization of blocks and persistence of voter state.  I think it would be prudent to replicate the same tests minus the ones that utilize `ObserverWork`.
+
+### RPC Integration
+
+Gossamer already has a [`GrandpaModule`](https://github.com/ChainSafe/gossamer/blob/2eff00475ac1234ac1701f596808f93b3bf0bd46/dot/rpc/modules/grandpa.go#L15) to prove finality, retrieve round state, and a [`GrandpaJustificationListener`](https://github.com/ChainSafe/gossamer/blob/db64e1b48b5b0c3d234be0099aa176d298693bd8/dot/rpc/subscription/listeners.go#L439) to subscribe to justifications.  Changes will need to be made to support the new GRANDPA client.  This can be be deprioritized given that we do not need this immediately given our current milestones.
 
 
 [`VoterWork`]:(https://github.com/paritytech/polkadot-sdk/blob/d2fd53645654d3b8e12cbf735b67b93078d70113/substrate/client/consensus/grandpa/src/lib.rs#L867)
