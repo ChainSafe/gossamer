@@ -29,7 +29,29 @@ The following high level types, `BlockImport` trait implementation, and integrat
 
 ### `Environment`
 
-[`Environment`] is a type that utilizes already introduced dependencies (`VoterSet`, `SharedAuthoritySet`, etc.) to provide functionality to the [`VoterWork`] type.  It is a self contained type that encapsulates all dependencies of the [`VoterWork`] type.
+[`Environment`] is a type that utilizes already introduced dependencies (`VoterSet`, `SharedAuthoritySet`, etc.) to provide functionality to the [`VoterWork`] type.  It is a self contained type that encapsulates all dependencies of the [`VoterWork`] type.  The [`Environment`] contains a client dependency which is a subset of all the traits that the substrate `Client` implements.  This subset of traits is defined as `ClientForGrandpa` and is described as:
+
+```rust
+/// A trait that includes all the client functionalities grandpa requires.
+/// Ideally this would be a trait alias, we're not there yet.
+/// tracking issue <https://github.com/rust-lang/rust/issues/41517>
+pub trait ClientForGrandpa<Block, BE>:
+	LockImportRun<Block, BE>
+	+ Finalizer<Block, BE>
+	+ AuxStore
+	+ HeaderMetadata<Block, Error = sp_blockchain::Error>
+	+ HeaderBackend<Block>
+	+ BlockchainEvents<Block>
+	+ ProvideRuntimeApi<Block>
+	+ ExecutorProvider<Block>
+	+ BlockImport<Block, Error = sp_consensus::Error>
+	+ StorageProvider<Block, BE>
+where
+	BE: Backend<Block>,
+	Block: BlockT,
+{}
+```
+Every trait except `Finalizer`, `ProvideRuntimeApi`, `ExecutorProvider` has been already implemented or we have issues created within the [`db.Backend` integration epic](https://github.com/ChainSafe/gossamer/issues/3902).  `Finalizer` is trivial to implement.  `ProvideRuntimeApi` and `ExecutionProvider` can be provided by our existing `wazero` package. 
 
 ### `VoterWork` functionality
 
@@ -202,7 +224,7 @@ pub trait NetworkEventStream {
 ```
 [`GossipEngine`] uses `add_set_reserved` and `remove_set_reserved`. Looks like Gossamer already support adding and removing reserved peers.  In substrate from what I gather, there are authorized peers, and there are reserved peers.  Reserved peers are peers that are in the authorized pool, that are assigned to a set for a given `ProtocolName`.  We should be able to add/remove from the reserved set.  Removing from the authorized set is done via peer reputation and I assume will be removed from any reserved sets if disconnected. `peer_role()` and `ObservedRole` are used qutie a bit in [`GossipEngine`].  `report_peer` is also used in [`GossipEngine`].  Doesn't seem like `NetworkEventStream` is actually used in GRANDPA client integration.
 
-##### `Syncing` trait
+#### `Syncing` trait
 
 The top level [`Syncing`] trait along with it's inherited traits are as follows:
 ```rust
@@ -253,6 +275,8 @@ pub trait SyncEventStream: Send + Sync {
 ```
 
 `set_sync_fork_request` is called by [`GossipEngine`].  `announce_block` is also called through `GossipEngine.announce()` via `OutgoingMessages` sink type in `communication` crate.  Doesn't look like `new_best_block_imported` is actually used. `event_stream` is used in [`GossipEngine`] constructor.
+
+I propose introducing interfaces for `Network` and `Syncing` to the codebase.  Mocks will be used in unit tests and integration tests to test GRANDPA client functionality.  The actual implementation used to fulfill `Network` and `Syncing` interfaces using existing Gossamer peerset, synching, and network modules will be outlined in another design document.
 
 ### Implementation of `BlockImport`
 
