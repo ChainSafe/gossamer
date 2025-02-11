@@ -12,7 +12,7 @@ require (
 	github.com/dgraph-io/badger/v4 v4.5.1
 	github.com/dgraph-io/ristretto/v2 v2.1.0
 	github.com/disiqueira/gotree v1.0.0
-	github.com/ethereum/go-ethereum v1.14.13
+	github.com/ethereum/go-ethereum v1.15.0
 	github.com/fatih/color v1.18.0
 	github.com/gammazero/deque v1.0.0
 	github.com/go-playground/validator/v10 v10.24.0
@@ -45,7 +45,7 @@ require (
 	golang.org/x/crypto v0.33.0
 	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8
 	golang.org/x/term v0.29.0
-	google.golang.org/protobuf v1.36.4
+	google.golang.org/protobuf v1.36.5
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -95,7 +95,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/holiman/uint256 v1.3.1 // indirect
+	github.com/holiman/uint256 v1.3.2 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ipfs/boxo v0.27.2 // indirect
