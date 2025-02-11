@@ -24,7 +24,6 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 	}
 
 	for _, deactivated := range update.Deactivated {
-		delete(cb.perLeaf, deactivated)
 		cb.ImplicitView.deactivateLeaf(deactivated)
 	}
 

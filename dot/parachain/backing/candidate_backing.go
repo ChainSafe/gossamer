@@ -70,7 +70,7 @@ type CandidateBacking struct { // TODO: Update comments in this struct
 	//
 	// This is guaranteed to have an entry for each candidate with a relay parent in the implicit
 	// or explicit view for which a `Seconded` statement has been successfully imported.
-	perCandidate map[parachaintypes.CandidateHash]*perCandidateState // TODO: Remove paraID from perCandidateState struct
+	perCandidate map[parachaintypes.CandidateHash]*perCandidateState
 	// State tracked for all active leaves, whether or not they have prospective parachains enabled.
 	perLeaf map[common.Hash]*activeLeafState // TODO: Remove this field
 	// The utility for managing the implicit and explicit views in a consistent way.
