@@ -937,6 +937,8 @@ func (v Validator) VerifySignature(
 type DistributeBitfield struct {
 	RelayParent common.Hash
 	Bitfield    UncheckedSignedAvailabilityBitfield
+}
+
 type DisputeKey struct {
 	SessionIndex  SessionIndex
 	CandidateHash CandidateHash
