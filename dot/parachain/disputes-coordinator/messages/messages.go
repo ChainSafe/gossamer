@@ -1,0 +1,30 @@
+package messages
+
+import parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+
+// DisputesCoordinatorMessage Messages sent to the Prospective Parachains subsystem.
+type DisputesCoordinatorMessage interface {
+	isDisputesCoordinatorMessage()
+}
+
+type CandidateVotesResponse struct {
+	SessionIndex   parachaintypes.SessionIndex
+	CandidateHash  parachaintypes.CandidateHash
+	CandidateVotes parachaintypes.CandidateVotes
+}
+
+// / Get candidate votes for a candidate.
+type QueryCandidateVotes struct {
+	Query    []parachaintypes.DisputeKey
+	Response chan []CandidateVotesResponse
+}
+
+type RecentDisputesResponse struct {
+	SessionIndex  parachaintypes.SessionIndex
+	CandidateHash parachaintypes.CandidateHash
+	DisputeStatus parachaintypes.DisputeStatus
+}
+
+type RecentDisputes struct {
+	Response chan []RecentDisputesResponse
+}
