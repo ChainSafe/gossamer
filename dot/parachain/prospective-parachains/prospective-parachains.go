@@ -93,7 +93,7 @@ func (pp *ProspectiveParachains) processMessage(msg any) {
 		// Directly use the msg since it's already of type GetMinimumRelayParents
 		pp.getMinimumRelayParents(msg.RelayChainBlockHash, msg.Sender)
 	case GetProspectiveValidationData:
-		panic("not implemented yet: see issue #4313")
+		pp.answerProspectiveValidationDataRequest(msg.ProspectiveValidationDataRequest, msg.Sender)
 	default:
 		logger.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
 	}
@@ -297,4 +297,76 @@ func (pp *ProspectiveParachains) getBackableCandidates(
 
 	// Send the result through the response channel
 	responseChan <- candidateHashes
+}
+
+func (pp *ProspectiveParachains) answerProspectiveValidationDataRequest(
+	request ProspectiveValidationDataRequest,
+	response chan<- *parachaintypes.PersistedValidationData,
+) {
+	var headData *parachaintypes.HeadData
+	var parentHeadDataHash common.Hash
+
+	// extracting informations from the request depending on the incoming type.
+	switch value := request.ParentHeadData.(type) {
+	case OnlyHash:
+		parentHeadDataHash = common.Hash(value)
+	case ParentHeadDataWithHash:
+		headData = &value.Data
+		parentHeadDataHash = value.Hash
+	}
+
+	var relayParentInfo *relayChainBlockInfo
+	var maxPovSize *uint32
+
+	// // iterate over active leaves
+	for leaf := range pp.View.activeLeaves {
+		relayBlockViewData, exists := pp.View.perRelayParent[leaf]
+
+		if !exists {
+			continue
+		}
+
+		fragmentChain, exists := relayBlockViewData.fragmentChains[request.ParaId]
+		if !exists {
+			continue
+		}
+
+		// stop the iteration once we retrieve all the informations
+		if headData != nil && relayParentInfo != nil && maxPovSize != nil {
+			break
+		}
+
+		if relayParentInfo == nil {
+			relayParentInfo = fragmentChain.scope.ancestor(request.CandidateRelayParent)
+		}
+
+		if headData == nil {
+			var err error
+			headData, err = fragmentChain.getHeadDataByHash(parentHeadDataHash)
+
+			if err != nil {
+				response <- nil
+				return
+			}
+		}
+
+		if maxPovSize == nil {
+			containAncestor := fragmentChain.scope.ancestor(request.CandidateRelayParent) != nil
+
+			if containAncestor {
+				maxPovSize = &fragmentChain.scope.baseConstraints.MaxPoVSize
+			}
+		}
+	}
+
+	if headData != nil && relayParentInfo != nil && maxPovSize != nil {
+		response <- &parachaintypes.PersistedValidationData{
+			ParentHead:             *headData,
+			RelayParentNumber:      uint32(relayParentInfo.Number),
+			RelayParentStorageRoot: relayParentInfo.StorageRoot,
+			MaxPovSize:             *maxPovSize,
+		}
+	} else {
+		response <- nil
+	}
 }
