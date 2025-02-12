@@ -114,4 +114,5 @@ const (
 	// ParachainHostSessionExecutorParams is the runtime API call ParachainHost_session_executor_params
 	ParachainHostSessionExecutorParams = "ParachainHost_session_executor_params"
 	ParachainHostParaBackingState      = "ParachainHost_para_backing_state"
+	ParachainHostDisputes              = "ParachainHost_disputes"
 )

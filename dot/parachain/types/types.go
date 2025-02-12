@@ -835,3 +835,22 @@ type CandidateHashAndRelayParent struct {
 	CandidateHash        CandidateHash
 	CandidateRelayParent common.Hash
 }
+
+type DisputeKey struct {
+	SessionIndex  SessionIndex
+	CandidateHash CandidateHash
+}
+
+type DisputeState struct {
+	// A bitfield indicating all validators for the candidate.
+	ValidatorsFor BitVec
+
+	// A bitfield indicating all validators against the candidate.
+	ValidatorsAgainst BitVec
+
+	// The block number at which the dispute started on-chain.
+	Start BlockNumber
+
+	// The block number at which the dispute concluded on-chain.
+	ConcludedAt *BlockNumber
+}
