@@ -382,7 +382,7 @@ func TestStoreAndFinalizeBabeNextEpochData(t *testing.T) {
 
 			for _, e := range tt.inMemoryEpoch {
 				for i, hash := range e.hashes {
-					epochState.storeBABENextEpochData(e.epoch, hash, e.nextData[i])
+					epochState.StoreBABENextEpochData(e.epoch, hash, e.nextData[i])
 				}
 			}
 

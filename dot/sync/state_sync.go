@@ -8,6 +8,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -359,6 +360,12 @@ func (s *StateSyncStrategy) setBlockAsFullSyncStartingBlock() error {
 		return fmt.Errorf("setting new authorities set: %w", err)
 	}
 
+	// Configure babe epoch
+	err = s.configureBabeEpoch(trieState)
+	if err != nil {
+		return fmt.Errorf("configuring babe epoch: %w", err)
+	}
+
 	// Finalize block
 	justification := s.warpSyncResult.Justification
 	err = s.blockState.SetFinalisedHash(s.targetHeader.Hash(),
@@ -397,6 +404,20 @@ func grandpaVotersFromAuthorities(authorities grandpa.AuthorityList) []types.Gra
 	}
 
 	return voters
+}
+
+func (s *StateSyncStrategy) configureBabeEpoch(newState trie.Trie) error {
+	epochDataRaw, err := babe.GetNextEpochDataRawFromState(newState)
+	if err != nil {
+		return fmt.Errorf("getting epoch data from state: %w", err)
+	}
+
+	epochIndex, err := babe.GetCurrentEpochIndexFromState(newState)
+	if err != nil {
+		return fmt.Errorf("getting epoch index from state: %w", err)
+	}
+
+	return s.epochState.SetEpochDataRaw(epochIndex+1, epochDataRaw)
 }
 
 var _ Strategy = (*StateSyncStrategy)(nil)
