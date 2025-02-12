@@ -86,6 +86,21 @@ func (mr *MockRuntimeInstanceMockRecorder) ParachainHostDisputes() *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostDisputes", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostDisputes))
 }
 
+// ParachainHostDisputes mocks base method.
+func (m *MockRuntimeInstance) ParachainHostDisputes() (map[parachaintypes.DisputeKey]parachaintypes.DisputeState, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostDisputes")
+	ret0, _ := ret[0].(map[parachaintypes.DisputeKey]parachaintypes.DisputeState)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostDisputes indicates an expected call of ParachainHostDisputes.
+func (mr *MockRuntimeInstanceMockRecorder) ParachainHostDisputes() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostDisputes", reflect.TypeOf((*MockRuntimeInstance)(nil).ParachainHostDisputes))
+}
+
 // ParachainHostPersistedValidationData mocks base method.
 func (m *MockRuntimeInstance) ParachainHostPersistedValidationData(parachaidID parachaintypes.ParaID, assumption parachaintypes.OccupiedCoreAssumption) (*parachaintypes.PersistedValidationData, error) {
 	m.ctrl.T.Helper()
