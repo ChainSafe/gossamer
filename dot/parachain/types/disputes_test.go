@@ -74,3 +74,33 @@ func TestDisputeStatus(t *testing.T) {
 		require.Equal(t, expected[idx], ds)
 	}
 }
+
+func TestDisputeStatement(t *testing.T) {
+	inputs := []string{
+		"0x0000",
+		"0x00010101010101010101010101010101010101010101010101010101010101010101",
+		"0x00020202020202020202020202020202020202020202020202020202020202020202",
+		"0x0003",
+		"0x0004040303030303030303030303030303030303030303030303030303030303030303",
+		"0x0100",
+	}
+	expected := []DisputeStatement{
+		{inner: ValidDisputeStatement{Kind: ValidDisputeStatementKind{inner: ExplicitStatement{}}}},
+		{inner: ValidDisputeStatement{Kind: ValidDisputeStatementKind{inner: BackingSeconded{Hash: common.Hash(bytes.Repeat([]byte{0x01}, 32))}}}},
+		{inner: ValidDisputeStatement{Kind: ValidDisputeStatementKind{inner: BackingValid{Hash: common.Hash(bytes.Repeat([]byte{0x02}, 32))}}}},
+		{inner: ValidDisputeStatement{Kind: ValidDisputeStatementKind{inner: ApprovalChecking{}}}},
+		{inner: ValidDisputeStatement{Kind: ValidDisputeStatementKind{inner: ApprovalCheckingMultipleCandidates{
+			CandidateHashes: []CandidateHash{
+				{Value: common.Hash(bytes.Repeat([]byte{0x03}, 32))},
+			},
+		}}}},
+		{inner: InvalidDisputeStatement{Kind: InvalidDisputeStatementKind{inner: ExplicitStatement{}}}},
+	}
+
+	for idx, in := range inputs {
+		var ds DisputeStatement
+		scale.Unmarshal(common.MustHexToBytes(in), &ds)
+
+		require.Equal(t, expected[idx], ds)
+	}
+}
