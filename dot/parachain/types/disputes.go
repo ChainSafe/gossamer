@@ -5,7 +5,9 @@ package parachaintypes
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/tidwall/btree"
 )
@@ -363,7 +365,10 @@ func (ds DisputeStatus) ConcludeFor(now uint64) DisputeStatus {
 	case Active, Confirmed:
 		return DisputeStatus{inner: ConcludedFor{Timestamp: now}}
 	case ConcludedFor:
-		return DisputeStatus{inner: ConcludedFor{Timestamp: min(inner.Timestamp, now)}}
+		if inner.Timestamp.Before(now) {
+			return ds
+		}
+		return DisputeStatus{inner: ConcludedFor{Timestamp: now}}
 	default:
 		return ds
 	}
@@ -376,9 +381,15 @@ func (ds DisputeStatus) ConcludeAgainst(now uint64) DisputeStatus {
 	case Active, Confirmed:
 		return DisputeStatus{inner: ConcludedAgainst{Timestamp: now}}
 	case ConcludedFor:
-		return DisputeStatus{inner: ConcludedAgainst{Timestamp: min(inner.Timestamp, now)}}
+		if inner.Timestamp.Before(now) {
+			return DisputeStatus{inner: ConcludedAgainst{Timestamp: now}}
+		}
+		return ds
 	case ConcludedAgainst:
-		return DisputeStatus{inner: ConcludedAgainst{Timestamp: min(inner.Timestamp, now)}}
+		if inner.Timestamp.Before(now) {
+			return ds
+		}
+		return DisputeStatus{inner: ConcludedAgainst{Timestamp: now}}
 	default:
 		return ds
 	}
@@ -396,7 +407,7 @@ func (ds DisputeStatus) IsPossiblyInvalid() bool {
 }
 
 // ConcludedAt yields the timestamp this dispute concluded at, if any.
-func (ds DisputeStatus) ConcludedAt() *uint64 {
+func (ds DisputeStatus) ConcludedAt() *time.Time {
 	switch inner := ds.inner.(type) {
 	case ConcludedFor:
 		return &inner.Timestamp
