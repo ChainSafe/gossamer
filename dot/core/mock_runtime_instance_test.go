@@ -465,6 +465,21 @@ func (mr *MockInstanceMockRecorder) ParachainHostDisputes() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostDisputes", reflect.TypeOf((*MockInstance)(nil).ParachainHostDisputes))
 }
 
+// ParachainHostDisputes mocks base method.
+func (m *MockInstance) ParachainHostDisputes() (map[parachaintypes.DisputeKey]parachaintypes.DisputeState, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostDisputes")
+	ret0, _ := ret[0].(map[parachaintypes.DisputeKey]parachaintypes.DisputeState)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostDisputes indicates an expected call of ParachainHostDisputes.
+func (mr *MockInstanceMockRecorder) ParachainHostDisputes() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostDisputes", reflect.TypeOf((*MockInstance)(nil).ParachainHostDisputes))
+}
+
 // ParachainHostMinimumBackingVotes mocks base method.
 func (m *MockInstance) ParachainHostMinimumBackingVotes() (uint32, error) {
 	m.ctrl.T.Helper()
