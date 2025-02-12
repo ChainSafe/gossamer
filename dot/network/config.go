@@ -14,6 +14,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/crypto"
 
 	"github.com/ChainSafe/gossamer/dot/network/ratelimiters"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -65,7 +66,7 @@ type Config struct {
 	Roles common.NetworkRole
 
 	// Service interfaces
-	BlockState         BlockState
+	BlockState         state.BlockState
 	Syncer             Syncer
 	WarpSyncProvider   WarpSyncProvider
 	TransactionHandler TransactionHandler

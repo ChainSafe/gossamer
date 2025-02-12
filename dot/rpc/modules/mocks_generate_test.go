@@ -8,3 +8,4 @@ package modules
 //go:generate mockgen -destination=mock_sync_api_test.go -package $GOPACKAGE . SyncAPI
 //go:generate mockgen -destination=mock_syncer_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/network Syncer
 //go:generate mockgen -destination=mocks_babe_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/lib/babe BlockImportHandler
+//go:generate mockgen -destination=mock_block_state_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/state BlockState

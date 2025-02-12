@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -470,7 +469,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 
 	err = gs.blockState.SetFinalisedHash(testGenesisHeader.Hash(), round, setID)
 	require.NoError(t, err)
-	err = gs.blockState.(*state.BlockState).SetHeader(&block.Header)
+	err = gs.blockState.SetHeader(&block.Header)
 	require.NoError(t, err)
 
 	pvj := []SignedVote{

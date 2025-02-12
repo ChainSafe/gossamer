@@ -16,7 +16,7 @@ import (
 const defaultBufferSize = 128
 
 // GetImportedBlockNotifierChannel function to retrieve a imported block notifier channel
-func (bs *BlockState) GetImportedBlockNotifierChannel() chan *types.Block {
+func (bs *DefaultBlockState) GetImportedBlockNotifierChannel() chan *types.Block {
 	bs.importedLock.Lock()
 	defer bs.importedLock.Unlock()
 
@@ -26,7 +26,7 @@ func (bs *BlockState) GetImportedBlockNotifierChannel() chan *types.Block {
 }
 
 // GetFinalisedNotifierChannel function to retrieve a finalised block notifier channel
-func (bs *BlockState) GetFinalisedNotifierChannel() chan *types.FinalisationInfo {
+func (bs *DefaultBlockState) GetFinalisedNotifierChannel() chan *types.FinalisationInfo {
 	bs.finalisedLock.Lock()
 	defer bs.finalisedLock.Unlock()
 
@@ -37,21 +37,21 @@ func (bs *BlockState) GetFinalisedNotifierChannel() chan *types.FinalisationInfo
 }
 
 // FreeImportedBlockNotifierChannel to free imported block notifier channel
-func (bs *BlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
+func (bs *DefaultBlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
 	bs.importedLock.Lock()
 	defer bs.importedLock.Unlock()
 	delete(bs.imported, ch)
 }
 
 // FreeFinalisedNotifierChannel to free finalised notifier channel
-func (bs *BlockState) FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo) {
+func (bs *DefaultBlockState) FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo) {
 	bs.finalisedLock.Lock()
 	defer bs.finalisedLock.Unlock()
 
 	delete(bs.finalised, ch)
 }
 
-func (bs *BlockState) notifyImported(block *types.Block) {
+func (bs *DefaultBlockState) notifyImported(block *types.Block) {
 	bs.importedLock.RLock()
 	defer bs.importedLock.RUnlock()
 
@@ -70,7 +70,7 @@ func (bs *BlockState) notifyImported(block *types.Block) {
 	}
 }
 
-func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
+func (bs *DefaultBlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
 	bs.finalisedLock.RLock()
 	defer bs.finalisedLock.RUnlock()
 
@@ -101,7 +101,7 @@ func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
 	}
 }
 
-func (bs *BlockState) notifyRuntimeUpdated(version runtime.Version) {
+func (bs *DefaultBlockState) notifyRuntimeUpdated(version runtime.Version) {
 	bs.runtimeUpdateSubscriptionsLock.RLock()
 	defer bs.runtimeUpdateSubscriptionsLock.RUnlock()
 
@@ -122,7 +122,7 @@ func (bs *BlockState) notifyRuntimeUpdated(version runtime.Version) {
 }
 
 // RegisterRuntimeUpdatedChannel function to register chan that is notified when runtime version changes
-func (bs *BlockState) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error) {
+func (bs *DefaultBlockState) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error) {
 	bs.runtimeUpdateSubscriptionsLock.Lock()
 	defer bs.runtimeUpdateSubscriptionsLock.Unlock()
 
@@ -137,7 +137,7 @@ func (bs *BlockState) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (
 }
 
 // UnregisterRuntimeUpdatedChannel function to unregister runtime updated channel
-func (bs *BlockState) UnregisterRuntimeUpdatedChannel(id uint32) bool {
+func (bs *DefaultBlockState) UnregisterRuntimeUpdatedChannel(id uint32) bool {
 	bs.runtimeUpdateSubscriptionsLock.Lock()
 	defer bs.runtimeUpdateSubscriptionsLock.Unlock()
 	ch, ok := bs.runtimeUpdateSubscriptions[id]
@@ -149,7 +149,7 @@ func (bs *BlockState) UnregisterRuntimeUpdatedChannel(id uint32) bool {
 	return false
 }
 
-func (bs *BlockState) generateID() uint32 {
+func (bs *DefaultBlockState) generateID() uint32 {
 	var uid uuid.UUID
 	for {
 		uid = uuid.New()

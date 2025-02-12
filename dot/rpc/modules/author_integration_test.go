@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"sync"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -627,14 +626,6 @@ type coreNetwork interface {
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
 }
 
-type coreStorageState interface {
-	TrieState(root *common.Hash) (*storage.TrieState, error)
-	StoreTrie(*storage.TrieState, *types.Header) error
-	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
-	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
-	sync.Locker
-}
-
 type integrationTestController struct {
 	genesis       *genesis.Genesis
 	genesisTrie   *trie.Trie
@@ -642,7 +633,7 @@ type integrationTestController struct {
 	runtime       runtime.Instance
 	stateSrv      *state.Service
 	network       coreNetwork
-	storageState  coreStorageState
+	storageState  state.StorageState
 	keystore      *keystore.GlobalKeystore
 }
 

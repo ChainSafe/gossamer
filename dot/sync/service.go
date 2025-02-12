@@ -12,11 +12,11 @@ import (
 	"github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa/warpsync"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
@@ -61,34 +61,6 @@ type Network interface {
 	GossipMessageExcluding(network.NotificationsMessage, peer.ID)
 }
 
-type BlockState interface {
-	BestBlockHeader() (*types.Header, error)
-	BestBlockNumber() (number uint, err error)
-	CompareAndSetBlockData(bd *types.BlockData) error
-	GetBlockBody(common.Hash) (*types.Body, error)
-	GetHeader(common.Hash) (*types.Header, error)
-	HasHeader(hash common.Hash) (bool, error)
-	Range(startHash, endHash common.Hash) (hashes []common.Hash, err error)
-	RangeInMemory(start, end common.Hash) ([]common.Hash, error)
-	GetReceipt(common.Hash) ([]byte, error)
-	GetMessageQueue(common.Hash) ([]byte, error)
-	GetJustification(common.Hash) ([]byte, error)
-	SetFinalisedHash(hash common.Hash, round uint64, setID uint64) error
-	SetJustification(hash common.Hash, data []byte) error
-	GetHashByNumber(blockNumber uint) (common.Hash, error)
-	GetBlockByHash(common.Hash) (*types.Block, error)
-	GetRuntime(blockHash common.Hash) (runtime runtime.Instance, err error)
-	StoreRuntime(blockHash common.Hash, runtime runtime.Instance)
-	GetHighestFinalisedHeader() (*types.Header, error)
-	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
-	GetHeaderByNumber(num uint) (*types.Header, error)
-	GetAllBlocksAtNumber(num uint) ([]common.Hash, error)
-	IsDescendantOf(parent, child common.Hash) (bool, error)
-
-	IsPaused() bool
-	Pause() error
-}
-
 type Change struct {
 	who peer.ID
 	rep peerset.ReputationChange
@@ -108,7 +80,7 @@ type SyncService struct {
 	mu                 sync.Mutex
 	wg                 sync.WaitGroup
 	network            Network
-	blockState         BlockState
+	blockState         state.BlockState
 	grandpaState       GrandpaState
 	storageState       StorageState
 	transactionState   TransactionState

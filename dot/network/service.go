@@ -14,6 +14,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -128,7 +129,7 @@ type Service struct {
 	lightRequestMu sync.RWMutex
 
 	// Service interfaces
-	blockState         BlockState
+	blockState         state.BlockState
 	syncer             Syncer
 	transactionHandler TransactionHandler
 	warpSyncProvider   WarpSyncProvider
