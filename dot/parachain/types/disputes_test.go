@@ -104,3 +104,34 @@ func TestDisputeStatement(t *testing.T) {
 		require.Equal(t, expected[idx], ds)
 	}
 }
+
+func TestDisputeStatementSet(t *testing.T) {
+	inputs := []string{
+		"0x010101010101010101010101010101010101010101010101010101010101010101000000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+	}
+	expected := []DisputeStatementSet{
+		{
+			CandidateHash: CandidateHash{Value: common.Hash(bytes.Repeat([]byte{0x01}, 32))},
+			Session:       1,
+			Statements: []DisputeStatementEntry{
+				{
+					Statement: DisputeStatement{inner: ValidDisputeStatement{Kind: ValidDisputeStatementKind{inner: ExplicitStatement{}}}},
+					Index:     0,
+					Signature: ValidatorSignature([64]byte{}),
+				},
+				{
+					Statement: DisputeStatement{inner: InvalidDisputeStatement{Kind: InvalidDisputeStatementKind{inner: ExplicitStatement{}}}},
+					Index:     1,
+					Signature: ValidatorSignature([64]byte{}),
+				},
+			},
+		},
+	}
+
+	for idx, in := range inputs {
+		var dss DisputeStatementSet
+		scale.Unmarshal(common.MustHexToBytes(in), &dss)
+
+		require.Equal(t, expected[idx], dss)
+	}
+}

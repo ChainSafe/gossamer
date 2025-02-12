@@ -455,3 +455,22 @@ type ValidDisputeStatement struct {
 type InvalidDisputeStatement struct {
 	Kind InvalidDisputeStatementKind
 }
+
+type MultiDisputeStatementSet = []DisputeStatementSet
+
+// DisputeStatementSet represents a set of statements about a specific candidate.
+type DisputeStatementSet struct {
+	// The candidate referenced by this set.
+	CandidateHash CandidateHash
+	// The session index of the candidate.
+	Session SessionIndex
+	// Statements about the candidate.
+	Statements []DisputeStatementEntry
+}
+
+// DisputeStatementEntry represents a single statement about a candidate.
+type DisputeStatementEntry struct {
+	Statement DisputeStatement
+	Index     ValidatorIndex
+	Signature ValidatorSignature
+}
