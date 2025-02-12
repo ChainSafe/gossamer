@@ -217,7 +217,7 @@ func TestStatementTable_importStatement(t *testing.T) {
 			expectedError:           nil,
 		},
 		{
-			description: "unauthorized_seconded_statement",
+			description: "unauthorised_seconded_statement",
 			table: statementTable{
 				detectedMisbehaviour: make(map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour),
 			},
@@ -238,7 +238,7 @@ func TestStatementTable_importStatement(t *testing.T) {
 			expectedError:           nil,
 		},
 		{
-			description: "unauthorized_valid_statement",
+			description: "unauthorised_valid_statement",
 			table: statementTable{
 				detectedMisbehaviour: make(map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour),
 				candidateVotes: map[parachaintypes.CandidateHash]*candidateData{

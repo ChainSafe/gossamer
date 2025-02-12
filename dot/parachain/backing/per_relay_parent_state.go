@@ -22,7 +22,7 @@ import (
 var errNilPersistedValidationData = errors.New("persisted validation data is nil")
 
 // constructPerRelayParentState constructs and returns the perRelayParentState for a given relay parent hash,
-// initializing various parameters and caches required for candidate backing.
+// initialising various parameters and caches required for candidate backing.
 func (cb *CandidateBacking) constructPerRelayParentState(relayParent common.Hash) (*perRelayParentState, error) {
 	rt, err := cb.BlockState.GetRuntime(relayParent)
 	if err != nil {
@@ -48,8 +48,7 @@ func (cb *CandidateBacking) constructPerRelayParentState(relayParent common.Hash
 		return nil, fmt.Errorf("invalid node features for relay parent %s", relayParent)
 	}
 
-	featuresBitVec := parachaintypes.BitVec(*features)
-	injectCoreIndex, err := featuresBitVec.Get(uint(parachaintypes.ElasticScalingMVP))
+	injectCoreIndex, err := features.Get(uint(parachaintypes.ElasticScalingMVP))
 	if err != nil {
 		return nil, fmt.Errorf("getting inject core index: %w", err)
 	}
@@ -106,7 +105,7 @@ func (cb *CandidateBacking) constructPerRelayParentState(relayParent common.Hash
 	var assignedCore parachaintypes.CoreIndex
 
 	for idx := uint32(0); idx < numOfCores; idx++ {
-		coreIndex := parachaintypes.CoreIndex{Index: uint32(idx)}
+		coreIndex := parachaintypes.CoreIndex{Index: idx}
 
 		if _, ok := claimQueue[coreIndex]; !ok {
 			continue
@@ -166,7 +165,7 @@ type perRelayParentState struct {
 	// The table of candidates and statements under this relay-parent.
 	table Table
 	// The table context, including groups.
-	tableContext tableContext // need to remove existing tableContext, rename tableContext2 to tableContext2
+	tableContext tableContext
 	// Data needed for retrying in case of `ValidatedCandidateCommand::AttestNoPoV`.
 	fallbacks map[parachaintypes.CandidateHash]attestingData
 	// These candidates are undergoing validation in the background.
@@ -214,10 +213,16 @@ func (rpState *perRelayParentState) importStatement(
 		return rpState.findCoreIndexAndImportStatement(signedStatementWithPVD)
 	}
 
-	return rpState.importSecondedStatement(subSystemToOverseer, signedStatementWithPVD, perCandidate, statementVDT.(parachaintypes.Seconded))
+	return rpState.importSecondedStatement(
+		subSystemToOverseer,
+		signedStatementWithPVD,
+		perCandidate,
+		statementVDT.(parachaintypes.Seconded),
+	)
 }
 
-// findCoreIndexAndImportStatement finds the core index from a statement and imports the statement into the statement table.
+// findCoreIndexAndImportStatement finds the core index from a statement and imports the statement into the statement
+// table.
 func (rpState *perRelayParentState) findCoreIndexAndImportStatement(
 	signedStatementWithPVD parachaintypes.SignedFullStatementWithPVD,
 ) (*Summary, error) {
@@ -290,7 +295,8 @@ func (rpState *perRelayParentState) introduceCandidate(
 
 	introduceCandidateErr, ok := <-chIntroduceCandidate
 	if !ok {
-		return fmt.Errorf("%w: %s", errRejectedByProspectiveParachains, "Could not reach the Prospective Parachains subsystem.")
+		return fmt.Errorf("%w: %s",
+			errRejectedByProspectiveParachains, "Could not reach the Prospective Parachains subsystem.")
 	}
 	if introduceCandidateErr != nil {
 		return fmt.Errorf("%w: %w", errRejectedByProspectiveParachains, introduceCandidateErr)

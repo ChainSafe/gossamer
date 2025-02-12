@@ -83,8 +83,8 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 				mockRuntime.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(1), nil)
 				mockRuntime.EXPECT().ParachainHostValidators().Return([]parachaintypes.ValidatorID{{1}, {2}, {3}}, nil)
 				mockRuntime.EXPECT().ParachainHostNodeFeatures().Return(parachaintypes.NewBitVec([]bool{false, true}), nil)
-				mockRuntime.EXPECT().ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).Return(
-					&parachaintypes.ExecutorParams{}, nil)
+				mockRuntime.EXPECT().ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
+					Return(&parachaintypes.ExecutorParams{}, nil)
 				mockRuntime.EXPECT().ParachainHostValidatorGroups().Return(&parachaintypes.ValidatorGroups{}, nil)
 				mockRuntime.EXPECT().ParachainHostMinimumBackingVotes().Return(uint32(2), nil)
 				mockRuntime.EXPECT().ParachainHostClaimQueue().Return(parachaintypes.ClaimQueue{}, nil)

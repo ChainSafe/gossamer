@@ -428,6 +428,8 @@ func TestOccupiedCoreAssumption(t *testing.T) {
 }
 
 func TestAssignment(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name          string
 		enumValue     any
