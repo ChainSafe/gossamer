@@ -8,6 +8,16 @@ import (
 	"github.com/tidwall/btree"
 )
 
+// Any dispute that concluded more than a few minutes ago
+// is not worth considering anymore.
+const ActiveDurationSecs uint64 = 180
+
+// DisputeIsInactive returns true if the dispute has concluded for longer than ActiveDurationSecs.
+func DisputeIsInactive(status *DisputeStatus, now uint64) bool {
+	at := status.ConcludedAt()
+	return at != nil && *at+ActiveDurationSecs < now
+}
+
 type DisputeKey struct {
 	SessionIndex  SessionIndex
 	CandidateHash CandidateHash
