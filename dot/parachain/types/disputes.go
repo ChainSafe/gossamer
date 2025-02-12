@@ -2,7 +2,6 @@ package parachaintypes
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -291,12 +290,12 @@ type Active struct{}
 
 // ConcludedFor represents a dispute concluded in favor of the candidate.
 type ConcludedFor struct {
-	Timestamp time.Time
+	Timestamp uint64
 }
 
 // ConcludedAgainst represents a dispute concluded against the candidate.
 type ConcludedAgainst struct {
-	Timestamp time.Time
+	Timestamp uint64
 }
 
 // Confirmed represents a confirmed dispute.
@@ -340,35 +339,26 @@ func (ds DisputeStatus) HasConcludedAgainst() bool {
 }
 
 // ConcludeFor transitions the status to a new status after observing the dispute has concluded for the candidate.
-func (ds DisputeStatus) ConcludeFor(now time.Time) DisputeStatus {
+func (ds DisputeStatus) ConcludeFor(now uint64) DisputeStatus {
 	switch inner := ds.inner.(type) {
 	case Active, Confirmed:
 		return DisputeStatus{inner: ConcludedFor{Timestamp: now}}
 	case ConcludedFor:
-		if inner.Timestamp.Before(now) {
-			return ds
-		}
-		return DisputeStatus{inner: ConcludedFor{Timestamp: now}}
+		return DisputeStatus{inner: ConcludedFor{Timestamp: min(inner.Timestamp, now)}}
 	default:
 		return ds
 	}
 }
 
 // ConcludeAgainst transitions the status to a new status after observing the dispute has concluded against the candidate.
-func (ds DisputeStatus) ConcludeAgainst(now time.Time) DisputeStatus {
+func (ds DisputeStatus) ConcludeAgainst(now uint64) DisputeStatus {
 	switch inner := ds.inner.(type) {
 	case Active, Confirmed:
 		return DisputeStatus{inner: ConcludedAgainst{Timestamp: now}}
 	case ConcludedFor:
-		if inner.Timestamp.Before(now) {
-			return DisputeStatus{inner: ConcludedAgainst{Timestamp: now}}
-		}
-		return ds
+		return DisputeStatus{inner: ConcludedAgainst{Timestamp: min(inner.Timestamp, now)}}
 	case ConcludedAgainst:
-		if inner.Timestamp.Before(now) {
-			return ds
-		}
-		return DisputeStatus{inner: ConcludedAgainst{Timestamp: now}}
+		return DisputeStatus{inner: ConcludedAgainst{Timestamp: min(inner.Timestamp, now)}}
 	default:
 		return ds
 	}
@@ -386,7 +376,7 @@ func (ds DisputeStatus) IsPossiblyInvalid() bool {
 }
 
 // ConcludedAt yields the timestamp this dispute concluded at, if any.
-func (ds DisputeStatus) ConcludedAt() *time.Time {
+func (ds DisputeStatus) ConcludedAt() *uint64 {
 	switch inner := ds.inner.(type) {
 	case ConcludedFor:
 		return &inner.Timestamp

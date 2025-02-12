@@ -52,3 +52,25 @@ func TestInvalidDisputeStatementKind(t *testing.T) {
 		require.Equal(t, expected[idx], vdk)
 	}
 }
+
+func TestDisputeStatus(t *testing.T) {
+	inputs := []string{
+		"0x00",
+		"0x01704fdf6000000000",
+		"0x02704fdf6000000000",
+		"0x03",
+	}
+	expected := []DisputeStatus{
+		{inner: Active{}},
+		{inner: ConcludedFor{Timestamp: 1625247600}},
+		{inner: ConcludedAgainst{Timestamp: 1625247600}},
+		{inner: Confirmed{}},
+	}
+
+	for idx, in := range inputs {
+		var ds DisputeStatus
+		scale.Unmarshal(common.MustHexToBytes(in), &ds)
+
+		require.Equal(t, expected[idx], ds)
+	}
+}
