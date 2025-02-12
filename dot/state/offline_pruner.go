@@ -21,7 +21,7 @@ import (
 type OfflinePruner struct {
 	inputDB        database.Database
 	storageState   *InmemoryStorageState
-	blockState     *BlockState
+	blockState     BlockState
 	filterDatabase database.Database
 	bestBlockHash  common.Hash
 	retainBlockNum uint32
@@ -42,7 +42,7 @@ func NewOfflinePruner(inputDBPath string,
 
 	// create blockState state
 	// NewBlockState on pruner execution does not use telemetry
-	blockState, err := NewBlockState(db, tries, nil)
+	blockState, err := NewDefaultBlockState(db, tries, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create block state: %w", err)
 	}

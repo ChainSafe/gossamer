@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
@@ -60,7 +61,7 @@ type (
 )
 
 type blockImporter struct {
-	blockState         BlockState
+	blockState         state.BlockState
 	storageState       StorageState
 	transactionState   TransactionState
 	babeVerifier       BabeVerifier

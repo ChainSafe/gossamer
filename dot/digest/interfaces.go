@@ -9,14 +9,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 )
 
-// BlockState interface for block state methods
-type BlockState interface {
-	GetImportedBlockNotifierChannel() chan *types.Block
-	FreeImportedBlockNotifierChannel(ch chan *types.Block)
-	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
-	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
-}
-
 // EpochState is the interface for state.EpochState
 type EpochState interface {
 	GetEpochForBlock(header *types.Header) (uint64, error)

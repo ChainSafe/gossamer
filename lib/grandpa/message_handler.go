@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
@@ -25,12 +26,12 @@ import (
 // MessageHandler handles GRANDPA consensus messages
 type MessageHandler struct {
 	grandpa    *Service
-	blockState BlockState
+	blockState state.BlockState
 	telemetry  Telemetry
 }
 
 // NewMessageHandler returns a new MessageHandler
-func NewMessageHandler(grandpa *Service, blockState BlockState, telemetryMailer Telemetry) *MessageHandler {
+func NewMessageHandler(grandpa *Service, blockState state.BlockState, telemetryMailer Telemetry) *MessageHandler {
 	return &MessageHandler{
 		grandpa:    grandpa,
 		blockState: blockState,
@@ -228,7 +229,7 @@ func getEquivocatoryVoters(votes []AuthData) map[ed25519.PublicKeyBytes]struct{}
 	return eqvVoters
 }
 
-func isDescendantOfHighestFinalisedBlock(blockState BlockState, hash common.Hash) (bool, error) {
+func isDescendantOfHighestFinalisedBlock(blockState state.BlockState, hash common.Hash) (bool, error) {
 	highestHeader, err := blockState.GetHighestFinalisedHeader()
 	if err != nil {
 		return false, fmt.Errorf("could not get highest finalised header: %w", err)
@@ -401,7 +402,7 @@ func (s *Service) VerifyBlockJustification(finalizedHash common.Hash, finalizedN
 	return justification.Justification.Round, setID, nil
 }
 
-func verifyBlockHashAgainstBlockNumber(bs BlockState, hash common.Hash, number uint) error {
+func verifyBlockHashAgainstBlockNumber(bs state.BlockState, hash common.Hash, number uint) error {
 	header, err := bs.GetHeader(hash)
 	if err != nil {
 		return fmt.Errorf("could not get header from block hash: %w", err)

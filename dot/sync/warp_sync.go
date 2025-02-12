@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/lib/grandpa/warpsync"
@@ -38,7 +39,7 @@ type WarpSyncStrategy struct {
 	warpSyncReqMaker network.RequestMaker
 	syncReqMaker     network.RequestMaker
 	warpSyncProvider WarpSyncProofProvider
-	blockState       BlockState
+	blockState       state.BlockState
 
 	// Warp sync state
 	startedAt       time.Time
@@ -56,7 +57,7 @@ type WarpSyncConfig struct {
 	WarpSyncRequestMaker network.RequestMaker
 	SyncRequestMaker     network.RequestMaker
 	WarpSyncProvider     WarpSyncProofProvider
-	BlockState           BlockState
+	BlockState           state.BlockState
 	Peers                *peerViewSet
 }
 

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	consensus_grandpa "github.com/ChainSafe/gossamer/internal/client/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -27,13 +28,6 @@ var (
 	errMissingStartBlock      = fmt.Errorf("missing start block")
 	errStartBlockNotFinalized = fmt.Errorf("start block is not finalized")
 )
-
-type BlockState interface {
-	GetHeader(common.Hash) (*types.Header, error)
-	GetHeaderByNumber(uint) (*types.Header, error)
-	GetJustification(common.Hash) ([]byte, error)
-	GetHighestFinalisedHeader() (*types.Header, error)
-}
 
 type GrandpaState interface {
 	GetCurrentSetID() (uint64, error)
@@ -171,12 +165,12 @@ func (w *WarpSyncProof) verify(
 }
 
 type WarpSyncProofProvider struct {
-	blockState   BlockState
+	blockState   state.BlockState
 	grandpaState GrandpaState
 	hardForks    map[string]SetIdAuthorityList
 }
 
-func NewWarpSyncProofProvider(blockState BlockState, grandpaState GrandpaState) *WarpSyncProofProvider {
+func NewWarpSyncProofProvider(blockState state.BlockState, grandpaState GrandpaState) *WarpSyncProofProvider {
 	return &WarpSyncProofProvider{
 		blockState:   blockState,
 		grandpaState: grandpaState,

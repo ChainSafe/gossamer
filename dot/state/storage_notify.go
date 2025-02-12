@@ -51,13 +51,13 @@ func (s *InmemoryStorageState) RegisterStorageObserver(o Observer) {
 	s.observerList = append(s.observerList, o)
 
 	// notifyObserver here to send storage value of current state
-	sr, err := s.blockState.BestBlockStateRoot()
+	header, err := s.blockState.BestBlockHeader()
 	if err != nil {
 		logger.Debugf("error registering storage change channel: %s", err)
 		return
 	}
 	go func() {
-		if err := s.notifyObserver(sr, o); err != nil {
+		if err := s.notifyObserver(header.StateRoot, o); err != nil {
 			logger.Warnf("failed to notify storage subscriptions: %s", err)
 		}
 	}()
