@@ -18,11 +18,11 @@ func TestValidDisputeStatementKind(t *testing.T) {
 		"0x04040303030303030303030303030303030303030303030303030303030303030303",
 	}
 	expected := []ValidDisputeStatementKind{
-		ValidDisputeStatementKind{inner: ExplicitStatement{}},
-		ValidDisputeStatementKind{inner: BackingSeconded{Hash: common.Hash(bytes.Repeat([]byte{0x01}, 32))}},
-		ValidDisputeStatementKind{inner: BackingValid{Hash: common.Hash(bytes.Repeat([]byte{0x02}, 32))}},
-		ValidDisputeStatementKind{inner: ApprovalChecking{}},
-		ValidDisputeStatementKind{inner: ApprovalCheckingMultipleCandidates{
+		{inner: ExplicitStatement{}},
+		{inner: BackingSeconded{Hash: common.Hash(bytes.Repeat([]byte{0x01}, 32))}},
+		{inner: BackingValid{Hash: common.Hash(bytes.Repeat([]byte{0x02}, 32))}},
+		{inner: ApprovalChecking{}},
+		{inner: ApprovalCheckingMultipleCandidates{
 			CandidateHashes: []CandidateHash{
 				{Value: common.Hash(bytes.Repeat([]byte{0x03}, 32))},
 			},
@@ -31,6 +31,22 @@ func TestValidDisputeStatementKind(t *testing.T) {
 
 	for idx, in := range inputs {
 		var vdk ValidDisputeStatementKind
+		scale.Unmarshal(common.MustHexToBytes(in), &vdk)
+
+		require.Equal(t, expected[idx], vdk)
+	}
+}
+
+func TestInvalidDisputeStatementKind(t *testing.T) {
+	inputs := []string{
+		"0x00", // there is only one variant
+	}
+	expected := []InvalidDisputeStatementKind{
+		{inner: ExplicitStatement{}},
+	}
+
+	for idx, in := range inputs {
+		var vdk InvalidDisputeStatementKind
 		scale.Unmarshal(common.MustHexToBytes(in), &vdk)
 
 		require.Equal(t, expected[idx], vdk)
