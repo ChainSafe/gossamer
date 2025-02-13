@@ -10,7 +10,9 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 )
 
@@ -416,4 +418,98 @@ func (c *Client[H, Hasher, N, E, Header]) StorageChangesNotificationStream(
 	childFilterKeys []api.ChildFilterKeys,
 ) api.StorageEventStream[H] {
 	return c.storageNotifications.Listen(filterKeys, childFilterKeys)
+}
+
+// HeaderBackend implementation for Client
+
+func (c *Client[H, Hasher, N, E, Header]) Header(hash H) (*Header, error) {
+	return c.backend.Blockchain().Header(hash)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) Body(hash H) ([]E, error) {
+	return c.backend.Blockchain().Body(hash)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) Info() blockchain.Info[H, N] {
+	return c.backend.Blockchain().Info()
+}
+
+func (c *Client[H, Hasher, N, E, Header]) Status(hash H) (blockchain.BlockStatus, error) {
+	return c.backend.Blockchain().Status(hash)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) Number(hash H) (*N, error) {
+	return c.backend.Blockchain().Number(hash)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) Hash(number N) (*H, error) {
+	return c.backend.Blockchain().Hash(number)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) BlockHashFromID(id generic.BlockID) (*H, error) {
+	return c.backend.Blockchain().BlockHashFromID(id)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) BlockNumberFromID(id generic.BlockID) (*N, error) {
+	return c.backend.Blockchain().BlockNumberFromID(id)
+}
+
+// BlockBackend implementation for Client
+
+func (c *Client[H, Hasher, N, E, Header]) BlockBody(hash H) ([]E, error) {
+	return c.backend.Blockchain().Body(hash)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) Block(hash H) (*generic.SignedBlock[N, H, Hasher, E], error) {
+	header, err := c.Header(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := c.Body(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	justifications, err := c.Justifications(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	if header != nil && body != nil {
+		return &generic.SignedBlock[N, H, Hasher, E]{
+			Block:          generic.NewBlock[N, H, Hasher](*header, body),
+			Justifications: justifications,
+		}, nil
+	}
+
+	return nil, nil
+}
+
+func (c *Client[H, Hasher, N, E, Header]) BlockStatus(hash H) (blockchain.BlockStatus, error) {
+	return c.backend.Blockchain().Status(hash)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) Justifications(hash H) (runtime.Justifications, error) {
+	return c.backend.Blockchain().Justifications(hash)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) BlockHash(number N) (*H, error) {
+	return c.backend.Blockchain().Hash(number)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) IndexedTransaction(hash H) ([]byte, error) {
+	return c.backend.Blockchain().IndexedTransaction(hash)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) HasIndexedTransaction(hash H) (bool, error) {
+	return c.backend.Blockchain().HasIndexedTransaction(hash)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) BlockIndexedBody(hash H) ([][]byte, error) {
+	return c.backend.Blockchain().BlockIndexedBody(hash)
+}
+
+func (c *Client[H, Hasher, N, E, Header]) RequiresFullSync() bool {
+	return c.backend.RequiresFullSync()
 }

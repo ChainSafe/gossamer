@@ -10,6 +10,37 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 )
 
+// BlockBackend is an interface for fetching block data
+type BlockBackend[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H],
+	Hasher runtime.Hasher[H], E runtime.Extrinsic] interface {
+	// BlockBody gets block body by hash or nil if the block is not found.
+	BlockBody(hash H) ([]E, error)
+
+	// BlockIndexedBody gets all indexed transactions for a block including renewed transactions.
+	BlockIndexedBody(hash H) ([][]byte, error)
+
+	// Block gets the full block by hash.
+	Block(hash H) (*generic.SignedBlock[N, H, Hasher, E], error)
+
+	// BlockStatus gets block status by block hash.
+	BlockStatus(hash H) (BlockStatus, error)
+
+	// Justification gets block justifications for the block with the given hash.
+	Justification(hash H) (runtime.Justifications, error)
+
+	// BlockHash gets block hash by number.
+	BlockHash(number N) (*H, error)
+
+	// IndexedTransaction gets indexed transaction by hash.
+	IndexedTransaction(hash H) ([]byte, error)
+
+	// HasIndexedTransaction checks if indexed transaction exists.
+	HasIndexedTransaction(hash H) (bool, error)
+
+	// Tells whether the current client configuration requires a full sync.
+	RequiresFullSync() bool
+}
+
 // HeaderBackend is the blockchain database header backend. Does not perform any validation.
 type HeaderBackend[Hash runtime.Hash, N runtime.Number, Header runtime.Header[N, Hash]] interface {
 	// Header returns the block header. Returns nil if block is not found.
