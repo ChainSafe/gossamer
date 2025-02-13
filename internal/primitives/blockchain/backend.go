@@ -26,7 +26,7 @@ type BlockBackend[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H],
 	BlockStatus(hash H) (BlockStatus, error)
 
 	// Justification gets block justifications for the block with the given hash.
-	Justification(hash H) (runtime.Justifications, error)
+	Justifications(hash H) (runtime.Justifications, error)
 
 	// BlockHash gets block hash by number.
 	BlockHash(number N) (*H, error)

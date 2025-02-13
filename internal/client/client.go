@@ -477,10 +477,9 @@ func (c *Client[H, Hasher, N, E, Header]) Block(hash H) (*generic.SignedBlock[N,
 	}
 
 	if header != nil && body != nil {
-		return &generic.SignedBlock[N, H, Hasher, E]{
-			Block:          generic.NewBlock[N, H, Hasher](*header, body),
-			Justifications: justifications,
-		}, nil
+		return generic.NewSignedBlock(
+			generic.NewBlock[N, H, Hasher](*header, body), justifications,
+		), nil
 	}
 
 	return nil, nil

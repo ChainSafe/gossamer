@@ -88,5 +88,13 @@ type SignedBlock[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H], E r
 	Justifications runtime.Justifications
 }
 
+func NewSignedBlock[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H], E runtime.Extrinsic](
+	block Block[N, H, Hasher, E], justifications runtime.Justifications) *SignedBlock[N, H, Hasher, E] {
+	return &SignedBlock[N, H, Hasher, E]{
+		Block:          block,
+		Justifications: justifications,
+	}
+}
+
 var _ runtime.Block[uint, hash.H256, runtime.OpaqueExtrinsic] = Block[uint, hash.H256,
 	runtime.BlakeTwo256, runtime.OpaqueExtrinsic]{}
