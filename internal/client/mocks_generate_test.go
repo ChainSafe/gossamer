@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package client
 
 //go:generate mockery --srcpkg=github.com/ChainSafe/gossamer/internal/client/api --name=Backend --case=snake --with-expecter=true
