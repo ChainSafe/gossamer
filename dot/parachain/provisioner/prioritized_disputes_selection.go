@@ -15,6 +15,61 @@ type BlockState interface {
 	GetRuntime(blockHash common.Hash) (instance parachain.RuntimeInstance, err error)
 }
 
+// IsVoteWorthToKeep determines if a vote is worth to be kept, based on the onchain disputes.
+func IsVoteWorthToKeep(
+	validatorIndex parachaintypes.ValidatorIndex,
+	disputeStatement parachaintypes.DisputeStatement,
+	onchainState parachaintypes.DisputeState,
+) bool {
+	var offchainVote bool
+	var validKind *parachaintypes.ValidDisputeStatementKind
+
+	statement, err := disputeStatement.Value()
+	if err != nil {
+		panic("unexpected empty inner in DisputeStatement")
+	}
+
+	switch inner := statement.(type) {
+	case parachaintypes.ValidDisputeStatement:
+		offchainVote = true
+		validKind = &inner.Kind
+	case parachaintypes.InvalidDisputeStatement:
+		offchainVote = false
+		validKind = nil
+	}
+
+	if validKind != nil {
+		stmtKind, err := validKind.Value()
+		if err != nil {
+			panic("unexpected empty inner in ValidDisputeStatementKind")
+		}
+
+		// We want to keep all backing votes. This maximizes the number of backers
+		// punished when misbehaving.
+		switch stmtKind.(type) {
+		case parachaintypes.BackingValid, parachaintypes.BackingSeconded:
+			return true
+		}
+	}
+
+	inValidatorsFor := onchainState.ValidatorsFor.Get(int(validatorIndex))
+	inValidatorsAgainst := onchainState.ValidatorsAgainst.Get(int(validatorIndex))
+
+	if inValidatorsFor && inValidatorsAgainst {
+		// The validator has double voted and runtime knows about this. Ignore this vote.
+		return false
+	}
+
+	if (offchainVote && inValidatorsAgainst) || (!offchainVote && inValidatorsFor) {
+		// offchain vote differs from the onchain vote
+		// we need this vote to punish the offending validator
+		return true
+	}
+
+	// The vote is valid. Return true if it is not seen onchain.
+	return !inValidatorsFor && !inValidatorsAgainst
+}
+
 // GetOnchainDisputes gets the on-chain disputes at a given block number and returns them as a map
 // for efficient searching. It takes a relay parent hash and returns a map of session index and
 // candidate hash tuples to dispute states.
