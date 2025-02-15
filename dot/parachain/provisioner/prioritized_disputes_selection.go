@@ -4,9 +4,10 @@
 package provisioner
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"iter"
+	"sort"
 	"time"
 
 	disputemessages "github.com/ChainSafe/gossamer/dot/parachain/disputes-coordinator/messages"
@@ -16,8 +17,140 @@ import (
 	"github.com/ChainSafe/gossamer/lib/primitives"
 )
 
+const (
+	MaxDisputeVotesForwardedToRuntime = 200_000
+	VotesSelectionBatchSize           = 1_100
+)
+
 type BlockState interface {
 	GetRuntime(blockHash common.Hash) (instance parachain.RuntimeInstance, err error)
+}
+
+type voteSelectionResult struct {
+	key   parachaintypes.DisputeKey
+	votes parachaintypes.CandidateVotes
+}
+
+// voteSelection selects dispute votes from PartitionedDisputes which should be sent to the runtime.
+// Votes which are already onchain are filtered out. Result should be sorted by (SessionIndex, CandidateHash).
+func voteSelection(
+	overseerChan chan<- any,
+	partitioned *partitionedDisputes,
+	onchain map[parachaintypes.DisputeKey]parachaintypes.DisputeState,
+) ([]voteSelectionResult, error) {
+	// fetch in batches until there are enough votes
+	disputes := partitioned.orderedPartitions()
+	totalVotesLen := 0
+	result := make(map[parachaintypes.DisputeKey]parachaintypes.CandidateVotes)
+	requestVotesCounter := 0
+
+	for len(disputes) > 0 {
+		batchSize := min(VotesSelectionBatchSize, len(disputes))
+		batch := disputes[:batchSize]
+		disputes = disputes[batchSize:]
+
+		// Filter votes which are already onchain
+		requestVotesCounter++
+		candidatesVotes, err := requestVotes(overseerChan, batch)
+		if err != nil {
+			return nil, err
+		}
+
+		var selectedVotes []voteSelectionResult
+
+		for _, candidateVote := range candidatesVotes {
+			sessionIndex := candidateVote.SessionIndex
+			candidateHash := candidateVote.CandidateHash
+			votes := candidateVote.CandidateVotes
+
+			onchainState, ok := onchain[parachaintypes.DisputeKey{SessionIndex: sessionIndex, CandidateHash: candidateHash}]
+			if !ok {
+				// onchain knows nothing about this dispute - add all votes
+				selectedVotes = append(selectedVotes,
+					voteSelectionResult{
+						key:   parachaintypes.DisputeKey{SessionIndex: sessionIndex, CandidateHash: candidateHash},
+						votes: votes,
+					})
+				continue
+			}
+
+			votes.Valid.AscendMut(
+				parachaintypes.ValidatorIndex(0),
+				func(validatorIdx parachaintypes.ValidatorIndex, vote parachaintypes.Vote[parachaintypes.ValidDisputeStatementKind]) bool {
+					validDisputeStatement := &parachaintypes.DisputeStatement{}
+					err := validDisputeStatement.SetValue(vote.Kind)
+					if err != nil {
+						panic(fmt.Sprintf("%T is an valid variant of %T", vote.Kind, validDisputeStatement))
+					}
+
+					if !isVoteWorthToKeep(validatorIdx, *validDisputeStatement, onchainState) {
+						votes.Valid.Delete(validatorIdx)
+					}
+					return true
+				})
+
+			votes.Invalid.AscendMut(
+				parachaintypes.ValidatorIndex(0),
+				func(validatorIdx parachaintypes.ValidatorIndex, vote parachaintypes.Vote[parachaintypes.InvalidDisputeStatementKind]) bool {
+					invalidDisputeStatement := &parachaintypes.DisputeStatement{}
+					err := invalidDisputeStatement.SetValue(vote.Kind)
+					if err != nil {
+						panic(fmt.Sprintf("%T is an valid variant of %T", vote.Kind, invalidDisputeStatement))
+					}
+
+					if !isVoteWorthToKeep(validatorIdx, *invalidDisputeStatement, onchainState) {
+						votes.Valid.Delete(validatorIdx)
+					}
+					return true
+				})
+
+			selectedVotes = append(selectedVotes,
+				voteSelectionResult{
+					key:   parachaintypes.DisputeKey{SessionIndex: sessionIndex, CandidateHash: candidateHash},
+					votes: votes,
+				})
+		}
+
+		// Check if votes are within the limit
+		for _, vote := range selectedVotes {
+			sessionIndex := vote.key.SessionIndex
+			candidateHash := vote.key.CandidateHash
+			selectedVotes := vote.votes
+
+			votesLen := selectedVotes.Valid.Len() + selectedVotes.Invalid.Len()
+			if votesLen+totalVotesLen > MaxDisputeVotesForwardedToRuntime {
+				// we are done - no more votes can be added. Importantly, we don't add any votes for
+				// a dispute here if we can't fit them all. This gives us an important invariant,
+				// that backing votes for disputes make it into the provisioned vote set.
+
+				return sortVoteSelectionResults(result), nil
+			}
+
+			result[parachaintypes.DisputeKey{SessionIndex: sessionIndex, CandidateHash: candidateHash}] = selectedVotes
+			totalVotesLen += votesLen
+		}
+	}
+
+	return sortVoteSelectionResults(result), nil
+}
+
+// sortVoteSelectionResults sorts the vote selection results based on SessionIndex and CandidateHash.
+func sortVoteSelectionResults(votes map[parachaintypes.DisputeKey]parachaintypes.CandidateVotes) []voteSelectionResult {
+	var sortedResults []voteSelectionResult
+	for key, vote := range votes {
+		sortedResults = append(sortedResults, voteSelectionResult{key: key, votes: vote})
+	}
+
+	sort.SliceStable(sortedResults, func(i, j int) bool {
+		if sortedResults[i].key.SessionIndex != sortedResults[j].key.SessionIndex {
+			return sortedResults[i].key.SessionIndex < sortedResults[j].key.SessionIndex
+		}
+
+		return bytes.Compare(sortedResults[i].key.CandidateHash.Value[:],
+			sortedResults[j].key.CandidateHash.Value[:]) < 0
+	})
+
+	return sortedResults
 }
 
 // partitionedDisputes contains disputes by partitions.
