@@ -61,7 +61,8 @@ func TestBuild(t *testing.T) {
 
 	testBasePath := t.TempDir()
 
-	testBlockState := &state.BlockState{}
+	testBlockState := &state.DefaultBlockState{}
+
 	testRandSeed := int64(1)
 
 	cfg := &Config{

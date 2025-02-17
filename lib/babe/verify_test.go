@@ -71,7 +71,7 @@ func encodeAndHashHeader(t *testing.T, header *types.Header) common.Hash {
 	return hash
 }
 
-func newTestVerifier(kp *sr25519.Keypair, blockState BlockState, slotState SlotState,
+func newTestVerifier(kp *sr25519.Keypair, blockState state.BlockState, slotState SlotState,
 	threshold *scale.Uint128, secSlots bool) *verifier {
 	authority := types.NewAuthority(kp.Public(), uint64(1))
 	info := &verifierInfo{

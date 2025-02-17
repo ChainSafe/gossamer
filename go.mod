@@ -12,6 +12,8 @@ require (
 	github.com/dgraph-io/badger/v4 v4.5.1
 	github.com/dgraph-io/ristretto/v2 v2.1.0
 	github.com/disiqueira/gotree v1.0.0
+	github.com/dolthub/maphash v0.1.0
+	github.com/elastic/go-freelru v0.15.0
 	github.com/ethereum/go-ethereum v1.15.0
 	github.com/fatih/color v1.18.0
 	github.com/gammazero/deque v1.0.0
@@ -22,6 +24,7 @@ require (
 	github.com/gorilla/rpc v1.2.1
 	github.com/gorilla/websocket v1.5.3
 	github.com/gtank/merlin v0.1.1
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/ipfs/go-ds-badger4 v0.1.5
 	github.com/jpillora/backoff v1.0.0
 	github.com/jpillora/ipfilter v1.2.9
@@ -41,11 +44,12 @@ require (
 	github.com/tetratelabs/wazero v1.1.0
 	github.com/tidwall/btree v1.7.0
 	github.com/tyler-smith/go-bip39 v1.1.0
+	github.com/ugurcsen/gods-generic v0.10.4
 	go.uber.org/mock v0.5.0
 	golang.org/x/crypto v0.33.0
 	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8
 	golang.org/x/term v0.29.0
-	google.golang.org/protobuf v1.36.4
+	google.golang.org/protobuf v1.36.5
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -225,3 +229,7 @@ toolchain go1.23.2
 replace github.com/tetratelabs/wazero => github.com/ChainSafe/wazero v0.0.0-20240319130522-78b21a59bd5f
 
 replace github.com/centrifuge/go-substrate-rpc-client/v4 => github.com/timwu20/go-substrate-rpc-client/v4 v4.0.0-20231110032757-3d8e441b7303
+
+replace github.com/elastic/go-freelru => github.com/timwu20/go-freelru v0.0.0-20241023201517-deb64adeae4c
+
+replace github.com/ugurcsen/gods-generic => github.com/timwu20/gods-generic v0.0.0-20241206024616-791a209639f8

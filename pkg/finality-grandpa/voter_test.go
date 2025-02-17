@@ -656,7 +656,7 @@ func TestVoter_PickUpFromPriorWithGrandparentStatus(t *testing.T) {
 waitForPrevote:
 	for sme := range roundIn {
 		if sme.Error != nil {
-			t.Errorf("wtf?")
+			t.Errorf("should contain error")
 		}
 
 		msg := sme.SignedMessage.Message.inner

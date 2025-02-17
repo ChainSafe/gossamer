@@ -223,7 +223,7 @@ func createTestService(t *testing.T, cfg ServiceConfig, genesis genesis.Genesis,
 	rtCfg.Transaction = dbSrv.Transaction
 	runtime, err := wazero_runtime.NewRuntimeFromGenesis(rtCfg)
 	require.NoError(t, err)
-	cfg.BlockState.(*state.BlockState).StoreRuntime(cfg.BlockState.BestBlockHash(), runtime)
+	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), runtime)
 
 	cfg.Authority = true
 	cfg.IsDev = true
@@ -347,7 +347,7 @@ func createTestBlockWithSlot(t *testing.T, babeService *Service, parent *types.H
 	block, err := babeService.buildBlock(parent, slot, rt, epochDescriptor.data.authorityIndex, preRuntimeDigest)
 	require.NoError(t, err)
 
-	babeService.blockState.(*state.BlockState).StoreRuntime(block.Header.Hash(), rt)
+	babeService.blockState.StoreRuntime(block.Header.Hash(), rt)
 	err = babeService.blockState.AddBlock(block)
 	require.NoError(t, err)
 

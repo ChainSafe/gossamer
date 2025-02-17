@@ -3,4 +3,5 @@
 
 package warpsync
 
-//go:generate mockgen -destination=mocks_test.go -package $GOPACKAGE . BlockState,GrandpaState
+//go:generate mockgen -destination=mocks_test.go -package $GOPACKAGE . GrandpaState
+//go:generate mockgen -destination=mocks_block_state_test.go -package $GOPACKAGE github.com/ChainSafe/gossamer/dot/state BlockState

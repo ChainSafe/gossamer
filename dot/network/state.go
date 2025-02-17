@@ -10,16 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 )
-
-// BlockState interface for block state methods
-type BlockState interface {
-	BestBlockHeader() (*types.Header, error)
-	GenesisHash() common.Hash
-	GetHighestFinalisedHeader() (*types.Header, error)
-}
 
 // Syncer is implemented by the syncing service
 type Syncer interface {
