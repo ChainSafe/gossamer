@@ -182,9 +182,9 @@ type CandidateVotes struct {
 	// The receipt of the candidate itself.
 	CandidateReceipt CandidateReceipt
 	// Votes of validity, sorted by validator index.
-	Valid btree.Map[ValidatorIndex, Vote[ValidDisputeStatementKind]]
+	Valid *btree.Map[ValidatorIndex, Vote[ValidDisputeStatementKind]]
 	// Votes of invalidity, sorted by validator index.
-	Invalid btree.Map[ValidatorIndex, Vote[InvalidDisputeStatementKind]]
+	Invalid *btree.Map[ValidatorIndex, Vote[InvalidDisputeStatementKind]]
 }
 
 type Vote[Kind any] struct {

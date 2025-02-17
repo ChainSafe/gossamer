@@ -8,7 +8,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"sort"
+	"slices"
 	"time"
 
 	disputemessages "github.com/ChainSafe/gossamer/dot/parachain/disputes-coordinator/messages"
@@ -27,6 +27,55 @@ type BlockState interface {
 	GetRuntime(blockHash common.Hash) (instance parachain.RuntimeInstance, err error)
 }
 
+// SelectDisputes translates the Rust async function into Go.
+func SelectDisputes(overseerChan chan<- any, blockState BlockState, leaf *parachaintypes.ActivatedLeaf,
+	maxDisputesVotes int, voteSelectionBatchSize int) parachaintypes.MultiDisputeStatementSet {
+	log.Printf("TRACE: Selecting disputes for inherent data using prioritized selection, leaf: %+v", leaf)
+
+	onchain, err := getOnchainDisputes(blockState, leaf.Hash)
+	if err != nil {
+		// Here we log the error and continue with an empty onchain set.
+		log.Printf("WARN: Error fetching onchain disputes: %v. Continuing with empty onchain set.", err)
+		onchain = make(map[parachaintypes.DisputeKey]parachaintypes.DisputeState)
+	} else {
+		log.Printf("TRACE: Successfully fetched %d onchain disputes for leaf: %+v", len(onchain), leaf)
+	}
+
+	log.Printf("TRACE: Fetching recent disputes for leaf: %+v", leaf)
+	recent, err := requestDisputes(overseerChan)
+	if err != nil {
+		log.Printf("ERROR: Failed to fetch recent disputes: %v", err)
+		recent = []disputemessages.RecentDisputesResponse{}
+	}
+
+	// Filter out unconfirmed disputes except if already known onchain.
+	var filteredRecent []disputemessages.RecentDisputesResponse
+	for _, d := range recent {
+		if d.DisputeStatus.IsConfirmedConcluded() || containsOnchain(onchain, d.SessionIndex, d.CandidateHash) {
+			filteredRecent = append(filteredRecent, d)
+		}
+	}
+
+	log.Printf("TRACE: Got %d recent disputes and %d onchain disputes.", len(filteredRecent), len(onchain))
+
+	log.Printf("TRACE: Partitioning recent disputes for leaf: %+v", leaf)
+	partitioned := partitionRecentDisputes(filteredRecent, onchain)
+
+	fmt.Println("partitioned, active unconcluded on chain", len(partitioned.activeUnconcludedOnchain))
+
+	log.Printf("TRACE: Vote selection for recent disputes for leaf: %+v", leaf)
+	voteResults, err := voteSelection(overseerChan, partitioned, onchain,
+		maxDisputesVotes, voteSelectionBatchSize)
+	if err != nil {
+		log.Printf("ERROR: Vote selection error: %v", err)
+		voteResults = []voteSelectionResult{}
+	}
+
+	log.Printf("TRACE: Convert to multi dispute statement set for leaf: %+v", leaf)
+	multi := makeMultiDisputeStatementSet(voteResults)
+	return multi
+}
+
 type voteSelectionResult struct {
 	key   parachaintypes.DisputeKey
 	votes parachaintypes.CandidateVotes
@@ -38,6 +87,8 @@ func voteSelection(
 	overseerChan chan<- any,
 	partitioned *partitionedDisputes,
 	onchain map[parachaintypes.DisputeKey]parachaintypes.DisputeState,
+	maxDisputesVotes int,
+	voteSelectionBatchSize int,
 ) ([]voteSelectionResult, error) {
 	// fetch in batches until there are enough votes
 	disputes := partitioned.orderedPartitions()
@@ -46,7 +97,7 @@ func voteSelection(
 	requestVotesCounter := 0
 
 	for len(disputes) > 0 {
-		batchSize := min(VotesSelectionBatchSize, len(disputes))
+		batchSize := min(voteSelectionBatchSize, len(disputes))
 		batch := disputes[:batchSize]
 		disputes = disputes[batchSize:]
 
@@ -64,46 +115,63 @@ func voteSelection(
 			candidateHash := candidateVote.CandidateHash
 			votes := candidateVote.CandidateVotes
 
-			onchainState, ok := onchain[parachaintypes.DisputeKey{SessionIndex: sessionIndex, CandidateHash: candidateHash}]
+			key := parachaintypes.DisputeKey{SessionIndex: sessionIndex, CandidateHash: candidateHash}
+			onchainState, ok := onchain[key]
 			if !ok {
 				// onchain knows nothing about this dispute - add all votes
 				selectedVotes = append(selectedVotes,
 					voteSelectionResult{
-						key:   parachaintypes.DisputeKey{SessionIndex: sessionIndex, CandidateHash: candidateHash},
+						key:   key,
 						votes: votes,
 					})
 				continue
 			}
 
-			votes.Valid.AscendMut(
+			validatorIdxToRemove := make([]parachaintypes.ValidatorIndex, 0)
+			votes.Valid.Ascend(
 				parachaintypes.ValidatorIndex(0),
 				func(validatorIdx parachaintypes.ValidatorIndex, vote parachaintypes.Vote[parachaintypes.ValidDisputeStatementKind]) bool {
 					validDisputeStatement := &parachaintypes.DisputeStatement{}
-					err := validDisputeStatement.SetValue(vote.Kind)
+					err := validDisputeStatement.SetValue(parachaintypes.ValidDisputeStatement{
+						Kind: vote.Kind,
+					})
 					if err != nil {
-						panic(fmt.Sprintf("%T is an valid variant of %T", vote.Kind, validDisputeStatement))
+						panic(fmt.Sprintf("%T is an invalid variant of %T", vote.Kind, validDisputeStatement))
 					}
 
-					if !isVoteWorthToKeep(validatorIdx, *validDisputeStatement, onchainState) {
-						votes.Valid.Delete(validatorIdx)
+					isVoteWorth := isVoteWorthToKeep(validatorIdx, *validDisputeStatement, onchainState)
+					if !isVoteWorth {
+						validatorIdxToRemove = append(validatorIdxToRemove, validatorIdx)
 					}
 					return true
 				})
 
-			votes.Invalid.AscendMut(
+			for _, vi := range validatorIdxToRemove {
+				votes.Valid.Delete(vi)
+			}
+
+			validatorIdxToRemove = make([]parachaintypes.ValidatorIndex, 0)
+			votes.Invalid.Ascend(
 				parachaintypes.ValidatorIndex(0),
 				func(validatorIdx parachaintypes.ValidatorIndex, vote parachaintypes.Vote[parachaintypes.InvalidDisputeStatementKind]) bool {
 					invalidDisputeStatement := &parachaintypes.DisputeStatement{}
-					err := invalidDisputeStatement.SetValue(vote.Kind)
+					err := invalidDisputeStatement.SetValue(parachaintypes.InvalidDisputeStatement{
+						Kind: vote.Kind,
+					})
 					if err != nil {
 						panic(fmt.Sprintf("%T is an valid variant of %T", vote.Kind, invalidDisputeStatement))
 					}
 
 					if !isVoteWorthToKeep(validatorIdx, *invalidDisputeStatement, onchainState) {
-						votes.Valid.Delete(validatorIdx)
+						validatorIdxToRemove = append(validatorIdxToRemove, validatorIdx)
+						//votes.Valid.Delete(validatorIdx)
 					}
 					return true
 				})
+
+			for _, vi := range validatorIdxToRemove {
+				votes.Invalid.Delete(vi)
+			}
 
 			selectedVotes = append(selectedVotes,
 				voteSelectionResult{
@@ -119,7 +187,7 @@ func voteSelection(
 			selectedVotes := vote.votes
 
 			votesLen := selectedVotes.Valid.Len() + selectedVotes.Invalid.Len()
-			if votesLen+totalVotesLen > MaxDisputeVotesForwardedToRuntime {
+			if votesLen+totalVotesLen > maxDisputesVotes {
 				// we are done - no more votes can be added. Importantly, we don't add any votes for
 				// a dispute here if we can't fit them all. This gives us an important invariant,
 				// that backing votes for disputes make it into the provisioned vote set.
@@ -142,13 +210,15 @@ func sortVoteSelectionResults(votes map[parachaintypes.DisputeKey]parachaintypes
 		sortedResults = append(sortedResults, voteSelectionResult{key: key, votes: vote})
 	}
 
-	sort.SliceStable(sortedResults, func(i, j int) bool {
-		if sortedResults[i].key.SessionIndex != sortedResults[j].key.SessionIndex {
-			return sortedResults[i].key.SessionIndex < sortedResults[j].key.SessionIndex
+	slices.SortFunc(sortedResults, func(i, j voteSelectionResult) int {
+		switch {
+		case i.key.SessionIndex < j.key.SessionIndex:
+			return -1
+		case i.key.SessionIndex > j.key.SessionIndex:
+			return +1
+		default:
+			return bytes.Compare(i.key.CandidateHash.Value[:], j.key.CandidateHash.Value[:])
 		}
-
-		return bytes.Compare(sortedResults[i].key.CandidateHash.Value[:],
-			sortedResults[j].key.CandidateHash.Value[:]) < 0
 	})
 
 	return sortedResults
@@ -214,8 +284,8 @@ func concludedOnchain(onchainState *parachaintypes.DisputeState) bool {
 func partitionRecentDisputes(
 	recent []disputemessages.RecentDispute,
 	onchain map[parachaintypes.DisputeKey]parachaintypes.DisputeState,
-) partitionedDisputes {
-	partitioned := partitionedDisputes{}
+) *partitionedDisputes {
+	partitioned := &partitionedDisputes{}
 
 	// Drop any duplicates
 	uniqueRecent := make(map[parachaintypes.DisputeKey]parachaintypes.DisputeStatus)
@@ -324,7 +394,7 @@ func isVoteWorthToKeep(
 		return false
 	}
 
-	if (offchainVote && inValidatorsAgainst) || (!offchainVote && inValidatorsFor) {
+	if offchainVote && inValidatorsAgainst || !offchainVote && inValidatorsFor {
 		// offchain vote differs from the onchain vote
 		// we need this vote to punish the offending validator
 		return true
@@ -397,53 +467,6 @@ func requestDisputes(overseerChan chan<- any) ([]disputemessages.RecentDispute, 
 	}
 }
 
-// SelectDisputes translates the Rust async function into Go.
-func SelectDisputes(overseerChan chan<- any, blockState BlockState, leaf *parachaintypes.ActivatedLeaf,
-) parachaintypes.MultiDisputeStatementSet {
-	log.Printf("TRACE: Selecting disputes for inherent data using prioritized selection, leaf: %+v", leaf)
-
-	onchain, err := getOnchainDisputes(blockState, leaf.Hash)
-	if err != nil {
-		// Here we log the error and continue with an empty onchain set.
-		log.Printf("WARN: Error fetching onchain disputes: %v. Continuing with empty onchain set.", err)
-		onchain = make(map[parachaintypes.DisputeKey]parachaintypes.DisputeState)
-	} else {
-		log.Printf("TRACE: Successfully fetched %d onchain disputes for leaf: %+v", len(onchain), leaf)
-	}
-
-	log.Printf("TRACE: Fetching recent disputes for leaf: %+v", leaf)
-	recent, err := requestDisputes(overseerChan)
-	if err != nil {
-		log.Printf("ERROR: Failed to fetch recent disputes: %v", err)
-		recent = []disputemessages.RecentDisputesResponse{}
-	}
-	log.Printf("TRACE: Got %d recent disputes and %d onchain disputes.", len(recent), len(onchain))
-
-	// Filter out unconfirmed disputes except if already known onchain.
-	var filteredRecent []disputemessages.RecentDisputesResponse
-	for _, d := range recent {
-		// d: (SessionIndex, CandidateHash, DisputeStatus)
-		// Assume d.DisputeStatus has method IsConfirmedConcluded()
-		if d.DisputeStatus.IsConfirmedConcluded() || containsOnchain(onchain, d.SessionIndex, d.CandidateHash) {
-			filteredRecent = append(filteredRecent, d)
-		}
-	}
-
-	log.Printf("TRACE: Partitioning recent disputes for leaf: %+v", leaf)
-	partitioned := partitionRecentDisputes(filteredRecent, onchain)
-
-	log.Printf("TRACE: Vote selection for recent disputes for leaf: %+v", leaf)
-	voteResults, err := voteSelection(overseerChan, &partitioned, onchain)
-	if err != nil {
-		log.Printf("ERROR: Vote selection error: %v", err)
-		voteResults = []voteSelectionResult{}
-	}
-
-	log.Printf("TRACE: Convert to multi dispute statement set for leaf: %+v", leaf)
-	multi := makeMultiDisputeStatementSet(voteResults)
-	return multi
-}
-
 // makeMultiDisputeStatementSet converts vote selection results into a MultiDisputeStatementSet.
 func makeMultiDisputeStatementSet(voteResults []voteSelectionResult) parachaintypes.MultiDisputeStatementSet {
 	diputeStmts := make(parachaintypes.MultiDisputeStatementSet, 0)
@@ -490,7 +513,7 @@ func makeMultiDisputeStatementSet(voteResults []voteSelectionResult) parachainty
 		diputeStmts = append(diputeStmts, parachaintypes.DisputeStatementSet{
 			Session:       sessionIndex,
 			CandidateHash: candidateHash,
-			Statements:    nil,
+			Statements:    statements,
 		})
 	}
 

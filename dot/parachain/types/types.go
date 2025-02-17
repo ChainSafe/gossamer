@@ -464,6 +464,11 @@ func (cr CandidateReceipt) Hash() (common.Hash, error) {
 	return common.Blake2bHash(bytes)
 }
 
+type CandidateReceiptV2 struct {
+	Descriptor      *CandidateDescriptorV2
+	CommitmentsHash common.Hash `scale:"2"`
+}
+
 // HeadData Parachain head data included in the chain.
 type HeadData struct {
 	Data []byte `scale:"1"`
