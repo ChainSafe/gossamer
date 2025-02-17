@@ -194,6 +194,10 @@ func voteSelection(
 				votes.Invalid.Delete(vi)
 			}
 
+			for _, vi := range validatorIdxToRemove {
+				votes.Invalid.Delete(vi)
+			}
+
 			selectedVotes = append(selectedVotes,
 				voteSelectionResult{
 					key: parachaintypes.DisputeKey{
