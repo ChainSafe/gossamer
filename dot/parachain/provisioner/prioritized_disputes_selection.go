@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"slices"
 	"time"
 
@@ -30,21 +29,14 @@ type BlockState interface {
 // SelectDisputes translates the Rust async function into Go.
 func SelectDisputes(overseerChan chan<- any, blockState BlockState, leaf *parachaintypes.ActivatedLeaf,
 	maxDisputesVotes int, voteSelectionBatchSize int) parachaintypes.MultiDisputeStatementSet {
-	log.Printf("TRACE: Selecting disputes for inherent data using prioritized selection, leaf: %+v", leaf)
-
 	onchain, err := getOnchainDisputes(blockState, leaf.Hash)
 	if err != nil {
 		// Here we log the error and continue with an empty onchain set.
-		log.Printf("WARN: Error fetching onchain disputes: %v. Continuing with empty onchain set.", err)
 		onchain = make(map[parachaintypes.DisputeKey]parachaintypes.DisputeState)
-	} else {
-		log.Printf("TRACE: Successfully fetched %d onchain disputes for leaf: %+v", len(onchain), leaf)
 	}
 
-	log.Printf("TRACE: Fetching recent disputes for leaf: %+v", leaf)
 	recent, err := requestDisputes(overseerChan)
 	if err != nil {
-		log.Printf("ERROR: Failed to fetch recent disputes: %v", err)
 		recent = []disputemessages.RecentDisputesResponse{}
 	}
 
@@ -56,22 +48,13 @@ func SelectDisputes(overseerChan chan<- any, blockState BlockState, leaf *parach
 		}
 	}
 
-	log.Printf("TRACE: Got %d recent disputes and %d onchain disputes.", len(filteredRecent), len(onchain))
-
-	log.Printf("TRACE: Partitioning recent disputes for leaf: %+v", leaf)
 	partitioned := partitionRecentDisputes(filteredRecent, onchain)
-
-	fmt.Println("partitioned, active unconcluded on chain", len(partitioned.activeUnconcludedOnchain))
-
-	log.Printf("TRACE: Vote selection for recent disputes for leaf: %+v", leaf)
 	voteResults, err := voteSelection(overseerChan, partitioned, onchain,
 		maxDisputesVotes, voteSelectionBatchSize)
 	if err != nil {
-		log.Printf("ERROR: Vote selection error: %v", err)
 		voteResults = []voteSelectionResult{}
 	}
 
-	log.Printf("TRACE: Convert to multi dispute statement set for leaf: %+v", leaf)
 	multi := makeMultiDisputeStatementSet(voteResults)
 	return multi
 }

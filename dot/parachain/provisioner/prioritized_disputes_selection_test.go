@@ -944,6 +944,93 @@ func TestManyBatches(t *testing.T) {
 	require.LessOrEqual(t, voteQueries, acceptableRuntimeVotesQueriesCount)
 }
 
+func TestVotesAboveLimit(t *testing.T) {
+	const (
+		validatorCount                     = 10
+		disputesPerPartition               = 50
+		acceptableRuntimeVotesQueriesCount = 4
+	)
+
+	input := NewTestDisputes(validatorCount)
+
+	// active which can conclude onchain
+	_, secondVotes := input.addUnconfirmedDisputesConcludedOnchain(t, disputesPerPartition)
+	// active which can't conclude onchain
+	_, firstVotes := input.addUnconfirmedDisputesUnconcludedOnchain(t, disputesPerPartition)
+	// concluded disputes unknown onchain
+	_, thirdVotes := input.addConcludedDisputesUnknownOnchain(t, disputesPerPartition)
+
+	totalVotes := firstVotes + secondVotes + thirdVotes
+	require.Greater(t, totalVotes, 3*MaxDisputeVotesForwardedToRuntimeTest)
+
+	voteQueries := 0
+	overseerCh := make(chan any, 1)
+
+	lf := newLeaf()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		mockOverseer(overseerCh, input, &voteQueries)
+	}()
+
+	mockRT := mockRuntime(t, input)
+
+	result := SelectDisputes(overseerCh, mockRT, lf,
+		MaxDisputeVotesForwardedToRuntimeTest, VotesSelectionBatchSizeTest)
+	close(overseerCh)
+	wg.Wait()
+
+	require.NotEmpty(t, result)
+
+	// Accumulate the total vote count
+	voteCount := accStatements(result)
+	require.LessOrEqual(t, voteCount, MaxDisputeVotesForwardedToRuntimeTest)
+	require.LessOrEqual(t,
+		MaxDisputeVotesForwardedToRuntimeTest-validatorCount,
+		voteCount)
+
+	require.LessOrEqual(t, voteQueries, acceptableRuntimeVotesQueriesCount)
+}
+
+func TestUnconfirmedAreHandleCorrectly(t *testing.T) {
+	const (
+		validatorCount       = 10
+		disputesPerPartition = 50
+	)
+
+	input := NewTestDisputes(validatorCount)
+
+	// Add unconfirmed known onchain -> this should be pushed
+	pushedIdx, _ := input.addUnconfirmedDisputesKnownOnchain(t, disputesPerPartition)
+	input.addUnconfirmedDisputesUnknownOnchain(t, disputesPerPartition)
+
+	voteQueries := 0
+	overseerCh := make(chan any, 1)
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		mockOverseer(overseerCh, input, &voteQueries)
+	}()
+
+	lf := newLeaf()
+	mockRT := mockRuntime(t, input)
+
+	result := SelectDisputes(overseerCh, mockRT, lf,
+		MaxDisputeVotesForwardedToRuntimeTest, VotesSelectionBatchSizeTest)
+
+	close(overseerCh)
+	wg.Wait()
+
+	require.Equal(t, len(result), disputesPerPartition)
+	for _, d := range result {
+		require.Equal(t, d.Session, pushedIdx)
+	}
+}
+
 func split(input []parachaintypes.DisputeStatementSet, p func(parachaintypes.DisputeStatementSet) bool,
 ) ([]parachaintypes.DisputeStatementSet, []parachaintypes.DisputeStatementSet) {
 	var left, right []parachaintypes.DisputeStatementSet
