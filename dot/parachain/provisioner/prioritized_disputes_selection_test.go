@@ -893,6 +893,57 @@ func TestNormalFlow(t *testing.T) {
 	require.LessOrEqual(t, voteQueries, acceptableRuntimeVotesQueriesCount)
 }
 
+func TestManyBatches(t *testing.T) {
+	const (
+		validatorCount                     = 10
+		disputesPerPartition               = 10
+		acceptableRuntimeVotesQueriesCount = 4 // ~4 queries since 40 disputes / 11 batch size
+	)
+
+	input := NewTestDisputes(validatorCount)
+
+	// active which can conclude onchain
+	input.addUnconfirmedDisputesConcludedOnchain(t, disputesPerPartition)
+
+	// active which can't conclude onchain
+	input.addUnconfirmedDisputesUnconcludedOnchain(t, disputesPerPartition)
+
+	// concluded disputes unknown onchain
+	input.addConcludedDisputesUnknownOnchain(t, disputesPerPartition)
+
+	// concluded disputes known onchain
+	input.addConcludedDisputesKnownOnchain(t, disputesPerPartition)
+
+	// confirmed disputes unknown onchain
+	input.addConfirmedDisputesUnkonwOnChain(t, disputesPerPartition)
+
+	voteQueries := 0
+	overseerCh := make(chan any, 1)
+
+	lf := newLeaf()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		mockOverseer(overseerCh, input, &voteQueries)
+	}()
+
+	mockRT := mockRuntime(t, input)
+	result := SelectDisputes(overseerCh, mockRT, lf,
+		MaxDisputeVotesForwardedToRuntimeTest, VotesSelectionBatchSizeTest)
+	close(overseerCh)
+	wg.Wait()
+
+	voteCount := accStatements(result)
+	require.LessOrEqual(t, voteCount, MaxDisputeVotesForwardedToRuntimeTest)
+	require.LessOrEqual(t,
+		MaxDisputeVotesForwardedToRuntimeTest-validatorCount,
+		voteCount)
+
+	require.LessOrEqual(t, voteQueries, acceptableRuntimeVotesQueriesCount)
+}
+
 func split(input []parachaintypes.DisputeStatementSet, p func(parachaintypes.DisputeStatementSet) bool,
 ) ([]parachaintypes.DisputeStatementSet, []parachaintypes.DisputeStatementSet) {
 	var left, right []parachaintypes.DisputeStatementSet
