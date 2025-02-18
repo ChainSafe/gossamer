@@ -75,4 +75,5 @@ type Instance interface {
 	) (*parachaintypes.ExecutorParams, error)
 	ParachainHostClaimQueue() (parachaintypes.ClaimQueue, error)
 	ParachainHostNodeFeatures() (parachaintypes.BitVec, error)
+	ParachainHostDisabledValidators() ([]parachaintypes.ValidatorIndex, error)
 }

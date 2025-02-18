@@ -23,12 +23,6 @@ import (
 
 var tempSignature = common.MustHexToBytes("0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86") //nolint:lll
 
-func uint32ToParaIDPtr(t *testing.T, u uint32) *parachaintypes.ParaID {
-	t.Helper()
-	p := parachaintypes.ParaID(u)
-	return &p
-}
-
 func getDummyHash(t *testing.T, num byte) common.Hash {
 	t.Helper()
 	hash := common.Hash{}
@@ -239,18 +233,6 @@ func mustHexTo32BArray(t *testing.T, inputHex string) (outputArray [sr25519.Publ
 	t.Helper()
 	copy(outputArray[:], common.MustHexToBytes(inputHex))
 	return outputArray
-}
-
-func dummySummary(t *testing.T) *Summary {
-	t.Helper()
-
-	return &Summary{
-		Candidate: parachaintypes.CandidateHash{
-			Value: getDummyHash(t, 5),
-		},
-		GroupID:       3,
-		ValidityVotes: 5,
-	}
 }
 
 func dummyValidityAttestation(t *testing.T, value string) parachaintypes.ValidityAttestation {

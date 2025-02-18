@@ -51,7 +51,7 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 			},
 			getCandidateBackig: func(ctrl *gomock.Controller) *CandidateBacking {
 				mockImplicitView := NewMockImplicitView(ctrl)
-				mockImplicitView.EXPECT().activeLeaf(common.Hash{1}).Return(nil, fmt.Errorf("mock error"))
+				mockImplicitView.EXPECT().ActiveLeaf(common.Hash{1}).Return(nil, fmt.Errorf("mock error"))
 				mockImplicitView.EXPECT().AllAllowedRelayParents().Return([]common.Hash{{1}})
 
 				backing := CandidateBacking{
@@ -72,10 +72,10 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 			getCandidateBackig: func(ctrl *gomock.Controller) *CandidateBacking {
 				mockImplicitView := NewMockImplicitView(ctrl)
 
-				mockImplicitView.EXPECT().activeLeaf(common.Hash{1}).Return(nil, nil)
+				mockImplicitView.EXPECT().ActiveLeaf(common.Hash{1}).Return(nil, nil)
 				mockImplicitView.EXPECT().deactivateLeaf(common.Hash{2})
 				mockImplicitView.EXPECT().AllAllowedRelayParents().Return([]common.Hash{{1}})
-				mockImplicitView.EXPECT().knownAllowedRelayParentsUnder(common.Hash{1}, nil).Return([]common.Hash{{1}})
+				mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(common.Hash{1}, nil).Return([]common.Hash{{1}})
 
 				mockBlockState := NewMockBlockState(ctrl)
 				mockRuntime := NewMockInstance(ctrl)
@@ -88,6 +88,7 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 				mockRuntime.EXPECT().ParachainHostValidatorGroups().Return(&parachaintypes.ValidatorGroups{}, nil)
 				mockRuntime.EXPECT().ParachainHostMinimumBackingVotes().Return(uint32(2), nil)
 				mockRuntime.EXPECT().ParachainHostClaimQueue().Return(parachaintypes.ClaimQueue{}, nil)
+				mockRuntime.EXPECT().ParachainHostDisabledValidators().Return([]parachaintypes.ValidatorIndex{}, nil)
 
 				backing := CandidateBacking{
 					ImplicitView: mockImplicitView,

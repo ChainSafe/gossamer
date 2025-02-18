@@ -46,6 +46,8 @@ const (
 	WESTEND_RUNTIME_V1140_FP  = "westend_runtime-v1140.compact.wasm"
 	WESTEND_RUNTIME_V1140_URL = "https://github.com/paritytech/polkadot-sdk/releases/download/" +
 		"polkadot-v1.14.0/westend_runtime-v1014000.compact.compressed.wasm?raw=true"
+
+	// v1.17.1 westend
 	WESTEND_RUNTIME_v1017001     = "westend_runtime-v1017000"
 	WESTEND_RUNTIME_v1017001_FP  = "westend_runtime-v1017000.compact.wasm"
 	WESTEND_RUNTIME_v1017001_URL = "https://github.com/paritytech/polkadot-sdk/releases/download/" +
@@ -123,4 +125,6 @@ const (
 	// ParachainHostNodeFeatures is the runtime API call ParachainHost_node_features
 	ParachainHostNodeFeatures     = "ParachainHost_node_features"
 	ParachainHostParaBackingState = "ParachainHost_para_backing_state"
+	// ParachainHostDisabledValidators is the runtime API call ParachainHost_disabled_validators
+	ParachainHostDisabledValidators = "ParachainHost_disabled_validators"
 )

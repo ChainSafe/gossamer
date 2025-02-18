@@ -435,6 +435,21 @@ func (mr *MockInstanceMockRecorder) ParachainHostClaimQueue() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostClaimQueue", reflect.TypeOf((*MockInstance)(nil).ParachainHostClaimQueue))
 }
 
+// ParachainHostDisabledValidators mocks base method.
+func (m *MockInstance) ParachainHostDisabledValidators() ([]parachaintypes.ValidatorIndex, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParachainHostDisabledValidators")
+	ret0, _ := ret[0].([]parachaintypes.ValidatorIndex)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParachainHostDisabledValidators indicates an expected call of ParachainHostDisabledValidators.
+func (mr *MockInstanceMockRecorder) ParachainHostDisabledValidators() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParachainHostDisabledValidators", reflect.TypeOf((*MockInstance)(nil).ParachainHostDisabledValidators))
+}
+
 // ParachainHostMinimumBackingVotes mocks base method.
 func (m *MockInstance) ParachainHostMinimumBackingVotes() (uint32, error) {
 	m.ctrl.T.Helper()

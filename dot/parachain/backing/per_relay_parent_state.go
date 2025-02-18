@@ -78,8 +78,10 @@ func (cb *CandidateBacking) constructPerRelayParentState(relayParent common.Hash
 		return nil, fmt.Errorf("getting map of core index to assigned parachains: %w", err)
 	}
 
-	// TODO: call `ParachainHost_disabled_validators` runtime method
-	var disabledValidators []parachaintypes.ValidatorIndex
+	disabledValidators, err := rt.ParachainHostDisabledValidators()
+	if err != nil {
+		return nil, fmt.Errorf("getting disabled validators: %w", err)
+	}
 
 	signingContext := parachaintypes.SigningContext{
 		SessionIndex: sessionIndex,

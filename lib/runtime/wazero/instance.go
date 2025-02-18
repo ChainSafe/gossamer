@@ -1362,7 +1362,7 @@ func (in *Instance) ParachainHostValidationCodeByHash(validationCodeHash common.
 
 // Backing votes threshold used from the host prior to runtime API version 6 and
 // from the runtime prior to v9 configuration migration.
-const legacyMinBackingVotes uint32 = 2
+const LegacyMinBackingVotes uint32 = 2
 
 func (in *Instance) ParachainHostMinimumBackingVotes() (uint32, error) {
 	encodedBackingVotes, err := in.Exec(runtime.ParachainHostMinimumBackingVotes, []byte{})
@@ -1372,7 +1372,7 @@ func (in *Instance) ParachainHostMinimumBackingVotes() (uint32, error) {
 				"%s is not supported by the current Runtime API",
 				runtime.ParachainHostMinimumBackingVotes,
 			)
-			return legacyMinBackingVotes, nil
+			return LegacyMinBackingVotes, nil
 		}
 		return 0, fmt.Errorf("exec: %w", err)
 	}
@@ -1476,6 +1476,21 @@ func (in *Instance) ParachainHostNodeFeatures() (parachaintypes.BitVec, error) {
 	}
 
 	return nodeFeatures, nil
+}
+
+func (in *Instance) ParachainHostDisabledValidators() ([]parachaintypes.ValidatorIndex, error) {
+	encodedValidators, err := in.Exec(runtime.ParachainHostDisabledValidators, []byte{})
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	var validators []parachaintypes.ValidatorIndex
+	err = scale.Unmarshal(encodedValidators, &validators)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling disabled validators: %w", err)
+	}
+
+	return validators, nil
 }
 
 func (*Instance) RandomSeed() {
