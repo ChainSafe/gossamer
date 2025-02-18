@@ -961,6 +961,9 @@ func (bs *BlockState) GetNonFinalisedBlocks() []common.Hash {
 	return bs.bt.GetAllBlocks()
 }
 
+// SetBlockTree sets the blocktree for the block state
+// WARN: this should be used only when state sync finishes and we need to set the new state to resume the node using a
+// specific blocktree
 func (bs *BlockState) SetBlockTree(blocktree *blocktree.BlockTree) {
 	bs.bt = blocktree
 }
