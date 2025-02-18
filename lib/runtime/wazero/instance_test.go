@@ -45,6 +45,9 @@ var parachainsConfigV190TestDataRaw string
 //go:embed testdata/parachains_host_para_backing_state.yaml
 var parachainsHostParaBackingState string
 
+//go:embed testdata/parachains_configuration_v1140.yaml
+var parachainsConfigV1140TestDataRaw string
+
 //go:embed testdata/parachains_configuration_v1171.yaml
 var parachainsTestDataV1171 string
 
@@ -60,7 +63,7 @@ type Data struct {
 	Lookups  map[string]any    `yaml:"-"`
 }
 
-var parachainTestData, parachainsConfigV190TestData Data
+var parachainTestData, parachainsConfigV190TestData, parachainsConfigV1140TestData Data
 
 func init() {
 	err := yaml.Unmarshal([]byte(parachainTestDataRaw), &parachainTestData)
@@ -86,6 +89,19 @@ func init() {
 	for _, s := range parachainsConfigV190TestData.Storage {
 		if s.Name != "" {
 			parachainsConfigV190TestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
+		}
+	}
+
+	err = yaml.Unmarshal([]byte(parachainsConfigV1140TestDataRaw), &parachainsConfigV1140TestData)
+	if err != nil {
+		fmt.Println("Error unmarshalling test data:", err)
+		return
+	}
+	parachainsConfigV1140TestData.Lookups = make(map[string]any)
+
+	for _, s := range parachainsConfigV1140TestData.Storage {
+		if s.Name != "" {
+			parachainsConfigV1140TestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
 		}
 	}
 }
@@ -1732,7 +1748,7 @@ func TestInstance_ParachainHostNodeFeatures(t *testing.T) {
 func TestInstance_ParachainHostClaimQueue(t *testing.T) {
 	t.Skip("this test logs Critical runtime error: CRITICAL target=runtime::storage message=Corrupted state at...")
 
-	tt := getParachainHostTrie(t, parachainsConfigV190TestData.Storage)
+	tt := getParachainHostTrie(t, parachainsConfigV1140TestData.Storage)
 	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1140, TestWithTrie(tt))
 
 	claimQ, err := rt.ParachainHostClaimQueue()
@@ -1741,7 +1757,7 @@ func TestInstance_ParachainHostClaimQueue(t *testing.T) {
 }
 
 func TestInstance_ParachainHostDisabledValidators(t *testing.T) {
-	t.Skip("this test logs Critical runtime error: CRITICAL target=runtime::storage message=Corrupted state at...")
+	t.Parallel()
 
 	var parachainLatestData Data
 	err := yaml.Unmarshal([]byte(parachainsTestDataV1171), &parachainLatestData)

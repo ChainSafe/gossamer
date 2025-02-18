@@ -45,13 +45,16 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) error {
 		return err
 	}
 
-	if len(membership) == 0 {
-		msg.ResponseCh <- false
-		return fmt.Errorf("%w; candidate hash: %s", errCandidateNotRecognised, msg.CandidateHash.Value)
+	for _, fragmentTree := range membership {
+		// candidate should be recognised by at least some fragment tree.
+		if len(fragmentTree) != 0 {
+			msg.ResponseCh <- true
+			return nil
+		}
 	}
 
-	msg.ResponseCh <- true
-	return nil
+	msg.ResponseCh <- false
+	return fmt.Errorf("%w; candidate hash: %s", errCandidateNotRecognised, msg.CandidateHash.Value)
 }
 
 // secondingSanityCheck checks whether a candidate can be seconded based on its
