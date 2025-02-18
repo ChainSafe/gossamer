@@ -111,10 +111,17 @@ type Extrinsic interface {
 	// Is this Extrinsic signed?
 	// If no information are available about signed/unsigned, nil should be returned.
 	IsSigned() *bool
+	Bytes() []byte
 }
 
-type OpaqueExtrinsic struct{}
+type OpaqueExtrinsic struct {
+	Data []byte
+}
 
 func (oe OpaqueExtrinsic) IsSigned() *bool {
 	return nil
+}
+
+func (oe OpaqueExtrinsic) Bytes() []byte {
+	return oe.Data
 }

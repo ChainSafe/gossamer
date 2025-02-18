@@ -20,6 +20,10 @@ func (noopExtrinsic) IsSigned() *bool {
 	return nil
 }
 
+func (noopExtrinsic) Bytes() []byte {
+	return nil
+}
+
 // Check for interface fulfilment
 var (
 	_ blockchain.HeaderBackend[hash.H256, uint, *generic.Header[uint, hash.H256, runtime.BlakeTwo256]] = &blockchainDB[

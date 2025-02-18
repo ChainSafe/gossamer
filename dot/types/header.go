@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -21,6 +22,25 @@ type Header struct {
 	ExtrinsicsRoot common.Hash `json:"extrinsicsRoot"`
 	Digest         Digest      `json:"digest"`
 	hash           common.Hash
+}
+
+func FromGenericHeader[N runtime.Number, H runtime.Hash](gh runtime.Header[N, H]) (*Header, error) {
+	header := &Header{
+		ParentHash:     common.Hash(gh.ParentHash().Bytes()),
+		Number:         uint(gh.Number()),
+		StateRoot:      common.Hash(gh.StateRoot().Bytes()),
+		ExtrinsicsRoot: common.Hash(gh.ExtrinsicsRoot().Bytes()),
+		hash:           common.Hash(gh.Hash().Bytes()),
+	}
+
+	digests, err := FromGenericDigest(gh.Digest())
+	if err != nil {
+		return nil, err
+	}
+
+	header.Digest = digests
+
+	return header, nil
 }
 
 // NewHeader creates a new block header and sets its hash field

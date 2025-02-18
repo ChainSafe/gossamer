@@ -17,23 +17,15 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
-	rt_testing "github.com/ChainSafe/gossamer/internal/primitives/runtime/testing"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/stretchr/testify/require"
 )
 
-type noopExtrinsic struct{}
-
-func (noopExtrinsic) IsSigned() *bool {
-	return nil
-}
-
-var _ runtime.Extrinsic = noopExtrinsic{}
-
 type TestClient struct {
 	Client[
-		hash.H256, runtime.BlakeTwo256, uint64, noopExtrinsic, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+		hash.H256, runtime.BlakeTwo256, uint64, runtime.OpaqueExtrinsic, *generic.Header[
+			uint64, hash.H256, runtime.BlakeTwo256],
 	]
 }
 
@@ -45,7 +37,8 @@ var (
 		hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
 	] = &TestClient{}
 	_ api.LockImportRun[
-		hash.H256, uint64, runtime.BlakeTwo256, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256], noopExtrinsic,
+		hash.H256, uint64, runtime.BlakeTwo256, *generic.Header[
+			uint64, hash.H256, runtime.BlakeTwo256], runtime.OpaqueExtrinsic,
 	] = &TestClient{}
 )
 
@@ -56,7 +49,7 @@ func NewTestBackend(t *testing.T,
 	uint64,
 	runtime.BlakeTwo256,
 	*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
-	rt_testing.ExtrinsicsWrapper[uint64],
+	runtime.OpaqueExtrinsic,
 ] {
 	t.Helper()
 
@@ -83,7 +76,7 @@ func NewTestBackend(t *testing.T,
 	backend, err := db.NewBackend[
 		hash.H256,
 		uint64,
-		rt_testing.ExtrinsicsWrapper[uint64],
+		runtime.OpaqueExtrinsic,
 		runtime.BlakeTwo256,
 		*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
 	](dbSetting, canonicalizationDelay)
@@ -304,7 +297,7 @@ type ClientImportOperation = api.ClientImportOperation[
 	runtime.BlakeTwo256,
 	uint64,
 	*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
-	rt_testing.ExtrinsicsWrapper[uint64],
+	runtime.OpaqueExtrinsic,
 ]
 
 func TestLockImportRun(t *testing.T) {

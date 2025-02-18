@@ -467,7 +467,7 @@ func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(blockNu
 }
 
 func (bdb *blockchainDB[H, N, E, Header]) Children(parentHash H) ([]H, error) {
-	return readChildren[H](bdb.db, columns.Meta, metakeys.ChildrenPrefix, parentHash)
+	return readChildren(bdb.db, columns.Meta, metakeys.ChildrenPrefix, parentHash)
 }
 
 func (bdb *blockchainDB[H, N, E, Header]) LongestContaining(baseHash H, importLock *sync.RWMutex) (*H, error) {

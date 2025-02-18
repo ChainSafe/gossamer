@@ -512,3 +512,7 @@ func (c *Client[H, Hasher, N, E, Header]) BlockIndexedBody(hash H) ([][]byte, er
 func (c *Client[H, Hasher, N, E, Header]) RequiresFullSync() bool {
 	return c.backend.RequiresFullSync()
 }
+
+func (c *Client[H, Hasher, N, E, Header]) Children(parent H) ([]H, error) {
+	return c.backend.Blockchain().Children(parent)
+}

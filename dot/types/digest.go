@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -97,6 +98,15 @@ func NewDigestItem() DigestItem {
 
 // Digest is slice of DigestItem
 type Digest []DigestItem
+
+func FromGenericDigest(gd runtime.Digest) (Digest, error) {
+	d := NewDigest()
+	err := d.Add(gd.Logs)
+	if err != nil {
+		return nil, err
+	}
+	return d, nil
+}
 
 func (d *Digest) Add(values ...any) (err error) {
 	for _, value := range values {
