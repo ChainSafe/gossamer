@@ -11,8 +11,13 @@ import (
 )
 
 // BlockBackend is an interface for fetching block data
-type BlockBackend[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H],
-	Hasher runtime.Hasher[H], E runtime.Extrinsic] interface {
+type BlockBackend[
+	H runtime.Hash,
+	N runtime.Number,
+	Header runtime.Header[N, H],
+	Hasher runtime.Hasher[H],
+	E runtime.Extrinsic,
+] interface {
 	// BlockBody gets block body by hash or nil if the block is not found.
 	BlockBody(hash H) ([]E, error)
 
