@@ -207,7 +207,7 @@ func (s *StateSyncStrategy) Process(results []*SyncTaskResult) (
 		// Reuse same validator than in fullsync
 		repChanges, peersToBlock, validRes = validateResults(results, s.badBlocks)
 
-		if len(validRes) > 0 && validRes[0].responseData != nil && len(validRes[0].responseData) > 0 {
+		if len(validRes) > 0 && len(validRes[0].responseData) > 0 {
 			s.firstBlock = *validRes[0].responseData[0]
 			s.phase = StateSyncCompleted
 		}
