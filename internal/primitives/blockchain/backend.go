@@ -30,7 +30,7 @@ type BlockBackend[
 	// BlockStatus gets block status by block hash.
 	BlockStatus(hash H) (BlockStatus, error)
 
-	// Justification gets block justifications for the block with the given hash.
+	// Justifications gets block justifications for the block with the given hash.
 	Justifications(hash H) (runtime.Justifications, error)
 
 	// BlockHash gets block hash by number.
