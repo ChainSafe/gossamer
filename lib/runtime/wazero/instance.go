@@ -1456,7 +1456,7 @@ func (in *Instance) ParachainHostClaimQueue() (parachaintypes.ClaimQueue, error)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling claim queue: %w", err)
 	}
-	
+
 	return claimQueue, nil
 }
 
