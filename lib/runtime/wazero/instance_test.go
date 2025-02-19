@@ -45,11 +45,8 @@ var parachainsConfigV190TestDataRaw string
 //go:embed testdata/parachains_host_para_backing_state.yaml
 var parachainsHostParaBackingState string
 
-//go:embed testdata/parachains_configuration_v1140.yaml
-var parachainsConfigV1140TestDataRaw string
-
 //go:embed testdata/parachains_configuration_v1171.yaml
-var parachainsTestDataV1171 string
+var parachainsConfigV1171TestDataRaw string
 
 type Storage struct {
 	Name  string `yaml:"name"`
@@ -63,7 +60,7 @@ type Data struct {
 	Lookups  map[string]any    `yaml:"-"`
 }
 
-var parachainTestData, parachainsConfigV190TestData, parachainsConfigV1140TestData Data
+var parachainTestData, parachainsConfigV190TestData, parachainsConfigV1171TestData Data
 
 func init() {
 	err := yaml.Unmarshal([]byte(parachainTestDataRaw), &parachainTestData)
@@ -92,16 +89,16 @@ func init() {
 		}
 	}
 
-	err = yaml.Unmarshal([]byte(parachainsConfigV1140TestDataRaw), &parachainsConfigV1140TestData)
+	err = yaml.Unmarshal([]byte(parachainsConfigV1171TestDataRaw), &parachainsConfigV1171TestData)
 	if err != nil {
 		fmt.Println("Error unmarshalling test data:", err)
 		return
 	}
-	parachainsConfigV1140TestData.Lookups = make(map[string]any)
+	parachainsConfigV1171TestData.Lookups = make(map[string]any)
 
-	for _, s := range parachainsConfigV1140TestData.Storage {
+	for _, s := range parachainsConfigV1171TestData.Storage {
 		if s.Name != "" {
-			parachainsConfigV1140TestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
+			parachainsConfigV1171TestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
 		}
 	}
 }
@@ -1748,8 +1745,8 @@ func TestInstance_ParachainHostNodeFeatures(t *testing.T) {
 func TestInstance_ParachainHostClaimQueue(t *testing.T) {
 	t.Skip("this test logs Critical runtime error: CRITICAL target=runtime::storage message=Corrupted state at...")
 
-	tt := getParachainHostTrie(t, parachainsConfigV1140TestData.Storage)
-	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1140, TestWithTrie(tt))
+	tt := getParachainHostTrie(t, parachainsConfigV1171TestData.Storage)
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1017001, TestWithTrie(tt))
 
 	claimQ, err := rt.ParachainHostClaimQueue()
 	require.NoError(t, err)
@@ -1759,11 +1756,7 @@ func TestInstance_ParachainHostClaimQueue(t *testing.T) {
 func TestInstance_ParachainHostDisabledValidators(t *testing.T) {
 	t.Parallel()
 
-	var parachainLatestData Data
-	err := yaml.Unmarshal([]byte(parachainsTestDataV1171), &parachainLatestData)
-	require.NoError(t, err)
-
-	tt := getParachainHostTrie(t, parachainLatestData.Storage)
+	tt := getParachainHostTrie(t, parachainsConfigV1171TestData.Storage)
 	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1017001, TestWithTrie(tt))
 
 	disabledValidators, err := rt.ParachainHostDisabledValidators()

@@ -88,9 +88,6 @@ func GetRuntime(ctx context.Context, runtime string) (
 	case WESTEND_RUNTIME_v190:
 		runtimeFilename = WESTEND_RUNTIME_V190_FP
 		url = WESTEND_RUNTIME_V190_URL
-	case WESTEND_RUNTIME_v1140:
-		runtimeFilename = WESTEND_RUNTIME_V1140_FP
-		url = WESTEND_RUNTIME_V1140_URL
 	case WESTEND_RUNTIME_v1017001:
 		runtimeFilename = WESTEND_RUNTIME_v1017001_FP
 		url = WESTEND_RUNTIME_v1017001_URL
