@@ -95,13 +95,13 @@ type Header[N Number, H Hash] interface {
 // Block represents a block. It has types for Extrinsic pieces of information as well as a Header.
 //
 // You can iterate over each of the Extrinsics and retrieve the Header.
-type Block[N Number, H Hash] interface {
+type Block[N Number, H Hash, E Extrinsic] interface {
 	// Returns a reference to the header.
 	Header() Header[N, H]
 	// Returns a reference to the list of extrinsics.
-	Extrinsics() []Extrinsic
+	Extrinsics() []E
 	// Split the block into header and list of extrinsics.
-	Deconstruct() (header Header[N, H], extrinsics []Extrinsic)
+	Deconstruct() (header Header[N, H], extrinsics []E)
 	// Returns the hash of the block.
 	Hash() H
 }
@@ -111,4 +111,10 @@ type Extrinsic interface {
 	// Is this Extrinsic signed?
 	// If no information are available about signed/unsigned, nil should be returned.
 	IsSigned() *bool
+}
+
+type OpaqueExtrinsic struct{}
+
+func (oe OpaqueExtrinsic) IsSigned() *bool {
+	return nil
 }
