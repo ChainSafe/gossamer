@@ -427,57 +427,6 @@ func TestOccupiedCoreAssumption(t *testing.T) {
 	}
 }
 
-func TestAssignment(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		name          string
-		enumValue     any
-		encodingValue []byte
-	}{
-		{
-			name:          "bulk",
-			enumValue:     BulkAssignment{1},
-			encodingValue: []byte{1, 1, 0, 0, 0},
-		},
-		{
-			name:          "pool",
-			enumValue:     PoolAssignment{4, CoreIndex{5}},
-			encodingValue: []byte{0, 4, 0, 0, 0, 5, 0, 0, 0},
-		},
-	}
-
-	for _, c := range testCases {
-		c := c
-		t.Run(c.name, func(t *testing.T) {
-			t.Parallel()
-			t.Run("marshal", func(t *testing.T) {
-				t.Parallel()
-
-				vdt := Assignment{}
-				err := vdt.SetValue(c.enumValue)
-				require.NoError(t, err)
-
-				bytes, err := scale.Marshal(vdt)
-				require.NoError(t, err)
-				require.Equal(t, c.encodingValue, bytes)
-			})
-
-			t.Run("unmarshal", func(t *testing.T) {
-				t.Parallel()
-
-				vdt := Assignment{}
-				err := scale.Unmarshal(c.encodingValue, &vdt)
-				require.NoError(t, err)
-
-				value, err := vdt.Value()
-				require.NoError(t, err)
-				require.Equal(t, c.enumValue, value)
-			})
-		})
-	}
-}
-
 func TestUpgradeRestrictionEncodingDecoding(t *testing.T) {
 	presentVariant := []byte{0}
 	var restriction UpgradeRestriction

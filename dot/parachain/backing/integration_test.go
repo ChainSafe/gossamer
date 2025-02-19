@@ -180,7 +180,7 @@ func claimQueue(t *testing.T) parachaintypes.ClaimQueue {
 	for i := 0; i < numOfGroups; i++ {
 		core := parachaintypes.CoreIndex{Index: uint32(i)}
 
-		queue[core] = []parachaintypes.Assignment{}
+		queue[core] = []parachaintypes.ParaID{}
 	}
 
 	return queue
@@ -292,12 +292,8 @@ func TestSecondsValidCandidate(t *testing.T) {
 	relayParent := getDummyHash(t, 5)
 	paraID := parachaintypes.ParaID(1)
 
-	assignment := parachaintypes.Assignment{}
-	err := assignment.SetValue(parachaintypes.BulkAssignment{ParaID: paraID})
-	require.NoError(t, err)
-
 	claimQ := claimQueue(t)
-	claimQ[parachaintypes.CoreIndex{Index: 0}] = []parachaintypes.Assignment{assignment}
+	claimQ[parachaintypes.CoreIndex{Index: 0}] = []parachaintypes.ParaID{paraID}
 
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
@@ -493,12 +489,8 @@ func TestCandidateReachesQuorum(t *testing.T) {
 
 	signingContext := signingContext(t)
 
-	assignment := parachaintypes.Assignment{}
-	err = assignment.SetValue(parachaintypes.BulkAssignment{ParaID: paraID})
-	require.NoError(t, err)
-
 	claimQ := claimQueue(t)
-	claimQ[parachaintypes.CoreIndex{Index: 0}] = []parachaintypes.Assignment{assignment}
+	claimQ[parachaintypes.CoreIndex{Index: 0}] = []parachaintypes.ParaID{paraID}
 
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
@@ -703,12 +695,8 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 
 	signingContext := signingContext(t)
 
-	assignment := parachaintypes.Assignment{}
-	err = assignment.SetValue(parachaintypes.BulkAssignment{ParaID: paraID})
-	require.NoError(t, err)
-
 	claimQ := claimQueue(t)
-	claimQ[parachaintypes.CoreIndex{Index: 0}] = []parachaintypes.Assignment{assignment}
+	claimQ[parachaintypes.CoreIndex{Index: 0}] = []parachaintypes.ParaID{paraID}
 
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
@@ -856,12 +844,8 @@ func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
 	relayParent := getDummyHash(t, 5)
 	paraID := parachaintypes.ParaID(1)
 
-	assignment := parachaintypes.Assignment{}
-	err := assignment.SetValue(parachaintypes.BulkAssignment{ParaID: paraID})
-	require.NoError(t, err)
-
 	claimQ := claimQueue(t)
-	claimQ[parachaintypes.CoreIndex{Index: 0}] = []parachaintypes.Assignment{assignment}
+	claimQ[parachaintypes.CoreIndex{Index: 0}] = []parachaintypes.ParaID{paraID}
 
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
@@ -1017,12 +1001,8 @@ func TestNewLeafDoesNotClobberOld(t *testing.T) {
 	paraID := parachaintypes.ParaID(1)
 	validationCode := parachaintypes.ValidationCode{1, 2, 3}
 
-	assignment := parachaintypes.Assignment{}
-	err := assignment.SetValue(parachaintypes.BulkAssignment{ParaID: paraID})
-	require.NoError(t, err)
-
 	claimQ := claimQueue(t)
-	claimQ[parachaintypes.CoreIndex{Index: 0}] = []parachaintypes.Assignment{assignment}
+	claimQ[parachaintypes.CoreIndex{Index: 0}] = []parachaintypes.ParaID{paraID}
 
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
@@ -1165,12 +1145,8 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 
 	signingContext := signingContext(t)
 
-	assignment := parachaintypes.Assignment{}
-	err = assignment.SetValue(parachaintypes.BulkAssignment{ParaID: paraID})
-	require.NoError(t, err)
-
 	claimQ := claimQueue(t)
-	claimQ[parachaintypes.CoreIndex{Index: 0}] = []parachaintypes.Assignment{assignment}
+	claimQ[parachaintypes.CoreIndex{Index: 0}] = []parachaintypes.ParaID{paraID}
 
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)

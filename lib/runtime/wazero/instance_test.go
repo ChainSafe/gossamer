@@ -1712,7 +1712,7 @@ func TestInstance_ParachainHostAsyncBackingParams(t *testing.T) {
 	params, err := rt.ParachainHostAsyncBackingParams()
 	require.NoError(t, err)
 	require.Equal(t, uint32(2), params.AllowedAncestryLen)
-	require.Equal(t, uint32(6), params.MaxCandidateDepth)
+	require.Equal(t, uint32(3), params.MaxCandidateDepth)
 }
 
 func TestInstance_ParachainHostSessionExecutorParams(t *testing.T) {
@@ -1732,10 +1732,10 @@ func TestInstance_ParachainHostSessionExecutorParams(t *testing.T) {
 func TestInstance_ParachainHostNodeFeatures(t *testing.T) {
 	t.Parallel()
 
-	tt := getParachainHostTrie(t, parachainsConfigV190TestData.Storage)
-	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v190, TestWithTrie(tt))
+	tt := getParachainHostTrie(t, parachainsConfigV1171TestData.Storage)
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1017001, TestWithTrie(tt))
 
-	expectedNodeFeatures := parachaintypes.NewBitVec([]bool{false, true})
+	expectedNodeFeatures := parachaintypes.NewBitVec([]bool{false, true, false, true})
 
 	actualNodeFeatures, err := rt.ParachainHostNodeFeatures()
 	require.NoError(t, err)
@@ -1743,14 +1743,22 @@ func TestInstance_ParachainHostNodeFeatures(t *testing.T) {
 }
 
 func TestInstance_ParachainHostClaimQueue(t *testing.T) {
-	t.Skip("this test logs Critical runtime error: CRITICAL target=runtime::storage message=Corrupted state at...")
-
 	tt := getParachainHostTrie(t, parachainsConfigV1171TestData.Storage)
 	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1017001, TestWithTrie(tt))
 
+	expectedQueue := parachaintypes.ClaimQueue{
+		{Index: 0}:  {1000, 1000, 1000},
+		{Index: 1}:  {1001, 1001, 1001},
+		{Index: 2}:  {1002, 1002, 1002},
+		{Index: 3}:  {1004, 1004, 1004},
+		{Index: 4}:  {1005, 1005, 1005},
+		{Index: 6}:  {2022, 2022, 2022},
+		{Index: 17}: {2042, 2042, 2042},
+	}
+
 	claimQ, err := rt.ParachainHostClaimQueue()
 	require.NoError(t, err)
-	require.NotEmpty(t, claimQ)
+	require.Equal(t, expectedQueue, claimQ)
 }
 
 func TestInstance_ParachainHostDisabledValidators(t *testing.T) {

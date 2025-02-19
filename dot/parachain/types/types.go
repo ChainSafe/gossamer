@@ -788,70 +788,7 @@ type NodeFeatureIndex byte
 // are backed. This is needed for the elastic scaling MVP.
 const ElasticScalingMVP NodeFeatureIndex = 1
 
-type ClaimQueue map[CoreIndex][]Assignment
-
-func (c ClaimQueue) GetCoreToParasMap() (map[CoreIndex][]ParaID, error) {
-	coreToParas := make(map[CoreIndex][]ParaID)
-	for core, assignments := range c {
-		paras := []ParaID{}
-		for _, assignment := range assignments {
-			val, err := assignment.Value()
-			if err != nil {
-				return nil, fmt.Errorf("getting value of assignment: %w", err)
-			}
-
-			switch val := val.(type) {
-			case BulkAssignment:
-				paras = append(paras, val.ParaID)
-			case PoolAssignment:
-				paras = append(paras, val.ParaID)
-			}
-		}
-
-		coreToParas[core] = paras
-	}
-
-	return coreToParas, nil
-}
-
-// Assignment is a parachain assignment to a core.
-type Assignment struct {
-	inner any
-}
-
-// AssignmentValues are the possible values of an assignment.
-type AssignmentValues interface {
-	PoolAssignment | BulkAssignment
-}
-
-// PoolAssignment is a parachain assignment to a core as part of a pool assignment.
-type PoolAssignment struct {
-	ParaID    ParaID
-	CoreIndex CoreIndex
-}
-
-// BulkAssignment is a parachain assignment to a core as part of a bulk assignment
-// of multiple parachains to a core.
-type BulkAssignment struct {
-	ParaID ParaID
-}
-
-func setAssignment[Value AssignmentValues](a *Assignment, value Value) {
-	a.inner = value
-}
-
-func (a *Assignment) SetValue(value any) (err error) {
-	switch value := value.(type) {
-	case PoolAssignment:
-		setAssignment(a, value)
-		return
-	case BulkAssignment:
-		setAssignment(a, value)
-		return
-	default:
-		return fmt.Errorf("unsupported type")
-	}
-}
+type ClaimQueue map[CoreIndex][]ParaID
 
 // Present is a variant of UpgradeRestriction enumerator that signals
 // a upgrade restriction is present and there are no details about its
@@ -882,37 +819,12 @@ func (mvdt *UpgradeRestriction) SetValue(value any) (err error) {
 	}
 }
 
-func (a Assignment) IndexValue() (index uint, value any, err error) {
-	switch a.inner.(type) {
-	case PoolAssignment:
-		return 0, a.inner, nil
-	case BulkAssignment:
-		return 1, a.inner, nil
-	}
-	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
-}
-
 func (mvdt UpgradeRestriction) IndexValue() (index uint, value any, err error) {
 	switch mvdt.inner.(type) {
 	case Present:
 		return 0, mvdt.inner, nil
 	}
 	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
-}
-
-func (a Assignment) Value() (value any, err error) {
-	_, value, err = a.IndexValue()
-	return
-}
-
-func (a Assignment) ValueAt(index uint) (value any, err error) {
-	switch index {
-	case 0:
-		return PoolAssignment{}, nil
-	case 1:
-		return BulkAssignment{}, nil
-	}
-	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
 func (mvdt UpgradeRestriction) Value() (value any, err error) {

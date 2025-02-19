@@ -73,11 +73,6 @@ func (cb *CandidateBacking) constructPerRelayParentState(relayParent common.Hash
 		return nil, fmt.Errorf("getting claim queue: %w", err)
 	}
 
-	coreToParas, err := claimQueue.GetCoreToParasMap()
-	if err != nil {
-		return nil, fmt.Errorf("getting map of core index to assigned parachains: %w", err)
-	}
-
 	disabledValidators, err := rt.ParachainHostDisabledValidators()
 	if err != nil {
 		return nil, fmt.Errorf("getting disabled validators: %w", err)
@@ -146,7 +141,7 @@ func (cb *CandidateBacking) constructPerRelayParentState(relayParent common.Hash
 		minBackingVotes:    minBackingVotes,
 		injectCoreIndex:    injectCoreIndex,
 		numOfCores:         numOfCores,
-		claimQueue:         coreToParas,
+		claimQueue:         claimQueue,
 		validatorToGroup:   validatorToGroup,
 		groupRotationInfo:  validatorGroups.GroupRotationInfo,
 	}
