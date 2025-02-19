@@ -9,8 +9,10 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/client/db"
+	"github.com/ChainSafe/gossamer/internal/client/mocks"
 	statedb "github.com/ChainSafe/gossamer/internal/client/state-db"
 	memorykvdb "github.com/ChainSafe/gossamer/internal/kvdb/memory-kvdb"
+	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
@@ -336,4 +338,192 @@ func TestPreCommitActions(t *testing.T) {
 
 		require.Equal(t, 2, count)
 	})
+}
+
+func TestHeaderBackendImplementation(t *testing.T) {
+	backendMock := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256,
+		*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+		runtime.OpaqueExtrinsic](t)
+
+	blockchainMock := mocks.NewBlockchainBackend[hash.H256, uint64,
+		*generic.Header[uint64, hash.H256, runtime.BlakeTwo256], runtime.OpaqueExtrinsic](t)
+
+	expectedHeader := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		1,
+		hash.H256("extrinsicsroot"),
+		hash.H256("stateroot"),
+		hash.H256("parent"),
+		runtime.Digest{},
+	)
+	expectedHash := expectedHeader.Hash()
+	expectedNumber := expectedHeader.Number()
+
+	blockchainMock.EXPECT().Header(expectedHash).Return(&expectedHeader, nil)
+	blockchainMock.EXPECT().Number(expectedHash).Return(&expectedNumber, nil)
+	blockchainMock.EXPECT().Hash(expectedNumber).Return(&expectedHash, nil)
+
+	expectedExtrinsics := []runtime.OpaqueExtrinsic{}
+	blockchainMock.EXPECT().Body(expectedHash).Return(expectedExtrinsics, nil)
+
+	expectedInfo := blockchain.Info[hash.H256, uint64]{
+		BestHash:        expectedHash,
+		BestNumber:      expectedHeader.Number(),
+		GenesisHash:     expectedHeader.ParentHash(),
+		FinalizedHash:   expectedHash,
+		FinalizedNumber: expectedHeader.Number(),
+		FinalizedState:  nil,
+	}
+	blockchainMock.EXPECT().Info().Return(expectedInfo)
+
+	expectedStatus := blockchain.BlockStatusInChain
+	blockchainMock.EXPECT().Status(expectedHash).Return(expectedStatus, nil)
+
+	blockNumberId := generic.NewBlockID[hash.H256, uint64](generic.BlockIDNumber[uint64]{Number: expectedNumber})
+	blockHashId := generic.NewBlockID[hash.H256, uint64](generic.BlockIDHash[hash.H256]{Hash: expectedHash})
+	blockchainMock.EXPECT().BlockHashFromID(blockNumberId).Return(&expectedHash, nil)
+	blockchainMock.EXPECT().BlockNumberFromID(blockHashId).Return(&expectedNumber, nil)
+
+	backendMock.EXPECT().Blockchain().Return(blockchainMock)
+
+	c := New(backendMock)
+
+	// Get Header
+	header, err := c.Header(expectedHash)
+	require.NoError(t, err)
+	require.NotNil(t, header)
+	require.Equal(t, expectedHeader, *header)
+
+	// Get Body
+	extrinsics, err := c.Body(expectedHash)
+	require.NoError(t, err)
+	require.Equal(t, expectedExtrinsics, extrinsics)
+
+	// Get Info
+	info := c.Info()
+	require.Equal(t, expectedInfo, info)
+
+	// Get Status
+	status, err := c.Status(expectedHash)
+	require.NoError(t, err)
+	require.Equal(t, expectedStatus, status)
+
+	// Get Number
+	number, err := c.Number(expectedHash)
+	require.NoError(t, err)
+	require.NotNil(t, number)
+	require.Equal(t, expectedNumber, *number)
+
+	// Get Number
+	hash, err := c.Hash(expectedNumber)
+	require.NoError(t, err)
+	require.NotNil(t, hash)
+	require.Equal(t, expectedHash, *hash)
+
+	// Get BlockHashFromID
+	blockHash, err := c.BlockHashFromID(blockNumberId)
+	require.NoError(t, err)
+	require.NotNil(t, blockHash)
+	require.Equal(t, expectedHash, *blockHash)
+
+	// Get BlockNumberFromId
+	blockNumber, err := c.BlockNumberFromID(blockHashId)
+	require.NoError(t, err)
+	require.NotNil(t, blockNumber)
+	require.Equal(t, expectedNumber, *blockNumber)
+}
+
+func TestBlockBackendImplementation(t *testing.T) {
+	backendMock := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256,
+		*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+		runtime.OpaqueExtrinsic](t)
+
+	blockchainMock := mocks.NewBlockchainBackend[hash.H256, uint64,
+		*generic.Header[uint64, hash.H256, runtime.BlakeTwo256], runtime.OpaqueExtrinsic](t)
+
+	c := New(backendMock)
+
+	expectedHeader := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		1,
+		hash.H256("extrinsicsroot"),
+		hash.H256("stateroot"),
+		hash.H256("parent"),
+		runtime.Digest{},
+	)
+	expectedHash := expectedHeader.Hash()
+	expectedNumber := expectedHeader.Number()
+
+	blockchainMock.EXPECT().Header(expectedHash).Return(&expectedHeader, nil)
+	blockchainMock.EXPECT().Hash(expectedNumber).Return(&expectedHash, nil)
+
+	expectedExtrinsics := []runtime.OpaqueExtrinsic{}
+	blockchainMock.EXPECT().Body(expectedHash).Return(expectedExtrinsics, nil)
+
+	expectedStatus := blockchain.BlockStatusInChain
+	blockchainMock.EXPECT().Status(expectedHash).Return(expectedStatus, nil)
+
+	expectedIndexedExtrinsics := [][]byte{
+		[]byte("extrinsic1"),
+		[]byte("extrinsic2"),
+	}
+
+	blockchainMock.EXPECT().BlockIndexedBody(expectedHash).Return(expectedIndexedExtrinsics, nil)
+
+	var expectedJustifications runtime.Justifications = nil
+	blockchainMock.EXPECT().Justifications(expectedHash).Return(expectedJustifications, nil)
+
+	expectedIndexedTransaction := []byte("transaction1")
+	blockchainMock.EXPECT().IndexedTransaction(expectedHash).Return(expectedIndexedTransaction, nil)
+	blockchainMock.EXPECT().HasIndexedTransaction(expectedHash).Return(true, nil)
+
+	backendMock.EXPECT().RequiresFullSync().Return(true)
+	backendMock.EXPECT().Blockchain().Return(blockchainMock)
+
+	// Get BlockBody
+	extrinsics, err := c.BlockBody(expectedHash)
+	require.NoError(t, err)
+	require.Equal(t, expectedExtrinsics, extrinsics)
+
+	// Get BlockIndexedBody
+	indexedBody, err := c.BlockIndexedBody(expectedHash)
+	require.NoError(t, err)
+	require.Equal(t, expectedIndexedExtrinsics, indexedBody)
+
+	// Get Block
+	expectedBlock := generic.NewSignedBlock(
+		generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](expectedHeader, expectedExtrinsics), nil,
+	)
+	block, err := c.Block(expectedHash)
+	require.NoError(t, err)
+	require.Equal(t, expectedBlock, block)
+
+	// Get BlockStatus
+	blockStatus, err := c.BlockStatus(expectedHash)
+	require.NoError(t, err)
+	require.Equal(t, expectedStatus, blockStatus)
+
+	// Get Justifications
+	justifications, err := c.Justifications(expectedHash)
+	require.NoError(t, err)
+	require.Equal(t, expectedJustifications, justifications)
+
+	// Get BlockHash
+	blockHash, err := c.BlockHash(expectedNumber)
+	require.NoError(t, err)
+	require.NotNil(t, blockHash)
+	require.Equal(t, expectedHash, *blockHash)
+
+	// Get IndexedTransaction
+	indexedTransaction, err := c.IndexedTransaction(expectedHash)
+	require.NoError(t, err)
+	require.Equal(t, expectedIndexedTransaction, indexedTransaction)
+
+	// HasIndexedTransactions
+	has, err := c.HasIndexedTransaction(expectedHash)
+	require.NoError(t, err)
+	require.True(t, has)
+
+	// RequiresFullSync
+	requiresFullSync := c.RequiresFullSync()
+	require.NoError(t, err)
+	require.True(t, requiresFullSync)
 }
