@@ -17,6 +17,10 @@ type H256 string
 
 // Bytes returns a byte slice
 func (h256 H256) Bytes() []byte {
+	if h256 == "" {
+		arr := [32]byte{}
+		return arr[:]
+	}
 	return []byte(h256)
 }
 
@@ -66,5 +70,11 @@ func NewRandomH256() H256 {
 	if err != nil {
 		panic(err)
 	}
+	return H256(token)
+}
+
+// NewH256 is constructor for a zero case H256
+func NewH256() H256 {
+	token := make([]byte, 32)
 	return H256(token)
 }

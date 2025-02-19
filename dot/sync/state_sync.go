@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
@@ -39,7 +40,7 @@ type StateSyncStrategy struct {
 	badBlocks            []string
 	reqMaker             network.RequestMaker
 	blockReqMaker        network.RequestMaker
-	blockState           BlockState
+	blockState           state.BlockState
 	grandpaState         GrandpaState
 	epochState           EpochState
 	storage              StorageState
@@ -59,7 +60,7 @@ type StateSyncStrategy struct {
 type StateSyncStrategyConfig struct {
 	Telemetry          Telemetry
 	BadBlocks          []string
-	BlockState         BlockState
+	BlockState         state.BlockState
 	GrandpaState       GrandpaState
 	EpochState         EpochState
 	Peers              *peerViewSet

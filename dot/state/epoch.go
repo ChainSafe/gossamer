@@ -72,7 +72,7 @@ type GenesisEpochDescriptor struct {
 type EpochState struct {
 	db           database.Table
 	baseState    *BaseState
-	blockState   *BlockState
+	blockState   BlockState
 	epochLength  uint64 // measured in slots
 	slotDuration uint64
 	skipToEpoch  uint64
@@ -89,7 +89,7 @@ type EpochState struct {
 }
 
 // NewEpochStateFromGenesis returns a new EpochState given information for the first epoch, fetched from the runtime
-func NewEpochStateFromGenesis(db database.Database, blockState *BlockState,
+func NewEpochStateFromGenesis(db database.Database, blockState BlockState,
 	genesisConfig *types.BabeConfiguration) (*EpochState, error) {
 	if genesisConfig.EpochLength == 0 {
 		return nil, errEpochLengthCannotBeZero
@@ -130,7 +130,7 @@ func NewEpochStateFromGenesis(db database.Database, blockState *BlockState,
 }
 
 // NewEpochState returns a new EpochState
-func NewEpochState(db database.Database, blockState *BlockState,
+func NewEpochState(db database.Database, blockState BlockState,
 	genesisConfig *types.BabeConfiguration) (*EpochState, error) {
 	if genesisConfig.EpochLength == 0 {
 		return nil, errEpochLengthCannotBeZero
@@ -728,7 +728,7 @@ func (s *EpochState) HandleBABEDigest(header *types.Header, digest types.BabeCon
 
 type nextEpochMap[T types.NextEpochData | types.NextConfigDataV1] map[uint64]map[common.Hash]T
 
-func (nem nextEpochMap[T]) RetrieveAndUpdate(blockState *BlockState,
+func (nem nextEpochMap[T]) RetrieveAndUpdate(blockState BlockState,
 	oldEpoch, newEpoch uint64, header *types.Header) (*T, error) {
 	oldEpochHashes, has := nem[oldEpoch]
 	if !has {
@@ -755,7 +755,7 @@ func (nem nextEpochMap[T]) RetrieveAndUpdate(blockState *BlockState,
 	return value, nil
 }
 
-func (nem nextEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header *types.Header) (*T, error) {
+func (nem nextEpochMap[T]) Retrieve(blockState BlockState, epoch uint64, header *types.Header) (*T, error) {
 	atEpoch, has := nem[epoch]
 	if !has {
 		return nil, fmt.Errorf("%w: %d", ErrEpochNotInMemory, epoch)
@@ -765,7 +765,7 @@ func (nem nextEpochMap[T]) Retrieve(blockState *BlockState, epoch uint64, header
 	return value, err
 }
 
-func findAncestor[T types.NextEpochData | types.NextConfigDataV1](blockState *BlockState,
+func findAncestor[T types.NextEpochData | types.NextConfigDataV1](blockState BlockState,
 	hashesAtEpoch map[common.Hash]T, header *types.Header) (common.Hash, *T, error) {
 
 	currentHeader := header
@@ -836,7 +836,7 @@ func (s *EpochState) GetStartSlotForEpoch(epoch uint64, bestBlockHash common.Has
 // if there is more than one first non origin block then it uses the block hash to check ancestry
 // e.g to return the correct slot number for a specific fork
 func (s *EpochState) retrieveFirstNonOriginBlockSlot(blockHash common.Hash) (uint64, error) {
-	chainFirstSlotNumber, err := s.blockState.getFirstNonOriginSlotNumber()
+	chainFirstSlotNumber, err := s.blockState.GetFirstNonOriginSlotNumber()
 	if err != nil {
 		return 0, fmt.Errorf("retrieving first non origin block slot: %w", err)
 

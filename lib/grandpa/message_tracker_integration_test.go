@@ -21,7 +21,7 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	gs := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
-	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3, false)
+	state.AddBlocksToState(t, gs.blockState, 3, false)
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 
 	fake := &types.Header{
@@ -50,7 +50,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	gs := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
 	defer gs.cancel()
 
-	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3, false)
+	state.AddBlocksToState(t, gs.blockState, 3, false)
 
 	err = gs.Start()
 	require.NoError(t, err)
@@ -86,7 +86,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	voteMessage := getMessageFromVotesMapping(gs.tracker.votes.mapping, next.Hash(), authorityID)
 	require.Equal(t, msg, voteMessage)
 
-	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
+	err = gs.blockState.AddBlock(&types.Block{
 		Header: *next,
 		Body:   types.Body{},
 	})
@@ -107,7 +107,7 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 	require.NoError(t, err)
 
 	gs := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
-	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3, false)
+	state.AddBlocksToState(t, gs.blockState, 3, false)
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 
 	header := &types.Header{
@@ -136,7 +136,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 
 	gs := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
 
-	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3, false)
+	state.AddBlocksToState(t, gs.blockState, 3, false)
 	gs.tracker = newTracker(gs.blockState, gs.messageHandler)
 	gs.tracker.start()
 	defer gs.tracker.stop()
@@ -169,7 +169,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	voteMessage := getMessageFromVotesMapping(gs.tracker.votes.mapping, next.Hash(), authorityID)
 	require.Equal(t, aliceVoteMessage, voteMessage)
 
-	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
+	err = gs.blockState.AddBlock(&types.Block{
 		Header: *next,
 		Body:   types.Body{},
 	})

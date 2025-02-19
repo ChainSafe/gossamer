@@ -12,7 +12,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/metrics"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 )
@@ -29,7 +28,7 @@ type Service struct {
 	isMemDB           bool // set to true if using an in-memory database; only used for testing.
 	Base              *BaseState
 	Storage           *InmemoryStorageState
-	Block             *BlockState
+	Block             BlockState
 	Transaction       *TransactionState
 	Epoch             *EpochState
 	Grandpa           *GrandpaState
@@ -124,7 +123,7 @@ func (s *Service) Start() (err error) {
 	tries.SetEmptyTrie()
 
 	// create block state
-	s.Block, err = NewBlockState(s.db, tries, s.Telemetry)
+	s.Block, err = NewDefaultBlockState(s.db, tries, s.Telemetry)
 	if err != nil {
 		return fmt.Errorf("failed to create block state: %w", err)
 	}
@@ -165,7 +164,7 @@ func (s *Service) Start() (err error) {
 	num, _ := s.Block.BestBlockNumber()
 	logger.Infof(
 		"created state service with head %s, highest number %d and genesis hash %s",
-		s.Block.BestBlockHash(), num, s.Block.genesisHash.String())
+		s.Block.BestBlockHash(), num, s.Block.GenesisHash().String())
 
 	return nil
 }
@@ -173,31 +172,15 @@ func (s *Service) Start() (err error) {
 // Rewind rewinds the chain to the given block number.
 // If the given number of blocks is greater than the chain height, it will rewind to genesis.
 func (s *Service) Rewind(toBlock uint) error {
-	num, _ := s.Block.BestBlockNumber()
-	if toBlock > num {
-		return fmt.Errorf("cannot rewind, given height is higher than our current height")
-	}
-
-	logger.Infof(
-		"rewinding state from current height %s to desired height %d...",
-		num, toBlock)
-
-	root, err := s.Block.GetBlockByNumber(toBlock)
+	err := s.Block.Rewind(toBlock)
 	if err != nil {
 		return err
 	}
-
-	s.Block.bt = blocktree.NewBlockTreeFromRoot(&root.Header)
 
 	header, err := s.Block.BestBlockHeader()
 	if err != nil {
 		return err
 	}
-
-	s.Block.lastFinalised = header.Hash()
-	logger.Infof(
-		"rewinding state for new height %s and best block hash %s...",
-		header.Number, header.Hash())
 
 	epoch, err := s.Epoch.GetEpochForBlock(header)
 	if err != nil {
@@ -208,8 +191,6 @@ func (s *Service) Rewind(toBlock uint) error {
 	if err != nil {
 		return err
 	}
-
-	s.Block.lastFinalised = header.Hash()
 
 	// TODO: this is broken, it needs to set the latest finalised header after
 	// rewinding to some block number, but there is no reverse lookup function
@@ -277,11 +258,7 @@ func (s *Service) Import(header *types.Header, t trie.Trie,
 		}
 	}
 
-	block := &BlockState{
-		bt:                blocktree.NewEmptyBlockTree(),
-		db:                database.NewTable(s.db, blockPrefix),
-		unfinalisedBlocks: newHashToBlockMap(),
-	}
+	block := NewDefaultBlockStateForStateImport(s.db)
 
 	storage := &InmemoryStorageState{
 		db: database.NewTable(s.db, storagePrefix),
@@ -334,7 +311,7 @@ func (s *Service) Import(header *types.Header, t trie.Trie,
 	if err := block.db.Put(finalisedHashKey(0, 0), hash[:]); err != nil {
 		return err
 	}
-	if err := block.setHighestRoundAndSetID(0, 0); err != nil {
+	if err := block.SetHighestRoundAndSetID(0, 0); err != nil {
 		return err
 	}
 

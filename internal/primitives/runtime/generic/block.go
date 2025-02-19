@@ -4,31 +4,45 @@
 package generic
 
 import (
+	"fmt"
+
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 )
 
-// Something to identify a block.
-type BlockID any
+// BlockID is used to identify a block.
+type BlockID interface {
+	isBlockID()
+}
 
-// BlockIDTypes is the interface constraint of `BlockID`.
-type BlockIDTypes[H, N any] interface {
+// BlockIDTypes is the interface constraint of BlockID.
+type BlockIDTypes[H runtime.Hash, N runtime.Number] interface {
 	BlockIDHash[H] | BlockIDNumber[N]
 }
 
-// NewBlockID is the constructor for `BlockID`.
-func NewBlockID[H, N any, T BlockIDTypes[H, N]](blockID T) BlockID {
+// NewBlockID is the constructor for BlockID.
+func NewBlockID[H runtime.Hash, N runtime.Number, T BlockIDTypes[H, N]](blockID T) BlockID {
 	return BlockID(blockID)
 }
 
 // BlockIDHash is id by block header hash.
-type BlockIDHash[H any] struct {
-	Inner H
+type BlockIDHash[H runtime.Hash] struct {
+	Hash H
+}
+
+func (BlockIDHash[H]) isBlockID() {}
+func (id BlockIDHash[H]) String() string {
+	return fmt.Sprintf("%s", id.Hash)
 }
 
 // BlockIDNumber is id by block number.
-type BlockIDNumber[N any] struct {
-	Inner N
+type BlockIDNumber[N runtime.Number] struct {
+	Number N
+}
+
+func (BlockIDNumber[N]) isBlockID() {}
+func (id BlockIDNumber[H]) String() string {
+	return fmt.Sprintf("%d", id.Number)
 }
 
 // Block is a block.
@@ -60,7 +74,7 @@ func (b Block[N, H, Hasher]) Hash() H {
 	return hasher.HashEncoded(b.header)
 }
 
-// NewBlock is the constructor for `Block`.
+// NewBlock is the constructor for Block.
 func NewBlock[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H]](
 	header runtime.Header[N, H], extrinsics []runtime.Extrinsic) Block[N, H, Hasher] {
 	return Block[N, H, Hasher]{

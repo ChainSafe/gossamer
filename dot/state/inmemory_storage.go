@@ -31,7 +31,7 @@ func errTrieDoesNotExist(hash common.Hash) error {
 
 // InmemoryStorageState is the struct that holds the trie, db and lock
 type InmemoryStorageState struct {
-	blockState *BlockState
+	blockState BlockState
 	tries      *Tries
 
 	db GetterPutterNewBatcher
@@ -45,7 +45,7 @@ type InmemoryStorageState struct {
 
 // NewStorageState creates a new StorageState backed by the given block state
 // and database located at basePath.
-func NewStorageState(db database.Database, blockState *BlockState,
+func NewStorageState(db database.Database, blockState BlockState,
 	tries *Tries) (*InmemoryStorageState, error) {
 	storageTable := database.NewTable(db, storagePrefix)
 
@@ -94,11 +94,11 @@ func (s *InmemoryStorageState) StoreTrie(ts *storage.TrieState, header *types.He
 // If no state root is provided, it returns the TrieState for the current chain head.
 func (s *InmemoryStorageState) TrieState(root *common.Hash) (*storage.TrieState, error) {
 	if root == nil {
-		sr, err := s.blockState.BestBlockStateRoot()
+		header, err := s.blockState.BestBlockHeader()
 		if err != nil {
 			return nil, fmt.Errorf("while getting best block state root: %w", err)
 		}
-		root = &sr
+		root = &header.StateRoot
 	}
 
 	t := s.tries.get(*root)
@@ -137,11 +137,11 @@ func (s *InmemoryStorageState) LoadFromDB(root common.Hash) (trie.Trie, error) {
 
 func (s *InmemoryStorageState) loadTrie(root *common.Hash) (trie.Trie, error) {
 	if root == nil {
-		sr, err := s.blockState.BestBlockStateRoot()
+		header, err := s.blockState.BestBlockHeader()
 		if err != nil {
 			return nil, err
 		}
-		root = &sr
+		root = &header.StateRoot
 	}
 
 	t := s.tries.get(*root)
@@ -168,11 +168,11 @@ func (s *InmemoryStorageState) ExistsStorage(root *common.Hash, key []byte) (boo
 // If no hash is provided, the current chain head is used
 func (s *InmemoryStorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error) {
 	if root == nil {
-		sr, err := s.blockState.BestBlockStateRoot()
+		header, err := s.blockState.BestBlockHeader()
 		if err != nil {
 			return nil, err
 		}
-		root = &sr
+		root = &header.StateRoot
 	}
 
 	t := s.tries.get(*root)
@@ -225,7 +225,12 @@ func (s *InmemoryStorageState) GetStateRootFromBlock(bhash *common.Hash) (*commo
 
 // StorageRoot returns the root hash of the current storage trie
 func (s *InmemoryStorageState) StorageRoot() (common.Hash, error) {
-	return s.blockState.BestBlockStateRoot()
+	header, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return header.StateRoot, nil
 }
 
 // Entries returns Entries from the trie with the given state root

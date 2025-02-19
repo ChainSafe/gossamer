@@ -10,35 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 )
-
-// BlockState is the interface required by GRANDPA into the block state
-type BlockState interface {
-	GenesisHash() common.Hash
-	HasHeader(hash common.Hash) (bool, error)
-	GetHeader(hash common.Hash) (*types.Header, error)
-	GetHeaderByNumber(num uint) (*types.Header, error)
-	IsDescendantOf(parent, child common.Hash) (bool, error)
-	LowestCommonAncestor(a, b common.Hash) (common.Hash, error)
-	HasFinalisedBlock(round, setID uint64) (bool, error)
-	GetFinalisedHeader(round, setID uint64) (*types.Header, error)
-	GetRoundAndSetID() (uint64, uint64)
-	GetFinalisedHash(round, setID uint64) (common.Hash, error)
-	SetFinalisedHash(common.Hash, uint64, uint64, bool) error
-	BestBlockHeader() (*types.Header, error)
-	GetHighestFinalisedHeader() (*types.Header, error)
-	GetImportedBlockNotifierChannel() chan *types.Block
-	FreeImportedBlockNotifierChannel(ch chan *types.Block)
-	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
-	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
-	SetJustification(hash common.Hash, data []byte) error
-	BestBlockNumber() (blockNumber uint, err error)
-	GetHighestRoundAndSetID() (uint64, uint64, error)
-	BestBlockHash() common.Hash
-	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
-	GetJustification(hash common.Hash) ([]byte, error)
-}
 
 // GrandpaState is the interface required by grandpa into the grandpa state
 type GrandpaState interface {

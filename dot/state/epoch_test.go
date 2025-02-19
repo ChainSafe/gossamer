@@ -4,7 +4,6 @@
 package state
 
 import (
-	"encoding/binary"
 	"testing"
 	"time"
 
@@ -21,7 +20,7 @@ import (
 
 func newTestEpochStateFromGenesis(t *testing.T) *EpochState {
 	db := NewInMemoryDB(t)
-	blockState := newTestBlockState(t, newTriesEmpty())
+	blockState := newTestDefaultBlockState(t, newTriesEmpty())
 	s, err := NewEpochStateFromGenesis(db, blockState, config.BABEConfigurationTestDefault)
 	require.NoError(t, err)
 	return s
@@ -89,7 +88,7 @@ func TestEpochState_GetStartSlotForEpoch(t *testing.T) {
 	header1 := types.Header{
 		Number:     1,
 		Digest:     digest,
-		ParentHash: s.blockState.genesisHash,
+		ParentHash: s.blockState.GenesisHash(),
 	}
 
 	err = s.blockState.AddBlock(&types.Block{
@@ -128,7 +127,7 @@ func TestEpochState_ConfigData(t *testing.T) {
 	require.Equal(t, data, ret)
 }
 
-func createAndImportBlockOne(t *testing.T, slotNumber uint64, blockState *BlockState) (blockOneHeader *types.Header) {
+func createAndImportBlockOne(t *testing.T, slotNumber uint64, blockState BlockState) (blockOneHeader *types.Header) {
 	babeHeader := types.NewBabeDigest()
 	err := babeHeader.SetValue(*types.NewBabePrimaryPreDigest(0, slotNumber, [32]byte{}, [64]byte{}))
 	require.NoError(t, err)
@@ -141,7 +140,7 @@ func createAndImportBlockOne(t *testing.T, slotNumber uint64, blockState *BlockS
 	blockOneHeader = &types.Header{
 		Number:     1,
 		Digest:     digest,
-		ParentHash: blockState.genesisHash,
+		ParentHash: blockState.GenesisHash(),
 	}
 
 	err = blockState.AddBlock(&types.Block{
@@ -567,10 +566,7 @@ func TestStoreAndFinalizeBabeNextConfigData(t *testing.T) {
 				// mapping number #1 to the block hash
 				// then we can retrieve the slot number
 				// using the block number
-				err := epochState.blockState.db.Put(
-					headerHashKey(uint64(finalized.Number)),
-					finalized.Hash().ToBytes(),
-				)
+				err := epochState.blockState.SetFinalizedHeader(finalized)
 				require.NoError(t, err)
 
 				err = epochState.blockState.SetHeader(finalized)
@@ -651,7 +647,7 @@ func TestRetrieveChainFirstSlot(t *testing.T) {
 	slotDuration, err := singleEpochState.GetSlotDuration()
 	require.NoError(t, err)
 
-	genesisHash := singleEpochState.blockState.genesisHash
+	genesisHash := singleEpochState.blockState.GenesisHash()
 
 	slotX := currentSlot(uint64(time.Now().UnixNano()),
 		uint64(slotDuration.Nanoseconds()))
@@ -828,13 +824,11 @@ func TestFirstSlotNumberFromDb(t *testing.T) {
 	slotDuration, err := epochState.GetSlotDuration()
 	require.NoError(t, err)
 
-	genesisHash := epochState.blockState.genesisHash
+	genesisHash := epochState.blockState.GenesisHash()
 
 	// setting a predefined slot number
 	predefinedSlotNumber := uint64(1000)
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, predefinedSlotNumber)
-	err = epochState.blockState.db.Put(firstSlotNumberKey, buf)
+	err = epochState.blockState.SetFirstNonOriginSlotNumber(predefinedSlotNumber)
 	require.NoError(t, err)
 
 	slotNumber := currentSlot(uint64(time.Now().UnixNano()),
@@ -865,12 +859,10 @@ func TestNextEpochDataAndConfigInDisk(t *testing.T) {
 	slotDuration, err := epochState.GetSlotDuration()
 	require.NoError(t, err)
 
-	genesisHash := epochState.blockState.genesisHash
+	genesisHash := epochState.blockState.GenesisHash()
 	// setting a predefined slot number
 	predefinedSlotNumber := uint64(1000)
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, predefinedSlotNumber)
-	err = epochState.blockState.db.Put(firstSlotNumberKey, buf)
+	err = epochState.blockState.SetFirstNonOriginSlotNumber(predefinedSlotNumber)
 	require.NoError(t, err)
 
 	slotNumber := currentSlot(uint64(time.Now().UnixNano()),
@@ -1014,12 +1006,10 @@ func TestDeleteNextEpochDataAndConfig(t *testing.T) {
 	dbTable := database.NewTable(db, epochPrefix)
 	epochState.db = dbTable
 
-	genesisHash := epochState.blockState.genesisHash
+	genesisHash := epochState.blockState.GenesisHash()
 	// setting a predefined slot number
 	predefinedSlotNumber := uint64(5)
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, predefinedSlotNumber)
-	err := epochState.blockState.db.Put(firstSlotNumberKey, buf)
+	err := epochState.blockState.SetFirstNonOriginSlotNumber(predefinedSlotNumber)
 	require.NoError(t, err)
 
 	slotNumber := 0

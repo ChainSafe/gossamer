@@ -1,8 +1,6 @@
 name: Copyright check
 on:
   pull_request:
-    branches:
-      - development
     # Commented paths to avoid skipping required workflow
     # See https://github.community/t/feature-request-conditional-required-checks/16761
     # paths:

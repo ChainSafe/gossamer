@@ -92,7 +92,7 @@ func TestInitiateEpoch_Epoch0_Epoch1WithoutConfigData_Epoch2WithConfigData(t *te
 	require.NoError(t, err)
 
 	blockNumber1Header := state.AddBlockToState(t,
-		babeService.blockState.(*state.BlockState), 1, digest, genesisHeader.Hash())
+		babeService.blockState, 1, digest, genesisHeader.Hash())
 
 	for i, auth := range ed.data.authorities {
 		require.Equal(t, expected.authorities[i], auth)
@@ -131,7 +131,7 @@ func TestInitiateEpoch_Epoch0_Epoch1WithoutConfigData_Epoch2WithConfigData(t *te
 	require.NoError(t, err)
 
 	state.AddBlockToState(t,
-		babeService.blockState.(*state.BlockState), 2, digest, blockNumber1Header.Hash())
+		babeService.blockState, 2, digest, blockNumber1Header.Hash())
 
 	// for epoch 2, set EpochData and ConfigData
 	epoch2DataRaw := &types.EpochDataRaw{

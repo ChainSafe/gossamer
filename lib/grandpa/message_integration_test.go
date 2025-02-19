@@ -8,7 +8,6 @@ package grandpa
 import (
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -182,7 +181,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 
 	err = gs.blockState.SetFinalisedHash(hash, round, setID, true)
 	require.NoError(t, err)
-	err = gs.blockState.(*state.BlockState).SetHeader(testHeader)
+	err = gs.blockState.SetHeader(testHeader)
 	require.NoError(t, err)
 
 	pvj := []SignedVote{

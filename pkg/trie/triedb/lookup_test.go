@@ -6,6 +6,7 @@ package triedb
 import (
 	"testing"
 
+	memorydb "github.com/ChainSafe/gossamer/internal/memory-db"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/pkg/trie"
@@ -16,9 +17,11 @@ import (
 
 func TestTrieDB_Lookup(t *testing.T) {
 	t.Run("root_not_exists_in_db", func(t *testing.T) {
-		db := newTestDB(t)
+		db := memorydb.NewMemoryDB[
+			hash.H256, runtime.BlakeTwo256, hash.H256, memorydb.HashKey[hash.H256],
+		]([]byte("not0"))
 		empty := runtime.BlakeTwo256{}.Hash([]byte{0})
-		lookup := NewTrieLookup[hash.H256, runtime.BlakeTwo256, []byte](db, empty, nil, nil, nil)
+		lookup := NewTrieLookup[hash.H256, runtime.BlakeTwo256, []byte](&db, empty, nil, nil, nil)
 
 		value, err := lookup.Lookup([]byte("test"))
 		assert.Nil(t, value)
@@ -39,7 +42,7 @@ func (*trieCacheImpl) GetNode(hash hash.H256) CachedNode[hash.H256] { return nil
 
 func Test_TrieLookup_lookupValueWithCache(t *testing.T) {
 	cache := &trieCacheImpl{}
-	inmemoryDB := NewMemoryDB[hash.H256, runtime.BlakeTwo256](EmptyNode)
+	inmemoryDB := NewMemoryDB()
 	trieDB := NewEmptyTrieDB[hash.H256, runtime.BlakeTwo256](
 		inmemoryDB,
 		WithCache[hash.H256, runtime.BlakeTwo256](cache),
@@ -57,7 +60,7 @@ func Test_TrieLookup_lookupValueWithCache(t *testing.T) {
 	}
 
 	for k, v := range entries {
-		require.NoError(t, trieDB.Put([]byte(k), v))
+		require.NoError(t, trieDB.Set([]byte(k), v))
 	}
 
 	err := trieDB.commit()
