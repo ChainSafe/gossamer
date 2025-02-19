@@ -20,6 +20,7 @@ import (
 type MockGrandpaState struct {
 	ctrl     *gomock.Controller
 	recorder *MockGrandpaStateMockRecorder
+	isgomock struct{}
 }
 
 // MockGrandpaStateMockRecorder is the mock recorder for MockGrandpaState.
@@ -40,29 +41,29 @@ func (m *MockGrandpaState) EXPECT() *MockGrandpaStateMockRecorder {
 }
 
 // ApplyScheduledChanges mocks base method.
-func (m *MockGrandpaState) ApplyScheduledChanges(arg0 *types.Header) error {
+func (m *MockGrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ApplyScheduledChanges", arg0)
+	ret := m.ctrl.Call(m, "ApplyScheduledChanges", finalizedHeader)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ApplyScheduledChanges indicates an expected call of ApplyScheduledChanges.
-func (mr *MockGrandpaStateMockRecorder) ApplyScheduledChanges(arg0 any) *gomock.Call {
+func (mr *MockGrandpaStateMockRecorder) ApplyScheduledChanges(finalizedHeader any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyScheduledChanges", reflect.TypeOf((*MockGrandpaState)(nil).ApplyScheduledChanges), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyScheduledChanges", reflect.TypeOf((*MockGrandpaState)(nil).ApplyScheduledChanges), finalizedHeader)
 }
 
 // HandleGRANDPADigest mocks base method.
-func (m *MockGrandpaState) HandleGRANDPADigest(arg0 *types.Header, arg1 types.GrandpaConsensusDigest) error {
+func (m *MockGrandpaState) HandleGRANDPADigest(header *types.Header, digest types.GrandpaConsensusDigest) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandleGRANDPADigest", arg0, arg1)
+	ret := m.ctrl.Call(m, "HandleGRANDPADigest", header, digest)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // HandleGRANDPADigest indicates an expected call of HandleGRANDPADigest.
-func (mr *MockGrandpaStateMockRecorder) HandleGRANDPADigest(arg0, arg1 any) *gomock.Call {
+func (mr *MockGrandpaStateMockRecorder) HandleGRANDPADigest(header, digest any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleGRANDPADigest", reflect.TypeOf((*MockGrandpaState)(nil).HandleGRANDPADigest), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleGRANDPADigest", reflect.TypeOf((*MockGrandpaState)(nil).HandleGRANDPADigest), header, digest)
 }
