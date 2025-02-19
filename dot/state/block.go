@@ -89,7 +89,7 @@ type BlockState interface {
 
 	GetLastFinalized() common.Hash
 	SetFirstNonOriginSlotNumber(slotNumber uint64) error
-	SetFinalisedHash(hash common.Hash, round uint64, setID uint64) error
+	SetFinalisedHash(hash common.Hash, round uint64, setID uint64, finalizeAncestors bool) error
 	SetFinalizedHeader(header *types.Header) error
 	SetHeader(header *types.Header) error
 	SetJustification(hash common.Hash, data []byte) error
@@ -122,6 +122,8 @@ type BlockState interface {
 	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error)
 
 	Rewind(toBlock uint) error
+
+	SetBlockTree(blocktree *blocktree.BlockTree)
 
 	IsPaused() bool
 	Pause() error
@@ -232,7 +234,7 @@ func NewDefaultBlockStateFromGenesis(db database.Database, trs *Tries, header *t
 	}
 
 	// set the latest finalised head to the genesis header
-	if err := bs.SetFinalisedHash(bs.genesisHash, 0, 0); err != nil {
+	if err := bs.SetFinalisedHash(bs.genesisHash, 0, 0, true); err != nil {
 		return nil, err
 	}
 
@@ -1054,6 +1056,13 @@ func (bs *DefaultBlockState) StoreRuntime(hash common.Hash, rt runtime.Instance)
 // GetNonFinalisedBlocks get all the blocks in the blocktree
 func (bs *DefaultBlockState) GetNonFinalisedBlocks() []common.Hash {
 	return bs.bt.GetAllBlocks()
+}
+
+// SetBlockTree sets the blocktree for the block state
+// WARN: this should be used only when state sync finishes and we need to set the new state to resume the node using a
+// specific blocktree
+func (bs *DefaultBlockState) SetBlockTree(blocktree *blocktree.BlockTree) {
+	bs.bt = blocktree
 }
 
 func (bs *DefaultBlockState) Rewind(toBlock uint) error {

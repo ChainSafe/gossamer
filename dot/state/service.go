@@ -195,7 +195,7 @@ func (s *Service) Rewind(toBlock uint) error {
 	// TODO: this is broken, it needs to set the latest finalised header after
 	// rewinding to some block number, but there is no reverse lookup function
 	// for block -> (round, setID) where it was finalised (#1859)
-	err = s.Block.SetFinalisedHash(header.Hash(), 0, 0)
+	err = s.Block.SetFinalisedHash(header.Hash(), 0, 0, true)
 	if err != nil {
 		return err
 	}

@@ -127,7 +127,7 @@ func (bs *DefaultBlockState) SetFinalizedHashKey(hash common.Hash, round, setID 
 }
 
 // SetFinalisedHash sets the latest finalised block hash
-func (bs *DefaultBlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) error {
+func (bs *DefaultBlockState) SetFinalisedHash(hash common.Hash, round, setID uint64, finalizeAncestors bool) error {
 	bs.lock.Lock()
 	defer bs.lock.Unlock()
 
@@ -143,8 +143,10 @@ func (bs *DefaultBlockState) SetFinalisedHash(hash common.Hash, round, setID uin
 		return fmt.Errorf("cannot finalise unknown block %s", hash)
 	}
 
-	if err := bs.handleFinalisedBlock(hash); err != nil {
-		return fmt.Errorf("failed to set finalised subchain in db on finalisation: %w", err)
+	if finalizeAncestors {
+		if err := bs.handleFinalisedBlock(hash); err != nil {
+			return fmt.Errorf("failed to set finalised subchain in db on finalisation: %w", err)
+		}
 	}
 
 	if err := bs.SetFinalizedHashKey(hash, round, setID); err != nil {

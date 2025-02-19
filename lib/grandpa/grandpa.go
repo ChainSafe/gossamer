@@ -682,7 +682,7 @@ func (s *Service) finalise() error {
 	}
 
 	// set finalised head for round in db
-	if err = s.blockState.SetFinalisedHash(bfc.Hash, s.state.round, s.state.setID); err != nil {
+	if err = s.blockState.SetFinalisedHash(bfc.Hash, s.state.round, s.state.setID, true); err != nil {
 		return err
 	}
 
@@ -1199,7 +1199,7 @@ func (s *Service) handleCommitMessage(commitMessage *CommitMessage) error {
 		return fmt.Errorf("verifying commit message justification: %w", err)
 	}
 
-	err = s.blockState.SetFinalisedHash(commitMessage.Vote.Hash, commitMessage.Round, s.state.setID)
+	err = s.blockState.SetFinalisedHash(commitMessage.Vote.Hash, commitMessage.Round, s.state.setID, true)
 	if err != nil {
 		return fmt.Errorf("setting finalised hash: %w", err)
 	}

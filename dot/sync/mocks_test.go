@@ -83,6 +83,21 @@ func (m *MockStorageState) EXPECT() *MockStorageStateMockRecorder {
 	return m.recorder
 }
 
+// LoadCodeHash mocks base method.
+func (m *MockStorageState) LoadCodeHash(arg0 *common.Hash) (common.Hash, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LoadCodeHash", arg0)
+	ret0, _ := ret[0].(common.Hash)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LoadCodeHash indicates an expected call of LoadCodeHash.
+func (mr *MockStorageStateMockRecorder) LoadCodeHash(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadCodeHash", reflect.TypeOf((*MockStorageState)(nil).LoadCodeHash), arg0)
+}
+
 // Lock mocks base method.
 func (m *MockStorageState) Lock() {
 	m.ctrl.T.Helper()
@@ -282,6 +297,20 @@ func (m *MockBlockImportHandler) HandleBlockImport(arg0 *types.Block, arg1 *stor
 func (mr *MockBlockImportHandlerMockRecorder) HandleBlockImport(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleBlockImport", reflect.TypeOf((*MockBlockImportHandler)(nil).HandleBlockImport), arg0, arg1, arg2)
+}
+
+// HandleDigests mocks base method.
+func (m *MockBlockImportHandler) HandleDigests(arg0 *types.Header) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HandleDigests", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// HandleDigests indicates an expected call of HandleDigests.
+func (mr *MockBlockImportHandlerMockRecorder) HandleDigests(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleDigests", reflect.TypeOf((*MockBlockImportHandler)(nil).HandleDigests), arg0)
 }
 
 // MockNetwork is a mock of Network interface.

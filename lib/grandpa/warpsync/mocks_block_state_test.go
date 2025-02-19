@@ -15,6 +15,7 @@ import (
 
 	state "github.com/ChainSafe/gossamer/dot/state"
 	types "github.com/ChainSafe/gossamer/dot/types"
+	blocktree "github.com/ChainSafe/gossamer/lib/blocktree"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	storage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -818,18 +819,30 @@ func (mr *MockBlockStateMockRecorder) Rewind(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rewind", reflect.TypeOf((*MockBlockState)(nil).Rewind), arg0)
 }
 
-// SetFinalisedHash mocks base method.
-func (m *MockBlockState) SetFinalisedHash(arg0 common.Hash, arg1, arg2 uint64) error {
+// SetBlockTree mocks base method.
+func (m *MockBlockState) SetBlockTree(arg0 *blocktree.BlockTree) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetFinalisedHash", arg0, arg1, arg2)
+	m.ctrl.Call(m, "SetBlockTree", arg0)
+}
+
+// SetBlockTree indicates an expected call of SetBlockTree.
+func (mr *MockBlockStateMockRecorder) SetBlockTree(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBlockTree", reflect.TypeOf((*MockBlockState)(nil).SetBlockTree), arg0)
+}
+
+// SetFinalisedHash mocks base method.
+func (m *MockBlockState) SetFinalisedHash(arg0 common.Hash, arg1, arg2 uint64, arg3 bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetFinalisedHash", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetFinalisedHash indicates an expected call of SetFinalisedHash.
-func (mr *MockBlockStateMockRecorder) SetFinalisedHash(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) SetFinalisedHash(arg0, arg1, arg2, arg3 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFinalisedHash", reflect.TypeOf((*MockBlockState)(nil).SetFinalisedHash), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFinalisedHash", reflect.TypeOf((*MockBlockState)(nil).SetFinalisedHash), arg0, arg1, arg2, arg3)
 }
 
 // SetFinalizedHeader mocks base method.

@@ -304,7 +304,7 @@ func TestGetAllDescendants(t *testing.T) {
 	err = bs.AddBlockWithArrivalTime(block2, time.Now())
 	require.NoError(t, err)
 
-	err = bs.SetFinalisedHash(block2.Header.Hash(), 1, 1)
+	err = bs.SetFinalisedHash(block2.Header.Hash(), 1, 1, true)
 	require.NoError(t, err)
 
 	// can't fetch given block's descendants since the given block get removed from memory after
@@ -455,7 +455,7 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 
 	// pick block to finalise
 	fin := leaves[len(leaves)-1]
-	err := bs.SetFinalisedHash(fin, 1, 1)
+	err := bs.SetFinalisedHash(fin, 1, 1, true)
 	require.NoError(t, err)
 
 	after := bs.bt.GetAllBlocks()
@@ -683,7 +683,7 @@ func TestNumberIsFinalised(t *testing.T) {
 		Body:   types.Body{},
 	})
 	require.NoError(t, err)
-	err = bs.SetFinalisedHash(header2.Hash(), 1, 1)
+	err = bs.SetFinalisedHash(header2.Hash(), 1, 1, true)
 	require.NoError(t, err)
 
 	fin, err = bs.NumberIsFinalised(0)
@@ -1023,7 +1023,7 @@ func TestRange(t *testing.T) {
 				hashIndexToSetAsFinalized := tt.blocksToPersistAtDisk - 1
 				selectedHash := hashesCreated[hashIndexToSetAsFinalized]
 
-				err := blockState.SetFinalisedHash(selectedHash, 0, 0)
+				err := blockState.SetFinalisedHash(selectedHash, 0, 0, true)
 				require.NoError(t, err)
 			}
 
@@ -1093,7 +1093,7 @@ func Test_GetRuntime_StoreRuntime(t *testing.T) {
 	}
 
 	lastElementOnChain := chain[len(chain)-1]
-	err = blockState.SetFinalisedHash(lastElementOnChain.Hash(), 1, 0)
+	err = blockState.SetFinalisedHash(lastElementOnChain.Hash(), 1, 0, true)
 	require.NoError(t, err)
 
 	sameRuntimeOnDiffHash, err := blockState.GetRuntime(lastElementOnChain.Hash())

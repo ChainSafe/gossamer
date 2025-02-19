@@ -39,6 +39,7 @@ type WarpSyncVerificationResult struct {
 	SetId         grandpa.SetID
 	AuthorityList grandpa.AuthorityList
 	Header        types.Header
+	Justification consensus_grandpa.GrandpaJustification[hash.H256, uint32]
 	Completed     bool
 }
 
@@ -117,10 +118,13 @@ func (w *WarpSyncProof) verify(
 	setId grandpa.SetID,
 	authorities grandpa.AuthorityList,
 	hardForks map[string]SetIdAuthorityList,
-) (*SetIdAuthorityList, error) {
-	setIdAuth := &SetIdAuthorityList{
-		SetID:         setId,
-		AuthorityList: authorities,
+) (*VerifyResult, error) {
+	result := &VerifyResult{
+		SetIdAuthorityList{
+			SetID:         setId,
+			AuthorityList: authorities,
+		},
+		consensus_grandpa.GrandpaJustification[hash.H256, uint32]{},
 	}
 
 	for fragmentNumber, proof := range w.Proofs {
@@ -129,14 +133,16 @@ func (w *WarpSyncProof) verify(
 
 		hardForkKey := fmt.Sprintf("%v-%v", headerHash, number)
 		if fork, ok := hardForks[hardForkKey]; ok {
-			setIdAuth.SetID = fork.SetID
-			setIdAuth.AuthorityList = fork.AuthorityList
+			result.SetID = fork.SetID
+			result.AuthorityList = fork.AuthorityList
 		} else {
-			err := proof.Justification.Verify(uint64(setIdAuth.SetID), setIdAuth.AuthorityList)
+			err := proof.Justification.Verify(uint64(result.SetID), result.AuthorityList)
 			if err != nil {
 				logger.Debugf("failed to verify justification %s", err)
 				return nil, err
 			}
+
+			result.Justification = proof.Justification
 
 			if !bytes.Equal(proof.Justification.Target().Hash.Bytes(), headerHash.ToBytes()) {
 				return nil, fmt.Errorf("mismatch between header and justification")
@@ -153,15 +159,15 @@ func (w *WarpSyncProof) verify(
 					return nil, fmt.Errorf("cannot parse GRANPDA raw authorities: %w", err)
 				}
 
-				setIdAuth.SetID += 1
-				setIdAuth.AuthorityList = auths
+				result.SetID += 1
+				result.AuthorityList = auths
 			} else if fragmentNumber != len(w.Proofs)-1 || !w.IsFinished {
 				return nil, fmt.Errorf("header is missing authority set change digest")
 			}
 		}
 	}
 
-	return setIdAuth, nil
+	return result, nil
 }
 
 type WarpSyncProofProvider struct {
@@ -180,6 +186,11 @@ func NewWarpSyncProofProvider(blockState state.BlockState, grandpaState GrandpaS
 type SetIdAuthorityList struct {
 	grandpa.SetID
 	grandpa.AuthorityList
+}
+
+type VerifyResult struct {
+	SetIdAuthorityList
+	Justification consensus_grandpa.GrandpaJustification[hash.H256, uint32]
 }
 
 func (p *WarpSyncProofProvider) CurrentAuthorities() (grandpa.AuthorityList, error) {
@@ -334,15 +345,16 @@ func (p *WarpSyncProofProvider) Verify(
 	lastProof := proof.Proofs[len(proof.Proofs)-1]
 	lastHeader := lastProof.Header
 
-	nextSetAndAuthorities, err := proof.verify(setId, authorities, p.hardForks)
+	verifyResult, err := proof.verify(setId, authorities, p.hardForks)
 	if err != nil {
 		return nil, fmt.Errorf("verifying warp sync proof: %w", err)
 	}
 
 	return &WarpSyncVerificationResult{
-		SetId:         nextSetAndAuthorities.SetID,
-		AuthorityList: nextSetAndAuthorities.AuthorityList,
 		Header:        lastHeader,
+		SetId:         verifyResult.SetID,
+		AuthorityList: verifyResult.AuthorityList,
+		Justification: verifyResult.Justification,
 		Completed:     proof.IsFinished,
 	}, nil
 }

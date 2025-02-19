@@ -274,9 +274,9 @@ func updateHighestFinalizedHeaderOrDefault(t *testing.T, bs BlockState, newHighe
 	require.NoError(t, err)
 
 	if newHighest != nil {
-		bs.SetFinalisedHash(newHighest.Hash(), round, setID)
+		bs.SetFinalisedHash(newHighest.Hash(), round, setID, true)
 	} else {
-		bs.SetFinalisedHash(def.Hash(), round, setID)
+		bs.SetFinalisedHash(def.Hash(), round, setID, true)
 	}
 }
 

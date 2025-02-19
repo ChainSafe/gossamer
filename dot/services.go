@@ -527,6 +527,7 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 		sync.WithBlockState(st.Block),
 		sync.WithGrandpaState(st.Grandpa),
 		sync.WithStorageState(st.Storage),
+		sync.WithEpochState(st.Epoch),
 		sync.WithFinalityGadget(fg),
 		sync.WithBabeVerifier(verifier),
 		sync.WithBlockImportHandler(cs),

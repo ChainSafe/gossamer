@@ -12,6 +12,12 @@ import (
 
 type ServiceConfig func(svc *SyncService)
 
+func WithEpochState(es EpochState) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.epochState = es
+	}
+}
+
 func WithGrandpaState(gs GrandpaState) ServiceConfig {
 	return func(svc *SyncService) {
 		svc.grandpaState = gs

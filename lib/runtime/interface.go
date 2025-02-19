@@ -5,6 +5,7 @@ package runtime
 
 import (
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -17,6 +18,8 @@ type Instance interface {
 	NodeStorage() NodeStorage
 	NetworkService() BasicNetwork
 	Keystore() *keystore.GlobalKeystore
+	LogLvl() log.Level
+	Role() common.NetworkRole
 	Validator() bool
 	Exec(function string, data []byte) ([]byte, error)
 	SetContextStorage(s Storage)

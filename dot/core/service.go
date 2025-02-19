@@ -151,6 +151,10 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 	return stateTrieVersion.Hash(ts.Trie())
 }
 
+func (s *Service) HandleDigests(header *types.Header) error {
+	return s.onBlockImport.HandleDigests(header)
+}
+
 // HandleBlockImport handles a block that was imported via the network
 func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieState, announce bool) error {
 	parentHash := block.Header.ParentHash

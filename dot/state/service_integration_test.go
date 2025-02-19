@@ -154,7 +154,7 @@ func TestService_BlockTree(t *testing.T) {
 	AddBlocksToState(t, stateA.Block, 10, false)
 	head := stateA.Block.BestBlockHash()
 
-	err = stateA.Block.SetFinalisedHash(head, 1, 1)
+	err = stateA.Block.SetFinalisedHash(head, 1, 1, true)
 	require.NoError(t, err)
 
 	err = stateA.Stop()
@@ -302,7 +302,7 @@ func TestService_PruneStorage(t *testing.T) {
 	}
 
 	// finalise a block
-	serv.Block.SetFinalisedHash(toFinalize, 0, 0)
+	serv.Block.SetFinalisedHash(toFinalize, 0, 0, true)
 
 	time.Sleep(1 * time.Second)
 
@@ -347,7 +347,7 @@ func TestService_Rewind(t *testing.T) {
 
 	AddBlocksToState(t, serv.Block, 12, false)
 	head := serv.Block.BestBlockHash()
-	err = serv.Block.SetFinalisedHash(head, 0, 0)
+	err = serv.Block.SetFinalisedHash(head, 0, 0, true)
 	require.NoError(t, err)
 
 	err = serv.Rewind(6)

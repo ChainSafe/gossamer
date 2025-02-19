@@ -685,7 +685,7 @@ func (s *EpochState) HandleBABEDigest(header *types.Header, digest types.BabeCon
 		}
 
 		nextEpoch := currEpoch + 1
-		s.storeBABENextEpochData(nextEpoch, headerHash, val)
+		s.StoreBABENextEpochData(nextEpoch, headerHash, val)
 
 		if err = s.setBABENextEpochDataInDB(nextEpoch, headerHash, val); err != nil {
 			return fmt.Errorf("setting next epoch data in db: %w", err)
@@ -912,7 +912,7 @@ func (s *EpochState) SkipVerify(header *types.Header) (bool, error) {
 }
 
 // StoreBABENextEpochData stores the types.NextEpochData under epoch and hash keys
-func (s *EpochState) storeBABENextEpochData(epoch uint64, hash common.Hash, nextEpochData types.NextEpochData) {
+func (s *EpochState) StoreBABENextEpochData(epoch uint64, hash common.Hash, nextEpochData types.NextEpochData) {
 	s.nextEpochDataLock.Lock()
 	defer s.nextEpochDataLock.Unlock()
 
@@ -1001,7 +1001,7 @@ func (s *EpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) er
 
 	finalizedNextEpochData, err := findFinalizedHeaderForEpoch(s.nextEpochData, s, nextEpoch)
 	if err != nil {
-		return fmt.Errorf("cannot find next epoch data: %w", err)
+		return fmt.Errorf("cannot find next epoch data for epoch %d: %w", nextEpoch, err)
 	}
 
 	err = s.SetEpochDataRaw(nextEpoch, finalizedNextEpochData.ToEpochDataRaw())
