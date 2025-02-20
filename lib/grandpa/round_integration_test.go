@@ -617,7 +617,7 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		GetHeader(testGenesisHeader.Hash()).
 		Return(testGenesisHeader, nil)
 	mockedState.EXPECT().
-		SetFinalisedHash(testGenesisHeader.Hash(), uint64(1), uint64(0)).
+		SetFinalisedHash(testGenesisHeader.Hash(), uint64(1), uint64(0), true).
 		Return(nil)
 
 	expectedFinalizedTelemetryMessage := telemetry.NewAfgFinalizedBlocksUpTo(

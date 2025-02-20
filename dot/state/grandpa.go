@@ -66,7 +66,7 @@ func NewGrandpaStateFromGenesis(db database.Database, bs BlockState,
 		return nil, fmt.Errorf("cannot set latest round: %w", err)
 	}
 
-	if err := s.setAuthorities(genesisSetID, genesisAuthorities); err != nil {
+	if err := s.SetAuthorities(genesisSetID, genesisAuthorities); err != nil {
 		return nil, fmt.Errorf("cannot set authorities: %w", err)
 	}
 
@@ -187,7 +187,7 @@ func (s *GrandpaState) ApplyScheduledChanges(finalizedHeader *types.Header) erro
 	}
 
 	grandpaVotersAuthorities := types.NewGrandpaVotersFromAuthorities(changeToApply.change.nextAuthorities)
-	err = s.setAuthorities(newSetID, grandpaVotersAuthorities)
+	err = s.SetAuthorities(newSetID, grandpaVotersAuthorities)
 	if err != nil {
 		return fmt.Errorf("cannot set authorities: %w", err)
 	}
@@ -259,7 +259,7 @@ func (s *GrandpaState) ApplyForcedChanges(importedBlockHeader *types.Header) err
 	}
 
 	grandpaVotersAuthorities := types.NewGrandpaVotersFromAuthorities(forcedChange.nextAuthorities)
-	err = s.setAuthorities(newSetID, grandpaVotersAuthorities)
+	err = s.SetAuthorities(newSetID, grandpaVotersAuthorities)
 	if err != nil {
 		return fmt.Errorf("cannot set authorities: %w", err)
 	}
@@ -334,8 +334,8 @@ func setIDChangeKey(setID uint64) []byte {
 	return append(setIDChangePrefix, buf...)
 }
 
-// setAuthorities sets the authorities for a given setID
-func (s *GrandpaState) setAuthorities(setID uint64, authorities []types.GrandpaVoter) error {
+// SetAuthorities sets the authorities for a given setID
+func (s *GrandpaState) SetAuthorities(setID uint64, authorities []types.GrandpaVoter) error {
 	enc, err := types.EncodeGrandpaVoters(authorities)
 	if err != nil {
 		return err
@@ -407,7 +407,7 @@ func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number ui
 	}
 
 	nextSetID := currSetID + 1
-	err = s.setAuthorities(nextSetID, authorities)
+	err = s.SetAuthorities(nextSetID, authorities)
 	if err != nil {
 		return err
 	}

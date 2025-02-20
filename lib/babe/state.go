@@ -4,13 +4,20 @@
 package babe
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 )
+
+const NextRandomnessKey = "0x1cb6f36e027abb2091cfb5110ab5087f7ce678799d3eff024253b90e84927cc6"
+const NextAuthoritiesKey = "0x1cb6f36e027abb2091cfb5110ab5087faacf00b9b41fda7a9268821c2a2b3e4c"
+const EpochIndexKey = "0x1cb6f36e027abb2091cfb5110ab5087f38316cbf8fa0da822a20ac1c55bf1be3"
 
 type SlotState interface {
 	CheckEquivocation(slotNow, slot uint64, header *types.Header,
@@ -52,4 +59,48 @@ type EpochState interface {
 // BlockImportHandler is the interface for the handler of new blocks
 type BlockImportHandler interface {
 	HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error
+}
+
+func GetNextEpochDataRawFromState(state trie.Trie) (*types.EpochDataRaw, error) {
+	nextRandomnessBytes := state.Get(common.MustHexToBytes(NextRandomnessKey))
+	if nextRandomnessBytes == nil {
+		return nil, fmt.Errorf("next babe randomness not found in new state")
+	}
+
+	var nextRandomness [types.RandomnessLength]byte
+	err := scale.Unmarshal(nextRandomnessBytes, &nextRandomness)
+	if err != nil {
+		return nil, err
+	}
+
+	nextAuthoritiesBytes := state.Get(common.MustHexToBytes(NextAuthoritiesKey))
+	if nextAuthoritiesBytes == nil {
+		return nil, fmt.Errorf("next babe authorities not found in new state")
+	}
+
+	var nextAuthorities []types.AuthorityRaw
+	err = scale.Unmarshal(nextAuthoritiesBytes, &nextAuthorities)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.EpochDataRaw{
+		Randomness:  nextRandomness,
+		Authorities: nextAuthorities,
+	}, nil
+}
+
+func GetCurrentEpochIndexFromState(state trie.Trie) (uint64, error) {
+	epochIndexBytes := state.Get(common.MustHexToBytes(EpochIndexKey))
+	if epochIndexBytes == nil {
+		return 0, fmt.Errorf("babe epoch index not found in new state")
+	}
+
+	var epochIndex uint64
+	err := scale.Unmarshal(epochIndexBytes, &epochIndex)
+	if err != nil {
+		return 0, err
+	}
+
+	return epochIndex, nil
 }

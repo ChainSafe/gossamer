@@ -48,7 +48,6 @@ type wazeroMeta struct {
 // Instance backed by wazero.Runtime
 type Instance struct {
 	Runtime      wazero.Runtime
-	Module       api.Module
 	Context      *runtime.Context
 	wasmByteCode []byte
 	codeHash     common.Hash
@@ -689,6 +688,8 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 			Transaction:     cfg.Transaction,
 			SigVerifier:     crypto.NewSignatureVerifier(logger),
 			OffchainHTTPSet: offchain.NewHTTPSet(),
+			LogLvl:          cfg.LogLvl,
+			Role:            cfg.Role,
 		},
 		codeHash: cfg.CodeHash,
 		metadata: wazeroMeta{
@@ -1145,6 +1146,16 @@ func (in *Instance) NetworkService() runtime.BasicNetwork {
 // Keystore to get reference to runtime keystore
 func (in *Instance) Keystore() *keystore.GlobalKeystore {
 	return in.Context.Keystore
+}
+
+// Keystore to get reference to runtime keystore
+func (in *Instance) LogLvl() log.Level {
+	return in.Context.LogLvl
+}
+
+// Keystore to get reference to runtime keystore
+func (in *Instance) Role() common.NetworkRole {
+	return in.Context.Role
 }
 
 // Validator returns the context's Validator
