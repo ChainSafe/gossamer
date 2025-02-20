@@ -10,7 +10,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/internal/client"
+	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -24,6 +24,18 @@ type ClientAdapterDB interface {
 	Has(key []byte) (has bool, err error)
 }
 
+type Client[
+	H runtime.Hash,
+	Hasher runtime.Hasher[H],
+	N runtime.Number,
+	E runtime.Extrinsic,
+	Header runtime.Header[N, H],
+] interface {
+	blockchain.HeaderBackend[H, N, Header]
+	blockchain.BlockBackend[H, N, Header, Hasher, E]
+	blockchain.Backend[H, N, Header, E]
+}
+
 type ClientAdapter[
 	H runtime.Hash,
 	Hasher runtime.Hasher[H],
@@ -31,7 +43,7 @@ type ClientAdapter[
 	E runtime.Extrinsic,
 	Header runtime.Header[N, H],
 ] struct {
-	Client *client.Client[H, Hasher, N, E, Header]
+	client Client[H, Hasher, N, E, Header]
 	db     ClientAdapterDB
 }
 
@@ -41,8 +53,8 @@ func NewClientAdapter[
 	N runtime.Number,
 	E runtime.Extrinsic,
 	Header runtime.Header[N, H],
-](client *client.Client[H, Hasher, N, E, Header]) *ClientAdapter[H, Hasher, N, E, Header] {
-	return &ClientAdapter[H, Hasher, N, E, Header]{Client: client}
+](client Client[H, Hasher, N, E, Header], db ClientAdapterDB) *ClientAdapter[H, Hasher, N, E, Header] {
+	return &ClientAdapter[H, Hasher, N, E, Header]{client: client, db: db}
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlock(*types.Block) error {
@@ -55,16 +67,20 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlockWithArrivalTime(block 
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) BestBlock() (*types.Block, error) {
-	signedBlock, err := ca.Client.Block(ca.Client.Info().BestHash)
+	signedBlock, err := ca.client.Block(ca.client.Info().BestHash)
 	if err != nil {
 		return nil, err
+	}
+
+	if signedBlock == nil {
+		return nil, nil
 	}
 
 	return types.FromGenericBlock(signedBlock.Block)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) BestBlockHash() common.Hash {
-	return common.NewHashFromGeneric(ca.Client.Info().BestHash)
+	return common.NewHashFromGeneric(ca.client.Info().BestHash)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) BestBlockHeader() (*types.Header, error) {
@@ -77,11 +93,11 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) BestBlockHeader() (*types.Head
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) BestBlockNumber() (number uint, err error) {
-	return uint(ca.Client.Info().BestNumber), nil
+	return uint(ca.client.Info().BestNumber), nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GenesisHash() common.Hash {
-	return common.NewHashFromGeneric(ca.Client.Info().GenesisHash)
+	return common.NewHashFromGeneric(ca.client.Info().GenesisHash)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockBody(hash common.Hash) (*types.Body, error) {
@@ -105,7 +121,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockStateRoot(hash common.
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockByHash(bhash common.Hash) (*types.Block, error) {
 	hasher := *new(Hasher)
 	hash := hasher.NewHash(bhash.ToBytes())
-	block, err := ca.Client.Block(hash)
+	block, err := ca.client.Block(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +130,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockByHash(bhash common.Ha
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockByNumber(blockNumber uint) (*types.Block, error) {
-	hash, err := ca.Client.BlockHash(N(blockNumber))
+	hash, err := ca.client.BlockHash(N(blockNumber))
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +139,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockByNumber(blockNumber u
 		return nil, nil
 	}
 
-	signedBlock, err := ca.Client.Block(*hash)
+	signedBlock, err := ca.client.Block(*hash)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +158,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetFinalisedHash(round, setID 
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHashesByNumber(blockNumber uint) ([]common.Hash, error) {
-	hash, err := ca.Client.Hash(N(blockNumber))
+	hash, err := ca.client.Hash(N(blockNumber))
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +167,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHashesByNumber(blockNumber 
 		return nil, nil
 	}
 
-	children, err := ca.Client.Children(*hash)
+	children, err := ca.client.Children(*hash)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +179,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHashesByNumber(blockNumber 
 	hashes := make([]common.Hash, 0, len(children))
 
 	for _, child := range children {
-		block, err := ca.Client.Block(child)
+		block, err := ca.client.Block(child)
 		if err != nil {
 			return nil, err
 		}
@@ -177,7 +193,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHashesByNumber(blockNumber 
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHashByNumber(blockNumber uint) (common.Hash, error) {
-	hash, err := ca.Client.Hash(N(blockNumber))
+	hash, err := ca.client.Hash(N(blockNumber))
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -188,7 +204,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHashByNumber(blockNumber ui
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHeader(bhash common.Hash) (*types.Header, error) {
 	hasher := *new(Hasher)
 	hash := hasher.NewHash(bhash.ToBytes())
-	header, err := ca.Client.Header(hash)
+	header, err := ca.client.Header(hash)
 
 	if err != nil {
 		return nil, err
@@ -198,7 +214,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHeader(bhash common.Hash) (
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHeaderByNumber(num uint) (*types.Header, error) {
-	hash, err := ca.Client.Hash(N(num))
+	hash, err := ca.client.Hash(N(num))
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +223,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHeaderByNumber(num uint) (*
 		return nil, nil
 	}
 
-	header, err := ca.Client.Header(*hash)
+	header, err := ca.client.Header(*hash)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +232,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHeaderByNumber(num uint) (*
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHighestFinalisedHeader() (*types.Header, error) {
-	header, err := ca.Client.Header(ca.Client.Info().FinalizedHash)
+	header, err := ca.client.Header(ca.client.Info().FinalizedHash)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +241,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHighestFinalisedHeader() (*
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHighestFinalisedHash() (common.Hash, error) {
-	return common.NewHashFromGeneric(ca.Client.Info().FinalizedHash), nil
+	return common.NewHashFromGeneric(ca.client.Info().FinalizedHash), nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHighestRoundAndSetID() (uint64, uint64, error) {
@@ -275,9 +291,9 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetAllBlocksAtNumber(num uint)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetNonFinalisedBlocks() []common.Hash {
-	lastFinalized := ca.Client.Info().FinalizedHash
+	lastFinalized := ca.client.Info().FinalizedHash
 
-	unfinalized, err := ca.Client.Children(lastFinalized)
+	unfinalized, err := ca.client.Children(lastFinalized)
 	if err != nil {
 		return nil
 	}
@@ -317,7 +333,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) HasHeader(hash common.Hash) (b
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) HasJustification(bhash common.Hash) (bool, error) {
 	hasher := *new(Hasher)
 	hash := hasher.NewHash(bhash.ToBytes())
-	justifications, err := ca.Client.Justifications(hash)
+	justifications, err := ca.client.Justifications(hash)
 	if err != nil {
 		return false, err
 	}
@@ -393,7 +409,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) LowestCommonAncestor(a, b comm
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) NumberIsFinalised(blockNumber uint) (bool, error) {
-	return ca.Client.Info().FinalizedNumber >= N(blockNumber), nil
+	return ca.client.Info().FinalizedNumber >= N(blockNumber), nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) BlocktreeAsString() string {

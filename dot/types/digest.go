@@ -101,6 +101,11 @@ type Digest []DigestItem
 
 func FromGenericDigest(gd runtime.Digest) (Digest, error) {
 	d := NewDigest()
+
+	if len(gd.Logs) == 0 {
+		return d, nil
+	}
+
 	err := d.Add(gd.Logs)
 	if err != nil {
 		return nil, err

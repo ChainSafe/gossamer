@@ -75,7 +75,7 @@ func (b Block[N, H, Hasher, E]) Hash() H {
 }
 
 // NewBlock is the constructor for Block.
-func NewBlock[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H], E runtime.Extrinsic](
+func NewBlock[Hasher runtime.Hasher[H], E runtime.Extrinsic, N runtime.Number, H runtime.Hash](
 	header runtime.Header[N, H], extrinsics []E) Block[N, H, Hasher, E] {
 	return Block[N, H, Hasher, E]{
 		header:     header,
