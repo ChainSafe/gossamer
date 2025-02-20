@@ -97,37 +97,33 @@ func (b *BitfieldSigning) ProcessActiveLeavesUpdateSignal(signal parachaintypes.
 	relayParent := activatedLeaf.Hash
 	rt, err := b.bs.GetRuntime(relayParent)
 	if err != nil {
-		return err
+		return fmt.Errorf("getting runtime: %w", err)
 	}
 
-	// skip the logic if not a validator node
-	// TODO: double check if runtime api is correct
-	if !rt.Validator() {
+	// get validators info
+	validators, err := rt.ParachainHostValidators()
+	if err != nil {
+		return fmt.Errorf("getting validators: %w", err)
+	}
+	validatorID, validatorIndex := parachainutil.SigningKeyAndIndex(validators, b.keystore)
+	if validatorID == nil {
+		// skip the logic if not a validator node
 		return nil
 	}
 
 	// wait for availability distribution has the chance to make candidates available.
 	time.Sleep(availabilityDistributionWaitingPeriod)
 
-	// get validator info
-	// TODO: is this the right way to get the current validator index?
-	validators, err := rt.ParachainHostValidators()
-	if err != nil {
-		return err
-	}
-	validatorID, validatorIndex := parachainutil.SigningKeyAndIndex(validators, b.keystore)
-
 	// construct the bitfield according to the availability store
 	bitfield, err := constructAvailabilityBitfield(rt, validatorIndex, b.subSystemToOverseer)
 	if err != nil {
-		return err
+		return fmt.Errorf("construct availabilityBitfield: %w", err)
 	}
 
 	// sign the bitfield
-	// TODO: Optimize the signing logic
 	sessionIndex, err := rt.ParachainHostSessionIndexForChild()
 	if err != nil {
-		return err
+		return fmt.Errorf("getting session index: %w", err)
 	}
 	signingContext := parachaintypes.SigningContext{
 		SessionIndex: sessionIndex,
@@ -136,11 +132,11 @@ func (b *BitfieldSigning) ProcessActiveLeavesUpdateSignal(signal parachaintypes.
 	statement := parachaintypes.NewStatementVDT()
 	err = statement.SetValue(bitfield)
 	if err != nil {
-		return err
+		return fmt.Errorf("setting the statement value: %w", err)
 	}
 	signature, err := statement.Sign(b.keystore, signingContext, parachaintypes.ValidatorID(validatorID[:]))
 	if err != nil {
-		return err
+		return fmt.Errorf("signing the bitfield: %w", err)
 	}
 
 	// distribute to subsystem to overseer chan
@@ -174,7 +170,7 @@ func constructAvailabilityBitfield(
 ) (parachaintypes.BitVec, error) {
 	cores, err := rt.ParachainHostAvailabilityCores()
 	if err != nil {
-		return parachaintypes.BitVec{}, err
+		return parachaintypes.BitVec{}, fmt.Errorf("querying availability cores: %w", err)
 	}
 
 	// init a bitfield without caring the order
