@@ -186,12 +186,15 @@ func constructAvailabilityBitfield(
 		if coreValueIndex == 0 {
 			wg.Add(1)
 			go func(oi int, v parachaintypes.OccupiedCore) {
+				defer wg.Done()
+
 				receivingChan := make(chan bool)
 				queryPayload := availabilitystore.QueryChunkAvailability{
 					CandidateHash:  parachaintypes.CandidateHash{Value: v.CandidateHash},
 					ValidatorIndex: uint32(validatorIdx),
 					Sender:         receivingChan,
 				}
+
 				// send QueryChunkAvailability to availability store via overseer
 				subSystemToOverseer <- queryPayload
 
