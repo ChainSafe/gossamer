@@ -14,16 +14,16 @@ import (
 )
 
 var errSetIDLowerThanHighest = errors.New("set id lower than highest")
-var highestRoundAndSetIDKey = []byte("hrs")
+var HighestRoundAndSetIDKey = []byte("hrs")
 
-// finalisedHashKey = FinalizedBlockHashKey + round + setID (LE encoded)
-func finalisedHashKey(round, setID uint64) []byte {
+// FinalisedHashKey = FinalizedBlockHashKey + round + setID (LE encoded)
+func FinalisedHashKey(round, setID uint64) []byte {
 	return append(common.FinalizedBlockHashKey, roundAndSetIDToBytes(round, setID)...)
 }
 
 // HasFinalisedBlock returns true if there is a finalised block for a given round and setID, false otherwise
 func (bs *DefaultBlockState) HasFinalisedBlock(round, setID uint64) (bool, error) {
-	return bs.db.Has(finalisedHashKey(round, setID))
+	return bs.db.Has(FinalisedHashKey(round, setID))
 }
 
 // NumberIsFinalised checks if a block number is finalised or not
@@ -82,12 +82,12 @@ func (bs *DefaultBlockState) SetHighestRoundAndSetID(round, setID uint64) error 
 		return fmt.Errorf("%w: %d should be greater or equal %d", errSetIDLowerThanHighest, setID, highestSetID)
 	}
 
-	return bs.db.Put(highestRoundAndSetIDKey, roundAndSetIDToBytes(round, setID))
+	return bs.db.Put(HighestRoundAndSetIDKey, roundAndSetIDToBytes(round, setID))
 }
 
 // GetHighestRoundAndSetID gets the highest round and setID that have been finalised
 func (bs *DefaultBlockState) GetHighestRoundAndSetID() (uint64, uint64, error) {
-	b, err := bs.db.Get(highestRoundAndSetIDKey)
+	b, err := bs.db.Get(HighestRoundAndSetIDKey)
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to get highest round and setID: %w", err)
 	}
@@ -123,7 +123,7 @@ func (bs *DefaultBlockState) GetHighestFinalisedHeader() (*types.Header, error) 
 }
 
 func (bs *DefaultBlockState) SetFinalizedHashKey(hash common.Hash, round, setID uint64) error {
-	return bs.db.Put(finalisedHashKey(round, setID), hash[:])
+	return bs.db.Put(FinalisedHashKey(round, setID), hash[:])
 }
 
 // SetFinalisedHash sets the latest finalised block hash

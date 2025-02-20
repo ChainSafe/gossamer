@@ -4,6 +4,8 @@
 package adapter
 
 import (
+	"encoding/binary"
+	"fmt"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -17,6 +19,11 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
+type ClientAdapterDB interface {
+	Get(key []byte) (value []byte, err error)
+	Has(key []byte) (has bool, err error)
+}
+
 type ClientAdapter[
 	H runtime.Hash,
 	Hasher runtime.Hasher[H],
@@ -25,6 +32,7 @@ type ClientAdapter[
 	Header runtime.Header[N, H],
 ] struct {
 	Client *client.Client[H, Hasher, N, E, Header]
+	db     ClientAdapterDB
 }
 
 func NewClientAdapter[
@@ -221,11 +229,25 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHighestFinalisedHash() (com
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHighestRoundAndSetID() (uint64, uint64, error) {
-	panic("unimplemented")
+	b, err := ca.db.Get(state.HighestRoundAndSetIDKey)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to get highest round and setID: %w", err)
+	}
+
+	round := binary.LittleEndian.Uint64(b[:8])
+	setID := binary.LittleEndian.Uint64(b[8:16])
+	return round, setID, nil
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetJustification(common.Hash) ([]byte, error) {
-	panic("unimplemented")
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetJustification(bhash common.Hash) ([]byte, error) {
+	hasher := *new(Hasher)
+	hash := hasher.NewHash(bhash.ToBytes())
+	data, err := ca.db.Get(prefixKey(hash, state.JustificationPrefix))
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetFirstNonOriginSlotNumber() (uint64, error) {
@@ -278,7 +300,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetSlotForBlock(hash common.Ha
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) HasFinalisedBlock(round, setID uint64) (bool, error) {
-	panic("unimplemented")
+	return ca.db.Has(state.FinalisedHashKey(round, setID))
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) HasHeader(hash common.Hash) (bool, error) {
@@ -494,4 +516,8 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) UnregisterStorageObserver(o st
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) SetBlockTree(blocktree *blocktree.BlockTree) {
 	panic("unimplemented")
+}
+
+func prefixKey[H runtime.Hash](hash H, prefix []byte) []byte {
+	return append(prefix, hash.Bytes()...)
 }

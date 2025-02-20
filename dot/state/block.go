@@ -35,7 +35,7 @@ var (
 	arrivalTimePrefix   = []byte("arr") // arrivalTimePrefix || hash -> arrivalTime
 	receiptPrefix       = []byte("rcp") // receiptPrefix + hash -> receipt
 	messageQueuePrefix  = []byte("mqp") // messageQueuePrefix + hash -> message queue
-	justificationPrefix = []byte("jcp") // justificationPrefix + hash -> justification
+	JustificationPrefix = []byte("jcp") // justificationPrefix + hash -> justification
 	firstSlotNumberKey  = []byte("fsn") // firstSlotNumberKey -> First slot number
 
 	errNilBlockTree = errors.New("blocktree is nil")
@@ -228,7 +228,7 @@ func NewDefaultBlockStateFromGenesis(db database.Database, trs *Tries, header *t
 	bs.genesisHash = header.Hash()
 	bs.lastFinalised = header.Hash()
 
-	if err := bs.db.Put(highestRoundAndSetIDKey, roundAndSetIDToBytes(0, 0)); err != nil {
+	if err := bs.db.Put(HighestRoundAndSetIDKey, roundAndSetIDToBytes(0, 0)); err != nil {
 		return nil, err
 	}
 
