@@ -13,6 +13,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"sort"
+	"sync"
 	"time"
 )
 
@@ -20,20 +22,17 @@ const availabilityDistributionWaitingPeriod = time.Millisecond * 1500
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-bitfield-signing"))
 
-// TODO: do we really need this subsystem state?
-// signingTask is the subsystem state
-//type signingTask struct {
-//	ctx      context.Context
-//	response <-chan parachaintypes.UncheckedSignedAvailabilityBitfield
-//}
+type bitfieldData struct {
+	index int
+	data  bool
+}
 
 // BitfieldSigning is the parachain subsystem that validators vote on the availability of a
 // backed candidate by issuing signed bitfields
 type BitfieldSigning struct {
 	subSystemToOverseer chan<- any
 	keystore            keystore.Keystore
-	//tasks               map[common.Hash]*signingTask
-	bs BlockState
+	bs                  BlockState
 }
 
 type BlockState interface {
@@ -45,8 +44,7 @@ func NewBitfieldSigning(overseerChan chan<- any, ks keystore.Keystore, blockStat
 	return &BitfieldSigning{
 		subSystemToOverseer: overseerChan,
 		keystore:            ks,
-		//tasks:               make(map[common.Hash]*signingTask),
-		bs: blockState,
+		bs:                  blockState,
 	}
 }
 
@@ -74,13 +72,10 @@ func (b *BitfieldSigning) processMessage(msg any) error {
 	case parachaintypes.ActiveLeavesUpdateSignal:
 		err := b.ProcessActiveLeavesUpdateSignal(msg)
 		if err != nil {
-			logger.Errorf("failed to process active leaves update signal: %w", err)
+			return fmt.Errorf("processing active leaves update signal: %w", err)
 		}
 	case parachaintypes.BlockFinalizedSignal:
-		err := b.ProcessBlockFinalizedSignal(msg)
-		if err != nil {
-			logger.Errorf("failed to process block finalized signal: %w", err)
-		}
+		return b.ProcessBlockFinalizedSignal(msg)
 	default:
 		return fmt.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
 	}
@@ -94,13 +89,6 @@ func (b *BitfieldSigning) Name() parachaintypes.SubSystemName {
 
 // ProcessActiveLeavesUpdateSignal processes active leaves update signal
 func (b *BitfieldSigning) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
-	// cancel the task if leaves deactivated
-	//for _, deactivatedLeaf := range signal.Deactivated {
-	//	task := b.tasks[deactivatedLeaf]
-	//	task.ctx.Done()
-	//	delete(b.tasks, deactivatedLeaf)
-	//}
-
 	activatedLeaf := signal.Activated
 	if activatedLeaf == nil {
 		return nil
@@ -130,7 +118,7 @@ func (b *BitfieldSigning) ProcessActiveLeavesUpdateSignal(signal parachaintypes.
 	validatorID, validatorIndex := parachainutil.SigningKeyAndIndex(validators, b.keystore)
 
 	// construct the bitfield according to the availability store
-	bitfield, err := constructAvailabilityBitfield(rt, validatorIndex)
+	bitfield, err := constructAvailabilityBitfield(rt, validatorIndex, b.subSystemToOverseer)
 	if err != nil {
 		return err
 	}
@@ -155,21 +143,14 @@ func (b *BitfieldSigning) ProcessActiveLeavesUpdateSignal(signal parachaintypes.
 		return err
 	}
 
-	// update the subsystem state
-	signedBitfield := parachaintypes.UncheckedSignedAvailabilityBitfield{
-		Payload:        parachaintypes.BitVec(*bitfield),
-		ValidatorIndex: validatorIndex,
-		Signature:      *signature,
-	}
-	//b.tasks[activatedLeaf.Hash] = &signingTask{
-	//	ctx:      context.Background(),
-	//	response: b.subSystemToOverseer,
-	//}
-
 	// distribute to subsystem to overseer chan
 	b.subSystemToOverseer <- parachaintypes.DistributeBitfield{
-		RelayParent: activatedLeaf.Hash,
-		Bitfield:    signedBitfield,
+		RelayParent: relayParent,
+		Bitfield: parachaintypes.UncheckedSignedAvailabilityBitfield{
+			Payload:        bitfield,
+			ValidatorIndex: validatorIndex,
+			Signature:      *signature,
+		},
 	}
 
 	return nil
@@ -186,46 +167,60 @@ func (b *BitfieldSigning) Stop() {
 	logger.Infof("Stopping BitfieldSigning subsystem")
 }
 
-type availabilityBitfield parachaintypes.BitVec
-
 func constructAvailabilityBitfield(
 	rt runtime.Instance,
 	validatorIdx parachaintypes.ValidatorIndex,
-) (*availabilityBitfield, error) {
+	subSystemToOverseer chan<- any,
+) (parachaintypes.BitVec, error) {
 	cores, err := rt.ParachainHostAvailabilityCores()
 	if err != nil {
-		return nil, err
+		return parachaintypes.BitVec{}, err
 	}
 
-	// init a bitfield
-	bitfield := make([]bool, len(cores))
+	// init a bitfield without caring the order
+	bitfield := make([]bitfieldData, len(cores))
 
-	for _, core := range cores {
-		index, value, err := core.IndexValue()
+	var wg sync.WaitGroup
+	for coreOrderIndex, core := range cores {
+		coreValueIndex, value, err := core.IndexValue()
 		if err != nil {
-			return nil, err
+			return parachaintypes.BitVec{}, err
 		}
 		// 0 is type of parachaintypes.OccupiedCore
-		if index == 0 {
-			c := value.(parachaintypes.OccupiedCore)
+		if coreValueIndex == 0 {
+			wg.Add(1)
+			go func(oi int, v parachaintypes.OccupiedCore) {
+				receivingChan := make(chan bool)
+				queryPayload := availabilitystore.QueryChunkAvailability{
+					CandidateHash:  parachaintypes.CandidateHash{Value: v.CandidateHash},
+					ValidatorIndex: uint32(validatorIdx),
+					Sender:         receivingChan,
+				}
+				// send QueryChunkAvailability to availability store via overseer
+				subSystemToOverseer <- queryPayload
 
-			receivingChan := make(chan bool)
-
-			queryPayload := availabilitystore.QueryChunkAvailability{
-				CandidateHash:  parachaintypes.CandidateHash{Value: c.CandidateHash},
-				ValidatorIndex: uint32(validatorIdx),
-				Sender:         receivingChan,
-			}
-			// TODO: send query to availability store via overseer
-
-			// append the result to the bitfield
-			bitfield = append(bitfield, <-receivingChan)
+				// append the result to the bitfield
+				bitfield = append(bitfield, bitfieldData{index: oi, data: <-receivingChan})
+			}(coreOrderIndex, value.(parachaintypes.OccupiedCore))
 		} else {
-			bitfield = append(bitfield, false)
+			bitfield = append(bitfield, bitfieldData{index: coreOrderIndex, data: false})
 		}
+	}
+	wg.Wait()
 
+	return bitfieldOrderGuard(bitfield), nil
+}
+
+// bitfieldOrderGuard sort the fulfilled bitfield data in its correct order according to the CoreState
+func bitfieldOrderGuard(bitfieldData []bitfieldData) parachaintypes.BitVec {
+	sort.Slice(bitfieldData, func(i, j int) bool {
+		return bitfieldData[i].index < bitfieldData[j].index
+	})
+
+	b := make([]bool, len(bitfieldData))
+	for _, data := range b {
+		b = append(b, data)
 	}
 
-	availBitfield := availabilityBitfield(parachaintypes.NewBitVec(bitfield))
-	return &availBitfield, nil
+	return parachaintypes.NewBitVec(b)
 }
