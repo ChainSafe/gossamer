@@ -128,6 +128,8 @@ func NewDigestFromGeneric(gd runtime.Digest) (Digest, error) {
 			}
 		case runtime.RuntimeEnvironmentUpdated:
 			digest = RuntimeEnvironmentUpdated{}
+		default:
+			return nil, fmt.Errorf("unsupported type")
 		}
 
 		err = newDigest.Add(digest)
