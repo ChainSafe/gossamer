@@ -178,7 +178,7 @@ func constructAvailabilityBitfield(
 	}
 
 	// init a bitfield without caring the order
-	bitfield := make([]bitfieldData, len(cores))
+	bitfield := make([]bitfieldData, 0, len(cores))
 
 	var wg sync.WaitGroup
 	for coreOrderIndex, core := range cores {
@@ -211,15 +211,16 @@ func constructAvailabilityBitfield(
 	return bitfieldOrderGuard(bitfield), nil
 }
 
-// bitfieldOrderGuard sort the fulfilled bitfield data in its correct order according to the CoreState
+// bitfieldOrderGuard sort the fulfilled bitfield data in its correct order according to the CoreState and return
+// the bitfield
 func bitfieldOrderGuard(bitfieldData []bitfieldData) parachaintypes.BitVec {
 	sort.Slice(bitfieldData, func(i, j int) bool {
 		return bitfieldData[i].index < bitfieldData[j].index
 	})
 
-	b := make([]bool, len(bitfieldData))
-	for _, data := range b {
-		b = append(b, data)
+	b := make([]bool, 0, len(bitfieldData))
+	for _, item := range bitfieldData {
+		b = append(b, item.data)
 	}
 
 	return parachaintypes.NewBitVec(b)
