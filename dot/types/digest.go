@@ -99,18 +99,44 @@ func NewDigestItem() DigestItem {
 // Digest is slice of DigestItem
 type Digest []DigestItem
 
-func FromGenericDigest(gd runtime.Digest) (Digest, error) {
-	d := NewDigest()
+// NewDigestFromGeneric returns a new Digest from a generic digest
+func NewDigestFromGeneric(gd runtime.Digest) (Digest, error) {
+	newDigest := Digest{}
+	for _, log := range gd.Logs {
+		value, err := log.Value()
+		if err != nil {
+			return nil, err
+		}
 
-	if len(gd.Logs) == 0 {
-		return d, nil
+		var digest any
+
+		switch v := value.(type) {
+		case runtime.PreRuntime:
+			digest = PreRuntimeDigest{
+				ConsensusEngineID: ConsensusEngineID(v.ConsensusEngineID),
+				Data:              v.Bytes,
+			}
+		case runtime.Consensus:
+			digest = ConsensusDigest{
+				ConsensusEngineID: ConsensusEngineID(v.ConsensusEngineID),
+				Data:              v.Bytes,
+			}
+		case runtime.Seal:
+			digest = SealDigest{
+				ConsensusEngineID: ConsensusEngineID(v.ConsensusEngineID),
+				Data:              v.Bytes,
+			}
+		case runtime.RuntimeEnvironmentUpdated:
+			digest = RuntimeEnvironmentUpdated{}
+		}
+
+		err = newDigest.Add(digest)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	err := d.Add(gd.Logs)
-	if err != nil {
-		return nil, err
-	}
-	return d, nil
+	return newDigest, nil
 }
 
 func (d *Digest) Add(values ...any) (err error) {

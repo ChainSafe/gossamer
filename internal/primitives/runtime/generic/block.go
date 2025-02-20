@@ -83,13 +83,25 @@ func NewBlock[Hasher runtime.Hasher[H], E runtime.Extrinsic, N runtime.Number, H
 	}
 }
 
-type SignedBlock[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H], E runtime.Extrinsic] struct {
+type SignedBlock[
+	N runtime.Number,
+	H runtime.Hash,
+	Hasher runtime.Hasher[H],
+	E runtime.Extrinsic,
+] struct {
 	Block          Block[N, H, Hasher, E]
 	Justifications runtime.Justifications
 }
 
-func NewSignedBlock[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H], E runtime.Extrinsic](
-	block Block[N, H, Hasher, E], justifications runtime.Justifications) *SignedBlock[N, H, Hasher, E] {
+func NewSignedBlock[
+	N runtime.Number,
+	H runtime.Hash,
+	Hasher runtime.Hasher[H],
+	E runtime.Extrinsic,
+](
+	block Block[N, H, Hasher, E],
+	justifications runtime.Justifications,
+) *SignedBlock[N, H, Hasher, E] {
 	return &SignedBlock[N, H, Hasher, E]{
 		Block:          block,
 		Justifications: justifications,

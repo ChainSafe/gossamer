@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -104,4 +105,11 @@ func Benchmark_IsEmpty(b *testing.B) {
 			_ = h == empty
 		}
 	})
+}
+
+func TestNewHashFromGeneric(t *testing.T) {
+	expected := hash.NewRandomH256()
+	newHash := NewHashFromGeneric(expected)
+
+	require.Equal(t, expected.Bytes(), newHash.ToBytes())
 }

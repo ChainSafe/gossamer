@@ -483,7 +483,7 @@ func TestBlockBackendImplementation(t *testing.T) {
 
 	// Get Block
 	expectedBlock := generic.NewSignedBlock(
-		generic.NewBlock[uint64, hash.H256, runtime.BlakeTwo256](expectedHeader, expectedExtrinsics), nil,
+		generic.NewBlock[runtime.BlakeTwo256](expectedHeader, expectedExtrinsics), nil,
 	)
 	block, err := c.Block(expectedHash)
 	require.NoError(t, err)

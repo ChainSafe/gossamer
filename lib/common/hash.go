@@ -25,6 +25,7 @@ var EmptyHash = Hash{}
 // Hash used to store a blake2b hash
 type Hash [32]byte
 
+// NewHashFromGeneric creates a new Hash from a generic hash
 func NewHashFromGeneric[H runtime.Hash](hash H) Hash {
 	bytes := hash.Bytes()
 	if len(bytes) != HashLength {

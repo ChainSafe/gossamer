@@ -29,12 +29,51 @@ func TestBlockStateImplemented(t *testing.T) {
 	var _ state.BlockState = &ClientAdapter[Hash, Hasher, Number, Extrinsic, Header]{}
 }
 
-func setupTest(t *testing.T) (*mocks.Client[Hash, Hasher, Number, Extrinsic, Header], *mocks.ClientAdapterDB, *ClientAdapter[Hash, Hasher, Number, Extrinsic, Header]) {
+func setupTest(t *testing.T) (
+	*mocks.Client[Hash, Hasher, Number, Extrinsic, Header],
+	*mocks.ClientAdapterDB,
+	*ClientAdapter[Hash, Hasher, Number, Extrinsic, Header],
+) {
 	client := mocks.NewClient[Hash, Hasher, Number, Extrinsic, Header](t)
 	db := mocks.NewClientAdapterDB(t)
 	adapter := NewClientAdapter(client, db)
 
 	return client, db, adapter
+}
+
+func TestHasFinalisedBlock(t *testing.T) {
+	round := uint64(1)
+	setId := uint64(1)
+	t.Run("not_finalised_block", func(t *testing.T) {
+		_, db, adapter := setupTest(t)
+
+		db.EXPECT().Has(state.FinalisedHashKey(round, setId)).Return(false, nil)
+
+		has, err := adapter.HasFinalisedBlock(round, setId)
+		require.NoError(t, err)
+		require.False(t, has)
+	})
+
+	t.Run("finalised_block", func(t *testing.T) {
+		_, db, adapter := setupTest(t)
+
+		db.EXPECT().Has(state.FinalisedHashKey(round, setId)).Return(true, nil)
+
+		has, err := adapter.HasFinalisedBlock(round, setId)
+		require.NoError(t, err)
+		require.True(t, has)
+	})
+
+	t.Run("error", func(t *testing.T) {
+		_, db, adapter := setupTest(t)
+
+		expectedError := errors.New("error")
+		db.EXPECT().Has(state.FinalisedHashKey(round, setId)).Return(false, expectedError)
+
+		has, err := adapter.HasFinalisedBlock(round, setId)
+		require.Error(t, err)
+		require.False(t, has)
+	})
 }
 
 func TestBestBlock(t *testing.T) {
@@ -83,7 +122,7 @@ func TestBestBlock(t *testing.T) {
 			),
 			runtime.Justifications{},
 		)
-		expectedBlock, err := types.FromGenericBlock(signedBlock.Block)
+		expectedBlock, err := types.NewBlockFromGeneric(signedBlock.Block)
 		require.NoError(t, err)
 
 		client.EXPECT().Info().Return(blockchainInfo)

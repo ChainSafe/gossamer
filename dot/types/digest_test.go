@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
@@ -243,4 +244,28 @@ func TestSealDigest(t *testing.T) {
 	vValue, err := v.Value()
 	require.NoError(t, err)
 	require.Equal(t, diValue, vValue)
+}
+
+func TestFromGenericDigest(t *testing.T) {
+	digest := runtime.Digest{
+		Logs: []runtime.DigestItem{
+			runtime.NewDigestItem(runtime.Consensus{
+				ConsensusEngineID: runtime.ConsensusEngineID{'B', 'E', 'E', 'F'},
+				Bytes:             []byte("test"),
+			}),
+			runtime.NewDigestItem(runtime.Seal{
+				ConsensusEngineID: runtime.ConsensusEngineID{'S', 'E', 'A', 'L'},
+				Bytes:             []byte("test"),
+			}),
+			runtime.NewDigestItem(runtime.PreRuntime{
+				ConsensusEngineID: runtime.ConsensusEngineID{'B', 'A', 'B', 'E'},
+				Bytes:             []byte("test"),
+			}),
+			runtime.NewDigestItem(runtime.RuntimeEnvironmentUpdated{}),
+		},
+	}
+
+	d, err := NewDigestFromGeneric(digest)
+	require.NoError(t, err)
+	require.NotNil(t, d)
 }

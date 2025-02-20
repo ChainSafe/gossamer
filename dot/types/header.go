@@ -24,16 +24,17 @@ type Header struct {
 	hash           common.Hash
 }
 
-func FromGenericHeader[N runtime.Number, H runtime.Hash](gh runtime.Header[N, H]) (*Header, error) {
+// NewHeaderFromGeneric returns a new Header from a generic header
+func NewHeaderFromGeneric[N runtime.Number, H runtime.Hash](gh runtime.Header[N, H]) (*Header, error) {
 	header := &Header{
-		ParentHash:     common.Hash(gh.ParentHash().Bytes()),
+		ParentHash:     common.NewHashFromGeneric(gh.ParentHash()),
 		Number:         uint(gh.Number()),
-		StateRoot:      common.Hash(gh.StateRoot().Bytes()),
-		ExtrinsicsRoot: common.Hash(gh.ExtrinsicsRoot().Bytes()),
-		hash:           common.Hash(gh.Hash().Bytes()),
+		StateRoot:      common.NewHashFromGeneric(gh.StateRoot()),
+		ExtrinsicsRoot: common.NewHashFromGeneric(gh.ExtrinsicsRoot()),
+		hash:           common.NewHashFromGeneric(gh.Hash()),
 	}
 
-	digests, err := FromGenericDigest(gh.Digest())
+	digests, err := NewDigestFromGeneric(gh.Digest())
 	if err != nil {
 		return nil, err
 	}

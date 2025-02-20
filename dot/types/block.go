@@ -16,16 +16,17 @@ type Block struct {
 	Body   Body
 }
 
-func FromGenericBlock[N runtime.Number, H runtime.Hash, E runtime.Extrinsic](gb runtime.Block[N, H, E]) (
+// NewBlockFromGeneric returns a new Block from a generic block
+func NewBlockFromGeneric[N runtime.Number, H runtime.Hash, E runtime.Extrinsic](gb runtime.Block[N, H, E]) (
 	*Block, error) {
-	header, err := FromGenericHeader(gb.Header())
+	header, err := NewHeaderFromGeneric(gb.Header())
 	if err != nil {
 		return nil, err
 	}
 
 	return &Block{
 		Header: *header,
-		Body:   FromGenericBody(gb.Extrinsics()),
+		Body:   NewBodyFromGeneric(gb.Extrinsics()),
 	}, nil
 }
 

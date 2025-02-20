@@ -76,7 +76,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) BestBlock() (*types.Block, err
 		return nil, nil
 	}
 
-	return types.FromGenericBlock(signedBlock.Block)
+	return types.NewBlockFromGeneric(signedBlock.Block)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) BestBlockHash() common.Hash {
@@ -126,7 +126,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockByHash(bhash common.Ha
 		return nil, err
 	}
 
-	return types.FromGenericBlock(block.Block)
+	return types.NewBlockFromGeneric(block.Block)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockByNumber(blockNumber uint) (*types.Block, error) {
@@ -144,7 +144,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockByNumber(blockNumber u
 		return nil, err
 	}
 
-	return types.FromGenericBlock(signedBlock.Block)
+	return types.NewBlockFromGeneric(signedBlock.Block)
 }
 
 // TODO: remove from BlockState interface since it is only use by RPC and is not part of the standard
@@ -210,7 +210,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHeader(bhash common.Hash) (
 		return nil, err
 	}
 
-	return types.FromGenericHeader(*header)
+	return types.NewHeaderFromGeneric(*header)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHeaderByNumber(num uint) (*types.Header, error) {
@@ -228,7 +228,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHeaderByNumber(num uint) (*
 		return nil, err
 	}
 
-	return types.FromGenericHeader(*header)
+	return types.NewHeaderFromGeneric(*header)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHighestFinalisedHeader() (*types.Header, error) {
@@ -237,7 +237,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHighestFinalisedHeader() (*
 		return nil, err
 	}
 
-	return types.FromGenericHeader(*header)
+	return types.NewHeaderFromGeneric(*header)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHighestFinalisedHash() (common.Hash, error) {

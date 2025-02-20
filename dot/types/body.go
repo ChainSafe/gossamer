@@ -17,7 +17,8 @@ import (
 // Body is the extrinsics(not encoded) inside a state block.
 type Body []Extrinsic
 
-func FromGenericBody[E runtime.Extrinsic](extrinsics []E) Body {
+// NewBodyFromGeneric returns a new Body from a generic extrinsics array.
+func NewBodyFromGeneric[E runtime.Extrinsic](extrinsics []E) Body {
 	var body Body
 	for _, ext := range extrinsics {
 		body = append(body, Extrinsic(ext.Bytes()))
