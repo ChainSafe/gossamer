@@ -111,7 +111,7 @@ func TestFromGenericHeader(t *testing.T) {
 	extrinsicsRoot := hash.NewRandomH256()
 	blockNumber := uint64(123)
 
-	t.Run("successful conversion", func(t *testing.T) {
+	t.Run("successful_conversion", func(t *testing.T) {
 		digest := runtime.Digest{
 			Logs: []runtime.DigestItem{
 				runtime.NewDigestItem(runtime.Consensus{
