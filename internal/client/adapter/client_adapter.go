@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/client"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rt "github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -224,7 +225,6 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHighestRoundAndSetID() (uin
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetJustification(common.Hash) ([]byte, error) {
-	// TODO: get justifications and execute EncodedJustification("FRNK")
 	panic("unimplemented")
 }
 
@@ -320,7 +320,8 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) SetFirstNonOriginSlotNumber(sl
 	panic("unimplemented")
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) SetFinalisedHash(hash common.Hash, round uint64, setID uint64) error {
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) SetFinalisedHash(
+	hash common.Hash, round uint64, setID uint64, finalizeAncestors bool) error {
 	panic("unimplemented")
 }
 
@@ -488,5 +489,9 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) RegisterStorageObserver(o stat
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) UnregisterStorageObserver(o state.Observer) {
+	panic("unimplemented")
+}
+
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) SetBlockTree(blocktree *blocktree.BlockTree) {
 	panic("unimplemented")
 }
