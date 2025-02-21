@@ -129,6 +129,7 @@ func NewEmptyGridNeighbors() *GridNeighbors {
 	}
 }
 
+// RequiredRoutingByIndex Given the originator of a message as a validator index, indicates the part of the topology
 func (gn *GridNeighbors) RequiredRoutingByIndex(origin parachaintypes.ValidatorIndex, local bool) RequiredRouting {
 	if local {
 		return RequiredRoutingGridXY
@@ -138,29 +139,6 @@ func (gn *GridNeighbors) RequiredRoutingByIndex(origin parachaintypes.ValidatorI
 
 	if x && y {
 		// If all works correctly origin peer can't be in both rows and columns. But we leave it anyways
-		return RequiredRoutingGridXY
-	}
-	if !(x || y) {
-		return RequiredRoutingNone
-	}
-	if x && !y {
-		return RequiredRoutingGridY
-	}
-	return RequiredRoutingGridX
-}
-
-// RequiredRoutingByPeer Given the originator of a message as a peer index, indicates the part of the topology
-// we're meant to send the message to.
-// TODO: This method is actually not used in the codebase.
-func (gn *GridNeighbors) RequiredRoutingByPeer(origin peer.ID, local bool) RequiredRouting {
-	if local {
-		return RequiredRoutingGridXY
-	}
-	_, x := gn.PeersRow[origin]
-	_, y := gn.PeersCol[origin]
-
-	if x && y {
-		// If all works correctly origin peer can't be in both rows and columns. But we leave it anyways.
 		return RequiredRoutingGridXY
 	}
 	if !(x || y) {

@@ -122,3 +122,30 @@ func Test_MatrixNeighbors(t *testing.T) {
 	assert.Equal(t, len(m.ColumnNeighbors), 3)
 	assert.Equal(t, len(m.RowNeighbors), 2)
 }
+
+func Test_GridNeighbors(t *testing.T) {
+	// e.g. for size 11 the matrix would be
+	//
+	// 0  1  2
+	// 3  4  5
+	// 6  7  8
+	// 9 10
+	//
+	// and for index 10, the neighbors would be 1, 4, 7, 9
+	gt := grid.NewSessionGridTopology([]uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, FixtureTopologyPeerInfo())
+	gn, err := gt.ComputeGridNeighborsFor(10)
+	assert.Nil(t, err)
+	assert.Equal(t, len(gn.ValidatorIndicesRow), 1)
+	assert.Equal(t, len(gn.ValidatorIndicesCol), 3)
+	assert.Equal(t, len(gn.PeersRow), 2)
+	assert.Equal(t, len(gn.PeersCol), 6)
+	assert.Nil(t, err)
+	routing := gn.RequiredRoutingByIndex(4, false)
+	// The origin of the message was from column so we should rout in a row
+	assert.Equal(t, grid.RequiredRoutingGridX, routing)
+
+	// Since routing is for rows we have only validator with index 9 there and tis peers are peer19 and peer20
+	assert.False(t, gn.ShouldRouteToPeer(grid.RequiredRoutingGridX, peer.ID("peer1")))
+	assert.True(t, gn.ShouldRouteToPeer(grid.RequiredRoutingGridX, peer.ID("peer19")))
+
+}
