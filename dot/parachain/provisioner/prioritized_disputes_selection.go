@@ -26,7 +26,15 @@ type BlockState interface {
 	GetRuntime(blockHash common.Hash) (instance parachain.RuntimeInstance, err error)
 }
 
-// SelectDisputes translates the Rust async function into Go.
+// Implements the `select_disputes` function which selects dispute votes which should
+// be sent to the Runtime.
+//
+// Provisioner fetches all disputes from `dispute-coordinator` and separates them in multiple
+// partitions. Please refer to `struct PartitionedDisputes` for details.
+//
+// Besides the prioritization described above the votes in each partition are filtered too.
+// Provisioner fetches all onchain votes and filters them out from all partitions. As a result the
+// Runtime receives only fresh votes
 func SelectDisputes(overseerChan chan<- any, blockState BlockState, leaf *parachaintypes.ActivatedLeaf,
 	maxDisputesVotes int, voteSelectionBatchSize int) parachaintypes.MultiDisputeStatementSet {
 	onchain, err := getOnchainDisputes(blockState, leaf.Hash)
