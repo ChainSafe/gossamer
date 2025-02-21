@@ -44,6 +44,8 @@ func initBackingAndOverseerMock(t *testing.T) (*backing.CandidateBacking, *overs
 
 	backing.Keystore = keystore.NewBasicKeystore("test", crypto.Sr25519Type)
 
+	sr25519.NewPublicKey(backing.Keystore.Keypairs()[0].Public().Encode())
+
 	overseerMock.Start()
 
 	return backing, overseerMock

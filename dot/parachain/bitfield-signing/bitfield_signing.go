@@ -11,6 +11,7 @@ import (
 	parachainutil "github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"sort"
@@ -120,24 +121,21 @@ func (b *BitfieldSigning) ProcessActiveLeavesUpdateSignal(signal parachaintypes.
 		return fmt.Errorf("construct availabilityBitfield: %w", err)
 	}
 
-	// sign the bitfield
-	sessionIndex, err := rt.ParachainHostSessionIndexForChild()
+	// signing process
+	data, err := bitfield.MarshalSCALE()
 	if err != nil {
-		return fmt.Errorf("getting session index: %w", err)
+		return fmt.Errorf("marshal bitfield for signing: %w", err)
 	}
-	signingContext := parachaintypes.SigningContext{
-		SessionIndex: sessionIndex,
-		ParentHash:   relayParent,
-	}
-	statement := parachaintypes.NewStatementVDT()
-	err = statement.SetValue(bitfield)
+	validatorPublicKey, err := sr25519.NewPublicKey(validatorID[:])
 	if err != nil {
-		return fmt.Errorf("setting the statement value: %w", err)
+		return fmt.Errorf("getting signer's public key: %w", err)
 	}
-	signature, err := statement.Sign(b.keystore, signingContext, parachaintypes.ValidatorID(validatorID[:]))
+	signatureBytes, err := b.keystore.GetKeypair(validatorPublicKey).Sign(data)
 	if err != nil {
-		return fmt.Errorf("signing the bitfield: %w", err)
+		return fmt.Errorf("signing bitfield: %w", err)
 	}
+	var signature parachaintypes.Signature
+	copy(signature[:], signatureBytes)
 
 	// distribute to subsystem to overseer chan
 	b.subSystemToOverseer <- parachaintypes.DistributeBitfield{
@@ -145,7 +143,7 @@ func (b *BitfieldSigning) ProcessActiveLeavesUpdateSignal(signal parachaintypes.
 		Bitfield: parachaintypes.UncheckedSignedAvailabilityBitfield{
 			Payload:        bitfield,
 			ValidatorIndex: validatorIndex,
-			Signature:      *signature,
+			Signature:      parachaintypes.ValidatorSignature(signature),
 		},
 	}
 
