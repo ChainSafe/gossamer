@@ -79,23 +79,10 @@ func TestCoreIndexFromStatement(t *testing.T) {
 		tc := tc
 		t.Run(tc.description, func(t *testing.T) {
 			rpState := perRelayParentState{
-				numOfCores: 2,
-				claimQueue: map[parachaintypes.CoreIndex][]parachaintypes.ParaID{
-					{Index: 0}: {1},
-					{Index: 1}: {2},
-				},
-				validatorToGroup: map[parachaintypes.ValidatorIndex]parachaintypes.GroupIndex{
-					0: 0,
-					1: 1,
-					2: 0,
-					3: 0,
-					5: 0,
-				},
-				groupRotationInfo: parachaintypes.GroupRotationInfo{
-					SessionStartBlock:      0,
-					GroupRotationFrequency: 100,
-					Now:                    1,
-				},
+				numOfCores:        2,
+				claimQueue:        claimQueueTestData(t),
+				validatorToGroup:  validatorToGroupTestData(t),
+				groupRotationInfo: groupRotationInfoTestData(t),
 			}
 
 			coreIndex, err := rpState.coreIndexFromStatement(tc.statementWithPVD)
