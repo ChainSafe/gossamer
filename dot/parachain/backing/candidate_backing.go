@@ -48,23 +48,10 @@ var (
 )
 
 // CandidateBacking represents the state of the subsystem responsible for managing candidate backing.
-type CandidateBacking struct { // TODO: Update comments in this struct
+type CandidateBacking struct {
 	SubSystemToOverseer chan<- any
 	// State tracked for all relay-parents backing work is ongoing for. This includes
 	// all active leaves.
-	//
-	// relay-parents fall into one of 3 categories.
-	//   1. active leaves which do support prospective parachains
-	//   2. active leaves which do not support prospective parachains
-	//   3. relay-chain blocks which are ancestors of an active leaf and do support prospective
-	//      parachains.
-	//
-	// Relay-chain blocks which don't support prospective parachains are
-	// never included in the fragment trees of active leaves which do.
-	//
-	// While it would be technically possible to support such leaves in
-	// fragment trees, it only benefits the transition period when asynchronous
-	// backing is being enabled and complicates code complexity.
 	perRelayParent map[common.Hash]*perRelayParentState
 	// State tracked for all candidates relevant to the implicit view.
 	//
@@ -72,7 +59,7 @@ type CandidateBacking struct { // TODO: Update comments in this struct
 	// or explicit view for which a `Seconded` statement has been successfully imported.
 	perCandidate map[parachaintypes.CandidateHash]*perCandidateState
 	// State tracked for all active leaves, whether or not they have prospective parachains enabled.
-	perLeaf map[common.Hash]*activeLeafState // TODO: Remove this field
+	perLeaf map[common.Hash]*activeLeafState
 	// The utility for managing the implicit and explicit views in a consistent way.
 	// We only feed leaves which have prospective parachains enabled to this view.
 	ImplicitView ImplicitView
