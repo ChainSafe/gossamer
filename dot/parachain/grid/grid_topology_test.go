@@ -19,7 +19,7 @@ func FixtureTopologyPeerInfo() []grid.TopologyPeerInfo {
 		},
 		{
 			Peers:          []peer.ID{"peer3", "peer4"},
-			ValidatorIndex: parachaintypes.ValidatorIndex(0),
+			ValidatorIndex: parachaintypes.ValidatorIndex(1),
 			DiscoveryID:    types.AuthorityID{2},
 		},
 		{
@@ -144,8 +144,60 @@ func Test_GridNeighbors(t *testing.T) {
 	// The origin of the message was from column so we should rout in a row
 	assert.Equal(t, grid.RequiredRoutingGridX, routing)
 
-	// Since routing is for rows we have only validator with index 9 there and tis peers are peer19 and peer20
+	// Since routing is for rows we have only validator with index 9 there and its peers are peer19 and peer20
 	assert.False(t, gn.ShouldRouteToPeer(grid.RequiredRoutingGridX, peer.ID("peer1")))
 	assert.True(t, gn.ShouldRouteToPeer(grid.RequiredRoutingGridX, peer.ID("peer19")))
+	assert.True(t, gn.ShouldRouteToPeer(grid.RequiredRoutingGridX, peer.ID("peer20")))
+}
 
+func Test_SessionGridTopologyEntry(t *testing.T) {
+	gt := grid.NewSessionGridTopology([]uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, FixtureTopologyPeerInfo())
+	gn, err := gt.ComputeGridNeighborsFor(10)
+	assert.Nil(t, err)
+	sgte := &grid.SessionGridTopologyEntry{
+		Topology:       gt,
+		LocalNeighbors: gn,
+		LocalIndex:     10,
+		SessionIndex:   99,
+	}
+	// Since routing is for rows we have only validator with index 9 there and its peers are peer19 and peer20
+	assert.Equal(t, len(sgte.PeersToRoute(grid.RequiredRoutingGridX)), 2)
+	// Since routing is for rows we have only validator with index 1,4,7 there and its peers are peer19 and peer20
+	//[]peer.ID{"peer3", "peer4", "peer9", "peer10", "peer15", "peer16"},
+	assert.Equal(t, len(sgte.PeersToRoute(grid.RequiredRoutingGridY)), 6)
+	assert.Equal(t, len(sgte.PeersToRoute(grid.RequiredRoutingAll)), 22)
+
+	updated, err := sgte.UpdateAuthoritiesIDs(peer.ID("peer99"), map[types.AuthorityID]struct{}{types.AuthorityID{10}: {}})
+	assert.True(t, updated)
+	assert.Nil(t, err)
+	// Now we added one more peer to validator with AuthorityID 10, index 9. Sine we are actins as validator with index 10
+	// we should route to this peer if strategy RequiredRoutingGridX
+	assert.Equal(t, len(sgte.PeersToRoute(grid.RequiredRoutingGridX)), 3)
+}
+
+func Test_SessionGridTopologyStorage(t *testing.T) {
+	gt := grid.NewSessionGridTopology([]uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, FixtureTopologyPeerInfo())
+	gn, err := gt.ComputeGridNeighborsFor(10)
+	assert.Nil(t, err)
+	sgteCurrent := &grid.SessionGridTopologyEntry{
+		Topology:       gt,
+		LocalNeighbors: gn,
+		LocalIndex:     10,
+		SessionIndex:   99,
+	}
+	sgtePrev := &grid.SessionGridTopologyEntry{
+		Topology:       gt,
+		LocalNeighbors: gn,
+		LocalIndex:     10,
+		SessionIndex:   98,
+	}
+	storage := grid.SessionGridTopologyStorage{
+		CurrentTopology: sgteCurrent,
+		PrevTopology:    sgtePrev,
+	}
+
+	err = storage.UpdateCurrentTopology(100, gt, 10)
+	assert.Nil(t, err)
+	assert.Equal(t, storage.PrevTopology.SessionIndex, parachaintypes.SessionIndex(99))
+	assert.Equal(t, storage.CurrentTopology.SessionIndex, parachaintypes.SessionIndex(100))
 }

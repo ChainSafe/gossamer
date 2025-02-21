@@ -250,3 +250,97 @@ func CalculateMatrixNeighbors(valIndex, length uint) (*MatrixNeighbors, error) {
 		ColumnNeighbors: columnNeighbors,
 	}, nil
 }
+
+type SessionGridTopologyEntry struct {
+	Topology       *SessionGridTopology
+	LocalNeighbors *GridNeighbors
+	LocalIndex     parachaintypes.ValidatorIndex
+	SessionIndex   parachaintypes.SessionIndex
+}
+
+func (s *SessionGridTopologyEntry) PeersToRoute(routing RequiredRouting) []peer.ID {
+	switch routing {
+	case RequiredRoutingAll:
+		peers := make([]peer.ID, 0)
+		for p, _ := range s.Topology.Peers {
+			peers = append(peers, p)
+		}
+		return peers
+	case RequiredRoutingGridY:
+		peers := make([]peer.ID, 0)
+		for p, _ := range s.LocalNeighbors.PeersCol {
+			peers = append(peers, p)
+		}
+		return peers
+	case RequiredRoutingGridX:
+		peers := make([]peer.ID, 0)
+		for p, _ := range s.LocalNeighbors.PeersRow {
+			peers = append(peers, p)
+		}
+		return peers
+	case RequiredRoutingGridXY:
+		peers := make([]peer.ID, 0)
+		for p, _ := range s.LocalNeighbors.PeersCol {
+			peers = append(peers, p)
+		}
+		for p, _ := range s.LocalNeighbors.PeersRow {
+			peers = append(peers, p)
+		}
+		return peers
+	}
+	return make([]peer.ID, 0)
+}
+
+func (s *SessionGridTopologyEntry) UpdateAuthoritiesIDs(peer peer.ID, discoveryIDs map[types.AuthorityID]struct{}) (bool, error) {
+	if s.Topology.UpdateAuthoritiesIDs(peer, discoveryIDs) {
+		// If authorities update, recompile neighbors
+		new_neighbors, err := s.Topology.ComputeGridNeighborsFor(s.LocalIndex)
+		if err != nil {
+			return false, err
+		}
+		s.LocalNeighbors = new_neighbors
+		return true, nil
+	}
+	return false, nil
+}
+
+type SessionGridTopologyStorage struct {
+	CurrentTopology *SessionGridTopologyEntry
+	PrevTopology    *SessionGridTopologyEntry
+}
+
+func (s *SessionGridTopologyStorage) GetTopologyBySessionIndex(idx parachaintypes.SessionIndex) *SessionGridTopologyEntry {
+	if s.CurrentTopology.SessionIndex == idx {
+		return s.CurrentTopology
+	}
+	if s.PrevTopology.SessionIndex == idx {
+		return s.PrevTopology
+	}
+	return nil
+}
+
+func (s *SessionGridTopologyStorage) GetTopologyOrFallback(idx parachaintypes.SessionIndex) *SessionGridTopologyEntry {
+	toplogy := s.GetTopologyBySessionIndex(idx)
+	if toplogy != nil {
+		return toplogy
+	} else {
+		return s.CurrentTopology
+	}
+}
+
+func (s *SessionGridTopologyStorage) UpdateCurrentTopology(idx parachaintypes.SessionIndex,
+	topology *SessionGridTopology,
+	localIndex parachaintypes.ValidatorIndex) error {
+	localNeighbors, err := topology.ComputeGridNeighborsFor(localIndex)
+	if err != nil {
+		return err
+	}
+	s.PrevTopology = s.CurrentTopology
+	s.CurrentTopology = &SessionGridTopologyEntry{
+		Topology:       topology,
+		LocalNeighbors: localNeighbors,
+		LocalIndex:     localIndex,
+		SessionIndex:   idx,
+	}
+	return nil
+}
