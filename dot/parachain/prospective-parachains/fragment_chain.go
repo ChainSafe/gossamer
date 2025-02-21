@@ -617,7 +617,7 @@ func (f *fragmentChain) tryAddingSecondedCandidate(entry *candidateEntry) error 
 }
 
 // getHeadDataByHash tries to get the full head data associated with this hash
-func (f *fragmentChain) getHeadDataByHash(headDataHash common.Hash) (*parachaintypes.HeadData, error) { //nolint:unused
+func (f *fragmentChain) getHeadDataByHash(headDataHash common.Hash) (*parachaintypes.HeadData, error) {
 	reqParent := f.scope.baseConstraints.RequiredParent
 	reqParentHash, err := reqParent.Hash()
 	if err != nil {
