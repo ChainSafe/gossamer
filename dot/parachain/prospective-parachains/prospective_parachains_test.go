@@ -654,3 +654,248 @@ func TestGetBackableCandidates(t *testing.T) {
 		})
 	}
 }
+
+func TestAnswerProspectiveValidationDataRequest(t *testing.T) {
+	// Create a new prospective parachains instance
+	subsystemToOverseer := make(chan any)
+
+	t.Run("no_active_leaves", func(t *testing.T) {
+		view := &view{
+			activeLeaves: map[common.Hash]bool{},
+		}
+
+		// Create a prospective validation data request
+		request := ProspectiveValidationDataRequest{
+			ParaId:               parachaintypes.ParaID(1),
+			CandidateRelayParent: common.Hash{0x01},
+			ParentHeadData: ParentHeadDataWithHash{
+				Hash: common.Hash{0x01},
+				Data: parachaintypes.HeadData{Data: []byte{0x01}},
+			},
+		}
+
+		pp := &ProspectiveParachains{
+			View: view,
+		}
+
+		sender := make(chan *parachaintypes.PersistedValidationData, 1)
+
+		// Execute the method under test
+		pp.answerProspectiveValidationDataRequest(request, sender)
+
+		result := <-sender
+
+		assert.Nil(t, result, "Expected result to be nil when no active leaves are present")
+	})
+
+	t.Run("with_active_and_only_hash", func(t *testing.T) {
+		reqParent := parachaintypes.HeadData{Data: []byte{0xc3}}
+		reqParentHash, err := reqParent.Hash()
+		assert.NoError(t, err)
+
+		baseConstraints := &parachaintypes.Constraints{
+			RequiredParent:       reqParent,
+			MinRelayParentNumber: 0,
+			ValidationCodeHash:   parachaintypes.ValidationCodeHash(common.Hash{0x03}),
+			MaxPoVSize:           3,
+		}
+
+		scope, err := newScopeWithAncestors(
+			relayChainBlockInfo{
+				Hash:        common.Hash{0x01},
+				StorageRoot: common.Hash{0x01},
+				Number:      2,
+			},
+			baseConstraints,
+			nil,
+			3,
+			[]relayChainBlockInfo{
+				{
+					Hash:        common.Hash{0x012},
+					StorageRoot: common.Hash{0x022},
+					Number:      1,
+				},
+			},
+		)
+
+		assert.NoError(t, err)
+
+		view := &view{
+			activeLeaves: map[common.Hash]bool{
+				{0x01}: true,
+			},
+			perRelayParent: map[common.Hash]*relayParentData{
+				{0x01}: {
+					fragmentChains: map[parachaintypes.ParaID]*fragmentChain{
+						parachaintypes.ParaID(1): newFragmentChain(scope, newCandidateStorage()),
+					},
+				},
+			},
+		}
+
+		// Create a prospective validation data request
+		request := ProspectiveValidationDataRequest{
+			ParaId:               parachaintypes.ParaID(1),
+			CandidateRelayParent: common.Hash{0x01},
+			ParentHeadData:       OnlyHash(reqParentHash),
+		}
+
+		pp := &ProspectiveParachains{
+			View: view,
+		}
+
+		sender := make(chan *parachaintypes.PersistedValidationData, 1)
+
+		// Execute the method under test
+		pp.answerProspectiveValidationDataRequest(request, sender)
+
+		result := <-sender
+
+		assert.Equal(t, result.ParentHead, reqParent)
+		assert.Equal(t, result.RelayParentNumber, uint32(2))
+		assert.Equal(t, result.RelayParentStorageRoot, common.Hash{0x01})
+		assert.Equal(t, result.MaxPovSize, uint32(3))
+	})
+
+	t.Run("with_active_and_with_head_data", func(t *testing.T) {
+		reqParent := parachaintypes.HeadData{Data: []byte{0xc3}}
+		reqParentHash, err := reqParent.Hash()
+		assert.NoError(t, err)
+
+		baseConstraints := &parachaintypes.Constraints{
+			RequiredParent:       reqParent,
+			MinRelayParentNumber: 0,
+			ValidationCodeHash:   parachaintypes.ValidationCodeHash(common.Hash{0x03}),
+			MaxPoVSize:           3,
+		}
+
+		scope, err := newScopeWithAncestors(
+			relayChainBlockInfo{
+				Hash:        common.Hash{0x01},
+				StorageRoot: common.Hash{0x01},
+				Number:      2,
+			},
+			baseConstraints,
+			nil,
+			3,
+			[]relayChainBlockInfo{
+				{
+					Hash:        common.Hash{0x012},
+					StorageRoot: common.Hash{0x022},
+					Number:      1,
+				},
+			},
+		)
+
+		assert.NoError(t, err)
+
+		view := &view{
+			activeLeaves: map[common.Hash]bool{
+				{0x01}: true,
+			},
+			perRelayParent: map[common.Hash]*relayParentData{
+				{0x01}: {
+					fragmentChains: map[parachaintypes.ParaID]*fragmentChain{
+						parachaintypes.ParaID(1): newFragmentChain(scope, newCandidateStorage()),
+					},
+				},
+			},
+		}
+
+		// Create a prospective validation data request
+		request := ProspectiveValidationDataRequest{
+			ParaId:               parachaintypes.ParaID(1),
+			CandidateRelayParent: common.Hash{0x01},
+			ParentHeadData: ParentHeadDataWithHash{
+				Data: reqParent,
+				Hash: reqParentHash,
+			},
+		}
+
+		pp := &ProspectiveParachains{
+			View: view,
+		}
+
+		sender := make(chan *parachaintypes.PersistedValidationData, 1)
+
+		// Execute the method under test
+		pp.answerProspectiveValidationDataRequest(request, sender)
+
+		result := <-sender
+
+		assert.Equal(t, result.ParentHead, reqParent)
+		assert.Equal(t, result.RelayParentNumber, uint32(2))
+		assert.Equal(t, result.RelayParentStorageRoot, common.Hash{0x01})
+		assert.Equal(t, result.MaxPovSize, uint32(3))
+	})
+
+	t.Run("with_head_data_hash_doesnt_match", func(t *testing.T) {
+		reqParent := parachaintypes.HeadData{Data: []byte{0xc4}}
+
+		baseConstraints := &parachaintypes.Constraints{
+			RequiredParent:       reqParent,
+			MinRelayParentNumber: 0,
+			ValidationCodeHash:   parachaintypes.ValidationCodeHash(common.Hash{0x03}),
+			MaxPoVSize:           3,
+		}
+
+		scope, err := newScopeWithAncestors(
+			relayChainBlockInfo{
+				Hash:        common.Hash{0x01},
+				StorageRoot: common.Hash{0x01},
+				Number:      2,
+			},
+			baseConstraints,
+			nil,
+			3,
+			[]relayChainBlockInfo{
+				{
+					Hash:        common.Hash{0x012},
+					StorageRoot: common.Hash{0x022},
+					Number:      1,
+				},
+			},
+		)
+
+		assert.NoError(t, err)
+
+		view := &view{
+			activeLeaves: map[common.Hash]bool{
+				{0x01}: true,
+			},
+			perRelayParent: map[common.Hash]*relayParentData{
+				{0x01}: {
+					fragmentChains: map[parachaintypes.ParaID]*fragmentChain{
+						parachaintypes.ParaID(1): newFragmentChain(scope, newCandidateStorage()),
+					},
+				},
+			},
+		}
+
+		// Create a prospective validation data request
+		request := ProspectiveValidationDataRequest{
+			ParaId:               parachaintypes.ParaID(1),
+			CandidateRelayParent: common.Hash{0x01},
+			ParentHeadData: ParentHeadDataWithHash{
+				Data: reqParent,
+				Hash: common.Hash{0xc3},
+			},
+		}
+
+		pp := &ProspectiveParachains{
+			View: view,
+		}
+
+		sender := make(chan *parachaintypes.PersistedValidationData, 1)
+
+		// Execute the method under test
+		pp.answerProspectiveValidationDataRequest(request, sender)
+
+		result := <-sender
+
+		assert.NotEqual(t, result.ParentHead, common.Hash{0xc3})
+	})
+
+	// Close the channels
+	close(subsystemToOverseer)
+}

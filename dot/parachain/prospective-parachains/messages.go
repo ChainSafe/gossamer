@@ -133,7 +133,7 @@ func (GetMinimumRelayParents) isProspectiveParachainsMessage() {}
 // some fragment chain).
 type GetProspectiveValidationData struct {
 	ProspectiveValidationDataRequest
-	Sender chan parachaintypes.PersistedValidationData
+	Sender chan<- *parachaintypes.PersistedValidationData
 }
 
 // ProspectiveValidationDataRequest A request for the persisted validation data stored in the prospective
@@ -153,15 +153,15 @@ type ParentHeadData interface {
 }
 
 // ParentHeadDataHash Parent head-data hash.
-type ParentHeadDataHash common.Hash
+type OnlyHash common.Hash
 
-func (ParentHeadDataHash) isParentHeadData() {}
+func (OnlyHash) isParentHeadData() {}
 
 type ParentHeadDataWithHash struct {
 	// This will be provided for collations with elastic scaling enabled.
 	Data parachaintypes.HeadData
 	// Parent head-data hash.
-	Hash ParentHeadDataHash
+	Hash common.Hash
 }
 
 func (ParentHeadDataWithHash) isParentHeadData() {}
