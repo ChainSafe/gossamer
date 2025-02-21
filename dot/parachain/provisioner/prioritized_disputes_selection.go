@@ -3,7 +3,6 @@ package provisioner
 import (
 	"context"
 	"fmt"
-	"iter"
 	"time"
 
 	disputemessages "github.com/ChainSafe/gossamer/dot/parachain/disputes-coordinator/messages"
@@ -48,26 +47,22 @@ type partitionedDisputes struct {
 	inactiveConcludedOnchain []parachaintypes.DisputeKey
 }
 
-// Iter returns an iterator over the PartitionedDisputes.
-func (pd partitionedDisputes) Iter() iter.Seq2[parachaintypes.SessionIndex, parachaintypes.CandidateHash] {
-	return func(yield func(parachaintypes.SessionIndex, parachaintypes.CandidateHash) bool) {
-		seqToIterate := [][]parachaintypes.DisputeKey{
-			pd.inactiveUnknownOnchain,
-			pd.inactiveUnconcludedOnchain,
-			pd.activeUnknownOnchain,
-			pd.activeUnconcludedOnchain,
-			pd.activeConcludedOnchain,
-			// pd.InactiveConcludedOnchain is dropped on purpose
-		}
-
-		for _, seq := range seqToIterate {
-			for _, d := range seq {
-				if !yield(d.SessionIndex, d.CandidateHash) {
-					return
-				}
-			}
-		}
+// orderedPartitions returns an array of partitions in the order they should be processed.
+func (pd partitionedDisputes) orderedPartitions() []parachaintypes.DisputeKey {
+	seqToIterate := [][]parachaintypes.DisputeKey{
+		pd.inactiveUnknownOnchain,
+		pd.inactiveUnconcludedOnchain,
+		pd.activeUnknownOnchain,
+		pd.activeUnconcludedOnchain,
+		pd.activeConcludedOnchain,
+		// pd.InactiveConcludedOnchain is dropped on purpose
 	}
+
+	var out []parachaintypes.DisputeKey
+	for _, seq := range seqToIterate {
+		out = append(out, seq...)
+	}
+	return out
 }
 
 func concludedOnchain(onchainState *parachaintypes.DisputeState) bool {
