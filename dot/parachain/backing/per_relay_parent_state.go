@@ -189,10 +189,48 @@ type perRelayParentState struct {
 }
 
 func (rpState *perRelayParentState) coreIndexFromStatement(
-	parachaintypes.SignedFullStatementWithPVD,
+	signedStatementWithPVD parachaintypes.SignedFullStatementWithPVD,
 ) (parachaintypes.CoreIndex, error) {
 	// TODO: Implement this #4324
-	return parachaintypes.CoreIndex{}, nil
+
+	groupIndex, ok := rpState.validatorToGroup[signedStatementWithPVD.SignedFullStatement.ValidatorIndex]
+	if !ok {
+		return parachaintypes.CoreIndex{}, fmt.Errorf("validator index not found in validator to group mapping")
+	}
+
+	coreIndex := rpState.groupRotationInfo.CoreForGroup(groupIndex, uint(rpState.numOfCores))
+	if coreIndex.Index > rpState.numOfCores {
+		return parachaintypes.CoreIndex{}, fmt.Errorf("invalid core index %d, expected core index to be less than %d",
+			coreIndex.Index, rpState.numOfCores)
+	}
+
+	statementVDTValue, err := signedStatementWithPVD.SignedFullStatement.Payload.Value()
+	if err != nil {
+		return parachaintypes.CoreIndex{}, fmt.Errorf("getting value from statementVDT: %w", err)
+	}
+
+	secondedStatement, ok := statementVDTValue.(parachaintypes.Seconded)
+	if !ok {
+		return coreIndex, nil
+	}
+
+	paraID := secondedStatement.Descriptor.ParaID
+
+	// Check if the core is assigned to the paraID of the candidate.
+	var isValidCore bool
+	for _, paraIDs := range rpState.claimQueue {
+		if slices.Contains(paraIDs, paraID) {
+			isValidCore = true
+			break
+		}
+	}
+
+	if !isValidCore {
+		return parachaintypes.CoreIndex{}, fmt.Errorf("invalid core index %d, core is not assigned to the paraID %d",
+			coreIndex.Index, paraID)
+	}
+
+	return coreIndex, nil
 }
 
 // importStatement imports a statement into the statement table and returns the summary of the import.

@@ -64,10 +64,29 @@ func (info GroupRotationInfo) GroupForCore(coreIndex CoreIndex, numOfCores uint)
 	return GroupIndex(idx)
 }
 
-func (gri GroupRotationInfo) CoreForGroup(groupIndex GroupIndex, cores uint8) CoreIndex {
-	//nolint
-	// TODO: https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/primitives/src/v6/mod.rs#L877
-	return CoreIndex{}
+// CoreForGroup returns the index of the group assigned to the given core. This does no checking or
+// whether the group index is in-bounds.
+//
+// `coreIndex` should be less than `numOfCores`, which is capped at `MaxUint32`.
+func (info GroupRotationInfo) CoreForGroup(groupIndex GroupIndex, numOfCores uint) CoreIndex {
+	if info.GroupRotationFrequency == 0 {
+		return CoreIndex{Index: uint32(groupIndex)}
+	}
+	if numOfCores == 0 {
+		return CoreIndex{Index: 0}
+	}
+
+	numOfCores = min(numOfCores, math.MaxUint32)
+
+	var blocksSinceStart uint32
+	if info.Now > info.SessionStartBlock {
+		blocksSinceStart = uint32(info.Now - info.SessionStartBlock)
+	}
+
+	rotations := (blocksSinceStart / uint32(info.GroupRotationFrequency)) % uint32(numOfCores)
+
+	idx := (uint(groupIndex) + numOfCores - uint(rotations)) % numOfCores
+	return CoreIndex{Index: uint32(idx)}
 }
 
 // ValidatorGroups represents the validator groups
