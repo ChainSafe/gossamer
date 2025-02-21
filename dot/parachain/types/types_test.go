@@ -438,3 +438,25 @@ func TestUpgradeRestrictionEncodingDecoding(t *testing.T) {
 
 	require.Equal(t, expectedRestriction, &restriction)
 }
+
+// TestGroupForCoreIsCoreForGroup tests that GroupForCore and CoreForGroup are inverses of each other
+// It ensures that for a given number of cores and rotations, the core index retrieved from CoreForGroup
+// matches the original core index passed to GroupForCore.
+func TestGroupForCoreIsCoreForGroup(t *testing.T) {
+	for numOfCores := uint(1); numOfCores <= 256; numOfCores++ {
+		for rotations := uint(0); rotations < numOfCores*2; rotations++ {
+			info := GroupRotationInfo{
+				SessionStartBlock:      0,
+				Now:                    BlockNumber(rotations),
+				GroupRotationFrequency: 1,
+			}
+
+			for core := uint(0); core < numOfCores; core++ {
+				group := info.GroupForCore(CoreIndex{Index: uint32(core)}, numOfCores)
+				if got := info.CoreForGroup(group, numOfCores).Index; got != uint32(core) {
+					t.Errorf("CoreForGroup(%v, %v) = %v; want %v", group, numOfCores, got, core)
+				}
+			}
+		}
+	}
+}

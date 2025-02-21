@@ -83,7 +83,8 @@ func (info GroupRotationInfo) CoreForGroup(groupIndex GroupIndex, numOfCores uin
 		blocksSinceStart = uint32(info.Now - info.SessionStartBlock)
 	}
 
-	rotations := (blocksSinceStart / uint32(info.GroupRotationFrequency)) % uint32(numOfCores)
+	rotations := blocksSinceStart / uint32(info.GroupRotationFrequency)
+	rotations = rotations % uint32(numOfCores)
 
 	idx := (uint(groupIndex) + numOfCores - uint(rotations)) % numOfCores
 	return CoreIndex{Index: uint32(idx)}
