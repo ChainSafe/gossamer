@@ -124,10 +124,10 @@ type view struct {
 
 type perRelayParentData struct {
 	sessionIndex            parachaintypes.SessionIndex // the required part of the signing context
-	validators              []parachaintypes.ValidatorID
-	onePerValidator         map[parachaintypes.ValidatorID]*validationprotocol.BitfieldDistributionMessage
-	messageSentToPeer       map[PeerID]map[parachaintypes.ValidatorID]struct{}
-	messageReceivedFromPeer map[PeerID]map[parachaintypes.ValidatorID]struct{}
+	validators              []parachaintypes.ValidatorPublicKey
+	onePerValidator         map[parachaintypes.ValidatorPublicKey]*validationprotocol.BitfieldDistributionMessage
+	messageSentToPeer       map[PeerID]map[parachaintypes.ValidatorPublicKey]struct{}
+	messageReceivedFromPeer map[PeerID]map[parachaintypes.ValidatorPublicKey]struct{}
 }
 
 type BitfieldDistribution struct {
