@@ -113,7 +113,7 @@ type attestingData struct {
 // tableContext represents the contextual information associated with a validator and groups
 // for a table under a relay-parent.
 type tableContext struct {
-	validator  *validator
+	validator  *parachaintypes.Validator
 	groups     map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex
 	validators []parachaintypes.ValidatorID
 }
@@ -126,29 +126,6 @@ func (tc *tableContext) isMemberOf(validatorIndex parachaintypes.ValidatorIndex,
 	}
 
 	return slices.Contains(indexes, validatorIndex)
-}
-
-// validator represents local validator information.
-// It can be created if the local node is a validator in the context of a particular relay chain block.
-type validator struct {
-	signingContext parachaintypes.SigningContext
-	key            parachaintypes.ValidatorID
-	index          parachaintypes.ValidatorIndex
-}
-
-// sign method signs a given payload with the validator and returns a SignedFullStatement.
-func (v validator) sign(keystore keystore.Keystore, payload parachaintypes.StatementVDT,
-) (*parachaintypes.SignedFullStatement, error) {
-	valSign, err := payload.Sign(keystore, v.signingContext, v.key)
-	if err != nil {
-		return nil, fmt.Errorf("signing statement: %w", err)
-	}
-
-	return &parachaintypes.SignedFullStatement{
-		Payload:        payload,
-		ValidatorIndex: v.index,
-		Signature:      *valSign,
-	}, nil
 }
 
 // GetBackableCandidatesMessage is a message received from overseer that requests a set of backable
@@ -321,7 +298,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 			return errFallbackNotAvailable
 		}
 
-		ourIndex := rpState.tableContext.validator.index
+		ourIndex := rpState.tableContext.validator.Index
 		if signedStatementWithPVD.SignedFullStatement.ValidatorIndex == ourIndex {
 			return nil
 		}

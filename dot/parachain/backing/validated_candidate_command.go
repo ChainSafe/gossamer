@@ -330,7 +330,7 @@ func signImportAndDistributeStatement(
 	pvd *parachaintypes.PersistedValidationData,
 	keystore keystore.Keystore,
 ) (parachaintypes.SignedFullStatementWithPVD, error) {
-	signedStatement, err := rpState.tableContext.validator.sign(keystore, statementVDT)
+	signedStatement, err := statementVDT.Sign(*rpState.tableContext.validator, keystore)
 	if err != nil {
 		return parachaintypes.SignedFullStatementWithPVD{}, fmt.Errorf("signing statement: %w", err)
 	}

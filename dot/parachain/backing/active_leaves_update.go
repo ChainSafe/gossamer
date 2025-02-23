@@ -309,14 +309,14 @@ func constructPerRelayParentState(
 		ParentHash:   relayParent,
 	}
 
-	var localValidator *validator
+	var localValidator *parachaintypes.Validator
 	validatorID, validatorIndex := parachainutil.SigningKeyAndIndex(validators, *keystore)
 	if validatorID != nil {
 		//  local node is a validator
-		localValidator = &validator{
-			signingContext: signingContext,
-			key:            *validatorID,
-			index:          validatorIndex,
+		localValidator = &parachaintypes.Validator{
+			SigningContext: signingContext,
+			Key:            *validatorID,
+			Index:          validatorIndex,
 		}
 	}
 
@@ -352,7 +352,7 @@ func constructPerRelayParentState(
 		validatorIndexes := validatorGroups.Validators[groupIndex]
 
 		if validatorIndexes != nil {
-			if localValidator != nil && slices.Contains(validatorIndexes, localValidator.index) {
+			if localValidator != nil && slices.Contains(validatorIndexes, localValidator.Index) {
 				assignment = &coreParaID
 			}
 			groups[coreParaID] = validatorIndexes
