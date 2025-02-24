@@ -111,23 +111,18 @@ func (b *BitfieldSigning) ProcessActiveLeavesUpdateSignal(signal parachaintypes.
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	go func(ctx context.Context) {
-		select {
-		case <-ctx.Done():
-			logger.Infof("process for handleActiveLeavesUpdate is done due to deactivated leaves")
-			return
-		default:
-			err := b.handleActiveLeavesUpdate(activatedLeaf)
+	go func() {
+		err := handleActiveLeavesUpdate(ctx, b, activatedLeaf)
+		if err != nil {
 			logger.Errorf("handleActiveLeavesUpdate error: %s", err)
 		}
-	}(ctx)
-
+	}()
 	b.signingTasksTracker[activatedLeaf.Hash] = &signingTask{ctx, cancel}
 
 	return nil
 }
 
-func (b *BitfieldSigning) handleActiveLeavesUpdate(activatedLeaf *parachaintypes.ActivatedLeaf) error {
+func handleActiveLeavesUpdate(ctx context.Context, b *BitfieldSigning, activatedLeaf *parachaintypes.ActivatedLeaf) error {
 	relayParent := activatedLeaf.Hash
 	rt, err := b.blockState.GetRuntime(relayParent)
 	if err != nil {
@@ -164,7 +159,7 @@ func (b *BitfieldSigning) handleActiveLeavesUpdate(activatedLeaf *parachaintypes
 	time.Sleep(availabilityDistributionWaitingPeriod)
 
 	// construct the bitfield according to the availability store
-	bitfield, err := constructAvailabilityBitfield(rt, validatorIndex, b.subSystemToOverseer)
+	bitfield, err := constructAvailabilityBitfield(ctx, rt, validatorIndex, b.subSystemToOverseer)
 	if err != nil {
 		return fmt.Errorf("construct availabilityBitfield: %w", err)
 	}
@@ -204,6 +199,7 @@ func (b *BitfieldSigning) Stop() {
 }
 
 func constructAvailabilityBitfield(
+	ctx context.Context,
 	rt runtime.Instance,
 	validatorIdx parachaintypes.ValidatorIndex,
 	subSystemToOverseer chan<- any,
@@ -238,8 +234,17 @@ func constructAvailabilityBitfield(
 				// send QueryChunkAvailability to availability store via overseer
 				subSystemToOverseer <- queryPayload
 
-				// append the result to the bitfield
-				bitfield = append(bitfield, bitfieldData{index: oi, data: <-receivingChan})
+				// check if cancel signal is coming
+				// we can't cancel the process anytime during the spawned goroutines
+				// instead we only check cancel signal right before receiving from overseer in case it's blocked
+				select {
+				case <-ctx.Done():
+					logger.Infof("process for handleActiveLeavesUpdate is abort due to deactivated leaves")
+					return
+				default:
+					// append the result to the bitfield
+					bitfield = append(bitfield, bitfieldData{index: oi, data: <-receivingChan})
+				}
 			}(coreOrderIndex, value.(parachaintypes.OccupiedCore))
 		} else {
 			bitfield = append(bitfield, bitfieldData{index: coreOrderIndex, data: false})

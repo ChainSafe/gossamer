@@ -1,6 +1,7 @@
 package bitfield_signing
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
@@ -60,7 +61,7 @@ func TestConstructAvailabilityBitfieldFailedParachainHostAvailabilityCores(t *te
 	runtimeMock.EXPECT().ParachainHostAvailabilityCores().Return(nil, errors.New("something is off")).Times(1)
 
 	testChan := make(chan any)
-	bitfield, err := constructAvailabilityBitfield(runtimeMock, parachaintypes.ValidatorIndex(1), testChan)
+	bitfield, err := constructAvailabilityBitfield(context.Background(), runtimeMock, parachaintypes.ValidatorIndex(1), testChan)
 
 	assert.Equal(t, bitfield, parachaintypes.BitVec{})
 	assert.Error(t, err, "something is off")
@@ -82,7 +83,7 @@ func TestConstructAvailabilityBitfieldFailedUnsupportedType(t *testing.T) {
 	runtimeMock.EXPECT().ParachainHostAvailabilityCores().Return(cores, nil).Times(1)
 
 	testChan := make(chan any)
-	bitfield, err := constructAvailabilityBitfield(runtimeMock, parachaintypes.ValidatorIndex(1), testChan)
+	bitfield, err := constructAvailabilityBitfield(context.Background(), runtimeMock, parachaintypes.ValidatorIndex(1), testChan)
 	assert.Equal(t, bitfield, parachaintypes.BitVec{})
 	assert.Error(t, scale.ErrUnsupportedVaryingDataTypeValue)
 }
@@ -126,7 +127,7 @@ func TestConstructAvailabilityBitfieldSuccess(t *testing.T) {
 		}
 	}()
 
-	bitfield, err := constructAvailabilityBitfield(runtimeMock, parachaintypes.ValidatorIndex(1), subSystemToOverseerTestChan)
+	bitfield, err := constructAvailabilityBitfield(context.Background(), runtimeMock, parachaintypes.ValidatorIndex(1), subSystemToOverseerTestChan)
 
 	close(subSystemToOverseerTestChan)
 
@@ -184,7 +185,7 @@ func TestProcessActiveLeavesUpdateSignalGetRuntimeError(t *testing.T) {
 	blockAPIMock.EXPECT().GetRuntime(common.Hash{1, 2, 3, 4, 5}).Return(nil, errors.New("something is off")).Times(1)
 
 	// get runtime error
-	err = testBitfieldSigningSubsystem.handleActiveLeavesUpdate(testActiveLeaves)
+	err = handleActiveLeavesUpdate(context.Background(), testBitfieldSigningSubsystem, testActiveLeaves)
 	assert.EqualError(t, err, "getting runtime: something is off")
 }
 
@@ -214,7 +215,7 @@ func TestProcessActiveLeavesUpdateSignalGetParachainHostValidatorsError(t *testi
 	runtimeMock.EXPECT().ParachainHostValidators().Return(nil, errors.New("something is off with validators")).Times(1)
 
 	// get validators error
-	err = testBitfieldSigningSubsystem.handleActiveLeavesUpdate(testActiveLeaves)
+	err = handleActiveLeavesUpdate(context.Background(), testBitfieldSigningSubsystem, testActiveLeaves)
 	assert.EqualError(t, err, "getting validators: something is off with validators")
 }
 
@@ -246,7 +247,7 @@ func TestProcessActiveLeavesUpdateSignalNotValidator(t *testing.T) {
 	runtimeMock.EXPECT().ParachainHostValidators().Return([]parachaintypes.ValidatorID{}, nil).Times(1)
 
 	// current node is not a validator
-	err = testBitfieldSigningSubsystem.handleActiveLeavesUpdate(testActiveLeaves)
+	err = handleActiveLeavesUpdate(context.Background(), testBitfieldSigningSubsystem, testActiveLeaves)
 	assert.Nil(t, err)
 }
 
@@ -284,7 +285,7 @@ func TestProcessActiveLeavesUpdateSignalConstructAvailabilityBitfieldError(t *te
 	runtimeMock.EXPECT().ParachainHostAvailabilityCores().Return(nil, errors.New("something is off")).Times(1)
 
 	// ConstructAvailabilityBitfield error
-	err = testBitfieldSigningSubsystem.handleActiveLeavesUpdate(testActiveLeaves)
+	err = handleActiveLeavesUpdate(context.Background(), testBitfieldSigningSubsystem, testActiveLeaves)
 	assert.EqualError(t, err, "construct availabilityBitfield: querying availability cores: something is off")
 }
 
@@ -362,7 +363,7 @@ func TestProcessActiveLeavesUpdateSignalSuccess(t *testing.T) {
 		}
 	}()
 
-	err = testBitfieldSigningSubsystem.handleActiveLeavesUpdate(testActiveLeaves)
+	err = handleActiveLeavesUpdate(context.Background(), testBitfieldSigningSubsystem, testActiveLeaves)
 	assert.Nil(t, err)
 
 	// wait for the DistributeBitfield content checks
