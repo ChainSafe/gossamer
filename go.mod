@@ -46,7 +46,7 @@ require (
 	github.com/tyler-smith/go-bip39 v1.1.0
 	github.com/ugurcsen/gods-generic v0.10.4
 	go.uber.org/mock v0.5.0
-	golang.org/x/crypto v0.33.0
+	golang.org/x/crypto v0.34.0
 	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8
 	golang.org/x/term v0.29.0
 	google.golang.org/protobuf v1.36.5
@@ -222,7 +222,7 @@ require (
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
 
-go 1.23
+go 1.23.0
 
 toolchain go1.23.2
 
