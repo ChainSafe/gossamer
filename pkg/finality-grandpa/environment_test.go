@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/exp/rand"
+	"math/rand"
 )
 
 type ID uint32

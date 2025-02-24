@@ -637,7 +637,7 @@ func TestVoter_PickUpFromPriorWithGrandparentStatus(t *testing.T) {
 	roundOut <- NewMessage(lastPrecommit)
 
 	// run voter in background. scheduling it to shut down at the end.
-	voter, globalOut := NewVoter[string, uint32, Signature, ID](
+	voter, globalOut := NewVoter(
 		&env,
 		*voterSet,
 		nil,

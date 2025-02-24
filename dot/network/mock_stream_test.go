@@ -154,6 +154,20 @@ func (mr *MockStreamMockRecorder) Reset() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Reset", reflect.TypeOf((*MockStream)(nil).Reset))
 }
 
+// ResetWithError mocks base method.
+func (m *MockStream) ResetWithError(arg0 network.StreamErrorCode) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResetWithError", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ResetWithError indicates an expected call of ResetWithError.
+func (mr *MockStreamMockRecorder) ResetWithError(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetWithError", reflect.TypeOf((*MockStream)(nil).ResetWithError), arg0)
+}
+
 // Scope mocks base method.
 func (m *MockStream) Scope() network.StreamScope {
 	m.ctrl.T.Helper()
