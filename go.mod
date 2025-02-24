@@ -17,7 +17,7 @@ require (
 	github.com/ethereum/go-ethereum v1.15.2
 	github.com/fatih/color v1.18.0
 	github.com/gammazero/deque v1.0.0
-	github.com/go-playground/validator/v10 v10.24.0
+	github.com/go-playground/validator/v10 v10.25.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
@@ -38,7 +38,7 @@ require (
 	github.com/prometheus/client_golang v1.21.0
 	github.com/prometheus/client_model v0.6.1
 	github.com/qdm12/gotree v0.3.0
-	github.com/spf13/cobra v1.8.1
+	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.10.0
 	github.com/tetratelabs/wazero v1.1.0
@@ -46,7 +46,7 @@ require (
 	github.com/tyler-smith/go-bip39 v1.1.0
 	github.com/ugurcsen/gods-generic v0.10.4
 	go.uber.org/mock v0.5.0
-	golang.org/x/crypto v0.33.0
+	golang.org/x/crypto v0.34.0
 	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa
 	golang.org/x/term v0.29.0
 	google.golang.org/protobuf v1.36.5
@@ -194,7 +194,7 @@ require (
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
