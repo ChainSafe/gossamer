@@ -836,11 +836,16 @@ type CandidateHashAndRelayParent struct {
 	CandidateRelayParent common.Hash
 }
 
+// DisputeKey identifies a single dispute
+// under polkadot-sdk the same representation is
+// a tuple of (SessionIndex, CandidateHash)
 type DisputeKey struct {
 	SessionIndex  SessionIndex
 	CandidateHash CandidateHash
 }
 
+// DisputeState is stored by the runtime
+// and represents the entire dispute state
 type DisputeState struct {
 	// A bitfield indicating all validators for the candidate.
 	ValidatorsFor BitVec
