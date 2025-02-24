@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package gossip
 
 import (
@@ -144,7 +147,9 @@ func (ao TestValidator) NewPeer(context ValidatorContext[hash.H256], who peerid.
 }
 func (ao TestValidator) PeerDisconnected(context ValidatorContext[hash.H256], who peerid.PeerID) {
 }
-func (ao TestValidator) Validate(context ValidatorContext[hash.H256], sender peerid.PeerID, data []byte) ValidationResult {
+func (ao TestValidator) Validate(
+	context ValidatorContext[hash.H256], sender peerid.PeerID, data []byte,
+) ValidationResult {
 	return ValidationResultProcessAndKeep[hash.H256]{
 		Hash: hash.H256(data[0:32]),
 	}
@@ -154,7 +159,9 @@ func (ao TestValidator) MessageExpired() func(topic hash.H256, message []byte) b
 		return false
 	}
 }
-func (ao TestValidator) MessageAllowed() func(who peerid.PeerID, intent MessageIntent, topic hash.H256, data []byte) bool {
+func (ao TestValidator) MessageAllowed() func(
+	who peerid.PeerID, intent MessageIntent, topic hash.H256, data []byte,
+) bool {
 	return func(who peerid.PeerID, intent MessageIntent, topic hash.H256, data []byte) bool {
 		return true
 	}
@@ -296,7 +303,8 @@ func TestGossipEngine(t *testing.T) {
 				if !ok {
 					gossipEngine.messageSinks[topicChan.Topic] = make([]chan TopicNotification, 0)
 				}
-				gossipEngine.messageSinks[topicChan.Topic] = append(gossipEngine.messageSinks[topicChan.Topic], topicChan.Chan)
+				gossipEngine.messageSinks[topicChan.Topic] = append(
+					gossipEngine.messageSinks[topicChan.Topic], topicChan.Chan)
 			}
 
 			// Register the remote peer.

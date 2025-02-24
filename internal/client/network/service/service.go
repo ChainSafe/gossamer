@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package service
 
 import (
@@ -15,7 +18,7 @@ type NetworkSyncForkRequest[BlockHash, BlockNumber any] interface {
 	//
 	// If the given slice of peers is empty then the underlying implementation
 	// should make a best effort to fetch the block from any peers it is
-	// connected to (NOTE: this assumption will change in the future #3629).
+	// connected to.
 	SetSyncForkRequest(peers []peerid.PeerID, hash BlockHash, number BlockNumber)
 }
 
@@ -201,7 +204,7 @@ type NotificationEventNotificationReceived struct {
 
 func (NotificationEventNotificationReceived) isNotificationEvent() {}
 
-// NotificationService is the notification service. It defines behaviors that both the protocol implementations and
+// NotificationService is the notification service. It defines behaviours that both the protocol implementations and
 // NotificationService can expect from each other.
 //
 // NotificationService can send two different kinds of information to protocol:
@@ -214,7 +217,7 @@ func (NotificationEventNotificationReceived) isNotificationEvent() {}
 // [ValidationResultAccept] or [ValidationResultReject].
 //
 // After the validation result has been received by NotificationService, it prepares the substream for communication by
-// initializing the necessary sinks and emits [NotificationEventNotificationStreamOpened] which informs the protocol
+// initialising the necessary sinks and emits [NotificationEventNotificationStreamOpened] which informs the protocol
 // that the remote peer is ready to receive notifications.
 //
 // Both local and remote peer can close the substream at any time. Local peer can do so by calling CloseSubstream which
@@ -269,7 +272,7 @@ type NotificationService interface {
 // notifications to the remote peer.
 //
 // Use of this API is discouraged as it's not as performant as sending notifications through [NotificationService] due
-// to synchronization required to keep the underlying notification sink up to date with possible sink replacement
+// to synchronisation required to keep the underlying notification sink up to date with possible sink replacement
 // events.
 type MessageSink interface {
 	// Send synchronous notification to the peer associated with this MessageSink.

@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package gossip
 
 import (
@@ -19,8 +22,8 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "client/network-gossip"))
 // In the scenario where messages have been received from the network but a subscribed message sink is not ready to
 // receiver, we delay 10 ms and will remove the channel from the sinks if the message is not consumed by the end of
 // the delay. To model this process a gossip engine can be in two forwarding states: idle, and busy.
-
-// GossipEngine utilizes and implementation of [Network] and provides gossiping capabilities on
+//
+// GossipEngine utilises and implementation of [Network] and provides gossiping capabilities on
 // top of it.
 type GossipEngine[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] struct {
 	stateMachine                consensusGossip[H, Hasher]
@@ -65,7 +68,12 @@ func NewGossipEngine[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]]
 	validator Validator[H],
 ) GossipEngine[H, N, Hasher] {
 	ge := newGossipEngine[H, N, Hasher](network, sync, notificationService, protocol, validator)
-	go ge.poll()
+	go func() {
+		err := ge.poll()
+		if err != nil {
+			panic(err)
+		}
+	}()
 	return ge
 }
 
@@ -163,7 +171,7 @@ func (ge *GossipEngine[H, N, Hasher]) Announce(block H, associatedData []byte) {
 	ge.sync.AnnounceBlock(block, associatedData)
 }
 
-func (ge *GossipEngine[H, N, Hasher]) poll() error {
+func (ge *GossipEngine[H, N, Hasher]) poll() error { //nolint: gocyclo
 	var nextNotificationEvent <-chan service.NotificationEvent
 	// outer:
 	for {
@@ -197,7 +205,8 @@ func (ge *GossipEngine[H, N, Hasher]) poll() error {
 				case service.NotificationEventNotificationStreamClosed:
 					ge.stateMachine.PeerDisconnected(ge.notificationService, event.Peer)
 				case service.NotificationEventNotificationReceived:
-					toForward := ge.stateMachine.OnIncoming(ge.network, ge.notificationService, event.Peer, [][]byte{event.Notification})
+					toForward := ge.stateMachine.OnIncoming(
+						ge.network, ge.notificationService, event.Peer, [][]byte{event.Notification})
 					ge.forwardingState = forwardingStateBusy[H](toForward)
 				default:
 					panic("unreachable")

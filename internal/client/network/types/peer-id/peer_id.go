@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package peerid
 
 import (
@@ -80,7 +83,7 @@ func NewRandomPeerID() PeerID {
 	}
 }
 
-// Create a [PeerID] parsed from bytes.
+// NewPeerID creates a [PeerID] parsed from bytes.
 func NewPeerID(data []byte) (PeerID, error) {
 	peerID, err := peer.IDFromBytes(data)
 	if err != nil {

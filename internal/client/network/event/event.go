@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package event
 
 import (
@@ -26,7 +29,7 @@ type DHTEventValuePut kad.Key
 // DHTEventValuePutFailed means an error has occurred while putting a record into the DHT.
 type DHTEventValuePutFailed kad.Key
 
-// DHTEventStartProvidingFailed means an error occured while registering as a content provider on the DHT.
+// DHTEventStartProvidingFailed means an error occurred while registering as a content provider on the DHT.
 type DHTEventStartProvidingFailed kad.Key
 
 // DHTEventPutRecordRequest means the DHT received a put record request.

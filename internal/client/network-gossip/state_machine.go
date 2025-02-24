@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package gossip
 
 import (
@@ -137,7 +140,10 @@ func (h hasher[K]) Hash(key K) uint32 {
 }
 
 // Create a new instance using the given validator.
-func newConsensusGossip[H runtime.Hash, Hasher runtime.Hasher[H]](validator Validator[H], protocol network.ProtocolName) consensusGossip[H, Hasher] {
+func newConsensusGossip[H runtime.Hash, Hasher runtime.Hasher[H]](
+	validator Validator[H],
+	protocol network.ProtocolName,
+) consensusGossip[H, Hasher] {
 	h := hasher[H]{maphash.NewHasher[H]()}
 	knownMessages, err := freelru.New[H, any](knownMessageCacheSize, h.Hash)
 	if err != nil {
@@ -154,7 +160,11 @@ func newConsensusGossip[H runtime.Hash, Hasher runtime.Hasher[H]](validator Vali
 }
 
 // Handle new connected peer.
-func (cg *consensusGossip[H, Hasher]) NewPeer(notificationService service.NotificationService, who peerid.PeerID, role role.ObservedRole) {
+func (cg *consensusGossip[H, Hasher]) NewPeer(
+	notificationService service.NotificationService,
+	who peerid.PeerID,
+	role role.ObservedRole,
+) {
 	cg.peers[who] = peerConsensus[H]{knownMessages: make(map[H]any)}
 
 	validator := cg.validator
@@ -162,7 +172,9 @@ func (cg *consensusGossip[H, Hasher]) NewPeer(notificationService service.Notifi
 	validator.NewPeer(context, who, role)
 }
 
-func (cg *consensusGossip[H, Hasher]) registerMessageHashed(messageHash H, topic H, message []byte, sender *peerid.PeerID) {
+func (cg *consensusGossip[H, Hasher]) registerMessageHashed(
+	messageHash H, topic H, message []byte, sender *peerid.PeerID,
+) {
 	cg.knownMessages.Add(messageHash, nil)
 	cg.messages = append(cg.messages, messageEntry[H]{
 		messageHash: messageHash,
@@ -182,7 +194,9 @@ func (cg *consensusGossip[H, Hasher]) RegisterMessage(topic H, message []byte) {
 }
 
 // Call when a peer has been disconnected to stop tracking gossip status.
-func (cg *consensusGossip[H, Hasher]) PeerDisconnected(notificationService service.NotificationService, who peerid.PeerID) {
+func (cg *consensusGossip[H, Hasher]) PeerDisconnected(
+	notificationService service.NotificationService, who peerid.PeerID,
+) {
 	validator := cg.validator
 	context := newtorkContext[H, Hasher]{gossip: cg, notificationService: notificationService}
 	validator.PeerDisconnected(context, who)
@@ -205,7 +219,9 @@ func (cg *consensusGossip[H, Hasher]) rebroadcast(notificationService service.No
 }
 
 // Broadcast all messages with given topic.
-func (cg *consensusGossip[H, Hasher]) BroadcastTopic(notificationService service.NotificationService, topic H, force bool) {
+func (cg *consensusGossip[H, Hasher]) BroadcastTopic(
+	notificationService service.NotificationService, topic H, force bool,
+) {
 	var messages []messageEntry[H]
 	for _, entry := range cg.messages {
 		if entry.topic == topic {
@@ -240,7 +256,7 @@ func (cg *consensusGossip[H, Hasher]) CollectGarbage() {
 	// TODO: expired messages metric
 
 	for id, peer := range cg.peers {
-		for h, _ := range peer.knownMessages {
+		for h := range peer.knownMessages {
 			if _, ok := knownMessages.Get(h); !ok {
 				delete(peer.knownMessages, h)
 			}
@@ -335,7 +351,9 @@ func (cg *consensusGossip[H, Hasher]) OnIncoming(
 }
 
 // Send all messages with given topic to a peer.
-func (cg *consensusGossip[H, Hasher]) SendTopic(notificationService service.NotificationService, who peerid.PeerID, topic H, force bool) {
+func (cg *consensusGossip[H, Hasher]) SendTopic(
+	notificationService service.NotificationService, who peerid.PeerID, topic H, force bool,
+) {
 	messageAllowed := cg.validator.MessageAllowed()
 
 	if peer, ok := cg.peers[who]; ok {
@@ -363,7 +381,9 @@ func (cg *consensusGossip[H, Hasher]) SendTopic(notificationService service.Noti
 }
 
 // Multicast a message to all peers.
-func (cg *consensusGossip[H, Hasher]) Multicast(notificationService service.NotificationService, topic H, message []byte, force bool) {
+func (cg *consensusGossip[H, Hasher]) Multicast(
+	notificationService service.NotificationService, topic H, message []byte, force bool,
+) {
 	messageHash := (*new(Hasher)).Hash(message)
 	cg.registerMessageHashed(messageHash, topic, message, nil)
 	var intent MessageIntent = MessageIntentBroadcast
@@ -382,7 +402,9 @@ func (cg *consensusGossip[H, Hasher]) Multicast(notificationService service.Noti
 }
 
 // Send addressed message to a peer. The message is not kept or multicast later on.
-func (cg *consensusGossip[H, Hasher]) SendMessage(notificationService service.NotificationService, who peerid.PeerID, message []byte) {
+func (cg *consensusGossip[H, Hasher]) SendMessage(
+	notificationService service.NotificationService, who peerid.PeerID, message []byte,
+) {
 	peer, ok := cg.peers[who]
 	if !ok {
 		return

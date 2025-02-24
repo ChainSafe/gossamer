@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package role
 
 // Role that the peer sent to us during the handshake, with the addition of what our local node knows about that peer.
@@ -25,7 +28,7 @@ const (
 	RoleAuthority
 )
 
-// Roles are a bitmask of the roles that a node fulfills.
+// Roles are a bitmask of the roles that a node fulfils.
 type Roles uint8
 
 const (

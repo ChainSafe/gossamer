@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package gossip
 
 import (
@@ -191,7 +194,9 @@ func (NoOpNotificationService) MessageSink(peer peerid.PeerID) service.MessageSi
 
 var _ service.NotificationService = NoOpNotificationService{}
 
-func pushMessage(consensus *consensusGossip[hash.H256, runtime.BlakeTwo256], topic hash.H256, h hash.H256, message []byte) {
+func pushMessage(
+	consensus *consensusGossip[hash.H256, runtime.BlakeTwo256], topic hash.H256, h hash.H256, message []byte,
+) {
 	consensus.knownMessages.Add(h, nil)
 	consensus.messages = append(consensus.messages, messageEntry[hash.H256]{
 		messageHash: h,
