@@ -364,7 +364,6 @@ func TestProcessActiveLeavesUpdateSignalSuccess(t *testing.T) {
 	}()
 
 	err = handleActiveLeavesUpdate(context.Background(), testBitfieldSigningSubsystem, testActiveLeaves)
-
 	assert.Nil(t, err)
 
 	// wait for the DistributeBitfield content checks
