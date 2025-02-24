@@ -3,7 +3,7 @@ package kad
 import (
 	"time"
 
-	peerid "github.com/ChainSafe/gossamer/internal/client/network-types/peer-id"
+	peerid "github.com/ChainSafe/gossamer/internal/client/network/types/peer-id"
 )
 
 // Key is the (opaque) key of a record.

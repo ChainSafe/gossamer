@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/client/network"
-	peerid "github.com/ChainSafe/gossamer/internal/client/network-types/peer-id"
 	"github.com/ChainSafe/gossamer/internal/client/network/service"
 	netSync "github.com/ChainSafe/gossamer/internal/client/network/sync"
+	peerid "github.com/ChainSafe/gossamer/internal/client/network/types/peer-id"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 )

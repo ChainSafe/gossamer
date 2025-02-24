@@ -1,8 +1,8 @@
 package gossip
 
 import (
-	peerid "github.com/ChainSafe/gossamer/internal/client/network-types/peer-id"
 	"github.com/ChainSafe/gossamer/internal/client/network/role"
+	peerid "github.com/ChainSafe/gossamer/internal/client/network/types/peer-id"
 	"golang.org/x/exp/constraints"
 )
 

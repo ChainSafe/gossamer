@@ -2,9 +2,9 @@ package gossip
 
 import (
 	"github.com/ChainSafe/gossamer/internal/client/network"
-	peerid "github.com/ChainSafe/gossamer/internal/client/network-types/peer-id"
 	"github.com/ChainSafe/gossamer/internal/client/network/service"
 	"github.com/ChainSafe/gossamer/internal/client/network/sync"
+	peerid "github.com/ChainSafe/gossamer/internal/client/network/types/peer-id"
 )
 
 // Abstraction over a network.

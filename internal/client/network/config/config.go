@@ -1,8 +1,8 @@
 package config
 
 import (
-	"github.com/ChainSafe/gossamer/internal/client/network-types/multiaddr"
-	peerid "github.com/ChainSafe/gossamer/internal/client/network-types/peer-id"
+	"github.com/ChainSafe/gossamer/internal/client/network/types/multiaddr"
+	peerid "github.com/ChainSafe/gossamer/internal/client/network/types/peer-id"
 )
 
 // MultiaddrPeerId is the address of a node, including its identity.

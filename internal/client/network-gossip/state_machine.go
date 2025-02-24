@@ -4,9 +4,9 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/client/network"
-	peerid "github.com/ChainSafe/gossamer/internal/client/network-types/peer-id"
 	"github.com/ChainSafe/gossamer/internal/client/network/role"
 	"github.com/ChainSafe/gossamer/internal/client/network/service"
+	peerid "github.com/ChainSafe/gossamer/internal/client/network/types/peer-id"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/dolthub/maphash"
 	"github.com/elastic/go-freelru"

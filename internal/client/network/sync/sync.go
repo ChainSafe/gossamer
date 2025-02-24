@@ -1,7 +1,7 @@
 package sync
 
 import (
-	peerid "github.com/ChainSafe/gossamer/internal/client/network-types/peer-id"
+	peerid "github.com/ChainSafe/gossamer/internal/client/network/types/peer-id"
 )
 
 // SyncEvent is a syncing related event that other protocols can subscribe to.

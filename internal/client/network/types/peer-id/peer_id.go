@@ -3,7 +3,7 @@ package peerid
 import (
 	"crypto/rand"
 
-	"github.com/ChainSafe/gossamer/internal/client/network-types/multihash"
+	"github.com/ChainSafe/gossamer/internal/client/network/types/multihash"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 )

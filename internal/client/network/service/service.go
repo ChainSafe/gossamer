@@ -2,11 +2,11 @@ package service
 
 import (
 	"github.com/ChainSafe/gossamer/internal/client/network"
-	"github.com/ChainSafe/gossamer/internal/client/network-types/multiaddr"
-	peerid "github.com/ChainSafe/gossamer/internal/client/network-types/peer-id"
 	"github.com/ChainSafe/gossamer/internal/client/network/config"
 	"github.com/ChainSafe/gossamer/internal/client/network/event"
 	"github.com/ChainSafe/gossamer/internal/client/network/role"
+	"github.com/ChainSafe/gossamer/internal/client/network/types/multiaddr"
+	peerid "github.com/ChainSafe/gossamer/internal/client/network/types/peer-id"
 )
 
 // Provides an ability to set a fork sync request for a particular block.
