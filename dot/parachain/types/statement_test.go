@@ -141,7 +141,7 @@ func TestStatementVDT(t *testing.T) {
 	}
 }
 
-func TestStatementVDT_Sign(t *testing.T) {
+func TestStatementVDT_SignAndVerify(t *testing.T) {
 	statement := NewStatementVDT()
 	err := statement.SetValue(Seconded{})
 	require.NoError(t, err)
@@ -162,10 +162,15 @@ func TestStatementVDT_Sign(t *testing.T) {
 	publicKeyBytes := keyPair.Public().Encode()
 	validatorID := ValidatorID(publicKeyBytes)
 
-	valSign, err := statement.Sign(ks, signingContext, validatorID)
+	validator := Validator{
+		SigningContext: signingContext,
+		Key:            validatorID,
+	}
+
+	signedStatement, err := statement.Sign(validator, ks)
 	require.NoError(t, err)
 
-	ok, err := statement.VerifySignature(validatorID, signingContext, *valSign)
+	ok, err := statement.VerifySignature(validator, signedStatement.Signature)
 	require.NoError(t, err)
 	require.True(t, ok)
 }
