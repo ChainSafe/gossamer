@@ -355,6 +355,7 @@ func TestProcessActiveLeavesUpdateSignalSuccess(t *testing.T) {
 				request.(availabilitystore.QueryChunkAvailability).Sender <- true
 			case parachaintypes.DistributeBitfield:
 				a := request.(parachaintypes.DistributeBitfield)
+
 				assert.Equal(t, common.Hash{1, 2, 3, 4, 5}, a.RelayParent)
 				assert.Equal(t, parachaintypes.ValidatorIndex(0), a.Bitfield.ValidatorIndex) // only alice is in the validator set now
 				assert.Equal(t, parachaintypes.NewBitVec([]bool{false, false, true, false, true}), a.Bitfield.Payload)
