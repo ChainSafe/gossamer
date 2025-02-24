@@ -66,7 +66,7 @@ func TestConstructAvailabilityBitfieldFailedParachainHostAvailabilityCores(t *te
 	assert.Error(t, err, "something is off")
 }
 
-func TestConstructAvailabilityBitfieldFailedUnsupportType(t *testing.T) {
+func TestConstructAvailabilityBitfieldFailedUnsupportedType(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	runtimeMock := NewMockInstance(ctrl)
 
@@ -164,12 +164,9 @@ func TestProcessActiveLeavesUpdateSignalGetRuntimeError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	blockAPIMock := mocks.NewMockBlockAPI(ctrl)
 
-	testSignal := parachaintypes.ActiveLeavesUpdateSignal{
-		Activated: &parachaintypes.ActivatedLeaf{
-			Hash:   common.Hash{1, 2, 3, 4, 5},
-			Number: 1,
-		},
-		Deactivated: []common.Hash{{1}, {2}, {3}, {4}, {5}},
+	testActiveLeaves := &parachaintypes.ActivatedLeaf{
+		Hash:   common.Hash{1, 2, 3, 4, 5},
+		Number: 1,
 	}
 
 	testSubSystemToOverseerChan := make(chan any)
@@ -187,7 +184,7 @@ func TestProcessActiveLeavesUpdateSignalGetRuntimeError(t *testing.T) {
 	blockAPIMock.EXPECT().GetRuntime(common.Hash{1, 2, 3, 4, 5}).Return(nil, errors.New("something is off")).Times(1)
 
 	// get runtime error
-	err = testBitfieldSigningSubsystem.ProcessActiveLeavesUpdateSignal(testSignal)
+	err = testBitfieldSigningSubsystem.handleActiveLeavesUpdate(testActiveLeaves)
 	assert.EqualError(t, err, "getting runtime: something is off")
 }
 
@@ -196,12 +193,9 @@ func TestProcessActiveLeavesUpdateSignalGetParachainHostValidatorsError(t *testi
 	runtimeMock := NewMockInstance(ctrl)
 	blockAPIMock := mocks.NewMockBlockAPI(ctrl)
 
-	testSignal := parachaintypes.ActiveLeavesUpdateSignal{
-		Activated: &parachaintypes.ActivatedLeaf{
-			Hash:   common.Hash{1, 2, 3, 4, 5},
-			Number: 1,
-		},
-		Deactivated: []common.Hash{{1}, {2}, {3}, {4}, {5}},
+	testActiveLeaves := &parachaintypes.ActivatedLeaf{
+		Hash:   common.Hash{1, 2, 3, 4, 5},
+		Number: 1,
 	}
 
 	testSubSystemToOverseerChan := make(chan any)
@@ -220,7 +214,7 @@ func TestProcessActiveLeavesUpdateSignalGetParachainHostValidatorsError(t *testi
 	runtimeMock.EXPECT().ParachainHostValidators().Return(nil, errors.New("something is off with validators")).Times(1)
 
 	// get validators error
-	err = testBitfieldSigningSubsystem.ProcessActiveLeavesUpdateSignal(testSignal)
+	err = testBitfieldSigningSubsystem.handleActiveLeavesUpdate(testActiveLeaves)
 	assert.EqualError(t, err, "getting validators: something is off with validators")
 }
 
@@ -229,12 +223,9 @@ func TestProcessActiveLeavesUpdateSignalNotValidator(t *testing.T) {
 	runtimeMock := NewMockInstance(ctrl)
 	blockAPIMock := mocks.NewMockBlockAPI(ctrl)
 
-	testSignal := parachaintypes.ActiveLeavesUpdateSignal{
-		Activated: &parachaintypes.ActivatedLeaf{
-			Hash:   common.Hash{1, 2, 3, 4, 5},
-			Number: 1,
-		},
-		Deactivated: []common.Hash{{1}, {2}, {3}, {4}, {5}},
+	testActiveLeaves := &parachaintypes.ActivatedLeaf{
+		Hash:   common.Hash{1, 2, 3, 4, 5},
+		Number: 1,
 	}
 
 	testSubSystemToOverseerChan := make(chan any)
@@ -255,7 +246,7 @@ func TestProcessActiveLeavesUpdateSignalNotValidator(t *testing.T) {
 	runtimeMock.EXPECT().ParachainHostValidators().Return([]parachaintypes.ValidatorID{}, nil).Times(1)
 
 	// current node is not a validator
-	err = testBitfieldSigningSubsystem.ProcessActiveLeavesUpdateSignal(testSignal)
+	err = testBitfieldSigningSubsystem.handleActiveLeavesUpdate(testActiveLeaves)
 	assert.Nil(t, err)
 }
 
@@ -264,12 +255,9 @@ func TestProcessActiveLeavesUpdateSignalConstructAvailabilityBitfieldError(t *te
 	runtimeMock := NewMockInstance(ctrl)
 	blockAPIMock := mocks.NewMockBlockAPI(ctrl)
 
-	testSignal := parachaintypes.ActiveLeavesUpdateSignal{
-		Activated: &parachaintypes.ActivatedLeaf{
-			Hash:   common.Hash{1, 2, 3, 4, 5},
-			Number: 1,
-		},
-		Deactivated: []common.Hash{{1}, {2}, {3}, {4}, {5}},
+	testActiveLeaves := &parachaintypes.ActivatedLeaf{
+		Hash:   common.Hash{1, 2, 3, 4, 5},
+		Number: 1,
 	}
 
 	testSubSystemToOverseerChan := make(chan any)
@@ -291,10 +279,12 @@ func TestProcessActiveLeavesUpdateSignalConstructAvailabilityBitfieldError(t *te
 		parachaintypes.ValidatorID(aliceKeypair.Public().Encode()),
 	}, nil).Times(1)
 
+	runtimeMock.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(1), nil).Times(1)
+
 	runtimeMock.EXPECT().ParachainHostAvailabilityCores().Return(nil, errors.New("something is off")).Times(1)
 
 	// ConstructAvailabilityBitfield error
-	err = testBitfieldSigningSubsystem.ProcessActiveLeavesUpdateSignal(testSignal)
+	err = testBitfieldSigningSubsystem.handleActiveLeavesUpdate(testActiveLeaves)
 	assert.EqualError(t, err, "construct availabilityBitfield: querying availability cores: something is off")
 }
 
@@ -303,12 +293,9 @@ func TestProcessActiveLeavesUpdateSignalSuccess(t *testing.T) {
 	runtimeMock := NewMockInstance(ctrl)
 	blockAPIMock := mocks.NewMockBlockAPI(ctrl)
 
-	testSignal := parachaintypes.ActiveLeavesUpdateSignal{
-		Activated: &parachaintypes.ActivatedLeaf{
-			Hash:   common.Hash{1, 2, 3, 4, 5},
-			Number: 1,
-		},
-		Deactivated: []common.Hash{{1}, {2}, {3}, {4}, {5}},
+	testActiveLeaves := &parachaintypes.ActivatedLeaf{
+		Hash:   common.Hash{1, 2, 3, 4, 5},
+		Number: 1,
 	}
 
 	testSubSystemToOverseerChan := make(chan any)
@@ -352,6 +339,8 @@ func TestProcessActiveLeavesUpdateSignalSuccess(t *testing.T) {
 
 	cores = append(cores, core1, core2, core3, core4, core5)
 
+	runtimeMock.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(1), nil).Times(1)
+
 	runtimeMock.EXPECT().ParachainHostAvailabilityCores().Return(cores, nil).Times(1)
 
 	go func() {
@@ -373,7 +362,7 @@ func TestProcessActiveLeavesUpdateSignalSuccess(t *testing.T) {
 		}
 	}()
 
-	err = testBitfieldSigningSubsystem.ProcessActiveLeavesUpdateSignal(testSignal)
+	err = testBitfieldSigningSubsystem.handleActiveLeavesUpdate(testActiveLeaves)
 	assert.Nil(t, err)
 
 	// wait for the DistributeBitfield content checks

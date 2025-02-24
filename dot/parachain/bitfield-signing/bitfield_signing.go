@@ -11,7 +11,6 @@ import (
 	parachainutil "github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"sort"
@@ -39,7 +38,7 @@ type BitfieldSigning struct {
 	subSystemToOverseer chan<- any
 	keystore            keystore.Keystore
 	blockState          BlockState
-	signingTasksTracker map[common.Hash]signingTask
+	signingTasksTracker map[common.Hash]*signingTask
 }
 
 type BlockState interface {
@@ -52,7 +51,7 @@ func NewBitfieldSigning(overseerChan chan<- any, ks keystore.Keystore, blockStat
 		subSystemToOverseer: overseerChan,
 		keystore:            ks,
 		blockState:          blockState,
-		signingTasksTracker: make(map[common.Hash]signingTask),
+		signingTasksTracker: make(map[common.Hash]*signingTask),
 	}
 }
 
@@ -99,7 +98,10 @@ func (b *BitfieldSigning) Name() parachaintypes.SubSystemName {
 func (b *BitfieldSigning) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
 	// cancel and remove jobs for deactivated leaves
 	for _, hash := range signal.Deactivated {
-		b.signingTasksTracker[hash].cancel()
+		task := b.signingTasksTracker[hash]
+		if task != nil {
+			task.cancel()
+		}
 		delete(b.signingTasksTracker, hash)
 	}
 
@@ -115,63 +117,67 @@ func (b *BitfieldSigning) ProcessActiveLeavesUpdateSignal(signal parachaintypes.
 			logger.Infof("process for handleActiveLeavesUpdate is done due to deactivated leaves")
 			return
 		default:
-			b.handleActiveLeavesUpdate(ctx, activatedLeaf)
+			err := b.handleActiveLeavesUpdate(activatedLeaf)
+			logger.Errorf("handleActiveLeavesUpdate error: %s", err)
 		}
 	}(ctx)
 
-	b.signingTasksTracker[activatedLeaf.Hash] = signingTask{ctx, cancel}
+	b.signingTasksTracker[activatedLeaf.Hash] = &signingTask{ctx, cancel}
 
 	return nil
 }
 
-func (b *BitfieldSigning) handleActiveLeavesUpdate(ctx context.Context, activatedLeaf *parachaintypes.ActivatedLeaf) {
+func (b *BitfieldSigning) handleActiveLeavesUpdate(activatedLeaf *parachaintypes.ActivatedLeaf) error {
 	relayParent := activatedLeaf.Hash
 	rt, err := b.blockState.GetRuntime(relayParent)
 	if err != nil {
-		logger.Errorf("getting runtime: %s", err)
-		return
+		return fmt.Errorf("getting runtime: %w", err)
 	}
 
 	// get validators info
 	validators, err := rt.ParachainHostValidators()
 	if err != nil {
-		logger.Errorf("getting validators: %s", err)
-		return
+		return fmt.Errorf("getting validators: %w", err)
+
 	}
 	validatorID, validatorIndex := parachainutil.SigningKeyAndIndex(validators, b.keystore)
 	if validatorID == nil {
 		// skip the logic if not a validator node
-		return
+		return nil
+	}
+
+	sessionIndex, err := rt.ParachainHostSessionIndexForChild()
+	if err != nil {
+		return fmt.Errorf("fetching parachain host session index data: %w", err)
+	}
+	signingContext := parachaintypes.SigningContext{
+		SessionIndex: sessionIndex,
+		ParentHash:   relayParent,
+	}
+	validator := parachaintypes.Validator{
+		Key:            *validatorID,
+		Index:          validatorIndex,
+		SigningContext: signingContext,
 	}
 
 	// wait for availability distribution has the chance to make candidates available.
 	time.Sleep(availabilityDistributionWaitingPeriod)
 
 	// construct the bitfield according to the availability store
-	bitfield, err := constructAvailabilityBitfield(ctx, rt, validatorIndex, b.subSystemToOverseer)
+	bitfield, err := constructAvailabilityBitfield(rt, validatorIndex, b.subSystemToOverseer)
 	if err != nil {
-		logger.Errorf("construct availabilityBitfield: %s", err)
-		return
+		return fmt.Errorf("construct availabilityBitfield: %w", err)
 	}
 
 	// signing process
 	data, err := bitfield.MarshalSCALE()
 	if err != nil {
-		logger.Errorf("marshal bitfield for signing: %s", err)
-		return
+		return fmt.Errorf("marshal bitfield for signing: %w", err)
 	}
-	validatorPublicKey, err := sr25519.NewPublicKey(validatorID[:])
+	signature, err := validator.Sign(b.keystore, data)
 	if err != nil {
-		logger.Errorf("getting signer's public key: %s", err)
-		return
+		return fmt.Errorf("signing bitfield: %w", err)
 	}
-	signatureBytes, err := b.keystore.GetKeypair(validatorPublicKey).Sign(data)
-	if err != nil {
-		logger.Errorf("signing bitfield: %s", err)
-		return
-	}
-	var signature parachaintypes.Signature
-	copy(signature[:], signatureBytes)
 
 	// distribute to subsystem to overseer chan
 	b.subSystemToOverseer <- parachaintypes.DistributeBitfield{
@@ -179,11 +185,11 @@ func (b *BitfieldSigning) handleActiveLeavesUpdate(ctx context.Context, activate
 		Bitfield: parachaintypes.UncheckedSignedAvailabilityBitfield{
 			Payload:        bitfield,
 			ValidatorIndex: validatorIndex,
-			Signature:      parachaintypes.ValidatorSignature(signature),
+			Signature:      *signature,
 		},
 	}
 
-	return
+	return nil
 }
 
 // ProcessBlockFinalizedSignal processes block finalized signal
@@ -198,7 +204,6 @@ func (b *BitfieldSigning) Stop() {
 }
 
 func constructAvailabilityBitfield(
-	ctx context.Context,
 	rt runtime.Instance,
 	validatorIdx parachaintypes.ValidatorIndex,
 	subSystemToOverseer chan<- any,
