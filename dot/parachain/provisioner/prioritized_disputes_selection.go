@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package provisioner
 
 import (
@@ -6,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/disputes-coordinator/messages"
+
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -38,7 +42,8 @@ func GetOnchainDisputes(
 // RequestVotes requests the relevant dispute statements for a set of disputes identified
 // by CandidateHash and SessionIndex.
 func RequestVotes(overseerChan chan<- any, disputesToQuery []parachaintypes.DisputeKey) (
-	[]messages.CandidateVotesResponse, error) {
+	[]messages.CandidateVotesResponse, error,
+) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

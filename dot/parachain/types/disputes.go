@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package parachaintypes
 
 import (
@@ -18,11 +21,16 @@ func DisputeIsInactive(status *DisputeStatus, now uint64) bool {
 	return at != nil && *at+ActiveDurationSecs < now
 }
 
+// DisputeKey identifies a single dispute
+// under polkadot-sdk the same representation is
+// a tuple of (SessionIndex, CandidateHash)
 type DisputeKey struct {
 	SessionIndex  SessionIndex
 	CandidateHash CandidateHash
 }
 
+// DisputeState is stored by the runtime
+// and represents the entire dispute state
 type DisputeState struct {
 	// A bitfield indicating all validators for the candidate.
 	ValidatorsFor BitVec
@@ -139,7 +147,9 @@ type InvalidDisputeStatementKindValues interface {
 	ExplicitStatement
 }
 
-func setInvalidDisputeStatementKind[Value InvalidDisputeStatementKindValues](mvdt *InvalidDisputeStatementKind, value Value) {
+func setInvalidDisputeStatementKind[Value InvalidDisputeStatementKindValues](
+	mvdt *InvalidDisputeStatementKind, value Value,
+) {
 	mvdt.inner = value
 }
 
@@ -298,7 +308,7 @@ func (ds DisputeStatus) ValueAt(index uint) (value any, err error) {
 // Active represents an active dispute.
 type Active struct{}
 
-// ConcludedFor represents a dispute concluded in favor of the candidate.
+// ConcludedFor represents a dispute concluded in favour of the candidate.
 type ConcludedFor struct {
 	Timestamp uint64
 }
@@ -311,7 +321,7 @@ type ConcludedAgainst struct {
 // Confirmed represents a confirmed dispute.
 type Confirmed struct{}
 
-// NewDisputeStatusActive initializes the status to the active state.
+// NewDisputeStatusActive initialises the status to the active state.
 func NewDisputeStatusActive() DisputeStatus {
 	return DisputeStatus{inner: Active{}}
 }
@@ -336,7 +346,7 @@ func (ds DisputeStatus) IsConfirmedConcluded() bool {
 	}
 }
 
-// HasConcludedFor checks if the dispute has concluded in favor of the candidate.
+// HasConcludedFor checks if the dispute has concluded in favour of the candidate.
 func (ds DisputeStatus) HasConcludedFor() bool {
 	_, ok := ds.inner.(ConcludedFor)
 	return ok
@@ -348,7 +358,8 @@ func (ds DisputeStatus) HasConcludedAgainst() bool {
 	return ok
 }
 
-// ConcludeFor transitions the status to a new status after observing the dispute has concluded for the candidate.
+// ConcludeFor transitions the status to a new status after
+// observing the dispute has concluded for the candidate.
 func (ds DisputeStatus) ConcludeFor(now uint64) DisputeStatus {
 	switch inner := ds.inner.(type) {
 	case Active, Confirmed:
@@ -360,7 +371,8 @@ func (ds DisputeStatus) ConcludeFor(now uint64) DisputeStatus {
 	}
 }
 
-// ConcludeAgainst transitions the status to a new status after observing the dispute has concluded against the candidate.
+// ConcludeAgainst transitions the status to a new status after
+// observing the dispute has concluded against the candidate.
 func (ds DisputeStatus) ConcludeAgainst(now uint64) DisputeStatus {
 	switch inner := ds.inner.(type) {
 	case Active, Confirmed:

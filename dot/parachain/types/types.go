@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -834,4 +835,64 @@ func (mvdt UpgradeRestriction) ValueAt(index uint) (value any, err error) {
 type CandidateHashAndRelayParent struct {
 	CandidateHash        CandidateHash
 	CandidateRelayParent common.Hash
+}
+
+// Validator represents local validator information.
+// It can be created if the local node is a validator in the context of a particular relay chain block.
+type Validator struct {
+	SigningContext SigningContext
+	Key            ValidatorID
+	Index          ValidatorIndex
+}
+
+// Sign signs the encoded payload with the validator's key.
+func (v Validator) Sign(keystore keystore.Keystore, encodedPayload []byte) (*ValidatorSignature, error) {
+	buf := bytes.NewBuffer(encodedPayload)
+	encoder := scale.NewEncoder(buf)
+
+	err := encoder.Encode(v.SigningContext)
+	if err != nil {
+		return nil, fmt.Errorf("encoding signing context: %w", err)
+	}
+
+	encodedData := buf.Bytes()
+
+	validatorPublicKey, err := sr25519.NewPublicKey(v.Key[:])
+	if err != nil {
+		return nil, fmt.Errorf("getting public key: %w", err)
+	}
+
+	signatureBytes, err := keystore.GetKeypair(validatorPublicKey).Sign(encodedData)
+	if err != nil {
+		return nil, fmt.Errorf("signing data: %w", err)
+	}
+
+	var signature Signature
+	copy(signature[:], signatureBytes)
+	valSign := ValidatorSignature(signature)
+
+	return &valSign, nil
+}
+
+// VerifySignature verifies the validator signature for the encoded payload.
+func (v Validator) VerifySignature(
+	encodedPayload []byte,
+	validatorSignature ValidatorSignature,
+) (bool, error) {
+	buf := bytes.NewBuffer(encodedPayload)
+	encoder := scale.NewEncoder(buf)
+
+	err := encoder.Encode(v.SigningContext)
+	if err != nil {
+		return false, fmt.Errorf("encoding signing context: %w", err)
+	}
+
+	encodedData := buf.Bytes()
+
+	publicKey, err := sr25519.NewPublicKey(v.Key[:])
+	if err != nil {
+		return false, fmt.Errorf("getting public key: %w", err)
+	}
+
+	return publicKey.Verify(encodedData, validatorSignature[:])
 }
