@@ -228,7 +228,7 @@ func NewDefaultBlockStateFromGenesis(db database.Database, trs *Tries, header *t
 	bs.genesisHash = header.Hash()
 	bs.lastFinalised = header.Hash()
 
-	if err := bs.db.Put(HighestRoundAndSetIDKey, roundAndSetIDToBytes(0, 0)); err != nil {
+	if err := bs.db.Put(HighestRoundAndSetIDKey, RoundAndSetIDToBytes(0, 0)); err != nil {
 		return nil, err
 	}
 
