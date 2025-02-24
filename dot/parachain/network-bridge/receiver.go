@@ -46,7 +46,7 @@ type NetworkBridgeReceiver struct {
 	Keystore   keystore.Keystore
 	sync       Sync
 
-	localView *View
+	localView *parachaintypes.View
 
 	// heads are sorted in descending order by block number
 	liveHeads []parachaintypes.ActivatedLeaf
@@ -60,7 +60,7 @@ type NetworkBridgeReceiver struct {
 	authorityDiscoveryService AuthorityDiscoveryService
 
 	peerData map[peer.ID]struct {
-		view            View
+		view            parachaintypes.View
 		protocolVersion uint32
 	}
 }
@@ -204,7 +204,7 @@ func (nbr *NetworkBridgeReceiver) updateOurView() error { //nolint
 	for _, head := range nbr.liveHeads {
 		headHashes = append(headHashes, head.Hash)
 	}
-	newView := View{
+	newView := parachaintypes.View{
 		Heads:           headHashes,
 		FinalizedNumber: nbr.finalizedNumber,
 	}
@@ -218,7 +218,7 @@ func (nbr *NetworkBridgeReceiver) updateOurView() error { //nolint
 
 	// we only want to send a view update if the heads have changed.
 	// A change in finalized block is not enough to trigger a view update.
-	if nbr.localView.checkHeadsEqual(newView) {
+	if nbr.localView.CheckHeadsEqual(newView) {
 		// nothing to update
 		return nil
 	}
@@ -236,8 +236,6 @@ func (nbr *NetworkBridgeReceiver) updateOurView() error { //nolint
 
 func (nbr *NetworkBridgeReceiver) handleCollationMessage(
 	sender peer.ID, msg network.NotificationsMessage) (bool, error) {
-	// TODO: Handle ViewUpdate message. ViewUpdate happens on both protocols. #4156 #4155
-
 	// we don't propagate collation messages, so it will always be false
 	propagate := false
 
@@ -326,23 +324,23 @@ func (nbr *NetworkBridgeReceiver) handleViewUpdate(peer peer.ID, view ViewUpdate
 			Value:  peerset.CostMinor,
 			Reason: "peer sent us empty view",
 		}, peer)
-	} else if View(view).checkHeadsEqual(peerData.view) {
+	} else if parachaintypes.View(view).CheckHeadsEqual(peerData.view) {
 		// nothing
 	} else {
-		peerData.view = View(view)
+		peerData.view = parachaintypes.View(view)
 		nbr.peerData[peer] = peerData
 
 		nbr.SubsystemsToOverseer <- events.Event[collatorprotocolmessages.CollationProtocol]{
 			Inner: events.PeerViewChange{
 				PeerID: peer,
-				View:   events.View(view),
+				View:   parachaintypes.View(view),
 			},
 		}
 
 		nbr.SubsystemsToOverseer <- events.Event[validationprotocol.ValidationProtocol]{
 			Inner: events.PeerViewChange{
 				PeerID: peer,
-				View:   events.View(view),
+				View:   parachaintypes.View(view),
 			},
 		}
 	}

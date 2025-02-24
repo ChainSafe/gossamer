@@ -33,6 +33,7 @@ import (
 type MocknodeBuilderIface struct {
 	ctrl     *gomock.Controller
 	recorder *MocknodeBuilderIfaceMockRecorder
+	isgomock struct{}
 }
 
 // MocknodeBuilderIfaceMockRecorder is the mock recorder for MocknodeBuilderIface.

@@ -1,7 +1,7 @@
 # Copyright 2021 ChainSafe Systems (ON)
 # SPDX-License-Identifier: LGPL-3.0-only
 
-FROM golang:1.20
+FROM golang:1.23
 
 ARG DD_API_KEY=somekey
 ARG CHAIN=westend-local

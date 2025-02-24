@@ -1,7 +1,6 @@
 # taken from https://polkadot.js.org/apps/#/chainstate (westend)
 # at: 0x104d86ba31c8835ca4ffc5b09804302711865242ed422a95250c86d63e6ba3f3
 
-
 storage:
   # configuration.activeConfig
   - key: "0x06de3d8a54d27e44a9d5ce189618f22db4b49d95320d9021994c850f25b8e385"

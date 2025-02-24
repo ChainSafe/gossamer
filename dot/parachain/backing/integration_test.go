@@ -170,6 +170,22 @@ func parachainValidators(t *testing.T, ks keystore.Keystore) []parachaintypes.Va
 	return validatorIds
 }
 
+func claimQueue(t *testing.T) parachaintypes.ClaimQueue {
+	t.Helper()
+
+	validatorGroups := validatorGroups(t)
+	numOfGroups := len(validatorGroups.Validators)
+
+	queue := parachaintypes.ClaimQueue{}
+	for i := 0; i < numOfGroups; i++ {
+		core := parachaintypes.CoreIndex{Index: uint32(i)}
+
+		queue[core] = []parachaintypes.ParaID{}
+	}
+
+	return queue
+}
+
 // validatorGroups returns validator groups for testing purposes.
 func validatorGroups(t *testing.T) *parachaintypes.ValidatorGroups {
 	t.Helper()
@@ -187,22 +203,6 @@ func validatorGroups(t *testing.T) *parachaintypes.ValidatorGroups {
 	}
 
 	return &validatorGroups
-}
-
-// availabilityCores returns a list of availability cores for testing purposes.
-func availabilityCores(t *testing.T) []parachaintypes.CoreState {
-	t.Helper()
-
-	cores := parachaintypes.NewAvailabilityCores()
-
-	core1 := parachaintypes.CoreState{}
-	core1.SetValue(parachaintypes.ScheduledCore{ParaID: 1})
-
-	core2 := parachaintypes.CoreState{}
-	core2.SetValue(parachaintypes.ScheduledCore{ParaID: 2})
-
-	cores = append(cores, core1, core2)
-	return cores
 }
 
 // signingContext returns a signing context for testing purposes.
@@ -257,6 +257,31 @@ func storeAvailableData(msg any) bool {
 	return true
 }
 
+// this is a expected action for the IntroduceCandidate message that will return a nil error
+func introduceCandidate(msg any) bool {
+	// introduced candidate to prospective parachains
+	introduce, ok := msg.(parachaintypes.ProspectiveParachainsMessageIntroduceCandidate)
+	if ok {
+		introduce.Ch <- nil
+	}
+	return ok
+}
+
+func informToProspectiveParachains(msg any) bool {
+	_, ok := msg.(parachaintypes.ProspectiveParachainsMessageCandidateBacked)
+	return ok
+}
+
+func informToCollatorProtocol(msg any) bool {
+	_, ok := msg.(collatorprotocolmessages.Backed)
+	return ok
+}
+
+func informToStatementDistribution(msg any) bool {
+	_, ok := msg.(statementedistributionmessages.Backed)
+	return ok
+}
+
 // we can second a valid candidate when the previous candidate has been found invalid
 func TestSecondsValidCandidate(t *testing.T) {
 	candidateBacking, overseer := initBackingAndOverseerMock(t)
@@ -266,6 +291,9 @@ func TestSecondsValidCandidate(t *testing.T) {
 	numOfValidators := uint(len(paraValidators))
 	relayParent := getDummyHash(t, 5)
 	paraID := parachaintypes.ParaID(1)
+
+	claimQ := claimQueue(t)
+	claimQ[parachaintypes.CoreIndex{Index: 0}] = []parachaintypes.ParaID{paraID}
 
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
@@ -277,26 +305,33 @@ func TestSecondsValidCandidate(t *testing.T) {
 
 	// mock BlockState methods
 	mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).
-		Return(mockRuntime, nil).Times(4)
+		Return(mockRuntime, nil).Times(3)
 
 	// mock Runtime Instance methods
-	mockRuntime.EXPECT().ParachainHostAsyncBackingParams().
-		Return(nil, wazero_runtime.ErrExportFunctionNotFound)
 	mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
 		Return(parachaintypes.SessionIndex(1), nil).Times(3)
 	mockRuntime.EXPECT().ParachainHostValidators().
 		Return(paraValidators, nil)
 	mockRuntime.EXPECT().ParachainHostValidatorGroups().
 		Return(validatorGroups(t), nil)
-	mockRuntime.EXPECT().ParachainHostAvailabilityCores().
-		Return(availabilityCores(t), nil)
 	mockRuntime.EXPECT().ParachainHostMinimumBackingVotes().
-		Return(backing.LEGACY_MIN_BACKING_VOTES, nil)
+		Return(wazero_runtime.LegacyMinBackingVotes, nil)
 	mockRuntime.EXPECT().
-		ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(0))).
-		Return(nil, wazero_runtime.ErrExportFunctionNotFound).Times(2)
+		ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
+		Return(&parachaintypes.ExecutorParams{}, nil).Times(3)
+	mockRuntime.EXPECT().ParachainHostNodeFeatures().
+		Return(parachaintypes.NewBitVec([]bool{false, true}), nil)
+	mockRuntime.EXPECT().ParachainHostClaimQueue().
+		Return(claimQ, nil)
+	mockRuntime.EXPECT().ParachainHostDisabledValidators().
+		Return([]parachaintypes.ValidatorIndex{}, nil)
 
 	//mock ImplicitView
+	mockImplicitView.EXPECT().ActiveLeaf(relayParent).Return(nil, nil)
+	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
+		gomock.AssignableToTypeOf(common.Hash{}),
+		nil,
+	).Return([]common.Hash{})
 	mockImplicitView.EXPECT().AllAllowedRelayParents().
 		Return([]common.Hash{})
 
@@ -420,7 +455,7 @@ func TestSecondsValidCandidate(t *testing.T) {
 	}
 
 	// set expected actions for overseer messages we send from the subsystem.
-	overseer.ExpectActions(validate2, storeAvailableData, distribute, informSeconded)
+	overseer.ExpectActions(validate2, storeAvailableData, introduceCandidate, distribute, informSeconded)
 
 	// receive second message from overseer to candidate backing subsystem
 	overseer.ReceiveMessage(
@@ -454,6 +489,9 @@ func TestCandidateReachesQuorum(t *testing.T) {
 
 	signingContext := signingContext(t)
 
+	claimQ := claimQueue(t)
+	claimQ[parachaintypes.CoreIndex{Index: 0}] = []parachaintypes.ParaID{paraID}
+
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
 	mockRuntime := backing.NewMockInstance(ctrl)
@@ -464,28 +502,35 @@ func TestCandidateReachesQuorum(t *testing.T) {
 
 	// mock BlockState methods
 	mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).
-		Return(mockRuntime, nil).Times(3)
+		Return(mockRuntime, nil).Times(2)
 
 	// mock Runtime Instance methods
-	mockRuntime.EXPECT().ParachainHostAsyncBackingParams().
-		Return(nil, wazero_runtime.ErrExportFunctionNotFound)
 	mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
 		Return(parachaintypes.SessionIndex(1), nil).Times(2)
 	mockRuntime.EXPECT().ParachainHostValidators().
 		Return(paraValidators, nil)
 	mockRuntime.EXPECT().ParachainHostValidatorGroups().
 		Return(validatorGroups(t), nil)
-	mockRuntime.EXPECT().ParachainHostAvailabilityCores().
-		Return(availabilityCores(t), nil)
 	mockRuntime.EXPECT().ParachainHostMinimumBackingVotes().
-		Return(backing.LEGACY_MIN_BACKING_VOTES, nil)
+		Return(wazero_runtime.LegacyMinBackingVotes, nil)
 	mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
 		Return(&validationCode, nil)
 	mockRuntime.EXPECT().
-		ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(0))).
-		Return(nil, wazero_runtime.ErrExportFunctionNotFound)
+		ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
+		Return(&parachaintypes.ExecutorParams{}, nil).Times(2)
+	mockRuntime.EXPECT().ParachainHostNodeFeatures().
+		Return(parachaintypes.NewBitVec([]bool{false, true}), nil)
+	mockRuntime.EXPECT().ParachainHostClaimQueue().
+		Return(claimQ, nil)
+	mockRuntime.EXPECT().ParachainHostDisabledValidators().
+		Return([]parachaintypes.ValidatorIndex{}, nil)
 
 	//mock ImplicitView
+	mockImplicitView.EXPECT().ActiveLeaf(relayParent).Return(nil, nil)
+	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
+		gomock.AssignableToTypeOf(common.Hash{}),
+		nil,
+	).Return([]common.Hash{})
 	mockImplicitView.EXPECT().AllAllowedRelayParents().
 		Return([]common.Hash{})
 
@@ -545,13 +590,17 @@ func TestCandidateReachesQuorum(t *testing.T) {
 		return ok
 	}
 
-	provisionerMessageProvisionableData := func(msg any) bool {
-		_, ok := msg.(provisionermessages.ProvisionableData)
-		return ok
-	}
-
 	// set expected actions for overseer messages we send from the subsystem.
-	overseer.ExpectActions(fetchPov, validate, storeAvailableData, distribute, provisionerMessageProvisionableData)
+	overseer.ExpectActions(
+		introduceCandidate,
+		fetchPov,
+		validate,
+		storeAvailableData,
+		distribute,
+		informToProspectiveParachains,
+		informToCollatorProtocol,
+		informToStatementDistribution,
+	)
 
 	// receive statement message from overseer to candidate backing subsystem containing seconded statement
 	overseer.ReceiveMessage(backing.StatementMessage{
@@ -562,7 +611,7 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	getBackable := backing.GetBackableCandidatesMessage{
-		Candidates: []*backing.CandidateHashAndRelayParent{
+		Candidates: []*parachaintypes.CandidateHashAndRelayParent{
 			{
 				CandidateHash:        candidateHash,
 				CandidateRelayParent: relayParent,
@@ -607,7 +656,7 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	getBackable = backing.GetBackableCandidatesMessage{
-		Candidates: []*backing.CandidateHashAndRelayParent{
+		Candidates: []*parachaintypes.CandidateHashAndRelayParent{
 			{
 				CandidateHash:        candidateHash,
 				CandidateRelayParent: relayParent,
@@ -646,6 +695,9 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 
 	signingContext := signingContext(t)
 
+	claimQ := claimQueue(t)
+	claimQ[parachaintypes.CoreIndex{Index: 0}] = []parachaintypes.ParaID{paraID}
+
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
 	mockRuntime := backing.NewMockInstance(ctrl)
@@ -656,28 +708,35 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 
 	// mock BlockState methods
 	mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).
-		Return(mockRuntime, nil).Times(3)
+		Return(mockRuntime, nil).Times(2)
 
 	// mock Runtime Instance methods
-	mockRuntime.EXPECT().ParachainHostAsyncBackingParams().
-		Return(nil, wazero_runtime.ErrExportFunctionNotFound)
 	mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
 		Return(parachaintypes.SessionIndex(1), nil).Times(2)
 	mockRuntime.EXPECT().ParachainHostValidators().
 		Return(paraValidators, nil)
 	mockRuntime.EXPECT().ParachainHostValidatorGroups().
 		Return(validatorGroups(t), nil)
-	mockRuntime.EXPECT().ParachainHostAvailabilityCores().
-		Return(availabilityCores(t), nil)
 	mockRuntime.EXPECT().ParachainHostMinimumBackingVotes().
-		Return(backing.LEGACY_MIN_BACKING_VOTES, nil)
+		Return(wazero_runtime.LegacyMinBackingVotes, nil)
 	mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
 		Return(&validationCode, nil)
 	mockRuntime.EXPECT().
-		ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(0))).
-		Return(nil, wazero_runtime.ErrExportFunctionNotFound)
+		ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
+		Return(&parachaintypes.ExecutorParams{}, nil).Times(2)
+	mockRuntime.EXPECT().ParachainHostNodeFeatures().
+		Return(parachaintypes.NewBitVec([]bool{false, true}), nil)
+	mockRuntime.EXPECT().ParachainHostClaimQueue().
+		Return(claimQ, nil)
+	mockRuntime.EXPECT().ParachainHostDisabledValidators().
+		Return([]parachaintypes.ValidatorIndex{}, nil)
 
 	//mock ImplicitView
+	mockImplicitView.EXPECT().ActiveLeaf(relayParent).Return(nil, nil)
+	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
+		gomock.AssignableToTypeOf(common.Hash{}),
+		nil,
+	).Return([]common.Hash{})
 	mockImplicitView.EXPECT().AllAllowedRelayParents().
 		Return([]common.Hash{})
 
@@ -739,7 +798,7 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 		return true
 	}
 
-	overseer.ExpectActions(fetchPov, validate)
+	overseer.ExpectActions(introduceCandidate, fetchPov, validate)
 
 	// receive statement message from overseer to candidate backing subsystem containing seconded statement
 	overseer.ReceiveMessage(backing.StatementMessage{
@@ -753,7 +812,7 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 	require.NoError(t, err)
 
 	getBackable := backing.GetBackableCandidatesMessage{
-		Candidates: []*backing.CandidateHashAndRelayParent{
+		Candidates: []*parachaintypes.CandidateHashAndRelayParent{
 			{
 				CandidateHash:        candidateHash,
 				CandidateRelayParent: relayParent,
@@ -770,8 +829,13 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 	require.Len(t, backableCandidates, 0)
 }
 
+// TODO: modify this test to ensure that a validator can second multiple candidates per relay parent,
+// as we remove all the code for prospective parachain mode disabled.
+//
 // It's impossible to second multiple candidates per relay parent without prospective parachains.
 func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
+	t.Skip("This test is not valid anymore as we want to remove all the code for prospective parachain mode disabled")
+
 	candidateBacking, overseer := initBackingAndOverseerMock(t)
 	defer stopOverseerAndWaitForCompletion(overseer)
 
@@ -779,6 +843,9 @@ func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
 	numOfValidators := uint(len(paraValidators))
 	relayParent := getDummyHash(t, 5)
 	paraID := parachaintypes.ParaID(1)
+
+	claimQ := claimQueue(t)
+	claimQ[parachaintypes.CoreIndex{Index: 0}] = []parachaintypes.ParaID{paraID}
 
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
@@ -801,15 +868,24 @@ func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
 		Return(paraValidators, nil)
 	mockRuntime.EXPECT().ParachainHostValidatorGroups().
 		Return(validatorGroups(t), nil)
-	mockRuntime.EXPECT().ParachainHostAvailabilityCores().
-		Return(availabilityCores(t), nil)
 	mockRuntime.EXPECT().ParachainHostMinimumBackingVotes().
-		Return(backing.LEGACY_MIN_BACKING_VOTES, nil)
+		Return(wazero_runtime.LegacyMinBackingVotes, nil)
 	mockRuntime.EXPECT().
-		ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(0))).
-		Return(nil, wazero_runtime.ErrExportFunctionNotFound).Times(2)
+		ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
+		Return(&parachaintypes.ExecutorParams{}, nil).Times(3)
+	mockRuntime.EXPECT().ParachainHostNodeFeatures().
+		Return(parachaintypes.NewBitVec([]bool{false, true}), nil)
+	mockRuntime.EXPECT().ParachainHostClaimQueue().
+		Return(claimQ, nil)
+	mockRuntime.EXPECT().ParachainHostDisabledValidators().
+		Return([]parachaintypes.ValidatorIndex{}, nil)
 
 	//mock ImplicitView
+	mockImplicitView.EXPECT().ActiveLeaf(relayParent).Return(nil, nil)
+	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
+		gomock.AssignableToTypeOf(common.Hash{}),
+		nil,
+	).Return([]common.Hash{})
 	mockImplicitView.EXPECT().AllAllowedRelayParents().
 		Return([]common.Hash{})
 
@@ -867,7 +943,7 @@ func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
 		return ok
 	}
 
-	overseer.ExpectActions(validate, storeAvailableData, distribute, informSeconded)
+	overseer.ExpectActions(validate, storeAvailableData, introduceCandidate, distribute, informSeconded)
 
 	// mocked for candidate1
 	mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
@@ -910,7 +986,7 @@ func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
 		PoV:                     pov,
 	})
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(10 * time.Minute)
 }
 
 // The new leaf view doesn't clobber the old view when we update active leaves.
@@ -925,6 +1001,9 @@ func TestNewLeafDoesNotClobberOld(t *testing.T) {
 	paraID := parachaintypes.ParaID(1)
 	validationCode := parachaintypes.ValidationCode{1, 2, 3}
 
+	claimQ := claimQueue(t)
+	claimQ[parachaintypes.CoreIndex{Index: 0}] = []parachaintypes.ParaID{paraID}
+
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
 	mockRuntime := backing.NewMockInstance(ctrl)
@@ -935,36 +1014,46 @@ func TestNewLeafDoesNotClobberOld(t *testing.T) {
 
 	// mock BlockState methods
 	mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).
-		Return(mockRuntime, nil).Times(5)
+		Return(mockRuntime, nil).Times(3)
 
 	// mock Runtime Instance methods
-	mockRuntime.EXPECT().ParachainHostAsyncBackingParams().
-		Return(nil, wazero_runtime.ErrExportFunctionNotFound).Times(2)
 	mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
 		Return(parachaintypes.SessionIndex(1), nil).Times(3)
 	mockRuntime.EXPECT().ParachainHostValidators().
-		Return(paraValidators, nil).Times(2)
+		Return(paraValidators, nil)
 	mockRuntime.EXPECT().ParachainHostValidatorGroups().
 		Return(validatorGroups(t), nil).Times(2)
-	mockRuntime.EXPECT().ParachainHostAvailabilityCores().
-		Return(availabilityCores(t), nil).Times(2)
 	mockRuntime.EXPECT().ParachainHostMinimumBackingVotes().
-		Return(backing.LEGACY_MIN_BACKING_VOTES, nil).Times(2)
+		Return(wazero_runtime.LegacyMinBackingVotes, nil)
 	mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
 		Return(&validationCode, nil)
 	mockRuntime.EXPECT().
-		ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(0))).
-		Return(nil, wazero_runtime.ErrExportFunctionNotFound)
+		ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
+		Return(&parachaintypes.ExecutorParams{}, nil).Times(2)
+	mockRuntime.EXPECT().ParachainHostNodeFeatures().
+		Return(parachaintypes.NewBitVec([]bool{false, true}), nil)
+	mockRuntime.EXPECT().ParachainHostClaimQueue().
+		Return(claimQ, nil).Times(2)
+	mockRuntime.EXPECT().ParachainHostDisabledValidators().
+		Return([]parachaintypes.ValidatorIndex{}, nil).Times(2)
 
 	//mock ImplicitView
+	mockImplicitView.EXPECT().ActiveLeaf(gomock.AssignableToTypeOf(common.Hash{})).Return(nil, nil).Times(2)
+	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
+		gomock.AssignableToTypeOf(common.Hash{}),
+		nil,
+	).Return([]common.Hash{}).Times(2)
 	mockImplicitView.EXPECT().AllAllowedRelayParents().
-		Return([]common.Hash{}).Times(2)
+		Return([]common.Hash{})
 
 	// add relay parent 1 to active leaves
 	overseer.ReceiveMessage(parachaintypes.ActiveLeavesUpdateSignal{
 		Activated: &parachaintypes.ActivatedLeaf{Hash: relayParent1, Number: 1},
 	})
 	time.Sleep(500 * time.Millisecond)
+
+	mockImplicitView.EXPECT().AllAllowedRelayParents().
+		Return([]common.Hash{relayParent1})
 
 	// add relay parent 2 to active leaves that does not clobber relay parent 1
 	// and still allows seconding of candidates for relay parent 1
@@ -1025,7 +1114,7 @@ func TestNewLeafDoesNotClobberOld(t *testing.T) {
 	//
 	// But, when the old leaf view is not clobbered, the candidate will be seconded.
 	// so, oversee expects all four overseer messages.
-	overseer.ExpectActions(validate, storeAvailableData, distribute, informSeconded)
+	overseer.ExpectActions(validate, storeAvailableData, introduceCandidate, distribute, informSeconded)
 
 	overseer.ReceiveMessage(backing.SecondMessage{
 		RelayParent:             relayParent1,
@@ -1056,6 +1145,9 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 
 	signingContext := signingContext(t)
 
+	claimQ := claimQueue(t)
+	claimQ[parachaintypes.CoreIndex{Index: 0}] = []parachaintypes.ParaID{paraID}
+
 	ctrl := gomock.NewController(t)
 	mockBlockState := backing.NewMockBlockState(ctrl)
 	mockRuntime := backing.NewMockInstance(ctrl)
@@ -1066,28 +1158,35 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 
 	// mock BlockState methods
 	mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).
-		Return(mockRuntime, nil).Times(3)
+		Return(mockRuntime, nil).Times(2)
 
 	// mock Runtime Instance methods
-	mockRuntime.EXPECT().ParachainHostAsyncBackingParams().
-		Return(nil, wazero_runtime.ErrExportFunctionNotFound)
 	mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
 		Return(parachaintypes.SessionIndex(1), nil).Times(2)
 	mockRuntime.EXPECT().ParachainHostValidators().
 		Return(paraValidators, nil)
 	mockRuntime.EXPECT().ParachainHostValidatorGroups().
 		Return(validatorGroups(t), nil)
-	mockRuntime.EXPECT().ParachainHostAvailabilityCores().
-		Return(availabilityCores(t), nil)
 	mockRuntime.EXPECT().ParachainHostMinimumBackingVotes().
-		Return(backing.LEGACY_MIN_BACKING_VOTES, nil)
+		Return(wazero_runtime.LegacyMinBackingVotes, nil)
 	mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
 		Return(&validationCode, nil)
 	mockRuntime.EXPECT().
-		ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(0))).
-		Return(nil, wazero_runtime.ErrExportFunctionNotFound)
+		ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
+		Return(&parachaintypes.ExecutorParams{}, nil).Times(2)
+	mockRuntime.EXPECT().ParachainHostNodeFeatures().
+		Return(parachaintypes.NewBitVec([]bool{false, true}), nil)
+	mockRuntime.EXPECT().ParachainHostClaimQueue().
+		Return(claimQ, nil)
+	mockRuntime.EXPECT().ParachainHostDisabledValidators().
+		Return([]parachaintypes.ValidatorIndex{}, nil)
 
 	//mock ImplicitView
+	mockImplicitView.EXPECT().ActiveLeaf(gomock.AssignableToTypeOf(common.Hash{})).Return(nil, nil)
+	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
+		gomock.AssignableToTypeOf(common.Hash{}),
+		nil,
+	).Return([]common.Hash{})
 	mockImplicitView.EXPECT().AllAllowedRelayParents().
 		Return([]common.Hash{})
 
@@ -1143,13 +1242,11 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 		return ok
 	}
 
-	provisionerMessageProvisionableData := func(msg any) bool {
-		_, ok := msg.(provisionermessages.ProvisionableData)
-		return ok
-	}
-
 	// set expected actions for overseer messages we send from the subsystem.
-	overseer.ExpectActions(fetchPov, validate, storeAvailableData, distribute, provisionerMessageProvisionableData)
+	overseer.ExpectActions(introduceCandidate, fetchPov, validate, storeAvailableData, distribute,
+		informToProspectiveParachains,
+		informToCollatorProtocol,
+		informToStatementDistribution)
 
 	// receive statement message from overseer to candidate backing subsystem containing `Seconded` statement
 	overseer.ReceiveMessage(backing.StatementMessage{

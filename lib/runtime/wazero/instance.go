@@ -50,7 +50,6 @@ type wazeroMeta struct {
 // Instance backed by wazero.Runtime
 type Instance struct {
 	Runtime      wazero.Runtime
-	Module       api.Module
 	Context      *runtime.Context
 	wasmByteCode []byte
 	codeHash     common.Hash
@@ -115,7 +114,7 @@ func NewInstanceFromTrie(t trie.Trie, cfg Config) (*Instance, error) {
 func newRuntime(ctx context.Context,
 	code []byte,
 	config wazero.RuntimeConfig,
-) (api.Module, wazero.Runtime, wazero.CompiledModule, error) {
+) (wazero.Runtime, wazero.CompiledModule, error) {
 	rt := wazero.NewRuntimeWithConfig(ctx, config)
 
 	const i32, i64 = api.ValueTypeI32, api.ValueTypeI64
@@ -645,29 +644,25 @@ func newRuntime(ctx context.Context,
 		Compile(ctx)
 
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	_, err = rt.InstantiateModule(ctx, hostCompiledModule, wazero.NewModuleConfig())
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	code, err = decompressWasm(code)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	guestCompiledModule, err := rt.CompileModule(ctx, code)
 	if err != nil {
-		return nil, nil, nil, err
-	}
-	mod, err := rt.Instantiate(ctx, code)
-	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
-	return mod, rt, guestCompiledModule, nil
+	return rt, guestCompiledModule, nil
 }
 
 // NewInstance instantiates a runtime from raw wasm bytecode
@@ -679,7 +674,7 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 	ctx := context.Background()
 	cache := wazero.NewCompilationCache()
 	config := wazero.NewRuntimeConfig().WithCompilationCache(cache)
-	mod, rt, guestCompiledModule, err := newRuntime(ctx, code, config)
+	rt, guestCompiledModule, err := newRuntime(ctx, code, config)
 	if err != nil {
 		return nil, fmt.Errorf("creating runtime instance: %w", err)
 	}
@@ -696,7 +691,6 @@ func NewInstance(code []byte, cfg Config) (instance *Instance, err error) {
 			SigVerifier:     crypto.NewSignatureVerifier(logger),
 			OffchainHTTPSet: offchain.NewHTTPSet(),
 		},
-		Module:   mod,
 		codeHash: cfg.CodeHash,
 		metadata: wazeroMeta{
 			config:      config,
@@ -1366,9 +1360,20 @@ func (in *Instance) ParachainHostValidationCodeByHash(validationCodeHash common.
 	return validationCode, nil
 }
 
+// Backing votes threshold used from the host prior to runtime API version 6 and
+// from the runtime prior to v9 configuration migration.
+const LegacyMinBackingVotes uint32 = 2
+
 func (in *Instance) ParachainHostMinimumBackingVotes() (uint32, error) {
 	encodedBackingVotes, err := in.Exec(runtime.ParachainHostMinimumBackingVotes, []byte{})
 	if err != nil {
+		if errors.Is(err, ErrExportFunctionNotFound) {
+			logger.Tracef(
+				"%s is not supported by the current Runtime API",
+				runtime.ParachainHostMinimumBackingVotes,
+			)
+			return LegacyMinBackingVotes, nil
+		}
 		return 0, fmt.Errorf("exec: %w", err)
 	}
 
@@ -1418,6 +1423,71 @@ func (in *Instance) ParachainHostSessionExecutorParams(index parachaintypes.Sess
 
 	params := executorParams
 	return &params, nil
+}
+
+func (in *Instance) ParachainHostParaBackingState(paraID parachaintypes.ParaID) (*parachaintypes.BackingState, error) {
+	encodedParaID, err := scale.Marshal(paraID)
+	if err != nil {
+		return nil, fmt.Errorf("encoding parachain ID: %w", err)
+	}
+
+	encodedBackingState, err := in.Exec(runtime.ParachainHostParaBackingState, encodedParaID)
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	var backingState *parachaintypes.BackingState
+	err = scale.Unmarshal(encodedBackingState, &backingState)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling backing state: %w", err)
+	}
+
+	return backingState, nil
+}
+
+func (in *Instance) ParachainHostClaimQueue() (parachaintypes.ClaimQueue, error) {
+	encodedClaimQueue, err := in.Exec(runtime.ParachainHostClaimQueue, []byte{})
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	claimQueue := make(parachaintypes.ClaimQueue)
+	err = scale.Unmarshal(encodedClaimQueue, &claimQueue)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling claim queue: %w", err)
+	}
+
+	return claimQueue, nil
+}
+
+func (in *Instance) ParachainHostNodeFeatures() (parachaintypes.BitVec, error) {
+	encodedNodeFeatures, err := in.Exec(runtime.ParachainHostNodeFeatures, []byte{})
+	if err != nil {
+		return parachaintypes.BitVec{}, fmt.Errorf("exec: %w", err)
+	}
+
+	nodeFeatures := parachaintypes.NewBitVec([]bool{})
+	err = scale.Unmarshal(encodedNodeFeatures, &nodeFeatures)
+	if err != nil {
+		return parachaintypes.BitVec{}, fmt.Errorf("unmarshalling node features: %w", err)
+	}
+
+	return nodeFeatures, nil
+}
+
+func (in *Instance) ParachainHostDisabledValidators() ([]parachaintypes.ValidatorIndex, error) {
+	encodedValidators, err := in.Exec(runtime.ParachainHostDisabledValidators, []byte{})
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	var validators []parachaintypes.ValidatorIndex
+	err = scale.Unmarshal(encodedValidators, &validators)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling disabled validators: %w", err)
+	}
+
+	return validators, nil
 }
 
 func (*Instance) RandomSeed() {

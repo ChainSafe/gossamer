@@ -46,22 +46,11 @@ type NewGossipTopology struct {
 
 type PeerViewChange struct {
 	PeerID peer.ID
-	View   View
-}
-
-// View is a succinct representation of a peer's view. This consists of a bounded amount of chain heads
-// and the highest known finalized block number.
-//
-// Up to `N` (5?) chain heads.
-type View struct {
-	// a bounded amount of chain heads
-	Heads []common.Hash
-	// the highest known finalized number
-	FinalizedNumber uint32
+	View   parachaintypes.View
 }
 
 type OurViewChange struct {
-	View View
+	View parachaintypes.View
 }
 
 type PeerMessage[Message collationprotocol.CollationProtocol | validationprotocol.ValidationProtocol] struct {

@@ -6,6 +6,8 @@ package util
 import (
 	"errors"
 	"fmt"
+	"math"
+	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
@@ -14,8 +16,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/primitives"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 type HashHeader struct {
@@ -32,6 +36,123 @@ type AncestorsResponse struct {
 type Ancestors struct {
 	Hash              common.Hash
 	numberOfAncestors uint32
+}
+
+// NetworkBridgeTxMessage represents the message sent to the network subsystem.
+type NetworkBridgeTxMessage struct {
+	ReportPeerMessageBatch map[peer.ID]int32
+}
+
+// UnifiedReputationChangeType represents the type of reputation change.
+type UnifiedReputationChangeType string
+
+const (
+	CostMinor         UnifiedReputationChangeType = "CostMinor"
+	CostMajor         UnifiedReputationChangeType = "CostMajor"
+	CostMinorRepeated UnifiedReputationChangeType = "CostMinorRepeated"
+	CostMajorRepeated UnifiedReputationChangeType = "CostMajorRepeated"
+	Malicious         UnifiedReputationChangeType = "Malicious"
+	BenefitMinorFirst UnifiedReputationChangeType = "BenefitMinorFirst"
+	BenefitMinor      UnifiedReputationChangeType = "BenefitMinor"
+	BenefitMajorFirst UnifiedReputationChangeType = "BenefitMajorFirst"
+	BenefitMajor      UnifiedReputationChangeType = "BenefitMajor"
+)
+
+// UnifiedReputationChange represents a reputation change for a peer.
+type UnifiedReputationChange struct {
+	Type   UnifiedReputationChangeType
+	Reason string
+}
+
+const ReputationChangeInterval = 30 * time.Second
+
+// CostOrBenefit returns the cost or benefit of the reputation change.
+func (u UnifiedReputationChange) CostOrBenefit() int32 {
+	switch u.Type {
+	case CostMinor:
+		return -100_000
+	case CostMajor:
+		return -300_000
+	case CostMinorRepeated:
+		return -200_000
+	case CostMajorRepeated:
+		return -600_000
+	case Malicious:
+		return math.MinInt32
+	case BenefitMajorFirst:
+		return 300_000
+	case BenefitMajor:
+		return 200_000
+	case BenefitMinorFirst:
+		return 15_000
+	case BenefitMinor:
+		return 10_000
+	default:
+		return 0
+	}
+}
+
+// ReputationAggregator collects and sends reputation changes in batches.
+type ReputationAggregator struct {
+	sendImmediatelyIf func(rep UnifiedReputationChange) bool
+	byPeer            map[peer.ID]int32
+	mu                sync.Mutex
+}
+
+// NewReputationAggregator creates a new ReputationAggregator.
+func NewReputationAggregator(sendImmediatelyIf func(rep UnifiedReputationChange) bool) *ReputationAggregator {
+	return &ReputationAggregator{
+		sendImmediatelyIf: sendImmediatelyIf,
+		byPeer:            make(map[peer.ID]int32),
+	}
+}
+
+// Send sends the accumulated reputation changes in a batch and clears the state.
+func (r *ReputationAggregator) Send(overseerCh chan<- NetworkBridgeTxMessage) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if len(r.byPeer) == 0 {
+		return
+	}
+
+	message := NetworkBridgeTxMessage{
+		ReportPeerMessageBatch: r.byPeer,
+	}
+	overseerCh <- message
+
+	r.byPeer = make(map[peer.ID]int32)
+}
+
+// Modify processes a reputation change, sending it immediately if necessary or accumulating it.
+func (r *ReputationAggregator) Modify(
+	overseerCh chan<- NetworkBridgeTxMessage,
+	peerID peer.ID,
+	rep UnifiedReputationChange,
+) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.sendImmediatelyIf(rep) {
+		r.singleSend(overseerCh, peerID, rep)
+		return
+	}
+
+	r.byPeer[peerID] = primitives.SaturatingAdd(r.byPeer[peerID], rep.CostOrBenefit())
+}
+
+// singleSend sends a single reputation change directly.
+func (r *ReputationAggregator) singleSend(
+	overseerCh chan<- NetworkBridgeTxMessage,
+	peerID peer.ID,
+	rep UnifiedReputationChange,
+) {
+	message := NetworkBridgeTxMessage{
+		ReportPeerMessageBatch: map[peer.ID]int32{
+			peerID: rep.CostOrBenefit(),
+		},
+	}
+	overseerCh <- message
 }
 
 // SigningKeyAndIndex finds the first key we can sign with from the given set of validators,

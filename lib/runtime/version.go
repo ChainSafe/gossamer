@@ -31,6 +31,18 @@ type Version struct {
 	StateVersion       uint8
 }
 
+// At method will return the version for a specific API name if exists
+// if API name is not in the APIItems list found will be false and version default to 0
+func (v Version) At(name []byte) (ver uint32, found bool) {
+	for _, item := range v.APIItems {
+		if bytes.Equal(item.Name[:], name) {
+			return item.Ver, true
+		}
+	}
+
+	return 0, false
+}
+
 var (
 	ErrDecodingVersionField = errors.New("decoding version field")
 )

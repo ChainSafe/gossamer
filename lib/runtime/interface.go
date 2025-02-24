@@ -73,4 +73,7 @@ type Instance interface {
 	ParachainHostMinimumBackingVotes() (uint32, error)
 	ParachainHostSessionExecutorParams(index parachaintypes.SessionIndex,
 	) (*parachaintypes.ExecutorParams, error)
+	ParachainHostClaimQueue() (parachaintypes.ClaimQueue, error)
+	ParachainHostNodeFeatures() (parachaintypes.BitVec, error)
+	ParachainHostDisabledValidators() ([]parachaintypes.ValidatorIndex, error)
 }

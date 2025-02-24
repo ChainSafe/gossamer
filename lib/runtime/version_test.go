@@ -205,3 +205,44 @@ func Test_Version_Scale(t *testing.T) {
 		})
 	}
 }
+
+func TestVersionAt(t *testing.T) {
+	runtimeTestVersion := Version{
+		SpecName:         []byte{1},
+		ImplName:         []byte{2},
+		AuthoringVersion: 3,
+		SpecVersion:      4,
+		ImplVersion:      5,
+		APIItems: []APIItem{{
+			Name: [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
+			Ver:  6,
+		}},
+		TransactionVersion: 7,
+	}
+
+	cases := map[string]struct {
+		name            []byte
+		expectedFound   bool
+		expectedVersion uint32
+	}{
+		"name_in_api_list_should_return_6": {
+			name:            []byte{1, 2, 3, 4, 5, 6, 7, 8},
+			expectedFound:   true,
+			expectedVersion: 6,
+		},
+		"name_not_found_should_return_false": {
+			name:            []byte{0, 0, 0, 0, 0, 0, 0, 0},
+			expectedFound:   false,
+			expectedVersion: 0,
+		},
+	}
+
+	for tname, tt := range cases {
+		tt := tt
+		t.Run(tname, func(t *testing.T) {
+			ver, found := runtimeTestVersion.At(tt.name)
+			require.Equal(t, tt.expectedFound, found)
+			require.Equal(t, tt.expectedVersion, ver)
+		})
+	}
+}

@@ -16,7 +16,6 @@ require (
 	github.com/fatih/color v1.17.0
 	github.com/gammazero/deque v0.2.1
 	github.com/go-playground/validator/v10 v10.21.0
-	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
@@ -200,7 +199,9 @@ require (
 	lukechampine.com/blake3 v1.2.1 // indirect
 )
 
-go 1.21
+go 1.23
+
+toolchain go1.23.2
 
 replace github.com/tetratelabs/wazero => github.com/ChainSafe/wazero v0.0.0-20240319130522-78b21a59bd5f
 

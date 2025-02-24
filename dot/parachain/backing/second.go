@@ -6,6 +6,7 @@ package backing
 import (
 	"errors"
 	"fmt"
+	"slices"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 )
@@ -55,13 +56,18 @@ func (cb *CandidateBacking) handleSecondMessage(
 		)
 	}
 
+	if rpState.tableContext.validator.disabled {
+		return errors.New("local validator is disabled. Don't validate and second")
+	}
+
 	// Sanity check that candidate is from our assignment.
-	if candidateReceipt.Descriptor.ParaID != *rpState.assignment {
-		return fmt.Errorf("%w: candidate hash: %s; candidate paraID: %d; assignment: %d",
+	assignedParas := rpState.claimQueue[*rpState.assignedCore]
+	if !slices.Contains(assignedParas, candidateReceipt.Descriptor.ParaID) {
+		return fmt.Errorf("%w: candidate hash: %s; candidate paraID: %d; assigned-core: %d",
 			errParaOutsideAssignmentForSeconding,
 			candidateHash,
 			candidateReceipt.Descriptor.ParaID,
-			*rpState.assignment,
+			*rpState.assignedCore,
 		)
 	}
 

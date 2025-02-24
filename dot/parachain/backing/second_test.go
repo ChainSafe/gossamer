@@ -14,8 +14,6 @@ import (
 func TestHandleSecondMessage(t *testing.T) {
 	t.Parallel()
 
-	paraIDPtr1 := uint32ToParaIDPtr(t, 1)
-
 	testCases := []struct {
 		description      string
 		cb               *CandidateBacking
@@ -42,7 +40,15 @@ func TestHandleSecondMessage(t *testing.T) {
 			cb: &CandidateBacking{
 				perRelayParent: map[common.Hash]*perRelayParentState{
 					getDummyHash(t, 6): {
-						assignment: uint32ToParaIDPtr(t, 10),
+						assignedCore: &parachaintypes.CoreIndex{Index: 10},
+						tableContext: tableContext{
+							validator: &validator{
+								disabled: false,
+							},
+						},
+						claimQueue: map[parachaintypes.CoreIndex][]parachaintypes.ParaID{
+							{Index: 10}: {2, 3, 4},
+						},
 					},
 				},
 			},
@@ -55,9 +61,17 @@ func TestHandleSecondMessage(t *testing.T) {
 			cb: &CandidateBacking{
 				perRelayParent: map[common.Hash]*perRelayParentState{
 					getDummyHash(t, 6): {
-						assignment: paraIDPtr1,
+						assignedCore: &parachaintypes.CoreIndex{Index: 10},
 						issuedStatements: map[parachaintypes.CandidateHash]bool{
 							dummyCandidateHash(t): true,
+						},
+						tableContext: tableContext{
+							validator: &validator{
+								disabled: false,
+							},
+						},
+						claimQueue: map[parachaintypes.CoreIndex][]parachaintypes.ParaID{
+							{Index: 10}: {1, 2, 3, 4},
 						},
 					},
 				},
@@ -71,9 +85,17 @@ func TestHandleSecondMessage(t *testing.T) {
 			cb: &CandidateBacking{
 				perRelayParent: map[common.Hash]*perRelayParentState{
 					getDummyHash(t, 6): {
-						assignment: paraIDPtr1,
+						assignedCore: &parachaintypes.CoreIndex{Index: 10},
 						awaitingValidation: map[parachaintypes.CandidateHash]bool{
 							dummyCandidateHash(t): true,
+						},
+						tableContext: tableContext{
+							validator: &validator{
+								disabled: false,
+							},
+						},
+						claimQueue: map[parachaintypes.CoreIndex][]parachaintypes.ParaID{
+							{Index: 10}: {1, 2, 3, 4},
 						},
 					},
 				},

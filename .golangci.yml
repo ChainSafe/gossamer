@@ -6,14 +6,12 @@ run:
   build-tags:
     - integration
 
-  skip-files:
-    - .*mock_.*\.go
-    - .*mocks\/.*\.go
-
 linters-settings:
   govet:
     # report about shadowed variables
-    check-shadowing: true
+    shadow: true
+    excludes:
+      - printf
 
   revive:
     severity: warning
@@ -33,6 +31,17 @@ linters-settings:
       - map
       - chan
 
+  gosec:
+    excludes:
+      - G115
+      - G301
+      - G306
+
+  gosimple:
+    excludes:
+      - S1009
+  
+
   misspell:
     locale: UK
     ignore-words:
@@ -41,12 +50,12 @@ linters-settings:
       - finalized
       - finalize
       - initialize
+      - color
 
 linters:
   enable:
     - bodyclose
     - errcheck
-    - exportloopref
     - goconst
     - gocyclo
     - gofmt
@@ -68,8 +77,13 @@ linters:
     - unparam
     - usestdlibvars
     - unused
+  disable:
+    - typecheck
 
 issues:
+  exclude-files:
+    - .*mock_.*\.go
+    - .*mocks\/.*\.go
   exclude-rules:
     - path: _test\.go
       linters:
@@ -94,6 +108,14 @@ issues:
     - text: 'shadow: declaration of "ok" shadows declaration*'
       linters:
         - govet
+
+    - text: 'printf: non-constant format*'
+      linters:
+        - govet
+
+    - text: 'return both a `nil` error and an invalid value*'
+      linters:
+        - nilnil
 
     - linters:
         - revive
