@@ -23,6 +23,11 @@ const availabilityDistributionWaitingPeriod = time.Millisecond * 1500
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-bitfield-signing"))
 
+type signingTask struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+}
+
 type bitfieldData struct {
 	index int
 	data  bool
@@ -33,7 +38,8 @@ type bitfieldData struct {
 type BitfieldSigning struct {
 	subSystemToOverseer chan<- any
 	keystore            keystore.Keystore
-	bs                  BlockState
+	blockState          BlockState
+	signingTasksTracker map[common.Hash]signingTask
 }
 
 type BlockState interface {
@@ -45,7 +51,8 @@ func NewBitfieldSigning(overseerChan chan<- any, ks keystore.Keystore, blockStat
 	return &BitfieldSigning{
 		subSystemToOverseer: overseerChan,
 		keystore:            ks,
-		bs:                  blockState,
+		blockState:          blockState,
+		signingTasksTracker: make(map[common.Hash]signingTask),
 	}
 }
 
@@ -90,49 +97,78 @@ func (b *BitfieldSigning) Name() parachaintypes.SubSystemName {
 
 // ProcessActiveLeavesUpdateSignal processes active leaves update signal
 func (b *BitfieldSigning) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
+	// cancel and remove jobs for deactivated leaves
+	for _, hash := range signal.Deactivated {
+		b.signingTasksTracker[hash].cancel()
+		delete(b.signingTasksTracker, hash)
+	}
+
 	activatedLeaf := signal.Activated
 	if activatedLeaf == nil {
 		return nil
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	go func(ctx context.Context) {
+		select {
+		case <-ctx.Done():
+			logger.Infof("process for handleActiveLeavesUpdate is done due to deactivated leaves")
+			return
+		default:
+			b.handleActiveLeavesUpdate(ctx, activatedLeaf)
+		}
+	}(ctx)
+
+	b.signingTasksTracker[activatedLeaf.Hash] = signingTask{ctx, cancel}
+
+	return nil
+}
+
+func (b *BitfieldSigning) handleActiveLeavesUpdate(ctx context.Context, activatedLeaf *parachaintypes.ActivatedLeaf) {
 	relayParent := activatedLeaf.Hash
-	rt, err := b.bs.GetRuntime(relayParent)
+	rt, err := b.blockState.GetRuntime(relayParent)
 	if err != nil {
-		return fmt.Errorf("getting runtime: %w", err)
+		logger.Errorf("getting runtime: %s", err)
+		return
 	}
 
 	// get validators info
 	validators, err := rt.ParachainHostValidators()
 	if err != nil {
-		return fmt.Errorf("getting validators: %w", err)
+		logger.Errorf("getting validators: %s", err)
+		return
 	}
 	validatorID, validatorIndex := parachainutil.SigningKeyAndIndex(validators, b.keystore)
 	if validatorID == nil {
 		// skip the logic if not a validator node
-		return nil
+		return
 	}
 
 	// wait for availability distribution has the chance to make candidates available.
 	time.Sleep(availabilityDistributionWaitingPeriod)
 
 	// construct the bitfield according to the availability store
-	bitfield, err := constructAvailabilityBitfield(rt, validatorIndex, b.subSystemToOverseer)
+	bitfield, err := constructAvailabilityBitfield(ctx, rt, validatorIndex, b.subSystemToOverseer)
 	if err != nil {
-		return fmt.Errorf("construct availabilityBitfield: %w", err)
+		logger.Errorf("construct availabilityBitfield: %s", err)
+		return
 	}
 
 	// signing process
 	data, err := bitfield.MarshalSCALE()
 	if err != nil {
-		return fmt.Errorf("marshal bitfield for signing: %w", err)
+		logger.Errorf("marshal bitfield for signing: %s", err)
+		return
 	}
 	validatorPublicKey, err := sr25519.NewPublicKey(validatorID[:])
 	if err != nil {
-		return fmt.Errorf("getting signer's public key: %w", err)
+		logger.Errorf("getting signer's public key: %s", err)
+		return
 	}
 	signatureBytes, err := b.keystore.GetKeypair(validatorPublicKey).Sign(data)
 	if err != nil {
-		return fmt.Errorf("signing bitfield: %w", err)
+		logger.Errorf("signing bitfield: %s", err)
+		return
 	}
 	var signature parachaintypes.Signature
 	copy(signature[:], signatureBytes)
@@ -147,7 +183,7 @@ func (b *BitfieldSigning) ProcessActiveLeavesUpdateSignal(signal parachaintypes.
 		},
 	}
 
-	return nil
+	return
 }
 
 // ProcessBlockFinalizedSignal processes block finalized signal
@@ -162,6 +198,7 @@ func (b *BitfieldSigning) Stop() {
 }
 
 func constructAvailabilityBitfield(
+	ctx context.Context,
 	rt runtime.Instance,
 	validatorIdx parachaintypes.ValidatorIndex,
 	subSystemToOverseer chan<- any,
