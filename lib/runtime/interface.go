@@ -73,4 +73,5 @@ type Instance interface {
 	ParachainHostMinimumBackingVotes() (uint32, error)
 	ParachainHostSessionExecutorParams(index parachaintypes.SessionIndex,
 	) (*parachaintypes.ExecutorParams, error)
+	ParachainHostDisputes() (map[parachaintypes.DisputeKey]parachaintypes.DisputeState, error)
 }
