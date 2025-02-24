@@ -41,7 +41,7 @@ func (bs *DefaultBlockState) GetFinalisedHeader(round, setID uint64) (*types.Hea
 	bs.lock.Lock()
 	defer bs.lock.Unlock()
 
-	h, err := bs.GetFinalisedHash(round, setID)
+	h, err := bs.getFinalisedHash(round, setID)
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +62,8 @@ func (bs *DefaultBlockState) GetRoundAndSetID() (uint64, uint64) {
 	return bs.lastRound, bs.lastSetID
 }
 
-// GetFinalisedHash gets the finalised block header by round and setID
-func (bs *DefaultBlockState) GetFinalisedHash(round, setID uint64) (common.Hash, error) {
+// getFinalisedHash gets the finalised block header by round and setID
+func (bs *DefaultBlockState) getFinalisedHash(round, setID uint64) (common.Hash, error) {
 	h, err := bs.db.Get(finalisedHashKey(round, setID))
 	if err != nil {
 		return common.Hash{}, err
@@ -104,7 +104,7 @@ func (bs *DefaultBlockState) GetHighestFinalisedHash() (common.Hash, error) {
 		return common.Hash{}, err
 	}
 
-	return bs.GetFinalisedHash(round, setID)
+	return bs.getFinalisedHash(round, setID)
 }
 
 // GetHighestFinalisedHeader returns the highest finalised block header
