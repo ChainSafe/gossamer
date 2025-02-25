@@ -1,17 +1,18 @@
-package grid_test
+package grid
 
 import (
-	"github.com/ChainSafe/gossamer/dot/parachain/grid"
+	"testing"
+
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/types"
+
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 // FixtureTopologyPeerInfo returns a slice of 11 TopologyPeerInfo for testing purposes.
-func FixtureTopologyPeerInfo() []grid.TopologyPeerInfo {
-	return []grid.TopologyPeerInfo{
+func FixtureTopologyPeerInfo() []TopologyPeerInfo {
+	return []TopologyPeerInfo{
 		{
 			Peers:          []peer.ID{"peer1", "peer2"},
 			ValidatorIndex: parachaintypes.ValidatorIndex(0),
@@ -71,7 +72,7 @@ func FixtureTopologyPeerInfo() []grid.TopologyPeerInfo {
 }
 
 func Test_SessionGridTopology(t *testing.T) {
-	gt := grid.NewSessionGridTopology([]uint{1, 2, 3}, []grid.TopologyPeerInfo{grid.TopologyPeerInfo{
+	gt := NewSessionGridTopology([]uint{1, 2, 3}, []TopologyPeerInfo{{
 		Peers:          []peer.ID{"peer1", "peer2"},
 		ValidatorIndex: parachaintypes.ValidatorIndex(1),
 		DiscoveryID:    types.AuthorityID{1},
@@ -79,30 +80,30 @@ func Test_SessionGridTopology(t *testing.T) {
 	})
 	assert.Equal(t, 2, len(gt.Peers))
 
-	updated := gt.UpdateAuthoritiesIDs(peer.ID("peer2"), map[types.AuthorityID]struct{}{types.AuthorityID{1}: {}})
+	updated := gt.UpdateAuthoritiesIDs(peer.ID("peer2"), map[types.AuthorityID]struct{}{{1}: {}})
 	assert.False(t, updated)
 
-	updated = gt.UpdateAuthoritiesIDs(peer.ID("peer3"), map[types.AuthorityID]struct{}{types.AuthorityID{1}: {}})
+	updated = gt.UpdateAuthoritiesIDs(peer.ID("peer3"), map[types.AuthorityID]struct{}{{1}: {}})
 	assert.True(t, updated)
 	assert.Equal(t, 3, len(gt.Peers))
 	assert.Equal(t,
-		peer.IDSlice(peer.IDSlice{"peer1", "peer2", "peer3"}),
+		peer.IDSlice{"peer1", "peer2", "peer3"},
 		gt.CanonicalShuffling[0].Peers,
 	)
 }
 
-func Test_SessionGridTopologyNeighbors(t *testing.T) {
-	gt := grid.NewSessionGridTopology([]uint{1, 2, 3}, []grid.TopologyPeerInfo{grid.TopologyPeerInfo{
+func Test_SessionGridTopologyNeighbours(t *testing.T) {
+	gt := NewSessionGridTopology([]uint{1, 2, 3}, []TopologyPeerInfo{{
 		Peers:          []peer.ID{"peer1", "peer2"},
 		ValidatorIndex: parachaintypes.ValidatorIndex(1),
 		DiscoveryID:    types.AuthorityID{1},
 	},
 	})
-	_, err := gt.ComputeGridNeighborsFor(1)
+	_, err := gt.ComputeGridNeighboursFor(1)
 	assert.NotNil(t, err)
 
-	gt = grid.NewSessionGridTopology([]uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, FixtureTopologyPeerInfo())
-	gn, err := gt.ComputeGridNeighborsFor(10)
+	gt = NewSessionGridTopology([]uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, FixtureTopologyPeerInfo())
+	gn, err := gt.ComputeGridNeighboursFor(10)
 	assert.Nil(t, err)
 	assert.Equal(t, len(gn.ValidatorIndicesRow), 1)
 	assert.Equal(t, len(gn.ValidatorIndicesCol), 3)
@@ -111,19 +112,19 @@ func Test_SessionGridTopologyNeighbors(t *testing.T) {
 
 }
 
-func Test_MatrixNeighbors(t *testing.T) {
-	m, err := grid.CalculateMatrixNeighbors(10, 11)
+func Test_MatrixNeighbours(t *testing.T) {
+	m, err := calculateMatrixNeighbours(10, 11)
 	assert.Nil(t, err)
-	assert.Equal(t, len(m.ColumnNeighbors), 3)
-	assert.Equal(t, len(m.RowNeighbors), 1)
+	assert.Equal(t, len(m.ColumnNeighbours), 3)
+	assert.Equal(t, len(m.RowNeighbours), 1)
 
-	m, err = grid.CalculateMatrixNeighbors(4, 12)
+	m, err = calculateMatrixNeighbours(4, 12)
 	assert.Nil(t, err)
-	assert.Equal(t, len(m.ColumnNeighbors), 3)
-	assert.Equal(t, len(m.RowNeighbors), 2)
+	assert.Equal(t, len(m.ColumnNeighbours), 3)
+	assert.Equal(t, len(m.RowNeighbours), 2)
 }
 
-func Test_GridNeighbors(t *testing.T) {
+func Test_GridNeighbours(t *testing.T) {
 	// e.g. for size 11 the matrix would be
 	//
 	// 0  1  2
@@ -131,9 +132,9 @@ func Test_GridNeighbors(t *testing.T) {
 	// 6  7  8
 	// 9 10
 	//
-	// and for index 10, the neighbors would be 1, 4, 7, 9
-	gt := grid.NewSessionGridTopology([]uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, FixtureTopologyPeerInfo())
-	gn, err := gt.ComputeGridNeighborsFor(10)
+	// and for index 10, the neighbours would be 1, 4, 7, 9
+	gt := NewSessionGridTopology([]uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, FixtureTopologyPeerInfo())
+	gn, err := gt.ComputeGridNeighboursFor(10)
 	assert.Nil(t, err)
 	assert.Equal(t, len(gn.ValidatorIndicesRow), 1)
 	assert.Equal(t, len(gn.ValidatorIndicesCol), 3)
@@ -142,56 +143,56 @@ func Test_GridNeighbors(t *testing.T) {
 	assert.Nil(t, err)
 	routing := gn.RequiredRoutingByIndex(4, false)
 	// The origin of the message was from column so we should rout in a row
-	assert.Equal(t, grid.RequiredRoutingGridX, routing)
+	assert.Equal(t, RequiredRoutingGridX, routing)
 
 	// Since routing is for rows we have only validator with index 9 there and its peers are peer19 and peer20
-	assert.False(t, gn.ShouldRouteToPeer(grid.RequiredRoutingGridX, peer.ID("peer1")))
-	assert.True(t, gn.ShouldRouteToPeer(grid.RequiredRoutingGridX, peer.ID("peer19")))
-	assert.True(t, gn.ShouldRouteToPeer(grid.RequiredRoutingGridX, peer.ID("peer20")))
+	assert.False(t, gn.ShouldRouteToPeer(RequiredRoutingGridX, peer.ID("peer1")))
+	assert.True(t, gn.ShouldRouteToPeer(RequiredRoutingGridX, peer.ID("peer19")))
+	assert.True(t, gn.ShouldRouteToPeer(RequiredRoutingGridX, peer.ID("peer20")))
 }
 
 func Test_SessionGridTopologyEntry(t *testing.T) {
-	gt := grid.NewSessionGridTopology([]uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, FixtureTopologyPeerInfo())
-	gn, err := gt.ComputeGridNeighborsFor(10)
+	gt := NewSessionGridTopology([]uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, FixtureTopologyPeerInfo())
+	gn, err := gt.ComputeGridNeighboursFor(10)
 	assert.Nil(t, err)
-	sgte := &grid.SessionGridTopologyEntry{
-		Topology:       gt,
-		LocalNeighbors: gn,
-		LocalIndex:     10,
-		SessionIndex:   99,
+	sgte := &SessionGridTopologyEntry{
+		Topology:        gt,
+		LocalNeighbours: gn,
+		LocalIndex:      10,
+		SessionIndex:    99,
 	}
 	// Since routing is for rows we have only validator with index 9 there and its peers are peer19 and peer20
-	assert.Equal(t, len(sgte.PeersToRoute(grid.RequiredRoutingGridX)), 2)
+	assert.Equal(t, len(sgte.PeersToRoute(RequiredRoutingGridX)), 2)
 	// Since routing is for rows we have only validator with index 1,4,7 there and its peers are peer19 and peer20
 	//[]peer.ID{"peer3", "peer4", "peer9", "peer10", "peer15", "peer16"},
-	assert.Equal(t, len(sgte.PeersToRoute(grid.RequiredRoutingGridY)), 6)
-	assert.Equal(t, len(sgte.PeersToRoute(grid.RequiredRoutingAll)), 22)
+	assert.Equal(t, len(sgte.PeersToRoute(RequiredRoutingGridY)), 6)
+	assert.Equal(t, len(sgte.PeersToRoute(RequiredRoutingAll)), 22)
 
-	updated, err := sgte.UpdateAuthoritiesIDs(peer.ID("peer99"), map[types.AuthorityID]struct{}{types.AuthorityID{10}: {}})
+	updated, err := sgte.UpdateAuthoritiesIDs(peer.ID("peer99"), map[types.AuthorityID]struct{}{{10}: {}})
 	assert.True(t, updated)
 	assert.Nil(t, err)
 	// Now we added one more peer to validator with AuthorityID 10, index 9. Sine we are actins as validator with index 10
 	// we should route to this peer if strategy RequiredRoutingGridX
-	assert.Equal(t, len(sgte.PeersToRoute(grid.RequiredRoutingGridX)), 3)
+	assert.Equal(t, len(sgte.PeersToRoute(RequiredRoutingGridX)), 3)
 }
 
 func Test_SessionGridTopologyStorage(t *testing.T) {
-	gt := grid.NewSessionGridTopology([]uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, FixtureTopologyPeerInfo())
-	gn, err := gt.ComputeGridNeighborsFor(10)
+	gt := NewSessionGridTopology([]uint{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, FixtureTopologyPeerInfo())
+	gn, err := gt.ComputeGridNeighboursFor(10)
 	assert.Nil(t, err)
-	sgteCurrent := &grid.SessionGridTopologyEntry{
-		Topology:       gt,
-		LocalNeighbors: gn,
-		LocalIndex:     10,
-		SessionIndex:   99,
+	sgteCurrent := &SessionGridTopologyEntry{
+		Topology:        gt,
+		LocalNeighbours: gn,
+		LocalIndex:      10,
+		SessionIndex:    99,
 	}
-	sgtePrev := &grid.SessionGridTopologyEntry{
-		Topology:       gt,
-		LocalNeighbors: gn,
-		LocalIndex:     10,
-		SessionIndex:   98,
+	sgtePrev := &SessionGridTopologyEntry{
+		Topology:        gt,
+		LocalNeighbours: gn,
+		LocalIndex:      10,
+		SessionIndex:    98,
 	}
-	storage := grid.SessionGridTopologyStorage{
+	storage := SessionGridTopologyStorage{
 		CurrentTopology: sgteCurrent,
 		PrevTopology:    sgtePrev,
 	}

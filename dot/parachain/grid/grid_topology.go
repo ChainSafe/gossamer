@@ -2,10 +2,12 @@ package grid
 
 import (
 	"fmt"
+	"math"
+
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/types"
+
 	"github.com/libp2p/go-libp2p/core/peer"
-	"math"
 )
 
 // TopologyPeerInfo is an information about the peer in the gossip topology
@@ -75,7 +77,7 @@ func (gt *SessionGridTopology) IsValidator(peer peer.ID) bool {
 	return ok
 }
 
-func (gt *SessionGridTopology) ComputeGridNeighborsFor(vi parachaintypes.ValidatorIndex) (*GridNeighbors, error) {
+func (gt *SessionGridTopology) ComputeGridNeighboursFor(vi parachaintypes.ValidatorIndex) (*GridNeighbours, error) {
 	if len(gt.ShuffledIndices) != len(gt.CanonicalShuffling) {
 		return nil, fmt.Errorf("grid topology malformed: "+
 			"shuffledIndices length %d is not equal to canonicalShuffling length %d",
@@ -86,14 +88,14 @@ func (gt *SessionGridTopology) ComputeGridNeighborsFor(vi parachaintypes.Validat
 
 	shuffledIndex := gt.ShuffledIndices[vi]
 
-	neighbors, err := CalculateMatrixNeighbors(shuffledIndex, uint(len(gt.ShuffledIndices)))
+	neighbours, err := calculateMatrixNeighbours(shuffledIndex, uint(len(gt.ShuffledIndices)))
 	if err != nil {
 		return nil, err
 	}
 
-	gridSubset := NewEmptyGridNeighbors()
+	gridSubset := NewEmptyGridNeighbours()
 
-	for _, rN := range neighbors.RowNeighbors {
+	for _, rN := range neighbours.RowNeighbours {
 		n := &gt.CanonicalShuffling[rN]
 		gridSubset.ValidatorIndicesRow[n.ValidatorIndex] = struct{}{}
 		for _, p := range n.Peers {
@@ -101,7 +103,7 @@ func (gt *SessionGridTopology) ComputeGridNeighborsFor(vi parachaintypes.Validat
 		}
 	}
 
-	for _, cN := range neighbors.ColumnNeighbors {
+	for _, cN := range neighbours.ColumnNeighbours {
 		n := &gt.CanonicalShuffling[cN]
 		gridSubset.ValidatorIndicesCol[n.ValidatorIndex] = struct{}{}
 		for _, p := range n.Peers {
@@ -112,7 +114,7 @@ func (gt *SessionGridTopology) ComputeGridNeighborsFor(vi parachaintypes.Validat
 	return gridSubset, nil
 }
 
-type GridNeighbors struct {
+type GridNeighbours struct {
 	PeersRow map[peer.ID]struct{}
 	PeersCol map[peer.ID]struct{}
 
@@ -120,8 +122,8 @@ type GridNeighbors struct {
 	ValidatorIndicesCol map[parachaintypes.ValidatorIndex]struct{}
 }
 
-func NewEmptyGridNeighbors() *GridNeighbors {
-	return &GridNeighbors{
+func NewEmptyGridNeighbours() *GridNeighbours {
+	return &GridNeighbours{
 		PeersRow:            make(map[peer.ID]struct{}),
 		PeersCol:            make(map[peer.ID]struct{}),
 		ValidatorIndicesRow: make(map[parachaintypes.ValidatorIndex]struct{}),
@@ -130,7 +132,7 @@ func NewEmptyGridNeighbors() *GridNeighbors {
 }
 
 // RequiredRoutingByIndex Given the originator of a message as a validator index, indicates the part of the topology
-func (gn *GridNeighbors) RequiredRoutingByIndex(origin parachaintypes.ValidatorIndex, local bool) RequiredRouting {
+func (gn *GridNeighbours) RequiredRoutingByIndex(origin parachaintypes.ValidatorIndex, local bool) RequiredRouting {
 	if local {
 		return RequiredRoutingGridXY
 	}
@@ -151,7 +153,7 @@ func (gn *GridNeighbors) RequiredRoutingByIndex(origin parachaintypes.ValidatorI
 }
 
 // ShouldRouteToPeer indicates does peer should receive a message based on GridTopology and Routing strategy
-func (gn *GridNeighbors) ShouldRouteToPeer(routing RequiredRouting, peer peer.ID) bool {
+func (gn *GridNeighbours) ShouldRouteToPeer(routing RequiredRouting, peer peer.ID) bool {
 	switch routing {
 	case RequiredRoutingAll:
 		return true
@@ -173,8 +175,8 @@ func (gn *GridNeighbors) ShouldRouteToPeer(routing RequiredRouting, peer peer.ID
 	}
 }
 
-// PeersDiff returns a differents between two GridNeighbors
-func (gn *GridNeighbors) PeersDiff(other *GridNeighbors) []peer.ID {
+// PeersDiff returns a differents between two GridNeighbours
+func (gn *GridNeighbours) PeersDiff(other *GridNeighbours) []peer.ID {
 	diff := make([]peer.ID, 0)
 	for p := range gn.PeersRow {
 		_, inRows := other.PeersRow[p]
@@ -186,7 +188,7 @@ func (gn *GridNeighbors) PeersDiff(other *GridNeighbors) []peer.ID {
 	return diff
 }
 
-func (gn *GridNeighbors) Len() int {
+func (gn *GridNeighbours) Len() int {
 	return len(gn.PeersRow) + len(gn.PeersCol)
 }
 
@@ -201,13 +203,13 @@ const (
 	RequiredRoutingNone
 )
 
-// MatrixNeighbors holds the row and column neighbors of a given index in a matrix.
-type MatrixNeighbors struct {
-	RowNeighbors    []uint
-	ColumnNeighbors []uint
+// MatrixNeighbours holds the row and column neighbours of a given index in a matrix.
+type MatrixNeighbours struct {
+	RowNeighbours    []uint
+	ColumnNeighbours []uint
 }
 
-// CalculateMatrixNeighbors computes the row and column neighbors of valIndex in a matrix of given length.
+// calculateMatrixNeighbours computes the row and column neighbours of valIndex in a matrix of given length.
 // e.g. for size 11 the matrix would be
 //
 // 0  1  2
@@ -215,8 +217,8 @@ type MatrixNeighbors struct {
 // 6  7  8
 // 9 10
 //
-// and for index 10, the neighbors would be 1, 4, 7, 9
-func calculateMatrixNeighbors(valIndex, length uint) (*MatrixNeighbors, error) {
+// and for index 10, the neighbours would be 1, 4, 7, 9
+func calculateMatrixNeighbours(valIndex, length uint) (*MatrixNeighbours, error) {
 	if valIndex >= length {
 		return nil, fmt.Errorf("grid topology malformed: valIndex %d is greater than length %d",
 			valIndex,
@@ -231,59 +233,59 @@ func calculateMatrixNeighbors(valIndex, length uint) (*MatrixNeighbors, error) {
 	rowStart := ourRow * sqrt
 	rowEnd := uint(math.Min(float64(rowStart+sqrt), float64(length)))
 
-	rowNeighbors := make([]uint, 0)
+	rowNeighbours := make([]uint, 0)
 	for i := rowStart; i < rowEnd; i++ {
 		if i != valIndex {
-			rowNeighbors = append(rowNeighbors, i)
+			rowNeighbours = append(rowNeighbours, i)
 		}
 	}
 
-	columnNeighbors := make([]uint, 0)
+	columnNeighbours := make([]uint, 0)
 	for i := ourColumn; i < length; i += sqrt {
 		if i != valIndex {
-			columnNeighbors = append(columnNeighbors, i)
+			columnNeighbours = append(columnNeighbours, i)
 		}
 	}
 
-	return &MatrixNeighbors{
-		RowNeighbors:    rowNeighbors,
-		ColumnNeighbors: columnNeighbors,
+	return &MatrixNeighbours{
+		RowNeighbours:    rowNeighbours,
+		ColumnNeighbours: columnNeighbours,
 	}, nil
 }
 
 type SessionGridTopologyEntry struct {
-	Topology       *SessionGridTopology
-	LocalNeighbors *GridNeighbors
-	LocalIndex     parachaintypes.ValidatorIndex
-	SessionIndex   parachaintypes.SessionIndex
+	Topology        *SessionGridTopology
+	LocalNeighbours *GridNeighbours
+	LocalIndex      parachaintypes.ValidatorIndex
+	SessionIndex    parachaintypes.SessionIndex
 }
 
 func (s *SessionGridTopologyEntry) PeersToRoute(routing RequiredRouting) []peer.ID {
 	switch routing {
 	case RequiredRoutingAll:
 		peers := make([]peer.ID, 0)
-		for p, _ := range s.Topology.Peers {
+		for p := range s.Topology.Peers {
 			peers = append(peers, p)
 		}
 		return peers
 	case RequiredRoutingGridY:
 		peers := make([]peer.ID, 0)
-		for p, _ := range s.LocalNeighbors.PeersCol {
+		for p := range s.LocalNeighbours.PeersCol {
 			peers = append(peers, p)
 		}
 		return peers
 	case RequiredRoutingGridX:
 		peers := make([]peer.ID, 0)
-		for p, _ := range s.LocalNeighbors.PeersRow {
+		for p := range s.LocalNeighbours.PeersRow {
 			peers = append(peers, p)
 		}
 		return peers
 	case RequiredRoutingGridXY:
 		peers := make([]peer.ID, 0)
-		for p, _ := range s.LocalNeighbors.PeersCol {
+		for p := range s.LocalNeighbours.PeersCol {
 			peers = append(peers, p)
 		}
-		for p, _ := range s.LocalNeighbors.PeersRow {
+		for p := range s.LocalNeighbours.PeersRow {
 			peers = append(peers, p)
 		}
 		return peers
@@ -291,14 +293,16 @@ func (s *SessionGridTopologyEntry) PeersToRoute(routing RequiredRouting) []peer.
 	return make([]peer.ID, 0)
 }
 
-func (s *SessionGridTopologyEntry) UpdateAuthoritiesIDs(peer peer.ID, discoveryIDs map[types.AuthorityID]struct{}) (bool, error) {
+func (s *SessionGridTopologyEntry) UpdateAuthoritiesIDs(
+	peer peer.ID,
+	discoveryIDs map[types.AuthorityID]struct{}) (bool, error) {
 	if s.Topology.UpdateAuthoritiesIDs(peer, discoveryIDs) {
-		// If authorities update, recompile neighbors
-		new_neighbors, err := s.Topology.ComputeGridNeighborsFor(s.LocalIndex)
+		// If authorities update, recompile neighbours
+		new_neighbours, err := s.Topology.ComputeGridNeighboursFor(s.LocalIndex)
 		if err != nil {
 			return false, err
 		}
-		s.LocalNeighbors = new_neighbors
+		s.LocalNeighbours = new_neighbours
 		return true, nil
 	}
 	return false, nil
@@ -309,7 +313,8 @@ type SessionGridTopologyStorage struct {
 	PrevTopology    *SessionGridTopologyEntry
 }
 
-func (s *SessionGridTopologyStorage) GetTopologyBySessionIndex(idx parachaintypes.SessionIndex) *SessionGridTopologyEntry {
+func (s *SessionGridTopologyStorage) GetTopologyBySessionIndex(
+	idx parachaintypes.SessionIndex) *SessionGridTopologyEntry {
 	if s.CurrentTopology.SessionIndex == idx {
 		return s.CurrentTopology
 	}
@@ -319,7 +324,8 @@ func (s *SessionGridTopologyStorage) GetTopologyBySessionIndex(idx parachaintype
 	return nil
 }
 
-func (s *SessionGridTopologyStorage) GetTopologyOrFallback(idx parachaintypes.SessionIndex) *SessionGridTopologyEntry {
+func (s *SessionGridTopologyStorage) GetTopologyOrFallback(
+	idx parachaintypes.SessionIndex) *SessionGridTopologyEntry {
 	toplogy := s.GetTopologyBySessionIndex(idx)
 	if toplogy != nil {
 		return toplogy
@@ -331,16 +337,16 @@ func (s *SessionGridTopologyStorage) GetTopologyOrFallback(idx parachaintypes.Se
 func (s *SessionGridTopologyStorage) UpdateCurrentTopology(idx parachaintypes.SessionIndex,
 	topology *SessionGridTopology,
 	localIndex parachaintypes.ValidatorIndex) error {
-	localNeighbors, err := topology.ComputeGridNeighborsFor(localIndex)
+	localNeighbours, err := topology.ComputeGridNeighboursFor(localIndex)
 	if err != nil {
 		return err
 	}
 	s.PrevTopology = s.CurrentTopology
 	s.CurrentTopology = &SessionGridTopologyEntry{
-		Topology:       topology,
-		LocalNeighbors: localNeighbors,
-		LocalIndex:     localIndex,
-		SessionIndex:   idx,
+		Topology:        topology,
+		LocalNeighbours: localNeighbours,
+		LocalIndex:      localIndex,
+		SessionIndex:    idx,
 	}
 	return nil
 }
