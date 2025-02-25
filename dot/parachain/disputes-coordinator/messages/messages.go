@@ -22,12 +22,12 @@ type QueryCandidateVotes struct {
 	Response chan []CandidateVotesResponse
 }
 
-type RecentDisputesResponse struct {
+type RecentDispute struct {
 	SessionIndex  parachaintypes.SessionIndex
 	CandidateHash parachaintypes.CandidateHash
 	DisputeStatus parachaintypes.DisputeStatus
 }
 
-type RecentDisputes struct {
-	Response chan []RecentDisputesResponse
+type RecentDisputesResponse struct {
+	Response chan []RecentDispute
 }
