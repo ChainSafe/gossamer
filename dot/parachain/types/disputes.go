@@ -6,7 +6,6 @@ package parachaintypes
 import (
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/tidwall/btree"
 )
@@ -51,10 +50,13 @@ type ValidDisputeStatementKind struct {
 }
 
 type ValidDisputeStatementKindValues interface {
-	ExplicitStatement | BackingSeconded | BackingValid | ApprovalChecking | ApprovalCheckingMultipleCandidates
+	ExplicitStatement | SecondedCandidateHash | Valid | ApprovalChecking | ApprovalCheckingMultipleCandidates
 }
 
-func setValidDisputeStatementKind[Value ValidDisputeStatementKindValues](mvdt *ValidDisputeStatementKind, value Value) {
+func setValidDisputeStatementKind[Value ValidDisputeStatementKindValues](
+	mvdt *ValidDisputeStatementKind,
+	value Value,
+) {
 	mvdt.inner = value
 }
 
@@ -63,10 +65,10 @@ func (mvdt *ValidDisputeStatementKind) SetValue(value any) (err error) {
 	case ExplicitStatement:
 		setValidDisputeStatementKind(mvdt, value)
 		return
-	case BackingSeconded:
+	case SecondedCandidateHash:
 		setValidDisputeStatementKind(mvdt, value)
 		return
-	case BackingValid:
+	case Valid:
 		setValidDisputeStatementKind(mvdt, value)
 		return
 	case ApprovalChecking:
@@ -84,9 +86,9 @@ func (mvdt ValidDisputeStatementKind) IndexValue() (index uint, value any, err e
 	switch mvdt.inner.(type) {
 	case ExplicitStatement:
 		return 0, mvdt.inner, nil
-	case BackingSeconded:
+	case SecondedCandidateHash:
 		return 1, mvdt.inner, nil
-	case BackingValid:
+	case Valid:
 		return 2, mvdt.inner, nil
 	case ApprovalChecking:
 		return 3, mvdt.inner, nil
@@ -106,9 +108,9 @@ func (mvdt ValidDisputeStatementKind) ValueAt(index uint) (value any, err error)
 	case 0:
 		return ExplicitStatement{}, nil
 	case 1:
-		return BackingSeconded{}, nil
+		return SecondedCandidateHash{}, nil
 	case 2:
-		return BackingValid{}, nil
+		return Valid{}, nil
 	case 3:
 		return ApprovalChecking{}, nil
 	case 4:
@@ -117,18 +119,8 @@ func (mvdt ValidDisputeStatementKind) ValueAt(index uint) (value any, err error)
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
-// ExplicitStatement An explicit statement issued as part of a dispute.
+// ExplicitStatement an explicit statement issued as part of a dispute.
 type ExplicitStatement struct{}
-
-// BackingSeconded A seconded statement on a candidate from the backing phase.
-type BackingSeconded struct {
-	Hash common.Hash
-}
-
-// BackingValid A valid statement on a candidate from the backing phase.
-type BackingValid struct {
-	Hash common.Hash
-}
 
 // ApprovalChecking An approval vote from the approval checking phase.
 type ApprovalChecking struct{}
@@ -200,15 +192,21 @@ type Vote[Kind any] struct {
 }
 
 func (cv *CandidateVotes) VotedIndices() (keys btree.Set[ValidatorIndex]) {
-	cv.Valid.Ascend(ValidatorIndex(0), func(k ValidatorIndex, _ Vote[ValidDisputeStatementKind]) bool {
-		keys.Insert(k)
-		return true
-	})
+	cv.Valid.Ascend(
+		ValidatorIndex(0),
+		func(k ValidatorIndex, _ Vote[ValidDisputeStatementKind]) bool {
+			keys.Insert(k)
+			return true
+		},
+	)
 
-	cv.Invalid.Ascend(ValidatorIndex(0), func(k ValidatorIndex, _ Vote[InvalidDisputeStatementKind]) bool {
-		keys.Insert(k)
-		return true
-	})
+	cv.Invalid.Ascend(
+		ValidatorIndex(0),
+		func(k ValidatorIndex, _ Vote[InvalidDisputeStatementKind]) bool {
+			keys.Insert(k)
+			return true
+		},
+	)
 
 	return keys
 }
@@ -232,7 +230,7 @@ func (cv *CandidateVotes) InsertValidVote(
 	}
 
 	switch entryKindVariant.(type) {
-	case BackingValid, BackingSeconded:
+	case Valid, SecondedCandidateHash:
 		return false
 	default:
 		cv.Valid.Set(validatorIndex, Vote[ValidDisputeStatementKind]{Kind: kind, Signature: sig})

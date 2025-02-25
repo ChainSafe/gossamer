@@ -69,7 +69,7 @@ func RequestDisputes(overseerChan chan<- any) ([]messages.RecentDispute, error) 
 	defer cancel()
 
 	responseCh := make(chan []messages.RecentDispute)
-	msg := messages.RecentDisputesResponse{
+	msg := messages.GetRecentDisputes{
 		Response: responseCh,
 	}
 

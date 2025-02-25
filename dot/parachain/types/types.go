@@ -593,7 +593,10 @@ type OccupiedCoreAssumption struct {
 	inner any
 }
 
-func setOccupiedCoreAssumption[Value OccupiedCoreAssumptionValues](mvdt *OccupiedCoreAssumption, value Value) {
+func setOccupiedCoreAssumption[Value OccupiedCoreAssumptionValues](
+	mvdt *OccupiedCoreAssumption,
+	value Value,
+) {
 	mvdt.inner = value
 }
 
@@ -846,7 +849,10 @@ type Validator struct {
 }
 
 // Sign signs the encoded payload with the validator's key.
-func (v Validator) Sign(keystore keystore.Keystore, encodedPayload []byte) (*ValidatorSignature, error) {
+func (v Validator) Sign(
+	keystore keystore.Keystore,
+	encodedPayload []byte,
+) (*ValidatorSignature, error) {
 	buf := bytes.NewBuffer(encodedPayload)
 	encoder := scale.NewEncoder(buf)
 

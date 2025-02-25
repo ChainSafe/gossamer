@@ -19,8 +19,8 @@ func TestValidDisputeStatementKind(t *testing.T) {
 	}
 	expected := []ValidDisputeStatementKind{
 		{inner: ExplicitStatement{}},
-		{inner: BackingSeconded{Hash: common.Hash(bytes.Repeat([]byte{0x01}, 32))}},
-		{inner: BackingValid{Hash: common.Hash(bytes.Repeat([]byte{0x02}, 32))}},
+		{inner: SecondedCandidateHash{Value: common.Hash(bytes.Repeat([]byte{0x01}, 32))}},
+		{inner: Valid{Value: common.Hash(bytes.Repeat([]byte{0x02}, 32))}},
 		{inner: ApprovalChecking{}},
 		{inner: ApprovalCheckingMultipleCandidates{
 			CandidateHashes: []CandidateHash{
@@ -88,12 +88,12 @@ func TestDisputeStatement(t *testing.T) {
 		{inner: ValidDisputeStatement{Kind: ValidDisputeStatementKind{inner: ExplicitStatement{}}}},
 		{inner: ValidDisputeStatement{
 			Kind: ValidDisputeStatementKind{
-				inner: BackingSeconded{Hash: common.Hash(bytes.Repeat([]byte{0x01}, 32))},
+				inner: SecondedCandidateHash{Value: common.Hash(bytes.Repeat([]byte{0x01}, 32))},
 			},
 		}},
 		{inner: ValidDisputeStatement{
 			Kind: ValidDisputeStatementKind{
-				inner: BackingValid{Hash: common.Hash(bytes.Repeat([]byte{0x02}, 32))},
+				inner: Valid{Value: common.Hash(bytes.Repeat([]byte{0x02}, 32))},
 			},
 		}},
 		{inner: ValidDisputeStatement{Kind: ValidDisputeStatementKind{inner: ApprovalChecking{}}}},

@@ -11,8 +11,10 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-const byteSize = 8
-const bitVecMaxLength = 268435455
+const (
+	byteSize        = 8
+	bitVecMaxLength = 268435455
+)
 
 var errBitVecTooLong = fmt.Errorf("bitvec too long")
 
@@ -48,7 +50,7 @@ func (bv *BitVec) bytes() []byte {
 		bits = append(bits, pad...)
 	}
 
-	for i := 0; i < bitLength; i++ {
+	for i := range bitLength {
 		if bits[i] {
 			byteIndex := i / byteSize
 			bitIndex := i % byteSize

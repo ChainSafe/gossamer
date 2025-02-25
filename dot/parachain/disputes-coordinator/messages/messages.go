@@ -30,6 +30,6 @@ type RecentDispute struct {
 	DisputeStatus parachaintypes.DisputeStatus
 }
 
-type RecentDisputesResponse struct {
+type GetRecentDisputes struct {
 	Response chan []RecentDispute
 }
