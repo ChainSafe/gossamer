@@ -257,7 +257,7 @@ func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Has
 		return nil
 	}
 
-	coreIndexNow := validatorGroups.GroupRotationInfo.CoreForGroup(groupIndex, uint8(len(availabilityCores)))
+	coreIndexNow := validatorGroups.GroupRotationInfo.CoreForGroup(groupIndex, uint(len(availabilityCores)))
 	coreNow, err := availabilityCores[coreIndexNow.Index].Value()
 	if err != nil {
 		return fmt.Errorf("getting core now: %w", err)

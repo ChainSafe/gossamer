@@ -106,6 +106,37 @@ func secondedSignedFullStatementWithPVD(
 	}
 }
 
+func claimQueueTestData(t *testing.T) map[parachaintypes.CoreIndex][]parachaintypes.ParaID {
+	t.Helper()
+
+	return map[parachaintypes.CoreIndex][]parachaintypes.ParaID{
+		{Index: 0}: {1},
+		{Index: 1}: {2},
+	}
+}
+
+func validatorToGroupTestData(t *testing.T) map[parachaintypes.ValidatorIndex]parachaintypes.GroupIndex {
+	t.Helper()
+
+	return map[parachaintypes.ValidatorIndex]parachaintypes.GroupIndex{
+		0: 0,
+		1: 1,
+		2: 0,
+		3: 0,
+		5: 0,
+	}
+}
+
+func groupRotationInfoTestData(t *testing.T) parachaintypes.GroupRotationInfo {
+	t.Helper()
+
+	return parachaintypes.GroupRotationInfo{
+		SessionStartBlock:      0,
+		GroupRotationFrequency: 100,
+		Now:                    1,
+	}
+}
+
 func TestImportStatement(t *testing.T) {
 	t.Parallel()
 
@@ -143,7 +174,11 @@ func TestImportStatement(t *testing.T) {
 				).Return(new(Summary), nil)
 
 				return perRelayParentState{
-					table: mockTable,
+					table:             mockTable,
+					numOfCores:        2,
+					claimQueue:        claimQueueTestData(t),
+					validatorToGroup:  validatorToGroupTestData(t),
+					groupRotationInfo: groupRotationInfoTestData(t),
 				}
 			},
 			signedStatementWithPVD: parachaintypes.SignedFullStatementWithPVD{
@@ -166,7 +201,11 @@ func TestImportStatement(t *testing.T) {
 				).Return(new(Summary), nil)
 
 				return perRelayParentState{
-					table: mockTable,
+					table:             mockTable,
+					numOfCores:        2,
+					claimQueue:        claimQueueTestData(t),
+					validatorToGroup:  validatorToGroupTestData(t),
+					groupRotationInfo: groupRotationInfoTestData(t),
 				}
 			},
 			perCandidate: map[parachaintypes.CandidateHash]*perCandidateState{
@@ -196,7 +235,11 @@ func TestImportStatement(t *testing.T) {
 				).Return(new(Summary), nil)
 
 				return perRelayParentState{
-					table: mockTable,
+					table:             mockTable,
+					numOfCores:        2,
+					claimQueue:        claimQueueTestData(t),
+					validatorToGroup:  validatorToGroupTestData(t),
+					groupRotationInfo: groupRotationInfoTestData(t),
 				}
 			},
 			perCandidate:           map[parachaintypes.CandidateHash]*perCandidateState{},
@@ -800,7 +843,11 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
-						table: mockTable,
+						table:             mockTable,
+						numOfCores:        2,
+						claimQueue:        claimQueueTestData(t),
+						validatorToGroup:  validatorToGroupTestData(t),
+						groupRotationInfo: groupRotationInfoTestData(t),
 					},
 				}
 			},
@@ -839,7 +886,11 @@ func TestHandleStatementMessage(t *testing.T) {
 						fallbacks: map[parachaintypes.CandidateHash]attestingData{
 							candidateHash: {},
 						},
-						tableContext: dummyTableContext(t),
+						tableContext:      dummyTableContext(t),
+						numOfCores:        2,
+						claimQueue:        claimQueueTestData(t),
+						validatorToGroup:  validatorToGroupTestData(t),
+						groupRotationInfo: groupRotationInfoTestData(t),
 					},
 				}
 			},
@@ -874,10 +925,14 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
-						assignedCore: &parachaintypes.CoreIndex{Index: 4},
-						table:        mockTable,
-						backed:       map[parachaintypes.CandidateHash]bool{},
-						fallbacks:    map[parachaintypes.CandidateHash]attestingData{},
+						assignedCore:      &parachaintypes.CoreIndex{Index: 4},
+						table:             mockTable,
+						backed:            map[parachaintypes.CandidateHash]bool{},
+						fallbacks:         map[parachaintypes.CandidateHash]attestingData{},
+						numOfCores:        2,
+						claimQueue:        claimQueueTestData(t),
+						validatorToGroup:  validatorToGroupTestData(t),
+						groupRotationInfo: groupRotationInfoTestData(t),
 					},
 				}
 			},
@@ -919,6 +974,10 @@ func TestHandleStatementMessage(t *testing.T) {
 						fallbacks: map[parachaintypes.CandidateHash]attestingData{
 							candidateHash: {},
 						},
+						numOfCores:        2,
+						claimQueue:        claimQueueTestData(t),
+						validatorToGroup:  validatorToGroupTestData(t),
+						groupRotationInfo: groupRotationInfoTestData(t),
 					},
 				}
 			},
@@ -964,6 +1023,10 @@ func TestHandleStatementMessage(t *testing.T) {
 						awaitingValidation: map[parachaintypes.CandidateHash]bool{
 							candidateHash: true,
 						},
+						numOfCores:        2,
+						claimQueue:        claimQueueTestData(t),
+						validatorToGroup:  validatorToGroupTestData(t),
+						groupRotationInfo: groupRotationInfoTestData(t),
 					},
 				}
 			},
@@ -1012,6 +1075,10 @@ func TestHandleStatementMessage(t *testing.T) {
 						issuedStatements: map[parachaintypes.CandidateHash]bool{
 							candidateHash: true,
 						},
+						numOfCores:        2,
+						claimQueue:        claimQueueTestData(t),
+						validatorToGroup:  validatorToGroupTestData(t),
+						groupRotationInfo: groupRotationInfoTestData(t),
 					},
 				}
 			},
@@ -1066,6 +1133,10 @@ func TestHandleStatementMessage(t *testing.T) {
 						issuedStatements: map[parachaintypes.CandidateHash]bool{
 							candidateHash: true,
 						},
+						numOfCores:        2,
+						claimQueue:        claimQueueTestData(t),
+						validatorToGroup:  validatorToGroupTestData(t),
+						groupRotationInfo: groupRotationInfoTestData(t),
 					},
 				}
 			},
@@ -1108,6 +1179,10 @@ func TestHandleStatementMessage(t *testing.T) {
 						issuedStatements: map[parachaintypes.CandidateHash]bool{
 							candidateHash: true,
 						},
+						numOfCores:        2,
+						claimQueue:        claimQueueTestData(t),
+						validatorToGroup:  validatorToGroupTestData(t),
+						groupRotationInfo: groupRotationInfoTestData(t),
 					},
 				}
 
