@@ -9,7 +9,7 @@ import (
 
 // handleGetBackableCandidatesMessage returns backable candidates of multiple parachains
 func (cb *CandidateBacking) handleGetBackableCandidatesMessage(
-	requestedCandidates map[parachaintypes.ParaID][]*CandidateHashAndRelayParent,
+	requestedCandidates map[parachaintypes.ParaID][]*parachaintypes.CandidateHashAndRelayParent,
 ) map[parachaintypes.ParaID][]*parachaintypes.BackedCandidate {
 	paraIdTobackableCandidates := make(map[parachaintypes.ParaID][]*parachaintypes.BackedCandidate)
 
@@ -24,12 +24,12 @@ func (cb *CandidateBacking) handleGetBackableCandidatesMessage(
 }
 
 // getBackableCandidatesOfAParachain returns backable candidates of a parachain
-func (cb *CandidateBacking) getBackableCandidatesOfAParachain(candidateAndRelayParentPairs []*CandidateHashAndRelayParent,
+func (cb *CandidateBacking) getBackableCandidatesOfAParachain(candidateAndRelayParentPairs []*parachaintypes.CandidateHashAndRelayParent,
 ) []*parachaintypes.BackedCandidate {
 	backableCandidates := make([]*parachaintypes.BackedCandidate, 0, len(candidateAndRelayParentPairs))
 
 	for _, candidateAndRelayParent := range candidateAndRelayParentPairs {
-		rpState, ok := cb.perRelayParent[candidateAndRelayParent.RelayParent]
+		rpState, ok := cb.perRelayParent[candidateAndRelayParent.CandidateRelayParent]
 		if !ok {
 			logger.Debug("requested candidate's relay parent is out of view")
 			break

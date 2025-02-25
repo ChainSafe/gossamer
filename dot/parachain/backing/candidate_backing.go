@@ -149,13 +149,8 @@ func (v validator) sign(keystore keystore.Keystore, payload parachaintypes.State
 // So, If a backable candidate of a parachain cannot be retrieved,
 // the response should not contain any candidates of the same parachain that follow it in the input slice.
 type GetBackableCandidatesMessage struct {
-	Candidates map[parachaintypes.ParaID][]*CandidateHashAndRelayParent
+	Candidates map[parachaintypes.ParaID][]*parachaintypes.CandidateHashAndRelayParent
 	ResCh      chan map[parachaintypes.ParaID][]*parachaintypes.BackedCandidate
-}
-
-type CandidateHashAndRelayParent struct {
-	CandidateHash parachaintypes.CandidateHash
-	RelayParent   common.Hash
 }
 
 // CanSecondMessage is a request made to the candidate backing subsystem to determine whether it is permissible
