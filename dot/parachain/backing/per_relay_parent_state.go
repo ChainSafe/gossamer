@@ -180,8 +180,7 @@ type perRelayParentState struct {
 	numOfCores uint32
 	// Claim queue state. If the runtime API is not available, it'll be populated with info from
 	// availability cores.
-	// claimQueue parachaintypes.ClaimQueue
-	claimQueue map[parachaintypes.CoreIndex][]parachaintypes.ParaID
+	claimQueue parachaintypes.ClaimQueue
 	// The validator index -> group mapping at this relay parent.
 	validatorToGroup map[parachaintypes.ValidatorIndex]parachaintypes.GroupIndex
 	// The associated group rotation information.
