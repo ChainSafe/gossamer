@@ -781,6 +781,16 @@ type Subsystem interface {
 	Stop()
 }
 
+// NodeFeatureIndex represents the index of a feature in a bitvector of node features fetched from runtime.
+type NodeFeatureIndex byte
+
+// This feature enables the extension of `BackedCandidate.ValidatorIndices` by 8 bits.
+// The value stored there represents the assumed core index where the candidates
+// are backed. This is needed for the elastic scaling MVP.
+const ElasticScalingMVP NodeFeatureIndex = 1
+
+type ClaimQueue map[CoreIndex][]ParaID
+
 // Present is a variant of UpgradeRestriction enumerator that signals
 // a upgrade restriction is present and there are no details about its
 // specifics nor how long it could last
@@ -867,6 +877,7 @@ type Validator struct {
 	SigningContext SigningContext
 	Key            ValidatorID
 	Index          ValidatorIndex
+	Disabled       bool
 }
 
 // Sign signs the encoded payload with the validator's key.

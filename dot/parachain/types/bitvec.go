@@ -21,6 +21,14 @@ type BitVec struct {
 	bits []bool
 }
 
+// Get returns the bit at the given index
+func (bv *BitVec) Get(index uint) (bool, error) {
+	if index >= uint(len(bv.bits)) {
+		return false, fmt.Errorf("index out of range")
+	}
+	return bv.bits[index], nil
+}
+
 // NewBitVec returns a new BitVec with the given bits
 // This isn't a complete implementation of the bit vector
 // It is only used for ParachainHost runtime exports

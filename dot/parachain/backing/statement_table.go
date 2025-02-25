@@ -23,7 +23,6 @@ type statementTable struct {
 	authorityData        map[parachaintypes.ValidatorIndex][]proposal
 	detectedMisbehaviour map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour
 	candidateVotes       map[parachaintypes.CandidateHash]*candidateData
-	config               tableConfig
 }
 
 type proposal struct {
@@ -32,7 +31,7 @@ type proposal struct {
 }
 
 type candidateData struct {
-	groupID       parachaintypes.ParaID
+	groupID       parachaintypes.GroupIndex
 	candidate     parachaintypes.CommittedCandidateReceipt
 	validityVotes map[parachaintypes.ValidatorIndex]validityVoteWithSign
 }
@@ -122,7 +121,8 @@ func (table *statementTable) getCommittedCandidateReceipt(candidateHash parachai
 
 // importStatement imports a statement into the table.
 func (table *statementTable) importStatement(
-	tableCtx *tableContext, signedStatement parachaintypes.SignedFullStatement,
+	tableCtx *tableContext, groupID parachaintypes.GroupIndex,
+	signedStatement parachaintypes.SignedFullStatement,
 ) (*Summary, error) {
 	var summary *Summary
 	var misbehaviour parachaintypes.Misbehaviour
@@ -139,6 +139,7 @@ func (table *statementTable) importStatement(
 			parachaintypes.CommittedCandidateReceipt(statementVDT),
 			signedStatement.Signature,
 			tableCtx,
+			groupID,
 		)
 	case parachaintypes.Valid:
 		summary, misbehaviour, err = table.validityVote(
@@ -179,13 +180,11 @@ func (table *statementTable) importCandidate(
 	candidate parachaintypes.CommittedCandidateReceipt,
 	signature parachaintypes.ValidatorSignature,
 	tableCtx *tableContext,
+	group parachaintypes.GroupIndex,
 ) (*Summary, parachaintypes.Misbehaviour, error) {
-	paraID := candidate.Descriptor.ParaID
-
-	if !tableCtx.isMemberOf(authority, paraID) {
+	if !tableCtx.isMemberOf(authority, parachaintypes.CoreIndex{Index: uint32(group)}) {
 		statementSeconded := parachaintypes.NewStatementVDT()
-		err := statementSeconded.SetValue(parachaintypes.Seconded(candidate))
-		if err != nil {
+		if err := statementSeconded.SetValue(parachaintypes.Seconded(candidate)); err != nil {
 			return nil, nil, fmt.Errorf("setting seconded statement: %w", err)
 		}
 
@@ -205,50 +204,24 @@ func (table *statementTable) importCandidate(
 
 	proposals, ok := table.authorityData[authority]
 	if !ok {
+		// Add the new proposal to the authorityData and update the candidateVotes in the statement table.
 		table.authorityData[authority] = []proposal{{candidateHash, signature}}
-		table.addCandidateVote(candidateHash, paraID, candidate)
+		table.addCandidateVote(candidateHash, group, candidate)
 
 		return table.validityVote(authority, candidateHash,
 			validityVoteWithSign{validityVote: issued, signature: signature}, tableCtx)
 	}
 
-	switch {
-	case !table.config.allowMultipleSeconded && len(proposals) == 1:
-		oldCandidateHash := proposals[0].candidateHash
-		oldSignature := proposals[0].signature
-
-		// if digest is different, fetch candidate and note misbehaviour.
-		if oldCandidateHash != candidateHash {
-			data, ok := table.candidateVotes[oldCandidateHash]
-			if !ok {
-				// when proposal first received from authority, candidate votes entry is created.
-				// and here proposals is not empty, so candidate votes entry should be present.
-				// So, this should never happen.
-				panic(fmt.Sprintf("%s for candidate-hash: %s", errCandidateDataNotFound, oldCandidateHash))
-			}
-
-			oldCandidate := data.candidate
-
-			misbehaviour := parachaintypes.MultipleCandidates{
-				First: parachaintypes.CommittedCandidateReceiptAndSign{
-					CommittedCandidateReceipt: oldCandidate,
-					Signature:                 oldSignature,
-				},
-				Second: parachaintypes.CommittedCandidateReceiptAndSign{
-					CommittedCandidateReceipt: candidate,
-					Signature:                 signature,
-				},
-			}
-			return nil, misbehaviour, nil
-		}
-	case table.config.allowMultipleSeconded && isCandidateAlreadyProposed(proposals, candidateHash):
-		// nothing to do here.
-	default:
-		proposals = append(proposals, proposal{candidateHash, signature})
-		table.authorityData[authority] = proposals
-
-		table.addCandidateVote(candidateHash, paraID, candidate)
+	if isCandidateAlreadyProposed(proposals, candidateHash) {
+		return table.validityVote(authority, candidateHash,
+			validityVoteWithSign{validityVote: issued, signature: signature}, tableCtx)
 	}
+
+	// Add the new proposal to the authorityData and update the candidateVotes in the statement table.
+	proposals = append(proposals, proposal{candidateHash: candidateHash, signature: signature})
+	table.authorityData[authority] = proposals
+
+	table.addCandidateVote(candidateHash, group, candidate)
 
 	return table.validityVote(authority, candidateHash,
 		validityVoteWithSign{validityVote: issued, signature: signature}, tableCtx)
@@ -256,11 +229,11 @@ func (table *statementTable) importCandidate(
 
 func (table *statementTable) addCandidateVote(
 	candidateHash parachaintypes.CandidateHash,
-	paraID parachaintypes.ParaID,
+	groupID parachaintypes.GroupIndex,
 	candidate parachaintypes.CommittedCandidateReceipt,
 ) {
 	table.candidateVotes[candidateHash] = &candidateData{
-		groupID:       paraID,
+		groupID:       groupID,
 		candidate:     candidate,
 		validityVotes: make(map[parachaintypes.ValidatorIndex]validityVoteWithSign),
 	}
@@ -278,27 +251,28 @@ func (table *statementTable) validityVote(
 	}
 
 	// check that this authority actually can vote in this group.
-	if !tableCtx.isMemberOf(from, data.groupID) {
+	if !tableCtx.isMemberOf(from, parachaintypes.CoreIndex{Index: uint32(data.groupID)}) {
+		var sig parachaintypes.ValidatorSignature
 		switch voteWithSign.validityVote {
 		case valid:
-			validStatement := parachaintypes.NewStatementVDT()
-			err := validStatement.SetValue(parachaintypes.Valid(candidateHash))
-			if err != nil {
-				return nil, nil, fmt.Errorf("setting valid statement: %w", err)
-			}
-
-			misbehaviour := parachaintypes.UnauthorizedStatement{
-				Payload:        validStatement,
-				ValidatorIndex: from,
-				Signature:      voteWithSign.signature,
-			}
-
-			return nil, misbehaviour, nil
+			sig = voteWithSign.signature
 		case issued:
-			panic("implicit issuance vote must only cast from `importCandidate` after checking group membership of issuer.")
-		default:
-			return nil, nil, fmt.Errorf("%w: %d", errUnknownValidityVote, voteWithSign.validityVote)
+			sig = voteWithSign.signature
 		}
+
+		validStatement := parachaintypes.NewStatementVDT()
+		err := validStatement.SetValue(parachaintypes.Valid(candidateHash))
+		if err != nil {
+			return nil, nil, fmt.Errorf("setting valid statement: %w", err)
+		}
+
+		misbehaviour := parachaintypes.UnauthorizedStatement{
+			Payload:        validStatement,
+			ValidatorIndex: from,
+			Signature:      sig,
+		}
+
+		return nil, misbehaviour, nil
 	}
 
 	existingVoteWithSign, ok := data.validityVotes[from]
@@ -360,7 +334,7 @@ func (table *statementTable) attestedCandidate(
 	}
 
 	var validityThreshold uint
-	group, ok := tableCtx.groups[data.groupID]
+	group, ok := tableCtx.groups[parachaintypes.CoreIndex{Index: uint32(data.groupID)}]
 	if ok {
 		// size of the backing group.
 		groupLen := uint(len(group))
@@ -388,17 +362,16 @@ func (table *statementTable) drainMisbehaviors() map[parachaintypes.ValidatorInd
 
 type Table interface {
 	getCommittedCandidateReceipt(parachaintypes.CandidateHash) (parachaintypes.CommittedCandidateReceipt, error)
-	importStatement(*tableContext, parachaintypes.SignedFullStatement) (*Summary, error)
+	importStatement(*tableContext, parachaintypes.GroupIndex, parachaintypes.SignedFullStatement) (*Summary, error)
 	attestedCandidate(parachaintypes.CandidateHash, *tableContext, uint32) (*attestedCandidate, error)
 	drainMisbehaviors() map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour
 }
 
-func newTable(config tableConfig) *statementTable {
+func newTable() *statementTable {
 	return &statementTable{
 		authorityData:        make(map[parachaintypes.ValidatorIndex][]proposal),
 		detectedMisbehaviour: make(map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour),
 		candidateVotes:       make(map[parachaintypes.CandidateHash]*candidateData),
-		config:               config,
 	}
 }
 
@@ -407,7 +380,7 @@ type Summary struct {
 	// The digest of the candidate referenced.
 	Candidate parachaintypes.CandidateHash
 	// The group that the candidate is in.
-	GroupID parachaintypes.ParaID
+	GroupID parachaintypes.GroupIndex
 	// How many validity votes are currently witnessed.
 	ValidityVotes uint
 }
@@ -415,7 +388,7 @@ type Summary struct {
 // attestedCandidate represents an attested-to candidate.
 type attestedCandidate struct {
 	// The group ID that the candidate is in.
-	groupID parachaintypes.ParaID
+	groupID parachaintypes.GroupIndex
 	// The committedCandidateReceipt data.
 	committedCandidateReceipt parachaintypes.CommittedCandidateReceipt
 	// Validity attestations.
@@ -428,7 +401,7 @@ func (attested *attestedCandidate) toBackedCandidate(tableCtx *tableContext) (*p
 	}
 
 	// Retrieve the group from tableContext
-	group, ok := tableCtx.groups[attested.groupID]
+	group, ok := tableCtx.groups[parachaintypes.CoreIndex{Index: uint32(attested.groupID)}]
 	if !ok {
 		return nil, fmt.Errorf("validator group not found for the group-id: %d", attested.groupID)
 	}
@@ -474,12 +447,4 @@ func (attested *attestedCandidate) toBackedCandidate(tableCtx *tableContext) (*p
 type validatorIndexWithAttestation struct {
 	validatorIndex      parachaintypes.ValidatorIndex
 	validityAttestation parachaintypes.ValidityAttestation
-}
-
-// Table configuration.
-type tableConfig struct {
-	// When this is true, the table will allow multiple seconded candidates
-	// per authority. This flag means that higher-level code is responsible for
-	// bounding the number of candidates.
-	allowMultipleSeconded bool
 }
