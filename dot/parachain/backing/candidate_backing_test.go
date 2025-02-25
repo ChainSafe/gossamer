@@ -259,8 +259,8 @@ func dummyTableContext(t *testing.T) tableContext {
 	t.Helper()
 
 	return tableContext{
-		validator: &validator{
-			index: 1,
+		validator: &parachaintypes.Validator{
+			Index: 1,
 		},
 		groups: map[parachaintypes.CoreIndex][]parachaintypes.ValidatorIndex{
 			{Index: 1}: {1, 2, 3},

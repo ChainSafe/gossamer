@@ -561,15 +561,17 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	err = statementSeconded.SetValue(parachaintypes.Seconded(candidate))
 	require.NoError(t, err)
 
-	statementSecondedSign, err := statementSeconded.Sign(candidateBacking.Keystore, signingContext, paraValidators[2])
+	val := parachaintypes.Validator{
+		SigningContext: signingContext,
+		Key:            paraValidators[2],
+		Index:          2,
+	}
+
+	signedStatement, err := statementSeconded.Sign(val, candidateBacking.Keystore)
 	require.NoError(t, err)
 
-	signedStatementSeconded := parachaintypes.SignedFullStatementWithPVD{
-		SignedFullStatement: parachaintypes.SignedFullStatement{
-			Payload:        statementSeconded,
-			ValidatorIndex: 2,
-			Signature:      *statementSecondedSign,
-		},
+	signedStatementWithPVD := parachaintypes.SignedFullStatementWithPVD{
+		SignedFullStatement:     *signedStatement,
 		PersistedValidationData: &pvd,
 	}
 
@@ -605,7 +607,7 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	// receive statement message from overseer to candidate backing subsystem containing seconded statement
 	overseer.ReceiveMessage(backing.StatementMessage{
 		RelayParent:         relayParent,
-		SignedFullStatement: signedStatementSeconded,
+		SignedFullStatement: signedStatementWithPVD,
 	})
 
 	time.Sleep(1 * time.Second)
@@ -636,15 +638,17 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	err = statementValid.SetValue(parachaintypes.Valid(candidateHash))
 	require.NoError(t, err)
 
-	statementValidSign, err := statementValid.Sign(candidateBacking.Keystore, signingContext, paraValidators[5])
+	val = parachaintypes.Validator{
+		SigningContext: signingContext,
+		Key:            paraValidators[5],
+		Index:          5,
+	}
+
+	signedStatement, err = statementValid.Sign(val, candidateBacking.Keystore)
 	require.NoError(t, err)
 
 	signedStatementValid := parachaintypes.SignedFullStatementWithPVD{
-		SignedFullStatement: parachaintypes.SignedFullStatement{
-			Payload:        statementValid,
-			ValidatorIndex: 5,
-			Signature:      *statementValidSign,
-		},
+		SignedFullStatement: *signedStatement,
 	}
 
 	// receive statement message from overseer to candidate backing subsystem containing valid statement
@@ -764,15 +768,17 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 	err = statementSeconded.SetValue(parachaintypes.Seconded(candidate))
 	require.NoError(t, err)
 
-	statementSecondedSign, err := statementSeconded.Sign(candidateBacking.Keystore, signingContext, paraValidators[2])
+	val := parachaintypes.Validator{
+		SigningContext: signingContext,
+		Key:            paraValidators[2],
+		Index:          2,
+	}
+
+	signedStatement, err := statementSeconded.Sign(val, candidateBacking.Keystore)
 	require.NoError(t, err)
 
-	signedStatementSeconded := parachaintypes.SignedFullStatementWithPVD{
-		SignedFullStatement: parachaintypes.SignedFullStatement{
-			Payload:        statementSeconded,
-			ValidatorIndex: 2,
-			Signature:      *statementSecondedSign,
-		},
+	statementWithPVD := parachaintypes.SignedFullStatementWithPVD{
+		SignedFullStatement:     *signedStatement,
 		PersistedValidationData: &pvd,
 	}
 
@@ -803,7 +809,7 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 	// receive statement message from overseer to candidate backing subsystem containing seconded statement
 	overseer.ReceiveMessage(backing.StatementMessage{
 		RelayParent:         relayParent,
-		SignedFullStatement: signedStatementSeconded,
+		SignedFullStatement: statementWithPVD,
 	})
 
 	time.Sleep(1 * time.Second)
@@ -1213,15 +1219,17 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 	err = statementSeconded.SetValue(parachaintypes.Seconded(candidate))
 	require.NoError(t, err)
 
-	statementSecondedSign, err := statementSeconded.Sign(candidateBacking.Keystore, signingContext, paraValidators[2])
+	val := parachaintypes.Validator{
+		SigningContext: signingContext,
+		Key:            paraValidators[2],
+		Index:          2,
+	}
+
+	signedStatement, err := statementSeconded.Sign(val, candidateBacking.Keystore)
 	require.NoError(t, err)
 
 	signedStatementSeconded := parachaintypes.SignedFullStatementWithPVD{
-		SignedFullStatement: parachaintypes.SignedFullStatement{
-			Payload:        statementSeconded,
-			ValidatorIndex: 2,
-			Signature:      *statementSecondedSign,
-		},
+		SignedFullStatement:     *signedStatement,
 		PersistedValidationData: &pvd,
 	}
 
@@ -1262,15 +1270,11 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 	err = statementValid.SetValue(parachaintypes.Valid(candidateHash))
 	require.NoError(t, err)
 
-	statementValidSign, err := statementValid.Sign(candidateBacking.Keystore, signingContext, paraValidators[2])
+	signedStatement, err = statementValid.Sign(val, candidateBacking.Keystore)
 	require.NoError(t, err)
 
-	signedStatementValid := parachaintypes.SignedFullStatementWithPVD{
-		SignedFullStatement: parachaintypes.SignedFullStatement{
-			Payload:        statementValid,
-			ValidatorIndex: 2,
-			Signature:      *statementValidSign,
-		},
+	statementWithPVD := parachaintypes.SignedFullStatementWithPVD{
+		SignedFullStatement: *signedStatement,
 	}
 
 	reportMisbehavior := func(msg any) bool {
@@ -1293,7 +1297,13 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 			parachaintypes.Seconded(doubleVote.CommittedCandidateReceiptAndSign.CommittedCandidateReceipt))
 		require.NoError(t, err)
 
-		ok, err = statementSeconded.VerifySignature(paraValidators[2], signingContext, signForSeconded)
+		validator := parachaintypes.Validator{
+			SigningContext: signingContext,
+			Key:            paraValidators[2],
+			Index:          2,
+		}
+
+		ok, err = statementSeconded.VerifySignature(validator, signForSeconded)
 		require.NoError(t, err)
 		require.True(t, ok)
 
@@ -1302,7 +1312,7 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 		err = statementValid.SetValue(parachaintypes.Valid(doubleVote.CandidateHashAndSign.CandidateHash))
 		require.NoError(t, err)
 
-		ok, err = statementValid.VerifySignature(paraValidators[2], signingContext, signForValid)
+		ok, err = statementValid.VerifySignature(validator, signForValid)
 		require.NoError(t, err)
 		require.True(t, ok)
 
@@ -1315,7 +1325,7 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 	// this candidate is already seconded by the same validator So, it is a misbehaviour for conflicting statements.
 	overseer.ReceiveMessage(backing.StatementMessage{
 		RelayParent:         relayParent,
-		SignedFullStatement: signedStatementValid,
+		SignedFullStatement: statementWithPVD,
 	})
 	time.Sleep(1 * time.Second)
 }

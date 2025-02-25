@@ -83,16 +83,16 @@ func (cb *CandidateBacking) constructPerRelayParentState(relayParent common.Hash
 		ParentHash:   relayParent,
 	}
 
-	var localValidator *validator
+	var localValidator *parachaintypes.Validator
 
 	validatorID, validatorIndex := parachainutil.SigningKeyAndIndex(validators, cb.Keystore)
 	if validatorID != nil {
 		//  local node is a validator
-		localValidator = &validator{
-			signingContext: signingContext,
-			key:            *validatorID,
-			index:          validatorIndex,
-			disabled:       slices.Contains(disabledValidators, validatorIndex),
+		localValidator = &parachaintypes.Validator{
+			SigningContext: signingContext,
+			Key:            *validatorID,
+			Index:          validatorIndex,
+			Disabled:       slices.Contains(disabledValidators, validatorIndex),
 		}
 	}
 
@@ -111,7 +111,7 @@ func (cb *CandidateBacking) constructPerRelayParentState(relayParent common.Hash
 		groupIndex := validatorGroups.GroupRotationInfo.GroupForCore(coreIndex, uint(numOfCores))
 		if uint32(groupIndex) < numOfCores {
 			validatorsOfGroup := validatorGroups.Validators[groupIndex]
-			if localValidator != nil && slices.Contains(validatorsOfGroup, localValidator.index) {
+			if localValidator != nil && slices.Contains(validatorsOfGroup, localValidator.Index) {
 				assignedCore = coreIndex
 			}
 			groups[coreIndex] = validatorsOfGroup

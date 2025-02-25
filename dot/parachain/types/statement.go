@@ -9,7 +9,6 @@ import (
 	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -84,29 +83,6 @@ type Seconded CommittedCandidateReceipt
 // Valid represents a statement that a validator has deemed a candidate valid.
 type Valid CandidateHash
 
-// encodeSignData encodes the statement and signing context into a byte slice.
-func encodeSignData(statement StatementVDT, signingContext SigningContext) ([]byte, error) {
-	buffer := bytes.NewBuffer(nil)
-	encoder := scale.NewEncoder(buffer)
-
-	compact, err := statement.CompactStatement()
-	if err != nil {
-		return nil, fmt.Errorf("getting compact statement: %w", err)
-	}
-
-	err = encoder.Encode(compact)
-	if err != nil {
-		return nil, fmt.Errorf("encoding compact statement: %w", err)
-	}
-
-	err = encoder.Encode(signingContext)
-	if err != nil {
-		return nil, fmt.Errorf("encoding signing context: %w", err)
-	}
-
-	return buffer.Bytes(), nil
-}
-
 // CompactStatement returns a compact representation of the statement.
 func (s StatementVDT) CompactStatement() (any, error) {
 	switch s := s.inner.(type) {
@@ -123,48 +99,47 @@ func (s StatementVDT) CompactStatement() (any, error) {
 }
 
 func (s *StatementVDT) Sign(
+	validator Validator,
 	keystore keystore.Keystore,
-	signingContext SigningContext,
-	key ValidatorID,
-) (*ValidatorSignature, error) {
-	data, err := encodeSignData(*s, signingContext)
+) (*SignedFullStatement, error) {
+	compact, err := s.CompactStatement()
 	if err != nil {
-		return nil, fmt.Errorf("encoding data to sign: %w", err)
+		return nil, fmt.Errorf("getting compact statement: %w", err)
 	}
 
-	validatorPublicKey, err := sr25519.NewPublicKey(key[:])
+	bytes, err := scale.Marshal(compact)
 	if err != nil {
-		return nil, fmt.Errorf("getting public key: %w", err)
+		return nil, fmt.Errorf("marshalling statementVDT: %w", err)
 	}
 
-	signatureBytes, err := keystore.GetKeypair(validatorPublicKey).Sign(data)
+	valSign, err := validator.Sign(keystore, bytes)
 	if err != nil {
-		return nil, fmt.Errorf("signing data: %w", err)
+		return nil, fmt.Errorf("signing encoded statementVDT: %w", err)
 	}
 
-	var signature Signature
-	copy(signature[:], signatureBytes)
-	valSign := ValidatorSignature(signature)
-	return &valSign, nil
+	return &SignedFullStatement{
+		Payload:        *s,
+		ValidatorIndex: validator.Index,
+		Signature:      *valSign,
+	}, nil
 }
 
 // VerifySignature verifies the validator signature for the statement.
 func (s *StatementVDT) VerifySignature(
-	validator ValidatorID,
-	signingContext SigningContext,
+	validator Validator,
 	validatorSignature ValidatorSignature,
 ) (bool, error) {
-	data, err := encodeSignData(*s, signingContext)
+	compact, err := s.CompactStatement()
 	if err != nil {
-		return false, fmt.Errorf("encoding signed data: %w", err)
+		return false, fmt.Errorf("getting compact statement: %w", err)
 	}
 
-	publicKey, err := sr25519.NewPublicKey(validator[:])
+	bytes, err := scale.Marshal(compact)
 	if err != nil {
-		return false, fmt.Errorf("getting public key: %w", err)
+		return false, fmt.Errorf("marshalling statementVDT: %w", err)
 	}
 
-	return publicKey.Verify(data, validatorSignature[:])
+	return validator.VerifySignature(bytes, validatorSignature)
 }
 
 // UncheckedSignedFullStatement is a Variant of `SignedFullStatement` where the signature has not yet been verified.
