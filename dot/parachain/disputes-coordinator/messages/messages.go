@@ -3,7 +3,9 @@
 
 package messages
 
-import parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+import (
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+)
 
 // DisputesCoordinatorMessage Messages sent to the Prospective Parachains subsystem.
 type DisputesCoordinatorMessage interface {
