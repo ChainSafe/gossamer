@@ -216,7 +216,7 @@ type MatrixNeighbors struct {
 // 9 10
 //
 // and for index 10, the neighbors would be 1, 4, 7, 9
-func CalculateMatrixNeighbors(valIndex, length uint) (*MatrixNeighbors, error) {
+func calculateMatrixNeighbors(valIndex, length uint) (*MatrixNeighbors, error) {
 	if valIndex >= length {
 		return nil, fmt.Errorf("grid topology malformed: valIndex %d is greater than length %d",
 			valIndex,
