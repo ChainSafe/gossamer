@@ -48,6 +48,9 @@ var parachainsHostParaBackingState string
 //go:embed testdata/parachains_configuration_v1171.yaml
 var parachainsConfigV1171TestDataRaw string
 
+//go:embed testdata/parachains_host_disputes.yaml
+var parachainHostDisputes string
+
 type Storage struct {
 	Name  string `yaml:"name"`
 	Key   string `yaml:"key"`
@@ -1849,6 +1852,49 @@ func TestInstance_ParachainHostParaBackingState(t *testing.T) {
 	}
 
 	require.Equal(t, expectedBackingState, backingState)
+}
+
+func TestInstance_ParachainHostDisputes(t *testing.T) {
+	t.Parallel()
+	var disputesStateData Data
+	err := yaml.Unmarshal([]byte(parachainHostDisputes), &disputesStateData)
+	require.NoError(t, err)
+
+	tt := getParachainHostTrie(t, disputesStateData.Storage)
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1017001, TestWithTrie(tt))
+
+	disputes, err := rt.ParachainHostDisputes()
+	require.NoError(t, err)
+
+	concludedAt := parachaintypes.BlockNumber(25)
+	expected := map[parachaintypes.DisputeKey]parachaintypes.DisputeState{
+		{
+			SessionIndex: parachaintypes.SessionIndex(10),
+			CandidateHash: parachaintypes.CandidateHash{
+				Value: common.MustHexToHash("0x59558a80dfcf74536b9f6fcba7416490211b22f29cc750a8bcb4993ea53cf347"),
+			},
+		}: {
+			ValidatorsFor: parachaintypes.NewBitVec(
+				[]bool{false, true, false, true, false, true, false, true, false, false, false, false}),
+			ValidatorsAgainst: parachaintypes.NewBitVec(
+				[]bool{false, true, false, true, false, true, false, true, false, false, false, false}),
+			Start:       parachaintypes.BlockNumber(10),
+			ConcludedAt: nil,
+		},
+		{
+			SessionIndex: parachaintypes.SessionIndex(10),
+			CandidateHash: parachaintypes.CandidateHash{
+				Value: common.MustHexToHash("0x59558a80dfcf74536b9f6fcba7416490211b22f29cc750a8bcb4993ea53cf388"),
+			},
+		}: {
+			ValidatorsFor:     parachaintypes.NewBitVec([]bool{false}),
+			ValidatorsAgainst: parachaintypes.NewBitVec([]bool{true}),
+			Start:             parachaintypes.BlockNumber(15),
+			ConcludedAt:       &concludedAt,
+		},
+	}
+
+	require.Equal(t, expected, disputes)
 }
 
 func getParachainHostTrie(t *testing.T, testDataStorage []Storage) *inmemory_trie.InMemoryTrie {

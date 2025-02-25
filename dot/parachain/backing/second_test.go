@@ -42,8 +42,8 @@ func TestHandleSecondMessage(t *testing.T) {
 					getDummyHash(t, 6): {
 						assignedCore: &parachaintypes.CoreIndex{Index: 10},
 						tableContext: tableContext{
-							validator: &validator{
-								disabled: false,
+							validator: &parachaintypes.Validator{
+								Disabled: false,
 							},
 						},
 						claimQueue: map[parachaintypes.CoreIndex][]parachaintypes.ParaID{
@@ -66,8 +66,8 @@ func TestHandleSecondMessage(t *testing.T) {
 							dummyCandidateHash(t): true,
 						},
 						tableContext: tableContext{
-							validator: &validator{
-								disabled: false,
+							validator: &parachaintypes.Validator{
+								Disabled: false,
 							},
 						},
 						claimQueue: map[parachaintypes.CoreIndex][]parachaintypes.ParaID{
@@ -90,8 +90,8 @@ func TestHandleSecondMessage(t *testing.T) {
 							dummyCandidateHash(t): true,
 						},
 						tableContext: tableContext{
-							validator: &validator{
-								disabled: false,
+							validator: &parachaintypes.Validator{
+								Disabled: false,
 							},
 						},
 						claimQueue: map[parachaintypes.CoreIndex][]parachaintypes.ParaID{

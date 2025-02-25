@@ -1490,6 +1490,38 @@ func (in *Instance) ParachainHostDisabledValidators() ([]parachaintypes.Validato
 	return validators, nil
 }
 
+func (in *Instance) ParachainHostDisputes() (map[parachaintypes.DisputeKey]parachaintypes.DisputeState, error) {
+	encodedDisputes, err := in.Exec(runtime.ParachainHostDisputes, []byte{})
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	// sessionDisputes emulates the triple returned from the runtime call
+	// (SessionIndex, CandidateHash, DisputeState)
+	type sessionDisputes struct {
+		SessionIndex  parachaintypes.SessionIndex
+		CandidateHash parachaintypes.CandidateHash
+		DisputeState  parachaintypes.DisputeState
+	}
+
+	var disputes []sessionDisputes
+	err = scale.Unmarshal(encodedDisputes, &disputes)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling disputes: %w", err)
+	}
+
+	result := make(map[parachaintypes.DisputeKey]parachaintypes.DisputeState)
+	for _, dispute := range disputes {
+		key := parachaintypes.DisputeKey{
+			SessionIndex:  dispute.SessionIndex,
+			CandidateHash: dispute.CandidateHash,
+		}
+		result[key] = dispute.DisputeState
+	}
+
+	return result, nil
+}
+
 func (*Instance) RandomSeed() {
 	panic("unimplemented")
 }
