@@ -613,7 +613,10 @@ type OccupiedCoreAssumption struct {
 	inner any
 }
 
-func setOccupiedCoreAssumption[Value OccupiedCoreAssumptionValues](mvdt *OccupiedCoreAssumption, value Value) {
+func setOccupiedCoreAssumption[Value OccupiedCoreAssumptionValues](
+	mvdt *OccupiedCoreAssumption,
+	value Value,
+) {
 	mvdt.inner = value
 }
 
@@ -867,30 +870,6 @@ type CandidateHashAndRelayParent struct {
 	CandidateRelayParent common.Hash
 }
 
-// DisputeKey identifies a single dispute
-// under polkadot-sdk the same representation is
-// a tuple of (SessionIndex, CandidateHash)
-type DisputeKey struct {
-	SessionIndex  SessionIndex
-	CandidateHash CandidateHash
-}
-
-// DisputeState is stored by the runtime
-// and represents the entire dispute state
-type DisputeState struct {
-	// A bitfield indicating all validators for the candidate.
-	ValidatorsFor BitVec
-
-	// A bitfield indicating all validators against the candidate.
-	ValidatorsAgainst BitVec
-
-	// The block number at which the dispute started on-chain.
-	Start BlockNumber
-
-	// The block number at which the dispute concluded on-chain.
-	ConcludedAt *BlockNumber
-}
-
 // Validator represents local validator information.
 // It can be created if the local node is a validator in the context of a particular relay chain block.
 type Validator struct {
@@ -901,7 +880,10 @@ type Validator struct {
 }
 
 // Sign signs the encoded payload with the validator's key.
-func (v Validator) Sign(keystore keystore.Keystore, encodedPayload []byte) (*ValidatorSignature, error) {
+func (v Validator) Sign(
+	keystore keystore.Keystore,
+	encodedPayload []byte,
+) (*ValidatorSignature, error) {
 	buf := bytes.NewBuffer(encodedPayload)
 	encoder := scale.NewEncoder(buf)
 
