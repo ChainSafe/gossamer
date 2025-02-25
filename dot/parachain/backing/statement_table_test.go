@@ -116,10 +116,10 @@ func TestStatementTable_attestedCandidate(t *testing.T) {
 			args: args{
 				candidateHash: dummyCandidateHash(t),
 				tableContext: &tableContext{
-					groups: map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex{
-						1: {1, 2, 3},
-						2: {4, 5, 6},
-						3: {7, 8, 9},
+					groups: map[parachaintypes.CoreIndex][]parachaintypes.ValidatorIndex{
+						{Index: 1}: {1, 2, 3},
+						{Index: 2}: {4, 5, 6},
+						{Index: 3}: {7, 8, 9},
 					},
 				},
 				minimumBackingVotes: 2,
@@ -145,27 +145,56 @@ func TestStatementTable_attestedCandidate(t *testing.T) {
 
 func TestStatementTable_importStatement(t *testing.T) {
 	t.Parallel()
+
 	committedCandidate := getDummyCommittedCandidateReceipt(t)
+	candidateHash, err := parachaintypes.GetCandidateHash(committedCandidate)
+	require.NoError(t, err)
 
 	testCases := []struct {
 		description             string
-		statementVDT            parachaintypes.StatementVDT
-		detectedMisbehaviourLen int
+		table                   statementTable
+		groupID                 parachaintypes.GroupIndex
+		signedStatement         parachaintypes.SignedFullStatement
+		expectedSummary         *Summary
+		expectedMisbehaviourLen int
+		expectedError           error
 	}{
 		{
-			description: "seconded_statement",
-			statementVDT: func() parachaintypes.StatementVDT {
+			description: "valid_seconded_statement",
+			table:       *newTable(),
+			groupID:     1,
+			signedStatement: func() parachaintypes.SignedFullStatement {
 				secondedStatement := parachaintypes.NewStatementVDT()
 				err := secondedStatement.SetValue(parachaintypes.Seconded(committedCandidate))
 				require.NoError(t, err)
 
-				return secondedStatement
+				return parachaintypes.SignedFullStatement{
+					Payload:        secondedStatement,
+					ValidatorIndex: 1,
+					Signature:      parachaintypes.ValidatorSignature{1},
+				}
 			}(),
-			detectedMisbehaviourLen: 1,
+			expectedSummary: &Summary{
+				Candidate:     candidateHash,
+				GroupID:       1,
+				ValidityVotes: 1,
+			},
+			expectedMisbehaviourLen: 0,
+			expectedError:           nil,
 		},
 		{
-			description: "valid_statement",
-			statementVDT: func() parachaintypes.StatementVDT {
+			description: "valid_valid_statement",
+			table: statementTable{
+				candidateVotes: map[parachaintypes.CandidateHash]*candidateData{
+					candidateHash: {
+						groupID:       1,
+						candidate:     committedCandidate,
+						validityVotes: make(map[parachaintypes.ValidatorIndex]validityVoteWithSign),
+					},
+				},
+			},
+			groupID: 1,
+			signedStatement: func() parachaintypes.SignedFullStatement {
 				candidateHash, err := parachaintypes.GetCandidateHash(committedCandidate)
 				require.NoError(t, err)
 
@@ -173,9 +202,71 @@ func TestStatementTable_importStatement(t *testing.T) {
 				err = validStatement.SetValue(parachaintypes.Valid(candidateHash))
 				require.NoError(t, err)
 
-				return validStatement
+				return parachaintypes.SignedFullStatement{
+					Payload:        validStatement,
+					ValidatorIndex: 1,
+					Signature:      parachaintypes.ValidatorSignature{1},
+				}
 			}(),
-			detectedMisbehaviourLen: 0,
+			expectedSummary: &Summary{
+				Candidate:     candidateHash,
+				GroupID:       1,
+				ValidityVotes: 1,
+			},
+			expectedMisbehaviourLen: 0,
+			expectedError:           nil,
+		},
+		{
+			description: "unauthorised_seconded_statement",
+			table: statementTable{
+				detectedMisbehaviour: make(map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour),
+			},
+			groupID: 1,
+			signedStatement: func() parachaintypes.SignedFullStatement {
+				secondedStatement := parachaintypes.NewStatementVDT()
+				err := secondedStatement.SetValue(parachaintypes.Seconded(committedCandidate))
+				require.NoError(t, err)
+
+				return parachaintypes.SignedFullStatement{
+					Payload:        secondedStatement,
+					ValidatorIndex: 99, // Invalid validator index
+					Signature:      parachaintypes.ValidatorSignature{1},
+				}
+			}(),
+			expectedSummary:         nil,
+			expectedMisbehaviourLen: 1,
+			expectedError:           nil,
+		},
+		{
+			description: "unauthorised_valid_statement",
+			table: statementTable{
+				detectedMisbehaviour: make(map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour),
+				candidateVotes: map[parachaintypes.CandidateHash]*candidateData{
+					candidateHash: {
+						groupID:       1,
+						candidate:     committedCandidate,
+						validityVotes: make(map[parachaintypes.ValidatorIndex]validityVoteWithSign),
+					},
+				},
+			},
+			groupID: 1,
+			signedStatement: func() parachaintypes.SignedFullStatement {
+				candidateHash, err := parachaintypes.GetCandidateHash(committedCandidate)
+				require.NoError(t, err)
+
+				validStatement := parachaintypes.NewStatementVDT()
+				err = validStatement.SetValue(parachaintypes.Valid(candidateHash))
+				require.NoError(t, err)
+
+				return parachaintypes.SignedFullStatement{
+					Payload:        validStatement,
+					ValidatorIndex: 99, // Invalid validator index
+					Signature:      parachaintypes.ValidatorSignature{1},
+				}
+			}(),
+			expectedSummary:         nil,
+			expectedMisbehaviourLen: 1,
+			expectedError:           nil,
 		},
 	}
 
@@ -184,18 +275,16 @@ func TestStatementTable_importStatement(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
 
-			tableCtx := &tableContext{}
-			signedStatement := parachaintypes.SignedFullStatement{
-				Payload: tc.statementVDT,
+			tableCtx := &tableContext{
+				groups: map[parachaintypes.CoreIndex][]parachaintypes.ValidatorIndex{
+					{Index: uint32(tc.groupID)}: {1, 2, 3},
+				},
 			}
 
-			table := newTable(tableConfig{})
-
-			summary, err := table.importStatement(tableCtx, signedStatement)
-			require.NoError(t, err)
-			require.Nil(t, summary)
-
-			require.Len(t, table.detectedMisbehaviour, tc.detectedMisbehaviourLen)
+			summary, err := tc.table.importStatement(tableCtx, tc.groupID, tc.signedStatement)
+			require.Equal(t, tc.expectedError, err)
+			require.Equal(t, tc.expectedSummary, summary)
+			require.Len(t, tc.table.detectedMisbehaviour, tc.expectedMisbehaviourLen)
 		})
 	}
 }
@@ -227,6 +316,7 @@ func TestStatementTable_importCandidate(t *testing.T) {
 		description         string
 		tableCtx            *tableContext
 		table               *statementTable
+		group               parachaintypes.GroupIndex
 		expectedError       error
 		expectedMisehaviour parachaintypes.Misbehaviour
 		expectedSummary     *Summary
@@ -234,7 +324,7 @@ func TestStatementTable_importCandidate(t *testing.T) {
 		{
 			description:   "validator_not_present_in_group_of_parachain_validators",
 			tableCtx:      &tableContext{},
-			table:         newTable(tableConfig{}),
+			table:         newTable(),
 			expectedError: nil,
 			expectedMisehaviour: parachaintypes.UnauthorizedStatement{
 				Payload:        statementSeconded,
@@ -246,70 +336,31 @@ func TestStatementTable_importCandidate(t *testing.T) {
 		{
 			description: "no_proposals_available_from_the_validator",
 			tableCtx: &tableContext{
-				groups: map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex{
-					1: {10},
+				groups: map[parachaintypes.CoreIndex][]parachaintypes.ValidatorIndex{
+					{Index: 1}: {10},
 				},
 			},
-			table:               newTable(tableConfig{}),
+			table:               newTable(),
+			group:               1,
 			expectedError:       nil,
 			expectedMisehaviour: nil,
 			expectedSummary: &Summary{
 				Candidate:     candidateHash,
-				GroupID:       candidate.Descriptor.ParaID,
+				GroupID:       1,
 				ValidityVotes: 1,
 			},
 		},
 		{
-			description: "multiple_seconded_not_allowed_and_a_proposal_already_exists_for_different_candidate",
+			description: "candidate_already_proposed_by_validator",
 			tableCtx: &tableContext{
-				groups: map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex{
-					1: {10},
+				groups: map[parachaintypes.CoreIndex][]parachaintypes.ValidatorIndex{
+					{Index: 1}: {10},
 				},
 			},
 			table: &statementTable{
 				authorityData: map[parachaintypes.ValidatorIndex][]proposal{
 					authority: {
-						{
-							candidateHash: oldCandidateHash,
-							signature:     oldSign,
-						},
-					},
-				},
-				candidateVotes: map[parachaintypes.CandidateHash]*candidateData{
-					oldCandidateHash: {
-						groupID:       1,
-						candidate:     oldCandidate,
-						validityVotes: make(map[parachaintypes.ValidatorIndex]validityVoteWithSign),
-					},
-				},
-			},
-			expectedError: nil,
-			expectedMisehaviour: parachaintypes.MultipleCandidates{
-				First: parachaintypes.CommittedCandidateReceiptAndSign{
-					CommittedCandidateReceipt: oldCandidate,
-					Signature:                 oldSign,
-				},
-				Second: parachaintypes.CommittedCandidateReceiptAndSign{
-					CommittedCandidateReceipt: candidate,
-					Signature:                 signature,
-				},
-			},
-			expectedSummary: nil,
-		},
-		{
-			description: "multiple_seconded_allowed_and_a_proposal_already_exists_for_current_candidate",
-			tableCtx: &tableContext{
-				groups: map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex{
-					1: {10},
-				},
-			},
-			table: &statementTable{
-				authorityData: map[parachaintypes.ValidatorIndex][]proposal{
-					authority: {
-						{
-							candidateHash: candidateHash,
-							signature:     signature,
-						},
+						{candidateHash: candidateHash, signature: signature},
 					},
 				},
 				candidateVotes: map[parachaintypes.CandidateHash]*candidateData{
@@ -319,32 +370,27 @@ func TestStatementTable_importCandidate(t *testing.T) {
 						validityVotes: make(map[parachaintypes.ValidatorIndex]validityVoteWithSign),
 					},
 				},
-				config: tableConfig{
-					allowMultipleSeconded: true,
-				},
 			},
+			group:               1,
 			expectedError:       nil,
 			expectedMisehaviour: nil,
 			expectedSummary: &Summary{
 				Candidate:     candidateHash,
-				GroupID:       candidate.Descriptor.ParaID,
+				GroupID:       1,
 				ValidityVotes: 1,
 			},
 		},
 		{
-			description: "multiple_seconded_allowed_and_a_proposal_not_exists_for_current_candidate",
+			description: "candidate_not_proposed_yet_by_validator",
 			tableCtx: &tableContext{
-				groups: map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex{
-					1: {10},
+				groups: map[parachaintypes.CoreIndex][]parachaintypes.ValidatorIndex{
+					{Index: 1}: {10},
 				},
 			},
 			table: &statementTable{
 				authorityData: map[parachaintypes.ValidatorIndex][]proposal{
 					authority: {
-						{
-							candidateHash: oldCandidateHash,
-							signature:     oldSign,
-						},
+						{candidateHash: oldCandidateHash, signature: oldSign},
 					},
 				},
 				candidateVotes: map[parachaintypes.CandidateHash]*candidateData{
@@ -354,15 +400,13 @@ func TestStatementTable_importCandidate(t *testing.T) {
 						validityVotes: make(map[parachaintypes.ValidatorIndex]validityVoteWithSign),
 					},
 				},
-				config: tableConfig{
-					allowMultipleSeconded: true,
-				},
 			},
+			group:               1,
 			expectedError:       nil,
 			expectedMisehaviour: nil,
 			expectedSummary: &Summary{
 				Candidate:     candidateHash,
-				GroupID:       candidate.Descriptor.ParaID,
+				GroupID:       1,
 				ValidityVotes: 1,
 			},
 		},
@@ -373,11 +417,10 @@ func TestStatementTable_importCandidate(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
 
-			summary, misehaviour, err := tc.table.importCandidate(authority, candidate, signature, tc.tableCtx)
+			summary, misehaviour, err := tc.table.importCandidate(authority, candidate, signature, tc.tableCtx, tc.group)
 			require.Equal(t, tc.expectedError, err)
 			require.Equal(t, tc.expectedMisehaviour, misehaviour)
 			require.Equal(t, tc.expectedSummary, summary)
-
 		})
 	}
 }
@@ -414,7 +457,7 @@ func TestStatementTable_validityVote(t *testing.T) {
 			description:         "no_votes_available_for_the_given_candidate_hash",
 			vote:                valid,
 			tableCtx:            &tableContext{},
-			table:               newTable(tableConfig{}),
+			table:               newTable(),
 			expectedError:       errCandidateDataNotFound,
 			expectedMisehaviour: nil,
 			expectedSummary:     nil,
@@ -444,8 +487,8 @@ func TestStatementTable_validityVote(t *testing.T) {
 			description: "validity_vote_not_available_from_the_given_validator_index",
 			vote:        valid,
 			tableCtx: &tableContext{
-				groups: map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex{
-					1: {10},
+				groups: map[parachaintypes.CoreIndex][]parachaintypes.ValidatorIndex{
+					{Index: 1}: {10},
 				},
 			},
 			table: &statementTable{
@@ -461,7 +504,7 @@ func TestStatementTable_validityVote(t *testing.T) {
 			expectedMisehaviour: nil,
 			expectedSummary: &Summary{
 				Candidate:     candidateHash,
-				GroupID:       committedCandidate.Descriptor.ParaID,
+				GroupID:       1,
 				ValidityVotes: 1,
 			},
 		},
@@ -469,8 +512,8 @@ func TestStatementTable_validityVote(t *testing.T) {
 			description: "validity_vote_available_from_validator_index_with_same_vote_and_sign",
 			vote:        valid,
 			tableCtx: &tableContext{
-				groups: map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex{
-					1: {10},
+				groups: map[parachaintypes.CoreIndex][]parachaintypes.ValidatorIndex{
+					{Index: 1}: {10},
 				},
 			},
 			table: &statementTable{
@@ -496,8 +539,8 @@ func TestStatementTable_validityVote(t *testing.T) {
 			description: "vote_confict_with_candidate_statement",
 			vote:        valid,
 			tableCtx: &tableContext{
-				groups: map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex{
-					1: {10},
+				groups: map[parachaintypes.CoreIndex][]parachaintypes.ValidatorIndex{
+					{Index: 1}: {10},
 				},
 			},
 			table: &statementTable{
@@ -531,8 +574,8 @@ func TestStatementTable_validityVote(t *testing.T) {
 			description: "two_signatures_on_same_validity_vote",
 			vote:        valid,
 			tableCtx: &tableContext{
-				groups: map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex{
-					1: {10},
+				groups: map[parachaintypes.CoreIndex][]parachaintypes.ValidatorIndex{
+					{Index: 1}: {10},
 				},
 			},
 			table: &statementTable{
@@ -561,8 +604,8 @@ func TestStatementTable_validityVote(t *testing.T) {
 			description: "two_signatures_on_same_seconded_candidate",
 			vote:        issued,
 			tableCtx: &tableContext{
-				groups: map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex{
-					1: {10},
+				groups: map[parachaintypes.CoreIndex][]parachaintypes.ValidatorIndex{
+					{Index: 1}: {10},
 				},
 			},
 			table: &statementTable{

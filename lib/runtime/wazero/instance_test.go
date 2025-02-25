@@ -45,6 +45,9 @@ var parachainsConfigV190TestDataRaw string
 //go:embed testdata/parachains_host_para_backing_state.yaml
 var parachainsHostParaBackingState string
 
+//go:embed testdata/parachains_configuration_v1171.yaml
+var parachainsConfigV1171TestDataRaw string
+
 //go:embed testdata/parachains_host_disputes.yaml
 var parachainHostDisputes string
 
@@ -60,7 +63,7 @@ type Data struct {
 	Lookups  map[string]any    `yaml:"-"`
 }
 
-var parachainTestData, parachainsConfigV190TestData Data
+var parachainTestData, parachainsConfigV190TestData, parachainsConfigV1171TestData Data
 
 func init() {
 	err := yaml.Unmarshal([]byte(parachainTestDataRaw), &parachainTestData)
@@ -86,6 +89,19 @@ func init() {
 	for _, s := range parachainsConfigV190TestData.Storage {
 		if s.Name != "" {
 			parachainsConfigV190TestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
+		}
+	}
+
+	err = yaml.Unmarshal([]byte(parachainsConfigV1171TestDataRaw), &parachainsConfigV1171TestData)
+	if err != nil {
+		fmt.Println("Error unmarshalling test data:", err)
+		return
+	}
+	parachainsConfigV1171TestData.Lookups = make(map[string]any)
+
+	for _, s := range parachainsConfigV1171TestData.Storage {
+		if s.Name != "" {
+			parachainsConfigV1171TestData.Lookups[s.Name] = common.MustHexToBytes(s.Value)
 		}
 	}
 }
@@ -1714,6 +1730,49 @@ func TestInstance_ParachainHostSessionExecutorParams(t *testing.T) {
 	params, err := rt.ParachainHostSessionExecutorParams(index)
 	require.NoError(t, err)
 	require.Empty(t, params)
+}
+
+func TestInstance_ParachainHostNodeFeatures(t *testing.T) {
+	t.Parallel()
+
+	tt := getParachainHostTrie(t, parachainsConfigV1171TestData.Storage)
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1017001, TestWithTrie(tt))
+
+	expectedNodeFeatures := parachaintypes.NewBitVec([]bool{false, true, false, true})
+
+	actualNodeFeatures, err := rt.ParachainHostNodeFeatures()
+	require.NoError(t, err)
+	require.Equal(t, expectedNodeFeatures, actualNodeFeatures)
+}
+
+func TestInstance_ParachainHostClaimQueue(t *testing.T) {
+	tt := getParachainHostTrie(t, parachainsConfigV1171TestData.Storage)
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1017001, TestWithTrie(tt))
+
+	expectedQueue := parachaintypes.ClaimQueue{
+		{Index: 0}:  {1000, 1000, 1000},
+		{Index: 1}:  {1001, 1001, 1001},
+		{Index: 2}:  {1002, 1002, 1002},
+		{Index: 3}:  {1004, 1004, 1004},
+		{Index: 4}:  {1005, 1005, 1005},
+		{Index: 6}:  {2022, 2022, 2022},
+		{Index: 17}: {2042, 2042, 2042},
+	}
+
+	claimQ, err := rt.ParachainHostClaimQueue()
+	require.NoError(t, err)
+	require.Equal(t, expectedQueue, claimQ)
+}
+
+func TestInstance_ParachainHostDisabledValidators(t *testing.T) {
+	t.Parallel()
+
+	tt := getParachainHostTrie(t, parachainsConfigV1171TestData.Storage)
+	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1017001, TestWithTrie(tt))
+
+	disabledValidators, err := rt.ParachainHostDisabledValidators()
+	require.NoError(t, err)
+	require.Empty(t, disabledValidators)
 }
 
 func TestInstance_ParachainHostParaBackingState(t *testing.T) {

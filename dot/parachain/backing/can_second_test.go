@@ -40,30 +40,11 @@ func TestHandleCanSecondMessage(t *testing.T) {
 		err := cb.handleCanSecondMessage(msg)
 		require.ErrorIs(t, err, errUnknwnRelayParent)
 	})
-	t.Run("async_backing_is_disabled", func(t *testing.T) {
-		cb := CandidateBacking{
-			perRelayParent: map[common.Hash]*perRelayParentState{
-				msg.CandidateRelayParent: {
-					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{IsEnabled: false},
-				},
-			},
-		}
-
-		go ignoreChanVal(t, msg.ResponseCh)
-		err := cb.handleCanSecondMessage(msg)
-		require.ErrorIs(t, err, errProspectiveParachainsModeDisabled)
-	})
 
 	t.Run("candidate_can_not_be_seconded", func(t *testing.T) {
 		cb := CandidateBacking{
 			perRelayParent: map[common.Hash]*perRelayParentState{
-				msg.CandidateRelayParent: {
-					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
-						IsEnabled:          true,
-						MaxCandidateDepth:  4,
-						AllowedAncestryLen: 2,
-					},
-				},
+				msg.CandidateRelayParent: {},
 			},
 		}
 
@@ -76,7 +57,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockImplicitView := NewMockImplicitView(ctrl)
 
-		mockImplicitView.EXPECT().knownAllowedRelayParentsUnder(
+		mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
 			gomock.AssignableToTypeOf(common.Hash{}),
 			gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
 		).Return([]common.Hash{msg.CandidateRelayParent})
@@ -86,13 +67,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 		cb := CandidateBacking{
 			SubSystemToOverseer: subSystemToOverseer,
 			perRelayParent: map[common.Hash]*perRelayParentState{
-				msg.CandidateRelayParent: {
-					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
-						IsEnabled:          true,
-						MaxCandidateDepth:  4,
-						AllowedAncestryLen: 2,
-					},
-				},
+				msg.CandidateRelayParent: {},
 			},
 			perLeaf: map[common.Hash]*activeLeafState{
 				getDummyHash(t, 1): {
@@ -151,7 +126,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockImplicitView := NewMockImplicitView(ctrl)
 
-		mockImplicitView.EXPECT().knownAllowedRelayParentsUnder(
+		mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
 			gomock.AssignableToTypeOf(common.Hash{}),
 			gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
 		).Return([]common.Hash{})
@@ -182,7 +157,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockImplicitView := NewMockImplicitView(ctrl)
 
-		mockImplicitView.EXPECT().knownAllowedRelayParentsUnder(
+		mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
 			gomock.AssignableToTypeOf(common.Hash{}),
 			gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
 		).Return([]common.Hash{hypotheticalCandidate.RelayParent})
@@ -236,7 +211,7 @@ func TestSecondingSanityCheck(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		mockImplicitView := NewMockImplicitView(ctrl)
 
-		mockImplicitView.EXPECT().knownAllowedRelayParentsUnder(
+		mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
 			gomock.AssignableToTypeOf(common.Hash{}),
 			gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
 		).Return([]common.Hash{hypotheticalCandidate.RelayParent})
