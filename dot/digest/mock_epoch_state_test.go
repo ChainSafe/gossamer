@@ -20,6 +20,7 @@ import (
 type MockEpochState struct {
 	ctrl     *gomock.Controller
 	recorder *MockEpochStateMockRecorder
+	isgomock struct{}
 }
 
 // MockEpochStateMockRecorder is the mock recorder for MockEpochState.
@@ -40,58 +41,58 @@ func (m *MockEpochState) EXPECT() *MockEpochStateMockRecorder {
 }
 
 // FinalizeBABENextConfigData mocks base method.
-func (m *MockEpochState) FinalizeBABENextConfigData(arg0 *types.Header) error {
+func (m *MockEpochState) FinalizeBABENextConfigData(finalizedHeader *types.Header) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FinalizeBABENextConfigData", arg0)
+	ret := m.ctrl.Call(m, "FinalizeBABENextConfigData", finalizedHeader)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // FinalizeBABENextConfigData indicates an expected call of FinalizeBABENextConfigData.
-func (mr *MockEpochStateMockRecorder) FinalizeBABENextConfigData(arg0 any) *gomock.Call {
+func (mr *MockEpochStateMockRecorder) FinalizeBABENextConfigData(finalizedHeader any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeBABENextConfigData", reflect.TypeOf((*MockEpochState)(nil).FinalizeBABENextConfigData), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeBABENextConfigData", reflect.TypeOf((*MockEpochState)(nil).FinalizeBABENextConfigData), finalizedHeader)
 }
 
 // FinalizeBABENextEpochData mocks base method.
-func (m *MockEpochState) FinalizeBABENextEpochData(arg0 *types.Header) error {
+func (m *MockEpochState) FinalizeBABENextEpochData(finalizedHeader *types.Header) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FinalizeBABENextEpochData", arg0)
+	ret := m.ctrl.Call(m, "FinalizeBABENextEpochData", finalizedHeader)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // FinalizeBABENextEpochData indicates an expected call of FinalizeBABENextEpochData.
-func (mr *MockEpochStateMockRecorder) FinalizeBABENextEpochData(arg0 any) *gomock.Call {
+func (mr *MockEpochStateMockRecorder) FinalizeBABENextEpochData(finalizedHeader any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeBABENextEpochData", reflect.TypeOf((*MockEpochState)(nil).FinalizeBABENextEpochData), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeBABENextEpochData", reflect.TypeOf((*MockEpochState)(nil).FinalizeBABENextEpochData), finalizedHeader)
 }
 
 // GetEpochForBlock mocks base method.
-func (m *MockEpochState) GetEpochForBlock(arg0 *types.Header) (uint64, error) {
+func (m *MockEpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetEpochForBlock", arg0)
+	ret := m.ctrl.Call(m, "GetEpochForBlock", header)
 	ret0, _ := ret[0].(uint64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetEpochForBlock indicates an expected call of GetEpochForBlock.
-func (mr *MockEpochStateMockRecorder) GetEpochForBlock(arg0 any) *gomock.Call {
+func (mr *MockEpochStateMockRecorder) GetEpochForBlock(header any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpochForBlock", reflect.TypeOf((*MockEpochState)(nil).GetEpochForBlock), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEpochForBlock", reflect.TypeOf((*MockEpochState)(nil).GetEpochForBlock), header)
 }
 
 // HandleBABEDigest mocks base method.
-func (m *MockEpochState) HandleBABEDigest(arg0 *types.Header, arg1 types.BabeConsensusDigest) error {
+func (m *MockEpochState) HandleBABEDigest(header *types.Header, digest types.BabeConsensusDigest) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandleBABEDigest", arg0, arg1)
+	ret := m.ctrl.Call(m, "HandleBABEDigest", header, digest)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // HandleBABEDigest indicates an expected call of HandleBABEDigest.
-func (mr *MockEpochStateMockRecorder) HandleBABEDigest(arg0, arg1 any) *gomock.Call {
+func (mr *MockEpochStateMockRecorder) HandleBABEDigest(header, digest any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleBABEDigest", reflect.TypeOf((*MockEpochState)(nil).HandleBABEDigest), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleBABEDigest", reflect.TypeOf((*MockEpochState)(nil).HandleBABEDigest), header, digest)
 }

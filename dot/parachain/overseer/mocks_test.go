@@ -23,6 +23,7 @@ import (
 type MockBlockState struct {
 	ctrl     *gomock.Controller
 	recorder *MockBlockStateMockRecorder
+	isgomock struct{}
 }
 
 // MockBlockStateMockRecorder is the mock recorder for MockBlockState.
@@ -43,27 +44,27 @@ func (m *MockBlockState) EXPECT() *MockBlockStateMockRecorder {
 }
 
 // FreeFinalisedNotifierChannel mocks base method.
-func (m *MockBlockState) FreeFinalisedNotifierChannel(arg0 chan *types.FinalisationInfo) {
+func (m *MockBlockState) FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "FreeFinalisedNotifierChannel", arg0)
+	m.ctrl.Call(m, "FreeFinalisedNotifierChannel", ch)
 }
 
 // FreeFinalisedNotifierChannel indicates an expected call of FreeFinalisedNotifierChannel.
-func (mr *MockBlockStateMockRecorder) FreeFinalisedNotifierChannel(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) FreeFinalisedNotifierChannel(ch any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeFinalisedNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).FreeFinalisedNotifierChannel), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeFinalisedNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).FreeFinalisedNotifierChannel), ch)
 }
 
 // FreeImportedBlockNotifierChannel mocks base method.
-func (m *MockBlockState) FreeImportedBlockNotifierChannel(arg0 chan *types.Block) {
+func (m *MockBlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "FreeImportedBlockNotifierChannel", arg0)
+	m.ctrl.Call(m, "FreeImportedBlockNotifierChannel", ch)
 }
 
 // FreeImportedBlockNotifierChannel indicates an expected call of FreeImportedBlockNotifierChannel.
-func (mr *MockBlockStateMockRecorder) FreeImportedBlockNotifierChannel(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) FreeImportedBlockNotifierChannel(ch any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).FreeImportedBlockNotifierChannel), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).FreeImportedBlockNotifierChannel), ch)
 }
 
 // GetFinalisedNotifierChannel mocks base method.
@@ -95,24 +96,25 @@ func (mr *MockBlockStateMockRecorder) GetImportedBlockNotifierChannel() *gomock.
 }
 
 // GetRuntime mocks base method.
-func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
+func (m *MockBlockState) GetRuntime(hash common.Hash) (runtime.Instance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRuntime", arg0)
+	ret := m.ctrl.Call(m, "GetRuntime", hash)
 	ret0, _ := ret[0].(runtime.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetRuntime indicates an expected call of GetRuntime.
-func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) GetRuntime(hash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), hash)
 }
 
 // MockOverseer is a mock of Overseer interface.
 type MockOverseer struct {
 	ctrl     *gomock.Controller
 	recorder *MockOverseerMockRecorder
+	isgomock struct{}
 }
 
 // MockOverseerMockRecorder is the mock recorder for MockOverseer.
@@ -147,15 +149,15 @@ func (mr *MockOverseerMockRecorder) GetSubsystemToOverseerChannel() *gomock.Call
 }
 
 // RegisterSubsystem mocks base method.
-func (m *MockOverseer) RegisterSubsystem(arg0 parachaintypes.Subsystem) {
+func (m *MockOverseer) RegisterSubsystem(subsystem parachaintypes.Subsystem) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "RegisterSubsystem", arg0)
+	m.ctrl.Call(m, "RegisterSubsystem", subsystem)
 }
 
 // RegisterSubsystem indicates an expected call of RegisterSubsystem.
-func (mr *MockOverseerMockRecorder) RegisterSubsystem(arg0 any) *gomock.Call {
+func (mr *MockOverseerMockRecorder) RegisterSubsystem(subsystem any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterSubsystem", reflect.TypeOf((*MockOverseer)(nil).RegisterSubsystem), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterSubsystem", reflect.TypeOf((*MockOverseer)(nil).RegisterSubsystem), subsystem)
 }
 
 // Start mocks base method.

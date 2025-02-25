@@ -25,6 +25,7 @@ import (
 type MockBlockState struct {
 	ctrl     *gomock.Controller
 	recorder *MockBlockStateMockRecorder
+	isgomock struct{}
 }
 
 // MockBlockStateMockRecorder is the mock recorder for MockBlockState.
@@ -89,27 +90,27 @@ func (mr *MockBlockStateMockRecorder) BestBlockNumber() *gomock.Call {
 }
 
 // FreeFinalisedNotifierChannel mocks base method.
-func (m *MockBlockState) FreeFinalisedNotifierChannel(arg0 chan *types.FinalisationInfo) {
+func (m *MockBlockState) FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "FreeFinalisedNotifierChannel", arg0)
+	m.ctrl.Call(m, "FreeFinalisedNotifierChannel", ch)
 }
 
 // FreeFinalisedNotifierChannel indicates an expected call of FreeFinalisedNotifierChannel.
-func (mr *MockBlockStateMockRecorder) FreeFinalisedNotifierChannel(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) FreeFinalisedNotifierChannel(ch any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeFinalisedNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).FreeFinalisedNotifierChannel), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeFinalisedNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).FreeFinalisedNotifierChannel), ch)
 }
 
 // FreeImportedBlockNotifierChannel mocks base method.
-func (m *MockBlockState) FreeImportedBlockNotifierChannel(arg0 chan *types.Block) {
+func (m *MockBlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "FreeImportedBlockNotifierChannel", arg0)
+	m.ctrl.Call(m, "FreeImportedBlockNotifierChannel", ch)
 }
 
 // FreeImportedBlockNotifierChannel indicates an expected call of FreeImportedBlockNotifierChannel.
-func (mr *MockBlockStateMockRecorder) FreeImportedBlockNotifierChannel(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) FreeImportedBlockNotifierChannel(ch any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).FreeImportedBlockNotifierChannel), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockState)(nil).FreeImportedBlockNotifierChannel), ch)
 }
 
 // GenesisHash mocks base method.
@@ -127,33 +128,33 @@ func (mr *MockBlockStateMockRecorder) GenesisHash() *gomock.Call {
 }
 
 // GetFinalisedHash mocks base method.
-func (m *MockBlockState) GetFinalisedHash(arg0, arg1 uint64) (common.Hash, error) {
+func (m *MockBlockState) GetFinalisedHash(round, setID uint64) (common.Hash, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetFinalisedHash", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetFinalisedHash", round, setID)
 	ret0, _ := ret[0].(common.Hash)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetFinalisedHash indicates an expected call of GetFinalisedHash.
-func (mr *MockBlockStateMockRecorder) GetFinalisedHash(arg0, arg1 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) GetFinalisedHash(round, setID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFinalisedHash", reflect.TypeOf((*MockBlockState)(nil).GetFinalisedHash), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFinalisedHash", reflect.TypeOf((*MockBlockState)(nil).GetFinalisedHash), round, setID)
 }
 
 // GetFinalisedHeader mocks base method.
-func (m *MockBlockState) GetFinalisedHeader(arg0, arg1 uint64) (*types.Header, error) {
+func (m *MockBlockState) GetFinalisedHeader(round, setID uint64) (*types.Header, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetFinalisedHeader", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetFinalisedHeader", round, setID)
 	ret0, _ := ret[0].(*types.Header)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetFinalisedHeader indicates an expected call of GetFinalisedHeader.
-func (mr *MockBlockStateMockRecorder) GetFinalisedHeader(arg0, arg1 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) GetFinalisedHeader(round, setID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFinalisedHeader", reflect.TypeOf((*MockBlockState)(nil).GetFinalisedHeader), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFinalisedHeader", reflect.TypeOf((*MockBlockState)(nil).GetFinalisedHeader), round, setID)
 }
 
 // GetFinalisedNotifierChannel mocks base method.
@@ -171,33 +172,33 @@ func (mr *MockBlockStateMockRecorder) GetFinalisedNotifierChannel() *gomock.Call
 }
 
 // GetHeader mocks base method.
-func (m *MockBlockState) GetHeader(arg0 common.Hash) (*types.Header, error) {
+func (m *MockBlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHeader", arg0)
+	ret := m.ctrl.Call(m, "GetHeader", hash)
 	ret0, _ := ret[0].(*types.Header)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetHeader indicates an expected call of GetHeader.
-func (mr *MockBlockStateMockRecorder) GetHeader(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) GetHeader(hash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHeader", reflect.TypeOf((*MockBlockState)(nil).GetHeader), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHeader", reflect.TypeOf((*MockBlockState)(nil).GetHeader), hash)
 }
 
 // GetHeaderByNumber mocks base method.
-func (m *MockBlockState) GetHeaderByNumber(arg0 uint) (*types.Header, error) {
+func (m *MockBlockState) GetHeaderByNumber(num uint) (*types.Header, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHeaderByNumber", arg0)
+	ret := m.ctrl.Call(m, "GetHeaderByNumber", num)
 	ret0, _ := ret[0].(*types.Header)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetHeaderByNumber indicates an expected call of GetHeaderByNumber.
-func (mr *MockBlockStateMockRecorder) GetHeaderByNumber(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) GetHeaderByNumber(num any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHeaderByNumber", reflect.TypeOf((*MockBlockState)(nil).GetHeaderByNumber), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHeaderByNumber", reflect.TypeOf((*MockBlockState)(nil).GetHeaderByNumber), num)
 }
 
 // GetHighestFinalisedHeader mocks base method.
@@ -261,78 +262,78 @@ func (mr *MockBlockStateMockRecorder) GetRoundAndSetID() *gomock.Call {
 }
 
 // GetRuntime mocks base method.
-func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
+func (m *MockBlockState) GetRuntime(blockHash common.Hash) (runtime.Instance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRuntime", arg0)
+	ret := m.ctrl.Call(m, "GetRuntime", blockHash)
 	ret0, _ := ret[0].(runtime.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetRuntime indicates an expected call of GetRuntime.
-func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) GetRuntime(blockHash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), blockHash)
 }
 
 // HasFinalisedBlock mocks base method.
-func (m *MockBlockState) HasFinalisedBlock(arg0, arg1 uint64) (bool, error) {
+func (m *MockBlockState) HasFinalisedBlock(round, setID uint64) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasFinalisedBlock", arg0, arg1)
+	ret := m.ctrl.Call(m, "HasFinalisedBlock", round, setID)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // HasFinalisedBlock indicates an expected call of HasFinalisedBlock.
-func (mr *MockBlockStateMockRecorder) HasFinalisedBlock(arg0, arg1 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) HasFinalisedBlock(round, setID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasFinalisedBlock", reflect.TypeOf((*MockBlockState)(nil).HasFinalisedBlock), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasFinalisedBlock", reflect.TypeOf((*MockBlockState)(nil).HasFinalisedBlock), round, setID)
 }
 
 // HasHeader mocks base method.
-func (m *MockBlockState) HasHeader(arg0 common.Hash) (bool, error) {
+func (m *MockBlockState) HasHeader(hash common.Hash) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasHeader", arg0)
+	ret := m.ctrl.Call(m, "HasHeader", hash)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // HasHeader indicates an expected call of HasHeader.
-func (mr *MockBlockStateMockRecorder) HasHeader(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) HasHeader(hash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasHeader", reflect.TypeOf((*MockBlockState)(nil).HasHeader), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasHeader", reflect.TypeOf((*MockBlockState)(nil).HasHeader), hash)
 }
 
 // IsDescendantOf mocks base method.
-func (m *MockBlockState) IsDescendantOf(arg0, arg1 common.Hash) (bool, error) {
+func (m *MockBlockState) IsDescendantOf(parent, child common.Hash) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsDescendantOf", arg0, arg1)
+	ret := m.ctrl.Call(m, "IsDescendantOf", parent, child)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // IsDescendantOf indicates an expected call of IsDescendantOf.
-func (mr *MockBlockStateMockRecorder) IsDescendantOf(arg0, arg1 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) IsDescendantOf(parent, child any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsDescendantOf", reflect.TypeOf((*MockBlockState)(nil).IsDescendantOf), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsDescendantOf", reflect.TypeOf((*MockBlockState)(nil).IsDescendantOf), parent, child)
 }
 
 // LowestCommonAncestor mocks base method.
-func (m *MockBlockState) LowestCommonAncestor(arg0, arg1 common.Hash) (common.Hash, error) {
+func (m *MockBlockState) LowestCommonAncestor(a, b common.Hash) (common.Hash, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LowestCommonAncestor", arg0, arg1)
+	ret := m.ctrl.Call(m, "LowestCommonAncestor", a, b)
 	ret0, _ := ret[0].(common.Hash)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // LowestCommonAncestor indicates an expected call of LowestCommonAncestor.
-func (mr *MockBlockStateMockRecorder) LowestCommonAncestor(arg0, arg1 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) LowestCommonAncestor(a, b any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LowestCommonAncestor", reflect.TypeOf((*MockBlockState)(nil).LowestCommonAncestor), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LowestCommonAncestor", reflect.TypeOf((*MockBlockState)(nil).LowestCommonAncestor), a, b)
 }
 
 // SetFinalisedHash mocks base method.
@@ -350,23 +351,24 @@ func (mr *MockBlockStateMockRecorder) SetFinalisedHash(arg0, arg1, arg2 any) *go
 }
 
 // SetJustification mocks base method.
-func (m *MockBlockState) SetJustification(arg0 common.Hash, arg1 []byte) error {
+func (m *MockBlockState) SetJustification(hash common.Hash, data []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetJustification", arg0, arg1)
+	ret := m.ctrl.Call(m, "SetJustification", hash, data)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetJustification indicates an expected call of SetJustification.
-func (mr *MockBlockStateMockRecorder) SetJustification(arg0, arg1 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) SetJustification(hash, data any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetJustification", reflect.TypeOf((*MockBlockState)(nil).SetJustification), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetJustification", reflect.TypeOf((*MockBlockState)(nil).SetJustification), hash, data)
 }
 
 // MockGrandpaState is a mock of GrandpaState interface.
 type MockGrandpaState struct {
 	ctrl     *gomock.Controller
 	recorder *MockGrandpaStateMockRecorder
+	isgomock struct{}
 }
 
 // MockGrandpaStateMockRecorder is the mock recorder for MockGrandpaState.
@@ -387,18 +389,18 @@ func (m *MockGrandpaState) EXPECT() *MockGrandpaStateMockRecorder {
 }
 
 // GetAuthorities mocks base method.
-func (m *MockGrandpaState) GetAuthorities(arg0 uint64) ([]types.GrandpaVoter, error) {
+func (m *MockGrandpaState) GetAuthorities(setID uint64) ([]types.GrandpaVoter, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAuthorities", arg0)
+	ret := m.ctrl.Call(m, "GetAuthorities", setID)
 	ret0, _ := ret[0].([]types.GrandpaVoter)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAuthorities indicates an expected call of GetAuthorities.
-func (mr *MockGrandpaStateMockRecorder) GetAuthorities(arg0 any) *gomock.Call {
+func (mr *MockGrandpaStateMockRecorder) GetAuthorities(setID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthorities", reflect.TypeOf((*MockGrandpaState)(nil).GetAuthorities), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthorities", reflect.TypeOf((*MockGrandpaState)(nil).GetAuthorities), setID)
 }
 
 // GetCurrentSetID mocks base method.
@@ -432,111 +434,112 @@ func (mr *MockGrandpaStateMockRecorder) GetLatestRound() *gomock.Call {
 }
 
 // GetPrecommits mocks base method.
-func (m *MockGrandpaState) GetPrecommits(arg0, arg1 uint64) ([]types.GrandpaSignedVote, error) {
+func (m *MockGrandpaState) GetPrecommits(round, setID uint64) ([]types.GrandpaSignedVote, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPrecommits", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetPrecommits", round, setID)
 	ret0, _ := ret[0].([]types.GrandpaSignedVote)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetPrecommits indicates an expected call of GetPrecommits.
-func (mr *MockGrandpaStateMockRecorder) GetPrecommits(arg0, arg1 any) *gomock.Call {
+func (mr *MockGrandpaStateMockRecorder) GetPrecommits(round, setID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPrecommits", reflect.TypeOf((*MockGrandpaState)(nil).GetPrecommits), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPrecommits", reflect.TypeOf((*MockGrandpaState)(nil).GetPrecommits), round, setID)
 }
 
 // GetPrevotes mocks base method.
-func (m *MockGrandpaState) GetPrevotes(arg0, arg1 uint64) ([]types.GrandpaSignedVote, error) {
+func (m *MockGrandpaState) GetPrevotes(round, setID uint64) ([]types.GrandpaSignedVote, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPrevotes", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetPrevotes", round, setID)
 	ret0, _ := ret[0].([]types.GrandpaSignedVote)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetPrevotes indicates an expected call of GetPrevotes.
-func (mr *MockGrandpaStateMockRecorder) GetPrevotes(arg0, arg1 any) *gomock.Call {
+func (mr *MockGrandpaStateMockRecorder) GetPrevotes(round, setID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPrevotes", reflect.TypeOf((*MockGrandpaState)(nil).GetPrevotes), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPrevotes", reflect.TypeOf((*MockGrandpaState)(nil).GetPrevotes), round, setID)
 }
 
 // GetSetIDByBlockNumber mocks base method.
-func (m *MockGrandpaState) GetSetIDByBlockNumber(arg0 uint) (uint64, error) {
+func (m *MockGrandpaState) GetSetIDByBlockNumber(num uint) (uint64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSetIDByBlockNumber", arg0)
+	ret := m.ctrl.Call(m, "GetSetIDByBlockNumber", num)
 	ret0, _ := ret[0].(uint64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetSetIDByBlockNumber indicates an expected call of GetSetIDByBlockNumber.
-func (mr *MockGrandpaStateMockRecorder) GetSetIDByBlockNumber(arg0 any) *gomock.Call {
+func (mr *MockGrandpaStateMockRecorder) GetSetIDByBlockNumber(num any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSetIDByBlockNumber", reflect.TypeOf((*MockGrandpaState)(nil).GetSetIDByBlockNumber), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSetIDByBlockNumber", reflect.TypeOf((*MockGrandpaState)(nil).GetSetIDByBlockNumber), num)
 }
 
 // NextGrandpaAuthorityChange mocks base method.
-func (m *MockGrandpaState) NextGrandpaAuthorityChange(arg0 common.Hash, arg1 uint) (uint, error) {
+func (m *MockGrandpaState) NextGrandpaAuthorityChange(bestBlockHash common.Hash, bestBlockNumber uint) (uint, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NextGrandpaAuthorityChange", arg0, arg1)
+	ret := m.ctrl.Call(m, "NextGrandpaAuthorityChange", bestBlockHash, bestBlockNumber)
 	ret0, _ := ret[0].(uint)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NextGrandpaAuthorityChange indicates an expected call of NextGrandpaAuthorityChange.
-func (mr *MockGrandpaStateMockRecorder) NextGrandpaAuthorityChange(arg0, arg1 any) *gomock.Call {
+func (mr *MockGrandpaStateMockRecorder) NextGrandpaAuthorityChange(bestBlockHash, bestBlockNumber any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NextGrandpaAuthorityChange", reflect.TypeOf((*MockGrandpaState)(nil).NextGrandpaAuthorityChange), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NextGrandpaAuthorityChange", reflect.TypeOf((*MockGrandpaState)(nil).NextGrandpaAuthorityChange), bestBlockHash, bestBlockNumber)
 }
 
 // SetLatestRound mocks base method.
-func (m *MockGrandpaState) SetLatestRound(arg0 uint64) error {
+func (m *MockGrandpaState) SetLatestRound(round uint64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetLatestRound", arg0)
+	ret := m.ctrl.Call(m, "SetLatestRound", round)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetLatestRound indicates an expected call of SetLatestRound.
-func (mr *MockGrandpaStateMockRecorder) SetLatestRound(arg0 any) *gomock.Call {
+func (mr *MockGrandpaStateMockRecorder) SetLatestRound(round any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLatestRound", reflect.TypeOf((*MockGrandpaState)(nil).SetLatestRound), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLatestRound", reflect.TypeOf((*MockGrandpaState)(nil).SetLatestRound), round)
 }
 
 // SetPrecommits mocks base method.
-func (m *MockGrandpaState) SetPrecommits(arg0, arg1 uint64, arg2 []types.GrandpaSignedVote) error {
+func (m *MockGrandpaState) SetPrecommits(round, setID uint64, data []types.GrandpaSignedVote) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetPrecommits", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "SetPrecommits", round, setID, data)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetPrecommits indicates an expected call of SetPrecommits.
-func (mr *MockGrandpaStateMockRecorder) SetPrecommits(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockGrandpaStateMockRecorder) SetPrecommits(round, setID, data any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetPrecommits", reflect.TypeOf((*MockGrandpaState)(nil).SetPrecommits), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetPrecommits", reflect.TypeOf((*MockGrandpaState)(nil).SetPrecommits), round, setID, data)
 }
 
 // SetPrevotes mocks base method.
-func (m *MockGrandpaState) SetPrevotes(arg0, arg1 uint64, arg2 []types.GrandpaSignedVote) error {
+func (m *MockGrandpaState) SetPrevotes(round, setID uint64, data []types.GrandpaSignedVote) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetPrevotes", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "SetPrevotes", round, setID, data)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetPrevotes indicates an expected call of SetPrevotes.
-func (mr *MockGrandpaStateMockRecorder) SetPrevotes(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockGrandpaStateMockRecorder) SetPrevotes(round, setID, data any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetPrevotes", reflect.TypeOf((*MockGrandpaState)(nil).SetPrevotes), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetPrevotes", reflect.TypeOf((*MockGrandpaState)(nil).SetPrevotes), round, setID, data)
 }
 
 // MockNetwork is a mock of Network interface.
 type MockNetwork struct {
 	ctrl     *gomock.Controller
 	recorder *MockNetworkMockRecorder
+	isgomock struct{}
 }
 
 // MockNetworkMockRecorder is the mock recorder for MockNetwork.
@@ -557,41 +560,41 @@ func (m *MockNetwork) EXPECT() *MockNetworkMockRecorder {
 }
 
 // GossipMessage mocks base method.
-func (m *MockNetwork) GossipMessage(arg0 network.NotificationsMessage) {
+func (m *MockNetwork) GossipMessage(msg network.NotificationsMessage) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "GossipMessage", arg0)
+	m.ctrl.Call(m, "GossipMessage", msg)
 }
 
 // GossipMessage indicates an expected call of GossipMessage.
-func (mr *MockNetworkMockRecorder) GossipMessage(arg0 any) *gomock.Call {
+func (mr *MockNetworkMockRecorder) GossipMessage(msg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GossipMessage", reflect.TypeOf((*MockNetwork)(nil).GossipMessage), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GossipMessage", reflect.TypeOf((*MockNetwork)(nil).GossipMessage), msg)
 }
 
 // RegisterNotificationsProtocol mocks base method.
-func (m *MockNetwork) RegisterNotificationsProtocol(arg0 protocol.ID, arg1 network.MessageType, arg2 func() (network.Handshake, error), arg3 func([]byte) (network.Handshake, error), arg4 func(peer.ID, network.Handshake) error, arg5 func([]byte) (network.NotificationsMessage, error), arg6 func(peer.ID, network.NotificationsMessage) (bool, error), arg7 func(peer.ID, network.NotificationsMessage), arg8 uint64) error {
+func (m *MockNetwork) RegisterNotificationsProtocol(sub protocol.ID, messageID network.MessageType, handshakeGetter func() (network.Handshake, error), handshakeDecoder func([]byte) (network.Handshake, error), handshakeValidator func(peer.ID, network.Handshake) error, messageDecoder func([]byte) (network.NotificationsMessage, error), messageHandler func(peer.ID, network.NotificationsMessage) (bool, error), batchHandler func(peer.ID, network.NotificationsMessage), maxSize uint64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterNotificationsProtocol", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+	ret := m.ctrl.Call(m, "RegisterNotificationsProtocol", sub, messageID, handshakeGetter, handshakeDecoder, handshakeValidator, messageDecoder, messageHandler, batchHandler, maxSize)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RegisterNotificationsProtocol indicates an expected call of RegisterNotificationsProtocol.
-func (mr *MockNetworkMockRecorder) RegisterNotificationsProtocol(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8 any) *gomock.Call {
+func (mr *MockNetworkMockRecorder) RegisterNotificationsProtocol(sub, messageID, handshakeGetter, handshakeDecoder, handshakeValidator, messageDecoder, messageHandler, batchHandler, maxSize any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterNotificationsProtocol", reflect.TypeOf((*MockNetwork)(nil).RegisterNotificationsProtocol), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterNotificationsProtocol", reflect.TypeOf((*MockNetwork)(nil).RegisterNotificationsProtocol), sub, messageID, handshakeGetter, handshakeDecoder, handshakeValidator, messageDecoder, messageHandler, batchHandler, maxSize)
 }
 
 // SendMessage mocks base method.
-func (m *MockNetwork) SendMessage(arg0 peer.ID, arg1 network.NotificationsMessage) error {
+func (m *MockNetwork) SendMessage(to peer.ID, msg network.NotificationsMessage) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendMessage", arg0, arg1)
+	ret := m.ctrl.Call(m, "SendMessage", to, msg)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SendMessage indicates an expected call of SendMessage.
-func (mr *MockNetworkMockRecorder) SendMessage(arg0, arg1 any) *gomock.Call {
+func (mr *MockNetworkMockRecorder) SendMessage(to, msg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockNetwork)(nil).SendMessage), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockNetwork)(nil).SendMessage), to, msg)
 }

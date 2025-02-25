@@ -21,6 +21,7 @@ import (
 type MockSyncer struct {
 	ctrl     *gomock.Controller
 	recorder *MockSyncerMockRecorder
+	isgomock struct{}
 }
 
 // MockSyncerMockRecorder is the mock recorder for MockSyncer.
@@ -56,31 +57,31 @@ func (mr *MockSyncerMockRecorder) CreateBlockResponse(arg0, arg1 any) *gomock.Ca
 }
 
 // HandleBlockAnnounce mocks base method.
-func (m *MockSyncer) HandleBlockAnnounce(arg0 peer.ID, arg1 *network.BlockAnnounceMessage) error {
+func (m *MockSyncer) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandleBlockAnnounce", arg0, arg1)
+	ret := m.ctrl.Call(m, "HandleBlockAnnounce", from, msg)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // HandleBlockAnnounce indicates an expected call of HandleBlockAnnounce.
-func (mr *MockSyncerMockRecorder) HandleBlockAnnounce(arg0, arg1 any) *gomock.Call {
+func (mr *MockSyncerMockRecorder) HandleBlockAnnounce(from, msg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleBlockAnnounce", reflect.TypeOf((*MockSyncer)(nil).HandleBlockAnnounce), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleBlockAnnounce", reflect.TypeOf((*MockSyncer)(nil).HandleBlockAnnounce), from, msg)
 }
 
 // HandleBlockAnnounceHandshake mocks base method.
-func (m *MockSyncer) HandleBlockAnnounceHandshake(arg0 peer.ID, arg1 *network.BlockAnnounceHandshake) error {
+func (m *MockSyncer) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandleBlockAnnounceHandshake", arg0, arg1)
+	ret := m.ctrl.Call(m, "HandleBlockAnnounceHandshake", from, msg)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // HandleBlockAnnounceHandshake indicates an expected call of HandleBlockAnnounceHandshake.
-func (mr *MockSyncerMockRecorder) HandleBlockAnnounceHandshake(arg0, arg1 any) *gomock.Call {
+func (mr *MockSyncerMockRecorder) HandleBlockAnnounceHandshake(from, msg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleBlockAnnounceHandshake", reflect.TypeOf((*MockSyncer)(nil).HandleBlockAnnounceHandshake), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleBlockAnnounceHandshake", reflect.TypeOf((*MockSyncer)(nil).HandleBlockAnnounceHandshake), from, msg)
 }
 
 // IsSynced mocks base method.

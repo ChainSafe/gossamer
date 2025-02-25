@@ -23,12 +23,6 @@ import (
 
 var tempSignature = common.MustHexToBytes("0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86") //nolint:lll
 
-func uint32ToParaIDPtr(t *testing.T, u uint32) *parachaintypes.ParaID {
-	t.Helper()
-	p := parachaintypes.ParaID(u)
-	return &p
-}
-
 func getDummyHash(t *testing.T, num byte) common.Hash {
 	t.Helper()
 	hash := common.Hash{}
@@ -81,8 +75,7 @@ func mockOverseer(t *testing.T, subsystemToOverseer chan any) {
 		switch data := data.(type) {
 		case parachaintypes.ProspectiveParachainsMessageIntroduceCandidate:
 			data.Ch <- nil
-		case parachaintypes.ProspectiveParachainsMessageCandidateSeconded,
-			provisionermessages.ProvisionableData,
+		case provisionermessages.ProvisionableData,
 			parachaintypes.ProspectiveParachainsMessageCandidateBacked,
 			collatorprotocolmessages.Backed,
 			statementdistributionmessages.Backed:
@@ -116,20 +109,18 @@ func secondedSignedFullStatementWithPVD(
 func TestImportStatement(t *testing.T) {
 	t.Parallel()
 
+	statementVDTValid := parachaintypes.NewStatementVDT()
+	err := statementVDTValid.SetValue(parachaintypes.Valid{})
+	require.NoError(t, err)
+
 	dummyCCR := getDummyCommittedCandidateReceipt(t)
 	seconded := parachaintypes.Seconded(dummyCCR)
 
+	candidateHash, err := parachaintypes.GetCandidateHash(dummyCCR)
+	require.NoError(t, err)
+
 	statementVDTSeconded := parachaintypes.NewStatementVDT()
-	err := statementVDTSeconded.SetValue(seconded)
-	require.NoError(t, err)
-
-	hash, err := dummyCCR.Hash()
-	require.NoError(t, err)
-
-	candidateHash := parachaintypes.CandidateHash{Value: hash}
-
-	statementVDTValid := parachaintypes.NewStatementVDT()
-	err = statementVDTValid.SetValue(parachaintypes.Valid{})
+	err = statementVDTSeconded.SetValue(seconded)
 	require.NoError(t, err)
 
 	testCases := []struct {
@@ -137,26 +128,17 @@ func TestImportStatement(t *testing.T) {
 		rpState                func() perRelayParentState
 		perCandidate           map[parachaintypes.CandidateHash]*perCandidateState
 		signedStatementWithPVD parachaintypes.SignedFullStatementWithPVD
-		summary                *Summary
-		err                    string
+		mockOverseer           func(*testing.T, chan any)
 	}{
 		{
-			description: "statementVDT_not_set",
-			rpState: func() perRelayParentState {
-				return perRelayParentState{}
-			},
-			signedStatementWithPVD: parachaintypes.SignedFullStatementWithPVD{},
-			summary:                nil,
-			err:                    "getting value from statementVDT:",
-		},
-		{
-			description: "statementVDT_in_not_seconded",
+			description: "statement_is_not_seconded",
 			rpState: func() perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
+					gomock.AssignableToTypeOf(parachaintypes.GroupIndex(0)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(new(Summary), nil)
 
@@ -169,30 +151,17 @@ func TestImportStatement(t *testing.T) {
 					Payload: statementVDTValid,
 				},
 			},
-			summary: new(Summary),
-			err:     "",
+			mockOverseer: func(*testing.T, chan any) {},
 		},
 		{
-			description: "invalid_persisted_validation_data",
-			rpState: func() perRelayParentState {
-				return perRelayParentState{}
-			},
-			signedStatementWithPVD: parachaintypes.SignedFullStatementWithPVD{
-				SignedFullStatement: parachaintypes.SignedFullStatement{
-					Payload: statementVDTSeconded,
-				},
-			},
-			summary: nil,
-			err:     "persisted validation data is nil",
-		},
-		{
-			description: "statement_is_seconded_and_candidate_is_known",
+			description: "seconded_statement_known_candidate",
 			rpState: func() perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
+					gomock.AssignableToTypeOf(parachaintypes.GroupIndex(0)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(new(Summary), nil)
 
@@ -208,22 +177,21 @@ func TestImportStatement(t *testing.T) {
 						},
 					},
 					secondedLocally: false,
-					paraID:          1,
 					relayParent:     getDummyHash(t, 5),
 				},
 			},
 			signedStatementWithPVD: secondedSignedFullStatementWithPVD(t, statementVDTSeconded),
-			summary:                new(Summary),
-			err:                    "",
+			mockOverseer:           func(*testing.T, chan any) {},
 		},
 		{
-			description: "statement_is_seconded_and_candidate_is_unknown",
+			description: "seconded_statement_unknown_candidate",
 			rpState: func() perRelayParentState {
 				ctrl := gomock.NewController(t)
 				mockTable := NewMockTable(ctrl)
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
+					gomock.AssignableToTypeOf(parachaintypes.GroupIndex(0)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(new(Summary), nil)
 
@@ -233,33 +201,13 @@ func TestImportStatement(t *testing.T) {
 			},
 			perCandidate:           map[parachaintypes.CandidateHash]*perCandidateState{},
 			signedStatementWithPVD: secondedSignedFullStatementWithPVD(t, statementVDTSeconded),
-			summary:                new(Summary),
-			err:                    "",
-		},
-		{
-			description: "statement_is_seconded_and_candidate_is_unknown_with_prospective_parachain_mode_enabled",
-			rpState: func() perRelayParentState {
-				ctrl := gomock.NewController(t)
-				mockTable := NewMockTable(ctrl)
+			mockOverseer: func(t *testing.T, subSystemToOverseer chan any) {
+				v := <-subSystemToOverseer
+				introduce, ok := v.(parachaintypes.ProspectiveParachainsMessageIntroduceCandidate)
+				require.True(t, ok)
 
-				mockTable.EXPECT().importStatement(
-					gomock.AssignableToTypeOf(new(tableContext)),
-					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
-				).Return(new(Summary), nil)
-
-				return perRelayParentState{
-					table: mockTable,
-					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
-						IsEnabled:          true,
-						MaxCandidateDepth:  4,
-						AllowedAncestryLen: 2,
-					},
-				}
+				introduce.Ch <- nil
 			},
-			perCandidate:           map[parachaintypes.CandidateHash]*perCandidateState{},
-			signedStatementWithPVD: secondedSignedFullStatementWithPVD(t, statementVDTSeconded),
-			summary:                new(Summary),
-			err:                    "",
 		},
 	}
 
@@ -271,23 +219,12 @@ func TestImportStatement(t *testing.T) {
 			subSystemToOverseer := make(chan any)
 			defer close(subSystemToOverseer)
 
+			go c.mockOverseer(t, subSystemToOverseer)
+
 			rpState := c.rpState()
-			if rpState.prospectiveParachainsMode.IsEnabled {
-				go mockOverseer(t, subSystemToOverseer)
-			}
-
 			summary, err := rpState.importStatement(subSystemToOverseer, c.signedStatementWithPVD, c.perCandidate)
-			if c.summary == nil {
-				require.Nil(t, summary)
-			} else {
-				require.Equal(t, c.summary, summary)
-			}
-
-			if c.err == "" {
-				require.NoError(t, err)
-			} else {
-				require.ErrorContains(t, err, c.err)
-			}
+			require.Equal(t, new(Summary), summary)
+			require.NoError(t, err)
 		})
 	}
 }
@@ -296,18 +233,6 @@ func mustHexTo32BArray(t *testing.T, inputHex string) (outputArray [sr25519.Publ
 	t.Helper()
 	copy(outputArray[:], common.MustHexToBytes(inputHex))
 	return outputArray
-}
-
-func dummySummary(t *testing.T) *Summary {
-	t.Helper()
-
-	return &Summary{
-		Candidate: parachaintypes.CandidateHash{
-			Value: getDummyHash(t, 5),
-		},
-		GroupID:       3,
-		ValidityVotes: 5,
-	}
 }
 
 func dummyValidityAttestation(t *testing.T, value string) parachaintypes.ValidityAttestation {
@@ -337,10 +262,10 @@ func dummyTableContext(t *testing.T) tableContext {
 		validator: &parachaintypes.Validator{
 			Index: 1,
 		},
-		groups: map[parachaintypes.ParaID][]parachaintypes.ValidatorIndex{
-			1: {1, 2, 3},
-			2: {4, 5, 6},
-			3: {7, 8, 9},
+		groups: map[parachaintypes.CoreIndex][]parachaintypes.ValidatorIndex{
+			{Index: 1}: {1, 2, 3},
+			{Index: 2}: {4, 5, 6},
+			{Index: 3}: {7, 8, 9},
 		},
 		validators: []parachaintypes.ValidatorID{
 			mustHexTo32BArray(t, "0xa262f83b46310770ae8d092147176b8b25e8855bcfbbe701d346b10db0c5385d"),
@@ -351,7 +276,7 @@ func dummyTableContext(t *testing.T) tableContext {
 	}
 }
 
-func rpStateWhenPpmDisabled(t *testing.T) perRelayParentState {
+func rpStateForSuccessfulPostImportStatement(t *testing.T, ctrl *gomock.Controller) perRelayParentState {
 	t.Helper()
 
 	attestedToReturn := attestedCandidate{
@@ -373,7 +298,6 @@ func rpStateWhenPpmDisabled(t *testing.T) perRelayParentState {
 		},
 	}
 
-	ctrl := gomock.NewController(t)
 	mockTable := NewMockTable(ctrl)
 
 	mockTable.EXPECT().drainMisbehaviors().
@@ -385,9 +309,6 @@ func rpStateWhenPpmDisabled(t *testing.T) perRelayParentState {
 	).Return(&attestedToReturn, nil)
 
 	return perRelayParentState{
-		prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
-			IsEnabled: false,
-		},
 		table:        mockTable,
 		tableContext: dummyTableContext(t),
 		backed:       map[parachaintypes.CandidateHash]bool{},
@@ -399,31 +320,31 @@ func TestPostImportStatement(t *testing.T) {
 
 	testCases := []struct {
 		description string
-		rpState     func() perRelayParentState
+		rpState     func(*gomock.Controller) perRelayParentState
 		summary     *Summary
+		validate    func(t *testing.T, subSystemToOverseer chan any)
 	}{
 		{
-			description: "summary_is_nil",
-			rpState: func() perRelayParentState {
-				ctrl := gomock.NewController(t)
+			description: "nil_summary",
+			rpState: func(ctrl *gomock.Controller) perRelayParentState {
 				mockTable := NewMockTable(ctrl)
-
-				mockTable.EXPECT().drainMisbehaviors().Return(map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour{
-					1: {parachaintypes.MultipleCandidates{}},
-				})
+				mockTable.EXPECT().drainMisbehaviors().Return(map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour{})
 
 				return perRelayParentState{
-					table: mockTable,
+					relayParent: common.Hash{0x01},
+					table:       mockTable,
+					backed:      make(map[parachaintypes.CandidateHash]bool),
 				}
 			},
 			summary: nil,
+			validate: func(t *testing.T, subSystemToOverseer chan any) {
+				require.Empty(t, subSystemToOverseer)
+			},
 		},
 		{
-			description: "failed_to_get_attested_candidate_from_table",
-			rpState: func() perRelayParentState {
-				ctrl := gomock.NewController(t)
+			description: "candidate_not_attested",
+			rpState: func(ctrl *gomock.Controller) perRelayParentState {
 				mockTable := NewMockTable(ctrl)
-
 				mockTable.EXPECT().drainMisbehaviors().
 					Return(map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour{})
 				mockTable.EXPECT().attestedCandidate(
@@ -433,23 +354,25 @@ func TestPostImportStatement(t *testing.T) {
 				).Return(nil, errors.New("could not get attested candidate from table"))
 
 				return perRelayParentState{
-					table: mockTable,
+					relayParent: common.Hash{0x01},
+					table:       mockTable,
+					backed:      make(map[parachaintypes.CandidateHash]bool),
 				}
 			},
-			summary: dummySummary(t),
+			summary: &Summary{},
+			validate: func(t *testing.T, subSystemToOverseer chan any) {
+				require.Empty(t, subSystemToOverseer)
+			},
 		},
 		{
-			description: "candidate_is_already_backed",
-			rpState: func() perRelayParentState {
-				ctrl := gomock.NewController(t)
-				mockTable := NewMockTable(ctrl)
+			description: "candidate_already_backed",
+			rpState: func(ctrl *gomock.Controller) perRelayParentState {
 
 				candidate := getDummyCommittedCandidateReceipt(t)
-				hash, err := candidate.Hash()
+				candidateHash, err := parachaintypes.GetCandidateHash(candidate)
 				require.NoError(t, err)
 
-				candidateHash := parachaintypes.CandidateHash{Value: hash}
-
+				mockTable := NewMockTable(ctrl)
 				mockTable.EXPECT().drainMisbehaviors().
 					Return(map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour{})
 				mockTable.EXPECT().attestedCandidate(
@@ -460,75 +383,48 @@ func TestPostImportStatement(t *testing.T) {
 					groupID:                   4,
 					committedCandidateReceipt: candidate,
 				}, nil)
-
 				return perRelayParentState{
-					table: mockTable,
+					relayParent: common.Hash{0x01},
+					table:       mockTable,
 					backed: map[parachaintypes.CandidateHash]bool{
 						candidateHash: true,
 					},
 				}
 			},
-			summary: dummySummary(t),
+			summary: &Summary{},
+			validate: func(t *testing.T, subSystemToOverseer chan any) {
+				require.Empty(t, subSystemToOverseer)
+			},
 		},
 		{
-			description: "Validity_vote_from_unknown_validator",
-			rpState: func() perRelayParentState {
-				ctrl := gomock.NewController(t)
-				mockTable := NewMockTable(ctrl)
-
-				mockTable.EXPECT().drainMisbehaviors().
-					Return(map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour{})
-				mockTable.EXPECT().attestedCandidate(
-					gomock.AssignableToTypeOf(parachaintypes.CandidateHash{}),
-					gomock.AssignableToTypeOf(new(tableContext)),
-					gomock.AssignableToTypeOf(uint32(0)),
-				).Return(&attestedCandidate{
-					groupID:                   3,
-					committedCandidateReceipt: getDummyCommittedCandidateReceipt(t),
-				}, nil)
-
-				return perRelayParentState{
-					table:        mockTable,
-					backed:       map[parachaintypes.CandidateHash]bool{},
-					tableContext: dummyTableContext(t),
-				}
+			description: "successful_post_import_statement",
+			rpState: func(ctrl *gomock.Controller) perRelayParentState {
+				return rpStateForSuccessfulPostImportStatement(t, ctrl)
 			},
-			summary: dummySummary(t),
-		},
-		{
-			description: "prospective_parachain_mode_is_disabled",
-			rpState: func() perRelayParentState {
-				return rpStateWhenPpmDisabled(t)
+			summary: &Summary{},
+			validate: func(t *testing.T, subSystemToOverseer chan any) {
+				require.Len(t, subSystemToOverseer, 3)
+				require.IsType(t, parachaintypes.ProspectiveParachainsMessageCandidateBacked{}, <-subSystemToOverseer)
+				require.IsType(t, collatorprotocolmessages.Backed{}, <-subSystemToOverseer)
+				require.IsType(t, statementdistributionmessages.Backed{}, <-subSystemToOverseer)
 			},
-			summary: dummySummary(t),
-		},
-		{
-			description: "prospective_parachain_mode_is_enabled",
-			rpState: func() perRelayParentState {
-				state := rpStateWhenPpmDisabled(t)
-				state.prospectiveParachainsMode = parachaintypes.ProspectiveParachainsMode{
-					IsEnabled:          true,
-					MaxCandidateDepth:  4,
-					AllowedAncestryLen: 2,
-				}
-				return state
-			},
-			summary: dummySummary(t),
 		},
 	}
 
-	for _, c := range testCases {
-		c := c
-		t.Run(c.description, func(t *testing.T) {
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
 
-			subSystemToOverseer := make(chan any)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			subSystemToOverseer := make(chan any, 10)
 			defer close(subSystemToOverseer)
 
-			go mockOverseer(t, subSystemToOverseer)
-
-			rpState := c.rpState()
-			rpState.postImportStatement(subSystemToOverseer, c.summary)
+			rpState := tc.rpState(ctrl)
+			rpState.postImportStatement(subSystemToOverseer, tc.summary)
+			tc.validate(t, subSystemToOverseer)
 		})
 	}
 }
@@ -836,8 +732,6 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 func TestHandleStatementMessage(t *testing.T) {
 	t.Parallel()
 
-	paraIDPtr4 := uint32ToParaIDPtr(t, 4)
-
 	relayParent := getDummyHash(t, 5)
 	chRelayParentAndCommand := make(chan relayParentAndCommand)
 
@@ -848,10 +742,8 @@ func TestHandleStatementMessage(t *testing.T) {
 	err := statementVDTSeconded.SetValue(seconded)
 	require.NoError(t, err)
 
-	hash, err := dummyCCR.Hash()
+	candidateHash, err := parachaintypes.GetCandidateHash(dummyCCR)
 	require.NoError(t, err)
-
-	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	statementVDTValid := parachaintypes.NewStatementVDT()
 	err = statementVDTValid.SetValue(parachaintypes.Valid(candidateHash))
@@ -864,7 +756,6 @@ func TestHandleStatementMessage(t *testing.T) {
 		signedStatementWithPVD parachaintypes.SignedFullStatementWithPVD
 		err                    string
 	}{
-
 		{
 			description: "unknown_relay_parent",
 			perRelayParent: func() map[common.Hash]*perRelayParentState {
@@ -901,6 +792,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
+					gomock.AssignableToTypeOf(parachaintypes.GroupIndex(0)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(nil, nil)
 				mockTable.EXPECT().drainMisbehaviors().
@@ -919,7 +811,6 @@ func TestHandleStatementMessage(t *testing.T) {
 			},
 			err: "",
 		},
-
 		{
 			description: "paraId_is_not_assigned_to_the_local_validator",
 			perRelayParent: func() map[common.Hash]*perRelayParentState {
@@ -928,6 +819,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
+					gomock.AssignableToTypeOf(parachaintypes.GroupIndex(0)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(&Summary{
 					GroupID: 4,
@@ -942,8 +834,12 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
-						table:      mockTable,
-						assignment: uint32ToParaIDPtr(t, 5),
+						table:        mockTable,
+						assignedCore: &parachaintypes.CoreIndex{Index: 1},
+						fallbacks: map[parachaintypes.CandidateHash]attestingData{
+							candidateHash: {},
+						},
+						tableContext: dummyTableContext(t),
 					},
 				}
 			},
@@ -954,7 +850,6 @@ func TestHandleStatementMessage(t *testing.T) {
 			},
 			err: "",
 		},
-
 		{
 			description: "statementVDT_set_to_valid_and_candidate_not_in_fallbacks",
 			perRelayParent: func() map[common.Hash]*perRelayParentState {
@@ -963,6 +858,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
+					gomock.AssignableToTypeOf(parachaintypes.GroupIndex(0)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(&Summary{
 					Candidate: candidateHash,
@@ -978,10 +874,10 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
-						table:      mockTable,
-						assignment: paraIDPtr4,
-						backed:     map[parachaintypes.CandidateHash]bool{},
-						fallbacks:  map[parachaintypes.CandidateHash]attestingData{},
+						assignedCore: &parachaintypes.CoreIndex{Index: 4},
+						table:        mockTable,
+						backed:       map[parachaintypes.CandidateHash]bool{},
+						fallbacks:    map[parachaintypes.CandidateHash]attestingData{},
 					},
 				}
 			},
@@ -992,7 +888,6 @@ func TestHandleStatementMessage(t *testing.T) {
 			},
 			err: errFallbackNotAvailable.Error(),
 		},
-
 		{
 			description: "statementVDT_set_to_valid_also_same_validatorIndex_in_tableContext_and_signedStatement",
 			perRelayParent: func() map[common.Hash]*perRelayParentState {
@@ -1001,6 +896,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
+					gomock.AssignableToTypeOf(parachaintypes.GroupIndex(0)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(&Summary{
 					Candidate: candidateHash,
@@ -1016,9 +912,9 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
+						assignedCore: &parachaintypes.CoreIndex{Index: 4},
 						table:        mockTable,
 						tableContext: dummyTableContext(t),
-						assignment:   paraIDPtr4,
 						backed:       map[parachaintypes.CandidateHash]bool{},
 						fallbacks: map[parachaintypes.CandidateHash]attestingData{
 							candidateHash: {},
@@ -1042,6 +938,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
+					gomock.AssignableToTypeOf(parachaintypes.GroupIndex(0)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(&Summary{
 					Candidate: candidateHash,
@@ -1057,9 +954,9 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
+						assignedCore: &parachaintypes.CoreIndex{Index: 4},
 						table:        mockTable,
 						tableContext: dummyTableContext(t),
-						assignment:   paraIDPtr4,
 						backed:       map[parachaintypes.CandidateHash]bool{},
 						fallbacks: map[parachaintypes.CandidateHash]attestingData{
 							candidateHash: {},
@@ -1086,6 +983,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
+					gomock.AssignableToTypeOf(parachaintypes.GroupIndex(0)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(&Summary{
 					Candidate: candidateHash,
@@ -1101,9 +999,9 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
+						assignedCore: &parachaintypes.CoreIndex{Index: 4},
 						table:        mockTable,
 						tableContext: dummyTableContext(t),
-						assignment:   paraIDPtr4,
 						backed:       map[parachaintypes.CandidateHash]bool{},
 						fallbacks: map[parachaintypes.CandidateHash]attestingData{
 							candidateHash: {
@@ -1137,6 +1035,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
+					gomock.AssignableToTypeOf(parachaintypes.GroupIndex(0)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(&Summary{
 					Candidate: candidateHash,
@@ -1158,8 +1057,8 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
-						table:      mockTable,
-						assignment: paraIDPtr4,
+						assignedCore: &parachaintypes.CoreIndex{Index: 4},
+						table:        mockTable,
 						backed: map[parachaintypes.CandidateHash]bool{
 							candidateHash: true,
 						},
@@ -1181,6 +1080,7 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				mockTable.EXPECT().importStatement(
 					gomock.AssignableToTypeOf(new(tableContext)),
+					gomock.AssignableToTypeOf(parachaintypes.GroupIndex(0)),
 					gomock.AssignableToTypeOf(parachaintypes.SignedFullStatement{}),
 				).Return(&Summary{
 					Candidate: candidateHash,
@@ -1199,8 +1099,8 @@ func TestHandleStatementMessage(t *testing.T) {
 
 				return map[common.Hash]*perRelayParentState{
 					relayParent: {
-						table:      mockTable,
-						assignment: paraIDPtr4,
+						assignedCore: &parachaintypes.CoreIndex{Index: 4},
+						table:        mockTable,
 						backed: map[parachaintypes.CandidateHash]bool{
 							candidateHash: true,
 						},
@@ -1216,7 +1116,6 @@ func TestHandleStatementMessage(t *testing.T) {
 			err:                    "",
 		},
 	}
-
 	for _, c := range testCases {
 		c := c
 		t.Run(c.description, func(t *testing.T) {
