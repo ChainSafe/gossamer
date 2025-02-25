@@ -24,7 +24,8 @@ func (cb *CandidateBacking) handleGetBackableCandidatesMessage(
 }
 
 // getBackableCandidatesOfAParachain returns backable candidates of a parachain
-func (cb *CandidateBacking) getBackableCandidatesOfAParachain(candidateAndRelayParentPairs []*parachaintypes.CandidateHashAndRelayParent,
+func (cb *CandidateBacking) getBackableCandidatesOfAParachain(
+	candidateAndRelayParentPairs []*parachaintypes.CandidateHashAndRelayParent,
 ) []*parachaintypes.BackedCandidate {
 	backableCandidates := make([]*parachaintypes.BackedCandidate, 0, len(candidateAndRelayParentPairs))
 
