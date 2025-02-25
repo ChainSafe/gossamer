@@ -6,6 +6,10 @@ package bitfield_signing
 import (
 	"context"
 	"fmt"
+	"sort"
+	"sync"
+	"time"
+
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	parachainutil "github.com/ChainSafe/gossamer/dot/parachain/util"
@@ -13,9 +17,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"sort"
-	"sync"
-	"time"
 )
 
 const availabilityDistributionWaitingPeriod = time.Millisecond * 1500
@@ -122,7 +123,8 @@ func (b *BitfieldSigning) ProcessActiveLeavesUpdateSignal(signal parachaintypes.
 	return nil
 }
 
-func handleActiveLeavesUpdate(ctx context.Context, b *BitfieldSigning, activatedLeaf *parachaintypes.ActivatedLeaf) error {
+func handleActiveLeavesUpdate(ctx context.Context, b *BitfieldSigning, activatedLeaf *parachaintypes.ActivatedLeaf,
+) error {
 	relayParent := activatedLeaf.Hash
 	rt, err := b.blockState.GetRuntime(relayParent)
 	if err != nil {

@@ -1,9 +1,15 @@
+// Copyright 2024 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package bitfield_signing
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"testing"
+	"time"
+
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
@@ -14,8 +20,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"testing"
-	"time"
 )
 
 func TestBitfieldOrderGuard(t *testing.T) {
@@ -61,7 +65,8 @@ func TestConstructAvailabilityBitfieldFailedParachainHostAvailabilityCores(t *te
 	runtimeMock.EXPECT().ParachainHostAvailabilityCores().Return(nil, errors.New("something is off")).Times(1)
 
 	testChan := make(chan any)
-	bitfield, err := constructAvailabilityBitfield(context.Background(), runtimeMock, parachaintypes.ValidatorIndex(1), testChan)
+	bitfield, err := constructAvailabilityBitfield(context.Background(), runtimeMock, parachaintypes.ValidatorIndex(1),
+		testChan)
 
 	assert.Equal(t, bitfield, parachaintypes.BitVec{})
 	assert.Error(t, err, "something is off")
@@ -83,9 +88,10 @@ func TestConstructAvailabilityBitfieldFailedUnsupportedType(t *testing.T) {
 	runtimeMock.EXPECT().ParachainHostAvailabilityCores().Return(cores, nil).Times(1)
 
 	testChan := make(chan any)
-	bitfield, err := constructAvailabilityBitfield(context.Background(), runtimeMock, parachaintypes.ValidatorIndex(1), testChan)
+	bitfield, err := constructAvailabilityBitfield(context.Background(), runtimeMock, parachaintypes.ValidatorIndex(1),
+		testChan)
 	assert.Equal(t, bitfield, parachaintypes.BitVec{})
-	assert.Error(t, scale.ErrUnsupportedVaryingDataTypeValue)
+	assert.Equal(t, err, scale.ErrUnsupportedVaryingDataTypeValue)
 }
 
 func TestConstructAvailabilityBitfieldSuccess(t *testing.T) {
@@ -96,6 +102,7 @@ func TestConstructAvailabilityBitfieldSuccess(t *testing.T) {
 
 	core1 := parachaintypes.CoreState{}
 	err := core1.SetValue(parachaintypes.ScheduledCore{ParaID: 1})
+	assert.Nil(t, err)
 
 	core2 := parachaintypes.CoreState{}
 	err = core2.SetValue(parachaintypes.ScheduledCore{ParaID: 2})
@@ -111,6 +118,7 @@ func TestConstructAvailabilityBitfieldSuccess(t *testing.T) {
 
 	core5 := parachaintypes.CoreState{}
 	err = core5.SetValue(parachaintypes.OccupiedCore{CandidateHash: common.NewHash([]byte{6, 7, 8, 9, 10})})
+	assert.Nil(t, err)
 
 	cores = append(cores, core1, core2, core3, core4, core5)
 
@@ -127,7 +135,8 @@ func TestConstructAvailabilityBitfieldSuccess(t *testing.T) {
 		}
 	}()
 
-	bitfield, err := constructAvailabilityBitfield(context.Background(), runtimeMock, parachaintypes.ValidatorIndex(1), subSystemToOverseerTestChan)
+	bitfield, err := constructAvailabilityBitfield(context.Background(), runtimeMock, parachaintypes.ValidatorIndex(1),
+		subSystemToOverseerTestChan)
 
 	close(subSystemToOverseerTestChan)
 
@@ -322,6 +331,7 @@ func TestProcessActiveLeavesUpdateSignalSuccess(t *testing.T) {
 
 	core1 := parachaintypes.CoreState{}
 	err = core1.SetValue(parachaintypes.ScheduledCore{ParaID: 1})
+	assert.Nil(t, err)
 
 	core2 := parachaintypes.CoreState{}
 	err = core2.SetValue(parachaintypes.ScheduledCore{ParaID: 2})
@@ -337,6 +347,7 @@ func TestProcessActiveLeavesUpdateSignalSuccess(t *testing.T) {
 
 	core5 := parachaintypes.CoreState{}
 	err = core5.SetValue(parachaintypes.OccupiedCore{CandidateHash: common.NewHash([]byte{6, 7, 8, 9, 10})})
+	assert.Nil(t, err)
 
 	cores = append(cores, core1, core2, core3, core4, core5)
 
@@ -350,16 +361,14 @@ func TestProcessActiveLeavesUpdateSignalSuccess(t *testing.T) {
 			if !ok {
 				break
 			}
-			switch request.(type) {
+			switch request := request.(type) {
 			case availabilitystore.QueryChunkAvailability:
-				request.(availabilitystore.QueryChunkAvailability).Sender <- true
+				request.Sender <- true
 			case parachaintypes.DistributeBitfield:
-				a := request.(parachaintypes.DistributeBitfield)
-
-				assert.Equal(t, common.Hash{1, 2, 3, 4, 5}, a.RelayParent)
-				assert.Equal(t, parachaintypes.ValidatorIndex(0), a.Bitfield.ValidatorIndex) // only alice is in the validator set now
-				assert.Equal(t, parachaintypes.NewBitVec([]bool{false, false, true, false, true}), a.Bitfield.Payload)
-				assert.EqualValues(t, 64, len(a.Bitfield.Signature)) // signature is not empty
+				assert.Equal(t, common.Hash{1, 2, 3, 4, 5}, request.RelayParent)
+				assert.Equal(t, parachaintypes.ValidatorIndex(0), request.Bitfield.ValidatorIndex) // only alice here
+				assert.Equal(t, parachaintypes.NewBitVec([]bool{false, false, true, false, true}), request.Bitfield.Payload)
+				assert.EqualValues(t, 64, len(request.Bitfield.Signature)) // signature is not empty
 			}
 		}
 	}()
