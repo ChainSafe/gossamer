@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package parachaintypes
 
 import (
@@ -18,11 +21,16 @@ func DisputeIsInactive(status *DisputeStatus, now uint64) bool {
 	return at != nil && *at+ActiveDurationSecs < now
 }
 
+// DisputeKey identifies a single dispute
+// under polkadot-sdk the same representation is
+// a tuple of (SessionIndex, CandidateHash)
 type DisputeKey struct {
 	SessionIndex  SessionIndex
 	CandidateHash CandidateHash
 }
 
+// DisputeState is stored by the runtime
+// and represents the entire dispute state
 type DisputeState struct {
 	// A bitfield indicating all validators for the candidate.
 	ValidatorsFor BitVec
@@ -43,10 +51,13 @@ type ValidDisputeStatementKind struct {
 }
 
 type ValidDisputeStatementKindValues interface {
-	ExplicitStatement | BackingSeconded | BackingValid | ApprovalChecking | ApprovalCheckingMultipleCandidates
+	ExplicitStatement | SecondedCandidateHash | Valid | ApprovalChecking | ApprovalCheckingMultipleCandidates
 }
 
-func setValidDisputeStatementKind[Value ValidDisputeStatementKindValues](mvdt *ValidDisputeStatementKind, value Value) {
+func setValidDisputeStatementKind[Value ValidDisputeStatementKindValues](
+	mvdt *ValidDisputeStatementKind,
+	value Value,
+) {
 	mvdt.inner = value
 }
 
@@ -55,10 +66,10 @@ func (mvdt *ValidDisputeStatementKind) SetValue(value any) (err error) {
 	case ExplicitStatement:
 		setValidDisputeStatementKind(mvdt, value)
 		return
-	case BackingSeconded:
+	case SecondedCandidateHash:
 		setValidDisputeStatementKind(mvdt, value)
 		return
-	case BackingValid:
+	case Valid:
 		setValidDisputeStatementKind(mvdt, value)
 		return
 	case ApprovalChecking:
@@ -76,9 +87,9 @@ func (mvdt ValidDisputeStatementKind) IndexValue() (index uint, value any, err e
 	switch mvdt.inner.(type) {
 	case ExplicitStatement:
 		return 0, mvdt.inner, nil
-	case BackingSeconded:
+	case SecondedCandidateHash:
 		return 1, mvdt.inner, nil
-	case BackingValid:
+	case Valid:
 		return 2, mvdt.inner, nil
 	case ApprovalChecking:
 		return 3, mvdt.inner, nil
@@ -98,9 +109,9 @@ func (mvdt ValidDisputeStatementKind) ValueAt(index uint) (value any, err error)
 	case 0:
 		return ExplicitStatement{}, nil
 	case 1:
-		return BackingSeconded{}, nil
+		return SecondedCandidateHash{}, nil
 	case 2:
-		return BackingValid{}, nil
+		return Valid{}, nil
 	case 3:
 		return ApprovalChecking{}, nil
 	case 4:
@@ -109,18 +120,8 @@ func (mvdt ValidDisputeStatementKind) ValueAt(index uint) (value any, err error)
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
-// ExplicitStatement An explicit statement issued as part of a dispute.
+// ExplicitStatement an explicit statement issued as part of a dispute.
 type ExplicitStatement struct{}
-
-// BackingSeconded A seconded statement on a candidate from the backing phase.
-type BackingSeconded struct {
-	Hash common.Hash
-}
-
-// BackingValid A valid statement on a candidate from the backing phase.
-type BackingValid struct {
-	Hash common.Hash
-}
 
 // ApprovalChecking An approval vote from the approval checking phase.
 type ApprovalChecking struct{}
@@ -139,7 +140,9 @@ type InvalidDisputeStatementKindValues interface {
 	ExplicitStatement
 }
 
-func setInvalidDisputeStatementKind[Value InvalidDisputeStatementKindValues](mvdt *InvalidDisputeStatementKind, value Value) {
+func setInvalidDisputeStatementKind[Value InvalidDisputeStatementKindValues](
+	mvdt *InvalidDisputeStatementKind, value Value,
+) {
 	mvdt.inner = value
 }
 
@@ -190,15 +193,21 @@ type Vote[Kind any] struct {
 }
 
 func (cv *CandidateVotes) VotedIndices() (keys btree.Set[ValidatorIndex]) {
-	cv.Valid.Ascend(ValidatorIndex(0), func(k ValidatorIndex, _ Vote[ValidDisputeStatementKind]) bool {
-		keys.Insert(k)
-		return true
-	})
+	cv.Valid.Ascend(
+		ValidatorIndex(0),
+		func(k ValidatorIndex, _ Vote[ValidDisputeStatementKind]) bool {
+			keys.Insert(k)
+			return true
+		},
+	)
 
-	cv.Invalid.Ascend(ValidatorIndex(0), func(k ValidatorIndex, _ Vote[InvalidDisputeStatementKind]) bool {
-		keys.Insert(k)
-		return true
-	})
+	cv.Invalid.Ascend(
+		ValidatorIndex(0),
+		func(k ValidatorIndex, _ Vote[InvalidDisputeStatementKind]) bool {
+			keys.Insert(k)
+			return true
+		},
+	)
 
 	return keys
 }
@@ -222,7 +231,7 @@ func (cv *CandidateVotes) InsertValidVote(
 	}
 
 	switch entryKindVariant.(type) {
-	case BackingValid, BackingSeconded:
+	case Valid, SecondedCandidateHash:
 		return false
 	default:
 		cv.Valid.Set(validatorIndex, Vote[ValidDisputeStatementKind]{Kind: kind, Signature: sig})
@@ -298,7 +307,7 @@ func (ds DisputeStatus) ValueAt(index uint) (value any, err error) {
 // Active represents an active dispute.
 type Active struct{}
 
-// ConcludedFor represents a dispute concluded in favor of the candidate.
+// ConcludedFor represents a dispute concluded in favour of the candidate.
 type ConcludedFor struct {
 	Timestamp uint64
 }
@@ -311,7 +320,7 @@ type ConcludedAgainst struct {
 // Confirmed represents a confirmed dispute.
 type Confirmed struct{}
 
-// NewDisputeStatusActive initializes the status to the active state.
+// NewDisputeStatusActive initialises the status to the active state.
 func NewDisputeStatusActive() DisputeStatus {
 	return DisputeStatus{inner: Active{}}
 }
@@ -336,7 +345,7 @@ func (ds DisputeStatus) IsConfirmedConcluded() bool {
 	}
 }
 
-// HasConcludedFor checks if the dispute has concluded in favor of the candidate.
+// HasConcludedFor checks if the dispute has concluded in favour of the candidate.
 func (ds DisputeStatus) HasConcludedFor() bool {
 	_, ok := ds.inner.(ConcludedFor)
 	return ok
@@ -348,7 +357,8 @@ func (ds DisputeStatus) HasConcludedAgainst() bool {
 	return ok
 }
 
-// ConcludeFor transitions the status to a new status after observing the dispute has concluded for the candidate.
+// ConcludeFor transitions the status to a new status after
+// observing the dispute has concluded for the candidate.
 func (ds DisputeStatus) ConcludeFor(now uint64) DisputeStatus {
 	switch inner := ds.inner.(type) {
 	case Active, Confirmed:
@@ -360,7 +370,8 @@ func (ds DisputeStatus) ConcludeFor(now uint64) DisputeStatus {
 	}
 }
 
-// ConcludeAgainst transitions the status to a new status after observing the dispute has concluded against the candidate.
+// ConcludeAgainst transitions the status to a new status after
+// observing the dispute has concluded against the candidate.
 func (ds DisputeStatus) ConcludeAgainst(now uint64) DisputeStatus {
 	switch inner := ds.inner.(type) {
 	case Active, Confirmed:

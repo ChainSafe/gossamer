@@ -1360,9 +1360,20 @@ func (in *Instance) ParachainHostValidationCodeByHash(validationCodeHash common.
 	return validationCode, nil
 }
 
+// Backing votes threshold used from the host prior to runtime API version 6 and
+// from the runtime prior to v9 configuration migration.
+const LegacyMinBackingVotes uint32 = 2
+
 func (in *Instance) ParachainHostMinimumBackingVotes() (uint32, error) {
 	encodedBackingVotes, err := in.Exec(runtime.ParachainHostMinimumBackingVotes, []byte{})
 	if err != nil {
+		if errors.Is(err, ErrExportFunctionNotFound) {
+			logger.Tracef(
+				"%s is not supported by the current Runtime API",
+				runtime.ParachainHostMinimumBackingVotes,
+			)
+			return LegacyMinBackingVotes, nil
+		}
 		return 0, fmt.Errorf("exec: %w", err)
 	}
 

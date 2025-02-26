@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package provisioner
 
 import (
@@ -114,12 +117,12 @@ func RequestVotes(overseerChan chan<- any, disputesToQuery []parachaintypes.Disp
 }
 
 // RequestDisputes requests disputes identified by CandidateHash and SessionIndex.
-func RequestDisputes(overseerChan chan<- any) ([]messages.RecentDisputesResponse, error) {
+func RequestDisputes(overseerChan chan<- any) ([]messages.RecentDispute, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	responseCh := make(chan []messages.RecentDisputesResponse)
-	msg := messages.RecentDisputes{
+	responseCh := make(chan []messages.RecentDispute)
+	msg := messages.GetRecentDisputes{
 		Response: responseCh,
 	}
 

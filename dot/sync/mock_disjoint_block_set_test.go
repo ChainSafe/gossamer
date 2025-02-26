@@ -11,7 +11,7 @@ package sync
 
 import (
 	reflect "reflect"
-	sync0 "sync"
+	sync "sync"
 
 	types "github.com/ChainSafe/gossamer/dot/types"
 	common "github.com/ChainSafe/gossamer/lib/common"
@@ -22,6 +22,7 @@ import (
 type MockDisjointBlockSet struct {
 	ctrl     *gomock.Controller
 	recorder *MockDisjointBlockSetMockRecorder
+	isgomock struct{}
 }
 
 // MockDisjointBlockSetMockRecorder is the mock recorder for MockDisjointBlockSet.
@@ -56,17 +57,17 @@ func (mr *MockDisjointBlockSetMockRecorder) addBlock(arg0 any) *gomock.Call {
 }
 
 // addHashAndNumber mocks base method.
-func (m *MockDisjointBlockSet) addHashAndNumber(arg0 common.Hash, arg1 uint) error {
+func (m *MockDisjointBlockSet) addHashAndNumber(hash common.Hash, number uint) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "addHashAndNumber", arg0, arg1)
+	ret := m.ctrl.Call(m, "addHashAndNumber", hash, number)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // addHashAndNumber indicates an expected call of addHashAndNumber.
-func (mr *MockDisjointBlockSetMockRecorder) addHashAndNumber(arg0, arg1 any) *gomock.Call {
+func (mr *MockDisjointBlockSetMockRecorder) addHashAndNumber(hash, number any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "addHashAndNumber", reflect.TypeOf((*MockDisjointBlockSet)(nil).addHashAndNumber), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "addHashAndNumber", reflect.TypeOf((*MockDisjointBlockSet)(nil).addHashAndNumber), hash, number)
 }
 
 // addHeader mocks base method.
@@ -152,27 +153,27 @@ func (mr *MockDisjointBlockSetMockRecorder) removeBlock(arg0 any) *gomock.Call {
 }
 
 // removeLowerBlocks mocks base method.
-func (m *MockDisjointBlockSet) removeLowerBlocks(arg0 uint) {
+func (m *MockDisjointBlockSet) removeLowerBlocks(num uint) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "removeLowerBlocks", arg0)
+	m.ctrl.Call(m, "removeLowerBlocks", num)
 }
 
 // removeLowerBlocks indicates an expected call of removeLowerBlocks.
-func (mr *MockDisjointBlockSetMockRecorder) removeLowerBlocks(arg0 any) *gomock.Call {
+func (mr *MockDisjointBlockSetMockRecorder) removeLowerBlocks(num any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "removeLowerBlocks", reflect.TypeOf((*MockDisjointBlockSet)(nil).removeLowerBlocks), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "removeLowerBlocks", reflect.TypeOf((*MockDisjointBlockSet)(nil).removeLowerBlocks), num)
 }
 
 // run mocks base method.
-func (m *MockDisjointBlockSet) run(arg0 <-chan *types.FinalisationInfo, arg1 <-chan struct{}, arg2 *sync0.WaitGroup) {
+func (m *MockDisjointBlockSet) run(finalisedCh <-chan *types.FinalisationInfo, stop <-chan struct{}, wg *sync.WaitGroup) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "run", arg0, arg1, arg2)
+	m.ctrl.Call(m, "run", finalisedCh, stop, wg)
 }
 
 // run indicates an expected call of run.
-func (mr *MockDisjointBlockSetMockRecorder) run(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockDisjointBlockSetMockRecorder) run(finalisedCh, stop, wg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "run", reflect.TypeOf((*MockDisjointBlockSet)(nil).run), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "run", reflect.TypeOf((*MockDisjointBlockSet)(nil).run), finalisedCh, stop, wg)
 }
 
 // size mocks base method.

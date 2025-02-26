@@ -21,6 +21,7 @@ import (
 type MockSubsystem struct {
 	ctrl     *gomock.Controller
 	recorder *MockSubsystemMockRecorder
+	isgomock struct{}
 }
 
 // MockSubsystemMockRecorder is the mock recorder for MockSubsystem.
@@ -83,15 +84,15 @@ func (mr *MockSubsystemMockRecorder) ProcessBlockFinalizedSignal(arg0 any) *gomo
 }
 
 // Run mocks base method.
-func (m *MockSubsystem) Run(arg0 context.Context, arg1 <-chan any) {
+func (m *MockSubsystem) Run(ctx context.Context, overseerToSubSystem <-chan any) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Run", arg0, arg1)
+	m.ctrl.Call(m, "Run", ctx, overseerToSubSystem)
 }
 
 // Run indicates an expected call of Run.
-func (mr *MockSubsystemMockRecorder) Run(arg0, arg1 any) *gomock.Call {
+func (mr *MockSubsystemMockRecorder) Run(ctx, overseerToSubSystem any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockSubsystem)(nil).Run), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Run", reflect.TypeOf((*MockSubsystem)(nil).Run), ctx, overseerToSubSystem)
 }
 
 // Stop mocks base method.
