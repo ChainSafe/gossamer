@@ -6,7 +6,6 @@ package bitfield_signing
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
@@ -21,42 +20,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )
-
-func TestBitfieldOrderGuard(t *testing.T) {
-	testcases := []struct {
-		desc     string
-		testcase []bitfieldData
-		result   parachaintypes.BitVec
-	}{
-		{
-			desc: "testcaes 1",
-			testcase: []bitfieldData{
-				{index: 1, data: true},
-				{index: 0, data: false},
-				{index: 5, data: true},
-				{index: 4, data: true},
-				{index: 2, data: true},
-				{index: 3, data: false}},
-			result: parachaintypes.NewBitVec([]bool{false, true, true, false, true, true}),
-		},
-		{
-			desc: "testcaes 2",
-			testcase: []bitfieldData{
-				{index: 6, data: false},
-				{index: 5, data: true},
-				{index: 4, data: true},
-				{index: 3, data: true},
-				{index: 2, data: false},
-				{index: 1, data: true}},
-			result: parachaintypes.NewBitVec([]bool{true, false, true, true, true, false}),
-		},
-	}
-
-	for _, tc := range testcases {
-		r := bitfieldOrderGuard(tc.testcase)
-		assert.Equal(t, tc.result, r, fmt.Sprintf("%s failed", tc.desc))
-	}
-}
 
 func TestConstructAvailabilityBitfieldFailedParachainHostAvailabilityCores(t *testing.T) {
 	ctrl := gomock.NewController(t)

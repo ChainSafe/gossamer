@@ -6,7 +6,6 @@ package bitfield_signing
 import (
 	"context"
 	"fmt"
-	"sort"
 	"sync"
 	"time"
 
@@ -26,11 +25,6 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-bitfield-signing
 type signingTask struct {
 	ctx    context.Context
 	cancel context.CancelFunc
-}
-
-type bitfieldData struct {
-	index int
-	data  bool
 }
 
 // BitfieldSigning is the parachain subsystem that validators vote on the availability of a
@@ -211,8 +205,8 @@ func constructAvailabilityBitfield(
 		return parachaintypes.BitVec{}, fmt.Errorf("querying availability cores: %w", err)
 	}
 
-	// init a bitfield without caring the order
-	bitfield := make([]bitfieldData, 0, len(cores))
+	// init a bitfield without caring the order and also allocate all indices with false to avoid race condition later
+	bitfield := make([]bool, len(cores))
 
 	var wg sync.WaitGroup
 	for coreOrderIndex, core := range cores {
@@ -238,36 +232,22 @@ func constructAvailabilityBitfield(
 
 				// check if cancel signal is coming
 				// we can't cancel the process anytime during the spawned goroutines
-				// instead we only check cancel signal right before receiving from overseer in case it's blocked
+				// instead we block the process here so that either cancel or receivingChan responses
+				var data bool
 				select {
 				case <-ctx.Done():
 					logger.Infof("process for handleActiveLeavesUpdate is abort due to deactivated leaves")
 					return
-				default:
-					// append the result to the bitfield
-					bitfield = append(bitfield, bitfieldData{index: oi, data: <-receivingChan})
+				case res := <-receivingChan:
+					data = res
 				}
+				bitfield[oi] = data
 			}(coreOrderIndex, value.(parachaintypes.OccupiedCore))
 		} else {
-			bitfield = append(bitfield, bitfieldData{index: coreOrderIndex, data: false})
+			bitfield[coreOrderIndex] = false
 		}
 	}
 	wg.Wait()
 
-	return bitfieldOrderGuard(bitfield), nil
-}
-
-// bitfieldOrderGuard sort the fulfilled bitfield data in its correct order according to the CoreState and return
-// the bitfield
-func bitfieldOrderGuard(bitfieldData []bitfieldData) parachaintypes.BitVec {
-	sort.Slice(bitfieldData, func(i, j int) bool {
-		return bitfieldData[i].index < bitfieldData[j].index
-	})
-
-	b := make([]bool, 0, len(bitfieldData))
-	for _, item := range bitfieldData {
-		b = append(b, item.data)
-	}
-
-	return parachaintypes.NewBitVec(b)
+	return parachaintypes.NewBitVec(bitfield), nil
 }
