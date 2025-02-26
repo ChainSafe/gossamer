@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package prospectiveparachains
 
 import (
@@ -911,25 +914,33 @@ func TestCandidateStorageMethods(t *testing.T) {
 
 					// here we should have 1 possible backed candidate since
 					// the other candidate is seconded
-					possibleBackedCandidateHashes := make([]parachaintypes.CandidateHash, 0)
+					possibleBackedCandidateHashes := make(map[parachaintypes.CandidateHash]struct{})
 					for entry := range storage.possibleBackedParaChildren(parentHeadHash) {
-						possibleBackedCandidateHashes = append(possibleBackedCandidateHashes, entry.candidateHash)
+						possibleBackedCandidateHashes[entry.candidateHash] = struct{}{}
 					}
 
-					require.Equal(t, []parachaintypes.CandidateHash{candidateHash}, possibleBackedCandidateHashes)
+					expectedCandidates := map[parachaintypes.CandidateHash]struct{}{
+						candidateHash: {},
+					}
+
+					require.Equal(t, expectedCandidates, possibleBackedCandidateHashes)
 
 					// now mark it as backed
 					storage.markBacked(candidateHash2)
 
 					// here we should have 1 possible backed candidate since
 					// the other candidate is seconded
-					possibleBackedCandidateHashes = make([]parachaintypes.CandidateHash, 0)
+					possibleBackedCandidateHashes = make(map[parachaintypes.CandidateHash]struct{})
 					for entry := range storage.possibleBackedParaChildren(parentHeadHash) {
-						possibleBackedCandidateHashes = append(possibleBackedCandidateHashes, entry.candidateHash)
+						possibleBackedCandidateHashes[entry.candidateHash] = struct{}{}
 					}
 
-					require.Equal(t, []parachaintypes.CandidateHash{
-						candidateHash, candidateHash2}, possibleBackedCandidateHashes)
+					expectedCandidates = map[parachaintypes.CandidateHash]struct{}{
+						candidateHash:  {},
+						candidateHash2: {},
+					}
+
+					require.Equal(t, expectedCandidates, possibleBackedCandidateHashes)
 
 				})
 			},

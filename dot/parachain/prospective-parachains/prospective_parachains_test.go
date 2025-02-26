@@ -1,8 +1,12 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package prospectiveparachains
 
 import (
 	"bytes"
 	"context"
+	"sort"
 	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -364,6 +368,12 @@ func TestGetMinimumRelayParents(t *testing.T) {
 	// Validate the results
 	result := <-sender
 	assert.Len(t, result, 2)
+
+	// orders might be different, so sort the result to compare
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ParaId < result[j].ParaId
+	})
+
 	assert.Equal(t, expected, result)
 }
 

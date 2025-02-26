@@ -11,6 +11,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -64,10 +65,30 @@ func (info GroupRotationInfo) GroupForCore(coreIndex CoreIndex, numOfCores uint)
 	return GroupIndex(idx)
 }
 
-func (gri GroupRotationInfo) CoreForGroup(groupIndex GroupIndex, cores uint8) CoreIndex {
-	//nolint
-	// TODO: https://github.com/paritytech/polkadot-sdk/blob/aa68ea58f389c2aa4eefab4bf7bc7b787dd56580/polkadot/primitives/src/v6/mod.rs#L877
-	return CoreIndex{}
+// CoreForGroup returns the index of the group assigned to the given core. This does no checking or
+// whether the group index is in-bounds.
+//
+// `coreIndex` should be less than `numOfCores`, which is capped at `MaxUint32`.
+func (info GroupRotationInfo) CoreForGroup(groupIndex GroupIndex, numOfCores uint) CoreIndex {
+	if info.GroupRotationFrequency == 0 {
+		return CoreIndex{Index: uint32(groupIndex)}
+	}
+	if numOfCores == 0 {
+		return CoreIndex{Index: 0}
+	}
+
+	numOfCores = min(numOfCores, math.MaxUint32)
+
+	var blocksSinceStart uint32
+	if info.Now > info.SessionStartBlock {
+		blocksSinceStart = uint32(info.Now - info.SessionStartBlock)
+	}
+
+	rotations := blocksSinceStart / uint32(info.GroupRotationFrequency)
+	rotations = rotations % uint32(numOfCores)
+
+	idx := (uint(groupIndex) + numOfCores - uint(rotations)) % numOfCores
+	return CoreIndex{Index: uint32(idx)}
 }
 
 // ValidatorGroups represents the validator groups
@@ -592,7 +613,10 @@ type OccupiedCoreAssumption struct {
 	inner any
 }
 
-func setOccupiedCoreAssumption[Value OccupiedCoreAssumptionValues](mvdt *OccupiedCoreAssumption, value Value) {
+func setOccupiedCoreAssumption[Value OccupiedCoreAssumptionValues](
+	mvdt *OccupiedCoreAssumption,
+	value Value,
+) {
 	mvdt.inner = value
 }
 
@@ -780,6 +804,16 @@ type Subsystem interface {
 	Stop()
 }
 
+// NodeFeatureIndex represents the index of a feature in a bitvector of node features fetched from runtime.
+type NodeFeatureIndex byte
+
+// This feature enables the extension of `BackedCandidate.ValidatorIndices` by 8 bits.
+// The value stored there represents the assumed core index where the candidates
+// are backed. This is needed for the elastic scaling MVP.
+const ElasticScalingMVP NodeFeatureIndex = 1
+
+type ClaimQueue map[CoreIndex][]ParaID
+
 // Present is a variant of UpgradeRestriction enumerator that signals
 // a upgrade restriction is present and there are no details about its
 // specifics nor how long it could last
@@ -834,4 +868,68 @@ func (mvdt UpgradeRestriction) ValueAt(index uint) (value any, err error) {
 type CandidateHashAndRelayParent struct {
 	CandidateHash        CandidateHash
 	CandidateRelayParent common.Hash
+}
+
+// Validator represents local validator information.
+// It can be created if the local node is a validator in the context of a particular relay chain block.
+type Validator struct {
+	SigningContext SigningContext
+	Key            ValidatorID
+	Index          ValidatorIndex
+	Disabled       bool
+}
+
+// Sign signs the encoded payload with the validator's key.
+func (v Validator) Sign(
+	keystore keystore.Keystore,
+	encodedPayload []byte,
+) (*ValidatorSignature, error) {
+	buf := bytes.NewBuffer(encodedPayload)
+	encoder := scale.NewEncoder(buf)
+
+	err := encoder.Encode(v.SigningContext)
+	if err != nil {
+		return nil, fmt.Errorf("encoding signing context: %w", err)
+	}
+
+	encodedData := buf.Bytes()
+
+	validatorPublicKey, err := sr25519.NewPublicKey(v.Key[:])
+	if err != nil {
+		return nil, fmt.Errorf("getting public key: %w", err)
+	}
+
+	signatureBytes, err := keystore.GetKeypair(validatorPublicKey).Sign(encodedData)
+	if err != nil {
+		return nil, fmt.Errorf("signing data: %w", err)
+	}
+
+	var signature Signature
+	copy(signature[:], signatureBytes)
+	valSign := ValidatorSignature(signature)
+
+	return &valSign, nil
+}
+
+// VerifySignature verifies the validator signature for the encoded payload.
+func (v Validator) VerifySignature(
+	encodedPayload []byte,
+	validatorSignature ValidatorSignature,
+) (bool, error) {
+	buf := bytes.NewBuffer(encodedPayload)
+	encoder := scale.NewEncoder(buf)
+
+	err := encoder.Encode(v.SigningContext)
+	if err != nil {
+		return false, fmt.Errorf("encoding signing context: %w", err)
+	}
+
+	encodedData := buf.Bytes()
+
+	publicKey, err := sr25519.NewPublicKey(v.Key[:])
+	if err != nil {
+		return false, fmt.Errorf("getting public key: %w", err)
+	}
+
+	return publicKey.Verify(encodedData, validatorSignature[:])
 }

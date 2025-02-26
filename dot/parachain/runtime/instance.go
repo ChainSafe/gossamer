@@ -109,6 +109,7 @@ type RuntimeInstance interface {
 	ParachainHostCandidateEvents() ([]parachaintypes.CandidateEvent, error)
 	ParachainHostSessionIndexForChild() (parachaintypes.SessionIndex, error)
 	ParachainHostSessionExecutorParams(index parachaintypes.SessionIndex) (*parachaintypes.ExecutorParams, error)
+	ParachainHostDisputes() (map[parachaintypes.DisputeKey]parachaintypes.DisputeState, error)
 }
 
 type RuntimeAPIMessage struct {

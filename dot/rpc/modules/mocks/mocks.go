@@ -28,6 +28,7 @@ import (
 type MockStorageAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockStorageAPIMockRecorder
+	isgomock struct{}
 }
 
 // MockStorageAPIMockRecorder is the mock recorder for MockStorageAPI.
@@ -48,138 +49,139 @@ func (m *MockStorageAPI) EXPECT() *MockStorageAPIMockRecorder {
 }
 
 // Entries mocks base method.
-func (m *MockStorageAPI) Entries(arg0 *common.Hash) (map[string][]byte, error) {
+func (m *MockStorageAPI) Entries(root *common.Hash) (map[string][]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Entries", arg0)
+	ret := m.ctrl.Call(m, "Entries", root)
 	ret0, _ := ret[0].(map[string][]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Entries indicates an expected call of Entries.
-func (mr *MockStorageAPIMockRecorder) Entries(arg0 any) *gomock.Call {
+func (mr *MockStorageAPIMockRecorder) Entries(root any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Entries", reflect.TypeOf((*MockStorageAPI)(nil).Entries), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Entries", reflect.TypeOf((*MockStorageAPI)(nil).Entries), root)
 }
 
 // GetKeysWithPrefix mocks base method.
-func (m *MockStorageAPI) GetKeysWithPrefix(arg0 *common.Hash, arg1 []byte) ([][]byte, error) {
+func (m *MockStorageAPI) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetKeysWithPrefix", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetKeysWithPrefix", root, prefix)
 	ret0, _ := ret[0].([][]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetKeysWithPrefix indicates an expected call of GetKeysWithPrefix.
-func (mr *MockStorageAPIMockRecorder) GetKeysWithPrefix(arg0, arg1 any) *gomock.Call {
+func (mr *MockStorageAPIMockRecorder) GetKeysWithPrefix(root, prefix any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKeysWithPrefix", reflect.TypeOf((*MockStorageAPI)(nil).GetKeysWithPrefix), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKeysWithPrefix", reflect.TypeOf((*MockStorageAPI)(nil).GetKeysWithPrefix), root, prefix)
 }
 
 // GetStateRootFromBlock mocks base method.
-func (m *MockStorageAPI) GetStateRootFromBlock(arg0 *common.Hash) (*common.Hash, error) {
+func (m *MockStorageAPI) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStateRootFromBlock", arg0)
+	ret := m.ctrl.Call(m, "GetStateRootFromBlock", bhash)
 	ret0, _ := ret[0].(*common.Hash)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStateRootFromBlock indicates an expected call of GetStateRootFromBlock.
-func (mr *MockStorageAPIMockRecorder) GetStateRootFromBlock(arg0 any) *gomock.Call {
+func (mr *MockStorageAPIMockRecorder) GetStateRootFromBlock(bhash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStateRootFromBlock", reflect.TypeOf((*MockStorageAPI)(nil).GetStateRootFromBlock), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStateRootFromBlock", reflect.TypeOf((*MockStorageAPI)(nil).GetStateRootFromBlock), bhash)
 }
 
 // GetStorage mocks base method.
-func (m *MockStorageAPI) GetStorage(arg0 *common.Hash, arg1 []byte) ([]byte, error) {
+func (m *MockStorageAPI) GetStorage(root *common.Hash, key []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStorage", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetStorage", root, key)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStorage indicates an expected call of GetStorage.
-func (mr *MockStorageAPIMockRecorder) GetStorage(arg0, arg1 any) *gomock.Call {
+func (mr *MockStorageAPIMockRecorder) GetStorage(root, key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorage", reflect.TypeOf((*MockStorageAPI)(nil).GetStorage), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorage", reflect.TypeOf((*MockStorageAPI)(nil).GetStorage), root, key)
 }
 
 // GetStorageByBlockHash mocks base method.
-func (m *MockStorageAPI) GetStorageByBlockHash(arg0 *common.Hash, arg1 []byte) ([]byte, error) {
+func (m *MockStorageAPI) GetStorageByBlockHash(bhash *common.Hash, key []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStorageByBlockHash", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetStorageByBlockHash", bhash, key)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStorageByBlockHash indicates an expected call of GetStorageByBlockHash.
-func (mr *MockStorageAPIMockRecorder) GetStorageByBlockHash(arg0, arg1 any) *gomock.Call {
+func (mr *MockStorageAPIMockRecorder) GetStorageByBlockHash(bhash, key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorageByBlockHash", reflect.TypeOf((*MockStorageAPI)(nil).GetStorageByBlockHash), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorageByBlockHash", reflect.TypeOf((*MockStorageAPI)(nil).GetStorageByBlockHash), bhash, key)
 }
 
 // GetStorageChild mocks base method.
-func (m *MockStorageAPI) GetStorageChild(arg0 *common.Hash, arg1 []byte) (trie.Trie, error) {
+func (m *MockStorageAPI) GetStorageChild(root *common.Hash, keyToChild []byte) (trie.Trie, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStorageChild", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetStorageChild", root, keyToChild)
 	ret0, _ := ret[0].(trie.Trie)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStorageChild indicates an expected call of GetStorageChild.
-func (mr *MockStorageAPIMockRecorder) GetStorageChild(arg0, arg1 any) *gomock.Call {
+func (mr *MockStorageAPIMockRecorder) GetStorageChild(root, keyToChild any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorageChild", reflect.TypeOf((*MockStorageAPI)(nil).GetStorageChild), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorageChild", reflect.TypeOf((*MockStorageAPI)(nil).GetStorageChild), root, keyToChild)
 }
 
 // GetStorageFromChild mocks base method.
-func (m *MockStorageAPI) GetStorageFromChild(arg0 *common.Hash, arg1, arg2 []byte) ([]byte, error) {
+func (m *MockStorageAPI) GetStorageFromChild(root *common.Hash, keyToChild, key []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStorageFromChild", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "GetStorageFromChild", root, keyToChild, key)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStorageFromChild indicates an expected call of GetStorageFromChild.
-func (mr *MockStorageAPIMockRecorder) GetStorageFromChild(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockStorageAPIMockRecorder) GetStorageFromChild(root, keyToChild, key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorageFromChild", reflect.TypeOf((*MockStorageAPI)(nil).GetStorageFromChild), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStorageFromChild", reflect.TypeOf((*MockStorageAPI)(nil).GetStorageFromChild), root, keyToChild, key)
 }
 
 // RegisterStorageObserver mocks base method.
-func (m *MockStorageAPI) RegisterStorageObserver(arg0 state.Observer) {
+func (m *MockStorageAPI) RegisterStorageObserver(observer state.Observer) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "RegisterStorageObserver", arg0)
+	m.ctrl.Call(m, "RegisterStorageObserver", observer)
 }
 
 // RegisterStorageObserver indicates an expected call of RegisterStorageObserver.
-func (mr *MockStorageAPIMockRecorder) RegisterStorageObserver(arg0 any) *gomock.Call {
+func (mr *MockStorageAPIMockRecorder) RegisterStorageObserver(observer any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterStorageObserver", reflect.TypeOf((*MockStorageAPI)(nil).RegisterStorageObserver), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterStorageObserver", reflect.TypeOf((*MockStorageAPI)(nil).RegisterStorageObserver), observer)
 }
 
 // UnregisterStorageObserver mocks base method.
-func (m *MockStorageAPI) UnregisterStorageObserver(arg0 state.Observer) {
+func (m *MockStorageAPI) UnregisterStorageObserver(observer state.Observer) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "UnregisterStorageObserver", arg0)
+	m.ctrl.Call(m, "UnregisterStorageObserver", observer)
 }
 
 // UnregisterStorageObserver indicates an expected call of UnregisterStorageObserver.
-func (mr *MockStorageAPIMockRecorder) UnregisterStorageObserver(arg0 any) *gomock.Call {
+func (mr *MockStorageAPIMockRecorder) UnregisterStorageObserver(observer any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnregisterStorageObserver", reflect.TypeOf((*MockStorageAPI)(nil).UnregisterStorageObserver), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnregisterStorageObserver", reflect.TypeOf((*MockStorageAPI)(nil).UnregisterStorageObserver), observer)
 }
 
 // MockBlockAPI is a mock of BlockAPI interface.
 type MockBlockAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockBlockAPIMockRecorder
+	isgomock struct{}
 }
 
 // MockBlockAPIMockRecorder is the mock recorder for MockBlockAPI.
@@ -214,42 +216,42 @@ func (mr *MockBlockAPIMockRecorder) BestBlockHash() *gomock.Call {
 }
 
 // FreeFinalisedNotifierChannel mocks base method.
-func (m *MockBlockAPI) FreeFinalisedNotifierChannel(arg0 chan *types.FinalisationInfo) {
+func (m *MockBlockAPI) FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "FreeFinalisedNotifierChannel", arg0)
+	m.ctrl.Call(m, "FreeFinalisedNotifierChannel", ch)
 }
 
 // FreeFinalisedNotifierChannel indicates an expected call of FreeFinalisedNotifierChannel.
-func (mr *MockBlockAPIMockRecorder) FreeFinalisedNotifierChannel(arg0 any) *gomock.Call {
+func (mr *MockBlockAPIMockRecorder) FreeFinalisedNotifierChannel(ch any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeFinalisedNotifierChannel", reflect.TypeOf((*MockBlockAPI)(nil).FreeFinalisedNotifierChannel), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeFinalisedNotifierChannel", reflect.TypeOf((*MockBlockAPI)(nil).FreeFinalisedNotifierChannel), ch)
 }
 
 // FreeImportedBlockNotifierChannel mocks base method.
-func (m *MockBlockAPI) FreeImportedBlockNotifierChannel(arg0 chan *types.Block) {
+func (m *MockBlockAPI) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "FreeImportedBlockNotifierChannel", arg0)
+	m.ctrl.Call(m, "FreeImportedBlockNotifierChannel", ch)
 }
 
 // FreeImportedBlockNotifierChannel indicates an expected call of FreeImportedBlockNotifierChannel.
-func (mr *MockBlockAPIMockRecorder) FreeImportedBlockNotifierChannel(arg0 any) *gomock.Call {
+func (mr *MockBlockAPIMockRecorder) FreeImportedBlockNotifierChannel(ch any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockAPI)(nil).FreeImportedBlockNotifierChannel), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FreeImportedBlockNotifierChannel", reflect.TypeOf((*MockBlockAPI)(nil).FreeImportedBlockNotifierChannel), ch)
 }
 
 // GetBlockByHash mocks base method.
-func (m *MockBlockAPI) GetBlockByHash(arg0 common.Hash) (*types.Block, error) {
+func (m *MockBlockAPI) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBlockByHash", arg0)
+	ret := m.ctrl.Call(m, "GetBlockByHash", hash)
 	ret0, _ := ret[0].(*types.Block)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetBlockByHash indicates an expected call of GetBlockByHash.
-func (mr *MockBlockAPIMockRecorder) GetBlockByHash(arg0 any) *gomock.Call {
+func (mr *MockBlockAPIMockRecorder) GetBlockByHash(hash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockByHash", reflect.TypeOf((*MockBlockAPI)(nil).GetBlockByHash), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockByHash", reflect.TypeOf((*MockBlockAPI)(nil).GetBlockByHash), hash)
 }
 
 // GetFinalisedHash mocks base method.
@@ -282,33 +284,33 @@ func (mr *MockBlockAPIMockRecorder) GetFinalisedNotifierChannel() *gomock.Call {
 }
 
 // GetHashByNumber mocks base method.
-func (m *MockBlockAPI) GetHashByNumber(arg0 uint) (common.Hash, error) {
+func (m *MockBlockAPI) GetHashByNumber(blockNumber uint) (common.Hash, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHashByNumber", arg0)
+	ret := m.ctrl.Call(m, "GetHashByNumber", blockNumber)
 	ret0, _ := ret[0].(common.Hash)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetHashByNumber indicates an expected call of GetHashByNumber.
-func (mr *MockBlockAPIMockRecorder) GetHashByNumber(arg0 any) *gomock.Call {
+func (mr *MockBlockAPIMockRecorder) GetHashByNumber(blockNumber any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHashByNumber", reflect.TypeOf((*MockBlockAPI)(nil).GetHashByNumber), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHashByNumber", reflect.TypeOf((*MockBlockAPI)(nil).GetHashByNumber), blockNumber)
 }
 
 // GetHeader mocks base method.
-func (m *MockBlockAPI) GetHeader(arg0 common.Hash) (*types.Header, error) {
+func (m *MockBlockAPI) GetHeader(hash common.Hash) (*types.Header, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHeader", arg0)
+	ret := m.ctrl.Call(m, "GetHeader", hash)
 	ret0, _ := ret[0].(*types.Header)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetHeader indicates an expected call of GetHeader.
-func (mr *MockBlockAPIMockRecorder) GetHeader(arg0 any) *gomock.Call {
+func (mr *MockBlockAPIMockRecorder) GetHeader(hash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHeader", reflect.TypeOf((*MockBlockAPI)(nil).GetHeader), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHeader", reflect.TypeOf((*MockBlockAPI)(nil).GetHeader), hash)
 }
 
 // GetHighestFinalisedHash mocks base method.
@@ -341,98 +343,99 @@ func (mr *MockBlockAPIMockRecorder) GetImportedBlockNotifierChannel() *gomock.Ca
 }
 
 // GetJustification mocks base method.
-func (m *MockBlockAPI) GetJustification(arg0 common.Hash) ([]byte, error) {
+func (m *MockBlockAPI) GetJustification(hash common.Hash) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetJustification", arg0)
+	ret := m.ctrl.Call(m, "GetJustification", hash)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetJustification indicates an expected call of GetJustification.
-func (mr *MockBlockAPIMockRecorder) GetJustification(arg0 any) *gomock.Call {
+func (mr *MockBlockAPIMockRecorder) GetJustification(hash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJustification", reflect.TypeOf((*MockBlockAPI)(nil).GetJustification), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetJustification", reflect.TypeOf((*MockBlockAPI)(nil).GetJustification), hash)
 }
 
 // GetRuntime mocks base method.
-func (m *MockBlockAPI) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
+func (m *MockBlockAPI) GetRuntime(blockHash common.Hash) (runtime.Instance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRuntime", arg0)
+	ret := m.ctrl.Call(m, "GetRuntime", blockHash)
 	ret0, _ := ret[0].(runtime.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetRuntime indicates an expected call of GetRuntime.
-func (mr *MockBlockAPIMockRecorder) GetRuntime(arg0 any) *gomock.Call {
+func (mr *MockBlockAPIMockRecorder) GetRuntime(blockHash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockAPI)(nil).GetRuntime), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockAPI)(nil).GetRuntime), blockHash)
 }
 
 // HasJustification mocks base method.
-func (m *MockBlockAPI) HasJustification(arg0 common.Hash) (bool, error) {
+func (m *MockBlockAPI) HasJustification(hash common.Hash) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasJustification", arg0)
+	ret := m.ctrl.Call(m, "HasJustification", hash)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // HasJustification indicates an expected call of HasJustification.
-func (mr *MockBlockAPIMockRecorder) HasJustification(arg0 any) *gomock.Call {
+func (mr *MockBlockAPIMockRecorder) HasJustification(hash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasJustification", reflect.TypeOf((*MockBlockAPI)(nil).HasJustification), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasJustification", reflect.TypeOf((*MockBlockAPI)(nil).HasJustification), hash)
 }
 
 // RangeInMemory mocks base method.
-func (m *MockBlockAPI) RangeInMemory(arg0, arg1 common.Hash) ([]common.Hash, error) {
+func (m *MockBlockAPI) RangeInMemory(start, end common.Hash) ([]common.Hash, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RangeInMemory", arg0, arg1)
+	ret := m.ctrl.Call(m, "RangeInMemory", start, end)
 	ret0, _ := ret[0].([]common.Hash)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RangeInMemory indicates an expected call of RangeInMemory.
-func (mr *MockBlockAPIMockRecorder) RangeInMemory(arg0, arg1 any) *gomock.Call {
+func (mr *MockBlockAPIMockRecorder) RangeInMemory(start, end any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RangeInMemory", reflect.TypeOf((*MockBlockAPI)(nil).RangeInMemory), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RangeInMemory", reflect.TypeOf((*MockBlockAPI)(nil).RangeInMemory), start, end)
 }
 
 // RegisterRuntimeUpdatedChannel mocks base method.
-func (m *MockBlockAPI) RegisterRuntimeUpdatedChannel(arg0 chan<- runtime.Version) (uint32, error) {
+func (m *MockBlockAPI) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterRuntimeUpdatedChannel", arg0)
+	ret := m.ctrl.Call(m, "RegisterRuntimeUpdatedChannel", ch)
 	ret0, _ := ret[0].(uint32)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RegisterRuntimeUpdatedChannel indicates an expected call of RegisterRuntimeUpdatedChannel.
-func (mr *MockBlockAPIMockRecorder) RegisterRuntimeUpdatedChannel(arg0 any) *gomock.Call {
+func (mr *MockBlockAPIMockRecorder) RegisterRuntimeUpdatedChannel(ch any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterRuntimeUpdatedChannel", reflect.TypeOf((*MockBlockAPI)(nil).RegisterRuntimeUpdatedChannel), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterRuntimeUpdatedChannel", reflect.TypeOf((*MockBlockAPI)(nil).RegisterRuntimeUpdatedChannel), ch)
 }
 
 // UnregisterRuntimeUpdatedChannel mocks base method.
-func (m *MockBlockAPI) UnregisterRuntimeUpdatedChannel(arg0 uint32) bool {
+func (m *MockBlockAPI) UnregisterRuntimeUpdatedChannel(id uint32) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UnregisterRuntimeUpdatedChannel", arg0)
+	ret := m.ctrl.Call(m, "UnregisterRuntimeUpdatedChannel", id)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
 // UnregisterRuntimeUpdatedChannel indicates an expected call of UnregisterRuntimeUpdatedChannel.
-func (mr *MockBlockAPIMockRecorder) UnregisterRuntimeUpdatedChannel(arg0 any) *gomock.Call {
+func (mr *MockBlockAPIMockRecorder) UnregisterRuntimeUpdatedChannel(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnregisterRuntimeUpdatedChannel", reflect.TypeOf((*MockBlockAPI)(nil).UnregisterRuntimeUpdatedChannel), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnregisterRuntimeUpdatedChannel", reflect.TypeOf((*MockBlockAPI)(nil).UnregisterRuntimeUpdatedChannel), id)
 }
 
 // MockNetworkAPI is a mock of NetworkAPI interface.
 type MockNetworkAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockNetworkAPIMockRecorder
+	isgomock struct{}
 }
 
 // MockNetworkAPIMockRecorder is the mock recorder for MockNetworkAPI.
@@ -453,10 +456,10 @@ func (m *MockNetworkAPI) EXPECT() *MockNetworkAPIMockRecorder {
 }
 
 // AddReservedPeers mocks base method.
-func (m *MockNetworkAPI) AddReservedPeers(arg0 ...string) error {
+func (m *MockNetworkAPI) AddReservedPeers(addrs ...string) error {
 	m.ctrl.T.Helper()
 	varargs := []any{}
-	for _, a := range arg0 {
+	for _, a := range addrs {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "AddReservedPeers", varargs...)
@@ -465,9 +468,9 @@ func (m *MockNetworkAPI) AddReservedPeers(arg0 ...string) error {
 }
 
 // AddReservedPeers indicates an expected call of AddReservedPeers.
-func (mr *MockNetworkAPIMockRecorder) AddReservedPeers(arg0 ...any) *gomock.Call {
+func (mr *MockNetworkAPIMockRecorder) AddReservedPeers(addrs ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddReservedPeers", reflect.TypeOf((*MockNetworkAPI)(nil).AddReservedPeers), arg0...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddReservedPeers", reflect.TypeOf((*MockNetworkAPI)(nil).AddReservedPeers), addrs...)
 }
 
 // Health mocks base method.
@@ -527,10 +530,10 @@ func (mr *MockNetworkAPIMockRecorder) Peers() *gomock.Call {
 }
 
 // RemoveReservedPeers mocks base method.
-func (m *MockNetworkAPI) RemoveReservedPeers(arg0 ...string) error {
+func (m *MockNetworkAPI) RemoveReservedPeers(addrs ...string) error {
 	m.ctrl.T.Helper()
 	varargs := []any{}
-	for _, a := range arg0 {
+	for _, a := range addrs {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "RemoveReservedPeers", varargs...)
@@ -539,9 +542,9 @@ func (m *MockNetworkAPI) RemoveReservedPeers(arg0 ...string) error {
 }
 
 // RemoveReservedPeers indicates an expected call of RemoveReservedPeers.
-func (mr *MockNetworkAPIMockRecorder) RemoveReservedPeers(arg0 ...any) *gomock.Call {
+func (mr *MockNetworkAPIMockRecorder) RemoveReservedPeers(addrs ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveReservedPeers", reflect.TypeOf((*MockNetworkAPI)(nil).RemoveReservedPeers), arg0...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveReservedPeers", reflect.TypeOf((*MockNetworkAPI)(nil).RemoveReservedPeers), addrs...)
 }
 
 // Start mocks base method.
@@ -590,6 +593,7 @@ func (mr *MockNetworkAPIMockRecorder) Stop() *gomock.Call {
 type MockBlockProducerAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockBlockProducerAPIMockRecorder
+	isgomock struct{}
 }
 
 // MockBlockProducerAPIMockRecorder is the mock recorder for MockBlockProducerAPI.
@@ -669,6 +673,7 @@ func (mr *MockBlockProducerAPIMockRecorder) SlotDuration() *gomock.Call {
 type MockTransactionStateAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockTransactionStateAPIMockRecorder
+	isgomock struct{}
 }
 
 // MockTransactionStateAPIMockRecorder is the mock recorder for MockTransactionStateAPI.
@@ -706,6 +711,7 @@ func (mr *MockTransactionStateAPIMockRecorder) Pending() *gomock.Call {
 type MockCoreAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockCoreAPIMockRecorder
+	isgomock struct{}
 }
 
 // MockCoreAPIMockRecorder is the mock recorder for MockCoreAPI.
@@ -726,39 +732,39 @@ func (m *MockCoreAPI) EXPECT() *MockCoreAPIMockRecorder {
 }
 
 // DecodeSessionKeys mocks base method.
-func (m *MockCoreAPI) DecodeSessionKeys(arg0 []byte) ([]byte, error) {
+func (m *MockCoreAPI) DecodeSessionKeys(enc []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DecodeSessionKeys", arg0)
+	ret := m.ctrl.Call(m, "DecodeSessionKeys", enc)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DecodeSessionKeys indicates an expected call of DecodeSessionKeys.
-func (mr *MockCoreAPIMockRecorder) DecodeSessionKeys(arg0 any) *gomock.Call {
+func (mr *MockCoreAPIMockRecorder) DecodeSessionKeys(enc any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DecodeSessionKeys", reflect.TypeOf((*MockCoreAPI)(nil).DecodeSessionKeys), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DecodeSessionKeys", reflect.TypeOf((*MockCoreAPI)(nil).DecodeSessionKeys), enc)
 }
 
 // GetMetadata mocks base method.
-func (m *MockCoreAPI) GetMetadata(arg0 *common.Hash) ([]byte, error) {
+func (m *MockCoreAPI) GetMetadata(bhash *common.Hash) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMetadata", arg0)
+	ret := m.ctrl.Call(m, "GetMetadata", bhash)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetMetadata indicates an expected call of GetMetadata.
-func (mr *MockCoreAPIMockRecorder) GetMetadata(arg0 any) *gomock.Call {
+func (mr *MockCoreAPIMockRecorder) GetMetadata(bhash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetadata", reflect.TypeOf((*MockCoreAPI)(nil).GetMetadata), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetadata", reflect.TypeOf((*MockCoreAPI)(nil).GetMetadata), bhash)
 }
 
 // GetReadProofAt mocks base method.
-func (m *MockCoreAPI) GetReadProofAt(arg0 common.Hash, arg1 [][]byte) (common.Hash, [][]byte, error) {
+func (m *MockCoreAPI) GetReadProofAt(block common.Hash, keys [][]byte) (common.Hash, [][]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetReadProofAt", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetReadProofAt", block, keys)
 	ret0, _ := ret[0].(common.Hash)
 	ret1, _ := ret[1].([][]byte)
 	ret2, _ := ret[2].(error)
@@ -766,24 +772,24 @@ func (m *MockCoreAPI) GetReadProofAt(arg0 common.Hash, arg1 [][]byte) (common.Ha
 }
 
 // GetReadProofAt indicates an expected call of GetReadProofAt.
-func (mr *MockCoreAPIMockRecorder) GetReadProofAt(arg0, arg1 any) *gomock.Call {
+func (mr *MockCoreAPIMockRecorder) GetReadProofAt(block, keys any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReadProofAt", reflect.TypeOf((*MockCoreAPI)(nil).GetReadProofAt), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReadProofAt", reflect.TypeOf((*MockCoreAPI)(nil).GetReadProofAt), block, keys)
 }
 
 // GetRuntimeVersion mocks base method.
-func (m *MockCoreAPI) GetRuntimeVersion(arg0 *common.Hash) (runtime.Version, error) {
+func (m *MockCoreAPI) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRuntimeVersion", arg0)
+	ret := m.ctrl.Call(m, "GetRuntimeVersion", bhash)
 	ret0, _ := ret[0].(runtime.Version)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetRuntimeVersion indicates an expected call of GetRuntimeVersion.
-func (mr *MockCoreAPIMockRecorder) GetRuntimeVersion(arg0 any) *gomock.Call {
+func (mr *MockCoreAPIMockRecorder) GetRuntimeVersion(bhash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntimeVersion", reflect.TypeOf((*MockCoreAPI)(nil).GetRuntimeVersion), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntimeVersion", reflect.TypeOf((*MockCoreAPI)(nil).GetRuntimeVersion), bhash)
 }
 
 // HandleSubmittedExtrinsic mocks base method.
@@ -801,38 +807,39 @@ func (mr *MockCoreAPIMockRecorder) HandleSubmittedExtrinsic(arg0 any) *gomock.Ca
 }
 
 // HasKey mocks base method.
-func (m *MockCoreAPI) HasKey(arg0, arg1 string) (bool, error) {
+func (m *MockCoreAPI) HasKey(pubKeyStr, keyType string) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasKey", arg0, arg1)
+	ret := m.ctrl.Call(m, "HasKey", pubKeyStr, keyType)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // HasKey indicates an expected call of HasKey.
-func (mr *MockCoreAPIMockRecorder) HasKey(arg0, arg1 any) *gomock.Call {
+func (mr *MockCoreAPIMockRecorder) HasKey(pubKeyStr, keyType any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasKey", reflect.TypeOf((*MockCoreAPI)(nil).HasKey), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasKey", reflect.TypeOf((*MockCoreAPI)(nil).HasKey), pubKeyStr, keyType)
 }
 
 // InsertKey mocks base method.
-func (m *MockCoreAPI) InsertKey(arg0 core.KeyPair, arg1 string) error {
+func (m *MockCoreAPI) InsertKey(kp core.KeyPair, keystoreType string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "InsertKey", arg0, arg1)
+	ret := m.ctrl.Call(m, "InsertKey", kp, keystoreType)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // InsertKey indicates an expected call of InsertKey.
-func (mr *MockCoreAPIMockRecorder) InsertKey(arg0, arg1 any) *gomock.Call {
+func (mr *MockCoreAPIMockRecorder) InsertKey(kp, keystoreType any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertKey", reflect.TypeOf((*MockCoreAPI)(nil).InsertKey), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InsertKey", reflect.TypeOf((*MockCoreAPI)(nil).InsertKey), kp, keystoreType)
 }
 
 // MockSystemAPI is a mock of SystemAPI interface.
 type MockSystemAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockSystemAPIMockRecorder
+	isgomock struct{}
 }
 
 // MockSystemAPIMockRecorder is the mock recorder for MockSystemAPI.
@@ -926,6 +933,7 @@ func (mr *MockSystemAPIMockRecorder) SystemVersion() *gomock.Call {
 type MockBlockFinalityAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockBlockFinalityAPIMockRecorder
+	isgomock struct{}
 }
 
 // MockBlockFinalityAPIMockRecorder is the mock recorder for MockBlockFinalityAPI.
@@ -1019,6 +1027,7 @@ func (mr *MockBlockFinalityAPIMockRecorder) PreVotes() *gomock.Call {
 type MockRuntimeStorageAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockRuntimeStorageAPIMockRecorder
+	isgomock struct{}
 }
 
 // MockRuntimeStorageAPIMockRecorder is the mock recorder for MockRuntimeStorageAPI.
@@ -1039,67 +1048,68 @@ func (m *MockRuntimeStorageAPI) EXPECT() *MockRuntimeStorageAPIMockRecorder {
 }
 
 // GetLocal mocks base method.
-func (m *MockRuntimeStorageAPI) GetLocal(arg0 []byte) ([]byte, error) {
+func (m *MockRuntimeStorageAPI) GetLocal(k []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetLocal", arg0)
+	ret := m.ctrl.Call(m, "GetLocal", k)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetLocal indicates an expected call of GetLocal.
-func (mr *MockRuntimeStorageAPIMockRecorder) GetLocal(arg0 any) *gomock.Call {
+func (mr *MockRuntimeStorageAPIMockRecorder) GetLocal(k any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLocal", reflect.TypeOf((*MockRuntimeStorageAPI)(nil).GetLocal), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLocal", reflect.TypeOf((*MockRuntimeStorageAPI)(nil).GetLocal), k)
 }
 
 // GetPersistent mocks base method.
-func (m *MockRuntimeStorageAPI) GetPersistent(arg0 []byte) ([]byte, error) {
+func (m *MockRuntimeStorageAPI) GetPersistent(k []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPersistent", arg0)
+	ret := m.ctrl.Call(m, "GetPersistent", k)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetPersistent indicates an expected call of GetPersistent.
-func (mr *MockRuntimeStorageAPIMockRecorder) GetPersistent(arg0 any) *gomock.Call {
+func (mr *MockRuntimeStorageAPIMockRecorder) GetPersistent(k any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPersistent", reflect.TypeOf((*MockRuntimeStorageAPI)(nil).GetPersistent), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPersistent", reflect.TypeOf((*MockRuntimeStorageAPI)(nil).GetPersistent), k)
 }
 
 // SetLocal mocks base method.
-func (m *MockRuntimeStorageAPI) SetLocal(arg0, arg1 []byte) error {
+func (m *MockRuntimeStorageAPI) SetLocal(k, v []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetLocal", arg0, arg1)
+	ret := m.ctrl.Call(m, "SetLocal", k, v)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetLocal indicates an expected call of SetLocal.
-func (mr *MockRuntimeStorageAPIMockRecorder) SetLocal(arg0, arg1 any) *gomock.Call {
+func (mr *MockRuntimeStorageAPIMockRecorder) SetLocal(k, v any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLocal", reflect.TypeOf((*MockRuntimeStorageAPI)(nil).SetLocal), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLocal", reflect.TypeOf((*MockRuntimeStorageAPI)(nil).SetLocal), k, v)
 }
 
 // SetPersistent mocks base method.
-func (m *MockRuntimeStorageAPI) SetPersistent(arg0, arg1 []byte) error {
+func (m *MockRuntimeStorageAPI) SetPersistent(k, v []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetPersistent", arg0, arg1)
+	ret := m.ctrl.Call(m, "SetPersistent", k, v)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetPersistent indicates an expected call of SetPersistent.
-func (mr *MockRuntimeStorageAPIMockRecorder) SetPersistent(arg0, arg1 any) *gomock.Call {
+func (mr *MockRuntimeStorageAPIMockRecorder) SetPersistent(k, v any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetPersistent", reflect.TypeOf((*MockRuntimeStorageAPI)(nil).SetPersistent), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetPersistent", reflect.TypeOf((*MockRuntimeStorageAPI)(nil).SetPersistent), k, v)
 }
 
 // MockSyncStateAPI is a mock of SyncStateAPI interface.
 type MockSyncStateAPI struct {
 	ctrl     *gomock.Controller
 	recorder *MockSyncStateAPIMockRecorder
+	isgomock struct{}
 }
 
 // MockSyncStateAPIMockRecorder is the mock recorder for MockSyncStateAPI.
@@ -1120,16 +1130,16 @@ func (m *MockSyncStateAPI) EXPECT() *MockSyncStateAPIMockRecorder {
 }
 
 // GenSyncSpec mocks base method.
-func (m *MockSyncStateAPI) GenSyncSpec(arg0 bool) (*genesis.Genesis, error) {
+func (m *MockSyncStateAPI) GenSyncSpec(raw bool) (*genesis.Genesis, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenSyncSpec", arg0)
+	ret := m.ctrl.Call(m, "GenSyncSpec", raw)
 	ret0, _ := ret[0].(*genesis.Genesis)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GenSyncSpec indicates an expected call of GenSyncSpec.
-func (mr *MockSyncStateAPIMockRecorder) GenSyncSpec(arg0 any) *gomock.Call {
+func (mr *MockSyncStateAPIMockRecorder) GenSyncSpec(raw any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenSyncSpec", reflect.TypeOf((*MockSyncStateAPI)(nil).GenSyncSpec), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenSyncSpec", reflect.TypeOf((*MockSyncStateAPI)(nil).GenSyncSpec), raw)
 }

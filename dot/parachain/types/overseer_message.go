@@ -49,15 +49,6 @@ type IntroduceCandidateRequest struct {
 	PersistedValidationData PersistedValidationData
 }
 
-// ProspectiveParachainsMessageCandidateSeconded is a prospective parachains message.
-// it informs the Prospective Parachains Subsystem that a previously introduced candidate
-// has been seconded. This requires that the candidate was successfully introduced in
-// the past.
-type ProspectiveParachainsMessageCandidateSeconded struct {
-	ParaID        ParaID
-	CandidateHash CandidateHash
-}
-
 // ProspectiveParachainsMessageGetHypotheticalFrontier is a prospective parachains message.
 // Get the hypothetical frontier membership of candidates with the given properties
 // under the specified active leaves fragment trees.

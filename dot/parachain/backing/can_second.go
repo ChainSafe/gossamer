@@ -13,11 +13,10 @@ import (
 )
 
 var (
-	errUnknwnRelayParent                 = errors.New("unknown relay parent")
-	errProspectiveParachainsModeDisabled = errors.New("async backing is disabled")
-	errCandidateNotRecognised            = errors.New("candidate not recognised by any fragment tree")
-	errLeafOccupied                      = errors.New("can't second the candidate, leaf is already occupied")
-	errDepthOccupied                     = errors.New("can't second the candidate, depth is already occupied")
+	errUnknwnRelayParent      = errors.New("unknown relay parent")
+	errCandidateNotRecognised = errors.New("candidate not recognised by any fragment tree")
+	errLeafOccupied           = errors.New("can't second the candidate, leaf is already occupied")
+	errDepthOccupied          = errors.New("can't second the candidate, depth is already occupied")
 )
 
 // handleCanSecondMessage performs seconding sanity check for an advertisement.
@@ -31,12 +30,6 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) error {
 	if rpState == nil {
 		msg.ResponseCh <- false
 		return fmt.Errorf("%w; relay parent: %s", errNilRelayParentState, msg.CandidateRelayParent.String())
-	}
-
-	ppMode := rpState.prospectiveParachainsMode
-	if !ppMode.IsEnabled {
-		msg.ResponseCh <- false
-		return fmt.Errorf("%w; relay parent: %s", errProspectiveParachainsModeDisabled, msg.CandidateRelayParent.String())
 	}
 
 	hypotheticalCandidate := parachaintypes.HypotheticalCandidateIncomplete{
@@ -97,7 +90,7 @@ func (cb *CandidateBacking) secondingSanityCheck(
 		if leafState.prospectiveParachainsMode.IsEnabled {
 
 			// check that the candidate relay parent is allowed for parachain, skip the leaf otherwise.
-			allowedParentsForPara := cb.ImplicitView.knownAllowedRelayParentsUnder(head, &candidateParaID)
+			allowedParentsForPara := cb.ImplicitView.KnownAllowedRelayParentsUnder(head, &candidateParaID)
 			if !slices.Contains(allowedParentsForPara, candidateRelayParent) {
 				continue
 			}

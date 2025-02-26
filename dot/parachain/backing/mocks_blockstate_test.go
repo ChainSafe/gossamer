@@ -21,6 +21,7 @@ import (
 type MockBlockState struct {
 	ctrl     *gomock.Controller
 	recorder *MockBlockStateMockRecorder
+	isgomock struct{}
 }
 
 // MockBlockStateMockRecorder is the mock recorder for MockBlockState.
@@ -41,16 +42,16 @@ func (m *MockBlockState) EXPECT() *MockBlockStateMockRecorder {
 }
 
 // GetRuntime mocks base method.
-func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
+func (m *MockBlockState) GetRuntime(blockHash common.Hash) (runtime.Instance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRuntime", arg0)
+	ret := m.ctrl.Call(m, "GetRuntime", blockHash)
 	ret0, _ := ret[0].(runtime.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetRuntime indicates an expected call of GetRuntime.
-func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) GetRuntime(blockHash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), blockHash)
 }
