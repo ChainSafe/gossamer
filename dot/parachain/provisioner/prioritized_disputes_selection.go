@@ -47,16 +47,25 @@ func IsVoteWorthToKeep(
 			panic("unexpected empty inner in ValidDisputeStatementKind")
 		}
 
-		// We want to keep all backing votes. This maximizes the number of backers
+		// We want to keep all backing votes. This maximises the number of backers
 		// punished when misbehaving.
 		switch stmtKind.(type) {
-		case parachaintypes.BackingValid, parachaintypes.BackingSeconded:
+		case parachaintypes.Valid, parachaintypes.SecondedCandidateHash:
 			return true
 		}
 	}
 
-	inValidatorsFor := onchainState.ValidatorsFor.Get(int(validatorIndex))
-	inValidatorsAgainst := onchainState.ValidatorsAgainst.Get(int(validatorIndex))
+	inValidatorsFor, err := onchainState.ValidatorsFor.Get(uint(validatorIndex))
+	if err != nil {
+		logger.Warnf("validator index out of bounds: %d", validatorIndex)
+		return false
+	}
+
+	inValidatorsAgainst, err := onchainState.ValidatorsAgainst.Get(uint(validatorIndex))
+	if err != nil {
+		logger.Warnf("validator index out of bounds: %d", validatorIndex)
+		return false
+	}
 
 	if inValidatorsFor && inValidatorsAgainst {
 		// The validator has double voted and runtime knows about this. Ignore this vote.
@@ -96,7 +105,8 @@ func GetOnchainDisputes(
 // RequestVotes requests the relevant dispute statements for a set of disputes identified
 // by CandidateHash and SessionIndex.
 func RequestVotes(overseerChan chan<- any, disputesToQuery []parachaintypes.DisputeKey) (
-	[]messages.CandidateVotesResponse, error) {
+	[]messages.CandidateVotesResponse, error,
+) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

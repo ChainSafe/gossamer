@@ -21,7 +21,6 @@ import (
 type MockRequestMaker struct {
 	ctrl     *gomock.Controller
 	recorder *MockRequestMakerMockRecorder
-	isgomock struct{}
 }
 
 // MockRequestMakerMockRecorder is the mock recorder for MockRequestMaker.
@@ -42,15 +41,15 @@ func (m *MockRequestMaker) EXPECT() *MockRequestMakerMockRecorder {
 }
 
 // Do mocks base method.
-func (m *MockRequestMaker) Do(to peer.ID, req network.Message, res network.ResponseMessage) error {
+func (m *MockRequestMaker) Do(arg0 peer.ID, arg1 network.Message, arg2 network.ResponseMessage) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Do", to, req, res)
+	ret := m.ctrl.Call(m, "Do", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Do indicates an expected call of Do.
-func (mr *MockRequestMakerMockRecorder) Do(to, req, res any) *gomock.Call {
+func (mr *MockRequestMakerMockRecorder) Do(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Do", reflect.TypeOf((*MockRequestMaker)(nil).Do), to, req, res)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Do", reflect.TypeOf((*MockRequestMaker)(nil).Do), arg0, arg1, arg2)
 }

@@ -21,7 +21,6 @@ import (
 type MockPoVRequestor struct {
 	ctrl     *gomock.Controller
 	recorder *MockPoVRequestorMockRecorder
-	isgomock struct{}
 }
 
 // MockPoVRequestorMockRecorder is the mock recorder for MockPoVRequestor.
@@ -42,15 +41,15 @@ func (m *MockPoVRequestor) EXPECT() *MockPoVRequestorMockRecorder {
 }
 
 // RequestPoV mocks base method.
-func (m *MockPoVRequestor) RequestPoV(povHash common.Hash) parachaintypes.PoV {
+func (m *MockPoVRequestor) RequestPoV(arg0 common.Hash) parachaintypes.PoV {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RequestPoV", povHash)
+	ret := m.ctrl.Call(m, "RequestPoV", arg0)
 	ret0, _ := ret[0].(parachaintypes.PoV)
 	return ret0
 }
 
 // RequestPoV indicates an expected call of RequestPoV.
-func (mr *MockPoVRequestorMockRecorder) RequestPoV(povHash any) *gomock.Call {
+func (mr *MockPoVRequestorMockRecorder) RequestPoV(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RequestPoV", reflect.TypeOf((*MockPoVRequestor)(nil).RequestPoV), povHash)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RequestPoV", reflect.TypeOf((*MockPoVRequestor)(nil).RequestPoV), arg0)
 }

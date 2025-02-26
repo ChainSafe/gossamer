@@ -21,7 +21,6 @@ import (
 type MockGauge struct {
 	ctrl     *gomock.Controller
 	recorder *MockGaugeMockRecorder
-	isgomock struct{}
 }
 
 // MockGaugeMockRecorder is the mock recorder for MockGauge.

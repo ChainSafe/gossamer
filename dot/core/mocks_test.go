@@ -28,7 +28,6 @@ import (
 type MockBlockState struct {
 	ctrl     *gomock.Controller
 	recorder *MockBlockStateMockRecorder
-	isgomock struct{}
 }
 
 // MockBlockStateMockRecorder is the mock recorder for MockBlockState.
@@ -106,126 +105,125 @@ func (mr *MockBlockStateMockRecorder) GenesisHash() *gomock.Call {
 }
 
 // GetBlockBody mocks base method.
-func (m *MockBlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
+func (m *MockBlockState) GetBlockBody(arg0 common.Hash) (*types.Body, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBlockBody", hash)
+	ret := m.ctrl.Call(m, "GetBlockBody", arg0)
 	ret0, _ := ret[0].(*types.Body)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetBlockBody indicates an expected call of GetBlockBody.
-func (mr *MockBlockStateMockRecorder) GetBlockBody(hash any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) GetBlockBody(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockBody", reflect.TypeOf((*MockBlockState)(nil).GetBlockBody), hash)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockBody", reflect.TypeOf((*MockBlockState)(nil).GetBlockBody), arg0)
 }
 
 // GetBlockStateRoot mocks base method.
-func (m *MockBlockState) GetBlockStateRoot(bhash common.Hash) (common.Hash, error) {
+func (m *MockBlockState) GetBlockStateRoot(arg0 common.Hash) (common.Hash, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBlockStateRoot", bhash)
+	ret := m.ctrl.Call(m, "GetBlockStateRoot", arg0)
 	ret0, _ := ret[0].(common.Hash)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetBlockStateRoot indicates an expected call of GetBlockStateRoot.
-func (mr *MockBlockStateMockRecorder) GetBlockStateRoot(bhash any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) GetBlockStateRoot(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockStateRoot", reflect.TypeOf((*MockBlockState)(nil).GetBlockStateRoot), bhash)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockStateRoot", reflect.TypeOf((*MockBlockState)(nil).GetBlockStateRoot), arg0)
 }
 
 // GetHeader mocks base method.
-func (m *MockBlockState) GetHeader(bhash common.Hash) (*types.Header, error) {
+func (m *MockBlockState) GetHeader(arg0 common.Hash) (*types.Header, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHeader", bhash)
+	ret := m.ctrl.Call(m, "GetHeader", arg0)
 	ret0, _ := ret[0].(*types.Header)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetHeader indicates an expected call of GetHeader.
-func (mr *MockBlockStateMockRecorder) GetHeader(bhash any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) GetHeader(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHeader", reflect.TypeOf((*MockBlockState)(nil).GetHeader), bhash)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHeader", reflect.TypeOf((*MockBlockState)(nil).GetHeader), arg0)
 }
 
 // GetRuntime mocks base method.
-func (m *MockBlockState) GetRuntime(blockHash common.Hash) (runtime.Instance, error) {
+func (m *MockBlockState) GetRuntime(arg0 common.Hash) (runtime.Instance, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRuntime", blockHash)
+	ret := m.ctrl.Call(m, "GetRuntime", arg0)
 	ret0, _ := ret[0].(runtime.Instance)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetRuntime indicates an expected call of GetRuntime.
-func (mr *MockBlockStateMockRecorder) GetRuntime(blockHash any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) GetRuntime(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), blockHash)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRuntime", reflect.TypeOf((*MockBlockState)(nil).GetRuntime), arg0)
 }
 
 // HandleRuntimeChanges mocks base method.
-func (m *MockBlockState) HandleRuntimeChanges(newState *storage.TrieState, in runtime.Instance, bHash common.Hash) error {
+func (m *MockBlockState) HandleRuntimeChanges(arg0 *storage.TrieState, arg1 runtime.Instance, arg2 common.Hash) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandleRuntimeChanges", newState, in, bHash)
+	ret := m.ctrl.Call(m, "HandleRuntimeChanges", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // HandleRuntimeChanges indicates an expected call of HandleRuntimeChanges.
-func (mr *MockBlockStateMockRecorder) HandleRuntimeChanges(newState, in, bHash any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) HandleRuntimeChanges(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleRuntimeChanges", reflect.TypeOf((*MockBlockState)(nil).HandleRuntimeChanges), newState, in, bHash)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleRuntimeChanges", reflect.TypeOf((*MockBlockState)(nil).HandleRuntimeChanges), arg0, arg1, arg2)
 }
 
 // LowestCommonAncestor mocks base method.
-func (m *MockBlockState) LowestCommonAncestor(a, b common.Hash) (common.Hash, error) {
+func (m *MockBlockState) LowestCommonAncestor(arg0, arg1 common.Hash) (common.Hash, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LowestCommonAncestor", a, b)
+	ret := m.ctrl.Call(m, "LowestCommonAncestor", arg0, arg1)
 	ret0, _ := ret[0].(common.Hash)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // LowestCommonAncestor indicates an expected call of LowestCommonAncestor.
-func (mr *MockBlockStateMockRecorder) LowestCommonAncestor(a, b any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) LowestCommonAncestor(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LowestCommonAncestor", reflect.TypeOf((*MockBlockState)(nil).LowestCommonAncestor), a, b)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LowestCommonAncestor", reflect.TypeOf((*MockBlockState)(nil).LowestCommonAncestor), arg0, arg1)
 }
 
 // RangeInMemory mocks base method.
-func (m *MockBlockState) RangeInMemory(start, end common.Hash) ([]common.Hash, error) {
+func (m *MockBlockState) RangeInMemory(arg0, arg1 common.Hash) ([]common.Hash, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RangeInMemory", start, end)
+	ret := m.ctrl.Call(m, "RangeInMemory", arg0, arg1)
 	ret0, _ := ret[0].([]common.Hash)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RangeInMemory indicates an expected call of RangeInMemory.
-func (mr *MockBlockStateMockRecorder) RangeInMemory(start, end any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) RangeInMemory(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RangeInMemory", reflect.TypeOf((*MockBlockState)(nil).RangeInMemory), start, end)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RangeInMemory", reflect.TypeOf((*MockBlockState)(nil).RangeInMemory), arg0, arg1)
 }
 
 // StoreRuntime mocks base method.
-func (m *MockBlockState) StoreRuntime(blockHash common.Hash, runtime runtime.Instance) {
+func (m *MockBlockState) StoreRuntime(arg0 common.Hash, arg1 runtime.Instance) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "StoreRuntime", blockHash, runtime)
+	m.ctrl.Call(m, "StoreRuntime", arg0, arg1)
 }
 
 // StoreRuntime indicates an expected call of StoreRuntime.
-func (mr *MockBlockStateMockRecorder) StoreRuntime(blockHash, runtime any) *gomock.Call {
+func (mr *MockBlockStateMockRecorder) StoreRuntime(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreRuntime", reflect.TypeOf((*MockBlockState)(nil).StoreRuntime), blockHash, runtime)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreRuntime", reflect.TypeOf((*MockBlockState)(nil).StoreRuntime), arg0, arg1)
 }
 
 // MockStorageState is a mock of StorageState interface.
 type MockStorageState struct {
 	ctrl     *gomock.Controller
 	recorder *MockStorageStateMockRecorder
-	isgomock struct{}
 }
 
 // MockStorageStateMockRecorder is the mock recorder for MockStorageState.
@@ -246,33 +244,33 @@ func (m *MockStorageState) EXPECT() *MockStorageStateMockRecorder {
 }
 
 // GenerateTrieProof mocks base method.
-func (m *MockStorageState) GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error) {
+func (m *MockStorageState) GenerateTrieProof(arg0 common.Hash, arg1 [][]byte) ([][]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateTrieProof", stateRoot, keys)
+	ret := m.ctrl.Call(m, "GenerateTrieProof", arg0, arg1)
 	ret0, _ := ret[0].([][]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GenerateTrieProof indicates an expected call of GenerateTrieProof.
-func (mr *MockStorageStateMockRecorder) GenerateTrieProof(stateRoot, keys any) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) GenerateTrieProof(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateTrieProof", reflect.TypeOf((*MockStorageState)(nil).GenerateTrieProof), stateRoot, keys)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateTrieProof", reflect.TypeOf((*MockStorageState)(nil).GenerateTrieProof), arg0, arg1)
 }
 
 // GetStateRootFromBlock mocks base method.
-func (m *MockStorageState) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
+func (m *MockStorageState) GetStateRootFromBlock(arg0 *common.Hash) (*common.Hash, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetStateRootFromBlock", bhash)
+	ret := m.ctrl.Call(m, "GetStateRootFromBlock", arg0)
 	ret0, _ := ret[0].(*common.Hash)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetStateRootFromBlock indicates an expected call of GetStateRootFromBlock.
-func (mr *MockStorageStateMockRecorder) GetStateRootFromBlock(bhash any) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) GetStateRootFromBlock(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStateRootFromBlock", reflect.TypeOf((*MockStorageState)(nil).GetStateRootFromBlock), bhash)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStateRootFromBlock", reflect.TypeOf((*MockStorageState)(nil).GetStateRootFromBlock), arg0)
 }
 
 // Lock mocks base method.
@@ -302,18 +300,18 @@ func (mr *MockStorageStateMockRecorder) StoreTrie(arg0, arg1 any) *gomock.Call {
 }
 
 // TrieState mocks base method.
-func (m *MockStorageState) TrieState(root *common.Hash) (*storage.TrieState, error) {
+func (m *MockStorageState) TrieState(arg0 *common.Hash) (*storage.TrieState, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TrieState", root)
+	ret := m.ctrl.Call(m, "TrieState", arg0)
 	ret0, _ := ret[0].(*storage.TrieState)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // TrieState indicates an expected call of TrieState.
-func (mr *MockStorageStateMockRecorder) TrieState(root any) *gomock.Call {
+func (mr *MockStorageStateMockRecorder) TrieState(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrieState", reflect.TypeOf((*MockStorageState)(nil).TrieState), root)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TrieState", reflect.TypeOf((*MockStorageState)(nil).TrieState), arg0)
 }
 
 // Unlock mocks base method.
@@ -332,7 +330,6 @@ func (mr *MockStorageStateMockRecorder) Unlock() *gomock.Call {
 type MockTransactionState struct {
 	ctrl     *gomock.Controller
 	recorder *MockTransactionStateMockRecorder
-	isgomock struct{}
 }
 
 // MockTransactionStateMockRecorder is the mock recorder for MockTransactionState.
@@ -353,31 +350,31 @@ func (m *MockTransactionState) EXPECT() *MockTransactionStateMockRecorder {
 }
 
 // AddToPool mocks base method.
-func (m *MockTransactionState) AddToPool(vt *transaction.ValidTransaction) common.Hash {
+func (m *MockTransactionState) AddToPool(arg0 *transaction.ValidTransaction) common.Hash {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddToPool", vt)
+	ret := m.ctrl.Call(m, "AddToPool", arg0)
 	ret0, _ := ret[0].(common.Hash)
 	return ret0
 }
 
 // AddToPool indicates an expected call of AddToPool.
-func (mr *MockTransactionStateMockRecorder) AddToPool(vt any) *gomock.Call {
+func (mr *MockTransactionStateMockRecorder) AddToPool(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddToPool", reflect.TypeOf((*MockTransactionState)(nil).AddToPool), vt)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddToPool", reflect.TypeOf((*MockTransactionState)(nil).AddToPool), arg0)
 }
 
 // Exists mocks base method.
-func (m *MockTransactionState) Exists(ext types.Extrinsic) bool {
+func (m *MockTransactionState) Exists(arg0 types.Extrinsic) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Exists", ext)
+	ret := m.ctrl.Call(m, "Exists", arg0)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
 // Exists indicates an expected call of Exists.
-func (mr *MockTransactionStateMockRecorder) Exists(ext any) *gomock.Call {
+func (mr *MockTransactionStateMockRecorder) Exists(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockTransactionState)(nil).Exists), ext)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockTransactionState)(nil).Exists), arg0)
 }
 
 // PendingInPool mocks base method.
@@ -395,49 +392,48 @@ func (mr *MockTransactionStateMockRecorder) PendingInPool() *gomock.Call {
 }
 
 // Push mocks base method.
-func (m *MockTransactionState) Push(vt *transaction.ValidTransaction) (common.Hash, error) {
+func (m *MockTransactionState) Push(arg0 *transaction.ValidTransaction) (common.Hash, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Push", vt)
+	ret := m.ctrl.Call(m, "Push", arg0)
 	ret0, _ := ret[0].(common.Hash)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Push indicates an expected call of Push.
-func (mr *MockTransactionStateMockRecorder) Push(vt any) *gomock.Call {
+func (mr *MockTransactionStateMockRecorder) Push(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Push", reflect.TypeOf((*MockTransactionState)(nil).Push), vt)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Push", reflect.TypeOf((*MockTransactionState)(nil).Push), arg0)
 }
 
 // RemoveExtrinsic mocks base method.
-func (m *MockTransactionState) RemoveExtrinsic(ext types.Extrinsic) {
+func (m *MockTransactionState) RemoveExtrinsic(arg0 types.Extrinsic) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "RemoveExtrinsic", ext)
+	m.ctrl.Call(m, "RemoveExtrinsic", arg0)
 }
 
 // RemoveExtrinsic indicates an expected call of RemoveExtrinsic.
-func (mr *MockTransactionStateMockRecorder) RemoveExtrinsic(ext any) *gomock.Call {
+func (mr *MockTransactionStateMockRecorder) RemoveExtrinsic(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveExtrinsic", reflect.TypeOf((*MockTransactionState)(nil).RemoveExtrinsic), ext)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveExtrinsic", reflect.TypeOf((*MockTransactionState)(nil).RemoveExtrinsic), arg0)
 }
 
 // RemoveExtrinsicFromPool mocks base method.
-func (m *MockTransactionState) RemoveExtrinsicFromPool(ext types.Extrinsic) {
+func (m *MockTransactionState) RemoveExtrinsicFromPool(arg0 types.Extrinsic) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "RemoveExtrinsicFromPool", ext)
+	m.ctrl.Call(m, "RemoveExtrinsicFromPool", arg0)
 }
 
 // RemoveExtrinsicFromPool indicates an expected call of RemoveExtrinsicFromPool.
-func (mr *MockTransactionStateMockRecorder) RemoveExtrinsicFromPool(ext any) *gomock.Call {
+func (mr *MockTransactionStateMockRecorder) RemoveExtrinsicFromPool(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveExtrinsicFromPool", reflect.TypeOf((*MockTransactionState)(nil).RemoveExtrinsicFromPool), ext)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveExtrinsicFromPool", reflect.TypeOf((*MockTransactionState)(nil).RemoveExtrinsicFromPool), arg0)
 }
 
 // MockNetwork is a mock of Network interface.
 type MockNetwork struct {
 	ctrl     *gomock.Controller
 	recorder *MockNetworkMockRecorder
-	isgomock struct{}
 }
 
 // MockNetworkMockRecorder is the mock recorder for MockNetwork.
@@ -484,22 +480,21 @@ func (mr *MockNetworkMockRecorder) IsSynced() *gomock.Call {
 }
 
 // ReportPeer mocks base method.
-func (m *MockNetwork) ReportPeer(change peerset.ReputationChange, p peer.ID) {
+func (m *MockNetwork) ReportPeer(arg0 peerset.ReputationChange, arg1 peer.ID) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ReportPeer", change, p)
+	m.ctrl.Call(m, "ReportPeer", arg0, arg1)
 }
 
 // ReportPeer indicates an expected call of ReportPeer.
-func (mr *MockNetworkMockRecorder) ReportPeer(change, p any) *gomock.Call {
+func (mr *MockNetworkMockRecorder) ReportPeer(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportPeer", reflect.TypeOf((*MockNetwork)(nil).ReportPeer), change, p)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportPeer", reflect.TypeOf((*MockNetwork)(nil).ReportPeer), arg0, arg1)
 }
 
 // MockCodeSubstitutedState is a mock of CodeSubstitutedState interface.
 type MockCodeSubstitutedState struct {
 	ctrl     *gomock.Controller
 	recorder *MockCodeSubstitutedStateMockRecorder
-	isgomock struct{}
 }
 
 // MockCodeSubstitutedStateMockRecorder is the mock recorder for MockCodeSubstitutedState.
@@ -520,24 +515,23 @@ func (m *MockCodeSubstitutedState) EXPECT() *MockCodeSubstitutedStateMockRecorde
 }
 
 // StoreCodeSubstitutedBlockHash mocks base method.
-func (m *MockCodeSubstitutedState) StoreCodeSubstitutedBlockHash(hash common.Hash) error {
+func (m *MockCodeSubstitutedState) StoreCodeSubstitutedBlockHash(arg0 common.Hash) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StoreCodeSubstitutedBlockHash", hash)
+	ret := m.ctrl.Call(m, "StoreCodeSubstitutedBlockHash", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // StoreCodeSubstitutedBlockHash indicates an expected call of StoreCodeSubstitutedBlockHash.
-func (mr *MockCodeSubstitutedStateMockRecorder) StoreCodeSubstitutedBlockHash(hash any) *gomock.Call {
+func (mr *MockCodeSubstitutedStateMockRecorder) StoreCodeSubstitutedBlockHash(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreCodeSubstitutedBlockHash", reflect.TypeOf((*MockCodeSubstitutedState)(nil).StoreCodeSubstitutedBlockHash), hash)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StoreCodeSubstitutedBlockHash", reflect.TypeOf((*MockCodeSubstitutedState)(nil).StoreCodeSubstitutedBlockHash), arg0)
 }
 
 // MockTelemetry is a mock of Telemetry interface.
 type MockTelemetry struct {
 	ctrl     *gomock.Controller
 	recorder *MockTelemetryMockRecorder
-	isgomock struct{}
 }
 
 // MockTelemetryMockRecorder is the mock recorder for MockTelemetry.
@@ -558,22 +552,21 @@ func (m *MockTelemetry) EXPECT() *MockTelemetryMockRecorder {
 }
 
 // SendMessage mocks base method.
-func (m *MockTelemetry) SendMessage(msg json.Marshaler) {
+func (m *MockTelemetry) SendMessage(arg0 json.Marshaler) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SendMessage", msg)
+	m.ctrl.Call(m, "SendMessage", arg0)
 }
 
 // SendMessage indicates an expected call of SendMessage.
-func (mr *MockTelemetryMockRecorder) SendMessage(msg any) *gomock.Call {
+func (mr *MockTelemetryMockRecorder) SendMessage(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockTelemetry)(nil).SendMessage), msg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockTelemetry)(nil).SendMessage), arg0)
 }
 
 // MockBlockImportDigestHandler is a mock of BlockImportDigestHandler interface.
 type MockBlockImportDigestHandler struct {
 	ctrl     *gomock.Controller
 	recorder *MockBlockImportDigestHandlerMockRecorder
-	isgomock struct{}
 }
 
 // MockBlockImportDigestHandlerMockRecorder is the mock recorder for MockBlockImportDigestHandler.
@@ -611,7 +604,6 @@ func (mr *MockBlockImportDigestHandlerMockRecorder) HandleDigests(arg0 any) *gom
 type MockGrandpaState struct {
 	ctrl     *gomock.Controller
 	recorder *MockGrandpaStateMockRecorder
-	isgomock struct{}
 }
 
 // MockGrandpaStateMockRecorder is the mock recorder for MockGrandpaState.
@@ -632,15 +624,15 @@ func (m *MockGrandpaState) EXPECT() *MockGrandpaStateMockRecorder {
 }
 
 // ApplyForcedChanges mocks base method.
-func (m *MockGrandpaState) ApplyForcedChanges(importedHeader *types.Header) error {
+func (m *MockGrandpaState) ApplyForcedChanges(arg0 *types.Header) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ApplyForcedChanges", importedHeader)
+	ret := m.ctrl.Call(m, "ApplyForcedChanges", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ApplyForcedChanges indicates an expected call of ApplyForcedChanges.
-func (mr *MockGrandpaStateMockRecorder) ApplyForcedChanges(importedHeader any) *gomock.Call {
+func (mr *MockGrandpaStateMockRecorder) ApplyForcedChanges(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyForcedChanges", reflect.TypeOf((*MockGrandpaState)(nil).ApplyForcedChanges), importedHeader)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyForcedChanges", reflect.TypeOf((*MockGrandpaState)(nil).ApplyForcedChanges), arg0)
 }

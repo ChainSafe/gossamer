@@ -20,7 +20,6 @@ import (
 type MockValidatorInstance struct {
 	ctrl     *gomock.Controller
 	recorder *MockValidatorInstanceMockRecorder
-	isgomock struct{}
 }
 
 // MockValidatorInstanceMockRecorder is the mock recorder for MockValidatorInstance.
@@ -41,16 +40,16 @@ func (m *MockValidatorInstance) EXPECT() *MockValidatorInstanceMockRecorder {
 }
 
 // ValidateBlock mocks base method.
-func (m *MockValidatorInstance) ValidateBlock(params parachain.ValidationParameters) (*parachain.ValidationResult, error) {
+func (m *MockValidatorInstance) ValidateBlock(arg0 parachain.ValidationParameters) (*parachain.ValidationResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateBlock", params)
+	ret := m.ctrl.Call(m, "ValidateBlock", arg0)
 	ret0, _ := ret[0].(*parachain.ValidationResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ValidateBlock indicates an expected call of ValidateBlock.
-func (mr *MockValidatorInstanceMockRecorder) ValidateBlock(params any) *gomock.Call {
+func (mr *MockValidatorInstanceMockRecorder) ValidateBlock(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateBlock", reflect.TypeOf((*MockValidatorInstance)(nil).ValidateBlock), params)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateBlock", reflect.TypeOf((*MockValidatorInstance)(nil).ValidateBlock), arg0)
 }
