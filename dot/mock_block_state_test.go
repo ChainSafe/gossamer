@@ -288,21 +288,6 @@ func (mr *MockBlockStateMockRecorder) GetBlockStateRoot(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockStateRoot", reflect.TypeOf((*MockBlockState)(nil).GetBlockStateRoot), arg0)
 }
 
-// GetFinalisedHash mocks base method.
-func (m *MockBlockState) GetFinalisedHash(arg0, arg1 uint64) (common.Hash, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetFinalisedHash", arg0, arg1)
-	ret0, _ := ret[0].(common.Hash)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetFinalisedHash indicates an expected call of GetFinalisedHash.
-func (mr *MockBlockStateMockRecorder) GetFinalisedHash(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFinalisedHash", reflect.TypeOf((*MockBlockState)(nil).GetFinalisedHash), arg0, arg1)
-}
-
 // GetFinalisedHeader mocks base method.
 func (m *MockBlockState) GetFinalisedHeader(arg0, arg1 uint64) (*types.Header, error) {
 	m.ctrl.T.Helper()

@@ -63,7 +63,6 @@ type BlockState interface {
 	GetBlockByHash(common.Hash) (*types.Block, error)
 	GetBlockByNumber(blockNumber uint) (*types.Block, error)
 	GetFinalisedHeader(round, setID uint64) (*types.Header, error)
-	GetFinalisedHash(round, setID uint64) (common.Hash, error)
 	GetHashesByNumber(blockNumber uint) ([]common.Hash, error) // not sure why we need this, use `GetHashByNumber`?
 	GetHashByNumber(blockNumber uint) (common.Hash, error)
 	GetHeader(bhash common.Hash) (*types.Header, error)

@@ -327,10 +327,6 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	out, err := gs.messageHandler.handleMessage("", fm)
 	require.NoError(t, err)
 	require.Nil(t, out)
-
-	hash, err := st.Block.GetFinalisedHash(fm.Round, gs.state.setID)
-	require.NoError(t, err)
-	require.Equal(t, fm.Vote.Hash, hash)
 }
 
 func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T) {

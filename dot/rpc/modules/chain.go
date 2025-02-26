@@ -127,18 +127,6 @@ func (cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res 
 	return nil
 }
 
-// GetFinalizedHeadByRound returns the hash of the block finalised at the given round and setID
-func (cm *ChainModule) GetFinalizedHeadByRound(
-	r *http.Request, req *ChainFinalizedHeadRequest, res *ChainHashResponse) error {
-	h, err := cm.blockAPI.GetFinalisedHash(req.Round, req.SetID)
-	if err != nil {
-		return err
-	}
-
-	*res = common.BytesToHex(h[:])
-	return nil
-}
-
 // GetHeader Get header of a relay chain block. If no block hash is provided, the latest block header will be returned.
 func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) error {
 	hash := cm.hashLookup(req)

@@ -298,45 +298,6 @@ func TestChainGetFinalizedHead(t *testing.T) {
 	require.Equal(t, common.BytesToHex(expected[:]), res)
 }
 
-func TestChainGetFinalizedHeadByRound(t *testing.T) {
-	state := newTestStateService(t)
-	svc := NewChainModule(state.Block)
-
-	var res ChainHashResponse
-	req := ChainFinalizedHeadRequest{0, 0}
-	err := svc.GetFinalizedHeadByRound(nil, &req, &res)
-	require.NoError(t, err)
-
-	_, _, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
-	expected := genesisHeader.Hash()
-	require.Equal(t, common.BytesToHex(expected[:]), res)
-
-	digest := types.NewDigest()
-	prd, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
-	require.NoError(t, err)
-	err = digest.Add(*prd)
-	require.NoError(t, err)
-	header := &types.Header{
-		ParentHash: genesisHeader.Hash(),
-		Number:     1,
-		Digest:     digest,
-	}
-	err = state.Block.AddBlock(&types.Block{
-		Header: *header,
-		Body:   types.Body{},
-	})
-	require.NoError(t, err)
-
-	testhash := header.Hash()
-	err = state.Block.SetFinalisedHash(testhash, 77, 1, true)
-	require.NoError(t, err)
-
-	req = ChainFinalizedHeadRequest{77, 1}
-	err = svc.GetFinalizedHeadByRound(nil, &req, &res)
-	require.NoError(t, err)
-	require.Equal(t, common.BytesToHex(testhash[:]), res)
-}
-
 func newTestStateService(t *testing.T) *state.Service {
 	testDatadirPath := t.TempDir()
 

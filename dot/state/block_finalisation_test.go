@@ -66,7 +66,7 @@ func TestHighestRoundAndSetID(t *testing.T) {
 
 func TestBlockState_SetFinalisedHash(t *testing.T) {
 	bs := newTestDefaultBlockState(t, newTriesEmpty())
-	h, err := bs.GetFinalisedHash(0, 0)
+	h, err := bs.getFinalisedHash(0, 0)
 	require.NoError(t, err)
 	require.Equal(t, testGenesisHeader.Hash(), h)
 
@@ -102,7 +102,7 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 	err = bs.SetFinalisedHash(testhash, 1, 1, true)
 	require.NoError(t, err)
 
-	h, err = bs.GetFinalisedHash(1, 1)
+	h, err = bs.getFinalisedHash(1, 1)
 	require.NoError(t, err)
 	require.Equal(t, testhash, h)
 }
