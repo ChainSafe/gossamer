@@ -58,13 +58,13 @@ func IsVoteWorthToKeep(
 	inValidatorsFor, err := onchainState.ValidatorsFor.Get(uint(validatorIndex))
 	if err != nil {
 		logger.Warnf("validator index out of bounds: %d", validatorIndex)
-		return false
+		inValidatorsFor = false
 	}
 
 	inValidatorsAgainst, err := onchainState.ValidatorsAgainst.Get(uint(validatorIndex))
 	if err != nil {
 		logger.Warnf("validator index out of bounds: %d", validatorIndex)
-		return false
+		inValidatorsAgainst = false
 	}
 
 	if inValidatorsFor && inValidatorsAgainst {
