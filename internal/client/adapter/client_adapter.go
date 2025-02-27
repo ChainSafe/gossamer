@@ -172,11 +172,6 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetFinalisedHeader(round, setI
 	panic("unimplemented")
 }
 
-// TODO: remove from BlockState interface since it is only use by RPC and is not part of the standard
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetFinalisedHash(round, setID uint64) (common.Hash, error) {
-	panic("unimplemented")
-}
-
 // TODO: check if this is the right implementation
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHashesByNumber(blockNumber uint) ([]common.Hash, error) {
 	hash, err := ca.client.BlockHash(N(blockNumber))
