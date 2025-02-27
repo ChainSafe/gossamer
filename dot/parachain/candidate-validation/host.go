@@ -11,7 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("pkg", "candidatevalidation"), log.SetLevel(log.Debug))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-candidate-validation"), log.SetLevel(log.Debug))
 
 // host is the struct that holds the workerPool which is responsible for executing the validation tasks
 type host struct {

@@ -28,7 +28,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("pkg", "network-bridge"))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-network-bridge"))
 
 const newMaxHeads = 5
 
