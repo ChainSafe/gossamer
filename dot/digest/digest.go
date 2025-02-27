@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 )
@@ -23,7 +24,7 @@ type Handler struct {
 	cancel context.CancelFunc
 
 	// interfaces
-	blockState   BlockState
+	blockState   state.BlockState
 	epochState   EpochState
 	grandpaState GrandpaState
 
@@ -35,7 +36,7 @@ type Handler struct {
 // NewHandler returns a new Handler
 func NewHandler(
 	logLvl log.Level,
-	blockState BlockState,
+	blockState state.BlockState,
 	epochState EpochState,
 	grandpaState GrandpaState,
 ) (*Handler, error) {

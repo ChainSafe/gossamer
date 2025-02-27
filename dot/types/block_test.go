@@ -7,6 +7,9 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
@@ -141,4 +144,50 @@ func TestScaleUnmarshal(t *testing.T) {
 
 	require.EqualError(t, err,
 		"decoding struct: unmarshalling field at index 0: decoding struct: unmarshalling field at index 4: decoding struct: unmarshalling field at index 1: byte array length 3472328296227680304 exceeds max value of uint32") //nolint
+}
+
+func TestNewBlockFromGeneric(t *testing.T) {
+	parentHash := hash.NewRandomH256()
+	stateRoot := hash.NewRandomH256()
+	extrinsicsRoot := hash.NewRandomH256()
+	blockNumber := uint64(123)
+
+	digest := runtime.Digest{
+		Logs: []runtime.DigestItem{
+			runtime.NewDigestItem(runtime.Consensus{
+				ConsensusEngineID: runtime.ConsensusEngineID{'B', 'E', 'E', 'F'},
+				Bytes:             []byte("test"),
+			}),
+			runtime.NewDigestItem(runtime.Seal{
+				ConsensusEngineID: runtime.ConsensusEngineID{'S', 'E', 'A', 'L'},
+				Bytes:             []byte("test"),
+			}),
+			runtime.NewDigestItem(runtime.PreRuntime{
+				ConsensusEngineID: runtime.ConsensusEngineID{'B', 'A', 'B', 'E'},
+				Bytes:             []byte("test"),
+			}),
+			runtime.NewDigestItem(runtime.RuntimeEnvironmentUpdated{}),
+		},
+	}
+
+	gh := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+		blockNumber,
+		extrinsicsRoot,
+		stateRoot,
+		parentHash,
+		digest,
+	)
+
+	block := generic.NewBlock[runtime.BlakeTwo256, runtime.Extrinsic, uint64, hash.H256](
+		gh,
+		[]runtime.Extrinsic{
+			runtime.OpaqueExtrinsic{Data: []byte{1, 2, 3}},
+			runtime.OpaqueExtrinsic{Data: []byte{3, 4, 5}},
+		},
+	)
+
+	newBlock, err := NewBlockFromGeneric(block)
+	require.NoError(t, err)
+	require.NotNil(t, newBlock)
+	require.Equal(t, block.Header().Hash().Bytes(), newBlock.Header.Hash().ToBytes())
 }

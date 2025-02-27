@@ -78,6 +78,7 @@ nav:
     - Statement Distribution: ./design/statement-distribution.md
     - Grid Topology: ./design/grid-topology.md
     - Gossip Support: ./design/gossip-support.md
+    - Provisioner: ./design/provisioner.md
   - Contributing: 
     - Overview: ./contributing.md
 extra_css:

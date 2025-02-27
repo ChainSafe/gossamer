@@ -13,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -39,7 +40,7 @@ type FullSyncConfig struct {
 	FinalityGadget     FinalityGadget
 	BlockImportHandler BlockImportHandler
 	Telemetry          Telemetry
-	BlockState         BlockState
+	BlockState         state.BlockState
 	BadBlocks          []string
 	NumOfTasks         int
 	RequestMaker       network.RequestMaker
@@ -59,7 +60,7 @@ type FullSyncStrategy struct {
 	peers         *peerViewSet
 	badBlocks     []string
 	reqMaker      network.RequestMaker
-	blockState    BlockState
+	blockState    state.BlockState
 	numOfTasks    int
 	startedAt     time.Time
 	syncedBlocks  int
@@ -72,12 +73,20 @@ func NewFullSyncStrategy(cfg *FullSyncConfig) *FullSyncStrategy {
 	}
 
 	return &FullSyncStrategy{
-		badBlocks:     cfg.BadBlocks,
-		reqMaker:      cfg.RequestMaker,
-		blockState:    cfg.BlockState,
-		numOfTasks:    cfg.NumOfTasks,
-		peers:         cfg.Peers,
-		blockImporter: newBlockImporter(cfg),
+		badBlocks:  cfg.BadBlocks,
+		reqMaker:   cfg.RequestMaker,
+		blockState: cfg.BlockState,
+		numOfTasks: cfg.NumOfTasks,
+		peers:      cfg.Peers,
+		blockImporter: newBlockImporter(&BlockImporterConfig{
+			BlockState:         cfg.BlockState,
+			StorageState:       cfg.StorageState,
+			TransactionState:   cfg.TransactionState,
+			BabeVerifier:       cfg.BabeVerifier,
+			FinalityGadget:     cfg.FinalityGadget,
+			BlockImportHandler: cfg.BlockImportHandler,
+			Telemetry:          cfg.Telemetry,
+		}),
 		unreadyBlocks: newUnreadyBlocks(),
 		requestQueue: &requestsQueue[*messages.BlockRequestMessage]{
 			queue: list.New(),
@@ -395,7 +404,7 @@ func (f *FullSyncStrategy) blockAlreadyTracked(announcedHeader *types.Header) bo
 func (f *FullSyncStrategy) IsSynced() bool {
 	highestBlock, err := f.blockState.BestBlockNumber()
 	if err != nil {
-		logger.Criticalf("cannot get best block number")
+		logger.Criticalf("cannot get best block number err: %s", err)
 		return false
 	}
 

@@ -146,7 +146,7 @@ func (r *Recorder[H]) Record(access TrieAccess) {
 	case EncodedNodeAccess[H]:
 		r.nodes = append(r.nodes, Record[H]{Hash: a.Hash, Data: a.EncodedNode})
 	case CachedNodeAccess[H]:
-		r.nodes = append(r.nodes, Record[H]{Hash: a.Hash, Data: a.Node.encoded()})
+		r.nodes = append(r.nodes, Record[H]{Hash: a.Hash, Data: a.Node.Encoded()})
 	case ValueAccess[H]:
 		r.nodes = append(r.nodes, Record[H]{Hash: a.Hash, Data: a.Value})
 		r.recordedKeys[string(a.FullKey)] = RecordedValue
