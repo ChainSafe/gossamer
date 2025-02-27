@@ -64,7 +64,7 @@ func (bs *DefaultBlockState) GetRoundAndSetID() (uint64, uint64) {
 
 // getFinalisedHash gets the finalised block header by round and setID
 func (bs *DefaultBlockState) getFinalisedHash(round, setID uint64) (common.Hash, error) {
-	h, err := bs.db.Get(finalisedHashKey(round, setID))
+	h, err := bs.db.Get(FinalisedHashKey(round, setID))
 	if err != nil {
 		return common.Hash{}, err
 	}
