@@ -3,9 +3,10 @@
 
 package role
 
-// Role that the peer sent to us during the handshake, with the addition of what our local node knows about that peer.
+// ObservedRole is the role that the peer sent to us during the handshake, with the addition of what our local node
+// knows about that peer.
 //
-// This type is  different from the [Role]. The [Role] type indicates what a node says about itself, while ObservedRole
+// This type is different from [Role]. The [Role] type indicates what a node says about itself, while ObservedRole
 // is a [Role] merged with the information known locally about that node.
 type ObservedRole uint
 

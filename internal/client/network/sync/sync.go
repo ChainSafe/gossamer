@@ -12,10 +12,10 @@ type SyncEvent interface {
 	isSyncEvent()
 }
 
-// PeerConnected is the peer that the syncing implementation is tracking connected.
+// SyncEventPeerConnected is the peer that the syncing implementation is tracking connected.
 type SyncEventPeerConnected peerid.PeerID
 
-// PeerDisconnected is the peer that the syncing implementation was tracking disconnected.
+// SyncEventPeerDisconnected is the peer that the syncing implementation was tracking disconnected.
 type SyncEventPeerDisconnected peerid.PeerID
 
 func (SyncEventPeerConnected) isSyncEvent()    {}

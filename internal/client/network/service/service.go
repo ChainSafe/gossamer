@@ -12,7 +12,7 @@ import (
 	peerid "github.com/ChainSafe/gossamer/internal/client/network/types/peer-id"
 )
 
-// Provides an ability to set a fork sync request for a particular block.
+// NetworkSyncForkRequest provides an ability to set a fork sync request for a particular block.
 type NetworkSyncForkRequest[BlockHash, BlockNumber any] interface {
 	// Notifies the sync service to try and sync the given block from the given peers.
 	//
@@ -22,7 +22,7 @@ type NetworkSyncForkRequest[BlockHash, BlockNumber any] interface {
 	SetSyncForkRequest(peers []peerid.PeerID, hash BlockHash, number BlockNumber)
 }
 
-// Provides low-level API for manipulating network peers.
+// NetworkPeers provides low-level API for manipulating network peers.
 type NetworkPeers interface {
 	// Set authorized peers.
 	//
@@ -114,7 +114,7 @@ type NetworkPeers interface {
 	}
 }
 
-// Provides access to network-level event stream.
+// NetworkEventStream provides access to network-level event stream.
 type NetworkEventStream interface {
 	// Returns a stream containing the events that happen on the network. If this method is called multiple times, the
 	// events are duplicated. The stream never ends (unless the network worker gets shut down). The name passed is
@@ -122,7 +122,7 @@ type NetworkEventStream interface {
 	EventStream(name string) chan event.Event
 }
 
-// Provides ability to announce blocks to the network.
+// NetworkBlock provides ability to announce blocks to the network.
 type NetworkBlock[BlockHash any, BlockNumber any] interface {
 	// Make sure an important block is propagated to peers.
 	//
@@ -134,7 +134,7 @@ type NetworkBlock[BlockHash any, BlockNumber any] interface {
 	NewBestBlockImported(hash BlockHash, number BlockNumber)
 }
 
-// Substream acceptance result.
+// ValidationResult is the substream acceptance result.
 type ValidationResult uint
 
 const (
@@ -144,7 +144,7 @@ const (
 	ValidationResultReject
 )
 
-// Substream direction.
+// Direction is the substream direction.
 type Direction uint
 
 const (
@@ -154,12 +154,12 @@ const (
 	DirectionOutbound
 )
 
-// Events received by the protocol from [NotificationService].
+// NotificationEvent are events received by the protocol from [NotificationService].
 type NotificationEvent interface {
 	isNotificationEvent()
 }
 
-// Validate inbound substream
+// NotificationEventValidateInboundSubstream is the validate inbound substream event.
 type NotificationEventValidateInboundSubstream struct {
 	// Peer ID.
 	Peer peerid.PeerID
@@ -171,8 +171,8 @@ type NotificationEventValidateInboundSubstream struct {
 
 func (NotificationEventValidateInboundSubstream) isNotificationEvent() {}
 
-// Remote identified by peer id opened a substream and sent handshake.
-// Validate handshake and report status (accept/reject) to [NotificationService].
+// NotificationEventNotificationStreamOpened means a remote identified by peer id opened a substream and sent
+// handshake. Validate handshake and report status (accept/reject) to [NotificationService].
 type NotificationEventNotificationStreamOpened struct {
 	// Peer ID.
 	Peer peerid.PeerID
@@ -186,7 +186,7 @@ type NotificationEventNotificationStreamOpened struct {
 
 func (NotificationEventNotificationStreamOpened) isNotificationEvent() {}
 
-// Substream was closed.
+// NotificationEventNotificationStreamClosed means a substream was closed.
 type NotificationEventNotificationStreamClosed struct {
 	// Peer ID.
 	Peer peerid.PeerID
@@ -194,7 +194,7 @@ type NotificationEventNotificationStreamClosed struct {
 
 func (NotificationEventNotificationStreamClosed) isNotificationEvent() {}
 
-// Notification was received from the substream.
+// NotificationEventNotificationReceived means a notification was received from the substream.
 type NotificationEventNotificationReceived struct {
 	// Peer ID.
 	Peer peerid.PeerID

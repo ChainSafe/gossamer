@@ -10,7 +10,7 @@ import (
 	peerid "github.com/ChainSafe/gossamer/internal/client/network/types/peer-id"
 )
 
-// Abstraction over a network.
+// Network is the abstraction over a network.
 type Network interface {
 	service.NetworkPeers
 	service.NetworkEventStream
@@ -18,7 +18,7 @@ type Network interface {
 	RemoveSetReserved(who peerid.PeerID, protocol network.ProtocolName)
 }
 
-// Abstraction over the syncing subsystem.
+// Syncing is the abstraction over the syncing subsystem.
 type Syncing[H, N any] interface {
 	sync.SyncEventStream
 	service.NetworkBlock[H, N]

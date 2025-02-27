@@ -107,19 +107,19 @@ func (ge *GossipEngine[H, N, Hasher]) Report(who peerid.PeerID, reputation netwo
 	ge.network.ReportPeer(who, reputation)
 }
 
-// Registers a message without propagating it to any peers. The message becomes available to new peers or when the
+// RegisterGossipMessage registers a message without propagating it to any peers. The message becomes available to new peers or when the
 // service is asked to gossip the message's topic. No validation is performed on the message, if the message is
 // already expired it should be dropped on the next garbage collection.
 func (ge *GossipEngine[H, N, Hasher]) RegisterGossipMessage(topic H, message []byte) {
 	ge.stateMachine.RegisterMessage(topic, message)
 }
 
-// Broadcast all messages with given topic.
+// BroadcastTopic will broadcast all messages with given topic.
 func (ge *GossipEngine[H, N, Hasher]) BroadcastTopic(topic H, force bool) {
 	ge.stateMachine.BroadcastTopic(ge.notificationService, topic, force)
 }
 
-// Get data of valid, incoming messages for a topic (but might have expired meanwhile).
+// MessagesFor retrieves data of valid, incoming messages for a topic (but might have expired).
 func (ge *GossipEngine[H, N, Hasher]) MessagesFor(topic H) chan TopicNotification {
 	pastMessages := ge.stateMachine.MessagesFor(topic)
 	// The channel length is not critical for correctness.
@@ -145,17 +145,17 @@ func (ge *GossipEngine[H, N, Hasher]) MessagesFor(topic H) chan TopicNotificatio
 	return ch
 }
 
-// Send all messages with given topic to a peer.
+// SendTopic will send all messages with given topic to a peer.
 func (ge *GossipEngine[H, N, Hasher]) SendTopic(who peerid.PeerID, topic H, force bool) {
 	ge.stateMachine.SendTopic(ge.notificationService, who, topic, force)
 }
 
-// Multicast a message to all peers.
+// GossipMessage will multicast a message to all peers.
 func (ge *GossipEngine[H, N, Hasher]) GossipMessage(topic H, message []byte, force bool) {
 	ge.stateMachine.Multicast(ge.notificationService, topic, message, force)
 }
 
-// Send addressed message to the given peers. The message is not kept or multicast
+// SendMessage will send addressed message to the given peers. The message is not kept or multicast
 // later on.
 func (ge *GossipEngine[H, N, Hasher]) SendMessage(who []peerid.PeerID, data []byte) {
 	for _, who := range who {
@@ -163,7 +163,7 @@ func (ge *GossipEngine[H, N, Hasher]) SendMessage(who []peerid.PeerID, data []by
 	}
 }
 
-// Notify everyone we're connected to that we have the given block.
+// Announce will notify everyone we're connected to that we have the given block.
 //
 // Note: this method isn't strictly related to gossiping and should eventually be moved
 // somewhere else.

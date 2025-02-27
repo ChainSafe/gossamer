@@ -3,7 +3,7 @@
 
 package network
 
-// The protocol name transmitted on the wire.
+// ProtocolName is the protocol name transmitted on the wire.
 type ProtocolName string
 
 // ReputationChange is a description of a reputation adjustment for a node.
@@ -14,7 +14,7 @@ type ReputationChange struct {
 	Reason string
 }
 
-// New reputation change with given delta and reason.
+// NewReputationChange constructs a [ReputationChange] with given delta and reason.
 func NewReputationChange(value int32, reason string) ReputationChange {
 	return ReputationChange{Value: value, Reason: reason}
 }

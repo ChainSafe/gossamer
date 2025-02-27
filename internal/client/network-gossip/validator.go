@@ -9,7 +9,7 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-// Validates consensus messages.
+// Validator is the interface that validates consensus messages.
 type Validator[H constraints.Ordered] interface {
 	// New peer is connected.
 	NewPeer(context ValidatorContext[H], who peerid.PeerID, role role.ObservedRole)
@@ -23,7 +23,7 @@ type Validator[H constraints.Ordered] interface {
 	MessageAllowed() func(who peerid.PeerID, intent MessageIntent, topic H, data []byte) bool
 }
 
-// Validation context. Allows reacting to incoming messages by sending out further messages.
+// ValidatorContext allows a [Validator] to respond to incoming messages by sending out further messages.
 type ValidatorContext[H constraints.Ordered] interface {
 	// 	Broadcast all messages with given topic to peers that do not have it yet.
 	BroadcastTopic(topic H, force bool)
@@ -35,7 +35,7 @@ type ValidatorContext[H constraints.Ordered] interface {
 	SendTopic(who peerid.PeerID, topic H, force bool)
 }
 
-// The reason for sending out the message.
+// MessageIntent is the reason for sending out the message.
 type MessageIntent uint
 
 const (
@@ -47,26 +47,26 @@ const (
 	MessageIntentPeriodicReboradcast
 )
 
-// Message should be stored and propagated under given topic.
+// ValidationResultProcessAndKeep means the message should be stored and propagated under given topic.
 type ValidationResultProcessAndKeep[H constraints.Ordered] struct {
 	Hash H
 }
 
 func (ValidationResultProcessAndKeep[H]) isValidationResult() {}
 
-// Message should be processed, but not propagated.
+// ValidationResultProcessAndDiscard means the message should be processed, but not propagated.
 type ValidationResultProcessAndDiscard[H constraints.Ordered] struct {
 	Hash H
 }
 
 func (ValidationResultProcessAndDiscard[H]) isValidationResult() {}
 
-// Message should be ignored.
+// ValidationResultDiscard means the message should be ignored.
 type ValidationResultDiscard struct{}
 
 func (ValidationResultDiscard) isValidationResult() {}
 
-// Message validation result.
+// ValidationResultDiscard represents a message validation result.
 type ValidationResult interface {
 	isValidationResult()
 }
