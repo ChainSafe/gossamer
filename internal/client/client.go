@@ -478,7 +478,7 @@ func (c *Client[H, Hasher, N, E, Header]) Block(hash H) (*generic.SignedBlock[N,
 
 	if header != nil && body != nil {
 		return generic.NewSignedBlock(
-			generic.NewBlock[N, H, Hasher](*header, body), justifications,
+			generic.NewBlock[Hasher, E, N, H](*header, body), justifications,
 		), nil
 	}
 
@@ -511,4 +511,8 @@ func (c *Client[H, Hasher, N, E, Header]) BlockIndexedBody(hash H) ([][]byte, er
 
 func (c *Client[H, Hasher, N, E, Header]) RequiresFullSync() bool {
 	return c.backend.RequiresFullSync()
+}
+
+func (c *Client[H, Hasher, N, E, Header]) Children(parent H) ([]H, error) {
+	return c.backend.Blockchain().Children(parent)
 }

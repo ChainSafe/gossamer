@@ -1,13 +1,16 @@
 // Copyright 2025 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package client
+package adapter
 
 import (
+	"encoding/binary"
+	"fmt"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -16,6 +19,23 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
+type ClientAdapterDB interface {
+	Get(key []byte) (value []byte, err error)
+	Has(key []byte) (has bool, err error)
+}
+
+type Client[
+	H runtime.Hash,
+	Hasher runtime.Hasher[H],
+	N runtime.Number,
+	E runtime.Extrinsic,
+	Header runtime.Header[N, H],
+] interface {
+	blockchain.HeaderBackend[H, N, Header]
+	blockchain.BlockBackend[H, N, Header, Hasher, E]
+	blockchain.Backend[H, N, Header, E]
+}
+
 type ClientAdapter[
 	H runtime.Hash,
 	Hasher runtime.Hasher[H],
@@ -23,7 +43,8 @@ type ClientAdapter[
 	E runtime.Extrinsic,
 	Header runtime.Header[N, H],
 ] struct {
-	Client *Client[H, Hasher, N, E, Header]
+	client Client[H, Hasher, N, E, Header]
+	db     ClientAdapterDB
 }
 
 func NewClientAdapter[
@@ -32,8 +53,8 @@ func NewClientAdapter[
 	N runtime.Number,
 	E runtime.Extrinsic,
 	Header runtime.Header[N, H],
-](client *Client[H, Hasher, N, E, Header]) *ClientAdapter[H, Hasher, N, E, Header] {
-	return &ClientAdapter[H, Hasher, N, E, Header]{Client: client}
+](client Client[H, Hasher, N, E, Header], db ClientAdapterDB) *ClientAdapter[H, Hasher, N, E, Header] {
+	return &ClientAdapter[H, Hasher, N, E, Header]{client: client, db: db}
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlock(*types.Block) error {
@@ -46,79 +67,218 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) AddBlockWithArrivalTime(block 
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) BestBlock() (*types.Block, error) {
-	panic("unimplemented")
+	signedBlock, err := ca.client.Block(ca.client.Info().BestHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if signedBlock == nil {
+		return nil, nil
+	}
+
+	return types.NewBlockFromGeneric(signedBlock.Block)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) BestBlockHash() common.Hash {
-	panic("unimplemented")
+	return common.NewHashFromGeneric(ca.client.Info().BestHash)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) BestBlockHeader() (*types.Header, error) {
-	panic("unimplemented")
+	bestBlock, err := ca.BestBlock()
+	if err != nil {
+		return nil, err
+	}
+
+	if bestBlock == nil {
+		return nil, nil
+	}
+
+	return &bestBlock.Header, nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) BestBlockNumber() (number uint, err error) {
-	panic("unimplemented")
+	return uint(ca.client.Info().BestNumber), nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GenesisHash() common.Hash {
-	panic("unimplemented")
+	return common.NewHashFromGeneric(ca.client.Info().GenesisHash)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockBody(hash common.Hash) (*types.Body, error) {
-	panic("unimplemented")
+	block, err := ca.GetBlockByHash(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	if block == nil {
+		return nil, nil
+	}
+
+	return &block.Body, nil
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockStateRoot(bhash common.Hash) (common.Hash, error) {
-	panic("unimplemented")
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockStateRoot(hash common.Hash) (common.Hash, error) {
+	block, err := ca.GetBlockByHash(hash)
+	if err != nil {
+		return common.EmptyHash, err
+	}
+
+	if block == nil {
+		return common.EmptyHash, nil
+	}
+
+	return block.Header.StateRoot, nil
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockByHash(common.Hash) (*types.Block, error) {
-	panic("unimplemented")
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockByHash(bhash common.Hash) (*types.Block, error) {
+	hasher := *new(Hasher)
+	hash := hasher.NewHash(bhash.ToBytes())
+	block, err := ca.client.Block(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	if block == nil {
+		return nil, nil
+	}
+
+	return types.NewBlockFromGeneric(block.Block)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetBlockByNumber(blockNumber uint) (*types.Block, error) {
-	panic("unimplemented")
+	hash, err := ca.client.BlockHash(N(blockNumber))
+	if err != nil {
+		return nil, err
+	}
+
+	if hash == nil {
+		return nil, nil
+	}
+
+	signedBlock, err := ca.client.Block(*hash)
+	if err != nil {
+		return nil, err
+	}
+
+	if signedBlock == nil {
+		return nil, nil
+	}
+
+	return types.NewBlockFromGeneric(signedBlock.Block)
 }
 
+// TODO: remove from BlockState interface since it is only use by RPC and is not part of the standard
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetFinalisedHeader(round, setID uint64) (*types.Header, error) {
 	panic("unimplemented")
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetFinalisedHash(round, setID uint64) (common.Hash, error) {
-	panic("unimplemented")
-}
-
+// TODO: check if this is the right implementation
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHashesByNumber(blockNumber uint) ([]common.Hash, error) {
-	panic("unimplemented")
+	hash, err := ca.client.BlockHash(N(blockNumber))
+	if err != nil {
+		return nil, err
+	}
+
+	if hash == nil {
+		return nil, nil
+	}
+
+	children, err := ca.client.Children(*hash)
+	if err != nil {
+		return nil, err
+	}
+
+	if children == nil {
+		return nil, nil
+	}
+
+	hashes := make([]common.Hash, 0, len(children))
+
+	for _, child := range children {
+		block, err := ca.client.Block(child)
+		if err != nil {
+			return nil, err
+		}
+
+		if block.Block.Header().Number() == N(blockNumber) {
+			hashes = append(hashes, common.NewHashFromGeneric(block.Block.Header().Hash()))
+		}
+	}
+
+	return hashes, nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHashByNumber(blockNumber uint) (common.Hash, error) {
-	panic("unimplemented")
+	hash, err := ca.client.BlockHash(N(blockNumber))
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return common.NewHashFromGeneric(*hash), nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHeader(bhash common.Hash) (*types.Header, error) {
-	panic("unimplemented")
+	block, err := ca.GetBlockByHash(bhash)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if block == nil {
+		return nil, nil
+	}
+
+	return &block.Header, nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHeaderByNumber(num uint) (*types.Header, error) {
-	panic("unimplemented")
+	block, err := ca.GetBlockByNumber(num)
+	if err != nil {
+		return nil, err
+	}
+
+	if block == nil {
+		return nil, nil
+	}
+
+	return &block.Header, nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHighestFinalisedHeader() (*types.Header, error) {
-	panic("unimplemented")
+	header, err := ca.client.Header(ca.client.Info().FinalizedHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if header == nil {
+		return nil, nil
+	}
+
+	return types.NewHeaderFromGeneric(*header)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHighestFinalisedHash() (common.Hash, error) {
-	panic("unimplemented")
+	return common.NewHashFromGeneric(ca.client.Info().FinalizedHash), nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetHighestRoundAndSetID() (uint64, uint64, error) {
-	panic("unimplemented")
+	b, err := ca.db.Get(state.HighestRoundAndSetIDKey)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to get highest round and setID: %w", err)
+	}
+
+	round := binary.LittleEndian.Uint64(b[:8])
+	setID := binary.LittleEndian.Uint64(b[8:16])
+	return round, setID, nil
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetJustification(common.Hash) ([]byte, error) {
-	panic("unimplemented")
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetJustification(bhash common.Hash) ([]byte, error) {
+	data, err := ca.db.Get(prefixKey(bhash, state.JustificationPrefix))
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetFirstNonOriginSlotNumber() (uint64, error) {
@@ -146,27 +306,63 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetAllBlocksAtNumber(num uint)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetNonFinalisedBlocks() []common.Hash {
-	panic("unimplemented")
+	lastFinalized := ca.client.Info().FinalizedHash
+
+	unfinalizedHashes, err := ca.client.Children(lastFinalized)
+	if err != nil {
+		return nil
+	}
+
+	hashes := make([]common.Hash, len(unfinalizedHashes))
+	for i, hash := range unfinalizedHashes {
+		hashes[i] = common.NewHashFromGeneric(hash)
+	}
+
+	return hashes
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetSlotForBlock(common.Hash) (uint64, error) {
-	panic("unimplemented")
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetSlotForBlock(hash common.Hash) (uint64, error) {
+	header, err := ca.GetHeader(hash)
+	if err != nil {
+		return 0, err
+	}
+
+	return types.GetSlotFromHeader(header)
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) HasFinalisedBlock(round, setID uint64) (bool, error) {
-	panic("unimplemented")
+	return ca.db.Has(state.FinalisedHashKey(round, setID))
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) HasHeader(hash common.Hash) (bool, error) {
-	panic("unimplemented")
+	nonFinalised := ca.GetNonFinalisedBlocks()
+	for _, h := range nonFinalised {
+		if h == hash {
+			return true, nil
+		}
+	}
+
+	return ca.HasHeaderInDatabase(hash)
 }
 
-func (ca *ClientAdapter[H, Hasher, N, E, Header]) HasJustification(hash common.Hash) (bool, error) {
-	panic("unimplemented")
+func (ca *ClientAdapter[H, Hasher, N, E, Header]) HasJustification(bhash common.Hash) (bool, error) {
+	hasher := *new(Hasher)
+	hash := hasher.NewHash(bhash.ToBytes())
+	justifications, err := ca.client.Justifications(hash)
+	if err != nil {
+		return false, err
+	}
+
+	return len(justifications) > 0, nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) HasHeaderInDatabase(hash common.Hash) (bool, error) {
-	panic("unimplemented")
+	header, err := ca.GetHeader(hash)
+	if err != nil {
+		return false, err
+	}
+
+	return header != nil, nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) GetLastFinalized() common.Hash {
@@ -228,7 +424,7 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) LowestCommonAncestor(a, b comm
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) NumberIsFinalised(blockNumber uint) (bool, error) {
-	panic("unimplemented")
+	return ca.client.Info().FinalizedNumber >= N(blockNumber), nil
 }
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) BlocktreeAsString() string {
@@ -351,4 +547,8 @@ func (ca *ClientAdapter[H, Hasher, N, E, Header]) UnregisterStorageObserver(o st
 
 func (ca *ClientAdapter[H, Hasher, N, E, Header]) SetBlockTree(blocktree *blocktree.BlockTree) {
 	panic("unimplemented")
+}
+
+func prefixKey(hash common.Hash, prefix []byte) []byte {
+	return append(prefix, hash.ToBytes()...)
 }

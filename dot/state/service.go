@@ -308,7 +308,7 @@ func (s *Service) Import(header *types.Header, t trie.Trie,
 	}
 
 	// TODO: this is broken, need to know round and setID for the header as well
-	if err := block.db.Put(finalisedHashKey(0, 0), hash[:]); err != nil {
+	if err := block.db.Put(FinalisedHashKey(0, 0), hash[:]); err != nil {
 		return err
 	}
 	if err := block.SetHighestRoundAndSetID(0, 0); err != nil {

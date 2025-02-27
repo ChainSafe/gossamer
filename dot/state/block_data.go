@@ -64,12 +64,12 @@ func (bs *DefaultBlockState) GetMessageQueue(hash common.Hash) ([]byte, error) {
 
 // HasJustification returns if the db contains a Justification at the given hash
 func (bs *DefaultBlockState) HasJustification(hash common.Hash) (bool, error) {
-	return bs.db.Has(prefixKey(hash, justificationPrefix))
+	return bs.db.Has(prefixKey(hash, JustificationPrefix))
 }
 
 // SetJustification sets a Justification in the database
 func (bs *DefaultBlockState) SetJustification(hash common.Hash, data []byte) error {
-	err := bs.db.Put(prefixKey(hash, justificationPrefix), data)
+	err := bs.db.Put(prefixKey(hash, JustificationPrefix), data)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (bs *DefaultBlockState) SetJustification(hash common.Hash, data []byte) err
 
 // GetJustification retrieves a Justification from the database
 func (bs *DefaultBlockState) GetJustification(hash common.Hash) ([]byte, error) {
-	data, err := bs.db.Get(prefixKey(hash, justificationPrefix))
+	data, err := bs.db.Get(prefixKey(hash, JustificationPrefix))
 	if err != nil {
 		return nil, err
 	}
