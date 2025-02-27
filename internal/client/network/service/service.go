@@ -282,5 +282,5 @@ type MessageSink interface {
 	// allowing sender to exercise backpressure.
 	//
 	// Returns an error if the peer does not exist.
-	SendAsyncNotificastion(notification []byte) <-chan error
+	SendAsyncNotification(notification []byte) <-chan error
 }

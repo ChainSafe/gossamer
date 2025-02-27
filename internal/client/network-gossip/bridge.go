@@ -43,6 +43,7 @@ type GossipEngine[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] st
 
 	isTerminated bool
 	stopChan     chan any
+	errChan      chan error
 }
 
 type forwardingState interface {
@@ -69,10 +70,8 @@ func NewGossipEngine[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]]
 ) GossipEngine[H, N, Hasher] {
 	ge := newGossipEngine[H, N, Hasher](network, sync, notificationService, protocol, validator)
 	go func() {
-		err := ge.poll()
-		if err != nil {
-			panic(err)
-		}
+		defer close(ge.errChan)
+		ge.errChan <- ge.poll()
 	}()
 	return ge
 }
@@ -99,6 +98,7 @@ func newGossipEngine[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]]
 		forwardingState:             forwardingStateIdle{},
 		isTerminated:                false,
 		stopChan:                    make(chan any),
+		errChan:                     make(chan error, 1),
 	}
 	return ge
 }

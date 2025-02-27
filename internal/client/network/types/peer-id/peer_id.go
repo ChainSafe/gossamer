@@ -16,8 +16,6 @@ import (
 // The data is a CIDv0 compatible multihash of the protobuf encoded public key of the peer
 // as specified in [specs/peer-ids](https://github.com/libp2p/specs/blob/master/peer-ids/peer-ids.md).
 type PeerID struct {
-	// 	multihash: Multihash,
-	// multihash multihash.Multihash
 	peer.ID
 }
 
@@ -30,7 +28,7 @@ func (pid PeerID) Ed25519() *[32]byte {
 	switch pubKey.(type) {
 	case *crypto.Ed25519PublicKey:
 	default:
-		panic("huh?")
+		panic("should always be of type *crypto.Ed25519PublicKey")
 	}
 	raw, err := pubKey.Raw()
 	if err != nil {
