@@ -60,9 +60,9 @@ func GetRuntime(ctx context.Context, runtime string) (
 		return runtime, nil
 	}
 
-	basePath := filepath.Join(os.TempDir(), "gossamer", "runtimes")
+	tmpPath := filepath.Join(os.TempDir(), "gossamer", "runtimes")
 	const perm = os.FileMode(0777)
-	err = os.MkdirAll(basePath, perm)
+	err = os.MkdirAll(tmpPath, perm)
 	if err != nil {
 		return "", fmt.Errorf("cannot create directory for runtimes: %w", err)
 	}
@@ -95,14 +95,18 @@ func GetRuntime(ctx context.Context, runtime string) (
 		return "", fmt.Errorf("%w: %s", ErrRuntimeUnknown, runtime)
 	}
 
-	runtimePath = filepath.Join(basePath, runtimeFilename)
-	runtimePath, err = filepath.Abs(runtimePath)
-	if err != nil {
-		return "", fmt.Errorf("malformed relative path: %w", err)
-	}
+	// this method is only ever called by wazero package, so this is the relative path from that
+	// to the stored runtimes
+	for _, basePath := range []string{"../test_data/runtimes", tmpPath} {
+		runtimePath = filepath.Join(basePath, runtimeFilename)
+		runtimePath, err = filepath.Abs(runtimePath)
+		if err != nil {
+			return "", fmt.Errorf("malformed relative path: %w", err)
+		}
 
-	if utils.PathExists(runtimePath) {
-		return runtimePath, nil
+		if utils.PathExists(runtimePath) {
+			return runtimePath, nil
+		}
 	}
 
 	const requestTimeout = 10 * time.Second
