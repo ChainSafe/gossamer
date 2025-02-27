@@ -190,7 +190,6 @@ func (b *BitfieldSigning) ProcessBlockFinalizedSignal(parachaintypes.BlockFinali
 
 // Stop stops the BitfieldSigning subsystem
 func (b *BitfieldSigning) Stop() {
-	// TODO: anything to do to stop this subsystem ?
 	logger.Infof("Stopping BitfieldSigning subsystem")
 }
 

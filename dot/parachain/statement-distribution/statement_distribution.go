@@ -12,7 +12,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("pkg", "statement-distribution"))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-statement-distribution"))
 
 type StatementDistribution struct {
 	SubSystemToOverseer chan<- any

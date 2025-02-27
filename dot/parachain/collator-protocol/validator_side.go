@@ -27,7 +27,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("pkg", "collator-protocol"))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-collator-protocol"))
 
 const (
 	activityPoll            = 10 * time.Millisecond
