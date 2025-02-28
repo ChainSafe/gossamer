@@ -107,9 +107,9 @@ func (ge *GossipEngine[H, N, Hasher]) Report(who peerid.PeerID, reputation netwo
 	ge.network.ReportPeer(who, reputation)
 }
 
-// RegisterGossipMessage registers a message without propagating it to any peers. The message becomes available to new peers or when the
-// service is asked to gossip the message's topic. No validation is performed on the message, if the message is
-// already expired it should be dropped on the next garbage collection.
+// RegisterGossipMessage registers a message without propagating it to any peers. The message becomes available to new
+// peers or when the service is asked to gossip the message's topic. No validation is performed on the message, if the
+// message is already expired it should be dropped on the next garbage collection.
 func (ge *GossipEngine[H, N, Hasher]) RegisterGossipMessage(topic H, message []byte) {
 	ge.stateMachine.RegisterMessage(topic, message)
 }
