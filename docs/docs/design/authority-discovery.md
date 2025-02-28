@@ -3,7 +3,6 @@ layout: default
 title: Authority Discovery Overview
 permalink: /design/authority-discovery/
 ---
-
 # Authority Discovery Design
 
 Authority Discovery in Substrate enables authorities to discover and directly connect to other authorities.  In the Substrate implementation it is comprised of two components, the [`Worker`] and the [`Service`].
@@ -162,9 +161,44 @@ pub enum DhtEvent {
 
 In Gossamer we currently use `go-libp2p-kad-dht` package for DHT functionality.  `go-libp2p-kad-dht` does not currently emit any of these events.  The `Worker` only handles cases of `ValueFound`, `ValueNotFound`, `ValuePut`, `ValuePutFailed`, and `PutRecordRequest`.  
 
-#### Implementing `NetworkDhtProvider` and `DhtEventStream`
+#### Implementing `NetworkDhtProvider`
 
-I believe will we need to fork `go-libp2p-kad-dht` or look for viable alternatives DHT packages to support the `put_record_to` functionality as well emit the `DhtEvent` variants from the package itself.  Without this functionality we will not be able to run the Substrate Authority Discovery protocol as expected by Substrate based nodes.
+I believe will we need to fork `go-libp2p-kad-dht` or look for viable alternatives DHT packages to support the `put_record_to` functionality.  Without this functionality we will not be able to run the Substrate Authority Discovery protocol as expected by Substrate based nodes.  Given the `put_record_to` method is updating existing records based on creation time to specific peers, we will need to expose the message sender in `IpfsDHT` and add the functionality to a wrapper type, or add the function to it and hope to merge back upstream.
+
+#### Implementing `DhtEventStream`
+
+The rust `libp2p-kad` crate crate emits events of enum type [`KademliaEvent`](https://github.com/libp2p/rust-libp2p/blob/master/protocols/kad/src/behaviour.rs#L2745).  The ones that need to be implemented in the Go Kademlia DHT library are `KademliaEvent::OutboundQueryProgressed` and `KademliaEvent::InboundRequest`.  
+
+##### `KademliaEvent::InboundRequest`
+`InboundRequest` has a `request` attribute which is of type [`InboundRequest`](https://github.com/libp2p/rust-libp2p/blob/master/protocols/kad/src/behaviour.rs#L2854).  If the request is of type [`PutRecord`](https://github.com/libp2p/rust-libp2p/blob/master/protocols/kad/src/behaviour.rs#L2878) we should be emitting an event that we can translate to `DhtEvent::PutRecordRequest`.  
+
+In `go-libp2p-kad-dht` it is unclear if we are able to listen on events that are inbound (aka come from other nodes). We will need to investigate into the codebase to see if there are current events that can be listened on to achieve this functionality.  
+
+##### `KademliaEvent::OutboundQueryProgressed`
+For `OutboundQueryProgressed` there is a `result` attribute of type [`QueryResult`](https://github.com/libp2p/rust-libp2p/blob/master/protocols/kad/src/behaviour.rs#L2887).  If the result is of variant type `QueryResult::GetRecord` this signals that an outbound request has been made to the DHT.  `QueryResult::GetRecord` is of type `GetRecordResult` which is a result type `Result<GetRecordOk, GetRecordError>`. `GetRecordOK` is as follows:
+```rust
+/// The successful result of [`Behaviour::get_record`].
+pub enum GetRecordOk {
+    FoundRecord(PeerRecord),
+    FinishedWithNoAdditionalRecord {
+        /// If caching is enabled, these are the peers closest
+        /// _to the record key_ (not the local node) that were queried but
+        /// did not return the record, sorted by distance to the record key
+        /// from closest to farthest. How many of these are tracked is configured
+        /// by [`Config::set_caching`].
+        ///
+        /// Writing back the cache at these peers is a manual operation.
+        /// ie. you may wish to use these candidates with [`Behaviour::put_record_to`]
+        /// after selecting one of the returned records.
+        cache_candidates: BTreeMap<kbucket::Distance, PeerId>,
+    },
+}
+```
+There be an emitted event of `DhtEvent::ValueFound` whenever `GetRecordOk::FoundRecord` is the result.  If there's an error `GetRecordError`, a `DhtEvent::ValueNotFound` event should be sent over the `DhtEventStream`.
+
+If `OutboundQueryProgressed` result attribute is of type `QueryResult::PutRecord`, we should be emitting a `DhtEvent::ValuePut` event if it was succsesful, and a`DhtEvent::ValuePutFailed` event if it failed.
+
+In `go-libp2p-kad-dht` both the `GetValue` and `PutValue` functions are synchronous calls that take in a supplied `context.Context` for cancellation.  We should be able to emit these events in a type that wraps `IpfsDHT` by spawning goroutines to emit the `DhtEvent` variants.  
 
 ## `Service`
 
