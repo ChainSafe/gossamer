@@ -33,6 +33,14 @@ jobs:
           stable: true
           check-latest: true
 
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            override: true
+            default: true
+            components: rustfmt, clippy
+
       - name: Set cache variables
         id: go-cache-paths
         run: |

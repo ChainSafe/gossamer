@@ -121,4 +121,5 @@ const (
 	ParachainHostParaBackingState = "ParachainHost_para_backing_state"
 	// ParachainHostDisabledValidators is the runtime API call ParachainHost_disabled_validators
 	ParachainHostDisabledValidators = "ParachainHost_disabled_validators"
+	ParachainHostDisputes           = "ParachainHost_disputes"
 )

@@ -56,7 +56,7 @@ func (cb *CandidateBacking) handleSecondMessage(
 		)
 	}
 
-	if rpState.tableContext.validator.disabled {
+	if rpState.tableContext.validator.Disabled {
 		return errors.New("local validator is disabled. Don't validate and second")
 	}
 

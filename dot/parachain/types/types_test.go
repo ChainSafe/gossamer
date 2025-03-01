@@ -11,6 +11,8 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
@@ -468,4 +470,37 @@ func TestGroupForCoreIsCoreForGroup(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestValidator_SignAndVerify(t *testing.T) {
+	signingContext := SigningContext{
+		SessionIndex: 1,
+		ParentHash:   getDummyHash(1),
+	}
+
+	ks := keystore.NewBasicKeystore("test", crypto.Sr25519Type)
+	keyring, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+
+	keyPair := keyring.Alice()
+	err = ks.Insert(keyPair)
+	require.NoError(t, err)
+
+	publicKeyBytes := keyPair.Public().Encode()
+	validatorID := ValidatorID(publicKeyBytes)
+
+	validator := Validator{
+		SigningContext: signingContext,
+		Key:            validatorID,
+		Index:          50,
+	}
+
+	payloadBytes := []byte("test payload")
+
+	valSign, err := validator.Sign(ks, payloadBytes)
+	require.NoError(t, err)
+
+	ok, err := validator.VerifySignature(payloadBytes, *valSign)
+	require.NoError(t, err)
+	require.True(t, ok)
 }

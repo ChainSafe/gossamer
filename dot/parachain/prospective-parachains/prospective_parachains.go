@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package prospectiveparachains
 
 import (
@@ -10,7 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("pkg", "prospective_parachains"), log.SetLevel(log.Debug))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-prospective-parachains"), log.SetLevel(log.Debug))
 
 // Initialize with empty values.
 func NewView() *view {

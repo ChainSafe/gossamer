@@ -11,4 +11,4 @@ crate-type = ["staticlib", "cdylib"]
 thiserror = "1.0.31"
 parity-scale-codec = { version = "3.4.0", default-features = false, features = ["std", "derive"] }
 reed-solomon-novelpoly =  { package = "reed-solomon-novelpoly", git = "https://github.com/paritytech/reed-solomon-novelpoly", branch = "master" }
-polkadot-node-primitives = { package = "polkadot-node-primitives", git = "https://github.com/paritytech/polkadot", branch = "master" }
+polkadot-node-primitives = { package = "polkadot-node-primitives", git = "https://github.com/paritytech/polkadot-sdk", branch = "master" }
