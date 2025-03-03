@@ -26,7 +26,7 @@ type TopologyPeerInfo struct {
 type SessionGridTopology struct {
 	// Peers List of all peers ids in session. Represented as "hashset" for fast lookup.
 	Peers map[peer.ID]struct{}
-	/// canonicalShuffling is the canonical shuffling of validators for the session.
+	// canonicalShuffling is the canonical shuffling of validators for the session.
 	CanonicalShuffling []TopologyPeerInfo
 	/// shuffledIndices is an array mapping validator indices to their indices in the
 	/// shuffling itself. This has the same size as the number of validators
