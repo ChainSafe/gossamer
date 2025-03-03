@@ -10,7 +10,7 @@ It offers functionalities for writing and reading operations and uses lazy loadi
 - **Reads**: Basic functions to get data from the trie.
 - **Lazy Loading**: Load data on demand.
 - **Caching**: Enhances search performance.
-- **Compatibility**: Works with any database implementing the `db.RWDatabase` interface and any cache implementing the `Cache` interface.
+- **Compatibility**: Works with any database implementing the `hashdb.HashDB` interface and any cache implementing the `TrieCache` interface.
 - **Merkle proofs**: Create and verify merkle proofs.
 - **Iterator**: Traverse the trie keys in order.
 
@@ -29,7 +29,7 @@ trie := triedb.NewEmptyTrieDB(db)
 To insert a key and its associated value:
 
 ```go
-err := trie.Put([]byte("key"), []byte("value"))
+err := trie.Set([]byte("key"), []byte("value"))
 ```
 
 ### Get Data

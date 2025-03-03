@@ -22,7 +22,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
+func newState(t *testing.T) (state.BlockState, *state.EpochState) {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
 	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
@@ -32,7 +32,7 @@ func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 	_, genesisTrie, genesisHeader := newWestendLocalGenesisWithTrieAndHeader(t)
 	tries := state.NewTries()
 	tries.SetTrie(genesisTrie)
-	bs, err := state.NewBlockStateFromGenesis(db, tries, &genesisHeader, telemetryMock)
+	bs, err := state.NewDefaultBlockStateFromGenesis(db, tries, &genesisHeader, telemetryMock)
 	require.NoError(t, err)
 	es, err := state.NewEpochStateFromGenesis(db, bs, config.BABEConfigurationTestDefault)
 	require.NoError(t, err)

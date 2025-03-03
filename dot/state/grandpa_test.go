@@ -124,13 +124,13 @@ func TestGrandpaState_LatestRound(t *testing.T) {
 	require.Equal(t, uint64(99), r)
 }
 
-func testBlockState(t *testing.T, db database.Database) *BlockState {
+func testBlockState(t *testing.T, db database.Database) BlockState {
 	ctrl := gomock.NewController(t)
 	telemetryMock := NewMockTelemetry(ctrl)
-	telemetryMock.EXPECT().SendMessage(gomock.AssignableToTypeOf(&telemetry.NotifyFinalized{}))
+	telemetryMock.EXPECT().SendMessage(gomock.Any()).AnyTimes()
 	header := testGenesisHeader
 
-	bs, err := NewBlockStateFromGenesis(db, newTriesEmpty(), header, telemetryMock)
+	bs, err := NewDefaultBlockStateFromGenesis(db, newTriesEmpty(), header, telemetryMock)
 	require.NoError(t, err)
 
 	// loads in-memory tries with genesis state root, should be deleted
@@ -267,16 +267,16 @@ func assertDescendantChildren(t *testing.T, parentHash common.Hash, isDescendant
 
 // updateHighestFinalizedHeaderOrDefault will update the current highest finalized header
 // with the value of newHighest, if the newHighest is nil then it will use the def value
-func updateHighestFinalizedHeaderOrDefault(t *testing.T, bs *BlockState, newHighest, def *types.Header) {
+func updateHighestFinalizedHeaderOrDefault(t *testing.T, bs BlockState, newHighest, def *types.Header) {
 	t.Helper()
 
 	round, setID, err := bs.GetHighestRoundAndSetID()
 	require.NoError(t, err)
 
 	if newHighest != nil {
-		bs.db.Put(finalisedHashKey(round, setID), newHighest.Hash().ToBytes())
+		bs.SetFinalisedHash(newHighest.Hash(), round, setID, true)
 	} else {
-		bs.db.Put(finalisedHashKey(round, setID), def.Hash().ToBytes())
+		bs.SetFinalisedHash(def.Hash(), round, setID, true)
 	}
 }
 
@@ -391,7 +391,7 @@ func TestShouldNotAddMoreThanOneForcedChangeInTheSameFork(t *testing.T) {
 }
 
 func issueBlocksWithBABEPrimary(t *testing.T, kp *sr25519.Keypair,
-	bs *BlockState, parentHeader *types.Header, size int) (headers []*types.Header) {
+	bs BlockState, parentHeader *types.Header, size int) (headers []*types.Header) {
 	t.Helper()
 
 	transcript := merlin.NewTranscript("BABE")
@@ -582,7 +582,7 @@ func TestApplyForcedChanges(t *testing.T) {
 	require.NoError(t, err)
 
 	const sizeOfChain = 10
-	genericForks := func(t *testing.T, blockState *BlockState) [][]*types.Header {
+	genericForks := func(t *testing.T, blockState BlockState) [][]*types.Header {
 
 		/*
 		* create chainA and two forks: chainB and chainC
@@ -608,7 +608,7 @@ func TestApplyForcedChanges(t *testing.T) {
 		expectedSetID               uint64
 		expectedPruning             bool
 
-		generateForks func(t *testing.T, blockState *BlockState) [][]*types.Header
+		generateForks func(t *testing.T, blockState BlockState) [][]*types.Header
 		changes       func(*GrandpaState, [][]*types.Header)
 		telemetryMock *MockTelemetry
 	}{
@@ -855,7 +855,7 @@ func TestApplyScheduledChangesKeepDescendantForcedChanges(t *testing.T) {
 	require.NoError(t, err)
 
 	const sizeOfChain = 10
-	genericForks := func(t *testing.T, blockState *BlockState) [][]*types.Header {
+	genericForks := func(t *testing.T, blockState BlockState) [][]*types.Header {
 
 		/*
 		* create chainA and two forks: chainB and chainC
@@ -876,7 +876,7 @@ func TestApplyScheduledChangesKeepDescendantForcedChanges(t *testing.T) {
 	tests := map[string]struct {
 		finalizedHeader [2]int // 2 index array where the 0 index describes the fork and the 1 index describes the header
 
-		generateForks func(*testing.T, *BlockState) [][]*types.Header
+		generateForks func(*testing.T, BlockState) [][]*types.Header
 		changes       func(*GrandpaState, [][]*types.Header)
 
 		wantErr error
@@ -974,7 +974,7 @@ func TestApplyScheduledChangeGetApplicableChange(t *testing.T) {
 	require.NoError(t, err)
 
 	const sizeOfChain = 10
-	genericForks := func(t *testing.T, blockState *BlockState) [][]*types.Header {
+	genericForks := func(t *testing.T, blockState BlockState) [][]*types.Header {
 		/*
 		* create chainA and two forks: chainB and chainC
 		*
@@ -994,7 +994,7 @@ func TestApplyScheduledChangeGetApplicableChange(t *testing.T) {
 	tests := map[string]struct {
 		finalizedHeader                 [2]int
 		changes                         func(*GrandpaState, [][]*types.Header)
-		generateForks                   func(*testing.T, *BlockState) [][]*types.Header
+		generateForks                   func(*testing.T, BlockState) [][]*types.Header
 		wantErr                         error
 		expectedChange                  *pendingChange
 		expectedScheduledChangeRootsLen int
@@ -1208,7 +1208,7 @@ func TestApplyScheduledChange(t *testing.T) {
 	}
 
 	const sizeOfChain = 10
-	genericForks := func(t *testing.T, blockState *BlockState) [][]*types.Header {
+	genericForks := func(t *testing.T, blockState BlockState) [][]*types.Header {
 		/*
 		* create chainA and two forks: chainB and chainC
 		*
@@ -1228,7 +1228,7 @@ func TestApplyScheduledChange(t *testing.T) {
 	tests := map[string]struct {
 		finalizedHeader [2]int // 2 index array where the 0 index describes the fork and the 1 index describes the header
 
-		generateForks func(*testing.T, *BlockState) [][]*types.Header
+		generateForks func(*testing.T, BlockState) [][]*types.Header
 		changes       func(*GrandpaState, [][]*types.Header)
 
 		wantErr                         error

@@ -14,20 +14,20 @@ import (
 )
 
 var errSetIDLowerThanHighest = errors.New("set id lower than highest")
-var highestRoundAndSetIDKey = []byte("hrs")
+var HighestRoundAndSetIDKey = []byte("hrs")
 
-// finalisedHashKey = FinalizedBlockHashKey + round + setID (LE encoded)
-func finalisedHashKey(round, setID uint64) []byte {
-	return append(common.FinalizedBlockHashKey, roundAndSetIDToBytes(round, setID)...)
+// FinalisedHashKey = FinalizedBlockHashKey + round + setID (LE encoded)
+func FinalisedHashKey(round, setID uint64) []byte {
+	return append(common.FinalizedBlockHashKey, RoundAndSetIDToBytes(round, setID)...)
 }
 
 // HasFinalisedBlock returns true if there is a finalised block for a given round and setID, false otherwise
-func (bs *BlockState) HasFinalisedBlock(round, setID uint64) (bool, error) {
-	return bs.db.Has(finalisedHashKey(round, setID))
+func (bs *DefaultBlockState) HasFinalisedBlock(round, setID uint64) (bool, error) {
+	return bs.db.Has(FinalisedHashKey(round, setID))
 }
 
 // NumberIsFinalised checks if a block number is finalised or not
-func (bs *BlockState) NumberIsFinalised(num uint) (bool, error) {
+func (bs *DefaultBlockState) NumberIsFinalised(num uint) (bool, error) {
 	header, err := bs.GetHighestFinalisedHeader()
 	if err != nil {
 		return false, err
@@ -37,11 +37,11 @@ func (bs *BlockState) NumberIsFinalised(num uint) (bool, error) {
 }
 
 // GetFinalisedHeader returns the finalised block header by round and setID
-func (bs *BlockState) GetFinalisedHeader(round, setID uint64) (*types.Header, error) {
+func (bs *DefaultBlockState) GetFinalisedHeader(round, setID uint64) (*types.Header, error) {
 	bs.lock.Lock()
 	defer bs.lock.Unlock()
 
-	h, err := bs.GetFinalisedHash(round, setID)
+	h, err := bs.getFinalisedHash(round, setID)
 	if err != nil {
 		return nil, err
 	}
@@ -55,16 +55,16 @@ func (bs *BlockState) GetFinalisedHeader(round, setID uint64) (*types.Header, er
 }
 
 // GetRoundAndSetID returns the finalised round and setID
-func (bs *BlockState) GetRoundAndSetID() (uint64, uint64) {
+func (bs *DefaultBlockState) GetRoundAndSetID() (uint64, uint64) {
 	bs.lock.Lock()
 	defer bs.lock.Unlock()
 
 	return bs.lastRound, bs.lastSetID
 }
 
-// GetFinalisedHash gets the finalised block header by round and setID
-func (bs *BlockState) GetFinalisedHash(round, setID uint64) (common.Hash, error) {
-	h, err := bs.db.Get(finalisedHashKey(round, setID))
+// getFinalisedHash gets the finalised block header by round and setID
+func (bs *DefaultBlockState) getFinalisedHash(round, setID uint64) (common.Hash, error) {
+	h, err := bs.db.Get(FinalisedHashKey(round, setID))
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -72,7 +72,7 @@ func (bs *BlockState) GetFinalisedHash(round, setID uint64) (common.Hash, error)
 	return common.NewHash(h), nil
 }
 
-func (bs *BlockState) setHighestRoundAndSetID(round, setID uint64) error {
+func (bs *DefaultBlockState) SetHighestRoundAndSetID(round, setID uint64) error {
 	_, highestSetID, err := bs.GetHighestRoundAndSetID()
 	if err != nil {
 		return err
@@ -82,12 +82,12 @@ func (bs *BlockState) setHighestRoundAndSetID(round, setID uint64) error {
 		return fmt.Errorf("%w: %d should be greater or equal %d", errSetIDLowerThanHighest, setID, highestSetID)
 	}
 
-	return bs.db.Put(highestRoundAndSetIDKey, roundAndSetIDToBytes(round, setID))
+	return bs.db.Put(HighestRoundAndSetIDKey, RoundAndSetIDToBytes(round, setID))
 }
 
 // GetHighestRoundAndSetID gets the highest round and setID that have been finalised
-func (bs *BlockState) GetHighestRoundAndSetID() (uint64, uint64, error) {
-	b, err := bs.db.Get(highestRoundAndSetIDKey)
+func (bs *DefaultBlockState) GetHighestRoundAndSetID() (uint64, uint64, error) {
+	b, err := bs.db.Get(HighestRoundAndSetIDKey)
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to get highest round and setID: %w", err)
 	}
@@ -98,17 +98,17 @@ func (bs *BlockState) GetHighestRoundAndSetID() (uint64, uint64, error) {
 }
 
 // GetHighestFinalisedHash returns the highest finalised block hash
-func (bs *BlockState) GetHighestFinalisedHash() (common.Hash, error) {
+func (bs *DefaultBlockState) GetHighestFinalisedHash() (common.Hash, error) {
 	round, setID, err := bs.GetHighestRoundAndSetID()
 	if err != nil {
 		return common.Hash{}, err
 	}
 
-	return bs.GetFinalisedHash(round, setID)
+	return bs.getFinalisedHash(round, setID)
 }
 
 // GetHighestFinalisedHeader returns the highest finalised block header
-func (bs *BlockState) GetHighestFinalisedHeader() (*types.Header, error) {
+func (bs *DefaultBlockState) GetHighestFinalisedHeader() (*types.Header, error) {
 	h, err := bs.GetHighestFinalisedHash()
 	if err != nil {
 		return nil, err
@@ -122,8 +122,12 @@ func (bs *BlockState) GetHighestFinalisedHeader() (*types.Header, error) {
 	return header, nil
 }
 
+func (bs *DefaultBlockState) SetFinalizedHashKey(hash common.Hash, round, setID uint64) error {
+	return bs.db.Put(FinalisedHashKey(round, setID), hash[:])
+}
+
 // SetFinalisedHash sets the latest finalised block hash
-func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) error {
+func (bs *DefaultBlockState) SetFinalisedHash(hash common.Hash, round, setID uint64, finalizeAncestors bool) error {
 	bs.lock.Lock()
 	defer bs.lock.Unlock()
 
@@ -139,15 +143,17 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		return fmt.Errorf("cannot finalise unknown block %s", hash)
 	}
 
-	if err := bs.handleFinalisedBlock(hash); err != nil {
-		return fmt.Errorf("failed to set finalised subchain in db on finalisation: %w", err)
+	if finalizeAncestors {
+		if err := bs.handleFinalisedBlock(hash); err != nil {
+			return fmt.Errorf("failed to set finalised subchain in db on finalisation: %w", err)
+		}
 	}
 
-	if err := bs.db.Put(finalisedHashKey(round, setID), hash[:]); err != nil {
+	if err := bs.SetFinalizedHashKey(hash, round, setID); err != nil {
 		return fmt.Errorf("failed to set finalised hash key: %w", err)
 	}
 
-	if err := bs.setHighestRoundAndSetID(round, setID); err != nil {
+	if err := bs.SetHighestRoundAndSetID(round, setID); err != nil {
 		return fmt.Errorf("failed to set highest round and set ID: %w", err)
 	}
 
@@ -194,7 +200,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	return nil
 }
 
-func (bs *BlockState) deleteFromTries(lastFinalised common.Hash) error {
+func (bs *DefaultBlockState) deleteFromTries(lastFinalised common.Hash) error {
 	lastFinalisedHeader, err := bs.GetHeader(lastFinalised)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve header for last finalised block, hash: %s, err: %s", bs.lastFinalised, err)
@@ -208,7 +214,11 @@ func (bs *BlockState) deleteFromTries(lastFinalised common.Hash) error {
 	return nil
 }
 
-func (bs *BlockState) handleFinalisedBlock(currentFinalizedHash common.Hash) error {
+func (bs *DefaultBlockState) SetFinalizedHeader(header *types.Header) error {
+	return bs.db.Put(headerHashKey(uint64(header.Number)), header.Hash().ToBytes())
+}
+
+func (bs *DefaultBlockState) handleFinalisedBlock(currentFinalizedHash common.Hash) error {
 	if currentFinalizedHash == bs.lastFinalised {
 		return nil
 	}
@@ -243,7 +253,7 @@ func (bs *BlockState) handleFinalisedBlock(currentFinalizedHash common.Hash) err
 				return err
 			}
 
-			if err = bs.setFirstNonOriginSlotNumber(slotNumber); err != nil {
+			if err = bs.SetFirstNonOriginSlotNumber(slotNumber); err != nil {
 				return err
 			}
 		}

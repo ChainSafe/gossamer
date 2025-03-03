@@ -42,7 +42,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 		gss[i] = gs
 
 		r := uint(rand.Intn(2)) // 0 or 1
-		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r, false)
+		state.AddBlocksToState(t, gs.blockState, 4+r, false)
 		pv, err := gs.determinePreVote()
 		require.NoError(t, err)
 		prevotes.Store(gs.publicKeyBytes(), &SignedVote{
@@ -73,7 +73,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	t.Log(gss[0].blockState.(*state.BlockState).BlocktreeAsString())
+	t.Log(gss[0].blockState.BlocktreeAsString())
 	finalised := gss[0].head.Hash()
 
 	for _, gs := range gss[:1] {
@@ -90,7 +90,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 	tests := map[string]struct {
 		voters          []*ed25519.Keypair
 		whoEquivocates  map[int]struct{}
-		defineBlockTree func(t *testing.T, blockState BlockState, neighbourServices []*Service)
+		defineBlockTree func(t *testing.T, blockState state.BlockState, neighbourServices []*Service)
 	}{
 		// this asserts that all validators finalise the same block if they all see the
 		// same pre-votes and pre-commits, even if their chains are different lengths
@@ -102,10 +102,10 @@ func TestPlayGrandpaRound(t *testing.T) {
 				ed25519Keyring.Ian().(*ed25519.Keypair),
 				ed25519Keyring.George().(*ed25519.Keypair),
 			},
-			defineBlockTree: func(t *testing.T, blockState BlockState, _ []*Service) {
+			defineBlockTree: func(t *testing.T, blockState state.BlockState, _ []*Service) {
 				const withBranches = false
 				const baseLength = 4
-				state.AddBlocksToState(t, blockState.(*state.BlockState), baseLength, withBranches)
+				state.AddBlocksToState(t, blockState, baseLength, withBranches)
 			},
 		},
 
@@ -116,13 +116,13 @@ func TestPlayGrandpaRound(t *testing.T) {
 				ed25519Keyring.Charlie().(*ed25519.Keypair),
 				ed25519Keyring.Ian().(*ed25519.Keypair),
 			},
-			defineBlockTree: func(t *testing.T, blockState BlockState, neighbourServices []*Service) {
+			defineBlockTree: func(t *testing.T, blockState state.BlockState, neighbourServices []*Service) {
 				const diff = 5
 				rand := uint(rand.Intn(diff))
 
 				const withBranches = false
 				const baseLength = 4
-				headers, _ := state.AddBlocksToState(t, blockState.(*state.BlockState),
+				headers, _ := state.AddBlocksToState(t, blockState,
 					baseLength+rand, withBranches)
 
 				// sync the created blocks with the neighbour services
@@ -133,7 +133,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 							Header: *header,
 							Body:   types.Body{},
 						}
-						neighbourService.blockState.(*state.BlockState).AddBlock(block)
+						neighbourService.blockState.AddBlock(block)
 					}
 				}
 			},
@@ -153,11 +153,11 @@ func TestPlayGrandpaRound(t *testing.T) {
 				3: {},
 				4: {},
 			},
-			defineBlockTree: func(t *testing.T, blockState BlockState, _ []*Service) {
+			defineBlockTree: func(t *testing.T, blockState state.BlockState, _ []*Service) {
 				// this creates a tree with 2 branches starting at depth 2
 				branches := map[uint]int{2: 1}
 				const baseLength = 4
-				state.AddBlocksToStateWithFixedBranches(t, blockState.(*state.BlockState), baseLength, branches)
+				state.AddBlocksToStateWithFixedBranches(t, blockState, baseLength, branches)
 			},
 		},
 	}
@@ -261,7 +261,7 @@ func TestPlayGrandpaRound(t *testing.T) {
 				var equivocatedVoteMessage *VoteMessage
 				_, isEquivocator := tt.whoEquivocates[idx]
 				if isEquivocator {
-					leaves := grandpaService.blockState.(*state.BlockState).Leaves()
+					leaves := grandpaService.blockState.Leaves()
 
 					vote, err := NewVoteFromHash(leaves[1], grandpaService.blockState)
 					require.NoError(t, err)
@@ -381,7 +381,7 @@ func TestPlayGrandpaRoundMultipleRounds(t *testing.T) {
 		const withBranches = false
 		const baseLength = 4
 		state.AddBlocksToState(t,
-			grandpaServices[idx].blockState.(*state.BlockState),
+			grandpaServices[idx].blockState,
 			baseLength, withBranches)
 	}
 
@@ -617,7 +617,7 @@ func TestSendingVotesInRightStage(t *testing.T) {
 		GetHeader(testGenesisHeader.Hash()).
 		Return(testGenesisHeader, nil)
 	mockedState.EXPECT().
-		SetFinalisedHash(testGenesisHeader.Hash(), uint64(1), uint64(0)).
+		SetFinalisedHash(testGenesisHeader.Hash(), uint64(1), uint64(0), true).
 		Return(nil)
 
 	expectedFinalizedTelemetryMessage := telemetry.NewAfgFinalizedBlocksUpTo(

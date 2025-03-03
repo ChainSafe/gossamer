@@ -6,10 +6,13 @@
 package sync
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 	"time"
 
+	cfg "github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/network/messages"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -22,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie"
 	"github.com/ChainSafe/gossamer/tests/utils/config"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"go.uber.org/mock/gomock"
 
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -135,25 +139,21 @@ func newFullSyncService(t *testing.T) *SyncService {
 		AnyTimes()
 
 	mockNetwork := NewMockNetwork(ctrl)
-
-	fullSyncCfg := &FullSyncConfig{
-		BlockState:         stateSrvc.Block,
-		StorageState:       stateSrvc.Storage,
-		BlockImportHandler: blockImportHandler,
-		TransactionState:   stateSrvc.Transaction,
-		BabeVerifier:       mockBabeVerifier,
-		FinalityGadget:     mockFinalityGadget,
-		Telemetry:          mockTelemetryClient,
-		RequestMaker:       NewMockRequestMaker(ctrl),
-	}
-
-	fullSync := NewFullSyncStrategy(fullSyncCfg)
+	mockNetwork.EXPECT().GetRequestResponseProtocol(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+		network.NewRequestResponseProtocol(
+			context.Background(),
+			nil,
+			protocol.ID(network.SyncID),
+			20*time.Second,
+			1024*64,
+		),
+	).AnyTimes()
 
 	serviceCfg := []ServiceConfig{
 		WithBlockState(stateSrvc.Block),
 		WithNetwork(mockNetwork),
 		WithSlotDuration(6 * time.Second),
-		WithFullSyncStrategy(fullSync),
+		WithSyncMethod(cfg.FullSync),
 	}
 
 	syncLogLvl := log.Info
@@ -162,8 +162,8 @@ func newFullSyncService(t *testing.T) *SyncService {
 	return syncer
 }
 
-func addTestBlocksToState(t *testing.T, depth uint, blockState BlockState) {
-	previousHash := blockState.(*state.BlockState).BestBlockHash()
+func addTestBlocksToState(t *testing.T, depth uint, blockState state.BlockState) {
+	previousHash := blockState.BestBlockHash()
 	previousNum, err := blockState.BestBlockNumber()
 	require.NoError(t, err)
 
@@ -186,7 +186,7 @@ func addTestBlocksToState(t *testing.T, depth uint, blockState BlockState) {
 
 		previousHash = block.Header.Hash()
 
-		err := blockState.(*state.BlockState).AddBlock(block)
+		err := blockState.AddBlock(block)
 		require.NoError(t, err)
 	}
 }
@@ -382,7 +382,7 @@ func TestService_checkOrGetDescendantHash_integration(t *testing.T) {
 	branches := map[uint]int{
 		8: 1,
 	}
-	state.AddBlocksToStateWithFixedBranches(t, s.blockState.(*state.BlockState), 16, branches)
+	state.AddBlocksToStateWithFixedBranches(t, s.blockState, 16, branches)
 
 	// base case
 	ancestor, err := s.blockState.GetHashByNumber(1)
@@ -396,7 +396,7 @@ func TestService_checkOrGetDescendantHash_integration(t *testing.T) {
 	require.Equal(t, descendant, res)
 
 	// supply descendant that's not on canonical chain
-	leaves := s.blockState.(*state.BlockState).Leaves()
+	leaves := s.blockState.Leaves()
 	require.Equal(t, 2, len(leaves))
 
 	ancestor, err = s.blockState.GetHashByNumber(1)
@@ -464,8 +464,8 @@ func TestService_CreateBlockResponse_Fields(t *testing.T) {
 	s := newFullSyncService(t)
 	addTestBlocksToState(t, 2, s.blockState)
 
-	bestHash := s.blockState.(*state.BlockState).BestBlockHash()
-	bestBlock, err := s.blockState.(*state.BlockState).GetBlockByNumber(1)
+	bestHash := s.blockState.BestBlockHash()
+	bestBlock, err := s.blockState.GetBlockByNumber(1)
 	require.NoError(t, err)
 
 	// set some nils and check no error is thrown

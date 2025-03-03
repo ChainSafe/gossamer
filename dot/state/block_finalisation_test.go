@@ -8,19 +8,18 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	inmemory_trie "github.com/ChainSafe/gossamer/pkg/trie/inmemory"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestHighestRoundAndSetID(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestDefaultBlockState(t, newTriesEmpty())
 	round, setID, err := bs.GetHighestRoundAndSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), round)
 	require.Equal(t, uint64(0), setID)
 
-	err = bs.setHighestRoundAndSetID(1, 0)
+	err = bs.SetHighestRoundAndSetID(1, 0)
 	require.NoError(t, err)
 
 	round, setID, err = bs.GetHighestRoundAndSetID()
@@ -28,7 +27,7 @@ func TestHighestRoundAndSetID(t *testing.T) {
 	require.Equal(t, uint64(1), round)
 	require.Equal(t, uint64(0), setID)
 
-	err = bs.setHighestRoundAndSetID(10, 0)
+	err = bs.SetHighestRoundAndSetID(10, 0)
 	require.NoError(t, err)
 
 	round, setID, err = bs.GetHighestRoundAndSetID()
@@ -38,7 +37,7 @@ func TestHighestRoundAndSetID(t *testing.T) {
 
 	// is possible to have a lower round number
 	// in the same set ID: https://github.com/ChainSafe/gossamer/issues/3150
-	err = bs.setHighestRoundAndSetID(9, 0)
+	err = bs.SetHighestRoundAndSetID(9, 0)
 	require.NoError(t, err)
 
 	round, setID, err = bs.GetHighestRoundAndSetID()
@@ -46,7 +45,7 @@ func TestHighestRoundAndSetID(t *testing.T) {
 	require.Equal(t, uint64(9), round)
 	require.Equal(t, uint64(0), setID)
 
-	err = bs.setHighestRoundAndSetID(0, 1)
+	err = bs.SetHighestRoundAndSetID(0, 1)
 	require.NoError(t, err)
 
 	round, setID, err = bs.GetHighestRoundAndSetID()
@@ -54,7 +53,7 @@ func TestHighestRoundAndSetID(t *testing.T) {
 	require.Equal(t, uint64(0), round)
 	require.Equal(t, uint64(1), setID)
 
-	err = bs.setHighestRoundAndSetID(100000, 0)
+	err = bs.SetHighestRoundAndSetID(100000, 0)
 	require.ErrorIs(t, err, errSetIDLowerThanHighest)
 	const expectedErrorMessage = "set id lower than highest: 0 should be greater or equal 1"
 	require.EqualError(t, err, expectedErrorMessage)
@@ -66,8 +65,8 @@ func TestHighestRoundAndSetID(t *testing.T) {
 }
 
 func TestBlockState_SetFinalisedHash(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
-	h, err := bs.GetFinalisedHash(0, 0)
+	bs := newTestDefaultBlockState(t, newTriesEmpty())
+	h, err := bs.getFinalisedHash(0, 0)
 	require.NoError(t, err)
 	require.Equal(t, testGenesisHeader.Hash(), h)
 
@@ -87,7 +86,7 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 	}
 
 	testhash := header.Hash()
-	err = bs.db.Put(headerKey(testhash), []byte{})
+	err = bs.SetHeader(header)
 	require.NoError(t, err)
 
 	err = bs.AddBlock(&types.Block{
@@ -97,18 +96,19 @@ func TestBlockState_SetFinalisedHash(t *testing.T) {
 	require.NoError(t, err)
 
 	// set tries with some state root
-	bs.tries.softSet(someStateRoot, inmemory_trie.NewEmptyTrie())
+	// TODO: check if this is needed
+	//bs.tries.softSet(someStateRoot, inmemory_trie.NewEmptyTrie())
 
-	err = bs.SetFinalisedHash(testhash, 1, 1)
+	err = bs.SetFinalisedHash(testhash, 1, 1, true)
 	require.NoError(t, err)
 
-	h, err = bs.GetFinalisedHash(1, 1)
+	h, err = bs.getFinalisedHash(1, 1)
 	require.NoError(t, err)
 	require.Equal(t, testhash, h)
 }
 
 func TestSetFinalisedHash_retrieveBlockNumber1SlotNumber(t *testing.T) {
-	bs := newTestBlockState(t, newTriesEmpty())
+	bs := newTestDefaultBlockState(t, newTriesEmpty())
 	firstSlot := uint64(42069)
 
 	digest := types.NewDigest()
@@ -148,9 +148,9 @@ func TestSetFinalisedHash_retrieveBlockNumber1SlotNumber(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = bs.SetFinalisedHash(header2.Hash(), 1, 1)
+	err = bs.SetFinalisedHash(header2.Hash(), 1, 1, true)
 	require.NoError(t, err)
-	require.Equal(t, header2.Hash(), bs.lastFinalised)
+	require.Equal(t, header2.Hash(), bs.GetLastFinalized())
 
 	hashes, err := bs.GetHashesByNumber(1)
 	require.NoError(t, err)

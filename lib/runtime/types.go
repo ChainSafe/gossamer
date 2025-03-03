@@ -4,6 +4,8 @@
 package runtime
 
 import (
+	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime/offchain"
@@ -62,4 +64,6 @@ type Context struct {
 	SigVerifier     *crypto.SignatureVerifier
 	OffchainHTTPSet *offchain.HTTPSet
 	Version         *Version
+	LogLvl          log.Level
+	Role            common.NetworkRole
 }

@@ -90,8 +90,8 @@ func TestService_HandleBlockProduced(t *testing.T) {
 	require.NoError(t, err)
 
 	// Used to define the state root of new block for testing
-	parentHash := s.blockState.(*state.BlockState).GenesisHash()
-	genesisBlock, err := s.blockState.(*state.BlockState).GetBlockByHash(parentHash)
+	parentHash := s.blockState.GenesisHash()
+	genesisBlock, err := s.blockState.GetBlockByHash(parentHash)
 	require.NoError(t, err)
 
 	newBlock := types.Block{
@@ -162,7 +162,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	}
 
 	s := NewTestService(t, cfg)
-	genHash := s.blockState.(*state.BlockState).GenesisHash()
+	genHash := s.blockState.GenesisHash()
 	genHeader, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
 

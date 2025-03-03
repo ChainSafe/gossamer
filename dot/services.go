@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	cfg "github.com/ChainSafe/gossamer/config"
 
@@ -37,8 +36,6 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 )
-
-const blockRequestTimeout = 20 * time.Second
 
 // BlockProducer to produce blocks
 type BlockProducer interface {
@@ -524,51 +521,21 @@ func (nodeBuilder) newSyncService(config *cfg.Config, st *state.Service, fg sync
 		return nil, fmt.Errorf("failed to parse sync log level: %w", err)
 	}
 
-	// Should be shared between all sync strategies
-	peersView := sync.NewPeerViewSet()
-
-	var warpSyncStrategy sync.Strategy
-
-	if config.Core.Sync == "warp" {
-		warpSyncProvider := warpsync.NewWarpSyncProofProvider(st.Block, st.Grandpa)
-
-		warpSyncCfg := &sync.WarpSyncConfig{
-			Telemetry:        telemetryMailer,
-			BadBlocks:        genesisData.BadBlocks,
-			WarpSyncProvider: warpSyncProvider,
-			WarpSyncRequestMaker: net.GetRequestResponseProtocol(network.WarpSyncID,
-				blockRequestTimeout, network.MaxBlockResponseSize),
-			SyncRequestMaker: net.GetRequestResponseProtocol(network.SyncID,
-				blockRequestTimeout, network.MaxBlockResponseSize),
-			BlockState: st.Block,
-			Peers:      peersView,
-		}
-
-		warpSyncStrategy = sync.NewWarpSyncStrategy(warpSyncCfg)
-	}
-
-	syncCfg := &sync.FullSyncConfig{
-		BlockState:         st.Block,
-		StorageState:       st.Storage,
-		TransactionState:   st.Transaction,
-		FinalityGadget:     fg,
-		BabeVerifier:       verifier,
-		BlockImportHandler: cs,
-		Telemetry:          telemetryMailer,
-		BadBlocks:          genesisData.BadBlocks,
-		RequestMaker: net.GetRequestResponseProtocol(network.SyncID,
-			blockRequestTimeout, network.MaxBlockResponseSize),
-		Peers: peersView,
-	}
-	fullSync := sync.NewFullSyncStrategy(syncCfg)
-
 	return sync.NewSyncService(
 		syncLogLevel,
 		sync.WithNetwork(net),
 		sync.WithBlockState(st.Block),
+		sync.WithGrandpaState(st.Grandpa),
+		sync.WithStorageState(st.Storage),
+		sync.WithEpochState(st.Epoch),
+		sync.WithFinalityGadget(fg),
+		sync.WithBabeVerifier(verifier),
+		sync.WithBlockImportHandler(cs),
+		sync.WithTelemetry(telemetryMailer),
+		sync.WithBadBlocks(genesisData.BadBlocks),
+		sync.WithSyncMethod(config.Core.SyncMode),
+		sync.WithTransactionState(st.Transaction),
 		sync.WithSlotDuration(slotDuration),
-		sync.WithWarpSyncStrategy(warpSyncStrategy),
-		sync.WithFullSyncStrategy(fullSync),
 		sync.WithMinPeers(config.Network.MinPeers),
 	), nil
 }

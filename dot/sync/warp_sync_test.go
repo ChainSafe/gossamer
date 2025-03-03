@@ -146,11 +146,6 @@ func TestWarpSyncNextActions(t *testing.T) {
 			expectedRequestType:  &messages.WarpProofRequest{},
 			expectedResponseType: &warpsync.WarpSyncProof{},
 		},
-		"target_block_phase": {
-			phase:                TargetBlock,
-			expectedRequestType:  &messages.BlockRequestMessage{},
-			expectedResponseType: &messages.BlockResponseMessage{},
-		},
 	}
 
 	for name, c := range tc {

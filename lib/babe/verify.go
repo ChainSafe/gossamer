@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -38,7 +39,7 @@ type onDisabledInfo struct {
 // It tracks the BABE epoch data that is needed for verification.
 type VerificationManager struct {
 	lock       sync.Mutex
-	blockState BlockState
+	blockState state.BlockState
 	slotState  SlotState
 	epochState EpochState
 	epochInfo  map[uint64]*verifierInfo // map of epoch number -> info needed for verification
@@ -49,7 +50,8 @@ type VerificationManager struct {
 }
 
 // NewVerificationManager returns a new NewVerificationManager
-func NewVerificationManager(blockState BlockState, slotState SlotState, epochState EpochState) *VerificationManager {
+func NewVerificationManager(blockState state.BlockState,
+	slotState SlotState, epochState EpochState) *VerificationManager {
 	return &VerificationManager{
 		epochState: epochState,
 		slotState:  slotState,
@@ -195,7 +197,7 @@ func (v *VerificationManager) getVerifierInfo(epoch uint64, header *types.Header
 
 // verifier is a BABE verifier for a specific authority set, randomness, and threshold
 type verifier struct {
-	blockState     BlockState
+	blockState     state.BlockState
 	slotState      SlotState
 	epoch          uint64
 	authorities    []types.AuthorityRaw
@@ -206,7 +208,7 @@ type verifier struct {
 }
 
 // newVerifier returns a Verifier for the epoch described by the given descriptor
-func newVerifier(blockState BlockState, slotState SlotState,
+func newVerifier(blockState state.BlockState, slotState SlotState,
 	epoch uint64, info *verifierInfo, slotDuration time.Duration) *verifier {
 	return &verifier{
 		blockState:     blockState,

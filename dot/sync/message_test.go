@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network/messages"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
@@ -24,13 +25,13 @@ func TestService_CreateBlockResponse(t *testing.T) {
 		req *messages.BlockRequestMessage
 	}
 	tests := map[string]struct {
-		blockStateBuilder func(ctrl *gomock.Controller) BlockState
+		blockStateBuilder func(ctrl *gomock.Controller) state.BlockState
 		args              args
 		want              *messages.BlockResponseMessage
 		err               error
 	}{
 		"invalid_block_request": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller) state.BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				return mockBlockState
 			},
@@ -40,7 +41,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			err: fmt.Errorf("%w: invalid requested data %v", ErrInvalidBlockRequest, 0),
 		},
 		"ascending_request_nil_startHash": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller) state.BlockState {
 				dummyHeader := &types.Header{Number: 2}
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
@@ -59,7 +60,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			}}},
 		},
 		"ascending_request_start_number_higher": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller) state.BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
 				return mockBlockState
@@ -73,7 +74,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			want: nil,
 		},
 		"descending_request_nil_startHash": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller) state.BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().BestBlockNumber().Return(uint(1), nil)
 				return mockBlockState
@@ -86,7 +87,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			want: &messages.BlockResponseMessage{BlockData: []*types.BlockData{}},
 		},
 		"descending_request_start_number_higher": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller) state.BlockState {
 				dummyBody := types.NewBody([]types.Extrinsic{
 					{0, 1, 2, 3},
 					{5, 5, 5, 5},
@@ -115,7 +116,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			}}},
 		},
 		"ascending_request_startHash": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller) state.BlockState {
 				dummyBody := types.NewBody([]types.Extrinsic{
 					{0, 1, 2, 3},
 					{5, 5, 5, 5},
@@ -151,7 +152,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			}}},
 		},
 		"descending_request_startHash": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller) state.BlockState {
 				dummyBody := types.NewBody([]types.Extrinsic{
 					{0, 1, 2, 3},
 					{5, 5, 5, 5},
@@ -187,7 +188,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			}}},
 		},
 		"invalid_direction": {
-			blockStateBuilder: func(_ *gomock.Controller) BlockState {
+			blockStateBuilder: func(_ *gomock.Controller) state.BlockState {
 				return nil
 			},
 			args: args{
@@ -229,13 +230,13 @@ func TestService_checkOrGetDescendantHash(t *testing.T) {
 	}
 	tests := map[string]struct {
 		name              string
-		blockStateBuilder func(ctrl *gomock.Controller) BlockState
+		blockStateBuilder func(ctrl *gomock.Controller) state.BlockState
 		args              args
 		want              common.Hash
 		expectedError     error
 	}{
 		"nil_descendant": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller) state.BlockState {
 				mockStateBuilder := NewMockBlockState(ctrl)
 				mockStateBuilder.EXPECT().GetHashByNumber(uint(1)).Return(common.Hash{}, nil)
 				mockStateBuilder.EXPECT().IsDescendantOf(common.Hash{}, common.Hash{}).Return(true, nil)
@@ -244,7 +245,7 @@ func TestService_checkOrGetDescendantHash(t *testing.T) {
 			args: args{ancestor: common.Hash{}, descendant: nil, descendantNumber: 1},
 		},
 		"not_nil_descendant": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller) state.BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(&types.Header{}, nil)
 				mockBlockState.EXPECT().IsDescendantOf(common.Hash{}, common.Hash{1, 2}).Return(true, nil)
@@ -254,7 +255,7 @@ func TestService_checkOrGetDescendantHash(t *testing.T) {
 			want: common.Hash{1, 2},
 		},
 		"descendant_greater_than_header": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller) state.BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetHeader(common.Hash{2}).Return(&types.Header{
 					Number: 2,
@@ -293,13 +294,13 @@ func TestService_getBlockData(t *testing.T) {
 		requestedData byte
 	}
 	tests := map[string]struct {
-		blockStateBuilder func(ctrl *gomock.Controller) BlockState
+		blockStateBuilder func(ctrl *gomock.Controller) state.BlockState
 		args              args
 		want              *types.BlockData
 		err               error
 	}{
 		"requestedData_0": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller) state.BlockState {
 				return nil
 			},
 			args: args{
@@ -309,7 +310,7 @@ func TestService_getBlockData(t *testing.T) {
 			want: &types.BlockData{},
 		},
 		"requestedData_RequestedDataHeader_error": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller) state.BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetHeader(common.Hash{}).Return(nil, errors.New("empty hash"))
 				return mockBlockState
@@ -323,7 +324,7 @@ func TestService_getBlockData(t *testing.T) {
 			},
 		},
 		"requestedData_RequestedDataHeader": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller) state.BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetHeader(common.Hash{1}).Return(&types.Header{
 					Number: 2,
@@ -342,7 +343,7 @@ func TestService_getBlockData(t *testing.T) {
 			},
 		},
 		"requestedData_RequestedDataBody_error": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller) state.BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetBlockBody(common.Hash{}).Return(nil, errors.New("empty hash"))
 				return mockBlockState
@@ -357,7 +358,7 @@ func TestService_getBlockData(t *testing.T) {
 			},
 		},
 		"requestedData_RequestedDataBody": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller) state.BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetBlockBody(common.Hash{1}).Return(&types.Body{[]byte{1}}, nil)
 				return mockBlockState
@@ -372,7 +373,7 @@ func TestService_getBlockData(t *testing.T) {
 			},
 		},
 		"requestedData_RequestedDataReceipt": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller) state.BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetReceipt(common.Hash{1}).Return([]byte{1}, nil)
 				return mockBlockState
@@ -387,7 +388,7 @@ func TestService_getBlockData(t *testing.T) {
 			},
 		},
 		"requestedData_RequestedDataMessageQueue": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller) state.BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetMessageQueue(common.Hash{2}).Return([]byte{2}, nil)
 				return mockBlockState
@@ -402,7 +403,7 @@ func TestService_getBlockData(t *testing.T) {
 			},
 		},
 		"requestedData_RequestedDataJustification": {
-			blockStateBuilder: func(ctrl *gomock.Controller) BlockState {
+			blockStateBuilder: func(ctrl *gomock.Controller) state.BlockState {
 				mockBlockState := NewMockBlockState(ctrl)
 				mockBlockState.EXPECT().GetJustification(common.Hash{3}).Return([]byte{3}, nil)
 				return mockBlockState

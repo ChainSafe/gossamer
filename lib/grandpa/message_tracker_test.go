@@ -118,7 +118,7 @@ func TestMessageTracker_handleTick_commitMessage(t *testing.T) {
 					Return(false, nil)
 
 				blockStateMock.EXPECT().
-					SetFinalisedHash(testHash, commitMessageRound, serviceStateSetID).
+					SetFinalisedHash(testHash, commitMessageRound, serviceStateSetID, true).
 					Return(nil)
 
 				grandpaStateMock := NewMockGrandpaState(ctrl)

@@ -3,19 +3,72 @@
 
 package sync
 
-import "time"
+import (
+	"time"
+
+	"github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/dot/state"
+)
 
 type ServiceConfig func(svc *SyncService)
 
-func WithWarpSyncStrategy(warpSyncStrategy Strategy) ServiceConfig {
+func WithEpochState(es EpochState) ServiceConfig {
 	return func(svc *SyncService) {
-		svc.warpSyncStrategy = warpSyncStrategy
+		svc.epochState = es
 	}
 }
 
-func WithFullSyncStrategy(fullSyncStrategy Strategy) ServiceConfig {
+func WithGrandpaState(gs GrandpaState) ServiceConfig {
 	return func(svc *SyncService) {
-		svc.fullSyncStrategy = fullSyncStrategy
+		svc.grandpaState = gs
+	}
+}
+
+func WithStorageState(ss StorageState) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.storageState = ss
+	}
+}
+
+func WithFinalityGadget(fg FinalityGadget) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.finalityGadget = fg
+	}
+}
+
+func WithBabeVerifier(bv BabeVerifier) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.babeVerifier = bv
+	}
+}
+
+func WithBlockImportHandler(bih BlockImportHandler) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.blockImportHandler = bih
+	}
+}
+
+func WithTelemetry(t Telemetry) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.telemetry = t
+	}
+}
+
+func WithBadBlocks(badBlocks []string) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.badBlocks = badBlocks
+	}
+}
+
+func WithSyncMethod(method config.SyncMode) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.syncStrategy = method
+	}
+}
+
+func WithTransactionState(ts TransactionState) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.transactionState = ts
 	}
 }
 
@@ -26,7 +79,7 @@ func WithNetwork(net Network) ServiceConfig {
 	}
 }
 
-func WithBlockState(bs BlockState) ServiceConfig {
+func WithBlockState(bs state.BlockState) ServiceConfig {
 	return func(svc *SyncService) {
 		svc.blockState = bs
 	}

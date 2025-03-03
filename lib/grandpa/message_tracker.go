@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -15,7 +16,7 @@ import (
 // validate with ErrBlockDoesNotExist. These messages may be needed again in the
 // case that we are slightly out of sync with the rest of the network.
 type tracker struct {
-	blockState BlockState
+	blockState state.BlockState
 	handler    *MessageHandler
 	votes      votesTracker
 	commits    commitsTracker
@@ -27,7 +28,7 @@ type tracker struct {
 	catchUpResponseMessages map[uint64]*CatchUpResponse
 }
 
-func newTracker(bs BlockState, handler *MessageHandler) *tracker {
+func newTracker(bs state.BlockState, handler *MessageHandler) *tracker {
 	const (
 		votesCapacity   = 1000
 		commitsCapacity = 1000

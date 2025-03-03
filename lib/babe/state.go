@@ -4,49 +4,30 @@
 package babe
 
 import (
-	"sync"
+	"fmt"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/trie"
 )
+
+const NextRandomnessKey = "0x1cb6f36e027abb2091cfb5110ab5087f7ce678799d3eff024253b90e84927cc6"
+const NextAuthoritiesKey = "0x1cb6f36e027abb2091cfb5110ab5087faacf00b9b41fda7a9268821c2a2b3e4c"
+const EpochIndexKey = "0x1cb6f36e027abb2091cfb5110ab5087f38316cbf8fa0da822a20ac1c55bf1be3"
 
 type SlotState interface {
 	CheckEquivocation(slotNow, slot uint64, header *types.Header,
 		signer types.AuthorityID) (*types.BabeEquivocationProof, error)
 }
 
-// BlockState interface for block state methods
-type BlockState interface {
-	BestBlockHash() common.Hash
-	BestBlockHeader() (*types.Header, error)
-	AddBlock(*types.Block) error
-	GetHeader(common.Hash) (*types.Header, error)
-	GetBlockByNumber(blockNumber uint) (*types.Block, error)
-	GetBlockHashesBySlot(slot uint64) (blockHashes []common.Hash, err error)
-	GenesisHash() common.Hash
-	GetSlotForBlock(common.Hash) (uint64, error)
-	IsDescendantOf(parent, child common.Hash) (bool, error)
-	NumberIsFinalised(blockNumber uint) (bool, error)
-	GetRuntime(blockHash common.Hash) (runtime runtime.Instance, err error)
-	StoreRuntime(common.Hash, runtime.Instance)
-	GetBlockByHash(common.Hash) (*types.Block, error)
-	ImportedBlockNotifierManager
-}
-
 // ImportedBlockNotifierManager is the interface for block notification channels
 type ImportedBlockNotifierManager interface {
 	GetImportedBlockNotifierChannel() chan *types.Block
 	FreeImportedBlockNotifierChannel(ch chan *types.Block)
-}
-
-// StorageState interface for storage state methods
-type StorageState interface {
-	TrieState(hash *common.Hash) (*rtstorage.TrieState, error)
-	sync.Locker
 }
 
 // TransactionState is the interface for transaction queue methods
@@ -78,4 +59,48 @@ type EpochState interface {
 // BlockImportHandler is the interface for the handler of new blocks
 type BlockImportHandler interface {
 	HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error
+}
+
+func GetNextEpochDataRawFromState(state trie.Trie) (*types.EpochDataRaw, error) {
+	nextRandomnessBytes := state.Get(common.MustHexToBytes(NextRandomnessKey))
+	if nextRandomnessBytes == nil {
+		return nil, fmt.Errorf("next babe randomness not found in new state")
+	}
+
+	var nextRandomness [types.RandomnessLength]byte
+	err := scale.Unmarshal(nextRandomnessBytes, &nextRandomness)
+	if err != nil {
+		return nil, err
+	}
+
+	nextAuthoritiesBytes := state.Get(common.MustHexToBytes(NextAuthoritiesKey))
+	if nextAuthoritiesBytes == nil {
+		return nil, fmt.Errorf("next babe authorities not found in new state")
+	}
+
+	var nextAuthorities []types.AuthorityRaw
+	err = scale.Unmarshal(nextAuthoritiesBytes, &nextAuthorities)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.EpochDataRaw{
+		Randomness:  nextRandomness,
+		Authorities: nextAuthorities,
+	}, nil
+}
+
+func GetCurrentEpochIndexFromState(state trie.Trie) (uint64, error) {
+	epochIndexBytes := state.Get(common.MustHexToBytes(EpochIndexKey))
+	if epochIndexBytes == nil {
+		return 0, fmt.Errorf("babe epoch index not found in new state")
+	}
+
+	var epochIndex uint64
+	err := scale.Unmarshal(epochIndexBytes, &epochIndex)
+	if err != nil {
+		return 0, err
+	}
+
+	return epochIndex, nil
 }
