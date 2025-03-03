@@ -613,13 +613,15 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	getBackable := backing.GetBackableCandidatesMessage{
-		Candidates: []*parachaintypes.CandidateHashAndRelayParent{
-			{
-				CandidateHash:        candidateHash,
-				CandidateRelayParent: relayParent,
+		Candidates: map[parachaintypes.ParaID][]*parachaintypes.CandidateHashAndRelayParent{
+			1: {
+				{
+					CandidateHash:        candidateHash,
+					CandidateRelayParent: relayParent,
+				},
 			},
 		},
-		ResCh: make(chan []*parachaintypes.BackedCandidate),
+		ResCh: make(chan map[parachaintypes.ParaID][]*parachaintypes.BackedCandidate),
 	}
 
 	// receive get backable candidates message from overseer to candidate backing subsystem
@@ -630,7 +632,9 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	// we have received seconded statement, that means we have 1st approval.
 	// as it is a seconded statement, we validate the candidate and if we find it valid, that is the 2nd approval.
 	require.Len(t, backableCandidates, 1)
-	require.Len(t, backableCandidates[0].ValidityVotes, 2)
+
+	backableOfPara1 := backableCandidates[1]
+	require.Len(t, backableOfPara1[0].ValidityVotes, 2)
 
 	time.Sleep(1 * time.Second)
 
@@ -660,13 +664,15 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	getBackable = backing.GetBackableCandidatesMessage{
-		Candidates: []*parachaintypes.CandidateHashAndRelayParent{
-			{
-				CandidateHash:        candidateHash,
-				CandidateRelayParent: relayParent,
+		Candidates: map[parachaintypes.ParaID][]*parachaintypes.CandidateHashAndRelayParent{
+			1: {
+				{
+					CandidateHash:        candidateHash,
+					CandidateRelayParent: relayParent,
+				},
 			},
 		},
-		ResCh: make(chan []*parachaintypes.BackedCandidate),
+		ResCh: make(chan map[parachaintypes.ParaID][]*parachaintypes.BackedCandidate),
 	}
 
 	overseer.ReceiveMessage(getBackable)
@@ -676,7 +682,9 @@ func TestCandidateReachesQuorum(t *testing.T) {
 	// and we have received valid statement, that is the 3rd approval.
 	// as it is a valid statement, we do not validate the candidate, just store into the statement table.
 	require.Len(t, backableCandidates, 1)
-	require.Len(t, backableCandidates[0].ValidityVotes, 3)
+
+	backableOfPara1 = backableCandidates[1]
+	require.Len(t, backableOfPara1[0].ValidityVotes, 3)
 }
 
 // if the validation of the candidate has failed this does not stop the work of this subsystem
@@ -818,13 +826,15 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 	require.NoError(t, err)
 
 	getBackable := backing.GetBackableCandidatesMessage{
-		Candidates: []*parachaintypes.CandidateHashAndRelayParent{
-			{
-				CandidateHash:        candidateHash,
-				CandidateRelayParent: relayParent,
+		Candidates: map[parachaintypes.ParaID][]*parachaintypes.CandidateHashAndRelayParent{
+			1: {
+				{
+					CandidateHash:        candidateHash,
+					CandidateRelayParent: relayParent,
+				},
 			},
 		},
-		ResCh: make(chan []*parachaintypes.BackedCandidate),
+		ResCh: make(chan map[parachaintypes.ParaID][]*parachaintypes.BackedCandidate),
 	}
 
 	// to make sure the candidate backing subsystem has not stopped working,
