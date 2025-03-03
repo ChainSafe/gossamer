@@ -12,13 +12,12 @@ import (
 
 // TopologyPeerInfo is an information about the peer in the gossip topology
 type TopologyPeerInfo struct {
-	// Peers is a list pf peers this peer knows about
+	// Peers is a list of peers this peer knows about
 	Peers peer.IDSlice
-	/// ValidatorIndex is the index of the validator in the discovery keys of the corresponding
-	/// `SessionInfo`. This can extend _beyond_ the set of active parachain validators.
+	// ValidatorIndex is the index of the validator in the discovery keys of the corresponding `SessionInfo`.
+	// This can extend _beyond_ the set of active parachain validators.
 	ValidatorIndex parachaintypes.ValidatorIndex
-	/// DiscoveryID is the authority discovery public key of the validator in the corresponding
-	/// `SessionInfo`.
+	// DiscoveryID is the authority discovery public key of the validator in the corresponding `SessionInfo`.
 	DiscoveryID types.AuthorityID
 }
 
@@ -28,9 +27,8 @@ type SessionGridTopology struct {
 	Peers map[peer.ID]struct{}
 	// canonicalShuffling is the canonical shuffling of validators for the session.
 	CanonicalShuffling []TopologyPeerInfo
-	/// shuffledIndices is an array mapping validator indices to their indices in the
-	/// shuffling itself. This has the same size as the number of validators
-	/// in the session.
+	// shuffledIndices is an array mapping validator indices to their indices in the  shuffling itself.
+	// This has the same size as the number of validators in the session.
 	ShuffledIndices []uint
 }
 
@@ -253,6 +251,8 @@ func calculateMatrixNeighbours(valIndex, length uint) (*MatrixNeighbours, error)
 	}, nil
 }
 
+// SessionGridTopologyEntry is a single entry in the SessionGridTopologyStorage. Contain SessionTopology itself,
+// calculated neighbours for this topology according to the validator index.
 type SessionGridTopologyEntry struct {
 	Topology        *SessionGridTopology
 	LocalNeighbours *GridNeighbours
