@@ -169,7 +169,7 @@ func (gn *GridNeighbours) ShouldRouteToPeer(routing RequiredRouting, peer peer.I
 		return y
 	default:
 		// No way we get here
-		return false
+		panic(fmt.Errorf("unknown routing strategy for grid topology: %d", routing))
 	}
 }
 
