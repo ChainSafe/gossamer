@@ -933,3 +933,8 @@ func (v Validator) VerifySignature(
 
 	return publicKey.Verify(encodedData, validatorSignature[:])
 }
+
+type DistributeBitfield struct {
+	RelayParent common.Hash
+	Bitfield    UncheckedSignedAvailabilityBitfield
+}
