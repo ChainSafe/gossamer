@@ -121,9 +121,12 @@ func (tc *tableContext) isMemberOf(validatorIndex parachaintypes.ValidatorIndex,
 
 // GetBackableCandidatesMessage is a message received from overseer that requests a set of backable
 // candidates that could be backed in a child of the given relay-parent.
+// The order of candidates of the same para must be preserved in the response.
+// So, If a backable candidate of a parachain cannot be retrieved,
+// the response should not contain any candidates of the same parachain that follow it in the input slice.
 type GetBackableCandidatesMessage struct {
-	Candidates []*parachaintypes.CandidateHashAndRelayParent
-	ResCh      chan []*parachaintypes.BackedCandidate
+	Candidates map[parachaintypes.ParaID][]*parachaintypes.CandidateHashAndRelayParent
+	ResCh      chan map[parachaintypes.ParaID][]*parachaintypes.BackedCandidate
 }
 
 // CanSecondMessage is a request made to the candidate backing subsystem to determine whether it is permissible
@@ -203,7 +206,7 @@ func (*CandidateBacking) Name() parachaintypes.SubSystemName {
 func (cb *CandidateBacking) processMessage(msg any, chRelayParentAndCommand chan relayParentAndCommand) error {
 	switch msg := msg.(type) {
 	case GetBackableCandidatesMessage:
-		cb.handleGetBackableCandidatesMessage(msg)
+		msg.ResCh <- cb.handleGetBackableCandidatesMessage(msg.Candidates)
 	case CanSecondMessage:
 		err := cb.handleCanSecondMessage(msg)
 		if err != nil {
