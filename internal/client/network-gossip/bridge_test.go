@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+	"testing/quick"
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/client/network"
@@ -395,18 +396,18 @@ func TestGossipEngine(t *testing.T) {
 			}
 		}
 
-		prop(t, nil, [][]Message{{Message{Topic: hash.NewH256()}}})
-		prop(t,
-			[]ChannelLengthTopic{{Topic: hash.NewH256(), Length: 71}},
-			[][]Message{{{Topic: hash.NewH256()}}},
-		)
+		// prop(t, nil, [][]Message{{Message{Topic: hash.NewH256()}}})
+		// prop(t,
+		// 	[]ChannelLengthTopic{{Topic: hash.NewH256(), Length: 71}},
+		// 	[][]Message{{{Topic: hash.NewH256()}}},
+		// )
 
-		// f := func(channels []ChannelLengthTopic, notifications [][]Message) bool {
-		// 	prop(t, channels, notifications)
-		// 	return true
-		// }
-		// if err := quick.Check(f, nil); err != nil {
-		// 	t.Error(err)
-		// }
+		f := func(channels []ChannelLengthTopic, notifications [][]Message) bool {
+			prop(t, channels, notifications)
+			return true
+		}
+		if err := quick.Check(f, nil); err != nil {
+			t.Error(err)
+		}
 	})
 }
