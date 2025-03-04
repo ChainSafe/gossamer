@@ -26,6 +26,14 @@ jobs:
           stable: true
           check-latest: true
 
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            override: true
+            default: true
+            components: rustfmt, clippy
+
       - run: go install go.uber.org/mock/mockgen@v0.4.0
 
       - name: Check devnet module

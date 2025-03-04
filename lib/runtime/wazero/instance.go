@@ -1360,9 +1360,20 @@ func (in *Instance) ParachainHostValidationCodeByHash(validationCodeHash common.
 	return validationCode, nil
 }
 
+// Backing votes threshold used from the host prior to runtime API version 6 and
+// from the runtime prior to v9 configuration migration.
+const LegacyMinBackingVotes uint32 = 2
+
 func (in *Instance) ParachainHostMinimumBackingVotes() (uint32, error) {
 	encodedBackingVotes, err := in.Exec(runtime.ParachainHostMinimumBackingVotes, []byte{})
 	if err != nil {
+		if errors.Is(err, ErrExportFunctionNotFound) {
+			logger.Tracef(
+				"%s is not supported by the current Runtime API",
+				runtime.ParachainHostMinimumBackingVotes,
+			)
+			return LegacyMinBackingVotes, nil
+		}
 		return 0, fmt.Errorf("exec: %w", err)
 	}
 
@@ -1432,6 +1443,83 @@ func (in *Instance) ParachainHostParaBackingState(paraID parachaintypes.ParaID) 
 	}
 
 	return backingState, nil
+}
+
+func (in *Instance) ParachainHostClaimQueue() (parachaintypes.ClaimQueue, error) {
+	encodedClaimQueue, err := in.Exec(runtime.ParachainHostClaimQueue, []byte{})
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	claimQueue := make(parachaintypes.ClaimQueue)
+	err = scale.Unmarshal(encodedClaimQueue, &claimQueue)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling claim queue: %w", err)
+	}
+
+	return claimQueue, nil
+}
+
+func (in *Instance) ParachainHostNodeFeatures() (parachaintypes.BitVec, error) {
+	encodedNodeFeatures, err := in.Exec(runtime.ParachainHostNodeFeatures, []byte{})
+	if err != nil {
+		return parachaintypes.BitVec{}, fmt.Errorf("exec: %w", err)
+	}
+
+	nodeFeatures := parachaintypes.NewBitVec([]bool{})
+	err = scale.Unmarshal(encodedNodeFeatures, &nodeFeatures)
+	if err != nil {
+		return parachaintypes.BitVec{}, fmt.Errorf("unmarshalling node features: %w", err)
+	}
+
+	return nodeFeatures, nil
+}
+
+func (in *Instance) ParachainHostDisabledValidators() ([]parachaintypes.ValidatorIndex, error) {
+	encodedValidators, err := in.Exec(runtime.ParachainHostDisabledValidators, []byte{})
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	var validators []parachaintypes.ValidatorIndex
+	err = scale.Unmarshal(encodedValidators, &validators)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling disabled validators: %w", err)
+	}
+
+	return validators, nil
+}
+
+func (in *Instance) ParachainHostDisputes() (map[parachaintypes.DisputeKey]parachaintypes.DisputeState, error) {
+	encodedDisputes, err := in.Exec(runtime.ParachainHostDisputes, []byte{})
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	// sessionDisputes emulates the triple returned from the runtime call
+	// (SessionIndex, CandidateHash, DisputeState)
+	type sessionDisputes struct {
+		SessionIndex  parachaintypes.SessionIndex
+		CandidateHash parachaintypes.CandidateHash
+		DisputeState  parachaintypes.DisputeState
+	}
+
+	var disputes []sessionDisputes
+	err = scale.Unmarshal(encodedDisputes, &disputes)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling disputes: %w", err)
+	}
+
+	result := make(map[parachaintypes.DisputeKey]parachaintypes.DisputeState)
+	for _, dispute := range disputes {
+		key := parachaintypes.DisputeKey{
+			SessionIndex:  dispute.SessionIndex,
+			CandidateHash: dispute.CandidateHash,
+		}
+		result[key] = dispute.DisputeState
+	}
+
+	return result, nil
 }
 
 func (*Instance) RandomSeed() {

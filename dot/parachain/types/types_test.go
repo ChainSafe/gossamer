@@ -11,6 +11,8 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
@@ -437,4 +439,68 @@ func TestUpgradeRestrictionEncodingDecoding(t *testing.T) {
 	require.NoError(t, expectedRestriction.SetValue(Present{}))
 
 	require.Equal(t, expectedRestriction, &restriction)
+}
+
+// TestGroupForCoreIsCoreForGroup tests that GroupForCore and CoreForGroup are inverses of each other
+// It ensures that for a given number of cores and rotations, the core index retrieved from CoreForGroup
+// matches the original core index passed to GroupForCore.
+func TestGroupForCoreIsCoreForGroup(t *testing.T) {
+	for _, numOfCores := range []uint{1, 2, 4, 8, 16, 32, 64, 128, 256} {
+		info := GroupRotationInfo{SessionStartBlock: 0, GroupRotationFrequency: 1}
+
+		// Sample rotation values (first, middle, last)
+		rotationSamples := []uint{0, numOfCores / 2, numOfCores*2 - 1}
+
+		for _, rotations := range rotationSamples {
+			info.Now = BlockNumber(rotations)
+
+			// Sample core values (first, middle, last)
+			coreSamples := []uint{0, numOfCores / 2, numOfCores - 1}
+
+			for _, core := range coreSamples {
+				if core >= numOfCores {
+					continue // Skip invalid indices
+				}
+
+				group := info.GroupForCore(CoreIndex{Index: uint32(core)}, numOfCores)
+				calculatedCore := info.CoreForGroup(group, numOfCores).Index
+				if calculatedCore != uint32(core) {
+					t.Errorf("CoreForGroup(%v, %v) = %v; want %v", group, numOfCores, calculatedCore, core)
+				}
+			}
+		}
+	}
+}
+
+func TestValidator_SignAndVerify(t *testing.T) {
+	signingContext := SigningContext{
+		SessionIndex: 1,
+		ParentHash:   getDummyHash(1),
+	}
+
+	ks := keystore.NewBasicKeystore("test", crypto.Sr25519Type)
+	keyring, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+
+	keyPair := keyring.Alice()
+	err = ks.Insert(keyPair)
+	require.NoError(t, err)
+
+	publicKeyBytes := keyPair.Public().Encode()
+	validatorID := ValidatorID(publicKeyBytes)
+
+	validator := Validator{
+		SigningContext: signingContext,
+		Key:            validatorID,
+		Index:          50,
+	}
+
+	payloadBytes := []byte("test payload")
+
+	valSign, err := validator.Sign(ks, payloadBytes)
+	require.NoError(t, err)
+
+	ok, err := validator.VerifySignature(payloadBytes, *valSign)
+	require.NoError(t, err)
+	require.True(t, ok)
 }

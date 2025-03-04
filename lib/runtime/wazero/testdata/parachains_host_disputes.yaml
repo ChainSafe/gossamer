@@ -1,0 +1,9 @@
+# taken from https://polkadot.js.org/apps/#/chainstate (westend)
+
+storage:
+  # paraDisputes.disputes (session, candidate hash)
+  - key: "0x50e709b04947c0cd2f04727ef76e88f66ad0691af7b285f7855961737137ac7ca6b274250e6753f00a000000b0e0df6d1d53857a8961fcee634b09bd59558a80dfcf74536b9f6fcba7416490211b22f29cc750a8bcb4993ea53cf347"
+    value: "0x30aa0030aa000a00000000"
+  # paraDisputes.disputes (session, candidate hash)
+  - key: "0x50e709b04947c0cd2f04727ef76e88f66ad0691af7b285f7855961737137ac7ca6b274250e6753f00a000000f217d6e1ffdebe015c1e56ae5b22cd9f59558a80dfcf74536b9f6fcba7416490211b22f29cc750a8bcb4993ea53cf388"
+    value: "0x040004010f0000000119000000"
