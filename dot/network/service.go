@@ -593,7 +593,7 @@ func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 }
 
 func (s *Service) GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
-	maxResponseSize uint64) *RequestResponseProtocol {
+	maxResponseSize uint64) RequestMaker {
 
 	protocolID := s.host.protocolID + protocol.ID(subprotocol)
 	return &RequestResponseProtocol{
