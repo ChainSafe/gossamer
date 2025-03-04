@@ -35,7 +35,7 @@ var (
 	arrivalTimePrefix   = []byte("arr") // arrivalTimePrefix || hash -> arrivalTime
 	receiptPrefix       = []byte("rcp") // receiptPrefix + hash -> receipt
 	messageQueuePrefix  = []byte("mqp") // messageQueuePrefix + hash -> message queue
-	justificationPrefix = []byte("jcp") // justificationPrefix + hash -> justification
+	JustificationPrefix = []byte("jcp") // justificationPrefix + hash -> justification
 	firstSlotNumberKey  = []byte("fsn") // firstSlotNumberKey -> First slot number
 
 	errNilBlockTree = errors.New("blocktree is nil")
@@ -48,9 +48,89 @@ var (
 	})
 )
 
+type BlockState interface {
+	AddBlock(*types.Block) error
+	AddBlockWithArrivalTime(block *types.Block, arrivalTime time.Time) error
+
+	BestBlock() (*types.Block, error)
+	BestBlockHash() common.Hash
+	BestBlockHeader() (*types.Header, error)
+	BestBlockNumber() (number uint, err error)
+	GenesisHash() common.Hash
+
+	GetBlockBody(hash common.Hash) (*types.Body, error)
+	GetBlockStateRoot(bhash common.Hash) (common.Hash, error)
+	GetBlockByHash(common.Hash) (*types.Block, error)
+	GetBlockByNumber(blockNumber uint) (*types.Block, error)
+	GetFinalisedHeader(round, setID uint64) (*types.Header, error)
+	GetHashesByNumber(blockNumber uint) ([]common.Hash, error) // not sure why we need this, use `GetHashByNumber`?
+	GetHashByNumber(blockNumber uint) (common.Hash, error)
+	GetHeader(bhash common.Hash) (*types.Header, error)
+	GetHeaderByNumber(num uint) (*types.Header, error)
+	GetHighestFinalisedHeader() (*types.Header, error)
+	GetHighestFinalisedHash() (common.Hash, error)
+	GetHighestRoundAndSetID() (uint64, uint64, error)
+	GetJustification(common.Hash) ([]byte, error)
+	GetFirstNonOriginSlotNumber() (uint64, error)
+	GetReceipt(hash common.Hash) ([]byte, error)
+	GetMessageQueue(hash common.Hash) ([]byte, error)
+	GetTries() *Tries
+	GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error)
+	GetAllBlocksAtNumber(num uint) ([]common.Hash, error)
+
+	GetNonFinalisedBlocks() []common.Hash
+	GetSlotForBlock(common.Hash) (uint64, error)
+
+	HasFinalisedBlock(round, setID uint64) (bool, error)
+	HasHeader(hash common.Hash) (bool, error)
+	HasJustification(hash common.Hash) (bool, error)
+	HasHeaderInDatabase(hash common.Hash) (bool, error)
+
+	GetLastFinalized() common.Hash
+	SetFirstNonOriginSlotNumber(slotNumber uint64) error
+	SetFinalisedHash(hash common.Hash, round uint64, setID uint64, finalizeAncestors bool) error
+	SetFinalizedHeader(header *types.Header) error
+	SetHeader(header *types.Header) error
+	SetJustification(hash common.Hash, data []byte) error
+	SetHighestRoundAndSetID(round, setID uint64) error
+	GetRoundAndSetID() (uint64, uint64)
+
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
+	UnregisterRuntimeUpdatedChannel(id uint32) bool
+	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtime.Instance, bHash common.Hash) error
+
+	CompareAndSetBlockData(bd *types.BlockData) error
+
+	IsDescendantOf(parent, child common.Hash) (bool, error)
+	LowestCommonAncestor(a, b common.Hash) (common.Hash, error)
+	NumberIsFinalised(blockNumber uint) (bool, error)
+
+	BlocktreeAsString() string
+	Leaves() []common.Hash
+
+	Range(startHash, endHash common.Hash) (hashes []common.Hash, err error)
+	RangeInMemory(start, end common.Hash) ([]common.Hash, error)
+
+	StoreRuntime(blockHash common.Hash, runtime runtime.Instance)
+
+	FreeImportedBlockNotifierChannel(ch chan *types.Block)
+	GetImportedBlockNotifierChannel() chan *types.Block
+	FreeFinalisedNotifierChannel(ch chan *types.FinalisationInfo)
+	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
+
+	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error)
+
+	Rewind(toBlock uint) error
+
+	SetBlockTree(blocktree *blocktree.BlockTree)
+
+	IsPaused() bool
+	Pause() error
+}
+
 // BlockState contains the historical block data of the blockchain, including block headers and bodies.
 // It wraps the blocktree (which contains unfinalised blocks) and the database (which contains finalised blocks).
-type BlockState struct {
+type DefaultBlockState struct {
 	bt                *blocktree.BlockTree
 	baseState         *BaseState
 	dbPath            string
@@ -78,9 +158,9 @@ type BlockState struct {
 	telemetry Telemetry
 }
 
-// NewBlockState will create a new BlockState backed by the database located at basePath
-func NewBlockState(db database.Database, trs *Tries, telemetry Telemetry) (*BlockState, error) {
-	bs := &BlockState{
+// NewDefaultBlockState will create a new BlockState backed by the database located at basePath
+func NewDefaultBlockState(db database.Database, trs *Tries, telemetry Telemetry) (*DefaultBlockState, error) {
+	bs := &DefaultBlockState{
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
 		db:                         database.NewTable(db, blockPrefix),
@@ -110,11 +190,11 @@ func NewBlockState(db database.Database, trs *Tries, telemetry Telemetry) (*Bloc
 	return bs, nil
 }
 
-// NewBlockStateFromGenesis initialises a BlockState from a genesis header,
+// NewDefaultBlockStateFromGenesis initialises a BlockState from a genesis header,
 // saving it to the database located at basePath
-func NewBlockStateFromGenesis(db database.Database, trs *Tries, header *types.Header,
-	telemetryMailer Telemetry) (*BlockState, error) {
-	bs := &BlockState{
+func NewDefaultBlockStateFromGenesis(db database.Database, trs *Tries, header *types.Header,
+	telemetryMailer Telemetry) (*DefaultBlockState, error) {
+	bs := &DefaultBlockState{
 		bt:                         blocktree.NewBlockTreeFromRoot(header),
 		baseState:                  NewBaseState(db),
 		db:                         database.NewTable(db, blockPrefix),
@@ -148,20 +228,28 @@ func NewBlockStateFromGenesis(db database.Database, trs *Tries, header *types.He
 	bs.genesisHash = header.Hash()
 	bs.lastFinalised = header.Hash()
 
-	if err := bs.db.Put(highestRoundAndSetIDKey, roundAndSetIDToBytes(0, 0)); err != nil {
+	if err := bs.db.Put(HighestRoundAndSetIDKey, RoundAndSetIDToBytes(0, 0)); err != nil {
 		return nil, err
 	}
 
 	// set the latest finalised head to the genesis header
-	if err := bs.SetFinalisedHash(bs.genesisHash, 0, 0); err != nil {
+	if err := bs.SetFinalisedHash(bs.genesisHash, 0, 0, true); err != nil {
 		return nil, err
 	}
 
 	return bs, nil
 }
 
+func NewDefaultBlockStateForStateImport(db database.Database) *DefaultBlockState {
+	return &DefaultBlockState{
+		bt:                blocktree.NewEmptyBlockTree(),
+		db:                database.NewTable(db, blockPrefix),
+		unfinalisedBlocks: newHashToBlockMap(),
+	}
+}
+
 // Pause pauses the service ie. halts block production
-func (bs *BlockState) Pause() error {
+func (bs *DefaultBlockState) Pause() error {
 	bs.pausedLock.Lock()
 	defer bs.pausedLock.Unlock()
 
@@ -174,7 +262,7 @@ func (bs *BlockState) Pause() error {
 }
 
 // IsPaused returns if the service is paused or not (ie. producing blocks)
-func (bs *BlockState) IsPaused() bool {
+func (bs *DefaultBlockState) IsPaused() bool {
 	select {
 	case <-bs.pause:
 		return true
@@ -211,13 +299,13 @@ func arrivalTimeKey(hash common.Hash) []byte {
 }
 
 // GenesisHash returns the hash of the genesis block
-func (bs *BlockState) GenesisHash() common.Hash {
+func (bs *DefaultBlockState) GenesisHash() common.Hash {
 	return bs.genesisHash
 }
 
 // HasHeader returns true if the hash is part of the unfinalised blocks in-memory or
 // persisted in the database.
-func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
+func (bs *DefaultBlockState) HasHeader(hash common.Hash) (bool, error) {
 	if bs.unfinalisedBlocks.getBlock(hash) != nil {
 		return true, nil
 	}
@@ -226,12 +314,20 @@ func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
 }
 
 // HasHeaderInDatabase returns true if the database contains a header with the given hash
-func (bs *BlockState) HasHeaderInDatabase(hash common.Hash) (bool, error) {
+func (bs *DefaultBlockState) HasHeaderInDatabase(hash common.Hash) (bool, error) {
 	return bs.db.Has(headerKey(hash))
 }
 
+func (bs *DefaultBlockState) GetLastFinalized() common.Hash {
+	return bs.lastFinalised
+}
+
+func (bs *DefaultBlockState) GetTries() *Tries {
+	return bs.tries
+}
+
 // GetHeader returns a BlockHeader for a given hash
-func (bs *BlockState) GetHeader(hash common.Hash) (header *types.Header, err error) {
+func (bs *DefaultBlockState) GetHeader(hash common.Hash) (header *types.Header, err error) {
 	header = bs.unfinalisedBlocks.getBlockHeader(hash)
 	if header != nil {
 		return header, nil
@@ -265,7 +361,7 @@ func (bs *BlockState) GetHeader(hash common.Hash) (header *types.Header, err err
 }
 
 // GetHashByNumber returns the block hash on our best chain with the given number
-func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
+func (bs *DefaultBlockState) GetHashByNumber(num uint) (common.Hash, error) {
 	hash, err := bs.bt.GetHashByNumber(num)
 	if err == nil {
 		return hash, nil
@@ -283,7 +379,7 @@ func (bs *BlockState) GetHashByNumber(num uint) (common.Hash, error) {
 }
 
 // GetHashesByNumber returns the block hashes with the given number
-func (bs *BlockState) GetHashesByNumber(blockNumber uint) ([]common.Hash, error) {
+func (bs *DefaultBlockState) GetHashesByNumber(blockNumber uint) ([]common.Hash, error) {
 	inMemoryBlockHashes := bs.bt.GetHashesAtNumber(blockNumber)
 	if len(inMemoryBlockHashes) == 0 {
 		bh, err := bs.db.Get(headerHashKey(uint64(blockNumber)))
@@ -302,7 +398,7 @@ func (bs *BlockState) GetHashesByNumber(blockNumber uint) ([]common.Hash, error)
 
 // GetAllDescendants gets all the descendants for a given block hash (including itself), by first checking in memory
 // and, if not found, reading from the block state database.
-func (bs *BlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error) {
+func (bs *DefaultBlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error) {
 	allDescendants, err := bs.bt.GetAllDescendants(hash)
 	if err != nil && !errors.Is(err, blocktree.ErrNodeNotFound) {
 		return nil, err
@@ -355,7 +451,7 @@ func (bs *BlockState) GetAllDescendants(hash common.Hash) ([]common.Hash, error)
 }
 
 // GetBlockHashesBySlot gets all block hashes that were produced in the given slot.
-func (bs *BlockState) GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error) {
+func (bs *DefaultBlockState) GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error) {
 	highestFinalisedHash, err := bs.GetHighestFinalisedHash()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get highest finalised hash: %w", err)
@@ -386,7 +482,7 @@ func (bs *BlockState) GetBlockHashesBySlot(slotNum uint64) ([]common.Hash, error
 }
 
 // GetHeaderByNumber returns the block header on our best chain with the given number
-func (bs *BlockState) GetHeaderByNumber(num uint) (*types.Header, error) {
+func (bs *DefaultBlockState) GetHeaderByNumber(num uint) (*types.Header, error) {
 	hash, err := bs.GetHashByNumber(num)
 	if err != nil {
 		return nil, err
@@ -396,7 +492,7 @@ func (bs *BlockState) GetHeaderByNumber(num uint) (*types.Header, error) {
 }
 
 // GetBlockByNumber returns the block on our best chain with the given number
-func (bs *BlockState) GetBlockByNumber(num uint) (*types.Block, error) {
+func (bs *DefaultBlockState) GetBlockByNumber(num uint) (*types.Block, error) {
 	hash, err := bs.GetHashByNumber(num)
 	if err != nil {
 		return nil, err
@@ -411,7 +507,7 @@ func (bs *BlockState) GetBlockByNumber(num uint) (*types.Block, error) {
 }
 
 // GetBlockByHash returns a block for a given hash
-func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
+func (bs *DefaultBlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	bs.lock.RLock()
 	defer bs.lock.RUnlock()
 
@@ -434,7 +530,7 @@ func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 }
 
 // SetHeader will set the header into DB
-func (bs *BlockState) SetHeader(header *types.Header) error {
+func (bs *DefaultBlockState) SetHeader(header *types.Header) error {
 	bh, err := scale.Marshal(*header)
 	if err != nil {
 		return err
@@ -444,7 +540,7 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 }
 
 // HasBlockBody returns true if the db contains the block body
-func (bs *BlockState) HasBlockBody(hash common.Hash) (bool, error) {
+func (bs *DefaultBlockState) HasBlockBody(hash common.Hash) (bool, error) {
 	bs.lock.RLock()
 	defer bs.lock.RUnlock()
 
@@ -456,7 +552,7 @@ func (bs *BlockState) HasBlockBody(hash common.Hash) (bool, error) {
 }
 
 // GetBlockBody will return Body for a given hash
-func (bs *BlockState) GetBlockBody(hash common.Hash) (body *types.Body, err error) {
+func (bs *DefaultBlockState) GetBlockBody(hash common.Hash) (body *types.Body, err error) {
 	body = bs.unfinalisedBlocks.getBlockBody(hash)
 	if body != nil {
 		return body, nil
@@ -471,7 +567,7 @@ func (bs *BlockState) GetBlockBody(hash common.Hash) (body *types.Body, err erro
 }
 
 // SetBlockBody will add a block body to the db
-func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
+func (bs *DefaultBlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 	encodedBody, err := scale.Marshal(*body)
 	if err != nil {
 		return err
@@ -481,14 +577,14 @@ func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 }
 
 // SetFirstNonOriginSlotNumber saves the first non-origin slot number into the DB
-func (bs *BlockState) setFirstNonOriginSlotNumber(slotNumber uint64) error {
+func (bs *DefaultBlockState) SetFirstNonOriginSlotNumber(slotNumber uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, slotNumber)
 	return bs.db.Put(firstSlotNumberKey, buf)
 }
 
 // getFirstNonOriginSlotNumber returns the slot number of the first non origin block
-func (s *BlockState) getFirstNonOriginSlotNumber() (uint64, error) {
+func (s *DefaultBlockState) GetFirstNonOriginSlotNumber() (uint64, error) {
 	slotVal, err := s.db.Get(firstSlotNumberKey)
 	if err != nil {
 		if errors.Is(err, database.ErrNotFound) {
@@ -501,7 +597,7 @@ func (s *BlockState) getFirstNonOriginSlotNumber() (uint64, error) {
 }
 
 // CompareAndSetBlockData will compare empty fields and set all elements in a block data to db
-func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
+func (bs *DefaultBlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 	hasReceipt, _ := bs.HasReceipt(bd.Hash)
 	if bd.Receipt != nil && !hasReceipt {
 		err := bs.SetReceipt(bd.Hash, *bd.Receipt)
@@ -522,14 +618,14 @@ func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 }
 
 // AddBlock adds a block to the blocktree and the DB with arrival time as current unix time
-func (bs *BlockState) AddBlock(block *types.Block) error {
+func (bs *DefaultBlockState) AddBlock(block *types.Block) error {
 	bs.lock.Lock()
 	defer bs.lock.Unlock()
 	return bs.AddBlockWithArrivalTime(block, time.Now())
 }
 
 // AddBlockWithArrivalTime adds a block to the blocktree and the DB with the given arrival time
-func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime time.Time) error {
+func (bs *DefaultBlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime time.Time) error {
 	if block.Body == nil {
 		return errNilBlockBody
 	}
@@ -545,11 +641,11 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 }
 
 // GetAllBlocksAtNumber returns all unfinalised blocks with the given number
-func (bs *BlockState) GetAllBlocksAtNumber(num uint) ([]common.Hash, error) {
+func (bs *DefaultBlockState) GetAllBlocksAtNumber(num uint) ([]common.Hash, error) {
 	return bs.bt.GetHashesAtNumber(num), nil
 }
 
-func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) {
+func (bs *DefaultBlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) {
 	bestBlock, err := bs.BestBlockHeader()
 	if err != nil {
 		return false, err
@@ -573,7 +669,7 @@ func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) 
 }
 
 // BestBlockHash returns the hash of the head of the current chain
-func (bs *BlockState) BestBlockHash() common.Hash {
+func (bs *DefaultBlockState) BestBlockHash() common.Hash {
 	if bs.bt == nil {
 		return common.Hash{}
 	}
@@ -582,7 +678,7 @@ func (bs *BlockState) BestBlockHash() common.Hash {
 }
 
 // BestBlockHeader returns the block header of the current head of the chain
-func (bs *BlockState) BestBlockHeader() (*types.Header, error) {
+func (bs *DefaultBlockState) BestBlockHeader() (*types.Header, error) {
 	header, err := bs.GetHeader(bs.BestBlockHash())
 	if err != nil {
 		return nil, fmt.Errorf("cannot get header of best block: %w", err)
@@ -592,7 +688,7 @@ func (bs *BlockState) BestBlockHeader() (*types.Header, error) {
 }
 
 // BestBlockStateRoot returns the state root of the current head of the chain
-func (bs *BlockState) BestBlockStateRoot() (common.Hash, error) {
+func (bs *DefaultBlockState) BestBlockStateRoot() (common.Hash, error) {
 	header, err := bs.BestBlockHeader()
 	if err != nil {
 		return common.Hash{}, err
@@ -602,7 +698,7 @@ func (bs *BlockState) BestBlockStateRoot() (common.Hash, error) {
 }
 
 // GetBlockStateRoot returns the state root of the given block hash
-func (bs *BlockState) GetBlockStateRoot(bhash common.Hash) (
+func (bs *DefaultBlockState) GetBlockStateRoot(bhash common.Hash) (
 	hash common.Hash, err error) {
 	header, err := bs.GetHeader(bhash)
 	if err != nil {
@@ -613,7 +709,7 @@ func (bs *BlockState) GetBlockStateRoot(bhash common.Hash) (
 }
 
 // BestBlockNumber returns the block number of the current head of the chain
-func (bs *BlockState) BestBlockNumber() (blockNumber uint, err error) {
+func (bs *DefaultBlockState) BestBlockNumber() (blockNumber uint, err error) {
 	header, err := bs.BestBlockHeader()
 	if err != nil {
 		return 0, err
@@ -627,12 +723,12 @@ func (bs *BlockState) BestBlockNumber() (blockNumber uint, err error) {
 }
 
 // BestBlock returns the current head of the chain
-func (bs *BlockState) BestBlock() (*types.Block, error) {
+func (bs *DefaultBlockState) BestBlock() (*types.Block, error) {
 	return bs.GetBlockByHash(bs.BestBlockHash())
 }
 
 // GetSlotForBlock returns the slot for a block
-func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
+func (bs *DefaultBlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 	header, err := bs.GetHeader(hash)
 	if err != nil {
 		return 0, fmt.Errorf("getting header for hash %s: %w", hash, err)
@@ -643,7 +739,7 @@ func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 
 var ErrEmptyHeader = errors.New("empty header")
 
-func (bs *BlockState) loadHeaderFromDatabase(hash common.Hash) (header *types.Header, err error) {
+func (bs *DefaultBlockState) loadHeaderFromDatabase(hash common.Hash) (header *types.Header, err error) {
 	startHeaderData, err := bs.db.Get(headerKey(hash))
 	if err != nil {
 		return nil, fmt.Errorf("querying database: %w", err)
@@ -664,7 +760,7 @@ func (bs *BlockState) loadHeaderFromDatabase(hash common.Hash) (header *types.He
 
 // Range returns the sub-blockchain between the starting hash and the
 // ending hash using both block tree and database
-func (bs *BlockState) Range(startHash, endHash common.Hash) (hashes []common.Hash, err error) {
+func (bs *DefaultBlockState) Range(startHash, endHash common.Hash) (hashes []common.Hash, err error) {
 	if startHash == endHash {
 		hashes = []common.Hash{startHash}
 		return hashes, nil
@@ -685,7 +781,7 @@ func (bs *BlockState) Range(startHash, endHash common.Hash) (hashes []common.Has
 	return bs.retrieveRangeFromDatabase(startHash, endHeader)
 }
 
-func (bs *BlockState) retrieveRange(startHash, endHash common.Hash) (hashes []common.Hash, err error) {
+func (bs *DefaultBlockState) retrieveRange(startHash, endHash common.Hash) (hashes []common.Hash, err error) {
 	inMemoryHashes, err := bs.bt.Range(startHash, endHash)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving range from in-memory blocktree: %w", err)
@@ -728,7 +824,7 @@ var ErrStartGreaterThanEnd = errors.New("start greater than end")
 
 // retrieveRangeFromDatabase takes the start and the end and will retrieve all block in between
 // where all blocks (start and end inclusive) are supposed to be placed at database
-func (bs *BlockState) retrieveRangeFromDatabase(startHash common.Hash,
+func (bs *DefaultBlockState) retrieveRangeFromDatabase(startHash common.Hash,
 	endHeader *types.Header) (hashes []common.Hash, err error) {
 	startHeader, err := bs.loadHeaderFromDatabase(startHash)
 	if err != nil {
@@ -769,7 +865,7 @@ func (bs *BlockState) retrieveRangeFromDatabase(startHash common.Hash,
 }
 
 // RangeInMemory returns the sub-blockchain between the starting hash and the ending hash using the block tree
-func (bs *BlockState) RangeInMemory(start, end common.Hash) ([]common.Hash, error) {
+func (bs *DefaultBlockState) RangeInMemory(start, end common.Hash) ([]common.Hash, error) {
 	if bs.bt == nil {
 		return nil, fmt.Errorf("%w", errNilBlockTree)
 	}
@@ -779,7 +875,7 @@ func (bs *BlockState) RangeInMemory(start, end common.Hash) ([]common.Hash, erro
 
 // IsDescendantOf returns true if child is a descendant of parent, false otherwise.
 // it returns an error if parent or child are not in the blocktree.
-func (bs *BlockState) IsDescendantOf(ancestor, descendant common.Hash) (bool, error) {
+func (bs *DefaultBlockState) IsDescendantOf(ancestor, descendant common.Hash) (bool, error) {
 	if bs.bt == nil {
 		return false, fmt.Errorf("%w", errNilBlockTree)
 	}
@@ -813,22 +909,22 @@ func (bs *BlockState) IsDescendantOf(ancestor, descendant common.Hash) (bool, er
 }
 
 // LowestCommonAncestor returns the lowest common ancestor between two blocks in the tree.
-func (bs *BlockState) LowestCommonAncestor(a, b common.Hash) (common.Hash, error) {
+func (bs *DefaultBlockState) LowestCommonAncestor(a, b common.Hash) (common.Hash, error) {
 	return bs.bt.LowestCommonAncestor(a, b)
 }
 
 // Leaves returns the leaves of the blocktree as an array
-func (bs *BlockState) Leaves() []common.Hash {
+func (bs *DefaultBlockState) Leaves() []common.Hash {
 	return bs.bt.Leaves()
 }
 
 // BlocktreeAsString returns the blocktree as a string
-func (bs *BlockState) BlocktreeAsString() string {
+func (bs *DefaultBlockState) BlocktreeAsString() string {
 	return bs.bt.String()
 }
 
 // GetArrivalTime returns the arrival time in nanoseconds since the Unix epoch of a block given its hash
-func (bs *BlockState) GetArrivalTime(hash common.Hash) (time.Time, error) {
+func (bs *DefaultBlockState) GetArrivalTime(hash common.Hash) (time.Time, error) {
 	at, err := bs.bt.GetArrivalTime(hash)
 	if err == nil {
 		return at, nil
@@ -843,14 +939,14 @@ func (bs *BlockState) GetArrivalTime(hash common.Hash) (time.Time, error) {
 	return time.Unix(0, int64(ns)), nil
 }
 
-func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime time.Time) error {
+func (bs *DefaultBlockState) setArrivalTime(hash common.Hash, arrivalTime time.Time) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, uint64(arrivalTime.UnixNano()))
 	return bs.db.Put(arrivalTimeKey(hash), buf)
 }
 
 // HandleRuntimeChanges handles the update in runtime.
-func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
+func (bs *DefaultBlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 	parentRuntimeInstance runtime.Instance, bHash common.Hash) error {
 	currCodeHash, err := newState.LoadCodeHash()
 	if err != nil {
@@ -931,7 +1027,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState,
 }
 
 // GetRuntime gets the runtime instance pointer for the block hash given.
-func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error) {
+func (bs *DefaultBlockState) GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error) {
 	// we search primarily in the blocktree so we ensure the
 	// fork aware property while searching for a runtime, however
 	// if there is no runtimes in that fork then we look for the
@@ -952,11 +1048,49 @@ func (bs *BlockState) GetRuntime(blockHash common.Hash) (instance runtime.Instan
 }
 
 // StoreRuntime stores the runtime for corresponding block hash.
-func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {
+func (bs *DefaultBlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {
 	bs.bt.StoreRuntime(hash, rt)
 }
 
 // GetNonFinalisedBlocks get all the blocks in the blocktree
-func (bs *BlockState) GetNonFinalisedBlocks() []common.Hash {
+func (bs *DefaultBlockState) GetNonFinalisedBlocks() []common.Hash {
 	return bs.bt.GetAllBlocks()
+}
+
+// SetBlockTree sets the blocktree for the block state
+// WARN: this should be used only when state sync finishes and we need to set the new state to resume the node using a
+// specific blocktree
+func (bs *DefaultBlockState) SetBlockTree(blocktree *blocktree.BlockTree) {
+	bs.bt = blocktree
+}
+
+func (bs *DefaultBlockState) Rewind(toBlock uint) error {
+	num, _ := bs.BestBlockNumber()
+	if toBlock > num {
+		return fmt.Errorf("cannot rewind, given height is higher than our current height")
+	}
+
+	logger.Infof(
+		"rewinding state from current height %s to desired height %d...",
+		num, toBlock)
+
+	root, err := bs.GetBlockByNumber(toBlock)
+	if err != nil {
+		return err
+	}
+
+	bs.bt = blocktree.NewBlockTreeFromRoot(&root.Header)
+
+	header, err := bs.BestBlockHeader()
+	if err != nil {
+		return err
+	}
+
+	bs.lastFinalised = header.Hash()
+
+	logger.Infof(
+		"rewinding state for new height %s and best block hash %s...",
+		header.Number, header.Hash())
+
+	return nil
 }

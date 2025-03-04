@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
@@ -33,7 +34,9 @@ type (
 
 	// StorageState is the interface for the storage state
 	StorageState interface {
+		StoreTrie(ts *rtstorage.TrieState, header *types.Header) error
 		TrieState(root *common.Hash) (*rtstorage.TrieState, error)
+		LoadCodeHash(hash *common.Hash) (common.Hash, error)
 		sync.Locker
 	}
 
@@ -55,11 +58,12 @@ type (
 	// BlockImportHandler is the interface for the handler of newly imported blocks
 	BlockImportHandler interface {
 		HandleBlockImport(block *types.Block, state *rtstorage.TrieState, announce bool) error
+		HandleDigests(header *types.Header) error
 	}
 )
 
 type blockImporter struct {
-	blockState         BlockState
+	blockState         state.BlockState
 	storageState       StorageState
 	transactionState   TransactionState
 	babeVerifier       BabeVerifier
@@ -68,7 +72,17 @@ type blockImporter struct {
 	telemetry          Telemetry
 }
 
-func newBlockImporter(cfg *FullSyncConfig) *blockImporter {
+type BlockImporterConfig struct {
+	BlockState         state.BlockState
+	StorageState       StorageState
+	TransactionState   TransactionState
+	BabeVerifier       BabeVerifier
+	FinalityGadget     FinalityGadget
+	BlockImportHandler BlockImportHandler
+	Telemetry          Telemetry
+}
+
+func newBlockImporter(cfg *BlockImporterConfig) *blockImporter {
 	return &blockImporter{
 		blockState:         cfg.BlockState,
 		storageState:       cfg.StorageState,
@@ -120,7 +134,7 @@ func (b *blockImporter) processBlockData(blockData types.BlockData, origin Block
 				return fmt.Errorf("verifying justification for block %s: %w", header.Hash().String(), err)
 			}
 
-			err = b.blockState.SetFinalisedHash(header.Hash(), round, setID)
+			err = b.blockState.SetFinalisedHash(header.Hash(), round, setID, true)
 			if err != nil {
 				return fmt.Errorf("setting finalised hash: %w", err)
 			}

@@ -6,6 +6,7 @@ package types
 import (
 	"testing"
 
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
@@ -57,4 +58,14 @@ func TestBodyFromExtrinsicStrings(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, bodyFromByteExtrinsics, bodyFromStringExtrinsics)
+}
+
+func TestFromGenericBody(t *testing.T) {
+	extrinsics := []runtime.Extrinsic{
+		runtime.OpaqueExtrinsic{Data: []byte{1, 2, 3}},
+		runtime.OpaqueExtrinsic{Data: []byte{3, 4, 5}},
+	}
+	body := NewBodyFromGeneric(extrinsics)
+
+	require.Equal(t, *NewBody([]Extrinsic{{1, 2, 3}, {3, 4, 5}}), body)
 }

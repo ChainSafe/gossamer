@@ -73,10 +73,12 @@ nav:
     - Availability Subsystems: ./design/availability-subsystems.md
     - Prospective Parachains: ./design/prospective-parachains.md
     - Prospective Parachains - Fragment Chain: ./design/fragment-chain.md
+    - Availability recovery: ./design/availability-recovery.md
     - Authority Discovery: ./design/authority-discovery.md
     - Statement Distribution: ./design/statement-distribution.md
     - Grid Topology: ./design/grid-topology.md
     - Gossip Support: ./design/gossip-support.md
+    - Provisioner: ./design/provisioner.md
   - Contributing: 
     - Overview: ./contributing.md
 extra_css:

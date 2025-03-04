@@ -9,12 +9,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/config"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/grandpa/warpsync"
 	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/prometheus/client_golang/prometheus"
@@ -24,6 +26,7 @@ import (
 const (
 	waitPeersDefaultTimeout = 10 * time.Second
 	minPeersDefault         = 1
+	blockRequestTimeout     = 20 * time.Second
 )
 
 var (
@@ -43,6 +46,19 @@ const (
 	networkBroadcast
 )
 
+type EpochState interface {
+	SetEpochDataRaw(epoch uint64, raw *types.EpochDataRaw) error
+	StoreCurrentEpoch(epoch uint64) error
+	StoreConfigData(epoch uint64, info *types.ConfigData) error
+}
+
+type GrandpaState interface {
+	GetCurrentSetID() (uint64, error)
+	GetAuthorities(uint64) ([]types.GrandpaVoter, error)
+	SetAuthorities(setID uint64, authorities []types.GrandpaVoter) error
+	GetAuthoritiesChangesFromBlock(uint) ([]uint, error)
+}
+
 type Network interface {
 	AllConnectedPeersIDs() []peer.ID
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
@@ -50,34 +66,6 @@ type Network interface {
 	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
 		maxResponseSize uint64) *network.RequestResponseProtocol
 	GossipMessageExcluding(network.NotificationsMessage, peer.ID)
-}
-
-type BlockState interface {
-	BestBlockHeader() (*types.Header, error)
-	BestBlockNumber() (number uint, err error)
-	CompareAndSetBlockData(bd *types.BlockData) error
-	GetBlockBody(common.Hash) (*types.Body, error)
-	GetHeader(common.Hash) (*types.Header, error)
-	HasHeader(hash common.Hash) (bool, error)
-	Range(startHash, endHash common.Hash) (hashes []common.Hash, err error)
-	RangeInMemory(start, end common.Hash) ([]common.Hash, error)
-	GetReceipt(common.Hash) ([]byte, error)
-	GetMessageQueue(common.Hash) ([]byte, error)
-	GetJustification(common.Hash) ([]byte, error)
-	SetFinalisedHash(hash common.Hash, round uint64, setID uint64) error
-	SetJustification(hash common.Hash, data []byte) error
-	GetHashByNumber(blockNumber uint) (common.Hash, error)
-	GetBlockByHash(common.Hash) (*types.Block, error)
-	GetRuntime(blockHash common.Hash) (runtime runtime.Instance, err error)
-	StoreRuntime(blockHash common.Hash, runtime runtime.Instance)
-	GetHighestFinalisedHeader() (*types.Header, error)
-	GetFinalisedNotifierChannel() chan *types.FinalisationInfo
-	GetHeaderByNumber(num uint) (*types.Header, error)
-	GetAllBlocksAtNumber(num uint) ([]common.Hash, error)
-	IsDescendantOf(parent, child common.Hash) (bool, error)
-
-	IsPaused() bool
-	Pause() error
 }
 
 type Change struct {
@@ -90,20 +78,29 @@ type Strategy interface {
 	OnBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error
 	NextActions() ([]*SyncTask, error)
 	Process(results []*SyncTaskResult) (done bool, repChanges []Change, blocks []peer.ID, err error)
-	ShowMetrics()
+	ShowStatus()
 	IsSynced() bool
 	Result() any
 }
 
 type SyncService struct {
-	mu         sync.Mutex
-	wg         sync.WaitGroup
-	network    Network
-	blockState BlockState
+	mu                 sync.Mutex
+	wg                 sync.WaitGroup
+	network            Network
+	blockState         state.BlockState
+	grandpaState       GrandpaState
+	epochState         EpochState
+	storageState       StorageState
+	transactionState   TransactionState
+	finalityGadget     FinalityGadget
+	babeVerifier       BabeVerifier
+	blockImportHandler BlockImportHandler
+	telemetry          Telemetry
+	badBlocks          []string
+	peers              *peerViewSet
 
-	currentStrategy  Strategy
-	fullSyncStrategy Strategy
-	warpSyncStrategy Strategy
+	syncStrategy    config.SyncMode
+	currentStrategy Strategy
 
 	workerPool        *syncWorkerPool
 	waitPeersDuration time.Duration
@@ -123,20 +120,57 @@ func NewSyncService(logLvl log.Level, cfgs ...ServiceConfig) *SyncService {
 		waitPeersDuration:     waitPeersDefaultTimeout,
 		stopCh:                make(chan struct{}),
 		seenBlockSyncRequests: lrucache.NewLRUCache[common.Hash, uint](100),
+		peers:                 NewPeerViewSet(),
 	}
 
 	for _, cfg := range cfgs {
 		cfg(svc)
 	}
 
-	// Set initial strategy
-	if svc.warpSyncStrategy != nil {
-		svc.currentStrategy = svc.warpSyncStrategy
-	} else {
-		svc.currentStrategy = svc.fullSyncStrategy
+	switch svc.syncStrategy {
+	case config.FullSync:
+		svc.useFullSyncStrategy()
+	case config.WarpSync:
+		svc.useWarpSyncStrategy()
 	}
 
 	return svc
+}
+
+func (s *SyncService) useWarpSyncStrategy() {
+	warpSyncProvider := warpsync.NewWarpSyncProofProvider(s.blockState, s.grandpaState)
+
+	warpSyncCfg := &WarpSyncConfig{
+		Telemetry:        s.telemetry,
+		BadBlocks:        s.badBlocks,
+		WarpSyncProvider: warpSyncProvider,
+		RequestMaker: s.network.GetRequestResponseProtocol(network.WarpSyncID,
+			blockRequestTimeout, network.MaxBlockResponseSize),
+		BlockState: s.blockState,
+		Peers:      s.peers,
+	}
+
+	s.currentStrategy = NewWarpSyncStrategy(warpSyncCfg)
+	s.syncStrategy = config.WarpSync
+}
+
+func (s *SyncService) useFullSyncStrategy() {
+	syncCfg := &FullSyncConfig{
+		BlockState:         s.blockState,
+		StorageState:       s.storageState,
+		TransactionState:   s.transactionState,
+		FinalityGadget:     s.finalityGadget,
+		BabeVerifier:       s.babeVerifier,
+		BlockImportHandler: s.blockImportHandler,
+		Telemetry:          s.telemetry,
+		BadBlocks:          s.badBlocks,
+		RequestMaker: s.network.GetRequestResponseProtocol(network.SyncID,
+			blockRequestTimeout, network.MaxBlockResponseSize),
+		Peers: s.peers,
+	}
+
+	s.currentStrategy = NewFullSyncStrategy(syncCfg)
+	s.syncStrategy = config.FullSync
 }
 
 func (s *SyncService) waitWorkers() {
@@ -233,7 +267,7 @@ func (s *SyncService) runSyncEngine() {
 	defer s.wg.Done()
 	s.waitWorkers()
 
-	logger.Infof("starting sync engine with strategy: %T", s.currentStrategy)
+	logger.Infof("starting sync engine with strategy: %s", s.syncStrategy)
 
 	for {
 		select {
@@ -256,28 +290,7 @@ func (s *SyncService) runStrategy() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	logger.Tracef("running strategy: %T", s.currentStrategy)
-
-	finalisedHeader, err := s.blockState.GetHighestFinalisedHeader()
-	if err != nil {
-		logger.Criticalf("getting highest finalized header: %w", err)
-		return
-	}
-
-	bestBlockHeader, err := s.blockState.BestBlockHeader()
-	if err != nil {
-		logger.Criticalf("getting best block header: %w", err)
-		return
-	}
-
-	logger.Infof(
-		"🚣 currently syncing, %d peers connected, finalized #%d (%s), best #%d (%s)",
-		len(s.network.AllConnectedPeersIDs()),
-		finalisedHeader.Number,
-		finalisedHeader.Hash().Short(),
-		bestBlockHeader.Number,
-		bestBlockHeader.Hash().Short(),
-	)
+	logger.Tracef("running strategy: %s", s.syncStrategy)
 
 	tasks, err := s.currentStrategy.NextActions()
 	if err != nil {
@@ -306,13 +319,41 @@ func (s *SyncService) runStrategy() {
 		s.workerPool.ignorePeerAsWorker(block)
 	}
 
-	s.currentStrategy.ShowMetrics()
+	s.currentStrategy.ShowStatus()
 
 	// TODO: why not use s.currentStrategy.IsSynced()?
 	if done {
-		// Switch to full sync when warp sync finishes
-		if s.warpSyncStrategy != nil {
-			s.currentStrategy = s.fullSyncStrategy
+		switch s.syncStrategy {
+		case config.WarpSync:
+			logger.Info("Switching sync strategy: warp sync -> state sync")
+			// Switch to state sync when warp sync finishes
+			stateSyncCfg := &StateSyncStrategyConfig{
+				Telemetry:  s.telemetry,
+				BadBlocks:  s.badBlocks,
+				BlockState: s.blockState,
+				Peers:      s.peers,
+				ReqMaker: s.network.GetRequestResponseProtocol(network.StateSyncID,
+					blockRequestTimeout, network.MaxBlockResponseSize),
+				BlockReqMaker: s.network.GetRequestResponseProtocol(network.SyncID,
+					blockRequestTimeout, network.MaxBlockResponseSize),
+				StateStorage:       s.storageState,
+				GrandpaState:       s.grandpaState,
+				EpochState:         s.epochState,
+				FinalityGadget:     s.finalityGadget,
+				TransactionState:   s.transactionState,
+				BlockImportHandler: s.blockImportHandler,
+				WarpSyncResult:     s.currentStrategy.Result().(warpsync.WarpSyncVerificationResult),
+			}
+
+			s.currentStrategy = NewStateSyncStrategy(stateSyncCfg)
+			s.syncStrategy = config.StateSync
+
+		case config.StateSync:
+			logger.Info("Switching sync strategy: state sync -> full sync")
+			// Switch to full sync when state sync finishes
+			s.useFullSyncStrategy()
+		case config.FullSync:
+			logger.Errorf("Full sync strategy should not finish")
 		}
 	}
 }

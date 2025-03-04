@@ -24,7 +24,7 @@ func DefaultConfig() *cfg.Config {
 	config.RPC.UnsafeRPC = true
 	config.RPC.WSExternal = true
 	config.RPC.UnsafeWSExternal = true
-	config.Core.Sync = "full"
+	config.Core.SyncMode = cfg.FullSync
 
 	return config
 }

@@ -49,8 +49,7 @@ func Test_BlockTree_GetBlock(t *testing.T) {
 	if n == nil {
 		t.Fatal("node is nil")
 	}
-
-	if !bytes.Equal(hashes[2][:], n.hash[:]) {
+	if !bytes.Equal(hashes[2][:], (*n).hash[:]) {
 		t.Fatalf("Fail: got %x expected %x", n.hash, hashes[2])
 	}
 

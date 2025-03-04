@@ -5,7 +5,6 @@ package core
 
 import (
 	"encoding/json"
-	"sync"
 
 	"github.com/libp2p/go-libp2p/core/peer"
 
@@ -14,38 +13,11 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
 type BlockImportDigestHandler interface {
 	HandleDigests(*types.Header) error
-}
-
-// BlockState interface for block state methods
-type BlockState interface {
-	GenesisHash() common.Hash
-	BestBlockHash() common.Hash
-	BestBlockHeader() (*types.Header, error)
-	AddBlock(*types.Block) error
-	GetHeader(bhash common.Hash) (*types.Header, error)
-	GetBlockStateRoot(bhash common.Hash) (common.Hash, error)
-	RangeInMemory(start, end common.Hash) ([]common.Hash, error)
-	GetBlockBody(hash common.Hash) (*types.Body, error)
-	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtime.Instance, bHash common.Hash) error
-	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
-	StoreRuntime(blockHash common.Hash, runtime runtime.Instance)
-	LowestCommonAncestor(a, b common.Hash) (common.Hash, error)
-}
-
-// StorageState interface for storage state methods
-type StorageState interface {
-	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
-	StoreTrie(*rtstorage.TrieState, *types.Header) error
-	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
-	GenerateTrieProof(stateRoot common.Hash, keys [][]byte) ([][]byte, error)
-	sync.Locker
 }
 
 // EpochState is the interface for state.EpochState

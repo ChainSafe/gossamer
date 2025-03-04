@@ -154,7 +154,7 @@ func TestService_BlockTree(t *testing.T) {
 	AddBlocksToState(t, stateA.Block, 10, false)
 	head := stateA.Block.BestBlockHash()
 
-	err = stateA.Block.SetFinalisedHash(head, 1, 1)
+	err = stateA.Block.SetFinalisedHash(head, 1, 1, true)
 	require.NoError(t, err)
 
 	err = stateA.Stop()
@@ -302,12 +302,12 @@ func TestService_PruneStorage(t *testing.T) {
 	}
 
 	// finalise a block
-	serv.Block.SetFinalisedHash(toFinalize, 0, 0)
+	serv.Block.SetFinalisedHash(toFinalize, 0, 0, true)
 
 	time.Sleep(1 * time.Second)
 
 	for _, v := range prunedArr {
-		tr := serv.Storage.blockState.tries.get(v.hash)
+		tr := serv.Storage.blockState.GetTries().get(v.hash)
 		require.Nil(t, tr)
 	}
 }
@@ -347,7 +347,7 @@ func TestService_Rewind(t *testing.T) {
 
 	AddBlocksToState(t, serv.Block, 12, false)
 	head := serv.Block.BestBlockHash()
-	err = serv.Block.SetFinalisedHash(head, 0, 0)
+	err = serv.Block.SetFinalisedHash(head, 0, 0, true)
 	require.NoError(t, err)
 
 	err = serv.Rewind(6)
@@ -410,10 +410,7 @@ func TestService_Import(t *testing.T) {
 	// mapping number #1 to the block hash
 	// then we can retrieve the slot number
 	// using the block number
-	err = serv.Block.db.Put(
-		headerHashKey(uint64(blockNumber01.Number)),
-		blockNumber01.Hash().ToBytes(),
-	)
+	err = serv.Block.SetFinalizedHeader(blockNumber01)
 	require.NoError(t, err)
 
 	err = serv.Block.SetHeader(blockNumber01)

@@ -13,6 +13,7 @@ import (
 	reflect "reflect"
 
 	types "github.com/ChainSafe/gossamer/dot/types"
+	log "github.com/ChainSafe/gossamer/internal/log"
 	common "github.com/ChainSafe/gossamer/lib/common"
 	ed25519 "github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	keystore "github.com/ChainSafe/gossamer/lib/keystore"
@@ -288,6 +289,20 @@ func (mr *MockInstanceMockRecorder) Keystore() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Keystore", reflect.TypeOf((*MockInstance)(nil).Keystore))
 }
 
+// LogLvl mocks base method.
+func (m *MockInstance) LogLvl() log.Level {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LogLvl")
+	ret0, _ := ret[0].(log.Level)
+	return ret0
+}
+
+// LogLvl indicates an expected call of LogLvl.
+func (mr *MockInstanceMockRecorder) LogLvl() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LogLvl", reflect.TypeOf((*MockInstance)(nil).LogLvl))
+}
+
 // Metadata mocks base method.
 func (m *MockInstance) Metadata() ([]byte, error) {
 	m.ctrl.T.Helper()
@@ -368,6 +383,20 @@ func (m *MockInstance) RandomSeed() {
 func (mr *MockInstanceMockRecorder) RandomSeed() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RandomSeed", reflect.TypeOf((*MockInstance)(nil).RandomSeed))
+}
+
+// Role mocks base method.
+func (m *MockInstance) Role() common.NetworkRole {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Role")
+	ret0, _ := ret[0].(common.NetworkRole)
+	return ret0
+}
+
+// Role indicates an expected call of Role.
+func (mr *MockInstanceMockRecorder) Role() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Role", reflect.TypeOf((*MockInstance)(nil).Role))
 }
 
 // SetContextStorage mocks base method.

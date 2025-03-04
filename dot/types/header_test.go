@@ -6,6 +6,9 @@ package types
 import (
 	"testing"
 
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
@@ -100,4 +103,45 @@ func TestHeaderDeepCopy(t *testing.T) {
 	require.NoError(t, err)
 	dc.Hash()
 	require.Equal(t, header, dc)
+}
+
+func TestFromGenericHeader(t *testing.T) {
+	parentHash := hash.NewRandomH256()
+	stateRoot := hash.NewRandomH256()
+	extrinsicsRoot := hash.NewRandomH256()
+	blockNumber := uint64(123)
+
+	t.Run("successful_conversion", func(t *testing.T) {
+		digest := runtime.Digest{
+			Logs: []runtime.DigestItem{
+				runtime.NewDigestItem(runtime.Consensus{
+					ConsensusEngineID: runtime.ConsensusEngineID{'B', 'E', 'E', 'F'},
+					Bytes:             []byte("test"),
+				}),
+				runtime.NewDigestItem(runtime.Seal{
+					ConsensusEngineID: runtime.ConsensusEngineID{'S', 'E', 'A', 'L'},
+					Bytes:             []byte("test"),
+				}),
+				runtime.NewDigestItem(runtime.PreRuntime{
+					ConsensusEngineID: runtime.ConsensusEngineID{'B', 'A', 'B', 'E'},
+					Bytes:             []byte("test"),
+				}),
+				runtime.NewDigestItem(runtime.RuntimeEnvironmentUpdated{}),
+			},
+		}
+
+		gh := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
+			blockNumber,
+			extrinsicsRoot,
+			stateRoot,
+			parentHash,
+			digest,
+		)
+
+		header, err := NewHeaderFromGeneric(gh)
+
+		require.NoError(t, err)
+		require.NotNil(t, header)
+		require.Equal(t, gh.Hash().Bytes(), header.Hash().ToBytes())
+	})
 }

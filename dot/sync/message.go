@@ -208,13 +208,13 @@ func (s *SyncService) handleDescendingRequest(req *messages.BlockRequestMessage)
 	}
 
 	if startHash == nil || endHash == nil {
-		logger.Infof("handling block request message with direction %s "+
-			"from number %d to number %d\n",
+		logger.Debugf("handling block request message with direction %s "+
+			"from number %d to number %d",
 			req.Direction.String(), startNumber, endNumber)
 		return s.handleDescendingByNumber(startNumber, endNumber, req.RequestedData)
 	}
 
-	logger.Infof("handling block request message with direction %s "+
+	logger.Debugf("handling block request message with direction %s "+
 		"from hash %s to end block with hash %s",
 		req.Direction.String(), *startHash, *endHash)
 	return s.handleChainByHash(*endHash, *startHash, max, req.RequestedData, req.Direction)

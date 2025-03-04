@@ -30,6 +30,19 @@ type RequestResponseProtocol struct {
 	responseBuf     []byte
 }
 
+func NewRequestResponseProtocol(ctx context.Context, host *host, protocolID protocol.ID,
+	requestTimeout time.Duration, maxResponseSize uint64) *RequestResponseProtocol {
+	return &RequestResponseProtocol{
+		ctx:             ctx,
+		host:            host,
+		requestTimeout:  requestTimeout,
+		maxResponseSize: maxResponseSize,
+		protocolID:      protocolID,
+		responseBuf:     make([]byte, maxResponseSize),
+		responseBufMu:   sync.Mutex{},
+	}
+}
+
 func (rrp *RequestResponseProtocol) Do(to peer.ID, req, res messages.P2PMessage) error {
 	rrp.host.p2pHost.ConnManager().Protect(to, "")
 	defer rrp.host.p2pHost.ConnManager().Unprotect(to, "")

@@ -61,8 +61,8 @@ func TestAnnounceBlock(t *testing.T) {
 	require.NoError(t, err)
 
 	// Used to define the state root of new block for testing
-	genesisHash := s.blockState.(*state.BlockState).GenesisHash()
-	genesisBlock, err := s.blockState.(*state.BlockState).GetBlockByHash(genesisHash)
+	genesisHash := s.blockState.GenesisHash()
+	genesisBlock, err := s.blockState.GetBlockByHash(genesisHash)
 	require.NoError(t, err)
 
 	newBlock := types.Block{
@@ -200,7 +200,7 @@ func TestService_HasKey_UnknownType(t *testing.T) {
 
 func TestHandleChainReorg_NoReorg(t *testing.T) {
 	s := NewTestService(t, nil)
-	state.AddBlocksToState(t, s.blockState.(*state.BlockState), 4, false)
+	state.AddBlocksToState(t, s.blockState, 4, false)
 
 	head, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
@@ -254,7 +254,7 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 	nonce := uint64(0)
 
 	// Add extrinsic to block `block41`
-	ext := createExtrinsic(t, rt, bs.(*state.BlockState).GenesisHash(), nonce)
+	ext := createExtrinsic(t, rt, bs.GenesisHash(), nonce)
 
 	block41 := BuildBlock(t, rt, &block31.Header, ext)
 	bs.StoreRuntime(block41.Header.Hash(), rt)
@@ -347,9 +347,9 @@ func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
 	const height = 5
 	const branch = 3
 	branches := map[uint]int{branch: 1}
-	state.AddBlocksToStateWithFixedBranches(t, s.blockState.(*state.BlockState), height, branches)
+	state.AddBlocksToStateWithFixedBranches(t, s.blockState, height, branches)
 
-	leaves := s.blockState.(*state.BlockState).Leaves()
+	leaves := s.blockState.Leaves()
 	require.Equal(t, 2, len(leaves))
 
 	head := s.blockState.BestBlockHash()
@@ -374,7 +374,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	s := NewTestService(t, cfg)
 	const height = 5
 	const branch = 3
-	state.AddBlocksToState(t, s.blockState.(*state.BlockState), height, false)
+	state.AddBlocksToState(t, s.blockState, height, false)
 
 	// create extrinsic
 	enc, err := scale.Marshal([]byte("nootwashere"))
@@ -390,7 +390,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	require.NoError(t, err)
 
 	// get common ancestor
-	ancestor, err := s.blockState.(*state.BlockState).GetBlockByNumber(branch - 1)
+	ancestor, err := s.blockState.GetBlockByNumber(branch - 1)
 	require.NoError(t, err)
 
 	// build "re-org" chain
@@ -409,7 +409,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	err = s.blockState.AddBlock(block)
 	require.NoError(t, err)
 
-	leaves := s.blockState.(*state.BlockState).Leaves()
+	leaves := s.blockState.Leaves()
 	require.Equal(t, 2, len(leaves))
 
 	head := s.blockState.BestBlockHash()
@@ -626,7 +626,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 }
 
 func createBlockUsingOldRuntime(t *testing.T, bestBlockHash common.Hash, trieState *rtstorage.TrieState,
-	blockState BlockState) (blockHash common.Hash) {
+	blockState state.BlockState) (blockHash common.Hash) {
 	parentRt, err := blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 
@@ -656,7 +656,7 @@ func createBlockUsingOldRuntime(t *testing.T, bestBlockHash common.Hash, trieSta
 }
 
 func createBlockUsingNewRuntime(t *testing.T, bestBlockHash common.Hash, newRuntimePath string,
-	trieState *rtstorage.TrieState, blockState BlockState) (blockHash common.Hash) {
+	trieState *rtstorage.TrieState, blockState state.BlockState) (blockHash common.Hash) {
 	parentRt, err := blockState.GetRuntime(bestBlockHash)
 	require.NoError(t, err)
 

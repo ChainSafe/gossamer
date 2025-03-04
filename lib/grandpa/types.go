@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -91,7 +92,7 @@ func NewVoteFromHeader(h *types.Header) *Vote {
 }
 
 // NewVoteFromHash returns a new Vote given a hash and a blockState
-func NewVoteFromHash(hash common.Hash, blockState BlockState) (*Vote, error) {
+func NewVoteFromHash(hash common.Hash, blockState state.BlockState) (*Vote, error) {
 	has, err := blockState.HasHeader(hash)
 	if err != nil {
 		return nil, err
