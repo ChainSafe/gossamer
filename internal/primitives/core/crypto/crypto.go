@@ -18,7 +18,7 @@ const DevPhrase = "bottom drive obey lake curtain smoke basket hold race lonely 
 
 // DeriveJunction is a since derivation junction description. It is the single parameter
 // used when creating a new secret key from an existing secret key and, in the case of
-// `SoftRaw` and `SoftIndex` a new public key from an existing public key.
+// SoftRaw and SoftIndex a new public key from an existing public key.
 type DeriveJunction struct {
 	inner any
 }
@@ -113,7 +113,7 @@ var junctionRegex = regexp.MustCompile(`/(/?[^/]+)`)
 
 // Trait used for types that are really just a fixed-length array.
 type Bytes interface {
-	// Return a `Vec<u8>` filled with raw data.
+	// Return a []byte filled with raw data.
 	Bytes() []byte
 }
 
@@ -125,29 +125,29 @@ type Public[Signature any] interface {
 	Verify(sig Signature, message []byte) bool
 }
 
-// SecretURI A secret uri (`SURI`) that can be used to generate a key pair.
+// SecretURI A secret uri (SURI) that can be used to generate a key pair.
 //
-// The `SURI` can be parsed from a string. The string is interpreted in the following way:
+// The SURI can be parsed from a string. The string is interpreted in the following way:
 //
-// - If `string` is a possibly `0x` prefixed 64-digit hex string, then it will be interpreted
-// directly as a secret key (aka "seed" in `subkey`).
-// - If `string` is a valid BIP-39 key phrase of 12, 15, 18, 21 or 24 words, then the key will
+// - If string is a possibly 0x prefixed 64-digit hex string, then it will be interpreted
+// directly as a secret key (aka "seed" in subkey).
+// - If string is a valid BIP-39 key phrase of 12, 15, 18, 21 or 24 words, then the key will
 // be derived from it. In this case:
-//   - the phrase may be followed by one or more items delimited by `/` characters.
-//   - the path may be followed by `///`, in which case everything after the `///` is treated
+//   - the phrase may be followed by one or more items delimited by "/" characters.
+//   - the path may be followed by "///", in which case everything after the "///" is treated
 //
 // as a password.
-//   - If `string` begins with a `/` character it is prefixed with the public `DevPhrase`
+//   - If string begins with a "/" character it is prefixed with the public DevPhrase
 //     and interpreted as above.
 //
 // In this case they are interpreted as HDKD junctions; purely numeric items are interpreted as
-// integers, non-numeric items as strings. Junctions prefixed with `/` are interpreted as soft
-// junctions, and with `//` as hard junctions.
+// integers, non-numeric items as strings. Junctions prefixed with "/"" are interpreted as soft
+// junctions, and with "//" as hard junctions.
 //
-// There is no correspondence mapping between `SURI` strings and the keys they represent.
+// There is no correspondence mapping between SURI strings and the keys they represent.
 // Two different non-identical strings can actually lead to the same secret being derived.
 // Notably, integer junction indices may be legally prefixed with arbitrary number of zeros.
-// Similarly an empty password (ending the `SURI` with `///`) is perfectly valid and will
+// Similarly an empty password (ending the SURI with "///") is perfectly valid and will
 // generally be equivalent to no password at all.
 type SecretURI struct {
 	// The phrase to derive the private key.

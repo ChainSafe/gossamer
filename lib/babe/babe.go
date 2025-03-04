@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -31,8 +32,8 @@ type Service struct {
 	epochHandler *epochHandler
 
 	// Storage interfaces
-	blockState       BlockState
-	storageState     StorageState
+	blockState       state.BlockState
+	storageState     state.StorageState
 	transactionState TransactionState
 	epochState       EpochState
 
@@ -52,8 +53,8 @@ type Service struct {
 // ServiceConfig represents a BABE configuration
 type ServiceConfig struct {
 	LogLvl             log.Level
-	BlockState         BlockState
-	StorageState       StorageState
+	BlockState         state.BlockState
+	StorageState       state.StorageState
 	TransactionState   TransactionState
 	EpochState         EpochState
 	BlockImportHandler BlockImportHandler

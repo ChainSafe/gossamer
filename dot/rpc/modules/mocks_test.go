@@ -249,21 +249,6 @@ func (mr *MockBlockAPIMockRecorder) GetBlockByHash(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockByHash", reflect.TypeOf((*MockBlockAPI)(nil).GetBlockByHash), arg0)
 }
 
-// GetFinalisedHash mocks base method.
-func (m *MockBlockAPI) GetFinalisedHash(arg0, arg1 uint64) (common.Hash, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetFinalisedHash", arg0, arg1)
-	ret0, _ := ret[0].(common.Hash)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetFinalisedHash indicates an expected call of GetFinalisedHash.
-func (mr *MockBlockAPIMockRecorder) GetFinalisedHash(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFinalisedHash", reflect.TypeOf((*MockBlockAPI)(nil).GetFinalisedHash), arg0, arg1)
-}
-
 // GetFinalisedNotifierChannel mocks base method.
 func (m *MockBlockAPI) GetFinalisedNotifierChannel() chan *types.FinalisationInfo {
 	m.ctrl.T.Helper()

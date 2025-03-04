@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/config"
+	"github.com/ChainSafe/gossamer/dot/state"
 )
 
 type ServiceConfig func(svc *SyncService)
 
-func WithBlockState(bs BlockState) ServiceConfig {
+func WithEpochState(es EpochState) ServiceConfig {
 	return func(svc *SyncService) {
-		svc.blockState = bs
+		svc.epochState = es
 	}
 }
 
@@ -75,6 +76,12 @@ func WithNetwork(net Network) ServiceConfig {
 	return func(svc *SyncService) {
 		svc.network = net
 		svc.workerPool = newSyncWorkerPool(net)
+	}
+}
+
+func WithBlockState(bs state.BlockState) ServiceConfig {
+	return func(svc *SyncService) {
+		svc.blockState = bs
 	}
 }
 

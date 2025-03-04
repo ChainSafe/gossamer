@@ -3,7 +3,7 @@
 
 package grandpa
 
-// generic representation of hash and number tuple
+// HashNumber is a generic representation of hash and number
 type HashNumber[H, N any] struct {
 	Hash   H
 	Number N

@@ -22,6 +22,8 @@ type Hash interface {
 	Bytes() []byte
 	// String returns a unique string representation of the hash
 	String() string
+	// Length return the byte length of the hash
+	Length() int
 }
 
 // Hasher is an interface around hashing
@@ -31,6 +33,9 @@ type Hasher[H Hash] interface {
 
 	// Produce the hash of some codec-encodable value.
 	HashEncoded(s any) H
+
+	// Construct new hash from source data
+	NewHash(data []byte) H
 }
 
 // Blake2-256 Hash implementation.
@@ -48,11 +53,15 @@ func (bt256 BlakeTwo256) HashEncoded(s any) hash.H256 {
 	return bt256.Hash(bytes)
 }
 
+func (bt256 BlakeTwo256) NewHash(data []byte) hash.H256 {
+	return hash.H256(data)
+}
+
 var _ Hasher[hash.H256] = BlakeTwo256{}
 
-// Header is the interface for a header. It has types for a `Number`,
-// and `Hash`. It provides access to an `ExtrinsicsRoot`, `StateRoot` and
-// `ParentHash`, as well as a `Digest` and a block `Number`.
+// Header is the interface for a header. It has types for a Number,
+// and Hash. It provides access to an ExtrinsicsRoot, StateRoot and
+// ParentHash, as well as a Digest and a block Number.
 type Header[N Number, H Hash] interface {
 	// Returns a reference to the header number.
 	Number() N
@@ -83,23 +92,36 @@ type Header[N Number, H Hash] interface {
 	Hash() H
 }
 
-// Block represents a block. It has types for `Extrinsic` pieces of information as well as a `Header`.
+// Block represents a block. It has types for Extrinsic pieces of information as well as a Header.
 //
-// You can iterate over each of the `Extrinsics` and retrieve the `Header`.
-type Block[N Number, H Hash] interface {
+// You can iterate over each of the Extrinsics and retrieve the Header.
+type Block[N Number, H Hash, E Extrinsic] interface {
 	// Returns a reference to the header.
 	Header() Header[N, H]
 	// Returns a reference to the list of extrinsics.
-	Extrinsics() []Extrinsic
+	Extrinsics() []E
 	// Split the block into header and list of extrinsics.
-	Deconstruct() (header Header[N, H], extrinsics []Extrinsic)
+	Deconstruct() (header Header[N, H], extrinsics []E)
 	// Returns the hash of the block.
 	Hash() H
 }
 
-// Extrinisic is the interface for an `Extrinsic`.
+// Extrinisic is the interface for an Extrinsic.
 type Extrinsic interface {
-	// Is this `Extrinsic` signed?
-	// If no information are available about signed/unsigned, `nil` should be returned.
+	// Is this Extrinsic signed?
+	// If no information are available about signed/unsigned, nil should be returned.
 	IsSigned() *bool
+	Bytes() []byte
+}
+
+type OpaqueExtrinsic struct {
+	Data []byte
+}
+
+func (oe OpaqueExtrinsic) IsSigned() *bool {
+	return nil
+}
+
+func (oe OpaqueExtrinsic) Bytes() []byte {
+	return oe.Data
 }

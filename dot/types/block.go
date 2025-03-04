@@ -6,6 +6,7 @@ package types
 import (
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -13,6 +14,20 @@ import (
 type Block struct {
 	Header Header
 	Body   Body
+}
+
+// NewBlockFromGeneric returns a new Block from a generic block
+func NewBlockFromGeneric[N runtime.Number, H runtime.Hash, E runtime.Extrinsic](gb runtime.Block[N, H, E]) (
+	*Block, error) {
+	header, err := NewHeaderFromGeneric(gb.Header())
+	if err != nil {
+		return nil, err
+	}
+
+	return &Block{
+		Header: *header,
+		Body:   NewBodyFromGeneric(gb.Extrinsics()),
+	}, nil
 }
 
 // NewBlock returns a new Block

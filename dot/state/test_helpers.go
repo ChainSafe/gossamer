@@ -56,7 +56,7 @@ type testBranch struct {
 	depth uint
 }
 
-func AddBlockToState(t *testing.T, blockState *BlockState,
+func AddBlockToState(t *testing.T, blockState BlockState,
 	number uint, digest types.Digest, parentHash common.Hash) *types.Header {
 	block := &types.Block{
 		Header: types.Header{
@@ -74,7 +74,7 @@ func AddBlockToState(t *testing.T, blockState *BlockState,
 }
 
 // AddBlocksToState adds `depth` number of blocks to the BlockState, optionally with random branches
-func AddBlocksToState(t *testing.T, blockState *BlockState, depth uint,
+func AddBlocksToState(t *testing.T, blockState BlockState, depth uint,
 	withBranches bool) ([]*types.Header, []*types.Header) {
 	var (
 		currentChain, branchChains []*types.Header
@@ -165,7 +165,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth uint,
 
 // AddBlocksToStateWithFixedBranches adds blocks to a BlockState up to depth, with fixed branches
 // branches are provided with a map of depth -> # of branches
-func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, depth uint, branches map[uint]int) {
+func AddBlocksToStateWithFixedBranches(t *testing.T, blockState BlockState, depth uint, branches map[uint]int) {
 	bestBlockHash := blockState.BestBlockHash()
 	var tb []testBranch
 	arrivalTime := time.Now()

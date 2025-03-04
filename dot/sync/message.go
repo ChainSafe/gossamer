@@ -209,7 +209,7 @@ func (s *SyncService) handleDescendingRequest(req *messages.BlockRequestMessage)
 
 	if startHash == nil || endHash == nil {
 		logger.Debugf("handling block request message with direction %s "+
-			"from number %d to number %d\n",
+			"from number %d to number %d",
 			req.Direction.String(), startNumber, endNumber)
 		return s.handleDescendingByNumber(startNumber, endNumber, req.RequestedData)
 	}

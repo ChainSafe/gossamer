@@ -35,7 +35,6 @@ type BlockAPI interface {
 	BestBlockHash() common.Hash
 	GetBlockByHash(hash common.Hash) (*types.Block, error)
 	GetHashByNumber(blockNumber uint) (common.Hash, error)
-	GetFinalisedHash(uint64, uint64) (common.Hash, error)
 	GetHighestFinalisedHash() (common.Hash, error)
 	HasJustification(hash common.Hash) (bool, error)
 	GetJustification(hash common.Hash) ([]byte, error)

@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -328,10 +327,6 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	out, err := gs.messageHandler.handleMessage("", fm)
 	require.NoError(t, err)
 	require.Nil(t, out)
-
-	hash, err := st.Block.GetFinalisedHash(fm.Round, gs.state.setID)
-	require.NoError(t, err)
-	require.Equal(t, fm.Vote.Hash, hash)
 }
 
 func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T) {
@@ -468,9 +463,9 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
-	err = gs.blockState.SetFinalisedHash(testGenesisHeader.Hash(), round, setID)
+	err = gs.blockState.SetFinalisedHash(testGenesisHeader.Hash(), round, setID, true)
 	require.NoError(t, err)
-	err = gs.blockState.(*state.BlockState).SetHeader(&block.Header)
+	err = gs.blockState.SetHeader(&block.Header)
 	require.NoError(t, err)
 
 	pvj := []SignedVote{

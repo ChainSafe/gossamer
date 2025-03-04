@@ -34,8 +34,6 @@ func NewMockAnyBlockAPI(ctrl *gomock.Controller) *modulesmocks.MockBlockAPI {
 	m.EXPECT().BestBlockHash().Return(common.Hash{}).AnyTimes()
 	m.EXPECT().GetBlockByHash(gomock.Any()).Return(nil, nil).AnyTimes()
 	m.EXPECT().GetHashByNumber(gomock.Any()).Return(common.Hash{}, nil).AnyTimes()
-	m.EXPECT().GetFinalisedHash(gomock.Any(), gomock.Any()).
-		Return(common.Hash{}, nil).AnyTimes()
 	m.EXPECT().GetHighestFinalisedHash().Return(common.Hash{}, nil).AnyTimes()
 	m.EXPECT().GetImportedBlockNotifierChannel().Return(make(chan *types.Block, 5)).AnyTimes()
 	m.EXPECT().FreeImportedBlockNotifierChannel(gomock.Any()).AnyTimes()

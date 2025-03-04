@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe/inherents"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -35,7 +36,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot, rt Runtime,
 	)
 
 	// is necessary to enable ethmetrics to be possible register values
-	ethmetrics.Enabled = true
+	ethmetrics.Enable()
 
 	start := time.Now()
 	block, err := builder.buildBlock(parent, slot, rt)
@@ -54,7 +55,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot, rt Runtime,
 type BlockBuilder struct {
 	keypair               *sr25519.Keypair
 	transactionState      TransactionState
-	blockState            BlockState
+	blockState            state.BlockState
 	currentAuthorityIndex uint32
 	preRuntimeDigest      *types.PreRuntimeDigest
 }
@@ -63,7 +64,7 @@ type BlockBuilder struct {
 func NewBlockBuilder(
 	kp *sr25519.Keypair,
 	ts TransactionState,
-	bs BlockState,
+	bs state.BlockState,
 	authidx uint32,
 	preRuntimeDigest *types.PreRuntimeDigest,
 ) *BlockBuilder {

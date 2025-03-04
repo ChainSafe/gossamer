@@ -11,7 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// Header is a block header, and implements a compatible encoding to `sp_runtime::generic::Header`
+// Header is a block header, and implements a compatible encoding to sp_runtime::generic::Header
 type Header[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	// The parent hash.
 	parentHash H
@@ -113,7 +113,7 @@ func (h Header[N, H, Hasher]) Hash() H {
 	return hasher.HashEncoded(h)
 }
 
-// NewHeader is the constructor for `Header`
+// NewHeader is the constructor for Header
 func NewHeader[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H]](
 	number N,
 	extrinsicsRoot H,

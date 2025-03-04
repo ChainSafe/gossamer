@@ -750,7 +750,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 			fmt.Sprint(forkBobLastHeader.Number),
 		),
 	)
-	err = stateService.Block.SetFinalisedHash(forkBobLastHeader.Hash(), 1, 1)
+	err = stateService.Block.SetFinalisedHash(forkBobLastHeader.Hash(), 1, 1, true)
 	require.NoError(t, err)
 
 	// wait for digest handleBlockFinalize goroutine gets the finalized

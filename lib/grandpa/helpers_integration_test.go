@@ -145,7 +145,7 @@ func newTestState(t *testing.T) *state.Service {
 	_, genTrie, _ := newWestendDevGenesisWithTrieAndHeader(t)
 	tries := state.NewTries()
 	tries.SetTrie(genTrie)
-	block, err := state.NewBlockStateFromGenesis(db, tries, testGenesisHeader, telemetryMock)
+	block, err := state.NewDefaultBlockStateFromGenesis(db, tries, testGenesisHeader, telemetryMock)
 	require.NoError(t, err)
 
 	var rtCfg wazero_runtime.Config
