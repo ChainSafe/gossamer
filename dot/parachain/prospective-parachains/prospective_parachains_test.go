@@ -365,7 +365,7 @@ func TestGetMinimumRelayParents(t *testing.T) {
 			BlockNumber: 10,
 		},
 	}
-	// Validate the results
+
 	result := <-sender
 	assert.Len(t, result, 2)
 
