@@ -5,6 +5,7 @@ package parachain
 
 import (
 	"fmt"
+	bitfielddistribution "github.com/ChainSafe/gossamer/dot/parachain/bitfield-distribution"
 	"time"
 
 	bitfieldsigning "github.com/ChainSafe/gossamer/dot/parachain/bitfield-signing"
@@ -94,6 +95,10 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	// register bitfield signing subsystem
 	bitfieldSigningsSubsystem := bitfieldsigning.NewBitfieldSigning(overseer.SubsystemsToOverseer, ks, st.Block)
 	overseer.RegisterSubsystem(bitfieldSigningsSubsystem)
+
+	// register bitfield distribution subsystem
+	bitfieldDistributionSubsystem := bitfielddistribution.NewBitfieldDistribution(overseer.SubsystemsToOverseer)
+	overseer.RegisterSubsystem(bitfieldDistributionSubsystem)
 
 	parachainService := &Service{
 		Network:  net,

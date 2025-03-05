@@ -22,6 +22,7 @@ const (
 	StatementDistribution SubSystemName = "StatementDistribution"
 	ProspectiveParachains SubSystemName = "ProspectiveParachains"
 	BitfieldSigning       SubSystemName = "BitfieldSigning"
+	BitfieldDistribution  SubSystemName = "BitfieldDistribution"
 )
 
 var SubsystemRequestTimeout = 5 * time.Second

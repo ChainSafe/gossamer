@@ -46,3 +46,10 @@ type ProvisionableDataMisbehaviorReport struct {
 }
 
 func (ProvisionableDataMisbehaviorReport) IsData() {}
+
+type ProvisionableDataBitfield struct {
+	RelayParent common.Hash
+	Bitfield    parachaintypes.UncheckedSignedAvailabilityBitfield
+}
+
+func (p ProvisionableDataBitfield) IsData() {}

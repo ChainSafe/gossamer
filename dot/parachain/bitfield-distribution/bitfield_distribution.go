@@ -10,19 +10,41 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 	"github.com/ChainSafe/gossamer/internal/log"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-bitfield-distribution"))
 
-var _ parachaintypes.Subsystem = (*BitfieldDistribution)(nil)
+type perRelayParentData struct {
+	sessionIndex            parachaintypes.SessionIndex // the required part of the signing context
+	validators              []parachaintypes.ValidatorID
+	onePerValidator         map[parachaintypes.ValidatorID]*validationprotocol.BitfieldDistributionMessage
+	messageSentToPeer       map[peer.ID]map[parachaintypes.ValidatorID]struct{}
+	messageReceivedFromPeer map[peer.ID]map[parachaintypes.ValidatorID]struct{}
+}
 
 type BitfieldDistribution struct {
 	subSystemToOverseer chan<- any
+	peerViews           map[peer.ID]struct {
+		view            parachaintypes.View
+		protocolVersion uint32 // ignore v1 peers
+	}
+	ourView        parachaintypes.View
+	topologies     SessionBoundGridTopologyStorage // TODO: impl this part in the #4357
+	perRelayParent map[common.Hash]*perRelayParentData
 }
 
 func NewBitfieldDistribution(overseerChan chan<- any) *BitfieldDistribution {
 	return &BitfieldDistribution{
 		subSystemToOverseer: overseerChan,
+		peerViews: make(map[peer.ID]struct {
+			view            parachaintypes.View
+			protocolVersion uint32
+		}),
+		ourView:        parachaintypes.View{},
+		topologies:     nil,
+		perRelayParent: make(map[common.Hash]*perRelayParentData),
 	}
 }
 
@@ -42,6 +64,12 @@ func (b *BitfieldDistribution) Run(ctx context.Context, overseerToSubSystem <-ch
 		}
 	}
 }
+
+// logic points:
+// Before gossiping incoming bitfields, they must be checked to be signed by one of the validators of the validator set relevant to the current relay parent.
+// Only accept bitfields relevant to our current view
+// only distribute bitfields to other peers when relevant to their most recent view
+// Accept and distribute only one bitfield per validator.
 
 // processMessage processes messages sent to the BitfieldDistribution subsystem
 func (b *BitfieldDistribution) processMessage(msg any) error {
@@ -113,6 +141,8 @@ func (b *BitfieldDistribution) ProcessNewGossipTopologySignal(signal networkbrid
 	panic("implement me")
 }
 
+// TODO: improve or penalize the reputation of peers based on the messages that are received relative to the current view.
+// this is where ReputationAggregator need to weight in
 func (b *BitfieldDistribution) ProcessPeerViewChangeSignal(signal networkbridgeevents.PeerViewChange) error {
 	//TODO implement me
 	panic("implement me")
