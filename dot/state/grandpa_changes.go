@@ -213,7 +213,7 @@ func (ct *changeTree) importChange(pendingChange *pendingChange, isDescendantOf 
 	return nil
 }
 
-// lookupChangesWhere returns the first change which satisfy the
+// lookupChangeWhere returns the first change which satisfy the
 // condition whithout modify the current state of the change tree
 func (ct *changeTree) lookupChangeWhere(condition conditionFunc[*pendingChangeNode]) (
 	changeNode *pendingChangeNode, err error) {
