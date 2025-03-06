@@ -29,7 +29,7 @@ func IsVoteWorthToKeep(
 
 	statement, err := disputeStatement.Value()
 	if err != nil {
-		panic("unexpected empty inner in DisputeStatement")
+		panic(fmt.Sprintf("getting value from disputeStatement: %s", err))
 	}
 
 	switch inner := statement.(type) {
