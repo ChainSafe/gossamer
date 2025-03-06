@@ -90,9 +90,6 @@ func (cb *CandidateBacking) checkLeafForSeconding(
 		Response:   responseCh,
 	}
 
-	// from this response, only candidate hash is used. Not the hypothetical candidate.
-	// so figure out if we really need to send hypothetical candidate in the first place.
-	// if not, then we can replace it with candidate hash in the response.
 	memberships, ok := <-responseCh
 	if !ok {
 		logger.Error("failed to receive hypothetical membership response: response channel is closed")
