@@ -12,27 +12,43 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"sync"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-bitfield-distribution"))
 
 type perRelayParentData struct {
-	sessionIndex            parachaintypes.SessionIndex // the required part of the signing context
-	validators              []parachaintypes.ValidatorID
-	onePerValidator         map[parachaintypes.ValidatorID]*validationprotocol.BitfieldDistributionMessage
-	messageSentToPeer       map[peer.ID]map[parachaintypes.ValidatorID]struct{}
+	// Signing context for a particular relay parent.
+	sessionIndex parachaintypes.SessionIndex // the required part of the signing context
+
+	// Set of validators for a particular relay parent.
+	validatorsSet []parachaintypes.ValidatorID
+
+	// Set of validators for a particular relay parent for which we
+	// received a valid `BitfieldGossipMessage`.
+	// Also serves as the list of known messages for peers connecting
+	// after bitfield gossips were already received.
+	onePerValidator map[parachaintypes.ValidatorID]*validationprotocol.BitfieldDistributionMessage
+
+	// Avoid duplicate message transmission to our peers.
+	messageSentToPeer map[peer.ID]map[parachaintypes.ValidatorID]struct{}
+
+	// Track messages that were already received by a peer to prevent flooding.
 	messageReceivedFromPeer map[peer.ID]map[parachaintypes.ValidatorID]struct{}
 }
 
 type BitfieldDistribution struct {
 	subSystemToOverseer chan<- any
-	peerViews           map[peer.ID]struct {
+
+	peerViews map[peer.ID]struct {
 		view            parachaintypes.View
 		protocolVersion uint32 // ignore v1 peers
 	}
 	ourView        parachaintypes.View
 	topologies     SessionBoundGridTopologyStorage // TODO: impl this part in the #4357
 	perRelayParent map[common.Hash]*perRelayParentData
+
+	mu sync.Mutex
 }
 
 func NewBitfieldDistribution(overseerChan chan<- any) *BitfieldDistribution {
@@ -43,7 +59,7 @@ func NewBitfieldDistribution(overseerChan chan<- any) *BitfieldDistribution {
 			protocolVersion uint32
 		}),
 		ourView:        parachaintypes.View{},
-		topologies:     nil,
+		topologies:     nil, // TODO:
 		perRelayParent: make(map[common.Hash]*perRelayParentData),
 	}
 }
@@ -127,13 +143,32 @@ func (b *BitfieldDistribution) Name() parachaintypes.SubSystemName {
 }
 
 func (b *BitfieldDistribution) ProcessPeerConnectedSignal(signal networkbridgeevents.PeerConnected) error {
-	//TODO implement me
-	panic("implement me")
+	go func(pc networkbridgeevents.PeerConnected) {
+		// only care about version 2 and 3
+		if pc.ProtocolVersion == 2 || pc.ProtocolVersion == 3 {
+			b.mu.Lock()
+			b.peerViews[pc.PeerID] = struct {
+				view            parachaintypes.View
+				protocolVersion uint32 // ignore v1 peers
+			}{
+				view:            parachaintypes.View{}, // TODO: default view?
+				protocolVersion: pc.ProtocolVersion,
+			}
+			b.mu.Unlock()
+		}
+	}(signal)
+
+	return nil
 }
 
 func (b *BitfieldDistribution) ProcessPeerDisconnectedSignal(signal networkbridgeevents.PeerDisconnected) error {
-	//TODO implement me
-	panic("implement me")
+	go func() {
+		b.mu.Lock()
+		delete(b.peerViews, signal.PeerID)
+		b.mu.Unlock()
+	}()
+
+	return nil
 }
 
 func (b *BitfieldDistribution) ProcessNewGossipTopologySignal(signal networkbridgeevents.NewGossipTopology) error {
