@@ -22,6 +22,7 @@ on:
         options:
           - paseo
           - westend
+          - polkadot
       instance:
         description: 'Instance'
         required: true

@@ -68,6 +68,7 @@ func TestMaxPeers(t *testing.T) {
 			Port:        availablePort(t),
 			NoBootstrap: true,
 			NoMDNS:      true,
+			MinPeers:    1,
 			MaxPeers:    max,
 		}
 		node := createTestService(t, config)
@@ -90,7 +91,7 @@ func TestMaxPeers(t *testing.T) {
 
 	time.Sleep(200 * time.Millisecond)
 	p := nodes[0].host.p2pHost.Peerstore().Peers()
-	require.LessOrEqual(t, max, len(p))
+	require.LessOrEqual(t, len(p), max)
 }
 
 func TestProtectUnprotectPeer(t *testing.T) {
