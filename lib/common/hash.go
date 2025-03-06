@@ -11,6 +11,8 @@ import (
 	"io"
 	"reflect"
 	"strings"
+
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 )
 
 const (
@@ -22,6 +24,16 @@ var EmptyHash = Hash{}
 
 // Hash used to store a blake2b hash
 type Hash [32]byte
+
+// NewHashFromGeneric creates a new Hash from a generic hash
+func NewHashFromGeneric[H runtime.Hash](hash H) Hash {
+	bytes := hash.Bytes()
+	if len(bytes) != HashLength {
+		panic("hash length is not 32 bytes")
+	}
+
+	return Hash(bytes)
+}
 
 // NewHash casts a byte array to a Hash
 // if the input is longer than 32 bytes, it takes the first 32 bytes

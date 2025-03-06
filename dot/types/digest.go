@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -97,6 +98,48 @@ func NewDigestItem() DigestItem {
 
 // Digest is slice of DigestItem
 type Digest []DigestItem
+
+// NewDigestFromGeneric returns a new Digest from a generic digest
+func NewDigestFromGeneric(gd runtime.Digest) (Digest, error) {
+	newDigest := Digest{}
+	for _, log := range gd.Logs {
+		value, err := log.Value()
+		if err != nil {
+			return nil, err
+		}
+
+		var digest any
+
+		switch v := value.(type) {
+		case runtime.PreRuntime:
+			digest = PreRuntimeDigest{
+				ConsensusEngineID: ConsensusEngineID(v.ConsensusEngineID),
+				Data:              v.Bytes,
+			}
+		case runtime.Consensus:
+			digest = ConsensusDigest{
+				ConsensusEngineID: ConsensusEngineID(v.ConsensusEngineID),
+				Data:              v.Bytes,
+			}
+		case runtime.Seal:
+			digest = SealDigest{
+				ConsensusEngineID: ConsensusEngineID(v.ConsensusEngineID),
+				Data:              v.Bytes,
+			}
+		case runtime.RuntimeEnvironmentUpdated:
+			digest = RuntimeEnvironmentUpdated{}
+		default:
+			return nil, fmt.Errorf("unsupported type")
+		}
+
+		err = newDigest.Add(digest)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return newDigest, nil
+}
 
 func (d *Digest) Add(values ...any) (err error) {
 	for _, value := range values {

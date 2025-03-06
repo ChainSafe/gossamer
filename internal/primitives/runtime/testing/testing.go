@@ -11,3 +11,7 @@ type ExtrinsicsWrapper[T any] struct {
 func (ExtrinsicsWrapper[T]) IsSigned() *bool {
 	return nil
 }
+
+func (ExtrinsicsWrapper[T]) Bytes() []byte {
+	return nil
+}

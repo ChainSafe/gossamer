@@ -534,17 +534,17 @@ func (s *GrandpaState) GetNextResume() (blockNumber uint, err error) {
 
 func prevotesKey(round, setID uint64) []byte {
 	prevotesPrefix := []byte("pv")
-	k := roundAndSetIDToBytes(round, setID)
+	k := RoundAndSetIDToBytes(round, setID)
 	return append(prevotesPrefix, k...)
 }
 
 func precommitsKey(round, setID uint64) []byte {
 	precommitsPrefix := []byte("pc")
-	k := roundAndSetIDToBytes(round, setID)
+	k := RoundAndSetIDToBytes(round, setID)
 	return append(precommitsPrefix, k...)
 }
 
-func roundAndSetIDToBytes(round, setID uint64) []byte {
+func RoundAndSetIDToBytes(round, setID uint64) []byte {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, round)
 	buf2 := make([]byte, 8)
