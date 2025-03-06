@@ -1,7 +1,6 @@
 // Copyright 2025 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-// Package messages defines the types and interfaces for messages sent to the Prospective Parachains subsystem.
 package messages
 
 import (
@@ -14,8 +13,9 @@ type ProspectiveParachainsMessage interface {
 	isProspectiveParachainsMessage()
 }
 
-// IntroduceSecondedCandidate informs the Prospective Parachains Subsystem of a new seconded candidate.
-// The response is false if the candidate was rejected by prospective parachains, true otherwise (if it was accepted or already present).
+// IntroduceSecondedCandidate Inform the Prospective Parachains Subsystem of a new seconded candidate.
+// The response is false if the candidate was rejected by prospective parachains,
+// true otherwise (if it was accepted or already present)
 type IntroduceSecondedCandidate struct {
 	IntroduceSecondedCandidateRequest
 	Response chan bool
@@ -23,15 +23,20 @@ type IntroduceSecondedCandidate struct {
 
 func (IntroduceSecondedCandidate) isProspectiveParachainsMessage() {}
 
-// IntroduceSecondedCandidateRequest requests the introduction of a seconded candidate into the prospective parachains subsystem.
+// IntroduceSecondedCandidateRequest requests the introduction of a seconded candidate into the prospective parachains
+// subsystem.
 type IntroduceSecondedCandidateRequest struct {
-	CandidateParaID         parachaintypes.ParaID                    // The para-id of the candidate.
-	CandidateReceipt        parachaintypes.CommittedCandidateReceipt // The candidate receipt itself.
-	PersistedValidationData parachaintypes.PersistedValidationData   // The persisted validation data of the candidate.
+	// The para-id of the candidate.
+	CandidateParaID parachaintypes.ParaID
+	// The candidate receipt itself.
+	CandidateReceipt parachaintypes.CommittedCandidateReceipt
+	// The persisted validation data of the candidate.
+	PersistedValidationData parachaintypes.PersistedValidationData
 }
 
-// CandidateBacked informs the Prospective Parachains Subsystem that a previously introduced candidate has been backed.
-// This requires that the candidate was successfully introduced in the past.
+// CandidateBacked Inform the Prospective Parachains Subsystem that a previously introduced candidate
+// has been backed. This requires that the candidate was successfully introduced in
+// the past.
 type CandidateBacked struct {
 	ParaId        parachaintypes.ParaID
 	CandidateHash parachaintypes.CandidateHash
@@ -39,7 +44,7 @@ type CandidateBacked struct {
 
 func (CandidateBacked) isProspectiveParachainsMessage() {}
 
-// GetBackableCandidates tries getting the requested quantity of backable candidate hashes along with their relay parents
+// GetBackableCandidates Try getting requested quantity of backable candidate hashes along with their relay parents
 // for the given parachain, under the given relay-parent hash, which is a descendant of the given ancestors.
 // Timed out ancestors should not be included in the collection.
 // RequestedQty should represent the number of scheduled cores of this ParaId.
@@ -70,7 +75,7 @@ type Ancestors map[parachaintypes.CandidateHash]struct{}
 // If an active leaf is not in the vector, it means that there's no
 // chance this candidate will become valid under that leaf in the future.
 //
-// If `FragmentChainRelayParent` in the request is not `nil`, the return vector can only
+// If `FragmentChainRelayParent` in the request is not `nil`, the return slice can only
 // contain this relay parent (or none).
 type GetHypotheticalMembership struct {
 	// Candidates, in arbitrary order, which should be checked for

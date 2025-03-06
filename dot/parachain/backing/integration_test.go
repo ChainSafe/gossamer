@@ -475,7 +475,8 @@ func TestSecondsValidCandidate(t *testing.T) {
 	}
 
 	// set expected actions for overseer messages we send from the subsystem.
-	overseer.ExpectActions(validate2, storeAvailableData, getHypotheticalMembership, introduceCandidate, distribute, informSeconded)
+	overseer.ExpectActions(validate2, storeAvailableData, getHypotheticalMembership,
+		introduceCandidate, distribute, informSeconded)
 
 	// receive second message from overseer to candidate backing subsystem
 	overseer.ReceiveMessage(
@@ -1173,7 +1174,8 @@ func TestNewLeafDoesNotClobberOld(t *testing.T) {
 	//
 	// But, when the old leaf view is not clobbered, the candidate will be seconded.
 	// so, oversee expects all four overseer messages.
-	overseer.ExpectActions(validate, storeAvailableData, getHypotheticalMembership, introduceCandidate, distribute, informSeconded)
+	overseer.ExpectActions(validate, storeAvailableData, getHypotheticalMembership,
+		introduceCandidate, distribute, informSeconded)
 
 	overseer.ReceiveMessage(backing.SecondMessage{
 		RelayParent:             relayParent1,

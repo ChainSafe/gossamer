@@ -33,7 +33,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
-	"github.com/tidwall/btree"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-candidate-backing"))
@@ -58,8 +57,6 @@ type CandidateBacking struct {
 	// This is guaranteed to have an entry for each candidate with a relay parent in the implicit
 	// or explicit view for which a `Seconded` statement has been successfully imported.
 	perCandidate map[parachaintypes.CandidateHash]*perCandidateState
-	// State tracked for all active leaves, whether or not they have prospective parachains enabled.
-	perLeaf map[common.Hash]*activeLeafState
 	// The utility for managing the implicit and explicit views in a consistent way.
 	// We only feed leaves which have prospective parachains enabled to this view.
 	ImplicitView ImplicitView
@@ -73,11 +70,6 @@ type CandidateBacking struct {
 
 type BlockState interface {
 	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
-}
-
-type activeLeafState struct {
-	prospectiveParachainsMode parachaintypes.ProspectiveParachainsMode
-	secondedAtDepth           map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]
 }
 
 // perCandidateState represents the state information for a candidate in the subsystem.
@@ -165,7 +157,6 @@ func New(overseerChan chan<- any) *CandidateBacking {
 		SubSystemToOverseer: overseerChan,
 		perRelayParent:      map[common.Hash]*perRelayParentState{},
 		perCandidate:        map[parachaintypes.CandidateHash]*perCandidateState{},
-		perLeaf:             map[common.Hash]*activeLeafState{},
 		perSessionCache:     newPerSessionCache(2),
 	}
 }

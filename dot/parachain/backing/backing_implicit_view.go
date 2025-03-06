@@ -27,7 +27,7 @@ type ImplicitView interface {
 	// This will request the minimum relay parents the leaf and will load headers in the
 	// ancestry of the leaf as needed. These are the 'implicit ancestors' of the leaf.
 	//
-	// To maximize reuse of outdated leaves, it's best to activate new leaves before
+	// To maximise reuse of outdated leaves, it's best to activate new leaves before
 	// deactivating old ones.
 	ActivateLeaf(leafHash common.Hash) error
 	// Deactivate a leaf in the view. This prunes any outdated implicit ancestors as well.
