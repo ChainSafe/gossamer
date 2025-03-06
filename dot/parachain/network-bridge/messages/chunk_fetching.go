@@ -1,10 +1,12 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package parachain
+package messages
 
 import (
 	"fmt"
+
+	"github.com/ChainSafe/gossamer/dot/network"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -22,6 +24,16 @@ type ChunkFetchingRequest struct {
 // Encode returns the SCALE encoding of the ChunkFetchingRequest
 func (c ChunkFetchingRequest) Encode() ([]byte, error) {
 	return scale.Marshal(c)
+}
+
+// Protocol returns the sub-protocol ID for this message
+func (c ChunkFetchingRequest) Protocol() ReqProtocolName {
+	return ChunkFetchingV1
+}
+
+// Response returns an instance of the response type for this message, for the purpose of decoding into it.
+func (c ChunkFetchingRequest) Response() network.ResponseMessage {
+	return &ChunkFetchingResponse{}
 }
 
 type ChunkFetchingResponseValues interface {

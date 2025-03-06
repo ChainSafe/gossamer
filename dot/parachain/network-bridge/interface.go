@@ -27,7 +27,7 @@ type Network interface {
 		maxSize uint64,
 	) error
 	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
-		maxResponseSize uint64) *network.RequestResponseProtocol
+		maxResponseSize uint64) network.RequestMaker
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
 	DisconnectPeer(setID int, p peer.ID)
 	GetNetworkEventsChannel() chan *network.NetworkEventInfo

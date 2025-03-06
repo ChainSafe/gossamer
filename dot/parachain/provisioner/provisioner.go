@@ -13,7 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("pkg", "provisioner"))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-provisioner"))
 
 // we expect an inherent to be ready after this time.
 const InherentTimeout = 2 * time.Second

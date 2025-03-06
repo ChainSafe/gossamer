@@ -63,3 +63,16 @@ type ConnectToValidators struct {
 	// authority discovery has Failed to resolve.
 	Failed chan<- uint
 }
+
+type IfDisconnectedBehavior int
+
+const (
+	TryConnect     IfDisconnectedBehavior = iota
+	ImmediateError                        // TODO not implemented
+)
+
+// SendRequests is a subsystem message for sending requests over a request response protocol.
+type SendRequests struct {
+	Requests       []*OutgoingRequest
+	IfDisconnected IfDisconnectedBehavior
+}
