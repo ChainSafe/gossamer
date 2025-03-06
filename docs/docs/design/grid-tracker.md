@@ -16,6 +16,14 @@ Grid tracker is a knowledge data struct that stores authorities for a given rela
   - **example 2.** we've marked a candidate as backed, so we should query every validator we can send (given the grid topology) and insert in the pending manifests a `Full Manifest`, meaning that we will send them this message, as well query all the validators who have sent to us manifests for that hash (if any) and for them insert an `Acknowledgement Manifest`.
 - **pending statements**: is essentially a message queue that tracks which validator statements need to be sent to which validators. It maps a target validator, who needs to receive the information to a set o tuples containing the originator, who created the statement, and the statement (either Seconded or Valid).
 
+##### What is a manifest?
+
+Manifest is a kind of message that can be sent/received by validators. Currently there is two types of manifests `BackedCandidateManifest` or `Full Manifest`, and `BackedCandidateAcknowledgement` or `Acknowledgement Manifest`.
+
+- `Full Manifest`: is a message that advertise a description of a backed candidate and stored statements. This message is send whenever a validator observers a candidate as backed.
+
+- `Acknowledgement Manifest`: acknowledge that a backed candidate is fully known, is sent in response of a `Full Manifest` message.
+
 The Grid Tracker relies on [`StatementFilter`](https://github.com/paritytech/polkadot-sdk/blob/c29e72a8628835e34deb6aa7db9a78a2e4eabcee/polkadot/node/network/protocol/src/lib.rs#L630) which is a struct that holds in a bitfield what CandidateStatement (Seconded or Valid) a validator index produced in a group. It is used under the Mutual Knowledge where we can easily. check if a remote peer has the same statements that our node has, and in a case one or more is missing we can provide it.
 
 We can split the Grid Tracker Behaviours in 4 parts:
@@ -44,7 +52,7 @@ Processes any previously received unconfirmed manifests. Determines which valida
 #### Network Routing Logic
 - **can request**: determines if a validator may request manifest data from us. Checks if we've sent them a manifest but haven't received theirs
 
-- **direct statement providers**: Identifies validators who can send us a specific statement.Analyzes network topology to find authorized senders. Indicates if the sender should already know about the 
+- **direct statement providers**: Identifies validators who can send us a specific statement. Analyzes network topology to find authorized senders. Indicates if the sender should already know about the statement.
 
 - **direct statement targets**: Determines validators who should receive a statement from us. Returns validators who need this statement based on mutual knowledge
 
