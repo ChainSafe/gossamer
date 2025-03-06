@@ -21,6 +21,7 @@ import (
 type MockTelemetry struct {
 	ctrl     *gomock.Controller
 	recorder *MockTelemetryMockRecorder
+	isgomock struct{}
 }
 
 // MockTelemetryMockRecorder is the mock recorder for MockTelemetry.
@@ -41,21 +42,22 @@ func (m *MockTelemetry) EXPECT() *MockTelemetryMockRecorder {
 }
 
 // SendMessage mocks base method.
-func (m *MockTelemetry) SendMessage(arg0 json.Marshaler) {
+func (m *MockTelemetry) SendMessage(msg json.Marshaler) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SendMessage", arg0)
+	m.ctrl.Call(m, "SendMessage", msg)
 }
 
 // SendMessage indicates an expected call of SendMessage.
-func (mr *MockTelemetryMockRecorder) SendMessage(arg0 any) *gomock.Call {
+func (mr *MockTelemetryMockRecorder) SendMessage(msg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockTelemetry)(nil).SendMessage), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMessage", reflect.TypeOf((*MockTelemetry)(nil).SendMessage), msg)
 }
 
 // MockBlockStateDatabase is a mock of BlockStateDatabase interface.
 type MockBlockStateDatabase struct {
 	ctrl     *gomock.Controller
 	recorder *MockBlockStateDatabaseMockRecorder
+	isgomock struct{}
 }
 
 // MockBlockStateDatabaseMockRecorder is the mock recorder for MockBlockStateDatabase.
@@ -76,47 +78,47 @@ func (m *MockBlockStateDatabase) EXPECT() *MockBlockStateDatabaseMockRecorder {
 }
 
 // Del mocks base method.
-func (m *MockBlockStateDatabase) Del(arg0 []byte) error {
+func (m *MockBlockStateDatabase) Del(key []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Del", arg0)
+	ret := m.ctrl.Call(m, "Del", key)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Del indicates an expected call of Del.
-func (mr *MockBlockStateDatabaseMockRecorder) Del(arg0 any) *gomock.Call {
+func (mr *MockBlockStateDatabaseMockRecorder) Del(key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Del", reflect.TypeOf((*MockBlockStateDatabase)(nil).Del), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Del", reflect.TypeOf((*MockBlockStateDatabase)(nil).Del), key)
 }
 
 // Get mocks base method.
-func (m *MockBlockStateDatabase) Get(arg0 []byte) ([]byte, error) {
+func (m *MockBlockStateDatabase) Get(key []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", arg0)
+	ret := m.ctrl.Call(m, "Get", key)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Get indicates an expected call of Get.
-func (mr *MockBlockStateDatabaseMockRecorder) Get(arg0 any) *gomock.Call {
+func (mr *MockBlockStateDatabaseMockRecorder) Get(key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockBlockStateDatabase)(nil).Get), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockBlockStateDatabase)(nil).Get), key)
 }
 
 // Has mocks base method.
-func (m *MockBlockStateDatabase) Has(arg0 []byte) (bool, error) {
+func (m *MockBlockStateDatabase) Has(key []byte) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Has", arg0)
+	ret := m.ctrl.Call(m, "Has", key)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Has indicates an expected call of Has.
-func (mr *MockBlockStateDatabaseMockRecorder) Has(arg0 any) *gomock.Call {
+func (mr *MockBlockStateDatabaseMockRecorder) Has(key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Has", reflect.TypeOf((*MockBlockStateDatabase)(nil).Has), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Has", reflect.TypeOf((*MockBlockStateDatabase)(nil).Has), key)
 }
 
 // NewBatch mocks base method.
@@ -134,23 +136,24 @@ func (mr *MockBlockStateDatabaseMockRecorder) NewBatch() *gomock.Call {
 }
 
 // Put mocks base method.
-func (m *MockBlockStateDatabase) Put(arg0, arg1 []byte) error {
+func (m *MockBlockStateDatabase) Put(key, value []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Put", arg0, arg1)
+	ret := m.ctrl.Call(m, "Put", key, value)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Put indicates an expected call of Put.
-func (mr *MockBlockStateDatabaseMockRecorder) Put(arg0, arg1 any) *gomock.Call {
+func (mr *MockBlockStateDatabaseMockRecorder) Put(key, value any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Put", reflect.TypeOf((*MockBlockStateDatabase)(nil).Put), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Put", reflect.TypeOf((*MockBlockStateDatabase)(nil).Put), key, value)
 }
 
 // MockObserver is a mock of Observer interface.
 type MockObserver struct {
 	ctrl     *gomock.Controller
 	recorder *MockObserverMockRecorder
+	isgomock struct{}
 }
 
 // MockObserverMockRecorder is the mock recorder for MockObserver.
@@ -199,13 +202,13 @@ func (mr *MockObserverMockRecorder) GetID() *gomock.Call {
 }
 
 // Update mocks base method.
-func (m *MockObserver) Update(arg0 *SubscriptionResult) {
+func (m *MockObserver) Update(result *SubscriptionResult) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Update", arg0)
+	m.ctrl.Call(m, "Update", result)
 }
 
 // Update indicates an expected call of Update.
-func (mr *MockObserverMockRecorder) Update(arg0 any) *gomock.Call {
+func (mr *MockObserverMockRecorder) Update(result any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockObserver)(nil).Update), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockObserver)(nil).Update), result)
 }
