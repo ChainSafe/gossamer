@@ -18,11 +18,12 @@ Grid tracker is a knowledge data struct that stores authorities for a given rela
 
 ##### What is a manifest?
 
-Manifest is a kind of message that can be sent/received by validators. Currently there is two types of manifests `BackedCandidateManifest` or `Full Manifest`, and `BackedCandidateAcknowledgement` or `Acknowledgement Manifest`.
+Manifest is a kind of message that can be sent/received by validators, it is specified on the [implementors-guide/statement-distribution](https://paritytech.github.io/polkadot-sdk/book/node/backing/statement-distribution.html#messages). Currently there is two types of manifests `BackedCandidateManifest` or `Full Manifest`, and `BackedCandidateAcknowledgement` or `Acknowledgement Manifest`.
 
 - `Full Manifest`: is a message that advertise a description of a backed candidate and stored statements. This message is send whenever a validator observers a candidate as backed.
 
 - `Acknowledgement Manifest`: acknowledge that a backed candidate is fully known, is sent in response of a `Full Manifest` message.
+
 
 The Grid Tracker relies on [`StatementFilter`](https://github.com/paritytech/polkadot-sdk/blob/c29e72a8628835e34deb6aa7db9a78a2e4eabcee/polkadot/node/network/protocol/src/lib.rs#L630) which is a struct that holds in a bitfield what CandidateStatement (Seconded or Valid) a validator index produced in a group. It is used under the Mutual Knowledge where we can easily. check if a remote peer has the same statements that our node has, and in a case one or more is missing we can provide it.
 
