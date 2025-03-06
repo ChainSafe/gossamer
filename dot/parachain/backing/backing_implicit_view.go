@@ -13,8 +13,29 @@ import (
 // which is composed of active leaves, and the minimum relay-parents allowed for candidates of various
 // parachains at those leaves
 type ImplicitView interface {
+	// Get the known, allowed relay-parents that are valid for parachain candidates
+	// which could be backed in a child of a given block for a given para ID.
+	//
+	// This is expressed as a contiguous slice of relay-chain block hashes which may
+	// include the provided block hash itself.
+	//
+	// If paraID is nil, return all valid relay-parents across all parachains for the leaf.
 	KnownAllowedRelayParentsUnder(blockHash common.Hash, paraID *parachaintypes.ParaID) []common.Hash
-	ActiveLeaf(leafHash common.Hash) ([]parachaintypes.ParaID, error)
+	// Get active leaves in the view
+	Leaves() []common.Hash
+	// Activate a leaf in the view.
+	// This will request the minimum relay parents the leaf and will load headers in the
+	// ancestry of the leaf as needed. These are the 'implicit ancestors' of the leaf.
+	//
+	// To maximize reuse of outdated leaves, it's best to activate new leaves before
+	// deactivating old ones.
+	ActivateLeaf(leafHash common.Hash) error
+	// Deactivate a leaf in the view. This prunes any outdated implicit ancestors as well.
+	// Returns hashes of blocks pruned from storage.
 	deactivateLeaf(leafHash common.Hash) []common.Hash
+	// Get all allowed relay-parents in the view with no particular order.
+	//
+	// Important: not all blocks are guaranteed to be allowed for some leaves, it may
+	// happen that a block info is only kept in the view storage because of a retaining rule.
 	AllAllowedRelayParents() []common.Hash
 }

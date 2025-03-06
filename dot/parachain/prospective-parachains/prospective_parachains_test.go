@@ -9,6 +9,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/assert"
@@ -20,7 +21,7 @@ func introduceSecondedCandidate(
 	candidate parachaintypes.CommittedCandidateReceipt,
 	pvd parachaintypes.PersistedValidationData,
 ) {
-	req := IntroduceSecondedCandidateRequest{
+	req := messages.IntroduceSecondedCandidateRequest{
 		CandidateParaID:         candidate.Descriptor.ParaID,
 		CandidateReceipt:        candidate,
 		PersistedValidationData: pvd,
@@ -28,7 +29,7 @@ func introduceSecondedCandidate(
 
 	response := make(chan bool)
 
-	msg := IntroduceSecondedCandidate{
+	msg := messages.IntroduceSecondedCandidate{
 		IntroduceSecondedCandidateRequest: req,
 		Response:                          response,
 	}
@@ -44,7 +45,7 @@ func introduceSecondedCandidateFailed(
 	candidate parachaintypes.CommittedCandidateReceipt,
 	pvd parachaintypes.PersistedValidationData,
 ) {
-	req := IntroduceSecondedCandidateRequest{
+	req := messages.IntroduceSecondedCandidateRequest{
 		CandidateParaID:         candidate.Descriptor.ParaID,
 		CandidateReceipt:        candidate,
 		PersistedValidationData: pvd,
@@ -52,7 +53,7 @@ func introduceSecondedCandidateFailed(
 
 	response := make(chan bool)
 
-	msg := IntroduceSecondedCandidate{
+	msg := messages.IntroduceSecondedCandidate{
 		IntroduceSecondedCandidateRequest: req,
 		Response:                          response,
 	}
@@ -350,12 +351,12 @@ func TestGetMinimumRelayParents(t *testing.T) {
 	}
 
 	// Create a channel to capture the output
-	sender := make(chan []ParaIDBlockNumber, 1)
+	sender := make(chan []messages.ParaIDBlockNumber, 1)
 
 	// Execute the method under test
 	pp.getMinimumRelayParents(common.BytesToHash([]byte("active_hash")), sender)
 
-	expected := []ParaIDBlockNumber{
+	expected := []messages.ParaIDBlockNumber{
 		{
 			ParaId:      1,
 			BlockNumber: 10,
@@ -391,7 +392,7 @@ func TestGetMinimumRelayParents_NoActiveLeaves(t *testing.T) {
 	}
 
 	// Create a channel to capture the output
-	sender := make(chan []ParaIDBlockNumber, 1)
+	sender := make(chan []messages.ParaIDBlockNumber, 1)
 
 	// Execute the method under test
 	pp.getMinimumRelayParents(common.BytesToHash([]byte("active_hash")), sender)
@@ -538,7 +539,7 @@ func TestGetBackableCandidates(t *testing.T) {
 	type testCase struct {
 		name           string
 		view           *view
-		msg            GetBackableCandidates
+		msg            messages.GetBackableCandidates
 		expectedLength int
 	}
 
@@ -549,11 +550,11 @@ func TestGetBackableCandidates(t *testing.T) {
 				activeLeaves:   map[common.Hash]bool{},
 				perRelayParent: map[common.Hash]*relayParentData{},
 			},
-			msg: GetBackableCandidates{
+			msg: messages.GetBackableCandidates{
 				RelayParentHash: candidateRelayParent1,
 				ParaId:          parachaintypes.ParaID(1),
 				RequestedQty:    1,
-				Ancestors:       Ancestors{},
+				Ancestors:       messages.Ancestors{},
 				Response:        make(chan []parachaintypes.CandidateHashAndRelayParent, 1),
 			},
 			expectedLength: 0,
@@ -568,11 +569,11 @@ func TestGetBackableCandidates(t *testing.T) {
 					},
 				},
 			},
-			msg: GetBackableCandidates{
+			msg: messages.GetBackableCandidates{
 				RelayParentHash: candidateRelayParent1,
 				ParaId:          parachaintypes.ParaID(1),
 				RequestedQty:    1,
-				Ancestors:       Ancestors{},
+				Ancestors:       messages.Ancestors{},
 				Response:        make(chan []parachaintypes.CandidateHashAndRelayParent, 1),
 			},
 			expectedLength: 0,
@@ -589,11 +590,11 @@ func TestGetBackableCandidates(t *testing.T) {
 					},
 				},
 			},
-			msg: GetBackableCandidates{
+			msg: messages.GetBackableCandidates{
 				RelayParentHash: candidateRelayParent1,
 				ParaId:          parachaintypes.ParaID(1),
 				RequestedQty:    1,
-				Ancestors:       Ancestors{},
+				Ancestors:       messages.Ancestors{},
 				Response:        make(chan []parachaintypes.CandidateHashAndRelayParent, 1),
 			},
 			expectedLength: 0,
@@ -610,11 +611,11 @@ func TestGetBackableCandidates(t *testing.T) {
 					},
 				},
 			},
-			msg: GetBackableCandidates{
+			msg: messages.GetBackableCandidates{
 				RelayParentHash: candidateRelayParent1,
 				ParaId:          parachaintypes.ParaID(3),
 				RequestedQty:    1,
-				Ancestors:       Ancestors{},
+				Ancestors:       messages.Ancestors{},
 				Response:        make(chan []parachaintypes.CandidateHashAndRelayParent, 1),
 			},
 			expectedLength: 0,
@@ -633,11 +634,11 @@ func TestGetBackableCandidates(t *testing.T) {
 					},
 				},
 			},
-			msg: GetBackableCandidates{
+			msg: messages.GetBackableCandidates{
 				RelayParentHash: candidateRelayParent1,
 				ParaId:          parachaintypes.ParaID(1),
 				RequestedQty:    2,
-				Ancestors: Ancestors{
+				Ancestors: messages.Ancestors{
 					parachaintypes.CandidateHash{Value: candidateRelayParent2}: struct{}{},
 					parachaintypes.CandidateHash{Value: candidateRelayParent3}: struct{}{},
 				},
@@ -675,10 +676,10 @@ func TestAnswerProspectiveValidationDataRequest(t *testing.T) {
 		}
 
 		// Create a prospective validation data request
-		request := ProspectiveValidationDataRequest{
+		request := messages.ProspectiveValidationDataRequest{
 			ParaId:               parachaintypes.ParaID(1),
 			CandidateRelayParent: common.Hash{0x01},
-			ParentHeadData: ParentHeadDataWithHash{
+			ParentHeadData: messages.ParentHeadDataWithHash{
 				Hash: common.Hash{0x01},
 				Data: parachaintypes.HeadData{Data: []byte{0x01}},
 			},
@@ -744,10 +745,10 @@ func TestAnswerProspectiveValidationDataRequest(t *testing.T) {
 		}
 
 		// Create a prospective validation data request
-		request := ProspectiveValidationDataRequest{
+		request := messages.ProspectiveValidationDataRequest{
 			ParaId:               parachaintypes.ParaID(1),
 			CandidateRelayParent: common.Hash{0x01},
-			ParentHeadData:       OnlyHash(reqParentHash),
+			ParentHeadData:       messages.OnlyHash(reqParentHash),
 		}
 
 		pp := &ProspectiveParachains{
@@ -813,10 +814,10 @@ func TestAnswerProspectiveValidationDataRequest(t *testing.T) {
 		}
 
 		// Create a prospective validation data request
-		request := ProspectiveValidationDataRequest{
+		request := messages.ProspectiveValidationDataRequest{
 			ParaId:               parachaintypes.ParaID(1),
 			CandidateRelayParent: common.Hash{0x01},
-			ParentHeadData: ParentHeadDataWithHash{
+			ParentHeadData: messages.ParentHeadDataWithHash{
 				Data: reqParent,
 				Hash: reqParentHash,
 			},
@@ -883,10 +884,10 @@ func TestAnswerProspectiveValidationDataRequest(t *testing.T) {
 		}
 
 		// Create a prospective validation data request
-		request := ProspectiveValidationDataRequest{
+		request := messages.ProspectiveValidationDataRequest{
 			ParaId:               parachaintypes.ParaID(1),
 			CandidateRelayParent: common.Hash{0x01},
-			ParentHeadData: ParentHeadDataWithHash{
+			ParentHeadData: messages.ParentHeadDataWithHash{
 				Data: reqParent,
 				Hash: common.Hash{0xc3},
 			},

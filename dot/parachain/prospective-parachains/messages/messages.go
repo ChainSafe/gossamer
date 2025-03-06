@@ -1,21 +1,21 @@
 // Copyright 2025 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package prospectiveparachains
+// Package messages defines the types and interfaces for messages sent to the Prospective Parachains subsystem.
+package messages
 
 import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// ProspectiveParachainsMessage Messages sent to the Prospective Parachains subsystem.
+// ProspectiveParachainsMessage represents messages sent to the Prospective Parachains subsystem.
 type ProspectiveParachainsMessage interface {
 	isProspectiveParachainsMessage()
 }
 
-// IntroduceSecondedCandidate Inform the Prospective Parachains Subsystem of a new seconded candidate.
-// The response is false if the candidate was rejected by prospective parachains,
-// true otherwise (if it was accepted or already present)
+// IntroduceSecondedCandidate informs the Prospective Parachains Subsystem of a new seconded candidate.
+// The response is false if the candidate was rejected by prospective parachains, true otherwise (if it was accepted or already present).
 type IntroduceSecondedCandidate struct {
 	IntroduceSecondedCandidateRequest
 	Response chan bool
@@ -23,20 +23,15 @@ type IntroduceSecondedCandidate struct {
 
 func (IntroduceSecondedCandidate) isProspectiveParachainsMessage() {}
 
-// IntroduceSecondedCandidateRequest Request introduction of a seconded candidate into the prospective parachains
-// subsystem.
+// IntroduceSecondedCandidateRequest requests the introduction of a seconded candidate into the prospective parachains subsystem.
 type IntroduceSecondedCandidateRequest struct {
-	// The para-id of the candidate.
-	CandidateParaID parachaintypes.ParaID
-	// The candidate receipt itself.
-	CandidateReceipt parachaintypes.CommittedCandidateReceipt
-	// The persisted validation data of the candidate.
-	PersistedValidationData parachaintypes.PersistedValidationData
+	CandidateParaID         parachaintypes.ParaID                    // The para-id of the candidate.
+	CandidateReceipt        parachaintypes.CommittedCandidateReceipt // The candidate receipt itself.
+	PersistedValidationData parachaintypes.PersistedValidationData   // The persisted validation data of the candidate.
 }
 
-// CandidateBacked Inform the Prospective Parachains Subsystem that a previously introduced candidate
-// has been backed. This requires that the candidate was successfully introduced in
-// the past.
+// CandidateBacked informs the Prospective Parachains Subsystem that a previously introduced candidate has been backed.
+// This requires that the candidate was successfully introduced in the past.
 type CandidateBacked struct {
 	ParaId        parachaintypes.ParaID
 	CandidateHash parachaintypes.CandidateHash
@@ -44,7 +39,7 @@ type CandidateBacked struct {
 
 func (CandidateBacked) isProspectiveParachainsMessage() {}
 
-// GetBackableCandidates Try getting requested quantity of backable candidate hashes along with their relay parents
+// GetBackableCandidates tries getting the requested quantity of backable candidate hashes along with their relay parents
 // for the given parachain, under the given relay-parent hash, which is a descendant of the given ancestors.
 // Timed out ancestors should not be included in the collection.
 // RequestedQty should represent the number of scheduled cores of this ParaId.
@@ -75,34 +70,25 @@ type Ancestors map[parachaintypes.CandidateHash]struct{}
 // If an active leaf is not in the vector, it means that there's no
 // chance this candidate will become valid under that leaf in the future.
 //
-// If `RragmentChainRelayParent` in the request is not `nil`, the return vector can only
+// If `FragmentChainRelayParent` in the request is not `nil`, the return vector can only
 // contain this relay parent (or none).
 type GetHypotheticalMembership struct {
-	HypotheticalMembershipRequest HypotheticalMembershipRequest
-	Response                      chan []HypotheticalMembershipResponseItem
-}
-
-func (GetHypotheticalMembership) isProspectiveParachainsMessage() {}
-
-type HypotheticalMembershipResponseItem struct {
-	HypotheticalCandidate  parachaintypes.HypotheticalCandidate
-	HypotheticalMembership HypotheticalMembership
-}
-
-// HypotheticalMembershipRequest Request specifying which candidates are either already included
-// or might become included in fragment chain under a given active leaf (or any active leaf if
-// `FragmentChainRelayParent` is `nil`).
-type HypotheticalMembershipRequest struct {
 	// Candidates, in arbitrary order, which should be checked for
 	// hypothetical/actual membership in fragment chains.
 	Candidates []parachaintypes.HypotheticalCandidate
 	// Either a specific fragment chain to check, otherwise all.
 	FragmentChainRelayParent *common.Hash
+	Response                 chan []HypotheticalMembershipResponseItem
 }
 
-// HypotheticalMembership Indicates the relay-parents whose fragment chain a candidate
-// is present in or can be added in (right now or in the future).
-type HypotheticalMembership []common.Hash
+type HypotheticalMembershipResponseItem struct {
+	HypotheticalCandidate parachaintypes.HypotheticalCandidate
+	// HypotheticalMembership Indicates the relay-parents whose fragment chain a candidate
+	// is present in or can be added in (right now or in the future).
+	HypotheticalMembership []common.Hash
+}
+
+func (GetHypotheticalMembership) isProspectiveParachainsMessage() {}
 
 // GetMinimumRelayParents Get the minimum accepted relay-parent number for each para in the fragment chain
 // for the given relay-chain block hash.

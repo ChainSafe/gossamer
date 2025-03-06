@@ -13,6 +13,7 @@ import (
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
+	prospectiveparachains "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
 	statementedistributionmessages "github.com/ChainSafe/gossamer/dot/parachain/statement-distribution/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -327,11 +328,12 @@ func TestSecondsValidCandidate(t *testing.T) {
 		Return([]parachaintypes.ValidatorIndex{}, nil)
 
 	//mock ImplicitView
-	mockImplicitView.EXPECT().ActiveLeaf(relayParent).Return(nil, nil)
+	mockImplicitView.EXPECT().Leaves().Return([]common.Hash{relayParent})
+	mockImplicitView.EXPECT().ActivateLeaf(relayParent).Return(nil)
 	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
 		gomock.AssignableToTypeOf(common.Hash{}),
-		nil,
-	).Return([]common.Hash{})
+		gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
+	).Return([]common.Hash{relayParent}).Times(2)
 	mockImplicitView.EXPECT().AllAllowedRelayParents().
 		Return([]common.Hash{})
 
@@ -454,8 +456,26 @@ func TestSecondsValidCandidate(t *testing.T) {
 		return ok
 	}
 
+	getHypotheticalMembership := func(msg any) bool {
+		getMembership, ok := msg.(prospectiveparachains.GetHypotheticalMembership)
+		if !ok {
+			return false
+		}
+
+		candidate2Hash, err := parachaintypes.GetCandidateHash(candidate2)
+		require.NoError(t, err)
+
+		getMembership.Response <- []prospectiveparachains.HypotheticalMembershipResponseItem{{
+			HypotheticalCandidate: parachaintypes.HypotheticalCandidateIncomplete{
+				ClaimedCandidateHash: candidate2Hash,
+			},
+			HypotheticalMembership: []common.Hash{relayParent},
+		}}
+		return true
+	}
+
 	// set expected actions for overseer messages we send from the subsystem.
-	overseer.ExpectActions(validate2, storeAvailableData, introduceCandidate, distribute, informSeconded)
+	overseer.ExpectActions(validate2, storeAvailableData, getHypotheticalMembership, introduceCandidate, distribute, informSeconded)
 
 	// receive second message from overseer to candidate backing subsystem
 	overseer.ReceiveMessage(
@@ -526,7 +546,7 @@ func TestCandidateReachesQuorum(t *testing.T) {
 		Return([]parachaintypes.ValidatorIndex{}, nil)
 
 	//mock ImplicitView
-	mockImplicitView.EXPECT().ActiveLeaf(relayParent).Return(nil, nil)
+	mockImplicitView.EXPECT().ActivateLeaf(relayParent).Return(nil)
 	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
 		gomock.AssignableToTypeOf(common.Hash{}),
 		nil,
@@ -744,7 +764,7 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 		Return([]parachaintypes.ValidatorIndex{}, nil)
 
 	//mock ImplicitView
-	mockImplicitView.EXPECT().ActiveLeaf(relayParent).Return(nil, nil)
+	mockImplicitView.EXPECT().ActivateLeaf(relayParent).Return(nil)
 	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
 		gomock.AssignableToTypeOf(common.Hash{}),
 		nil,
@@ -897,7 +917,7 @@ func TestCanNotSecondMultipleCandidatesPerRelayParent(t *testing.T) {
 		Return([]parachaintypes.ValidatorIndex{}, nil)
 
 	//mock ImplicitView
-	mockImplicitView.EXPECT().ActiveLeaf(relayParent).Return(nil, nil)
+	mockImplicitView.EXPECT().ActivateLeaf(relayParent).Return(nil)
 	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
 		gomock.AssignableToTypeOf(common.Hash{}),
 		nil,
@@ -1054,11 +1074,16 @@ func TestNewLeafDoesNotClobberOld(t *testing.T) {
 		Return([]parachaintypes.ValidatorIndex{}, nil).Times(2)
 
 	//mock ImplicitView
-	mockImplicitView.EXPECT().ActiveLeaf(gomock.AssignableToTypeOf(common.Hash{})).Return(nil, nil).Times(2)
+	mockImplicitView.EXPECT().Leaves().Return([]common.Hash{relayParent1})
+	mockImplicitView.EXPECT().ActivateLeaf(gomock.AssignableToTypeOf(common.Hash{})).Return(nil).Times(2)
+	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
+		relayParent1,
+		gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
+	).Return([]common.Hash{relayParent1}).Times(2)
 	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
 		gomock.AssignableToTypeOf(common.Hash{}),
-		nil,
-	).Return([]common.Hash{}).Times(2)
+		gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
+	).Return([]common.Hash{relayParent2})
 	mockImplicitView.EXPECT().AllAllowedRelayParents().
 		Return([]common.Hash{})
 
@@ -1124,13 +1149,31 @@ func TestNewLeafDoesNotClobberOld(t *testing.T) {
 		return ok
 	}
 
+	getHypotheticalMembership := func(msg any) bool {
+		getMembership, ok := msg.(prospectiveparachains.GetHypotheticalMembership)
+		if !ok {
+			return false
+		}
+
+		candidateHash, err := parachaintypes.GetCandidateHash(candidate)
+		require.NoError(t, err)
+
+		getMembership.Response <- []prospectiveparachains.HypotheticalMembershipResponseItem{{
+			HypotheticalCandidate: parachaintypes.HypotheticalCandidateIncomplete{
+				ClaimedCandidateHash: candidateHash,
+			},
+			HypotheticalMembership: []common.Hash{relayParent1},
+		}}
+		return true
+	}
+
 	// If the old leaf view is clobbered, the candidate will be ignored and in that case,
 	// overseer does not expect `StatementDistributionMessageShare` and `collatorprotocolmessages.Seconded`
 	// overseer messages. So, test will fail.
 	//
 	// But, when the old leaf view is not clobbered, the candidate will be seconded.
 	// so, oversee expects all four overseer messages.
-	overseer.ExpectActions(validate, storeAvailableData, introduceCandidate, distribute, informSeconded)
+	overseer.ExpectActions(validate, storeAvailableData, getHypotheticalMembership, introduceCandidate, distribute, informSeconded)
 
 	overseer.ReceiveMessage(backing.SecondMessage{
 		RelayParent:             relayParent1,
@@ -1198,7 +1241,7 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 		Return([]parachaintypes.ValidatorIndex{}, nil)
 
 	//mock ImplicitView
-	mockImplicitView.EXPECT().ActiveLeaf(gomock.AssignableToTypeOf(common.Hash{})).Return(nil, nil)
+	mockImplicitView.EXPECT().ActivateLeaf(gomock.AssignableToTypeOf(common.Hash{})).Return(nil)
 	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
 		gomock.AssignableToTypeOf(common.Hash{}),
 		nil,

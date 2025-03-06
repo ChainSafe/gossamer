@@ -102,13 +102,16 @@ type FragmentTreeMembership struct {
 //     would have and are evaluated less strictly.
 type HypotheticalCandidate interface {
 	isHypotheticalCandidate()
+	ParaID() ParaID
+	CandidateHash() CandidateHash
+	RelayParentHash() common.Hash
 }
 
 // HypotheticalCandidateIncomplete represents an incomplete hypothetical candidate.
 // this
 type HypotheticalCandidateIncomplete struct {
-	// CandidateHash is the claimed hash of the candidate.
-	CandidateHash CandidateHash
+	// ClaimedCandidateHash is the claimed hash of the candidate.
+	ClaimedCandidateHash CandidateHash
 	// ParaID is the claimed para-ID of the candidate.
 	CandidateParaID ParaID
 	// ParentHeadDataHash is the claimed head-data hash of the candidate.
@@ -119,15 +122,42 @@ type HypotheticalCandidateIncomplete struct {
 
 func (HypotheticalCandidateIncomplete) isHypotheticalCandidate() {}
 
+func (h HypotheticalCandidateIncomplete) ParaID() ParaID {
+	return h.CandidateParaID
+}
+
+func (h HypotheticalCandidateIncomplete) CandidateHash() CandidateHash {
+	return h.ClaimedCandidateHash
+}
+
+func (h HypotheticalCandidateIncomplete) RelayParentHash() common.Hash {
+	return h.RelayParent
+}
+
 // HypotheticalCandidateComplete represents a complete candidate, including its hash, committed candidate receipt,
 // and persisted validation data.
 type HypotheticalCandidateComplete struct {
-	CandidateHash             CandidateHash
+	// The hash of the candidate.
+	ClaimedCandidateHash CandidateHash
+	// The receipt of the candidate.
 	CommittedCandidateReceipt CommittedCandidateReceipt
-	PersistedValidationData   PersistedValidationData
+	// The persisted validation data of the candidate.
+	PersistedValidationData PersistedValidationData
 }
 
 func (HypotheticalCandidateComplete) isHypotheticalCandidate() {}
+
+func (h HypotheticalCandidateComplete) ParaID() ParaID {
+	return h.CommittedCandidateReceipt.Descriptor.ParaID
+}
+
+func (h HypotheticalCandidateComplete) CandidateHash() CandidateHash {
+	return h.ClaimedCandidateHash
+}
+
+func (h HypotheticalCandidateComplete) RelayParentHash() common.Hash {
+	return h.CommittedCandidateReceipt.Descriptor.RelayParent
+}
 
 // AvailabilityDistributionMessageFetchPoV represents a message instructing
 // availability distribution to fetch a remote Proof of Validity (PoV).
