@@ -24,7 +24,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 	}{
 
 		{
-			name: "unknown relay parent",
+			name: "unknown_relay_parent",
 			candidateBacking: func() *CandidateBacking {
 				return &CandidateBacking{
 					perRelayParent: make(map[common.Hash]*perRelayParentState),
@@ -39,7 +39,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 			expectedResponse: false,
 		},
 		{
-			name: "candidate can be seconded",
+			name: "candidate_can_be_seconded",
 			candidateBacking: func() *CandidateBacking {
 				cb := &CandidateBacking{
 					perRelayParent: map[common.Hash]*perRelayParentState{{0x01}: {}},
@@ -72,7 +72,7 @@ func TestHandleCanSecondMessage(t *testing.T) {
 			expectedResponse: true,
 		},
 		{
-			name: "candidate cannot be seconded",
+			name: "candidate_cannot_be_seconded",
 			candidateBacking: func() *CandidateBacking {
 				cb := &CandidateBacking{
 					perRelayParent: make(map[common.Hash]*perRelayParentState),
