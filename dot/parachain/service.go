@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	bitfieldsigning "github.com/ChainSafe/gossamer/dot/parachain/bitfield-signing"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
@@ -89,6 +91,10 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	prospectiveParachainsSubsystem := prospectiveparachains.NewProspectiveParachains(overseer.SubsystemsToOverseer)
 	overseer.RegisterSubsystem(prospectiveParachainsSubsystem)
 
+	// register bitfield signing subsystem
+	bitfieldSigningsSubsystem := bitfieldsigning.NewBitfieldSigning(overseer.SubsystemsToOverseer, ks, st.Block)
+	overseer.RegisterSubsystem(bitfieldSigningsSubsystem)
+
 	parachainService := &Service{
 		Network:  net,
 		overseer: overseer,
@@ -168,7 +174,7 @@ type Network interface {
 		maxSize uint64,
 	) error
 	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
-		maxResponseSize uint64) *network.RequestResponseProtocol
+		maxResponseSize uint64) network.RequestMaker
 	ReportPeer(change peerset.ReputationChange, p peer.ID)
 	DisconnectPeer(setID int, p peer.ID)
 	GetNetworkEventsChannel() chan *network.NetworkEventInfo
