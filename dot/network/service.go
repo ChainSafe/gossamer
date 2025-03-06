@@ -100,6 +100,9 @@ var (
 )
 
 type (
+	// RequestHandler is a function type for handling incoming requests.
+	RequestHandler func(from peer.ID, payload []byte) (ResponseMessage, error)
+
 	// messageDecoder is passed on readStream to decode the data from the stream into a message.
 	// since messages are decoded based on context, this is different for every sub-protocol.
 	messageDecoder = func([]byte, peer.ID, bool) (Message, error)
@@ -590,6 +593,52 @@ func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 	}
 
 	return errors.New("message not supported by any notifications protocol")
+}
+
+func (s *Service) RegisterRequestHandler(subprotocolID protocol.ID, handler RequestHandler) {
+	protocolID := s.host.protocolID + subprotocolID
+
+	s.host.registerStreamHandler(protocolID, func(stream libp2pnetwork.Stream) {
+		defer func() {
+			if err := stream.Close(); err != nil {
+				logger.Warnf("closing %s stream: %s", subprotocolID, err)
+			}
+		}()
+
+		peerID := stream.Conn().RemotePeer()
+		buffer := s.bufPool.Get().(*[]byte)
+		defer s.bufPool.Put(buffer)
+
+		n, err := readStream(stream, buffer, uint64(len(*buffer)))
+		if err != nil {
+			logger.Errorf("reading %s request: %s", subprotocolID, err)
+			return
+		}
+
+		payload := (*buffer)[:n]
+		response, err := handler(peerID, payload)
+		if err != nil {
+			logger.Errorf("handling %s request: %s", subprotocolID, err)
+			return
+		}
+
+		if response == nil {
+			logger.Warnf("%s handler returned nil response", subprotocolID)
+			return
+		}
+
+		buf, err := response.Encode()
+		if err != nil {
+			logger.Errorf("encoding %s response: %s", subprotocolID, err)
+			return
+		}
+
+		_, err = stream.Write(buf)
+		if err != nil {
+			logger.Errorf("writing %s response: %s", subprotocolID, err)
+			return
+		}
+	})
 }
 
 func (s *Service) GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
