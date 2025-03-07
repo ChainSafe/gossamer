@@ -1482,6 +1482,51 @@ func (in *Instance) ParachainHostParaBackingState(
 	return backingState, nil
 }
 
+func (in *Instance) ParachainHostClaimQueue() (parachaintypes.ClaimQueue, error) {
+	encodedClaimQueue, err := in.Exec(runtime.ParachainHostClaimQueue, []byte{})
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	claimQueue := make(parachaintypes.ClaimQueue)
+	err = scale.Unmarshal(encodedClaimQueue, &claimQueue)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling claim queue: %w", err)
+	}
+
+	return claimQueue, nil
+}
+
+func (in *Instance) ParachainHostNodeFeatures() (parachaintypes.BitVec, error) {
+	encodedNodeFeatures, err := in.Exec(runtime.ParachainHostNodeFeatures, []byte{})
+	if err != nil {
+		return parachaintypes.BitVec{}, fmt.Errorf("exec: %w", err)
+	}
+
+	nodeFeatures := parachaintypes.NewBitVec([]bool{})
+	err = scale.Unmarshal(encodedNodeFeatures, &nodeFeatures)
+	if err != nil {
+		return parachaintypes.BitVec{}, fmt.Errorf("unmarshalling node features: %w", err)
+	}
+
+	return nodeFeatures, nil
+}
+
+func (in *Instance) ParachainHostDisabledValidators() ([]parachaintypes.ValidatorIndex, error) {
+	encodedValidators, err := in.Exec(runtime.ParachainHostDisabledValidators, []byte{})
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	var validators []parachaintypes.ValidatorIndex
+	err = scale.Unmarshal(encodedValidators, &validators)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling disabled validators: %w", err)
+	}
+
+	return validators, nil
+}
+
 func (in *Instance) ParachainHostDisputes() (map[parachaintypes.DisputeKey]parachaintypes.DisputeState, error) {
 	encodedDisputes, err := in.Exec(runtime.ParachainHostDisputes, []byte{})
 	if err != nil {

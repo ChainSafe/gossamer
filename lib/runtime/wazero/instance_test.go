@@ -45,6 +45,9 @@ var parachainsConfigV190TestDataRaw string
 //go:embed testdata/parachains_host_para_backing_state.yaml
 var parachainsHostParaBackingState string
 
+//go:embed testdata/parachains_configuration_v1171.yaml
+var parachainsConfigV1171TestDataRaw string
+
 //go:embed testdata/parachains_host_disputes.yaml
 var parachainHostDisputes string
 
