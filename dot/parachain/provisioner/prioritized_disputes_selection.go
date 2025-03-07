@@ -51,7 +51,7 @@ type partitionedDisputes struct {
 }
 
 // orderedPartitions returns an array of partitions in the order they should be processed.
-func (pd partitionedDisputes) orderedPartitions() []parachaintypes.DisputeKey {
+func (pd partitionedDisputes) orderedPartitions() []parachaintypes.DisputeKey { //nolint
 	seqToIterate := [][]parachaintypes.DisputeKey{
 		pd.inactiveUnknownOnchain,
 		pd.inactiveUnconcludedOnchain,
@@ -202,7 +202,7 @@ func isVoteWorthToKeep(
 // getOnchainDisputes gets the on-chain disputes at a given block number and returns them as a map
 // for efficient searching. It takes a relay parent hash and returns a map of session index and
 // candidate hash tuples to dispute states.
-func getOnchainDisputes(
+func getOnchainDisputes( //nolint
 	blockstate BlockState,
 	relayParent common.Hash,
 ) (map[parachaintypes.DisputeKey]parachaintypes.DisputeState, error) {
@@ -221,7 +221,7 @@ func getOnchainDisputes(
 
 // requestVotes requests the relevant dispute statements for a set of disputes identified
 // by CandidateHash and SessionIndex.
-func requestVotes(overseerChan chan<- any, disputesToQuery []parachaintypes.DisputeKey) (
+func requestVotes(overseerChan chan<- any, disputesToQuery []parachaintypes.DisputeKey) ( //nolint
 	[]disputemessages.CandidateVotesResponse, error,
 ) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -243,7 +243,7 @@ func requestVotes(overseerChan chan<- any, disputesToQuery []parachaintypes.Disp
 	}
 }
 
-func requestDisputes(overseerChan chan<- any) ([]disputemessages.RecentDispute, error) {
+func requestDisputes(overseerChan chan<- any) ([]disputemessages.RecentDispute, error) { //nolint
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
