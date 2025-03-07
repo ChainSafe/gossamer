@@ -6,7 +6,6 @@ package parachaintypes
 import (
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/tidwall/btree"
 )
