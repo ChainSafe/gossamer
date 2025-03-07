@@ -772,7 +772,7 @@ func TestVerifyForkBlocksWithRespectiveEpochData(t *testing.T) {
 	require.Equal(t, expectedThreshold, verifierInfo.threshold)
 }
 
-// issueConsensusDigestsBlocksFromGenesis will create different
+// issueConsensusDigestsBlockFromGenesis will create different
 // blocks that contains different consensus messages digests
 func issueConsensusDigestsBlockFromGenesis(t *testing.T, genesisHeader *types.Header,
 	kp *sr25519.Keypair, stateService *state.Service,
