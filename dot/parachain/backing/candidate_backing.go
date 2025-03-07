@@ -121,10 +121,12 @@ type GetBackableCandidatesMessage struct {
 	ResCh      chan map[parachaintypes.ParaID][]*parachaintypes.BackedCandidate
 }
 
-// CanSecondMessage is a request made to the candidate backing subsystem to determine whether it is permissible
-// to second a given candidate.
-// The rule for seconding candidates is: Collations must either be built on top of the root of a fragment tree
-// or have a parent node that represents the backed candidate.
+// CanSecondMessage Request the candidate backing subsystem to check whether it's
+// allowed to second given candidate.
+// The rule is to only fetch collations that can either be directly chained to any
+// FragmentChain in the view or there is at least one FragmentChain where this candidate is a
+// potentially unconnected candidate (we predict that it may become connected to a
+// FragmentChain in the future).
 type CanSecondMessage struct {
 	CandidateParaID      parachaintypes.ParaID
 	CandidateRelayParent common.Hash
