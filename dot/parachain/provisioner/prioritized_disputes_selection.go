@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package provisioner
 
 import (
@@ -137,7 +140,7 @@ func isVoteWorthToKeep(
 
 	statement, err := disputeStatement.Value()
 	if err != nil {
-		panic("unexpected empty inner in DisputeStatement")
+		panic(fmt.Sprintf("getting value from disputeStatement: %s", err))
 	}
 
 	switch inner := statement.(type) {
@@ -155,16 +158,25 @@ func isVoteWorthToKeep(
 			panic("unexpected empty inner in ValidDisputeStatementKind")
 		}
 
-		// We want to keep all backing votes. This maximizes the number of backers
+		// We want to keep all backing votes. This maximises the number of backers
 		// punished when misbehaving.
 		switch stmtKind.(type) {
-		case parachaintypes.BackingValid, parachaintypes.BackingSeconded:
+		case parachaintypes.Valid, parachaintypes.SecondedCandidateHash:
 			return true
 		}
 	}
 
-	inValidatorsFor := onchainState.ValidatorsFor.Get(int(validatorIndex))
-	inValidatorsAgainst := onchainState.ValidatorsAgainst.Get(int(validatorIndex))
+	inValidatorsFor, err := onchainState.ValidatorsFor.Get(uint(validatorIndex))
+	if err != nil {
+		logger.Warnf("validator index out of bounds: %d", validatorIndex)
+		inValidatorsFor = false
+	}
+
+	inValidatorsAgainst, err := onchainState.ValidatorsAgainst.Get(uint(validatorIndex))
+	if err != nil {
+		logger.Warnf("validator index out of bounds: %d", validatorIndex)
+		inValidatorsAgainst = false
+	}
 
 	if inValidatorsFor && inValidatorsAgainst {
 		// The validator has double voted and runtime knows about this. Ignore this vote.

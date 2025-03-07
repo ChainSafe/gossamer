@@ -1,6 +1,11 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package messages
 
-import parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+import (
+	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+)
 
 // DisputesCoordinatorMessage Messages sent to the Prospective Parachains subsystem.
 type DisputesCoordinatorMessage interface {
@@ -19,12 +24,12 @@ type QueryCandidateVotes struct {
 	Response chan []CandidateVotesResponse
 }
 
-type RecentDisputesResponse struct {
+type RecentDispute struct {
 	SessionIndex  parachaintypes.SessionIndex
 	CandidateHash parachaintypes.CandidateHash
 	DisputeStatus parachaintypes.DisputeStatus
 }
 
-type RecentDisputes struct {
-	Response chan []RecentDisputesResponse
+type GetRecentDisputes struct {
+	Response chan []RecentDispute
 }

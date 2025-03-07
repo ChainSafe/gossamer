@@ -19,8 +19,8 @@ func TestValidDisputeStatementKind(t *testing.T) {
 	}
 	expected := []ValidDisputeStatementKind{
 		{inner: ExplicitStatement{}},
-		{inner: BackingSeconded{Hash: common.Hash(bytes.Repeat([]byte{0x01}, 32))}},
-		{inner: BackingValid{Hash: common.Hash(bytes.Repeat([]byte{0x02}, 32))}},
+		{inner: SecondedCandidateHash{Value: common.Hash(bytes.Repeat([]byte{0x01}, 32))}},
+		{inner: Valid{Value: common.Hash(bytes.Repeat([]byte{0x02}, 32))}},
 		{inner: ApprovalChecking{}},
 		{inner: ApprovalCheckingMultipleCandidates{
 			CandidateHashes: []CandidateHash{
@@ -86,15 +86,27 @@ func TestDisputeStatement(t *testing.T) {
 	}
 	expected := []DisputeStatement{
 		{inner: ValidDisputeStatement{Kind: ValidDisputeStatementKind{inner: ExplicitStatement{}}}},
-		{inner: ValidDisputeStatement{Kind: ValidDisputeStatementKind{inner: BackingSeconded{Hash: common.Hash(bytes.Repeat([]byte{0x01}, 32))}}}},
-		{inner: ValidDisputeStatement{Kind: ValidDisputeStatementKind{inner: BackingValid{Hash: common.Hash(bytes.Repeat([]byte{0x02}, 32))}}}},
-		{inner: ValidDisputeStatement{Kind: ValidDisputeStatementKind{inner: ApprovalChecking{}}}},
-		{inner: ValidDisputeStatement{Kind: ValidDisputeStatementKind{inner: ApprovalCheckingMultipleCandidates{
-			CandidateHashes: []CandidateHash{
-				{Value: common.Hash(bytes.Repeat([]byte{0x03}, 32))},
+		{inner: ValidDisputeStatement{
+			Kind: ValidDisputeStatementKind{
+				inner: SecondedCandidateHash{Value: common.Hash(bytes.Repeat([]byte{0x01}, 32))},
 			},
-		}}}},
-		{inner: InvalidDisputeStatement{Kind: InvalidDisputeStatementKind{inner: ExplicitStatement{}}}},
+		}},
+		{inner: ValidDisputeStatement{
+			Kind: ValidDisputeStatementKind{
+				inner: Valid{Value: common.Hash(bytes.Repeat([]byte{0x02}, 32))},
+			},
+		}},
+		{inner: ValidDisputeStatement{Kind: ValidDisputeStatementKind{inner: ApprovalChecking{}}}},
+		{inner: ValidDisputeStatement{
+			Kind: ValidDisputeStatementKind{inner: ApprovalCheckingMultipleCandidates{
+				CandidateHashes: []CandidateHash{
+					{Value: common.Hash(bytes.Repeat([]byte{0x03}, 32))},
+				},
+			}},
+		}},
+		{inner: InvalidDisputeStatement{
+			Kind: InvalidDisputeStatementKind{inner: ExplicitStatement{}},
+		}},
 	}
 
 	for idx, in := range inputs {
@@ -107,7 +119,7 @@ func TestDisputeStatement(t *testing.T) {
 
 func TestDisputeStatementSet(t *testing.T) {
 	inputs := []string{
-		"0x010101010101010101010101010101010101010101010101010101010101010101000000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+		"0x010101010101010101010101010101010101010101010101010101010101010101000000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", //nolint:lll
 	}
 	expected := []DisputeStatementSet{
 		{
@@ -115,12 +127,20 @@ func TestDisputeStatementSet(t *testing.T) {
 			Session:       1,
 			Statements: []DisputeStatementEntry{
 				{
-					Statement: DisputeStatement{inner: ValidDisputeStatement{Kind: ValidDisputeStatementKind{inner: ExplicitStatement{}}}},
+					Statement: DisputeStatement{
+						inner: ValidDisputeStatement{
+							Kind: ValidDisputeStatementKind{inner: ExplicitStatement{}},
+						},
+					},
 					Index:     0,
 					Signature: ValidatorSignature([64]byte{}),
 				},
 				{
-					Statement: DisputeStatement{inner: InvalidDisputeStatement{Kind: InvalidDisputeStatementKind{inner: ExplicitStatement{}}}},
+					Statement: DisputeStatement{
+						inner: InvalidDisputeStatement{
+							Kind: InvalidDisputeStatementKind{inner: ExplicitStatement{}},
+						},
+					},
 					Index:     1,
 					Signature: ValidatorSignature([64]byte{}),
 				},

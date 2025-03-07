@@ -27,7 +27,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("pkg", "collator-protocol"))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-collator-protocol"))
 
 const (
 	activityPoll            = 10 * time.Millisecond
@@ -257,7 +257,7 @@ func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Has
 		return nil
 	}
 
-	coreIndexNow := validatorGroups.GroupRotationInfo.CoreForGroup(groupIndex, uint8(len(availabilityCores)))
+	coreIndexNow := validatorGroups.GroupRotationInfo.CoreForGroup(groupIndex, uint(len(availabilityCores)))
 	coreNow, err := availabilityCores[coreIndexNow.Index].Value()
 	if err != nil {
 		return fmt.Errorf("getting core now: %w", err)
@@ -559,7 +559,7 @@ type Network interface {
 		maxSize uint64,
 	) error
 	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
-		maxResponseSize uint64) *network.RequestResponseProtocol
+		maxResponseSize uint64) network.RequestMaker
 }
 
 type CollationEvent struct {
@@ -574,7 +574,7 @@ type CollatorProtocolValidatorSide struct {
 	SubSystemToOverseer chan<- any
 	unfetchedCollation  chan UnfetchedCollation
 
-	collationFetchingReqResProtocol *network.RequestResponseProtocol
+	collationFetchingReqResProtocol network.RequestMaker
 
 	fetchedCollations []parachaintypes.Collation
 	// track all active collators and their data
