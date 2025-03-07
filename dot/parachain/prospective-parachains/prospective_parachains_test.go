@@ -30,8 +30,8 @@ func introduceSecondedCandidate(
 	response := make(chan bool)
 
 	msg := messages.IntroduceSecondedCandidate{
-		IntroduceSecondedCandidateRequest: req,
-		Response:                          response,
+		Request:  req,
+		Response: response,
 	}
 
 	overseerToSubsystem <- msg
@@ -54,8 +54,8 @@ func introduceSecondedCandidateFailed(
 	response := make(chan bool)
 
 	msg := messages.IntroduceSecondedCandidate{
-		IntroduceSecondedCandidateRequest: req,
-		Response:                          response,
+		Request:  req,
+		Response: response,
 	}
 
 	overseerToSubsystem <- msg

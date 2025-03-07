@@ -177,8 +177,11 @@ func (cb *CandidateBacking) handleCommandSecond(
 		PersistedValidationData:   pvd,
 	}
 
+	// sanity check that we're allowed to second the candidate and that it doesn't conflict with
+	// other candidates we've seconded.
 	leavesForSeconding := cb.secondingSanityCheck(hypotheticalCandidate)
 	if len(leavesForSeconding) == 0 {
+		// we can't second this candidate
 		return nil
 	}
 
@@ -203,11 +206,10 @@ func (cb *CandidateBacking) handleCommandSecond(
 		return err
 	}
 
-	perCandidate, ok := cb.perCandidate[candidateHash]
-	if !ok {
-		logger.Warnf("missing `per candidate` for seconded candidate: %s", candidateHash.Value)
-	} else {
+	if perCandidate, ok := cb.perCandidate[candidateHash]; ok {
 		perCandidate.secondedLocally = true
+	} else {
+		logger.Warnf("missing `per candidate` for seconded candidate: %s", candidateHash.Value)
 	}
 
 	rpState.issuedStatements[candidateHash] = true

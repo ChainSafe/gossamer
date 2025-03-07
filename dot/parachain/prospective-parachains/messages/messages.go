@@ -13,11 +13,11 @@ type ProspectiveParachainsMessage interface {
 	isProspectiveParachainsMessage()
 }
 
-// IntroduceSecondedCandidate Inform the Prospective Parachains Subsystem of a new seconded candidate.
+// IntroduceSecondedCandidate inform the Prospective Parachains Subsystem of a new seconded candidate.
 // The response is false if the candidate was rejected by prospective parachains,
 // true otherwise (if it was accepted or already present)
 type IntroduceSecondedCandidate struct {
-	IntroduceSecondedCandidateRequest
+	Request  IntroduceSecondedCandidateRequest
 	Response chan bool
 }
 
@@ -38,7 +38,7 @@ type IntroduceSecondedCandidateRequest struct {
 // has been backed. This requires that the candidate was successfully introduced in
 // the past.
 type CandidateBacked struct {
-	ParaId        parachaintypes.ParaID
+	ParaID        parachaintypes.ParaID
 	CandidateHash parachaintypes.CandidateHash
 }
 
@@ -129,6 +129,8 @@ type GetProspectiveValidationData struct {
 	ProspectiveValidationDataRequest
 	Sender chan<- *parachaintypes.PersistedValidationData
 }
+
+func (GetProspectiveValidationData) isProspectiveParachainsMessage() {}
 
 // ProspectiveValidationDataRequest A request for the persisted validation data stored in the prospective
 // parachains subsystem.

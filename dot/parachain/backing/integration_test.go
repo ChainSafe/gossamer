@@ -261,15 +261,15 @@ func storeAvailableData(msg any) bool {
 // this is a expected action for the IntroduceCandidate message that will return a nil error
 func introduceCandidate(msg any) bool {
 	// introduced candidate to prospective parachains
-	introduce, ok := msg.(parachaintypes.ProspectiveParachainsMessageIntroduceCandidate)
+	introduce, ok := msg.(prospectiveparachains.IntroduceSecondedCandidate)
 	if ok {
-		introduce.Ch <- nil
+		introduce.Response <- true
 	}
 	return ok
 }
 
 func informToProspectiveParachains(msg any) bool {
-	_, ok := msg.(parachaintypes.ProspectiveParachainsMessageCandidateBacked)
+	_, ok := msg.(prospectiveparachains.CandidateBacked)
 	return ok
 }
 

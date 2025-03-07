@@ -84,7 +84,7 @@ func (pp *ProspectiveParachains) processMessage(msg any) {
 	case messages.IntroduceSecondedCandidate:
 		pp.introduceSecondedCandidate(
 			pp.View,
-			msg.IntroduceSecondedCandidateRequest,
+			msg.Request,
 			msg.Response,
 		)
 	case messages.CandidateBacked:
