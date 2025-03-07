@@ -31,24 +31,6 @@ func (bv *BitVec) Get(index uint) (bool, error) {
 	return bv.bits[index], nil
 }
 
-// NewBitVec returns a new BitVec with the given bits
-// This isn't a complete implementation of the bit vector
-// It is only used for ParachainHost runtime exports
-// TODO: Implement the full bit vector
-// https://github.com/ChainSafe/gossamer/issues/3248
-func NewBitVec(bits []bool) BitVec {
-	return BitVec{
-		bits: bits,
-	}
-}
-
-func (bv *BitVec) Get(idx int) bool {
-	if idx < 0 || idx >= len(bv.bits) {
-		return false
-	}
-	return bv.bits[idx]
-}
-
 func (bv *BitVec) Len() int {
 	return len(bv.bits)
 }
@@ -60,6 +42,17 @@ func (bv *BitVec) CountOnes() (count int) {
 		}
 	}
 	return count
+}
+
+// NewBitVec returns a new BitVec with the given bits
+// This isn't a complete implementation of the bit vector
+// It is only used for ParachainHost runtime exports
+// TODO: Implement the full bit vector
+// https://github.com/ChainSafe/gossamer/issues/3248
+func NewBitVec(bits []bool) BitVec {
+	return BitVec{
+		bits: bits,
+	}
 }
 
 // bitsToBytes converts a slice of bits to a slice of bytes
