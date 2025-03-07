@@ -10,7 +10,7 @@ import (
 )
 
 type ValidityAttestationValues interface {
-	Implicit | ExplicitStatement
+	Implicit | Explicit
 }
 
 // ValidityAttestation is an implicit or explicit attestation to the validity of a parachain
@@ -19,7 +19,10 @@ type ValidityAttestation struct {
 	inner any
 }
 
-func setValidityAttestation[Value ValidityAttestationValues](mvdt *ValidityAttestation, value Value) {
+func setValidityAttestation[Value ValidityAttestationValues](
+	mvdt *ValidityAttestation,
+	value Value,
+) {
 	mvdt.inner = value
 }
 
@@ -29,7 +32,7 @@ func (mvdt *ValidityAttestation) SetValue(value any) (err error) {
 		setValidityAttestation(mvdt, value)
 		return
 
-	case ExplicitStatement:
+	case Explicit:
 		setValidityAttestation(mvdt, value)
 		return
 
@@ -43,7 +46,7 @@ func (mvdt ValidityAttestation) IndexValue() (index uint, value any, err error) 
 	case Implicit:
 		return 1, mvdt.inner, nil
 
-	case ExplicitStatement:
+	case Explicit:
 		return 2, mvdt.inner, nil
 
 	}
@@ -70,14 +73,14 @@ func (mvdt ValidityAttestation) ValueAt(index uint) (value any, err error) {
 // Implicit is for Implicit attestation.
 type Implicit ValidatorSignature
 
-func (i Implicit) String() string { //skipcq:SCC-U1000
+func (i Implicit) String() string { // skipcq:SCC-U1000
 	return fmt.Sprintf("implicit(%s)", ValidatorSignature(i))
 }
 
 // Explicit is for Explicit attestation.
-type Explicit ValidatorSignature //skipcq
+type Explicit ValidatorSignature // skipcq
 
-func (e Explicit) String() string { //skipcq:SCC-U1000
+func (e Explicit) String() string { // skipcq:SCC-U1000
 	return fmt.Sprintf("explicit(%s)", ValidatorSignature(e))
 }
 
