@@ -11,7 +11,6 @@ import (
 
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
-	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	prospectiveparachains "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
 	statementedistributionmessages "github.com/ChainSafe/gossamer/dot/parachain/statement-distribution/messages"
@@ -380,12 +379,6 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 		CandidateHash: candidateHash,
 	}
 
-	// Backed candidate potentially unblocks new advertisements, notify collator protocol.
-	subSystemToOverseer <- collatorprotocolmessages.Backed{
-		ParaID:   paraID,
-		ParaHead: backedCandidate.Candidate.Descriptor.ParaHead,
-	}
-
 	// Notify statement distribution of backed candidate.
 	subSystemToOverseer <- statementedistributionmessages.Backed(candidateHash)
 
@@ -425,6 +418,16 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 	pvd parachaintypes.PersistedValidationData,
 	attesting attestingData,
 ) error {
+	localValidator := rpState.tableContext.validator
+
+	if localValidator == nil {
+		return fmt.Errorf("we are not a validator - don't kick off validation")
+	}
+
+	if localValidator.Disabled {
+		return fmt.Errorf("local validator disabled - don't kick off validation")
+	}
+
 	hash, err := attesting.candidate.Hash()
 	if err != nil {
 		return fmt.Errorf("getting candidate hash: %w", err)

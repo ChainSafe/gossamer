@@ -242,6 +242,15 @@ func (cb *CandidateBacking) handleStatementMessage(
 		return errNilRelayParentState
 	}
 
+	senderValidatorIndex := signedStatementWithPVD.SignedFullStatement.ValidatorIndex
+
+	// Don't import statement if the sender is disabled
+	if slices.Contains(rpState.tableContext.disabledValidators, senderValidatorIndex) {
+		logger.Debugf("sender validator is disabled; validator index: %d",
+			senderValidatorIndex)
+		return nil
+	}
+
 	summary, err := rpState.importStatement(cb.SubSystemToOverseer, signedStatementWithPVD, cb.perCandidate)
 	if err != nil {
 		return fmt.Errorf("importing statement: %w", err)
@@ -275,7 +284,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 		attesting = attestingData{
 			candidate:     commitedCandidateReceipt.ToPlain(),
 			povHash:       statementVDT.Descriptor.PovHash,
-			fromValidator: signedStatementWithPVD.SignedFullStatement.ValidatorIndex,
+			fromValidator: senderValidatorIndex,
 			backing:       []parachaintypes.ValidatorIndex{},
 		}
 	case parachaintypes.Valid:
@@ -287,18 +296,18 @@ func (cb *CandidateBacking) handleStatementMessage(
 		}
 
 		ourIndex := rpState.tableContext.validator.Index
-		if signedStatementWithPVD.SignedFullStatement.ValidatorIndex == ourIndex {
+		if senderValidatorIndex == ourIndex {
 			return nil
 		}
 
 		if rpState.awaitingValidation[candidateHash] {
 			logger.Debug("Job already running")
-			attesting.backing = append(attesting.backing, signedStatementWithPVD.SignedFullStatement.ValidatorIndex)
+			attesting.backing = append(attesting.backing, senderValidatorIndex)
 			return nil
 		}
 
 		logger.Debug("No job, so start another with current validator")
-		attesting.fromValidator = signedStatementWithPVD.SignedFullStatement.ValidatorIndex
+		attesting.fromValidator = senderValidatorIndex
 	}
 
 	rpState.fallbacks[summary.Candidate] = attesting

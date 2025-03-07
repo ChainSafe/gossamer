@@ -273,11 +273,6 @@ func informToProspectiveParachains(msg any) bool {
 	return ok
 }
 
-func informToCollatorProtocol(msg any) bool {
-	_, ok := msg.(collatorprotocolmessages.Backed)
-	return ok
-}
-
 func informToStatementDistribution(msg any) bool {
 	_, ok := msg.(statementedistributionmessages.Backed)
 	return ok
@@ -621,7 +616,6 @@ func TestCandidateReachesQuorum(t *testing.T) {
 		storeAvailableData,
 		distribute,
 		informToProspectiveParachains,
-		informToCollatorProtocol,
 		informToStatementDistribution,
 	)
 
@@ -1307,9 +1301,7 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 
 	// set expected actions for overseer messages we send from the subsystem.
 	overseer.ExpectActions(introduceCandidate, fetchPov, validate, storeAvailableData, distribute,
-		informToProspectiveParachains,
-		informToCollatorProtocol,
-		informToStatementDistribution)
+		informToProspectiveParachains, informToStatementDistribution)
 
 	// receive statement message from overseer to candidate backing subsystem containing `Seconded` statement
 	overseer.ReceiveMessage(backing.StatementMessage{
