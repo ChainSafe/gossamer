@@ -592,6 +592,13 @@ func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 	return errors.New("message not supported by any notifications protocol")
 }
 
+func (s *Service) RegisterRequestHandler(subprotocol protocol.ID, handler RequestHandler) {
+	// This method needs to exist on Service because some parachain subsystems include it in their Network interface.
+	// We could implement it by merging https://github.com/ChainSafe/gossamer/pull/4588 but by the time this is actually
+	// used, the network layer will probably have undergone some significant changes.
+	// See also https://github.com/ChainSafe/gossamer/issues/4453#issuecomment-2704259268
+}
+
 func (s *Service) GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
 	maxResponseSize uint64) RequestMaker {
 
