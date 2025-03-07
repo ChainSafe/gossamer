@@ -77,7 +77,7 @@ func concludedOnchain(onchainState *parachaintypes.DisputeState) bool {
 }
 
 func partitionRecentDisputes(
-	recent []disputemessages.RecentDisputesResponse,
+	recent []disputemessages.RecentDispute,
 	onchain map[parachaintypes.DisputeKey]parachaintypes.DisputeState,
 ) partitionedDisputes {
 	partitioned := partitionedDisputes{}
@@ -85,7 +85,10 @@ func partitionRecentDisputes(
 	// Drop any duplicates
 	uniqueRecent := make(map[parachaintypes.DisputeKey]parachaintypes.DisputeStatus)
 	for _, r := range recent {
-		uniqueRecent[parachaintypes.DisputeKey{SessionIndex: r.SessionIndex, CandidateHash: r.CandidateHash}] = r.DisputeStatus
+		uniqueRecent[parachaintypes.DisputeKey{
+			SessionIndex:  r.SessionIndex,
+			CandidateHash: r.CandidateHash,
+		}] = r.DisputeStatus
 	}
 
 	// Split recent disputes in ACTIVE and INACTIVE
@@ -117,7 +120,10 @@ func partitionRecentDisputes(
 	for key := range inactive {
 		if onchainState, ok := onchain[key]; ok {
 			if concludedOnchain(&onchainState) {
-				partitioned.inactiveConcludedOnchain = append(partitioned.inactiveConcludedOnchain, key)
+				partitioned.inactiveConcludedOnchain = append(
+					partitioned.inactiveConcludedOnchain,
+					key,
+				)
 			} else {
 				partitioned.inactiveUnconcludedOnchain = append(partitioned.inactiveUnconcludedOnchain, key)
 			}
@@ -216,7 +222,8 @@ func getOnchainDisputes(
 // requestVotes requests the relevant dispute statements for a set of disputes identified
 // by CandidateHash and SessionIndex.
 func requestVotes(overseerChan chan<- any, disputesToQuery []parachaintypes.DisputeKey) (
-	[]disputemessages.CandidateVotesResponse, error) {
+	[]disputemessages.CandidateVotesResponse, error,
+) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -236,12 +243,12 @@ func requestVotes(overseerChan chan<- any, disputesToQuery []parachaintypes.Disp
 	}
 }
 
-func requestDisputes(overseerChan chan<- any) ([]disputemessages.RecentDisputesResponse, error) {
+func requestDisputes(overseerChan chan<- any) ([]disputemessages.RecentDispute, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	responseCh := make(chan []disputemessages.RecentDisputesResponse)
-	msg := disputemessages.RecentDisputes{
+	responseCh := make(chan []disputemessages.RecentDispute)
+	msg := disputemessages.GetRecentDisputes{
 		Response: responseCh,
 	}
 

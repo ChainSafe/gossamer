@@ -43,7 +43,8 @@ func TestShouldKeepVoteBehaves(t *testing.T) {
 		localValidKnown,
 		*setEnumVariant[*parachaintypes.DisputeStatement](
 			parachaintypes.ValidDisputeStatement{
-				Kind: *setEnumVariant[*parachaintypes.ValidDisputeStatementKind](parachaintypes.ExplicitStatement{})},
+				Kind: *setEnumVariant[*parachaintypes.ValidDisputeStatementKind](parachaintypes.ExplicitStatement{}),
+			},
 		),
 		onchainState,
 	))
@@ -52,7 +53,8 @@ func TestShouldKeepVoteBehaves(t *testing.T) {
 		localValidUnknown,
 		*setEnumVariant[*parachaintypes.DisputeStatement](
 			parachaintypes.ValidDisputeStatement{
-				Kind: *setEnumVariant[*parachaintypes.ValidDisputeStatementKind](parachaintypes.ExplicitStatement{})},
+				Kind: *setEnumVariant[*parachaintypes.ValidDisputeStatementKind](parachaintypes.ExplicitStatement{}),
+			},
 		),
 		onchainState,
 	))
@@ -61,7 +63,8 @@ func TestShouldKeepVoteBehaves(t *testing.T) {
 		localInvalidKnown,
 		*setEnumVariant[*parachaintypes.DisputeStatement](
 			parachaintypes.InvalidDisputeStatement{
-				Kind: *setEnumVariant[*parachaintypes.InvalidDisputeStatementKind](parachaintypes.ExplicitStatement{})},
+				Kind: *setEnumVariant[*parachaintypes.InvalidDisputeStatementKind](parachaintypes.ExplicitStatement{}),
+			},
 		),
 		onchainState,
 	))
@@ -70,7 +73,8 @@ func TestShouldKeepVoteBehaves(t *testing.T) {
 		localInvalidUnknown,
 		*setEnumVariant[*parachaintypes.DisputeStatement](
 			parachaintypes.InvalidDisputeStatement{
-				Kind: *setEnumVariant[*parachaintypes.InvalidDisputeStatementKind](parachaintypes.ExplicitStatement{})},
+				Kind: *setEnumVariant[*parachaintypes.InvalidDisputeStatementKind](parachaintypes.ExplicitStatement{}),
+			},
 		),
 		onchainState,
 	))
@@ -118,12 +122,12 @@ func TestShouldKeepVoteBehaves(t *testing.T) {
 }
 
 func TestPartitioningHappyCase(t *testing.T) {
-	input := []disputemessages.RecentDisputesResponse{}
+	input := []disputemessages.RecentDispute{}
 	onchain := make(map[parachaintypes.DisputeKey]parachaintypes.DisputeState)
 	timeNow := uint64(time.Now().Unix())
 
 	// Create one dispute for each partition
-	inactiveUnknownOnchain := disputemessages.RecentDisputesResponse{
+	inactiveUnknownOnchain := disputemessages.RecentDispute{
 		SessionIndex:  0,
 		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
 		DisputeStatus: *setEnumVariant[*parachaintypes.DisputeStatus](
@@ -131,7 +135,7 @@ func TestPartitioningHappyCase(t *testing.T) {
 	}
 	input = append(input, inactiveUnknownOnchain)
 
-	inactiveUnconcludedOnchain := disputemessages.RecentDisputesResponse{
+	inactiveUnconcludedOnchain := disputemessages.RecentDispute{
 		SessionIndex:  1,
 		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x02}},
 		DisputeStatus: *setEnumVariant[*parachaintypes.DisputeStatus](
@@ -143,20 +147,24 @@ func TestPartitioningHappyCase(t *testing.T) {
 		CandidateHash: inactiveUnconcludedOnchain.CandidateHash,
 	}
 	onchain[onchainKey] = parachaintypes.DisputeState{
-		ValidatorsFor:     parachaintypes.NewBitVec([]bool{true, true, true, false, false, false, false, false, false}),
-		ValidatorsAgainst: parachaintypes.NewBitVec([]bool{false, false, false, false, false, false, false, false, false}),
-		Start:             1,
-		ConcludedAt:       nil,
+		ValidatorsFor: parachaintypes.NewBitVec(
+			[]bool{true, true, true, false, false, false, false, false, false},
+		),
+		ValidatorsAgainst: parachaintypes.NewBitVec(
+			[]bool{false, false, false, false, false, false, false, false, false},
+		),
+		Start:       1,
+		ConcludedAt: nil,
 	}
 
-	activeUnknownOnchain := disputemessages.RecentDisputesResponse{
+	activeUnknownOnchain := disputemessages.RecentDispute{
 		SessionIndex:  2,
 		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x03}},
 		DisputeStatus: *setEnumVariant[*parachaintypes.DisputeStatus](parachaintypes.Active{}),
 	}
 	input = append(input, activeUnknownOnchain)
 
-	activeUnconcludedOnchain := disputemessages.RecentDisputesResponse{
+	activeUnconcludedOnchain := disputemessages.RecentDispute{
 		SessionIndex:  3,
 		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x04}},
 		DisputeStatus: *setEnumVariant[*parachaintypes.DisputeStatus](parachaintypes.Active{}),
@@ -167,13 +175,17 @@ func TestPartitioningHappyCase(t *testing.T) {
 		CandidateHash: activeUnconcludedOnchain.CandidateHash,
 	}
 	onchain[onchainKey] = parachaintypes.DisputeState{
-		ValidatorsFor:     parachaintypes.NewBitVec([]bool{true, true, true, false, false, false, false, false, false}),
-		ValidatorsAgainst: parachaintypes.NewBitVec([]bool{false, false, false, false, false, false, false, false, false}),
-		Start:             1,
-		ConcludedAt:       nil,
+		ValidatorsFor: parachaintypes.NewBitVec(
+			[]bool{true, true, true, false, false, false, false, false, false},
+		),
+		ValidatorsAgainst: parachaintypes.NewBitVec(
+			[]bool{false, false, false, false, false, false, false, false, false},
+		),
+		Start:       1,
+		ConcludedAt: nil,
 	}
 
-	activeConcludedOnchain := disputemessages.RecentDisputesResponse{
+	activeConcludedOnchain := disputemessages.RecentDispute{
 		SessionIndex:  4,
 		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x05}},
 		DisputeStatus: *setEnumVariant[*parachaintypes.DisputeStatus](parachaintypes.Active{}),
@@ -185,13 +197,17 @@ func TestPartitioningHappyCase(t *testing.T) {
 		CandidateHash: activeConcludedOnchain.CandidateHash,
 	}
 	onchain[onchainKey] = parachaintypes.DisputeState{
-		ValidatorsFor:     parachaintypes.NewBitVec([]bool{true, true, true, true, true, true, true, true, false}),
-		ValidatorsAgainst: parachaintypes.NewBitVec([]bool{false, false, false, false, false, false, false, false, false}),
-		Start:             1,
-		ConcludedAt:       &onchainConcludeBlockNumber,
+		ValidatorsFor: parachaintypes.NewBitVec(
+			[]bool{true, true, true, true, true, true, true, true, false},
+		),
+		ValidatorsAgainst: parachaintypes.NewBitVec(
+			[]bool{false, false, false, false, false, false, false, false, false},
+		),
+		Start:       1,
+		ConcludedAt: &onchainConcludeBlockNumber,
 	}
 
-	inactiveConcludedOnchain := disputemessages.RecentDisputesResponse{
+	inactiveConcludedOnchain := disputemessages.RecentDispute{
 		SessionIndex:  5,
 		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x06}},
 		DisputeStatus: *setEnumVariant[*parachaintypes.DisputeStatus](
@@ -203,10 +219,14 @@ func TestPartitioningHappyCase(t *testing.T) {
 		CandidateHash: inactiveConcludedOnchain.CandidateHash,
 	}
 	onchain[onchainKey] = parachaintypes.DisputeState{
-		ValidatorsFor:     parachaintypes.NewBitVec([]bool{true, true, true, true, true, true, true, false, false}),
-		ValidatorsAgainst: parachaintypes.NewBitVec([]bool{false, false, false, false, false, false, false, false, false}),
-		Start:             1,
-		ConcludedAt:       &onchainConcludeBlockNumber,
+		ValidatorsFor: parachaintypes.NewBitVec(
+			[]bool{true, true, true, true, true, true, true, false, false},
+		),
+		ValidatorsAgainst: parachaintypes.NewBitVec(
+			[]bool{false, false, false, false, false, false, false, false, false},
+		),
+		Start:       1,
+		ConcludedAt: &onchainConcludeBlockNumber,
 	}
 
 	result := partitionRecentDisputes(input, onchain)
@@ -261,19 +281,19 @@ func TestPartitioningHappyCase(t *testing.T) {
 	)
 }
 
-// This test verifies the double voting behavior. Currently we don't care if a supermajority is
+// This test verifies the double voting behaviour. Currently we don't care if a supermajority is
 // achieved with or without the 'help' of a double vote (a validator voting for and against at the
 // same time). This makes the test a bit pointless but anyway I'm leaving it here to make this
-// decision explicit and have the test code ready in case this behavior needs to be further tested
+// decision explicit and have the test code ready in case this behaviour needs to be further tested
 // in the future. Link to the PR with the discussions: https://github.com/paritytech/polkadot/pull/5567
 func TestPartitioningDoubledOnchainVote(t *testing.T) {
-	input := []disputemessages.RecentDisputesResponse{}
+	input := []disputemessages.RecentDispute{}
 	onchain := make(map[parachaintypes.DisputeKey]parachaintypes.DisputeState)
 
 	// Dispute A relies on a 'double onchain vote' to conclude. Validator with index 0 has voted
 	// both `for` and `against`. Despite that this dispute should be considered 'can conclude
 	// onchain'.
-	disputeA := disputemessages.RecentDisputesResponse{
+	disputeA := disputemessages.RecentDispute{
 		SessionIndex:  3,
 		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
 		DisputeStatus: *setEnumVariant[*parachaintypes.DisputeStatus](parachaintypes.Active{}),
@@ -282,7 +302,7 @@ func TestPartitioningDoubledOnchainVote(t *testing.T) {
 
 	// Dispute B has supermajority + 1 votes, so the doubled onchain vote doesn't affect it. It
 	// should be considered as 'can conclude onchain'.
-	disputeB := disputemessages.RecentDisputesResponse{
+	disputeB := disputemessages.RecentDispute{
 		SessionIndex:  4,
 		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x02}},
 		DisputeStatus: *setEnumVariant[*parachaintypes.DisputeStatus](parachaintypes.Active{}),
@@ -293,20 +313,28 @@ func TestPartitioningDoubledOnchainVote(t *testing.T) {
 		SessionIndex:  disputeA.SessionIndex,
 		CandidateHash: disputeA.CandidateHash,
 	}] = parachaintypes.DisputeState{
-		ValidatorsFor:     parachaintypes.NewBitVec([]bool{true, true, true, true, true, true, true, false, false}),
-		ValidatorsAgainst: parachaintypes.NewBitVec([]bool{true, false, false, false, false, false, false, false, false}),
-		Start:             1,
-		ConcludedAt:       nil,
+		ValidatorsFor: parachaintypes.NewBitVec(
+			[]bool{true, true, true, true, true, true, true, false, false},
+		),
+		ValidatorsAgainst: parachaintypes.NewBitVec(
+			[]bool{true, false, false, false, false, false, false, false, false},
+		),
+		Start:       1,
+		ConcludedAt: nil,
 	}
 
 	onchain[parachaintypes.DisputeKey{
 		SessionIndex:  disputeB.SessionIndex,
 		CandidateHash: disputeB.CandidateHash,
 	}] = parachaintypes.DisputeState{
-		ValidatorsFor:     parachaintypes.NewBitVec([]bool{true, true, true, true, true, true, true, true, false}),
-		ValidatorsAgainst: parachaintypes.NewBitVec([]bool{true, false, false, false, false, false, false, false, false}),
-		Start:             1,
-		ConcludedAt:       nil,
+		ValidatorsFor: parachaintypes.NewBitVec(
+			[]bool{true, true, true, true, true, true, true, true, false},
+		),
+		ValidatorsAgainst: parachaintypes.NewBitVec(
+			[]bool{true, false, false, false, false, false, false, false, false},
+		),
+		Start:       1,
+		ConcludedAt: nil,
 	}
 
 	result := partitionRecentDisputes(input, onchain)
@@ -316,10 +344,10 @@ func TestPartitioningDoubledOnchainVote(t *testing.T) {
 }
 
 func TestPartitioningDuplicatedDispute(t *testing.T) {
-	input := []disputemessages.RecentDisputesResponse{}
+	input := []disputemessages.RecentDispute{}
 	onchain := make(map[parachaintypes.DisputeKey]parachaintypes.DisputeState)
 
-	someDispute := disputemessages.RecentDisputesResponse{
+	someDispute := disputemessages.RecentDispute{
 		SessionIndex:  3,
 		CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
 		DisputeStatus: *setEnumVariant[*parachaintypes.DisputeStatus](parachaintypes.Active{}),
@@ -331,10 +359,14 @@ func TestPartitioningDuplicatedDispute(t *testing.T) {
 		SessionIndex:  someDispute.SessionIndex,
 		CandidateHash: someDispute.CandidateHash,
 	}] = parachaintypes.DisputeState{
-		ValidatorsFor:     parachaintypes.NewBitVec([]bool{true, true, true, false, false, false, false, false, false}),
-		ValidatorsAgainst: parachaintypes.NewBitVec([]bool{false, false, false, false, false, false, false, false, false}),
-		Start:             1,
-		ConcludedAt:       nil,
+		ValidatorsFor: parachaintypes.NewBitVec(
+			[]bool{true, true, true, false, false, false, false, false, false},
+		),
+		ValidatorsAgainst: parachaintypes.NewBitVec(
+			[]bool{false, false, false, false, false, false, false, false, false},
+		),
+		Start:       1,
+		ConcludedAt: nil,
 	}
 
 	result := partitionRecentDisputes(input, onchain)
