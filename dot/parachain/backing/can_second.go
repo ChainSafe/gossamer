@@ -52,10 +52,10 @@ func (cb *CandidateBacking) secondingSanityCheck(
 
 	for _, head := range activeLeaves {
 		wg.Add(1)
-		go func() {
+		go func(head common.Hash) {
+			defer wg.Done()
 			cb.checkLeafForSeconding(head, hypotheticalCandidate, leavesForSecondingCh)
-			wg.Done()
-		}()
+		}(head)
 	}
 
 	wg.Wait()
