@@ -20,11 +20,7 @@ import (
 func NewTestGenesisRawFile(t *testing.T, config *cfg.Config) (filename string) {
 	filename = filepath.Join(t.TempDir(), "genesis.json")
 	if os.Getenv("CI") == "buildjet" {
-		tmpdir, err := os.MkdirTemp("..", "*_gen_raw_file")
-		require.NoError(t, err)
-		t.Cleanup(func() {
-			require.NoError(t, os.RemoveAll(tmpdir))
-		})
+		tmpdir := t.TempDir()
 		filename = filepath.Join(tmpdir, "genesis.json")
 	}
 
