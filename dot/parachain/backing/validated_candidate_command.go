@@ -12,7 +12,6 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/tidwall/btree"
 )
 
 var (
@@ -167,39 +166,27 @@ func (cb *CandidateBacking) handleCommandSecond(
 	commitments := bgValidationResult.outputs.candidateCommitments
 	candidate := bgValidationResult.outputs.candidateReceipt
 
-	parentHeadDataHash, err := common.Blake2bHash(pvd.ParentHead.Data)
-	if err != nil {
-		return fmt.Errorf("hashing parent head data: %w", err)
-	}
-
-	commitmentsHeadDataHash, err := common.Blake2bHash(commitments.HeadData.Data)
-	if err != nil {
-		return fmt.Errorf("hashing commitments head data: %w", err)
-	}
-
-	if parentHeadDataHash == commitmentsHeadDataHash {
-		return nil
-	}
-
 	commitedCandidate := parachaintypes.CommittedCandidateReceipt{
 		Descriptor:  candidate.Descriptor,
 		Commitments: commitments,
 	}
 
 	hypotheticalCandidate := parachaintypes.HypotheticalCandidateComplete{
-		CandidateHash:             candidateHash,
+		ClaimedCandidateHash:      candidateHash,
 		CommittedCandidateReceipt: commitedCandidate,
 		PersistedValidationData:   pvd,
 	}
 
-	// sanity check that we're allowed to second the candidate.
-	fragmentTreeMembership, err := cb.secondingSanityCheck(hypotheticalCandidate, false)
-	if err != nil {
-		return fmt.Errorf("not allowed to second: %w", err)
+	// sanity check that we're allowed to second the candidate and that it doesn't conflict with
+	// other candidates we've seconded.
+	leavesForSeconding := cb.secondingSanityCheck(hypotheticalCandidate)
+	if len(leavesForSeconding) == 0 {
+		// we can't second this candidate
+		return nil
 	}
 
 	statement := parachaintypes.NewStatementVDT()
-	err = statement.SetValue(parachaintypes.Seconded(commitedCandidate))
+	err := statement.SetValue(parachaintypes.Seconded(commitedCandidate))
 	if err != nil {
 		return fmt.Errorf("setting statement: %w", err)
 	}
@@ -219,31 +206,10 @@ func (cb *CandidateBacking) handleCommandSecond(
 		return err
 	}
 
-	perCandidate, ok := cb.perCandidate[candidateHash]
-	if !ok {
-		logger.Warnf("missing `per candidate` for seconded candidate: %s", candidateHash.Value)
-	} else {
+	if perCandidate, ok := cb.perCandidate[candidateHash]; ok {
 		perCandidate.secondedLocally = true
-	}
-
-	// update seconded depths in active leaves.
-	for leaf, depths := range fragmentTreeMembership {
-		leafState, ok := cb.perLeaf[leaf]
-		if !ok {
-			logger.Warnf("missing `per leaf` for known active leaf: %s", leaf)
-			continue
-		}
-
-		secondedAtDepth, ok := leafState.secondedAtDepth[candidate.Descriptor.ParaID]
-		if !ok {
-			var btreeMap btree.Map[uint, parachaintypes.CandidateHash]
-			leafState.secondedAtDepth[candidate.Descriptor.ParaID] = &btreeMap
-			secondedAtDepth = &btreeMap
-		}
-
-		for _, depth := range depths {
-			secondedAtDepth.Set(depth, candidateHash)
-		}
+	} else {
+		logger.Warnf("missing `per candidate` for seconded candidate: %s", candidateHash.Value)
 	}
 
 	rpState.issuedStatements[candidateHash] = true

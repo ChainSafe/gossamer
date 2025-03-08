@@ -12,6 +12,7 @@ import (
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	prospectiveparachains "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
 	statementedistributionmessages "github.com/ChainSafe/gossamer/dot/parachain/statement-distribution/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -308,26 +309,30 @@ func (rpState *perRelayParentState) introduceCandidate(
 ) error {
 	paraID := committedCandidateReceipt.Descriptor.ParaID
 
-	chIntroduceCandidate := make(chan error)
-	subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageIntroduceCandidate{
-		IntroduceCandidateRequest: parachaintypes.IntroduceCandidateRequest{
-			CandidateParaID:           paraID,
-			CommittedCandidateReceipt: committedCandidateReceipt,
-			PersistedValidationData:   *persistedValidationData,
+	chIntroduceCandidate := make(chan bool)
+	subSystemToOverseer <- prospectiveparachains.IntroduceSecondedCandidate{
+		Request: prospectiveparachains.IntroduceSecondedCandidateRequest{
+			CandidateParaID:         paraID,
+			CandidateReceipt:        committedCandidateReceipt,
+			PersistedValidationData: *persistedValidationData,
 		},
-		Ch: chIntroduceCandidate,
+		Response: chIntroduceCandidate,
 	}
 
-	introduceCandidateErr, ok := <-chIntroduceCandidate
-	if !ok {
-		return fmt.Errorf("%w: %s",
-			errRejectedByProspectiveParachains, "Could not reach the Prospective Parachains subsystem.")
-	}
-	if introduceCandidateErr != nil {
-		return fmt.Errorf("%w: %w", errRejectedByProspectiveParachains, introduceCandidateErr)
+	select {
+	case isIntroduced, ok := <-chIntroduceCandidate:
+		if ok && isIntroduced {
+			// candidate introduced successfully
+			return nil
+		}
+		if !ok {
+			logger.Warn("response channel of introduce candidate message closed")
+		}
+	case <-time.After(time.Second * 10): // Add a timeout to avoid potential deadlocks
+		logger.Warn("timeout waiting for introduce candidate response")
 	}
 
-	return nil
+	return errRejectedByProspectiveParachains
 }
 
 // postImportStatement handles a summary received from importStatement func and dispatches `Backed` notifications and
@@ -370,7 +375,7 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 	paraID := backedCandidate.Candidate.Descriptor.ParaID
 
 	// Inform the prospective parachains subsystem that the candidate is now backed.
-	subSystemToOverseer <- parachaintypes.ProspectiveParachainsMessageCandidateBacked{
+	subSystemToOverseer <- prospectiveparachains.CandidateBacked{
 		ParaID:        paraID,
 		CandidateHash: candidateHash,
 	}
