@@ -1033,6 +1033,34 @@ func (m *MockRuntimeStorageAPI) EXPECT() *MockRuntimeStorageAPIMockRecorder {
 	return m.recorder
 }
 
+// ClearLocal mocks base method.
+func (m *MockRuntimeStorageAPI) ClearLocal(k []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClearLocal", k)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ClearLocal indicates an expected call of ClearLocal.
+func (mr *MockRuntimeStorageAPIMockRecorder) ClearLocal(k any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearLocal", reflect.TypeOf((*MockRuntimeStorageAPI)(nil).ClearLocal), k)
+}
+
+// ClearPersistent mocks base method.
+func (m *MockRuntimeStorageAPI) ClearPersistent(k []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClearPersistent", k)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ClearPersistent indicates an expected call of ClearPersistent.
+func (mr *MockRuntimeStorageAPIMockRecorder) ClearPersistent(k any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearPersistent", reflect.TypeOf((*MockRuntimeStorageAPI)(nil).ClearPersistent), k)
+}
+
 // GetLocal mocks base method.
 func (m *MockRuntimeStorageAPI) GetLocal(k []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
