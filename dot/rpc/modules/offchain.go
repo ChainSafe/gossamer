@@ -15,6 +15,12 @@ const (
 	offchainLocal      = "LOCAL"
 )
 
+// OffchainLocalStorageClear represents the request format to remove data from offchain storage
+type OffchainLocalStorageClear struct {
+	Kind string
+	Key  string
+}
+
 // OffchainLocalStorageGet represents the request format to retrieve data from offchain storage
 type OffchainLocalStorageGet struct {
 	Kind string
@@ -38,6 +44,33 @@ func NewOffchainModule(ns RuntimeStorageAPI) *OffchainModule {
 	return &OffchainModule{
 		nodeStorage: ns,
 	}
+}
+
+// LocalStorageClear clear offchain local storage under given key and prefix
+func (s *OffchainModule) LocalStorageClear(_ *http.Request, req *OffchainLocalStorageClear, _ *StringResponse) error {
+	var (
+		key []byte
+		err error
+	)
+
+	if key, err = common.HexToBytes(req.Key); err != nil {
+		return err
+	}
+
+	switch req.Kind {
+	case offchainPersistent:
+		err = s.nodeStorage.ClearPersistent(key)
+	case offchainLocal:
+		err = s.nodeStorage.ClearLocal(key)
+	default:
+		return fmt.Errorf("storage kind not found: %s", req.Kind)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // LocalStorageGet get offchain local storage under given key and prefix
