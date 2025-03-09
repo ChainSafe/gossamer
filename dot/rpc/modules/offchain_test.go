@@ -16,6 +16,96 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestOffchainModule_LocalStorageClear(t *testing.T) {
+	ctrl := gomock.NewController(t)
+
+	mockRuntimeStorageAPI := mocks.NewMockRuntimeStorageAPI(ctrl)
+	mockRuntimeStorageAPI.EXPECT().ClearPersistent(common.MustHexToBytes("0x11111111111111")).
+		Return(errors.New("ClearPersistent error"))
+	mockRuntimeStorageAPI.EXPECT().ClearLocal(common.MustHexToBytes("0x11111111111111")).Return(nil)
+	offChainModule := NewOffchainModule(mockRuntimeStorageAPI)
+
+	type fields struct {
+		nodeStorage RuntimeStorageAPI
+	}
+	type args struct {
+		in0 *http.Request
+		req *OffchainLocalStorageClear
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		expErr error
+	}{
+		{
+			name: "ClearPersistent_error",
+			fields: fields{
+				offChainModule.nodeStorage,
+			},
+			args: args{
+				req: &OffchainLocalStorageClear{
+					Kind: offchainPersistent,
+					Key:  "0x11111111111111",
+				},
+			},
+			expErr: errors.New("ClearPersistent error"),
+		},
+		{
+			name: "Invalid_Storage_Kind",
+			fields: fields{
+				offChainModule.nodeStorage,
+			},
+			args: args{
+				req: &OffchainLocalStorageClear{
+					Kind: "invalid kind",
+					Key:  "0x11111111111111",
+				},
+			},
+			expErr: fmt.Errorf("storage kind not found: invalid kind"),
+		},
+		{
+			name: "ClearLocal_OK",
+			fields: fields{
+				offChainModule.nodeStorage,
+			},
+			args: args{
+				req: &OffchainLocalStorageClear{
+					Kind: offchainLocal,
+					Key:  "0x11111111111111",
+				},
+			},
+		},
+		{
+			name: "Invalid_key",
+			fields: fields{
+				offChainModule.nodeStorage,
+			},
+			args: args{
+				req: &OffchainLocalStorageClear{
+					Kind: offchainLocal,
+					Key:  "0x1",
+				},
+			},
+			expErr: errors.New("encoding/hex: odd length hex string: 0x1"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &OffchainModule{
+				nodeStorage: tt.fields.nodeStorage,
+			}
+			res := StringResponse("")
+			err := s.LocalStorageClear(tt.args.in0, tt.args.req, &res)
+			if tt.expErr != nil {
+				assert.EqualError(t, err, tt.expErr.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestOffchainModule_LocalStorageGet(t *testing.T) {
 	ctrl := gomock.NewController(t)
 

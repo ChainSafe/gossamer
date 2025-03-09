@@ -51,4 +51,14 @@ func TestOffchainRPC(t *testing.T) { //nolint:tparallel
 
 		// TODO assert response
 	})
+
+	t.Run("offchain_localStorageClear", func(t *testing.T) {
+		t.Parallel()
+
+		var response struct{} // TODO
+
+		fetchWithTimeout(ctx, t, "offchain_localStorageClear", "", &response)
+
+		// TODO assert response
+	})
 }
