@@ -637,7 +637,7 @@ func TestVoter_PickUpFromPriorWithGrandparentStatus(t *testing.T) {
 	roundOut <- NewMessage(lastPrecommit)
 
 	// run voter in background. scheduling it to shut down at the end.
-	voter, globalOut := NewVoter(
+	voter, globalOut := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voterSet,
 		nil,
@@ -668,6 +668,7 @@ waitForPrevote:
 		}
 	}
 
+	<-time.NewTimer(100 * time.Millisecond).C
 	assert.Equal(t, [2]uint64{2, 1}, env.LastCompletedAndConcluded())
 
 	err := voter.Stop()
