@@ -173,7 +173,7 @@ func (b *BitfieldDistribution) ProcessPeerConnectedSignal(signal networkbridgeev
 				view            parachaintypes.View
 				protocolVersion uint32 // ignore v1 peers
 			}{
-				view:            parachaintypes.View{}, // TODO: default view?
+				view:            parachaintypes.View{}, // default view
 				protocolVersion: pc.ProtocolVersion,
 			}
 			b.mu.Unlock()

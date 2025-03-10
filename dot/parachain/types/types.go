@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	"math"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -794,6 +795,32 @@ type UncheckedSignedAvailabilityBitfield struct {
 	Signature ValidatorSignature `scale:"3"`
 }
 
+// CheckedSignedAvailabilityBitfield a signed bitfield with signature checked already
+type CheckedSignedAvailabilityBitfield struct {
+	// The payload is part of the signed data. The rest is the signing context,
+	// which is known both at signing and at validation.
+	Payload BitVec `scale:"1"`
+
+	// The index of the validator signing this statement.
+	ValidatorIndex ValidatorIndex `scale:"2"`
+
+	// The signature by the validator of the signed payload.
+	Signature ValidatorSignature `scale:"3"`
+}
+
+func (c UncheckedSignedAvailabilityBitfield) ToCheck(key crypto.PublicKey) (*CheckedSignedAvailabilityBitfield, error) {
+	ok, err := key.Verify(c.Payload.bytes(), c.Signature[:])
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, fmt.Errorf("invalid signature against the payload for the given key")
+	}
+
+	csa := CheckedSignedAvailabilityBitfield(c)
+	return &csa, nil
+}
+
 // Subsystem is an interface for subsystems to be registered with the overseer.
 type Subsystem interface {
 	// Run runs the subsystem.
@@ -936,5 +963,5 @@ func (v Validator) VerifySignature(
 
 type DistributeBitfield struct {
 	RelayParent common.Hash
-	Bitfield    UncheckedSignedAvailabilityBitfield
+	Bitfield    CheckedSignedAvailabilityBitfield
 }
