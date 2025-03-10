@@ -9,11 +9,11 @@ import (
 
 type waker struct {
 	sync.RWMutex
-	wakeCh chan any
+	wakeCh chan struct{}
 }
 
 func newWaker() *waker {
-	return &waker{wakeCh: make(chan any, 100_000)}
+	return &waker{wakeCh: make(chan struct{}, 100_000)}
 }
 
 func (w *waker) wake() {
@@ -23,14 +23,11 @@ func (w *waker) wake() {
 		return
 	}
 	go func() {
-		select {
-		case w.wakeCh <- nil:
-			// default:
-		}
+		w.wakeCh <- struct{}{}
 	}()
 }
 
-func (w *waker) channel() chan any {
+func (w *waker) channel() chan struct{} {
 	return w.wakeCh
 }
 

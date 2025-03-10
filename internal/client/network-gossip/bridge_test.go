@@ -375,7 +375,6 @@ func TestGossipEngine(t *testing.T) {
 						timeout := time.NewTimer(10 * time.Millisecond)
 						expected = timeout.C
 					}
-					// break outer
 				}
 
 				select {
@@ -391,7 +390,6 @@ func TestGossipEngine(t *testing.T) {
 
 			// Compare amount of expected messages with amount of received messages.
 			for expectedTopic, expectedNum := range expectedMsgsPerTopicAllChan {
-				t.Logf("topic: %s, expectedNUm: %d, received: %d", expectedTopic, expectedNum, receivedMsgsPerTopicAllChan[expectedTopic])
 				require.Equal(t, expectedNum, receivedMsgsPerTopicAllChan[expectedTopic])
 			}
 
@@ -400,11 +398,11 @@ func TestGossipEngine(t *testing.T) {
 			}
 		}
 
-		// prop(t, nil, [][]Message{{Message{Topic: hash.NewH256()}}})
-		// prop(t,
-		// 	[]ChannelLengthTopic{{Topic: hash.NewH256(), Length: 71}},
-		// 	[][]Message{{{Topic: hash.NewH256()}}},
-		// )
+		prop(t, nil, [][]Message{{Message{Topic: hash.NewH256()}}})
+		prop(t,
+			[]ChannelLengthTopic{{Topic: hash.NewH256(), Length: 71}},
+			[][]Message{{{Topic: hash.NewH256()}}},
+		)
 
 		f := func(channels []ChannelLengthTopic, notifications [][]Message) bool {
 			prop(t, channels, notifications)
