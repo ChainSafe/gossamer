@@ -6,7 +6,10 @@ package bitfielddistribution
 import (
 	"context"
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/parachain/grid"
 	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
+	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
+	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -35,6 +38,20 @@ type perRelayParentData struct {
 
 	// Track messages that were already received by a peer to prevent flooding.
 	messageReceivedFromPeer map[peer.ID]map[parachaintypes.ValidatorID]struct{}
+}
+
+// TODO: impl me
+func NewPerRelayParentData(sessionIndex parachaintypes.SessionIndex) {
+
+}
+
+// messageFromValidatorNeededByPeer determines if that particular message signed by a
+// validator is needed by the given peer.
+func (p *perRelayParentData) messageFromValidatorNeededByPeer(peerID peer.ID, signedBy parachaintypes.ValidatorID) bool {
+	_, sendToExist := p.messageSentToPeer[peerID][signedBy]
+	_, receiveFromExist := p.messageReceivedFromPeer[peerID][signedBy]
+
+	return sendToExist && receiveFromExist
 }
 
 type BitfieldDistribution struct {
@@ -120,6 +137,11 @@ func (b *BitfieldDistribution) processMessage(msg any) error {
 		if err != nil {
 			return fmt.Errorf("processing our view change signal: %w", err)
 		}
+	case networkbridgeevents.PeerMessage[validationprotocol.ValidationProtocol]: // TODO: are we sure this type would be validationprotocol.ValidationProtocol?
+		err := b.ProcessPeerMessageSignal(msg)
+		if err != nil {
+			return fmt.Errorf("processing our view change signal: %w", err)
+		}
 	case networkbridgeevents.UpdatedAuthorityIDs:
 		err := b.ProcessUpdatedAuthorityIDsSignal(msg)
 		if err != nil {
@@ -188,11 +210,18 @@ func (b *BitfieldDistribution) ProcessOurViewChangeSignal(signal networkbridgeev
 	panic("implement me")
 }
 
+func (b *BitfieldDistribution) ProcessPeerMessageSignal(signal networkbridgeevents.PeerMessage[validationprotocol.ValidationProtocol]) error {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (b *BitfieldDistribution) ProcessUpdatedAuthorityIDsSignal(signal networkbridgeevents.UpdatedAuthorityIDs) error {
 	//TODO implement me
 	panic("implement me")
 }
 
+// TODO: sending bitfield messages to provisioning subsystem and to other peers
+// handle_bitfield_distribution()
 func (b *BitfieldDistribution) ProcessBitfieldDistributionMessageSignal(signal validationprotocol.BitfieldDistributionMessage) error {
 	//TODO implement me
 	panic("implement me")
@@ -209,4 +238,97 @@ func (b *BitfieldDistribution) ProcessBlockFinalizedSignal(signal parachaintypes
 
 func (b *BitfieldDistribution) Stop() {
 	logger.Infof("Stopping BitfieldDistribution subsystem")
+}
+
+// relayMessage distributes a given valid and signature checked bitfield message.
+//
+// Can be originated by another subsystem or received via network from another peer.
+func relayMessage(jobData *perRelayParentData, topologyNeighbors *grid.GridNeighbours, peers map[peer.ID]struct {
+	view            parachaintypes.View
+	protocolVersion uint32 // ignore v1 peers
+}, validatorID parachaintypes.ValidatorID, message parachaintypes.DistributeBitfield,
+	requiredRouting grid.RequiredRouting, subsystemToOverSeerChan chan<- any) {
+	relayParent := message.RelayParent
+
+	// notify the overseer about a new and valid signed bitfield
+	go func() {
+		subsystemToOverSeerChan <- provisionermessages.ProvisionableDataBitfield{
+			RelayParent: relayParent,
+			Bitfield:    message.Bitfield,
+		}
+	}()
+
+	// pass on the bitfield distribution to all interested peers
+	// 1. get interested peers
+	interestedPeers := make(map[peer.ID]uint32)
+
+	for peerID, peerData := range peers {
+		if peerData.view.Contains(message.RelayParent) {
+			if jobData.messageFromValidatorNeededByPeer(peerID, validatorID) {
+				needRouting := topologyNeighbors.ShouldRouteToPeer(requiredRouting, peerID)
+				// TODO: need random routing?
+
+				if needRouting {
+					interestedPeers[peerID] = peerData.protocolVersion
+				}
+			}
+		}
+	}
+
+	if len(interestedPeers) == 0 {
+		logger.Infof("no peers are interested in gossip for relay parent")
+		return
+	}
+
+	// 2. insert the message sent for this peerData into job_data
+	for peerID := range interestedPeers {
+		jobData.messageSentToPeer[peerID] = map[parachaintypes.ValidatorID]struct{}{validatorID: {}}
+	}
+
+	// 3. send NetworkBridgeTxMessage::SendValidationMessage to all v2 and v3 peers
+	v2InterestedPeers := filterByPeerVersion(interestedPeers, 2)
+	if len(v2InterestedPeers) != 0 {
+		go func() {
+			// TODO: add version support for validation protocol
+			v := &validationprotocol.ValidationProtocol{}
+			err := v.SetValue(message)
+			if err != nil {
+				logger.Errorf("processing relay message for v2 protocol: %s", err.Error())
+				return
+			}
+			subsystemToOverSeerChan <- networkbridgemessages.SendValidationMessage{
+				To:                        v2InterestedPeers,
+				ValidationProtocolMessage: *v,
+			}
+		}()
+	}
+
+	v3InterestedPeers := filterByPeerVersion(interestedPeers, 3)
+	if len(v3InterestedPeers) != 0 {
+		go func() {
+			// TODO: add version support for validation protocol
+			v := &validationprotocol.ValidationProtocol{}
+			err := v.SetValue(message)
+			if err != nil {
+				logger.Errorf("processing relay message for v3 protocol: %s", err.Error())
+				return
+			}
+			subsystemToOverSeerChan <- networkbridgemessages.SendValidationMessage{
+				To:                        v3InterestedPeers,
+				ValidationProtocolMessage: *v,
+			}
+		}()
+	}
+}
+
+func filterByPeerVersion(peers map[peer.ID]uint32, protocolVersion uint32) []peer.ID {
+	re := make([]peer.ID, 0)
+
+	for peerID, version := range peers {
+		if version == protocolVersion {
+			re = append(re, peerID)
+		}
+	}
+
+	return re
 }

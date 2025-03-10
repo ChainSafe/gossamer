@@ -5,6 +5,7 @@ package parachaintypes
 
 import (
 	"reflect"
+	"slices"
 	"sort"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -64,6 +65,10 @@ func (v View) CheckHeadsEqual(other View) bool {
 	sort.Sort(SortableHeads(otherHeads))
 
 	return reflect.DeepEqual(localHeads, otherHeads)
+}
+
+func (v View) Contains(hash common.Hash) bool {
+	return slices.Contains(v.Heads, hash)
 }
 
 type SortableHeads []common.Hash
