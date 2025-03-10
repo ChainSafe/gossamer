@@ -54,28 +54,28 @@ type messageEntry[H runtime.Hash] struct {
 }
 
 // Local implementation of [ValidatorContext].
-type newtorkContext[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
+type networkContext[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	gossip              *consensusGossip[H, Hasher]
 	notificationService service.NotificationService
 }
 
 // Broadcast all messages with given topic to peers that do not have it yet.
-func (nc newtorkContext[H, Hasher]) BroadcastTopic(topic H, force bool) {
+func (nc networkContext[H, Hasher]) BroadcastTopic(topic H, force bool) {
 	nc.gossip.BroadcastTopic(nc.notificationService, topic, force)
 }
 
 // Broadcast a message to all peers that have not received it previously.
-func (nc newtorkContext[H, Hasher]) BroadcastMessage(topic H, message []byte, force bool) {
+func (nc networkContext[H, Hasher]) BroadcastMessage(topic H, message []byte, force bool) {
 	nc.gossip.Multicast(nc.notificationService, topic, message, force)
 }
 
 // Send addressed message to a peer.
-func (nc newtorkContext[H, Hasher]) SendMessage(who peerid.PeerID, message []byte) {
+func (nc networkContext[H, Hasher]) SendMessage(who peerid.PeerID, message []byte) {
 	nc.notificationService.SendSyncNotification(who, message)
 }
 
 // Send all messages with given topic to a peer.
-func (nc newtorkContext[H, Hasher]) SendTopic(who peerid.PeerID, topic H, force bool) {
+func (nc networkContext[H, Hasher]) SendTopic(who peerid.PeerID, topic H, force bool) {
 	nc.gossip.SendTopic(nc.notificationService, who, topic, force)
 }
 
@@ -97,9 +97,9 @@ func propagate[H runtime.Hash](
 					continue
 				}
 				intent = MessageIntentBroadcast
-			case MessageIntentPeriodicReboradcast:
+			case MessageIntentPeriodicRebroadcast:
 				if _, ok := peer.knownMessages[message.messageHash]; ok {
-					intent = MessageIntentPeriodicReboradcast
+					intent = MessageIntentPeriodicRebroadcast
 				} else {
 					// peer doesn't know message, so the logic should treat it as an
 					// initial broadcast.
@@ -168,7 +168,7 @@ func (cg *consensusGossip[H, Hasher]) NewPeer(
 	cg.peers[who] = peerConsensus[H]{knownMessages: make(map[H]any)}
 
 	validator := cg.validator
-	context := newtorkContext[H, Hasher]{gossip: cg, notificationService: notificationService}
+	context := networkContext[H, Hasher]{gossip: cg, notificationService: notificationService}
 	validator.NewPeer(context, who, role)
 }
 
@@ -198,7 +198,7 @@ func (cg *consensusGossip[H, Hasher]) PeerDisconnected(
 	notificationService service.NotificationService, who peerid.PeerID,
 ) {
 	validator := cg.validator
-	context := newtorkContext[H, Hasher]{gossip: cg, notificationService: notificationService}
+	context := networkContext[H, Hasher]{gossip: cg, notificationService: notificationService}
 	validator.PeerDisconnected(context, who)
 	delete(cg.peers, who)
 }
@@ -215,7 +215,7 @@ func (cg *consensusGossip[H, Hasher]) Tick(notificationService service.Notificat
 
 // Rebroadcast all messages to all peers.
 func (cg *consensusGossip[H, Hasher]) rebroadcast(notificationService service.NotificationService) {
-	propagate(notificationService, cg.protocol, cg.messages, MessageIntentPeriodicReboradcast, cg.peers, cg.validator)
+	propagate(notificationService, cg.protocol, cg.messages, MessageIntentPeriodicRebroadcast, cg.peers, cg.validator)
 }
 
 // Broadcast all messages with given topic.
@@ -236,8 +236,8 @@ func (cg *consensusGossip[H, Hasher]) BroadcastTopic(
 	propagate(notificationService, cg.protocol, messages, intent, cg.peers, cg.validator)
 }
 
-// Prune old or no longer relevant consensus messages. Provide a predicate for pruning, which returns false when the
-// items with a given topic should be pruned.
+// Prune old or no longer relevant consensus messages. A predicate for pruning provided via Validator.MessageExpired,
+// which returns false when the items with a given topic should be pruned.
 func (cg *consensusGossip[H, Hasher]) CollectGarbage() {
 	knownMessages := cg.knownMessages
 	before := len(cg.messages)
@@ -310,7 +310,7 @@ func (cg *consensusGossip[H, Hasher]) OnIncoming(
 
 		// validate the message
 		validator := cg.validator
-		context := newtorkContext[H, Hasher]{gossip: cg, notificationService: notificationService}
+		context := networkContext[H, Hasher]{gossip: cg, notificationService: notificationService}
 		validation := validator.Validate(&context, who, message)
 
 		var (

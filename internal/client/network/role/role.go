@@ -47,12 +47,12 @@ func (r Roles) intersects(other Roles) bool {
 	return !((r & other) == 0)
 }
 
-// Does this role represents a client that holds full chain data locally?
+// IsFull returns whether or not a client holds full chain data locally.
 func (r Roles) IsFull() bool {
 	return r.intersects(RolesFull | RolesAuthority)
 }
 
-// Does this role represents a client that does not participates in the consensus?
+// IsAuthorityt returns whether or not a client participates in consensus.
 func (r Roles) IsAuthority() bool {
 	return r == RolesAuthority
 }

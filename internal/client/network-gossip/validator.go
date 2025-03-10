@@ -44,7 +44,7 @@ const (
 	// Requested broadcast to all peers.
 	MessageIntentForcedBroadcast
 	// Periodic rebroadcast of all messages to all peers.
-	MessageIntentPeriodicReboradcast
+	MessageIntentPeriodicRebroadcast
 )
 
 // ValidationResultProcessAndKeep means the message should be stored and propagated under given topic.
