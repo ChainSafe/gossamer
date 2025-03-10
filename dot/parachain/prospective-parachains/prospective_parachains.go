@@ -8,6 +8,7 @@ import (
 	"errors"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
+	"github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -80,22 +81,22 @@ func (pp *ProspectiveParachains) processMessage(msg any) {
 		_ = pp.ProcessActiveLeavesUpdateSignal(msg)
 	case parachaintypes.BlockFinalizedSignal:
 		_ = pp.ProcessBlockFinalizedSignal(msg)
-	case IntroduceSecondedCandidate:
+	case messages.IntroduceSecondedCandidate:
 		pp.introduceSecondedCandidate(
 			pp.View,
-			msg.IntroduceSecondedCandidateRequest,
+			msg.Request,
 			msg.Response,
 		)
-	case CandidateBacked:
+	case messages.CandidateBacked:
 		panic("not implemented yet: see issue #4309")
-	case GetBackableCandidates:
+	case messages.GetBackableCandidates:
 		pp.getBackableCandidates(msg)
-	case GetHypotheticalMembership:
+	case messages.GetHypotheticalMembership:
 		panic("not implemented yet: see issue #4311")
-	case GetMinimumRelayParents:
+	case messages.GetMinimumRelayParents:
 		// Directly use the msg since it's already of type GetMinimumRelayParents
 		pp.getMinimumRelayParents(msg.RelayChainBlockHash, msg.Sender)
-	case GetProspectiveValidationData:
+	case messages.GetProspectiveValidationData:
 		pp.answerProspectiveValidationDataRequest(msg.ProspectiveValidationDataRequest, msg.Sender)
 	default:
 		logger.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
@@ -105,7 +106,7 @@ func (pp *ProspectiveParachains) processMessage(msg any) {
 
 func (pp *ProspectiveParachains) introduceSecondedCandidate(
 	view *view,
-	request IntroduceSecondedCandidateRequest,
+	request messages.IntroduceSecondedCandidateRequest,
 	response chan bool,
 ) {
 	defer close(response)
@@ -206,9 +207,9 @@ func (*ProspectiveParachains) ProcessBlockFinalizedSignal(parachaintypes.BlockFi
 
 func (pp *ProspectiveParachains) getMinimumRelayParents(
 	relayChainBlockHash common.Hash,
-	sender chan []ParaIDBlockNumber,
+	sender chan []messages.ParaIDBlockNumber,
 ) {
-	var result []ParaIDBlockNumber
+	var result []messages.ParaIDBlockNumber
 
 	// Check if the relayChainBlockHash exists in active_leaves
 	if exists := pp.View.activeLeaves[relayChainBlockHash]; exists {
@@ -216,7 +217,7 @@ func (pp *ProspectiveParachains) getMinimumRelayParents(
 		if leafData, found := pp.View.perRelayParent[relayChainBlockHash]; found {
 			// Iterate over fragment_chains and collect the data
 			for paraID, fragmentChain := range leafData.fragmentChains {
-				result = append(result, ParaIDBlockNumber{
+				result = append(result, messages.ParaIDBlockNumber{
 					ParaId:      paraID,
 					BlockNumber: fragmentChain.scope.relayParent.Number,
 				})
@@ -229,7 +230,7 @@ func (pp *ProspectiveParachains) getMinimumRelayParents(
 }
 
 func (pp *ProspectiveParachains) getBackableCandidates(
-	msg GetBackableCandidates,
+	msg messages.GetBackableCandidates,
 ) {
 	// Extract details from the message
 	relayParentHash := msg.RelayParentHash
@@ -303,7 +304,7 @@ func (pp *ProspectiveParachains) getBackableCandidates(
 }
 
 func (pp *ProspectiveParachains) answerProspectiveValidationDataRequest(
-	request ProspectiveValidationDataRequest,
+	request messages.ProspectiveValidationDataRequest,
 	response chan<- *parachaintypes.PersistedValidationData,
 ) {
 	var headData *parachaintypes.HeadData
@@ -311,9 +312,9 @@ func (pp *ProspectiveParachains) answerProspectiveValidationDataRequest(
 
 	// extracting informations from the request depending on the incoming type.
 	switch value := request.ParentHeadData.(type) {
-	case OnlyHash:
+	case messages.OnlyHash:
 		parentHeadDataHash = common.Hash(value)
-	case ParentHeadDataWithHash:
+	case messages.ParentHeadDataWithHash:
 		headData = &value.Data
 		parentHeadDataHash = value.Hash
 	}

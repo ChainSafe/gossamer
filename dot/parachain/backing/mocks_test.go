@@ -124,19 +124,18 @@ func (m *MockImplicitView) EXPECT() *MockImplicitViewMockRecorder {
 	return m.recorder
 }
 
-// ActiveLeaf mocks base method.
-func (m *MockImplicitView) ActiveLeaf(leafHash common.Hash) ([]parachaintypes.ParaID, error) {
+// ActivateLeaf mocks base method.
+func (m *MockImplicitView) ActivateLeaf(leafHash common.Hash) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ActiveLeaf", leafHash)
-	ret0, _ := ret[0].([]parachaintypes.ParaID)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "ActivateLeaf", leafHash)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// ActiveLeaf indicates an expected call of ActiveLeaf.
-func (mr *MockImplicitViewMockRecorder) ActiveLeaf(leafHash any) *gomock.Call {
+// ActivateLeaf indicates an expected call of ActivateLeaf.
+func (mr *MockImplicitViewMockRecorder) ActivateLeaf(leafHash any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActiveLeaf", reflect.TypeOf((*MockImplicitView)(nil).ActiveLeaf), leafHash)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActivateLeaf", reflect.TypeOf((*MockImplicitView)(nil).ActivateLeaf), leafHash)
 }
 
 // AllAllowedRelayParents mocks base method.
@@ -165,6 +164,20 @@ func (m *MockImplicitView) KnownAllowedRelayParentsUnder(blockHash common.Hash, 
 func (mr *MockImplicitViewMockRecorder) KnownAllowedRelayParentsUnder(blockHash, paraID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "KnownAllowedRelayParentsUnder", reflect.TypeOf((*MockImplicitView)(nil).KnownAllowedRelayParentsUnder), blockHash, paraID)
+}
+
+// Leaves mocks base method.
+func (m *MockImplicitView) Leaves() []common.Hash {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Leaves")
+	ret0, _ := ret[0].([]common.Hash)
+	return ret0
+}
+
+// Leaves indicates an expected call of Leaves.
+func (mr *MockImplicitViewMockRecorder) Leaves() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Leaves", reflect.TypeOf((*MockImplicitView)(nil).Leaves))
 }
 
 // deactivateLeaf mocks base method.

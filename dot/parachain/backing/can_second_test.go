@@ -6,310 +6,134 @@ package backing
 import (
 	"testing"
 
+	prospectiveparachains "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
-	"github.com/tidwall/btree"
 	gomock "go.uber.org/mock/gomock"
 )
 
-func ignoreChanVal(t *testing.T, ch chan bool) {
-	t.Helper()
-	// ignore received value
-	<-ch
-}
-
 func TestHandleCanSecondMessage(t *testing.T) {
-	hash, err := getDummyCommittedCandidateReceipt(t).ToPlain().Hash()
-	require.NoError(t, err)
+	tests := []struct {
+		name             string
+		candidateBacking func() *CandidateBacking
+		msg              CanSecondMessage
+		mockOverseer     func(chan any)
+		expectedError    string
+		expectedResponse bool
+	}{
 
-	candidateHash := parachaintypes.CandidateHash{Value: hash}
+		{
+			name: "unknown_relay_parent",
+			candidateBacking: func() *CandidateBacking {
+				return &CandidateBacking{
+					perRelayParent: make(map[common.Hash]*perRelayParentState),
+				}
+			},
+			msg: CanSecondMessage{
+				CandidateRelayParent: common.Hash{0x01},
+				ResponseCh:           make(chan bool, 1),
+			},
+			mockOverseer:     func(overseerChannel chan any) {},
+			expectedError:    errUnknwnRelayParent.Error(),
+			expectedResponse: false,
+		},
+		{
+			name: "candidate_can_be_seconded",
+			candidateBacking: func() *CandidateBacking {
+				cb := &CandidateBacking{
+					perRelayParent: map[common.Hash]*perRelayParentState{{0x01}: {}},
+					ImplicitView:   implicitViewForCanSecondMsg(t),
+				}
+				return cb
+			},
+			msg: CanSecondMessage{
+				CandidateRelayParent: common.Hash{0x01},
+				CandidateHash:        parachaintypes.CandidateHash{Value: common.Hash{0x02}},
+				CandidateParaID:      3,
+				ParentHeadDataHash:   common.Hash{0x04},
+				ResponseCh:           make(chan bool, 1),
+			},
+			mockOverseer: func(overseerChannel chan any) {
+				msg, ok := <-overseerChannel
+				require.True(t, ok)
 
-	msg := CanSecondMessage{
-		CandidateParaID:      1,
-		CandidateRelayParent: getDummyHash(t, 5),
-		CandidateHash:        candidateHash,
-		ParentHeadDataHash:   getDummyHash(t, 4),
-		ResponseCh:           make(chan bool),
+				getMembership, ok := msg.(prospectiveparachains.GetHypotheticalMembership)
+				require.True(t, ok)
+
+				getMembership.Response <- []prospectiveparachains.HypotheticalMembershipResponseItem{{
+					HypotheticalCandidate: parachaintypes.HypotheticalCandidateIncomplete{
+						ClaimedCandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x02}},
+					},
+					HypotheticalMembership: []common.Hash{{0x01}},
+				}}
+			},
+			expectedError:    "",
+			expectedResponse: true,
+		},
+		{
+			name: "candidate_cannot_be_seconded",
+			candidateBacking: func() *CandidateBacking {
+				cb := &CandidateBacking{
+					perRelayParent: make(map[common.Hash]*perRelayParentState),
+					ImplicitView:   implicitViewForCanSecondMsg(t),
+				}
+				cb.perRelayParent[common.Hash{0x01}] = &perRelayParentState{}
+				return cb
+			},
+			msg: CanSecondMessage{
+				CandidateRelayParent: common.Hash{0x01},
+				CandidateHash:        parachaintypes.CandidateHash{Value: common.Hash{0x02}},
+				CandidateParaID:      3,
+				ParentHeadDataHash:   common.Hash{0x04},
+				ResponseCh:           make(chan bool, 1),
+			},
+			mockOverseer: func(overseerChannel chan any) {
+				msg, ok := <-overseerChannel
+				require.True(t, ok)
+
+				getMembership, ok := msg.(prospectiveparachains.GetHypotheticalMembership)
+				require.True(t, ok)
+
+				getMembership.Response <- []prospectiveparachains.HypotheticalMembershipResponseItem{}
+			},
+			expectedError:    "",
+			expectedResponse: false,
+		},
 	}
 
-	t.Run("relay_parent_is_unknown", func(t *testing.T) {
-		cb := CandidateBacking{}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 
-		go ignoreChanVal(t, msg.ResponseCh)
-		err := cb.handleCanSecondMessage(msg)
-		require.ErrorIs(t, err, errUnknwnRelayParent)
-	})
+			overseerChannel := make(chan any)
+			go tt.mockOverseer(overseerChannel)
 
-	t.Run("candidate_can_not_be_seconded", func(t *testing.T) {
-		cb := CandidateBacking{
-			perRelayParent: map[common.Hash]*perRelayParentState{
-				msg.CandidateRelayParent: {},
-			},
-		}
+			cb := tt.candidateBacking()
+			cb.SubSystemToOverseer = overseerChannel
 
-		go ignoreChanVal(t, msg.ResponseCh)
-		err := cb.handleCanSecondMessage(msg)
-		require.ErrorIs(t, err, errCandidateNotRecognised)
-	})
-
-	t.Run("candidate_recognised_by_at_least_one_fragment_tree", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		mockImplicitView := NewMockImplicitView(ctrl)
-
-		mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
-			gomock.AssignableToTypeOf(common.Hash{}),
-			gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
-		).Return([]common.Hash{msg.CandidateRelayParent})
-
-		subSystemToOverseer := make(chan any)
-
-		cb := CandidateBacking{
-			SubSystemToOverseer: subSystemToOverseer,
-			perRelayParent: map[common.Hash]*perRelayParentState{
-				msg.CandidateRelayParent: {},
-			},
-			perLeaf: map[common.Hash]*activeLeafState{
-				getDummyHash(t, 1): {
-					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
-						IsEnabled:          true,
-						MaxCandidateDepth:  4,
-						AllowedAncestryLen: 2,
-					},
-					secondedAtDepth: map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]{
-						msg.CandidateParaID: {},
-					},
-				},
-			},
-			ImplicitView: mockImplicitView,
-		}
-
-		go func(subSystemToOverseer chan any) {
-			in := <-subSystemToOverseer
-			responseCh := in.(parachaintypes.ProspectiveParachainsMessageGetHypotheticalFrontier).ResponseCh
-			responseCh <- parachaintypes.HypotheticalFrontierResponses{
-				{
-					HypotheticalCandidate: parachaintypes.HypotheticalCandidateIncomplete{
-						CandidateHash:      candidateHash,
-						CandidateParaID:    1,
-						ParentHeadDataHash: getDummyHash(t, 4),
-						RelayParent:        getDummyHash(t, 5),
-					},
-					Memberships: []parachaintypes.FragmentTreeMembership{{
-						RelayParent: getDummyHash(t, 5),
-						Depths:      []uint{1, 2, 3},
-					}},
-				},
+			err := cb.handleCanSecondMessage(tt.msg)
+			if tt.expectedError == "" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, tt.expectedError)
 			}
-		}(subSystemToOverseer)
 
-		go ignoreChanVal(t, msg.ResponseCh)
-		err := cb.handleCanSecondMessage(msg)
-		require.NoError(t, err)
-	})
+			response := <-tt.msg.ResponseCh
+			require.Equal(t, tt.expectedResponse, response)
+		})
+	}
 }
 
-func TestSecondingSanityCheck(t *testing.T) {
-	hash, err := getDummyCommittedCandidateReceipt(t).ToPlain().Hash()
-	require.NoError(t, err)
+// implicitViewForCanSecondMsg returns a mock ImplicitView for the CanSecondMessage test
+func implicitViewForCanSecondMsg(t *testing.T) *MockImplicitView {
+	t.Helper()
 
-	candidateHash := parachaintypes.CandidateHash{Value: hash}
+	ctrl := gomock.NewController(t)
+	mockImplicitView := NewMockImplicitView(ctrl)
+	mockImplicitView.EXPECT().Leaves().Return([]common.Hash{{0x01}})
+	mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
+		gomock.AssignableToTypeOf(common.Hash{}), gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
+	).Return([]common.Hash{{0x01}})
 
-	hypotheticalCandidate := parachaintypes.HypotheticalCandidateIncomplete{
-		CandidateHash:      candidateHash,
-		CandidateParaID:    1,
-		ParentHeadDataHash: getDummyHash(t, 4),
-		RelayParent:        getDummyHash(t, 5),
-	}
-
-	t.Run("prospective_parachains_mode_enabled_and_candidate_relay_parent_not_allowed_for_parachain", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		mockImplicitView := NewMockImplicitView(ctrl)
-
-		mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
-			gomock.AssignableToTypeOf(common.Hash{}),
-			gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
-		).Return([]common.Hash{})
-
-		cb := CandidateBacking{
-			perRelayParent: map[common.Hash]*perRelayParentState{
-				hypotheticalCandidate.RelayParent: {},
-			},
-			perLeaf: map[common.Hash]*activeLeafState{
-				getDummyHash(t, 1): {
-					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
-						IsEnabled:          true,
-						MaxCandidateDepth:  4,
-						AllowedAncestryLen: 2,
-					},
-				},
-			},
-			ImplicitView: mockImplicitView,
-		}
-
-		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
-
-		require.NoError(t, err)
-		require.Empty(t, membership)
-	})
-
-	t.Run("prospective_parachains_mode_enabled_and_depth_already_occupied", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		mockImplicitView := NewMockImplicitView(ctrl)
-
-		mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
-			gomock.AssignableToTypeOf(common.Hash{}),
-			gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
-		).Return([]common.Hash{hypotheticalCandidate.RelayParent})
-
-		subSystemToOverseer := make(chan any)
-
-		cb := CandidateBacking{
-			SubSystemToOverseer: subSystemToOverseer,
-			perRelayParent: map[common.Hash]*perRelayParentState{
-				hypotheticalCandidate.RelayParent: {},
-			},
-			perLeaf: map[common.Hash]*activeLeafState{
-				getDummyHash(t, 1): {
-					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
-						IsEnabled:          true,
-						MaxCandidateDepth:  4,
-						AllowedAncestryLen: 2,
-					},
-					secondedAtDepth: map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]{
-						hypotheticalCandidate.CandidateParaID: func() *btree.Map[uint, parachaintypes.CandidateHash] {
-							var btm btree.Map[uint, parachaintypes.CandidateHash]
-							btm.Set(1, hypotheticalCandidate.CandidateHash)
-							return &btm
-						}(),
-					},
-				},
-			},
-			ImplicitView: mockImplicitView,
-		}
-
-		go func(subSystemToOverseer chan any) {
-			in := <-subSystemToOverseer
-			in.(parachaintypes.ProspectiveParachainsMessageGetHypotheticalFrontier).
-				ResponseCh <- parachaintypes.HypotheticalFrontierResponses{
-				{
-					HypotheticalCandidate: hypotheticalCandidate,
-					Memberships: []parachaintypes.FragmentTreeMembership{{
-						RelayParent: hypotheticalCandidate.RelayParent,
-						Depths:      []uint{1, 2, 3},
-					}},
-				},
-			}
-		}(subSystemToOverseer)
-
-		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
-		require.ErrorIs(t, err, errDepthOccupied)
-		require.Empty(t, membership)
-	})
-
-	t.Run("prospective_parachains_mode_enabled_and_depth_not_occupied", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		mockImplicitView := NewMockImplicitView(ctrl)
-
-		mockImplicitView.EXPECT().KnownAllowedRelayParentsUnder(
-			gomock.AssignableToTypeOf(common.Hash{}),
-			gomock.AssignableToTypeOf(new(parachaintypes.ParaID)),
-		).Return([]common.Hash{hypotheticalCandidate.RelayParent})
-
-		subSystemToOverseer := make(chan any)
-
-		cb := CandidateBacking{
-			SubSystemToOverseer: subSystemToOverseer,
-			perRelayParent: map[common.Hash]*perRelayParentState{
-				hypotheticalCandidate.RelayParent: {},
-			},
-			perLeaf: map[common.Hash]*activeLeafState{
-				getDummyHash(t, 1): {
-					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
-						IsEnabled:          true,
-						MaxCandidateDepth:  4,
-						AllowedAncestryLen: 2,
-					},
-					secondedAtDepth: map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]{
-						hypotheticalCandidate.CandidateParaID: {},
-					},
-				},
-			},
-			ImplicitView: mockImplicitView,
-		}
-
-		go func(subSystemToOverseer chan any) {
-			in := <-subSystemToOverseer
-			in.(parachaintypes.ProspectiveParachainsMessageGetHypotheticalFrontier).
-				ResponseCh <- parachaintypes.HypotheticalFrontierResponses{
-				{
-					HypotheticalCandidate: hypotheticalCandidate,
-					Memberships: []parachaintypes.FragmentTreeMembership{{
-						RelayParent: hypotheticalCandidate.RelayParent,
-						Depths:      []uint{1, 2, 3},
-					}},
-				},
-			}
-		}(subSystemToOverseer)
-
-		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
-		require.NoError(t, err)
-		require.Equal(
-			t,
-			map[common.Hash][]uint{getDummyHash(t, 1): {1, 2, 3}},
-			membership,
-		)
-	})
-
-	t.Run("prospective_parachains_mode_disabled_and_leaf_is_already_occupied", func(t *testing.T) {
-		cb := CandidateBacking{
-			perRelayParent: map[common.Hash]*perRelayParentState{
-				hypotheticalCandidate.RelayParent: {},
-			},
-			perLeaf: map[common.Hash]*activeLeafState{
-				hypotheticalCandidate.RelayParent: {
-					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
-						IsEnabled: false,
-					},
-					secondedAtDepth: map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]{
-						hypotheticalCandidate.CandidateParaID: func() *btree.Map[uint, parachaintypes.CandidateHash] {
-							var btm btree.Map[uint, parachaintypes.CandidateHash]
-							btm.Set(0, hypotheticalCandidate.CandidateHash)
-							return &btm
-						}(),
-					},
-				},
-			},
-		}
-
-		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
-		require.ErrorIs(t, err, errLeafOccupied)
-		require.Empty(t, membership)
-	})
-
-	t.Run("prospective_parachains_mode_disabled_and_leaf_is_not_occupied", func(t *testing.T) {
-		cb := CandidateBacking{
-			perRelayParent: map[common.Hash]*perRelayParentState{
-				hypotheticalCandidate.RelayParent: {},
-			},
-			perLeaf: map[common.Hash]*activeLeafState{
-				hypotheticalCandidate.RelayParent: {
-					prospectiveParachainsMode: parachaintypes.ProspectiveParachainsMode{
-						IsEnabled: false,
-					},
-					secondedAtDepth: map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]{
-						hypotheticalCandidate.CandidateParaID: {},
-					},
-				},
-			},
-		}
-
-		membership, err := cb.secondingSanityCheck(hypotheticalCandidate, true)
-		require.NoError(t, err)
-		require.Equal(
-			t,
-			map[common.Hash][]uint{hypotheticalCandidate.RelayParent: {0}},
-			membership,
-		)
-	})
+	return mockImplicitView
 }
