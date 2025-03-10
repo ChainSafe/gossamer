@@ -226,9 +226,12 @@ func (as *availabilityStore) loadMeta(candidate parachaintypes.CandidateHash) (*
 }
 
 // loadChunk loads a chunk from the availability store
-func (as *availabilityStore) loadChunk(candidate parachaintypes.CandidateHash, validatorIndex uint32) (*ErasureChunk,
+func (as *availabilityStore) loadChunk(
+	candidate parachaintypes.CandidateHash,
+	validatorIndex parachaintypes.ValidatorIndex,
+) (*ErasureChunk,
 	error) {
-	resultBytes, err := as.chunk.Get(append(candidate.Value[:], uint32ToBytes(validatorIndex)...))
+	resultBytes, err := as.chunk.Get(append(candidate.Value[:], uint32ToBytes(uint32(validatorIndex))...))
 	if err != nil {
 		return nil, fmt.Errorf("getting candidate %v, index %d from chunk table: %w", candidate.Value, validatorIndex, err)
 	}
@@ -746,10 +749,10 @@ func (av *AvailabilityStoreSubsystem) handleQueryChunkSize(msg QueryChunkSize) e
 	if err != nil {
 		return fmt.Errorf("load metadata: %w", err)
 	}
-	var validatorIndex uint32
+	var validatorIndex parachaintypes.ValidatorIndex
 	for i, v := range meta.ChunksStored {
 		if v {
-			validatorIndex = uint32(i)
+			validatorIndex = parachaintypes.ValidatorIndex(i)
 			break
 		}
 	}
@@ -771,7 +774,7 @@ func (av *AvailabilityStoreSubsystem) handleQueryAllChunks(msg QueryAllChunks) e
 	chunks := []ErasureChunk{}
 	for i, v := range meta.ChunksStored {
 		if v {
-			chunk, err := av.availabilityStore.loadChunk(msg.CandidateHash, uint32(i))
+			chunk, err := av.availabilityStore.loadChunk(msg.CandidateHash, parachaintypes.ValidatorIndex(i))
 			if err != nil {
 				logger.Errorf("load chunk: %w", err)
 			}
