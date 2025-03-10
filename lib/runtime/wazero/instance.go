@@ -642,7 +642,6 @@ func newRuntime(ctx context.Context,
 		).
 		Export("ext_crypto_ecdsa_generate_version_1").
 		Compile(ctx)
-
 	if err != nil {
 		return nil, nil, err
 	}
@@ -721,7 +720,11 @@ func (i *Instance) Exec(function string, data []byte) ([]byte, error) {
 	i.Lock()
 	defer i.Unlock()
 
-	mod, err := i.Runtime.InstantiateModule(context.Background(), i.metadata.guestModule, wazero.NewModuleConfig())
+	mod, err := i.Runtime.InstantiateModule(
+		context.Background(),
+		i.metadata.guestModule,
+		wazero.NewModuleConfig(),
+	)
 	if mod == nil {
 		return nil, fmt.Errorf("instantiate guest module: nil")
 	}
@@ -801,7 +804,7 @@ func (in *Instance) Version() (runtime.Version, error) {
 
 // version calls runtime function Core_Version and returns the
 // decoded version structure.
-func (in *Instance) version() error { //skipcq: RVV-B0001
+func (in *Instance) version() error { // skipcq: RVV-B0001
 	res, err := in.Exec(runtime.CoreVersion, []byte{})
 	if err != nil {
 		return err
@@ -868,8 +871,8 @@ func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 
 // BabeGenerateKeyOwnershipProof returns the babe key ownership proof from the runtime.
 func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]byte) (
-	types.OpaqueKeyOwnershipProof, error) {
-
+	types.OpaqueKeyOwnershipProof, error,
+) {
 	// scale encoded slot uint64 + scale encoded array of 32 bytes
 	const maxBufferLength = 8 + 33
 	buffer := bytes.NewBuffer(make([]byte, 0, maxBufferLength))
@@ -883,7 +886,10 @@ func (in *Instance) BabeGenerateKeyOwnershipProof(slot uint64, authorityID [32]b
 		return nil, fmt.Errorf("encoding authority id: %w", err)
 	}
 
-	encodedKeyOwnershipProof, err := in.Exec(runtime.BabeAPIGenerateKeyOwnershipProof, buffer.Bytes())
+	encodedKeyOwnershipProof, err := in.Exec(
+		runtime.BabeAPIGenerateKeyOwnershipProof,
+		buffer.Bytes(),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("executing %s: %w", runtime.BabeAPIGenerateKeyOwnershipProof, err)
 	}
@@ -1043,7 +1049,10 @@ func (in *Instance) QueryCallFeeDetails(ext []byte) (*types.FeeDetails, error) {
 		return nil, err
 	}
 
-	resBytes, err := in.Exec(runtime.TransactionPaymentCallAPIQueryCallFeeDetails, append(ext, encLen...))
+	resBytes, err := in.Exec(
+		runtime.TransactionPaymentCallAPIQueryCallFeeDetails,
+		append(ext, encLen...),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1061,8 +1070,12 @@ func (in *Instance) QueryCallFeeDetails(ext []byte) (*types.FeeDetails, error) {
 func (*Instance) CheckInherents() {}
 
 // GrandpaGenerateKeyOwnershipProof returns grandpa key ownership proof from the runtime.
-func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authorityID ed25519.PublicKeyBytes) (
-	types.GrandpaOpaqueKeyOwnershipProof, error) {
+func (in *Instance) GrandpaGenerateKeyOwnershipProof(
+	authSetID uint64,
+	authorityID ed25519.PublicKeyBytes,
+) (
+	types.GrandpaOpaqueKeyOwnershipProof, error,
+) {
 	const bufferSize = 8 + 32 // authSetID uint64 + ed25519.PublicKeyBytes
 	buffer := bytes.NewBuffer(make([]byte, 0, bufferSize))
 	encoder := scale.NewEncoder(buffer)
@@ -1074,7 +1087,10 @@ func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authority
 	if err != nil {
 		return nil, fmt.Errorf("encoding authority id: %w", err)
 	}
-	encodedOpaqueKeyOwnershipProof, err := in.Exec(runtime.GrandpaGenerateKeyOwnershipProof, buffer.Bytes())
+	encodedOpaqueKeyOwnershipProof, err := in.Exec(
+		runtime.GrandpaGenerateKeyOwnershipProof,
+		buffer.Bytes(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1094,7 +1110,8 @@ func (in *Instance) GrandpaGenerateKeyOwnershipProof(authSetID uint64, authority
 
 // GrandpaSubmitReportEquivocationUnsignedExtrinsic reports an equivocation report to the runtime.
 func (in *Instance) GrandpaSubmitReportEquivocationUnsignedExtrinsic(
-	equivocationProof types.GrandpaEquivocationProof, keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
+	equivocationProof types.GrandpaEquivocationProof,
+	keyOwnershipProof types.GrandpaOpaqueKeyOwnershipProof,
 ) error {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
@@ -1129,7 +1146,10 @@ func (in *Instance) ParachainHostPersistedValidationData(
 		return nil, fmt.Errorf("encoding key ownership proof: %w", err)
 	}
 
-	encodedPersistedValidationData, err := in.Exec(runtime.ParachainHostPersistedValidationData, buffer.Bytes())
+	encodedPersistedValidationData, err := in.Exec(
+		runtime.ParachainHostPersistedValidationData,
+		buffer.Bytes(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1240,7 +1260,10 @@ func (in *Instance) ParachainHostCheckValidationOutputs(
 		return false, fmt.Errorf("encode outputs: %w", err)
 	}
 
-	encodedPersistedValidationData, err := in.Exec(runtime.ParachainHostCheckValidationOutputs, buffer.Bytes())
+	encodedPersistedValidationData, err := in.Exec(
+		runtime.ParachainHostCheckValidationOutputs,
+		buffer.Bytes(),
+	)
 	if err != nil {
 		return false, fmt.Errorf("exec: %w", err)
 	}
@@ -1282,7 +1305,10 @@ func (in *Instance) ParachainHostCandidatePendingAvailability(
 		return nil, fmt.Errorf("encode parachainID: %w", err)
 	}
 
-	encodedCandidateReceipt, err := in.Exec(runtime.ParachainHostCandidatePendingAvailability, buffer.Bytes())
+	encodedCandidateReceipt, err := in.Exec(
+		runtime.ParachainHostCandidatePendingAvailability,
+		buffer.Bytes(),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
@@ -1314,7 +1340,8 @@ func (in *Instance) ParachainHostCandidateEvents() ([]parachaintypes.CandidateEv
 
 // ParachainHostSessionInfo returns the session info of the given session, if available.
 func (in *Instance) ParachainHostSessionInfo(sessionIndex parachaintypes.SessionIndex) (
-	*parachaintypes.SessionInfo, error) {
+	*parachaintypes.SessionInfo, error,
+) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(sessionIndex)
@@ -1338,7 +1365,8 @@ func (in *Instance) ParachainHostSessionInfo(sessionIndex parachaintypes.Session
 
 // ParachainHostValidationCodeByHash returns validation code for the given hash.
 func (in *Instance) ParachainHostValidationCodeByHash(validationCodeHash common.Hash) (
-	*parachaintypes.ValidationCode, error) {
+	*parachaintypes.ValidationCode, error,
+) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(validationCodeHash)
@@ -1346,7 +1374,10 @@ func (in *Instance) ParachainHostValidationCodeByHash(validationCodeHash common.
 		return nil, fmt.Errorf("encoding validation code hash: %w", err)
 	}
 
-	encodedValidationCodeHash, err := in.Exec(runtime.ParachainHostValidationCodeByHash, buffer.Bytes())
+	encodedValidationCodeHash, err := in.Exec(
+		runtime.ParachainHostValidationCodeByHash,
+		buffer.Bytes(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1402,7 +1433,8 @@ func (in *Instance) ParachainHostAsyncBackingParams() (*parachaintypes.AsyncBack
 }
 
 func (in *Instance) ParachainHostSessionExecutorParams(index parachaintypes.SessionIndex) (
-	*parachaintypes.ExecutorParams, error) {
+	*parachaintypes.ExecutorParams, error,
+) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(index)
@@ -1410,7 +1442,10 @@ func (in *Instance) ParachainHostSessionExecutorParams(index parachaintypes.Sess
 		return nil, fmt.Errorf("encoding session index: %w", err)
 	}
 
-	encodedExecutorParams, err := in.Exec(runtime.ParachainHostSessionExecutorParams, buffer.Bytes())
+	encodedExecutorParams, err := in.Exec(
+		runtime.ParachainHostSessionExecutorParams,
+		buffer.Bytes(),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
@@ -1425,7 +1460,9 @@ func (in *Instance) ParachainHostSessionExecutorParams(index parachaintypes.Sess
 	return &params, nil
 }
 
-func (in *Instance) ParachainHostParaBackingState(paraID parachaintypes.ParaID) (*parachaintypes.BackingState, error) {
+func (in *Instance) ParachainHostParaBackingState(
+	paraID parachaintypes.ParaID,
+) (*parachaintypes.BackingState, error) {
 	encodedParaID, err := scale.Marshal(paraID)
 	if err != nil {
 		return nil, fmt.Errorf("encoding parachain ID: %w", err)
@@ -1525,9 +1562,11 @@ func (in *Instance) ParachainHostDisputes() (map[parachaintypes.DisputeKey]parac
 func (*Instance) RandomSeed() {
 	panic("unimplemented")
 }
+
 func (*Instance) OffchainWorker() {
 	panic("unimplemented")
 }
+
 func (*Instance) GenerateSessionKeys() {
 	panic("unimplemented")
 }

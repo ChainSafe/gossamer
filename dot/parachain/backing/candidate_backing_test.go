@@ -11,6 +11,7 @@ import (
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	prospectiveparachains "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
 	statementdistributionmessages "github.com/ChainSafe/gossamer/dot/parachain/statement-distribution/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -73,10 +74,10 @@ func mockOverseer(t *testing.T, subsystemToOverseer chan any) {
 	t.Helper()
 	for data := range subsystemToOverseer {
 		switch data := data.(type) {
-		case parachaintypes.ProspectiveParachainsMessageIntroduceCandidate:
-			data.Ch <- nil
+		case prospectiveparachains.IntroduceSecondedCandidate:
+			data.Response <- true
 		case provisionermessages.ProvisionableData,
-			parachaintypes.ProspectiveParachainsMessageCandidateBacked,
+			prospectiveparachains.CandidateBacked,
 			collatorprotocolmessages.Backed,
 			statementdistributionmessages.Backed:
 			continue
@@ -246,10 +247,10 @@ func TestImportStatement(t *testing.T) {
 			signedStatementWithPVD: secondedSignedFullStatementWithPVD(t, statementVDTSeconded),
 			mockOverseer: func(t *testing.T, subSystemToOverseer chan any) {
 				v := <-subSystemToOverseer
-				introduce, ok := v.(parachaintypes.ProspectiveParachainsMessageIntroduceCandidate)
+				introduce, ok := v.(prospectiveparachains.IntroduceSecondedCandidate)
 				require.True(t, ok)
 
-				introduce.Ch <- nil
+				introduce.Response <- true
 			},
 		},
 	}
@@ -447,7 +448,7 @@ func TestPostImportStatement(t *testing.T) {
 			summary: &Summary{},
 			validate: func(t *testing.T, subSystemToOverseer chan any) {
 				require.Len(t, subSystemToOverseer, 3)
-				require.IsType(t, parachaintypes.ProspectiveParachainsMessageCandidateBacked{}, <-subSystemToOverseer)
+				require.IsType(t, prospectiveparachains.CandidateBacked{}, <-subSystemToOverseer)
 				require.IsType(t, collatorprotocolmessages.Backed{}, <-subSystemToOverseer)
 				require.IsType(t, statementdistributionmessages.Backed{}, <-subSystemToOverseer)
 			},

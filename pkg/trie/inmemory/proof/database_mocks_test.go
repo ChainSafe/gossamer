@@ -19,6 +19,7 @@ import (
 type MockDBGetter struct {
 	ctrl     *gomock.Controller
 	recorder *MockDBGetterMockRecorder
+	isgomock struct{}
 }
 
 // MockDBGetterMockRecorder is the mock recorder for MockDBGetter.
@@ -39,16 +40,16 @@ func (m *MockDBGetter) EXPECT() *MockDBGetterMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockDBGetter) Get(arg0 []byte) ([]byte, error) {
+func (m *MockDBGetter) Get(key []byte) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", arg0)
+	ret := m.ctrl.Call(m, "Get", key)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Get indicates an expected call of Get.
-func (mr *MockDBGetterMockRecorder) Get(arg0 any) *gomock.Call {
+func (mr *MockDBGetterMockRecorder) Get(key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockDBGetter)(nil).Get), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockDBGetter)(nil).Get), key)
 }

@@ -33,7 +33,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
-	"github.com/tidwall/btree"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-candidate-backing"))
@@ -58,8 +57,6 @@ type CandidateBacking struct {
 	// This is guaranteed to have an entry for each candidate with a relay parent in the implicit
 	// or explicit view for which a `Seconded` statement has been successfully imported.
 	perCandidate map[parachaintypes.CandidateHash]*perCandidateState
-	// State tracked for all active leaves, whether or not they have prospective parachains enabled.
-	perLeaf map[common.Hash]*activeLeafState
 	// The utility for managing the implicit and explicit views in a consistent way.
 	// We only feed leaves which have prospective parachains enabled to this view.
 	ImplicitView ImplicitView
@@ -73,11 +70,6 @@ type CandidateBacking struct {
 
 type BlockState interface {
 	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
-}
-
-type activeLeafState struct {
-	prospectiveParachainsMode parachaintypes.ProspectiveParachainsMode
-	secondedAtDepth           map[parachaintypes.ParaID]*btree.Map[uint, parachaintypes.CandidateHash]
 }
 
 // perCandidateState represents the state information for a candidate in the subsystem.
@@ -129,10 +121,12 @@ type GetBackableCandidatesMessage struct {
 	ResCh      chan map[parachaintypes.ParaID][]*parachaintypes.BackedCandidate
 }
 
-// CanSecondMessage is a request made to the candidate backing subsystem to determine whether it is permissible
-// to second a given candidate.
-// The rule for seconding candidates is: Collations must either be built on top of the root of a fragment tree
-// or have a parent node that represents the backed candidate.
+// CanSecondMessage Request the candidate backing subsystem to check whether it's
+// allowed to second given candidate.
+// The rule is to only fetch collations that can either be directly chained to any
+// FragmentChain in the view or there is at least one FragmentChain where this candidate is a
+// potentially unconnected candidate (we predict that it may become connected to a
+// FragmentChain in the future).
 type CanSecondMessage struct {
 	CandidateParaID      parachaintypes.ParaID
 	CandidateRelayParent common.Hash
@@ -165,7 +159,6 @@ func New(overseerChan chan<- any) *CandidateBacking {
 		SubSystemToOverseer: overseerChan,
 		perRelayParent:      map[common.Hash]*perRelayParentState{},
 		perCandidate:        map[parachaintypes.CandidateHash]*perCandidateState{},
-		perLeaf:             map[common.Hash]*activeLeafState{},
 		perSessionCache:     newPerSessionCache(2),
 	}
 }
