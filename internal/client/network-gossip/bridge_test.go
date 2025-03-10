@@ -249,7 +249,7 @@ func TestGossipEngine(t *testing.T) {
 			ch := make(chan service.NotificationEvent, chanLength)
 			notificationService := TestNotificationService{ch: ch}
 
-			numChannelsPerTopic := make(map[hash.H256]uint)
+			numChannelsPerTopic := make(map[hash.H256]uint64)
 			for _, channel := range channels {
 				_, ok := numChannelsPerTopic[channel.Topic]
 				if !ok {
@@ -258,9 +258,9 @@ func TestGossipEngine(t *testing.T) {
 				numChannelsPerTopic[channel.Topic]++
 			}
 
-			expectedTotalMsgsAllChan := uint(0)
-			expectedMsgsPerTopicAllChan := make(map[hash.H256]uint)
-			acc := make(map[hash.H256]uint)
+			expectedTotalMsgsAllChan := uint64(0)
+			expectedMsgsPerTopicAllChan := make(map[hash.H256]uint64)
+			acc := make(map[hash.H256]uint64)
 			for _, messages := range notifications {
 				for _, message := range messages {
 					_, ok := acc[message.Topic]
@@ -340,7 +340,7 @@ func TestGossipEngine(t *testing.T) {
 				}
 			}
 
-			receivedMsgsPerTopicAllChan := make(map[hash.H256]uint)
+			receivedMsgsPerTopicAllChan := make(map[hash.H256]uint64)
 
 			// Poll both gossip engine and each receiver and track the amount of received messages.
 			done := make(chan any)
@@ -353,7 +353,7 @@ func TestGossipEngine(t *testing.T) {
 			defer timer.Stop()
 			delay := timer.C
 
-			msgCount := uint(0)
+			msgCount := uint64(0)
 			var expected <-chan time.Time
 		outer:
 			for {
