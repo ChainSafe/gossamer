@@ -13,7 +13,7 @@ type waker struct {
 }
 
 func newWaker() *waker {
-	return &waker{wakeCh: make(chan any, 1000)}
+	return &waker{wakeCh: make(chan any, 100_000)}
 }
 
 func (w *waker) wake() {
@@ -25,7 +25,7 @@ func (w *waker) wake() {
 	go func() {
 		select {
 		case w.wakeCh <- nil:
-		default:
+			// default:
 		}
 	}()
 }
