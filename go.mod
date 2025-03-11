@@ -14,7 +14,7 @@ require (
 	github.com/disiqueira/gotree v1.0.0
 	github.com/dolthub/maphash v0.1.0
 	github.com/elastic/go-freelru v0.15.0
-	github.com/ethereum/go-ethereum v1.15.4
+	github.com/ethereum/go-ethereum v1.15.5
 	github.com/fatih/color v1.18.0
 	github.com/gammazero/deque v1.0.0
 	github.com/go-playground/validator/v10 v10.25.0
@@ -34,6 +34,7 @@ require (
 	github.com/libp2p/go-libp2p-kad-dht v0.29.1
 	github.com/minio/sha256-simd v1.0.1
 	github.com/multiformats/go-multiaddr v0.14.0
+	github.com/multiformats/go-multihash v0.2.3
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
 	github.com/prometheus/client_golang v1.21.0
 	github.com/prometheus/client_model v0.6.1
@@ -146,7 +147,6 @@ require (
 	github.com/multiformats/go-multiaddr-fmt v0.1.0 // indirect
 	github.com/multiformats/go-multibase v0.2.0 // indirect
 	github.com/multiformats/go-multicodec v0.9.0 // indirect
-	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-multistream v0.6.0 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
