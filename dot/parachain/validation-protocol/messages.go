@@ -14,10 +14,10 @@ import (
 
 const MaxValidationMessageSize uint64 = 100 * 1024
 
-// Bitfield avalibility bitfield for given relay-parent hash
+// Bitfield availability bitfield for given relay-parent hash
 type Bitfield struct {
-	Hash                                common.Hash                                        `scale:"1"`
-	UncheckedSignedAvailabilityBitfield parachaintypes.UncheckedSignedAvailabilityBitfield `scale:"2"`
+	Hash                              common.Hash                                      `scale:"1"`
+	CheckedSignedAvailabilityBitfield parachaintypes.CheckedSignedAvailabilityBitfield `scale:"2"`
 }
 
 type BitfieldDistributionMessageValues interface {

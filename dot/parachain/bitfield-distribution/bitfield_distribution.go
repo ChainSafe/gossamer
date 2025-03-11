@@ -59,10 +59,10 @@ type BitfieldDistribution struct {
 
 	peerViews map[peer.ID]struct {
 		view            parachaintypes.View
-		protocolVersion uint32 // ignore v1 peers
+		protocolVersion uint32
 	}
 	ourView        parachaintypes.View
-	topologies     SessionBoundGridTopologyStorage // TODO: impl this part in the #4357
+	topologies     grid.SessionGridTopologyStorage
 	perRelayParent map[common.Hash]*perRelayParentData
 
 	mu sync.Mutex
@@ -76,7 +76,7 @@ func NewBitfieldDistribution(overseerChan chan<- any) *BitfieldDistribution {
 			protocolVersion uint32
 		}),
 		ourView:        parachaintypes.View{},
-		topologies:     nil, // TODO:
+		topologies:     grid.SessionGridTopologyStorage{}, // TODO: init the topologies
 		perRelayParent: make(map[common.Hash]*perRelayParentData),
 	}
 }
@@ -164,9 +164,57 @@ func (b *BitfieldDistribution) Name() parachaintypes.SubSystemName {
 	return parachaintypes.BitfieldDistribution
 }
 
+func (b *BitfieldDistribution) ProcessBitfieldDistributionMessageSignal(signal validationprotocol.BitfieldDistributionMessage) error {
+	value, err := signal.Value()
+	if err != nil {
+		return err
+	}
+
+	var bitfieldDistributionMess validationprotocol.Bitfield
+	switch v := value.(type) {
+	case validationprotocol.Bitfield:
+		bitfieldDistributionMess = v
+	default:
+		return fmt.Errorf("unexpected message type: %T", value)
+	}
+
+	// prepare the relay message data
+	jobData := b.perRelayParent[bitfieldDistributionMess.Hash]
+	if jobData == nil {
+		logger.Infof("not supposed to work on relay parent related data")
+		return nil
+	}
+
+	sessionIdx := jobData.sessionIndex
+
+	if len(jobData.validatorsSet) == 0 {
+		logger.Infof("validator set is empty")
+		return nil
+	}
+	validatorIdx := bitfieldDistributionMess.CheckedSignedAvailabilityBitfield.ValidatorIndex
+	if uint32(validatorIdx) >= uint32(len(jobData.validatorsSet)) {
+		return fmt.Errorf("could not find a validator for index %d", validatorIdx)
+	}
+	validatorID := jobData.validatorsSet[validatorIdx]
+
+	topology := b.topologies.GetTopologyOrFallback(sessionIdx).LocalNeighbours
+
+	requiredRouting := topology.RequiredRoutingByIndex(validatorIdx, true)
+
+	msg := parachaintypes.DistributeBitfield{
+		RelayParent: bitfieldDistributionMess.Hash,
+		Bitfield:    bitfieldDistributionMess.CheckedSignedAvailabilityBitfield,
+	}
+
+	relayMessage(jobData, topology, b.peerViews, validatorID, msg, requiredRouting, b.subSystemToOverseer)
+
+	return nil
+}
+
 func (b *BitfieldDistribution) ProcessPeerConnectedSignal(signal networkbridgeevents.PeerConnected) error {
 	go func(pc networkbridgeevents.PeerConnected) {
 		// only care about version 2 and 3
+		// TODO: add protocol version support
 		if pc.ProtocolVersion == 2 || pc.ProtocolVersion == 3 {
 			b.mu.Lock()
 			b.peerViews[pc.PeerID] = struct {
@@ -216,13 +264,6 @@ func (b *BitfieldDistribution) ProcessPeerMessageSignal(signal networkbridgeeven
 }
 
 func (b *BitfieldDistribution) ProcessUpdatedAuthorityIDsSignal(signal networkbridgeevents.UpdatedAuthorityIDs) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-// TODO: sending bitfield messages to provisioning subsystem and to other peers
-// handle_bitfield_distribution()
-func (b *BitfieldDistribution) ProcessBitfieldDistributionMessageSignal(signal validationprotocol.BitfieldDistributionMessage) error {
 	//TODO implement me
 	panic("implement me")
 }
