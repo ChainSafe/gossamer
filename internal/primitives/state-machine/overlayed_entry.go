@@ -82,6 +82,25 @@ func (oe *OverlayedEntry[V]) SetOffchain(value V, firstWriteInTx bool, atExtrins
 	}
 }
 
+// Writes a new version of a value.
+// This makes sure that the old version is not overwritten and can be properly
+// rolled back when required.
 func (oe *OverlayedEntry[V]) Set(value *StorageValue, firstWriteInTx bool, atExtrinsic *uint32) {
+	var action StorageEntry
+
+	if value == nil {
+		action = RemoveStorageEntry{}
+	} else {
+		action = SetStorageEntry{*value}
+	}
+
+	if firstWriteInTx || len(oe.transactions) == 0 {
+		oe.transactions = append(oe.transactions, InnerValue[V]{
+			value:      action.(V), //TODO: check this
+			extrinsics: Extrinsics{},
+		})
+	} else {
+	}
+
 	panic("TODO")
 }
