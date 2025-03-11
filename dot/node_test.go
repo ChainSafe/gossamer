@@ -32,11 +32,7 @@ func DefaultTestWestendDevConfig(t *testing.T) *cfg.Config {
 
 	config.BasePath = t.TempDir()
 	if os.Getenv("CI") == "buildjet" {
-		tmpdir, err := os.MkdirTemp("..", "*_wnd_dev_cfg")
-		require.NoError(t, err)
-		t.Cleanup(func() {
-			require.NoError(t, os.RemoveAll(tmpdir))
-		})
+		tmpdir := t.TempDir()
 		config.BasePath = tmpdir
 	}
 
