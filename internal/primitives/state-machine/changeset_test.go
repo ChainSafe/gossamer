@@ -10,6 +10,12 @@ import (
 	"github.com/tidwall/btree"
 )
 
+type DrainedValue struct {
+	string
+	*StorageValue
+}
+type Drained []DrainedValue
+
 func TestDirtyKeysSetsPop(t *testing.T) {
 	set1 := btree.Set[int]{}
 	set1.Insert(1)
@@ -35,4 +41,33 @@ func TestDirtyKeysSetsPop(t *testing.T) {
 		}
 		require.Equal(t, last, reverseSets[i])
 	}
+}
+
+func TestNoTransactionWorks(t *testing.T) {
+	changeSet := NewOverlayedChangeSet()
+
+	require.Equal(t, uint(0), changeSet.TransactionDepth())
+
+	extrinsic1 := uint32(1)
+	extrinsic2 := uint32(2)
+	extrinsic9 := uint32(9)
+
+	changeSet.Set("key0", NewStorageValue([]byte("value0")), &extrinsic1)
+	changeSet.Set("key1", NewStorageValue([]byte("value1")), &extrinsic2)
+	changeSet.Set("key0", NewStorageValue([]byte("value0-1")), &extrinsic9)
+
+	assertDrained(t, changeSet, Drained{
+		{"key0", NewStorageValue([]byte("value0-1"))},
+		{"key1", NewStorageValue([]byte("value1"))},
+	})
+
+}
+
+func assertDrained(t *testing.T, is OverlayedChangeSet, expected Drained) {
+	var drained Drained
+	for k, v := range is.DrainCommited() {
+		drained = append(drained, DrainedValue{k, &v})
+	}
+
+	require.Equal(t, expected, drained)
 }

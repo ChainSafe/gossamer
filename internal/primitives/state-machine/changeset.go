@@ -46,6 +46,12 @@ type OverlayedChangeSet struct {
 	OverlayedMap[string, StorageValue]
 }
 
+func NewOverlayedChangeSet() OverlayedChangeSet {
+	return OverlayedChangeSet{
+		NewOverlayedMap[string, StorageValue](),
+	}
+}
+
 func (oc OverlayedChangeSet) Set(key string, value *StorageValue, atExtrinsic *uint32) {
 	overlayed, has := oc.changes.Get(key)
 	if !has {
