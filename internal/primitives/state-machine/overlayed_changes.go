@@ -6,7 +6,11 @@ package statemachine
 import (
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
+
+var NoExtrinsicIndex uint32 = 0xffffffff
 
 // StorageKey is a storage key.
 type StorageKey []byte
@@ -69,16 +73,6 @@ type IndexOperationRenew struct {
 func (IndexOperationInsert) isIndexOperation() {}
 func (IndexOperationRenew) isIndexOperation()  {}
 
-type ChildInfo interface {
-	isChildInfo()
-}
-
-type ChildInfoParentKeyId struct {
-	ParentKeyId []byte
-}
-
-func (ChildInfoParentKeyId) isChildInfo() {}
-
 type childStorageValue struct {
 	OverlayedChangeSet
 	ChildInfo
@@ -127,4 +121,98 @@ type OverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	// Caches the "storage transaction" that is created while calling `storage_root`.
 	// This transaction can be applied to the backend to persist the state changes.
 	storageTransactionCache *StorageTransactionCache[H, Hasher]
+}
+
+// Whether no changes are contained in the top nor in any of the child changes.
+func (oc *OverlayedChanges[H, Hasher]) IsEmpty() bool {
+	return oc.top.IsEmpty() && len(oc.children) == 0
+}
+
+// Ask to collect/not to collect extrinsics indices where key(s) has been changed.
+func (oc *OverlayedChanges[H, Hasher]) SetCollectExtrinsic(collectExtrinsic bool) {
+	oc.collectExtrinsics = collectExtrinsic
+}
+
+// Returns (nil, false) if the key is unknown (i.e. and the query should be referred
+// to the backend); (nil, true) if the key has been deleted. or a (value, true) for a key whose
+// value has been set.
+func (oc *OverlayedChanges[H, Hasher]) Storage(key string) ([]byte, bool) {
+	entry := oc.top.Get(key)
+	if entry == nil {
+		return nil, false
+	}
+
+	value := entry.ValueRef()
+	if value == nil {
+		oc.stats.TallyReadModified(0)
+		return nil, true
+	}
+
+	oc.stats.TallyReadModified(uint64(len(*value)))
+	return *value, true
+}
+
+// Should be called when there are changes that require to reset the
+func (oc *OverlayedChanges[H, Hasher]) markDirty() {
+	oc.storageTransactionCache = nil
+}
+
+// Returns (nil, false) if the key is unknown (i.e. and the query should be referred
+// to the backend); (nil, true) if the key has been deleted. or a (value, true) for a key whose
+// value has been set.
+func (oc *OverlayedChanges[H, Hasher]) ChildStorage(childInfo ChildInfo, key *string) ([]byte, bool) {
+	entry, has := oc.children[string(childInfo.StorageKey())]
+
+	if !has {
+		return nil, false
+	}
+
+	value := entry.OverlayedChangeSet.Get(*key).ValueRef()
+	if value == nil {
+		oc.stats.TallyReadModified(0)
+		return nil, true
+	}
+
+	oc.stats.TallyReadModified(uint64(len(*value)))
+	return *value, true
+}
+
+func (oc *OverlayedChanges[H, Hasher]) SetStorage(key StorageKey, value *StorageValue) {
+	oc.markDirty()
+
+	var sizeWrite uint64
+	if value == nil {
+		sizeWrite = 0
+	} else {
+		sizeWrite = uint64(len(*value))
+	}
+
+	oc.stats.TallyWriteOverlay(sizeWrite)
+	extrinsicIndex := oc.extrinsicIndex()
+	oc.top.Set(string(key), value, extrinsicIndex)
+}
+
+// Returns current extrinsic index to use in changes trie construction.
+// nil is returned if it is not set or changes trie config is not set.
+// Persistent value (from the backend) can be ignored because runtime must
+// set this index before first and unset after last extrinsic is executed.
+// Changes that are made outside of extrinsics, are marked with
+// `NO_EXTRINSIC_INDEX` index.
+func (oc *OverlayedChanges[H, Hasher]) extrinsicIndex() *uint32 {
+	if !oc.collectExtrinsics {
+		return nil
+	}
+
+	val, has := oc.Storage(string(keys.ExtrinsicIndexKey))
+	if !has {
+		return nil
+	}
+
+	var result uint32
+	err := scale.Unmarshal(val, &result)
+	if err != nil {
+		return &NoExtrinsicIndex
+	}
+
+	return &result
 }

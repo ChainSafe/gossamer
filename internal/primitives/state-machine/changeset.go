@@ -29,17 +29,28 @@ type InnerValue[V any] struct {
 
 type DirtyKeysSets[K ordered] []btree.Set[K]
 
-func (dks DirtyKeysSets[K]) Pop() (btree.Set[K], bool) {
-	if len(dks) == 0 {
+func (dks *DirtyKeysSets[K]) Pop() (btree.Set[K], bool) {
+	if len(*dks) == 0 {
 		return btree.Set[K]{}, false
 	}
 
-	set := dks[len(dks)-1]
-	dks = dks[:len(dks)-1]
+	set := (*dks)[len(*dks)-1]
+	*dks = (*dks)[:len(*dks)-1]
 
 	return set, true
 }
 
 type Transactions[V any] []InnerValue[V]
 
-type OverlayedChangeSet = OverlayedMap[string, StorageValue]
+type OverlayedChangeSet struct {
+	OverlayedMap[string, StorageValue]
+}
+
+func (oc OverlayedChangeSet) Set(key string, value *StorageValue, atExtrinsic *uint32) {
+	overlayed, has := oc.changes.Get(key)
+	if !has {
+		overlayed = *NewOverlayedEntry[StorageValue]()
+	}
+
+	overlayed.Set(value, insertDirty(&oc.dirtyKeys, key), atExtrinsic)
+}

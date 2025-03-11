@@ -18,3 +18,14 @@ type StateMachineStats struct {
 	// operation.
 	BytesWritesOverlay uint64
 }
+
+// Tally one read modified operation, of some length.
+func (sms *StateMachineStats) TallyReadModified(bytes uint64) {
+	sms.ReadsModified++
+	sms.BytesReadModified += bytes
+}
+
+func (sms *StateMachineStats) TallyWriteOverlay(bytes uint64) {
+	sms.WritesOverlay++
+	sms.BytesWritesOverlay += bytes
+}

@@ -20,7 +20,5 @@ func (e *Extrinsics) Insert(ext uint32) {
 }
 
 func (e *Extrinsics) Extend(other Extrinsics) {
-	for _, ext := range other {
-		*e = append(*e, ext)
-	}
+	*e = append(*e, other...)
 }
