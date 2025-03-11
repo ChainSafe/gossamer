@@ -36,16 +36,16 @@ func (TestNetwork) AcceptUnreservedPeers()                                      
 func (TestNetwork) DenyUnreservedPeers()                                                  { panic("unimpl") }
 func (TestNetwork) AddReservedPeer(peer config.MultiaddrPeerId) error                     { panic("unimpl") }
 func (TestNetwork) RemoveReservedPeer(peerID peerid.PeerID)                               { panic("unimpl") }
-func (TestNetwork) SetReservedPeers(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]any) error {
+func (TestNetwork) SetReservedPeers(protocol network.ProtocolName, peers map[string]any) error {
 	panic("unimpl")
 }
-func (TestNetwork) AddPeersToReservedSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]any) error {
+func (TestNetwork) AddPeersToReservedSet(protocol network.ProtocolName, peers map[string]any) error {
 	panic("unimpl")
 }
 func (TestNetwork) RemovePeersFromReservedSet(protocol network.ProtocolName, peers []peerid.PeerID) {
 	panic("unimpl")
 }
-func (TestNetwork) AddToPeersSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]any) error {
+func (TestNetwork) AddToPeersSet(protocol network.ProtocolName, peers map[string]any) error {
 	panic("unimpl")
 }
 func (TestNetwork) RemoveFromPeersSet(protocol network.ProtocolName, peers []peerid.PeerID) {
