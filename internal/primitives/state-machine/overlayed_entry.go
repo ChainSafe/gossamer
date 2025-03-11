@@ -81,3 +81,7 @@ func (oe *OverlayedEntry[V]) SetOffchain(value V, firstWriteInTx bool, atExtrins
 		oe.TransactionExtrinsics().Insert(*atExtrinsic)
 	}
 }
+
+func (oe *OverlayedEntry[V]) Set(value *StorageValue, firstWriteInTx bool, atExtrinsic *uint32) {
+	panic("TODO")
+}
