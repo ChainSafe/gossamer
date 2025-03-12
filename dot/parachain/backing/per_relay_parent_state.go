@@ -49,7 +49,7 @@ func (cb *CandidateBacking) constructPerRelayParentState(relayParent common.Hash
 		return nil, fmt.Errorf("invalid node features for relay parent %s", relayParent)
 	}
 
-	injectCoreIndex, err := features.Get(uint(parachaintypes.ElasticScalingMVP))
+	injectCoreIndex, err := features.GetBit(uint32(parachaintypes.ElasticScalingMVP))
 	if err != nil {
 		return nil, fmt.Errorf("getting inject core index: %w", err)
 	}

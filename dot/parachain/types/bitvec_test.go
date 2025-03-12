@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/stretchr/testify/require"
 )
 
@@ -109,7 +108,7 @@ func TestBitVec_SetBit(t *testing.T) {
 	tests := []struct {
 		name     string
 		initial  []bool
-		index    int
+		index    uint32
 		value    bool
 		expected []bool
 		wantErr  bool
@@ -136,10 +135,12 @@ func TestBitVec_SetBit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			bv := NewBitVec(tt.initial)
 			err := bv.SetBit(tt.index, tt.value)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("SetBit() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
+
 			require.Equal(t, tt.expected, bv.Bits())
 		})
 	}
@@ -149,7 +150,7 @@ func TestBitVec_GetBit(t *testing.T) {
 	tests := []struct {
 		name     string
 		initial  []bool
-		index    int
+		index    uint32
 		expected bool
 		wantErr  bool
 	}{
@@ -173,10 +174,12 @@ func TestBitVec_GetBit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			bv := NewBitVec(tt.initial)
 			got, err := bv.GetBit(tt.index)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetBit() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
+
 			require.Equal(t, tt.expected, got)
 		})
 	}
@@ -232,7 +235,7 @@ func TestBitVec_UnmarshalSCALE(t *testing.T) {
 		{
 			name:     "invalid data",
 			data:     []byte{255},
-			expected: nil,
+			expected: []bool{},
 			wantErr:  true,
 		},
 	}
@@ -241,13 +244,13 @@ func TestBitVec_UnmarshalSCALE(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			bv := BitVec{}
 			err := scale.Unmarshal(tt.data, &bv)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("UnmarshalSCALE() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
-			if !tt.wantErr {
-				require.Equal(t, tt.expected, bv.Bits())
-			}
+
+			require.Equal(t, tt.expected, bv.Bits())
 		})
 	}
 }
@@ -291,26 +294,5 @@ func TestBitVec_ExtendByByte(t *testing.T) {
 			bv.ExtendByByte(tt.byteToAdd)
 			require.Equal(t, tt.expected, bv.Bits())
 		})
-	}
-}
-
-func TestYup(t *testing.T) {
-
-	bv := NewBitVec([]bool{})
-
-	number1 := uint32(255)
-
-	// number1Byte := byte(number1)
-	if math.MaxUint8 >= number1 {
-		bv.ExtendByByte(byte(number1))
-	} else {
-		println("number1 is too large")
-	}
-
-	number2 := uint32(256)
-	if math.MaxUint8 >= number2 {
-		bv.ExtendByByte(byte(number2))
-	} else {
-		println("number2 is too large")
 	}
 }

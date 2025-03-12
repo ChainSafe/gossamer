@@ -35,6 +35,10 @@ This package provides an efficient implementation of a bit vector (BitVec) with 
 	// Get all bits
 	allBits := bv.Bits() // Output: [true, true, true, true, false, true, false]
 	fmt.Printf("All bits: %v\n", allBits)
+
+	// Extend the BitVec by adding bits from a byte
+	bv.ExtendByByte(0b01111111) // Decimal: 254
+	// bitvec will be: [true, true, true, true, false, true, false, false, true, true, true, true, true, true, true]
 ```
 
 ### SCALE Encoding/Decoding
@@ -42,27 +46,22 @@ This package provides an efficient implementation of a bit vector (BitVec) with 
 The BitVec implementation supports SCALE encoding and decoding, which is compatible with Substrate's bitvec implementation:
 
 ```go
-func ExampleScaleEncoding() {
     bv := bitvec.NewBitVec([]bool{true, false, true})
     
     // Marshal to SCALE format
-    encoded, err := bv.MarshalSCALE()
+    encoded, err := scale.Marshal(bv)
     if err != nil {
-        panic(err)
+       return fmt.Errorf("marshalling bitvec: %s", err)
     }
 
     // Create a new BitVec to decode into
     newBv := &bitvec.BitVec{}
-    
-    // Create a reader from the encoded bytes
-    reader := bytes.NewReader(encoded)
-    
-    // Unmarshal from SCALE format
-    err = newBv.UnmarshalSCALE(reader)
-    if err != nil {
-        panic(err)
+
+	// Unmarshal from SCALE format
+    err := scale.Unmarshal(encoded, &newBv)
+	if err != nil {
+        return fmt.Errorf("unmarshalling bitvec: %s", err)
     }
-}
 ```
 
 ## Implementation Details
