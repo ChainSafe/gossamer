@@ -51,8 +51,11 @@ func NewAvailabilityDistribution(
 		blockState:          blockState,
 	}
 
-	protoID := protocol.ID(messages.ChunkFetchingV2.String())
-	net.RegisterRequestHandler(protoID, ad.handleChunkFetchingRequest)
+	cfProtoID := protocol.ID(messages.ChunkFetchingV2.String())
+	net.RegisterRequestHandler(cfProtoID, ad.handleChunkFetchingRequest)
+
+	povProtoID := protocol.ID(messages.PoVFetchingV1.String())
+	net.RegisterRequestHandler(povProtoID, ad.handlePoVFetchingRequest)
 
 	return ad
 }
@@ -162,10 +165,31 @@ func (ad *AvailabilityDistribution) handleChunkFetchingRequest(
 	return response, nil
 }
 
-//nolint:unused
 func (ad *AvailabilityDistribution) handlePoVFetchingRequest(
-	who peer.ID,
+	_ peer.ID,
 	payload []byte,
 ) (network.ResponseMessage, error) {
-	return nil, nil // TODO: implement #4488
+	request := &messages.PoVFetchingRequest{}
+
+	err := request.Decode(payload)
+	if err != nil {
+		return nil, fmt.Errorf("decoding chunk fetching request: %w", err)
+	}
+
+	query := availabilitystore.QueryAvailableData{
+		CandidateHash: request.CandidateHash,
+		Sender:        make(chan availabilitystore.AvailableData),
+	}
+
+	ad.subSystemToOverseer <- query
+	response := &messages.PoVFetchingResponse{}
+
+	availableData := <-query.Sender
+	if availableData.PoV.BlockData == nil {
+		_ = response.SetValue(parachaintypes.NoSuchPoV{})
+	} else {
+		_ = response.SetValue(availableData.PoV)
+	}
+
+	return response, nil
 }
