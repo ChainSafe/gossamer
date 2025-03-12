@@ -91,7 +91,7 @@ func TestMaxPeers(t *testing.T) {
 
 	time.Sleep(200 * time.Millisecond)
 	p := nodes[0].host.p2pHost.Peerstore().Peers()
-	require.LessOrEqual(t, len(p), max)
+	require.LessOrEqual(t, max, len(p))
 }
 
 func TestProtectUnprotectPeer(t *testing.T) {
