@@ -417,7 +417,6 @@ func (attested *attestedCandidate) toBackedCandidate(
 	validatorIndices := make([]bool, len(group))
 	attestationsByPosition := make(map[int]parachaintypes.ValidityAttestation)
 
-	// Validate attestations and record positions
 	for _, attestation := range attested.validityAttestations {
 		pos, exists := validatorPositions[attestation.validatorIndex]
 		if !exists {
@@ -442,7 +441,7 @@ func (attested *attestedCandidate) toBackedCandidate(
 	}
 
 	// The order of the validity votes in the backed candidate must match
-	// the order of bits set in the , which is not necessarily
+	// the order of bits set in the validatorIndices, which is not necessarily
 	// the order of the `validityAttestations` we got from the statement table.
 	return parachaintypes.NewBackedCandidate(
 		attested.committedCandidateReceipt,
