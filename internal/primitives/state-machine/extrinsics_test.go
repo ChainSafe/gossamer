@@ -7,19 +7,18 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tidwall/btree"
 )
 
 func TestCopyExtrinsicsInto(t *testing.T) {
-	set := btree.Set[uint32]{}
+	set := map[uint32]struct{}{}
 
 	ext := Extrinsics{1, 2, 3}
-	ext.CopyExtrinsicsInto(&set)
+	ext.CopyExtrinsicsInto(set)
 
-	require.Equal(t, 3, set.Len())
+	require.Equal(t, 3, len(set))
 
 	for _, ext := range ext {
-		require.True(t, set.Contains(ext))
+		require.NotNil(t, set[ext])
 	}
 }
 

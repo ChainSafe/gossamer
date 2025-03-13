@@ -3,13 +3,11 @@
 
 package statemachine
 
-import "github.com/tidwall/btree"
-
 type Extrinsics []uint32
 
-func (e *Extrinsics) CopyExtrinsicsInto(dest *btree.Set[uint32]) {
+func (e *Extrinsics) CopyExtrinsicsInto(dest map[uint32]struct{}) {
 	for _, ex := range *e {
-		dest.Insert(ex)
+		dest[ex] = struct{}{}
 	}
 }
 
