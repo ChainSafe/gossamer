@@ -153,7 +153,7 @@ func newNetworkBridge[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]
 	config Config,
 	setState *SharedVoterSetState[H, N],
 	// TODO: metrics, telemetry
-) networkBridge[H, N, Hasher] {
+) *networkBridge[H, N, Hasher] {
 	protocol := config.ProtocolName
 	validator, reportStream := newGossipValidator[H, N, Hasher](config, setState)
 
@@ -209,7 +209,7 @@ func newNetworkBridge[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]
 		}
 	}()
 
-	return nb
+	return &nb
 }
 
 // / Note the beginning of a new round to the `GossipValidator`.
@@ -410,41 +410,6 @@ func (nb *networkBridge[H, N, Hasher]) poll() error {
 			nb.gossipEngineMtx.Unlock()
 		}
 	}
-	// 		loop {
-	// 			match self.neighbor_packet_worker.lock().poll_next_unpin(cx) {
-	// 				Poll::Ready(Some((to, packet))) => {
-	// 					self.gossip_engine.lock().send_message(to, packet.encode());
-	// 				},
-	// 				Poll::Ready(None) =>
-	// 					return Poll::Ready(Err(Error::Network(
-	// 						"Neighbor packet worker stream closed.".into(),
-	// 					))),
-	// 				Poll::Pending => break,
-	// 			}
-	// 		}
-
-	// 		loop {
-	// 			match self.gossip_validator_report_stream.lock().poll_next_unpin(cx) {
-	// 				Poll::Ready(Some(PeerReport { who, cost_benefit })) => {
-	// 					self.gossip_engine.lock().report(who, cost_benefit);
-	// 				},
-	// 				Poll::Ready(None) =>
-	// 					return Poll::Ready(Err(Error::Network(
-	// 						"Gossip validator report stream closed.".into(),
-	// 					))),
-	// 				Poll::Pending => break,
-	// 			}
-	// 		}
-
-	// 		match self.gossip_engine.lock().poll_unpin(cx) {
-	// 			Poll::Ready(()) =>
-	// 				return Poll::Ready(Err(Error::Network("Gossip engine future finished.".into()))),
-	// 			Poll::Pending => {},
-	// 		}
-
-	//		Poll::Pending
-	//	}
-	return nil
 }
 
 // fn incoming_global<B: BlockT>(

@@ -238,7 +238,7 @@ func makeTestNetwork(t *testing.T) (*Tester, *TestNetwork) {
 	)
 
 	return &Tester{
-		networkBridge:   &bridge,
+		networkBridge:   bridge,
 		gossipValidator: bridge.validator,
 		events:          events,
 		notificationTx:  notificationEvents,
@@ -392,7 +392,7 @@ func Test_networkBridge(t *testing.T) {
 				case grandpa.CommunicationInCommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]:
 					item.Callback(grandpa.CommitProcessingOutcomeGood{})
 				default:
-					t.Fatalf("commit expected")
+					panic("commit expected")
 				}
 			}
 		}
@@ -527,7 +527,7 @@ func Test_networkBridge(t *testing.T) {
 				case grandpa.CommunicationInCommit[hash.H256, uint64, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]:
 					item.Callback(grandpa.CommitProcessingOutcomeBad{})
 				default:
-					t.Fatalf("commit expected")
+					panic("commit expected")
 				}
 			}
 		}

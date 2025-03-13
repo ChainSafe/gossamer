@@ -189,7 +189,10 @@ func Test_gossipValidator(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		setState := newVoterSetStateLive[hash.H256, uint64](0, *voters, grandpa.HashNumber[hash.H256, uint64]{baseHash, vaseNumber})
+		setState := newVoterSetStateLive[hash.H256, uint64](0, *voters, grandpa.HashNumber[hash.H256, uint64]{
+			Hash:   baseHash,
+			Number: vaseNumber,
+		})
 		sharedState := NewSharedVoterSetState[hash.H256](setState)
 		return sharedState
 	}

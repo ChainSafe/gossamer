@@ -1334,7 +1334,7 @@ func (i *inner[H, N, Hasher]) multicastNeighborPacket() *peerIDsNeighborPacket[N
 		}
 
 		peers := make([]peerid.PeerID, 0)
-		for peerID, _ := range i.peers.inner {
+		for peerID := range i.peers.inner {
 			peers = append(peers, peerID)
 		}
 		return &peerIDsNeighborPacket[N]{

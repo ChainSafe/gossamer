@@ -228,22 +228,6 @@ type KeyTypeID string
 // / It's not universal in the sense that *all* key types need to be mentioned here, it's just a
 // / handy place to put common key types.
 const (
-	/// Key type for Babe module, built-in. Identified as `babe`.
-	BABE KeyTypeID = "babe"
 	/// Key type for Grandpa module, built-in. Identified as `gran`.
 	GRANDPA KeyTypeID = "gran"
-	/// Key type for controlling an account in a Substrate runtime, built-in. Identified as `acco`.
-	Account KeyTypeID = "acco"
-	/// Key type for Aura module, built-in. Identified as `aura`.
-	AURA KeyTypeID = "aura"
-	/// Key type for ImOnline module, built-in. Identified as `imon`.
-	ImOnline KeyTypeID = "imon"
-	/// Key type for AuthorityDiscovery module, built-in. Identified as `audi`.
-	AuthorityDiscovery KeyTypeID = "audi"
-	/// Key type for staking, built-in. Identified as `stak`.
-	Staking KeyTypeID = "stak"
-	/// A key type for signing statements
-	Statement KeyTypeID = "stmt"
-	/// A key type ID useful for tests.
-	Dummy KeyTypeID = "dumy"
 )
