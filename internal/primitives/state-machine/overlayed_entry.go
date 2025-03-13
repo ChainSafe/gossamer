@@ -149,6 +149,10 @@ func (oe *OverlayedEntry[V]) Set(value StorageValue, firstWriteInTx bool, atExtr
 	}
 }
 
+func (oe *OverlayedEntry[V]) Append(value StorageValue, firstWriteInTx bool, init func() StorageValue, atExtrinsic *uint32) {
+	
+}
+
 func restoreAppendToParent(
 	parent StorageEntry,
 	currentData []byte,
