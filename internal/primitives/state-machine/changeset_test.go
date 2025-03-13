@@ -111,6 +111,21 @@ func TestTransactionWorks(t *testing.T) {
 	require.Equal(t, uint(4), changeSet.TransactionDepth())
 	changeSet.RollbackTransaction()
 	require.Equal(t, uint(3), changeSet.TransactionDepth())
+	changeSet.CommitTransaction()
+	require.Equal(t, uint(2), changeSet.TransactionDepth())
+	assertChanges(t, changeSet, allChanges)
+
+	// roll back our first transactions that actually contains something
+	changeSet.RollbackTransaction()
+	require.Equal(t, uint(1), changeSet.TransactionDepth())
+
+	rollBack := Changes{
+		{"key0", NewStorageValue([]byte("value0-1")), []uint32{1, 10}},
+		{"key1", NewStorageValue([]byte("value1")), []uint32{1}},
+		{"key42", NewStorageValue([]byte("value42")), []uint32{42}},
+		{"key99", NewStorageValue([]byte("value99")), []uint32{99}},
+	}
+	assertChanges(t, changeSet, rollBack)
 }
 
 func extrinsic(value uint32) *uint32 {
