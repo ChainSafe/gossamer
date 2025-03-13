@@ -414,10 +414,8 @@ func (attested *attestedCandidate) toBackedCandidate(
 		validatorPositions[validator] = i
 	}
 
-	// Initialize bitfield and sorted attestations
-	validatorBits := make([]bool, len(group))
+	validatorIndices := make([]bool, len(group))
 	attestationsByPosition := make(map[int]parachaintypes.ValidityAttestation)
-	sortedAttestations := make([]parachaintypes.ValidityAttestation, 0, len(attested.validityAttestations))
 
 	// Validate attestations and record positions
 	for _, attestation := range attested.validityAttestations {
@@ -426,13 +424,14 @@ func (attested *attestedCandidate) toBackedCandidate(
 			return nil, fmt.Errorf("validator %d not found in backing group", attestation.validatorIndex)
 		}
 
-		validatorBits[pos] = true
+		validatorIndices[pos] = true
 		attestationsByPosition[pos] = attestation.validityAttestation
 	}
 
-	// Build sorted attestations list matching bitfield order
+	// Build sorted attestations list matching order of validator indices
+	sortedAttestations := make([]parachaintypes.ValidityAttestation, 0, len(attested.validityAttestations))
 	for i := range group {
-		if validatorBits[i] {
+		if validatorIndices[i] {
 			sortedAttestations = append(sortedAttestations, attestationsByPosition[i])
 		}
 	}
@@ -443,12 +442,12 @@ func (attested *attestedCandidate) toBackedCandidate(
 	}
 
 	// The order of the validity votes in the backed candidate must match
-	// the order of bits set in the bitfield, which is not necessarily
+	// the order of bits set in the , which is not necessarily
 	// the order of the `validityAttestations` we got from the statement table.
 	return parachaintypes.NewBackedCandidate(
 		attested.committedCandidateReceipt,
 		sortedAttestations,
-		validatorBits,
+		validatorIndices,
 		coreIndexToInject,
 	)
 }
