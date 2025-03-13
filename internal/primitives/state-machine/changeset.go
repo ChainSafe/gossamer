@@ -24,7 +24,7 @@ type InnerValue[V any] struct {
 	// Current value. None if value has been deleted.
 	value V
 	// The set of extrinsic indices where the values has been changed.
-	extrinsics Extrinsics
+	extrinsics *Extrinsics
 }
 
 type DirtyKeysSets[K ordered] []btree.Set[K]
@@ -52,7 +52,7 @@ func NewOverlayedChangeSet() OverlayedChangeSet {
 	}
 }
 
-func (oc OverlayedChangeSet) Set(key string, value StorageValue, atExtrinsic *uint32) {
+func (oc *OverlayedChangeSet) Set(key string, value StorageValue, atExtrinsic *uint32) {
 	overlayed, has := oc.changes[key]
 	if !has {
 		overlayed = NewOverlayedEntry[StorageEntry]()
@@ -60,4 +60,16 @@ func (oc OverlayedChangeSet) Set(key string, value StorageValue, atExtrinsic *ui
 
 	overlayed.Set(value, insertDirty(&oc.dirtyKeys, key), atExtrinsic)
 	oc.changes[key] = overlayed
+}
+
+func (oc *OverlayedChangeSet) RollbackTransaction() error {
+	return oc.closeTransaction(true)
+}
+
+func (oc *OverlayedChangeSet) CommitTransaction() error {
+	return oc.closeTransaction(false)
+}
+
+func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
+	panic("TODO OverlayedChangeSet::closeTransaction")
 }

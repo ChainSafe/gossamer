@@ -4,11 +4,21 @@
 package statemachine
 
 import (
+	"maps"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/btree"
 )
+
+type ChangesValue struct {
+	key        string
+	value      StorageValue
+	extrinsics []uint32
+}
+type Changes []ChangesValue
 
 type DrainedValue struct {
 	string
@@ -45,22 +55,85 @@ func TestDirtyKeysSetsPop(t *testing.T) {
 
 func TestNoTransactionWorks(t *testing.T) {
 	changeSet := NewOverlayedChangeSet()
-
 	require.Equal(t, uint(0), changeSet.TransactionDepth())
 
-	extrinsic1 := uint32(1)
-	extrinsic2 := uint32(2)
-	extrinsic9 := uint32(9)
-
-	changeSet.Set("key0", NewStorageValue([]byte("value0")), &extrinsic1)
-	changeSet.Set("key1", NewStorageValue([]byte("value1")), &extrinsic2)
-	changeSet.Set("key0", NewStorageValue([]byte("value0-1")), &extrinsic9)
+	changeSet.Set("key0", NewStorageValue([]byte("value0")), extrinsic(1))
+	changeSet.Set("key1", NewStorageValue([]byte("value1")), extrinsic(2))
+	changeSet.Set("key0", NewStorageValue([]byte("value0-1")), extrinsic(9))
 
 	assertDrained(t, changeSet, Drained{
 		{"key0", NewStorageValue([]byte("value0-1"))},
 		{"key1", NewStorageValue([]byte("value1"))},
 	})
+}
 
+func TestTransactionWorks(t *testing.T) {
+	changeSet := NewOverlayedChangeSet()
+	require.Equal(t, uint(0), changeSet.TransactionDepth())
+
+	// no transaction: commited on set
+	changeSet.Set("key0", NewStorageValue([]byte("value0")), extrinsic(1))
+	changeSet.Set("key1", NewStorageValue([]byte("value1")), extrinsic(1))
+	changeSet.Set("key0", NewStorageValue([]byte("value0-1")), extrinsic(10))
+
+	changeSet.StartTransaction()
+	require.Equal(t, uint(1), changeSet.TransactionDepth())
+
+	// we will commit that later
+	changeSet.Set("key42", NewStorageValue([]byte("value42")), extrinsic(42))
+	changeSet.Set("key99", NewStorageValue([]byte("value99")), extrinsic(99))
+
+	changeSet.StartTransaction()
+	require.Equal(t, uint(2), changeSet.TransactionDepth())
+
+	// we will roll that back
+	changeSet.Set("key42", NewStorageValue([]byte("value42-rolled")), extrinsic(421))
+	changeSet.Set("key7", NewStorageValue([]byte("value7-rolled")), extrinsic(77))
+	changeSet.Set("key0", NewStorageValue([]byte("value0-rolled")), extrinsic(1000))
+	changeSet.Set("key5", NewStorageValue([]byte("value5-rolled")), nil)
+
+	// allChanges contain all changes not only the committed ones.
+	allChanges := Changes{
+		{"key0", NewStorageValue([]byte("value0-rolled")), []uint32{1, 10, 1000}},
+		{"key1", NewStorageValue([]byte("value1")), []uint32{1}},
+		{"key42", NewStorageValue([]byte("value42-rolled")), []uint32{42, 421}},
+		{"key5", NewStorageValue([]byte("value5-rolled")), []uint32{}},
+		{"key7", NewStorageValue([]byte("value7-rolled")), []uint32{77}},
+		{"key99", NewStorageValue([]byte("value99")), []uint32{99}},
+	}
+
+	assertChanges(t, changeSet, allChanges)
+
+	// this should be no-op
+	changeSet.StartTransaction()
+	require.Equal(t, uint(3), changeSet.TransactionDepth())
+	changeSet.StartTransaction()
+	require.Equal(t, uint(4), changeSet.TransactionDepth())
+	changeSet.RollbackTransaction()
+	require.Equal(t, uint(3), changeSet.TransactionDepth())
+}
+
+func extrinsic(value uint32) *uint32 {
+	return &value
+}
+
+func assertChanges(t *testing.T, is OverlayedChangeSet, expected Changes) {
+	var changes Changes
+	for k, v := range is.Changes() {
+		extrinsics := slices.Collect(maps.Keys(v.Extrinsics()))
+		slices.Sort(extrinsics)
+		if extrinsics == nil {
+			extrinsics = []uint32{}
+		}
+
+		changes = append(changes, ChangesValue{k, v.Value().value(), extrinsics})
+	}
+
+	slices.SortFunc(changes, func(a, b ChangesValue) int {
+		return strings.Compare(a.key, b.key)
+	})
+
+	require.Equal(t, expected, changes)
 }
 
 func assertDrained(t *testing.T, is OverlayedChangeSet, expected Drained) {

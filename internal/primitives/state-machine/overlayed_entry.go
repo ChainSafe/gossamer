@@ -3,8 +3,6 @@
 
 package statemachine
 
-import "github.com/tidwall/btree"
-
 const PROOF_OVERLAY_NON_EMPTY = `
 An OverlayValue is always created with at least one transaction and dropped as soon
 as the last transaction is removed; qed`
@@ -31,16 +29,21 @@ func (oe *OverlayedEntry[V]) ValueRef() *V {
 
 func (oe *OverlayedEntry[V]) Value() V {
 	value := *oe.ValueRef()
+	return value
+}
+
+func (oe *OverlayedEntry[V]) IntoValue() V {
+	value := *oe.ValueRef()
 	oe.transactions = oe.transactions[:len(oe.transactions)-1]
 
 	return value
 }
 
-func (oe *OverlayedEntry[V]) Extrinsics() btree.Set[uint32] {
-	set := btree.Set[uint32]{}
+func (oe *OverlayedEntry[V]) Extrinsics() map[uint32]struct{} {
+	set := make(map[uint32]struct{}, 0)
 
 	for _, t := range oe.transactions {
-		t.extrinsics.CopyExtrinsicsInto(&set)
+		t.extrinsics.CopyExtrinsicsInto(set)
 	}
 
 	return set
@@ -62,7 +65,7 @@ func (oe *OverlayedEntry[V]) TransactionExtrinsics() *Extrinsics {
 		panic(PROOF_OVERLAY_NON_EMPTY)
 	}
 
-	return &oe.transactions[len(oe.transactions)-1].extrinsics
+	return oe.transactions[len(oe.transactions)-1].extrinsics
 }
 
 func (oe *OverlayedEntry[V]) SetOffchain(value V, firstWriteInTx bool, atExtrinsic *uint32) {
@@ -71,7 +74,7 @@ func (oe *OverlayedEntry[V]) SetOffchain(value V, firstWriteInTx bool, atExtrins
 	if firstWriteInTx || len(oe.transactions) == 0 {
 		oe.transactions = append(oe.transactions, InnerValue[V]{
 			value:      value,
-			extrinsics: Extrinsics{},
+			extrinsics: &Extrinsics{},
 		})
 	} else {
 		*oe.ValueRef() = value
@@ -97,7 +100,7 @@ func (oe *OverlayedEntry[V]) Set(value StorageValue, firstWriteInTx bool, atExtr
 	if firstWriteInTx || len(oe.transactions) == 0 {
 		oe.transactions = append(oe.transactions, InnerValue[V]{
 			value:      action.(V), //TODO: check this
-			extrinsics: Extrinsics{},
+			extrinsics: &Extrinsics{},
 		})
 	} else {
 		oldValue := oe.ValueRef()

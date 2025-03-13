@@ -180,7 +180,7 @@ func (om *OverlayedMap[K, V]) CloseTransactionOffchain(rollback bool) error {
 			if hasPredecessor {
 				droppedTx := overlayed.PopTransaction()
 				*overlayed.ValueRef() = droppedTx.value
-				overlayed.TransactionExtrinsics().Extend(droppedTx.extrinsics)
+				overlayed.TransactionExtrinsics().Extend(*droppedTx.extrinsics)
 			}
 		}
 
