@@ -18,8 +18,8 @@ type StorageKey []byte
 // StorageValue is a storage value. Value can be nil
 type StorageValue []byte
 
-func NewStorageValue(value []byte) *StorageValue {
-	return (*StorageValue)(&value)
+func NewStorageValue(value []byte) StorageValue {
+	return value
 }
 
 // StorageKeyValue is storage key and value.
@@ -152,8 +152,9 @@ func (oc *OverlayedChanges[H, Hasher]) Storage(key string) ([]byte, bool) {
 		return nil, true
 	}
 
-	oc.stats.TallyReadModified(uint64(len(*value)))
-	return *value, true
+	//oc.stats.TallyReadModified(uint64(len(*value)))
+	//return *value, true
+	panic("TODO")
 }
 
 // Should be called when there are changes that require to reset the
@@ -177,18 +178,21 @@ func (oc *OverlayedChanges[H, Hasher]) ChildStorage(childInfo ChildInfo, key *st
 		return nil, true
 	}
 
-	oc.stats.TallyReadModified(uint64(len(*value)))
-	return *value, true
+	//oc.stats.TallyReadModified(uint64(len(*value)))
+	//return *value, true
+
+	panic("TODO")
+
 }
 
-func (oc *OverlayedChanges[H, Hasher]) SetStorage(key StorageKey, value *StorageValue) {
+func (oc *OverlayedChanges[H, Hasher]) SetStorage(key StorageKey, value StorageValue) {
 	oc.markDirty()
 
 	var sizeWrite uint64
 	if value == nil {
 		sizeWrite = 0
 	} else {
-		sizeWrite = uint64(len(*value))
+		sizeWrite = uint64(len(value))
 	}
 
 	oc.stats.TallyWriteOverlay(sizeWrite)
