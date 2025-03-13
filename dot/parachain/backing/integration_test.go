@@ -305,7 +305,7 @@ func TestSecondsValidCandidate(t *testing.T) {
 
 	// mock Runtime Instance methods
 	mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
-		Return(parachaintypes.SessionIndex(1), nil).Times(3)
+		Return(parachaintypes.SessionIndex(1), nil)
 	mockRuntime.EXPECT().ParachainHostValidators().
 		Return(paraValidators, nil)
 	mockRuntime.EXPECT().ParachainHostValidatorGroups().
@@ -314,7 +314,7 @@ func TestSecondsValidCandidate(t *testing.T) {
 		Return(wazero_runtime.LegacyMinBackingVotes, nil)
 	mockRuntime.EXPECT().
 		ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
-		Return(&parachaintypes.ExecutorParams{}, nil).Times(3)
+		Return(&parachaintypes.ExecutorParams{}, nil)
 	mockRuntime.EXPECT().ParachainHostNodeFeatures().
 		Return(parachaintypes.NewBitVec([]bool{false, true}), nil)
 	mockRuntime.EXPECT().ParachainHostClaimQueue().
@@ -522,7 +522,7 @@ func TestCandidateReachesQuorum(t *testing.T) {
 
 	// mock Runtime Instance methods
 	mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
-		Return(parachaintypes.SessionIndex(1), nil).Times(2)
+		Return(parachaintypes.SessionIndex(1), nil)
 	mockRuntime.EXPECT().ParachainHostValidators().
 		Return(paraValidators, nil)
 	mockRuntime.EXPECT().ParachainHostValidatorGroups().
@@ -533,7 +533,7 @@ func TestCandidateReachesQuorum(t *testing.T) {
 		Return(&validationCode, nil)
 	mockRuntime.EXPECT().
 		ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
-		Return(&parachaintypes.ExecutorParams{}, nil).Times(2)
+		Return(&parachaintypes.ExecutorParams{}, nil)
 	mockRuntime.EXPECT().ParachainHostNodeFeatures().
 		Return(parachaintypes.NewBitVec([]bool{false, true}), nil)
 	mockRuntime.EXPECT().ParachainHostClaimQueue().
@@ -739,7 +739,7 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 
 	// mock Runtime Instance methods
 	mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
-		Return(parachaintypes.SessionIndex(1), nil).Times(2)
+		Return(parachaintypes.SessionIndex(1), nil)
 	mockRuntime.EXPECT().ParachainHostValidators().
 		Return(paraValidators, nil)
 	mockRuntime.EXPECT().ParachainHostValidatorGroups().
@@ -750,7 +750,7 @@ func TestValidationFailDoesNotStopSubsystem(t *testing.T) {
 		Return(&validationCode, nil)
 	mockRuntime.EXPECT().
 		ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
-		Return(&parachaintypes.ExecutorParams{}, nil).Times(2)
+		Return(&parachaintypes.ExecutorParams{}, nil)
 	mockRuntime.EXPECT().ParachainHostNodeFeatures().
 		Return(parachaintypes.NewBitVec([]bool{false, true}), nil)
 	mockRuntime.EXPECT().ParachainHostClaimQueue().
@@ -1049,7 +1049,7 @@ func TestNewLeafDoesNotClobberOld(t *testing.T) {
 
 	// mock Runtime Instance methods
 	mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
-		Return(parachaintypes.SessionIndex(1), nil).Times(3)
+		Return(parachaintypes.SessionIndex(1), nil).Times(2)
 	mockRuntime.EXPECT().ParachainHostValidators().
 		Return(paraValidators, nil)
 	mockRuntime.EXPECT().ParachainHostValidatorGroups().
@@ -1060,7 +1060,7 @@ func TestNewLeafDoesNotClobberOld(t *testing.T) {
 		Return(&validationCode, nil)
 	mockRuntime.EXPECT().
 		ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
-		Return(&parachaintypes.ExecutorParams{}, nil).Times(2)
+		Return(&parachaintypes.ExecutorParams{}, nil)
 	mockRuntime.EXPECT().ParachainHostNodeFeatures().
 		Return(parachaintypes.NewBitVec([]bool{false, true}), nil)
 	mockRuntime.EXPECT().ParachainHostClaimQueue().
@@ -1217,7 +1217,7 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 
 	// mock Runtime Instance methods
 	mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
-		Return(parachaintypes.SessionIndex(1), nil).Times(2)
+		Return(parachaintypes.SessionIndex(1), nil)
 	mockRuntime.EXPECT().ParachainHostValidators().
 		Return(paraValidators, nil)
 	mockRuntime.EXPECT().ParachainHostValidatorGroups().
@@ -1228,7 +1228,7 @@ func TestConflictingStatementIsMisbehavior(t *testing.T) {
 		Return(&validationCode, nil)
 	mockRuntime.EXPECT().
 		ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
-		Return(&parachaintypes.ExecutorParams{}, nil).Times(2)
+		Return(&parachaintypes.ExecutorParams{}, nil)
 	mockRuntime.EXPECT().ParachainHostNodeFeatures().
 		Return(parachaintypes.NewBitVec([]bool{false, true}), nil)
 	mockRuntime.EXPECT().ParachainHostClaimQueue().

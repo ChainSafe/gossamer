@@ -84,7 +84,6 @@ func (cb *CandidateBacking) handleSecondMessage(
 		cb.SubSystemToOverseer,
 		chRelayParentAndCommand,
 		candidateReceipt,
-		rpState.relayParent,
 		pvd,
 		pov,
 		uint32(len(rpState.tableContext.validators)),

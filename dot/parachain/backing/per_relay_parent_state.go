@@ -381,7 +381,6 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 
 	// Notify statement distribution of backed candidate.
 	subSystemToOverseer <- statementedistributionmessages.Backed(candidateHash)
-
 }
 
 // issueNewMisbehaviors checks for new misbehaviors and sends necessary messages to the Overseer subsystem.
@@ -453,7 +452,6 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 		subSystemToOverseer,
 		chRelayParentAndCommand,
 		attesting.candidate,
-		rpState.relayParent,
 		pvd,
 		pov,
 		uint32(len(rpState.tableContext.validators)),
@@ -467,13 +465,16 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	subSystemToOverseer chan<- any,
 	chRelayParentAndCommand chan relayParentAndCommand,
 	candidateReceipt parachaintypes.CandidateReceipt,
-	relayParent common.Hash,
 	pvd parachaintypes.PersistedValidationData,
 	pov parachaintypes.PoV,
 	numValidator uint32,
 	makeCommand validatedCandidateCommand,
 	candidateHash parachaintypes.CandidateHash,
 ) error {
+	if rpState.assignedCore == nil {
+		return fmt.Errorf("no assigned core")
+	}
+
 	if rpState.awaitingValidation[candidateHash] {
 		return nil
 	}
@@ -481,19 +482,14 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	rpState.awaitingValidation[candidateHash] = true
 	validationCodeHash := candidateReceipt.Descriptor.ValidationCodeHash
 
-	rt, err := blockState.GetRuntime(relayParent)
+	rt, err := blockState.GetRuntime(rpState.relayParent)
 	if err != nil {
-		return fmt.Errorf("getting runtime for relay parent %s: %w", relayParent, err)
+		return fmt.Errorf("getting runtime for relay parent %s: %w", rpState.relayParent, err)
 	}
 
 	validationCode, err := rt.ParachainHostValidationCodeByHash(common.Hash(validationCodeHash))
 	if err != nil {
 		return fmt.Errorf("getting validation code by hash: %w", err)
-	}
-
-	executorParams, err := parachainutil.ExecutorParamsAtRelayParent(rt, relayParent)
-	if err != nil {
-		return fmt.Errorf("getting executor params for relay parent %s: %w", relayParent, err)
 	}
 
 	pvfExecTimeoutKind := parachaintypes.NewPvfExecTimeoutKind()
@@ -508,7 +504,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		ValidationCode:          *validationCode,
 		CandidateReceipt:        candidateReceipt,
 		PoV:                     pov,
-		ExecutorParams:          *executorParams,
+		ExecutorParams:          *rpState.executorParams,
 		PvfExecTimeoutKind:      pvfExecTimeoutKind,
 		Ch:                      chValidationResultRes,
 	}
@@ -536,6 +532,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 				ValidationData: pvd,
 			},
 			ExpectedErasureRoot: candidateReceipt.Descriptor.ErasureRoot,
+			CoreIndex:           *rpState.assignedCore,
 			Sender:              chStoreAvailableDataError,
 		}
 
@@ -577,8 +574,9 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		candidateHashAccordingToCommand = &candidateHash
 	}
 
+	// TODO: compare with Polkadot
 	chRelayParentAndCommand <- relayParentAndCommand{
-		relayParent:   relayParent,
+		relayParent:   rpState.relayParent,
 		command:       makeCommand,
 		validationRes: &bgValidationResult,
 		candidateHash: candidateHashAccordingToCommand,

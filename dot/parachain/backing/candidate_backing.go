@@ -263,6 +263,9 @@ func (cb *CandidateBacking) handleStatementMessage(
 		return nil
 	}
 
+	// importStatement already takes care of communicating with the prospective parachains subsystem.
+	// At this point, the candidate has already been accepted by the subsystem.
+
 	if uint32(summary.GroupID) != rpState.assignedCore.Index {
 		logger.Debugf("The GroupID: %d is not assigned to the local validator at relay parent: %s",
 			summary.GroupID, relayParent)
@@ -310,6 +313,8 @@ func (cb *CandidateBacking) handleStatementMessage(
 		attesting.fromValidator = senderValidatorIndex
 	}
 
+	// in case of `Seconded` statement we add new fallback
+	// in case of `Valid` statement we update existing fallback
 	rpState.fallbacks[summary.Candidate] = attesting
 
 	// After `import_statement` succeeds, the candidate entry is guaranteed to exist.
@@ -318,6 +323,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 		return errCandidateStateNotFound
 	}
 
+	// TODO: compare logic inside kickOffValidationWork with Polkadot
 	return rpState.kickOffValidationWork(
 		cb.BlockState,
 		cb.SubSystemToOverseer,

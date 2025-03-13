@@ -551,7 +551,6 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 	require.NoError(t, err)
 
 	candidateHash := parachaintypes.CandidateHash{Value: hash}
-	relayParent := getDummyHash(t, 5)
 
 	testCases := []struct {
 		description    string
@@ -563,6 +562,7 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 		{
 			description: "validation_process_already_started_for_candidate",
 			rpState: perRelayParentState{
+				assignedCore:     &parachaintypes.CoreIndex{Index: 1},
 				issuedStatements: map[parachaintypes.CandidateHash]bool{},
 				awaitingValidation: map[parachaintypes.CandidateHash]bool{
 					candidateHash: true,
@@ -579,6 +579,7 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 		{
 			description: "unable_to_get_validation_code",
 			rpState: perRelayParentState{
+				assignedCore:       &parachaintypes.CoreIndex{Index: 1},
 				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
 				awaitingValidation: map[parachaintypes.CandidateHash]bool{},
 			},
@@ -596,35 +597,11 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 				return mockBlockstate
 			},
 		},
-
-		{
-			description: "unable_to_get_executor_parameters",
-			rpState: perRelayParentState{
-				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
-				awaitingValidation: map[parachaintypes.CandidateHash]bool{},
-			},
-			expectedErr:  "getting executor params for relay parent",
-			mockOverseer: func(ch chan any) {},
-			mockBlockState: func() *MockBlockState {
-				ctrl := gomock.NewController(t)
-
-				mockRuntime := NewMockInstance(ctrl)
-				mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
-					Return(&parachaintypes.ValidationCode{1, 2, 3}, nil)
-				mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
-					Return(parachaintypes.SessionIndex(1), nil)
-				mockRuntime.EXPECT().ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
-					Return(nil, errors.New("mock error getting executor params"))
-
-				mockBlockstate := NewMockBlockState(ctrl)
-				mockBlockstate.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).Return(mockRuntime, nil)
-				return mockBlockstate
-			},
-		},
-
 		{
 			description: "unable_to_get_validation_result",
 			rpState: perRelayParentState{
+				executorParams:     &parachaintypes.ExecutorParams{},
+				assignedCore:       &parachaintypes.CoreIndex{Index: 1},
 				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
 				awaitingValidation: map[parachaintypes.CandidateHash]bool{},
 			},
@@ -647,20 +624,17 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 				mockRuntime := NewMockInstance(ctrl)
 				mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
 					Return(&parachaintypes.ValidationCode{1, 2, 3}, nil)
-				mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
-					Return(parachaintypes.SessionIndex(1), nil)
-				mockRuntime.EXPECT().ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
-					Return(&parachaintypes.ExecutorParams{}, nil)
 
 				mockBlockstate := NewMockBlockState(ctrl)
 				mockBlockstate.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).Return(mockRuntime, nil)
 				return mockBlockstate
 			},
 		},
-
 		{
 			description: "validation_result_is_invalid",
 			rpState: perRelayParentState{
+				executorParams:     &parachaintypes.ExecutorParams{},
+				assignedCore:       &parachaintypes.CoreIndex{Index: 1},
 				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
 				awaitingValidation: map[parachaintypes.CandidateHash]bool{},
 			},
@@ -686,10 +660,6 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 				mockRuntime := NewMockInstance(ctrl)
 				mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
 					Return(&parachaintypes.ValidationCode{1, 2, 3}, nil)
-				mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
-					Return(parachaintypes.SessionIndex(1), nil)
-				mockRuntime.EXPECT().ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
-					Return(&parachaintypes.ExecutorParams{}, nil)
 
 				mockBlockstate := NewMockBlockState(ctrl)
 				mockBlockstate.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).Return(mockRuntime, nil)
@@ -699,6 +669,8 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 		{
 			description: "validation_result_is_valid",
 			rpState: perRelayParentState{
+				executorParams:     &parachaintypes.ExecutorParams{},
+				assignedCore:       &parachaintypes.CoreIndex{Index: 1},
 				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
 				awaitingValidation: map[parachaintypes.CandidateHash]bool{},
 			},
@@ -725,10 +697,6 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 				mockRuntime := NewMockInstance(ctrl)
 				mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
 					Return(&parachaintypes.ValidationCode{1, 2, 3}, nil)
-				mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
-					Return(parachaintypes.SessionIndex(1), nil)
-				mockRuntime.EXPECT().ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
-					Return(&parachaintypes.ExecutorParams{}, nil)
 
 				mockBlockstate := NewMockBlockState(ctrl)
 				mockBlockstate.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).Return(mockRuntime, nil)
@@ -750,12 +718,14 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 				<-chRelayParentAndCommand
 			}(chRelayParentAndCommand)
 
-			err := c.rpState.validateAndMakeAvailable(
+			rpState := c.rpState
+			rpState.relayParent = getDummyHash(t, 5)
+
+			err := rpState.validateAndMakeAvailable(
 				c.mockBlockState(),
 				subSystemToOverseer,
 				chRelayParentAndCommand,
 				candidateReceipt,
-				relayParent,
 				pvd,
 				parachaintypes.PoV{},
 				2,

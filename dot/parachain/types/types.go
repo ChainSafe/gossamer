@@ -757,7 +757,26 @@ type BackedCandidate struct {
 	// The validity votes themselves, expressed as signatures.
 	ValidityVotes []ValidityAttestation `scale:"2"`
 	// The indices of the validators within the group, expressed as a bitfield.
-	ValidatorIndices BitVec `scale:"3"` // TODO: it's a bitvec in rust, figure out actual type
+	ValidatorIndices BitVec `scale:"3"`
+}
+
+func NewBackedCandidate(
+	candidate CommittedCandidateReceipt,
+	validityVotes []ValidityAttestation,
+	validatorIndices []bool,
+	coreIndex *CoreIndex,
+) (*BackedCandidate, error) {
+	bc := BackedCandidate{
+		Candidate:        candidate,
+		ValidityVotes:    validityVotes,
+		ValidatorIndices: NewBitVec(validatorIndices),
+	}
+
+	if coreIndex != nil {
+		// TODO: add the core index to the validator indices
+	}
+
+	return &bc, nil
 }
 
 // ProspectiveParachainsMode represents the mode of a relay parent in the context
