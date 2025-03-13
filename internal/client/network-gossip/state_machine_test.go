@@ -81,7 +81,7 @@ type NoOpNetwork struct {
 	peerReportsMtx sync.Mutex
 }
 
-func (*NoOpNetwork) SetAuthorizedPeers(peers map[peerid.PeerID]any) {
+func (*NoOpNetwork) SetAuthorizedPeers(peers map[peerid.PeerID]struct{}) {
 	panic("unimpl")
 }
 func (*NoOpNetwork) SetAuthorizedOnly(reservedOnly bool) {
@@ -113,16 +113,16 @@ func (*NoOpNetwork) AddReservedPeer(peer config.MultiaddrPeerId) error {
 func (*NoOpNetwork) RemoveReservedPeer(peerID peerid.PeerID) {
 	panic("unimpl")
 }
-func (*NoOpNetwork) SetReservedPeers(protocol network.ProtocolName, peers map[string]any) error {
+func (*NoOpNetwork) SetReservedPeers(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]any) error {
 	panic("unimpl")
 }
-func (*NoOpNetwork) AddPeersToReservedSet(protocol network.ProtocolName, peers map[string]any) error {
+func (*NoOpNetwork) AddPeersToReservedSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]any) error {
 	panic("unimpl")
 }
 func (*NoOpNetwork) RemovePeersFromReservedSet(protocol network.ProtocolName, peers []peerid.PeerID) {
 	panic("unimpl")
 }
-func (*NoOpNetwork) AddToPeersSet(protocol network.ProtocolName, peers map[string]any) error {
+func (*NoOpNetwork) AddToPeersSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]any) error {
 	panic("unimpl")
 }
 func (*NoOpNetwork) RemoveFromPeersSet(protocol network.ProtocolName, peers []peerid.PeerID) {
@@ -216,8 +216,8 @@ func TestConsensusGossip(t *testing.T) {
 		m1 := []byte{1, 2, 3}
 		m2 := []byte{4, 5, 6}
 
-		pushMessage(&consensus, prevHash, m1Hash, m1)
-		pushMessage(&consensus, bestHash, m2Hash, m2)
+		pushMessage(consensus, prevHash, m1Hash, m1)
+		pushMessage(consensus, bestHash, m2Hash, m2)
 		consensus.knownMessages.Add(m1Hash, nil)
 		consensus.knownMessages.Add(m2Hash, nil)
 

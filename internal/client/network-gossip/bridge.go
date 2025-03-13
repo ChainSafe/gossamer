@@ -26,7 +26,7 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "client/network-gossip"))
 // GossipEngine utilises and implementation of [Network] and provides gossiping capabilities on
 // top of it.
 type GossipEngine[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] struct {
-	stateMachine                consensusGossip[H, Hasher]
+	stateMachine                *consensusGossip[H, Hasher]
 	network                     Network
 	sync                        Syncing[H, N]
 	periodicMaintenanceInterval <-chan time.Time

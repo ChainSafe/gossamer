@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/ChainSafe/go-schnorrkel"
@@ -22,16 +23,33 @@ import (
 type seed [32]byte
 
 // Public is a public key.
-type Public [32]byte
+type Public string
 
 // Bytes returns a byte slice
 func (p Public) Bytes() []byte {
-	return p[:]
+	return []byte(p)
 }
 
 // Verify a signature on a message. Returns true if the signature is good.
 func (p Public) Verify(sig Signature, message []byte) bool {
-	return ed25519.Verify(p[:], message, sig[:])
+	return ed25519.Verify(ed25519.PublicKey(p), message, sig[:])
+}
+
+func (p Public) MarshalSCALE() ([]byte, error) {
+	var arr [32]byte
+	copy(arr[:], p)
+	return scale.Marshal(arr)
+}
+
+func (p *Public) UnmarshalSCALE(reader io.Reader) error {
+	var arr [32]byte
+	decoder := scale.NewDecoder(reader)
+	err := decoder.Decode(&arr)
+	if err != nil {
+		return err
+	}
+	*p = Public(arr[:])
+	return nil
 }
 
 // NewPublic creates a new instance from the given 32-byte data.
@@ -39,10 +57,10 @@ func (p Public) Verify(sig Signature, message []byte) bool {
 // NOTE: No checking goes on to ensure this is a real public key. Only use it if
 // you are certain that the array actually is a pubkey.
 func NewPublic(data [32]byte) Public {
-	return Public(data)
+	return Public(data[:])
 }
 
-var _ crypto.Public[Signature] = Public{}
+var _ crypto.Public[Signature] = Public("")
 
 // Derive a single hard junction.
 func deriveHardJunction(secretSeed seed, cc [32]byte) seed {
@@ -93,9 +111,7 @@ func (p Pair) Public() crypto.Public[Signature] {
 	if len(pubKey) != 32 {
 		panic("unexpected length")
 	}
-	var pub Public
-	copy(pub[:], pubKey)
-	return pub
+	return Public(pubKey)
 }
 
 // Sign a message.

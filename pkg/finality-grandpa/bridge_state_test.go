@@ -18,7 +18,7 @@ func TestBridgeState(_ *testing.T) {
 	var wg sync.WaitGroup
 
 	waker := &waker{
-		wakeCh: make(chan struct{}),
+		wakeCh: make(chan any),
 	}
 
 	var waitForFinality = func() bool {

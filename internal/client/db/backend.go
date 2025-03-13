@@ -1090,7 +1090,7 @@ func (b *Backend[H, Hasher, N, E, Header]) pruneBlocks(
 			keep = uint32(blocksPruning)
 		}
 		if finalizedNumber >= N(keep) {
-			number := saturating.Sub(finalizedNumber, keep)
+			number := saturating.Sub(finalizedNumber, N(keep))
 
 			// Before we prune a block, check if it is pinned
 			hash, err := b.blockchain.Hash(number)
@@ -1514,7 +1514,7 @@ func (b *Backend[H, Hasher, N, E, Header]) Revert(n N, revertFinalized bool) (N,
 			}
 			removedHash := (*removed).Hash()
 
-			prevNumber := saturating.Sub(numberToRevert, uint(1))
+			prevNumber := saturating.Sub(numberToRevert, 1)
 			var prevHash H
 			if prevNumber == bestNumber {
 				prevHash = bestHash

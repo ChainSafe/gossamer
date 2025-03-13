@@ -13,16 +13,14 @@ import (
 // Public key used in grandpa
 type Public = ed25519.Public
 
-var _ crypto.Public[Signature] = Public{}
+var _ crypto.Public[Signature] = Public("")
 
 // NewPublic is constructor for Public
 func NewPublic(data []byte) (Public, error) {
 	if len(data) != 32 {
-		return Public{}, fmt.Errorf("invalid public key from data: %v", data)
+		return Public(""), fmt.Errorf("invalid public key from data: %v", data)
 	}
-	pub := Public{}
-	copy(pub[:], data)
-	return pub, nil
+	return Public(data), nil
 }
 
 // Signature is signature type used in grandpa

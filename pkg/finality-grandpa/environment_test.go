@@ -298,19 +298,19 @@ func (rn *RoundNetwork) AddNode(
 }
 
 type GlobalMessageNetwork struct {
-	*BroadcastNetwork[globalInItem, CommunicationOut]
+	*BroadcastNetwork[globalInItem[string, uint32, Signature, ID], CommunicationOut[string, uint32, Signature, ID]]
 }
 
 func NewGlobalMessageNetwork() *GlobalMessageNetwork {
-	bn := NewBroadcastNetwork[globalInItem, CommunicationOut]()
+	bn := NewBroadcastNetwork[globalInItem[string, uint32, Signature, ID], CommunicationOut[string, uint32, Signature, ID]]()
 	gmn := GlobalMessageNetwork{bn}
 	return &gmn
 }
 
 func (gmn *GlobalMessageNetwork) AddNode(
-	f func(CommunicationOut) globalInItem,
-	out chan CommunicationOut,
-) (in chan globalInItem) {
+	f func(CommunicationOut[string, uint32, Signature, ID]) globalInItem[string, uint32, Signature, ID],
+	out chan CommunicationOut[string, uint32, Signature, ID],
+) (in chan globalInItem[string, uint32, Signature, ID]) {
 	return gmn.BroadcastNetwork.AddNode(f, out)
 }
 
@@ -360,22 +360,22 @@ func (n *Network) MakeRoundComms(
 	)
 }
 
-func (n *Network) MakeGlobalComms(out chan CommunicationOut) chan globalInItem {
+func (n *Network) MakeGlobalComms(out chan CommunicationOut[string, uint32, Signature, ID]) chan globalInItem[string, uint32, Signature, ID] {
 	n.mtx.Lock()
 	defer n.mtx.Unlock()
 
-	return n.globalMessages.AddNode(func(message CommunicationOut) globalInItem {
-		if message.variant == nil {
+	return n.globalMessages.AddNode(func(message CommunicationOut[string, uint32, Signature, ID]) globalInItem[string, uint32, Signature, ID] {
+		if message == nil {
 			panic("nil message variant")
 		}
-		switch message := message.variant.(type) {
+		switch message := message.(type) {
 		case CommunicationOutCommit[string, uint32, Signature, ID]:
-			ci := newCommunicationIn[string, uint32, Signature, ID](CommunicationInCommit[string, uint32, Signature, ID]{
+			ci := CommunicationInCommit[string, uint32, Signature, ID]{
 				Number:        message.Number,
 				CompactCommit: message.Commit.CompactCommit(),
 				Callback:      nil,
-			})
-			return globalInItem{
+			}
+			return globalInItem[string, uint32, Signature, ID]{
 				CommunicationIn: ci,
 			}
 		default:
@@ -384,6 +384,6 @@ func (n *Network) MakeGlobalComms(out chan CommunicationOut) chan globalInItem {
 	}, out)
 }
 
-func (n *Network) SendMessage(message CommunicationIn) {
-	n.globalMessages.SendMessage(globalInItem{message, nil})
+func (n *Network) SendMessage(message CommunicationIn[string, uint32, Signature, ID]) {
+	n.globalMessages.SendMessage(globalInItem[string, uint32, Signature, ID]{message, nil})
 }

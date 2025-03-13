@@ -34,6 +34,7 @@ func TestVoter_TalkingToMyself(t *testing.T) {
 		&env,
 		*voters,
 		nil,
+		func(co CommunicationOut[string, uint32, Signature, ID]) error { return nil },
 		0,
 		nil,
 		lastFinalized,
@@ -84,7 +85,8 @@ func TestVoter_FinalizingAtFaultThreshold(t *testing.T) {
 		voter, globalOut := NewVoter[string, uint32, Signature, ID](
 			&env,
 			*voters,
-			make(chan globalInItem),
+			make(chan globalInItem[string, uint32, Signature, ID]),
+			func(co CommunicationOut[string, uint32, Signature, ID]) error { return nil },
 			0,
 			nil,
 			lastFinalized,
@@ -138,7 +140,8 @@ func TestVoter_ExposingVoterState(t *testing.T) {
 		voter, globalOut := NewVoter[string, uint32, Signature, ID](
 			&env,
 			*voterSet,
-			make(chan globalInItem),
+			make(chan globalInItem[string, uint32, Signature, ID]),
+			func(co CommunicationOut[string, uint32, Signature, ID]) error { return nil },
 			0,
 			nil,
 			lastFinalized,
@@ -222,7 +225,8 @@ func TestVoter_BroadcastCommit(t *testing.T) {
 	voter, globalOut := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voterSet,
-		make(chan globalInItem),
+		make(chan globalInItem[string, uint32, Signature, ID]),
+		func(co CommunicationOut[string, uint32, Signature, ID]) error { return nil },
 		0,
 		nil,
 		lastFinalized,
@@ -249,7 +253,7 @@ func TestVoter_BroadcastCommitOnlyIfNewer(t *testing.T) {
 	network := NewNetwork()
 	defer network.Stop()
 
-	commitsOut := make(chan CommunicationOut)
+	commitsOut := make(chan CommunicationOut[string, uint32, Signature, ID])
 	commitsIn := network.MakeGlobalComms(commitsOut)
 
 	roundOut := make(chan Message[string, uint32])
@@ -286,6 +290,7 @@ func TestVoter_BroadcastCommitOnlyIfNewer(t *testing.T) {
 		&env,
 		*voterSet,
 		nil,
+		func(co CommunicationOut[string, uint32, Signature, ID]) error { return nil },
 		0,
 		nil,
 		lastFinalized,
@@ -301,11 +306,11 @@ func TestVoter_BroadcastCommitOnlyIfNewer(t *testing.T) {
 	item := <-roundIn
 	// wait for a prevote
 	assert.NoError(t, item.Error)
-	assert.IsType(t, Prevote[string, uint32]{}, item.SignedMessage.Message.inner)
+	assert.IsType(t, Prevote[string, uint32]{}, item.SignedMessage.Message)
 	assert.Equal(t, localID, item.SignedMessage.ID)
 
 	// send our prevote and precommit
-	votes := []Message[string, uint32]{NewMessage(prevote), NewMessage(precommit)}
+	votes := []Message[string, uint32]{prevote, precommit}
 	for _, v := range votes {
 		roundOut <- v
 	}
@@ -315,7 +320,7 @@ waitForPrecommit:
 		item = <-roundIn
 		// wait for a precommit
 		assert.NoError(t, item.Error)
-		switch item.SignedMessage.Message.inner.(type) {
+		switch item.SignedMessage.Message.(type) {
 		case Precommit[string, uint32]:
 			if item.SignedMessage.ID == localID {
 				break waitForPrecommit
@@ -324,7 +329,7 @@ waitForPrecommit:
 	}
 
 	// send our commit
-	co := newCommunicationOut(CommunicationOutCommit[string, uint32, Signature, ID](commit))
+	co := CommunicationOutCommit[string, uint32, Signature, ID](commit)
 	commitsOut <- co
 
 	timer := time.NewTimer(500 * time.Millisecond)
@@ -352,7 +357,7 @@ func TestVoter_ImportCommitForAnyRound(t *testing.T) {
 	network := NewNetwork()
 	defer network.Stop()
 
-	commitsOut := make(chan CommunicationOut)
+	commitsOut := make(chan CommunicationOut[string, uint32, Signature, ID])
 	_ = network.MakeGlobalComms(commitsOut)
 
 	commit := Commit[string, uint32, Signature, ID]{
@@ -381,6 +386,7 @@ func TestVoter_ImportCommitForAnyRound(t *testing.T) {
 		&env,
 		*voterSet,
 		nil,
+		func(co CommunicationOut[string, uint32, Signature, ID]) error { return nil },
 		0,
 		nil,
 		lastFinalized,
@@ -395,10 +401,10 @@ func TestVoter_ImportCommitForAnyRound(t *testing.T) {
 	}()
 
 	// Send the commit message
-	co := newCommunicationOut(CommunicationOutCommit[string, uint32, Signature, ID]{
+	co := CommunicationOutCommit[string, uint32, Signature, ID]{
 		Number: 0,
 		Commit: commit,
-	})
+	}
 	commitsOut <- co
 
 	finalized := <-env.FinalizedStream()
@@ -437,6 +443,7 @@ func TestVoter_SkipsToLatestRoundAfterCatchUp(t *testing.T) {
 		&env,
 		*voterSet,
 		nil,
+		func(co CommunicationOut[string, uint32, Signature, ID]) error { return nil },
 		0,
 		nil,
 		lastFinalized,
@@ -462,7 +469,7 @@ func TestVoter_SkipsToLatestRoundAfterCatchUp(t *testing.T) {
 	}
 
 	// send in a catch-up message for round 5.
-	ci := newCommunicationIn[string, uint32, Signature, ID](CommunicationInCatchUp[string, uint32, Signature, ID]{
+	ci := CommunicationInCatchUp[string, uint32, Signature, ID]{
 		CatchUp: CatchUp[string, uint32, Signature, ID]{
 			BaseNumber:  1,
 			BaseHash:    GenesisHash,
@@ -470,7 +477,7 @@ func TestVoter_SkipsToLatestRoundAfterCatchUp(t *testing.T) {
 			Prevotes:    []SignedPrevote[string, uint32, Signature, ID]{prevote(0), prevote(1), prevote(2)},
 			Precommits:  []SignedPrecommit[string, uint32, Signature, ID]{precommit(0), precommit(1), precommit(2)},
 		},
-	})
+	}
 	network.SendMessage(ci)
 
 	voterState := unsyncedVoter.VoterState()
@@ -552,6 +559,7 @@ func TestVoter_PickUpFromPriorWithoutGrandparentState(t *testing.T) {
 		&env,
 		*voterSet,
 		nil,
+		func(co CommunicationOut[string, uint32, Signature, ID]) error { return nil },
 		10,
 		nil,
 		lastFinalized,
@@ -605,13 +613,13 @@ func TestVoter_PickUpFromPriorWithGrandparentStatus(t *testing.T) {
 		}
 
 		lastRoundVotes = append(lastRoundVotes, SignedMessage[string, uint32, Signature, ID]{
-			Message:   NewMessage(prevote),
+			Message:   prevote,
 			Signature: Signature(id),
 			ID:        ID(id),
 		})
 
 		lastRoundVotes = append(lastRoundVotes, SignedMessage[string, uint32, Signature, ID]{
-			Message:   NewMessage(precommit),
+			Message:   precommit,
 			Signature: Signature(id),
 			ID:        ID(id),
 		})
@@ -622,7 +630,7 @@ func TestVoter_PickUpFromPriorWithGrandparentStatus(t *testing.T) {
 		// the estimate of round-1 moves backwards.
 		roundOut := make(chan Message[string, uint32])
 		_ = network.MakeRoundComms(2, ID(id), roundOut)
-		msgs := []Message[string, uint32]{NewMessage(prevote), NewMessage(precommit)}
+		msgs := []Message[string, uint32]{prevote, precommit}
 		for _, msg := range msgs {
 			roundOut <- msg
 		}
@@ -634,13 +642,14 @@ func TestVoter_PickUpFromPriorWithGrandparentStatus(t *testing.T) {
 	roundOut := make(chan Message[string, uint32])
 	_ = network.MakeRoundComms(1, sender, roundOut)
 	lastPrecommit := Precommit[string, uint32]{"D", 3}
-	roundOut <- NewMessage(lastPrecommit)
+	roundOut <- lastPrecommit
 
 	// run voter in background. scheduling it to shut down at the end.
 	voter, globalOut := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voterSet,
 		nil,
+		func(co CommunicationOut[string, uint32, Signature, ID]) error { return nil },
 		1,
 		lastRoundVotes,
 		lastFinalized,
@@ -659,7 +668,7 @@ waitForPrevote:
 			t.Errorf("should contain error")
 		}
 
-		msg := sme.SignedMessage.Message.inner
+		msg := sme.SignedMessage.Message
 		switch msg.(type) {
 		case Prevote[string, uint32]:
 			if sme.SignedMessage.ID == localID {
@@ -668,7 +677,6 @@ waitForPrevote:
 		}
 	}
 
-	<-time.NewTimer(100 * time.Millisecond).C
 	assert.Equal(t, [2]uint64{2, 1}, env.LastCompletedAndConcluded())
 
 	err := voter.Stop()
@@ -677,7 +685,7 @@ waitForPrevote:
 
 func TestBuffered(_ *testing.T) {
 	in := make(chan int32)
-	buffered := newBuffered(in)
+	buffered := newBuffered(in, func(int32) error { return nil })
 
 	run := true
 	wg := sync.WaitGroup{}
