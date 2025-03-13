@@ -6,6 +6,7 @@ package statemachine
 import (
 	"errors"
 	"iter"
+	"maps"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/tidwall/btree"
@@ -19,7 +20,7 @@ var errorNoOpenTransaction = errors.New("no open transaction")
 
 type OverlayedMap[K ordered, V any] struct {
 	// Stores the changes that this overlay constitutes.
-	changes btree.Map[K, OverlayedEntry[V]]
+	changes map[K]*OverlayedEntry[V]
 	// Stores which keys are dirty per transaction. Needed in order to determine which
 	// values to merge into the parent transaction on commit. The length of this vector
 	// therefore determines how many nested transactions are currently open (depth).
@@ -34,6 +35,7 @@ type OverlayedMap[K ordered, V any] struct {
 
 func NewOverlayedMap[K ordered, V any]() OverlayedMap[K, V] {
 	return OverlayedMap[K, V]{
+		changes:               make(map[K]*OverlayedEntry[V]),
 		dirtyKeys:             DirtyKeysSets[K]{},
 		numClientTransactions: 0,
 		executionMode:         ExecutionModeClient,
@@ -49,16 +51,16 @@ func (om *OverlayedMap[K, V]) SpawnChild() OverlayedMap[K, V] {
 }
 
 func (om *OverlayedMap[K, V]) IsEmpty() bool {
-	return om.changes.Len() == 0
+	return len(om.changes) == 0
 }
 
 func (om *OverlayedMap[K, V]) Get(key K) *OverlayedEntry[V] {
-	value, present := om.changes.Get(key)
+	value, present := om.changes[key]
 	if !present {
 		return nil
 	}
 
-	return &value
+	return value
 }
 
 func (om *OverlayedMap[K, V]) SetOffchain(key K, value V, atExtrinsic *uint32) {
@@ -71,13 +73,8 @@ func (om *OverlayedMap[K, V]) SetOffchain(key K, value V, atExtrinsic *uint32) {
 	overlayed.SetOffchain(value, insertDirty(&om.dirtyKeys, key), atExtrinsic)
 }
 
-// TODO: test it
 func (om *OverlayedMap[K, V]) Changes() iter.Seq2[K, *OverlayedEntry[V]] {
-	return func(yield func(K, *OverlayedEntry[V]) bool) {
-		om.changes.Scan(func(key K, value OverlayedEntry[V]) bool {
-			return yield(key, &value)
-		})
-	}
+	return maps.All(om.changes)
 }
 
 func (om *OverlayedMap[K, V]) DrainCommited() iter.Seq2[K, V] {
@@ -86,9 +83,11 @@ func (om *OverlayedMap[K, V]) DrainCommited() iter.Seq2[K, V] {
 	}
 
 	return func(yield func(K, V) bool) {
-		om.changes.Scan(func(key K, value OverlayedEntry[V]) bool {
-			return yield(key, value.PopTransaction().value)
-		})
+		for k, v := range om.changes {
+			if !yield(k, v.PopTransaction().value) {
+				return
+			}
+		}
 	}
 }
 
@@ -151,7 +150,7 @@ func (om *OverlayedMap[K, V]) CloseTransactionOffchain(rollback bool) error {
 	}
 
 	lastTransaction.Scan(func(key K) bool {
-		overlayed, has := om.changes.Get(key)
+		overlayed, has := om.changes[key]
 		if !has {
 			panic(`
 				A write to an OverlayedValue is recorded in the dirty key set. Before an
@@ -164,7 +163,7 @@ func (om *OverlayedMap[K, V]) CloseTransactionOffchain(rollback bool) error {
 			overlayed.PopTransaction()
 
 			if len(overlayed.transactions) == 0 {
-				om.changes.Delete(key)
+				delete(om.changes, key)
 			}
 		} else {
 			var hasPredecessor bool
