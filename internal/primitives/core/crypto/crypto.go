@@ -213,12 +213,6 @@ type Pair[Seed, Signature any] interface {
 	Public() Public[Signature]
 }
 
-// / An identifier for a specific cryptographic algorithm used by a key pair
-// #[derive(Debug, Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Encode, Decode)]
-// #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
-// pub struct CryptoTypeId(pub [u8; 4]);
-type CryptoTypeID string
-
 // / An identifier for a type of cryptographic key.
 // /
 // / To avoid clashes with other modules when distributing your module publicly, register your
