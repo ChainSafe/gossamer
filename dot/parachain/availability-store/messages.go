@@ -77,8 +77,6 @@ type StoreChunk struct {
 
 // StoreAvailableData computes and checks the erasure root of `AvailableData`
 // before storing its chunks in the AV store.
-//
-// TODO: set values for NodeFeatures and CoreIndex at all the usages of this message.
 type StoreAvailableData struct {
 	// A hash of the candidate this `ASMStoreAvailableData` belongs to.
 	CandidateHash parachaintypes.CandidateHash
@@ -88,10 +86,6 @@ type StoreAvailableData struct {
 	AvailableData AvailableData
 	// Erasure root we expect to get after chunking.
 	ExpectedErasureRoot common.Hash
-	// Core index where the candidate was backed.
-	CoreIndex parachaintypes.CoreIndex
-	// Node features at the candidate relay parent.
-	NodeFeatures parachaintypes.BitVec
 	// channel to send result to.
 	Sender chan error
 }

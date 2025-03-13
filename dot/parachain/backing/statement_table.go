@@ -393,7 +393,10 @@ type attestedCandidate struct {
 	validityAttestations []validatorIndexWithAttestation
 }
 
-func (attested *attestedCandidate) toBackedCandidate(tableCtx *tableContext) (*parachaintypes.BackedCandidate, error) {
+func (attested *attestedCandidate) toBackedCandidate(
+	tableCtx *tableContext,
+	injectCoreIndex bool,
+) (*parachaintypes.BackedCandidate, error) {
 	if tableCtx == nil {
 		return nil, errors.New("table context is nil")
 	}
@@ -434,16 +437,20 @@ func (attested *attestedCandidate) toBackedCandidate(tableCtx *tableContext) (*p
 		}
 	}
 
+	var coreIndexToInject *parachaintypes.CoreIndex
+	if injectCoreIndex {
+		coreIndexToInject = &coreIndex
+	}
+
 	// The order of the validity votes in the backed candidate must match
 	// the order of bits set in the bitfield, which is not necessarily
 	// the order of the `validityAttestations` we got from the statement table.
-	//
-	// TODO: call NewBackedCandidate func from types.go
-	return &parachaintypes.BackedCandidate{
-		Candidate:        attested.committedCandidateReceipt,
-		ValidityVotes:    sortedAttestations,
-		ValidatorIndices: parachaintypes.NewBitVec(validatorBits),
-	}, nil
+	return parachaintypes.NewBackedCandidate(
+		attested.committedCandidateReceipt,
+		sortedAttestations,
+		validatorBits,
+		coreIndexToInject,
+	)
 }
 
 // validatorIndexWithAttestation represents a validity attestation for a candidate.

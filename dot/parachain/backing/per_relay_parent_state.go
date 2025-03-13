@@ -365,7 +365,7 @@ func (rpState *perRelayParentState) postImportStatement(subSystemToOverseer chan
 	rpState.backed[candidateHash] = true
 
 	// Convert the attested candidate to a backed candidate.
-	backedCandidate, err := attested.toBackedCandidate(&rpState.tableContext)
+	backedCandidate, err := attested.toBackedCandidate(&rpState.tableContext, rpState.injectCoreIndex)
 	if err != nil {
 		logger.Errorf("converting attested candidate to backed candidate: %w", err)
 		return
@@ -427,12 +427,10 @@ func (rpState *perRelayParentState) kickOffValidationWork(
 		return fmt.Errorf("local validator disabled - don't kick off validation")
 	}
 
-	hash, err := attesting.candidate.Hash()
+	candidateHash, err := parachaintypes.GetCandidateHash(attesting.candidate)
 	if err != nil {
 		return fmt.Errorf("getting candidate hash: %w", err)
 	}
-
-	candidateHash := parachaintypes.CandidateHash{Value: hash}
 
 	if rpState.issuedStatements[candidateHash] {
 		return nil
@@ -532,7 +530,6 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 				ValidationData: pvd,
 			},
 			ExpectedErasureRoot: candidateReceipt.Descriptor.ErasureRoot,
-			CoreIndex:           *rpState.assignedCore,
 			Sender:              chStoreAvailableDataError,
 		}
 
@@ -574,7 +571,6 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 		candidateHashAccordingToCommand = &candidateHash
 	}
 
-	// TODO: compare with Polkadot
 	chRelayParentAndCommand <- relayParentAndCommand{
 		relayParent:   rpState.relayParent,
 		command:       makeCommand,

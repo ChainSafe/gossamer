@@ -323,7 +323,6 @@ func (cb *CandidateBacking) handleStatementMessage(
 		return errCandidateStateNotFound
 	}
 
-	// TODO: compare logic inside kickOffValidationWork with Polkadot
 	return rpState.kickOffValidationWork(
 		cb.BlockState,
 		cb.SubSystemToOverseer,

@@ -766,17 +766,23 @@ func NewBackedCandidate(
 	validatorIndices []bool,
 	coreIndex *CoreIndex,
 ) (*BackedCandidate, error) {
-	bc := BackedCandidate{
+	const maxCoreIndex uint32 = 255 // math.MaxUint8
+
+	if coreIndex != nil && coreIndex.Index > maxCoreIndex {
+		return nil, fmt.Errorf("core index %d exceeds maximum allowed value of %d", coreIndex.Index, maxCoreIndex)
+	}
+
+	bc := &BackedCandidate{
 		Candidate:        candidate,
 		ValidityVotes:    validityVotes,
 		ValidatorIndices: NewBitVec(validatorIndices),
 	}
 
 	if coreIndex != nil {
-		// TODO: add the core index to the validator indices
+		bc.ValidatorIndices.ExtendByByte(byte(coreIndex.Index))
 	}
 
-	return &bc, nil
+	return bc, nil
 }
 
 // ProspectiveParachainsMode represents the mode of a relay parent in the context
