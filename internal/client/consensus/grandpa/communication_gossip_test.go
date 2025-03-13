@@ -241,7 +241,7 @@ func Test_gossipValidator(t *testing.T) {
 			peer,
 			voteMessage[hash.H256, uint64]{
 				Round: Round(1),
-				SetID: SetID(setID),
+				SetID: setID,
 				Message: primitives.SignedMessage[hash.H256, uint64]{
 					Message: grandpa.Prevote[hash.H256, uint64]{
 						TargetHash:   hash.H256(""),
@@ -257,7 +257,7 @@ func Test_gossipValidator(t *testing.T) {
 			peer,
 			voteMessage[hash.H256, uint64]{
 				Round: Round(1),
-				SetID: SetID(setID),
+				SetID: setID,
 				Message: primitives.SignedMessage[hash.H256, uint64]{
 					Message: grandpa.Prevote[hash.H256, uint64]{
 						TargetHash:   hash.H256(""),
@@ -289,7 +289,7 @@ func Test_gossipValidator(t *testing.T) {
 			return val.inner.validateCatchUpMessage(
 				peer,
 				fullCatchUpMessage[hash.H256, uint64]{
-					SetID: SetID(setID),
+					SetID: setID,
 					Message: primitives.CatchUp[hash.H256, uint64]{
 						RoundNumber: 10,
 						Prevotes:    nil,
@@ -307,7 +307,7 @@ func Test_gossipValidator(t *testing.T) {
 		noted, _ := val.inner.noteCatchUpRequest(
 			peer,
 			catchUpRequestMessage{
-				SetID: SetID(setID),
+				SetID: setID,
 				Round: Round(10),
 			},
 		)
@@ -355,7 +355,7 @@ func Test_gossipValidator(t *testing.T) {
 
 		message, action := val.inner.handleCatchUpRequest(
 			peer,
-			catchUpRequestMessage{SetID: SetID(setID), Round: Round(10)},
+			catchUpRequestMessage{SetID: setID, Round: Round(10)},
 			setState,
 		)
 
@@ -365,7 +365,7 @@ func Test_gossipValidator(t *testing.T) {
 
 		message, action = val.inner.handleCatchUpRequest(
 			peer,
-			catchUpRequestMessage{SetID: SetID(setID), Round: Round(2)},
+			catchUpRequestMessage{SetID: setID, Round: Round(2)},
 			setState,
 		)
 
@@ -373,7 +373,7 @@ func Test_gossipValidator(t *testing.T) {
 		require.NotNil(t, message)
 		switch message := message.(type) {
 		case gossipMessageCatchUp[hash.H256, uint64]:
-			require.Equal(t, message.SetID, SetID(setID))
+			require.Equal(t, message.SetID, setID)
 			require.Equal(t, message.Message.RoundNumber, uint64(2))
 			require.Equal(t, action, actionDiscard[hash.H256]{catchUpReply})
 		default:

@@ -128,7 +128,7 @@ func NewAuthoritySet[H comparable, N constraints.Unsigned](
 }
 
 // current retrieves the current set id and a reference to the current authority set.
-func (authSet *AuthoritySet[H, N]) current() (uint64, *pgrandpa.AuthorityList) {
+func (authSet *AuthoritySet[H, N]) current() (uint64, *pgrandpa.AuthorityList) { //nolint: unused
 	return authSet.SetID, &authSet.CurrentAuthorities
 }
 
@@ -315,9 +315,8 @@ func (authSet *AuthoritySet[H, N]) addPendingChange(
 	}
 }
 
-// pendingChanges will inspect pending changes. Standard pending changes are iterated first,
-// and the changes in the roots are traversed in pre-order, afterwards all
-// forced changes are iterated.
+// pendingChanges will inspect pending changes. Standard pending changes are iterated first, and the changes in the
+// roots are traversed in pre-order, afterwards all forced changes are iterated.
 func (authSet *AuthoritySet[H, N]) pendingChanges() []PendingChange[H, N] { //skipcq:  RVV-B0001
 	// get everything from standard HashNumber roots
 	changes := authSet.PendingStandardChanges.PendingChanges()
@@ -328,12 +327,12 @@ func (authSet *AuthoritySet[H, N]) pendingChanges() []PendingChange[H, N] { //sk
 	return changes
 }
 
-// currentLimit gets the earliest limit-block number, if any. If there are pending changes across
-// different forks, this method will return the earliest effective number (across the
-// different branches) that is higher or equal to the given min number.
+// currentLimit gets the earliest limit-block number, if any. If there are pending changes across different forks, this
+// method will return the earliest effective number (across the different branches) that is higher or equal to the
+// given min number.
 //
-// Only standard changes are taken into account for the current
-// limit, since any existing forced HashNumber should preclude the voter from voting.
+// Only standard changes are taken into account for the current limit, since any existing forced HashNumber should
+// preclude the voter from voting.
 func (authSet *AuthoritySet[H, N]) currentLimit(min N) (limit *N) {
 	roots := authSet.PendingStandardChanges.Roots()
 	for i := 0; i < len(roots); i++ {
@@ -351,20 +350,16 @@ func (authSet *AuthoritySet[H, N]) currentLimit(min N) (limit *N) {
 
 // ApplyForcedChanges applies or prunes any pending transitions based on a best-block trigger.
 //
-// Returns a pointer to the median and new_set when a forced HashNumber has occurred. The
-// median represents the median last finalised block at the time the HashNumber
-// was signalled, and it should be used as the canon block when starting the
-// new grandpa voter. Only alters the internal state in this case.
+// Returns a pointer to the median and new_set when a forced HashNumber has occurred. The median represents the median
+// last finalised block at the time the HashNumber was signalled, and it should be used as the canon block when
+// starting the new grandpa voter. Only alters the internal state in this case.
 //
-// These transitions are always forced and do not lead to justifications
-// which light clients can follow.
+// These transitions are always forced and do not lead to justifications which light clients can follow.
 //
-// Forced changes can only be applied after all pending standard changes
-// that it depends on have been applied. If any pending standard HashNumber
-// exists that is an ancestor of a given forced changed and which effective
-// block number is lower than the last finalised block (as defined by the
-// forced HashNumber), then the forced HashNumber cannot be applied. An error will
-// be returned in that case which will prevent block import.
+// Forced changes can only be applied after all pending standard changes that it depends on have been applied. If any
+// pending standard HashNumber exists that is an ancestor of a given forced changed and which effective block number
+// is lower than the last finalised block (as defined by the forced HashNumber), then the forced HashNumber cannot be
+// applied. An error will be returned in that case which will prevent block import.
 func (authSet *AuthoritySet[H, N]) applyForcedChanges(bestHash H, //skipcq:  RVV-B0001
 	bestNumber N,
 	isDescendentOf IsDescendentOf[H],
@@ -376,8 +371,7 @@ func (authSet *AuthoritySet[H, N]) applyForcedChanges(bestHash H, //skipcq:  RVV
 		if effectiveNumber != bestNumber {
 			continue
 		}
-		// check if the given best block is in the same branch as
-		// the block that signalled the HashNumber.
+		// check if the given best block is in the same branch as the block that signalled the HashNumber.
 		isDesc, err := isDescendentOf(change.CanonHash, bestHash)
 		// Avoid case where err is returned because canonHash == bestHash
 		if change.CanonHash != bestHash && err != nil {
@@ -431,16 +425,13 @@ func (authSet *AuthoritySet[H, N]) applyForcedChanges(bestHash H, //skipcq:  RVV
 	return newSet, nil
 }
 
-// applyStandardChanges applies or prunes any pending transitions based on a finality trigger. This
-// method ensures that if there are multiple changes in the same branch,
-// finalising this block won't finalise past multiple transitions (i.e.
-// transitions must be finalised in-order). The given function
-// `isDescendentOf` should return `true` if the second hash (target) is a
-// descendent of the first hash (base).
+// applyStandardChanges applies or prunes any pending transitions based on a finality trigger. This method ensures that
+// if there are multiple changes in the same branch, finalising this block won't finalise past multiple transitions
+// (i.e. transitions must be finalised in-order). The given function `isDescendentOf` should return `true` if the
+// second hash (target) is a descendent of the first hash (base).
 //
-// When the set has changed, the return value will be a status type where newSetBlock
-// is the canonical block where the set last changed (i.e. the given
-// hash and number).
+// When the set has changed, the return value will be a status type where newSetBlock is the canonical block where the
+// set last changed (i.e. the given hash and number).
 func (authSet *AuthoritySet[H, N]) applyStandardChanges( //skipcq:  RVV-B0001
 	finalisedHash H,
 	finalisedNumber N,
@@ -474,8 +465,8 @@ func (authSet *AuthoritySet[H, N]) applyStandardChanges( //skipcq:  RVV-B0001
 		pendingForcedChanges := authSet.PendingForcedChanges
 		authSet.PendingForcedChanges = []PendingChange[H, N]{}
 
-		// we will keep all forced changes for any later blocks and that are a
-		// descendent of the finalised block (i.e. they are part of this branch).
+		// we will keep all forced changes for any later blocks and that are a descendent of the finalised block
+		// (i.e. they are part of this branch).
 		for _, forcedChange := range pendingForcedChanges {
 			isDesc, err := isDescendentOf(finalisedHash, forcedChange.CanonHash)
 			if err != nil {
@@ -508,16 +499,13 @@ func (authSet *AuthoritySet[H, N]) applyStandardChanges( //skipcq:  RVV-B0001
 	}
 }
 
-// EnactsStandardChange checks whether the given finalised block number enacts any standard
-// authority set HashNumber (without triggering it), ensuring that if there are
-// multiple changes in the same branch, finalising this block won't
-// finalise past multiple transitions (i.e. transitions must be finalised
-// in-order). Returns *true if the block being finalised enacts a
-// HashNumber that can be immediately applied, *false if the block being
-// finalised enacts a HashNumber but it cannot be applied yet since there are
-// other dependent changes, and nil if no HashNumber is enacted. The given
-// function `isDescendentOf` should return `true` if the second hash
-// (target) is a descendent of the first hash (base).
+// EnactsStandardChange checks whether the given finalised block number enacts any standard authority set HashNumber
+// (without triggering it), ensuring that if there are multiple changes in the same branch, finalising this block won't
+// finalise past multiple transitions (i.e. transitions must be finalised in-order). Returns *true if the block being
+// finalised enacts a HashNumber that can be immediately applied, *false if the block being finalised enacts a
+// HashNumber but it cannot be applied yet since there are other dependent changes, and nil if no HashNumber is
+// enacted. The given function `isDescendentOf` should return `true` if the second hash (target) is a descendent of the
+// first hash (base).
 func (authSet *AuthoritySet[H, N]) EnactsStandardChange( //skipcq:  RVV-B0001
 	finalisedHash H, finalisedNumber N, isDescendentOf IsDescendentOf[H]) (*bool, error) {
 	applied, err := authSet.PendingStandardChanges.FinalizesAnyWithDescendentIf(&finalisedHash,
@@ -559,13 +547,11 @@ type Best[N constraints.Unsigned] struct {
 
 // PendingChange is a pending HashNumber to the authority set.
 //
-// This will be applied when the announcing block is at some depth within
-// the finalised or unfinalised chain.
+// This will be applied when the announcing block is at some depth within the finalised or unfinalised chain.
 type PendingChange[H comparable, N constraints.Unsigned] struct {
 	// The new authorities and weights to apply.
 	NextAuthorities pgrandpa.AuthorityList
-	// How deep in the chain the announcing block must be
-	// before the HashNumber is applied.
+	// How deep in the chain the announcing block must be before the HashNumber is applied.
 	Delay N
 	// The announcing block's height.
 	CanonHeight N
@@ -580,9 +566,9 @@ func (pc *PendingChange[H, N]) EffectiveNumber() N {
 	return pc.CanonHeight + pc.Delay
 }
 
-// AuthoritySetChanges Tracks historical authority set changes. We store the block numbers for the last block
-// of each authority set, once they have been finalised. These blocks are guaranteed to
-// have a justification unless they were triggered by a forced HashNumber.
+// AuthoritySetChanges Tracks historical authority set changes. We store the block numbers for the last block of each
+// authority set, once they have been finalised. These blocks are guaranteed to have a justification unless they were
+// triggered by a forced HashNumber.
 type AuthoritySetChanges[N constraints.Unsigned] []setIDNumber[N]
 
 // append an setIDNumber to AuthoritySetChanges
@@ -729,8 +715,8 @@ func (asc *AuthoritySetChanges[N]) IterFrom(blockNumber N) *AuthoritySetChanges[
 		},
 	)
 	if found {
-		// if there was a HashNumber at the given block number then we should start on the next
-		// index since we want to exclude the current block number
+		// if there was a HashNumber at the given block number then we should start on the next index since we want to
+		// exclude the current block number
 		idx += 1
 	}
 

@@ -12,7 +12,7 @@ type peerIDsNeighborPacket[N runtime.Number] struct {
 	NeighborPacket neighborPacket[N]
 }
 
-// / A sender used to send neighbor packets to a background job.
+// A sender used to send neighbor packets to a background job.
 type neighbourPacketSender[N runtime.Number] chan peerIDsNeighborPacket[N]
 
 // neighborPacketWorker is listening on a channel for new neighbor packets being produced by components within
@@ -25,7 +25,9 @@ type neighborPacketWorker[N runtime.Number] struct {
 	rx                chan peerIDsNeighborPacket[N]
 }
 
-func newNeighborPacketWorker[N runtime.Number](rebroadcastPeriod time.Duration) (neighborPacketWorker[N], neighbourPacketSender[N]) {
+func newNeighborPacketWorker[N runtime.Number](
+	rebroadcastPeriod time.Duration,
+) (neighborPacketWorker[N], neighbourPacketSender[N]) {
 	sender := make(neighbourPacketSender[N], 100_000) // supposed to be unbounded, and queue size warning of 100_000
 	delay := time.NewTimer(rebroadcastPeriod)
 	return neighborPacketWorker[N]{

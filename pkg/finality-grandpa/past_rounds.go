@@ -74,11 +74,6 @@ type backgroundRoundChange interface {
 	isBackgroundRoundChange()
 }
 
-type backgroundRoundChanges[Hash, Number, Signature, ID any] interface {
-	concluded | committed[Hash, Number, Signature, ID]
-	backgroundRoundChange
-}
-
 func (br *backgroundRound[Hash, Number, Signature, ID, E]) poll(waker *waker) (
 	bool,
 	backgroundRoundChange,

@@ -44,7 +44,7 @@ func Add[T constraints.Integer](a T, b T) T {
 		if b >= getMaxUnsigned[T]()-a {
 			return getMaxUnsigned[T]()
 		} else {
-			return a + T(b)
+			return a + b
 		}
 	default:
 		panic("unreachable")

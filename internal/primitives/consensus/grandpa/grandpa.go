@@ -51,28 +51,28 @@ type AuthorityIDWeight struct {
 // AuthorityList is a list of Grandpa authorities with associated weights.
 type AuthorityList []AuthorityIDWeight
 
-// / A GRANDPA message for a substrate chain.
+// A GRANDPA message for a substrate chain.
 type Message[H, N any] grandpa.Message[H, N]
 
 // SignedMessage is a signed message.
 type SignedMessage[H, N any] grandpa.SignedMessage[H, N, AuthoritySignature, AuthorityID]
 
-// / A primary propose message for this chain's block type.
+// A primary propose message for this chain's block type.
 type PrimaryPropose[H, N any] grandpa.PrimaryPropose[H, N]
 
-// / A prevote message for this chain's block type.
+// A prevote message for this chain's block type.
 type Prevote[H, N any] grandpa.Prevote[H, N]
 
-// / A precommit message for this chain's block type.
+// A precommit message for this chain's block type.
 type Precommit[H, N any] grandpa.Precommit[H, N]
 
-// / A catch up message for this chain's block type.
+// A catch up message for this chain's block type.
 type CatchUp[H, N any] grandpa.CatchUp[H, N, AuthoritySignature, AuthorityID]
 
 // Commit is a commit message for this chain's block type.
 type Commit[H, N any] grandpa.Commit[H, N, AuthoritySignature, AuthorityID]
 
-// / A compact commit message for this chain's block type.
+// A compact commit message for this chain's block type.
 type CompactCommit[H, N any] grandpa.CompactCommit[H, N, AuthoritySignature, AuthorityID]
 
 // ScheduledChange is a scheduled authority change.
@@ -125,7 +125,7 @@ func NewLocalizedPayload[H comparable, N constraints.Unsigned](
 	}{grandpa.NewMessageVDT(message), round, setID})
 }
 
-// / Localizes the message to the given set and round and signs the payload.
+// Localizes the message to the given set and round and signs the payload.
 func SignMessage[H comparable, N constraints.Unsigned](
 	keystore keystore.KeyStore,
 	message grandpa.Message[H, N],
@@ -140,7 +140,7 @@ func SignMessage[H comparable, N constraints.Unsigned](
 	}
 	return &grandpa.SignedMessage[H, N, AuthoritySignature, AuthorityID]{
 		Message:   message,
-		Signature: AuthoritySignature(*signature),
+		Signature: *signature,
 		ID:        public,
 	}
 }

@@ -263,7 +263,7 @@ func Test_networkBridge(t *testing.T) {
 
 			for i, key := range private {
 				precommits = append(precommits, precommit)
-				signature := pgrandpa.AuthoritySignature(key.Sign(payload))
+				signature := key.Sign(payload)
 				authData = append(authData, grandpa.SignatureID[pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]{
 					Signature: signature,
 					ID:        public[i].ID,
@@ -426,7 +426,7 @@ func Test_networkBridge(t *testing.T) {
 
 			for i, key := range private {
 				precommits = append(precommits, precommit)
-				signature := pgrandpa.AuthoritySignature(key.Sign(payload))
+				signature := key.Sign(payload)
 				authData = append(authData, grandpa.SignatureID[pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]{
 					Signature: signature,
 					ID:        public[i].ID,

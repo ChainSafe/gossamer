@@ -11,11 +11,9 @@ import (
 	"golang.org/x/exp/constraints"
 )
 
-/*
-	The grandpa ChangeTree is a structure built to track pending changes across forks for the Grandpa Protocol.
-	This structure is intended to represent an acyclic directed graph where the children are
-    placed in descending order and number, you can ensure node ancestry using the `isDescendantOfFunc`.
-*/
+// The grandpa ChangeTree is a structure built to track pending changes across forks for the Grandpa Protocol.
+// This structure is intended to represent an acyclic directed graph where the children are
+// placed in descending order and number, you can ensure node ancestry using the `isDescendantOf`.
 
 var (
 	errDuplicateHashes     = errors.New("duplicated hashes")
@@ -25,11 +23,9 @@ var (
 		"a previously finalised node")
 )
 
-// ChangeTree keeps track of the changes per fork allowing
-// n forks in the same structure. This structure is intended
-// to represent an acyclic directed graph where the hashNumber children are
-// placed by descendency order and number, you can ensure an
-// node ancestry using the `isDescendantOfFunc`
+// ChangeTree keeps track of the changes per fork allowing n forks in the same structure. This structure is intended to
+// represent an acyclic directed graph where the hashNumber children are placed by descendency order and number, you
+// can ensure an node ancestry using the `isDescendantOf`.
 type ChangeTree[H comparable, N constraints.Unsigned] struct {
 	TreeRoots           []*PendingChangeNode[H, N]
 	BestFinalizedNumber *N
@@ -46,25 +42,25 @@ type PendingChangeNode[H comparable, N constraints.Unsigned] struct {
 	Children []*PendingChangeNode[H, N]
 }
 
-// Roots returns the roots of each fork in the ChangeTree
-// This is the equivalent of the slice in the outermost layer of the roots
+// Roots returns the roots of each fork in the ChangeTree. This is the equivalent of the slice in the outermost layer
+// of the roots
 func (ct *ChangeTree[H, N]) Roots() []*PendingChangeNode[H, N] { //skipcq: RVV-B0011
 	return ct.TreeRoots
 }
 
 // Import a new node into the roots.
 //
-// The given function `isDescendentOf` should return `true` if the second
-// hash (target) is a descendent of the first hash (base).
+// The given function `isDescendentOf` should return `true` if the second hash (target) is a descendent of the first
+// hash (base).
 //
 // This method assumes that children in the same branch are imported in order.
 //
 // Returns `true` if the imported node is a root.
-// WARNING: some users of this method (i.e. consensus epoch changes roots) currently silently
-// rely on a **post-order DFS** traversal. If we are using instead a top-down traversal method
-// then the `isDescendentOf` closure, when used after a warp-sync, may end up querying the
-// backend for a block (the one corresponding to the root) that is not present and thus will
-// return a wrong result.
+//
+// WARNING: some users of this method (i.e. consensus epoch changes roots) currently silently rely on a **post-order
+// DFS** traversal. If we are using instead a top-down traversal method then the `isDescendentOf` closure, when used
+// after a warp-sync, may end up querying the backend for a block (the one corresponding to the root) that is not
+// present and thus will return a wrong result.
 func (ct *ChangeTree[H, N]) Import(hash H,
 	number N,
 	change PendingChange[H, N],
@@ -120,15 +116,12 @@ func (ct *ChangeTree[H, N]) getPreOrderChangeNodes() []*PendingChangeNode[H, N] 
 	return *changes
 }
 
-// FinalizesAnyWithDescendentIf Checks if any node in the tree is finalized by either finalising the
-// node itself or a node's descendent that's not in the tree, guaranteeing
-// that the node being finalized isn't a descendent of (or equal to) any of
-// the node's children. Returns *true if the node being finalized is
-// a root, *false if the node being finalized is not a root, and
-// nil if no node in the tree is finalized. The given `Predicate` is
-// checked on the prospective finalized root and must pass for finalisation
-// to occur. The given function `isDescendentOf` should return `true` if
-// the second hash (target) is a descendent of the first hash (base). func(T) bool
+// FinalizesAnyWithDescendentIf Checks if any node in the tree is finalized by either finalising the node itself or a
+// node's descendent that's not in the tree, guaranteeing that the node being finalized isn't a descendent of (or
+// equal to) any of the node's children. Returns *true if the node being finalized is a root, *false if the node being
+// finalized is not a root, and nil if no node in the tree is finalized. The given `Predicate` is checked on the
+// prospective finalized root and must pass for finalisation to occur. The given function `isDescendentOf` should
+// return `true` if the second hash (target) is a descendent of the first hash (base).
 func (ct *ChangeTree[H, N]) FinalizesAnyWithDescendentIf(
 	hash *H,
 	number N,
@@ -144,9 +137,8 @@ func (ct *ChangeTree[H, N]) FinalizesAnyWithDescendentIf(
 
 	nodes := ct.getPreOrderChangeNodes()
 
-	// check if the given hash is equal or a descendent of any node in the
-	// tree, if we find a valid node that passes the Predicate then we must
-	// ensure that we're not finalising past any of its child nodes.
+	// check if the given hash is equal or a descendent of any node in the tree, if we find a valid node that passes
+	// the predicate then we must ensure that we're not finalising past any of its child nodes.
 	for i := 0; i < len(nodes); i++ {
 		root := nodes[i]
 		isDesc, err := isDescendentOf(root.Change.CanonHash, *hash)
@@ -190,7 +182,9 @@ type FinalizationResultValues[H comparable, N constraints.Unsigned] interface {
 	changed[H, N] | unchanged
 }
 
-func setFinalizationResult[H comparable, N constraints.Unsigned, Value FinalizationResultValues[H, N]](mvdt *FinalizationResult[H, N], value Value) {
+func setFinalizationResult[H comparable, N constraints.Unsigned, Value FinalizationResultValues[H, N]](
+	mvdt *FinalizationResult[H, N], value Value,
+) {
 	mvdt.inner = value
 }
 
@@ -242,13 +236,11 @@ type changed[H comparable, N constraints.Unsigned] struct {
 
 type unchanged struct{}
 
-// FinalizeWithDescendentIf Finalize a root in the roots by either finalising the node itself or a
-// node's descendent that's not in the roots, guaranteeing that the node
-// being finalized isn't a descendent of (or equal to) any of the root's
-// children. The given `Predicate` is checked on the prospective finalized
-// root and must pass for finalisation to occur. The given function
-// `isDescendentOf` should return `true` if the second hash (target) is a
-// descendent of the first hash (base).
+// FinalizeWithDescendentIf Finalize a root in the roots by either finalising the node itself or a node's descendent
+// that's not in the roots, guaranteeing that the node being finalized isn't a descendent of (or equal to) any of the
+// root's children. The given `Predicate` is checked on the prospective finalized root and must pass for finalisation
+// to occur. The given function `isDescendentOf` should return `true` if the second hash (target) is a descendent of
+// the first hash (base).
 func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(
 	hash *H,
 	number N,
@@ -262,9 +254,8 @@ func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(
 
 	roots := ct.Roots()
 
-	// check if the given hash is equal or a descendent of any root, if we
-	// find a valid root that passes the Predicate then we must ensure that
-	// we're not finalising past any children node.
+	// check if the given hash is equal or a descendent of any root, if we find a valid root that passes the Predicate
+	// then we must ensure that we're not finalising past any children node.
 	var position *N
 	for i, root := range roots {
 		isDesc, err := isDescendentOf(root.Change.CanonHash, *hash)
@@ -296,11 +287,9 @@ func (ct *ChangeTree[H, N]) FinalizeWithDescendentIf(
 		nodeData = node.Change
 	}
 
-	// Retain only roots that are descendents of the finalized block (this
-	// happens if the node has been properly finalized) or that are
-	// ancestors (or equal) to the finalized block (in this case the node
-	// wasn't finalized earlier presumably because the Predicate didn't
-	// pass).
+	// Retain only roots that are descendents of the finalized block (this happens if the node has been properly
+	// finalized) or that are ancestors (or equal) to the finalized block (in this case the node wasn't finalized
+	// earlier presumably because the Predicate didn't pass).
 	didChange := false
 	roots = ct.Roots()
 
@@ -457,7 +446,7 @@ func (ct *ChangeTree[H, N]) swapRemove(roots []*PendingChangeNode[H, N], index N
 		panic("swap_remove index out of bounds")
 	}
 
-	val := PendingChangeNode[H, N]{}
+	var val PendingChangeNode[H, N]
 	if roots[index] != nil {
 		val = *roots[index]
 	} else {
@@ -480,9 +469,9 @@ func (ct *ChangeTree[H, N]) swapRemove(roots []*PendingChangeNode[H, N], index N
 // Remove from the tree some nodes (and their subtrees) using a `filter` predicate.
 //
 // The `filter` is called over tree nodes and returns a filter action:
-// - `Remove` if the node and its subtree should be removed;
-// - `KeepNode` if we should maintain the node and keep processing the tree.
-// - `KeepTree` if we should maintain the node and its entire subtree.
+//   - `Remove` if the node and its subtree should be removed;
+//   - `KeepNode` if we should maintain the node and keep processing the tree.
+//   - `KeepTree` if we should maintain the node and its entire subtree.
 //
 // An iterator over all the pruned nodes is returned.
 func (_ *ChangeTree[H, N]) drainFilter() { //nolint //skipcq: SCC-U1000 //skipcq: RVV-B0013

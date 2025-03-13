@@ -63,12 +63,12 @@ func newCompletedRounds[H runtime.Hash, N runtime.Number](
 	}
 }
 
-// / Get the set-id and voter set of the completed rounds.
+// Get the set-id and voter set of the completed rounds.
 func (cr *completedRounds[H, N]) setInfo() (primitives.SetID, []primitives.AuthorityID) {
 	return cr.SetId, cr.Voters
 }
 
-// / Iterate over all completed rounds.
+// Iterate over all completed rounds.
 func (cr *completedRounds[H, N]) iter() []completedRound[H, N] {
 	var reversed []completedRound[H, N]
 	for i := len(cr.Rounds) - 1; i >= 0; i-- {
@@ -120,7 +120,8 @@ func (cr *completedRounds[H, N]) push(compRound completedRound[H, N]) {
 	}
 }
 
-// CurrentRounds A map with voter status information for currently live rounds, which votes have we cast and what are they.
+// CurrentRounds is a map with voter status information for currently live rounds, which votes have we cast and what
+// type of votes they are.
 // TODO: this is a BtreeMap in rust. Convert to btree after #3480 is implemented
 type currentRounds[H runtime.Hash, N runtime.Number] map[uint64]hasVoted[H, N]
 
@@ -165,11 +166,11 @@ func (cr *currentRounds[H, N]) UnmarshalSCALE(reader io.Reader) error {
 
 // SharedVoterSetState is a voter set state meant to be shared safely across multiple threads.
 type SharedVoterSetState[H runtime.Hash, N runtime.Number] struct {
-	/// The inner shared `voterSetState`.
+	// The inner shared `voterSetState`.
 	innerMtx sync.RWMutex
 	inner    voterSetState[H, N]
-	// A tracker for the rounds that we are actively participating on (i.e. voting) and the authority id under which
-	// we are doing it.
+	// A tracker for the rounds that we are actively participating on (i.e. voting) and the authority id under which we
+	// are doing it.
 	votingMtx sync.RWMutex
 	voting    map[primitives.RoundNumber]primitives.AuthorityID
 }
@@ -183,7 +184,7 @@ func NewSharedVoterSetState[H runtime.Hash, N runtime.Number](state voterSetStat
 }
 
 // Get the authority id that we are using to vote on the given round, if any.
-func (svss *SharedVoterSetState[H, N]) votingOn(round primitives.RoundNumber) *primitives.AuthorityID {
+func (svss *SharedVoterSetState[H, N]) votingOn(round primitives.RoundNumber) *primitives.AuthorityID { //nolint: unused
 	svss.votingMtx.RLock()
 	defer svss.votingMtx.RUnlock()
 	key, ok := svss.voting[round]
@@ -194,14 +195,17 @@ func (svss *SharedVoterSetState[H, N]) votingOn(round primitives.RoundNumber) *p
 }
 
 // Note that we started voting on the give round with the given authority id.
-func (svss *SharedVoterSetState[H, N]) startedVotingOn(round primitives.RoundNumber, localID primitives.AuthorityID) {
+func (svss *SharedVoterSetState[H, N]) startedVotingOn( //nolint: unused
+	round primitives.RoundNumber, localID primitives.AuthorityID,
+) {
 	svss.votingMtx.Lock()
 	defer svss.votingMtx.Unlock()
 	svss.voting[round] = localID
 }
 
-// Note that we have finished voting on the given round. If we were voting on the given round, the authority id that we were using to do it will be cleared.
-func (svss *SharedVoterSetState[H, N]) finishedVotingOn(round primitives.RoundNumber) {
+// Note that we have finished voting on the given round. If we were voting on the given round, the authority id that
+// we were using to do it will be cleared.
+func (svss *SharedVoterSetState[H, N]) finishedVotingOn(round primitives.RoundNumber) { //nolint: unused
 	svss.votingMtx.Lock()
 	defer svss.votingMtx.Unlock()
 	delete(svss.voting, round)
@@ -337,10 +341,12 @@ type voterSetStateLive[H runtime.Hash, N runtime.Number] struct {
 func (vssl voterSetStateLive[H, N]) completedRounds() completedRounds[H, N] {
 	return vssl.CompletedRounds
 }
-func (vssl voterSetStateLive[H, N]) lastCompletedRound() completedRound[H, N] {
+func (vssl voterSetStateLive[H, N]) lastCompletedRound() completedRound[H, N] { //nolint: unused
 	return vssl.CompletedRounds.last()
 }
-func (vssl voterSetStateLive[H, N]) withCurrentRound(round uint64) (completedRounds[H, N], currentRounds[H, N], error) {
+func (vssl voterSetStateLive[H, N]) withCurrentRound( //nolint: unused
+	round uint64,
+) (completedRounds[H, N], currentRounds[H, N], error) {
 	_, contains := vssl.CurrentRounds[round]
 	if contains {
 		return vssl.CompletedRounds, vssl.CurrentRounds, nil
@@ -356,13 +362,15 @@ type voterSetStatePaused[H runtime.Hash, N runtime.Number] struct {
 	CompletedRounds completedRounds[H, N]
 }
 
-func (vssp voterSetStatePaused[H, N]) completedRounds() completedRounds[H, N] {
+func (vssp voterSetStatePaused[H, N]) completedRounds() completedRounds[H, N] { //nolint: unused
 	return vssp.CompletedRounds
 }
 func (vssp voterSetStatePaused[H, N]) lastCompletedRound() completedRound[H, N] {
 	return vssp.CompletedRounds.last()
 }
-func (vssl voterSetStatePaused[H, N]) withCurrentRound(round uint64) (completedRounds[H, N], currentRounds[H, N], error) {
+func (vssl voterSetStatePaused[H, N]) withCurrentRound( //nolint: unused
+	round uint64,
+) (completedRounds[H, N], currentRounds[H, N], error) {
 	return completedRounds[H, N]{},
 		currentRounds[H, N]{},
 		fmt.Errorf("voter acting while in paused state")
@@ -370,17 +378,17 @@ func (vssl voterSetStatePaused[H, N]) withCurrentRound(round uint64) (completedR
 
 // hasVoted Whether we've voted already during a prior run of the program
 type hasVoted[H runtime.Hash, N runtime.Number] interface {
-	/// Returns the proposal we should vote with (if any.)
+	// Returns the proposal we should vote with (if any.)
 	Propose() *grandpa.PrimaryPropose[H, N]
-	/// Returns the prevote we should vote with (if any.)
+	// Returns the prevote we should vote with (if any.)
 	Prevote() *grandpa.Prevote[H, N]
-	/// Returns the precommit we should vote with (if any.)
+	// Returns the precommit we should vote with (if any.)
 	Precommit() *grandpa.Precommit[H, N]
-	/// Returns true if the voter can still propose, false otherwise.
+	// Returns true if the voter can still propose, false otherwise.
 	CanPropose() bool
-	/// Returns true if the voter can still prevote, false otherwise.
+	// Returns true if the voter can still prevote, false otherwise.
 	CanPrevote() bool
-	/// Returns true if the voter can still precommit, false otherwise.
+	// Returns true if the voter can still precommit, false otherwise.
 	CanPrecommit() bool
 }
 type hasVotedVDT[H runtime.Hash, N runtime.Number] struct {

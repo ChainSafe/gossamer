@@ -46,12 +46,6 @@ type voteMultiplicity[Vote, Signature comparable] interface {
 	Contains(vote Vote, sig Signature) bool
 }
 
-// can only use type constraint interfaces as function parameters
-type voteMultiplicityValues[Vote, Signature comparable] interface {
-	single[Vote, Signature] | equivocated[Vote, Signature]
-	voteMultiplicity[Vote, Signature]
-}
-
 type voteTracker[ID constraints.Ordered, Vote, Signature comparable] struct {
 	votes         *btree.Map[ID, voteMultiplicity[Vote, Signature]]
 	currentWeight VoteWeight

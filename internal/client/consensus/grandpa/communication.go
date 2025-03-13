@@ -22,15 +22,14 @@ const neighborRebroadcastPeriod = 2 * 60 * time.Second
 
 // cost scalars for reporting peers.
 var (
-	pastRejection    = network.NewReputationChange(-50, "Grandpa: Past message")
-	badSignature     = network.NewReputationChange(-100, "Grandpa: Bad signature")
-	malformedCatchUp = network.NewReputationChange(-1000, "Grandpa: Malformed catch-up")
-	malformedCommit  = network.NewReputationChange(-1000, "Grandpa: Malformed commit")
-	futureMessage    = network.NewReputationChange(-500, "Grandpa: Future message")
-	unknownVoter     = network.NewReputationChange(-150, "Grandpa: Unknown voter")
-
+	pastRejection                  = network.NewReputationChange(-50, "Grandpa: Past message")
+	badSignature                   = network.NewReputationChange(-100, "Grandpa: Bad signature")
+	malformedCatchUp               = network.NewReputationChange(-1000, "Grandpa: Malformed catch-up")
+	malformedCommit                = network.NewReputationChange(-1000, "Grandpa: Malformed commit")
+	futureMessage                  = network.NewReputationChange(-500, "Grandpa: Future message")
+	unknownVoter                   = network.NewReputationChange(-150, "Grandpa: Unknown voter")
 	invalidViewChange              = network.NewReputationChange(-500, "Grandpa:Invalid view change")
-	duplicateNeighborMessage       = network.NewReputationChange(-500, "Grandpa: Duplicate neighbor message without grace period")
+	duplicateNeighborMessage       = network.NewReputationChange(-500, "Grandpa: Duplicate neighbor message without grace period") //nolint: lll
 	perUndecodeableByte      int32 = -5
 	perSignatureChecked      int32 = -25
 	perBlockLoaded           int32 = -10
@@ -53,46 +52,46 @@ var (
 	perEquivocation       int32 = 10
 )
 
-// / A type that ties together our local authority id and a keystore where it is available for signing.
-type localIDKeystore struct {
+// A type that ties together our local authority id and a keystore where it is available for signing.
+type localIDKeystore struct { //nolint: unused
 	primitives.AuthorityID
 	keystore.KeyStore
 }
 
-// / Returns a reference to our local authority id.
-func (lk *localIDKeystore) localID() primitives.AuthorityID {
+// Returns a reference to our local authority id.
+func (lk *localIDKeystore) localID() primitives.AuthorityID { //nolint: unused
 	return lk.AuthorityID
 }
 
-// / Network is a handle to the network.
-// /
-// / Something that provides the capabilities needed for the [gossip.Network] interface.
+// Network is a handle to the network.
+//
+// Something that provides the capabilities needed for the [gossip.Network] interface.
 type Network interface {
 	gossip.Network
 }
 
-// / Syncing is a handle to syncing-related services.
-// /
-// / Something that provides the ability to set a fork sync request for a particular block.
+// Syncing is a handle to syncing-related services.
+//
+// Something that provides the ability to set a fork sync request for a particular block.
 type Syncing[H, N any] interface {
 	service.NetworkSyncForkRequest[H, N]
 	service.NetworkBlock[H, N]
 	networkSync.SyncEventStream
 }
 
-// / Create a unique topic for a round and set-id combo.
+// Create a unique topic for a round and set-id combo.
 func roundTopic[H runtime.Hash, Hasher runtime.Hasher[H]](round Round, setID SetID) H {
 	hasher := (*new(Hasher))
 	return hasher.Hash([]byte(fmt.Sprintf("%d-%d", setID, round)))
 }
 
-// / Create a unique topic for global messages on a set ID.
+// Create a unique topic for global messages on a set ID.
 func globalTopic[H runtime.Hash, Hasher runtime.Hasher[H]](setID SetID) H {
 	hasher := (*new(Hasher))
 	return hasher.Hash([]byte(fmt.Sprintf("%d-GLOBAL", setID)))
 }
 
-// / Bridge between the underlying network service, gossiping consensus messages and Grandpa
+// Bridge between the underlying network service, gossiping consensus messages and Grandpa
 type networkBridge[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] struct {
 	service         Network
 	sync            Syncing[H, N]
@@ -107,11 +106,11 @@ type networkBridge[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] s
 
 	// `NeighborPacketWorker` processing packets sent through the `NeighborPacketSender`.
 	neighborPacketWorker    neighborPacketWorker[N]
-	neighborPacketWorkerMtx sync.Mutex
+	neighborPacketWorkerMtx sync.Mutex //nolint: unused
 
 	// Receiver side of the peer report stream populated by the gossip validator, forwarded to the gossip engine.
 	gossipValidatorReportStream    chan peerReport
-	gossipValidatorReportStreamMtx sync.Mutex
+	gossipValidatorReportStreamMtx sync.Mutex //nolint: unused
 
 	// TODO: telemetry
 }
@@ -130,7 +129,8 @@ func newNetworkBridge[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]
 	gossipEngine := gossip.NewGossipEngine[H, N, Hasher](service, sync, notificationService, protocol, validator)
 
 	{
-		// register all previous votes with the gossip service so that they're available to peers potentially stuck on a previous round.
+		// register all previous votes with the gossip service so that they're available to peers potentially stuck on
+		// a previous round.
 		setState.innerMtx.RLock()
 		completed := setState.inner.completedRounds()
 		setState.innerMtx.RUnlock()
@@ -153,7 +153,10 @@ func newNetworkBridge[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]
 				gossipEngine.RegisterGossipMessage(topic, scale.MustMarshal(gossipMessage))
 			}
 
-			logger.Tracef("Registered %d messages for topic %v (round: %d, setID: %d)", len(round.Votes), topic, round.Number, setID)
+			logger.Tracef(
+				"Registered %d messages for topic %v (round: %d, setID: %d)",
+				len(round.Votes), topic, round.Number, setID,
+			)
 		}
 	}
 
@@ -180,8 +183,10 @@ func newNetworkBridge[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]
 	return &nb
 }
 
-// / Note the beginning of a new round to the gossipValidator.
-func (nb *networkBridge[H, N, Hasher]) noteRound(round Round, setID SetID, voters *grandpa.VoterSet[primitives.AuthorityID]) {
+// Note the beginning of a new round to the gossipValidator.
+func (nb *networkBridge[H, N, Hasher]) noteRound( //nolint: unused
+	round Round, setID SetID, voters *grandpa.VoterSet[primitives.AuthorityID],
+) {
 	authorities := make([]primitives.AuthorityID, voters.Len())
 	for i, ivi := range voters.Voters() {
 		authorities[i] = ivi.ID
@@ -212,7 +217,7 @@ func (nb *networkBridge[H, N, Hasher]) noteRound(round Round, setID SetID, voter
 
 // Get a stream of signature-checked round messages from the network as well as a sink for round messages to the
 // network all within the current set.
-func (nb *networkBridge[H, N, Hasher]) roundCommunication(
+func (nb *networkBridge[H, N, Hasher]) roundCommunication( //nolint: unused
 	keystore *localIDKeystore,
 	round Round,
 	setID SetID,
@@ -305,7 +310,7 @@ func (nb *networkBridge[H, N, Hasher]) roundCommunication(
 	return combinedIncoming, outgoing
 }
 
-// / Set up the global communication streams.
+// Set up the global communication streams.
 func (nb *networkBridge[H, N, Hasher]) globalCommunication(
 	setID SetID,
 	voters *grandpa.VoterSet[primitives.AuthorityID],
@@ -336,9 +341,9 @@ func (nb *networkBridge[H, N, Hasher]) globalCommunication(
 	return incoming, outgoing
 }
 
-// / Notifies the sync service to try and sync the given block from the given
-// / peers.
-// /
+// Notifies the sync service to try and sync the given block from the given
+// peers.
+//
 // If the given vector of peers is empty then the underlying implementation should make a best effort to fetch the
 // block from any peers it is connected to (NOTE: this assumption will change in the future substrate issue #3629).
 func (nb *networkBridge[H, N, Hasher]) SetSyncForkRequest(
@@ -503,10 +508,10 @@ func incomingGlobal[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 	return in
 }
 
-// / Type-safe wrapper around a round number.
+// Type-safe wrapper around a round number.
 type Round uint64
 
-// / Type-safe wrapper around a set ID.
+// Type-safe wrapper around a set ID.
 type SetID uint64
 
 // A sink for outgoing messages to the network. Any messages that are sent will be replaced, as appropriate, according
@@ -514,7 +519,7 @@ type SetID uint64
 // NOTE: The votes are stored unsigned, which means that the signatures need to be "stable", i.e. we should end up with
 // the exact same signed message if we use the same raw message and key to sign. This is currently true for ed25519 and
 // BLS signatures (which we might use in the future), care must be taken when switching to different key types.
-type outgoingMessages[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] struct {
+type outgoingMessages[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] struct { //nolint: unused
 	round    Round
 	setID    SetID
 	keystore *localIDKeystore
@@ -524,7 +529,9 @@ type outgoingMessages[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]
 	// TODO: telemetry
 }
 
-func (om *outgoingMessages[H, N, Hasher]) preSend(msg primitives.Message[H, N]) (primitives.Message[H, N], error) {
+func (om *outgoingMessages[H, N, Hasher]) preSend( //nolint: unused
+	msg primitives.Message[H, N],
+) (primitives.Message[H, N], error) {
 	// if we've voted on this round previously under the same key, send that vote instead
 	switch msg.(type) {
 	case grandpa.PrimaryPropose[H, N]:
@@ -759,7 +766,7 @@ func checkCatchUp[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 	return nil
 }
 
-// / An output sink for commit messages.
+// An output sink for commit messages.
 type commitsOut[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] struct {
 	network         *gossip.GossipEngine[H, N, Hasher]
 	setID           SetID
@@ -769,7 +776,7 @@ type commitsOut[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] stru
 	// TODO: telemetry
 }
 
-// / Create a new commit output stream.
+// Create a new commit output stream.
 func newCommitsOut[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 	network *gossip.GossipEngine[H, N, Hasher],
 	setID SetID,
@@ -787,7 +794,7 @@ func newCommitsOut[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 	}
 }
 
-func (co *commitsOut[H, N, Hasher]) preSend(
+func (co *commitsOut[H, N, Hasher]) preSend( //nolint: unused
 	round Round,
 	commit primitives.Commit[H, N],
 ) error {

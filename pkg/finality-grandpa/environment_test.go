@@ -302,7 +302,9 @@ type GlobalMessageNetwork struct {
 }
 
 func NewGlobalMessageNetwork() *GlobalMessageNetwork {
-	bn := NewBroadcastNetwork[globalInItem[string, uint32, Signature, ID], CommunicationOut[string, uint32, Signature, ID]]()
+	bn := NewBroadcastNetwork[globalInItem[
+		string, uint32, Signature, ID], CommunicationOut[string, uint32, Signature, ID],
+	]()
 	gmn := GlobalMessageNetwork{bn}
 	return &gmn
 }
@@ -360,28 +362,31 @@ func (n *Network) MakeRoundComms(
 	)
 }
 
-func (n *Network) MakeGlobalComms(out chan CommunicationOut[string, uint32, Signature, ID]) chan globalInItem[string, uint32, Signature, ID] {
+func (n *Network) MakeGlobalComms(
+	out chan CommunicationOut[string, uint32, Signature, ID],
+) chan globalInItem[string, uint32, Signature, ID] {
 	n.mtx.Lock()
 	defer n.mtx.Unlock()
 
-	return n.globalMessages.AddNode(func(message CommunicationOut[string, uint32, Signature, ID]) globalInItem[string, uint32, Signature, ID] {
-		if message == nil {
-			panic("nil message variant")
-		}
-		switch message := message.(type) {
-		case CommunicationOutCommit[string, uint32, Signature, ID]:
-			ci := CommunicationInCommit[string, uint32, Signature, ID]{
-				Number:        message.Number,
-				CompactCommit: message.Commit.CompactCommit(),
-				Callback:      nil,
+	return n.globalMessages.AddNode(
+		func(message CommunicationOut[string, uint32, Signature, ID]) globalInItem[string, uint32, Signature, ID] {
+			if message == nil {
+				panic("nil message variant")
 			}
-			return globalInItem[string, uint32, Signature, ID]{
-				CommunicationIn: ci,
+			switch message := message.(type) {
+			case CommunicationOutCommit[string, uint32, Signature, ID]:
+				ci := CommunicationInCommit[string, uint32, Signature, ID]{
+					Number:        message.Number,
+					CompactCommit: message.Commit.CompactCommit(),
+					Callback:      nil,
+				}
+				return globalInItem[string, uint32, Signature, ID]{
+					CommunicationIn: ci,
+				}
+			default:
+				panic("invalid CommunicationOut variant")
 			}
-		default:
-			panic("invalid CommunicationOut variant")
-		}
-	}, out)
+		}, out)
 }
 
 func (n *Network) SendMessage(message CommunicationIn[string, uint32, Signature, ID]) {

@@ -208,17 +208,18 @@ type Pair[Seed, Signature any] interface {
 	Public() Public[Signature]
 }
 
-// / An identifier for a type of cryptographic key.
-// /
-// / To avoid clashes with other modules when distributing your module publicly, register your `KeyTypeId` on the list here by making a PR.
-// /
-// / Values whose first character is `_` are reserved for private use and won't conflict with any public modules.
+// An identifier for a type of cryptographic key.
+//
+// To avoid clashes with other modules when distributing your module publicly. Values whose first character is "_" are
+// reserved for private use and won't conflict with any public modules.
 type KeyTypeID string
 
-// / Known key types; this also functions as a global registry of key types for projects wishing to avoid collisions with each other.
-// /
-// / It's not universal in the sense that *all* key types need to be mentioned here, it's just a handy place to put common key types.
+// Known key types; this also functions as a global registry of key types for projects wishing to avoid collisions with
+// each other.
+//
+// It's not universal in the sense that *all* key types need to be mentioned here, it's just a handy place to put
+// common key types.
 const (
-	/// Key type for Grandpa module, built-in. Identified as `gran`.
+	// Key type for Grandpa module, built-in. Identified as "gran".
 	GRANDPA KeyTypeID = "gran"
 )
