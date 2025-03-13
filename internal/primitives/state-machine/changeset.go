@@ -43,19 +43,19 @@ func (dks *DirtyKeysSets[K]) Pop() (btree.Set[K], bool) {
 type Transactions[V any] []InnerValue[V]
 
 type OverlayedChangeSet struct {
-	OverlayedMap[string, StorageValue]
+	OverlayedMap[string, StorageEntry]
 }
 
 func NewOverlayedChangeSet() OverlayedChangeSet {
 	return OverlayedChangeSet{
-		NewOverlayedMap[string, StorageValue](),
+		NewOverlayedMap[string, StorageEntry](),
 	}
 }
 
-func (oc OverlayedChangeSet) Set(key string, value *StorageValue, atExtrinsic *uint32) {
-	overlayed, has := oc.changes.Get(key)
+func (oc OverlayedChangeSet) Set(key string, value StorageValue, atExtrinsic *uint32) {
+	overlayed, has := oc.changes.GetMut(key)
 	if !has {
-		overlayed = *NewOverlayedEntry[StorageValue]()
+		overlayed = *NewOverlayedEntry[StorageEntry]()
 	}
 
 	overlayed.Set(value, insertDirty(&oc.dirtyKeys, key), atExtrinsic)

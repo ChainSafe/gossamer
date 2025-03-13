@@ -2,13 +2,13 @@ package statemachine
 
 // Content in an overlay for a given transactional depth.
 type StorageEntry interface {
-	isStorageEntry()
+	value() StorageValue
 }
 
 type (
 	// The storage entry should be set to the stored value.
 	SetStorageEntry struct {
-		StorageValue
+		data StorageValue
 	}
 
 	// The storage entry should be removed.
@@ -21,7 +21,7 @@ type (
 	// elements.
 	AppendStorageEntry struct {
 		// The value of the storage entry.
-		// This may or may not be prefixed by the length, depending on the materialized length.
+		// This may or may not be prefixed by the length, depending on the materialised length.
 		data StorageValue
 		// Current number of elements stored in data.
 		currentLength uint32
@@ -34,6 +34,6 @@ type (
 	}
 )
 
-func (SetStorageEntry) isStorageEntry()    {}
-func (RemoveStorageEntry) isStorageEntry() {}
-func (AppendStorageEntry) isStorageEntry() {}
+func (se SetStorageEntry) value() StorageValue    { return se.data }
+func (se RemoveStorageEntry) value() StorageValue { return nil }
+func (se AppendStorageEntry) value() StorageValue { return se.data }

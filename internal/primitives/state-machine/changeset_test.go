@@ -12,7 +12,7 @@ import (
 
 type DrainedValue struct {
 	string
-	*StorageValue
+	StorageValue
 }
 type Drained []DrainedValue
 
@@ -66,7 +66,7 @@ func TestNoTransactionWorks(t *testing.T) {
 func assertDrained(t *testing.T, is OverlayedChangeSet, expected Drained) {
 	var drained Drained
 	for k, v := range is.DrainCommited() {
-		drained = append(drained, DrainedValue{k, &v})
+		drained = append(drained, DrainedValue{k, v.value()})
 	}
 
 	require.Equal(t, expected, drained)
