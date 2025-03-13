@@ -32,12 +32,9 @@ func (cb *CandidateBacking) handleCanSecondMessage(msg CanSecondMessage) error {
 	}
 
 	leavesForSeconding := cb.secondingSanityCheck(hypotheticalCandidate)
-	if len(leavesForSeconding) == 0 {
-		msg.ResponseCh <- false
-	} else {
-		msg.ResponseCh <- true
-	}
 
+	// true if `leavesForSeconding` is not empty
+	msg.ResponseCh <- len(leavesForSeconding) != 0
 	return nil
 }
 

@@ -34,7 +34,6 @@ type HypotheticalCandidate interface {
 }
 
 // HypotheticalCandidateIncomplete represents an incomplete hypothetical candidate.
-// this
 type HypotheticalCandidateIncomplete struct {
 	// ClaimedCandidateHash is the claimed hash of the candidate.
 	ClaimedCandidateHash CandidateHash
