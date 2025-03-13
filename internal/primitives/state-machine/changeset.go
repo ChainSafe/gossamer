@@ -167,3 +167,19 @@ func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
 
 	return nil
 }
+
+func (oc *OverlayedChangeSet) AppendStorage(
+	key StorageKey,
+	value StorageValue,
+	init func() StorageValue,
+	atExtrinsic *uint32,
+) {
+	stringkey := string(key)
+	overlayed, has := oc.changes[stringkey]
+	if !has {
+		overlayed = NewOverlayedEntry[StorageEntry]()
+	}
+
+	firstWriteInTx := insertDirty(&oc.dirtyKeys, stringkey)
+	overlayed.Append(value, firstWriteInTx, init, atExtrinsic)
+}
