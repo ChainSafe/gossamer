@@ -50,7 +50,6 @@ type report struct {
 	network.ReputationChange
 }
 
-// const REBROADCAST_AFTER: Duration = Duration::from_secs(60 * 5);
 const rebroadcastAfter time.Duration = 60 * 5 * time.Second
 
 // / An outcome of examining a message.
@@ -69,13 +68,13 @@ const (
 
 // / A view of protocol state.
 type view[N runtime.Number] struct {
-	// round: Round,                 // the current round we are at.
+	// the current round we are at.
 	round Round
-	// set_id: SetId,                // the current voter set id.
+	// the current voter set id.
 	setID SetID
-	// last_commit: Option<N>,       // commit-finalized block height, if any.
+	// commit-finalized block height, if any.
 	lastCommit *N
-	// last_update: Option<Instant>, // last time we heard from peer, used for spamming detection.
+	// last time we heard from peer, used for spamming detection.
 	lastUpdate *time.Time
 }
 
@@ -107,8 +106,7 @@ func (v view[N]) considerVote(round Round, setID SetID) consider {
 	return considerAccept
 }
 
-// / Consider a set-id global message. Rounds are not taken into account, but are implicitly
-// / because we gate on finalization of a further block than a previous commit.
+// / Consider a set-id global message. Rounds are not taken into account, but are implicitly because we gate on finalization of a further block than a previous commit.
 func (v view[N]) considerGlobal(setID SetID, number N) consider {
 	// only from current set
 	if setID < v.setID {
@@ -117,8 +115,7 @@ func (v view[N]) considerGlobal(setID SetID, number N) consider {
 		return considerRejectFuture
 	}
 
-	// only commits which claim to prove a higher block number than
-	// the one we're aware of.
+	// only commits which claim to prove a higher block number than the one we're aware of.
 	if v.lastCommit == nil {
 		return considerAccept
 	}
@@ -134,9 +131,7 @@ type numberRoundSetID[N runtime.Number] struct {
 	SetID
 }
 
-// / A local view of protocol state. Similar to `View` but we additionally track
-// / the round and set id at which the last commit was observed, and the instant
-// / at which the current round started.
+// / A local view of protocol state. Similar to `View` but we additionally track the round and set id at which the last commit was observed, and the instant at which the current round started.
 type localView[N runtime.Number] struct {
 	// round: Round,
 	round Round
@@ -157,8 +152,7 @@ func newLocalView[N runtime.Number](setID SetID, round Round) *localView[N] {
 	}
 }
 
-// / Converts the local view to a `View` discarding round and set id
-// / information about the last commit.
+// / Converts the local view to a `view` discarding round and set id information about the last commit.
 func (lv *localView[N]) view() view[N] {
 	return view[N]{
 		round:      lv.round,
@@ -203,19 +197,13 @@ type keepTopicsMapEntry struct {
 	SetID
 }
 
-// / Tracks gossip topics that we are keeping messages for. We keep topics of:
-// /
-// / - the last `keepRecentRounds` complete GRANDPA rounds,
-// /
-// / - the topic for the current and next round,
-// /
-// / - and a global topic for commit and catch-up messages.
+// Tracks gossip topics that we are keeping messages for. We keep topics of:
+//   - the last `keepRecentRounds` complete GRANDPA rounds,
+//   - the topic for the current and next round,
+//   - and a global topic for commit and catch-up messages.
 type keepTopics[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
-	// current_set: SetId,
 	currentSet SetID
-	// rounds: VecDeque<(Round, SetId)>,
-	rounds deque.Deque[roundSetID]
-	// reverse_map: AHashMap<B::Hash, (Option<Round>, SetId)>,
+	rounds     deque.Deque[roundSetID]
 	reverseMap map[H]keepTopicsMapEntry
 }
 
@@ -300,6 +288,7 @@ func neighborTopics[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 	return topics
 }
 
+// This is the gossipMessage [scale.VaryingDataType] impl that gets encoded and sent over the network.
 type gossipMessageVDT[H runtime.Hash, N runtime.Number] struct {
 	inner gossipMessage
 }
@@ -378,21 +367,17 @@ func (mvdt gossipMessageVDT[H, N]) ValueAt(index uint) (value any, err error) {
 }
 
 // / Grandpa gossip message type.
-// / This is the root type that gets encoded and sent on the network.
 type gossipMessage interface {
 	isGossipMessage()
 }
 
 // / Grandpa message with round and set info.
-// Vote(VoteMessage<Block>),
 type gossipMessageVote[H runtime.Hash, N runtime.Number] voteMessage[H, N]
 
 // / Grandpa commit message with round and set info.
-// Commit(FullCommitMessage<Block>),
 type gossipMessageCommit[H runtime.Hash, N runtime.Number] fullCommitMessage[H, N]
 
 // / A neighbor packet. Not repropagated.
-// Neighbor(VersionedNeighborPacket<NumberFor<Block>>),
 type gossipMessageNeighbor[N runtime.Number] versionedNeighborPacket[N]
 
 func (vnp gossipMessageNeighbor[N]) MarshalSCALE() ([]byte, error) {
@@ -410,11 +395,9 @@ func (gmn *gossipMessageNeighbor[N]) UnmarshalSCALE(reader io.Reader) error {
 }
 
 // / Grandpa catch up request message with round and set info. Not repropagated.
-// CatchUpRequest(CatchUpRequestMessage),
 type gossipMessageCatchUpRequest catchUpRequestMessage
 
 // / Grandpa catch up message with round and set info. Not repropagated.
-// CatchUp(FullCatchUpMessage<Block>),
 type gossipMessageCatchUp[H runtime.Hash, N runtime.Number] fullCatchUpMessage[H, N]
 
 func (gossipMessageVote[H, N]) isGossipMessage()     {}
@@ -424,32 +407,22 @@ func (gossipMessageCatchUpRequest) isGossipMessage() {}
 func (gossipMessageCatchUp[H, N]) isGossipMessage()  {}
 
 // / Network level vote message with topic information.
-// #[derive(Debug, Encode, Decode)]
-// pub(super) struct VoteMessage<Block: BlockT> {
 type voteMessage[H runtime.Hash, N runtime.Number] struct {
 	/// The round this message is from.
-	// pub(super) round: Round,
 	Round Round
 	/// The voter set ID this message is from.
-	// pub(super) set_id: SetId,
 	SetID SetID
 	/// The message itself.
-	// pub(super) message: SignedMessage<Block::Header>,
 	Message primitives.SignedMessage[H, N]
 }
 
 // / Network level commit message with topic information.
-// #[derive(Debug, Encode, Decode)]
-// pub(super) struct FullCommitMessage<Block: BlockT> {
 type fullCommitMessage[H runtime.Hash, N runtime.Number] struct {
-	// /// The round this message is from.
-	// pub(super) round: Round,
+	/// The round this message is from.
 	Round Round
-	// /// The voter set ID this message is from.
-	// pub(super) set_id: SetId,
+	/// The voter set ID this message is from.
 	SetID SetID
-	// /// The compact commit message.
-	// pub(super) message: CompactCommit<Block::Header>,
+	/// The compact commit message.
 	Message primitives.CompactCommit[H, N]
 }
 
@@ -497,17 +470,7 @@ func (vnp *versionedNeighborPacket[N]) UnmarshalSCALE(reader io.Reader) error {
 	}
 }
 
-// impl<N> VersionedNeighborPacket<N> {
-// 	fn into_neighbor_packet(self) -> NeighborPacket<N> {
-// 		match self {
-// 			VersionedNeighborPacket::V1(p) => p,
-// 		}
-// 	}
-// }
-
 // / A catch up request for a given round (or any further round) localized by set id.
-// #[derive(Clone, Debug, Encode, Decode)]
-// pub(super) struct CatchUpRequestMessage {
 type catchUpRequestMessage struct {
 	/// The round that we want to catch up to.
 	Round
@@ -516,21 +479,14 @@ type catchUpRequestMessage struct {
 }
 
 // / Network level catch up message with topic information.
-// #[derive(Debug, Encode, Decode)]
-// pub(super) struct FullCatchUpMessage<Block: BlockT> {
 type fullCatchUpMessage[H runtime.Hash, N runtime.Number] struct {
 	/// The voter set ID this message is from.
-	// pub(super) set_id: SetId,
 	SetID SetID
 	/// The compact commit message.
-	// pub(super) message: CatchUp<Block::Header>,
 	Message primitives.CatchUp[H, N]
 }
 
-// / Misbehavior that peers can perform.
-// /
-// / `cost` gives a cost that can be used to perform cost/benefit analysis of a
-// / peer.
+// / Misbehavior that peers can perform.  `cost` gives a cost that can be used to perform cost/benefit analysis of a peer.
 type misbehavior interface {
 	cost() network.ReputationChange
 	error
@@ -558,12 +514,10 @@ type misbehaviorBadCommitMessage struct {
 }
 
 // A message received that's from the future relative to our view.
-// always misbehavior.
 type misbehaviorFutureMessage struct{}
 
-// A message received that cannot be evaluated relative to our view.
-// This happens before we have a view and have sent out neighbor packets.
-// always misbehavior.
+// A message received that cannot be evaluated relative to our view. This happens before we have a view and have sent
+// out neighbor packets.
 type misbehaviorOutOfScopeMessage struct{}
 
 func (misbehaviorInvalidViewChange) cost() network.ReputationChange {
@@ -609,34 +563,21 @@ func (m misbehaviorBadCommitMessage) Error() string         { return m.cost().Re
 func (m misbehaviorFutureMessage) Error() string            { return m.cost().Reason }
 func (m misbehaviorOutOfScopeMessage) Error() string        { return m.cost().Reason }
 
-// struct PeerInfo<N> {
 type peerInfo[N runtime.Number] struct {
-	// view: View<N>,
-	view view[N]
-	// roles: ObservedRole,
+	view  view[N]
 	roles role.ObservedRole
 }
 
 // / The peers we're connected to in gossip.
-// struct Peers<N> {
 type peers[N runtime.Number] struct {
-	// inner: AHashMap<PeerId, PeerInfo<N>>,
 	inner map[peerid.PeerID]peerInfo[N]
-	/// The randomly picked set of `luckyPeers` we'll gossip to in the first stage of round
-	/// gossiping.
-	// first_stage_peers: AHashSet<PeerId>,
+	/// The randomly picked set of `luckyPeers` we'll gossip to in the first stage of round gossiping.
 	firstStagePeers map[peerid.PeerID]struct{}
-	/// The randomly picked set of peers we'll gossip to in the second stage of gossiping if the
-	/// first stage didn't allow us to spread the voting data enough to conclude the round. This
-	/// set should have size `sqrt(connected_peers)`.
-	// second_stage_peers: HashSet<PeerId>,
+	/// The randomly picked set of peers we'll gossip to in the second stage of gossiping if the first stage didn't allow us to spread the voting data enough to conclude the round. This set should have size `sqrt(connected_peers)`.
 	secondStagePeers map[peerid.PeerID]struct{}
 	/// The randomly picked set of `luckyPeers` light clients we'll gossip commit messages to.
-	// lucky_light_peers: HashSet<PeerId>,
 	luckyLightPeers map[peerid.PeerID]struct{}
-	/// Neighbor packet rebroadcast period --- we reduce the reputation of peers sending duplicate
-	/// packets too often.
-	// neighbor_rebroadcast_period: Duration,
+	/// Neighbor packet rebroadcast period --- we reduce the reputation of peers sending duplicate packets too often.
 	neighborRebroadcastPeriod time.Duration
 }
 
@@ -670,8 +611,7 @@ func (p *peers[N]) newPeer(who peerid.PeerID, observedRole role.ObservedRole) {
 
 func (p *peers[N]) peerDisconnected(who peerid.PeerID) {
 	delete(p.inner, who)
-	// This does not happen often enough compared to round duration,
-	// so we don't reshuffle.
+	// This does not happen often enough compared to round duration, so we don't reshuffle.
 	delete(p.firstStagePeers, who)
 	delete(p.secondStagePeers, who)
 	delete(p.luckyLightPeers, who)
@@ -724,9 +664,7 @@ func (p *peers[N]) updateCommitHeight(who peerid.PeerID, newHeight N) misbehavio
 		return nil
 	}
 
-	// this doesn't allow a peer to send us unlimited commits with the
-	// same height, because there is still a misbehavior condition based on
-	// sending commits that are <= the best we are aware of.
+	// this doesn't allow a peer to send us unlimited commits with the same height, because there is still a misbehavior condition based on sending commits that are <= the best we are aware of.
 	if lastCommit := peer.view.lastCommit; lastCommit != nil && *lastCommit > newHeight {
 		return misbehaviorInvalidViewChange{}
 	}
@@ -745,13 +683,9 @@ func (p *peers[N]) peer(who peerid.PeerID) *peerInfo[N] {
 
 func (p *peers[N]) reshuffle() {
 	// we want to randomly select peers into three sets according to the following logic:
-	// - first set: luckyPeers random peers where at least luckyPeers/2 are authorities
-	//   (unless
-	// we're not connected to that many authorities)
-	// - second set: max(luckyPeers, sqrt(peers)) peers where at least luckyPeers are
-	//   authorities.
-	// - third set: luckyPeers random light client peers
-
+	//  - first set: luckyPeers random peers where at least luckyPeers/2 are authorities (unless we're not connected to that many authorities)
+	//  - second set: max(luckyPeers, sqrt(peers)) peers where at least luckyPeers are authorities.
+	//  - third set: luckyPeers random light client peers
 	type peer struct {
 		peerid.PeerID
 		peerInfo[N]
@@ -774,13 +708,10 @@ func (p *peers[N]) reshuffle() {
 		}
 	}
 
-	// let mut first_stage_peers = AHashSet::new();
-	// let mut second_stage_peers = HashSet::new();
 	firstStagePeers := make(map[peerid.PeerID]struct{})
 	secondStagePeers := make(map[peerid.PeerID]struct{})
 
-	// we start by allocating authorities to the first stage set and when the minimum of
-	// `luckyPeers / 2` is filled we start allocating to the second stage set.
+	// we start by allocating authorities to the first stage set and when the minimum of `luckyPeers / 2` is filled we start allocating to the second stage set.
 	halfLucky := luckyPeers / 2
 	oneAndAHalfLucky := luckyPeers + halfLucky
 	for nAuthoritiesAdded, peerID := range shuffledAuthorities {
@@ -793,8 +724,7 @@ func (p *peers[N]) reshuffle() {
 		}
 	}
 
-	// fill up first and second sets with remaining peers (either full or authorities)
-	// prioritizing filling the first set over the second.
+	// fill up first and second sets with remaining peers (either full or authorities) prioritizing filling the first set over the second.
 	nSecondStatePeers := uint(math.Max(float64(luckyPeers), math.Sqrt(float64(len(shuffledPeers)))))
 	for _, peer := range shuffledPeers {
 		if peer.peerInfo.roles.IsLight() {
@@ -883,20 +813,12 @@ type catchUpConfig[N runtime.Number] interface {
 	requestAllowed(peer peerInfo[N]) bool
 }
 
-// / Catch requests are enabled, our node will issue them whenever it sees a
-// / neighbor packet for a round further than `catchUpThreshold`. If
-// / `only_from_authorities` is set, the node will only send catch-up
-// / requests to other authorities it is connected to. This is useful if the
-// / GRANDPA observer protocol is live on the network, in which case full
-// / nodes (non-authorities) don't have the necessary round data to answer
-// / catch-up requests.
+// / Catch requests are enabled, our node will issue them whenever it sees a neighbor packet for a round further than `catchUpThreshold`. If `onlyFromAuthorities` is set, the node will only send catch-up requests to other authorities it is connected to. This is useful if the GRANDPA observer protocol is live on the network, in which case full nodes (non-authorities) don't have the necessary round data to answer catch-up requests.
 type catchUpConfigEnabled[N runtime.Number] struct {
 	onlyFromAuthorities bool
 }
 
-// / Catch-up requests are disabled, our node will never issue them. This is
-// / useful for the GRANDPA observer mode, where we are only interested in
-// / commit messages and don't need to follow the full round protocol.
+// / Catch-up requests are disabled, our node will never issue them. This is useful for the GRANDPA observer mode, where we are only interested in commit messages and don't need to follow the full round protocol.
 type catchUpConfigDisabled[N runtime.Number] struct{}
 
 func (e catchUpConfigEnabled[N]) requestAllowed(peer peerInfo[N]) bool {
@@ -916,22 +838,14 @@ func (catchUpConfigDisabled[N]) requestAllowed(peer peerInfo[N]) bool {
 }
 
 type inner[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] struct {
-	// local_view: Option<LocalView<NumberFor<Block>>>,
-	localView *localView[N]
-	// peers: Peers<NumberFor<Block>>,
-	peers peers[N]
-	// live_topics: KeepTopics<Block>,
-	liveTopics keepTopics[H, Hasher]
-	// authorities: Vec<AuthorityId>,
-	authorities []primitives.AuthorityID
-	// config: crate::Config,
-	config Config
-	// next_rebroadcast: Instant,
+	localView       *localView[N]
+	peers           peers[N]
+	liveTopics      keepTopics[H, Hasher]
+	authorities     []primitives.AuthorityID
+	config          Config
 	nextRebroadcast time.Time
-	// pending_catch_up: PendingCatchUp,
-	pendingCatchUp pendingCatchUp
-	// catch_up_config: CatchUpConfig,
-	catchUpConfig catchUpConfig[N]
+	pendingCatchUp  pendingCatchUp
+	catchUpConfig   catchUpConfig[N]
 }
 
 func newInner[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](config Config) inner[H, N, Hasher] {
@@ -951,7 +865,6 @@ func newInner[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](config
 	} else {
 		// if the observer protocol isn't enabled and we're not a light client, then any full
 		// node should be able to answer catch-up requests.
-		// CatchUpConfig::enabled(false)
 		catchUpConfig = catchUpConfigEnabled[N]{false}
 	}
 
@@ -967,8 +880,7 @@ func newInner[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](config
 	}
 }
 
-// / Note a round in the current set has started. Does nothing if the last
-// / call to the function was with the same `round`.
+// / Note a round in the current set has started. Does nothing if the last call to the function was with the same `round`.
 func (i *inner[H, N, Hasher]) noteRound(round Round) *peerIDsNeighborPacket[N] {
 	if i.localView.round == round {
 		// Do not send neighbor packets out if `round` has not changed ---
@@ -988,8 +900,7 @@ func (i *inner[H, N, Hasher]) noteRound(round Round) *peerIDsNeighborPacket[N] {
 	return i.multicastNeighborPacket()
 }
 
-// / Note that a voter set with given ID has started. Does nothing if the last
-// / call to the function was with the same `SetID`.
+// / Note that a voter set with given ID has started. Does nothing if the last call to the function was with the same `SetID`.
 func (i *inner[H, N, Hasher]) noteSet(setID SetID, authorities []primitives.AuthorityID) *peerIDsNeighborPacket[N] {
 	if i.localView == nil {
 		i.localView = newLocalView[N](setID, 1)
@@ -1013,8 +924,7 @@ func (i *inner[H, N, Hasher]) noteSet(setID SetID, authorities []primitives.Auth
 				i.authorities = authorities
 			}
 
-			// Do not send neighbor packets out if the `setID` has not changed ---
-			// such behavior is punishable.
+			// Do not send neighbor packets out if the `setID` has not changed. Such behavior is punishable.
 			return nil
 		}
 	}
@@ -1026,9 +936,7 @@ func (i *inner[H, N, Hasher]) noteSet(setID SetID, authorities []primitives.Auth
 	return i.multicastNeighborPacket()
 }
 
-// / Note that we've imported a commit finalizing a given block. Does nothing if the last
-// / call to the function was with the same or higher `finalized` number.
-// / `setID` & `round` are the ones the commit message is from.
+// / Note that we've imported a commit finalizing a given block. Does nothing if the last call to the function was with the same or higher `finalized` number. `setID` & `round` are the ones the commit message is from.
 func (i *inner[H, N, Hasher]) noteCommitFinalized(round Round, setID SetID, finalized N) *peerIDsNeighborPacket[N] {
 	if i.localView == nil {
 		return nil
@@ -1153,9 +1061,7 @@ func (i *inner[H, N, Hasher]) validateCatchUpMessage(who peerid.PeerID, full ful
 			return actionDiscard[H]{ReputationChange: malformedCatchUp}
 		}
 
-		// move request to pending processing state, we won't push out
-		// any catch up requests until we import this one (either with a
-		// success or failure).
+		// move request to pending processing state, we won't push out any catch up requests until we import this one (either with a success or failure).
 		i.pendingCatchUp = pendingCatchUpProcessing{instant: pending.instant}
 		i.noteCatchUpMessageProcessed()
 
@@ -1182,10 +1088,8 @@ func (i *inner[H, N, Hasher]) handleCatchUpRequest(who peerid.PeerID, request ca
 	}
 
 	if request.SetID != i.localView.setID {
-		// NOTE: When we're close to a set change there is potentially a
-		// race where the peer sent us the request before it observed that
-		// we had transitioned to a new set. In this case we charge a lower
-		// cost.
+		// NOTE: When we're close to a set change there is potentially a race where the peer sent us the request before it observed that
+		// we had transitioned to a new set. In this case we charge a lower cost.
 		if saturating.Add(request.SetID, 1) == i.localView.setID &&
 			saturating.Sub(uint64(i.localView.round), catchUpThreshold) == 0 {
 			return nil, actionDiscard[H]{ReputationChange: honestOutOfScopeCatchUp}
@@ -1216,11 +1120,9 @@ func (i *inner[H, N, Hasher]) handleCatchUpRequest(who peerid.PeerID, request ca
 	prevotes := make([]grandpa.SignedPrevote[H, N, primitives.AuthoritySignature, primitives.AuthorityID], 0)
 	precommits := make([]grandpa.SignedPrecommit[H, N, primitives.AuthoritySignature, primitives.AuthorityID], 0)
 
-	// NOTE: the set of votes stored in `LastCompletedRound` is a minimal
-	// set of votes, i.e. at most one equivocation is stored per voter. The
-	// code below assumes this invariant is maintained when creating the
-	// catch up reply since peers won't accept catch-up messages that have
-	// too many equivocations (we exceed the fault-tolerance bound).
+	// NOTE: the set of votes stored in `LastCompletedRound` is a minimal set of votes, i.e. at most one equivocation
+	// is stored per voter. The code below assumes this invariant is maintained when creating the catch up reply since
+	// peers won't accept catch-up messages that have too many equivocations (we exceed the fault-tolerance bound).
 	for _, vote := range lastCompletedRound.Votes {
 		switch message := vote.Message.(type) {
 		case grandpa.Prevote[H, N]:
@@ -1263,11 +1165,9 @@ func (i *inner[H, N, Hasher]) tryCatchUp(who peerid.PeerID) (gossipMessage, *rep
 	var catchUp gossipMessage
 	var report *report
 
-	// if the peer is on the same set and ahead of us by a margin bigger
-	// than `catchUpThreshold` then we should ask it for a catch up
-	// message. we only send catch-up requests to authorities, observers
-	// won't be able to reply since they don't follow the full GRANDPA
-	// protocol and therefore might not have the vote data available.
+	// if the peer is on the same set and ahead of us by a margin bigger than `catchUpThreshold` then we should ask it
+	// for a catch up message. we only send catch-up requests to authorities, observers won't be able to reply since
+	// they don't follow the full GRANDPA protocol and therefore might not have the vote data available.
 	if peer := i.peers.peer(who); peer != nil && i.localView != nil {
 		if i.catchUpConfig.requestAllowed(*peer) &&
 			peer.view.setID == i.localView.setID &&
@@ -1371,11 +1271,9 @@ func (i *inner[H, N, Hasher]) noteCatchUpRequest(who peerid.PeerID, catchUpReque
 // / The initial logic for filtering round messages follows the given state
 // / transitions:
 // /
-// / - State 1: allowed to luckyPeers random peers (where at least luckyPeers/2 are
-// /   authorities)
-// / - State 2: allowed to max(luckyPeers, sqrt(random peers)) (where at least luckyPeers are
-// /   authorities)
-// / - State 3: allowed to all peers
+// /  - State 1: allowed to luckyPeers random peers (where at least luckyPeers/2 are authorities)
+// /  - State 2: allowed to max(luckyPeers, sqrt(random peers)) (where at least luckyPeers are authorities)
+// /  - State 3: allowed to all peers
 // /
 // / Transitions will be triggered on repropagation attempts by the underlying gossip layer.
 func (i *inner[H, N, Hasher]) roundMessageAllowed(who peerid.PeerID) bool {
@@ -1403,20 +1301,16 @@ func (i *inner[H, N, Hasher]) roundMessageAllowed(who peerid.PeerID) bool {
 	}
 }
 
-// / The initial logic for filtering global messages follows the given state
-// / transitions:
+// / The initial logic for filtering global messages follows the given state transitions:
 // /
-// / - State 1: allowed to max(luckyPeers, sqrt(peers)) (where at least luckyPeers are
-// /   authorities)
+// / - State 1: allowed to max(luckyPeers, sqrt(peers)) (where at least luckyPeers are authorities)
 // / - State 2: allowed to all peers
 // /
-// / We are more lenient with global messages since there should be a lot
-// / less global messages than round messages (just commits), and we want
-// / these to propagate to non-authorities fast enough so that they can
-// / observe finality.
+// / We are more lenient with global messages since there should be a lot less global messages than round messages
+// / (just commits), and we want these to propagate to non-authorities fast enough so that they can observe finality.
 // /
-// / Transitions will be triggered on repropagation attempts by the
-// / underlying gossip layer, which should happen every 30 seconds.
+// / Transitions will be triggered on repropagation attempts by the underlying gossip layer, which should happen
+// / every 30 seconds.
 func (i *inner[H, N, Hasher]) globalMessageAllowed(who peerid.PeerID) bool {
 	rd := i.config.GossipDuration * time.Duration(roundDuration)
 	if i.localView == nil {
@@ -1451,9 +1345,7 @@ type gossipValidator[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]]
 	// TODO: telemetry
 }
 
-// / Create a new gossip-validator. The current set is initialized to 0. If
-// / `catch_up_enabled` is set to false then the validator will not issue any
-// / catch up requests (useful e.g. when running just the GRANDPA observer).
+// / Create a new gossip-validator. The current set is initialized to 0.
 func newGossipValidator[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 	config Config,
 	setState *SharedVoterSetState[H, N],
@@ -1480,8 +1372,7 @@ func (gv *gossipValidator[H, N, Hasher]) noteRound(
 	}
 }
 
-// / Note that a voter set with given ID has started. Updates the current set to given
-// / value and initializes the round to 0.
+// / Note that a voter set with given ID has started. Updates the current set to given value and initializes the round to 0.
 func (gv *gossipValidator[H, N, Hasher]) noteSet(
 	setID SetID, authorities []primitives.AuthorityID, sendNeighbor func(to []peerid.PeerID, msg neighborPacket[N]),
 ) {
@@ -1493,9 +1384,7 @@ func (gv *gossipValidator[H, N, Hasher]) noteSet(
 	}
 }
 
-// / Note that we've imported a commit finalizing a given block.
-// / `setID` & `round` are the ones the commit message is from and not necessarily
-// / the latest set ID & round started.
+// / Note that we've imported a commit finalizing a given block. `setID` & `round` are the ones the commit message is from and not necessarily the latest set ID & round started.
 func (gv *gossipValidator[H, N, Hasher]) noteCommitFinalized(
 	round Round, setID SetID, finalized N, sendNeighbor func(to []peerid.PeerID, msg neighborPacket[N]),
 ) {
@@ -1523,7 +1412,7 @@ func (gv *gossipValidator[H, N, Hasher]) doValidate(who peerid.PeerID, data []by
 	broadcastTopics := make([]H, 0)
 	var peerReply gossipMessage
 
-	// Message name for Prometheus metric recording.
+	// message name for Prometheus metric recording.
 	var messageName string
 
 	var a action

@@ -15,10 +15,9 @@ type peerIDsNeighborPacket[N runtime.Number] struct {
 // / A sender used to send neighbor packets to a background job.
 type neighbourPacketSender[N runtime.Number] chan peerIDsNeighborPacket[N]
 
-// / NeighborPacketWorker is listening on a channel for new neighbor packets being produced by
-// / components within `finality-grandpa` and forwards those packets to the underlying
-// / `NetworkEngine` through the `NetworkBridge` that it is being polled by (see `Stream`
-// / implementation). Periodically it sends out the last packet in cases where no new ones arrive.
+// neighborPacketWorker is listening on a channel for new neighbor packets being produced by components within
+// `finality-grandpa` and forwards those packets to the underlying `NetworkEngine` through the `NetworkBridge` that it
+// is being polled. Periodically it sends out the last packet in cases where no new ones arrive.
 type neighborPacketWorker[N runtime.Number] struct {
 	last              *peerIDsNeighborPacket[N]
 	rebroadcastPeriod time.Duration
@@ -66,12 +65,6 @@ func (w *neighborPacketWorker[N]) Stream() chan peerIDsGossipMessage {
 			case <-w.delay.C:
 				// Getting this far here implies that the timer fired.
 				w.delay.Reset(w.rebroadcastPeriod)
-
-				// // Make sure the underlying task is scheduled for wake-up.
-				// //
-				// // Note: In case poll_unpin is called after the reset delay fires again, this
-				// // will drop one tick. Deemed as very unlikely and also not critical.
-				// while this.delay.poll_unpin(cx).is_ready() {}
 
 				if w.last != nil {
 					ch <- peerIDsGossipMessage{

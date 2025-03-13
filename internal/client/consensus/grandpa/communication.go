@@ -53,9 +53,7 @@ var (
 	perEquivocation       int32 = 10
 )
 
-// / A type that ties together our local authority id and a keystore where it is
-// / available for signing.
-// pub struct LocalIdKeystore((AuthorityId, KeystorePtr));
+// / A type that ties together our local authority id and a keystore where it is available for signing.
 type localIDKeystore struct {
 	primitives.AuthorityID
 	keystore.KeyStore
@@ -66,30 +64,14 @@ func (lk *localIDKeystore) localID() primitives.AuthorityID {
 	return lk.AuthorityID
 }
 
-// / Returns a reference to the keystore.
-//
-//		fn keystore(&self) -> KeystorePtr {
-//			(self.0).1.clone()
-//		}
-//	}
-// func (lk *localIDKeystore) KeyStore() *keystore.KeyStore {
-// 	return lk.KeyStore
-// }
-
-// impl From<(AuthorityId, KeystorePtr)> for LocalIdKeystore {
-// 	fn from(inner: (AuthorityId, KeystorePtr)) -> LocalIdKeystore {
-// 		LocalIdKeystore(inner)
-// 	}
-// }
-
-// / A handle to the network.
+// / Network is a handle to the network.
 // /
-// / Something that provides the capabilities needed for the `gossip_network::Network` trait.
+// / Something that provides the capabilities needed for the [gossip.Network] interface.
 type Network interface {
 	gossip.Network
 }
 
-// / A handle to syncing-related services.
+// / Syncing is a handle to syncing-related services.
 // /
 // / Something that provides the ability to set a fork sync request for a particular block.
 type Syncing[H, N any] interface {
@@ -118,31 +100,19 @@ type networkBridge[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] s
 	gossipEngineMtx sync.Mutex
 	validator       *gossipValidator[H, N, Hasher]
 
-	/// Sender side of the neighbor packet channel.
-	///
-	/// Packets sent into this channel are processed by the `NeighborPacketWorker` and passed on to
-	/// the underlying `GossipEngine`.
-	// neighbor_sender: periodic::NeighborPacketSender<B>,
+	// Sender side of the neighbor packet channel.
+	// Packets sent into this channel are processed by the `NeighborPacketWorker` and passed on to the underlying
+	// `GossipEngine`.
 	neighborSender neighbourPacketSender[N]
 
-	/// `NeighborPacketWorker` processing packets sent through the `NeighborPacketSender`.
-	// `NetworkBridge` is required to be cloneable, thus one needs to be able to clone its
-	// children, thus one has to wrap `neighbor_packet_worker` with an `Arc` `Mutex`.
-	// neighbor_packet_worker: Arc<Mutex<periodic::NeighborPacketWorker<B>>>,
+	// `NeighborPacketWorker` processing packets sent through the `NeighborPacketSender`.
 	neighborPacketWorker    neighborPacketWorker[N]
 	neighborPacketWorkerMtx sync.Mutex
 
-	/// Receiver side of the peer report stream populated by the gossip validator, forwarded to the
-	/// gossip engine.
-	// `NetworkBridge` is required to be cloneable, thus one needs to be able to clone its
-	// children, thus one has to wrap gossip_validator_report_stream with an `Arc` `Mutex`. Given
-	// that it is just an `UnboundedReceiver`, one could also switch to a
-	// multi-producer-*multi*-consumer channel implementation.
-	// gossip_validator_report_stream: Arc<Mutex<TracingUnboundedReceiver<PeerReport>>>,
+	// Receiver side of the peer report stream populated by the gossip validator, forwarded to the gossip engine.
 	gossipValidatorReportStream    chan peerReport
 	gossipValidatorReportStreamMtx sync.Mutex
 
-	// telemetry: Option<TelemetryHandle>,
 	// TODO: telemetry
 }
 
@@ -160,8 +130,7 @@ func newNetworkBridge[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]
 	gossipEngine := gossip.NewGossipEngine[H, N, Hasher](service, sync, notificationService, protocol, validator)
 
 	{
-		// register all previous votes with the gossip service so that they're
-		// available to peers potentially stuck on a previous round.
+		// register all previous votes with the gossip service so that they're available to peers potentially stuck on a previous round.
 		setState.innerMtx.RLock()
 		completed := setState.inner.completedRounds()
 		setState.innerMtx.RUnlock()
@@ -171,8 +140,7 @@ func newNetworkBridge[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]
 		for _, round := range completed.iter() {
 			topic := roundTopic[H, Hasher](Round(round.Number), SetID(setID))
 
-			// we need to note the round with the gossip validator otherwise
-			// messages will be ignored.
+			// we need to note the round with the gossip validator otherwise messages will be ignored.
 			validator.noteRound(Round(round.Number), func(to []peerid.PeerID, msg neighborPacket[N]) {})
 
 			for _, signed := range round.Votes {
@@ -212,7 +180,7 @@ func newNetworkBridge[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]
 	return &nb
 }
 
-// / Note the beginning of a new round to the `GossipValidator`.
+// / Note the beginning of a new round to the gossipValidator.
 func (nb *networkBridge[H, N, Hasher]) noteRound(round Round, setID SetID, voters *grandpa.VoterSet[primitives.AuthorityID]) {
 	authorities := make([]primitives.AuthorityID, voters.Len())
 	for i, ivi := range voters.Voters() {
@@ -242,8 +210,8 @@ func (nb *networkBridge[H, N, Hasher]) noteRound(round Round, setID SetID, voter
 	)
 }
 
-// / Get a stream of signature-checked round messages from the network as well as a sink for
-// / round messages to the network all within the current set.
+// Get a stream of signature-checked round messages from the network as well as a sink for round messages to the
+// network all within the current set.
 func (nb *networkBridge[H, N, Hasher]) roundCommunication(
 	keystore *localIDKeystore,
 	round Round,
@@ -308,9 +276,8 @@ func (nb *networkBridge[H, N, Hasher]) roundCommunication(
 		hasVoted: hasVoted,
 	}
 
-	// Combine incoming votes from external GRANDPA nodes with outgoing
-	// votes from our own GRANDPA voter to have a single
-	// vote-import-pipeline.
+	// Combine incoming votes from external GRANDPA nodes with outgoing votes from our own GRANDPA voter to have a
+	// single vote-import-pipeline.
 	combinedIncoming := make(chan primitives.SignedMessage[H, N])
 	go func() {
 		defer close(combinedIncoming)
@@ -335,7 +302,6 @@ func (nb *networkBridge[H, N, Hasher]) roundCommunication(
 		}
 	}()
 
-	// (incoming, outgoing)
 	return combinedIncoming, outgoing
 }
 
@@ -373,9 +339,8 @@ func (nb *networkBridge[H, N, Hasher]) globalCommunication(
 // / Notifies the sync service to try and sync the given block from the given
 // / peers.
 // /
-// / If the given vector of peers is empty then the underlying implementation
-// / should make a best effort to fetch the block from any peers it is
-// / connected to (NOTE: this assumption will change in the future #3629).
+// If the given vector of peers is empty then the underlying implementation should make a best effort to fetch the
+// block from any peers it is connected to (NOTE: this assumption will change in the future substrate issue #3629).
 func (nb *networkBridge[H, N, Hasher]) SetSyncForkRequest(
 	peers []peerid.PeerID,
 	hash H,
@@ -384,17 +349,13 @@ func (nb *networkBridge[H, N, Hasher]) SetSyncForkRequest(
 	nb.sync.SetSyncForkRequest(peers, hash, number)
 }
 
-// impl<B: BlockT, N: Network<B>, S: Syncing<B>> Future for NetworkBridge<B, N, S> {
-// 	type Output = Result<(), Error>;
-
-// fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
 func (nb *networkBridge[H, N, Hasher]) poll() error {
 	neighborPacketStream := nb.neighborPacketWorker.Stream()
 	for {
 		select {
 		case message, ok := <-neighborPacketStream:
 			if !ok {
-				return fmt.Errorf("Neighbor packet worker stream closed.")
+				return fmt.Errorf("neighbor packet worker stream closed.")
 			}
 			var gossipMessage gossipMessageVDT[H, N]
 			gossipMessage.inner = message.GossipMessage
@@ -403,7 +364,7 @@ func (nb *networkBridge[H, N, Hasher]) poll() error {
 			nb.gossipEngineMtx.Unlock()
 		case report, ok := <-nb.gossipValidatorReportStream:
 			if !ok {
-				return fmt.Errorf("Gossip validator report stream closed.")
+				return fmt.Errorf("gossip validator report stream closed.")
 			}
 			nb.gossipEngineMtx.Lock()
 			nb.gossipEngine.Report(report.who, report.costBenefit)
@@ -412,7 +373,6 @@ func (nb *networkBridge[H, N, Hasher]) poll() error {
 	}
 }
 
-// fn incoming_global<B: BlockT>(
 func incomingGlobal[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 	gossipEngine *gossip.GossipEngine[H, N, Hasher],
 	topic H,
@@ -449,9 +409,8 @@ func incomingGlobal[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 		cb := func(outcome grandpa.CommitProcessingOutcome) {
 			switch outcome.(type) {
 			case grandpa.CommitProcessingOutcomeGood:
-				// if it checks out, gossip it. not accounting for
-				// any discrepancy between the actual ghost and the claimed
-				// finalized number.
+				// if it checks out, gossip it. not accounting for any discrepancy between the actual ghost and the
+				// claimed finalized number.
 				gossipValidator.noteCommitFinalized(
 					round,
 					setID,
@@ -545,20 +504,16 @@ func incomingGlobal[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 }
 
 // / Type-safe wrapper around a round number.
-// pub struct Round(pub RoundNumber);
 type Round uint64
 
 // / Type-safe wrapper around a set ID.
-// pub struct SetID(pub SetIdNumber);
 type SetID uint64
 
-// / A sink for outgoing messages to the network. Any messages that are sent will
-// / be replaced, as appropriate, according to the given `HasVoted`.
-// / NOTE: The votes are stored unsigned, which means that the signatures need to
-// / be "stable", i.e. we should end up with the exact same signed message if we
-// / use the same raw message and key to sign. This is currently true for
-// / `ed25519` and `BLS` signatures (which we might use in the future), care must
-// / be taken when switching to different key types.
+// A sink for outgoing messages to the network. Any messages that are sent will be replaced, as appropriate, according
+// to the given `hasVoted`.
+// NOTE: The votes are stored unsigned, which means that the signatures need to be "stable", i.e. we should end up with
+// the exact same signed message if we use the same raw message and key to sign. This is currently true for ed25519 and
+// BLS signatures (which we might use in the future), care must be taken when switching to different key types.
 type outgoingMessages[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] struct {
 	round    Round
 	setID    SetID
@@ -569,25 +524,6 @@ type outgoingMessages[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]
 	// TODO: telemetry
 }
 
-// impl<B: BlockT> Unpin for OutgoingMessages<B> {}
-
-// impl<Block: BlockT> Sink<Message<Block::Header>> for OutgoingMessages<Block> {
-// 	type Error = Error;
-
-// 	fn poll_ready(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), Self::Error>> {
-// 		Sink::poll_ready(Pin::new(&mut self.sender), cx).map(|elem| {
-// 			elem.map_err(|e| {
-// 				Error::Network(format!("Failed to poll_ready channel sender: {:?}", e))
-// 			})
-// 		})
-// 	}
-
-// fn start_send(
-//
-//	mut self: Pin<&mut Self>,
-//	mut msg: Message<Block::Header>,
-//
-// ) -> Result<(), Self::Error> {
 func (om *outgoingMessages[H, N, Hasher]) preSend(msg primitives.Message[H, N]) (primitives.Message[H, N], error) {
 	// if we've voted on this round previously under the same key, send that vote instead
 	switch msg.(type) {
@@ -649,21 +585,7 @@ func (om *outgoingMessages[H, N, Hasher]) preSend(msg primitives.Message[H, N]) 
 	return msg, nil
 }
 
-// 	fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context) -> Poll<Result<(), Self::Error>> {
-// 		Poll::Ready(Ok(()))
-// 	}
-
-// 	fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Result<(), Self::Error>> {
-// 		Sink::poll_close(Pin::new(&mut self.sender), cx).map(|elem| {
-// 			elem.map_err(|e| {
-// 				Error::Network(format!("Failed to poll_close channel sender: {:?}", e))
-// 			})
-// 		})
-// 	}
-// }
-
-// checks a compact commit. returns the cost associated with processing it if
-// the commit was bad.
+// checks a compact commit. returns the cost associated with processing it if the commit was bad.
 func checkCompactCommit[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 	msg primitives.CompactCommit[H, N],
 	voters *grandpa.VoterSet[primitives.AuthorityID],
@@ -716,8 +638,7 @@ func checkCompactCommit[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[
 	return nil
 }
 
-// checks a catch up. returns the cost associated with processing it if
-// the catch up was bad.
+// checks a catch up. returns the cost associated with processing it if the catch up was bad.
 func checkCatchUp[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 	msg primitives.CatchUp[H, N],
 	voters *grandpa.VoterSet[primitives.AuthorityID],
@@ -866,13 +787,6 @@ func newCommitsOut[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 	}
 }
 
-// impl<Block: BlockT> Sink<(RoundNumber, Commit<Block::Header>)> for CommitsOut<Block> {
-// 	type Error = Error;
-
-// 	fn poll_ready(self: Pin<&mut Self>, _: &mut Context) -> Poll<Result<(), Self::Error>> {
-// 		Poll::Ready(Ok(()))
-// 	}
-
 func (co *commitsOut[H, N, Hasher]) preSend(
 	round Round,
 	commit primitives.Commit[H, N],
@@ -908,8 +822,7 @@ func (co *commitsOut[H, N, Hasher]) preSend(
 
 	topic := globalTopic[H, Hasher](co.setID)
 
-	// the gossip validator needs to be made aware of the best commit-height we know of
-	// before gossiping
+	// the gossip validator needs to be made aware of the best commit-height we know of before gossiping
 	co.gossipValidator.noteCommitFinalized(
 		round,
 		co.setID,

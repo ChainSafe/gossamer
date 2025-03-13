@@ -53,16 +53,16 @@ func (TestNetwork) AcceptUnreservedPeers()                                      
 func (TestNetwork) DenyUnreservedPeers()                                            { panic("unimpl") }
 func (TestNetwork) AddReservedPeer(peer config.MultiaddrPeerId) error               { panic("unimpl") }
 func (TestNetwork) RemoveReservedPeer(peerID peerid.PeerID)                         { panic("unimpl") }
-func (TestNetwork) SetReservedPeers(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]any) error {
+func (TestNetwork) SetReservedPeers(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]struct{}) error {
 	panic("unimpl")
 }
-func (TestNetwork) AddPeersToReservedSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]any) error {
+func (TestNetwork) AddPeersToReservedSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]struct{}) error {
 	panic("unimpl")
 }
 func (TestNetwork) RemovePeersFromReservedSet(protocol network.ProtocolName, peers []peerid.PeerID) {
 	panic("unimpl")
 }
-func (TestNetwork) AddToPeersSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]any) error {
+func (TestNetwork) AddToPeersSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]struct{}) error {
 	panic("unimpl")
 }
 func (TestNetwork) RemoveFromPeersSet(protocol network.ProtocolName, peers []peerid.PeerID) {
@@ -157,28 +157,6 @@ type Tester struct {
 	notificationTx chan service.NotificationEvent
 }
 
-// fn filter_network_events<F>(self, mut pred: F) -> impl Future<Output = Self>
-// where
-//
-//	F: FnMut(Event) -> bool,
-//
-// {
-func (t *Tester) FilterNetworkEvents(pred func(Event)) {
-	// let mut s = Some(self);
-	// futures::future::poll_fn(move |cx| loop {
-	// 	match Stream::poll_next(Pin::new(&mut s.as_mut().unwrap().events), cx) {
-	// 		Poll::Ready(None) => panic!("concluded early"),
-	// 		Poll::Ready(Some(item)) =>
-	// 			if pred(item) {
-	// 				return Poll::Ready(s.take().unwrap())
-	// 			},
-	// 		Poll::Pending => return Poll::Pending,
-	// 	}
-	// })
-	item := <-t.events
-	pred(item)
-}
-
 func (t *Tester) TriggerGossipValidatorReputationChange(p peerid.PeerID) {
 	t.gossipValidator.Validate(NoopContext{}, p, []byte{1, 2, 3})
 }
@@ -245,9 +223,6 @@ func makeTestNetwork(t *testing.T) (*Tester, *TestNetwork) {
 	}, &net
 }
 
-//	fn make_ids(keys: &[Ed25519Keyring]) -> AuthorityList {
-//		keys.iter().map(|&key| key.public().into()).map(|id| (id, 1)).collect()
-//	}
 func makeIDs(keys []ed25519.Keyring) []grandpa.IDWeight[pgrandpa.AuthorityID] {
 	var ids []grandpa.IDWeight[pgrandpa.AuthorityID]
 	for _, key := range keys {
@@ -338,10 +313,8 @@ func Test_networkBridge(t *testing.T) {
 		networkBridge := tester.networkBridge
 		_ = networkBridge
 
-		// `NetworkBridge` will be operational as soon as it's created and it's
-		// waiting for events from the network. Send it events that inform that
-		// a notification stream was opened and that a notification was received.
-		//
+		// `networkBridge` will be operational as soon as it's created and it's waiting for events from the network.
+		// Send it events that inform that a notification stream was opened and that a notification was received.
 		// Since each protocol has its own notification stream, events need not be filtered.
 		senderID := id
 
@@ -367,8 +340,8 @@ func Test_networkBridge(t *testing.T) {
 				Handshake:          scale.MustMarshal(role.RolesFull),
 			}
 
-			// Announce its local set being on the current set id through a neighbor
-			// packet, otherwise it won't be eligible to receive the commit
+			// Announce its local set being on the current set id through a neighbor packet, otherwise it won't be
+			// eligible to receive the commit
 			{
 				update := versionedNeighborPacket[uint64]{
 					neighborPacket: neighborPacket[uint64]{
@@ -499,9 +472,8 @@ func Test_networkBridge(t *testing.T) {
 
 		commitToSend := encodedCommit
 
-		// `NetworkBridge` will be operational as soon as it's created and it's
-		// waiting for events from the network. Send it events that inform that
-		// a notification stream was opened and that a notification was received.
+		// `NetworkBridge` will be operational as soon as it's created and it's waiting for events from the network.
+		// Send it events that inform that a notification stream was opened and that a notification was received.
 		//
 		// Since each protocol has its own notification stream, events need not be filtered.
 		senderID := id
@@ -535,8 +507,7 @@ func Test_networkBridge(t *testing.T) {
 		go sendMessage()
 		go handleCommit()
 
-		// once the message is sent and commit is "handled" we should have
-		// a report event coming from the network.
+		// once the message is sent and commit is "handled" we should have a report event coming from the network.
 		timer := time.NewTimer(10 * time.Second)
 		var verified bool
 	loop:

@@ -15,8 +15,8 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// completedRound Data about a completed round. The set of votes that is stored must be
-// minimal, i.e. at most one equivocation is stored per voter.
+// completedRound Data about a completed round. The set of votes that is stored must be minimal, i.e. at most one
+// equivocation is stored per voter.
 type completedRound[H runtime.Hash, N runtime.Number] struct {
 	// The round number
 	Number primitives.RoundNumber
@@ -25,25 +25,23 @@ type completedRound[H runtime.Hash, N runtime.Number] struct {
 	// The target block base used for voting in the round
 	Base grandpa.HashNumber[H, N]
 	// All the votes observed in the round
-	// I think this is signature type, double check
 	Votes []primitives.SignedMessage[H, N]
 }
 
-// numLastCompletedRounds NOTE: the current strategy for persisting completed rounds is very naive
+// NOTE: the current strategy for persisting completed rounds is very naive
 // (update everything) and we also rely on cloning to do atomic updates,
 // therefore this value should be kept small for now.
 const numLastCompletedRounds = 2
 
-// completedRounds Data about last completed rounds within a single voter set. Stores
-// numLastCompletedRounds and always contains data about at least one round
-// (genesis).
+// Data about last completed rounds within a single voter set. Stores numLastCompletedRounds and always contains data
+// about at least one round (genesis).
 type completedRounds[H runtime.Hash, N runtime.Number] struct {
 	Rounds []completedRound[H, N]
 	SetId  primitives.SetID
 	Voters []primitives.AuthorityID
 }
 
-// newCompletedRounds Create a new completed rounds tracker with NUM_LAST_COMPLETED_ROUNDS capacity.
+// creates a new completed rounds tracker with numLastCompletedRounds capacity.
 func newCompletedRounds[H runtime.Hash, N runtime.Number](
 	genesis completedRound[H, N],
 	setId primitives.SetID,
@@ -87,8 +85,7 @@ func (cr *completedRounds[H, N]) last() completedRound[H, N] {
 	return cr.Rounds[0]
 }
 
-// Push a new completed round, oldest round is evicted if number of rounds
-// is higher than numLastCompletedRounds.
+// Push a new completed round, oldest round is evicted if number of rounds is higher than numLastCompletedRounds.
 func (cr *completedRounds[H, N]) push(compRound completedRound[H, N]) {
 	idx, found := slices.BinarySearchFunc(
 		cr.Rounds,
@@ -123,9 +120,8 @@ func (cr *completedRounds[H, N]) push(compRound completedRound[H, N]) {
 	}
 }
 
-// CurrentRounds A map with voter status information for currently live rounds,
-// which votes have we cast and what are they.
-// TODO convert to btree after #3480 is implemented
+// CurrentRounds A map with voter status information for currently live rounds, which votes have we cast and what are they.
+// TODO: this is a BtreeMap in rust. Convert to btree after #3480 is implemented
 type currentRounds[H runtime.Hash, N runtime.Number] map[uint64]hasVoted[H, N]
 
 func (cr currentRounds[H, N]) MarshalSCALE() ([]byte, error) {
@@ -167,13 +163,13 @@ func (cr *currentRounds[H, N]) UnmarshalSCALE(reader io.Reader) error {
 	return nil
 }
 
-// SharedVoterSetState A voter set state meant to be shared safely across multiple owners
+// SharedVoterSetState is a voter set state meant to be shared safely across multiple threads.
 type SharedVoterSetState[H runtime.Hash, N runtime.Number] struct {
-	/// The inner shared `VoterSetState`.
+	/// The inner shared `voterSetState`.
 	innerMtx sync.RWMutex
 	inner    voterSetState[H, N]
-	// A tracker for the rounds that we are actively participating on (i.e. voting)
-	// and the authority id under which we are doing it.
+	// A tracker for the rounds that we are actively participating on (i.e. voting) and the authority id under which
+	// we are doing it.
 	votingMtx sync.RWMutex
 	voting    map[primitives.RoundNumber]primitives.AuthorityID
 }
@@ -186,7 +182,7 @@ func NewSharedVoterSetState[H runtime.Hash, N runtime.Number](state voterSetStat
 	}
 }
 
-// Get the authority id that we are using to vote on the given round, if any
+// Get the authority id that we are using to vote on the given round, if any.
 func (svss *SharedVoterSetState[H, N]) votingOn(round primitives.RoundNumber) *primitives.AuthorityID {
 	svss.votingMtx.RLock()
 	defer svss.votingMtx.RUnlock()
@@ -197,16 +193,14 @@ func (svss *SharedVoterSetState[H, N]) votingOn(round primitives.RoundNumber) *p
 	return &key
 }
 
-// Note that we started voting on the give round with the given authority id
+// Note that we started voting on the give round with the given authority id.
 func (svss *SharedVoterSetState[H, N]) startedVotingOn(round primitives.RoundNumber, localID primitives.AuthorityID) {
 	svss.votingMtx.Lock()
 	defer svss.votingMtx.Unlock()
 	svss.voting[round] = localID
 }
 
-// Note that we have finished voting on the given round. If we were voting on
-// the given round, the authority id that we were using to do it will be
-// cleared.
+// Note that we have finished voting on the given round. If we were voting on the given round, the authority id that we were using to do it will be cleared.
 func (svss *SharedVoterSetState[H, N]) finishedVotingOn(round primitives.RoundNumber) {
 	svss.votingMtx.Lock()
 	defer svss.votingMtx.Unlock()
@@ -239,12 +233,9 @@ func (svss *SharedVoterSetState[H, N]) hasVoted(round primitives.RoundNumber) ha
 	}
 }
 
-// voterSetState The state of the current voter set, whether it is currently active or not
-// and information related to the previously completed rounds. Current round
-// voting status is used when restarting the voter, i.e. it will re-use the
-// previous votes for a given round if appropriate (same round and same local
-// key).
-
+// voterSetState The state of the current voter set, whether it is currently active or not and information related to
+// the previously completed rounds. Current round voting status is used when restarting the voter, i.e. it will re-use
+// the previous votes for a given round if appropriate (same round and same local key).
 type voterSetState[H runtime.Hash, N runtime.Number] interface {
 	completedRounds() completedRounds[H, N]
 	lastCompletedRound() completedRound[H, N]
@@ -308,9 +299,8 @@ func newVoterSetStateVDT[H runtime.Hash, N runtime.Number]() *voterSetStateVDT[H
 	return &voterSetStateVDT[H, N]{}
 }
 
-// newVoterSetStateLive Create a new live voterSetState with round 0 as a completed round using
-// the given genesis state and the given authorities. Round 1 is added as a
-// current round (with state `hasVotedNo`).
+// newVoterSetStateLive Create a new live voterSetState with round 0 as a completed round using the given genesis state
+// and the given authorities. Round 1 is added as a current round (with state `hasVotedNo`).
 func newVoterSetStateLive[H runtime.Hash, N runtime.Number](
 	setId primitives.SetID,
 	authSet AuthoritySet[H, N],
@@ -360,7 +350,7 @@ func (vssl voterSetStateLive[H, N]) withCurrentRound(round uint64) (completedRou
 		fmt.Errorf("voter acting on a live round we are not tracking")
 }
 
-// voterSetStatePaused The voter is paused, i.e. not casting or importing any votes.
+// voterSetStatePaused means the voter is paused, i.e. not casting or importing any votes.
 type voterSetStatePaused[H runtime.Hash, N runtime.Number] struct {
 	// The previously completed rounds
 	CompletedRounds completedRounds[H, N]

@@ -67,28 +67,12 @@ type Prevote[H, N any] grandpa.Prevote[H, N]
 type Precommit[H, N any] grandpa.Precommit[H, N]
 
 // / A catch up message for this chain's block type.
-// pub type CatchUp<Header> = finality_grandpa::CatchUp<
-//
-//	<Header as HeaderT>::Hash,
-//	<Header as HeaderT>::Number,
-//	AuthoritySignature,
-//	AuthorityId,
-//
-// >;
 type CatchUp[H, N any] grandpa.CatchUp[H, N, AuthoritySignature, AuthorityID]
 
 // Commit is a commit message for this chain's block type.
 type Commit[H, N any] grandpa.Commit[H, N, AuthoritySignature, AuthorityID]
 
 // / A compact commit message for this chain's block type.
-// pub type CompactCommit<Header> = finality_grandpa::CompactCommit<
-//
-//	<Header as HeaderT>::Hash,
-//	<Header as HeaderT>::Number,
-//	AuthoritySignature,
-//	AuthorityId,
-//
-// >;
 type CompactCommit[H, N any] grandpa.CompactCommit[H, N, AuthoritySignature, AuthorityID]
 
 // ScheduledChange is a scheduled authority change.
@@ -97,23 +81,21 @@ type ScheduledChange[N runtime.Number] struct {
 	Delay           N
 }
 
-// GrandpaJustification is A GRANDPA justification for block finality, it includes
-// a commit message and an ancestry proof including all headers routing all
-// precommit target blocks to the commit target block. Due to the current voting
-// strategy the precommit targets should be the same as the commit target, since
-// honest voters don't vote past authority set change blocks.
+// GrandpaJustification is A GRANDPA justification for block finality, it includes a commit message and an ancestry
+// proof including all headers routing all precommit target blocks to the commit target block. Due to the current
+// voting strategy the precommit targets should be the same as the commit target, since honest voters don't vote past
+// authority set change blocks.
 //
-// This is meant to be stored in the db and passed around the network to other
-// nodes, and are used by syncing nodes to prove authority set handoffs.
+// This is meant to be stored in the db and passed around the network to other nodes, and are used by syncing nodes to
+// prove authority set handoffs.
 type GrandpaJustification[Ordered runtime.Hash, N runtime.Number] struct {
 	Round          uint64
 	Commit         Commit[Ordered, N]
 	VoteAncestries []runtime.Header[N, Ordered]
 }
 
-// CheckMessageSignature will check a message signature by encoding the message as
-// a localised payload and verifying the provided signature using the expected
-// authority id.
+// CheckMessageSignature will check a message signature by encoding the message as a localised payload and verifying
+// the provided signature using the expected authority id.
 func CheckMessageSignature[H comparable, N constraints.Unsigned](
 	message grandpa.Message[H, N],
 	id AuthorityID,
