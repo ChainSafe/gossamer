@@ -53,10 +53,11 @@ func NewOverlayedChangeSet() OverlayedChangeSet {
 }
 
 func (oc OverlayedChangeSet) Set(key string, value StorageValue, atExtrinsic *uint32) {
-	overlayed, has := oc.changes.GetMut(key)
+	overlayed, has := oc.changes[key]
 	if !has {
-		overlayed = *NewOverlayedEntry[StorageEntry]()
+		overlayed = NewOverlayedEntry[StorageEntry]()
 	}
 
 	overlayed.Set(value, insertDirty(&oc.dirtyKeys, key), atExtrinsic)
+	oc.changes[key] = overlayed
 }
