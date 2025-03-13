@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package grandpa
 
 import (
@@ -135,13 +138,9 @@ type numberRoundSetID[N runtime.Number] struct {
 // A local view of protocol state. Similar to `View` but we additionally track the round and set id at which the last
 // commit was observed, and the instant at which the current round started.
 type localView[N runtime.Number] struct {
-	// round: Round,
-	round Round
-	// set_id: SetId,
-	setID SetID
-	// last_commit: Option<(N, Round, SetId)>,
+	round      Round
+	setID      SetID
 	lastCommit *numberRoundSetID[N]
-	// round_start: Instant,
 	roundStart time.Time
 }
 
