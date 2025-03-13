@@ -884,7 +884,7 @@ type catchUpConfig[N runtime.Number] interface {
 }
 
 // / Catch requests are enabled, our node will issue them whenever it sees a
-// / neighbor packet for a round further than `CATCH_UP_THRESHOLD`. If
+// / neighbor packet for a round further than `catchUpThreshold`. If
 // / `only_from_authorities` is set, the node will only send catch-up
 // / requests to other authorities it is connected to. This is useful if the
 // / GRANDPA observer protocol is live on the network, in which case full
@@ -1264,7 +1264,7 @@ func (i *inner[H, N, Hasher]) tryCatchUp(who peerid.PeerID) (gossipMessage, *rep
 	var report *report
 
 	// if the peer is on the same set and ahead of us by a margin bigger
-	// than `CATCH_UP_THRESHOLD` then we should ask it for a catch up
+	// than `catchUpThreshold` then we should ask it for a catch up
 	// message. we only send catch-up requests to authorities, observers
 	// won't be able to reply since they don't follow the full GRANDPA
 	// protocol and therefore might not have the vote data available.

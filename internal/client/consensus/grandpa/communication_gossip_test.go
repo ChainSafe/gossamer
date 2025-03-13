@@ -429,7 +429,7 @@ func Test_gossipValidator(t *testing.T) {
 		msg, a = sendRequest(0, 10)
 		assertRes(msg, a, false)
 
-		// after the validator progresses further than CATCH_UP_THRESHOLD in set
+		// after the validator progresses further than catchUpThreshold in set
 		// id 2, any request for set id 1 should no longer be considered an
 		// honest mistake.
 		val.noteRound(Round(3), func(to []peerid.PeerID, msg neighborPacket[uint64]) {})
@@ -475,7 +475,7 @@ func Test_gossipValidator(t *testing.T) {
 		// we note that we're at round 41.
 		val.noteRound(Round(41), func(to []peerid.PeerID, msg neighborPacket[uint64]) {})
 
-		// if we import a neighbor message within CATCH_UP_THRESHOLD then we
+		// if we import a neighbor message within catchUpThreshold then we
 		// won't request a catch up.
 		switch msg := importNeighborMessage(1, 42).(type) {
 		case nil:

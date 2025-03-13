@@ -93,7 +93,7 @@ func invalidAuthorityList(authorities pgrandpa.AuthorityList) bool { //skipcq:  
 	return false
 }
 
-// NewGenesisAuthoritySet Get a genesis set with given authorities.
+// NewGenesisAuthoritySet constructs a genesis set with given authorities.
 func NewGenesisAuthoritySet[H comparable, N constraints.Unsigned](
 	initial pgrandpa.AuthorityList,
 ) (authSet *AuthoritySet[H, N], err error) {
@@ -127,7 +127,7 @@ func NewAuthoritySet[H comparable, N constraints.Unsigned](
 	}, nil
 }
 
-// current Get the current set id and a reference to the current authority set.
+// current retrieves the current set id and a reference to the current authority set.
 func (authSet *AuthoritySet[H, N]) current() (uint64, *pgrandpa.AuthorityList) {
 	return authSet.SetID, &authSet.CurrentAuthorities
 }
@@ -141,7 +141,7 @@ func (authSet *AuthoritySet[H, N]) revert() { //nolint //skipcq: SCC-U1000 //ski
 }
 
 // Returns the block hash and height at which the next pending HashNumber in
-// the given chain (i.e. it includes `best_hash`) was signalled, nil if
+// the given chain (i.e. it includes `bestHash`) was signalled, nil if
 // there are no pending changes for the given chain.
 func (authSet *AuthoritySet[H, N]) nextChange(bestHash H, //skipcq:  RVV-B0001
 	isDescendentOf IsDescendentOf[H]) (*HashNumber[H, N], error) {
@@ -292,7 +292,7 @@ func (authSet *AuthoritySet[H, N]) addForcedChange(
 	return nil
 }
 
-// addPendingChange Note an upcoming pending transition. Multiple pending standard changes
+// addPendingChange will note an upcoming pending transition. Multiple pending standard changes
 // on the same branch can be added as long as they don't overlap. Forced
 // changes are restricted to one per fork. This method assumes that changes
 // on the same branch will be added in-order. The given function
@@ -315,7 +315,7 @@ func (authSet *AuthoritySet[H, N]) addPendingChange(
 	}
 }
 
-// pendingChanges Inspect pending changes. Standard pending changes are iterated first,
+// pendingChanges will inspect pending changes. Standard pending changes are iterated first,
 // and the changes in the roots are traversed in pre-order, afterwards all
 // forced changes are iterated.
 func (authSet *AuthoritySet[H, N]) pendingChanges() []PendingChange[H, N] { //skipcq:  RVV-B0001
@@ -328,7 +328,7 @@ func (authSet *AuthoritySet[H, N]) pendingChanges() []PendingChange[H, N] { //sk
 	return changes
 }
 
-// currentLimit Get the earliest limit-block number, if any. If there are pending changes across
+// currentLimit gets the earliest limit-block number, if any. If there are pending changes across
 // different forks, this method will return the earliest effective number (across the
 // different branches) that is higher or equal to the given min number.
 //
@@ -349,7 +349,7 @@ func (authSet *AuthoritySet[H, N]) currentLimit(min N) (limit *N) {
 	return limit
 }
 
-// ApplyForcedChanges Apply or prune any pending transitions based on a best-block trigger.
+// ApplyForcedChanges applies or prunes any pending transitions based on a best-block trigger.
 //
 // Returns a pointer to the median and new_set when a forced HashNumber has occurred. The
 // median represents the median last finalised block at the time the HashNumber
@@ -431,7 +431,7 @@ func (authSet *AuthoritySet[H, N]) applyForcedChanges(bestHash H, //skipcq:  RVV
 	return newSet, nil
 }
 
-// applyStandardChanges Apply or prune any pending transitions based on a finality trigger. This
+// applyStandardChanges applies or prunes any pending transitions based on a finality trigger. This
 // method ensures that if there are multiple changes in the same branch,
 // finalising this block won't finalise past multiple transitions (i.e.
 // transitions must be finalised in-order). The given function
@@ -508,7 +508,7 @@ func (authSet *AuthoritySet[H, N]) applyStandardChanges( //skipcq:  RVV-B0001
 	}
 }
 
-// EnactsStandardChange Check whether the given finalised block number enacts any standard
+// EnactsStandardChange checks whether the given finalised block number enacts any standard
 // authority set HashNumber (without triggering it), ensuring that if there are
 // multiple changes in the same branch, finalising this block won't
 // finalise past multiple transitions (i.e. transitions must be finalised
@@ -551,13 +551,13 @@ func newDelayKind[N constraints.Unsigned, T delayKinds[N]](val T) delayKind {
 // Finalized Depth in finalised chain.
 type Finalized struct{}
 
-// Best Depth in best chain. The median last finalised block is calculated at the time the
+// Best depth in best chain. The median last finalised block is calculated at the time the
 // HashNumber was signalled.
 type Best[N constraints.Unsigned] struct {
 	medianLastFinalized N
 }
 
-// PendingChange A pending HashNumber to the authority set.
+// PendingChange is a pending HashNumber to the authority set.
 //
 // This will be applied when the announcing block is at some depth within
 // the finalised or unfinalised chain.
