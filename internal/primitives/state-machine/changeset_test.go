@@ -26,6 +26,38 @@ type DrainedValue struct {
 }
 type Drained []DrainedValue
 
+func extrinsic(value uint32) *uint32 {
+	return &value
+}
+
+func assertChanges(t *testing.T, is OverlayedChangeSet, expected Changes) {
+	var changes Changes
+	for k, v := range is.Changes() {
+		extrinsics := slices.Collect(maps.Keys(v.Extrinsics()))
+		slices.Sort(extrinsics)
+		if extrinsics == nil {
+			extrinsics = []uint32{}
+		}
+
+		changes = append(changes, ChangesValue{k, v.Value().value(), extrinsics})
+	}
+
+	slices.SortFunc(changes, func(a, b ChangesValue) int {
+		return strings.Compare(a.key, b.key)
+	})
+
+	require.Equal(t, expected, changes)
+}
+
+func assertDrained(t *testing.T, is OverlayedChangeSet, expected Drained) {
+	var drained Drained
+	for k, v := range is.DrainCommited() {
+		drained = append(drained, DrainedValue{k, v.value()})
+	}
+
+	require.Equal(t, expected, drained)
+}
+
 func TestDirtyKeysSetsPop(t *testing.T) {
 	set1 := btree.Set[int]{}
 	set1.Insert(1)
@@ -126,36 +158,4 @@ func TestTransactionWorks(t *testing.T) {
 		{"key99", NewStorageValue([]byte("value99")), []uint32{99}},
 	}
 	assertChanges(t, changeSet, rollBack)
-}
-
-func extrinsic(value uint32) *uint32 {
-	return &value
-}
-
-func assertChanges(t *testing.T, is OverlayedChangeSet, expected Changes) {
-	var changes Changes
-	for k, v := range is.Changes() {
-		extrinsics := slices.Collect(maps.Keys(v.Extrinsics()))
-		slices.Sort(extrinsics)
-		if extrinsics == nil {
-			extrinsics = []uint32{}
-		}
-
-		changes = append(changes, ChangesValue{k, v.Value().value(), extrinsics})
-	}
-
-	slices.SortFunc(changes, func(a, b ChangesValue) int {
-		return strings.Compare(a.key, b.key)
-	})
-
-	require.Equal(t, expected, changes)
-}
-
-func assertDrained(t *testing.T, is OverlayedChangeSet, expected Drained) {
-	var drained Drained
-	for k, v := range is.DrainCommited() {
-		drained = append(drained, DrainedValue{k, v.value()})
-	}
-
-	require.Equal(t, expected, drained)
 }

@@ -6,8 +6,6 @@ package statemachine
 import (
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var NoExtrinsicIndex uint32 = 0xffffffff
@@ -109,7 +107,7 @@ type StorageTransactionCache[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	transactionStorageRoot H
 }
 
-type OverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
+/*type OverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	// Top level storage changes.
 	top OverlayedChangeSet
 	// Child storage changes. The map key is the child storage key without the common prefix.
@@ -223,4 +221,4 @@ func (oc *OverlayedChanges[H, Hasher]) extrinsicIndex() *uint32 {
 	}
 
 	return &result
-}
+}*/
