@@ -6,6 +6,9 @@ package util
 import (
 	"errors"
 	"fmt"
+	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
+	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/lib/primitives"
 	"math"
 	"sync"
 	"time"
@@ -16,7 +19,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/primitives"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	wazero_runtime "github.com/ChainSafe/gossamer/lib/runtime/wazero"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -95,7 +97,7 @@ func (u UnifiedReputationChange) CostOrBenefit() int32 {
 // ReputationAggregator collects and sends reputation changes in batches.
 type ReputationAggregator struct {
 	sendImmediatelyIf func(rep UnifiedReputationChange) bool
-	byPeer            map[peer.ID]int32
+	byPeer            map[peer.ID]peerset.ReputationChange
 	mu                sync.Mutex
 }
 
@@ -103,12 +105,12 @@ type ReputationAggregator struct {
 func NewReputationAggregator(sendImmediatelyIf func(rep UnifiedReputationChange) bool) *ReputationAggregator {
 	return &ReputationAggregator{
 		sendImmediatelyIf: sendImmediatelyIf,
-		byPeer:            make(map[peer.ID]int32),
+		byPeer:            make(map[peer.ID]peerset.ReputationChange),
 	}
 }
 
 // Send sends the accumulated reputation changes in a batch and clears the state.
-func (r *ReputationAggregator) Send(overseerCh chan<- NetworkBridgeTxMessage) {
+func (r *ReputationAggregator) Send(overseerCh chan<- any) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -116,17 +118,23 @@ func (r *ReputationAggregator) Send(overseerCh chan<- NetworkBridgeTxMessage) {
 		return
 	}
 
-	message := NetworkBridgeTxMessage{
-		ReportPeerMessageBatch: r.byPeer,
+	// TODO: optimize this to be batch supported
+	for peerId, rep := range r.byPeer {
+		overseerCh <- networkbridgemessages.ReportPeer{
+			PeerID: peerId,
+			ReputationChange: peerset.ReputationChange{
+				Value:  rep.Value,
+				Reason: rep.Reason,
+			},
+		}
 	}
-	overseerCh <- message
 
-	r.byPeer = make(map[peer.ID]int32)
+	r.byPeer = make(map[peer.ID]peerset.ReputationChange)
 }
 
 // Modify processes a reputation change, sending it immediately if necessary or accumulating it.
 func (r *ReputationAggregator) Modify(
-	overseerCh chan<- NetworkBridgeTxMessage,
+	overseerCh chan<- any,
 	peerID peer.ID,
 	rep UnifiedReputationChange,
 ) {
@@ -138,21 +146,25 @@ func (r *ReputationAggregator) Modify(
 		return
 	}
 
-	r.byPeer[peerID] = primitives.SaturatingAdd(r.byPeer[peerID], rep.CostOrBenefit())
+	r.byPeer[peerID] = peerset.ReputationChange{
+		Value:  peerset.Reputation(primitives.SaturatingAdd(int32(r.byPeer[peerID].Value), rep.CostOrBenefit())),
+		Reason: rep.Reason,
+	}
 }
 
 // singleSend sends a single reputation change directly.
 func (r *ReputationAggregator) singleSend(
-	overseerCh chan<- NetworkBridgeTxMessage,
+	overseerCh chan<- any,
 	peerID peer.ID,
 	rep UnifiedReputationChange,
 ) {
-	message := NetworkBridgeTxMessage{
-		ReportPeerMessageBatch: map[peer.ID]int32{
-			peerID: rep.CostOrBenefit(),
+	overseerCh <- networkbridgemessages.ReportPeer{
+		PeerID: peerID,
+		ReputationChange: peerset.ReputationChange{
+			Value:  peerset.Reputation(rep.CostOrBenefit()),
+			Reason: rep.Reason,
 		},
 	}
-	overseerCh <- message
 }
 
 // SigningKeyAndIndex finds the first key we can sign with from the given set of validators,
@@ -212,7 +224,7 @@ func DetermineNewBlocks(subsystemToOverseer chan<- any, isKnown func(hash common
 
 	lastHeader := ancestry[len(ancestry)-1].Header
 	// This is always non-zero as determined by the loop invariant above.
-	numberOfAncestors := min(maxNumberOfAncestors, (lastHeader.Number - minBlockNeeded))
+	numberOfAncestors := min(maxNumberOfAncestors, lastHeader.Number-minBlockNeeded)
 
 	ancestors, err := GetBlockAncestors(subsystemToOverseer, head, uint32(numberOfAncestors))
 	if err != nil {

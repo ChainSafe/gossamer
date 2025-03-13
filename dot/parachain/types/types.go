@@ -821,6 +821,12 @@ func (c UncheckedSignedAvailabilityBitfield) ToCheck(key crypto.PublicKey) (*Che
 	return &csa, nil
 }
 
+func (c UncheckedSignedAvailabilityBitfield) IsEqual(u UncheckedSignedAvailabilityBitfield) bool {
+	return bytes.Equal(c.Payload.bytes(), u.Payload.bytes()) &&
+		c.ValidatorIndex == u.ValidatorIndex &&
+		c.Signature == u.Signature
+}
+
 // Subsystem is an interface for subsystems to be registered with the overseer.
 type Subsystem interface {
 	// Run runs the subsystem.
@@ -963,5 +969,5 @@ func (v Validator) VerifySignature(
 
 type DistributeBitfield struct {
 	RelayParent common.Hash
-	Bitfield    CheckedSignedAvailabilityBitfield
+	Bitfield    UncheckedSignedAvailabilityBitfield
 }

@@ -173,7 +173,7 @@ func handleActiveLeavesUpdate(ctx context.Context, b *BitfieldSigning, activated
 	// distribute to subsystem to overseer chan
 	b.subSystemToOverseer <- parachaintypes.DistributeBitfield{
 		RelayParent: relayParent,
-		Bitfield: parachaintypes.CheckedSignedAvailabilityBitfield{
+		Bitfield: parachaintypes.UncheckedSignedAvailabilityBitfield{
 			Payload:        bitfield,
 			ValidatorIndex: validatorIndex,
 			Signature:      *signature,

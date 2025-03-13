@@ -11,9 +11,11 @@ import (
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"sync"
 )
@@ -22,7 +24,8 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-bitfield-distrib
 
 type perRelayParentData struct {
 	// Signing context for a particular relay parent.
-	sessionIndex parachaintypes.SessionIndex // the required part of the signing context
+	// the required part of the signing context
+	sessionIndex parachaintypes.SessionIndex
 
 	// Set of validators for a particular relay parent.
 	validatorsSet []parachaintypes.ValidatorID
@@ -40,9 +43,14 @@ type perRelayParentData struct {
 	messageReceivedFromPeer map[peer.ID]map[parachaintypes.ValidatorID]struct{}
 }
 
-// TODO: impl me
-func NewPerRelayParentData(sessionIndex parachaintypes.SessionIndex) {
-
+func newPerRelayParentData(sessionIndex parachaintypes.SessionIndex, validatorSet []parachaintypes.ValidatorID) *perRelayParentData {
+	return &perRelayParentData{
+		sessionIndex:            sessionIndex,
+		validatorsSet:           validatorSet,
+		onePerValidator:         make(map[parachaintypes.ValidatorID]*validationprotocol.BitfieldDistributionMessage),
+		messageSentToPeer:       make(map[peer.ID]map[parachaintypes.ValidatorID]struct{}),
+		messageReceivedFromPeer: make(map[peer.ID]map[parachaintypes.ValidatorID]struct{}),
+	}
 }
 
 // messageFromValidatorNeededByPeer determines if that particular message signed by a
@@ -51,7 +59,7 @@ func (p *perRelayParentData) messageFromValidatorNeededByPeer(peerID peer.ID, si
 	_, sendToExist := p.messageSentToPeer[peerID][signedBy]
 	_, receiveFromExist := p.messageReceivedFromPeer[peerID][signedBy]
 
-	return sendToExist && receiveFromExist
+	return !sendToExist && !receiveFromExist
 }
 
 type BitfieldDistribution struct {
@@ -64,6 +72,9 @@ type BitfieldDistribution struct {
 	ourView        parachaintypes.View
 	topologies     grid.SessionGridTopologyStorage
 	perRelayParent map[common.Hash]*perRelayParentData
+	reputation     *util.ReputationAggregator
+
+	// TODO: Metrics
 
 	mu sync.Mutex
 }
@@ -76,8 +87,11 @@ func NewBitfieldDistribution(overseerChan chan<- any) *BitfieldDistribution {
 			protocolVersion uint32
 		}),
 		ourView:        parachaintypes.View{},
-		topologies:     grid.SessionGridTopologyStorage{}, // TODO: init the topologies
+		topologies:     grid.SessionGridTopologyStorage{}, // TODO: update_topology the topologies in NewGossipTopology signal
 		perRelayParent: make(map[common.Hash]*perRelayParentData),
+		reputation: util.NewReputationAggregator(func(rep util.UnifiedReputationChange) bool {
+			return false // Always accumulate
+		}),
 	}
 }
 
@@ -137,7 +151,7 @@ func (b *BitfieldDistribution) processMessage(msg any) error {
 		if err != nil {
 			return fmt.Errorf("processing our view change signal: %w", err)
 		}
-	case networkbridgeevents.PeerMessage[validationprotocol.ValidationProtocol]: // TODO: are we sure this type would be validationprotocol.ValidationProtocol?
+	case networkbridgeevents.PeerMessage[validationprotocol.ValidationProtocol]:
 		err := b.ProcessPeerMessageSignal(msg)
 		if err != nil {
 			return fmt.Errorf("processing our view change signal: %w", err)
@@ -170,30 +184,30 @@ func (b *BitfieldDistribution) ProcessBitfieldDistributionMessageSignal(signal v
 		return err
 	}
 
-	var bitfieldDistributionMess validationprotocol.Bitfield
-	switch v := value.(type) {
-	case validationprotocol.Bitfield:
-		bitfieldDistributionMess = v
-	default:
+	// the BitfieldDistributionMessage incoming should be unchecked as bitfield signing subsystem only send over the
+	// unchecked ones
+	bitfieldDistributionMess, ok := value.(validationprotocol.UncheckedBitfield)
+	if !ok {
 		return fmt.Errorf("unexpected message type: %T", value)
 	}
 
 	// prepare the relay message data
 	jobData := b.perRelayParent[bitfieldDistributionMess.Hash]
 	if jobData == nil {
-		logger.Infof("not supposed to work on relay parent related data")
+		logger.Debugf("not supposed to work on relay parent related data")
 		return nil
 	}
 
 	sessionIdx := jobData.sessionIndex
 
 	if len(jobData.validatorsSet) == 0 {
-		logger.Infof("validator set is empty")
+		logger.Debugf("validator set is empty")
 		return nil
 	}
-	validatorIdx := bitfieldDistributionMess.CheckedSignedAvailabilityBitfield.ValidatorIndex
+	validatorIdx := bitfieldDistributionMess.UncheckedSignedAvailabilityBitfield.ValidatorIndex
 	if uint32(validatorIdx) >= uint32(len(jobData.validatorsSet)) {
-		return fmt.Errorf("could not find a validator for index %d", validatorIdx)
+		logger.Debugf("could not find a validator for index %d", validatorIdx)
+		return nil
 	}
 	validatorID := jobData.validatorsSet[validatorIdx]
 
@@ -201,12 +215,24 @@ func (b *BitfieldDistribution) ProcessBitfieldDistributionMessageSignal(signal v
 
 	requiredRouting := topology.RequiredRoutingByIndex(validatorIdx, true)
 
-	msg := parachaintypes.DistributeBitfield{
-		RelayParent: bitfieldDistributionMess.Hash,
-		Bitfield:    bitfieldDistributionMess.CheckedSignedAvailabilityBitfield,
+	// check the unchecked bitfield message against the validator
+	vpk, err := sr25519.NewPublicKey(validatorID[:])
+	if err != nil {
+		return err
+	}
+	checkedBitfield, err := bitfieldDistributionMess.UncheckedSignedAvailabilityBitfield.ToCheck(vpk)
+	if err != nil {
+		return fmt.Errorf("unable to verfy the signed bitfield message against the validator"+
+			": %s, err :%s", validatorID, err)
 	}
 
-	relayMessage(jobData, topology, b.peerViews, validatorID, msg, requiredRouting, b.subSystemToOverseer)
+	// construct the relay message
+	checkedBitfieldMessage := validationprotocol.CheckedBitfield{
+		Hash:                              bitfieldDistributionMess.Hash,
+		CheckedSignedAvailabilityBitfield: *checkedBitfield,
+	}
+
+	go relayMessage(jobData, topology, b.peerViews, validatorID, checkedBitfieldMessage, requiredRouting, b.subSystemToOverseer)
 
 	return nil
 }
@@ -259,8 +285,141 @@ func (b *BitfieldDistribution) ProcessOurViewChangeSignal(signal networkbridgeev
 }
 
 func (b *BitfieldDistribution) ProcessPeerMessageSignal(signal networkbridgeevents.PeerMessage[validationprotocol.ValidationProtocol]) error {
-	//TODO implement me
-	panic("implement me")
+	valueIdx, value, err := signal.Message.IndexValue()
+	if err != nil {
+		return err
+	}
+	// index 1 is BitfieldDistribution
+	if valueIdx != 1 {
+		return fmt.Errorf("invalid value index for peer message handler, supporsed to be 1: %d", valueIdx)
+	}
+	// TODO: add protocol version support
+	m, err := value.(validationprotocol.BitfieldDistribution).BitfieldDistributionMessage.Value()
+	if err != nil {
+		return err
+	}
+	uncheckedBitfield, ok := m.(validationprotocol.UncheckedBitfield)
+	if !ok {
+		return fmt.Errorf("invalid value index for peer message handler, supporsed to be 1: %d", valueIdx)
+	}
+	relayParent := uncheckedBitfield.Hash
+	bitfield := uncheckedBitfield.UncheckedSignedAvailabilityBitfield
+
+	logger.Debugf("reveived bitfield gossip from peer")
+
+	// not our concern
+	if !b.ourView.Contains(relayParent) {
+		go modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
+			Type:   util.CostMinor,
+			Reason: "Not interested in that parent hash",
+		}, relayParent)
+		return nil
+	}
+
+	jobData := b.perRelayParent[relayParent]
+	if jobData == nil {
+		go modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
+			Type:   util.CostMinor,
+			Reason: "Not interested in that parent hash",
+		}, relayParent)
+		return nil
+	}
+
+	validatorIdx := bitfield.ValidatorIndex
+	validatorSet := jobData.validatorsSet
+
+	if len(validatorSet) == 0 {
+		go modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
+			Type:   util.CostMinor,
+			Reason: "Missing peer session key",
+		}, relayParent)
+		return nil
+	}
+
+	if uint32(validatorIdx) >= uint32(len(jobData.validatorsSet)) {
+		go modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
+			Type:   util.CostMajor,
+			Reason: "Bitfield validator index invalid",
+		}, relayParent)
+		logger.Debugf("could not find a validator for index %d", validatorIdx)
+		return nil
+
+	}
+	validatorID := jobData.validatorsSet[validatorIdx]
+
+	receivedSet := jobData.messageReceivedFromPeer[signal.PeerID]
+	if receivedSet == nil {
+		receivedSet = make(map[parachaintypes.ValidatorID]struct{})
+		receivedSet[validatorID] = struct{}{}
+	} else {
+		_, ok := receivedSet[validatorID]
+		if ok {
+			logger.Debugf("duplicated message in messageReceivedFromPeer")
+			go modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
+				Type:   util.CostMinorRepeated,
+				Reason: "Peer sent the same message multiple times",
+			}, relayParent)
+			return nil
+		}
+	}
+
+	// compare the bitfield from subsystem state against the incoming signal
+	m, err = jobData.onePerValidator[validatorID].Value()
+	if err != nil {
+		return err
+	}
+	storedBitfield, ok := m.(validationprotocol.UncheckedBitfield)
+	if !ok {
+		return fmt.Errorf("unable to casting the stored BitfieldDistributionMessage in onePerValidator "+
+			"for validatorID %d", validatorID)
+	}
+	if storedBitfield.UncheckedSignedAvailabilityBitfield.IsEqual(bitfield) {
+		// already received a message for validator
+		go modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
+			Type:   util.BenefitMinor,
+			Reason: "Valid message",
+		}, relayParent)
+		return nil
+	}
+
+	// verify the bitfield data against the validator
+	vpk, err := sr25519.NewPublicKey(validatorID[:])
+	if err != nil {
+		return err
+	}
+	checkedBitfield, err := bitfield.ToCheck(vpk)
+	if err != nil {
+		go modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
+			Type:   util.CostMajor,
+			Reason: "Bitfield signature invalid",
+		}, relayParent)
+		return err
+	}
+
+	// prepare for the relay message call
+	topology := b.topologies.GetTopologyOrFallback(jobData.sessionIndex).LocalNeighbours
+	requiredRouting := topology.RequiredRoutingByIndex(validatorIdx, false)
+	message := validationprotocol.CheckedBitfield{
+		Hash:                              relayParent,
+		CheckedSignedAvailabilityBitfield: *checkedBitfield,
+	}
+
+	// update the subsystem state
+	vdm := validationprotocol.NewBitfieldDistributionMessageVDT()
+	err = vdm.SetValue(message)
+	if err != nil {
+		return err
+	}
+	jobData.onePerValidator[validatorID] = &vdm
+
+	go relayMessage(jobData, topology, b.peerViews, validatorID, message, requiredRouting, b.subSystemToOverseer)
+
+	go modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
+		Type:   util.BenefitMinorFirst,
+		Reason: "Valid message with new information",
+	}, relayParent)
+
+	return nil
 }
 
 func (b *BitfieldDistribution) ProcessUpdatedAuthorityIDsSignal(signal networkbridgeevents.UpdatedAuthorityIDs) error {
@@ -286,16 +445,16 @@ func (b *BitfieldDistribution) Stop() {
 // Can be originated by another subsystem or received via network from another peer.
 func relayMessage(jobData *perRelayParentData, topologyNeighbors *grid.GridNeighbours, peers map[peer.ID]struct {
 	view            parachaintypes.View
-	protocolVersion uint32 // ignore v1 peers
-}, validatorID parachaintypes.ValidatorID, message parachaintypes.DistributeBitfield,
+	protocolVersion uint32 // ignore v1 peers after we have validation protocol version support
+}, validatorID parachaintypes.ValidatorID, message validationprotocol.CheckedBitfield,
 	requiredRouting grid.RequiredRouting, subsystemToOverSeerChan chan<- any) {
-	relayParent := message.RelayParent
+	relayParent := message.Hash
 
 	// notify the overseer about a new and valid signed bitfield
 	go func() {
 		subsystemToOverSeerChan <- provisionermessages.ProvisionableDataBitfield{
 			RelayParent: relayParent,
-			Bitfield:    message.Bitfield,
+			Bitfield:    message.CheckedSignedAvailabilityBitfield,
 		}
 	}()
 
@@ -304,7 +463,7 @@ func relayMessage(jobData *perRelayParentData, topologyNeighbors *grid.GridNeigh
 	interestedPeers := make(map[peer.ID]uint32)
 
 	for peerID, peerData := range peers {
-		if peerData.view.Contains(message.RelayParent) {
+		if peerData.view.Contains(relayParent) {
 			if jobData.messageFromValidatorNeededByPeer(peerID, validatorID) {
 				needRouting := topologyNeighbors.ShouldRouteToPeer(requiredRouting, peerID)
 				// TODO: need random routing?
@@ -331,8 +490,13 @@ func relayMessage(jobData *perRelayParentData, topologyNeighbors *grid.GridNeigh
 	if len(v2InterestedPeers) != 0 {
 		go func() {
 			// TODO: add version support for validation protocol
+			bdm := &validationprotocol.BitfieldDistributionMessage{}
+			err := bdm.SetValue(message)
+			if err != nil {
+				return
+			}
 			v := &validationprotocol.ValidationProtocol{}
-			err := v.SetValue(message)
+			err = v.SetValue(bdm)
 			if err != nil {
 				logger.Errorf("processing relay message for v2 protocol: %s", err.Error())
 				return
@@ -348,8 +512,13 @@ func relayMessage(jobData *perRelayParentData, topologyNeighbors *grid.GridNeigh
 	if len(v3InterestedPeers) != 0 {
 		go func() {
 			// TODO: add version support for validation protocol
+			bdm := &validationprotocol.BitfieldDistributionMessage{}
+			err := bdm.SetValue(message)
+			if err != nil {
+				return
+			}
 			v := &validationprotocol.ValidationProtocol{}
-			err := v.SetValue(message)
+			err = v.SetValue(bdm)
 			if err != nil {
 				logger.Errorf("processing relay message for v3 protocol: %s", err.Error())
 				return
@@ -372,4 +541,10 @@ func filterByPeerVersion(peers map[peer.ID]uint32, protocolVersion uint32) []pee
 	}
 
 	return re
+}
+
+func modifyReputation(reputation *util.ReputationAggregator, sender chan<- any, peer peer.ID, rep util.UnifiedReputationChange, relayParent common.Hash) {
+	logger.Infof("reputation modified for peer %s on relay parent %s", peer.String(), relayParent.String())
+
+	reputation.Modify(sender, peer, rep)
 }
