@@ -624,7 +624,7 @@ func Test_gossipValidator(t *testing.T) {
 
 		// after more than 1.5 round durations have elapsed we should gossip to
 		// `sqrt(peers)` we're connected to, but we guarantee that at least 4 of
-		// those peers are authorities (plus the `LUCKY_PEERS` from the previous
+		// those peers are authorities (plus the `luckyPeers` from the previous
 		// stage)
 		require.True(t, trial(test(float64(propagationSome)*1.1, authorities)) >= luckyPeers)
 		require.Equal(t, trial(test(2.0, allPeers)), luckyPeers+uint(math.Sqrt(float64(len(allPeers)))))

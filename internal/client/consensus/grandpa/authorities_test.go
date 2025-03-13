@@ -366,7 +366,7 @@ func TestDisallowMultipleChangesBeingFinalizedAtOnce(t *testing.T) {
 		}
 	})
 
-	// trying to finalise past `change_c` without finalising `change_a` first
+	// trying to finalise past `changeC` without finalising `changeA` first
 	_, err = authorities.applyStandardChanges(
 		hashD,
 		40,
@@ -867,7 +867,7 @@ func TestNextChangeWorks(t *testing.T) {
 	err = authorities.addPendingChange(changeA1, isDescOf)
 	require.NoError(t, err)
 
-	// the earliest HashNumber at block `best_a` should be the HashNumber at A0 (#5)
+	// the earliest HashNumber at block "best_a" should be the HashNumber at A0 (#5)
 	expChange := &HashNumber[string, uint]{
 		Hash:   "hash_a0",
 		Number: 5,
@@ -876,7 +876,7 @@ func TestNextChangeWorks(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expChange, c)
 
-	// the earliest HashNumber at block `best_b` should be the HashNumber at B (#4)
+	// the earliest HashNumber at block "best_b" should be the HashNumber at B (#4)
 	expChange = &HashNumber[string, uint]{
 		Hash:   hashB,
 		Number: 4,
@@ -898,7 +898,7 @@ func TestNextChangeWorks(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expChange, c)
 
-	// there's no longer any pending HashNumber at `best_b` fork
+	// there's no longer any pending HashNumber at "best_b" fork
 	c, err = authorities.nextChange("best_b", isDescOf)
 	require.NoError(t, err)
 	require.Nil(t, c)
@@ -1342,7 +1342,7 @@ func TestIterFromWorks(t *testing.T) {
 	authoritySetChanges.append(1, 41)
 	authoritySetChanges.append(2, 81)
 
-	// we are missing the data for the first set, therefore we should return `None`
+	// we are missing the data for the first set, therefore we should return `nil`
 	iterSet := authoritySetChanges.IterFrom(40)
 	require.Nil(t, iterSet)
 

@@ -310,7 +310,7 @@ func newVoterSetStateVDT[H runtime.Hash, N runtime.Number]() *voterSetStateVDT[H
 
 // newVoterSetStateLive Create a new live voterSetState with round 0 as a completed round using
 // the given genesis state and the given authorities. Round 1 is added as a
-// current round (with state `hasVoted::no`).
+// current round (with state `hasVotedNo`).
 func newVoterSetStateLive[H runtime.Hash, N runtime.Number](
 	setId primitives.SetID,
 	authSet AuthoritySet[H, N],

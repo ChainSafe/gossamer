@@ -296,7 +296,7 @@ func (authSet *AuthoritySet[H, N]) addForcedChange(
 // on the same branch can be added as long as they don't overlap. Forced
 // changes are restricted to one per fork. This method assumes that changes
 // on the same branch will be added in-order. The given function
-// `is_descendent_of` should return `true` if the second hash (target) is a
+// `isDescendentOf` should return `true` if the second hash (target) is a
 // descendent of the first hash (base).
 func (authSet *AuthoritySet[H, N]) addPendingChange(
 	pending PendingChange[H, N],
@@ -435,7 +435,7 @@ func (authSet *AuthoritySet[H, N]) applyForcedChanges(bestHash H, //skipcq:  RVV
 // method ensures that if there are multiple changes in the same branch,
 // finalising this block won't finalise past multiple transitions (i.e.
 // transitions must be finalised in-order). The given function
-// `is_descendent_of` should return `true` if the second hash (target) is a
+// `isDescendentOf` should return `true` if the second hash (target) is a
 // descendent of the first hash (base).
 //
 // When the set has changed, the return value will be a status type where newSetBlock
@@ -491,7 +491,7 @@ func (authSet *AuthoritySet[H, N]) applyStandardChanges( //skipcq:  RVV-B0001
 
 			// TODO add telemetry
 
-			// Store the set_id together with the last block_number for the set
+			// Store the setID together with the last block_number for the set
 			authSet.AuthoritySetChanges.append(authSet.SetID, finalisedNumber)
 			authSet.CurrentAuthorities = val.value.NextAuthorities
 			authSet.SetID++
@@ -516,7 +516,7 @@ func (authSet *AuthoritySet[H, N]) applyStandardChanges( //skipcq:  RVV-B0001
 // HashNumber that can be immediately applied, *false if the block being
 // finalised enacts a HashNumber but it cannot be applied yet since there are
 // other dependent changes, and nil if no HashNumber is enacted. The given
-// function `is_descendent_of` should return `true` if the second hash
+// function `isDescendentOf` should return `true` if the second hash
 // (target) is a descendent of the first hash (base).
 func (authSet *AuthoritySet[H, N]) EnactsStandardChange( //skipcq:  RVV-B0001
 	finalisedHash H, finalisedNumber N, isDescendentOf IsDescendentOf[H]) (*bool, error) {

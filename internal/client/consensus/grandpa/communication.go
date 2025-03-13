@@ -185,7 +185,7 @@ func newNetworkBridge[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]
 				gossipEngine.RegisterGossipMessage(topic, scale.MustMarshal(gossipMessage))
 			}
 
-			logger.Tracef("Registered %d messages for topic %v (round: %d, set_id: %d)", len(round.Votes), topic, round.Number, setID)
+			logger.Tracef("Registered %d messages for topic %v (round: %d, setID: %d)", len(round.Votes), topic, round.Number, setID)
 		}
 	}
 
@@ -873,38 +873,14 @@ func newCommitsOut[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]](
 // 		Poll::Ready(Ok(()))
 // 	}
 
-// fn start_send(
-//
-//	self: Pin<&mut Self>,
-//	input: (RoundNumber, Commit<Block::Header>),
-//
-// ) -> Result<(), Self::Error> {
 func (co *commitsOut[H, N, Hasher]) preSend(
 	round Round,
 	commit primitives.Commit[H, N],
 ) error {
-	// 		if !self.is_voter {
-	// 			return Ok(())
-	// 		}
 	if !co.isVoter {
 		return nil
 	}
 
-	// 		let (round, commit) = input;
-	// 		let round = Round(round);
-
-	// 		telemetry!(
-	// 			self.telemetry;
-	// 			CONSENSUS_DEBUG;
-	// 			"afg.commit_issued";
-	// 			"target_number" => ?commit.target_number,
-	// 			"target_hash" => ?commit.target_hash,
-	// 		);
-	// 		let (precommits, auth_data) = commit
-	// 			.precommits
-	// 			.into_iter()
-	// 			.map(|signed| (signed.precommit, (signed.signature, signed.id)))
-	// 			.unzip();
 	precommits := make([]grandpa.Precommit[H, N], len(commit.Precommits))
 	authData := make(grandpa.MultiAuthData[primitives.AuthoritySignature, primitives.AuthorityID], len(commit.Precommits))
 	for i, signed := range commit.Precommits {
@@ -915,24 +891,12 @@ func (co *commitsOut[H, N, Hasher]) preSend(
 		}
 	}
 
-	// 		let compact_commit = CompactCommit::<Block::Header> {
-	// 			target_hash: commit.target_hash,
-	// 			target_number: commit.target_number,
-	// 			precommits,
-	// 			auth_data,
-	// 		};
 	compactCommit := primitives.CompactCommit[H, N]{
 		TargetHash:   commit.TargetHash,
 		TargetNumber: commit.TargetNumber,
 		Precommits:   precommits,
 		AuthData:     authData,
 	}
-
-	// 		let message = GossipMessage::Commit(FullCommitMessage::<Block> {
-	// 			round,
-	// 			set_id: self.set_id,
-	// 			message: compact_commit,
-	// 		});
 
 	messageCommit := gossipMessageCommit[H, N](fullCommitMessage[H, N]{
 		Round:   round,
@@ -942,18 +906,10 @@ func (co *commitsOut[H, N, Hasher]) preSend(
 	var message gossipMessageVDT[H, N]
 	message.inner = messageCommit
 
-	// 		let topic = global_topic::<Block>(self.set_id.0);
 	topic := globalTopic[H, Hasher](co.setID)
 
 	// the gossip validator needs to be made aware of the best commit-height we know of
 	// before gossiping
-	// 		self.gossip_validator.note_commit_finalized(
-	// 			round,
-	// 			self.set_id,
-	// 			commit.target_number,
-	// 			|to, neighbor| self.neighbor_sender.send(to, neighbor),
-	// 		);
-	// 		self.network.lock().gossip_message(topic, message.encode(), false);
 	co.gossipValidator.noteCommitFinalized(
 		round,
 		co.setID,
@@ -964,15 +920,5 @@ func (co *commitsOut[H, N, Hasher]) preSend(
 	)
 	co.network.GossipMessage(topic, scale.MustMarshal(message), false)
 
-	// 		Ok(())
 	return nil
 }
-
-// 	fn poll_close(self: Pin<&mut Self>, _: &mut Context) -> Poll<Result<(), Self::Error>> {
-// 		Poll::Ready(Ok(()))
-// 	}
-
-// 	fn poll_flush(self: Pin<&mut Self>, _: &mut Context) -> Poll<Result<(), Self::Error>> {
-// 		Poll::Ready(Ok(()))
-// 	}
-// }

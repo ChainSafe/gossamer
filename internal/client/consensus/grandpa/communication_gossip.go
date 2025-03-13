@@ -205,7 +205,7 @@ type keepTopicsMapEntry struct {
 
 // / Tracks gossip topics that we are keeping messages for. We keep topics of:
 // /
-// / - the last `KEEP_RECENT_ROUNDS` complete GRANDPA rounds,
+// / - the last `keepRecentRounds` complete GRANDPA rounds,
 // /
 // / - the topic for the current and next round,
 // /
@@ -622,7 +622,7 @@ type peerInfo[N runtime.Number] struct {
 type peers[N runtime.Number] struct {
 	// inner: AHashMap<PeerId, PeerInfo<N>>,
 	inner map[peerid.PeerID]peerInfo[N]
-	/// The randomly picked set of `LUCKY_PEERS` we'll gossip to in the first stage of round
+	/// The randomly picked set of `luckyPeers` we'll gossip to in the first stage of round
 	/// gossiping.
 	// first_stage_peers: AHashSet<PeerId>,
 	firstStagePeers map[peerid.PeerID]struct{}
@@ -631,7 +631,7 @@ type peers[N runtime.Number] struct {
 	/// set should have size `sqrt(connected_peers)`.
 	// second_stage_peers: HashSet<PeerId>,
 	secondStagePeers map[peerid.PeerID]struct{}
-	/// The randomly picked set of `LUCKY_PEERS` light clients we'll gossip commit messages to.
+	/// The randomly picked set of `luckyPeers` light clients we'll gossip commit messages to.
 	// lucky_light_peers: HashSet<PeerId>,
 	luckyLightPeers map[peerid.PeerID]struct{}
 	/// Neighbor packet rebroadcast period --- we reduce the reputation of peers sending duplicate
@@ -745,12 +745,12 @@ func (p *peers[N]) peer(who peerid.PeerID) *peerInfo[N] {
 
 func (p *peers[N]) reshuffle() {
 	// we want to randomly select peers into three sets according to the following logic:
-	// - first set: LUCKY_PEERS random peers where at least LUCKY_PEERS/2 are authorities
+	// - first set: luckyPeers random peers where at least luckyPeers/2 are authorities
 	//   (unless
 	// we're not connected to that many authorities)
-	// - second set: max(LUCKY_PEERS, sqrt(peers)) peers where at least LUCKY_PEERS are
+	// - second set: max(luckyPeers, sqrt(peers)) peers where at least luckyPeers are
 	//   authorities.
-	// - third set: LUCKY_PEERS random light client peers
+	// - third set: luckyPeers random light client peers
 
 	type peer struct {
 		peerid.PeerID
@@ -780,7 +780,7 @@ func (p *peers[N]) reshuffle() {
 	secondStagePeers := make(map[peerid.PeerID]struct{})
 
 	// we start by allocating authorities to the first stage set and when the minimum of
-	// `LUCKY_PEERS / 2` is filled we start allocating to the second stage set.
+	// `luckyPeers / 2` is filled we start allocating to the second stage set.
 	halfLucky := luckyPeers / 2
 	oneAndAHalfLucky := luckyPeers + halfLucky
 	for nAuthoritiesAdded, peerID := range shuffledAuthorities {
@@ -813,7 +813,7 @@ func (p *peers[N]) reshuffle() {
 		}
 	}
 
-	// pick `LUCKY_PEERS` random light peers
+	// pick `luckyPeers` random light peers
 	luckyLightPeers := make(map[peerid.PeerID]struct{})
 	for _, peer := range shuffledPeers {
 		if peer.roles.IsLight() {
@@ -829,8 +829,6 @@ func (p *peers[N]) reshuffle() {
 	p.luckyLightPeers = luckyLightPeers
 }
 
-// #[derive(Debug, PartialEq)]
-// pub(super) enum Action<H> {
 type action interface {
 	isAction()
 }
@@ -857,8 +855,6 @@ func (actionProcessAndDiscard[H]) isAction() {}
 func (actionDiscard[H]) isAction()           {}
 
 // / State of catch up request handling.
-// #[derive(Debug)]
-// enum PendingCatchUp {
 type pendingCatchUp interface {
 	isPendingCatchUp()
 }
@@ -894,7 +890,6 @@ type catchUpConfig[N runtime.Number] interface {
 // / GRANDPA observer protocol is live on the network, in which case full
 // / nodes (non-authorities) don't have the necessary round data to answer
 // / catch-up requests.
-// Enabled { only_from_authorities: bool },
 type catchUpConfigEnabled[N runtime.Number] struct {
 	onlyFromAuthorities bool
 }
@@ -994,7 +989,7 @@ func (i *inner[H, N, Hasher]) noteRound(round Round) *peerIDsNeighborPacket[N] {
 }
 
 // / Note that a voter set with given ID has started. Does nothing if the last
-// / call to the function was with the same `set_id`.
+// / call to the function was with the same `SetID`.
 func (i *inner[H, N, Hasher]) noteSet(setID SetID, authorities []primitives.AuthorityID) *peerIDsNeighborPacket[N] {
 	if i.localView == nil {
 		i.localView = newLocalView[N](setID, 1)
@@ -1018,7 +1013,7 @@ func (i *inner[H, N, Hasher]) noteSet(setID SetID, authorities []primitives.Auth
 				i.authorities = authorities
 			}
 
-			// Do not send neighbor packets out if the `set_id` has not changed ---
+			// Do not send neighbor packets out if the `setID` has not changed ---
 			// such behavior is punishable.
 			return nil
 		}
@@ -1033,7 +1028,7 @@ func (i *inner[H, N, Hasher]) noteSet(setID SetID, authorities []primitives.Auth
 
 // / Note that we've imported a commit finalizing a given block. Does nothing if the last
 // / call to the function was with the same or higher `finalized` number.
-// / `set_id` & `round` are the ones the commit message is from.
+// / `setID` & `round` are the ones the commit message is from.
 func (i *inner[H, N, Hasher]) noteCommitFinalized(round Round, setID SetID, finalized N) *peerIDsNeighborPacket[N] {
 	if i.localView == nil {
 		return nil
@@ -1052,7 +1047,6 @@ func (i *inner[H, N, Hasher]) noteCommitFinalized(round Round, setID SetID, fina
 	return i.multicastNeighborPacket()
 }
 
-// fn consider_vote(&self, round: Round, set_id: SetId) -> Consider {
 func (i *inner[H, N, Hasher]) considerVote(round Round, setID SetID) consider {
 	if i.localView == nil {
 		return considerRejectOutOfScope
@@ -1377,9 +1371,9 @@ func (i *inner[H, N, Hasher]) noteCatchUpRequest(who peerid.PeerID, catchUpReque
 // / The initial logic for filtering round messages follows the given state
 // / transitions:
 // /
-// / - State 1: allowed to LUCKY_PEERS random peers (where at least LUCKY_PEERS/2 are
+// / - State 1: allowed to luckyPeers random peers (where at least luckyPeers/2 are
 // /   authorities)
-// / - State 2: allowed to max(LUCKY_PEERS, sqrt(random peers)) (where at least LUCKY_PEERS are
+// / - State 2: allowed to max(luckyPeers, sqrt(random peers)) (where at least luckyPeers are
 // /   authorities)
 // / - State 3: allowed to all peers
 // /
@@ -1412,7 +1406,7 @@ func (i *inner[H, N, Hasher]) roundMessageAllowed(who peerid.PeerID) bool {
 // / The initial logic for filtering global messages follows the given state
 // / transitions:
 // /
-// / - State 1: allowed to max(LUCKY_PEERS, sqrt(peers)) (where at least LUCKY_PEERS are
+// / - State 1: allowed to max(luckyPeers, sqrt(peers)) (where at least luckyPeers are
 // /   authorities)
 // / - State 2: allowed to all peers
 // /
@@ -1500,7 +1494,7 @@ func (gv *gossipValidator[H, N, Hasher]) noteSet(
 }
 
 // / Note that we've imported a commit finalizing a given block.
-// / `set_id` & `round` are the ones the commit message is from and not necessarily
+// / `setID` & `round` are the ones the commit message is from and not necessarily
 // / the latest set ID & round started.
 func (gv *gossipValidator[H, N, Hasher]) noteCommitFinalized(
 	round Round, setID SetID, finalized N, sendNeighbor func(to []peerid.PeerID, msg neighborPacket[N]),
