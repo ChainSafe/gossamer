@@ -71,5 +71,99 @@ func (oc *OverlayedChangeSet) CommitTransaction() error {
 }
 
 func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
-	panic("TODO OverlayedChangeSet::closeTransaction")
+	if oc.executionMode == ExecutionModeRuntime && !oc.HasOpenRuntimeTransactions() {
+		return errorNoOpenTransaction
+	}
+
+	lastTransaction, has := oc.dirtyKeys.Pop()
+	if !has {
+		return errorNoOpenTransaction
+	}
+
+	lastTransaction.Scan(func(key string) bool {
+		overlayed, has := oc.changes[key]
+		if !has {
+			panic(`
+				A write to an OverlayedValue is recorded in the dirty key set. Before an
+				OverlayedValue is removed, its containing dirty set is removed. This
+				function is only called for keys that are in the dirty set. qed\
+			`)
+		}
+
+		if rollback {
+			lastTx := overlayed.PopTransaction().value
+			switch entry := lastTx.(type) {
+			case AppendStorageEntry:
+				if len(overlayed.transactions) == 0 {
+					panic("AppendStorageEntry should have transactions")
+				}
+				restoreAppendToParent(
+					*overlayed.ValueRef(),
+					entry.data,
+					entry.materializedLength,
+					*entry.parentSize,
+				)
+			default: // do nothing
+			}
+
+			if len(overlayed.transactions) == 0 {
+				delete(oc.changes, key)
+			}
+		} else {
+			var hasPredecessor bool
+
+			if len(oc.dirtyKeys) > 0 {
+				last := oc.dirtyKeys[len(oc.dirtyKeys)-1]
+
+				hasPredecessor = last.Contains(key)
+				last.Insert(key)
+			} else {
+				hasPredecessor = len(overlayed.transactions) > 1
+			}
+
+			if hasPredecessor {
+				commitedTx := overlayed.PopTransaction()
+				mergeAppends := false
+
+				if entry, ok := commitedTx.value.(AppendStorageEntry); ok && entry.parentSize != nil {
+					if parentEntry, ok := any(overlayed.ValueRef()).(AppendStorageEntry); ok {
+						mergeAppends = true
+						*entry.parentSize = *parentEntry.parentSize
+					}
+				}
+
+				if mergeAppends {
+					*overlayed.ValueRef() = commitedTx.value
+				} else {
+					// TODO: check this
+					removed := *overlayed.ValueRef()
+					*overlayed.ValueRef() = commitedTx.value
+
+					if entry, ok := removed.(AppendStorageEntry); ok {
+						if entry.parentSize != nil {
+							transactions := len(overlayed.transactions)
+
+							if transactions < 2 {
+								panic("transactions should be at least 2")
+							}
+
+							parent := overlayed.transactions[transactions-2]
+							restoreAppendToParent(
+								parent.value,
+								entry.data,
+								entry.materializedLength,
+								*entry.parentSize,
+							)
+						}
+					}
+				}
+
+				overlayed.TransactionExtrinsics().Extend(*commitedTx.extrinsics)
+			}
+		}
+
+		return true
+	})
+
+	return nil
 }
