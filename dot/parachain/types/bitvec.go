@@ -1,6 +1,7 @@
 package parachaintypes
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -245,4 +246,31 @@ func decodeCompactLength(r io.Reader) (uint32, error) {
 	}
 
 	return length, nil
+}
+
+// IsEqual checks if two BitVecs are equal by comparing their lengths and bits
+func (bv *BitVec) IsEqual(other *BitVec) bool {
+	// Check if lengths are different
+	if bv.len != other.len {
+		return false
+	}
+
+	// Calculate number of complete bytes to compare
+	completeBytes := bv.len / 8
+
+	// Compare complete bytes first
+	if !bytes.Equal(bv.bits[:completeBytes], other.bits[:completeBytes]) {
+		return false
+	}
+
+	// Check if there are any remaining bits
+	remainingBits := bv.len % 8
+	if remainingBits == 0 {
+		return true
+	}
+
+	// Compare remaining bits in the last byte
+	mask := byte((1 << remainingBits) - 1)
+	lastByteIndex := completeBytes
+	return (bv.bits[lastByteIndex] & mask) == (other.bits[lastByteIndex] & mask)
 }

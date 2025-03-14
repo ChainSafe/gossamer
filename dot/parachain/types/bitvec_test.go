@@ -14,22 +14,22 @@ func TestBitVec_Bits(t *testing.T) {
 		expected []bool
 	}{
 		{
-			name:     "empty bitvec",
+			name:     "empty_bitvec",
 			bits:     []bool{},
 			expected: []bool{},
 		},
 		{
-			name:     "single bit true",
+			name:     "single_bit_true",
 			bits:     []bool{true},
 			expected: []bool{true},
 		},
 		{
-			name:     "single bit false",
+			name:     "single_bit_false",
 			bits:     []bool{false},
 			expected: []bool{false},
 		},
 		{
-			name:     "multiple bits",
+			name:     "multiple_bits",
 			bits:     []bool{true, false, true, true, false, false, true, false},
 			expected: []bool{true, false, true, true, false, false, true, false},
 		},
@@ -50,17 +50,17 @@ func TestBitVec_Len(t *testing.T) {
 		expected int
 	}{
 		{
-			name:     "empty bitvec",
+			name:     "empty_bitvec",
 			bits:     []bool{},
 			expected: 0,
 		},
 		{
-			name:     "single bit",
+			name:     "single_bit",
 			bits:     []bool{true},
 			expected: 1,
 		},
 		{
-			name:     "multiple bits",
+			name:     "multiple_bits",
 			bits:     []bool{true, false, true, true, false, false, true, false},
 			expected: 8,
 		},
@@ -82,13 +82,13 @@ func TestBitVec_PushBits(t *testing.T) {
 		expected []bool
 	}{
 		{
-			name:     "push to empty bitvec",
+			name:     "push_to_empty_bitvec",
 			initial:  []bool{},
 			toPush:   []bool{true, false, true},
 			expected: []bool{true, false, true},
 		},
 		{
-			name:     "push to non-empty bitvec",
+			name:     "push_to_non_empty_bitvec",
 			initial:  []bool{true, false},
 			toPush:   []bool{true, true, false},
 			expected: []bool{true, false, true, true, false},
@@ -114,7 +114,7 @@ func TestBitVec_SetBit(t *testing.T) {
 		wantErr  bool
 	}{
 		{
-			name:     "set bit within bounds",
+			name:     "set_bit_within_bounds",
 			initial:  []bool{true, false, true},
 			index:    1,
 			value:    true,
@@ -122,7 +122,7 @@ func TestBitVec_SetBit(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name:     "set bit out of bounds",
+			name:     "set_bit_out_of_bounds",
 			initial:  []bool{true, false, true},
 			index:    3,
 			value:    true,
@@ -155,14 +155,14 @@ func TestBitVec_GetBit(t *testing.T) {
 		wantErr  bool
 	}{
 		{
-			name:     "get bit within bounds",
+			name:     "get_bit_within_bounds",
 			initial:  []bool{true, false, true},
 			index:    1,
 			expected: false,
 			wantErr:  false,
 		},
 		{
-			name:     "get bit out of bounds",
+			name:     "get_bit_out_of_bounds",
 			initial:  []bool{true, false, true},
 			index:    3,
 			expected: false,
@@ -192,12 +192,12 @@ func TestBitVec_MarshalSCALE(t *testing.T) {
 		expected []byte
 	}{
 		{
-			name:     "empty bitvec",
+			name:     "empty_bitvec",
 			bits:     []bool{},
 			expected: []byte{0},
 		},
 		{
-			name:     "single byte bitvec",
+			name:     "single_byte_bitvec",
 			bits:     []bool{true, false, true, true, false, false, true, false},
 			expected: []byte{32, 0b01001101},
 		},
@@ -221,19 +221,19 @@ func TestBitVec_UnmarshalSCALE(t *testing.T) {
 		wantErr  bool
 	}{
 		{
-			name:     "empty bitvec",
+			name:     "empty_bitvec",
 			data:     []byte{0},
 			expected: []bool{},
 			wantErr:  false,
 		},
 		{
-			name:     "single byte bitvec",
+			name:     "single_byte_bitvec",
 			data:     []byte{32, 0b01001101},
 			expected: []bool{true, false, true, true, false, false, true, false},
 			wantErr:  false,
 		},
 		{
-			name:     "invalid data",
+			name:     "invalid_data",
 			data:     []byte{255},
 			expected: []bool{},
 			wantErr:  true,
@@ -263,25 +263,25 @@ func TestBitVec_ExtendByByte(t *testing.T) {
 		expected  []bool
 	}{
 		{
-			name:      "extend empty bitvec",
+			name:      "extend_empty_bitvec",
 			initial:   []bool{},
 			byteToAdd: 0b10101010,
 			expected:  []bool{false, true, false, true, false, true, false, true},
 		},
 		{
-			name:      "extend non-empty bitvec",
+			name:      "extend_non_empty_bitvec",
 			initial:   []bool{true, false},
 			byteToAdd: 0b11001100,
 			expected:  []bool{true, false, false, false, true, true, false, false, true, true},
 		},
 		{
-			name:      "extend with all bits set",
+			name:      "extend_with_all_bits_set",
 			initial:   []bool{true, false, true},
 			byteToAdd: 0b11111111,
 			expected:  []bool{true, false, true, true, true, true, true, true, true, true, true},
 		},
 		{
-			name:      "extend with no bits set",
+			name:      "extend_with_no_bits_set",
 			initial:   []bool{true, false, true},
 			byteToAdd: 0b00000000,
 			expected:  []bool{true, false, true, false, false, false, false, false, false, false, false},
@@ -293,6 +293,109 @@ func TestBitVec_ExtendByByte(t *testing.T) {
 			bv := NewBitVec(tt.initial)
 			bv.ExtendByByte(tt.byteToAdd)
 			require.Equal(t, tt.expected, bv.Bits())
+		})
+	}
+}
+
+func TestBitVec_IsEqual(t *testing.T) {
+	tests := []struct {
+		name     string
+		bv1Bits  []bool
+		bv2Bits  []bool
+		expected bool
+	}{
+		{
+			name:     "empty_bitvecs_are_equal",
+			bv1Bits:  []bool{},
+			bv2Bits:  []bool{},
+			expected: true,
+		},
+		{
+			name:     "single_bit_vectors_equal",
+			bv1Bits:  []bool{true},
+			bv2Bits:  []bool{true},
+			expected: true,
+		},
+		{
+			name:     "single_bit_vectors_not_equal",
+			bv1Bits:  []bool{true},
+			bv2Bits:  []bool{false},
+			expected: false,
+		},
+		{
+			name:     "different_lengths_not_equal",
+			bv1Bits:  []bool{true, false},
+			bv2Bits:  []bool{true},
+			expected: false,
+		},
+		{
+			name:     "complete_byte_equal",
+			bv1Bits:  []bool{true, false, true, true, false, false, true, false},
+			bv2Bits:  []bool{true, false, true, true, false, false, true, false},
+			expected: true,
+		},
+		{
+			name:     "complete_byte_not_equal",
+			bv1Bits:  []bool{true, false, true, true, false, false, true, false},
+			bv2Bits:  []bool{true, false, true, true, false, false, false, false},
+			expected: false,
+		},
+		{
+			name:     "partial_byte_equal",
+			bv1Bits:  []bool{true, false, true},
+			bv2Bits:  []bool{true, false, true},
+			expected: true,
+		},
+		{
+			name:     "partial_byte_not_equal",
+			bv1Bits:  []bool{true, false, true},
+			bv2Bits:  []bool{true, true, true},
+			expected: false,
+		},
+		{
+			name:     "multiple_complete_bytes_equal",
+			bv1Bits:  []bool{true, false, true, true, false, false, true, false, true, true, false, false, true, true, false, false},
+			bv2Bits:  []bool{true, false, true, true, false, false, true, false, true, true, false, false, true, true, false, false},
+			expected: true,
+		},
+		{
+			name:     "multiple_complete_bytes_not_equal",
+			bv1Bits:  []bool{true, false, true, true, false, false, true, false, true, true, false, false, true, true, false, false},
+			bv2Bits:  []bool{true, false, true, true, false, false, true, false, true, true, false, false, true, true, false, true},
+			expected: false,
+		},
+		{
+			name:     "multiple_bytes_with_partial_byte_equal",
+			bv1Bits:  []bool{true, false, true, true, false, false, true, false, true, true, false},
+			bv2Bits:  []bool{true, false, true, true, false, false, true, false, true, true, false},
+			expected: true,
+		},
+		{
+			name:     "multiple_bytes_with_partial_byte_not_equal",
+			bv1Bits:  []bool{true, false, true, true, false, false, true, false, true, true, false},
+			bv2Bits:  []bool{true, false, true, true, false, false, true, false, true, true, true},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			bv1 := NewBitVec(tt.bv1Bits)
+			bv2 := NewBitVec(tt.bv2Bits)
+
+			if result := bv1.IsEqual(&bv2); result != tt.expected {
+				t.Errorf("IsEqual() = %v, expected %v", result, tt.expected)
+				t.Errorf("bv1: %v", bv1.Bits())
+				t.Errorf("bv2: %v", bv2.Bits())
+			}
+
+			// Test symmetry: a.IsEqual(b) should be the same as b.IsEqual(a)
+			if result := bv2.IsEqual(&bv1); result != tt.expected {
+				t.Errorf("Symmetry test failed: bv2.IsEqual(bv1) = %v, expected %v", result, tt.expected)
+				t.Errorf("bv1: %v", bv1.Bits())
+				t.Errorf("bv2: %v", bv2.Bits())
+			}
 		})
 	}
 }
