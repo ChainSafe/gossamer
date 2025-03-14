@@ -14,11 +14,11 @@ func TestBridgeState(_ *testing.T) {
 
 	prior, latter := bridgeState(initial)
 
-	barrier := make(chan any)
+	barrier := make(chan struct{})
 	var wg sync.WaitGroup
 
 	waker := &waker{
-		wakeCh: make(chan any),
+		wakeCh: make(chan struct{}),
 	}
 
 	var waitForFinality = func() bool {

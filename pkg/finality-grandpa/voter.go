@@ -216,16 +216,16 @@ type buffered[I any] struct {
 	presend presend[I]
 	buffer  []I
 	mtx     sync.Mutex
-	readyCh chan any
+	readyCh chan struct{}
 }
 
 func newBuffered[I any](inner chan I, preSend func(I) error) *buffered[I] {
 	b := &buffered[I]{
 		presend: presend[I]{inner, preSend},
-		readyCh: make(chan any, 1),
+		readyCh: make(chan struct{}, 1),
 	}
 	// prime the channel
-	b.readyCh <- nil
+	b.readyCh <- struct{}{}
 	return b
 }
 
@@ -252,7 +252,7 @@ func (b *buffered[I]) flush(waker *waker) (bool, error) {
 	select {
 	case <-b.readyCh:
 		defer func() {
-			b.readyCh <- nil
+			b.readyCh <- struct{}{}
 			waker.wake()
 		}()
 
@@ -542,7 +542,7 @@ type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comp
 	lastFinalizedInRounds HashNumber[Hash, Number]
 
 	stopTimeout time.Duration
-	stopChan    chan any
+	stopChan    chan struct{}
 	wg          sync.WaitGroup
 }
 
@@ -613,7 +613,7 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 		lastFinalizedInRounds:  lastFinalized,
 		globalIn:               newWakerChan(globalIn),
 		globalOut:              newBuffered(globalOut, globalOutPresend),
-		stopChan:               make(chan any),
+		stopChan:               make(chan struct{}),
 		stopTimeout:            30 * time.Second,
 	}, globalOut
 }
@@ -920,7 +920,7 @@ func (v *Voter[Hash, Number, Signature, ID]) Stop() error {
 	close(v.stopChan)
 	v.globalOut.Close()
 	timeout := time.NewTimer(v.stopTimeout)
-	wgDone := make(chan any)
+	wgDone := make(chan struct{})
 	go func() {
 		defer close(wgDone)
 		v.wg.Wait()

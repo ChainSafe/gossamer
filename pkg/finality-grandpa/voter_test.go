@@ -44,7 +44,7 @@ func TestVoter_TalkingToMyself(t *testing.T) {
 	globalIn := network.MakeGlobalComms(globalOut)
 	voter.globalIn = newWakerChan(globalIn)
 
-	done := make(chan any)
+	done := make(chan struct{})
 	go func() {
 		defer close(done)
 		err := voter.Start()
@@ -492,7 +492,7 @@ func TestVoter_SkipsToLatestRoundAfterCatchUp(t *testing.T) {
 	// wait until it's caught up, it should skip to round 6 and send a
 	// finality notification for the block that was finalized by catching
 	// up.
-	caughtUp := make(chan any)
+	caughtUp := make(chan struct{})
 	go func() {
 		for {
 			report := voterState.Get()
@@ -676,7 +676,7 @@ waitForPrevote:
 			}
 		}
 	}
-
+	<-time.NewTimer(10 * time.Millisecond).C
 	assert.Equal(t, [2]uint64{2, 1}, env.LastCompletedAndConcluded())
 
 	err := voter.Stop()

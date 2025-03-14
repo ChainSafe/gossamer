@@ -212,7 +212,7 @@ func TestGossipEngine(t *testing.T) {
 			Notification: messages[1],
 		}
 
-		done := make(chan any)
+		done := make(chan struct{})
 		go func() {
 			defer close(done)
 			gossipEngine.poll()
@@ -343,7 +343,7 @@ func TestGossipEngine(t *testing.T) {
 			receivedMsgsPerTopicAllChan := make(map[hash.H256]uint)
 
 			// Poll both gossip engine and each receiver and track the amount of received messages.
-			done := make(chan any)
+			done := make(chan struct{})
 			go func() {
 				defer close(done)
 				gossipEngine.poll()
