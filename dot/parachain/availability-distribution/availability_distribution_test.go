@@ -4,8 +4,11 @@
 package availabilitydistribution
 
 import (
+	"errors"
 	"sync"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/dot/types"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
@@ -246,5 +249,178 @@ func TestHandlePoVFetchingRequest(t *testing.T) {
 
 		query.Sender <- testPoV
 		wg.Wait()
+	})
+}
+
+func Test_getBlockAncestorsInSameSession(t *testing.T) {
+	var (
+		ctrl           *gomock.Controller
+		netMock        *MockNetwork
+		blockStateMock *MockBlockState
+		runtimeMock    *MockInstance
+		overseerCh     chan any
+		ad             *AvailabilityDistribution
+	)
+
+	setup := func(t *testing.T) {
+		ctrl = gomock.NewController(t)
+		netMock = NewMockNetwork(ctrl)
+		blockStateMock = NewMockBlockState(ctrl)
+		runtimeMock = NewMockInstance(ctrl)
+
+		netMock.EXPECT().RegisterRequestHandler(protocol.ID("req_chunk/2"), gomock.Any())
+		netMock.EXPECT().RegisterRequestHandler(protocol.ID("req_pov/1"), gomock.Any())
+
+		blockStateMock.EXPECT().
+			GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).
+			MaxTimes(leafAncestryLenWithinSession+1).
+			Return(runtimeMock, nil)
+
+		runtimeMock.EXPECT().Stop().MaxTimes(leafAncestryLenWithinSession + 1)
+
+		overseerCh = make(chan any)
+		ad = NewAvailabilityDistribution(overseerCh, netMock, blockStateMock)
+	}
+
+	t.Run("no_header_for_leaf_hash", func(t *testing.T) {
+		setup(t)
+
+		blockStateMock.EXPECT().
+			GetHeader(gomock.AssignableToTypeOf(common.Hash{})).
+			Return(nil, errors.New("block not found"))
+
+		sessionIndex, ancestors, err := ad.getBlockAncestorsInSameSession(common.Hash{0x01}, 0)
+
+		assert.Error(t, err)
+		assert.Equal(t, parachaintypes.SessionIndex(0), sessionIndex)
+		assert.Empty(t, ancestors)
+	})
+
+	t.Run("session_index_for_leaf_fails", func(t *testing.T) {
+		setup(t)
+
+		blockStateMock.EXPECT().
+			GetHeader(gomock.AssignableToTypeOf(common.Hash{})).
+			Return(&types.Header{}, nil)
+
+		runtimeMock.EXPECT().
+			ParachainHostSessionIndexForChild().
+			Return(parachaintypes.SessionIndex(0), errors.New("fail"))
+
+		sessionIndex, ancestors, err := ad.getBlockAncestorsInSameSession(
+			common.Hash{0x01},
+			leafAncestryLenWithinSession,
+		)
+
+		assert.Error(t, err)
+		assert.Equal(t, parachaintypes.SessionIndex(0), sessionIndex)
+		assert.Empty(t, ancestors)
+	})
+
+	t.Run("ancestors_include_genesis", func(t *testing.T) {
+		setup(t)
+
+		blockNum := uint(3)
+
+		blockStateMock.EXPECT().
+			GetHeader(gomock.AssignableToTypeOf(common.Hash{})).
+			MaxTimes(leafAncestryLenWithinSession + 1).
+			DoAndReturn(func(hash common.Hash) (*types.Header, error) {
+				h := &types.Header{
+					Number:     blockNum,
+					ParentHash: common.Hash{byte(blockNum)},
+				}
+
+				blockNum -= 1
+				return h, nil
+			})
+
+		runtimeMock.EXPECT().
+			ParachainHostSessionIndexForChild().
+			MaxTimes(leafAncestryLenWithinSession+1).
+			Return(parachaintypes.SessionIndex(5), nil)
+
+		sessionIndex, ancestors, err := ad.getBlockAncestorsInSameSession(
+			common.Hash{0x01},
+			leafAncestryLenWithinSession,
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, parachaintypes.SessionIndex(5), sessionIndex)
+		assert.Len(t, ancestors, 2)
+	})
+
+	t.Run("max_number_of_ancestors", func(t *testing.T) {
+		setup(t)
+
+		blockNum := uint(10)
+
+		blockStateMock.EXPECT().
+			GetHeader(gomock.AssignableToTypeOf(common.Hash{})).
+			MaxTimes(leafAncestryLenWithinSession + 1).
+			DoAndReturn(func(hash common.Hash) (*types.Header, error) {
+				h := &types.Header{
+					Number:     blockNum,
+					ParentHash: common.Hash{byte(blockNum)},
+				}
+
+				blockNum -= 1
+				return h, nil
+			})
+
+		runtimeMock.EXPECT().
+			ParachainHostSessionIndexForChild().
+			MaxTimes(leafAncestryLenWithinSession+1).
+			// All blocks are in the same session. Should stop at leafAncestryLenWithinSession ancestors.
+			Return(parachaintypes.SessionIndex(5), nil)
+
+		sessionIndex, ancestors, err := ad.getBlockAncestorsInSameSession(
+			common.Hash{0x01},
+			leafAncestryLenWithinSession,
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, parachaintypes.SessionIndex(5), sessionIndex)
+		assert.Len(t, ancestors, leafAncestryLenWithinSession)
+	})
+
+	t.Run("some_ancestors_in_previous_session", func(t *testing.T) {
+		setup(t)
+
+		blockNum := uint(11)
+
+		blockStateMock.EXPECT().
+			GetHeader(gomock.AssignableToTypeOf(common.Hash{})).
+			MaxTimes(leafAncestryLenWithinSession + 1).
+			// Block 10 is the new leaf, block 9 its first parent, 8 its grandparent, etc.
+			DoAndReturn(func(hash common.Hash) (*types.Header, error) {
+				// Decrement this first so we can check the block number in the mocked call to
+				// ParachainHostSessionIndexForChild().
+				blockNum -= 1
+
+				h := &types.Header{
+					Number:     blockNum,
+					ParentHash: common.Hash{byte(blockNum)},
+				}
+
+				return h, nil
+			})
+
+		runtimeMock.EXPECT().
+			ParachainHostSessionIndexForChild().
+			MaxTimes(leafAncestryLenWithinSession + 1).
+			// Only blocks 10 (the new leaf), 9 and 8 are in the same session. Block 7 should not be included.
+			DoAndReturn(func() (parachaintypes.SessionIndex, error) {
+				if blockNum <= 7 {
+					return parachaintypes.SessionIndex(4), nil
+				}
+				return parachaintypes.SessionIndex(5), nil
+			})
+
+		sessionIndex, ancestors, err := ad.getBlockAncestorsInSameSession(common.Hash{0x01}, 3)
+
+		assert.NoError(t, err)
+		assert.Equal(t, parachaintypes.SessionIndex(5), sessionIndex)
+		assert.Len(t, ancestors, 2)
 	})
 }
