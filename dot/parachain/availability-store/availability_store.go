@@ -229,8 +229,7 @@ func (as *availabilityStore) loadMeta(candidate parachaintypes.CandidateHash) (*
 func (as *availabilityStore) loadChunk(
 	candidate parachaintypes.CandidateHash,
 	validatorIndex parachaintypes.ValidatorIndex,
-) (*ErasureChunk,
-	error) {
+) (*ErasureChunk, error) {
 	resultBytes, err := as.chunk.Get(append(candidate.Value[:], uint32ToBytes(uint32(validatorIndex))...))
 	if err != nil {
 		return nil, fmt.Errorf("getting candidate %v, index %d from chunk table: %w", candidate.Value, validatorIndex, err)
@@ -496,7 +495,7 @@ func (av *AvailabilityStoreSubsystem) processMessage(msg any) {
 }
 
 func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal(signal parachaintypes.
-	ActiveLeavesUpdateSignal) error {
+ActiveLeavesUpdateSignal) error {
 	now := timeNow()
 	logger.Infof("ProcessActiveLeavesUpdateSignal %s", signal)
 

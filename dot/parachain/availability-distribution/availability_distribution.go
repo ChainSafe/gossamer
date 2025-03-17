@@ -141,17 +141,23 @@ func (ad *AvailabilityDistribution) handleChunkFetchingRequest(
 	ad.subSystemToOverseer <- query
 	response := &messages.ChunkFetchingResponse{}
 
-	// Ideally availability store would close the channel instead of sending an empty ErasureChunk.
-	// This would allow using `chunk, ok := <-query.Sender` and read `ok == false` as "chunk not found".
-	chunk := <-query.Sender
-	if chunk.Chunk == nil {
-		_ = response.SetValue(messages.NoSuchChunk{})
+	// Conceptually, this is a "one shot" channel, so ideally availability store would always close the channel and not
+	// send anything in case the chunk is not found.
+	chunk, ok := <-query.Sender
+	if !ok || chunk.Chunk == nil {
+		err = response.SetValue(messages.NoSuchChunk{})
+		if err != nil {
+			return nil, fmt.Errorf("setting chunk response value: %w", err)
+		}
 	} else {
-		_ = response.SetValue(messages.ChunkResponse{
+		err = response.SetValue(messages.ChunkResponse{
 			Chunk: chunk.Chunk,
 			Index: chunk.Index,
 			// Proof: chunk.Proof,  // FIXME see #4597
 		})
+		if err != nil {
+			return nil, fmt.Errorf("setting chunk response value: %w", err)
+		}
 	}
 
 	return response, nil
