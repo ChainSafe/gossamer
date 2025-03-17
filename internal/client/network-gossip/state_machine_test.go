@@ -113,16 +113,16 @@ func (*NoOpNetwork) AddReservedPeer(peer config.MultiaddrPeerId) error {
 func (*NoOpNetwork) RemoveReservedPeer(peerID peerid.PeerID) {
 	panic("unimpl")
 }
-func (*NoOpNetwork) SetReservedPeers(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]any) error {
+func (*NoOpNetwork) SetReservedPeers(protocol network.ProtocolName, peers map[string]any) error {
 	panic("unimpl")
 }
-func (*NoOpNetwork) AddPeersToReservedSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]any) error {
+func (*NoOpNetwork) AddPeersToReservedSet(protocol network.ProtocolName, peers map[string]any) error {
 	panic("unimpl")
 }
 func (*NoOpNetwork) RemovePeersFromReservedSet(protocol network.ProtocolName, peers []peerid.PeerID) {
 	panic("unimpl")
 }
-func (*NoOpNetwork) AddToPeersSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]any) error {
+func (*NoOpNetwork) AddToPeersSet(protocol network.ProtocolName, peers map[string]any) error {
 	panic("unimpl")
 }
 func (*NoOpNetwork) RemoveFromPeersSet(protocol network.ProtocolName, peers []peerid.PeerID) {
