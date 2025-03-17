@@ -20,6 +20,7 @@ import (
 )
 
 var errNilPersistedValidationData = errors.New("persisted validation data is nil")
+var errNoAssignedCore = errors.New("no assigned core")
 
 // constructPerRelayParentState constructs and returns the perRelayParentState for a given relay parent hash,
 // initialising various parameters and caches required for candidate backing.
@@ -470,7 +471,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	candidateHash parachaintypes.CandidateHash,
 ) error {
 	if rpState.assignedCore == nil {
-		return fmt.Errorf("no assigned core")
+		return errNoAssignedCore
 	}
 
 	if rpState.awaitingValidation[candidateHash] {
