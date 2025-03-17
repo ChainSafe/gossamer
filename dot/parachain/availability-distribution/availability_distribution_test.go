@@ -7,7 +7,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/network"
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -38,99 +37,169 @@ func TestHandleChunkFetchingRequest(t *testing.T) {
 		ad = NewAvailabilityDistribution(overseerCh, netMock, blockStateMock)
 	}
 
-	t.Run("invalid_request", func(t *testing.T) {
-		setup(t)
+	testCases := []struct {
+		description   string
+		createRequest func(t *testing.T) (*messages.ChunkFetchingRequest, []byte)
+		createChunk   func(t *testing.T) *availabilitystore.ErasureChunk
+		handleQuery   func(
+			t *testing.T,
+			overseerCh chan any,
+			request *messages.ChunkFetchingRequest,
+			chunk *availabilitystore.ErasureChunk,
+		)
+		validateResponse func(
+			t *testing.T,
+			response *messages.ChunkFetchingResponse,
+			err error,
+			chunk *availabilitystore.ErasureChunk,
+		)
+	}{
+		{
+			description: "invalid_request",
+			createRequest: func(t *testing.T) (*messages.ChunkFetchingRequest, []byte) {
+				return nil, []byte("0xDECAFBAD")
+			},
+			createChunk: func(t *testing.T) *availabilitystore.ErasureChunk {
+				return nil
+			},
+			handleQuery: func(
+				t *testing.T,
+				overseerCh chan any,
+				request *messages.ChunkFetchingRequest,
+				chunk *availabilitystore.ErasureChunk,
+			) {
+			},
+			validateResponse: func(
+				t *testing.T,
+				response *messages.ChunkFetchingResponse,
+				err error,
+				chunk *availabilitystore.ErasureChunk,
+			) {
+				assert.Error(t, err)
+				assert.Nil(t, response)
+			},
+		},
+		{
+			description: "chunk_not_found",
+			createRequest: func(t *testing.T) (*messages.ChunkFetchingRequest, []byte) {
+				request := messages.ChunkFetchingRequest{
+					CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
+					Index:         parachaintypes.ValidatorIndex(0),
+				}
 
-		response, err := ad.handleChunkFetchingRequest("bob", []byte("0xDECAFBAD"))
+				encodedRequest, err := request.Encode()
+				assert.NoError(t, err)
+				return &request, encodedRequest
+			},
+			createChunk: func(t *testing.T) *availabilitystore.ErasureChunk {
+				return &availabilitystore.ErasureChunk{}
+			},
+			handleQuery: func(
+				t *testing.T,
+				overseerCh chan any,
+				request *messages.ChunkFetchingRequest,
+				chunk *availabilitystore.ErasureChunk,
+			) {
+				query, ok := (<-overseerCh).(availabilitystore.QueryChunk)
+				assert.True(t, ok)
+				assert.Equal(t, request.CandidateHash, query.CandidateHash)
+				assert.Equal(t, request.Index, query.ValidatorIndex)
 
-		assert.Error(t, err)
-		assert.Nil(t, response)
-	})
+				query.Sender <- *chunk
+			},
+			validateResponse: func(
+				t *testing.T,
+				response *messages.ChunkFetchingResponse,
+				err error,
+				chunk *availabilitystore.ErasureChunk,
+			) {
+				assert.NoError(t, err)
+				assert.NotNil(t, response)
 
-	t.Run("chunk_not_found", func(t *testing.T) {
-		setup(t)
+				value, err := response.Value()
+				assert.NoError(t, err)
+				assert.Equal(t, messages.NoSuchChunk{}, value)
+			},
+		},
+		{
+			description: "chunk_found",
+			createRequest: func(t *testing.T) (*messages.ChunkFetchingRequest, []byte) {
+				request := messages.ChunkFetchingRequest{
+					CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
+					Index:         parachaintypes.ValidatorIndex(0),
+				}
 
-		request := messages.ChunkFetchingRequest{
-			CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
-			Index:         parachaintypes.ValidatorIndex(0),
-		}
+				encodedRequest, err := request.Encode()
+				assert.NoError(t, err)
+				return &request, encodedRequest
+			},
+			createChunk: func(t *testing.T) *availabilitystore.ErasureChunk {
+				return &availabilitystore.ErasureChunk{
+					Chunk: []byte{0x01, 0x02},
+					Index: 23,
+					Proof: []byte{0x03, 0x04},
+				}
+			},
+			handleQuery: func(
+				t *testing.T,
+				overseerCh chan any,
+				request *messages.ChunkFetchingRequest,
+				chunk *availabilitystore.ErasureChunk,
+			) {
+				query, ok := (<-overseerCh).(availabilitystore.QueryChunk)
+				assert.True(t, ok)
+				assert.Equal(t, request.CandidateHash, query.CandidateHash)
+				assert.Equal(t, request.Index, query.ValidatorIndex)
 
-		encodedRequest, err := request.Encode()
-		assert.NoError(t, err)
+				query.Sender <- *chunk
+			},
+			validateResponse: func(
+				t *testing.T,
+				response *messages.ChunkFetchingResponse,
+				err error,
+				chunk *availabilitystore.ErasureChunk,
+			) {
+				assert.NoError(t, err)
+				assert.NotNil(t, response)
 
-		var response network.ResponseMessage
+				value, err := response.Value()
+				assert.NoError(t, err)
 
-		wg := sync.WaitGroup{}
-		wg.Add(1)
-		go func() {
-			var err error
-			response, err = ad.handleChunkFetchingRequest("bob", encodedRequest)
-			assert.NoError(t, err)
-			assert.NotNil(t, response)
-			cfResponse, ok := response.(*messages.ChunkFetchingResponse)
-			assert.True(t, ok)
+				chunkRes, ok := value.(messages.ChunkResponse)
+				assert.True(t, ok)
+				assert.NotNil(t, chunkRes)
+				assert.Equal(t, chunk.Chunk, chunkRes.Chunk)
+				assert.Equal(t, chunk.Index, chunkRes.Index)
+				// assert.Equal(t, chunk.Proof, chunkRes.Proof) // FIXME see #4597
+			},
+		},
+	}
 
-			value, err := cfResponse.Value()
-			assert.NoError(t, err)
-			assert.Equal(t, messages.NoSuchChunk{}, value)
-			wg.Done()
-		}()
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			setup(t)
 
-		query, ok := (<-overseerCh).(availabilitystore.QueryChunk)
-		assert.True(t, ok)
-		assert.Equal(t, request.CandidateHash, query.CandidateHash)
-		assert.Equal(t, request.Index, query.ValidatorIndex)
+			request, encodedRequest := tc.createRequest(t)
+			chunk := tc.createChunk(t)
 
-		query.Sender <- availabilitystore.ErasureChunk{}
-		wg.Wait()
-	})
+			wg := sync.WaitGroup{}
+			wg.Add(1)
+			go func() {
+				response, err := ad.handleChunkFetchingRequest("bob", encodedRequest)
 
-	t.Run("chunk_found", func(t *testing.T) {
-		setup(t)
+				if response != nil {
+					cfResponse, ok := response.(*messages.ChunkFetchingResponse)
+					assert.True(t, ok)
+					tc.validateResponse(t, cfResponse, err, chunk)
+				} else {
+					tc.validateResponse(t, nil, err, chunk)
+				}
 
-		request := messages.ChunkFetchingRequest{
-			CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
-			Index:         parachaintypes.ValidatorIndex(0),
-		}
+				wg.Done()
+			}()
 
-		encodedRequest, err := request.Encode()
-		assert.NoError(t, err)
-
-		testChunk := availabilitystore.ErasureChunk{
-			Chunk: []byte{0x01, 0x02},
-			Index: 23,
-			Proof: []byte{0x03, 0x04},
-		}
-
-		var response network.ResponseMessage
-
-		wg := sync.WaitGroup{}
-		wg.Add(1)
-		go func() {
-			var err error
-			response, err = ad.handleChunkFetchingRequest("bob", encodedRequest)
-			assert.NoError(t, err)
-			assert.NotNil(t, response)
-			cfResponse, ok := response.(*messages.ChunkFetchingResponse)
-			assert.True(t, ok)
-
-			value, err := cfResponse.Value()
-			assert.NoError(t, err)
-
-			chunkRes, ok := value.(messages.ChunkResponse)
-			assert.True(t, ok)
-			assert.Equal(t, testChunk.Chunk, chunkRes.Chunk)
-			assert.Equal(t, testChunk.Index, chunkRes.Index)
-			// assert.Equal(t, testChunk.Proof, chunkRes.Proof) // FIXME see #4597
-			wg.Done()
-		}()
-
-		query, ok := (<-overseerCh).(availabilitystore.QueryChunk)
-		assert.True(t, ok)
-		assert.Equal(t, request.CandidateHash, query.CandidateHash)
-		assert.Equal(t, request.Index, query.ValidatorIndex)
-
-		query.Sender <- testChunk
-		wg.Wait()
-	})
+			tc.handleQuery(t, overseerCh, request, chunk)
+			wg.Wait()
+		})
+	}
 }
