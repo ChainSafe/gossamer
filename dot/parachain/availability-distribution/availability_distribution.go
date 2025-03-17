@@ -99,7 +99,7 @@ func (ad *AvailabilityDistribution) processMessage(msg any) error {
 func (ad *AvailabilityDistribution) ProcessActiveLeavesUpdateSignal(
 	signal parachaintypes.ActiveLeavesUpdateSignal,
 ) error {
-	return nil // TODO: implement
+	return nil // TODO: implement #4490 & #4492
 }
 
 // ProcessBlockFinalizedSignal processes block finalized signal
@@ -110,7 +110,7 @@ func (ad *AvailabilityDistribution) ProcessBlockFinalizedSignal(msg parachaintyp
 func (ad *AvailabilityDistribution) processAvailabilityDistributionMessageFetchPoV(
 	msg parachaintypes.AvailabilityDistributionMessageFetchPoV,
 ) error {
-	return nil // TODO: implement
+	return nil // TODO: implement #4489
 }
 
 //nolint:unused
@@ -118,7 +118,7 @@ func (ad *AvailabilityDistribution) handleChunkFetchingRequest(
 	who peer.ID,
 	payload []byte,
 ) (network.ResponseMessage, error) {
-	return nil, nil // TODO: implement
+	return nil, nil // TODO: implement #4487
 }
 
 //nolint:unused
@@ -126,5 +126,5 @@ func (ad *AvailabilityDistribution) handlePoVFetchingRequest(
 	who peer.ID,
 	payload []byte,
 ) (network.ResponseMessage, error) {
-	return nil, nil // TODO: implement
+	return nil, nil // TODO: implement #4488
 }
