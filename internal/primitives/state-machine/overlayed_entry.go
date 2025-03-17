@@ -27,9 +27,8 @@ func (oe *OverlayedEntry[V]) ValueRef() *V {
 	return &oe.transactions[len(oe.transactions)-1].value
 }
 
-func (oe *OverlayedEntry[V]) Value() V {
-	value := *oe.ValueRef()
-	return value
+func (oe *OverlayedEntry[V]) StorageValue() StorageValue {
+	return any(*oe.ValueRef()).(StorageEntry).optionalValue()
 }
 
 func (oe *OverlayedEntry[V]) IntoValue() V {
@@ -149,8 +148,126 @@ func (oe *OverlayedEntry[V]) Set(value StorageValue, firstWriteInTx bool, atExtr
 	}
 }
 
-func (oe *OverlayedEntry[V]) Append(value StorageValue, firstWriteInTx bool, init func() StorageValue, atExtrinsic *uint32) {
-	
+func (oe *OverlayedEntry[V]) Append(
+	element StorageValue,
+	firstWriteInTx bool,
+	init func() StorageValue,
+	atExtrinsic *uint32,
+) {
+	var data []byte
+	var currentLength uint32
+	var materializedLength *uint32
+	var parentSize *uint
+
+	replace := true
+
+	if len(oe.transactions) == 0 {
+		initValue := init()
+		storageAppend := NewStorageAppend(&initValue)
+
+		length := storageAppend.ExtractLength()
+		if length != nil {
+			storageAppend.AppendRaw(element)
+			data = initValue
+			currentLength = *length + 1
+			materializedLength = length
+		} else {
+			data = element
+			currentLength = 1
+			materializedLength = nil
+		}
+
+		oe.transactions = append(oe.transactions, InnerValue[V]{
+			value: any(AppendStorageEntry{
+				data:               data,
+				currentLength:      currentLength,
+				materializedLength: materializedLength,
+				parentSize:         nil,
+			}).(V),
+			extrinsics: &Extrinsics{},
+		})
+	} else if firstWriteInTx {
+		parent := *oe.ValueRef()
+
+		switch entry := any(parent).(type) {
+		case RemoveStorageEntry:
+			data = element
+			currentLength = 1
+			materializedLength = nil
+			parentSize = nil
+		case AppendStorageEntry:
+			parentLen := uint(len(entry.data))
+			NewStorageAppend(&entry.data).AppendRaw(element)
+			data = entry.data
+			currentLength = entry.currentLength + 1
+			materializedLength = entry.materializedLength
+			parentSize = &parentLen
+		case SetStorageEntry:
+			length := NewStorageAppend(&entry.data).ExtractLength()
+			if length != nil {
+				NewStorageAppend(&entry.data).AppendRaw(element)
+				data = entry.data
+				currentLength = *length + 1
+				materializedLength = length
+				parentSize = nil
+			} else {
+				data = element
+				currentLength = 1
+				materializedLength = nil
+				parentSize = nil
+			}
+		}
+
+		oe.transactions = append(oe.transactions, InnerValue[V]{
+			value: any(AppendStorageEntry{
+				data:               data,
+				currentLength:      currentLength,
+				materializedLength: materializedLength,
+				parentSize:         parentSize,
+			}).(V),
+			extrinsics: &Extrinsics{},
+		})
+	} else {
+		oldValue := oe.ValueRef()
+
+		switch oldVal := any(*oldValue).(type) {
+		case RemoveStorageEntry:
+			data = element
+			currentLength = 1
+			materializedLength = nil
+		case SetStorageEntry:
+			append := NewStorageAppend(&oldVal.data)
+
+			len := append.ExtractLength()
+			if len != nil {
+				append.AppendRaw(element)
+				data = oldVal.data
+				currentLength = *len + 1
+				materializedLength = len
+			} else {
+				data = element
+				currentLength = 1
+				materializedLength = nil
+			}
+		case AppendStorageEntry:
+			oldVal.data = append(oldVal.data, element...)
+			currentLength += 1
+			replace = false
+
+		}
+
+		if replace {
+			*oldValue = any(AppendStorageEntry{
+				data:               data,
+				currentLength:      currentLength,
+				materializedLength: materializedLength,
+				parentSize:         nil,
+			}).(V)
+		}
+	}
+	if atExtrinsic != nil {
+		oe.TransactionExtrinsics().Insert(*atExtrinsic)
+	}
 }
 
 func restoreAppendToParent(

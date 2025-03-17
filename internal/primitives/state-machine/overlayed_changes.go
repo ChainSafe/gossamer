@@ -16,10 +16,6 @@ type StorageKey []byte
 // StorageValue is a storage value. Value can be nil
 type StorageValue []byte
 
-func NewStorageValue(value []byte) StorageValue {
-	return value
-}
-
 // StorageKeyValue is storage key and value.
 type StorageKeyValue struct {
 	StorageKey

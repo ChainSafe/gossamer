@@ -52,14 +52,15 @@ func NewOverlayedChangeSet() OverlayedChangeSet {
 	}
 }
 
-func (oc *OverlayedChangeSet) Set(key string, value StorageValue, atExtrinsic *uint32) {
-	overlayed, has := oc.changes[key]
+func (oc *OverlayedChangeSet) Set(key StorageKey, value StorageValue, atExtrinsic *uint32) {
+	keyString := string(key)
+	overlayed, has := oc.changes[keyString]
 	if !has {
 		overlayed = NewOverlayedEntry[StorageEntry]()
 	}
 
-	overlayed.Set(value, insertDirty(&oc.dirtyKeys, key), atExtrinsic)
-	oc.changes[key] = overlayed
+	overlayed.Set(value, insertDirty(&oc.dirtyKeys, keyString), atExtrinsic)
+	oc.changes[keyString] = overlayed
 }
 
 func (oc *OverlayedChangeSet) RollbackTransaction() error {
@@ -174,12 +175,13 @@ func (oc *OverlayedChangeSet) AppendStorage(
 	init func() StorageValue,
 	atExtrinsic *uint32,
 ) {
-	stringkey := string(key)
-	overlayed, has := oc.changes[stringkey]
+	keyString := string(key)
+	overlayed, has := oc.changes[keyString]
 	if !has {
 		overlayed = NewOverlayedEntry[StorageEntry]()
 	}
 
-	firstWriteInTx := insertDirty(&oc.dirtyKeys, stringkey)
+	firstWriteInTx := insertDirty(&oc.dirtyKeys, keyString)
 	overlayed.Append(value, firstWriteInTx, init, atExtrinsic)
+	oc.changes[keyString] = overlayed
 }
