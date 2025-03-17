@@ -494,8 +494,9 @@ func (av *AvailabilityStoreSubsystem) processMessage(msg any) {
 	}
 }
 
-func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal(signal parachaintypes.
-ActiveLeavesUpdateSignal) error {
+func (av *AvailabilityStoreSubsystem) ProcessActiveLeavesUpdateSignal(
+	signal parachaintypes.ActiveLeavesUpdateSignal,
+) error {
 	now := timeNow()
 	logger.Infof("ProcessActiveLeavesUpdateSignal %s", signal)
 
