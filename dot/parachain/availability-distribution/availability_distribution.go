@@ -186,9 +186,15 @@ func (ad *AvailabilityDistribution) handlePoVFetchingRequest(
 
 	availableData := <-query.Sender
 	if availableData.PoV.BlockData == nil {
-		_ = response.SetValue(parachaintypes.NoSuchPoV{})
+		err = response.SetValue(parachaintypes.NoSuchPoV{})
+		if err != nil {
+			return nil, fmt.Errorf("setting PoV response value: %w", err)
+		}
 	} else {
-		_ = response.SetValue(availableData.PoV)
+		err = response.SetValue(availableData.PoV)
+		if err != nil {
+			return nil, fmt.Errorf("setting PoV response value: %w", err)
+		}
 	}
 
 	return response, nil
