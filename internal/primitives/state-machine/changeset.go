@@ -3,7 +3,11 @@
 
 package statemachine
 
-import "github.com/tidwall/btree"
+import (
+	"iter"
+
+	"github.com/tidwall/btree"
+)
 
 type ordered interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64 |
@@ -41,6 +45,7 @@ func (dks *DirtyKeysSets[K]) Pop() (btree.Set[K], bool) {
 }
 
 type Transactions[V any] []InnerValue[V]
+type OverlayedValue = OverlayedEntry[StorageEntry]
 
 type OverlayedChangeSet struct {
 	OverlayedMap[string, StorageEntry]
@@ -54,13 +59,39 @@ func NewOverlayedChangeSet() OverlayedChangeSet {
 
 func (oc *OverlayedChangeSet) Set(key StorageKey, value StorageValue, atExtrinsic *uint32) {
 	keyString := string(key)
-	overlayed, has := oc.changes[keyString]
+	overlayed, has := oc.changes.Get(keyString)
 	if !has {
 		overlayed = NewOverlayedEntry[StorageEntry]()
 	}
 
 	overlayed.Set(value, insertDirty(&oc.dirtyKeys, keyString), atExtrinsic)
-	oc.changes[keyString] = overlayed
+	oc.changes.Set(keyString, overlayed)
+}
+
+func (oc *OverlayedChangeSet) ChangesAfter(key StorageKey) iter.Seq2[StorageKey, *OverlayedValue] {
+	return func(yield func(StorageKey, *OverlayedValue) bool) {
+		oc.changes.Scan(func(k string, v *OverlayedValue) bool {
+			if k > string(key) && !yield([]byte(k), v) {
+				return false
+			}
+			return true
+		})
+	}
+}
+
+func (oc *OverlayedChangeSet) ClearWhere(predicate func([]byte, *OverlayedValue) bool, atExtrinsic *uint32) {
+	count := 0
+	for k, v := range oc.Changes() {
+		if predicate([]byte(k), v) {
+			v.Set(nil, insertDirty(&oc.dirtyKeys, k), atExtrinsic)
+			if v != nil {
+				switch any(*v).(type) {
+				case AppendStorageEntry, SetStorageEntry:
+					count++
+				}
+			}
+		}
+	}
 }
 
 func (oc *OverlayedChangeSet) RollbackTransaction() error {
@@ -82,7 +113,7 @@ func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
 	}
 
 	lastTransaction.Scan(func(key string) bool {
-		overlayed, has := oc.changes[key]
+		overlayed, has := oc.changes.GetMut(key)
 		if !has {
 			panic(`
 				A write to an OverlayedValue is recorded in the dirty key set. Before an
@@ -110,7 +141,7 @@ func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
 			}
 
 			if len(overlayed.transactions) == 0 {
-				delete(oc.changes, key)
+				oc.changes.Delete(key)
 			}
 		} else {
 			var hasPredecessor bool
@@ -177,12 +208,12 @@ func (oc *OverlayedChangeSet) AppendStorage(
 	atExtrinsic *uint32,
 ) {
 	keyString := string(key)
-	overlayed, has := oc.changes[keyString]
+	overlayed, has := oc.changes.Get(keyString)
 	if !has {
 		overlayed = NewOverlayedEntry[StorageEntry]()
 	}
 
 	firstWriteInTx := insertDirty(&oc.dirtyKeys, keyString)
 	overlayed.Append(value, firstWriteInTx, init, atExtrinsic)
-	oc.changes[keyString] = overlayed
+	oc.changes.Set(keyString, overlayed)
 }
