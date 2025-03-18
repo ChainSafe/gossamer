@@ -4,6 +4,8 @@
 package statemachine
 
 import (
+	"bytes"
+	"iter"
 	"maps"
 	"slices"
 	"strings"
@@ -370,4 +372,114 @@ func TestAppendWorks(t *testing.T) {
 	}
 	assertChanges(t, changeSet, rolledBack)
 	assertDrainedChanges(t, changeSet, rolledBack)
+}
+
+func TestClearWorks(t *testing.T) {
+	changeSet := NewOverlayedChangeSet()
+
+	changeSet.Set(StorageKey("key0"), StorageValue("val0"), extrinsic(1))
+	changeSet.Set(StorageKey("key1"), StorageValue("val1"), extrinsic(2))
+	changeSet.Set(StorageKey("del1"), StorageValue("delval1"), extrinsic(3))
+	changeSet.Set(StorageKey("del2"), StorageValue("delval2"), extrinsic(4))
+
+	changeSet.StartTransaction()
+
+	changeSet.ClearWhere(func(k []byte, ov *OverlayedValue) bool { return bytes.HasPrefix(k, []byte("del")) }, extrinsic(5))
+
+	allChanges := Changes{
+		{"del1", nil, []uint32{3, 5}},
+		{"del2", nil, []uint32{4, 5}},
+		{"key0", StorageValue("val0"), []uint32{1}},
+		{"key1", StorageValue("val1"), []uint32{2}},
+	}
+	assertChanges(t, changeSet, allChanges)
+
+	changeSet.RollbackTransaction()
+
+	allChanges = Changes{
+		{"del1", StorageValue("delval1"), []uint32{3}},
+		{"del2", StorageValue("delval2"), []uint32{4}},
+		{"key0", StorageValue("val0"), []uint32{1}},
+		{"key1", StorageValue("val1"), []uint32{2}},
+	}
+	assertChanges(t, changeSet, allChanges)
+}
+
+func TestNextChangeWorks(t *testing.T) {
+	changeSet := NewOverlayedChangeSet()
+
+	changeSet.Set(StorageKey("key0"), StorageValue("val0"), extrinsic(0))
+	changeSet.Set(StorageKey("key1"), StorageValue("val1"), extrinsic(1))
+	changeSet.Set(StorageKey("key2"), StorageValue("val2"), extrinsic(2))
+
+	changeSet.StartTransaction()
+
+	changeSet.Set(StorageKey("key3"), StorageValue("val3"), extrinsic(3))
+	changeSet.Set(StorageKey("key4"), StorageValue("val4"), extrinsic(4))
+	changeSet.Set(StorageKey("key11"), StorageValue("val11"), extrinsic(11))
+
+	next, _ := iter.Pull2(changeSet.ChangesAfter(StorageKey("key0")))
+
+	k, v, _ := next()
+	require.Equal(t, k, StorageKey("key1"))
+	require.Equal(t, v.StorageValue(), StorageValue("val1"))
+
+	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key1")))
+
+	k, v, _ = next()
+	require.Equal(t, k, StorageKey("key11"))
+	require.Equal(t, v.StorageValue(), StorageValue("val11"))
+
+	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key11")))
+
+	k, v, _ = next()
+	require.Equal(t, k, StorageKey("key2"))
+	require.Equal(t, v.StorageValue(), StorageValue("val2"))
+
+	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key2")))
+
+	k, v, _ = next()
+	require.Equal(t, k, StorageKey("key3"))
+	require.Equal(t, v.StorageValue(), StorageValue("val3"))
+
+	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key3")))
+
+	k, v, _ = next()
+	require.Equal(t, k, StorageKey("key4"))
+	require.Equal(t, v.StorageValue(), StorageValue("val4"))
+
+	_, _, has := next()
+	require.False(t, has)
+
+	changeSet.RollbackTransaction()
+
+	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key0")))
+
+	k, v, _ = next()
+	require.Equal(t, k, StorageKey("key1"))
+	require.Equal(t, v.StorageValue(), StorageValue("val1"))
+
+	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key1")))
+
+	k, v, _ = next()
+	require.Equal(t, k, StorageKey("key2"))
+	require.Equal(t, v.StorageValue(), StorageValue("val2"))
+
+	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key11")))
+
+	k, v, _ = next()
+	require.Equal(t, k, StorageKey("key2"))
+	require.Equal(t, v.StorageValue(), StorageValue("val2"))
+
+	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key2")))
+	_, _, has = next()
+	require.False(t, has)
+
+	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key3")))
+	_, _, has = next()
+	require.False(t, has)
+
+	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key4")))
+	_, _, has = next()
+	require.False(t, has)
 }
