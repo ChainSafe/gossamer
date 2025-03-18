@@ -11,17 +11,18 @@ import (
 type SubSystemName string
 
 const (
-	CandidateBacking      SubSystemName = "CandidateBacking"
-	CollationProtocol     SubSystemName = "CollationProtocol"
-	AvailabilityStore     SubSystemName = "AvailabilityStore"
-	NetworkBridgeSender   SubSystemName = "NetworkBridgeSender"
-	NetworkBridgeReceiver SubSystemName = "NetworkBridgeReceiver"
-	ChainAPI              SubSystemName = "ChainAPI"
-	CandidateValidation   SubSystemName = "CandidateValidation"
-	Provisioner           SubSystemName = "Provisioner"
-	StatementDistribution SubSystemName = "StatementDistribution"
-	ProspectiveParachains SubSystemName = "ProspectiveParachains"
-	BitfieldSigning       SubSystemName = "BitfieldSigning"
+	CandidateBacking         SubSystemName = "CandidateBacking"
+	CollationProtocol        SubSystemName = "CollationProtocol"
+	AvailabilityStore        SubSystemName = "AvailabilityStore"
+	AvailabilityDistribution SubSystemName = "AvailabilityDistribution"
+	NetworkBridgeSender      SubSystemName = "NetworkBridgeSender"
+	NetworkBridgeReceiver    SubSystemName = "NetworkBridgeReceiver"
+	ChainAPI                 SubSystemName = "ChainAPI"
+	CandidateValidation      SubSystemName = "CandidateValidation"
+	Provisioner              SubSystemName = "Provisioner"
+	StatementDistribution    SubSystemName = "StatementDistribution"
+	ProspectiveParachains    SubSystemName = "ProspectiveParachains"
+	BitfieldSigning          SubSystemName = "BitfieldSigning"
 )
 
 var SubsystemRequestTimeout = 5 * time.Second

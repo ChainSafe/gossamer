@@ -30,6 +30,8 @@ func Test_createRuntimeStorage(t *testing.T) {
 	stateSrvc, err := builder.createStateService(config)
 	require.NoError(t, err)
 
+	require.NoError(t, stateSrvc.Start())
+
 	tests := []struct {
 		name           string
 		service        *state.Service
@@ -51,6 +53,8 @@ func Test_createRuntimeStorage(t *testing.T) {
 			assert.NotNil(t, got.PersistentStorage)
 		})
 	}
+
+	require.NoError(t, stateSrvc.Stop())
 }
 
 func Test_createSystemService(t *testing.T) {
@@ -64,6 +68,8 @@ func Test_createSystemService(t *testing.T) {
 
 	stateSrvc, err := builder.createStateService(config)
 	require.NoError(t, err)
+
+	require.NoError(t, stateSrvc.Start())
 
 	type args struct {
 		cfg     *types.SystemInfo
@@ -96,6 +102,8 @@ func Test_createSystemService(t *testing.T) {
 			}
 		})
 	}
+
+	require.NoError(t, stateSrvc.Stop())
 }
 
 func Test_newInMemoryDB(t *testing.T) {
