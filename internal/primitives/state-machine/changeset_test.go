@@ -53,7 +53,7 @@ func assertChanges(t *testing.T, is OverlayedChangeSet, expected Changes) {
 func assertDrainedChanges(t *testing.T, is OverlayedChangeSet, expected Changes) {
 	var drained Drained
 	for k, v := range is.DrainCommited() {
-		drained = append(drained, DrainedValue{k, v.value()})
+		drained = append(drained, DrainedValue{k, v.optionalValue()})
 	}
 
 	expect := Drained{}
@@ -353,8 +353,10 @@ func TestAppendWorks(t *testing.T) {
 	assertChanges(t, changeSet, allChanges)
 
 	require.NoError(t, changeSet.CommitTransaction())
-	require.NoError(t, changeSet.CommitTransaction())
+	require.Equal(t, uint(2), changeSet.TransactionDepth())
+	assertChanges(t, changeSet, allChanges)
 
+	require.NoError(t, changeSet.CommitTransaction())
 	require.Equal(t, uint(1), changeSet.TransactionDepth())
 	assertChanges(t, changeSet, allChanges)
 

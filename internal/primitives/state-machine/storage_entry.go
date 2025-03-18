@@ -1,7 +1,5 @@
 package statemachine
 
-import "fmt"
-
 // Content in an overlay for a given transactional depth.
 type StorageEntry interface {
 	value() StorageValue
@@ -48,13 +46,9 @@ func (se AppendStorageEntry) optionalValue() StorageValue {
 }
 
 func (se *AppendStorageEntry) materializedInPlace() {
-	fmt.Printf("data1: %+v\n", se.data)
-
 	currentLength := se.currentLength
 	if se.materializedLength != nil && *se.materializedLength == currentLength {
 		return
 	}
 	NewStorageAppend(&se.data).ReplaceLength(se.materializedLength, currentLength)
-
-	fmt.Printf("data2: %+v\n", se.data)
 }
