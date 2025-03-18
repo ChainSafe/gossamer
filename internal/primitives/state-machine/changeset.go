@@ -95,15 +95,17 @@ func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
 			lastTx := overlayed.PopTransaction().value
 			switch entry := lastTx.(type) {
 			case AppendStorageEntry:
-				if len(overlayed.transactions) == 0 {
-					panic("AppendStorageEntry should have transactions")
+				if entry.parentSize != nil {
+					if len(overlayed.transactions) == 0 {
+						panic("AppendStorageEntry should have transactions")
+					}
+					restoreAppendToParent(
+						*overlayed.ValueRef(),
+						entry.data,
+						entry.materializedLength,
+						*entry.parentSize,
+					)
 				}
-				restoreAppendToParent(
-					*overlayed.ValueRef(),
-					entry.data,
-					entry.materializedLength,
-					*entry.parentSize,
-				)
 			default: // do nothing
 			}
 
@@ -114,8 +116,7 @@ func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
 			var hasPredecessor bool
 
 			if len(oc.dirtyKeys) > 0 {
-				last := oc.dirtyKeys[len(oc.dirtyKeys)-1]
-
+				last := &oc.dirtyKeys[len(oc.dirtyKeys)-1]
 				hasPredecessor = last.Contains(key)
 				last.Insert(key)
 			} else {
