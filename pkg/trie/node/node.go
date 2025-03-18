@@ -57,13 +57,13 @@ func (n *Node) StringNode() (stringNode *gotree.Node) {
 	stringNode = gotree.New(n.Kind().String())
 	stringNode.Appendf("Generation: %d", n.Generation)
 	stringNode.Appendf("Dirty: %t", n.Dirty)
-	stringNode.Appendf("Key: " + bytesToString(n.PartialKey))
-	stringNode.Appendf("Storage value: " + bytesToString(n.StorageValue))
-	stringNode.Appendf("IsHashed: " + strconv.FormatBool(n.IsHashedValue))
+	stringNode.Appendf("Key: %s", bytesToString(n.PartialKey))
+	stringNode.Appendf("Storage value: %s", bytesToString(n.StorageValue))
+	stringNode.Appendf("IsHashed: %s", strconv.FormatBool(n.IsHashedValue))
 	if n.Descendants > 0 { // must be a branch
 		stringNode.Appendf("Descendants: %d", n.Descendants)
 	}
-	stringNode.Appendf("Merkle value: " + bytesToString(n.MerkleValue))
+	stringNode.Appendf("Merkle value: %s", bytesToString(n.MerkleValue))
 
 	for i, child := range n.Children {
 		if child == nil {
