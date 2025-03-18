@@ -252,7 +252,7 @@ func TestHandlePoVFetchingRequest(t *testing.T) {
 	})
 }
 
-func Test_getBlockAncestorsInSameSession(t *testing.T) {
+func TestGetBlockAncestorsInSameSession(t *testing.T) {
 	var (
 		ctrl           *gomock.Controller
 		netMock        *MockNetwork
