@@ -13,7 +13,7 @@ import (
 
 func TestAppendMaterializedInPlace(t *testing.T) {
 	data := []byte{1, 2, 3, 4}
-	length := uint32(len(data))
+	length := uint(len(data))
 
 	entry := AppendStorageEntry{
 		data:          data,
@@ -21,7 +21,7 @@ func TestAppendMaterializedInPlace(t *testing.T) {
 	}
 
 	encoded := entry.optionalValue()
-	encodedFromLen := scale.MustMarshal(uint(length))
+	encodedFromLen := scale.MustMarshal(length)
 	require.Equal(t, 1, len(encodedFromLen))
 
 	require.True(t, bytes.HasPrefix(encoded, encodedFromLen))

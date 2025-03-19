@@ -11,9 +11,6 @@ import (
 var (
 	// DefaultChildStorageKeyPrefix is a prefix of the default child storage keys in the top trie.
 	DefaultChildStorageKeyPrefix = []byte(":child_storage:default:")
-	// Current extrinsic index (u32) is stored under this key.
-	// Encodes to `0x3a65787472696e7369635f696e646578`.
-	ExtrinsicIndexKey = []byte(":extrinsic_index")
 )
 
 // IsChildStorageKey returns whether a key is a child storage key.
