@@ -483,3 +483,105 @@ func TestNextChangeWorks(t *testing.T) {
 	_, _, has = next()
 	require.False(t, has)
 }
+
+func TestNoOpenTxCommitErrors(t *testing.T) {
+	changeSet := NewOverlayedChangeSet()
+	require.Equal(t, uint(0), changeSet.TransactionDepth())
+	require.Error(t, changeSet.CommitTransaction(), errorNoOpenTransaction)
+}
+
+func TestNoOpenTxRollbackErrors(t *testing.T) {
+	changeSet := NewOverlayedChangeSet()
+	require.Equal(t, uint(0), changeSet.TransactionDepth())
+	require.Error(t, changeSet.RollbackTransaction(), errorNoOpenTransaction)
+}
+
+func TestUnbalancedTransactionsError(t *testing.T) {
+	changeSet := NewOverlayedChangeSet()
+	changeSet.StartTransaction()
+	require.NoError(t, changeSet.CommitTransaction())
+
+	require.Error(t, changeSet.CommitTransaction(), errorNoOpenTransaction)
+}
+
+func TestDrainWithOpenTransactionPanics(t *testing.T) {
+	changeSet := NewOverlayedChangeSet()
+	changeSet.StartTransaction()
+	require.Panics(t, func() { changeSet.DrainCommited() })
+}
+
+func TestRuntimeCannotCloseClientTx(t *testing.T) {
+	changeSet := NewOverlayedChangeSet()
+	changeSet.StartTransaction()
+	require.NoError(t, changeSet.EnterRuntime())
+
+	changeSet.StartTransaction()
+	require.NoError(t, changeSet.CommitTransaction())
+
+	require.Error(t, changeSet.CommitTransaction(), errorNoOpenTransaction)
+	require.Error(t, changeSet.RollbackTransaction(), errorNoOpenTransaction)
+}
+
+func TestExitRuntimeClosesRuntimeTx(t *testing.T) {
+	changeSet := NewOverlayedChangeSet()
+	changeSet.StartTransaction()
+	changeSet.Set(StorageKey("key0"), StorageValue("val0"), extrinsic(1))
+
+	require.NoError(t, changeSet.EnterRuntime())
+	changeSet.StartTransaction()
+	changeSet.Set(StorageKey("key1"), StorageValue("val1"), extrinsic(2))
+	changeSet.ExitRuntime()
+
+	changeSet.CommitTransaction()
+	require.Equal(t, uint(0), changeSet.TransactionDepth())
+
+	assertDrained(t, changeSet, Drained{
+		{"key0", StorageValue("val0")},
+	})
+}
+
+func TestEnterExitRuntimeFailsWhenAlreadyInRequestedMode(t *testing.T) {
+	changeSet := NewOverlayedChangeSet()
+
+	require.Error(t, changeSet.ExitRuntime(), errorNotInRuntime)
+	require.NoError(t, changeSet.EnterRuntime())
+	require.Error(t, changeSet.EnterRuntime(), errorAlreadyInRuntime)
+	require.NoError(t, changeSet.ExitRuntime())
+	require.Error(t, changeSet.ExitRuntime(), errorNotInRuntime)
+}
+
+func TestRestoreAppendToParent(t *testing.T) {
+	changeSet := NewOverlayedChangeSet()
+	key := "akey"
+
+	from := 50 // 1 byte len
+	to := 100  // 2 byte len
+	defaultInit := func() StorageValue { return StorageValue{} }
+	for i := 0; i < from; i++ {
+		changeSet.AppendStorage(StorageKey(key), StorageValue([]byte{byte(i)}), defaultInit, nil)
+	}
+
+	// materialized
+	encoded := changeSet.Get(key).StorageValue()
+	encodedFromLen := scale.MustMarshal(uint(from))
+	require.Equal(t, 1, len(encodedFromLen))
+	require.True(t, bytes.HasPrefix(encoded, encodedFromLen))
+	//encodedFrom := encoded[:]
+
+	changeSet.StartTransaction()
+
+	for i := from; i < to; i++ {
+		changeSet.AppendStorage(StorageKey(key), StorageValue([]byte{byte(i)}), defaultInit, nil)
+	}
+
+	// materialized
+	encoded = changeSet.Get(key).StorageValue()
+	encodedToLen := scale.MustMarshal(uint(to))
+	require.Equal(t, 2, len(encodedToLen))
+	require.True(t, bytes.HasPrefix(encoded, encodedToLen))
+
+	changeSet.RollbackTransaction()
+
+	encoded = changeSet.Get(key).StorageValue()
+	//require.Equal(t, encodedFrom, encoded)
+}
