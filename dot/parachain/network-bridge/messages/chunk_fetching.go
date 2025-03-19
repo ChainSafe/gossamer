@@ -22,8 +22,8 @@ type ChunkFetchingRequest struct {
 }
 
 // Encode returns the SCALE encoding of the ChunkFetchingRequest
-func (c ChunkFetchingRequest) Encode() ([]byte, error) {
-	return scale.Marshal(c)
+func (c *ChunkFetchingRequest) Encode() ([]byte, error) {
+	return scale.Marshal(*c)
 }
 
 // Decode returns the SCALE decoding of the ChunkFetchingRequest.
@@ -32,12 +32,12 @@ func (c *ChunkFetchingRequest) Decode(in []byte) (err error) {
 }
 
 // Protocol returns the sub-protocol ID for this message
-func (c ChunkFetchingRequest) Protocol() ReqProtocolName {
+func (c *ChunkFetchingRequest) Protocol() ReqProtocolName {
 	return ChunkFetchingV1
 }
 
 // Response returns an instance of the response type for this message, for the purpose of decoding into it.
-func (c ChunkFetchingRequest) Response() network.ResponseMessage {
+func (c *ChunkFetchingRequest) Response() network.ResponseMessage {
 	return &ChunkFetchingResponse{}
 }
 
