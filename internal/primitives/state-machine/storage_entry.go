@@ -51,4 +51,5 @@ func (se *AppendStorageEntry) materializedInPlace() {
 		return
 	}
 	NewStorageAppend(&se.data).ReplaceLength(se.materializedLength, currentLength)
+	se.materializedLength = &currentLength
 }

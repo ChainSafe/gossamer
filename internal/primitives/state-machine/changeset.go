@@ -94,6 +94,26 @@ func (oc *OverlayedChangeSet) ClearWhere(predicate func([]byte, *OverlayedValue)
 	}
 }
 
+func (oc *OverlayedChangeSet) ExitRuntime() error {
+	if oc.executionMode != ExecutionModeRuntime {
+		return errorNotInRuntime
+	}
+
+	oc.executionMode = ExecutionModeClient
+	if oc.HasOpenRuntimeTransactions() {
+		logger.Warnf("%d storage transactions are left open by the runtime. Those will be rolled back.",
+			oc.TransactionDepth()-oc.numClientTransactions)
+	}
+
+	for oc.HasOpenRuntimeTransactions() {
+		if oc.RollbackTransaction() != nil {
+			panic("The loop confidtion checks that the transaction depth is > 0; qed")
+		}
+	}
+
+	return nil
+}
+
 func (oc *OverlayedChangeSet) RollbackTransaction() error {
 	return oc.closeTransaction(true)
 }
@@ -107,12 +127,12 @@ func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
 		return errorNoOpenTransaction
 	}
 
-	lastTransaction, has := oc.dirtyKeys.Pop()
+	lastTransactions, has := oc.dirtyKeys.Pop()
 	if !has {
 		return errorNoOpenTransaction
 	}
 
-	lastTransaction.Scan(func(key string) bool {
+	lastTransactions.Scan(func(key string) bool {
 		overlayed, has := oc.changes.GetMut(key)
 		if !has {
 			panic(`
