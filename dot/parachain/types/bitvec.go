@@ -31,6 +31,19 @@ func (bv *BitVec) Get(index uint) (bool, error) {
 	return bv.bits[index], nil
 }
 
+func (bv *BitVec) Len() int {
+	return len(bv.bits)
+}
+
+func (bv *BitVec) CountOnes() (count int) {
+	for _, bit := range bv.bits {
+		if bit {
+			count++
+		}
+	}
+	return count
+}
+
 // NewBitVec returns a new BitVec with the given bits
 // This isn't a complete implementation of the bit vector
 // It is only used for ParachainHost runtime exports
