@@ -9,7 +9,7 @@ require (
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.1.0
 	github.com/cockroachdb/pebble v1.1.4
 	github.com/cosmos/go-bip39 v1.0.0
-	github.com/dgraph-io/badger/v4 v4.5.1
+	github.com/dgraph-io/badger/v4 v4.6.0
 	github.com/dgraph-io/ristretto/v2 v2.1.0
 	github.com/disiqueira/gotree v1.0.0
 	github.com/dolthub/maphash v0.1.0
@@ -90,9 +90,8 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
-	github.com/google/flatbuffers v24.12.23+incompatible // indirect
+	github.com/google/flatbuffers v25.2.10+incompatible // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/pprof v0.0.0-20250208200701-d0013a598941 // indirect
 	github.com/gtank/ristretto255 v0.1.2 // indirect
@@ -199,7 +198,6 @@ require (
 	github.com/vedhavyas/go-subkey v1.0.4-0.20220708014838-349cf3021f51 // indirect
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
-	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel v1.34.0 // indirect
 	go.opentelemetry.io/otel/metric v1.34.0 // indirect
