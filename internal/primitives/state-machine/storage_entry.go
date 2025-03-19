@@ -3,6 +3,8 @@
 
 package statemachine
 
+import "fmt"
+
 // Content in an overlay for a given transactional depth.
 type StorageEntry interface {
 	value() StorageValue
@@ -43,16 +45,41 @@ func (se SetStorageEntry) optionalValue() StorageValue    { return se.data }
 func (se RemoveStorageEntry) value() StorageValue         { return nil }
 func (se RemoveStorageEntry) optionalValue() StorageValue { return nil }
 func (se AppendStorageEntry) value() StorageValue         { return se.data }
-func (se AppendStorageEntry) optionalValue() StorageValue {
+func (se *AppendStorageEntry) optionalValue() StorageValue {
 	se.materializedInPlace()
 	return se.data
 }
 
 func (se *AppendStorageEntry) materializedInPlace() {
+	fmt.Printf("data1 %v \n", *se)
+
 	currentLength := se.currentLength
 	if se.materializedLength != nil && *se.materializedLength == currentLength {
 		return
 	}
 	NewStorageAppend(&se.data).ReplaceLength(se.materializedLength, currentLength)
 	se.materializedLength = &currentLength
+
+	fmt.Println("data2", *se)
+}
+
+func (a AppendStorageEntry) String() string {
+	// Para materializedLength
+	materializedLengthStr := "None"
+	if a.materializedLength != nil {
+		materializedLengthStr = fmt.Sprintf("Some(%d)", *a.materializedLength)
+	}
+
+	// Para parentSize
+	parentSizeStr := "None"
+	if a.parentSize != nil {
+		parentSizeStr = fmt.Sprintf("Some(%d)", *a.parentSize)
+	}
+
+	return fmt.Sprintf("Append{ "+
+		"  data: %v,"+
+		"  currentLength: %d,"+
+		"  materializedLength: %s,"+
+		"  parentSize: %s"+
+		"}", a.data, a.currentLength, materializedLengthStr, parentSizeStr)
 }

@@ -145,7 +145,7 @@ func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
 		if rollback {
 			lastTx := overlayed.PopTransaction().value
 			switch entry := lastTx.(type) {
-			case AppendStorageEntry:
+			case *AppendStorageEntry:
 				if entry.parentSize != nil {
 					if len(overlayed.transactions) == 0 {
 						panic("AppendStorageEntry should have transactions")
@@ -178,7 +178,7 @@ func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
 				commitedTx := overlayed.PopTransaction()
 				mergeAppends := false
 
-				if entry, ok := commitedTx.value.(AppendStorageEntry); ok && entry.parentSize != nil {
+				if entry, ok := commitedTx.value.(*AppendStorageEntry); ok && entry.parentSize != nil {
 					if parentEntry, ok := any(overlayed.ValueRef()).(AppendStorageEntry); ok {
 						mergeAppends = true
 						*entry.parentSize = *parentEntry.parentSize
@@ -192,7 +192,7 @@ func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
 					removed := *overlayed.ValueRef()
 					*overlayed.ValueRef() = commitedTx.value
 
-					if entry, ok := removed.(AppendStorageEntry); ok {
+					if entry, ok := removed.(*AppendStorageEntry); ok {
 						if entry.parentSize != nil {
 							transactions := len(overlayed.transactions)
 
