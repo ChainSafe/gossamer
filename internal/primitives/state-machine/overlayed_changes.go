@@ -3,11 +3,7 @@
 
 package statemachine
 
-import (
-	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
-)
-
-var NoExtrinsicIndex uint32 = 0xffffffff
+import "github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 
 // StorageKey is a storage key.
 type StorageKey []byte
@@ -69,20 +65,3 @@ type IndexOperationRenew struct {
 
 func (IndexOperationInsert) isIndexOperation() {}
 func (IndexOperationRenew) isIndexOperation()  {}
-
-type OffchainOverlayedChange interface {
-	isOffchainOverlayedChange()
-}
-
-type (
-	OffchainOverlayedChangeRemove   struct{}
-	OffchainOverlayedChangeSetValue []byte
-)
-
-func (OffchainOverlayedChangeRemove) isOffchainOverlayedChange()   {}
-func (OffchainOverlayedChangeSetValue) isOffchainOverlayedChange() {}
-
-type OffchainOverlayedChanges struct {
-	OverlayedMap[string, []byte]
-	OffchainOverlayedChange
-}
