@@ -73,12 +73,7 @@ func (om *OverlayedMap[K, V]) SetOffchain(key K, value V, atExtrinsic *uint32) {
 
 func (om *OverlayedMap[K, V]) Changes() iter.Seq2[K, *OverlayedEntry[V]] {
 	return func(yield func(K, *OverlayedEntry[V]) bool) {
-		om.changes.Scan(func(k K, v *OverlayedEntry[V]) bool {
-			if !yield(k, v) {
-				return false
-			}
-			return true
-		})
+		om.changes.Scan(yield)
 	}
 }
 
@@ -89,10 +84,7 @@ func (om *OverlayedMap[K, V]) DrainCommited() iter.Seq2[K, V] {
 
 	return func(yield func(K, V) bool) {
 		om.changes.Scan(func(k K, v *OverlayedEntry[V]) bool {
-			if !yield(k, v.PopTransaction().value) {
-				return false
-			}
-			return true
+			return yield(k, v.PopTransaction().value)
 		})
 	}
 }

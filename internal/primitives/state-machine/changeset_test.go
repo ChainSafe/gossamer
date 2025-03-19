@@ -384,7 +384,8 @@ func TestClearWorks(t *testing.T) {
 
 	changeSet.StartTransaction()
 
-	changeSet.ClearWhere(func(k []byte, ov *OverlayedValue) bool { return bytes.HasPrefix(k, []byte("del")) }, extrinsic(5))
+	predicate := func(k []byte, ov *OverlayedValue) bool { return bytes.HasPrefix(k, []byte("del")) }
+	changeSet.ClearWhere(predicate, extrinsic(5))
 
 	allChanges := Changes{
 		{"del1", nil, []uint32{3, 5}},
@@ -561,7 +562,7 @@ func TestRestoreAppendToParent(t *testing.T) {
 		changeSet.AppendStorage(StorageKey(key), StorageValue([]byte{byte(i)}), defaultInit, nil)
 	}
 
-	// materialized
+	// materialised
 	encoded := changeSet.Get(key).StorageValue()
 	encodedFromLen := scale.MustMarshal(uint(from))
 	require.Equal(t, 1, len(encodedFromLen))
@@ -574,7 +575,7 @@ func TestRestoreAppendToParent(t *testing.T) {
 		changeSet.AppendStorage(StorageKey(key), StorageValue([]byte{byte(i)}), defaultInit, nil)
 	}
 
-	// materialized
+	// materialised
 	encoded = changeSet.Get(key).StorageValue()
 	encodedToLen := scale.MustMarshal(uint(to))
 	require.Equal(t, 2, len(encodedToLen))
@@ -582,6 +583,6 @@ func TestRestoreAppendToParent(t *testing.T) {
 
 	changeSet.RollbackTransaction()
 
-	encoded = changeSet.Get(key).StorageValue()
+	//encoded = changeSet.Get(key).StorageValue()
 	//require.Equal(t, encodedFrom, encoded)
 }
