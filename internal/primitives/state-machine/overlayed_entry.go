@@ -9,6 +9,7 @@ const PROOF_OVERLAY_NON_EMPTY = `
 An OverlayValue is always created with at least one transaction and dropped as soon
 as the last transaction is removed; qed`
 
+// An overlay that contains all versions of a value for a specific key.
 type OverlayedEntry[V any] struct {
 	// The individual versions of that value.
 	// One entry per transactions during that the value was actually written.

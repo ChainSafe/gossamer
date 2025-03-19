@@ -9,12 +9,14 @@ import (
 	"github.com/tidwall/btree"
 )
 
+// From btree.Set constraints
 type ordered interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64 |
 		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
 		~float32 | ~float64 | ~string
 }
 
+// / Describes in which mode the node is currently executing.
 type ExecutionMode = uint8
 
 const (
@@ -24,15 +26,25 @@ const (
 	ExecutionModeRuntime
 )
 
-type InnerValue[V any] struct {
-	// Current value. None if value has been deleted.
-	value V
-	// The set of extrinsic indices where the values has been changed.
-	extrinsics *Extrinsics
-}
-
+// Dirty keys are a set of keys that have been modified in each transaction.
 type DirtyKeysSets[K ordered] []btree.Set[K]
 
+// Inserts a key into the dirty set.
+// Returns true iff we currently have at least one open transaction and if this
+// is the first write to the given key in that transaction.
+func (dks DirtyKeysSets[K]) insertDirty(key K) bool {
+	if len(dks) == 0 {
+		return false
+	}
+
+	last := &dks[len(dks)-1]
+	firstWrite := !last.Contains(key)
+
+	last.Insert(key)
+	return firstWrite
+}
+
+// Get the keys modified in the last transaction.
 func (dks *DirtyKeysSets[K]) Pop() (btree.Set[K], bool) {
 	if len(*dks) == 0 {
 		return btree.Set[K]{}, false
@@ -44,15 +56,24 @@ func (dks *DirtyKeysSets[K]) Pop() (btree.Set[K], bool) {
 	return set, true
 }
 
+type InnerValue[V any] struct {
+	// Current value. nil if value has been deleted.
+	value V
+	// The set of extrinsic indices where the values has been changed.
+	extrinsics *Extrinsics
+}
 type Transactions[V any] []InnerValue[V]
+
+// / History of value, with removal support.
 type OverlayedValue = OverlayedEntry[StorageEntry]
 
+// Change set for basic key value with extrinsics index recording and removal support.
 type OverlayedChangeSet struct {
 	OverlayedMap[string, StorageEntry]
 }
 
-func NewOverlayedChangeSet() OverlayedChangeSet {
-	return OverlayedChangeSet{
+func NewOverlayedChangeSet() *OverlayedChangeSet {
+	return &OverlayedChangeSet{
 		NewOverlayedMap[string, StorageEntry](),
 	}
 }
@@ -64,7 +85,7 @@ func (oc *OverlayedChangeSet) Set(key StorageKey, value StorageValue, atExtrinsi
 		overlayed = NewOverlayedEntry[StorageEntry]()
 	}
 
-	overlayed.Set(value, insertDirty(&oc.dirtyKeys, keyString), atExtrinsic)
+	overlayed.Set(value, oc.dirtyKeys.insertDirty(keyString), atExtrinsic)
 	oc.changes.Set(keyString, overlayed)
 }
 
@@ -83,7 +104,7 @@ func (oc *OverlayedChangeSet) ClearWhere(predicate func([]byte, *OverlayedValue)
 	count := 0
 	for k, v := range oc.Changes() {
 		if predicate([]byte(k), v) {
-			v.Set(nil, insertDirty(&oc.dirtyKeys, k), atExtrinsic)
+			v.Set(nil, oc.dirtyKeys.insertDirty(k), atExtrinsic)
 			if v != nil {
 				switch any(*v).(type) {
 				case AppendStorageEntry, SetStorageEntry:
@@ -234,7 +255,7 @@ func (oc *OverlayedChangeSet) AppendStorage(
 		overlayed = NewOverlayedEntry[StorageEntry]()
 	}
 
-	firstWriteInTx := insertDirty(&oc.dirtyKeys, keyString)
+	firstWriteInTx := oc.dirtyKeys.insertDirty(keyString)
 	overlayed.Append(value, firstWriteInTx, init, atExtrinsic)
 	oc.changes.Set(keyString, overlayed)
 }
