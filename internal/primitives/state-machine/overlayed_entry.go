@@ -110,7 +110,7 @@ func (oe *OverlayedEntry[V]) Set(value StorageValue, firstWriteInTx bool, atExtr
 
 		var setPrev *struct {
 			data                []byte
-			currentMaterialized *uint32
+			currentMaterialized *uint
 			parentSize          uint
 		}
 
@@ -120,7 +120,7 @@ func (oe *OverlayedEntry[V]) Set(value StorageValue, firstWriteInTx bool, atExtr
 
 			setPrev = &struct {
 				data                []byte
-				currentMaterialized *uint32
+				currentMaterialized *uint
 				parentSize          uint
 			}{
 				data:                []byte{},
@@ -163,8 +163,8 @@ func (oe *OverlayedEntry[V]) Append(
 	atExtrinsic *uint32,
 ) {
 	var data []byte
-	var currentLength uint32
-	var materializedLength *uint32
+	var currentLength uint
+	var materializedLength *uint
 	var parentSize *uint
 
 	replace := true
@@ -250,7 +250,7 @@ func (oe *OverlayedEntry[V]) Append(
 			currentLength = 1
 			materializedLength = nil
 		case SetStorageEntry:
-			// Note that when the data here is not initialized with append,
+			// Note that when the data here is not initialised with append,
 			// and still starts with a valid compact u32 we can have totally broken
 			// encoding.
 			append := NewStorageAppend(&oldVal.data)
@@ -293,7 +293,7 @@ func (oe *OverlayedEntry[V]) Append(
 func restoreAppendToParent(
 	parent StorageEntry,
 	currentData []byte,
-	currentMaterialized *uint32,
+	currentMaterialized *uint,
 	targetParentSize uint,
 ) {
 	switch parent := parent.(type) {
@@ -327,7 +327,7 @@ func restoreAppendToParent(
 	}
 }
 
-func compactLen(val uint32) int {
+func compactLen(val uint) int {
 	switch {
 	case val <= 0b0011_1111:
 		return 1

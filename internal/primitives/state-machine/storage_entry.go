@@ -19,19 +19,18 @@ type (
 	RemoveStorageEntry struct{}
 
 	// The storage entry was appended to.
-	//
 	// This assumes that the storage entry is encoded as a SCALE list. This means that it is
-	// prefixed with a `Compact<u32>` that reprensents the length, followed by all the encoded
+	// prefixed with a compact uint that reprensents the length, followed by all the encoded
 	// elements.
 	AppendStorageEntry struct {
 		// The value of the storage entry.
 		// This may or may not be prefixed by the length, depending on the materialised length.
 		data StorageValue
 		// Current number of elements stored in data.
-		currentLength uint32
+		currentLength uint
 		// The number of elements as stored in the prefixed length in `data`.
 		// If `nil`, than `data` is not yet prefixed with the length.
-		materializedLength *uint32
+		materializedLength *uint
 		// The size of `data` in the parent transactional layer.
 		// Only set when the parent layer is in  `Append` state.
 		parentSize *uint
@@ -48,7 +47,7 @@ func (se *AppendStorageEntry) optionalValue() StorageValue {
 	return se.data
 }
 
-// Materialize the internal state and cache the resulting materialized value.
+// Materialise the internal state and cache the resulting materialised value.
 func (se *AppendStorageEntry) materializedInPlace() {
 	currentLength := se.currentLength
 	if se.materializedLength != nil && *se.materializedLength == currentLength {
