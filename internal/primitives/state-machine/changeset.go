@@ -16,7 +16,7 @@ type ordered interface {
 		~float32 | ~float64 | ~string
 }
 
-// / Describes in which mode the node is currently executing.
+// Describes in which mode the node is currently executing.
 type ExecutionMode = uint8
 
 const (
@@ -64,7 +64,7 @@ type Transaction[V any] struct {
 	extrinsics Extrinsics
 }
 
-// / History of value, with removal support.
+// History of value, with removal support.
 type OverlayedValue = OverlayedEntry[StorageEntry]
 
 // Change set for basic key value with extrinsics index recording and removal support.
@@ -78,6 +78,8 @@ func NewOverlayedChangeSet() *OverlayedChangeSet {
 	}
 }
 
+// Set a new value for the specified key.
+// Can be rolled back or committed when called inside a transaction.
 func (oc *OverlayedChangeSet) Set(key StorageKey, value StorageValue, atExtrinsic *uint32) {
 	keyString := string(key)
 	overlayed, has := oc.changes.Get(keyString)
@@ -89,6 +91,25 @@ func (oc *OverlayedChangeSet) Set(key StorageKey, value StorageValue, atExtrinsi
 	oc.changes.Set(keyString, overlayed)
 }
 
+// Append bytes to an existing content.
+func (oc *OverlayedChangeSet) AppendStorage(
+	key StorageKey,
+	value StorageValue,
+	init func() StorageValue,
+	atExtrinsic *uint32,
+) {
+	keyString := string(key)
+	overlayed, has := oc.changes.Get(keyString)
+	if !has {
+		overlayed = NewOverlayedEntry[StorageEntry]()
+	}
+
+	firstWriteInTx := oc.dirtyKeys.insertDirty(keyString)
+	overlayed.Append(value, firstWriteInTx, init, atExtrinsic)
+	oc.changes.Set(keyString, overlayed)
+}
+
+// Returns an iterator over all changes that follow the supplied `key`.
 func (oc *OverlayedChangeSet) ChangesAfter(key StorageKey) iter.Seq2[StorageKey, *OverlayedValue] {
 	return func(yield func(StorageKey, *OverlayedValue) bool) {
 		oc.changes.Scan(func(k string, v *OverlayedValue) bool {
@@ -100,6 +121,8 @@ func (oc *OverlayedChangeSet) ChangesAfter(key StorageKey) iter.Seq2[StorageKey,
 	}
 }
 
+// Set all values to deleted which are matched by the predicate.
+// Can be rolled back or committed when called inside a transaction.
 func (oc *OverlayedChangeSet) ClearWhere(predicate func([]byte, *OverlayedValue) bool, atExtrinsic *uint32) {
 	count := 0
 	for k, v := range oc.Changes() {
@@ -115,6 +138,9 @@ func (oc *OverlayedChangeSet) ClearWhere(predicate func([]byte, *OverlayedValue)
 	}
 }
 
+// Call this when control returns from the runtime.
+// This rollbacks all dangling transaction left open by the runtime.
+// Calling this while already outside the runtime will return an error.
 func (oc *OverlayedChangeSet) ExitRuntime() error {
 	if oc.executionMode != ExecutionModeRuntime {
 		return errorNotInRuntime
@@ -135,14 +161,21 @@ func (oc *OverlayedChangeSet) ExitRuntime() error {
 	return nil
 }
 
+// Rollback the last transaction started by `start_transaction`.
+// Any changes made during that transaction are discarded. Returns an error if
+// there is no open transaction that can be rolled back.
 func (oc *OverlayedChangeSet) RollbackTransaction() error {
 	return oc.closeTransaction(true)
 }
 
+// Commit the last transaction started by `start_transaction`.
+// Any changes made during that transaction are committed. Returns an error if
+// there is no open transaction that can be committed.
 func (oc *OverlayedChangeSet) CommitTransaction() error {
 	return oc.closeTransaction(false)
 }
 
+// Internal method to close the transaction and either commit or roll back the changes.
 func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
 	if oc.executionMode == ExecutionModeRuntime && !oc.HasOpenRuntimeTransactions() {
 		return errorNoOpenTransaction
@@ -241,21 +274,4 @@ func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
 	})
 
 	return nil
-}
-
-func (oc *OverlayedChangeSet) AppendStorage(
-	key StorageKey,
-	value StorageValue,
-	init func() StorageValue,
-	atExtrinsic *uint32,
-) {
-	keyString := string(key)
-	overlayed, has := oc.changes.Get(keyString)
-	if !has {
-		overlayed = NewOverlayedEntry[StorageEntry]()
-	}
-
-	firstWriteInTx := oc.dirtyKeys.insertDirty(keyString)
-	overlayed.Append(value, firstWriteInTx, init, atExtrinsic)
-	oc.changes.Set(keyString, overlayed)
 }
