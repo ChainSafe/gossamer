@@ -33,7 +33,7 @@ func extrinsic(value uint32) *uint32 {
 	return &value
 }
 
-func assertChanges(t *testing.T, is OverlayedChangeSet, expected Changes) {
+func assertChanges(t *testing.T, is *OverlayedChangeSet, expected Changes) {
 	var changes Changes
 	for k, v := range is.Changes() {
 		extrinsics := slices.Collect(maps.Keys(v.Extrinsics()))
@@ -52,7 +52,7 @@ func assertChanges(t *testing.T, is OverlayedChangeSet, expected Changes) {
 	require.Equal(t, expected, changes)
 }
 
-func assertDrainedChanges(t *testing.T, is OverlayedChangeSet, expected Changes) {
+func assertDrainedChanges(t *testing.T, is *OverlayedChangeSet, expected Changes) {
 	var drained Drained
 	for k, v := range is.DrainCommited() {
 		drained = append(drained, DrainedValue{k, v.optionalValue()})
@@ -66,7 +66,7 @@ func assertDrainedChanges(t *testing.T, is OverlayedChangeSet, expected Changes)
 	require.Equal(t, expect, drained)
 }
 
-func assertDrained(t *testing.T, is OverlayedChangeSet, expected Drained) {
+func assertDrained(t *testing.T, is *OverlayedChangeSet, expected Drained) {
 	var drained Drained
 	for k, v := range is.DrainCommited() {
 		drained = append(drained, DrainedValue{k, v.value()})
