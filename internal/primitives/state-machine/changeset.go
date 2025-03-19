@@ -56,13 +56,13 @@ func (dks *DirtyKeysSets[K]) Pop() (btree.Set[K], bool) {
 	return set, true
 }
 
-type InnerValue[V any] struct {
+// A transaction that has been executed on a value and optional extrinsic
+type Transaction[V any] struct {
 	// Current value. nil if value has been deleted.
 	value V
 	// The set of extrinsic indices where the values has been changed.
-	extrinsics *Extrinsics
+	extrinsics Extrinsics
 }
-type Transactions[V any] []InnerValue[V]
 
 // / History of value, with removal support.
 type OverlayedValue = OverlayedEntry[StorageEntry]
@@ -233,7 +233,7 @@ func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
 					}
 				}
 
-				overlayed.TransactionExtrinsics().Extend(*commitedTx.extrinsics)
+				overlayed.TransactionExtrinsics().Extend(commitedTx.extrinsics)
 			}
 		}
 

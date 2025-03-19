@@ -13,12 +13,12 @@ as the last transaction is removed; qed`
 type OverlayedEntry[V any] struct {
 	// The individual versions of that value.
 	// One entry per transactions during that the value was actually written.
-	transactions Transactions[V]
+	transactions []Transaction[V]
 }
 
 func NewOverlayedEntry[V any]() *OverlayedEntry[V] {
 	return &OverlayedEntry[V]{
-		transactions: Transactions[V]{},
+		transactions: []Transaction[V]{},
 	}
 }
 
@@ -51,7 +51,7 @@ func (oe *OverlayedEntry[V]) Extrinsics() map[uint32]struct{} {
 	return set
 }
 
-func (oe *OverlayedEntry[V]) PopTransaction() InnerValue[V] {
+func (oe *OverlayedEntry[V]) PopTransaction() Transaction[V] {
 	if len(oe.transactions) == 0 {
 		panic(PROOF_OVERLAY_NON_EMPTY)
 	}
@@ -67,16 +67,16 @@ func (oe *OverlayedEntry[V]) TransactionExtrinsics() *Extrinsics {
 		panic(PROOF_OVERLAY_NON_EMPTY)
 	}
 
-	return oe.transactions[len(oe.transactions)-1].extrinsics
+	return &oe.transactions[len(oe.transactions)-1].extrinsics
 }
 
 func (oe *OverlayedEntry[V]) SetOffchain(value V, firstWriteInTx bool, atExtrinsic *uint32) {
 	// TODO: test every branch
 
 	if firstWriteInTx || len(oe.transactions) == 0 {
-		oe.transactions = append(oe.transactions, InnerValue[V]{
+		oe.transactions = append(oe.transactions, Transaction[V]{
 			value:      value,
-			extrinsics: &Extrinsics{},
+			extrinsics: Extrinsics{},
 		})
 	} else {
 		*oe.ValueRef() = value
@@ -100,9 +100,9 @@ func (oe *OverlayedEntry[V]) Set(value StorageValue, firstWriteInTx bool, atExtr
 	}
 
 	if firstWriteInTx || len(oe.transactions) == 0 {
-		oe.transactions = append(oe.transactions, InnerValue[V]{
+		oe.transactions = append(oe.transactions, Transaction[V]{
 			value:      action.(V), //TODO: check this
-			extrinsics: &Extrinsics{},
+			extrinsics: Extrinsics{},
 		})
 	} else {
 		oldValue := oe.ValueRef()
@@ -180,14 +180,14 @@ func (oe *OverlayedEntry[V]) Append(
 			materializedLength = nil
 		}
 
-		oe.transactions = append(oe.transactions, InnerValue[V]{
+		oe.transactions = append(oe.transactions, Transaction[V]{
 			value: any(&AppendStorageEntry{
 				data:               data,
 				currentLength:      currentLength,
 				materializedLength: materializedLength,
 				parentSize:         nil,
 			}).(V),
-			extrinsics: &Extrinsics{},
+			extrinsics: Extrinsics{},
 		})
 	} else if firstWriteInTx {
 		parent := *oe.ValueRef()
@@ -221,14 +221,14 @@ func (oe *OverlayedEntry[V]) Append(
 			}
 		}
 
-		oe.transactions = append(oe.transactions, InnerValue[V]{
+		oe.transactions = append(oe.transactions, Transaction[V]{
 			value: any(&AppendStorageEntry{
 				data:               data,
 				currentLength:      currentLength,
 				materializedLength: materializedLength,
 				parentSize:         parentSize,
 			}).(V),
-			extrinsics: &Extrinsics{},
+			extrinsics: Extrinsics{},
 		})
 	} else {
 		oldValue := oe.ValueRef()
