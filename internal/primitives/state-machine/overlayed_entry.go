@@ -30,6 +30,7 @@ func (oe *OverlayedEntry[V]) ValueRef() *V {
 	return &oe.transactions[len(oe.transactions)-1].value
 }
 
+// The value as seen by the current transaction.
 func (oe *OverlayedEntry[V]) StorageValue() StorageValue {
 	return any(*oe.ValueRef()).(StorageEntry).optionalValue()
 }
@@ -151,6 +152,10 @@ func (oe *OverlayedEntry[V]) Set(value StorageValue, firstWriteInTx bool, atExtr
 	}
 }
 
+// Append content to a value, updating a prefixed compact encoded length.
+// This makes sure that the old version is not overwritten and can be properly
+// rolled back when required.
+// This avoid copying value from previous transaction.
 func (oe *OverlayedEntry[V]) Append(
 	element StorageValue,
 	firstWriteInTx bool,
@@ -168,6 +173,8 @@ func (oe *OverlayedEntry[V]) Append(
 		initValue := init()
 		storageAppend := NewStorageAppend(&initValue)
 
+		// Either the init value is a SCALE list like value to that the `element` gets appended
+		// or the value is reset to `element`.
 		length := storageAppend.ExtractLength()
 		if length != nil {
 			storageAppend.AppendRaw(element)
@@ -206,6 +213,8 @@ func (oe *OverlayedEntry[V]) Append(
 			materializedLength = entry.materializedLength
 			parentSize = &parentLen
 		case SetStorageEntry:
+			// For compatibility: append if there is a encoded length, overwrite
+			// with value otherwhise.
 			length := NewStorageAppend(&entry.data).ExtractLength()
 			if length != nil {
 				NewStorageAppend(&entry.data).AppendRaw(element)
@@ -214,6 +223,7 @@ func (oe *OverlayedEntry[V]) Append(
 				materializedLength = length
 				parentSize = nil
 			} else {
+				// overwrite, same as empty case.
 				data = element
 				currentLength = 1
 				materializedLength = nil
@@ -231,6 +241,7 @@ func (oe *OverlayedEntry[V]) Append(
 			extrinsics: Extrinsics{},
 		})
 	} else {
+		// not first transaction write
 		oldValue := oe.ValueRef()
 
 		switch oldVal := any(*oldValue).(type) {
@@ -239,9 +250,15 @@ func (oe *OverlayedEntry[V]) Append(
 			currentLength = 1
 			materializedLength = nil
 		case SetStorageEntry:
+			// Note that when the data here is not initialized with append,
+			// and still starts with a valid compact u32 we can have totally broken
+			// encoding.
 			append := NewStorageAppend(&oldVal.data)
 
 			len := append.ExtractLength()
+
+			// For compatibility: append if there is a encoded length, overwrite
+			// with value otherwhise.
 			if len != nil {
 				append.AppendRaw(element)
 				data = oldVal.data
