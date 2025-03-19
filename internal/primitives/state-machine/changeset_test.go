@@ -237,6 +237,100 @@ func TestTransactionCommitThenRollbackWorks(t *testing.T) {
 	assertDrainedChanges(t, changeSet, rollBack)
 }
 
+func TestAppend(t *testing.T) {
+	changeSet := NewOverlayedChangeSet()
+	require.Equal(t, uint(0), changeSet.TransactionDepth())
+
+	init := func() StorageValue {
+		val, err := scale.Marshal([][]byte{[]byte("valinit")})
+		require.NoError(t, err)
+		return StorageValue(val)
+	}
+
+	appendValue, err := scale.Marshal([]byte("-modified"))
+	require.NoError(t, err)
+
+	changeSet.AppendStorage(StorageKey("key3"), StorageValue(appendValue), init, extrinsic(3))
+	val3, err := scale.Marshal([][]byte{[]byte("valinit"), []byte("-modified")})
+	require.NoError(t, err)
+
+	allChanges := Changes{
+		{"key3", val3, []uint32{3}},
+	}
+
+	assertChanges(t, changeSet, allChanges)
+
+	changeSet.StartTransaction()
+	require.Equal(t, uint(1), changeSet.TransactionDepth())
+	changeSet.StartTransaction()
+	require.Equal(t, uint(2), changeSet.TransactionDepth())
+
+	// non existing value -> init value should be returned
+	appendValue, err = scale.Marshal([]byte("-twice"))
+	require.NoError(t, err)
+	changeSet.AppendStorage(StorageKey("key3"), StorageValue(appendValue), init, extrinsic(15))
+
+	val32, err := scale.Marshal([][]byte{[]byte("valinit"), []byte("-modified"), []byte("-twice")})
+	require.NoError(t, err)
+
+	allChanges = Changes{
+		{"key3", StorageValue(val32), []uint32{3, 15}},
+	}
+	assertChanges(t, changeSet, allChanges)
+
+	changeSet.StartTransaction()
+	require.Equal(t, uint(3), changeSet.TransactionDepth())
+
+	val33, err := scale.Marshal([][]byte{[]byte("valinit"), []byte("-modified"), []byte("-twice"), []byte("-2")})
+	require.NoError(t, err)
+
+	appendValue, err = scale.Marshal([]byte("-2"))
+	require.NoError(t, err)
+	changeSet.AppendStorage(StorageKey("key3"), StorageValue(appendValue), init, extrinsic(21))
+
+	allChanges2 := Changes{
+		{"key3", StorageValue(val33), []uint32{3, 15, 21}},
+	}
+	assertChanges(t, changeSet, allChanges2)
+
+	require.NoError(t, changeSet.RollbackTransaction())
+	require.Equal(t, uint(2), changeSet.TransactionDepth())
+
+	assertChanges(t, changeSet, allChanges)
+
+	changeSet.StartTransaction()
+	require.Equal(t, uint(3), changeSet.TransactionDepth())
+
+	val34, err := scale.Marshal([][]byte{[]byte("valinit"), []byte("-modified"), []byte("-twice"), []byte("-thrice")})
+	require.NoError(t, err)
+
+	appendValue, err = scale.Marshal([]byte("-thrice"))
+	require.NoError(t, err)
+	changeSet.AppendStorage(StorageKey("key3"), StorageValue(appendValue), init, extrinsic(25))
+
+	allChanges = Changes{
+		{"key3", StorageValue(val34), []uint32{3, 15, 25}},
+	}
+	assertChanges(t, changeSet, allChanges)
+
+	require.NoError(t, changeSet.CommitTransaction())
+	require.Equal(t, uint(2), changeSet.TransactionDepth())
+	assertChanges(t, changeSet, allChanges)
+
+	require.NoError(t, changeSet.CommitTransaction())
+	require.Equal(t, uint(1), changeSet.TransactionDepth())
+	assertChanges(t, changeSet, allChanges)
+
+	require.NoError(t, changeSet.RollbackTransaction())
+	require.Equal(t, uint(0), changeSet.TransactionDepth())
+
+	rolledBack := Changes{
+		{"key3", StorageValue(val3), []uint32{3}},
+	}
+	assertChanges(t, changeSet, rolledBack)
+	assertDrainedChanges(t, changeSet, rolledBack)
+}
+
 func TestAppendWorks(t *testing.T) {
 	changeSet := NewOverlayedChangeSet()
 	require.Equal(t, uint(0), changeSet.TransactionDepth())
@@ -567,7 +661,7 @@ func TestRestoreAppendToParent(t *testing.T) {
 	encodedFromLen := scale.MustMarshal(uint(from))
 	require.Equal(t, 1, len(encodedFromLen))
 	require.True(t, bytes.HasPrefix(encoded, encodedFromLen))
-	//encodedFrom := encoded[:]
+	encodedFrom := encoded[:]
 
 	changeSet.StartTransaction()
 
@@ -583,6 +677,6 @@ func TestRestoreAppendToParent(t *testing.T) {
 
 	changeSet.RollbackTransaction()
 
-	//encoded = changeSet.Get(key).StorageValue()
-	//require.Equal(t, encodedFrom, encoded)
+	encoded = changeSet.Get(key).StorageValue()
+	require.Equal(t, encodedFrom, encoded)
 }

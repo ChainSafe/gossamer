@@ -3,6 +3,8 @@
 
 package statemachine
 
+import "math"
+
 const PROOF_OVERLAY_NON_EMPTY = `
 An OverlayValue is always created with at least one transaction and dropped as soon
 as the last transaction is removed; qed`
@@ -178,7 +180,7 @@ func (oe *OverlayedEntry[V]) Append(
 		}
 
 		oe.transactions = append(oe.transactions, InnerValue[V]{
-			value: any(AppendStorageEntry{
+			value: any(&AppendStorageEntry{
 				data:               data,
 				currentLength:      currentLength,
 				materializedLength: materializedLength,
@@ -195,7 +197,7 @@ func (oe *OverlayedEntry[V]) Append(
 			currentLength = 1
 			materializedLength = nil
 			parentSize = nil
-		case AppendStorageEntry:
+		case *AppendStorageEntry:
 			parentLen := uint(len(entry.data))
 			NewStorageAppend(&entry.data).AppendRaw(element)
 			data = entry.data
@@ -219,7 +221,7 @@ func (oe *OverlayedEntry[V]) Append(
 		}
 
 		oe.transactions = append(oe.transactions, InnerValue[V]{
-			value: any(AppendStorageEntry{
+			value: any(&AppendStorageEntry{
 				data:               data,
 				currentLength:      currentLength,
 				materializedLength: materializedLength,
@@ -249,7 +251,7 @@ func (oe *OverlayedEntry[V]) Append(
 				currentLength = 1
 				materializedLength = nil
 			}
-		case AppendStorageEntry:
+		case *AppendStorageEntry:
 			NewStorageAppend(&oldVal.data).AppendRaw(element)
 			oldVal.currentLength += 1
 			replace = false
@@ -289,10 +291,11 @@ func restoreAppendToParent(
 			new = compactLen(*currentMaterialized)
 		}
 
+		diff := math.Abs(float64(prev - new))
 		if prev >= new {
-			targetParentSize += uint(prev - new)
+			targetParentSize -= uint(diff)
 		} else {
-			targetParentSize -= uint(new - prev)
+			targetParentSize += uint(diff)
 		}
 
 		*parent.materializedLength = *currentMaterialized

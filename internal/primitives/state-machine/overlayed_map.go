@@ -197,6 +197,7 @@ func insertDirty[K ordered](set *DirtyKeysSets[K], key K) bool {
 		return false
 	}
 
+	newValue := !(*set)[len(*set)-1].Contains(key)
 	(*set)[len(*set)-1].Insert(key)
-	return true
+	return newValue
 }
