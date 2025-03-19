@@ -250,10 +250,10 @@ func (oe *OverlayedEntry[V]) Append(
 				materializedLength = nil
 			}
 		case AppendStorageEntry:
-			oldVal.data = append(oldVal.data, element...)
-			currentLength += 1
+			NewStorageAppend(&oldVal.data).AppendRaw(element)
+			oldVal.currentLength += 1
 			replace = false
-
+			*oldValue = any(oldVal).(V)
 		}
 
 		if replace {
