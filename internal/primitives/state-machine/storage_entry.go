@@ -61,6 +61,7 @@ func (se *AppendStorageEntry) materializedInPlace() {
 	se.materializedLength = &currentLength
 
 	fmt.Println("data2", *se)
+	fmt.Println("============================================")
 }
 
 func (a AppendStorageEntry) String() string {
@@ -76,10 +77,10 @@ func (a AppendStorageEntry) String() string {
 		parentSizeStr = fmt.Sprintf("Some(%d)", *a.parentSize)
 	}
 
-	return fmt.Sprintf("Append{ "+
-		"  data: %v,"+
-		"  currentLength: %d,"+
-		"  materializedLength: %s,"+
-		"  parentSize: %s"+
+	return fmt.Sprintf("Append{"+
+		" data: %v,"+
+		" currentLength: %d,"+
+		" materializedLength: %s,"+
+		" parentSize: %s"+
 		"}", a.data, a.currentLength, materializedLengthStr, parentSizeStr)
 }

@@ -179,7 +179,8 @@ func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
 				mergeAppends := false
 
 				if entry, ok := commitedTx.value.(*AppendStorageEntry); ok && entry.parentSize != nil {
-					if parentEntry, ok := any(overlayed.ValueRef()).(AppendStorageEntry); ok {
+					parent := *overlayed.ValueRef()
+					if parentEntry, ok := any(parent).(*AppendStorageEntry); ok {
 						mergeAppends = true
 						*entry.parentSize = *parentEntry.parentSize
 					}
