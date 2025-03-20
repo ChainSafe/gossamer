@@ -6,7 +6,6 @@ package statemachine
 // Content in an overlay for a given transactional depth.
 type StorageEntry interface {
 	value() StorageValue
-	optionalValue() StorageValue
 }
 
 type (
@@ -37,12 +36,9 @@ type (
 	}
 )
 
-func (se SetStorageEntry) value() StorageValue            { return se.data }
-func (se SetStorageEntry) optionalValue() StorageValue    { return se.data }
-func (se RemoveStorageEntry) value() StorageValue         { return nil }
-func (se RemoveStorageEntry) optionalValue() StorageValue { return nil }
-func (se AppendStorageEntry) value() StorageValue         { return se.data }
-func (se *AppendStorageEntry) optionalValue() StorageValue {
+func (se SetStorageEntry) value() StorageValue    { return se.data }
+func (se RemoveStorageEntry) value() StorageValue { return nil }
+func (se *AppendStorageEntry) value() StorageValue {
 	se.materializedInPlace()
 	return se.data
 }

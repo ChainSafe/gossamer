@@ -32,7 +32,7 @@ func (oe *OverlayedEntry[V]) ValueRef() *V {
 
 // The value as seen by the current transaction.
 func (oe *OverlayedEntry[V]) StorageValue() StorageValue {
-	return any(*oe.ValueRef()).(StorageEntry).optionalValue()
+	return any(*oe.ValueRef()).(StorageEntry).value()
 }
 
 func (oe *OverlayedEntry[V]) IntoValue() V {
