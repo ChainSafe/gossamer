@@ -55,7 +55,7 @@ func assertChanges(t *testing.T, is *OverlayedChangeSet, expected Changes) {
 func assertDrainedChanges(t *testing.T, is *OverlayedChangeSet, expected Changes) {
 	var drained Drained
 	for k, v := range is.DrainCommited() {
-		drained = append(drained, DrainedValue{k, v.optionalValue()})
+		drained = append(drained, DrainedValue{k, v.value()})
 	}
 
 	expect := Drained{}
@@ -69,7 +69,7 @@ func assertDrainedChanges(t *testing.T, is *OverlayedChangeSet, expected Changes
 func assertDrained(t *testing.T, is *OverlayedChangeSet, expected Drained) {
 	var drained Drained
 	for k, v := range is.DrainCommited() {
-		drained = append(drained, DrainedValue{k, v.optionalValue()})
+		drained = append(drained, DrainedValue{k, v.value()})
 	}
 
 	require.Equal(t, expected, drained)

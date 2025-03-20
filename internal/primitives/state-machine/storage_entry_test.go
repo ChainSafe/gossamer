@@ -20,7 +20,7 @@ func TestAppendMaterializedInPlace(t *testing.T) {
 		currentLength: length,
 	}
 
-	encoded := entry.optionalValue()
+	encoded := entry.value()
 	encodedFromLen := scale.MustMarshal(length)
 	require.Equal(t, 1, len(encodedFromLen))
 
