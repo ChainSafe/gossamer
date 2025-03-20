@@ -8,18 +8,135 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/parachain/disputes-coordinator/messages"
+	disputemessages "github.com/ChainSafe/gossamer/dot/parachain/disputes-coordinator/messages"
 	parachain "github.com/ChainSafe/gossamer/dot/parachain/runtime"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/primitives"
 )
 
 type BlockState interface {
 	GetRuntime(blockHash common.Hash) (instance parachain.RuntimeInstance, err error)
 }
 
-// IsVoteWorthToKeep determines if a vote is worth to be kept, based on the onchain disputes.
-func IsVoteWorthToKeep(
+// partitionedDisputes contains disputes by partitions.
+type partitionedDisputes struct {
+	// Concluded and inactive disputes which are completely unknown for the Runtime.
+	// Hopefully this should never happen. Will be sent to the Runtime with FIRST priority.
+	inactiveUnknownOnchain []parachaintypes.DisputeKey
+
+	// Disputes which are INACTIVE locally but they are unconcluded for the Runtime.
+	// A dispute can have enough local vote to conclude and at the same time the
+	// Runtime knows nothing about them at treats it as unconcluded. This discrepancy
+	// should be treated with high priority.
+	// Will be sent to the Runtime with SECOND priority.
+	inactiveUnconcludedOnchain []parachaintypes.DisputeKey
+
+	// Active disputes completely unknown onchain.
+	// Will be sent to the Runtime with THIRD priority.
+	activeUnknownOnchain []parachaintypes.DisputeKey
+
+	// Active disputes unconcluded onchain.
+	// Will be sent to the Runtime with FOURTH priority.
+	activeUnconcludedOnchain []parachaintypes.DisputeKey
+
+	// Active disputes concluded onchain. New votes are not that important for this partition.
+	// Will be sent to the Runtime with FIFTH priority.
+	activeConcludedOnchain []parachaintypes.DisputeKey
+
+	// Inactive disputes which has concluded onchain. These are not interesting and
+	// won't be sent to the Runtime.
+	// Will be DROPPED
+	inactiveConcludedOnchain []parachaintypes.DisputeKey
+}
+
+// orderedPartitions returns an array of partitions in the order they should be processed.
+func (pd partitionedDisputes) orderedPartitions() []parachaintypes.DisputeKey { //nolint
+	seqToIterate := [][]parachaintypes.DisputeKey{
+		pd.inactiveUnknownOnchain,
+		pd.inactiveUnconcludedOnchain,
+		pd.activeUnknownOnchain,
+		pd.activeUnconcludedOnchain,
+		pd.activeConcludedOnchain,
+		// pd.InactiveConcludedOnchain is dropped on purpose
+	}
+
+	var out []parachaintypes.DisputeKey
+	for _, seq := range seqToIterate {
+		out = append(out, seq...)
+	}
+	return out
+}
+
+func concludedOnchain(onchainState *parachaintypes.DisputeState) bool {
+	n := onchainState.ValidatorsFor.Len()
+	supermajority := n - (primitives.SaturatingSub(n, 1) / 3)
+
+	return onchainState.ValidatorsFor.CountOnes() >= supermajority ||
+		onchainState.ValidatorsAgainst.CountOnes() >= supermajority
+}
+
+func partitionRecentDisputes(
+	recent []disputemessages.RecentDispute,
+	onchain map[parachaintypes.DisputeKey]parachaintypes.DisputeState,
+) partitionedDisputes {
+	partitioned := partitionedDisputes{}
+
+	// Drop any duplicates
+	uniqueRecent := make(map[parachaintypes.DisputeKey]parachaintypes.DisputeStatus)
+	for _, r := range recent {
+		uniqueRecent[parachaintypes.DisputeKey{
+			SessionIndex:  r.SessionIndex,
+			CandidateHash: r.CandidateHash,
+		}] = r.DisputeStatus
+	}
+
+	// Split recent disputes in ACTIVE and INACTIVE
+	timeNow := uint64(time.Now().Unix())
+	active := make(map[parachaintypes.DisputeKey]struct{})
+	inactive := make(map[parachaintypes.DisputeKey]struct{})
+	for k, v := range uniqueRecent {
+		if !parachaintypes.DisputeIsInactive(&v, timeNow) {
+			active[k] = struct{}{}
+		} else {
+			inactive[k] = struct{}{}
+		}
+	}
+
+	// Split ACTIVE in three groups...
+	for key := range active {
+		if d, ok := onchain[key]; ok {
+			if concludedOnchain(&d) {
+				partitioned.activeConcludedOnchain = append(partitioned.activeConcludedOnchain, key)
+			} else {
+				partitioned.activeUnconcludedOnchain = append(partitioned.activeUnconcludedOnchain, key)
+			}
+		} else {
+			partitioned.activeUnknownOnchain = append(partitioned.activeUnknownOnchain, key)
+		}
+	}
+
+	// ... and INACTIVE in three more
+	for key := range inactive {
+		if onchainState, ok := onchain[key]; ok {
+			if concludedOnchain(&onchainState) {
+				partitioned.inactiveConcludedOnchain = append(
+					partitioned.inactiveConcludedOnchain,
+					key,
+				)
+			} else {
+				partitioned.inactiveUnconcludedOnchain = append(partitioned.inactiveUnconcludedOnchain, key)
+			}
+		} else {
+			partitioned.inactiveUnknownOnchain = append(partitioned.inactiveUnknownOnchain, key)
+		}
+	}
+
+	return partitioned
+}
+
+// isVoteWorthToKeep determines if a vote is worth to be kept, based on the onchain disputes.
+func isVoteWorthToKeep(
 	validatorIndex parachaintypes.ValidatorIndex,
 	disputeStatement parachaintypes.DisputeStatement,
 	onchainState parachaintypes.DisputeState,
@@ -82,10 +199,10 @@ func IsVoteWorthToKeep(
 	return !inValidatorsFor && !inValidatorsAgainst
 }
 
-// GetOnchainDisputes gets the on-chain disputes at a given block number and returns them as a map
+// getOnchainDisputes gets the on-chain disputes at a given block number and returns them as a map
 // for efficient searching. It takes a relay parent hash and returns a map of session index and
 // candidate hash tuples to dispute states.
-func GetOnchainDisputes(
+func getOnchainDisputes( //nolint
 	blockstate BlockState,
 	relayParent common.Hash,
 ) (map[parachaintypes.DisputeKey]parachaintypes.DisputeState, error) {
@@ -102,16 +219,16 @@ func GetOnchainDisputes(
 	return disputes, nil
 }
 
-// RequestVotes requests the relevant dispute statements for a set of disputes identified
+// requestVotes requests the relevant dispute statements for a set of disputes identified
 // by CandidateHash and SessionIndex.
-func RequestVotes(overseerChan chan<- any, disputesToQuery []parachaintypes.DisputeKey) (
-	[]messages.CandidateVotesResponse, error,
+func requestVotes(overseerChan chan<- any, disputesToQuery []parachaintypes.DisputeKey) ( //nolint
+	[]disputemessages.CandidateVotesResponse, error,
 ) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	responseCh := make(chan []messages.CandidateVotesResponse)
-	query := messages.QueryCandidateVotes{
+	responseCh := make(chan []disputemessages.CandidateVotesResponse)
+	query := disputemessages.QueryCandidateVotes{
 		Query:    disputesToQuery,
 		Response: responseCh,
 	}
@@ -126,13 +243,12 @@ func RequestVotes(overseerChan chan<- any, disputesToQuery []parachaintypes.Disp
 	}
 }
 
-// RequestDisputes requests disputes identified by CandidateHash and SessionIndex.
-func RequestDisputes(overseerChan chan<- any) ([]messages.RecentDispute, error) {
+func requestDisputes(overseerChan chan<- any) ([]disputemessages.RecentDispute, error) { //nolint
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	responseCh := make(chan []messages.RecentDispute)
-	msg := messages.GetRecentDisputes{
+	responseCh := make(chan []disputemessages.RecentDispute)
+	msg := disputemessages.GetRecentDisputes{
 		Response: responseCh,
 	}
 

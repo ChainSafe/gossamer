@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/bits"
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -16,6 +17,32 @@ const MaxBitVecLength = 1<<29 - 1 // 536870911
 type BitVec struct {
 	bits []byte
 	len  int
+}
+
+// CountOnes returns the count of set bits (1s) in the BitVec following LSB0 ordering
+func (bv *BitVec) CountOnes() int {
+	if bv.len == 0 {
+		return 0
+	}
+
+	var count int
+	completeBytes := bv.len / 8
+
+	// Count ones in complete bytes
+	for i := 0; i < completeBytes; i++ {
+		count += bits.OnesCount8(bv.bits[i])
+	}
+
+	// Handle remaining bits in the last byte
+	remainingBits := bv.len % 8
+	if remainingBits > 0 {
+		lastByte := bv.bits[completeBytes]
+		// In LSB0, we want the first remainingBits from the right
+		mask := byte((1 << uint(remainingBits)) - 1)
+		count += bits.OnesCount8(lastByte & mask)
+	}
+
+	return count
 }
 
 // NewBitVec creates a new BitVec initialised with the given bits
