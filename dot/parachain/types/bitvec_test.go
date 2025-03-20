@@ -41,7 +41,10 @@ func TestBitVec_Bits(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			bv := NewBitVec(tt.bits)
+
+			bv, err := NewBitVec(tt.bits)
+			require.NoError(t, err)
+
 			require.Equal(t, tt.expected, bv.Bits())
 		})
 	}
@@ -76,7 +79,10 @@ func TestBitVec_Len(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			bv := NewBitVec(tt.bits)
+
+			bv, err := NewBitVec(tt.bits)
+			require.NoError(t, err)
+
 			require.Equal(t, tt.expected, bv.Len())
 		})
 	}
@@ -90,18 +96,28 @@ func TestBitVec_PushBits(t *testing.T) {
 		initial  []bool
 		toPush   []bool
 		expected []bool
+		wantErr  bool
 	}{
 		{
 			name:     "push_to_empty_bitvec",
 			initial:  []bool{},
 			toPush:   []bool{true, false, true},
 			expected: []bool{true, false, true},
+			wantErr:  false,
 		},
 		{
 			name:     "push_to_non_empty_bitvec",
 			initial:  []bool{true, false},
 			toPush:   []bool{true, true, false},
 			expected: []bool{true, false, true, true, false},
+			wantErr:  false,
+		},
+		{
+			name:     "length_larger_than_allowed",
+			initial:  []bool{},
+			toPush:   make([]bool, MaxBitVecLength+1),
+			expected: []bool{},
+			wantErr:  true,
 		},
 	}
 
@@ -109,8 +125,17 @@ func TestBitVec_PushBits(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			bv := NewBitVec(tt.initial)
-			bv.PushBits(tt.toPush)
+
+			bv, err := NewBitVec(tt.initial)
+			require.NoError(t, err)
+
+			err = bv.PushBits(tt.toPush)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
 			require.Equal(t, tt.expected, bv.Bits())
 		})
 	}
@@ -122,7 +147,7 @@ func TestBitVec_SetBit(t *testing.T) {
 	tests := []struct {
 		name     string
 		initial  []bool
-		index    uint32
+		index    uint
 		value    bool
 		expected []bool
 		wantErr  bool
@@ -149,8 +174,11 @@ func TestBitVec_SetBit(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			bv := NewBitVec(tt.initial)
-			err := bv.SetBit(tt.index, tt.value)
+
+			bv, err := NewBitVec(tt.initial)
+			require.NoError(t, err)
+
+			err = bv.SetBit(tt.index, tt.value)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
@@ -168,7 +196,7 @@ func TestBitVec_GetBit(t *testing.T) {
 	tests := []struct {
 		name     string
 		initial  []bool
-		index    uint32
+		index    uint
 		expected bool
 		wantErr  bool
 	}{
@@ -192,7 +220,10 @@ func TestBitVec_GetBit(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			bv := NewBitVec(tt.initial)
+
+			bv, err := NewBitVec(tt.initial)
+			require.NoError(t, err)
+
 			got, err := bv.GetBit(tt.index)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -223,15 +254,30 @@ func TestBitVec_MarshalSCALE(t *testing.T) {
 			bits:     []bool{true, false, true, true, false, false, true, false},
 			expected: []byte{32, 0b01001101},
 		},
+		{
+			name:     "medium_bitvec",
+			bits:     make([]bool, 1000),
+			expected: append([]byte{161, 15}, make([]byte, 125)...),
+		},
+		{
+			name:     "max_length_bitvec",
+			bits:     make([]bool, MaxBitVecLength),
+			expected: append([]byte{254, 255, 255, 127}, make([]byte, 67108864)...),
+		},
 	}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			bv := NewBitVec(tt.bits)
+
+			bv, err := NewBitVec(tt.bits)
+			require.NoError(t, err)
+
 			encoded, err := scale.Marshal(bv)
 			require.NoError(t, err)
+
+			require.Equal(t, len(tt.expected), len(encoded))
 			require.Equal(t, tt.expected, encoded)
 		})
 	}
@@ -264,12 +310,37 @@ func TestBitVec_UnmarshalSCALE(t *testing.T) {
 			expected: []bool{},
 			wantErr:  true,
 		},
+		{
+			name:     "medium_bitvec",
+			data:     append([]byte{161, 15}, make([]byte, 125)...),
+			expected: make([]bool, 1000),
+			wantErr:  false,
+		},
+		{
+			name:     "medium_bitvec_with_extra_bytes",
+			data:     append(append([]byte{161, 15}, make([]byte, 125)...), []byte{1, 1, 1, 1, 1, 1, 1, 1, 1}...),
+			expected: make([]bool, 1000),
+			wantErr:  false,
+		},
+		{
+			name:     "max_length_bitvec",
+			data:     append([]byte{254, 255, 255, 127}, make([]byte, 67108864)...),
+			expected: make([]bool, MaxBitVecLength),
+			wantErr:  false,
+		},
+		{
+			name:     "length_exceeds_max_length",
+			data:     append([]byte{254, 255, 255, 128}, make([]byte, 67108865)...),
+			expected: []bool{},
+			wantErr:  true,
+		},
 	}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
 			bv := BitVec{}
 			err := scale.Unmarshal(tt.data, &bv)
 			if tt.wantErr {
@@ -278,6 +349,7 @@ func TestBitVec_UnmarshalSCALE(t *testing.T) {
 				require.NoError(t, err)
 			}
 
+			require.Equal(t, len(tt.expected), bv.Len())
 			require.Equal(t, tt.expected, bv.Bits())
 		})
 	}
@@ -291,30 +363,42 @@ func TestBitVec_ExtendByByte(t *testing.T) {
 		initial   []bool
 		byteToAdd byte
 		expected  []bool
+		wantErr   bool
 	}{
 		{
 			name:      "extend_empty_bitvec",
 			initial:   []bool{},
 			byteToAdd: 0b10101010,
 			expected:  []bool{false, true, false, true, false, true, false, true},
+			wantErr:   false,
 		},
 		{
 			name:      "extend_non_empty_bitvec",
 			initial:   []bool{true, false},
 			byteToAdd: 0b11001100,
 			expected:  []bool{true, false, false, false, true, true, false, false, true, true},
+			wantErr:   false,
 		},
 		{
 			name:      "extend_with_all_bits_set",
 			initial:   []bool{true, false, true},
 			byteToAdd: 0b11111111,
 			expected:  []bool{true, false, true, true, true, true, true, true, true, true, true},
+			wantErr:   false,
 		},
 		{
 			name:      "extend_with_no_bits_set",
 			initial:   []bool{true, false, true},
 			byteToAdd: 0b00000000,
 			expected:  []bool{true, false, true, false, false, false, false, false, false, false, false},
+			wantErr:   false,
+		},
+		{
+			name:      "length_exceeds_max_length",
+			initial:   make([]bool, MaxBitVecLength),
+			byteToAdd: 0b10101010,
+			expected:  make([]bool, MaxBitVecLength),
+			wantErr:   true,
 		},
 	}
 
@@ -322,69 +406,87 @@ func TestBitVec_ExtendByByte(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			bv := NewBitVec(tt.initial)
-			bv.ExtendByByte(tt.byteToAdd)
+
+			bv, err := NewBitVec(tt.initial)
+			require.NoError(t, err)
+
+			err = bv.ExtendByByte(tt.byteToAdd)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			require.Equal(t, len(tt.expected), bv.Len())
 			require.Equal(t, tt.expected, bv.Bits())
 		})
 	}
 }
-
 func TestBitVec_IsEqual(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name     string
-		bv1Bits  []bool
-		bv2Bits  []bool
-		expected bool
+		name           string
+		bv1Bits        []bool
+		bv2Bits        []bool
+		expectedResult bool
+		expectError    bool
 	}{
 		{
-			name:     "empty_bitvecs_are_equal",
-			bv1Bits:  []bool{},
-			bv2Bits:  []bool{},
-			expected: true,
+			name:           "empty_bitvecs_are_equal",
+			bv1Bits:        []bool{},
+			bv2Bits:        []bool{},
+			expectedResult: true,
+			expectError:    false,
 		},
 		{
-			name:     "single_bit_vectors_equal",
-			bv1Bits:  []bool{true},
-			bv2Bits:  []bool{true},
-			expected: true,
+			name:           "single_bit_vectors_equal",
+			bv1Bits:        []bool{true},
+			bv2Bits:        []bool{true},
+			expectedResult: true,
+			expectError:    false,
 		},
 		{
-			name:     "single_bit_vectors_not_equal",
-			bv1Bits:  []bool{true},
-			bv2Bits:  []bool{false},
-			expected: false,
+			name:           "single_bit_vectors_not_equal",
+			bv1Bits:        []bool{true},
+			bv2Bits:        []bool{false},
+			expectedResult: false,
+			expectError:    false,
 		},
 		{
-			name:     "different_lengths_not_equal",
-			bv1Bits:  []bool{true, false},
-			bv2Bits:  []bool{true},
-			expected: false,
+			name:           "different_lengths_not_equal",
+			bv1Bits:        []bool{true, false},
+			bv2Bits:        []bool{true},
+			expectedResult: false,
+			expectError:    false,
 		},
 		{
-			name:     "complete_byte_equal",
-			bv1Bits:  []bool{true, false, true, true, false, false, true, false},
-			bv2Bits:  []bool{true, false, true, true, false, false, true, false},
-			expected: true,
+			name:           "complete_byte_equal",
+			bv1Bits:        []bool{true, false, true, true, false, false, true, false},
+			bv2Bits:        []bool{true, false, true, true, false, false, true, false},
+			expectedResult: true,
+			expectError:    false,
 		},
 		{
-			name:     "complete_byte_not_equal",
-			bv1Bits:  []bool{true, false, true, true, false, false, true, false},
-			bv2Bits:  []bool{true, false, true, true, false, false, false, false},
-			expected: false,
+			name:           "complete_byte_not_equal",
+			bv1Bits:        []bool{true, false, true, true, false, false, true, false},
+			bv2Bits:        []bool{true, false, true, true, false, false, false, false},
+			expectedResult: false,
+			expectError:    false,
 		},
 		{
-			name:     "partial_byte_equal",
-			bv1Bits:  []bool{true, false, true},
-			bv2Bits:  []bool{true, false, true},
-			expected: true,
+			name:           "partial_byte_equal",
+			bv1Bits:        []bool{true, false, true},
+			bv2Bits:        []bool{true, false, true},
+			expectedResult: true,
+			expectError:    false,
 		},
 		{
-			name:     "partial_byte_not_equal",
-			bv1Bits:  []bool{true, false, true},
-			bv2Bits:  []bool{true, true, true},
-			expected: false,
+			name:           "partial_byte_not_equal",
+			bv1Bits:        []bool{true, false, true},
+			bv2Bits:        []bool{true, true, true},
+			expectedResult: false,
+			expectError:    false,
 		},
 		{
 			name: "multiple_complete_bytes_equal",
@@ -392,7 +494,8 @@ func TestBitVec_IsEqual(t *testing.T) {
 				false, false},
 			bv2Bits: []bool{true, false, true, true, false, false, true, false, true, true, false, false, true, true,
 				false, false},
-			expected: true,
+			expectedResult: true,
+			expectError:    false,
 		},
 		{
 			name: "multiple_complete_bytes_not_equal",
@@ -400,19 +503,29 @@ func TestBitVec_IsEqual(t *testing.T) {
 				false, false},
 			bv2Bits: []bool{true, false, true, true, false, false, true, false, true, true, false, false, true, true,
 				false, true},
-			expected: false,
+			expectedResult: false,
+			expectError:    false,
 		},
 		{
-			name:     "multiple_bytes_with_partial_byte_equal",
-			bv1Bits:  []bool{true, false, true, true, false, false, true, false, true, true, false},
-			bv2Bits:  []bool{true, false, true, true, false, false, true, false, true, true, false},
-			expected: true,
+			name:           "multiple_bytes_with_partial_byte_equal",
+			bv1Bits:        []bool{true, false, true, true, false, false, true, false, true, true, false},
+			bv2Bits:        []bool{true, false, true, true, false, false, true, false, true, true, false},
+			expectedResult: true,
+			expectError:    false,
 		},
 		{
-			name:     "multiple_bytes_with_partial_byte_not_equal",
-			bv1Bits:  []bool{true, false, true, true, false, false, true, false, true, true, false},
-			bv2Bits:  []bool{true, false, true, true, false, false, true, false, true, true, true},
-			expected: false,
+			name:           "multiple_bytes_with_partial_byte_not_equal",
+			bv1Bits:        []bool{true, false, true, true, false, false, true, false, true, true, false},
+			bv2Bits:        []bool{true, false, true, true, false, false, true, false, true, true, true},
+			expectedResult: false,
+			expectError:    false,
+		},
+		{
+			name:           "error_on_invalid_bitvec_creation",
+			bv1Bits:        nil,
+			bv2Bits:        []bool{true, false, true},
+			expectedResult: false,
+			expectError:    true,
 		},
 	}
 
@@ -420,18 +533,30 @@ func TestBitVec_IsEqual(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			bv1 := NewBitVec(tt.bv1Bits)
-			bv2 := NewBitVec(tt.bv2Bits)
 
-			if result := bv1.IsEqual(&bv2); result != tt.expected {
-				t.Errorf("IsEqual() = %v, expected %v", result, tt.expected)
+			bv1, err := NewBitVec(tt.bv1Bits)
+			if tt.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			bv2, err := NewBitVec(tt.bv2Bits)
+			if tt.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			if result := bv1.IsEqual(&bv2); result != tt.expectedResult {
+				t.Errorf("IsEqual() = %v, expected %v", result, tt.expectedResult)
 				t.Errorf("bv1: %v", bv1.Bits())
 				t.Errorf("bv2: %v", bv2.Bits())
 			}
 
 			// Test symmetry: a.IsEqual(b) should be the same as b.IsEqual(a)
-			if result := bv2.IsEqual(&bv1); result != tt.expected {
-				t.Errorf("Symmetry test failed: bv2.IsEqual(bv1) = %v, expected %v", result, tt.expected)
+			if result := bv2.IsEqual(&bv1); result != tt.expectedResult {
+				t.Errorf("Symmetry test failed: bv2.IsEqual(bv1) = %v, expected %v", result, tt.expectedResult)
 				t.Errorf("bv1: %v", bv1.Bits())
 				t.Errorf("bv2: %v", bv2.Bits())
 			}

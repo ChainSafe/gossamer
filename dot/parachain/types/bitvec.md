@@ -7,7 +7,7 @@ This package provides an efficient implementation of a bit vector (BitVec) with 
 - LSB0 bit ordering
 - Memory-efficient storage using byte slices
 - SCALE encoding/decoding support
-- Dynamic resizing capabilities
+- Dynamic resizing capabilities (up to 536,870,911 bits)
 - Bit-level operations
 - Byte extension support
 
@@ -73,14 +73,35 @@ The BitVec stores bits in a byte slice with LSB0 ordering, meaning:
 - Bits are packed into bytes to minimize memory usage
 - The length is stored separately to handle non-byte-aligned bit counts
 
+### Maximum Length
+
+The BitVec implementation has a maximum length constraint:
+- Maximum number of bits: 536,870,911 (2^29 - 1)
+- This limit ensures safe memory usage and compatibility with SCALE encoding
+
 ### SCALE Encoding Format
 
-The SCALE encoding format uses a compact header to store the length, followed by the actual bits:
+The SCALE encoding format for BitVec consists of two parts:
+1. A compact header encoding the length of the bit vector
+2. The actual bits packed into bytes
 
+The compact header follows these rules:
 - For lengths < 64: Single byte header
 - For lengths < 16384: Two byte header
 - For lengths < 1073741824: Four byte header
 - For lengths >= 1073741824: Five byte header
+
+Note: Due to the maximum length constraint of 536,870,911 bits (2^29 - 1), the five-byte header case will never occur in practice.
+
+The bits are stored in LSB0 order within each byte, and any unused bits in the final byte are set to 0.
+
+Example encoding:
+```
+BitVec[true, false, true]  →  [0x0c, 0x05]
+                                │     │
+                                │     └─ Packed bits (0b00000101)
+                                └─ Length (3) in compact format
+```
 
 ## Performance Considerations
 

@@ -23,9 +23,15 @@ func setEnumVariant[E Enum](variant any) E {
 }
 
 func TestShouldKeepVoteBehaves(t *testing.T) {
+	validatorsFor, err := parachaintypes.NewBitVec([]bool{true, false, true, false, true})
+	require.NoError(t, err)
+
+	validatorsAgainst, err := parachaintypes.NewBitVec([]bool{false, true, false, false, true})
+	require.NoError(t, err)
+
 	onchainState := parachaintypes.DisputeState{
-		ValidatorsFor:     parachaintypes.NewBitVec([]bool{true, false, true, false, true}),
-		ValidatorsAgainst: parachaintypes.NewBitVec([]bool{false, true, false, false, true}),
+		ValidatorsFor:     validatorsFor,
+		ValidatorsAgainst: validatorsAgainst,
 		Start:             1,
 		ConcludedAt:       nil,
 	}
