@@ -21,6 +21,10 @@ type BitVec struct {
 
 // NewBitVec creates a new BitVec initialised with the given bits
 func NewBitVec(bits []bool) (BitVec, error) {
+	if len(bits) == 0 {
+		return BitVec{}, nil
+	}
+
 	if len(bits) > MaxBitVecLength {
 		return BitVec{}, fmt.Errorf("bitvec length %d exceeds maximum allowed length of %d", len(bits), MaxBitVecLength)
 	}
@@ -60,6 +64,10 @@ func (bv *BitVec) Len() int {
 
 // PushBits adds multiple bits to the end of the BitVec
 func (bv *BitVec) PushBits(bits []bool) error {
+	if len(bits) == 0 {
+		return nil
+	}
+
 	newLength := bv.len + len(bits)
 
 	// Check if the new length exceeds the maximum allowed length

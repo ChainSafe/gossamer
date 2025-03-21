@@ -430,63 +430,54 @@ func TestBitVec_IsEqual(t *testing.T) {
 		bv1Bits        []bool
 		bv2Bits        []bool
 		expectedResult bool
-		expectError    bool
 	}{
 		{
 			name:           "empty_bitvecs_are_equal",
 			bv1Bits:        []bool{},
 			bv2Bits:        []bool{},
 			expectedResult: true,
-			expectError:    false,
 		},
 		{
 			name:           "single_bit_vectors_equal",
 			bv1Bits:        []bool{true},
 			bv2Bits:        []bool{true},
 			expectedResult: true,
-			expectError:    false,
 		},
 		{
 			name:           "single_bit_vectors_not_equal",
 			bv1Bits:        []bool{true},
 			bv2Bits:        []bool{false},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			name:           "different_lengths_not_equal",
 			bv1Bits:        []bool{true, false},
 			bv2Bits:        []bool{true},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			name:           "complete_byte_equal",
 			bv1Bits:        []bool{true, false, true, true, false, false, true, false},
 			bv2Bits:        []bool{true, false, true, true, false, false, true, false},
 			expectedResult: true,
-			expectError:    false,
 		},
 		{
 			name:           "complete_byte_not_equal",
 			bv1Bits:        []bool{true, false, true, true, false, false, true, false},
 			bv2Bits:        []bool{true, false, true, true, false, false, false, false},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			name:           "partial_byte_equal",
 			bv1Bits:        []bool{true, false, true},
 			bv2Bits:        []bool{true, false, true},
 			expectedResult: true,
-			expectError:    false,
 		},
 		{
 			name:           "partial_byte_not_equal",
 			bv1Bits:        []bool{true, false, true},
 			bv2Bits:        []bool{true, true, true},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			name: "multiple_complete_bytes_equal",
@@ -495,7 +486,6 @@ func TestBitVec_IsEqual(t *testing.T) {
 			bv2Bits: []bool{true, false, true, true, false, false, true, false, true, true, false, false, true, true,
 				false, false},
 			expectedResult: true,
-			expectError:    false,
 		},
 		{
 			name: "multiple_complete_bytes_not_equal",
@@ -504,28 +494,24 @@ func TestBitVec_IsEqual(t *testing.T) {
 			bv2Bits: []bool{true, false, true, true, false, false, true, false, true, true, false, false, true, true,
 				false, true},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			name:           "multiple_bytes_with_partial_byte_equal",
 			bv1Bits:        []bool{true, false, true, true, false, false, true, false, true, true, false},
 			bv2Bits:        []bool{true, false, true, true, false, false, true, false, true, true, false},
 			expectedResult: true,
-			expectError:    false,
 		},
 		{
 			name:           "multiple_bytes_with_partial_byte_not_equal",
 			bv1Bits:        []bool{true, false, true, true, false, false, true, false, true, true, false},
 			bv2Bits:        []bool{true, false, true, true, false, false, true, false, true, true, true},
 			expectedResult: false,
-			expectError:    false,
 		},
 		{
 			name:           "error_on_invalid_bitvec_creation",
 			bv1Bits:        nil,
 			bv2Bits:        []bool{true, false, true},
 			expectedResult: false,
-			expectError:    true,
 		},
 	}
 
@@ -535,31 +521,13 @@ func TestBitVec_IsEqual(t *testing.T) {
 			t.Parallel()
 
 			bv1, err := NewBitVec(tt.bv1Bits)
-			if tt.expectError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
+			require.NoError(t, err)
 
 			bv2, err := NewBitVec(tt.bv2Bits)
-			if tt.expectError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
+			require.NoError(t, err)
 
-			if result := bv1.IsEqual(&bv2); result != tt.expectedResult {
-				t.Errorf("IsEqual() = %v, expected %v", result, tt.expectedResult)
-				t.Errorf("bv1: %v", bv1.Bits())
-				t.Errorf("bv2: %v", bv2.Bits())
-			}
-
-			// Test symmetry: a.IsEqual(b) should be the same as b.IsEqual(a)
-			if result := bv2.IsEqual(&bv1); result != tt.expectedResult {
-				t.Errorf("Symmetry test failed: bv2.IsEqual(bv1) = %v, expected %v", result, tt.expectedResult)
-				t.Errorf("bv1: %v", bv1.Bits())
-				t.Errorf("bv2: %v", bv2.Bits())
-			}
+			require.Equal(t, tt.expectedResult, bv1.IsEqual(&bv2))
+			require.Equal(t, tt.expectedResult, bv2.IsEqual(&bv1))
 		})
 	}
 }
