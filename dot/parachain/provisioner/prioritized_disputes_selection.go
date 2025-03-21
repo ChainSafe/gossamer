@@ -35,8 +35,13 @@ type BlockState interface {
 // Besides the prioritization described above the votes in each partition are filtered too.
 // Provisioner fetches all onchain votes and filters them out from all partitions. As a result the
 // Runtime receives only fresh votes
-func SelectDisputes(overseerChan chan<- any, blockState BlockState, leaf *parachaintypes.ActivatedLeaf,
-	maxDisputesVotes int, voteSelectionBatchSize int) parachaintypes.MultiDisputeStatementSet {
+func SelectDisputes(
+	overseerChan chan<- any,
+	blockState BlockState,
+	leaf *parachaintypes.ActivatedLeaf,
+	maxDisputesVotes int,
+	voteSelectionBatchSize int,
+) parachaintypes.MultiDisputeStatementSet {
 	onchain, err := getOnchainDisputes(blockState, leaf.Hash)
 	if err != nil {
 		// Here we log the error and continue with an empty onchain set.
@@ -45,13 +50,14 @@ func SelectDisputes(overseerChan chan<- any, blockState BlockState, leaf *parach
 
 	recent, err := requestDisputes(overseerChan)
 	if err != nil {
-		recent = []disputemessages.RecentDisputesResponse{}
+		recent = []disputemessages.RecentDispute{}
 	}
 
 	// Filter out unconfirmed disputes except if already known onchain.
-	var filteredRecent []disputemessages.RecentDisputesResponse
+	var filteredRecent []disputemessages.RecentDispute
 	for _, d := range recent {
-		if d.DisputeStatus.IsConfirmedConcluded() || containsOnchain(onchain, d.SessionIndex, d.CandidateHash) {
+		if d.DisputeStatus.IsConfirmedConcluded() ||
+			containsOnchain(onchain, d.SessionIndex, d.CandidateHash) {
 			filteredRecent = append(filteredRecent, d)
 		}
 	}
@@ -106,7 +112,10 @@ func voteSelection(
 			candidateHash := candidateVote.CandidateHash
 			votes := candidateVote.CandidateVotes
 
-			key := parachaintypes.DisputeKey{SessionIndex: sessionIndex, CandidateHash: candidateHash}
+			key := parachaintypes.DisputeKey{
+				SessionIndex:  sessionIndex,
+				CandidateHash: candidateHash,
+			}
 			onchainState, ok := onchain[key]
 			if !ok {
 				// onchain knows nothing about this dispute - add all votes
@@ -127,15 +136,26 @@ func voteSelection(
 						Kind: vote.Kind,
 					})
 					if err != nil {
-						panic(fmt.Sprintf("%T is an invalid variant of %T", vote.Kind, validDisputeStatement))
+						panic(
+							fmt.Sprintf(
+								"%T is an invalid variant of %T",
+								vote.Kind,
+								validDisputeStatement,
+							),
+						)
 					}
 
-					isVoteWorth := isVoteWorthToKeep(validatorIdx, *validDisputeStatement, onchainState)
+					isVoteWorth := isVoteWorthToKeep(
+						validatorIdx,
+						*validDisputeStatement,
+						onchainState,
+					)
 					if !isVoteWorth {
 						validatorIdxToRemove = append(validatorIdxToRemove, validatorIdx)
 					}
 					return true
-				})
+				},
+			)
 
 			for _, vi := range validatorIdxToRemove {
 				votes.Valid.Delete(vi)
@@ -150,15 +170,22 @@ func voteSelection(
 						Kind: vote.Kind,
 					})
 					if err != nil {
-						panic(fmt.Sprintf("%T is an valid variant of %T", vote.Kind, invalidDisputeStatement))
+						panic(
+							fmt.Sprintf(
+								"%T is an valid variant of %T",
+								vote.Kind,
+								invalidDisputeStatement,
+							),
+						)
 					}
 
 					if !isVoteWorthToKeep(validatorIdx, *invalidDisputeStatement, onchainState) {
 						validatorIdxToRemove = append(validatorIdxToRemove, validatorIdx)
-						//votes.Valid.Delete(validatorIdx)
+						// votes.Valid.Delete(validatorIdx)
 					}
 					return true
-				})
+				},
+			)
 
 			for _, vi := range validatorIdxToRemove {
 				votes.Invalid.Delete(vi)
@@ -166,7 +193,10 @@ func voteSelection(
 
 			selectedVotes = append(selectedVotes,
 				voteSelectionResult{
-					key:   parachaintypes.DisputeKey{SessionIndex: sessionIndex, CandidateHash: candidateHash},
+					key: parachaintypes.DisputeKey{
+						SessionIndex:  sessionIndex,
+						CandidateHash: candidateHash,
+					},
 					votes: votes,
 				})
 		}
@@ -195,7 +225,9 @@ func voteSelection(
 }
 
 // sortVoteSelectionResults sorts the vote selection results based on SessionIndex and CandidateHash.
-func sortVoteSelectionResults(votes map[parachaintypes.DisputeKey]parachaintypes.CandidateVotes) []voteSelectionResult {
+func sortVoteSelectionResults(
+	votes map[parachaintypes.DisputeKey]parachaintypes.CandidateVotes,
+) []voteSelectionResult {
 	var sortedResults []voteSelectionResult
 	for key, vote := range votes {
 		sortedResults = append(sortedResults, voteSelectionResult{key: key, votes: vote})
@@ -459,7 +491,9 @@ func requestDisputes(overseerChan chan<- any) ([]disputemessages.RecentDispute, 
 }
 
 // makeMultiDisputeStatementSet converts vote selection results into a MultiDisputeStatementSet.
-func makeMultiDisputeStatementSet(voteResults []voteSelectionResult) parachaintypes.MultiDisputeStatementSet {
+func makeMultiDisputeStatementSet(
+	voteResults []voteSelectionResult,
+) parachaintypes.MultiDisputeStatementSet {
 	diputeStmts := make(parachaintypes.MultiDisputeStatementSet, 0)
 
 	for _, res := range voteResults {
@@ -483,7 +517,8 @@ func makeMultiDisputeStatementSet(voteResults []voteSelectionResult) parachainty
 					Statement: *validStmt,
 				})
 				return true
-			})
+			},
+		)
 
 		votes.Invalid.Ascend(
 			parachaintypes.ValidatorIndex(0),
@@ -499,7 +534,8 @@ func makeMultiDisputeStatementSet(voteResults []voteSelectionResult) parachainty
 					Statement: *invalidStmt,
 				})
 				return true
-			})
+			},
+		)
 
 		diputeStmts = append(diputeStmts, parachaintypes.DisputeStatementSet{
 			Session:       sessionIndex,
@@ -512,7 +548,11 @@ func makeMultiDisputeStatementSet(voteResults []voteSelectionResult) parachainty
 }
 
 // containsOnchain checks if the onchain disputes map has a dispute with the given session index and candidate hash.
-func containsOnchain(onchain map[parachaintypes.DisputeKey]parachaintypes.DisputeState, session parachaintypes.SessionIndex, candidateHash parachaintypes.CandidateHash) bool {
+func containsOnchain(
+	onchain map[parachaintypes.DisputeKey]parachaintypes.DisputeState,
+	session parachaintypes.SessionIndex,
+	candidateHash parachaintypes.CandidateHash,
+) bool {
 	key := parachaintypes.DisputeKey{SessionIndex: session, CandidateHash: candidateHash}
 	_, exists := onchain[key]
 	return exists

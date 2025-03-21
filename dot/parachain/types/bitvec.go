@@ -55,26 +55,6 @@ func NewBitVec(bits []bool) BitVec {
 	}
 }
 
-func (bv *BitVec) Get(idx int) bool {
-	if idx < 0 || idx >= len(bv.bits) {
-		return false
-	}
-	return bv.bits[idx]
-}
-
-func (bv *BitVec) Len() int {
-	return len(bv.bits)
-}
-
-func (bv *BitVec) CountOnes() (count int) {
-	for _, bit := range bv.bits {
-		if bit {
-			count++
-		}
-	}
-	return count
-}
-
 // bitsToBytes converts a slice of bits to a slice of bytes
 // Uses lsb ordering
 // TODO: Implement msb ordering
