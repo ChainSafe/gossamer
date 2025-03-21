@@ -178,7 +178,7 @@ func TestBitVec_SetBit(t *testing.T) {
 			bv, err := NewBitVec(tt.initial)
 			require.NoError(t, err)
 
-			err = bv.SetBit(tt.index, tt.value)
+			err = bv.Set(tt.index, tt.value)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
@@ -224,7 +224,7 @@ func TestBitVec_GetBit(t *testing.T) {
 			bv, err := NewBitVec(tt.initial)
 			require.NoError(t, err)
 
-			got, err := bv.GetBit(tt.index)
+			got, err := bv.Get(tt.index)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
@@ -560,6 +560,66 @@ func TestBitVec_IsEqual(t *testing.T) {
 				t.Errorf("bv1: %v", bv1.Bits())
 				t.Errorf("bv2: %v", bv2.Bits())
 			}
+		})
+	}
+}
+
+func TestBitVec_CountOnes(t *testing.T) {
+	tests := []struct {
+		name     string
+		bits     []bool
+		expected int
+	}{
+		{
+			name:     "empty_bitvec",
+			bits:     []bool{},
+			expected: 0,
+		},
+		{
+			name:     "single_bit_set",
+			bits:     []bool{true},
+			expected: 1,
+		},
+		{
+			name:     "no_bits_set",
+			bits:     []bool{false, false, false},
+			expected: 0,
+		},
+		{
+			name:     "all_bits_set",
+			bits:     []bool{true, true, true},
+			expected: 3,
+		},
+		{
+			name:     "mixed_bits_within_single_byte",
+			bits:     []bool{true, false, true, false, true},
+			expected: 3,
+		},
+		{
+			name: "complete_byte_plus_partial_byte",
+			bits: []bool{
+				true, false, true, true, false, true, true, true, // complete byte
+				true, false, true, // partial byte
+			},
+			expected: 8,
+		},
+		{
+			name: "multiple_complete_bytes",
+			bits: []bool{
+				true, true, true, true, false, false, false, false, // first byte
+				true, true, true, true, true, true, true, true, // second byte
+			},
+			expected: 12,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			bv, err := NewBitVec(tt.bits)
+			require.NoError(t, err)
+
+			got := bv.CountOnes()
+			require.Equal(t, tt.expected, got)
 		})
 	}
 }

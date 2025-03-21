@@ -19,32 +19,6 @@ type BitVec struct {
 	len  int
 }
 
-// CountOnes returns the count of set bits (1s) in the BitVec following LSB0 ordering
-func (bv *BitVec) CountOnes() int {
-	if bv.len == 0 {
-		return 0
-	}
-
-	var count int
-	completeBytes := bv.len / 8
-
-	// Count ones in complete bytes
-	for i := 0; i < completeBytes; i++ {
-		count += bits.OnesCount8(bv.bits[i])
-	}
-
-	// Handle remaining bits in the last byte
-	remainingBits := bv.len % 8
-	if remainingBits > 0 {
-		lastByte := bv.bits[completeBytes]
-		// In LSB0, we want the first remainingBits from the right
-		mask := byte((1 << uint(remainingBits)) - 1)
-		count += bits.OnesCount8(lastByte & mask)
-	}
-
-	return count
-}
-
 // NewBitVec creates a new BitVec initialised with the given bits
 func NewBitVec(bits []bool) (BitVec, error) {
 	if len(bits) > MaxBitVecLength {
@@ -113,8 +87,8 @@ func (bv *BitVec) PushBits(bits []bool) error {
 	return nil
 }
 
-// SetBit sets a bit at the specified index
-func (bv *BitVec) SetBit(index uint, bit bool) error {
+// Set sets a bit at the specified index
+func (bv *BitVec) Set(index uint, bit bool) error {
 	if index >= uint(bv.len) {
 		return errors.New("index out of bounds")
 	}
@@ -130,8 +104,8 @@ func (bv *BitVec) SetBit(index uint, bit bool) error {
 	return nil
 }
 
-// GetBit returns the bit at the specified index
-func (bv *BitVec) GetBit(index uint) (bool, error) {
+// Get returns the bit at the specified index
+func (bv *BitVec) Get(index uint) (bool, error) {
 	if index >= uint(bv.len) {
 		return false, errors.New("index out of bounds")
 	}
@@ -218,7 +192,7 @@ func (bv *BitVec) UnmarshalSCALE(r io.Reader) error {
 	// Calculate required bytes for the bits
 	requiredBytes := (int(length) + 7) / 8
 
-	// Get the header size by marshaling the length
+	// Get the header size by marshalling the length
 	header, err := scale.Marshal(length)
 	if err != nil {
 		return fmt.Errorf("marshalling length: %w", err)
@@ -240,27 +214,26 @@ func (bv *BitVec) UnmarshalSCALE(r io.Reader) error {
 
 // IsEqual checks if two BitVecs are equal by comparing their lengths and bits
 func (bv *BitVec) IsEqual(other *BitVec) bool {
-	// Check if lengths are different
 	if bv.len != other.len {
 		return false
 	}
 
-	// Calculate number of complete bytes to compare
-	completeBytes := bv.len / 8
+	return bytes.Equal(bv.bits, other.bits)
+}
 
-	// Compare complete bytes first
-	if !bytes.Equal(bv.bits[:completeBytes], other.bits[:completeBytes]) {
-		return false
+// CountOnes returns the count of set bits (1s) in the BitVec following LSB0 ordering
+func (bv *BitVec) CountOnes() int {
+	if bv.len == 0 {
+		return 0
 	}
 
-	// Check if there are any remaining bits
-	remainingBits := bv.len % 8
-	if remainingBits == 0 {
-		return true
+	var count int
+	completeBytes := (bv.len + 7) / 8
+
+	// Count ones in all bytes - no need for masking since unused bits are zero
+	for i := 0; i < completeBytes; i++ {
+		count += bits.OnesCount8(bv.bits[i])
 	}
 
-	// Compare remaining bits in the last byte
-	mask := byte((1 << remainingBits) - 1)
-	lastByteIndex := completeBytes
-	return (bv.bits[lastByteIndex] & mask) == (other.bits[lastByteIndex] & mask)
+	return count
 }

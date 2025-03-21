@@ -172,13 +172,13 @@ func isVoteWorthToKeep(
 		}
 	}
 
-	inValidatorsFor, err := onchainState.ValidatorsFor.GetBit(uint(validatorIndex))
+	inValidatorsFor, err := onchainState.ValidatorsFor.Get(uint(validatorIndex))
 	if err != nil {
 		logger.Warnf("validator index out of bounds: %d", validatorIndex)
 		inValidatorsFor = false
 	}
 
-	inValidatorsAgainst, err := onchainState.ValidatorsAgainst.GetBit(uint(validatorIndex))
+	inValidatorsAgainst, err := onchainState.ValidatorsAgainst.Get(uint(validatorIndex))
 	if err != nil {
 		logger.Warnf("validator index out of bounds: %d", validatorIndex)
 		inValidatorsAgainst = false
