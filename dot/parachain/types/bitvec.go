@@ -179,17 +179,11 @@ func (bv *BitVec) UnmarshalSCALE(r io.Reader) error {
 		return errors.New("reader is nil")
 	}
 
-	// Read all bytes from reader
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return fmt.Errorf("reading data: %w", err)
-	}
-
-	// Create a buffer to store the header length
+	// Read the compact-encoded length
 	var length uint
-	err = scale.Unmarshal(data, &length)
+	err := scale.NewDecoder(r).Decode(&length)
 	if err != nil {
-		return fmt.Errorf("unmarshalling length: %w", err)
+		return fmt.Errorf("decoding compact length: %w", err)
 	}
 
 	// Check for maximum length
@@ -200,21 +194,14 @@ func (bv *BitVec) UnmarshalSCALE(r io.Reader) error {
 	// Calculate required bytes for the bits
 	requiredBytes := (int(length) + 7) / 8
 
-	// Get the header size by marshalling the length
-	header, err := scale.Marshal(length)
-	if err != nil {
-		return fmt.Errorf("marshalling length: %w", err)
-	}
-	headerSize := len(header)
-
-	// Check if we have enough data
-	if len(data[headerSize:]) < requiredBytes {
-		return fmt.Errorf("incomplete data: got %d bytes, expected %d", len(data[headerSize:]), requiredBytes)
-	}
-
-	// Update the BitVec with the decoded data
+	// Read the required bytes for the bits
 	bv.bits = make([]byte, requiredBytes)
-	copy(bv.bits, data[headerSize:headerSize+requiredBytes])
+	_, err = io.ReadFull(r, bv.bits)
+	if err != nil {
+		return fmt.Errorf("reading bits: %w", err)
+	}
+
+	// Update the BitVec length
 	bv.len = int(length)
 
 	return nil
