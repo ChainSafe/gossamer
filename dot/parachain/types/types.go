@@ -772,14 +772,22 @@ func NewBackedCandidate(
 		return nil, fmt.Errorf("core index %d exceeds maximum allowed value of %d", coreIndex.Index, maxCoreIndex)
 	}
 
+	bitVecOfIndices, err := NewBitVec(validatorIndices)
+	if err != nil {
+		return nil, fmt.Errorf("cretin bitvec: %w", err)
+	}
+
 	bc := &BackedCandidate{
 		Candidate:        candidate,
 		ValidityVotes:    validityVotes,
-		ValidatorIndices: NewBitVec(validatorIndices),
+		ValidatorIndices: bitVecOfIndices,
 	}
 
 	if coreIndex != nil {
-		bc.ValidatorIndices.ExtendByByte(byte(coreIndex.Index))
+		err := bc.ValidatorIndices.ExtendByByte(byte(coreIndex.Index))
+		if err != nil {
+			return nil, fmt.Errorf("adding core index to validator indices: %w", err)
+		}
 	}
 
 	return bc, nil
