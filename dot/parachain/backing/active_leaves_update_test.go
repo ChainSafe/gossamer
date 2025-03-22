@@ -70,6 +70,9 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 				Deactivated: []common.Hash{{2}},
 			},
 			getCandidateBackig: func(ctrl *gomock.Controller) *CandidateBacking {
+				bv, err := parachaintypes.NewBitVec([]bool{false, true})
+				require.NoError(t, err)
+
 				mockImplicitView := NewMockImplicitView(ctrl)
 
 				mockImplicitView.EXPECT().ActivateLeaf(common.Hash{1}).Return(nil)
@@ -82,7 +85,7 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 				mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).Return(mockRuntime, nil)
 				mockRuntime.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(1), nil)
 				mockRuntime.EXPECT().ParachainHostValidators().Return([]parachaintypes.ValidatorID{{1}, {2}, {3}}, nil)
-				mockRuntime.EXPECT().ParachainHostNodeFeatures().Return(parachaintypes.NewBitVec([]bool{false, true}), nil)
+				mockRuntime.EXPECT().ParachainHostNodeFeatures().Return(bv, nil)
 				mockRuntime.EXPECT().ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
 					Return(&parachaintypes.ExecutorParams{}, nil)
 				mockRuntime.EXPECT().ParachainHostValidatorGroups().Return(&parachaintypes.ValidatorGroups{}, nil)
