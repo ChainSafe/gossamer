@@ -104,7 +104,11 @@ func TestConstructAvailabilityBitfieldSuccess(t *testing.T) {
 	close(subSystemToOverseerTestChan)
 
 	assert.Nil(t, err)
-	assert.Equal(t, parachaintypes.NewBitVec([]bool{false, false, true, false, true}), bitfield)
+
+	expectedBitfield, err := parachaintypes.NewBitVec([]bool{false, false, true, false, true})
+	assert.Nil(t, err)
+
+	assert.True(t, bitfield.IsEqual(&expectedBitfield))
 }
 
 func TestProcessActiveLeavesUpdateSignalActivatedLeafIsNil(t *testing.T) {
@@ -330,7 +334,11 @@ func TestProcessActiveLeavesUpdateSignalSuccess(t *testing.T) {
 			case parachaintypes.DistributeBitfield:
 				assert.Equal(t, common.Hash{1, 2, 3, 4, 5}, request.RelayParent)
 				assert.Equal(t, parachaintypes.ValidatorIndex(0), request.Bitfield.ValidatorIndex) // only alice here
-				assert.Equal(t, parachaintypes.NewBitVec([]bool{false, false, true, false, true}), request.Bitfield.Payload)
+
+				expectedBitfield, err := parachaintypes.NewBitVec([]bool{false, false, true, false, true})
+				assert.Nil(t, err)
+
+				assert.True(t, request.Bitfield.Payload.IsEqual(&expectedBitfield))
 				assert.EqualValues(t, 64, len(request.Bitfield.Signature)) // signature is not empty
 			}
 		}
