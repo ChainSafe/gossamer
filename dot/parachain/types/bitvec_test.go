@@ -38,7 +38,6 @@ func TestBitVec_Bits(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -76,7 +75,6 @@ func TestBitVec_Len(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -122,7 +120,6 @@ func TestBitVec_PushBits(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -368,8 +365,8 @@ func TestBitVec_ExtendByByte(t *testing.T) {
 		{
 			name:      "extend_empty_bitvec",
 			initial:   []bool{},
-			byteToAdd: 0b10101010,
-			expected:  []bool{false, true, false, true, false, true, false, true},
+			byteToAdd: byte(10),
+			expected:  []bool{false, true, false, true, false, false, false, false},
 			wantErr:   false,
 		},
 		{

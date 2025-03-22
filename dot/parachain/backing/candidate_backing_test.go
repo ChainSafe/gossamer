@@ -10,7 +10,6 @@ import (
 
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
-	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
 	prospectiveparachains "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
 	statementdistributionmessages "github.com/ChainSafe/gossamer/dot/parachain/statement-distribution/messages"
@@ -78,7 +77,6 @@ func mockOverseer(t *testing.T, subsystemToOverseer chan any) {
 			data.Response <- true
 		case provisionermessages.ProvisionableData,
 			prospectiveparachains.CandidateBacked,
-			collatorprotocolmessages.Backed,
 			statementdistributionmessages.Backed:
 			continue
 		default:
@@ -447,9 +445,8 @@ func TestPostImportStatement(t *testing.T) {
 			},
 			summary: &Summary{},
 			validate: func(t *testing.T, subSystemToOverseer chan any) {
-				require.Len(t, subSystemToOverseer, 3)
+				require.Len(t, subSystemToOverseer, 2)
 				require.IsType(t, prospectiveparachains.CandidateBacked{}, <-subSystemToOverseer)
-				require.IsType(t, collatorprotocolmessages.Backed{}, <-subSystemToOverseer)
 				require.IsType(t, statementdistributionmessages.Backed{}, <-subSystemToOverseer)
 			},
 		},
@@ -493,6 +490,7 @@ func TestKickOffValidationWork(t *testing.T) {
 		{
 			description: "already_issued_statement_for_candidate",
 			rpState: perRelayParentState{
+				tableContext: tableContext{validator: &parachaintypes.Validator{Disabled: false}},
 				issuedStatements: map[parachaintypes.CandidateHash]bool{
 					candidateHash: true,
 				},
@@ -502,6 +500,7 @@ func TestKickOffValidationWork(t *testing.T) {
 		{
 			description: "not_issued_statement_but_waiting_for_validation",
 			rpState: perRelayParentState{
+				tableContext:     tableContext{validator: &parachaintypes.Validator{Disabled: false}},
 				issuedStatements: map[parachaintypes.CandidateHash]bool{},
 				awaitingValidation: map[parachaintypes.CandidateHash]bool{
 					candidateHash: true,
@@ -552,7 +551,6 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 	require.NoError(t, err)
 
 	candidateHash := parachaintypes.CandidateHash{Value: hash}
-	relayParent := getDummyHash(t, 5)
 
 	testCases := []struct {
 		description    string
@@ -564,6 +562,7 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 		{
 			description: "validation_process_already_started_for_candidate",
 			rpState: perRelayParentState{
+				assignedCore:     &parachaintypes.CoreIndex{Index: 1},
 				issuedStatements: map[parachaintypes.CandidateHash]bool{},
 				awaitingValidation: map[parachaintypes.CandidateHash]bool{
 					candidateHash: true,
@@ -580,6 +579,7 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 		{
 			description: "unable_to_get_validation_code",
 			rpState: perRelayParentState{
+				assignedCore:       &parachaintypes.CoreIndex{Index: 1},
 				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
 				awaitingValidation: map[parachaintypes.CandidateHash]bool{},
 			},
@@ -597,35 +597,11 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 				return mockBlockstate
 			},
 		},
-
-		{
-			description: "unable_to_get_executor_parameters",
-			rpState: perRelayParentState{
-				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
-				awaitingValidation: map[parachaintypes.CandidateHash]bool{},
-			},
-			expectedErr:  "getting executor params for relay parent",
-			mockOverseer: func(ch chan any) {},
-			mockBlockState: func() *MockBlockState {
-				ctrl := gomock.NewController(t)
-
-				mockRuntime := NewMockInstance(ctrl)
-				mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
-					Return(&parachaintypes.ValidationCode{1, 2, 3}, nil)
-				mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
-					Return(parachaintypes.SessionIndex(1), nil)
-				mockRuntime.EXPECT().ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
-					Return(nil, errors.New("mock error getting executor params"))
-
-				mockBlockstate := NewMockBlockState(ctrl)
-				mockBlockstate.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).Return(mockRuntime, nil)
-				return mockBlockstate
-			},
-		},
-
 		{
 			description: "unable_to_get_validation_result",
 			rpState: perRelayParentState{
+				executorParams:     &parachaintypes.ExecutorParams{},
+				assignedCore:       &parachaintypes.CoreIndex{Index: 1},
 				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
 				awaitingValidation: map[parachaintypes.CandidateHash]bool{},
 			},
@@ -648,20 +624,17 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 				mockRuntime := NewMockInstance(ctrl)
 				mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
 					Return(&parachaintypes.ValidationCode{1, 2, 3}, nil)
-				mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
-					Return(parachaintypes.SessionIndex(1), nil)
-				mockRuntime.EXPECT().ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
-					Return(&parachaintypes.ExecutorParams{}, nil)
 
 				mockBlockstate := NewMockBlockState(ctrl)
 				mockBlockstate.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).Return(mockRuntime, nil)
 				return mockBlockstate
 			},
 		},
-
 		{
 			description: "validation_result_is_invalid",
 			rpState: perRelayParentState{
+				executorParams:     &parachaintypes.ExecutorParams{},
+				assignedCore:       &parachaintypes.CoreIndex{Index: 1},
 				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
 				awaitingValidation: map[parachaintypes.CandidateHash]bool{},
 			},
@@ -687,10 +660,6 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 				mockRuntime := NewMockInstance(ctrl)
 				mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
 					Return(&parachaintypes.ValidationCode{1, 2, 3}, nil)
-				mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
-					Return(parachaintypes.SessionIndex(1), nil)
-				mockRuntime.EXPECT().ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
-					Return(&parachaintypes.ExecutorParams{}, nil)
 
 				mockBlockstate := NewMockBlockState(ctrl)
 				mockBlockstate.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).Return(mockRuntime, nil)
@@ -700,6 +669,8 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 		{
 			description: "validation_result_is_valid",
 			rpState: perRelayParentState{
+				executorParams:     &parachaintypes.ExecutorParams{},
+				assignedCore:       &parachaintypes.CoreIndex{Index: 1},
 				issuedStatements:   map[parachaintypes.CandidateHash]bool{},
 				awaitingValidation: map[parachaintypes.CandidateHash]bool{},
 			},
@@ -726,10 +697,6 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 				mockRuntime := NewMockInstance(ctrl)
 				mockRuntime.EXPECT().ParachainHostValidationCodeByHash(gomock.AssignableToTypeOf(common.Hash{})).
 					Return(&parachaintypes.ValidationCode{1, 2, 3}, nil)
-				mockRuntime.EXPECT().ParachainHostSessionIndexForChild().
-					Return(parachaintypes.SessionIndex(1), nil)
-				mockRuntime.EXPECT().ParachainHostSessionExecutorParams(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(1))).
-					Return(&parachaintypes.ExecutorParams{}, nil)
 
 				mockBlockstate := NewMockBlockState(ctrl)
 				mockBlockstate.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).Return(mockRuntime, nil)
@@ -751,12 +718,14 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 				<-chRelayParentAndCommand
 			}(chRelayParentAndCommand)
 
-			err := c.rpState.validateAndMakeAvailable(
+			rpState := c.rpState
+			rpState.relayParent = getDummyHash(t, 5)
+
+			err := rpState.validateAndMakeAvailable(
 				c.mockBlockState(),
 				subSystemToOverseer,
 				chRelayParentAndCommand,
 				candidateReceipt,
-				relayParent,
 				pvd,
 				parachaintypes.PoV{},
 				2,
@@ -1173,6 +1142,7 @@ func TestHandleStatementMessage(t *testing.T) {
 					relayParent: {
 						assignedCore: &parachaintypes.CoreIndex{Index: 4},
 						table:        mockTable,
+						tableContext: tableContext{validator: &parachaintypes.Validator{Disabled: false}},
 						backed: map[parachaintypes.CandidateHash]bool{
 							candidateHash: true,
 						},
