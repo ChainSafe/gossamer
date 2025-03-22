@@ -56,8 +56,17 @@ func (cb *CandidateBacking) handleSecondMessage(
 		)
 	}
 
-	if rpState.tableContext.validator.Disabled {
-		return errors.New("local validator is disabled. Don't validate and second")
+	// Return early if the local validator is disabled. At this point in execution,
+	// the local node should be a validator, but defensively handle the nil case and
+	// continue processing if we unexpectedly don't have validator data, rather than failing.
+	validator := rpState.tableContext.validator
+	if validator != nil && validator.Disabled {
+		return fmt.Errorf("local validator is disabled. Don't validate and second")
+	}
+
+	// Return early if we don't have an assigned core.
+	if rpState.assignedCore == nil {
+		return errNoAssignedCore
 	}
 
 	// Sanity check that candidate is from our assignment.
