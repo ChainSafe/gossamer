@@ -38,6 +38,7 @@ func TestBitVec_Bits(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -75,6 +76,7 @@ func TestBitVec_Len(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -120,6 +122,7 @@ func TestBitVec_PushBits(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -168,6 +171,7 @@ func TestBitVec_SetBit(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -529,6 +533,8 @@ func TestBitVec_IsEqual(t *testing.T) {
 }
 
 func TestBitVec_CountOnes(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		bits     []bool
@@ -578,7 +584,10 @@ func TestBitVec_CountOnes(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			bv, err := NewBitVec(tt.bits)
 			require.NoError(t, err)
 
