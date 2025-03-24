@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"math/rand"
+	"golang.org/x/exp/rand"
 )
 
 type ID uint32
@@ -17,6 +17,7 @@ type Signature uint32
 
 type timer struct {
 	wakerChan *wakerChan[error]
+	mtx       sync.Mutex
 	expired   bool
 }
 
@@ -30,6 +31,8 @@ func newTimer(in <-chan time.Time) *timer {
 
 func (t *timer) poll(in <-chan time.Time) {
 	<-in
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
 	if t.wakerChan.in != nil {
 		t.wakerChan.in <- nil
 		close(t.wakerChan.in)
@@ -46,6 +49,8 @@ func (t *timer) Elapsed() (bool, error) {
 }
 
 func (t *timer) Close() {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
 	if t.wakerChan.in != nil {
 		close(t.wakerChan.in)
 		t.wakerChan.in = nil
@@ -269,9 +274,6 @@ func (bm *BroadcastNetwork[M, N]) route() {
 
 func (bm *BroadcastNetwork[M, N]) Stop() {
 	close(bm.receiver)
-	for _, ch := range bm.senders {
-		close(ch)
-	}
 	bm.wg.Wait()
 	for _, sender := range bm.senders {
 		close(sender)
