@@ -44,6 +44,9 @@ type perRelayParentData struct {
 	messageReceivedFromPeer map[peer.ID]map[parachaintypes.ValidatorID]struct{}
 }
 
+// this will be used in the PeerViewChange handler so skip the lint check for now
+//
+//nolint:all
 func newPerRelayParentData(sessionIndex parachaintypes.SessionIndex, validatorSet []parachaintypes.ValidatorID,
 ) *perRelayParentData {
 	return &perRelayParentData{
