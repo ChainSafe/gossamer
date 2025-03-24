@@ -757,7 +757,40 @@ type BackedCandidate struct {
 	// The validity votes themselves, expressed as signatures.
 	ValidityVotes []ValidityAttestation `scale:"2"`
 	// The indices of the validators within the group, expressed as a bitfield.
-	ValidatorIndices BitVec `scale:"3"` // TODO: it's a bitvec in rust, figure out actual type
+	ValidatorIndices BitVec `scale:"3"`
+}
+
+func NewBackedCandidate(
+	candidate CommittedCandidateReceipt,
+	validityVotes []ValidityAttestation,
+	validatorIndices []bool,
+	coreIndex *CoreIndex,
+) (*BackedCandidate, error) {
+	const maxCoreIndex uint32 = 255 // math.MaxUint8
+
+	if coreIndex != nil && coreIndex.Index > maxCoreIndex {
+		return nil, fmt.Errorf("core index %d exceeds maximum allowed value of %d", coreIndex.Index, maxCoreIndex)
+	}
+
+	bitVecOfIndices, err := NewBitVec(validatorIndices)
+	if err != nil {
+		return nil, fmt.Errorf("cretin bitvec: %w", err)
+	}
+
+	bc := &BackedCandidate{
+		Candidate:        candidate,
+		ValidityVotes:    validityVotes,
+		ValidatorIndices: bitVecOfIndices,
+	}
+
+	if coreIndex != nil {
+		err := bc.ValidatorIndices.ExtendByByte(byte(coreIndex.Index))
+		if err != nil {
+			return nil, fmt.Errorf("adding core index to validator indices: %w", err)
+		}
+	}
+
+	return bc, nil
 }
 
 // ProspectiveParachainsMode represents the mode of a relay parent in the context

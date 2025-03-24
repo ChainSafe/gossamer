@@ -26,9 +26,13 @@ func setEnumVariant[E Enum](variant any) E {
 }
 
 func TestShouldKeepVoteBehaves(t *testing.T) {
+	validatorsFor := bitVector(t, []bool{true, false, true, false, true})
+
+	validatorsAgainst := bitVector(t, []bool{false, true, false, false, true})
+
 	onchainState := parachaintypes.DisputeState{
-		ValidatorsFor:     parachaintypes.NewBitVec([]bool{true, false, true, false, true}),
-		ValidatorsAgainst: parachaintypes.NewBitVec([]bool{false, true, false, false, true}),
+		ValidatorsFor:     validatorsFor,
+		ValidatorsAgainst: validatorsAgainst,
 		Start:             1,
 		ConcludedAt:       nil,
 	}
@@ -147,10 +151,10 @@ func TestPartitioningHappyCase(t *testing.T) {
 		CandidateHash: inactiveUnconcludedOnchain.CandidateHash,
 	}
 	onchain[onchainKey] = parachaintypes.DisputeState{
-		ValidatorsFor: parachaintypes.NewBitVec(
+		ValidatorsFor: bitVector(t,
 			[]bool{true, true, true, false, false, false, false, false, false},
 		),
-		ValidatorsAgainst: parachaintypes.NewBitVec(
+		ValidatorsAgainst: bitVector(t,
 			[]bool{false, false, false, false, false, false, false, false, false},
 		),
 		Start:       1,
@@ -175,10 +179,10 @@ func TestPartitioningHappyCase(t *testing.T) {
 		CandidateHash: activeUnconcludedOnchain.CandidateHash,
 	}
 	onchain[onchainKey] = parachaintypes.DisputeState{
-		ValidatorsFor: parachaintypes.NewBitVec(
+		ValidatorsFor: bitVector(t,
 			[]bool{true, true, true, false, false, false, false, false, false},
 		),
-		ValidatorsAgainst: parachaintypes.NewBitVec(
+		ValidatorsAgainst: bitVector(t,
 			[]bool{false, false, false, false, false, false, false, false, false},
 		),
 		Start:       1,
@@ -197,10 +201,10 @@ func TestPartitioningHappyCase(t *testing.T) {
 		CandidateHash: activeConcludedOnchain.CandidateHash,
 	}
 	onchain[onchainKey] = parachaintypes.DisputeState{
-		ValidatorsFor: parachaintypes.NewBitVec(
+		ValidatorsFor: bitVector(t,
 			[]bool{true, true, true, true, true, true, true, true, false},
 		),
-		ValidatorsAgainst: parachaintypes.NewBitVec(
+		ValidatorsAgainst: bitVector(t,
 			[]bool{false, false, false, false, false, false, false, false, false},
 		),
 		Start:       1,
@@ -219,10 +223,10 @@ func TestPartitioningHappyCase(t *testing.T) {
 		CandidateHash: inactiveConcludedOnchain.CandidateHash,
 	}
 	onchain[onchainKey] = parachaintypes.DisputeState{
-		ValidatorsFor: parachaintypes.NewBitVec(
+		ValidatorsFor: bitVector(t,
 			[]bool{true, true, true, true, true, true, true, false, false},
 		),
-		ValidatorsAgainst: parachaintypes.NewBitVec(
+		ValidatorsAgainst: bitVector(t,
 			[]bool{false, false, false, false, false, false, false, false, false},
 		),
 		Start:       1,
@@ -313,10 +317,10 @@ func TestPartitioningDoubledOnchainVote(t *testing.T) {
 		SessionIndex:  disputeA.SessionIndex,
 		CandidateHash: disputeA.CandidateHash,
 	}] = parachaintypes.DisputeState{
-		ValidatorsFor: parachaintypes.NewBitVec(
+		ValidatorsFor: bitVector(t,
 			[]bool{true, true, true, true, true, true, true, false, false},
 		),
-		ValidatorsAgainst: parachaintypes.NewBitVec(
+		ValidatorsAgainst: bitVector(t,
 			[]bool{true, false, false, false, false, false, false, false, false},
 		),
 		Start:       1,
@@ -327,10 +331,10 @@ func TestPartitioningDoubledOnchainVote(t *testing.T) {
 		SessionIndex:  disputeB.SessionIndex,
 		CandidateHash: disputeB.CandidateHash,
 	}] = parachaintypes.DisputeState{
-		ValidatorsFor: parachaintypes.NewBitVec(
+		ValidatorsFor: bitVector(t,
 			[]bool{true, true, true, true, true, true, true, true, false},
 		),
-		ValidatorsAgainst: parachaintypes.NewBitVec(
+		ValidatorsAgainst: bitVector(t,
 			[]bool{true, false, false, false, false, false, false, false, false},
 		),
 		Start:       1,
@@ -359,10 +363,10 @@ func TestPartitioningDuplicatedDispute(t *testing.T) {
 		SessionIndex:  someDispute.SessionIndex,
 		CandidateHash: someDispute.CandidateHash,
 	}] = parachaintypes.DisputeState{
-		ValidatorsFor: parachaintypes.NewBitVec(
+		ValidatorsFor: bitVector(t,
 			[]bool{true, true, true, false, false, false, false, false, false},
 		),
-		ValidatorsAgainst: parachaintypes.NewBitVec(
+		ValidatorsAgainst: bitVector(t,
 			[]bool{false, false, false, false, false, false, false, false, false},
 		),
 		Start:       1,
@@ -378,4 +382,12 @@ func TestPartitioningDuplicatedDispute(t *testing.T) {
 			CandidateHash: someDispute.CandidateHash,
 		},
 	)
+}
+
+func bitVector(t *testing.T, bits []bool) parachaintypes.BitVec {
+	t.Helper()
+
+	bv, err := parachaintypes.NewBitVec(bits)
+	require.NoError(t, err)
+	return bv
 }
