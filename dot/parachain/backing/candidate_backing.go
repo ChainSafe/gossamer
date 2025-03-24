@@ -242,6 +242,15 @@ func (cb *CandidateBacking) handleStatementMessage(
 		return errNilRelayParentState
 	}
 
+	senderValidatorIndex := signedStatementWithPVD.SignedFullStatement.ValidatorIndex
+
+	// Don't import statement if the sender is disabled
+	if slices.Contains(rpState.tableContext.disabledValidators, senderValidatorIndex) {
+		logger.Debugf("sender validator is disabled; validator index: %d",
+			senderValidatorIndex)
+		return nil
+	}
+
 	summary, err := rpState.importStatement(cb.SubSystemToOverseer, signedStatementWithPVD, cb.perCandidate)
 	if err != nil {
 		return fmt.Errorf("importing statement: %w", err)
@@ -253,6 +262,9 @@ func (cb *CandidateBacking) handleStatementMessage(
 		logger.Debug("summary is nil")
 		return nil
 	}
+
+	// importStatement already takes care of communicating with the prospective parachains subsystem.
+	// At this point, the candidate has already been accepted by the subsystem.
 
 	if uint32(summary.GroupID) != rpState.assignedCore.Index {
 		logger.Debugf("The GroupID: %d is not assigned to the local validator at relay parent: %s",
@@ -275,7 +287,7 @@ func (cb *CandidateBacking) handleStatementMessage(
 		attesting = attestingData{
 			candidate:     commitedCandidateReceipt.ToPlain(),
 			povHash:       statementVDT.Descriptor.PovHash,
-			fromValidator: signedStatementWithPVD.SignedFullStatement.ValidatorIndex,
+			fromValidator: senderValidatorIndex,
 			backing:       []parachaintypes.ValidatorIndex{},
 		}
 	case parachaintypes.Valid:
@@ -287,20 +299,22 @@ func (cb *CandidateBacking) handleStatementMessage(
 		}
 
 		ourIndex := rpState.tableContext.validator.Index
-		if signedStatementWithPVD.SignedFullStatement.ValidatorIndex == ourIndex {
+		if senderValidatorIndex == ourIndex {
 			return nil
 		}
 
 		if rpState.awaitingValidation[candidateHash] {
 			logger.Debug("Job already running")
-			attesting.backing = append(attesting.backing, signedStatementWithPVD.SignedFullStatement.ValidatorIndex)
+			attesting.backing = append(attesting.backing, senderValidatorIndex)
 			return nil
 		}
 
 		logger.Debug("No job, so start another with current validator")
-		attesting.fromValidator = signedStatementWithPVD.SignedFullStatement.ValidatorIndex
+		attesting.fromValidator = senderValidatorIndex
 	}
 
+	// in case of `Seconded` statement we add new fallback
+	// in case of `Valid` statement we update existing fallback
 	rpState.fallbacks[summary.Candidate] = attesting
 
 	// After `import_statement` succeeds, the candidate entry is guaranteed to exist.
