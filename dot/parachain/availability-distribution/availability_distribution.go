@@ -8,6 +8,9 @@ import (
 	"errors"
 	"fmt"
 
+	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
+	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -43,11 +46,16 @@ func NewAvailabilityDistribution(
 	net Network,
 	blockState BlockState,
 ) *AvailabilityDistribution {
-	return &AvailabilityDistribution{
+	ad := &AvailabilityDistribution{
 		subSystemToOverseer: overseerChan,
 		net:                 net,
 		blockState:          blockState,
 	}
+
+	protoID := protocol.ID(messages.ChunkFetchingV2.String())
+	net.RegisterRequestHandler(protoID, ad.handleChunkFetchingRequest)
+
+	return ad
 }
 
 // Run starts the AvailabilityDistribution subsystem
@@ -113,12 +121,46 @@ func (ad *AvailabilityDistribution) processAvailabilityDistributionMessageFetchP
 	return nil // TODO: implement #4489
 }
 
-//nolint:unused
 func (ad *AvailabilityDistribution) handleChunkFetchingRequest(
-	who peer.ID,
+	_ peer.ID,
 	payload []byte,
 ) (network.ResponseMessage, error) {
-	return nil, nil // TODO: implement #4487
+	request := &messages.ChunkFetchingRequest{}
+
+	err := request.Decode(payload)
+	if err != nil {
+		return nil, fmt.Errorf("decoding chunk fetching request: %w", err)
+	}
+
+	query := availabilitystore.QueryChunk{
+		CandidateHash:  request.CandidateHash,
+		ValidatorIndex: request.Index,
+		Sender:         make(chan availabilitystore.ErasureChunk),
+	}
+
+	ad.subSystemToOverseer <- query
+	response := &messages.ChunkFetchingResponse{}
+
+	// Conceptually, this is a "one shot" channel, so ideally availability store would always close the channel and not
+	// send anything in case the chunk is not found.
+	chunk, ok := <-query.Sender
+	if !ok || chunk.Chunk == nil {
+		err = response.SetValue(messages.NoSuchChunk{})
+		if err != nil {
+			return nil, fmt.Errorf("setting chunk response value: %w", err)
+		}
+	} else {
+		err = response.SetValue(messages.ChunkResponse{
+			Chunk: chunk.Chunk,
+			Index: chunk.Index,
+			// Proof: chunk.Proof,  // FIXME see #4597
+		})
+		if err != nil {
+			return nil, fmt.Errorf("setting chunk response value: %w", err)
+		}
+	}
+
+	return response, nil
 }
 
 //nolint:unused
