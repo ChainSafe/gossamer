@@ -30,6 +30,9 @@ func newWakerChan[Item any](in chan Item) *wakerChan[Item] {
 
 func (wc *wakerChan[Item]) start() {
 	defer close(wc.out)
+	if wc.in == nil {
+		return
+	}
 	for item := range wc.in {
 		if wc.waker != nil {
 			wc.waker.wake()
@@ -51,6 +54,7 @@ func (wc *wakerChan[Item]) channel() chan Item {
 type Timer interface {
 	SetWaker(waker *waker)
 	Elapsed() (bool, error)
+	Close()
 }
 
 // Output is the output stream used to communicate with the outside world.
@@ -926,6 +930,46 @@ func (v *Voter[Hash, Number, Signature, ID]) Stop() error {
 		return fmt.Errorf("timeout for Voter.Stop()")
 	case <-wgDone:
 	}
+
+	close(v.finalizedNotifications.in)
+	close(v.inner.bestRound.outgoing.inner)
+	switch state := v.inner.bestRound.state.(type) {
+	case statePrecommitted:
+	case statePrevoted[Timer]:
+		state[0].Close()
+	case statePrevoting[Timer, hashBestChain[Hash, Number]]:
+		state.T.Close()
+	case stateProposed[Timer]:
+		state[0].Close()
+		state[1].Close()
+	case stateStart[Timer]:
+		state[0].Close()
+		state[1].Close()
+	}
+
+	for _, round := range v.inner.pastRounds.pastRounds {
+		close(round.inner.outgoing.inner)
+
+		switch state := round.inner.state.(type) {
+		case statePrecommitted:
+		case statePrevoted[Timer]:
+			state[0].Close()
+		case statePrevoting[Timer, hashBestChain[Hash, Number]]:
+			state.T.Close()
+		case stateProposed[Timer]:
+			state[0].Close()
+			state[1].Close()
+		case stateStart[Timer]:
+			state[0].Close()
+			state[1].Close()
+		}
+
+		if round.roundCommitter != nil {
+			round.roundCommitter.commitTimer.Close()
+			close(round.roundCommitter.importCommits.in)
+		}
+	}
+
 	return nil
 }
 

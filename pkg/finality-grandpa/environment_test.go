@@ -24,12 +24,17 @@ func newTimer(in <-chan time.Time) *timer {
 	inErr := make(chan error)
 	wc := newWakerChan(inErr)
 	t := timer{wakerChan: wc}
-	go func() {
-		<-in
-		inErr <- nil
-		t.expired = true
-	}()
+	go t.poll(in)
 	return &t
+}
+
+func (t *timer) poll(in <-chan time.Time) {
+	<-in
+	if t.wakerChan.in != nil {
+		t.wakerChan.in <- nil
+		close(t.wakerChan.in)
+	}
+	t.expired = true
 }
 
 func (t *timer) SetWaker(waker *waker) {
@@ -38,6 +43,13 @@ func (t *timer) SetWaker(waker *waker) {
 
 func (t *timer) Elapsed() (bool, error) {
 	return t.expired, nil
+}
+
+func (t *timer) Close() {
+	if t.wakerChan.in != nil {
+		close(t.wakerChan.in)
+		t.wakerChan.in = nil
+	}
 }
 
 type listenerItem struct {
@@ -97,6 +109,7 @@ func (e *environment) BestChainContaining(base string) BestChain[string, uint32]
 
 	ch := make(chan BestChainOutput[string, uint32], 1)
 	ch <- BestChainOutput[string, uint32]{Value: e.chain.BestChainContaining(base)}
+	close(ch)
 	return ch
 }
 
@@ -260,6 +273,9 @@ func (bm *BroadcastNetwork[M, N]) Stop() {
 		close(ch)
 	}
 	bm.wg.Wait()
+	for _, sender := range bm.senders {
+		close(sender)
+	}
 }
 
 type RoundNetwork struct {
