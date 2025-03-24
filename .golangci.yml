@@ -1,7 +1,7 @@
 # See https://golangci-lint.run/usage/configuration/#config-file
 
 run:
-  deadline: 10m
+  timeout: 10m
 
   build-tags:
     - integration

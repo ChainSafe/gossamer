@@ -14,6 +14,7 @@ type ReqProtocolName uint
 
 const (
 	ChunkFetchingV1 ReqProtocolName = iota
+	ChunkFetchingV2
 	CollationFetchingV1
 	PoVFetchingV1
 	AvailableDataFetchingV1
@@ -25,6 +26,8 @@ func (n ReqProtocolName) String() string {
 	switch n {
 	case ChunkFetchingV1:
 		return "req_chunk/1"
+	case ChunkFetchingV2:
+		return "req_chunk/2"
 	case CollationFetchingV1:
 		return "req_collation/1"
 	case PoVFetchingV1:

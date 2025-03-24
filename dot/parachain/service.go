@@ -8,6 +8,8 @@ import (
 	bitfielddistribution "github.com/ChainSafe/gossamer/dot/parachain/bitfield-distribution"
 	"time"
 
+	availabilitydistribution "github.com/ChainSafe/gossamer/dot/parachain/availability-distribution"
+
 	bitfieldsigning "github.com/ChainSafe/gossamer/dot/parachain/bitfield-signing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -100,6 +102,14 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	bitfieldDistributionSubsystem := bitfielddistribution.NewBitfieldDistribution(overseer.SubsystemsToOverseer)
 	overseer.RegisterSubsystem(bitfieldDistributionSubsystem)
 
+	// register availability distribution subsystem
+	availabilityDistributionSubsystem := availabilitydistribution.NewAvailabilityDistribution(
+		overseer.GetSubsystemToOverseerChannel(),
+		net,
+		st.Block,
+	)
+	overseer.RegisterSubsystem(availabilityDistributionSubsystem)
+
 	parachainService := &Service{
 		Network:  net,
 		overseer: overseer,
@@ -178,6 +188,7 @@ type Network interface {
 		batchHandler network.NotificationsMessageBatchHandler,
 		maxSize uint64,
 	) error
+	RegisterRequestHandler(subprotocolID protocol.ID, handler network.RequestHandler)
 	GetRequestResponseProtocol(subprotocol string, requestTimeout time.Duration,
 		maxResponseSize uint64) network.RequestMaker
 	ReportPeer(change peerset.ReputationChange, p peer.ID)

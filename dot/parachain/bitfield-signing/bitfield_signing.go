@@ -248,5 +248,5 @@ func constructAvailabilityBitfield(
 	}
 	wg.Wait()
 
-	return parachaintypes.NewBitVec(bitfield), nil
+	return parachaintypes.NewBitVec(bitfield)
 }

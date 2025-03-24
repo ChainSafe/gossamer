@@ -549,4 +549,27 @@ func TestToCheck(t *testing.T) {
 	assert.Nil(t, err)
 	assert.EqualValues(t, bitfield, checkedMessage.Payload)
 	assert.EqualValues(t, ValidatorSignature(signature), checkedMessage.Signature)
+
+}
+
+func TestNewBackedCandidate(t *testing.T) {
+	t.Parallel()
+
+	receipt := CommittedCandidateReceipt{}
+	attestations := []ValidityAttestation{}
+	validatorIndices := []bool{true, false, true}
+	coreIndex := &CoreIndex{Index: 10}
+
+	// Test with nil core index
+	backedCandidate, err := NewBackedCandidate(receipt, attestations, validatorIndices, nil)
+
+	require.NoError(t, err)
+	require.Equal(t, validatorIndices, backedCandidate.ValidatorIndices.Bits())
+
+	// Test with core index
+	backedCandidate, err = NewBackedCandidate(receipt, attestations, validatorIndices, coreIndex)
+
+	require.NoError(t, err)
+	require.Equal(t, []bool{true, false, true, false, true, false, true, false, false, false, false},
+		backedCandidate.ValidatorIndices.Bits())
 }

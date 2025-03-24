@@ -1738,7 +1738,7 @@ func TestInstance_ParachainHostNodeFeatures(t *testing.T) {
 	tt := getParachainHostTrie(t, parachainsConfigV1171TestData.Storage)
 	rt := NewTestInstance(t, runtime.WESTEND_RUNTIME_v1017001, TestWithTrie(tt))
 
-	expectedNodeFeatures := parachaintypes.NewBitVec([]bool{false, true, false, true})
+	expectedNodeFeatures := bitVector(t, []bool{false, true, false, true})
 
 	actualNodeFeatures, err := rt.ParachainHostNodeFeatures()
 	require.NoError(t, err)
@@ -1874,9 +1874,9 @@ func TestInstance_ParachainHostDisputes(t *testing.T) {
 				Value: common.MustHexToHash("0x59558a80dfcf74536b9f6fcba7416490211b22f29cc750a8bcb4993ea53cf347"),
 			},
 		}: {
-			ValidatorsFor: parachaintypes.NewBitVec(
+			ValidatorsFor: bitVector(t,
 				[]bool{false, true, false, true, false, true, false, true, false, false, false, false}),
-			ValidatorsAgainst: parachaintypes.NewBitVec(
+			ValidatorsAgainst: bitVector(t,
 				[]bool{false, true, false, true, false, true, false, true, false, false, false, false}),
 			Start:       parachaintypes.BlockNumber(10),
 			ConcludedAt: nil,
@@ -1887,8 +1887,8 @@ func TestInstance_ParachainHostDisputes(t *testing.T) {
 				Value: common.MustHexToHash("0x59558a80dfcf74536b9f6fcba7416490211b22f29cc750a8bcb4993ea53cf388"),
 			},
 		}: {
-			ValidatorsFor:     parachaintypes.NewBitVec([]bool{false}),
-			ValidatorsAgainst: parachaintypes.NewBitVec([]bool{true}),
+			ValidatorsFor:     bitVector(t, []bool{false}),
+			ValidatorsAgainst: bitVector(t, []bool{true}),
 			Start:             parachaintypes.BlockNumber(15),
 			ConcludedAt:       &concludedAt,
 		},
@@ -1908,4 +1908,13 @@ func getParachainHostTrie(t *testing.T, testDataStorage []Storage) *inmemory_tri
 	}
 
 	return tt
+}
+
+func bitVector(t *testing.T, bits []bool) parachaintypes.BitVec {
+	t.Helper()
+
+	bv, err := parachaintypes.NewBitVec(bits)
+	require.NoError(t, err)
+
+	return bv
 }
