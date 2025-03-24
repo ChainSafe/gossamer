@@ -7,8 +7,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/crypto"
 	"math"
+
+	"github.com/ChainSafe/gossamer/lib/crypto"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"

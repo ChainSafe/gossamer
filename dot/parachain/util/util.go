@@ -6,12 +6,13 @@ package util
 import (
 	"errors"
 	"fmt"
-	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
-	"github.com/ChainSafe/gossamer/dot/peerset"
-	"github.com/ChainSafe/gossamer/lib/primitives"
 	"math"
 	"sync"
 	"time"
+
+	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
+	"github.com/ChainSafe/gossamer/dot/peerset"
+	"github.com/ChainSafe/gossamer/lib/primitives"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/chainapi"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -118,7 +119,7 @@ func (r *ReputationAggregator) Send(overseerCh chan<- any) {
 		return
 	}
 
-	// TODO: optimize this to be batch supported
+	// TODO: optimise this to be batch supported
 	for peerId, rep := range r.byPeer {
 		overseerCh <- networkbridgemessages.ReportPeer{
 			PeerID: peerId,

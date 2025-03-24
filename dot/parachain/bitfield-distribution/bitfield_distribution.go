@@ -6,6 +6,8 @@ package bitfielddistribution
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"github.com/ChainSafe/gossamer/dot/parachain/grid"
 	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
@@ -17,7 +19,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"sync"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-bitfield-distribution"))
@@ -43,7 +44,8 @@ type perRelayParentData struct {
 	messageReceivedFromPeer map[peer.ID]map[parachaintypes.ValidatorID]struct{}
 }
 
-func newPerRelayParentData(sessionIndex parachaintypes.SessionIndex, validatorSet []parachaintypes.ValidatorID) *perRelayParentData {
+func newPerRelayParentData(sessionIndex parachaintypes.SessionIndex, validatorSet []parachaintypes.ValidatorID,
+) *perRelayParentData {
 	return &perRelayParentData{
 		sessionIndex:            sessionIndex,
 		validatorsSet:           validatorSet,
@@ -55,7 +57,8 @@ func newPerRelayParentData(sessionIndex parachaintypes.SessionIndex, validatorSe
 
 // messageFromValidatorNeededByPeer determines if that particular message signed by a
 // validator is needed by the given peer.
-func (p *perRelayParentData) messageFromValidatorNeededByPeer(peerID peer.ID, signedBy parachaintypes.ValidatorID) bool {
+func (p *perRelayParentData) messageFromValidatorNeededByPeer(peerID peer.ID, signedBy parachaintypes.
+	ValidatorID) bool {
 	_, sendToExist := p.messageSentToPeer[peerID][signedBy]
 	_, receiveFromExist := p.messageReceivedFromPeer[peerID][signedBy]
 
@@ -111,12 +114,6 @@ func (b *BitfieldDistribution) Run(ctx context.Context, overseerToSubSystem <-ch
 		}
 	}
 }
-
-// logic points:
-// Before gossiping incoming bitfields, they must be checked to be signed by one of the validators of the validator set relevant to the current relay parent.
-// Only accept bitfields relevant to our current view
-// only distribute bitfields to other peers when relevant to their most recent view
-// Accept and distribute only one bitfield per validator.
 
 // processMessage processes messages sent to the BitfieldDistribution subsystem
 func (b *BitfieldDistribution) processMessage(msg any) error {
@@ -178,7 +175,8 @@ func (b *BitfieldDistribution) Name() parachaintypes.SubSystemName {
 	return parachaintypes.BitfieldDistribution
 }
 
-func (b *BitfieldDistribution) ProcessBitfieldDistributionMessageSignal(signal validationprotocol.BitfieldDistributionMessage) error {
+func (b *BitfieldDistribution) ProcessBitfieldDistributionMessageSignal(signal validationprotocol.
+	BitfieldDistributionMessage) error {
 	value, err := signal.Value()
 	if err != nil {
 		return err
@@ -233,7 +231,8 @@ func (b *BitfieldDistribution) ProcessBitfieldDistributionMessageSignal(signal v
 		CheckedSignedAvailabilityBitfield: *checkedBitfield,
 	}
 
-	go relayMessage(jobData, topology, b.peerViews, validatorID, checkedBitfieldMessage, requiredRouting, b.subSystemToOverseer)
+	go relayMessage(jobData, topology, b.peerViews, validatorID, checkedBitfieldMessage, requiredRouting,
+		b.subSystemToOverseer)
 
 	return nil
 }
@@ -273,8 +272,6 @@ func (b *BitfieldDistribution) ProcessNewGossipTopologySignal(signal networkbrid
 	panic("implement me")
 }
 
-// TODO: improve or penalize the reputation of peers based on the messages that are received relative to the current view.
-// this is where ReputationAggregator need to weight in
 func (b *BitfieldDistribution) ProcessPeerViewChangeSignal(signal networkbridgeevents.PeerViewChange) error {
 	//TODO implement me
 	panic("implement me")
@@ -285,23 +282,25 @@ func (b *BitfieldDistribution) ProcessOurViewChangeSignal(signal networkbridgeev
 	panic("implement me")
 }
 
-func (b *BitfieldDistribution) ProcessPeerMessageSignal(signal networkbridgeevents.PeerMessage[validationprotocol.ValidationProtocol]) error {
+func (b *BitfieldDistribution) ProcessPeerMessageSignal(signal networkbridgeevents.PeerMessage[validationprotocol.
+	ValidationProtocol]) error {
 	valueIdx, value, err := signal.Message.IndexValue()
 	if err != nil {
 		return err
 	}
 	// index 1 is BitfieldDistribution
 	if valueIdx != 1 {
-		return fmt.Errorf("invalid value index for peer message handler, supporsed to be 1: %d", valueIdx)
+		return fmt.Errorf("invalid value index for peer message handler, supporsed to be 1, got %d", valueIdx)
 	}
 	// TODO: add protocol version support
 	m, err := value.(validationprotocol.BitfieldDistribution).BitfieldDistributionMessage.Value()
 	if err != nil {
 		return err
 	}
+
 	uncheckedBitfield, ok := m.(validationprotocol.UncheckedBitfield)
 	if !ok {
-		return fmt.Errorf("invalid value index for peer message handler, supporsed to be 1: %d", valueIdx)
+		return fmt.Errorf("invalid value for uncheckedBitfield")
 	}
 	relayParent := uncheckedBitfield.Hash
 	bitfield := uncheckedBitfield.UncheckedSignedAvailabilityBitfield
@@ -550,7 +549,8 @@ func filterByPeerVersion(peers map[peer.ID]uint32, protocolVersion uint32) []pee
 	return re
 }
 
-func modifyReputation(reputation *util.ReputationAggregator, sender chan<- any, peer peer.ID, rep util.UnifiedReputationChange, relayParent common.Hash) {
+func modifyReputation(reputation *util.ReputationAggregator, sender chan<- any, peer peer.ID,
+	rep util.UnifiedReputationChange, relayParent common.Hash) {
 	logger.Infof("reputation modified for peer %s on relay parent %s", peer.String(), relayParent.String())
 
 	reputation.Modify(sender, peer, rep)

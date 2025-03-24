@@ -5,8 +5,9 @@ package parachain
 
 import (
 	"fmt"
-	bitfielddistribution "github.com/ChainSafe/gossamer/dot/parachain/bitfield-distribution"
 	"time"
+
+	bitfielddistribution "github.com/ChainSafe/gossamer/dot/parachain/bitfield-distribution"
 
 	availabilitydistribution "github.com/ChainSafe/gossamer/dot/parachain/availability-distribution"
 

@@ -6,9 +6,10 @@ package parachaintypes
 import (
 	_ "embed"
 	"fmt"
+	"testing"
+
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/stretchr/testify/assert"
-	"testing"
 
 	"gopkg.in/yaml.v3"
 
@@ -508,9 +509,10 @@ func TestValidator_SignAndVerify(t *testing.T) {
 }
 
 func TestToCheck(t *testing.T) {
-	bitfield := NewBitVec([]bool{true, true, false})
+	bitfield, err := NewBitVec([]bool{true, true, false})
+	assert.Nil(t, err)
 	data, err := bitfield.MarshalSCALE()
-	require.Nil(t, err)
+	assert.Nil(t, err)
 
 	keyring, err := keystore.NewSr25519Keyring()
 	assert.Nil(t, err)
