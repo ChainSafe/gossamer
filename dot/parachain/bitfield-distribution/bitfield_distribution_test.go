@@ -251,11 +251,14 @@ func TestBitfieldDistribution_RelayMessage_InterestedPeersEmpty(t *testing.T) {
 
 	validatorIndex, validatorSet := prepareForValidators()
 
+	vec, err := parachaintypes.NewBitVec([]bool{true, false})
+	assert.Nil(t, err)
+
 	relayParent := common.Hash{1, 1, 1}
 	message := validationprotocol.CheckedBitfield{
 		Hash: relayParent,
 		CheckedSignedAvailabilityBitfield: parachaintypes.CheckedSignedAvailabilityBitfield{
-			Payload:        parachaintypes.NewBitVec([]bool{true, false}),
+			Payload:        vec,
 			ValidatorIndex: validatorIndex,
 			Signature:      [64]byte{0},
 		},
@@ -323,11 +326,14 @@ func TestBitfieldDistribution_RelayMessage_FilterV2Peers(t *testing.T) {
 
 	validatorIndex, validatorSet := prepareForValidators()
 
+	vec, err := parachaintypes.NewBitVec([]bool{true, false})
+	assert.Nil(t, err)
+
 	relayParent := common.Hash{1, 1, 1}
 	message := validationprotocol.CheckedBitfield{
 		Hash: relayParent,
 		CheckedSignedAvailabilityBitfield: parachaintypes.CheckedSignedAvailabilityBitfield{
-			Payload:        parachaintypes.NewBitVec([]bool{true, false}),
+			Payload:        vec,
 			ValidatorIndex: validatorIndex,
 			Signature:      [64]byte{0},
 		},
@@ -407,11 +413,14 @@ func TestBitfieldDistribution_RelayMessage_FilterV3Peers(t *testing.T) {
 
 	validatorIndex, validatorSet := prepareForValidators()
 
+	vec, err := parachaintypes.NewBitVec([]bool{true, false})
+	assert.Nil(t, err)
+
 	relayParent := common.Hash{1, 1, 1}
 	message := validationprotocol.CheckedBitfield{
 		Hash: relayParent,
 		CheckedSignedAvailabilityBitfield: parachaintypes.CheckedSignedAvailabilityBitfield{
-			Payload:        parachaintypes.NewBitVec([]bool{true, false}),
+			Payload:        vec,
 			ValidatorIndex: validatorIndex,
 			Signature:      [64]byte{0},
 		},
@@ -626,7 +635,8 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessageSignal_CheckSign
 		}),
 	}
 
-	bitfield := parachaintypes.NewBitVec([]bool{true, true, false})
+	bitfield, err := parachaintypes.NewBitVec([]bool{true, true, false})
+	assert.Nil(t, err)
 	data, err := bitfield.MarshalSCALE()
 	assert.Nil(t, err)
 

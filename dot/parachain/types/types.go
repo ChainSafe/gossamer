@@ -859,7 +859,7 @@ func (c UncheckedSignedAvailabilityBitfield) ToCheck(key crypto.PublicKey) (*Che
 }
 
 func (c UncheckedSignedAvailabilityBitfield) IsEqual(u UncheckedSignedAvailabilityBitfield) bool {
-	return bytes.Equal(c.Payload.bytes(), u.Payload.bytes()) &&
+	return c.Payload.IsEqual(&u.Payload) &&
 		c.ValidatorIndex == u.ValidatorIndex &&
 		c.Signature == u.Signature
 }
