@@ -1,6 +1,7 @@
 package bitfielddistribution
 
 import (
+	"fmt"
 	"github.com/ChainSafe/gossamer/dot/parachain/grid"
 	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
@@ -8,8 +9,10 @@ import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
@@ -231,7 +234,7 @@ func TestBitfieldDistribution_FilterByPeerVersion(t *testing.T) {
 	}
 }
 
-func prepareForPeers() (parachaintypes.ValidatorIndex, []parachaintypes.ValidatorID) {
+func prepareForValidators() (parachaintypes.ValidatorIndex, []parachaintypes.ValidatorID) {
 	// prepare for the relay message call params
 	validatorIndex := 0
 	validatorSet := []parachaintypes.ValidatorID{
@@ -246,7 +249,7 @@ func TestBitfieldDistribution_RelayMessage_InterestedPeersEmpty(t *testing.T) {
 	peerB := generateDummyPeerID(t, -2)
 	assert.NotEqual(t, peerA, peerB)
 
-	validatorIndex, validatorSet := prepareForPeers()
+	validatorIndex, validatorSet := prepareForValidators()
 
 	relayParent := common.Hash{1, 1, 1}
 	message := validationprotocol.CheckedBitfield{
@@ -318,7 +321,7 @@ func TestBitfieldDistribution_RelayMessage_FilterV2Peers(t *testing.T) {
 	peerB := generateDummyPeerID(t, -2)
 	assert.NotEqual(t, peerA, peerB)
 
-	validatorIndex, validatorSet := prepareForPeers()
+	validatorIndex, validatorSet := prepareForValidators()
 
 	relayParent := common.Hash{1, 1, 1}
 	message := validationprotocol.CheckedBitfield{
@@ -402,7 +405,7 @@ func TestBitfieldDistribution_RelayMessage_FilterV3Peers(t *testing.T) {
 	peerB := generateDummyPeerID(t, -2)
 	assert.NotEqual(t, peerA, peerB)
 
-	validatorIndex, validatorSet := prepareForPeers()
+	validatorIndex, validatorSet := prepareForValidators()
 
 	relayParent := common.Hash{1, 1, 1}
 	message := validationprotocol.CheckedBitfield{
@@ -479,4 +482,169 @@ func TestBitfieldDistribution_RelayMessage_FilterV3Peers(t *testing.T) {
 
 	// wait for the v3 content SendValidationMessage checks
 	time.Sleep(1 * time.Second)
+}
+
+func TestBitfieldDistribution_ProcessBitfieldDistributionMessageSignal_UnexpectedMessageType(t *testing.T) {
+	overseerCh := make(chan any)
+	b := NewBitfieldDistribution(overseerCh)
+
+	message := validationprotocol.CheckedBitfield{}
+	bdm := validationprotocol.BitfieldDistributionMessage{}
+	err := bdm.SetValue(message)
+	assert.Nil(t, err)
+
+	err = b.ProcessBitfieldDistributionMessageSignal(bdm)
+	assert.NotNil(t, err)
+}
+
+func TestBitfieldDistribution_ProcessBitfieldDistributionMessageSignal_NoRelayParentToWorkOn(t *testing.T) {
+	overseerCh := make(chan any)
+	b := NewBitfieldDistribution(overseerCh)
+
+	message := validationprotocol.UncheckedBitfield{
+		Hash: common.Hash{1, 2, 3},
+	}
+	bdm := validationprotocol.BitfieldDistributionMessage{}
+	err := bdm.SetValue(message)
+	assert.Nil(t, err)
+
+	// not supposed to work on relay parent related data
+	err = b.ProcessBitfieldDistributionMessageSignal(bdm)
+	assert.Nil(t, err)
+}
+
+func TestBitfieldDistribution_ProcessBitfieldDistributionMessageSignal_ValidatorSetEmpty(t *testing.T) {
+	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), nil)
+	peerViews := map[peer.ID]struct {
+		view            parachaintypes.View
+		protocolVersion uint32
+	}{}
+	overseerCh := make(chan any)
+	b := &BitfieldDistribution{
+		subSystemToOverseer: overseerCh,
+		peerViews:           peerViews,
+		ourView:             parachaintypes.View{},
+		topologies:          grid.SessionGridTopologyStorage{},
+		perRelayParent: map[common.Hash]*perRelayParentData{
+			common.Hash{1, 2, 3}: jobData,
+		},
+		reputation: util.NewReputationAggregator(func(rep util.UnifiedReputationChange) bool {
+			return false
+		}),
+	}
+
+	message := validationprotocol.UncheckedBitfield{
+		Hash: common.Hash{1, 2, 3},
+	}
+	bdm := validationprotocol.BitfieldDistributionMessage{}
+	err := bdm.SetValue(message)
+	assert.Nil(t, err)
+
+	// validator set is empty
+	err = b.ProcessBitfieldDistributionMessageSignal(bdm)
+	assert.Nil(t, err)
+}
+
+func TestBitfieldDistribution_ProcessBitfieldDistributionMessageSignal_ValidatorIdxInvalid(t *testing.T) {
+	validatorIndex, validatorSet := prepareForValidators()
+	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
+	peerViews := map[peer.ID]struct {
+		view            parachaintypes.View
+		protocolVersion uint32
+	}{}
+	overseerCh := make(chan any)
+	b := &BitfieldDistribution{
+		subSystemToOverseer: overseerCh,
+		peerViews:           peerViews,
+		ourView:             parachaintypes.View{},
+		topologies:          grid.SessionGridTopologyStorage{},
+		perRelayParent: map[common.Hash]*perRelayParentData{
+			common.Hash{1, 2, 3}: jobData,
+		},
+		reputation: util.NewReputationAggregator(func(rep util.UnifiedReputationChange) bool {
+			return false
+		}),
+	}
+
+	message := validationprotocol.UncheckedBitfield{
+		Hash: common.Hash{1, 2, 3},
+		UncheckedSignedAvailabilityBitfield: parachaintypes.UncheckedSignedAvailabilityBitfield{
+			ValidatorIndex: validatorIndex + 10, // make them different
+		},
+	}
+	bdm := validationprotocol.BitfieldDistributionMessage{}
+	err := bdm.SetValue(message)
+	assert.Nil(t, err)
+
+	// validator set is empty
+	err = b.ProcessBitfieldDistributionMessageSignal(bdm)
+	assert.Nil(t, err)
+}
+
+func TestBitfieldDistribution_ProcessBitfieldDistributionMessageSignal_CheckSignedAvailabilityBitfield(t *testing.T) {
+	validatorIndex := 0
+
+	keyring, err := keystore.NewSr25519Keyring()
+	assert.Nil(t, err)
+	aliceKeypair := keyring.Alice().(*sr25519.Keypair)
+
+	validatorSet := []parachaintypes.ValidatorID{
+		parachaintypes.ValidatorID(aliceKeypair.Public().Encode()),
+		[sr25519.PublicKeyLength]byte{2},
+	}
+	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
+	peerViews := map[peer.ID]struct {
+		view            parachaintypes.View
+		protocolVersion uint32
+	}{}
+
+	gt := grid.NewSessionGridTopology([]uint{1, 2, 3}, []grid.TopologyPeerInfo{{
+		Peers:          []peer.ID{"peer1", "peer2"},
+		ValidatorIndex: parachaintypes.ValidatorIndex(1),
+		DiscoveryID:    types.AuthorityID{1},
+	}})
+	sgte := &grid.SessionGridTopologyEntry{
+		Topology:     gt,
+		LocalIndex:   10,
+		SessionIndex: 99,
+	}
+
+	overseerCh := make(chan any)
+	b := &BitfieldDistribution{
+		subSystemToOverseer: overseerCh,
+		peerViews:           peerViews,
+		ourView:             parachaintypes.View{},
+		topologies: grid.SessionGridTopologyStorage{
+			CurrentTopology: sgte,
+			PrevTopology:    sgte,
+		},
+		perRelayParent: map[common.Hash]*perRelayParentData{
+			common.Hash{1, 2, 3}: jobData,
+		},
+		reputation: util.NewReputationAggregator(func(rep util.UnifiedReputationChange) bool {
+			return false
+		}),
+	}
+
+	bitfield := parachaintypes.NewBitVec([]bool{true, true, false})
+	data, err := bitfield.MarshalSCALE()
+	assert.Nil(t, err)
+
+	fmt.Println("data: ", data)
+	signature, err := aliceKeypair.Sign(data)
+	assert.Nil(t, err)
+
+	message := validationprotocol.UncheckedBitfield{
+		Hash: common.Hash{1, 2, 3},
+		UncheckedSignedAvailabilityBitfield: parachaintypes.UncheckedSignedAvailabilityBitfield{
+			Payload:        bitfield,
+			ValidatorIndex: parachaintypes.ValidatorIndex(validatorIndex),
+			Signature:      parachaintypes.ValidatorSignature(signature),
+		},
+	}
+	bdm := validationprotocol.BitfieldDistributionMessage{}
+	err = bdm.SetValue(message)
+	assert.Nil(t, err)
+	err = b.ProcessBitfieldDistributionMessageSignal(bdm)
+	assert.Nil(t, err)
 }

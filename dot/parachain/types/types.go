@@ -809,7 +809,11 @@ type CheckedSignedAvailabilityBitfield struct {
 }
 
 func (c UncheckedSignedAvailabilityBitfield) ToCheck(key crypto.PublicKey) (*CheckedSignedAvailabilityBitfield, error) {
-	ok, err := key.Verify(c.Payload.bytes(), c.Signature[:])
+	data, err := c.Payload.MarshalSCALE()
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal payload of bitfield: %w", err)
+	}
+	ok, err := key.Verify(data, c.Signature[:])
 	if err != nil {
 		return nil, err
 	}

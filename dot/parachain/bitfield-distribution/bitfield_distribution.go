@@ -220,6 +220,7 @@ func (b *BitfieldDistribution) ProcessBitfieldDistributionMessageSignal(signal v
 	if err != nil {
 		return err
 	}
+
 	checkedBitfield, err := bitfieldDistributionMess.UncheckedSignedAvailabilityBitfield.ToCheck(vpk)
 	if err != nil {
 		return fmt.Errorf("unable to verfy the signed bitfield message against the validator"+
