@@ -1,8 +1,14 @@
 package bitfielddistribution
 
 import (
+	"github.com/ChainSafe/gossamer/dot/parachain/grid"
 	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
+	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
+	provisionermessages "github.com/ChainSafe/gossamer/dot/parachain/provisioner/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/parachain/util"
+	validationprotocol "github.com/ChainSafe/gossamer/dot/parachain/validation-protocol"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -223,4 +229,254 @@ func TestBitfieldDistribution_FilterByPeerVersion(t *testing.T) {
 		re := filterByPeerVersion(testcase.peers, testcase.targetVersion)
 		assert.Equal(t, testcase.result, re, testcase.name)
 	}
+}
+
+func prepareForPeers() (parachaintypes.ValidatorIndex, []parachaintypes.ValidatorID) {
+	// prepare for the relay message call params
+	validatorIndex := 0
+	validatorSet := []parachaintypes.ValidatorID{
+		[sr25519.PublicKeyLength]byte{1},
+		[sr25519.PublicKeyLength]byte{2},
+	}
+	return parachaintypes.ValidatorIndex(validatorIndex), validatorSet
+}
+
+func TestBitfieldDistribution_RelayMessage_InterestedPeersEmpty(t *testing.T) {
+	peerA := generateDummyPeerID(t, -1)
+	peerB := generateDummyPeerID(t, -2)
+	assert.NotEqual(t, peerA, peerB)
+
+	validatorIndex, validatorSet := prepareForPeers()
+
+	relayParent := common.Hash{1, 1, 1}
+	message := validationprotocol.CheckedBitfield{
+		Hash: relayParent,
+		CheckedSignedAvailabilityBitfield: parachaintypes.CheckedSignedAvailabilityBitfield{
+			Payload:        parachaintypes.NewBitVec([]bool{true, false}),
+			ValidatorIndex: validatorIndex,
+			Signature:      [64]byte{0},
+		},
+	}
+
+	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
+
+	// control the peer protocol version here and the peer's Head
+	peerViews := map[peer.ID]struct {
+		view            parachaintypes.View
+		protocolVersion uint32
+	}{
+		peerA: {
+			view:            parachaintypes.View{},
+			protocolVersion: 2,
+		},
+		peerB: {
+			view:            parachaintypes.View{},
+			protocolVersion: 3,
+		},
+	}
+
+	subSystemToOverseer := make(chan any)
+	b := &BitfieldDistribution{
+		subSystemToOverseer: subSystemToOverseer,
+		peerViews:           peerViews,
+		ourView:             parachaintypes.View{},
+		topologies:          grid.SessionGridTopologyStorage{},
+		perRelayParent: map[common.Hash]*perRelayParentData{
+			relayParent: jobData,
+		},
+		reputation: util.NewReputationAggregator(func(rep util.UnifiedReputationChange) bool {
+			return false
+		}),
+	}
+
+	topologies := grid.NewEmptyGridNeighbours()
+	requiredRouting := grid.RequiredRoutingAll
+	validatorID := jobData.validatorsSet[validatorIndex]
+
+	// call the target method
+	relayMessage(jobData, topologies, b.peerViews, validatorID, message, requiredRouting, b.subSystemToOverseer)
+
+	// there should be empty interested peers so method call is returned without error
+	// check the overseer chan message for the ProvisionableDataBitfield message
+	go func() {
+		for {
+			request := <-subSystemToOverseer
+			switch request := request.(type) {
+			case provisionermessages.ProvisionableDataBitfield:
+				assert.EqualValues(t, message.Hash, request.RelayParent)
+				assert.EqualValues(t, message.CheckedSignedAvailabilityBitfield, request.Bitfield)
+			}
+		}
+	}()
+
+	// wait for the provisionable content checks
+	time.Sleep(1 * time.Second)
+}
+
+func TestBitfieldDistribution_RelayMessage_FilterV2Peers(t *testing.T) {
+	peerA := generateDummyPeerID(t, -1)
+	peerB := generateDummyPeerID(t, -2)
+	assert.NotEqual(t, peerA, peerB)
+
+	validatorIndex, validatorSet := prepareForPeers()
+
+	relayParent := common.Hash{1, 1, 1}
+	message := validationprotocol.CheckedBitfield{
+		Hash: relayParent,
+		CheckedSignedAvailabilityBitfield: parachaintypes.CheckedSignedAvailabilityBitfield{
+			Payload:        parachaintypes.NewBitVec([]bool{true, false}),
+			ValidatorIndex: validatorIndex,
+			Signature:      [64]byte{0},
+		},
+	}
+
+	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
+
+	// control the peer protocol version here and the peer's Head
+	peerViews := map[peer.ID]struct {
+		view            parachaintypes.View
+		protocolVersion uint32
+	}{
+		peerA: {
+			view: parachaintypes.View{
+				Heads: []common.Hash{relayParent}, // valid relayParent hash
+			},
+			protocolVersion: 2, // V2
+		},
+		peerB: {
+			view:            parachaintypes.View{},
+			protocolVersion: 3, //V3
+		},
+	}
+
+	subSystemToOverseer := make(chan any)
+	b := &BitfieldDistribution{
+		subSystemToOverseer: subSystemToOverseer,
+		peerViews:           peerViews,
+		ourView:             parachaintypes.View{},
+		topologies:          grid.SessionGridTopologyStorage{},
+		perRelayParent: map[common.Hash]*perRelayParentData{
+			relayParent: jobData,
+		},
+		reputation: util.NewReputationAggregator(func(rep util.UnifiedReputationChange) bool {
+			return false
+		}),
+	}
+
+	topologies := grid.NewEmptyGridNeighbours()
+	requiredRouting := grid.RequiredRoutingAll
+	validatorID := jobData.validatorsSet[validatorIndex]
+
+	// call the target method
+	relayMessage(jobData, topologies, b.peerViews, validatorID, message, requiredRouting, b.subSystemToOverseer)
+
+	// check the overseer chan message for the SendValidationMessage for V2
+	go func() {
+		for {
+			request := <-subSystemToOverseer
+			switch request := request.(type) {
+			case networkbridgemessages.SendValidationMessage:
+				assert.EqualValues(t, []peer.ID{peerA}, request.To) // PeerA is v2
+
+				i, v, err := request.ValidationProtocolMessage.IndexValue()
+				assert.Nil(t, err)
+				assert.EqualValues(t, 1, i)
+				a := v.(validationprotocol.BitfieldDistribution)
+				i, v, err = a.BitfieldDistributionMessage.IndexValue()
+				assert.Nil(t, err)
+				assert.EqualValues(t, 1, i)
+				b := v.(validationprotocol.CheckedBitfield)
+
+				assert.EqualValues(t, message.CheckedSignedAvailabilityBitfield, b.CheckedSignedAvailabilityBitfield)
+				assert.EqualValues(t, message.Hash, b.Hash)
+			}
+		}
+	}()
+
+	// wait for the v2 content SendValidationMessage checks
+	time.Sleep(1 * time.Second)
+}
+
+func TestBitfieldDistribution_RelayMessage_FilterV3Peers(t *testing.T) {
+	peerA := generateDummyPeerID(t, -1)
+	peerB := generateDummyPeerID(t, -2)
+	assert.NotEqual(t, peerA, peerB)
+
+	validatorIndex, validatorSet := prepareForPeers()
+
+	relayParent := common.Hash{1, 1, 1}
+	message := validationprotocol.CheckedBitfield{
+		Hash: relayParent,
+		CheckedSignedAvailabilityBitfield: parachaintypes.CheckedSignedAvailabilityBitfield{
+			Payload:        parachaintypes.NewBitVec([]bool{true, false}),
+			ValidatorIndex: validatorIndex,
+			Signature:      [64]byte{0},
+		},
+	}
+
+	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
+
+	// control the peer protocol version here and the peer's Head
+	peerViews := map[peer.ID]struct {
+		view            parachaintypes.View
+		protocolVersion uint32
+	}{
+		peerA: {
+			view:            parachaintypes.View{},
+			protocolVersion: 2,
+		},
+		peerB: {
+			view: parachaintypes.View{
+				Heads: []common.Hash{relayParent},
+			},
+			protocolVersion: 3,
+		},
+	}
+
+	subSystemToOverseer := make(chan any)
+	b := &BitfieldDistribution{
+		subSystemToOverseer: subSystemToOverseer,
+		peerViews:           peerViews,
+		ourView:             parachaintypes.View{},
+		topologies:          grid.SessionGridTopologyStorage{},
+		perRelayParent: map[common.Hash]*perRelayParentData{
+			relayParent: jobData,
+		},
+		reputation: util.NewReputationAggregator(func(rep util.UnifiedReputationChange) bool {
+			return false
+		}),
+	}
+
+	topologies := grid.NewEmptyGridNeighbours()
+	requiredRouting := grid.RequiredRoutingAll
+	validatorID := jobData.validatorsSet[validatorIndex]
+
+	// call the target method
+	relayMessage(jobData, topologies, b.peerViews, validatorID, message, requiredRouting, b.subSystemToOverseer)
+
+	// check the overseer chan message for the SendValidationMessage for v3
+	go func() {
+		for {
+			request := <-subSystemToOverseer
+			switch request := request.(type) {
+			case networkbridgemessages.SendValidationMessage:
+				assert.EqualValues(t, []peer.ID{peerB}, request.To) // PeerB is v3
+
+				i, v, err := request.ValidationProtocolMessage.IndexValue()
+				assert.Nil(t, err)
+				assert.EqualValues(t, 1, i)
+				a := v.(validationprotocol.BitfieldDistribution)
+				i, v, err = a.BitfieldDistributionMessage.IndexValue()
+				assert.Nil(t, err)
+				assert.EqualValues(t, 1, i)
+				b := v.(validationprotocol.CheckedBitfield)
+
+				assert.EqualValues(t, message.CheckedSignedAvailabilityBitfield, b.CheckedSignedAvailabilityBitfield)
+				assert.EqualValues(t, message.Hash, b.Hash)
+			}
+		}
+	}()
+
+	// wait for the v3 content SendValidationMessage checks
+	time.Sleep(1 * time.Second)
 }

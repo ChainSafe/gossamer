@@ -461,7 +461,6 @@ func relayMessage(jobData *perRelayParentData, topologyNeighbors *grid.GridNeigh
 	// pass on the bitfield distribution to all interested peers
 	// 1. get interested peers
 	interestedPeers := make(map[peer.ID]uint32)
-
 	for peerID, peerData := range peers {
 		if peerData.view.Contains(relayParent) {
 			if jobData.messageFromValidatorNeededByPeer(peerID, validatorID) {
@@ -480,7 +479,7 @@ func relayMessage(jobData *perRelayParentData, topologyNeighbors *grid.GridNeigh
 		return
 	}
 
-	// 2. insert the message sent for this peerData into job_data
+	// 2. insert the message sent for this peerData into jobData
 	for peerID := range interestedPeers {
 		jobData.messageSentToPeer[peerID] = map[parachaintypes.ValidatorID]struct{}{validatorID: {}}
 	}
@@ -493,12 +492,15 @@ func relayMessage(jobData *perRelayParentData, topologyNeighbors *grid.GridNeigh
 			bdm := &validationprotocol.BitfieldDistributionMessage{}
 			err := bdm.SetValue(message)
 			if err != nil {
+				logger.Errorf("processing relay message for v2 protocol when setting the value for "+
+					"BitfieldDistributionMessage: %s", err.Error())
 				return
 			}
 			v := &validationprotocol.ValidationProtocol{}
-			err = v.SetValue(bdm)
+			err = v.SetValue(validationprotocol.BitfieldDistribution{BitfieldDistributionMessage: *bdm})
 			if err != nil {
-				logger.Errorf("processing relay message for v2 protocol: %s", err.Error())
+				logger.Errorf("processing relay message for v2 protocol when setting the value for "+
+					"ValidationProtocol: %s", err.Error())
 				return
 			}
 			subsystemToOverSeerChan <- networkbridgemessages.SendValidationMessage{
@@ -515,12 +517,16 @@ func relayMessage(jobData *perRelayParentData, topologyNeighbors *grid.GridNeigh
 			bdm := &validationprotocol.BitfieldDistributionMessage{}
 			err := bdm.SetValue(message)
 			if err != nil {
+				logger.Errorf("processing relay message for v3 protocol when setting the value for "+
+					"BitfieldDistributionMessage: %s", err.Error())
 				return
 			}
+
 			v := &validationprotocol.ValidationProtocol{}
-			err = v.SetValue(bdm)
+			err = v.SetValue(validationprotocol.BitfieldDistribution{BitfieldDistributionMessage: *bdm})
 			if err != nil {
-				logger.Errorf("processing relay message for v3 protocol: %s", err.Error())
+				logger.Errorf("processing relay message for v3 protocol when setting the value for "+
+					"ValidationProtocol: %s", err.Error())
 				return
 			}
 			subsystemToOverSeerChan <- networkbridgemessages.SendValidationMessage{
