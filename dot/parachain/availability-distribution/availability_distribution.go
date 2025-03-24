@@ -8,9 +8,6 @@ import (
 	"errors"
 	"fmt"
 
-	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
-	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
-
 	"github.com/ChainSafe/gossamer/dot/network"
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
