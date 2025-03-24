@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/exp/rand"
+	rand "math/rand/v2"
 )
 
 type ID uint32
@@ -134,7 +134,7 @@ func (e *environment) RoundData(
 }
 
 func (*environment) RoundCommitTimer() Timer {
-	inner := time.NewTimer(time.Duration(rand.Int63n(1000)) * time.Millisecond).C
+	inner := time.NewTimer(time.Duration(rand.Int64N(1000)) * time.Millisecond).C
 	timer := newTimer(inner)
 	return timer
 }
