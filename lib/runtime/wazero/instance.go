@@ -1503,7 +1503,11 @@ func (in *Instance) ParachainHostNodeFeatures() (parachaintypes.BitVec, error) {
 		return parachaintypes.BitVec{}, fmt.Errorf("exec: %w", err)
 	}
 
-	nodeFeatures := parachaintypes.NewBitVec([]bool{})
+	nodeFeatures, err := parachaintypes.NewBitVec([]bool{})
+	if err != nil {
+		return parachaintypes.BitVec{}, fmt.Errorf("creating new bitvec: %w", err)
+	}
+
 	err = scale.Unmarshal(encodedNodeFeatures, &nodeFeatures)
 	if err != nil {
 		return parachaintypes.BitVec{}, fmt.Errorf("unmarshalling node features: %w", err)
