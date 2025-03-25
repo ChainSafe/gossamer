@@ -1067,7 +1067,7 @@ func (h *testHarness) hasAllChunks(candidateHash parachaintypes.CandidateHash, n
 		msgQueryChan := make(chan ErasureChunk)
 		queryChunk := QueryChunk{
 			CandidateHash:  candidateHash,
-			ValidatorIndex: i,
+			ValidatorIndex: parachaintypes.ValidatorIndex(i),
 			Sender:         msgQueryChan,
 		}
 		h.broadcastMessages = append(h.broadcastMessages, queryChunk)
@@ -1393,7 +1393,7 @@ func TestStorePOVandQueryChunkWorks(t *testing.T) {
 		msgSenderQueryChan := make(chan ErasureChunk)
 		harness.broadcastMessages = append(harness.broadcastMessages, QueryChunk{
 			CandidateHash:  candidateHash,
-			ValidatorIndex: i,
+			ValidatorIndex: parachaintypes.ValidatorIndex(i),
 			Sender:         msgSenderQueryChan,
 		})
 		harness.triggerBroadcast()
