@@ -387,7 +387,7 @@ func TestGossipEngine(t *testing.T) {
 				if msgCount == expectedTotalMsgsAllChan {
 					// Set a 1ms timeout, just to ensure we're not receiving more msgs.
 					if expected == nil {
-						timeout := time.NewTimer(1 * time.Millisecond)
+						timeout := time.NewTimer(10 * time.Millisecond)
 						defer timeout.Stop()
 						expected = timeout.C
 					}
