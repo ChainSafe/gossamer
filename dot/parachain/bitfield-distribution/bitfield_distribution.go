@@ -127,15 +127,9 @@ func (b *BitfieldDistribution) processMessage(msg any) error {
 			return fmt.Errorf("processing bitfield distribution message signal: %w", err)
 		}
 	case networkbridgeevents.PeerConnected:
-		err := b.processPeerConnectedSignal(msg)
-		if err != nil {
-			return fmt.Errorf("processing peer connected signal: %w", err)
-		}
+		b.processPeerConnectedSignal(msg)
 	case networkbridgeevents.PeerDisconnected:
-		err := b.processPeerDisconnectedSignal(msg)
-		if err != nil {
-			return fmt.Errorf("processing peer disconnected signal: %w", err)
-		}
+		b.processPeerDisconnectedSignal(msg)
 	case networkbridgeevents.NewGossipTopology:
 		err := b.processNewGossipTopologySignal(msg)
 		if err != nil {
@@ -240,34 +234,26 @@ func (b *BitfieldDistribution) processBitfieldDistributionMessageSignal(signal v
 	return nil
 }
 
-func (b *BitfieldDistribution) processPeerConnectedSignal(signal networkbridgeevents.PeerConnected) error {
-	go func(pc networkbridgeevents.PeerConnected) {
-		// only care about version 2 and 3
-		// TODO: add protocol version support
-		if pc.ProtocolVersion == 2 || pc.ProtocolVersion == 3 {
-			b.mu.Lock()
-			b.peerViews[pc.PeerID] = struct {
-				view            parachaintypes.View
-				protocolVersion uint32 // ignore v1 peers
-			}{
-				view:            parachaintypes.View{}, // default view
-				protocolVersion: pc.ProtocolVersion,
-			}
-			b.mu.Unlock()
+func (b *BitfieldDistribution) processPeerConnectedSignal(signal networkbridgeevents.PeerConnected) {
+	// only care about version 2 and 3
+	// TODO: add protocol version support
+	if signal.ProtocolVersion == 2 || signal.ProtocolVersion == 3 {
+		b.mu.Lock()
+		b.peerViews[signal.PeerID] = struct {
+			view            parachaintypes.View
+			protocolVersion uint32 // ignore v1 peers
+		}{
+			view:            parachaintypes.View{}, // default view
+			protocolVersion: signal.ProtocolVersion,
 		}
-	}(signal)
-
-	return nil
+		b.mu.Unlock()
+	}
 }
 
-func (b *BitfieldDistribution) processPeerDisconnectedSignal(signal networkbridgeevents.PeerDisconnected) error {
-	go func() {
-		b.mu.Lock()
-		delete(b.peerViews, signal.PeerID)
-		b.mu.Unlock()
-	}()
-
-	return nil
+func (b *BitfieldDistribution) processPeerDisconnectedSignal(signal networkbridgeevents.PeerDisconnected) {
+	b.mu.Lock()
+	delete(b.peerViews, signal.PeerID)
+	b.mu.Unlock()
 }
 
 func (b *BitfieldDistribution) processNewGossipTopologySignal(signal networkbridgeevents.NewGossipTopology) error {

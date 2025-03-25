@@ -106,30 +106,29 @@ func TestBitfieldDistribution_ProcessPeerConnectedSignal(t *testing.T) {
 	}
 
 	// protocol version support testing
-	err := bd.processPeerConnectedSignal(signalWithVersion1)
-	assert.Nil(t, err)
+	bd.processPeerConnectedSignal(signalWithVersion1)
+
 	time.Sleep(1 * time.Second)
 	assert.Equal(t, 0, len(bd.peerViews))
 
-	err = bd.processPeerConnectedSignal(signalWithVersion2)
-	assert.Nil(t, err)
+	bd.processPeerConnectedSignal(signalWithVersion2)
+
 	time.Sleep(1 * time.Second)
 	assert.Equal(t, 1, len(bd.peerViews))
 
-	err = bd.processPeerConnectedSignal(signalWithVersion3)
-	assert.Nil(t, err)
+	bd.processPeerConnectedSignal(signalWithVersion3)
+
 	time.Sleep(1 * time.Second)
 	assert.Equal(t, 2, len(bd.peerViews))
 
 	// race condition testing
-	err = bd.processPeerConnectedSignal(signalWithPeer4)
-	assert.Nil(t, err)
-	err = bd.processPeerConnectedSignal(signalWithPeer5)
-	assert.Nil(t, err)
-	err = bd.processPeerConnectedSignal(signalWithPeer6)
-	assert.Nil(t, err)
-	err = bd.processPeerConnectedSignal(signalWithPeer7)
-	assert.Nil(t, err)
+	bd.processPeerConnectedSignal(signalWithPeer4)
+
+	bd.processPeerConnectedSignal(signalWithPeer5)
+
+	bd.processPeerConnectedSignal(signalWithPeer6)
+
+	bd.processPeerConnectedSignal(signalWithPeer7)
 
 	time.Sleep(3 * time.Second)
 	assert.Equal(t, 6, len(bd.peerViews))
@@ -152,20 +151,18 @@ func TestBitfieldDistribution_ProcessPeerDisconnectedSignal(t *testing.T) {
 		ProtocolVersion: uint32(3),
 	}
 
-	err := bd.processPeerConnectedSignal(signalWithVersion1)
-	assert.Nil(t, err)
-	err = bd.processPeerConnectedSignal(signalWithVersion2)
-	assert.Nil(t, err)
-	err = bd.processPeerConnectedSignal(signalWithVersion3)
-	assert.Nil(t, err)
+	bd.processPeerConnectedSignal(signalWithVersion1)
+
+	bd.processPeerConnectedSignal(signalWithVersion2)
+
+	bd.processPeerConnectedSignal(signalWithVersion3)
 
 	time.Sleep(1 * time.Second)
 	assert.Equal(t, 2, len(bd.peerViews))
 
-	err = bd.processPeerDisconnectedSignal(networkbridgeevents.PeerDisconnected{
+	bd.processPeerDisconnectedSignal(networkbridgeevents.PeerDisconnected{
 		PeerID: targetPeer,
 	})
-	assert.Nil(t, err)
 
 	time.Sleep(1 * time.Second)
 	assert.Equal(t, 1, len(bd.peerViews))
