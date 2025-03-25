@@ -163,11 +163,11 @@ In Gossamer we currently use `go-libp2p-kad-dht` package for DHT functionality. 
 
 #### Implementing `NetworkDhtProvider`
 
-I believe will we need to fork `go-libp2p-kad-dht` or look for viable alternatives DHT packages to support the `put_record_to` functionality.  Without this functionality we will not be able to run the Substrate Authority Discovery protocol as expected by Substrate based nodes.  Given the `put_record_to` method is updating existing records based on creation time to specific peers, we will need to expose the message sender in `IpfsDHT` and add the functionality to a wrapper type, or add the function to it and hope to merge back upstream.
+I believe we will need to fork `go-libp2p-kad-dht` or look for viable alternatives DHT packages to support the `put_record_to` functionality. Without this functionality we will not be able to run the Substrate Authority Discovery protocol as expected by Substrate based nodes. Given the `put_record_to` method is updating existing records based on creation time to specific peers, we will need to expose the message sender in `IpfsDHT` and add the functionality to a wrapper type, or add the function to it and hope to merge back upstream.
 
 #### Implementing `DhtEventStream`
 
-The rust `libp2p-kad` crate crate emits events of enum type [`KademliaEvent`](https://github.com/libp2p/rust-libp2p/blob/master/protocols/kad/src/behaviour.rs#L2745).  The ones that need to be implemented in the Go Kademlia DHT library are `KademliaEvent::OutboundQueryProgressed` and `KademliaEvent::InboundRequest`.  
+The rust `libp2p-kad` crate emits events of enum type [`KademliaEvent`](https://github.com/libp2p/rust-libp2p/blob/master/protocols/kad/src/behaviour.rs#L2745). The ones that need to be implemented in the Go Kademlia DHT library are `KademliaEvent::OutboundQueryProgressed` and `KademliaEvent::InboundRequest`.
 
 ##### `KademliaEvent::InboundRequest`
 `InboundRequest` has a `request` attribute which is of type [`InboundRequest`](https://github.com/libp2p/rust-libp2p/blob/master/protocols/kad/src/behaviour.rs#L2854).  If the request is of type [`PutRecord`](https://github.com/libp2p/rust-libp2p/blob/master/protocols/kad/src/behaviour.rs#L2878) we should be emitting an event that we can translate to `DhtEvent::PutRecordRequest`.  
@@ -196,7 +196,7 @@ pub enum GetRecordOk {
 ```
 There be an emitted event of `DhtEvent::ValueFound` whenever `GetRecordOk::FoundRecord` is the result.  If there's an error `GetRecordError`, a `DhtEvent::ValueNotFound` event should be sent over the `DhtEventStream`.
 
-If `OutboundQueryProgressed` result attribute is of type `QueryResult::PutRecord`, we should be emitting a `DhtEvent::ValuePut` event if it was succsesful, and a`DhtEvent::ValuePutFailed` event if it failed.
+If `OutboundQueryProgressed` result attribute is of type `QueryResult::PutRecord`, we should be emitting a `DhtEvent::ValuePut` event if it was successful, and a`DhtEvent::ValuePutFailed` event if it failed.
 
 In `go-libp2p-kad-dht` both the `GetValue` and `PutValue` functions are synchronous calls that take in a supplied `context.Context` for cancellation.  We should be able to emit these events in a type that wraps `IpfsDHT` by spawning goroutines to emit the `DhtEvent` variants.  
 
