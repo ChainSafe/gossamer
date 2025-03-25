@@ -39,7 +39,7 @@ gossamer version
 gossamer init --chain westend --key alice --base-path /tmp/gossamer
 ```
 
-This initialises the node with the default configuration for the `westend` chain with the `alice` keypair at the base-path `/tmp/gossamer`.
+This initializes the node with the default configuration for the `westend` chain with the `alice` keypair at the base-path `/tmp/gossamer`.
 
 ```
 Supported flags:
@@ -85,7 +85,7 @@ Here are the list of basic flags for the `gossamer` command:
 	    The global log level can be set with --log global=debug
 --prometheus-port: The port to expose prometheus metrics.
 --retain-blocks: retain number of block from latest block while pruning
---pruning: The pruning strategy to use. Supported strategiey: `archive`
+--pruning: The pruning strategy to use. Supported strategy: `archive`
 --no-telemetry: Disable telemetry.
 --telemetry-urls: The telemetry endpoints to connect to.
 --prometheus-external: Expose prometheus metrics externally.

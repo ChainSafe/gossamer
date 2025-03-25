@@ -256,6 +256,9 @@ func (bm *BroadcastNetwork[M, N]) route() {
 
 func (bm *BroadcastNetwork[M, N]) Stop() {
 	close(bm.receiver)
+	for _, ch := range bm.senders {
+		close(ch)
+	}
 	bm.wg.Wait()
 }
 

@@ -29,7 +29,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.23.2"
+          go-version: "1.24.1"
           stable: true
           check-latest: true
 
@@ -89,7 +89,7 @@ jobs:
       - name: Test - Race
         run: make test-using-race-detector
 
-      - uses: codecov/codecov-action@v5.3.1
+      - uses: codecov/codecov-action@v5.4.0
         with:
           if_ci_failed: success
           informational: true

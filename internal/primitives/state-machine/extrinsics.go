@@ -5,8 +5,8 @@ package statemachine
 
 type Extrinsics []uint32
 
-func (e *Extrinsics) CopyExtrinsicsInto(dest map[uint32]struct{}) {
-	for _, ex := range *e {
+func (e Extrinsics) CopyExtrinsicsInto(dest map[uint32]struct{}) {
+	for _, ex := range e {
 		dest[ex] = struct{}{}
 	}
 }

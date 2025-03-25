@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package statemachine
 
 import (
@@ -12,22 +15,21 @@ func NewStorageAppend(data *StorageValue) *StorageAppend {
 	return &StorageAppend{data: data}
 }
 
-func (sa *StorageAppend) ExtractLength() *uint32 {
+func (sa *StorageAppend) ExtractLength() *uint {
 	var length uint
 	err := scale.Unmarshal(*sa.data, &length)
 	if err != nil {
 		return nil
 	}
-	decodedLength := uint32(length)
-	return &decodedLength
+	return &length
 }
 
-func (sa *StorageAppend) ReplaceLength(oldLength *uint32, newLength uint32) {
+func (sa *StorageAppend) ReplaceLength(oldLength *uint, newLength uint) {
 	oldLenEncodedLen := 0
 	if oldLength != nil {
 		oldLenEncodedLen = compactLen(*oldLength)
 	}
-	newLenEncoded, _ := scale.Marshal(uint(newLength))
+	newLenEncoded, _ := scale.Marshal(newLength)
 	data := spliceSlice(*sa.data, 0, oldLenEncodedLen, newLenEncoded)
 	newStorageValue := StorageValue(data)
 	*sa.data = newStorageValue

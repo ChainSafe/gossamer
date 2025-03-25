@@ -1,9 +1,11 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package statemachine
 
 // Content in an overlay for a given transactional depth.
 type StorageEntry interface {
 	value() StorageValue
-	optionalValue() StorageValue
 }
 
 type (
@@ -16,35 +18,32 @@ type (
 	RemoveStorageEntry struct{}
 
 	// The storage entry was appended to.
-	//
 	// This assumes that the storage entry is encoded as a SCALE list. This means that it is
-	// prefixed with a `Compact<u32>` that reprensents the length, followed by all the encoded
+	// prefixed with a compact uint that reprensents the length, followed by all the encoded
 	// elements.
 	AppendStorageEntry struct {
 		// The value of the storage entry.
 		// This may or may not be prefixed by the length, depending on the materialised length.
 		data StorageValue
 		// Current number of elements stored in data.
-		currentLength uint32
+		currentLength uint
 		// The number of elements as stored in the prefixed length in `data`.
 		// If `nil`, than `data` is not yet prefixed with the length.
-		materializedLength *uint32
+		materializedLength *uint
 		// The size of `data` in the parent transactional layer.
 		// Only set when the parent layer is in  `Append` state.
 		parentSize *uint
 	}
 )
 
-func (se SetStorageEntry) value() StorageValue            { return se.data }
-func (se SetStorageEntry) optionalValue() StorageValue    { return se.data }
-func (se RemoveStorageEntry) value() StorageValue         { return nil }
-func (se RemoveStorageEntry) optionalValue() StorageValue { return nil }
-func (se AppendStorageEntry) value() StorageValue         { return se.data }
-func (se AppendStorageEntry) optionalValue() StorageValue {
+func (se SetStorageEntry) value() StorageValue    { return se.data }
+func (se RemoveStorageEntry) value() StorageValue { return nil }
+func (se *AppendStorageEntry) value() StorageValue {
 	se.materializedInPlace()
 	return se.data
 }
 
+// Materialise the internal state and cache the resulting materialised value.
 func (se *AppendStorageEntry) materializedInPlace() {
 	currentLength := se.currentLength
 	if se.materializedLength != nil && *se.materializedLength == currentLength {

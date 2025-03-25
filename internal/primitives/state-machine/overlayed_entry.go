@@ -3,19 +3,22 @@
 
 package statemachine
 
+import "math"
+
 const PROOF_OVERLAY_NON_EMPTY = `
 An OverlayValue is always created with at least one transaction and dropped as soon
 as the last transaction is removed; qed`
 
+// An overlay that contains all versions of a value for a specific key.
 type OverlayedEntry[V any] struct {
 	// The individual versions of that value.
 	// One entry per transactions during that the value was actually written.
-	transactions Transactions[V]
+	transactions []Transaction[V]
 }
 
 func NewOverlayedEntry[V any]() *OverlayedEntry[V] {
 	return &OverlayedEntry[V]{
-		transactions: Transactions[V]{},
+		transactions: []Transaction[V]{},
 	}
 }
 
@@ -27,8 +30,9 @@ func (oe *OverlayedEntry[V]) ValueRef() *V {
 	return &oe.transactions[len(oe.transactions)-1].value
 }
 
+// The value as seen by the current transaction.
 func (oe *OverlayedEntry[V]) StorageValue() StorageValue {
-	return any(*oe.ValueRef()).(StorageEntry).optionalValue()
+	return any(*oe.ValueRef()).(StorageEntry).value()
 }
 
 func (oe *OverlayedEntry[V]) IntoValue() V {
@@ -48,7 +52,7 @@ func (oe *OverlayedEntry[V]) Extrinsics() map[uint32]struct{} {
 	return set
 }
 
-func (oe *OverlayedEntry[V]) PopTransaction() InnerValue[V] {
+func (oe *OverlayedEntry[V]) PopTransaction() Transaction[V] {
 	if len(oe.transactions) == 0 {
 		panic(PROOF_OVERLAY_NON_EMPTY)
 	}
@@ -64,16 +68,16 @@ func (oe *OverlayedEntry[V]) TransactionExtrinsics() *Extrinsics {
 		panic(PROOF_OVERLAY_NON_EMPTY)
 	}
 
-	return oe.transactions[len(oe.transactions)-1].extrinsics
+	return &oe.transactions[len(oe.transactions)-1].extrinsics
 }
 
 func (oe *OverlayedEntry[V]) SetOffchain(value V, firstWriteInTx bool, atExtrinsic *uint32) {
 	// TODO: test every branch
 
 	if firstWriteInTx || len(oe.transactions) == 0 {
-		oe.transactions = append(oe.transactions, InnerValue[V]{
+		oe.transactions = append(oe.transactions, Transaction[V]{
 			value:      value,
-			extrinsics: &Extrinsics{},
+			extrinsics: Extrinsics{},
 		})
 	} else {
 		*oe.ValueRef() = value
@@ -97,16 +101,16 @@ func (oe *OverlayedEntry[V]) Set(value StorageValue, firstWriteInTx bool, atExtr
 	}
 
 	if firstWriteInTx || len(oe.transactions) == 0 {
-		oe.transactions = append(oe.transactions, InnerValue[V]{
+		oe.transactions = append(oe.transactions, Transaction[V]{
 			value:      action.(V), //TODO: check this
-			extrinsics: &Extrinsics{},
+			extrinsics: Extrinsics{},
 		})
 	} else {
 		oldValue := oe.ValueRef()
 
 		var setPrev *struct {
 			data                []byte
-			currentMaterialized *uint32
+			currentMaterialized *uint
 			parentSize          uint
 		}
 
@@ -116,7 +120,7 @@ func (oe *OverlayedEntry[V]) Set(value StorageValue, firstWriteInTx bool, atExtr
 
 			setPrev = &struct {
 				data                []byte
-				currentMaterialized *uint32
+				currentMaterialized *uint
 				parentSize          uint
 			}{
 				data:                []byte{},
@@ -148,6 +152,10 @@ func (oe *OverlayedEntry[V]) Set(value StorageValue, firstWriteInTx bool, atExtr
 	}
 }
 
+// Append content to a value, updating a prefixed compact encoded length.
+// This makes sure that the old version is not overwritten and can be properly
+// rolled back when required.
+// This avoid copying value from previous transaction.
 func (oe *OverlayedEntry[V]) Append(
 	element StorageValue,
 	firstWriteInTx bool,
@@ -155,8 +163,8 @@ func (oe *OverlayedEntry[V]) Append(
 	atExtrinsic *uint32,
 ) {
 	var data []byte
-	var currentLength uint32
-	var materializedLength *uint32
+	var currentLength uint
+	var materializedLength *uint
 	var parentSize *uint
 
 	replace := true
@@ -165,6 +173,8 @@ func (oe *OverlayedEntry[V]) Append(
 		initValue := init()
 		storageAppend := NewStorageAppend(&initValue)
 
+		// Either the init value is a SCALE list like value to that the `element` gets appended
+		// or the value is reset to `element`.
 		length := storageAppend.ExtractLength()
 		if length != nil {
 			storageAppend.AppendRaw(element)
@@ -177,14 +187,14 @@ func (oe *OverlayedEntry[V]) Append(
 			materializedLength = nil
 		}
 
-		oe.transactions = append(oe.transactions, InnerValue[V]{
-			value: any(AppendStorageEntry{
+		oe.transactions = append(oe.transactions, Transaction[V]{
+			value: any(&AppendStorageEntry{
 				data:               data,
 				currentLength:      currentLength,
 				materializedLength: materializedLength,
 				parentSize:         nil,
 			}).(V),
-			extrinsics: &Extrinsics{},
+			extrinsics: Extrinsics{},
 		})
 	} else if firstWriteInTx {
 		parent := *oe.ValueRef()
@@ -195,7 +205,7 @@ func (oe *OverlayedEntry[V]) Append(
 			currentLength = 1
 			materializedLength = nil
 			parentSize = nil
-		case AppendStorageEntry:
+		case *AppendStorageEntry:
 			parentLen := uint(len(entry.data))
 			NewStorageAppend(&entry.data).AppendRaw(element)
 			data = entry.data
@@ -203,6 +213,8 @@ func (oe *OverlayedEntry[V]) Append(
 			materializedLength = entry.materializedLength
 			parentSize = &parentLen
 		case SetStorageEntry:
+			// For compatibility: append if there is a encoded length, overwrite
+			// with value otherwhise.
 			length := NewStorageAppend(&entry.data).ExtractLength()
 			if length != nil {
 				NewStorageAppend(&entry.data).AppendRaw(element)
@@ -211,6 +223,7 @@ func (oe *OverlayedEntry[V]) Append(
 				materializedLength = length
 				parentSize = nil
 			} else {
+				// overwrite, same as empty case.
 				data = element
 				currentLength = 1
 				materializedLength = nil
@@ -218,16 +231,17 @@ func (oe *OverlayedEntry[V]) Append(
 			}
 		}
 
-		oe.transactions = append(oe.transactions, InnerValue[V]{
-			value: any(AppendStorageEntry{
+		oe.transactions = append(oe.transactions, Transaction[V]{
+			value: any(&AppendStorageEntry{
 				data:               data,
 				currentLength:      currentLength,
 				materializedLength: materializedLength,
 				parentSize:         parentSize,
 			}).(V),
-			extrinsics: &Extrinsics{},
+			extrinsics: Extrinsics{},
 		})
 	} else {
+		// not first transaction write
 		oldValue := oe.ValueRef()
 
 		switch oldVal := any(*oldValue).(type) {
@@ -236,9 +250,15 @@ func (oe *OverlayedEntry[V]) Append(
 			currentLength = 1
 			materializedLength = nil
 		case SetStorageEntry:
+			// Note that when the data here is not initialised with append,
+			// and still starts with a valid compact u32 we can have totally broken
+			// encoding.
 			append := NewStorageAppend(&oldVal.data)
 
 			len := append.ExtractLength()
+
+			// For compatibility: append if there is a encoded length, overwrite
+			// with value otherwhise.
 			if len != nil {
 				append.AppendRaw(element)
 				data = oldVal.data
@@ -249,7 +269,7 @@ func (oe *OverlayedEntry[V]) Append(
 				currentLength = 1
 				materializedLength = nil
 			}
-		case AppendStorageEntry:
+		case *AppendStorageEntry:
 			NewStorageAppend(&oldVal.data).AppendRaw(element)
 			oldVal.currentLength += 1
 			replace = false
@@ -273,7 +293,7 @@ func (oe *OverlayedEntry[V]) Append(
 func restoreAppendToParent(
 	parent StorageEntry,
 	currentData []byte,
-	currentMaterialized *uint32,
+	currentMaterialized *uint,
 	targetParentSize uint,
 ) {
 	switch parent := parent.(type) {
@@ -289,10 +309,11 @@ func restoreAppendToParent(
 			new = compactLen(*currentMaterialized)
 		}
 
+		diff := math.Abs(float64(prev - new))
 		if prev >= new {
-			targetParentSize += uint(prev - new)
+			targetParentSize -= uint(diff)
 		} else {
-			targetParentSize -= uint(new - prev)
+			targetParentSize += uint(diff)
 		}
 
 		*parent.materializedLength = *currentMaterialized
@@ -306,7 +327,7 @@ func restoreAppendToParent(
 	}
 }
 
-func compactLen(val uint32) int {
+func compactLen(val uint) int {
 	switch {
 	case val <= 0b0011_1111:
 		return 1
