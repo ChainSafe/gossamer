@@ -36,6 +36,7 @@ func (t *timer) poll(in <-chan time.Time) {
 	if t.wakerChan.in != nil {
 		t.wakerChan.in <- nil
 		close(t.wakerChan.in)
+		t.wakerChan.in = nil
 	}
 	t.expired = true
 }
