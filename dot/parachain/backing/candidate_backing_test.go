@@ -32,7 +32,7 @@ func getDummyHash(t *testing.T, num byte) common.Hash {
 	return hash
 }
 
-func getDummyCommittedCandidateReceipt(t *testing.T) parachaintypes.CommittedCandidateReceipt {
+func getDummyCommittedCandidateReceipt(t *testing.T) parachaintypes.CommittedCandidateReceiptV2 {
 	t.Helper()
 	hash5 := getDummyHash(t, 6)
 
@@ -66,7 +66,7 @@ func getDummyCommittedCandidateReceipt(t *testing.T) parachaintypes.CommittedCan
 		},
 	}
 
-	return ccr
+	return ccr.V2()
 }
 
 func mockOverseer(t *testing.T, subsystemToOverseer chan any) {

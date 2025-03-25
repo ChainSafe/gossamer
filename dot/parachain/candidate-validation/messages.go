@@ -24,7 +24,7 @@ type ValidateFromChainState struct {
 type ValidateFromExhaustive struct {
 	PersistedValidationData parachaintypes.PersistedValidationData
 	ValidationCode          parachaintypes.ValidationCode
-	CandidateReceipt        parachaintypes.CandidateReceipt
+	CandidateReceipt        parachaintypes.CandidateReceiptV2
 	PoV                     parachaintypes.PoV
 	ExecutorParams          parachaintypes.ExecutorParams
 	PvfExecTimeoutKind      parachaintypes.PvfExecTimeoutKind

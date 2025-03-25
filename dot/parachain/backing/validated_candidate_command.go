@@ -28,7 +28,7 @@ type backgroundValidationResult struct {
 	outputs *backgroundValidationOutputs
 
 	// candidate should have values assigned if there is an error; otherwise, it should be nil.
-	candidate *parachaintypes.CandidateReceipt
+	candidate *parachaintypes.CandidateReceiptV2
 
 	// err represents any error that occurred during background validation
 	err error
@@ -36,7 +36,7 @@ type backgroundValidationResult struct {
 
 // backgroundValidationOutputs contains the outputs of the background validation.
 type backgroundValidationOutputs struct {
-	candidateReceipt        parachaintypes.CandidateReceipt
+	candidateReceipt        parachaintypes.CandidateReceiptV2
 	candidateCommitments    parachaintypes.CandidateCommitments
 	persistedValidationData parachaintypes.PersistedValidationData
 }
@@ -166,7 +166,7 @@ func (cb *CandidateBacking) handleCommandSecond(
 	commitments := bgValidationResult.outputs.candidateCommitments
 	candidate := bgValidationResult.outputs.candidateReceipt
 
-	commitedCandidate := parachaintypes.CommittedCandidateReceipt{
+	commitedCandidate := parachaintypes.CommittedCandidateReceiptV2{
 		Descriptor:  candidate.Descriptor,
 		Commitments: commitments,
 	}
