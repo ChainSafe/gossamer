@@ -106,29 +106,29 @@ func TestBitfieldDistribution_ProcessPeerConnectedSignal(t *testing.T) {
 	}
 
 	// protocol version support testing
-	err := bd.ProcessPeerConnectedSignal(signalWithVersion1)
+	err := bd.processPeerConnectedSignal(signalWithVersion1)
 	assert.Nil(t, err)
 	time.Sleep(1 * time.Second)
 	assert.Equal(t, 0, len(bd.peerViews))
 
-	err = bd.ProcessPeerConnectedSignal(signalWithVersion2)
+	err = bd.processPeerConnectedSignal(signalWithVersion2)
 	assert.Nil(t, err)
 	time.Sleep(1 * time.Second)
 	assert.Equal(t, 1, len(bd.peerViews))
 
-	err = bd.ProcessPeerConnectedSignal(signalWithVersion3)
+	err = bd.processPeerConnectedSignal(signalWithVersion3)
 	assert.Nil(t, err)
 	time.Sleep(1 * time.Second)
 	assert.Equal(t, 2, len(bd.peerViews))
 
 	// race condition testing
-	err = bd.ProcessPeerConnectedSignal(signalWithPeer4)
+	err = bd.processPeerConnectedSignal(signalWithPeer4)
 	assert.Nil(t, err)
-	err = bd.ProcessPeerConnectedSignal(signalWithPeer5)
+	err = bd.processPeerConnectedSignal(signalWithPeer5)
 	assert.Nil(t, err)
-	err = bd.ProcessPeerConnectedSignal(signalWithPeer6)
+	err = bd.processPeerConnectedSignal(signalWithPeer6)
 	assert.Nil(t, err)
-	err = bd.ProcessPeerConnectedSignal(signalWithPeer7)
+	err = bd.processPeerConnectedSignal(signalWithPeer7)
 	assert.Nil(t, err)
 
 	time.Sleep(3 * time.Second)
@@ -152,17 +152,17 @@ func TestBitfieldDistribution_ProcessPeerDisconnectedSignal(t *testing.T) {
 		ProtocolVersion: uint32(3),
 	}
 
-	err := bd.ProcessPeerConnectedSignal(signalWithVersion1)
+	err := bd.processPeerConnectedSignal(signalWithVersion1)
 	assert.Nil(t, err)
-	err = bd.ProcessPeerConnectedSignal(signalWithVersion2)
+	err = bd.processPeerConnectedSignal(signalWithVersion2)
 	assert.Nil(t, err)
-	err = bd.ProcessPeerConnectedSignal(signalWithVersion3)
+	err = bd.processPeerConnectedSignal(signalWithVersion3)
 	assert.Nil(t, err)
 
 	time.Sleep(1 * time.Second)
 	assert.Equal(t, 2, len(bd.peerViews))
 
-	err = bd.ProcessPeerDisconnectedSignal(networkbridgeevents.PeerDisconnected{
+	err = bd.processPeerDisconnectedSignal(networkbridgeevents.PeerDisconnected{
 		PeerID: targetPeer,
 	})
 	assert.Nil(t, err)
@@ -502,7 +502,7 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessageSignal_Unexpecte
 	err := bdm.SetValue(message)
 	assert.Nil(t, err)
 
-	err = b.ProcessBitfieldDistributionMessageSignal(bdm)
+	err = b.processBitfieldDistributionMessageSignal(bdm)
 	assert.NotNil(t, err)
 }
 
@@ -518,7 +518,7 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessageSignal_NoRelayPa
 	assert.Nil(t, err)
 
 	// not supposed to work on relay parent related data
-	err = b.ProcessBitfieldDistributionMessageSignal(bdm)
+	err = b.processBitfieldDistributionMessageSignal(bdm)
 	assert.Nil(t, err)
 }
 
@@ -550,7 +550,7 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessageSignal_Validator
 	assert.Nil(t, err)
 
 	// validator set is empty
-	err = b.ProcessBitfieldDistributionMessageSignal(bdm)
+	err = b.processBitfieldDistributionMessageSignal(bdm)
 	assert.Nil(t, err)
 }
 
@@ -586,7 +586,7 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessageSignal_Validator
 	assert.Nil(t, err)
 
 	// validator set is empty
-	err = b.ProcessBitfieldDistributionMessageSignal(bdm)
+	err = b.processBitfieldDistributionMessageSignal(bdm)
 	assert.Nil(t, err)
 }
 
@@ -654,7 +654,7 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessageSignal_CheckSign
 	bdm := validationprotocol.BitfieldDistributionMessage{}
 	err = bdm.SetValue(message)
 	assert.Nil(t, err)
-	err = b.ProcessBitfieldDistributionMessageSignal(bdm)
+	err = b.processBitfieldDistributionMessageSignal(bdm)
 	assert.Nil(t, err)
 }
 
@@ -688,9 +688,10 @@ func TestBitfieldDistribution_ProcessPeerMessageSignal_InvalidSignalType(t *test
 	overseerCh := make(chan any)
 	b := NewBitfieldDistribution(overseerCh)
 
-	err = b.ProcessPeerMessageSignal(signal)
+	err = b.processPeerMessageSignal(signal)
 	assert.NotNil(t, err)
-	assert.EqualValues(t, err.Error(), "invalid value index for peer message handler, supporsed to be 1, got 3")
+	assert.EqualValues(t, err.Error(), "invalid value for peer message handler, supporsed to be "+
+		"validationprotocol.BitfieldDistribution")
 }
 
 func TestBitfieldDistribution_ProcessPeerMessageSignal_CheckedBitfield(t *testing.T) {
@@ -728,7 +729,7 @@ func TestBitfieldDistribution_ProcessPeerMessageSignal_CheckedBitfield(t *testin
 	overseerCh := make(chan any)
 	b := NewBitfieldDistribution(overseerCh)
 
-	err = b.ProcessPeerMessageSignal(signal)
+	err = b.processPeerMessageSignal(signal)
 	assert.NotNil(t, err)
 	assert.EqualValues(t, err.Error(), "invalid value for uncheckedBitfield")
 }
@@ -784,7 +785,7 @@ func TestBitfieldDistribution_ProcessPeerMessageSignal_NotContainTheView(t *test
 		}),
 	}
 
-	err = b.ProcessPeerMessageSignal(signal)
+	err = b.processPeerMessageSignal(signal)
 	assert.Nil(t, err)
 }
 
@@ -841,7 +842,7 @@ func TestBitfieldDistribution_ProcessPeerMessageSignal_JobDataEmpty(t *testing.T
 		}),
 	}
 
-	err = b.ProcessPeerMessageSignal(signal)
+	err = b.processPeerMessageSignal(signal)
 	assert.Nil(t, err)
 }
 
@@ -901,7 +902,7 @@ func TestBitfieldDistribution_ProcessPeerMessageSignal_ValidatorSetEmpty(t *test
 		}),
 	}
 
-	err = b.ProcessPeerMessageSignal(signal)
+	err = b.processPeerMessageSignal(signal)
 	assert.Nil(t, err)
 }
 
@@ -962,7 +963,7 @@ func TestBitfieldDistribution_ProcessPeerMessageSignal_ValidatorNotExist(t *test
 		}),
 	}
 
-	err = b.ProcessPeerMessageSignal(signal)
+	err = b.processPeerMessageSignal(signal)
 	assert.Nil(t, err)
 }
 
@@ -1028,7 +1029,7 @@ func TestBitfieldDistribution_ProcessPeerMessageSignal_ReceivedSetNotEmpty(t *te
 	}
 	pretendReceive(jobData, peerA, validatorSet[0])
 
-	err = b.ProcessPeerMessageSignal(signal)
+	err = b.processPeerMessageSignal(signal)
 	assert.Nil(t, err)
 }
 
@@ -1093,7 +1094,7 @@ func TestBitfieldDistribution_ProcessPeerMessageSignal_DuplicatedMessages(t *tes
 		}),
 	}
 
-	err = b.ProcessPeerMessageSignal(signal)
+	err = b.processPeerMessageSignal(signal)
 	assert.Nil(t, err)
 }
 
@@ -1199,6 +1200,6 @@ func TestBitfieldDistribution_ProcessPeerMessageSignal_Success(t *testing.T) {
 		}),
 	}
 
-	err = b.ProcessPeerMessageSignal(signal)
+	err = b.processPeerMessageSignal(signal)
 	assert.Nil(t, err)
 }

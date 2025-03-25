@@ -122,42 +122,42 @@ func (b *BitfieldDistribution) Run(ctx context.Context, overseerToSubSystem <-ch
 func (b *BitfieldDistribution) processMessage(msg any) error {
 	switch msg := msg.(type) {
 	case validationprotocol.BitfieldDistributionMessage:
-		err := b.ProcessBitfieldDistributionMessageSignal(msg)
+		err := b.processBitfieldDistributionMessageSignal(msg)
 		if err != nil {
 			return fmt.Errorf("processing bitfield distribution message signal: %w", err)
 		}
 	case networkbridgeevents.PeerConnected:
-		err := b.ProcessPeerConnectedSignal(msg)
+		err := b.processPeerConnectedSignal(msg)
 		if err != nil {
 			return fmt.Errorf("processing peer connected signal: %w", err)
 		}
 	case networkbridgeevents.PeerDisconnected:
-		err := b.ProcessPeerDisconnectedSignal(msg)
+		err := b.processPeerDisconnectedSignal(msg)
 		if err != nil {
 			return fmt.Errorf("processing peer disconnected signal: %w", err)
 		}
 	case networkbridgeevents.NewGossipTopology:
-		err := b.ProcessNewGossipTopologySignal(msg)
+		err := b.processNewGossipTopologySignal(msg)
 		if err != nil {
 			return fmt.Errorf("processing new gossip topology signal: %w", err)
 		}
 	case networkbridgeevents.PeerViewChange:
-		err := b.ProcessPeerViewChangeSignal(msg)
+		err := b.processPeerViewChangeSignal(msg)
 		if err != nil {
 			return fmt.Errorf("processing peer view change signal: %w", err)
 		}
 	case networkbridgeevents.OurViewChange:
-		err := b.ProcessOurViewChangeSignal(msg)
+		err := b.processOurViewChangeSignal(msg)
 		if err != nil {
 			return fmt.Errorf("processing our view change signal: %w", err)
 		}
 	case networkbridgeevents.PeerMessage[validationprotocol.ValidationProtocol]:
-		err := b.ProcessPeerMessageSignal(msg)
+		err := b.processPeerMessageSignal(msg)
 		if err != nil {
 			return fmt.Errorf("processing our view change signal: %w", err)
 		}
 	case networkbridgeevents.UpdatedAuthorityIDs:
-		err := b.ProcessUpdatedAuthorityIDsSignal(msg)
+		err := b.processUpdatedAuthorityIDsSignal(msg)
 		if err != nil {
 			return fmt.Errorf("processing updated authority IDs signal: %w", err)
 		}
@@ -178,7 +178,7 @@ func (b *BitfieldDistribution) Name() parachaintypes.SubSystemName {
 	return parachaintypes.BitfieldDistribution
 }
 
-func (b *BitfieldDistribution) ProcessBitfieldDistributionMessageSignal(signal validationprotocol.
+func (b *BitfieldDistribution) processBitfieldDistributionMessageSignal(signal validationprotocol.
 	BitfieldDistributionMessage) error {
 	value, err := signal.Value()
 	if err != nil {
@@ -234,13 +234,13 @@ func (b *BitfieldDistribution) ProcessBitfieldDistributionMessageSignal(signal v
 		CheckedSignedAvailabilityBitfield: *checkedBitfield,
 	}
 
-	go relayMessage(jobData, topology, b.peerViews, validatorID, checkedBitfieldMessage, requiredRouting,
+	relayMessage(jobData, topology, b.peerViews, validatorID, checkedBitfieldMessage, requiredRouting,
 		b.subSystemToOverseer)
 
 	return nil
 }
 
-func (b *BitfieldDistribution) ProcessPeerConnectedSignal(signal networkbridgeevents.PeerConnected) error {
+func (b *BitfieldDistribution) processPeerConnectedSignal(signal networkbridgeevents.PeerConnected) error {
 	go func(pc networkbridgeevents.PeerConnected) {
 		// only care about version 2 and 3
 		// TODO: add protocol version support
@@ -260,7 +260,7 @@ func (b *BitfieldDistribution) ProcessPeerConnectedSignal(signal networkbridgeev
 	return nil
 }
 
-func (b *BitfieldDistribution) ProcessPeerDisconnectedSignal(signal networkbridgeevents.PeerDisconnected) error {
+func (b *BitfieldDistribution) processPeerDisconnectedSignal(signal networkbridgeevents.PeerDisconnected) error {
 	go func() {
 		b.mu.Lock()
 		delete(b.peerViews, signal.PeerID)
@@ -270,37 +270,36 @@ func (b *BitfieldDistribution) ProcessPeerDisconnectedSignal(signal networkbridg
 	return nil
 }
 
-func (b *BitfieldDistribution) ProcessNewGossipTopologySignal(signal networkbridgeevents.NewGossipTopology) error {
+func (b *BitfieldDistribution) processNewGossipTopologySignal(signal networkbridgeevents.NewGossipTopology) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (b *BitfieldDistribution) ProcessPeerViewChangeSignal(signal networkbridgeevents.PeerViewChange) error {
+func (b *BitfieldDistribution) processPeerViewChangeSignal(signal networkbridgeevents.PeerViewChange) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (b *BitfieldDistribution) ProcessOurViewChangeSignal(signal networkbridgeevents.OurViewChange) error {
+func (b *BitfieldDistribution) processOurViewChangeSignal(signal networkbridgeevents.OurViewChange) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (b *BitfieldDistribution) ProcessPeerMessageSignal(signal networkbridgeevents.PeerMessage[validationprotocol.
+func (b *BitfieldDistribution) processPeerMessageSignal(signal networkbridgeevents.PeerMessage[validationprotocol.
 	ValidationProtocol]) error {
-	valueIdx, value, err := signal.Message.IndexValue()
+	v, err := signal.Message.Value()
 	if err != nil {
 		return err
 	}
-	// index 1 is BitfieldDistribution
-	if valueIdx != 1 {
-		return fmt.Errorf("invalid value index for peer message handler, supporsed to be 1, got %d", valueIdx)
+	value, ok := v.(validationprotocol.BitfieldDistribution)
+	if !ok {
+		return fmt.Errorf("invalid value for peer message handler, supporsed to be " +
+			"validationprotocol.BitfieldDistribution")
 	}
-	// TODO: add protocol version support
-	m, err := value.(validationprotocol.BitfieldDistribution).BitfieldDistributionMessage.Value()
+	m, err := value.BitfieldDistributionMessage.Value()
 	if err != nil {
 		return err
 	}
-
 	uncheckedBitfield, ok := m.(validationprotocol.UncheckedBitfield)
 	if !ok {
 		return fmt.Errorf("invalid value for uncheckedBitfield")
@@ -312,7 +311,7 @@ func (b *BitfieldDistribution) ProcessPeerMessageSignal(signal networkbridgeeven
 
 	// not our concern
 	if !b.ourView.Contains(relayParent) {
-		go modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
+		modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
 			Type:   util.CostMinor,
 			Reason: "Not interested in that parent hash",
 		}, relayParent)
@@ -321,7 +320,7 @@ func (b *BitfieldDistribution) ProcessPeerMessageSignal(signal networkbridgeeven
 
 	jobData := b.perRelayParent[relayParent]
 	if jobData == nil {
-		go modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
+		modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
 			Type:   util.CostMinor,
 			Reason: "Not interested in that parent hash",
 		}, relayParent)
@@ -332,7 +331,7 @@ func (b *BitfieldDistribution) ProcessPeerMessageSignal(signal networkbridgeeven
 	validatorSet := jobData.validatorsSet
 
 	if len(validatorSet) == 0 {
-		go modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
+		modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
 			Type:   util.CostMinor,
 			Reason: "Missing peer session key",
 		}, relayParent)
@@ -340,7 +339,7 @@ func (b *BitfieldDistribution) ProcessPeerMessageSignal(signal networkbridgeeven
 	}
 
 	if uint32(validatorIdx) >= uint32(len(jobData.validatorsSet)) {
-		go modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
+		modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
 			Type:   util.CostMajor,
 			Reason: "Bitfield validator index invalid",
 		}, relayParent)
@@ -358,7 +357,8 @@ func (b *BitfieldDistribution) ProcessPeerMessageSignal(signal networkbridgeeven
 		_, ok := receivedSet[validatorID]
 		if ok {
 			logger.Debugf("duplicated message in messageReceivedFromPeer")
-			go modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
+
+			modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
 				Type:   util.CostMinorRepeated,
 				Reason: "Peer sent the same message multiple times",
 			}, relayParent)
@@ -378,7 +378,7 @@ func (b *BitfieldDistribution) ProcessPeerMessageSignal(signal networkbridgeeven
 	}
 	if storedBitfield.UncheckedSignedAvailabilityBitfield.IsEqual(bitfield) {
 		// already received a message for validator
-		go modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
+		modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
 			Type:   util.BenefitMinor,
 			Reason: "Valid message",
 		}, relayParent)
@@ -392,7 +392,7 @@ func (b *BitfieldDistribution) ProcessPeerMessageSignal(signal networkbridgeeven
 	}
 	checkedBitfield, err := bitfield.ToCheck(vpk)
 	if err != nil {
-		go modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
+		modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
 			Type:   util.CostMajor,
 			Reason: "Bitfield signature invalid",
 		}, relayParent)
@@ -415,9 +415,9 @@ func (b *BitfieldDistribution) ProcessPeerMessageSignal(signal networkbridgeeven
 	}
 	jobData.onePerValidator[validatorID] = &vdm
 
-	go relayMessage(jobData, topology, b.peerViews, validatorID, message, requiredRouting, b.subSystemToOverseer)
+	relayMessage(jobData, topology, b.peerViews, validatorID, message, requiredRouting, b.subSystemToOverseer)
 
-	go modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
+	modifyReputation(b.reputation, b.subSystemToOverseer, signal.PeerID, util.UnifiedReputationChange{
 		Type:   util.BenefitMinorFirst,
 		Reason: "Valid message with new information",
 	}, relayParent)
@@ -425,7 +425,7 @@ func (b *BitfieldDistribution) ProcessPeerMessageSignal(signal networkbridgeeven
 	return nil
 }
 
-func (b *BitfieldDistribution) ProcessUpdatedAuthorityIDsSignal(signal networkbridgeevents.UpdatedAuthorityIDs) error {
+func (b *BitfieldDistribution) processUpdatedAuthorityIDsSignal(signal networkbridgeevents.UpdatedAuthorityIDs) error {
 	//TODO implement me
 	panic("implement me")
 }
@@ -468,8 +468,6 @@ func relayMessage(jobData *perRelayParentData, topologyNeighbors *grid.GridNeigh
 		if peerData.view.Contains(relayParent) {
 			if jobData.messageFromValidatorNeededByPeer(peerID, validatorID) {
 				needRouting := topologyNeighbors.ShouldRouteToPeer(requiredRouting, peerID)
-				// TODO: need random routing?
-
 				if needRouting {
 					interestedPeers[peerID] = peerData.protocolVersion
 				}
