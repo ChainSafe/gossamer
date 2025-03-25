@@ -93,6 +93,12 @@ func (ts *TestSync) EventStream(name string) chan netSync.SyncEvent {
 func (*TestSync) AnnounceBlock(hash hash.H256, data []byte)          { panic("unimpl") }
 func (*TestSync) NewBestBlockImported(hash hash.H256, number uint64) { panic("unimpl") }
 
+func (ts *TestSync) Shutdown() {
+	for _, es := range ts.eventSenders {
+		close(es)
+	}
+}
+
 type TestNotificationService struct {
 	ch chan service.NotificationEvent
 }
@@ -174,7 +180,11 @@ func TestGossipEngine(t *testing.T) {
 		remotePeer := peerid.NewRandomPeerID()
 		network := TestNetwork{}
 		sync := TestSync{}
+		defer sync.Shutdown()
 		ch := make(chan service.NotificationEvent, 3)
+		defer func() {
+			close(ch)
+		}()
 		notificationService := TestNotificationService{ch: ch}
 
 		gossipEngine := newGossipEngine[hash.H256, uint64, runtime.BlakeTwo256](
@@ -239,6 +249,7 @@ func TestGossipEngine(t *testing.T) {
 			remotePeer := peerid.NewRandomPeerID()
 			network := TestNetwork{}
 			sync := TestSync{}
+			defer sync.Shutdown()
 
 			// for NotificationStreamOpened
 			chanLength := 1
@@ -247,6 +258,9 @@ func TestGossipEngine(t *testing.T) {
 				chanLength += len(notification)
 			}
 			ch := make(chan service.NotificationEvent, chanLength)
+			defer func() {
+				close(ch)
+			}()
 			notificationService := TestNotificationService{ch: ch}
 
 			numChannelsPerTopic := make(map[hash.H256]uint64)
