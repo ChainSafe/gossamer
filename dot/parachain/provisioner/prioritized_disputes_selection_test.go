@@ -121,7 +121,9 @@ func rebuildSignatureField(v2 *parachaintypes.CandidateReceiptV2) parachaintypes
 	return parachaintypes.CollatorSignature(v2.Descriptor.Reserved2[:])
 }
 
-func fromCandidateRecepitV2ToV1(v2 *parachaintypes.CandidateReceiptV2) parachaintypes.CandidateReceipt {
+func fromCandidateRecepitV2ToV1(
+	v2 *parachaintypes.CandidateReceiptV2,
+) parachaintypes.CandidateReceipt {
 	return parachaintypes.CandidateReceipt{
 		Descriptor: parachaintypes.CandidateDescriptor{
 			ParaID:                      v2.Descriptor.ParaID,
@@ -141,14 +143,21 @@ func fromCandidateRecepitV2ToV1(v2 *parachaintypes.CandidateReceiptV2) parachain
 // generateLocalVotes generates votes for a given statementKind for validators
 // from startIdx (inclusive) up to count (exclusive).
 func generateLocalVotes[T parachaintypes.ValidDisputeStatementKind | parachaintypes.InvalidDisputeStatementKind](
-	t *testing.T, statementKind T, startIdx, count int,
+	t *testing.T,
+	statementKind T,
+	startIdx, count int,
 ) *btree.Map[parachaintypes.ValidatorIndex, parachaintypes.Vote[T]] {
 	require.Less(t, startIdx, count)
 
 	votes := btree.NewMap[parachaintypes.ValidatorIndex, parachaintypes.Vote[T]](count)
 	for i := startIdx; i < count; i++ {
-		votes.Set(parachaintypes.ValidatorIndex(i),
-			parachaintypes.Vote[T]{Kind: statementKind, Signature: parachaintypes.ValidatorSignature{}})
+		votes.Set(
+			parachaintypes.ValidatorIndex(i),
+			parachaintypes.Vote[T]{
+				Kind:      statementKind,
+				Signature: parachaintypes.ValidatorSignature{},
+			},
+		)
 	}
 	return votes
 }
@@ -165,6 +174,7 @@ func generateBitvec(t *testing.T, validatorCount, startIdx, count int) parachain
 	}
 	return parachaintypes.NewBitVec(bits)
 }
+
 func TestShouldKeepVoteBehaves(t *testing.T) {
 	onchainState := parachaintypes.DisputeState{
 		ValidatorsFor:     parachaintypes.NewBitVec([]bool{true, false, true, false, true}),
@@ -529,7 +539,7 @@ func newLeaf() *parachaintypes.ActivatedLeaf {
 
 // TestDisputes mimics the Rust struct for testing purposes.
 type TestDisputes struct {
-	LocalDisputes   []disputemessages.RecentDisputesResponse
+	LocalDisputes   []disputemessages.RecentDispute
 	VotesDB         map[parachaintypes.DisputeKey]parachaintypes.CandidateVotes
 	OnchainDisputes map[parachaintypes.DisputeKey]parachaintypes.DisputeState
 	ValidatorsCount int
@@ -537,7 +547,7 @@ type TestDisputes struct {
 
 func NewTestDisputes(vc int) *TestDisputes {
 	return &TestDisputes{
-		LocalDisputes:   []disputemessages.RecentDisputesResponse{},
+		LocalDisputes:   []disputemessages.RecentDispute{},
 		VotesDB:         make(map[parachaintypes.DisputeKey]parachaintypes.CandidateVotes),
 		OnchainDisputes: make(map[parachaintypes.DisputeKey]parachaintypes.DisputeState),
 		ValidatorsCount: vc,
@@ -554,7 +564,7 @@ func (td *TestDisputes) addOffchainDispute(
 	dummyReceipt parachaintypes.CandidateReceipt,
 ) {
 	// Create dispute tuple.
-	dispute := disputemessages.RecentDisputesResponse{
+	dispute := disputemessages.RecentDispute{
 		SessionIndex:  session,
 		CandidateHash: candidateHash,
 		DisputeStatus: disputeStatus,
@@ -578,7 +588,9 @@ func (td *TestDisputes) addOffchainDispute(
 	td.VotesDB[key] = parachaintypes.CandidateVotes{
 		CandidateReceipt: dummyReceipt,
 		Valid:            validVotes,
-		Invalid:          btree.NewMap[parachaintypes.ValidatorIndex, parachaintypes.Vote[parachaintypes.InvalidDisputeStatementKind]](0),
+		Invalid: btree.NewMap[parachaintypes.ValidatorIndex, parachaintypes.Vote[parachaintypes.InvalidDisputeStatementKind]](
+			0,
+		),
 	}
 }
 
@@ -622,7 +634,10 @@ func (td *TestDisputes) addOnchainDispute(
 
 // addUnconfirmedDisputesConcludedOnchain adds unconfirmed disputes that are concluded onchain.
 // It returns the used session index and the total difference: (localVotesCount - onchainVotesCount) * disputeCount.
-func (td *TestDisputes) addUnconfirmedDisputesConcludedOnchain(t *testing.T, disputeCount int) (parachaintypes.SessionIndex, int) {
+func (td *TestDisputes) addUnconfirmedDisputesConcludedOnchain(
+	t *testing.T,
+	disputeCount int,
+) (parachaintypes.SessionIndex, int) {
 	localVotesCount := td.ValidatorsCount * 90 / 100
 	onchainVotesCount := td.ValidatorsCount * 80 / 100
 	sessionIdx := parachaintypes.SessionIndex(0)
@@ -636,8 +651,14 @@ func (td *TestDisputes) addUnconfirmedDisputesConcludedOnchain(t *testing.T, dis
 
 		candidate := parachaintypes.CandidateHash{Value: common.Hash(rndHash)}
 		disputeStatus := *setEnumVariant[*parachaintypes.DisputeStatus](parachaintypes.Active{})
-		td.addOffchainDispute(t,
-			sessionIdx, candidate, disputeStatus, localVotesCount, fromCandidateRecepitV2ToV1(dummyReceiptv2))
+		td.addOffchainDispute(
+			t,
+			sessionIdx,
+			candidate,
+			disputeStatus,
+			localVotesCount,
+			fromCandidateRecepitV2ToV1(dummyReceiptv2),
+		)
 		td.addOnchainDispute(t, sessionIdx, candidate, disputeStatus, onchainVotesCount)
 	}
 	diff := (localVotesCount - onchainVotesCount) * disputeCount
@@ -646,7 +667,10 @@ func (td *TestDisputes) addUnconfirmedDisputesConcludedOnchain(t *testing.T, dis
 
 // addUnconfirmedDisputesUnconcludedOnchain adds unconfirmed disputes that are unconcluded onchain.
 // Returns (sessionIdx, (localVotesCount - onchainVotesCount) * disputeCount).
-func (td *TestDisputes) addUnconfirmedDisputesUnconcludedOnchain(t *testing.T, disputeCount int) (parachaintypes.SessionIndex, int) {
+func (td *TestDisputes) addUnconfirmedDisputesUnconcludedOnchain(
+	t *testing.T,
+	disputeCount int,
+) (parachaintypes.SessionIndex, int) {
 	localVotesCount := td.ValidatorsCount * 90 / 100
 	onchainVotesCount := td.ValidatorsCount * 40 / 100
 
@@ -661,14 +685,24 @@ func (td *TestDisputes) addUnconfirmedDisputesUnconcludedOnchain(t *testing.T, d
 		require.NoError(t, err)
 		candidate := parachaintypes.CandidateHash{Value: common.Hash(rndHash)}
 		disputeStatus := *setEnumVariant[*parachaintypes.DisputeStatus](parachaintypes.Active{})
-		td.addOffchainDispute(t, sessionIdx, candidate, disputeStatus, localVotesCount, fromCandidateRecepitV2ToV1(dummyReceipt))
+		td.addOffchainDispute(
+			t,
+			sessionIdx,
+			candidate,
+			disputeStatus,
+			localVotesCount,
+			fromCandidateRecepitV2ToV1(dummyReceipt),
+		)
 		td.addOnchainDispute(t, sessionIdx, candidate, disputeStatus, onchainVotesCount)
 	}
 	diff := (localVotesCount - onchainVotesCount) * disputeCount
 	return sessionIdx, diff
 }
 
-func (td *TestDisputes) addConfirmedDisputesUnkonwOnChain(t *testing.T, disputeCount int) (parachaintypes.SessionIndex, int) {
+func (td *TestDisputes) addConfirmedDisputesUnkonwOnChain(
+	t *testing.T,
+	disputeCount int,
+) (parachaintypes.SessionIndex, int) {
 	localVotesCount := td.ValidatorsCount * 90 / 100
 	sessionIdx := parachaintypes.SessionIndex(2)
 	lf := newLeaf()
@@ -681,13 +715,22 @@ func (td *TestDisputes) addConfirmedDisputesUnkonwOnChain(t *testing.T, disputeC
 
 		candidate := parachaintypes.CandidateHash{Value: common.Hash(rndHash)}
 		disputeStatus := *setEnumVariant[*parachaintypes.DisputeStatus](parachaintypes.Confirmed{})
-		td.addOffchainDispute(t,
-			sessionIdx, candidate, disputeStatus, localVotesCount, fromCandidateRecepitV2ToV1(dummyReceiptv2))
+		td.addOffchainDispute(
+			t,
+			sessionIdx,
+			candidate,
+			disputeStatus,
+			localVotesCount,
+			fromCandidateRecepitV2ToV1(dummyReceiptv2),
+		)
 	}
 	return sessionIdx, localVotesCount * disputeCount
 }
 
-func (td *TestDisputes) addConcludedDisputesKnownOnchain(t *testing.T, disputeCount int) (parachaintypes.SessionIndex, int) {
+func (td *TestDisputes) addConcludedDisputesKnownOnchain(
+	t *testing.T,
+	disputeCount int,
+) (parachaintypes.SessionIndex, int) {
 	localVotesCount := td.ValidatorsCount * 90 / 100
 	onchainVotesCount := td.ValidatorsCount * 75 / 100
 	sessionIdx := parachaintypes.SessionIndex(3)
@@ -701,8 +744,14 @@ func (td *TestDisputes) addConcludedDisputesKnownOnchain(t *testing.T, disputeCo
 
 		candidate := parachaintypes.CandidateHash{Value: common.Hash(rndHash)}
 		disputeStatus := *setEnumVariant[*parachaintypes.DisputeStatus](parachaintypes.ConcludedFor{Timestamp: 0})
-		td.addOffchainDispute(t,
-			sessionIdx, candidate, disputeStatus, localVotesCount, fromCandidateRecepitV2ToV1(dummyReceiptv2))
+		td.addOffchainDispute(
+			t,
+			sessionIdx,
+			candidate,
+			disputeStatus,
+			localVotesCount,
+			fromCandidateRecepitV2ToV1(dummyReceiptv2),
+		)
 		td.addOnchainDispute(t, sessionIdx, candidate, disputeStatus, onchainVotesCount)
 	}
 	diff := (localVotesCount - onchainVotesCount) * disputeCount
@@ -711,7 +760,10 @@ func (td *TestDisputes) addConcludedDisputesKnownOnchain(t *testing.T, disputeCo
 
 // addConcludedDisputesUnknownOnchain adds concluded disputes unknown onchain.
 // Returns (sessionIdx, localVotesCount * disputeCount).
-func (td *TestDisputes) addConcludedDisputesUnknownOnchain(t *testing.T, disputeCount int) (parachaintypes.SessionIndex, int) {
+func (td *TestDisputes) addConcludedDisputesUnknownOnchain(
+	t *testing.T,
+	disputeCount int,
+) (parachaintypes.SessionIndex, int) {
 	localVotesCount := td.ValidatorsCount * 90 / 100
 	sessionIdx := parachaintypes.SessionIndex(4)
 	lf := newLeaf()
@@ -722,7 +774,14 @@ func (td *TestDisputes) addConcludedDisputesUnknownOnchain(t *testing.T, dispute
 		require.NoError(t, err)
 		candidate := parachaintypes.CandidateHash{Value: common.Hash(rndHash)}
 		disputeStatus := *setEnumVariant[*parachaintypes.DisputeStatus](parachaintypes.ConcludedFor{Timestamp: 0})
-		td.addOffchainDispute(t, sessionIdx, candidate, disputeStatus, localVotesCount, fromCandidateRecepitV2ToV1(dummyReceipt))
+		td.addOffchainDispute(
+			t,
+			sessionIdx,
+			candidate,
+			disputeStatus,
+			localVotesCount,
+			fromCandidateRecepitV2ToV1(dummyReceipt),
+		)
 	}
 	return sessionIdx, localVotesCount * disputeCount
 }
@@ -730,7 +789,10 @@ func (td *TestDisputes) addConcludedDisputesUnknownOnchain(t *testing.T, dispute
 // addUnconfirmedDisputesKnownOnchain adds unconfirmed disputes that are known onchain.
 // It registers both offchain and onchain disputes.
 // Returns (sessionIdx, (localVotesCount - onchainVotesCount) * disputeCount).
-func (td *TestDisputes) addUnconfirmedDisputesKnownOnchain(t *testing.T, disputeCount int) (parachaintypes.SessionIndex, int) {
+func (td *TestDisputes) addUnconfirmedDisputesKnownOnchain(
+	t *testing.T,
+	disputeCount int,
+) (parachaintypes.SessionIndex, int) {
 	localVotesCount := td.ValidatorsCount * 10 / 100
 	onchainVotesCount := td.ValidatorsCount * 10 / 100
 	sessionIdx := parachaintypes.SessionIndex(5)
@@ -742,7 +804,14 @@ func (td *TestDisputes) addUnconfirmedDisputesKnownOnchain(t *testing.T, dispute
 		require.NoError(t, err)
 		candidate := parachaintypes.CandidateHash{Value: common.Hash(rndHash)}
 		disputeStatus := *setEnumVariant[*parachaintypes.DisputeStatus](parachaintypes.Active{})
-		td.addOffchainDispute(t, sessionIdx, candidate, disputeStatus, localVotesCount, fromCandidateRecepitV2ToV1(dummyReceipt))
+		td.addOffchainDispute(
+			t,
+			sessionIdx,
+			candidate,
+			disputeStatus,
+			localVotesCount,
+			fromCandidateRecepitV2ToV1(dummyReceipt),
+		)
 		td.addOnchainDispute(t, sessionIdx, candidate, disputeStatus, onchainVotesCount)
 	}
 	diff := (localVotesCount - onchainVotesCount) * disputeCount
@@ -752,7 +821,10 @@ func (td *TestDisputes) addUnconfirmedDisputesKnownOnchain(t *testing.T, dispute
 // addUnconfirmedDisputesUnknownOnchain adds unconfirmed disputes unknown onchain.
 // Only offchain disputes are registered.
 // Returns (sessionIdx, localVotesCount * disputeCount).
-func (td *TestDisputes) addUnconfirmedDisputesUnknownOnchain(t *testing.T, disputeCount int) (parachaintypes.SessionIndex, int) {
+func (td *TestDisputes) addUnconfirmedDisputesUnknownOnchain(
+	t *testing.T,
+	disputeCount int,
+) (parachaintypes.SessionIndex, int) {
 	localVotesCount := td.ValidatorsCount * 10 / 100
 	sessionIdx := parachaintypes.SessionIndex(6)
 	lf := newLeaf()
@@ -763,7 +835,14 @@ func (td *TestDisputes) addUnconfirmedDisputesUnknownOnchain(t *testing.T, dispu
 		require.NoError(t, err)
 		candidate := parachaintypes.CandidateHash{Value: common.Hash(rndHash)}
 		disputeStatus := *setEnumVariant[*parachaintypes.DisputeStatus](parachaintypes.Active{})
-		td.addOffchainDispute(t, sessionIdx, candidate, disputeStatus, localVotesCount, fromCandidateRecepitV2ToV1(dummyReceipt))
+		td.addOffchainDispute(
+			t,
+			sessionIdx,
+			candidate,
+			disputeStatus,
+			localVotesCount,
+			fromCandidateRecepitV2ToV1(dummyReceipt),
+		)
 	}
 	return sessionIdx, localVotesCount * disputeCount
 }
@@ -790,8 +869,8 @@ func mockRuntime(t *testing.T, disputesDB *TestDisputes) BlockState {
 func mockOverseer(receiver <-chan any, disputesDB *TestDisputes, voteQueriesCount *int) {
 	for msg := range receiver {
 		switch m := msg.(type) {
-		case disputemessages.RecentDisputes:
-			// Respond with local disputes.
+		case disputemessages.GetRecentDisputes:
+			// Respond with local disputes
 			m.Response <- disputesDB.LocalDisputes
 		case disputemessages.QueryCandidateVotes:
 			*voteQueriesCount++
@@ -866,19 +945,31 @@ func TestNormalFlow(t *testing.T) {
 	require.Len(t, result, 4*disputesPerBatch)
 
 	// Naive checks that the result is partitioned correctly
-	fst_batch, rst := split(result, func(d parachaintypes.DisputeStatementSet) bool { return d.Session == firstIdx })
+	fst_batch, rst := split(
+		result,
+		func(d parachaintypes.DisputeStatementSet) bool { return d.Session == firstIdx },
+	)
 	require.Len(t, fst_batch, disputesPerBatch)
 	fmt.Println(accStatements(fst_batch))
 
-	snd_batch, rst := split(rst, func(d parachaintypes.DisputeStatementSet) bool { return d.Session == secondIdx })
+	snd_batch, rst := split(
+		rst,
+		func(d parachaintypes.DisputeStatementSet) bool { return d.Session == secondIdx },
+	)
 	require.Len(t, snd_batch, disputesPerBatch)
 	fmt.Println(accStatements(snd_batch))
 
-	trd_batch, rst := split(rst, func(d parachaintypes.DisputeStatementSet) bool { return d.Session == thirdIdx })
+	trd_batch, rst := split(
+		rst,
+		func(d parachaintypes.DisputeStatementSet) bool { return d.Session == thirdIdx },
+	)
 	require.Len(t, trd_batch, disputesPerBatch)
 	fmt.Println(accStatements(trd_batch))
 
-	fifth_batch, rst := split(rst, func(d parachaintypes.DisputeStatementSet) bool { return d.Session == fifthIdx })
+	fifth_batch, rst := split(
+		rst,
+		func(d parachaintypes.DisputeStatementSet) bool { return d.Session == fifthIdx },
+	)
 	require.Len(t, fifth_batch, disputesPerBatch)
 	fmt.Println(accStatements(fifth_batch))
 
@@ -1031,7 +1122,9 @@ func TestUnconfirmedAreHandleCorrectly(t *testing.T) {
 	}
 }
 
-func split(input []parachaintypes.DisputeStatementSet, p func(parachaintypes.DisputeStatementSet) bool,
+func split(
+	input []parachaintypes.DisputeStatementSet,
+	p func(parachaintypes.DisputeStatementSet) bool,
 ) ([]parachaintypes.DisputeStatementSet, []parachaintypes.DisputeStatementSet) {
 	var left, right []parachaintypes.DisputeStatementSet
 	for _, d := range input {
