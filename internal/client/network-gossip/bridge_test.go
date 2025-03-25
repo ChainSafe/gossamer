@@ -404,6 +404,7 @@ func TestGossipEngine(t *testing.T) {
 			close(gossipEngine.stopChan)
 			<-done
 
+			require.Equal(t, expectedTotalMsgsAllChan, msgCount)
 			// Compare amount of expected messages with amount of received messages.
 			for expectedTopic, expectedNum := range expectedMsgsPerTopicAllChan {
 				require.Equal(t, expectedNum, receivedMsgsPerTopicAllChan[expectedTopic])
