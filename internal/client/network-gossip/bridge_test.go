@@ -394,6 +394,10 @@ func TestGossipEngine(t *testing.T) {
 			for expectedTopic, expectedNum := range expectedMsgsPerTopicAllChan {
 				require.Equal(t, expectedNum, receivedMsgsPerTopicAllChan[expectedTopic])
 			}
+
+			for _, topicChan := range topicChans {
+				close(topicChan.Chan)
+			}
 		}
 
 		prop(t, nil, [][]Message{{Message{Topic: hash.NewH256()}}})

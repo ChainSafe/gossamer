@@ -676,7 +676,6 @@ waitForPrevote:
 			}
 		}
 	}
-	<-time.NewTimer(10 * time.Millisecond).C
 	assert.Equal(t, [2]uint64{2, 1}, env.LastCompletedAndConcluded())
 
 	err := voter.Stop()
