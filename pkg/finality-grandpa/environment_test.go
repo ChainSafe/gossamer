@@ -71,13 +71,16 @@ type environment struct {
 	listeners                []chan listenerItem
 	lastCompleteAndConcluded [2]uint64
 	mtx                      sync.Mutex
+
+	concludedCalled chan struct{}
 }
 
 func newEnvironment(network *Network, localID ID) environment {
 	return environment{
-		chain:   newDummyChain(),
-		localID: localID,
-		network: network,
+		chain:           newDummyChain(),
+		localID:         localID,
+		network:         network,
+		concludedCalled: make(chan struct{}),
 	}
 }
 
@@ -161,6 +164,9 @@ func (e *environment) Concluded(
 	e.mtx.Lock()
 	defer e.mtx.Unlock()
 	e.lastCompleteAndConcluded[1] = round
+	go func() {
+		e.concludedCalled <- struct{}{}
+	}()
 	return nil
 }
 

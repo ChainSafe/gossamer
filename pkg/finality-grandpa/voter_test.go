@@ -676,6 +676,8 @@ waitForPrevote:
 			}
 		}
 	}
+
+	<-env.concludedCalled
 	assert.Equal(t, [2]uint64{2, 1}, env.LastCompletedAndConcluded())
 
 	err := voter.Stop()
