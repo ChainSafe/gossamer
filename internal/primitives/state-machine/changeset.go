@@ -79,10 +79,10 @@ func (oc *overlayedChangeSet) set(key StorageKey, value StorageValue, atExtrinsi
 	overlayed, has := oc.changes.Get(keyString)
 	if !has {
 		overlayed = NewOverlayedEntry[storageEntry]()
+		oc.changes.Set(keyString, overlayed)
 	}
 
 	overlayed.Set(value, oc.dirtyKeys.insertDirty(keyString), atExtrinsic)
-	oc.changes.Set(keyString, overlayed)
 }
 
 // Append bytes to an existing content.
