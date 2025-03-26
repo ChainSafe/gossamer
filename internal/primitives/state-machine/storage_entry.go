@@ -4,24 +4,24 @@
 package statemachine
 
 // Content in an overlay for a given transactional depth.
-type StorageEntry interface {
+type storageEntry interface {
 	value() StorageValue
 }
 
 type (
 	// The storage entry should be set to the stored value.
-	SetStorageEntry struct {
+	setStorageEntry struct {
 		data StorageValue
 	}
 
 	// The storage entry should be removed.
-	RemoveStorageEntry struct{}
+	removeStorageEntry struct{}
 
 	// The storage entry was appended to.
 	// This assumes that the storage entry is encoded as a SCALE list. This means that it is
 	// prefixed with a compact uint that reprensents the length, followed by all the encoded
 	// elements.
-	AppendStorageEntry struct {
+	appendStorageEntry struct {
 		// The value of the storage entry.
 		// This may or may not be prefixed by the length, depending on the materialised length.
 		data StorageValue
@@ -36,15 +36,15 @@ type (
 	}
 )
 
-func (se SetStorageEntry) value() StorageValue    { return se.data }
-func (se RemoveStorageEntry) value() StorageValue { return nil }
-func (se *AppendStorageEntry) value() StorageValue {
+func (se setStorageEntry) value() StorageValue    { return se.data }
+func (se removeStorageEntry) value() StorageValue { return nil }
+func (se *appendStorageEntry) value() StorageValue {
 	se.materializedInPlace()
 	return se.data
 }
 
 // Materialise the internal state and cache the resulting materialised value.
-func (se *AppendStorageEntry) materializedInPlace() {
+func (se *appendStorageEntry) materializedInPlace() {
 	currentLength := se.currentLength
 	if se.materializedLength != nil && *se.materializedLength == currentLength {
 		return

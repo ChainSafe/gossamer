@@ -7,15 +7,15 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-type StorageAppend struct {
+type storageAppend struct {
 	data *StorageValue
 }
 
-func NewStorageAppend(data *StorageValue) *StorageAppend {
-	return &StorageAppend{data: data}
+func NewStorageAppend(data *StorageValue) *storageAppend {
+	return &storageAppend{data: data}
 }
 
-func (sa *StorageAppend) ExtractLength() *uint {
+func (sa *storageAppend) ExtractLength() *uint {
 	var length uint
 	err := scale.Unmarshal(*sa.data, &length)
 	if err != nil {
@@ -24,7 +24,7 @@ func (sa *StorageAppend) ExtractLength() *uint {
 	return &length
 }
 
-func (sa *StorageAppend) ReplaceLength(oldLength *uint, newLength uint) {
+func (sa *storageAppend) ReplaceLength(oldLength *uint, newLength uint) {
 	oldLenEncodedLen := 0
 	if oldLength != nil {
 		oldLenEncodedLen = compactLen(*oldLength)
@@ -35,7 +35,7 @@ func (sa *StorageAppend) ReplaceLength(oldLength *uint, newLength uint) {
 	*sa.data = newStorageValue
 }
 
-func (sa *StorageAppend) AppendRaw(value []byte) {
+func (sa *storageAppend) AppendRaw(value []byte) {
 	*sa.data = append(*sa.data, value...)
 }
 

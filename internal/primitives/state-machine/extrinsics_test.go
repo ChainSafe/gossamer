@@ -12,7 +12,7 @@ import (
 func TestCopyExtrinsicsInto(t *testing.T) {
 	set := map[uint32]struct{}{}
 
-	ext := Extrinsics{1, 2, 3}
+	ext := extrinsics{1, 2, 3}
 	ext.CopyExtrinsicsInto(set)
 
 	require.Equal(t, 3, len(set))
@@ -23,7 +23,7 @@ func TestCopyExtrinsicsInto(t *testing.T) {
 }
 
 func TestInsertExtrinsic(t *testing.T) {
-	ext := Extrinsics{1, 2, 3}
+	ext := extrinsics{1, 2, 3}
 	ext.Insert(4)
 
 	require.Equal(t, 4, len(ext))
@@ -31,8 +31,8 @@ func TestInsertExtrinsic(t *testing.T) {
 }
 
 func TestExtendExtrinsic(t *testing.T) {
-	ext := Extrinsics{1, 2, 3}
-	other := Extrinsics{4, 5, 6}
+	ext := extrinsics{1, 2, 3}
+	other := extrinsics{4, 5, 6}
 
 	ext.Extend(other)
 

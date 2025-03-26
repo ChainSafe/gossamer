@@ -25,20 +25,20 @@ type OverlayedMap[K constraints.Ordered, V any] struct {
 	// Stores which keys are dirty per transaction. Needed in order to determine which
 	// values to merge into the parent transaction on commit. The length of this vector
 	// therefore determines how many nested transactions are currently open (depth).
-	dirtyKeys DirtyKeysSets[K]
+	dirtyKeys dirtyKeysSets[K]
 	// The number of how many transactions beginning from the first transactions are started
 	// by the client. Those transactions are protected against close (commit, rollback)
 	// when in runtime mode.
 	numClientTransactions uint
 	// Determines whether the node is using the overlay from the client or the runtime.
-	executionMode ExecutionMode
+	executionMode executionMode
 }
 
 func NewOverlayedMap[K constraints.Ordered, V any]() OverlayedMap[K, V] {
 	return OverlayedMap[K, V]{
-		dirtyKeys:             DirtyKeysSets[K]{},
+		dirtyKeys:             dirtyKeysSets[K]{},
 		numClientTransactions: 0,
-		executionMode:         ExecutionModeClient,
+		executionMode:         executionModeClient,
 	}
 }
 
@@ -47,7 +47,7 @@ func NewOverlayedMap[K constraints.Ordered, V any]() OverlayedMap[K, V] {
 // We need to catch up here so that the child is at the same transaction depth.
 func (om *OverlayedMap[K, V]) SpawnChild() OverlayedMap[K, V] {
 	return OverlayedMap[K, V]{
-		dirtyKeys:             make(DirtyKeysSets[K], om.TransactionDepth()),
+		dirtyKeys:             make(dirtyKeysSets[K], om.TransactionDepth()),
 		numClientTransactions: om.numClientTransactions,
 		executionMode:         om.executionMode,
 	}
@@ -111,11 +111,11 @@ func (om *OverlayedMap[K, V]) TransactionDepth() uint {
 // This protects all existing transactions from being removed by the runtime.
 // Calling this while already inside the runtime will return an error.
 func (om *OverlayedMap[K, V]) EnterRuntime() error {
-	if om.executionMode == ExecutionModeRuntime {
+	if om.executionMode == executionModeRuntime {
 		return errorAlreadyInRuntime
 	}
 
-	om.executionMode = ExecutionModeRuntime
+	om.executionMode = executionModeRuntime
 	om.numClientTransactions = om.TransactionDepth()
 	return nil
 }
@@ -124,11 +124,11 @@ func (om *OverlayedMap[K, V]) EnterRuntime() error {
 // This rollbacks all dangling transaction left open by the runtime.
 // Calling this while already outside the runtime will return an error.
 func (om *OverlayedMap[K, V]) ExitRuntimeoffchain() error {
-	if om.executionMode != ExecutionModeRuntime {
+	if om.executionMode != executionModeRuntime {
 		return errorNotInRuntime
 	}
 
-	om.executionMode = ExecutionModeClient
+	om.executionMode = executionModeClient
 
 	if om.HasOpenRuntimeTransactions() {
 		logger.Warnf("%d storage transactions are left open by the runtime. Those will be rolled back.",
@@ -171,7 +171,7 @@ func (om *OverlayedMap[K, V]) CommitTransactionOffchain() error {
 // Internal method to close the transaction and either commit or roll back the changes.
 func (om *OverlayedMap[K, V]) closeTransactionOffchain(rollback bool) error {
 	// runtime is not allowed to close transactions started by the client
-	if om.executionMode == ExecutionModeRuntime && !om.HasOpenRuntimeTransactions() {
+	if om.executionMode == executionModeRuntime && !om.HasOpenRuntimeTransactions() {
 		return errorNoOpenTransaction
 	}
 

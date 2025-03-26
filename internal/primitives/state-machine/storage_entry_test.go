@@ -15,7 +15,7 @@ func TestAppendMaterializedInPlace(t *testing.T) {
 	data := []byte{1, 2, 3, 4}
 	length := uint(len(data))
 
-	entry := AppendStorageEntry{
+	entry := appendStorageEntry{
 		data:          data,
 		currentLength: length,
 	}

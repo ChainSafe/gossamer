@@ -5,7 +5,7 @@ package statemachine
 
 import "math"
 
-const PROOF_OVERLAY_NON_EMPTY = `
+const proofOverlayNonEmpty = `
 An OverlayValue is always created with at least one transaction and dropped as soon
 as the last transaction is removed; qed`
 
@@ -13,18 +13,18 @@ as the last transaction is removed; qed`
 type OverlayedEntry[V any] struct {
 	// The individual versions of that value.
 	// One entry per transactions during that the value was actually written.
-	transactions []Transaction[V]
+	transactions []transaction[V]
 }
 
 func NewOverlayedEntry[V any]() *OverlayedEntry[V] {
 	return &OverlayedEntry[V]{
-		transactions: []Transaction[V]{},
+		transactions: []transaction[V]{},
 	}
 }
 
 func (oe *OverlayedEntry[V]) ValueRef() *V {
 	if len(oe.transactions) == 0 {
-		panic(PROOF_OVERLAY_NON_EMPTY)
+		panic(proofOverlayNonEmpty)
 	}
 
 	return &oe.transactions[len(oe.transactions)-1].value
@@ -32,7 +32,7 @@ func (oe *OverlayedEntry[V]) ValueRef() *V {
 
 // The value as seen by the current transaction.
 func (oe *OverlayedEntry[V]) StorageValue() StorageValue {
-	return any(*oe.ValueRef()).(StorageEntry).value()
+	return any(*oe.ValueRef()).(storageEntry).value()
 }
 
 func (oe *OverlayedEntry[V]) IntoValue() V {
@@ -52,9 +52,9 @@ func (oe *OverlayedEntry[V]) Extrinsics() map[uint32]struct{} {
 	return set
 }
 
-func (oe *OverlayedEntry[V]) PopTransaction() Transaction[V] {
+func (oe *OverlayedEntry[V]) PopTransaction() transaction[V] {
 	if len(oe.transactions) == 0 {
-		panic(PROOF_OVERLAY_NON_EMPTY)
+		panic(proofOverlayNonEmpty)
 	}
 
 	t := oe.transactions[len(oe.transactions)-1]
@@ -63,21 +63,19 @@ func (oe *OverlayedEntry[V]) PopTransaction() Transaction[V] {
 	return t
 }
 
-func (oe *OverlayedEntry[V]) TransactionExtrinsics() *Extrinsics {
+func (oe *OverlayedEntry[V]) TransactionExtrinsics() *extrinsics {
 	if len(oe.transactions) == 0 {
-		panic(PROOF_OVERLAY_NON_EMPTY)
+		panic(proofOverlayNonEmpty)
 	}
 
 	return &oe.transactions[len(oe.transactions)-1].extrinsics
 }
 
 func (oe *OverlayedEntry[V]) SetOffchain(value V, firstWriteInTx bool, atExtrinsic *uint32) {
-	// TODO: test every branch
-
 	if firstWriteInTx || len(oe.transactions) == 0 {
-		oe.transactions = append(oe.transactions, Transaction[V]{
+		oe.transactions = append(oe.transactions, transaction[V]{
 			value:      value,
-			extrinsics: Extrinsics{},
+			extrinsics: extrinsics{},
 		})
 	} else {
 		*oe.ValueRef() = value
@@ -92,18 +90,18 @@ func (oe *OverlayedEntry[V]) SetOffchain(value V, firstWriteInTx bool, atExtrins
 // This makes sure that the old version is not overwritten and can be properly
 // rolled back when required.
 func (oe *OverlayedEntry[V]) Set(value StorageValue, firstWriteInTx bool, atExtrinsic *uint32) {
-	var action StorageEntry
+	var action storageEntry
 
 	if value == nil {
-		action = RemoveStorageEntry{}
+		action = removeStorageEntry{}
 	} else {
-		action = SetStorageEntry{value}
+		action = setStorageEntry{value}
 	}
 
 	if firstWriteInTx || len(oe.transactions) == 0 {
-		oe.transactions = append(oe.transactions, Transaction[V]{
-			value:      action.(V), //TODO: check this
-			extrinsics: Extrinsics{},
+		oe.transactions = append(oe.transactions, transaction[V]{
+			value:      action.(V),
+			extrinsics: extrinsics{},
 		})
 	} else {
 		oldValue := oe.ValueRef()
@@ -115,7 +113,7 @@ func (oe *OverlayedEntry[V]) Set(value StorageValue, firstWriteInTx bool, atExtr
 		}
 
 		switch oldVal := any(oldValue).(type) {
-		case AppendStorageEntry:
+		case appendStorageEntry:
 			*oldValue = any(oldVal).(V)
 
 			setPrev = &struct {
@@ -129,7 +127,7 @@ func (oe *OverlayedEntry[V]) Set(value StorageValue, firstWriteInTx bool, atExtr
 			}
 		}
 
-		*oldValue = action.(V) //TODO: check this
+		*oldValue = action.(V)
 		if setPrev != nil {
 			transactions := len(oe.transactions)
 			if transactions < 2 {
@@ -138,7 +136,7 @@ func (oe *OverlayedEntry[V]) Set(value StorageValue, firstWriteInTx bool, atExtr
 
 			parent := &oe.transactions[transactions-2]
 
-			parentValue, ok := any(parent.value).(StorageEntry)
+			parentValue, ok := any(parent.value).(storageEntry)
 			if !ok {
 				panic("Parent value is not a storage entry")
 			}
@@ -187,32 +185,32 @@ func (oe *OverlayedEntry[V]) Append(
 			materializedLength = nil
 		}
 
-		oe.transactions = append(oe.transactions, Transaction[V]{
-			value: any(&AppendStorageEntry{
+		oe.transactions = append(oe.transactions, transaction[V]{
+			value: any(&appendStorageEntry{
 				data:               data,
 				currentLength:      currentLength,
 				materializedLength: materializedLength,
 				parentSize:         nil,
 			}).(V),
-			extrinsics: Extrinsics{},
+			extrinsics: extrinsics{},
 		})
 	} else if firstWriteInTx {
 		parent := *oe.ValueRef()
 
 		switch entry := any(parent).(type) {
-		case RemoveStorageEntry:
+		case removeStorageEntry:
 			data = element
 			currentLength = 1
 			materializedLength = nil
 			parentSize = nil
-		case *AppendStorageEntry:
+		case *appendStorageEntry:
 			parentLen := uint(len(entry.data))
 			NewStorageAppend(&entry.data).AppendRaw(element)
 			data = entry.data
 			currentLength = entry.currentLength + 1
 			materializedLength = entry.materializedLength
 			parentSize = &parentLen
-		case SetStorageEntry:
+		case setStorageEntry:
 			// For compatibility: append if there is a encoded length, overwrite
 			// with value otherwhise.
 			length := NewStorageAppend(&entry.data).ExtractLength()
@@ -231,25 +229,25 @@ func (oe *OverlayedEntry[V]) Append(
 			}
 		}
 
-		oe.transactions = append(oe.transactions, Transaction[V]{
-			value: any(&AppendStorageEntry{
+		oe.transactions = append(oe.transactions, transaction[V]{
+			value: any(&appendStorageEntry{
 				data:               data,
 				currentLength:      currentLength,
 				materializedLength: materializedLength,
 				parentSize:         parentSize,
 			}).(V),
-			extrinsics: Extrinsics{},
+			extrinsics: extrinsics{},
 		})
 	} else {
 		// not first transaction write
 		oldValue := oe.ValueRef()
 
 		switch oldVal := any(*oldValue).(type) {
-		case RemoveStorageEntry:
+		case removeStorageEntry:
 			data = element
 			currentLength = 1
 			materializedLength = nil
-		case SetStorageEntry:
+		case setStorageEntry:
 			// Note that when the data here is not initialised with append,
 			// and still starts with a valid compact u32 we can have totally broken
 			// encoding.
@@ -269,7 +267,7 @@ func (oe *OverlayedEntry[V]) Append(
 				currentLength = 1
 				materializedLength = nil
 			}
-		case *AppendStorageEntry:
+		case *appendStorageEntry:
 			NewStorageAppend(&oldVal.data).AppendRaw(element)
 			oldVal.currentLength += 1
 			replace = false
@@ -277,7 +275,7 @@ func (oe *OverlayedEntry[V]) Append(
 		}
 
 		if replace {
-			*oldValue = any(AppendStorageEntry{
+			*oldValue = any(appendStorageEntry{
 				data:               data,
 				currentLength:      currentLength,
 				materializedLength: materializedLength,
@@ -291,13 +289,13 @@ func (oe *OverlayedEntry[V]) Append(
 }
 
 func restoreAppendToParent(
-	parent StorageEntry,
+	parent storageEntry,
 	currentData []byte,
 	currentMaterialized *uint,
 	targetParentSize uint,
 ) {
 	switch parent := parent.(type) {
-	case *AppendStorageEntry:
+	case *appendStorageEntry:
 		prev := 0
 		new := 0
 

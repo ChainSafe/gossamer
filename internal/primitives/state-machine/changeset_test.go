@@ -33,7 +33,7 @@ func extrinsic(value uint32) *uint32 {
 	return &value
 }
 
-func assertChanges(t *testing.T, is *OverlayedChangeSet, expected Changes) {
+func assertChanges(t *testing.T, is *overlayedChangeSet, expected Changes) {
 	var changes Changes
 	for k, v := range is.Changes() {
 		extrinsics := slices.Collect(maps.Keys(v.Extrinsics()))
@@ -52,7 +52,7 @@ func assertChanges(t *testing.T, is *OverlayedChangeSet, expected Changes) {
 	require.Equal(t, expected, changes)
 }
 
-func assertDrainedChanges(t *testing.T, is *OverlayedChangeSet, expected Changes) {
+func assertDrainedChanges(t *testing.T, is *overlayedChangeSet, expected Changes) {
 	var drained Drained
 	for k, v := range is.DrainCommited() {
 		drained = append(drained, DrainedValue{k, v.value()})
@@ -66,7 +66,7 @@ func assertDrainedChanges(t *testing.T, is *OverlayedChangeSet, expected Changes
 	require.Equal(t, expect, drained)
 }
 
-func assertDrained(t *testing.T, is *OverlayedChangeSet, expected Drained) {
+func assertDrained(t *testing.T, is *overlayedChangeSet, expected Drained) {
 	var drained Drained
 	for k, v := range is.DrainCommited() {
 		drained = append(drained, DrainedValue{k, v.value()})
@@ -86,7 +86,7 @@ func TestDirtyKeysSetsPop(t *testing.T) {
 	set2.Insert(5)
 	set2.Insert(6)
 
-	dirtyKeys := DirtyKeysSets[int]{
+	dirtyKeys := dirtyKeysSets[int]{
 		set1,
 		set2,
 	}
@@ -369,7 +369,7 @@ func TestClearWorks(t *testing.T) {
 
 	changeSet.StartTransaction()
 
-	predicate := func(k []byte, ov *OverlayedValue) bool { return bytes.HasPrefix(k, []byte("del")) }
+	predicate := func(k []byte, ov *overlayedValue) bool { return bytes.HasPrefix(k, []byte("del")) }
 	changeSet.ClearWhere(predicate, extrinsic(5))
 
 	allChanges := Changes{

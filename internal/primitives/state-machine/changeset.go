@@ -11,22 +11,22 @@ import (
 )
 
 // Describes in which mode the node is currently executing.
-type ExecutionMode = uint8
+type executionMode = uint8
 
 const (
 	// Executing in client mode: Removal of all transactions possible.
-	ExecutionModeClient = iota
+	executionModeClient = iota
 	// Executing in runtime mode: Transactions started by the client are protected.
-	ExecutionModeRuntime
+	executionModeRuntime
 )
 
 // Dirty keys are a set of keys that have been modified in each transaction.
-type DirtyKeysSets[K constraints.Ordered] []btree.Set[K]
+type dirtyKeysSets[K constraints.Ordered] []btree.Set[K]
 
 // Inserts a key into the dirty set.
 // Returns true iff we currently have at least one open transaction and if this
 // is the first write to the given key in that transaction.
-func (dks DirtyKeysSets[K]) insertDirty(key K) bool {
+func (dks dirtyKeysSets[K]) insertDirty(key K) bool {
 	if len(dks) == 0 {
 		return false
 	}
@@ -39,7 +39,7 @@ func (dks DirtyKeysSets[K]) insertDirty(key K) bool {
 }
 
 // Get the keys modified in the last transaction.
-func (dks *DirtyKeysSets[K]) Pop() (btree.Set[K], bool) {
+func (dks *dirtyKeysSets[K]) Pop() (btree.Set[K], bool) {
 	if len(*dks) == 0 {
 		return btree.Set[K]{}, false
 	}
@@ -51,34 +51,34 @@ func (dks *DirtyKeysSets[K]) Pop() (btree.Set[K], bool) {
 }
 
 // A transaction that has been executed on a value and optional extrinsic
-type Transaction[V any] struct {
+type transaction[V any] struct {
 	// Current value. nil if value has been deleted.
 	value V
 	// The set of extrinsic indices where the values has been changed.
-	extrinsics Extrinsics
+	extrinsics extrinsics
 }
 
 // History of value, with removal support.
-type OverlayedValue = OverlayedEntry[StorageEntry]
+type overlayedValue = OverlayedEntry[storageEntry]
 
 // Change set for basic key value with extrinsics index recording and removal support.
-type OverlayedChangeSet struct {
-	OverlayedMap[string, StorageEntry]
+type overlayedChangeSet struct {
+	OverlayedMap[string, storageEntry]
 }
 
-func NewOverlayedChangeSet() *OverlayedChangeSet {
-	return &OverlayedChangeSet{
-		NewOverlayedMap[string, StorageEntry](),
+func NewOverlayedChangeSet() *overlayedChangeSet {
+	return &overlayedChangeSet{
+		NewOverlayedMap[string, storageEntry](),
 	}
 }
 
 // Set a new value for the specified key.
 // Can be rolled back or committed when called inside a transaction.
-func (oc *OverlayedChangeSet) Set(key StorageKey, value StorageValue, atExtrinsic *uint32) {
+func (oc *overlayedChangeSet) Set(key StorageKey, value StorageValue, atExtrinsic *uint32) {
 	keyString := string(key)
 	overlayed, has := oc.changes.Get(keyString)
 	if !has {
-		overlayed = NewOverlayedEntry[StorageEntry]()
+		overlayed = NewOverlayedEntry[storageEntry]()
 	}
 
 	overlayed.Set(value, oc.dirtyKeys.insertDirty(keyString), atExtrinsic)
@@ -86,7 +86,7 @@ func (oc *OverlayedChangeSet) Set(key StorageKey, value StorageValue, atExtrinsi
 }
 
 // Append bytes to an existing content.
-func (oc *OverlayedChangeSet) AppendStorage(
+func (oc *overlayedChangeSet) AppendStorage(
 	key StorageKey,
 	value StorageValue,
 	init func() StorageValue,
@@ -95,7 +95,7 @@ func (oc *OverlayedChangeSet) AppendStorage(
 	keyString := string(key)
 	overlayed, has := oc.changes.Get(keyString)
 	if !has {
-		overlayed = NewOverlayedEntry[StorageEntry]()
+		overlayed = NewOverlayedEntry[storageEntry]()
 	}
 
 	firstWriteInTx := oc.dirtyKeys.insertDirty(keyString)
@@ -104,9 +104,9 @@ func (oc *OverlayedChangeSet) AppendStorage(
 }
 
 // Returns an iterator over all changes that follow the supplied `key`.
-func (oc *OverlayedChangeSet) ChangesAfter(key StorageKey) iter.Seq2[StorageKey, *OverlayedValue] {
-	return func(yield func(StorageKey, *OverlayedValue) bool) {
-		oc.changes.Scan(func(k string, v *OverlayedValue) bool {
+func (oc *overlayedChangeSet) ChangesAfter(key StorageKey) iter.Seq2[StorageKey, *overlayedValue] {
+	return func(yield func(StorageKey, *overlayedValue) bool) {
+		oc.changes.Scan(func(k string, v *overlayedValue) bool {
 			if k > string(key) && !yield([]byte(k), v) {
 				return false
 			}
@@ -117,14 +117,14 @@ func (oc *OverlayedChangeSet) ChangesAfter(key StorageKey) iter.Seq2[StorageKey,
 
 // Set all values to deleted which are matched by the predicate.
 // Can be rolled back or committed when called inside a transaction.
-func (oc *OverlayedChangeSet) ClearWhere(predicate func([]byte, *OverlayedValue) bool, atExtrinsic *uint32) {
+func (oc *overlayedChangeSet) ClearWhere(predicate func([]byte, *overlayedValue) bool, atExtrinsic *uint32) {
 	count := 0
 	for k, v := range oc.Changes() {
 		if predicate([]byte(k), v) {
 			v.Set(nil, oc.dirtyKeys.insertDirty(k), atExtrinsic)
 			if v != nil {
 				switch any(*v).(type) {
-				case AppendStorageEntry, SetStorageEntry:
+				case appendStorageEntry, setStorageEntry:
 					count++
 				}
 			}
@@ -135,12 +135,12 @@ func (oc *OverlayedChangeSet) ClearWhere(predicate func([]byte, *OverlayedValue)
 // Call this when control returns from the runtime.
 // This rollbacks all dangling transaction left open by the runtime.
 // Calling this while already outside the runtime will return an error.
-func (oc *OverlayedChangeSet) ExitRuntime() error {
-	if oc.executionMode != ExecutionModeRuntime {
+func (oc *overlayedChangeSet) ExitRuntime() error {
+	if oc.executionMode != executionModeRuntime {
 		return errorNotInRuntime
 	}
 
-	oc.executionMode = ExecutionModeClient
+	oc.executionMode = executionModeClient
 	if oc.HasOpenRuntimeTransactions() {
 		logger.Warnf("%d storage transactions are left open by the runtime. Those will be rolled back.",
 			oc.TransactionDepth()-oc.numClientTransactions)
@@ -158,20 +158,20 @@ func (oc *OverlayedChangeSet) ExitRuntime() error {
 // Rollback the last transaction started by `start_transaction`.
 // Any changes made during that transaction are discarded. Returns an error if
 // there is no open transaction that can be rolled back.
-func (oc *OverlayedChangeSet) RollbackTransaction() error {
+func (oc *overlayedChangeSet) RollbackTransaction() error {
 	return oc.closeTransaction(true)
 }
 
 // Commit the last transaction started by `start_transaction`.
 // Any changes made during that transaction are committed. Returns an error if
 // there is no open transaction that can be committed.
-func (oc *OverlayedChangeSet) CommitTransaction() error {
+func (oc *overlayedChangeSet) CommitTransaction() error {
 	return oc.closeTransaction(false)
 }
 
 // Internal method to close the transaction and either commit or roll back the changes.
-func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
-	if oc.executionMode == ExecutionModeRuntime && !oc.HasOpenRuntimeTransactions() {
+func (oc *overlayedChangeSet) closeTransaction(rollback bool) error {
+	if oc.executionMode == executionModeRuntime && !oc.HasOpenRuntimeTransactions() {
 		return errorNoOpenTransaction
 	}
 
@@ -193,7 +193,7 @@ func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
 		if rollback {
 			lastTx := overlayed.PopTransaction().value
 			switch entry := lastTx.(type) {
-			case *AppendStorageEntry:
+			case *appendStorageEntry:
 				if entry.parentSize != nil {
 					if len(overlayed.transactions) == 0 {
 						panic("AppendStorageEntry should have transactions")
@@ -226,9 +226,9 @@ func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
 				commitedTx := overlayed.PopTransaction()
 				mergeAppends := false
 
-				if entry, ok := commitedTx.value.(*AppendStorageEntry); ok && entry.parentSize != nil {
+				if entry, ok := commitedTx.value.(*appendStorageEntry); ok && entry.parentSize != nil {
 					parent := *overlayed.ValueRef()
-					if parentEntry, ok := any(parent).(*AppendStorageEntry); ok {
+					if parentEntry, ok := any(parent).(*appendStorageEntry); ok {
 						mergeAppends = true
 						*entry.parentSize = *parentEntry.parentSize
 					}
@@ -241,7 +241,7 @@ func (oc *OverlayedChangeSet) closeTransaction(rollback bool) error {
 					removed := *overlayed.ValueRef()
 					*overlayed.ValueRef() = commitedTx.value
 
-					if entry, ok := removed.(*AppendStorageEntry); ok {
+					if entry, ok := removed.(*appendStorageEntry); ok {
 						if entry.parentSize != nil {
 							transactions := len(overlayed.transactions)
 
