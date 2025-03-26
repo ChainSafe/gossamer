@@ -6,7 +6,6 @@ package statemachine
 import (
 	"bytes"
 	"iter"
-	"maps"
 	"slices"
 	"strings"
 	"testing"
@@ -36,12 +35,7 @@ func extrinsic(value uint32) *uint32 {
 func assertChanges(t *testing.T, is *overlayedChangeSet, expected Changes) {
 	var changes Changes
 	for k, v := range is.Changes() {
-		extrinsics := slices.Collect(maps.Keys(v.Extrinsics()))
-		slices.Sort(extrinsics)
-		if extrinsics == nil {
-			extrinsics = []uint32{}
-		}
-
+		extrinsics := v.Extrinsics().Keys()
 		changes = append(changes, ChangesValue{k, v.StorageValue(), extrinsics})
 	}
 

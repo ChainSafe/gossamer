@@ -3,7 +3,11 @@
 
 package statemachine
 
-import "math"
+import (
+	"math"
+
+	"github.com/tidwall/btree"
+)
 
 const proofOverlayNonEmpty = `
 An OverlayValue is always created with at least one transaction and dropped as soon
@@ -35,14 +39,16 @@ func (oe *OverlayedEntry[V]) StorageValue() StorageValue {
 	return any(*oe.ValueRef()).(storageEntry).value()
 }
 
-func (oe *OverlayedEntry[V]) Extrinsics() map[uint32]struct{} {
-	set := make(map[uint32]struct{}, 0)
+func (oe *OverlayedEntry[V]) Extrinsics() *btree.Set[uint32] {
+	set := btree.Set[uint32]{}
 
 	for _, t := range oe.transactions {
-		t.extrinsics.copyExtrinsicsInto(set)
+		for _, ex := range t.extrinsics {
+			set.Insert(ex)
+		}
 	}
 
-	return set
+	return &set
 }
 
 func (oe *OverlayedEntry[V]) PopTransaction() transaction[V] {

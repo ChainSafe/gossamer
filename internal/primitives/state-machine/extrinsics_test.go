@@ -9,19 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCopyExtrinsicsInto(t *testing.T) {
-	set := map[uint32]struct{}{}
-
-	ext := extrinsics{1, 2, 3}
-	ext.copyExtrinsicsInto(set)
-
-	require.Equal(t, 3, len(set))
-
-	for _, ext := range ext {
-		require.NotNil(t, set[ext])
-	}
-}
-
 func TestInsertExtrinsic(t *testing.T) {
 	ext := extrinsics{1, 2, 3}
 	ext.insert(4)
