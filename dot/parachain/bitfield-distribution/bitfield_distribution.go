@@ -257,17 +257,17 @@ func (b *BitfieldDistribution) processPeerDisconnectedSignal(signal networkbridg
 }
 
 func (b *BitfieldDistribution) processNewGossipTopologySignal(signal networkbridgeevents.NewGossipTopology) error {
-	//TODO implement me
+	//TODO implement in #4357
 	panic("implement me")
 }
 
 func (b *BitfieldDistribution) processPeerViewChangeSignal(signal networkbridgeevents.PeerViewChange) error {
-	//TODO implement me
+	//TODO implement in #4358
 	panic("implement me")
 }
 
 func (b *BitfieldDistribution) processOurViewChangeSignal(signal networkbridgeevents.OurViewChange) error {
-	//TODO implement me
+	//TODO implement in #4359
 	panic("implement me")
 }
 
@@ -412,12 +412,12 @@ func (b *BitfieldDistribution) processPeerMessageSignal(signal networkbridgeeven
 }
 
 func (b *BitfieldDistribution) processUpdatedAuthorityIDsSignal(signal networkbridgeevents.UpdatedAuthorityIDs) error {
-	//TODO implement me
+	//TODO implement in #4360
 	panic("implement me")
 }
 
 func (b *BitfieldDistribution) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
-	//TODO implement me
+	//TODO implement in #4361
 	panic("implement me")
 }
 
