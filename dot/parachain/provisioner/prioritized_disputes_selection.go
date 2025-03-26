@@ -44,6 +44,7 @@ func SelectDisputes(
 ) parachaintypes.MultiDisputeStatementSet {
 	onchain, err := getOnchainDisputes(blockState, leaf.Hash)
 	if err != nil {
+		logger.Warnf("getting on chain disputes: %s", err.Error())
 		// Here we log the error and continue with an empty onchain set.
 		onchain = make(map[parachaintypes.DisputeKey]parachaintypes.DisputeState)
 	}
@@ -184,7 +185,6 @@ func voteSelection(
 
 					if !isVoteWorthToKeep(validatorIdx, *invalidDisputeStatement, onchainState) {
 						validatorIdxToRemove = append(validatorIdxToRemove, validatorIdx)
-						// votes.Valid.Delete(validatorIdx)
 					}
 					return true
 				},
@@ -501,7 +501,7 @@ func requestDisputes(overseerChan chan<- any) ([]disputemessages.RecentDispute, 
 func newMultiDisputeStatementSet(
 	voteResults []voteSelectionResult,
 ) parachaintypes.MultiDisputeStatementSet {
-	diputeStmts := make(parachaintypes.MultiDisputeStatementSet, 0)
+	disputeStmts := make(parachaintypes.MultiDisputeStatementSet, 0)
 
 	for _, res := range voteResults {
 		sessionIndex := res.key.SessionIndex
@@ -554,14 +554,14 @@ func newMultiDisputeStatementSet(
 			},
 		)
 
-		diputeStmts = append(diputeStmts, parachaintypes.DisputeStatementSet{
+		disputeStmts = append(disputeStmts, parachaintypes.DisputeStatementSet{
 			Session:       sessionIndex,
 			CandidateHash: candidateHash,
 			Statements:    statements,
 		})
 	}
 
-	return diputeStmts
+	return disputeStmts
 }
 
 // containsOnchain checks if the onchain disputes map has a dispute with the given session index and candidate hash.

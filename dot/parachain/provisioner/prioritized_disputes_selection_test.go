@@ -709,7 +709,7 @@ func (td *TestDisputes) addUnconfirmedDisputesUnconcludedOnchain(
 	return sessionIdx, diff
 }
 
-func (td *TestDisputes) addConfirmedDisputesUnkonwOnChain(
+func (td *TestDisputes) addConfirmedDisputesUnkonwnOnChain(
 	t *testing.T,
 	disputeCount int,
 ) (parachaintypes.SessionIndex, int) {
@@ -929,7 +929,7 @@ func TestNormalFlow(t *testing.T) {
 	_, _ = input.addConcludedDisputesKnownOnchain(t, disputesPerBatch)
 
 	// confirmed disputes unknown onchain
-	secondIdx, secondVotes := input.addConfirmedDisputesUnkonwOnChain(t, disputesPerBatch)
+	secondIdx, secondVotes := input.addConfirmedDisputesUnkonwnOnChain(t, disputesPerBatch)
 	fmt.Println(secondIdx, secondVotes)
 
 	voteQueries := 0
@@ -1016,7 +1016,7 @@ func TestManyBatches(t *testing.T) {
 	input.addConcludedDisputesKnownOnchain(t, disputesPerPartition)
 
 	// confirmed disputes unknown onchain
-	input.addConfirmedDisputesUnkonwOnChain(t, disputesPerPartition)
+	input.addConfirmedDisputesUnkonwnOnChain(t, disputesPerPartition)
 
 	voteQueries := 0
 	overseerCh := make(chan any, 1)
@@ -1095,7 +1095,7 @@ func TestVotesAboveLimit(t *testing.T) {
 	require.LessOrEqual(t, voteQueries, acceptableRuntimeVotesQueriesCount)
 }
 
-func TestUnconfirmedAreHandleCorrectly(t *testing.T) {
+func TestUnconfirmedAreHandledCorrectly(t *testing.T) {
 	const (
 		validatorCount       = 10
 		disputesPerPartition = 50
