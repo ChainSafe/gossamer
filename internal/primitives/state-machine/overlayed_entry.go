@@ -46,7 +46,7 @@ func (oe *OverlayedEntry[V]) Extrinsics() map[uint32]struct{} {
 	set := make(map[uint32]struct{}, 0)
 
 	for _, t := range oe.transactions {
-		t.extrinsics.CopyExtrinsicsInto(set)
+		t.extrinsics.copyExtrinsicsInto(set)
 	}
 
 	return set
@@ -82,7 +82,7 @@ func (oe *OverlayedEntry[V]) SetOffchain(value V, firstWriteInTx bool, atExtrins
 	}
 
 	if atExtrinsic != nil {
-		oe.TransactionExtrinsics().Insert(*atExtrinsic)
+		oe.TransactionExtrinsics().insert(*atExtrinsic)
 	}
 }
 
@@ -146,7 +146,7 @@ func (oe *OverlayedEntry[V]) Set(value StorageValue, firstWriteInTx bool, atExtr
 	}
 
 	if atExtrinsic != nil {
-		oe.TransactionExtrinsics().Insert(*atExtrinsic)
+		oe.TransactionExtrinsics().insert(*atExtrinsic)
 	}
 }
 
@@ -284,7 +284,7 @@ func (oe *OverlayedEntry[V]) Append(
 		}
 	}
 	if atExtrinsic != nil {
-		oe.TransactionExtrinsics().Insert(*atExtrinsic)
+		oe.TransactionExtrinsics().insert(*atExtrinsic)
 	}
 }
 

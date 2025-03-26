@@ -260,7 +260,7 @@ func (oc *overlayedChangeSet) closeTransaction(rollback bool) error {
 					}
 				}
 
-				overlayed.TransactionExtrinsics().Extend(commitedTx.extrinsics)
+				overlayed.TransactionExtrinsics().extend(commitedTx.extrinsics)
 			}
 		}
 
