@@ -64,7 +64,7 @@ func TestValidDisputeStatementKind(t *testing.T) {
 				0x0,
 				0x0,
 				0x0,
-			}, //nolint:lll
+			},
 		},
 		{
 			name:      "BackingValid",
@@ -103,8 +103,7 @@ func TestValidDisputeStatementKind(t *testing.T) {
 				0x0,
 				0x0,
 				0x0,
-			}, //nolint:lll
-
+			},
 		},
 		{
 			name:          "ApprovalChecking",
@@ -254,8 +253,7 @@ func TestDisputeStatement(t *testing.T) {
 				0x0,
 				0x0,
 				0x0,
-			}, //nolint:lll
-
+			},
 		},
 		{
 			name: "Invalid_Explicit",
@@ -373,7 +371,7 @@ func TestValidityAttestation(t *testing.T) {
 				0x0,
 				0x0,
 				0x0,
-			}, //nolint:lll
+			},
 		},
 		{
 			name:      "Explicit",
@@ -444,7 +442,7 @@ func TestValidityAttestation(t *testing.T) {
 				0x0,
 				0x0,
 				0x0,
-			}, //nolint:lll
+			},
 		},
 	}
 
@@ -577,7 +575,7 @@ func TestParachainInherents(t *testing.T) {
 		253,
 		124,
 		0,
-	} //nolint:lll
+	}
 	expectedInherentsBytes := []byte{
 		4,
 		112,
@@ -692,7 +690,7 @@ func TestParachainInherents(t *testing.T) {
 		253,
 		124,
 		0,
-	} //nolint:lll
+	}
 
 	// corresponding rust struct
 	// ----------------------------------------

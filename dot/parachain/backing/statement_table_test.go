@@ -301,8 +301,9 @@ func TestStatementTable_importCandidate(t *testing.T) {
 	var signature parachaintypes.ValidatorSignature
 
 	tempSignature := common.MustHexToBytes(
-		"0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86",
-	) //nolint:lll
+		"0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf4864" +
+			"75e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86",
+	)
 	copy(signature[:], tempSignature)
 
 	statementSeconded := parachaintypes.NewStatementVDT()
@@ -452,8 +453,9 @@ func TestStatementTable_validityVote(t *testing.T) {
 
 	var validatorSign parachaintypes.ValidatorSignature
 	tempSignature := common.MustHexToBytes(
-		"0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86",
-	) //nolint:lll
+		"0xc67cb93bf0a36fcee3d29de8a6a69a759659680ac" +
+			"f486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86",
+	)
 	copy(validatorSign[:], tempSignature)
 
 	oldSign := parachaintypes.ValidatorSignature{}
@@ -675,8 +677,9 @@ func TestStatementTable_drainMisbehaviors(t *testing.T) {
 
 	var validatorSign parachaintypes.ValidatorSignature
 	tempSignature := common.MustHexToBytes(
-		"0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86",
-	) //nolint:lll
+		"0xc67cb93bf0a36fcee3d29de8a6a69a759659680a" +
+			"cf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86",
+	)
 	copy(validatorSign[:], tempSignature)
 
 	oldSign := parachaintypes.ValidatorSignature{}
