@@ -131,6 +131,8 @@ type StorageTransactionCache[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	transactionStorageRoot H
 }
 
+// The set of changes that are overlaid onto the backend.
+// It allows changes to be modified using nestable transactions.
 type OverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	// Top level storage changes.
 	top OverlayedChangeSet
@@ -217,17 +219,14 @@ func (oc *OverlayedChanges[H, Hasher]) ChildStorage(childInfo ChildInfo, key *st
 		return nil, false
 	}
 
-	value := entry.OverlayedChangeSet.Get(*key).ValueRef()
+	value := entry.OverlayedChangeSet.Get(*key).StorageValue()
 	if value == nil {
 		oc.stats.TallyReadModified(0)
 		return nil, true
 	}
 
-	//oc.stats.TallyReadModified(uint64(len(*value)))
-	//return *value, true
-
-	panic("TODO")
-
+	oc.stats.TallyReadModified(uint64(len(value)))
+	return value, true
 }
 
 func (oc *OverlayedChanges[H, Hasher]) SetStorage(key StorageKey, value StorageValue) {
