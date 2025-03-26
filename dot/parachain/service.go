@@ -102,6 +102,7 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 		overseer.GetSubsystemToOverseerChannel(),
 		net,
 		st.Block,
+		nil, // TODO pass session cache instance (#4494)
 	)
 	overseer.RegisterSubsystem(availabilityDistributionSubsystem)
 

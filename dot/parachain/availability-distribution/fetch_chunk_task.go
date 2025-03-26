@@ -11,26 +11,37 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-type taskTerminationReason uint
+type taskTerminationReason interface {
+	isTaskTerminationReason()
+}
 
-const (
-	taskSucceeded taskTerminationReason = iota
-	taskFailed
-	taskCancelled
-)
+type taskSucceeded struct {
+	sessionIndex  parachaintypes.SessionIndex
+	groupIndex    parachaintypes.GroupIndex
+	badValidators []parachaintypes.AuthorityDiscoveryID
+}
+
+func (taskSucceeded) isTaskTerminationReason() {}
+
+type taskFailed struct{}
+
+func (taskFailed) isTaskTerminationReason() {}
+
+type taskCancelled struct{}
+
+func (taskCancelled) isTaskTerminationReason() {}
 
 type taskTerminationHandler func(
 	candidateHash parachaintypes.CandidateHash,
 	reason taskTerminationReason,
-	badValidators []parachaintypes.AuthorityDiscoveryID,
 )
 
 type fetchChunkTask struct {
-	chunkIndex uint32
-	ourIndex   parachaintypes.ValidatorIndex
-	core       *parachaintypes.OccupiedCore
-	group      []parachaintypes.AuthorityDiscoveryID
-	overseerCh chan<- any
+	chunkIndex    uint32
+	sessionInfo   *SessionInfo
+	core          *parachaintypes.OccupiedCore
+	overseerCh    chan<- any
+	onTermination taskTerminationHandler
 
 	// Set of relay chain block hashes for which the candidate associated with the given core is pending availability.
 	//
@@ -43,8 +54,6 @@ type fetchChunkTask struct {
 	// List of validators that did not have the requested chunk or sent invalid data.
 	badValidators []parachaintypes.AuthorityDiscoveryID
 
-	onTermination taskTerminationHandler
-
 	ctx    context.Context
 	cancel context.CancelFunc
 }
@@ -52,9 +61,8 @@ type fetchChunkTask struct {
 func newFetchChunkTask(
 	leaf common.Hash,
 	chunkIndex uint32,
-	ourIndex parachaintypes.ValidatorIndex,
+	sessionInfo *SessionInfo,
 	core *parachaintypes.OccupiedCore,
-	group []parachaintypes.AuthorityDiscoveryID,
 	overseerCh chan<- any,
 	onTermination taskTerminationHandler,
 ) *fetchChunkTask {
@@ -63,9 +71,8 @@ func newFetchChunkTask(
 	return &fetchChunkTask{
 		liveIn:        map[common.Hash]struct{}{leaf: {}},
 		chunkIndex:    chunkIndex,
-		ourIndex:      ourIndex,
+		sessionInfo:   sessionInfo,
 		core:          core,
-		group:         group,
 		overseerCh:    overseerCh,
 		onTermination: onTermination,
 		badValidators: make([]parachaintypes.AuthorityDiscoveryID, 0),
@@ -75,20 +82,22 @@ func newFetchChunkTask(
 }
 
 func (t *fetchChunkTask) run() {
+	group := t.sessionInfo.ValidatorGroups[t.core.GroupResponsible]
+
 	// Try validators in reverse order
-	for i := len(t.group) - 1; i >= 0; i-- {
+	for i := len(group) - 1; i >= 0; i-- {
 		if t.isCancelled() {
-			t.cleanup(taskCancelled)
+			t.cleanup(taskCancelled{})
 			return
 		}
 
-		authorityID := t.group[i]
+		authorityID := group[i]
 
 		request := networkbridgemessages.NewOutgoingRequest(
 			authorityID,
 			&networkbridgemessages.ChunkFetchingRequest{
 				CandidateHash: parachaintypes.CandidateHash{Value: t.core.CandidateHash},
-				Index:         t.ourIndex,
+				Index:         t.sessionInfo.OurIndex,
 			})
 
 		sendRequests := networkbridgemessages.SendRequests{
@@ -102,7 +111,7 @@ func (t *fetchChunkTask) run() {
 		select {
 		case <-t.ctx.Done():
 			request.Cancel()
-			t.cleanup(taskCancelled)
+			t.cleanup(taskCancelled{})
 			return
 		case result = <-request.Result:
 		}
@@ -117,12 +126,18 @@ func (t *fetchChunkTask) run() {
 			CandidateHash: parachaintypes.CandidateHash{Value: t.core.CandidateHash},
 			Chunk:         chunk,
 		}
-		t.cleanup(taskSucceeded)
+
+		t.cleanup(taskSucceeded{
+			sessionIndex:  t.sessionInfo.SessionIndex,
+			groupIndex:    t.core.GroupResponsible,
+			badValidators: t.badValidators,
+		})
+
 		return
 	}
 
 	// None of the requested validators were able to provide the chunk.
-	t.cleanup(taskFailed)
+	t.cleanup(taskFailed{})
 }
 
 func (t *fetchChunkTask) extractChunk(
@@ -168,7 +183,6 @@ func (t *fetchChunkTask) validateChunk(chunk availabilitystore.ErasureChunk) boo
 	return true // TODO check the proof against erasure root (blocked by #4597)
 }
 
-//nolint:unused
 func (t *fetchChunkTask) addLeaf(leaf common.Hash) {
 	t.mu.Lock()
 	t.liveIn[leaf] = struct{}{}
@@ -194,10 +208,16 @@ func (t *fetchChunkTask) cleanup(reason taskTerminationReason) {
 	t.cancel()
 
 	if t.onTermination != nil {
-		t.onTermination(parachaintypes.CandidateHash{Value: t.core.CandidateHash}, reason, t.badValidators)
+		t.onTermination(parachaintypes.CandidateHash{Value: t.core.CandidateHash}, reason)
 	}
 }
 
 func (t *fetchChunkTask) isCancelled() bool {
 	return t.ctx.Err() != nil
+}
+
+func (t *fetchChunkTask) isLive() bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return len(t.liveIn) > 0
 }

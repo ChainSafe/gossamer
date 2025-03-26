@@ -29,13 +29,23 @@ func TestFetchChunkTask(t *testing.T) {
 			CandidateDescriptor: parachaintypes.CandidateDescriptor{
 				ErasureRoot: common.MustHexToHash("0xABCD"),
 			},
+			GroupResponsible: parachaintypes.GroupIndex(0),
 		}
 		expectedCandidateHash = parachaintypes.CandidateHash{Value: core.CandidateHash}
 
 		validator1 = parachaintypes.AuthorityDiscoveryID{1}
 		validator2 = parachaintypes.AuthorityDiscoveryID{2}
 		validator3 = parachaintypes.AuthorityDiscoveryID{3}
-		group      = []parachaintypes.AuthorityDiscoveryID{validator1, validator2, validator3}
+
+		sessionInfo = &SessionInfo{
+			SessionIndex: parachaintypes.SessionIndex(1),
+			ValidatorGroups: [][]parachaintypes.AuthorityDiscoveryID{
+				{validator1, validator2, validator3},
+			},
+			OurIndex: ourIndex,
+		}
+
+		group = sessionInfo.ValidatorGroups[core.GroupResponsible]
 	)
 
 	setup := func(t *testing.T, onTermination taskTerminationHandler) {
@@ -44,9 +54,8 @@ func TestFetchChunkTask(t *testing.T) {
 		task = newFetchChunkTask(
 			leaf,
 			chunkIndex,
-			ourIndex,
+			sessionInfo,
 			core,
-			group,
 			overseerCh,
 			onTermination,
 		)
@@ -78,11 +87,11 @@ func TestFetchChunkTask(t *testing.T) {
 		setup(t, func(
 			candidateHash parachaintypes.CandidateHash,
 			reason taskTerminationReason,
-			badValidators []parachaintypes.AuthorityDiscoveryID,
 		) {
 			require.Equal(t, expectedCandidateHash, candidateHash)
-			require.Equal(t, taskSucceeded, reason)
-			require.Equal(t, badValidators, []parachaintypes.AuthorityDiscoveryID{validator3, validator2})
+			success, ok := reason.(taskSucceeded)
+			require.True(t, ok)
+			require.Equal(t, success.badValidators, []parachaintypes.AuthorityDiscoveryID{validator3, validator2})
 		})
 
 		wg := sync.WaitGroup{}
@@ -159,11 +168,9 @@ func TestFetchChunkTask(t *testing.T) {
 		setup(t, func(
 			candidateHash parachaintypes.CandidateHash,
 			reason taskTerminationReason,
-			badValidators []parachaintypes.AuthorityDiscoveryID,
 		) {
 			require.Equal(t, expectedCandidateHash, candidateHash)
-			require.Equal(t, taskFailed, reason)
-			require.Equal(t, badValidators, []parachaintypes.AuthorityDiscoveryID{validator3, validator2, validator1})
+			require.Equal(t, taskFailed{}, reason)
 		})
 
 		wg := sync.WaitGroup{}
@@ -199,11 +206,9 @@ func TestFetchChunkTask(t *testing.T) {
 		setup(t, func(
 			candidateHash parachaintypes.CandidateHash,
 			reason taskTerminationReason,
-			badValidators []parachaintypes.AuthorityDiscoveryID,
 		) {
 			require.Equal(t, expectedCandidateHash, candidateHash)
-			require.Equal(t, taskCancelled, reason)
-			require.Empty(t, badValidators)
+			require.Equal(t, taskCancelled{}, reason)
 		})
 
 		wg := sync.WaitGroup{}
@@ -241,11 +246,9 @@ func TestFetchChunkTask(t *testing.T) {
 		setup(t, func(
 			candidateHash parachaintypes.CandidateHash,
 			reason taskTerminationReason,
-			badValidators []parachaintypes.AuthorityDiscoveryID,
 		) {
 			require.Equal(t, expectedCandidateHash, candidateHash)
-			require.Equal(t, taskCancelled, reason)
-			require.Empty(t, badValidators)
+			require.Equal(t, taskCancelled{}, reason)
 		})
 
 		wg := sync.WaitGroup{}
