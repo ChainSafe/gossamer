@@ -172,7 +172,10 @@ func generateBitvec(t *testing.T, validatorCount, startIdx, count int) parachain
 	for i := startIdx; i < startIdx+count; i++ {
 		bits[i] = true
 	}
-	return parachaintypes.NewBitVec(bits)
+
+	bv, err := parachaintypes.NewBitVec(bits)
+	require.NoError(t, err)
+	return bv
 }
 
 func TestShouldKeepVoteBehaves(t *testing.T) {
@@ -628,9 +631,12 @@ func (td *TestDisputes) addOnchainDispute(
 		CandidateHash: candidate,
 	}
 
+	bv, err := parachaintypes.NewBitVec(make([]bool, td.ValidatorsCount))
+	require.NoError(t, err)
+
 	td.OnchainDisputes[key] = parachaintypes.DisputeState{
 		ValidatorsFor:     generateBitvec(t, td.ValidatorsCount, 0, onchainVotesCount),
-		ValidatorsAgainst: parachaintypes.NewBitVec(make([]bool, td.ValidatorsCount)),
+		ValidatorsAgainst: bv,
 		Start:             1,
 		ConcludedAt:       concludedAt,
 	}
@@ -734,7 +740,7 @@ func (td *TestDisputes) addConfirmedDisputesUnkonwOnChain(
 func (td *TestDisputes) addConcludedDisputesKnownOnchain(
 	t *testing.T,
 	disputeCount int,
-) (parachaintypes.SessionIndex, int) {
+) (parachaintypes.SessionIndex, int) { //nolint:unparam
 	localVotesCount := td.ValidatorsCount * 90 / 100
 	onchainVotesCount := td.ValidatorsCount * 75 / 100
 	sessionIdx := parachaintypes.SessionIndex(3)

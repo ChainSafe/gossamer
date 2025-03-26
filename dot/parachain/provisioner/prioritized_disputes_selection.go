@@ -32,7 +32,7 @@ type BlockState interface {
 // Provisioner fetches all disputes from `dispute-coordinator` and separates them in multiple
 // partitions. Please refer to `struct PartitionedDisputes` for details.
 //
-// Besides the prioritization described above the votes in each partition are filtered too.
+// Besides the prioritisation described above the votes in each partition are filtered too.
 // Provisioner fetches all onchain votes and filters them out from all partitions. As a result the
 // Runtime receives only fresh votes
 func SelectDisputes(
@@ -69,7 +69,7 @@ func SelectDisputes(
 		voteResults = []voteSelectionResult{}
 	}
 
-	return makeMultiDisputeStatementSet(voteResults)
+	return newMultiDisputeStatementSet(voteResults)
 }
 
 type voteSelectionResult struct {
@@ -129,7 +129,9 @@ func voteSelection(
 			validatorIdxToRemove := make([]parachaintypes.ValidatorIndex, 0)
 			votes.Valid.Ascend(
 				parachaintypes.ValidatorIndex(0),
-				func(validatorIdx parachaintypes.ValidatorIndex, vote parachaintypes.Vote[parachaintypes.ValidDisputeStatementKind]) bool {
+				func(validatorIdx parachaintypes.ValidatorIndex,
+					vote parachaintypes.Vote[parachaintypes.ValidDisputeStatementKind],
+				) bool {
 					validDisputeStatement := &parachaintypes.DisputeStatement{}
 					err := validDisputeStatement.SetValue(parachaintypes.ValidDisputeStatement{
 						Kind: vote.Kind,
@@ -163,7 +165,9 @@ func voteSelection(
 			validatorIdxToRemove = make([]parachaintypes.ValidatorIndex, 0)
 			votes.Invalid.Ascend(
 				parachaintypes.ValidatorIndex(0),
-				func(validatorIdx parachaintypes.ValidatorIndex, vote parachaintypes.Vote[parachaintypes.InvalidDisputeStatementKind]) bool {
+				func(validatorIdx parachaintypes.ValidatorIndex,
+					vote parachaintypes.Vote[parachaintypes.InvalidDisputeStatementKind],
+				) bool {
 					invalidDisputeStatement := &parachaintypes.DisputeStatement{}
 					err := invalidDisputeStatement.SetValue(parachaintypes.InvalidDisputeStatement{
 						Kind: vote.Kind,
@@ -215,7 +219,11 @@ func voteSelection(
 				return sortVoteSelectionResults(result), nil
 			}
 
-			result[parachaintypes.DisputeKey{SessionIndex: sessionIndex, CandidateHash: candidateHash}] = selectedVotes
+			key := parachaintypes.DisputeKey{
+				SessionIndex:  sessionIndex,
+				CandidateHash: candidateHash,
+			}
+			result[key] = selectedVotes
 			totalVotesLen += votesLen
 		}
 	}
@@ -278,7 +286,7 @@ type partitionedDisputes struct {
 }
 
 // orderedPartitions returns an array of partitions in the order they should be processed.
-func (pd partitionedDisputes) orderedPartitions() []parachaintypes.DisputeKey { //nolint
+func (pd partitionedDisputes) orderedPartitions() []parachaintypes.DisputeKey {
 	seqToIterate := [][]parachaintypes.DisputeKey{
 		pd.inactiveUnknownOnchain,
 		pd.inactiveUnconcludedOnchain,
@@ -429,7 +437,7 @@ func isVoteWorthToKeep(
 // getOnchainDisputes gets the on-chain disputes at a given block number and returns them as a map
 // for efficient searching. It takes a relay parent hash and returns a map of session index and
 // candidate hash tuples to dispute states.
-func getOnchainDisputes( //nolint
+func getOnchainDisputes(
 	blockstate BlockState,
 	relayParent common.Hash,
 ) (map[parachaintypes.DisputeKey]parachaintypes.DisputeState, error) {
@@ -448,7 +456,7 @@ func getOnchainDisputes( //nolint
 
 // requestVotes requests the relevant dispute statements for a set of disputes identified
 // by CandidateHash and SessionIndex.
-func requestVotes(overseerChan chan<- any, disputesToQuery []parachaintypes.DisputeKey) ( //nolint
+func requestVotes(overseerChan chan<- any, disputesToQuery []parachaintypes.DisputeKey) (
 	[]disputemessages.CandidateVotesResponse, error,
 ) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -470,7 +478,7 @@ func requestVotes(overseerChan chan<- any, disputesToQuery []parachaintypes.Disp
 	}
 }
 
-func requestDisputes(overseerChan chan<- any) ([]disputemessages.RecentDispute, error) { //nolint
+func requestDisputes(overseerChan chan<- any) ([]disputemessages.RecentDispute, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -489,8 +497,8 @@ func requestDisputes(overseerChan chan<- any) ([]disputemessages.RecentDispute, 
 	}
 }
 
-// makeMultiDisputeStatementSet converts vote selection results into a MultiDisputeStatementSet.
-func makeMultiDisputeStatementSet(
+// newMultiDisputeStatementSet converts vote selection results into a MultiDisputeStatementSet.
+func newMultiDisputeStatementSet(
 	voteResults []voteSelectionResult,
 ) parachaintypes.MultiDisputeStatementSet {
 	diputeStmts := make(parachaintypes.MultiDisputeStatementSet, 0)
@@ -504,11 +512,16 @@ func makeMultiDisputeStatementSet(
 
 		votes.Valid.Ascend(
 			parachaintypes.ValidatorIndex(0),
-			func(validatorIdx parachaintypes.ValidatorIndex, vote parachaintypes.Vote[parachaintypes.ValidDisputeStatementKind]) bool {
+			func(validatorIdx parachaintypes.ValidatorIndex,
+				vote parachaintypes.Vote[parachaintypes.ValidDisputeStatementKind],
+			) bool {
 				validStmt := new(parachaintypes.DisputeStatement)
-				validStmt.SetValue(parachaintypes.ValidDisputeStatement{
+				err := validStmt.SetValue(parachaintypes.ValidDisputeStatement{
 					Kind: vote.Kind,
 				})
+				if err != nil {
+					panic(fmt.Sprintf("unexpected set value fail: %s", err.Error()))
+				}
 
 				statements = append(statements, parachaintypes.DisputeStatementEntry{
 					Index:     validatorIdx,
@@ -521,11 +534,16 @@ func makeMultiDisputeStatementSet(
 
 		votes.Invalid.Ascend(
 			parachaintypes.ValidatorIndex(0),
-			func(validatorIdx parachaintypes.ValidatorIndex, vote parachaintypes.Vote[parachaintypes.InvalidDisputeStatementKind]) bool {
+			func(validatorIdx parachaintypes.ValidatorIndex,
+				vote parachaintypes.Vote[parachaintypes.InvalidDisputeStatementKind],
+			) bool {
 				invalidStmt := new(parachaintypes.DisputeStatement)
-				invalidStmt.SetValue(parachaintypes.InvalidDisputeStatement{
+				err := invalidStmt.SetValue(parachaintypes.InvalidDisputeStatement{
 					Kind: vote.Kind,
 				})
+				if err != nil {
+					panic(fmt.Sprintf("unexpected set value fail: %s", err.Error()))
+				}
 
 				statements = append(statements, parachaintypes.DisputeStatementEntry{
 					Index:     validatorIdx,
