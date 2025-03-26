@@ -106,11 +106,9 @@ func (oc *overlayedChangeSet) AppendStorage(
 // Returns an iterator over all changes that follow the supplied `key`.
 func (oc *overlayedChangeSet) ChangesAfter(key StorageKey) iter.Seq2[StorageKey, *overlayedValue] {
 	return func(yield func(StorageKey, *overlayedValue) bool) {
-		oc.changes.Scan(func(k string, v *overlayedValue) bool {
-			if k > string(key) && !yield([]byte(k), v) {
-				return false
-			}
-			return true
+		oc.changes.Ascend(string(key), func(k string, v *overlayedValue) bool {
+			// the pivot is included so we have to skip it in the resulting iterator
+			return k <= string(key) || yield([]byte(k), v)
 		})
 	}
 }
