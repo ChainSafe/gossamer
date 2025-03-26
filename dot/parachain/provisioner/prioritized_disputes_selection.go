@@ -69,8 +69,7 @@ func SelectDisputes(
 		voteResults = []voteSelectionResult{}
 	}
 
-	multi := makeMultiDisputeStatementSet(voteResults)
-	return multi
+	return makeMultiDisputeStatementSet(voteResults)
 }
 
 type voteSelectionResult struct {
