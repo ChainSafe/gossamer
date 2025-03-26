@@ -537,7 +537,7 @@ func (f *fragmentChain) bestChainLen() int {
 	return len(f.bestChain.chain)
 }
 
-func (f *fragmentChain) containsUnconnectedCandidate(candidateHash parachaintypes.CandidateHash) bool { //nolint:unused
+func (f *fragmentChain) containsUnconnectedCandidate(candidateHash parachaintypes.CandidateHash) bool {
 	_, ok := f.unconnected.byCandidateHash[candidateHash]
 	return ok
 }
@@ -551,7 +551,7 @@ func (f *fragmentChain) bestChainVec() (hashes []parachaintypes.CandidateHash) {
 	return hashes
 }
 
-func (f *fragmentChain) isCandidateBacked(hash parachaintypes.CandidateHash) bool { //nolint:unused
+func (f *fragmentChain) isCandidateBacked(hash parachaintypes.CandidateHash) bool {
 	if _, ok := f.bestChain.candidates[hash]; ok {
 		return true
 	}
@@ -668,7 +668,8 @@ type candidateAndRelayParent struct {
 // on the basis of one or more candidates which were previously pending availability
 // becoming available or candidates timing out
 func (f *fragmentChain) findBackableChain(
-	ancestors map[parachaintypes.CandidateHash]struct{}, count uint32) []*candidateAndRelayParent {
+	ancestors map[parachaintypes.CandidateHash]struct{}, count uint32,
+) []*candidateAndRelayParent {
 	if count == 0 {
 		return nil
 	}

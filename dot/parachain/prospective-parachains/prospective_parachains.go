@@ -215,7 +215,8 @@ func (pp *ProspectiveParachains) handleCandidateBacked(msg messages.CandidateBac
 		foundPara = true
 		if chain.isCandidateBacked(candidateHash) {
 			logger.Debugf(
-				"para = %s, candidateHash = %s, isActiveLeaf = %s, Received redundant instruction to mark as backed an already backed candidate",
+				"para = %s, candidateHash = %s, isActiveLeaf = %s, "+
+					"Received redundant instruction to mark as backed an already backed candidate",
 				para,
 				candidateHash,
 				isActiveLeaf,
@@ -231,8 +232,13 @@ func (pp *ProspectiveParachains) handleCandidateBacked(msg messages.CandidateBac
 				candidatedHashes = append(candidatedHashes, candidateEntry.candidateHash)
 			}
 
-			logger.Tracef("relayParent = %s, para = %s, candidateHash = %s, isActiveLeaf = %s, Candidate backed. Candidate chain for para: %v", relayParent, para, candidateHash, isActiveLeaf, chain.bestChainVec())
-			logger.Tracef("relayParent = %s, para = %s, candidateHash = %s, isActiveLeaf = %s, Potential candidate storage for para: %v", relayParent, para, candidateHash, isActiveLeaf, candidatedHashes)
+			logger.Tracef("relayParent = %s, para = %s, candidateHash = %s, "+
+				"isActiveLeaf = %s, Candidate backed. Candidate chain for para: %v",
+				relayParent, para, candidateHash, isActiveLeaf, chain.bestChainVec())
+
+			logger.Tracef("relayParent = %s, para = %s, candidateHash = %s, "+
+				"isActiveLeaf = %s, Potential candidate storage for para: %v",
+				relayParent, para, candidateHash, isActiveLeaf, candidatedHashes)
 		}
 
 		if !foundPara {
