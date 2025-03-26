@@ -6,10 +6,14 @@ package grandpa
 import (
 	"time"
 
+	"github.com/ChainSafe/gossamer/internal/client/api"
+	"github.com/ChainSafe/gossamer/internal/client/consensus"
 	"github.com/ChainSafe/gossamer/internal/client/keystore"
 	"github.com/ChainSafe/gossamer/internal/client/network"
 	"github.com/ChainSafe/gossamer/internal/client/network/role"
 	"github.com/ChainSafe/gossamer/internal/log"
+	papi "github.com/ChainSafe/gossamer/internal/primitives/api"
+	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
@@ -60,4 +64,45 @@ func (c Config) name() string {
 		return "<unknown>"
 	}
 	return *c.Name
+}
+
+// / A trait that includes all the client functionalities grandpa requires.
+// / Ideally this would be a trait alias, we're not there yet.
+// / tracking issue <https://github.com/rust-lang/rust/issues/41517>
+// pub trait ClientForGrandpa<Block, BE>:
+//
+//	LockImportRun<Block, BE>
+//	+ Finalizer<Block, BE>
+//	+ AuxStore
+//	+ HeaderMetadata<Block, Error = sp_blockchain::Error>
+//	+ HeaderBackend<Block>
+//	+ BlockchainEvents<Block>
+//	+ ProvideRuntimeApi<Block>
+//	+ ExecutorProvider<Block>
+//	+ BlockImport<Block, Transaction = TransactionFor<BE, Block>, Error = sp_consensus::Error>
+//	+ StorageProvider<Block, BE>
+//
+// where
+//
+//	BE: Backend<Block>,
+//	Block: BlockT,
+//
+// {}
+type ClientForGrandpa[
+	H runtime.Hash,
+	N runtime.Number,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+	E runtime.Extrinsic,
+] interface {
+	api.LockImportRun[H, N, Hasher, Header, E]
+	api.Finalizer[H, N, Hasher, Header, E]
+	api.AuxStore
+	blockchain.HeaderMetadata[H, N]
+	blockchain.HeaderBackend[H, N, Header]
+	api.BlockchainEvents[H, N, Header]
+	papi.ProvideRuntimeAPI
+	api.ExecutorProvider
+	consensus.BlockImport[H, N]
+	api.StorageProvider[H, N, Hasher]
 }
