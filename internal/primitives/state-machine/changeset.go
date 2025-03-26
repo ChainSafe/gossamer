@@ -7,14 +7,8 @@ import (
 	"iter"
 
 	"github.com/tidwall/btree"
+	"golang.org/x/exp/constraints"
 )
-
-// From btree.Set constraints
-type ordered interface {
-	~int | ~int8 | ~int16 | ~int32 | ~int64 |
-		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
-		~float32 | ~float64 | ~string
-}
 
 // Describes in which mode the node is currently executing.
 type ExecutionMode = uint8
@@ -27,7 +21,7 @@ const (
 )
 
 // Dirty keys are a set of keys that have been modified in each transaction.
-type DirtyKeysSets[K ordered] []btree.Set[K]
+type DirtyKeysSets[K constraints.Ordered] []btree.Set[K]
 
 // Inserts a key into the dirty set.
 // Returns true iff we currently have at least one open transaction and if this

@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/tidwall/btree"
+	"golang.org/x/exp/constraints"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "statemachine"))
@@ -18,7 +19,7 @@ var errorNotInRuntime = errors.New("not in runtime")
 var errorNoOpenTransaction = errors.New("no open transaction")
 
 // Holds a set of changes with the ability modify them using nested transactions.
-type OverlayedMap[K ordered, V any] struct {
+type OverlayedMap[K constraints.Ordered, V any] struct {
 	// Stores the changes that this overlay constitutes.
 	changes btree.Map[K, *OverlayedEntry[V]]
 	// Stores which keys are dirty per transaction. Needed in order to determine which
@@ -33,7 +34,7 @@ type OverlayedMap[K ordered, V any] struct {
 	executionMode ExecutionMode
 }
 
-func NewOverlayedMap[K ordered, V any]() OverlayedMap[K, V] {
+func NewOverlayedMap[K constraints.Ordered, V any]() OverlayedMap[K, V] {
 	return OverlayedMap[K, V]{
 		dirtyKeys:             DirtyKeysSets[K]{},
 		numClientTransactions: 0,
