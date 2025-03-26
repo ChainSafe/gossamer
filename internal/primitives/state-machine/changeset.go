@@ -6,7 +6,6 @@ package statemachine
 import (
 	"iter"
 
-	"github.com/tidwall/btree"
 	"golang.org/x/exp/constraints"
 )
 
@@ -21,7 +20,7 @@ const (
 )
 
 // Dirty keys are a set of keys that have been modified in each transaction.
-type dirtyKeysSets[K constraints.Ordered] []btree.Set[K]
+type dirtyKeysSets[K constraints.Ordered] []map[K]struct{}
 
 // Inserts a key into the dirty set.
 // Returns true iff we currently have at least one open transaction and if this
@@ -31,17 +30,18 @@ func (dks dirtyKeysSets[K]) insertDirty(key K) bool {
 		return false
 	}
 
-	last := &dks[len(dks)-1]
-	firstWrite := !last.Contains(key)
+	last := dks[len(dks)-1]
+	_, has := last[key]
+	firstWrite := !has
 
-	last.Insert(key)
+	last[key] = struct{}{}
 	return firstWrite
 }
 
 // Get the keys modified in the last transaction.
-func (dks *dirtyKeysSets[K]) Pop() (btree.Set[K], bool) {
+func (dks *dirtyKeysSets[K]) Pop() (map[K]struct{}, bool) {
 	if len(*dks) == 0 {
-		return btree.Set[K]{}, false
+		return make(map[K]struct{}), false
 	}
 
 	set := (*dks)[len(*dks)-1]
@@ -178,7 +178,7 @@ func (oc *overlayedChangeSet) closeTransaction(rollback bool) error {
 		return errorNoOpenTransaction
 	}
 
-	lastTransactions.Scan(func(key string) bool {
+	for key := range lastTransactions {
 		overlayed, has := oc.changes.GetMut(key)
 		if !has {
 			panic(`
@@ -213,9 +213,9 @@ func (oc *overlayedChangeSet) closeTransaction(rollback bool) error {
 			var hasPredecessor bool
 
 			if len(oc.dirtyKeys) > 0 {
-				last := &oc.dirtyKeys[len(oc.dirtyKeys)-1]
-				hasPredecessor = last.Contains(key)
-				last.Insert(key)
+				last := oc.dirtyKeys[len(oc.dirtyKeys)-1]
+				_, hasPredecessor = last[key]
+				last[key] = struct{}{}
 			} else {
 				hasPredecessor = len(overlayed.transactions) > 1
 			}
@@ -260,9 +260,7 @@ func (oc *overlayedChangeSet) closeTransaction(rollback bool) error {
 				overlayed.TransactionExtrinsics().extend(commitedTx.extrinsics)
 			}
 		}
-
-		return true
-	})
+	}
 
 	return nil
 }

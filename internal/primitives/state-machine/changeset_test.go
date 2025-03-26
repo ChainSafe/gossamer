@@ -12,7 +12,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
-	"github.com/tidwall/btree"
 )
 
 type ChangesValue struct {
@@ -70,22 +69,22 @@ func assertDrained(t *testing.T, is *overlayedChangeSet, expected Drained) {
 }
 
 func TestDirtyKeysSetsPop(t *testing.T) {
-	set1 := btree.Set[int]{}
-	set1.Insert(1)
-	set1.Insert(2)
-	set1.Insert(3)
+	set1 := make(map[int]struct{})
+	set1[1] = struct{}{}
+	set1[2] = struct{}{}
+	set1[3] = struct{}{}
 
-	set2 := btree.Set[int]{}
-	set2.Insert(4)
-	set2.Insert(5)
-	set2.Insert(6)
+	set2 := make(map[int]struct{})
+	set2[4] = struct{}{}
+	set2[5] = struct{}{}
+	set2[6] = struct{}{}
 
 	dirtyKeys := dirtyKeysSets[int]{
 		set1,
 		set2,
 	}
 
-	reverseSets := []btree.Set[int]{set2, set1}
+	reverseSets := []map[int]struct{}{set2, set1}
 
 	for i := 0; i < len(reverseSets); i++ {
 		last, has := dirtyKeys.Pop()

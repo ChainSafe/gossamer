@@ -151,7 +151,7 @@ func (om *OverlayedMap[K, V]) ExitRuntimeoffchain() error {
 // or `rollback_transaction` before this overlay can be converted into storage changes.
 // Changes made without any open transaction are committed immediately.
 func (om *OverlayedMap[K, V]) StartTransaction() {
-	om.dirtyKeys = append(om.dirtyKeys, btree.Set[K]{})
+	om.dirtyKeys = append(om.dirtyKeys, map[K]struct{}{})
 }
 
 // Rollback the last transaction started by `start_transaction`.
@@ -180,7 +180,7 @@ func (om *OverlayedMap[K, V]) closeTransactionOffchain(rollback bool) error {
 		return errorNoOpenTransaction
 	}
 
-	lastTransaction.Scan(func(key K) bool {
+	for key := range lastTransaction {
 		overlayed, has := om.changes.Get(key)
 		if !has {
 			panic(`
@@ -205,8 +205,8 @@ func (om *OverlayedMap[K, V]) closeTransactionOffchain(rollback bool) error {
 				last := om.dirtyKeys[len(om.dirtyKeys)-1]
 
 				// Check if the previous tx wrote this key
-				hasPredecessor = last.Contains(key)
-				last.Insert(key)
+				_, hasPredecessor = last[key]
+				last[key] = struct{}{}
 			} else {
 				// Last tx: Is there already a value in the committed set?
 				// Check against one rather than empty because the current tx is still
@@ -222,9 +222,7 @@ func (om *OverlayedMap[K, V]) closeTransactionOffchain(rollback bool) error {
 				overlayed.TransactionExtrinsics().extend(droppedTx.extrinsics)
 			}
 		}
-
-		return true
-	})
+	}
 
 	return nil
 }
