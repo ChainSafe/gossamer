@@ -7,12 +7,14 @@ import (
 	"bytes"
 	"context"
 	"sort"
+	"sync"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func introduceSecondedCandidate(
@@ -209,7 +211,10 @@ func TestHandleIntroduceSecondedCandidate(
 
 const MaxPoVSize = 1_000_000
 
-func dummyPVD(parentHead parachaintypes.HeadData, relayParentNumber uint32) parachaintypes.PersistedValidationData {
+func dummyPVD(
+	parentHead parachaintypes.HeadData,
+	relayParentNumber uint32,
+) parachaintypes.PersistedValidationData {
 	return parachaintypes.PersistedValidationData{
 		ParentHead:             parentHead,
 		RelayParentNumber:      relayParentNumber,
@@ -274,7 +279,6 @@ func makeCandidate(
 	candidate.Descriptor.ParaID = paraID
 
 	pvdh, err := pvd.Hash()
-
 	if err != nil {
 		panic(err)
 	}
@@ -909,4 +913,115 @@ func TestAnswerProspectiveValidationDataRequest(t *testing.T) {
 
 	// Close the channels
 	close(subsystemToOverseer)
+}
+
+func markCandidatedBacked(
+	t *testing.T,
+	overseerToSubsystem chan any,
+	candidate parachaintypes.CommittedCandidateReceipt,
+) {
+	hash, err := candidate.Hash()
+
+	assert.NoError(t, err)
+
+	msg := messages.CandidateBacked{
+		ParaID:        candidate.Descriptor.ParaID,
+		CandidateHash: parachaintypes.CandidateHash{Value: hash},
+	}
+
+	overseerToSubsystem <- msg
+}
+
+func TestHandleBacked(
+	t *testing.T,
+) {
+	candidateRelayParent := common.Hash{0x01}
+	paraId := parachaintypes.ParaID(1)
+	parentHead := parachaintypes.HeadData{
+		Data: bytes.Repeat([]byte{0x01}, 32),
+	}
+	headData := parachaintypes.HeadData{
+		Data: bytes.Repeat([]byte{0x02}, 32),
+	}
+	validationCodeHash := parachaintypes.ValidationCodeHash{0x01}
+	candidateRelayParentNumber := uint32(0)
+
+	candidate := makeCandidate(
+		candidateRelayParent,
+		candidateRelayParentNumber,
+		paraId,
+		parentHead,
+		headData,
+		validationCodeHash,
+	)
+
+	pvd := dummyPVD(parentHead, candidateRelayParentNumber)
+
+	subsystemToOverseer := make(chan any)
+	overseerToSubsystem := make(chan any)
+
+	prospectiveParachains := NewProspectiveParachains(subsystemToOverseer)
+
+	relayParent := relayChainBlockInfo{
+		Hash:        candidateRelayParent,
+		Number:      0,
+		StorageRoot: common.Hash{0x00},
+	}
+
+	baseConstraints := &parachaintypes.Constraints{
+		RequiredParent:       parachaintypes.HeadData{Data: bytes.Repeat([]byte{0x01}, 32)},
+		MinRelayParentNumber: 0,
+		ValidationCodeHash:   validationCodeHash,
+		MaxPoVSize:           1000000,
+	}
+
+	scope, err := newScopeWithAncestors(relayParent, baseConstraints, nil, 10, nil)
+	assert.NoError(t, err)
+
+	prospectiveParachains.View.perRelayParent[candidateRelayParent] = &relayParentData{
+		fragmentChains: map[parachaintypes.ParaID]*fragmentChain{
+			paraId: newFragmentChain(scope, newCandidateStorage()),
+		},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		prospectiveParachains.Run(ctx, overseerToSubsystem)
+	}(&wg)
+
+	introduceSecondedCandidate(t, overseerToSubsystem, candidate, pvd)
+
+	markCandidatedBacked(t, overseerToSubsystem, candidate)
+
+	// cancel the subsystem context to shutdown and evaluate the
+	// subsystem state
+	cancel()
+
+	wg.Wait()
+
+	rpData, ok := prospectiveParachains.View.perRelayParent[candidateRelayParent]
+	require.True(t, ok)
+
+	chains := rpData.fragmentChains
+
+	fragmentChain, exist := chains[paraId]
+
+	require.True(t, exist)
+
+	hash, err := candidate.Hash()
+	assert.NoError(t, err)
+
+	isCandidateBacked := fragmentChain.isCandidateBacked(parachaintypes.CandidateHash{Value: hash})
+
+	require.True(t, isCandidateBacked)
+
+	hashes := fragmentChain.bestChainVec()
+
+	require.Len(t, hashes, 1)
+
+	require.Equal(t, hashes[0], parachaintypes.CandidateHash{Value: hash})
 }

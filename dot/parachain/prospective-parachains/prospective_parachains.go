@@ -14,7 +14,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-prospective-parachains"), log.SetLevel(log.Debug))
+var logger = log.NewFromGlobal(
+	log.AddContext("pkg", "parachain-prospective-parachains"),
+	log.SetLevel(log.Debug),
+)
 
 // Initialize with empty values.
 func NewView() *view {
@@ -88,7 +91,7 @@ func (pp *ProspectiveParachains) processMessage(msg any) {
 			msg.Response,
 		)
 	case messages.CandidateBacked:
-		panic("not implemented yet: see issue #4309")
+		pp.handleCandidateBacked(msg)
 	case messages.GetBackableCandidates:
 		pp.getBackableCandidates(msg)
 	case messages.GetHypotheticalMembership:
@@ -101,7 +104,6 @@ func (pp *ProspectiveParachains) processMessage(msg any) {
 	default:
 		logger.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
 	}
-
 }
 
 func (pp *ProspectiveParachains) introduceSecondedCandidate(
@@ -116,7 +118,6 @@ func (pp *ProspectiveParachains) introduceSecondedCandidate(
 	pvd := request.PersistedValidationData
 
 	hash, err := candidate.Hash()
-
 	if err != nil {
 		logger.Tracef("hashing candidate: %s", err.Error())
 		response <- false
@@ -131,7 +132,6 @@ func (pp *ProspectiveParachains) introduceSecondedCandidate(
 		pvd,
 		seconded,
 	)
-
 	if err != nil {
 		logger.Tracef("adding seconded candidate error: %s para: %v", err.Error(), para)
 		response <- false
@@ -186,7 +186,10 @@ func (pp *ProspectiveParachains) introduceSecondedCandidate(
 	}
 
 	if len(added) == 0 {
-		logger.Debugf("newly-seconded candidate cannot be kept under any relay parent: %s", candidateHash)
+		logger.Debugf(
+			"newly-seconded candidate cannot be kept under any relay parent: %s",
+			candidateHash,
+		)
 	} else {
 		logger.Tracef("added seconded candidate to %d relay parents: %s", len(added), candidateHash)
 	}
@@ -194,13 +197,74 @@ func (pp *ProspectiveParachains) introduceSecondedCandidate(
 	response <- len(added) > 0
 }
 
+func (pp *ProspectiveParachains) handleCandidateBacked(msg messages.CandidateBacked) {
+	para := msg.ParaID
+	candidateHash := msg.CandidateHash
+
+	foundCandidate := false
+	foundPara := false
+
+	for relayParent, rpData := range pp.View.perRelayParent {
+		chain, ok := rpData.fragmentChains[para]
+		if !ok {
+			continue
+		}
+
+		_, isActiveLeaf := pp.View.activeLeaves[relayParent]
+
+		foundPara = true
+		if chain.isCandidateBacked(candidateHash) {
+			logger.Debugf(
+				"para = %s, candidateHash = %s, isActiveLeaf = %s, Received redundant instruction to mark as backed an already backed candidate",
+				para,
+				candidateHash,
+				isActiveLeaf,
+			)
+			foundCandidate = true
+		} else if chain.containsUnconnectedCandidate(candidateHash) {
+			foundCandidate = true
+			chain.candidateBacked(candidateHash)
+
+			var candidatedHashes []parachaintypes.CandidateHash
+
+			for _, candidateEntry := range chain.unconnected.byCandidateHash {
+				candidatedHashes = append(candidatedHashes, candidateEntry.candidateHash)
+			}
+
+			logger.Tracef("relayParent = %s, para = %s, candidateHash = %s, isActiveLeaf = %s, Candidate backed. Candidate chain for para: %v", relayParent, para, candidateHash, isActiveLeaf, chain.bestChainVec())
+			logger.Tracef("relayParent = %s, para = %s, candidateHash = %s, isActiveLeaf = %s, Potential candidate storage for para: %v", relayParent, para, candidateHash, isActiveLeaf, candidatedHashes)
+		}
+
+		if !foundPara {
+			logger.Warnf(
+				"para = %s, candidateHash = %s, Received instruction to back a candidate for unscheduled para",
+				para,
+				candidateHash,
+			)
+			return
+		}
+
+		if !foundCandidate {
+			logger.Debugf(
+				"para = %s, candidateHash = %s, Received instruction to back unknown candidate",
+				para,
+				candidateHash,
+			)
+		}
+	}
+}
+
 // ProcessActiveLeavesUpdateSignal processes active leaves update signal
-func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(parachaintypes.ActiveLeavesUpdateSignal) error {
+func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
+	parachaintypes.ActiveLeavesUpdateSignal,
+) error {
 	panic("not implemented yet: see issue #4305")
 }
 
 // ProcessBlockFinalizedSignal processes block finalized signal
-func (*ProspectiveParachains) ProcessBlockFinalizedSignal(parachaintypes.BlockFinalizedSignal) error {
+func (*ProspectiveParachains) ProcessBlockFinalizedSignal(
+	parachaintypes.BlockFinalizedSignal,
+) error {
 	// NOTE: this subsystem does not process block finalized signal
 	return nil
 }
@@ -347,7 +411,6 @@ func (pp *ProspectiveParachains) answerProspectiveValidationDataRequest(
 		if headData == nil {
 			var err error
 			headData, err = fragmentChain.getHeadDataByHash(parentHeadDataHash)
-
 			if err != nil {
 				response <- nil
 				return
