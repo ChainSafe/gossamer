@@ -72,9 +72,15 @@ type OverlayedChangeSet struct {
 	OverlayedMap[string, StorageEntry]
 }
 
-func NewOverlayedChangeSet() *OverlayedChangeSet {
-	return &OverlayedChangeSet{
+func NewOverlayedChangeSet() OverlayedChangeSet {
+	return OverlayedChangeSet{
 		NewOverlayedMap[string, StorageEntry](),
+	}
+}
+
+func (oc *OverlayedChangeSet) Clone() OverlayedChangeSet {
+	return OverlayedChangeSet{
+		oc.OverlayedMap.Clone(),
 	}
 }
 

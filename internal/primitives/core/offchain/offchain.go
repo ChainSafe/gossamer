@@ -3,6 +3,8 @@
 
 package offchain
 
+var StoragePrefix = []byte("storage")
+
 // OffchainStorage is offchain DB persisted (non-fork-aware) storage.
 type OffchainStorage interface {
 	// Set persists a value in storage under given key and prefix.

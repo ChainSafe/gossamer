@@ -6,6 +6,7 @@ package statemachine
 import (
 	"errors"
 	"iter"
+	"slices"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/tidwall/btree"
@@ -38,6 +39,22 @@ func NewOverlayedMap[K ordered, V any]() OverlayedMap[K, V] {
 		dirtyKeys:             DirtyKeysSets[K]{},
 		numClientTransactions: 0,
 		executionMode:         ExecutionModeClient,
+	}
+}
+
+func (om *OverlayedMap[K, V]) Clone() OverlayedMap[K, V] {
+	// Clone changes
+	var changes btree.Map[K, *OverlayedEntry[V]]
+	om.changes.Scan(func(k K, v *OverlayedEntry[V]) bool {
+		changes.Set(k, v.Clone())
+		return true
+	})
+
+	return OverlayedMap[K, V]{
+		changes:               changes,
+		dirtyKeys:             slices.Clone(om.dirtyKeys),
+		numClientTransactions: om.numClientTransactions,
+		executionMode:         om.executionMode,
 	}
 }
 
@@ -77,6 +94,7 @@ func (om *OverlayedMap[K, V]) SetOffchain(key K, value V, atExtrinsic *uint32) {
 	}
 
 	overlayed.SetOffchain(value, om.dirtyKeys.insertDirty(key), atExtrinsic)
+	om.changes.Set(key, overlayed)
 }
 
 // Get a list of all changes as seen by current transaction.

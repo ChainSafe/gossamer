@@ -3,7 +3,10 @@
 
 package statemachine
 
-import "math"
+import (
+	"math"
+	"slices"
+)
 
 const PROOF_OVERLAY_NON_EMPTY = `
 An OverlayValue is always created with at least one transaction and dropped as soon
@@ -19,6 +22,12 @@ type OverlayedEntry[V any] struct {
 func NewOverlayedEntry[V any]() *OverlayedEntry[V] {
 	return &OverlayedEntry[V]{
 		transactions: []Transaction[V]{},
+	}
+}
+
+func (oe *OverlayedEntry[V]) Clone() *OverlayedEntry[V] {
+	return &OverlayedEntry[V]{
+		transactions: slices.Clone(oe.transactions),
 	}
 }
 

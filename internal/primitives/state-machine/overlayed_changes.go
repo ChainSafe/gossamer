@@ -4,8 +4,13 @@
 package statemachine
 
 import (
+	"iter"
+	"maps"
+
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var NoExtrinsicIndex uint32 = 0xffffffff
@@ -89,8 +94,31 @@ func (OffchainOverlayedChangeRemove) isOffchainOverlayedChange()   {}
 func (OffchainOverlayedChangeSetValue) isOffchainOverlayedChange() {}
 
 type OffchainOverlayedChanges struct {
-	OverlayedMap[string, []byte]
-	OffchainOverlayedChange
+	OverlayedMap[string, OffchainOverlayedChange]
+}
+
+func NewOffchainOverlayedChanges() OffchainOverlayedChanges {
+	return OffchainOverlayedChanges{
+		NewOverlayedMap[string, OffchainOverlayedChange](),
+	}
+}
+
+func (oc *OffchainOverlayedChanges) Clone() OffchainOverlayedChanges {
+	return OffchainOverlayedChanges{
+		oc.OverlayedMap.Clone(),
+	}
+}
+
+// Remove a key and its associated value from the offchain database.
+func (oc *OffchainOverlayedChanges) Set(prefix []byte, key []byte, value []byte) {
+	prefixedKey := string(append(prefix, key...))
+	oc.SetOffchain(prefixedKey, OffchainOverlayedChangeSetValue(value), nil)
+}
+
+// Remove a key and its associated value from the offchain database.
+func (oc *OffchainOverlayedChanges) Remove(prefix []byte, key []byte) {
+	prefixedKey := string(append(prefix, key...))
+	oc.SetOffchain(prefixedKey, OffchainOverlayedChangeRemove{}, nil)
 }
 
 // Storage transactions are calculated as part of the `storage_root`.
@@ -103,7 +131,7 @@ type StorageTransactionCache[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	transactionStorageRoot H
 }
 
-/*type OverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
+type OverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	// Top level storage changes.
 	top OverlayedChangeSet
 	// Child storage changes. The map key is the child storage key without the common prefix.
@@ -115,10 +143,34 @@ type StorageTransactionCache[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	// True if extrinsics stats must be collected.
 	collectExtrinsics bool
 	// Collect statistic on this execution.
-	stats StateMachineStats
+	stats *StateMachineStats
 	// Caches the "storage transaction" that is created while calling `storage_root`.
 	// This transaction can be applied to the backend to persist the state changes.
 	storageTransactionCache *StorageTransactionCache[H, Hasher]
+}
+
+func NewOverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]]() *OverlayedChanges[H, Hasher] {
+	return &OverlayedChanges[H, Hasher]{
+		top:                     NewOverlayedChangeSet(),
+		children:                make(map[string]childStorageValue),
+		offchain:                NewOffchainOverlayedChanges(),
+		transactionIndexOps:     make([]IndexOperation, 0),
+		collectExtrinsics:       false,
+		stats:                   NewStateMachineStats(),
+		storageTransactionCache: nil,
+	}
+}
+
+func (oc *OverlayedChanges[H, Hasher]) Clone() *OverlayedChanges[H, Hasher] {
+	return &OverlayedChanges[H, Hasher]{
+		top:                     oc.top.Clone(),
+		children:                maps.Clone(oc.children),
+		offchain:                oc.offchain.Clone(),
+		transactionIndexOps:     oc.transactionIndexOps,
+		collectExtrinsics:       oc.collectExtrinsics,
+		stats:                   oc.stats.Clone(),
+		storageTransactionCache: oc.storageTransactionCache,
+	}
 }
 
 // Whether no changes are contained in the top nor in any of the child changes.
@@ -140,15 +192,14 @@ func (oc *OverlayedChanges[H, Hasher]) Storage(key string) ([]byte, bool) {
 		return nil, false
 	}
 
-	value := entry.ValueRef()
+	value := entry.StorageValue()
 	if value == nil {
 		oc.stats.TallyReadModified(0)
 		return nil, true
 	}
 
-	//oc.stats.TallyReadModified(uint64(len(*value)))
-	//return *value, true
-	panic("TODO")
+	oc.stats.TallyReadModified(uint64(len(value)))
+	return value, true
 }
 
 // Should be called when there are changes that require to reset the
@@ -191,7 +242,7 @@ func (oc *OverlayedChanges[H, Hasher]) SetStorage(key StorageKey, value StorageV
 
 	oc.stats.TallyWriteOverlay(sizeWrite)
 	extrinsicIndex := oc.extrinsicIndex()
-	oc.top.Set(string(key), value, extrinsicIndex)
+	oc.top.Set(key, value, extrinsicIndex)
 }
 
 // Returns current extrinsic index to use in changes trie construction.
@@ -217,4 +268,85 @@ func (oc *OverlayedChanges[H, Hasher]) extrinsicIndex() *uint32 {
 	}
 
 	return &result
-}*/
+}
+
+// Start a new nested transaction.
+//
+// This allows to either commit or roll back all changes that where made while this
+// transaction was open. Any transaction must be closed by either `rollback_transaction` or
+// `commit_transaction` before this overlay can be converted into storage changes.
+//
+// Changes made without any open transaction are committed immediately.
+func (oc *OverlayedChanges[H, Hasher]) StartTransaction() {
+	oc.top.StartTransaction()
+	for _, changeset := range oc.children {
+		changeset.StartTransaction()
+	}
+	oc.offchain.OverlayedMap.StartTransaction()
+}
+
+// Commit the last transaction started by `start_transaction`.
+//
+// Any changes made during that transaction are committed. Returns an error if there
+// is no open transaction that can be committed.
+func (oc *OverlayedChanges[H, Hasher]) CommitTransaction() error {
+	if err := oc.top.CommitTransaction(); err != nil {
+		return err
+	}
+
+	for _, changeset := range oc.children {
+		if err := changeset.CommitTransaction(); err != nil {
+			panic("Top and children changesets are started in lockstep; qed")
+		}
+	}
+
+	if err := oc.offchain.OverlayedMap.CommitTransactionOffchain(); err != nil {
+		panic("Top and offchain changesets are started in lockstep; qed")
+	}
+
+	return nil
+}
+
+// Rollback the last transaction started by `start_transaction`.
+//
+// Any changes made during that transaction are discarded. Returns an error if
+// there is no open transaction that can be rolled back.
+func (oc *OverlayedChanges[H, Hasher]) RollbackTransaction() error {
+	oc.markDirty()
+
+	if err := oc.top.RollbackTransaction(); err != nil {
+		return err
+	}
+
+	maps.DeleteFunc(oc.children, func(key string, changeset childStorageValue) bool {
+		if err := changeset.RollbackTransaction(); err != nil {
+			panic("Top and children changesets are started in lockstep; qed")
+		}
+
+		return changeset.IsEmpty()
+	})
+
+	if err := oc.offchain.RollbackTransactionOffchain(); err != nil {
+		panic("Top and offchain changesets are started in lockstep; qed")
+	}
+
+	return nil
+}
+
+// Consume all changes (top + children) and return them.
+//
+// After calling this function no more changes are contained in this changeset.
+//
+// Panics:
+// Panics if `transaction_depth() > 0`
+func (oc *OverlayedChanges[H, Hasher]) offchainDrainCommited() iter.Seq2[string, OffchainOverlayedChange] {
+	return oc.offchain.DrainCommited()
+}
+
+func (oc *OverlayedChanges[H, Hasher]) SetOffchainStorage(key []byte, value []byte) {
+	if value == nil {
+		oc.offchain.Remove(offchain.StoragePrefix, key)
+	} else {
+		oc.offchain.Set(offchain.StoragePrefix, key, value)
+	}
+}

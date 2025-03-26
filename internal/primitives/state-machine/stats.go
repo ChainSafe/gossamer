@@ -19,6 +19,19 @@ type StateMachineStats struct {
 	BytesWritesOverlay uint64
 }
 
+func NewStateMachineStats() *StateMachineStats {
+	return &StateMachineStats{}
+}
+
+func (sms *StateMachineStats) Clone() *StateMachineStats {
+	return &StateMachineStats{
+		ReadsModified:      sms.ReadsModified,
+		BytesReadModified:  sms.BytesReadModified,
+		WritesOverlay:      sms.WritesOverlay,
+		BytesWritesOverlay: sms.BytesWritesOverlay,
+	}
+}
+
 // Tally one read modified operation, of some length.
 func (sms *StateMachineStats) TallyReadModified(bytes uint64) {
 	sms.ReadsModified++
