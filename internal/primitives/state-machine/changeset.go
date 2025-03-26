@@ -66,15 +66,15 @@ type overlayedChangeSet struct {
 	OverlayedMap[string, storageEntry]
 }
 
-func NewOverlayedChangeSet() *overlayedChangeSet {
+func newOverlayedChangeSet() *overlayedChangeSet {
 	return &overlayedChangeSet{
 		NewOverlayedMap[string, storageEntry](),
 	}
 }
 
-// Set a new value for the specified key.
+// set a new value for the specified key.
 // Can be rolled back or committed when called inside a transaction.
-func (oc *overlayedChangeSet) Set(key StorageKey, value StorageValue, atExtrinsic *uint32) {
+func (oc *overlayedChangeSet) set(key StorageKey, value StorageValue, atExtrinsic *uint32) {
 	keyString := string(key)
 	overlayed, has := oc.changes.Get(keyString)
 	if !has {
@@ -86,7 +86,7 @@ func (oc *overlayedChangeSet) Set(key StorageKey, value StorageValue, atExtrinsi
 }
 
 // Append bytes to an existing content.
-func (oc *overlayedChangeSet) AppendStorage(
+func (oc *overlayedChangeSet) appendStorage(
 	key StorageKey,
 	value StorageValue,
 	init func() StorageValue,
@@ -104,7 +104,7 @@ func (oc *overlayedChangeSet) AppendStorage(
 }
 
 // Returns an iterator over all changes that follow the supplied `key`.
-func (oc *overlayedChangeSet) ChangesAfter(key StorageKey) iter.Seq2[StorageKey, *overlayedValue] {
+func (oc *overlayedChangeSet) changesAfter(key StorageKey) iter.Seq2[StorageKey, *overlayedValue] {
 	return func(yield func(StorageKey, *overlayedValue) bool) {
 		oc.changes.Ascend(string(key), func(k string, v *overlayedValue) bool {
 			// the pivot is included so we have to skip it in the resulting iterator
@@ -115,7 +115,7 @@ func (oc *overlayedChangeSet) ChangesAfter(key StorageKey) iter.Seq2[StorageKey,
 
 // Set all values to deleted which are matched by the predicate.
 // Can be rolled back or committed when called inside a transaction.
-func (oc *overlayedChangeSet) ClearWhere(predicate func([]byte, *overlayedValue) bool, atExtrinsic *uint32) {
+func (oc *overlayedChangeSet) clearWhere(predicate func([]byte, *overlayedValue) bool, atExtrinsic *uint32) {
 	count := 0
 	for k, v := range oc.Changes() {
 		if predicate([]byte(k), v) {
@@ -133,7 +133,7 @@ func (oc *overlayedChangeSet) ClearWhere(predicate func([]byte, *overlayedValue)
 // Call this when control returns from the runtime.
 // This rollbacks all dangling transaction left open by the runtime.
 // Calling this while already outside the runtime will return an error.
-func (oc *overlayedChangeSet) ExitRuntime() error {
+func (oc *overlayedChangeSet) exitRuntime() error {
 	if oc.executionMode != executionModeRuntime {
 		return errorNotInRuntime
 	}
@@ -145,7 +145,7 @@ func (oc *overlayedChangeSet) ExitRuntime() error {
 	}
 
 	for oc.HasOpenRuntimeTransactions() {
-		if oc.RollbackTransaction() != nil {
+		if oc.rollbackTransaction() != nil {
 			panic("The loop confidtion checks that the transaction depth is > 0; qed")
 		}
 	}
@@ -156,14 +156,14 @@ func (oc *overlayedChangeSet) ExitRuntime() error {
 // Rollback the last transaction started by `start_transaction`.
 // Any changes made during that transaction are discarded. Returns an error if
 // there is no open transaction that can be rolled back.
-func (oc *overlayedChangeSet) RollbackTransaction() error {
+func (oc *overlayedChangeSet) rollbackTransaction() error {
 	return oc.closeTransaction(true)
 }
 
 // Commit the last transaction started by `start_transaction`.
 // Any changes made during that transaction are committed. Returns an error if
 // there is no open transaction that can be committed.
-func (oc *overlayedChangeSet) CommitTransaction() error {
+func (oc *overlayedChangeSet) commitTransaction() error {
 	return oc.closeTransaction(false)
 }
 
@@ -235,7 +235,6 @@ func (oc *overlayedChangeSet) closeTransaction(rollback bool) error {
 				if mergeAppends {
 					*overlayed.ValueRef() = commitedTx.value
 				} else {
-					// TODO: check this
 					removed := *overlayed.ValueRef()
 					*overlayed.ValueRef() = commitedTx.value
 

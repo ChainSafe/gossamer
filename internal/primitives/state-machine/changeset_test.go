@@ -97,12 +97,12 @@ func TestDirtyKeysSetsPop(t *testing.T) {
 }
 
 func TestNoTransactionWorks(t *testing.T) {
-	changeSet := NewOverlayedChangeSet()
+	changeSet := newOverlayedChangeSet()
 	require.Equal(t, uint(0), changeSet.TransactionDepth())
 
-	changeSet.Set(StorageKey("key0"), StorageValue("val0"), extrinsic(1))
-	changeSet.Set(StorageKey("key1"), StorageValue("val1"), extrinsic(2))
-	changeSet.Set(StorageKey("key0"), StorageValue("val0-1"), extrinsic(9))
+	changeSet.set(StorageKey("key0"), StorageValue("val0"), extrinsic(1))
+	changeSet.set(StorageKey("key1"), StorageValue("val1"), extrinsic(2))
+	changeSet.set(StorageKey("key0"), StorageValue("val0-1"), extrinsic(9))
 
 	assertDrained(t, changeSet, Drained{
 		{"key0", StorageValue("val0-1")},
@@ -111,29 +111,29 @@ func TestNoTransactionWorks(t *testing.T) {
 }
 
 func TestTransactionWorks(t *testing.T) {
-	changeSet := NewOverlayedChangeSet()
+	changeSet := newOverlayedChangeSet()
 	require.Equal(t, uint(0), changeSet.TransactionDepth())
 
 	// no transaction: committed on set
-	changeSet.Set(StorageKey("key0"), StorageValue("val0"), extrinsic(1))
-	changeSet.Set(StorageKey("key1"), StorageValue("val1"), extrinsic(1))
-	changeSet.Set(StorageKey("key0"), StorageValue("val0-1"), extrinsic(10))
+	changeSet.set(StorageKey("key0"), StorageValue("val0"), extrinsic(1))
+	changeSet.set(StorageKey("key1"), StorageValue("val1"), extrinsic(1))
+	changeSet.set(StorageKey("key0"), StorageValue("val0-1"), extrinsic(10))
 
 	changeSet.StartTransaction()
 	require.Equal(t, uint(1), changeSet.TransactionDepth())
 
 	// we will commit that later
-	changeSet.Set(StorageKey("key42"), StorageValue("val42"), extrinsic(42))
-	changeSet.Set(StorageKey("key99"), StorageValue("val99"), extrinsic(99))
+	changeSet.set(StorageKey("key42"), StorageValue("val42"), extrinsic(42))
+	changeSet.set(StorageKey("key99"), StorageValue("val99"), extrinsic(99))
 
 	changeSet.StartTransaction()
 	require.Equal(t, uint(2), changeSet.TransactionDepth())
 
 	// we will roll that back
-	changeSet.Set(StorageKey("key42"), StorageValue("val42-rolled"), extrinsic(421))
-	changeSet.Set(StorageKey("key7"), StorageValue("val7-rolled"), extrinsic(77))
-	changeSet.Set(StorageKey("key0"), StorageValue("val0-rolled"), extrinsic(1000))
-	changeSet.Set(StorageKey("key5"), StorageValue("val5-rolled"), nil)
+	changeSet.set(StorageKey("key42"), StorageValue("val42-rolled"), extrinsic(421))
+	changeSet.set(StorageKey("key7"), StorageValue("val7-rolled"), extrinsic(77))
+	changeSet.set(StorageKey("key0"), StorageValue("val0-rolled"), extrinsic(1000))
+	changeSet.set(StorageKey("key5"), StorageValue("val5-rolled"), nil)
 
 	// allChanges contain all changes not only the committed ones.
 	allChanges := Changes{
@@ -152,14 +152,14 @@ func TestTransactionWorks(t *testing.T) {
 	require.Equal(t, uint(3), changeSet.TransactionDepth())
 	changeSet.StartTransaction()
 	require.Equal(t, uint(4), changeSet.TransactionDepth())
-	changeSet.RollbackTransaction()
+	changeSet.rollbackTransaction()
 	require.Equal(t, uint(3), changeSet.TransactionDepth())
-	require.NoError(t, changeSet.CommitTransaction())
+	require.NoError(t, changeSet.commitTransaction())
 	require.Equal(t, uint(2), changeSet.TransactionDepth())
 	assertChanges(t, changeSet, allChanges)
 
 	// roll back our first transactions that actually contains something
-	require.NoError(t, changeSet.RollbackTransaction())
+	require.NoError(t, changeSet.rollbackTransaction())
 	require.Equal(t, uint(1), changeSet.TransactionDepth())
 
 	rollBack := Changes{
@@ -172,26 +172,26 @@ func TestTransactionWorks(t *testing.T) {
 }
 
 func TestTransactionCommitThenRollbackWorks(t *testing.T) {
-	changeSet := NewOverlayedChangeSet()
+	changeSet := newOverlayedChangeSet()
 	require.Equal(t, uint(0), changeSet.TransactionDepth())
 
-	changeSet.Set(StorageKey("key0"), StorageValue("val0"), extrinsic(1))
-	changeSet.Set(StorageKey("key1"), StorageValue("val1"), extrinsic(1))
-	changeSet.Set(StorageKey("key0"), StorageValue("val0-1"), extrinsic(10))
+	changeSet.set(StorageKey("key0"), StorageValue("val0"), extrinsic(1))
+	changeSet.set(StorageKey("key1"), StorageValue("val1"), extrinsic(1))
+	changeSet.set(StorageKey("key0"), StorageValue("val0-1"), extrinsic(10))
 
 	changeSet.StartTransaction()
 	require.Equal(t, uint(1), changeSet.TransactionDepth())
 
-	changeSet.Set(StorageKey("key42"), StorageValue("val42"), extrinsic(42))
-	changeSet.Set(StorageKey("key99"), StorageValue("val99"), extrinsic(99))
+	changeSet.set(StorageKey("key42"), StorageValue("val42"), extrinsic(42))
+	changeSet.set(StorageKey("key99"), StorageValue("val99"), extrinsic(99))
 
 	changeSet.StartTransaction()
 	require.Equal(t, uint(2), changeSet.TransactionDepth())
 
-	changeSet.Set(StorageKey("key42"), StorageValue("val42-rolled"), extrinsic(421))
-	changeSet.Set(StorageKey("key7"), StorageValue("val7-rolled"), extrinsic(77))
-	changeSet.Set(StorageKey("key0"), StorageValue("val0-rolled"), extrinsic(1000))
-	changeSet.Set(StorageKey("key5"), StorageValue("val5-rolled"), nil)
+	changeSet.set(StorageKey("key42"), StorageValue("val42-rolled"), extrinsic(421))
+	changeSet.set(StorageKey("key7"), StorageValue("val7-rolled"), extrinsic(77))
+	changeSet.set(StorageKey("key0"), StorageValue("val0-rolled"), extrinsic(1000))
+	changeSet.set(StorageKey("key5"), StorageValue("val5-rolled"), nil)
 
 	allChanges := Changes{
 		{"key0", StorageValue("val0-rolled"), []uint32{1, 10, 1000}},
@@ -208,18 +208,18 @@ func TestTransactionCommitThenRollbackWorks(t *testing.T) {
 	require.Equal(t, uint(3), changeSet.TransactionDepth())
 	changeSet.StartTransaction()
 	require.Equal(t, uint(4), changeSet.TransactionDepth())
-	changeSet.RollbackTransaction()
+	changeSet.rollbackTransaction()
 	require.Equal(t, uint(3), changeSet.TransactionDepth())
-	require.NoError(t, changeSet.CommitTransaction())
+	require.NoError(t, changeSet.commitTransaction())
 	require.Equal(t, uint(2), changeSet.TransactionDepth())
 	assertChanges(t, changeSet, allChanges)
 
-	require.NoError(t, changeSet.CommitTransaction())
+	require.NoError(t, changeSet.commitTransaction())
 	require.Equal(t, uint(1), changeSet.TransactionDepth())
 
 	assertChanges(t, changeSet, allChanges)
 
-	require.NoError(t, changeSet.RollbackTransaction())
+	require.NoError(t, changeSet.rollbackTransaction())
 	require.Equal(t, uint(0), changeSet.TransactionDepth())
 
 	rollBack := Changes{
@@ -232,15 +232,15 @@ func TestTransactionCommitThenRollbackWorks(t *testing.T) {
 }
 
 func TestAppendWorks(t *testing.T) {
-	changeSet := NewOverlayedChangeSet()
+	changeSet := newOverlayedChangeSet()
 	require.Equal(t, uint(0), changeSet.TransactionDepth())
 
 	init := func() StorageValue { return StorageValue(scale.MustMarshal([][]byte{[]byte("valinit")})) }
 
 	// committed set
 	val0 := scale.MustMarshal([][]byte{[]byte("val0")})
-	changeSet.Set(StorageKey("key0"), StorageValue(val0), extrinsic(0))
-	changeSet.Set(StorageKey("key1"), nil, extrinsic(1))
+	changeSet.set(StorageKey("key0"), StorageValue(val0), extrinsic(0))
+	changeSet.set(StorageKey("key1"), nil, extrinsic(1))
 	allChanges := Changes{
 		{"key0", StorageValue(val0), []uint32{0}},
 		{"key1", nil, []uint32{1}},
@@ -249,7 +249,7 @@ func TestAppendWorks(t *testing.T) {
 	assertChanges(t, changeSet, allChanges)
 
 	appendValue := scale.MustMarshal([]byte("-modified"))
-	changeSet.AppendStorage(StorageKey("key3"), StorageValue(appendValue), init, extrinsic(3))
+	changeSet.appendStorage(StorageKey("key3"), StorageValue(appendValue), init, extrinsic(3))
 	val3 := scale.MustMarshal([][]byte{[]byte("valinit"), []byte("-modified")})
 
 	allChanges = Changes{
@@ -271,16 +271,16 @@ func TestAppendWorks(t *testing.T) {
 			// transaction 2
 			// non existing value -> init value should be returned
 			appendValue = scale.MustMarshal([]byte("-twice"))
-			changeSet.AppendStorage(StorageKey("key3"), StorageValue(appendValue), init, extrinsic(15))
+			changeSet.appendStorage(StorageKey("key3"), StorageValue(appendValue), init, extrinsic(15))
 			// non existing value -> init value should be returned
 			appendValue = scale.MustMarshal([]byte("-modified"))
-			changeSet.AppendStorage(StorageKey("key2"), StorageValue(appendValue), init, extrinsic(2))
+			changeSet.appendStorage(StorageKey("key2"), StorageValue(appendValue), init, extrinsic(2))
 			// existing value should be reuse on append
-			changeSet.AppendStorage(StorageKey("key0"), StorageValue(appendValue), init, extrinsic(10))
+			changeSet.appendStorage(StorageKey("key0"), StorageValue(appendValue), init, extrinsic(10))
 
 			// should work for deleted keys
 			appendValue = scale.MustMarshal([]byte("-deleted-modified"))
-			changeSet.AppendStorage(StorageKey("key1"), StorageValue(appendValue), init, extrinsic(20))
+			changeSet.appendStorage(StorageKey("key1"), StorageValue(appendValue), init, extrinsic(20))
 
 			val02 := scale.MustMarshal([][]byte{[]byte("val0"), []byte("-modified")})
 			val32 := scale.MustMarshal([][]byte{[]byte("valinit"), []byte("-modified"), []byte("-twice")})
@@ -300,7 +300,7 @@ func TestAppendWorks(t *testing.T) {
 				// transaction 3
 				val33 := scale.MustMarshal([][]byte{[]byte("valinit"), []byte("-modified"), []byte("-twice"), []byte("-2")})
 				appendValue = scale.MustMarshal([]byte("-2"))
-				changeSet.AppendStorage(StorageKey("key3"), StorageValue(appendValue), init, extrinsic(21))
+				changeSet.appendStorage(StorageKey("key3"), StorageValue(appendValue), init, extrinsic(21))
 
 				allChanges2 := Changes{
 					{"key0", StorageValue(val02), []uint32{0, 10}},
@@ -310,7 +310,7 @@ func TestAppendWorks(t *testing.T) {
 				}
 				assertChanges(t, changeSet, allChanges2)
 
-				require.NoError(t, changeSet.RollbackTransaction())
+				require.NoError(t, changeSet.rollbackTransaction())
 				require.Equal(t, uint(2), changeSet.TransactionDepth())
 				assertChanges(t, changeSet, allChanges)
 			}
@@ -321,7 +321,7 @@ func TestAppendWorks(t *testing.T) {
 				val34 := scale.MustMarshal([][]byte{[]byte("valinit"), []byte("-modified"), []byte("-twice"), []byte("-thrice")})
 
 				appendValue = scale.MustMarshal([]byte("-thrice"))
-				changeSet.AppendStorage(StorageKey("key3"), StorageValue(appendValue), init, extrinsic(25))
+				changeSet.appendStorage(StorageKey("key3"), StorageValue(appendValue), init, extrinsic(25))
 
 				allChanges = Changes{
 					{"key0", StorageValue(val02), []uint32{0, 10}},
@@ -331,16 +331,16 @@ func TestAppendWorks(t *testing.T) {
 				}
 				assertChanges(t, changeSet, allChanges)
 
-				require.NoError(t, changeSet.CommitTransaction())
+				require.NoError(t, changeSet.commitTransaction())
 				require.Equal(t, uint(2), changeSet.TransactionDepth())
 				assertChanges(t, changeSet, allChanges)
 			}
 
-			require.NoError(t, changeSet.CommitTransaction())
+			require.NoError(t, changeSet.commitTransaction())
 			require.Equal(t, uint(1), changeSet.TransactionDepth())
 			assertChanges(t, changeSet, allChanges)
 		}
-		require.NoError(t, changeSet.RollbackTransaction())
+		require.NoError(t, changeSet.rollbackTransaction())
 		require.Equal(t, uint(0), changeSet.TransactionDepth())
 	}
 
@@ -354,17 +354,17 @@ func TestAppendWorks(t *testing.T) {
 }
 
 func TestClearWorks(t *testing.T) {
-	changeSet := NewOverlayedChangeSet()
+	changeSet := newOverlayedChangeSet()
 
-	changeSet.Set(StorageKey("key0"), StorageValue("val0"), extrinsic(1))
-	changeSet.Set(StorageKey("key1"), StorageValue("val1"), extrinsic(2))
-	changeSet.Set(StorageKey("del1"), StorageValue("delval1"), extrinsic(3))
-	changeSet.Set(StorageKey("del2"), StorageValue("delval2"), extrinsic(4))
+	changeSet.set(StorageKey("key0"), StorageValue("val0"), extrinsic(1))
+	changeSet.set(StorageKey("key1"), StorageValue("val1"), extrinsic(2))
+	changeSet.set(StorageKey("del1"), StorageValue("delval1"), extrinsic(3))
+	changeSet.set(StorageKey("del2"), StorageValue("delval2"), extrinsic(4))
 
 	changeSet.StartTransaction()
 
 	predicate := func(k []byte, ov *overlayedValue) bool { return bytes.HasPrefix(k, []byte("del")) }
-	changeSet.ClearWhere(predicate, extrinsic(5))
+	changeSet.clearWhere(predicate, extrinsic(5))
 
 	allChanges := Changes{
 		{"del1", nil, []uint32{3, 5}},
@@ -374,7 +374,7 @@ func TestClearWorks(t *testing.T) {
 	}
 	assertChanges(t, changeSet, allChanges)
 
-	changeSet.RollbackTransaction()
+	changeSet.rollbackTransaction()
 
 	allChanges = Changes{
 		{"del1", StorageValue("delval1"), []uint32{3}},
@@ -386,43 +386,43 @@ func TestClearWorks(t *testing.T) {
 }
 
 func TestNextChangeWorks(t *testing.T) {
-	changeSet := NewOverlayedChangeSet()
+	changeSet := newOverlayedChangeSet()
 
-	changeSet.Set(StorageKey("key0"), StorageValue("val0"), extrinsic(0))
-	changeSet.Set(StorageKey("key1"), StorageValue("val1"), extrinsic(1))
-	changeSet.Set(StorageKey("key2"), StorageValue("val2"), extrinsic(2))
+	changeSet.set(StorageKey("key0"), StorageValue("val0"), extrinsic(0))
+	changeSet.set(StorageKey("key1"), StorageValue("val1"), extrinsic(1))
+	changeSet.set(StorageKey("key2"), StorageValue("val2"), extrinsic(2))
 
 	changeSet.StartTransaction()
 
-	changeSet.Set(StorageKey("key3"), StorageValue("val3"), extrinsic(3))
-	changeSet.Set(StorageKey("key4"), StorageValue("val4"), extrinsic(4))
-	changeSet.Set(StorageKey("key11"), StorageValue("val11"), extrinsic(11))
+	changeSet.set(StorageKey("key3"), StorageValue("val3"), extrinsic(3))
+	changeSet.set(StorageKey("key4"), StorageValue("val4"), extrinsic(4))
+	changeSet.set(StorageKey("key11"), StorageValue("val11"), extrinsic(11))
 
-	next, _ := iter.Pull2(changeSet.ChangesAfter(StorageKey("key0")))
+	next, _ := iter.Pull2(changeSet.changesAfter(StorageKey("key0")))
 
 	k, v, _ := next()
 	require.Equal(t, k, StorageKey("key1"))
 	require.Equal(t, v.StorageValue(), StorageValue("val1"))
 
-	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key1")))
+	next, _ = iter.Pull2(changeSet.changesAfter(StorageKey("key1")))
 
 	k, v, _ = next()
 	require.Equal(t, k, StorageKey("key11"))
 	require.Equal(t, v.StorageValue(), StorageValue("val11"))
 
-	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key11")))
+	next, _ = iter.Pull2(changeSet.changesAfter(StorageKey("key11")))
 
 	k, v, _ = next()
 	require.Equal(t, k, StorageKey("key2"))
 	require.Equal(t, v.StorageValue(), StorageValue("val2"))
 
-	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key2")))
+	next, _ = iter.Pull2(changeSet.changesAfter(StorageKey("key2")))
 
 	k, v, _ = next()
 	require.Equal(t, k, StorageKey("key3"))
 	require.Equal(t, v.StorageValue(), StorageValue("val3"))
 
-	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key3")))
+	next, _ = iter.Pull2(changeSet.changesAfter(StorageKey("key3")))
 
 	k, v, _ = next()
 	require.Equal(t, k, StorageKey("key4"))
@@ -431,88 +431,88 @@ func TestNextChangeWorks(t *testing.T) {
 	_, _, has := next()
 	require.False(t, has)
 
-	changeSet.RollbackTransaction()
+	changeSet.rollbackTransaction()
 
-	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key0")))
+	next, _ = iter.Pull2(changeSet.changesAfter(StorageKey("key0")))
 
 	k, v, _ = next()
 	require.Equal(t, k, StorageKey("key1"))
 	require.Equal(t, v.StorageValue(), StorageValue("val1"))
 
-	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key1")))
+	next, _ = iter.Pull2(changeSet.changesAfter(StorageKey("key1")))
 
 	k, v, _ = next()
 	require.Equal(t, k, StorageKey("key2"))
 	require.Equal(t, v.StorageValue(), StorageValue("val2"))
 
-	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key11")))
+	next, _ = iter.Pull2(changeSet.changesAfter(StorageKey("key11")))
 
 	k, v, _ = next()
 	require.Equal(t, k, StorageKey("key2"))
 	require.Equal(t, v.StorageValue(), StorageValue("val2"))
 
-	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key2")))
+	next, _ = iter.Pull2(changeSet.changesAfter(StorageKey("key2")))
 	_, _, has = next()
 	require.False(t, has)
 
-	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key3")))
+	next, _ = iter.Pull2(changeSet.changesAfter(StorageKey("key3")))
 	_, _, has = next()
 	require.False(t, has)
 
-	next, _ = iter.Pull2(changeSet.ChangesAfter(StorageKey("key4")))
+	next, _ = iter.Pull2(changeSet.changesAfter(StorageKey("key4")))
 	_, _, has = next()
 	require.False(t, has)
 }
 
 func TestNoOpenTxCommitErrors(t *testing.T) {
-	changeSet := NewOverlayedChangeSet()
+	changeSet := newOverlayedChangeSet()
 	require.Equal(t, uint(0), changeSet.TransactionDepth())
-	require.Error(t, changeSet.CommitTransaction(), errorNoOpenTransaction)
+	require.Error(t, changeSet.commitTransaction(), errorNoOpenTransaction)
 }
 
 func TestNoOpenTxRollbackErrors(t *testing.T) {
-	changeSet := NewOverlayedChangeSet()
+	changeSet := newOverlayedChangeSet()
 	require.Equal(t, uint(0), changeSet.TransactionDepth())
-	require.Error(t, changeSet.RollbackTransaction(), errorNoOpenTransaction)
+	require.Error(t, changeSet.rollbackTransaction(), errorNoOpenTransaction)
 }
 
 func TestUnbalancedTransactionsError(t *testing.T) {
-	changeSet := NewOverlayedChangeSet()
+	changeSet := newOverlayedChangeSet()
 	changeSet.StartTransaction()
-	require.NoError(t, changeSet.CommitTransaction())
+	require.NoError(t, changeSet.commitTransaction())
 
-	require.Error(t, changeSet.CommitTransaction(), errorNoOpenTransaction)
+	require.Error(t, changeSet.commitTransaction(), errorNoOpenTransaction)
 }
 
 func TestDrainWithOpenTransactionPanics(t *testing.T) {
-	changeSet := NewOverlayedChangeSet()
+	changeSet := newOverlayedChangeSet()
 	changeSet.StartTransaction()
 	require.Panics(t, func() { changeSet.DrainCommited() })
 }
 
 func TestRuntimeCannotCloseClientTx(t *testing.T) {
-	changeSet := NewOverlayedChangeSet()
+	changeSet := newOverlayedChangeSet()
 	changeSet.StartTransaction()
 	require.NoError(t, changeSet.EnterRuntime())
 
 	changeSet.StartTransaction()
-	require.NoError(t, changeSet.CommitTransaction())
+	require.NoError(t, changeSet.commitTransaction())
 
-	require.Error(t, changeSet.CommitTransaction(), errorNoOpenTransaction)
-	require.Error(t, changeSet.RollbackTransaction(), errorNoOpenTransaction)
+	require.Error(t, changeSet.commitTransaction(), errorNoOpenTransaction)
+	require.Error(t, changeSet.rollbackTransaction(), errorNoOpenTransaction)
 }
 
 func TestExitRuntimeClosesRuntimeTx(t *testing.T) {
-	changeSet := NewOverlayedChangeSet()
+	changeSet := newOverlayedChangeSet()
 	changeSet.StartTransaction()
-	changeSet.Set(StorageKey("key0"), StorageValue("val0"), extrinsic(1))
+	changeSet.set(StorageKey("key0"), StorageValue("val0"), extrinsic(1))
 
 	require.NoError(t, changeSet.EnterRuntime())
 	changeSet.StartTransaction()
-	changeSet.Set(StorageKey("key1"), StorageValue("val1"), extrinsic(2))
-	changeSet.ExitRuntime()
+	changeSet.set(StorageKey("key1"), StorageValue("val1"), extrinsic(2))
+	changeSet.exitRuntime()
 
-	changeSet.CommitTransaction()
+	changeSet.commitTransaction()
 	require.Equal(t, uint(0), changeSet.TransactionDepth())
 
 	assertDrained(t, changeSet, Drained{
@@ -521,24 +521,24 @@ func TestExitRuntimeClosesRuntimeTx(t *testing.T) {
 }
 
 func TestEnterExitRuntimeFailsWhenAlreadyInRequestedMode(t *testing.T) {
-	changeSet := NewOverlayedChangeSet()
+	changeSet := newOverlayedChangeSet()
 
-	require.Error(t, changeSet.ExitRuntime(), errorNotInRuntime)
+	require.Error(t, changeSet.exitRuntime(), errorNotInRuntime)
 	require.NoError(t, changeSet.EnterRuntime())
 	require.Error(t, changeSet.EnterRuntime(), errorAlreadyInRuntime)
-	require.NoError(t, changeSet.ExitRuntime())
-	require.Error(t, changeSet.ExitRuntime(), errorNotInRuntime)
+	require.NoError(t, changeSet.exitRuntime())
+	require.Error(t, changeSet.exitRuntime(), errorNotInRuntime)
 }
 
 func TestRestoreAppendToParent(t *testing.T) {
-	changeSet := NewOverlayedChangeSet()
+	changeSet := newOverlayedChangeSet()
 	key := "akey"
 
 	from := 50 // 1 byte len
 	to := 100  // 2 byte len
 	defaultInit := func() StorageValue { return StorageValue{} }
 	for i := 0; i < from; i++ {
-		changeSet.AppendStorage(StorageKey(key), StorageValue([]byte{byte(i)}), defaultInit, nil)
+		changeSet.appendStorage(StorageKey(key), StorageValue([]byte{byte(i)}), defaultInit, nil)
 	}
 
 	// materialised
@@ -551,7 +551,7 @@ func TestRestoreAppendToParent(t *testing.T) {
 	changeSet.StartTransaction()
 
 	for i := from; i < to; i++ {
-		changeSet.AppendStorage(StorageKey(key), StorageValue([]byte{byte(i)}), defaultInit, nil)
+		changeSet.appendStorage(StorageKey(key), StorageValue([]byte{byte(i)}), defaultInit, nil)
 	}
 
 	// materialised
@@ -560,25 +560,25 @@ func TestRestoreAppendToParent(t *testing.T) {
 	require.Equal(t, 2, len(encodedToLen))
 	require.True(t, bytes.HasPrefix(encoded, encodedToLen))
 
-	changeSet.RollbackTransaction()
+	changeSet.rollbackTransaction()
 
 	encoded = changeSet.Get(key).StorageValue()
 	require.Equal(t, encodedFrom, encoded)
 }
 
 func TestRestoreInitialSetAfterAppendToParent(t *testing.T) {
-	changeSet := NewOverlayedChangeSet()
+	changeSet := newOverlayedChangeSet()
 	key := "akey"
 
 	defaultInit := func() StorageValue { return StorageValue{} }
 	initialData := StorageValue(scale.MustMarshal(bytes.Repeat([]byte{1}, 50)))
 
-	changeSet.Set(StorageKey(key), initialData, nil)
+	changeSet.set(StorageKey(key), initialData, nil)
 	changeSet.StartTransaction()
 
 	// Append until we require 2 bytes for the length prefix.
 	for i := 0; i < 50; i++ {
-		changeSet.AppendStorage(StorageKey(key), StorageValue([]byte{byte(i)}), defaultInit, nil)
+		changeSet.appendStorage(StorageKey(key), StorageValue([]byte{byte(i)}), defaultInit, nil)
 	}
 
 	// Materialise the value.
@@ -588,7 +588,7 @@ func TestRestoreInitialSetAfterAppendToParent(t *testing.T) {
 	require.Equal(t, 2, len(encodedToLen))
 	require.True(t, bytes.HasPrefix(encoded, encodedToLen))
 
-	require.NoError(t, changeSet.RollbackTransaction())
+	require.NoError(t, changeSet.rollbackTransaction())
 
 	encoded = changeSet.Get(key).StorageValue()
 	require.Equal(t, initialData, encoded)
