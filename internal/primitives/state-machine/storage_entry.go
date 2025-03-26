@@ -49,6 +49,6 @@ func (se *appendStorageEntry) materializedInPlace() {
 	if se.materializedLength != nil && *se.materializedLength == currentLength {
 		return
 	}
-	NewStorageAppend(&se.data).ReplaceLength(se.materializedLength, currentLength)
+	newStorageAppend(&se.data).replaceLength(se.materializedLength, currentLength)
 	se.materializedLength = &currentLength
 }

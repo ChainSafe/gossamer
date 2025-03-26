@@ -11,11 +11,11 @@ type storageAppend struct {
 	data *StorageValue
 }
 
-func NewStorageAppend(data *StorageValue) *storageAppend {
+func newStorageAppend(data *StorageValue) *storageAppend {
 	return &storageAppend{data: data}
 }
 
-func (sa *storageAppend) ExtractLength() *uint {
+func (sa *storageAppend) extractLength() *uint {
 	var length uint
 	err := scale.Unmarshal(*sa.data, &length)
 	if err != nil {
@@ -24,7 +24,7 @@ func (sa *storageAppend) ExtractLength() *uint {
 	return &length
 }
 
-func (sa *storageAppend) ReplaceLength(oldLength *uint, newLength uint) {
+func (sa *storageAppend) replaceLength(oldLength *uint, newLength uint) {
 	oldLenEncodedLen := 0
 	if oldLength != nil {
 		oldLenEncodedLen = compactLen(*oldLength)
@@ -35,7 +35,7 @@ func (sa *storageAppend) ReplaceLength(oldLength *uint, newLength uint) {
 	*sa.data = newStorageValue
 }
 
-func (sa *storageAppend) AppendRaw(value []byte) {
+func (sa *storageAppend) appendRaw(value []byte) {
 	*sa.data = append(*sa.data, value...)
 }
 

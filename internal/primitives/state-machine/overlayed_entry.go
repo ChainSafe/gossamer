@@ -169,13 +169,13 @@ func (oe *OverlayedEntry[V]) Append(
 
 	if len(oe.transactions) == 0 {
 		initValue := init()
-		storageAppend := NewStorageAppend(&initValue)
+		storageAppend := newStorageAppend(&initValue)
 
 		// Either the init value is a SCALE list like value to that the `element` gets appended
 		// or the value is reset to `element`.
-		length := storageAppend.ExtractLength()
+		length := storageAppend.extractLength()
 		if length != nil {
-			storageAppend.AppendRaw(element)
+			storageAppend.appendRaw(element)
 			data = initValue
 			currentLength = *length + 1
 			materializedLength = length
@@ -205,7 +205,7 @@ func (oe *OverlayedEntry[V]) Append(
 			parentSize = nil
 		case *appendStorageEntry:
 			parentLen := uint(len(entry.data))
-			NewStorageAppend(&entry.data).AppendRaw(element)
+			newStorageAppend(&entry.data).appendRaw(element)
 			data = entry.data
 			currentLength = entry.currentLength + 1
 			materializedLength = entry.materializedLength
@@ -213,9 +213,9 @@ func (oe *OverlayedEntry[V]) Append(
 		case setStorageEntry:
 			// For compatibility: append if there is a encoded length, overwrite
 			// with value otherwhise.
-			length := NewStorageAppend(&entry.data).ExtractLength()
+			length := newStorageAppend(&entry.data).extractLength()
 			if length != nil {
-				NewStorageAppend(&entry.data).AppendRaw(element)
+				newStorageAppend(&entry.data).appendRaw(element)
 				data = entry.data
 				currentLength = *length + 1
 				materializedLength = length
@@ -251,14 +251,14 @@ func (oe *OverlayedEntry[V]) Append(
 			// Note that when the data here is not initialised with append,
 			// and still starts with a valid compact u32 we can have totally broken
 			// encoding.
-			append := NewStorageAppend(&oldVal.data)
+			append := newStorageAppend(&oldVal.data)
 
-			len := append.ExtractLength()
+			len := append.extractLength()
 
 			// For compatibility: append if there is a encoded length, overwrite
 			// with value otherwhise.
 			if len != nil {
-				append.AppendRaw(element)
+				append.appendRaw(element)
 				data = oldVal.data
 				currentLength = *len + 1
 				materializedLength = len
@@ -268,7 +268,7 @@ func (oe *OverlayedEntry[V]) Append(
 				materializedLength = nil
 			}
 		case *appendStorageEntry:
-			NewStorageAppend(&oldVal.data).AppendRaw(element)
+			newStorageAppend(&oldVal.data).appendRaw(element)
 			oldVal.currentLength += 1
 			replace = false
 			*oldValue = any(oldVal).(V)
