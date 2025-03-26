@@ -173,6 +173,59 @@ type LockImportRun[
 	) (any, error)
 }
 
+// / Finalize Facilities
+// pub trait Finalizer<Block: BlockT, B: Backend<Block>> {
+type Finalizer[
+	H runtime.Hash,
+	N runtime.Number,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+	E runtime.Extrinsic,
+] interface {
+	/// Mark all blocks up to given as finalized in operation.
+	///
+	/// If `justification` is provided it is stored with the given finalized
+	/// block (any other finalized blocks are left unjustified).
+	///
+	/// If the block being finalized is on a different fork from the current
+	/// best block the finalized block is set as best, this might be slightly
+	/// inaccurate (i.e. outdated). Usages that require determining an accurate
+	/// best block should use `SelectChain` instead of the client.
+	// fn apply_finality(
+	// 	&self,
+	// 	operation: &mut ClientImportOperation<Block, B>,
+	// 	block: Block::Hash,
+	// 	justification: Option<Justification>,
+	// 	notify: bool,
+	// ) -> sp_blockchain::Result<()>;
+	ApplyFinality(
+		operation ClientImportOperation[H, Hasher, N, Header, E],
+		block H,
+		justifcation *runtime.Justification,
+		notify bool) error
+
+	/// Finalize a block.
+	///
+	/// This will implicitly finalize all blocks up to it and
+	/// fire finality notifications.
+	///
+	/// If the block being finalized is on a different fork from the current
+	/// best block, the finalized block is set as best. This might be slightly
+	/// inaccurate (i.e. outdated). Usages that require determining an accurate
+	/// best block should use `SelectChain` instead of the client.
+	///
+	/// Pass a flag to indicate whether finality notifications should be propagated.
+	/// This is usually tied to some synchronization state, where we don't send notifications
+	/// while performing major synchronization work.
+	// fn finalize_block(
+	// 	&self,
+	// 	block: Block::Hash,
+	// 	justification: Option<Justification>,
+	// 	notify: bool,
+	// ) -> sp_blockchain::Result<()>;
+	FinalizeBlock(block H, justification *runtime.Justification, notify bool) error
+}
+
 // KeyValue is used in [AuxStore.InsertAux].  Key and Value should not be nil.
 type KeyValue struct {
 	Key   []byte
@@ -192,6 +245,109 @@ type AuxStore interface {
 
 	// Query auxiliary data from key-value store.
 	GetAux(key []byte) ([]byte, error)
+}
+
+// / An `Iterator` that iterates keys in a given block under a prefix.
+// pub struct KeysIter<State, Block>
+// where
+//
+//	State: StateBackend<HashFor<Block>>,
+//	Block: BlockT,
+//
+//	{
+//		inner: <State as StateBackend<HashFor<Block>>>::RawIter,
+//		state: State,
+//	}
+type KeysIter[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] struct {
+	inner statemachine.StorageIterator[H, Hasher]
+	state statemachine.Backend[H, Hasher]
+}
+
+// / An `Iterator` that iterates keys and values in a given block under a prefix.
+// pub struct PairsIter<State, Block>
+// where
+//
+//	State: StateBackend<HashFor<Block>>,
+//	Block: BlockT,
+//
+//	{
+//		inner: <State as StateBackend<HashFor<Block>>>::RawIter,
+//		state: State,
+//	}
+type PairsIter[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] struct {
+	inner statemachine.StorageIterator[H, Hasher]
+	state statemachine.Backend[H, Hasher]
+}
+
+// / Provides access to storage primitives
+// pub trait StorageProvider<Block: BlockT, B: Backend<Block>> {
+type StorageProvider[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] interface {
+	/// Given a block's `Hash` and a key, return the value under the key in that block.
+	// fn storage(
+	// 	&self,
+	// 	hash: Block::Hash,
+	// 	key: &StorageKey,
+	// ) -> sp_blockchain::Result<Option<StorageData>>;
+	Storage(hash H, key storage.StorageKey) (*storage.StorageData, error)
+
+	/// Given a block's `Hash` and a key, return the value under the hash in that block.
+	// fn storage_hash(
+	// 	&self,
+	// 	hash: Block::Hash,
+	// 	key: &StorageKey,
+	// ) -> sp_blockchain::Result<Option<Block::Hash>>;
+	StorageHash(hash H, key storage.StorageKey) (*H, error)
+
+	/// Given a block's `Hash` and a key prefix, returns a `KeysIter` iterates matching storage
+	/// keys in that block.
+	// fn storage_keys(
+	// 	&self,
+	// 	hash: Block::Hash,
+	// 	prefix: Option<&StorageKey>,
+	// 	start_key: Option<&StorageKey>,
+	// ) -> sp_blockchain::Result<KeysIter<B::State, Block>>;
+	StorageKeys(hash H, prefix *storage.StorageKey, startKey *storage.StorageKey) (KeysIter[H, N, Hasher], error)
+
+	/// Given a block's `Hash` and a key prefix, returns an iterator over the storage keys and
+	/// values in that block.
+	// fn storage_pairs(
+	// 	&self,
+	// 	hash: <Block as BlockT>::Hash,
+	// 	prefix: Option<&StorageKey>,
+	// 	start_key: Option<&StorageKey>,
+	// ) -> sp_blockchain::Result<PairsIter<B::State, Block>>;
+	StoragePairs(hash H, prefix *storage.StorageKey, startKey *storage.StorageKey) (PairsIter[H, N, Hasher], error)
+
+	/// Given a block's `Hash`, a key and a child storage key, return the value under the key in
+	/// that block.
+	// fn child_storage(
+	// 	&self,
+	// 	hash: Block::Hash,
+	// 	child_info: &ChildInfo,
+	// 	key: &StorageKey,
+	// ) -> sp_blockchain::Result<Option<StorageData>>;
+	ChildStorage(hash H, childInfo storage.ChildInfo, key storage.StorageKey) (*storage.StorageData, error)
+
+	// /// Given a block's `Hash` and a key `prefix` and a child storage key,
+	// /// returns a `KeysIter` that iterates matching storage keys in that block.
+	// fn child_storage_keys(
+	// 	&self,
+	// 	hash: Block::Hash,
+	// 	child_info: ChildInfo,
+	// 	prefix: Option<&StorageKey>,
+	// 	start_key: Option<&StorageKey>,
+	// ) -> sp_blockchain::Result<KeysIter<B::State, Block>>;
+	ChildStorageKeys(hash H, childInfo storage.ChildInfo, prefix *storage.StorageKey, startKey *storage.StorageKey) (KeysIter[H, N, Hasher], error)
+
+	// /// Given a block's `Hash`, a key and a child storage key, return the hash under the key in that
+	// /// block.
+	// fn child_storage_hash(
+	// 	&self,
+	// 	hash: Block::Hash,
+	// 	child_info: &ChildInfo,
+	// 	key: &StorageKey,
+	// ) -> sp_blockchain::Result<Option<Block::Hash>>;
+	ChildStorageHash(hash H, childInfo storage.ChildInfo, key storage.StorageKey) (*H, error)
 }
 
 // Backend is the client backend.

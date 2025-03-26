@@ -6,8 +6,10 @@ package grandpa
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
 )
@@ -52,6 +54,147 @@ type status[H comparable, N constraints.Unsigned] struct {
 	// Not nil when underlying authority set has changed, containing the
 	// block where that set changed.
 	NewSetBlock *HashNumber[H, N]
+}
+
+// SharedAuthoritySet A shared authority set
+type SharedAuthoritySet[H comparable, N constraints.Unsigned] struct {
+	mtx   sync.Mutex
+	inner AuthoritySet[H, N]
+}
+
+// / Get the current authorities and their weights (for the current set ID).
+func (sas *SharedAuthoritySet[H, N]) CurrentAuthorities() grandpa.VoterSet[string] {
+	//	pub fn current_authorities(&self) -> VoterSet<AuthorityId> {
+	//		VoterSet::new(self.inner().current_authorities.iter().cloned()).expect(
+	//			"current_authorities is non-empty and weights are non-zero; \
+	//			 constructor and all mutating operations on `AuthoritySet` ensure this; \
+	//			 qed.",
+	//		)
+	//	}
+	sas.mtx.Lock()
+	defer sas.mtx.Unlock()
+	idWeights := make([]grandpa.IDWeight[string], len(sas.inner.CurrentAuthorities))
+	for i, auth := range sas.inner.CurrentAuthorities {
+		idWeights[i] = grandpa.IDWeight[string]{
+			ID:     string(auth.AuthorityID),
+			Weight: uint64(auth.AuthorityWeight),
+		}
+	}
+	voterSet := grandpa.NewVoterSet[string](idWeights)
+	if voterSet == nil {
+		panic(fmt.Errorf("current_authorities is non-empty and weights are non-zero; constructor and all mutating operations on `AuthoritySet` ensure this; qed."))
+	}
+	return *voterSet
+}
+
+// Current Get the current set id and a reference to the current authority set.
+func (sas *SharedAuthoritySet[H, N]) Current() (uint64, *pgrandpa.AuthorityList) {
+	sas.mtx.Lock()
+	defer sas.mtx.Unlock()
+	return sas.inner.current()
+}
+
+func (sas *SharedAuthoritySet[H, N]) revert() { //nolint //skipcq: SCC-U1000
+	sas.mtx.Lock()
+	defer sas.mtx.Unlock()
+	sas.inner.revert()
+}
+
+func (sas *SharedAuthoritySet[H, N]) nextChange(bestHash H, //nolint //skipcq: SCC-U1000
+	isDescendentOf IsDescendentOf[H]) (*HashNumber[H, N], error) {
+	sas.mtx.Lock()
+	defer sas.mtx.Unlock()
+	return sas.inner.nextChange(bestHash, isDescendentOf)
+}
+
+func (sas *SharedAuthoritySet[H, N]) addStandardChange(pending PendingChange[H, N], //nolint //skipcq: SCC-U1000
+	isDescendentOf IsDescendentOf[H]) error {
+	sas.mtx.Lock()
+	defer sas.mtx.Unlock()
+	return sas.inner.addStandardChange(pending, isDescendentOf)
+}
+
+func (sas *SharedAuthoritySet[H, N]) addForcedChange(pending PendingChange[H, N], //nolint //skipcq: SCC-U1000
+	isDescendentOf IsDescendentOf[H]) error {
+	sas.mtx.Lock()
+	defer sas.mtx.Unlock()
+	return sas.inner.addForcedChange(pending, isDescendentOf)
+}
+
+func (sas *SharedAuthoritySet[H, N]) addPendingChange(pending PendingChange[H, N], //nolint //skipcq: SCC-U1000
+	isDescendentOf IsDescendentOf[H]) error {
+	sas.mtx.Lock()
+	defer sas.mtx.Unlock()
+	return sas.inner.addPendingChange(pending, isDescendentOf)
+}
+
+// PendingChanges Inspect pending changes. Standard pending changes are iterated first,
+// and the changes in the roots are traversed in pre-order, afterwards all
+// forced changes are iterated.
+func (sas *SharedAuthoritySet[H, N]) PendingChanges() []PendingChange[H, N] {
+	sas.mtx.Lock()
+	defer sas.mtx.Unlock()
+	return sas.inner.pendingChanges()
+}
+
+// currentLimit Get the earliest limit-block number, if any. If there are pending changes across
+// different forks, this method will return the earliest effective number (across the
+// different branches) that is higher or equal to the given min number.
+//
+// Only standard changes are taken into account for the current
+// limit, since any existing forced change should preclude the voter from voting.
+func (sas *SharedAuthoritySet[H, N]) currentLimit(min N) (limit *N) { //nolint //skipcq: SCC-U1000
+	sas.mtx.Lock()
+	defer sas.mtx.Unlock()
+	return sas.inner.currentLimit(min)
+}
+
+func (sas *SharedAuthoritySet[H, N]) applyForcedChanges(bestHash H, //nolint //skipcq: SCC-U1000
+	bestNumber N,
+	isDescendentOf IsDescendentOf[H],
+	// TODO: telemtry,
+) (newSet *appliedChanges[H, N], err error) {
+	sas.mtx.Lock()
+	defer sas.mtx.Unlock()
+	return sas.inner.applyForcedChanges(bestHash, bestNumber, isDescendentOf)
+}
+
+// applyStandardChanges Apply or prune any pending transitions based on a finality trigger. This
+// method ensures that if there are multiple changes in the same branch,
+// finalising this block won't finalise past multiple transitions (i.e.
+// transitions must be finalised in-order). The given function
+// `is_descendent_of` should return `true` if the second hash (target) is a
+// descendent of the first hash (base).
+//
+// When the set has changed, the return value will be a status type where newSetBlockInfo
+// is the canonical block where the set last changed (i.e. the given
+// hash and number).
+func (sas *SharedAuthoritySet[H, N]) applyStandardChanges(finalisedHash H, //nolint //skipcq: SCC-U1000
+	finalisedNumber N,
+	isDescendentOf IsDescendentOf[H],
+	// TODO: telemetry,
+) (status[H, N], error) {
+	sas.mtx.Lock()
+	defer sas.mtx.Unlock()
+	return sas.inner.applyStandardChanges(finalisedHash, finalisedNumber, isDescendentOf)
+}
+
+// EnactsStandardChange Check whether the given finalised block number enacts any standard
+// authority set change (without triggering it), ensuring that if there are
+// multiple changes in the same branch, finalising this block won't
+// finalise past multiple transitions (i.e. transitions must be finalised
+// in-order). Returns *true if the block being finalised enacts a
+// change that can be immediately applied, *false if the block being
+// finalised enacts a change but it cannot be applied yet since there are
+// other dependent changes, and nil if no change is enacted. The given
+// function `is_descendent_of` should return `true` if the second hash
+// (target) is a descendent of the first hash (base).
+func (sas *SharedAuthoritySet[H, N]) EnactsStandardChange(finalisedHash H,
+	finalisedNumber N,
+	isDescendentOf IsDescendentOf[H]) (*bool, error) {
+	sas.mtx.Lock()
+	defer sas.mtx.Unlock()
+	return sas.inner.EnactsStandardChange(finalisedHash, finalisedNumber, isDescendentOf)
 }
 
 // AuthoritySet A set of authorities.

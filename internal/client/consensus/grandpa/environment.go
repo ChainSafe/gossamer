@@ -8,6 +8,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/internal/client/consensus"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
@@ -625,3 +626,25 @@ type votePrecommit[H runtime.Hash, N runtime.Number] struct {
 }
 
 func (votePrecommit[H, N]) isVote() {}
+
+// / The environment we run GRANDPA in.
+type environment[
+	H runtime.Hash,
+	N runtime.Number,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+	E runtime.Extrinsic,
+] struct {
+	Client        ClientForGrandpa[H, N, Hasher, Header, E]
+	SelectChain   consensus.SelectChain[H, N]
+	Voters        grandpa.VoterSet[string]
+	Config        Config
+	AuthoritySet  SharedAuthoritySet[H, N]
+	Network       networkBridge[H, N, Hasher]
+	SetID         SetID
+	VoterSetState SharedVoterSetState[H, N]
+	VotingRule    VotingRule[H, N, Header]
+	// TODO: metrics
+	JustificationSender *GrandpaJustificationSender[H, N]
+	// TODO: telemetry
+}
