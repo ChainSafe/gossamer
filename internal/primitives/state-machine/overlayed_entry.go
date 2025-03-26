@@ -35,13 +35,6 @@ func (oe *OverlayedEntry[V]) StorageValue() StorageValue {
 	return any(*oe.ValueRef()).(storageEntry).value()
 }
 
-func (oe *OverlayedEntry[V]) IntoValue() V {
-	value := *oe.ValueRef()
-	oe.transactions = oe.transactions[:len(oe.transactions)-1]
-
-	return value
-}
-
 func (oe *OverlayedEntry[V]) Extrinsics() map[uint32]struct{} {
 	set := make(map[uint32]struct{}, 0)
 
