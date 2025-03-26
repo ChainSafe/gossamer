@@ -5,8 +5,6 @@ package statemachine
 
 import (
 	"iter"
-
-	"golang.org/x/exp/constraints"
 )
 
 // Describes in which mode the node is currently executing.
@@ -20,7 +18,7 @@ const (
 )
 
 // Dirty keys are a set of keys that have been modified in each transaction.
-type dirtyKeysSets[K constraints.Ordered] []map[K]struct{}
+type dirtyKeysSets[K comparable] []map[K]struct{}
 
 // Inserts a key into the dirty set.
 // Returns true iff we currently have at least one open transaction and if this
