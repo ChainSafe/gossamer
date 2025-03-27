@@ -1,7 +1,6 @@
 package availabilitydistribution
 
 import (
-	"context"
 	"fmt"
 	"sync"
 
@@ -44,9 +43,7 @@ type fetchChunkTask struct {
 	badValidators []parachaintypes.AuthorityDiscoveryID
 
 	onTermination taskTerminationHandler
-
-	ctx    context.Context
-	cancel context.CancelFunc
+	stop          chan bool
 }
 
 func newFetchChunkTask(
@@ -58,8 +55,6 @@ func newFetchChunkTask(
 	subsystemToOverseer chan<- any,
 	onTermination taskTerminationHandler,
 ) *fetchChunkTask {
-	ctx, cancel := context.WithCancel(context.Background())
-
 	return &fetchChunkTask{
 		liveIn:              map[common.Hash]struct{}{leaf: {}},
 		chunkIndex:          chunkIndex,
@@ -69,8 +64,7 @@ func newFetchChunkTask(
 		subsystemToOverseer: subsystemToOverseer,
 		onTermination:       onTermination,
 		badValidators:       make([]parachaintypes.AuthorityDiscoveryID, 0),
-		ctx:                 ctx,
-		cancel:              cancel,
+		stop:                make(chan bool, 1),
 	}
 }
 
@@ -100,7 +94,7 @@ func (t *fetchChunkTask) run() {
 
 		var result networkbridgemessages.ReqRespResult
 		select {
-		case <-t.ctx.Done():
+		case <-t.stop:
 			request.Cancel()
 			t.cleanup(taskCancelled)
 			return
@@ -190,14 +184,21 @@ func (t *fetchChunkTask) removeLeaves(leaves []common.Hash) {
 }
 
 func (t *fetchChunkTask) cleanup(reason taskTerminationReason) {
-	// Make sure context is always cancelled to avoid resource leaks.
-	t.cancel()
-
 	if t.onTermination != nil {
 		t.onTermination(parachaintypes.CandidateHash{Value: t.core.CandidateHash}, reason, t.badValidators)
 	}
 }
 
+func (t *fetchChunkTask) cancel() {
+	t.stop <- true
+	close(t.stop)
+}
+
 func (t *fetchChunkTask) isCancelled() bool {
-	return t.ctx.Err() != nil
+	select {
+	case <-t.stop:
+		return true
+	default:
+		return false
+	}
 }
