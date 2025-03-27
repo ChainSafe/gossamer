@@ -1,7 +1,7 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package parachain
+package messages
 
 import (
 	"testing"
@@ -24,6 +24,22 @@ func TestEncodePoVFetchingRequest(t *testing.T) {
 	expextedEncode := common.MustHexToBytes("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19")
 	require.Equal(t, expextedEncode, actualEncode)
 
+}
+
+func TestDecodePoVFetchingRequest(t *testing.T) {
+	encodedRequest := common.MustHexToBytes("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19")
+
+	request := PoVFetchingRequest{}
+	err := request.Decode(encodedRequest)
+	require.NoError(t, err)
+
+	expectedDecode := PoVFetchingRequest{
+		CandidateHash: parachaintypes.CandidateHash{
+			Value: common.MustHexToHash("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19"),
+		},
+	}
+
+	require.Equal(t, request, expectedDecode)
 }
 
 func TestPoVFetchingResponse(t *testing.T) {
