@@ -10,6 +10,7 @@ import (
 
 	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie/cache"
@@ -99,7 +100,7 @@ func NewProofCheckTrieBackend[H runtime.Hash, Hasher runtime.Hasher[H]](
 	return nil, fmt.Errorf("invalid execution proof")
 }
 
-func (tb *TrieBackend[H, Hasher]) Storage(key []byte) (StorageValue, error) {
+func (tb *TrieBackend[H, Hasher]) Storage(key []byte) (overlayedchanges.StorageValue, error) {
 	return tb.essence.Storage(key)
 }
 
@@ -107,7 +108,8 @@ func (tb *TrieBackend[H, Hasher]) StorageHash(key []byte) (*H, error) {
 	return tb.essence.StorageHash(key)
 }
 
-func (tb *TrieBackend[H, Hasher]) ChildStorage(childInfo storage.ChildInfo, key []byte) (StorageValue, error) {
+func (tb *TrieBackend[H, Hasher]) ChildStorage(childInfo storage.ChildInfo, key []byte) (
+	overlayedchanges.StorageValue, error) {
 	return tb.essence.ChildStorage(childInfo, key)
 }
 
@@ -147,7 +149,7 @@ func (tb *TrieBackend[H, Hasher]) ExistsChildStorage(childInfo storage.ChildInfo
 	return false, nil
 }
 
-func (tb *TrieBackend[H, Hasher]) NextStorageKey(key []byte) (StorageKey, error) {
+func (tb *TrieBackend[H, Hasher]) NextStorageKey(key []byte) (overlayedchanges.StorageKey, error) {
 	var isCached bool
 	tb.nextStorageKeyCacheMtx.Lock()
 	defer tb.nextStorageKeyCacheMtx.Unlock()
@@ -183,7 +185,8 @@ func (tb *TrieBackend[H, Hasher]) NextStorageKey(key []byte) (StorageKey, error)
 	return nextKey, nil
 }
 
-func (tb *TrieBackend[H, Hasher]) NextChildStorageKey(childInfo storage.ChildInfo, key []byte) (StorageKey, error) {
+func (tb *TrieBackend[H, Hasher]) NextChildStorageKey(childInfo storage.ChildInfo, key []byte) (
+	overlayedchanges.StorageKey, error) {
 	return tb.essence.NextChildStorageKey(childInfo, key)
 }
 

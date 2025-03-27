@@ -10,6 +10,7 @@ import (
 	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
 	triedb "github.com/ChainSafe/gossamer/pkg/trie/triedb"
@@ -71,19 +72,19 @@ func TestTrieBackendEssence(t *testing.T) {
 
 		key, err := tb1.NextStorageKey([]byte("2"))
 		require.NoError(t, err)
-		require.Equal(t, StorageKey("3"), key)
+		require.Equal(t, overlayedchanges.StorageKey("3"), key)
 
 		key, err = tb1.NextStorageKey([]byte("3"))
 		require.NoError(t, err)
-		require.Equal(t, StorageKey("4"), key)
+		require.Equal(t, overlayedchanges.StorageKey("4"), key)
 
 		key, err = tb1.NextStorageKey([]byte("4"))
 		require.NoError(t, err)
-		require.Equal(t, StorageKey("6"), key)
+		require.Equal(t, overlayedchanges.StorageKey("6"), key)
 
 		key, err = tb1.NextStorageKey([]byte("5"))
 		require.NoError(t, err)
-		require.Equal(t, StorageKey("6"), key)
+		require.Equal(t, overlayedchanges.StorageKey("6"), key)
 
 		key, err = tb1.NextStorageKey([]byte("6"))
 		require.NoError(t, err)
@@ -94,19 +95,19 @@ func TestTrieBackendEssence(t *testing.T) {
 
 		key, err = essence2.NextChildStorageKey(childInfo, []byte("2"))
 		require.NoError(t, err)
-		require.Equal(t, StorageKey("3"), key)
+		require.Equal(t, overlayedchanges.StorageKey("3"), key)
 
 		key, err = essence2.NextChildStorageKey(childInfo, []byte("3"))
 		require.NoError(t, err)
-		require.Equal(t, StorageKey("4"), key)
+		require.Equal(t, overlayedchanges.StorageKey("4"), key)
 
 		key, err = essence2.NextChildStorageKey(childInfo, []byte("4"))
 		require.NoError(t, err)
-		require.Equal(t, StorageKey("6"), key)
+		require.Equal(t, overlayedchanges.StorageKey("6"), key)
 
 		key, err = essence2.NextChildStorageKey(childInfo, []byte("5"))
 		require.NoError(t, err)
-		require.Equal(t, StorageKey("6"), key)
+		require.Equal(t, overlayedchanges.StorageKey("6"), key)
 
 		key, err = essence2.NextChildStorageKey(childInfo, []byte("6"))
 		require.NoError(t, err)

@@ -1,7 +1,7 @@
 // Copyright 2025 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package statemachine
+package overlayedchanges
 
 // Content in an overlay for a given transactional depth.
 type storageEntry interface {
