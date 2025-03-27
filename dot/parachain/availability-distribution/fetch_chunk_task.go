@@ -26,11 +26,11 @@ type taskTerminationHandler func(
 )
 
 type fetchChunkTask struct {
-	chunkIndex uint32
-	ourIndex   parachaintypes.ValidatorIndex
-	core       *parachaintypes.OccupiedCore
-	group      []parachaintypes.AuthorityDiscoveryID
-	overseerCh chan<- any
+	chunkIndex          uint32
+	ourIndex            parachaintypes.ValidatorIndex
+	core                *parachaintypes.OccupiedCore
+	group               []parachaintypes.AuthorityDiscoveryID
+	subsystemToOverseer chan<- any
 
 	// Set of relay chain block hashes for which the candidate associated with the given core is pending availability.
 	//
@@ -55,22 +55,22 @@ func newFetchChunkTask(
 	ourIndex parachaintypes.ValidatorIndex,
 	core *parachaintypes.OccupiedCore,
 	group []parachaintypes.AuthorityDiscoveryID,
-	overseerCh chan<- any,
+	subsystemToOverseer chan<- any,
 	onTermination taskTerminationHandler,
 ) *fetchChunkTask {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &fetchChunkTask{
-		liveIn:        map[common.Hash]struct{}{leaf: {}},
-		chunkIndex:    chunkIndex,
-		ourIndex:      ourIndex,
-		core:          core,
-		group:         group,
-		overseerCh:    overseerCh,
-		onTermination: onTermination,
-		badValidators: make([]parachaintypes.AuthorityDiscoveryID, 0),
-		ctx:           ctx,
-		cancel:        cancel,
+		liveIn:              map[common.Hash]struct{}{leaf: {}},
+		chunkIndex:          chunkIndex,
+		ourIndex:            ourIndex,
+		core:                core,
+		group:               group,
+		subsystemToOverseer: subsystemToOverseer,
+		onTermination:       onTermination,
+		badValidators:       make([]parachaintypes.AuthorityDiscoveryID, 0),
+		ctx:                 ctx,
+		cancel:              cancel,
 	}
 }
 
@@ -96,7 +96,7 @@ func (t *fetchChunkTask) run() {
 			IfDisconnected: networkbridgemessages.ImmediateError,
 		}
 
-		t.overseerCh <- sendRequests
+		t.subsystemToOverseer <- sendRequests
 
 		var result networkbridgemessages.ReqRespResult
 		select {
@@ -113,7 +113,7 @@ func (t *fetchChunkTask) run() {
 			continue
 		}
 
-		t.overseerCh <- availabilitystore.StoreChunk{
+		t.subsystemToOverseer <- availabilitystore.StoreChunk{
 			CandidateHash: parachaintypes.CandidateHash{Value: t.core.CandidateHash},
 			Chunk:         chunk,
 		}
