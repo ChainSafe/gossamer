@@ -53,7 +53,7 @@ func (cb *CandidateBacking) getBackableCandidatesOfAParachain(
 			break
 		}
 
-		backed, err := attested.toBackedCandidate(&rpState.tableContext)
+		backed, err := attested.toBackedCandidate(&rpState.tableContext, rpState.injectCoreIndex)
 		if err != nil {
 			logger.Debugf("converting attested candidate to backed candidate: %w", err)
 			break
