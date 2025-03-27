@@ -33,6 +33,7 @@ func TestHandleChunkFetchingRequest(t *testing.T) {
 		blockStateMock = NewMockBlockState(ctrl)
 
 		netMock.EXPECT().RegisterRequestHandler(protocol.ID("req_chunk/2"), gomock.Any())
+		netMock.EXPECT().RegisterRequestHandler(protocol.ID("req_pov/1"), gomock.Any())
 
 		overseerCh = make(chan any)
 		ad = NewAvailabilityDistribution(overseerCh, netMock, blockStateMock)
@@ -131,6 +132,119 @@ func TestHandleChunkFetchingRequest(t *testing.T) {
 		assert.Equal(t, request.Index, query.ValidatorIndex)
 
 		query.Sender <- testChunk
+		wg.Wait()
+	})
+}
+
+func TestHandlePoVFetchingRequest(t *testing.T) {
+	var (
+		ctrl           *gomock.Controller
+		netMock        *MockNetwork
+		blockStateMock *MockBlockState
+		overseerCh     chan any
+		ad             *AvailabilityDistribution
+	)
+
+	setup := func(t *testing.T) {
+		ctrl = gomock.NewController(t)
+		netMock = NewMockNetwork(ctrl)
+		blockStateMock = NewMockBlockState(ctrl)
+
+		netMock.EXPECT().RegisterRequestHandler(protocol.ID("req_chunk/2"), gomock.Any())
+		netMock.EXPECT().RegisterRequestHandler(protocol.ID("req_pov/1"), gomock.Any())
+
+		overseerCh = make(chan any)
+		ad = NewAvailabilityDistribution(overseerCh, netMock, blockStateMock)
+	}
+
+	t.Run("invalid_request", func(t *testing.T) {
+		setup(t)
+
+		response, err := ad.handlePoVFetchingRequest("bob", []byte("0xDECAFBAD"))
+
+		assert.Error(t, err)
+		assert.Nil(t, response)
+	})
+
+	t.Run("pov_not_found", func(t *testing.T) {
+		setup(t)
+
+		request := messages.PoVFetchingRequest{
+			CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
+		}
+
+		encodedRequest, err := request.Encode()
+		assert.NoError(t, err)
+
+		var response network.ResponseMessage
+
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			var err error
+			response, err = ad.handlePoVFetchingRequest("bob", encodedRequest)
+			assert.NoError(t, err)
+			assert.NotNil(t, response)
+			cfResponse, ok := response.(*messages.PoVFetchingResponse)
+			assert.True(t, ok)
+
+			value, err := cfResponse.Value()
+			assert.NoError(t, err)
+			assert.Equal(t, parachaintypes.NoSuchPoV{}, value)
+			wg.Done()
+		}()
+
+		query, ok := (<-overseerCh).(availabilitystore.QueryAvailableData)
+		assert.True(t, ok)
+		assert.Equal(t, request.CandidateHash, query.CandidateHash)
+
+		query.Sender <- availabilitystore.AvailableData{}
+		wg.Wait()
+	})
+
+	t.Run("pov_found", func(t *testing.T) {
+		setup(t)
+
+		request := messages.PoVFetchingRequest{
+			CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
+		}
+
+		encodedRequest, err := request.Encode()
+		assert.NoError(t, err)
+
+		testPoV := availabilitystore.AvailableData{
+			PoV: parachaintypes.PoV{BlockData: []byte{0x01, 0x02}},
+			ValidationData: parachaintypes.PersistedValidationData{
+				ParentHead: parachaintypes.HeadData{Data: []byte{0x42}},
+			},
+		}
+
+		var response network.ResponseMessage
+
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			var err error
+			response, err = ad.handlePoVFetchingRequest("bob", encodedRequest)
+			assert.NoError(t, err)
+			assert.NotNil(t, response)
+			cfResponse, ok := response.(*messages.PoVFetchingResponse)
+			assert.True(t, ok)
+
+			value, err := cfResponse.Value()
+			assert.NoError(t, err)
+
+			povRes, ok := value.(parachaintypes.PoV)
+			assert.True(t, ok)
+			assert.Equal(t, testPoV.PoV, povRes)
+			wg.Done()
+		}()
+
+		query, ok := (<-overseerCh).(availabilitystore.QueryAvailableData)
+		assert.True(t, ok)
+		assert.Equal(t, request.CandidateHash, query.CandidateHash)
+
+		query.Sender <- testPoV
 		wg.Wait()
 	})
 }
