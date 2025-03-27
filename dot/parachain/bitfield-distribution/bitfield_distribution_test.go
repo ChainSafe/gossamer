@@ -1,8 +1,11 @@
 package bitfielddistribution
 
 import (
+	"sync"
 	"testing"
 	"time"
+
+	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/grid"
 	networkbridgeevents "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/events"
@@ -107,30 +110,35 @@ func TestBitfieldDistribution_ProcessPeerConnectedEvent(t *testing.T) {
 
 	// protocol version support testing
 	bd.processPeerConnectedEvent(signalWithVersion1)
-
-	time.Sleep(1 * time.Second)
 	assert.Equal(t, 0, len(bd.peerViews))
 
 	bd.processPeerConnectedEvent(signalWithVersion2)
-
-	time.Sleep(1 * time.Second)
 	assert.Equal(t, 1, len(bd.peerViews))
 
 	bd.processPeerConnectedEvent(signalWithVersion3)
-
-	time.Sleep(1 * time.Second)
 	assert.Equal(t, 2, len(bd.peerViews))
 
 	// race condition testing
-	bd.processPeerConnectedEvent(signalWithPeer4)
+	wg := sync.WaitGroup{}
+	wg.Add(4)
+	go func() {
+		bd.processPeerConnectedEvent(signalWithPeer4)
+		wg.Done()
+	}()
+	go func() {
+		bd.processPeerConnectedEvent(signalWithPeer5)
+		wg.Done()
+	}()
+	go func() {
+		bd.processPeerConnectedEvent(signalWithPeer6)
+		wg.Done()
+	}()
+	go func() {
+		bd.processPeerConnectedEvent(signalWithPeer7)
+		wg.Done()
+	}()
 
-	bd.processPeerConnectedEvent(signalWithPeer5)
-
-	bd.processPeerConnectedEvent(signalWithPeer6)
-
-	bd.processPeerConnectedEvent(signalWithPeer7)
-
-	time.Sleep(3 * time.Second)
+	wg.Wait()
 	assert.Equal(t, 6, len(bd.peerViews))
 }
 
@@ -157,14 +165,12 @@ func TestBitfieldDistribution_ProcessPeerDisconnectedEvent(t *testing.T) {
 
 	bd.processPeerConnectedEvent(signalWithVersion3)
 
-	time.Sleep(1 * time.Second)
 	assert.Equal(t, 2, len(bd.peerViews))
 
 	bd.processPeerDisconnectedEvent(networkbridgeevents.PeerDisconnected{
 		PeerID: targetPeer,
 	})
 
-	time.Sleep(1 * time.Second)
 	assert.Equal(t, 1, len(bd.peerViews))
 }
 
@@ -182,7 +188,7 @@ func TestBitfieldDistribution_FilterByPeerVersion(t *testing.T) {
 		result        []peer.ID
 	}{
 		{
-			name: "test1",
+			name: "test1: should have 1 result",
 			peers: map[peer.ID]uint32{
 				p1: uint32(2),
 				p2: uint32(3),
@@ -194,7 +200,7 @@ func TestBitfieldDistribution_FilterByPeerVersion(t *testing.T) {
 			result:        []peer.ID{p5},
 		},
 		{
-			name: "test2",
+			name: "test2: should have 2 result",
 			peers: map[peer.ID]uint32{
 				p1: uint32(2),
 				p2: uint32(3),
@@ -206,13 +212,13 @@ func TestBitfieldDistribution_FilterByPeerVersion(t *testing.T) {
 			result:        []peer.ID{p1, p3},
 		},
 		{
-			name:          "test3",
+			name:          "test3: should have 0 result",
 			peers:         map[peer.ID]uint32{},
 			targetVersion: uint32(2),
 			result:        []peer.ID{},
 		},
 		{
-			name: "test4",
+			name: "test4: should have 0 result",
 			peers: map[peer.ID]uint32{
 				p1: uint32(2),
 				p2: uint32(3),
@@ -264,17 +270,14 @@ func TestBitfieldDistribution_RelayMessage_InterestedPeersEmpty(t *testing.T) {
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
 
 	// control the peer protocol version here and the peer's Head
-	peerViews := map[peer.ID]struct {
-		view            parachaintypes.View
-		protocolVersion uint32
-	}{
+	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{
 		peerA: {
-			view:            parachaintypes.View{},
-			protocolVersion: 2,
+			View:            parachaintypes.View{},
+			ProtocolVersion: 2,
 		},
 		peerB: {
-			view:            parachaintypes.View{},
-			protocolVersion: 3,
+			View:            parachaintypes.View{},
+			ProtocolVersion: 3,
 		},
 	}
 
@@ -296,24 +299,30 @@ func TestBitfieldDistribution_RelayMessage_InterestedPeersEmpty(t *testing.T) {
 	requiredRouting := grid.RequiredRoutingAll
 	validatorID := jobData.validatorsSet[validatorIndex]
 
-	// call the target method
-	relayMessage(jobData, topologies, b.peerViews, validatorID, message, requiredRouting, b.subSystemToOverseer)
-
-	// there should be empty interested peers so method call is returned without error
-	// check the overseer chan message for the ProvisionableDataBitfield message
+	done := make(chan struct{})
 	go func() {
 		for {
+			// check the overseer chan message for the ProvisionableDataBitfield message
 			request := <-subSystemToOverseer
 			switch request := request.(type) {
 			case provisionermessages.ProvisionableDataBitfield:
 				assert.EqualValues(t, message.Hash, request.RelayParent)
 				assert.EqualValues(t, message.CheckedSignedAvailabilityBitfield, request.Bitfield)
 			}
+			done <- struct{}{}
 		}
 	}()
 
+	// call the target method
+	relayMessage(jobData, topologies, b.peerViews, validatorID, message, requiredRouting, b.subSystemToOverseer)
+
 	// wait for the provisionable content checks
-	time.Sleep(1 * time.Second)
+	select {
+	case <-done:
+		t.Log("Test completed")
+	case <-time.After(2 * time.Second):
+		t.Fatal("Test timed out")
+	}
 }
 
 func TestBitfieldDistribution_RelayMessage_FilterV2Peers(t *testing.T) {
@@ -339,19 +348,16 @@ func TestBitfieldDistribution_RelayMessage_FilterV2Peers(t *testing.T) {
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
 
 	// control the peer protocol version here and the peer's Head
-	peerViews := map[peer.ID]struct {
-		view            parachaintypes.View
-		protocolVersion uint32
-	}{
+	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{
 		peerA: {
-			view: parachaintypes.View{
+			View: parachaintypes.View{
 				Heads: []common.Hash{relayParent}, // valid relayParent hash
 			},
-			protocolVersion: 2, // V2
+			ProtocolVersion: 2, // V2
 		},
 		peerB: {
-			view:            parachaintypes.View{},
-			protocolVersion: 3, //V3
+			View:            parachaintypes.View{},
+			ProtocolVersion: 3, //V3
 		},
 	}
 
@@ -373,9 +379,7 @@ func TestBitfieldDistribution_RelayMessage_FilterV2Peers(t *testing.T) {
 	requiredRouting := grid.RequiredRoutingAll
 	validatorID := jobData.validatorsSet[validatorIndex]
 
-	// call the target method
-	relayMessage(jobData, topologies, b.peerViews, validatorID, message, requiredRouting, b.subSystemToOverseer)
-
+	done := make(chan struct{})
 	// check the overseer chan message for the SendValidationMessage for V2
 	go func() {
 		for {
@@ -395,12 +399,22 @@ func TestBitfieldDistribution_RelayMessage_FilterV2Peers(t *testing.T) {
 
 				assert.EqualValues(t, message.CheckedSignedAvailabilityBitfield, b.CheckedSignedAvailabilityBitfield)
 				assert.EqualValues(t, message.Hash, b.Hash)
+
+				done <- struct{}{}
 			}
 		}
 	}()
 
+	// call the target method
+	relayMessage(jobData, topologies, b.peerViews, validatorID, message, requiredRouting, b.subSystemToOverseer)
+
 	// wait for the v2 content SendValidationMessage checks
-	time.Sleep(1 * time.Second)
+	select {
+	case <-done:
+		t.Log("Test completed")
+	case <-time.After(2 * time.Second):
+		t.Fatal("Test timed out")
+	}
 }
 
 func TestBitfieldDistribution_RelayMessage_FilterV3Peers(t *testing.T) {
@@ -426,19 +440,16 @@ func TestBitfieldDistribution_RelayMessage_FilterV3Peers(t *testing.T) {
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
 
 	// control the peer protocol version here and the peer's Head
-	peerViews := map[peer.ID]struct {
-		view            parachaintypes.View
-		protocolVersion uint32
-	}{
+	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{
 		peerA: {
-			view:            parachaintypes.View{},
-			protocolVersion: 2,
+			View:            parachaintypes.View{},
+			ProtocolVersion: 2,
 		},
 		peerB: {
-			view: parachaintypes.View{
+			View: parachaintypes.View{
 				Heads: []common.Hash{relayParent},
 			},
-			protocolVersion: 3,
+			ProtocolVersion: 3,
 		},
 	}
 
@@ -460,9 +471,7 @@ func TestBitfieldDistribution_RelayMessage_FilterV3Peers(t *testing.T) {
 	requiredRouting := grid.RequiredRoutingAll
 	validatorID := jobData.validatorsSet[validatorIndex]
 
-	// call the target method
-	relayMessage(jobData, topologies, b.peerViews, validatorID, message, requiredRouting, b.subSystemToOverseer)
-
+	done := make(chan struct{})
 	// check the overseer chan message for the SendValidationMessage for v3
 	go func() {
 		for {
@@ -482,12 +491,22 @@ func TestBitfieldDistribution_RelayMessage_FilterV3Peers(t *testing.T) {
 
 				assert.EqualValues(t, message.CheckedSignedAvailabilityBitfield, b.CheckedSignedAvailabilityBitfield)
 				assert.EqualValues(t, message.Hash, b.Hash)
+
+				done <- struct{}{}
 			}
 		}
 	}()
 
+	// call the target method
+	relayMessage(jobData, topologies, b.peerViews, validatorID, message, requiredRouting, b.subSystemToOverseer)
+
 	// wait for the v3 content SendValidationMessage checks
-	time.Sleep(1 * time.Second)
+	select {
+	case <-done:
+		t.Log("Test completed")
+	case <-time.After(2 * time.Second):
+		t.Fatal("Test timed out")
+	}
 }
 
 func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_NoRelayParentToWorkOn(t *testing.T) {
@@ -505,10 +524,7 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_NoRelayParentTo
 
 func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_ValidatorSetEmpty(t *testing.T) {
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), nil)
-	peerViews := map[peer.ID]struct {
-		view            parachaintypes.View
-		protocolVersion uint32
-	}{}
+	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
 	overseerCh := make(chan any)
 	b := &BitfieldDistribution{
 		subSystemToOverseer: overseerCh,
@@ -535,10 +551,7 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_ValidatorSetEmp
 func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_ValidatorIdxInvalid(t *testing.T) {
 	validatorIndex, validatorSet := prepareForValidators()
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
-	peerViews := map[peer.ID]struct {
-		view            parachaintypes.View
-		protocolVersion uint32
-	}{}
+	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
 	overseerCh := make(chan any)
 	b := &BitfieldDistribution{
 		subSystemToOverseer: overseerCh,
@@ -577,10 +590,7 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_CheckSignedAvai
 		[sr25519.PublicKeyLength]byte{2},
 	}
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
-	peerViews := map[peer.ID]struct {
-		view            parachaintypes.View
-		protocolVersion uint32
-	}{}
+	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
 
 	gt := grid.NewSessionGridTopology([]uint{1, 2, 3}, []grid.TopologyPeerInfo{{
 		Peers:          []peer.ID{"peer1", "peer2"},
@@ -627,8 +637,29 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_CheckSignedAvai
 		},
 	}
 
+	done := make(chan struct{})
+	go func() {
+		for {
+			request := <-overseerCh
+			switch request.(type) {
+			// only provisionermessages.ProvisionableDataBitfield should be received here
+			case provisionermessages.ProvisionableDataBitfield:
+				done <- struct{}{}
+			default:
+				t.Error("should not receive other type of message")
+			}
+		}
+	}()
+
 	err = b.processBitfieldDistributionMessage(message)
 	assert.Nil(t, err)
+
+	select {
+	case <-done:
+		t.Log("expected message received from overseerCh")
+	case <-time.After(2 * time.Second):
+		t.Fatal("Test timed out")
+	}
 }
 
 func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_InvalidSignalType(t *testing.T) {
@@ -743,10 +774,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_NotContainTheView(
 
 	overseerCh := make(chan any)
 
-	peerViews := map[peer.ID]struct {
-		view            parachaintypes.View
-		protocolVersion uint32
-	}{}
+	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
 	b := &BitfieldDistribution{
 		subSystemToOverseer: overseerCh,
 		peerViews:           peerViews,
@@ -798,10 +826,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_JobDataEmpty(t *te
 
 	overseerCh := make(chan any)
 
-	peerViews := map[peer.ID]struct {
-		view            parachaintypes.View
-		protocolVersion uint32
-	}{}
+	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
 	b := &BitfieldDistribution{
 		subSystemToOverseer: overseerCh,
 		peerViews:           peerViews,
@@ -856,10 +881,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_ValidatorSetEmpty(
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), nil)
 
 	overseerCh := make(chan any)
-	peerViews := map[peer.ID]struct {
-		view            parachaintypes.View
-		protocolVersion uint32
-	}{}
+	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
 	b := &BitfieldDistribution{
 		subSystemToOverseer: overseerCh,
 		peerViews:           peerViews,
@@ -917,10 +939,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_ValidatorNotExist(
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
 
 	overseerCh := make(chan any)
-	peerViews := map[peer.ID]struct {
-		view            parachaintypes.View
-		protocolVersion uint32
-	}{}
+	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
 	b := &BitfieldDistribution{
 		subSystemToOverseer: overseerCh,
 		peerViews:           peerViews,
@@ -978,10 +997,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_ReceivedSetNotEmpt
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
 
 	overseerCh := make(chan any)
-	peerViews := map[peer.ID]struct {
-		view            parachaintypes.View
-		protocolVersion uint32
-	}{}
+	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
 	b := &BitfieldDistribution{
 		subSystemToOverseer: overseerCh,
 		peerViews:           peerViews,
@@ -1048,10 +1064,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_DuplicatedMessages
 	}
 
 	overseerCh := make(chan any)
-	peerViews := map[peer.ID]struct {
-		view            parachaintypes.View
-		protocolVersion uint32
-	}{}
+	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
 	b := &BitfieldDistribution{
 		subSystemToOverseer: overseerCh,
 		peerViews:           peerViews,
@@ -1140,10 +1153,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_Success(t *testing
 	}
 
 	overseerCh := make(chan any)
-	peerViews := map[peer.ID]struct {
-		view            parachaintypes.View
-		protocolVersion uint32
-	}{}
+	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
 	gt := grid.NewSessionGridTopology([]uint{1, 2, 3}, []grid.TopologyPeerInfo{{
 		Peers:          []peer.ID{"peer1", "peer2"},
 		ValidatorIndex: parachaintypes.ValidatorIndex(1),
@@ -1173,6 +1183,27 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_Success(t *testing
 		}),
 	}
 
+	done := make(chan struct{})
+	go func() {
+		for {
+			request := <-overseerCh
+			switch request.(type) {
+			// only provisionermessages.ProvisionableDataBitfield in this case
+			case provisionermessages.ProvisionableDataBitfield:
+				done <- struct{}{}
+			default:
+				t.Error("should not receive other type of message")
+			}
+		}
+	}()
+
 	err = b.processIncomingPeerMessageEvent(signal)
 	assert.Nil(t, err)
+
+	select {
+	case <-done:
+		t.Log("expected message received from overseerCh")
+	case <-time.After(2 * time.Second):
+		t.Fatal("Test timed out")
+	}
 }

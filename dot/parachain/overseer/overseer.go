@@ -144,11 +144,6 @@ func (o *OverseerSystem) processMessages() {
 			case parachaintypes.DistributeBitfield:
 				subsystem = o.nameToSubsystem[parachaintypes.BitfieldDistribution]
 
-			case networkbridgeevents.PeerConnected, networkbridgeevents.PeerDisconnected,
-				networkbridgeevents.NewGossipTopology, networkbridgeevents.PeerViewChange,
-				networkbridgeevents.OurViewChange, networkbridgeevents.UpdatedAuthorityIDs:
-				subsystem = o.nameToSubsystem[parachaintypes.BitfieldDistribution]
-
 			case networkbridgeevents.PeerMessage[validationprotocol.ValidationProtocol]:
 				value, err := msg.Message.Value()
 				if err != nil {
