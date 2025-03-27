@@ -188,7 +188,7 @@ func TestBitfieldDistribution_FilterByPeerVersion(t *testing.T) {
 		result        []peer.ID
 	}{
 		{
-			name: "test1: should have 1 result",
+			name: "test1_should_have_1_result",
 			peers: map[peer.ID]uint32{
 				p1: uint32(2),
 				p2: uint32(3),
@@ -200,7 +200,7 @@ func TestBitfieldDistribution_FilterByPeerVersion(t *testing.T) {
 			result:        []peer.ID{p5},
 		},
 		{
-			name: "test2: should have 2 result",
+			name: "test2_should_have_2_result",
 			peers: map[peer.ID]uint32{
 				p1: uint32(2),
 				p2: uint32(3),
@@ -212,13 +212,13 @@ func TestBitfieldDistribution_FilterByPeerVersion(t *testing.T) {
 			result:        []peer.ID{p1, p3},
 		},
 		{
-			name:          "test3: should have 0 result",
+			name:          "test3_should_have_0_result",
 			peers:         map[peer.ID]uint32{},
 			targetVersion: uint32(2),
 			result:        []peer.ID{},
 		},
 		{
-			name: "test4: should have 0 result",
+			name: "test4_should_have_0_result",
 			peers: map[peer.ID]uint32{
 				p1: uint32(2),
 				p2: uint32(3),
