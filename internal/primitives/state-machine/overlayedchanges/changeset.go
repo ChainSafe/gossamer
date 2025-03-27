@@ -57,16 +57,16 @@ type transaction[V any] struct {
 }
 
 // History of value, with removal support.
-type overlayedValue = OverlayedEntry[storageEntry]
+type overlayedValue = OverlayedStorageEntry
 
 // Change set for basic key value with extrinsics index recording and removal support.
 type overlayedChangeSet struct {
-	OverlayedMap[string, storageEntry]
+	OverlayedMap[string, storageEntry, *OverlayedStorageEntry]
 }
 
 func newOverlayedChangeSet() *overlayedChangeSet {
 	return &overlayedChangeSet{
-		NewOverlayedMap[string, storageEntry](),
+		NewOverlayedMap[string, storageEntry, *OverlayedStorageEntry](),
 	}
 }
 
@@ -76,7 +76,7 @@ func (oc *overlayedChangeSet) set(key StorageKey, value StorageValue, atExtrinsi
 	keyString := string(key)
 	overlayed, has := oc.changes.Get(keyString)
 	if !has {
-		overlayed = NewOverlayedEntry[storageEntry]()
+		overlayed = NewOverlayedStorageEntry()
 		oc.changes.Set(keyString, overlayed)
 	}
 
@@ -93,7 +93,7 @@ func (oc *overlayedChangeSet) appendStorage(
 	keyString := string(key)
 	overlayed, has := oc.changes.Get(keyString)
 	if !has {
-		overlayed = NewOverlayedEntry[storageEntry]()
+		overlayed = NewOverlayedStorageEntry()
 	}
 
 	firstWriteInTx := oc.dirtyKeys.insertDirty(keyString)

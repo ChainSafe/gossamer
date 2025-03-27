@@ -35,7 +35,7 @@ func assertChanges(t *testing.T, is *overlayedChangeSet, expected Changes) {
 	var changes Changes
 	for k, v := range is.Changes() {
 		extrinsics := v.Extrinsics().Keys()
-		changes = append(changes, ChangesValue{k, v.StorageValue(), extrinsics})
+		changes = append(changes, ChangesValue{k, v.Value(), extrinsics})
 	}
 
 	slices.SortFunc(changes, func(a, b ChangesValue) int {
@@ -401,31 +401,31 @@ func TestNextChangeWorks(t *testing.T) {
 
 	k, v, _ := next()
 	require.Equal(t, k, StorageKey("key1"))
-	require.Equal(t, v.StorageValue(), StorageValue("val1"))
+	require.Equal(t, v.Value(), StorageValue("val1"))
 
 	next, _ = iter.Pull2(changeSet.changesAfter(StorageKey("key1")))
 
 	k, v, _ = next()
 	require.Equal(t, k, StorageKey("key11"))
-	require.Equal(t, v.StorageValue(), StorageValue("val11"))
+	require.Equal(t, v.Value(), StorageValue("val11"))
 
 	next, _ = iter.Pull2(changeSet.changesAfter(StorageKey("key11")))
 
 	k, v, _ = next()
 	require.Equal(t, k, StorageKey("key2"))
-	require.Equal(t, v.StorageValue(), StorageValue("val2"))
+	require.Equal(t, v.Value(), StorageValue("val2"))
 
 	next, _ = iter.Pull2(changeSet.changesAfter(StorageKey("key2")))
 
 	k, v, _ = next()
 	require.Equal(t, k, StorageKey("key3"))
-	require.Equal(t, v.StorageValue(), StorageValue("val3"))
+	require.Equal(t, v.Value(), StorageValue("val3"))
 
 	next, _ = iter.Pull2(changeSet.changesAfter(StorageKey("key3")))
 
 	k, v, _ = next()
 	require.Equal(t, k, StorageKey("key4"))
-	require.Equal(t, v.StorageValue(), StorageValue("val4"))
+	require.Equal(t, v.Value(), StorageValue("val4"))
 
 	_, _, has := next()
 	require.False(t, has)
@@ -436,19 +436,19 @@ func TestNextChangeWorks(t *testing.T) {
 
 	k, v, _ = next()
 	require.Equal(t, k, StorageKey("key1"))
-	require.Equal(t, v.StorageValue(), StorageValue("val1"))
+	require.Equal(t, v.Value(), StorageValue("val1"))
 
 	next, _ = iter.Pull2(changeSet.changesAfter(StorageKey("key1")))
 
 	k, v, _ = next()
 	require.Equal(t, k, StorageKey("key2"))
-	require.Equal(t, v.StorageValue(), StorageValue("val2"))
+	require.Equal(t, v.Value(), StorageValue("val2"))
 
 	next, _ = iter.Pull2(changeSet.changesAfter(StorageKey("key11")))
 
 	k, v, _ = next()
 	require.Equal(t, k, StorageKey("key2"))
-	require.Equal(t, v.StorageValue(), StorageValue("val2"))
+	require.Equal(t, v.Value(), StorageValue("val2"))
 
 	next, _ = iter.Pull2(changeSet.changesAfter(StorageKey("key2")))
 	_, _, has = next()
@@ -541,11 +541,12 @@ func TestRestoreAppendToParent(t *testing.T) {
 	}
 
 	// materialised
-	encoded := changeSet.Get(key).StorageValue()
+	encoded, has := changeSet.Get(key)
+	require.True(t, has)
 	encodedFromLen := scale.MustMarshal(uint(from))
 	require.Equal(t, 1, len(encodedFromLen))
-	require.True(t, bytes.HasPrefix(encoded, encodedFromLen))
-	encodedFrom := encoded[:]
+	require.True(t, bytes.HasPrefix(encoded.Value(), encodedFromLen))
+	encodedFrom := encoded.Value()[:]
 
 	changeSet.StartTransaction()
 
@@ -554,15 +555,17 @@ func TestRestoreAppendToParent(t *testing.T) {
 	}
 
 	// materialised
-	encoded = changeSet.Get(key).StorageValue()
+	encoded, has = changeSet.Get(key)
+	require.True(t, has)
 	encodedToLen := scale.MustMarshal(uint(to))
 	require.Equal(t, 2, len(encodedToLen))
-	require.True(t, bytes.HasPrefix(encoded, encodedToLen))
+	require.True(t, bytes.HasPrefix(encoded.Value(), encodedToLen))
 
 	changeSet.rollbackTransaction()
 
-	encoded = changeSet.Get(key).StorageValue()
-	require.Equal(t, encodedFrom, encoded)
+	encoded, has = changeSet.Get(key)
+	require.True(t, has)
+	require.Equal(t, encodedFrom, encoded.Value())
 }
 
 func TestRestoreInitialSetAfterAppendToParent(t *testing.T) {
@@ -581,14 +584,16 @@ func TestRestoreInitialSetAfterAppendToParent(t *testing.T) {
 	}
 
 	// Materialise the value.
-	encoded := changeSet.Get(key).StorageValue()
+	encoded, has := changeSet.Get(key)
+	require.True(t, has)
 	encodedToLen := scale.MustMarshal(uint(100))
 
 	require.Equal(t, 2, len(encodedToLen))
-	require.True(t, bytes.HasPrefix(encoded, encodedToLen))
+	require.True(t, bytes.HasPrefix(encoded.Value(), encodedToLen))
 
 	require.NoError(t, changeSet.rollbackTransaction())
 
-	encoded = changeSet.Get(key).StorageValue()
-	require.Equal(t, initialData, encoded)
+	encoded, has = changeSet.Get(key)
+	require.True(t, has)
+	require.Equal(t, initialData, encoded.Value())
 }

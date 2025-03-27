@@ -57,3 +57,16 @@ func spliceSlice[T any](slice []T, startIdx, endIdx int, replacement []T) []T {
 
 	return result
 }
+
+func compactLen(val uint) int {
+	switch {
+	case val <= 0b0011_1111:
+		return 1
+	case val <= 0b0011_1111_1111_1111:
+		return 2
+	case val <= 0b0011_1111_1111_1111_1111_1111_1111_1111:
+		return 4
+	default:
+		return 5
+	}
+}
