@@ -10,7 +10,7 @@ import (
 
 // ValidateFromChainState performs validation of a candidate with provided parameters,
 type ValidateFromChainState struct {
-	CandidateReceipt parachaintypes.CandidateReceipt
+	CandidateReceipt parachaintypes.CandidateReceiptV2
 	Pov              parachaintypes.PoV
 	ExecutorParams   parachaintypes.ExecutorParams
 	ExecKind         parachaintypes.PvfExecTimeoutKind

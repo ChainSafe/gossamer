@@ -26,7 +26,7 @@ type PvFPrepData struct {
 type ValidationTask struct {
 	PersistedValidationData parachaintypes.PersistedValidationData
 	WorkerID                *parachaintypes.ValidationCodeHash
-	CandidateReceipt        *parachaintypes.CandidateReceipt
+	CandidateReceipt        *parachaintypes.CandidateReceiptV2
 	PoV                     parachaintypes.PoV
 	ExecutorParams          parachaintypes.ExecutorParams
 	PvfExecTimeoutKind      parachaintypes.PvfExecTimeoutKind

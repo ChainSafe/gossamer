@@ -243,7 +243,7 @@ func TestHost_performBasicChecks(t *testing.T) {
 		Collator:           collatorID.AsBytes(),
 		PovHash:            povHash,
 		ValidationCodeHash: validationCodeHash,
-	}
+	}.V2()
 	candidate2 := candidate
 
 	payload, err := candidate.CreateSignaturePayload()
@@ -260,11 +260,11 @@ func TestHost_performBasicChecks(t *testing.T) {
 	signature2 := [sr25519.SignatureLength]byte{}
 	copy(signature2[:], signature2Bytes)
 
-	candidate.Signature = parachaintypes.CollatorSignature(signature)
-	candidate2.Signature = parachaintypes.CollatorSignature(signature2)
+	// candidate.Signature = parachaintypes.CollatorSignature(signature)
+	// candidate2.Signature = parachaintypes.CollatorSignature(signature2)
 
 	type args struct {
-		candidate          *parachaintypes.CandidateDescriptor
+		candidate          *parachaintypes.CandidateDescriptorV2
 		maxPoVSize         uint32
 		pov                parachaintypes.PoV
 		validationCodeHash parachaintypes.ValidationCodeHash

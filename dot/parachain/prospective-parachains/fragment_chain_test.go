@@ -478,7 +478,7 @@ func TestFragmentChainWithFreshScope(t *testing.T) {
 			Commitments: parachaintypes.CandidateCommitments{
 				HeadData: outputHead,
 			},
-		}
+		}.V2()
 
 		err = candidateStorage.addPendingAvailabilityCandidate(candidateHash, committedCandidate, persistedValidationData)
 		assert.NoError(t, err)
@@ -523,7 +523,7 @@ func makeCommittedCandidate(
 	parentHead parachaintypes.HeadData,
 	paraHead parachaintypes.HeadData,
 	hrmpWatermark uint32,
-) (parachaintypes.PersistedValidationData, parachaintypes.CommittedCandidateReceipt) {
+) (parachaintypes.PersistedValidationData, parachaintypes.CommittedCandidateReceiptV2) {
 	persistedValidationData := parachaintypes.PersistedValidationData{
 		ParentHead:             parentHead,
 		RelayParentNumber:      relayParentNumber,
@@ -560,7 +560,7 @@ func makeCommittedCandidate(
 			ProcessedDownwardMessages: 1,
 			HrmpWatermark:             hrmpWatermark,
 		},
-	}
+	}.V2()
 
 	return persistedValidationData, candidate
 }
@@ -1023,7 +1023,7 @@ func TestPopulateAndCheckPotential(t *testing.T) {
 	// helper function to hash the candidate and add its entry
 	// into the candidate storage
 	hashAndInsertCandididate := func(t *testing.T, storage *candidateStorage,
-		candidate parachaintypes.CommittedCandidateReceipt,
+		candidate parachaintypes.CommittedCandidateReceiptV2,
 		pvd parachaintypes.PersistedValidationData, state candidateState) (
 		parachaintypes.CandidateHash, *candidateEntry) {
 
@@ -1038,7 +1038,7 @@ func TestPopulateAndCheckPotential(t *testing.T) {
 		return candidateHash, entry
 	}
 
-	hashAndGetEntry := func(t *testing.T, candidate parachaintypes.CommittedCandidateReceipt,
+	hashAndGetEntry := func(t *testing.T, candidate parachaintypes.CommittedCandidateReceiptV2,
 		pvd parachaintypes.PersistedValidationData, state candidateState) (parachaintypes.CandidateHash, *candidateEntry) {
 		hash, err := candidate.Hash()
 		require.NoError(t, err)
@@ -1970,7 +1970,7 @@ func TestFindAncestorPathAndFindBackableChain(t *testing.T) {
 	relayParentStorageRoot := common.Hash{}
 
 	type CandidateAndPVD struct {
-		candidate parachaintypes.CommittedCandidateReceipt
+		candidate parachaintypes.CommittedCandidateReceiptV2
 		pvd       parachaintypes.PersistedValidationData
 	}
 

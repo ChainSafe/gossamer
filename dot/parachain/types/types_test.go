@@ -508,7 +508,7 @@ func TestValidator_SignAndVerify(t *testing.T) {
 func TestNewBackedCandidate(t *testing.T) {
 	t.Parallel()
 
-	receipt := CommittedCandidateReceipt{}
+	receipt := CommittedCandidateReceiptV2{}
 	attestations := []ValidityAttestation{}
 	validatorIndices := []bool{true, false, true}
 	coreIndex := &CoreIndex{Index: 10}

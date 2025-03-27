@@ -1,12 +1,26 @@
 package parachaintypes
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
+
+type CandidateDescriptorVersion byte
+
+const (
+	// // The old candidate descriptor version.
+	CandidateDescriptorVersion1 CandidateDescriptorVersion = iota + 1
+
+	// The new candidate descriptor version.
+	CandidateDescriptorVersion2
+)
+
+var ErrUnknownCandidateDescriptorVersion = fmt.Errorf("unknown candidate descriptor version")
 
 // CandidateDescriptorV2 is a descriptor for a parachain candidate.
 type CandidateDescriptorV2 struct {
@@ -15,11 +29,10 @@ type CandidateDescriptorV2 struct {
 	// RelayParent is the hash of the relay-chain block this should be executed in
 	// the context of.
 	RelayParent common.Hash
-	// Version field. The raw value here is not exposed, instead it is used
-	// to determine the `CandidateDescriptorVersion`, see `fn version()`.
-	// For the current version this field is set to `0` and will be incremented
-	// by next versions.
-	Version uint8
+	// CurrentVersion is a raw value used internally by the `Version()` method to determine the
+	// `CandidateDescriptorVersion`. This field should not be used directly anywhere else in the code.
+	// For version 2, this field is set to `0` and will be incremented by subsequent versions.
+	CurrentVersion uint8
 	// The core index where the candidate is backed.
 	CoreIndex uint16
 	// The session index of the candidate relay parent.
@@ -40,6 +53,120 @@ type CandidateDescriptorV2 struct {
 	ParaHead common.Hash
 	// ValidationCodeHash is the blake2-256 hash of the validation code bytes.
 	ValidationCodeHash ValidationCodeHash
+}
+
+func (cd CandidateDescriptorV2) Version() (CandidateDescriptorVersion, error) {
+	var zeroReserved1 [25]byte
+	var zeroReserved2 [64]byte
+
+	isReserved1Empty := bytes.Equal(cd.Reserved1[:], zeroReserved1[:])
+	isReserved2Empty := bytes.Equal(cd.Reserved2[:], zeroReserved2[:])
+
+	if !isReserved1Empty || !isReserved2Empty {
+		return CandidateDescriptorVersion1, nil
+	}
+
+	// for version 2 the CurrentVersion field is zero and will be incremented by subsequent versions.
+	if cd.CurrentVersion == 0 {
+		return CandidateDescriptorVersion2, nil
+	}
+
+	return CandidateDescriptorVersion(0), fmt.Errorf("%w %d", ErrUnknownCandidateDescriptorVersion, cd.CurrentVersion+2)
+}
+
+func (cd CandidateDescriptorV2) CreateSignaturePayload() ([]byte, error) {
+	var payload [132]byte
+	copy(payload[0:32], cd.RelayParent.ToBytes())
+
+	buffer := bytes.NewBuffer(nil)
+	encoder := scale.NewEncoder(buffer)
+	err := encoder.Encode(cd.ParaID)
+	if err != nil {
+		return nil, fmt.Errorf("encoding parachain id: %w", err)
+	}
+	if len(buffer.Bytes()) != 4 {
+		return nil, fmt.Errorf("invalid length of encoded parachain id")
+	}
+	copy(payload[32:36], buffer.Bytes())
+	copy(payload[36:68], cd.PersistedValidationDataHash.ToBytes())
+	copy(payload[68:100], cd.PovHash.ToBytes())
+	copy(payload[100:132], common.Hash(cd.ValidationCodeHash).ToBytes())
+
+	return payload[:], nil
+}
+
+// CheckCollatorSignature checks the signature of the collator
+// NOTE: This method is only used for the candidate descriptor version 1.
+func (cd CandidateDescriptorV2) CheckCollatorSignature() error {
+	descriptorVersion, err := cd.Version()
+	if err != nil {
+		return fmt.Errorf("getting descriptor version: %w", err)
+	}
+
+	// return early if descriptor version is not CandidateDescriptorVersion1
+	if descriptorVersion != CandidateDescriptorVersion1 {
+		return nil
+	}
+
+	collator := cd.rebuildCollatorField()
+	signature := cd.rebuilSignatureField()
+
+	payload, err := cd.CreateSignaturePayload()
+	if err != nil {
+		return fmt.Errorf("creating signature payload: %w", err)
+	}
+
+	return sr25519.VerifySignature(collator[:], signature[:], payload)
+}
+
+// rebuildCollatorField reconstructs the CollatorID from the CandidateDescriptorV2 fields.
+// Note: This field was present in version 1 but has been removed in version 2.
+func (cd CandidateDescriptorV2) rebuildCollatorField() CollatorID {
+	var collator CollatorID
+
+	collator[0] = cd.CurrentVersion                                       // 1 byte
+	binary.NativeEndian.PutUint16(collator[1:3], cd.CoreIndex)            // 2 bytes
+	binary.NativeEndian.PutUint32(collator[3:7], uint32(cd.SessionIndex)) // 4 bytes
+	copy(collator[7:], cd.Reserved1[:])                                   // 25 bytes
+
+	return collator
+}
+
+// rebuilSignatureField reconstructs the CollatorSignature from the CandidateDescriptorV2 fields.
+// Note: This field was present in version 1 but has been removed in version 2.
+func (cd CandidateDescriptorV2) rebuilSignatureField() CollatorSignature {
+	return cd.Reserved2
+}
+
+// V2 converts a CandidateDescriptor to a CandidateDescriptorV2
+func (cdV1 CandidateDescriptor) V2() CandidateDescriptorV2 {
+	// use first byte of collator as version
+	version := cdV1.Collator[0]
+	// next two bytes of collator are core index
+	coreIndex := bytesToUint16(cdV1.Collator[1:3])
+	// next four bytes of collator are session index
+	sessionIndex := SessionIndex(bytesToUint16(cdV1.Collator[3:7]))
+	// use remaining 25 bytes as reserved1
+	var reserved1 [25]byte
+	copy(reserved1[:], cdV1.Collator[7:])
+
+	// use collator signature as reserved2
+	var reserved2 [64]byte = cdV1.Signature
+
+	return CandidateDescriptorV2{
+		ParaID:                      cdV1.ParaID,
+		RelayParent:                 cdV1.RelayParent,
+		CurrentVersion:              version,
+		CoreIndex:                   coreIndex,
+		SessionIndex:                sessionIndex,
+		Reserved1:                   reserved1,
+		PersistedValidationDataHash: cdV1.PersistedValidationDataHash,
+		PovHash:                     cdV1.PovHash,
+		ErasureRoot:                 cdV1.ErasureRoot,
+		Reserved2:                   reserved2,
+		ParaHead:                    cdV1.ParaHead,
+		ValidationCodeHash:          cdV1.ValidationCodeHash,
+	}
 }
 
 // CommittedCandidateReceiptV2 is a candidate-receipt with commitments directly included.
@@ -95,37 +222,6 @@ func (crV1 CandidateReceipt) V2() CandidateReceiptV2 {
 	}
 
 	return crV2
-}
-
-// V2 converts a CandidateDescriptor to a CandidateDescriptorV2
-func (cdV1 CandidateDescriptor) V2() CandidateDescriptorV2 {
-	// use first byte of collator as version
-	version := cdV1.Collator[0]
-	// next two bytes of collator are core index
-	coreIndex := bytesToUint16(cdV1.Collator[1:3])
-	// next four bytes of collator are session index
-	sessionIndex := SessionIndex(bytesToUint16(cdV1.Collator[3:7]))
-	// use remaining 25 bytes as reserved1
-	var reserved1 [25]byte
-	copy(reserved1[:], cdV1.Collator[7:])
-
-	// use collator signature as reserved2
-	var reserved2 [64]byte = cdV1.Signature
-
-	return CandidateDescriptorV2{
-		ParaID:                      cdV1.ParaID,
-		RelayParent:                 cdV1.RelayParent,
-		Version:                     version,
-		CoreIndex:                   coreIndex,
-		SessionIndex:                sessionIndex,
-		Reserved1:                   reserved1,
-		PersistedValidationDataHash: cdV1.PersistedValidationDataHash,
-		PovHash:                     cdV1.PovHash,
-		ErasureRoot:                 cdV1.ErasureRoot,
-		Reserved2:                   reserved2,
-		ParaHead:                    cdV1.ParaHead,
-		ValidationCodeHash:          cdV1.ValidationCodeHash,
-	}
 }
 
 // bytesToUint16 converts a byte slice to a uint16 using the native endianness
