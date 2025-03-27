@@ -33,7 +33,7 @@ func TestVoter_TalkingToMyself(t *testing.T) {
 	voter, globalOut := NewVoter[string, uint32, Signature, ID](
 		&env,
 		*voters,
-		make(chan globalInItem),
+		nil,
 		0,
 		nil,
 		lastFinalized,

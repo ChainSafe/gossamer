@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"math/rand"
+	rand "math/rand/v2"
 )
 
 type ID uint32
@@ -17,6 +17,7 @@ type Signature uint32
 
 type timer struct {
 	wakerChan *wakerChan[error]
+	mtx       sync.Mutex
 	expired   bool
 }
 
@@ -24,12 +25,19 @@ func newTimer(in <-chan time.Time) *timer {
 	inErr := make(chan error)
 	wc := newWakerChan(inErr)
 	t := timer{wakerChan: wc}
-	go func() {
-		<-in
-		inErr <- nil
-		t.expired = true
-	}()
+	go t.poll(in)
 	return &t
+}
+
+func (t *timer) poll(in <-chan time.Time) {
+	<-in
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+	if t.wakerChan.in != nil {
+		t.wakerChan.in <- nil
+		close(t.wakerChan.in)
+	}
+	t.expired = true
 }
 
 func (t *timer) SetWaker(waker *waker) {
@@ -38,6 +46,15 @@ func (t *timer) SetWaker(waker *waker) {
 
 func (t *timer) Elapsed() (bool, error) {
 	return t.expired, nil
+}
+
+func (t *timer) Close() {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+	if t.wakerChan.in != nil {
+		close(t.wakerChan.in)
+		t.wakerChan.in = nil
+	}
 }
 
 type listenerItem struct {
@@ -97,6 +114,7 @@ func (e *environment) BestChainContaining(base string) BestChain[string, uint32]
 
 	ch := make(chan BestChainOutput[string, uint32], 1)
 	ch <- BestChainOutput[string, uint32]{Value: e.chain.BestChainContaining(base)}
+	close(ch)
 	return ch
 }
 
@@ -116,7 +134,7 @@ func (e *environment) RoundData(
 }
 
 func (*environment) RoundCommitTimer() Timer {
-	inner := time.NewTimer(time.Duration(rand.Int63n(1000)) * time.Millisecond).C
+	inner := time.NewTimer(time.Duration(rand.Int64N(1000)) * time.Millisecond).C
 	timer := newTimer(inner)
 	return timer
 }
@@ -256,10 +274,10 @@ func (bm *BroadcastNetwork[M, N]) route() {
 
 func (bm *BroadcastNetwork[M, N]) Stop() {
 	close(bm.receiver)
-	for _, ch := range bm.senders {
-		close(ch)
-	}
 	bm.wg.Wait()
+	for _, sender := range bm.senders {
+		close(sender)
+	}
 }
 
 type RoundNetwork struct {
