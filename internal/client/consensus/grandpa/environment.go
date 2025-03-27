@@ -135,7 +135,7 @@ func (cr currentRounds[H, N]) MarshalSCALE() ([]byte, error) {
 		hv := hasVotedVDT[H, N]{}
 		err := hv.SetValue(val)
 		if err != nil {
-			panic("SetValue should not fail")
+			panic(fmt.Errorf("SetValue should not fail: %s", err))
 		}
 		mapped[key] = hv
 	}

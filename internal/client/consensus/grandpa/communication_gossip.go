@@ -210,7 +210,7 @@ type keepTopics[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 
 func newKeepTopics[H runtime.Hash, Hasher runtime.Hasher[H]]() keepTopics[H, Hasher] {
 	var dq deque.Deque[roundSetID]
-	dq.SetBaseCap(3 + 2)
+	dq.SetBaseCap(int(keepRecentRounds) + 2)
 	return keepTopics[H, Hasher]{
 		currentSet: SetID(0),
 		rounds:     dq,
@@ -904,31 +904,29 @@ func (i *inner[H, N, Hasher]) noteRound(round Round) *peerIDsNeighborPacket[N] {
 func (i *inner[H, N, Hasher]) noteSet(setID SetID, authorities []primitives.AuthorityID) *peerIDsNeighborPacket[N] {
 	if i.localView == nil {
 		i.localView = newLocalView[N](setID, 1)
-	} else {
-		if i.localView.setID == setID {
-			a := make(map[primitives.AuthorityID]struct{})
-			b := make(map[primitives.AuthorityID]struct{})
+	} else if i.localView.setID == setID {
+		a := make(map[primitives.AuthorityID]struct{})
+		b := make(map[primitives.AuthorityID]struct{})
 
-			for _, auth := range i.authorities {
-				a[auth] = struct{}{}
-			}
-			for _, auth := range authorities {
-				b[auth] = struct{}{}
-			}
-
-			diffAuthorities := !maps.Equal(a, b)
-
-			if diffAuthorities {
-				logger.Debugf(
-					"Gossip validator noted set %s twice with differnet authorities. "+
-						"Was the authority set hard forked?", setID)
-
-				i.authorities = authorities
-			}
-
-			// Do not send neighbor packets out if the `setID` has not changed. Such behavior is punishable.
-			return nil
+		for _, auth := range i.authorities {
+			a[auth] = struct{}{}
 		}
+		for _, auth := range authorities {
+			b[auth] = struct{}{}
+		}
+
+		diffAuthorities := !maps.Equal(a, b)
+
+		if diffAuthorities {
+			logger.Debugf(
+				"Gossip validator noted set %s twice with differnet authorities. "+
+					"Was the authority set hard forked?", setID)
+
+			i.authorities = authorities
+		}
+
+		// Do not send neighbor packets out if the `setID` has not changed. Such behavior is punishable.
+		return nil
 	}
 
 	i.localView.updateSet(setID)
@@ -945,7 +943,7 @@ func (i *inner[H, N, Hasher]) noteCommitFinalized(round Round, setID SetID, fina
 		return nil
 	}
 	lch := i.localView.lastCommitHeight()
-	if lch == nil || lch != nil && (*lch < finalized) {
+	if lch == nil || (*lch < finalized) {
 		i.localView.lastCommit = &numberRoundSetID[N]{
 			Number: finalized,
 			Round:  round,
@@ -1106,10 +1104,8 @@ func (i *inner[H, N, Hasher]) handleCatchUpRequest(
 	peer := i.peers.peer(who)
 	if peer == nil {
 		return nil, actionDiscard[H]{ReputationChange: misbehaviorOutOfScopeMessage{}.cost()}
-	} else {
-		if peer.view.round >= request.Round {
-			return nil, actionDiscard[H]{ReputationChange: misbehaviorOutOfScopeMessage{}.cost()}
-		}
+	} else if peer.view.round >= request.Round {
+		return nil, actionDiscard[H]{ReputationChange: misbehaviorOutOfScopeMessage{}.cost()}
 	}
 
 	setState.innerMtx.RLock()
@@ -1568,16 +1564,14 @@ func (gv *gossipValidator[H, N, Hasher]) MessageAllowed() func(
 	data []byte,
 ) bool {
 	var doRebroadcast bool
-	{
-		gv.innerMtx.Lock()
-		defer gv.innerMtx.Unlock()
-		now := time.Now()
-		if now.After(gv.inner.nextRebroadcast) || now.Equal(gv.inner.nextRebroadcast) {
-			gv.inner.nextRebroadcast = now.Add(rebroadcastAfter)
-			doRebroadcast = true
-		} else {
-			doRebroadcast = false
-		}
+	gv.innerMtx.Lock()
+	defer gv.innerMtx.Unlock()
+	now := time.Now()
+	if now.After(gv.inner.nextRebroadcast) || now.Equal(gv.inner.nextRebroadcast) {
+		gv.inner.nextRebroadcast = now.Add(rebroadcastAfter)
+		doRebroadcast = true
+	} else {
+		doRebroadcast = false
 	}
 
 	return func(who peerid.PeerID, intent gossip.MessageIntent, topic H, data []byte) bool {
@@ -1625,10 +1619,12 @@ func (gv *gossipValidator[H, N, Hasher]) MessageAllowed() func(
 		var gossipMessage gossipMessageVDT[H, N]
 		err := scale.Unmarshal(data, &gossipMessage)
 		if err != nil {
+			logger.Debugf("Error decoding message: %v", err)
 			return false
 		}
 		val, err := gossipMessage.Value()
 		if err != nil {
+			logger.Debugf("no value returned for gossipMessage")
 			return false
 		}
 		switch val := val.(type) {

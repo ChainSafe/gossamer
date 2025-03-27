@@ -201,7 +201,7 @@ func (nb *networkBridge[H, N, Hasher]) noteRound( //nolint: unused
 			select {
 			case nb.neighborSender <- peerIDsNeighborPacket[N]{PeerIDs: to, NeighborPacket: msg}:
 			default:
-				panic("wtf?")
+				panic("unable to send on neighborSender")
 			}
 		},
 	)
@@ -212,7 +212,7 @@ func (nb *networkBridge[H, N, Hasher]) noteRound( //nolint: unused
 			select {
 			case nb.neighborSender <- peerIDsNeighborPacket[N]{PeerIDs: to, NeighborPacket: msg}:
 			default:
-				panic("wtf?")
+				panic("unable to send on neighborSender")
 			}
 		},
 	)
@@ -327,7 +327,7 @@ func (nb *networkBridge[H, N, Hasher]) globalCommunication(
 		select {
 		case nb.neighborSender <- peerIDsNeighborPacket[N]{PeerIDs: to, NeighborPacket: msg}:
 		default:
-			panic("wtf?")
+			panic("unable to send on neighborSender")
 		}
 	})
 
@@ -336,6 +336,7 @@ func (nb *networkBridge[H, N, Hasher]) globalCommunication(
 
 	outgoing := newCommitsOut(&nb.gossipEngine, setID, isVoter, nb.validator, nb.neighborSender)
 
+	// TODO: resolve this transformation in future work
 	// 	let outgoing = outgoing.with(|out| {
 	// 		let voter::CommunicationOut::Commit(round, commit) = out;
 	// 		future::ok((round, commit))
@@ -586,6 +587,7 @@ func (om *outgoingMessages[H, N, Hasher]) preSend( //nolint: unused
 		gossipMessage.inner = message
 		om.network.GossipMessage(topic, scale.MustMarshal(gossipMessage), false)
 
+		// TODO: ensure that presend is called on sender.  Will need to accept special channel type.
 		// forward the message to the inner sender.
 		// return self.sender.start_send(signed).map_err(|e| {
 		// 	Error::Network(format!("Failed to start_send on channel sender: {:?}", e))
