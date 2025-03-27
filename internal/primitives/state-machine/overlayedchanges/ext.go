@@ -7,14 +7,17 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+// storageAppend is a helper struct that appends a StorageValue to a slice.
 type storageAppend struct {
 	data *StorageValue
 }
 
+// newStorageAppend creates a new storageAppend instance.
 func newStorageAppend(data *StorageValue) *storageAppend {
 	return &storageAppend{data: data}
 }
 
+// extractLength extracts the scale encoded length of the StorageValue.
 func (sa *storageAppend) extractLength() *uint {
 	var length uint
 	err := scale.Unmarshal(*sa.data, &length)
@@ -24,6 +27,7 @@ func (sa *storageAppend) extractLength() *uint {
 	return &length
 }
 
+// replaceLength replaces the length of the StorageValue using scale encoding.
 func (sa *storageAppend) replaceLength(oldLength *uint, newLength uint) {
 	oldLenEncodedLen := 0
 	if oldLength != nil {
@@ -35,10 +39,12 @@ func (sa *storageAppend) replaceLength(oldLength *uint, newLength uint) {
 	*sa.data = newStorageValue
 }
 
+// appendRaw appends a raw byte slice to the current StorageValue.
 func (sa *storageAppend) appendRaw(value []byte) {
 	*sa.data = append(*sa.data, value...)
 }
 
+// spliceSlice is a helper function that replaces a slice of elements with a new slice in the given positions.
 func spliceSlice[T any](slice []T, startIdx, endIdx int, replacement []T) []T {
 	if startIdx < 0 || endIdx > len(slice) || startIdx > endIdx {
 		panic("invalid range")
