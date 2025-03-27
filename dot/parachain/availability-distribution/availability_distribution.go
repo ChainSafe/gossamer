@@ -22,6 +22,8 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-availability-distribution"))
 
+const leafAncestryLenWithinSession = 3
+
 type AvailabilityDistribution struct {
 	subSystemToOverseer chan<- any
 	net                 Network
@@ -198,4 +200,58 @@ func (ad *AvailabilityDistribution) handlePoVFetchingRequest(
 	}
 
 	return response, nil
+}
+
+func (ad *AvailabilityDistribution) getBlockAncestorsInSameSession(
+	leafHash common.Hash,
+	limit int,
+) (parachaintypes.SessionIndex, []common.Hash, error) {
+	leafHeader, err := ad.blockState.GetHeader(leafHash)
+	if err != nil {
+		return 0, nil, fmt.Errorf("getting header for activated leaf %v: %w", leafHash, err)
+	}
+
+	headSessionIndex, err := ad.getSessionIndexForChild(leafHeader.ParentHash)
+	if err != nil {
+		return 0, nil, fmt.Errorf("getting session index for activated leaf %v: %w", leafHash, err)
+	}
+
+	currentHash := leafHeader.ParentHash
+	ancestors := make([]common.Hash, 0, limit)
+
+	for i := 0; i < limit; i++ {
+		header, err := ad.blockState.GetHeader(currentHash)
+		if err != nil {
+			return 0, nil, fmt.Errorf("getting header for leaf ancestor %v: %w", currentHash, err)
+		}
+
+		// stop at genesis
+		if header.Number == 0 {
+			return headSessionIndex, ancestors, nil
+		}
+
+		sessionIndex, err := ad.getSessionIndexForChild(header.ParentHash)
+		if err != nil {
+			return 0, nil, fmt.Errorf("getting session index for leaf ancestor %v: %w", currentHash, err)
+		}
+
+		if sessionIndex != headSessionIndex {
+			return headSessionIndex, ancestors, nil
+		}
+
+		ancestors = append(ancestors, currentHash)
+		currentHash = header.ParentHash
+	}
+
+	return headSessionIndex, ancestors, nil
+}
+
+func (ad *AvailabilityDistribution) getSessionIndexForChild(hash common.Hash) (parachaintypes.SessionIndex, error) {
+	rt, err := ad.blockState.GetRuntime(hash)
+	if err != nil {
+		return 0, fmt.Errorf("instantiating runtime for block %v: %w", hash, err)
+	}
+	defer rt.Stop()
+
+	return rt.ParachainHostSessionIndexForChild()
 }
