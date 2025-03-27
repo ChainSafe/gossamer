@@ -1,7 +1,6 @@
 package availabilitydistribution
 
 import (
-	"context"
 	"fmt"
 	"sync"
 
@@ -37,11 +36,11 @@ type taskTerminationHandler func(
 )
 
 type fetchChunkTask struct {
-	chunkIndex    uint32
-	sessionInfo   *SessionInfo
-	core          *parachaintypes.OccupiedCore
-	overseerCh    chan<- any
-	onTermination taskTerminationHandler
+	chunkIndex          uint32
+	sessionInfo         *SessionInfo
+	core                *parachaintypes.OccupiedCore
+	subsystemToOverseer chan<- any
+	onTermination       taskTerminationHandler
 
 	// Set of relay chain block hashes for which the candidate associated with the given core is pending availability.
 	//
@@ -54,8 +53,7 @@ type fetchChunkTask struct {
 	// List of validators that did not have the requested chunk or sent invalid data.
 	badValidators []parachaintypes.AuthorityDiscoveryID
 
-	ctx    context.Context
-	cancel context.CancelFunc
+	stop chan bool
 }
 
 func newFetchChunkTask(
@@ -63,21 +61,18 @@ func newFetchChunkTask(
 	chunkIndex uint32,
 	sessionInfo *SessionInfo,
 	core *parachaintypes.OccupiedCore,
-	overseerCh chan<- any,
+	subsystemToOverseer chan<- any,
 	onTermination taskTerminationHandler,
 ) *fetchChunkTask {
-	ctx, cancel := context.WithCancel(context.Background())
-
 	return &fetchChunkTask{
-		liveIn:        map[common.Hash]struct{}{leaf: {}},
-		chunkIndex:    chunkIndex,
-		sessionInfo:   sessionInfo,
-		core:          core,
-		overseerCh:    overseerCh,
-		onTermination: onTermination,
-		badValidators: make([]parachaintypes.AuthorityDiscoveryID, 0),
-		ctx:           ctx,
-		cancel:        cancel,
+		liveIn:              map[common.Hash]struct{}{leaf: {}},
+		chunkIndex:          chunkIndex,
+		sessionInfo:         sessionInfo,
+		core:                core,
+		subsystemToOverseer: subsystemToOverseer,
+		onTermination:       onTermination,
+		badValidators:       make([]parachaintypes.AuthorityDiscoveryID, 0),
+		stop:                make(chan bool, 1),
 	}
 }
 
@@ -105,11 +100,11 @@ func (t *fetchChunkTask) run() {
 			IfDisconnected: networkbridgemessages.ImmediateError,
 		}
 
-		t.overseerCh <- sendRequests
+		t.subsystemToOverseer <- sendRequests
 
 		var result networkbridgemessages.ReqRespResult
 		select {
-		case <-t.ctx.Done():
+		case <-t.stop:
 			request.Cancel()
 			t.cleanup(taskCancelled{})
 			return
@@ -122,7 +117,7 @@ func (t *fetchChunkTask) run() {
 			continue
 		}
 
-		t.overseerCh <- availabilitystore.StoreChunk{
+		t.subsystemToOverseer <- availabilitystore.StoreChunk{
 			CandidateHash: parachaintypes.CandidateHash{Value: t.core.CandidateHash},
 			Chunk:         chunk,
 		}
@@ -204,20 +199,29 @@ func (t *fetchChunkTask) removeLeaves(leaves []common.Hash) {
 }
 
 func (t *fetchChunkTask) cleanup(reason taskTerminationReason) {
-	// Make sure context is always cancelled to avoid resource leaks.
-	t.cancel()
-
 	if t.onTermination != nil {
 		t.onTermination(parachaintypes.CandidateHash{Value: t.core.CandidateHash}, reason)
 	}
-}
-
-func (t *fetchChunkTask) isCancelled() bool {
-	return t.ctx.Err() != nil
 }
 
 func (t *fetchChunkTask) isLive() bool {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	return len(t.liveIn) > 0
+}
+
+func (t *fetchChunkTask) cancel() {
+	if !t.isCancelled() {
+		t.stop <- true
+		close(t.stop)
+	}
+}
+
+func (t *fetchChunkTask) isCancelled() bool {
+	select {
+	case <-t.stop:
+		return true
+	default:
+		return false
+	}
 }

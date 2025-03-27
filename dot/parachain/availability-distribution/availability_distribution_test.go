@@ -452,6 +452,14 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 		},
 	}
 
+	coreCandidate2 := parachaintypes.OccupiedCore{
+		CandidateHash:    candidate2.Value,
+		GroupResponsible: parachaintypes.GroupIndex(2),
+		CandidateDescriptor: parachaintypes.CandidateDescriptor{
+			RelayParent: activatedLeaf,
+		},
+	}
+
 	coreState := parachaintypes.CoreState{}
 	require.NoError(t, coreState.SetValue(coreCandidate1))
 
@@ -488,13 +496,7 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 	ad := NewAvailabilityDistribution(overseerCh, netMock, blockStateMock, sessionCacheMock)
 	t.Cleanup(ad.Stop)
 
-	removedTask := &fetchChunkTask{
-		cancel: func() {},
-		liveIn: map[common.Hash]struct{}{
-			deactivatedLeaf: {},
-		},
-	}
-
+	removedTask := newFetchChunkTask(deactivatedLeaf, 42, nil, &coreCandidate2, overseerCh, nil)
 	ad.fetchTasks[candidate2] = removedTask
 
 	activeLeavesUpdateSignal := parachaintypes.ActiveLeavesUpdateSignal{
@@ -563,8 +565,9 @@ func TestAddCores(t *testing.T) {
 			CandidateHash:    candidateHash.Value,
 		}
 
+		otherLeaf := common.Hash{0x05}
 		// There is a fetch task for this candidate hash but it should not be marked live in the new leaf.
-		ad.fetchTasks[candidateHash] = &fetchChunkTask{cancel: func() {}}
+		ad.fetchTasks[candidateHash] = newFetchChunkTask(otherLeaf, 42, nil, &core, overseerCh, nil)
 
 		err := ad.addCores(
 			runtimeMock,
@@ -574,12 +577,12 @@ func TestAddCores(t *testing.T) {
 		)
 
 		require.NoError(t, err)
-		require.Empty(t, ad.fetchTasks[candidateHash].liveIn)
+		require.Contains(t, ad.fetchTasks[candidateHash].liveIn, otherLeaf)
+		require.NotContains(t, ad.fetchTasks[candidateHash].liveIn, leaf)
 	})
 
 	t.Run("creates_new_task", func(t *testing.T) {
 		setup(t)
-		t.Cleanup(func() { close(overseerCh) })
 
 		ourGroup := parachaintypes.GroupIndex(1)
 		setUpSessionCacheMock(t, sessionCacheMock, runtimeMock, sessionIndex, ourGroup)
@@ -611,7 +614,6 @@ func TestAddCores(t *testing.T) {
 
 	t.Run("updates_existing_task", func(t *testing.T) {
 		setup(t)
-		t.Cleanup(func() { close(overseerCh) })
 
 		ourGroup := parachaintypes.GroupIndex(1)
 		setUpSessionCacheMock(t, sessionCacheMock, runtimeMock, sessionIndex, ourGroup)
@@ -623,12 +625,7 @@ func TestAddCores(t *testing.T) {
 
 		otherLeaf := common.Hash{0x05}
 		// There is a fetch task for this candidate hash already, marked live in a different leaf.
-		ad.fetchTasks[candidateHash] = &fetchChunkTask{
-			cancel: func() {},
-			liveIn: map[common.Hash]struct{}{
-				otherLeaf: {},
-			},
-		}
+		ad.fetchTasks[candidateHash] = newFetchChunkTask(otherLeaf, 42, nil, &core, overseerCh, nil)
 
 		err := ad.addCores(
 			runtimeMock,
@@ -676,6 +673,9 @@ func setUpSessionCacheMock(
 		},
 	}
 
+	nodeFeatures, err := parachaintypes.NewBitVec([]bool{false, false, false, false})
+	require.NoError(t, err)
+
 	mock.EXPECT().
 		GetSessionInfo(
 			gomock.AssignableToTypeOf(sessionIndex),
@@ -688,7 +688,7 @@ func setUpSessionCacheMock(
 			ValidatorGroups: validatorGroups,
 			OurIndex:        parachaintypes.ValidatorIndex(2),
 			OurGroup:        &ourGroup,
-			NodeFeatures:    parachaintypes.NewBitVec([]bool{false, false, false, false}),
+			NodeFeatures:    nodeFeatures,
 		}, nil)
 
 	mock.EXPECT().
@@ -867,8 +867,11 @@ func TestHandleFetchTaskTermination(t *testing.T) {
 }
 
 func TestAvailabilityChunkIndex(t *testing.T) {
-	chunkMappingEnabled := parachaintypes.NewBitVec([]bool{false, false, true})
-	chunkMappingDisabled := parachaintypes.NewBitVec([]bool{false, true, false})
+	chunkMappingEnabled, err := parachaintypes.NewBitVec([]bool{false, false, true})
+	require.NoError(t, err)
+
+	chunkMappingDisabled, err := parachaintypes.NewBitVec([]bool{false, true, false})
+	require.NoError(t, err)
 
 	nValidators := uint(20)
 	coreIndex := 13

@@ -89,9 +89,9 @@ func (ad *AvailabilityDistribution) Run(ctx context.Context, overseerToSubSystem
 
 func (ad *AvailabilityDistribution) Stop() {
 	logger.Tracef("Stopping %s subsystem", ad.Name())
-	for _, task := range ad.fetchTasks {
-		task.cancel()
-	}
+	//for _, task := range ad.fetchTasks {
+	//	task.cancel()
+	//}
 }
 
 // Name returns the name of the subsystem
