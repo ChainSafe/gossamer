@@ -226,12 +226,13 @@ func (kt *keepTopics[H, Hasher]) push(round Round, setID SetID) {
 	// under normal operation the given round is already tracked (since we
 	// track one round ahead). if we skip rounds (with a catch up) the given
 	// round topic might not be tracked yet.
-	if kt.rounds.Index(func(rsi roundSetID) bool {
+	index := kt.rounds.Index(func(rsi roundSetID) bool {
 		return rsi == roundSetID{
 			Round: round,
 			SetID: setID,
 		}
-	}) < 0 {
+	})
+	if index < 0 {
 		kt.rounds.PushBack(roundSetID{
 			Round: round,
 			SetID: setID,
