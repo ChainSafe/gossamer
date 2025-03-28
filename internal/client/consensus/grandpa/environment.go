@@ -319,7 +319,6 @@ func newVoterSetStateLive[H runtime.Hash, N runtime.Number](
 		setId,
 		authSet,
 	)
-	//currentRounds := make(map[uint64]hasVoted[string, uint])
 	currentRounds := make(currentRounds[H, N])
 	currentRounds[1] = hasVotedNo[H, N]{}
 

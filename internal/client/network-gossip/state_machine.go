@@ -54,28 +54,28 @@ type messageEntry[H runtime.Hash] struct {
 }
 
 // Local implementation of [ValidatorContext].
-type newtorkContext[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
+type networkContext[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	gossip              *consensusGossip[H, Hasher]
 	notificationService service.NotificationService
 }
 
 // Broadcast all messages with given topic to peers that do not have it yet.
-func (nc newtorkContext[H, Hasher]) BroadcastTopic(topic H, force bool) {
+func (nc networkContext[H, Hasher]) BroadcastTopic(topic H, force bool) {
 	nc.gossip.BroadcastTopic(nc.notificationService, topic, force)
 }
 
 // Broadcast a message to all peers that have not received it previously.
-func (nc newtorkContext[H, Hasher]) BroadcastMessage(topic H, message []byte, force bool) {
+func (nc networkContext[H, Hasher]) BroadcastMessage(topic H, message []byte, force bool) {
 	nc.gossip.Multicast(nc.notificationService, topic, message, force)
 }
 
 // Send addressed message to a peer.
-func (nc newtorkContext[H, Hasher]) SendMessage(who peerid.PeerID, message []byte) {
+func (nc networkContext[H, Hasher]) SendMessage(who peerid.PeerID, message []byte) {
 	nc.notificationService.SendSyncNotification(who, message)
 }
 
 // Send all messages with given topic to a peer.
-func (nc newtorkContext[H, Hasher]) SendTopic(who peerid.PeerID, topic H, force bool) {
+func (nc networkContext[H, Hasher]) SendTopic(who peerid.PeerID, topic H, force bool) {
 	nc.gossip.SendTopic(nc.notificationService, who, topic, force)
 }
 
@@ -168,7 +168,7 @@ func (cg *consensusGossip[H, Hasher]) NewPeer(
 	cg.peers[who] = peerConsensus[H]{knownMessages: make(map[H]any)}
 
 	validator := cg.validator
-	context := newtorkContext[H, Hasher]{gossip: cg, notificationService: notificationService}
+	context := networkContext[H, Hasher]{gossip: cg, notificationService: notificationService}
 	validator.NewPeer(context, who, role)
 }
 
@@ -198,7 +198,7 @@ func (cg *consensusGossip[H, Hasher]) PeerDisconnected(
 	notificationService service.NotificationService, who peerid.PeerID,
 ) {
 	validator := cg.validator
-	context := newtorkContext[H, Hasher]{gossip: cg, notificationService: notificationService}
+	context := networkContext[H, Hasher]{gossip: cg, notificationService: notificationService}
 	validator.PeerDisconnected(context, who)
 	delete(cg.peers, who)
 }
@@ -310,7 +310,7 @@ func (cg *consensusGossip[H, Hasher]) OnIncoming(
 
 		// validate the message
 		validator := cg.validator
-		context := newtorkContext[H, Hasher]{gossip: cg, notificationService: notificationService}
+		context := networkContext[H, Hasher]{gossip: cg, notificationService: notificationService}
 		validation := validator.Validate(&context, who, message)
 
 		var (

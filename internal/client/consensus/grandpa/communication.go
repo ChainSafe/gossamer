@@ -23,7 +23,7 @@ import (
 // How often to rebroadcast neighbor packets, in cases where no new packets are created.
 const neighborRebroadcastPeriod = 2 * 60 * time.Second
 
-// cost scalars for reporting peers.
+// negative reputation changes for reporting peers.
 var (
 	pastRejection                  = network.NewReputationChange(-50, "Grandpa: Past message")
 	badSignature                   = network.NewReputationChange(-100, "Grandpa: Bad signature")
@@ -46,7 +46,7 @@ var (
 	honestOutOfScopeCatchUp = network.NewReputationChange(-200, "Grandpa: Out-of-scope catch-up")
 )
 
-// benefit scalars for reporting peers.
+// positive reuptation changs for reporting peers.
 var (
 	neighborMessage             = network.NewReputationChange(100, "Grandpa: Neighbor message")
 	roundMessage                = network.NewReputationChange(100, "Grandpa: Round message")
