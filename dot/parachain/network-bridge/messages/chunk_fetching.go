@@ -22,17 +22,22 @@ type ChunkFetchingRequest struct {
 }
 
 // Encode returns the SCALE encoding of the ChunkFetchingRequest
-func (c ChunkFetchingRequest) Encode() ([]byte, error) {
-	return scale.Marshal(c)
+func (c *ChunkFetchingRequest) Encode() ([]byte, error) {
+	return scale.Marshal(*c)
+}
+
+// Decode returns the SCALE decoding of the ChunkFetchingRequest.
+func (c *ChunkFetchingRequest) Decode(in []byte) (err error) {
+	return scale.Unmarshal(in, c)
 }
 
 // Protocol returns the sub-protocol ID for this message
-func (c ChunkFetchingRequest) Protocol() ReqProtocolName {
+func (c *ChunkFetchingRequest) Protocol() ReqProtocolName {
 	return ChunkFetchingV1
 }
 
 // Response returns an instance of the response type for this message, for the purpose of decoding into it.
-func (c ChunkFetchingRequest) Response() network.ResponseMessage {
+func (c *ChunkFetchingRequest) Response() network.ResponseMessage {
 	return &ChunkFetchingResponse{}
 }
 
@@ -97,13 +102,16 @@ func NewChunkFetchingResponse() ChunkFetchingResponse {
 	return ChunkFetchingResponse{}
 }
 
-// ChunkResponse represents the requested chunk data
+// ChunkResponse represents the requested chunk data. This is the response format for v2 of the chunk fetching protocol.
 type ChunkResponse struct {
 	// The erasure-encoded chunk of data belonging to the candidate block
 	Chunk []byte `scale:"1"`
 
+	// The index of this erasure-coded chunk
+	Index uint32 `scale:"2"`
+
 	// Proof for this chunk's branch in the Merkle tree
-	Proof [][]byte `scale:"2"`
+	Proof [][]byte `scale:"3"`
 }
 
 // NoSuchChunk indicates that the requested chunk was not found

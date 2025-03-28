@@ -26,6 +26,22 @@ func TestEncodeChunkFetchingRequest(t *testing.T) {
 	require.Equal(t, expextedEncode, actualEncode)
 }
 
+func TestDecodeChunkFetchingRequest(t *testing.T) {
+	encodedRequest := common.MustHexToBytes("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c1908000000")
+
+	request := ChunkFetchingRequest{}
+	err := request.Decode(encodedRequest)
+	require.NoError(t, err)
+
+	expectedDecode := ChunkFetchingRequest{
+		CandidateHash: parachaintypes.CandidateHash{
+			Value: common.MustHexToHash("0x677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19"),
+		},
+		Index: parachaintypes.ValidatorIndex(8),
+	}
+	require.Equal(t, expectedDecode, request)
+}
+
 func TestChunkFetchingResponse(t *testing.T) {
 	t.Parallel()
 
@@ -39,9 +55,10 @@ func TestChunkFetchingResponse(t *testing.T) {
 			name: "chunkResponse",
 			value: ChunkResponse{
 				Chunk: testBytes,
+				Index: 5,
 				Proof: [][]byte{testBytes},
 			},
-			encodeValue: common.MustHexToBytes("0x0080677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c190480677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19"), //nolint:lll
+			encodeValue: common.MustHexToBytes("0x0080677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19050000000480677811d2f3ded2489685468dbdb2e4fa280a249fba9356acceb2e823820e2c19"), //nolint:lll
 		},
 		{
 			name:        "NoSuchChunk",

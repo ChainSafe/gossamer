@@ -1,7 +1,7 @@
 // Copyright 2023 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package parachain
+package messages
 
 import (
 	"fmt"
@@ -13,12 +13,17 @@ import (
 // PoVFetchingRequest represents a request to fetch the advertised collation at the relay-parent.
 type PoVFetchingRequest struct {
 	// Hash of the candidate for which we want to retrieve a Proof-of-Validity (PoV).
-	CandidateHash parachaintypes.CandidateHash
+	CandidateHash parachaintypes.CandidateHash `scale:"1"`
 }
 
 // Encode returns the SCALE encoding of the PoVFetchingRequest
-func (p PoVFetchingRequest) Encode() ([]byte, error) {
-	return scale.Marshal(p)
+func (p *PoVFetchingRequest) Encode() ([]byte, error) {
+	return scale.Marshal(*p)
+}
+
+// Decode returns the SCALE decoding of the PoVFetchingRequest
+func (p *PoVFetchingRequest) Decode(in []byte) (err error) {
+	return scale.Unmarshal(in, p)
 }
 
 type PoVFetchingResponseValues interface {

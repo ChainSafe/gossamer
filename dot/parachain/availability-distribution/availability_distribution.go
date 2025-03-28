@@ -9,6 +9,8 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
+	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -19,6 +21,8 @@ import (
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-availability-distribution"))
+
+const leafAncestryLenWithinSession = 3
 
 type AvailabilityDistribution struct {
 	subSystemToOverseer chan<- any
@@ -43,11 +47,19 @@ func NewAvailabilityDistribution(
 	net Network,
 	blockState BlockState,
 ) *AvailabilityDistribution {
-	return &AvailabilityDistribution{
+	ad := &AvailabilityDistribution{
 		subSystemToOverseer: overseerChan,
 		net:                 net,
 		blockState:          blockState,
 	}
+
+	cfProtoID := protocol.ID(messages.ChunkFetchingV2.String())
+	net.RegisterRequestHandler(cfProtoID, ad.handleChunkFetchingRequest)
+
+	povProtoID := protocol.ID(messages.PoVFetchingV1.String())
+	net.RegisterRequestHandler(povProtoID, ad.handlePoVFetchingRequest)
+
+	return ad
 }
 
 // Run starts the AvailabilityDistribution subsystem
@@ -113,18 +125,133 @@ func (ad *AvailabilityDistribution) processAvailabilityDistributionMessageFetchP
 	return nil // TODO: implement #4489
 }
 
-//nolint:unused
 func (ad *AvailabilityDistribution) handleChunkFetchingRequest(
-	who peer.ID,
+	_ peer.ID,
 	payload []byte,
 ) (network.ResponseMessage, error) {
-	return nil, nil // TODO: implement #4487
+	request := &messages.ChunkFetchingRequest{}
+
+	err := request.Decode(payload)
+	if err != nil {
+		return nil, fmt.Errorf("decoding chunk fetching request: %w", err)
+	}
+
+	query := availabilitystore.QueryChunk{
+		CandidateHash:  request.CandidateHash,
+		ValidatorIndex: request.Index,
+		Sender:         make(chan availabilitystore.ErasureChunk),
+	}
+
+	ad.subSystemToOverseer <- query
+	response := &messages.ChunkFetchingResponse{}
+
+	// Conceptually, this is a "one shot" channel, so ideally availability store would always close the channel and not
+	// send anything in case the chunk is not found.
+	chunk, ok := <-query.Sender
+	if !ok || chunk.Chunk == nil {
+		err = response.SetValue(messages.NoSuchChunk{})
+		if err != nil {
+			return nil, fmt.Errorf("setting chunk response value: %w", err)
+		}
+	} else {
+		err = response.SetValue(messages.ChunkResponse{
+			Chunk: chunk.Chunk,
+			Index: chunk.Index,
+			// Proof: chunk.Proof,  // FIXME see #4597
+		})
+		if err != nil {
+			return nil, fmt.Errorf("setting chunk response value: %w", err)
+		}
+	}
+
+	return response, nil
 }
 
-//nolint:unused
 func (ad *AvailabilityDistribution) handlePoVFetchingRequest(
-	who peer.ID,
+	_ peer.ID,
 	payload []byte,
 ) (network.ResponseMessage, error) {
-	return nil, nil // TODO: implement #4488
+	request := &messages.PoVFetchingRequest{}
+
+	err := request.Decode(payload)
+	if err != nil {
+		return nil, fmt.Errorf("decoding chunk fetching request: %w", err)
+	}
+
+	query := availabilitystore.QueryAvailableData{
+		CandidateHash: request.CandidateHash,
+		Sender:        make(chan availabilitystore.AvailableData),
+	}
+
+	ad.subSystemToOverseer <- query
+	response := &messages.PoVFetchingResponse{}
+
+	availableData := <-query.Sender
+	if availableData.PoV.BlockData == nil {
+		err = response.SetValue(parachaintypes.NoSuchPoV{})
+		if err != nil {
+			return nil, fmt.Errorf("setting PoV response value: %w", err)
+		}
+	} else {
+		err = response.SetValue(availableData.PoV)
+		if err != nil {
+			return nil, fmt.Errorf("setting PoV response value: %w", err)
+		}
+	}
+
+	return response, nil
+}
+
+func (ad *AvailabilityDistribution) getBlockAncestorsInSameSession(
+	leafHash common.Hash,
+	limit int,
+) (parachaintypes.SessionIndex, []common.Hash, error) {
+	leafHeader, err := ad.blockState.GetHeader(leafHash)
+	if err != nil {
+		return 0, nil, fmt.Errorf("getting header for activated leaf %v: %w", leafHash, err)
+	}
+
+	headSessionIndex, err := ad.getSessionIndexForChild(leafHeader.ParentHash)
+	if err != nil {
+		return 0, nil, fmt.Errorf("getting session index for activated leaf %v: %w", leafHash, err)
+	}
+
+	currentHash := leafHeader.ParentHash
+	ancestors := make([]common.Hash, 0, limit)
+
+	for i := 0; i < limit; i++ {
+		header, err := ad.blockState.GetHeader(currentHash)
+		if err != nil {
+			return 0, nil, fmt.Errorf("getting header for leaf ancestor %v: %w", currentHash, err)
+		}
+
+		// stop at genesis
+		if header.Number == 0 {
+			return headSessionIndex, ancestors, nil
+		}
+
+		sessionIndex, err := ad.getSessionIndexForChild(header.ParentHash)
+		if err != nil {
+			return 0, nil, fmt.Errorf("getting session index for leaf ancestor %v: %w", currentHash, err)
+		}
+
+		if sessionIndex != headSessionIndex {
+			return headSessionIndex, ancestors, nil
+		}
+
+		ancestors = append(ancestors, currentHash)
+		currentHash = header.ParentHash
+	}
+
+	return headSessionIndex, ancestors, nil
+}
+
+func (ad *AvailabilityDistribution) getSessionIndexForChild(hash common.Hash) (parachaintypes.SessionIndex, error) {
+	rt, err := ad.blockState.GetRuntime(hash)
+	if err != nil {
+		return 0, fmt.Errorf("instantiating runtime for block %v: %w", hash, err)
+	}
+	defer rt.Stop()
+
+	return rt.ParachainHostSessionIndexForChild()
 }

@@ -41,7 +41,7 @@ type ErasureChunk struct {
 // QueryChunk query an `ErasureChunk` from the AV store by candidate hash and validator index
 type QueryChunk struct {
 	CandidateHash  parachaintypes.CandidateHash
-	ValidatorIndex uint32
+	ValidatorIndex parachaintypes.ValidatorIndex
 	Sender         chan ErasureChunk
 }
 
