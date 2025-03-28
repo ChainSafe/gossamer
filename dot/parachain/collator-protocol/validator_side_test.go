@@ -130,6 +130,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 
 				return map[string]CollationEvent{
 					fetchedCollation.String(): {
+						CollatorId: testCandidateReceipt.Descriptor.RebuildCollatorField(),
 						PendingCollation: PendingCollation{
 							CommitmentHash: &testCandidateReceipt.CommitmentsHash,
 						},
@@ -159,6 +160,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 
 				return map[string]CollationEvent{
 					fetchedCollation.String(): {
+						CollatorId: testCandidateReceipt.Descriptor.RebuildCollatorField(),
 						PendingCollation: PendingCollation{
 							CommitmentHash: &testCandidateReceipt.CommitmentsHash,
 						},
@@ -191,6 +193,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 				require.NoError(t, err)
 				return map[string]CollationEvent{
 					fetchedCollation.String(): {
+						CollatorId: testCandidateReceipt.Descriptor.RebuildCollatorField(),
 						PendingCollation: PendingCollation{
 							CommitmentHash: &testCandidateReceipt.CommitmentsHash,
 						},
@@ -239,6 +242,7 @@ func TestProcessOverseerMessage(t *testing.T) {
 				require.NoError(t, err)
 				return map[string]CollationEvent{
 					fetchedCollation.String(): {
+						CollatorId: testCandidateReceipt.Descriptor.RebuildCollatorField(),
 						PendingCollation: PendingCollation{
 							CommitmentHash: &testCandidateReceipt.CommitmentsHash,
 						},

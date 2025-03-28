@@ -108,8 +108,8 @@ func (cd CandidateDescriptorV2) CheckCollatorSignature() error {
 		return nil
 	}
 
-	collator := cd.rebuildCollatorField()
-	signature := cd.rebuilSignatureField()
+	collator := cd.RebuildCollatorField()
+	signature := cd.RebuilSignatureField()
 
 	payload, err := cd.CreateSignaturePayload()
 	if err != nil {
@@ -119,36 +119,37 @@ func (cd CandidateDescriptorV2) CheckCollatorSignature() error {
 	return sr25519.VerifySignature(collator[:], signature[:], payload)
 }
 
-// rebuildCollatorField reconstructs the CollatorID from the CandidateDescriptorV2 fields.
+// RebuildCollatorField reconstructs the CollatorID from the CandidateDescriptorV2 fields.
 // Note: This field was present in version 1 but has been removed in version 2.
-func (cd CandidateDescriptorV2) rebuildCollatorField() CollatorID {
+func (cd CandidateDescriptorV2) RebuildCollatorField() CollatorID {
 	var collator CollatorID
+	sessionIndex := uint32(cd.SessionIndex)
 
-	collator[0] = cd.CurrentVersion                                       // 1 byte
-	binary.NativeEndian.PutUint16(collator[1:3], cd.CoreIndex)            // 2 bytes
-	binary.NativeEndian.PutUint32(collator[3:7], uint32(cd.SessionIndex)) // 4 bytes
-	copy(collator[7:], cd.Reserved1[:])                                   // 25 bytes
+	collator[0] = cd.CurrentVersion                            // 1 byte
+	binary.NativeEndian.PutUint16(collator[1:3], cd.CoreIndex) // 2 bytes
+	binary.NativeEndian.PutUint32(collator[3:7], sessionIndex) // 4 bytes
+	copy(collator[7:32], cd.Reserved1[:])                      // 25 bytes (fix: ensure correct range)
 
 	return collator
 }
 
-// rebuilSignatureField reconstructs the CollatorSignature from the CandidateDescriptorV2 fields.
+// RebuilSignatureField reconstructs the CollatorSignature from the CandidateDescriptorV2 fields.
 // Note: This field was present in version 1 but has been removed in version 2.
-func (cd CandidateDescriptorV2) rebuilSignatureField() CollatorSignature {
+func (cd CandidateDescriptorV2) RebuilSignatureField() CollatorSignature {
 	return cd.Reserved2
 }
 
 // V2 converts a CandidateDescriptor to a CandidateDescriptorV2
 func (cdV1 CandidateDescriptor) V2() CandidateDescriptorV2 {
 	// use first byte of collator as version
-	version := cdV1.Collator[0]
+	version := cdV1.Collator[0] // 1 byte from collator
 	// next two bytes of collator are core index
-	coreIndex := bytesToUint16(cdV1.Collator[1:3])
+	coreIndex := binary.NativeEndian.Uint16(cdV1.Collator[1:3]) // next 2 bytes from collator
 	// next four bytes of collator are session index
-	sessionIndex := SessionIndex(bytesToUint16(cdV1.Collator[3:7]))
+	sessionIndex := SessionIndex(binary.NativeEndian.Uint32(cdV1.Collator[3:7])) // next 4 bytes from collator
 	// use remaining 25 bytes as reserved1
 	var reserved1 [25]byte
-	copy(reserved1[:], cdV1.Collator[7:])
+	copy(reserved1[:], cdV1.Collator[7:]) // remaining 25 bytes from collator
 
 	// use collator signature as reserved2
 	var reserved2 [64]byte = cdV1.Signature
@@ -222,10 +223,4 @@ func (crV1 CandidateReceipt) V2() CandidateReceiptV2 {
 	}
 
 	return crV2
-}
-
-// bytesToUint16 converts a byte slice to a uint16 using the native endianness
-func bytesToUint16(bytes []byte) uint16 {
-	// Binary.BigEndian or Binary.LittleEndian depending on platform
-	return binary.NativeEndian.Uint16(bytes)
 }

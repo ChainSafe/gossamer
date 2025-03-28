@@ -239,14 +239,14 @@ func TestHost_performBasicChecks(t *testing.T) {
 	collatorID, err := sr25519.NewPublicKey(collatorKeypair.Public().Encode())
 	require.NoError(t, err)
 
-	candidate := parachaintypes.CandidateDescriptor{
+	firstCandidateV1 := parachaintypes.CandidateDescriptor{
 		Collator:           collatorID.AsBytes(),
 		PovHash:            povHash,
 		ValidationCodeHash: validationCodeHash,
-	}.V2()
-	candidate2 := candidate
+	}
+	secondCandidateV1 := firstCandidateV1
 
-	payload, err := candidate.CreateSignaturePayload()
+	payload, err := firstCandidateV1.CreateSignaturePayload()
 	require.NoError(t, err)
 
 	signatureBytes, err := collatorKeypair.Sign(payload)
@@ -260,8 +260,12 @@ func TestHost_performBasicChecks(t *testing.T) {
 	signature2 := [sr25519.SignatureLength]byte{}
 	copy(signature2[:], signature2Bytes)
 
-	// candidate.Signature = parachaintypes.CollatorSignature(signature)
-	// candidate2.Signature = parachaintypes.CollatorSignature(signature2)
+	firstCandidateV1.Signature = parachaintypes.CollatorSignature(signature)
+	secondCandidateV1.Signature = parachaintypes.CollatorSignature(signature2)
+
+	// convert to candidate descriptor v2
+	candidate := firstCandidateV1.V2()
+	candidate2 := secondCandidateV1.V2()
 
 	type args struct {
 		candidate          *parachaintypes.CandidateDescriptorV2
