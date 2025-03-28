@@ -7,11 +7,12 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/libp2p/go-libp2p/core/peer"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -130,8 +131,8 @@ func makeOutgoingRequest(t *testing.T) *networkbridgemessages.OutgoingRequest {
 	t.Helper()
 
 	return networkbridgemessages.NewOutgoingRequest(
-		"recipient",
-		networkbridgemessages.ChunkFetchingRequest{
+		parachaintypes.PeerID("recipient"),
+		&networkbridgemessages.ChunkFetchingRequest{
 			CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{1}},
 			Index:         42,
 		})
@@ -151,6 +152,11 @@ func setUpNetworkBridgeSender(
 	t.Helper()
 
 	expectCancellation := response == nil && rawResponse == nil && reqErr == nil
+
+	paraPeerID, ok := request.Recipient.(parachaintypes.PeerID)
+	require.True(t, ok)
+	expectedPeer := peer.ID(paraPeerID)
+
 	reqMaker := NewMockRequestMaker(ctrl)
 
 	if expectCancellation {
@@ -159,7 +165,7 @@ func setUpNetworkBridgeSender(
 			Times(0)
 	} else {
 		reqMaker.EXPECT().
-			Do(request.Recipient, request.Payload, gomock.AssignableToTypeOf(request.Payload.Response())).
+			Do(expectedPeer, request.Payload, gomock.AssignableToTypeOf(request.Payload.Response())).
 			DoAndReturn(func(to peer.ID, req network.Message, res network.ResponseMessage) error {
 				if reqErr != nil {
 					return reqErr
