@@ -54,7 +54,7 @@ func TestHandleChunkFetchingRequest(t *testing.T) {
 	t.Run("chunk_not_found", func(t *testing.T) {
 		setup(t)
 
-		request := messages.ChunkFetchingRequest{
+		request := &messages.ChunkFetchingRequest{
 			CandidateHash: parachaintypes.CandidateHash{Value: common.Hash{0x01}},
 			Index:         parachaintypes.ValidatorIndex(0),
 		}

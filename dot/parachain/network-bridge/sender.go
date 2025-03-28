@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/libp2p/go-libp2p/core/peer"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -143,7 +145,17 @@ func (nbs *NetworkBridgeSender) sendRequest(
 	response := request.Payload.Response()
 	result := networkbridgemessages.ReqRespResult{}
 
-	err := protocol.Do(request.Recipient, request.Payload, response)
+	var peerID peer.ID
+	switch request.Recipient.(type) {
+	case parachaintypes.PeerID:
+		peerID = peer.ID(request.Recipient.(parachaintypes.PeerID))
+	case parachaintypes.AuthorityDiscoveryID:
+		peerID = "unknown" // TODO: perform authority discovery (#4500)
+	default:
+		panic("unreachable")
+	}
+
+	err := protocol.Do(peerID, request.Payload, response)
 	if err != nil {
 		result.Error = err
 	} else {

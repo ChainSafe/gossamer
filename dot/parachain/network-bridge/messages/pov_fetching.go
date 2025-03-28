@@ -17,8 +17,8 @@ type PoVFetchingRequest struct {
 }
 
 // Encode returns the SCALE encoding of the PoVFetchingRequest
-func (p PoVFetchingRequest) Encode() ([]byte, error) {
-	return scale.Marshal(p)
+func (p *PoVFetchingRequest) Encode() ([]byte, error) {
+	return scale.Marshal(*p)
 }
 
 // Decode returns the SCALE decoding of the PoVFetchingRequest

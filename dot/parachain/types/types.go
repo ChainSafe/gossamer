@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/ChainSafe/gossamer/lib/crypto"
-
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // The primary purpose of this package is to put types being used by other packages to avoid cyclic
@@ -392,6 +392,17 @@ type AssignmentID [sr25519.PublicKeyLength]byte
 
 // AuthorityDiscoveryID An authority discovery identifier.
 type AuthorityDiscoveryID [sr25519.PublicKeyLength]byte
+
+// PeerID is a wrapper type for libp2p peer IDs used for supporting authority discovery by using the type
+// RecipientID, which can either be a PeerID or an AuthorityID.
+type PeerID peer.ID
+
+type RecipientID interface {
+	isRecipientID()
+}
+
+func (p PeerID) isRecipientID()               {}
+func (a AuthorityDiscoveryID) isRecipientID() {}
 
 // SessionInfo Information about validator sets of a session.
 type SessionInfo struct {
