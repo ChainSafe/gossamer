@@ -154,7 +154,7 @@ func (vs VoterSet[ID]) TotalWeight() VoterWeight {
 
 // Iter returns the voters in the set, as given by
 // the associated total order.
-func (vs VoterSet[ID]) Iter() []IDVoterInfo[ID] {
+func (vs VoterSet[ID]) Voters() []IDVoterInfo[ID] {
 	return vs.voters
 }
 

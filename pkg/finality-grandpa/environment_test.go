@@ -36,6 +36,7 @@ func (t *timer) poll(in <-chan time.Time) {
 	if t.wakerChan.in != nil {
 		t.wakerChan.in <- nil
 		close(t.wakerChan.in)
+		t.wakerChan.in = nil
 	}
 	t.expired = true
 }
@@ -70,13 +71,16 @@ type environment struct {
 	listeners                []chan listenerItem
 	lastCompleteAndConcluded [2]uint64
 	mtx                      sync.Mutex
+
+	concludedCalled chan struct{}
 }
 
 func newEnvironment(network *Network, localID ID) environment {
 	return environment{
-		chain:   newDummyChain(),
-		localID: localID,
-		network: network,
+		chain:           newDummyChain(),
+		localID:         localID,
+		network:         network,
+		concludedCalled: make(chan struct{}),
 	}
 }
 
@@ -160,6 +164,9 @@ func (e *environment) Concluded(
 	e.mtx.Lock()
 	defer e.mtx.Unlock()
 	e.lastCompleteAndConcluded[1] = round
+	go func() {
+		e.concludedCalled <- struct{}{}
+	}()
 	return nil
 }
 
@@ -298,19 +305,21 @@ func (rn *RoundNetwork) AddNode(
 }
 
 type GlobalMessageNetwork struct {
-	*BroadcastNetwork[globalInItem, CommunicationOut]
+	*BroadcastNetwork[globalInItem[string, uint32, Signature, ID], CommunicationOut[string, uint32, Signature, ID]]
 }
 
 func NewGlobalMessageNetwork() *GlobalMessageNetwork {
-	bn := NewBroadcastNetwork[globalInItem, CommunicationOut]()
+	bn := NewBroadcastNetwork[globalInItem[
+		string, uint32, Signature, ID], CommunicationOut[string, uint32, Signature, ID],
+	]()
 	gmn := GlobalMessageNetwork{bn}
 	return &gmn
 }
 
 func (gmn *GlobalMessageNetwork) AddNode(
-	f func(CommunicationOut) globalInItem,
-	out chan CommunicationOut,
-) (in chan globalInItem) {
+	f func(CommunicationOut[string, uint32, Signature, ID]) globalInItem[string, uint32, Signature, ID],
+	out chan CommunicationOut[string, uint32, Signature, ID],
+) (in chan globalInItem[string, uint32, Signature, ID]) {
 	return gmn.BroadcastNetwork.AddNode(f, out)
 }
 
@@ -360,30 +369,33 @@ func (n *Network) MakeRoundComms(
 	)
 }
 
-func (n *Network) MakeGlobalComms(out chan CommunicationOut) chan globalInItem {
+func (n *Network) MakeGlobalComms(
+	out chan CommunicationOut[string, uint32, Signature, ID],
+) chan globalInItem[string, uint32, Signature, ID] {
 	n.mtx.Lock()
 	defer n.mtx.Unlock()
 
-	return n.globalMessages.AddNode(func(message CommunicationOut) globalInItem {
-		if message.variant == nil {
-			panic("nil message variant")
-		}
-		switch message := message.variant.(type) {
-		case CommunicationOutCommit[string, uint32, Signature, ID]:
-			ci := newCommunicationIn[string, uint32, Signature, ID](CommunicationInCommit[string, uint32, Signature, ID]{
-				Number:        message.Number,
-				CompactCommit: message.Commit.CompactCommit(),
-				Callback:      nil,
-			})
-			return globalInItem{
-				CommunicationIn: ci,
+	return n.globalMessages.AddNode(
+		func(message CommunicationOut[string, uint32, Signature, ID]) globalInItem[string, uint32, Signature, ID] {
+			if message == nil {
+				panic("nil message variant")
 			}
-		default:
-			panic("invalid CommunicationOut variant")
-		}
-	}, out)
+			switch message := message.(type) {
+			case CommunicationOutCommit[string, uint32, Signature, ID]:
+				ci := CommunicationInCommit[string, uint32, Signature, ID]{
+					Number:        message.Number,
+					CompactCommit: message.Commit.CompactCommit(),
+					Callback:      nil,
+				}
+				return globalInItem[string, uint32, Signature, ID]{
+					CommunicationIn: ci,
+				}
+			default:
+				panic("invalid CommunicationOut variant")
+			}
+		}, out)
 }
 
-func (n *Network) SendMessage(message CommunicationIn) {
-	n.globalMessages.SendMessage(globalInItem{message, nil})
+func (n *Network) SendMessage(message CommunicationIn[string, uint32, Signature, ID]) {
+	n.globalMessages.SendMessage(globalInItem[string, uint32, Signature, ID]{message, nil})
 }

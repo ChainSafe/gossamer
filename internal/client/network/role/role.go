@@ -10,6 +10,11 @@ package role
 // is a [Role] merged with the information known locally about that node.
 type ObservedRole uint
 
+// / Returns true if role is [ObservedRoleLight].
+func (or ObservedRole) IsLight() bool {
+	return or == ObservedRoleLight
+}
+
 const (
 	// Full node.
 	ObservedRoleFull ObservedRole = iota
@@ -47,12 +52,12 @@ func (r Roles) intersects(other Roles) bool {
 	return !((r & other) == 0)
 }
 
-// IsFull returns whether or not a client holds full chain data locally.
+// Does this role represents a client that holds full chain data locally?
 func (r Roles) IsFull() bool {
 	return r.intersects(RolesFull | RolesAuthority)
 }
 
-// IsAuthorityt returns whether or not a client participates in consensus.
+// Does this role represents a client that does not participates in the consensus?
 func (r Roles) IsAuthority() bool {
 	return r == RolesAuthority
 }

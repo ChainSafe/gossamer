@@ -13,7 +13,7 @@ type waker struct {
 }
 
 func newWaker() *waker {
-	return &waker{wakeCh: make(chan struct{}, 100_000)}
+	return &waker{wakeCh: make(chan struct{}, 1000)}
 }
 
 func (w *waker) wake() {

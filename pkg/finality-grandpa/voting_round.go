@@ -121,7 +121,7 @@ func newVotingRound[
 		votes:    votes,
 		voting:   voting,
 		incoming: newWakerChan(roundData.Incoming),
-		outgoing: newBuffered(outgoing),
+		outgoing: newBuffered(outgoing, func(Message[Hash, Number]) error { return nil }),
 		state: newState[Timer, hashBestChain[Hash, Number]](
 			stateStart[Timer]{roundData.PrevoteTimer, roundData.PrecommitTimer}),
 		bridgedRoundState: nil,
@@ -150,7 +150,7 @@ func newVotingRoundCompleted[
 		votes:             votes,
 		voting:            votingNo,
 		incoming:          newWakerChan(roundData.Incoming),
-		outgoing:          newBuffered(outgoing),
+		outgoing:          newBuffered(outgoing, func(Message[Hash, Number]) error { return nil }),
 		state:             nil,
 		bridgedRoundState: nil,
 		primaryBlock:      nil,
@@ -395,7 +395,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) handleVote(vote SignedMes
 		return nil
 	}
 
-	switch message := message.inner.(type) {
+	switch message := message.(type) {
 	case Prevote[Hash, Number]:
 		prevote := message
 		importResult, err := vr.votes.importPrevote(vr.env, prevote, vote.ID, vote.Signature)
@@ -523,8 +523,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) primaryPropose(lastRoundS
 				if err != nil {
 					return err
 				}
-				message := NewMessage(primary)
-				vr.outgoing.Push(message)
+				vr.outgoing.Push(primary)
 				setState[Timer, hashBestChain[Hash, Number]](&vr.state, stateProposed[Timer]{prevoteTimer, precommitTimer})
 
 				return nil
@@ -615,8 +614,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) prevote(w *waker, lastRou
 				return err
 			}
 			vr.votes.SetPrevotedIdx()
-			message := NewMessage(prevote)
-			vr.outgoing.Push(message)
+			vr.outgoing.Push(prevote)
 			setState[Timer, hashBestChain[Hash, Number]](&vr.state, statePrevoted[Timer]{precommitTimer})
 		} else {
 			log.Warnf("Could not cast prevote: previously known block %v has disappeared", base)
@@ -690,8 +688,7 @@ func (vr *votingRound[Hash, Number, Signature, ID, E]) precommit(waker *waker, l
 					return err
 				}
 				vr.votes.SetPrecommittedIdx()
-				message := NewMessage(precommit)
-				vr.outgoing.Push(message)
+				vr.outgoing.Push(precommit)
 			}
 			setState[Timer, hashBestChain[Hash, Number]](&vr.state, statePrecommitted{})
 		} else {
