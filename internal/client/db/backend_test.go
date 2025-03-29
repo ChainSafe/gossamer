@@ -20,8 +20,8 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	rt_testing "github.com/ChainSafe/gossamer/internal/primitives/runtime/testing"
-	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	statemachine_backend "github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
+	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -128,7 +128,7 @@ func insertBlock(t *testing.T,
 	_changes []trie.KeyValue,
 	extrinisicsRoot hash.H256,
 	body []rt_testing.ExtrinsicsWrapper[uint64],
-	transactionIndex []statemachine.IndexOperation,
+	transactionIndex []overlayedchanges.IndexOperation,
 ) (hash.H256, error) {
 	t.Helper()
 	var digest runtime.Digest
@@ -1231,13 +1231,13 @@ func TestBackend(t *testing.T) {
 		x1 := scale.MustMarshal(rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(1)})
 		x0Hash := runtime.BlakeTwo256{}.Hash(x0[1:])
 		x1Hash := runtime.BlakeTwo256{}.Hash(x1[1:])
-		index := []statemachine.IndexOperation{
-			statemachine.IndexOperationInsert{
+		index := []overlayedchanges.IndexOperation{
+			overlayedchanges.IndexOperationInsert{
 				Extrinsic: 0,
 				Hash:      x0Hash.Bytes(),
 				Size:      uint32(len(x0)) - 1,
 			},
-			statemachine.IndexOperationInsert{
+			overlayedchanges.IndexOperationInsert{
 				Extrinsic: 1,
 				Hash:      x1Hash.Bytes(),
 				Size:      uint32(len(x1)) - 1,
@@ -1293,13 +1293,13 @@ func TestBackend(t *testing.T) {
 		x1 := scale.MustMarshal(rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(1)})
 		x0Hash := runtime.BlakeTwo256{}.Hash(x0)
 		x1Hash := runtime.BlakeTwo256{}.Hash(x1)
-		index := []statemachine.IndexOperation{
-			statemachine.IndexOperationInsert{
+		index := []overlayedchanges.IndexOperation{
+			overlayedchanges.IndexOperationInsert{
 				Extrinsic: 0,
 				Hash:      x0Hash.Bytes(),
 				Size:      uint32(len(x0)),
 			},
-			statemachine.IndexOperationInsert{
+			overlayedchanges.IndexOperationInsert{
 				Extrinsic: 1,
 				Hash:      x1Hash.Bytes(),
 				Size:      uint32(len(x1)) + 1,
@@ -1331,16 +1331,16 @@ func TestBackend(t *testing.T) {
 		x1 := scale.MustMarshal(rt_testing.ExtrinsicsWrapper[uint64]{T: uint64(0)})
 		x1Hash := runtime.BlakeTwo256{}.Hash(x1[1:])
 		for i := 0; i < 10; i++ {
-			index := []statemachine.IndexOperation{}
+			index := []overlayedchanges.IndexOperation{}
 			if i == 0 {
-				index = append(index, statemachine.IndexOperationInsert{
+				index = append(index, overlayedchanges.IndexOperationInsert{
 					Extrinsic: 0,
 					Hash:      x1Hash.Bytes(),
 					Size:      uint32(len(x1) - 1),
 				})
 			} else if i < 5 {
 				// keep renewing 1st
-				index = append(index, statemachine.IndexOperationRenew{
+				index = append(index, overlayedchanges.IndexOperationRenew{
 					Extrinsic: 0,
 					Hash:      x1Hash.Bytes(),
 				})

@@ -434,7 +434,10 @@ func TestTrieBackend(t *testing.T) {
 		for _, stateVersion := range []storage.StateVersion{storage.StateVersionV0, storage.StateVersionV1} {
 			contents := make([]StorageKeyValue, 0)
 			for i := uint8(0); i < 64; i++ {
-				contents = append(contents, StorageKeyValue{[]byte{i}, bytes.Repeat([]byte{i}, 34)})
+				contents = append(contents, StorageKeyValue{
+					StorageKey:   []byte{i},
+					StorageValue: bytes.Repeat([]byte{i}, 34),
+				})
 			}
 
 			inMemory := NewMemoryDBTrieBackend[hash.H256, runtime.BlakeTwo256]()
@@ -510,7 +513,10 @@ func TestTrieBackend(t *testing.T) {
 
 					contents := make([]StorageKeyValue, 0)
 					for i := uint8(0); i < 64; i++ {
-						contents = append(contents, StorageKeyValue{[]byte{i}, []byte{i}})
+						contents = append(contents, StorageKeyValue{
+							StorageKey:   []byte{i},
+							StorageValue: []byte{i},
+						})
 					}
 					inMemory := NewMemoryDBTrieBackend[hash.H256, runtime.BlakeTwo256]()
 					inMemory = inMemory.update([]change{{
@@ -568,17 +574,17 @@ func TestTrieBackend(t *testing.T) {
 			var contents []change
 			var sc StorageCollection
 			for i := uint8(0); i < 64; i++ {
-				sc = append(sc, StorageKeyValue{[]byte{i}, []byte{i}})
+				sc = append(sc, StorageKeyValue{StorageKey: []byte{i}, StorageValue: []byte{i}})
 			}
 			contents = append(contents, change{StorageCollection: sc})
 			sc = nil
 			for i := uint8(28); i < 65; i++ {
-				sc = append(sc, StorageKeyValue{[]byte{i}, []byte{i}})
+				sc = append(sc, StorageKeyValue{StorageKey: []byte{i}, StorageValue: []byte{i}})
 			}
 			contents = append(contents, change{ChildInfo: childInfo1, StorageCollection: sc})
 			sc = nil
 			for i := uint8(10); i < 15; i++ {
-				sc = append(sc, StorageKeyValue{[]byte{i}, []byte{i}})
+				sc = append(sc, StorageKeyValue{StorageKey: []byte{i}, StorageValue: []byte{i}})
 			}
 			contents = append(contents, change{ChildInfo: childInfo2, StorageCollection: sc})
 			inMemory := NewMemoryDBTrieBackend[hash.H256, runtime.BlakeTwo256]()
@@ -705,14 +711,17 @@ func TestTrieBackend(t *testing.T) {
 			var contents []change
 			var sc StorageCollection
 			for i := uint8(0); i < 64; i++ {
-				sc = append(sc, StorageKeyValue{[]byte{i}, []byte{i}})
+				sc = append(sc, StorageKeyValue{StorageKey: []byte{i}, StorageValue: []byte{i}})
 			}
 			contents = append(contents, change{StorageCollection: sc})
 			sc = nil
 			for i := uint8(28); i < 65; i++ {
-				sc = append(sc, StorageKeyValue{[]byte{i}, []byte{i}})
+				sc = append(sc, StorageKeyValue{StorageKey: []byte{i}, StorageValue: []byte{i}})
 			}
-			sc = append(sc, StorageKeyValue{[]byte{65}, bytes.Repeat([]byte{65}, 128)})
+			sc = append(sc, StorageKeyValue{
+				StorageKey:   []byte{65},
+				StorageValue: bytes.Repeat([]byte{65}, 128),
+			})
 			contents = append(contents, change{ChildInfo: childInfo1, StorageCollection: sc})
 
 			inMemory := NewMemoryDBTrieBackend[hash.H256, runtime.BlakeTwo256]()
@@ -873,9 +882,22 @@ func TestTrieBackend(t *testing.T) {
 			childInfo1 := storage.NewDefaultChildInfo([]byte("sub1"))
 			childInfo2 := storage.NewDefaultChildInfo([]byte("sub2"))
 			contents := []change{
-				{StorageCollection: StorageCollection{StorageKeyValue{key, topTrieVal}}},
-				{ChildInfo: childInfo1, StorageCollection: StorageCollection{StorageKeyValue{key, childTrie1Val}}},
-				{ChildInfo: childInfo2, StorageCollection: StorageCollection{StorageKeyValue{key, childTrie2Val}}},
+				{
+					StorageCollection: StorageCollection{
+						StorageKeyValue{StorageKey: key, StorageValue: topTrieVal},
+					}},
+				{
+					ChildInfo: childInfo1,
+					StorageCollection: StorageCollection{
+						StorageKeyValue{StorageKey: key, StorageValue: childTrie1Val},
+					},
+				},
+				{
+					ChildInfo: childInfo2,
+					StorageCollection: StorageCollection{
+						StorageKeyValue{StorageKey: key, StorageValue: childTrie2Val},
+					},
+				},
 			}
 
 			inMemory := NewMemoryDBTrieBackend[hash.H256, runtime.BlakeTwo256]()

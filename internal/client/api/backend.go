@@ -10,8 +10,8 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
+	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 )
 
@@ -140,7 +140,7 @@ type BlockImportOperation[
 	UpdateStorage(update backend.StorageCollection, childUpdate backend.ChildStorageCollection) error
 
 	// UpdateOffchainStorage will write offchain storage changes to the database.
-	UpdateOffchainStorage(offchainUpdate statemachine.OffchainChangesCollection) error
+	UpdateOffchainStorage(offchainUpdate overlayedchanges.OffchainChangesCollection) error
 
 	// InsertAux will insert auxiliary keys.
 	// Values that are nil respresent the keys should be deleted.
@@ -154,7 +154,7 @@ type BlockImportOperation[
 	MarkHead(hash H) error
 
 	// UpdateTransactionIndex adds a transaction index operation.
-	UpdateTransactionIndex(index []statemachine.IndexOperation) error
+	UpdateTransactionIndex(index []overlayedchanges.IndexOperation) error
 }
 
 // LockImportRun is the interface for performing operations on the backend.

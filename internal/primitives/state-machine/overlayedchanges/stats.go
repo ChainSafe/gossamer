@@ -1,7 +1,7 @@
 // Copyright 2025 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package statemachine
+package overlayedchanges
 
 type StateMachineStats struct {
 	// Number of read query from runtime

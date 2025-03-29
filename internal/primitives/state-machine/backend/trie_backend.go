@@ -107,7 +107,8 @@ func (tb *TrieBackend[H, Hasher]) StorageHash(key []byte) (*H, error) {
 	return tb.essence.StorageHash(key)
 }
 
-func (tb *TrieBackend[H, Hasher]) ChildStorage(childInfo storage.ChildInfo, key []byte) (StorageValue, error) {
+func (tb *TrieBackend[H, Hasher]) ChildStorage(childInfo storage.ChildInfo, key []byte) (
+	StorageValue, error) {
 	return tb.essence.ChildStorage(childInfo, key)
 }
 
@@ -183,7 +184,8 @@ func (tb *TrieBackend[H, Hasher]) NextStorageKey(key []byte) (StorageKey, error)
 	return nextKey, nil
 }
 
-func (tb *TrieBackend[H, Hasher]) NextChildStorageKey(childInfo storage.ChildInfo, key []byte) (StorageKey, error) {
+func (tb *TrieBackend[H, Hasher]) NextChildStorageKey(childInfo storage.ChildInfo, key []byte) (
+	StorageKey, error) {
 	return tb.essence.NextChildStorageKey(childInfo, key)
 }
 

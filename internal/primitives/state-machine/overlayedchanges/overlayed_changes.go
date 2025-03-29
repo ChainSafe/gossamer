@@ -1,7 +1,7 @@
 // Copyright 2024 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package statemachine
+package overlayedchanges
 
 import (
 	"iter"
@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
+	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
@@ -57,8 +58,8 @@ func (IndexOperationInsert) isIndexOperation() {}
 func (IndexOperationRenew) isIndexOperation()  {}
 
 type childStorageValue struct {
-	OverlayedChangeSet
-	ChildInfo
+	overlayedChangeSet
+	storage.ChildInfo
 }
 
 type OffchainOverlayedChange interface {
@@ -74,12 +75,12 @@ func (OffchainOverlayedChangeRemove) isOffchainOverlayedChange()   {}
 func (OffchainOverlayedChangeSetValue) isOffchainOverlayedChange() {}
 
 type OffchainOverlayedChanges struct {
-	OverlayedMap[string, OffchainOverlayedChange]
+	OverlayedMap[string, OffchainOverlayedChange, *GenericOverlayedEntry[OffchainOverlayedChange]]
 }
 
 func NewOffchainOverlayedChanges() OffchainOverlayedChanges {
 	return OffchainOverlayedChanges{
-		NewOverlayedMap[string, OffchainOverlayedChange](),
+		NewOverlayedMap[string, OffchainOverlayedChange, *GenericOverlayedEntry[OffchainOverlayedChange]](),
 	}
 }
 
@@ -115,7 +116,7 @@ type StorageTransactionCache[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 // It allows changes to be modified using nestable transactions.
 type OverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	// Top level storage changes.
-	top OverlayedChangeSet
+	top overlayedChangeSet
 	// Child storage changes. The map key is the child storage key without the common prefix.
 	children map[string]childStorageValue
 	// Offchain related changes.
@@ -133,7 +134,7 @@ type OverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 
 func NewOverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]]() *OverlayedChanges[H, Hasher] {
 	return &OverlayedChanges[H, Hasher]{
-		top:                     NewOverlayedChangeSet(),
+		top:                     newOverlayedChangeSet(),
 		children:                make(map[string]childStorageValue),
 		offchain:                NewOffchainOverlayedChanges(),
 		transactionIndexOps:     make([]IndexOperation, 0),
@@ -169,12 +170,12 @@ func (oc *OverlayedChanges[H, Hasher]) SetCollectExtrinsic(collectExtrinsic bool
 // to the backend); (nil, true) if the key has been deleted. or a (value, true) for a key whose
 // value has been set.
 func (oc *OverlayedChanges[H, Hasher]) Storage(key string) ([]byte, bool) {
-	entry := oc.top.Get(key)
-	if entry == nil {
+	entry, has := oc.top.Get(key)
+	if !has {
 		return nil, false
 	}
 
-	value := entry.StorageValue()
+	value := entry.Value()
 	if value == nil {
 		oc.stats.TallyReadModified(0)
 		return nil, true
@@ -192,24 +193,25 @@ func (oc *OverlayedChanges[H, Hasher]) markDirty() {
 // Returns (nil, false) if the key is unknown (i.e. and the query should be referred
 // to the backend); (nil, true) if the key has been deleted. or a (value, true) for a key whose
 // value has been set.
-func (oc *OverlayedChanges[H, Hasher]) ChildStorage(childInfo ChildInfo, key *string) ([]byte, bool) {
-	entry, has := oc.children[string(childInfo.StorageKey())]
+func (oc *OverlayedChanges[H, Hasher]) ChildStorage(childInfo storage.ChildInfo, key *string) ([]byte, bool) {
+	childEntry, has := oc.children[string(childInfo.StorageKey())]
 
 	if !has {
 		return nil, false
 	}
 
-	value := entry.OverlayedChangeSet.Get(*key).StorageValue()
-	if value == nil {
+	entry, has := childEntry.overlayedChangeSet.Get(*key)
+	if !has {
 		oc.stats.TallyReadModified(0)
 		return nil, true
 	}
 
+	value := entry.Value()
 	oc.stats.TallyReadModified(uint64(len(value)))
 	return value, true
 }
 
-func (oc *OverlayedChanges[H, Hasher]) SetStorage(key StorageKey, value StorageValue) {
+func (oc *OverlayedChanges[H, Hasher]) SetStorage(key backend.StorageKey, value backend.StorageValue) {
 	oc.markDirty()
 
 	var sizeWrite uint64
@@ -221,7 +223,7 @@ func (oc *OverlayedChanges[H, Hasher]) SetStorage(key StorageKey, value StorageV
 
 	oc.stats.TallyWriteOverlay(sizeWrite)
 	extrinsicIndex := oc.extrinsicIndex()
-	oc.top.Set(key, value, extrinsicIndex)
+	oc.top.set(key, value, extrinsicIndex)
 }
 
 // Returns current extrinsic index to use in changes trie construction.
@@ -269,12 +271,12 @@ func (oc *OverlayedChanges[H, Hasher]) StartTransaction() {
 // Any changes made during that transaction are committed. Returns an error if there
 // is no open transaction that can be committed.
 func (oc *OverlayedChanges[H, Hasher]) CommitTransaction() error {
-	if err := oc.top.CommitTransaction(); err != nil {
+	if err := oc.top.commitTransaction(); err != nil {
 		return err
 	}
 
 	for _, changeset := range oc.children {
-		if err := changeset.CommitTransaction(); err != nil {
+		if err := changeset.commitTransaction(); err != nil {
 			panic("Top and children changesets are started in lockstep; qed")
 		}
 	}
@@ -293,12 +295,12 @@ func (oc *OverlayedChanges[H, Hasher]) CommitTransaction() error {
 func (oc *OverlayedChanges[H, Hasher]) RollbackTransaction() error {
 	oc.markDirty()
 
-	if err := oc.top.RollbackTransaction(); err != nil {
+	if err := oc.top.rollbackTransaction(); err != nil {
 		return err
 	}
 
 	maps.DeleteFunc(oc.children, func(key string, changeset childStorageValue) bool {
-		if err := changeset.RollbackTransaction(); err != nil {
+		if err := changeset.rollbackTransaction(); err != nil {
 			panic("Top and children changesets are started in lockstep; qed")
 		}
 

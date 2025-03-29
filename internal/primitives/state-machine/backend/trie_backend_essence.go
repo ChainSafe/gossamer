@@ -103,10 +103,11 @@ func (ri *rawIter[H, Hasher]) NextKeyValue(backend *TrieBackend[H, Hasher]) (*St
 	skipIfFirst := ri.skipIfFirst
 	ri.skipIfFirst = nil
 
-	pair, err := prepare[H, Hasher, StorageKeyValue](
+	pair, err := prepare(
 		ri,
 		&backend.essence,
-		func(trie *triedb.TrieDB[H, Hasher], trieIter *triedb.TrieDBRawIterator[H, Hasher]) (*StorageKeyValue, error) {
+		func(trie *triedb.TrieDB[H, Hasher], trieIter *triedb.TrieDBRawIterator[H, Hasher]) (
+			*StorageKeyValue, error) {
 			result, err := trieIter.NextItem()
 			if err != nil {
 				return nil, err
@@ -122,7 +123,7 @@ func (ri *rawIter[H, Hasher]) NextKeyValue(backend *TrieBackend[H, Hasher]) (*St
 				}
 			}
 			if result != nil {
-				return &StorageKeyValue{result.Key, result.Value}, nil
+				return &StorageKeyValue{StorageKey: result.Key, StorageValue: result.Value}, nil
 			}
 			return nil, nil
 		})
@@ -373,7 +374,8 @@ func (tbe *trieBackendEssence[H, Hasher]) StorageHash(key []byte) (hash *H, err 
 }
 
 // Get the value of child storage at given key.
-func (tbe *trieBackendEssence[H, Hasher]) ChildStorage(childInfo storage.ChildInfo, key []byte) (StorageValue, error) {
+func (tbe *trieBackendEssence[H, Hasher]) ChildStorage(childInfo storage.ChildInfo, key []byte) (
+	StorageValue, error) {
 	var childRoot H
 	root, err := tbe.childRoot(childInfo)
 	if err != nil {

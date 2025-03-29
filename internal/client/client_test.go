@@ -17,7 +17,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
-	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	statemachine_backend "github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/stretchr/testify/require"
@@ -250,7 +249,7 @@ func TestBlockchainEvents(t *testing.T) {
 					statemachine_backend.StorageCollection
 				}{
 					{
-						StorageKey: statemachine.StorageKey("child0"),
+						StorageKey: statemachine_backend.StorageKey("child0"),
 						StorageCollection: statemachine_backend.StorageCollection{
 							{StorageKey: statemachine_backend.StorageKey("child0"), StorageValue: statemachine_backend.StorageValue("child0")},
 						},

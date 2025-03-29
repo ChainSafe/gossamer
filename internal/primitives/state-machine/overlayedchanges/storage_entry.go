@@ -1,30 +1,32 @@
 // Copyright 2025 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package statemachine
+package overlayedchanges
+
+import "github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
 
 // Content in an overlay for a given transactional depth.
-type StorageEntry interface {
-	value() StorageValue
+type storageEntry interface {
+	value() backend.StorageValue
 }
 
 type (
 	// The storage entry should be set to the stored value.
-	SetStorageEntry struct {
-		data StorageValue
+	setStorageEntry struct {
+		data backend.StorageValue
 	}
 
 	// The storage entry should be removed.
-	RemoveStorageEntry struct{}
+	removeStorageEntry struct{}
 
 	// The storage entry was appended to.
 	// This assumes that the storage entry is encoded as a SCALE list. This means that it is
 	// prefixed with a compact uint that reprensents the length, followed by all the encoded
 	// elements.
-	AppendStorageEntry struct {
+	appendStorageEntry struct {
 		// The value of the storage entry.
 		// This may or may not be prefixed by the length, depending on the materialised length.
-		data StorageValue
+		data backend.StorageValue
 		// Current number of elements stored in data.
 		currentLength uint
 		// The number of elements as stored in the prefixed length in `data`.
@@ -36,19 +38,19 @@ type (
 	}
 )
 
-func (se SetStorageEntry) value() StorageValue    { return se.data }
-func (se RemoveStorageEntry) value() StorageValue { return nil }
-func (se *AppendStorageEntry) value() StorageValue {
+func (se setStorageEntry) value() backend.StorageValue    { return se.data }
+func (se removeStorageEntry) value() backend.StorageValue { return nil }
+func (se *appendStorageEntry) value() backend.StorageValue {
 	se.materializedInPlace()
 	return se.data
 }
 
 // Materialise the internal state and cache the resulting materialised value.
-func (se *AppendStorageEntry) materializedInPlace() {
+func (se *appendStorageEntry) materializedInPlace() {
 	currentLength := se.currentLength
 	if se.materializedLength != nil && *se.materializedLength == currentLength {
 		return
 	}
-	NewStorageAppend(&se.data).ReplaceLength(se.materializedLength, currentLength)
+	newStorageAppend(&se.data).replaceLength(se.materializedLength, currentLength)
 	se.materializedLength = &currentLength
 }
