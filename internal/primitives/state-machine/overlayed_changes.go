@@ -9,32 +9,12 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var NoExtrinsicIndex uint32 = 0xffffffff
-
-// StorageKey is a storage key.
-type StorageKey []byte
-
-// StorageValue is a storage value. Value can be nil
-type StorageValue []byte
-
-// StorageKeyValue is storage key and value.
-type StorageKeyValue struct {
-	StorageKey
-	StorageValue
-}
-
-// StorageCollection is a slice of storage values.
-type StorageCollection []StorageKeyValue
-
-// ChildStorageCollection is a slice of storage values for multiple child tries.
-type ChildStorageCollection []struct {
-	StorageKey
-	StorageCollection
-}
 
 // OffchainChangesCollection is slice of storage values.
 type OffchainChangesCollection []struct {
@@ -126,7 +106,7 @@ func (oc *OffchainOverlayedChanges) Remove(prefix []byte, key []byte) {
 // storage. So, we cache them to not require a recomputation of those transactions.
 type StorageTransactionCache[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	// Contains the changes for the main and the child storages as one transaction.
-	transaction BackendTransaction[H, Hasher]
+	transaction backend.BackendTransaction[H, Hasher]
 	// The storage root after applying the transaction.
 	transactionStorageRoot H
 }

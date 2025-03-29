@@ -6,8 +6,12 @@ package statemachine
 import (
 	"iter"
 
+	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
 	"github.com/tidwall/btree"
 )
+
+type StorageKey = backend.StorageKey
+type StorageValue = backend.StorageValue
 
 // From btree.Set constraints
 type ordered interface {
