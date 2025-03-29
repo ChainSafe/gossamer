@@ -242,7 +242,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 	}
 	*/
 	bitfieldDistribution := BitfieldDistribution{NewBitfieldDistributionMessageVDT()}
-	bitfieldDistribution.SetValue(Bitfield{
+	bitfieldDistribution.SetValue(UncheckedBitfield{
 		Hash: hashA,
 		UncheckedSignedAvailabilityBitfield: parachaintypes.UncheckedSignedAvailabilityBitfield{
 			Payload: func() parachaintypes.BitVec {
