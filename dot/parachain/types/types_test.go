@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/stretchr/testify/assert"
+
 	"gopkg.in/yaml.v3"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -505,6 +508,52 @@ func TestValidator_SignAndVerify(t *testing.T) {
 	require.True(t, ok)
 }
 
+func TestToCheck(t *testing.T) {
+	bitfield, err := NewBitVec([]bool{true, true, false})
+	assert.Nil(t, err)
+	data, err := bitfield.MarshalSCALE()
+	assert.Nil(t, err)
+
+	keyring, err := keystore.NewSr25519Keyring()
+	assert.Nil(t, err)
+	aliceKeypair := keyring.Alice().(*sr25519.Keypair)
+	bobKeypair := keyring.Bob().(*sr25519.Keypair)
+
+	// invalid signature and invalid message
+	invalidMessage := UncheckedSignedAvailabilityBitfield{
+		Payload:        bitfield,
+		ValidatorIndex: 10,
+		Signature:      [64]byte{1},
+	}
+	_, err = invalidMessage.ToCheck(aliceKeypair.Public())
+	assert.NotNil(t, err)
+
+	// valid message verifying against the wrong key
+	signature2, err := aliceKeypair.Sign(data)
+	assert.Nil(t, err)
+	validMessage2 := UncheckedSignedAvailabilityBitfield{
+		Payload:        bitfield,
+		ValidatorIndex: 10,
+		Signature:      ValidatorSignature(signature2),
+	}
+	_, err = validMessage2.ToCheck(bobKeypair.Public()) // bob is trying to verify
+	assert.NotNil(t, err)
+
+	// valid message verifying against the matched signature and key
+	signature, err := aliceKeypair.Sign(data)
+	assert.Nil(t, err)
+	validMessage := UncheckedSignedAvailabilityBitfield{
+		Payload:        bitfield,
+		ValidatorIndex: 10,
+		Signature:      ValidatorSignature(signature),
+	}
+	checkedMessage, err := validMessage.ToCheck(aliceKeypair.Public())
+	assert.Nil(t, err)
+	assert.EqualValues(t, bitfield, checkedMessage.Payload)
+	assert.EqualValues(t, ValidatorSignature(signature), checkedMessage.Signature)
+
+}
+
 func TestNewBackedCandidate(t *testing.T) {
 	t.Parallel()
 
@@ -525,5 +574,4 @@ func TestNewBackedCandidate(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []bool{true, false, true, false, true, false, true, false, false, false, false},
 		backedCandidate.ValidatorIndices.Bits())
-
 }

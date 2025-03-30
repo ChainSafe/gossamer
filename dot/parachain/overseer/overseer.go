@@ -141,11 +141,27 @@ func (o *OverseerSystem) processMessages() {
 			case networkbridgeevents.Event[collatorprotocolmessages.CollationProtocol]:
 				subsystem = o.nameToSubsystem[parachaintypes.CollationProtocol]
 
-			case networkbridgeevents.Event[validationprotocol.ValidationProtocol]:
-				// TODO: relay it to relevant subsystem based on the message type.
-				// statement distribution
-				// approval distribution
-				// bitfield distribution
+			case parachaintypes.DistributeBitfield:
+				subsystem = o.nameToSubsystem[parachaintypes.BitfieldDistribution]
+
+			case networkbridgeevents.PeerMessage[validationprotocol.ValidationProtocol]:
+				value, err := msg.Message.Value()
+				if err != nil {
+					logger.Error("unknown message type for PeerMessage.Message")
+					continue
+				}
+				switch value.(type) {
+				case validationprotocol.BitfieldDistribution:
+					subsystem = o.nameToSubsystem[parachaintypes.BitfieldDistribution]
+				case validationprotocol.StatementDistribution:
+					subsystem = o.nameToSubsystem[parachaintypes.StatementDistribution]
+				case validationprotocol.ApprovalDistribution:
+					// TODO: implement ApprovalDistribution subsystem
+					subsystem = o.nameToSubsystem[parachaintypes.ApprovalDistribution]
+				default:
+					logger.Error("unknown message type for PeerMessage.Message.Value")
+					continue
+				}
 
 			case backing.GetBackableCandidatesMessage, backing.CanSecondMessage, backing.SecondMessage, backing.StatementMessage:
 				subsystem = o.nameToSubsystem[parachaintypes.CandidateBacking]
