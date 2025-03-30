@@ -117,6 +117,7 @@ type CollatorSignature [sr25519.SignatureLength]byte
 type ValidationCodeHash common.Hash
 
 // CandidateDescriptor is a unique descriptor of the candidate receipt.
+// NOTE: This type is deprecated and should not be used. Use CandidateDescriptorV2 instead.
 type CandidateDescriptor struct {
 	// The ID of the para this is a candidate for.
 	ParaID ParaID `scale:"1"`
@@ -319,6 +320,7 @@ func (cc CandidateCommitments) Hash() common.Hash {
 type SessionIndex uint32
 
 // CommittedCandidateReceipt A candidate-receipt with commitments directly included.
+// NOTE: This type is deprecated and should not be used. Use CommittedCandidateReceiptV2 instead.
 type CommittedCandidateReceipt struct {
 	// The candidate descriptor.
 	Descriptor CandidateDescriptor `scale:"1"`
@@ -431,6 +433,7 @@ type InboundHrmpMessage struct {
 }
 
 // CandidateReceipt A receipt for a parachain candidate.
+// NOTE: This type is deprecated and should not be used. Use CandidateReceiptV2 instead.
 type CandidateReceipt struct {
 	// The candidate descriptor.
 	Descriptor CandidateDescriptor `scale:"1"`

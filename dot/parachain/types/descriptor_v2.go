@@ -13,7 +13,7 @@ import (
 type CandidateDescriptorVersion byte
 
 const (
-	// // The old candidate descriptor version.
+	//The old candidate descriptor version.
 	CandidateDescriptorVersion1 CandidateDescriptorVersion = iota + 1
 
 	// The new candidate descriptor version.
@@ -23,6 +23,7 @@ const (
 var ErrUnknownCandidateDescriptorVersion = fmt.Errorf("unknown candidate descriptor version")
 
 // CandidateDescriptorV2 is a descriptor for a parachain candidate.
+// NOTE: This type is backward compatible with CandidateDescriptor.
 type CandidateDescriptorV2 struct {
 	// The ID of the para this is a candidate for.
 	ParaID ParaID
@@ -171,6 +172,7 @@ func (cdV1 CandidateDescriptor) V2() CandidateDescriptorV2 {
 }
 
 // CommittedCandidateReceiptV2 is a candidate-receipt with commitments directly included.
+// NOTE: This type is backward compatible with CommittedCandidateReceipt.
 type CommittedCandidateReceiptV2 struct {
 	// The descriptor of the candidate.
 	Descriptor CandidateDescriptorV2 `scale:"1"`
@@ -199,6 +201,7 @@ func (ccrV1 CommittedCandidateReceipt) V2() CommittedCandidateReceiptV2 {
 }
 
 // CandidateReceiptV2 A receipt for a parachain candidate.
+// NOTE: This type is backward compatible with CandidateReceipt.
 type CandidateReceiptV2 struct {
 	// The candidate descriptor
 	Descriptor CandidateDescriptorV2 `scale:"1"`
