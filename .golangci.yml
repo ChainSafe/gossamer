@@ -51,6 +51,15 @@ linters-settings:
       - finalization
       - behavior
       - finalizing
+      - neighbor
+      - misbehavior
+      - localizes
+      - localized
+      - finalizes
+      - intialized
+      - initialized
+      - initializes
+      - prioritizing
 
 linters:
   enable:

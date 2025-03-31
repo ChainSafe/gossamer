@@ -38,7 +38,7 @@ func (roundContext[ID]) Generate(rand *rand.Rand, size int) reflect.Value {
 
 func TestVote_voter(t *testing.T) {
 	f := func(vs VoterSet[uint], phase Phase) bool {
-		for _, idv := range vs.Iter() {
+		for _, idv := range vs.Voters() {
 			id := idv.ID
 			v := idv.VoterInfo
 			eq := assert.Equal(t, &IDVoterInfo[uint]{id, v}, newVote[uint](v, phase).voter(vs))

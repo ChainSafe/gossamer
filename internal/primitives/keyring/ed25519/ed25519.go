@@ -67,3 +67,7 @@ func (k Keyring) String() string {
 		panic("unsupported Keyring")
 	}
 }
+
+func (k Keyring) Public() ed25519.Public {
+	return k.Pair().Public().(ed25519.Public)
+}

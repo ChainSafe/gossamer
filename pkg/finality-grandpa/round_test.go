@@ -105,9 +105,9 @@ func TestVoteMultiplicity_Contains(t *testing.T) {
 			var vm voteMultiplicity[headerNumber, signature]
 			switch val := tt.value.(type) {
 			case equivocated[headerNumber, signature]:
-				vm = newVoteMultiplicity[headerNumber, signature](val)
+				vm = val
 			case single[headerNumber, signature]:
-				vm = newVoteMultiplicity[headerNumber, signature](val)
+				vm = val
 			}
 			got := vm.Contains(tt.args.Vote, tt.args.Signature)
 			if got != tt.want {
@@ -277,41 +277,33 @@ func TestRound_HistoricalVotesWorks(t *testing.T) {
 	assert.Equal(t, HistoricalVotes[string, uint32, string, string]{
 		seen: []SignedMessage[string, uint32, string, string]{
 			{
-				Message: Message[string, uint32]{
-					inner: Prevote[string, uint32]{
-						TargetHash:   "FC",
-						TargetNumber: 10,
-					},
+				Message: Prevote[string, uint32]{
+					TargetHash:   "FC",
+					TargetNumber: 10,
 				},
 				Signature: "Alice",
 				ID:        "Alice",
 			},
 			{
-				Message: Message[string, uint32]{
-					inner: Prevote[string, uint32]{
-						TargetHash:   "EA",
-						TargetNumber: 7,
-					},
+				Message: Prevote[string, uint32]{
+					TargetHash:   "EA",
+					TargetNumber: 7,
 				},
 				Signature: "Eve",
 				ID:        "Eve",
 			},
 			{
-				Message: Message[string, uint32]{
-					inner: Precommit[string, uint32]{
-						TargetHash:   "EA",
-						TargetNumber: 7,
-					},
+				Message: Precommit[string, uint32]{
+					TargetHash:   "EA",
+					TargetNumber: 7,
 				},
 				Signature: "Eve",
 				ID:        "Eve",
 			},
 			{
-				Message: Message[string, uint32]{
-					inner: Prevote[string, uint32]{
-						TargetHash:   "EC",
-						TargetNumber: 10,
-					},
+				Message: Prevote[string, uint32]{
+					TargetHash:   "EC",
+					TargetNumber: 10,
 				},
 				Signature: "Alice",
 				ID:        "Alice",

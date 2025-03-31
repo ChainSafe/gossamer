@@ -26,7 +26,7 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "client/network-gossip"))
 // GossipEngine utilises and implementation of [Network] and provides gossiping capabilities on
 // top of it.
 type GossipEngine[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] struct {
-	stateMachine                consensusGossip[H, Hasher]
+	stateMachine                *consensusGossip[H, Hasher]
 	network                     Network
 	sync                        Syncing[H, N]
 	periodicMaintenanceInterval <-chan time.Time
@@ -42,7 +42,7 @@ type GossipEngine[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]] st
 	forwardingState forwardingState
 
 	isTerminated bool
-	stopChan     chan any
+	stopChan     chan struct{}
 	errChan      chan error
 }
 
@@ -97,7 +97,7 @@ func newGossipEngine[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]]
 		messageSinks:                make(map[H][]chan TopicNotification),
 		forwardingState:             forwardingStateIdle{},
 		isTerminated:                false,
-		stopChan:                    make(chan any),
+		stopChan:                    make(chan struct{}),
 		errChan:                     make(chan error, 1),
 	}
 	return ge
