@@ -30,6 +30,9 @@ func newWakerChan[Item any](in chan Item) *wakerChan[Item] {
 
 func (wc *wakerChan[Item]) start() {
 	defer close(wc.out)
+	if wc.in == nil {
+		return
+	}
 	for item := range wc.in {
 		if wc.waker != nil {
 			wc.waker.wake()
@@ -51,6 +54,7 @@ func (wc *wakerChan[Item]) channel() chan Item {
 type Timer interface {
 	SetWaker(waker *waker)
 	Elapsed() (bool, error)
+	Close()
 }
 
 // Output is the output stream used to communicate with the outside world.
@@ -203,20 +207,25 @@ type RoundData[Hash comparable,
 	Incoming Input[Hash, Number, Signature, ID]
 }
 
-type buffered[I any] struct {
-	inner   chan I
-	buffer  []I
-	mtx     sync.Mutex
-	readyCh chan any
+type presend[I any] struct {
+	inner chan I
+	pre   func(I) error // expected to be called before sending on inner
 }
 
-func newBuffered[I any](inner chan I) *buffered[I] {
+type buffered[I any] struct {
+	presend presend[I]
+	buffer  []I
+	mtx     sync.Mutex
+	readyCh chan struct{}
+}
+
+func newBuffered[I any](inner chan I, preSend func(I) error) *buffered[I] {
 	b := &buffered[I]{
-		inner:   inner,
-		readyCh: make(chan any, 1),
+		presend: presend[I]{inner, preSend},
+		readyCh: make(chan struct{}, 1),
 	}
 	// prime the channel
-	b.readyCh <- nil
+	b.readyCh <- struct{}{}
 	return b
 }
 
@@ -231,7 +240,7 @@ func (b *buffered[I]) Poll(waker *waker) (bool, error) {
 }
 
 func (b *buffered[I]) flush(waker *waker) (bool, error) {
-	if b.inner == nil {
+	if b.presend.inner == nil {
 		return false, fmt.Errorf("inner channel has been closed")
 	}
 
@@ -243,12 +252,16 @@ func (b *buffered[I]) flush(waker *waker) (bool, error) {
 	select {
 	case <-b.readyCh:
 		defer func() {
-			b.readyCh <- nil
+			b.readyCh <- struct{}{}
 			waker.wake()
 		}()
 
 		for len(b.buffer) > 0 {
-			b.inner <- b.buffer[0]
+			err := b.presend.pre(b.buffer[0])
+			if err != nil {
+				return false, err
+			}
+			b.presend.inner <- b.buffer[0]
 			b.buffer = b.buffer[1:]
 			waker.wake()
 		}
@@ -261,8 +274,8 @@ func (b *buffered[I]) flush(waker *waker) (bool, error) {
 func (b *buffered[I]) Close() {
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
-	close(b.inner)
-	b.inner = nil
+	close(b.presend.inner)
+	b.presend.inner = nil
 }
 
 // Instantiates the given last round, to be backgrounded until its estimate is finalized.
@@ -325,8 +338,13 @@ type innerVoterState[
 }
 
 // CommunicationOut is communication between nodes that is not round-localised.
-type CommunicationOut struct {
-	variant any
+type CommunicationOut[
+	Hash constraints.Ordered,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+] interface {
+	isCommunicationOut()
 }
 
 // CommuincationOutVariants is interface constraint of `CommunicationOut`
@@ -337,28 +355,7 @@ type CommuincationOutVariants[
 	ID constraints.Ordered,
 ] interface {
 	CommunicationOutCommit[Hash, Number, Signature, ID]
-}
-
-func newCommunicationOut[
-	Hash constraints.Ordered,
-	Number constraints.Unsigned,
-	Signature comparable,
-	ID constraints.Ordered,
-	T CommuincationOutVariants[Hash, Number, Signature, ID],
-](variant T) CommunicationOut {
-	co := CommunicationOut{}
-	setCommunicationOut[Hash, Number, Signature, ID](&co, variant)
-	return co
-}
-
-func setCommunicationOut[
-	Hash constraints.Ordered,
-	Number constraints.Unsigned,
-	Signature comparable,
-	ID constraints.Ordered,
-	T CommuincationOutVariants[Hash, Number, Signature, ID],
-](co *CommunicationOut, variant T) {
-	co.variant = variant
+	CommunicationOut[Hash, Number, Signature, ID]
 }
 
 // CommunicationOutCommit is a commit message.
@@ -369,16 +366,22 @@ type CommunicationOutCommit[
 	ID constraints.Ordered,
 ] numberCommit[Hash, Number, Signature, ID]
 
+func (CommunicationOutCommit[Hash, Number, Signature, ID]) isCommunicationOut() {}
+
 // CommitProcessingOutcome is the outcome of processing a commit.
-type CommitProcessingOutcome struct {
-	variant any
+type CommitProcessingOutcome interface {
+	isCommitProcessingOutcome()
 }
 
 // CommitProcessingOutcomeGood means it was beneficial to process this commit.
 type CommitProcessingOutcomeGood GoodCommit
 
+func (CommitProcessingOutcomeGood) isCommitProcessingOutcome() {}
+
 // CommitProcessingOutcomeBad means it wasn't beneficial to process this commit. We wasted resources.
 type CommitProcessingOutcomeBad BadCommit
+
+func (CommitProcessingOutcomeBad) isCommitProcessingOutcome() {}
 
 // GoodCommit is the result of processing for a good commit.
 type GoodCommit struct{}
@@ -421,31 +424,32 @@ func newBadCommit(cvr CommitValidationResult) BadCommit {
 }
 
 // CatchUpProcessingOutcome is the outcome of processing a catch up.
-type CatchUpProcessingOutcome struct {
-	variant any
-}
-
-func newCatchUpProcessingOutcome[T CatchUpProcessingOutcomes](variant T) CatchUpProcessingOutcome {
-	return CatchUpProcessingOutcome{
-		variant: variant,
-	}
+type CatchUpProcessingOutcome interface {
+	isCatchUpProcessingOutcome()
 }
 
 // CatchUpProcessingOutcomes is the interface constraint for `CatchUpProcessingOutcome`
 type CatchUpProcessingOutcomes interface {
 	CatchUpProcessingOutcomeGood | CatchUpProcessingOutcomeBad | CatchUpProcessingOutcomeUseless
+	CatchUpProcessingOutcome
 }
 
 // CatchUpProcessingOutcomeGood means it was beneficial to process this catch up.
 type CatchUpProcessingOutcomeGood GoodCatchUp
 
+func (CatchUpProcessingOutcomeGood) isCatchUpProcessingOutcome() {}
+
 // CatchUpProcessingOutcomeBad means it wasn't beneficial to process this catch up, it is invalid and we
 // wasted resources.
 type CatchUpProcessingOutcomeBad BadCatchUp
 
+func (CatchUpProcessingOutcomeBad) isCatchUpProcessingOutcome() {}
+
 // CatchUpProcessingOutcomeUseless mean the catch up wasn't processed because it is useless, e.g. it is for a
 // round lower than we're currently in.
 type CatchUpProcessingOutcomeUseless struct{}
+
+func (CatchUpProcessingOutcomeUseless) isCatchUpProcessingOutcome() {}
 
 // GoodCatchUp is the result of processing for a good catch up.
 type GoodCatchUp struct{}
@@ -453,24 +457,13 @@ type GoodCatchUp struct{}
 // BadCatchUp is the result of processing for a bad catch up.
 type BadCatchUp struct{}
 
-type CommunicationIn struct {
-	variant any
-}
-
-func setCommunicationIn[
-	Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered,
-	T CommunicationInVariants[Hash, Number, Signature, ID],
-](ci *CommunicationIn, variant T) {
-	ci.variant = variant
-}
-
-func newCommunicationIn[
-	Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered,
-	T CommunicationInVariants[Hash, Number, Signature, ID],
-](variant T) CommunicationIn {
-	ci := CommunicationIn{}
-	setCommunicationIn[Hash, Number, Signature, ID](&ci, variant)
-	return ci
+type CommunicationIn[
+	Hash constraints.Ordered,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+] interface {
+	isCommunicationIn()
 }
 
 type CommunicationInVariants[
@@ -480,6 +473,7 @@ type CommunicationInVariants[
 	ID constraints.Ordered,
 ] interface {
 	CommunicationInCommit[Hash, Number, Signature, ID] | CommunicationInCatchUp[Hash, Number, Signature, ID]
+	CommunicationIn[Hash, Number, Signature, ID]
 }
 type CommunicationInCommit[
 	Hash constraints.Ordered,
@@ -492,6 +486,8 @@ type CommunicationInCommit[
 	Callback      func(CommitProcessingOutcome)
 }
 
+func (CommunicationInCommit[Hash, Number, Signature, ID]) isCommunicationIn() {}
+
 type CommunicationInCatchUp[
 	Hash constraints.Ordered,
 	Number constraints.Unsigned,
@@ -502,8 +498,15 @@ type CommunicationInCatchUp[
 	Callback func(CatchUpProcessingOutcome)
 }
 
-type globalInItem struct {
-	CommunicationIn
+func (CommunicationInCatchUp[Hash, Number, Signature, ID]) isCommunicationIn() {}
+
+type globalInItem[
+	Hash constraints.Ordered,
+	Number constraints.Unsigned,
+	Signature comparable,
+	ID constraints.Ordered,
+] struct {
+	CommunicationIn[Hash, Number, Signature, ID]
 	Error error
 }
 
@@ -531,15 +534,15 @@ type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comp
 	inner                  *innerVoterState[Hash, Number, Signature, ID, Environment[Hash, Number, Signature, ID]]
 	finalizedNotifications *wakerChan[finalizedNotification[Hash, Number, Signature, ID]]
 	lastFinalizedNumber    Number
-	globalIn               *wakerChan[globalInItem]
-	globalOut              *buffered[CommunicationOut]
+	globalIn               *wakerChan[globalInItem[Hash, Number, Signature, ID]]
+	globalOut              *buffered[CommunicationOut[Hash, Number, Signature, ID]]
 	// the commit protocol might finalize further than the current round (if we're
 	// behind), we keep track of last finalized in round so we don't violate any
 	// assumptions from round-to-round.
 	lastFinalizedInRounds HashNumber[Hash, Number]
 
 	stopTimeout time.Duration
-	stopChan    chan any
+	stopChan    chan struct{}
 	wg          sync.WaitGroup
 }
 
@@ -557,12 +560,13 @@ type Voter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comp
 func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature comparable, ID constraints.Ordered](
 	env Environment[Hash, Number, Signature, ID],
 	voters VoterSet[ID],
-	globalIn chan globalInItem,
+	globalIn chan globalInItem[Hash, Number, Signature, ID],
+	globalOutPresend func(CommunicationOut[Hash, Number, Signature, ID]) error,
 	lastRoundNumber uint64,
 	lastRoundVotes []SignedMessage[Hash, Number, Signature, ID],
 	lastRoundBase HashNumber[Hash, Number],
 	lastFinalized HashNumber[Hash, Number],
-) (*Voter[Hash, Number, Signature, ID], chan CommunicationOut) {
+) (*Voter[Hash, Number, Signature, ID], chan CommunicationOut[Hash, Number, Signature, ID]) {
 	finalizedSender := make(chan finalizedNotification[Hash, Number, Signature, ID], 1)
 	finalizedNotifications := finalizedSender
 	lastFinalizedNumber := lastFinalized.Number
@@ -599,7 +603,7 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 		bestRound:  bestRound,
 		pastRounds: *pastRounds,
 	}
-	globalOut := make(chan CommunicationOut)
+	globalOut := make(chan CommunicationOut[Hash, Number, Signature, ID])
 	return &Voter[Hash, Number, Signature, ID]{
 		env:                    env,
 		voters:                 voters,
@@ -608,8 +612,8 @@ func NewVoter[Hash constraints.Ordered, Number constraints.Unsigned, Signature c
 		lastFinalizedNumber:    lastFinalizedNumber,
 		lastFinalizedInRounds:  lastFinalized,
 		globalIn:               newWakerChan(globalIn),
-		globalOut:              newBuffered(globalOut),
-		stopChan:               make(chan any),
+		globalOut:              newBuffered(globalOut, globalOutPresend),
+		stopChan:               make(chan struct{}),
 		stopTimeout:            30 * time.Second,
 	}, globalOut
 }
@@ -628,7 +632,7 @@ pastRounds:
 				return err
 			}
 			if nc != nil {
-				co := newCommunicationOut(CommunicationOutCommit[Hash, Number, Signature, ID]{nc.Number, nc.Commit})
+				co := CommunicationOutCommit[Hash, Number, Signature, ID]{nc.Number, nc.Commit}
 				v.globalOut.Push(co)
 			} else {
 				break pastRounds
@@ -684,7 +688,7 @@ loop:
 			if item.Error != nil {
 				return item.Error
 			}
-			switch variant := item.CommunicationIn.variant.(type) {
+			switch variant := item.CommunicationIn.(type) {
 			case CommunicationInCommit[Hash, Number, Signature, ID]:
 				roundNumber := variant.Number
 				compactCommit := variant.CompactCommit
@@ -723,20 +727,20 @@ loop:
 							}
 						}
 
-						outcome := CommitProcessingOutcome{CommitProcessingOutcomeGood(GoodCommit{})}
+						outcome := CommitProcessingOutcomeGood(GoodCommit{})
 						if processCommitOutcome != nil {
 							processCommitOutcome(outcome)
 						}
 					} else {
 						// Failing validation of a commit is bad.
-						outcome := CommitProcessingOutcome{CommitProcessingOutcomeBad(newBadCommit(validationResult))}
+						outcome := CommitProcessingOutcomeBad(newBadCommit(validationResult))
 						if processCommitOutcome != nil {
 							processCommitOutcome(outcome)
 						}
 					}
 				} else {
 					// Import to backgrounded round is good.
-					outcome := CommitProcessingOutcome{CommitProcessingOutcomeGood(GoodCommit{})}
+					outcome := CommitProcessingOutcomeGood(GoodCommit{})
 					if processCommitOutcome != nil {
 						processCommitOutcome(outcome)
 					}
@@ -753,7 +757,7 @@ loop:
 				round := validateCatchUp(catchUp, v.env, v.voters, v.inner.bestRound.roundNumber())
 				if round == nil {
 					if processCatchUpOutcome != nil {
-						processCatchUpOutcome(newCatchUpProcessingOutcome(CatchUpProcessingOutcomeBad{}))
+						processCatchUpOutcome(CatchUpProcessingOutcomeBad{})
 					}
 					return nil
 				}
@@ -800,7 +804,7 @@ loop:
 				v.inner.pastRounds.Push(v.env, oldBest)
 
 				if processCatchUpOutcome != nil {
-					processCatchUpOutcome(newCatchUpProcessingOutcome(CatchUpProcessingOutcomeGood{}))
+					processCatchUpOutcome(CatchUpProcessingOutcomeGood{})
 				}
 				v.inner.Unlock()
 			}
@@ -916,7 +920,7 @@ func (v *Voter[Hash, Number, Signature, ID]) Stop() error {
 	close(v.stopChan)
 	v.globalOut.Close()
 	timeout := time.NewTimer(v.stopTimeout)
-	wgDone := make(chan any)
+	wgDone := make(chan struct{})
 	go func() {
 		defer close(wgDone)
 		v.wg.Wait()
@@ -926,6 +930,46 @@ func (v *Voter[Hash, Number, Signature, ID]) Stop() error {
 		return fmt.Errorf("timeout for Voter.Stop()")
 	case <-wgDone:
 	}
+
+	close(v.finalizedNotifications.in)
+	close(v.inner.bestRound.outgoing.presend.inner)
+	switch state := v.inner.bestRound.state.(type) {
+	case statePrecommitted:
+	case statePrevoted[Timer]:
+		state[0].Close()
+	case statePrevoting[Timer, hashBestChain[Hash, Number]]:
+		state.T.Close()
+	case stateProposed[Timer]:
+		state[0].Close()
+		state[1].Close()
+	case stateStart[Timer]:
+		state[0].Close()
+		state[1].Close()
+	}
+
+	for _, round := range v.inner.pastRounds.pastRounds {
+		close(round.inner.outgoing.presend.inner)
+
+		switch state := round.inner.state.(type) {
+		case statePrecommitted:
+		case statePrevoted[Timer]:
+			state[0].Close()
+		case statePrevoting[Timer, hashBestChain[Hash, Number]]:
+			state.T.Close()
+		case stateProposed[Timer]:
+			state[0].Close()
+			state[1].Close()
+		case stateStart[Timer]:
+			state[0].Close()
+			state[1].Close()
+		}
+
+		if round.roundCommitter != nil {
+			round.roundCommitter.commitTimer.Close()
+			close(round.roundCommitter.importCommits.in)
+		}
+	}
+
 	return nil
 }
 

@@ -179,4 +179,4 @@ func TestValidateCommit_PrecommitFromUnknownVoterIsIgnored(t *testing.T) {
 	assert.Equal(t, uint(1), result.NumInvalidVoters())
 }
 
-var _ scale.VaryingDataType = &Message[string, uint]{}
+var _ scale.VaryingDataType = &MessageVDT[string, uint]{}

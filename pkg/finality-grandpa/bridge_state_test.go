@@ -14,7 +14,7 @@ func TestBridgeState(_ *testing.T) {
 
 	prior, latter := bridgeState(initial)
 
-	barrier := make(chan any)
+	barrier := make(chan struct{})
 	var wg sync.WaitGroup
 
 	waker := &waker{
