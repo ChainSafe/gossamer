@@ -4,6 +4,8 @@
 package overlayedchanges
 
 import (
+	"slices"
+
 	"github.com/tidwall/btree"
 )
 
@@ -28,15 +30,15 @@ type GenericOverlayedEntry[V any] struct {
 	transactions []transaction[V]
 }
 
-func NewOverlayedEntry[V any]() *GenericOverlayedEntry[V] {
+func NewGenericOverlayedEntry[V any]() *GenericOverlayedEntry[V] {
 	return &GenericOverlayedEntry[V]{
 		transactions: []transaction[V]{},
 	}
 }
 
-func (oe *GenericOverlayedEntry[V]) Clone() OverlayedEntry[V] {
+func (oe GenericOverlayedEntry[V]) Clone() OverlayedEntry[V] {
 	return &GenericOverlayedEntry[V]{
-		transactions: oe.transactions,
+		transactions: slices.Clone(oe.transactions),
 	}
 }
 
@@ -52,7 +54,7 @@ func (oe *GenericOverlayedEntry[V]) ValueRef() *V {
 	return &oe.transactions[len(oe.transactions)-1].value
 }
 
-func (oe *GenericOverlayedEntry[V]) Extrinsics() *btree.Set[uint32] {
+func (oe GenericOverlayedEntry[V]) Extrinsics() *btree.Set[uint32] {
 	set := btree.Set[uint32]{}
 
 	for _, t := range oe.transactions {

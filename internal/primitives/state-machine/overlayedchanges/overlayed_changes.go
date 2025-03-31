@@ -84,7 +84,7 @@ func NewOffchainOverlayedChanges() OffchainOverlayedChanges {
 	}
 }
 
-func (oc *OffchainOverlayedChanges) Clone() OffchainOverlayedChanges {
+func (oc OffchainOverlayedChanges) Clone() OffchainOverlayedChanges {
 	return OffchainOverlayedChanges{
 		oc.OverlayedMap.Clone(),
 	}

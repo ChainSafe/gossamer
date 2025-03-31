@@ -251,7 +251,10 @@ func TestBlockchainEvents(t *testing.T) {
 					{
 						StorageKey: statemachine_backend.StorageKey("child0"),
 						StorageCollection: statemachine_backend.StorageCollection{
-							{StorageKey: statemachine_backend.StorageKey("child0"), StorageValue: statemachine_backend.StorageValue("child0")},
+							{
+								StorageKey:   statemachine_backend.StorageKey("child0"),
+								StorageValue: statemachine_backend.StorageValue("child0"),
+							},
 						},
 					},
 				},

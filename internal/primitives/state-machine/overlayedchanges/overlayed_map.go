@@ -6,6 +6,7 @@ package overlayedchanges
 import (
 	"errors"
 	"iter"
+	"reflect"
 	"slices"
 
 	"github.com/ChainSafe/gossamer/internal/log"
@@ -43,7 +44,7 @@ func NewOverlayedMap[K constraints.Ordered, V any, E OverlayedEntry[V]]() Overla
 	}
 }
 
-func (om *OverlayedMap[K, V, E]) Clone() OverlayedMap[K, V, E] {
+func (om OverlayedMap[K, V, E]) Clone() OverlayedMap[K, V, E] {
 	// Clone changes
 	var changes btree.Map[K, E]
 	om.changes.Scan(func(k K, v E) bool {
@@ -86,7 +87,16 @@ func (om *OverlayedMap[K, V, E]) SetOffchain(key K, value V, atExtrinsic *uint32
 	overlayed, has := om.Get(key)
 
 	if !has {
-		overlayed = *new(E)
+		var newEntry E
+		if reflect.TypeOf(newEntry).Kind() == reflect.Ptr {
+			newEntryValue := reflect.New(reflect.TypeOf(newEntry).Elem())
+			newEntry = newEntryValue.Interface().(E)
+		} else {
+			newEntry = *new(E)
+		}
+
+		overlayed = newEntry
+		om.changes.Set(key, overlayed)
 	}
 
 	overlayed.SetOffchain(value, om.dirtyKeys.insertDirty(key), atExtrinsic)

@@ -15,7 +15,7 @@ type OverlayedStorageEntry struct {
 
 func NewOverlayedStorageEntry() *OverlayedStorageEntry {
 	return &OverlayedStorageEntry{
-		GenericOverlayedEntry: *NewOverlayedEntry[storageEntry](),
+		GenericOverlayedEntry: *NewGenericOverlayedEntry[storageEntry](),
 	}
 }
 
