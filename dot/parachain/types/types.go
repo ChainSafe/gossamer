@@ -10,9 +10,11 @@ import (
 	"math"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // The primary purpose of this package is to put types being used by other packages to avoid cyclic
@@ -390,6 +392,17 @@ type AssignmentID [sr25519.PublicKeyLength]byte
 
 // AuthorityDiscoveryID An authority discovery identifier.
 type AuthorityDiscoveryID [sr25519.PublicKeyLength]byte
+
+// PeerID is a wrapper type for libp2p peer IDs used for supporting authority discovery by using the type
+// RecipientID, which can either be a PeerID or an AuthorityID.
+type PeerID peer.ID
+
+type RecipientID interface {
+	isRecipientID()
+}
+
+func (p PeerID) isRecipientID()               {}
+func (a AuthorityDiscoveryID) isRecipientID() {}
 
 // SessionInfo Information about validator sets of a session.
 type SessionInfo struct {
@@ -825,6 +838,42 @@ type UncheckedSignedAvailabilityBitfield struct {
 
 	// The signature by the validator of the signed payload.
 	Signature ValidatorSignature `scale:"3"`
+}
+
+// CheckedSignedAvailabilityBitfield a signed bitfield with signature checked already
+type CheckedSignedAvailabilityBitfield struct {
+	// The payload is part of the signed data. The rest is the signing context,
+	// which is known both at signing and at validation.
+	Payload BitVec `scale:"1"`
+
+	// The index of the validator signing this statement.
+	ValidatorIndex ValidatorIndex `scale:"2"`
+
+	// The signature by the validator of the signed payload.
+	Signature ValidatorSignature `scale:"3"`
+}
+
+func (c UncheckedSignedAvailabilityBitfield) ToCheck(key crypto.PublicKey) (*CheckedSignedAvailabilityBitfield, error) {
+	data, err := c.Payload.MarshalSCALE()
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal payload of bitfield: %w", err)
+	}
+	ok, err := key.Verify(data, c.Signature[:])
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, fmt.Errorf("invalid signature against the payload for the given key")
+	}
+
+	csa := CheckedSignedAvailabilityBitfield(c)
+	return &csa, nil
+}
+
+func (c UncheckedSignedAvailabilityBitfield) IsEqual(u UncheckedSignedAvailabilityBitfield) bool {
+	return c.Payload.IsEqual(&u.Payload) &&
+		c.ValidatorIndex == u.ValidatorIndex &&
+		c.Signature == u.Signature
 }
 
 // Subsystem is an interface for subsystems to be registered with the overseer.

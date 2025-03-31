@@ -59,10 +59,12 @@ type NetworkBridgeReceiver struct {
 
 	authorityDiscoveryService AuthorityDiscoveryService
 
-	peerData map[peer.ID]struct {
-		view            parachaintypes.View
-		protocolVersion uint32
-	}
+	peerData map[peer.ID]PeerDataViewWithVersion
+}
+
+type PeerDataViewWithVersion struct {
+	View            parachaintypes.View
+	ProtocolVersion uint32
 }
 
 type CollationStatus int
@@ -314,7 +316,7 @@ func (nbr *NetworkBridgeReceiver) handleViewUpdate(peer peer.ID, view ViewUpdate
 	if !ok {
 		return errors.New("peer not found")
 	}
-	if len(view.Heads) > newMaxHeads || view.FinalizedNumber < peerData.view.FinalizedNumber {
+	if len(view.Heads) > newMaxHeads || view.FinalizedNumber < peerData.View.FinalizedNumber {
 		nbr.net.ReportPeer(peerset.ReputationChange{
 			Value:  peerset.CostMajor,
 			Reason: "malformed view",
@@ -324,10 +326,10 @@ func (nbr *NetworkBridgeReceiver) handleViewUpdate(peer peer.ID, view ViewUpdate
 			Value:  peerset.CostMinor,
 			Reason: "peer sent us empty view",
 		}, peer)
-	} else if parachaintypes.View(view).CheckHeadsEqual(peerData.view) {
+	} else if parachaintypes.View(view).CheckHeadsEqual(peerData.View) {
 		// nothing
 	} else {
-		peerData.view = parachaintypes.View(view)
+		peerData.View = parachaintypes.View(view)
 		nbr.peerData[peer] = peerData
 
 		nbr.SubsystemsToOverseer <- events.Event[collatorprotocolmessages.CollationProtocol]{

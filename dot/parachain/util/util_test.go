@@ -5,14 +5,16 @@ package util
 
 import (
 	"testing"
+	"time"
 
+	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestReputationAggregator_SendImmediately(t *testing.T) {
 
-	overseerCh := make(chan NetworkBridgeTxMessage, 1)
+	overseerCh := make(chan any, 1)
 
 	// Create a new aggregator with immediate send logic for Malicious type
 	aggregator := NewReputationAggregator(func(rep UnifiedReputationChange) bool {
@@ -30,18 +32,23 @@ func TestReputationAggregator_SendImmediately(t *testing.T) {
 	aggregator.Modify(overseerCh, peerID, repChange)
 
 	// Verify the message is sent immediately
+
 	select {
 	case msg := <-overseerCh:
-		assert.Len(t, msg.ReportPeerMessageBatch, 1)
-		assert.Equal(t, repChange.CostOrBenefit(), msg.ReportPeerMessageBatch[peerID])
+		switch m := msg.(type) {
+		case networkbridgemessages.ReportPeer: // immediately send, so no batch here
+			assert.EqualValues(t, m.PeerID, peerID)
+			assert.EqualValues(t, repChange.CostOrBenefit(), m.ReputationChange.Value)
+		default:
+			t.Error("Expected immediate message, but wrong one was sent")
+		}
 	default:
 		t.Error("Expected immediate message, but none was sent")
 	}
 }
 
 func TestReputationAggregator_BatchSend(t *testing.T) {
-
-	overseerCh := make(chan NetworkBridgeTxMessage, 1)
+	overseerCh := make(chan any, 1)
 
 	// Create a new aggregator with no immediate send logic
 	aggregator := NewReputationAggregator(func(rep UnifiedReputationChange) bool {
@@ -61,23 +68,31 @@ func TestReputationAggregator_BatchSend(t *testing.T) {
 	default:
 	}
 
+	// Verify the batch message
+	numOfRep := make([]networkbridgemessages.ReportPeer, 0)
+	go func() {
+		for msg := range overseerCh {
+			switch m := msg.(type) {
+			case networkbridgemessages.ReportPeer:
+				numOfRep = append(numOfRep, m)
+			default:
+				t.Error("Expected no networkbridgemessages to be sent, but wrong one was sent")
+			}
+		}
+	}()
+
 	// Call Send to flush changes
 	aggregator.Send(overseerCh)
 
-	// Verify the batch message
-	select {
-	case msg := <-overseerCh:
-		assert.Len(t, msg.ReportPeerMessageBatch, 2)
-		assert.Equal(t, int32(10_000), msg.ReportPeerMessageBatch[peerID1])  // BenefitMinor
-		assert.Equal(t, int32(200_000), msg.ReportPeerMessageBatch[peerID2]) // BenefitMajor
-	default:
-		t.Error("Expected batch message, but none was sent")
-	}
+	time.Sleep(1 * time.Second)
+
+	assert.Len(t, numOfRep, 2)
+	assert.Equal(t, int32(210_000), int32(numOfRep[0].ReputationChange.Value+numOfRep[1].ReputationChange.Value))
 }
 
 func TestReputationAggregator_ClearAfterSend(t *testing.T) {
 
-	overseerCh := make(chan NetworkBridgeTxMessage, 1)
+	overseerCh := make(chan any, 1)
 
 	// Create a new aggregator
 	aggregator := NewReputationAggregator(func(rep UnifiedReputationChange) bool {
@@ -105,7 +120,7 @@ func TestReputationAggregator_ClearAfterSend(t *testing.T) {
 
 func TestReputationAggregator_ConflictResolution(t *testing.T) {
 
-	overseerCh := make(chan NetworkBridgeTxMessage, 1)
+	overseerCh := make(chan any, 1)
 
 	// Create a new aggregator
 	aggregator := NewReputationAggregator(func(rep UnifiedReputationChange) bool {
@@ -117,22 +132,39 @@ func TestReputationAggregator_ConflictResolution(t *testing.T) {
 	aggregator.Modify(overseerCh, peerID, UnifiedReputationChange{Type: BenefitMajor, Reason: "Helpful behaviour"})
 	aggregator.Modify(overseerCh, peerID, UnifiedReputationChange{Type: CostMinor, Reason: "Minor issue"})
 
+	// Verify no messages were sent yet
+	select {
+	case <-overseerCh:
+		t.Error("Expected no message to be sent, but one was sent")
+	default:
+	}
+
+	numOfRep := make([]networkbridgemessages.ReportPeer, 0)
+	go func() {
+		for msg := range overseerCh {
+			switch m := msg.(type) {
+			case networkbridgemessages.ReportPeer:
+				numOfRep = append(numOfRep, m)
+			default:
+				t.Error("Expected no networkbridgemessages to be sent, but wrong one was sent")
+			}
+		}
+	}()
+
 	// Call Send to flush changes
+	// there is only one report at this moment
 	aggregator.Send(overseerCh)
 
+	time.Sleep(1 * time.Second)
+
 	// Verify the accumulated result
-	select {
-	case msg := <-overseerCh:
-		assert.Len(t, msg.ReportPeerMessageBatch, 1)
-		assert.Equal(t, int32(100_000), msg.ReportPeerMessageBatch[peerID]) // 200_000 + (-100_000) = 100_000
-	default:
-		t.Error("Expected batch message, but none was sent")
-	}
+	assert.Len(t, numOfRep, 1)
+	assert.Equal(t, int32(100_000), int32(numOfRep[0].ReputationChange.Value)) // 200_000 + (-100_000) = 100_000
 }
 
 func TestReputationAggregator_NoActionWithoutChanges(t *testing.T) {
 
-	overseerCh := make(chan NetworkBridgeTxMessage, 1)
+	overseerCh := make(chan any, 1)
 
 	// Create a new aggregator
 	aggregator := NewReputationAggregator(func(rep UnifiedReputationChange) bool {
