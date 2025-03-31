@@ -78,6 +78,15 @@ func (oc *overlayedChangeSet) Clone() overlayedChangeSet {
 	}
 }
 
+// Create a new changeset at the same transaction state but without any contents.
+// This changeset might be created when there are already open transactions.
+// We need to catch up here so that the child is at the same transaction depth.
+func (oc *overlayedChangeSet) SpawnChild() overlayedChangeSet {
+	return overlayedChangeSet{
+		oc.OverlayedMap.SpawnChild(),
+	}
+}
+
 // set a new value for the specified key.
 // Can be rolled back or committed when called inside a transaction.
 func (oc *overlayedChangeSet) set(key backend.StorageKey, value backend.StorageValue, atExtrinsic *uint32) {
@@ -124,8 +133,8 @@ func (oc *overlayedChangeSet) changesAfter(key backend.StorageKey) iter.Seq2[bac
 func (oc *overlayedChangeSet) clearWhere(predicate func([]byte, *overlayedValue) bool, atExtrinsic *uint32) {
 	count := 0
 	for k, v := range oc.Changes() {
-		if predicate([]byte(k), v) {
-			v.Set(nil, oc.dirtyKeys.insertDirty(k), atExtrinsic)
+		if predicate(k, v) {
+			v.Set(nil, oc.dirtyKeys.insertDirty(string(k)), atExtrinsic)
 			if v != nil {
 				switch any(*v).(type) {
 				case appendStorageEntry, setStorageEntry:
