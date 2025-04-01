@@ -1,7 +1,6 @@
 package bitfielddistribution
 
 import (
-	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -242,7 +241,7 @@ func TestBitfieldDistribution_FilterByPeerVersion(t *testing.T) {
 		for _, val := range filterByPeerVersion(testcase.peers, testcase.targetVersion) {
 			m[val] = struct{}{}
 		}
-		assert.Equal(t, true, reflect.DeepEqual(testcase.result, m), testcase.name)
+		assert.Equal(t, testcase.result, m, testcase.name)
 	}
 }
 
