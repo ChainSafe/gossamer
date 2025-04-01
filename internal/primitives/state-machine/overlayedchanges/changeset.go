@@ -113,8 +113,8 @@ func (oc *overlayedChangeSet) changesAfter(key StorageKey) iter.Seq2[StorageKey,
 
 // Set all values to deleted which are matched by the predicate.
 // Can be rolled back or committed when called inside a transaction.
-func (oc *overlayedChangeSet) clearWhere(predicate func([]byte, *overlayedValue) bool, atExtrinsic *uint32) {
-	count := 0
+func (oc *overlayedChangeSet) clearWhere(predicate func([]byte, *overlayedValue) bool, atExtrinsic *uint32) uint {
+	count := uint(0)
 	for k, v := range oc.Changes() {
 		if predicate([]byte(k), v) {
 			v.Set(nil, oc.dirtyKeys.insertDirty(k), atExtrinsic)
@@ -126,6 +126,8 @@ func (oc *overlayedChangeSet) clearWhere(predicate func([]byte, *overlayedValue)
 			}
 		}
 	}
+
+	return count
 }
 
 // Call this when control returns from the runtime.
