@@ -25,16 +25,14 @@ type ChildStorageCollection []ChildStorageCollectionEntry
 // backend.
 type StorageChanges[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	/// All changes to the main storage.
-	/// A value of `None` means that it was deleted.
+	/// A value of `nil` means that it was deleted.
 	MainStorageChanges StorageCollection
 	/// All changes to the child storages.
 	ChildStorageChanges ChildStorageCollection
 	/// Offchain state changes to write to the offchain database.
 	OffchainStorageChanges OffchainChangesCollection
 	/// A transaction for the backend that contains all changes from
-	/// [`main_storage_changes`](StorageChanges::main_storage_changes) and from
-	/// [`child_storage_changes`](StorageChanges::child_storage_changes).
-	/// [`offchain_storage_changes`](StorageChanges::offchain_storage_changes).
+	/// `main_storage_changes` from `child_storage_changes` and `offchain_storage_changes`
 	Transaction backend.BackendTransaction[H, Hasher]
 	/// The storage root after applying the transaction.
 	TransactionStorageRoot H

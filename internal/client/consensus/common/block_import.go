@@ -144,17 +144,17 @@ type BlockImportParams[H runtime.Hash, N runtime.Number] struct {
 	/// Intermediate values that are interpreted by block importers. Each block importer,
 	/// upon handling a value, removes it from the intermediate list. The final block importer
 	/// rejects block import if there are still intermediate values that remain unhandled.
-	Intermediates map[string]interface{}
+	Intermediates map[string]any
 	/// Auxiliary consensus data produced by the block.
-	/// Contains a list of key-value pairs. If values are `None`, the keys will be deleted. These
+	/// Contains a list of key-value pairs. If values are `nil`, the keys will be deleted. These
 	/// changes will be applied to `AuxStore` database all as one batch, which is more efficient
 	/// than updating `AuxStore` directly.
 	Auxiliary overlayedchanges.StorageCollection
 	/// Fork choice strategy of this import. This should only be set by a
 	/// synchronous import, otherwise it may race against other imports.
-	/// `None` indicates that the current verifier or importer cannot yet
+	/// `nil` indicates that the current verifier or importer cannot yet
 	/// determine the fork choice value, and it expects subsequent importer
-	/// to modify it. If `None` is passed all the way down to bottom block
+	/// to modify it. If `nil` is passed all the way down to bottom block
 	/// importer, the import fails with an `IncompletePipeline` error.
 	ForkChoice *ForkChoiceStrategy
 	/// Re-validate existing block.
