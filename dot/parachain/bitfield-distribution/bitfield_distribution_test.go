@@ -270,7 +270,7 @@ func TestBitfieldDistribution_RelayMessage_InterestedPeersEmpty(t *testing.T) {
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
 
 	// control the peer protocol version here and the peer's Head
-	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{
+	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{
 		peerA: {
 			View:            parachaintypes.View{},
 			ProtocolVersion: 2,
@@ -348,7 +348,7 @@ func TestBitfieldDistribution_RelayMessage_FilterV2Peers(t *testing.T) {
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
 
 	// control the peer protocol version here and the peer's Head
-	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{
+	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{
 		peerA: {
 			View: parachaintypes.View{
 				Heads: []common.Hash{relayParent}, // valid relayParent hash
@@ -440,7 +440,7 @@ func TestBitfieldDistribution_RelayMessage_FilterV3Peers(t *testing.T) {
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
 
 	// control the peer protocol version here and the peer's Head
-	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{
+	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{
 		peerA: {
 			View:            parachaintypes.View{},
 			ProtocolVersion: 2,
@@ -524,7 +524,7 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_NoRelayParentTo
 
 func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_ValidatorSetEmpty(t *testing.T) {
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), nil)
-	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
+	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{}
 	overseerCh := make(chan any)
 	b := &BitfieldDistribution{
 		subSystemToOverseer: overseerCh,
@@ -551,7 +551,7 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_ValidatorSetEmp
 func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_ValidatorIdxInvalid(t *testing.T) {
 	validatorIndex, validatorSet := prepareForValidators()
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
-	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
+	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{}
 	overseerCh := make(chan any)
 	b := &BitfieldDistribution{
 		subSystemToOverseer: overseerCh,
@@ -590,7 +590,7 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_CheckSignedAvai
 		[sr25519.PublicKeyLength]byte{2},
 	}
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
-	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
+	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{}
 
 	gt := grid.NewSessionGridTopology([]uint{1, 2, 3}, []grid.TopologyPeerInfo{{
 		Peers:          []peer.ID{"peer1", "peer2"},
@@ -774,7 +774,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_NotContainTheView(
 
 	overseerCh := make(chan any)
 
-	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
+	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{}
 	b := &BitfieldDistribution{
 		subSystemToOverseer: overseerCh,
 		peerViews:           peerViews,
@@ -826,7 +826,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_JobDataEmpty(t *te
 
 	overseerCh := make(chan any)
 
-	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
+	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{}
 	b := &BitfieldDistribution{
 		subSystemToOverseer: overseerCh,
 		peerViews:           peerViews,
@@ -881,7 +881,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_ValidatorSetEmpty(
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), nil)
 
 	overseerCh := make(chan any)
-	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
+	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{}
 	b := &BitfieldDistribution{
 		subSystemToOverseer: overseerCh,
 		peerViews:           peerViews,
@@ -939,7 +939,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_ValidatorNotExist(
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
 
 	overseerCh := make(chan any)
-	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
+	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{}
 	b := &BitfieldDistribution{
 		subSystemToOverseer: overseerCh,
 		peerViews:           peerViews,
@@ -997,7 +997,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_ReceivedSetNotEmpt
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
 
 	overseerCh := make(chan any)
-	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
+	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{}
 	b := &BitfieldDistribution{
 		subSystemToOverseer: overseerCh,
 		peerViews:           peerViews,
@@ -1064,7 +1064,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_DuplicatedMessages
 	}
 
 	overseerCh := make(chan any)
-	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
+	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{}
 	b := &BitfieldDistribution{
 		subSystemToOverseer: overseerCh,
 		peerViews:           peerViews,
@@ -1153,7 +1153,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_Success(t *testing
 	}
 
 	overseerCh := make(chan any)
-	peerViews := map[peer.ID]networkbridge.PeerDataViewWithVersion{}
+	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{}
 	gt := grid.NewSessionGridTopology([]uint{1, 2, 3}, []grid.TopologyPeerInfo{{
 		Peers:          []peer.ID{"peer1", "peer2"},
 		ValidatorIndex: parachaintypes.ValidatorIndex(1),
