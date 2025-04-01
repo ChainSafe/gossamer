@@ -1,6 +1,7 @@
 package availabilitydistribution
 
 import (
+	"errors"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	parachainutil "github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -50,7 +51,6 @@ type SessionCache interface {
 
 	GetSessionInfo(
 		sessionIndex parachaintypes.SessionIndex,
-		parent common.Hash,
 		rt runtime.Instance,
 	) (*SessionInfo, error)
 
@@ -58,7 +58,7 @@ type SessionCache interface {
 		sessionIndex parachaintypes.SessionIndex,
 		groupIndex parachaintypes.GroupIndex,
 		validators []parachaintypes.AuthorityDiscoveryID,
-	)
+	) error
 }
 
 type LRUSessionCache struct {
@@ -68,6 +68,8 @@ type LRUSessionCache struct {
 	sessionIndexCache *lrucache.LRUCache[common.Hash, *parachaintypes.SessionIndex]
 	sessionInfoCache  *lrucache.LRUCache[parachaintypes.SessionIndex, *SessionInfo]
 }
+
+var _ SessionCache = (*LRUSessionCache)(nil)
 
 func NewLRUSessionCache(keystore keystore.Keystore) LRUSessionCache {
 	return LRUSessionCache{
@@ -104,7 +106,6 @@ func (c *LRUSessionCache) GetSessionIndexForChild(
 // If this node is not a validator, it returns nil.
 func (c *LRUSessionCache) GetSessionInfo(
 	sessionIndex parachaintypes.SessionIndex,
-	parent common.Hash,
 	rt runtime.Instance,
 ) (*SessionInfo, error) {
 	if cachedSessionInfo := c.sessionInfoCache.Get(sessionIndex); cachedSessionInfo != nil {
@@ -199,10 +200,12 @@ func (c *LRUSessionCache) ReportBadValidators(
 	sessionIndex parachaintypes.SessionIndex,
 	groupIndex parachaintypes.GroupIndex,
 	validators []parachaintypes.AuthorityDiscoveryID,
-) {
+) error {
 	session := c.sessionInfoCache.Get(sessionIndex)
 	if session == nil {
-		return // TODO return error (change SessionCache interface in other branch)
+		return errors.New("session not cached")
 	}
+
 	// TODO move bad validators to the beginning of their group
+	return nil
 }

@@ -42,25 +42,42 @@ func (m *MockSessionCache) EXPECT() *MockSessionCacheMockRecorder {
 	return m.recorder
 }
 
-// GetSessionInfo mocks base method.
-func (m *MockSessionCache) GetSessionInfo(sessionIndex parachaintypes.SessionIndex, parent common.Hash, rt runtime.Instance) (*SessionInfo, error) {
+// GetSessionIndexForChild mocks base method.
+func (m *MockSessionCache) GetSessionIndexForChild(parent common.Hash, rt runtime.Instance) (parachaintypes.SessionIndex, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSessionInfo", sessionIndex, parent, rt)
+	ret := m.ctrl.Call(m, "GetSessionIndexForChild", parent, rt)
+	ret0, _ := ret[0].(parachaintypes.SessionIndex)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSessionIndexForChild indicates an expected call of GetSessionIndexForChild.
+func (mr *MockSessionCacheMockRecorder) GetSessionIndexForChild(parent, rt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSessionIndexForChild", reflect.TypeOf((*MockSessionCache)(nil).GetSessionIndexForChild), parent, rt)
+}
+
+// GetSessionInfo mocks base method.
+func (m *MockSessionCache) GetSessionInfo(sessionIndex parachaintypes.SessionIndex, rt runtime.Instance) (*SessionInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSessionInfo", sessionIndex, rt)
 	ret0, _ := ret[0].(*SessionInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetSessionInfo indicates an expected call of GetSessionInfo.
-func (mr *MockSessionCacheMockRecorder) GetSessionInfo(sessionIndex, parent, rt any) *gomock.Call {
+func (mr *MockSessionCacheMockRecorder) GetSessionInfo(sessionIndex, rt any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSessionInfo", reflect.TypeOf((*MockSessionCache)(nil).GetSessionInfo), sessionIndex, parent, rt)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSessionInfo", reflect.TypeOf((*MockSessionCache)(nil).GetSessionInfo), sessionIndex, rt)
 }
 
 // ReportBadValidators mocks base method.
-func (m *MockSessionCache) ReportBadValidators(sessionIndex parachaintypes.SessionIndex, groupIndex parachaintypes.GroupIndex, validators []parachaintypes.AuthorityDiscoveryID) {
+func (m *MockSessionCache) ReportBadValidators(sessionIndex parachaintypes.SessionIndex, groupIndex parachaintypes.GroupIndex, validators []parachaintypes.AuthorityDiscoveryID) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ReportBadValidators", sessionIndex, groupIndex, validators)
+	ret := m.ctrl.Call(m, "ReportBadValidators", sessionIndex, groupIndex, validators)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // ReportBadValidators indicates an expected call of ReportBadValidators.

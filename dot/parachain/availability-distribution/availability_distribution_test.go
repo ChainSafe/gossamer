@@ -9,18 +9,16 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
-	"github.com/ChainSafe/gossamer/dot/types"
-
 	"github.com/ChainSafe/gossamer/dot/network"
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/libp2p/go-libp2p/core/protocol"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
@@ -679,7 +677,6 @@ func setUpSessionCacheMock(
 	mock.EXPECT().
 		GetSessionInfo(
 			gomock.AssignableToTypeOf(sessionIndex),
-			gomock.AssignableToTypeOf(common.Hash{}),
 			gomock.AssignableToTypeOf(runtimeMock),
 		).
 		Times(1).

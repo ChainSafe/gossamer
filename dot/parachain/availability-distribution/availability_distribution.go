@@ -8,8 +8,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/lib/erasure"
-
 	"github.com/ChainSafe/gossamer/dot/network"
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	"github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
@@ -17,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/erasure"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
@@ -89,9 +88,9 @@ func (ad *AvailabilityDistribution) Run(ctx context.Context, overseerToSubSystem
 
 func (ad *AvailabilityDistribution) Stop() {
 	logger.Tracef("Stopping %s subsystem", ad.Name())
-	//for _, task := range ad.fetchTasks {
-	//	task.cancel()
-	//}
+	for _, task := range ad.fetchTasks {
+		task.cancel()
+	}
 }
 
 // Name returns the name of the subsystem
@@ -175,7 +174,7 @@ func (ad *AvailabilityDistribution) addCores(
 	leafSessionIndex parachaintypes.SessionIndex,
 	cores []*parachaintypes.OccupiedCore,
 ) error {
-	sessionInfo, err := ad.sessionCache.GetSessionInfo(leafSessionIndex, leaf, rt)
+	sessionInfo, err := ad.sessionCache.GetSessionInfo(leafSessionIndex, rt)
 	if err != nil {
 		return err
 	}
@@ -248,7 +247,10 @@ func (ad *AvailabilityDistribution) handleFetchTaskTermination(
 
 	success, ok := reason.(taskSucceeded)
 	if ok && len(success.badValidators) > 0 {
-		ad.sessionCache.ReportBadValidators(success.sessionIndex, success.groupIndex, success.badValidators)
+		err := ad.sessionCache.ReportBadValidators(success.sessionIndex, success.groupIndex, success.badValidators)
+		if err != nil {
+			logger.Errorf("reporting bad validators for session %d: %s", success.sessionIndex, err)
+		}
 	}
 }
 
