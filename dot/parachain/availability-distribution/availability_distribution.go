@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
@@ -31,6 +32,7 @@ type AvailabilityDistribution struct {
 	blockState          BlockState
 	sessionCache        SessionCache
 	fetchTasks          map[parachaintypes.CandidateHash]*fetchChunkTask
+	mu                  sync.Mutex
 }
 
 var _ parachaintypes.Subsystem = (*AvailabilityDistribution)(nil)
@@ -88,6 +90,9 @@ func (ad *AvailabilityDistribution) Run(ctx context.Context, overseerToSubSystem
 
 func (ad *AvailabilityDistribution) Stop() {
 	logger.Tracef("Stopping %s subsystem", ad.Name())
+	ad.mu.Lock()
+	defer ad.mu.Unlock()
+
 	for _, task := range ad.fetchTasks {
 		task.cancel()
 	}
@@ -158,6 +163,9 @@ func (ad *AvailabilityDistribution) ProcessActiveLeavesUpdateSignal(
 		}
 	}
 
+	ad.mu.Lock()
+	defer ad.mu.Unlock()
+
 	for hash, task := range ad.fetchTasks {
 		task.removeLeaves(signal.Deactivated)
 		if !task.isLive() {
@@ -174,6 +182,9 @@ func (ad *AvailabilityDistribution) addCores(
 	leafSessionIndex parachaintypes.SessionIndex,
 	cores []*parachaintypes.OccupiedCore,
 ) error {
+	ad.mu.Lock()
+	defer ad.mu.Unlock()
+
 	sessionInfo, err := ad.sessionCache.GetSessionInfo(leafSessionIndex, rt)
 	if err != nil {
 		return err
@@ -243,7 +254,9 @@ func (ad *AvailabilityDistribution) handleFetchTaskTermination(
 	candidateHash parachaintypes.CandidateHash,
 	reason taskTerminationReason,
 ) {
+	ad.mu.Lock()
 	delete(ad.fetchTasks, candidateHash)
+	ad.mu.Unlock()
 
 	success, ok := reason.(taskSucceeded)
 	if ok && len(success.badValidators) > 0 {
