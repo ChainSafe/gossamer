@@ -130,19 +130,23 @@ func (oc *overlayedChangeSet) changesAfter(key backend.StorageKey) iter.Seq2[bac
 
 // Set all values to deleted which are matched by the predicate.
 // Can be rolled back or committed when called inside a transaction.
-func (oc *overlayedChangeSet) clearWhere(predicate func([]byte, *overlayedValue) bool, atExtrinsic *uint32) {
-	count := 0
+func (oc *overlayedChangeSet) clearWhere(predicate func([]byte, *overlayedValue) bool, atExtrinsic *uint32) uint {
+	count := uint(0)
 	for k, v := range oc.Changes() {
-		if predicate(k, v) {
+		if v == nil {
+			continue
+		}
+
+		if predicate([]byte(k), v) {
 			v.Set(nil, oc.dirtyKeys.insertDirty(string(k)), atExtrinsic)
-			if v != nil {
-				switch any(*v).(type) {
-				case appendStorageEntry, setStorageEntry:
-					count++
-				}
+			switch any(*v).(type) {
+			case appendStorageEntry, setStorageEntry:
+				count++
 			}
 		}
 	}
+
+	return count
 }
 
 // Call this when control returns from the runtime.
@@ -161,7 +165,7 @@ func (oc *overlayedChangeSet) exitRuntime() error {
 
 	for oc.HasOpenRuntimeTransactions() {
 		if oc.rollbackTransaction() != nil {
-			panic("The loop confidtion checks that the transaction depth is > 0; qed")
+			panic("The loop condition checks that the transaction depth is > 0; qed")
 		}
 	}
 
