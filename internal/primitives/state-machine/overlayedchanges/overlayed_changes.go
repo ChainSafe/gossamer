@@ -499,7 +499,7 @@ func (oc *OverlayedChanges[H, Hasher]) Changes() iter.Seq2[backend.StorageKey, *
 }
 
 // Get an optional iterator over all child changes stored under the supplied key.
-func (oc *OverlayedChanges[H, Hasher]) ChildChanges(key storage.StorageKey) (
+func (oc *OverlayedChanges[H, Hasher]) ChildChanges(key backend.StorageKey) (
 	iter.Seq2[backend.StorageKey, *OverlayedStorageEntry],
 	storage.ChildInfo,
 ) {
@@ -585,7 +585,7 @@ func (oc *OverlayedChanges[H, Hasher]) ChildStorageRoot(
 	b backend.Backend[H, Hasher],
 	stateVersion storage.StateVersion,
 ) (H, bool, error) {
-	storageKey := childInfo.StorageKey()
+	storageKey := backend.StorageKey(childInfo.StorageKey())
 	prefixedStorageKey := childInfo.PrefixedStorageKey()
 
 	var root H
@@ -653,7 +653,7 @@ func (oc *OverlayedChanges[H, Hasher]) IterAfter(key backend.StorageKey) iter.Se
 }
 
 func (oc *OverlayedChanges[H, Hasher]) ChildIterAfter(
-	storageKey storage.StorageKey,
+	storageKey backend.StorageKey,
 	key backend.StorageKey,
 ) iter.Seq2[backend.StorageKey, *overlayedValue] {
 	entry, has := oc.children[string(storageKey)]

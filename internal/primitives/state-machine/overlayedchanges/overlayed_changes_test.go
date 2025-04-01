@@ -271,7 +271,7 @@ func TestNextStorageKeyChangeWorks(t *testing.T) {
 
 func TestNextChildStorageKeyChangeWorks(t *testing.T) {
 	childInfo := storage.NewDefaultChildInfo([]byte("Child1"))
-	child := childInfo.StorageKey()
+	child := backend.StorageKey(childInfo.StorageKey())
 	overlay := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
 
 	overlay.StartTransaction()
