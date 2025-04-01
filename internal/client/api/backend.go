@@ -30,7 +30,6 @@ const (
 	NoneBlockImportNotificationAction
 )
 
-// StorageChanges contains a [statemachine.StorageCollection] and [statemachine.ChildStorageCollection]
 type StorageChanges struct {
 	overlayedchanges.StorageCollection
 	overlayedchanges.ChildStorageCollection
