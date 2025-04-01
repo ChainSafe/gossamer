@@ -40,7 +40,7 @@ require (
 	github.com/prometheus/client_model v0.6.1
 	github.com/qdm12/gotree v0.3.0
 	github.com/spf13/cobra v1.9.1
-	github.com/spf13/viper v1.20.0
+	github.com/spf13/viper v1.20.1
 	github.com/stretchr/testify v1.10.0
 	github.com/tetratelabs/wazero v1.1.0
 	github.com/tidwall/btree v1.7.0
@@ -215,9 +215,6 @@ require (
 )
 
 go 1.24.0
-
-toolchain go1.24.1
-
 replace github.com/tetratelabs/wazero => github.com/ChainSafe/wazero v0.0.0-20240319130522-78b21a59bd5f
 
 replace github.com/centrifuge/go-substrate-rpc-client/v4 => github.com/timwu20/go-substrate-rpc-client/v4 v4.0.0-20231110032757-3d8e441b7303
