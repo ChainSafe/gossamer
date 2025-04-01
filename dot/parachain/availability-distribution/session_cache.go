@@ -2,12 +2,14 @@ package availabilitydistribution
 
 import (
 	"errors"
+	"fmt"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	parachainutil "github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
+	"golang.org/x/exp/slices"
 	"math/rand/v2"
 )
 
@@ -87,7 +89,6 @@ func (c *LRUSessionCache) GetSessionIndexForChild(
 	parent common.Hash,
 	rt runtime.Instance,
 ) (parachaintypes.SessionIndex, error) {
-	c.sessionIndexCache.Lock()
 	cachedIndex := c.sessionIndexCache.Get(parent)
 	if cachedIndex != nil {
 		return *cachedIndex, nil
@@ -206,6 +207,19 @@ func (c *LRUSessionCache) ReportBadValidators(
 		return errors.New("session not cached")
 	}
 
-	// TODO move bad validators to the beginning of their group
+	if int(groupIndex) >= len(session.ValidatorGroups) {
+		return fmt.Errorf("invalid group index %d, number of groups: %d", groupIndex, len(session.ValidatorGroups))
+	}
+
+	group := session.ValidatorGroups[groupIndex]
+
+	// Remove the bad ones from the group. This is inefficient but all slices we are working with are small.
+	goodValidators := slices.DeleteFunc(group, func(v parachaintypes.AuthorityDiscoveryID) bool {
+		return slices.Contains(validators, v)
+	})
+
+	// Create a new group by concatting the bad ones and the good ones. The bad ones go first because the group is
+	// iterated in reverse order.
+	session.ValidatorGroups[groupIndex] = append(validators, goodValidators...)
 	return nil
 }
