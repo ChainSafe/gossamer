@@ -116,6 +116,10 @@ func (oc *overlayedChangeSet) changesAfter(key StorageKey) iter.Seq2[StorageKey,
 func (oc *overlayedChangeSet) clearWhere(predicate func([]byte, *overlayedValue) bool, atExtrinsic *uint32) uint {
 	count := uint(0)
 	for k, v := range oc.Changes() {
+		if v == nil {
+			continue
+		}
+
 		if predicate([]byte(k), v) {
 			v.Set(nil, oc.dirtyKeys.insertDirty(k), atExtrinsic)
 			if v != nil {
