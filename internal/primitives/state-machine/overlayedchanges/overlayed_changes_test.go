@@ -5,6 +5,7 @@ package overlayedchanges
 
 import (
 	"bytes"
+	"iter"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
@@ -133,23 +134,100 @@ func TestOverlayedStorageRootWorks(t *testing.T) {
 	overlayed.SetStorage(backend.StorageKey("doug2"), []byte("yes"))
 
 	root = common.MustHexToBytes("0x5c0a4e35cb967de785e1cb8743e6f24b6ff6d45155317f2078f6eb3fc4ff3e3d")
-	overlayedRoot, _ = overlayed.StorageRoot(b, stateVersion)
+	overlayedRoot, cached := overlayed.StorageRoot(b, stateVersion)
+	require.False(t, cached)
 
+	encodedRoot = overlayedRoot.MustMarshalSCALE()
+	require.Equal(t, root, encodedRoot)
+
+	// Calling a second time should use it from the cache
+	overlayedRoot, cached = overlayed.StorageRoot(b, stateVersion)
+	require.True(t, cached)
 	encodedRoot = overlayedRoot.MustMarshalSCALE()
 	require.Equal(t, root, encodedRoot)
 }
 
 func TestOverlayedChildStorageRootWorks(t *testing.T) {
-	/*stateVersion := storage.StateVersionV1
+	stateVersion := storage.StateVersionV1
 	childInfo := storage.NewDefaultChildInfo([]byte("Child1"))
 	b := backend.NewMemoryDBTrieBackend[hash.H256, runtime.BlakeTwo256]()
-	overlayed := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
+	overlay := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
 
-	overlayed.StartTransaction()
-	overlayed.SetChildStorage(storage.NewDefaultChildInfo([]byte("Child1")), []byte{20}, []byte{20})
-	overlayed.SetChildStorage(storage.NewDefaultChildInfo([]byte("Child1")), []byte{30}, []byte{30})
-	overlayed.SetChildStorage(storage.NewDefaultChildInfo([]byte("Child1")), []byte{40}, []byte{40})
-	require.NoError(t, overlayed.CommitTransaction())*/
+	overlay.StartTransaction()
+	overlay.SetChildStorage(childInfo, []byte{20}, []byte{20})
+	overlay.SetChildStorage(childInfo, []byte{30}, []byte{30})
+	overlay.SetChildStorage(childInfo, []byte{40}, []byte{40})
+	require.NoError(t, overlay.CommitTransaction())
+
+	overlay.SetChildStorage(childInfo, []byte{10}, []byte{10})
+	overlay.SetChildStorage(childInfo, []byte{30}, nil)
+
+	childRoot := common.MustHexToBytes("0xc02965e1df4dc5baf6977390ce67dab1d7a9b27a87c1afe27b50d29cc990e0f5")
+	root := common.MustHexToBytes("0xeafb765909c3ed5afd92a0c564acf4620d0234b31702e8e8e9b48da72a748838")
+
+	overlayedChildRoot, cached, err := overlay.ChildStorageRoot(childInfo, b, stateVersion)
+	require.NoError(t, err)
+	require.False(t, cached)
+	encodedChildRoot := overlayedChildRoot.MustMarshalSCALE()
+	require.Equal(t, childRoot, encodedChildRoot)
+
+	overlayedRoot, cached := overlay.StorageRoot(b, stateVersion)
+	require.False(t, cached)
+	encodedRoot := overlayedRoot.MustMarshalSCALE()
+	require.Equal(t, root, encodedRoot)
+
+	// Calling a second time should use it from the cache
+	overlayedChildRoot, cached, err = overlay.ChildStorageRoot(childInfo, b, stateVersion)
+	require.NoError(t, err)
+	require.True(t, cached)
+	encodedChildRoot = overlayedChildRoot.MustMarshalSCALE()
+	require.Equal(t, childRoot, encodedChildRoot)
+}
+
+func TestNextStorageKeyChangeWorks(t *testing.T) {
+	overlay := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
+
+	overlay.StartTransaction()
+
+	overlay.SetStorage(backend.StorageKey([]byte{20}), []byte{20})
+	overlay.SetStorage(backend.StorageKey([]byte{30}), []byte{30})
+	overlay.SetStorage(backend.StorageKey([]byte{40}), []byte{40})
+	require.NoError(t, overlay.CommitTransaction())
+
+	overlay.SetStorage(backend.StorageKey([]byte{10}), []byte{10})
+	overlay.SetStorage(backend.StorageKey([]byte{30}), nil)
+
+	next, _ := iter.Pull2(overlay.IterAfter(backend.StorageKey([]byte{5})))
+	nextTo5key, nextTo5value, _ := next()
+
+	require.Equal(t, backend.StorageKey([]byte{10}), nextTo5key)
+	require.Equal(t, backend.StorageValue([]byte{10}), nextTo5value.Value())
+
+	next, _ = iter.Pull2(overlay.IterAfter(backend.StorageKey([]byte{10})))
+	nextTo10key, nextTo10value, _ := next()
+
+	require.Equal(t, backend.StorageKey([]byte{20}), nextTo10key)
+	require.Equal(t, backend.StorageValue([]byte{20}), nextTo10value.Value())
+
+	next, _ = iter.Pull2(overlay.IterAfter(backend.StorageKey([]byte{20})))
+	nextTo20key, nextTo20value, _ := next()
+
+	require.Equal(t, backend.StorageKey([]byte{30}), nextTo20key)
+	require.Equal(t, backend.StorageValue(nil), nextTo20value.Value())
+
+	next, _ = iter.Pull2(overlay.IterAfter(backend.StorageKey([]byte{30})))
+	nextTo30key, nextTo30value, _ := next()
+
+	require.Equal(t, backend.StorageKey([]byte{40}), nextTo30key)
+	require.Equal(t, backend.StorageValue([]byte{40}), nextTo30value.Value())
+
+	overlay.SetStorage(backend.StorageKey([]byte{50}), backend.StorageValue([]byte{50}))
+
+	next, _ = iter.Pull2(overlay.IterAfter(backend.StorageKey([]byte{40})))
+	nextTo40key, nextTo40value, _ := next()
+
+	require.Equal(t, backend.StorageKey([]byte{50}), nextTo40key)
+	require.Equal(t, backend.StorageValue([]byte{50}), nextTo40value.Value())
 }
 
 type keyValue struct {

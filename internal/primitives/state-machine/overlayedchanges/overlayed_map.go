@@ -64,8 +64,14 @@ func (om OverlayedMap[K, V, E]) Clone() OverlayedMap[K, V, E] {
 // This changeset might be created when there are already open transactions.
 // We need to catch up here so that the child is at the same transaction depth.
 func (om *OverlayedMap[K, V, E]) SpawnChild() OverlayedMap[K, V, E] {
+	// Initialize with the same transaction depth as the parent
+	dirtyKeys := make(dirtyKeysSets[K], om.TransactionDepth())
+	for i := range om.TransactionDepth() {
+		dirtyKeys[i] = make(map[K]struct{})
+	}
+
 	return OverlayedMap[K, V, E]{
-		dirtyKeys:             make(dirtyKeysSets[K], om.TransactionDepth()),
+		dirtyKeys:             dirtyKeys,
 		numClientTransactions: om.numClientTransactions,
 		executionMode:         om.executionMode,
 	}

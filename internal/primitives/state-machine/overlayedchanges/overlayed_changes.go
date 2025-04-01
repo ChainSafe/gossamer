@@ -17,6 +17,15 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+type Encode interface {
+	MustMarshalSCALE() []byte
+}
+
+type Hash interface {
+	Encode
+	runtime.Hash
+}
+
 var NoExtrinsicIndex uint32 = 0xffffffff
 
 // OffchainChangesCollection is slice of storage values.
@@ -107,7 +116,7 @@ func (oc *OffchainOverlayedChanges) Remove(prefix []byte, key []byte) {
 // Storage transactions are calculated as part of the `storage_root`.
 // These transactions can be reused for importing the block into the
 // storage. So, we cache them to not require a recomputation of those transactions.
-type StorageTransactionCache[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
+type StorageTransactionCache[H Hash, Hasher runtime.Hasher[H]] struct {
 	// Contains the changes for the main and the child storages as one transaction.
 	transaction backend.BackendTransaction[H, Hasher]
 	// The storage root after applying the transaction.
@@ -116,7 +125,7 @@ type StorageTransactionCache[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 
 // The set of changes that are overlaid onto the backend.
 // It allows changes to be modified using nestable transactions.
-type OverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
+type OverlayedChanges[H Hash, Hasher runtime.Hasher[H]] struct {
 	// Top level storage changes.
 	top overlayedChangeSet
 	// Child storage changes. The map key is the child storage key without the common prefix.
@@ -134,7 +143,7 @@ type OverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	storageTransactionCache *StorageTransactionCache[H, Hasher]
 }
 
-func NewOverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]]() *OverlayedChanges[H, Hasher] {
+func NewOverlayedChanges[H Hash, Hasher runtime.Hasher[H]]() *OverlayedChanges[H, Hasher] {
 	return &OverlayedChanges[H, Hasher]{
 		top:                     newOverlayedChangeSet(),
 		children:                make(map[string]childStorageValue),
@@ -269,10 +278,9 @@ func (oc *OverlayedChanges[H, Hasher]) SetChildStorage(
 			overlayedChangeSet: oc.top.SpawnChild(),
 			ChildInfo:          childInfo,
 		}
-		oc.children[string(storageKey)] = entry
 	}
 
-	changeset := entry.overlayedChangeSet
+	changeset := &entry.overlayedChangeSet
 	info := entry.ChildInfo
 
 	updatable := info.TryUpdate(childInfo)
@@ -280,6 +288,7 @@ func (oc *OverlayedChanges[H, Hasher]) SetChildStorage(
 		panic("ChildInfo mismatch, not updatable")
 	}
 	changeset.set(key, value, extrinsicIndex)
+	oc.children[string(storageKey)] = entry
 }
 
 // Clear child storage of given storage key.
@@ -489,6 +498,19 @@ func (oc *OverlayedChanges[H, Hasher]) Changes() iter.Seq2[backend.StorageKey, *
 	return oc.top.Changes()
 }
 
+// Get an optional iterator over all child changes stored under the supplied key.
+func (oc *OverlayedChanges[H, Hasher]) ChildChanges(key storage.StorageKey) (
+	iter.Seq2[backend.StorageKey, *OverlayedStorageEntry],
+	storage.ChildInfo,
+) {
+	childChanges, has := oc.children[string(key)]
+	if !has {
+		return nil, nil
+	}
+
+	return childChanges.overlayedChangeSet.Changes(), childChanges.ChildInfo
+}
+
 // Returns current extrinsic index to use in changes trie construction.
 // nil is returned if it is not set or changes trie config is not set.
 // Persistent value (from the backend) can be ignored because runtime must
@@ -535,7 +557,7 @@ func (oc *OverlayedChanges[H, Hasher]) StorageRoot(
 	for _, child := range oc.children {
 		deltas := make([]backend.Delta, 0)
 		for key, value := range child.Changes() {
-			delta = append(delta, backend.Delta{Key: []byte(key), Value: value.Value()})
+			deltas = append(deltas, backend.Delta{Key: []byte(key), Value: value.Value()})
 		}
 
 		childDeltas = append(childDeltas, backend.ChildDelta{
@@ -557,25 +579,72 @@ func (oc *OverlayedChanges[H, Hasher]) ChildStorageRoot(
 	childInfo storage.ChildInfo,
 	b backend.Backend[H, Hasher],
 	stateVersion storage.StateVersion,
-) (H, bool) {
-	//storageKey := childInfo.StorageKey()
+) (H, bool, error) {
+	storageKey := childInfo.StorageKey()
 	prefixedStorageKey := childInfo.PrefixedStorageKey()
+
+	var root H
 
 	if oc.storageTransactionCache != nil {
 		value, has := oc.Storage(string(prefixedStorageKey))
 		if !has {
-			value, _ = b.Storage(prefixedStorageKey)
+			backendValue, err := b.Storage(prefixedStorageKey)
+			if err != nil {
+				return trie.EmptyChildTrieRoot[H, Hasher](), false, err
+			}
+
+			if backendValue == nil || scale.Unmarshal(backendValue, &value) != nil {
+				root = trie.EmptyChildTrieRoot[H, Hasher]()
+			}
+		} else {
+			hasher := *new(Hasher)
+			root = hasher.NewHash(value)
 		}
 
-		var root H
-		if value == nil || scale.Unmarshal(value, &root) != nil {
-			root = trie.EmptyChildTrieRoot[H, Hasher]()
-		}
-
-		return root, true
+		return root, true, nil
 	}
 
-	panic("not implemented")
+	var calculatedRoot H
+	var isEmpty bool
+
+	changes, info := oc.ChildChanges(storageKey)
+	if changes == nil || info == nil {
+		root = trie.EmptyChildTrieRoot[H, Hasher]()
+	} else {
+		delta := make([]backend.Delta, 0)
+		for k, v := range changes {
+			delta = append(delta, backend.Delta{Key: []byte(k), Value: v.Value()})
+		}
+		calculatedRoot, isEmpty, _ = b.ChildStorageRoot(info, delta, stateVersion)
+	}
+
+	if calculatedRoot != trie.EmptyChildTrieRoot[H, Hasher]() {
+		if isEmpty {
+			oc.SetStorage(backend.StorageKey(prefixedStorageKey), nil)
+		} else {
+			oc.SetStorage(backend.StorageKey(prefixedStorageKey), calculatedRoot.MustMarshalSCALE())
+		}
+		oc.markDirty()
+		root = calculatedRoot
+	} else {
+		// empty overlay
+		backendValue, err := b.Storage(prefixedStorageKey)
+		if err != nil {
+			return trie.EmptyChildTrieRoot[H, Hasher](), false, err
+		}
+
+		err = scale.Unmarshal(backendValue, &root)
+		if err != nil {
+			root = trie.EmptyChildTrieRoot[H, Hasher]()
+		}
+	}
+
+	return root, false, nil
+}
+
+func (oc *OverlayedChanges[H, Hasher]) IterAfter(key backend.StorageKey) iter.Seq2[backend.StorageKey,
+	*OverlayedStorageEntry] {
+	return oc.top.changesAfter(key)
 }
 
 func (oc *OverlayedChanges[H, Hasher]) SetOffchainStorage(key []byte, value []byte) {
