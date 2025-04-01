@@ -146,7 +146,7 @@ func (oc *overlayedChangeSet) exitRuntime() error {
 
 	for oc.HasOpenRuntimeTransactions() {
 		if oc.rollbackTransaction() != nil {
-			panic("The loop confidtion checks that the transaction depth is > 0; qed")
+			panic("The loop condition checks that the transaction depth is > 0; qed")
 		}
 	}
 
