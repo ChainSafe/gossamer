@@ -511,6 +511,11 @@ func (oc *OverlayedChanges[H, Hasher]) ChildChanges(key storage.StorageKey) (
 	return childChanges.overlayedChangeSet.Changes(), childChanges.ChildInfo
 }
 
+// Inserts storage entry responsible for current extrinsic index.
+func (oc *OverlayedChanges[H, Hasher]) SetExtrinsicIndex(index uint32) {
+	oc.top.set(keys.ExtrinsicIndexKey, backend.StorageValue(scale.MustMarshal(index)), nil)
+}
+
 // Returns current extrinsic index to use in changes trie construction.
 // nil is returned if it is not set or changes trie config is not set.
 // Persistent value (from the backend) can be ignored because runtime must
@@ -524,7 +529,7 @@ func (oc *OverlayedChanges[H, Hasher]) extrinsicIndex() *uint32 {
 
 	val, has := oc.Storage(string(keys.ExtrinsicIndexKey))
 	if !has {
-		return nil
+		return &NoExtrinsicIndex
 	}
 
 	var result uint32
@@ -645,6 +650,18 @@ func (oc *OverlayedChanges[H, Hasher]) ChildStorageRoot(
 func (oc *OverlayedChanges[H, Hasher]) IterAfter(key backend.StorageKey) iter.Seq2[backend.StorageKey,
 	*OverlayedStorageEntry] {
 	return oc.top.changesAfter(key)
+}
+
+func (oc *OverlayedChanges[H, Hasher]) ChildIterAfter(
+	storageKey storage.StorageKey,
+	key backend.StorageKey,
+) iter.Seq2[backend.StorageKey, *overlayedValue] {
+	entry, has := oc.children[string(storageKey)]
+	if !has {
+		return nil
+	}
+
+	return entry.overlayedChangeSet.changesAfter(key)
 }
 
 func (oc *OverlayedChanges[H, Hasher]) SetOffchainStorage(key []byte, value []byte) {

@@ -184,6 +184,45 @@ func TestOverlayedChildStorageRootWorks(t *testing.T) {
 	require.Equal(t, childRoot, encodedChildRoot)
 }
 
+func TestExtinsicChangesAreCollected(t *testing.T) {
+	overlay := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
+	overlay.SetCollectExtrinsic(true)
+
+	overlay.StartTransaction()
+	overlay.SetStorage(backend.StorageKey([]byte{100}), []byte{101})
+
+	overlay.SetExtrinsicIndex(0)
+	overlay.SetStorage(backend.StorageKey([]byte{1}), []byte{2})
+
+	overlay.SetExtrinsicIndex(1)
+	overlay.SetStorage(backend.StorageKey([]byte{3}), []byte{4})
+
+	overlay.SetExtrinsicIndex(2)
+	overlay.SetStorage(backend.StorageKey([]byte{1}), []byte{6})
+
+	assertExtrinsics(t, overlay.top, []byte{1}, []uint32{0, 2})
+	assertExtrinsics(t, overlay.top, []byte{3}, []uint32{1})
+	assertExtrinsics(t, overlay.top, []byte{100}, []uint32{NoExtrinsicIndex})
+
+	overlay.StartTransaction()
+
+	overlay.SetExtrinsicIndex(3)
+	overlay.SetStorage(backend.StorageKey([]byte{3}), []byte{7})
+
+	overlay.SetExtrinsicIndex(4)
+	overlay.SetStorage(backend.StorageKey([]byte{1}), []byte{8})
+
+	assertExtrinsics(t, overlay.top, []byte{1}, []uint32{0, 2, 4})
+	assertExtrinsics(t, overlay.top, []byte{3}, []uint32{1, 3})
+	assertExtrinsics(t, overlay.top, []byte{100}, []uint32{NoExtrinsicIndex})
+
+	require.NoError(t, overlay.RollbackTransaction())
+
+	assertExtrinsics(t, overlay.top, []byte{1}, []uint32{0, 2})
+	assertExtrinsics(t, overlay.top, []byte{3}, []uint32{1})
+	assertExtrinsics(t, overlay.top, []byte{100}, []uint32{NoExtrinsicIndex})
+}
+
 func TestNextStorageKeyChangeWorks(t *testing.T) {
 	overlay := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
 
@@ -230,6 +269,53 @@ func TestNextStorageKeyChangeWorks(t *testing.T) {
 	require.Equal(t, backend.StorageValue([]byte{50}), nextTo40value.Value())
 }
 
+func TestNextChildStorageKeyChangeWorks(t *testing.T) {
+	childInfo := storage.NewDefaultChildInfo([]byte("Child1"))
+	child := childInfo.StorageKey()
+	overlay := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
+
+	overlay.StartTransaction()
+	overlay.SetChildStorage(childInfo, []byte{20}, []byte{20})
+	overlay.SetChildStorage(childInfo, []byte{30}, []byte{30})
+	overlay.SetChildStorage(childInfo, []byte{40}, []byte{40})
+
+	require.NoError(t, overlay.CommitTransaction())
+	overlay.SetChildStorage(childInfo, []byte{10}, []byte{10})
+	overlay.SetChildStorage(childInfo, []byte{30}, nil)
+
+	next, _ := iter.Pull2(overlay.ChildIterAfter(child, backend.StorageKey([]byte{5})))
+	nextTo5key, nextTo5value, _ := next()
+
+	require.Equal(t, backend.StorageKey([]byte{10}), nextTo5key)
+	require.Equal(t, backend.StorageValue([]byte{10}), nextTo5value.Value())
+
+	next, _ = iter.Pull2(overlay.ChildIterAfter(child, backend.StorageKey([]byte{10})))
+	nextTo10key, nextTo10value, _ := next()
+
+	require.Equal(t, backend.StorageKey([]byte{20}), nextTo10key)
+	require.Equal(t, backend.StorageValue([]byte{20}), nextTo10value.Value())
+
+	next, _ = iter.Pull2(overlay.ChildIterAfter(child, backend.StorageKey([]byte{20})))
+	nextTo20key, nextTo20value, _ := next()
+
+	require.Equal(t, backend.StorageKey([]byte{30}), nextTo20key)
+	require.Equal(t, backend.StorageValue(nil), nextTo20value.Value())
+
+	next, _ = iter.Pull2(overlay.ChildIterAfter(child, backend.StorageKey([]byte{30})))
+	nextTo30key, nextTo30value, _ := next()
+
+	require.Equal(t, backend.StorageKey([]byte{40}), nextTo30key)
+	require.Equal(t, backend.StorageValue([]byte{40}), nextTo30value.Value())
+
+	overlay.SetChildStorage(childInfo, []byte{50}, []byte{50})
+
+	next, _ = iter.Pull2(overlay.ChildIterAfter(child, backend.StorageKey([]byte{40})))
+	nextTo40key, nextTo40value, _ := next()
+
+	require.Equal(t, backend.StorageKey([]byte{50}), nextTo40key)
+	require.Equal(t, backend.StorageValue([]byte{50}), nextTo40value.Value())
+}
+
 type keyValue struct {
 	key   string
 	value []byte
@@ -270,4 +356,18 @@ func checkOffchainContent(
 	}
 
 	require.Equal(t, toCheck, offchainData)
+}
+
+func assertExtrinsics(t *testing.T, overlay overlayedChangeSet, key []byte, expected []uint32) {
+	var extrinsics []uint32
+
+	entry, has := overlay.Get(string(key))
+	require.True(t, has)
+
+	entry.Extrinsics().Scan(func(ex uint32) bool {
+		extrinsics = append(extrinsics, ex)
+		return true
+	})
+
+	require.Equal(t, expected, extrinsics)
 }
