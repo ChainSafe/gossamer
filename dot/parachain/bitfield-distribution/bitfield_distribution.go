@@ -6,6 +6,7 @@ package bitfielddistribution
 import (
 	"context"
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"sync"
 
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
@@ -75,7 +76,7 @@ func (p *perRelayParentData) messageFromValidatorNeededByPeer(peerID peer.ID, si
 type BitfieldDistribution struct {
 	subSystemToOverseer chan<- any
 
-	peerViews      map[peer.ID]networkbridge.PeerDataViewWithVersion
+	peerViews      map[peer.ID]*networkbridge.PeerDataViewWithVersion
 	ourView        parachaintypes.View
 	topologies     grid.SessionGridTopologyStorage
 	perRelayParent map[common.Hash]*perRelayParentData
@@ -89,7 +90,7 @@ type BitfieldDistribution struct {
 func NewBitfieldDistribution(overseerChan chan<- any) *BitfieldDistribution {
 	return &BitfieldDistribution{
 		subSystemToOverseer: overseerChan,
-		peerViews:           make(map[peer.ID]networkbridge.PeerDataViewWithVersion),
+		peerViews:           make(map[peer.ID]*networkbridge.PeerDataViewWithVersion),
 		ourView:             parachaintypes.View{},
 		topologies:          grid.SessionGridTopologyStorage{}, // TODO: implement in NewGossipTopology signal
 		perRelayParent:      make(map[common.Hash]*perRelayParentData),
@@ -226,7 +227,7 @@ func (b *BitfieldDistribution) processPeerConnectedEvent(event networkbridgeeven
 	// TODO: add protocol version support
 	if event.ProtocolVersion == 2 || event.ProtocolVersion == 3 {
 		b.mu.Lock()
-		b.peerViews[event.PeerID] = networkbridge.PeerDataViewWithVersion{
+		b.peerViews[event.PeerID] = &networkbridge.PeerDataViewWithVersion{
 			View:            parachaintypes.View{}, // default view
 			ProtocolVersion: event.ProtocolVersion,
 		}
@@ -241,8 +242,58 @@ func (b *BitfieldDistribution) processPeerDisconnectedEvent(event networkbridgee
 }
 
 func (b *BitfieldDistribution) processNewGossipTopologyEvent(event networkbridgeevents.NewGossipTopology) error {
-	//TODO implement in #4357
-	panic("implement me")
+	sessionIdx := event.Session
+	newTopology := event.Topotogy
+	prevNeighbors := b.topologies.CurrentTopology.LocalNeighbours
+
+	peers := make(map[peer.ID]struct{})
+	for _, val := range newTopology.PeerIDs {
+		peers[val] = struct{}{}
+	}
+
+	shuffledIndices := make([]uint, len(event.Topotogy.ShuffledIndices))
+	for i, v := range event.Topotogy.ShuffledIndices {
+		shuffledIndices[i] = uint(v)
+	}
+
+	canonicalShuffling := make([]grid.TopologyPeerInfo, 0)
+	for i, info := range event.Topotogy.CanonicalShuffling {
+		t := grid.TopologyPeerInfo{
+			Peers:          info.PeerID,
+			ValidatorIndex: info.ValidatorIndex,
+			DiscoveryID:    types.AuthorityID(info.DiscoveryID),
+		}
+		canonicalShuffling[i] = t
+	}
+
+	t := &grid.SessionGridTopology{
+		Peers:              peers,
+		ShuffledIndices:    shuffledIndices,
+		CanonicalShuffling: canonicalShuffling,
+	}
+	err := b.topologies.UpdateCurrentTopology(sessionIdx, t, *event.LocalIndex)
+	if err != nil {
+		return err
+	}
+
+	newlyAdded := b.topologies.CurrentTopology.LocalNeighbours.PeersDiff(prevNeighbors)
+
+	logger.Debugf("new gossip topology reecived: %s", newlyAdded)
+
+	for _, id := range newlyAdded {
+		peerView := b.peerViews[id]
+		if peerView == nil {
+			// For peers which are currently unknown, we'll send topology-related
+			// messages to them when they connect and send their first view update.
+			continue
+		}
+		// in case we already knew that peer in the past
+		// it might have had an existing view, we use to initialize
+		// and minimize the delta on `PeerViewChange` to be sent
+		peerView.View = parachaintypes.View{}
+	}
+
+	return nil
 }
 
 func (b *BitfieldDistribution) processPeerViewChangeEvent(event networkbridgeevents.PeerViewChange) error {
@@ -419,7 +470,7 @@ func (b *BitfieldDistribution) Stop() {
 func relayMessage(
 	jobData *perRelayParentData,
 	topologyNeighbors *grid.GridNeighbours,
-	peers map[peer.ID]networkbridge.PeerDataViewWithVersion,
+	peers map[peer.ID]*networkbridge.PeerDataViewWithVersion,
 	validatorID parachaintypes.ValidatorID,
 	message validationprotocol.CheckedBitfield,
 	requiredRouting grid.RequiredRouting,
@@ -437,7 +488,7 @@ func relayMessage(
 	// 1. get interested peers
 	interestedPeers := make(map[peer.ID]uint32)
 	for peerID, peerData := range peers {
-		if peerData.View.Contains(relayParent) {
+		if peerData != nil && peerData.View.Contains(relayParent) {
 			if jobData.messageFromValidatorNeededByPeer(peerID, validatorID) {
 				needRouting := topologyNeighbors.ShouldRouteToPeer(requiredRouting, peerID)
 				if needRouting {
