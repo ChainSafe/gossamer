@@ -13,7 +13,6 @@ import (
 	reflect "reflect"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	common "github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -43,24 +42,26 @@ func (m *MockSessionCache) EXPECT() *MockSessionCacheMockRecorder {
 }
 
 // GetSessionInfo mocks base method.
-func (m *MockSessionCache) GetSessionInfo(sessionIndex parachaintypes.SessionIndex, parent common.Hash, rt runtime.Instance) (*SessionInfo, error) {
+func (m *MockSessionCache) GetSessionInfo(sessionIndex parachaintypes.SessionIndex, rt runtime.Instance) (*SessionInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSessionInfo", sessionIndex, parent, rt)
+	ret := m.ctrl.Call(m, "GetSessionInfo", sessionIndex, rt)
 	ret0, _ := ret[0].(*SessionInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetSessionInfo indicates an expected call of GetSessionInfo.
-func (mr *MockSessionCacheMockRecorder) GetSessionInfo(sessionIndex, parent, rt any) *gomock.Call {
+func (mr *MockSessionCacheMockRecorder) GetSessionInfo(sessionIndex, rt any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSessionInfo", reflect.TypeOf((*MockSessionCache)(nil).GetSessionInfo), sessionIndex, parent, rt)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSessionInfo", reflect.TypeOf((*MockSessionCache)(nil).GetSessionInfo), sessionIndex, rt)
 }
 
 // ReportBadValidators mocks base method.
-func (m *MockSessionCache) ReportBadValidators(sessionIndex parachaintypes.SessionIndex, groupIndex parachaintypes.GroupIndex, validators []parachaintypes.AuthorityDiscoveryID) {
+func (m *MockSessionCache) ReportBadValidators(sessionIndex parachaintypes.SessionIndex, groupIndex parachaintypes.GroupIndex, validators []parachaintypes.AuthorityDiscoveryID) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ReportBadValidators", sessionIndex, groupIndex, validators)
+	ret := m.ctrl.Call(m, "ReportBadValidators", sessionIndex, groupIndex, validators)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // ReportBadValidators indicates an expected call of ReportBadValidators.

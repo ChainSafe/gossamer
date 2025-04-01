@@ -2,7 +2,6 @@ package availabilitydistribution
 
 import (
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 )
 
@@ -44,7 +43,6 @@ func (s *SessionInfo) NumberOfValidators() uint {
 type SessionCache interface {
 	GetSessionInfo(
 		sessionIndex parachaintypes.SessionIndex,
-		parent common.Hash,
 		rt runtime.Instance,
 	) (*SessionInfo, error)
 
@@ -52,7 +50,7 @@ type SessionCache interface {
 		sessionIndex parachaintypes.SessionIndex,
 		groupIndex parachaintypes.GroupIndex,
 		validators []parachaintypes.AuthorityDiscoveryID,
-	)
+	) error
 }
 
 // TODO implement the interface (#4494)
