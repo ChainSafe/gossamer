@@ -185,7 +185,7 @@ func TestBitfieldDistribution_FilterByPeerVersion(t *testing.T) {
 		name          string
 		peers         map[peer.ID]uint32
 		targetVersion uint32
-		result        []peer.ID
+		result        map[peer.ID]struct{}
 	}{
 		{
 			name: "test1_should_have_1_result",
@@ -197,7 +197,9 @@ func TestBitfieldDistribution_FilterByPeerVersion(t *testing.T) {
 				p5: uint32(1),
 			},
 			targetVersion: uint32(1),
-			result:        []peer.ID{p5},
+			result: map[peer.ID]struct{}{
+				p5: {},
+			},
 		},
 		{
 			name: "test2_should_have_2_result",
@@ -209,13 +211,16 @@ func TestBitfieldDistribution_FilterByPeerVersion(t *testing.T) {
 				p5: uint32(1),
 			},
 			targetVersion: uint32(2),
-			result:        []peer.ID{p1, p3},
+			result: map[peer.ID]struct{}{
+				p3: {},
+				p1: {},
+			},
 		},
 		{
 			name:          "test3_should_have_0_result",
 			peers:         map[peer.ID]uint32{},
 			targetVersion: uint32(2),
-			result:        []peer.ID{},
+			result:        map[peer.ID]struct{}{},
 		},
 		{
 			name: "test4_should_have_0_result",
@@ -227,13 +232,16 @@ func TestBitfieldDistribution_FilterByPeerVersion(t *testing.T) {
 				p5: uint32(1),
 			},
 			targetVersion: uint32(4),
-			result:        []peer.ID{},
+			result:        map[peer.ID]struct{}{},
 		},
 	}
 
 	for _, testcase := range testcases {
-		re := filterByPeerVersion(testcase.peers, testcase.targetVersion)
-		assert.Equal(t, testcase.result, re, testcase.name)
+		m := make(map[peer.ID]struct{})
+		for _, val := range filterByPeerVersion(testcase.peers, testcase.targetVersion) {
+			m[val] = struct{}{}
+		}
+		assert.Equal(t, testcase.result, m, testcase.name)
 	}
 }
 
