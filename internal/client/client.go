@@ -9,14 +9,33 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
+	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	primivite_consensus_common "github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "client"))
+
+type prepareStorageChangesResult interface {
+	isPrepareStorageChangesResult()
+}
+
+type (
+	storageChangesResultDiscard struct {
+		common.ImportResult
+	}
+	storageChangesResultImport struct {
+		common.StorageChanges
+	}
+)
+
+func (storageChangesResultDiscard) isPrepareStorageChangesResult() {}
+func (storageChangesResultImport) isPrepareStorageChangesResult()  {}
 
 // Client type that implements a number of client interfaces
 type Client[
@@ -90,23 +109,23 @@ func (c *Client[H, Hasher, N, E, Header]) unpin(message api.Unpin[H]) error {
 }
 
 func (c *Client[H, Hasher, N, E, Header]) lockImportRun(
-	f func(*api.ClientImportOperation[H, Hasher, N, Header, E]) error,
-) error {
+	f func(*api.ClientImportOperation[H, Hasher, N, Header, E]) (any, error),
+) (any, error) {
 	c.backend.GetImportLock().Lock()
 	defer c.backend.GetImportLock().Unlock()
 
 	blockImportOp, err := c.backend.BeginOperation()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	clientImportOp := api.ClientImportOperation[H, Hasher, N, Header, E]{
 		Op: blockImportOp,
 	}
 
-	err = f(&clientImportOp)
+	result, err := f(&clientImportOp)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var finalityNotification *api.FinalityNotification[H, N, Header]
@@ -133,7 +152,7 @@ func (c *Client[H, Hasher, N, E, Header]) lockImportRun(
 		for _, action := range c.finalityActions {
 			err := clientImportOp.Op.InsertAux(action(*finalityNotification))
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
@@ -143,14 +162,14 @@ func (c *Client[H, Hasher, N, E, Header]) lockImportRun(
 		for _, action := range c.importActions {
 			err := clientImportOp.Op.InsertAux(action(*importNotification))
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
 
 	err = c.backend.CommitOperation(clientImportOp.Op)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// We need to pin the block in the backend once
@@ -184,24 +203,24 @@ func (c *Client[H, Hasher, N, E, Header]) lockImportRun(
 
 	err = c.notifyFinalized(finalityNotification)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	err = c.notifyImported(importNotification, importNotificationAction, storageChanges)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return result, nil
 }
 
 func (c *Client[H, Hasher, N, E, Header]) LockImportRun(
-	f func(*api.ClientImportOperation[H, Hasher, N, Header, E]) error,
-) error {
-	err := c.lockImportRun(f)
+	f func(*api.ClientImportOperation[H, Hasher, N, Header, E]) (any, error),
+) (any, error) {
+	result, err := c.lockImportRun(f)
 	c.importingBlockMtx.Lock()
 	c.importingBlock = nil
 	c.importingBlockMtx.Unlock()
-	return err
+	return result, err
 }
 
 const notifyFinalizedTimeout = 5 * time.Second
@@ -478,15 +497,32 @@ func (c *Client[H, Hasher, N, E, Header]) Block(hash H) (*generic.SignedBlock[N,
 
 	if header != nil && body != nil {
 		return generic.NewSignedBlock(
-			generic.NewBlock[Hasher, E, N, H](*header, body), justifications,
+			generic.NewBlock[Hasher](*header, body), justifications,
 		), nil
 	}
 
 	return nil, nil
 }
 
-func (c *Client[H, Hasher, N, E, Header]) BlockStatus(hash H) (blockchain.BlockStatus, error) {
-	return c.backend.Blockchain().Status(hash)
+func (c *Client[H, Hasher, N, E, Header]) BlockStatus(hash H) (primivite_consensus_common.BlockStatus, error) {
+	if c.importingBlock != nil && *c.importingBlock == hash {
+		return primivite_consensus_common.BlockStatusQueued, nil
+	}
+
+	number, err := c.backend.Blockchain().Number(hash)
+	if err != nil {
+		return primivite_consensus_common.BlockStatusUnknown, err
+	}
+
+	if number != nil {
+		if c.backend.HaveStateAt(hash, *number) {
+			return primivite_consensus_common.BlockStatusInChainWithState, nil
+		} else {
+			return primivite_consensus_common.BlockStatusInChainPruned, nil
+		}
+	}
+
+	return primivite_consensus_common.BlockStatusUnknown, nil
 }
 
 func (c *Client[H, Hasher, N, E, Header]) Justifications(hash H) (runtime.Justifications, error) {
@@ -516,3 +552,119 @@ func (c *Client[H, Hasher, N, E, Header]) RequiresFullSync() bool {
 func (c *Client[H, Hasher, N, E, Header]) Children(parent H) ([]H, error) {
 	return c.backend.Blockchain().Children(parent)
 }
+
+func (c *Client[H, Hasher, N, E, Header]) CheckBlock(block common.BlockCheckParams[H, N]) (common.ImportResult, error) {
+	panic("not implemented")
+}
+
+func (c *Client[H, Hasher, N, E, Header]) ImportBlock(
+	block *common.BlockImportParams[H, N],
+) (common.ImportResult, error) {
+	prepareStorageResult, err := c.prepareBlockStorageChanges(block)
+	if err != nil {
+		return nil, err
+	}
+
+	var storageChanges common.StorageChanges
+
+	switch r := prepareStorageResult.(type) {
+	case storageChangesResultDiscard:
+		return r.ImportResult, nil
+	case storageChangesResultImport:
+		storageChanges = r.StorageChanges
+	}
+
+	importResult, err := c.LockImportRun(func(
+		clientImportOp *api.ClientImportOperation[H, Hasher, N, Header, E],
+	) (any, error) {
+		result, err := c.applyBlock(clientImportOp, block, storageChanges)
+		return result, err
+	})
+
+	if err != nil {
+		logger.Warnf("Block import error: %s", err)
+		return nil, err
+	}
+
+	return importResult.(common.ImportResult), nil
+}
+
+func (c *Client[H, Hasher, N, E, Header]) prepareBlockStorageChanges(
+	importBlock *common.BlockImportParams[H, N],
+) (prepareStorageChangesResult, error) {
+	parentHash := importBlock.Header.ParentHash()
+	stateAction := importBlock.StateAction
+	importBlock.StateAction = common.StateActionSkip{}
+
+	var enactState bool
+	var storageChanges common.StorageChanges
+
+	status, err := c.BlockStatus(parentHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if status == primivite_consensus_common.BlockStatusKnownBad {
+		return storageChangesResultDiscard{}, nil
+	} else if status == primivite_consensus_common.BlockStatusInChainPruned {
+		if action, ok := stateAction.(common.StateActionApplyChanges); ok {
+			if _, ok := action.StorageChanges.(common.Changes[H, Hasher]); ok {
+				return storageChangesResultDiscard{common.MissingState{}}, nil
+			}
+		}
+	} else if action, ok := stateAction.(common.StateActionApplyChanges); ok {
+		enactState = true
+		storageChanges = action.StorageChanges
+	} else if status == primivite_consensus_common.BlockStatusUnknown {
+		return storageChangesResultDiscard{common.UnknownParent{}}, nil
+	} else if _, ok := stateAction.(common.StateActionSkip); ok {
+		enactState = false
+		storageChanges = nil
+	} else if status == primivite_consensus_common.BlockStatusInChainPruned {
+		if _, ok := stateAction.(common.StateActionExecute); ok {
+			return storageChangesResultDiscard{common.MissingState{}}, nil
+		}
+	} else if status == primivite_consensus_common.BlockStatusInChainPruned {
+		if _, ok := stateAction.(common.StateActionExecuteIfPossible); ok {
+			enactState = false
+			storageChanges = nil
+		}
+	} else if _, ok := stateAction.(common.StateActionExecute); ok {
+		enactState = true
+		storageChanges = nil
+	} else if _, ok := stateAction.(common.StateActionExecuteIfPossible); ok {
+		enactState = true
+		storageChanges = nil
+	}
+
+	var storageChangesToApply common.StorageChanges
+
+	if enactState && storageChanges != nil {
+		storageChangesToApply = storageChanges
+	} else if enactState && storageChanges == nil && importBlock.Body != nil {
+		panic("not finished")
+	} else if enactState && storageChanges != nil && importBlock.Body == nil {
+		storageChangesToApply = nil
+	} else if !enactState {
+		storageChangesToApply = nil
+	}
+
+	return storageChangesResultImport{storageChangesToApply}, nil
+}
+
+func (c *Client[H, Hasher, N, E, Header]) applyBlock(
+	operation *api.ClientImportOperation[H, Hasher, N, Header, E],
+	importBlock *common.BlockImportParams[H, N],
+	storageChanges common.StorageChanges,
+) (common.ImportResult, error) {
+	panic("not implemented")
+}
+
+// Ensure Client implements the BlockImport interface
+var _ common.BlockImport[hash.H256, uint64] = &Client[
+	hash.H256,
+	runtime.BlakeTwo256,
+	uint64,
+	runtime.OpaqueExtrinsic,
+	*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+]{}

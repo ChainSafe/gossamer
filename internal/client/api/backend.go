@@ -166,8 +166,8 @@ type LockImportRun[
 ] interface {
 	/// LockImportRun locks the import lock, and run operations inside.
 	LockImportRun(
-		f func(*ClientImportOperation[H, Hasher, N, Header, E]) error,
-	) error
+		f func(*ClientImportOperation[H, Hasher, N, Header, E]) (any, error),
+	) (any, error)
 }
 
 // KeyValue is used in [AuxStore.InsertAux].  Key and Value should not be nil.

@@ -6,6 +6,7 @@ package blockchain
 import (
 	"sync"
 
+	"github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 )
@@ -28,7 +29,7 @@ type BlockBackend[
 	Block(hash H) (*generic.SignedBlock[N, H, Hasher, E], error)
 
 	// BlockStatus gets block status by block hash.
-	BlockStatus(hash H) (BlockStatus, error)
+	BlockStatus(hash H) (common.BlockStatus, error)
 
 	// Justifications gets block justifications for the block with the given hash.
 	Justifications(hash H) (runtime.Justifications, error)

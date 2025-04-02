@@ -4,6 +4,8 @@ package mocks
 
 import (
 	blockchain "github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	common "github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
+
 	generic "github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 
 	mock "github.com/stretchr/testify/mock"
@@ -375,22 +377,22 @@ func (_c *Client_BlockNumberFromID_Call[H, Hasher, N, E, Header]) RunAndReturn(r
 }
 
 // BlockStatus provides a mock function with given fields: hash
-func (_m *Client[H, Hasher, N, E, Header]) BlockStatus(hash H) (blockchain.BlockStatus, error) {
+func (_m *Client[H, Hasher, N, E, Header]) BlockStatus(hash H) (common.BlockStatus, error) {
 	ret := _m.Called(hash)
 
 	if len(ret) == 0 {
 		panic("no return value specified for BlockStatus")
 	}
 
-	var r0 blockchain.BlockStatus
+	var r0 common.BlockStatus
 	var r1 error
-	if rf, ok := ret.Get(0).(func(H) (blockchain.BlockStatus, error)); ok {
+	if rf, ok := ret.Get(0).(func(H) (common.BlockStatus, error)); ok {
 		return rf(hash)
 	}
-	if rf, ok := ret.Get(0).(func(H) blockchain.BlockStatus); ok {
+	if rf, ok := ret.Get(0).(func(H) common.BlockStatus); ok {
 		r0 = rf(hash)
 	} else {
-		r0 = ret.Get(0).(blockchain.BlockStatus)
+		r0 = ret.Get(0).(common.BlockStatus)
 	}
 
 	if rf, ok := ret.Get(1).(func(H) error); ok {
@@ -420,12 +422,12 @@ func (_c *Client_BlockStatus_Call[H, Hasher, N, E, Header]) Run(run func(hash H)
 	return _c
 }
 
-func (_c *Client_BlockStatus_Call[H, Hasher, N, E, Header]) Return(_a0 blockchain.BlockStatus, _a1 error) *Client_BlockStatus_Call[H, Hasher, N, E, Header] {
+func (_c *Client_BlockStatus_Call[H, Hasher, N, E, Header]) Return(_a0 common.BlockStatus, _a1 error) *Client_BlockStatus_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *Client_BlockStatus_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H) (blockchain.BlockStatus, error)) *Client_BlockStatus_Call[H, Hasher, N, E, Header] {
+func (_c *Client_BlockStatus_Call[H, Hasher, N, E, Header]) RunAndReturn(run func(H) (common.BlockStatus, error)) *Client_BlockStatus_Call[H, Hasher, N, E, Header] {
 	_c.Call.Return(run)
 	return _c
 }

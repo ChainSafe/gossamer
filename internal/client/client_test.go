@@ -13,6 +13,7 @@ import (
 	statedb "github.com/ChainSafe/gossamer/internal/client/state-db"
 	memorykvdb "github.com/ChainSafe/gossamer/internal/kvdb/memory-kvdb"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
+	primivite_consensus_common "github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
@@ -305,8 +306,8 @@ type ClientImportOperation = api.ClientImportOperation[
 
 func TestLockImportRun(t *testing.T) {
 	c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0))
-	err := c.LockImportRun(func(cio *ClientImportOperation) error {
-		return nil
+	_, err := c.LockImportRun(func(cio *ClientImportOperation) (any, error) {
+		return nil, nil
 	})
 	require.NoError(t, err)
 }
@@ -325,10 +326,10 @@ func TestPreCommitActions(t *testing.T) {
 			return api.AuxDataOperations{}
 		})
 
-		err := c.LockImportRun(func(cio *ClientImportOperation) error {
+		_, err := c.LockImportRun(func(cio *ClientImportOperation) (any, error) {
 			cio.NotifyFinalized = &api.FinalizeSummary[hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{} //nolint:lll
 			cio.NotifyImported = &api.ImportSummary[hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256]]{}    //nolint:lll
-			return nil
+			return nil, nil
 		})
 		require.NoError(t, err)
 
@@ -448,14 +449,14 @@ func TestBlockBackendImplementation(t *testing.T) {
 	expectedHash := expectedHeader.Hash()
 	expectedNumber := expectedHeader.Number()
 
+	blockchainMock.EXPECT().Number(expectedHash).Return(&expectedNumber, nil)
 	blockchainMock.EXPECT().Header(expectedHash).Return(&expectedHeader, nil)
 	blockchainMock.EXPECT().Hash(expectedNumber).Return(&expectedHash, nil)
 
 	expectedExtrinsics := []runtime.OpaqueExtrinsic{}
 	blockchainMock.EXPECT().Body(expectedHash).Return(expectedExtrinsics, nil)
 
-	expectedStatus := blockchain.BlockStatusInChain
-	blockchainMock.EXPECT().Status(expectedHash).Return(expectedStatus, nil)
+	expectedStatus := primivite_consensus_common.BlockStatusInChainWithState
 
 	expectedIndexedExtrinsics := [][]byte{
 		[]byte("extrinsic1"),
@@ -473,6 +474,7 @@ func TestBlockBackendImplementation(t *testing.T) {
 
 	backendMock.EXPECT().RequiresFullSync().Return(true)
 	backendMock.EXPECT().Blockchain().Return(blockchainMock)
+	backendMock.EXPECT().HaveStateAt(expectedHash, expectedNumber).Return(true)
 
 	// Get BlockBody
 	extrinsics, err := c.BlockBody(expectedHash)

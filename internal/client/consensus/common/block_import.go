@@ -10,10 +10,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 )
 
-type ImportResult interface {
-	isImportResult()
-}
-
 // Auxiliary data associated with an imported block result.
 type importedAux struct {
 	// Only the header has been imported. Block body verification was skipped.
@@ -26,6 +22,9 @@ type importedAux struct {
 	BadJustification bool
 	// Whether the block that was imported is the new best block.
 	IsNewBest bool
+}
+type ImportResult interface {
+	isImportResult()
 }
 
 type (
@@ -51,7 +50,7 @@ type BlockImport[H runtime.Hash, N runtime.Number] interface {
 	/// Check block preconditions.
 	CheckBlock(block BlockCheckParams[H, N]) (ImportResult, error)
 	/// Import a block.
-	ImportBlock(block BlockImportParams[H, N]) (ImportResult, error)
+	ImportBlock(block *BlockImportParams[H, N]) (ImportResult, error)
 }
 
 // Data required to check validity of a Block.
@@ -100,8 +99,21 @@ type StateAction interface {
 
 type (
 	// Apply precomputed changes coming from block execution or state sync.
-	ApplyChanges struct{}
+	StateActionApplyChanges struct {
+		StorageChanges
+	}
+	// Execute block body (required) and compute state.
+	StateActionExecute struct{}
+	// Execute block body if parent state is available and compute state.
+	StateActionExecuteIfPossible struct{}
+	// Don't execute or import state.
+	StateActionSkip struct{}
 )
+
+func (StateActionApplyChanges) isStateAction()      {}
+func (StateActionExecute) isStateAction()           {}
+func (StateActionExecuteIfPossible) isStateAction() {}
+func (StateActionSkip) isStateAction()              {}
 
 // Fork choice strategy.
 type ForkChoiceStrategy interface {
