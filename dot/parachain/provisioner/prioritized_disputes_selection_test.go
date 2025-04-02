@@ -52,7 +52,7 @@ func makeValidCandidateDescriptorV2(
 	return &parachaintypes.CandidateDescriptorV2{
 		ParaID:                      paraID,
 		RelayParent:                 relayParent,
-		Version:                     0,
+		CurrentVersion:              0,
 		CoreIndex:                   uint16(coreIndex.Index),
 		SessionIndex:                sessionIndex,
 		Reserved1:                   [25]uint8{},
@@ -96,7 +96,7 @@ func dummyCandidateCommitment(hd parachaintypes.HeadData) *parachaintypes.Candid
 // TODO: this should be a common test function
 func dummyCandidateReceiptV2(relayParent common.Hash) *parachaintypes.CandidateReceiptV2 {
 	return &parachaintypes.CandidateReceiptV2{
-		Descriptor:      dummyCandidateDescriptorV2(relayParent),
+		Descriptor:      *dummyCandidateDescriptorV2(relayParent),
 		CommitmentsHash: dummyCandidateCommitment(parachaintypes.HeadData{}).Hash(),
 	}
 }
@@ -109,7 +109,7 @@ func rebuildCollatorField(v2 *parachaintypes.CandidateReceiptV2) parachaintypes.
 	binary.NativeEndian.PutUint16(coreIdx, v2.Descriptor.CoreIndex)
 	binary.NativeEndian.PutUint32(sessionIdx, uint32(v2.Descriptor.SessionIndex))
 
-	collatorID = append(collatorID, v2.Descriptor.Version)
+	collatorID = append(collatorID, v2.Descriptor.CurrentVersion)
 	collatorID = append(collatorID, coreIdx...)
 	collatorID = append(collatorID, sessionIdx...)
 	collatorID = append(collatorID, v2.Descriptor.Reserved1[:]...)
