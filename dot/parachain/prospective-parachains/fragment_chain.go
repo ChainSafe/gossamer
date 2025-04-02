@@ -41,7 +41,7 @@ type candidateEntry struct {
 
 func newCandidateEntry(
 	candidateHash parachaintypes.CandidateHash,
-	candidate parachaintypes.CommittedCandidateReceipt,
+	candidate parachaintypes.CommittedCandidateReceiptV2,
 	persistedValidationData parachaintypes.PersistedValidationData,
 	state candidateState,
 ) (*candidateEntry, error) {
@@ -133,7 +133,7 @@ func newCandidateStorage() *candidateStorage {
 
 func (c *candidateStorage) addPendingAvailabilityCandidate(
 	candidateHash parachaintypes.CandidateHash,
-	candidate parachaintypes.CommittedCandidateReceipt,
+	candidate parachaintypes.CommittedCandidateReceiptV2,
 	persistedValidationData parachaintypes.PersistedValidationData,
 ) error {
 	entry, err := newCandidateEntry(candidateHash, candidate, persistedValidationData, backed)

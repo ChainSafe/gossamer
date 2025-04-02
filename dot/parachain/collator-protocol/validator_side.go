@@ -266,9 +266,9 @@ func (cpvs *CollatorProtocolValidatorSide) assignIncoming(relayParent common.Has
 
 	switch c := coreNow.(type) {
 	case parachaintypes.OccupiedCore:
-		*paraNow = c.CandidateDescriptor.ParaID
+		paraNow = &c.CandidateDescriptor.ParaID
 	case parachaintypes.ScheduledCore:
-		*paraNow = c.ParaID
+		paraNow = &c.ParaID
 	case parachaintypes.Free:
 		// Nothing to do in case of free
 
@@ -472,7 +472,7 @@ func (peerData *PeerData) InsertAdvertisement(
 		if relayParentMode.IsEnabled {
 			// relayParentMode.maxCandidateDepth
 			candidates, ok := peerData.state.CollatingPeerState.advertisements[onRelayParent]
-			if ok && slices.Contains[[]parachaintypes.CandidateHash](candidates, *candidateHash) {
+			if ok && slices.Contains(candidates, *candidateHash) {
 				return false, ErrDuplicateAdvertisement
 			}
 
@@ -622,13 +622,11 @@ type fetchedCollationInfo struct {
 	relayParent   common.Hash
 	paraID        parachaintypes.ParaID
 	candidateHash parachaintypes.CandidateHash
-	// Id of the collator the collation was fetched from
-	collatorID parachaintypes.CollatorID
 }
 
 func (f fetchedCollationInfo) String() string {
-	return fmt.Sprintf("relay parent: %s, para id: %d, candidate hash: %s, collator id: %+v",
-		f.relayParent.String(), f.paraID, f.candidateHash.Value.String(), f.collatorID)
+	return fmt.Sprintf("relay parent: %s, para id: %d, candidate hash: %s",
+		f.relayParent.String(), f.paraID, f.candidateHash.Value.String())
 }
 
 func fetchedCandidateFromString(str string) (fetchedCollationInfo, error) {
@@ -667,7 +665,6 @@ func fetchedCandidateFromString(str string) (fetchedCollationInfo, error) {
 		relayParent:   relayParent,
 		paraID:        parachaintypes.ParaID(paraID),
 		candidateHash: candidateHash,
-		collatorID:    collatorID,
 	}, nil
 }
 
@@ -767,12 +764,9 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 	case networkbridgeevents.Event[collatorprotocolmessages.CollationProtocol]:
 		return cpvs.handleNetworkBridgeEvents(msg.Inner)
 	case collatorprotocolmessages.Seconded:
-		index, statementV, err := msg.Stmt.Payload.IndexValue()
+		_, statementV, err := msg.Stmt.Payload.IndexValue()
 		if err != nil {
 			return fmt.Errorf("getting value of statement: %w", err)
-		}
-		if index != 1 {
-			return fmt.Errorf("expected a seconded statement")
 		}
 
 		receipt, ok := statementV.(parachaintypes.Seconded)
@@ -780,7 +774,7 @@ func (cpvs CollatorProtocolValidatorSide) processMessage(msg any) error {
 			return fmt.Errorf("statement value expected: Seconded, got: %T", statementV)
 		}
 
-		candidateReceipt := parachaintypes.CommittedCandidateReceipt(receipt)
+		candidateReceipt := parachaintypes.CommittedCandidateReceiptV2(receipt)
 
 		fetchedCollation, err := newFetchedCollationInfo(candidateReceipt.ToPlain())
 		if err != nil {
@@ -943,7 +937,7 @@ func (cpvs CollatorProtocolValidatorSide) requestUnblockedCollations(backed coll
 	return nil
 }
 
-func newFetchedCollationInfo(candidateReceipt parachaintypes.CandidateReceipt) (*fetchedCollationInfo, error) {
+func newFetchedCollationInfo(candidateReceipt parachaintypes.CandidateReceiptV2) (*fetchedCollationInfo, error) {
 	candidateHash, err := candidateReceipt.Hash()
 	if err != nil {
 		return nil, fmt.Errorf("getting candidate hash: %w", err)
@@ -951,7 +945,6 @@ func newFetchedCollationInfo(candidateReceipt parachaintypes.CandidateReceipt) (
 	return &fetchedCollationInfo{
 		paraID:      candidateReceipt.Descriptor.ParaID,
 		relayParent: candidateReceipt.Descriptor.RelayParent,
-		collatorID:  candidateReceipt.Descriptor.Collator,
 		candidateHash: parachaintypes.CandidateHash{
 			Value: candidateHash,
 		},

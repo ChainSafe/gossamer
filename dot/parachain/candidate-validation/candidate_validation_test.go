@@ -28,7 +28,7 @@ var (
 )
 
 func createTestCandidateReceiptAndValidationCodeWParaId(t *testing.T, id parachaintypes.ParaID) (
-	parachaintypes.CandidateReceipt, parachaintypes.ValidationCode) {
+	parachaintypes.CandidateReceiptV2, parachaintypes.ValidationCode) {
 	t.Helper()
 	// this wasm was achieved by building polkadot's adder test parachain
 	runtimeFilePath := "./testdata/test_parachain_adder.wasm"
@@ -55,7 +55,7 @@ func createTestCandidateReceiptAndValidationCodeWParaId(t *testing.T, id paracha
 		CommitmentsHash: common.MustHexToHash("0x4ddce2e9ed80f386cdbba4b42f5de76957d5fbf9f093258d6048e9218d1fe98d"),
 	}
 
-	return candidateReceipt, validationCode
+	return candidateReceipt.V2(), validationCode
 }
 
 func makeValidCandidateDescriptor(t *testing.T, paraID parachaintypes.ParaID, relayParent common.Hash,
