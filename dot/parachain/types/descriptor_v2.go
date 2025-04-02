@@ -22,6 +22,24 @@ const (
 
 var ErrUnknownCandidateDescriptorVersion = fmt.Errorf("unknown candidate descriptor version")
 
+const defaultClaimQueueOffset byte = 0
+
+// CommittedCandidateReceiptError represents various error cases when checking committed candidate receipt
+type CommittedCandidateReceiptError string
+
+const (
+	ErrCoreIndexMismatch           CommittedCandidateReceiptError = "core index mismatch"
+	ErrCoreSelectorWithV1Decriptor CommittedCandidateReceiptError = "core selector with v1 descriptor"
+	ErrNoCoreAssigned              CommittedCandidateReceiptError = "no core assigned for parachain"
+	ErrNoCoreAssignedAtDepth       CommittedCandidateReceiptError = "no core assigned at specified claim queue offset"
+	ErrInvalidCoreIndex            CommittedCandidateReceiptError = "invalid core index"
+	ErrInvalidSelectedCore         CommittedCandidateReceiptError = "invalid selected core" // TODO: // change the error message
+)
+
+func (e CommittedCandidateReceiptError) Error() string {
+	return string(e)
+}
+
 // CandidateDescriptorV2 is a descriptor for a parachain candidate.
 // NOTE: This type is backward compatible with CandidateDescriptor.
 type CandidateDescriptorV2 struct {
@@ -193,6 +211,86 @@ func (ccr CommittedCandidateReceiptV2) Hash() (common.Hash, error) {
 	return ccr.ToPlain().Hash()
 }
 
+func (ccr CommittedCandidateReceiptV2) CheckCoreIndex(coresPerPara TransposedClaimQueue) error {
+	selectCore, err := ccr.Commitments.CoreSelector()
+	if err != nil {
+		return fmt.Errorf("getting core selector: %w", err)
+	}
+
+	descriptorVersion, err := ccr.Descriptor.Version()
+	if err != nil {
+		return fmt.Errorf("getting descriptor version: %w", err)
+	}
+
+	if descriptorVersion == CandidateDescriptorVersion1 {
+		// If the parachain runtime started sending core selectors, v1 descriptors are no longer allowed
+		if selectCore != nil {
+			return ErrCoreSelectorWithV1Decriptor
+		}
+		return nil
+	}
+
+	// Default claim queue offset if no core selector
+	claimQueueOffset := defaultClaimQueueOffset
+	var coreIndexSelector *byte
+
+	if selectCore != nil {
+		coreIndexSelector = &selectCore.CoreSelector
+		claimQueueOffset = selectCore.ClaimQueueOffset
+	}
+
+	// Get assigned cores for the para
+	coresAtDepth, exists := coresPerPara[ccr.Descriptor.ParaID]
+	if !exists {
+		return ErrNoCoreAssigned
+	}
+
+	assignedCores, exists := coresAtDepth[claimQueueOffset]
+	if !exists || len(assignedCores) == 0 {
+		return ErrNoCoreAssignedAtDepth
+	}
+
+	descriptorCoreIndex := CoreIndex{Index: uint32(ccr.Descriptor.CoreIndex)}
+
+	// Handle case with no core selector
+	if coreIndexSelector == nil {
+		if len(assignedCores) > 1 {
+			// Check if descriptor core index is among assigned cores
+			if _, exists := assignedCores[descriptorCoreIndex]; !exists {
+				return ErrInvalidCoreIndex
+			}
+
+			// the descriptor core index is indeed assigned to the parachain.
+			return nil
+		}
+
+		// No core selector but only one assigned core, use index 0
+		coreIndexSelector = new(byte)
+		*coreIndexSelector = 0
+	}
+
+	// Get the core index from assigned cores using selector
+	selectedIdx := int(*coreIndexSelector) % len(assignedCores)
+	if selectedIdx >= len(assignedCores) {
+		return ErrInvalidSelectedCore
+	}
+
+	// TODO: fetch core index at selectedIdx from assignedCores
+	/*
+		Rust code:
+				let core_index = assigned_cores
+				.iter()
+				.nth(core_index_selector.0 as usize % assigned_cores.len())
+				.ok_or(CommittedCandidateReceiptError::InvalidSelectedCore)
+				.copied()?;
+
+			if core_index != descriptor_core_index {
+				return Err(CommittedCandidateReceiptError::CoreIndexMismatch)
+			}
+	*/
+	return nil
+}
+
 func (ccrV1 CommittedCandidateReceipt) V2() CommittedCandidateReceiptV2 {
 	return CommittedCandidateReceiptV2{
 		Descriptor:  ccrV1.Descriptor.V2(),
@@ -226,4 +324,52 @@ func (crV1 CandidateReceipt) V2() CandidateReceiptV2 {
 	}
 
 	return crV2
+}
+
+type SelectCore struct {
+	CoreSelector     byte `scale:"1"`
+	ClaimQueueOffset byte `scale:"2"`
+}
+
+type UMPSignal struct {
+	inner any
+}
+
+type UMPSignalValues interface {
+	SelectCore
+}
+
+func setUMPSignal[Value UMPSignalValues](mvdt *UMPSignal, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *UMPSignal) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case SelectCore:
+		setUMPSignal(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt UMPSignal) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case SelectCore:
+		return 0, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt UMPSignal) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt UMPSignal) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return SelectCore{}, nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }

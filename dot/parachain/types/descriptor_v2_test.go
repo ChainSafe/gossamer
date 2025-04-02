@@ -57,3 +57,20 @@ func TestCandidateDescriptorV2_BackwardCompatibility(t *testing.T) {
 
 	require.Equal(t, encodedV1, encodedV2)
 }
+
+func TestUMPSignal(t *testing.T) {
+	t.Parallel()
+
+	ump := UMPSignal{}
+	err := ump.SetValue(SelectCore{10, 20})
+	require.NoError(t, err)
+
+	encoded, err := scale.Marshal(ump)
+	require.NoError(t, err)
+	require.Equal(t, []byte{0, 10, 20}, encoded)
+
+	ump2 := UMPSignal{}
+	err = scale.Unmarshal(encoded, &ump2)
+	require.NoError(t, err)
+	require.Equal(t, ump, ump2)
+}

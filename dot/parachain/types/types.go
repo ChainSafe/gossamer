@@ -316,6 +316,56 @@ func (cc CandidateCommitments) Hash() common.Hash {
 	return common.MustBlake2bHash(scale.MustMarshal(cc))
 }
 
+// ErrInvalidUMPSignal represents an error when the UMP signal is invalid
+var ErrInvalidUMPSignal = fmt.Errorf("invalid UMP signal")
+
+// CoreSelector extracts the core selector and claim queue offset from upward messages.
+// Returns nil if no selector is found.
+func (cc CandidateCommitments) CoreSelector() (*SelectCore, error) {
+	if len(cc.UpwardMessages) == 0 {
+		return nil, nil
+	}
+
+	// Find separator index
+	separatorIdx := -1
+	for i, message := range cc.UpwardMessages {
+		if bytes.Equal(message, []byte{}) { // empty message indicates a separator
+			separatorIdx = i
+			break
+		}
+	}
+
+	// No separator found
+	if separatorIdx == -1 {
+		return nil, nil
+	}
+
+	// Validate signal count
+	expectedSignalCount := separatorIdx + 2
+	if len(cc.UpwardMessages) != expectedSignalCount {
+		return nil, fmt.Errorf("%w: expected exactly one signal after separator", ErrInvalidUMPSignal)
+	}
+
+	// Decode and validate signal
+	signal := cc.UpwardMessages[separatorIdx+1]
+	var umpSignal UMPSignal
+	if err := scale.Unmarshal(signal, &umpSignal); err != nil {
+		return nil, fmt.Errorf("decoding UMP signal: %w", err)
+	}
+
+	signalVal, err := umpSignal.Value()
+	if err != nil {
+		return nil, fmt.Errorf("getting UMP signal value: %w", err)
+	}
+
+	selectCore, ok := signalVal.(SelectCore)
+	if !ok {
+		return nil, fmt.Errorf("%w: expected SelectCore signal", ErrInvalidUMPSignal)
+	}
+
+	return &selectCore, nil
+}
+
 // SessionIndex is a session index.
 type SessionIndex uint32
 
@@ -867,7 +917,39 @@ type NodeFeatureIndex byte
 // are backed. This is needed for the elastic scaling MVP.
 const ElasticScalingMVP NodeFeatureIndex = 1
 
+// TransposedClaimQueue represents a mapping between ParaID and the cores assigned per depth
+//
+// TODO: use btree map in this and claimQueue both types.
+type TransposedClaimQueue map[ParaID]map[uint8]map[CoreIndex]struct{}
+
 type ClaimQueue map[CoreIndex][]ParaID
+
+func (c ClaimQueue) TransposedClaimQueue() TransposedClaimQueue {
+	transposedClaimQueue := make(TransposedClaimQueue)
+
+	for core, paras := range c {
+		for depth, para := range paras {
+			// Get or initialize the cores per depth map for this para
+			coresPerDepth, exists := transposedClaimQueue[para]
+			if !exists {
+				coresPerDepth = make(map[uint8]map[CoreIndex]struct{})
+				transposedClaimQueue[para] = coresPerDepth
+			}
+
+			// Get or initialize the core index set for this depth
+			coreSet, exists := coresPerDepth[uint8(depth)]
+			if !exists {
+				coreSet = make(map[CoreIndex]struct{})
+				coresPerDepth[uint8(depth)] = coreSet
+			}
+
+			// Add the core to the set
+			coreSet[core] = struct{}{}
+		}
+	}
+
+	return transposedClaimQueue
+}
 
 // Present is a variant of UpgradeRestriction enumerator that signals
 // a upgrade restriction is present and there are no details about its
