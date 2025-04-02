@@ -306,7 +306,7 @@ func TestStatementTable_importCandidate(t *testing.T) {
 	candidateHash, err := parachaintypes.GetCandidateHash(candidate)
 	require.NoError(t, err)
 
-	oldCandidate := parachaintypes.CommittedCandidateReceipt{}
+	oldCandidate := parachaintypes.CommittedCandidateReceiptV2{}
 	oldCandidateHash, err := parachaintypes.GetCandidateHash(oldCandidate)
 	require.NoError(t, err)
 

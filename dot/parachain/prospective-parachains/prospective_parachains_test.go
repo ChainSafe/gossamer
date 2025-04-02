@@ -20,7 +20,7 @@ import (
 func introduceSecondedCandidate(
 	t *testing.T,
 	overseerToSubsystem chan any,
-	candidate parachaintypes.CommittedCandidateReceipt,
+	candidate parachaintypes.CommittedCandidateReceiptV2,
 	pvd parachaintypes.PersistedValidationData,
 ) {
 	req := messages.IntroduceSecondedCandidateRequest{
@@ -44,7 +44,7 @@ func introduceSecondedCandidate(
 func introduceSecondedCandidateFailed(
 	t *testing.T,
 	overseerToSubsystem chan any,
-	candidate parachaintypes.CommittedCandidateReceipt,
+	candidate parachaintypes.CommittedCandidateReceiptV2,
 	pvd parachaintypes.PersistedValidationData,
 ) {
 	req := messages.IntroduceSecondedCandidateRequest{
@@ -260,7 +260,7 @@ func makeCandidate(
 	parentHead parachaintypes.HeadData,
 	headData parachaintypes.HeadData,
 	validationCodeHash parachaintypes.ValidationCodeHash,
-) parachaintypes.CommittedCandidateReceipt {
+) parachaintypes.CommittedCandidateReceiptV2 {
 	pvd := dummyPVD(parentHead, relayParentNumber)
 
 	commitments := parachaintypes.CandidateCommitments{
@@ -291,7 +291,7 @@ func makeCandidate(
 		Commitments: commitments,
 	}
 
-	return result
+	return result.V2()
 }
 
 func padTo32Bytes(input []byte) common.Hash {

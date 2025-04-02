@@ -271,7 +271,7 @@ func (rpState *perRelayParentState) importSecondedStatement(
 	perCandidate map[parachaintypes.CandidateHash]*perCandidateState,
 	statement parachaintypes.Seconded,
 ) (*Summary, error) {
-	committedCandidateReceipt := parachaintypes.CommittedCandidateReceipt(statement)
+	committedCandidateReceipt := parachaintypes.CommittedCandidateReceiptV2(statement)
 	candidateHash, err := parachaintypes.GetCandidateHash(committedCandidateReceipt)
 	if err != nil {
 		return nil, fmt.Errorf("getting candidate hash: %w", err)
@@ -304,7 +304,7 @@ func (rpState *perRelayParentState) importSecondedStatement(
 // introduceCandidate sends a message to the Prospective Parachains subsystem to introduce a candidate.
 func (rpState *perRelayParentState) introduceCandidate(
 	subSystemToOverseer chan<- any,
-	committedCandidateReceipt parachaintypes.CommittedCandidateReceipt,
+	committedCandidateReceipt parachaintypes.CommittedCandidateReceiptV2,
 	persistedValidationData *parachaintypes.PersistedValidationData,
 ) error {
 	paraID := committedCandidateReceipt.Descriptor.ParaID
@@ -463,7 +463,7 @@ func (rpState *perRelayParentState) validateAndMakeAvailable(
 	blockState BlockState,
 	subSystemToOverseer chan<- any,
 	chRelayParentAndCommand chan relayParentAndCommand,
-	candidateReceipt parachaintypes.CandidateReceipt,
+	candidateReceipt parachaintypes.CandidateReceiptV2,
 	pvd parachaintypes.PersistedValidationData,
 	pov parachaintypes.PoV,
 	numValidator uint32,

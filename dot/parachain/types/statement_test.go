@@ -63,7 +63,7 @@ func TestStatementVDT(t *testing.T) {
 			Signature:                   collatorSignature,
 			ParaHead:                    hash5,
 			ValidationCodeHash:          ValidationCodeHash(hash5),
-		},
+		}.V2(),
 		Commitments: CandidateCommitments{
 			UpwardMessages:    []UpwardMessage{{1, 2, 3}},
 			NewValidationCode: &ValidationCode{1, 2, 3},

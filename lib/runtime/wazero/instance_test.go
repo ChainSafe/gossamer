@@ -1822,10 +1822,10 @@ func TestInstance_ParachainHostParaBackingState(t *testing.T) {
 					ParaID: 1001,
 					RelayParent: common.MustHexToHash(
 						"0x40b834a772284d4e27a66564bd63e2a03f0711f67d7751bcad172dac4f73b11f"),
-					Version:      240,
-					CoreIndex:    57316,
-					SessionIndex: 1906958206,
-					Reserved1:    [25]uint8(common.MustHexToBytes("0x27de1f4ef0afe2b4837f42aaf29690236b6bdb60c85b1d5b32")),
+					CurrentVersion: 240,
+					CoreIndex:      57316,
+					SessionIndex:   1906958206,
+					Reserved1:      [25]uint8(common.MustHexToBytes("0x27de1f4ef0afe2b4837f42aaf29690236b6bdb60c85b1d5b32")),
 					PersistedValidationDataHash: common.MustHexToHash(
 						"0x0157d5bc5c7d6a6bccf367fd61ef2151c58bf4b401e1fa00db83f55387658a7e"),
 					PovHash:     common.MustHexToHash("0xf831bcc17aa290dad89ac3ca6a0a5370baf95937728cfac4a089474ca1229cc7"),

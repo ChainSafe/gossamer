@@ -72,7 +72,7 @@ func TestStatementDistributionMessage(t *testing.T) {
 			Signature:                   collatorSignature,
 			ParaHead:                    hash5,
 			ValidationCodeHash:          parachaintypes.ValidationCodeHash(hash5),
-		},
+		}.V2(),
 		Commitments: parachaintypes.CandidateCommitments{
 			UpwardMessages:    []parachaintypes.UpwardMessage{{1, 2, 3}},
 			NewValidationCode: &parachaintypes.ValidationCode{1, 2, 3},
