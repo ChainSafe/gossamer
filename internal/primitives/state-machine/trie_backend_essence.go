@@ -12,6 +12,7 @@ import (
 
 	hashdb "github.com/ChainSafe/gossamer/internal/hash-db"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie/cache"
@@ -32,7 +33,7 @@ const (
 // A raw iterator over the storage.
 type rawIter[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	stopOnImcompleteDatabase bool
-	skipIfFirst              StorageKey
+	skipIfFirst              overlayedchanges.StorageKey
 	root                     H
 	childInfo                storage.ChildInfo
 	trieIter                 triedb.TrieDBRawIterator[H, Hasher]
@@ -67,7 +68,7 @@ func prepare[H runtime.Hash, Hasher runtime.Hasher[H], R any](
 	return nil, nil
 }
 
-func (ri *rawIter[H, Hasher]) NextKey(backend *TrieBackend[H, Hasher]) (StorageKey, error) {
+func (ri *rawIter[H, Hasher]) NextKey(backend *TrieBackend[H, Hasher]) (overlayedchanges.StorageKey, error) {
 	skipIfFirst := ri.skipIfFirst
 	ri.skipIfFirst = nil
 
@@ -95,18 +96,19 @@ func (ri *rawIter[H, Hasher]) NextKey(backend *TrieBackend[H, Hasher]) (StorageK
 	if key == nil {
 		return nil, err
 	}
-	storageKey := StorageKey(*key)
+	storageKey := overlayedchanges.StorageKey(*key)
 	return storageKey, nil
 }
 
-func (ri *rawIter[H, Hasher]) NextKeyValue(backend *TrieBackend[H, Hasher]) (*StorageKeyValue, error) {
+func (ri *rawIter[H, Hasher]) NextKeyValue(backend *TrieBackend[H, Hasher]) (*overlayedchanges.StorageKeyValue, error) {
 	skipIfFirst := ri.skipIfFirst
 	ri.skipIfFirst = nil
 
-	pair, err := prepare[H, Hasher, StorageKeyValue](
+	pair, err := prepare(
 		ri,
 		&backend.essence,
-		func(trie *triedb.TrieDB[H, Hasher], trieIter *triedb.TrieDBRawIterator[H, Hasher]) (*StorageKeyValue, error) {
+		func(trie *triedb.TrieDB[H, Hasher], trieIter *triedb.TrieDBRawIterator[H, Hasher]) (
+			*overlayedchanges.StorageKeyValue, error) {
 			result, err := trieIter.NextItem()
 			if err != nil {
 				return nil, err
@@ -122,7 +124,7 @@ func (ri *rawIter[H, Hasher]) NextKeyValue(backend *TrieBackend[H, Hasher]) (*St
 				}
 			}
 			if result != nil {
-				return &StorageKeyValue{result.Key, result.Value}, nil
+				return &overlayedchanges.StorageKeyValue{StorageKey: result.Key, StorageValue: result.Value}, nil
 			}
 			return nil, nil
 		})
@@ -302,7 +304,7 @@ func (tbe *trieBackendEssence[H, Hasher]) childRoot(childInfo storage.ChildInfo)
 // key in lexicographic order.
 func (tbe *trieBackendEssence[H, Hasher]) NextChildStorageKey(
 	childInfo storage.ChildInfo, key []byte,
-) (StorageKey, error) {
+) (overlayedchanges.StorageKey, error) {
 	childRoot, err := tbe.childRoot(childInfo)
 	if err != nil {
 		return nil, err
@@ -317,7 +319,7 @@ func (tbe *trieBackendEssence[H, Hasher]) NextChildStorageKey(
 // Return next key from main trie or child trie by providing corresponding root.
 func (tbe *trieBackendEssence[H, Hasher]) NextStorageKeyFromRoot(
 	root H, childInfo storage.ChildInfo, key []byte,
-) (StorageKey, error) {
+) (overlayedchanges.StorageKey, error) {
 	var err error
 	var nextKey []byte
 	withTrieDB(tbe, root, childInfo, func(trie *triedb.TrieDB[H, Hasher]) {
@@ -354,7 +356,7 @@ func (tbe *trieBackendEssence[H, Hasher]) NextStorageKeyFromRoot(
 }
 
 // Get the value of storage at given key.
-func (tbe *trieBackendEssence[H, Hasher]) Storage(key []byte) (val StorageValue, err error) {
+func (tbe *trieBackendEssence[H, Hasher]) Storage(key []byte) (val overlayedchanges.StorageValue, err error) {
 	withRecorderAndCache(tbe, nil, func(recorder triedb.TrieRecorder, cache triedb.TrieCache[H]) {
 		val, err = trie.ReadTrieValue[H, Hasher](tbe, tbe.root, key, recorder, cache, triedb.V1)
 	})
@@ -373,7 +375,8 @@ func (tbe *trieBackendEssence[H, Hasher]) StorageHash(key []byte) (hash *H, err 
 }
 
 // Get the value of child storage at given key.
-func (tbe *trieBackendEssence[H, Hasher]) ChildStorage(childInfo storage.ChildInfo, key []byte) (StorageValue, error) {
+func (tbe *trieBackendEssence[H, Hasher]) ChildStorage(childInfo storage.ChildInfo, key []byte) (
+	overlayedchanges.StorageValue, error) {
 	var childRoot H
 	root, err := tbe.childRoot(childInfo)
 	if err != nil {
@@ -384,7 +387,7 @@ func (tbe *trieBackendEssence[H, Hasher]) ChildStorage(childInfo storage.ChildIn
 	}
 	childRoot = *root
 
-	var val StorageValue
+	var val overlayedchanges.StorageValue
 	withRecorderAndCache(tbe, &childRoot, func(recorder triedb.TrieRecorder, cache triedb.TrieCache[H]) {
 		val, err = trie.ReadChildTrieValue[H, Hasher](
 			childInfo.Keyspace(),
@@ -496,10 +499,10 @@ func (tbe *trieBackendEssence[H, Hasher]) RawIter(args IterArgs) (*rawIter[H, Ha
 		return &rawIter[H, Hasher]{}, err
 	}
 
-	var skipIfFirst StorageKey
+	var skipIfFirst overlayedchanges.StorageKey
 	if args.StartAtExclusive {
 		if args.StartAt != nil {
-			storageKey := StorageKey(args.StartAt)
+			storageKey := overlayedchanges.StorageKey(args.StartAt)
 			skipIfFirst = storageKey
 		}
 	}

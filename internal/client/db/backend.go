@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
+	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
@@ -131,15 +132,15 @@ type BlockImportOperation[
 ] struct {
 	oldState               refTrackingState[H, Hasher]
 	dbUpdates              trie.PrefixedMemoryDB[H, Hasher]
-	storageUpdates         statemachine.StorageCollection
-	childStorageUpdates    statemachine.ChildStorageCollection
-	offchainStorageUpdates statemachine.OffchainChangesCollection
+	storageUpdates         overlayedchanges.StorageCollection
+	childStorageUpdates    overlayedchanges.ChildStorageCollection
+	offchainStorageUpdates overlayedchanges.OffchainChangesCollection
 	pendingBlock           *pendingBlock[H, N, Header, E] // can be nil to represent no pending block
 	auxOps                 api.AuxDataOperations
 	finalizedBlocks        []finalizedBlock[H]
 	setHead                *H // can be nil to represent no head
 	commitState            bool
-	indexOps               []statemachine.IndexOperation
+	indexOps               []overlayedchanges.IndexOperation
 }
 
 func (bio *BlockImportOperation[H, Hasher, N, Header, E]) applyOffchain(transaction *database.Transaction[hash.H256]) {
@@ -274,7 +275,7 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) ResetStorage(
 }
 
 func (bio *BlockImportOperation[H, Hasher, N, Header, E]) UpdateStorage(
-	update statemachine.StorageCollection, childUpdate statemachine.ChildStorageCollection,
+	update overlayedchanges.StorageCollection, childUpdate overlayedchanges.ChildStorageCollection,
 ) error {
 	bio.storageUpdates = update
 	bio.childStorageUpdates = childUpdate
@@ -282,7 +283,7 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) UpdateStorage(
 }
 
 func (bio *BlockImportOperation[H, Hasher, N, Header, E]) UpdateOffchainStorage(
-	offchainUpdate statemachine.OffchainChangesCollection,
+	offchainUpdate overlayedchanges.OffchainChangesCollection,
 ) error {
 	bio.offchainStorageUpdates = offchainUpdate
 	return nil
@@ -309,7 +310,7 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) MarkHead(hash H) error
 }
 
 func (bio *BlockImportOperation[H, Hasher, N, Header, E]) UpdateTransactionIndex(
-	indexOps []statemachine.IndexOperation,
+	indexOps []overlayedchanges.IndexOperation,
 ) error {
 	bio.indexOps = indexOps
 	return nil
@@ -1238,7 +1239,7 @@ func applyStateCommit(transaction *database.Transaction[hash.H256], commit state
 }
 
 func applyIndexOps[E runtime.Extrinsic](
-	transaction *database.Transaction[hash.H256], body []E, ops []statemachine.IndexOperation,
+	transaction *database.Transaction[hash.H256], body []E, ops []overlayedchanges.IndexOperation,
 ) []byte {
 	var extrinsicIndex []dbExtrinsic[E]
 	indexMap := make(map[uint32]struct {
@@ -1248,12 +1249,12 @@ func applyIndexOps[E runtime.Extrinsic](
 	renewedMap := make(map[uint32]hash.H256)
 	for _, op := range ops {
 		switch op := op.(type) {
-		case statemachine.IndexOperationInsert:
+		case overlayedchanges.IndexOperationInsert:
 			indexMap[op.Extrinsic] = struct {
 				Hash []byte
 				Size uint32
 			}{Hash: op.Hash, Size: op.Size}
-		case statemachine.IndexOperationRenew:
+		case overlayedchanges.IndexOperationRenew:
 			renewedMap[op.Extrinsic] = hash.H256(op.Hash)
 		default:
 			panic("unreachable")
@@ -1322,14 +1323,14 @@ func (b *Backend[H, Hasher, N, E, Header]) beginOperation() *BlockImportOperatio
 		pendingBlock:           nil,
 		oldState:               b.emptyState(),
 		dbUpdates:              *trie.NewPrefixedMemoryDB[H, Hasher](),
-		storageUpdates:         make(statemachine.StorageCollection, 0),
-		childStorageUpdates:    make(statemachine.ChildStorageCollection, 0),
-		offchainStorageUpdates: make(statemachine.OffchainChangesCollection, 0),
+		storageUpdates:         make(overlayedchanges.StorageCollection, 0),
+		childStorageUpdates:    make(overlayedchanges.ChildStorageCollection, 0),
+		offchainStorageUpdates: make(overlayedchanges.OffchainChangesCollection, 0),
 		auxOps:                 make(api.AuxDataOperations, 0),
 		finalizedBlocks:        make([]finalizedBlock[H], 0),
 		setHead:                nil,
 		commitState:            false,
-		indexOps:               make([]statemachine.IndexOperation, 0),
+		indexOps:               make([]overlayedchanges.IndexOperation, 0),
 	}
 }
 

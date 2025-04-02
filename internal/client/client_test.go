@@ -17,7 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
-	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
+	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -241,17 +241,17 @@ func TestBlockchainEvents(t *testing.T) {
 			&BlockImportOperation{},
 			api.BothBlockImportNotificationAction,
 			&api.StorageChanges{
-				StorageCollection: statemachine.StorageCollection{
-					{StorageKey: statemachine.StorageKey("top0"), StorageValue: statemachine.StorageValue("top0")},
+				StorageCollection: overlayedchanges.StorageCollection{
+					{StorageKey: overlayedchanges.StorageKey("top0"), StorageValue: overlayedchanges.StorageValue("top0")},
 				},
 				ChildStorageCollection: []struct {
-					statemachine.StorageKey
-					statemachine.StorageCollection
+					overlayedchanges.StorageKey
+					overlayedchanges.StorageCollection
 				}{
 					{
-						StorageKey: statemachine.StorageKey("child0"),
-						StorageCollection: statemachine.StorageCollection{
-							{StorageKey: statemachine.StorageKey("child0"), StorageValue: statemachine.StorageValue("child0")},
+						StorageKey: overlayedchanges.StorageKey("child0"),
+						StorageCollection: overlayedchanges.StorageCollection{
+							{StorageKey: overlayedchanges.StorageKey("child0"), StorageValue: overlayedchanges.StorageValue("child0")},
 						},
 					},
 				},

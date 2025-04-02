@@ -5,6 +5,7 @@ package statemachine
 
 import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
 )
@@ -25,7 +26,7 @@ func NewMemoryDBTrieBackend[H runtime.Hash, Hasher runtime.Hasher[H]]() MemoryDB
 
 type change struct {
 	storage.ChildInfo // can be nil
-	StorageCollection
+	overlayedchanges.StorageCollection
 }
 
 func (tb *MemoryDBTrieBackend[H, Hasher]) clone() MemoryDBTrieBackend[H, Hasher] {

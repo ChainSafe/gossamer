@@ -7,6 +7,7 @@ import (
 	"iter"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
@@ -40,10 +41,10 @@ type IterArgs struct {
 // StorageIterator is the interface for a raw storage iterator.
 type StorageIterator[Hash runtime.Hash, Hasher runtime.Hasher[Hash]] interface {
 	// Fetches the next key from the storage.
-	NextKey(backend *TrieBackend[Hash, Hasher]) (StorageKey, error)
+	NextKey(backend *TrieBackend[Hash, Hasher]) (overlayedchanges.StorageKey, error)
 
 	// Fetches the next key and value from the storage.
-	NextKeyValue(backend *TrieBackend[Hash, Hasher]) (*StorageKeyValue, error)
+	NextKeyValue(backend *TrieBackend[Hash, Hasher]) (*overlayedchanges.StorageKeyValue, error)
 
 	// Returns whether the end of iteration was reached without an error.
 	Complete() bool
@@ -55,12 +56,12 @@ type PairsIter[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	rawIter StorageIterator[H, Hasher]
 }
 
-func (pi *PairsIter[H, Hasher]) Next() (*StorageKeyValue, error) {
+func (pi *PairsIter[H, Hasher]) Next() (*overlayedchanges.StorageKeyValue, error) {
 	return pi.rawIter.NextKeyValue(pi.backend)
 }
 
-func (pi *PairsIter[H, Hasher]) All() iter.Seq2[StorageKeyValue, error] {
-	return func(yield func(StorageKeyValue, error) bool) {
+func (pi *PairsIter[H, Hasher]) All() iter.Seq2[overlayedchanges.StorageKeyValue, error] {
+	return func(yield func(overlayedchanges.StorageKeyValue, error) bool) {
 		for {
 			item, err := pi.Next()
 			if err != nil {
@@ -82,12 +83,12 @@ type KeysIter[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	rawIter StorageIterator[H, Hasher]
 }
 
-func (ki *KeysIter[H, Hasher]) Next() (StorageKey, error) {
+func (ki *KeysIter[H, Hasher]) Next() (overlayedchanges.StorageKey, error) {
 	return ki.rawIter.NextKey(ki.backend)
 }
 
-func (ki *KeysIter[H, Hasher]) All() iter.Seq2[StorageKey, error] {
-	return func(yield func(StorageKey, error) bool) {
+func (ki *KeysIter[H, Hasher]) All() iter.Seq2[overlayedchanges.StorageKey, error] {
+	return func(yield func(overlayedchanges.StorageKey, error) bool) {
 		for {
 			item, err := ki.Next()
 			if err != nil {
@@ -127,7 +128,7 @@ type ChildDelta struct {
 // A state Backend is used to read state data and can have changes committed to it.
 type Backend[Hash runtime.Hash, H runtime.Hasher[Hash]] interface {
 	// Storage gets keyed storage or nil if there is nothing associated.
-	Storage(key []byte) (StorageValue, error)
+	Storage(key []byte) (overlayedchanges.StorageValue, error)
 
 	// StorageHash get keyed storage value hash or nil if there is nothing associated.
 	StorageHash(key []byte) (*Hash, error)
@@ -139,7 +140,7 @@ type Backend[Hash runtime.Hash, H runtime.Hasher[Hash]] interface {
 	ChildClosestMerkleValue(childInfo storage.ChildInfo, key []byte) (triedb.MerkleValue[Hash], error)
 
 	// ChildStorage gets keyed child storage or nil if there is nothing associated.
-	ChildStorage(childInfo storage.ChildInfo, key []byte) (StorageValue, error)
+	ChildStorage(childInfo storage.ChildInfo, key []byte) (overlayedchanges.StorageValue, error)
 
 	// ChildStorageHash gets child keyed storage value hash or nil if there is nothing associated.
 	ChildStorageHash(childInfo storage.ChildInfo, key []byte) (*Hash, error)
@@ -151,10 +152,10 @@ type Backend[Hash runtime.Hash, H runtime.Hasher[Hash]] interface {
 	ExistsChildStorage(childInfo storage.ChildInfo, key []byte) (bool, error)
 
 	// NextStorageKey returns the next key in storage in lexicographic order or nil if there is no value.
-	NextStorageKey(key []byte) (StorageKey, error)
+	NextStorageKey(key []byte) (overlayedchanges.StorageKey, error)
 
 	// NextChildStorageKey returns the next key in child storage in lexicographic order or nil if there is no value.
-	NextChildStorageKey(childInfo storage.ChildInfo, key []byte) (StorageKey, error)
+	NextChildStorageKey(childInfo storage.ChildInfo, key []byte) (overlayedchanges.StorageKey, error)
 
 	// StorageRoot calculates the storage root, with given delta over what is already stored in
 	// the backend, and produce a "transaction" that can be used to commit.
