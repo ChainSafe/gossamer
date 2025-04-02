@@ -6,7 +6,7 @@ package common
 import (
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	state_machine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 )
 
@@ -75,7 +75,7 @@ type ImportedState[H runtime.Hash] struct {
 	// Target block hash.
 	Block H
 	// State keys and values.
-	State state_machine.KeyValueStates
+	State statemachine.KeyValueStates
 }
 
 // Precomputed storage.
