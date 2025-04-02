@@ -364,7 +364,13 @@ func (ad *AvailabilityDistribution) getBlockAncestorsInSameSession(
 		return 0, nil, fmt.Errorf("getting header for activated leaf %v: %w", leafHash, err)
 	}
 
-	headSessionIndex, err := ad.getSessionIndexForChild(leafHeader.ParentHash)
+	rt, err := ad.blockState.GetRuntime(leafHash)
+	if err != nil {
+		return 0, nil, fmt.Errorf("instantiating runtime for block %v: %w", leafHash, err)
+	}
+	defer rt.Stop()
+
+	headSessionIndex, err := ad.sessionCache.GetSessionIndexForChild(leafHeader.ParentHash, rt)
 	if err != nil {
 		return 0, nil, fmt.Errorf("getting session index for activated leaf %v: %w", leafHash, err)
 	}
@@ -383,7 +389,7 @@ func (ad *AvailabilityDistribution) getBlockAncestorsInSameSession(
 			return headSessionIndex, ancestors, nil
 		}
 
-		sessionIndex, err := ad.getSessionIndexForChild(header.ParentHash)
+		sessionIndex, err := ad.sessionCache.GetSessionIndexForChild(header.ParentHash, rt)
 		if err != nil {
 			return 0, nil, fmt.Errorf("getting session index for leaf ancestor %v: %w", currentHash, err)
 		}
@@ -397,17 +403,6 @@ func (ad *AvailabilityDistribution) getBlockAncestorsInSameSession(
 	}
 
 	return headSessionIndex, ancestors, nil
-}
-
-// TODO: use session cache (#4494)
-func (ad *AvailabilityDistribution) getSessionIndexForChild(hash common.Hash) (parachaintypes.SessionIndex, error) {
-	rt, err := ad.blockState.GetRuntime(hash)
-	if err != nil {
-		return 0, fmt.Errorf("instantiating runtime for block %v: %w", hash, err)
-	}
-	defer rt.Stop()
-
-	return rt.ParachainHostSessionIndexForChild()
 }
 
 // Compute the per-validator availability chunk index.

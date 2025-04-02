@@ -3,14 +3,15 @@ package availabilitydistribution
 import (
 	"errors"
 	"fmt"
+	"math/rand/v2"
+	"slices"
+
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	parachainutil "github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	lrucache "github.com/ChainSafe/gossamer/lib/utils/lru-cache"
-	"golang.org/x/exp/slices"
-	"math/rand/v2"
 )
 
 // SessionInfo is localised session information, tailored for the needs of availability distribution.
@@ -73,8 +74,8 @@ type LRUSessionCache struct {
 
 var _ SessionCache = (*LRUSessionCache)(nil)
 
-func NewLRUSessionCache(keystore keystore.Keystore) LRUSessionCache {
-	return LRUSessionCache{
+func NewLRUSessionCache(keystore keystore.Keystore) *LRUSessionCache {
+	return &LRUSessionCache{
 		keystore: keystore,
 
 		sessionIndexCache: lrucache.NewLRUCache[common.Hash, *parachaintypes.SessionIndex](10),
@@ -181,7 +182,7 @@ func (c *LRUSessionCache) convertAndShuffleValidatorGroups(
 
 		// Create a new random source using the session index and group index as seed.
 		// This ensures different nodes get different shuffles.
-		r := rand.New(rand.NewPCG(uint64(sessionIndex)*1000, uint64(groupIndex)))
+		r := rand.New(rand.NewPCG(uint64(sessionIndex)*1000, uint64(groupIndex))) //nolint:gosec
 
 		// Shuffle the group
 		r.Shuffle(len(authIDs), func(i, j int) {
