@@ -83,7 +83,7 @@ type perCandidateState struct {
 // in case a validator does not provide a PoV.
 type attestingData struct {
 	// The candidate to attest.
-	candidate parachaintypes.CandidateReceipt
+	candidate parachaintypes.CandidateReceiptV2
 	// Hash of the PoV we need to fetch.
 	povHash common.Hash
 	// Validator we are currently trying to get the PoV from.
@@ -139,7 +139,7 @@ type CanSecondMessage struct {
 // candidate in the context of the given relay parent. This candidate must be validated.
 type SecondMessage struct {
 	RelayParent             common.Hash
-	CandidateReceipt        parachaintypes.CandidateReceipt
+	CandidateReceipt        parachaintypes.CandidateReceiptV2
 	PersistedValidationData parachaintypes.PersistedValidationData
 	PoV                     parachaintypes.PoV
 }
