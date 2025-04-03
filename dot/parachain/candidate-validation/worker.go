@@ -22,7 +22,7 @@ type worker struct {
 type workerTask struct {
 	work             parachainruntime.ValidationParameters
 	maxPoVSize       uint32
-	candidateReceipt *parachaintypes.CandidateReceipt
+	candidateReceipt *parachaintypes.CandidateReceiptV2
 	timeoutKind      parachaintypes.PvfExecTimeoutKind
 }
 

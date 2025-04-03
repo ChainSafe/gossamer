@@ -156,7 +156,7 @@ func TestMarshalUnMarshalValidationProtocol(t *testing.T) {
 			Signature:                   collatorSignature,
 			ParaHead:                    hashA,
 			ValidationCodeHash:          parachaintypes.ValidationCodeHash(hashA),
-		},
+		}.V2(),
 		Commitments: parachaintypes.CandidateCommitments{
 			UpwardMessages:            []parachaintypes.UpwardMessage{[]byte{1, 2, 3}},
 			HorizontalMessages:        nil,

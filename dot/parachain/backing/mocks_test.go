@@ -71,10 +71,10 @@ func (mr *MockTableMockRecorder) drainMisbehaviors() *gomock.Call {
 }
 
 // getCommittedCandidateReceipt mocks base method.
-func (m *MockTable) getCommittedCandidateReceipt(arg0 parachaintypes.CandidateHash) (parachaintypes.CommittedCandidateReceipt, error) {
+func (m *MockTable) getCommittedCandidateReceipt(arg0 parachaintypes.CandidateHash) (parachaintypes.CommittedCandidateReceiptV2, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "getCommittedCandidateReceipt", arg0)
-	ret0, _ := ret[0].(parachaintypes.CommittedCandidateReceipt)
+	ret0, _ := ret[0].(parachaintypes.CommittedCandidateReceiptV2)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

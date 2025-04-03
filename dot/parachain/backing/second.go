@@ -22,7 +22,7 @@ var (
 )
 
 func (cb *CandidateBacking) handleSecondMessage(
-	candidateReceipt parachaintypes.CandidateReceipt,
+	candidateReceipt parachaintypes.CandidateReceiptV2,
 	pvd parachaintypes.PersistedValidationData,
 	pov parachaintypes.PoV,
 	chRelayParentAndCommand chan relayParentAndCommand,
