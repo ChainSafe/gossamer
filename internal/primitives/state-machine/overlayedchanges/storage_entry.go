@@ -45,7 +45,7 @@ func (se *appendStorageEntry) value() backend.StorageValue {
 	return se.data
 }
 
-// Materialise the internal state and cache the resulting materialised value.
+// Materialise tnewStorageAppendhe internal state and cache the resulting materialised value.
 func (se *appendStorageEntry) materializedInPlace() {
 	currentLength := se.currentLength
 	if se.materializedLength != nil && *se.materializedLength == currentLength {
