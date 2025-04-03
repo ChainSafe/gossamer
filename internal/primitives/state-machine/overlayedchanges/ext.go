@@ -4,17 +4,16 @@
 package overlayedchanges
 
 import (
-	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // storageAppend is a helper struct that appends a StorageValue to a slice.
 type storageAppend struct {
-	data *backend.StorageValue
+	data *StorageValue
 }
 
 // newStorageAppend creates a new storageAppend instance.
-func newStorageAppend(data *backend.StorageValue) *storageAppend {
+func newStorageAppend(data *StorageValue) *storageAppend {
 	return &storageAppend{data: data}
 }
 
@@ -36,7 +35,7 @@ func (sa *storageAppend) replaceLength(oldLength *uint, newLength uint) {
 	}
 	newLenEncoded, _ := scale.Marshal(newLength)
 	data := spliceSlice(*sa.data, 0, oldLenEncodedLen, newLenEncoded)
-	newStorageValue := backend.StorageValue(data)
+	newStorageValue := StorageValue(data)
 	*sa.data = newStorageValue
 }
 

@@ -11,7 +11,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
@@ -42,21 +41,21 @@ func TestOverlayedStorageWorks(t *testing.T) {
 
 	overlayed.StartTransaction()
 
-	overlayed.SetStorage(backend.StorageKey(key), []byte{1, 2, 3})
+	overlayed.SetStorage(StorageKey(key), []byte{1, 2, 3})
 	value, has = overlayed.Storage(key)
 	require.True(t, has)
 	require.Equal(t, []byte{1, 2, 3}, value)
 
 	require.NoError(t, overlayed.CommitTransaction())
 
-	overlayed.SetStorage(backend.StorageKey(key), []byte{1, 2, 3})
+	overlayed.SetStorage(StorageKey(key), []byte{1, 2, 3})
 	value, has = overlayed.Storage(key)
 	require.True(t, has)
 	require.Equal(t, []byte{1, 2, 3}, value)
 
 	overlayed.StartTransaction()
 
-	overlayed.SetStorage(backend.StorageKey(key), nil)
+	overlayed.SetStorage(StorageKey(key), nil)
 	value, has = overlayed.Storage(key)
 	require.True(t, has)
 	require.Nil(t, value)
@@ -66,7 +65,7 @@ func TestOverlayedStorageWorks(t *testing.T) {
 	require.True(t, has)
 	require.Equal(t, []byte{1, 2, 3}, value)
 
-	overlayed.SetStorage(backend.StorageKey(key), nil)
+	overlayed.SetStorage(StorageKey(key), nil)
 	value, has = overlayed.Storage(key)
 	require.True(t, has)
 	require.Nil(t, value)
@@ -80,7 +79,7 @@ func TestOffchainOverlayedStorageTransactionsWorks(t *testing.T) {
 
 	overlayed.StartTransaction()
 
-	overlayed.SetOffchainStorage(backend.StorageKey(key), []byte{1, 2, 3})
+	overlayed.SetOffchainStorage(StorageKey(key), []byte{1, 2, 3})
 
 	checkOffchainContent(t, *overlayed, 1, []keyValue{{key: key, value: []byte{1, 2, 3}}})
 
@@ -89,16 +88,16 @@ func TestOffchainOverlayedStorageTransactionsWorks(t *testing.T) {
 
 	overlayed.StartTransaction()
 
-	overlayed.SetOffchainStorage(backend.StorageKey(key), []byte{})
+	overlayed.SetOffchainStorage(StorageKey(key), []byte{})
 	checkOffchainContent(t, *overlayed, 1, []keyValue{{key: key, value: []byte{}}})
 
-	overlayed.SetOffchainStorage(backend.StorageKey(key), nil)
+	overlayed.SetOffchainStorage(StorageKey(key), nil)
 	checkOffchainContent(t, *overlayed, 1, []keyValue{{key: key, value: nil}})
 
 	require.NoError(t, overlayed.RollbackTransaction())
 	checkOffchainContent(t, *overlayed, 0, []keyValue{{key: key, value: []byte{1, 2, 3}}})
 
-	overlayed.SetOffchainStorage(backend.StorageKey(key), nil)
+	overlayed.SetOffchainStorage(StorageKey(key), nil)
 	checkOffchainContent(t, *overlayed, 0, []keyValue{{key: key, value: nil}})
 }
 
@@ -112,18 +111,18 @@ func TestOverlayedStorageRootWorks(t *testing.T) {
 		"doug":         []byte("notadog"),
 	}
 
-	b := backend.NewMemoryDBTrieBackendFromMap[hash.H256, runtime.BlakeTwo256](initial, stateVersion)
+	b := NewMemoryDBTrieBackendFromMap[hash.H256, runtime.BlakeTwo256](initial, stateVersion)
 	overlayed := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
 
 	overlayed.StartTransaction()
-	overlayed.SetStorage(backend.StorageKey("dog"), []byte("puppy"))
-	overlayed.SetStorage(backend.StorageKey("dogglesworth"), []byte("catYYY"))
-	overlayed.SetStorage(backend.StorageKey("doug"), []byte{})
+	overlayed.SetStorage(StorageKey("dog"), []byte("puppy"))
+	overlayed.SetStorage(StorageKey("dogglesworth"), []byte("catYYY"))
+	overlayed.SetStorage(StorageKey("doug"), []byte{})
 	require.NoError(t, overlayed.CommitTransaction())
 
 	overlayed.StartTransaction()
-	overlayed.SetStorage(backend.StorageKey("dogglesworth"), []byte("cat"))
-	overlayed.SetStorage(backend.StorageKey("doug"), nil)
+	overlayed.SetStorage(StorageKey("dogglesworth"), []byte("cat"))
+	overlayed.SetStorage(StorageKey("doug"), nil)
 
 	root := common.MustHexToBytes("0x39245109cef3758c2eed2ccba8d9b370a917850af3824bc8348d505df2c298fa")
 	overlayedRoot, _ := overlayed.StorageRoot(b, stateVersion)
@@ -131,7 +130,7 @@ func TestOverlayedStorageRootWorks(t *testing.T) {
 	encodedRoot := overlayedRoot.MustMarshalSCALE()
 	require.Equal(t, root, encodedRoot)
 
-	overlayed.SetStorage(backend.StorageKey("doug2"), []byte("yes"))
+	overlayed.SetStorage(StorageKey("doug2"), []byte("yes"))
 
 	root = common.MustHexToBytes("0x5c0a4e35cb967de785e1cb8743e6f24b6ff6d45155317f2078f6eb3fc4ff3e3d")
 	overlayedRoot, cached := overlayed.StorageRoot(b, stateVersion)
@@ -150,7 +149,7 @@ func TestOverlayedStorageRootWorks(t *testing.T) {
 func TestOverlayedChildStorageRootWorks(t *testing.T) {
 	stateVersion := storage.StateVersionV1
 	childInfo := storage.NewDefaultChildInfo([]byte("Child1"))
-	b := backend.NewMemoryDBTrieBackend[hash.H256, runtime.BlakeTwo256]()
+	b := NewMemoryDBTrieBackend[hash.H256, runtime.BlakeTwo256]()
 	overlay := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
 
 	overlay.StartTransaction()
@@ -189,16 +188,16 @@ func TestExtinsicChangesAreCollected(t *testing.T) {
 	overlay.SetCollectExtrinsic(true)
 
 	overlay.StartTransaction()
-	overlay.SetStorage(backend.StorageKey([]byte{100}), []byte{101})
+	overlay.SetStorage(StorageKey([]byte{100}), []byte{101})
 
 	overlay.SetExtrinsicIndex(0)
-	overlay.SetStorage(backend.StorageKey([]byte{1}), []byte{2})
+	overlay.SetStorage(StorageKey([]byte{1}), []byte{2})
 
 	overlay.SetExtrinsicIndex(1)
-	overlay.SetStorage(backend.StorageKey([]byte{3}), []byte{4})
+	overlay.SetStorage(StorageKey([]byte{3}), []byte{4})
 
 	overlay.SetExtrinsicIndex(2)
-	overlay.SetStorage(backend.StorageKey([]byte{1}), []byte{6})
+	overlay.SetStorage(StorageKey([]byte{1}), []byte{6})
 
 	assertExtrinsics(t, overlay.top, []byte{1}, []uint32{0, 2})
 	assertExtrinsics(t, overlay.top, []byte{3}, []uint32{1})
@@ -207,10 +206,10 @@ func TestExtinsicChangesAreCollected(t *testing.T) {
 	overlay.StartTransaction()
 
 	overlay.SetExtrinsicIndex(3)
-	overlay.SetStorage(backend.StorageKey([]byte{3}), []byte{7})
+	overlay.SetStorage(StorageKey([]byte{3}), []byte{7})
 
 	overlay.SetExtrinsicIndex(4)
-	overlay.SetStorage(backend.StorageKey([]byte{1}), []byte{8})
+	overlay.SetStorage(StorageKey([]byte{1}), []byte{8})
 
 	assertExtrinsics(t, overlay.top, []byte{1}, []uint32{0, 2, 4})
 	assertExtrinsics(t, overlay.top, []byte{3}, []uint32{1, 3})
@@ -228,50 +227,50 @@ func TestNextStorageKeyChangeWorks(t *testing.T) {
 
 	overlay.StartTransaction()
 
-	overlay.SetStorage(backend.StorageKey([]byte{20}), []byte{20})
-	overlay.SetStorage(backend.StorageKey([]byte{30}), []byte{30})
-	overlay.SetStorage(backend.StorageKey([]byte{40}), []byte{40})
+	overlay.SetStorage(StorageKey([]byte{20}), []byte{20})
+	overlay.SetStorage(StorageKey([]byte{30}), []byte{30})
+	overlay.SetStorage(StorageKey([]byte{40}), []byte{40})
 	require.NoError(t, overlay.CommitTransaction())
 
-	overlay.SetStorage(backend.StorageKey([]byte{10}), []byte{10})
-	overlay.SetStorage(backend.StorageKey([]byte{30}), nil)
+	overlay.SetStorage(StorageKey([]byte{10}), []byte{10})
+	overlay.SetStorage(StorageKey([]byte{30}), nil)
 
-	next, _ := iter.Pull2(overlay.IterAfter(backend.StorageKey([]byte{5})))
+	next, _ := iter.Pull2(overlay.IterAfter(StorageKey([]byte{5})))
 	nextTo5key, nextTo5value, _ := next()
 
-	require.Equal(t, backend.StorageKey([]byte{10}), nextTo5key)
-	require.Equal(t, backend.StorageValue([]byte{10}), nextTo5value.Value())
+	require.Equal(t, StorageKey([]byte{10}), nextTo5key)
+	require.Equal(t, StorageValue([]byte{10}), nextTo5value.Value())
 
-	next, _ = iter.Pull2(overlay.IterAfter(backend.StorageKey([]byte{10})))
+	next, _ = iter.Pull2(overlay.IterAfter(StorageKey([]byte{10})))
 	nextTo10key, nextTo10value, _ := next()
 
-	require.Equal(t, backend.StorageKey([]byte{20}), nextTo10key)
-	require.Equal(t, backend.StorageValue([]byte{20}), nextTo10value.Value())
+	require.Equal(t, StorageKey([]byte{20}), nextTo10key)
+	require.Equal(t, StorageValue([]byte{20}), nextTo10value.Value())
 
-	next, _ = iter.Pull2(overlay.IterAfter(backend.StorageKey([]byte{20})))
+	next, _ = iter.Pull2(overlay.IterAfter(StorageKey([]byte{20})))
 	nextTo20key, nextTo20value, _ := next()
 
-	require.Equal(t, backend.StorageKey([]byte{30}), nextTo20key)
-	require.Equal(t, backend.StorageValue(nil), nextTo20value.Value())
+	require.Equal(t, StorageKey([]byte{30}), nextTo20key)
+	require.Equal(t, StorageValue(nil), nextTo20value.Value())
 
-	next, _ = iter.Pull2(overlay.IterAfter(backend.StorageKey([]byte{30})))
+	next, _ = iter.Pull2(overlay.IterAfter(StorageKey([]byte{30})))
 	nextTo30key, nextTo30value, _ := next()
 
-	require.Equal(t, backend.StorageKey([]byte{40}), nextTo30key)
-	require.Equal(t, backend.StorageValue([]byte{40}), nextTo30value.Value())
+	require.Equal(t, StorageKey([]byte{40}), nextTo30key)
+	require.Equal(t, StorageValue([]byte{40}), nextTo30value.Value())
 
-	overlay.SetStorage(backend.StorageKey([]byte{50}), backend.StorageValue([]byte{50}))
+	overlay.SetStorage(StorageKey([]byte{50}), StorageValue([]byte{50}))
 
-	next, _ = iter.Pull2(overlay.IterAfter(backend.StorageKey([]byte{40})))
+	next, _ = iter.Pull2(overlay.IterAfter(StorageKey([]byte{40})))
 	nextTo40key, nextTo40value, _ := next()
 
-	require.Equal(t, backend.StorageKey([]byte{50}), nextTo40key)
-	require.Equal(t, backend.StorageValue([]byte{50}), nextTo40value.Value())
+	require.Equal(t, StorageKey([]byte{50}), nextTo40key)
+	require.Equal(t, StorageValue([]byte{50}), nextTo40value.Value())
 }
 
 func TestNextChildStorageKeyChangeWorks(t *testing.T) {
 	childInfo := storage.NewDefaultChildInfo([]byte("Child1"))
-	child := backend.StorageKey(childInfo.StorageKey())
+	child := StorageKey(childInfo.StorageKey())
 	overlay := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
 
 	overlay.StartTransaction()
@@ -283,37 +282,37 @@ func TestNextChildStorageKeyChangeWorks(t *testing.T) {
 	overlay.SetChildStorage(childInfo, []byte{10}, []byte{10})
 	overlay.SetChildStorage(childInfo, []byte{30}, nil)
 
-	next, _ := iter.Pull2(overlay.ChildIterAfter(child, backend.StorageKey([]byte{5})))
+	next, _ := iter.Pull2(overlay.ChildIterAfter(child, StorageKey([]byte{5})))
 	nextTo5key, nextTo5value, _ := next()
 
-	require.Equal(t, backend.StorageKey([]byte{10}), nextTo5key)
-	require.Equal(t, backend.StorageValue([]byte{10}), nextTo5value.Value())
+	require.Equal(t, StorageKey([]byte{10}), nextTo5key)
+	require.Equal(t, StorageValue([]byte{10}), nextTo5value.Value())
 
-	next, _ = iter.Pull2(overlay.ChildIterAfter(child, backend.StorageKey([]byte{10})))
+	next, _ = iter.Pull2(overlay.ChildIterAfter(child, StorageKey([]byte{10})))
 	nextTo10key, nextTo10value, _ := next()
 
-	require.Equal(t, backend.StorageKey([]byte{20}), nextTo10key)
-	require.Equal(t, backend.StorageValue([]byte{20}), nextTo10value.Value())
+	require.Equal(t, StorageKey([]byte{20}), nextTo10key)
+	require.Equal(t, StorageValue([]byte{20}), nextTo10value.Value())
 
-	next, _ = iter.Pull2(overlay.ChildIterAfter(child, backend.StorageKey([]byte{20})))
+	next, _ = iter.Pull2(overlay.ChildIterAfter(child, StorageKey([]byte{20})))
 	nextTo20key, nextTo20value, _ := next()
 
-	require.Equal(t, backend.StorageKey([]byte{30}), nextTo20key)
-	require.Equal(t, backend.StorageValue(nil), nextTo20value.Value())
+	require.Equal(t, StorageKey([]byte{30}), nextTo20key)
+	require.Equal(t, StorageValue(nil), nextTo20value.Value())
 
-	next, _ = iter.Pull2(overlay.ChildIterAfter(child, backend.StorageKey([]byte{30})))
+	next, _ = iter.Pull2(overlay.ChildIterAfter(child, StorageKey([]byte{30})))
 	nextTo30key, nextTo30value, _ := next()
 
-	require.Equal(t, backend.StorageKey([]byte{40}), nextTo30key)
-	require.Equal(t, backend.StorageValue([]byte{40}), nextTo30value.Value())
+	require.Equal(t, StorageKey([]byte{40}), nextTo30key)
+	require.Equal(t, StorageValue([]byte{40}), nextTo30value.Value())
 
 	overlay.SetChildStorage(childInfo, []byte{50}, []byte{50})
 
-	next, _ = iter.Pull2(overlay.ChildIterAfter(child, backend.StorageKey([]byte{40})))
+	next, _ = iter.Pull2(overlay.ChildIterAfter(child, StorageKey([]byte{40})))
 	nextTo40key, nextTo40value, _ := next()
 
-	require.Equal(t, backend.StorageKey([]byte{50}), nextTo40key)
-	require.Equal(t, backend.StorageValue([]byte{50}), nextTo40value.Value())
+	require.Equal(t, StorageKey([]byte{50}), nextTo40key)
+	require.Equal(t, StorageValue([]byte{50}), nextTo40value.Value())
 }
 
 type keyValue struct {
@@ -322,7 +321,7 @@ type keyValue struct {
 }
 
 type offchainKeyValue struct {
-	key   backend.StorageKey
+	key   StorageKey
 	value offchain.OffchainOverlayedChange
 }
 

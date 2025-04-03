@@ -17,6 +17,12 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+// Re-exported types from backend package for simplicity.
+type StorageKey = backend.StorageKey
+type StorageValue = backend.StorageValue
+type StorageKeyValue = backend.StorageKeyValue
+type StorageCollection = backend.StorageCollection
+
 type Encode interface {
 	MustMarshalSCALE() []byte
 }
@@ -123,7 +129,7 @@ type StorageTransactionCache[H Hash, Hasher runtime.Hasher[H]] struct {
 	transactionStorageRoot H
 }
 
-// The set of changes that are overlaid onto the backend.
+// The set of changes that are overlaid onto the
 // It allows changes to be modified using nestable transactions.
 type OverlayedChanges[H Hash, Hasher runtime.Hasher[H]] struct {
 	// Top level storage changes.
@@ -224,7 +230,7 @@ func (oc *OverlayedChanges[H, Hasher]) ChildStorage(childInfo storage.ChildInfo,
 
 // Set a new value for the specified key.
 // Can be rolled back or committed when called inside a transaction.
-func (oc *OverlayedChanges[H, Hasher]) SetStorage(key backend.StorageKey, value backend.StorageValue) {
+func (oc *OverlayedChanges[H, Hasher]) SetStorage(key StorageKey, value StorageValue) {
 	oc.markDirty()
 
 	var sizeWrite uint64
@@ -241,9 +247,9 @@ func (oc *OverlayedChanges[H, Hasher]) SetStorage(key backend.StorageKey, value 
 
 // Append a element to storage, init with existing value if first write.
 func (oc *OverlayedChanges[H, Hasher]) AppendStorage(
-	key backend.StorageKey,
-	element backend.StorageValue,
-	init func() backend.StorageValue,
+	key StorageKey,
+	element StorageValue,
+	init func() StorageValue,
 ) {
 	extrinsicIndex := oc.extrinsicIndex()
 	sizeWrite := uint64(len(element))
@@ -256,8 +262,8 @@ func (oc *OverlayedChanges[H, Hasher]) AppendStorage(
 // Can be rolled back or committed when called inside a transaction.
 func (oc *OverlayedChanges[H, Hasher]) SetChildStorage(
 	childInfo storage.ChildInfo,
-	key backend.StorageKey,
-	value backend.StorageValue,
+	key StorageKey,
+	value StorageValue,
 ) {
 	oc.markDirty()
 
@@ -476,15 +482,15 @@ func (oc *OverlayedChanges[H, Hasher]) ExitRuntime() error {
 //
 // Panics:
 // Panics if `transaction_depth() > 0`
-func (oc *OverlayedChanges[H, Hasher]) offchainDrainCommited() iter.Seq2[backend.StorageKey, OffchainOverlayedChange] {
+func (oc *OverlayedChanges[H, Hasher]) offchainDrainCommited() iter.Seq2[StorageKey, OffchainOverlayedChange] {
 	return oc.offchain.DrainCommited()
 }
 
 // / Get an iterator over all child changes as seen by the current transaction.
-func (oc *OverlayedChanges[H, Hasher]) Children() iter.Seq2[iter.Seq2[backend.StorageKey, *OverlayedStorageEntry],
+func (oc *OverlayedChanges[H, Hasher]) Children() iter.Seq2[iter.Seq2[StorageKey, *OverlayedStorageEntry],
 	storage.ChildInfo,
 ] {
-	return func(yield func(iter.Seq2[backend.StorageKey, *OverlayedStorageEntry], storage.ChildInfo) bool) {
+	return func(yield func(iter.Seq2[StorageKey, *OverlayedStorageEntry], storage.ChildInfo) bool) {
 		for _, child := range oc.children {
 			if !yield(child.overlayedChangeSet.Changes(), child.ChildInfo) {
 				return
@@ -494,13 +500,13 @@ func (oc *OverlayedChanges[H, Hasher]) Children() iter.Seq2[iter.Seq2[backend.St
 }
 
 // Get an iterator over all top changes as been by the current transaction.
-func (oc *OverlayedChanges[H, Hasher]) Changes() iter.Seq2[backend.StorageKey, *OverlayedStorageEntry] {
+func (oc *OverlayedChanges[H, Hasher]) Changes() iter.Seq2[StorageKey, *OverlayedStorageEntry] {
 	return oc.top.Changes()
 }
 
 // Get an optional iterator over all child changes stored under the supplied key.
-func (oc *OverlayedChanges[H, Hasher]) ChildChanges(key backend.StorageKey) (
-	iter.Seq2[backend.StorageKey, *OverlayedStorageEntry],
+func (oc *OverlayedChanges[H, Hasher]) ChildChanges(key StorageKey) (
+	iter.Seq2[StorageKey, *OverlayedStorageEntry],
 	storage.ChildInfo,
 ) {
 	childChanges, has := oc.children[string(key)]
@@ -513,7 +519,7 @@ func (oc *OverlayedChanges[H, Hasher]) ChildChanges(key backend.StorageKey) (
 
 // Inserts storage entry responsible for current extrinsic index.
 func (oc *OverlayedChanges[H, Hasher]) SetExtrinsicIndex(index uint32) {
-	oc.top.set(keys.ExtrinsicIndexKey, backend.StorageValue(scale.MustMarshal(index)), nil)
+	oc.top.set(keys.ExtrinsicIndexKey, StorageValue(scale.MustMarshal(index)), nil)
 }
 
 // Returns current extrinsic index to use in changes trie construction.
@@ -585,7 +591,7 @@ func (oc *OverlayedChanges[H, Hasher]) ChildStorageRoot(
 	b backend.Backend[H, Hasher],
 	stateVersion storage.StateVersion,
 ) (H, bool, error) {
-	storageKey := backend.StorageKey(childInfo.StorageKey())
+	storageKey := StorageKey(childInfo.StorageKey())
 	prefixedStorageKey := childInfo.PrefixedStorageKey()
 
 	var root H
@@ -625,9 +631,9 @@ func (oc *OverlayedChanges[H, Hasher]) ChildStorageRoot(
 
 	if calculatedRoot != trie.EmptyChildTrieRoot[H, Hasher]() {
 		if isEmpty {
-			oc.SetStorage(backend.StorageKey(prefixedStorageKey), nil)
+			oc.SetStorage(StorageKey(prefixedStorageKey), nil)
 		} else {
-			oc.SetStorage(backend.StorageKey(prefixedStorageKey), calculatedRoot.MustMarshalSCALE())
+			oc.SetStorage(StorageKey(prefixedStorageKey), calculatedRoot.MustMarshalSCALE())
 		}
 		oc.markDirty()
 		root = calculatedRoot
@@ -647,15 +653,15 @@ func (oc *OverlayedChanges[H, Hasher]) ChildStorageRoot(
 	return root, false, nil
 }
 
-func (oc *OverlayedChanges[H, Hasher]) IterAfter(key backend.StorageKey) iter.Seq2[backend.StorageKey,
+func (oc *OverlayedChanges[H, Hasher]) IterAfter(key StorageKey) iter.Seq2[StorageKey,
 	*OverlayedStorageEntry] {
 	return oc.top.changesAfter(key)
 }
 
 func (oc *OverlayedChanges[H, Hasher]) ChildIterAfter(
-	storageKey backend.StorageKey,
-	key backend.StorageKey,
-) iter.Seq2[backend.StorageKey, *overlayedValue] {
+	storageKey StorageKey,
+	key StorageKey,
+) iter.Seq2[StorageKey, *overlayedValue] {
 	entry, has := oc.children[string(storageKey)]
 	if !has {
 		return nil
