@@ -311,7 +311,7 @@ func (nbr *NetworkBridgeReceiver) handleValidationMessage(
 }
 
 func (nbr *NetworkBridgeReceiver) handleViewUpdate(peer peer.ID, view ViewUpdate) error {
-
+	v := parachaintypes.View(view)
 	peerData, ok := nbr.peerData[peer]
 	if !ok {
 		return errors.New("peer not found")
@@ -326,7 +326,7 @@ func (nbr *NetworkBridgeReceiver) handleViewUpdate(peer peer.ID, view ViewUpdate
 			Value:  peerset.CostMinor,
 			Reason: "peer sent us empty view",
 		}, peer)
-	} else if parachaintypes.View(view).CheckHeadsEqual(peerData.View) {
+	} else if v.CheckHeadsEqual(peerData.View) {
 		// nothing
 	} else {
 		peerData.View = parachaintypes.View(view)
