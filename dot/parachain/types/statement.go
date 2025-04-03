@@ -78,7 +78,7 @@ func NewStatementVDT() StatementVDT {
 }
 
 // Seconded represents a statement that a validator seconds a candidate.
-type Seconded CommittedCandidateReceipt
+type Seconded CommittedCandidateReceiptV2
 
 // Valid represents a statement that a validator has deemed a candidate valid.
 type Valid CandidateHash
@@ -89,7 +89,7 @@ func (s StatementVDT) CompactStatement() (any, error) {
 	case Valid:
 		return CompactStatement[Valid]{Value: s}, nil
 	case Seconded:
-		hash, err := GetCandidateHash(CommittedCandidateReceipt(s))
+		hash, err := GetCandidateHash(CommittedCandidateReceiptV2(s))
 		if err != nil {
 			return nil, fmt.Errorf("getting candidate hash: %w", err)
 		}

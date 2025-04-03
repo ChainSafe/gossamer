@@ -65,7 +65,7 @@ type HypotheticalCandidateComplete struct {
 	// The hash of the candidate.
 	ClaimedCandidateHash CandidateHash
 	// The receipt of the candidate.
-	CommittedCandidateReceipt CommittedCandidateReceipt
+	CommittedCandidateReceipt CommittedCandidateReceiptV2
 	// The persisted validation data of the candidate.
 	PersistedValidationData PersistedValidationData
 }

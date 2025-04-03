@@ -42,5 +42,5 @@ func (b Backed) String() string {
 // We recommended a particular candidate to be seconded, but it was invalid; penalise the collator.
 type Invalid struct {
 	Parent           common.Hash
-	CandidateReceipt parachaintypes.CandidateReceipt
+	CandidateReceipt parachaintypes.CandidateReceiptV2
 }

@@ -29,7 +29,7 @@ type IntroduceSecondedCandidateRequest struct {
 	// The para-id of the candidate.
 	CandidateParaID parachaintypes.ParaID
 	// The candidate receipt itself.
-	CandidateReceipt parachaintypes.CommittedCandidateReceipt
+	CandidateReceipt parachaintypes.CommittedCandidateReceiptV2
 	// The persisted validation data of the candidate.
 	PersistedValidationData parachaintypes.PersistedValidationData
 }
