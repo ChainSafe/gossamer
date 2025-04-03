@@ -275,7 +275,70 @@ func (ad *AvailabilityDistribution) ProcessBlockFinalizedSignal(_ parachaintypes
 func (ad *AvailabilityDistribution) processAvailabilityDistributionMessageFetchPoV(
 	msg parachaintypes.AvailabilityDistributionMessageFetchPoV,
 ) error {
-	return nil // TODO: implement #4489
+	rt, err := ad.blockState.GetRuntime(msg.RelayParent)
+	if err != nil {
+		return err
+	}
+
+	authorityID, err := ad.sessionCache.GetAuthorityID(msg.FromValidator, msg.RelayParent, rt)
+	if err != nil {
+		return err
+	}
+
+	request := messages.NewOutgoingRequest(
+		authorityID,
+		&messages.PoVFetchingRequest{
+			CandidateHash: msg.CandidateHash,
+		})
+
+	sendRequests := messages.SendRequests{
+		Requests:       []*messages.OutgoingRequest{request},
+		IfDisconnected: messages.ImmediateError,
+	}
+
+	ad.subSystemToOverseer <- sendRequests
+
+	result := <-request.Result
+	defer close(msg.PovCh)
+
+	if result.Error != nil {
+		msg.PovCh <- parachaintypes.OverseerFuncRes[parachaintypes.PoV]{
+			Err: result.Error,
+		}
+		return nil
+	}
+
+	response, ok := result.Response.(*messages.PoVFetchingResponse)
+	if !ok {
+		msg.PovCh <- parachaintypes.OverseerFuncRes[parachaintypes.PoV]{
+			Err: fmt.Errorf("unexpected network message type in response: %T", result.Response),
+		}
+		return nil
+	}
+
+	v, err := response.Value()
+	if err != nil {
+		msg.PovCh <- parachaintypes.OverseerFuncRes[parachaintypes.PoV]{
+			Err: err,
+		}
+		return nil
+	}
+
+	switch v := v.(type) {
+	case parachaintypes.PoV:
+		msg.PovCh <- parachaintypes.OverseerFuncRes[parachaintypes.PoV]{
+			Data: v,
+		}
+	case parachaintypes.NoSuchPoV:
+		msg.PovCh <- parachaintypes.OverseerFuncRes[parachaintypes.PoV]{
+			Err: fmt.Errorf(
+				"validator %s did not have PoV for candidate %s",
+				common.BytesToHex(authorityID[:]),
+				msg.CandidateHash.String()),
+		}
+	}
+
+	return nil
 }
 
 func (ad *AvailabilityDistribution) handleChunkFetchingRequest(
