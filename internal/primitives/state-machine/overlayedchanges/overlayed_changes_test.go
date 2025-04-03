@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
@@ -111,7 +112,7 @@ func TestOverlayedStorageRootWorks(t *testing.T) {
 		"doug":         []byte("notadog"),
 	}
 
-	b := NewMemoryDBTrieBackendFromMap[hash.H256, runtime.BlakeTwo256](initial, stateVersion)
+	b := backend.NewMemoryDBTrieBackendFromMap[hash.H256, runtime.BlakeTwo256](initial, stateVersion)
 	overlayed := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
 
 	overlayed.StartTransaction()
@@ -149,7 +150,7 @@ func TestOverlayedStorageRootWorks(t *testing.T) {
 func TestOverlayedChildStorageRootWorks(t *testing.T) {
 	stateVersion := storage.StateVersionV1
 	childInfo := storage.NewDefaultChildInfo([]byte("Child1"))
-	b := NewMemoryDBTrieBackend[hash.H256, runtime.BlakeTwo256]()
+	b := backend.NewMemoryDBTrieBackend[hash.H256, runtime.BlakeTwo256]()
 	overlay := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
 
 	overlay.StartTransaction()
