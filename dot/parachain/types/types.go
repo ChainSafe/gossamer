@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sort"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -922,29 +923,70 @@ const ElasticScalingMVP NodeFeatureIndex = 1
 // TODO: use btree map in this and claimQueue both types.
 type TransposedClaimQueue map[ParaID]map[uint8]map[CoreIndex]struct{}
 
+// ClaimQueue represents a mapping between CoreIndex and ParaID
 type ClaimQueue map[CoreIndex][]ParaID
 
-func (c ClaimQueue) TransposedClaimQueue() TransposedClaimQueue {
+// OrderedClaimQueue represents claim queue ordered by core index
+type OrderedClaimQueue []ClaimQueueEntry
+
+// ClaimQueueEntry represents a single entry in the claim queue
+type ClaimQueueEntry struct {
+	Core  CoreIndex
+	Paras []ParaID
+}
+
+// Ordered returns the ClaimQueue ordered by core index.
+func (c ClaimQueue) Ordered() OrderedClaimQueue {
+	cores := make([]CoreIndex, 0, len(c))
+	for core := range c {
+		cores = append(cores, core)
+	}
+
+	// Sort cores by index
+	sort.Slice(cores, func(i, j int) bool {
+		return cores[i].Index < cores[j].Index
+	})
+
+	// Create ordered orderedClaimQueue while preserving para order
+	orderedClaimQueue := make(OrderedClaimQueue, len(cores))
+
+	for i, core := range cores {
+		orderedClaimQueue[i] = ClaimQueueEntry{
+			Core:  core,
+			Paras: c[core],
+		}
+	}
+
+	return orderedClaimQueue
+}
+
+func (c ClaimQueue) ToTransposed() TransposedClaimQueue {
+	orderedClaimQueue := c.Ordered()
+
+	// TODO: make it ordered
 	transposedClaimQueue := make(TransposedClaimQueue)
 
-	for core, paras := range c {
+	for _, entry := range orderedClaimQueue {
+		core := entry.Core
+		paras := entry.Paras
+
 		for depth, para := range paras {
 			// Get or initialize the cores per depth map for this para
 			coresPerDepth, exists := transposedClaimQueue[para]
 			if !exists {
 				coresPerDepth = make(map[uint8]map[CoreIndex]struct{})
-				transposedClaimQueue[para] = coresPerDepth
+				transposedClaimQueue[para] = make(map[uint8]map[CoreIndex]struct{})
 			}
 
 			// Get or initialize the core index set for this depth
-			coreSet, exists := coresPerDepth[uint8(depth)]
+			cores, exists := coresPerDepth[uint8(depth)]
 			if !exists {
-				coreSet = make(map[CoreIndex]struct{})
-				coresPerDepth[uint8(depth)] = coreSet
+				cores = make(map[CoreIndex]struct{})
+				coresPerDepth[uint8(depth)] = cores
 			}
 
 			// Add the core to the set
-			coreSet[core] = struct{}{}
+			cores[core] = struct{}{}
 		}
 	}
 
