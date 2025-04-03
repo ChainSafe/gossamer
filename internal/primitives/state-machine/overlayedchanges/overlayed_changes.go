@@ -196,7 +196,7 @@ func (oc *OverlayedChanges[H, Hasher]) Storage(key string) ([]byte, bool) {
 	return value, true
 }
 
-// Should be called when there are changes that require to reset the
+// Should be called when there are changes that require to reset the `storageTransactionCache`.
 func (oc *OverlayedChanges[H, Hasher]) markDirty() {
 	oc.storageTransactionCache = nil
 }
