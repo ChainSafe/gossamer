@@ -5,8 +5,6 @@ package overlayedchanges
 
 import (
 	"iter"
-
-	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
 )
 
 // Describes in which mode the node is currently executing.
@@ -89,7 +87,7 @@ func (oc *overlayedChangeSet) SpawnChild() overlayedChangeSet {
 
 // set a new value for the specified key.
 // Can be rolled back or committed when called inside a transaction.
-func (oc *overlayedChangeSet) set(key backend.StorageKey, value backend.StorageValue, atExtrinsic *uint32) {
+func (oc *overlayedChangeSet) set(key StorageKey, value StorageValue, atExtrinsic *uint32) {
 	keyString := string(key)
 	overlayed, has := oc.changes.Get(keyString)
 	if !has {
@@ -102,9 +100,9 @@ func (oc *overlayedChangeSet) set(key backend.StorageKey, value backend.StorageV
 
 // Append bytes to an existing content.
 func (oc *overlayedChangeSet) appendStorage(
-	key backend.StorageKey,
-	value backend.StorageValue,
-	init func() backend.StorageValue,
+	key StorageKey,
+	value StorageValue,
+	init func() StorageValue,
 	atExtrinsic *uint32,
 ) {
 	keyString := string(key)
@@ -119,8 +117,8 @@ func (oc *overlayedChangeSet) appendStorage(
 }
 
 // Returns an iterator over all changes that follow the supplied `key`.
-func (oc *overlayedChangeSet) changesAfter(key backend.StorageKey) iter.Seq2[backend.StorageKey, *overlayedValue] {
-	return func(yield func(backend.StorageKey, *overlayedValue) bool) {
+func (oc *overlayedChangeSet) changesAfter(key StorageKey) iter.Seq2[StorageKey, *overlayedValue] {
+	return func(yield func(StorageKey, *overlayedValue) bool) {
 		oc.changes.Ascend(string(key), func(k string, v *overlayedValue) bool {
 			// the pivot is included so we have to skip it in the resulting iterator
 			return k <= string(key) || yield([]byte(k), v)

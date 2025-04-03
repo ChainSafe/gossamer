@@ -3,17 +3,15 @@
 
 package overlayedchanges
 
-import "github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
-
 // Content in an overlay for a given transactional depth.
 type storageEntry interface {
-	value() backend.StorageValue
+	value() StorageValue
 }
 
 type (
 	// The storage entry should be set to the stored value.
 	setStorageEntry struct {
-		data backend.StorageValue
+		data StorageValue
 	}
 
 	// The storage entry should be removed.
@@ -26,7 +24,7 @@ type (
 	appendStorageEntry struct {
 		// The value of the storage entry.
 		// This may or may not be prefixed by the length, depending on the materialised length.
-		data backend.StorageValue
+		data StorageValue
 		// Current number of elements stored in data.
 		currentLength uint
 		// The number of elements as stored in the prefixed length in `data`.
@@ -38,14 +36,14 @@ type (
 	}
 )
 
-func (se setStorageEntry) value() backend.StorageValue    { return se.data }
-func (se removeStorageEntry) value() backend.StorageValue { return nil }
-func (se *appendStorageEntry) value() backend.StorageValue {
+func (se setStorageEntry) value() StorageValue    { return se.data }
+func (se removeStorageEntry) value() StorageValue { return nil }
+func (se *appendStorageEntry) value() StorageValue {
 	se.materializedInPlace()
 	return se.data
 }
 
-// Materialise the internal state and cache the resulting materialised value.
+// Materialise tnewStorageAppendhe internal state and cache the resulting materialised value.
 func (se *appendStorageEntry) materializedInPlace() {
 	currentLength := se.currentLength
 	if se.materializedLength != nil && *se.materializedLength == currentLength {

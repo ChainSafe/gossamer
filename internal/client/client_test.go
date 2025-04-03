@@ -17,7 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
-	statemachine_backend "github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
+	statemachinebackend "github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -241,19 +241,19 @@ func TestBlockchainEvents(t *testing.T) {
 			&BlockImportOperation{},
 			api.BothBlockImportNotificationAction,
 			&api.StorageChanges{
-				StorageCollection: statemachine_backend.StorageCollection{
-					{StorageKey: statemachine_backend.StorageKey("top0"), StorageValue: statemachine_backend.StorageValue("top0")},
+				StorageCollection: statemachinebackend.StorageCollection{
+					{StorageKey: statemachinebackend.StorageKey("top0"), StorageValue: statemachinebackend.StorageValue("top0")},
 				},
 				ChildStorageCollection: []struct {
-					statemachine_backend.StorageKey
-					statemachine_backend.StorageCollection
+					statemachinebackend.StorageKey
+					statemachinebackend.StorageCollection
 				}{
 					{
-						StorageKey: statemachine_backend.StorageKey("child0"),
-						StorageCollection: statemachine_backend.StorageCollection{
+						StorageKey: statemachinebackend.StorageKey("child0"),
+						StorageCollection: statemachinebackend.StorageCollection{
 							{
-								StorageKey:   statemachine_backend.StorageKey("child0"),
-								StorageValue: statemachine_backend.StorageValue("child0"),
+								StorageKey:   statemachinebackend.StorageKey("child0"),
+								StorageValue: statemachinebackend.StorageValue("child0"),
 							},
 						},
 					},

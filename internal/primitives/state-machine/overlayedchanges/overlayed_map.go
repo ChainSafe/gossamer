@@ -10,7 +10,6 @@ import (
 	"slices"
 
 	"github.com/ChainSafe/gossamer/internal/log"
-	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
 	"github.com/tidwall/btree"
 )
 
@@ -109,24 +108,24 @@ func (om *OverlayedMap[K, V, E]) SetOffchain(key K, value V, atExtrinsic *uint32
 }
 
 // Get a list of all changes as seen by current transaction.
-func (om *OverlayedMap[K, V, E]) Changes() iter.Seq2[backend.StorageKey, E] {
-	return func(yield func(backend.StorageKey, E) bool) {
+func (om *OverlayedMap[K, V, E]) Changes() iter.Seq2[StorageKey, E] {
+	return func(yield func(StorageKey, E) bool) {
 		om.changes.Scan(func(k K, v E) bool {
-			return yield(backend.StorageKey(k), v)
+			return yield(StorageKey(k), v)
 		})
 	}
 }
 
 // Return all committed changes.
 // Panics if there are open transactions: `transaction_depth() > 0`
-func (om *OverlayedMap[K, V, E]) DrainCommited() iter.Seq2[backend.StorageKey, V] {
+func (om *OverlayedMap[K, V, E]) DrainCommited() iter.Seq2[StorageKey, V] {
 	if om.TransactionDepth() != 0 {
 		panic("Drain is not allowed with open transactions.")
 	}
 
-	return func(yield func(backend.StorageKey, V) bool) {
+	return func(yield func(StorageKey, V) bool) {
 		om.changes.Scan(func(k K, v E) bool {
-			return yield(backend.StorageKey(k), v.PopTransaction().value)
+			return yield(StorageKey(k), v.PopTransaction().value)
 		})
 	}
 }

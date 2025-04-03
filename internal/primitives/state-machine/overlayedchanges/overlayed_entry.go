@@ -9,7 +9,7 @@ import (
 	"github.com/tidwall/btree"
 )
 
-const proofOverlayNonEmpty = `
+const proofOverlayNonEmptyMsg = `
 An OverlayValue is always created with at least one transaction and dropped as soon
 as the last transaction is removed; qed`
 
@@ -48,7 +48,7 @@ func (oe *GenericOverlayedEntry[V]) Transactions() []transaction[V] {
 
 func (oe *GenericOverlayedEntry[V]) ValueRef() *V {
 	if len(oe.transactions) == 0 {
-		panic(proofOverlayNonEmpty)
+		panic(proofOverlayNonEmptyMsg)
 	}
 
 	return &oe.transactions[len(oe.transactions)-1].value
@@ -68,7 +68,7 @@ func (oe GenericOverlayedEntry[V]) Extrinsics() *btree.Set[uint32] {
 
 func (oe *GenericOverlayedEntry[V]) PopTransaction() transaction[V] {
 	if len(oe.transactions) == 0 {
-		panic(proofOverlayNonEmpty)
+		panic(proofOverlayNonEmptyMsg)
 	}
 
 	t := oe.transactions[len(oe.transactions)-1]
@@ -79,7 +79,7 @@ func (oe *GenericOverlayedEntry[V]) PopTransaction() transaction[V] {
 
 func (oe *GenericOverlayedEntry[V]) TransactionExtrinsics() *extrinsics {
 	if len(oe.transactions) == 0 {
-		panic(proofOverlayNonEmpty)
+		panic(proofOverlayNonEmptyMsg)
 	}
 
 	return &oe.transactions[len(oe.transactions)-1].extrinsics
