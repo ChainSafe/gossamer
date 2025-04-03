@@ -106,7 +106,7 @@ func newCommittedCandidate(
 	headData parachaintypes.HeadData,
 	povHash, relayParent, erasureRoot, pvdHash common.Hash,
 	validationCode parachaintypes.ValidationCode,
-) parachaintypes.CommittedCandidateReceipt {
+) parachaintypes.CommittedCandidateReceiptV2 {
 	t.Helper()
 
 	var collatorID parachaintypes.CollatorID
@@ -138,7 +138,7 @@ func newCommittedCandidate(
 			ProcessedDownwardMessages: 0,
 			HrmpWatermark:             0,
 		},
-	}
+	}.V2()
 }
 
 // parachainValidators returns a list of parachain validator IDs for testing purposes.

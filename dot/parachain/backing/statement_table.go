@@ -33,7 +33,7 @@ type proposal struct {
 
 type candidateData struct {
 	groupID       parachaintypes.GroupIndex
-	candidate     parachaintypes.CommittedCandidateReceipt
+	candidate     parachaintypes.CommittedCandidateReceiptV2
 	validityVotes map[parachaintypes.ValidatorIndex]validityVoteWithSign
 }
 
@@ -111,10 +111,10 @@ const (
 
 // getCommittedCandidateReceipt returns the committed candidate receipt for the given candidate hash.
 func (table *statementTable) getCommittedCandidateReceipt(candidateHash parachaintypes.CandidateHash,
-) (parachaintypes.CommittedCandidateReceipt, error) {
+) (parachaintypes.CommittedCandidateReceiptV2, error) {
 	data, ok := table.candidateVotes[candidateHash]
 	if !ok {
-		return parachaintypes.CommittedCandidateReceipt{},
+		return parachaintypes.CommittedCandidateReceiptV2{},
 			fmt.Errorf("%w for candidate-hash: %s", errCandidateDataNotFound, candidateHash)
 	}
 	return data.candidate, nil
@@ -137,7 +137,7 @@ func (table *statementTable) importStatement(
 	case parachaintypes.Seconded:
 		summary, misbehaviour, err = table.importCandidate(
 			signedStatement.ValidatorIndex,
-			parachaintypes.CommittedCandidateReceipt(statementVDT),
+			parachaintypes.CommittedCandidateReceiptV2(statementVDT),
 			signedStatement.Signature,
 			tableCtx,
 			groupID,
@@ -178,7 +178,7 @@ func isCandidateAlreadyProposed(proposals []proposal, candidateHash parachaintyp
 
 func (table *statementTable) importCandidate(
 	authority parachaintypes.ValidatorIndex,
-	candidate parachaintypes.CommittedCandidateReceipt,
+	candidate parachaintypes.CommittedCandidateReceiptV2,
 	signature parachaintypes.ValidatorSignature,
 	tableCtx *tableContext,
 	group parachaintypes.GroupIndex,
@@ -231,7 +231,7 @@ func (table *statementTable) importCandidate(
 func (table *statementTable) addCandidateVote(
 	candidateHash parachaintypes.CandidateHash,
 	groupID parachaintypes.GroupIndex,
-	candidate parachaintypes.CommittedCandidateReceipt,
+	candidate parachaintypes.CommittedCandidateReceiptV2,
 ) {
 	table.candidateVotes[candidateHash] = &candidateData{
 		groupID:       groupID,
@@ -359,7 +359,7 @@ func (table *statementTable) drainMisbehaviors() map[parachaintypes.ValidatorInd
 }
 
 type Table interface {
-	getCommittedCandidateReceipt(parachaintypes.CandidateHash) (parachaintypes.CommittedCandidateReceipt, error)
+	getCommittedCandidateReceipt(parachaintypes.CandidateHash) (parachaintypes.CommittedCandidateReceiptV2, error)
 	importStatement(*tableContext, parachaintypes.GroupIndex, parachaintypes.SignedFullStatement) (*Summary, error)
 	attestedCandidate(parachaintypes.CandidateHash, *tableContext, uint32) (*attestedCandidate, error)
 	drainMisbehaviors() map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour
@@ -388,7 +388,7 @@ type attestedCandidate struct {
 	// The group ID that the candidate is in.
 	groupID parachaintypes.GroupIndex
 	// The committedCandidateReceipt data.
-	committedCandidateReceipt parachaintypes.CommittedCandidateReceipt
+	committedCandidateReceipt parachaintypes.CommittedCandidateReceiptV2
 	// Validity attestations.
 	validityAttestations []validatorIndexWithAttestation
 }
