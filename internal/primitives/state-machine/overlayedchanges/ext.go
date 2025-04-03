@@ -47,7 +47,7 @@ func (sa *storageAppend) appendRaw(value []byte) {
 
 // spliceSlice is a helper function that replaces a slice of elements with a new slice in the given positions.
 func spliceSlice[T any](slice []T, startIdx, endIdx int, replacement []T) []T {
-	if startIdx < 0 || endIdx > len(slice) || startIdx > endIdx {
+	if startIdx < 0 || endIdx >= len(slice) || startIdx > endIdx {
 		panic("invalid range")
 	}
 
