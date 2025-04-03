@@ -39,6 +39,36 @@ type candidateEntry struct {
 	state              candidateState
 }
 
+var _ HypoteticalOrConcrete = (*candidateEntry)(nil)
+
+func (c *candidateEntry) CandidateHash() parachaintypes.CandidateHash {
+	return c.candidateHash
+}
+
+func (c *candidateEntry) GetParentHeadDataHash() (common.Hash, error) {
+	return c.parentHeadDataHash, nil
+}
+
+func (c *candidateEntry) RelayParentHash() common.Hash {
+	return c.relayParent
+}
+
+func (c *candidateEntry) GetOutputHeadDataHash() *common.Hash {
+	return &c.outputHeadDataHash
+}
+
+func (c *candidateEntry) Commitments() *parachaintypes.CandidateCommitments {
+	return &c.candidate.Commitments
+}
+
+func (c *candidateEntry) GetPersistedValidationData() *parachaintypes.PersistedValidationData {
+	return &c.candidate.PersistedValidationData
+}
+
+func (c *candidateEntry) ValidationCodeHash() *parachaintypes.ValidationCodeHash {
+	return &c.candidate.ValidationCodeHash
+}
+
 func newCandidateEntry(
 	candidateHash parachaintypes.CandidateHash,
 	candidate parachaintypes.CommittedCandidateReceiptV2,
@@ -245,7 +275,9 @@ func (c *candidateStorage) headDataByHash(hash common.Hash) *parachaintypes.Head
 	return nil
 }
 
-func (c *candidateStorage) possibleBackedParaChildren(parentHeadHash common.Hash) iter.Seq[*candidateEntry] {
+func (c *candidateStorage) possibleBackedParaChildren(
+	parentHeadHash common.Hash,
+) iter.Seq[*candidateEntry] {
 	return func(yield func(*candidateEntry) bool) {
 		seqOfCandidateHashes, ok := c.byParentHead[parentHeadHash]
 		if !ok {
@@ -358,7 +390,9 @@ func (s *scope) ancestor(hash common.Hash) *relayChainBlockInfo {
 }
 
 // Whether the candidate in question is one pending availability in this scope.
-func (s *scope) getPendingAvailability(candidateHash parachaintypes.CandidateHash) *pendingAvailability {
+func (s *scope) getPendingAvailability(
+	candidateHash parachaintypes.CandidateHash,
+) *pendingAvailability {
 	for _, c := range s.pendingAvailability {
 		if c.candidateHash == candidateHash {
 			return c
@@ -491,7 +525,10 @@ type fragmentChain struct {
 
 // newFragmentChain createa a new fragment chain with the given scope and populates it with
 // the candidates pending availability
-func newFragmentChain(scope *scope, candidatesPendingAvailability *candidateStorage) *fragmentChain {
+func newFragmentChain(
+	scope *scope,
+	candidatesPendingAvailability *candidateStorage,
+) *fragmentChain {
 	fragmentChain := &fragmentChain{
 		scope:       scope,
 		bestChain:   newBackedChain(),
@@ -537,7 +574,9 @@ func (f *fragmentChain) bestChainLen() int {
 	return len(f.bestChain.chain)
 }
 
-func (f *fragmentChain) containsUnconnectedCandidate(candidateHash parachaintypes.CandidateHash) bool { //nolint:unused
+func (f *fragmentChain) containsUnconnectedCandidate( //nolint:unused
+	candidateHash parachaintypes.CandidateHash,
+) bool {
 	_, ok := f.unconnected.byCandidateHash[candidateHash]
 	return ok
 }
@@ -591,8 +630,8 @@ func (f *fragmentChain) candidateBacked(newlyBackedCandidate parachaintypes.Cand
 }
 
 // canAddCandidateAsPotential checks if this candidate could be added in the future
-func (f *fragmentChain) canAddCandidateAsPotential(entry *candidateEntry) error {
-	candidateHash := entry.candidateHash
+func (f *fragmentChain) canAddCandidateAsPotential(candidate HypoteticalOrConcrete) error {
+	candidateHash := candidate.CandidateHash()
 
 	_, existsInCandidateStorage := f.unconnected.byCandidateHash[candidateHash]
 	_, existsInBestChain := f.bestChain.candidates[candidateHash]
@@ -600,7 +639,7 @@ func (f *fragmentChain) canAddCandidateAsPotential(entry *candidateEntry) error 
 		return errCandidateAlreadyKnown
 	}
 
-	return f.checkPotential(entry)
+	return f.checkPotential(candidate)
 }
 
 // tryAddingSecondedCandidate tries to add a candidate as a seconded candidate, if the
@@ -620,7 +659,9 @@ func (f *fragmentChain) tryAddingSecondedCandidate(entry *candidateEntry) error 
 }
 
 // getHeadDataByHash tries to get the full head data associated with this hash
-func (f *fragmentChain) getHeadDataByHash(headDataHash common.Hash) (*parachaintypes.HeadData, error) {
+func (f *fragmentChain) getHeadDataByHash(
+	headDataHash common.Hash,
+) (*parachaintypes.HeadData, error) {
 	reqParent := f.scope.baseConstraints.RequiredParent
 	reqParentHash, err := reqParent.Hash()
 	if err != nil {
@@ -668,7 +709,8 @@ type candidateAndRelayParent struct {
 // on the basis of one or more candidates which were previously pending availability
 // becoming available or candidates timing out
 func (f *fragmentChain) findBackableChain(
-	ancestors map[parachaintypes.CandidateHash]struct{}, count uint32) []*candidateAndRelayParent {
+	ancestors map[parachaintypes.CandidateHash]struct{}, count uint32,
+) []*candidateAndRelayParent {
 	if count == 0 {
 		return nil
 	}
@@ -776,12 +818,15 @@ func (f *fragmentChain) populateUnconnectedPotentialCandidates(oldStorage *candi
 	}
 }
 
-func (f *fragmentChain) checkPotential(candidate *candidateEntry) error {
-	relayParent := candidate.relayParent
-	parentHeadHash := candidate.parentHeadDataHash
+func (f *fragmentChain) checkPotential(candidate HypoteticalOrConcrete) error {
+	relayParent := candidate.RelayParentHash()
+	parentHeadHash, err := candidate.GetParentHeadDataHash()
+	if err != nil {
+		return fmt.Errorf("getting parent head data hash: %w", err)
+	}
 
 	// trivial 0-length cycle
-	if candidate.outputHeadDataHash == parentHeadHash {
+	if candidate.GetOutputHeadDataHash() == &parentHeadHash {
 		return errZeroLengthCycle
 	}
 
@@ -812,13 +857,14 @@ func (f *fragmentChain) checkPotential(candidate *candidateEntry) error {
 
 		// If the candidate is backed and in the current chain, accept only a candidate
 		// according to the fork selection rule
-		if forkSelectionRule(otherCandidateHash, candidate.candidateHash) == -1 {
+		if forkSelectionRule(otherCandidateHash, candidate.CandidateHash()) == -1 {
 			return errForkChoiceRule{candidateHash: otherCandidateHash}
 		}
 	}
 
 	// Try seeing if the parent candidate is in the current chain or if it is the latest
 	// included candidate. If so, get the constraints the candidate must satisfy
+	var isUnconnected bool
 	var constraints *parachaintypes.Constraints
 	var maybeMinRelayParentNumber *parachaintypes.BlockNumber
 
@@ -856,25 +902,49 @@ func (f *fragmentChain) checkPotential(candidate *candidateEntry) error {
 		// It builds on the latest included candidate
 		constraints = f.scope.baseConstraints.Clone()
 	} else {
-		// If the parent is not yet part of the chain, there's nothing else we can check for now
-		return nil
+		isUnconnected = true
+		constraints = f.scope.baseConstraints.Clone()
 	}
 
-	// Check for cycles or invalid tree transitions
-	if err := f.checkCyclesOrInvalidTree(candidate.outputHeadDataHash); err != nil {
-		return err
+	if outputHeadDataHash := candidate.GetOutputHeadDataHash(); outputHeadDataHash != nil {
+		// Check for cycles or invalid tree transitions
+		if err := f.checkCyclesOrInvalidTree(*outputHeadDataHash); err != nil {
+			return err
+		}
 	}
 
-	// Check against constraints if we have a full concrete candidate
-	_, err = checkAgainstConstraints(
-		relayParentInfo,
-		constraints,
-		candidate.candidate.Commitments,
-		candidate.candidate.ValidationCodeHash,
-		candidate.candidate.PersistedValidationData,
-	)
-	if err != nil {
-		return errCheckAgainstConstraints{fragmentValidityErr: err}
+	commitments := candidate.Commitments()
+	pvd := candidate.GetPersistedValidationData()
+	validationCodeHash := candidate.ValidationCodeHash()
+
+	if commitments != nil && pvd != nil && validationCodeHash != nil {
+		// If the parent is not yet part of the chain, we can check the commitments only
+		// if we have the full candidate.
+		if isUnconnected {
+			err := validateCommitments(
+				f.scope.baseConstraints,
+				relayParentInfo,
+				*commitments,
+				*validationCodeHash,
+			)
+			if err != nil {
+				return errCheckAgainstConstraints{fragmentValidityErr: err}
+			}
+
+			return nil
+		}
+
+		// Check against constraints if we have a full concrete candidate
+		_, err = checkAgainstConstraints(
+			relayParentInfo,
+			constraints,
+			*commitments,
+			*validationCodeHash,
+			*pvd,
+		)
+		if err != nil {
+			return errCheckAgainstConstraints{fragmentValidityErr: err}
+		}
 	}
 
 	if relayParentInfo.Number < constraints.MinRelayParentNumber {
