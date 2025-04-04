@@ -92,9 +92,7 @@ func (cb *CandidateBacking) checkLeafForSeconding(
 
 	memberships, ok := <-responseCh
 	if !ok {
-		logger.Error(
-			"failed to receive hypothetical membership response: response channel is closed",
-		)
+		logger.Error("failed to receive hypothetical membership response: response channel is closed")
 		return
 	}
 
