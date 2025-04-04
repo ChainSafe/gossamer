@@ -76,12 +76,15 @@ func (cb *CandidateBacking) checkLeafForSeconding(
 	candidateHash := hypotheticalCandidate.CandidateHash()
 
 	// Check that the candidate relay parent is allowed for para, skip the leaf otherwise.
-	allowedParentsForPara := cb.ImplicitView.KnownAllowedRelayParentsUnder(activeLeaf, &candidateParaID)
+	allowedParentsForPara := cb.ImplicitView.KnownAllowedRelayParentsUnder(
+		activeLeaf,
+		&candidateParaID,
+	)
 	if !slices.Contains(allowedParentsForPara, candidateRelayParent) {
 		return
 	}
 
-	responseCh := make(chan []prospectiveparachains.HypotheticalMembershipResponseItem)
+	responseCh := make(chan []*prospectiveparachains.HypotheticalMembershipResponseItem)
 	cb.SubSystemToOverseer <- prospectiveparachains.GetHypotheticalMembership{
 		Candidates: []parachaintypes.HypotheticalCandidate{hypotheticalCandidate},
 		Response:   responseCh,
@@ -89,7 +92,9 @@ func (cb *CandidateBacking) checkLeafForSeconding(
 
 	memberships, ok := <-responseCh
 	if !ok {
-		logger.Error("failed to receive hypothetical membership response: response channel is closed")
+		logger.Error(
+			"failed to receive hypothetical membership response: response channel is closed",
+		)
 		return
 	}
 
@@ -101,7 +106,7 @@ func (cb *CandidateBacking) checkLeafForSeconding(
 // isMemberOrPotentialMember checks if the given candidate hash is a member or
 // potential member of the candidate memberships.
 func isMemberOrPotentialMember(
-	memberships []prospectiveparachains.HypotheticalMembershipResponseItem,
+	memberships []*prospectiveparachains.HypotheticalMembershipResponseItem,
 	hypotheticalCandidateHash parachaintypes.CandidateHash,
 	activeLeaf common.Hash,
 ) bool {

@@ -388,10 +388,10 @@ func (pp *ProspectiveParachains) answerHypotheticalMembershipRequest(
 ) {
 	// TODO: add metrics
 
-	response := make([]messages.HypotheticalMembershipResponseItem, 0, len(msg.Candidates))
+	response := make([]*messages.HypotheticalMembershipResponseItem, 0, len(msg.Candidates))
 
 	for _, candidate := range msg.Candidates {
-		response = append(response, messages.HypotheticalMembershipResponseItem{
+		response = append(response, &messages.HypotheticalMembershipResponseItem{
 			HypotheticalCandidate:  candidate,
 			HypotheticalMembership: make([]common.Hash, 0),
 		})
@@ -453,7 +453,7 @@ func (pp *ProspectiveParachains) answerHypotheticalMembershipRequest(
 			}
 
 			leaves := strings.Join(hashes, ",")
-			logger.Debugf("Para=%d Leaves=%s RequiredActiveLeaf=%v Candidate=%s"+
+			logger.Debugf("Para=%d Leaves=%s RequiredActiveLeaf=%v Candidate=%s "+
 				"Candidate is not a hypothetical member on any of the active leaves",
 				item.HypotheticalCandidate.ParaID(),
 				leaves,

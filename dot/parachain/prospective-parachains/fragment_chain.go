@@ -826,7 +826,7 @@ func (f *fragmentChain) checkPotential(candidate HypoteticalOrConcrete) error {
 	}
 
 	// trivial 0-length cycle
-	if candidate.GetOutputHeadDataHash() == &parentHeadHash {
+	if bytes.Equal(parentHeadHash[:], candidate.GetOutputHeadDataHash()[:]) {
 		return errZeroLengthCycle
 	}
 
