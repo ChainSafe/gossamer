@@ -918,7 +918,7 @@ func TestAnswerProspectiveValidationDataRequest(t *testing.T) {
 func markCandidatedBacked(
 	t *testing.T,
 	overseerToSubsystem chan any,
-	candidate parachaintypes.CommittedCandidateReceipt,
+	candidate parachaintypes.CommittedCandidateReceiptV2,
 ) {
 	hash, err := candidate.Hash()
 
