@@ -6,8 +6,9 @@ package bitfielddistribution
 import (
 	"context"
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"sync"
+
+	"github.com/ChainSafe/gossamer/dot/types"
 
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
 
@@ -306,7 +307,7 @@ func (b *BitfieldDistribution) processNewGossipTopologyEvent(event networkbridge
 		oldView := peerView.View
 		// in case we already knew that peer in the past
 		// it might have had an existing view, we use to initialize
-		// and minimize the delta on `PeerViewChange` to be sent
+		// and minimise the delta on `PeerViewChange` to be sent
 		peerView.View = parachaintypes.View{}
 
 		handlePeerViewChange(b, id, oldView, b.subSystemToOverseer)
@@ -580,7 +581,12 @@ func relayMessage(
 }
 
 // handlePeerViewChange sends the difference between two views which were not sent to that particular peer
-func handlePeerViewChange(state *BitfieldDistribution, origin peer.ID, view parachaintypes.View, overseerCh chan<- any) {
+func handlePeerViewChange(
+	state *BitfieldDistribution,
+	origin peer.ID,
+	view parachaintypes.View,
+	overseerCh chan<- any,
+) {
 	peerData := state.peerViews[origin]
 	if peerData == nil {
 		logger.Warnf("attempted to update peer view for unknown peer: %s", origin)

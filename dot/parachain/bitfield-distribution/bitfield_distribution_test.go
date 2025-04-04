@@ -294,7 +294,7 @@ func TestBitfieldDistribution_RelayMessage_InterestedPeersEmpty(t *testing.T) {
 		subSystemToOverseer: subSystemToOverseer,
 		peerViews:           peerViews,
 		ourView:             parachaintypes.View{},
-		topologies:          grid.SessionGridTopologyStorage{},
+		topologies:          &grid.SessionGridTopologyStorage{},
 		perRelayParent: map[common.Hash]*perRelayParentData{
 			relayParent: jobData,
 		},
@@ -374,7 +374,7 @@ func TestBitfieldDistribution_RelayMessage_FilterV2Peers(t *testing.T) {
 		subSystemToOverseer: subSystemToOverseer,
 		peerViews:           peerViews,
 		ourView:             parachaintypes.View{},
-		topologies:          grid.SessionGridTopologyStorage{},
+		topologies:          &grid.SessionGridTopologyStorage{},
 		perRelayParent: map[common.Hash]*perRelayParentData{
 			relayParent: jobData,
 		},
@@ -466,7 +466,7 @@ func TestBitfieldDistribution_RelayMessage_FilterV3Peers(t *testing.T) {
 		subSystemToOverseer: subSystemToOverseer,
 		peerViews:           peerViews,
 		ourView:             parachaintypes.View{},
-		topologies:          grid.SessionGridTopologyStorage{},
+		topologies:          &grid.SessionGridTopologyStorage{},
 		perRelayParent: map[common.Hash]*perRelayParentData{
 			relayParent: jobData,
 		},
@@ -538,7 +538,7 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_ValidatorSetEmp
 		subSystemToOverseer: overseerCh,
 		peerViews:           peerViews,
 		ourView:             parachaintypes.View{},
-		topologies:          grid.SessionGridTopologyStorage{},
+		topologies:          &grid.SessionGridTopologyStorage{},
 		perRelayParent: map[common.Hash]*perRelayParentData{
 			{1, 2, 3}: jobData,
 		},
@@ -565,7 +565,7 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_ValidatorIdxInv
 		subSystemToOverseer: overseerCh,
 		peerViews:           peerViews,
 		ourView:             parachaintypes.View{},
-		topologies:          grid.SessionGridTopologyStorage{},
+		topologies:          &grid.SessionGridTopologyStorage{},
 		perRelayParent: map[common.Hash]*perRelayParentData{
 			{1, 2, 3}: jobData,
 		},
@@ -616,7 +616,7 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_CheckSignedAvai
 		subSystemToOverseer: overseerCh,
 		peerViews:           peerViews,
 		ourView:             parachaintypes.View{},
-		topologies: grid.SessionGridTopologyStorage{
+		topologies: &grid.SessionGridTopologyStorage{
 			CurrentTopology: sgte,
 			PrevTopology:    sgte,
 		},
@@ -787,7 +787,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_NotContainTheView(
 		subSystemToOverseer: overseerCh,
 		peerViews:           peerViews,
 		ourView:             parachaintypes.View{},
-		topologies:          grid.SessionGridTopologyStorage{},
+		topologies:          &grid.SessionGridTopologyStorage{},
 		perRelayParent:      map[common.Hash]*perRelayParentData{},
 		reputation: util.NewReputationAggregator(func(rep util.UnifiedReputationChange) bool {
 			return false
@@ -841,7 +841,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_JobDataEmpty(t *te
 		ourView: parachaintypes.View{
 			Heads: []common.Hash{relayParent},
 		},
-		topologies:     grid.SessionGridTopologyStorage{},
+		topologies:     &grid.SessionGridTopologyStorage{},
 		perRelayParent: map[common.Hash]*perRelayParentData{},
 		reputation: util.NewReputationAggregator(func(rep util.UnifiedReputationChange) bool {
 			return false
@@ -896,7 +896,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_ValidatorSetEmpty(
 		ourView: parachaintypes.View{
 			Heads: []common.Hash{relayParent},
 		},
-		topologies: grid.SessionGridTopologyStorage{},
+		topologies: &grid.SessionGridTopologyStorage{},
 		perRelayParent: map[common.Hash]*perRelayParentData{
 			{1, 2, 3}: jobData,
 		},
@@ -954,7 +954,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_ValidatorNotExist(
 		ourView: parachaintypes.View{
 			Heads: []common.Hash{relayParent},
 		},
-		topologies: grid.SessionGridTopologyStorage{},
+		topologies: &grid.SessionGridTopologyStorage{},
 		perRelayParent: map[common.Hash]*perRelayParentData{
 			{1, 2, 3}: jobData,
 		},
@@ -1012,7 +1012,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_ReceivedSetNotEmpt
 		ourView: parachaintypes.View{
 			Heads: []common.Hash{relayParent},
 		},
-		topologies: grid.SessionGridTopologyStorage{},
+		topologies: &grid.SessionGridTopologyStorage{},
 		perRelayParent: map[common.Hash]*perRelayParentData{
 			{1, 2, 3}: jobData,
 		},
@@ -1079,7 +1079,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_DuplicatedMessages
 		ourView: parachaintypes.View{
 			Heads: []common.Hash{relayParent},
 		},
-		topologies: grid.SessionGridTopologyStorage{},
+		topologies: &grid.SessionGridTopologyStorage{},
 		perRelayParent: map[common.Hash]*perRelayParentData{
 			{1, 2, 3}: jobData,
 		},
@@ -1179,7 +1179,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_Success(t *testing
 		ourView: parachaintypes.View{
 			Heads: []common.Hash{relayParent},
 		},
-		topologies: grid.SessionGridTopologyStorage{
+		topologies: &grid.SessionGridTopologyStorage{
 			CurrentTopology: sgte,
 			PrevTopology:    sgte,
 		},
@@ -1213,5 +1213,244 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_Success(t *testing
 		t.Log("expected message received from overseerCh")
 	case <-time.After(2 * time.Second):
 		t.Fatal("Test timed out")
+	}
+}
+
+func TestBitfieldDistribution_SendTrackedGossipMessage_noRelayParent(t *testing.T) {
+	overseerCh := make(chan any)
+
+	b := NewBitfieldDistribution(overseerCh)
+
+	dest := peer.ID("tester")
+
+	validatorIndex, validatorSet := prepareForValidators()
+
+	vec, err := parachaintypes.NewBitVec([]bool{true, false})
+	assert.Nil(t, err)
+
+	// perRelayParent data not exist for this hash
+	relayParent := common.Hash{1, 1, 1}
+	message := validationprotocol.CheckedBitfield{
+		Hash: relayParent,
+		CheckedSignedAvailabilityBitfield: parachaintypes.CheckedSignedAvailabilityBitfield{
+			Payload:        vec,
+			ValidatorIndex: validatorIndex,
+			Signature:      [64]byte{0},
+		},
+	}
+
+	go sendTrackedGossipMessage(b, dest, validatorSet[0], message, overseerCh)
+
+	select {
+	case <-overseerCh:
+		t.Fatal("should not receive any type of message")
+	case <-time.After(2 * time.Second):
+		t.Log("test complete")
+	}
+}
+
+func TestBitfieldDistribution_SendTrackedGossipMessage_noPeerView(t *testing.T) {
+	overseerCh := make(chan any)
+
+	b := NewBitfieldDistribution(overseerCh)
+
+	dest := peer.ID("tester")
+
+	validatorIndex, validatorSet := prepareForValidators()
+
+	vec, err := parachaintypes.NewBitVec([]bool{true, false})
+	assert.Nil(t, err)
+
+	relayParent := common.Hash{1, 1, 1}
+
+	perRelayParent := newPerRelayParentData(1, validatorSet)
+	b.perRelayParent[relayParent] = perRelayParent
+
+	message := validationprotocol.CheckedBitfield{
+		Hash: relayParent,
+		CheckedSignedAvailabilityBitfield: parachaintypes.CheckedSignedAvailabilityBitfield{
+			Payload:        vec,
+			ValidatorIndex: validatorIndex,
+			Signature:      [64]byte{0},
+		},
+	}
+
+	go sendTrackedGossipMessage(b, dest, validatorSet[0], message, overseerCh)
+
+	select {
+	case <-overseerCh:
+		t.Fatal("should not receive any type of message")
+	case <-time.After(2 * time.Second):
+		t.Log("test complete")
+	}
+}
+
+func TestBitfieldDistribution_SendTrackedGossipMessage_noMessageSentToPeer(t *testing.T) {
+	overseerCh := make(chan any)
+
+	b := NewBitfieldDistribution(overseerCh)
+
+	dest := peer.ID("tester")
+
+	validatorIndex, validatorSet := prepareForValidators()
+
+	vec, err := parachaintypes.NewBitVec([]bool{true, false})
+	assert.Nil(t, err)
+
+	relayParent := common.Hash{1, 1, 1}
+
+	perRelayParent := newPerRelayParentData(1, validatorSet)
+	b.perRelayParent[relayParent] = perRelayParent
+
+	b.peerViews[dest] = &networkbridge.PeerDataViewWithVersion{
+		View:            parachaintypes.View{},
+		ProtocolVersion: 2,
+	}
+
+	message := validationprotocol.CheckedBitfield{
+		Hash: relayParent,
+		CheckedSignedAvailabilityBitfield: parachaintypes.CheckedSignedAvailabilityBitfield{
+			Payload:        vec,
+			ValidatorIndex: validatorIndex,
+			Signature:      [64]byte{0},
+		},
+	}
+
+	done := make(chan struct{})
+	go func() {
+		for {
+			request := <-overseerCh
+			switch request.(type) {
+			// only networkbridgemessages.SendValidationMessage should be received here
+			case networkbridgemessages.SendValidationMessage:
+				done <- struct{}{}
+			default:
+				t.Error("should not receive other type of message")
+			}
+		}
+	}()
+
+	sendTrackedGossipMessage(b, dest, validatorSet[0], message, overseerCh)
+
+	select {
+	case <-done:
+		t.Log("test complete")
+	case <-time.After(2 * time.Second):
+		t.Fatal("test time out")
+	}
+}
+
+func TestBitfieldDistribution_handlePeerViewChange_noPeerView(t *testing.T) {
+	overseerCh := make(chan any)
+	origin := peer.ID("tester")
+	_, validatorSet := prepareForValidators()
+	b := NewBitfieldDistribution(overseerCh)
+	relayParent := common.Hash{1, 1, 1}
+	perRelayParent := newPerRelayParentData(1, validatorSet)
+	b.perRelayParent[relayParent] = perRelayParent
+	view := parachaintypes.View{}
+
+	go handlePeerViewChange(b, origin, view, overseerCh)
+
+	select {
+	case <-overseerCh:
+		t.Fatal("should not receive any type of message")
+	case <-time.After(2 * time.Second):
+		t.Log("test complete")
+	}
+}
+
+func TestBitfieldDistribution_handlePeerViewChange_noGossipPeer(t *testing.T) {
+	overseerCh := make(chan any)
+	origin := peer.ID("tester")
+	_, validatorSet := prepareForValidators()
+
+	b := NewBitfieldDistribution(overseerCh)
+	relayParent := common.Hash{1, 1, 1}
+	perRelayParent := newPerRelayParentData(1, validatorSet)
+	b.perRelayParent[relayParent] = perRelayParent
+
+	// old view
+	b.peerViews[origin] = &networkbridge.PeerDataViewWithVersion{
+		View: parachaintypes.View{
+			Heads: []common.Hash{{0x01}, {0x02}, {0x03}, {0x04}},
+		},
+		ProtocolVersion: 2,
+	}
+	// new view
+	newView := parachaintypes.View{
+		Heads: []common.Hash{{0x01}, {0x02}, {0x05}, {0x06}},
+	}
+
+	go handlePeerViewChange(b, origin, newView, overseerCh)
+
+	select {
+	case <-overseerCh:
+		t.Fatal("should not receive any type of message")
+	case <-time.After(2 * time.Second):
+		t.Log("test complete")
+	}
+}
+
+func TestBitfieldDistribution_handlePeerViewChange_GossipPeer(t *testing.T) {
+	overseerCh := make(chan any)
+	origin := peer.ID("tester")
+	validatorIndex, validatorSet := prepareForValidators()
+	vec, err := parachaintypes.NewBitVec([]bool{true, false})
+	assert.Nil(t, err)
+
+	// {0x05} does not have jobData, so it will cover the jobData == nil branch
+	// {0x06} has dummy jobData, so it will go through all the logic and send out the message to overseerCh
+	relayParent := common.Hash{0x06}
+	message := validationprotocol.CheckedBitfield{
+		Hash: relayParent,
+		CheckedSignedAvailabilityBitfield: parachaintypes.CheckedSignedAvailabilityBitfield{
+			Payload:        vec,
+			ValidatorIndex: validatorIndex,
+			Signature:      [64]byte{0},
+		},
+	}
+	bvdt := validationprotocol.NewBitfieldDistributionMessageVDT()
+	err = bvdt.SetValue(message)
+	assert.Nil(t, err)
+
+	perRelayParent := newPerRelayParentData(1, validatorSet)
+	perRelayParent.onePerValidator[validatorSet[0]] = &bvdt
+	b := NewBitfieldDistribution(overseerCh)
+	b.perRelayParent[relayParent] = perRelayParent
+	b.topologies.CurrentTopology.LocalNeighbours.PeersRow[origin] = struct{}{}
+
+	// old view
+	b.peerViews[origin] = &networkbridge.PeerDataViewWithVersion{
+		View: parachaintypes.View{
+			Heads: []common.Hash{{0x01}, {0x02}, {0x03}, {0x04}},
+		},
+		ProtocolVersion: 2,
+	}
+	// new view
+	newView := parachaintypes.View{
+		Heads: []common.Hash{{0x01}, {0x02}, {0x05}, {0x06}},
+	}
+
+	done := make(chan any)
+	go func() {
+		for {
+			request := <-overseerCh
+			switch request.(type) {
+			case networkbridgemessages.SendValidationMessage:
+				done <- struct{}{}
+			default:
+				t.Error("should not receive other type of message")
+			}
+		}
+	}()
+
+	handlePeerViewChange(b, origin, newView, overseerCh)
+
+	select {
+	case <-done:
+		t.Log("test complete")
+	case <-time.After(2 * time.Second):
+		t.Fatal("test time out")
 	}
 }
