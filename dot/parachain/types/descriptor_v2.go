@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"sort"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -28,12 +29,11 @@ const defaultClaimQueueOffset byte = 0
 type CommittedCandidateReceiptError string
 
 const (
-	ErrCoreIndexMismatch           CommittedCandidateReceiptError = "core index mismatch"
+	ErrCoreIndexMismatch           CommittedCandidateReceiptError = "core index in commitments doesn't match the one in descriptor"
 	ErrCoreSelectorWithV1Decriptor CommittedCandidateReceiptError = "core selector with v1 descriptor"
-	ErrNoCoreAssigned              CommittedCandidateReceiptError = "no core assigned for parachain"
-	ErrNoCoreAssignedAtDepth       CommittedCandidateReceiptError = "no core assigned at specified claim queue offset"
+	ErrNoCoreAssigned              CommittedCandidateReceiptError = "parachain is not assigned to any core at specified claim queue offset"
 	ErrInvalidCoreIndex            CommittedCandidateReceiptError = "invalid core index"
-	ErrInvalidSelectedCore         CommittedCandidateReceiptError = "invalid selected core" // TODO: // change the error message
+	ErrInvalidSelectedCore         CommittedCandidateReceiptError = "core selector or claim queue offset is invalid"
 )
 
 func (e CommittedCandidateReceiptError) Error() string {
@@ -247,7 +247,7 @@ func (ccr CommittedCandidateReceiptV2) CheckCoreIndex(coresPerPara TransposedCla
 
 	assignedCores, exists := coresAtDepth[claimQueueOffset]
 	if !exists || len(assignedCores) == 0 {
-		return ErrNoCoreAssignedAtDepth
+		return ErrNoCoreAssigned
 	}
 
 	descriptorCoreIndex := CoreIndex{Index: uint32(ccr.Descriptor.CoreIndex)}
@@ -275,19 +275,21 @@ func (ccr CommittedCandidateReceiptV2) CheckCoreIndex(coresPerPara TransposedCla
 		return ErrInvalidSelectedCore
 	}
 
-	// TODO: fetch core index at selectedIdx from assignedCores
-	/*
-		Rust code:
-				let core_index = assigned_cores
-				.iter()
-				.nth(core_index_selector.0 as usize % assigned_cores.len())
-				.ok_or(CommittedCandidateReceiptError::InvalidSelectedCore)
-				.copied()?;
+	// Create a sorted slice of assignedCores
+	sortedAssignedCores := make([]CoreIndex, 0, len(assignedCores))
+	for core := range assignedCores {
+		sortedAssignedCores = append(sortedAssignedCores, core)
+	}
+	sort.Slice(sortedAssignedCores, func(i, j int) bool {
+		return sortedAssignedCores[i].Index < sortedAssignedCores[j].Index
+	})
 
-			if core_index != descriptor_core_index {
-				return Err(CommittedCandidateReceiptError::CoreIndexMismatch)
-			}
-	*/
+	coreIndex := sortedAssignedCores[selectedIdx]
+	if coreIndex != descriptorCoreIndex {
+		return fmt.Errorf("%w; in commitments: %d, in descriptor: %d",
+			ErrCoreIndexMismatch, coreIndex, descriptorCoreIndex)
+	}
+
 	return nil
 }
 

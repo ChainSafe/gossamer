@@ -919,8 +919,6 @@ type NodeFeatureIndex byte
 const ElasticScalingMVP NodeFeatureIndex = 1
 
 // TransposedClaimQueue represents a mapping between ParaID and the cores assigned per depth
-//
-// TODO: use btree map in this and claimQueue both types.
 type TransposedClaimQueue map[ParaID]map[uint8]map[CoreIndex]struct{}
 
 // ClaimQueue represents a mapping between CoreIndex and ParaID
@@ -963,7 +961,6 @@ func (c ClaimQueue) Ordered() OrderedClaimQueue {
 func (c ClaimQueue) ToTransposed() TransposedClaimQueue {
 	orderedClaimQueue := c.Ordered()
 
-	// TODO: make it ordered
 	transposedClaimQueue := make(TransposedClaimQueue)
 
 	for _, entry := range orderedClaimQueue {
