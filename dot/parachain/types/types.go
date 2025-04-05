@@ -921,6 +921,31 @@ const ElasticScalingMVP NodeFeatureIndex = 1
 // TransposedClaimQueue represents a mapping between ParaID and the cores assigned per depth
 type TransposedClaimQueue map[ParaID]map[uint8]map[CoreIndex]struct{}
 
+// Cores returns the cores assigned to a specific ParaID and depth.
+func (t TransposedClaimQueue) Cores(para ParaID, depth uint8) (
+	coreSet map[CoreIndex]struct{}, coresSorted []CoreIndex,
+) {
+	coresPerDepth, ok := t[para]
+	if !ok {
+		return nil, nil
+	}
+
+	coreSet, ok = coresPerDepth[depth]
+	if !ok || len(coreSet) == 0 {
+		return nil, nil
+	}
+
+	coresSorted = make([]CoreIndex, 0, len(coreSet))
+	for core := range coreSet {
+		coresSorted = append(coresSorted, core)
+	}
+	sort.Slice(coresSorted, func(i, j int) bool {
+		return coresSorted[i].Index < coresSorted[j].Index
+	})
+
+	return coreSet, coresSorted
+}
+
 // ClaimQueue represents a mapping between CoreIndex and ParaID
 type ClaimQueue map[CoreIndex][]ParaID
 

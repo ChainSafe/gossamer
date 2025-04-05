@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"sort"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -29,9 +28,9 @@ const defaultClaimQueueOffset byte = 0
 type CommittedCandidateReceiptError string
 
 const (
-	ErrCoreIndexMismatch           CommittedCandidateReceiptError = "core index in commitments doesn't match the one in descriptor"
+	ErrCoreIndexMismatch           CommittedCandidateReceiptError = "core index in commitments doesn't match the one in descriptor" //nolint:lll
 	ErrCoreSelectorWithV1Decriptor CommittedCandidateReceiptError = "core selector with v1 descriptor"
-	ErrNoCoreAssigned              CommittedCandidateReceiptError = "parachain is not assigned to any core at specified claim queue offset"
+	ErrNoCoreAssigned              CommittedCandidateReceiptError = "parachain is not assigned to any core at specified claim queue offset" //nolint:lll
 	ErrInvalidCoreIndex            CommittedCandidateReceiptError = "invalid core index"
 	ErrInvalidSelectedCore         CommittedCandidateReceiptError = "core selector or claim queue offset is invalid"
 )
@@ -211,6 +210,9 @@ func (ccr CommittedCandidateReceiptV2) Hash() (common.Hash, error) {
 	return ccr.ToPlain().Hash()
 }
 
+// CheckCoreIndex checks if descriptor core index is equal to the committed core index.
+// Input `coresPerPara` is a claim queue snapshot at the candidate's relay parent, stored as
+// a mapping between `ParaId` and the cores assigned per depth
 func (ccr CommittedCandidateReceiptV2) CheckCoreIndex(coresPerPara TransposedClaimQueue) error {
 	selectCore, err := ccr.Commitments.CoreSelector()
 	if err != nil {
@@ -239,14 +241,11 @@ func (ccr CommittedCandidateReceiptV2) CheckCoreIndex(coresPerPara TransposedCla
 		claimQueueOffset = selectCore.ClaimQueueOffset
 	}
 
-	// Get assigned cores for the para
-	coresAtDepth, exists := coresPerPara[ccr.Descriptor.ParaID]
-	if !exists {
-		return ErrNoCoreAssigned
-	}
+	// Get assigned cores for the parachain at the specified claim queue offset
+	assignedCoreSet, assignedCoresSorted := coresPerPara.Cores(ccr.Descriptor.ParaID, claimQueueOffset)
+	numOfCores := len(assignedCoresSorted)
 
-	assignedCores, exists := coresAtDepth[claimQueueOffset]
-	if !exists || len(assignedCores) == 0 {
+	if numOfCores == 0 {
 		return ErrNoCoreAssigned
 	}
 
@@ -254,9 +253,9 @@ func (ccr CommittedCandidateReceiptV2) CheckCoreIndex(coresPerPara TransposedCla
 
 	// Handle case with no core selector
 	if coreIndexSelector == nil {
-		if len(assignedCores) > 1 {
+		if numOfCores > 1 {
 			// Check if descriptor core index is among assigned cores
-			if _, exists := assignedCores[descriptorCoreIndex]; !exists {
+			if _, exists := assignedCoreSet[descriptorCoreIndex]; !exists {
 				return ErrInvalidCoreIndex
 			}
 
@@ -270,21 +269,12 @@ func (ccr CommittedCandidateReceiptV2) CheckCoreIndex(coresPerPara TransposedCla
 	}
 
 	// Get the core index from assigned cores using selector
-	selectedIdx := int(*coreIndexSelector) % len(assignedCores)
-	if selectedIdx >= len(assignedCores) {
+	selectedIdx := int(*coreIndexSelector) % numOfCores
+	if selectedIdx >= numOfCores {
 		return ErrInvalidSelectedCore
 	}
 
-	// Create a sorted slice of assignedCores
-	sortedAssignedCores := make([]CoreIndex, 0, len(assignedCores))
-	for core := range assignedCores {
-		sortedAssignedCores = append(sortedAssignedCores, core)
-	}
-	sort.Slice(sortedAssignedCores, func(i, j int) bool {
-		return sortedAssignedCores[i].Index < sortedAssignedCores[j].Index
-	})
-
-	coreIndex := sortedAssignedCores[selectedIdx]
+	coreIndex := assignedCoresSorted[selectedIdx]
 	if coreIndex != descriptorCoreIndex {
 		return fmt.Errorf("%w; in commitments: %d, in descriptor: %d",
 			ErrCoreIndexMismatch, coreIndex, descriptorCoreIndex)
