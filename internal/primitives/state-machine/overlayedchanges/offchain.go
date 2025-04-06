@@ -3,6 +3,16 @@
 
 package overlayedchanges
 
+import "github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
+
+type OffchainChangesCollection []struct {
+	PrefixKey struct {
+		Prefix []byte
+		Key    []byte
+	}
+	ValueOperation offchain.OffchainOverlayedChange
+}
+
 type OffchainOverlayedChange interface {
 	isOffchainOverlayedChange()
 }

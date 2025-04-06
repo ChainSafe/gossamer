@@ -10,7 +10,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
+	backend "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
@@ -22,6 +23,7 @@ type StorageKey = backend.StorageKey
 type StorageValue = backend.StorageValue
 type StorageKeyValue = backend.StorageKeyValue
 type StorageCollection = backend.StorageCollection
+type ChildStorageCollection = backend.ChildStorageCollection
 
 var NoExtrinsicIndex uint32 = 0xffffffff
 
@@ -66,7 +68,7 @@ type childStorageValue struct {
 // storage. So, we cache them to not require a recomputation of those transactions.
 type storageTransactionCache[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	// Contains the changes for the main and the child storages as one transaction.
-	transaction backend.BackendTransaction[H, Hasher]
+	transaction statemachine.BackendTransaction[H, Hasher]
 	// The storage root after applying the transaction.
 	transactionStorageRoot H
 }
