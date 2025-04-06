@@ -25,15 +25,6 @@ type StorageCollection = backend.StorageCollection
 
 var NoExtrinsicIndex uint32 = 0xffffffff
 
-// OffchainChangesCollection is slice of storage values.
-type OffchainChangesCollection []struct {
-	PrefixKey struct {
-		Prefix []byte
-		Key    []byte
-	}
-	ValueOperation offchain.OffchainOverlayedChange
-}
-
 // IndexOperations is interface constraint of [IndexOperation].
 type IndexOperations interface {
 	IndexOperationInsert | IndexOperationRenew
@@ -68,46 +59,6 @@ func (IndexOperationRenew) isIndexOperation()  {}
 type childStorageValue struct {
 	overlayedChangeSet
 	storage.ChildInfo
-}
-
-type OffchainOverlayedChange interface {
-	isOffchainOverlayedChange()
-}
-
-type (
-	OffchainOverlayedChangeRemove   struct{}
-	OffchainOverlayedChangeSetValue []byte
-)
-
-func (OffchainOverlayedChangeRemove) isOffchainOverlayedChange()   {}
-func (OffchainOverlayedChangeSetValue) isOffchainOverlayedChange() {}
-
-type OffchainOverlayedChanges struct {
-	OverlayedMap[string, OffchainOverlayedChange, *GenericOverlayedEntry[OffchainOverlayedChange]]
-}
-
-func NewOffchainOverlayedChanges() OffchainOverlayedChanges {
-	return OffchainOverlayedChanges{
-		NewOverlayedMap[string, OffchainOverlayedChange, *GenericOverlayedEntry[OffchainOverlayedChange]](),
-	}
-}
-
-func (oc OffchainOverlayedChanges) Clone() OffchainOverlayedChanges {
-	return OffchainOverlayedChanges{
-		oc.OverlayedMap.Clone(),
-	}
-}
-
-// Remove a key and its associated value from the offchain database.
-func (oc *OffchainOverlayedChanges) Set(prefix []byte, key []byte, value []byte) {
-	prefixedKey := string(append(prefix, key...))
-	oc.SetOffchain(prefixedKey, OffchainOverlayedChangeSetValue(value), nil)
-}
-
-// Remove a key and its associated value from the offchain database.
-func (oc *OffchainOverlayedChanges) Remove(prefix []byte, key []byte) {
-	prefixedKey := string(append(prefix, key...))
-	oc.SetOffchain(prefixedKey, OffchainOverlayedChangeRemove{}, nil)
 }
 
 // Storage transactions are calculated as part of the `storage_root`.
