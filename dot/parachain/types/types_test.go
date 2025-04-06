@@ -586,7 +586,7 @@ func TestCandidateCommitments_CoreSelector(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "empty upward messages",
+			name: "empty_upward_messages",
 			cc: CandidateCommitments{
 				UpwardMessages: []UpwardMessage{},
 			},
@@ -594,7 +594,7 @@ func TestCandidateCommitments_CoreSelector(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "no separator",
+			name: "no_separator",
 			cc: CandidateCommitments{
 				UpwardMessages: []UpwardMessage{
 					[]byte("msg1"),
@@ -605,7 +605,7 @@ func TestCandidateCommitments_CoreSelector(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "too many signals after separator",
+			name: "too_many_signals_after_separator",
 			cc: CandidateCommitments{
 				UpwardMessages: []UpwardMessage{
 					[]byte{}, // separator
@@ -617,7 +617,7 @@ func TestCandidateCommitments_CoreSelector(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "valid core selector",
+			name: "valid_core_selector",
 			cc: CandidateCommitments{
 				UpwardMessages: []UpwardMessage{
 					[]byte("msg1"),
@@ -645,7 +645,7 @@ func TestCandidateCommitments_CoreSelector(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "invalid UMP signal encoding",
+			name: "invalid_ump_signal_encoding",
 			cc: CandidateCommitments{
 				UpwardMessages: []UpwardMessage{
 					[]byte{}, // separator

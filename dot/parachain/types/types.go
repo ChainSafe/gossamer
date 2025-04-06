@@ -6,7 +6,6 @@ package parachaintypes
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"fmt"
 	"math"
 	"sort"
@@ -149,37 +148,6 @@ type CandidateDescriptor struct {
 	ParaHead common.Hash `scale:"8"`
 	// ValidationCodeHash is the blake2-256 hash of the validation code bytes.
 	ValidationCodeHash ValidationCodeHash `scale:"9"`
-}
-
-// V2 converts a CandidateDescriptor to a CandidateDescriptorV2
-func (cdV1 CandidateDescriptor) V2() CandidateDescriptorV2 {
-	// use first byte of collator as version
-	version := cdV1.Collator[0] // 1 byte from collator
-	// next two bytes of collator are core index
-	coreIndex := binary.NativeEndian.Uint16(cdV1.Collator[1:3]) // next 2 bytes from collator
-	// next four bytes of collator are session index
-	sessionIndex := SessionIndex(binary.NativeEndian.Uint32(cdV1.Collator[3:7])) // next 4 bytes from collator
-	// use remaining 25 bytes as reserved1
-	var reserved1 [25]byte
-	copy(reserved1[:], cdV1.Collator[7:]) // remaining 25 bytes from collator
-
-	// use collator signature as reserved2
-	var reserved2 [64]byte = cdV1.Signature
-
-	return CandidateDescriptorV2{
-		ParaID:                      cdV1.ParaID,
-		RelayParent:                 cdV1.RelayParent,
-		CurrentVersion:              version,
-		CoreIndex:                   coreIndex,
-		SessionIndex:                sessionIndex,
-		Reserved1:                   reserved1,
-		PersistedValidationDataHash: cdV1.PersistedValidationDataHash,
-		PovHash:                     cdV1.PovHash,
-		ErasureRoot:                 cdV1.ErasureRoot,
-		Reserved2:                   reserved2,
-		ParaHead:                    cdV1.ParaHead,
-		ValidationCodeHash:          cdV1.ValidationCodeHash,
-	}
 }
 
 func (cd CandidateDescriptor) CreateSignaturePayload() ([]byte, error) {
@@ -411,13 +379,6 @@ type CommittedCandidateReceipt struct {
 	Commitments CandidateCommitments `scale:"2"`
 }
 
-func (ccrV1 CommittedCandidateReceipt) V2() CommittedCandidateReceiptV2 {
-	return CommittedCandidateReceiptV2{
-		Descriptor:  ccrV1.Descriptor.V2(),
-		Commitments: ccrV1.Commitments,
-	}
-}
-
 func (ccr CommittedCandidateReceipt) ToPlain() CandidateReceipt {
 	return CandidateReceipt{
 		Descriptor:      ccr.Descriptor,
@@ -529,16 +490,6 @@ type CandidateReceipt struct {
 	Descriptor CandidateDescriptor `scale:"1"`
 	// The candidate event.
 	CommitmentsHash common.Hash `scale:"2"`
-}
-
-// V2 converts a CandidateReceipt to a CandidateReceiptV2
-func (crV1 CandidateReceipt) V2() CandidateReceiptV2 {
-	crV2 := CandidateReceiptV2{
-		Descriptor:      crV1.Descriptor.V2(),
-		CommitmentsHash: crV1.CommitmentsHash,
-	}
-
-	return crV2
 }
 
 func (cr CandidateReceipt) Hash() (common.Hash, error) {

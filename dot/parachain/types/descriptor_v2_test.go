@@ -79,7 +79,9 @@ func TestCommittedCandidateReceiptV2_CheckCoreIndex(t *testing.T) {
 	t.Parallel()
 
 	// Helper to create test CommittedCandidateReceiptV2
-	newTestReceipt := func(version CandidateDescriptorVersion, coreIndex uint16, paraID ParaID) CommittedCandidateReceiptV2 {
+	newTestReceipt := func(
+		version CandidateDescriptorVersion, coreIndex uint16, paraID ParaID,
+	) CommittedCandidateReceiptV2 {
 		desc := CandidateDescriptorV2{
 			ParaID:    paraID,
 			CoreIndex: coreIndex,
