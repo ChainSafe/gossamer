@@ -314,11 +314,15 @@ func (crV1 CandidateReceipt) V2() CandidateReceiptV2 {
 	return crV2
 }
 
+// SelectCore is a message sent by a parachain to select the core the candidate is committed to.
+// Relay chain validators, in particular backers, use the `CoreSelector` and
+// `ClaimQueueOffset` to compute the index of the core the candidate has committed to.
 type SelectCore struct {
 	CoreSelector     byte `scale:"1"`
 	ClaimQueueOffset byte `scale:"2"`
 }
 
+// UMPSignal represents a signal that a parachain can send to the relay chain via the UMP queue.
 type UMPSignal struct {
 	inner any
 }
