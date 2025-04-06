@@ -23,15 +23,6 @@ type StorageValue = backend.StorageValue
 type StorageKeyValue = backend.StorageKeyValue
 type StorageCollection = backend.StorageCollection
 
-type Encode interface {
-	MustMarshalSCALE() []byte
-}
-
-type Hash interface {
-	Encode
-	runtime.Hash
-}
-
 var NoExtrinsicIndex uint32 = 0xffffffff
 
 // OffchainChangesCollection is slice of storage values.
@@ -122,7 +113,7 @@ func (oc *OffchainOverlayedChanges) Remove(prefix []byte, key []byte) {
 // Storage transactions are calculated as part of the `storage_root`.
 // These transactions can be reused for importing the block into the
 // storage. So, we cache them to not require a recomputation of those transactions.
-type StorageTransactionCache[H Hash, Hasher runtime.Hasher[H]] struct {
+type StorageTransactionCache[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	// Contains the changes for the main and the child storages as one transaction.
 	transaction backend.BackendTransaction[H, Hasher]
 	// The storage root after applying the transaction.
@@ -131,7 +122,7 @@ type StorageTransactionCache[H Hash, Hasher runtime.Hasher[H]] struct {
 
 // The set of changes that are overlaid onto the
 // It allows changes to be modified using nestable transactions.
-type OverlayedChanges[H Hash, Hasher runtime.Hasher[H]] struct {
+type OverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	// Top level storage changes.
 	top overlayedChangeSet
 	// Child storage changes. The map key is the child storage key without the common prefix.
@@ -149,7 +140,7 @@ type OverlayedChanges[H Hash, Hasher runtime.Hasher[H]] struct {
 	storageTransactionCache *StorageTransactionCache[H, Hasher]
 }
 
-func NewOverlayedChanges[H Hash, Hasher runtime.Hasher[H]]() *OverlayedChanges[H, Hasher] {
+func NewOverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]]() *OverlayedChanges[H, Hasher] {
 	return &OverlayedChanges[H, Hasher]{
 		top:                     newOverlayedChangeSet(),
 		children:                make(map[string]childStorageValue),
@@ -633,7 +624,7 @@ func (oc *OverlayedChanges[H, Hasher]) ChildStorageRoot(
 		if isEmpty {
 			oc.SetStorage(StorageKey(prefixedStorageKey), nil)
 		} else {
-			oc.SetStorage(StorageKey(prefixedStorageKey), calculatedRoot.MustMarshalSCALE())
+			oc.SetStorage(StorageKey(prefixedStorageKey), scale.MustMarshal(calculatedRoot))
 		}
 		oc.markDirty()
 		root = calculatedRoot
