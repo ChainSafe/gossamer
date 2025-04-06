@@ -32,7 +32,6 @@ const (
 	ErrCoreSelectorWithV1Decriptor CommittedCandidateReceiptError = "core selector with v1 descriptor"
 	ErrNoCoreAssigned              CommittedCandidateReceiptError = "parachain is not assigned to any core at specified claim queue offset" //nolint:lll
 	ErrInvalidCoreIndex            CommittedCandidateReceiptError = "invalid core index"
-	ErrInvalidSelectedCore         CommittedCandidateReceiptError = "core selector or claim queue offset is invalid"
 )
 
 func (e CommittedCandidateReceiptError) Error() string {
@@ -157,37 +156,6 @@ func (cd CandidateDescriptorV2) RebuilSignatureField() CollatorSignature {
 	return cd.Reserved2
 }
 
-// V2 converts a CandidateDescriptor to a CandidateDescriptorV2
-func (cdV1 CandidateDescriptor) V2() CandidateDescriptorV2 {
-	// use first byte of collator as version
-	version := cdV1.Collator[0] // 1 byte from collator
-	// next two bytes of collator are core index
-	coreIndex := binary.NativeEndian.Uint16(cdV1.Collator[1:3]) // next 2 bytes from collator
-	// next four bytes of collator are session index
-	sessionIndex := SessionIndex(binary.NativeEndian.Uint32(cdV1.Collator[3:7])) // next 4 bytes from collator
-	// use remaining 25 bytes as reserved1
-	var reserved1 [25]byte
-	copy(reserved1[:], cdV1.Collator[7:]) // remaining 25 bytes from collator
-
-	// use collator signature as reserved2
-	var reserved2 [64]byte = cdV1.Signature
-
-	return CandidateDescriptorV2{
-		ParaID:                      cdV1.ParaID,
-		RelayParent:                 cdV1.RelayParent,
-		CurrentVersion:              version,
-		CoreIndex:                   coreIndex,
-		SessionIndex:                sessionIndex,
-		Reserved1:                   reserved1,
-		PersistedValidationDataHash: cdV1.PersistedValidationDataHash,
-		PovHash:                     cdV1.PovHash,
-		ErasureRoot:                 cdV1.ErasureRoot,
-		Reserved2:                   reserved2,
-		ParaHead:                    cdV1.ParaHead,
-		ValidationCodeHash:          cdV1.ValidationCodeHash,
-	}
-}
-
 // CommittedCandidateReceiptV2 is a candidate-receipt with commitments directly included.
 // NOTE: This type is backward compatible with CommittedCandidateReceipt.
 type CommittedCandidateReceiptV2 struct {
@@ -270,9 +238,6 @@ func (ccr CommittedCandidateReceiptV2) CheckCoreIndex(coresPerPara TransposedCla
 
 	// Get the core index from assigned cores using selector
 	selectedIdx := int(*coreIndexSelector) % numOfCores
-	if selectedIdx >= numOfCores {
-		return ErrInvalidSelectedCore
-	}
 
 	coreIndex := assignedCoresSorted[selectedIdx]
 	if coreIndex != descriptorCoreIndex {
@@ -281,13 +246,6 @@ func (ccr CommittedCandidateReceiptV2) CheckCoreIndex(coresPerPara TransposedCla
 	}
 
 	return nil
-}
-
-func (ccrV1 CommittedCandidateReceipt) V2() CommittedCandidateReceiptV2 {
-	return CommittedCandidateReceiptV2{
-		Descriptor:  ccrV1.Descriptor.V2(),
-		Commitments: ccrV1.Commitments,
-	}
 }
 
 // CandidateReceiptV2 A receipt for a parachain candidate.
@@ -306,16 +264,6 @@ func (cr CandidateReceiptV2) Hash() (common.Hash, error) {
 	}
 
 	return common.Blake2bHash(bytes)
-}
-
-// V2 converts a CandidateReceipt to a CandidateReceiptV2
-func (crV1 CandidateReceipt) V2() CandidateReceiptV2 {
-	crV2 := CandidateReceiptV2{
-		Descriptor:      crV1.Descriptor.V2(),
-		CommitmentsHash: crV1.CommitmentsHash,
-	}
-
-	return crV2
 }
 
 type SelectCore struct {
