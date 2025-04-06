@@ -113,7 +113,7 @@ func (oc *OffchainOverlayedChanges) Remove(prefix []byte, key []byte) {
 // Storage transactions are calculated as part of the `storage_root`.
 // These transactions can be reused for importing the block into the
 // storage. So, we cache them to not require a recomputation of those transactions.
-type StorageTransactionCache[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
+type storageTransactionCache[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	// Contains the changes for the main and the child storages as one transaction.
 	transaction backend.BackendTransaction[H, Hasher]
 	// The storage root after applying the transaction.
@@ -137,7 +137,7 @@ type OverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	stats *StateMachineStats
 	// Caches the "storage transaction" that is created while calling `storage_root`.
 	// This transaction can be applied to the backend to persist the state changes.
-	storageTransactionCache *StorageTransactionCache[H, Hasher]
+	storageTransactionCache *storageTransactionCache[H, Hasher]
 }
 
 func NewOverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]]() *OverlayedChanges[H, Hasher] {
@@ -569,7 +569,7 @@ func (oc *OverlayedChanges[H, Hasher]) StorageRoot(
 	}
 
 	root, tx := b.FullStorageRoot(delta, childDeltas, stateVersion)
-	oc.storageTransactionCache = &StorageTransactionCache[H, Hasher]{
+	oc.storageTransactionCache = &storageTransactionCache[H, Hasher]{
 		transaction:            tx,
 		transactionStorageRoot: root,
 	}
