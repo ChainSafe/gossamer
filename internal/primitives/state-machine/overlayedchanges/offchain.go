@@ -15,6 +15,8 @@ type (
 func (OffchainOverlayedChangeRemove) isOffchainOverlayedChange()   {}
 func (OffchainOverlayedChangeSetValue) isOffchainOverlayedChange() {}
 
+// In-memory storage for offchain workers recording changes for the actual offchain storage
+// implementation.
 type OffchainOverlayedChanges struct {
 	OverlayedMap[string, OffchainOverlayedChange, *GenericOverlayedEntry[OffchainOverlayedChange]]
 }
