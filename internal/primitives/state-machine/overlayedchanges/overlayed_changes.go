@@ -619,3 +619,7 @@ func (oc *OverlayedChanges[H, Hasher]) SetOffchainStorage(key []byte, value []by
 		oc.offchain.Set(offchain.StoragePrefix, key, value)
 	}
 }
+
+func (oc *OverlayedChanges[H, Hasher]) AddTransactionIndex(op IndexOperation) {
+	oc.transactionIndexOps = append(oc.transactionIndexOps, op)
+}
