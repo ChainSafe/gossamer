@@ -103,6 +103,7 @@ type Client[
 	importingBlockMtx sync.RWMutex
 	importingBlock    *H
 	unpinWorkerChan   chan<- api.UnpinWorkerMessage[H]
+	blockRules        BlockRules[H, N]
 	config            ClientConfig[N]
 }
 
@@ -595,7 +596,70 @@ func (c *Client[H, Hasher, N, E, Header]) Children(parent H) ([]H, error) {
 }
 
 func (c *Client[H, Hasher, N, E, Header]) CheckBlock(block common.BlockCheckParams[H, N]) (common.ImportResult, error) {
-	panic("not implemented")
+	switch lookupResult := c.blockRules.Lookup(block.Number, block.Hash).(type) {
+	case LookupResultKnownBad:
+		logger.Tracef("Rejecting known bad block: #%d %v", block.Number, block.Hash)
+		return common.ImportResultKnownBad{}, nil
+	case LookupResultExpected[H]:
+		logger.Tracef(
+			"Rejecting block from known invalid fork. Got %v, expected: %v at height %d",
+			block.Hash,
+			lookupResult.hash,
+			block.Number,
+		)
+		return common.ImportResultKnownBad{}, nil
+	case LookupResultNotSpecial:
+		//do nothing
+	}
+
+	// Own status must be checked first. If the block and ancestry is pruned
+	// this function must return `AlreadyInChain` rather than `MissingState`
+	blockStatus, err := c.BlockStatus(block.Hash)
+	if err != nil {
+		return nil, err
+	}
+
+	switch blockStatus {
+	case primivite_consensus_common.BlockStatusInChainWithState, primivite_consensus_common.BlockStatusQueued:
+		return common.ImportResultAlreadyInChain{}, nil
+	case primivite_consensus_common.BlockStatusInChainPruned:
+		if !block.ImportExisting {
+			return common.ImportResultAlreadyInChain{}, nil
+		}
+	case primivite_consensus_common.BlockStatusKnownBad:
+		return common.ImportResultKnownBad{}, nil
+	case primivite_consensus_common.BlockStatusUnknown:
+		// do nothing
+	default:
+		panic("unreachable")
+	}
+
+	parentStatus, err := c.BlockStatus(block.ParentHash)
+	if err != nil {
+		return nil, err
+	}
+
+	switch parentStatus {
+	case primivite_consensus_common.BlockStatusInChainWithState, primivite_consensus_common.BlockStatusQueued:
+		// do nothing
+	case primivite_consensus_common.BlockStatusUnknown:
+		if !block.AllowMissingParent {
+			return common.ImportResultUnknownParent{}, nil
+		}
+	case primivite_consensus_common.BlockStatusInChainPruned:
+		if !block.AllowMissingParent {
+			return common.ImportResultMissingState{}, nil
+		}
+	case primivite_consensus_common.BlockStatusKnownBad:
+		return common.ImportResultKnownBad{}, nil
+	default:
+		panic("unreachable")
+	}
+
+	return common.ImportResultImported{
+		IsNewBest: false,
+	}, nil
+
 }
 
 func (c *Client[H, Hasher, N, E, Header]) ImportBlock(
