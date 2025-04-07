@@ -154,6 +154,9 @@ type BlockImportOperation[
 
 	// UpdateTransactionIndex adds a transaction index operation.
 	UpdateTransactionIndex(index []overlayedchanges.IndexOperation) error
+
+	// Configure whether to create a block gap if newly imported block is missing parent
+	SetCreateGap(createGap bool)
 }
 
 // LockImportRun is the interface for performing operations on the backend.

@@ -46,11 +46,11 @@ func (ImportResultKnownBad) isImportResult()       {}
 func (ImportResultUnknownParent) isImportResult()  {}
 func (ImportResultMissingState) isImportResult()   {}
 
-type BlockImport[H runtime.Hash, N runtime.Number, E runtime.Extrinsic] interface {
+type BlockImport[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] interface {
 	// Check block preconditions.
 	CheckBlock(block BlockCheckParams[H, N]) (ImportResult, error)
 	/// Import a block.
-	ImportBlock(block *BlockImportParams[H, N, E]) (ImportResult, error)
+	ImportBlock(block *BlockImportParams[H, N, E, Header]) (ImportResult, error)
 }
 
 // Data required to check validity of a Block.
@@ -128,7 +128,7 @@ type (
 )
 
 // Data required to import a Block.
-type BlockImportParams[H runtime.Hash, N runtime.Number, E runtime.Extrinsic] struct {
+type BlockImportParams[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
 	// Origin of the Block
 	Origin common.BlockOrigin
 	// The header, without consensus post-digests applied. This should be in the same
@@ -142,7 +142,7 @@ type BlockImportParams[H runtime.Hash, N runtime.Number, E runtime.Extrinsic] st
 	// The reason for this distinction is so the header can be directly
 	// re-executed in a runtime that checks digest equivalence -- the
 	// post-runtime digests are pushed back on after.
-	Header runtime.Header[N, H]
+	Header Header
 	// Justification(s) provided for this block from the outside.
 	Justifications *runtime.Justifications
 	// Digest items that have been added after the runtime for external

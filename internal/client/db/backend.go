@@ -140,6 +140,7 @@ type BlockImportOperation[
 	finalizedBlocks        []finalizedBlock[H]
 	setHead                *H // can be nil to represent no head
 	commitState            bool
+	createGap              bool
 	indexOps               []overlayedchanges.IndexOperation
 }
 
@@ -314,6 +315,10 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) UpdateTransactionIndex
 ) error {
 	bio.indexOps = indexOps
 	return nil
+}
+
+func (bio *BlockImportOperation[H, Hasher, N, Header, E]) SetCreateGap(createGap bool) {
+	bio.createGap = createGap
 }
 
 type pendingBlock[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H], E runtime.Extrinsic] struct {
@@ -683,6 +688,7 @@ func (b *Backend[H, Hasher, N, E, Header]) forceDelayedCanonicalize(
 	return nil
 }
 
+// TODO: add create_gap logic to this function
 func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation( //nolint:gocyclo
 	operation *BlockImportOperation[H, Hasher, N, Header, E],
 ) error {

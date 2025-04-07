@@ -40,6 +40,26 @@ type (
 func (storageChangesResultDiscard) isPrepareStorageChangesResult() {}
 func (storageChangesResultImport) isPrepareStorageChangesResult()  {}
 
+// Used in importing a block, where additional changes are made after the runtime executed.
+type PrePostHeaders[N runtime.Number, H runtime.Hash, Header runtime.Header[N, H]] interface {
+	Post() Header
+}
+
+type (
+	// they are the same: no post-runtime digest items.
+	PrePostHeadersSame[N runtime.Number, H runtime.Hash, Header runtime.Header[N, H]] struct {
+		Header Header
+	}
+	// different headers (pre, post).
+	PrePostHeadersDifferent[N runtime.Number, H runtime.Hash, Header runtime.Header[N, H]] struct {
+		PreHeader  Header
+		PostHeader Header
+	}
+)
+
+func (pph PrePostHeadersSame[N, H, Header]) Post() Header      { return pph.Header }
+func (pph PrePostHeadersDifferent[N, H, Header]) Post() Header { return pph.PostHeader }
+
 // / Client configuration items.
 type ClientConfig[N runtime.Number] struct {
 	// Enable the offchain worker db.
@@ -579,7 +599,7 @@ func (c *Client[H, Hasher, N, E, Header]) CheckBlock(block common.BlockCheckPara
 }
 
 func (c *Client[H, Hasher, N, E, Header]) ImportBlock(
-	block *common.BlockImportParams[H, N, E],
+	block *common.BlockImportParams[H, N, E, Header],
 ) (common.ImportResult, error) {
 	prepareStorageResult, err := c.prepareBlockStorageChanges(block)
 	if err != nil {
@@ -611,7 +631,7 @@ func (c *Client[H, Hasher, N, E, Header]) ImportBlock(
 }
 
 func (c *Client[H, Hasher, N, E, Header]) prepareBlockStorageChanges(
-	importBlock *common.BlockImportParams[H, N, E],
+	importBlock *common.BlockImportParams[H, N, E, Header],
 ) (prepareStorageChangesResult, error) {
 	parentHash := importBlock.Header.ParentHash()
 	stateAction := importBlock.StateAction
@@ -707,9 +727,50 @@ func (c *Client[H, Hasher, N, E, Header]) prepareBlockStorageChanges(
 
 func (c *Client[H, Hasher, N, E, Header]) applyBlock(
 	operation *api.ClientImportOperation[H, Hasher, N, Header, E],
-	importBlock *common.BlockImportParams[H, N, E],
+	importBlock *common.BlockImportParams[H, N, E, Header],
 	storageChanges common.StorageChanges,
 ) (common.ImportResult, error) {
+	if len(importBlock.Intermediates) > 0 {
+		return nil, blockchain.ErrIncompletePipeline
+	}
+
+	if importBlock.ForkChoice == nil {
+		return nil, blockchain.ErrIncompletePipeline
+	}
+
+	var importHeaders PrePostHeaders[N, H, Header]
+
+	if len(importBlock.PostDigests) == 0 {
+		importHeaders = PrePostHeadersSame[N, H, Header]{importBlock.Header}
+	} else {
+		postHeader := importBlock.Header.Clone()
+		for _, item := range importBlock.PostDigests {
+			postHeader.DigestMut().Push(item)
+		}
+		importHeaders = PrePostHeadersDifferent[N, H, Header]{importBlock.Header, importBlock.Header}
+	}
+
+	hash := importHeaders.Post().Hash()
+	//height := importHeaders.Post().Number()
+
+	c.importingBlockMtx.Lock()
+	c.importingBlock = &hash
+	c.importingBlockMtx.Unlock()
+
+	operation.Op.SetCreateGap(importBlock.CreateGap)
+
+	result, err := c.executeAndImportBlock() //TODO finish this
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: telemetry is implemented here.  See substrate code:
+	// https://github.com/paritytech/polkadot-sdk/blob/f5de39196e8c30de4bc47a2d46b1a0fe1e9aaee0/substrate/client/service/src/client/client.rs#L527-L536
+
+	return result, nil
+}
+
+func (c *Client[H, Hasher, N, E, Header]) executeAndImportBlock() (common.ImportResult, error) {
 	panic("not implemented")
 }
 
@@ -722,7 +783,12 @@ func (c *Client[H, Hasher, N, E, Header]) runtimeApi() primitives_api.ApiExt[N, 
 }
 
 // Ensure Client implements the BlockImport interface
-var _ common.BlockImport[hash.H256, uint64, runtime.OpaqueExtrinsic] = &Client[
+var _ common.BlockImport[
+	hash.H256,
+	uint64,
+	runtime.OpaqueExtrinsic,
+	*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+] = &Client[
 	hash.H256,
 	runtime.BlakeTwo256,
 	uint64,
