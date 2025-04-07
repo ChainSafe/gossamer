@@ -41,14 +41,6 @@ func (h256 H256) MarshalSCALE() ([]byte, error) {
 	return scale.Marshal(arr)
 }
 
-func (h256 H256) MustMarshalSCALE() []byte {
-	arr, err := h256.MarshalSCALE()
-	if err != nil {
-		panic(err)
-	}
-	return arr
-}
-
 // UnmarshalSCALE fulfils the SCALE interface for decoding
 func (h256 *H256) UnmarshalSCALE(r io.Reader) error {
 	var arr [32]byte

@@ -11,9 +11,10 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
@@ -112,7 +113,7 @@ func TestOverlayedStorageRootWorks(t *testing.T) {
 		"doug":         []byte("notadog"),
 	}
 
-	b := backend.NewMemoryDBTrieBackendFromMap[hash.H256, runtime.BlakeTwo256](initial, stateVersion)
+	b := statemachine.NewMemoryDBTrieBackendFromMap[hash.H256, runtime.BlakeTwo256](initial, stateVersion)
 	overlayed := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
 
 	overlayed.StartTransaction()
@@ -128,7 +129,7 @@ func TestOverlayedStorageRootWorks(t *testing.T) {
 	root := common.MustHexToBytes("0x39245109cef3758c2eed2ccba8d9b370a917850af3824bc8348d505df2c298fa")
 	overlayedRoot, _ := overlayed.StorageRoot(b, stateVersion)
 
-	encodedRoot := overlayedRoot.MustMarshalSCALE()
+	encodedRoot := scale.MustMarshal(overlayedRoot)
 	require.Equal(t, root, encodedRoot)
 
 	overlayed.SetStorage(StorageKey("doug2"), []byte("yes"))
@@ -137,20 +138,20 @@ func TestOverlayedStorageRootWorks(t *testing.T) {
 	overlayedRoot, cached := overlayed.StorageRoot(b, stateVersion)
 	require.False(t, cached)
 
-	encodedRoot = overlayedRoot.MustMarshalSCALE()
+	encodedRoot = scale.MustMarshal(overlayedRoot)
 	require.Equal(t, root, encodedRoot)
 
 	// Calling a second time should use it from the cache
 	overlayedRoot, cached = overlayed.StorageRoot(b, stateVersion)
 	require.True(t, cached)
-	encodedRoot = overlayedRoot.MustMarshalSCALE()
+	encodedRoot = scale.MustMarshal(overlayedRoot)
 	require.Equal(t, root, encodedRoot)
 }
 
 func TestOverlayedChildStorageRootWorks(t *testing.T) {
 	stateVersion := storage.StateVersionV1
 	childInfo := storage.NewDefaultChildInfo([]byte("Child1"))
-	b := backend.NewMemoryDBTrieBackend[hash.H256, runtime.BlakeTwo256]()
+	b := statemachine.NewMemoryDBTrieBackend[hash.H256, runtime.BlakeTwo256]()
 	overlay := NewOverlayedChanges[hash.H256, runtime.BlakeTwo256]()
 
 	overlay.StartTransaction()
@@ -168,19 +169,19 @@ func TestOverlayedChildStorageRootWorks(t *testing.T) {
 	overlayedChildRoot, cached, err := overlay.ChildStorageRoot(childInfo, b, stateVersion)
 	require.NoError(t, err)
 	require.False(t, cached)
-	encodedChildRoot := overlayedChildRoot.MustMarshalSCALE()
+	encodedChildRoot := scale.MustMarshal(overlayedChildRoot)
 	require.Equal(t, childRoot, encodedChildRoot)
 
 	overlayedRoot, cached := overlay.StorageRoot(b, stateVersion)
 	require.False(t, cached)
-	encodedRoot := overlayedRoot.MustMarshalSCALE()
+	encodedRoot := scale.MustMarshal(overlayedRoot)
 	require.Equal(t, root, encodedRoot)
 
 	// Calling a second time should use it from the cache
 	overlayedChildRoot, cached, err = overlay.ChildStorageRoot(childInfo, b, stateVersion)
 	require.NoError(t, err)
 	require.True(t, cached)
-	encodedChildRoot = overlayedChildRoot.MustMarshalSCALE()
+	encodedChildRoot = scale.MustMarshal(overlayedChildRoot)
 	require.Equal(t, childRoot, encodedChildRoot)
 }
 

@@ -10,7 +10,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
+	backend "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
@@ -22,26 +23,9 @@ type StorageKey = backend.StorageKey
 type StorageValue = backend.StorageValue
 type StorageKeyValue = backend.StorageKeyValue
 type StorageCollection = backend.StorageCollection
-
-type Encode interface {
-	MustMarshalSCALE() []byte
-}
-
-type Hash interface {
-	Encode
-	runtime.Hash
-}
+type ChildStorageCollection = backend.ChildStorageCollection
 
 var NoExtrinsicIndex uint32 = 0xffffffff
-
-// OffchainChangesCollection is slice of storage values.
-type OffchainChangesCollection []struct {
-	PrefixKey struct {
-		Prefix []byte
-		Key    []byte
-	}
-	ValueOperation offchain.OffchainOverlayedChange
-}
 
 // IndexOperations is interface constraint of [IndexOperation].
 type IndexOperations interface {
@@ -79,59 +63,19 @@ type childStorageValue struct {
 	storage.ChildInfo
 }
 
-type OffchainOverlayedChange interface {
-	isOffchainOverlayedChange()
-}
-
-type (
-	OffchainOverlayedChangeRemove   struct{}
-	OffchainOverlayedChangeSetValue []byte
-)
-
-func (OffchainOverlayedChangeRemove) isOffchainOverlayedChange()   {}
-func (OffchainOverlayedChangeSetValue) isOffchainOverlayedChange() {}
-
-type OffchainOverlayedChanges struct {
-	OverlayedMap[string, OffchainOverlayedChange, *GenericOverlayedEntry[OffchainOverlayedChange]]
-}
-
-func NewOffchainOverlayedChanges() OffchainOverlayedChanges {
-	return OffchainOverlayedChanges{
-		NewOverlayedMap[string, OffchainOverlayedChange, *GenericOverlayedEntry[OffchainOverlayedChange]](),
-	}
-}
-
-func (oc OffchainOverlayedChanges) Clone() OffchainOverlayedChanges {
-	return OffchainOverlayedChanges{
-		oc.OverlayedMap.Clone(),
-	}
-}
-
-// Remove a key and its associated value from the offchain database.
-func (oc *OffchainOverlayedChanges) Set(prefix []byte, key []byte, value []byte) {
-	prefixedKey := string(append(prefix, key...))
-	oc.SetOffchain(prefixedKey, OffchainOverlayedChangeSetValue(value), nil)
-}
-
-// Remove a key and its associated value from the offchain database.
-func (oc *OffchainOverlayedChanges) Remove(prefix []byte, key []byte) {
-	prefixedKey := string(append(prefix, key...))
-	oc.SetOffchain(prefixedKey, OffchainOverlayedChangeRemove{}, nil)
-}
-
 // Storage transactions are calculated as part of the `storage_root`.
 // These transactions can be reused for importing the block into the
 // storage. So, we cache them to not require a recomputation of those transactions.
-type StorageTransactionCache[H Hash, Hasher runtime.Hasher[H]] struct {
+type storageTransactionCache[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	// Contains the changes for the main and the child storages as one transaction.
-	transaction backend.BackendTransaction[H, Hasher]
+	transaction statemachine.BackendTransaction[H, Hasher]
 	// The storage root after applying the transaction.
 	transactionStorageRoot H
 }
 
 // The set of changes that are overlaid onto the
 // It allows changes to be modified using nestable transactions.
-type OverlayedChanges[H Hash, Hasher runtime.Hasher[H]] struct {
+type OverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
 	// Top level storage changes.
 	top overlayedChangeSet
 	// Child storage changes. The map key is the child storage key without the common prefix.
@@ -146,10 +90,10 @@ type OverlayedChanges[H Hash, Hasher runtime.Hasher[H]] struct {
 	stats *StateMachineStats
 	// Caches the "storage transaction" that is created while calling `storage_root`.
 	// This transaction can be applied to the backend to persist the state changes.
-	storageTransactionCache *StorageTransactionCache[H, Hasher]
+	storageTransactionCache *storageTransactionCache[H, Hasher]
 }
 
-func NewOverlayedChanges[H Hash, Hasher runtime.Hasher[H]]() *OverlayedChanges[H, Hasher] {
+func NewOverlayedChanges[H runtime.Hash, Hasher runtime.Hasher[H]]() *OverlayedChanges[H, Hasher] {
 	return &OverlayedChanges[H, Hasher]{
 		top:                     newOverlayedChangeSet(),
 		children:                make(map[string]childStorageValue),
@@ -578,7 +522,7 @@ func (oc *OverlayedChanges[H, Hasher]) StorageRoot(
 	}
 
 	root, tx := b.FullStorageRoot(delta, childDeltas, stateVersion)
-	oc.storageTransactionCache = &StorageTransactionCache[H, Hasher]{
+	oc.storageTransactionCache = &storageTransactionCache[H, Hasher]{
 		transaction:            tx,
 		transactionStorageRoot: root,
 	}
@@ -633,7 +577,7 @@ func (oc *OverlayedChanges[H, Hasher]) ChildStorageRoot(
 		if isEmpty {
 			oc.SetStorage(StorageKey(prefixedStorageKey), nil)
 		} else {
-			oc.SetStorage(StorageKey(prefixedStorageKey), calculatedRoot.MustMarshalSCALE())
+			oc.SetStorage(StorageKey(prefixedStorageKey), scale.MustMarshal(calculatedRoot))
 		}
 		oc.markDirty()
 		root = calculatedRoot
@@ -676,4 +620,8 @@ func (oc *OverlayedChanges[H, Hasher]) SetOffchainStorage(key []byte, value []by
 	} else {
 		oc.offchain.Set(offchain.StoragePrefix, key, value)
 	}
+}
+
+func (oc *OverlayedChanges[H, Hasher]) AddTransactionIndex(op IndexOperation) {
+	oc.transactionIndexOps = append(oc.transactionIndexOps, op)
 }

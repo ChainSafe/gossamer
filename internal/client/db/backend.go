@@ -24,7 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
-	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
@@ -70,7 +70,7 @@ type DatabaseSource struct {
 
 // DBState is a db backed patricia trie state, transaction type is an overlay of changes to commit.
 type DBState[H runtime.Hash, Hasher runtime.Hasher[H]] struct {
-	*backend.TrieBackend[H, Hasher]
+	*statemachine.TrieBackend[H, Hasher]
 }
 
 // refTrackingState is a reference tracking state.
@@ -132,8 +132,8 @@ type BlockImportOperation[
 ] struct {
 	oldState               refTrackingState[H, Hasher]
 	dbUpdates              trie.PrefixedMemoryDB[H, Hasher]
-	storageUpdates         backend.StorageCollection
-	childStorageUpdates    backend.ChildStorageCollection
+	storageUpdates         overlayedchanges.StorageCollection
+	childStorageUpdates    overlayedchanges.ChildStorageCollection
 	offchainStorageUpdates overlayedchanges.OffchainChangesCollection
 	pendingBlock           *pendingBlock[H, N, Header, E] // can be nil to represent no pending block
 	auxOps                 api.AuxDataOperations
@@ -191,25 +191,25 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) applyNewState(
 		return root, blockchain.ErrInvalidState
 	}
 
-	var childDeltas []backend.ChildDelta
+	var childDeltas []statemachine.ChildDelta
 	for childContent := range maps.Values(storage.ChildrenDefault) {
-		var deltas []backend.Delta
+		var deltas []statemachine.Delta
 		childContent.Data.Scan(func(key string, value []byte) bool {
-			deltas = append(deltas, backend.Delta{
+			deltas = append(deltas, statemachine.Delta{
 				Key:   []byte(key),
 				Value: value,
 			})
 			return true
 		})
-		childDeltas = append(childDeltas, backend.ChildDelta{
+		childDeltas = append(childDeltas, statemachine.ChildDelta{
 			ChildInfo: childContent.ChildInfo,
 			Deltas:    deltas,
 		})
 	}
 
-	var deltas []backend.Delta
+	var deltas []statemachine.Delta
 	storage.Top.Scan(func(key string, value []byte) bool {
-		deltas = append(deltas, backend.Delta{
+		deltas = append(deltas, statemachine.Delta{
 			Key:   []byte(key),
 			Value: value,
 		})
@@ -221,7 +221,7 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) applyNewState(
 	return root, nil
 }
 
-func (bio *BlockImportOperation[H, Hasher, N, Header, E]) State() (backend.Backend[H, Hasher], error) {
+func (bio *BlockImportOperation[H, Hasher, N, Header, E]) State() (statemachine.Backend[H, Hasher], error) {
 	return &bio.oldState.state, nil
 }
 
@@ -246,7 +246,7 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) SetBlockData(
 }
 
 func (bio *BlockImportOperation[H, Hasher, N, Header, E]) UpdateDBStorage(
-	update backend.BackendTransaction[H, Hasher],
+	update statemachine.BackendTransaction[H, Hasher],
 ) error {
 	bio.dbUpdates = *update.PrefixedMemoryDB
 	return nil
@@ -275,7 +275,7 @@ func (bio *BlockImportOperation[H, Hasher, N, Header, E]) ResetStorage(
 }
 
 func (bio *BlockImportOperation[H, Hasher, N, Header, E]) UpdateStorage(
-	update backend.StorageCollection, childUpdate backend.ChildStorageCollection,
+	update overlayedchanges.StorageCollection, childUpdate overlayedchanges.ChildStorageCollection,
 ) error {
 	bio.storageUpdates = update
 	bio.childStorageUpdates = childUpdate
@@ -1214,7 +1214,7 @@ func (b *Backend[H, Hasher, N, E, Header]) emptyState() refTrackingState[H, Hash
 		lcc := b.sharedTrieCache.LocalTrieCache()
 		localCache = &lcc
 	}
-	dbState := backend.NewTrieBackend[H, Hasher](&b.storage, root, localCache, nil)
+	dbState := statemachine.NewTrieBackend[H, Hasher](&b.storage, root, localCache, nil)
 	state := refTrackingState[H, Hasher]{
 		state:      DBState[H, Hasher]{dbState},
 		storage:    b.storage,
@@ -1323,8 +1323,8 @@ func (b *Backend[H, Hasher, N, E, Header]) beginOperation() *BlockImportOperatio
 		pendingBlock:           nil,
 		oldState:               b.emptyState(),
 		dbUpdates:              *trie.NewPrefixedMemoryDB[H, Hasher](),
-		storageUpdates:         make(backend.StorageCollection, 0),
-		childStorageUpdates:    make(backend.ChildStorageCollection, 0),
+		storageUpdates:         make(overlayedchanges.StorageCollection, 0),
+		childStorageUpdates:    make(overlayedchanges.ChildStorageCollection, 0),
 		offchainStorageUpdates: make(overlayedchanges.OffchainChangesCollection, 0),
 		auxOps:                 make(api.AuxDataOperations, 0),
 		finalizedBlocks:        make([]finalizedBlock[H], 0),
@@ -1718,7 +1718,7 @@ func (b *Backend[H, Hasher, N, E, Header]) stateAt(hash H) (refTrackingState[H, 
 				lcc := b.sharedTrieCache.LocalTrieCache()
 				localCache = &lcc
 			}
-			dbState := backend.NewTrieBackend[H, Hasher](&b.storage, root, localCache, nil)
+			dbState := statemachine.NewTrieBackend[H, Hasher](&b.storage, root, localCache, nil)
 			state := refTrackingState[H, Hasher]{
 				state:      DBState[H, Hasher]{dbState},
 				storage:    b.storage,
@@ -1753,7 +1753,7 @@ func (b *Backend[H, Hasher, N, E, Header]) stateAt(hash H) (refTrackingState[H, 
 		lcc := b.sharedTrieCache.LocalTrieCache()
 		localCache = &lcc
 	}
-	dbState := backend.NewTrieBackend[H, Hasher](&b.storage, root, localCache, nil)
+	dbState := statemachine.NewTrieBackend[H, Hasher](&b.storage, root, localCache, nil)
 	state := refTrackingState[H, Hasher]{
 		state:      DBState[H, Hasher]{dbState},
 		storage:    b.storage,
@@ -1762,7 +1762,7 @@ func (b *Backend[H, Hasher, N, E, Header]) stateAt(hash H) (refTrackingState[H, 
 	return state, nil
 }
 
-func (b *Backend[H, Hasher, N, E, Header]) StateAt(hash H) (backend.Backend[H, Hasher], error) {
+func (b *Backend[H, Hasher, N, E, Header]) StateAt(hash H) (statemachine.Backend[H, Hasher], error) {
 	state, err := b.stateAt(hash)
 	if err != nil {
 		return nil, err

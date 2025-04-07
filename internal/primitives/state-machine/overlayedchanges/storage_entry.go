@@ -43,7 +43,7 @@ func (se *appendStorageEntry) value() StorageValue {
 	return se.data
 }
 
-// Materialise tnewStorageAppendhe internal state and cache the resulting materialised value.
+// Materialise the internal state and cache the resulting materialised value.
 func (se *appendStorageEntry) materializedInPlace() {
 	currentLength := se.currentLength
 	if se.materializedLength != nil && *se.materializedLength == currentLength {
