@@ -1,9 +1,7 @@
 // Copyright 2025 ChainSafe Systems (ON)
 // SPDX-License-Identifier: LGPL-3.0-only
 
-package state_machine
-
-import "github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
+package statemachine
 
 // A key value state at any storage level.
 type KeyValueStorageLevel struct {
@@ -14,7 +12,7 @@ type KeyValueStorageLevel struct {
 	// when exporting (building proof).
 	ParentStorageKeys [][]byte
 	// Pair of key and values from this state.
-	KeyValues []backend.StorageKeyValue
+	KeyValues []StorageKeyValue
 }
 
 // Multiple key value state.

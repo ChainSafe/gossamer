@@ -10,7 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/offchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 )
@@ -31,8 +31,8 @@ const (
 )
 
 type StorageChanges struct {
-	backend.StorageCollection
-	backend.ChildStorageCollection
+	overlayedchanges.StorageCollection
+	overlayedchanges.ChildStorageCollection
 }
 
 // ImportSummary contains information about the block that just got imported,
@@ -114,7 +114,7 @@ type BlockImportOperation[
 ] interface {
 	// State returns the pending state.
 	// Returns nil for backends with locally-unavailable state data.
-	State() (backend.Backend[H, Hasher], error)
+	State() (statemachine.Backend[H, Hasher], error)
 
 	// SetBlockData will set block data to the transaction.
 	SetBlockData(
@@ -126,7 +126,7 @@ type BlockImportOperation[
 	) error
 
 	// UpdateDBStorage will inject storage data into the database.
-	UpdateDBStorage(update backend.BackendTransaction[H, Hasher]) error
+	UpdateDBStorage(update statemachine.BackendTransaction[H, Hasher]) error
 
 	// SetGenesisState will set genesis state. If commit is false the state is saved in memory, but is not written
 	// to the database.
@@ -136,7 +136,7 @@ type BlockImportOperation[
 	ResetStorage(storage storage.Storage, stateVersion storage.StateVersion) (H, error)
 
 	// UpdateStorage will set storage changes.
-	UpdateStorage(update backend.StorageCollection, childUpdate backend.ChildStorageCollection) error
+	UpdateStorage(update overlayedchanges.StorageCollection, childUpdate overlayedchanges.ChildStorageCollection) error
 
 	// UpdateOffchainStorage will write offchain storage changes to the database.
 	UpdateOffchainStorage(offchainUpdate overlayedchanges.OffchainChangesCollection) error
@@ -260,7 +260,7 @@ type Backend[
 	HaveStateAt(hash H, number N) bool
 
 	// StateAt returns state backend with post-state of given block.
-	StateAt(hash H) (backend.Backend[H, Hasher], error)
+	StateAt(hash H) (statemachine.Backend[H, Hasher], error)
 
 	// Revert attempts to revert the chain by n blocks. If revertFinalized is set it will attempt to
 	// revert past any finalized block. This is unsafe and can potentially leave the node in an

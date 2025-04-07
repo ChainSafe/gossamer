@@ -20,7 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	rt_testing "github.com/ChainSafe/gossamer/internal/primitives/runtime/testing"
-	statemachine_backend "github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
@@ -151,7 +151,7 @@ func insertBlock(t *testing.T,
 
 	// Insert some fake data to ensure that the block can be found in the state column.
 	root, overlay := op.oldState.state.StorageRoot(
-		[]statemachine_backend.Delta{{Key: blockHash.Bytes(), Value: blockHash.Bytes()}},
+		[]statemachine.Delta{{Key: blockHash.Bytes(), Value: blockHash.Bytes()}},
 		storage.StateVersionV1,
 	)
 	err = op.UpdateDBStorage(overlay)
@@ -192,7 +192,7 @@ func insertHeaderNoHead(t *testing.T,
 			t.Fail()
 		}
 	}
-	root, _ := state.StorageRoot([]statemachine_backend.Delta{
+	root, _ := state.StorageRoot([]statemachine.Delta{
 		{Key: parentHash.Bytes(), Value: parentHash.Bytes()},
 	}, storage.StateVersionV1)
 	header.SetStateRoot(root)
@@ -283,7 +283,7 @@ func TestBackend(t *testing.T) {
 						0, dbHash(""), dbHash(""), dbHash(""), runtime.Digest{},
 					)
 
-					deltas := []statemachine_backend.Delta{
+					deltas := []statemachine.Delta{
 						{Key: []byte{1, 3, 5}, Value: []byte{2, 4, 6}},
 						{Key: []byte{1, 2, 3}, Value: []byte{9, 9, 9}},
 					}
@@ -334,7 +334,7 @@ func TestBackend(t *testing.T) {
 						runtime.Digest{},
 					)
 
-					deltas := []statemachine_backend.Delta{
+					deltas := []statemachine.Delta{
 						{Key: []byte{1, 3, 5}, Value: nil},
 						{Key: []byte{5, 5, 5}, Value: []byte{4, 5, 6}},
 					}
@@ -344,9 +344,9 @@ func TestBackend(t *testing.T) {
 					require.NoError(t, err)
 					header.SetStateRoot(root)
 
-					copiedDeltas := make(statemachine_backend.StorageCollection, 0)
+					copiedDeltas := make(overlayedchanges.StorageCollection, 0)
 					for _, delta := range deltas {
-						copiedDeltas = append(copiedDeltas, statemachine_backend.StorageKeyValue{
+						copiedDeltas = append(copiedDeltas, overlayedchanges.StorageKeyValue{
 							StorageKey:   delta.Key,
 							StorageValue: delta.Value,
 						})
@@ -427,7 +427,7 @@ func TestBackend(t *testing.T) {
 				runtime.Digest{},
 			)
 
-			deltas := []statemachine_backend.Delta{}
+			deltas := []statemachine.Delta{}
 
 			root, _ := op.oldState.state.StorageRoot(deltas, stateVersion)
 			header.SetStateRoot(root)
@@ -461,7 +461,7 @@ func TestBackend(t *testing.T) {
 				runtime.Digest{},
 			)
 
-			deltas := []statemachine_backend.Delta{}
+			deltas := []statemachine.Delta{}
 
 			root, _ := op.oldState.state.StorageRoot(deltas, stateVersion)
 			header.SetStateRoot(root)
@@ -493,7 +493,7 @@ func TestBackend(t *testing.T) {
 				runtime.Digest{},
 			)
 
-			deltas := []statemachine_backend.Delta{}
+			deltas := []statemachine.Delta{}
 
 			root, _ := op.oldState.state.StorageRoot(deltas, stateVersion)
 			header.SetStateRoot(root)
@@ -524,7 +524,7 @@ func TestBackend(t *testing.T) {
 				runtime.Digest{},
 			)
 
-			deltas := []statemachine_backend.Delta{}
+			deltas := []statemachine.Delta{}
 
 			root, _ := op.oldState.state.StorageRoot(deltas, stateVersion)
 			header.SetStateRoot(root)
@@ -861,7 +861,7 @@ func TestBackend(t *testing.T) {
 				runtime.Digest{},
 			)
 
-			deltas := []statemachine_backend.Delta{
+			deltas := []statemachine.Delta{
 				{Key: []byte("test"), Value: []byte("test")},
 			}
 
@@ -906,7 +906,7 @@ func TestBackend(t *testing.T) {
 				runtime.Digest{},
 			)
 
-			deltas := []statemachine_backend.Delta{
+			deltas := []statemachine.Delta{
 				{Key: []byte("test"), Value: []byte("test2")},
 			}
 
@@ -916,9 +916,9 @@ func TestBackend(t *testing.T) {
 			header.SetStateRoot(root)
 			h := header.Hash()
 
-			copiedDeltas := make(statemachine_backend.StorageCollection, 0)
+			copiedDeltas := make(overlayedchanges.StorageCollection, 0)
 			for _, delta := range deltas {
-				copiedDeltas = append(copiedDeltas, statemachine_backend.StorageKeyValue{
+				copiedDeltas = append(copiedDeltas, overlayedchanges.StorageKeyValue{
 					StorageKey:   delta.Key,
 					StorageValue: delta.Value,
 				})
@@ -1776,7 +1776,7 @@ func TestBackend(t *testing.T) {
 						runtime.Digest{},
 					)
 
-					deltas := []statemachine_backend.Delta{
+					deltas := []statemachine.Delta{
 						{Key: []byte{1, 3, 5}, Value: nil},
 						{Key: []byte{5, 5, 5}, Value: []byte{4, 5, 6}},
 					}
@@ -1787,9 +1787,9 @@ func TestBackend(t *testing.T) {
 					header.SetStateRoot(root)
 					h := header.Hash()
 
-					copiedDeltas := make(statemachine_backend.StorageCollection, 0)
+					copiedDeltas := make(overlayedchanges.StorageCollection, 0)
 					for _, delta := range deltas {
-						copiedDeltas = append(copiedDeltas, statemachine_backend.StorageKeyValue{
+						copiedDeltas = append(copiedDeltas, overlayedchanges.StorageKeyValue{
 							StorageKey:   delta.Key,
 							StorageValue: delta.Value,
 						})
@@ -1827,7 +1827,7 @@ func TestBackend(t *testing.T) {
 						runtime.Digest{},
 					)
 
-					deltas := []statemachine_backend.Delta{
+					deltas := []statemachine.Delta{
 						{Key: []byte{5, 5, 5}, Value: []byte{4, 5, 6, 2}},
 					}
 
@@ -1837,9 +1837,9 @@ func TestBackend(t *testing.T) {
 					header.SetStateRoot(root)
 					h := header.Hash()
 
-					copiedDeltas := make(statemachine_backend.StorageCollection, 0)
+					copiedDeltas := make(overlayedchanges.StorageCollection, 0)
 					for _, delta := range deltas {
-						copiedDeltas = append(copiedDeltas, statemachine_backend.StorageKeyValue{
+						copiedDeltas = append(copiedDeltas, overlayedchanges.StorageKeyValue{
 							StorageKey:   delta.Key,
 							StorageValue: delta.Value,
 						})
@@ -1877,7 +1877,7 @@ func TestBackend(t *testing.T) {
 						runtime.Digest{},
 					)
 
-					deltas := []statemachine_backend.Delta{
+					deltas := []statemachine.Delta{
 						{Key: []byte{5, 5, 5}, Value: []byte{4, 5, 6, 3}},
 					}
 
@@ -1887,9 +1887,9 @@ func TestBackend(t *testing.T) {
 					header.SetStateRoot(root)
 					h := header.Hash()
 
-					copiedDeltas := make(statemachine_backend.StorageCollection, 0)
+					copiedDeltas := make(overlayedchanges.StorageCollection, 0)
 					for _, delta := range deltas {
-						copiedDeltas = append(copiedDeltas, statemachine_backend.StorageKeyValue{
+						copiedDeltas = append(copiedDeltas, overlayedchanges.StorageKeyValue{
 							StorageKey:   delta.Key,
 							StorageValue: delta.Value,
 						})
@@ -1926,7 +1926,7 @@ func TestBackend(t *testing.T) {
 						runtime.Digest{},
 					)
 
-					deltas := []statemachine_backend.Delta{
+					deltas := []statemachine.Delta{
 						{Key: []byte{5, 5, 5}, Value: []byte{4, 5, 6, 4}},
 					}
 
@@ -1936,9 +1936,9 @@ func TestBackend(t *testing.T) {
 					header.SetStateRoot(root)
 					h := header.Hash()
 
-					copiedDeltas := make(statemachine_backend.StorageCollection, 0)
+					copiedDeltas := make(overlayedchanges.StorageCollection, 0)
 					for _, delta := range deltas {
-						copiedDeltas = append(copiedDeltas, statemachine_backend.StorageKeyValue{
+						copiedDeltas = append(copiedDeltas, overlayedchanges.StorageKeyValue{
 							StorageKey:   delta.Key,
 							StorageValue: delta.Value,
 						})

@@ -609,20 +609,20 @@ func (c *Client[H, Hasher, N, E, Header]) prepareBlockStorageChanges(
 	} else if status == primivite_consensus_common.BlockStatusInChainPruned {
 		if action, ok := stateAction.(common.StateActionApplyChanges); ok {
 			if _, ok := action.StorageChanges.(common.Changes[H, Hasher]); ok {
-				return storageChangesResultDiscard{common.MissingState{}}, nil
+				return storageChangesResultDiscard{common.ImportResultMissingState{}}, nil
 			}
 		}
 	} else if action, ok := stateAction.(common.StateActionApplyChanges); ok {
 		enactState = true
 		storageChanges = action.StorageChanges
 	} else if status == primivite_consensus_common.BlockStatusUnknown {
-		return storageChangesResultDiscard{common.UnknownParent{}}, nil
+		return storageChangesResultDiscard{common.ImportResultUnknownParent{}}, nil
 	} else if _, ok := stateAction.(common.StateActionSkip); ok {
 		enactState = false
 		storageChanges = nil
 	} else if status == primivite_consensus_common.BlockStatusInChainPruned {
 		if _, ok := stateAction.(common.StateActionExecute); ok {
-			return storageChangesResultDiscard{common.MissingState{}}, nil
+			return storageChangesResultDiscard{common.ImportResultMissingState{}}, nil
 		}
 	} else if status == primivite_consensus_common.BlockStatusInChainPruned {
 		if _, ok := stateAction.(common.StateActionExecuteIfPossible); ok {

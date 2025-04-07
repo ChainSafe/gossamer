@@ -6,12 +6,12 @@ package common
 import (
 	"github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	state_machine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 )
 
 // Auxiliary data associated with an imported block result.
-type importedAux struct {
+type ImportedAux struct {
 	// Only the header has been imported. Block body verification was skipped.
 	HeaderOnly bool
 	// Clear all pending justification requests.
@@ -29,25 +29,25 @@ type ImportResult interface {
 
 type (
 	// Block imported.
-	Imported struct{ importedAux }
+	ImportResultImported ImportedAux
 	// Already in the blockchain.
-	AlreadyInChain struct{}
+	ImportResultAlreadyInChain struct{}
 	// Block or parent is known to be bad.
-	KnownBad struct{}
+	ImportResultKnownBad struct{}
 	// Block parent is not in the chain.
-	UnknownParent struct{}
+	ImportResultUnknownParent struct{}
 	// Parent state is missing.
-	MissingState struct{}
+	ImportResultMissingState struct{}
 )
 
-func (Imported) isImportResult()       {}
-func (AlreadyInChain) isImportResult() {}
-func (KnownBad) isImportResult()       {}
-func (UnknownParent) isImportResult()  {}
-func (MissingState) isImportResult()   {}
+func (ImportResultImported) isImportResult()       {}
+func (ImportResultAlreadyInChain) isImportResult() {}
+func (ImportResultKnownBad) isImportResult()       {}
+func (ImportResultUnknownParent) isImportResult()  {}
+func (ImportResultMissingState) isImportResult()   {}
 
 type BlockImport[H runtime.Hash, N runtime.Number] interface {
-	/// Check block preconditions.
+	// Check block preconditions.
 	CheckBlock(block BlockCheckParams[H, N]) (ImportResult, error)
 	/// Import a block.
 	ImportBlock(block *BlockImportParams[H, N]) (ImportResult, error)
@@ -74,7 +74,7 @@ type ImportedState[H runtime.Hash] struct {
 	// Target block hash.
 	Block H
 	// State keys and values.
-	State state_machine.KeyValueStates
+	State statemachine.KeyValueStates
 }
 
 // Precomputed storage.
@@ -129,53 +129,53 @@ type (
 
 // Data required to import a Block.
 type BlockImportParams[H runtime.Hash, N runtime.Number] struct {
-	/// Origin of the Block
+	// Origin of the Block
 	Origin common.BlockOrigin
-	/// The header, without consensus post-digests applied. This should be in the same
-	/// state as it comes out of the runtime.
-	///
-	/// Consensus engines which alter the header (by adding post-runtime digests)
-	/// should strip those off in the initial verification process and pass them
-	/// via the `post_digests` field. During block authorship, they should
-	/// not be pushed to the header directly.
-	///
-	/// The reason for this distinction is so the header can be directly
-	/// re-executed in a runtime that checks digest equivalence -- the
-	/// post-runtime digests are pushed back on after.
+	// The header, without consensus post-digests applied. This should be in the same
+	// state as it comes out of the runtime.
+	//
+	// Consensus engines which alter the header (by adding post-runtime digests)
+	// should strip those off in the initial verification process and pass them
+	// via the post_digests field. During block authorship, they should
+	// not be pushed to the header directly.
+	//
+	// The reason for this distinction is so the header can be directly
+	// re-executed in a runtime that checks digest equivalence -- the
+	// post-runtime digests are pushed back on after.
 	Header runtime.Header[N, H]
-	/// Justification(s) provided for this block from the outside.
+	// Justification(s) provided for this block from the outside.
 	Justifications *runtime.Justifications
-	/// Digest items that have been added after the runtime for external
-	/// work, like a consensus signature.
+	// Digest items that have been added after the runtime for external
+	// work, like a consensus signature.
 	PostDigests []runtime.DigestItem
-	/// The body of the block.
+	// The body of the block.
 	Body *[]runtime.Extrinsic
-	/// Indexed transaction body of the block.
+	// Indexed transaction body of the block.
 	IndexedBody *[][]byte
-	/// Specify how the new state is computed.
+	// Specify how the new state is computed.
 	StateAction StateAction
-	/// Is this block finalized already?
+	// Is this block finalized already?
 	Finalized bool
-	/// Intermediate values that are interpreted by block importers. Each block importer,
-	/// upon handling a value, removes it from the intermediate list. The final block importer
-	/// rejects block import if there are still intermediate values that remain unhandled.
+	// Intermediate values that are interpreted by block importers. Each block importer,
+	// upon handling a value, removes it from the intermediate list. The final block importer
+	// rejects block import if there are still intermediate values that remain unhandled.
 	Intermediates map[string]any
-	/// Auxiliary consensus data produced by the block.
-	/// Contains a list of key-value pairs. If values are `nil`, the keys will be deleted. These
-	/// changes will be applied to `AuxStore` database all as one batch, which is more efficient
-	/// than updating `AuxStore` directly.
+	// Auxiliary consensus data produced by the block.
+	// Contains a list of key-value pairs. If values are nil, the keys will be deleted. These
+	// changes will be applied to AuxStore database all as one batch, which is more efficient
+	// than updating AuxStore directly.
 	Auxiliary overlayedchanges.StorageCollection
-	/// Fork choice strategy of this import. This should only be set by a
-	/// synchronous import, otherwise it may race against other imports.
-	/// `nil` indicates that the current verifier or importer cannot yet
-	/// determine the fork choice value, and it expects subsequent importer
-	/// to modify it. If `nil` is passed all the way down to bottom block
-	/// importer, the import fails with an `IncompletePipeline` error.
+	// Fork choice strategy of this import. This should only be set by a
+	// synchronous import, otherwise it may race against other imports.
+	// nil indicates that the current verifier or importer cannot yet
+	// determine the fork choice value, and it expects subsequent importer
+	// to modify it. If nil is passed all the way down to bottom block
+	// importer, the import fails with an IncompletePipeline error.
 	ForkChoice *ForkChoiceStrategy
-	/// Re-validate existing block.
+	// Re-validate existing block.
 	ImportExisting bool
-	/// Whether to create "block gap" in case this block doesn't have parent.
+	// Whether to create "block gap" in case this block doesn't have parent.
 	CreateGap bool
-	/// Cached full header hash (with post-digests applied).
+	// Cached full header hash (with post-digests applied).
 	PostHash *H
 }

@@ -5,8 +5,6 @@ package overlayedchanges
 
 import (
 	"math"
-
-	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/backend"
 )
 
 type OverlayedStorageEntry struct {
@@ -28,7 +26,7 @@ func (oe OverlayedStorageEntry) Clone() OverlayedEntry[storageEntry] {
 // Writes a new version of a value.
 // This makes sure that the old version is not overwritten and can be properly
 // rolled back when required.
-func (oe *OverlayedStorageEntry) Set(value backend.StorageValue, firstWriteInTx bool, atExtrinsic *uint32) {
+func (oe *OverlayedStorageEntry) Set(value StorageValue, firstWriteInTx bool, atExtrinsic *uint32) {
 	var action storageEntry
 
 	if value == nil {
@@ -88,9 +86,9 @@ func (oe *OverlayedStorageEntry) Set(value backend.StorageValue, firstWriteInTx 
 // rolled back when required.
 // This avoid copying value from previous transaction.
 func (oe *OverlayedStorageEntry) Append(
-	element backend.StorageValue,
+	element StorageValue,
 	firstWriteInTx bool,
-	init func() backend.StorageValue,
+	init func() StorageValue,
 	atExtrinsic *uint32,
 ) {
 	var data []byte
@@ -221,7 +219,7 @@ func (oe *OverlayedStorageEntry) Append(
 	}
 }
 
-func (o *OverlayedStorageEntry) Value() backend.StorageValue {
+func (o *OverlayedStorageEntry) Value() StorageValue {
 	return (*o.ValueRef()).value()
 }
 
