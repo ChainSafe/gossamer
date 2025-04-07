@@ -139,10 +139,7 @@ func (b *BitfieldDistribution) processMessage(msg any) error {
 			return fmt.Errorf("processing peer view change event: %w", err)
 		}
 	case networkbridgeevents.OurViewChange:
-		err := b.processOurViewChangeEvent(msg)
-		if err != nil {
-			return fmt.Errorf("processing our view change event: %w", err)
-		}
+		b.processOurViewChangeEvent(msg)
 	case networkbridgeevents.PeerMessage[validationprotocol.ValidationProtocol]:
 		err := b.processIncomingPeerMessageEvent(msg)
 		if err != nil {
@@ -250,9 +247,23 @@ func (b *BitfieldDistribution) processPeerViewChangeEvent(event networkbridgeeve
 	panic("implement me")
 }
 
-func (b *BitfieldDistribution) processOurViewChangeEvent(event networkbridgeevents.OurViewChange) error {
-	//TODO implement in #4359
-	panic("implement me")
+func (b *BitfieldDistribution) processOurViewChangeEvent(event networkbridgeevents.OurViewChange) {
+	logger.Tracef("our view change event: %v", event)
+
+	oldView := b.ourView
+	b.ourView = event.View
+
+	for _, added := range b.ourView.Difference(oldView) {
+		if b.perRelayParent[added] == nil {
+			logger.Errorf("our view contains %s, but not in active heads", added.String())
+		}
+	}
+
+	for _, removed := range oldView.Difference(b.ourView) {
+		b.mu.Lock()
+		delete(b.perRelayParent, removed)
+		b.mu.Unlock()
+	}
 }
 
 func (b *BitfieldDistribution) processIncomingPeerMessageEvent(event networkbridgeevents.PeerMessage[validationprotocol.
