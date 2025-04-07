@@ -11,11 +11,14 @@ import (
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/log"
+	primitives_api "github.com/ChainSafe/gossamer/internal/primitives/api"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	primivite_consensus_common "github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
+	"github.com/ChainSafe/gossamer/internal/primitives/core"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
+	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 )
 
@@ -36,6 +39,23 @@ type (
 
 func (storageChangesResultDiscard) isPrepareStorageChangesResult() {}
 func (storageChangesResultImport) isPrepareStorageChangesResult()  {}
+
+// / Client configuration items.
+type ClientConfig[N runtime.Number] struct {
+	// Enable the offchain worker db.
+	OffchainWorkerEnabled bool
+	// If true, allows access from the runtime to write into offchain worker db.
+	OffchainIndexingApi bool
+	// Path where WASM files exist to override the on-chain WASM.
+	WasmRuntimeOverrides *string
+	// Skip writing genesis state on first start.
+	NoGenesis bool
+	// Map of WASM runtime substitute starting at the child of the given block until the runtime
+	// version doesn't match anymore.
+	WasmRuntimeSubstitutes map[N][]byte
+	// Enable recording of storage proofs during block import
+	EnableImportProofRecording bool
+}
 
 // Client type that implements a number of client interfaces
 type Client[
@@ -63,6 +83,7 @@ type Client[
 	importingBlockMtx sync.RWMutex
 	importingBlock    *H
 	unpinWorkerChan   chan<- api.UnpinWorkerMessage[H]
+	config            ClientConfig[N]
 }
 
 // New is constructor for [Client]
@@ -558,7 +579,7 @@ func (c *Client[H, Hasher, N, E, Header]) CheckBlock(block common.BlockCheckPara
 }
 
 func (c *Client[H, Hasher, N, E, Header]) ImportBlock(
-	block *common.BlockImportParams[H, N],
+	block *common.BlockImportParams[H, N, E],
 ) (common.ImportResult, error) {
 	prepareStorageResult, err := c.prepareBlockStorageChanges(block)
 	if err != nil {
@@ -590,7 +611,7 @@ func (c *Client[H, Hasher, N, E, Header]) ImportBlock(
 }
 
 func (c *Client[H, Hasher, N, E, Header]) prepareBlockStorageChanges(
-	importBlock *common.BlockImportParams[H, N],
+	importBlock *common.BlockImportParams[H, N, E],
 ) (prepareStorageChangesResult, error) {
 	parentHash := importBlock.Header.ParentHash()
 	stateAction := importBlock.StateAction
@@ -642,7 +663,39 @@ func (c *Client[H, Hasher, N, E, Header]) prepareBlockStorageChanges(
 	if enactState && storageChanges != nil {
 		storageChangesToApply = storageChanges
 	} else if enactState && storageChanges == nil && importBlock.Body != nil {
-		panic("not finished")
+		runtimeApi := c.runtimeApi()
+
+		runtimeApi.SetCallContext(core.CallContextOnchain)
+		if c.config.EnableImportProofRecording {
+			runtimeApi.RecordProof()
+			recorder := runtimeApi.ProofRecorder()
+			if recorder == nil {
+				panic("Proof recording is enabled in the line above; qed.")
+			}
+
+			panic("TODO: register extension")
+		}
+
+		err := runtimeApi.ExecuteBlock(parentHash, generic.NewBlock[Hasher](importBlock.Header, *importBlock.Body))
+		if err != nil {
+			return nil, err
+		}
+
+		state, err := c.backend.StateAt(parentHash)
+		if err != nil {
+			return nil, err
+		}
+
+		genStorageChanges, err := runtimeApi.IntoStorageChanges(state, parentHash)
+		if err != nil {
+			return nil, err
+		}
+
+		if importBlock.Header.StateRoot() != genStorageChanges.TransactionStorageRoot {
+			return nil, blockchain.ErrInvalidStateRoot
+		}
+
+		storageChangesToApply = common.Changes[H, Hasher](genStorageChanges)
 	} else if enactState && storageChanges != nil && importBlock.Body == nil {
 		storageChangesToApply = nil
 	} else if !enactState {
@@ -654,14 +707,22 @@ func (c *Client[H, Hasher, N, E, Header]) prepareBlockStorageChanges(
 
 func (c *Client[H, Hasher, N, E, Header]) applyBlock(
 	operation *api.ClientImportOperation[H, Hasher, N, Header, E],
-	importBlock *common.BlockImportParams[H, N],
+	importBlock *common.BlockImportParams[H, N, E],
 	storageChanges common.StorageChanges,
 ) (common.ImportResult, error) {
 	panic("not implemented")
 }
 
+func (c *Client[H, Hasher, N, E, Header]) runtimeApi() primitives_api.ApiExt[N, E, H,
+	Hasher,
+	statemachine.Backend[H, Hasher],
+	runtime.TransactionOutcome[any],
+] {
+	panic("not implemented")
+}
+
 // Ensure Client implements the BlockImport interface
-var _ common.BlockImport[hash.H256, uint64] = &Client[
+var _ common.BlockImport[hash.H256, uint64, runtime.OpaqueExtrinsic] = &Client[
 	hash.H256,
 	runtime.BlakeTwo256,
 	uint64,

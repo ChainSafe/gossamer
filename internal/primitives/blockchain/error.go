@@ -14,4 +14,5 @@ var (
 	ErrBadJustification          = errors.New("bad justification for header")
 	ErrStateDatabase             = errors.New("state database error")
 	ErrSetHeadTooOld             = errors.New("failed to set the chain head to a block that's too old")
+	ErrInvalidStateRoot          = errors.New("calculated state root does not match")
 )

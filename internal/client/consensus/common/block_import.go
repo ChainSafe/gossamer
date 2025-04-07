@@ -46,11 +46,11 @@ func (ImportResultKnownBad) isImportResult()       {}
 func (ImportResultUnknownParent) isImportResult()  {}
 func (ImportResultMissingState) isImportResult()   {}
 
-type BlockImport[H runtime.Hash, N runtime.Number] interface {
+type BlockImport[H runtime.Hash, N runtime.Number, E runtime.Extrinsic] interface {
 	// Check block preconditions.
 	CheckBlock(block BlockCheckParams[H, N]) (ImportResult, error)
 	/// Import a block.
-	ImportBlock(block *BlockImportParams[H, N]) (ImportResult, error)
+	ImportBlock(block *BlockImportParams[H, N, E]) (ImportResult, error)
 }
 
 // Data required to check validity of a Block.
@@ -128,7 +128,7 @@ type (
 )
 
 // Data required to import a Block.
-type BlockImportParams[H runtime.Hash, N runtime.Number] struct {
+type BlockImportParams[H runtime.Hash, N runtime.Number, E runtime.Extrinsic] struct {
 	// Origin of the Block
 	Origin common.BlockOrigin
 	// The header, without consensus post-digests applied. This should be in the same
@@ -149,7 +149,7 @@ type BlockImportParams[H runtime.Hash, N runtime.Number] struct {
 	// work, like a consensus signature.
 	PostDigests []runtime.DigestItem
 	// The body of the block.
-	Body *[]runtime.Extrinsic
+	Body *[]E
 	// Indexed transaction body of the block.
 	IndexedBody *[][]byte
 	// Specify how the new state is computed.
