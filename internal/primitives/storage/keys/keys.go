@@ -9,6 +9,7 @@ import (
 
 // List of all well known keys and prefixes in storage.
 var (
+	Code = []byte(":code")
 	// DefaultChildStorageKeyPrefix is a prefix of the default child storage keys in the top trie.
 	DefaultChildStorageKeyPrefix = []byte(":child_storage:default:")
 	// Current extrinsic index (u32) is stored under this key.

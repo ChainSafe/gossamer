@@ -4,7 +4,8 @@
 package common
 
 import (
-	"github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
+	"github.com/ChainSafe/gossamer/internal/client/api"
+	"github.com/ChainSafe/gossamer/internal/client/consensus"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
@@ -127,10 +128,13 @@ type (
 	Custom bool
 )
 
+func (LongestChain) isForkChoiceStrategy() {}
+func (Custom) isForkChoiceStrategy()       {}
+
 // Data required to import a Block.
 type BlockImportParams[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, Header runtime.Header[N, H]] struct {
 	// Origin of the Block
-	Origin common.BlockOrigin
+	Origin consensus.BlockOrigin
 	// The header, without consensus post-digests applied. This should be in the same
 	// state as it comes out of the runtime.
 	//
@@ -164,14 +168,14 @@ type BlockImportParams[H runtime.Hash, N runtime.Number, E runtime.Extrinsic, He
 	// Contains a list of key-value pairs. If values are nil, the keys will be deleted. These
 	// changes will be applied to AuxStore database all as one batch, which is more efficient
 	// than updating AuxStore directly.
-	Auxiliary overlayedchanges.StorageCollection
+	Auxiliary api.AuxDataOperations
 	// Fork choice strategy of this import. This should only be set by a
 	// synchronous import, otherwise it may race against other imports.
 	// nil indicates that the current verifier or importer cannot yet
 	// determine the fork choice value, and it expects subsequent importer
 	// to modify it. If nil is passed all the way down to bottom block
 	// importer, the import fails with an IncompletePipeline error.
-	ForkChoice *ForkChoiceStrategy
+	ForkChoice ForkChoiceStrategy
 	// Re-validate existing block.
 	ImportExisting bool
 	// Whether to create "block gap" in case this block doesn't have parent.

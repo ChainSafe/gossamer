@@ -5,6 +5,7 @@ package storage
 
 import (
 	"bytes"
+	"math"
 	"strings"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
@@ -169,6 +170,7 @@ type StateVersion uint
 const (
 	StateVersionV0 StateVersion = iota
 	StateVersionV1
+	NoStateVersion StateVersion = math.MaxUint
 )
 
 func (svv StateVersion) TrieLayout() trie.TrieLayout {

@@ -14,18 +14,21 @@ import (
 	memorykvdb "github.com/ChainSafe/gossamer/internal/kvdb/memory-kvdb"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	primivite_consensus_common "github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
+	"github.com/ChainSafe/gossamer/internal/primitives/core"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/database"
+	"github.com/ChainSafe/gossamer/internal/primitives/externalities"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
+	"github.com/ChainSafe/gossamer/internal/primitives/version"
 	"github.com/stretchr/testify/require"
 )
 
 type TestClient struct {
 	Client[
-		hash.H256, runtime.BlakeTwo256, uint64, runtime.OpaqueExtrinsic, *generic.Header[
+		hash.H256, runtime.BlakeTwo256, uint64, runtime.OpaqueExtrinsic, ExecutorT, *generic.Header[
 			uint64, hash.H256, runtime.BlakeTwo256],
 	]
 }
@@ -42,6 +45,31 @@ var (
 			uint64, hash.H256, runtime.BlakeTwo256], runtime.OpaqueExtrinsic,
 	] = &TestClient{}
 )
+
+type TestExecutor struct{}
+
+func (e *TestExecutor) Call(
+	ext externalities.Extensions,
+	runtimeCode core.RuntimeCode,
+	method string,
+	data []byte,
+	context core.CallContext,
+) (result []byte, native bool, err error) {
+	panic("not implemented")
+}
+
+func (e *TestExecutor) RuntimeVersion(
+	externalities externalities.Externalities,
+	runtimeCode core.RuntimeCode,
+) (version.RuntimeVersion, error) {
+	panic("not implemented")
+}
+
+func NewTestExecutor(t *testing.T) ExecutorT {
+	t.Helper()
+
+	return &TestExecutor{}
+}
 
 func NewTestBackend(t *testing.T,
 	blocksPruning db.BlocksPruning, canonicalizationDelay uint64,
@@ -88,7 +116,7 @@ func NewTestBackend(t *testing.T,
 }
 
 func TestNew(t *testing.T) {
-	c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0))
+	c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0), NewTestExecutor(t))
 	require.NotNil(t, c)
 }
 
@@ -97,7 +125,7 @@ type FinalityNotification = api.FinalityNotification[hash.H256, uint64, *generic
 
 func TestBlockchainEvents(t *testing.T) {
 	t.Run("register_unregister", func(t *testing.T) {
-		c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0))
+		c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0), NewTestExecutor(t))
 		blockImport := c.RegisterImportNotificationStream()
 		require.NotNil(t, blockImport)
 		_, ok := c.importNotificationChans[blockImport]
@@ -151,7 +179,7 @@ func TestBlockchainEvents(t *testing.T) {
 	})
 
 	t.Run("register_receive_block_import_unregister", func(t *testing.T) {
-		c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0))
+		c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0), NewTestExecutor(t))
 		blockImport := c.RegisterImportNotificationStream()
 		require.NotNil(t, blockImport)
 		_, ok := c.importNotificationChans[blockImport]
@@ -203,7 +231,7 @@ func TestBlockchainEvents(t *testing.T) {
 	})
 
 	t.Run("register_receive_block_import_storage_changes_unregister", func(t *testing.T) {
-		c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0))
+		c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0), NewTestExecutor(t))
 		wg := sync.WaitGroup{}
 
 		topStorage := c.StorageChangesNotificationStream(nil, []api.ChildFilterKeys{})
@@ -265,7 +293,7 @@ func TestBlockchainEvents(t *testing.T) {
 	})
 
 	t.Run("register_receive_finality_unregister", func(t *testing.T) {
-		c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0))
+		c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0), NewTestExecutor(t))
 		finality := c.RegisterFinalityNotificationStream()
 		require.NotNil(t, finality)
 		_, ok := c.finalityNotificationChans[finality]
@@ -302,7 +330,7 @@ type ClientImportOperation = api.ClientImportOperation[
 ]
 
 func TestLockImportRun(t *testing.T) {
-	c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0))
+	c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0), NewTestExecutor(t))
 	_, err := c.LockImportRun(func(cio *ClientImportOperation) (any, error) {
 		return nil, nil
 	})
@@ -311,7 +339,7 @@ func TestLockImportRun(t *testing.T) {
 
 func TestPreCommitActions(t *testing.T) {
 	t.Run("register_import_and_finality_actions", func(t *testing.T) {
-		c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0))
+		c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0), NewTestExecutor(t))
 
 		var count int
 		c.RegisterImportAction(func(bin BlockImportOperation) api.AuxDataOperations {
@@ -379,7 +407,7 @@ func TestHeaderBackendImplementation(t *testing.T) {
 
 	backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
-	c := New(backendMock)
+	c := New(backendMock, NewTestExecutor(t))
 
 	// Get Header
 	header, err := c.Header(expectedHash)
@@ -434,7 +462,7 @@ func TestBlockBackendImplementation(t *testing.T) {
 	blockchainMock := mocks.NewBlockchainBackend[hash.H256, uint64,
 		*generic.Header[uint64, hash.H256, runtime.BlakeTwo256], runtime.OpaqueExtrinsic](t)
 
-	c := New(backendMock)
+	c := New(backendMock, NewTestExecutor(t))
 
 	expectedHeader := generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
 		1,
