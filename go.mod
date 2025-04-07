@@ -7,7 +7,7 @@ require (
 	github.com/btcsuite/btcd/btcutil v1.1.6
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.1.0
-	github.com/cockroachdb/pebble v1.1.4
+	github.com/cockroachdb/pebble v1.1.5
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/dgraph-io/badger/v4 v4.6.0
 	github.com/dgraph-io/ristretto/v2 v2.1.0
@@ -215,6 +215,7 @@ require (
 )
 
 go 1.24.0
+
 replace github.com/tetratelabs/wazero => github.com/ChainSafe/wazero v0.0.0-20240319130522-78b21a59bd5f
 
 replace github.com/centrifuge/go-substrate-rpc-client/v4 => github.com/timwu20/go-substrate-rpc-client/v4 v4.0.0-20231110032757-3d8e441b7303
