@@ -253,12 +253,14 @@ func (b *BitfieldDistribution) processOurViewChangeEvent(event networkbridgeeven
 	oldView := b.ourView
 	b.ourView = event.View
 
+	// in the new view but not in the old view
 	for _, added := range b.ourView.Difference(oldView) {
 		if b.perRelayParent[added] == nil {
 			logger.Errorf("our view contains %s, but not in active heads", added.String())
 		}
 	}
 
+	// in the old view but not in the new view
 	for _, removed := range oldView.Difference(b.ourView) {
 		b.mu.Lock()
 		delete(b.perRelayParent, removed)

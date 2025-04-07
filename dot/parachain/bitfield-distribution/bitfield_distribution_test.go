@@ -1215,3 +1215,69 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_Success(t *testing
 		t.Fatal("Test timed out")
 	}
 }
+
+func TestProcessOurViewChangeEventNewViewNotExistInState(t *testing.T) {
+	oldView := parachaintypes.View{
+		Heads:           []common.Hash{{0x02}},
+		FinalizedNumber: 2,
+	}
+	newView := networkbridgeevents.OurViewChange{
+		View: parachaintypes.View{
+			Heads:           []common.Hash{{0x01}},
+			FinalizedNumber: 1,
+		},
+	}
+
+	b := NewBitfieldDistribution(nil)
+	b.ourView = oldView
+
+	// before the override
+	assert.Equal(t, parachaintypes.View{
+		Heads:           []common.Hash{{0x02}},
+		FinalizedNumber: 2,
+	}, b.ourView)
+
+	b.processOurViewChangeEvent(newView)
+
+	// after the override
+	// in the new view but not in the old view, so we should get {0x01}
+	assert.Equal(t, parachaintypes.View{
+		Heads:           []common.Hash{{0x01}},
+		FinalizedNumber: 1,
+	}, b.ourView)
+}
+
+func TestProcessOurViewChangeEventRemoveView(t *testing.T) {
+	oldView := parachaintypes.View{
+		Heads:           []common.Hash{{0x02}},
+		FinalizedNumber: 2,
+	}
+	newView := networkbridgeevents.OurViewChange{
+		View: parachaintypes.View{
+			Heads:           []common.Hash{{0x01}},
+			FinalizedNumber: 1,
+		},
+	}
+
+	b := NewBitfieldDistribution(nil)
+	b.ourView = oldView
+	b.perRelayParent[common.Hash{0x02}] = newPerRelayParentData(1, nil)
+
+	// before the override
+	assert.Equal(t, parachaintypes.View{
+		Heads:           []common.Hash{{0x02}},
+		FinalizedNumber: 2,
+	}, b.ourView)
+	assert.NotNil(t, b.perRelayParent[common.Hash{0x02}])
+
+	b.processOurViewChangeEvent(newView)
+
+	// after the override
+	// in the old view but not in the new view, so we should get {0x02} and remove its perRelayParentData
+	assert.Equal(t, parachaintypes.View{
+		Heads:           []common.Hash{{0x01}},
+		FinalizedNumber: 1,
+	}, b.ourView)
+
+	assert.Nil(t, b.perRelayParent[common.Hash{0x02}])
+}
