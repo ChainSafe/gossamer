@@ -30,22 +30,22 @@ type ImportedAux struct {
 
 type (
 	// Block imported.
-	Imported ImportedAux
+	ImportResultImported ImportedAux
 	// Already in the blockchain.
-	AlreadyInChain struct{}
+	ImportResultAlreadyInChain struct{}
 	// Block or parent is known to be bad.
-	KnownBad struct{}
+	ImportResultKnownBad struct{}
 	// Block parent is not in the chain.
-	UnknownParent struct{}
+	ImportResultUnknownParent struct{}
 	// Parent state is missing.
-	MissingState struct{}
+	ImportResultMissingState struct{}
 )
 
-func (Imported) isImportResult()       {}
-func (AlreadyInChain) isImportResult() {}
-func (KnownBad) isImportResult()       {}
-func (UnknownParent) isImportResult()  {}
-func (MissingState) isImportResult()   {}
+func (ImportResultImported) isImportResult()       {}
+func (ImportResultAlreadyInChain) isImportResult() {}
+func (ImportResultKnownBad) isImportResult()       {}
+func (ImportResultUnknownParent) isImportResult()  {}
+func (ImportResultMissingState) isImportResult()   {}
 
 type BlockImport[H runtime.Hash, N runtime.Number] interface {
 	/// Check block preconditions.
