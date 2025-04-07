@@ -100,7 +100,15 @@ type StateAction interface {
 
 type (
 	// Apply precomputed changes coming from block execution or state sync.
-	ApplyChanges struct{}
+	StateActionApplyChanges struct {
+		StorageChanges
+	}
+	// Execute block body (required) and compute state.
+	StateActionExecute struct{}
+	// Execute block body if parent state is available and compute state.
+	StateActionExecuteIfPossible struct{}
+	// Don't execute or import state.
+	StateActionSkip struct{}
 )
 
 // Fork choice strategy.
