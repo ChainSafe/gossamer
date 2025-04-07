@@ -15,7 +15,7 @@ type ImportResult interface {
 }
 
 // Auxiliary data associated with an imported block result.
-type importedAux struct {
+type ImportedAux struct {
 	// Only the header has been imported. Block body verification was skipped.
 	HeaderOnly bool
 	// Clear all pending justification requests.
@@ -30,7 +30,7 @@ type importedAux struct {
 
 type (
 	// Block imported.
-	Imported struct{ importedAux }
+	Imported ImportedAux
 	// Already in the blockchain.
 	AlreadyInChain struct{}
 	// Block or parent is known to be bad.
