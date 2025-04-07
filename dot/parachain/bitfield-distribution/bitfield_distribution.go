@@ -183,7 +183,7 @@ func (b *BitfieldDistribution) Name() parachaintypes.SubSystemName {
 // processBitfieldDistributionMessage handles the signal incoming from bitfield signing subsystem
 // should be unchecked as bitfield signing subsystem only send over the unchecked ones
 func (b *BitfieldDistribution) processBitfieldDistributionMessage(msg parachaintypes.DistributeBitfield) error {
-	logger.Infof("process BitfieldDistributionMessage handler for relayParent: %s", msg.RelayParent)
+	logger.Tracef("process BitfieldDistributionMessage handler for relayParent: %s", msg.RelayParent)
 
 	// prepare the relay message data
 	jobData := b.perRelayParent[msg.RelayParent]
@@ -234,7 +234,7 @@ func (b *BitfieldDistribution) processBitfieldDistributionMessage(msg parachaint
 }
 
 func (b *BitfieldDistribution) processPeerConnectedEvent(event networkbridgeevents.PeerConnected) {
-	logger.Infof("peer connected: %s", event.PeerID)
+	logger.Tracef("peer connected: %s", event.PeerID)
 
 	// only care about version 2 and 3
 	// TODO: add protocol version support
@@ -249,7 +249,7 @@ func (b *BitfieldDistribution) processPeerConnectedEvent(event networkbridgeeven
 }
 
 func (b *BitfieldDistribution) processPeerDisconnectedEvent(event networkbridgeevents.PeerDisconnected) {
-	logger.Infof("peer disconnected: %s", event.PeerID)
+	logger.Tracef("peer disconnected: %s", event.PeerID)
 
 	b.mu.Lock()
 	delete(b.peerViews, event.PeerID)
@@ -257,7 +257,7 @@ func (b *BitfieldDistribution) processPeerDisconnectedEvent(event networkbridgee
 }
 
 func (b *BitfieldDistribution) processNewGossipTopologyEvent(event networkbridgeevents.NewGossipTopology) error {
-	logger.Infof("process NewGossipTopology event")
+	logger.Tracef("process NewGossipTopology event")
 
 	sessionIdx := event.Session
 	newTopology := event.Topotogy
@@ -273,7 +273,7 @@ func (b *BitfieldDistribution) processNewGossipTopologyEvent(event networkbridge
 		shuffledIndices[i] = uint(v)
 	}
 
-	canonicalShuffling := make([]grid.TopologyPeerInfo, 0)
+	canonicalShuffling := make([]grid.TopologyPeerInfo, len(event.Topotogy.CanonicalShuffling))
 	for i, info := range event.Topotogy.CanonicalShuffling {
 		t := grid.TopologyPeerInfo{
 			Peers:          info.PeerID,
@@ -317,7 +317,7 @@ func (b *BitfieldDistribution) processNewGossipTopologyEvent(event networkbridge
 }
 
 func (b *BitfieldDistribution) processPeerViewChangeEvent(event networkbridgeevents.PeerViewChange) {
-	logger.Infof("process PeerViewChange event")
+	logger.Tracef("process PeerViewChange event")
 
 	if b.peerViews[event.PeerID] != nil {
 		handlePeerViewChange(b, event.PeerID, event.View, b.subSystemToOverseer)
@@ -484,7 +484,7 @@ func (b *BitfieldDistribution) ProcessBlockFinalizedSignal(signal parachaintypes
 }
 
 func (b *BitfieldDistribution) Stop() {
-	logger.Infof("Stopping BitfieldDistribution subsystem")
+	logger.Tracef("Stopping BitfieldDistribution subsystem")
 }
 
 // relayMessage distributes a given valid and signature checked bitfield message.
@@ -522,7 +522,7 @@ func relayMessage(
 	}
 
 	if len(interestedPeers) == 0 {
-		logger.Infof("no peers are interested in gossip for relay parent")
+		logger.Tracef("no peers are interested in gossip for relay parent")
 		return
 	}
 
