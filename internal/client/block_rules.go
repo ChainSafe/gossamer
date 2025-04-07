@@ -35,7 +35,10 @@ func (LookupResultNotSpecial) isLookupResult()  {}
 func (LookupResultKnownBad) isLookupResult()    {}
 func (LookupResultExpected[H]) isLookupResult() {}
 
-func NewBlockRules[H runtime.Hash, N runtime.Number](forkBlocks []BadBlockData[H, N], badBlocks map[H]struct{}) *BlockRules[H, N] {
+func NewBlockRules[
+	H runtime.Hash,
+	N runtime.Number,
+](forkBlocks []BadBlockData[H, N], badBlocks map[H]struct{}) *BlockRules[H, N] {
 	forks := make(map[N]H)
 	for _, block := range forkBlocks {
 		forks[block.number] = block.hash

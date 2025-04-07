@@ -19,6 +19,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
+	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 )
 
@@ -815,7 +816,6 @@ func (c *Client[H, Hasher, N, E, Header]) applyBlock(
 	}
 
 	hash := importHeaders.Post().Hash()
-	//height := importHeaders.Post().Number()
 
 	c.importingBlockMtx.Lock()
 	c.importingBlock = &hash
@@ -823,7 +823,20 @@ func (c *Client[H, Hasher, N, E, Header]) applyBlock(
 
 	operation.Op.SetCreateGap(importBlock.CreateGap)
 
-	result, err := c.executeAndImportBlock() //TODO finish this
+	result, err := c.executeAndImportBlock(
+		operation,
+		importBlock.Origin,
+		hash,
+		importHeaders,
+		importBlock.Justifications,
+		importBlock.Body,
+		importBlock.IndexedBody,
+		&storageChanges,
+		importBlock.Finalized,
+		importBlock.Auxiliary,
+		importBlock.ForkChoice,
+		importBlock.ImportExisting,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -834,7 +847,20 @@ func (c *Client[H, Hasher, N, E, Header]) applyBlock(
 	return result, nil
 }
 
-func (c *Client[H, Hasher, N, E, Header]) executeAndImportBlock() (common.ImportResult, error) {
+func (c *Client[H, Hasher, N, E, Header]) executeAndImportBlock(
+	operation *api.ClientImportOperation[H, Hasher, N, Header, E],
+	origin primivite_consensus_common.BlockOrigin,
+	hash H,
+	importHeaders PrePostHeaders[N, H, Header],
+	justifications *runtime.Justifications,
+	body *[]E,
+	indexedBody *[][]byte,
+	storageChanges *common.StorageChanges,
+	finalized bool,
+	aux overlayedchanges.StorageCollection,
+	forchoice *common.ForkChoiceStrategy,
+	importExisting bool,
+) (common.ImportResult, error) {
 	panic("not implemented")
 }
 
