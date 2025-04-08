@@ -138,7 +138,7 @@ func TestCommittedCandidateReceiptV2_CheckCoreIndex(t *testing.T) {
 			receipt:     newTestReceipt(CandidateDescriptorVersion1, 1, 100),
 			claimQueue:  mockTransposedClaimQueue(100, []CoreIndex{{Index: 1}}),
 			coreSelect:  &SelectCore{CoreSelector: 0, ClaimQueueOffset: 0},
-			expectError: ErrCoreSelectorWithV1Decriptor,
+			expectError: ErrCoreSelectorWithV1Descriptor,
 		},
 
 		// V2 Descriptor - No Cores Assigned
@@ -146,13 +146,13 @@ func TestCommittedCandidateReceiptV2_CheckCoreIndex(t *testing.T) {
 			name:        "v2_descriptor_empty_claim_queue",
 			receipt:     newTestReceipt(CandidateDescriptorVersion2, 1, 100),
 			claimQueue:  TransposedClaimQueue{},
-			expectError: ErrNoCoreAssigned,
+			expectError: ErrNoCoresAssigned,
 		},
 		{
 			name:        "v2_descriptor_no_cores_assigned",
 			receipt:     newTestReceipt(CandidateDescriptorVersion2, 1, 100),
 			claimQueue:  mockTransposedClaimQueue(100, []CoreIndex{}),
-			expectError: ErrNoCoreAssigned,
+			expectError: ErrNoCoresAssigned,
 		},
 
 		// V2 Descriptor - Single Core Cases

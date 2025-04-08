@@ -3,6 +3,7 @@ package parachaintypes
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -24,19 +25,13 @@ var ErrUnknownCandidateDescriptorVersion = fmt.Errorf("unknown candidate descrip
 
 const defaultClaimQueueOffset byte = 0
 
-// CommittedCandidateReceiptError represents various error cases when checking committed candidate receipt
-type CommittedCandidateReceiptError string
-
-const (
-	ErrCoreIndexMismatch           CommittedCandidateReceiptError = "core index in commitments doesn't match the one in descriptor" //nolint:lll
-	ErrCoreSelectorWithV1Decriptor CommittedCandidateReceiptError = "core selector with v1 descriptor"
-	ErrNoCoreAssigned              CommittedCandidateReceiptError = "parachain is not assigned to any core at specified claim queue offset" //nolint:lll
-	ErrInvalidCoreIndex            CommittedCandidateReceiptError = "invalid core index"
+// errors when checking committed candidate receipt
+var (
+	ErrCoreIndexMismatch            = errors.New("core index in commitments doesn't match the one in descriptor") //nolint:lll
+	ErrCoreSelectorWithV1Descriptor = errors.New("core selector with v1 descriptor")
+	ErrNoCoresAssigned              = errors.New("parachain is not assigned to any core at specified claim queue offset") //nolint:lll
+	ErrInvalidCoreIndex             = errors.New("invalid core index")
 )
-
-func (e CommittedCandidateReceiptError) Error() string {
-	return string(e)
-}
 
 // CandidateDescriptorV2 is a descriptor for a parachain candidate.
 // NOTE: This type is backward compatible with CandidateDescriptor.
@@ -226,7 +221,7 @@ func (ccr CommittedCandidateReceiptV2) CheckCoreIndex(coresPerPara TransposedCla
 	if descriptorVersion == CandidateDescriptorVersion1 {
 		// If the parachain runtime started sending core selectors, v1 descriptors are no longer allowed
 		if selectCore != nil {
-			return ErrCoreSelectorWithV1Decriptor
+			return ErrCoreSelectorWithV1Descriptor
 		}
 		return nil
 	}
@@ -245,7 +240,7 @@ func (ccr CommittedCandidateReceiptV2) CheckCoreIndex(coresPerPara TransposedCla
 	numOfCores := len(assignedCoresSorted)
 
 	if numOfCores == 0 {
-		return ErrNoCoreAssigned
+		return ErrNoCoresAssigned
 	}
 
 	descriptorCoreIndex := CoreIndex{Index: uint32(ccr.Descriptor.CoreIndex)}
@@ -255,7 +250,7 @@ func (ccr CommittedCandidateReceiptV2) CheckCoreIndex(coresPerPara TransposedCla
 		if numOfCores > 1 {
 			// Check if descriptor core index is among assigned cores
 			if _, exists := assignedCoreSet[descriptorCoreIndex]; !exists {
-				return ErrInvalidCoreIndex
+				return fmt.Errorf("%w: %d", ErrInvalidCoreIndex, descriptorCoreIndex)
 			}
 
 			// the descriptor core index is indeed assigned to the parachain.
