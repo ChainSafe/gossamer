@@ -182,9 +182,8 @@ func (c *LRUSessionCache) GetAuthorityID(
 		}
 
 		authIDs = sessionInfo.DiscoveryKeys
+		c.authIDCache.Put(relayParent, authIDs)
 	}
-
-	c.authIDCache.Put(relayParent, authIDs)
 
 	if int(validatorIndex) >= len(authIDs) {
 		return parachaintypes.AuthorityDiscoveryID{}, fmt.Errorf("validator index %d is out of range", validatorIndex)

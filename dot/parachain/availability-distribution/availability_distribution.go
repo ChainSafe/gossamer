@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
@@ -25,6 +26,7 @@ import (
 var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-availability-distribution"))
 
 const leafAncestryLenWithinSession = 3
+const povRequestTimeout = time.Second * 5
 
 type AvailabilityDistribution struct {
 	subSystemToOverseer chan<- any
@@ -36,6 +38,7 @@ type AvailabilityDistribution struct {
 }
 
 var _ parachaintypes.Subsystem = (*AvailabilityDistribution)(nil)
+var ErrPoVRequestTimeout = errors.New("PoV request timed out")
 
 type Network interface {
 	RegisterRequestHandler(subprotocolID protocol.ID, handler network.RequestHandler)
@@ -271,6 +274,8 @@ func (ad *AvailabilityDistribution) ProcessBlockFinalizedSignal(_ parachaintypes
 func (ad *AvailabilityDistribution) processAvailabilityDistributionMessageFetchPoV(
 	msg parachaintypes.AvailabilityDistributionMessageFetchPoV,
 ) error {
+	defer close(msg.PovCh)
+
 	rt, err := ad.blockState.GetRuntime(msg.RelayParent)
 	if err != nil {
 		return err
@@ -294,8 +299,16 @@ func (ad *AvailabilityDistribution) processAvailabilityDistributionMessageFetchP
 
 	ad.subSystemToOverseer <- sendRequests
 
-	result := <-request.Result
-	defer close(msg.PovCh)
+	var result messages.ReqRespResult
+
+	select {
+	case result = <-request.Result:
+	case <-time.After(povRequestTimeout):
+		msg.PovCh <- parachaintypes.OverseerFuncRes[parachaintypes.PoV]{
+			Err: ErrPoVRequestTimeout,
+		}
+		return nil
+	}
 
 	if result.Error != nil {
 		msg.PovCh <- parachaintypes.OverseerFuncRes[parachaintypes.PoV]{
