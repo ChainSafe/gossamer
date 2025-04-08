@@ -755,11 +755,7 @@ func NewBackedCandidate(
 	const maxCoreIndex uint32 = 255 // math.MaxUint8
 
 	if coreIndex != nil && coreIndex.Index > maxCoreIndex {
-		return nil, fmt.Errorf(
-			"core index %d exceeds maximum allowed value of %d",
-			coreIndex.Index,
-			maxCoreIndex,
-		)
+		return nil, fmt.Errorf("core index %d exceeds maximum allowed value of %d", coreIndex.Index, maxCoreIndex)
 	}
 
 	bitVecOfIndices, err := NewBitVec(validatorIndices)
@@ -870,6 +866,13 @@ type NodeFeatureIndex byte
 // The value stored there represents the assumed core index where the candidates
 // are backed. This is needed for the elastic scaling MVP.
 const ElasticScalingMVP NodeFeatureIndex = 1
+
+// AvailabilityChunkMapping tells if the chunk mapping feature is enabled.
+// Enables the implementation of
+// [RFC-47](https://github.com/polkadot-fellows/RFCs/blob/main/text/0047-assignment-of-availability-chunks.md).
+// Must not be enabled unless all validators and collators have stopped using `req_chunk`
+// protocol version 1. If it is enabled, validators can start systematic chunk recovery.
+const AvailabilityChunkMapping NodeFeatureIndex = 2
 
 type ClaimQueue map[CoreIndex][]ParaID
 
