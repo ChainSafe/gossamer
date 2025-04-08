@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"sort"
-	"sync"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
@@ -1153,7 +1152,7 @@ func TestGetHypotheticalMembership(t *testing.T) {
 		require.Equal(t, expected, out)
 	})
 
-	t.Run("sucessfully_check_potential_single_leaf", func(t *testing.T) {
+	t.Run("successfully_check_potential_single_leaf", func(t *testing.T) {
 		// setup the current contraints
 		relayParent := &relayChainBlockInfo{
 			Hash:        common.Hash([32]byte{0xAB, 0xCD}),
@@ -1245,7 +1244,7 @@ func TestGetHypotheticalMembership(t *testing.T) {
 		require.Equal(t, expected, out)
 	})
 
-	t.Run("sucessfully_check_potential_two_leaves", func(t *testing.T) {
+	t.Run("successfully_check_potential_two_leaves", func(t *testing.T) {
 		parentHead := parachaintypes.HeadData{Data: []byte{0x10, 0x10, 0x10}}
 
 		// setup the current contraints for relay parent 9
@@ -1394,7 +1393,7 @@ func TestGetHypotheticalMembership(t *testing.T) {
 		require.Equal(t, expected, out)
 	})
 
-	t.Run("target_relay_parent_sucessfully_check_potential", func(t *testing.T) {
+	t.Run("target_relay_parent_successfully_check_potential", func(t *testing.T) {
 		parentHead := parachaintypes.HeadData{Data: []byte{0x10, 0x10, 0x10}}
 
 		// setup the current contraints for relay parent 9

@@ -574,7 +574,7 @@ func (f *fragmentChain) bestChainLen() int {
 	return len(f.bestChain.chain)
 }
 
-func (f *fragmentChain) containsUnconnectedCandidate( //nolint:unused
+func (f *fragmentChain) containsUnconnectedCandidate(
 	candidateHash parachaintypes.CandidateHash,
 ) bool {
 	_, ok := f.unconnected.byCandidateHash[candidateHash]
