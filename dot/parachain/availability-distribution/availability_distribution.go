@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
@@ -15,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/erasure"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
@@ -28,6 +30,9 @@ type AvailabilityDistribution struct {
 	subSystemToOverseer chan<- any
 	net                 Network
 	blockState          BlockState
+	sessionCache        SessionCache
+	fetchTasks          map[parachaintypes.CandidateHash]*fetchChunkTask
+	mu                  sync.Mutex
 }
 
 var _ parachaintypes.Subsystem = (*AvailabilityDistribution)(nil)
@@ -46,11 +51,14 @@ func NewAvailabilityDistribution(
 	overseerChan chan<- any,
 	net Network,
 	blockState BlockState,
+	sessionCache SessionCache,
 ) *AvailabilityDistribution {
 	ad := &AvailabilityDistribution{
 		subSystemToOverseer: overseerChan,
 		net:                 net,
 		blockState:          blockState,
+		sessionCache:        sessionCache,
+		fetchTasks:          make(map[parachaintypes.CandidateHash]*fetchChunkTask),
 	}
 
 	cfProtoID := protocol.ID(messages.ChunkFetchingV2.String())
@@ -82,6 +90,12 @@ func (ad *AvailabilityDistribution) Run(ctx context.Context, overseerToSubSystem
 
 func (ad *AvailabilityDistribution) Stop() {
 	logger.Tracef("Stopping %s subsystem", ad.Name())
+	ad.mu.Lock()
+	defer ad.mu.Unlock()
+
+	for _, task := range ad.fetchTasks {
+		task.cancel()
+	}
 }
 
 // Name returns the name of the subsystem
@@ -111,11 +125,146 @@ func (ad *AvailabilityDistribution) processMessage(msg any) error {
 func (ad *AvailabilityDistribution) ProcessActiveLeavesUpdateSignal(
 	signal parachaintypes.ActiveLeavesUpdateSignal,
 ) error {
-	return nil // TODO: implement #4490 & #4492
+	leaf := signal.Activated.Hash
+	fmtErr := func(op string, err error) error {
+		return fmt.Errorf("%s for block %d (%s): %w", op, signal.Activated.Number, leaf.String(), err)
+	}
+
+	leafSessionIndex, ancestorsInSession, err := ad.getBlockAncestorsInSameSession(leaf, leafAncestryLenWithinSession)
+	if err != nil {
+		return fmtErr("getting block ancestors in same session", err)
+	}
+
+	rt, err := ad.blockState.GetRuntime(leaf)
+	if err != nil {
+		return fmtErr("instantiating runtime", err)
+	}
+
+	coreStates, err := rt.ParachainHostAvailabilityCores()
+	if err != nil {
+		return fmtErr("getting availability cores", err)
+	}
+
+	// Start or update fetch tasks for the leaf and its ancestors in the same session. All started tasks are marked as
+	// live in the leaf. This way they will be cancelled on subsequent updates if their leaf gets deactivated without
+	// having to track them explicitly.
+	for _, hash := range append([]common.Hash{leaf}, ancestorsInSession...) {
+		cores, err := ad.getOccupiedCoresFor(hash, coreStates)
+		if err != nil {
+			return fmtErr("getting occupied cores", err)
+		}
+
+		if err := ad.addCores(rt, leaf, leafSessionIndex, cores); err != nil {
+			return fmtErr("starting/updating fetch tasks for occupied cores", err)
+		}
+	}
+
+	ad.mu.Lock()
+	defer ad.mu.Unlock()
+
+	for hash, task := range ad.fetchTasks {
+		task.removeLeaves(signal.Deactivated)
+		if !task.isLive() {
+			delete(ad.fetchTasks, hash)
+		}
+	}
+
+	return nil
+}
+
+func (ad *AvailabilityDistribution) addCores(
+	rt runtime.Instance,
+	leaf common.Hash,
+	leafSessionIndex parachaintypes.SessionIndex,
+	cores []*parachaintypes.OccupiedCore,
+) error {
+	ad.mu.Lock()
+	defer ad.mu.Unlock()
+
+	sessionInfo, err := ad.sessionCache.GetSessionInfo(leafSessionIndex, rt)
+	if err != nil {
+		return err
+	}
+
+	for coreIndex, core := range cores {
+		// Don't run tasks for our backing group:
+		if sessionInfo.OurGroup != nil && *sessionInfo.OurGroup == core.GroupResponsible {
+			continue
+		}
+
+		candidateHash := parachaintypes.CandidateHash{Value: core.CandidateHash}
+		task, ok := ad.fetchTasks[candidateHash]
+		if ok {
+			task.addLeaf(leaf)
+			continue
+		}
+
+		chunkIndex, err := availabilityChunkIndex(
+			sessionInfo.NodeFeatures,
+			sessionInfo.NumberOfValidators(),
+			coreIndex,
+			sessionInfo.OurIndex,
+		)
+		if err != nil {
+			return err
+		}
+
+		task = newFetchChunkTask(
+			leaf,
+			chunkIndex,
+			sessionInfo,
+			core,
+			ad.subSystemToOverseer,
+			ad.handleFetchTaskTermination,
+		)
+
+		ad.fetchTasks[candidateHash] = task
+		go task.run()
+	}
+	return nil
+}
+
+func (ad *AvailabilityDistribution) getOccupiedCoresFor(
+	relayParent common.Hash,
+	coreStates []parachaintypes.CoreState,
+) ([]*parachaintypes.OccupiedCore, error) {
+	cores := make([]*parachaintypes.OccupiedCore, 0)
+
+	for _, coreState := range coreStates {
+		v, err := coreState.Value()
+		if err != nil {
+			return nil, err
+		}
+
+		oc, ok := v.(parachaintypes.OccupiedCore)
+		if !ok || oc.CandidateDescriptor.RelayParent != relayParent {
+			continue
+		}
+
+		cores = append(cores, &oc)
+	}
+	return cores, nil
+}
+
+func (ad *AvailabilityDistribution) handleFetchTaskTermination(
+	candidateHash parachaintypes.CandidateHash,
+	reason taskTerminationReason,
+) {
+	ad.mu.Lock()
+	delete(ad.fetchTasks, candidateHash)
+	ad.mu.Unlock()
+
+	success, ok := reason.(taskSucceeded)
+	if ok && len(success.badValidators) > 0 {
+		err := ad.sessionCache.ReportBadValidators(success.sessionIndex, success.groupIndex, success.badValidators)
+		if err != nil {
+			logger.Errorf("reporting bad validators for session %d: %s", success.sessionIndex, err)
+		}
+	}
 }
 
 // ProcessBlockFinalizedSignal processes block finalized signal
-func (ad *AvailabilityDistribution) ProcessBlockFinalizedSignal(msg parachaintypes.BlockFinalizedSignal) error {
+func (ad *AvailabilityDistribution) ProcessBlockFinalizedSignal(_ parachaintypes.BlockFinalizedSignal) error {
 	return nil // nothing to do
 }
 
@@ -246,6 +395,7 @@ func (ad *AvailabilityDistribution) getBlockAncestorsInSameSession(
 	return headSessionIndex, ancestors, nil
 }
 
+// TODO: use session cache (#4494)
 func (ad *AvailabilityDistribution) getSessionIndexForChild(hash common.Hash) (parachaintypes.SessionIndex, error) {
 	rt, err := ad.blockState.GetRuntime(hash)
 	if err != nil {
@@ -254,4 +404,33 @@ func (ad *AvailabilityDistribution) getSessionIndexForChild(hash common.Hash) (p
 	defer rt.Stop()
 
 	return rt.ParachainHostSessionIndexForChild()
+}
+
+// Compute the per-validator availability chunk index.
+// WARNING: THIS FUNCTION IS CRITICAL TO PARACHAIN CONSENSUS.
+// Any modification to the output of the function needs to be coordinated via the runtime.
+// It's best to use minimal/no external dependencies.
+func availabilityChunkIndex(
+	nodeFeatures parachaintypes.BitVec,
+	nValidators uint,
+	coreIndex int,
+	validatorIndex parachaintypes.ValidatorIndex,
+) (uint32, error) {
+	avChunkMapping, err := nodeFeatures.Get(uint(parachaintypes.AvailabilityChunkMapping))
+	if err != nil {
+		return 0, err
+	}
+
+	if avChunkMapping {
+		systematicThreshold, err := erasure.SystematicRecoveryThreshold(nValidators)
+		if err != nil {
+			return 0, err
+		}
+
+		coreStartPos := uint32(coreIndex) * systematicThreshold
+		chunkIndex := (coreStartPos + uint32(validatorIndex)) % uint32(nValidators)
+		return chunkIndex, nil
+	}
+
+	return uint32(validatorIndex), nil
 }
