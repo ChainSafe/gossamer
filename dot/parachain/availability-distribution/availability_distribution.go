@@ -126,26 +126,23 @@ func (ad *AvailabilityDistribution) ProcessActiveLeavesUpdateSignal(
 	signal parachaintypes.ActiveLeavesUpdateSignal,
 ) error {
 	leaf := signal.Activated.Hash
-	logErr := func(op string, err error) {
-		logger.Errorf("%s for block %d (%s): %v", op, signal.Activated.Number, leaf.String(), err)
+	fmtErr := func(op string, err error) error {
+		return fmt.Errorf("%s for block %d (%s): %w", op, signal.Activated.Number, leaf.String(), err)
 	}
 
 	leafSessionIndex, ancestorsInSession, err := ad.getBlockAncestorsInSameSession(leaf, leafAncestryLenWithinSession)
 	if err != nil {
-		logErr("getting block ancestors in same session", err)
-		return err
+		return fmtErr("getting block ancestors in same session", err)
 	}
 
 	rt, err := ad.blockState.GetRuntime(leaf)
 	if err != nil {
-		logErr("instantiating runtime", err)
-		return err
+		return fmtErr("instantiating runtime", err)
 	}
 
 	coreStates, err := rt.ParachainHostAvailabilityCores()
 	if err != nil {
-		logErr("getting availability cores", err)
-		return err
+		return fmtErr("getting availability cores", err)
 	}
 
 	// Start or update fetch tasks for the leaf and its ancestors in the same session. All started tasks are marked as
@@ -154,12 +151,11 @@ func (ad *AvailabilityDistribution) ProcessActiveLeavesUpdateSignal(
 	for _, hash := range append([]common.Hash{leaf}, ancestorsInSession...) {
 		cores, err := ad.getOccupiedCoresFor(hash, coreStates)
 		if err != nil {
-			logErr("getting occupied cores", err)
-			return err
+			return fmtErr("getting occupied cores", err)
 		}
 
 		if err := ad.addCores(rt, leaf, leafSessionIndex, cores); err != nil {
-			logErr("starting/updating fetch tasks for occupied cores", err)
+			return fmtErr("starting/updating fetch tasks for occupied cores", err)
 		}
 	}
 
