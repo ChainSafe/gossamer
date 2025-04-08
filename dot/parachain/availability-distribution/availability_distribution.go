@@ -429,4 +429,3 @@ func availabilityChunkIndex(
 
 	return uint32(validatorIndex), nil
 }
-
