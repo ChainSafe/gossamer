@@ -259,9 +259,8 @@ func TestGetBlockAncestorsInSameSession(t *testing.T) {
 		netMock        *MockNetwork
 		blockStateMock *MockBlockState
 		runtimeMock    *MockInstance
-		//sessionCacheMock *MockSessionCache
-		overseerCh chan any
-		ad         *AvailabilityDistribution
+		overseerCh     chan any
+		ad             *AvailabilityDistribution
 	)
 
 	setup := func(t *testing.T) {
@@ -271,7 +270,6 @@ func TestGetBlockAncestorsInSameSession(t *testing.T) {
 		netMock = NewMockNetwork(ctrl)
 		blockStateMock = NewMockBlockState(ctrl)
 		runtimeMock = NewMockInstance(ctrl)
-		//sessionCacheMock = NewMockSessionCache(ctrl)
 
 		netMock.EXPECT().RegisterRequestHandler(protocol.ID("req_chunk/2"), gomock.Any())
 		netMock.EXPECT().RegisterRequestHandler(protocol.ID("req_pov/1"), gomock.Any())
