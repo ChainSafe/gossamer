@@ -590,7 +590,7 @@ func (f *fragmentChain) bestChainVec() (hashes []parachaintypes.CandidateHash) {
 	return hashes
 }
 
-func (f *fragmentChain) isCandidateBacked(hash parachaintypes.CandidateHash) bool { //nolint:unused
+func (f *fragmentChain) isCandidateBacked(hash parachaintypes.CandidateHash) bool {
 	if _, ok := f.bestChain.candidates[hash]; ok {
 		return true
 	}

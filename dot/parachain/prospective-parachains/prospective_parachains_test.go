@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"sort"
+	"sync"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
