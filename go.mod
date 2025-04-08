@@ -10,7 +10,7 @@ require (
 	github.com/cockroachdb/pebble v1.1.5
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/dgraph-io/badger/v4 v4.6.0
-	github.com/dgraph-io/ristretto/v2 v2.1.0
+	github.com/dgraph-io/ristretto/v2 v2.2.0
 	github.com/disiqueira/gotree v1.0.0
 	github.com/dolthub/maphash v0.1.0
 	github.com/elastic/go-freelru v0.15.0
