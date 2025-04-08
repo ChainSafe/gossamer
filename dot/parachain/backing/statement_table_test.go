@@ -219,9 +219,7 @@ func TestStatementTable_importStatement(t *testing.T) {
 		{
 			description: "unauthorised_seconded_statement",
 			table: statementTable{
-				detectedMisbehaviour: make(
-					map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour,
-				),
+				detectedMisbehaviour: make(map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour),
 			},
 			groupID: 1,
 			signedStatement: func() parachaintypes.SignedFullStatement {
@@ -242,9 +240,7 @@ func TestStatementTable_importStatement(t *testing.T) {
 		{
 			description: "unauthorised_valid_statement",
 			table: statementTable{
-				detectedMisbehaviour: make(
-					map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour,
-				),
+				detectedMisbehaviour: make(map[parachaintypes.ValidatorIndex][]parachaintypes.Misbehaviour),
 				candidateVotes: map[parachaintypes.CandidateHash]*candidateData{
 					candidateHash: {
 						groupID:       1,
@@ -300,10 +296,7 @@ func TestStatementTable_importCandidate(t *testing.T) {
 	candidate := getDummyCommittedCandidateReceipt(t)
 	var signature parachaintypes.ValidatorSignature
 
-	tempSignature := common.MustHexToBytes(
-		"0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf4864" +
-			"75e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86",
-	)
+	var tempSignature = common.MustHexToBytes("0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86") //nolint:lll
 	copy(signature[:], tempSignature)
 
 	statementSeconded := parachaintypes.NewStatementVDT()
@@ -424,13 +417,7 @@ func TestStatementTable_importCandidate(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
 
-			summary, misbehaviour, err := tc.table.importCandidate(
-				authority,
-				candidate,
-				signature,
-				tc.tableCtx,
-				tc.group,
-			)
+			summary, misbehaviour, err := tc.table.importCandidate(authority, candidate, signature, tc.tableCtx, tc.group)
 			require.Equal(t, tc.expectedError, err)
 			require.Equal(t, tc.expectedMisehaviour, misbehaviour)
 			require.Equal(t, tc.expectedSummary, summary)
@@ -452,10 +439,7 @@ func TestStatementTable_validityVote(t *testing.T) {
 	require.NoError(t, err)
 
 	var validatorSign parachaintypes.ValidatorSignature
-	tempSignature := common.MustHexToBytes(
-		"0xc67cb93bf0a36fcee3d29de8a6a69a759659680ac" +
-			"f486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86",
-	)
+	var tempSignature = common.MustHexToBytes("0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86") //nolint:lll
 	copy(validatorSign[:], tempSignature)
 
 	oldSign := parachaintypes.ValidatorSignature{}
@@ -653,7 +637,7 @@ func TestStatementTable_validityVote(t *testing.T) {
 		t.Run("", func(t *testing.T) {
 			t.Parallel()
 
-			summary, misehaviour, err := tc.table.validityVote(
+			summary, misbehaviour, err := tc.table.validityVote(
 				validatorIndex,
 				candidateHash,
 				validityVoteWithSign{tc.vote, validatorSign},
@@ -661,7 +645,7 @@ func TestStatementTable_validityVote(t *testing.T) {
 			)
 
 			require.Equal(t, tc.expectedError, err)
-			require.Equal(t, tc.expectedMisehaviour, misehaviour)
+			require.Equal(t, tc.expectedMisehaviour, misbehaviour)
 			require.Equal(t, tc.expectedSummary, summary)
 		})
 	}
@@ -676,10 +660,7 @@ func TestStatementTable_drainMisbehaviors(t *testing.T) {
 	require.NoError(t, err)
 
 	var validatorSign parachaintypes.ValidatorSignature
-	tempSignature := common.MustHexToBytes(
-		"0xc67cb93bf0a36fcee3d29de8a6a69a759659680a" +
-			"cf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86",
-	)
+	var tempSignature = common.MustHexToBytes("0xc67cb93bf0a36fcee3d29de8a6a69a759659680acf486475e0a2552a5fbed87e45adce5f290698d8596095722b33599227f7461f51af8617c8be74b894cf1b86") //nolint:lll
 	copy(validatorSign[:], tempSignature)
 
 	oldSign := parachaintypes.ValidatorSignature{}
