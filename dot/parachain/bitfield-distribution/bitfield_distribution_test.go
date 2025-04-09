@@ -1216,7 +1216,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_Success(t *testing
 	}
 }
 
-func TestProcessOurViewChangeEventNewViewNotExistInState(t *testing.T) {
+func TestBitfieldDistribution_ProcessOurViewChangeEventNewViewNotExistInState(t *testing.T) {
 	oldView := parachaintypes.View{
 		Heads:           []common.Hash{{0x02}},
 		FinalizedNumber: 2,
@@ -1247,7 +1247,7 @@ func TestProcessOurViewChangeEventNewViewNotExistInState(t *testing.T) {
 	}, b.ourView)
 }
 
-func TestProcessOurViewChangeEventRemoveView(t *testing.T) {
+func TestBitfieldDistribution_ProcessOurViewChangeEventRemoveView(t *testing.T) {
 	oldView := parachaintypes.View{
 		Heads:           []common.Hash{{0x02}},
 		FinalizedNumber: 2,
@@ -1280,4 +1280,43 @@ func TestProcessOurViewChangeEventRemoveView(t *testing.T) {
 	}, b.ourView)
 
 	assert.Nil(t, b.perRelayParent[common.Hash{0x02}])
+}
+
+func TestBitfieldDistribution_processUpdatedAuthorityIDsEvent(t *testing.T) {
+	gt := grid.NewSessionGridTopology([]uint{1}, []grid.TopologyPeerInfo{{
+		Peers:          []peer.ID{"peer1", "peer2"},
+		ValidatorIndex: parachaintypes.ValidatorIndex(1),
+		DiscoveryID:    types.AuthorityID{2},
+	},
+	})
+	assert.Len(t, gt.Peers, 2)
+	sgte := &grid.SessionGridTopologyEntry{
+		Topology: gt,
+		//LocalNeighbours: gn,
+		LocalIndex:   0,
+		SessionIndex: 99,
+	}
+
+	b := NewBitfieldDistribution(nil)
+	b.topologies = grid.SessionGridTopologyStorage{
+		CurrentTopology: sgte,
+	}
+
+	updated := networkbridgeevents.UpdatedAuthorityIDs{
+		PeerID: peer.ID("peer2"),
+		AuthorityDiscoveryIDs: []parachaintypes.AuthorityDiscoveryID{
+			{1},
+		},
+	}
+	err := b.processUpdatedAuthorityIDsEvent(updated)
+	assert.Nil(t, err)
+
+	updated = networkbridgeevents.UpdatedAuthorityIDs{
+		PeerID: peer.ID("peer10"),
+		AuthorityDiscoveryIDs: []parachaintypes.AuthorityDiscoveryID{
+			{2},
+		},
+	}
+	err = b.processUpdatedAuthorityIDsEvent(updated)
+	assert.NotNil(t, err)
 }

@@ -6,6 +6,7 @@ package bitfielddistribution
 import (
 	"context"
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"sync"
 
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
@@ -409,8 +410,20 @@ func (b *BitfieldDistribution) processIncomingPeerMessageEvent(event networkbrid
 }
 
 func (b *BitfieldDistribution) processUpdatedAuthorityIDsEvent(event networkbridgeevents.UpdatedAuthorityIDs) error {
-	//TODO implement in #4360
-	panic("implement me")
+	ids := make(map[types.AuthorityID]struct{})
+	for _, id := range event.AuthorityDiscoveryIDs {
+		ids[types.AuthorityID(id)] = struct{}{}
+	}
+	ok, err := b.topologies.CurrentTopology.UpdateAuthoritiesIDs(event.PeerID, ids)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		logger.Errorf("could not update authority IDs : %v", event.AuthorityDiscoveryIDs)
+		return nil
+	}
+
+	return nil
 }
 
 func (b *BitfieldDistribution) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
