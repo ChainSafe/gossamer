@@ -346,11 +346,11 @@ func checkOffchainContent(
 
 	var toCheck []offchainKeyValue
 	for _, kv := range expected {
-		var change OffchainOverlayedChange
+		var change offchain.OffchainOverlayedChange
 		if kv.value != nil {
-			change = OffchainOverlayedChangeSetValue(kv.value)
+			change = offchain.OffchainOverlayedChangeSetValue(kv.value)
 		} else {
-			change = OffchainOverlayedChangeRemove{}
+			change = offchain.OffchainOverlayedChangeRemove{}
 		}
 		key := bytes.Join([][]byte{offchain.StoragePrefix, []byte(kv.key)}, []byte{})
 		toCheck = append(toCheck, offchainKeyValue{key: key, value: change})

@@ -426,7 +426,7 @@ func (oc *OverlayedChanges[H, Hasher]) ExitRuntime() error {
 //
 // Panics:
 // Panics if `transaction_depth() > 0`
-func (oc *OverlayedChanges[H, Hasher]) offchainDrainCommited() iter.Seq2[StorageKey, OffchainOverlayedChange] {
+func (oc *OverlayedChanges[H, Hasher]) offchainDrainCommited() iter.Seq2[StorageKey, offchain.OffchainOverlayedChange] {
 	return oc.offchain.DrainCommited()
 }
 
