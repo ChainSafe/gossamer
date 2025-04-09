@@ -19,55 +19,18 @@ type BitVec struct {
 	len  int
 }
 
-// NewBitVec returns a new BitVec with the given bits
-// This isn't a complete implementation of the bit vector
-// It is only used for ParachainHost runtime exports
-// TODO: Implement the full bit vector
-// https://github.com/ChainSafe/gossamer/issues/3248
-func NewBitVec(bits []bool) BitVec {
-	return BitVec{
-		bits: bits,
-	}
-}
-
-func (bv *BitVec) Get(idx int) bool {
-	if idx < 0 || idx >= len(bv.bits) {
-		return false
-	}
-	return bv.bits[idx]
-}
-
-func (bv *BitVec) Len() int {
-	return len(bv.bits)
-}
-
-func (bv *BitVec) CountOnes() (count int) {
-	for _, bit := range bv.bits {
-		if bit {
-			count++
-		}
-	}
-	return count
-}
-
-// bitsToBytes converts a slice of bits to a slice of bytes
-// Uses lsb ordering
-// TODO: Implement msb ordering
-// https://github.com/ChainSafe/gossamer/issues/3248
-func (bv *BitVec) bytes() []byte {
-	bits := bv.bits
-	bitLength := len(bits)
-	numOfBytes := (bitLength + (byteSize - 1)) / byteSize
-	bytes := make([]byte, numOfBytes)
-
-	if len(bits)%byteSize != 0 {
-		// Pad with zeros to make the number of bits a multiple of byteSize
-		pad := make([]bool, byteSize-len(bits)%byteSize)
-		bits = append(bits, pad...)
+// NewBitVec creates a new BitVec initialised with the given bits
+func NewBitVec(bits []bool) (BitVec, error) {
+	if len(bits) == 0 {
+		return BitVec{}, nil
 	}
 
 	if len(bits) > MaxBitVecLength {
-		return BitVec{}, fmt.Errorf("bitvec length %d exceeds maximum allowed length of %d", len(bits), MaxBitVecLength)
+		return BitVec{}, fmt.Errorf(
+			"bitvec length %d exceeds maximum allowed length of %d",
+			len(bits),
+			MaxBitVecLength,
+		)
 	}
 
 	bv := BitVec{
@@ -113,7 +76,11 @@ func (bv *BitVec) PushBits(bits []bool) error {
 
 	// Check if the new length exceeds the maximum allowed length
 	if newLength > MaxBitVecLength {
-		return fmt.Errorf("bitvec length %d exceeds maximum allowed length of %d", newLength, MaxBitVecLength)
+		return fmt.Errorf(
+			"bitvec length %d exceeds maximum allowed length of %d",
+			newLength,
+			MaxBitVecLength,
+		)
 	}
 
 	// Pre-allocate space if needed
@@ -169,7 +136,11 @@ func (bv *BitVec) Get(index uint) (bool, error) {
 func (bv *BitVec) ExtendByByte(b byte) error {
 	// Check if the new length exceeds the maximum allowed length
 	if bv.len+8 > MaxBitVecLength {
-		return fmt.Errorf("bitvec length %d exceeds maximum allowed length of %d", bv.len+8, MaxBitVecLength)
+		return fmt.Errorf(
+			"bitvec length %d exceeds maximum allowed length of %d",
+			bv.len+8,
+			MaxBitVecLength,
+		)
 	}
 
 	// Pre-allocate space if needed
@@ -196,7 +167,11 @@ func (bv BitVec) MarshalSCALE() ([]byte, error) {
 	if bv.len > MaxBitVecLength {
 		// as we ensure that the length is always less than MaxBitVecLength, this should never happen practically.
 		// but we still check for it to prevent memory issues
-		return nil, fmt.Errorf("bitvec length %d exceeds maximum allowed length of %d", bv.len, MaxBitVecLength)
+		return nil, fmt.Errorf(
+			"bitvec length %d exceeds maximum allowed length of %d",
+			bv.len,
+			MaxBitVecLength,
+		)
 	}
 
 	length := uint(bv.len) // convert to uint for compact encoding
@@ -229,7 +204,11 @@ func (bv *BitVec) UnmarshalSCALE(r io.Reader) error {
 
 	// Check for maximum length
 	if length > MaxBitVecLength {
-		return fmt.Errorf("bitvec length %d exceeds maximum allowed length of %d", length, MaxBitVecLength)
+		return fmt.Errorf(
+			"bitvec length %d exceeds maximum allowed length of %d",
+			length,
+			MaxBitVecLength,
+		)
 	}
 
 	// Calculate required bytes for the bits

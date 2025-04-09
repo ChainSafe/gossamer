@@ -53,19 +53,23 @@ func (dc *DisputesCoordinator) processMessage(msg any) error {
 	case disputescoordinatormessages.QueryCandidateVotes:
 		msg.Response <- []disputescoordinatormessages.CandidateVotesResponse{}
 		return nil
-	case disputescoordinatormessages.RecentDisputes:
-		msg.Response <- []disputescoordinatormessages.RecentDisputesResponse{}
+	case disputescoordinatormessages.GetRecentDisputes:
+		msg.Response <- []disputescoordinatormessages.RecentDispute{}
 		return nil
 	default:
 		return fmt.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
 	}
 }
 
-func (cd *DisputesCoordinator) ProcessActiveLeavesUpdateSignal(update parachaintypes.ActiveLeavesUpdateSignal) error {
+func (cd *DisputesCoordinator) ProcessActiveLeavesUpdateSignal(
+	update parachaintypes.ActiveLeavesUpdateSignal,
+) error {
 	panic("not implemented yet")
 }
 
-func (cd *DisputesCoordinator) ProcessBlockFinalizedSignal(parachaintypes.BlockFinalizedSignal) error {
+func (cd *DisputesCoordinator) ProcessBlockFinalizedSignal(
+	parachaintypes.BlockFinalizedSignal,
+) error {
 	// Nothing to do here
 	return nil
 }
