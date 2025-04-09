@@ -265,6 +265,8 @@ func TestGetBlockAncestorsInSameSession(t *testing.T) {
 
 	setup := func(t *testing.T) {
 		ctrl = gomock.NewController(t)
+		defer ctrl.Finish()
+
 		netMock = NewMockNetwork(ctrl)
 		blockStateMock = NewMockBlockState(ctrl)
 		runtimeMock = NewMockInstance(ctrl)
@@ -280,7 +282,7 @@ func TestGetBlockAncestorsInSameSession(t *testing.T) {
 		runtimeMock.EXPECT().Stop().MaxTimes(leafAncestryLenWithinSession + 1)
 
 		overseerCh = make(chan any)
-		ad = NewAvailabilityDistribution(overseerCh, netMock, blockStateMock, nil)
+		ad = NewAvailabilityDistribution(overseerCh, netMock, blockStateMock, NewLRUSessionCache(nil))
 	}
 
 	t.Run("no_header_for_leaf_hash", func(t *testing.T) {
@@ -465,7 +467,7 @@ func TestProcessActiveLeavesUpdateSignal(t *testing.T) {
 	netMock.EXPECT().RegisterRequestHandler(protocol.ID("req_pov/1"), gomock.Any())
 
 	runtimeMock.EXPECT().Stop().AnyTimes()
-	runtimeMock.EXPECT().ParachainHostSessionIndexForChild().Return(sessionIndex, nil)
+	runtimeMock.EXPECT().ParachainHostSessionIndexForChild().Return(sessionIndex, nil).MaxTimes(1)
 
 	runtimeMock.EXPECT().
 		ParachainHostAvailabilityCores().
@@ -673,6 +675,11 @@ func setUpSessionCacheMock(
 
 	nodeFeatures, err := parachaintypes.NewBitVec([]bool{false, false, false, false})
 	require.NoError(t, err)
+
+	mock.EXPECT().
+		GetSessionIndexForChild(gomock.AssignableToTypeOf(common.Hash{}), gomock.AssignableToTypeOf(runtimeMock)).
+		Return(sessionIndex, nil).
+		AnyTimes()
 
 	mock.EXPECT().
 		GetSessionInfo(

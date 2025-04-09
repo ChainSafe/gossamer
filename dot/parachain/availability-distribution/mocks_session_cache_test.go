@@ -13,6 +13,7 @@ import (
 	reflect "reflect"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	common "github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -39,6 +40,21 @@ func NewMockSessionCache(ctrl *gomock.Controller) *MockSessionCache {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockSessionCache) EXPECT() *MockSessionCacheMockRecorder {
 	return m.recorder
+}
+
+// GetSessionIndexForChild mocks base method.
+func (m *MockSessionCache) GetSessionIndexForChild(parent common.Hash, rt runtime.Instance) (parachaintypes.SessionIndex, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSessionIndexForChild", parent, rt)
+	ret0, _ := ret[0].(parachaintypes.SessionIndex)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSessionIndexForChild indicates an expected call of GetSessionIndexForChild.
+func (mr *MockSessionCacheMockRecorder) GetSessionIndexForChild(parent, rt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSessionIndexForChild", reflect.TypeOf((*MockSessionCache)(nil).GetSessionIndexForChild), parent, rt)
 }
 
 // GetSessionInfo mocks base method.
