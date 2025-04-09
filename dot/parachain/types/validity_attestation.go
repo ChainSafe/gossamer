@@ -10,7 +10,7 @@ import (
 )
 
 type ValidityAttestationValues interface {
-	Implicit | ExplicitStatement
+	Implicit | Explicit
 }
 
 // ValidityAttestation is an implicit or explicit attestation to the validity of a parachain
@@ -32,7 +32,7 @@ func (mvdt *ValidityAttestation) SetValue(value any) (err error) {
 		setValidityAttestation(mvdt, value)
 		return
 
-	case ExplicitStatement:
+	case Explicit:
 		setValidityAttestation(mvdt, value)
 		return
 
@@ -46,7 +46,7 @@ func (mvdt ValidityAttestation) IndexValue() (index uint, value any, err error) 
 	case Implicit:
 		return 1, mvdt.inner, nil
 
-	case ExplicitStatement:
+	case Explicit:
 		return 2, mvdt.inner, nil
 
 	}
