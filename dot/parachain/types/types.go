@@ -910,6 +910,13 @@ type Subsystem interface {
 	Stop()
 }
 
+// AvailabilityChunkMapping tells if the chunk mapping feature is enabled.
+// Enables the implementation of
+// [RFC-47](https://github.com/polkadot-fellows/RFCs/blob/main/text/0047-assignment-of-availability-chunks.md).
+// Must not be enabled unless all validators and collators have stopped using `req_chunk`
+// protocol version 1. If it is enabled, validators can start systematic chunk recovery.
+const AvailabilityChunkMapping NodeFeatureIndex = 2
+
 // NodeFeatureIndex represents the index of a feature in a bitvector of node features fetched from runtime.
 type NodeFeatureIndex byte
 
