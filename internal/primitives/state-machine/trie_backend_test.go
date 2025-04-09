@@ -9,7 +9,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie/cache"
@@ -118,7 +117,7 @@ func TestTrieBackend(t *testing.T) {
 			tb := testTrie(t, param.StateVersion, cache, param.Recorder)
 			val, err := tb.Storage([]byte("key"))
 			require.NoError(t, err)
-			require.Equal(t, overlayedchanges.StorageValue("value"), val)
+			require.Equal(t, StorageValue("value"), val)
 		}
 	})
 
@@ -197,53 +196,53 @@ func TestTrieBackend(t *testing.T) {
 			// Fetch everything.
 			sk, err := iter.Next()
 			require.NoError(t, err)
-			require.Equal(t, overlayedchanges.StorageKey(":child_storage:default:sub1"), sk)
+			require.Equal(t, StorageKey(":child_storage:default:sub1"), sk)
 
 			sk, err = iter.Next()
 			require.NoError(t, err)
-			require.Equal(t, overlayedchanges.StorageKey(":code"), sk)
+			require.Equal(t, StorageKey(":code"), sk)
 
 			sk, err = iter.Next()
 			require.NoError(t, err)
-			require.Equal(t, overlayedchanges.StorageKey("key"), sk)
+			require.Equal(t, StorageKey("key"), sk)
 
 			sk, err = iter.Next()
 			require.NoError(t, err)
-			require.Equal(t, overlayedchanges.StorageKey("value1"), sk)
+			require.Equal(t, StorageKey("value1"), sk)
 
 			sk, err = iter.Next()
 			require.NoError(t, err)
-			require.Equal(t, overlayedchanges.StorageKey("value2"), sk)
+			require.Equal(t, StorageKey("value2"), sk)
 
 			// Fetch starting at a given key (full key).
 			iter, err = tb.Keys(IterArgs{StartAt: []byte("key")})
 			require.NoError(t, err)
 			sk, err = iter.Next()
 			require.NoError(t, err)
-			require.Equal(t, overlayedchanges.StorageKey("key"), sk)
+			require.Equal(t, StorageKey("key"), sk)
 
 			sk, err = iter.Next()
 			require.NoError(t, err)
-			require.Equal(t, overlayedchanges.StorageKey("value1"), sk)
+			require.Equal(t, StorageKey("value1"), sk)
 
 			sk, err = iter.Next()
 			require.NoError(t, err)
-			require.Equal(t, overlayedchanges.StorageKey("value2"), sk)
+			require.Equal(t, StorageKey("value2"), sk)
 
 			// Fetch starting at a given key (partial key).
 			iter, err = tb.Keys(IterArgs{StartAt: []byte("ke")})
 			require.NoError(t, err)
 			sk, err = iter.Next()
 			require.NoError(t, err)
-			require.Equal(t, overlayedchanges.StorageKey("key"), sk)
+			require.Equal(t, StorageKey("key"), sk)
 
 			sk, err = iter.Next()
 			require.NoError(t, err)
-			require.Equal(t, overlayedchanges.StorageKey("value1"), sk)
+			require.Equal(t, StorageKey("value1"), sk)
 
 			sk, err = iter.Next()
 			require.NoError(t, err)
-			require.Equal(t, overlayedchanges.StorageKey("value2"), sk)
+			require.Equal(t, StorageKey("value2"), sk)
 
 			// Fetch starting at a given key and with prefix which doesn't match that key.
 			// (Start *before* the prefix.)
@@ -251,11 +250,11 @@ func TestTrieBackend(t *testing.T) {
 			require.NoError(t, err)
 			sk, err = iter.Next()
 			require.NoError(t, err)
-			require.Equal(t, overlayedchanges.StorageKey("value1"), sk)
+			require.Equal(t, StorageKey("value1"), sk)
 
 			sk, err = iter.Next()
 			require.NoError(t, err)
-			require.Equal(t, overlayedchanges.StorageKey("value2"), sk)
+			require.Equal(t, StorageKey("value2"), sk)
 
 			sk, err = iter.Next()
 			require.NoError(t, err)
@@ -274,11 +273,11 @@ func TestTrieBackend(t *testing.T) {
 			require.NoError(t, err)
 			sk, err = iter.Next()
 			require.NoError(t, err)
-			require.Equal(t, overlayedchanges.StorageKey("value1"), sk)
+			require.Equal(t, StorageKey("value1"), sk)
 
 			sk, err = iter.Next()
 			require.NoError(t, err)
-			require.Equal(t, overlayedchanges.StorageKey("value2"), sk)
+			require.Equal(t, StorageKey("value2"), sk)
 
 			sk, err = iter.Next()
 			require.NoError(t, err)
@@ -381,7 +380,7 @@ func TestTrieBackend(t *testing.T) {
 
 			sv, err := tb1.Storage([]byte("key"))
 			require.NoError(t, err)
-			require.Equal(t, overlayedchanges.StorageValue("value"), sv)
+			require.Equal(t, StorageValue("value"), sv)
 			proof := tb1.ExtractProof()
 			require.NotNil(t, proof)
 			require.False(t, proof.Empty())
@@ -406,18 +405,18 @@ func TestTrieBackend(t *testing.T) {
 
 			sv, err := provingBackend.Storage([]byte("key"))
 			require.NoError(t, err)
-			require.Equal(t, overlayedchanges.StorageValue("value"), sv)
+			require.Equal(t, StorageValue("value"), sv)
 
 			pairs, err := tb.Pairs(IterArgs{})
 			require.NoError(t, err)
-			tbPairs := make([]overlayedchanges.StorageKeyValue, 0)
+			tbPairs := make([]StorageKeyValue, 0)
 			for pair, err := range pairs.All() {
 				require.NoError(t, err)
 				tbPairs = append(tbPairs, pair)
 			}
 			pairs, err = provingBackend.Pairs(IterArgs{})
 			require.NoError(t, err)
-			pbPairs := make([]overlayedchanges.StorageKeyValue, 0)
+			pbPairs := make([]StorageKeyValue, 0)
 			for pair, err := range pairs.All() {
 				require.NoError(t, err)
 				pbPairs = append(pbPairs, pair)
@@ -433,9 +432,9 @@ func TestTrieBackend(t *testing.T) {
 
 	t.Run("proof_recorded_and_checked", func(t *testing.T) {
 		for _, stateVersion := range []storage.StateVersion{storage.StateVersionV0, storage.StateVersionV1} {
-			contents := make([]overlayedchanges.StorageKeyValue, 0)
+			contents := make([]StorageKeyValue, 0)
 			for i := uint8(0); i < 64; i++ {
-				contents = append(contents, overlayedchanges.StorageKeyValue{
+				contents = append(contents, StorageKeyValue{
 					StorageKey:   []byte{i},
 					StorageValue: bytes.Repeat([]byte{i}, 34),
 				})
@@ -481,7 +480,7 @@ func TestTrieBackend(t *testing.T) {
 					val, err := proving.Storage([]byte{42})
 					require.NoError(t, err)
 					require.NotNil(t, val)
-					require.Equal(t, overlayedchanges.StorageValue(bytes.Repeat([]byte{42}, 34)), val)
+					require.Equal(t, StorageValue(bytes.Repeat([]byte{42}, 34)), val)
 
 					proof := proving.ExtractProof()
 					require.NotNil(t, proof)
@@ -492,7 +491,7 @@ func TestTrieBackend(t *testing.T) {
 					val, err = proofCheck.Storage([]byte{42})
 					require.NoError(t, err)
 					require.NotNil(t, val)
-					require.Equal(t, overlayedchanges.StorageValue(bytes.Repeat([]byte{42}, 34)), val)
+					require.Equal(t, StorageValue(bytes.Repeat([]byte{42}, 34)), val)
 				}
 			}
 		}
@@ -512,9 +511,9 @@ func TestTrieBackend(t *testing.T) {
 						}
 					}
 
-					contents := make([]overlayedchanges.StorageKeyValue, 0)
+					contents := make([]StorageKeyValue, 0)
 					for i := uint8(0); i < 64; i++ {
-						contents = append(contents, overlayedchanges.StorageKeyValue{
+						contents = append(contents, StorageKeyValue{
 							StorageKey:   []byte{i},
 							StorageValue: []byte{i},
 						})
@@ -550,7 +549,7 @@ func TestTrieBackend(t *testing.T) {
 					for i := uint8(0); i < 63; i++ {
 						sk, err := proving.NextStorageKey([]byte{i})
 						require.NoError(t, err)
-						require.Equal(t, overlayedchanges.StorageKey([]byte{i + 1}), sk)
+						require.Equal(t, StorageKey([]byte{i + 1}), sk)
 					}
 
 					proof := proving.ExtractProof()
@@ -561,7 +560,7 @@ func TestTrieBackend(t *testing.T) {
 					for i := uint8(0); i < 63; i++ {
 						sk, err := proofCheck.NextStorageKey([]byte{i})
 						require.NoError(t, err)
-						require.Equal(t, overlayedchanges.StorageKey([]byte{i + 1}), sk)
+						require.Equal(t, StorageKey([]byte{i + 1}), sk)
 					}
 				}
 			}
@@ -573,19 +572,19 @@ func TestTrieBackend(t *testing.T) {
 			childInfo1 := storage.NewDefaultChildInfo([]byte("sub1"))
 			childInfo2 := storage.NewDefaultChildInfo([]byte("sub2"))
 			var contents []change
-			var sc overlayedchanges.StorageCollection
+			var sc StorageCollection
 			for i := uint8(0); i < 64; i++ {
-				sc = append(sc, overlayedchanges.StorageKeyValue{StorageKey: []byte{i}, StorageValue: []byte{i}})
+				sc = append(sc, StorageKeyValue{StorageKey: []byte{i}, StorageValue: []byte{i}})
 			}
 			contents = append(contents, change{StorageCollection: sc})
 			sc = nil
 			for i := uint8(28); i < 65; i++ {
-				sc = append(sc, overlayedchanges.StorageKeyValue{StorageKey: []byte{i}, StorageValue: []byte{i}})
+				sc = append(sc, StorageKeyValue{StorageKey: []byte{i}, StorageValue: []byte{i}})
 			}
 			contents = append(contents, change{ChildInfo: childInfo1, StorageCollection: sc})
 			sc = nil
 			for i := uint8(10); i < 15; i++ {
-				sc = append(sc, overlayedchanges.StorageKeyValue{StorageKey: []byte{i}, StorageValue: []byte{i}})
+				sc = append(sc, StorageKeyValue{StorageKey: []byte{i}, StorageValue: []byte{i}})
 			}
 			contents = append(contents, change{ChildInfo: childInfo2, StorageCollection: sc})
 			inMemory := NewMemoryDBTrieBackend[hash.H256, runtime.BlakeTwo256]()
@@ -710,16 +709,16 @@ func TestTrieBackend(t *testing.T) {
 		for _, stateVersion := range []storage.StateVersion{storage.StateVersionV0, storage.StateVersionV1} {
 			childInfo1 := storage.NewDefaultChildInfo([]byte("sub1"))
 			var contents []change
-			var sc overlayedchanges.StorageCollection
+			var sc StorageCollection
 			for i := uint8(0); i < 64; i++ {
-				sc = append(sc, overlayedchanges.StorageKeyValue{StorageKey: []byte{i}, StorageValue: []byte{i}})
+				sc = append(sc, StorageKeyValue{StorageKey: []byte{i}, StorageValue: []byte{i}})
 			}
 			contents = append(contents, change{StorageCollection: sc})
 			sc = nil
 			for i := uint8(28); i < 65; i++ {
-				sc = append(sc, overlayedchanges.StorageKeyValue{StorageKey: []byte{i}, StorageValue: []byte{i}})
+				sc = append(sc, StorageKeyValue{StorageKey: []byte{i}, StorageValue: []byte{i}})
 			}
-			sc = append(sc, overlayedchanges.StorageKeyValue{
+			sc = append(sc, StorageKeyValue{
 				StorageKey:   []byte{65},
 				StorageValue: bytes.Repeat([]byte{65}, 128),
 			})
@@ -884,19 +883,19 @@ func TestTrieBackend(t *testing.T) {
 			childInfo2 := storage.NewDefaultChildInfo([]byte("sub2"))
 			contents := []change{
 				{
-					StorageCollection: overlayedchanges.StorageCollection{
-						overlayedchanges.StorageKeyValue{StorageKey: key, StorageValue: topTrieVal},
+					StorageCollection: StorageCollection{
+						StorageKeyValue{StorageKey: key, StorageValue: topTrieVal},
 					}},
 				{
 					ChildInfo: childInfo1,
-					StorageCollection: overlayedchanges.StorageCollection{
-						overlayedchanges.StorageKeyValue{StorageKey: key, StorageValue: childTrie1Val},
+					StorageCollection: StorageCollection{
+						StorageKeyValue{StorageKey: key, StorageValue: childTrie1Val},
 					},
 				},
 				{
 					ChildInfo: childInfo2,
-					StorageCollection: overlayedchanges.StorageCollection{
-						overlayedchanges.StorageKeyValue{StorageKey: key, StorageValue: childTrie2Val},
+					StorageCollection: StorageCollection{
+						StorageKeyValue{StorageKey: key, StorageValue: childTrie2Val},
 					},
 				},
 			}

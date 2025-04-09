@@ -3,7 +3,9 @@
 
 package overlayedchanges
 
-import "math"
+import (
+	"math"
+)
 
 type OverlayedStorageEntry struct {
 	GenericOverlayedEntry[storageEntry]
@@ -11,7 +13,13 @@ type OverlayedStorageEntry struct {
 
 func NewOverlayedStorageEntry() *OverlayedStorageEntry {
 	return &OverlayedStorageEntry{
-		GenericOverlayedEntry: *NewOverlayedEntry[storageEntry](),
+		GenericOverlayedEntry: *NewGenericOverlayedEntry[storageEntry](),
+	}
+}
+
+func (oe OverlayedStorageEntry) Clone() OverlayedEntry[storageEntry] {
+	return &OverlayedStorageEntry{
+		GenericOverlayedEntry: oe.GenericOverlayedEntry,
 	}
 }
 

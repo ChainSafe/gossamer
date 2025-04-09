@@ -4,6 +4,7 @@
 package storage
 
 import (
+	"bytes"
 	"strings"
 
 	"github.com/ChainSafe/gossamer/internal/primitives/storage/keys"
@@ -48,6 +49,8 @@ type ChildInfo interface {
 	PrefixedStorageKey() PrefixedStorageKey
 	// ChildType returns the type for this child info.
 	ChildType() ChildType
+	// TryUpdate returns true if the child info can be updated with the given child info.
+	TryUpdate(childInfo ChildInfo) bool
 }
 
 // ChildInfoParentKeyID is the default ChildTrieParentKeyID.
@@ -76,6 +79,17 @@ func (cipkid ChildInfoParentKeyID) PrefixedStorageKey() PrefixedStorageKey {
 // ChildType returns the type for this child info.
 func (cipkid ChildInfoParentKeyID) ChildType() ChildType {
 	return ChildTypeParentKeyID
+}
+
+// Try to update with another instance, return false if both instance
+// are not compatible.
+func (cipkid ChildInfoParentKeyID) TryUpdate(childInfo ChildInfo) bool {
+	switch other := childInfo.(type) {
+	case ChildInfoParentKeyID:
+		return bytes.Equal(cipkid.data, other.data)
+	default:
+		return false
+	}
 }
 
 // NewDefaultChildInfo instantiates child information for a default child trie

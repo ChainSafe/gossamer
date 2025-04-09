@@ -64,9 +64,24 @@ type overlayedChangeSet struct {
 	OverlayedMap[string, storageEntry, *OverlayedStorageEntry]
 }
 
-func newOverlayedChangeSet() *overlayedChangeSet {
-	return &overlayedChangeSet{
+func newOverlayedChangeSet() overlayedChangeSet {
+	return overlayedChangeSet{
 		NewOverlayedMap[string, storageEntry, *OverlayedStorageEntry](),
+	}
+}
+
+func (oc *overlayedChangeSet) Clone() overlayedChangeSet {
+	return overlayedChangeSet{
+		oc.OverlayedMap.Clone(),
+	}
+}
+
+// Create a new changeset at the same transaction state but without any contents.
+// This changeset might be created when there are already open transactions.
+// We need to catch up here so that the child is at the same transaction depth.
+func (oc *overlayedChangeSet) SpawnChild() overlayedChangeSet {
+	return overlayedChangeSet{
+		oc.OverlayedMap.SpawnChild(),
 	}
 }
 
@@ -121,12 +136,10 @@ func (oc *overlayedChangeSet) clearWhere(predicate func([]byte, *overlayedValue)
 		}
 
 		if predicate([]byte(k), v) {
-			v.Set(nil, oc.dirtyKeys.insertDirty(k), atExtrinsic)
-			if v != nil {
-				switch any(*v).(type) {
-				case appendStorageEntry, setStorageEntry:
-					count++
-				}
+			v.Set(nil, oc.dirtyKeys.insertDirty(string(k)), atExtrinsic)
+			switch any(*v).(type) {
+			case appendStorageEntry, setStorageEntry:
+				count++
 			}
 		}
 	}

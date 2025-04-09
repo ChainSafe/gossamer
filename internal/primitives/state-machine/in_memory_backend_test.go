@@ -8,7 +8,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
-	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
 	"github.com/ChainSafe/gossamer/internal/primitives/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -20,8 +19,8 @@ func TestMemoryDBTrieBackend(t *testing.T) {
 		tb := mdbtb.update([]change{
 			{
 				ChildInfo: childInfo,
-				StorageCollection: overlayedchanges.StorageCollection{
-					overlayedchanges.StorageKeyValue{
+				StorageCollection: StorageCollection{
+					StorageKeyValue{
 						StorageKey:   []byte("2"),
 						StorageValue: []byte("3"),
 					},
@@ -30,7 +29,7 @@ func TestMemoryDBTrieBackend(t *testing.T) {
 		}, storage.StateVersionV1)
 		val, err := tb.ChildStorage(childInfo, []byte("2"))
 		require.NoError(t, err)
-		require.Equal(t, overlayedchanges.StorageValue([]byte("3")), val)
+		require.Equal(t, StorageValue([]byte("3")), val)
 		require.NotNil(t, childInfo.PrefixedStorageKey())
 	})
 
@@ -41,22 +40,22 @@ func TestMemoryDBTrieBackend(t *testing.T) {
 		mdbtb.insert([]change{
 			{
 				ChildInfo:         childInfo,
-				StorageCollection: overlayedchanges.StorageCollection{{StorageKey: []byte("2"), StorageValue: []byte("3")}},
+				StorageCollection: StorageCollection{{StorageKey: []byte("2"), StorageValue: []byte("3")}},
 			},
 		}, storage.StateVersionV1)
 		mdbtb.insert([]change{
 			{
 				ChildInfo:         childInfo,
-				StorageCollection: overlayedchanges.StorageCollection{{StorageKey: []byte("1"), StorageValue: []byte("3")}},
+				StorageCollection: StorageCollection{{StorageKey: []byte("1"), StorageValue: []byte("3")}},
 			},
 		}, storage.StateVersionV1)
 
 		val, err := mdbtb.ChildStorage(childInfo, []byte("2"))
 		require.NoError(t, err)
-		require.Equal(t, overlayedchanges.StorageValue([]byte("3")), val)
+		require.Equal(t, StorageValue([]byte("3")), val)
 
 		val, err = mdbtb.ChildStorage(childInfo, []byte("1"))
 		require.NoError(t, err)
-		require.Equal(t, overlayedchanges.StorageValue([]byte("3")), val)
+		require.Equal(t, StorageValue([]byte("3")), val)
 	})
 }

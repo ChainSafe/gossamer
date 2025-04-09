@@ -4,10 +4,12 @@
 package overlayedchanges
 
 import (
+	"slices"
+
 	"github.com/tidwall/btree"
 )
 
-const proofOverlayNonEmpty = `
+const proofOverlayNonEmptyMsg = `
 An OverlayValue is always created with at least one transaction and dropped as soon
 as the last transaction is removed; qed`
 
@@ -18,6 +20,7 @@ type OverlayedEntry[V any] interface {
 	PopTransaction() transaction[V]
 	Transactions() []transaction[V]
 	TransactionExtrinsics() *extrinsics
+	Clone() OverlayedEntry[V]
 }
 
 // An overlay that contains all versions of a value for a specific key.
@@ -27,9 +30,15 @@ type GenericOverlayedEntry[V any] struct {
 	transactions []transaction[V]
 }
 
-func NewOverlayedEntry[V any]() *GenericOverlayedEntry[V] {
+func NewGenericOverlayedEntry[V any]() *GenericOverlayedEntry[V] {
 	return &GenericOverlayedEntry[V]{
 		transactions: []transaction[V]{},
+	}
+}
+
+func (oe GenericOverlayedEntry[V]) Clone() OverlayedEntry[V] {
+	return &GenericOverlayedEntry[V]{
+		transactions: slices.Clone(oe.transactions),
 	}
 }
 
@@ -39,13 +48,13 @@ func (oe *GenericOverlayedEntry[V]) Transactions() []transaction[V] {
 
 func (oe *GenericOverlayedEntry[V]) ValueRef() *V {
 	if len(oe.transactions) == 0 {
-		panic(proofOverlayNonEmpty)
+		panic(proofOverlayNonEmptyMsg)
 	}
 
 	return &oe.transactions[len(oe.transactions)-1].value
 }
 
-func (oe *GenericOverlayedEntry[V]) Extrinsics() *btree.Set[uint32] {
+func (oe GenericOverlayedEntry[V]) Extrinsics() *btree.Set[uint32] {
 	set := btree.Set[uint32]{}
 
 	for _, t := range oe.transactions {
@@ -59,7 +68,7 @@ func (oe *GenericOverlayedEntry[V]) Extrinsics() *btree.Set[uint32] {
 
 func (oe *GenericOverlayedEntry[V]) PopTransaction() transaction[V] {
 	if len(oe.transactions) == 0 {
-		panic(proofOverlayNonEmpty)
+		panic(proofOverlayNonEmptyMsg)
 	}
 
 	t := oe.transactions[len(oe.transactions)-1]
@@ -70,7 +79,7 @@ func (oe *GenericOverlayedEntry[V]) PopTransaction() transaction[V] {
 
 func (oe *GenericOverlayedEntry[V]) TransactionExtrinsics() *extrinsics {
 	if len(oe.transactions) == 0 {
-		panic(proofOverlayNonEmpty)
+		panic(proofOverlayNonEmptyMsg)
 	}
 
 	return &oe.transactions[len(oe.transactions)-1].extrinsics

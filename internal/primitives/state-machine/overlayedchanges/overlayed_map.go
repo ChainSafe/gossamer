@@ -6,10 +6,11 @@ package overlayedchanges
 import (
 	"errors"
 	"iter"
+	"reflect"
+	"slices"
 
 	"github.com/ChainSafe/gossamer/internal/log"
 	"github.com/tidwall/btree"
-	"golang.org/x/exp/constraints"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "statemachine"))
@@ -19,7 +20,7 @@ var errorNotInRuntime = errors.New("not in runtime")
 var errorNoOpenTransaction = errors.New("no open transaction")
 
 // Holds a set of changes with the ability modify them using nested transactions.
-type OverlayedMap[K constraints.Ordered, V any, E OverlayedEntry[V]] struct {
+type OverlayedMap[K ~string, V any, E OverlayedEntry[V]] struct {
 	// Stores the changes that this overlay constitutes.
 	changes btree.Map[K, E]
 	// Stores which keys are dirty per transaction. Needed in order to determine which
@@ -34,7 +35,7 @@ type OverlayedMap[K constraints.Ordered, V any, E OverlayedEntry[V]] struct {
 	executionMode executionMode
 }
 
-func NewOverlayedMap[K constraints.Ordered, V any, E OverlayedEntry[V]]() OverlayedMap[K, V, E] {
+func NewOverlayedMap[K ~string, V any, E OverlayedEntry[V]]() OverlayedMap[K, V, E] {
 	return OverlayedMap[K, V, E]{
 		dirtyKeys:             dirtyKeysSets[K]{},
 		numClientTransactions: 0,
@@ -42,12 +43,34 @@ func NewOverlayedMap[K constraints.Ordered, V any, E OverlayedEntry[V]]() Overla
 	}
 }
 
+func (om OverlayedMap[K, V, E]) Clone() OverlayedMap[K, V, E] {
+	// Clone changes
+	var changes btree.Map[K, E]
+	om.changes.Scan(func(k K, v E) bool {
+		changes.Set(k, v.Clone().(E))
+		return true
+	})
+
+	return OverlayedMap[K, V, E]{
+		changes:               changes,
+		dirtyKeys:             slices.Clone(om.dirtyKeys),
+		numClientTransactions: om.numClientTransactions,
+		executionMode:         om.executionMode,
+	}
+}
+
 // Create a new changeset at the same transaction state but without any contents.
 // This changeset might be created when there are already open transactions.
 // We need to catch up here so that the child is at the same transaction depth.
 func (om *OverlayedMap[K, V, E]) SpawnChild() OverlayedMap[K, V, E] {
+	// Initialize with the same transaction depth as the parent
+	dirtyKeys := make(dirtyKeysSets[K], om.TransactionDepth())
+	for i := range om.TransactionDepth() {
+		dirtyKeys[i] = make(map[K]struct{})
+	}
+
 	return OverlayedMap[K, V, E]{
-		dirtyKeys:             make(dirtyKeysSets[K], om.TransactionDepth()),
+		dirtyKeys:             dirtyKeys,
 		numClientTransactions: om.numClientTransactions,
 		executionMode:         om.executionMode,
 	}
@@ -69,29 +92,40 @@ func (om *OverlayedMap[K, V, E]) SetOffchain(key K, value V, atExtrinsic *uint32
 	overlayed, has := om.Get(key)
 
 	if !has {
-		overlayed = *new(E)
+		var newEntry E
+		if reflect.TypeOf(newEntry).Kind() == reflect.Ptr {
+			newEntryValue := reflect.New(reflect.TypeOf(newEntry).Elem())
+			newEntry = newEntryValue.Interface().(E)
+		} else {
+			newEntry = *new(E)
+		}
+
+		overlayed = newEntry
+		om.changes.Set(key, overlayed)
 	}
 
 	overlayed.SetOffchain(value, om.dirtyKeys.insertDirty(key), atExtrinsic)
 }
 
 // Get a list of all changes as seen by current transaction.
-func (om *OverlayedMap[K, V, E]) Changes() iter.Seq2[K, E] {
-	return func(yield func(K, E) bool) {
-		om.changes.Scan(yield)
+func (om *OverlayedMap[K, V, E]) Changes() iter.Seq2[StorageKey, E] {
+	return func(yield func(StorageKey, E) bool) {
+		om.changes.Scan(func(k K, v E) bool {
+			return yield(StorageKey(k), v)
+		})
 	}
 }
 
 // Return all committed changes.
 // Panics if there are open transactions: `transaction_depth() > 0`
-func (om *OverlayedMap[K, V, E]) DrainCommited() iter.Seq2[K, V] {
+func (om *OverlayedMap[K, V, E]) DrainCommited() iter.Seq2[StorageKey, V] {
 	if om.TransactionDepth() != 0 {
 		panic("Drain is not allowed with open transactions.")
 	}
 
-	return func(yield func(K, V) bool) {
+	return func(yield func(StorageKey, V) bool) {
 		om.changes.Scan(func(k K, v E) bool {
-			return yield(k, v.PopTransaction().value)
+			return yield(StorageKey(k), v.PopTransaction().value)
 		})
 	}
 }
@@ -105,7 +139,7 @@ func (om *OverlayedMap[K, V, E]) TransactionDepth() uint {
 // Call this before transferring control to the runtime.
 // This protects all existing transactions from being removed by the runtime.
 // Calling this while already inside the runtime will return an error.
-func (om *OverlayedMap[K, V, E]) EnterRuntime() error {
+func (om *OverlayedMap[K, V, E]) enterRuntime() error {
 	if om.executionMode == executionModeRuntime {
 		return errorAlreadyInRuntime
 	}
@@ -118,7 +152,7 @@ func (om *OverlayedMap[K, V, E]) EnterRuntime() error {
 // Call this when control returns from the runtime.
 // This rollbacks all dangling transaction left open by the runtime.
 // Calling this while already outside the runtime will return an error.
-func (om *OverlayedMap[K, V, E]) ExitRuntimeoffchain() error {
+func (om *OverlayedMap[K, V, E]) exitRuntimeoffchain() error {
 	if om.executionMode != executionModeRuntime {
 		return errorNotInRuntime
 	}
