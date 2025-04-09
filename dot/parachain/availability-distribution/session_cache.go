@@ -91,9 +91,7 @@ func NewLRUSessionCache(keystore keystore.Keystore) *LRUSessionCache {
 		sessionIndexCache: lrucache.NewLRUCache[common.Hash, *parachaintypes.SessionIndex](10),
 		// We need the current and previous session.
 		sessionInfoCache: lrucache.NewLRUCache[parachaintypes.SessionIndex, *SessionInfo](2),
-
-		authIDCache: lrucache.NewLRUCache[common.Hash, []parachaintypes.AuthorityDiscoveryID](
-			authIDCacheCapacity),
+		authIDCache:      lrucache.NewLRUCache[common.Hash, []parachaintypes.AuthorityDiscoveryID](authIDCacheCapacity),
 	}
 }
 
