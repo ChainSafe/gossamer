@@ -1239,12 +1239,19 @@ func TestBitfieldDistribution_SendTrackedGossipMessage_noRelayParent(t *testing.
 		},
 	}
 
-	go sendTrackedGossipMessage(b, dest, validatorSet[0], message, overseerCh)
+	done := make(chan struct{})
+	go func() {
+		// here we expect there is nothing send over via overseerCh
+		sendTrackedGossipMessage(b, dest, validatorSet[0], message, overseerCh)
+		done <- struct{}{}
+	}()
 
 	select {
 	case <-overseerCh:
 		t.Fatal("should not receive any type of message")
 	case <-time.After(2 * time.Second):
+		t.Fatal("test time out")
+	case <-done:
 		t.Log("test complete")
 	}
 }

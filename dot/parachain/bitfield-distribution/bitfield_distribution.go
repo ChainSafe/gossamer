@@ -260,7 +260,7 @@ func (b *BitfieldDistribution) processNewGossipTopologyEvent(event networkbridge
 	logger.Tracef("process NewGossipTopology event")
 
 	sessionIdx := event.Session
-	newTopology := event.Topotogy
+	newTopology := event.Topology
 	prevNeighbors := b.topologies.CurrentTopology.LocalNeighbours
 
 	peers := make(map[peer.ID]struct{})
@@ -268,13 +268,13 @@ func (b *BitfieldDistribution) processNewGossipTopologyEvent(event networkbridge
 		peers[val] = struct{}{}
 	}
 
-	shuffledIndices := make([]uint, len(event.Topotogy.ShuffledIndices))
-	for i, v := range event.Topotogy.ShuffledIndices {
+	shuffledIndices := make([]uint, len(event.Topology.ShuffledIndices))
+	for i, v := range event.Topology.ShuffledIndices {
 		shuffledIndices[i] = uint(v)
 	}
 
-	canonicalShuffling := make([]grid.TopologyPeerInfo, len(event.Topotogy.CanonicalShuffling))
-	for i, info := range event.Topotogy.CanonicalShuffling {
+	canonicalShuffling := make([]grid.TopologyPeerInfo, len(event.Topology.CanonicalShuffling))
+	for i, info := range event.Topology.CanonicalShuffling {
 		t := grid.TopologyPeerInfo{
 			Peers:          info.PeerID,
 			ValidatorIndex: info.ValidatorIndex,
@@ -295,7 +295,7 @@ func (b *BitfieldDistribution) processNewGossipTopologyEvent(event networkbridge
 
 	newlyAdded := b.topologies.CurrentTopology.LocalNeighbours.PeersDiff(prevNeighbors)
 
-	logger.Debugf("new gossip topology reecived: %s", newlyAdded)
+	logger.Debugf("new gossip topology received: %s", newlyAdded)
 
 	for _, id := range newlyAdded {
 		peerView := b.peerViews[id]
@@ -687,7 +687,7 @@ func filterByPeerVersion(peers map[peer.ID]uint32, protocolVersion uint32) []pee
 
 func modifyReputation(reputation *util.ReputationAggregator, sender chan<- any, peer peer.ID,
 	rep util.UnifiedReputationChange, relayParent common.Hash) {
-	logger.Infof("reputation modified for peer %s on relay parent %s", peer.String(), relayParent.String())
+	logger.Tracef("reputation modified for peer %s on relay parent %s", peer.String(), relayParent.String())
 
 	reputation.Modify(sender, peer, rep)
 }

@@ -371,7 +371,7 @@ func (nbr *NetworkBridgeReceiver) processMessage(msg any) error { //nolint
 
 		newGossipTopology := events.NewGossipTopology{
 			Session: msg.Session,
-			Topotogy: events.SessionGridTopology{
+			Topology: events.SessionGridTopology{
 				ShuffledIndices:    msg.ShuffledIndices,
 				CanonicalShuffling: peerTopologies,
 			},
