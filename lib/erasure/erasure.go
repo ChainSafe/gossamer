@@ -24,6 +24,26 @@ var (
 	ErrZeroSizedChunks = errors.New("chunks can't be zero sized")
 )
 
+// SystematicRecoveryThreshold returns the threshold of systematic chunks that should be enough to recover the data.
+//
+// If the regular `recovery_threshold` is a power of two, then it returns the same value.
+// Otherwise, it returns the next lower power of two.
+func SystematicRecoveryThreshold(nValidators uint) (uint32, error) {
+	var threshold C.size_t
+
+	cnValidators := C.size_t(nValidators)
+
+	cErr := C.systematic_recovery_threshold(cnValidators, &threshold)
+	errStr := C.GoString(cErr)
+	C.free(unsafe.Pointer(cErr))
+
+	if len(errStr) > 0 {
+		return 0, errors.New(errStr)
+	}
+
+	return uint32(threshold), nil
+}
+
 // ObtainChunks obtains erasure-coded chunks, one for each validator.
 // This works only up to 65536 validators, and `n_validators` must be non-zero and accepts
 // number of validators and scale encoded data.

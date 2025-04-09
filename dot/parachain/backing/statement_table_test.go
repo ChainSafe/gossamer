@@ -417,9 +417,9 @@ func TestStatementTable_importCandidate(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
 
-			summary, misehaviour, err := tc.table.importCandidate(authority, candidate, signature, tc.tableCtx, tc.group)
+			summary, misbehaviour, err := tc.table.importCandidate(authority, candidate, signature, tc.tableCtx, tc.group)
 			require.Equal(t, tc.expectedError, err)
-			require.Equal(t, tc.expectedMisehaviour, misehaviour)
+			require.Equal(t, tc.expectedMisehaviour, misbehaviour)
 			require.Equal(t, tc.expectedSummary, summary)
 		})
 	}
@@ -637,7 +637,7 @@ func TestStatementTable_validityVote(t *testing.T) {
 		t.Run("", func(t *testing.T) {
 			t.Parallel()
 
-			summary, misehaviour, err := tc.table.validityVote(
+			summary, misbehaviour, err := tc.table.validityVote(
 				validatorIndex,
 				candidateHash,
 				validityVoteWithSign{tc.vote, validatorSign},
@@ -645,7 +645,7 @@ func TestStatementTable_validityVote(t *testing.T) {
 			)
 
 			require.Equal(t, tc.expectedError, err)
-			require.Equal(t, tc.expectedMisehaviour, misehaviour)
+			require.Equal(t, tc.expectedMisehaviour, misbehaviour)
 			require.Equal(t, tc.expectedSummary, summary)
 		})
 	}

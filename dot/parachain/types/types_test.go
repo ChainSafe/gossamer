@@ -575,3 +575,101 @@ func TestNewBackedCandidate(t *testing.T) {
 	require.Equal(t, []bool{true, false, true, false, true, false, true, false, false, false, false},
 		backedCandidate.ValidatorIndices.Bits())
 }
+
+func TestCandidateCommitments_CoreSelector(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		cc      CandidateCommitments
+		want    *SelectCore
+		wantErr bool
+	}{
+		{
+			name: "empty_upward_messages",
+			cc: CandidateCommitments{
+				UpwardMessages: []UpwardMessage{},
+			},
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name: "no_separator",
+			cc: CandidateCommitments{
+				UpwardMessages: []UpwardMessage{
+					[]byte("msg1"),
+					[]byte("msg2"),
+				},
+			},
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name: "too_many_signals_after_separator",
+			cc: CandidateCommitments{
+				UpwardMessages: []UpwardMessage{
+					[]byte{}, // separator
+					[]byte("signal1"),
+					[]byte("signal2"),
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "valid_core_selector",
+			cc: CandidateCommitments{
+				UpwardMessages: []UpwardMessage{
+					[]byte("msg1"),
+					[]byte{}, // separator
+					func() UpwardMessage {
+						signal := UMPSignal{}
+						selectCore := SelectCore{
+							CoreSelector:     1,
+							ClaimQueueOffset: 2,
+						}
+						err := signal.SetValue(selectCore)
+						require.NoError(t, err)
+
+						encoded, err := scale.Marshal(signal)
+						require.NoError(t, err)
+
+						return encoded
+					}(),
+				},
+			},
+			want: &SelectCore{
+				CoreSelector:     1,
+				ClaimQueueOffset: 2,
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid_ump_signal_encoding",
+			cc: CandidateCommitments{
+				UpwardMessages: []UpwardMessage{
+					[]byte{}, // separator
+					[]byte("invalid signal"),
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := tt.cc.CoreSelector()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
