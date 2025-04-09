@@ -24,17 +24,17 @@ type WireMessageValues interface {
 	ViewUpdate | ProtocolMessage
 }
 
-func setMyVaryingDataType[Value WireMessageValues](mvdt *WireMessage, value Value) {
+func setWireMessage[Value WireMessageValues](mvdt *WireMessage, value Value) {
 	mvdt.inner = value
 }
 
 func (mvdt *WireMessage) SetValue(value any) (err error) {
 	switch value := value.(type) {
 	case ViewUpdate:
-		setMyVaryingDataType(mvdt, value)
+		setWireMessage(mvdt, value)
 		return
 	case ProtocolMessage:
-		setMyVaryingDataType(mvdt, value)
+		setWireMessage(mvdt, value)
 		return
 	default:
 		return fmt.Errorf("unsupported type")
