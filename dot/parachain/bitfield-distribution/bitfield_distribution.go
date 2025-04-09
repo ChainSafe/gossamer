@@ -310,7 +310,7 @@ func (b *BitfieldDistribution) processNewGossipTopologyEvent(event networkbridge
 		// and minimise the delta on `PeerViewChange` to be sent
 		peerView.View = parachaintypes.View{}
 
-		handlePeerViewChange(b, id, oldView, b.subSystemToOverseer)
+		b.handlePeerViewChange(id, oldView)
 	}
 
 	return nil
@@ -320,7 +320,7 @@ func (b *BitfieldDistribution) processPeerViewChangeEvent(event networkbridgeeve
 	logger.Tracef("process PeerViewChange event")
 
 	if b.peerViews[event.PeerID] != nil {
-		handlePeerViewChange(b, event.PeerID, event.View, b.subSystemToOverseer)
+		b.handlePeerViewChange(event.PeerID, event.View)
 	}
 }
 
@@ -581,13 +581,11 @@ func relayMessage(
 }
 
 // handlePeerViewChange sends the difference between two views which were not sent to that particular peer
-func handlePeerViewChange(
-	state *BitfieldDistribution,
+func (b *BitfieldDistribution) handlePeerViewChange(
 	origin peer.ID,
 	view parachaintypes.View,
-	overseerCh chan<- any,
 ) {
-	peerData := state.peerViews[origin]
+	peerData := b.peerViews[origin]
 	if peerData == nil {
 		logger.Warnf("attempted to update peer view for unknown peer: %s", origin)
 		return
@@ -595,16 +593,16 @@ func handlePeerViewChange(
 
 	added := peerData.View.ReplaceDifference(view)
 
-	topology := state.topologies.CurrentTopology.LocalNeighbours
+	topology := b.topologies.CurrentTopology.LocalNeighbours
 	isGossipPeer := topology.ShouldRouteToPeer(grid.RequiredRoutingGridXY, origin)
 
 	if !isGossipPeer {
-		logger.Info("peer view change is ignored")
+		logger.Tracef("peer view change is ignored")
 		return
 	}
 
 	for _, hash := range added {
-		jobData := state.perRelayParent[hash]
+		jobData := b.perRelayParent[hash]
 		if jobData != nil {
 			for validatorId, message := range jobData.onePerValidator {
 				if jobData.messageFromValidatorNeededByPeer(origin, validatorId) {
@@ -620,7 +618,7 @@ func handlePeerViewChange(
 							"but got UncheckedBitfield")
 						return
 					}
-					sendTrackedGossipMessage(state, origin, validatorId, bitfield, overseerCh)
+					b.sendTrackedGossipMessage(origin, validatorId, bitfield)
 				}
 			}
 		}
@@ -628,21 +626,19 @@ func handlePeerViewChange(
 }
 
 // sendTrackedGossipMessage sends a gossip message and tracks it in the per relay parent data
-func sendTrackedGossipMessage(
-	state *BitfieldDistribution,
+func (b *BitfieldDistribution) sendTrackedGossipMessage(
 	dest peer.ID,
 	validatorId parachaintypes.ValidatorID,
 	message validationprotocol.CheckedBitfield,
-	overseerCh chan<- any,
 ) {
-	jobData := state.perRelayParent[message.Hash]
+	jobData := b.perRelayParent[message.Hash]
 	if jobData == nil {
 		return
 	}
 
-	logger.Info("sending gossip message")
+	logger.Tracef("sending gossip message")
 
-	version := state.peerViews[dest]
+	version := b.peerViews[dest]
 	if version == nil {
 		return
 	}
@@ -667,7 +663,7 @@ func sendTrackedGossipMessage(
 		return
 	}
 
-	overseerCh <- networkbridgemessages.SendValidationMessage{
+	b.subSystemToOverseer <- networkbridgemessages.SendValidationMessage{
 		To:                        []peer.ID{dest},
 		ValidationProtocolMessage: *v,
 	}

@@ -1242,7 +1242,7 @@ func TestBitfieldDistribution_SendTrackedGossipMessage_noRelayParent(t *testing.
 	done := make(chan struct{})
 	go func() {
 		// here we expect there is nothing send over via overseerCh
-		sendTrackedGossipMessage(b, dest, validatorSet[0], message, overseerCh)
+		b.sendTrackedGossipMessage(dest, validatorSet[0], message)
 		done <- struct{}{}
 	}()
 
@@ -1282,12 +1282,18 @@ func TestBitfieldDistribution_SendTrackedGossipMessage_noPeerView(t *testing.T) 
 		},
 	}
 
-	go sendTrackedGossipMessage(b, dest, validatorSet[0], message, overseerCh)
+	done := make(chan struct{})
+	go func() {
+		b.sendTrackedGossipMessage(dest, validatorSet[0], message)
+		done <- struct{}{}
+	}()
 
 	select {
 	case <-overseerCh:
 		t.Fatal("should not receive any type of message")
 	case <-time.After(2 * time.Second):
+		t.Fatal("test time out")
+	case <-done:
 		t.Log("test complete")
 	}
 }
@@ -1337,7 +1343,7 @@ func TestBitfieldDistribution_SendTrackedGossipMessage_noMessageSentToPeer(t *te
 		}
 	}()
 
-	sendTrackedGossipMessage(b, dest, validatorSet[0], message, overseerCh)
+	b.sendTrackedGossipMessage(dest, validatorSet[0], message)
 
 	select {
 	case <-done:
@@ -1357,12 +1363,18 @@ func TestBitfieldDistribution_handlePeerViewChange_noPeerView(t *testing.T) {
 	b.perRelayParent[relayParent] = perRelayParent
 	view := parachaintypes.View{}
 
-	go handlePeerViewChange(b, origin, view, overseerCh)
+	done := make(chan struct{})
+	go func() {
+		b.handlePeerViewChange(origin, view)
+		done <- struct{}{}
+	}()
 
 	select {
 	case <-overseerCh:
 		t.Fatal("should not receive any type of message")
 	case <-time.After(2 * time.Second):
+		t.Fatal("test time out")
+	case <-done:
 		t.Log("test complete")
 	}
 }
@@ -1389,12 +1401,18 @@ func TestBitfieldDistribution_handlePeerViewChange_noGossipPeer(t *testing.T) {
 		Heads: []common.Hash{{0x01}, {0x02}, {0x05}, {0x06}},
 	}
 
-	go handlePeerViewChange(b, origin, newView, overseerCh)
+	done := make(chan struct{})
+	go func() {
+		b.handlePeerViewChange(origin, newView)
+		done <- struct{}{}
+	}()
 
 	select {
 	case <-overseerCh:
 		t.Fatal("should not receive any type of message")
 	case <-time.After(2 * time.Second):
+		t.Fatal("test time out")
+	case <-done:
 		t.Log("test complete")
 	}
 }
@@ -1452,7 +1470,7 @@ func TestBitfieldDistribution_handlePeerViewChange_GossipPeer(t *testing.T) {
 		}
 	}()
 
-	handlePeerViewChange(b, origin, newView, overseerCh)
+	b.handlePeerViewChange(origin, newView)
 
 	select {
 	case <-done:
