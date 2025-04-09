@@ -43,7 +43,7 @@ type CanonicalShuffling struct {
 
 type NewGossipTopology struct {
 	Session    parachaintypes.SessionIndex
-	Topotogy   SessionGridTopology
+	Topology   SessionGridTopology
 	LocalIndex *parachaintypes.ValidatorIndex
 }
 
