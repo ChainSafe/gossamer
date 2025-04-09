@@ -77,6 +77,25 @@ pub const fn recovery_threshold(n_validators: usize) -> Result<usize, Error> {
     Ok(needed + 1)
 }
 
+/// Obtain the threshold of systematic chunks that should be enough to recover the data.
+///
+/// If the regular `recovery_threshold` is a power of two, then it returns the same value.
+/// Otherwise, it returns the next lower power of two.
+#[no_mangle]
+pub extern "C" fn systematic_recovery_threshold(n_validators: usize, res_threshold: *mut usize) -> *const i8 {
+    match code_params(n_validators).map(|params| params.k()) {
+        Ok(k) => {
+            unsafe {
+                *res_threshold = k;
+            }
+            std::ptr::null()
+        },
+        Err(e) => {
+            str_to_i8ptr(e.to_string())
+        }
+    }
+}
+
 // Obtain erasure-coded chunks, one for each validator.
 //
 // Works only up to 65536 validators, and `n_validators` must be non-zero.

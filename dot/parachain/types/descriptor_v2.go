@@ -3,6 +3,7 @@ package parachaintypes
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -21,6 +22,16 @@ const (
 )
 
 var ErrUnknownCandidateDescriptorVersion = fmt.Errorf("unknown candidate descriptor version")
+
+const defaultClaimQueueOffset byte = 0
+
+// errors when checking committed candidate receipt
+var (
+	ErrCoreIndexMismatch            = errors.New("core index in commitments doesn't match the one in descriptor") //nolint:lll
+	ErrCoreSelectorWithV1Descriptor = errors.New("core selector with v1 descriptor")
+	ErrNoCoresAssigned              = errors.New("parachain is not assigned to any core at specified claim queue offset") //nolint:lll
+	ErrInvalidCoreIndex             = errors.New("invalid core index")
+)
 
 // CandidateDescriptorV2 is a descriptor for a parachain candidate.
 // NOTE: This type is backward compatible with CandidateDescriptor.
@@ -193,6 +204,76 @@ func (ccr CommittedCandidateReceiptV2) Hash() (common.Hash, error) {
 	return ccr.ToPlain().Hash()
 }
 
+// CheckCoreIndex checks if descriptor core index is equal to the committed core index.
+// Input `coresPerPara` is a claim queue snapshot at the candidate's relay parent, stored as
+// a mapping between `ParaId` and the cores assigned per depth
+func (ccr CommittedCandidateReceiptV2) CheckCoreIndex(coresPerPara TransposedClaimQueue) error {
+	selectCore, err := ccr.Commitments.CoreSelector()
+	if err != nil {
+		return fmt.Errorf("getting core selector: %w", err)
+	}
+
+	descriptorVersion, err := ccr.Descriptor.Version()
+	if err != nil {
+		return fmt.Errorf("getting descriptor version: %w", err)
+	}
+
+	if descriptorVersion == CandidateDescriptorVersion1 {
+		// If the parachain runtime started sending core selectors, v1 descriptors are no longer allowed
+		if selectCore != nil {
+			return ErrCoreSelectorWithV1Descriptor
+		}
+		return nil
+	}
+
+	// Default claim queue offset if no core selector
+	claimQueueOffset := defaultClaimQueueOffset
+	var coreIndexSelector *byte
+
+	if selectCore != nil {
+		coreIndexSelector = &selectCore.CoreSelector
+		claimQueueOffset = selectCore.ClaimQueueOffset
+	}
+
+	// Get assigned cores for the parachain at the specified claim queue offset
+	assignedCoreSet, assignedCoresSorted := coresPerPara.Cores(ccr.Descriptor.ParaID, claimQueueOffset)
+	numOfCores := len(assignedCoresSorted)
+
+	if numOfCores == 0 {
+		return ErrNoCoresAssigned
+	}
+
+	descriptorCoreIndex := CoreIndex{Index: uint32(ccr.Descriptor.CoreIndex)}
+
+	// Handle case with no core selector
+	if coreIndexSelector == nil {
+		if numOfCores > 1 {
+			// Check if descriptor core index is among assigned cores
+			if _, exists := assignedCoreSet[descriptorCoreIndex]; !exists {
+				return fmt.Errorf("%w: %d", ErrInvalidCoreIndex, descriptorCoreIndex)
+			}
+
+			// the descriptor core index is indeed assigned to the parachain.
+			return nil
+		}
+
+		// No core selector but only one assigned core, use index 0
+		coreIndexSelector = new(byte)
+		*coreIndexSelector = 0
+	}
+
+	// Get the core index from assigned cores using selector
+	selectedIdx := int(*coreIndexSelector) % numOfCores
+
+	coreIndex := assignedCoresSorted[selectedIdx]
+	if coreIndex != descriptorCoreIndex {
+		return fmt.Errorf("%w; in commitments: %d, in descriptor: %d",
+			ErrCoreIndexMismatch, coreIndex, descriptorCoreIndex)
+	}
+
+	return nil
+}
+
 func (ccrV1 CommittedCandidateReceipt) V2() CommittedCandidateReceiptV2 {
 	return CommittedCandidateReceiptV2{
 		Descriptor:  ccrV1.Descriptor.V2(),
@@ -226,4 +307,56 @@ func (crV1 CandidateReceipt) V2() CandidateReceiptV2 {
 	}
 
 	return crV2
+}
+
+// SelectCore is a message sent by a parachain to select the core the candidate is committed to.
+// Relay chain validators, in particular backers, use the `CoreSelector` and
+// `ClaimQueueOffset` to compute the index of the core the candidate has committed to.
+type SelectCore struct {
+	CoreSelector     byte `scale:"1"`
+	ClaimQueueOffset byte `scale:"2"`
+}
+
+// UMPSignal represents a signal that a parachain can send to the relay chain via the UMP queue.
+type UMPSignal struct {
+	inner any
+}
+
+type UMPSignalValues interface {
+	SelectCore
+}
+
+func setUMPSignal[Value UMPSignalValues](mvdt *UMPSignal, value Value) {
+	mvdt.inner = value
+}
+
+func (mvdt *UMPSignal) SetValue(value any) (err error) {
+	switch value := value.(type) {
+	case SelectCore:
+		setUMPSignal(mvdt, value)
+		return
+	default:
+		return fmt.Errorf("unsupported type")
+	}
+}
+
+func (mvdt UMPSignal) IndexValue() (index uint, value any, err error) {
+	switch mvdt.inner.(type) {
+	case SelectCore:
+		return 0, mvdt.inner, nil
+	}
+	return 0, nil, scale.ErrUnsupportedVaryingDataTypeValue
+}
+
+func (mvdt UMPSignal) Value() (value any, err error) {
+	_, value, err = mvdt.IndexValue()
+	return
+}
+
+func (mvdt UMPSignal) ValueAt(index uint) (value any, err error) {
+	switch index {
+	case 0:
+		return SelectCore{}, nil
+	}
+	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
