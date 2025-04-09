@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sort"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -314,6 +315,56 @@ type CandidateCommitments struct {
 
 func (cc CandidateCommitments) Hash() common.Hash {
 	return common.MustBlake2bHash(scale.MustMarshal(cc))
+}
+
+// ErrInvalidUMPSignal represents an error when the UMP signal is invalid
+var ErrInvalidUMPSignal = fmt.Errorf("invalid UMP signal")
+
+// CoreSelector extracts the core selector and claim queue offset from upward messages.
+// Returns nil if no selector is found.
+func (cc CandidateCommitments) CoreSelector() (*SelectCore, error) {
+	if len(cc.UpwardMessages) == 0 {
+		return nil, nil
+	}
+
+	// Find separator index
+	separatorIdx := -1
+	for i, message := range cc.UpwardMessages {
+		if bytes.Equal(message, []byte{}) { // empty message indicates a separator
+			separatorIdx = i
+			break
+		}
+	}
+
+	// No separator found
+	if separatorIdx == -1 {
+		return nil, nil
+	}
+
+	// Validate signal count
+	expectedSignalCount := separatorIdx + 2
+	if len(cc.UpwardMessages) != expectedSignalCount {
+		return nil, fmt.Errorf("%w: expected exactly one signal after separator", ErrInvalidUMPSignal)
+	}
+
+	// Decode and validate signal
+	signal := cc.UpwardMessages[separatorIdx+1]
+	var umpSignal UMPSignal
+	if err := scale.Unmarshal(signal, &umpSignal); err != nil {
+		return nil, fmt.Errorf("decoding UMP signal: %w", err)
+	}
+
+	signalVal, err := umpSignal.Value()
+	if err != nil {
+		return nil, fmt.Errorf("getting UMP signal value: %w", err)
+	}
+
+	selectCore, ok := signalVal.(SelectCore)
+	if !ok {
+		return nil, fmt.Errorf("%w: expected SelectCore signal", ErrInvalidUMPSignal)
+	}
+
+	return &selectCore, nil
 }
 
 // SessionIndex is a session index.
@@ -859,6 +910,13 @@ type Subsystem interface {
 	Stop()
 }
 
+// AvailabilityChunkMapping tells if the chunk mapping feature is enabled.
+// Enables the implementation of
+// [RFC-47](https://github.com/polkadot-fellows/RFCs/blob/main/text/0047-assignment-of-availability-chunks.md).
+// Must not be enabled unless all validators and collators have stopped using `req_chunk`
+// protocol version 1. If it is enabled, validators can start systematic chunk recovery.
+const AvailabilityChunkMapping NodeFeatureIndex = 2
+
 // NodeFeatureIndex represents the index of a feature in a bitvector of node features fetched from runtime.
 type NodeFeatureIndex byte
 
@@ -867,14 +925,102 @@ type NodeFeatureIndex byte
 // are backed. This is needed for the elastic scaling MVP.
 const ElasticScalingMVP NodeFeatureIndex = 1
 
-// AvailabilityChunkMapping tells if the chunk mapping feature is enabled.
-// Enables the implementation of
-// [RFC-47](https://github.com/polkadot-fellows/RFCs/blob/main/text/0047-assignment-of-availability-chunks.md).
-// Must not be enabled unless all validators and collators have stopped using `req_chunk`
-// protocol version 1. If it is enabled, validators can start systematic chunk recovery.
-const AvailabilityChunkMapping NodeFeatureIndex = 2
+// TransposedClaimQueue represents a mapping between ParaID and the cores assigned per depth
+type TransposedClaimQueue map[ParaID]map[uint8]map[CoreIndex]struct{}
 
+// Cores returns the cores assigned to a specific ParaID and depth.
+func (t TransposedClaimQueue) Cores(para ParaID, depth uint8) (
+	coreSet map[CoreIndex]struct{}, coresSorted []CoreIndex,
+) {
+	coresPerDepth, ok := t[para]
+	if !ok {
+		return nil, nil
+	}
+
+	coreSet, ok = coresPerDepth[depth]
+	if !ok || len(coreSet) == 0 {
+		return nil, nil
+	}
+
+	coresSorted = make([]CoreIndex, 0, len(coreSet))
+	for core := range coreSet {
+		coresSorted = append(coresSorted, core)
+	}
+	sort.Slice(coresSorted, func(i, j int) bool {
+		return coresSorted[i].Index < coresSorted[j].Index
+	})
+
+	return coreSet, coresSorted
+}
+
+// ClaimQueue represents a mapping between CoreIndex and ParaID
 type ClaimQueue map[CoreIndex][]ParaID
+
+// OrderedClaimQueue represents claim queue ordered by core index
+type OrderedClaimQueue []ClaimQueueEntry
+
+// ClaimQueueEntry represents a single entry in the claim queue
+type ClaimQueueEntry struct {
+	Core  CoreIndex
+	Paras []ParaID
+}
+
+// Ordered returns the ClaimQueue ordered by core index.
+func (c ClaimQueue) Ordered() OrderedClaimQueue {
+	cores := make([]CoreIndex, 0, len(c))
+	for core := range c {
+		cores = append(cores, core)
+	}
+
+	// Sort cores by index
+	sort.Slice(cores, func(i, j int) bool {
+		return cores[i].Index < cores[j].Index
+	})
+
+	// Create ordered orderedClaimQueue while preserving para order
+	orderedClaimQueue := make(OrderedClaimQueue, len(cores))
+
+	for i, core := range cores {
+		orderedClaimQueue[i] = ClaimQueueEntry{
+			Core:  core,
+			Paras: c[core],
+		}
+	}
+
+	return orderedClaimQueue
+}
+
+func (c ClaimQueue) ToTransposed() TransposedClaimQueue {
+	orderedClaimQueue := c.Ordered()
+
+	transposedClaimQueue := make(TransposedClaimQueue)
+
+	for _, entry := range orderedClaimQueue {
+		core := entry.Core
+		paras := entry.Paras
+
+		for depth, para := range paras {
+			// Get or initialize the cores per depth map for this para
+			coresPerDepth, exists := transposedClaimQueue[para]
+			if !exists {
+				coresPerDepth = make(map[uint8]map[CoreIndex]struct{})
+				transposedClaimQueue[para] = make(map[uint8]map[CoreIndex]struct{})
+			}
+
+			// Get or initialize the core index set for this depth
+			cores, exists := coresPerDepth[uint8(depth)]
+			if !exists {
+				cores = make(map[CoreIndex]struct{})
+				coresPerDepth[uint8(depth)] = cores
+			}
+
+			// Add the core to the set
+			cores[core] = struct{}{}
+		}
+	}
+
+	return transposedClaimQueue
+}
 
 // Present is a variant of UpgradeRestriction enumerator that signals
 // a upgrade restriction is present and there are no details about its
