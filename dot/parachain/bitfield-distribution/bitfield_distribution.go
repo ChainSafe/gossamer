@@ -63,8 +63,10 @@ func newPerRelayParentData(sessionIndex parachaintypes.SessionIndex, validatorSe
 
 // messageFromValidatorNeededByPeer determines if that particular message signed by a
 // validator is needed by the given peer.
-func (p *perRelayParentData) messageFromValidatorNeededByPeer(peerID peer.ID, signedBy parachaintypes.
-	ValidatorID) bool {
+func (p *perRelayParentData) messageFromValidatorNeededByPeer(
+	peerID peer.ID,
+	signedBy parachaintypes.ValidatorID,
+) bool {
 	_, sendToExist := p.messageSentToPeer[peerID][signedBy]
 	_, receiveFromExist := p.messageReceivedFromPeer[peerID][signedBy]
 
@@ -76,9 +78,9 @@ func (p *perRelayParentData) messageFromValidatorNeededByPeer(peerID peer.ID, si
 type BitfieldDistribution struct {
 	subSystemToOverseer chan<- any
 
-	peerViews      map[peer.ID]networkbridge.PeerDataViewWithVersion
+	peerViews      map[peer.ID]*networkbridge.PeerDataViewWithVersion
 	ourView        parachaintypes.View
-	topologies     grid.SessionGridTopologyStorage
+	topologies     *grid.SessionGridTopologyStorage
 	perRelayParent map[common.Hash]*perRelayParentData
 	reputation     *util.ReputationAggregator
 
@@ -88,11 +90,20 @@ type BitfieldDistribution struct {
 }
 
 func NewBitfieldDistribution(overseerChan chan<- any) *BitfieldDistribution {
+	initTopologyEntry := &grid.SessionGridTopologyEntry{
+		Topology:        grid.NewSessionGridTopology(make([]uint, 0), make([]grid.TopologyPeerInfo, 0)),
+		LocalNeighbours: grid.NewEmptyGridNeighbours(),
+	}
+	t := &grid.SessionGridTopologyStorage{
+		CurrentTopology: initTopologyEntry,
+		PrevTopology:    initTopologyEntry,
+	}
+
 	return &BitfieldDistribution{
 		subSystemToOverseer: overseerChan,
-		peerViews:           make(map[peer.ID]networkbridge.PeerDataViewWithVersion),
+		peerViews:           make(map[peer.ID]*networkbridge.PeerDataViewWithVersion),
 		ourView:             parachaintypes.View{},
-		topologies:          grid.SessionGridTopologyStorage{}, // TODO: implement in NewGossipTopology signal
+		topologies:          t,
 		perRelayParent:      make(map[common.Hash]*perRelayParentData),
 		reputation: util.NewReputationAggregator(func(rep util.UnifiedReputationChange) bool {
 			return false // Always accumulate
@@ -135,10 +146,7 @@ func (b *BitfieldDistribution) processMessage(msg any) error {
 			return fmt.Errorf("processing new gossip topology event: %w", err)
 		}
 	case networkbridgeevents.PeerViewChange:
-		err := b.processPeerViewChangeEvent(msg)
-		if err != nil {
-			return fmt.Errorf("processing peer view change event: %w", err)
-		}
+		b.processPeerViewChangeEvent(msg)
 	case networkbridgeevents.OurViewChange:
 		b.processOurViewChangeEvent(msg)
 	case networkbridgeevents.PeerMessage[validationprotocol.ValidationProtocol]:
@@ -171,6 +179,8 @@ func (b *BitfieldDistribution) Name() parachaintypes.SubSystemName {
 // processBitfieldDistributionMessage handles the signal incoming from bitfield signing subsystem
 // should be unchecked as bitfield signing subsystem only send over the unchecked ones
 func (b *BitfieldDistribution) processBitfieldDistributionMessage(msg parachaintypes.DistributeBitfield) error {
+	logger.Tracef("process BitfieldDistributionMessage handler for relayParent: %s", msg.RelayParent)
+
 	// prepare the relay message data
 	jobData := b.perRelayParent[msg.RelayParent]
 	if jobData == nil {
@@ -220,11 +230,13 @@ func (b *BitfieldDistribution) processBitfieldDistributionMessage(msg parachaint
 }
 
 func (b *BitfieldDistribution) processPeerConnectedEvent(event networkbridgeevents.PeerConnected) {
+	logger.Tracef("peer connected: %s", event.PeerID)
+
 	// only care about version 2 and 3
 	// TODO: add protocol version support
 	if event.ProtocolVersion == 2 || event.ProtocolVersion == 3 {
 		b.mu.Lock()
-		b.peerViews[event.PeerID] = networkbridge.PeerDataViewWithVersion{
+		b.peerViews[event.PeerID] = &networkbridge.PeerDataViewWithVersion{
 			View:            parachaintypes.View{}, // default view
 			ProtocolVersion: event.ProtocolVersion,
 		}
@@ -233,23 +245,83 @@ func (b *BitfieldDistribution) processPeerConnectedEvent(event networkbridgeeven
 }
 
 func (b *BitfieldDistribution) processPeerDisconnectedEvent(event networkbridgeevents.PeerDisconnected) {
+	logger.Tracef("peer disconnected: %s", event.PeerID)
+
 	b.mu.Lock()
 	delete(b.peerViews, event.PeerID)
 	b.mu.Unlock()
 }
 
 func (b *BitfieldDistribution) processNewGossipTopologyEvent(event networkbridgeevents.NewGossipTopology) error {
-	//TODO implement in #4357
-	panic("implement me")
+	logger.Tracef("process NewGossipTopology event")
+
+	sessionIdx := event.Session
+	newTopology := event.Topology
+	prevNeighbors := b.topologies.CurrentTopology.LocalNeighbours
+
+	peers := make(map[peer.ID]struct{})
+	for _, val := range newTopology.PeerIDs {
+		peers[val] = struct{}{}
+	}
+
+	shuffledIndices := make([]uint, len(event.Topology.ShuffledIndices))
+	for i, v := range event.Topology.ShuffledIndices {
+		shuffledIndices[i] = uint(v)
+	}
+
+	canonicalShuffling := make([]grid.TopologyPeerInfo, len(event.Topology.CanonicalShuffling))
+	for i, info := range event.Topology.CanonicalShuffling {
+		t := grid.TopologyPeerInfo{
+			Peers:          info.PeerID,
+			ValidatorIndex: info.ValidatorIndex,
+			DiscoveryID:    types.AuthorityID(info.DiscoveryID),
+		}
+		canonicalShuffling[i] = t
+	}
+
+	t := &grid.SessionGridTopology{
+		Peers:              peers,
+		ShuffledIndices:    shuffledIndices,
+		CanonicalShuffling: canonicalShuffling,
+	}
+	err := b.topologies.UpdateCurrentTopology(sessionIdx, t, *event.LocalIndex)
+	if err != nil {
+		return err
+	}
+
+	newlyAdded := b.topologies.CurrentTopology.LocalNeighbours.PeersDiff(prevNeighbors)
+
+	logger.Debugf("new gossip topology received: %s", newlyAdded)
+
+	for _, id := range newlyAdded {
+		peerView := b.peerViews[id]
+		if peerView == nil {
+			// For peers which are currently unknown, we'll send topology-related
+			// messages to them when they connect and send their first view update.
+			continue
+		}
+		oldView := peerView.View
+		// in case we already knew that peer in the past
+		// it might have had an existing view, we use to initialize
+		// and minimise the delta on `PeerViewChange` to be sent
+		peerView.View = parachaintypes.View{}
+
+		b.handlePeerViewChange(id, oldView)
+	}
+
+	return nil
 }
 
-func (b *BitfieldDistribution) processPeerViewChangeEvent(event networkbridgeevents.PeerViewChange) error {
-	//TODO implement in #4358
-	panic("implement me")
+func (b *BitfieldDistribution) processPeerViewChangeEvent(event networkbridgeevents.PeerViewChange) {
+	logger.Tracef("process PeerViewChange event")
+
+	if b.peerViews[event.PeerID] != nil {
+		b.handlePeerViewChange(event.PeerID, event.View)
+	}
 }
 
 func (b *BitfieldDistribution) processOurViewChangeEvent(event networkbridgeevents.OurViewChange) {
-	logger.Tracef("our view change event: %v", event)
+	logger.Tracef("process OurViewChange event: %v", event)
 
 	oldView := b.ourView
 	b.ourView = event.View
@@ -271,6 +343,8 @@ func (b *BitfieldDistribution) processOurViewChangeEvent(event networkbridgeeven
 
 func (b *BitfieldDistribution) processIncomingPeerMessageEvent(event networkbridgeevents.PeerMessage[validationprotocol.
 	ValidationProtocol]) error {
+	logger.Tracef("process incoming PeerMessage event: %v", event)
+
 	v, err := event.Message.Value()
 	if err != nil {
 		return err
@@ -410,6 +484,8 @@ func (b *BitfieldDistribution) processIncomingPeerMessageEvent(event networkbrid
 }
 
 func (b *BitfieldDistribution) processUpdatedAuthorityIDsEvent(event networkbridgeevents.UpdatedAuthorityIDs) error {
+	logger.Tracef("process UpdatedAuthorityIDs event: %v", event)
+
 	ids := make(map[types.AuthorityID]struct{})
 	for _, id := range event.AuthorityDiscoveryIDs {
 		ids[types.AuthorityID(id)] = struct{}{}
@@ -431,12 +507,12 @@ func (b *BitfieldDistribution) ProcessActiveLeavesUpdateSignal(signal parachaint
 	panic("implement me")
 }
 
-func (b *BitfieldDistribution) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
+func (b *BitfieldDistribution) ProcessBlockFinalizedSignal(_ parachaintypes.BlockFinalizedSignal) error {
 	return nil
 }
 
 func (b *BitfieldDistribution) Stop() {
-	logger.Infof("Stopping BitfieldDistribution subsystem")
+	logger.Tracef("Stopping BitfieldDistribution subsystem")
 }
 
 // relayMessage distributes a given valid and signature checked bitfield message.
@@ -445,7 +521,7 @@ func (b *BitfieldDistribution) Stop() {
 func relayMessage(
 	jobData *perRelayParentData,
 	topologyNeighbors *grid.GridNeighbours,
-	peers map[peer.ID]networkbridge.PeerDataViewWithVersion,
+	peers map[peer.ID]*networkbridge.PeerDataViewWithVersion,
 	validatorID parachaintypes.ValidatorID,
 	message validationprotocol.CheckedBitfield,
 	requiredRouting grid.RequiredRouting,
@@ -463,7 +539,7 @@ func relayMessage(
 	// 1. get interested peers
 	interestedPeers := make(map[peer.ID]uint32)
 	for peerID, peerData := range peers {
-		if peerData.View.Contains(relayParent) {
+		if peerData != nil && peerData.View.Contains(relayParent) {
 			if jobData.messageFromValidatorNeededByPeer(peerID, validatorID) {
 				needRouting := topologyNeighbors.ShouldRouteToPeer(requiredRouting, peerID)
 				if needRouting {
@@ -474,7 +550,7 @@ func relayMessage(
 	}
 
 	if len(interestedPeers) == 0 {
-		logger.Infof("no peers are interested in gossip for relay parent")
+		logger.Tracef("no peers are interested in gossip for relay parent")
 		return
 	}
 
@@ -532,6 +608,95 @@ func relayMessage(
 	}
 }
 
+// handlePeerViewChange sends the difference between two views which were not sent to that particular peer
+func (b *BitfieldDistribution) handlePeerViewChange(
+	origin peer.ID,
+	view parachaintypes.View,
+) {
+	peerData := b.peerViews[origin]
+	if peerData == nil {
+		logger.Warnf("attempted to update peer view for unknown peer: %s", origin)
+		return
+	}
+
+	added := peerData.View.ReplaceDifference(view)
+
+	topology := b.topologies.CurrentTopology.LocalNeighbours
+	isGossipPeer := topology.ShouldRouteToPeer(grid.RequiredRoutingGridXY, origin)
+
+	if !isGossipPeer {
+		logger.Tracef("peer view change is ignored")
+		return
+	}
+
+	for _, hash := range added {
+		jobData := b.perRelayParent[hash]
+		if jobData != nil {
+			for validatorId, message := range jobData.onePerValidator {
+				if jobData.messageFromValidatorNeededByPeer(origin, validatorId) {
+					v, err := message.Value()
+					if err != nil {
+						logger.Errorf("failed to extract the value from BitfieldDistributionMessage: %s",
+							err.Error())
+						return
+					}
+					bitfield, ok := v.(validationprotocol.CheckedBitfield)
+					if !ok {
+						logger.Error("attempted to cast the BitfieldDistributionMessage to CheckedBitfield " +
+							"but got UncheckedBitfield")
+						return
+					}
+					b.sendTrackedGossipMessage(origin, validatorId, bitfield)
+				}
+			}
+		}
+	}
+}
+
+// sendTrackedGossipMessage sends a gossip message and tracks it in the per relay parent data
+func (b *BitfieldDistribution) sendTrackedGossipMessage(
+	dest peer.ID,
+	validatorId parachaintypes.ValidatorID,
+	message validationprotocol.CheckedBitfield,
+) {
+	jobData := b.perRelayParent[message.Hash]
+	if jobData == nil {
+		return
+	}
+
+	logger.Tracef("sending gossip message")
+
+	version := b.peerViews[dest]
+	if version == nil {
+		return
+	}
+
+	if jobData.messageSentToPeer[dest] == nil {
+		jobData.messageSentToPeer[dest] = map[parachaintypes.ValidatorID]struct{}{
+			validatorId: {},
+		}
+	}
+
+	// TODO: add version support for validation protocol
+	bdm := &validationprotocol.BitfieldDistributionMessage{}
+	err := bdm.SetValue(message)
+	if err != nil {
+		logger.Errorf("processing BitfieldDistributionMessage: %s", err.Error())
+		return
+	}
+	v := &validationprotocol.ValidationProtocol{}
+	err = v.SetValue(validationprotocol.BitfieldDistribution{BitfieldDistributionMessage: *bdm})
+	if err != nil {
+		logger.Errorf("processing BitfieldDistribution: %s", err.Error())
+		return
+	}
+
+	b.subSystemToOverseer <- networkbridgemessages.SendValidationMessage{
+		To:                        []peer.ID{dest},
+		ValidationProtocolMessage: *v,
+	}
+}
+
 func filterByPeerVersion(peers map[peer.ID]uint32, protocolVersion uint32) []peer.ID {
 	re := make([]peer.ID, 0)
 
@@ -546,7 +711,7 @@ func filterByPeerVersion(peers map[peer.ID]uint32, protocolVersion uint32) []pee
 
 func modifyReputation(reputation *util.ReputationAggregator, sender chan<- any, peer peer.ID,
 	rep util.UnifiedReputationChange, relayParent common.Hash) {
-	logger.Infof("reputation modified for peer %s on relay parent %s", peer.String(), relayParent.String())
+	logger.Tracef("reputation modified for peer %s on relay parent %s", peer.String(), relayParent.String())
 
 	reputation.Modify(sender, peer, rep)
 }
