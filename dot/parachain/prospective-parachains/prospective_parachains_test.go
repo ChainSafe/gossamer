@@ -144,7 +144,7 @@ func TestFailedIntroduceSecondedCandidateWhenParentHeadAndHeadDataEquals(
 	scope, err := newScopeWithAncestors(relayParent, baseConstraints, nil, 10, nil)
 	assert.NoError(t, err)
 
-	prospectiveParachains.View.perRelayParent[candidateRelayParent] = &relayParentData{
+	prospectiveParachains.view.perRelayParent[candidateRelayParent] = &relayParentData{
 		fragmentChains: map[parachaintypes.ParaID]*fragmentChain{
 			paraId: newFragmentChain(scope, newCandidateStorage()),
 		},
@@ -199,7 +199,7 @@ func TestHandleIntroduceSecondedCandidate(
 	scope, err := newScopeWithAncestors(relayParent, baseConstraints, nil, 10, nil)
 	assert.NoError(t, err)
 
-	prospectiveParachains.View.perRelayParent[candidateRelayParent] = &relayParentData{
+	prospectiveParachains.view.perRelayParent[candidateRelayParent] = &relayParentData{
 		fragmentChains: map[parachaintypes.ParaID]*fragmentChain{
 			paraId: newFragmentChain(scope, newCandidateStorage()),
 		},
@@ -351,7 +351,7 @@ func TestGetMinimumRelayParents(t *testing.T) {
 
 	// Initialize ProspectiveParachains with the mock view
 	pp := &ProspectiveParachains{
-		View: mockView,
+		view: mockView,
 	}
 
 	// Create a channel to capture the output
@@ -392,7 +392,7 @@ func TestGetMinimumRelayParents_NoActiveLeaves(t *testing.T) {
 
 	// Initialize ProspectiveParachains with the mock view
 	pp := &ProspectiveParachains{
-		View: mockView,
+		view: mockView,
 	}
 
 	// Create a channel to capture the output
@@ -655,7 +655,7 @@ func TestGetBackableCandidates(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			pp := &ProspectiveParachains{
-				View: tc.view,
+				view: tc.view,
 			}
 
 			pp.getBackableCandidates(tc.msg)
@@ -690,7 +690,7 @@ func TestAnswerProspectiveValidationDataRequest(t *testing.T) {
 		}
 
 		pp := &ProspectiveParachains{
-			View: view,
+			view: view,
 		}
 
 		sender := make(chan *parachaintypes.PersistedValidationData, 1)
@@ -756,7 +756,7 @@ func TestAnswerProspectiveValidationDataRequest(t *testing.T) {
 		}
 
 		pp := &ProspectiveParachains{
-			View: view,
+			view: view,
 		}
 
 		sender := make(chan *parachaintypes.PersistedValidationData, 1)
@@ -828,7 +828,7 @@ func TestAnswerProspectiveValidationDataRequest(t *testing.T) {
 		}
 
 		pp := &ProspectiveParachains{
-			View: view,
+			view: view,
 		}
 
 		sender := make(chan *parachaintypes.PersistedValidationData, 1)
@@ -898,7 +898,7 @@ func TestAnswerProspectiveValidationDataRequest(t *testing.T) {
 		}
 
 		pp := &ProspectiveParachains{
-			View: view,
+			view: view,
 		}
 
 		sender := make(chan *parachaintypes.PersistedValidationData, 1)
@@ -978,7 +978,7 @@ func TestHandleBacked(
 	scope, err := newScopeWithAncestors(relayParent, baseConstraints, nil, 10, nil)
 	assert.NoError(t, err)
 
-	prospectiveParachains.View.perRelayParent[candidateRelayParent] = &relayParentData{
+	prospectiveParachains.view.perRelayParent[candidateRelayParent] = &relayParentData{
 		fragmentChains: map[parachaintypes.ParaID]*fragmentChain{
 			paraId: newFragmentChain(scope, newCandidateStorage()),
 		},
@@ -1003,7 +1003,7 @@ func TestHandleBacked(
 
 	wg.Wait()
 
-	rpData, ok := prospectiveParachains.View.perRelayParent[candidateRelayParent]
+	rpData, ok := prospectiveParachains.view.perRelayParent[candidateRelayParent]
 	require.True(t, ok)
 
 	chains := rpData.fragmentChains

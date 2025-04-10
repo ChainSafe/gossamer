@@ -16,6 +16,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/tidwall/btree"
 )
 
 // The primary purpose of this package is to put types being used by other packages to avoid cyclic
@@ -344,7 +345,10 @@ func (cc CandidateCommitments) CoreSelector() (*SelectCore, error) {
 	// Validate signal count
 	expectedSignalCount := separatorIdx + 2
 	if len(cc.UpwardMessages) != expectedSignalCount {
-		return nil, fmt.Errorf("%w: expected exactly one signal after separator", ErrInvalidUMPSignal)
+		return nil, fmt.Errorf(
+			"%w: expected exactly one signal after separator",
+			ErrInvalidUMPSignal,
+		)
 	}
 
 	// Decode and validate signal
@@ -390,8 +394,10 @@ func (c CommittedCandidateReceipt) Hash() (common.Hash, error) {
 	return c.ToPlain().Hash()
 }
 
-var _ hashable = CommittedCandidateReceiptV2{}
-var _ hashable = CandidateReceiptV2{}
+var (
+	_ hashable = CommittedCandidateReceiptV2{}
+	_ hashable = CandidateReceiptV2{}
+)
 
 type hashable interface {
 	Hash() (common.Hash, error)
@@ -806,7 +812,11 @@ func NewBackedCandidate(
 	const maxCoreIndex uint32 = 255 // math.MaxUint8
 
 	if coreIndex != nil && coreIndex.Index > maxCoreIndex {
-		return nil, fmt.Errorf("core index %d exceeds maximum allowed value of %d", coreIndex.Index, maxCoreIndex)
+		return nil, fmt.Errorf(
+			"core index %d exceeds maximum allowed value of %d",
+			coreIndex.Index,
+			maxCoreIndex,
+		)
 	}
 
 	bitVecOfIndices, err := NewBitVec(validatorIndices)
@@ -877,7 +887,9 @@ type CheckedSignedAvailabilityBitfield struct {
 	Signature ValidatorSignature `scale:"3"`
 }
 
-func (c UncheckedSignedAvailabilityBitfield) ToCheck(key crypto.PublicKey) (*CheckedSignedAvailabilityBitfield, error) {
+func (c UncheckedSignedAvailabilityBitfield) ToCheck(
+	key crypto.PublicKey,
+) (*CheckedSignedAvailabilityBitfield, error) {
 	data, err := c.Payload.MarshalSCALE()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal payload of bitfield: %w", err)
@@ -927,6 +939,31 @@ const ElasticScalingMVP NodeFeatureIndex = 1
 
 // TransposedClaimQueue represents a mapping between ParaID and the cores assigned per depth
 type TransposedClaimQueue map[ParaID]map[uint8]map[CoreIndex]struct{}
+
+type OrderedCoreIndex uint32
+
+func (t TransposedClaimQueue) ToBTreeMap() *btree.Map[ParaID, *btree.Map[uint8, *btree.Set[OrderedCoreIndex]]] {
+	perParaClaimQueue := btree.NewMap[ParaID, *btree.Map[uint8, *btree.Set[OrderedCoreIndex]]](
+		len(t),
+	)
+
+	for pID, depths := range t {
+		depthsPerPara := btree.NewMap[uint8, *btree.Set[OrderedCoreIndex]](len(depths))
+
+		for depth, cores := range depths {
+			coresPerDepth := &btree.Set[OrderedCoreIndex]{}
+			for coreIndex := range cores {
+				coresPerDepth.Insert(OrderedCoreIndex(coreIndex.Index))
+			}
+
+			depthsPerPara.Set(depth, coresPerDepth)
+		}
+
+		perParaClaimQueue.Set(pID, depthsPerPara)
+	}
+
+	return perParaClaimQueue
+}
 
 // Cores returns the cores assigned to a specific ParaID and depth.
 func (t TransposedClaimQueue) Cores(para ParaID, depth uint8) (

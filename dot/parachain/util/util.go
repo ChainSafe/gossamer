@@ -103,7 +103,9 @@ type ReputationAggregator struct {
 }
 
 // NewReputationAggregator creates a new ReputationAggregator.
-func NewReputationAggregator(sendImmediatelyIf func(rep UnifiedReputationChange) bool) *ReputationAggregator {
+func NewReputationAggregator(
+	sendImmediatelyIf func(rep UnifiedReputationChange) bool,
+) *ReputationAggregator {
 	return &ReputationAggregator{
 		sendImmediatelyIf: sendImmediatelyIf,
 		byPeer:            make(map[peer.ID]peerset.ReputationChange),
@@ -148,7 +150,9 @@ func (r *ReputationAggregator) Modify(
 	}
 
 	r.byPeer[peerID] = peerset.ReputationChange{
-		Value:  peerset.Reputation(primitives.SaturatingAdd(int32(r.byPeer[peerID].Value), rep.CostOrBenefit())),
+		Value: peerset.Reputation(
+			primitives.SaturatingAdd(int32(r.byPeer[peerID].Value), rep.CostOrBenefit()),
+		),
 		Reason: rep.Reason,
 	}
 }
@@ -197,9 +201,13 @@ func SigningKeyAndIndex(
 // This may be somewhat expensive when first recovering from major sync.
 //
 // NOTE: TOTO: this issue needs to be finished, see issue #3933
-func DetermineNewBlocks(subsystemToOverseer chan<- any, isKnown func(hash common.Hash) bool, head common.Hash,
+func DetermineNewBlocks(
+	subsystemToOverseer chan<- any,
+	isKnown func(hash common.Hash) bool,
+	head common.Hash,
 	header types.Header,
-	lowerBoundNumber parachaintypes.BlockNumber) ([]HashHeader, error) {
+	lowerBoundNumber parachaintypes.BlockNumber,
+) ([]HashHeader, error) {
 	const maxNumberOfAncestors = 4
 	minBlockNeeded := uint(lowerBoundNumber + 1)
 

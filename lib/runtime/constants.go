@@ -120,6 +120,9 @@ const (
 	ParachainHostNodeFeatures     = "ParachainHost_node_features"
 	ParachainHostParaBackingState = "ParachainHost_para_backing_state"
 	// ParachainHostDisabledValidators is the runtime API call ParachainHost_disabled_validators
-	ParachainHostDisabledValidators = "ParachainHost_disabled_validators"
-	ParachainHostDisputes           = "ParachainHost_disputes"
+	ParachainHostDisabledValidators            = "ParachainHost_disabled_validators"
+	ParachainHostDisputes                      = "ParachainHost_disputes"
+	ParachainHostSchedulingLookAhead           = "ParachainHost_scheduling_lookahead"
+	ParachainHostBackingConstraints            = "ParachainHost_backing_constraints"
+	ParachainHostCandidatesPendingAvailability = "ParachainHost_candidates_pending_availability"
 )

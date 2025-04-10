@@ -1563,6 +1563,65 @@ func (in *Instance) ParachainHostDisputes() (map[parachaintypes.DisputeKey]parac
 	return result, nil
 }
 
+func (in *Instance) ParachainHostSchedulingLookAhead() (uint32, error) {
+	encoded, err := in.Exec(runtime.ParachainHostSchedulingLookAhead, []byte{})
+	if err != nil {
+		return 0, fmt.Errorf("exec: %w", err)
+	}
+
+	var schedulingLookahead uint32
+	err = scale.Unmarshal(encoded, &schedulingLookahead)
+	if err != nil {
+		return 0, fmt.Errorf("unmarshalling: %w", err)
+	}
+
+	return schedulingLookahead, nil
+}
+
+func (in *Instance) ParachainHostBackingConstraints(
+	paraID parachaintypes.ParaID,
+) (*parachaintypes.Constraints, error) {
+	encodedParaID, err := scale.Marshal(paraID)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling para id: %w", err)
+	}
+
+	encoded, err := in.Exec(runtime.ParachainHostBackingConstraints, encodedParaID)
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	var constraints *parachaintypes.Constraints
+	err = scale.Unmarshal(encoded, &constraints)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling: %w", err)
+	}
+
+	return constraints, nil
+}
+
+func (in *Instance) ParachainHostCandidatesPendingAvailability(
+	paraID parachaintypes.ParaID,
+) ([]parachaintypes.CommittedCandidateReceipt, error) {
+	encodedParaID, err := scale.Marshal(paraID)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling para id: %w", err)
+	}
+
+	encoded, err := in.Exec(runtime.ParachainHostBackingConstraints, encodedParaID)
+	if err != nil {
+		return nil, fmt.Errorf("exec: %w", err)
+	}
+
+	var pendingCandidates []parachaintypes.CommittedCandidateReceipt
+	err = scale.Unmarshal(encoded, &pendingCandidates)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshalling: %w", err)
+	}
+
+	return pendingCandidates, nil
+}
+
 func (*Instance) RandomSeed() {
 	panic("unimplemented")
 }
@@ -1580,7 +1639,7 @@ func (in *Instance) GetCodeHash() common.Hash {
 	return in.codeHash
 }
 
-// NodeStorage to get reference to runtime node service
+// N odeStorage to get reference to runtime node service
 func (in *Instance) NodeStorage() runtime.NodeStorage {
 	return in.Context.NodeStorage
 }
