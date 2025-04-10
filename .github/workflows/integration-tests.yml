@@ -53,4 +53,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run integration tests
-        run: CI=buildjet go test -timeout=45m -tags integration ${{ matrix.packages }}
+        env:
+            CI: buildjet
+        run: go test -timeout=45m -tags integration ${{ matrix.packages }}
