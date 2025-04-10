@@ -903,12 +903,12 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) executeAndImportBlock(
 	}
 
 	info := c.backend.Blockchain().Info()
-	gapBlock := info.BlockGap != nil && info.BlockGap[0] == importHeaders.Post().Number()
+	gapBlock := info.BlockGap != nil && info.BlockGap.Start == importHeaders.Post().Number()
 
 	// the block is lower than our last finalized block so it must revert
 	// finality, refusing import.
 	if status == blockchain.BlockStatusUnknown && importHeaders.Post().Number() < info.FinalizedNumber && !gapBlock {
-		return nil, errors.New("Potential long-range attack: block not in finalized chain.")
+		return nil, errors.New("potential long-range attack: block not in finalized chain.")
 	}
 
 	// this is a fairly arbitrary choice of where to draw the line on making notifications,

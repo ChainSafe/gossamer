@@ -12,6 +12,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/client/db/columns"
 	"github.com/ChainSafe/gossamer/internal/client/db/metakeys"
+	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/database"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
@@ -25,6 +26,9 @@ const NumColumns uint32 = 13
 
 // Meta column. The set of keys in the column is shared by full && light storages.
 const columnMeta = columns.Meta
+
+// Current block gap version.
+const blockGapCurrentVersion uint32 = 1
 
 type finalizedState[H, N any] struct {
 	Hash   H
@@ -46,7 +50,7 @@ type meta[H, N any] struct {
 	// Finalized state, if any
 	FinalizedState *finalizedState[H, N]
 	// Block gap, start and end inclusive, if any.
-	BlockGap *[2]N
+	BlockGap *blockchain.BlockGap[N]
 }
 
 // A block lookup key: used for canonical lookup from block number to hash
@@ -242,14 +246,39 @@ func readMeta[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
 			finalizedStateHash, finalizedStateNumber,
 		}
 	}
-	var blockGap *[2]N
-	blockGapBytes := db.Get(columnMeta, metakeys.BlockGap)
-	if blockGapBytes != nil {
-		err = scale.Unmarshal(blockGapBytes, blockGap)
-		if err != nil {
-			return meta[H, N]{}, err
+
+	var blockGap *blockchain.BlockGap[N]
+
+	blockGapVersionBytes := db.Get(columnMeta, metakeys.BlockGapVersion)
+
+	if blockGapVersionBytes == nil {
+		blockGapBytes := db.Get(columnMeta, metakeys.BlockGap)
+		if blockGapBytes != nil {
+			var decodedBlockGap [2]N
+			if err = scale.Unmarshal(blockGapBytes, &decodedBlockGap); err == nil {
+				blockGap = &blockchain.BlockGap[N]{
+					Start: decodedBlockGap[0],
+					End:   decodedBlockGap[1],
+					Type:  blockchain.BlockGapMissingHeaderAndBody,
+				}
+			}
+		}
+	} else {
+		var decodedBlockGapVersion uint32
+		if err = scale.Unmarshal(blockGapVersionBytes, &decodedBlockGapVersion); err == nil {
+			if decodedBlockGapVersion == blockGapCurrentVersion {
+				blockGapBytes := db.Get(columnMeta, metakeys.BlockGap)
+
+				err = scale.Unmarshal(blockGapBytes, &blockGap)
+				if err != nil {
+					return meta[H, N]{}, err
+				}
+			} else {
+				return meta[H, N]{}, fmt.Errorf("unsupported block gap DB version: %d", decodedBlockGapVersion)
+			}
 		}
 	}
+	logger.Debugf("block_gap=%v", blockGap)
 
 	return meta[H, N]{
 		BestHash:        bestHash,

@@ -11,6 +11,25 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 )
 
+// Represents the type of block gaps that may result from either warp sync or fast sync.
+type BlockGapType uint8
+
+const (
+	// Both the header and body are missing, as a result of warp sync.
+	BlockGapMissingHeaderAndBody BlockGapType = iota
+	// The block body is missing, as a result of fast sync.
+	BlockGapMissingBody
+)
+
+type BlockGap[N any] struct {
+	// The starting block number of the gap (inclusive).
+	Start N
+	// The ending block number of the gap (inclusive).
+	End N
+	// The type of gap.
+	Type BlockGapType
+}
+
 // BlockBackend is an interface for fetching block data
 type BlockBackend[
 	H runtime.Hash,
@@ -126,8 +145,8 @@ type Info[H, N any] struct {
 		Hash   H
 		Number N
 	}
-	NumberLeaves uint  // Number of concurrent leave forks.
-	BlockGap     *[2]N // Missing blocks after warp sync. (start, end).
+	NumberLeaves uint         // Number of concurrent leave forks.
+	BlockGap     *BlockGap[N] // Missing blocks after warp sync. (start, end).
 }
 
 // BlockStatus is block status.

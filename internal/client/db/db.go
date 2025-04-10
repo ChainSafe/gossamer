@@ -157,7 +157,7 @@ func (bdb *blockchainDB[H, N, E, Header]) updateMeta(update metaUpdate[H, N]) {
 	}
 }
 
-func (bdb *blockchainDB[H, N, E, Header]) updateBlockGap(gap *[2]N) {
+func (bdb *blockchainDB[H, N, E, Header]) updateBlockGap(gap *blockchain.BlockGap[N]) {
 	bdb.metaMtx.Lock()
 	defer bdb.metaMtx.Unlock()
 	bdb.meta.BlockGap = gap
