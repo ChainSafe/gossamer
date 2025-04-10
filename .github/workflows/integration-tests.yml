@@ -75,4 +75,4 @@ jobs:
         env:
           CI: buildjet
           GOCACHE: ${{ steps.go-cache-dirs.outputs.build }}
-        run: go test -count=1 -v -timeout=45m -tags integration ${{ matrix.packages }}
+        run: go test -timeout=45m -tags integration ${{ matrix.packages }}
