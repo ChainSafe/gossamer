@@ -16,5 +16,5 @@ func NewExtensions() Extensions {
 }
 
 type Externalities interface {
-	// TODO: add methods
+	// TODO: add methods, will be addressed in #4465
 }
