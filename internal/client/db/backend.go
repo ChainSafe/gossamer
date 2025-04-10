@@ -688,7 +688,6 @@ func (b *Backend[H, Hasher, N, E, Header]) forceDelayedCanonicalize(
 	return nil
 }
 
-// TODO: add create_gap logic to this function
 func (b *Backend[H, Hasher, N, E, Header]) tryCommitOperation( //nolint:gocyclo
 	operation *BlockImportOperation[H, Hasher, N, Header, E],
 ) error {
