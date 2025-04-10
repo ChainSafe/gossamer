@@ -54,16 +54,30 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download Go modules
-        run: go mod download
+      - name: Get Go cache directories
+        id: go-cache-dirs
+        run: |
+          echo "build=$(go env GOCACHE)" >> $GITHUB_OUTPUT
+          echo "mod=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
 
-      - name: Build tests
-        run: go test -tags integration -c ${{ matrix.packages }}
+      - name: Setup Go build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ steps.go-cache-dirs.outputs.build }}
+            ${{ steps.go-cache-dirs.outputs.mod }}
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}-build-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}-build-
+            ${{ runner.os }}-go-
 
-      - name: Build main package and dependencies
-        run: go build -v -tags integration ./...
+      - name: Pre-build packages
+        run: |
+          go build -v -tags integration ${{ matrix.packages }}
+          go test -tags integration -c ${{ matrix.packages }}
 
       - name: Run integration tests
         env:
-            CI: buildjet
-        run: go test -timeout=45m -tags integration ${{ matrix.packages }}
+          CI: buildjet
+          GOCACHE: ${{ steps.go-cache-dirs.outputs.build }}
+        run: go test -count=1 -v -timeout=45m -tags integration ${{ matrix.packages }}
