@@ -27,7 +27,7 @@ import (
 
 type TestNetwork struct{}
 
-func (TestNetwork) SetAuthorizedPeers(peers map[peerid.PeerID]any)                        { panic("unimpl") }
+func (TestNetwork) SetAuthorizedPeers(peers map[peerid.PeerID]struct{})                   { panic("unimpl") }
 func (TestNetwork) SetAuthorizedOnly(reservedOnly bool)                                   { panic("unimpl") }
 func (TestNetwork) AddKnownAddress(peerID peerid.PeerID, addr multiaddr.Multiaddr)        { panic("unimpl") }
 func (TestNetwork) ReportPeer(peerID peerid.PeerID, costBenefit network.ReputationChange) {}
@@ -36,16 +36,16 @@ func (TestNetwork) AcceptUnreservedPeers()                                      
 func (TestNetwork) DenyUnreservedPeers()                                                  { panic("unimpl") }
 func (TestNetwork) AddReservedPeer(peer config.MultiaddrPeerId) error                     { panic("unimpl") }
 func (TestNetwork) RemoveReservedPeer(peerID peerid.PeerID)                               { panic("unimpl") }
-func (TestNetwork) SetReservedPeers(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]any) error {
+func (TestNetwork) SetReservedPeers(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]struct{}) error {
 	panic("unimpl")
 }
-func (TestNetwork) AddPeersToReservedSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]any) error {
+func (TestNetwork) AddPeersToReservedSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]struct{}) error {
 	panic("unimpl")
 }
 func (TestNetwork) RemovePeersFromReservedSet(protocol network.ProtocolName, peers []peerid.PeerID) {
 	panic("unimpl")
 }
-func (TestNetwork) AddToPeersSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]any) error {
+func (TestNetwork) AddToPeersSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]struct{}) error {
 	panic("unimpl")
 }
 func (TestNetwork) RemoveFromPeersSet(protocol network.ProtocolName, peers []peerid.PeerID) {
@@ -92,6 +92,12 @@ func (ts *TestSync) EventStream(name string) chan netSync.SyncEvent {
 
 func (*TestSync) AnnounceBlock(hash hash.H256, data []byte)          { panic("unimpl") }
 func (*TestSync) NewBestBlockImported(hash hash.H256, number uint64) { panic("unimpl") }
+
+func (ts *TestSync) Shutdown() {
+	for _, es := range ts.eventSenders {
+		close(es)
+	}
+}
 
 type TestNotificationService struct {
 	ch chan service.NotificationEvent
@@ -174,7 +180,11 @@ func TestGossipEngine(t *testing.T) {
 		remotePeer := peerid.NewRandomPeerID()
 		network := TestNetwork{}
 		sync := TestSync{}
+		defer sync.Shutdown()
 		ch := make(chan service.NotificationEvent, 3)
+		defer func() {
+			close(ch)
+		}()
 		notificationService := TestNotificationService{ch: ch}
 
 		gossipEngine := newGossipEngine[hash.H256, uint64, runtime.BlakeTwo256](
@@ -188,8 +198,8 @@ func TestGossipEngine(t *testing.T) {
 		// Register the remote peer.
 		ch <- service.NotificationEventNotificationStreamOpened{
 			Peer:               remotePeer,
-			Direction:          service.DirctionInbound,
-			NegotiatedFallBack: nil,
+			Direction:          service.DirectionInbound,
+			NegotiatedFallback: nil,
 			Handshake:          scale.MustMarshal(role.RolesFull),
 		}
 
@@ -212,7 +222,7 @@ func TestGossipEngine(t *testing.T) {
 			Notification: messages[1],
 		}
 
-		done := make(chan any)
+		done := make(chan struct{})
 		go func() {
 			defer close(done)
 			gossipEngine.poll()
@@ -239,6 +249,7 @@ func TestGossipEngine(t *testing.T) {
 			remotePeer := peerid.NewRandomPeerID()
 			network := TestNetwork{}
 			sync := TestSync{}
+			defer sync.Shutdown()
 
 			// for NotificationStreamOpened
 			chanLength := 1
@@ -247,6 +258,9 @@ func TestGossipEngine(t *testing.T) {
 				chanLength += len(notification)
 			}
 			ch := make(chan service.NotificationEvent, chanLength)
+			defer func() {
+				close(ch)
+			}()
 			notificationService := TestNotificationService{ch: ch}
 
 			numChannelsPerTopic := make(map[hash.H256]uint64)
@@ -310,8 +324,8 @@ func TestGossipEngine(t *testing.T) {
 			// Register the remote peer.
 			ch <- service.NotificationEventNotificationStreamOpened{
 				Peer:               remotePeer,
-				Direction:          service.DirctionInbound,
-				NegotiatedFallBack: nil,
+				Direction:          service.DirectionInbound,
+				NegotiatedFallback: nil,
 				Handshake:          scale.MustMarshal(role.RolesFull),
 			}
 
@@ -343,13 +357,14 @@ func TestGossipEngine(t *testing.T) {
 			receivedMsgsPerTopicAllChan := make(map[hash.H256]uint64)
 
 			// Poll both gossip engine and each receiver and track the amount of received messages.
-			done := make(chan any)
+			done := make(chan struct{})
 			go func() {
 				defer close(done)
 				gossipEngine.poll()
 			}()
 
 			timer := time.NewTimer(1 * time.Second)
+			defer timer.Stop()
 			delay := timer.C
 
 			msgCount := uint64(0)
@@ -373,6 +388,7 @@ func TestGossipEngine(t *testing.T) {
 					// Set a 1ms timeout, just to ensure we're not receiving more msgs.
 					if expected == nil {
 						timeout := time.NewTimer(10 * time.Millisecond)
+						defer timeout.Stop()
 						expected = timeout.C
 					}
 				}
@@ -388,6 +404,7 @@ func TestGossipEngine(t *testing.T) {
 			close(gossipEngine.stopChan)
 			<-done
 
+			require.Equal(t, expectedTotalMsgsAllChan, msgCount)
 			// Compare amount of expected messages with amount of received messages.
 			for expectedTopic, expectedNum := range expectedMsgsPerTopicAllChan {
 				require.Equal(t, expectedNum, receivedMsgsPerTopicAllChan[expectedTopic])
@@ -406,10 +423,9 @@ func TestGossipEngine(t *testing.T) {
 
 		f := func(channels []ChannelLengthTopic, notifications [][]Message) bool {
 			prop(t, channels, notifications)
-			t.Logf("-----")
 			return true
 		}
-		if err := quick.Check(f, &quick.Config{MaxCount: 10}); err != nil {
+		if err := quick.Check(f, nil); err != nil {
 			t.Error(err)
 		}
 	})

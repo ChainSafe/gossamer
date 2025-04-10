@@ -129,26 +129,21 @@ type Public[Signature any] interface {
 //
 // The SURI can be parsed from a string. The string is interpreted in the following way:
 //
-// - If string is a possibly 0x prefixed 64-digit hex string, then it will be interpreted
-// directly as a secret key (aka "seed" in subkey).
-// - If string is a valid BIP-39 key phrase of 12, 15, 18, 21 or 24 words, then the key will
-// be derived from it. In this case:
-//   - the phrase may be followed by one or more items delimited by "/" characters.
-//   - the path may be followed by "///", in which case everything after the "///" is treated
+//   - If string is a possibly 0x prefixed 64-digit hex string, then it will be interpreted directly as a secret key
+//     (aka "seed" in subkey).
+//   - If string is a valid BIP-39 key phrase of 12, 15, 18, 21 or 24 words, then the key will be derived from it. In
+//     this case:
+//   - The phrase may be followed by one or more items delimited by "/" characters.
+//   - The path may be followed by "///", in which case everything after the "///" is treated as a password.
+//   - If string begins with a "/" character it is prefixed with the public DevPhrase and interpreted as above.
 //
-// as a password.
-//   - If string begins with a "/" character it is prefixed with the public DevPhrase
-//     and interpreted as above.
+// In this case they are interpreted as HDKD junctions; purely numeric items are interpreted as integers, non-numeric
+// items as strings. Junctions prefixed with "/"" are interpreted as soft junctions, and with "//" as hard junctions.
 //
-// In this case they are interpreted as HDKD junctions; purely numeric items are interpreted as
-// integers, non-numeric items as strings. Junctions prefixed with "/"" are interpreted as soft
-// junctions, and with "//" as hard junctions.
-//
-// There is no correspondence mapping between SURI strings and the keys they represent.
-// Two different non-identical strings can actually lead to the same secret being derived.
-// Notably, integer junction indices may be legally prefixed with arbitrary number of zeros.
-// Similarly an empty password (ending the SURI with "///") is perfectly valid and will
-// generally be equivalent to no password at all.
+// There is no correspondence mapping between SURI strings and the keys they represent. Two different non-identical
+// strings can actually lead to the same secret being derived. Notably, integer junction indices may be legally
+// prefixed with arbitrary number of zeros. Similarly an empty password (ending the SURI with "///") is perfectly valid
+// and will generally be equivalent to no password at all.
 type SecretURI struct {
 	// The phrase to derive the private key.
 	// This can either be a 64-bit hex string or a BIP-39 key phrase.
@@ -212,3 +207,19 @@ type Pair[Seed, Signature any] interface {
 	// Get the public key.
 	Public() Public[Signature]
 }
+
+// An identifier for a type of cryptographic key.
+//
+// To avoid clashes with other modules when distributing your module publicly. Values whose first character is "_" are
+// reserved for private use and won't conflict with any public modules.
+type KeyTypeID string
+
+// Known key types; this also functions as a global registry of key types for projects wishing to avoid collisions with
+// each other.
+//
+// It's not universal in the sense that *all* key types need to be mentioned here, it's just a handy place to put
+// common key types.
+const (
+	// Key type for Grandpa module, built-in. Identified as "gran".
+	GRANDPA KeyTypeID = "gran"
+)

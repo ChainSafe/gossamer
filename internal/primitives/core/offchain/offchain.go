@@ -3,6 +3,9 @@
 
 package offchain
 
+// Persistent storage prefix used by the Offchain Worker API when creating a DB key.
+var StoragePrefix = []byte("storage")
+
 // OffchainStorage is offchain DB persisted (non-fork-aware) storage.
 type OffchainStorage interface {
 	// Set persists a value in storage under given key and prefix.

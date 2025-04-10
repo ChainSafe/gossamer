@@ -4,6 +4,9 @@
 package grandpa
 
 import (
+	"fmt"
+	"io"
+
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/tidwall/btree"
 	"golang.org/x/exp/constraints"
@@ -24,11 +27,32 @@ type targetHashTargetNumber[Hash, Number any] struct {
 // Prevote is a prevote for a block and its ancestors.
 type Prevote[Hash, Number any] targetHashTargetNumber[Hash, Number]
 
+func (p Prevote[Hash, Number]) Target() HashNumber[Hash, Number] {
+	return HashNumber[Hash, Number]{
+		p.TargetHash,
+		p.TargetNumber,
+	}
+}
+
 // Precommit is a precommit for a block and its ancestors.
 type Precommit[Hash, Number any] targetHashTargetNumber[Hash, Number]
 
+func (p Precommit[Hash, Number]) Target() HashNumber[Hash, Number] {
+	return HashNumber[Hash, Number]{
+		p.TargetHash,
+		p.TargetNumber,
+	}
+}
+
 // PrimaryPropose is a primary proposed block, this is a broadcast of the last round's estimate.
 type PrimaryPropose[Hash, Number any] targetHashTargetNumber[Hash, Number]
+
+func (p PrimaryPropose[Hash, Number]) Target() HashNumber[Hash, Number] {
+	return HashNumber[Hash, Number]{
+		p.TargetHash,
+		p.TargetNumber,
+	}
+}
 
 // Chain context necessary for implementation of the finality gadget.
 type Chain[Hash, Number comparable] interface {
@@ -53,40 +77,22 @@ type Equivocation[ID constraints.Ordered, Vote, Signature comparable] struct {
 	Second voteSignature[Vote, Signature]
 }
 
+// Message is a protocol message or vote.
+type Message[Hash, Number any] interface {
+	Target() HashNumber[Hash, Number]
+}
+
 // Messages is the interface constraint for `Message`
 type Messages[Hash, Number any] interface {
 	Prevote[Hash, Number] | Precommit[Hash, Number] | PrimaryPropose[Hash, Number]
+	Message[Hash, Number]
 }
 
-// Message is a protocol message or vote.
-type Message[Hash, Number any] struct {
-	inner any
+type MessageVDT[Hash, Number any] struct {
+	inner Message[Hash, Number]
 }
 
-// Target returns the target block of the vote.
-func (m Message[H, N]) Target() HashNumber[H, N] {
-	switch message := m.inner.(type) {
-	case Prevote[H, N]:
-		return HashNumber[H, N]{
-			message.TargetHash,
-			message.TargetNumber,
-		}
-	case Precommit[H, N]:
-		return HashNumber[H, N]{
-			message.TargetHash,
-			message.TargetNumber,
-		}
-	case PrimaryPropose[H, N]:
-		return HashNumber[H, N]{
-			message.TargetHash,
-			message.TargetNumber,
-		}
-	default:
-		panic("unsupported Message type")
-	}
-}
-
-func (m *Message[H, N]) SetValue(value any) (err error) {
+func (m *MessageVDT[H, N]) SetValue(value any) (err error) {
 	switch message := m.inner.(type) {
 	case Prevote[H, N]:
 		setMessage(m, message)
@@ -100,7 +106,7 @@ func (m *Message[H, N]) SetValue(value any) (err error) {
 	return nil
 }
 
-func (m Message[H, N]) IndexValue() (index uint, value any, err error) {
+func (m MessageVDT[H, N]) IndexValue() (index uint, value any, err error) {
 	switch m.inner.(type) {
 	case Prevote[H, N]:
 		return 0, m.inner, nil
@@ -112,12 +118,12 @@ func (m Message[H, N]) IndexValue() (index uint, value any, err error) {
 	return 0, nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
-func (m Message[H, N]) Value() (value any, err error) {
+func (m MessageVDT[H, N]) Value() (value any, err error) {
 	_, value, err = m.IndexValue()
 	return
 }
 
-func (m Message[H, N]) ValueAt(index uint) (value any, err error) {
+func (m MessageVDT[H, N]) ValueAt(index uint) (value any, err error) {
 	switch index {
 	case 0:
 		return Prevote[H, N]{}, nil
@@ -129,13 +135,22 @@ func (m Message[H, N]) ValueAt(index uint) (value any, err error) {
 	return nil, scale.ErrUnknownVaryingDataTypeValue
 }
 
-func setMessage[Hash, Number any, T Messages[Hash, Number]](m *Message[Hash, Number], val T) {
+func setMessage[Hash, Number any, T Messages[Hash, Number]](m *MessageVDT[Hash, Number], val T) {
 	m.inner = val
 }
 
-func NewMessage[Hash, Number any, T Messages[Hash, Number]](val T) (m Message[Hash, Number]) {
-	msg := Message[Hash, Number]{}
-	setMessage(&msg, val)
+func NewMessageVDT[Hash, Number any](val Message[Hash, Number]) (m MessageVDT[Hash, Number]) {
+	msg := MessageVDT[Hash, Number]{}
+	switch val := val.(type) {
+	case Prevote[Hash, Number]:
+		setMessage(&msg, val)
+	case Precommit[Hash, Number]:
+		setMessage(&msg, val)
+	case PrimaryPropose[Hash, Number]:
+		setMessage(&msg, val)
+	default:
+		panic("unreachable")
+	}
 	return msg
 }
 
@@ -147,6 +162,43 @@ type SignedMessage[Hash, Number, Signature, ID any] struct {
 	Signature Signature
 	// The Id of the signer
 	ID ID
+}
+
+type signedMessageEncoding[Hash, Number, Signature, ID any] struct {
+	// The internal message which has been signed.
+	Message MessageVDT[Hash, Number]
+	// The signature on the message.
+	Signature Signature
+	// The Id of the signer
+	ID ID
+}
+
+func (sm SignedMessage[H, N, Signature, ID]) MarshalSCALE() ([]byte, error) {
+	helper := signedMessageEncoding[H, N, Signature, ID]{
+		Message:   MessageVDT[H, N]{inner: sm.Message},
+		Signature: sm.Signature,
+		ID:        sm.ID,
+	}
+	return scale.Marshal(helper)
+}
+
+func (sm *SignedMessage[H, N, Signature, ID]) UnmarshalSCALE(reader io.Reader) error {
+	helper := signedMessageEncoding[H, N, Signature, ID]{}
+
+	decoder := scale.NewDecoder(reader)
+	err := decoder.Decode(&helper)
+	if err != nil {
+		return err
+	}
+	if helper.Message.inner == nil {
+		return fmt.Errorf("error decoding SignedMessage, nil Message")
+	}
+
+	sm.Message = helper.Message.inner
+	sm.Signature = helper.Signature
+	sm.ID = helper.ID
+
+	return nil
 }
 
 // Commit is a commit message which is an aggregate of precommits.
@@ -239,12 +291,14 @@ type CatchUp[Hash, Number, Signature, ID any] struct {
 	BaseNumber Number
 }
 
-// MultiAuthData contains authentication data for a set of many messages, currently a set of precommit signatures but
-// in the future could be optimised with BLS signature aggregation.
-type MultiAuthData[Signature, ID any] []struct {
+type SignatureID[Signature, ID any] struct {
 	Signature Signature
 	ID        ID
 }
+
+// MultiAuthData contains authentication data for a set of many messages, currently a set of precommit signatures but
+// in the future could be optimised with BLS signature aggregation.
+type MultiAuthData[Signature, ID any] []SignatureID[Signature, ID]
 
 // CommitValidationResult is type returned from `ValidateCommit` with information
 // about the validation result.

@@ -143,13 +143,13 @@ func (h hasher[K]) Hash(key K) uint32 {
 func newConsensusGossip[H runtime.Hash, Hasher runtime.Hasher[H]](
 	validator Validator[H],
 	protocol network.ProtocolName,
-) consensusGossip[H, Hasher] {
+) *consensusGossip[H, Hasher] {
 	h := hasher[H]{maphash.NewHasher[H]()}
 	knownMessages, err := freelru.New[H, any](knownMessageCacheSize, h.Hash)
 	if err != nil {
 		panic(err)
 	}
-	return consensusGossip[H, Hasher]{
+	return &consensusGossip[H, Hasher]{
 		peers:         make(map[peerid.PeerID]peerConsensus[H]),
 		messages:      make([]messageEntry[H], 0),
 		knownMessages: *knownMessages,
@@ -182,7 +182,7 @@ func (cg *consensusGossip[H, Hasher]) registerMessageHashed(
 		message:     message,
 		sender:      sender,
 	})
-	//TODO: registered meessages metrics
+	//TODO: registered messages metrics
 }
 
 // Registers a message without propagating it to any peers. The message becomes available to new peers or when the
@@ -236,8 +236,8 @@ func (cg *consensusGossip[H, Hasher]) BroadcastTopic(
 	propagate(notificationService, cg.protocol, messages, intent, cg.peers, cg.validator)
 }
 
-// Prune old or no longer relevant consensus messages. A predicate for pruning provided via Validator.MessageExpired,
-// which returns false when the items with a given topic should be pruned.
+// Prune old or no longer relevant consensus messages. Provide a predicate for pruning, which returns false when the
+// items with a given topic should be pruned.
 func (cg *consensusGossip[H, Hasher]) CollectGarbage() {
 	knownMessages := cg.knownMessages
 	before := len(cg.messages)

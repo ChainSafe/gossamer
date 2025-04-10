@@ -210,8 +210,7 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 					TargetNumber: targetNumber,
 				}
 
-				msg := grandpa.NewMessage[hash.H256, uint32, preCommit](precommit)
-				encoded := primitives.NewLocalizedPayload(1, currentSetId, msg)
+				encoded := primitives.NewLocalizedPayload(1, currentSetId, precommit)
 				signature := voter.Sign(encoded)
 
 				signedPreCommit := signedPrecommit{
@@ -280,7 +279,7 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 	for _, key := range currentAuthorities {
 		expectedAuthorities = append(expectedAuthorities,
 			primitives.AuthorityIDWeight{
-				AuthorityID:     [32]byte(key.Pair().Public().Bytes()),
+				AuthorityID:     key.Pair().Public().(primitives.AuthorityID),
 				AuthorityWeight: 1,
 			},
 		)

@@ -28,7 +28,7 @@ type NetworkPeers interface {
 	//
 	// Need a better solution to manage authorized peers, but now just use reserved peers for
 	// prototyping.
-	SetAuthorizedPeers(peers map[peerid.PeerID]any)
+	SetAuthorizedPeers(peers map[peerid.PeerID]struct{})
 	// Set authorized_only flag.
 	//
 	// Need a better solution to decide authorized_only, but now just use reservedOnly flag for prototyping.
@@ -70,7 +70,7 @@ type NetworkPeers interface {
 	//
 	// Returns an error if one of the given addresses is invalid or contains an invalid peer ID (which includes the
 	// local peer id).
-	SetReservedPeers(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]any) error
+	SetReservedPeers(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]struct{}) error
 	// Add peers to a peer set.
 	//
 	// Each Multiaddr must end with a "/p2p/" component containing the peer id. It can also consist of only
@@ -78,7 +78,7 @@ type NetworkPeers interface {
 	//
 	// Returns an error if one of the given addresses is invalid or contains an invalid peer id (which includes the
 	// local peer id).
-	AddPeersToReservedSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]any) error
+	AddPeersToReservedSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]struct{}) error
 	// Remove peers from a peer set.
 	RemovePeersFromReservedSet(protocol network.ProtocolName, peers []peerid.PeerID)
 	// Add a peer to a set of peers.
@@ -90,7 +90,7 @@ type NetworkPeers interface {
 	//
 	// Returns an error if one of the given addresses is invalid or contains an invalid peer id (which includes the
 	// local peer id).
-	AddToPeersSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]any) error
+	AddToPeersSet(protocol network.ProtocolName, peers map[multiaddr.Multiaddr]struct{}) error
 	// Remove peers from a peer set.
 	//
 	// If we currently have an open substream with this peer, it will soon be closed.
@@ -149,7 +149,7 @@ type Direction uint
 
 const (
 	// Substream opened by the remote node.
-	DirctionInbound = iota + 1
+	DirectionInbound = iota + 1
 	// Substream opened by the local node.
 	DirectionOutbound
 )
@@ -181,7 +181,7 @@ type NotificationEventNotificationStreamOpened struct {
 	// Received handshake.
 	Handshake []byte
 	// Negotiated fallback.
-	NegotiatedFallBack *network.ProtocolName
+	NegotiatedFallback *network.ProtocolName
 }
 
 func (NotificationEventNotificationStreamOpened) isNotificationEvent() {}

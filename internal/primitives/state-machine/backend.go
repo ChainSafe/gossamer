@@ -12,6 +12,27 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 )
 
+// StorageKey is a storage key.
+type StorageKey []byte
+
+// StorageValue is a storage value. Value can be nil
+type StorageValue []byte
+
+// StorageKeyValue is storage key and value.
+type StorageKeyValue struct {
+	StorageKey
+	StorageValue
+}
+
+// StorageCollection is a slice of storage values.
+type StorageCollection []StorageKeyValue
+
+// ChildStorageCollection is a slice of storage values for multiple child tries.
+type ChildStorageCollection []struct {
+	StorageKey
+	StorageCollection
+}
+
 // IterArgs is a struct containing arguments for iterating over the storage.
 type IterArgs struct {
 	// Prefix of the keys over which to iterate.

@@ -23,6 +23,31 @@ func NewMemoryDBTrieBackend[H runtime.Hash, Hasher runtime.Hasher[H]]() MemoryDB
 	}
 }
 
+func NewMemoryDBTrieBackendFromMap[H runtime.Hash, Hasher runtime.Hasher[H]](
+	initial map[string][]byte,
+	stateVersion storage.StateVersion,
+) MemoryDBTrieBackend[H, Hasher] {
+	backend := NewMemoryDBTrieBackend[H, Hasher]()
+
+	storageCollection := make(StorageCollection, 0)
+
+	for k, v := range initial {
+		storageCollection = append(storageCollection, StorageKeyValue{
+			StorageKey:   StorageKey(k),
+			StorageValue: StorageValue(v),
+		})
+	}
+
+	backend.insert([]change{
+		{
+			ChildInfo:         nil,
+			StorageCollection: storageCollection,
+		},
+	}, stateVersion)
+
+	return backend
+}
+
 type change struct {
 	storage.ChildInfo // can be nil
 	StorageCollection

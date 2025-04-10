@@ -27,8 +27,8 @@ var (
 // voting strategy the precommit targets should be the same as the commit target, since honest voters don't vote past
 // authority set change blocks.
 //
-// This is meant to be stored in the db and passed around the network to other nodes, and are used by syncing nodes
-// to prove authority set handoffs.
+// This is meant to be stored in the db and passed around the network to other nodes, and are used by syncing nodes to
+// prove authority set handoffs.
 type GrandpaJustification[Hash runtime.Hash, N runtime.Number] struct {
 	// The GRANDPA justification for block finality.
 	Justification primitives.GrandpaJustification[Hash, N]
@@ -87,8 +87,8 @@ func (dgj decodeGrandpaJustification[Hash, N, Hasher]) GrandpaJustification() *G
 	}
 }
 
-// DecodeGrandpaJustificationVerifyFinalizes will decode a GRANDPA justification and validate the commit and
-// the votes' ancestry proofs finalize the given block.
+// DecodeGrandpaJustificationVerifyFinalizes will decode a GRANDPA justification and validate the commit and the votes'
+// ancestry proofs finalize the given block.
 func DecodeGrandpaJustificationVerifyFinalizes[
 	Hash runtime.Hash,
 	N runtime.Number,
@@ -166,9 +166,8 @@ func (j *GrandpaJustification[Hash, N]) verifyWithVoterSet(
 		return fmt.Errorf("%w: invalid commit in grandpa justification", errBadJustification)
 	}
 
-	// we pick the precommit for the lowest block as the base that
-	// should serve as the root block for populating ancestry (i.e.
-	// collect all headers from all precommit blocks to the base)
+	// we pick the precommit for the lowest block as the base that should serve as the root block for populating
+	// ancestry (i.e. collect all headers from all precommit blocks to the base)
 	precommits := j.Justification.Commit.Precommits
 	var minPrecommit *grandpa.SignedPrecommit[Hash, N, primitives.AuthoritySignature, primitives.AuthorityID]
 	if len(precommits) == 0 {
@@ -187,9 +186,8 @@ func (j *GrandpaJustification[Hash, N]) verifyWithVoterSet(
 	baseHash := minPrecommit.Precommit.TargetHash
 	visitedHashes := make(map[Hash]struct{})
 	for _, signed := range precommits {
-		msg := grandpa.NewMessage(signed.Precommit)
 		isValidSignature := primitives.CheckMessageSignature[Hash, N](
-			msg,
+			signed.Precommit,
 			signed.ID,
 			signed.Signature,
 			primitives.RoundNumber(j.Justification.Round),
@@ -211,8 +209,7 @@ func (j *GrandpaJustification[Hash, N]) verifyWithVoterSet(
 				errBadJustification)
 		}
 
-		// ancestry starts from parent HashField but the precommit target HashField has been
-		// visited
+		// ancestry starts from parent HashField but the precommit target HashField has been visited.
 		visitedHashes[signed.Precommit.TargetHash] = struct{}{}
 		for _, hash := range route {
 			visitedHashes[hash] = struct{}{}
@@ -239,7 +236,7 @@ func (j *GrandpaJustification[Hash, N]) verifyWithVoterSet(
 	return nil
 }
 
-// Target is the target block NumberField and HashField that this justifications proves finality for
+// Target is the target block NumberField and HashField that this justifications proves finality for.
 func (j *GrandpaJustification[Hash, N]) Target() HashNumber[Hash, N] {
 	return HashNumber[Hash, N]{
 		Number: j.Justification.Commit.TargetNumber,
@@ -247,9 +244,8 @@ func (j *GrandpaJustification[Hash, N]) Target() HashNumber[Hash, N] {
 	}
 }
 
-// ancestryChain a utility trait implementing grandpa.Chain using a given set of headers.
-// This is useful when validating commits, using the given set of headers to
-// verify a valid ancestry route to the target commit block.
+// ancestryChain is a utility trait implementing grandpa.Chain using a given set of headers. This is useful when
+// validating commits, using the given set of headers to verify a valid ancestry route to the target commit block.
 type ancestryChain[Hash runtime.Hash, N runtime.Number] struct {
 	ancestry map[Hash]runtime.Header[N, Hash]
 }
