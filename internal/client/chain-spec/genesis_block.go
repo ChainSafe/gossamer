@@ -16,14 +16,15 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+var ErrMissingRuntime = errors.New("runtime missing from initial storage, could not read state version")
+
 func ResolveStateVersionFromWasm[Hasher runtime.Hasher[H], H runtime.Hash, E executor.RuntimeVersionOf](
 	storage primitives_storage.Storage,
 	executor E,
 ) (primitives_storage.StateVersion, error) {
 	wasm, has := storage.Top.Get(string(keys.Code))
 	if !has {
-		return primitives_storage.NoStateVersion,
-			errors.New("runtime missing from initial storage, could not read state version")
+		return primitives_storage.NoStateVersion, ErrMissingRuntime
 	}
 
 	ext := basic.NewBasicExternalities() // Just to read runtime version
