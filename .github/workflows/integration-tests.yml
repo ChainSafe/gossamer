@@ -71,11 +71,6 @@ jobs:
             ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}-build-
             ${{ runner.os }}-go-
 
-      - name: Pre-build packages
-        run: |
-          go build -v -tags integration ${{ matrix.packages }}
-          go test -tags integration -c ${{ matrix.packages }}
-
       - name: Run integration tests
         env:
           CI: buildjet
