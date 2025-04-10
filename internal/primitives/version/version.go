@@ -3,6 +3,11 @@
 
 package version
 
+import (
+	"github.com/ChainSafe/gossamer/internal/primitives/storage"
+	"github.com/ChainSafe/gossamer/pkg/trie"
+)
+
 type ApiId [8]uint8
 
 type ApisVecEntry struct {
@@ -75,4 +80,14 @@ type RuntimeVersion struct {
 	// Version of the system implementation used by this runtime.
 	// Use of an incorrect version is consensus breaking.
 	SystemVersion uint8
+}
+
+func (v *RuntimeVersion) StateVersion() storage.StateVersion {
+	// If version > than 1, keep using latest version.
+	stateVersion, err := trie.ParseVersion(v.SystemVersion)
+	if err != nil {
+		return storage.StateVersionV1
+	}
+
+	return storage.StateVersion(stateVersion)
 }

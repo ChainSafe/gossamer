@@ -7,6 +7,20 @@ type FetchRuntimeCode interface {
 	FetchRuntimeCode() *[]byte
 }
 
+type WrappedRuntimeCode struct {
+	code []byte
+}
+
+func NewWrappedRuntimeCode(code []byte) *WrappedRuntimeCode {
+	return &WrappedRuntimeCode{
+		code: code,
+	}
+}
+
+func (w *WrappedRuntimeCode) FetchRuntimeCode() *[]byte {
+	return &w.code
+}
+
 type RuntimeCode struct {
 	// The code fetcher that can be used to lazily fetch the code.
 	CodeFetcher FetchRuntimeCode

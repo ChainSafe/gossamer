@@ -987,7 +987,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) executeAndImportBlock(
 
 					// This is use by fast sync for runtime version to be resolvable from
 					// changes.
-					stateVersion, err := chainspec.ResolveStateVersionFromWasm(strg, c.executor)
+					stateVersion, err := chainspec.ResolveStateVersionFromWasm[Hasher](strg, c.executor)
 					if err != nil {
 						return nil, err
 					}
