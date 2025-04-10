@@ -13,27 +13,15 @@ type OffchainChangesCollection []struct {
 	ValueOperation offchain.OffchainOverlayedChange
 }
 
-type OffchainOverlayedChange interface {
-	isOffchainOverlayedChange()
-}
-
-type (
-	OffchainOverlayedChangeRemove   struct{}
-	OffchainOverlayedChangeSetValue []byte
-)
-
-func (OffchainOverlayedChangeRemove) isOffchainOverlayedChange()   {}
-func (OffchainOverlayedChangeSetValue) isOffchainOverlayedChange() {}
-
 // In-memory storage for offchain workers recording changes for the actual offchain storage
 // implementation.
 type OffchainOverlayedChanges struct {
-	OverlayedMap[string, OffchainOverlayedChange, *GenericOverlayedEntry[OffchainOverlayedChange]]
+	OverlayedMap[string, offchain.OffchainOverlayedChange, *GenericOverlayedEntry[offchain.OffchainOverlayedChange]]
 }
 
 func NewOffchainOverlayedChanges() OffchainOverlayedChanges {
 	return OffchainOverlayedChanges{
-		NewOverlayedMap[string, OffchainOverlayedChange, *GenericOverlayedEntry[OffchainOverlayedChange]](),
+		NewOverlayedMap[string, offchain.OffchainOverlayedChange, *GenericOverlayedEntry[offchain.OffchainOverlayedChange]](),
 	}
 }
 
@@ -46,11 +34,11 @@ func (oc OffchainOverlayedChanges) Clone() OffchainOverlayedChanges {
 // Remove a key and its associated value from the offchain database.
 func (oc *OffchainOverlayedChanges) Set(prefix []byte, key []byte, value []byte) {
 	prefixedKey := string(append(prefix, key...))
-	oc.SetOffchain(prefixedKey, OffchainOverlayedChangeSetValue(value), nil)
+	oc.SetOffchain(prefixedKey, offchain.OffchainOverlayedChangeSetValue(value), nil)
 }
 
 // Remove a key and its associated value from the offchain database.
 func (oc *OffchainOverlayedChanges) Remove(prefix []byte, key []byte) {
 	prefixedKey := string(append(prefix, key...))
-	oc.SetOffchain(prefixedKey, OffchainOverlayedChangeRemove{}, nil)
+	oc.SetOffchain(prefixedKey, offchain.OffchainOverlayedChangeRemove{}, nil)
 }
