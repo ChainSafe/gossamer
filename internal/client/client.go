@@ -4,7 +4,6 @@
 package client
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -908,7 +907,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) executeAndImportBlock(
 	// the block is lower than our last finalized block so it must revert
 	// finality, refusing import.
 	if status == blockchain.BlockStatusUnknown && importHeaders.Post().Number() < info.FinalizedNumber && !gapBlock {
-		return nil, errors.New("potential long-range attack: block not in finalized chain.")
+		return nil, blockchain.ErrNotInFinalizedChain
 	}
 
 	// this is a fairly arbitrary choice of where to draw the line on making notifications,
@@ -968,7 +967,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) executeAndImportBlock(
 						if childType := storage.NewChildTypeFromPrefixedKey(prefixedStorageKey); childType != nil {
 							storageKey = childType.Key
 						} else {
-							return nil, errors.New("Invalid child storage key")
+							return nil, blockchain.ErrInvalidChildStorageKey
 						}
 
 						entry, has := strg.ChildrenDefault[string(storageKey)]
@@ -1001,7 +1000,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) executeAndImportBlock(
 						// State root mismatch when importing state. This should not happen in
 						// safe fast sync mode, but may happen in unsafe mode.
 						logger.Warn("Error importing state: State root mismatch.")
-						return nil, errors.New("Invalid state root")
+						return nil, blockchain.ErrInvalidStateRoot
 					}
 				}
 			}
@@ -1025,7 +1024,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) executeAndImportBlock(
 		case common.Custom:
 			isNewBest = bool(fc)
 		default:
-			return nil, errors.New("Invalid fork choice strategy")
+			panic("unreachable")
 		}
 	}
 

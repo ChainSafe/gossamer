@@ -11,6 +11,7 @@ var (
 	ErrNonSequentialFinalization = errors.New("did not finalize blocks in sequential order")
 	ErrNotInFinalizedChain       = errors.New("potential long-range attack: block not in finalized chain")
 	ErrInvalidState              = errors.New("provided state is invalid")
+	ErrInvalidChildStorageKey    = errors.New("invalid child storage key")
 	ErrBadJustification          = errors.New("bad justification for header")
 	ErrStateDatabase             = errors.New("state database error")
 	ErrSetHeadTooOld             = errors.New("failed to set the chain head to a block that's too old")
