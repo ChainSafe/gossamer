@@ -24,17 +24,20 @@ type TransactionValidityErrorValues interface {
 	InvalidTransaction | UnknownTransaction
 }
 
-func setMyVaryingDataType[Value TransactionValidityErrorValues](mvdt *TransactionValidityError, value Value) {
+func setTransactionValidityError[Value TransactionValidityErrorValues](
+	mvdt *TransactionValidityError,
+	value Value,
+) {
 	mvdt.inner = value
 }
 
 func (mvdt *TransactionValidityError) SetValue(value any) (err error) {
 	switch value := value.(type) {
 	case InvalidTransaction:
-		setMyVaryingDataType(mvdt, value)
+		setTransactionValidityError(mvdt, value)
 		return
 	case UnknownTransaction:
-		setMyVaryingDataType(mvdt, value)
+		setTransactionValidityError(mvdt, value)
 		return
 	default:
 		return fmt.Errorf("unsupported type")
