@@ -1297,7 +1297,7 @@ func (in *Instance) ParachainHostSessionIndexForChild() (parachaintypes.SessionI
 // for any parachain assigned to an occupied availability core.
 func (in *Instance) ParachainHostCandidatePendingAvailability(
 	parachainID parachaintypes.ParaID,
-) (*parachaintypes.CommittedCandidateReceipt, error) {
+) (*parachaintypes.CommittedCandidateReceiptV2, error) {
 	buffer := bytes.NewBuffer(nil)
 	encoder := scale.NewEncoder(buffer)
 	err := encoder.Encode(parachainID)
@@ -1313,7 +1313,7 @@ func (in *Instance) ParachainHostCandidatePendingAvailability(
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	var candidateReceipt *parachaintypes.CommittedCandidateReceipt
+	var candidateReceipt *parachaintypes.CommittedCandidateReceiptV2
 	err = scale.Unmarshal(encodedCandidateReceipt, &candidateReceipt)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling: %w", err)
@@ -1602,7 +1602,7 @@ func (in *Instance) ParachainHostBackingConstraints(
 
 func (in *Instance) ParachainHostCandidatesPendingAvailability(
 	paraID parachaintypes.ParaID,
-) ([]parachaintypes.CommittedCandidateReceipt, error) {
+) ([]parachaintypes.CommittedCandidateReceiptV2, error) {
 	encodedParaID, err := scale.Marshal(paraID)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling para id: %w", err)
@@ -1613,7 +1613,7 @@ func (in *Instance) ParachainHostCandidatesPendingAvailability(
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	var pendingCandidates []parachaintypes.CommittedCandidateReceipt
+	var pendingCandidates []parachaintypes.CommittedCandidateReceiptV2
 	err = scale.Unmarshal(encoded, &pendingCandidates)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling: %w", err)

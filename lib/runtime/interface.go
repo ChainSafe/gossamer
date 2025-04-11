@@ -70,7 +70,7 @@ type Instance interface {
 	ParachainHostSessionIndexForChild() (parachaintypes.SessionIndex, error)
 	ParachainHostCandidatePendingAvailability(
 		parachainID parachaintypes.ParaID,
-	) (*parachaintypes.CommittedCandidateReceipt, error)
+	) (*parachaintypes.CommittedCandidateReceiptV2, error)
 	ParachainHostCandidateEvents() ([]parachaintypes.CandidateEvent, error)
 	ParachainHostSessionInfo(
 		sessionIndex parachaintypes.SessionIndex,
@@ -89,5 +89,5 @@ type Instance interface {
 	) (*parachaintypes.Constraints, error)
 	ParachainHostCandidatesPendingAvailability(
 		paraID parachaintypes.ParaID,
-	) ([]parachaintypes.CommittedCandidateReceipt, error)
+	) ([]parachaintypes.CommittedCandidateReceiptV2, error)
 }

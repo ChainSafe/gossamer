@@ -1,15 +1,19 @@
 package prospectiveparachains
 
 import (
+	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/primitives"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"golang.org/x/exp/maps"
 )
 
 const DefaultSchedulingLookAhead uint32 = 3
@@ -73,6 +77,17 @@ func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
 			return fmt.Errorf("fetching ancestry: %w", err)
 		}
 
+		ancestorsHashes := make([]string, len(ancestry))
+		ancestryBlockInfo := make([]relayChainBlockInfo, len(ancestry))
+		for idx, a := range ancestry {
+			ancestryBlockInfo[idx] = relayChainBlockInfo{
+				Hash:        a.Hash(),
+				Number:      parachaintypes.BlockNumber(a.Number),
+				StorageRoot: a.StateRoot,
+			}
+			ancestorsHashes[idx] = a.Hash().String()
+		}
+
 		var prevFragmentChains map[parachaintypes.ParaID]*fragmentChain
 		if len(ancestry) > 0 {
 			prevFragmentChains = pp.view.perRelayParent[ancestry[0].Hash()].fragmentChains
@@ -90,12 +105,114 @@ func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
 				continue
 			}
 
-			pendingAvailability, err := runtimeInstance.ParachainHostCandidatesPendingAvailability(paraID)
+			pendingAvailabilityCandidates, err := runtimeInstance.ParachainHostCandidatesPendingAvailability(
+				paraID,
+			)
 			if err != nil {
 				return fmt.Errorf("fetching pending availability candidates: %w", err)
 			}
 
-			preprocessCandidatesPendingAvailability(tmpHeaderCache, constraints, pendingAvailability)
+			importablePending, err := pp.preprocessCandidatesPendingAvailability(
+				tmpHeaderCache,
+				constraints,
+				pendingAvailabilityCandidates,
+			)
+			if err != nil {
+				return fmt.Errorf("preprocessing candidates pending availability: %w", err)
+			}
+
+			compactPending := make([]*pendingAvailability, 0, len(importablePending))
+			pendingAvailabilityStorage := newCandidateStorage()
+
+			for _, pending := range importablePending {
+				candidateHash := pending.compact.candidateHash
+
+				err := pendingAvailabilityStorage.addPendingAvailabilityCandidate(
+					candidateHash,
+					pending.candidate,
+					pending.pvd,
+				)
+
+				if err != nil && !errors.Is(err, errCandidateAlreadyKnown) {
+					logger.Warnf("scraped invalid candidate pending availability, "+
+						"candidate hash=%s, para id=%d, err=%s", candidateHash, paraID, err.Error())
+					break
+				}
+
+				compactPending = append(compactPending, &pending.compact)
+			}
+
+			maxBackableChainLen := len(maps.Values(claimsByDepth))
+
+			scope, err := newScopeWithAncestors(
+				relayChainBlockInfo{
+					Hash:        blockInfo.Hash(),
+					Number:      parachaintypes.BlockNumber(blockInfo.Number),
+					StorageRoot: blockInfo.StateRoot,
+				},
+				constraints,
+				compactPending,
+				uint(maxBackableChainLen),
+				ancestryBlockInfo,
+			)
+			if err != nil {
+				logger.Warnf(
+					"relay  chain ancestors have wrong order, "+
+						"para id=%d, max backable=%d, ancestry=%s, leaf=%s, err=%s",
+					paraID,
+					maxBackableChainLen,
+					strings.Join(ancestorsHashes, ","),
+					hash,
+					err.Error(),
+				)
+				continue
+			}
+
+			logger.Tracef(
+				"creating fragment chain, "+
+					"relay parent=%s, min relay parent=%s, max backable=%d, para id=%d, ancestors=%s",
+				hash,
+				scope.earliestRelayParent().Number,
+				maxBackableChainLen,
+				paraID,
+				strings.Join(ancestorsHashes, ","),
+			)
+
+			numOfPendingCandidates := pendingAvailabilityStorage.len()
+			// Init the fragment chain with the pending availability candidates.
+			chain := newFragmentChain(scope, pendingAvailabilityStorage)
+			if chain.bestChainLen() < numOfPendingCandidates {
+				logger.Warnf(
+					"not all pending availability candidates could be introduced, "+
+						"expected=%d, actual=%d, para id=%d, relay parent=%d",
+					chain.bestChainLen(),
+					numOfPendingCandidates,
+					paraID,
+					hash,
+				)
+			}
+
+			// If we know the previous fragment chain, use that for further populating the fragment
+			// chain.
+
+			if prevFragmentChains != nil {
+				if prev, ok := prevFragmentChains[paraID]; ok {
+					chain.populateFromPrevious(prev)
+				}
+			}
+
+			logger.Tracef("populated fragment chain with %d candidates: %v, relay parent=%s, para id=%d",
+				chain.bestChainLen(), chain.bestChainVec(), hash, paraID)
+
+			unconnectedHashes := make([]string, 0)
+			for hash := range chain.unconnected.byCandidateHash {
+				unconnectedHashes = append(unconnectedHashes, hash.String())
+			}
+
+			logger.Tracef("potential candidate storage for para: %v, relay parent=%s, para id=%d",
+				strings.Join(unconnectedHashes, ","), hash, paraID)
+
+			fragmentChains[paraID] = chain
 		}
 	}
 
@@ -170,14 +287,68 @@ func (pp *ProspectiveParachains) fetchAncestry(
 }
 
 type importablePendingAvailability struct {
-	candidate parachaintypes.CommittedCandidateReceipt
+	candidate parachaintypes.CommittedCandidateReceiptV2
 	pvd       parachaintypes.PersistedValidationData
 	compact   pendingAvailability
 }
 
-func preprocessCandidatesPendingAvailability(
+func (pp *ProspectiveParachains) preprocessCandidatesPendingAvailability(
 	blockInfoCache map[common.Hash]*types.Header,
 	constraints *parachaintypes.Constraints,
-	pendingAvailability []parachaintypes.CommittedCandidateReceipt,
-) {
+	pendingAvailabilityCandidates []parachaintypes.CommittedCandidateReceiptV2,
+) ([]importablePendingAvailability, error) {
+	requiredParent := constraints.RequiredParent
+	importable := make([]importablePendingAvailability, 0)
+	expectedCount := len(pendingAvailabilityCandidates)
+
+	for i, pending := range pendingAvailabilityCandidates {
+		candidateHash, err := pending.Hash()
+		if err != nil {
+			return nil, fmt.Errorf("hashing pending candidate: %w", err)
+		}
+
+		relayParent, err := pp.fetchBlockInfo(blockInfoCache, pending.Descriptor.RelayParent)
+		if err != nil && !errors.Is(database.ErrNotFound, err) {
+			return nil, fmt.Errorf("fetching block info: %w", err)
+		}
+
+		// if the block could not be fetch from database we should break and return
+		// what we have accumulated so far
+		if relayParent == nil || errors.Is(database.ErrNotFound, err) {
+			logger.Errorf("had to stop processing pending "+
+				"candidates early due to missing info, "+
+				"candidate hash=%s, para id=%d, index=%d, expected count=%d, error=%s",
+				candidateHash, pending.Descriptor.ParaID, i, expectedCount, err,
+			)
+			break
+		}
+
+		nextRequiredParent := pending.Commitments.HeadData
+		importable = append(importable, importablePendingAvailability{
+			candidate: parachaintypes.CommittedCandidateReceiptV2{
+				Descriptor:  pending.Descriptor,
+				Commitments: pending.Commitments,
+			},
+			pvd: parachaintypes.PersistedValidationData{
+				ParentHead:             requiredParent,
+				MaxPovSize:             constraints.MaxPoVSize,
+				RelayParentNumber:      uint32(relayParent.Number),
+				RelayParentStorageRoot: relayParent.StateRoot,
+			},
+			compact: pendingAvailability{
+				candidateHash: parachaintypes.CandidateHash{
+					Value: candidateHash,
+				},
+				relayParent: relayChainBlockInfo{
+					Hash:        relayParent.Hash(),
+					Number:      parachaintypes.BlockNumber(relayParent.Number),
+					StorageRoot: relayParent.StateRoot,
+				},
+			},
+		})
+
+		requiredParent = nextRequiredParent
+	}
+
+	return importable, nil
 }
