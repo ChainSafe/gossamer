@@ -79,24 +79,14 @@ func (cv *CandidateValidation) processMessage(msg any) {
 	case ValidateFromChainState:
 		cv.validateFromChainState(msg)
 	case ValidateFromExhaustive:
-		validationTask := &ValidationTask{
-			PersistedValidationData: msg.PersistedValidationData,
-			ValidationCode:          &msg.ValidationCode,
-			CandidateReceipt:        &msg.CandidateReceipt,
-			PoV:                     msg.PoV,
-			ExecutorParams:          msg.ExecutorParams,
-			PvfExecTimeoutKind:      msg.PvfExecTimeoutKind,
-		}
-
-		result, err := cv.pvfHost.validate(validationTask)
+		validationResult, err := cv.validateFromExhaustive(msg)
 		if err != nil {
-			logger.Errorf("failed to validate from exhaustive: %w", err)
 			msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 				Err: err,
 			}
 		} else {
 			msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
-				Data: *result,
+				Data: *validationResult,
 			}
 		}
 
@@ -117,6 +107,54 @@ func (cv *CandidateValidation) processMessage(msg any) {
 	default:
 		logger.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
 	}
+}
+
+func (cv *CandidateValidation) validateFromExhaustive(msg ValidateFromExhaustive) (*ValidationResult, error) {
+	runtimeInstance, err := cv.BlockState.GetRuntime(msg.CandidateReceipt.Descriptor.RelayParent)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime instance: %w", err)
+	}
+
+	expectedSessionIndex, err := runtimeInstance.ParachainHostSessionIndexForChild()
+	if err != nil {
+		return nil, fmt.Errorf("getting session index: %w", err)
+	}
+
+	execKind, err := msg.PvfExecTimeoutKind.Value()
+	if err != nil {
+		return nil, fmt.Errorf("getting execution kind: %w", err)
+	}
+
+	// check if the execution kind is backing
+	_, isBackingExecKind := execKind.(parachaintypes.Backing)
+
+	// We only check the session index for backing.
+	if isBackingExecKind && expectedSessionIndex != msg.CandidateReceipt.Descriptor.SessionIndex {
+		invalidSessionIndex := InvalidSessionIndex
+		return &ValidationResult{Invalid: &invalidSessionIndex}, nil
+	}
+
+	claimQueue, err := runtimeInstance.ParachainHostClaimQueue()
+	if err != nil {
+		return nil, fmt.Errorf("getting claim queue: %w", err)
+	}
+
+	validationTask := &ValidationTask{
+		PersistedValidationData: msg.PersistedValidationData,
+		ValidationCode:          &msg.ValidationCode,
+		CandidateReceipt:        &msg.CandidateReceipt,
+		PoV:                     msg.PoV,
+		ExecutorParams:          msg.ExecutorParams,
+		PvfExecTimeoutKind:      msg.PvfExecTimeoutKind,
+		ClaimQueue:              claimQueue,
+	}
+
+	result, err := cv.pvfHost.validate(validationTask)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // PoVRequestor gets proof of validity by issuing network requests to validators of the current backing group.

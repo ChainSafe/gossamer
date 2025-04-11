@@ -24,6 +24,7 @@ type workerTask struct {
 	maxPoVSize       uint32
 	candidateReceipt *parachaintypes.CandidateReceiptV2
 	timeoutKind      parachaintypes.PvfExecTimeoutKind
+	ClaimQueue       parachaintypes.ClaimQueue
 }
 
 var ErrorPreCheckTimeout = errors.New("precheck timed out")
@@ -142,6 +143,21 @@ func (w *worker) executeRequest(task *workerTask) (*ValidationResult, error) {
 		reasonForInvalidity := CommitmentsHashMismatch
 		return &ValidationResult{Invalid: &reasonForInvalidity}, nil
 	}
+
+	committedCandidateReceipt := parachaintypes.CommittedCandidateReceiptV2{
+		Descriptor:  task.candidateReceipt.Descriptor,
+		Commitments: candidateCommitments,
+	}
+
+	// check if the core index is valid
+	err = committedCandidateReceipt.CheckCoreIndex(task.ClaimQueue.ToTransposed())
+	if err != nil {
+		logger.Warnf("checking core index: %s", err)
+
+		invalidCoreIndex := InvalidCoreIndex
+		return &ValidationResult{Invalid: &invalidCoreIndex}, nil
+	}
+
 	pvd := parachaintypes.PersistedValidationData{
 		ParentHead:             task.work.ParentHeadData,
 		RelayParentNumber:      task.work.RelayParentNumber,
