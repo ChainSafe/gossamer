@@ -6,8 +6,10 @@ package bitfielddistribution
 import (
 	"context"
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"sync"
+
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
 
@@ -29,7 +31,7 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-bitfield-distrib
 type perRelayParentData struct {
 	// Signing context for a particular relay parent.
 	// the required part of the signing context
-	sessionIndex parachaintypes.SessionIndex
+	signingContext parachaintypes.SigningContext
 
 	// Set of validators for a particular relay parent.
 	validatorsSet []parachaintypes.ValidatorID
@@ -47,13 +49,10 @@ type perRelayParentData struct {
 	messageReceivedFromPeer map[peer.ID]map[parachaintypes.ValidatorID]struct{}
 }
 
-// this will be used in the PeerViewChange handler so skip the lint check for now
-//
-//nolint:all
-func newPerRelayParentData(sessionIndex parachaintypes.SessionIndex, validatorSet []parachaintypes.ValidatorID,
+func newPerRelayParentData(signingContext parachaintypes.SigningContext, validatorSet []parachaintypes.ValidatorID,
 ) *perRelayParentData {
 	return &perRelayParentData{
-		sessionIndex:            sessionIndex,
+		signingContext:          signingContext,
 		validatorsSet:           validatorSet,
 		onePerValidator:         make(map[parachaintypes.ValidatorID]*validationprotocol.BitfieldDistributionMessage),
 		messageSentToPeer:       make(map[peer.ID]map[parachaintypes.ValidatorID]struct{}),
@@ -73,6 +72,10 @@ func (p *perRelayParentData) messageFromValidatorNeededByPeer(
 	return !sendToExist && !receiveFromExist
 }
 
+type BlockState interface {
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
+}
+
 // BitfieldDistribution is the parachain subsystem that is responsible for gossipping signed availability bitfields.
 // The bitfields express which parachain block candidates the signing validator considers available.
 type BitfieldDistribution struct {
@@ -83,6 +86,8 @@ type BitfieldDistribution struct {
 	topologies     *grid.SessionGridTopologyStorage
 	perRelayParent map[common.Hash]*perRelayParentData
 	reputation     *util.ReputationAggregator
+
+	blockState BlockState
 
 	// TODO: Metrics
 
@@ -188,7 +193,7 @@ func (b *BitfieldDistribution) processBitfieldDistributionMessage(msg parachaint
 		return nil
 	}
 
-	sessionIdx := jobData.sessionIndex
+	sessionIdx := jobData.signingContext.SessionIndex
 
 	if len(jobData.validatorsSet) == 0 {
 		logger.Debugf("validator set is empty")
@@ -458,7 +463,7 @@ func (b *BitfieldDistribution) processIncomingPeerMessageEvent(event networkbrid
 	}
 
 	// prepare for the relay message call
-	topology := b.topologies.GetTopologyOrFallback(jobData.sessionIndex).LocalNeighbours
+	topology := b.topologies.GetTopologyOrFallback(jobData.signingContext.SessionIndex).LocalNeighbours
 	requiredRouting := topology.RequiredRoutingByIndex(validatorIdx, false)
 	message := validationprotocol.CheckedBitfield{
 		Hash:                              relayParent,
@@ -503,8 +508,26 @@ func (b *BitfieldDistribution) processUpdatedAuthorityIDsEvent(event networkbrid
 }
 
 func (b *BitfieldDistribution) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
-	//TODO implement in #4361
-	panic("implement me")
+	activatedLeaf := signal.Activated
+	if activatedLeaf == nil {
+		return nil
+	}
+
+	relayParent := activatedLeaf.Hash
+
+	logger.Tracef("Process ActiveLeavesUpdateSignal activatedLeaf: %v", relayParent)
+
+	validatorSet, signingContext, err := b.queryBasics(relayParent)
+	if err != nil {
+		logger.Warnf("could not query basic info for relayParent: %s, error: %v", relayParent.String(), err)
+		return err
+	}
+
+	b.mu.Lock()
+	b.perRelayParent[relayParent] = newPerRelayParentData(*signingContext, validatorSet)
+	b.mu.Unlock()
+
+	return nil
 }
 
 func (b *BitfieldDistribution) ProcessBlockFinalizedSignal(_ parachaintypes.BlockFinalizedSignal) error {
@@ -714,4 +737,30 @@ func modifyReputation(reputation *util.ReputationAggregator, sender chan<- any, 
 	logger.Tracef("reputation modified for peer %s on relay parent %s", peer.String(), relayParent.String())
 
 	reputation.Modify(sender, peer, rep)
+}
+
+// queryBasics queries our validator set and signing context for a particular relay parent
+func (b *BitfieldDistribution) queryBasics(
+	relayParent common.Hash,
+) ([]parachaintypes.ValidatorID, *parachaintypes.SigningContext, error) {
+	// query validators
+	rt, err := b.blockState.GetRuntime(relayParent)
+	if err != nil {
+		return nil, nil, err
+	}
+	validatorSet, err := rt.ParachainHostValidators()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// query signing context
+	sessionIndex, err := rt.ParachainHostSessionIndexForChild()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return validatorSet, &parachaintypes.SigningContext{
+		SessionIndex: sessionIndex,
+		ParentHash:   relayParent,
+	}, nil
 }

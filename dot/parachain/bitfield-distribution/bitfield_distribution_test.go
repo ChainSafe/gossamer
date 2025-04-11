@@ -38,7 +38,10 @@ func TestMessageFromValidatorNeededByPeer(t *testing.T) {
 		[sr25519.PublicKeyLength]byte{2},
 	}
 
-	prpd := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
+	prpd := newPerRelayParentData(parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}, validatorSet)
 
 	peerA := generateDummyPeerID(t, -1)
 	peerB := generateDummyPeerID(t, -2)
@@ -275,7 +278,10 @@ func TestBitfieldDistribution_RelayMessage_InterestedPeersEmpty(t *testing.T) {
 		},
 	}
 
-	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
+	jobData := newPerRelayParentData(parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}, validatorSet)
 
 	// control the peer protocol version here and the peer's Head
 	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{
@@ -353,7 +359,10 @@ func TestBitfieldDistribution_RelayMessage_FilterV2Peers(t *testing.T) {
 		},
 	}
 
-	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
+	jobData := newPerRelayParentData(parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}, validatorSet)
 
 	// control the peer protocol version here and the peer's Head
 	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{
@@ -445,7 +454,10 @@ func TestBitfieldDistribution_RelayMessage_FilterV3Peers(t *testing.T) {
 		},
 	}
 
-	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
+	jobData := newPerRelayParentData(parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}, validatorSet)
 
 	// control the peer protocol version here and the peer's Head
 	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{
@@ -531,7 +543,10 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_NoRelayParentTo
 }
 
 func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_ValidatorSetEmpty(t *testing.T) {
-	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), nil)
+	jobData := newPerRelayParentData(parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}, nil)
 	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{}
 	overseerCh := make(chan any)
 	b := &BitfieldDistribution{
@@ -558,7 +573,10 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_ValidatorSetEmp
 
 func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_ValidatorIdxInvalid(t *testing.T) {
 	validatorIndex, validatorSet := prepareForValidators()
-	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
+	jobData := newPerRelayParentData(parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}, validatorSet)
 	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{}
 	overseerCh := make(chan any)
 	b := &BitfieldDistribution{
@@ -597,7 +615,10 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_CheckSignedAvai
 		parachaintypes.ValidatorID(aliceKeypair.Public().Encode()),
 		[sr25519.PublicKeyLength]byte{2},
 	}
-	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
+	jobData := newPerRelayParentData(parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}, validatorSet)
 	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{}
 
 	gt := grid.NewSessionGridTopology([]uint{1, 2, 3}, []grid.TopologyPeerInfo{{
@@ -886,7 +907,10 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_ValidatorSetEmpty(
 		Message: *vp,
 	}
 
-	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), nil)
+	jobData := newPerRelayParentData(parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}, nil)
 
 	overseerCh := make(chan any)
 	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{}
@@ -944,7 +968,10 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_ValidatorNotExist(
 	}
 
 	_, validatorSet := prepareForValidators()
-	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
+	jobData := newPerRelayParentData(parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}, validatorSet)
 
 	overseerCh := make(chan any)
 	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{}
@@ -1002,7 +1029,10 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_ReceivedSetNotEmpt
 	}
 
 	_, validatorSet := prepareForValidators()
-	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
+	jobData := newPerRelayParentData(parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}, validatorSet)
 
 	overseerCh := make(chan any)
 	peerViews := map[peer.ID]*networkbridge.PeerDataViewWithVersion{}
@@ -1065,7 +1095,10 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_DuplicatedMessages
 	}
 
 	validatorIndex, validatorSet := prepareForValidators()
-	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
+	jobData := newPerRelayParentData(parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}, validatorSet)
 
 	jobData.onePerValidator = map[parachaintypes.ValidatorID]*validationprotocol.BitfieldDistributionMessage{
 		validatorSet[validatorIndex]: vb,
@@ -1142,7 +1175,10 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_Success(t *testing
 		Message: *vp,
 	}
 
-	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
+	jobData := newPerRelayParentData(parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}, validatorSet)
 
 	storedMessage := validationprotocol.UncheckedBitfield{
 		Hash: relayParent,
@@ -1270,7 +1306,10 @@ func TestBitfieldDistribution_SendTrackedGossipMessage_noPeerView(t *testing.T) 
 
 	relayParent := common.Hash{1, 1, 1}
 
-	perRelayParent := newPerRelayParentData(1, validatorSet)
+	perRelayParent := newPerRelayParentData(parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}, validatorSet)
 	b.perRelayParent[relayParent] = perRelayParent
 
 	message := validationprotocol.CheckedBitfield{
@@ -1312,7 +1351,10 @@ func TestBitfieldDistribution_SendTrackedGossipMessage_noMessageSentToPeer(t *te
 
 	relayParent := common.Hash{1, 1, 1}
 
-	perRelayParent := newPerRelayParentData(1, validatorSet)
+	perRelayParent := newPerRelayParentData(parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}, validatorSet)
 	b.perRelayParent[relayParent] = perRelayParent
 
 	b.peerViews[dest] = &networkbridge.PeerDataViewWithVersion{
@@ -1359,7 +1401,10 @@ func TestBitfieldDistribution_handlePeerViewChange_noPeerView(t *testing.T) {
 	_, validatorSet := prepareForValidators()
 	b := NewBitfieldDistribution(overseerCh)
 	relayParent := common.Hash{1, 1, 1}
-	perRelayParent := newPerRelayParentData(1, validatorSet)
+	perRelayParent := newPerRelayParentData(parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}, validatorSet)
 	b.perRelayParent[relayParent] = perRelayParent
 	view := parachaintypes.View{}
 
@@ -1386,7 +1431,10 @@ func TestBitfieldDistribution_handlePeerViewChange_noGossipPeer(t *testing.T) {
 
 	b := NewBitfieldDistribution(overseerCh)
 	relayParent := common.Hash{1, 1, 1}
-	perRelayParent := newPerRelayParentData(1, validatorSet)
+	perRelayParent := newPerRelayParentData(parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}, validatorSet)
 	b.perRelayParent[relayParent] = perRelayParent
 
 	// old view
@@ -1439,7 +1487,10 @@ func TestBitfieldDistribution_handlePeerViewChange_GossipPeer(t *testing.T) {
 	err = bvdt.SetValue(message)
 	assert.Nil(t, err)
 
-	perRelayParent := newPerRelayParentData(1, validatorSet)
+	perRelayParent := newPerRelayParentData(parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}, validatorSet)
 	perRelayParent.onePerValidator[validatorSet[0]] = &bvdt
 	b := NewBitfieldDistribution(overseerCh)
 	b.perRelayParent[relayParent] = perRelayParent
@@ -1480,7 +1531,7 @@ func TestBitfieldDistribution_handlePeerViewChange_GossipPeer(t *testing.T) {
 	}
 }
 
-func TestBitfieldDistribution_ProcessOurViewChangeEventNewViewNotExistInState(t *testing.T) {
+func TestBitfieldDistribution_ProcessOurViewChangeEvent_NewViewNotExistInState(t *testing.T) {
 	oldView := parachaintypes.View{
 		Heads:           []common.Hash{{0x02}},
 		FinalizedNumber: 2,
@@ -1525,7 +1576,10 @@ func TestBitfieldDistribution_ProcessOurViewChangeEventRemoveView(t *testing.T) 
 
 	b := NewBitfieldDistribution(nil)
 	b.ourView = oldView
-	b.perRelayParent[common.Hash{0x02}] = newPerRelayParentData(1, nil)
+	b.perRelayParent[common.Hash{0x02}] = newPerRelayParentData(parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}, nil)
 
 	// before the override
 	assert.Equal(t, parachaintypes.View{
