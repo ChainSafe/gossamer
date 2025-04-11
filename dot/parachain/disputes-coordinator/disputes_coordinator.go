@@ -9,7 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 )
 
-var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-cdisputes-coordinator"))
+var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-disputes-coordinator"))
 
 type DisputesCoordinator struct {
 	SubSystemToOverseer chan<- any
