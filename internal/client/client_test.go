@@ -63,7 +63,7 @@ var (
 		runtime.OpaqueExtrinsic,
 		*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
 	] = &TestClient{}
-	_ primitives_api.ProvideRuntimeApi[primitives_api.ApiExt[
+	_ primitives_api.ProvideRuntimeAPI[primitives_api.ApiExt[
 		uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
 		statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
 	]] = &TestClient{}
@@ -95,7 +95,7 @@ func NewTestExecutor(t *testing.T) ExecutorT {
 
 type RuntimeConstructor struct{}
 
-func (e *RuntimeConstructor) ConstructRuntimeApi() primitives_api.ApiExt[
+func (e *RuntimeConstructor) ConstructRuntimeAPI() primitives_api.ApiExt[
 	uint64,
 	runtime.OpaqueExtrinsic,
 	hash.H256,
@@ -1135,12 +1135,12 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 		backendMock.EXPECT().Blockchain().Return(blockchainMock)
 
 		runtimeConstructorMock := mocks.NewConstructRuntimeApi[
-			uint64, runtime.OpaqueExtrinsic, hash.H256,
-			runtime.BlakeTwo256, statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
-			primitives_api.ApiExt[
-				uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
-				statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
-			]](t)
+		// uint64, runtime.OpaqueExtrinsic, hash.H256,
+		// runtime.BlakeTwo256, statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
+		primitives_api.ApiExt[
+			uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
+			statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
+		]](t)
 
 		runtimeApi := mocks.NewApiExt[
 			uint64, runtime.OpaqueExtrinsic, hash.H256,
@@ -1165,7 +1165,7 @@ func TestPrepareBlockStorageChanges(t *testing.T) {
 
 		runtimeApi.EXPECT().IntoStorageChanges(state, block.Header.ParentHash()).Return(storageChanges, nil)
 
-		runtimeConstructorMock.EXPECT().ConstructRuntimeApi().Return(runtimeApi)
+		runtimeConstructorMock.EXPECT().ConstructRuntimeAPI().Return(runtimeApi)
 
 		c := New(backendMock,
 			ClientConfig[uint64]{EnableImportProofRecording: true},

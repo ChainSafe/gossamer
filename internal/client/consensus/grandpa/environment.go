@@ -732,7 +732,7 @@ func (e *environment[H, N, Hasher, Header, E]) reportEquivocation(
 		currentSetLatestHash = bestBlockHash
 	}
 
-	runtimeAPI := e.Client.RuntimeApi()
+	runtimeAPI := e.Client.RuntimeAPI()
 
 	// generate key ownership proof at that block
 	keyOwnerProof := runtimeAPI.GenerateKeyOwnershipProof(
@@ -1610,14 +1610,18 @@ func finalizeBlock[
 
 		if newAuthorities != nil {
 			vc = voterCommandChangeAuthorities[H, N](*newAuthorities)
-			return nil, err
+			return vc, nil
 		}
 		vc = nil
-		return nil, err
+		return vc, nil
 	})
 
 	if vc != nil {
-		return vc
+		command, ok := vc.(voterCommand)
+		if !ok {
+			panic("unexpected type")
+		}
+		return command
 	}
 	if err != nil {
 		authoritySet.inner = oldAuthoritySet

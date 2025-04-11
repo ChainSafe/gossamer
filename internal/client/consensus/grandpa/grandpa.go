@@ -95,9 +95,9 @@ type ClientForGrandpa[
 	blockchain.HeaderMetadata[H, N]
 	blockchain.HeaderBackend[H, N, Header]
 	api.BlockchainEvents[H, N, Header]
-	papi.ProvideRuntimeApi[primitives.GrandpaAPI[H, N]]
+	papi.ProvideRuntimeAPI[primitives.GrandpaAPI[H, N]]
 	// api.ExecutorProvider
-	// common.BlockImport[H, N]
+	// common.BlockImport[H, N, E, Header]
 	// api.StorageProvider[H, N, Hasher]
 }
 
