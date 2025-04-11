@@ -59,6 +59,27 @@ func (bt256 BlakeTwo256) NewHash(data []byte) hash.H256 {
 
 var _ Hasher[hash.H256] = BlakeTwo256{}
 
+// HeaderRead is the read only interface for a header.
+type HeaderRead[N Number, H Hash] interface {
+	// Returns a reference to the header number.
+	Number() N
+
+	// Returns a reference to the extrinsics root.
+	ExtrinsicsRoot() H
+
+	// Returns a reference to the state root.
+	StateRoot() H
+
+	// Returns a reference to the parent hash.
+	ParentHash() H
+
+	// Returns a reference to the digest.
+	Digest() Digest
+
+	// Returns the hash of the header.
+	Hash() H
+}
+
 // Header is the interface for a header. It has types for a Number,
 // and Hash. It provides access to an ExtrinsicsRoot, StateRoot and
 // ParentHash, as well as a Digest and a block Number.
@@ -86,7 +107,7 @@ type Header[N Number, H Hash] interface {
 	// Returns a reference to the digest.
 	Digest() Digest
 	// Get a mutable reference to the digest.
-	DigestMut() *Digest
+	// DigestMut() *Digest
 
 	// Returns the hash of the header.
 	Hash() H
