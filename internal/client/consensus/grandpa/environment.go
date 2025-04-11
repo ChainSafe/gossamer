@@ -13,7 +13,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/client/api/utils"
-	"github.com/ChainSafe/gossamer/internal/client/consensus"
+	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
@@ -642,7 +642,7 @@ type environment[
 	E runtime.Extrinsic,
 ] struct {
 	Client        ClientForGrandpa[H, N, Hasher, Header, E]
-	SelectChain   consensus.SelectChain[H, N, Header]
+	SelectChain   common.SelectChain[H, N, Header]
 	Voters        grandpa.VoterSet[primitives.AuthorityID]
 	Config        Config
 	AuthoritySet  SharedAuthoritySet[H, N]
@@ -1741,7 +1741,7 @@ func bestChainContaining[
 	block H,
 	client ClientForGrandpa[H, N, Hasher, Header, E],
 	authoritySet *SharedAuthoritySet[H, N],
-	selectChain consensus.SelectChain[H, N, Header],
+	selectChain common.SelectChain[H, N, Header],
 	votingRule VotingRule[H, N, Header],
 ) (value *grandpa.HashNumber[H, N], err error) {
 
