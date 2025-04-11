@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
-	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/client/keystore"
 	"github.com/ChainSafe/gossamer/internal/client/network"
 	"github.com/ChainSafe/gossamer/internal/client/network/role"
@@ -150,7 +149,7 @@ func (bsfc BlockStatusForClient[H, N, Header]) BlockNumber(hash H) (*N, error) {
 //	+ StorageProvider<Block, BE>
 //
 // where
-//
+
 //	BE: Backend<Block>,
 //	Block: BlockT,
 //
@@ -169,9 +168,9 @@ type ClientForGrandpa[
 	blockchain.HeaderBackend[H, N, Header]
 	api.BlockchainEvents[H, N, Header]
 	papi.ProvideRuntimeAPI[primitives.GrandpaAPI[H, N]]
-	api.ExecutorProvider
-	common.BlockImport[H, N]
-	api.StorageProvider[H, N, Hasher]
+	// api.ExecutorProvider
+	// common.BlockImport[H, N]
+	// api.StorageProvider[H, N, Hasher]
 }
 
 // / Something that one can ask to do a block sync request.
