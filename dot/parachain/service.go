@@ -100,7 +100,7 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	overseer.RegisterSubsystem(bitfieldSigningsSubsystem)
 
 	// register bitfield distribution subsystem
-	bitfieldDistributionSubsystem := bitfielddistribution.NewBitfieldDistribution(overseer.SubsystemsToOverseer)
+	bitfieldDistributionSubsystem := bitfielddistribution.NewBitfieldDistribution(overseer.SubsystemsToOverseer, st.Block)
 	overseer.RegisterSubsystem(bitfieldDistributionSubsystem)
 
 	// register availability distribution subsystem

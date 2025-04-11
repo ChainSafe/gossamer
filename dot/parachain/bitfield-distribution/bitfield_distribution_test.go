@@ -1,9 +1,13 @@
 package bitfielddistribution
 
 import (
+	"errors"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	"go.uber.org/mock/gomock"
 
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
 
@@ -78,7 +82,7 @@ func TestMessageFromValidatorNeededByPeer(t *testing.T) {
 }
 
 func TestBitfieldDistribution_ProcessPeerConnectedEvent(t *testing.T) {
-	bd := NewBitfieldDistribution(make(chan<- any))
+	bd := NewBitfieldDistribution(make(chan<- any), nil)
 
 	assert.Equal(t, 0, len(bd.peerViews))
 
@@ -146,7 +150,7 @@ func TestBitfieldDistribution_ProcessPeerConnectedEvent(t *testing.T) {
 }
 
 func TestBitfieldDistribution_ProcessPeerDisconnectedEvent(t *testing.T) {
-	bd := NewBitfieldDistribution(make(chan<- any))
+	bd := NewBitfieldDistribution(make(chan<- any), nil)
 
 	targetPeer := generateDummyPeerID(t, -2)
 	signalWithVersion1 := networkbridgeevents.PeerConnected{
@@ -531,7 +535,7 @@ func TestBitfieldDistribution_RelayMessage_FilterV3Peers(t *testing.T) {
 
 func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_NoRelayParentToWorkOn(t *testing.T) {
 	overseerCh := make(chan any)
-	b := NewBitfieldDistribution(overseerCh)
+	b := NewBitfieldDistribution(overseerCh, nil)
 
 	message := parachaintypes.DistributeBitfield{
 		RelayParent: common.Hash{1, 2, 3},
@@ -719,7 +723,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_InvalidSignalType(
 	}
 
 	overseerCh := make(chan any)
-	b := NewBitfieldDistribution(overseerCh)
+	b := NewBitfieldDistribution(overseerCh, nil)
 
 	err = b.processIncomingPeerMessageEvent(signal)
 	assert.NotNil(t, err)
@@ -760,7 +764,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_CheckedBitfield(t 
 	}
 
 	overseerCh := make(chan any)
-	b := NewBitfieldDistribution(overseerCh)
+	b := NewBitfieldDistribution(overseerCh, nil)
 
 	err = b.processIncomingPeerMessageEvent(signal)
 	assert.NotNil(t, err)
@@ -1255,7 +1259,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_Success(t *testing
 func TestBitfieldDistribution_SendTrackedGossipMessage_noRelayParent(t *testing.T) {
 	overseerCh := make(chan any)
 
-	b := NewBitfieldDistribution(overseerCh)
+	b := NewBitfieldDistribution(overseerCh, nil)
 
 	dest := peer.ID("tester")
 
@@ -1295,7 +1299,7 @@ func TestBitfieldDistribution_SendTrackedGossipMessage_noRelayParent(t *testing.
 func TestBitfieldDistribution_SendTrackedGossipMessage_noPeerView(t *testing.T) {
 	overseerCh := make(chan any)
 
-	b := NewBitfieldDistribution(overseerCh)
+	b := NewBitfieldDistribution(overseerCh, nil)
 
 	dest := peer.ID("tester")
 
@@ -1340,7 +1344,7 @@ func TestBitfieldDistribution_SendTrackedGossipMessage_noPeerView(t *testing.T) 
 func TestBitfieldDistribution_SendTrackedGossipMessage_noMessageSentToPeer(t *testing.T) {
 	overseerCh := make(chan any)
 
-	b := NewBitfieldDistribution(overseerCh)
+	b := NewBitfieldDistribution(overseerCh, nil)
 
 	dest := peer.ID("tester")
 
@@ -1399,7 +1403,7 @@ func TestBitfieldDistribution_handlePeerViewChange_noPeerView(t *testing.T) {
 	overseerCh := make(chan any)
 	origin := peer.ID("tester")
 	_, validatorSet := prepareForValidators()
-	b := NewBitfieldDistribution(overseerCh)
+	b := NewBitfieldDistribution(overseerCh, nil)
 	relayParent := common.Hash{1, 1, 1}
 	perRelayParent := newPerRelayParentData(parachaintypes.SigningContext{
 		SessionIndex: parachaintypes.SessionIndex(1),
@@ -1429,7 +1433,7 @@ func TestBitfieldDistribution_handlePeerViewChange_noGossipPeer(t *testing.T) {
 	origin := peer.ID("tester")
 	_, validatorSet := prepareForValidators()
 
-	b := NewBitfieldDistribution(overseerCh)
+	b := NewBitfieldDistribution(overseerCh, nil)
 	relayParent := common.Hash{1, 1, 1}
 	perRelayParent := newPerRelayParentData(parachaintypes.SigningContext{
 		SessionIndex: parachaintypes.SessionIndex(1),
@@ -1492,7 +1496,7 @@ func TestBitfieldDistribution_handlePeerViewChange_GossipPeer(t *testing.T) {
 		ParentHash:   common.Hash{0x01},
 	}, validatorSet)
 	perRelayParent.onePerValidator[validatorSet[0]] = &bvdt
-	b := NewBitfieldDistribution(overseerCh)
+	b := NewBitfieldDistribution(overseerCh, nil)
 	b.perRelayParent[relayParent] = perRelayParent
 	b.topologies.CurrentTopology.LocalNeighbours.PeersRow[origin] = struct{}{}
 
@@ -1543,7 +1547,7 @@ func TestBitfieldDistribution_ProcessOurViewChangeEvent_NewViewNotExistInState(t
 		},
 	}
 
-	b := NewBitfieldDistribution(nil)
+	b := NewBitfieldDistribution(nil, nil)
 	b.ourView = oldView
 
 	// before the override
@@ -1574,7 +1578,7 @@ func TestBitfieldDistribution_ProcessOurViewChangeEventRemoveView(t *testing.T) 
 		},
 	}
 
-	b := NewBitfieldDistribution(nil)
+	b := NewBitfieldDistribution(nil, nil)
 	b.ourView = oldView
 	b.perRelayParent[common.Hash{0x02}] = newPerRelayParentData(parachaintypes.SigningContext{
 		SessionIndex: parachaintypes.SessionIndex(1),
@@ -1615,7 +1619,7 @@ func TestBitfieldDistribution_processUpdatedAuthorityIDsEvent(t *testing.T) {
 		SessionIndex: 99,
 	}
 
-	b := NewBitfieldDistribution(nil)
+	b := NewBitfieldDistribution(nil, nil)
 	b.topologies = &grid.SessionGridTopologyStorage{
 		CurrentTopology: sgte,
 	}
@@ -1637,4 +1641,117 @@ func TestBitfieldDistribution_processUpdatedAuthorityIDsEvent(t *testing.T) {
 	}
 	err = b.processUpdatedAuthorityIDsEvent(updated)
 	assert.NotNil(t, err)
+}
+
+func TestBitfieldDistribution_ProcessActiveLeavesUpdateSignal_activatedLeafIsNil(t *testing.T) {
+	signal := parachaintypes.ActiveLeavesUpdateSignal{
+		Activated: nil,
+	}
+
+	b := NewBitfieldDistribution(nil, nil)
+	err := b.ProcessActiveLeavesUpdateSignal(signal)
+	assert.Nil(t, err)
+}
+
+func TestBitfieldDistribution_ProcessActiveLeavesUpdateSignal_QueryRuntimeError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	blockAPIMock := mocks.NewMockBlockAPI(ctrl)
+
+	blockAPIMock.EXPECT().GetRuntime(common.Hash{0x01}).Return(
+		nil, errors.New("something is off")).Times(1)
+
+	signal := parachaintypes.ActiveLeavesUpdateSignal{
+		Activated: &parachaintypes.ActivatedLeaf{
+			Hash: common.Hash{0x01},
+		},
+	}
+
+	b := NewBitfieldDistribution(nil, blockAPIMock)
+	err := b.ProcessActiveLeavesUpdateSignal(signal)
+	assert.EqualError(t, err, "something is off")
+}
+
+func TestBitfieldDistribution_ProcessActiveLeavesUpdateSignal_QueryParachainHostValidatorsError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	blockAPIMock := mocks.NewMockBlockAPI(ctrl)
+	runtimeMock := NewMockInstance(ctrl)
+
+	blockAPIMock.EXPECT().GetRuntime(common.Hash{0x01}).Return(runtimeMock, nil).Times(1)
+	runtimeMock.EXPECT().ParachainHostValidators().Return(nil, errors.New("something is off")).Times(1)
+
+	signal := parachaintypes.ActiveLeavesUpdateSignal{
+		Activated: &parachaintypes.ActivatedLeaf{
+			Hash: common.Hash{0x01},
+		},
+	}
+
+	b := NewBitfieldDistribution(nil, blockAPIMock)
+	err := b.ProcessActiveLeavesUpdateSignal(signal)
+	assert.EqualError(t, err, "something is off")
+}
+
+func TestBitfieldDistribution_ProcessActiveLeavesUpdateSignal_QueryParachainHostSessionIndexForChildError(
+	t *testing.T,
+) {
+	ctrl := gomock.NewController(t)
+	blockAPIMock := mocks.NewMockBlockAPI(ctrl)
+	runtimeMock := NewMockInstance(ctrl)
+
+	validatorSet := []parachaintypes.ValidatorID{
+		[sr25519.PublicKeyLength]byte{1},
+		[sr25519.PublicKeyLength]byte{2},
+	}
+
+	blockAPIMock.EXPECT().GetRuntime(common.Hash{0x01}).Return(runtimeMock, nil).Times(1)
+	runtimeMock.EXPECT().ParachainHostValidators().Return(validatorSet, nil).Times(1)
+	runtimeMock.EXPECT().ParachainHostSessionIndexForChild().Return(
+		parachaintypes.SessionIndex(0), errors.New("something is off")).Times(1)
+
+	signal := parachaintypes.ActiveLeavesUpdateSignal{
+		Activated: &parachaintypes.ActivatedLeaf{
+			Hash: common.Hash{0x01},
+		},
+	}
+
+	b := NewBitfieldDistribution(nil, blockAPIMock)
+	err := b.ProcessActiveLeavesUpdateSignal(signal)
+	assert.EqualError(t, err, "something is off")
+}
+
+func TestBitfieldDistribution_ProcessActiveLeavesUpdateSignal_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	blockAPIMock := mocks.NewMockBlockAPI(ctrl)
+	runtimeMock := NewMockInstance(ctrl)
+
+	validatorSet := []parachaintypes.ValidatorID{
+		[sr25519.PublicKeyLength]byte{1},
+		[sr25519.PublicKeyLength]byte{2},
+	}
+
+	blockAPIMock.EXPECT().GetRuntime(common.Hash{0x01}).Return(runtimeMock, nil).Times(1)
+	runtimeMock.EXPECT().ParachainHostValidators().Return(validatorSet, nil).Times(1)
+	runtimeMock.EXPECT().ParachainHostSessionIndexForChild().Return(
+		parachaintypes.SessionIndex(1), nil).Times(1)
+
+	signal := parachaintypes.ActiveLeavesUpdateSignal{
+		Activated: &parachaintypes.ActivatedLeaf{
+			Hash: common.Hash{0x01},
+		},
+	}
+
+	b := NewBitfieldDistribution(nil, blockAPIMock)
+
+	// perRelayParent for relayParent 0x01 should be nil at this moment
+	assert.Nil(t, nil, b.perRelayParent[common.Hash{0x01}])
+
+	err := b.ProcessActiveLeavesUpdateSignal(signal)
+	assert.Nil(t, err)
+
+	signingContext := &parachaintypes.SigningContext{
+		SessionIndex: parachaintypes.SessionIndex(1),
+		ParentHash:   common.Hash{0x01},
+	}
+
+	// perRelayParent for relayParent 0x01 should be not nil at this moment
+	assert.EqualValues(t, newPerRelayParentData(*signingContext, validatorSet), b.perRelayParent[common.Hash{0x01}])
 }
