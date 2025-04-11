@@ -344,10 +344,7 @@ func (cc CandidateCommitments) CoreSelector() (*SelectCore, error) {
 	// Validate signal count
 	expectedSignalCount := separatorIdx + 2
 	if len(cc.UpwardMessages) != expectedSignalCount {
-		return nil, fmt.Errorf(
-			"%w: expected exactly one signal after separator",
-			ErrInvalidUMPSignal,
-		)
+		return nil, fmt.Errorf("%w: expected exactly one signal after separator", ErrInvalidUMPSignal)
 	}
 
 	// Decode and validate signal
@@ -393,10 +390,8 @@ func (c CommittedCandidateReceipt) Hash() (common.Hash, error) {
 	return c.ToPlain().Hash()
 }
 
-var (
-	_ hashable = CommittedCandidateReceiptV2{}
-	_ hashable = CandidateReceiptV2{}
-)
+var _ hashable = CommittedCandidateReceiptV2{}
+var _ hashable = CandidateReceiptV2{}
 
 type hashable interface {
 	Hash() (common.Hash, error)
@@ -811,11 +806,7 @@ func NewBackedCandidate(
 	const maxCoreIndex uint32 = 255 // math.MaxUint8
 
 	if coreIndex != nil && coreIndex.Index > maxCoreIndex {
-		return nil, fmt.Errorf(
-			"core index %d exceeds maximum allowed value of %d",
-			coreIndex.Index,
-			maxCoreIndex,
-		)
+		return nil, fmt.Errorf("core index %d exceeds maximum allowed value of %d", coreIndex.Index, maxCoreIndex)
 	}
 
 	bitVecOfIndices, err := NewBitVec(validatorIndices)
@@ -886,9 +877,7 @@ type CheckedSignedAvailabilityBitfield struct {
 	Signature ValidatorSignature `scale:"3"`
 }
 
-func (c UncheckedSignedAvailabilityBitfield) ToCheck(
-	key crypto.PublicKey,
-) (*CheckedSignedAvailabilityBitfield, error) {
+func (c UncheckedSignedAvailabilityBitfield) ToCheck(key crypto.PublicKey) (*CheckedSignedAvailabilityBitfield, error) {
 	data, err := c.Payload.MarshalSCALE()
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal payload of bitfield: %w", err)

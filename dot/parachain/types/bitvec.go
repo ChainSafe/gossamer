@@ -26,11 +26,7 @@ func NewBitVec(bits []bool) (BitVec, error) {
 	}
 
 	if len(bits) > MaxBitVecLength {
-		return BitVec{}, fmt.Errorf(
-			"bitvec length %d exceeds maximum allowed length of %d",
-			len(bits),
-			MaxBitVecLength,
-		)
+		return BitVec{}, fmt.Errorf("bitvec length %d exceeds maximum allowed length of %d", len(bits), MaxBitVecLength)
 	}
 
 	bv := BitVec{
@@ -76,11 +72,7 @@ func (bv *BitVec) PushBits(bits []bool) error {
 
 	// Check if the new length exceeds the maximum allowed length
 	if newLength > MaxBitVecLength {
-		return fmt.Errorf(
-			"bitvec length %d exceeds maximum allowed length of %d",
-			newLength,
-			MaxBitVecLength,
-		)
+		return fmt.Errorf("bitvec length %d exceeds maximum allowed length of %d", newLength, MaxBitVecLength)
 	}
 
 	// Pre-allocate space if needed
@@ -136,11 +128,7 @@ func (bv *BitVec) Get(index uint) (bool, error) {
 func (bv *BitVec) ExtendByByte(b byte) error {
 	// Check if the new length exceeds the maximum allowed length
 	if bv.len+8 > MaxBitVecLength {
-		return fmt.Errorf(
-			"bitvec length %d exceeds maximum allowed length of %d",
-			bv.len+8,
-			MaxBitVecLength,
-		)
+		return fmt.Errorf("bitvec length %d exceeds maximum allowed length of %d", bv.len+8, MaxBitVecLength)
 	}
 
 	// Pre-allocate space if needed
@@ -167,11 +155,7 @@ func (bv BitVec) MarshalSCALE() ([]byte, error) {
 	if bv.len > MaxBitVecLength {
 		// as we ensure that the length is always less than MaxBitVecLength, this should never happen practically.
 		// but we still check for it to prevent memory issues
-		return nil, fmt.Errorf(
-			"bitvec length %d exceeds maximum allowed length of %d",
-			bv.len,
-			MaxBitVecLength,
-		)
+		return nil, fmt.Errorf("bitvec length %d exceeds maximum allowed length of %d", bv.len, MaxBitVecLength)
 	}
 
 	length := uint(bv.len) // convert to uint for compact encoding
@@ -204,11 +188,7 @@ func (bv *BitVec) UnmarshalSCALE(r io.Reader) error {
 
 	// Check for maximum length
 	if length > MaxBitVecLength {
-		return fmt.Errorf(
-			"bitvec length %d exceeds maximum allowed length of %d",
-			length,
-			MaxBitVecLength,
-		)
+		return fmt.Errorf("bitvec length %d exceeds maximum allowed length of %d", length, MaxBitVecLength)
 	}
 
 	// Calculate required bytes for the bits
