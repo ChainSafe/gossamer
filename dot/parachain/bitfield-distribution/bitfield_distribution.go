@@ -94,7 +94,7 @@ type BitfieldDistribution struct {
 	mu sync.Mutex
 }
 
-func NewBitfieldDistribution(overseerChan chan<- any) *BitfieldDistribution {
+func NewBitfieldDistribution(overseerChan chan<- any, blockState BlockState) *BitfieldDistribution {
 	initTopologyEntry := &grid.SessionGridTopologyEntry{
 		Topology:        grid.NewSessionGridTopology(make([]uint, 0), make([]grid.TopologyPeerInfo, 0)),
 		LocalNeighbours: grid.NewEmptyGridNeighbours(),
@@ -113,6 +113,7 @@ func NewBitfieldDistribution(overseerChan chan<- any) *BitfieldDistribution {
 		reputation: util.NewReputationAggregator(func(rep util.UnifiedReputationChange) bool {
 			return false // Always accumulate
 		}),
+		blockState: blockState,
 	}
 }
 
@@ -509,6 +510,7 @@ func (b *BitfieldDistribution) processUpdatedAuthorityIDsEvent(event networkbrid
 
 func (b *BitfieldDistribution) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
 	activatedLeaf := signal.Activated
+
 	if activatedLeaf == nil {
 		return nil
 	}
