@@ -18,11 +18,11 @@ import "github.com/ChainSafe/gossamer/internal/primitives/runtime"
 // / Non-deterministically finalizing chains may only use the `_authoring` functions.
 // #[async_trait::async_trait]
 // pub trait SelectChain<Block: BlockT>: Sync + Send + Clone {
-type SelectChain[H runtime.Hash, N runtime.Number] interface {
+type SelectChain[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]] interface {
 	/// Get all leaves of the chain, i.e. block hashes that have no children currently.
 	/// Leaves that can never be finalized will not be returned.
 	// 	async fn leaves(&self) -> Result<Vec<<Block as BlockT>::Hash>, Error>;
-	Leaves() chan<- struct {
+	Leaves() <-chan struct {
 		Leaves []H
 		Error  error
 	}
@@ -31,10 +31,7 @@ type SelectChain[H runtime.Hash, N runtime.Number] interface {
 	/// best chain to author new blocks upon and probably (but not necessarily)
 	/// finalize.
 	// 	async fn best_chain(&self) -> Result<<Block as BlockT>::Header, Error>;
-	BestChain() chan<- struct {
-		runtime.Header[N, H]
-		Error error
-	}
+	BestChain() <-chan HeaderError[H, N, Header]
 
 	/// Get the best descendent of `base_hash` that we should attempt to
 	/// finalize next, if any. It is valid to return the given `base_hash`
@@ -46,8 +43,14 @@ type SelectChain[H runtime.Hash, N runtime.Number] interface {
 	// ) -> Result<<Block as BlockT>::Hash, Error> {
 	// 	Ok(base_hash)
 	// }
-	FinalityTarget(baseHash H, maybeMaxNumber *N) chan<- struct {
-		Hash  H
-		Error error
-	}
+	FinalityTarget(baseHash H, maybeMaxNumber *N) <-chan HashError[H]
+}
+
+type HeaderError[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]] struct {
+	Header Header
+	Error  error
+}
+type HashError[H runtime.Hash] struct {
+	Hash  H
+	Error error
 }

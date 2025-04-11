@@ -55,3 +55,8 @@ func (j Justifications) EncodedJustification(engineID ConsensusEngineID) *Encode
 
 // Consensus engine unique ID.
 type ConsensusEngineID [4]byte
+
+// / Simple blob that hold a value in an encoded form without committing to its type.
+// #[derive(Decode, Encode, PartialEq, TypeInfo)]
+// pub struct OpaqueValue(Vec<u8>);
+type OpaqueValue []byte

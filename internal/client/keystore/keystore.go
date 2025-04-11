@@ -8,6 +8,11 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/core/ed25519"
 )
 
+type PublicKey struct {
+	Key []byte
+	crypto.KeyTypeID
+}
+
 // KeyStore generates, stores and provides access to secret keys.
 type KeyStore interface {
 	// Generate an ed25519 signature for a given message.
@@ -18,4 +23,10 @@ type KeyStore interface {
 	// Returns an [ed25519.Signature] or nil in case the given keyType and public combination doesn't exist in the
 	// keystore. An error will be returned if generating the signature itself failed.
 	Ed25519Sign(keyType crypto.KeyTypeID, public ed25519.Public, msg []byte) (*ed25519.Signature, error)
+
+	/// Checks if the private keys for the given public key and key type combinations exist.
+	///
+	/// Returns `true` iff all private keys could be found.
+	// fn has_keys(&self, public_keys: &[(Vec<u8>, KeyTypeId)]) -> bool;
+	HasKeys(publicKeys []PublicKey) bool
 }

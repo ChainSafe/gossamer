@@ -88,7 +88,7 @@ func (sas *SharedAuthoritySet[H, N]) CurrentAuthorities() grandpa.VoterSet[strin
 }
 
 // Current Get the current set id and a reference to the current authority set.
-func (sas *SharedAuthoritySet[H, N]) Current() (uint64, *pgrandpa.AuthorityList) {
+func (sas *SharedAuthoritySet[H, N]) Current() (uint64, pgrandpa.AuthorityList) {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.current()
@@ -172,11 +172,12 @@ func (sas *SharedAuthoritySet[H, N]) applyForcedChanges(bestHash H, //nolint //s
 func (sas *SharedAuthoritySet[H, N]) applyStandardChanges(finalisedHash H, //nolint //skipcq: SCC-U1000
 	finalisedNumber N,
 	isDescendentOf IsDescendentOf[H],
+	initialSync bool,
 	// TODO: telemetry,
 ) (status[H, N], error) {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
-	return sas.inner.applyStandardChanges(finalisedHash, finalisedNumber, isDescendentOf)
+	return sas.inner.applyStandardChanges(finalisedHash, finalisedNumber, isDescendentOf, initialSync)
 }
 
 // EnactsStandardChange Check whether the given finalised block number enacts any standard
@@ -271,8 +272,8 @@ func NewAuthoritySet[H comparable, N constraints.Unsigned](
 }
 
 // current retrieves the current set id and a reference to the current authority set.
-func (authSet *AuthoritySet[H, N]) current() (uint64, *pgrandpa.AuthorityList) { //nolint: unused
-	return authSet.SetID, &authSet.CurrentAuthorities
+func (authSet *AuthoritySet[H, N]) current() (uint64, pgrandpa.AuthorityList) { //nolint: unused
+	return authSet.SetID, authSet.CurrentAuthorities
 }
 
 // Revert to a specified block given its `hash` and `number`.
@@ -579,6 +580,7 @@ func (authSet *AuthoritySet[H, N]) applyStandardChanges( //skipcq:  RVV-B0001
 	finalisedHash H,
 	finalisedNumber N,
 	isDescendentOf IsDescendentOf[H],
+	initialSync bool,
 ) (status[H, N], error) {
 	// TODO telemetry here is just a place holder, replace with real
 
@@ -621,7 +623,11 @@ func (authSet *AuthoritySet[H, N]) applyStandardChanges( //skipcq:  RVV-B0001
 		}
 
 		if val.value != nil {
-			logger.Infof("👴 Applying authority set scheduled at block #%d", val.value.CanonHeight)
+			var level func(format string, args ...interface{}) = logger.Debugf
+			if initialSync {
+				level = logger.Infof
+			}
+			level("👴 Applying authority set scheduled at block #%d", val.value.CanonHeight)
 
 			// TODO add telemetry
 

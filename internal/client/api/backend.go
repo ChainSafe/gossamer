@@ -82,6 +82,49 @@ type ClientImportOperation[
 	NotifyFinalized *FinalizeSummary[H, N, Header]                // Summary of finalized block.
 }
 
+// / Helper function to apply auxiliary data insertion into an operation.
+// pub fn apply_aux<'a, 'b: 'a, 'c: 'a, B, Block, D, I>(
+//
+//	operation: &mut ClientImportOperation<Block, B>,
+//	insert: I,
+//	delete: D,
+//
+// ) -> sp_blockchain::Result<()>
+// where
+//
+//	Block: BlockT,
+//	B: Backend<Block>,
+//	I: IntoIterator<Item = &'a (&'c [u8], &'c [u8])>,
+//	D: IntoIterator<Item = &'a &'b [u8]>,
+//
+// {
+func ApplyAux[
+	H runtime.Hash,
+	N runtime.Number,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+	E runtime.Extrinsic,
+](
+	operation *ClientImportOperation[H, Hasher, N, Header, E],
+	insert []KeyValue,
+	delete [][]byte,
+) error {
+	ops := make(AuxDataOperations, 0)
+	for _, kv := range insert {
+		ops = append(ops, AuxDataOperation{
+			Key:  kv.Key,
+			Data: kv.Value,
+		})
+	}
+	for _, k := range delete {
+		ops = append(ops, AuxDataOperation{
+			Key:  k,
+			Data: nil,
+		})
+	}
+	return operation.Op.InsertAux(ops)
+}
+
 // NewBlockState is the state of a new block.
 type NewBlockState uint8
 
@@ -199,7 +242,7 @@ type Finalizer[
 	// 	notify: bool,
 	// ) -> sp_blockchain::Result<()>;
 	ApplyFinality(
-		operation ClientImportOperation[H, Hasher, N, Header, E],
+		operation *ClientImportOperation[H, Hasher, N, Header, E],
 		block H,
 		justifcation *runtime.Justification,
 		notify bool) error

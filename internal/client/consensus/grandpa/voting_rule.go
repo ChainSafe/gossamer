@@ -8,10 +8,7 @@ import (
 // / A future returned by a `VotingRule` to restrict a given vote, if any restriction is necessary.
 // pub type VotingRuleResult<Block> =
 // Pin<Box<dyn Future<Output = Option<(<Block as BlockT>::Hash, NumberFor<Block>)>> + Send>>;
-type VotingRuleResult[H, N any] chan<- *struct {
-	Hash   H
-	Number N
-}
+type VotingRuleResult[H, N any] <-chan *HashNumber[H, N]
 
 // / A trait for custom voting rules in GRANDPA.
 // pub trait VotingRule<Block, B>: DynClone + Send + Sync
@@ -43,8 +40,8 @@ type VotingRule[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]] i
 	// ) -> VotingRuleResult<Block>;
 	RestrictVote(
 		backend blockchain.HeaderBackend[H, N, Header],
-		base runtime.Header[N, H],
-		bestTarget runtime.Header[N, H],
-		currentTarget runtime.Header[N, H],
+		base Header,
+		bestTarget Header,
+		currentTarget Header,
 	) VotingRuleResult[H, N]
 }

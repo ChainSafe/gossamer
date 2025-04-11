@@ -534,8 +534,8 @@ type outgoingMessages[H runtime.Hash, N runtime.Number, Hasher runtime.Hasher[H]
 }
 
 func (om *outgoingMessages[H, N, Hasher]) preSend( //nolint: unused
-	msg primitives.Message[H, N],
-) (primitives.Message[H, N], error) {
+	msg grandpa.Message[H, N],
+) error {
 	// if we've voted on this round previously under the same key, send that vote instead
 	switch msg.(type) {
 	case grandpa.PrimaryPropose[H, N]:
@@ -565,11 +565,11 @@ func (om *outgoingMessages[H, N, Hasher]) preSend( //nolint: unused
 			primitives.SetID(om.setID),
 		)
 		if signed == nil {
-			return nil, fmt.Errorf("Failed to sign GRANDPA vote for round %d targeting %v", om.round, targetHash)
+			return fmt.Errorf("Failed to sign GRANDPA vote for round %d targeting %v", om.round, targetHash)
 		}
 
 		message := gossipMessageVote[H, N]{
-			Message: primitives.SignedMessage[H, N](*signed),
+			Message: primitives.SignedMessage[H, N]{SignedMessage: *signed},
 			Round:   om.round,
 			SetID:   om.setID,
 		}
@@ -587,14 +587,10 @@ func (om *outgoingMessages[H, N, Hasher]) preSend( //nolint: unused
 		gossipMessage.inner = message
 		om.network.GossipMessage(topic, scale.MustMarshal(gossipMessage), false)
 
-		// TODO: ensure that presend is called on sender.  Will need to accept special channel type.
-		// forward the message to the inner sender.
-		// return self.sender.start_send(signed).map_err(|e| {
-		// 	Error::Network(format!("Failed to start_send on channel sender: {:?}", e))
-		// })
+		om.sender <- primitives.SignedMessage[H, N]{SignedMessage: *signed}
 	}
 
-	return msg, nil
+	return nil
 }
 
 // checks a compact commit. returns the cost associated with processing it if the commit was bad.
