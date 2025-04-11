@@ -7,6 +7,9 @@ import (
 	"testing"
 
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
@@ -615,3 +618,19 @@ func TestVoteEncoding(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, voteVal, newVote)
 }
+
+var _ grandpa.Chain[hash.H256, uint64] = &environment[
+	hash.H256,
+	uint64,
+	runtime.BlakeTwo256,
+	*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+	runtime.OpaqueExtrinsic,
+]{}
+
+var _ grandpa.Environment[hash.H256, uint64, primitives.AuthoritySignature, primitives.AuthorityID] = &environment[
+	hash.H256,
+	uint64,
+	runtime.BlakeTwo256,
+	*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+	runtime.OpaqueExtrinsic,
+]{}

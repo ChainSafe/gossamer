@@ -4,6 +4,8 @@
 package grandpa
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
@@ -11,10 +13,12 @@ import (
 	"github.com/ChainSafe/gossamer/internal/client/keystore"
 	"github.com/ChainSafe/gossamer/internal/client/network"
 	"github.com/ChainSafe/gossamer/internal/client/network/role"
+	peerid "github.com/ChainSafe/gossamer/internal/client/network/types/peer-id"
 	"github.com/ChainSafe/gossamer/internal/log"
 	papi "github.com/ChainSafe/gossamer/internal/primitives/api"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	"github.com/ChainSafe/gossamer/internal/primitives/core/crypto"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 )
@@ -31,13 +35,6 @@ type communicationIn[H runtime.Hash, N runtime.Number] grandpa.CommunicationIn[
 type communicationOut[H runtime.Hash, N runtime.Number] grandpa.CommunicationOut[ //nolint: unused
 	H, N, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
 
-// newAuthoritySet A new authority set along with the canonical block it changed at.
-type newAuthoritySet[H, N any] struct { //nolint: unused
-	CanonNumber N
-	CanonHash   H
-	SetID       pgrandpa.SetID
-	Authorities pgrandpa.AuthorityList
-}
 type Config struct {
 	// The expected duration for a message to be gossiped across the network.
 	GossipDuration time.Duration
@@ -64,6 +61,76 @@ func (c Config) name() string {
 		return "<unknown>"
 	}
 	return *c.Name
+}
+
+/// Errors that can occur while voting in GRANDPA.
+// #[derive(Debug, thiserror::Error)]
+// pub enum Error {
+// 	/// An error within grandpa.
+// 	#[error("grandpa error: {0}")]
+// 	Grandpa(#[from] GrandpaError),
+
+// 	/// A network error.
+// 	#[error("network error: {0}")]
+// 	Network(String),
+
+// 	/// A blockchain error.
+// 	#[error("blockchain error: {0}")]
+// 	Blockchain(String),
+
+// /// Could not complete a round on disk.
+// #[error("could not complete a round on disk: {0}")]
+// Client(#[from] ClientError),
+var ErrClient = errors.New("could not complete a round on disk")
+
+// 	/// Could not sign outgoing message
+// 	#[error("could not sign outgoing message: {0}")]
+// 	Signing(String),
+
+// /// An invariant has been violated (e.g. not finalizing pending change blocks in-order)
+// #[error("safety invariant has been violated: {0}")]
+// Safety(String),
+var ErrSafety = errors.New("safety invariant has been violated")
+
+// 	/// A timer failed to fire.
+// 	#[error("a timer failed to fire: {0}")]
+// 	Timer(io::Error),
+
+// /// A runtime api request failed.
+// #[error("runtime API request failed: {0}")]
+// RuntimeApi(sp_api::ApiError),
+var ErrRuntimeApi = errors.New("runtime API request failed")
+
+// }
+
+// / Something which can determine if a block is known.
+// pub(crate) trait BlockStatus<Block: BlockT> {
+type BlockStatus[H runtime.Hash, N runtime.Number] interface {
+	/// Return `Ok(Some(number))` or `Ok(None)` depending on whether the block
+	/// is definitely known and has been imported.
+	/// If an unexpected error occurs, return that.
+	// fn block_number(&self, hash: Block::Hash) -> Result<Option<NumberFor<Block>>, Error>;
+	Number(hash H) (*N, error)
+}
+
+// impl<Block: BlockT, Client> BlockStatus<Block> for Arc<Client>
+// where
+//
+//	Client: HeaderBackend<Block>,
+//	NumberFor<Block>: BlockNumberOps,
+//
+//	{
+//		fn block_number(&self, hash: Block::Hash) -> Result<Option<NumberFor<Block>>, Error> {
+//			self.block_number_from_id(&BlockId::Hash(hash))
+//				.map_err(|e| Error::Blockchain(e.to_string()))
+//		}
+//	}
+type BlockStatusForClient[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]] struct {
+	blockchain.HeaderBackend[H, N, Header]
+}
+
+func (bsfc BlockStatusForClient[H, N, Header]) BlockNumber(hash H) (*N, error) {
+	return bsfc.HeaderBackend.Number(hash)
 }
 
 // / A trait that includes all the client functionalities grandpa requires.
@@ -101,8 +168,80 @@ type ClientForGrandpa[
 	blockchain.HeaderMetadata[H, N]
 	blockchain.HeaderBackend[H, N, Header]
 	api.BlockchainEvents[H, N, Header]
-	papi.ProvideRuntimeAPI
+	papi.ProvideRuntimeAPI[pgrandpa.GrandpaAPI[H, N]]
 	api.ExecutorProvider
 	consensus.BlockImport[H, N]
 	api.StorageProvider[H, N, Hasher]
 }
+
+// / Something that one can ask to do a block sync request.
+// pub(crate) trait BlockSyncRequester<Block: BlockT> {
+type BlockSyncRequester[H runtime.Hash, N runtime.Number] interface {
+	/// Notifies the sync service to try and sync the given block from the given
+	/// peers.
+	///
+	/// If the given vector of peers is empty then the underlying implementation
+	/// should make a best effort to fetch the block from any peers it is
+	/// connected to (NOTE: this assumption will change in the future #3629).
+	SetSyncForkRequest(peers []peerid.PeerID, hash H, number N)
+}
+
+// / A new authority set along with the canonical block it changed at.
+type newAuthoritySet[H, N any] struct {
+	CanonNumber N
+	CanonHash   H
+	SetID       pgrandpa.SetID
+	Authorities pgrandpa.AuthorityList
+}
+
+// / Commands issued to the voter.
+type voterCommand interface {
+	Error() string
+}
+
+// / Pause the voter for given reason.
+type voterCommandPause string
+
+func (vcp voterCommandPause) Error() string {
+	return fmt.Sprintf("Pausing voter: %s", string(vcp))
+}
+
+// / New authorities.
+type voterCommandChangeAuthorities[H, N any] newAuthoritySet[H, N]
+
+func (vcca voterCommandChangeAuthorities[H, N]) Error() string {
+	return fmt.Sprintf("Changing authorities")
+}
+
+// / Checks if this node has any available keys in the keystore for any authority id in the given
+// / voter set.  Returns the authority id for which keys are available, or `None` if no keys are
+// / available.
+// fn local_authority_id(
+//
+//	voters: &VoterSet<AuthorityId>,
+//	keystore: Option<&KeystorePtr>,
+//
+// ) -> Option<AuthorityId> {
+func localAuthorityID(voters grandpa.VoterSet[pgrandpa.AuthorityID], ks *keystore.KeyStore) *pgrandpa.AuthorityID {
+	if ks == nil {
+		return nil
+	}
+
+	for _, voter := range voters.Voters() {
+		if (*ks).HasKeys([]keystore.PublicKey{{
+			Key:       voter.ID.Bytes(),
+			KeyTypeID: crypto.GRANDPA,
+		}}) {
+			return &voter.ID
+		}
+	}
+	return nil
+}
+
+// 	keystore.and_then(|keystore| {
+// 		voters
+// 			.iter()
+// 			.find(|(p, _)| keystore.has_keys(&[(p.to_raw_vec(), AuthorityId::ID)]))
+// 			.map(|(p, _)| p.clone())
+// 	})
+// }
