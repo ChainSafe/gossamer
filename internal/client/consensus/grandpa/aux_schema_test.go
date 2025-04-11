@@ -226,7 +226,7 @@ func TestUpdateAuthoritySet(t *testing.T) {
 		PendingStandardChanges: NewChangeTree[TestString, uint](),
 	}
 
-	err := UpdateAuthoritySet[TestString, uint](authorities, nil, write(store))
+	err := updateAuthoritySet[TestString, uint](authorities, nil, write(store))
 	require.NoError(t, err)
 
 	encData, err := store.GetAux(authoritySetKey)
@@ -252,7 +252,7 @@ func TestUpdateAuthoritySet(t *testing.T) {
 		SetID:       2,
 	}
 
-	err = UpdateAuthoritySet[TestString, uint](authorities, newAuthSet, write(store))
+	err = updateAuthoritySet[TestString, uint](authorities, newAuthSet, write(store))
 	require.NoError(t, err)
 
 	encData, err = store.GetAux(authoritySetKey)

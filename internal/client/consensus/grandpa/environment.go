@@ -2366,7 +2366,7 @@ func finalizeBlock[
 		// 			}
 		// 		}
 		if status.Changed {
-			err := UpdateAuthoritySet(authoritySet.inner, newAuthorities, func(insert []api.KeyValue) error {
+			err := updateAuthoritySet(authoritySet.inner, newAuthorities, func(insert []api.KeyValue) error {
 				return api.ApplyAux(importOp, insert, nil)
 			})
 			if err != nil {
