@@ -200,7 +200,7 @@ func (dgj *decodeGrandpaJustification[H, N, Hasher, Header]) UnmarshalSCALE(read
 	dgj.Justification.VoteAncestries = make([]Header, len(rch.Headers))
 	for i, header := range rch.Headers {
 		header := header
-		var h any = &header
+		var h any = header
 		dgj.Justification.VoteAncestries[i] = h.(Header)
 	}
 	return
