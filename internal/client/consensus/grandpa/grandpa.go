@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
-	"github.com/ChainSafe/gossamer/internal/client/consensus"
+	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/client/keystore"
 	"github.com/ChainSafe/gossamer/internal/client/network"
 	"github.com/ChainSafe/gossamer/internal/client/network/role"
@@ -17,7 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/log"
 	papi "github.com/ChainSafe/gossamer/internal/primitives/api"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
-	pgrandpa "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
+	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/core/crypto"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
@@ -28,12 +28,12 @@ var logger = log.NewFromGlobal(log.AddContext("consensus", "grandpa"))
 // A global communication input stream for commits and catch up messages. Not exposed publicly, used internally to
 // simplify types in the communication layer.
 type communicationIn[H runtime.Hash, N runtime.Number] grandpa.CommunicationIn[
-	H, N, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
+	H, N, primitives.AuthoritySignature, primitives.AuthorityID]
 
 // Global communication sink for commits with the hash type not being derived from the block, useful for forcing the
 // hash to some type (e.g. `H256`) when the compiler can't do the inference.
 type communicationOut[H runtime.Hash, N runtime.Number] grandpa.CommunicationOut[ //nolint: unused
-	H, N, pgrandpa.AuthoritySignature, pgrandpa.AuthorityID]
+	H, N, primitives.AuthoritySignature, primitives.AuthorityID]
 
 type Config struct {
 	// The expected duration for a message to be gossiped across the network.
@@ -168,9 +168,9 @@ type ClientForGrandpa[
 	blockchain.HeaderMetadata[H, N]
 	blockchain.HeaderBackend[H, N, Header]
 	api.BlockchainEvents[H, N, Header]
-	papi.ProvideRuntimeAPI[pgrandpa.GrandpaAPI[H, N]]
+	papi.ProvideRuntimeAPI[primitives.GrandpaAPI[H, N]]
 	api.ExecutorProvider
-	consensus.BlockImport[H, N]
+	common.BlockImport[H, N, E, Header]
 	api.StorageProvider[H, N, Hasher]
 }
 
@@ -190,8 +190,8 @@ type BlockSyncRequester[H runtime.Hash, N runtime.Number] interface {
 type newAuthoritySet[H, N any] struct {
 	CanonNumber N
 	CanonHash   H
-	SetID       pgrandpa.SetID
-	Authorities pgrandpa.AuthorityList
+	SetID       primitives.SetID
+	Authorities primitives.AuthorityList
 }
 
 // / Commands issued to the voter.
@@ -222,7 +222,7 @@ func (vcca voterCommandChangeAuthorities[H, N]) Error() string {
 //	keystore: Option<&KeystorePtr>,
 //
 // ) -> Option<AuthorityId> {
-func localAuthorityID(voters grandpa.VoterSet[pgrandpa.AuthorityID], ks *keystore.KeyStore) *pgrandpa.AuthorityID {
+func localAuthorityID(voters grandpa.VoterSet[primitives.AuthorityID], ks *keystore.KeyStore) *primitives.AuthorityID {
 	if ks == nil {
 		return nil
 	}

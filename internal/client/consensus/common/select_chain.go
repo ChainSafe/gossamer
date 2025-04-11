@@ -1,4 +1,4 @@
-package consensus
+package common
 
 import "github.com/ChainSafe/gossamer/internal/primitives/runtime"
 

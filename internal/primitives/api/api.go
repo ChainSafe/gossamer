@@ -13,19 +13,19 @@ import (
 )
 
 // Something that provides a runtime api.
-type ProvideRuntimeApi[Api any] interface {
+type ProvideRuntimeAPI[API any] interface {
 	// Returns the runtime api.
 	// The returned instance will keep track of modifications to the storage. Any successful
 	// call to an api function, will `commit` its changes to an internal buffer. Otherwise,
 	// the modifications will be `discarded`. The modifications will not be applied to the
 	// storage, even on a `commit`.
-	RuntimeApi() Api
+	RuntimeAPI() API
 }
 
 // Something that can be constructed to a runtime api.
-type ConstructRuntimeApi[RuntimeApi any] interface {
+type ConstructRuntimeApi[RuntimeAPI any] interface {
 	// Construct an instance of the runtime api.
-	ConstructRuntimeApi() RuntimeApi
+	ConstructRuntimeAPI() RuntimeAPI
 }
 
 // A type that records all accessed trie nodes and generates a proof out of it.

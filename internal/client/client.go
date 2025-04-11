@@ -774,7 +774,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) prepareBlockStorageChang
 		storageChangesToApply = storageChanges
 	} else if enactState && storageChanges == nil && importBlock.Body != nil {
 		// We should enact state, but don't have any storage changes, so we need to execute the block
-		runtimeApi := c.RuntimeApi()
+		runtimeApi := c.RuntimeAPI()
 
 		runtimeApi.SetCallContext(core.CallContextOnchain)
 		if c.config.EnableImportProofRecording {
@@ -1279,10 +1279,10 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) applyFinalityWithBlockHa
 	return nil
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header, RA]) RuntimeApi() primitives_api.ApiExt[
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) RuntimeAPI() primitives_api.ApiExt[
 	N, E, H, Hasher,
 	statemachine.Backend[H, Hasher],
 	any,
 ] {
-	return c.runtimeConstructor.ConstructRuntimeApi()
+	return c.runtimeConstructor.ConstructRuntimeAPI()
 }

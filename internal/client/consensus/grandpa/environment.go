@@ -13,7 +13,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	"github.com/ChainSafe/gossamer/internal/client/api/utils"
-	"github.com/ChainSafe/gossamer/internal/client/consensus"
+	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
@@ -642,7 +642,7 @@ type environment[
 	E runtime.Extrinsic,
 ] struct {
 	Client        ClientForGrandpa[H, N, Hasher, Header, E]
-	SelectChain   consensus.SelectChain[H, N, Header]
+	SelectChain   common.SelectChain[H, N, Header]
 	Voters        grandpa.VoterSet[primitives.AuthorityID]
 	Config        Config
 	AuthoritySet  SharedAuthoritySet[H, N]
@@ -1741,7 +1741,7 @@ func bestChainContaining[
 	block H,
 	client ClientForGrandpa[H, N, Hasher, Header, E],
 	authoritySet *SharedAuthoritySet[H, N],
-	selectChain consensus.SelectChain[H, N, Header],
+	selectChain common.SelectChain[H, N, Header],
 	votingRule VotingRule[H, N, Header],
 ) (value *grandpa.HashNumber[H, N], err error) {
 
@@ -2145,8 +2145,8 @@ func finalizeBlock[
 	oldAuthoritySet := authoritySet.inner
 
 	// 	let update_res: Result<_, Error> = client.lock_import_and_run(|import_op| {
-	var vc voterCommand
-	err := client.LockImportRun(func(importOp *api.ClientImportOperation[H, Hasher, N, Header, E]) error {
+	var vc any
+	vc, err := client.LockImportRun(func(importOp *api.ClientImportOperation[H, Hasher, N, Header, E]) (any, error) {
 		// 		let status = authority_set
 		// 			.apply_standard_changes(
 		// 				hash,
@@ -2163,7 +2163,7 @@ func finalizeBlock[
 			initialSync,
 		)
 		if err != nil {
-			return fmt.Errorf("%w: %s", ErrSafety, err)
+			return nil, fmt.Errorf("%w: %s", ErrSafety, err)
 		}
 
 		// send a justification notification if a sender exists and in case of error log it.
@@ -2235,7 +2235,7 @@ func finalizeBlock[
 			var err error
 			justification, err = NewGrandpaJustificationFromCommit[H, N, Header](client, uint64(roundNumber), commit)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
@@ -2273,7 +2273,7 @@ func finalizeBlock[
 		err = client.ApplyFinality(importOp, hash, persistedJustificationEngineID, true)
 		if err != nil {
 			logger.Warnf("Error applying finality to block {%s, %s}: %s", hash, number, err)
-			return err
+			return nil, err
 		}
 
 		// 		debug!(target: LOG_TARGET, "Finalizing blocks up to ({:?}, {})", number, hash);
@@ -2372,17 +2372,17 @@ func finalizeBlock[
 			if err != nil {
 				logger.Warnf("Failed to write updated authority set to disk. Bailing.")
 				logger.Warnf("Node is in a potentially inconsistent state.")
-				return err
+				return nil, err
 			}
 		}
 
 		// 		Ok(new_authorities.map(VoterCommand::ChangeAuthorities))
 		if newAuthorities != nil {
 			vc = voterCommandChangeAuthorities[H, N](*newAuthorities)
-			return nil
+			return vc, nil
 		}
 		vc = nil
-		return nil
+		return vc, nil
 	})
 
 	// 	match update_res {
@@ -2395,7 +2395,11 @@ func finalizeBlock[
 	//		},
 	//	}
 	if vc != nil {
-		return vc
+		command, ok := vc.(voterCommand)
+		if !ok {
+			panic("unexpected type")
+		}
+		return command
 	}
 	if err != nil {
 		authoritySet.inner = oldAuthoritySet
