@@ -149,12 +149,7 @@ func (cv *CandidateValidation) validateFromExhaustive(msg ValidateFromExhaustive
 		ClaimQueue:              claimQueue,
 	}
 
-	result, err := cv.pvfHost.validate(validationTask)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return cv.pvfHost.validate(validationTask)
 }
 
 // PoVRequestor gets proof of validity by issuing network requests to validators of the current backing group.
