@@ -20,8 +20,10 @@ import (
 type CandidateValidation struct {
 	SubsystemToOverseer chan<- any
 	BlockState          BlockState
-	pvfHost             *host
-	claimQueueCache     map[common.Hash]parachaintypes.ClaimQueue // Cache of claim queues per relay parent
+	// pvfHost is the host for the parachain validation function
+	pvfHost *host
+	// Cache of claim queues per relay parent
+	claimQueueCache map[common.Hash]parachaintypes.ClaimQueue
 }
 
 type BlockState interface {
