@@ -155,13 +155,10 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 		mockBlockState := NewMockBlockState(ctrl)
 		mockBlockState.EXPECT().GetRuntime(gomock.AssignableToTypeOf(common.Hash{})).Return(mockInstance, nil)
 
-		cv := CandidateValidation{
-			pvfHost:    newValidationHost(),
-			BlockState: mockBlockState,
-		}
+		cv := NewCandidateValidation(nil, mockBlockState)
 
 		t.Cleanup(cv.Stop)
-		return &cv
+		return cv
 	}
 
 	tests := map[string]struct {
