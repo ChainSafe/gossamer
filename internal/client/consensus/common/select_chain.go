@@ -5,8 +5,9 @@ package common
 
 import "github.com/ChainSafe/gossamer/internal/primitives/runtime"
 
-// The SelectChain interface defines the strategy upon which the head is chosen if multiple forks are present for an
-// opaque definition of "best" in the specific chain build.
+// The SelectChain trait defines the strategy upon which the head is chosen if multiple forks are present for an opaque
+// definition of "best" in the specific chain build.
+//
 // The Strategy can be customised for the two use cases of authoring new blocks upon the best chain or which fork to
 // finalize.
 type SelectChain[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]] interface {

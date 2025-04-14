@@ -26,6 +26,6 @@ type KeyStore interface {
 
 	// Checks if the private keys for the given public key and key type combinations exist.
 	//
-	// Returns true iffall private keys could be found.
+	// Returns true iff all private keys could be found.
 	HasKeys(publicKeys []PublicKey) bool
 }

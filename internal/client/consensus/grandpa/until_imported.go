@@ -97,8 +97,8 @@ func newUntilImported[
 ) untilImported[H, N, Header, Blocked, M] {
 	// how often to check if pending messages that are waiting for blocks to be imported can be checked.
 	//
-	// the import notifications interval takes care of most of this; this is used in the event of missed
-	// import notifications
+	// the import notifications interval takes care of most of this; this is used in the event of missed import
+	// notifications
 	const checkPendingInterval = 5 * time.Second
 
 	checkPending := time.NewTicker(checkPendingInterval).C
