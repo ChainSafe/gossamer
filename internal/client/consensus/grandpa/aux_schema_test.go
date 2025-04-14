@@ -14,10 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// func genesisAuthorities(auths primitives.AuthorityList, err error) getGenesisAuthorities {
-// 	return func() (primitives.AuthorityList, error) { return auths, err }
-// }
-
 func write(store api.AuxStore) writeAux {
 	return func(insertions []api.KeyValue) error {
 		return store.InsertAux(insertions, nil)
@@ -88,119 +84,6 @@ func TestDummyStore(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, data)
 }
-
-// func TestLoadPersistentGenesis(t *testing.T) {
-// 	// Test genesis case, call with nothing written then assert on db.Gets
-// 	store := newDummyStore()
-// 	genesisHash := "a"
-// 	genesisNumber := uint(21)
-// 	genesisAuths := primitives.AuthorityList{{
-// 		AuthorityID:     newTestPublic(t, 1),
-// 		AuthorityWeight: 1,
-// 	}}
-
-// 	// Genesis Case
-// 	persistentData, err := loadPersistent[TestString, uint](
-// 		store,
-// 		genesisHash,
-// 		genesisNumber,
-// 		genesisAuthorities(genesisAuths, nil))
-// 	require.NoError(t, err)
-// 	require.NotNil(t, persistentData)
-
-// 	genesisSet, err := NewGenesisAuthoritySet[TestString, uint](genesisAuths)
-// 	require.NoError(t, err)
-
-// 	state := grandpa.NewRoundState(grandpa.HashNumber[TestString, uint]{
-// 		Hash:   genesisHash,
-// 		Number: genesisNumber})
-// 	base := state.PrevoteGHOST
-// 	genesisState, err := NewLiveVoterSetState[TestString, uint](0, *genesisSet, *base)
-// 	require.NoError(t, err)
-
-// 	require.Equal(t, persistentData.authoritySet.inner, *genesisSet)
-// 	require.Equal(t, persistentData.setState.Inner.Inner, genesisState)
-
-// 	// Assert db values
-// 	encAuthData, err := store.GetAux(authoritySetKey)
-// 	require.NoError(t, err)
-// 	require.NotNil(t, encAuthData)
-
-// 	encSetData, err := store.GetAux(setStateKey)
-// 	require.NoError(t, err)
-// 	require.NotNil(t, encSetData)
-
-// 	require.Equal(t, scale.MustMarshal(*genesisSet), *encAuthData)
-// 	require.Equal(t, scale.MustMarshal(genesisState), *encSetData)
-// }
-
-// func TestLoadPersistentNotGenesis(t *testing.T) {
-// 	store := newDummyStore()
-// 	genesisHash := "a"
-// 	genesisNumber := uint(21)
-// 	genesisAuths := primitives.AuthorityList{{
-// 		AuthorityID:     newTestPublic(t, 1),
-// 		AuthorityWeight: 1,
-// 	}}
-
-// 	// Auth set and Set state both written
-// 	genesisSet, err := NewGenesisAuthoritySet[TestString, uint](genesisAuths)
-// 	require.NoError(t, err)
-
-// 	state := grandpa.NewRoundState(grandpa.HashNumber[TestString, uint]{
-// 		Hash:   genesisHash,
-// 		Number: genesisNumber})
-// 	base := state.PrevoteGHOST
-// 	genesisState, err := NewLiveVoterSetState[TestString, uint](0, *genesisSet, *base)
-// 	require.NoError(t, err)
-
-// 	insert := []api.KeyValue{
-// 		{Key: authoritySetKey, Value: scale.MustMarshal(*genesisSet)},
-// 		{Key: setStateKey, Value: scale.MustMarshal(genesisState)},
-// 	}
-
-// 	err = store.InsertAux(insert, nil)
-// 	require.NoError(t, err)
-// 	persistentData, err := loadPersistent[TestString, uint](
-// 		store,
-// 		genesisHash,
-// 		genesisNumber,
-// 		genesisAuthorities(genesisAuths, nil))
-// 	require.NoError(t, err)
-// 	require.NotNil(t, persistentData)
-// 	require.Equal(t, *genesisSet, persistentData.authoritySet.inner)
-
-// 	expVal, err := genesisState.Value()
-// 	require.NoError(t, err)
-// 	actualVal, err := persistentData.setState.Inner.Inner.Value()
-// 	require.NoError(t, err)
-// 	require.Equal(t, expVal, actualVal)
-
-// 	// Auth set written but not set state
-// 	store = newDummyStore()
-// 	insert = []api.KeyValue{
-// 		{Key: authoritySetKey, Value: scale.MustMarshal(*genesisSet)},
-// 	}
-
-// 	err = store.InsertAux(insert, nil)
-// 	require.NoError(t, err)
-// 	persistentData, err = loadPersistent[TestString, uint](
-// 		store,
-// 		genesisHash,
-// 		genesisNumber,
-// 		genesisAuthorities(genesisAuths, nil))
-// 	require.NoError(t, err)
-
-// 	newState, err := NewLiveVoterSetState[TestString, uint](genesisSet.SetID, *genesisSet, *base)
-// 	require.NoError(t, err)
-
-// 	require.Equal(t, *genesisSet, persistentData.authoritySet.inner)
-// 	expVal, err = newState.Value()
-// 	require.NoError(t, err)
-// 	actualVal, err = persistentData.setState.Inner.Inner.Value()
-// 	require.NoError(t, err)
-// 	require.Equal(t, expVal, actualVal)
-// }
 
 type TestString string
 

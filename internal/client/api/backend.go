@@ -82,22 +82,7 @@ type ClientImportOperation[
 	NotifyFinalized *FinalizeSummary[H, N, Header]                // Summary of finalized block.
 }
 
-// / Helper function to apply auxiliary data insertion into an operation.
-// pub fn apply_aux<'a, 'b: 'a, 'c: 'a, B, Block, D, I>(
-//
-//	operation: &mut ClientImportOperation<Block, B>,
-//	insert: I,
-//	delete: D,
-//
-// ) -> sp_blockchain::Result<()>
-// where
-//
-//	Block: BlockT,
-//	B: Backend<Block>,
-//	I: IntoIterator<Item = &'a (&'c [u8], &'c [u8])>,
-//	D: IntoIterator<Item = &'a &'b [u8]>,
-//
-// {
+// ApplyAux is a helper function to apply auxiliary data insertion into an operation.
 func ApplyAux[
 	H runtime.Hash,
 	N runtime.Number,
@@ -210,14 +195,13 @@ type LockImportRun[
 	Header runtime.Header[N, H],
 	E runtime.Extrinsic,
 ] interface {
-	/// LockImportRun locks the import lock, and run operations inside.
+	// LockImportRun locks the import lock, and run operations inside.
 	LockImportRun(
 		f func(*ClientImportOperation[H, Hasher, N, Header, E]) (any, error),
 	) (any, error)
 }
 
-// / Finalize Facilities
-// pub trait Finalizer<Block: BlockT, B: Backend<Block>> {
+// Finalizer are the finalizer facilities
 type Finalizer[
 	H runtime.Hash,
 	N runtime.Number,
@@ -225,47 +209,34 @@ type Finalizer[
 	Header runtime.Header[N, H],
 	E runtime.Extrinsic,
 ] interface {
-	/// Mark all blocks up to given as finalized in operation.
-	///
-	/// If `justification` is provided it is stored with the given finalized
-	/// block (any other finalized blocks are left unjustified).
-	///
-	/// If the block being finalized is on a different fork from the current
-	/// best block the finalized block is set as best, this might be slightly
-	/// inaccurate (i.e. outdated). Usages that require determining an accurate
-	/// best block should use `SelectChain` instead of the client.
-	// fn apply_finality(
-	// 	&self,
-	// 	operation: &mut ClientImportOperation<Block, B>,
-	// 	block: Block::Hash,
-	// 	justification: Option<Justification>,
-	// 	notify: bool,
-	// ) -> sp_blockchain::Result<()>;
+	// Mark all blocks up to given as finalized in operation.
+	//
+	// If justification is provided it is stored with the given finalized
+	// block (any other finalized blocks are left unjustified).
+	//
+	// If the block being finalized is on a different fork from the current
+	// best block the finalized block is set as best, this might be slightly
+	// inaccurate (i.e. outdated). Usages that require determining an accurate
+	// best block should use [common.SelectChain] instead of the client.
 	ApplyFinality(
 		operation *ClientImportOperation[H, Hasher, N, Header, E],
 		block H,
 		justifcation *runtime.Justification,
 		notify bool) error
 
-	/// Finalize a block.
-	///
-	/// This will implicitly finalize all blocks up to it and
-	/// fire finality notifications.
-	///
-	/// If the block being finalized is on a different fork from the current
-	/// best block, the finalized block is set as best. This might be slightly
-	/// inaccurate (i.e. outdated). Usages that require determining an accurate
-	/// best block should use `SelectChain` instead of the client.
-	///
-	/// Pass a flag to indicate whether finality notifications should be propagated.
-	/// This is usually tied to some synchronization state, where we don't send notifications
-	/// while performing major synchronization work.
-	// fn finalize_block(
-	// 	&self,
-	// 	block: Block::Hash,
-	// 	justification: Option<Justification>,
-	// 	notify: bool,
-	// ) -> sp_blockchain::Result<()>;
+	// Finalize a block.
+	//
+	// This will implicitly finalize all blocks up to it and
+	// fire finality notifications.
+	//
+	// If the block being finalized is on a different fork from the current
+	// best block, the finalized block is set as best. This might be slightly
+	// inaccurate (i.e. outdated). Usages that require determining an accurate
+	// best block should use [common.SelectChain] instead of the client.
+	//
+	// Pass a flag to indicate whether finality notifications should be propagated.
+	// This is usually tied to some synchronization state, where we don't send notifications
+	// while performing major synchronization work.
 	FinalizeBlock(block H, justification *runtime.Justification, notify bool) error
 }
 
