@@ -46,7 +46,7 @@ require (
 	github.com/tidwall/btree v1.7.0
 	github.com/tyler-smith/go-bip39 v1.1.0
 	github.com/ugurcsen/gods-generic v0.10.4
-	go.uber.org/mock v0.5.0
+	go.uber.org/mock v0.5.1
 	golang.org/x/crypto v0.36.0
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
 	golang.org/x/term v0.31.0
