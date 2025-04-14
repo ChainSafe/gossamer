@@ -63,17 +63,17 @@ type SharedAuthoritySet[H comparable, N constraints.Unsigned] struct {
 }
 
 // CurrentAuthorities will get the current authorities and their weights (for the current set ID).
-func (sas *SharedAuthoritySet[H, N]) CurrentAuthorities() grandpa.VoterSet[string] {
+func (sas *SharedAuthoritySet[H, N]) CurrentAuthorities() grandpa.VoterSet[pgrandpa.AuthorityID] {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
-	idWeights := make([]grandpa.IDWeight[string], len(sas.inner.CurrentAuthorities))
+	idWeights := make([]grandpa.IDWeight[pgrandpa.AuthorityID], len(sas.inner.CurrentAuthorities))
 	for i, auth := range sas.inner.CurrentAuthorities {
-		idWeights[i] = grandpa.IDWeight[string]{
-			ID:     string(auth.AuthorityID),
+		idWeights[i] = grandpa.IDWeight[pgrandpa.AuthorityID]{
+			ID:     auth.AuthorityID,
 			Weight: uint64(auth.AuthorityWeight),
 		}
 	}
-	voterSet := grandpa.NewVoterSet[string](idWeights)
+	voterSet := grandpa.NewVoterSet[pgrandpa.AuthorityID](idWeights)
 	if voterSet == nil {
 		panic("CurrentAuthorities is non-empty and weights are non-zero; constructor and all" +
 			" mutating operations on AuthoritySet ensure this.")
