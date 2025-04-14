@@ -16,25 +16,23 @@ const logPendingInterval = 15 * time.Second
 
 // Something that needs to be withheld until specific blocks are available.
 //
-// For example a GRANDPA commit message which is not of any use without the corresponding block
-// that it commits on.
+// For example a GRANDPA commit message which is not of any use without the corresponding block that it commits on.
 type blockUntilImported[H runtime.Hash, N runtime.Number, Blocked any] interface {
-	/// Check if a new incoming item needs awaiting until a block(s) is imported.
+	// Check if a new incoming item needs awaiting until a block(s) is imported.
 	NeedsWaiting(
 		input Blocked,
 		statusCheck BlockStatus[H, N],
 	) (discardWaitOrReady, error)
 
-	/// called when the wait has completed. The canonical number is passed through
-	/// for further checks.
+	// called when the wait has completed. The canonical number is passed through for further checks.
 	WaitCompleted(canonNumber N) *Blocked
 }
 
-// Describes whether a given blockUntilImported (a) should be discarded, (b) is waiting for
-// specific blocks to be imported or (c) is ready to be used.
+// Describes whether a given blockUntilImported (a) should be discarded, (b) is waiting for specific blocks to be
+// imported or (c) is ready to be used.
 //
-// A reason for discarding a blockUntilImported would be if a referenced block is perceived
-// under a different number than specified in the message.
+// A reason for discarding a blockUntilImported would be if a referenced block is perceived under a different number
+// than specified in the message.
 type discardWaitOrReady interface {
 	isDiscardWaitOrReady()
 }
@@ -69,7 +67,7 @@ type untilImported[
 	statusCheck         BlockStatus[H, N]
 	incomingMessages    <-chan Blocked
 	ready               deque.Deque[Blocked]
-	/// Interval at which to check status of each awaited block.
+	// Interval at which to check status of each awaited block.
 	checkPending <-chan time.Time
 	// Mapping block hashes to their block number, the point in time it was first encountered (Instant) and a list of
 	// GRANDPA messages referencing the block hash.
@@ -99,8 +97,8 @@ func newUntilImported[
 ) untilImported[H, N, Header, Blocked, M] {
 	// how often to check if pending messages that are waiting for blocks to be imported can be checked.
 	//
-	// the import notifications interval takes care of most of this; this is used in the event of missed import
-	// notifications
+	// the import notifications interval takes care of most of this; this is used in the event of missed
+	// import notifications
 	const checkPendingInterval = 5 * time.Second
 
 	checkPending := time.NewTicker(checkPendingInterval).C
