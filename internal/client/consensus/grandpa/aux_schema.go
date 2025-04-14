@@ -19,6 +19,12 @@ var (
 	bestJustification = []byte("grandpa_best_justification")
 )
 
+// / Persistent data kept between runs.
+type persistentData[H runtime.Hash, N runtime.Number] struct {
+	authoritySet SharedAuthoritySet[H, N]
+	setState     SharedVoterSetState[H, N]
+}
+
 type writeAux func(insertions []api.KeyValue) error
 
 // updateAuthoritySet Update the authority set on disk after a change.

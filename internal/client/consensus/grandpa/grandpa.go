@@ -6,9 +6,11 @@ package grandpa
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
+	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/client/keystore"
 	"github.com/ChainSafe/gossamer/internal/client/network"
 	"github.com/ChainSafe/gossamer/internal/client/network/role"
@@ -20,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/core/crypto"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("consensus", "grandpa"))
@@ -33,6 +36,44 @@ type communicationIn[H runtime.Hash, N runtime.Number] grandpa.CommunicationIn[
 // hash to some type (e.g. `H256`) when the compiler can't do the inference.
 type communicationOut[H runtime.Hash, N runtime.Number] grandpa.CommunicationOut[ //nolint: unused
 	H, N, primitives.AuthoritySignature, primitives.AuthorityID]
+
+// / Shared voter state for querying.
+//
+//	pub struct SharedVoterState {
+//		inner: Arc<RwLock<Option<Box<dyn voter::VoterState<AuthorityId> + Sync + Send>>>>,
+//	}
+type SharedVoterState[AuthorityID comparable] struct {
+	inner grandpa.VoterState[AuthorityID]
+	sync.RWMutex
+}
+
+// impl SharedVoterState {
+// 	/// Create a new empty `SharedVoterState` instance.
+// 	pub fn empty() -> Self {
+// 		Self { inner: Arc::new(RwLock::new(None)) }
+// 	}
+
+// 	fn reset(
+// 		&self,
+// 		voter_state: Box<dyn voter::VoterState<AuthorityId> + Sync + Send>,
+// 	) -> Option<()> {
+// 		let mut shared_voter_state = self.inner.try_write_for(Duration::from_secs(1))?;
+
+// 		*shared_voter_state = Some(voter_state);
+// 		Some(())
+// 	}
+
+// 	/// Get the inner `VoterState` instance.
+// 	pub fn voter_state(&self) -> Option<report::VoterState<AuthorityId>> {
+// 		self.inner.read().as_ref().map(|vs| vs.get())
+// 	}
+// }
+
+// impl Clone for SharedVoterState {
+// 	fn clone(&self) -> Self {
+// 		SharedVoterState { inner: self.inner.clone() }
+// 	}
+// }
 
 type Config struct {
 	// The expected duration for a message to be gossiped across the network.
@@ -135,6 +176,134 @@ type voterCommandChangeAuthorities[H, N any] newAuthoritySet[H, N]
 
 func (vcca voterCommandChangeAuthorities[H, N]) Error() string {
 	return "Changing authorities"
+}
+
+// / Future that powers the voter.
+type voterWork[
+	H runtime.Hash,
+	N runtime.Number,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+	E runtime.Extrinsic,
+] struct {
+	// use string for AuthorityID and AuthoritySignature
+	voter            *grandpa.Voter[H, N, primitives.AuthoritySignature, primitives.AuthorityID]
+	sharedVoterState SharedVoterState[string]
+	env              environment[H, N, Hasher, Header, E]
+	voterCommandsRx  <-chan voterCommand
+	network          networkBridge[H, N, Hasher]
+	// TODO: telemtry, metrics
+}
+
+func newVoterWork[
+	H runtime.Hash,
+	N runtime.Number,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+	E runtime.Extrinsic,
+](
+	client ClientForGrandpa[H, N, Hasher, Header, E],
+	config Config,
+	network networkBridge[H, N, Hasher],
+	selectChain common.SelectChain[H, N, Header],
+	votingRule VotingRule[H, N, Header],
+	persistentData persistentData[H, N],
+	voterCommandsRx <-chan voterCommand,
+	prometheusRegistry prometheus.Registry,
+	sharedVoterState SharedVoterState[string],
+	justificationSender GrandpaJustificationSender[H, N, Header],
+	// TODO: telemetry
+) voterWork[H, N, Hasher, Header, E] {
+	// TODO: register to prometheus registry
+
+	voters := persistentData.authoritySet.CurrentAuthorities()
+	env := environment[H, N, Hasher, Header, E]{
+		Client:              client,
+		SelectChain:         selectChain,
+		VotingRule:          votingRule,
+		Voters:              voters,
+		Config:              config,
+		Network:             network,
+		SetID:               SetID(persistentData.authoritySet.inner.SetID),
+		AuthoritySet:        persistentData.authoritySet,
+		VoterSetState:       persistentData.setState,
+		JustificationSender: &justificationSender,
+	}
+
+	work := voterWork[H, N, Hasher, Header, E]{
+		// `voter` is set to a temporary value and replaced below when
+		// calling `rebuild_voter`.
+		voter:            nil,
+		sharedVoterState: sharedVoterState,
+		env:              env,
+		voterCommandsRx:  voterCommandsRx,
+		network:          network,
+	}
+	work.rebuildVoter()
+	return work
+}
+
+// / Rebuilds the `self.voter` field using the current authority set
+// / state. This method should be called when we know that the authority set
+// / has changed (e.g. as signalled by a voter command).
+func (vw *voterWork[H, N, Hasher, Header, E]) rebuildVoter() {
+	// debug!(
+	// 	target: LOG_TARGET,
+	// 	"{}: Starting new voter with set ID {}",
+	// 	self.env.config.name(),
+	// 	self.env.set_id
+	// );
+	logger.Debugf("%s: Starting new voter with set ID %v", vw.env.Config.name(), vw.env.SetID)
+
+	maybeAuthorityID := localAuthorityID(vw.env.Voters, &vw.env.Config.KeyStore)
+	var authorityID string
+	if maybeAuthorityID != nil {
+		authorityID = string(maybeAuthorityID.Bytes())
+	} else {
+		authorityID = "<unknown>"
+	}
+
+	// telemetry!(
+	// 	self.telemetry;
+	// 	CONSENSUS_DEBUG;
+	// 	"afg.starting_new_voter";
+	// 	"name" => ?self.env.config.name(),
+	// 	"set_id" => ?self.env.set_id,
+	// 	"authority_id" => authority_id,
+	// );
+
+	chainInfo := vw.env.Client.Info()
+
+	// let authorities = self.env.voters.iter().map(|(id, _)| id.to_string()).collect::<Vec<_>>();
+
+	// let authorities = serde_json::to_string(&authorities).expect(
+	// 	"authorities is always at least an empty vector; elements are always of type string; qed.",
+	// );
+
+	// telemetry!(
+	// 	self.telemetry;
+	// 	CONSENSUS_INFO;
+	// 	"afg.authority_set";
+	// 	"number" => ?chain_info.finalized_number,
+	// 	"hash" => ?chain_info.finalized_hash,
+	// 	"authority_id" => authority_id,
+	// 	"authority_set_id" => ?self.env.set_id,
+	// 	"authorities" => authorities,
+	// );
+	_ = authorityID
+	_ = chainInfo
+
+	vw.env.VoterSetState.innerMtx.RLock()
+	defer vw.env.VoterSetState.innerMtx.RUnlock()
+
+	switch vw.env.VoterSetState.inner.(type) {
+	case voterSetStateLive[H, N]:
+
+	case voterSetStatePaused[H, N]:
+	default:
+		panic("unreachable")
+	}
+
 }
 
 // Checks if this node has any available keys in the keystore for any authority id in the givenvoter set.  Returns the
