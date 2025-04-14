@@ -117,6 +117,18 @@ func newUntilImported[
 
 func (ui *untilImported[H, N, Header, Blocked, M]) Chan() <-chan Blocked {
 	ch := make(chan Blocked)
+	go func() {
+		defer close(ch)
+		for {
+			ready, blocked, err := ui.pollNext()
+			if err != nil {
+				return
+			}
+			if ready && blocked != nil {
+				ch <- *blocked
+			}
+		}
+	}()
 	return ch
 }
 
