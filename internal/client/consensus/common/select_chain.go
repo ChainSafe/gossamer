@@ -29,6 +29,7 @@ type HeaderError[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]] 
 	Header Header
 	Error  error
 }
+
 type HashError[H runtime.Hash] struct {
 	Hash  H
 	Error error
