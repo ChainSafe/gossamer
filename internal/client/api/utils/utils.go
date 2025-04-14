@@ -14,7 +14,7 @@ type HashParent[H runtime.Hash] struct {
 	Parent H
 }
 
-type Client[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H], E runtime.Extrinsic] interface {
+type Client[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]] interface {
 	blockchain.HeaderMetadata[H, N]
 	blockchain.HeaderBackend[H, N, Header]
 }
@@ -23,8 +23,8 @@ type Client[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H], E run
 // hash (second parameter) is a descendent of the base (first parameter). If current is defined, it should represent
 // the current block hash and its parent hash. if current is given, the function that is returned will assume that
 // current.Hash isn't part of the local DB yet, and all searches in the DB will instead reference the parent.
-func IsDescendantOf[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H], E runtime.Extrinsic](
-	client Client[H, N, Header, E], current *HashParent[H],
+func IsDescendantOf[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
+	client Client[H, N, Header], current *HashParent[H],
 ) func(a H, b H) (bool, error) {
 	return func(base H, hash H) (bool, error) {
 		if base == hash {

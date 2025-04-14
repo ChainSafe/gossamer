@@ -62,98 +62,26 @@ func (c Config) name() string {
 	return *c.Name
 }
 
-/// Errors that can occur while voting in GRANDPA.
-// #[derive(Debug, thiserror::Error)]
-// pub enum Error {
-// 	/// An error within grandpa.
-// 	#[error("grandpa error: {0}")]
-// 	Grandpa(#[from] GrandpaError),
+// Errors that can occur while voting in GRANDPA.
+var (
+	// ErrClient means we could not complete a round on disk.
+	ErrClient = errors.New("could not complete a round on disk")
 
-// 	/// A network error.
-// 	#[error("network error: {0}")]
-// 	Network(String),
+	// ErrSafety means an invariant has been violated (e.g. not finalizing pending change blocks in-order)
+	ErrSafety = errors.New("safety invariant has been violated")
 
-// 	/// A blockchain error.
-// 	#[error("blockchain error: {0}")]
-// 	Blockchain(String),
+	// ErrRuntimeApi means a runtime api request failed.
+	ErrRuntimeApi = errors.New("runtime API request failed")
+)
 
-// /// Could not complete a round on disk.
-// #[error("could not complete a round on disk: {0}")]
-// Client(#[from] ClientError),
-var ErrClient = errors.New("could not complete a round on disk")
-
-// 	/// Could not sign outgoing message
-// 	#[error("could not sign outgoing message: {0}")]
-// 	Signing(String),
-
-// /// An invariant has been violated (e.g. not finalizing pending change blocks in-order)
-// #[error("safety invariant has been violated: {0}")]
-// Safety(String),
-var ErrSafety = errors.New("safety invariant has been violated")
-
-// 	/// A timer failed to fire.
-// 	#[error("a timer failed to fire: {0}")]
-// 	Timer(io::Error),
-
-// /// A runtime api request failed.
-// #[error("runtime API request failed: {0}")]
-// RuntimeApi(sp_api::ApiError),
-var ErrRuntimeApi = errors.New("runtime API request failed")
-
-// }
-
-// / Something which can determine if a block is known.
-// pub(crate) trait BlockStatus<Block: BlockT> {
+// Something which can determine if a block is known.
 type BlockStatus[H runtime.Hash, N runtime.Number] interface {
-	/// Return `Ok(Some(number))` or `Ok(None)` depending on whether the block
-	/// is definitely known and has been imported.
-	/// If an unexpected error occurs, return that.
-	// fn block_number(&self, hash: Block::Hash) -> Result<Option<NumberFor<Block>>, Error>;
+	// Return a number or nil depending on whether the block is definitely known and has been imported. If an
+	// unexpected error occurs, return that.
 	Number(hash H) (*N, error)
 }
 
-// impl<Block: BlockT, Client> BlockStatus<Block> for Arc<Client>
-// where
-//
-//	Client: HeaderBackend<Block>,
-//	NumberFor<Block>: BlockNumberOps,
-//
-//	{
-//		fn block_number(&self, hash: Block::Hash) -> Result<Option<NumberFor<Block>>, Error> {
-//			self.block_number_from_id(&BlockId::Hash(hash))
-//				.map_err(|e| Error::Blockchain(e.to_string()))
-//		}
-//	}
-type BlockStatusForClient[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]] struct {
-	blockchain.HeaderBackend[H, N, Header]
-}
-
-func (bsfc BlockStatusForClient[H, N, Header]) BlockNumber(hash H) (*N, error) {
-	return bsfc.HeaderBackend.Number(hash)
-}
-
-// / A trait that includes all the client functionalities grandpa requires.
-// / Ideally this would be a trait alias, we're not there yet.
-// / tracking issue <https://github.com/rust-lang/rust/issues/41517>
-// pub trait ClientForGrandpa<Block, BE>:
-//
-//	LockImportRun<Block, BE>
-//	+ Finalizer<Block, BE>
-//	+ AuxStore
-//	+ HeaderMetadata<Block, Error = sp_blockchain::Error>
-//	+ HeaderBackend<Block>
-//	+ BlockchainEvents<Block>
-//	+ ProvideRuntimeApi<Block>
-//	+ ExecutorProvider<Block>
-//	+ BlockImport<Block, Transaction = TransactionFor<BE, Block>, Error = sp_consensus::Error>
-//	+ StorageProvider<Block, BE>
-//
-// where
-
-//	BE: Backend<Block>,
-//	Block: BlockT,
-//
-// {}
+// ClientForGrandpa is an interface that includes all the client functionalities grandpa requires.
 type ClientForGrandpa[
 	H runtime.Hash,
 	N runtime.Number,
@@ -173,15 +101,12 @@ type ClientForGrandpa[
 	// api.StorageProvider[H, N, Hasher]
 }
 
-// / Something that one can ask to do a block sync request.
-// pub(crate) trait BlockSyncRequester<Block: BlockT> {
+// Something that one can ask to do a block sync request.
 type BlockSyncRequester[H runtime.Hash, N runtime.Number] interface {
-	/// Notifies the sync service to try and sync the given block from the given
-	/// peers.
+	/// Notifies the sync service to try and sync the given block from the given peers.
 	///
-	/// If the given vector of peers is empty then the underlying implementation
-	/// should make a best effort to fetch the block from any peers it is
-	/// connected to (NOTE: this assumption will change in the future #3629).
+	/// If the given vector of peers is empty then the underlying implementation should make a best effort to fetch
+	//  the block from any peers it is connected to (NOTE: this assumption will change in the future substrate #3629).
 	SetSyncForkRequest(peers []peerid.PeerID, hash H, number N)
 }
 
@@ -212,15 +137,8 @@ func (vcca voterCommandChangeAuthorities[H, N]) Error() string {
 	return fmt.Sprintf("Changing authorities")
 }
 
-// / Checks if this node has any available keys in the keystore for any authority id in the given
-// / voter set.  Returns the authority id for which keys are available, or `None` if no keys are
-// / available.
-// fn local_authority_id(
-//
-//	voters: &VoterSet<AuthorityId>,
-//	keystore: Option<&KeystorePtr>,
-//
-// ) -> Option<AuthorityId> {
+// Checks if this node has any available keys in the keystore for any authority id in the givenvoter set.  Returns the
+// authority id for which keys are available, or nil if no keys are available.
 func localAuthorityID(voters grandpa.VoterSet[primitives.AuthorityID], ks *keystore.KeyStore) *primitives.AuthorityID {
 	if ks == nil {
 		return nil
@@ -236,11 +154,3 @@ func localAuthorityID(voters grandpa.VoterSet[primitives.AuthorityID], ks *keyst
 	}
 	return nil
 }
-
-// 	keystore.and_then(|keystore| {
-// 		voters
-// 			.iter()
-// 			.find(|(p, _)| keystore.has_keys(&[(p.to_raw_vec(), AuthorityId::ID)]))
-// 			.map(|(p, _)| p.clone())
-// 	})
-// }

@@ -35,20 +35,8 @@ type GrandpaJustification[Hash runtime.Hash, N runtime.Number, Header runtime.He
 	Justification primitives.GrandpaJustification[Hash, N, Header]
 }
 
-// / Create a GRANDPA justification from the given commit. This method
-// / assumes the commit is valid and well-formed.
-// pub fn from_commit<C>(
-//
-//	client: &Arc<C>,
-//	round: u64,
-//	commit: Commit<Block::Header>,
-//
-// ) -> Result<Self, Error>
-// where
-//
-//	C: HeaderBackend<Block>,
-//
-// {
+// NewGrandpaJustificationFromCommit creates a GRANDPA justification from the given commit. This method assumes the
+// commit is valid and well-formed.
 func NewGrandpaJustificationFromCommit[
 	H runtime.Hash,
 	N runtime.Number,
@@ -58,29 +46,12 @@ func NewGrandpaJustificationFromCommit[
 	round uint64,
 	commit primitives.Commit[H, N],
 ) (GrandpaJustification[H, N, Header], error) {
-	// 	let mut votes_ancestries_hashes = HashSet::new();
-	// 	let mut votes_ancestries = Vec::new();
 	votesAncestriesHashes := make(map[H]struct{})
 	votesAncestries := make([]Header, 0)
-
-	// 	let error = || {
-	// 		let msg = "invalid precommits for target commit".to_string();
-	// 		Err(Error::Client(ClientError::BadJustification(msg)))
-	// 	};
 
 	// we pick the precommit for the lowest block as the base that
 	// should serve as the root block for populating ancestry (i.e.
 	// collect all headers from all precommit blocks to the base)
-	// 	let (base_hash, base_number) = match commit
-	// 		.precommits
-	// 		.iter()
-	// 		.map(|signed| &signed.precommit)
-	// 		.min_by_key(|precommit| precommit.target_number)
-	// 		.map(|precommit| (precommit.target_hash, precommit.target_number))
-	// 	{
-	// 		None => return error(),
-	// 		Some(base) => base,
-	// 	};
 	var base *grandpa.HashNumber[H, N]
 	for _, signed := range commit.Precommits {
 		precommit := signed.Precommit
@@ -99,20 +70,13 @@ func NewGrandpaJustificationFromCommit[
 			)
 	}
 
-	// 	for signed in commit.precommits.iter() {
 	for _, signed := range commit.Precommits {
-		// 		let mut current_hash = signed.precommit.target_hash;
 		currentHash := signed.Precommit.TargetHash
-		// 		loop {
 		for {
-			// 			if current_hash == base_hash {
-			// 				break
-			// 			}
 			if currentHash == base.Hash {
 				break
 			}
 
-			// 			match client.header(current_hash)? {
 			currentHeader, err := client.Header(currentHash)
 			if err != nil {
 				return GrandpaJustification[H, N, Header]{}, err
@@ -120,27 +84,19 @@ func NewGrandpaJustificationFromCommit[
 			if currentHeader != nil {
 				// NOTE: this should never happen as we pick the lowest block
 				// as base and only traverse backwards from the other blocks
-				// in the commit. but better be safe to avoid an unbound loop.
-				// 					if *current_header.number() <= base_number {
-				// 						return error()
-				// 					}
+				// in the commit. but better be safe to avoid an unbound loop.			}
 				if (*currentHeader).Number() <= base.Number {
 					return GrandpaJustification[H, N, Header]{},
 						fmt.Errorf("%w: %s: invalid precommits for target commit",
 							ErrClient, blockchain.ErrBadJustification)
 				}
 
-				// 					let parent_hash = *current_header.parent_hash();
 				parentHash := (*currentHeader).ParentHash()
-				// 					if votes_ancestries_hashes.insert(current_hash) {
-				// 						votes_ancestries.push(current_header);
-				// 					}
 				_, ok := votesAncestriesHashes[currentHash]
 				if !ok {
 					votesAncestries = append(votesAncestries, *currentHeader)
 				}
 
-				// 					current_hash = parent_hash;
 				currentHash = parentHash
 			} else {
 				return GrandpaJustification[H, N, Header]{},
@@ -150,7 +106,6 @@ func NewGrandpaJustificationFromCommit[
 		}
 	}
 
-	// Ok(sp_consensus_grandpa::GrandpaJustification { round, commit, votes_ancestries }.into())
 	return GrandpaJustification[H, N, Header]{
 		Justification: primitives.GrandpaJustification[H, N, Header]{
 			Round:          round,

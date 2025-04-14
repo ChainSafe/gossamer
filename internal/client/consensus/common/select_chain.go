@@ -7,42 +7,23 @@ import "github.com/ChainSafe/gossamer/internal/primitives/runtime"
 // / specific chain build.
 // /
 // / The Strategy can be customized for the two use cases of authoring new blocks
-// / upon the best chain or which fork to finalize. Unless implemented differently
-// / by default finalization methods fall back to use authoring, so as a minimum
-// / `_authoring`-functions must be implemented.
-// /
-// / Any particular user must make explicit, however, whether they intend to finalize
-// / or author through the using the right function call, as these might differ in
-// / some implementations.
-// /
-// / Non-deterministically finalizing chains may only use the `_authoring` functions.
-// #[async_trait::async_trait]
-// pub trait SelectChain<Block: BlockT>: Sync + Send + Clone {
+// / upon the best chain or which fork to finalize.
 type SelectChain[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]] interface {
-	/// Get all leaves of the chain, i.e. block hashes that have no children currently.
-	/// Leaves that can never be finalized will not be returned.
-	// 	async fn leaves(&self) -> Result<Vec<<Block as BlockT>::Hash>, Error>;
+	// Get all leaves of the chain, i.e. block hashes that have no children currently.
+	// Leaves that can never be finalized will not be returned.
 	Leaves() <-chan struct {
 		Leaves []H
 		Error  error
 	}
 
-	/// Among those `leaves` deterministically pick one chain as the generally
-	/// best chain to author new blocks upon and probably (but not necessarily)
-	/// finalize.
-	// 	async fn best_chain(&self) -> Result<<Block as BlockT>::Header, Error>;
+	// Among those leaves deterministically pick one chain as the generally
+	// best chain to author new blocks upon and probably (but not necessarily)
+	// finalize.
 	BestChain() <-chan HeaderError[H, N, Header]
 
-	/// Get the best descendent of `base_hash` that we should attempt to
-	/// finalize next, if any. It is valid to return the given `base_hash`
-	/// itself if no better descendent exists.
-	// async fn finality_target(
-	// 	&self,
-	// 	base_hash: <Block as BlockT>::Hash,
-	// 	_maybe_max_number: Option<NumberFor<Block>>,
-	// ) -> Result<<Block as BlockT>::Hash, Error> {
-	// 	Ok(base_hash)
-	// }
+	// Get the best descendent of baseHash that we should attempt to
+	// finalize next, if any. It is valid to return the given baseHash
+	// itself if no better descendent exists.
 	FinalityTarget(baseHash H, maybeMaxNumber *N) <-chan HashError[H]
 }
 
@@ -50,6 +31,7 @@ type HeaderError[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]] 
 	Header Header
 	Error  error
 }
+
 type HashError[H runtime.Hash] struct {
 	Hash  H
 	Error error

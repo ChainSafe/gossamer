@@ -62,15 +62,8 @@ type SharedAuthoritySet[H comparable, N constraints.Unsigned] struct {
 	inner AuthoritySet[H, N]
 }
 
-// / Get the current authorities and their weights (for the current set ID).
+// CurrentAuthorities will get the current authorities and their weights (for the current set ID).
 func (sas *SharedAuthoritySet[H, N]) CurrentAuthorities() grandpa.VoterSet[string] {
-	//	pub fn current_authorities(&self) -> VoterSet<AuthorityId> {
-	//		VoterSet::new(self.inner().current_authorities.iter().cloned()).expect(
-	//			"current_authorities is non-empty and weights are non-zero; \
-	//			 constructor and all mutating operations on `AuthoritySet` ensure this; \
-	//			 qed.",
-	//		)
-	//	}
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	idWeights := make([]grandpa.IDWeight[string], len(sas.inner.CurrentAuthorities))
@@ -82,7 +75,8 @@ func (sas *SharedAuthoritySet[H, N]) CurrentAuthorities() grandpa.VoterSet[strin
 	}
 	voterSet := grandpa.NewVoterSet[string](idWeights)
 	if voterSet == nil {
-		panic(fmt.Errorf("current_authorities is non-empty and weights are non-zero; constructor and all mutating operations on `AuthoritySet` ensure this; qed."))
+		panic("CurrentAuthorities is non-empty and weights are non-zero; constructor and all" +
+			" mutating operations on AuthoritySet ensure this.")
 	}
 	return *voterSet
 }
@@ -128,7 +122,7 @@ func (sas *SharedAuthoritySet[H, N]) addPendingChange(pending PendingChange[H, N
 	return sas.inner.addPendingChange(pending, isDescendentOf)
 }
 
-// PendingChanges Inspect pending changes. Standard pending changes are iterated first,
+// PendingChanges inspects pending changes. Standard pending changes are iterated first,
 // and the changes in the roots are traversed in pre-order, afterwards all
 // forced changes are iterated.
 func (sas *SharedAuthoritySet[H, N]) PendingChanges() []PendingChange[H, N] {
@@ -137,7 +131,7 @@ func (sas *SharedAuthoritySet[H, N]) PendingChanges() []PendingChange[H, N] {
 	return sas.inner.pendingChanges()
 }
 
-// currentLimit Get the earliest limit-block number, if any. If there are pending changes across
+// currentLimit will get the earliest limit-block number, if any. If there are pending changes across
 // different forks, this method will return the earliest effective number (across the
 // different branches) that is higher or equal to the given min number.
 //
@@ -149,7 +143,8 @@ func (sas *SharedAuthoritySet[H, N]) currentLimit(min N) (limit *N) { //nolint /
 	return sas.inner.currentLimit(min)
 }
 
-func (sas *SharedAuthoritySet[H, N]) applyForcedChanges(bestHash H, //nolint //skipcq: SCC-U1000
+func (sas *SharedAuthoritySet[H, N]) applyForcedChanges(
+	bestHash H, //nolint //skipcq: SCC-U1000
 	bestNumber N,
 	isDescendentOf IsDescendentOf[H],
 	// TODO: telemtry,
@@ -159,17 +154,18 @@ func (sas *SharedAuthoritySet[H, N]) applyForcedChanges(bestHash H, //nolint //s
 	return sas.inner.applyForcedChanges(bestHash, bestNumber, isDescendentOf)
 }
 
-// applyStandardChanges Apply or prune any pending transitions based on a finality trigger. This
+// applyStandardChanges will apply or prune any pending transitions based on a finality trigger. This
 // method ensures that if there are multiple changes in the same branch,
 // finalising this block won't finalise past multiple transitions (i.e.
 // transitions must be finalised in-order). The given function
-// `is_descendent_of` should return `true` if the second hash (target) is a
+// isDescendentOf should return true if the second hash (target) is a
 // descendent of the first hash (base).
 //
 // When the set has changed, the return value will be a status type where newSetBlockInfo
 // is the canonical block where the set last changed (i.e. the given
 // hash and number).
-func (sas *SharedAuthoritySet[H, N]) applyStandardChanges(finalisedHash H, //nolint //skipcq: SCC-U1000
+func (sas *SharedAuthoritySet[H, N]) applyStandardChanges(
+	finalisedHash H, //nolint //skipcq: SCC-U1000
 	finalisedNumber N,
 	isDescendentOf IsDescendentOf[H],
 	initialSync bool,
