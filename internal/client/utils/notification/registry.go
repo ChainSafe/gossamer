@@ -3,7 +3,7 @@
 
 package notification
 
-// / The shared structure to keep track on subscribers.
+// The shared structure to keep track on subscribers.
 type registry[Payload any] struct {
 	subscribers map[uint64]struct{}
 }

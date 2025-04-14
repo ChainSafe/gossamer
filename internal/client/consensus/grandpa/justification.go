@@ -329,7 +329,7 @@ func (j *GrandpaJustification[Hash, N, Header]) Target() HashNumber[Hash, N] {
 	}
 }
 
-// ancestryChain is a utility trait implementing grandpa.Chain using a given set of headers. This is useful when
+// ancestryChain is a utility interface implementing [grandpa.Chain] using a given set of headers. This is useful when
 // validating commits, using the given set of headers to verify a valid ancestry route to the target commit block.
 type ancestryChain[Hash runtime.Hash, N runtime.Number, Header runtime.Header[N, Hash]] struct {
 	ancestry map[Hash]Header
