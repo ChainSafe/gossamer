@@ -1,3 +1,6 @@
+// Copyright 2025 ChainSafe Systems (ON)
+// SPDX-License-Identifier: LGPL-3.0-only
+
 package grandpa
 
 import (
@@ -11,10 +14,10 @@ import (
 
 const logPendingInterval = 15 * time.Second
 
-// / Something that needs to be withheld until specific blocks are available.
-// /
-// / For example a GRANDPA commit message which is not of any use without the corresponding block
-// / that it commits on.
+// Something that needs to be withheld until specific blocks are available.
+//
+// For example a GRANDPA commit message which is not of any use without the corresponding block
+// that it commits on.
 type blockUntilImported[H runtime.Hash, N runtime.Number, Blocked any] interface {
 	/// Check if a new incoming item needs awaiting until a block(s) is imported.
 	NeedsWaiting(
@@ -27,11 +30,11 @@ type blockUntilImported[H runtime.Hash, N runtime.Number, Blocked any] interface
 	WaitCompleted(canonNumber N) *Blocked
 }
 
-// / Describes whether a given blockUntilImported (a) should be discarded, (b) is waiting for
-// / specific blocks to be imported or (c) is ready to be used.
-// /
-// / A reason for discarding a blockUntilImported would be if a referenced block is perceived
-// / under a different number than specified in the message.
+// Describes whether a given blockUntilImported (a) should be discarded, (b) is waiting for
+// specific blocks to be imported or (c) is ready to be used.
+//
+// A reason for discarding a blockUntilImported would be if a referenced block is perceived
+// under a different number than specified in the message.
 type discardWaitOrReady interface {
 	isDiscardWaitOrReady()
 }
@@ -54,7 +57,13 @@ type ready[R any] struct {
 func (ready[R]) isDiscardWaitOrReady() {}
 
 // Buffering incoming messages until blocks with given hashes are imported.
-type untilImported[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H], Blocked any, M blockUntilImported[H, N, Blocked]] struct {
+type untilImported[
+	H runtime.Hash,
+	N runtime.Number,
+	Header runtime.Header[N, H],
+	Blocked any,
+	M blockUntilImported[H, N, Blocked],
+] struct {
 	importNotifications <-chan api.BlockImportNotification[H, N, Header]
 	blockSyncRequester  BlockSyncRequester[H, N]
 	statusCheck         BlockStatus[H, N]
@@ -62,11 +71,10 @@ type untilImported[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]
 	ready               deque.Deque[Blocked]
 	/// Interval at which to check status of each awaited block.
 	checkPending <-chan time.Time
-	/// Mapping block hashes to their block number, the point in time it was
-	/// first encountered (Instant) and a list of GRANDPA messages referencing
-	/// the block hash.
+	// Mapping block hashes to their block number, the point in time it was first encountered (Instant) and a list of
+	// GRANDPA messages referencing the block hash.
 	pending map[H]pendingEntry[H, N, Blocked]
-	/// Queue identifier for differentiation in logs.
+	// Queue identifier for differentiation in logs.
 	identifier string
 	// TODO: metrics
 }
@@ -76,18 +84,23 @@ type pendingEntry[H runtime.Hash, N runtime.Number, Blocked any] struct {
 	Wait        []blockUntilImported[H, N, Blocked]
 }
 
-func newUntilImported[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H], Blocked any, M blockUntilImported[H, N, Blocked]](
+func newUntilImported[
+	H runtime.Hash,
+	N runtime.Number,
+	Header runtime.Header[N, H],
+	Blocked any,
+	M blockUntilImported[H, N, Blocked],
+](
 	importNotifications <-chan api.BlockImportNotification[H, N, Header],
 	blockSyncRequester BlockSyncRequester[H, N],
 	statusCheck BlockStatus[H, N],
 	incomingMessages <-chan Blocked,
 	identifier string,
 ) untilImported[H, N, Header, Blocked, M] {
-	// how often to check if pending messages that are waiting for blocks to be
-	// imported can be checked.
+	// how often to check if pending messages that are waiting for blocks to be imported can be checked.
 	//
-	// the import notifications interval takes care of most of this; this is
-	// used in the event of missed import notifications
+	// the import notifications interval takes care of most of this; this is used in the event of missed import
+	// notifications
 	const checkPendingInterval = 5 * time.Second
 
 	checkPending := time.NewTicker(checkPendingInterval).C
@@ -117,8 +130,7 @@ incoming:
 			if !ok {
 				return true, nil, nil
 			}
-			// new input: schedule wait of any parts which require
-			// blocks to be known.
+			// new input: schedule wait of any parts which require blocks to be known.
 			dwr, err := (*new(M)).NeedsWaiting(b, ui.statusCheck)
 			if err != nil {
 				return true, nil, err
@@ -197,11 +209,11 @@ imports:
 				nextLog := e.LastLog.Add(logPendingInterval)
 				if time.Now().After(nextLog) {
 					logger.Debugf(
-						"Waiting to import block %s before %d %s messages can be imported. Requesting network sync service to retrieve block from. Possible fork?",
+						"Waiting to import block %s before %d %s messages can be imported. "+
+							"Requesting network sync service to retrieve block from. Possible fork?",
 						blockHash, len(e.Wait), ui.identifier)
 
-					// NOTE: when sending an empty vec of peers the
-					// underlying should make a best effort to sync the
+					// NOTE: when sending an empty vec of peers the underlying should make a best effort to sync the
 					// block from any peers it knows about.
 					ui.blockSyncRequester.SetSyncForkRequest(
 						nil,
@@ -291,8 +303,7 @@ func (sm signedMessage[H, N]) WaitCompleted(canonNumber N) *signedMessage[H, N] 
 	return &sm
 }
 
-// / Helper type definition for the stream which waits until vote targets for
-// / signed messages are imported.
+// Helper type definition for the stream which waits until vote targets for signed messages are imported.
 type untilVoteTargetImported[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]] struct {
 	untilImported[H, N, Header, signedMessage[H, N], signedMessage[H, N]]
 }

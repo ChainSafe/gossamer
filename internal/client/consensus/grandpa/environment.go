@@ -191,7 +191,7 @@ func NewSharedVoterSetState[H runtime.Hash, N runtime.Number](state voterSetStat
 }
 
 // Get the authority id that we are using to vote on the given round, if any.
-func (svss *SharedVoterSetState[H, N]) votingOn(round primitives.RoundNumber) *primitives.AuthorityID { //nolint: unused
+func (svss *SharedVoterSetState[H, N]) votingOn(round primitives.RoundNumber) *primitives.AuthorityID {
 	svss.votingMtx.RLock()
 	defer svss.votingMtx.RUnlock()
 	key, ok := svss.voting[round]
@@ -202,9 +202,7 @@ func (svss *SharedVoterSetState[H, N]) votingOn(round primitives.RoundNumber) *p
 }
 
 // Note that we started voting on the give round with the given authority id.
-func (svss *SharedVoterSetState[H, N]) startedVotingOn( //nolint: unused
-	round primitives.RoundNumber, localID primitives.AuthorityID,
-) {
+func (svss *SharedVoterSetState[H, N]) startedVotingOn(round primitives.RoundNumber, localID primitives.AuthorityID) {
 	svss.votingMtx.Lock()
 	defer svss.votingMtx.Unlock()
 	svss.voting[round] = localID
@@ -212,7 +210,7 @@ func (svss *SharedVoterSetState[H, N]) startedVotingOn( //nolint: unused
 
 // Note that we have finished voting on the given round. If we were voting on the given round, the authority id that
 // we were using to do it will be cleared.
-func (svss *SharedVoterSetState[H, N]) finishedVotingOn(round primitives.RoundNumber) { //nolint: unused
+func (svss *SharedVoterSetState[H, N]) finishedVotingOn(round primitives.RoundNumber) {
 	svss.votingMtx.Lock()
 	defer svss.votingMtx.Unlock()
 	delete(svss.voting, round)
@@ -655,9 +653,8 @@ type environment[
 	// TODO: telemetry
 }
 
-// / Updates the voter set state using the given closure. The write lock is
-// / held during evaluation of the closure and the environment's voter set
-// / state is set to its result if successful.
+// Updates the voter set state using the given closure. The write lock is held during evaluation of the closure and
+// the environment's voter set state is set to its result if successful.
 func (e *environment[H, N, Hasher, Header, E]) updateVoterSetState(
 	f func(voterSetState voterSetState[H, N]) (voterSetState[H, N], error),
 ) error {
@@ -676,11 +673,10 @@ func (e *environment[H, N, Hasher, Header, E]) updateVoterSetState(
 	return nil
 }
 
-// / Report the given equivocation to the GRANDPA runtime module. This method
-// / generates a session membership proof of the offender and then submits an
-// / extrinsic to report the equivocation. In particular, the session membership
-// / proof must be generated at the block at which the given set was active which
-// / isn't necessarily the best block if there are pending authority set changes.
+// Report the given equivocation to the GRANDPA runtime module. This method generates a session membership proof of
+// the offender and then submits an extrinsic to report the equivocation. In particular, the session membership proof
+// must be generated at the block at which the given set was active which isn't necessarily the best block if there
+// are pending authority set changes.
 func (e *environment[H, N, Hasher, Header, E]) reportEquivocation(
 	equivocation primitives.Equivocation,
 ) error {
@@ -817,20 +813,16 @@ func (e *environment[H, N, Hasher, Header, E]) IsEqualOrDescendantOf(base H, blo
 	// variant is `ErrNotDescendent`, this may change in the future as
 	// other errors (e.g. IO) are not being exposed.
 	_, err := ancestry(e.Client, base, block)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func (e *environment[H, N, Hasher, Header, E]) BestChainContaining(
 	block H,
 ) grandpa.BestChain[H, N] {
 	ch := make(grandpa.BestChain[H, N], 1)
-	// NOTE: when we finalize an authority set change through the sync protocol the voter is
-	// signaled asynchronously. therefore the voter could still vote in the next round
-	// before activating the new set. the [AuthoritySet] is updated immediately thus
-	// we restrict the voter based on that.
+	// NOTE: when we finalize an authority set change through the sync protocol the voter is signalled asynchronously
+	// therefore the voter could still vote in the next round before activating the new set. the [AuthoritySet] is
+	// updated immediately thus we restrict the voter based on that.
 	if e.SetID != SetID(e.AuthoritySet.inner.SetID) {
 		ch <- grandpa.BestChainOutput[H, N]{
 			Value: nil,
@@ -874,19 +866,16 @@ func (e *environment[H, N, Hasher, Header, E]) RoundData(
 		panic("unreachable")
 	}
 
-	// NOTE: we cache the local authority id that we'll be using to vote on the
-	// given round. this is done to make sure we only check for available keys
-	// from the keystore in this method when beginning the round, otherwise if
-	// the keystore state changed during the round (e.g. a key was removed) it
-	// could lead to internal state inconsistencies in the voter environment
-	// (e.g. we wouldn't update the voter set state after prevoting since there's
-	// no local authority id).
+	// NOTE: we cache the local authority id that we'll be using to vote on the given round. this is done to make sure
+	// we only check for available keys from the keystore in this method when beginning the round, otherwise if the
+	// keystore state changed during the round (e.g. a key was removed) it could lead to internal state inconsistencies
+	// in the voter environment (e.g. we wouldn't update the voter set state after prevoting since there's no local
+	// authority id).
 	if localID != nil {
 		e.VoterSetState.startedVotingOn(primitives.RoundNumber(round), *localID)
 	}
 
-	// we can only sign when we have a local key in the authority set
-	// and we have a reference to the keystore.
+	// we can only sign when we have a local key in the authority set and we have a reference to the keystore.
 	var keystore *localIDKeystore
 	if localID != nil && e.Config.KeyStore != nil {
 		keystore = &localIDKeystore{
@@ -904,8 +893,7 @@ func (e *environment[H, N, Hasher, Header, E]) RoundData(
 		}
 	}()
 
-	// schedule incoming messages from the network to be held until
-	// corresponding blocks are imported.
+	// schedule incoming messages from the network to be held until corresponding blocks are imported.
 	incoming := newUntilVoteTargetImported(
 		e.Client.RegisterImportNotificationStream(),
 		&e.Network,
@@ -1253,7 +1241,7 @@ func (e *environment[H, N, Hasher, Header, E]) FinalizeBlock(
 
 func (e *environment[H, N, Hasher, Header, E]) RoundCommitTimer() time.Timer {
 	// random duration between [0, 2 * GossipDuration] seconds.
-	delay := rand.Int64N(2 * e.Config.GossipDuration.Milliseconds())
+	delay := rand.Int64N(2 * e.Config.GossipDuration.Milliseconds()) //nolint:gosec
 	timer := time.NewTimer(time.Duration(delay) * time.Millisecond)
 	return *timer
 }
@@ -1305,9 +1293,9 @@ func bestChainContaining[
 	}
 	baseHeader = *h
 
-	// we refuse to vote beyond the current limit number where transitions are scheduled to occur.
-	// once blocks are finalized that make that transition irrelevant or activate it, we will
-	// proceed onwards. most of the time there will be no pending transition.  the limit, if any, is
+	// We refuse to vote beyond the current limit number where transitions are scheduled to occur.
+	// Once blocks are finalized that make that transition irrelevant or activate it, we will
+	// proceed onwards. most of the time there will be no pending transition.  The limit, if any, is
 	// guaranteed to be higher than or equal to the given base number.
 	limit := authoritySet.currentLimit(baseHeader.Number())
 	logger.Debugf("Finding best chain containing block %s with number limit %s", block, limit)
@@ -1315,13 +1303,13 @@ func bestChainContaining[
 	var targetHeader Header
 	th := <-selectChain.FinalityTarget(block, nil)
 	if th.Error != nil {
-		logger.Debugf("Encountered error finding best chain containing %s: couldn't find target block: %s", block, th.Error)
-		// NOTE: in case the given SelectChain doesn't provide any block we fallback to using
-		// the given base block provided by the GRANDPA voter.
+		logger.Debugf(
+			"Encountered error finding best chain containing %s: couldn't find target block: %s", block, th.Error)
+		// NOTE: in case the given SelectChain doesn't provide any block we fallback to using the given base block
+		// provided by the GRANDPA voter.
 		//
-		// For example, LongestChain will error if the given block to use as base isn't part
-		// of the best chain (as defined by LongestChain), which could happen if there was a
-		// re-org.
+		// For example, LongestChain will error if the given block to use as base isn't part of the best chain
+		// (as defined by LongestChain), which could happen if there was a re-org.
 		targetHeader = baseHeader
 	} else {
 		h, err := client.Header(th.Hash)
@@ -1334,14 +1322,14 @@ func bestChainContaining[
 		targetHeader = *h
 	}
 
-	// NOTE: this is purposefully done after FinalityTarget to prevent a case
-	// where in-between these two requests there is a block import and
-	// FinalityTarget returns something higher than BestChain.
+	// NOTE: this is purposefully done after FinalityTarget to prevent a case where in-between these two requests
+	// there is a block import and FinalityTarget returns something higher than BestChain.
 	var bestHeader Header
 	bh := <-selectChain.BestChain()
 	if bh.Error != nil {
-		logger.Warnf("Encountered error finding best chain containing %s: couldn't find best block: %s", block, bh.Error)
-		return nil, nil
+		logger.Warnf(
+			"Encountered error finding best chain containing %s: couldn't find best block: %s", block, bh.Error)
+		return nil, nil //nolint: nilerr
 	}
 	bestHeader = bh.Header
 
@@ -1369,8 +1357,8 @@ func bestChainContaining[
 		targetHeader.Number(), targetHeader.Hash(), bestHeader.Number(), bestHeader.Hash(),
 	)
 
-	// check if our vote is currently being limited due to a pending change,
-	// in which case we will restrict our target header to the given limit
+	// check if our vote is currently being limited due to a pending change, in which case we will restrict our
+	// target header to the given limit
 	if limit != nil && *limit < targetHeader.Number() {
 		// walk backwards until we find the target block
 		for {
@@ -1398,12 +1386,11 @@ func bestChainContaining[
 		)
 	}
 
-	// restrict vote according to the given voting rule, if the voting rule
-	// doesn't restrict the vote then we keep the previous target.
+	// restrict vote according to the given voting rule, if the voting rule doesn't restrict the vote then we keep
+	// the previous target.
 	//
-	// we also make sure that the restricted vote is higher than the round base
-	// (i.e. last finalized), otherwise the value returned by the given voting
-	// rule is ignored and the original target is used instead.
+	// we also make sure that the restricted vote is higher than the round base (i.e. last finalized), otherwise the
+	// value returned by the given voting rule is ignored and the original target is used instead.
 	vrr := <-votingRule.RestrictVote(client, baseHeader, bestHeader, targetHeader)
 	if vrr != nil {
 		restrictedNumber := vrr.Number
@@ -1422,13 +1409,11 @@ func bestChainContaining[
 	}, nil
 }
 
-// / Whether we should process a justification for the given block.
-// /
-// / This can be used to decide whether to import a justification (when
-// / importing a block), or whether to generate a justification from a
-// / commit (when validating). Justifications for blocks that change the
-// / authority set will always be processed, otherwise we'll only process
-// / justifications if the last one was justificationPeriod blocks ago.
+// Whether we should process a justification for the given block.
+//
+// This can be used to decide whether to import a justification (when importing a block), or whether to generate a
+// justification from a commit (when validating). Justifications for blocks that change the authority set will always
+// be processed, otherwise we'll only process justifications if the last one was justificationPeriod blocks ago.
 func shouldProcessJustification[
 	H runtime.Hash,
 	N runtime.Number,
@@ -1472,10 +1457,9 @@ type justificationOrCommitCommit[H runtime.Hash, N runtime.Number] struct {
 
 func (justificationOrCommitCommit[H, N]) isJustificationOrCommit() {}
 
-// / Finalize the given block and apply any authority set changes. If an
-// / authority set change is enacted then a justification is created (if not
-// / given) and stored with the block when finalizing it.
-// / This method assumes that the block being finalized has already been imported.
+// Finalize the given block and apply any authority set changes. If an authority set change is enacted then a
+// justification is created (if not given) and stored with the block when finalizing it. This method assumes that
+// the block being finalized has already been imported.
 func finalizeBlock[
 	H runtime.Hash,
 	N runtime.Number,
@@ -1493,7 +1477,7 @@ func finalizeBlock[
 	justificationSender *GrandpaJustificationSender[H, N, Header], // can be nil
 ) error {
 
-	// NOTE: lock must be held through writing to DB to avoid race. this lock also implicitly synchronizes the check
+	// NOTE: lock must be held through writing to DB to avoid race. this lock also implicitly synchronises the check
 	// for last finalized number below.
 	authoritySet.mtx.Lock()
 	defer authoritySet.mtx.Unlock()
@@ -1506,9 +1490,9 @@ func finalizeBlock[
 			return err
 		}
 		if hash != nil {
-			// This can happen after a forced change (triggered manually from the runtime when
-			// finality is stalled), since the voter will be restarted at the median last finalized
-			// block, which can be lower than the local best finalized block.
+			// This can happen after a forced change (triggered manually from the runtime when finality is stalled),
+			// since the voter will be restarted at the median last finalized block, which can be lower than the local
+			// best finalized block.
 			logger.Warnf("Re-finalized block %s (%d) in the canonical chain, current best finalized is %d",
 				hash,
 				number,
@@ -1546,12 +1530,10 @@ func finalizeBlock[
 			}
 		}
 
-		// NOTE: this code assumes that honest voters will never vote past a
-		// transition block, thus we don't have to worry about the case where
-		// we have a transition with effective_block = N, but we finalize
-		// N+1. this assumption is required to make sure we store
-		// justifications for transition blocks which will be requested by
-		// syncing clients.
+		// NOTE: this code assumes that honest voters will never vote past a transition block, thus we don't have to
+		// worry about the case where we have a transition with effective_block = N, but we finalize N+1. this
+		// assumption is required to make sure we store justifications for transition blocks which will be requested
+		// by syncing clients.
 		var justificationRequired bool
 		var justification GrandpaJustification[H, N, Header]
 		switch joc := justificationOrCommit.(type) {
@@ -1566,7 +1548,8 @@ func finalizeBlock[
 
 			justificationRequired = enactsChange
 			if justificationGenerationPeriod != nil {
-				justificationRequired = shouldProcessJustification(client, *justificationGenerationPeriod, number, enactsChange)
+				justificationRequired = shouldProcessJustification(
+					client, *justificationGenerationPeriod, number, enactsChange)
 			}
 
 			var err error
@@ -1588,7 +1571,7 @@ func finalizeBlock[
 			}
 		}
 
-		// ideally some handle to a synchronization oracle would be used
+		// ideally some handle to a synchronisation oracle would be used
 		// to avoid unconditionally notifying.
 		err = client.ApplyFinality(importOp, hash, persistedJustificationEngineID, true)
 		if err != nil {
@@ -1600,9 +1583,12 @@ func finalizeBlock[
 
 		// TODO: telemetry
 
-		updateBestJustification[H, N](justification, func(insert []api.KeyValue) error {
+		err = updateBestJustification[H, N](justification, func(insert []api.KeyValue) error {
 			return api.ApplyAux(importOp, insert, nil)
 		})
+		if err != nil {
+			return err
+		}
 
 		var newAuthorities *newAuthoritySet[H, N]
 		if status.NewSetBlock != nil {

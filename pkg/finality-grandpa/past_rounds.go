@@ -231,7 +231,8 @@ func (p *pastRounds[Hash, Number, Signature, ID, E]) Push(env E, round votingRou
 		inner: round,
 		// this will get updated in a call to pastRounds.UpdateFinalized() on next poll
 		finalizedNumber: 0,
-		roundCommitter:  newRoundCommitter[Hash, Number, Signature, ID, E](newTimer(env.RoundCommitTimer().C), newWakerChan(ch)),
+		roundCommitter: newRoundCommitter[Hash, Number, Signature, ID, E](
+			newTimer(env.RoundCommitTimer().C), newWakerChan(ch)),
 	}
 	p.pastRounds = append(p.pastRounds, background)
 	p.commitSenders[roundNumber] = ch
