@@ -124,9 +124,9 @@ type voterCommand interface {
 }
 
 // / Pause the voter for given reason.
-type voterCommandPause string
+type voterCommandPause string //nolint: unused
 
-func (vcp voterCommandPause) Error() string {
+func (vcp voterCommandPause) Error() string { //nolint: unused
 	return fmt.Sprintf("Pausing voter: %s", string(vcp))
 }
 
@@ -134,7 +134,7 @@ func (vcp voterCommandPause) Error() string {
 type voterCommandChangeAuthorities[H, N any] newAuthoritySet[H, N]
 
 func (vcca voterCommandChangeAuthorities[H, N]) Error() string {
-	return fmt.Sprintf("Changing authorities")
+	return "Changing authorities"
 }
 
 // Checks if this node has any available keys in the keystore for any authority id in the givenvoter set.  Returns the

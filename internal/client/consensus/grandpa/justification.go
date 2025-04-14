@@ -49,9 +49,8 @@ func NewGrandpaJustificationFromCommit[
 	votesAncestriesHashes := make(map[H]struct{})
 	votesAncestries := make([]Header, 0)
 
-	// we pick the precommit for the lowest block as the base that
-	// should serve as the root block for populating ancestry (i.e.
-	// collect all headers from all precommit blocks to the base)
+	// we pick the precommit for the lowest block as the base that should serve as the root block for populating
+	// ancestry (i.e. collect all headers from all precommit blocks to the base)
 	var base *grandpa.HashNumber[H, N]
 	for _, signed := range commit.Precommits {
 		precommit := signed.Precommit
@@ -82,9 +81,8 @@ func NewGrandpaJustificationFromCommit[
 				return GrandpaJustification[H, N, Header]{}, err
 			}
 			if currentHeader != nil {
-				// NOTE: this should never happen as we pick the lowest block
-				// as base and only traverse backwards from the other blocks
-				// in the commit. but better be safe to avoid an unbound loop.			}
+				// NOTE: this should never happen as we pick the lowest block as base and only traverse backwards
+				// from the other blocks in the commit. but better be safe to avoid an unbound loop.			}
 				if (*currentHeader).Number() <= base.Number {
 					return GrandpaJustification[H, N, Header]{},
 						fmt.Errorf("%w: %s: invalid precommits for target commit",
@@ -161,7 +159,9 @@ func (dgj *decodeGrandpaJustification[H, N, Hasher, Header]) UnmarshalSCALE(read
 	return
 }
 
-func (dgj decodeGrandpaJustification[Hash, N, Hasher, Header]) GrandpaJustification() *GrandpaJustification[Hash, N, Header] {
+func (dgj decodeGrandpaJustification[
+	Hash, N, Hasher, Header,
+]) GrandpaJustification() *GrandpaJustification[Hash, N, Header] {
 	return &GrandpaJustification[Hash, N, Header]{
 		Justification: primitives.GrandpaJustification[Hash, N, Header]{
 			Round:          dgj.Justification.Round,

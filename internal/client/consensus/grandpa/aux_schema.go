@@ -23,9 +23,8 @@ type writeAux func(insertions []api.KeyValue) error
 
 // updateAuthoritySet Update the authority set on disk after a change.
 //
-// If there has just been a handoff, pass a newSet parameter that describes the
-// handoff. set in all cases should reflect the current authority set, with all
-// changes and handoffs applied.
+// If there has just been a handoff, pass a newSet parameter that describes the handoff. set in all cases should
+// reflect the current authority set, with all changes and handoffs applied.
 func updateAuthoritySet[H runtime.Hash, N runtime.Number](
 	set AuthoritySet[H, N],
 	newSet *newAuthoritySet[H, N],
@@ -37,9 +36,8 @@ func updateAuthoritySet[H runtime.Hash, N runtime.Number](
 	}
 
 	if newSet != nil {
-		// we also overwrite the "last completed round" entry with a blank slate
-		// because from the perspective of the finality gadget, the chain has
-		// reset.
+		// we also overwrite the "last completed round" entry with a blank slate because from the perspective of the
+		// finality gadget, the chain has reset.
 		genesisState := grandpa.HashNumber[H, N]{
 			Hash:   newSet.CanonHash,
 			Number: newSet.CanonNumber,
@@ -77,9 +75,8 @@ func updateAuthoritySet[H runtime.Hash, N runtime.Number](
 
 // UpdateBestJustification updates the justification for the latest finalized block on-disk.
 //
-// We always keep around the justification for the best finalized block and overwrite it
-// as we finalize new blocks, this makes sure that we don't store useless justifications
-// but can always prove finality of the latest block.
+// We always keep around the justification for the best finalized block and overwrite it as we finalize new blocks,
+// this makes sure that we don't store useless justifications but can always prove finality of the latest block.
 func updateBestJustification[
 	Hash runtime.Hash,
 	N runtime.Number,

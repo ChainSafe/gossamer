@@ -211,13 +211,12 @@ type Finalizer[
 ] interface {
 	// Mark all blocks up to given as finalized in operation.
 	//
-	// If justification is provided it is stored with the given finalized
-	// block (any other finalized blocks are left unjustified).
+	// If justification is provided it is stored with the given finalized block (any other finalized blocks are left
+	// unjustified).
 	//
-	// If the block being finalized is on a different fork from the current
-	// best block the finalized block is set as best, this might be slightly
-	// inaccurate (i.e. outdated). Usages that require determining an accurate
-	// best block should use [common.SelectChain] instead of the client.
+	// If the block being finalized is on a different fork from the current best block the finalized block is set as
+	// best, this might be slightly inaccurate (i.e. outdated). Usages that require determining an accurate best block
+	// should use [common.SelectChain] instead of the client.
 	ApplyFinality(
 		operation *ClientImportOperation[H, Hasher, N, Header, E],
 		block H,
@@ -226,17 +225,14 @@ type Finalizer[
 
 	// Finalize a block.
 	//
-	// This will implicitly finalize all blocks up to it and
-	// fire finality notifications.
+	// This will implicitly finalize all blocks up to it and fire finality notifications.
 	//
-	// If the block being finalized is on a different fork from the current
-	// best block, the finalized block is set as best. This might be slightly
-	// inaccurate (i.e. outdated). Usages that require determining an accurate
-	// best block should use [common.SelectChain] instead of the client.
+	// If the block being finalized is on a different fork from the current best block, the finalized block is set as
+	// best. This might be slightly inaccurate (i.e. outdated). Usages that require determining an accurate best block
+	// should use [common.SelectChain] instead of the client.
 	//
-	// Pass a flag to indicate whether finality notifications should be propagated.
-	// This is usually tied to some synchronization state, where we don't send notifications
-	// while performing major synchronization work.
+	// Pass a flag to indicate whether finality notifications should be propagated. This is usually tied to some
+	// synchronisation state, where we don't send notifications while performing major synchronisation work.
 	FinalizeBlock(block H, justification *runtime.Justification, notify bool) error
 }
 
@@ -248,9 +244,8 @@ type KeyValue struct {
 
 // AuxStore provides access to an auxiliary database.
 //
-// This is a simple global database not aware of forks. Can be used for storing auxiliary
-// information like total block weight/difficulty for fork resolution purposes as a common use
-// case.
+// This is a simple global database not aware of forks. Can be used for storing auxiliary information like total block
+// weight/difficulty for fork resolution purposes as a common use case.
 type AuxStore interface {
 	// Insert auxiliary data into key-value store.
 	//
@@ -267,18 +262,16 @@ type AuxStore interface {
 //
 // # State Pruning
 //
-// While an object from StateAt is alive, the state
-// should not be pruned. The backend should internally reference-count
+// While an object from StateAt is alive, the state should not be pruned. The backend should internally reference-count
 // its state objects.
 //
-// The same applies for live BlockImportOperation instances: while an import operation building on a
-// parent P is alive, the state for P should not be pruned.
+// The same applies for live BlockImportOperation instances: while an import operation building on a parent P is alive,
+// the state for P should not be pruned.
 //
 // # Block Pruning
 //
-// Users can pin blocks in memory by calling PinBlock. When
-// a block would be pruned, its value is kept in an in-memory cache
-// until it is unpinned via UnpinBlock.
+// Users can pin blocks in memory by calling PinBlock. When a block would be pruned, its value is kept in an in-memory
+// cache until it is unpinned via UnpinBlock.
 //
 // While a block is pinned, its state is also preserved.
 //

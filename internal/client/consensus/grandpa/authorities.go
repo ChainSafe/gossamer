@@ -122,29 +122,28 @@ func (sas *SharedAuthoritySet[H, N]) addPendingChange(pending PendingChange[H, N
 	return sas.inner.addPendingChange(pending, isDescendentOf)
 }
 
-// PendingChanges inspects pending changes. Standard pending changes are iterated first,
-// and the changes in the roots are traversed in pre-order, afterwards all
-// forced changes are iterated.
+// PendingChanges inspects pending changes. Standard pending changes are iterated first, and the changes in the roots
+// are traversed in pre-order, afterwards all forced changes are iterated.
 func (sas *SharedAuthoritySet[H, N]) PendingChanges() []PendingChange[H, N] {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.pendingChanges()
 }
 
-// currentLimit will get the earliest limit-block number, if any. If there are pending changes across
-// different forks, this method will return the earliest effective number (across the
-// different branches) that is higher or equal to the given min number.
+// currentLimit will get the earliest limit-block number, if any. If there are pending changes across different forks,
+// this method will return the earliest effective number (across the different branches) that is higher or equal to the
+// given min number.
 //
-// Only standard changes are taken into account for the current
-// limit, since any existing forced change should preclude the voter from voting.
-func (sas *SharedAuthoritySet[H, N]) currentLimit(min N) (limit *N) { //nolint //skipcq: SCC-U1000
+// Only standard changes are taken into account for the current limit, since any existing forced change should preclude
+// the voter from voting.
+func (sas *SharedAuthoritySet[H, N]) currentLimit(min N) (limit *N) {
 	sas.mtx.Lock()
 	defer sas.mtx.Unlock()
 	return sas.inner.currentLimit(min)
 }
 
-func (sas *SharedAuthoritySet[H, N]) applyForcedChanges(
-	bestHash H, //nolint //skipcq: SCC-U1000
+func (sas *SharedAuthoritySet[H, N]) applyForcedChanges( //nolint:unused
+	bestHash H,
 	bestNumber N,
 	isDescendentOf IsDescendentOf[H],
 	// TODO: telemtry,
@@ -154,18 +153,15 @@ func (sas *SharedAuthoritySet[H, N]) applyForcedChanges(
 	return sas.inner.applyForcedChanges(bestHash, bestNumber, isDescendentOf)
 }
 
-// applyStandardChanges will apply or prune any pending transitions based on a finality trigger. This
-// method ensures that if there are multiple changes in the same branch,
-// finalising this block won't finalise past multiple transitions (i.e.
-// transitions must be finalised in-order). The given function
-// isDescendentOf should return true if the second hash (target) is a
-// descendent of the first hash (base).
+// applyStandardChanges will apply or prune any pending transitions based on a finality trigger. This method ensures
+// that if there are multiple changes in the same branch, finalising this block won't finalise past multiple
+// transitions (i.e. transitions must be finalised in-order). The given function isDescendentOf should return true if
+// the second hash (target) is a descendent of the first hash (base).
 //
-// When the set has changed, the return value will be a status type where newSetBlockInfo
-// is the canonical block where the set last changed (i.e. the given
-// hash and number).
+// When the set has changed, the return value will be a status type where newSetBlockInfo is the canonical block where
+// the set last changed (i.e. the given hash and number).
 func (sas *SharedAuthoritySet[H, N]) applyStandardChanges(
-	finalisedHash H, //nolint //skipcq: SCC-U1000
+	finalisedHash H,
 	finalisedNumber N,
 	isDescendentOf IsDescendentOf[H],
 	initialSync bool,
@@ -176,16 +172,12 @@ func (sas *SharedAuthoritySet[H, N]) applyStandardChanges(
 	return sas.inner.applyStandardChanges(finalisedHash, finalisedNumber, isDescendentOf, initialSync)
 }
 
-// EnactsStandardChange Check whether the given finalised block number enacts any standard
-// authority set change (without triggering it), ensuring that if there are
-// multiple changes in the same branch, finalising this block won't
-// finalise past multiple transitions (i.e. transitions must be finalised
-// in-order). Returns *true if the block being finalised enacts a
-// change that can be immediately applied, *false if the block being
-// finalised enacts a change but it cannot be applied yet since there are
-// other dependent changes, and nil if no change is enacted. The given
-// function `is_descendent_of` should return `true` if the second hash
-// (target) is a descendent of the first hash (base).
+// EnactsStandardChange Check whether the given finalised block number enacts any standard authority set change
+// (without triggering it), ensuring that if there are multiple changes in the same branch, finalising this block won't
+// finalise past multiple transitions (i.e. transitions must be finalised in-order). Returns *true if the block being
+// finalised enacts a change that can be immediately applied, *false if the block being finalised enacts a change but
+// it cannot be applied yet since there are other dependent changes, and nil if no change is enacted. The given
+// function isDescendentOf should return true if the second hash (target) is a descendent of the first hash (base).
 func (sas *SharedAuthoritySet[H, N]) EnactsStandardChange(finalisedHash H,
 	finalisedNumber N,
 	isDescendentOf IsDescendentOf[H]) (*bool, error) {
@@ -268,7 +260,7 @@ func NewAuthoritySet[H comparable, N constraints.Unsigned](
 }
 
 // current retrieves the current set id and a reference to the current authority set.
-func (authSet *AuthoritySet[H, N]) current() (uint64, pgrandpa.AuthorityList) { //nolint: unused
+func (authSet *AuthoritySet[H, N]) current() (uint64, pgrandpa.AuthorityList) {
 	return authSet.SetID, authSet.CurrentAuthorities
 }
 

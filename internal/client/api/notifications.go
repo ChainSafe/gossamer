@@ -62,7 +62,7 @@ func NewStorageNotifications[H runtime.Hash]() StorageNotifications[H] {
 // Note the changes are going to be filtered by listener's filter key.
 // In fact no event might be sent if clients are not interested in the changes.
 func (s StorageNotifications[H]) Trigger(hash H, changeset []StorageChange, childChangeSet []StorageChildChange) {
-	s.Hub.Send(SubscriberMessage[H]{
+	_ = s.Hub.Send(SubscriberMessage[H]{
 		Hash:           hash,
 		ChangeSet:      changeset,
 		ChildChangeSet: childChangeSet,

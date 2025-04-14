@@ -394,7 +394,9 @@ func (s *Service) VerifyBlockJustification(finalizedHash common.Hash, finalizedN
 		Number: uint32(finalizedNumber),
 	}
 
-	justification, err := client_grandpa.DecodeGrandpaJustificationVerifyFinalizes[hash.H256, uint32, runtime.BlakeTwo256, generic.Header[uint32, hash.H256, runtime.BlakeTwo256]](
+	justification, err := client_grandpa.DecodeGrandpaJustificationVerifyFinalizes[
+		hash.H256, uint32, runtime.BlakeTwo256, generic.Header[uint32, hash.H256, runtime.BlakeTwo256],
+	](
 		encoded, target, setID, *voters)
 	if err != nil {
 		return 0, 0, fmt.Errorf("decoding and verifying justification: %w", err)

@@ -205,8 +205,8 @@ type OpaqueKeyOwnershipProof = runtime.OpaqueValue
 
 // APIs for integrating the GRANDPA finality gadget into runtimes. This should be implemented on the runtime side.
 //
-// This is primarily used for negotiating authority-set changes for the gadget. GRANDPA uses a signaling model of
-// changing authority sets: changes should be signaled with a delay of N blocks, and then automatically applied in the
+// This is primarily used for negotiating authority-set changes for the gadget. GRANDPA uses a signalling model of
+// changing authority sets: changes should be signalled with a delay of N blocks, and then automatically applied in the
 // runtime after those N blocks have passed.
 //
 // The consensus protocol will coordinate the handoff externally.
