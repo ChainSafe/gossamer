@@ -56,6 +56,12 @@ type Valid struct {
 
 type ReasonForInvalidity byte
 
+// Ptr returns a pointer to the ReasonForInvalidity value.
+func (ri ReasonForInvalidity) Ptr() *ReasonForInvalidity {
+	reason := ri
+	return &reason
+}
+
 const (
 	// ExecutionError Failed to execute `validate_block`. This includes function panicking.
 	ExecutionError ReasonForInvalidity = iota

@@ -26,13 +26,6 @@ func TestHost_validate(t *testing.T) {
 	candidateReceiptCommitmentsMismatch.CommitmentsHash = common.MustHexToHash(
 		"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
 
-	povHashMismatch := PoVHashMismatch
-	paramsTooLarge := ParamsTooLarge
-	codeHashMismatch := CodeHashMismatch
-	paraHedHashMismatch := ParaHeadHashMismatch
-	commitmentsHashMismatch := CommitmentsHashMismatch
-	executionError := ExecutionError
-
 	pvfHost := newValidationHost()
 
 	bd, err := scale.Marshal(BlockDataInAdderParachain{
@@ -77,7 +70,7 @@ func TestHost_validate(t *testing.T) {
 				ValidationCode:     &validationCode,
 			},
 			want: &ValidationResult{
-				Invalid: &povHashMismatch,
+				Invalid: PoVHashMismatch.Ptr(),
 			},
 			isValid: false,
 		},
@@ -94,7 +87,7 @@ func TestHost_validate(t *testing.T) {
 				PoV:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &paramsTooLarge,
+				Invalid: ParamsTooLarge.Ptr(),
 			},
 		},
 		"code_mismatch": {
@@ -110,7 +103,7 @@ func TestHost_validate(t *testing.T) {
 				PoV:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &codeHashMismatch,
+				Invalid: CodeHashMismatch.Ptr(),
 			},
 			isValid: false,
 		},
@@ -124,7 +117,7 @@ func TestHost_validate(t *testing.T) {
 				PoV:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &executionError,
+				Invalid: ExecutionError.Ptr(),
 			},
 		},
 		"para_head_hash_mismatch": {
@@ -140,7 +133,7 @@ func TestHost_validate(t *testing.T) {
 				PoV:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &paraHedHashMismatch,
+				Invalid: ParaHeadHashMismatch.Ptr(),
 			},
 			isValid: false,
 		},
@@ -157,7 +150,7 @@ func TestHost_validate(t *testing.T) {
 				PoV:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &commitmentsHashMismatch,
+				Invalid: CommitmentsHashMismatch.Ptr(),
 			},
 			isValid: false,
 		},
@@ -218,10 +211,6 @@ func TestHost_validate(t *testing.T) {
 
 func TestHost_performBasicChecks(t *testing.T) {
 	t.Parallel()
-	paramsTooLarge := ParamsTooLarge
-	povHashMismatch := PoVHashMismatch
-	codeHashMismatch := CodeHashMismatch
-	badSignature := BadSignature
 
 	pov := parachaintypes.PoV{
 		BlockData: []byte{1, 2, 3, 4, 5, 6, 7, 8},
@@ -283,7 +272,7 @@ func TestHost_performBasicChecks(t *testing.T) {
 				maxPoVSize: 2,
 				pov:        pov,
 			},
-			expectedError: &paramsTooLarge,
+			expectedError: ParamsTooLarge.Ptr(),
 		},
 		"invalid_pov_hash": {
 			args: args{
@@ -291,7 +280,7 @@ func TestHost_performBasicChecks(t *testing.T) {
 				maxPoVSize: 1024,
 				pov:        pov2,
 			},
-			expectedError: &povHashMismatch,
+			expectedError: PoVHashMismatch.Ptr(),
 		},
 		"invalid_code_hash": {
 			args: args{
@@ -300,7 +289,7 @@ func TestHost_performBasicChecks(t *testing.T) {
 				pov:                pov,
 				validationCodeHash: parachaintypes.ValidationCodeHash{1, 2, 3},
 			},
-			expectedError: &codeHashMismatch,
+			expectedError: CodeHashMismatch.Ptr(),
 		},
 		"invalid_signature": {
 			args: args{
@@ -309,7 +298,7 @@ func TestHost_performBasicChecks(t *testing.T) {
 				pov:                pov,
 				validationCodeHash: validationCodeHash,
 			},
-			expectedError: &badSignature,
+			expectedError: BadSignature.Ptr(),
 		},
 		"happy_path": {
 			args: args{

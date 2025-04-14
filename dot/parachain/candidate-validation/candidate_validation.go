@@ -135,8 +135,7 @@ func (cv *CandidateValidation) validateFromExhaustive(msg ValidateFromExhaustive
 	// We only check the session index for backing.
 	_, isBackingExecKind := execKind.(parachaintypes.Backing)
 	if isBackingExecKind && expectedSessionIndex != msg.CandidateReceipt.Descriptor.SessionIndex {
-		invalidSessionIndex := InvalidSessionIndex
-		return &ValidationResult{Invalid: &invalidSessionIndex}, nil
+		return &ValidationResult{Invalid: InvalidSessionIndex.Ptr()}, nil
 	}
 
 	// Get claim queue from cache or fetch from runtime
@@ -219,9 +218,8 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 	}
 
 	if persistedValidationData == nil {
-		badParent := BadParent
 		reason := ValidationResult{
-			Invalid: &badParent,
+			Invalid: BadParent.Ptr(),
 		}
 		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 			Data: reason,
@@ -260,9 +258,8 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 		return
 	}
 	if !valid {
-		invalidOutput := InvalidOutputs
 		reason := &ValidationResult{
-			Invalid: &invalidOutput,
+			Invalid: InvalidOutputs.Ptr(),
 		}
 		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 			Data: *reason,

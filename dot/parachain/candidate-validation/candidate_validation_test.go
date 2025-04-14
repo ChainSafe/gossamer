@@ -18,17 +18,6 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-var (
-	povHashMismatch     = PoVHashMismatch
-	paramsTooLarge      = ParamsTooLarge
-	codeHashMismatch    = CodeHashMismatch
-	badSignature        = BadSignature
-	invalidOutputs      = InvalidOutputs
-	badParent           = BadParent
-	invalidSessionIndex = InvalidSessionIndex
-	invalidCoreIndex    = InvalidCoreIndex
-)
-
 func createTestCandidateReceiptAndValidationCodeWParaId(t *testing.T, id parachaintypes.ParaID) (
 	parachaintypes.CandidateReceiptV2, parachaintypes.ValidationCode) {
 	t.Helper()
@@ -180,7 +169,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 					Return(parachaintypes.SessionIndex(5), nil) // different session index than the one in receipt
 			},
 			expectedResult: ValidationResult{
-				Invalid: &invalidSessionIndex,
+				Invalid: InvalidSessionIndex.Ptr(),
 			},
 		},
 		"invalid_pov_hash": {
@@ -202,7 +191,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 					Return(candidateReceipt2.Descriptor.SessionIndex, nil)
 			},
 			expectedResult: ValidationResult{
-				Invalid: &povHashMismatch,
+				Invalid: PoVHashMismatch.Ptr(),
 			},
 		},
 		"invalid_pov_size": {
@@ -224,7 +213,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 					Return(candidateReceipt2.Descriptor.SessionIndex, nil)
 			},
 			expectedResult: ValidationResult{
-				Invalid: &paramsTooLarge,
+				Invalid: ParamsTooLarge.Ptr(),
 			},
 		},
 		"code_mismatch": {
@@ -246,7 +235,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 					Return(candidateReceipt2.Descriptor.SessionIndex, nil)
 			},
 			expectedResult: ValidationResult{
-				Invalid: &codeHashMismatch,
+				Invalid: CodeHashMismatch.Ptr(),
 			},
 		},
 		"happy_path_descriptor_v1": {
@@ -291,7 +280,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 				},
 			},
 		},
-		"invalida_core_index_descriptor_v2": {
+		"invalid_core_index_descriptor_v2": {
 			msg: ValidateFromExhaustive{
 				PersistedValidationData: parachaintypes.PersistedValidationData{
 					ParentHead:             parachaintypes.HeadData{Data: hd},
@@ -309,7 +298,7 @@ func TestCandidateValidation_processMessageValidateFromExhaustive(t *testing.T) 
 				mi.EXPECT().ParachainHostSessionIndexForChild().Return(parachaintypes.SessionIndex(2), nil)
 			},
 			expectedResult: ValidationResult{
-				Invalid: &invalidCoreIndex,
+				Invalid: InvalidCoreIndex.Ptr(),
 			},
 		},
 		"happy_path_descriptor_v2": {
@@ -480,7 +469,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Pov:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &povHashMismatch,
+				Invalid: PoVHashMismatch.Ptr(),
 			},
 			configMockInstance: func(mi *MockInstance) {
 				mi.EXPECT().
@@ -500,7 +489,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Pov:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &paramsTooLarge,
+				Invalid: ParamsTooLarge.Ptr(),
 			},
 			configMockInstance: func(mi *MockInstance) {
 				mi.EXPECT().
@@ -520,7 +509,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Pov:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &codeHashMismatch,
+				Invalid: CodeHashMismatch.Ptr(),
 			},
 			configMockInstance: func(mi *MockInstance) {
 				mi.EXPECT().
@@ -540,7 +529,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Pov:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &badSignature,
+				Invalid: BadSignature.Ptr(),
 			},
 			configMockInstance: func(mi *MockInstance) {
 				mi.EXPECT().
@@ -560,7 +549,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Pov:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &invalidOutputs,
+				Invalid: InvalidOutputs.Ptr(),
 			},
 			configMockInstance: func(mi *MockInstance) {
 				mi.EXPECT().
@@ -581,7 +570,7 @@ func TestCandidateValidation_processMessageValidateFromChainState(t *testing.T) 
 				Pov:              pov,
 			},
 			want: &ValidationResult{
-				Invalid: &badParent,
+				Invalid: BadParent.Ptr(),
 			},
 			configMockInstance: func(mi *MockInstance) {
 				mi.EXPECT().
