@@ -24,8 +24,8 @@ type KeyStore interface {
 	// keystore. An error will be returned if generating the signature itself failed.
 	Ed25519Sign(keyType crypto.KeyTypeID, public ed25519.Public, msg []byte) (*ed25519.Signature, error)
 
-	/// Checks if the private keys for the given public key and key type combinations exist.
-	///
-	/// Returns true iffall private keys could be found.
+	// Checks if the private keys for the given public key and key type combinations exist.
+	//
+	// Returns true iffall private keys could be found.
 	HasKeys(publicKeys []PublicKey) bool
 }

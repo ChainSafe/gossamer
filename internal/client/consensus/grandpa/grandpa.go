@@ -103,14 +103,14 @@ type ClientForGrandpa[
 
 // Something that one can ask to do a block sync request.
 type BlockSyncRequester[H runtime.Hash, N runtime.Number] interface {
-	/// Notifies the sync service to try and sync the given block from the given peers.
-	///
-	/// If the given vector of peers is empty then the underlying implementation should make a best effort to fetch
-	//  the block from any peers it is connected to (NOTE: this assumption will change in the future substrate #3629).
+	// Notifies the sync service to try and sync the given block from the given peers.
+	//
+	// If the given vector of peers is empty then the underlying implementation should make a best effort to fetch
+	// the block from any peers it is connected to (NOTE: this assumption will change in the future substrate #3629).
 	SetSyncForkRequest(peers []peerid.PeerID, hash H, number N)
 }
 
-// / A new authority set along with the canonical block it changed at.
+// A new authority set along with the canonical block it changed at.
 type newAuthoritySet[H, N any] struct {
 	CanonNumber N
 	CanonHash   H
@@ -118,19 +118,19 @@ type newAuthoritySet[H, N any] struct {
 	Authorities primitives.AuthorityList
 }
 
-// / Commands issued to the voter.
+// Commands issued to the voter.
 type voterCommand interface {
 	Error() string
 }
 
-// / Pause the voter for given reason.
+// Pause the voter for given reason.
 type voterCommandPause string //nolint: unused
 
 func (vcp voterCommandPause) Error() string { //nolint: unused
 	return fmt.Sprintf("Pausing voter: %s", string(vcp))
 }
 
-// / New authorities.
+// New authorities.
 type voterCommandChangeAuthorities[H, N any] newAuthoritySet[H, N]
 
 func (vcca voterCommandChangeAuthorities[H, N]) Error() string {

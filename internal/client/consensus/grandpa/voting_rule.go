@@ -13,7 +13,7 @@ type VotingRuleResult[H, N any] <-chan *HashNumber[H, N]
 
 // VotingRule is an interface for custom voting rules in GRANDPA.
 type VotingRule[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]] interface {
-	// Restrict the given currentTarget` vote, returning the block hash and number of the block to vote on, and nil
+	// Restrict the given currentTarget vote, returning the block hash and number of the block to vote on, and nil
 	// in case the vote should not be restricted. base is the block that we're basing our votes on in order to pick
 	// our target (e.g. last round estimate), and bestTarget is the initial best vote target before any vote rules
 	// were applied. When applying multiple VotingRule associated base and bestTarget should remain unchanged.
