@@ -1004,7 +1004,7 @@ func (c ClaimQueue) ToTransposed() TransposedClaimQueue {
 			coresPerDepth, exists := transposedClaimQueue[para]
 			if !exists {
 				coresPerDepth = make(map[uint8]map[CoreIndex]struct{})
-				transposedClaimQueue[para] = make(map[uint8]map[CoreIndex]struct{})
+				transposedClaimQueue[para] = coresPerDepth
 			}
 
 			// Get or initialize the core index set for this depth

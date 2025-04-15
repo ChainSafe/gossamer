@@ -643,10 +643,9 @@ func TestValidateAndMakeAvailable(t *testing.T) {
 				for data := range ch {
 					switch data := data.(type) {
 					case candidatevalidation.ValidateFromExhaustive:
-						ci := candidatevalidation.ExecutionError
 						data.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
 							Data: candidatevalidation.ValidationResult{
-								Invalid: &ci,
+								Invalid: candidatevalidation.ExecutionError.Ptr(),
 							},
 						}
 					default:
