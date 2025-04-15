@@ -89,6 +89,12 @@ type Client[
 	E runtime.Extrinsic,
 	Executor ExecutorT,
 	Header runtime.Header[N, H],
+	RA primitives_api.ConstructRuntimeApi[
+		N, E, H, Hasher,
+		statemachine.Backend[H, Hasher],
+		any,
+		primitives_api.ApiExt[N, E, H, Hasher, statemachine.Backend[H, Hasher], any],
+	],
 ] struct {
 	backend                         api.Backend[H, N, Hasher, Header, E]
 	executor                        Executor
@@ -106,11 +112,12 @@ type Client[
 	finalityActionsMtx sync.Mutex
 	finalityActions    []api.OnFinalityAction[H, N, Header]
 	// Holds the block hash currently being imported.
-	importingBlockMtx sync.RWMutex
-	importingBlock    *H
-	unpinWorkerChan   chan<- api.UnpinWorkerMessage[H]
-	blockRules        BlockRules[H, N]
-	config            ClientConfig[N]
+	importingBlockMtx  sync.RWMutex
+	importingBlock     *H
+	unpinWorkerChan    chan<- api.UnpinWorkerMessage[H]
+	blockRules         BlockRules[H, N]
+	config             ClientConfig[N]
+	runtimeConstructor RA
 }
 
 type ExecutorT interface {
@@ -126,16 +133,22 @@ func New[
 	E runtime.Extrinsic,
 	Executor ExecutorT,
 	Header runtime.Header[N, H],
+	RA primitives_api.ConstructRuntimeApi[N, E, H, Hasher,
+		statemachine.Backend[H, Hasher],
+		any,
+		primitives_api.ApiExt[N, E, H, Hasher, statemachine.Backend[H, Hasher], any],
+	],
 ](
 	backend api.Backend[H, N, Hasher, Header, E],
+	config ClientConfig[N],
 	executor Executor,
-) *Client[H, Hasher, N, E, Executor, Header] {
-
+	runtimeConstructor RA,
+) *Client[H, Hasher, N, E, Executor, Header, RA] {
 	unpinWorkerChan := make(chan api.UnpinWorkerMessage[H])
 	npw := newNotificationPinningWorker(unpinWorkerChan, backend)
 	go npw.run()
 
-	return &Client[H, Hasher, N, E, Executor, Header]{
+	return &Client[H, Hasher, N, E, Executor, Header, RA]{
 		backend:                      backend,
 		executor:                     executor,
 		storageNotifications:         api.NewStorageNotifications[H](),
@@ -143,10 +156,12 @@ func New[
 		everyImportNotificationChans: make(map[chan api.BlockImportNotification[H, N, Header]]any),
 		finalityNotificationChans:    make(map[chan api.FinalityNotification[H, N, Header]]any),
 		unpinWorkerChan:              unpinWorkerChan,
+		config:                       config,
+		runtimeConstructor:           runtimeConstructor,
 	}
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) announcePin(message api.AnnouncePin[H]) error {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) announcePin(message api.AnnouncePin[H]) error {
 	select {
 	case c.unpinWorkerChan <- message:
 		return nil
@@ -155,7 +170,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) announcePin(message api.Anno
 	}
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) unpin(message api.Unpin[H]) error {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) unpin(message api.Unpin[H]) error {
 	select {
 	case c.unpinWorkerChan <- message:
 		return nil
@@ -164,7 +179,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) unpin(message api.Unpin[H]) 
 	}
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) lockImportRun(
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) lockImportRun(
 	f func(*api.ClientImportOperation[H, Hasher, N, Header, E]) (any, error),
 ) (any, error) {
 	c.backend.GetImportLock().Lock()
@@ -269,7 +284,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) lockImportRun(
 	return result, nil
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) LockImportRun(
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) LockImportRun(
 	f func(*api.ClientImportOperation[H, Hasher, N, Header, E]) (any, error),
 ) (any, error) {
 	result, err := c.lockImportRun(f)
@@ -282,7 +297,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) LockImportRun(
 const notifyFinalizedTimeout = 5 * time.Second
 const notifyBlockImportTimeout = notifyFinalizedTimeout
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) notifyFinalized(
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) notifyFinalized(
 	notification *api.FinalityNotification[H, N, Header],
 ) error {
 	c.finalityNotificationChansMtx.Lock()
@@ -348,7 +363,7 @@ func notifyChans[M any](msg M, chans map[chan M]any, timeout time.Duration) {
 	}
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) notifyImported(
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) notifyImported(
 	notification *api.BlockImportNotification[H, N, Header],
 	importNotificationAction api.ImportNotificationAction,
 	storageChanges *api.StorageChanges,
@@ -418,19 +433,19 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) notifyImported(
 	return nil
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) RegisterImportAction(op api.OnImportAction[H, N, Header]) {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) RegisterImportAction(op api.OnImportAction[H, N, Header]) {
 	c.importActionsMtx.Lock()
 	defer c.importActionsMtx.Unlock()
 	c.importActions = append(c.importActions, op)
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) RegisterFinalityAction(op api.OnFinalityAction[H, N, Header]) {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) RegisterFinalityAction(op api.OnFinalityAction[H, N, Header]) {
 	c.finalityActionsMtx.Lock()
 	defer c.finalityActionsMtx.Unlock()
 	c.finalityActions = append(c.finalityActions, op)
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) RegisterImportNotificationStream() api.ImportNotifications[
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) RegisterImportNotificationStream() api.ImportNotifications[
 	H, N, Header] {
 	ch := make(chan api.BlockImportNotification[H, N, Header])
 	c.importNotificationChansMtx.Lock()
@@ -439,7 +454,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) RegisterImportNotificationSt
 	return ch
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) UnregisterImportNotificationStream(
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) UnregisterImportNotificationStream(
 	ch api.ImportNotifications[H, N, Header],
 ) {
 	c.importNotificationChansMtx.Lock()
@@ -451,7 +466,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) UnregisterImportNotification
 	delete(c.importNotificationChans, ch)
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) RegisterEveryImportNotificationStream() api.ImportNotifications[
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) RegisterEveryImportNotificationStream() api.ImportNotifications[
 	H, N, Header] {
 	ch := make(chan api.BlockImportNotification[H, N, Header])
 	c.everyImportNotificationChansMtx.Lock()
@@ -460,7 +475,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) RegisterEveryImportNotificat
 	return ch
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) UnregisterEveryImportNotificationStream(
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) UnregisterEveryImportNotificationStream(
 	ch api.ImportNotifications[H, N, Header],
 ) {
 	c.everyImportNotificationChansMtx.Lock()
@@ -472,7 +487,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) UnregisterEveryImportNotific
 	delete(c.everyImportNotificationChans, ch)
 }
 
-func (c *Client[H, _, N, E, Executor, Header]) RegisterFinalityNotificationStream() api.FinalityNotifications[
+func (c *Client[H, _, N, E, Executor, Header, RA]) RegisterFinalityNotificationStream() api.FinalityNotifications[
 	H, N, Header] {
 	ch := make(chan api.FinalityNotification[H, N, Header])
 	c.finalityNotificationChansMtx.Lock()
@@ -481,7 +496,7 @@ func (c *Client[H, _, N, E, Executor, Header]) RegisterFinalityNotificationStrea
 	return ch
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) UnregisterFinalityNotificationStream(
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) UnregisterFinalityNotificationStream(
 	ch api.FinalityNotifications[H, N, Header],
 ) {
 	c.finalityNotificationChansMtx.Lock()
@@ -493,7 +508,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) UnregisterFinalityNotificati
 	delete(c.finalityNotificationChans, ch)
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) StorageChangesNotificationStream(
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) StorageChangesNotificationStream(
 	filterKeys []storage.StorageKey,
 	childFilterKeys []api.ChildFilterKeys,
 ) api.StorageEventStream[H] {
@@ -502,45 +517,45 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) StorageChangesNotificationSt
 
 // HeaderBackend implementation for Client
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) Header(hash H) (*Header, error) {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) Header(hash H) (*Header, error) {
 	return c.backend.Blockchain().Header(hash)
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) Body(hash H) ([]E, error) {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) Body(hash H) ([]E, error) {
 	return c.backend.Blockchain().Body(hash)
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) Info() blockchain.Info[H, N] {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) Info() blockchain.Info[H, N] {
 	return c.backend.Blockchain().Info()
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) Status(hash H) (blockchain.BlockStatus, error) {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) Status(hash H) (blockchain.BlockStatus, error) {
 	return c.backend.Blockchain().Status(hash)
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) Number(hash H) (*N, error) {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) Number(hash H) (*N, error) {
 	return c.backend.Blockchain().Number(hash)
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) Hash(number N) (*H, error) {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) Hash(number N) (*H, error) {
 	return c.backend.Blockchain().Hash(number)
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) BlockHashFromID(id generic.BlockID) (*H, error) {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) BlockHashFromID(id generic.BlockID) (*H, error) {
 	return c.backend.Blockchain().BlockHashFromID(id)
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) BlockNumberFromID(id generic.BlockID) (*N, error) {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) BlockNumberFromID(id generic.BlockID) (*N, error) {
 	return c.backend.Blockchain().BlockNumberFromID(id)
 }
 
 // BlockBackend implementation for Client
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) BlockBody(hash H) ([]E, error) {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) BlockBody(hash H) ([]E, error) {
 	return c.backend.Blockchain().Body(hash)
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) Block(hash H) (*generic.SignedBlock[N, H, Hasher, E], error) {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) Block(hash H) (*generic.SignedBlock[N, H, Hasher, E], error) {
 	header, err := c.Header(hash)
 	if err != nil {
 		return nil, err
@@ -565,7 +580,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) Block(hash H) (*generic.Sign
 	return nil, nil
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) BlockStatus(hash H) (
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) BlockStatus(hash H) (
 	primivite_consensus_common.BlockStatus, error,
 ) {
 	if c.importingBlock != nil && *c.importingBlock == hash {
@@ -588,35 +603,35 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) BlockStatus(hash H) (
 	}
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) Justifications(hash H) (runtime.Justifications, error) {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) Justifications(hash H) (runtime.Justifications, error) {
 	return c.backend.Blockchain().Justifications(hash)
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) BlockHash(number N) (*H, error) {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) BlockHash(number N) (*H, error) {
 	return c.backend.Blockchain().Hash(number)
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) IndexedTransaction(hash H) ([]byte, error) {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) IndexedTransaction(hash H) ([]byte, error) {
 	return c.backend.Blockchain().IndexedTransaction(hash)
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) HasIndexedTransaction(hash H) (bool, error) {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) HasIndexedTransaction(hash H) (bool, error) {
 	return c.backend.Blockchain().HasIndexedTransaction(hash)
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) BlockIndexedBody(hash H) ([][]byte, error) {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) BlockIndexedBody(hash H) ([][]byte, error) {
 	return c.backend.Blockchain().BlockIndexedBody(hash)
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) RequiresFullSync() bool {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) RequiresFullSync() bool {
 	return c.backend.RequiresFullSync()
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) Children(parent H) ([]H, error) {
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) Children(parent H) ([]H, error) {
 	return c.backend.Blockchain().Children(parent)
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) CheckBlock(block common.BlockCheckParams[H, N]) (
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) CheckBlock(block common.BlockCheckParams[H, N]) (
 	common.ImportResult, error,
 ) {
 	switch lookupResult := c.blockRules.Lookup(block.Number, block.Hash).(type) {
@@ -680,7 +695,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) CheckBlock(block common.Bloc
 	}, nil
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) ImportBlock(
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) ImportBlock(
 	block *common.BlockImportParams[H, N, E, Header],
 ) (common.ImportResult, error) {
 	prepareStorageResult, err := c.prepareBlockStorageChanges(block)
@@ -712,7 +727,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) ImportBlock(
 	return importResult.(common.ImportResult), nil
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) prepareBlockStorageChanges(
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) prepareBlockStorageChanges(
 	importBlock *common.BlockImportParams[H, N, E, Header],
 ) (prepareStorageChangesResult, error) {
 	parentHash := importBlock.Header.ParentHash()
@@ -727,13 +742,17 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) prepareBlockStorageChanges(
 		return nil, err
 	}
 
-	if status == primivite_consensus_common.BlockStatusKnownBad {
-		return storageChangesResultDiscard{}, nil
-	} else if status == primivite_consensus_common.BlockStatusInChainPruned {
-		if action, ok := stateAction.(common.StateActionApplyChanges); ok {
+	if status == primivite_consensus_common.BlockStatusInChainPruned {
+		switch action := stateAction.(type) {
+		case common.StateActionApplyChanges:
 			if _, ok := action.StorageChanges.(common.Changes[H, Hasher]); ok {
 				return storageChangesResultDiscard{common.ImportResultMissingState{}}, nil
 			}
+		case common.StateActionExecute:
+			return storageChangesResultDiscard{common.ImportResultMissingState{}}, nil
+		case common.StateActionExecuteIfPossible:
+			enactState = false
+			storageChanges = nil
 		}
 	} else if action, ok := stateAction.(common.StateActionApplyChanges); ok {
 		enactState = true
@@ -743,15 +762,6 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) prepareBlockStorageChanges(
 	} else if _, ok := stateAction.(common.StateActionSkip); ok {
 		enactState = false
 		storageChanges = nil
-	} else if status == primivite_consensus_common.BlockStatusInChainPruned {
-		if _, ok := stateAction.(common.StateActionExecute); ok {
-			return storageChangesResultDiscard{common.ImportResultMissingState{}}, nil
-		}
-	} else if status == primivite_consensus_common.BlockStatusInChainPruned {
-		if _, ok := stateAction.(common.StateActionExecuteIfPossible); ok {
-			enactState = false
-			storageChanges = nil
-		}
 	} else if _, ok := stateAction.(common.StateActionExecute); ok {
 		enactState = true
 		storageChanges = nil
@@ -763,9 +773,11 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) prepareBlockStorageChanges(
 	var storageChangesToApply common.StorageChanges
 
 	if enactState && storageChanges != nil {
+		// we have storage changes and should enact the state, so we don't need to do anything here
 		storageChangesToApply = storageChanges
 	} else if enactState && storageChanges == nil && importBlock.Body != nil {
-		runtimeApi := c.runtimeApi()
+		// We should enact state, but don't have any storage changes, so we need to execute the block
+		runtimeApi := c.RuntimeApi()
 
 		runtimeApi.SetCallContext(core.CallContextOnchain)
 		if c.config.EnableImportProofRecording {
@@ -798,16 +810,18 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) prepareBlockStorageChanges(
 		}
 
 		storageChangesToApply = common.Changes[H, Hasher](genStorageChanges)
-	} else if enactState && storageChanges != nil && importBlock.Body == nil {
+	} else if enactState && storageChanges == nil && importBlock.Body == nil {
+		// No block body, no storage changes
 		storageChangesToApply = nil
 	} else if !enactState {
+		// We should not enact the state, so we set the storage changes to None
 		storageChangesToApply = nil
 	}
 
 	return storageChangesResultImport{storageChangesToApply}, nil
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) applyBlock(
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) applyBlock(
 	operation *api.ClientImportOperation[H, Hasher, N, Header, E],
 	importBlock *common.BlockImportParams[H, N, E, Header],
 	storageChanges common.StorageChanges,
@@ -865,7 +879,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) applyBlock(
 }
 
 //gocyclo:ignore
-func (c *Client[H, Hasher, N, E, Executor, Header]) executeAndImportBlock(
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) executeAndImportBlock(
 	operation *api.ClientImportOperation[H, Hasher, N, Header, E],
 	origin consensus.BlockOrigin,
 	hash H,
@@ -1145,7 +1159,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) executeAndImportBlock(
 	return common.ImportResultImported{IsNewBest: isNewBest}, nil
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) applyFinalityWithBlockHash(
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) applyFinalityWithBlockHash(
 	operation *api.ClientImportOperation[H, Hasher, N, Header, E],
 	parentHash H,
 	justifications *runtime.Justifications,
@@ -1155,12 +1169,12 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) applyFinalityWithBlockHash(
 	panic("not implemented")
 }
 
-func (c *Client[H, Hasher, N, E, Executor, Header]) runtimeApi() primitives_api.ApiExt[N, E, H,
-	Hasher,
+func (c *Client[H, Hasher, N, E, Executor, Header, RA]) RuntimeApi() primitives_api.ApiExt[
+	N, E, H, Hasher,
 	statemachine.Backend[H, Hasher],
-	runtime.TransactionOutcome[any],
+	any,
 ] {
-	panic("not implemented")
+	return c.runtimeConstructor.ConstructRuntimeApi()
 }
 
 // Ensure Client implements the BlockImport interface
@@ -1176,4 +1190,17 @@ var _ common.BlockImport[
 	runtime.OpaqueExtrinsic,
 	ExecutorT,
 	*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+	primitives_api.ConstructRuntimeApi[
+		uint64,
+		runtime.OpaqueExtrinsic,
+		hash.H256,
+		runtime.BlakeTwo256,
+		statemachine.Backend[hash.H256, runtime.BlakeTwo256],
+		any,
+		primitives_api.ApiExt[
+			uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
+			statemachine.Backend[hash.H256, runtime.BlakeTwo256],
+			any,
+		],
+	],
 ]{}

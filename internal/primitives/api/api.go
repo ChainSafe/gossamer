@@ -12,6 +12,36 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/trie/recorder"
 )
 
+type ProvideRuntimeApi[
+	N runtime.Number,
+	E runtime.Extrinsic,
+	H runtime.Hash,
+	Hasher runtime.Hasher[H],
+	Backend statemachine.Backend[H, Hasher],
+	Result any,
+	Api ApiExt[N, E, H, Hasher, Backend, Result],
+] interface {
+	// Returns the runtime api.
+	// The returned instance will keep track of modifications to the storage. Any successful
+	// call to an api function, will `commit` its changes to an internal buffer. Otherwise,
+	// the modifications will be `discarded`. The modifications will not be applied to the
+	// storage, even on a `commit`.
+	RuntimeApi() Api
+}
+
+type ConstructRuntimeApi[
+	N runtime.Number,
+	E runtime.Extrinsic,
+	H runtime.Hash,
+	Hasher runtime.Hasher[H],
+	Backend statemachine.Backend[H, Hasher],
+	Result any,
+	RuntimeApi ApiExt[N, E, H, Hasher, Backend, Result],
+] interface {
+	// Construct an instance of the runtime api.
+	ConstructRuntimeApi() RuntimeApi
+}
+
 // A type that records all accessed trie nodes and generates a proof out of it.
 type ProofRecorder[H runtime.Hash] recorder.Recorder[H]
 
