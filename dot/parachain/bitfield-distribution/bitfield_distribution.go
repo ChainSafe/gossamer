@@ -334,6 +334,7 @@ func (b *BitfieldDistribution) processOurViewChangeEvent(event networkbridgeeven
 
 	// in the new view but not in the old view
 	for _, added := range b.ourView.Difference(oldView) {
+		// newly added views will be handled in the active leaves update handler, ideally this should never happen
 		if b.perRelayParent[added] == nil {
 			logger.Errorf("our view contains %s, but not in active heads", added.String())
 		}
@@ -510,7 +511,6 @@ func (b *BitfieldDistribution) processUpdatedAuthorityIDsEvent(event networkbrid
 
 func (b *BitfieldDistribution) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
 	activatedLeaf := signal.Activated
-
 	if activatedLeaf == nil {
 		return nil
 	}
