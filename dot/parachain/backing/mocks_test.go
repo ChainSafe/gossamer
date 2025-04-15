@@ -138,6 +138,18 @@ func (mr *MockImplicitViewMockRecorder) ActivateLeaf(leafHash any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActivateLeaf", reflect.TypeOf((*MockImplicitView)(nil).ActivateLeaf), leafHash)
 }
 
+// ActivateLeafFromProspectiveParachains mocks base method.
+func (m *MockImplicitView) ActivateLeafFromProspectiveParachains(leaf *BlockInfoProspectiveParachains, ancestors []*BlockInfoProspectiveParachains) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ActivateLeafFromProspectiveParachains", leaf, ancestors)
+}
+
+// ActivateLeafFromProspectiveParachains indicates an expected call of ActivateLeafFromProspectiveParachains.
+func (mr *MockImplicitViewMockRecorder) ActivateLeafFromProspectiveParachains(leaf, ancestors any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ActivateLeafFromProspectiveParachains", reflect.TypeOf((*MockImplicitView)(nil).ActivateLeafFromProspectiveParachains), leaf, ancestors)
+}
+
 // AllAllowedRelayParents mocks base method.
 func (m *MockImplicitView) AllAllowedRelayParents() []common.Hash {
 	m.ctrl.T.Helper()

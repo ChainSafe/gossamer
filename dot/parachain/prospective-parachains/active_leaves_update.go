@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -71,7 +72,6 @@ func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
 			ancestryLen,
 			sessionIndex,
 			tmpHeaderCache,
-			runtimeInstance,
 		)
 		if err != nil {
 			return fmt.Errorf("fetching ancestry: %w", err)
@@ -81,16 +81,16 @@ func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
 		ancestryBlockInfo := make([]relayChainBlockInfo, len(ancestry))
 		for idx, a := range ancestry {
 			ancestryBlockInfo[idx] = relayChainBlockInfo{
-				Hash:        a.Hash(),
+				Hash:        a.Hash,
 				Number:      parachaintypes.BlockNumber(a.Number),
-				StorageRoot: a.StateRoot,
+				StorageRoot: a.StorageRoot,
 			}
-			ancestorsHashes[idx] = a.Hash().String()
+			ancestorsHashes[idx] = a.Hash.String()
 		}
 
 		var prevFragmentChains map[parachaintypes.ParaID]*fragmentChain
 		if len(ancestry) > 0 {
-			prevFragmentChains = pp.view.perRelayParent[ancestry[0].Hash()].fragmentChains
+			prevFragmentChains = pp.view.perRelayParent[ancestry[0].Hash].fragmentChains
 		}
 
 		fragmentChains := make(map[parachaintypes.ParaID]*fragmentChain)
@@ -146,9 +146,9 @@ func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
 
 			scope, err := newScopeWithAncestors(
 				relayChainBlockInfo{
-					Hash:        blockInfo.Hash(),
+					Hash:        blockInfo.Hash,
 					Number:      parachaintypes.BlockNumber(blockInfo.Number),
-					StorageRoot: blockInfo.StateRoot,
+					StorageRoot: blockInfo.StorageRoot,
 				},
 				constraints,
 				compactPending,
@@ -214,6 +214,13 @@ func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
 
 			fragmentChains[paraID] = chain
 		}
+
+		pp.view.perRelayParent[hash] = &relayParentData{
+			fragmentChains: fragmentChains,
+		}
+
+		pp.view.activeLeaves[hash] = true
+		pp.view.implicitView.ActivateLeafFromProspectiveParachains(blockInfo, ancestry)
 	}
 
 	return nil
@@ -222,9 +229,14 @@ func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
 func (pp *ProspectiveParachains) fetchBlockInfo(
 	cache map[common.Hash]*types.Header,
 	hash common.Hash,
-) (*types.Header, error) {
+) (*backing.BlockInfoProspectiveParachains, error) {
 	if header, ok := cache[hash]; ok {
-		return header, nil
+		return &backing.BlockInfoProspectiveParachains{
+			Hash:        header.Hash(),
+			ParentHash:  header.ParentHash,
+			Number:      parachaintypes.BlockNumber(header.Number),
+			StorageRoot: header.StateRoot,
+		}, nil
 	}
 
 	header, err := pp.blockState.GetHeader(hash)
@@ -233,7 +245,13 @@ func (pp *ProspectiveParachains) fetchBlockInfo(
 	}
 
 	cache[hash] = header
-	return header, nil
+
+	return &backing.BlockInfoProspectiveParachains{
+		Hash:        header.Hash(),
+		ParentHash:  header.ParentHash,
+		Number:      parachaintypes.BlockNumber(header.Number),
+		StorageRoot: header.StateRoot,
+	}, nil
 }
 
 func (pp *ProspectiveParachains) fetchAncestry(
@@ -241,10 +259,9 @@ func (pp *ProspectiveParachains) fetchAncestry(
 	ancestryLen uint32,
 	requiredSession parachaintypes.SessionIndex,
 	cache map[common.Hash]*types.Header,
-	rt runtime.Instance,
-) ([]*types.Header, error) {
+) ([]*backing.BlockInfoProspectiveParachains, error) {
 	if ancestryLen == 0 {
-		return []*types.Header{}, nil
+		return []*backing.BlockInfoProspectiveParachains{}, nil
 	}
 
 	ancestors, err := util.GetBlockAncestors(pp.SubsystemToOverseer, hash, ancestryLen)
@@ -252,7 +269,7 @@ func (pp *ProspectiveParachains) fetchAncestry(
 		return nil, fmt.Errorf("getting block ancestors: %w", err)
 	}
 
-	blockInfos := make([]*types.Header, len(ancestors))
+	blockInfos := make([]*backing.BlockInfoProspectiveParachains, len(ancestors))
 
 	for _, ancestorHash := range ancestors {
 		ancestorHead, err := pp.fetchBlockInfo(cache, ancestorHash)
@@ -308,13 +325,13 @@ func (pp *ProspectiveParachains) preprocessCandidatesPendingAvailability(
 		}
 
 		relayParent, err := pp.fetchBlockInfo(blockInfoCache, pending.Descriptor.RelayParent)
-		if err != nil && !errors.Is(database.ErrNotFound, err) {
+		if err != nil && !errors.Is(err, database.ErrNotFound) {
 			return nil, fmt.Errorf("fetching block info: %w", err)
 		}
 
 		// if the block could not be fetch from database we should break and return
 		// what we have accumulated so far
-		if relayParent == nil || errors.Is(database.ErrNotFound, err) {
+		if relayParent == nil || errors.Is(err, database.ErrNotFound) {
 			logger.Errorf("had to stop processing pending "+
 				"candidates early due to missing info, "+
 				"candidate hash=%s, para id=%d, index=%d, expected count=%d, error=%s",
@@ -333,16 +350,16 @@ func (pp *ProspectiveParachains) preprocessCandidatesPendingAvailability(
 				ParentHead:             requiredParent,
 				MaxPovSize:             constraints.MaxPoVSize,
 				RelayParentNumber:      uint32(relayParent.Number),
-				RelayParentStorageRoot: relayParent.StateRoot,
+				RelayParentStorageRoot: relayParent.StorageRoot,
 			},
 			compact: pendingAvailability{
 				candidateHash: parachaintypes.CandidateHash{
 					Value: candidateHash,
 				},
 				relayParent: relayChainBlockInfo{
-					Hash:        relayParent.Hash(),
+					Hash:        relayParent.Hash,
 					Number:      parachaintypes.BlockNumber(relayParent.Number),
-					StorageRoot: relayParent.StateRoot,
+					StorageRoot: relayParent.StorageRoot,
 				},
 			},
 		})

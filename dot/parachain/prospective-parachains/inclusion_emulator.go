@@ -417,7 +417,7 @@ func skipUmpSignals(upwardMessages []parachaintypes.UpwardMessage) iter.Seq[para
 				}
 			}
 
-			return //nolint:staticcheck
+			return
 		}
 	}
 }
