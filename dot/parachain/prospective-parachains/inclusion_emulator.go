@@ -426,16 +426,17 @@ func checkAgainstConstraints(
 func skipUmpSignals(
 	upwardMessages []parachaintypes.UpwardMessage,
 ) iter.Seq[parachaintypes.UpwardMessage] {
-	UmpSeparator := []byte{}
+	umpSeparator := []byte{}
 	return func(yield func(parachaintypes.UpwardMessage) bool) {
 		for _, message := range upwardMessages {
-			if !bytes.Equal([]byte(message), UmpSeparator) {
+			if !bytes.Equal([]byte(message), umpSeparator) {
 				if !yield([]byte(message)) {
 					return
 				}
+				continue
 			}
 
-			return //nolint:staticcheck
+			return
 		}
 	}
 }
@@ -585,7 +586,10 @@ func validateAgainstConstraints(
 	return nil
 }
 
-type HypoteticalOrConcrete interface {
+// HypotheticalOrConcrete is used to make the types
+// HypotheticalCandidateIncomplete, HypotheticalCandidateComplete and candidate entry
+// coherents when fragment chain wants to check if they are potential candidates.
+type HypotheticalOrConcrete interface {
 	CandidateHash() parachaintypes.CandidateHash
 	GetParentHeadDataHash() (common.Hash, error)
 	RelayParentHash() common.Hash

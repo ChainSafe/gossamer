@@ -934,7 +934,7 @@ func TestGetHypotheticalMembership(t *testing.T) {
 			Response:                 response,
 		}
 
-		pp.answerHypotheticalMembershipRequest(msg)
+		pp.getHypotheticalMembership(msg)
 
 		out := <-response
 		expected := []*messages.HypotheticalMembershipResponseItem{
@@ -1001,7 +1001,7 @@ func TestGetHypotheticalMembership(t *testing.T) {
 			Response:                 response,
 		}
 
-		pp.answerHypotheticalMembershipRequest(msg)
+		pp.getHypotheticalMembership(msg)
 		out := <-response
 
 		expected := []*messages.HypotheticalMembershipResponseItem{
@@ -1070,7 +1070,7 @@ func TestGetHypotheticalMembership(t *testing.T) {
 			Response:                 response,
 		}
 
-		pp.answerHypotheticalMembershipRequest(msg)
+		pp.getHypotheticalMembership(msg)
 		out := <-response
 
 		expected := []*messages.HypotheticalMembershipResponseItem{
@@ -1138,7 +1138,7 @@ func TestGetHypotheticalMembership(t *testing.T) {
 			Response:                 response,
 		}
 
-		pp.answerHypotheticalMembershipRequest(msg)
+		pp.getHypotheticalMembership(msg)
 		out := <-response
 
 		// should not have any hypothetical membership
@@ -1231,7 +1231,7 @@ func TestGetHypotheticalMembership(t *testing.T) {
 			Response:                 response,
 		}
 
-		pp.answerHypotheticalMembershipRequest(msg)
+		pp.getHypotheticalMembership(msg)
 		out := <-response
 
 		expected := []*messages.HypotheticalMembershipResponseItem{
@@ -1362,7 +1362,7 @@ func TestGetHypotheticalMembership(t *testing.T) {
 			Response:                 response,
 		}
 
-		pp.answerHypotheticalMembershipRequest(msg)
+		pp.getHypotheticalMembership(msg)
 		out := <-response
 
 		// candidate is a potential in both relay parents
@@ -1511,7 +1511,7 @@ func TestGetHypotheticalMembership(t *testing.T) {
 			Response:                 response,
 		}
 
-		pp.answerHypotheticalMembershipRequest(msg)
+		pp.getHypotheticalMembership(msg)
 		out := <-response
 
 		// candidate is a potential in both relay parents

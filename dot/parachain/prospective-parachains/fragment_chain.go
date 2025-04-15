@@ -39,7 +39,7 @@ type candidateEntry struct {
 	state              candidateState
 }
 
-var _ HypoteticalOrConcrete = (*candidateEntry)(nil)
+var _ HypotheticalOrConcrete = (*candidateEntry)(nil)
 
 func (c *candidateEntry) CandidateHash() parachaintypes.CandidateHash {
 	return c.candidateHash
@@ -630,7 +630,8 @@ func (f *fragmentChain) candidateBacked(newlyBackedCandidate parachaintypes.Cand
 }
 
 // canAddCandidateAsPotential checks if this candidate could be added in the future
-func (f *fragmentChain) canAddCandidateAsPotential(candidate HypoteticalOrConcrete) error {
+// the current available types are HypotheticalComplete, HypotheticalIncomplete and candidateEntry
+func (f *fragmentChain) canAddCandidateAsPotential(candidate HypotheticalOrConcrete) error {
 	candidateHash := candidate.CandidateHash()
 
 	_, existsInCandidateStorage := f.unconnected.byCandidateHash[candidateHash]
@@ -818,7 +819,7 @@ func (f *fragmentChain) populateUnconnectedPotentialCandidates(oldStorage *candi
 	}
 }
 
-func (f *fragmentChain) checkPotential(candidate HypoteticalOrConcrete) error {
+func (f *fragmentChain) checkPotential(candidate HypotheticalOrConcrete) error {
 	relayParent := candidate.RelayParentHash()
 	parentHeadHash, err := candidate.GetParentHeadDataHash()
 	if err != nil {

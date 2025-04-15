@@ -97,7 +97,7 @@ func (pp *ProspectiveParachains) processMessage(msg any) {
 	case messages.GetBackableCandidates:
 		pp.getBackableCandidates(msg)
 	case messages.GetHypotheticalMembership:
-		pp.answerHypotheticalMembershipRequest(msg)
+		pp.getHypotheticalMembership(msg)
 	case messages.GetMinimumRelayParents:
 		// Directly use the msg since it's already of type GetMinimumRelayParents
 		pp.getMinimumRelayParents(msg.RelayChainBlockHash, msg.Sender)
@@ -446,11 +446,10 @@ func (pp *ProspectiveParachains) answerProspectiveValidationDataRequest(
 	}
 }
 
-func (pp *ProspectiveParachains) answerHypotheticalMembershipRequest(
+func (pp *ProspectiveParachains) getHypotheticalMembership(
 	msg messages.GetHypotheticalMembership,
 ) {
-	// TODO: add metrics
-
+	defer close(msg.Response)
 	response := make([]*messages.HypotheticalMembershipResponseItem, 0, len(msg.Candidates))
 
 	for _, candidate := range msg.Candidates {
