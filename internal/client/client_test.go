@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
+	"github.com/ChainSafe/gossamer/internal/client/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/client/db"
 	"github.com/ChainSafe/gossamer/internal/client/mocks"
 	statedb "github.com/ChainSafe/gossamer/internal/client/state-db"
@@ -549,4 +550,191 @@ func TestBlockBackendImplementation(t *testing.T) {
 	requiresFullSync := c.RequiresFullSync()
 	require.NoError(t, err)
 	require.True(t, requiresFullSync)
+}
+
+func TestCheckBlock(t *testing.T) {
+	badBlock := common.BlockCheckParams[hash.H256, uint64]{
+		Number: 1,
+		Hash:   hash.H256("bad_block"),
+	}
+
+	invalidForkBlock := common.BlockCheckParams[hash.H256, uint64]{
+		Number: 2,
+		Hash:   hash.H256("block_2_hash"),
+	}
+
+	c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0), NewTestExecutor(t))
+
+	c.blockRules = BlockRules[hash.H256, uint64]{
+		bad: map[hash.H256]struct{}{
+			badBlock.Hash: {},
+		},
+		forks: map[uint64]hash.H256{
+			invalidForkBlock.Number: hash.H256("invalid_fork"),
+		},
+	}
+
+	t.Run("reject_known_bad_block", func(t *testing.T) {
+		result, err := c.CheckBlock(badBlock)
+		require.NoError(t, err)
+		require.Equal(t, common.ImportResultKnownBad{}, result)
+	})
+
+	t.Run("reject_block_from_invalid_fork", func(t *testing.T) {
+		result, err := c.CheckBlock(invalidForkBlock)
+		require.NoError(t, err)
+		require.Equal(t, common.ImportResultKnownBad{}, result)
+	})
+
+	t.Run("queued_block_already_in_chain", func(t *testing.T) {
+		queuedBlock := common.BlockCheckParams[hash.H256, uint64]{
+			Number: 3,
+			Hash:   hash.H256("queued_block"),
+		}
+
+		c := New(NewTestBackend(t, db.BlocksPruningKeepFinalized{}, 0), NewTestExecutor(t))
+		c.importingBlock = &queuedBlock.Hash
+
+		result, err := c.CheckBlock(queuedBlock)
+		require.NoError(t, err)
+		require.Equal(t, common.ImportResultAlreadyInChain{}, result)
+	})
+
+	t.Run("in_chain_with_state", func(t *testing.T) {
+		importedBlockWithStatus := common.BlockCheckParams[hash.H256, uint64]{
+			Number: 4,
+			Hash:   hash.H256("status_imported"),
+		}
+
+		backendMock := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256,
+			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+			runtime.OpaqueExtrinsic](t)
+
+		blockchainMock := mocks.NewBlockchainBackend[hash.H256, uint64,
+			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256], runtime.OpaqueExtrinsic](t)
+
+		blockchainMock.EXPECT().Number(importedBlockWithStatus.Hash).Return(&importedBlockWithStatus.Number, nil)
+
+		backendMock.EXPECT().Blockchain().Return(blockchainMock)
+		backendMock.EXPECT().HaveStateAt(importedBlockWithStatus.Hash, importedBlockWithStatus.Number).Return(true)
+
+		c := New(backendMock, NewTestExecutor(t))
+		result, err := c.CheckBlock(importedBlockWithStatus)
+		require.NoError(t, err)
+		require.Equal(t, common.ImportResultAlreadyInChain{}, result)
+	})
+
+	t.Run("pruned_block_not_import_existing", func(t *testing.T) {
+		prunedBlock := common.BlockCheckParams[hash.H256, uint64]{
+			Number:         5,
+			Hash:           hash.H256("pruned_block"),
+			ImportExisting: false,
+		}
+
+		backendMock := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256,
+			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+			runtime.OpaqueExtrinsic](t)
+
+		blockchainMock := mocks.NewBlockchainBackend[hash.H256, uint64,
+			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256], runtime.OpaqueExtrinsic](t)
+
+		blockchainMock.EXPECT().Number(prunedBlock.Hash).Return(&prunedBlock.Number, nil)
+
+		backendMock.EXPECT().Blockchain().Return(blockchainMock)
+		backendMock.EXPECT().HaveStateAt(prunedBlock.Hash, prunedBlock.Number).Return(false)
+
+		c := New(backendMock, NewTestExecutor(t))
+
+		result, err := c.CheckBlock(prunedBlock)
+		require.NoError(t, err)
+		require.Equal(t, common.ImportResultAlreadyInChain{}, result)
+	})
+
+	t.Run("unknown_parent", func(t *testing.T) {
+		blockUnknownParent := common.BlockCheckParams[hash.H256, uint64]{
+			Number:     6,
+			Hash:       hash.H256("ok_block"),
+			ParentHash: hash.H256("unknown_block"),
+		}
+
+		backendMock := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256,
+			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+			runtime.OpaqueExtrinsic](t)
+
+		blockchainMock := mocks.NewBlockchainBackend[hash.H256, uint64,
+			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256], runtime.OpaqueExtrinsic](t)
+
+		blockchainMock.EXPECT().Number(blockUnknownParent.Hash).Return(nil, nil)
+		blockchainMock.EXPECT().Number(blockUnknownParent.ParentHash).Return(nil, nil)
+
+		backendMock.EXPECT().Blockchain().Return(blockchainMock)
+
+		c := New(backendMock, NewTestExecutor(t))
+
+		result, err := c.CheckBlock(blockUnknownParent)
+		require.NoError(t, err)
+		require.Equal(t, common.ImportResultUnknownParent{}, result)
+	})
+
+	t.Run("parent_pruned", func(t *testing.T) {
+		blockUnknownParent := common.BlockCheckParams[hash.H256, uint64]{
+			Number:     6,
+			Hash:       hash.H256("ok_block"),
+			ParentHash: hash.H256("pruned_block"),
+		}
+
+		backendMock := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256,
+			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+			runtime.OpaqueExtrinsic](t)
+
+		blockchainMock := mocks.NewBlockchainBackend[hash.H256, uint64,
+			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256], runtime.OpaqueExtrinsic](t)
+
+		blockchainMock.EXPECT().Number(blockUnknownParent.Hash).Return(nil, nil)
+
+		parentHash := blockUnknownParent.ParentHash
+		parentNumber := blockUnknownParent.Number - 1
+
+		blockchainMock.EXPECT().Number(parentHash).Return(&parentNumber, nil)
+
+		backendMock.EXPECT().HaveStateAt(parentHash, parentNumber).Return(false)
+
+		backendMock.EXPECT().Blockchain().Return(blockchainMock)
+
+		c := New(backendMock, NewTestExecutor(t))
+
+		result, err := c.CheckBlock(blockUnknownParent)
+		require.NoError(t, err)
+		require.Equal(t, common.ImportResultMissingState{}, result)
+	})
+
+	t.Run("block_ok", func(t *testing.T) {
+		blockUnknownParent := common.BlockCheckParams[hash.H256, uint64]{
+			Number:     6,
+			Hash:       hash.H256("ok_block"),
+			ParentHash: hash.H256("pruned_block"),
+		}
+
+		backendMock := mocks.NewBackend[hash.H256, uint64, runtime.BlakeTwo256,
+			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+			runtime.OpaqueExtrinsic](t)
+
+		blockchainMock := mocks.NewBlockchainBackend[hash.H256, uint64,
+			*generic.Header[uint64, hash.H256, runtime.BlakeTwo256], runtime.OpaqueExtrinsic](t)
+
+		blockchainMock.EXPECT().Number(blockUnknownParent.Hash).Return(nil, nil)
+
+		parentHash := blockUnknownParent.ParentHash
+		parentNumber := blockUnknownParent.Number - 1
+
+		blockchainMock.EXPECT().Number(parentHash).Return(&parentNumber, nil)
+		backendMock.EXPECT().HaveStateAt(parentHash, parentNumber).Return(true)
+		backendMock.EXPECT().Blockchain().Return(blockchainMock)
+
+		c := New(backendMock, NewTestExecutor(t))
+
+		result, err := c.CheckBlock(blockUnknownParent)
+		require.NoError(t, err)
+		require.Equal(t, common.ImportResultImported{IsNewBest: false}, result)
+	})
 }

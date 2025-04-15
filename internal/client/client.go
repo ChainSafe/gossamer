@@ -577,15 +577,15 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) BlockStatus(hash H) (
 		return primivite_consensus_common.BlockStatusUnknown, err
 	}
 
-	if number != nil {
-		if c.backend.HaveStateAt(hash, *number) {
-			return primivite_consensus_common.BlockStatusInChainWithState, nil
-		} else {
-			return primivite_consensus_common.BlockStatusInChainPruned, nil
-		}
+	if number == nil {
+		return primivite_consensus_common.BlockStatusUnknown, nil
 	}
 
-	return primivite_consensus_common.BlockStatusUnknown, nil
+	if c.backend.HaveStateAt(hash, *number) {
+		return primivite_consensus_common.BlockStatusInChainWithState, nil
+	} else {
+		return primivite_consensus_common.BlockStatusInChainPruned, nil
+	}
 }
 
 func (c *Client[H, Hasher, N, E, Executor, Header]) Justifications(hash H) (runtime.Justifications, error) {
@@ -649,8 +649,6 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) CheckBlock(block common.Bloc
 		if !block.ImportExisting {
 			return common.ImportResultAlreadyInChain{}, nil
 		}
-	case primivite_consensus_common.BlockStatusKnownBad:
-		return common.ImportResultKnownBad{}, nil
 	case primivite_consensus_common.BlockStatusUnknown:
 		// do nothing
 	default:
@@ -673,8 +671,6 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) CheckBlock(block common.Bloc
 		if !block.AllowMissingParent {
 			return common.ImportResultMissingState{}, nil
 		}
-	case primivite_consensus_common.BlockStatusKnownBad:
-		return common.ImportResultKnownBad{}, nil
 	default:
 		panic("unreachable")
 	}
@@ -682,7 +678,6 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) CheckBlock(block common.Bloc
 	return common.ImportResultImported{
 		IsNewBest: false,
 	}, nil
-
 }
 
 func (c *Client[H, Hasher, N, E, Executor, Header]) ImportBlock(
