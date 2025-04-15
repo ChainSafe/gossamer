@@ -775,7 +775,7 @@ func (c *Client[H, Hasher, N, E, Executor, Header]) prepareBlockStorageChanges(
 				panic("Proof recording is enabled in the line above; qed.")
 			}
 
-			panic("TODO: register extension")
+			runtimeApi.RegisterExtension(recorder)
 		}
 
 		err := runtimeApi.ExecuteBlock(parentHash, generic.NewBlock[Hasher](importBlock.Header, *importBlock.Body))
