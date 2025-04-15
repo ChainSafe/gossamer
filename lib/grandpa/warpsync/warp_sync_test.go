@@ -10,6 +10,7 @@ import (
 	"slices"
 	"testing"
 
+	state "github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	ced25519 "github.com/ChainSafe/gossamer/internal/primitives/core/ed25519"
@@ -225,16 +226,18 @@ func TestGenerateAndVerifyWarpSyncProofOk(t *testing.T) {
 				precommits = append(precommits, signedPreCommit)
 			}
 
-			// Create justification
-			justification := primitives.GrandpaJustification[hash.H256, uint32]{
-				Round: 1,
-				Commit: primitives.Commit[hash.H256, uint32]{
-					TargetHash:   targetHash,
-					TargetNumber: targetNumber,
-					Precommits:   precommits,
-				},
-				VoteAncestries: genericHeadersList(t, headers),
+			commit := primitives.Commit[hash.H256, uint32]{
+				TargetHash:   targetHash,
+				TargetNumber: targetNumber,
+				Precommits:   precommits,
 			}
+
+			justification := newGrandpaJustificationFromCommit[hash.H256, runtime.BlakeTwo256](
+				t,
+				blockStateMock,
+				1,
+				commit,
+			)
 
 			encodedJustification, err := scale.Marshal(justification)
 			require.NoError(t, err)
@@ -329,25 +332,75 @@ func createGRANDPAConsensusDigest(t *testing.T, digestData any) types.ConsensusD
 	}
 }
 
-func genericHeadersList(t *testing.T, headers []*types.Header) []runtime.Header[uint32, hash.H256] {
-	t.Helper()
+func newGrandpaJustificationFromCommit[Hash runtime.Hash, Hasher runtime.Hasher[Hash], N runtime.Number](
+	t *testing.T,
+	blockState state.BlockState,
+	round uint64,
+	commit primitives.Commit[Hash, N],
+) primitives.GrandpaJustification[Hash, N] {
+	hasher := *new(Hasher)
 
-	headerList := []runtime.Header[uint32, hash.H256]{}
-	for _, header := range headers {
-		if header == nil {
-			continue
+	votesAncestriesHashes := map[common.Hash]struct{}{}
+	votesAncestries := make([]runtime.Header[N, Hash], 0)
+
+	require.Greater(t, len(commit.Precommits), 0)
+
+	minPrecommit := slices.MinFunc(
+		commit.Precommits,
+		func(a, b grandpa.SignedPrecommit[Hash, N, primitives.AuthoritySignature, primitives.AuthorityID]) int {
+			return int(a.Precommit.TargetNumber - b.Precommit.TargetNumber)
+		},
+	)
+
+	baseHash := minPrecommit.Precommit.TargetHash
+	baseNumber := minPrecommit.Precommit.TargetNumber
+
+	for _, signed := range commit.Precommits {
+		currentHash := signed.Precommit.TargetHash
+		for {
+			if currentHash == baseHash {
+				break
+			}
+
+			currentHeader, err := blockState.GetHeader(common.NewHashFromGeneric(currentHash))
+			require.NoError(t, err)
+
+			require.GreaterOrEqual(t, baseNumber, currentHeader.Number)
+
+			parentHash := currentHeader.ParentHash
+			if _, has := votesAncestriesHashes[parentHash]; !has {
+				votesAncestriesHashes[parentHash] = struct{}{}
+
+				header := genericHeader[N, Hash, Hasher](t, currentHeader)
+
+				votesAncestries = append(votesAncestries, header)
+			}
+
+			currentHash = hasher.NewHash(parentHash[:])
 		}
-
-		generic.NewHeader[uint64, hash.H256, runtime.BlakeTwo256](
-			uint64(header.Number),
-			hash.H256(string(header.ExtrinsicsRoot.ToBytes())),
-			hash.H256(string(header.StateRoot.ToBytes())),
-			hash.H256(string(header.ParentHash.ToBytes())),
-			mapDigest(t, header.Digest),
-		)
 	}
 
-	return headerList
+	return primitives.GrandpaJustification[Hash, N]{
+		Round:          round,
+		Commit:         commit,
+		VoteAncestries: votesAncestries,
+	}
+}
+
+func genericHeader[N runtime.Number, H runtime.Hash, Hasher runtime.Hasher[H]](
+	t *testing.T,
+	header *types.Header,
+) runtime.Header[N, H] {
+	t.Helper()
+	hasher := *new(Hasher)
+
+	return generic.NewHeader[N, H, Hasher](
+		N(header.Number),
+		hasher.NewHash(header.ExtrinsicsRoot.ToBytes()),
+		hasher.NewHash(header.StateRoot.ToBytes()),
+		hasher.NewHash(header.ParentHash.ToBytes()),
+		mapDigest(t, header.Digest),
+	)
 }
 
 func mapDigest(t *testing.T, digest types.Digest) runtime.Digest {
