@@ -18,7 +18,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/blockchain"
 	primivite_consensus_common "github.com/ChainSafe/gossamer/internal/primitives/consensus/common"
 	"github.com/ChainSafe/gossamer/internal/primitives/core"
-	"github.com/ChainSafe/gossamer/internal/primitives/core/hash"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
@@ -1176,31 +1175,3 @@ func (c *Client[H, Hasher, N, E, Executor, Header, RA]) RuntimeApi() primitives_
 ] {
 	return c.runtimeConstructor.ConstructRuntimeApi()
 }
-
-// Ensure Client implements the BlockImport interface
-var _ common.BlockImport[
-	hash.H256,
-	uint64,
-	runtime.OpaqueExtrinsic,
-	*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
-] = &Client[
-	hash.H256,
-	runtime.BlakeTwo256,
-	uint64,
-	runtime.OpaqueExtrinsic,
-	ExecutorT,
-	*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
-	primitives_api.ConstructRuntimeApi[
-		uint64,
-		runtime.OpaqueExtrinsic,
-		hash.H256,
-		runtime.BlakeTwo256,
-		statemachine.Backend[hash.H256, runtime.BlakeTwo256],
-		any,
-		primitives_api.ApiExt[
-			uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
-			statemachine.Backend[hash.H256, runtime.BlakeTwo256],
-			any,
-		],
-	],
-]{}

@@ -53,6 +53,7 @@ type TestClient struct {
 	]
 }
 
+// Ensure Client implements the required interfaces
 var (
 	_ api.BlockchainEvents[
 		hash.H256, uint64, *generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
@@ -63,6 +64,24 @@ var (
 	_ api.LockImportRun[
 		hash.H256, uint64, runtime.BlakeTwo256, *generic.Header[
 			uint64, hash.H256, runtime.BlakeTwo256], runtime.OpaqueExtrinsic,
+	] = &TestClient{}
+	_ common.BlockImport[
+		hash.H256,
+		uint64,
+		runtime.OpaqueExtrinsic,
+		*generic.Header[uint64, hash.H256, runtime.BlakeTwo256],
+	] = &TestClient{}
+	_ primitives_api.ProvideRuntimeApi[
+		uint64,
+		runtime.OpaqueExtrinsic,
+		hash.H256,
+		runtime.BlakeTwo256,
+		statemachine.Backend[hash.H256, runtime.BlakeTwo256],
+		any,
+		primitives_api.ApiExt[
+			uint64, runtime.OpaqueExtrinsic, hash.H256, runtime.BlakeTwo256,
+			statemachine.Backend[hash.H256, runtime.BlakeTwo256], any,
+		],
 	] = &TestClient{}
 )
 
