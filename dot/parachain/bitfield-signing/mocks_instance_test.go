@@ -601,10 +601,10 @@ func (mr *MockInstanceMockRecorder) ParachainHostValidatorGroups() *gomock.Call 
 }
 
 // ParachainHostValidators mocks base method.
-func (m *MockInstance) ParachainHostValidators() ([]parachaintypes.ValidatorID, error) {
+func (m *MockInstance) ParachainHostValidators() ([]parachaintypes.ValidatorPublicKey, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ParachainHostValidators")
-	ret0, _ := ret[0].([]parachaintypes.ValidatorID)
+	ret0, _ := ret[0].([]parachaintypes.ValidatorPublicKey)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

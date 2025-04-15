@@ -304,12 +304,12 @@ func generateKeypairs(t *testing.T, n int) []*sr25519.Keypair {
 	return kps
 }
 
-func validatorIDsFromKeypairs(t *testing.T, kps []*sr25519.Keypair) []parachaintypes.ValidatorID {
+func validatorIDsFromKeypairs(t *testing.T, kps []*sr25519.Keypair) []parachaintypes.ValidatorPublicKey {
 	t.Helper()
 
-	validatorIDs := make([]parachaintypes.ValidatorID, len(kps))
+	validatorIDs := make([]parachaintypes.ValidatorPublicKey, len(kps))
 	for i, kp := range kps {
-		validatorIDs[i] = parachaintypes.ValidatorID(kp.Public().Encode())
+		validatorIDs[i] = parachaintypes.ValidatorPublicKey(kp.Public().Encode())
 	}
 	return validatorIDs
 }
@@ -330,7 +330,7 @@ func generateDiscoveryKeys(t *testing.T, n int) []parachaintypes.AuthorityDiscov
 func setUpKeystoreMock(
 	t *testing.T,
 	ctrl *gomock.Controller,
-	validatorID parachaintypes.ValidatorID,
+	validatorID parachaintypes.ValidatorPublicKey,
 	keypair *sr25519.Keypair,
 ) keystore.Keystore {
 	t.Helper()
@@ -357,7 +357,7 @@ func setUpRuntimeMock(
 	t *testing.T,
 	ctrl *gomock.Controller,
 	sessionIndex parachaintypes.SessionIndex,
-	validators []parachaintypes.ValidatorID,
+	validators []parachaintypes.ValidatorPublicKey,
 	discoveryKeys []parachaintypes.AuthorityDiscoveryID,
 	validatorGroups [][]parachaintypes.ValidatorIndex,
 	nodeFeatures parachaintypes.BitVec,

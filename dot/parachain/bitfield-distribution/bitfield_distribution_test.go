@@ -33,7 +33,7 @@ func generateDummyPeerID(t *testing.T, bits int) peer.ID {
 }
 
 func TestMessageFromValidatorNeededByPeer(t *testing.T) {
-	validatorSet := []parachaintypes.ValidatorID{
+	validatorSet := []parachaintypes.ValidatorPublicKey{
 		[sr25519.PublicKeyLength]byte{1},
 		[sr25519.PublicKeyLength]byte{2},
 	}
@@ -45,17 +45,17 @@ func TestMessageFromValidatorNeededByPeer(t *testing.T) {
 
 	assert.NotEqual(t, peerA, peerB)
 
-	pretendSent := func(state *perRelayParentData, destPeer peer.ID, signedBy parachaintypes.ValidatorID) bool {
+	pretendSent := func(state *perRelayParentData, destPeer peer.ID, signedBy parachaintypes.ValidatorPublicKey) bool {
 		if state.messageFromValidatorNeededByPeer(destPeer, signedBy) {
-			state.messageSentToPeer[destPeer] = map[parachaintypes.ValidatorID]struct{}{signedBy: {}}
+			state.messageSentToPeer[destPeer] = map[parachaintypes.ValidatorPublicKey]struct{}{signedBy: {}}
 			return true
 		} else {
 			return false
 		}
 	}
 
-	pretendReceive := func(state *perRelayParentData, sourcePeer peer.ID, signedBy parachaintypes.ValidatorID) {
-		state.messageReceivedFromPeer[sourcePeer] = map[parachaintypes.ValidatorID]struct{}{signedBy: {}}
+	pretendReceive := func(state *perRelayParentData, sourcePeer peer.ID, signedBy parachaintypes.ValidatorPublicKey) {
+		state.messageReceivedFromPeer[sourcePeer] = map[parachaintypes.ValidatorPublicKey]struct{}{signedBy: {}}
 	}
 
 	assert.True(t, pretendSent(prpd, peerA, validatorSet[0]))
@@ -245,10 +245,10 @@ func TestBitfieldDistribution_FilterByPeerVersion(t *testing.T) {
 	}
 }
 
-func prepareForValidators() (parachaintypes.ValidatorIndex, []parachaintypes.ValidatorID) {
+func prepareForValidators() (parachaintypes.ValidatorIndex, []parachaintypes.ValidatorPublicKey) {
 	// prepare for the relay message call params
 	validatorIndex := 0
-	validatorSet := []parachaintypes.ValidatorID{
+	validatorSet := []parachaintypes.ValidatorPublicKey{
 		[sr25519.PublicKeyLength]byte{1},
 		[sr25519.PublicKeyLength]byte{2},
 	}
@@ -593,8 +593,8 @@ func TestBitfieldDistribution_ProcessBitfieldDistributionMessage_CheckSignedAvai
 	assert.Nil(t, err)
 	aliceKeypair := keyring.Alice().(*sr25519.Keypair)
 
-	validatorSet := []parachaintypes.ValidatorID{
-		parachaintypes.ValidatorID(aliceKeypair.Public().Encode()),
+	validatorSet := []parachaintypes.ValidatorPublicKey{
+		parachaintypes.ValidatorPublicKey(aliceKeypair.Public().Encode()),
 		[sr25519.PublicKeyLength]byte{2},
 	}
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
@@ -1021,8 +1021,8 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_ReceivedSetNotEmpt
 		}),
 	}
 
-	pretendReceive := func(state *perRelayParentData, sourcePeer peer.ID, signedBy parachaintypes.ValidatorID) {
-		state.messageReceivedFromPeer[sourcePeer] = map[parachaintypes.ValidatorID]struct{}{signedBy: {}}
+	pretendReceive := func(state *perRelayParentData, sourcePeer peer.ID, signedBy parachaintypes.ValidatorPublicKey) {
+		state.messageReceivedFromPeer[sourcePeer] = map[parachaintypes.ValidatorPublicKey]struct{}{signedBy: {}}
 	}
 	pretendReceive(jobData, peerA, validatorSet[0])
 
@@ -1067,7 +1067,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_DuplicatedMessages
 	validatorIndex, validatorSet := prepareForValidators()
 	jobData := newPerRelayParentData(parachaintypes.SessionIndex(1), validatorSet)
 
-	jobData.onePerValidator = map[parachaintypes.ValidatorID]*validationprotocol.BitfieldDistributionMessage{
+	jobData.onePerValidator = map[parachaintypes.ValidatorPublicKey]*validationprotocol.BitfieldDistributionMessage{
 		validatorSet[validatorIndex]: vb,
 	}
 
@@ -1105,8 +1105,8 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_Success(t *testing
 	aliceKeypair := keyring.Alice().(*sr25519.Keypair)
 
 	validatorIndex := 0
-	validatorSet := []parachaintypes.ValidatorID{
-		parachaintypes.ValidatorID(aliceKeypair.Public().Encode()),
+	validatorSet := []parachaintypes.ValidatorPublicKey{
+		parachaintypes.ValidatorPublicKey(aliceKeypair.Public().Encode()),
 		[sr25519.PublicKeyLength]byte{2},
 	}
 
@@ -1156,7 +1156,7 @@ func TestBitfieldDistribution_ProcessIncomingPeerMessageEvent_Success(t *testing
 	err = messageStoredInState.SetValue(storedMessage)
 	assert.Nil(t, err)
 
-	jobData.onePerValidator = map[parachaintypes.ValidatorID]*validationprotocol.BitfieldDistributionMessage{
+	jobData.onePerValidator = map[parachaintypes.ValidatorPublicKey]*validationprotocol.BitfieldDistributionMessage{
 		validatorSet[validatorIndex]: messageStoredInState,
 	}
 

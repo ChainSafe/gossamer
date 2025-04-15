@@ -23,11 +23,11 @@ import (
 
 // NOTE: https://github.com/ChainSafe/gossamer/pull/3297#discussion_r1214740051
 
-// ValidatorIndex Index of the validator. Used as a lightweight replacement of the `ValidatorId` when appropriate
+// ValidatorIndex Index of the validator. Used as a lightweight replacement of the `ValidatorPublicKey` when appropriate
 type ValidatorIndex uint32
 
-// ValidatorID The public key of a validator.
-type ValidatorID [sr25519.PublicKeyLength]byte
+// ValidatorPublicKey The public key of a validator.
+type ValidatorPublicKey [sr25519.PublicKeyLength]byte
 
 // BlockNumber The block number type.
 type BlockNumber uint32
@@ -437,7 +437,7 @@ type SessionInfo struct {
 	// The amount of sessions to keep for disputes.
 	DisputePeriod SessionIndex `scale:"3"`
 	// Validators in canonical ordering.
-	Validators []ValidatorID `scale:"4"`
+	Validators []ValidatorPublicKey `scale:"4"`
 	// Validators' authority discovery keys for the session in canonical ordering.
 	DiscoveryKeys []AuthorityDiscoveryID `scale:"5"`
 	// The assignment keys for validators.
@@ -1082,7 +1082,7 @@ type CandidateHashAndRelayParent struct {
 // It can be created if the local node is a validator in the context of a particular relay chain block.
 type Validator struct {
 	SigningContext SigningContext
-	Key            ValidatorID
+	Key            ValidatorPublicKey
 	Index          ValidatorIndex
 	Disabled       bool
 }
