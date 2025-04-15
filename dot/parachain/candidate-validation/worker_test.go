@@ -90,9 +90,6 @@ func Test_worker_executeRequest(t *testing.T) {
 	err = timeoutKind.SetValue(parachaintypes.Approval{})
 	require.NoError(t, err)
 
-	commitmentsHashMismatch := CommitmentsHashMismatch
-	timeout := Timeout
-
 	tests := map[string]struct {
 		instance parachain.ValidatorInstance
 		task     *workerTask
@@ -111,7 +108,7 @@ func Test_worker_executeRequest(t *testing.T) {
 				candidateReceipt: &candidateReceiptCommitmentsMismatch,
 			},
 			want: &ValidationResult{
-				Invalid: &commitmentsHashMismatch,
+				Invalid: CommitmentsHashMismatch.Ptr(),
 			},
 		},
 		"execution_timeout": {
@@ -120,7 +117,7 @@ func Test_worker_executeRequest(t *testing.T) {
 				candidateReceipt: &candidateReceipt,
 			},
 			want: &ValidationResult{
-				Invalid: &timeout,
+				Invalid: Timeout.Ptr(),
 			},
 		},
 		"long_timeout_ok": {
