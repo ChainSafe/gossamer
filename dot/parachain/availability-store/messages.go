@@ -35,7 +35,7 @@ type QueryDataAvailability struct {
 type ErasureChunk struct {
 	Chunk []byte
 	Index uint32
-	Proof []byte
+	Proof [][]byte
 }
 
 // QueryChunk query an `ErasureChunk` from the AV store by candidate hash and validator index
