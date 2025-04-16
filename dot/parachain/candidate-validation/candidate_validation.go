@@ -20,7 +20,10 @@ import (
 type CandidateValidation struct {
 	SubsystemToOverseer chan<- any
 	BlockState          BlockState
-	pvfHost             *host // pvfHost is the host for the parachain validation function
+	// pvfHost is the host for the parachain validation function
+	pvfHost *host
+	// Cache of claim queues per relay parent
+	claimQueueCache map[common.Hash]parachaintypes.ClaimQueue
 }
 
 type BlockState interface {
@@ -33,6 +36,9 @@ func NewCandidateValidation(overseerChan chan<- any, blockState BlockState) *Can
 		SubsystemToOverseer: overseerChan,
 		pvfHost:             newValidationHost(),
 		BlockState:          blockState,
+
+		// Cache of claim queues per relay parent
+		claimQueueCache: make(map[common.Hash]parachaintypes.ClaimQueue),
 	}
 	return &candidateValidation
 }
@@ -58,8 +64,9 @@ func (*CandidateValidation) Name() parachaintypes.SubSystemName {
 }
 
 // ProcessActiveLeavesUpdateSignal processes active leaves update signal
-func (*CandidateValidation) ProcessActiveLeavesUpdateSignal(parachaintypes.ActiveLeavesUpdateSignal) error {
-	// NOTE: this subsystem does not process active leaves update signal
+func (cv *CandidateValidation) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
+	// Clear cache for deactivated leaves
+	cv.clearOldCache(signal)
 	return nil
 }
 
@@ -79,24 +86,14 @@ func (cv *CandidateValidation) processMessage(msg any) {
 	case ValidateFromChainState:
 		cv.validateFromChainState(msg)
 	case ValidateFromExhaustive:
-		validationTask := &ValidationTask{
-			PersistedValidationData: msg.PersistedValidationData,
-			ValidationCode:          &msg.ValidationCode,
-			CandidateReceipt:        &msg.CandidateReceipt,
-			PoV:                     msg.PoV,
-			ExecutorParams:          msg.ExecutorParams,
-			PvfExecTimeoutKind:      msg.PvfExecTimeoutKind,
-		}
-
-		result, err := cv.pvfHost.validate(validationTask)
+		validationResult, err := cv.validateFromExhaustive(msg)
 		if err != nil {
-			logger.Errorf("failed to validate from exhaustive: %w", err)
 			msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 				Err: err,
 			}
 		} else {
 			msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
-				Data: *result,
+				Data: *validationResult,
 			}
 		}
 
@@ -117,6 +114,47 @@ func (cv *CandidateValidation) processMessage(msg any) {
 	default:
 		logger.Errorf("%w: %T", parachaintypes.ErrUnknownOverseerMessage, msg)
 	}
+}
+
+func (cv *CandidateValidation) validateFromExhaustive(msg ValidateFromExhaustive) (*ValidationResult, error) {
+	runtimeInstance, err := cv.BlockState.GetRuntime(msg.CandidateReceipt.Descriptor.RelayParent)
+	if err != nil {
+		return nil, fmt.Errorf("getting runtime instance: %w", err)
+	}
+
+	expectedSessionIndex, err := runtimeInstance.ParachainHostSessionIndexForChild()
+	if err != nil {
+		return nil, fmt.Errorf("getting session index: %w", err)
+	}
+
+	execKind, err := msg.PvfExecTimeoutKind.Value()
+	if err != nil {
+		return nil, fmt.Errorf("getting execution kind: %w", err)
+	}
+
+	// We only check the session index for backing.
+	_, isBackingExecKind := execKind.(parachaintypes.Backing)
+	if isBackingExecKind && expectedSessionIndex != msg.CandidateReceipt.Descriptor.SessionIndex {
+		return &ValidationResult{Invalid: InvalidSessionIndex.Ptr()}, nil
+	}
+
+	// Get claim queue from cache or fetch from runtime
+	claimQueue, err := cv.getOrFetchClaimQueue(runtimeInstance, msg.CandidateReceipt.Descriptor.RelayParent)
+	if err != nil {
+		return nil, fmt.Errorf("getting claim queue: %w", err)
+	}
+
+	validationTask := &ValidationTask{
+		PersistedValidationData: msg.PersistedValidationData,
+		ValidationCode:          &msg.ValidationCode,
+		CandidateReceipt:        &msg.CandidateReceipt,
+		PoV:                     msg.PoV,
+		ExecutorParams:          msg.ExecutorParams,
+		PvfExecTimeoutKind:      msg.PvfExecTimeoutKind,
+		ClaimQueue:              claimQueue,
+	}
+
+	return cv.pvfHost.validate(validationTask)
 }
 
 // PoVRequestor gets proof of validity by issuing network requests to validators of the current backing group.
@@ -180,9 +218,8 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 	}
 
 	if persistedValidationData == nil {
-		badParent := BadParent
 		reason := ValidationResult{
-			Invalid: &badParent,
+			Invalid: BadParent.Ptr(),
 		}
 		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 			Data: reason,
@@ -221,9 +258,8 @@ func (cv *CandidateValidation) validateFromChainState(msg ValidateFromChainState
 		return
 	}
 	if !valid {
-		invalidOutput := InvalidOutputs
 		reason := &ValidationResult{
-			Invalid: &invalidOutput,
+			Invalid: InvalidOutputs.Ptr(),
 		}
 		msg.Ch <- parachaintypes.OverseerFuncRes[ValidationResult]{
 			Data: *reason,
@@ -305,5 +341,32 @@ func pvfPrepTimeout(params parachaintypes.ExecutorParams, kind parachaintypes.Pv
 		return time.Second * 10
 	default:
 		return time.Second * 2
+	}
+}
+
+// getOrFetchClaimQueue gets the claim queue from cache or fetches it from runtime
+func (cv *CandidateValidation) getOrFetchClaimQueue(
+	runtimeInstance runtime.Instance, relayParent common.Hash) (parachaintypes.ClaimQueue, error) {
+	// Check cache first
+	if claimQueue, ok := cv.claimQueueCache[relayParent]; ok {
+		return claimQueue, nil
+	}
+
+	// Fetch from runtime if not in cache
+	claimQueue, err := runtimeInstance.ParachainHostClaimQueue()
+	if err != nil {
+		return nil, fmt.Errorf("getting claim queue: %w", err)
+	}
+
+	// Store in cache
+	cv.claimQueueCache[relayParent] = claimQueue
+	return claimQueue, nil
+}
+
+// clearOldCache clears claim queues for old relay parents
+func (cv *CandidateValidation) clearOldCache(activeLeavesUpdate parachaintypes.ActiveLeavesUpdateSignal) {
+	// Remove deactivated leaves from cache
+	for _, deactivated := range activeLeavesUpdate.Deactivated {
+		delete(cv.claimQueueCache, deactivated)
 	}
 }

@@ -1015,7 +1015,7 @@ func (c ClaimQueue) ToTransposed() TransposedClaimQueue {
 			coresPerDepth, exists := transposedClaimQueue[para]
 			if !exists {
 				coresPerDepth = make(map[uint8]map[CoreIndex]struct{})
-				transposedClaimQueue[para] = make(map[uint8]map[CoreIndex]struct{})
+				transposedClaimQueue[para] = coresPerDepth
 			}
 
 			// Get or initialize the core index set for this depth
@@ -1048,14 +1048,14 @@ type UpgradeRestrictionValues interface {
 	Present
 }
 
-func setMyVaryingDataType[Value UpgradeRestrictionValues](mvdt *UpgradeRestriction, value Value) {
+func setUpgradeRestriction[Value UpgradeRestrictionValues](mvdt *UpgradeRestriction, value Value) {
 	mvdt.inner = value
 }
 
 func (mvdt *UpgradeRestriction) SetValue(value any) (err error) {
 	switch value := value.(type) {
 	case Present:
-		setMyVaryingDataType(mvdt, value)
+		setUpgradeRestriction(mvdt, value)
 		return
 	default:
 		return fmt.Errorf("unsupported type")
