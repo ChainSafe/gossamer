@@ -5,6 +5,7 @@ package erasure_test
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -360,5 +361,50 @@ func TestChunksToTrie(t *testing.T) {
 
 			require.Equal(t, c.expectedRootHex, root.String())
 		})
+	}
+}
+
+func TestBranchHash(t *testing.T) {
+	t.Parallel()
+
+	var testCases = []struct {
+		name                  string
+		rootHex               string
+		proofHex              []string
+		expectedBranchHashHex []string // chunk index is equal to index into this slice
+	}{
+		// generated all these values using `roundtrip_proof_encoding()` function from polkadot.
+		// https://github.com/paritytech/polkadot/blob/9b1fc27cec47f01a2c229532ee7ab79cc5bb28ef/erasure-coding/src/lib.rs#L413-L418
+		{
+			name:    "2_chunks",
+			rootHex: "0x513489282098e960bfd57ed52d62838ce9395f3f59257f1f40fadd02261a7991",
+			proofHex: []string{
+				"0x8100030080c26b60abca36319ab802f6f6b02a7de52b591fa871bc801654ab97df2c106e9a80c26b60abca36319ab802f6f6b02a7de52b591fa871bc801654ab97df2c106e9a",
+				"0x4600000080cdd8f5ce5995de8e4895b68c87084bf66bf02eafb0ba8e92b5b21a3f416a1ad3",
+			},
+			expectedBranchHashHex: []string{
+				"0xcdd8f5ce5995de8e4895b68c87084bf66bf02eafb0ba8e92b5b21a3f416a1ad3",
+				"0xc0ac59eb217ba6a109baf5adbde6f4276d4eb7f976b05797ae9714529a760e2a",
+			},
+		},
+	}
+
+	for _, c := range testCases {
+		for chunkIndex, expectedResult := range c.expectedBranchHashHex {
+			t.Run(fmt.Sprintf("%s_index_%d", c.name, chunkIndex), func(t *testing.T) {
+				t.Parallel()
+
+				root := common.NewHash(common.MustHexToBytes(c.rootHex))
+				var proof [][]byte
+				for _, ph := range c.proofHex {
+					proof = append(proof, common.MustHexToBytes(ph))
+				}
+
+				hash, err := erasure.BranchHash(root, proof, uint32(chunkIndex))
+
+				require.NoError(t, err)
+				require.Equal(t, common.NewHash(common.MustHexToBytes(expectedResult)), hash)
+			})
+		}
 	}
 }

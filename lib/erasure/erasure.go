@@ -11,6 +11,8 @@ import (
 import (
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/pkg/trie/db"
+	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -20,8 +22,10 @@ import (
 )
 
 var (
-	ErrZeroSizedData   = errors.New("data can't be zero sized")
-	ErrZeroSizedChunks = errors.New("chunks can't be zero sized")
+	ErrZeroSizedData      = errors.New("data can't be zero sized")
+	ErrZeroSizedChunks    = errors.New("chunks can't be zero sized")
+	ErrBranchOutOfBounds  = errors.New("branch out of bounds")
+	ErrInvalidBranchProof = errors.New("invalid branch proof")
 )
 
 // SystematicRecoveryThreshold returns the threshold of systematic chunks that should be enough to recover the data.
@@ -145,4 +149,42 @@ func ChunksToTrie(chunks [][]byte) (trie.Trie, error) {
 		}
 	}
 	return chunkTrie, nil
+}
+
+func BranchHash(root common.Hash, branchNodes [][]byte, chunkIndex uint32) (common.Hash, error) {
+	memDB := db.NewEmptyMemoryDB()
+	storageTrie := inmemory.NewTrie(nil, memDB)
+
+	for _, node := range branchNodes {
+		key, err := common.Blake2bHash(node)
+		if err != nil {
+			return common.Hash{}, fmt.Errorf("hashing branch node: %w", err)
+		}
+
+		err = storageTrie.Put(key.ToBytes(), node)
+		if err != nil {
+			return common.Hash{}, fmt.Errorf("putting branch node into trie: %w", err)
+		}
+	}
+
+	encodedIndex, err := scale.Marshal(chunkIndex)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("marshalling chunk index: %w", err)
+	}
+
+	tdb := triedb.NewTrieDB(root, memDB, nil)
+	// TODO is this the equivalent of
+	// https://github.com/paritytech/polkadot-sdk/blob/d2fd53645654d3b8e12cbf735b67b93078d70113/polkadot/erasure-coding/src/lib.rs#L321
+	value := tdb.Get(encodedIndex)
+
+	if value == nil {
+		return common.Hash{}, ErrBranchOutOfBounds
+	}
+
+	// TODO can this happen?
+	if len(value) != common.HashLength {
+		return common.Hash{}, ErrInvalidBranchProof
+	}
+
+	return common.NewHash(value), nil
 }
