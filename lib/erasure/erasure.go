@@ -9,11 +9,13 @@ import (
 	"C"
 )
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"unsafe"
+
 	"github.com/ChainSafe/gossamer/pkg/trie/db"
 	"github.com/ChainSafe/gossamer/pkg/trie/triedb"
-	"unsafe"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
@@ -153,38 +155,36 @@ func ChunksToTrie(chunks [][]byte) (trie.Trie, error) {
 
 func BranchHash(root common.Hash, branchNodes [][]byte, chunkIndex uint32) (common.Hash, error) {
 	memDB := db.NewEmptyMemoryDB()
-	storageTrie := inmemory.NewTrie(nil, memDB)
 
 	for _, node := range branchNodes {
 		key, err := common.Blake2bHash(node)
 		if err != nil {
-			return common.Hash{}, fmt.Errorf("hashing branch node: %w", err)
+			return common.EmptyHash, fmt.Errorf("hashing branch node: %w", err)
 		}
 
-		err = storageTrie.Put(key.ToBytes(), node)
+		err = memDB.Put(key.ToBytes(), node)
 		if err != nil {
-			return common.Hash{}, fmt.Errorf("putting branch node into trie: %w", err)
+			return common.EmptyHash, fmt.Errorf("putting branch node into trie: %w", err)
 		}
 	}
 
-	encodedIndex, err := scale.Marshal(chunkIndex)
+	key, err := scale.Marshal(chunkIndex)
 	if err != nil {
-		return common.Hash{}, fmt.Errorf("marshalling chunk index: %w", err)
+		return common.EmptyHash, fmt.Errorf("marshalling chunk index: %w", err)
 	}
 
 	tdb := triedb.NewTrieDB(root, memDB, nil)
-	// TODO is this the equivalent of
-	// https://github.com/paritytech/polkadot-sdk/blob/d2fd53645654d3b8e12cbf735b67b93078d70113/polkadot/erasure-coding/src/lib.rs#L321
-	value := tdb.Get(encodedIndex)
+	value := tdb.Get(key)
 
 	if value == nil {
-		return common.Hash{}, ErrBranchOutOfBounds
+		return common.EmptyHash, ErrBranchOutOfBounds
 	}
 
-	// TODO can this happen?
-	if len(value) != common.HashLength {
-		return common.Hash{}, ErrInvalidBranchProof
+	hash, err := common.ReadHash(bytes.NewReader(value))
+
+	if err != nil {
+		return common.EmptyHash, ErrInvalidBranchProof
 	}
 
-	return common.NewHash(value), nil
+	return hash, nil
 }
