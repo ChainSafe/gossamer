@@ -415,8 +415,8 @@ func skipUmpSignals(upwardMessages []parachaintypes.UpwardMessage) iter.Seq[para
 				if !yield([]byte(message)) {
 					return
 				}
+				continue
 			}
-
 			return
 		}
 	}

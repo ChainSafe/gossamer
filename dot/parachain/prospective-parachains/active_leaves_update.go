@@ -78,7 +78,7 @@ func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
 		for idx, a := range ancestry {
 			ancestryBlockInfo[idx] = relayChainBlockInfo{
 				Hash:        a.Hash,
-				Number:      parachaintypes.BlockNumber(a.Number),
+				Number:      a.Number,
 				StorageRoot: a.StorageRoot,
 			}
 			ancestorsHashes[idx] = a.Hash.String()
@@ -144,7 +144,7 @@ func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
 			scope, err := newScopeWithAncestors(
 				relayChainBlockInfo{
 					Hash:        blockInfo.Hash,
-					Number:      parachaintypes.BlockNumber(blockInfo.Number),
+					Number:      blockInfo.Number,
 					StorageRoot: blockInfo.StorageRoot,
 				},
 				constraints,
@@ -226,7 +226,7 @@ func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
 	}
 
 	// keep in our state only the relay parents that are still active
-	// under implicity view
+	// under implicitly view
 	allowedRelayParents := pp.view.implicitView.AllAllowedRelayParents()
 
 	rpToDelete := make([]common.Hash, 0)
@@ -375,7 +375,7 @@ func (pp *ProspectiveParachains) preprocessCandidatesPendingAvailability(
 				},
 				relayParent: relayChainBlockInfo{
 					Hash:        relayParent.Hash,
-					Number:      parachaintypes.BlockNumber(relayParent.Number),
+					Number:      relayParent.Number,
 					StorageRoot: relayParent.StorageRoot,
 				},
 			},

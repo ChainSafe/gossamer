@@ -1080,8 +1080,8 @@ func TestActivateLeafSignalHandler(t *testing.T) {
 				}
 
 				ctrl := gomock.NewController(t)
-				mockImplicityView := NewMockImplicitView(ctrl)
-				mockImplicityView.EXPECT().
+				mockImplicitlyView := NewMockImplicitView(ctrl)
+				mockImplicitlyView.EXPECT().
 					ActivateLeafFromProspectiveParachains(
 						&backing.BlockInfoProspectiveParachains{
 							Hash:        activeLeafHash,
@@ -1091,7 +1091,7 @@ func TestActivateLeafSignalHandler(t *testing.T) {
 						},
 						[]*backing.BlockInfoProspectiveParachains{},
 					)
-				mockImplicityView.EXPECT().
+				mockImplicitlyView.EXPECT().
 					AllAllowedRelayParents().
 					Return([]common.Hash{activeLeafHash})
 
@@ -1148,7 +1148,7 @@ func TestActivateLeafSignalHandler(t *testing.T) {
 
 				pp := NewProspectiveParachains(subsystemToOverseer)
 				pp.blockState = mockBlockState
-				pp.view.implicitView = mockImplicityView
+				pp.view.implicitView = mockImplicitlyView
 
 				msg := parachaintypes.ActiveLeavesUpdateSignal{
 					Activated: &parachaintypes.ActivatedLeaf{

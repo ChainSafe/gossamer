@@ -1583,7 +1583,7 @@ func (in *Instance) ParachainHostBackingConstraints(
 ) (*parachaintypes.Constraints, error) {
 	encodedParaID, err := scale.Marshal(paraID)
 	if err != nil {
-		return nil, fmt.Errorf("marshaling para id: %w", err)
+		return nil, fmt.Errorf("marshalling para id: %w", err)
 	}
 
 	encoded, err := in.Exec(runtime.ParachainHostBackingConstraints, encodedParaID)
@@ -1605,7 +1605,7 @@ func (in *Instance) ParachainHostCandidatesPendingAvailability(
 ) ([]parachaintypes.CommittedCandidateReceiptV2, error) {
 	encodedParaID, err := scale.Marshal(paraID)
 	if err != nil {
-		return nil, fmt.Errorf("marshaling para id: %w", err)
+		return nil, fmt.Errorf("marshalling para id: %w", err)
 	}
 
 	encoded, err := in.Exec(
