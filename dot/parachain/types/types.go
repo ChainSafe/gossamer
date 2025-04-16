@@ -16,7 +16,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/tidwall/btree"
 )
 
 // The primary purpose of this package is to put types being used by other packages to avoid cyclic
@@ -939,31 +938,6 @@ const ElasticScalingMVP NodeFeatureIndex = 1
 
 // TransposedClaimQueue represents a mapping between ParaID and the cores assigned per depth
 type TransposedClaimQueue map[ParaID]map[uint8]map[CoreIndex]struct{}
-
-type OrderedCoreIndex uint32
-
-func (t TransposedClaimQueue) ToBTreeMap() *btree.Map[ParaID, *btree.Map[uint8, *btree.Set[OrderedCoreIndex]]] {
-	perParaClaimQueue := btree.NewMap[ParaID, *btree.Map[uint8, *btree.Set[OrderedCoreIndex]]](
-		len(t),
-	)
-
-	for pID, depths := range t {
-		depthsPerPara := btree.NewMap[uint8, *btree.Set[OrderedCoreIndex]](len(depths))
-
-		for depth, cores := range depths {
-			coresPerDepth := &btree.Set[OrderedCoreIndex]{}
-			for coreIndex := range cores {
-				coresPerDepth.Insert(OrderedCoreIndex(coreIndex.Index))
-			}
-
-			depthsPerPara.Set(depth, coresPerDepth)
-		}
-
-		perParaClaimQueue.Set(pID, depthsPerPara)
-	}
-
-	return perParaClaimQueue
-}
 
 // Cores returns the cores assigned to a specific ParaID and depth.
 func (t TransposedClaimQueue) Cores(para ParaID, depth uint8) (

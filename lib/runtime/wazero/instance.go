@@ -1608,7 +1608,10 @@ func (in *Instance) ParachainHostCandidatesPendingAvailability(
 		return nil, fmt.Errorf("marshaling para id: %w", err)
 	}
 
-	encoded, err := in.Exec(runtime.ParachainHostBackingConstraints, encodedParaID)
+	encoded, err := in.Exec(
+		runtime.ParachainHostCandidatesPendingAvailability,
+		encodedParaID,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
@@ -1639,7 +1642,7 @@ func (in *Instance) GetCodeHash() common.Hash {
 	return in.codeHash
 }
 
-// N odeStorage to get reference to runtime node service
+// NodeStorage to get reference to runtime node service
 func (in *Instance) NodeStorage() runtime.NodeStorage {
 	return in.Context.NodeStorage
 }

@@ -53,13 +53,9 @@ type Instance interface {
 		parachaidID parachaintypes.ParaID,
 		assumption parachaintypes.OccupiedCoreAssumption,
 	) (*parachaintypes.PersistedValidationData, error)
-	ParachainHostValidationCode(
-		parachaidID parachaintypes.ParaID,
-		assumption parachaintypes.OccupiedCoreAssumption,
+	ParachainHostValidationCode(parachaidID parachaintypes.ParaID, assumption parachaintypes.OccupiedCoreAssumption,
 	) (*parachaintypes.ValidationCode, error)
-	ParachainHostValidationCodeByHash(
-		validationCodeHash common.Hash,
-	) (*parachaintypes.ValidationCode, error)
+	ParachainHostValidationCodeByHash(validationCodeHash common.Hash) (*parachaintypes.ValidationCode, error)
 	ParachainHostValidators() ([]parachaintypes.ValidatorID, error)
 	ParachainHostValidatorGroups() (*parachaintypes.ValidatorGroups, error)
 	ParachainHostAvailabilityCores() ([]parachaintypes.CoreState, error)
@@ -72,9 +68,7 @@ type Instance interface {
 		parachainID parachaintypes.ParaID,
 	) (*parachaintypes.CommittedCandidateReceiptV2, error)
 	ParachainHostCandidateEvents() ([]parachaintypes.CandidateEvent, error)
-	ParachainHostSessionInfo(
-		sessionIndex parachaintypes.SessionIndex,
-	) (*parachaintypes.SessionInfo, error)
+	ParachainHostSessionInfo(sessionIndex parachaintypes.SessionIndex) (*parachaintypes.SessionInfo, error)
 	ParachainHostAsyncBackingParams() (*parachaintypes.AsyncBackingParams, error)
 	ParachainHostMinimumBackingVotes() (uint32, error)
 	ParachainHostSessionExecutorParams(index parachaintypes.SessionIndex,
@@ -84,10 +78,7 @@ type Instance interface {
 	ParachainHostDisabledValidators() ([]parachaintypes.ValidatorIndex, error)
 	ParachainHostDisputes() (map[parachaintypes.DisputeKey]parachaintypes.DisputeState, error)
 	ParachainHostSchedulingLookAhead() (uint32, error)
-	ParachainHostBackingConstraints(
-		paraID parachaintypes.ParaID,
-	) (*parachaintypes.Constraints, error)
-	ParachainHostCandidatesPendingAvailability(
-		paraID parachaintypes.ParaID,
+	ParachainHostBackingConstraints(paraID parachaintypes.ParaID) (*parachaintypes.Constraints, error)
+	ParachainHostCandidatesPendingAvailability(paraID parachaintypes.ParaID,
 	) ([]parachaintypes.CommittedCandidateReceiptV2, error)
 }
