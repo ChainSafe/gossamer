@@ -798,7 +798,7 @@ func findAncestor[T types.NextEpochData | types.NextConfigDataV1](blockState Blo
 
 		// sometimes while moving to the next epoch is possible the header
 		// is not fully imported by the blocktree, in this case we will use
-		// its parent header which migth be already imported.
+		// its parent header which might be already imported.
 		parentHeader, err := blockState.GetHeader(header.ParentHash)
 		if err != nil {
 			return common.Hash{}, nil, fmt.Errorf("cannot get parent header: %w", err)

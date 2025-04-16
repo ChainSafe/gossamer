@@ -22,7 +22,7 @@ import (
 
 var logger = log.NewFromGlobal(log.AddContext("pkg", "babe"))
 
-// Service contains the VRF keys for the validator, as well as BABE configuation data
+// Service contains the VRF keys for the validator, as well as BABE configuration data
 type Service struct {
 	ctx          context.Context
 	cancel       context.CancelFunc
