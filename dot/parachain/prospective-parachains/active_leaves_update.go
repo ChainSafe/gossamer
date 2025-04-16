@@ -8,7 +8,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
-	"github.com/ChainSafe/gossamer/dot/parachain/util"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/internal/database"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -28,8 +27,6 @@ type BlockState interface {
 func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
 	msg parachaintypes.ActiveLeavesUpdateSignal,
 ) error {
-	// TODO: metrics
-
 	// ensure there activated is not nil and it is not in the deactivated list (sanity check)
 	if msg.Activated != nil && !slices.Contains(msg.Deactivated, msg.Activated.Hash) {
 		tmpHeaderCache := make(map[common.Hash]*types.Header)
@@ -61,7 +58,6 @@ func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
 		ancestryLen, err := runtimeInstance.ParachainHostSchedulingLookAhead()
 		if err != nil {
 			logger.Warnf("fetching scheduling lookahead: %s", err.Error())
-			// TODO: add a tracing log here
 			ancestryLen = DefaultSchedulingLookAhead
 		}
 
@@ -105,9 +101,10 @@ func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
 				continue
 			}
 
-			pendingAvailabilityCandidates, err := runtimeInstance.ParachainHostCandidatesPendingAvailability(
-				paraID,
-			)
+			pendingAvailabilityCandidates, err := runtimeInstance.
+				ParachainHostCandidatesPendingAvailability(
+					paraID,
+				)
 			if err != nil {
 				return fmt.Errorf("fetching pending availability candidates: %w", err)
 			}
@@ -157,7 +154,7 @@ func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
 			)
 			if err != nil {
 				logger.Warnf(
-					"relay  chain ancestors have wrong order, "+
+					"relay chain ancestors have wrong order, "+
 						"para id=%d, max backable=%d, ancestry=%s, leaf=%s, err=%s",
 					paraID,
 					maxBackableChainLen,
@@ -223,6 +220,26 @@ func (pp *ProspectiveParachains) ProcessActiveLeavesUpdateSignal(
 		pp.view.implicitView.ActivateLeafFromProspectiveParachains(blockInfo, ancestry)
 	}
 
+	for _, deactivated := range msg.Deactivated {
+		delete(pp.view.activeLeaves, deactivated)
+		pp.view.implicitView.DeactivateLeaf(deactivated)
+	}
+
+	// keep in our state only the relay parents that are still active
+	// under implicity view
+	allowedRelayParents := pp.view.implicitView.AllAllowedRelayParents()
+
+	rpToDelete := make([]common.Hash, 0)
+	for rp := range pp.view.perRelayParent {
+		if !slices.Contains(allowedRelayParents, rp) {
+			rpToDelete = append(rpToDelete, rp)
+		}
+	}
+
+	for _, rp := range rpToDelete {
+		delete(pp.view.perRelayParent, rp)
+	}
+
 	return nil
 }
 
@@ -264,22 +281,20 @@ func (pp *ProspectiveParachains) fetchAncestry(
 		return []*backing.BlockInfoProspectiveParachains{}, nil
 	}
 
-	ancestors, err := util.GetBlockAncestors(pp.SubsystemToOverseer, hash, ancestryLen)
+	curr, err := pp.fetchBlockInfo(cache, hash)
 	if err != nil {
-		return nil, fmt.Errorf("getting block ancestors: %w", err)
+		return nil, fmt.Errorf("fetching block info: %w", err)
 	}
 
-	blockInfos := make([]*backing.BlockInfoProspectiveParachains, len(ancestors))
-
-	for _, ancestorHash := range ancestors {
-		ancestorHead, err := pp.fetchBlockInfo(cache, ancestorHash)
+	parentHash := curr.ParentHash
+	ancestorsBlockInfo := make([]*backing.BlockInfoProspectiveParachains, 0, ancestryLen)
+	for i := 0; i < int(ancestryLen); i++ {
+		ancestorInfo, err := pp.fetchBlockInfo(cache, parentHash)
 		if err != nil {
-			logger.Warnf("failed to fetch info for hash returned from ancestry: %s", err.Error())
-			// Return, however far we got.
-			break
+			return nil, fmt.Errorf("fetching ancestor block info: %w", err)
 		}
 
-		runtimeInstance, err := pp.blockState.GetRuntime(ancestorHash)
+		runtimeInstance, err := pp.blockState.GetRuntime(ancestorInfo.Hash)
 		if err != nil {
 			return nil, fmt.Errorf("getting runtime: %w", err)
 		}
@@ -294,13 +309,15 @@ func (pp *ProspectiveParachains) fetchAncestry(
 		// respect here.
 
 		if requiredSession == acenstorSessionIndex {
-			blockInfos = append(blockInfos, ancestorHead)
+			ancestorsBlockInfo = append(ancestorsBlockInfo, ancestorInfo)
 		} else {
 			break
 		}
+
+		parentHash = ancestorInfo.ParentHash
 	}
 
-	return blockInfos, nil
+	return ancestorsBlockInfo, nil
 }
 
 type importablePendingAvailability struct {

@@ -24,7 +24,7 @@ func (cb *CandidateBacking) ProcessActiveLeavesUpdateSignal(update parachaintype
 	}
 
 	for _, deactivated := range update.Deactivated {
-		cb.ImplicitView.deactivateLeaf(deactivated)
+		cb.ImplicitView.DeactivateLeaf(deactivated)
 	}
 
 	// clean up `perRelayParent` according to ancestry of leaves.

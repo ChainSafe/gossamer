@@ -53,7 +53,8 @@ type ImplicitView interface {
 
 	// Deactivate a leaf in the view. This prunes any outdated implicit ancestors as well.
 	// Returns hashes of blocks pruned from storage.
-	deactivateLeaf(leafHash common.Hash) []common.Hash
+	DeactivateLeaf(leafHash common.Hash) []common.Hash
+
 	// Get all allowed relay-parents in the view with no particular order.
 	//
 	// Important: not all blocks are guaranteed to be allowed for some leaves, it may

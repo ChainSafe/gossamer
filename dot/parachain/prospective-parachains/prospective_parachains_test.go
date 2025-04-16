@@ -10,11 +10,14 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/parachain/backing"
 	"github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	gomock "go.uber.org/mock/gomock"
 )
 
 func introduceSecondedCandidate(
@@ -210,6 +213,31 @@ func TestHandleIntroduceSecondedCandidate(
 }
 
 const MaxPoVSize = 1_000_000
+
+func dummyConstraintsV2(
+	minRelayParentNumber parachaintypes.BlockNumber,
+	validWatermarks []parachaintypes.BlockNumber,
+	requiredParent parachaintypes.HeadData,
+	validationCodeHash parachaintypes.ValidationCodeHash,
+) *parachaintypes.Constraints {
+	return &parachaintypes.Constraints{
+		MinRelayParentNumber: minRelayParentNumber,
+		MaxPoVSize:           MaxPoVSize,
+		// TODO include max_head_data_size: 20480,
+		MaxCodeSize:            1_000_000,
+		UMPRemaining:           10,
+		UMPRemainingBytes:      1_000,
+		MaxNumUMPPerCandidate:  10,
+		DMPRemainingMessages:   nil,
+		HRMPInbound:            parachaintypes.InboundHRMPLimitations{ValidWatermarks: validWatermarks},
+		HRMPChannelsOut:        nil,
+		MaxNumHRMPPerCandidate: 0,
+		RequiredParent:         requiredParent,
+		ValidationCodeHash:     validationCodeHash,
+		UpgradeRestriction:     nil,
+		FutureValidationCode:   nil,
+	}
+}
 
 func dummyPVD(
 	parentHead parachaintypes.HeadData,
@@ -1024,4 +1052,136 @@ func TestHandleBacked(
 	require.Len(t, hashes, 1)
 
 	require.Equal(t, hashes[0], parachaintypes.CandidateHash{Value: hash})
+}
+
+func TestActivateLeafSignalHandler(t *testing.T) {
+	cases := map[string]struct {
+		setup func(*testing.T) (*ProspectiveParachains, parachaintypes.ActiveLeavesUpdateSignal)
+	}{
+		"no_ancestry_and_no_previous_fragment_chains": {
+			setup: func(t *testing.T) (*ProspectiveParachains, parachaintypes.ActiveLeavesUpdateSignal) {
+				parentHeader := &types.Header{
+					ParentHash: common.Hash{0x00},
+					Number:     0,
+					StateRoot:  common.Hash{0x00},
+				}
+
+				activeLeafHeader := &types.Header{
+					ParentHash: parentHeader.Hash(),
+					Number:     1,
+					StateRoot:  common.Hash{0x00},
+				}
+				activeLeafHash := activeLeafHeader.Hash()
+
+				claimQueue := map[parachaintypes.CoreIndex][]parachaintypes.ParaID{
+					{Index: 0}: {
+						parachaintypes.ParaID(1),
+					},
+				}
+
+				ctrl := gomock.NewController(t)
+				mockImplicityView := NewMockImplicitView(ctrl)
+				mockImplicityView.EXPECT().
+					ActivateLeafFromProspectiveParachains(
+						&backing.BlockInfoProspectiveParachains{
+							Hash:        activeLeafHash,
+							ParentHash:  activeLeafHeader.ParentHash,
+							Number:      parachaintypes.BlockNumber(activeLeafHeader.Number),
+							StorageRoot: activeLeafHeader.StateRoot,
+						},
+						[]*backing.BlockInfoProspectiveParachains{},
+					)
+				mockImplicityView.EXPECT().
+					AllAllowedRelayParents().
+					Return([]common.Hash{activeLeafHash})
+
+				mockRuntime := NewMockInstance(ctrl)
+				mockRuntime.EXPECT().
+					ParachainHostClaimQueue().
+					Return(claimQueue, nil)
+				mockRuntime.EXPECT().
+					ParachainHostSessionIndexForChild().
+					Return(parachaintypes.SessionIndex(1), nil)
+				mockRuntime.EXPECT().
+					ParachainHostSchedulingLookAhead().
+					Return(uint32(3), nil)
+
+				constraints := dummyConstraintsV2(0,
+					[]parachaintypes.BlockNumber{0},
+					parachaintypes.HeadData{Data: []byte{0x00}},
+					parachaintypes.ValidationCodeHash{0x00},
+				)
+				mockRuntime.EXPECT().
+					ParachainHostBackingConstraints(parachaintypes.ParaID(1)).
+					Return(constraints, nil)
+
+				mockRuntime.EXPECT().
+					ParachainHostCandidatesPendingAvailability(parachaintypes.ParaID(1)).
+					Return([]parachaintypes.CommittedCandidateReceiptV2{}, nil)
+
+				mockBlockState := NewMockBlockState(ctrl)
+				mockBlockState.EXPECT().
+					GetRuntime(activeLeafHash).
+					Return(mockRuntime, nil)
+
+				mockBlockState.EXPECT().
+					GetHeader(activeLeafHash).
+					Return(activeLeafHeader, nil)
+
+				// mocking fetchAncestry get header call
+				// here we return a different session index
+				// for the parent header
+				mockBlockState.EXPECT().
+					GetHeader(activeLeafHeader.ParentHash).
+					Return(parentHeader, nil)
+
+				innerRuntimeMock := NewMockInstance(ctrl)
+				innerRuntimeMock.EXPECT().
+					ParachainHostSessionIndexForChild().
+					Return(parachaintypes.SessionIndex(0), nil)
+
+				mockBlockState.EXPECT().
+					GetRuntime(activeLeafHeader.ParentHash).
+					Return(innerRuntimeMock, nil)
+
+				subsystemToOverseer := make(chan any)
+
+				pp := NewProspectiveParachains(subsystemToOverseer)
+				pp.blockState = mockBlockState
+				pp.view.implicitView = mockImplicityView
+
+				msg := parachaintypes.ActiveLeavesUpdateSignal{
+					Activated: &parachaintypes.ActivatedLeaf{
+						Hash:   activeLeafHash,
+						Number: uint32(activeLeafHeader.Number),
+					},
+				}
+
+				return pp, msg
+			},
+		},
+	}
+
+	for tname, tt := range cases {
+		tt := tt
+		t.Run(tname, func(t *testing.T) {
+			overseerToSubsystem := make(chan any)
+			pp, activeLeafMsg := tt.setup(t)
+
+			ctx, cancel := context.WithCancel(context.Background())
+
+			// Run prospectiveParachains in a separate goroutine
+			var wg sync.WaitGroup
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				pp.Run(ctx, overseerToSubsystem)
+			}()
+
+			overseerToSubsystem <- activeLeafMsg
+			cancel()
+			wg.Wait()
+		})
+	}
+
 }
