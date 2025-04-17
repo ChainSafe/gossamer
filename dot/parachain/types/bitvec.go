@@ -232,3 +232,20 @@ func (bv *BitVec) CountOnes() int {
 
 	return count
 }
+
+// Mask masks out bits according to the provided mask BitVec.
+// For each position, the bit is kept only if it was set and the mask bit is not set.
+// This implements the logic: (x, mask) => x && !mask
+func (bv *BitVec) Mask(mask BitVec) {
+	for i, value := range bv.Bits() {
+		// (x, mask) => x
+		// (true, true) => false
+		// (true, false) => true
+		// (false, true) => false
+		// (false, false) => false
+
+		// ignoring the error because oob in mask is equivalent to i being set to false
+		m, _ := mask.Get(uint(i))
+		_ = bv.Set(uint(i), value && !m) // oob is impossible
+	}
+}
