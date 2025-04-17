@@ -160,7 +160,7 @@ func TestStatementVDT_SignAndVerify(t *testing.T) {
 	require.NoError(t, err)
 
 	publicKeyBytes := keyPair.Public().Encode()
-	validatorID := ValidatorPublicKey(publicKeyBytes)
+	validatorID := ValidatorPK(publicKeyBytes)
 
 	validator := Validator{
 		SigningContext: signingContext,

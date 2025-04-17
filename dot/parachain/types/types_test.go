@@ -45,11 +45,11 @@ func Test_Validators(t *testing.T) {
 	resultBytes, err := common.HexToBytes(resultHex)
 	require.NoError(t, err)
 
-	var validatorIDs []ValidatorPublicKey
+	var validatorIDs []ValidatorPK
 	err = scale.Unmarshal(resultBytes, &validatorIDs)
 	require.NoError(t, err)
 
-	expected := []ValidatorPublicKey{
+	expected := []ValidatorPK{
 		mustHexTo32BArray(t, "0xa262f83b46310770ae8d092147176b8b25e8855bcfbbe701d346b10db0c5385d"),
 		mustHexTo32BArray(t, "0x804b9df571e2b744d65eca2d4c59eb8e4345286c00389d97bfc1d8d13aa6e57e"),
 		mustHexTo32BArray(t, "0x4eb63e4aad805c06dc924e2f19b1dde7faf507e5bb3c1838d6a3cfc10e84fe72"),
@@ -193,7 +193,7 @@ func TestSessionInfo(t *testing.T) {
 		RandomSeed: mustHexTo32BArray(t,
 			"0x9a14667dcf973e46392904593e8caf2fb7a57904edbadf1547531657e7a56b5e"),
 		DisputePeriod: 6,
-		Validators: []ValidatorPublicKey{
+		Validators: []ValidatorPK{
 			mustHexTo32BArray(t, "0xa262f83b46310770ae8d092147176b8b25e8855bcfbbe701d346b10db0c5385d"),
 			mustHexTo32BArray(t, "0x804b9df571e2b744d65eca2d4c59eb8e4345286c00389d97bfc1d8d13aa6e57e"),
 			mustHexTo32BArray(t, "0x4eb63e4aad805c06dc924e2f19b1dde7faf507e5bb3c1838d6a3cfc10e84fe72"),
@@ -490,7 +490,7 @@ func TestValidator_SignAndVerify(t *testing.T) {
 	require.NoError(t, err)
 
 	publicKeyBytes := keyPair.Public().Encode()
-	validatorID := ValidatorPublicKey(publicKeyBytes)
+	validatorID := ValidatorPK(publicKeyBytes)
 
 	validator := Validator{
 		SigningContext: signingContext,

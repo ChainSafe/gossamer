@@ -33,32 +33,32 @@ type perRelayParentData struct {
 	sessionIndex parachaintypes.SessionIndex
 
 	// Set of validators for a particular relay parent.
-	validatorsSet []parachaintypes.ValidatorPublicKey
+	validatorsSet []parachaintypes.ValidatorPK
 
 	// Set of validators for a particular relay parent for which we
 	// received a valid `BitfieldGossipMessage`.
 	// Also serves as the list of known messages for peers connecting
 	// after bitfield gossips were already received.
-	onePerValidator map[parachaintypes.ValidatorPublicKey]*validationprotocol.BitfieldDistributionMessage
+	onePerValidator map[parachaintypes.ValidatorPK]*validationprotocol.BitfieldDistributionMessage
 
 	// Avoid duplicate message transmission to our peers.
-	messageSentToPeer map[peer.ID]map[parachaintypes.ValidatorPublicKey]struct{}
+	messageSentToPeer map[peer.ID]map[parachaintypes.ValidatorPK]struct{}
 
 	// Track messages that were already received by a peer to prevent flooding.
-	messageReceivedFromPeer map[peer.ID]map[parachaintypes.ValidatorPublicKey]struct{}
+	messageReceivedFromPeer map[peer.ID]map[parachaintypes.ValidatorPK]struct{}
 }
 
 // this will be used in the PeerViewChange handler so skip the lint check for now
 //
 //nolint:all
-func newPerRelayParentData(sessionIndex parachaintypes.SessionIndex, validatorSet []parachaintypes.ValidatorPublicKey,
+func newPerRelayParentData(sessionIndex parachaintypes.SessionIndex, validatorSet []parachaintypes.ValidatorPK,
 ) *perRelayParentData {
 	return &perRelayParentData{
 		sessionIndex:            sessionIndex,
 		validatorsSet:           validatorSet,
-		onePerValidator:         make(map[parachaintypes.ValidatorPublicKey]*validationprotocol.BitfieldDistributionMessage),
-		messageSentToPeer:       make(map[peer.ID]map[parachaintypes.ValidatorPublicKey]struct{}),
-		messageReceivedFromPeer: make(map[peer.ID]map[parachaintypes.ValidatorPublicKey]struct{}),
+		onePerValidator:         make(map[parachaintypes.ValidatorPK]*validationprotocol.BitfieldDistributionMessage),
+		messageSentToPeer:       make(map[peer.ID]map[parachaintypes.ValidatorPK]struct{}),
+		messageReceivedFromPeer: make(map[peer.ID]map[parachaintypes.ValidatorPK]struct{}),
 	}
 }
 
@@ -66,7 +66,7 @@ func newPerRelayParentData(sessionIndex parachaintypes.SessionIndex, validatorSe
 // validator is needed by the given peer.
 func (p *perRelayParentData) messageFromValidatorNeededByPeer(
 	peerID peer.ID,
-	signedBy parachaintypes.ValidatorPublicKey,
+	signedBy parachaintypes.ValidatorPK,
 ) bool {
 	_, sendToExist := p.messageSentToPeer[peerID][signedBy]
 	_, receiveFromExist := p.messageReceivedFromPeer[peerID][signedBy]
@@ -395,7 +395,7 @@ func (b *BitfieldDistribution) processIncomingPeerMessageEvent(event networkbrid
 
 	receivedSet := jobData.messageReceivedFromPeer[event.PeerID]
 	if receivedSet == nil {
-		receivedSet = make(map[parachaintypes.ValidatorPublicKey]struct{})
+		receivedSet = make(map[parachaintypes.ValidatorPK]struct{})
 		receivedSet[validatorID] = struct{}{}
 	} else {
 		_, ok := receivedSet[validatorID]
@@ -494,7 +494,7 @@ func relayMessage(
 	jobData *perRelayParentData,
 	topologyNeighbors *grid.GridNeighbours,
 	peers map[peer.ID]*networkbridge.PeerDataViewWithVersion,
-	validatorID parachaintypes.ValidatorPublicKey,
+	validatorID parachaintypes.ValidatorPK,
 	message validationprotocol.CheckedBitfield,
 	requiredRouting grid.RequiredRouting,
 	subsystemToOverSeerChan chan<- any,
@@ -528,7 +528,7 @@ func relayMessage(
 
 	// 2. insert the message sent for this peerData into jobData
 	for peerID := range interestedPeers {
-		jobData.messageSentToPeer[peerID] = map[parachaintypes.ValidatorPublicKey]struct{}{validatorID: {}}
+		jobData.messageSentToPeer[peerID] = map[parachaintypes.ValidatorPK]struct{}{validatorID: {}}
 	}
 
 	// 3. send NetworkBridgeTxMessage::SendValidationMessage to all v2 and v3 peers
@@ -628,7 +628,7 @@ func (b *BitfieldDistribution) handlePeerViewChange(
 // sendTrackedGossipMessage sends a gossip message and tracks it in the per relay parent data
 func (b *BitfieldDistribution) sendTrackedGossipMessage(
 	dest peer.ID,
-	validatorId parachaintypes.ValidatorPublicKey,
+	validatorId parachaintypes.ValidatorPK,
 	message validationprotocol.CheckedBitfield,
 ) {
 	jobData := b.perRelayParent[message.Hash]
@@ -644,7 +644,7 @@ func (b *BitfieldDistribution) sendTrackedGossipMessage(
 	}
 
 	if jobData.messageSentToPeer[dest] == nil {
-		jobData.messageSentToPeer[dest] = map[parachaintypes.ValidatorPublicKey]struct{}{
+		jobData.messageSentToPeer[dest] = map[parachaintypes.ValidatorPK]struct{}{
 			validatorId: {},
 		}
 	}

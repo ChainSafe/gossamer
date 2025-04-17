@@ -1195,13 +1195,13 @@ func (in *Instance) ParachainHostValidationCode(
 
 // ParachainHostValidators returns the validator set at the current state.
 // The specified validators are responsible for backing parachains for the current state.
-func (in *Instance) ParachainHostValidators() ([]parachaintypes.ValidatorPublicKey, error) {
+func (in *Instance) ParachainHostValidators() ([]parachaintypes.ValidatorPK, error) {
 	encodedValidators, err := in.Exec(runtime.ParachainHostValidators, []byte{})
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	var validatorIDs []parachaintypes.ValidatorPublicKey
+	var validatorIDs []parachaintypes.ValidatorPK
 	err = scale.Unmarshal(encodedValidators, &validatorIDs)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshalling: %w", err)

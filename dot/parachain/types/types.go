@@ -23,11 +23,11 @@ import (
 
 // NOTE: https://github.com/ChainSafe/gossamer/pull/3297#discussion_r1214740051
 
-// ValidatorIndex Index of the validator. Used as a lightweight replacement of the `ValidatorPublicKey` when appropriate
+// ValidatorIndex Index of the validator. Used as a lightweight replacement of the `ValidatorPK` when appropriate
 type ValidatorIndex uint32
 
-// ValidatorPublicKey The public key of a validator.
-type ValidatorPublicKey [sr25519.PublicKeyLength]byte
+// ValidatorPK The public key of a validator.
+type ValidatorPK [sr25519.PublicKeyLength]byte
 
 // BlockNumber The block number type.
 type BlockNumber uint32
@@ -437,7 +437,7 @@ type SessionInfo struct {
 	// The amount of sessions to keep for disputes.
 	DisputePeriod SessionIndex `scale:"3"`
 	// Validators in canonical ordering.
-	Validators []ValidatorPublicKey `scale:"4"`
+	Validators []ValidatorPK `scale:"4"`
 	// Validators' authority discovery keys for the session in canonical ordering.
 	DiscoveryKeys []AuthorityDiscoveryID `scale:"5"`
 	// The assignment keys for validators.
@@ -1082,7 +1082,7 @@ type CandidateHashAndRelayParent struct {
 // It can be created if the local node is a validator in the context of a particular relay chain block.
 type Validator struct {
 	SigningContext SigningContext
-	Key            ValidatorPublicKey
+	Key            ValidatorPK
 	Index          ValidatorIndex
 	Disabled       bool
 }
@@ -1102,12 +1102,12 @@ func (v Validator) Sign(
 
 	encodedData := buf.Bytes()
 
-	validatorPublicKey, err := sr25519.NewPublicKey(v.Key[:])
+	ValidatorPK, err := sr25519.NewPublicKey(v.Key[:])
 	if err != nil {
 		return nil, fmt.Errorf("getting public key: %w", err)
 	}
 
-	signatureBytes, err := keystore.GetKeypair(validatorPublicKey).Sign(encodedData)
+	signatureBytes, err := keystore.GetKeypair(ValidatorPK).Sign(encodedData)
 	if err != nil {
 		return nil, fmt.Errorf("signing data: %w", err)
 	}
