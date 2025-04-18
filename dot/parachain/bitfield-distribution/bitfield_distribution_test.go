@@ -1650,7 +1650,7 @@ func TestBitfieldDistribution_ProcessActiveLeavesUpdateSignal_activatedLeafIsNil
 
 	b := NewBitfieldDistribution(nil, nil)
 	err := b.ProcessActiveLeavesUpdateSignal(signal)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 func TestBitfieldDistribution_ProcessActiveLeavesUpdateSignal_QueryRuntimeError(t *testing.T) {
@@ -1745,7 +1745,7 @@ func TestBitfieldDistribution_ProcessActiveLeavesUpdateSignal_Success(t *testing
 	assert.Nil(t, nil, b.perRelayParent[common.Hash{0x01}])
 
 	err := b.ProcessActiveLeavesUpdateSignal(signal)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	signingContext := &parachaintypes.SigningContext{
 		SessionIndex: parachaintypes.SessionIndex(1),

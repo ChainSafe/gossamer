@@ -340,11 +340,12 @@ func (b *BitfieldDistribution) processOurViewChangeEvent(event networkbridgeeven
 		}
 	}
 
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
 	// in the old view but not in the new view
 	for _, removed := range oldView.Difference(b.ourView) {
-		b.mu.Lock()
 		delete(b.perRelayParent, removed)
-		b.mu.Unlock()
 	}
 }
 
@@ -499,10 +500,11 @@ func (b *BitfieldDistribution) processUpdatedAuthorityIDsEvent(event networkbrid
 	}
 	ok, err := b.topologies.CurrentTopology.UpdateAuthoritiesIDs(event.PeerID, ids)
 	if err != nil {
+		logger.Errorf("error while updating authority IDs : %s", err.Error())
 		return err
 	}
 	if !ok {
-		logger.Errorf("could not update authority IDs : %v", event.AuthorityDiscoveryIDs)
+		logger.Warnf("could not update authority IDs : %v", event.AuthorityDiscoveryIDs)
 		return nil
 	}
 
@@ -745,11 +747,12 @@ func modifyReputation(reputation *util.ReputationAggregator, sender chan<- any, 
 func (b *BitfieldDistribution) queryBasics(
 	relayParent common.Hash,
 ) ([]parachaintypes.ValidatorID, *parachaintypes.SigningContext, error) {
-	// query validators
 	rt, err := b.blockState.GetRuntime(relayParent)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// query validators
 	validatorSet, err := rt.ParachainHostValidators()
 	if err != nil {
 		return nil, nil, err
