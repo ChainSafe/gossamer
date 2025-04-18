@@ -22,7 +22,6 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/core/crypto"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 var logger = log.NewFromGlobal(log.AddContext("consensus", "grandpa"))
@@ -59,9 +58,15 @@ type SharedVoterState[AuthorityID comparable] struct {
 // 	) -> Option<()> {
 // 		let mut shared_voter_state = self.inner.try_write_for(Duration::from_secs(1))?;
 
-// 		*shared_voter_state = Some(voter_state);
-// 		Some(())
-// 	}
+//		*shared_voter_state = Some(voter_state);
+//		Some(())
+//	}
+func (svs *SharedVoterState[AuthorityID]) reset(voterState grandpa.VoterState[AuthorityID]) error {
+	svs.Lock()
+	defer svs.Unlock()
+	svs.inner = voterState
+	return nil
+}
 
 // 	/// Get the inner `VoterState` instance.
 // 	pub fn voter_state(&self) -> Option<report::VoterState<AuthorityId>> {
@@ -162,6 +167,7 @@ type newAuthoritySet[H, N any] struct {
 // Commands issued to the voter.
 type voterCommand interface {
 	Error() string
+	isVoterCommand()
 }
 
 // Pause the voter for given reason.
@@ -170,12 +176,102 @@ type voterCommandPause string //nolint: unused
 func (vcp voterCommandPause) Error() string { //nolint: unused
 	return fmt.Sprintf("Pausing voter: %s", string(vcp))
 }
+func (vcp voterCommandPause) isVoterCommand() {}
 
 // New authorities.
 type voterCommandChangeAuthorities[H, N any] newAuthoritySet[H, N]
 
 func (vcca voterCommandChangeAuthorities[H, N]) Error() string {
 	return "Changing authorities"
+}
+func (voterCommandChangeAuthorities[H, N]) isVoterCommand() {}
+
+// fn global_communication<BE, Block: BlockT, C, N, S>(
+//
+//	set_id: SetId,
+//	voters: &Arc<VoterSet<AuthorityId>>,
+//	client: Arc<C>,
+//	network: &NetworkBridge<Block, N, S>,
+//	keystore: Option<&KeystorePtr>,
+//	metrics: Option<until_imported::Metrics>,
+//
+// ) -> (
+//
+//	impl Stream<
+//		Item = Result<
+//			CommunicationInH<Block, Block::Hash>,
+//			CommandOrError<Block::Hash, NumberFor<Block>>,
+//		>,
+//	>,
+//	impl Sink<
+//		CommunicationOutH<Block, Block::Hash>,
+//		Error = CommandOrError<Block::Hash, NumberFor<Block>>,
+//	>,
+//
+// )
+// where
+//
+//	BE: Backend<Block> + 'static,
+//	C: ClientForGrandpa<Block, BE> + 'static,
+//	N: NetworkT<Block>,
+//	S: SyncingT<Block>,
+//	NumberFor<Block>: BlockNumberOps,
+//
+// {
+func globalCommunication[
+	H runtime.Hash,
+	N runtime.Number,
+	Hasher runtime.Hasher[H],
+	Header runtime.Header[N, H],
+	E runtime.Extrinsic,
+](
+	setID primitives.SetID,
+	voters grandpa.VoterSet[primitives.AuthorityID],
+	client ClientForGrandpa[H, N, Hasher, Header, E],
+	network *networkBridge[H, N, Hasher],
+	keystore keystore.KeyStore,
+	// TODO: metrics
+) (chan grandpa.GlobalInItem[H, N, primitives.AuthoritySignature, primitives.AuthorityID], commitsOut[H, N, Hasher]) {
+	// 	let is_voter = local_authority_id(voters, keystore).is_some();
+	isVoter := localAuthorityID(voters, keystore) != nil
+
+	// verification stream
+	// 	let (global_in, global_out) =
+	// 		network.global_communication(communication::SetId(set_id), voters.clone(), is_voter);
+	in, out := network.globalCommunication(SetID(setID), voters, isVoter)
+
+	// block commit and catch up messages until relevant blocks are imported.
+	// 	let global_in = UntilGlobalMessageBlocksImported::new(
+	// 		client.import_notification_stream(),
+	// 		network.clone(),
+	// 		client.clone(),
+	// 		global_in,
+	// 		"global",
+	// 		metrics,
+	// 	);
+	globalIn := newUntilGlobalMessageBlocksImported(
+		client.RegisterImportNotificationStream(),
+		network,
+		client,
+		in,
+		"global",
+	)
+
+	// 	let global_in = global_in.map_err(CommandOrError::from);
+	// 	let global_out = global_out.sink_map_err(CommandOrError::from);
+	mappedIn := make(chan grandpa.GlobalInItem[H, N, primitives.AuthoritySignature, primitives.AuthorityID])
+	go func() {
+		defer close(mappedIn)
+		for item := range globalIn.Chan() {
+			mappedIn <- grandpa.GlobalInItem[H, N, primitives.AuthoritySignature, primitives.AuthorityID]{
+				CommunicationIn: item.Blocked,
+				Error:           item.Error,
+			}
+		}
+	}()
+
+	// (global_in, global_out)
+	return mappedIn, out
 }
 
 // / Future that powers the voter.
@@ -188,10 +284,11 @@ type voterWork[
 ] struct {
 	// use string for AuthorityID and AuthoritySignature
 	voter            *grandpa.Voter[H, N, primitives.AuthoritySignature, primitives.AuthorityID]
-	sharedVoterState SharedVoterState[string]
-	env              environment[H, N, Hasher, Header, E]
+	voterErrChan     <-chan error
+	sharedVoterState *SharedVoterState[primitives.AuthorityID]
+	env              *environment[H, N, Hasher, Header, E]
 	voterCommandsRx  <-chan voterCommand
-	network          networkBridge[H, N, Hasher]
+	network          *networkBridge[H, N, Hasher]
 	// TODO: telemtry, metrics
 }
 
@@ -204,14 +301,13 @@ func newVoterWork[
 ](
 	client ClientForGrandpa[H, N, Hasher, Header, E],
 	config Config,
-	network networkBridge[H, N, Hasher],
+	network *networkBridge[H, N, Hasher],
 	selectChain common.SelectChain[H, N, Header],
 	votingRule VotingRule[H, N, Header],
 	persistentData persistentData[H, N],
 	voterCommandsRx <-chan voterCommand,
-	prometheusRegistry prometheus.Registry,
-	sharedVoterState SharedVoterState[string],
-	justificationSender GrandpaJustificationSender[H, N, Header],
+	sharedVoterState *SharedVoterState[primitives.AuthorityID],
+	justificationSender *GrandpaJustificationSender[H, N, Header],
 	// TODO: telemetry
 ) voterWork[H, N, Hasher, Header, E] {
 	// TODO: register to prometheus registry
@@ -227,7 +323,7 @@ func newVoterWork[
 		SetID:               SetID(persistentData.authoritySet.inner.SetID),
 		AuthoritySet:        persistentData.authoritySet,
 		VoterSetState:       persistentData.setState,
-		JustificationSender: &justificationSender,
+		JustificationSender: justificationSender,
 	}
 
 	work := voterWork[H, N, Hasher, Header, E]{
@@ -235,7 +331,7 @@ func newVoterWork[
 		// calling `rebuild_voter`.
 		voter:            nil,
 		sharedVoterState: sharedVoterState,
-		env:              env,
+		env:              &env,
 		voterCommandsRx:  voterCommandsRx,
 		network:          network,
 	}
@@ -255,7 +351,7 @@ func (vw *voterWork[H, N, Hasher, Header, E]) rebuildVoter() {
 	// );
 	logger.Debugf("%s: Starting new voter with set ID %v", vw.env.Config.name(), vw.env.SetID)
 
-	maybeAuthorityID := localAuthorityID(vw.env.Voters, &vw.env.Config.KeyStore)
+	maybeAuthorityID := localAuthorityID(vw.env.Voters, vw.env.Config.KeyStore)
 	var authorityID string
 	if maybeAuthorityID != nil {
 		authorityID = string(maybeAuthorityID.Bytes())
@@ -271,6 +367,7 @@ func (vw *voterWork[H, N, Hasher, Header, E]) rebuildVoter() {
 	// 	"set_id" => ?self.env.set_id,
 	// 	"authority_id" => authority_id,
 	// );
+	// TODO: telemetry afg.starting_new_voter
 
 	chainInfo := vw.env.Client.Info()
 
@@ -290,31 +387,312 @@ func (vw *voterWork[H, N, Hasher, Header, E]) rebuildVoter() {
 	// 	"authority_set_id" => ?self.env.set_id,
 	// 	"authorities" => authorities,
 	// );
+	// TODO: telemetry afg.authority_set
+
 	_ = authorityID
 	_ = chainInfo
 
 	vw.env.VoterSetState.innerMtx.RLock()
 	defer vw.env.VoterSetState.innerMtx.RUnlock()
 
-	switch vw.env.VoterSetState.inner.(type) {
+	switch vss := vw.env.VoterSetState.inner.(type) {
 	case voterSetStateLive[H, N]:
+		// let last_finalized = (chain_info.finalized_hash, chain_info.finalized_number);
+		var lastFinalized = grandpa.HashNumber[H, N]{
+			Hash:   chainInfo.FinalizedHash,
+			Number: chainInfo.FinalizedNumber,
+		}
+		_ = lastFinalized
+		// let global_comms = global_communication(
+		// 	self.env.set_id,
+		// 	&self.env.voters,
+		// 	self.env.client.clone(),
+		// 	&self.env.network,
+		// 	self.env.config.keystore.as_ref(),
+		// 	self.metrics.as_ref().map(|m| m.until_imported.clone()),
+		// );
+		globalIn, globalOut := globalCommunication(
+			primitives.SetID(vw.env.SetID),
+			vw.env.Voters,
+			vw.env.Client,
+			vw.env.Network,
+			vw.env.Config.KeyStore,
+		)
 
+		// let last_completed_round = completed_rounds.last();
+		lastCompletedRound := vss.completedRounds().last()
+
+		// let voter = voter::Voter::new(
+		// 	self.env.clone(),
+		// 	(*self.env.voters).clone(),
+		// 	global_comms,
+		// 	last_completed_round.number,
+		// 	last_completed_round.votes.clone(),
+		// 	last_completed_round.base,
+		// 	last_finalized,
+		// );
+		votes := make([]grandpa.SignedMessage[H, N, primitives.AuthoritySignature, primitives.AuthorityID], len(lastCompletedRound.Votes))
+		for i, vote := range lastCompletedRound.Votes {
+			votes[i] = grandpa.SignedMessage[H, N, primitives.AuthoritySignature, primitives.AuthorityID]{
+				Signature: vote.Signature,
+				Message:   vote.Message,
+				ID:        vote.ID,
+			}
+		}
+		voter := grandpa.NewVoter[H, N, primitives.AuthoritySignature, primitives.AuthorityID](
+			vw.env,
+			vw.env.Voters,
+			globalIn,
+			globalOut.preSend,
+			uint64(lastCompletedRound.Number),
+			votes,
+			lastCompletedRound.Base,
+			lastFinalized,
+		)
+
+		// // Repoint shared_voter_state so that the RPC endpoint can query the state
+		// if self.shared_voter_state.reset(voter.voter_state()).is_none() {
+		// 	info!(
+		// 		target: LOG_TARGET,
+		// 		"Timed out trying to update shared GRANDPA voter state. \
+		// 		RPC endpoints may return stale data."
+		// 	);
+		// }
+		vw.sharedVoterState.reset(voter.VoterState())
+
+		// self.voter = Box::pin(voter);
+		vw.voter = voter
+		errChan := make(chan error)
+		go func() {
+			err := voter.Start()
+			errChan <- err
+			close(errChan)
+		}()
+		vw.voterErrChan = errChan
 	case voterSetStatePaused[H, N]:
+		// VoterSetState::Paused { .. } => self.voter = Box::pin(future::pending()),
+		// TODO: don't do anything? I dunno
 	default:
 		panic("unreachable")
 	}
+}
 
+// fn handle_voter_command(
+//
+//	&mut self,
+//	command: VoterCommand<Block::Hash, NumberFor<Block>>,
+//
+// ) -> Result<(), Error> {
+func (vw *voterWork[H, N, Hasher, Header, E]) handleVoterCommand(command voterCommand) error {
+	// 	match command {
+	switch command := command.(type) {
+	// 		VoterCommand::ChangeAuthorities(new) => {
+	case voterCommandChangeAuthorities[H, N]:
+		new := command
+		// 			let voters: Vec<String> =
+		// 				new.authorities.iter().map(move |(a, _)| format!("{}", a)).collect();
+		// 			telemetry!(
+		// 				self.telemetry;
+		// 				CONSENSUS_INFO;
+		// 				"afg.voter_command_change_authorities";
+		// 				"number" => ?new.canon_number,
+		// 				"hash" => ?new.canon_hash,
+		// 				"voters" => ?voters,
+		// 				"set_id" => ?new.set_id,
+		// 			);
+		// TODO: telemetry
+
+		// 			self.env.update_voter_set_state(|_| {
+		// 				// start the new authority set using the block where the
+		// 				// set changed (not where the signal happened!) as the base.
+		// 				let set_state = VoterSetState::live(
+		// 					new.set_id,
+		// 					&*self.env.authority_set.inner(),
+		// 					(new.canon_hash, new.canon_number),
+		// 				);
+
+		// 				aux_schema::write_voter_set_state(&*self.env.client, &set_state)?;
+		// 				Ok(Some(set_state))
+		// 			})?;
+		err := vw.env.updateVoterSetState(func(voterSetState voterSetState[H, N]) (voterSetState[H, N], error) {
+			// start the new authority set using the block where the
+			// set changed (not where the signal happened!) as the base.
+			vw.env.AuthoritySet.mtx.Lock()
+			setState := newVoterSetStateLive(
+				primitives.SetID(vw.env.SetID),
+				vw.env.AuthoritySet.inner,
+				grandpa.HashNumber[H, N]{
+					Hash:   command.CanonHash,
+					Number: command.CanonNumber,
+				},
+			)
+			vw.env.AuthoritySet.mtx.Unlock()
+			err := writeVoterSetState(vw.env.Client, &setState)
+			if err != nil {
+				return nil, err
+			}
+			return setState, nil
+		})
+		if err != nil {
+			return err
+		}
+
+		// 			let voters = Arc::new(VoterSet::new(new.authorities.into_iter()).expect(
+		// 				"new authorities come from pending change; pending change comes from \
+		// 				 `AuthoritySet`; `AuthoritySet` validates authorities is non-empty and \
+		// 				 weights are non-zero; qed.",
+		// 			));
+		authorites := make([]grandpa.IDWeight[primitives.AuthorityID], len(new.Authorities))
+		for i, authority := range new.Authorities {
+			authorites[i] = grandpa.IDWeight[primitives.AuthorityID]{
+				ID:     authority.AuthorityID,
+				Weight: uint64(authority.AuthorityWeight),
+			}
+		}
+		voters := grandpa.NewVoterSet(authorites)
+		if voters == nil {
+			panic("new authorities come from pending change; pending change comes from AuthoritySet; AuthoritySet validates authorities is non-empty and weights are non-zero")
+		}
+
+		// 			self.env = Arc::new(Environment {
+		// 				voters,
+		// 				set_id: new.set_id,
+		// 				voter_set_state: self.env.voter_set_state.clone(),
+		// 				client: self.env.client.clone(),
+		// 				select_chain: self.env.select_chain.clone(),
+		// 				config: self.env.config.clone(),
+		// 				authority_set: self.env.authority_set.clone(),
+		// 				network: self.env.network.clone(),
+		// 				voting_rule: self.env.voting_rule.clone(),
+		// 				metrics: self.env.metrics.clone(),
+		// 				justification_sender: self.env.justification_sender.clone(),
+		// 				telemetry: self.telemetry.clone(),
+		// 				offchain_tx_pool_factory: self.env.offchain_tx_pool_factory.clone(),
+		// 				_phantom: PhantomData,
+		// 			});
+		vw.env = &environment[H, N, Hasher, Header, E]{
+			Voters:              *voters,
+			SetID:               SetID(new.SetID),
+			VoterSetState:       vw.env.VoterSetState,
+			Client:              vw.env.Client,
+			SelectChain:         vw.env.SelectChain,
+			Config:              vw.env.Config,
+			AuthoritySet:        vw.env.AuthoritySet,
+			Network:             vw.env.Network,
+			VotingRule:          vw.env.VotingRule,
+			JustificationSender: vw.env.JustificationSender,
+		}
+
+		// 			self.rebuild_voter();
+		vw.rebuildVoter()
+		// 			Ok(())
+		return nil
+		// 		},
+		// 		VoterCommand::Pause(reason) => {
+	case voterCommandPause:
+		// 			info!(target: LOG_TARGET, "Pausing old validator set: {}", reason);
+		logger.Infof("Pausing old validator set: %s", string(command))
+
+		// not racing because old voter is shut down.
+		// 			self.env.update_voter_set_state(|voter_set_state| {
+		err := vw.env.updateVoterSetState(func(voterSetState voterSetState[H, N]) (voterSetState[H, N], error) {
+			// 				let completed_rounds = voter_set_state.completed_rounds();
+			// 				let set_state = VoterSetState::Paused { completed_rounds };
+			completedRounds := voterSetState.completedRounds()
+			setState := voterSetStatePaused[H, N]{CompletedRounds: completedRounds}
+			// 				aux_schema::write_voter_set_state(&*self.env.client, &set_state)?;
+			err := writeVoterSetState(vw.env.Client, setState)
+			if err != nil {
+				return nil, err
+			}
+			// 				Ok(Some(set_state))
+			return setState, nil
+			// 			})?;
+		})
+		if err != nil {
+			return err
+		}
+
+		//			self.rebuild_voter();
+		vw.rebuildVoter()
+		//			Ok(())
+		return nil
+		//		},
+	default:
+		panic("unreachable")
+	}
+}
+
+// fn poll(mut self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
+func (vw *voterWork[H, N, Hasher, Header, E]) poll() error {
+	// 	match Future::poll(Pin::new(&mut self.voter), cx) {
+	// 		Poll::Pending => {},
+	// 		Poll::Ready(Ok(())) => {
+	// 			// voters don't conclude naturally
+	// 			return Poll::Ready(Err(Error::Safety(
+	// 				"consensus-grandpa inner voter has concluded.".into(),
+	// 			)))
+	// 		},
+	// 		Poll::Ready(Err(CommandOrError::Error(e))) => {
+	// 			// return inner observer error
+	// 			return Poll::Ready(Err(e))
+	// 		},
+	// 		Poll::Ready(Err(CommandOrError::VoterCommand(command))) => {
+	// 			// some command issued internally
+	// 			self.handle_voter_command(command)?;
+	// 			cx.waker().wake_by_ref();
+	// 		},
+	// 	}
+	select {
+	case err := <-vw.voterErrChan:
+		if err == nil {
+			// voters don't conclude naturally
+			return fmt.Errorf("consensus-grandpa inner voter has concluded: %w", ErrSafety)
+		}
+		vc, isVoterCommand := err.(voterCommand)
+		if !isVoterCommand {
+			// return inner observer error
+			return err
+		}
+		// some command issued internally
+		return vw.handleVoterCommand(vc)
+	default:
+	}
+
+	// 	match Stream::poll_next(Pin::new(&mut self.voter_commands_rx), cx) {
+	// 		Poll::Pending => {},
+	// 		Poll::Ready(None) => {
+	// 			// the `voter_commands_rx` stream should never conclude since it's never closed.
+	// 			return Poll::Ready(Err(Error::Safety("`voter_commands_rx` was closed.".into())))
+	// 		},
+	// 		Poll::Ready(Some(command)) => {
+	// 			// some command issued externally
+	// 			self.handle_voter_command(command)?;
+	// 			cx.waker().wake_by_ref();
+	// 		},
+	// 	}
+	select {
+	case vc, ok := <-vw.voterCommandsRx:
+		if !ok {
+			// the `voter_commands_rx` stream should never conclude since it's never closed.
+			return fmt.Errorf("`%w: voter_commands_rx` was closed", ErrSafety)
+		}
+		// some command issued externally
+		return vw.handleVoterCommand(vc)
+	default:
+	}
+	return nil
 }
 
 // Checks if this node has any available keys in the keystore for any authority id in the givenvoter set.  Returns the
 // authority id for which keys are available, or nil if no keys are available.
-func localAuthorityID(voters grandpa.VoterSet[primitives.AuthorityID], ks *keystore.KeyStore) *primitives.AuthorityID {
+func localAuthorityID(voters grandpa.VoterSet[primitives.AuthorityID], ks keystore.KeyStore) *primitives.AuthorityID {
 	if ks == nil {
 		return nil
 	}
 
 	for _, voter := range voters.Voters() {
-		if (*ks).HasKeys([]keystore.PublicKey{{
+		if ks.HasKeys([]keystore.PublicKey{{
 			Key:       voter.ID.Bytes(),
 			KeyTypeID: crypto.GRANDPA,
 		}}) {

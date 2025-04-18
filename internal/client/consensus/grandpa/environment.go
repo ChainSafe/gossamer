@@ -71,12 +71,12 @@ func newCompletedRounds[H runtime.Hash, N runtime.Number](
 }
 
 // Get the set-id and voter set of the completed rounds.
-func (cr *completedRounds[H, N]) setInfo() (primitives.SetID, []primitives.AuthorityID) {
+func (cr completedRounds[H, N]) setInfo() (primitives.SetID, []primitives.AuthorityID) {
 	return cr.SetId, cr.Voters
 }
 
 // Iterate over all completed rounds.
-func (cr *completedRounds[H, N]) iter() []completedRound[H, N] {
+func (cr completedRounds[H, N]) iter() []completedRound[H, N] {
 	var reversed []completedRound[H, N]
 	for i := len(cr.Rounds) - 1; i >= 0; i-- {
 		reversed = append(reversed, cr.Rounds[i])
@@ -85,7 +85,7 @@ func (cr *completedRounds[H, N]) iter() []completedRound[H, N] {
 }
 
 // Returns the last (latest) completed round
-func (cr *completedRounds[H, N]) last() completedRound[H, N] {
+func (cr completedRounds[H, N]) last() completedRound[H, N] {
 	if len(cr.Rounds) == 0 {
 		panic("inner is never empty; always contains at least genesis; qed")
 	}
@@ -643,10 +643,10 @@ type environment[
 	SelectChain   common.SelectChain[H, N, Header]
 	Voters        grandpa.VoterSet[primitives.AuthorityID]
 	Config        Config
-	AuthoritySet  SharedAuthoritySet[H, N]
-	Network       networkBridge[H, N, Hasher]
+	AuthoritySet  *SharedAuthoritySet[H, N]
+	Network       *networkBridge[H, N, Hasher]
 	SetID         SetID
-	VoterSetState SharedVoterSetState[H, N]
+	VoterSetState *SharedVoterSetState[H, N]
 	VotingRule    VotingRule[H, N, Header]
 	// TODO: metrics
 	JustificationSender *GrandpaJustificationSender[H, N, Header]
@@ -833,7 +833,7 @@ func (e *environment[H, N, Hasher, Header, E]) BestChainContaining(
 	}
 
 	go func() {
-		value, err := bestChainContaining(block, e.Client, &e.AuthoritySet, e.SelectChain, e.VotingRule)
+		value, err := bestChainContaining(block, e.Client, e.AuthoritySet, e.SelectChain, e.VotingRule)
 		ch <- grandpa.BestChainOutput[H, N]{
 			Value: value,
 			Error: err,
@@ -849,7 +849,7 @@ func (e *environment[H, N, Hasher, Header, E]) RoundData(
 	prevoteTimer := time.NewTimer(e.Config.GossipDuration * 2)
 	precommitTimer := time.NewTimer(e.Config.GossipDuration * 4)
 
-	localID := localAuthorityID(e.Voters, &e.Config.KeyStore)
+	localID := localAuthorityID(e.Voters, e.Config.KeyStore)
 
 	var hasVoted hasVoted[H, N]
 	hv := e.VoterSetState.hasVoted(primitives.RoundNumber(round))
@@ -884,7 +884,7 @@ func (e *environment[H, N, Hasher, Header, E]) RoundData(
 		}
 	}
 
-	in, out := e.Network.roundCommunication(keystore, Round(round), e.SetID, &e.Voters, hasVoted)
+	in, out := e.Network.roundCommunication(keystore, Round(round), e.SetID, e.Voters, hasVoted)
 
 	convertedIn := make(chan signedMessage[H, N])
 	go func() {
@@ -896,7 +896,7 @@ func (e *environment[H, N, Hasher, Header, E]) RoundData(
 	// schedule incoming messages from the network to be held until corresponding blocks are imported.
 	incoming := newUntilVoteTargetImported(
 		e.Client.RegisterImportNotificationStream(),
-		&e.Network,
+		e.Network,
 		e.Client,
 		convertedIn,
 		"round",
@@ -904,7 +904,8 @@ func (e *environment[H, N, Hasher, Header, E]) RoundData(
 
 	convertedOut := make(chan grandpa.SignedMessageError[H, N, primitives.AuthoritySignature, primitives.AuthorityID])
 	go func() {
-		for signed := range incoming.Chan() {
+		for be := range incoming.Chan() {
+			signed := be.Blocked
 			convertedOut <- grandpa.SignedMessageError[H, N, primitives.AuthoritySignature, primitives.AuthorityID]{
 				SignedMessage: signed.SignedMessage.SignedMessage,
 			}
@@ -1226,7 +1227,7 @@ func (e *environment[H, N, Hasher, Header, E]) FinalizeBlock(
 ) error {
 	return finalizeBlock(
 		e.Client,
-		&e.AuthoritySet,
+		e.AuthoritySet,
 		&e.Config.JustificationGenerationPeriod,
 		hash,
 		number,
@@ -1597,7 +1598,7 @@ func finalizeBlock[
 			return api.ApplyAux(importOp, insert, nil)
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		var newAuthorities *newAuthoritySet[H, N]

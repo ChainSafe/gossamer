@@ -21,8 +21,8 @@ var (
 
 // / Persistent data kept between runs.
 type persistentData[H runtime.Hash, N runtime.Number] struct {
-	authoritySet SharedAuthoritySet[H, N]
-	setState     SharedVoterSetState[H, N]
+	authoritySet *SharedAuthoritySet[H, N]
+	setState     *SharedVoterSetState[H, N]
 }
 
 type writeAux func(insertions []api.KeyValue) error

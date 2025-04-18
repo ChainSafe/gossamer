@@ -4,11 +4,13 @@
 package grandpa
 
 import (
+	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/internal/client/api"
 	primitives "github.com/ChainSafe/gossamer/internal/primitives/consensus/grandpa"
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
+	grandpa "github.com/ChainSafe/gossamer/pkg/finality-grandpa"
 	"github.com/gammazero/deque"
 )
 
@@ -40,7 +42,8 @@ type discard struct{}
 
 func (discard) isDiscardWaitOrReady() {}
 
-type wait[H, N, M any] []struct {
+type wait[H, N, M any] []waitItem[H, N, M]
+type waitItem[H, N, M any] struct {
 	TargetHash   H
 	TargetNumber N
 	Wait         M
@@ -75,6 +78,7 @@ type untilImported[
 	// Queue identifier for differentiation in logs.
 	identifier string
 	// TODO: metrics
+	constructor func() M
 }
 type pendingEntry[H runtime.Hash, N runtime.Number, Blocked any] struct {
 	BlockNumber N
@@ -94,12 +98,13 @@ func newUntilImported[
 	statusCheck BlockStatus[H, N],
 	incomingMessages <-chan Blocked,
 	identifier string,
+	constructor func() M,
 ) untilImported[H, N, Header, Blocked, M] {
 	// how often to check if pending messages that are waiting for blocks to be imported can be checked.
 	//
 	// the import notifications interval takes care of most of this; this is used in the event of missed
 	// import notifications
-	const checkPendingInterval = 5 * time.Second
+	const checkPendingInterval = 1 * time.Second
 
 	checkPending := time.NewTicker(checkPendingInterval).C
 
@@ -112,20 +117,30 @@ func newUntilImported[
 		checkPending:        checkPending,
 		pending:             make(map[H]pendingEntry[H, N, Blocked]),
 		identifier:          identifier,
+		constructor:         constructor,
 	}
 }
 
-func (ui *untilImported[H, N, Header, Blocked, M]) Chan() <-chan Blocked {
-	ch := make(chan Blocked)
+type blockedError[Blocked any] struct {
+	Blocked Blocked
+	Error   error
+}
+
+func (ui *untilImported[H, N, Header, Blocked, M]) Chan() <-chan blockedError[Blocked] {
+	ch := make(chan blockedError[Blocked])
 	go func() {
 		defer close(ch)
 		for {
 			ready, blocked, err := ui.pollNext()
-			if err != nil {
-				return
-			}
-			if ready && blocked != nil {
-				ch <- *blocked
+			if ready {
+				if err != nil {
+					ch <- blockedError[Blocked]{Error: err}
+				} else if blocked != nil {
+					ch <- blockedError[Blocked]{Blocked: *blocked}
+				} else {
+					// close channel, no more messages to process.
+					return
+				}
 			}
 		}
 	}()
@@ -141,7 +156,7 @@ incoming:
 				return true, nil, nil
 			}
 			// new input: schedule wait of any parts which require blocks to be known.
-			dwr, err := (*new(M)).NeedsWaiting(b, ui.statusCheck)
+			dwr, err := ui.constructor().NeedsWaiting(b, ui.statusCheck)
 			if err != nil {
 				return true, nil, err
 			}
@@ -208,7 +223,6 @@ imports:
 	if updateInterval {
 		knownKeys := make([]HashNumber[H, N], 0)
 		for blockHash, e := range ui.pending {
-
 			number, err := ui.statusCheck.Number(blockHash)
 			if err != nil {
 				return true, nil, err
@@ -217,7 +231,8 @@ imports:
 				knownKeys = append(knownKeys, HashNumber[H, N]{Hash: blockHash, Number: *number})
 			} else {
 				nextLog := e.LastLog.Add(logPendingInterval)
-				if time.Now().After(nextLog) {
+				now := time.Now()
+				if now.After(nextLog) || now.Equal(nextLog) {
 					logger.Debugf(
 						"Waiting to import block %s before %d %s messages can be imported. "+
 							"Requesting network sync service to retrieve block from. Possible fork?",
@@ -331,6 +346,327 @@ func newUntilVoteTargetImported[H runtime.Hash, N runtime.Number, Header runtime
 		statusCheck,
 		incomingMessages,
 		identifier,
+		func() signedMessage[H, N] {
+			return signedMessage[H, N]{}
+		},
 	)
 	return untilVoteTargetImported[H, N, Header]{uvti}
+}
+
+type refCount[T any] struct {
+	inner *T
+	count int
+	sync.Mutex
+}
+
+// / This blocks a global message import, i.e. a commit or catch up messages,
+// / until all blocks referenced in its votes are known.
+// /
+// / This is used for compact commits and catch up messages which have already
+// / been checked for structural soundness (e.g. valid signatures).
+// /
+// / We use the `Arc`'s reference count to implicitly count the number of outstanding blocks that we
+// / are waiting on for the same message (i.e. other `BlockGlobalMessage` instances with the same
+// / `inner`).
+//
+//	pub(crate) struct BlockGlobalMessage<Block: BlockT> {
+//		inner: Arc<Mutex<Option<CommunicationIn<Block>>>>,
+//		target_number: NumberFor<Block>,
+//	}
+type blockGlobalMessage[H runtime.Hash, N runtime.Number] struct {
+	inner        *refCount[communicationIn[H, N]]
+	targetNumber N
+}
+
+type known[N runtime.Number] struct {
+	number N
+}
+type unknown[N runtime.Number] struct {
+	number N
+}
+
+func (k known[N]) Number() N   { return k.number }
+func (u unknown[N]) Number() N { return u.number }
+
+type knownOrUnknown[N runtime.Number] interface {
+	Number() N
+}
+
+type itemToAwait[H runtime.Hash, N runtime.Number] struct {
+	targetHash   H
+	targetNumber N
+	blockGlobalMessage[H, N]
+}
+
+// impl<Block: BlockT> Unpin for BlockGlobalMessage<Block> {}
+
+// impl<Block: BlockT> BlockUntilImported<Block> for BlockGlobalMessage<Block> {
+// 	type Blocked = CommunicationIn<Block>;
+
+// fn needs_waiting<BlockStatus: BlockStatusT<Block>>(
+//
+//	input: Self::Blocked,
+//	status_check: &BlockStatus,
+//
+// ) -> Result<DiscardWaitOrReady<Block, Self, Self::Blocked>, Error> {
+func (bgm blockGlobalMessage[H, N]) NeedsWaiting(
+	input communicationIn[H, N],
+	statusCheck BlockStatus[H, N],
+) (discardWaitOrReady, error) {
+	// let mut checked_hashes: HashMap<_, KnownOrUnknown<NumberFor<Block>>> = HashMap::new();
+	checkedHashes := map[H]knownOrUnknown[N]{}
+	{
+		// returns false when should early exit.
+		// let mut query_known = |target_hash, perceived_number| -> Result<bool, Error> {
+		var queryKnown = func(targetHash H, perceivedNumber N) (bool, error) {
+			// let canon_number = match checked_hashes.entry(target_hash) {
+			// 	Entry::Occupied(entry) => *entry.get().number(),
+			// 	Entry::Vacant(entry) => {
+			// 		if let Some(number) = status_check.block_number(target_hash)? {
+			// 			entry.insert(KnownOrUnknown::Known(number));
+			// 			number
+			// 		} else {
+			// 			entry.insert(KnownOrUnknown::Unknown(perceived_number));
+			// 			perceived_number
+			// 		}
+			// 	},
+			// };
+
+			// check integrity: all votes for same hash have same number.
+			var canonNumber N
+			entry, ok := checkedHashes[targetHash]
+			if ok {
+				canonNumber = entry.Number()
+			} else {
+				number, err := statusCheck.Number(targetHash)
+				if err != nil {
+					return false, err
+				}
+				if number != nil {
+					checkedHashes[targetHash] = known[N]{number: *number}
+					canonNumber = *number
+				} else {
+					checkedHashes[targetHash] = unknown[N]{number: perceivedNumber}
+					canonNumber = perceivedNumber
+				}
+			}
+
+			// if canon_number != perceived_number {
+			// 	// invalid global message: messages targeting wrong number
+			// 	// or at least different from other vote in same global
+			// 	// message.
+			// 	return Ok(false)
+			// }
+			if canonNumber != perceivedNumber {
+				// invalid global message: messages targeting wrong number
+				// or at least different from other vote in same global
+				// message.
+				return false, nil
+			}
+
+			return true, nil
+		}
+
+		// match input {
+		switch input := input.(type) {
+		// 	voter::CommunicationIn::Commit(_, ref commit, ..) => {
+		case grandpa.CommunicationInCommit[H, N, primitives.AuthoritySignature, primitives.AuthorityID]:
+			// add known hashes from all precommits.
+			// 		let precommit_targets =
+			// 			commit.precommits.iter().map(|c| (c.target_number, c.target_hash));
+			var precommitTargets []HashNumber[H, N]
+			for _, c := range input.CompactCommit.Precommits {
+				precommitTargets = append(precommitTargets, HashNumber[H, N]{
+					Hash:   c.TargetHash,
+					Number: c.TargetNumber,
+				})
+			}
+
+			// 		for (target_number, target_hash) in precommit_targets {
+			// 			if !query_known(target_hash, target_number)? {
+			// 				return Ok(DiscardWaitOrReady::Discard)
+			// 			}
+			// 		}
+			for _, target := range precommitTargets {
+				known, err := queryKnown(target.Hash, target.Number)
+				if err != nil {
+					return nil, err
+				}
+				if !known {
+					return discard{}, nil
+				}
+			}
+		// 	},
+		// 	voter::CommunicationIn::CatchUp(ref catch_up, ..) => {
+		case grandpa.CommunicationInCatchUp[H, N, primitives.AuthoritySignature, primitives.AuthorityID]:
+			// add known hashes from all prevotes and precommits.
+			// 		let prevote_targets = catch_up
+			// 			.prevotes
+			// 			.iter()
+			// 			.map(|s| (s.prevote.target_number, s.prevote.target_hash));
+			prevoteTargets := make([]HashNumber[H, N], len(input.CatchUp.Prevotes))
+			for i, s := range input.CatchUp.Prevotes {
+				prevoteTargets[i] = HashNumber[H, N]{
+					Hash:   s.Prevote.TargetHash,
+					Number: s.Prevote.TargetNumber,
+				}
+			}
+
+			// 		let precommit_targets = catch_up
+			// 			.precommits
+			// 			.iter()
+			// 			.map(|s| (s.precommit.target_number, s.precommit.target_hash));
+			precommitTargets := make([]HashNumber[H, N], len(input.CatchUp.Precommits))
+			for i, s := range input.CatchUp.Precommits {
+				precommitTargets[i] = HashNumber[H, N]{
+					Hash:   s.Precommit.TargetHash,
+					Number: s.Precommit.TargetNumber,
+				}
+			}
+
+			// 		let targets = prevote_targets.chain(precommit_targets);
+			targets := append(prevoteTargets, precommitTargets...)
+
+			// 		for (target_number, target_hash) in targets {
+			// 			if !query_known(target_hash, target_number)? {
+			// 				return Ok(DiscardWaitOrReady::Discard)
+			// 			}
+			// 		}
+			// 	},
+			for _, target := range targets {
+				known, err := queryKnown(target.Hash, target.Number)
+				if err != nil {
+					return nil, err
+				}
+				if !known {
+					return discard{}, nil
+				}
+			}
+		default:
+			panic("unreachable")
+		}
+	}
+
+	// 		let unknown_hashes = checked_hashes
+	// 			.into_iter()
+	// 			.filter_map(|(hash, num)| match num {
+	// 				KnownOrUnknown::Unknown(number) => Some((hash, number)),
+	// 				KnownOrUnknown::Known(_) => None,
+	// 			})
+	// 			.collect::<Vec<_>>();
+	unknownHashes := make([]HashNumber[H, N], 0)
+	for hash, num := range checkedHashes {
+		switch num := num.(type) {
+		case unknown[N]:
+			unknownHashes = append(unknownHashes, HashNumber[H, N]{
+				Hash:   hash,
+				Number: num.Number(),
+			})
+		case known[N]:
+		default:
+			panic("unreachable")
+		}
+	}
+
+	// 		if unknown_hashes.is_empty() {
+	if len(unknownHashes) == 0 {
+		// none of the hashes in the global message were unknown.
+		// we can just return the message directly.
+		// 			return Ok(DiscardWaitOrReady::Ready(input))
+		return ready[communicationIn[H, N]]{input}, nil
+	}
+
+	// 		let locked_global = Arc::new(Mutex::new(Some(input)));
+	lockedGlobal := &refCount[communicationIn[H, N]]{inner: &input, count: 0}
+
+	// 		let items_to_await = unknown_hashes
+	// 			.into_iter()
+	// 			.map(|(hash, target_number)| {
+	// 				(
+	// 					hash,
+	// 					target_number,
+	// 					BlockGlobalMessage { inner: locked_global.clone(), target_number },
+	// 				)
+	// 			})
+	// 			.collect();
+
+	itemsToAwait := make(wait[H, N, *blockGlobalMessage[H, N]], len(unknownHashes))
+	for i, target := range unknownHashes {
+		lockedGlobal.count++
+		itemsToAwait[i] = waitItem[H, N, *blockGlobalMessage[H, N]]{
+			TargetHash:   target.Hash,
+			TargetNumber: target.Number,
+			Wait: &blockGlobalMessage[H, N]{
+				inner:        lockedGlobal,
+				targetNumber: target.Number,
+			},
+		}
+	}
+
+	// schedule waits for all unknown messages.
+	// when the last one of these has `wait_completed` called on it,
+	// the global message will be returned.
+	// 		Ok(DiscardWaitOrReady::Wait(items_to_await))
+	return itemsToAwait, nil
+}
+
+// fn wait_completed(self, canon_number: NumberFor<Block>) -> Option<Self::Blocked> {
+func (bgm *blockGlobalMessage[H, N]) WaitCompleted(canonNumber N) *communicationIn[H, N] {
+	// 		if self.target_number != canon_number {
+	if bgm.targetNumber != canonNumber {
+		// Delete the inner message so it won't ever be forwarded. Future calls to
+		// `wait_completed` on the same `inner` will ignore it.
+		// 			*self.inner.lock() = None;
+		// 			return None
+		bgm.inner.Lock()
+		bgm.inner.inner = nil
+		bgm.inner.Unlock()
+	}
+
+	//		match Arc::try_unwrap(self.inner) {
+	bgm.inner.Lock()
+	defer bgm.inner.Unlock()
+	bgm.inner.count--
+	if bgm.inner.count < 0 {
+		panic("unreachable")
+	}
+	if bgm.inner.count == 0 {
+		//			// This is the last reference and thus the last outstanding block to be awaited. `inner`
+		//			// is either `Some(_)` or `None`. The latter implies that a previous `wait_completed`
+		//			// call witnessed a block number mismatch (see above).
+		//			Ok(inner) => Mutex::into_inner(inner),
+		return bgm.inner.inner
+	}
+	// There are still other strong references to this `Arc`, thus the message is blocked on
+	// other blocks to be imported.
+	return nil
+}
+
+// / A stream which gates off incoming global messages, i.e. commit and catch up
+// / messages, until all referenced block hashes have been imported.
+// pub(crate) type UntilGlobalMessageBlocksImported<Block, BlockStatus, BlockSyncRequester, I> =
+//
+//	UntilImported<Block, BlockStatus, BlockSyncRequester, I, BlockGlobalMessage<Block>>;
+type untilGlobalMessageBlocksImported[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]] struct {
+	untilImported[H, N, Header, communicationIn[H, N], *blockGlobalMessage[H, N]]
+}
+
+func newUntilGlobalMessageBlocksImported[H runtime.Hash, N runtime.Number, Header runtime.Header[N, H]](
+	importNotifications <-chan api.BlockImportNotification[H, N, Header],
+	blockSyncRequester BlockSyncRequester[H, N],
+	statusCheck BlockStatus[H, N],
+	incomingMessages <-chan communicationIn[H, N],
+	identifier string,
+) untilGlobalMessageBlocksImported[H, N, Header] {
+	ui := newUntilImported[H, N, Header, communicationIn[H, N], *blockGlobalMessage[H, N]](
+		importNotifications,
+		blockSyncRequester,
+		statusCheck,
+		incomingMessages,
+		identifier,
+		func() *blockGlobalMessage[H, N] {
+			return &blockGlobalMessage[H, N]{}
+		},
+	)
+	return untilGlobalMessageBlocksImported[H, N, Header]{ui}
 }
