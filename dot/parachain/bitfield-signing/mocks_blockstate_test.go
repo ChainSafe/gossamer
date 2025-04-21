@@ -6,7 +6,7 @@
 //	mockgen -destination=mocks_blockstate_test.go -package=bitfieldsigning . BlockState
 //
 
-// Package bitfield_signing is a generated GoMock package.
+// Package bitfieldsigning is a generated GoMock package.
 package bitfieldsigning
 
 import (

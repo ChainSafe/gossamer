@@ -77,4 +77,5 @@ type Instance interface {
 	ParachainHostNodeFeatures() (parachaintypes.BitVec, error)
 	ParachainHostDisabledValidators() ([]parachaintypes.ValidatorIndex, error)
 	ParachainHostDisputes() (map[parachaintypes.DisputeKey]parachaintypes.DisputeState, error)
+	ParachainHostSchedulingLookahead() (uint32, error)
 }
