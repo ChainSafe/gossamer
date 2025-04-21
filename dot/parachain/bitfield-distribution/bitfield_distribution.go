@@ -30,7 +30,6 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-bitfield-distrib
 
 type perRelayParentData struct {
 	// Signing context for a particular relay parent.
-	// the required part of the signing context
 	signingContext parachaintypes.SigningContext
 
 	// Set of validators for a particular relay parent.
