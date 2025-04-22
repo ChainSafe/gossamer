@@ -278,12 +278,17 @@ func (ad *AvailabilityDistribution) processAvailabilityDistributionMessageFetchP
 
 	rt, err := ad.blockState.GetRuntime(msg.RelayParent)
 	if err != nil {
-		return err
+		return fmt.Errorf("instantiating runtime for relay parent %s: %w", msg.RelayParent.String(), err)
 	}
 
 	authorityID, err := ad.sessionCache.GetAuthorityID(msg.FromValidator, msg.RelayParent, rt)
 	if err != nil {
-		return err
+		return fmt.Errorf(
+			"getting authority ID for validator %d at relay parent %s: %w",
+			msg.FromValidator,
+			msg.RelayParent.String(),
+			err,
+		)
 	}
 
 	request := messages.NewOutgoingRequest(

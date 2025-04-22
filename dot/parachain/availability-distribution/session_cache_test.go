@@ -142,8 +142,7 @@ func TestGetAuthorityID(t *testing.T) { //nolint:tparallel
 			setUpRuntime: func(t *testing.T, rt *MockInstance) {
 				rt.EXPECT().
 					ParachainHostSessionIndexForChild().
-					Return(parachaintypes.SessionIndex(0), errors.New("fail")).
-					Times(1)
+					Return(parachaintypes.SessionIndex(0), errors.New("fail"))
 			},
 			expectedAuthID: parachaintypes.AuthorityDiscoveryID{},
 			errExpected:    true,
@@ -154,13 +153,11 @@ func TestGetAuthorityID(t *testing.T) { //nolint:tparallel
 			setUpRuntime: func(t *testing.T, rt *MockInstance) {
 				rt.EXPECT().
 					ParachainHostSessionIndexForChild().
-					Return(parachaintypes.SessionIndex(0), nil).
-					Times(1)
+					Return(parachaintypes.SessionIndex(0), nil)
 
 				rt.EXPECT().
 					ParachainHostSessionInfo(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(0))).
-					Return(nil, errors.New("fail")).
-					Times(1)
+					Return(nil, errors.New("fail"))
 			},
 			expectedAuthID: parachaintypes.AuthorityDiscoveryID{},
 			errExpected:    true,
@@ -171,15 +168,13 @@ func TestGetAuthorityID(t *testing.T) { //nolint:tparallel
 			setUpRuntime: func(t *testing.T, rt *MockInstance) {
 				rt.EXPECT().
 					ParachainHostSessionIndexForChild().
-					Return(parachaintypes.SessionIndex(0), nil).
-					Times(1)
+					Return(parachaintypes.SessionIndex(0), nil)
 
 				rt.EXPECT().
 					ParachainHostSessionInfo(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(0))).
 					Return(&parachaintypes.SessionInfo{
 						DiscoveryKeys: []parachaintypes.AuthorityDiscoveryID{{0x01}, {0x02}, {0x03}, {0x04}},
-					}, nil).
-					Times(1)
+					}, nil)
 			},
 			expectedAuthID: parachaintypes.AuthorityDiscoveryID{},
 			errExpected:    true,
@@ -190,15 +185,13 @@ func TestGetAuthorityID(t *testing.T) { //nolint:tparallel
 			setUpRuntime: func(t *testing.T, rt *MockInstance) {
 				rt.EXPECT().
 					ParachainHostSessionIndexForChild().
-					Return(parachaintypes.SessionIndex(0), nil).
-					Times(1)
+					Return(parachaintypes.SessionIndex(0), nil)
 
 				rt.EXPECT().
 					ParachainHostSessionInfo(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(0))).
 					Return(&parachaintypes.SessionInfo{
 						DiscoveryKeys: []parachaintypes.AuthorityDiscoveryID{{0x01}, {0x02}, {0x03}, {0x04}},
-					}, nil).
-					Times(1)
+					}, nil)
 			},
 			expectedAuthID: parachaintypes.AuthorityDiscoveryID{0x02},
 			errExpected:    false,
@@ -390,8 +383,7 @@ func TestGetSessionIndexForChild(t *testing.T) {
 		rt := NewMockInstance(ctrl)
 		rt.EXPECT().
 			ParachainHostSessionIndexForChild().
-			Return(sessionIndex, nil).
-			Times(1)
+			Return(sessionIndex, nil)
 
 		cache := NewLRUSessionCache(nil)
 
@@ -488,13 +480,11 @@ func setUpRuntimeMock(
 			Validators:      validators,
 			DiscoveryKeys:   discoveryKeys,
 			ValidatorGroups: validatorGroups,
-		}, nil).
-		Times(1)
+		}, nil)
 
 	runtimeMock.EXPECT().
 		ParachainHostNodeFeatures().
-		Return(nodeFeatures, nil).
-		Times(1)
+		Return(nodeFeatures, nil)
 
 	return runtimeMock
 }
