@@ -8,7 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime"
 	statemachine "github.com/ChainSafe/gossamer/internal/primitives/state-machine"
 	"github.com/ChainSafe/gossamer/internal/primitives/state-machine/overlayedchanges"
-	primitives_trie "github.com/ChainSafe/gossamer/internal/primitives/trie"
+	ptrie "github.com/ChainSafe/gossamer/internal/primitives/trie"
 	"github.com/ChainSafe/gossamer/internal/primitives/trie/recorder"
 )
 
@@ -68,7 +68,7 @@ type ApiExt[
 	// Extract the recorded proof.
 	// This stops the proof recording.
 	// If record_proof was not called before, this will return nil.
-	ExtractProof() *primitives_trie.StorageProof
+	ExtractProof() *ptrie.StorageProof
 	// Returns the current active proof recorder.
 	ProofRecorder() *ProofRecorder[H]
 	/// Convert the api object into the storage changes that were done while executing runtime
