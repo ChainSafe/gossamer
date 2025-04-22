@@ -3,10 +3,17 @@
 
 package externalities
 
-import "github.com/tidwall/btree"
+import (
+	"github.com/ChainSafe/gossamer/internal/primitives/storage"
+	"github.com/tidwall/btree"
+)
+
+// Id from any type
+// e.g. reflect.TypeOf(v).String()
+type TypeId string
 
 type Extension interface {
-	TypeId() string // reflect.TypeOf(v).String()
+	TypeId() TypeId
 }
 
 type Extensions struct {
@@ -19,6 +26,139 @@ func NewExtensions() Extensions {
 	}
 }
 
+// Results concerning an operation to remove many keys.
+type MultiRemovalResults struct {
+	// A continuation cursor which, if `Some` must be provided to the subsequent removal call.
+	// If `None` then all removals are complete and no further calls are needed.
+	MaybeCursor []byte
+	// The number of items removed from the backend database.
+	Backend uint32
+	// The number of unique keys removed, taking into account both the backend and the overlay.
+	Unique uint32
+	// The number of iterations (each requiring a storage seek/read) which were done.
+	Loops uint32
+}
+
+// Something that provides access to the [Extensions] store.
+// This is a super trait of the [Externalities].
+type ExtensionStore interface {
+	// Tries to find a registered extension by the given `typeId` and returns it
+	ExtensionById(typeId TypeId) any
+
+	// Register extension `extension` with specified `typeId`.
+	RegisterExtensionWithTypeId(typeId TypeId, extension Extension)
+
+	// Deregister extension with specified 'typeId' and drop it.
+	DeregisterExtensionByTypId(typeId TypeId) error
+}
+
+// Provides access to the storage and to other registered extensions.
 type Externalities interface {
-	// TODO: add methods, will be addressed in #4465
+	// Write a key value pair to the offchain storage database.
+	SetOffchainStorage(key []byte, value []byte)
+	// Read runtime storage.
+	Storage(key []byte) []byte
+	// Get storage value hash.
+	StorageHash(key []byte) []byte
+	// Get child storage value hash.
+	ChildStorageHash(childInfo storage.ChildInfo, key []byte) []byte
+	// Read child runtime storage.
+	ChildStorage(childInfo storage.ChildInfo, key []byte) []byte
+	// Set storage entry `key` of current contract being called (effective immediately).
+	SetStorage(key []byte, value []byte)
+	// Set child storage entry `key` of current contract being called (effective immediately).
+	SetChildStorage(childInfo storage.ChildInfo, key []byte, value []byte)
+	// Clear a storage entry (`key`) of current contract being called (effective immediately).
+	ClearStorage(key []byte)
+	// Clear a child storage entry (`key`) of current contract being called (effective
+	// immediately).
+	ClearChildStorage(childInfo storage.ChildInfo, key []byte)
+	// Whether a storage entry exists.
+	ExistsStorage(key []byte) bool
+	// Whether a child storage entry exists.
+	ExistsChildStorage(childInfo storage.ChildInfo, key []byte) bool
+	// Returns the key immediately following the given key, if it exists.
+	NextStorageKey(key []byte) []byte
+	// Returns the key immediately following the given key, if it exists, in child storage.
+	NextChildStorageKey(childInfo storage.ChildInfo, key []byte) []byte
+
+	// Clear an entire child storage.
+	//
+	// Deletes all keys from the overlay and up to `maybeLimit` keys from the backend. No
+	// limit is applied if `maybeLimit` is `nil`. Returns the cursor for the next call as `Some`
+	// if the child trie deletion operation is incomplete. In this case, it should be passed into
+	// the next call to avoid unaccounted iterations on the backend. Returns also the the number
+	// of keys that were removed from the backend, the number of unique keys removed in total
+	// (including from the overlay) and the number of backend iterations done.
+	//
+	// As long as `maybeCursor` is passed from the result of the previous call, then the number of
+	// iterations done will only ever be one more than the number of keys removed.
+	//
+	// # Note
+	//
+	// An implementation is free to delete more keys than the specified limit as long as
+	// it is able to do that in constant time.
+	KillChildStorage(childInfo storage.ChildInfo, maybeLimit *uint32, maybeCursor []byte) (MultiRemovalResults, error)
+
+	// Clear storage entries which keys are start with the given prefix.
+	// `maybeLimit`, `maybeCursor` and result works as for `KillChildStorage`.
+	ClearPrefix(prefix []byte, maybeLimit *uint32, maybeCursor []byte) (MultiRemovalResults, error)
+
+	// Clear child storage entries which keys are start with the given prefix.
+	// `maybeLimit`, `maybeCursor` and result works as for `KillChildStorage`.
+	ClearChildPrefix(childInfo storage.ChildInfo, prefix []byte, maybeLimit *uint32, maybeCursor []byte) (MultiRemovalResults, error)
+
+	// Set or clear a storage entry (`key`) of current contract being called (effective
+	// immediately).
+	PlaceStorage(key []byte, value []byte)
+
+	// Set or clear a child storage entry.
+	PlaceChildStorage(childInfo storage.ChildInfo, key []byte, value []byte)
+
+	// Get the trie root of the current storage map.
+	// This will also update all child storage keys in the top-level storage map.
+	// The returned hash is defined by the `Block` and is SCALE encoded.
+	StorageRoot(stateVersion storage.StateVersion) []byte
+
+	// Get the trie root of a child storage map.
+	//
+	// This will also update the value of the child storage keys in the top-level storage map.
+	//
+	// If the storage root equals the default hash as defined by the trie, the key in the top-level
+	// storage map will be removed.
+	ChildStorageRoot(childInfo storage.ChildInfo, stateVersion storage.StateVersion) []byte
+
+	// Append storage item.
+	// This assumes specific format of the storage item. Also there is no way to undo this
+	// operation.
+	StorageAppend(key []byte, value []byte)
+
+	// Start a new nested transaction.
+	//
+	// This allows to either commit or roll back all changes made after this call to the
+	// top changes or the default child changes. For every transaction there cam be a
+	// matching call to either `StorageRollbackTransaction` or `StorageCommitTransaction`.
+	// Any transactions that are still open after returning from runtime are committed
+	// automatically.
+	//
+	// Changes made without any open transaction are committed immediately.
+	StorageStartTransaction()
+
+	// Rollback the last transaction started by `StorageStartTransaction`.
+	//
+	// Any changes made during that storage transaction are discarded. Returns an error when
+	// no transaction is open that can be closed.
+	StorageRollbackTransaction() error
+
+	// Commit the current transaction.
+	//
+	// This will apply all changes made after the last call to `StorageStartTransaction`
+	// and clear the transaction state.
+	StorageCommitTransaction()
+
+	// Index specified transaction slice and store it.
+	StorageIndexTransaction(index uint32, hash []byte, size uint32)
+
+	// Renew existing piece of transaction storage.
+	StorageRenewTransactionIndex(index uint32, hash []byte)
 }
