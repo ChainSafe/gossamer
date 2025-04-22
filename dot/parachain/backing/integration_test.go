@@ -377,10 +377,9 @@ func TestSecondsValidCandidate(t *testing.T) {
 			return false
 		}
 
-		badReturn := candidatevalidation.BadReturn
 		validateFromExhaustive.Ch <- parachaintypes.OverseerFuncRes[candidatevalidation.ValidationResult]{
 			Data: candidatevalidation.ValidationResult{
-				Invalid: &badReturn,
+				Invalid: candidatevalidation.BadReturn.Ptr(),
 			},
 		}
 		return true

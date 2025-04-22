@@ -19,6 +19,7 @@ import (
 	candidatevalidation "github.com/ChainSafe/gossamer/dot/parachain/candidate-validation"
 	collatorprotocol "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol"
 	collatorprotocolmessages "github.com/ChainSafe/gossamer/dot/parachain/collator-protocol/messages"
+	disputescoordinator "github.com/ChainSafe/gossamer/dot/parachain/disputes-coordinator"
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
 	"github.com/ChainSafe/gossamer/dot/parachain/overseer"
 	prospectiveparachains "github.com/ChainSafe/gossamer/dot/parachain/prospective-parachains"
@@ -100,7 +101,7 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 	overseer.RegisterSubsystem(bitfieldSigningsSubsystem)
 
 	// register bitfield distribution subsystem
-	bitfieldDistributionSubsystem := bitfielddistribution.NewBitfieldDistribution(overseer.SubsystemsToOverseer)
+	bitfieldDistributionSubsystem := bitfielddistribution.NewBitfieldDistribution(overseer.SubsystemsToOverseer, st.Block)
 	overseer.RegisterSubsystem(bitfieldDistributionSubsystem)
 
 	// register availability distribution subsystem
@@ -111,6 +112,10 @@ func NewService(net Network, forkID string, st *state.Service, ks keystore.Keyst
 		availabilitydistribution.NewLRUSessionCache(ks),
 	)
 	overseer.RegisterSubsystem(availabilityDistributionSubsystem)
+
+	// register disputes coordinator subsystem
+	disputesCoordinatorSubsystem := disputescoordinator.New(overseer.SubsystemsToOverseer)
+	overseer.RegisterSubsystem(disputesCoordinatorSubsystem)
 
 	parachainService := &Service{
 		Network:  net,
