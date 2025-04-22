@@ -67,13 +67,13 @@ type ApiExt[
 	RecordProof()
 	// Extract the recorded proof.
 	// This stops the proof recording.
-	// If record_proof was not called before, this will return nil.
+	// If RecordProof was not called before, this will return nil.
 	ExtractProof() *ptrie.StorageProof
 	// Returns the current active proof recorder.
 	ProofRecorder() *ProofRecorder[H]
-	/// Convert the api object into the storage changes that were done while executing runtime
-	/// api functions.
-	/// After executing this function, all collected changes are reset.
+	// Convert the api object into the storage changes that were done while executing runtime
+	// api functions.
+	// After executing this function, all collected changes are reset.
 	IntoStorageChanges(backend Backend, parentHash H) (overlayedchanges.StorageChanges[H, Hasher], error)
 	// Set the call context for the current transaction.
 	SetCallContext(callContext core.CallContext)
