@@ -5,13 +5,17 @@ package externalities
 
 import "github.com/tidwall/btree"
 
+type Extension interface {
+	TypeId() string // reflect.TypeOf(v).String()
+}
+
 type Extensions struct {
-	extensions btree.Map[string, any] //TODO check this
+	extensions btree.Map[string, Extension]
 }
 
 func NewExtensions() Extensions {
 	return Extensions{
-		extensions: btree.Map[string, any]{},
+		extensions: btree.Map[string, Extension]{},
 	}
 }
 
