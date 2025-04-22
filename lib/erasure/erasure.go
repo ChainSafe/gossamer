@@ -9,7 +9,6 @@ import (
 	"C"
 )
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"unsafe"
@@ -169,6 +168,7 @@ func BranchHash(root common.Hash, branchNodes [][]byte, chunkIndex uint32) (comm
 	}
 
 	key, err := scale.Marshal(chunkIndex)
+	fmt.Println("key:", key) // TODO remove
 	if err != nil {
 		return common.EmptyHash, fmt.Errorf("marshalling chunk index: %w", err)
 	}
@@ -180,11 +180,9 @@ func BranchHash(root common.Hash, branchNodes [][]byte, chunkIndex uint32) (comm
 		return common.EmptyHash, ErrBranchOutOfBounds
 	}
 
-	hash, err := common.ReadHash(bytes.NewReader(value))
-
-	if err != nil {
+	if len(value) != common.HashLength {
 		return common.EmptyHash, ErrInvalidBranchProof
 	}
 
-	return hash, nil
+	return common.NewHash(value), nil
 }

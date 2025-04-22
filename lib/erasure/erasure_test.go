@@ -365,7 +365,7 @@ func TestChunksToTrie(t *testing.T) {
 }
 
 func TestBranchHash(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var testCases = []struct {
 		name                  string
@@ -387,14 +387,107 @@ func TestBranchHash(t *testing.T) {
 				"0xe9d4ffbb65efa24517b71874114bd287b62ea49a65408ce3872bc85865bcd77f",
 			},
 		},
+		{
+			name:    "3_chunks",
+			rootHex: "0x57aff6950c28545a43ae9ed83acbc87dd50cf548d8712e3ba9e2f074e333a84c",
+			proofHex: []string{
+				"0x81000700809752af100e03a0a8a26801a8587a8fc49e40c358457cd5c30b110b3da4895d39809752af100e03a0a8a26801a8587a8fc49e40c358457cd5c30b110b3da4895d39809752af100e03a0a8a26801a8587a8fc49e40c358457cd5c30b110b3da4895d39",
+				"0x4600000080591032c0f36baa73ef4e53a52adfdfa4560674fca55f077cca4f25cdf1991cd0",
+			},
+			expectedBranchHashHex: []string{
+				"0x591032c0f36baa73ef4e53a52adfdfa4560674fca55f077cca4f25cdf1991cd0",
+				"0x591032c0f36baa73ef4e53a52adfdfa4560674fca55f077cca4f25cdf1991cd0",
+				"0x591032c0f36baa73ef4e53a52adfdfa4560674fca55f077cca4f25cdf1991cd0",
+			},
+		},
+		{
+			name:    "4_chunks",
+			rootHex: "0x083c17b6cceaf3a5e062bb93ea31a690a218d4ca654f42454b1d639033f1ec9a",
+			proofHex: []string{
+				"0x81000f0080fc04f9b9b0a3989ba1a397668bbf8adff1e68abd7e17e1c3e82faf7cd0180013801b33aa50f4d13bffa0f89f78c5ecaba3130d3dad14a19bd1c14a98b2807d02c08018d5eff2084c18ac9ab4f05f38dcd435c159cbe353fc3ddab2be3aaae833ab9b8013ab599abc14b37aaccb11cc6fae744070051556ad4c057db03d1181bad0bcd7",
+				"0x4600000080c015fde53d1ce47c8ccf599dcbcf64f3024919685c384c9cfb6af695c648af25",
+			},
+			expectedBranchHashHex: []string{
+				"0xc015fde53d1ce47c8ccf599dcbcf64f3024919685c384c9cfb6af695c648af25",
+				"0xdb2df6450a217cb5c4d135b83b0d0b978a63f4b6d8e41f1d383463b281c3e0dc",
+				"0x56dc05a244e73fc376ee17e27984988c9f9978e0e09927e224ace5a77d6bd977",
+				"0x51f2ab8a213355a25dc62c740495d2525d7853e8885317d428917e62fbc740b9",
+			},
+		},
+		{
+			name:    "5_chunks",
+			rootHex: "0x5496b487c0c849eaf194ad8e283eed0fe188e507c62b93f9a2659489f3a12d89",
+			proofHex: []string{
+				"0x81001f008076e024a779e423fabcffd046440acce8943f57a57c3a5bf85231aa8b39d56cbd80a878e4c9915d675d831de59b9bb266e81263ca7d6bae55723aa508f6e25bfe15807452c97f381f83c3a439b51182fd77707318a8fffae6f9a2a7f18d04f1231bd2808e9a2aa580076e029344db41c6865413231ebca20fc0f1e3d621f646bcdcc9ce809ef3323ebef44b61c94154f1a9a94a42405321dc5f288c11304ecc2f371ce8d9",
+				"0x4600000080f695f9eb1847f395f45344386cd68618ced44bf40bf4f53a2a9eabd94c5da097",
+			},
+			expectedBranchHashHex: []string{
+				"0xf695f9eb1847f395f45344386cd68618ced44bf40bf4f53a2a9eabd94c5da097",
+				"0x66d975e78a82644ca0936319d9e1dea0db41bb9992be46a8a097ba1c4bda48bb",
+				"0x839511b36c293d18326640951c249cc14ffd290da1b0addd514414c285315470",
+				"0xf2c04f5aa96395d578194edd27e5309ffeca297eee34496a0403b91720714b90",
+				"0xd3d221b7a44df3f9694a32130cb07e4c6b954930495d3ff6efb8be929341e64c",
+			},
+		},
+		{
+			name:    "6_chunks",
+			rootHex: "0xc20501e40e6dd45a9b71a66c9da8bdd3b11ab0722579d26516f7ae1fdb3e3ad2",
+			proofHex: []string{
+				"0x81003f00806dccd4902162379ee4ca31271103294ae88ab1ba7c4fa96b7db2b080388a0e558026968f0f1492ef01b5f690db5cd8bec3adfebbcacc958facdca73a3e7744206f80dcc7069d1dabf9e06cee03b0fabaaa0a3b630300ed127a57b35ee1d36ced305380761fe60c4a0c25e5287f7a20e440f373a3132d61f2176055814b10768feaee6a8004c41eff7a9c1df05a4d2c8527bd5e271e94ce4e3afb52a2bc89626288917bb380c6fc8df7fa0c2b3fee4dbb7e5c3cbf6a6e4130b2dcc152a75192736492e7861d",
+				"0x4600000080dd90f77290d1eacef690fdc311a52e67e2fbd44248b265c0bcef28c03ce4e8ac",
+			},
+			expectedBranchHashHex: []string{
+				"0xdd90f77290d1eacef690fdc311a52e67e2fbd44248b265c0bcef28c03ce4e8ac",
+				"0x65bba10d8839008cdcfa3c52eb3ab304247952a69cb152e4dbffd5909db14ba1",
+				"0x0e35774fbf5a4a3eb7d5fa40529fc8e236d8fd032b1d2d37d71b65ab710e7bb3",
+				"0x0ede7cee55db5c28fff4f95f52902bafd7225faf7544b4f3a2e0610e628727dd",
+				"0x3a93bcff2f8c43b00a2d5640aeb393c860dc98c2a39103392e72f145681a135b",
+				"0xa0bd52edb2491f5e0423be449b5b5c9a4ab53edf5c7f14ee2a497d97d376cb78",
+			},
+		},
+		//{
+		//	name:    "7_chunks",
+		//	rootHex: "",
+		//	proofHex: []string{
+		//		"0x",
+		//		"0x",
+		//	},
+		//	expectedBranchHashHex: []string{
+		//		"",
+		//		"",
+		//		"",
+		//		"",
+		//		"",
+		//		"",
+		//		"",
+		//	},
+		//},
+		//{
+		//	name:    "8_chunks",
+		//	rootHex: "",
+		//	proofHex: []string{
+		//		"0x",
+		//		"0x",
+		//	},
+		//	expectedBranchHashHex: []string{
+		//		"",
+		//		"",
+		//		"",
+		//		"",
+		//		"",
+		//		"",
+		//		"",
+		//		"",
+		//	},
+		//},
 	}
 
 	for _, c := range testCases {
 		for chunkIndex, expectedResult := range c.expectedBranchHashHex {
 			t.Run(fmt.Sprintf("%s_index_%d", c.name, chunkIndex), func(t *testing.T) {
-				t.Parallel()
+				//t.Parallel()
 
-				root := common.NewHash(common.MustHexToBytes(c.rootHex))
+				root := common.MustHexToHash(c.rootHex)
 				var proof [][]byte
 				for _, ph := range c.proofHex {
 					proof = append(proof, common.MustHexToBytes(ph))
@@ -403,7 +496,7 @@ func TestBranchHash(t *testing.T) {
 				hash, err := erasure.BranchHash(root, proof, uint32(chunkIndex))
 
 				require.NoError(t, err)
-				require.Equal(t, common.NewHash(common.MustHexToBytes(expectedResult)), hash)
+				require.Equal(t, common.MustHexToHash(expectedResult), hash)
 			})
 		}
 	}
