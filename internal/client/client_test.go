@@ -88,7 +88,7 @@ var (
 type TestExecutor struct{}
 
 func (e *TestExecutor) Call(
-	ext externalities.Extensions,
+	ext externalities.Externalities,
 	runtimeCode core.RuntimeCode,
 	method string,
 	data []byte,

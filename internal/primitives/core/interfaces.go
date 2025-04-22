@@ -10,7 +10,7 @@ type CodeExecutor interface {
 	/// Returns a tuple of the result (either the output data or an execution error) together with a
 	/// `bool`, which is true if native execution was used.
 	Call(
-		ext externalities.Extensions,
+		ext externalities.Externalities,
 		runtimeCode RuntimeCode,
 		method string,
 		data []byte,
