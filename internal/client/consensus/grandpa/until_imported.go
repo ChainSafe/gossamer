@@ -274,7 +274,6 @@ func (sm signedMessage[H, N]) NeedsWaiting(
 	msg signedMessage[H, N],
 	statusCheck BlockStatus[H, N],
 ) (discardWaitOrReady, error) {
-	// 		let (&target_hash, target_number) = msg.target();
 	target := msg.Target()
 	targetHash := target.Hash
 	targetNumber := target.Number
