@@ -179,11 +179,13 @@ func (t *fetchChunkTask) validateChunk(chunk availabilitystore.ErasureChunk) boo
 
 	chunkHash, err := common.Blake2bHash(chunk.Chunk)
 	if err != nil {
+		logger.Warnf("hashing erasure chunk: %s", err.Error())
 		return false
 	}
 
 	branchHash, err := erasure.BranchHash(t.core.CandidateDescriptor.ErasureRoot, chunk.Proof, chunk.Index)
 	if err != nil {
+		logger.Warnf("computing branch hash: %s", err.Error())
 		return false
 	}
 
