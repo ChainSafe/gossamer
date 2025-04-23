@@ -37,7 +37,7 @@ require (
 	github.com/multiformats/go-multihash v0.2.3
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
 	github.com/prometheus/client_golang v1.22.0
-	github.com/prometheus/client_model v0.6.1
+	github.com/prometheus/client_model v0.6.2
 	github.com/qdm12/gotree v0.3.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
