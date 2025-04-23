@@ -21,13 +21,13 @@ func TestFetchChunkTask(t *testing.T) {
 		overseerCh chan any
 
 		leaf       = common.MustHexToHash("0x42")
-		chunkIndex = uint32(23)
+		chunkIndex = uint32(0)
 		ourIndex   = parachaintypes.ValidatorIndex(4)
 
 		core = &parachaintypes.OccupiedCore{
 			CandidateHash: common.MustHexToHash("0x1337"),
 			CandidateDescriptor: parachaintypes.CandidateDescriptor{
-				ErasureRoot: common.MustHexToHash("0xABCD"),
+				ErasureRoot: common.MustHexToHash("0x513489282098e960bfd57ed52d62838ce9395f3f59257f1f40fadd02261a7991"),
 			},
 			GroupResponsible: parachaintypes.GroupIndex(0),
 		}
@@ -135,9 +135,12 @@ func TestFetchChunkTask(t *testing.T) {
 		case msg := <-overseerCh:
 			response := networkbridgemessages.ChunkFetchingResponse{}
 			require.NoError(t, response.SetValue(networkbridgemessages.ChunkResponse{
-				Chunk: []byte{0x01, 0x02},
+				Chunk: common.MustHexToBytes("0x0402000000000000000000000000000000000000000000000000000000000000000000000000000000000000"), //nolint:lll
 				Index: chunkIndex,
-				Proof: [][]byte{{0x03, 0x04}}, // FIXME Use real values once chunk validation is implemented.
+				Proof: [][]byte{
+					common.MustHexToBytes("0x8100030080c26b60abca36319ab802f6f6b02a7de52b591fa871bc801654ab97df2c106e9a80c26b60abca36319ab802f6f6b02a7de52b591fa871bc801654ab97df2c106e9a"), //nolint:lll
+					common.MustHexToBytes("0x4600000080e9d4ffbb65efa24517b71874114bd287b62ea49a65408ce3872bc85865bcd77f"),
+				},
 			}))
 
 			respondWith(t, msg, validator1, func(t *testing.T, request *networkbridgemessages.OutgoingRequest) {
@@ -155,7 +158,13 @@ func TestFetchChunkTask(t *testing.T) {
 			storeChunkMsg, ok := msg.(availabilitystore.StoreChunk)
 			require.True(t, ok)
 			require.Equal(t, expectedCandidateHash, storeChunkMsg.CandidateHash)
-			require.Equal(t, []byte{0x01, 0x02}, storeChunkMsg.Chunk.Chunk)
+
+			require.Equal(
+				t,
+				common.MustHexToBytes("0x0402000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+				storeChunkMsg.Chunk.Chunk,
+			)
+
 			require.Equal(t, chunkIndex, storeChunkMsg.Chunk.Index)
 		case <-time.After(100 * time.Millisecond):
 			t.Fatal("timeout")

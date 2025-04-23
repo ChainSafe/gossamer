@@ -105,7 +105,7 @@ func TestHandleChunkFetchingRequest(t *testing.T) {
 		testChunk := availabilitystore.ErasureChunk{
 			Chunk: []byte{0x01, 0x02},
 			Index: 23,
-			Proof: []byte{0x03, 0x04},
+			Proof: [][]byte{{0x03, 0x04}},
 		}
 
 		var response network.ResponseMessage
@@ -127,7 +127,7 @@ func TestHandleChunkFetchingRequest(t *testing.T) {
 			assert.True(t, ok)
 			assert.Equal(t, testChunk.Chunk, chunkRes.Chunk)
 			assert.Equal(t, testChunk.Index, chunkRes.Index)
-			// assert.Equal(t, testChunk.Proof, chunkRes.Proof) // FIXME see #4597
+			assert.Equal(t, testChunk.Proof, chunkRes.Proof)
 			wg.Done()
 		}()
 
