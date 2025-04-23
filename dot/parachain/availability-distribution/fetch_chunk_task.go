@@ -2,6 +2,7 @@ package availabilitydistribution
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/erasure"
 	"sync"
 
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
@@ -164,7 +165,7 @@ func (t *fetchChunkTask) extractChunk(
 		return availabilitystore.ErasureChunk{
 			Chunk: chunkResponse.Chunk,
 			Index: chunkResponse.Index,
-			// Proof: chunkResponse.Proof, // FIXME see #4597
+			Proof: chunkResponse.Proof,
 		}, nil
 	default:
 		return availabilitystore.ErasureChunk{}, fmt.Errorf("chunk not found")
@@ -172,10 +173,21 @@ func (t *fetchChunkTask) extractChunk(
 }
 
 func (t *fetchChunkTask) validateChunk(chunk availabilitystore.ErasureChunk) bool {
-	if chunk.Index != t.chunkIndex { //nolint:gosimple
+	if chunk.Index != t.chunkIndex {
 		return false
 	}
-	return true // TODO check the proof against erasure root (blocked by #4597)
+
+	chunkHash, err := common.Blake2bHash(chunk.Chunk)
+	if err != nil {
+		return false
+	}
+
+	branchHash, err := erasure.BranchHash(t.core.CandidateDescriptor.ErasureRoot, chunk.Proof, chunk.Index)
+	if err != nil {
+		return false
+	}
+
+	return branchHash == chunkHash
 }
 
 func (t *fetchChunkTask) addLeaf(leaf common.Hash) {
