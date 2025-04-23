@@ -168,7 +168,6 @@ func BranchHash(root common.Hash, branchNodes [][]byte, chunkIndex uint32) (comm
 	}
 
 	key, err := scale.Marshal(chunkIndex)
-	fmt.Println("key:", key) // TODO remove
 	if err != nil {
 		return common.EmptyHash, fmt.Errorf("marshalling chunk index: %w", err)
 	}
