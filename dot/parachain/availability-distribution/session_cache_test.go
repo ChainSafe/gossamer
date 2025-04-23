@@ -1,6 +1,7 @@
 package availabilitydistribution
 
 import (
+	"errors"
 	"testing"
 
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
@@ -105,6 +106,114 @@ func TestReportBadValidators(t *testing.T) {
 				require.Equal(t, tc.badValidators, bad)
 				require.Equal(t, expectedGood, good)
 			}
+		})
+	}
+}
+
+func TestGetAuthorityID(t *testing.T) { //nolint:tparallel
+	t.Parallel()
+
+	var (
+		ctrl        *gomock.Controller
+		runtimeMock *MockInstance
+		cache       *LRUSessionCache
+
+		relayParent = common.Hash{0x01}
+	)
+
+	setup := func(t *testing.T) {
+		ctrl = gomock.NewController(t)
+		defer ctrl.Finish()
+
+		runtimeMock = NewMockInstance(ctrl)
+		cache = NewLRUSessionCache(nil)
+	}
+
+	testCases := []struct {
+		description    string
+		validatorIndex parachaintypes.ValidatorIndex
+		setUpRuntime   func(t *testing.T, rt *MockInstance)
+		expectedAuthID parachaintypes.AuthorityDiscoveryID
+		errExpected    bool
+	}{
+		{
+			description:    "session_index_for_child_fails",
+			validatorIndex: 0,
+			setUpRuntime: func(t *testing.T, rt *MockInstance) {
+				rt.EXPECT().
+					ParachainHostSessionIndexForChild().
+					Return(parachaintypes.SessionIndex(0), errors.New("fail"))
+			},
+			expectedAuthID: parachaintypes.AuthorityDiscoveryID{},
+			errExpected:    true,
+		},
+		{
+			description:    "session_info_fails",
+			validatorIndex: 0,
+			setUpRuntime: func(t *testing.T, rt *MockInstance) {
+				rt.EXPECT().
+					ParachainHostSessionIndexForChild().
+					Return(parachaintypes.SessionIndex(0), nil)
+
+				rt.EXPECT().
+					ParachainHostSessionInfo(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(0))).
+					Return(nil, errors.New("fail"))
+			},
+			expectedAuthID: parachaintypes.AuthorityDiscoveryID{},
+			errExpected:    true,
+		},
+		{
+			description:    "invalid_validator_index",
+			validatorIndex: 1337,
+			setUpRuntime: func(t *testing.T, rt *MockInstance) {
+				rt.EXPECT().
+					ParachainHostSessionIndexForChild().
+					Return(parachaintypes.SessionIndex(0), nil)
+
+				rt.EXPECT().
+					ParachainHostSessionInfo(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(0))).
+					Return(&parachaintypes.SessionInfo{
+						DiscoveryKeys: []parachaintypes.AuthorityDiscoveryID{{0x01}, {0x02}, {0x03}, {0x04}},
+					}, nil)
+			},
+			expectedAuthID: parachaintypes.AuthorityDiscoveryID{},
+			errExpected:    true,
+		},
+		{
+			description:    "happy_path",
+			validatorIndex: 1,
+			setUpRuntime: func(t *testing.T, rt *MockInstance) {
+				rt.EXPECT().
+					ParachainHostSessionIndexForChild().
+					Return(parachaintypes.SessionIndex(0), nil)
+
+				rt.EXPECT().
+					ParachainHostSessionInfo(gomock.AssignableToTypeOf(parachaintypes.SessionIndex(0))).
+					Return(&parachaintypes.SessionInfo{
+						DiscoveryKeys: []parachaintypes.AuthorityDiscoveryID{{0x01}, {0x02}, {0x03}, {0x04}},
+					}, nil)
+			},
+			expectedAuthID: parachaintypes.AuthorityDiscoveryID{0x02},
+			errExpected:    false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			setup(t)
+
+			if tc.setUpRuntime != nil {
+				tc.setUpRuntime(t, runtimeMock)
+			}
+
+			authID, err := cache.GetAuthorityID(tc.validatorIndex, relayParent, runtimeMock)
+			if tc.errExpected {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tc.expectedAuthID, authID)
 		})
 	}
 }
@@ -274,8 +383,7 @@ func TestGetSessionIndexForChild(t *testing.T) {
 		rt := NewMockInstance(ctrl)
 		rt.EXPECT().
 			ParachainHostSessionIndexForChild().
-			Return(sessionIndex, nil).
-			Times(1)
+			Return(sessionIndex, nil)
 
 		cache := NewLRUSessionCache(nil)
 
@@ -372,13 +480,11 @@ func setUpRuntimeMock(
 			Validators:      validators,
 			DiscoveryKeys:   discoveryKeys,
 			ValidatorGroups: validatorGroups,
-		}, nil).
-		Times(1)
+		}, nil)
 
 	runtimeMock.EXPECT().
 		ParachainHostNodeFeatures().
-		Return(nodeFeatures, nil).
-		Times(1)
+		Return(nodeFeatures, nil)
 
 	return runtimeMock
 }
