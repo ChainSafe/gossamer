@@ -426,10 +426,9 @@ func checkAgainstConstraints(
 func skipUmpSignals(
 	upwardMessages []parachaintypes.UpwardMessage,
 ) iter.Seq[parachaintypes.UpwardMessage] {
-	umpSeparator := []byte{}
 	return func(yield func(parachaintypes.UpwardMessage) bool) {
 		for _, message := range upwardMessages {
-			if !bytes.Equal([]byte(message), umpSeparator) {
+			if !bytes.Equal([]byte(message), parachaintypes.UmpSeparator) {
 				if !yield([]byte(message)) {
 					return
 				}
