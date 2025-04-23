@@ -1335,17 +1335,12 @@ func bestChainContaining[
 
 	isDescendentOf := utils.IsDescendantOf[H, N, Header](client, nil)
 
-	if targetHeader.Number() > bestHeader.Number() ||
-		targetHeader.Number() == bestHeader.Number() && targetHeader.Hash() != bestHeader.Hash() {
-		logger.Debugf("SelectChain returned a finality target inconsistent with its best block. " +
-			"Restricting best block to target block")
-		bestHeader = targetHeader
-	} else {
+	if targetHeader.Number() >= bestHeader.Number() {
 		isDescendent, err := isDescendentOf(targetHeader.Hash(), bestHeader.Hash())
 		if err != nil {
 			return nil, err
 		}
-		if !isDescendent {
+		if targetHeader.Hash() != bestHeader.Hash() && !isDescendent {
 			logger.Debugf("SelectChain returned a finality target inconsistent with its best block. " +
 				"Restricting best block to target block")
 			bestHeader = targetHeader
