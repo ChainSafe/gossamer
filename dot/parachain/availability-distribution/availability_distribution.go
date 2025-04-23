@@ -387,7 +387,7 @@ func (ad *AvailabilityDistribution) handleChunkFetchingRequest(
 		err = response.SetValue(messages.ChunkResponse{
 			Chunk: chunk.Chunk,
 			Index: chunk.Index,
-			// Proof: chunk.Proof,  // FIXME see #4597
+			Proof: chunk.Proof,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("setting chunk response value: %w", err)
