@@ -2,13 +2,13 @@ package availabilitydistribution
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/erasure"
 	"sync"
 
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
 	networkbridgemessages "github.com/ChainSafe/gossamer/dot/parachain/network-bridge/messages"
 	parachaintypes "github.com/ChainSafe/gossamer/dot/parachain/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/erasure"
 )
 
 type taskTerminationReason interface {

@@ -135,10 +135,10 @@ func TestFetchChunkTask(t *testing.T) {
 		case msg := <-overseerCh:
 			response := networkbridgemessages.ChunkFetchingResponse{}
 			require.NoError(t, response.SetValue(networkbridgemessages.ChunkResponse{
-				Chunk: common.MustHexToBytes("0x0402000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+				Chunk: common.MustHexToBytes("0x0402000000000000000000000000000000000000000000000000000000000000000000000000000000000000"), //nolint:lll
 				Index: chunkIndex,
 				Proof: [][]byte{
-					common.MustHexToBytes("0x8100030080c26b60abca36319ab802f6f6b02a7de52b591fa871bc801654ab97df2c106e9a80c26b60abca36319ab802f6f6b02a7de52b591fa871bc801654ab97df2c106e9a"),
+					common.MustHexToBytes("0x8100030080c26b60abca36319ab802f6f6b02a7de52b591fa871bc801654ab97df2c106e9a80c26b60abca36319ab802f6f6b02a7de52b591fa871bc801654ab97df2c106e9a"), //nolint:lll
 					common.MustHexToBytes("0x4600000080e9d4ffbb65efa24517b71874114bd287b62ea49a65408ce3872bc85865bcd77f"),
 				},
 			}))
