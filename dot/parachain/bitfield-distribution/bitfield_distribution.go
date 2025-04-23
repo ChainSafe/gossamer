@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 
 	networkbridge "github.com/ChainSafe/gossamer/dot/parachain/network-bridge"
 
@@ -29,8 +30,7 @@ var logger = log.NewFromGlobal(log.AddContext("pkg", "parachain-bitfield-distrib
 
 type perRelayParentData struct {
 	// Signing context for a particular relay parent.
-	// the required part of the signing context
-	sessionIndex parachaintypes.SessionIndex
+	signingContext parachaintypes.SigningContext
 
 	// Set of validators for a particular relay parent.
 	validatorsSet []parachaintypes.ValidatorID
@@ -48,13 +48,10 @@ type perRelayParentData struct {
 	messageReceivedFromPeer map[peer.ID]map[parachaintypes.ValidatorID]struct{}
 }
 
-// this will be used in the PeerViewChange handler so skip the lint check for now
-//
-//nolint:all
-func newPerRelayParentData(sessionIndex parachaintypes.SessionIndex, validatorSet []parachaintypes.ValidatorID,
+func newPerRelayParentData(signingContext parachaintypes.SigningContext, validatorSet []parachaintypes.ValidatorID,
 ) *perRelayParentData {
 	return &perRelayParentData{
-		sessionIndex:            sessionIndex,
+		signingContext:          signingContext,
 		validatorsSet:           validatorSet,
 		onePerValidator:         make(map[parachaintypes.ValidatorID]*validationprotocol.BitfieldDistributionMessage),
 		messageSentToPeer:       make(map[peer.ID]map[parachaintypes.ValidatorID]struct{}),
@@ -74,6 +71,10 @@ func (p *perRelayParentData) messageFromValidatorNeededByPeer(
 	return !sendToExist && !receiveFromExist
 }
 
+type BlockState interface {
+	GetRuntime(blockHash common.Hash) (instance runtime.Instance, err error)
+}
+
 // BitfieldDistribution is the parachain subsystem that is responsible for gossipping signed availability bitfields.
 // The bitfields express which parachain block candidates the signing validator considers available.
 type BitfieldDistribution struct {
@@ -85,12 +86,14 @@ type BitfieldDistribution struct {
 	perRelayParent map[common.Hash]*perRelayParentData
 	reputation     *util.ReputationAggregator
 
+	blockState BlockState
+
 	// TODO: Metrics
 
 	mu sync.Mutex
 }
 
-func NewBitfieldDistribution(overseerChan chan<- any) *BitfieldDistribution {
+func NewBitfieldDistribution(overseerChan chan<- any, blockState BlockState) *BitfieldDistribution {
 	initTopologyEntry := &grid.SessionGridTopologyEntry{
 		Topology:        grid.NewSessionGridTopology(make([]uint, 0), make([]grid.TopologyPeerInfo, 0)),
 		LocalNeighbours: grid.NewEmptyGridNeighbours(),
@@ -109,6 +112,7 @@ func NewBitfieldDistribution(overseerChan chan<- any) *BitfieldDistribution {
 		reputation: util.NewReputationAggregator(func(rep util.UnifiedReputationChange) bool {
 			return false // Always accumulate
 		}),
+		blockState: blockState,
 	}
 }
 
@@ -149,10 +153,7 @@ func (b *BitfieldDistribution) processMessage(msg any) error {
 	case networkbridgeevents.PeerViewChange:
 		b.processPeerViewChangeEvent(msg)
 	case networkbridgeevents.OurViewChange:
-		err := b.processOurViewChangeEvent(msg)
-		if err != nil {
-			return fmt.Errorf("processing our view change event: %w", err)
-		}
+		b.processOurViewChangeEvent(msg)
 	case networkbridgeevents.PeerMessage[validationprotocol.ValidationProtocol]:
 		err := b.processIncomingPeerMessageEvent(msg)
 		if err != nil {
@@ -192,7 +193,7 @@ func (b *BitfieldDistribution) processBitfieldDistributionMessage(msg parachaint
 		return nil
 	}
 
-	sessionIdx := jobData.sessionIndex
+	sessionIdx := jobData.signingContext.SessionIndex
 
 	if len(jobData.validatorsSet) == 0 {
 		logger.Debugf("validator set is empty")
@@ -324,13 +325,33 @@ func (b *BitfieldDistribution) processPeerViewChangeEvent(event networkbridgeeve
 	}
 }
 
-func (b *BitfieldDistribution) processOurViewChangeEvent(event networkbridgeevents.OurViewChange) error {
-	//TODO implement in #4359
-	panic("implement me")
+func (b *BitfieldDistribution) processOurViewChangeEvent(event networkbridgeevents.OurViewChange) {
+	logger.Tracef("process OurViewChange event: %v", event)
+
+	oldView := b.ourView
+	b.ourView = event.View
+
+	// in the new view but not in the old view
+	for _, added := range b.ourView.Difference(oldView) {
+		// newly added views will be handled in the active leaves update handler, ideally this should never happen
+		if b.perRelayParent[added] == nil {
+			logger.Errorf("our view contains %s, but not in active heads", added.String())
+		}
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	// in the old view but not in the new view
+	for _, removed := range oldView.Difference(b.ourView) {
+		delete(b.perRelayParent, removed)
+	}
 }
 
 func (b *BitfieldDistribution) processIncomingPeerMessageEvent(event networkbridgeevents.PeerMessage[validationprotocol.
 	ValidationProtocol]) error {
+	logger.Tracef("process incoming PeerMessage event: %v", event)
+
 	v, err := event.Message.Value()
 	if err != nil {
 		return err
@@ -444,7 +465,7 @@ func (b *BitfieldDistribution) processIncomingPeerMessageEvent(event networkbrid
 	}
 
 	// prepare for the relay message call
-	topology := b.topologies.GetTopologyOrFallback(jobData.sessionIndex).LocalNeighbours
+	topology := b.topologies.GetTopologyOrFallback(jobData.signingContext.SessionIndex).LocalNeighbours
 	requiredRouting := topology.RequiredRoutingByIndex(validatorIdx, false)
 	message := validationprotocol.CheckedBitfield{
 		Hash:                              relayParent,
@@ -470,16 +491,49 @@ func (b *BitfieldDistribution) processIncomingPeerMessageEvent(event networkbrid
 }
 
 func (b *BitfieldDistribution) processUpdatedAuthorityIDsEvent(event networkbridgeevents.UpdatedAuthorityIDs) error {
-	//TODO implement in #4360
-	panic("implement me")
+	logger.Tracef("process UpdatedAuthorityIDs event: %v", event)
+
+	ids := make(map[types.AuthorityID]struct{})
+	for _, id := range event.AuthorityDiscoveryIDs {
+		ids[types.AuthorityID(id)] = struct{}{}
+	}
+	ok, err := b.topologies.CurrentTopology.UpdateAuthoritiesIDs(event.PeerID, ids)
+	if err != nil {
+		logger.Errorf("error while updating authority IDs : %s", err.Error())
+		return err
+	}
+	if !ok {
+		logger.Warnf("could not update authority IDs : %v", event.AuthorityDiscoveryIDs)
+		return nil
+	}
+
+	return nil
 }
 
 func (b *BitfieldDistribution) ProcessActiveLeavesUpdateSignal(signal parachaintypes.ActiveLeavesUpdateSignal) error {
-	//TODO implement in #4361
-	panic("implement me")
+	activatedLeaf := signal.Activated
+	if activatedLeaf == nil {
+		return nil
+	}
+
+	relayParent := activatedLeaf.Hash
+
+	logger.Tracef("Process ActiveLeavesUpdateSignal activatedLeaf: %v", relayParent)
+
+	validatorSet, signingContext, err := b.queryBasics(relayParent)
+	if err != nil {
+		logger.Warnf("could not query basic info for relayParent: %s, error: %v", relayParent.String(), err)
+		return err
+	}
+
+	b.mu.Lock()
+	b.perRelayParent[relayParent] = newPerRelayParentData(*signingContext, validatorSet)
+	b.mu.Unlock()
+
+	return nil
 }
 
-func (b *BitfieldDistribution) ProcessBlockFinalizedSignal(signal parachaintypes.BlockFinalizedSignal) error {
+func (b *BitfieldDistribution) ProcessBlockFinalizedSignal(_ parachaintypes.BlockFinalizedSignal) error {
 	return nil
 }
 
@@ -686,4 +740,31 @@ func modifyReputation(reputation *util.ReputationAggregator, sender chan<- any, 
 	logger.Tracef("reputation modified for peer %s on relay parent %s", peer.String(), relayParent.String())
 
 	reputation.Modify(sender, peer, rep)
+}
+
+// queryBasics queries our validator set and signing context for a particular relay parent
+func (b *BitfieldDistribution) queryBasics(
+	relayParent common.Hash,
+) ([]parachaintypes.ValidatorID, *parachaintypes.SigningContext, error) {
+	rt, err := b.blockState.GetRuntime(relayParent)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// query validators
+	validatorSet, err := rt.ParachainHostValidators()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// query signing context
+	sessionIndex, err := rt.ParachainHostSessionIndexForChild()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return validatorSet, &parachaintypes.SigningContext{
+		SessionIndex: sessionIndex,
+		ParentHash:   relayParent,
+	}, nil
 }

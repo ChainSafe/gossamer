@@ -42,6 +42,21 @@ func (m *MockSessionCache) EXPECT() *MockSessionCacheMockRecorder {
 	return m.recorder
 }
 
+// GetAuthorityID mocks base method.
+func (m *MockSessionCache) GetAuthorityID(validatorIndex parachaintypes.ValidatorIndex, relayParent common.Hash, rt runtime.Instance) (parachaintypes.AuthorityDiscoveryID, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAuthorityID", validatorIndex, relayParent, rt)
+	ret0, _ := ret[0].(parachaintypes.AuthorityDiscoveryID)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAuthorityID indicates an expected call of GetAuthorityID.
+func (mr *MockSessionCacheMockRecorder) GetAuthorityID(validatorIndex, relayParent, rt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAuthorityID", reflect.TypeOf((*MockSessionCache)(nil).GetAuthorityID), validatorIndex, relayParent, rt)
+}
+
 // GetSessionIndexForChild mocks base method.
 func (m *MockSessionCache) GetSessionIndexForChild(parent common.Hash, rt runtime.Instance) (parachaintypes.SessionIndex, error) {
 	m.ctrl.T.Helper()

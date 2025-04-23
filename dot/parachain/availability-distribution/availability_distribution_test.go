@@ -8,6 +8,7 @@ import (
 	"math"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	availabilitystore "github.com/ChainSafe/gossamer/dot/parachain/availability-store"
@@ -686,7 +687,6 @@ func setUpSessionCacheMock(
 			gomock.AssignableToTypeOf(sessionIndex),
 			gomock.AssignableToTypeOf(runtimeMock),
 		).
-		Times(1).
 		Return(&SessionInfo{
 			SessionIndex:    sessionIndex,
 			ValidatorGroups: validatorGroups,
@@ -857,8 +857,7 @@ func TestHandleFetchTaskTermination(t *testing.T) {
 						success.sessionIndex,
 						success.groupIndex,
 						success.badValidators,
-					).
-					Times(1)
+					)
 
 				ad.sessionCache = sessionCacheMock
 			}
@@ -942,6 +941,147 @@ func TestAvailabilityChunkIndex(t *testing.T) {
 			} else {
 				assert.Equal(t, tc.expected, actual)
 			}
+		})
+	}
+}
+
+func TestProcessAvailabilityDistributionMessageFetchPoV(t *testing.T) { //nolint:tparallel
+	t.Parallel()
+
+	var (
+		ctrl        *gomock.Controller
+		netMock     *MockNetwork
+		stateMock   *MockBlockState
+		runtimeMock *MockInstance
+		cacheMock   *MockSessionCache
+		overseerCh  chan any
+		ad          *AvailabilityDistribution
+
+		relayParent    = common.Hash{0x01}
+		validatorIndex = parachaintypes.ValidatorIndex(1)
+		authorityID    = parachaintypes.AuthorityDiscoveryID{0x05}
+
+		msg parachaintypes.AvailabilityDistributionMessageFetchPoV
+	)
+
+	setup := func(t *testing.T) {
+		ctrl = gomock.NewController(t)
+		defer ctrl.Finish()
+
+		netMock = NewMockNetwork(ctrl)
+		stateMock = NewMockBlockState(ctrl)
+		runtimeMock = NewMockInstance(ctrl)
+		cacheMock = NewMockSessionCache(ctrl)
+
+		netMock.EXPECT().RegisterRequestHandler(protocol.ID("req_chunk/2"), gomock.Any())
+		netMock.EXPECT().RegisterRequestHandler(protocol.ID("req_pov/1"), gomock.Any())
+
+		stateMock.EXPECT().GetRuntime(gomock.Any()).Return(runtimeMock, nil).AnyTimes()
+
+		cacheMock.EXPECT().
+			GetAuthorityID(
+				gomock.AssignableToTypeOf(validatorIndex),
+				gomock.AssignableToTypeOf(relayParent),
+				gomock.Any()).
+			Return(authorityID, nil).
+			AnyTimes()
+
+		overseerCh = make(chan any)
+		ad = NewAvailabilityDistribution(overseerCh, netMock, stateMock, cacheMock)
+		require.NotNil(t, ad)
+
+		msg = parachaintypes.AvailabilityDistributionMessageFetchPoV{
+			RelayParent:   relayParent,
+			FromValidator: validatorIndex,
+			PovCh:         make(chan parachaintypes.OverseerFuncRes[parachaintypes.PoV]),
+		}
+	}
+
+	testCases := []struct {
+		description         string
+		makeRequestResponse func() messages.ReqRespResult
+		errorExpected       bool
+	}{
+		{
+			description: "request_fails",
+			makeRequestResponse: func() messages.ReqRespResult {
+				return messages.ReqRespResult{
+					Response: nil,
+					Error:    errors.New("network failure"),
+				}
+			},
+			errorExpected: true,
+		},
+		{
+			description: "no_such_pov",
+			makeRequestResponse: func() messages.ReqRespResult {
+				response := messages.PoVFetchingResponse{}
+				require.NoError(t, response.SetValue(parachaintypes.NoSuchPoV{}))
+
+				return messages.ReqRespResult{
+					Response: &response,
+					Error:    nil,
+				}
+			},
+			errorExpected: true,
+		},
+		{
+			description: "happy_path",
+			makeRequestResponse: func() messages.ReqRespResult {
+				response := messages.PoVFetchingResponse{}
+				require.NoError(t, response.SetValue(parachaintypes.PoV{BlockData: []byte{0x01, 0x02}}))
+
+				return messages.ReqRespResult{
+					Response: &response,
+					Error:    nil,
+				}
+			},
+			errorExpected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			setup(t)
+
+			wg := sync.WaitGroup{}
+			wg.Add(1)
+			go func() {
+				err := ad.processMessage(msg)
+				require.NoError(t, err)
+				wg.Done()
+			}()
+
+			select {
+			case msg := <-overseerCh:
+				sendRequests, ok := msg.(messages.SendRequests)
+				require.True(t, ok)
+				require.Equal(t, 1, len(sendRequests.Requests))
+
+				request := sendRequests.Requests[0]
+
+				_, ok = request.Payload.(*messages.PoVFetchingRequest)
+				require.True(t, ok)
+
+				request.Result <- tc.makeRequestResponse()
+			case <-time.After(100 * time.Millisecond):
+				t.Fatal("timeout")
+			}
+
+			select {
+			case msg := <-msg.PovCh:
+				if tc.errorExpected {
+					require.Error(t, msg.Err)
+					require.Empty(t, msg.Data)
+				} else {
+					require.NoError(t, msg.Err)
+					require.NotEmpty(t, msg.Data)
+				}
+			case <-time.After(100 * time.Millisecond):
+				t.Fatal("timeout")
+			}
+
+			wg.Wait()
 		})
 	}
 }
