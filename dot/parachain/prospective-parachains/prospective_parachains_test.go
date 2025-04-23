@@ -135,7 +135,7 @@ func TestFailedIntroduceSecondedCandidateWhenParentHeadAndHeadDataEquals(
 		StorageRoot: common.Hash{0x00},
 	}
 
-	baseConstraints := &parachaintypes.Constraints{
+	baseConstraints := &parachaintypes.VStagingConstraints{
 		RequiredParent:       parachaintypes.HeadData{Data: []byte{byte(0)}},
 		MinRelayParentNumber: 0,
 		ValidationCodeHash:   parachaintypes.ValidationCodeHash(common.Hash{0x03}),
@@ -189,7 +189,7 @@ func TestHandleIntroduceSecondedCandidate(
 		StorageRoot: common.Hash{0x00},
 	}
 
-	baseConstraints := &parachaintypes.Constraints{
+	baseConstraints := &parachaintypes.VStagingConstraints{
 		RequiredParent:       parachaintypes.HeadData{Data: []byte{byte(0)}},
 		MinRelayParentNumber: 0,
 		ValidationCodeHash:   parachaintypes.ValidationCodeHash(common.Hash{0x03}),
@@ -324,7 +324,7 @@ func TestGetMinimumRelayParents(t *testing.T) {
 		},
 	}
 
-	baseConstraints := &parachaintypes.Constraints{
+	baseConstraints := &parachaintypes.VStagingConstraints{
 		MinRelayParentNumber: 5,
 	}
 
@@ -466,7 +466,7 @@ func TestGetBackableCandidates(t *testing.T) {
 		},
 	}
 
-	baseConstraints := &parachaintypes.Constraints{
+	baseConstraints := &parachaintypes.VStagingConstraints{
 		MinRelayParentNumber: 8,
 		RequiredParent:       parentHead1,
 		MaxPoVSize:           MaxPoVSize,
@@ -707,7 +707,7 @@ func TestAnswerProspectiveValidationDataRequest(t *testing.T) {
 		reqParentHash, err := reqParent.Hash()
 		assert.NoError(t, err)
 
-		baseConstraints := &parachaintypes.Constraints{
+		baseConstraints := &parachaintypes.VStagingConstraints{
 			RequiredParent:       reqParent,
 			MinRelayParentNumber: 0,
 			ValidationCodeHash:   parachaintypes.ValidationCodeHash(common.Hash{0x03}),
@@ -776,7 +776,7 @@ func TestAnswerProspectiveValidationDataRequest(t *testing.T) {
 		reqParentHash, err := reqParent.Hash()
 		assert.NoError(t, err)
 
-		baseConstraints := &parachaintypes.Constraints{
+		baseConstraints := &parachaintypes.VStagingConstraints{
 			RequiredParent:       reqParent,
 			MinRelayParentNumber: 0,
 			ValidationCodeHash:   parachaintypes.ValidationCodeHash(common.Hash{0x03}),
@@ -846,7 +846,7 @@ func TestAnswerProspectiveValidationDataRequest(t *testing.T) {
 	t.Run("with_head_data_hash_doesnt_match", func(t *testing.T) {
 		reqParent := parachaintypes.HeadData{Data: []byte{0xc4}}
 
-		baseConstraints := &parachaintypes.Constraints{
+		baseConstraints := &parachaintypes.VStagingConstraints{
 			RequiredParent:       reqParent,
 			MinRelayParentNumber: 0,
 			ValidationCodeHash:   parachaintypes.ValidationCodeHash(common.Hash{0x03}),
@@ -1169,7 +1169,7 @@ func TestGetHypotheticalMembership(t *testing.T) {
 			},
 		}
 
-		baseConstraints := &parachaintypes.Constraints{
+		baseConstraints := &parachaintypes.VStagingConstraints{
 			MinRelayParentNumber: 8,
 			RequiredParent:       parentHead,
 			MaxPoVSize:           MaxPoVSize,
@@ -1254,7 +1254,7 @@ func TestGetHypotheticalMembership(t *testing.T) {
 			Number:      parachaintypes.BlockNumber(9),
 		}
 
-		baseConstraints := &parachaintypes.Constraints{
+		baseConstraints := &parachaintypes.VStagingConstraints{
 			MinRelayParentNumber: 8,
 			RequiredParent:       parentHead,
 			MaxPoVSize:           MaxPoVSize,
@@ -1290,7 +1290,7 @@ func TestGetHypotheticalMembership(t *testing.T) {
 			Number:      parachaintypes.BlockNumber(10),
 		}
 
-		baseConstraints = &parachaintypes.Constraints{
+		baseConstraints = &parachaintypes.VStagingConstraints{
 			MinRelayParentNumber: 8,
 			RequiredParent:       parentHead,
 			MaxPoVSize:           MaxPoVSize,
@@ -1403,7 +1403,7 @@ func TestGetHypotheticalMembership(t *testing.T) {
 			Number:      parachaintypes.BlockNumber(9),
 		}
 
-		baseConstraints := &parachaintypes.Constraints{
+		baseConstraints := &parachaintypes.VStagingConstraints{
 			MinRelayParentNumber: 8,
 			RequiredParent:       parentHead,
 			MaxPoVSize:           MaxPoVSize,
@@ -1439,7 +1439,7 @@ func TestGetHypotheticalMembership(t *testing.T) {
 			Number:      parachaintypes.BlockNumber(10),
 		}
 
-		baseConstraints = &parachaintypes.Constraints{
+		baseConstraints = &parachaintypes.VStagingConstraints{
 			MinRelayParentNumber: 8,
 			RequiredParent:       parentHead,
 			MaxPoVSize:           MaxPoVSize,

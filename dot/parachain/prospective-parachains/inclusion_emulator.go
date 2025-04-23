@@ -34,7 +34,7 @@ type relayChainBlockInfo struct {
 }
 
 func checkModifications(
-	c *parachaintypes.Constraints,
+	c *parachaintypes.VStagingConstraints,
 	modifications *constraintModifications,
 ) error {
 	if modifications.HrmpWatermark != nil && modifications.HrmpWatermark.Type == Trunk {
@@ -111,8 +111,8 @@ func checkModifications(
 	return nil
 }
 
-func applyModifications(c *parachaintypes.Constraints, modifications *constraintModifications) (
-	*parachaintypes.Constraints, error,
+func applyModifications(c *parachaintypes.VStagingConstraints, modifications *constraintModifications) (
+	*parachaintypes.VStagingConstraints, error,
 ) {
 	newConstraints := c.Clone()
 
@@ -298,7 +298,7 @@ func (cm *constraintModifications) Stack(other *constraintModifications) {
 // This is a type which guarantees that the candidate is valid under the operating constraints
 type Fragment struct {
 	relayParent          *relayChainBlockInfo
-	operatingConstraints *parachaintypes.Constraints
+	operatingConstraints *parachaintypes.VStagingConstraints
 	candidate            *prospectiveCandidate
 	modifications        *constraintModifications
 }
@@ -322,7 +322,7 @@ func (f *Fragment) ConstraintModifications() *constraintModifications {
 // small enough.
 func NewFragment(
 	relayParent *relayChainBlockInfo,
-	operatingConstraints *parachaintypes.Constraints,
+	operatingConstraints *parachaintypes.VStagingConstraints,
 	candidate *prospectiveCandidate,
 ) (*Fragment, error) {
 	modifications, err := checkAgainstConstraints(
@@ -346,7 +346,7 @@ func NewFragment(
 
 func checkAgainstConstraints(
 	relayParent *relayChainBlockInfo,
-	operatingConstraints *parachaintypes.Constraints,
+	operatingConstraints *parachaintypes.VStagingConstraints,
 	commitments parachaintypes.CandidateCommitments,
 	validationCodeHash parachaintypes.ValidationCodeHash,
 	persistedValidationData parachaintypes.PersistedValidationData,
@@ -441,7 +441,7 @@ func skipUmpSignals(
 }
 
 func validateCommitments(
-	constraints *parachaintypes.Constraints,
+	constraints *parachaintypes.VStagingConstraints,
 	relayParent *relayChainBlockInfo,
 	commitments parachaintypes.CandidateCommitments,
 	validationCodeHash parachaintypes.ValidationCodeHash,
@@ -501,7 +501,7 @@ func validateCommitments(
 }
 
 func validateAgainstConstraints(
-	constraints *parachaintypes.Constraints,
+	constraints *parachaintypes.VStagingConstraints,
 	relayParent *relayChainBlockInfo,
 	commitments parachaintypes.CandidateCommitments,
 	persistedValidationData parachaintypes.PersistedValidationData,

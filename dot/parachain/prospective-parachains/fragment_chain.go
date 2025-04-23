@@ -314,7 +314,7 @@ type scope struct {
 	// candidates pending availability at this block
 	pendingAvailability []*pendingAvailability
 	// the base constraints derived from the latest included candidate
-	baseConstraints *parachaintypes.Constraints
+	baseConstraints *parachaintypes.VStagingConstraints
 	// equal to `max_candidate_depth`
 	maxDepth uint
 }
@@ -331,7 +331,7 @@ type scope struct {
 // should be provided. It is allowed to provide 0 ancestors.
 func newScopeWithAncestors(
 	relayParent relayChainBlockInfo,
-	baseConstraints *parachaintypes.Constraints,
+	baseConstraints *parachaintypes.VStagingConstraints,
 	pendingAvailability []*pendingAvailability,
 	maxDepth uint,
 	ancestors []relayChainBlockInfo,
@@ -866,7 +866,7 @@ func (f *fragmentChain) checkPotential(candidate HypotheticalOrConcrete) error {
 	// Try seeing if the parent candidate is in the current chain or if it is the latest
 	// included candidate. If so, get the constraints the candidate must satisfy
 	var isUnconnected bool
-	var constraints *parachaintypes.Constraints
+	var constraints *parachaintypes.VStagingConstraints
 	var maybeMinRelayParentNumber *parachaintypes.BlockNumber
 
 	requiredParentHash, err := f.scope.baseConstraints.RequiredParent.Hash()

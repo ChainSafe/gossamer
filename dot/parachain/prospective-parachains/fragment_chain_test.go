@@ -276,7 +276,7 @@ func TestEarliestRelayParent(t *testing.T) {
 					Hash:   common.Hash{0x01},
 					Number: 10,
 				}
-				baseConstraints := &parachaintypes.Constraints{
+				baseConstraints := &parachaintypes.VStagingConstraints{
 					MinRelayParentNumber: 5,
 				}
 				ancestor := relayChainBlockInfo{
@@ -302,7 +302,7 @@ func TestEarliestRelayParent(t *testing.T) {
 					Hash:   common.Hash{0x01},
 					Number: 10,
 				}
-				baseConstraints := &parachaintypes.Constraints{
+				baseConstraints := &parachaintypes.VStagingConstraints{
 					MinRelayParentNumber: 5,
 				}
 				return &scope{
@@ -441,7 +441,7 @@ func TestFragmentChainWithFreshScope(t *testing.T) {
 		StorageRoot: common.Hash{0x00},
 	}
 
-	baseConstraints := &parachaintypes.Constraints{
+	baseConstraints := &parachaintypes.VStagingConstraints{
 		RequiredParent:       parachaintypes.HeadData{Data: []byte{byte(0)}},
 		MinRelayParentNumber: 0,
 		ValidationCodeHash:   parachaintypes.ValidationCodeHash(common.Hash{0x03}),
@@ -494,8 +494,8 @@ func makeConstraints(
 	minRelayParentNumber parachaintypes.BlockNumber,
 	validWatermarks []parachaintypes.BlockNumber,
 	requiredParent parachaintypes.HeadData,
-) *parachaintypes.Constraints {
-	return &parachaintypes.Constraints{
+) *parachaintypes.VStagingConstraints {
+	return &parachaintypes.VStagingConstraints{
 		MinRelayParentNumber:  minRelayParentNumber,
 		MaxPoVSize:            1_000_000,
 		MaxCodeSize:           1_000_000,
@@ -570,7 +570,7 @@ func TestScopeRejectsAncestors(t *testing.T) {
 		relayParent         *relayChainBlockInfo
 		ancestors           []relayChainBlockInfo
 		maxDepth            uint
-		baseConstraints     *parachaintypes.Constraints
+		baseConstraints     *parachaintypes.VStagingConstraints
 		pendingAvailability []*pendingAvailability
 		expectedError       error
 	}{
@@ -1080,7 +1080,7 @@ func TestPopulateAndCheckPotential(t *testing.T) {
 	candidateCHash, candidateCEntry := hashAndInsertCandididate(t, storage, candidateC, pvdC, backed)
 
 	t.Run("candidate_A_doesnt_adhere_to_base_constraints", func(t *testing.T) {
-		wrongConstraints := []parachaintypes.Constraints{
+		wrongConstraints := []parachaintypes.VStagingConstraints{
 			// define a constraint that requires a parent head data
 			// that is different from candidate A parent head
 			*makeConstraints(relayParentAInfo.Number,

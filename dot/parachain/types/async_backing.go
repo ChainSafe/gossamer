@@ -50,6 +50,45 @@ type Constraints struct {
 	MaxPoVSize uint32
 	// The maximum new validation code size allowed, in bytes.
 	MaxCodeSize uint32
+	// The amount of UMP messages remaining.
+	UMPRemaining uint32
+	// The amount of UMP bytes remaining.
+	UMPRemainingBytes uint32
+	// The maximum number of UMP messages allowed per candidate.
+	MaxNumUMPPerCandidate uint32
+	// Remaining DMP queue. Only includes sent-at block numbers.
+	DMPRemainingMessages []BlockNumber
+	// The limitations of all registered inbound HRMP channels.
+	HRMPInbound InboundHRMPLimitations
+	// The limitations of all registered outbound HRMP channels.
+	HRMPChannelsOut map[ParaID]OutboundHRMPChannelLimitations
+	// The maximum number of HRMP messages allowed per candidate.
+	MaxNumHRMPPerCandidate uint32
+	// The required parent head-data of the parachain.
+	RequiredParent HeadData
+	// The expected validation-code-hash of this parachain.
+	ValidationCodeHash ValidationCodeHash
+	// The code upgrade restriction signal as-of this parachain.
+	UpgradeRestriction *UpgradeRestriction
+	// The future validation code hash, if any, and at what relay-parent
+	// number the upgrade would be minimally applied.
+	FutureValidationCode *FutureValidationCode
+}
+
+// VStagingConstraints on the actions that can be taken by a new parachain block. These
+// limitations are implicitly associated with some particular parachain, which should
+// be apparent from usage.
+// NOTE: VStagingConstraints contains the field [MaxHeadDataSize] which does not
+// exist Constraints, given these structs are used to encode/decode runtime information
+// the separation is needed, until [Constraints] is removed and [VStagingConstraints] turns
+// into the unique definition of runtime constraints
+type VStagingConstraints struct {
+	// The minimum relay-parent number accepted under these constraints.
+	MinRelayParentNumber BlockNumber
+	// The maximum Proof-of-Validity size allowed, in bytes.
+	MaxPoVSize uint32
+	// The maximum new validation code size allowed, in bytes.
+	MaxCodeSize uint32
 	// The maximum head-data size, in bytes.
 	MaxHeadDataSize uint
 	// The amount of UMP messages remaining.
@@ -99,7 +138,7 @@ type BackingState struct {
 	PendingAvailability []CandidatePendingAvailability
 }
 
-func (c *Constraints) Clone() *Constraints {
+func (c *VStagingConstraints) Clone() *VStagingConstraints {
 	requiredParent := HeadData{
 		Data: make([]byte, len(c.RequiredParent.Data)),
 	}
@@ -119,7 +158,7 @@ func (c *Constraints) Clone() *Constraints {
 		}
 	}
 
-	return &Constraints{
+	return &VStagingConstraints{
 		MinRelayParentNumber:  c.MinRelayParentNumber,
 		MaxPoVSize:            c.MaxPoVSize,
 		MaxCodeSize:           c.MaxCodeSize,
