@@ -8,13 +8,13 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/trie"
 )
 
-type ApiId [8]uint8
+type ApiID [8]uint8
 
-type ApisVecEntry struct {
-	ApiId   ApiId
+type ApiIDVersion struct {
+	ApiId   ApiID
 	Version uint32
 }
-type ApisVec []ApisVecEntry
+type ApisVec []ApiIDVersion
 
 type RuntimeVersion struct {
 	// Identifies the different Substrate runtimes. There'll be at least polkadot and node.
