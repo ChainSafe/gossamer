@@ -24,7 +24,7 @@ func ResolveStateVersionFromWasm[Hasher runtime.Hasher[H], H runtime.Hash, E exe
 ) (primitives_storage.StateVersion, error) {
 	wasm, has := storage.Top.Get(string(keys.Code))
 	if !has {
-		return primitives_storage.NoStateVersion, ErrMissingRuntime
+		return primitives_storage.NoStateVersion, blockchain.ErrVersionInvalid
 	}
 
 	ext := basic.NewBasicExternalities() // Just to read runtime version
