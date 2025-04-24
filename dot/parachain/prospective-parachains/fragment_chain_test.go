@@ -276,7 +276,7 @@ func TestEarliestRelayParent(t *testing.T) {
 					Hash:   common.Hash{0x01},
 					Number: 10,
 				}
-				baseConstraints := &parachaintypes.Constraints{
+				baseConstraints := &parachaintypes.VStagingConstraints{
 					MinRelayParentNumber: 5,
 				}
 				ancestor := relayChainBlockInfo{
@@ -302,7 +302,7 @@ func TestEarliestRelayParent(t *testing.T) {
 					Hash:   common.Hash{0x01},
 					Number: 10,
 				}
-				baseConstraints := &parachaintypes.Constraints{
+				baseConstraints := &parachaintypes.VStagingConstraints{
 					MinRelayParentNumber: 5,
 				}
 				return &scope{
@@ -441,7 +441,7 @@ func TestFragmentChainWithFreshScope(t *testing.T) {
 		StorageRoot: common.Hash{0x00},
 	}
 
-	baseConstraints := &parachaintypes.Constraints{
+	baseConstraints := &parachaintypes.VStagingConstraints{
 		RequiredParent:       parachaintypes.HeadData{Data: []byte{byte(0)}},
 		MinRelayParentNumber: 0,
 		ValidationCodeHash:   parachaintypes.ValidationCodeHash(common.Hash{0x03}),
@@ -494,11 +494,12 @@ func makeConstraints(
 	minRelayParentNumber parachaintypes.BlockNumber,
 	validWatermarks []parachaintypes.BlockNumber,
 	requiredParent parachaintypes.HeadData,
-) *parachaintypes.Constraints {
-	return &parachaintypes.Constraints{
+) *parachaintypes.VStagingConstraints {
+	return &parachaintypes.VStagingConstraints{
 		MinRelayParentNumber:  minRelayParentNumber,
 		MaxPoVSize:            1_000_000,
 		MaxCodeSize:           1_000_000,
+		MaxHeadDataSize:       20480,
 		UMPRemaining:          10,
 		UMPRemainingBytes:     1_000,
 		MaxNumUMPPerCandidate: 10,
@@ -570,7 +571,7 @@ func TestScopeRejectsAncestors(t *testing.T) {
 		relayParent         *relayChainBlockInfo
 		ancestors           []relayChainBlockInfo
 		maxDepth            uint
-		baseConstraints     *parachaintypes.Constraints
+		baseConstraints     *parachaintypes.VStagingConstraints
 		pendingAvailability []*pendingAvailability
 		expectedError       error
 	}{
@@ -587,7 +588,7 @@ func TestScopeRejectsAncestors(t *testing.T) {
 					StorageRoot: common.BytesToHash(bytes.Repeat([]byte{0x69}, 69)),
 				},
 			},
-			maxDepth: 2,
+			maxDepth: 3,
 			baseConstraints: makeConstraints(8, []parachaintypes.BlockNumber{8, 9},
 				parachaintypes.HeadData{Data: []byte{0x01, 0x02, 0x03}}),
 			pendingAvailability: make([]*pendingAvailability, 0),
@@ -606,7 +607,7 @@ func TestScopeRejectsAncestors(t *testing.T) {
 					StorageRoot: common.BytesToHash(bytes.Repeat([]byte{69}, 32)),
 				},
 			},
-			maxDepth: 2,
+			maxDepth: 3,
 			baseConstraints: makeConstraints(0, []parachaintypes.BlockNumber{},
 				parachaintypes.HeadData{Data: []byte{1, 2, 3}}),
 			pendingAvailability: make([]*pendingAvailability, 0),
@@ -635,7 +636,7 @@ func TestScopeRejectsAncestors(t *testing.T) {
 					StorageRoot: common.BytesToHash(bytes.Repeat([]byte{69}, 32)),
 				},
 			},
-			maxDepth: 2,
+			maxDepth: 3,
 			baseConstraints: makeConstraints(0, []parachaintypes.BlockNumber{2},
 				parachaintypes.HeadData{Data: []byte{1, 2, 3}}),
 			pendingAvailability: make([]*pendingAvailability, 0),
@@ -982,12 +983,11 @@ func TestInitAndPopulateFromEmpty(t *testing.T) {
 }
 
 func populateFromPreviousStorage(scope *scope, storage *candidateStorage) *fragmentChain {
-	chain := newFragmentChain(scope, newCandidateStorage())
+	prevChain := newFragmentChain(scope, newCandidateStorage())
+	prevChain.unconnected = storage.clone()
 
-	// clone the value
-	prevChain := *chain
-	(&prevChain).unconnected = storage.clone()
-	chain.populateFromPrevious(&prevChain)
+	chain := newFragmentChain(scope, newCandidateStorage())
+	chain.populateFromPrevious(prevChain)
 	return chain
 }
 
@@ -1080,7 +1080,7 @@ func TestPopulateAndCheckPotential(t *testing.T) {
 	candidateCHash, candidateCEntry := hashAndInsertCandididate(t, storage, candidateC, pvdC, backed)
 
 	t.Run("candidate_A_doesnt_adhere_to_base_constraints", func(t *testing.T) {
-		wrongConstraints := []parachaintypes.Constraints{
+		wrongConstraints := []parachaintypes.VStagingConstraints{
 			// define a constraint that requires a parent head data
 			// that is different from candidate A parent head
 			*makeConstraints(relayParentAInfo.Number,
@@ -1095,7 +1095,7 @@ func TestPopulateAndCheckPotential(t *testing.T) {
 				*relayParentCInfo,
 				&wrongConstraint,
 				nil,
-				4,
+				5,
 				ancestors,
 			)
 			require.NoError(t, err)
@@ -1144,23 +1144,32 @@ func TestPopulateAndCheckPotential(t *testing.T) {
 			expectedBestChain   []parachaintypes.CandidateHash
 			expectedUnconnected map[parachaintypes.CandidateHash]struct{}
 		}{
-			"0_depth_only_allows_one_candidate_but_keep_the_rest_as_potential": {
+			"0_depth_allows_zero_candidate_but_keep_the_rest_as_potential": {
 				depth:             []uint{0},
+				expectedBestChain: []parachaintypes.CandidateHash{},
+				expectedUnconnected: map[parachaintypes.CandidateHash]struct{}{
+					candidateAHash: {},
+					candidateBHash: {},
+					candidateCHash: {},
+				},
+			},
+			"1_depth_allow_one_candidates": {
+				depth:             []uint{1},
 				expectedBestChain: []parachaintypes.CandidateHash{candidateAHash},
 				expectedUnconnected: map[parachaintypes.CandidateHash]struct{}{
 					candidateBHash: {},
 					candidateCHash: {},
 				},
 			},
-			"1_depth_allow_two_candidates": {
-				depth:             []uint{1},
+			"2_depth_allow_two_candidates": {
+				depth:             []uint{2},
 				expectedBestChain: []parachaintypes.CandidateHash{candidateAHash, candidateBHash},
 				expectedUnconnected: map[parachaintypes.CandidateHash]struct{}{
 					candidateCHash: {},
 				},
 			},
-			"2_more_depth_allow_all_candidates": {
-				depth:               []uint{2, 3, 4, 5},
+			"3_depth_allow_all_candidates": {
+				depth:               []uint{3, 4, 5},
 				expectedBestChain:   []parachaintypes.CandidateHash{candidateAHash, candidateBHash, candidateCHash},
 				expectedUnconnected: map[parachaintypes.CandidateHash]struct{}{},
 			},
@@ -1213,7 +1222,7 @@ func TestPopulateAndCheckPotential(t *testing.T) {
 				*relayParentCInfo,
 				baseConstraints,
 				nil,
-				4,
+				5,
 				newAncestors,
 			)
 			require.NoError(t, err)
@@ -1237,7 +1246,7 @@ func TestPopulateAndCheckPotential(t *testing.T) {
 				*relayParentCInfo,
 				baseConstraints,
 				nil,
-				4,
+				5,
 				nil,
 			)
 			require.NoError(t, err)
@@ -1280,7 +1289,7 @@ func TestPopulateAndCheckPotential(t *testing.T) {
 			*relayParentCInfo,
 			baseConstraints,
 			nil,
-			4,
+			5,
 			ancestors,
 		)
 		require.NoError(t, err)
@@ -1313,7 +1322,7 @@ func TestPopulateAndCheckPotential(t *testing.T) {
 
 		_, wrongCandidateCEntry := hashAndInsertCandididate(t, modifiedStorage, wrongCandidateC, wrongPvdC, backed)
 
-		scope, err := newScopeWithAncestors(*relayParentCInfo, baseConstraints, nil, 4, ancestors)
+		scope, err := newScopeWithAncestors(*relayParentCInfo, baseConstraints, nil, 5, ancestors)
 		require.NoError(t, err)
 
 		chain := populateFromPreviousStorage(scope, modifiedStorage)
@@ -1348,7 +1357,7 @@ func TestPopulateAndCheckPotential(t *testing.T) {
 			*relayParentCInfo,
 			baseConstraints,
 			nil,
-			4,
+			5,
 			ancestors,
 		)
 		require.NoError(t, err)
@@ -1549,7 +1558,7 @@ func TestPopulateAndCheckPotential(t *testing.T) {
 			*relayParentCInfo,
 			baseConstraints,
 			nil,
-			2,
+			3,
 			ancestors,
 		)
 		require.NoError(t, err)
@@ -1821,7 +1830,7 @@ func TestPopulateAndCheckPotential(t *testing.T) {
 					{candidateHash: candidateBHash, relayParent: *relayParentBInfo},
 					{candidateHash: candidateCHash, relayParent: *relayParentCInfo},
 				},
-				2,
+				0,
 				ancestors,
 			)
 			require.NoError(t, err)
@@ -1848,7 +1857,7 @@ func TestPopulateAndCheckPotential(t *testing.T) {
 
 			// simulate the fact that candidate A, B and C have been included
 			baseConstraints := makeConstraints(0, []parachaintypes.BlockNumber{0}, parachaintypes.HeadData{Data: []byte{0x0d}})
-			scope, err = newScopeWithAncestors(*relayParentCInfo, baseConstraints, nil, 2, ancestors)
+			scope, err = newScopeWithAncestors(*relayParentCInfo, baseConstraints, nil, 3, ancestors)
 			require.NoError(t, err)
 
 			prevChain := chain
@@ -1890,18 +1899,22 @@ func TestPopulateAndCheckPotential(t *testing.T) {
 }
 
 func cloneFragmentChain(original *fragmentChain) *fragmentChain {
+	clonedPendingAvailability := make([]*pendingAvailability, 0)
+	for _, pa := range original.scope.pendingAvailability {
+		clonedPendingAvailability = append(clonedPendingAvailability, &pendingAvailability{
+			candidateHash: pa.candidateHash,
+			relayParent:   pa.relayParent,
+		})
+	}
+
 	// Clone the scope
 	clonedScope := &scope{
 		relayParent:         original.scope.relayParent,
 		baseConstraints:     original.scope.baseConstraints.Clone(),
-		pendingAvailability: append([]*pendingAvailability(nil), original.scope.pendingAvailability...),
-		maxDepth:            original.scope.maxDepth,
+		pendingAvailability: clonedPendingAvailability,
+		maxBackableLen:      original.scope.maxBackableLen,
 		ancestors:           original.scope.ancestors.Copy(),
-		ancestorsByHash:     make(map[common.Hash]relayChainBlockInfo),
-	}
-
-	for k, v := range original.scope.ancestorsByHash {
-		clonedScope.ancestorsByHash[k] = v
+		ancestorsByHash:     maps.Clone(original.scope.ancestorsByHash),
 	}
 
 	// Clone the best chain
@@ -1917,14 +1930,11 @@ func cloneFragmentChain(original *fragmentChain) *fragmentChain {
 		clonedBestChain.push(clonedNode)
 	}
 
-	// Clone the unconnected storage
-	clonedUnconnected := original.unconnected.clone()
-
 	// Create the cloned fragment chain
 	clonedFragmentChain := &fragmentChain{
 		scope:       clonedScope,
 		bestChain:   clonedBestChain,
-		unconnected: clonedUnconnected,
+		unconnected: original.unconnected.clone(),
 	}
 
 	return clonedFragmentChain
@@ -1933,7 +1943,7 @@ func cloneFragmentChain(original *fragmentChain) *fragmentChain {
 func TestFindAncestorPathAndFindBackableChainEmptyBestChain(t *testing.T) {
 	relayParent := common.BytesToHash(bytes.Repeat([]byte{1}, 32))
 	requiredParent := parachaintypes.HeadData{Data: []byte{0xff}}
-	maxDepth := uint(10)
+	maxDepth := uint(11)
 
 	// Empty chain
 	baseConstraints := makeConstraints(0, []parachaintypes.BlockNumber{0}, requiredParent)
@@ -1965,7 +1975,7 @@ func TestFindAncestorPathAndFindBackableChain(t *testing.T) {
 	paraID := parachaintypes.ParaID(5)
 	relayParent := common.BytesToHash(bytes.Repeat([]byte{1}, 32))
 	requiredParent := parachaintypes.HeadData{Data: []byte{0xff}}
-	maxDepth := uint(5)
+	maxDepth := uint(6)
 	relayParentNumber := uint32(0)
 	relayParentStorageRoot := common.Hash{}
 
@@ -2195,7 +2205,7 @@ func TestFindAncestorPathAndFindBackableChain(t *testing.T) {
 			[]*pendingAvailability{
 				{candidateHash: candidateHashes[3], relayParent: relayParentInfo},
 			},
-			maxDepth,
+			maxDepth-1,
 			nil,
 		)
 		require.NoError(t, err)

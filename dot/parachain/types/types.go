@@ -42,6 +42,9 @@ type GroupRotationInfo struct {
 	Now BlockNumber `scale:"3"`
 }
 
+// UmpSeparator is a empty byte that defines the begin of
+var UmpSeparator = []byte{}
+
 // GroupForCore returns the index of the group needed to validate the core at the given index,
 // assuming the given number of cores.
 //

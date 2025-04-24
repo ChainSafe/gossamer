@@ -83,7 +83,7 @@ type GetHypotheticalMembership struct {
 	Candidates []parachaintypes.HypotheticalCandidate
 	// Either a specific fragment chain to check, otherwise all.
 	FragmentChainRelayParent *common.Hash
-	Response                 chan []HypotheticalMembershipResponseItem
+	Response                 chan []*HypotheticalMembershipResponseItem
 }
 
 type HypotheticalMembershipResponseItem struct {

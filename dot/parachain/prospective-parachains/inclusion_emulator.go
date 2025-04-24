@@ -33,9 +33,15 @@ type relayChainBlockInfo struct {
 	Number      parachaintypes.BlockNumber
 }
 
-func checkModifications(c *parachaintypes.Constraints, modifications *constraintModifications) error {
+func checkModifications(
+	c *parachaintypes.VStagingConstraints,
+	modifications *constraintModifications,
+) error {
 	if modifications.HrmpWatermark != nil && modifications.HrmpWatermark.Type == Trunk {
-		if !slices.Contains(c.HRMPInbound.ValidWatermarks, modifications.HrmpWatermark.Watermark()) {
+		if !slices.Contains(
+			c.HRMPInbound.ValidWatermarks,
+			modifications.HrmpWatermark.Watermark(),
+		) {
 			return &errDisallowedHrmpWatermark{BlockNumber: modifications.HrmpWatermark.Watermark()}
 		}
 	}
@@ -46,7 +52,10 @@ func checkModifications(c *parachaintypes.Constraints, modifications *constraint
 			return &errNoSuchHrmpChannel{paraID: id}
 		}
 
-		_, overflow := math.SafeSub(uint64(outbound.BytesRemaining), uint64(outboundHrmpMod.BytesSubmitted))
+		_, overflow := math.SafeSub(
+			uint64(outbound.BytesRemaining),
+			uint64(outboundHrmpMod.BytesSubmitted),
+		)
 		if overflow {
 			return &errHrmpBytesOverflow{
 				paraID:         id,
@@ -55,7 +64,10 @@ func checkModifications(c *parachaintypes.Constraints, modifications *constraint
 			}
 		}
 
-		_, overflow = math.SafeSub(uint64(outbound.MessagesRemaining), uint64(outboundHrmpMod.MessagesSubmitted))
+		_, overflow = math.SafeSub(
+			uint64(outbound.MessagesRemaining),
+			uint64(outboundHrmpMod.MessagesSubmitted),
+		)
 		if overflow {
 			return &errHrmpMessagesOverflow{
 				paraID:            id,
@@ -81,7 +93,10 @@ func checkModifications(c *parachaintypes.Constraints, modifications *constraint
 		}
 	}
 
-	_, overflow = math.SafeSub(uint64(len(c.DMPRemainingMessages)), uint64(modifications.DmpMessagesProcessed))
+	_, overflow = math.SafeSub(
+		uint64(len(c.DMPRemainingMessages)),
+		uint64(modifications.DmpMessagesProcessed),
+	)
 	if overflow {
 		return &errDmpMessagesUnderflow{
 			messagesRemaining: uint32(len(c.DMPRemainingMessages)),
@@ -96,8 +111,9 @@ func checkModifications(c *parachaintypes.Constraints, modifications *constraint
 	return nil
 }
 
-func applyModifications(c *parachaintypes.Constraints, modifications *constraintModifications) (
-	*parachaintypes.Constraints, error) {
+func applyModifications(c *parachaintypes.VStagingConstraints, modifications *constraintModifications) (
+	*parachaintypes.VStagingConstraints, error,
+) {
 	newConstraints := c.Clone()
 
 	if modifications.RequiredParent != nil {
@@ -282,7 +298,7 @@ func (cm *constraintModifications) Stack(other *constraintModifications) {
 // This is a type which guarantees that the candidate is valid under the operating constraints
 type Fragment struct {
 	relayParent          *relayChainBlockInfo
-	operatingConstraints *parachaintypes.Constraints
+	operatingConstraints *parachaintypes.VStagingConstraints
 	candidate            *prospectiveCandidate
 	modifications        *constraintModifications
 }
@@ -306,9 +322,9 @@ func (f *Fragment) ConstraintModifications() *constraintModifications {
 // small enough.
 func NewFragment(
 	relayParent *relayChainBlockInfo,
-	operatingConstraints *parachaintypes.Constraints,
-	candidate *prospectiveCandidate) (*Fragment, error) {
-
+	operatingConstraints *parachaintypes.VStagingConstraints,
+	candidate *prospectiveCandidate,
+) (*Fragment, error) {
 	modifications, err := checkAgainstConstraints(
 		relayParent,
 		operatingConstraints,
@@ -330,7 +346,7 @@ func NewFragment(
 
 func checkAgainstConstraints(
 	relayParent *relayChainBlockInfo,
-	operatingConstraints *parachaintypes.Constraints,
+	operatingConstraints *parachaintypes.VStagingConstraints,
 	commitments parachaintypes.CandidateCommitments,
 	validationCodeHash parachaintypes.ValidationCodeHash,
 	persistedValidationData parachaintypes.PersistedValidationData,
@@ -407,23 +423,88 @@ func checkAgainstConstraints(
 }
 
 // skipUmpSignals is a utility function for skipping the UMP signals.
-func skipUmpSignals(upwardMessages []parachaintypes.UpwardMessage) iter.Seq[parachaintypes.UpwardMessage] {
-	var UmpSeparator = []byte{}
+func skipUmpSignals(
+	upwardMessages []parachaintypes.UpwardMessage,
+) iter.Seq[parachaintypes.UpwardMessage] {
 	return func(yield func(parachaintypes.UpwardMessage) bool) {
 		for _, message := range upwardMessages {
-			if !bytes.Equal([]byte(message), UmpSeparator) {
+			if !bytes.Equal([]byte(message), parachaintypes.UmpSeparator) {
 				if !yield([]byte(message)) {
 					return
 				}
 				continue
 			}
+<<<<<<< HEAD
+=======
+
+>>>>>>> 26e3b571 (feat(prospective-parachains): introduce `GetHypotheticalMembership` handler (#4641))
 			return
 		}
 	}
 }
 
+func validateCommitments(
+	constraints *parachaintypes.VStagingConstraints,
+	relayParent *relayChainBlockInfo,
+	commitments parachaintypes.CandidateCommitments,
+	validationCodeHash parachaintypes.ValidationCodeHash,
+) error {
+	if constraints.ValidationCodeHash != validationCodeHash {
+		return &errValidationCodeMismatch{
+			expected: constraints.ValidationCodeHash,
+			got:      validationCodeHash,
+		}
+	}
+
+	if uint(len(commitments.HeadData.Data)) > constraints.MaxHeadDataSize {
+		return &errHeadDataTooLong{
+			max: constraints.MaxHeadDataSize,
+			got: uint(len(commitments.HeadData.Data)),
+		}
+	}
+
+	if relayParent.Number < constraints.MinRelayParentNumber {
+		return &errRelayParentTooOld{
+			minAllowed: constraints.MinRelayParentNumber,
+			current:    relayParent.Number,
+		}
+	}
+
+	if commitments.NewValidationCode != nil {
+		restriction, err := constraints.UpgradeRestriction.Value()
+		if err != nil {
+			return fmt.Errorf("while retrieving value: %w", err)
+		}
+		switch restriction.(type) {
+		case *parachaintypes.Present:
+			return errCodeUpgradeRestricted
+		}
+	}
+
+	announcedCodeSize := 0
+	if commitments.NewValidationCode != nil {
+		announcedCodeSize = len(*commitments.NewValidationCode)
+	}
+
+	if uint32(announcedCodeSize) > constraints.MaxCodeSize {
+		return &errCodeSizeTooLarge{
+			maxAllowed: constraints.MaxCodeSize,
+			newSize:    uint32(announcedCodeSize),
+		}
+	}
+
+	if len(commitments.HorizontalMessages) > int(constraints.MaxNumHRMPPerCandidate) {
+		return &errHrmpMessagesPerCandidateOverflow{
+			messagesAllowed:   constraints.MaxNumHRMPPerCandidate,
+			messagesSubmitted: uint32(len(commitments.HorizontalMessages)),
+		}
+	}
+
+	return nil
+}
+
 func validateAgainstConstraints(
-	constraints *parachaintypes.Constraints,
+	constraints *parachaintypes.VStagingConstraints,
 	relayParent *relayChainBlockInfo,
 	commitments parachaintypes.CandidateCommitments,
 	persistedValidationData parachaintypes.PersistedValidationData,
@@ -480,7 +561,8 @@ func validateAgainstConstraints(
 	}
 
 	if modifications.DmpMessagesProcessed == 0 {
-		if len(constraints.DMPRemainingMessages) > 0 && constraints.DMPRemainingMessages[0] <= relayParent.Number {
+		if len(constraints.DMPRemainingMessages) > 0 &&
+			constraints.DMPRemainingMessages[0] <= relayParent.Number {
 			return errDmpAdvancementRule
 		}
 	}
@@ -504,4 +586,17 @@ func validateAgainstConstraints(
 	}
 
 	return nil
+}
+
+// HypotheticalOrConcrete is used to make the types
+// HypotheticalCandidateIncomplete, HypotheticalCandidateComplete and candidate entry
+// coherents when fragment chain wants to check if they are potential candidates.
+type HypotheticalOrConcrete interface {
+	CandidateHash() parachaintypes.CandidateHash
+	GetParentHeadDataHash() (common.Hash, error)
+	RelayParentHash() common.Hash
+	GetOutputHeadDataHash() *common.Hash
+	Commitments() *parachaintypes.CandidateCommitments
+	GetPersistedValidationData() *parachaintypes.PersistedValidationData
+	ValidationCodeHash() *parachaintypes.ValidationCodeHash
 }
