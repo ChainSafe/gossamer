@@ -65,7 +65,7 @@ type (
 func (pph PrePostHeadersSame[N, H, Header]) Post() Header      { return pph.Header }
 func (pph PrePostHeadersDifferent[N, H, Header]) Post() Header { return pph.PostHeader }
 
-// / Client configuration items.
+// Client configuration items.
 type ClientConfig[N runtime.Number] struct {
 	// Enable the offchain worker db.
 	OffchainWorkerEnabled bool
