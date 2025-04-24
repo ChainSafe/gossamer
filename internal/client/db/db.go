@@ -460,10 +460,12 @@ func (bdb *blockchainDB[H, N, E, Header]) Leaves() ([]H, error) {
 	return bdb.leaves.Hashes(), nil
 }
 
-func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(blockNumber N) ([]H, error) {
+func (bdb *blockchainDB[H, N, E, Header]) DisplacedLeavesAfterFinalizing(
+	blockHash H, blockNumber N,
+) (blockchain.DisplacedLeavesAfterFinalization[H, N], error) {
 	bdb.leavesMtx.RLock()
 	defer bdb.leavesMtx.RUnlock()
-	return bdb.leaves.DisplacedByFinalHeight(blockNumber).Leaves(), nil
+	panic("FIX ME with default displaced_leaves_after_finalizing from Backend trait")
 }
 
 func (bdb *blockchainDB[H, N, E, Header]) Children(parentHash H) ([]H, error) {

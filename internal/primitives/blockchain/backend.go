@@ -11,6 +11,25 @@ import (
 	"github.com/ChainSafe/gossamer/internal/primitives/runtime/generic"
 )
 
+// Result of DisplacedLeavesAfterFinalizing
+type DisplacedLeavesAfterFinalization[H runtime.Hash, N runtime.Number] struct {
+	// A list of hashes and block numbers of displaced leaves.
+	DisplacedLeaves []HashNumber[H, N]
+
+	// A list of hashes displaced blocks from all displaced leaves.
+	DisplacedBlocks []H
+}
+
+// Returns a collection of hashes for the displaced leaves.
+func (d DisplacedLeavesAfterFinalization[H, N]) Hashes() []H {
+	hashes := make([]H, 0, len(d.DisplacedLeaves))
+	for _, displacedLeaf := range d.DisplacedLeaves {
+		hashes = append(hashes, displacedLeaf.Hash)
+	}
+
+	return hashes
+}
+
 // Represents the type of block gaps that may result from either warp sync or fast sync.
 type BlockGapType uint8
 
@@ -109,7 +128,7 @@ type Backend[Hash runtime.Hash, N runtime.Number, Header runtime.Header[N, Hash]
 
 	// DisplacedLeavesAfterFinalizing returns displaced leaves after the given block would be finalized.
 	// The returned leaves do not contain the leaves from the same height as blockNumber.
-	DisplacedLeavesAfterFinalizing(blockNumber N) ([]Hash, error)
+	DisplacedLeavesAfterFinalizing(blockHash Hash, blockNumber N) (DisplacedLeavesAfterFinalization[Hash, N], error)
 
 	// Children returns hashes of all blocks that are children of the block with parentHash.
 	Children(parentHash Hash) ([]Hash, error)
