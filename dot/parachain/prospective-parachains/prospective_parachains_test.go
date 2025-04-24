@@ -164,7 +164,7 @@ func TestHandleIntroduceSecondedCandidate(
 	headData := parachaintypes.HeadData{
 		Data: bytes.Repeat([]byte{0x02}, 32),
 	}
-	validationCodeHash := parachaintypes.ValidationCodeHash{0x01}
+	validationCodeHash := parachaintypes.ValidationCodeHash(common.Hash{0x03})
 	candidateRelayParentNumber := uint32(1)
 
 	candidate := makeCandidate(
@@ -191,6 +191,7 @@ func TestHandleIntroduceSecondedCandidate(
 
 	baseConstraints := &parachaintypes.VStagingConstraints{
 		RequiredParent:       parachaintypes.HeadData{Data: []byte{byte(0)}},
+		MaxHeadDataSize:      1_000_000,
 		MinRelayParentNumber: 0,
 		ValidationCodeHash:   parachaintypes.ValidationCodeHash(common.Hash{0x03}),
 	}

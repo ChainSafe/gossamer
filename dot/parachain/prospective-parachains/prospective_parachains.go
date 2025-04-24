@@ -156,7 +156,7 @@ func (pp *ProspectiveParachains) introduceSecondedCandidate(
 		err = chain.tryAddingSecondedCandidate(entry)
 		if err != nil {
 			if errors.Is(err, errCandidateAlreadyKnown) {
-				logger.Tracef(
+				logger.Warnf(
 					"attempting to introduce an already known candidate with hash: %s, para: %v relayParent: %v isActiveLeaf: %v",
 					candidateHash,
 					para,
@@ -165,7 +165,7 @@ func (pp *ProspectiveParachains) introduceSecondedCandidate(
 				)
 				added = append(added, relayParent)
 			} else {
-				logger.Tracef(
+				logger.Warnf(
 					"adding seconded candidate with hash: %s error: %s para: %v relayParent: %v isActiveLeaf: %v",
 					candidateHash,
 					err.Error(),
