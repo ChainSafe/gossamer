@@ -499,6 +499,7 @@ func makeConstraints(
 		MinRelayParentNumber:  minRelayParentNumber,
 		MaxPoVSize:            1_000_000,
 		MaxCodeSize:           1_000_000,
+		MaxHeadDataSize:       20480,
 		UMPRemaining:          10,
 		UMPRemainingBytes:     1_000,
 		MaxNumUMPPerCandidate: 10,
@@ -1549,7 +1550,7 @@ func TestPopulateAndCheckPotential(t *testing.T) {
 			*relayParentCInfo,
 			baseConstraints,
 			nil,
-			2,
+			3,
 			ancestors,
 		)
 		require.NoError(t, err)
